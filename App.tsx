@@ -1,45 +1,22 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+// 파일: App.tsx
+// 목적:
+// - 앱 최상단 Root 컴포넌트
+// - NavigationContainer로 네비게이션 상태/컨텍스트를 제공
+//
+// 앱 구동 순서:
+// index.js → App.tsx → RootNavigator → Splash(HomeScreen) → Main(MainScreen)
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
-import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+import AppProviders from './src/app/providers/AppProviders';
+import RootNavigator from './src/navigation/RootNavigator';
 
-function App() {
-  const isDarkMode = useColorScheme() === 'dark';
-
+export default function App() {
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppContent />
-    </SafeAreaProvider>
+    <AppProviders>
+      <NavigationContainer>
+        <RootNavigator />
+      </NavigationContainer>
+    </AppProviders>
   );
 }
-
-function AppContent() {
-  const safeAreaInsets = useSafeAreaInsets();
-
-  return (
-    <View style={styles.container}>
-      <NewAppScreen
-        templateFileName="App.tsx"
-        safeAreaInsets={safeAreaInsets}
-      />
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});
-
-export default App;

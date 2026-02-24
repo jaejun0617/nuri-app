@@ -1,21 +1,36 @@
+// 파일: android/build.gradle
+// 목적:
+// - Android 공통 빌드 설정(버전/SDK) 정의
+// - 루트에 RN rootproject 플러그인을 plugins DSL로 적용(플러그인 해석 안정화)
+
 buildscript {
-    ext {
-        buildToolsVersion = "36.0.0"
-        minSdkVersion = 24
-        compileSdkVersion = 36
-        targetSdkVersion = 36
-        ndkVersion = "27.1.12297006"
-        kotlinVersion = "2.1.20"
-    }
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath("com.android.tools.build:gradle")
-        classpath("com.facebook.react:react-native-gradle-plugin")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
-    }
+  ext {
+    // ✅ 네가 올려준 값 유지
+    buildToolsVersion = "36.0.0"
+    minSdkVersion = 24
+    compileSdkVersion = 36
+    targetSdkVersion = 36
+    ndkVersion = "27.1.12297006"
+    kotlinVersion = "2.1.20"
+
+    // ✅ AGP는 명시적으로 박아두는 게 안정적 (Android Studio Sync 포함)
+    agpVersion = "8.6.1"
+  }
+
+  repositories {
+    google()
+    mavenCentral()
+  }
+
+  dependencies {
+    // ✅ AGP / Kotlin만 여기서 classpath로 제공
+    classpath("com.android.tools.build:gradle:${agpVersion}")
+    classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
+  }
 }
 
-apply plugin: "com.facebook.react.rootproject"
+// ✅ RN 루트 플러그인은 settings.gradle의 includeBuild로 공급되므로
+// apply plugin이 아니라 plugins DSL로 적용
+plugins {
+  id("com.facebook.react.rootproject")
+}
