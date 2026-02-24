@@ -77,3 +77,6 @@ yarn-error.log
 # Android bugreport
 android/bugreport-*.zip
 android/bugreport*.zip
+
+# Supabase (local only)
+src/services/supabase/config.ts
