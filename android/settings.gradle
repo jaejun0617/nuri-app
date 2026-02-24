@@ -1,33 +1,39 @@
 // 파일: android/settings.gradle
-// 목적:
-// - RN Gradle Plugin을 "로컬 includeBuild"로 플러그인 해석에 연결
-// - plugins DSL에서 com.facebook.react.* 플러그인을 정상 인식시키기 위함
 
 pluginManagement {
-  repositories {
-    gradlePluginPortal()
-    google()
-    mavenCentral()
-  }
-  includeBuild("../node_modules/@react-native/gradle-plugin")
+    repositories {
+        gradlePluginPortal()
+        google()
+        mavenCentral()
+    }
+    includeBuild("../node_modules/@react-native/gradle-plugin")
 }
 
 plugins {
-  id("com.facebook.react.settings")
+    id("com.facebook.react.settings")
 }
 
 dependencyResolutionManagement {
-  repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)
-  repositories {
-    google()
-    mavenCentral()
-    maven { url("$rootDir/../node_modules/react-native/android") }
-    maven { url("$rootDir/../node_modules/jsc-android/dist") }
-  }
+    // ✅ 다시 표준 설정인 PREFER_PROJECT로 복구 (build.gradle에서 경로를 잡아줬으므로 안전합니다)
+    repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)
+
+    repositories {
+        google()
+        mavenCentral()
+
+        // 🔥 AsyncStorage v3 로컬 경로
+        maven { 
+            url("$rootDir/../node_modules/@react-native-async-storage/async-storage/android/local_repo") 
+        }
+
+        maven { url("$rootDir/../node_modules/react-native/android") }
+        maven { url("$rootDir/../node_modules/jsc-android/dist") }
+        maven { url("https://www.jitpack.io") }
+    }
 }
 
 extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
-  ex.autolinkLibrariesFromCommand()
+    ex.autolinkLibrariesFromCommand()
 }
 
 rootProject.name = "nuri"

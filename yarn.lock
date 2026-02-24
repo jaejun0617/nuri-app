@@ -1944,6 +1944,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@react-native-async-storage/async-storage@npm:^3.0.1":
+  version: 3.0.1
+  resolution: "@react-native-async-storage/async-storage@npm:3.0.1"
+  dependencies:
+    idb: 8.0.3
+  peerDependencies:
+    react: "*"
+    react-native: "*"
+  checksum: e8a9f1cf48da0e90eb914586d59cc715523160d720354b34c0756ca84a81ce389b14169e7158b93d214c8c17235a89b360a97c327e2b8ca9ed441cacc97aad0a
+  languageName: node
+  linkType: hard
+
 "@react-native-community/cli-clean@npm:20.1.0":
   version: 20.1.0
   resolution: "@react-native-community/cli-clean@npm:20.1.0"
@@ -5381,6 +5393,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"idb@npm:8.0.3":
+  version: 8.0.3
+  resolution: "idb@npm:8.0.3"
+  checksum: e0f160be2b9a3b031db25a3bd134b5187f1b51d7e2cdc85a0e5ec62b0f635a7e37847d4888c9d919e7de1e9d8646a9390ce42d249b6a0b30d538c651ab1c3852
+  languageName: node
+  linkType: hard
+
 "ieee754@npm:^1.1.13, ieee754@npm:^1.2.1":
   version: 1.2.1
   resolution: "ieee754@npm:1.2.1"
@@ -7256,6 +7275,7 @@ __metadata:
     "@babel/core": ^7.25.2
     "@babel/preset-env": ^7.25.3
     "@babel/runtime": ^7.25.0
+    "@react-native-async-storage/async-storage": ^3.0.1
     "@react-native-community/cli": 20.1.0
     "@react-native-community/cli-platform-android": 20.1.0
     "@react-native-community/cli-platform-ios": 20.1.0

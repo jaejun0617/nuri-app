@@ -39,7 +39,7 @@ export default function DevTestScreen() {
   // ---------------------------------------------------------
   const [email, setEmail] = useState('test@nuri.dev');
   const [password, setPassword] = useState('password1234');
-  const [nickname, setNickname] = useState('누리야사랑해');
+  const [nickname, setNickname] = useState('nurilove');
   const [petName, setPetName] = useState('누리');
 
   // ---------------------------------------------------------
@@ -96,6 +96,8 @@ export default function DevTestScreen() {
         email,
         password,
       });
+      console.log('LOGIN DATA:', data);
+      console.log('LOGIN ERROR:', error);
       if (error) throw error;
 
       pushLog(`✅ 로그인 성공: user=${data.user?.id}`);

@@ -1,36 +1,47 @@
 // 파일: android/build.gradle
-// 목적:
-// - Android 공통 빌드 설정(버전/SDK) 정의
-// - 루트에 RN rootproject 플러그인을 plugins DSL로 적용(플러그인 해석 안정화)
+// 목적: Gradle 최신 규칙에 따른 플러그인 및 전역 저장소 설정
 
 buildscript {
-  ext {
-    // ✅ 네가 올려준 값 유지
-    buildToolsVersion = "36.0.0"
-    minSdkVersion = 24
-    compileSdkVersion = 36
-    targetSdkVersion = 36
-    ndkVersion = "27.1.12297006"
-    kotlinVersion = "2.1.20"
+    ext {
+        buildToolsVersion = "36.0.0"
+        minSdkVersion = 24
+        compileSdkVersion = 36
+        targetSdkVersion = 36
+        ndkVersion = "27.1.12297006"
+        kotlinVersion = "2.1.20"
+        agpVersion = "8.6.1"
+    }
 
-    // ✅ AGP는 명시적으로 박아두는 게 안정적 (Android Studio Sync 포함)
-    agpVersion = "8.6.1"
-  }
+    repositories {
+        google()
+        mavenCentral()
+    }
 
-  repositories {
-    google()
-    mavenCentral()
-  }
-
-  dependencies {
-    // ✅ AGP / Kotlin만 여기서 classpath로 제공
-    classpath("com.android.tools.build:gradle:${agpVersion}")
-    classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
-  }
+    dependencies {
+        classpath("com.android.tools.build:gradle:${agpVersion}")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
+    }
 }
 
-// ✅ RN 루트 플러그인은 settings.gradle의 includeBuild로 공급되므로
-// apply plugin이 아니라 plugins DSL로 적용
+// ✅ [중요] plugins 블록은 다른 설정(allprojects 등)보다 반드시 위에 있어야 합니다.
 plugins {
-  id("com.facebook.react.rootproject")
+    id("com.facebook.react.rootproject")
+}
+
+// ✅ 모든 서브 프로젝트에 적용될 저장소 설정
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        
+        // 🔥 AsyncStorage v3 네이티브 라이브러리 로컬 경로
+        maven {
+            url "$rootDir/../node_modules/@react-native-async-storage/async-storage/android/local_repo"
+        }
+        
+        // React Native 및 기타 라이브러리용
+        maven { url("$rootDir/../node_modules/react-native/android") }
+        maven { url("$rootDir/../node_modules/jsc-android/dist") }
+        maven { url "https://www.jitpack.io" }
+    }
 }
