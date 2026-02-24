@@ -8,10 +8,18 @@
 // 2) index.js 실행
 // 3) AppRegistry.registerComponent(appName, () => App) 등록
 // 4) 네이티브가 등록된 App 컴포넌트를 렌더링 시작
+// - RN에서 Supabase 사용 시 필요한 polyfill 로드
+// - 반드시 앱 부팅 초기에 import 되어야 함
 
+// 파일: index.js
 import 'react-native-gesture-handler';
-import { AppRegistry } from 'react-native';
+import 'react-native-url-polyfill/auto';
+import 'react-native-get-random-values';
 
+import { Buffer } from 'buffer';
+global.Buffer = global.Buffer || Buffer;
+
+import { AppRegistry } from 'react-native';
 import App from './App';
 import { name as appName } from './app.json';
 
