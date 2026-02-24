@@ -1,17 +1,31 @@
 // 파일: src/screens/Home/HomeScreen.styles.ts
 // 목적:
 // - HomeScreen UI 스타일 (styled-components)
-// - Splash 카드 레이아웃 + 로고/텍스트 배치
+// - 배경 이미지(ImageBackground) + 오버레이 + 카드 레이아웃
 
-import { Image, Pressable, View } from 'react-native';
+import { Image, ImageBackground, Pressable, View } from 'react-native';
 import styled from 'styled-components/native';
+
+export const Background = styled(ImageBackground)`
+  flex: 1;
+`;
+
+export const Overlay = styled(View).attrs({
+  style: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+})``;
 
 export const Container = styled(View)`
   flex: 1;
   justify-content: center;
   align-items: center;
   padding: 24px;
-  background-color: #0b1f3a;
 `;
 
 export const Card = styled(View)`
@@ -19,7 +33,7 @@ export const Card = styled(View)`
   max-width: 420px;
   padding: 24px;
   border-radius: 18px;
-  background-color: rgba(255, 255, 255, 0.06);
+  background-color: rgba(0, 0, 0, 0.45);
 `;
 
 export const BrandRow = styled(View)`
