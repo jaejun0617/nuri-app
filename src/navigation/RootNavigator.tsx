@@ -1,11 +1,8 @@
 // 파일: src/navigation/RootNavigator.tsx
 // 목적:
-// - 앱의 라우팅(화면 전환) 뼈대
-// - Native Stack 기반으로 화면 전환 구현
-//
-// 네비 흐름:
-// Splash(HomeScreen) → (2초 뒤) Main(MainScreen)
-// ※ 뒤로가기를 살리려면 HomeScreen에서 reset 대신 navigate를 사용해야 한다.
+// - Native Stack 기반 라우팅 구성
+// - Splash는 헤더 숨김
+// - Main은 헤더 표시 → 자동 뒤로가기 버튼 활성화
 
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -22,12 +19,25 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootNavigator() {
   return (
-    <Stack.Navigator
-      initialRouteName="Splash"
-      screenOptions={{ headerShown: false }}
-    >
-      <Stack.Screen name="Splash" component={HomeScreen} />
-      <Stack.Screen name="Main" component={MainScreen} />
+    <Stack.Navigator initialRouteName="Splash">
+      {/* Splash 화면은 헤더 숨김 */}
+      <Stack.Screen
+        name="Splash"
+        component={HomeScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
+
+      {/* Main 화면은 헤더 표시 → 자동 뒤로가기 버튼 생성 */}
+      <Stack.Screen
+        name="Main"
+        component={MainScreen}
+        options={{
+          title: '홈',
+          headerBackTitle: '뒤로',
+        }}
+      />
     </Stack.Navigator>
   );
 }

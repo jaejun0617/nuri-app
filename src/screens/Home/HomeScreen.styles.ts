@@ -3,7 +3,7 @@
 // - HomeScreen UI 스타일 (styled-components)
 // - Splash 카드 레이아웃 + 로고/텍스트 배치
 
-import { Image, View } from 'react-native';
+import { Image, Pressable, View } from 'react-native';
 import styled from 'styled-components/native';
 
 export const Container = styled(View)`
@@ -35,4 +35,12 @@ export const Logo = styled(Image)`
 
 export const Spacer = styled(View)<{ $h: number }>`
   height: ${({ $h }) => `${$h}px`};
+`;
+
+export const Button = styled(Pressable)`
+  margin-top: 8px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background-color: #2563eb;
+  align-items: center;
 `;
