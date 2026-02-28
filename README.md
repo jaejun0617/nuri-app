@@ -393,6 +393,49 @@ USING (user_id = auth.uid());
 
 ---
 
+---
+
+## ✅ Auth 구현 현황 (React Native + Supabase)
+
+NURI는 **게스트 우선 전략**을 유지하면서, 필요 시 **로그인/회원가입/닉네임 설정**으로 자연스럽게 진입할 수 있도록 Auth 플로우를 추가했습니다.
+
+### 1) 라우팅 구조
+
+- `Splash → Main` 기본 흐름 유지
+- 게스트가 “로그인하고 시작하기”를 누르면 `AuthLanding`으로 이동
+- 로그인/회원가입 성공 시 `Main`으로 reset 처리
+
+라우트:
+
+- `AuthLanding` : 로그인/회원가입 선택 + 게스트로 계속
+- `SignIn` : 이메일/비밀번호 로그인
+- `SignUp` : 이메일/비밀번호 회원가입
+- `NicknameSetup` : nickname 없을 때 1회 설정
+
+### 2) 닉네임 정책
+
+- 로그인 상태 + nickname 존재 시: `"{nickname}님, 반가워요!"`
+- nickname이 없으면: 기본 문구 `"반가워요!"`
+- nickname은 `profiles` 테이블에 저장/조회
+
+### 3) 전역 상태(Zustand)
+
+- `authStore`
+  - session 저장/복원(AsyncStorage)
+  - `isLoggedIn` 값을 boolean으로 제공(화면에서 함수 호출 금지)
+  - nickname은 profiles fetch 후 주입
+- `petStore`
+  - `pets[]`, `selectedPetId`
+  - 멀티펫 선택 기반으로 홈 데이터 교체 (UI는 유지, 데이터만 스위칭)
+
+---
+
+### Multi-Pet UX 확정 (Header Switcher)
+
+- 스와이프 방식은 제외
+- 헤더 우측에 **작은 썸네일 리스트 + (+) 추가 버튼** 배치
+- 썸네일 탭 시 `selectedPetId`만 변경 → **홈 레이아웃은 유지, 데이터만 교체**
+
 ## 13. 필수 설치 패키지 (현재 프로젝트 기준)
 
 > ✅ “지금 단계에서 반드시 필요한 것들”만 설치하고, 나머지는 필요한 시점에 추가합니다.
@@ -457,6 +500,16 @@ USING (user_id = auth.uid());
 - “오늘의 메시지(아침/점심/오후)” 시간대별 고정 메시지 + AI 생성으로 확장
 
 ---
+
+## ✅ 홈 레이아웃 분기 정책 (Guest / Logged-in)
+
+NURI의 홈(Main)은 로그인 상태에 따라 **완전히 다른 레이아웃**을 사용합니다.
+
+- `guest` 상태: GuestHome(로그인 전용 홈 레이아웃)
+- `logged_in` 상태: LoggedInHome(실제 홈 레이아웃)
+
+MainScreen은 분기만 담당하며, 각 레이아웃은 컴포넌트/스타일 파일로 분리하여
+UI 수정(디자인 싱크)을 빠르게 반복할 수 있도록 구성했습니다.
 
 ## 15. Engineering Focus
 
