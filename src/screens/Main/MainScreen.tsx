@@ -48,7 +48,6 @@ export default function MainScreen() {
   // 2) Zustand 원천 상태만 구독
   // - 파생은 화면(useMemo)에서 계산 (버그 방지)
   // ---------------------------------------------------------
-  const status = useAuthStore(s => s.status);
   const isLoggedIn = useAuthStore(s => s.isLoggedIn);
   const nicknameRaw = useAuthStore(s => s.profile.nickname);
 
@@ -63,12 +62,12 @@ export default function MainScreen() {
   const hasPets = pets.length > 0;
 
   const selectedPet = useMemo(() => {
-    if (!hasPets) return null;
+    if (pets.length === 0) return null;
     if (selectedPetId && pets.some(p => p.id === selectedPetId)) {
       return pets.find(p => p.id === selectedPetId) ?? pets[0];
     }
     return pets[0];
-  }, [hasPets, pets, selectedPetId]);
+  }, [pets, selectedPetId]);
 
   // ---------------------------------------------------------
   // 4) 문구 정책
@@ -87,13 +86,13 @@ export default function MainScreen() {
   }, [isLoggedIn, hasPets]);
 
   // ---------------------------------------------------------
-  // 5) 태그/함께한시간 (오류 방지 버전)
+  // 5) 태그/함께한시간 (ESLint 경고 제거 버전)
   // ---------------------------------------------------------
   const tags = useMemo(() => {
     const petTags = selectedPet?.tags ?? [];
     if (petTags.length > 0) return petTags;
     return ['#산책러버', '#간식최애', '#주인바라기'];
-  }, [selectedPet?.id, selectedPet?.tags]);
+  }, [selectedPet?.tags]);
 
   const togetherDaysText = useMemo(() => {
     const adoptionDate = selectedPet?.adoptionDate ?? null;
@@ -102,7 +101,7 @@ export default function MainScreen() {
       return `우리가 함께한 시간 · ${days}일째`;
     }
     return '우리가 함께한 시간';
-  }, [selectedPet?.id, selectedPet?.adoptionDate]);
+  }, [selectedPet?.adoptionDate]);
 
   // ---------------------------------------------------------
   // 6) 액션 핸들러 (다음 단계: 네비게이션/가드 라우팅 연결)
