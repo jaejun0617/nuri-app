@@ -1,11 +1,8 @@
 // 파일: src/screens/Main/MainScreen.tsx
 // 목적:
 // - "홈" 메인 화면 (게스트/로그인/펫 등록 여부/멀티펫) UI 기준점
-// - 현재 단계: UI 하드코딩 + Zustand(auth/pets/selectedPetId) 연결 완료
-// - 다음 단계:
-//   1) Supabase 실데이터(pets/records) fetch
-//   2) store.setPets()로 주입
-//   3) selectedPetId 기반 멀티펫 전환(헤더 썸네일) 실사용
+// - 현재 단계: UI 하드코딩 완성 + Auth/Zustand 연결 완료
+// - 다음 단계: pets 실데이터 fetch → store.setPets() 주입
 //
 // 구현 원칙:
 // - 레이아웃 고정 + 상태에 따른 분기 렌더링
@@ -15,16 +12,18 @@
 
 import React, { useMemo } from 'react';
 import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { styles } from './MainScreen.styles';
 import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
+import type { RootStackParamList } from '../../navigation/RootNavigator';
 
 /* ---------------------------------------------------------
  * 1) 유틸 (KST 기준 D-Day 계산)
  * -------------------------------------------------------- */
 function diffDaysFromKst(dateYmd: string) {
-  // - YYYY-MM-DD만 지원
   const [y, m, d] = dateYmd.split('-').map(Number);
   const start = new Date(Date.UTC(y, m - 1, d, 0, 0, 0));
 
@@ -39,29 +38,33 @@ function diffDaysFromKst(dateYmd: string) {
   );
 
   const ms = kstToday.getTime() - start.getTime();
-  return Math.floor(ms / (1000 * 60 * 60 * 24)) + 1; // 1일째부터
+  return Math.floor(ms / (1000 * 60 * 60 * 24)) + 1;
 }
 
 export default function MainScreen() {
   // ---------------------------------------------------------
-  // 2) Zustand 원천 상태만 구독
+  // 2) 네비게이션
+  // ---------------------------------------------------------
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
+  // ---------------------------------------------------------
+  // 3) Zustand 원천 상태만 구독
   // ---------------------------------------------------------
   const isLoggedIn = useAuthStore(s => s.isLoggedIn);
   const nicknameRaw = useAuthStore(s => s.profile.nickname);
 
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
-  const selectPet = usePetStore(s => s.selectPet);
 
   // ---------------------------------------------------------
-  // 3) 파생 상태 (안전하고 예측 가능한 방식)
+  // 4) 파생 상태 (안전하게 useMemo로 계산)
   // ---------------------------------------------------------
   const nickname = useMemo(() => nicknameRaw?.trim() || null, [nicknameRaw]);
-
   const hasPets = pets.length > 0;
 
   const selectedPet = useMemo(() => {
-    if (!pets.length) return null;
+    if (pets.length === 0) return null;
     if (selectedPetId && pets.some(p => p.id === selectedPetId)) {
       return pets.find(p => p.id === selectedPetId) ?? pets[0];
     }
@@ -69,7 +72,7 @@ export default function MainScreen() {
   }, [pets, selectedPetId]);
 
   // ---------------------------------------------------------
-  // 4) 문구 정책
+  // 5) 문구 정책
   // ---------------------------------------------------------
   const greetingTitle = useMemo(() => {
     if (isLoggedIn && nickname) return `${nickname}님, 반가워요!`;
@@ -84,7 +87,7 @@ export default function MainScreen() {
   }, [isLoggedIn, hasPets]);
 
   // ---------------------------------------------------------
-  // 5) 태그/함께한시간
+  // 6) 태그/함께한 시간
   // ---------------------------------------------------------
   const tags = useMemo(() => {
     const petTags = selectedPet?.tags ?? [];
@@ -102,11 +105,11 @@ export default function MainScreen() {
   }, [selectedPet?.adoptionDate]);
 
   // ---------------------------------------------------------
-  // 6) 액션 핸들러 (다음 단계에서 네비게이션 연결)
+  // 7) 액션 핸들러
   // ---------------------------------------------------------
   const onPressSignIn = () => {
-    // TODO:
-    // - AuthLanding으로 이동
+    // 게스트면 AuthLanding으로
+    navigation.navigate('AuthLanding');
   };
 
   const onPressCreatePet = () => {
@@ -129,13 +132,8 @@ export default function MainScreen() {
     // - GuestbookScreen 이동
   };
 
-  const onPressPetChip = (petId: string) => {
-    // 멀티펫 전환 (selectedPetId 변경)
-    selectPet(petId);
-  };
-
   // ---------------------------------------------------------
-  // 7) UI
+  // 8) UI
   // ---------------------------------------------------------
   return (
     <View style={styles.screen}>
@@ -144,66 +142,26 @@ export default function MainScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ---------------------------------------------------------
-            1) 헤더
-            - 좌: 인사말
-            - 우: 멀티펫 썸네일 리스트 + (+) 추가 버튼
-            - 펫 없으면: 썸네일 1개 placeholder + (+)만 노출
-        --------------------------------------------------------- */}
+        {/* 1) 헤더 */}
         <View style={styles.header}>
           <View style={styles.headerTextArea}>
             <Text style={styles.title}>{greetingTitle}</Text>
             <Text style={styles.subTitle}>{greetingSubTitle}</Text>
           </View>
 
-          <View style={styles.petSwitcherRow}>
-            {hasPets ? (
-              pets.map(pet => {
-                const isActive = pet.id === selectedPet?.id;
-                return (
-                  <TouchableOpacity
-                    key={pet.id}
-                    activeOpacity={0.85}
-                    onPress={() => onPressPetChip(pet.id)}
-                    style={[
-                      styles.petChip,
-                      isActive ? styles.petChipActive : null,
-                    ]}
-                    accessibilityRole="button"
-                    accessibilityLabel={`펫 전환: ${pet.name}`}
-                  >
-                    {pet.avatarUrl ? (
-                      <Image
-                        source={{ uri: pet.avatarUrl }}
-                        style={styles.petChipImage}
-                      />
-                    ) : (
-                      <View style={styles.petChipPlaceholder} />
-                    )}
-                  </TouchableOpacity>
-                );
-              })
-            ) : (
-              <View style={[styles.petChip, styles.petChipActive]}>
-                <View style={styles.petChipPlaceholder} />
-              </View>
-            )}
-
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={isLoggedIn ? onPressCreatePet : onPressSignIn}
-              style={styles.petAddChip}
-              accessibilityRole="button"
-              accessibilityLabel="반려동물 추가"
-            >
-              <Text style={styles.petAddPlus}>＋</Text>
-            </TouchableOpacity>
-          </View>
+          {hasPets && selectedPet?.avatarUrl ? (
+            <Image
+              source={{ uri: selectedPet.avatarUrl }}
+              style={styles.smallProfile}
+            />
+          ) : (
+            <View style={styles.smallProfilePlaceholder}>
+              <Text style={styles.smallPlus}>＋</Text>
+            </View>
+          )}
         </View>
 
-        {/* ---------------------------------------------------------
-            2) 메인 카드
-        --------------------------------------------------------- */}
+        {/* 2) 메인 카드 */}
         <View style={styles.card}>
           <View style={styles.bigCircle}>
             <Text style={styles.bigPlus}>＋</Text>
@@ -226,12 +184,9 @@ export default function MainScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* ---------------------------------------------------------
-            3) 함께한 시간 + 태그
-        --------------------------------------------------------- */}
+        {/* 3) 함께한 시간 + 태그 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{togetherDaysText}</Text>
-
           <View style={styles.tagsRow}>
             {tags.map(t => (
               <View key={t} style={styles.tagChip}>
@@ -241,9 +196,7 @@ export default function MainScreen() {
           </View>
         </View>
 
-        {/* ---------------------------------------------------------
-            4) 오늘의 메시지 (하드코딩)
-        --------------------------------------------------------- */}
+        {/* 4) 오늘의 메시지 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>오늘의 메시지</Text>
 
@@ -269,9 +222,7 @@ export default function MainScreen() {
           </View>
         </View>
 
-        {/* ---------------------------------------------------------
-            5) 오늘의 아이 사진
-        --------------------------------------------------------- */}
+        {/* 5) 오늘의 아이 사진 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>오늘의 아이 사진</Text>
 
@@ -283,9 +234,7 @@ export default function MainScreen() {
           </View>
         </View>
 
-        {/* ---------------------------------------------------------
-            6) 기록하기
-        --------------------------------------------------------- */}
+        {/* 6) 기록하기 */}
         <View style={styles.section}>
           <TouchableOpacity
             activeOpacity={0.9}
@@ -304,9 +253,7 @@ export default function MainScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* ---------------------------------------------------------
-            7) 최근 기록
-        --------------------------------------------------------- */}
+        {/* 7) 최근 기록 */}
         <View style={styles.section}>
           <View style={styles.recentHeader}>
             <Text style={styles.sectionTitle}>최근 기록</Text>
@@ -328,9 +275,7 @@ export default function MainScreen() {
         </View>
       </ScrollView>
 
-      {/* ---------------------------------------------------------
-          B) 하단 탭 (하드코딩)
-      --------------------------------------------------------- */}
+      {/* 하단 탭 (하드코딩) */}
       <View style={styles.bottomTab}>
         <TouchableOpacity activeOpacity={0.8} style={styles.tabItem}>
           <Text style={styles.tabIcon}>⌂</Text>

@@ -1,13 +1,13 @@
 // 파일: src/store/authStore.ts
 // 목적:
 // - 앱 전역 인증 상태 관리 (guest / logged_in)
-// - Supabase session 저장/복원(AsyncStorage) → 자동 로그인 기반
-// - 닉네임은 profiles 테이블(또는 user_metadata)에서 주입될 예정
+// - Supabase session 저장/복원(AsyncStorage) 기반 자동 로그인 토대
+// - nickname은 profiles 테이블에서 fetch 후 주입
 //
 // 운영 원칙:
-// - 초기엔 "guest 우선" 전략 유지
-// - session 존재하면 logged_in으로 전환
-// - nickname은 optional (없으면 '반가워요!'만 출력)
+// - guest 우선 (세션 없으면 guest)
+// - 세션 있으면 logged_in
+// - nickname은 optional (없으면 '반가워요!'만 노출)
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Session } from '@supabase/supabase-js';
@@ -35,7 +35,7 @@ type AuthState = {
   profile: Profile;
 
   // ---------------------------------------------------------
-  // 2) 파생 (값으로 제공: 컴포넌트에서 함수호출 금지)
+  // 2) 파생 (값으로 제공)
   // ---------------------------------------------------------
   isLoggedIn: boolean;
 
@@ -82,7 +82,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   hydrate: async () => {
     const persisted = await load();
 
-    // 세션 없으면 guest 고정
     if (!persisted?.session) {
       set({
         status: 'guest',
