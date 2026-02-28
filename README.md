@@ -12,21 +12,75 @@ NURI는 창업자의 개인적인 상실 경험에서 시작되었습니다.
 
 사랑하는 반려견을 떠나보낸 이후, 가족이 깊은 슬픔 속에서 감정을 정리하지 못하는 모습을 보며 **감정을 구조화할 수 있는 디지털 공간의 필요성**을 느꼈습니다.
 
-NURI는 단순한 추모 앱이 아닙니다.
+NURI는 단순한 추모 앱이 아닙니다.  
+누구나 사용 할 수 있는 앱 입니다.
+**사랑하는 반려동물 매 순간 기억하고 기록하는**
 **감정 데이터를 기반으로 기억을 구조화하는 플랫폼입니다.**
 
 ---
 
-## 1. 서비스 개요
+# 1. 서비스 개요
 
 NURI는 반려동물을 떠나보낸 보호자, 또는 아이의 추억을 체계적으로 기록하고 싶은 보호자를 위한 **디지털 메모리얼 & 감정 기록 플랫폼**입니다.
 
-| 핵심 개념            | 설명                                  |
-| -------------------- | ------------------------------------- |
-| 🧩 기억 구조화       | 감정 태그 기반의 체계적 기억 아카이빙 |
-| 📊 감정 데이터 축적  | AI 기반 감정 분석 및 히스토리 누적    |
-| 🔄 회상 알고리즘     | 서버 고정 방식의 일관된 Daily Recall  |
-| 🏗 확장 가능한 플랫폼 | 커뮤니티·구독·AI로 단계적 확장        |
+### 1.1 핵심 가치 및 기술 스택
+
+| 핵심 개념               | 설명                                                     |
+| :---------------------- | :------------------------------------------------------- |
+| **🧩 기억 구조화**      | 감정 태그 기반의 체계적 기억 아카이빙                    |
+| **📊 감정 데이터 축적** | AI 기반 감정 분석 및 히스토리 누적                       |
+| **🔄 회상 알고리즘**    | 서버 고정 방식의 일관된 Daily Recall 시스템              |
+| **🏗 확장성**            | 커뮤니티, 유료 구독 모델(AI), 위치 기반 서비스 확장 구조 |
+
+---
+
+### 1.2 상세 기능 기획
+
+#### ① 개인화된 사용자 경험 (Supabase 연동)
+
+- **사용자 맞춤형 인사말:** 로그인 시 Supabase Auth의 `user_metadata` 혹은 별도의 `profiles` 테이블과 연동하여 `"{닉네임}님, 반가워요!"`라는 개인화된 문구를 노출합니다.
+- **프로필 이미지 동기화:** 반려동물 등록 시 업로드한 이미지는 Supabase Storage에 저장되며, 메인 카드와 우측 상단 미니 프로필 등 앱 전역에서 실시간으로 동기화됩니다. (Global State 관리 활용)
+
+#### ② 반려동물 프로필 & 스마트 데이터
+
+- **반려견 정보 관리:** 이름, 생년월일, 몸무게, 좋아하는 것(#태그), 싫어하는 것, 취미 등을 상세히 기록합니다.
+- **D-Day 자동 계산:** 등록된 기념일(생일/입양일/이별일)과 현재 날짜를 비교하여 **"누리와 함께한 지 500일째"**와 같은 시간 데이터를 자동으로 제공합니다.
+- **건강 관리 모듈:** 마지막 접종일, 사료 교체 시기 등 건강 관련 기록 기능을 제공하여 실질적인 양육 편의성을 높입니다.
+
+#### ③ 아카이빙 시스템 (기록 및 타임라인)
+
+- **멀티미디어 기록하기:** 카메라 및 앨범 접근 권한을 통해 사진을 업로드하고, 제목과 상세 내용을 기록합니다. '최근 기록' 피드에서 썸네일과 요약 글을 확인할 수 있습니다.
+- **추억보기 (타임라인):** 모든 기록을 역순(최신순)으로 나열합니다. 단순 리스트 외에도 그리드 뷰나 **캘린더 뷰**를 도입하여 특정 날짜의 기억을 손쉽게 탐색할 수 있습니다.
+- **상세 보기 확장:** 단순 모달 창을 넘어, 개별 상세 페이지를 통해 '공유하기' 및 '수정/삭제' 기능을 제공하여 콘텐츠 관리의 편의성을 강화합니다.
+
+#### ④ 정서적 교감 서비스 (AI Guestbook)
+
+- **마음 남기기:** 아이에게 전하는 편지나 그리움을 담은 글을 방명록 형태로 작성합니다.
+- **AI 코멘트 (유료 모델):** 작성된 글과 반려동물의 특성(성격, 별명 등)을 LLM(ChatGPT 등) API에 전달하여, **반려동물이 하늘나라에서 대답해 주는 듯한 따뜻한 코멘트**를 자동 생성합니다. 이는 펫로스 증후군 완화와 정서적 위로에 핵심적인 가치를 제공합니다.
+
+#### 5번
+
+**반려동물이 여러마리일때 . 헤더에 작은 프로필 옆에 회색동그라밍 안에 + 있고 이거를 클릭하면 다른 반려동물을 추가 할 수 있음 그리고 클릭하면 그 동물로 넘어가고 , 처음 등록한 작은 아이 프로필을 누르면 다시 이동**
+
+---
+
+### 1.3 UI/UX 및 네비게이션 설계
+
+- **하단 네비게이션 구조:** `[홈]` - `[추억보기(타임라인)]` - `[방명록(글 남기기)]` - `[더보기]`
+- **접근성 최적화:** '기록하기' 버튼은 화면 하단까지 내려야 하는 불편함을 없애기 위해, 하단 네비게이션 바 중앙에 크게 배치하거나 화면 우측 하단의 **플로팅 액션 버튼(FAB)**으로 고정 배치합니다.
+- **유연한 정보 수정:** '더보기' 메뉴 내 슬라이드 메뉴를 통해 고객센터 연결 및 언제든지 반려동물의 정보를 수정(몸무게 업데이트 등)할 수 있는 관리 기능을 제공합니다.
+
+---
+
+### 1.4 서비스 구조 요약
+
+| 구분              | 주요 기능 및 특징                  | 구현 포인트                        |
+| :---------------- | :--------------------------------- | :--------------------------------- |
+| **로그인/프로필** | 닉네임 인사말, 프로필 전역 동기화  | Supabase Auth, Global State        |
+| **데이터 관리**   | 상세 프로필, D-Day 계산, 건강 기록 | Date logic, CRUD                   |
+| **포스팅/피드**   | 사진+제목+본문, 상세 페이지 연동   | Image Storage, Dynamic Routing     |
+| **AI 교감**       | 유료 멤버십 기반 AI 자동 답장      | OpenAI API, IAP 결제               |
+| **UX 최적화**     | 중앙 탭 버튼/FAB, 캘린더 뷰        | 커스텀 네비게이션, 라이브러리 활용 |
 
 ---
 
@@ -46,11 +100,11 @@ NURI는 반려동물을 떠나보낸 보호자, 또는 아이의 추억을 체�
 
 ## 3. Core Value
 
-- **보호자 중심 UX** — 사용자의 감정 흐름에 맞춘 인터페이스
-- **감정 기반 AI 시스템** — 입력 내용에서 감정을 분석해 응답 톤 조절
-- **서버 고정 회상 알고리즘** — UX 일관성을 위한 서버 주도 Daily Recall
-- **자동 기일 대응** — 기일 전후 자동 알림 및 특별 화면 전환
-- **데이터 중심 아카이빙 구조** — 확장 가능한 감정·기억 DB 설계
+- **보호자 중심 UX**
+- **감정 기반 AI 시스템**
+- **서버 고정 회상 알고리즘**
+- **자동 기일 대응**
+- **데이터 중심 아카이빙 구조**
 
 ---
 
@@ -59,34 +113,32 @@ NURI는 반려동물을 떠나보낸 보호자, 또는 아이의 추억을 체�
 | 영역        | 기술                                                                              |
 | ----------- | --------------------------------------------------------------------------------- |
 | **Mobile**  | React Native CLI · TypeScript · React Navigation · TanStack Query · Zustand · IAP |
-| **Backend** | Supabase (Auth · PostgreSQL · Storage · RLS) · Edge Functions (AI / Billing)      |
+| **Backend** | Supabase (Auth · PostgreSQL · Storage · RLS) · Edge Functions                     |
+| **Infra**   | Gradle 8.13 · AGP 8.6 · Kotlin 2.1 · AsyncStorage v3                              |
 
 ---
 
 ## 5. 아키텍처 원칙
 
-- **기능 단위 분리** (Feature-based structure)
-- **서버 상태 / UI 상태 분리**
-- **도메인 확장 대비 구조 설계**
-- **1인 개발 유지보수 가능 아키텍처**
-- **IAP 기반 수익화 확장 고려**
+- 기능 단위 분리 (Feature-based)
+- 서버 상태 / UI 상태 분리
+- 도메인 확장 대비 설계
+- 1인 개발 유지보수 가능 구조
+- IAP 기반 수익화 확장 고려
 
 ---
 
 ## 6. MVP Scope
 
 ```
-Phase 1  ─────────────────────────────────────────────
-  Auth · Pet Profile · Memory CRUD · Daily Recall
-  Timeline · D-Day
+Phase 1
+  Auth · Pet Profile · Memory CRUD · Daily Recall · Timeline
 
-Phase 2  ─────────────────────────────────────────────
-  Emotion Tracking · AI Chat
-  Push Notification · IAP Subscription
+Phase 2
+  Emotion Tracking · AI Chat · Push · IAP
 
-Phase 3  ─────────────────────────────────────────────
-  Community Feed · Comments · Likes
-  Notification System
+Phase 3
+  Community Feed · Comments · Likes · Notifications
 ```
 
 ---
@@ -104,8 +156,6 @@ memories
 └── occurred_at
 ```
 
-감정 태그 기반 데이터 축적 → 리포트 및 추천 알고리즘 확장 기반
-
 ---
 
 ### 7.2 Daily Recall Engine
@@ -115,10 +165,8 @@ daily_recall
 ├── pet_id
 ├── date
 ├── memory_id
-└── mode  (anniversary | random | emotion_based)
+└── mode (anniversary | random | emotion_based)
 ```
-
-**원칙:** 서버에서 하루 1회 결정 → 클라이언트는 조회만 수행 → 데이터 고정으로 UX 일관성 유지
 
 ---
 
@@ -127,12 +175,10 @@ daily_recall
 ```
 User Input
   → AI Emotion Scoring
-  → emotions 테이블 저장
+  → emotions 저장
   → 응답 톤 조절
-  → 감정 히스토리 누적
+  → 히스토리 누적
 ```
-
-**확장:** 감정 그래프 · 연간 리포트 PDF · 감정 기반 추억 추천
 
 ---
 
@@ -147,235 +193,173 @@ subscriptions
 └── store_receipt
 ```
 
-**Flow:** IAP 요청 → 서버 영수증 검증 → DB 상태 업데이트 → 기능 Unlock
-
 ---
 
-## 8. Database Schema (Simplified)
+## 8. Supabase Database Schema (Production Draft)
 
 ```sql
-users         id · owner_name · created_at
+profiles        id (auth.uid) · owner_name · created_at
 
-pets          id · user_id · pet_name · birth_date
-              memorial_date · personality · theme_id · accent_color
+pets            id · user_id · pet_name · birth_date
+                memorial_date · personality · theme_id · accent_color
 
-memories      id · pet_id · content · image_url
-              emotion_tag · occurred_at
+memories        id · pet_id · content · image_url
+                emotion_tag · occurred_at
 
-emotions      id · pet_id · score · primary_emotion · analyzed_at
-(future)
+daily_recall    id · pet_id · date · memory_id · mode
 
-daily_recall  id · pet_id · date · memory_id · mode
+emotions        id · pet_id · score · primary_emotion · analyzed_at
 
-subscriptions id · user_id · tier · expires_at
+subscriptions   id · user_id · tier · expires_at
 ```
 
 ---
 
-## 9. Community Expansion Architecture
+## 9. RLS Policy Strategy
+
+### 기본 원칙
+
+- 모든 테이블은 **RLS 활성화**
+- 사용자 본인 데이터만 접근 가능
+- `auth.uid()` 기반 접근 제어
+
+예시:
 
 ```sql
-posts          id · user_id · content · image_url
-               visibility (public | private) · created_at
-
-comments       id · post_id · user_id · content · created_at
-
-likes          id · post_id · user_id
-
-notifications  id · user_id · type · reference_id · created_at
-
-reports        id · target_id · reason · status
-```
-
-**설계 방향:** RLS 기반 접근 제어 · Public/Private 분리 · Moderation 시스템 · 확장 가능한 피드 구조
-
----
-
-## 10. Scalability Strategy
-
-```
-1단계  Memory Archive          기억·감정 기록의 안정화
-2단계  Emotion Tracking        AI 기반 감정 분석 확장
-3단계  Community Platform      보호자 간 공감·연결
-4단계  Emotion Data Driven     감정 데이터 기반 케어 플랫폼
-       Care Platform
+CREATE POLICY "Users can access own pets"
+ON pets
+FOR ALL
+USING (user_id = auth.uid());
 ```
 
 ---
 
-## 11. 앱 구현 현황 (React Native)
+## 10. Supabase Auth 구현 현황
 
-> **NURI App** — 반려동물과의 시간을 "기록"으로 남기는 모바일 앱 (구현 단계)
+### ✅ 구현 완료
 
-### 🎯 서비스 방향
+- Email/Password 로그인 연동
+- `signInWithPassword()` 정상 동작
+- 세션 발급 확인
+- `email_confirmed_at` 정상 확인
+- AsyncStorage 기반 세션 유지 구조 준비
 
-NURI는 단순 기록 앱이 아니라 **"아이와의 시간을 구조적으로 남기는 감정 기반 기록 플랫폼"**을 목표로 한다.
+### 테스트 결과
 
-- 게스트 체험 우선 → 이후 소셜 로그인 확장 (1차: Google → 2차: Kakao/Naver)
+```
+LOGIN DATA: { user, session }
+LOGIN ERROR: null
+```
+
+→ 로그인 성공 검증 완료
+
+---
+
+## 11. Android 빌드 안정화 기록
+
+### 해결된 이슈
+
+- Gradle 8.13 요구사항 충돌 해결
+- AGP 8.6 버전 정합성 맞춤
+- AsyncStorage v3 로컬 maven repo 설정
+- settings.gradle repository 충돌 해결
+- RepositoriesMode 정책 조정
+- android bugreport zip gitignore 처리
+
+### 최종 상태
+
+- BUILD SUCCESSFUL
+- Emulator 설치 정상
+- Supabase Auth 연결 정상
+
+---
+
+## 12. 앱 구현 현황 (React Native)
+
+### 1) 기본 실행 구조
+
+| 파일          | 역할                |
+| ------------- | ------------------- |
+| index.js      | AppRegistry 등록    |
+| App.tsx       | NavigationContainer |
+| RootNavigator | Splash → Main       |
+
+---
+
+### 2) Splash (HomeScreen)
+
+- 이중 배경 레이어
+- 페이드 인 애니메이션
+- 브랜드 감성 강조
+- 자동 이동 주석 처리
+
+---
+
+### 3) Main 화면 방향
+
 - 프로필 중심 홈 구조
-- 감정/기억/시간 중심 UX 설계
+- Guest / Logged-in 분기 구조 설계 완료
+- 다중 반려동물 스와이프 설계 확정
 
 ---
 
-### 🏗 현재 구현 상태
-
-#### 1) 기본 실행/부팅 구조
-
-| 파일            | 역할                                             |
-| --------------- | ------------------------------------------------ |
-| `index.js`      | `AppRegistry.registerComponent()`로 앱 부팅      |
-| `App.tsx`       | `NavigationContainer`로 네비게이션 컨텍스트 제공 |
-| `RootNavigator` | Native Stack 기반 라우팅 (Splash → Main)         |
-
----
-
-#### 2) Splash (HomeScreen)
-
-**역할:** 앱 최초 진입 브랜딩 화면 — 감정 톤 전달 및 브랜드 인상 형성
-
-**구현 내용:**
-
-- 배경 이중 레이어 구조
-  - `home__blur.png` → cover (화면 꽉 채움)
-  - `home__bg.png` → contain (원본 전체 노출, 절대 잘리지 않음)
-- 카드 페이드 인 애니메이션
-- 로고/타이틀 등장 애니메이션 (opacity + translateY + scale)
-- 밝은 배경 대비를 위한 텍스트 섀도우 적용
-- 자동 이동 기능 현재 주석 처리 (저장 시 자동 전환 불편 방지 → 버튼 이동만 허용)
-
----
-
-#### 3) Main 화면 UX 방향 — "프로필 중심 홈"
-
-**핵심 컨셉:** 앱의 주인공은 사용자 → **아이(반려동물)**. 프로필은 단순 정보가 아니라 "기록의 출발점"
-
-**Guest 상태 (비로그인 / 미등록)**
-
-- 상단: "반가워요!" + 로그인 CTA
-- 본문: 큰 원형 placeholder + 안내 문구
-- CTA: `+ 반려동물 등록하기`
-- 주요 기능 버튼 노출 → 클릭 시 로그인 유도 (가드)
-
-**Logged-in 상태 (로그인 / 등록 완료)**
-
-- 상단: 인사 문구 + 작은 원형 프로필
-- 메인: 큰 원형 프로필 이미지
-- 정보: 이름 + 생년월일 + 몸무게 + 성격/취미
-- 태그: `#산책러버` `#간식최애` ... 형태로 확장 가능
-- 퀵 액션: 기록하기 / 추억보기 / 글 남기기
-- 최근 기록: 카드형 리스트 (썸네일 + 요약)
-
----
-
-#### 4) Multi-pet 지원 — 스와이프/슬라이드 전환
-
-NURI는 여러 반려동물 등록을 지원하며, 메인 프로필 영역은 **스와이프(슬라이드)** 방식으로 전환한다.
-
-| 항목            | 내용                                       |
-| --------------- | ------------------------------------------ |
-| **전환 방식**   | 좌/우 스와이프로 `selectedPet` 변경        |
-| **전환 대상**   | 원형 프로필 + 이름/정보 + 태그 + 최근 기록 |
-| **전환 피드백** | 페이지 인디케이터(점) 또는 썸네일 스트립   |
-| **상태 모델**   | `pets: Pet[]` + `selectedPetId: string`    |
-
-**UX 원칙:** 레이아웃은 유지하고 데이터만 교체 → 사용자가 "내가 보고 있는 아이"를 즉시 인지  
-아이가 0마리면 Guest/미등록 UI로 자연스럽게 fallback
-
----
-
-#### 5) 공통 UI — AppText (Typography)
-
-- preset 기반 타이포 시스템
-- 화면별 스타일 분산 방지 → 공통 텍스트 컴포넌트로 통일
-- 필요 시 `style` prop으로 최소한의 오버라이드만 허용
-
----
-
-### 🔐 인증(로그인) 전략
-
-**결정된 방향: 게스트 체험 우선 → 소셜 로그인 단계적 확장**
-
-| 단계    | 내용                                             |
-| ------- | ------------------------------------------------ |
-| **1차** | 게스트 경험 — 로그인 없이 UI/기능 흐름 체험 가능 |
-| **2차** | Google 로그인 1개 (구현 리스크 낮음)             |
-| **3차** | Kakao / Naver 확장                               |
-
-**로그인 UX 흐름:**
-
-1. 프로필/등록/저장 기능 클릭
-2. `AuthLanding` (로그인 안내)으로 이동
-3. 로그인 성공 → Main에서 Logged-in UI로 자연스럽게 전환
-4. 세션/토큰 저장 → 앱 재실행 시 자동 로그인 복원 (`AsyncStorage`)
-
----
-
-### 🧱 폴더 구조
+### 4) Multi-Pet 구조
 
 ```
-src/
-├── app/
-│   └── ui/
-│       ├── AppText.tsx
-│       └── AppText.styles.ts
-├── navigation/
-│   └── RootNavigator.tsx
-├── screens/
-│   ├── Home/
-│   │   ├── HomeScreen.tsx
-│   │   └── HomeScreen.styles.ts
-│   └── Main/
-│       ├── MainScreen.tsx
-│       └── MainScreen.styles.ts
-├── components/
-│   ├── profile/
-│   └── records/
-├── services/
-├── store/
-└── assets/
-    ├── logo/
-    └── home/
+pets: Pet[]
+selectedPetId: string
 ```
 
----
-
-### ✅ 다음 구현 단계 (To-do)
-
-- [ ] `MainScreen` UI 하드코딩 버전 구현
-- [ ] Guest / Logged-in 화면을 한 화면에서 분기 처리
-- [ ] Multi-pet 스와이프 기반 선택 구조 추가
-- [ ] `pets[]` + `selectedPetId` 상태 모델 확정
-- [ ] 프로필 영역 스와이프 가능 UI 구성 (인디케이터 포함)
-- [ ] "프로필 클릭 → 로그인 유도" 가드 라우팅 추가
-- [ ] 사진 변경 UX 설계 (권한 요청 → 기기 앨범 → 업로드/저장)
-- [ ] 인증 1차(게스트) 안정화 후 Google 로그인 추가
-- [ ] 세션 저장/복원 (자동 로그인) 구현
+- 레이아웃 고정
+- 데이터만 교체
+- 페이지 인디케이터 예정
 
 ---
 
-### 📌 현재 단계 요약
+### 5) 인증 전략
 
-| 항목                                   | 상태         |
-| -------------------------------------- | ------------ |
-| Splash (브랜딩/애니메이션/배경 레이어) | ✅ 안정화    |
-| Main 화면 컨셉 (프로필 중심)           | ✅ 확정      |
-| Multi-pet 스와이프 전환 방식           | ✅ 확정      |
-| 인증 전략 (게스트 우선 → Google)       | ✅ 확정      |
-| Main UI 하드코딩 구현                  | 🔜 다음 단계 |
+| 단계 | 내용          |
+| ---- | ------------- |
+| 1차  | 게스트 체험   |
+| 2차  | Google 로그인 |
+| 3차  | Kakao/Naver   |
 
 ---
 
-## 12. Engineering Focus
+## 13. 현재 인프라 안정화 상태
+
+| 항목          | 상태         |
+| ------------- | ------------ |
+| Android 빌드  | ✅ 안정      |
+| Gradle 충돌   | ✅ 해결      |
+| AsyncStorage  | ✅ 정상      |
+| Supabase Auth | ✅ 성공      |
+| 세션 발급     | ✅ 검증 완료 |
+| RLS 설계      | ✅ 초안 완료 |
+
+---
+
+## 14. 다음 단계
+
+- Zustand Auth Store 연결
+- 로그인 기반 가드 라우팅
+- pets CRUD 실제 DB 연결
+- Storage 업로드 검증
+- Daily Recall 서버 고정 로직 구현
+
+---
+
+## 15. Engineering Focus
 
 - 성능 최적화
-- 이미지 압축 및 캐싱 전략
+- 이미지 압축 전략
+- 세션 안정성
 - 서버 고정 로직 설계
-- 확장 가능한 도메인 구조
-- 1인 개발 유지보수성
+- 확장 가능한 도메인 모델
 
 ---
 
 _Private Project — Founder Build_
 
-> NURI는 개인적인 상실 경험에서 시작되었습니다.
+> NURI는 개인적인 상실 경험에서 시작되었습니다.  
 > 목표는 **감정을 구조화하는 기술 플랫폼**을 만드는 것입니다.
