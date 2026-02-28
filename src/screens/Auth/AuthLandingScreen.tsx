@@ -1,58 +1,103 @@
 // 파일: src/screens/Auth/AuthLandingScreen.tsx
 // 목적:
-// - 게스트가 로그인/회원가입으로 진입하는 관문 화면
-// - "게스트로 계속하기"도 제공(guest 우선 전략 유지)
+// - 게스트 유도 랜딩
+// - "로그인 / 회원가입 / 게스트로 계속" 진입점
 
 import React from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import { styles } from './AuthLandingScreen.styles';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'AuthLanding'>;
+type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-export default function AuthLandingScreen({ navigation }: Props) {
-  const goSignIn = () => navigation.navigate('SignIn');
-  const goSignUp = () => navigation.navigate('SignUp');
-
-  const continueAsGuest = () => {
-    // 정책: Auth를 빠져나가 Main으로 복귀
-    navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
-  };
+export default function AuthLandingScreen() {
+  const navigation = useNavigation<Nav>();
 
   return (
     <View style={styles.screen}>
       <View style={styles.card}>
-        <Text style={styles.title}>NURI에 오신 걸 환영해요</Text>
+        <Text style={styles.title}>NURI</Text>
         <Text style={styles.subTitle}>
-          로그인하면 닉네임 인사말과 아이의 추억을 안전하게 저장할 수 있어요.
+          로그인하고 소중한 추억을{'\n'}기록해 보세요.
         </Text>
+
+        <View style={styles.spacer} />
 
         <TouchableOpacity
           activeOpacity={0.9}
-          style={styles.primaryButton}
-          onPress={goSignIn}
+          style={styles.primary}
+          onPress={() => navigation.navigate('SignIn')}
         >
-          <Text style={styles.primaryButtonText}>로그인</Text>
+          <Text style={styles.primaryText}>로그인</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           activeOpacity={0.9}
-          style={styles.secondaryButton}
-          onPress={goSignUp}
+          style={styles.secondary}
+          onPress={() => navigation.navigate('SignUp')}
         >
-          <Text style={styles.secondaryButtonText}>회원가입</Text>
+          <Text style={styles.secondaryText}>회원가입</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           activeOpacity={0.8}
-          style={styles.ghostButton}
-          onPress={continueAsGuest}
+          style={styles.ghost}
+          onPress={() => navigation.replace('Main')}
         >
-          <Text style={styles.ghostButtonText}>게스트로 계속하기</Text>
+          <Text style={styles.ghostText}>게스트로 계속</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: '#F6F2EE',
+    justifyContent: 'center',
+    padding: 18,
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    padding: 18,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 3,
+  },
+  title: { fontSize: 24, fontWeight: '900', color: '#1D1B19', marginBottom: 6 },
+  subTitle: {
+    fontSize: 13,
+    color: '#6E6660',
+    fontWeight: '600',
+    lineHeight: 18,
+  },
+  spacer: { height: 18 },
+
+  primary: {
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#97A48D',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryText: { color: '#FFFFFF', fontSize: 15, fontWeight: '900' },
+
+  secondary: {
+    marginTop: 10,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#EFEAE4',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryText: { color: '#1D1B19', fontSize: 15, fontWeight: '900' },
+
+  ghost: { marginTop: 12, alignItems: 'center', paddingVertical: 10 },
+  ghostText: { color: '#7A726C', fontSize: 13, fontWeight: '700' },
+});

@@ -1,17 +1,9 @@
 // 파일: index.js
 // 목적:
-// - React Native 앱의 "진입점(Entry)".
-// - AppRegistry가 실제 네이티브(Android/iOS) 런타임에서 JS 앱을 부팅한다.
-//
-// 앱 구동 순서:
-// 1) (네이티브) MainActivity / AppDelegate가 JS 엔트리 로딩
-// 2) index.js 실행
-// 3) AppRegistry.registerComponent(appName, () => App) 등록
-// 4) 네이티브가 등록된 App 컴포넌트를 렌더링 시작
-// - RN에서 Supabase 사용 시 필요한 polyfill 로드
-// - 반드시 앱 부팅 초기에 import 되어야 함
+// - RN 앱 진입점(Entry)
+// - Supabase RN polyfill을 "가장 먼저" 로드
+// - RNGH는 최상단에서 1회 import로 안정화
 
-// 파일: index.js
 import 'react-native-gesture-handler';
 import 'react-native-url-polyfill/auto';
 import 'react-native-get-random-values';

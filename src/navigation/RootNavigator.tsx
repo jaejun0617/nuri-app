@@ -1,14 +1,8 @@
 // 파일: src/navigation/RootNavigator.tsx
 // 목적:
-// - Native Stack 기반 라우팅 구성
-// - Splash → Main 흐름 유지
+// - Splash → Main 기본 흐름 유지
 // - Auth 플로우(AuthLanding/SignIn/SignUp/NicknameSetup) 추가
-//
-// 운영 원칙:
-// - “게스트 우선” 전략 유지
-// - Main은 항상 진입 가능(게스트/로그인 분기)
-// - Auth는 필요할 때만(게스트가 로그인 버튼 누를 때) 진입
-// - 로그인/회원가입 성공 시 Main으로 reset
+// - DevTest는 dev-only
 
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -30,7 +24,7 @@ export type RootStackParamList = {
   SignUp: undefined;
   NicknameSetup: { after?: 'signin' | 'signup' } | undefined;
 
-  DevTest: undefined; // 개발용
+  DevTest: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -43,14 +37,12 @@ export default function RootNavigator() {
         headerBackTitle: '뒤로',
       }}
     >
-      {/* Splash */}
       <Stack.Screen
         name="Splash"
         component={HomeScreen}
         options={{ headerShown: false }}
       />
 
-      {/* Main */}
       <Stack.Screen
         name="Main"
         component={MainScreen}
@@ -79,7 +71,7 @@ export default function RootNavigator() {
         options={{ title: '닉네임 설정' }}
       />
 
-      {/* DevTest */}
+      {/* Dev only */}
       {__DEV__ ? (
         <Stack.Screen
           name="DevTest"
