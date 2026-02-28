@@ -463,8 +463,20 @@ NURI의 홈(Main)은 로그인 상태에 따라 **완전히 다른 레이아웃*
 - `guest` 상태: **GuestHome** (로그인 전용 홈 레이아웃)
 - `logged_in` 상태: **LoggedInHome** (실제 홈 레이아웃)
 
-MainScreen은 분기만 담당하며, 각 레이아웃은 컴포넌트/스타일 파일로 분리하여  
-UI 수정(디자인 싱크)을 빠르게 반복할 수 있도록 구성합니다.
+- MainScreen은 분기만 담당하며, 각 레이아웃은 컴포넌트/스타일 파일로 분리하여
+- UI 수정(디자인 싱크)을 빠르게 반복할 수 있도록 구성합니다.
+
+- “Auth + Home 분기 구현 현황”
+- • 홈(Main)은 guest / logged_in 상태에 따라 완전히 다른 레이아웃을 렌더링
+- • GuestHome: 로그인 전 랜딩 홈(왼쪽 UI), 모든 주요 액션은 AuthLanding 유도
+- • LoggedInHome: 실제 홈(오른쪽 UI), 멀티펫 썸네일 스위처 + (+) 추가 유지
+- • Auth 라우팅 추가
+- • AuthLanding → SignIn/SignUp → NicknameSetup → Main(reset)
+- • 앱 부팅 동기화(AppProviders)
+- • authStore.hydrate()로 로컬 세션 복원
+- • supabase.auth.getSession()로 실제 세션 정렬
+- • 로그인 상태면 profiles.nickname fetch하여 전역 상태 주입
+- • onAuthStateChange로 로그인/로그아웃 이벤트를 store와 동기화
 
 ---
 
@@ -473,21 +485,58 @@ UI 수정(디자인 싱크)을 빠르게 반복할 수 있도록 구성합니다
 > 현재는 **“게스트/미등록 UI 하드코딩 + 전역 상태 기반”**이 안정화된 단계입니다.  
 > 다음은 **실데이터 연결 + Auth 라우팅 고정** 순서로 진행합니다.
 
+## Next Chapter: Pet 등록 → Storage 업로드 → 홈 실데이터 반영 ✅
+
+### 목표
+
+- 로그인 후 **등록된 펫이 없으면 PetCreate로 자동 유도**
+- 펫 등록 시 **프로필 사진 업로드(Storage) → pets.profile_image_url 저장**
+- 로그인/메인 진입 시 **fetchMyPets() → petStore.setPets(pets)**
+- Logged-in 홈에서 selectedPet 기반으로 **name/avatar/weight/tags/birth/adoption** 실데이터 표시
+
+### DB/Storage 기준
+
+- `profiles` PK: `user_id` (auth.uid())
+- `pets.profile_image_url`: Storage 경로(path) 저장 권장
+  - 예: `userId/petId/avatar.jpg`
+- Storage는 기본 `private` 권장 → 화면에서는 signed URL로 렌더링
+
+### 흐름
+
+1. Auth 성공(AppProviders)
+
+- auth hydrate → session sync
+- session 존재 시 nickname fetch → pets fetch → petStore 주입
+
+2. Main(Logged-in)
+
+- pets가 0마리면 PetCreate로 자동 이동
+- 헤더 `+` 버튼 / Guest CTA 모두 PetCreate로 연결
+
+3. PetCreate
+
+- 이미지 선택 → Storage 업로드 → (path) 저장
+- pets insert 후 fetchMyPets()로 리프레시 → 홈 반영
+
 1. **Auth 흐름 고정 (가드 라우팅)**
+
    - guest 상태에서 기록/등록/상세 접근 시 → AuthLanding 유도
    - 로그인 성공 시 → session 저장 + nickname 반영
 
 2. **Pet CRUD 연결 (실데이터 첫 연결)**
+
    - PetCreateScreen → Storage 업로드(pet-avatars) → pets insert
    - pets fetch → `petStore.setPets(pets)`
    - `selectedPetId` 기반으로 Main 홈 데이터 교체
 
 3. **멀티펫 UX (미니 프로필 + (＋))**
+
    - 헤더 미니 프로필 영역을 “전환 UI”로 고정
    - (＋) 클릭 → 추가 등록
    - 썸네일 탭 → `selectedPetId` 변경 → 메인 UI 데이터 교체
 
 4. **Record CRUD 연결**
+
    - RecordCreateScreen → 앨범/카메라 → Storage 업로드(record-images) → records insert
    - 홈 “최근 기록” 위젯 연결(최신 3~5개)
 

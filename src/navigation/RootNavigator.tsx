@@ -1,8 +1,4 @@
 // 파일: src/navigation/RootNavigator.tsx
-// 목적:
-// - Splash → Main 기본 흐름 유지
-// - Auth 플로우(AuthLanding/SignIn/SignUp/NicknameSetup) 추가
-// - DevTest는 dev-only
 
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -15,6 +11,8 @@ import SignInScreen from '../screens/Auth/SignInScreen';
 import SignUpScreen from '../screens/Auth/SignUpScreen';
 import NicknameSetupScreen from '../screens/Auth/NicknameSetupScreen';
 
+import PetCreateScreen from '../screens/Pets/PetCreateScreen';
+
 export type RootStackParamList = {
   Splash: undefined;
   Main: undefined;
@@ -23,6 +21,8 @@ export type RootStackParamList = {
   SignIn: undefined;
   SignUp: undefined;
   NicknameSetup: { after?: 'signin' | 'signup' } | undefined;
+
+  PetCreate: undefined;
 
   DevTest: undefined;
 };
@@ -69,6 +69,13 @@ export default function RootNavigator() {
         name="NicknameSetup"
         component={NicknameSetupScreen}
         options={{ title: '닉네임 설정' }}
+      />
+
+      {/* Pet */}
+      <Stack.Screen
+        name="PetCreate"
+        component={PetCreateScreen}
+        options={{ title: '반려동물 등록' }}
       />
 
       {/* Dev only */}

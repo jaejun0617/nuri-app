@@ -1,21 +1,15 @@
 // 파일: src/store/petStore.ts
 // 목적:
 // - 전역 pets + selectedPetId 관리
-// - 멀티펫 핵심: “선택된 펫”에 따라 홈 데이터만 교체
-//
-// 운영 원칙:
-// - pets 비면 selectedPetId는 null
-// - pets 생기면 selectedPetId는 기존 선택 유지 or 첫 번째로 보정
-//
-// 주의:
-// - selectedPet 같은 파생은 화면(useMemo)에서 계산 권장
+// - 부팅/페치 상태(booted/loading)까지 같이 관리해서
+//   "펫 0마리면 자동 온보딩"을 안전하게 수행한다.
 
 import { create } from 'zustand';
 
 export type Pet = {
   id: string;
   name: string;
-  avatarUrl?: string | null;
+  avatarUrl?: string | null; // signed URL (렌더링용)
   adoptionDate?: string | null; // YYYY-MM-DD
   birthDate?: string | null;
   weightKg?: number | null;
@@ -30,11 +24,19 @@ type PetState = {
   pets: Pet[];
   selectedPetId: string | null;
 
+  // fetch 제어용
+  booted: boolean; // 한번이라도 fetch를 수행했는지
+  loading: boolean;
+
   // ---------------------------------------------------------
   // 2) 액션
   // ---------------------------------------------------------
   setPets: (pets: Pet[]) => void;
   selectPet: (petId: string) => void;
+
+  setLoading: (v: boolean) => void;
+  setBooted: (v: boolean) => void;
+
   clear: () => void;
 };
 
@@ -49,6 +51,9 @@ export const usePetStore = create<PetState>((set, get) => ({
   pets: [],
   selectedPetId: null,
 
+  booted: false,
+  loading: false,
+
   setPets: (pets: Pet[]) => {
     const prevSelected = get().selectedPetId;
     const nextSelected = normalizeSelected(pets, prevSelected);
@@ -61,5 +66,14 @@ export const usePetStore = create<PetState>((set, get) => ({
     set({ selectedPetId: petId });
   },
 
-  clear: () => set({ pets: [], selectedPetId: null }),
+  setLoading: v => set({ loading: v }),
+  setBooted: v => set({ booted: v }),
+
+  clear: () =>
+    set({
+      pets: [],
+      selectedPetId: null,
+      booted: false,
+      loading: false,
+    }),
 }));
