@@ -2,11 +2,6 @@
 // 목적:
 // - MainScreen(게스트/로그인/등록 전) 하드코딩 UI 스타일
 // - "고급스럽고 깨끗한" 톤 유지 (밝은 베이지 + 소프트 쉐도우)
-//
-// 스타일 원칙:
-// - 카드: radius 크게, 그림자 부드럽게
-// - 텍스트: 대비 확보 (과한 회색 금지)
-// - 버튼: 단색/톤다운된 그린 계열로 감성 유지
 
 import { StyleSheet } from 'react-native';
 
@@ -24,7 +19,7 @@ export const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 18,
     paddingTop: 18,
-    paddingBottom: 92, // bottom tab 공간
+    paddingBottom: 92,
   },
 
   /* ---------------------------------------------------------
@@ -35,10 +30,11 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 14,
+    gap: 10,
   },
   headerTextArea: {
     flex: 1,
-    paddingRight: 12,
+    paddingRight: 8,
   },
   title: {
     fontSize: 22,
@@ -51,23 +47,52 @@ export const styles = StyleSheet.create({
     color: '#6E6660',
   },
 
-  smallProfile: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#EEE7E1',
+  /* ---------------------------------------------------------
+   * 2-1) 멀티펫 스위처 (헤더 우측)
+   * - 작은 프로필들 + (+) 버튼
+   * -------------------------------------------------------- */
+  petSwitcherRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
-  smallProfilePlaceholder: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  petChip: {
+    width: 42,
+    height: 42,
+    borderRadius: 999,
     backgroundColor: '#EFEAE4',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
-  smallPlus: {
+  petChipActive: {
+    borderWidth: 2,
+    borderColor: '#97A48D',
+  },
+  petChipImage: {
+    width: '100%',
+    height: '100%',
+  },
+  petChipPlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#EEE7E1',
+  },
+  petAddChip: {
+    width: 42,
+    height: 42,
+    borderRadius: 999,
+    backgroundColor: '#EFEAE4',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E6DFD7',
+    borderStyle: 'dashed',
+  },
+  petAddPlus: {
     fontSize: 20,
     color: '#B8B0A8',
+    marginTop: -1,
   },
 
   /* ---------------------------------------------------------

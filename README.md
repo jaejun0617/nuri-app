@@ -90,13 +90,13 @@ NURI는 반려동물을 떠나보낸 보호자, 또는 아이의 추억을 체�
 
 ### 1.4 서비스 구조 요약
 
-| 구분              | 주요 기능 및 특징                                 | 구현 포인트                                   |
-| :---------------- | :------------------------------------------------ | :-------------------------------------------- |
-| **로그인/프로필** | 닉네임 인사말, 세션 유지, 프로필 전역 동기화       | Supabase Auth, AsyncStorage, Global State     |
-| **데이터 관리**   | 반려동물/기록 CRUD, D-Day 계산, 추모 확장 대비     | RLS 기반 CRUD, 날짜 로직(KST)                 |
-| **피드/타임라인** | 최신 기록 위젯, 전체 타임라인, 상세 화면 확장     | Storage 업로드, 리스트/상세 라우팅            |
-| **AI 교감**       | 유료 멤버십 기반 AI 자동 답장                      | Edge Functions, 구독 상태, AI 메시지 테이블   |
-| **멀티펫 UX**     | 미니 프로필 전환 + (＋)로 추가 등록                | selectedPetId 전역 상태 + UI 데이터 교체      |
+| 구분              | 주요 기능 및 특징                              | 구현 포인트                                 |
+| :---------------- | :--------------------------------------------- | :------------------------------------------ |
+| **로그인/프로필** | 닉네임 인사말, 세션 유지, 프로필 전역 동기화   | Supabase Auth, AsyncStorage, Global State   |
+| **데이터 관리**   | 반려동물/기록 CRUD, D-Day 계산, 추모 확장 대비 | RLS 기반 CRUD, 날짜 로직(KST)               |
+| **피드/타임라인** | 최신 기록 위젯, 전체 타임라인, 상세 화면 확장  | Storage 업로드, 리스트/상세 라우팅          |
+| **AI 교감**       | 유료 멤버십 기반 AI 자동 답장                  | Edge Functions, 구독 상태, AI 메시지 테이블 |
+| **멀티펫 UX**     | 미니 프로필 전환 + (＋)로 추가 등록            | selectedPetId 전역 상태 + UI 데이터 교체    |
 
 ---
 
@@ -126,12 +126,12 @@ NURI는 반려동물을 떠나보낸 보호자, 또는 아이의 추억을 체�
 
 ## 4. Tech Stack
 
-| 영역        | 기술                                                                                              |
-| ----------- | ------------------------------------------------------------------------------------------------- |
-| **Mobile**  | React Native CLI · TypeScript · React Navigation · Zustand · styled-components                    |
-| **Backend** | Supabase (Auth · PostgreSQL · Storage · RLS) · Edge Functions                                     |
-| **Infra**   | Gradle 8.13 · AGP 8.6 · Kotlin 2.1 · AsyncStorage v3                                              |
-| **Utils**   | react-native-url-polyfill · react-native-get-random-values · buffer (Supabase RN polyfill 세트)  |
+| 영역        | 기술                                                                                            |
+| ----------- | ----------------------------------------------------------------------------------------------- |
+| **Mobile**  | React Native CLI · TypeScript · React Navigation · Zustand · styled-components                  |
+| **Backend** | Supabase (Auth · PostgreSQL · Storage · RLS) · Edge Functions                                   |
+| **Infra**   | Gradle 8.13 · AGP 8.6 · Kotlin 2.1 · AsyncStorage v3                                            |
+| **Utils**   | react-native-url-polyfill · react-native-get-random-values · buffer (Supabase RN polyfill 세트) |
 
 ---
 
@@ -297,10 +297,10 @@ USING (user_id = auth.uid());
 
 ### 1) 기본 실행 구조
 
-| 파일          | 역할                |
-| ------------- | ------------------- |
-| index.js      | AppRegistry 등록 + polyfill |
-| App.tsx       | NavigationContainer |
+| 파일          | 역할                                 |
+| ------------- | ------------------------------------ |
+| index.js      | AppRegistry 등록 + polyfill          |
+| App.tsx       | NavigationContainer                  |
 | RootNavigator | Splash → Main (+ DevTest는 dev-only) |
 
 ---
@@ -332,14 +332,64 @@ USING (user_id = auth.uid());
 ### 4) 전역 상태 (Zustand) 도입 완료
 
 #### Auth Store (`src/store/authStore.ts`)
+
 - `guest / logged_in` 상태 관리
 - Supabase session을 AsyncStorage에 저장/복원(hydrate)하여 자동 로그인 기반 마련
 - nickname은 optional (없으면 기본 인사만 출력)
 
 #### Pet Store (`src/store/petStore.ts`)
+
 - `pets[] + selectedPetId` 전역 관리
 - 멀티 반려동물 전환(미니 프로필 탭) 구현의 기반
 - pets가 비면 selectedPetId는 null로 유지
+
+---
+
+## ✅ 16. 상태관리(Zustand) + 메인 홈(UI) 연결 현황
+
+### 16.1 설치된 핵심 패키지(현재 필수)
+
+- Navigation
+  - `@react-navigation/native`
+  - `@react-navigation/native-stack`
+  - `react-native-screens`
+  - `react-native-safe-area-context`
+  - `react-native-gesture-handler`
+- State
+  - `zustand`
+  - `@react-native-async-storage/async-storage`
+- Supabase
+  - `@supabase/supabase-js`
+  - `react-native-url-polyfill`
+  - `react-native-get-random-values`
+  - `buffer`
+
+### 16.2 App 시작 구조(안정화 포함)
+
+- `GestureHandlerRootView` + `SafeAreaProvider` + `NavigationContainer` 조합으로 루트 안정화
+- `enableScreens(true)` 적용 (네비 성능/안정 최적화)
+
+### 16.3 MainScreen 구조(현재 단계)
+
+- 레이아웃은 고정하고, 상태에 따라 분기 렌더링만 수행
+- 닉네임 정책:
+  - 로그인 + nickname 존재 → `"{nickname}님, 반가워요!"`
+  - 그 외 → `"반가워요!"`
+- 펫 미등록 시:
+  - 메인/헤더는 placeholder(+) 유지
+  - 등록 CTA 중심
+
+### 16.4 Multi-Pet UX 최종 결정(스와이프 대신)
+
+- 헤더 우측에 작은 프로필(썸네일) 리스트 + `(+ )` 추가 버튼을 배치
+- 썸네일 탭 → `selectedPetId` 전환 → 메인 화면 데이터가 교체되는 구조
+- `(+ )` 탭 → 반려동물 추가 플로우로 이동(예정)
+
+### 16.5 다음 연결 목표
+
+1. Supabase에서 pets fetch → `petStore.setPets()` 주입
+2. 선택된 `selectedPetId` 기반으로 홈 데이터(추억/오늘사진/최근기록) 쿼리 연결
+3. 가드 라우팅(게스트면 AuthLanding) 적용
 
 ---
 
@@ -348,6 +398,7 @@ USING (user_id = auth.uid());
 > ✅ “지금 단계에서 반드시 필요한 것들”만 설치하고, 나머지는 필요한 시점에 추가합니다.
 
 ### Core (이미 설치됨)
+
 - `@supabase/supabase-js`
 - `@react-native-async-storage/async-storage`
 - `react-native-url-polyfill`
@@ -356,6 +407,7 @@ USING (user_id = auth.uid());
 - `zustand`
 
 ### Navigation (이미 설치됨)
+
 - `@react-navigation/native`
 - `@react-navigation/native-stack`
 - `react-native-screens`
@@ -363,6 +415,7 @@ USING (user_id = auth.uid());
 - `react-native-gesture-handler`
 
 ### Media (이미 설치됨)
+
 - `react-native-image-picker`
 
 ---
@@ -372,28 +425,34 @@ USING (user_id = auth.uid());
 > 현재는 **“게스트/미등록 UI 하드코딩” 완료 단계**입니다.  
 > 다음은 “실데이터 연결”을 위한 순서로 진행합니다.
 
-1) **DevTestScreen은 유지하되, Dev 라우트로만 보관**
+1. **DevTestScreen은 유지하되, Dev 라우트로만 보관**
+
 - RootNavigator에서 dev-only로만 등록 (필요할 때만 진입)
 
-2) **Auth 흐름 고정 (가드 라우팅)**
+2. **Auth 흐름 고정 (가드 라우팅)**
+
 - guest 상태에서 기록/등록/상세 접근 시 → AuthLanding 유도
 - 로그인 성공 시 → session 저장 + nickname 반영
 
-3) **Pet CRUD 연결 (실데이터 첫 연결)**
+3. **Pet CRUD 연결 (실데이터 첫 연결)**
+
 - PetCreateScreen → Storage 업로드(pet-avatars) → pets insert
 - pets fetch → store.setPets(pets)
 - selectedPetId 기반으로 Main 화면 데이터 교체
 
-4) **멀티펫 UX (미니 프로필 + (＋))**
+4. **멀티펫 UX (미니 프로필 + (＋))**
+
 - 헤더 미니 프로필 영역을 “전환 UI”로 고정
 - (＋) 클릭 → 추가 등록
 - 프로필 탭 클릭 → selectedPetId 변경 → 메인 UI 데이터 교체
 
-5) **Record CRUD 연결**
+5. **Record CRUD 연결**
+
 - RecordCreateScreen → 앨범/카메라 → Storage 업로드(record-images) → records insert
 - 홈 “최근 기록” 위젯 연결(최신 3~5개)
 
-6) **Daily Recall / AI 메시지 확장**
+6. **Daily Recall / AI 메시지 확장**
+
 - “오늘의 아이 사진(랜덤)” 서버 고정 방식으로 확장
 - “오늘의 메시지(아침/점심/오후)” 시간대별 고정 메시지 + AI 생성으로 확장
 

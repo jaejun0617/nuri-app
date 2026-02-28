@@ -1,17 +1,17 @@
 // 파일: src/screens/Main/MainScreen.tsx
 // 목적:
 // - "홈" 메인 화면 (게스트/로그인/펫 등록 여부/멀티펫) UI 기준점
-// - 현재 단계: UI 하드코딩 완성 + Zustand(auth/pets/selectedPetId) 연결 완료
+// - 현재 단계: UI 하드코딩 + Zustand(auth/pets/selectedPetId) 연결 완료
 // - 다음 단계:
 //   1) Supabase 실데이터(pets/records) fetch
 //   2) store.setPets()로 주입
-//   3) selectedPetId 기반 멀티펫 스와이프/인디케이터 연결
+//   3) selectedPetId 기반 멀티펫 전환(헤더 썸네일) 실사용
 //
 // 구현 원칙:
 // - 레이아웃 고정 + 상태에 따른 분기 렌더링
 // - 닉네임: 로그인 + nickname 존재할 때만 "{nickname}님, 반가워요!"
-// - 펫 미등록: placeholder(+) 유지 (작은 프로필도 +)
-// - 파생 값(selectedPet/tags/d-day)은 화면에서 useMemo로만 계산
+// - 펫 미등록: placeholder(+) 유지
+// - 파생 값(selectedPet/tags/d-day)은 화면에서 useMemo로 계산
 
 import React, { useMemo } from 'react';
 import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
@@ -25,7 +25,6 @@ import { usePetStore } from '../../store/petStore';
  * -------------------------------------------------------- */
 function diffDaysFromKst(dateYmd: string) {
   // - YYYY-MM-DD만 지원
-  // - 운영에서 엄밀히 하려면 date-fns-tz 붙이면 됨
   const [y, m, d] = dateYmd.split('-').map(Number);
   const start = new Date(Date.UTC(y, m - 1, d, 0, 0, 0));
 
@@ -46,13 +45,13 @@ function diffDaysFromKst(dateYmd: string) {
 export default function MainScreen() {
   // ---------------------------------------------------------
   // 2) Zustand 원천 상태만 구독
-  // - 파생은 화면(useMemo)에서 계산 (버그 방지)
   // ---------------------------------------------------------
   const isLoggedIn = useAuthStore(s => s.isLoggedIn);
   const nicknameRaw = useAuthStore(s => s.profile.nickname);
 
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
+  const selectPet = usePetStore(s => s.selectPet);
 
   // ---------------------------------------------------------
   // 3) 파생 상태 (안전하고 예측 가능한 방식)
@@ -62,7 +61,7 @@ export default function MainScreen() {
   const hasPets = pets.length > 0;
 
   const selectedPet = useMemo(() => {
-    if (pets.length === 0) return null;
+    if (!pets.length) return null;
     if (selectedPetId && pets.some(p => p.id === selectedPetId)) {
       return pets.find(p => p.id === selectedPetId) ?? pets[0];
     }
@@ -73,7 +72,6 @@ export default function MainScreen() {
   // 4) 문구 정책
   // ---------------------------------------------------------
   const greetingTitle = useMemo(() => {
-    // “로그인 상태 + 닉네임 존재”일 때만 개인화
     if (isLoggedIn && nickname) return `${nickname}님, 반가워요!`;
     return '반가워요!';
   }, [isLoggedIn, nickname]);
@@ -86,7 +84,7 @@ export default function MainScreen() {
   }, [isLoggedIn, hasPets]);
 
   // ---------------------------------------------------------
-  // 5) 태그/함께한시간 (ESLint 경고 제거 버전)
+  // 5) 태그/함께한시간
   // ---------------------------------------------------------
   const tags = useMemo(() => {
     const petTags = selectedPet?.tags ?? [];
@@ -104,12 +102,11 @@ export default function MainScreen() {
   }, [selectedPet?.adoptionDate]);
 
   // ---------------------------------------------------------
-  // 6) 액션 핸들러 (다음 단계: 네비게이션/가드 라우팅 연결)
+  // 6) 액션 핸들러 (다음 단계에서 네비게이션 연결)
   // ---------------------------------------------------------
   const onPressSignIn = () => {
     // TODO:
-    // - guest면 AuthLanding으로 이동
-    // - logged_in이면 no-op
+    // - AuthLanding으로 이동
   };
 
   const onPressCreatePet = () => {
@@ -132,23 +129,26 @@ export default function MainScreen() {
     // - GuestbookScreen 이동
   };
 
+  const onPressPetChip = (petId: string) => {
+    // 멀티펫 전환 (selectedPetId 변경)
+    selectPet(petId);
+  };
+
   // ---------------------------------------------------------
   // 7) UI
   // ---------------------------------------------------------
   return (
     <View style={styles.screen}>
-      {/* ------------------------------
-          A) 컨텐츠 스크롤 영역
-      ------------------------------ */}
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* ---------------------------------------------------------
-            1) 헤더 (인사 + 미니 프로필)
-            - 펫 없으면 placeholder(＋)
-            - 펫 있으면 selectedPet avatarUrl
+            1) 헤더
+            - 좌: 인사말
+            - 우: 멀티펫 썸네일 리스트 + (+) 추가 버튼
+            - 펫 없으면: 썸네일 1개 placeholder + (+)만 노출
         --------------------------------------------------------- */}
         <View style={styles.header}>
           <View style={styles.headerTextArea}>
@@ -156,21 +156,53 @@ export default function MainScreen() {
             <Text style={styles.subTitle}>{greetingSubTitle}</Text>
           </View>
 
-          {hasPets && selectedPet?.avatarUrl ? (
-            <Image
-              source={{ uri: selectedPet.avatarUrl }}
-              style={styles.smallProfile}
-            />
-          ) : (
-            <View style={styles.smallProfilePlaceholder}>
-              <Text style={styles.smallPlus}>＋</Text>
-            </View>
-          )}
+          <View style={styles.petSwitcherRow}>
+            {hasPets ? (
+              pets.map(pet => {
+                const isActive = pet.id === selectedPet?.id;
+                return (
+                  <TouchableOpacity
+                    key={pet.id}
+                    activeOpacity={0.85}
+                    onPress={() => onPressPetChip(pet.id)}
+                    style={[
+                      styles.petChip,
+                      isActive ? styles.petChipActive : null,
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`펫 전환: ${pet.name}`}
+                  >
+                    {pet.avatarUrl ? (
+                      <Image
+                        source={{ uri: pet.avatarUrl }}
+                        style={styles.petChipImage}
+                      />
+                    ) : (
+                      <View style={styles.petChipPlaceholder} />
+                    )}
+                  </TouchableOpacity>
+                );
+              })
+            ) : (
+              <View style={[styles.petChip, styles.petChipActive]}>
+                <View style={styles.petChipPlaceholder} />
+              </View>
+            )}
+
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={isLoggedIn ? onPressCreatePet : onPressSignIn}
+              style={styles.petAddChip}
+              accessibilityRole="button"
+              accessibilityLabel="반려동물 추가"
+            >
+              <Text style={styles.petAddPlus}>＋</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* ---------------------------------------------------------
-            2) 메인 카드 (등록/프로필 영역)
-            - 핵심: 펫이 없으면 등록 CTA가 중심
+            2) 메인 카드
         --------------------------------------------------------- */}
         <View style={styles.card}>
           <View style={styles.bigCircle}>
@@ -211,8 +243,6 @@ export default function MainScreen() {
 
         {/* ---------------------------------------------------------
             4) 오늘의 메시지 (하드코딩)
-            - 아침/점심/오후
-            - 추후: 서버 고정 daily_recall + ai_message로 연결
         --------------------------------------------------------- */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>오늘의 메시지</Text>
@@ -240,9 +270,7 @@ export default function MainScreen() {
         </View>
 
         {/* ---------------------------------------------------------
-            5) 오늘의 아이 사진 (같은 날 랜덤)
-            - 지금은 placeholder
-            - 추후: records 중 랜덤 1개(서버 고정) → Signed URL
+            5) 오늘의 아이 사진
         --------------------------------------------------------- */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>오늘의 아이 사진</Text>
@@ -256,8 +284,7 @@ export default function MainScreen() {
         </View>
 
         {/* ---------------------------------------------------------
-            6) 기록하기 CTA
-            - 추후: FAB로 고정 권장
+            6) 기록하기
         --------------------------------------------------------- */}
         <View style={styles.section}>
           <TouchableOpacity
@@ -278,9 +305,7 @@ export default function MainScreen() {
         </View>
 
         {/* ---------------------------------------------------------
-            7) 최근 기록 (하드코딩)
-            - 추후: records 최신순 3~5개
-            - 클릭 시: 모달보다 "상세 화면" 추천
+            7) 최근 기록
         --------------------------------------------------------- */}
         <View style={styles.section}>
           <View style={styles.recentHeader}>
@@ -303,10 +328,9 @@ export default function MainScreen() {
         </View>
       </ScrollView>
 
-      {/* ------------------------------
+      {/* ---------------------------------------------------------
           B) 하단 탭 (하드코딩)
-          - 추후: BottomTabNavigator로 교체
-      ------------------------------ */}
+      --------------------------------------------------------- */}
       <View style={styles.bottomTab}>
         <TouchableOpacity activeOpacity={0.8} style={styles.tabItem}>
           <Text style={styles.tabIcon}>⌂</Text>
