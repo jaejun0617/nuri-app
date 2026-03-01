@@ -131,7 +131,7 @@ export default function HomeScreen() {
     //     navigation.navigate('Main');
     //   }, 2000);
     // }
-    //
+    //s
     // return () => {
     //   if (timer) clearTimeout(timer);
     // };

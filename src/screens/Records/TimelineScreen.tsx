@@ -1,9 +1,12 @@
 // 파일: src/screens/Records/TimelineScreen.tsx
 // 목적:
 // - petId 기준 memories(타임라인) 표시
-// - pull-to-refresh + pagination(load more)
+// - pull-to-refresh
 // - "기록하기" → RecordCreate
 // - 항목 탭 → RecordDetail
+//
+// 주의:
+// - recordStore가 "단순 배열 기반"이라 pagination(loadMore)은 제거(정합 유지)
 
 import React, { useCallback, useEffect, useMemo } from 'react';
 import {
@@ -13,7 +16,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
-  ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -35,16 +37,14 @@ export default function TimelineScreen() {
   const petId = route.params?.petId;
 
   // ---------------------------------------------------------
-  // 2) store (petId별)
+  // 2) store
   // ---------------------------------------------------------
   const bootstrap = useRecordStore(s => s.bootstrap);
   const refresh = useRecordStore(s => s.refresh);
-  const loadMore = useRecordStore(s => s.loadMore);
-
   const petState = useRecordStore(s => (petId ? s.getPetState(petId) : null));
 
   // ---------------------------------------------------------
-  // 3) data bootstrap
+  // 3) bootstrap
   // ---------------------------------------------------------
   useEffect(() => {
     if (!petId) return;
@@ -53,8 +53,6 @@ export default function TimelineScreen() {
 
   const records = petState?.items ?? [];
   const refreshing = petState?.refreshing ?? false;
-  const loadingMoreFlag = petState?.loadingMore ?? false;
-  const hasMore = petState?.hasMore ?? false;
 
   // ---------------------------------------------------------
   // 4) actions
@@ -76,12 +74,6 @@ export default function TimelineScreen() {
     if (!petId) return;
     refresh(petId);
   }, [petId, refresh]);
-
-  const onEndReached = useCallback(() => {
-    if (!petId) return;
-    if (!hasMore) return;
-    loadMore(petId);
-  }, [hasMore, loadMore, petId]);
 
   // ---------------------------------------------------------
   // 5) render
@@ -153,15 +145,6 @@ export default function TimelineScreen() {
 
   const keyExtractor = useCallback((item: MemoryRecord) => item.id, []);
 
-  const ListFooterComponent = useMemo(() => {
-    if (!loadingMoreFlag) return <View style={{ height: 14 }} />;
-    return (
-      <View style={styles.footer}>
-        <ActivityIndicator />
-      </View>
-    );
-  }, [loadingMoreFlag]);
-
   return (
     <View style={styles.screen}>
       {/* Header */}
@@ -200,9 +183,6 @@ export default function TimelineScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
-        onEndReached={onEndReached}
-        onEndReachedThreshold={0.6}
-        ListFooterComponent={ListFooterComponent}
         ListEmptyComponent={
           <View style={styles.empty}>
             <AppText preset="headline" style={styles.emptyTitle}>
@@ -332,10 +312,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   primaryText: { color: '#FFFFFF', fontWeight: '900' },
-
-  footer: {
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
 });

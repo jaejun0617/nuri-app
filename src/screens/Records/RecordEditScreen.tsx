@@ -1,37 +1,34 @@
-// 파일: src/screens/Records/RecordCreateScreen.tsx
+// 파일: src/screens/Records/RecordEditScreen.tsx
 // 목적:
-// - memory(기록) 생성
-// - 1) memories row 생성 → memoryId 확보
-// - 2) Storage 업로드(memory-images)
-// - 3) updateMemoryImagePath로 DB path 반영
-// - 4) recordStore.refresh(petId) → Timeline으로 이동
+// - 기존 memory 수정(완전체)
+// - title / content / tags / emotion / occurredAt 수정
+// - 저장 후 refresh(petId) + 뒤로
 
 import React, { useMemo, useState } from 'react';
 import {
   Alert,
-  Image,
   StyleSheet,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { launchImageLibrary } from 'react-native-image-picker';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
-import { supabase } from '../../services/supabase/client';
 import {
-  createMemory,
-  updateMemoryImagePath,
+  updateMemoryFields,
   type EmotionTag,
 } from '../../services/supabase/memories';
-import { uploadMemoryImage } from '../../services/supabase/storageMemories';
 import { useRecordStore } from '../../store/recordStore';
 import AppText from '../../app/ui/AppText';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-type Route = { key: string; name: string; params: { petId: string } };
+type Route = {
+  key: string;
+  name: string;
+  params: { petId: string; memoryId: string };
+};
 
 const EMOTIONS: Array<{ label: string; value: EmotionTag }> = [
   { label: '행복', value: 'happy' },
@@ -44,35 +41,37 @@ const EMOTIONS: Array<{ label: string; value: EmotionTag }> = [
   { label: '피곤', value: 'tired' },
 ];
 
-export default function RecordCreateScreen() {
+export default function RecordEditScreen() {
   // ---------------------------------------------------------
-  // 1) navigation / params
+  // 1) nav / params
   // ---------------------------------------------------------
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
-  const petId = route.params?.petId;
+  const { petId, memoryId } = route.params;
 
   // ---------------------------------------------------------
   // 2) store
   // ---------------------------------------------------------
+  const petState = useRecordStore(s => s.getPetState(petId));
   const refresh = useRecordStore(s => s.refresh);
+
+  const record = useMemo(
+    () => petState.items.find(r => r.id === memoryId) ?? null,
+    [petState.items, memoryId],
+  );
 
   // ---------------------------------------------------------
   // 3) local state
   // ---------------------------------------------------------
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [occurredAt, setOccurredAt] = useState(''); // YYYY-MM-DD
-  const [tagsText, setTagsText] = useState(''); // "#a #b" or "a,b"
-  const [emotion, setEmotion] = useState<EmotionTag | null>(null);
-
-  const [imageUri, setImageUri] = useState<string | null>(null);
-  const [imageType, setImageType] = useState<string | null>(null);
+  const [title, setTitle] = useState(record?.title ?? '');
+  const [content, setContent] = useState(record?.content ?? '');
+  const [occurredAt, setOccurredAt] = useState(record?.occurredAt ?? '');
+  const [tagsText, setTagsText] = useState(record?.tags?.join(' ') ?? '');
+  const [emotion, setEmotion] = useState<EmotionTag | null>(
+    record?.emotion ?? null,
+  );
 
   const [saving, setSaving] = useState(false);
-
-  const trimmedTitle = useMemo(() => title.trim(), [title]);
-  const disabled = saving || trimmedTitle.length === 0 || !petId;
 
   // ---------------------------------------------------------
   // 4) helpers
@@ -110,98 +109,67 @@ export default function RecordCreateScreen() {
     return t;
   };
 
-  const pickImage = async () => {
-    const res = await launchImageLibrary({
-      mediaType: 'photo',
-      selectionLimit: 1,
-      quality: 0.9,
-    });
-
-    if (res.didCancel) return;
-
-    const asset = res.assets?.[0];
-    if (!asset?.uri) {
-      Alert.alert('이미지 선택 실패', '다시 시도해 주세요.');
-      return;
-    }
-
-    setImageUri(asset.uri);
-    setImageType(asset.type ?? null);
-  };
-
   // ---------------------------------------------------------
   // 5) submit
   // ---------------------------------------------------------
   const onSubmit = async () => {
-    if (disabled) return;
+    if (!record) return;
+    if (!title.trim()) return;
 
     try {
       setSaving(true);
 
       const occurred = validateOccurredAt(occurredAt);
 
-      // 1) DB row 생성 → memoryId 확보
-      const memoryId = await createMemory({
-        petId,
-        title: trimmedTitle,
+      await updateMemoryFields({
+        memoryId,
+        title: title.trim(),
         content: content.trim() || null,
         emotion,
         tags: parseTags(tagsText),
         occurredAt: occurred,
-        imagePath: null,
       });
 
-      // 2) 이미지 업로드 → path 업데이트
-      if (imageUri) {
-        const userRes = await supabase.auth.getUser();
-        const userId = userRes.data.user?.id ?? null;
-        if (!userId) throw new Error('로그인 정보가 없습니다.');
-
-        const { path } = await uploadMemoryImage({
-          userId,
-          petId,
-          memoryId,
-          fileUri: imageUri,
-          mimeType: imageType,
-        });
-
-        await updateMemoryImagePath({ memoryId, imagePath: path });
-      }
-
-      // 3) store refresh
       await refresh(petId);
-
-      // 4) Timeline으로 리셋
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Timeline', params: { petId } }],
-      });
+      navigation.goBack();
     } catch (e: any) {
-      Alert.alert('기록 저장 실패', e?.message ?? '다시 시도해 주세요.');
+      Alert.alert('수정 실패', e?.message ?? '오류');
     } finally {
       setSaving(false);
     }
   };
 
   // ---------------------------------------------------------
-  // 6) UI
+  // 6) guard
+  // ---------------------------------------------------------
+  if (!record) {
+    return (
+      <View style={styles.screen}>
+        <View style={styles.card}>
+          <AppText preset="headline">기록을 찾을 수 없어요</AppText>
+          <AppText preset="body" style={styles.desc}>
+            목록으로 돌아가서 새로고침 해주세요.
+          </AppText>
+          <TouchableOpacity
+            style={styles.ghost}
+            onPress={() => navigation.goBack()}
+          >
+            <AppText preset="caption" style={styles.ghostText}>
+              뒤로
+            </AppText>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // ---------------------------------------------------------
+  // 7) UI
   // ---------------------------------------------------------
   return (
     <View style={styles.screen}>
       <View style={styles.card}>
-        <AppText preset="headline" style={styles.title}>
-          기록하기
-        </AppText>
-
-        <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
-          {imageUri ? (
-            <Image source={{ uri: imageUri }} style={styles.image} />
-          ) : (
-            <AppText preset="body" style={styles.imagePickerText}>
-              사진 선택(선택)
-            </AppText>
-          )}
-        </TouchableOpacity>
+        <AppText preset="headline">기록 수정</AppText>
 
         <AppText preset="caption" style={styles.label}>
           제목
@@ -219,7 +187,7 @@ export default function RecordCreateScreen() {
         </AppText>
         <TextInput
           style={[styles.input, styles.multiline]}
-          value={content}
+          value={content ?? ''}
           onChangeText={setContent}
           placeholder="내용"
           placeholderTextColor="#8A94A6"
@@ -231,7 +199,7 @@ export default function RecordCreateScreen() {
         </AppText>
         <TextInput
           style={styles.input}
-          value={occurredAt}
+          value={occurredAt ?? ''}
           onChangeText={setOccurredAt}
           placeholder="YYYY-MM-DD"
           placeholderTextColor="#8A94A6"
@@ -290,9 +258,9 @@ export default function RecordCreateScreen() {
         </View>
 
         <TouchableOpacity
-          style={[styles.primary, disabled ? styles.primaryDisabled : null]}
-          disabled={disabled}
+          style={styles.primary}
           onPress={onSubmit}
+          disabled={saving}
         >
           <AppText preset="body" style={styles.primaryText}>
             {saving ? '저장 중...' : '저장'}
@@ -313,30 +281,14 @@ export default function RecordCreateScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#F6F7FB', padding: 16 },
+  screen: { flex: 1, padding: 16, backgroundColor: '#F6F7FB' },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    backgroundColor: '#fff',
     padding: 16,
-    borderWidth: 1,
-    borderColor: '#E6E8F0',
-  },
-
-  title: { marginBottom: 10 },
-
-  imagePicker: {
-    height: 160,
     borderRadius: 18,
-    backgroundColor: '#F6F7FB',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-    overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#E6E8F0',
   },
-  imagePickerText: { color: '#556070', fontWeight: '700' },
-  image: { width: '100%', height: '100%' },
 
   label: {
     marginTop: 10,
@@ -367,15 +319,16 @@ const styles = StyleSheet.create({
   chipText: { color: '#0B1220', fontWeight: '700' },
 
   primary: {
-    marginTop: 16,
+    marginTop: 14,
     backgroundColor: '#6D7CFF',
     padding: 14,
     borderRadius: 12,
     alignItems: 'center',
   },
-  primaryDisabled: { opacity: 0.5 },
-  primaryText: { color: '#FFFFFF', fontWeight: '900' },
+  primaryText: { color: '#fff', fontWeight: '900' },
 
   ghost: { marginTop: 10, paddingVertical: 8, alignItems: 'center' },
   ghostText: { color: '#556070', fontWeight: '700' },
+
+  desc: { marginTop: 8, color: '#556070' },
 });

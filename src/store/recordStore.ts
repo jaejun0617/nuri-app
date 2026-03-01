@@ -1,92 +1,51 @@
 // 파일: src/store/recordStore.ts
 // 목적:
-// - petId 별 memories(records) 캐시/상태 관리
-// - Home(최근기록) / Timeline(전체) / Detail(상세)에서 동일 데이터 공유
-// - pull-to-refresh / pagination(load more) / optimistic update 지원
+// - petId 별 records 캐시 관리 (단순 배열 기반)
+// - pagination 제거 (현재 memories.ts 구조와 100% 정합)
+// - optimistic update 지원
 
 import { create } from 'zustand';
 import type { MemoryRecord } from '../services/supabase/memories';
 import { fetchMemoriesByPet } from '../services/supabase/memories';
 
 type PetRecordsState = {
-  // ---------------------------------------------------------
-  // 1) 데이터
-  // ---------------------------------------------------------
   items: MemoryRecord[];
-
-  // ---------------------------------------------------------
-  // 2) paging
-  // - cursor: 마지막 item의 createdAt (created_at 기준 페이지네이션)
-  // ---------------------------------------------------------
-  cursor: string | null;
-  hasMore: boolean;
-
-  // ---------------------------------------------------------
-  // 3) UI 상태
-  // ---------------------------------------------------------
-  booted: boolean;
   loading: boolean;
   refreshing: boolean;
-  loadingMore: boolean;
+  booted: boolean;
   errorMessage: string | null;
 };
 
 type RecordStore = {
-  // ---------------------------------------------------------
-  // 0) petId → state map
-  // ---------------------------------------------------------
   byPetId: Record<string, PetRecordsState>;
 
-  // ---------------------------------------------------------
-  // 1) selectors/helpers
-  // ---------------------------------------------------------
   ensurePetState: (petId: string) => void;
   getPetState: (petId: string) => PetRecordsState;
 
-  // ---------------------------------------------------------
-  // 2) actions (읽기)
-  // ---------------------------------------------------------
   bootstrap: (petId: string) => Promise<void>;
   refresh: (petId: string) => Promise<void>;
-  loadMore: (petId: string) => Promise<void>;
 
-  // ---------------------------------------------------------
-  // 3) actions (쓰기/동기화)
-  // ---------------------------------------------------------
   replaceAll: (petId: string, items: MemoryRecord[]) => void;
   upsertOneLocal: (petId: string, item: MemoryRecord) => void;
   removeOneLocal: (petId: string, memoryId: string) => void;
 
-  // ---------------------------------------------------------
-  // 4) 관리
-  // ---------------------------------------------------------
   clearPet: (petId: string) => void;
   clearAll: () => void;
 };
 
-// ---------------------------------------------------------
-// 0) 초기 state
-// ---------------------------------------------------------
 const createInitialPetState = (): PetRecordsState => ({
   items: [],
-  cursor: null,
-  hasMore: true,
-
-  booted: false,
   loading: false,
   refreshing: false,
-  loadingMore: false,
+  booted: false,
   errorMessage: null,
 });
 
-// ---------------------------------------------------------
-// 1) store
-// ---------------------------------------------------------
 export const useRecordStore = create<RecordStore>((set, get) => ({
   byPetId: {},
 
   // ---------------------------------------------------------
-  // 1) internal helpers
+  // 1) helpers
   // ---------------------------------------------------------
   ensurePetState: (petId: string) => {
     const cur = get().byPetId[petId];
@@ -101,12 +60,11 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
   },
 
   getPetState: (petId: string) => {
-    const cur = get().byPetId[petId];
-    return cur ?? createInitialPetState();
+    return get().byPetId[petId] ?? createInitialPetState();
   },
 
   // ---------------------------------------------------------
-  // 2) bootstrap (최초 1회)
+  // 2) 최초 로딩
   // ---------------------------------------------------------
   bootstrap: async (petId: string) => {
     if (!petId) return;
@@ -124,20 +82,14 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
     }));
 
     try {
-      const page = await fetchMemoriesByPet(petId, { limit: 20 });
-
-      const cursor = page.items.length
-        ? page.items[page.items.length - 1].createdAt
-        : null;
+      const items = await fetchMemoriesByPet(petId);
 
       set(s => ({
         byPetId: {
           ...s.byPetId,
           [petId]: {
             ...s.byPetId[petId],
-            items: page.items,
-            cursor,
-            hasMore: page.hasMore,
+            items: sortByCreatedAtDesc(items),
             booted: true,
             loading: false,
             errorMessage: null,
@@ -152,7 +104,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
             ...s.byPetId[petId],
             loading: false,
             booted: true,
-            errorMessage: e?.message ?? '불러오기에 실패했습니다.',
+            errorMessage: e?.message ?? '불러오기 실패',
           },
         },
       }));
@@ -160,7 +112,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
   },
 
   // ---------------------------------------------------------
-  // 3) refresh (pull-to-refresh)
+  // 3) 새로고침
   // ---------------------------------------------------------
   refresh: async (petId: string) => {
     if (!petId) return;
@@ -178,22 +130,16 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
     }));
 
     try {
-      const page = await fetchMemoriesByPet(petId, { limit: 20 });
-
-      const cursor = page.items.length
-        ? page.items[page.items.length - 1].createdAt
-        : null;
+      const items = await fetchMemoriesByPet(petId);
 
       set(s => ({
         byPetId: {
           ...s.byPetId,
           [petId]: {
             ...s.byPetId[petId],
-            items: page.items,
-            cursor,
-            hasMore: page.hasMore,
+            items: sortByCreatedAtDesc(items),
+            refreshing: false,
             booted: true,
-            refreshing: false,
             errorMessage: null,
           },
         },
@@ -205,7 +151,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
           [petId]: {
             ...s.byPetId[petId],
             refreshing: false,
-            errorMessage: e?.message ?? '새로고침에 실패했습니다.',
+            errorMessage: e?.message ?? '새로고침 실패',
           },
         },
       }));
@@ -213,78 +159,18 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
   },
 
   // ---------------------------------------------------------
-  // 4) loadMore (pagination)
+  // 4) write helpers
   // ---------------------------------------------------------
-  loadMore: async (petId: string) => {
-    if (!petId) return;
-
-    get().ensurePetState(petId);
-
-    const st = get().getPetState(petId);
-    if (!st.booted) return;
-    if (!st.hasMore) return;
-    if (st.loadingMore) return;
-
-    set(s => ({
-      byPetId: {
-        ...s.byPetId,
-        [petId]: { ...s.byPetId[petId], loadingMore: true, errorMessage: null },
-      },
-    }));
-
-    try {
-      const page = await fetchMemoriesByPet(petId, {
-        limit: 20,
-        cursorCreatedAt: st.cursor,
-      });
-
-      const nextCursor = page.items.length
-        ? page.items[page.items.length - 1].createdAt
-        : st.cursor;
-
-      set(s => ({
-        byPetId: {
-          ...s.byPetId,
-          [petId]: {
-            ...s.byPetId[petId],
-            items: dedupeById([...s.byPetId[petId].items, ...page.items]),
-            cursor: nextCursor,
-            hasMore: page.hasMore,
-            loadingMore: false,
-            errorMessage: null,
-          },
-        },
-      }));
-    } catch (e: any) {
-      set(s => ({
-        byPetId: {
-          ...s.byPetId,
-          [petId]: {
-            ...s.byPetId[petId],
-            loadingMore: false,
-            errorMessage: e?.message ?? '더 불러오기에 실패했습니다.',
-          },
-        },
-      }));
-    }
-  },
-
-  // ---------------------------------------------------------
-  // 5) write helpers
-  // ---------------------------------------------------------
-  replaceAll: (petId: string, items: MemoryRecord[]) => {
+  replaceAll: (petId, items) => {
     if (!petId) return;
     get().ensurePetState(petId);
-
-    const cursor = items.length ? items[items.length - 1].createdAt : null;
 
     set(s => ({
       byPetId: {
         ...s.byPetId,
         [petId]: {
           ...s.byPetId[petId],
-          items,
-          cursor,
+          items: sortByCreatedAtDesc(items),
           booted: true,
           errorMessage: null,
         },
@@ -292,51 +178,49 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
     }));
   },
 
-  upsertOneLocal: (petId: string, item: MemoryRecord) => {
+  upsertOneLocal: (petId, item) => {
     if (!petId) return;
     get().ensurePetState(petId);
 
     set(s => {
       const cur = s.byPetId[petId];
-      const next = upsertById(cur.items, item);
-      const sorted = sortByCreatedAtDesc(next);
+      const idx = cur.items.findIndex(it => it.id === item.id);
+
+      const next = [...cur.items];
+      if (idx === -1) next.unshift(item);
+      else next[idx] = item;
 
       return {
         byPetId: {
           ...s.byPetId,
           [petId]: {
             ...cur,
-            items: sorted,
-            booted: true,
+            items: sortByCreatedAtDesc(next),
           },
         },
       };
     });
   },
 
-  removeOneLocal: (petId: string, memoryId: string) => {
+  removeOneLocal: (petId, memoryId) => {
     if (!petId) return;
     get().ensurePetState(petId);
 
-    set(s => {
-      const cur = s.byPetId[petId];
-      return {
-        byPetId: {
-          ...s.byPetId,
-          [petId]: {
-            ...cur,
-            items: cur.items.filter(it => it.id !== memoryId),
-            booted: true,
-          },
+    set(s => ({
+      byPetId: {
+        ...s.byPetId,
+        [petId]: {
+          ...s.byPetId[petId],
+          items: s.byPetId[petId].items.filter(it => it.id !== memoryId),
         },
-      };
-    });
+      },
+    }));
   },
 
   // ---------------------------------------------------------
-  // 6) management
+  // 5) clear
   // ---------------------------------------------------------
-  clearPet: (petId: string) => {
+  clearPet: petId => {
     if (!petId) return;
     set(s => {
       const next = { ...s.byPetId };
@@ -348,23 +232,6 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
   clearAll: () => set({ byPetId: {} }),
 }));
 
-// ---------------------------------------------------------
-// utils
-// ---------------------------------------------------------
 function sortByCreatedAtDesc(items: MemoryRecord[]) {
   return [...items].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
-}
-
-function upsertById(items: MemoryRecord[], next: MemoryRecord) {
-  const idx = items.findIndex(it => it.id === next.id);
-  if (idx === -1) return [...items, next];
-  const copy = [...items];
-  copy[idx] = next;
-  return copy;
-}
-
-function dedupeById(items: MemoryRecord[]) {
-  const map = new Map<string, MemoryRecord>();
-  for (const it of items) map.set(it.id, it);
-  return Array.from(map.values());
 }

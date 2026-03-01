@@ -1,15 +1,17 @@
 // 파일: src/screens/Records/RecordDetailScreen.tsx
 // 목적:
-// - memory(기록) 상세 화면
-// - 삭제 기능(삭제 후 store 즉시 반영 + refresh로 서버 동기화)
+// - 기록 상세
+// - deleteMemoryWithFile로 Storage 파일까지 삭제 (완전체)
+// - optimistic remove + refresh
+// - RecordEdit로 수정 이동
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { Alert, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
-import { deleteMemory } from '../../services/supabase/memories';
+import { deleteMemoryWithFile } from '../../services/supabase/memories';
 import { useRecordStore } from '../../store/recordStore';
 import AppText from '../../app/ui/AppText';
 
@@ -22,24 +24,23 @@ type Route = {
 
 export default function RecordDetailScreen() {
   // ---------------------------------------------------------
-  // 1) navigation / params
+  // 1) nav / params
   // ---------------------------------------------------------
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
-  const petId = route.params?.petId;
-  const memoryId = route.params?.memoryId;
+  const { petId, memoryId } = route.params;
 
   // ---------------------------------------------------------
   // 2) store
   // ---------------------------------------------------------
-  const petState = useRecordStore(s => (petId ? s.getPetState(petId) : null));
+  const petState = useRecordStore(s => s.getPetState(petId));
   const removeOneLocal = useRecordStore(s => s.removeOneLocal);
   const refresh = useRecordStore(s => s.refresh);
 
-  const record = useMemo(() => {
-    const items = petState?.items ?? [];
-    return items.find(r => r.id === memoryId) ?? null;
-  }, [memoryId, petState?.items]);
+  const record = useMemo(
+    () => petState.items.find(r => r.id === memoryId) ?? null,
+    [petState.items, memoryId],
+  );
 
   // ---------------------------------------------------------
   // 3) local state
@@ -49,10 +50,15 @@ export default function RecordDetailScreen() {
   // ---------------------------------------------------------
   // 4) actions
   // ---------------------------------------------------------
-  const onPressDelete = useCallback(() => {
-    if (!petId || !memoryId) return;
+  const onPressEdit = useCallback(() => {
+    if (!record) return;
+    navigation.navigate('RecordEdit', { petId, memoryId });
+  }, [memoryId, navigation, petId, record]);
 
-    Alert.alert('삭제할까요?', '이 기록은 복구할 수 없습니다.', [
+  const onPressDelete = useCallback(() => {
+    if (!record) return;
+
+    Alert.alert('삭제할까요?', '복구할 수 없습니다.', [
       { text: '취소', style: 'cancel' },
       {
         text: '삭제',
@@ -61,28 +67,30 @@ export default function RecordDetailScreen() {
           try {
             setDeleting(true);
 
-            // 1) 서버 삭제
-            await deleteMemory(memoryId);
+            await deleteMemoryWithFile({
+              memoryId,
+              imagePath: record.imagePath,
+            });
 
-            // 2) 로컬 즉시 반영(체감 성능/UX)
+            // optimistic
             removeOneLocal(petId, memoryId);
 
-            // 3) 서버 재동기화(정합성 보장)
+            // sync
             await refresh(petId);
 
             navigation.goBack();
           } catch (e: any) {
-            Alert.alert('삭제 실패', e?.message ?? '다시 시도해 주세요.');
+            Alert.alert('삭제 실패', e?.message ?? '오류');
           } finally {
             setDeleting(false);
           }
         },
       },
     ]);
-  }, [memoryId, navigation, petId, refresh, removeOneLocal]);
+  }, [memoryId, petId, record, refresh, removeOneLocal, navigation]);
 
   // ---------------------------------------------------------
-  // 5) UI (record 없음)
+  // 5) guard
   // ---------------------------------------------------------
   if (!record) {
     return (
@@ -100,7 +108,7 @@ export default function RecordDetailScreen() {
           <AppText preset="headline" style={styles.headerTitle}>
             상세
           </AppText>
-          <View style={{ width: 44 }} />
+          <View style={{ width: 88 }} />
         </View>
 
         <View style={styles.empty}>
@@ -116,11 +124,10 @@ export default function RecordDetailScreen() {
   }
 
   // ---------------------------------------------------------
-  // 6) UI (정상)
+  // 6) UI
   // ---------------------------------------------------------
   return (
     <View style={styles.screen}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           activeOpacity={0.85}
@@ -136,60 +143,61 @@ export default function RecordDetailScreen() {
           상세
         </AppText>
 
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={[styles.deleteBtn, deleting ? styles.deleteBtnDisabled : null]}
-          onPress={onPressDelete}
-          disabled={deleting}
-        >
-          <AppText preset="caption" style={styles.deleteText}>
-            {deleting ? '삭제중' : '삭제'}
-          </AppText>
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={styles.editBtn}
+            onPress={onPressEdit}
+          >
+            <AppText preset="caption" style={styles.editText}>
+              수정
+            </AppText>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={[
+              styles.deleteBtn,
+              deleting ? styles.deleteBtnDisabled : null,
+            ]}
+            onPress={onPressDelete}
+            disabled={deleting}
+          >
+            <AppText preset="caption" style={styles.deleteText}>
+              {deleting ? '삭제중' : '삭제'}
+            </AppText>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      <View style={styles.body}>
-        {record.imageUrl ? (
-          <Image source={{ uri: record.imageUrl }} style={styles.heroImg} />
-        ) : (
-          <View style={styles.heroPlaceholder}>
-            <AppText preset="caption" style={styles.heroPlaceholderText}>
-              NO IMAGE
-            </AppText>
-          </View>
-        )}
-
-        <View style={styles.card}>
-          <AppText preset="title2" style={styles.title}>
-            {record.title}
-          </AppText>
-
-          <View style={styles.metaRow}>
-            <AppText preset="caption" style={styles.metaText}>
-              {record.occurredAt ?? record.createdAt.slice(0, 10)}
-            </AppText>
-
-            {record.emotion ? (
-              <View style={styles.badge}>
-                <AppText preset="caption" style={styles.badgeText}>
-                  {record.emotion}
-                </AppText>
-              </View>
-            ) : null}
-          </View>
-
-          {record.tags?.length ? (
-            <AppText preset="caption" style={styles.tags}>
-              {record.tags.join(' ')}
-            </AppText>
-          ) : null}
-
-          <AppText preset="body" style={styles.content}>
-            {record.content?.trim()
-              ? record.content.trim()
-              : '내용이 없습니다.'}
+      {record.imageUrl ? (
+        <Image source={{ uri: record.imageUrl }} style={styles.image} />
+      ) : (
+        <View style={styles.imagePlaceholder}>
+          <AppText preset="caption" style={styles.imagePlaceholderText}>
+            NO IMAGE
           </AppText>
         </View>
+      )}
+
+      <View style={styles.card}>
+        <AppText preset="headline" style={styles.title}>
+          {record.title}
+        </AppText>
+
+        <AppText preset="caption" style={styles.meta}>
+          {record.occurredAt ?? record.createdAt.slice(0, 10)}
+        </AppText>
+
+        {record.tags?.length ? (
+          <AppText preset="caption" style={styles.tags}>
+            {record.tags.join(' ')}
+          </AppText>
+        ) : null}
+
+        <AppText preset="body" style={styles.content}>
+          {record.content?.trim() ? record.content.trim() : '내용이 없습니다.'}
+        </AppText>
       </View>
     </View>
   );
@@ -220,6 +228,17 @@ const styles = StyleSheet.create({
     color: '#0B1220',
     fontWeight: '900',
   },
+  headerRight: { flexDirection: 'row', gap: 8 },
+
+  editBtn: {
+    paddingHorizontal: 12,
+    height: 36,
+    borderRadius: 999,
+    backgroundColor: '#6D7CFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editText: { color: '#FFFFFF', fontWeight: '900' },
 
   deleteBtn: {
     paddingHorizontal: 12,
@@ -232,56 +251,23 @@ const styles = StyleSheet.create({
   deleteBtnDisabled: { opacity: 0.6 },
   deleteText: { color: '#FFFFFF', fontWeight: '900' },
 
-  body: { padding: 14, gap: 12 },
-  heroImg: {
+  image: { width: '100%', height: 220, backgroundColor: '#FFFFFF' },
+  imagePlaceholder: {
     width: '100%',
     height: 220,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: '#E6E8F0',
-    backgroundColor: '#FFFFFF',
-  },
-  heroPlaceholder: {
-    width: '100%',
-    height: 220,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: '#E6E8F0',
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E6E8F0',
   },
-  heroPlaceholderText: { color: '#8A94A6', fontWeight: '800' },
+  imagePlaceholderText: { color: '#8A94A6', fontWeight: '800' },
 
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E6E8F0',
-  },
+  card: { padding: 16 },
   title: { color: '#0B1220', fontWeight: '900' },
-
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 10,
-  },
-  metaText: { color: '#8A94A6', fontWeight: '700' },
-
-  badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#E6E8F0',
-    backgroundColor: '#FFFFFF',
-  },
-  badgeText: { color: '#0B1220', fontWeight: '800' },
-
-  tags: { marginTop: 10, color: '#6D7CFF', fontWeight: '800' },
-  content: { marginTop: 14, color: '#556070', lineHeight: 22 },
+  meta: { marginTop: 8, color: '#8A94A6', fontWeight: '700' },
+  tags: { marginTop: 8, color: '#6D7CFF', fontWeight: '800' },
+  content: { marginTop: 12, color: '#556070', lineHeight: 22 },
 
   empty: {
     margin: 14,

@@ -1,11 +1,13 @@
 // 파일: src/services/supabase/memories.ts
-// 목적:
-// - memories 테이블 CRUD
-// - DB row → 앱 Record 타입 매핑
-// - image_url(path) → signed url로 변환(렌더링용)
-// - pagination 지원(created_at cursor)
+// 역할:
+// - memories CRUD
+// - signed URL 변환
+// - Edit 지원
+// - Delete 시 Storage 파일 정리(완전체)
+// - image_url 컬럼에는 "path"만 저장 (bucket은 storageMemories가 알고 있음)
 
 import { supabase } from './client';
+import { deleteFile } from './storage';
 import { getMemoryImageSignedUrl } from './storageMemories';
 
 export type EmotionTag =
@@ -25,19 +27,16 @@ export type MemoryRecord = {
   content?: string | null;
   emotion?: EmotionTag | null;
   tags: string[];
-  occurredAt?: string | null; // YYYY-MM-DD
+  occurredAt?: string | null;
   createdAt: string;
-
-  // UI용
-  imageUrl?: string | null; // signed url
-  imagePath?: string | null; // DB 저장 path (memories.image_url)
+  imageUrl?: string | null; // signed url (렌더용)
+  imagePath?: string | null; // storage path (삭제/재발급용)
 };
 
 type MemoriesRow = {
   id: string;
-  user_id: string;
   pet_id: string;
-  image_url: string | null;
+  image_url: string | null; // 실제로는 "path"
   title: string;
   content: string | null;
   emotion: EmotionTag | null;
@@ -46,12 +45,9 @@ type MemoriesRow = {
   created_at: string;
 };
 
-async function mapRowToRecord(row: MemoriesRow): Promise<MemoryRecord> {
-  const imagePath = row.image_url;
-
-  // signed url은 캐시 적용되어 같은 path 반복 호출을 줄임
-  const imageUrl = imagePath
-    ? await getMemoryImageSignedUrl(imagePath).catch(() => null)
+async function mapRow(row: MemoriesRow): Promise<MemoryRecord> {
+  const signed = row.image_url
+    ? await getMemoryImageSignedUrl(row.image_url).catch(() => null)
     : null;
 
   return {
@@ -63,89 +59,91 @@ async function mapRowToRecord(row: MemoriesRow): Promise<MemoryRecord> {
     tags: row.tags ?? [],
     occurredAt: row.occurred_at,
     createdAt: row.created_at,
-    imageUrl,
-    imagePath,
+    imageUrl: signed,
+    imagePath: row.image_url,
   };
 }
 
+/* ---------------------------------------------------------
+ * 1) List
+ * -------------------------------------------------------- */
 export async function fetchMemoriesByPet(
   petId: string,
-  opt?: { limit?: number; cursorCreatedAt?: string | null },
-): Promise<{ items: MemoryRecord[]; hasMore: boolean }> {
-  const limit = opt?.limit ?? 20;
-  const cursor = opt?.cursorCreatedAt ?? null;
-
-  const userRes = await supabase.auth.getUser();
-  const userId = userRes.data.user?.id ?? null;
-  if (!userId) return { items: [], hasMore: false };
-
-  // ---------------------------------------------------------
-  // paging 전략:
-  // - created_at 내림차순
-  // - 다음 페이지는 created_at < cursor
-  // ---------------------------------------------------------
-  let q = supabase
+): Promise<MemoryRecord[]> {
+  const { data, error } = await supabase
     .from('memories')
     .select(
-      'id,user_id,pet_id,image_url,title,content,emotion,tags,occurred_at,created_at',
+      'id,pet_id,image_url,title,content,emotion,tags,occurred_at,created_at',
     )
-    .eq('user_id', userId)
     .eq('pet_id', petId)
-    .order('created_at', { ascending: false })
-    .limit(limit + 1); // hasMore 판별용으로 1개 더
+    .order('created_at', { ascending: false });
 
-  if (cursor) {
-    q = q.lt('created_at', cursor);
-  }
-
-  const { data, error } = await q;
   if (error) throw error;
-
-  const rows = ((data ?? []) as MemoriesRow[]) ?? [];
-  const sliced = rows.slice(0, limit);
-  const hasMore = rows.length > limit;
-
-  const items = await Promise.all(sliced.map(mapRowToRecord));
-  return { items, hasMore };
+  return Promise.all((data ?? []).map(mapRow));
 }
 
+/* ---------------------------------------------------------
+ * 2) Create
+ * - imagePath는 생성 시점에는 보통 null
+ * -------------------------------------------------------- */
 export async function createMemory(input: {
   petId: string;
   title: string;
   content?: string | null;
   emotion?: EmotionTag | null;
   tags?: string[];
-  occurredAt?: string | null; // YYYY-MM-DD
-  imagePath?: string | null; // storage path
+  occurredAt?: string | null;
+  imagePath?: string | null;
 }): Promise<string> {
-  const userRes = await supabase.auth.getUser();
-  const userId = userRes.data.user?.id ?? null;
-  if (!userId) throw new Error('로그인 정보가 없습니다.');
-
-  const payload = {
-    user_id: userId,
-    pet_id: input.petId,
-    title: input.title,
-    content: input.content ?? null,
-    emotion: input.emotion ?? null,
-    tags: input.tags ?? [],
-    occurred_at: input.occurredAt ?? null,
-    image_url: input.imagePath ?? null,
-  };
-
   const { data, error } = await supabase
     .from('memories')
-    .insert(payload)
+    .insert({
+      pet_id: input.petId,
+      title: input.title,
+      content: input.content ?? null,
+      emotion: input.emotion ?? null,
+      tags: input.tags ?? [],
+      occurred_at: input.occurredAt ?? null,
+      image_url: input.imagePath ?? null,
+    })
     .select('id')
     .single();
 
   if (error) throw error;
-  return (data as any).id as string;
+  return data.id;
 }
 
+/* ---------------------------------------------------------
+ * 3) Update fields (Edit)
+ * -------------------------------------------------------- */
+export async function updateMemoryFields(input: {
+  memoryId: string;
+  title: string;
+  content?: string | null;
+  emotion?: EmotionTag | null;
+  tags?: string[];
+  occurredAt?: string | null;
+}) {
+  const { error } = await supabase
+    .from('memories')
+    .update({
+      title: input.title,
+      content: input.content ?? null,
+      emotion: input.emotion ?? null,
+      tags: input.tags ?? [],
+      occurred_at: input.occurredAt ?? null,
+    })
+    .eq('id', input.memoryId);
+
+  if (error) throw error;
+}
+
+/* ---------------------------------------------------------
+ * 4) Update image path (after upload)
+ * -------------------------------------------------------- */
 export async function updateMemoryImagePath(input: {
   memoryId: string;
-  imagePath: string;
+  imagePath: string | null;
 }) {
   const { error } = await supabase
     .from('memories')
@@ -155,7 +153,21 @@ export async function updateMemoryImagePath(input: {
   if (error) throw error;
 }
 
-export async function deleteMemory(memoryId: string) {
-  const { error } = await supabase.from('memories').delete().eq('id', memoryId);
+/* ---------------------------------------------------------
+ * 5) Delete (Storage 정리 포함) - 완전체
+ * -------------------------------------------------------- */
+export async function deleteMemoryWithFile(input: {
+  memoryId: string;
+  imagePath?: string | null;
+}) {
+  if (input.imagePath) {
+    await deleteFile('memory-images', input.imagePath);
+  }
+
+  const { error } = await supabase
+    .from('memories')
+    .delete()
+    .eq('id', input.memoryId);
+
   if (error) throw error;
 }

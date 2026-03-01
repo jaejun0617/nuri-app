@@ -3,6 +3,7 @@
 // - Splash → Main 기본 흐름 유지
 // - Auth 플로우(AuthLanding/SignIn/SignUp/NicknameSetup) 추가
 // - PetCreate 추가 (로그인 후 펫 없으면 유도)
+// - Records(Timeline/Create/Detail/Edit) 라우팅 제공
 // - DevTest는 dev-only
 
 import React from 'react';
@@ -18,10 +19,11 @@ import NicknameSetupScreen from '../screens/Auth/NicknameSetupScreen';
 
 import PetCreateScreen from '../screens/Pets/PetCreateScreen';
 
-// Chapter 2(Record/memories)
+// Records
 import TimelineScreen from '../screens/Records/TimelineScreen';
 import RecordCreateScreen from '../screens/Records/RecordCreateScreen';
 import RecordDetailScreen from '../screens/Records/RecordDetailScreen';
+import RecordEditScreen from '../screens/Records/RecordEditScreen';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -36,10 +38,11 @@ export type RootStackParamList = {
 
   DevTest: undefined;
 
-  // ✅ Chapter 2
+  // Records
   Timeline: { petId: string };
   RecordCreate: { petId: string };
   RecordDetail: { petId: string; memoryId: string };
+  RecordEdit: { petId: string; memoryId: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -93,10 +96,11 @@ export default function RootNavigator() {
         options={{ title: '반려동물 등록' }}
       />
 
-      {/* ✅ Chapter 2 */}
+      {/* Records */}
       <Stack.Screen name="Timeline" component={TimelineScreen} />
       <Stack.Screen name="RecordCreate" component={RecordCreateScreen} />
       <Stack.Screen name="RecordDetail" component={RecordDetailScreen} />
+      <Stack.Screen name="RecordEdit" component={RecordEditScreen} />
 
       {/* Dev only */}
       {__DEV__ ? (
