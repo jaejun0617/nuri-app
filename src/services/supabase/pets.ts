@@ -11,6 +11,10 @@
 // - pets.personality_tags (text[])
 // - pets.profile_image_url (text)  ← Storage path(or url)
 // - pets.death_date
+//
+// 정책:
+// - DB에는 profile_image_url에 "path" 저장
+// - UI 렌더링은 signed URL로 변환 후 Pet.avatarUrl에 주입
 
 import type { Pet } from '../../store/petStore';
 import { supabase } from './client';
@@ -62,7 +66,7 @@ export async function fetchMyPets(): Promise<Pet[]> {
   const { data, error } = await supabase
     .from('pets')
     .select(
-      'id,user_id,name,birth_date,adoption_date,weight_kg,personality_tags,profile_image_url,death_date',
+      'id,user_id,name,birth_date,adoption_date,weight_kg,personality_tags,profile_image_url,death_date,created_at',
     )
     .eq('user_id', userId)
     .order('created_at', { ascending: true });
@@ -104,7 +108,6 @@ export async function createPet(input: {
     .insert(payload)
     .select('id')
     .single();
-
   if (error) throw error;
 
   return (data as any).id as string;

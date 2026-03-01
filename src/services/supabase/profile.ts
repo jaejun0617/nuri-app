@@ -1,11 +1,10 @@
 // 파일: src/services/supabase/profile.ts
 // 목적:
 // - profiles.nickname 조회/저장
-// - MASTER SETUP 기준: profiles PK = user_id (auth.users.id)
+// - update-first 전략으로 RLS/충돌 리스크 최소화
 //
-// 전략:
-// - update-first → insert fallback (row가 없다면 insert)
-// - RLS 정책: auth.uid() = user_id
+// DB 기준(너 MASTER SETUP):
+// - profiles PK: user_id (auth.uid())
 
 import { supabase } from './client';
 

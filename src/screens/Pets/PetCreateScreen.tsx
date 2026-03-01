@@ -66,13 +66,22 @@ export default function PetCreateScreen() {
   const parseTags = (raw: string) => {
     const cleaned = raw.trim();
     if (!cleaned) return [];
+
     // "#a #b" 또는 "a,b" 둘 다 허용
-    const bySpace = cleaned.split(/\s+/);
     const byComma = cleaned
       .split(',')
       .map(s => s.trim())
       .filter(Boolean);
-    const base = byComma.length >= 2 ? byComma : bySpace;
+
+    const base =
+      byComma.length >= 2
+        ? byComma
+        : cleaned
+            .split(/\s+/)
+            .map(s => s.trim())
+            .filter(Boolean);
+
+    // 저장/표시는 "#태그" 형태로 통일
     return base
       .map(t => t.replace(/^#/, '').trim())
       .filter(Boolean)
@@ -88,6 +97,7 @@ export default function PetCreateScreen() {
     });
 
     if (res.didCancel) return;
+
     const asset = res.assets?.[0];
     if (!asset?.uri) {
       Alert.alert('이미지 선택 실패', '다시 시도해 주세요.');

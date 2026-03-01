@@ -1,14 +1,18 @@
 // 파일: src/screens/Main/components/LoggedInHome/LoggedInHome.tsx
+// 목적:
+// - logged_in 전용 홈 레이아웃
+// - 헤더 우측 멀티펫 썸네일 스위처 + (+) 추가
+// - pets booted 후 pets가 0이면 PetCreate로 자동 유도
 
 import React, { useEffect, useMemo } from 'react';
 import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import type { RootStackParamList } from '../../../../navigation/RootNavigator';
 import { styles } from '../../MainScreen.styles';
 import { useAuthStore } from '../../../../store/authStore';
 import { usePetStore } from '../../../../store/petStore';
+import type { RootStackParamList } from '../../../../navigation/RootNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -40,8 +44,17 @@ export default function LoggedInHome() {
   const selectedPetId = usePetStore(s => s.selectedPetId);
   const selectPet = usePetStore(s => s.selectPet);
 
-  const booted = usePetStore(s => s.booted);
-  const loading = usePetStore(s => s.loading);
+  const petBooted = usePetStore(s => s.booted);
+
+  // ---------------------------------------------------------
+  // 1) pets boot 완료 후, pets가 0이면 PetCreate 자동 유도
+  // ---------------------------------------------------------
+  useEffect(() => {
+    if (!petBooted) return;
+    if (pets.length > 0) return;
+
+    navigation.navigate('PetCreate', { from: 'auto' });
+  }, [petBooted, pets.length, navigation]);
 
   const selectedPet = useMemo(() => {
     if (pets.length === 0) return null;
@@ -50,18 +63,6 @@ export default function LoggedInHome() {
     }
     return pets[0];
   }, [pets, selectedPetId]);
-
-  // ---------------------------------------------------------
-  // 1) 자동 온보딩: booted 이후 pets=0이면 PetCreate로 유도
-  // ---------------------------------------------------------
-  useEffect(() => {
-    if (!booted) return;
-    if (loading) return;
-    if (pets.length > 0) return;
-
-    // 이미 PetCreate에 있으면 중복 이동 방지
-    navigation.navigate('PetCreate');
-  }, [booted, loading, pets.length, navigation]);
 
   const greetingTitle = useMemo(() => {
     if (nickname) return `${nickname}님, 반가워요!`;
@@ -87,12 +88,16 @@ export default function LoggedInHome() {
   }, [selectedPet?.adoptionDate]);
 
   // ---------------------------------------------------------
-  // 2) 액션 (라우팅 연결)
+  // 2) 액션
   // ---------------------------------------------------------
-  const onPressAddPet = () => navigation.navigate('PetCreate');
+  const onPressAddPet = () =>
+    navigation.navigate('PetCreate', { from: 'header_plus' });
+
+  // (다음 챕터에서 연결)
   const onPressTimeline = () => {};
   const onPressGuestbook = () => {};
   const onPressRecord = () => {};
+
   const onPressPetChip = (petId: string) => selectPet(petId);
 
   return (
@@ -144,99 +149,76 @@ export default function LoggedInHome() {
           </View>
         </View>
 
-        {/* pets가 0일 때는 카드 CTA를 등록으로 유도 */}
-        {pets.length === 0 ? (
-          <View style={styles.heroCard}>
-            <View style={styles.heroPlusCircle}>
-              <Text style={styles.heroPlus}>＋</Text>
+        {/* 2) 프로필 카드 */}
+        <View style={styles.profileCard}>
+          <View style={styles.profileRow}>
+            <View style={styles.profileImageWrap}>
+              {selectedPet?.avatarUrl ? (
+                <Image
+                  source={{ uri: selectedPet.avatarUrl }}
+                  style={styles.profileImage}
+                />
+              ) : (
+                <View style={styles.profileImagePlaceholder} />
+              )}
             </View>
 
-            <Text style={styles.heroHint}>
-              아직 등록된 반려동물이 없어요...
-            </Text>
+            <View style={styles.profileTextArea}>
+              <Text style={styles.petName}>
+                {selectedPet?.name ?? '우리 아이'}
+              </Text>
+              <Text style={styles.petMeta}>사랑으로 기록해요</Text>
 
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={styles.heroCta}
-              onPress={onPressAddPet}
-            >
-              <Text style={styles.heroCtaText}>+ 반려등록 등록하기</Text>
+              <View style={styles.tagsRow}>
+                {tags.map(t => (
+                  <View key={t} style={styles.tagChip}>
+                    <Text style={styles.tagText}>{t}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* 3) 함께한 시간 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{togetherDaysText}</Text>
+          <Text style={styles.sectionDesc}>
+            오늘도 우리만의 속도로, 천천히 기록해요.
+          </Text>
+        </View>
+
+        {/* 4) 오늘의 메시지(placeholder) */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>오늘의 메시지</Text>
+
+          <View style={styles.messageRow}>
+            <View style={styles.messageThumb} />
+            <View style={styles.messageThumb} />
+            <View style={styles.messageThumb} />
+          </View>
+
+          <View style={styles.messageCaptionRow}>
+            <Text style={styles.messageCaption}>오늘 아침엔...</Text>
+            <Text style={styles.messageCaption}>점심엔...</Text>
+            <Text style={styles.messageCaption}>오늘은...</Text>
+          </View>
+        </View>
+
+        {/* 5) 최근 기록 */}
+        <View style={styles.section}>
+          <View style={styles.recentHeader}>
+            <Text style={styles.sectionTitle}>최근 기록</Text>
+            <TouchableOpacity onPress={onPressTimeline} activeOpacity={0.8}>
+              <Text style={styles.recentMore}>더보기</Text>
             </TouchableOpacity>
           </View>
-        ) : (
-          <>
-            {/* 2) 프로필 카드 */}
-            <View style={styles.profileCard}>
-              <View style={styles.profileRow}>
-                <View style={styles.profileImageWrap}>
-                  {selectedPet?.avatarUrl ? (
-                    <Image
-                      source={{ uri: selectedPet.avatarUrl }}
-                      style={styles.profileImage}
-                    />
-                  ) : (
-                    <View style={styles.profileImagePlaceholder} />
-                  )}
-                </View>
 
-                <View style={styles.profileTextArea}>
-                  <Text style={styles.petName}>
-                    {selectedPet?.name ?? '우리 아이'}
-                  </Text>
-                  <Text style={styles.petMeta}>사랑으로 기록해요</Text>
-
-                  <View style={styles.tagsRow}>
-                    {tags.map(t => (
-                      <View key={t} style={styles.tagChip}>
-                        <Text style={styles.tagText}>{t}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              </View>
-            </View>
-
-            {/* 3) 함께한 시간 */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{togetherDaysText}</Text>
-              <Text style={styles.sectionDesc}>
-                오늘도 우리만의 속도로, 천천히 기록해요.
-              </Text>
-            </View>
-
-            {/* 4) 오늘의 메시지(placeholder) */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>오늘의 메시지</Text>
-
-              <View style={styles.messageRow}>
-                <View style={styles.messageThumb} />
-                <View style={styles.messageThumb} />
-                <View style={styles.messageThumb} />
-              </View>
-
-              <View style={styles.messageCaptionRow}>
-                <Text style={styles.messageCaption}>오늘 아침엔...</Text>
-                <Text style={styles.messageCaption}>점심엔...</Text>
-                <Text style={styles.messageCaption}>오늘은...</Text>
-              </View>
-            </View>
-
-            {/* 5) 최근 기록 */}
-            <View style={styles.section}>
-              <View style={styles.recentHeader}>
-                <Text style={styles.sectionTitle}>최근 기록</Text>
-                <TouchableOpacity onPress={onPressTimeline} activeOpacity={0.8}>
-                  <Text style={styles.recentMore}>더보기</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.recentGrid}>
-                <View style={styles.recentGridItem} />
-                <View style={styles.recentGridItem} />
-              </View>
-            </View>
-          </>
-        )}
+          <View style={styles.recentGrid}>
+            <View style={styles.recentGridItem} />
+            <View style={styles.recentGridItem} />
+          </View>
+        </View>
       </ScrollView>
 
       {/* 하단 탭 + 중앙 FAB */}
@@ -275,12 +257,10 @@ export default function LoggedInHome() {
       <TouchableOpacity
         activeOpacity={0.9}
         style={styles.fab}
-        onPress={pets.length === 0 ? onPressAddPet : onPressRecord}
+        onPress={onPressRecord}
       >
         <Text style={styles.fabPlus}>＋</Text>
-        <Text style={styles.fabText}>
-          {pets.length === 0 ? '등록하기' : '기록하기'}
-        </Text>
+        <Text style={styles.fabText}>기록하기</Text>
       </TouchableOpacity>
     </View>
   );

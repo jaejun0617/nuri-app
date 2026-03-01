@@ -556,6 +556,132 @@ NURI의 홈(Main)은 로그인 상태에 따라 **완전히 다른 레이아웃*
 
 ---
 
+# 21. Production Architecture Status (Final Confirmation)
+
+NURI는 단순 MVP 단계를 넘어, **Production 전환을 고려한 구조적 기반이
+이미 완성된 상태**입니다.
+
+현재 아키텍처는 다음을 만족합니다:
+
+- Supabase Auth + RLS 기반 보안 구조 확정
+- profiles 자동 생성 트리거 적용
+- update-first 전략으로 nickname 저장 안정화
+- Storage private 정책 + owner 기반 접근 제어 확정
+- Guest / Logged-in 홈 완전 분리 구조
+- Zustand 기반 세션 hydrate + 동기화 설계 완료
+- Multi-Pet 전환 구조(selectedPetId) 확정
+- Future-proof DB Master Setup 완료
+
+이 구조는 기능이 추가되어도 DB를 갈아엎지 않는 설계를 목표로 합니다.
+
+---
+
+# 22. Engineering Philosophy (확정 원칙)
+
+## 서버 기준 설계
+
+- 클라이언트는 단순하게
+- 데이터 일관성은 서버 기준 고정
+- Daily Recall / AI 메시지는 서버 고정 캐싱 전략
+
+## 상태 관리 원칙
+
+- 서버 상태 (Supabase) / UI 상태 (Zustand) 분리
+- hydrate → session sync → nickname fetch → pets fetch 순서 고정
+- selectedPetId는 전역 상태에서만 관리
+
+## 확장 대비 설계
+
+- death_date nullable 설계 → 추모 UI 확장 가능
+- subscription 테이블 사전 설계 → IAP 확장 가능
+- community 구조 사전 설계 → Phase 3 확장 대비
+
+---
+
+# 23. Security Model
+
+## Database
+
+- 모든 테이블 RLS 활성화
+- auth.uid() 기반 접근 통제
+- 본인 데이터만 CRUD 가능
+
+## Storage
+
+- 모든 파일 private
+- owner 기반 접근 정책
+- 화면에서는 signed URL 사용
+
+보안 철학은 일관성입니다. DB와 Storage는 동일한 owner 기준 정책을
+따릅니다.
+
+---
+
+# 24. 현재 기술 수준 평가
+
+이 프로젝트는:
+
+- 단순 CRUD 앱이 아님
+- 감정 데이터 기반 구조적 플랫폼
+- SaaS 확장을 고려한 DB 설계
+- 구독 모델을 고려한 Billing 구조
+- AI 확장을 고려한 메시지 캐싱 구조
+
+현재 단계는:
+
+Architecture Stable (기반 완성 단계)
+
+---
+
+# 25. Next Chapter (정확한 실행 순서)
+
+이제부터는 설계가 아니라 실데이터 연결 단계입니다.
+
+## Step 1 --- Pet CRUD 실데이터 연결
+
+- fetchMyPets() 구현
+- petStore.setPets() 주입
+- 로그인 시 pets 자동 fetch
+- pets 0마리 → PetCreate 자동 유도
+
+## Step 2 --- Storage 업로드 안정화
+
+- pet-avatars 업로드
+- record-images 업로드
+- 업로드 후 path 저장
+- signed URL 변환 유틸 정리
+
+## Step 3 --- Record CRUD 연결
+
+- RecordCreateScreen 구현
+- 이미지 업로드 → records insert
+- 홈 최근 기록 위젯 연결
+- Timeline Screen 구현
+
+## Step 4 --- Daily Recall 고정 알고리즘
+
+- 하루 1회 서버 결정
+- daily_recall 테이블 캐싱
+- 앱은 조회만 수행
+
+## Step 5 --- AI Guestbook 확장
+
+- Edge Function 설계
+- 구독 상태 확인
+- ai_messages 캐싱 전략 적용
+
+---
+
+# 26. Final Statement
+
+NURI는 감정을 저장하는 서비스가 아니라, 감정을 구조화하는 시스템입니다.
+
+이제 다음 단계는 구조가 아니라, 실데이터 연결과 사용자 경험 완성입니다.
+
+---
+
+_Private Founder Build_
+
 _Private Project — Founder Build_
 
 > NURI는 개인적인 상실 경험에서 시작되었습니다.  

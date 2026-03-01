@@ -1,19 +1,23 @@
 // 파일: src/store/petStore.ts
 // 목적:
 // - 전역 pets + selectedPetId 관리
-// - 부팅/페치 상태(booted/loading)까지 같이 관리해서
-//   "펫 0마리면 자동 온보딩"을 안전하게 수행한다.
+// - AppProviders 부팅(fetch) 상태를 표현하기 위한 loading/booted 포함
+//
+// 운영 원칙:
+// - pets 비면 selectedPetId는 null
+// - pets 생기면 selectedPetId는 기존 선택 유지 or 첫 번째로 보정
+// - selectedPet 같은 파생은 화면(useMemo)에서 계산 권장
 
 import { create } from 'zustand';
 
 export type Pet = {
   id: string;
   name: string;
-  avatarUrl?: string | null; // signed URL (렌더링용)
+  avatarUrl?: string | null; // signed url (UI용)
   adoptionDate?: string | null; // YYYY-MM-DD
   birthDate?: string | null;
   weightKg?: number | null;
-  tags?: string[];
+  tags?: string[]; // personality_tags
   deathDate?: string | null;
 };
 
@@ -24,9 +28,9 @@ type PetState = {
   pets: Pet[];
   selectedPetId: string | null;
 
-  // fetch 제어용
-  booted: boolean; // 한번이라도 fetch를 수행했는지
-  loading: boolean;
+  // App boot 상태
+  loading: boolean; // pets fetch 중
+  booted: boolean; // 앱 부팅 시 1회 pets fetch 완료 여부
 
   // ---------------------------------------------------------
   // 2) 액션
@@ -51,8 +55,8 @@ export const usePetStore = create<PetState>((set, get) => ({
   pets: [],
   selectedPetId: null,
 
-  booted: false,
   loading: false,
+  booted: false,
 
   setPets: (pets: Pet[]) => {
     const prevSelected = get().selectedPetId;
@@ -66,14 +70,9 @@ export const usePetStore = create<PetState>((set, get) => ({
     set({ selectedPetId: petId });
   },
 
-  setLoading: v => set({ loading: v }),
-  setBooted: v => set({ booted: v }),
+  setLoading: (v: boolean) => set({ loading: v }),
+  setBooted: (v: boolean) => set({ booted: v }),
 
   clear: () =>
-    set({
-      pets: [],
-      selectedPetId: null,
-      booted: false,
-      loading: false,
-    }),
+    set({ pets: [], selectedPetId: null, loading: false, booted: false }),
 }));

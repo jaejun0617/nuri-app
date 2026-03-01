@@ -1,4 +1,9 @@
 // 파일: src/navigation/RootNavigator.tsx
+// 목적:
+// - Splash → Main 기본 흐름 유지
+// - Auth 플로우(AuthLanding/SignIn/SignUp/NicknameSetup) 추가
+// - PetCreate 추가 (로그인 후 펫 없으면 유도)
+// - DevTest는 dev-only
 
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -22,7 +27,7 @@ export type RootStackParamList = {
   SignUp: undefined;
   NicknameSetup: { after?: 'signin' | 'signup' } | undefined;
 
-  PetCreate: undefined;
+  PetCreate: { from?: 'auto' | 'cta' | 'header_plus' } | undefined;
 
   DevTest: undefined;
 };
