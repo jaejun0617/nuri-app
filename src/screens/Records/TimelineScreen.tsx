@@ -5,8 +5,12 @@
 // - "기록하기" → RecordCreate
 // - 항목 탭 → RecordDetail
 //
-// 주의:
-// - recordStore가 "단순 배열 기반"이라 pagination(loadMore)은 제거(정합 유지)
+// ✅ 이번 수정 포인트 (중요)
+// 1) 뒤로가기 안전 처리:
+//    - navigation.canGoBack() ? goBack() : reset(Main)
+//    - RecordCreate 저장 후 reset(Timeline)로 들어온 경우에도 뒤로가기 UX 보장
+// 2) Zustand selector에서 getPetState() 같은 "함수 호출" 제거:
+//    - byPetId[petId] 직접 구독하여 getSnapshot 경고/루프 리스크 제거
 
 import React, { useCallback, useEffect, useMemo } from 'react';
 import {
@@ -34,14 +38,19 @@ export default function TimelineScreen() {
   // ---------------------------------------------------------
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
-  const petId = route.params?.petId;
+  const petId = route.params?.petId ?? null;
 
   // ---------------------------------------------------------
   // 2) store
   // ---------------------------------------------------------
   const bootstrap = useRecordStore(s => s.bootstrap);
   const refresh = useRecordStore(s => s.refresh);
-  const petState = useRecordStore(s => (petId ? s.getPetState(petId) : null));
+
+  // ✅ 함수 호출(getPetState) 대신 byPetId 직접 구독
+  const petState = useRecordStore(s => {
+    if (!petId) return undefined;
+    return s.byPetId[petId];
+  });
 
   // ---------------------------------------------------------
   // 3) bootstrap
@@ -55,7 +64,24 @@ export default function TimelineScreen() {
   const refreshing = petState?.refreshing ?? false;
 
   // ---------------------------------------------------------
-  // 4) actions
+  // 4) navigation helpers
+  // ---------------------------------------------------------
+  const safeGoBack = useCallback(() => {
+    // 스택이 없으면(goBack 불가) 홈으로 보냄
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+
+    // ⚠️ 프로젝트의 "홈 루트" 라우트명이 다르면 여기만 수정
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Main' as keyof RootStackParamList }],
+    });
+  }, [navigation]);
+
+  // ---------------------------------------------------------
+  // 5) actions
   // ---------------------------------------------------------
   const onPressCreate = useCallback(() => {
     if (!petId) return;
@@ -76,7 +102,7 @@ export default function TimelineScreen() {
   }, [petId, refresh]);
 
   // ---------------------------------------------------------
-  // 5) render
+  // 6) render
   // ---------------------------------------------------------
   const headerTitle = useMemo(() => '추억보기', []);
 
@@ -147,12 +173,14 @@ export default function TimelineScreen() {
 
   return (
     <View style={styles.screen}>
-      {/* Header */}
+      {/* -----------------------------------------------------
+       * Header
+       * ---------------------------------------------------- */}
       <View style={styles.header}>
         <TouchableOpacity
           activeOpacity={0.85}
           style={styles.backBtn}
-          onPress={() => navigation.goBack()}
+          onPress={safeGoBack}
         >
           <AppText preset="body" style={styles.backText}>
             ←
@@ -174,7 +202,9 @@ export default function TimelineScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* List */}
+      {/* -----------------------------------------------------
+       * List
+       * ---------------------------------------------------- */}
       <FlatList
         data={records}
         keyExtractor={keyExtractor}

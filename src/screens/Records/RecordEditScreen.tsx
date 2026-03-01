@@ -3,8 +3,14 @@
 // - 기존 memory 수정(완전체)
 // - title / content / tags / emotion / occurredAt 수정
 // - 저장 후 refresh(petId) + 뒤로
+//
+// ✅ 이번 수정 포인트 (중요)
+// 1) 뒤로가기 안전 처리:
+//    - canGoBack() ? goBack() : reset(Main)
+// 2) Zustand selector에서 getPetState() 호출 제거:
+//    - byPetId[petId] 직접 구독하여 안정성 확보
 
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
   StyleSheet,
@@ -47,18 +53,25 @@ export default function RecordEditScreen() {
   // ---------------------------------------------------------
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
-  const { petId, memoryId } = route.params;
+  const petId = route.params?.petId ?? null;
+  const memoryId = route.params?.memoryId ?? null;
 
   // ---------------------------------------------------------
   // 2) store
   // ---------------------------------------------------------
-  const petState = useRecordStore(s => s.getPetState(petId));
   const refresh = useRecordStore(s => s.refresh);
 
-  const record = useMemo(
-    () => petState.items.find(r => r.id === memoryId) ?? null,
-    [petState.items, memoryId],
-  );
+  // ✅ 함수 호출(getPetState) 대신 byPetId 직접 구독
+  const petState = useRecordStore(s => {
+    if (!petId) return undefined;
+    return s.byPetId[petId];
+  });
+
+  const record = useMemo(() => {
+    if (!memoryId) return null;
+    const items = petState?.items ?? [];
+    return items.find(r => r.id === memoryId) ?? null;
+  }, [petState?.items, memoryId]);
 
   // ---------------------------------------------------------
   // 3) local state
@@ -74,7 +87,23 @@ export default function RecordEditScreen() {
   const [saving, setSaving] = useState(false);
 
   // ---------------------------------------------------------
-  // 4) helpers
+  // 4) navigation helpers
+  // ---------------------------------------------------------
+  const safeGoBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+
+    // ⚠️ 프로젝트의 "홈 루트" 라우트명이 다르면 여기만 수정
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Main' as keyof RootStackParamList }],
+    });
+  }, [navigation]);
+
+  // ---------------------------------------------------------
+  // 5) helpers
   // ---------------------------------------------------------
   const parseTags = (raw: string) => {
     const cleaned = raw.trim();
@@ -110,9 +139,10 @@ export default function RecordEditScreen() {
   };
 
   // ---------------------------------------------------------
-  // 5) submit
+  // 6) submit
   // ---------------------------------------------------------
   const onSubmit = async () => {
+    if (!petId || !memoryId) return;
     if (!record) return;
     if (!title.trim()) return;
 
@@ -131,7 +161,7 @@ export default function RecordEditScreen() {
       });
 
       await refresh(petId);
-      navigation.goBack();
+      safeGoBack();
     } catch (e: any) {
       Alert.alert('수정 실패', e?.message ?? '오류');
     } finally {
@@ -140,7 +170,7 @@ export default function RecordEditScreen() {
   };
 
   // ---------------------------------------------------------
-  // 6) guard
+  // 7) guard
   // ---------------------------------------------------------
   if (!record) {
     return (
@@ -150,10 +180,8 @@ export default function RecordEditScreen() {
           <AppText preset="body" style={styles.desc}>
             목록으로 돌아가서 새로고침 해주세요.
           </AppText>
-          <TouchableOpacity
-            style={styles.ghost}
-            onPress={() => navigation.goBack()}
-          >
+
+          <TouchableOpacity style={styles.ghost} onPress={safeGoBack}>
             <AppText preset="caption" style={styles.ghostText}>
               뒤로
             </AppText>
@@ -164,13 +192,31 @@ export default function RecordEditScreen() {
   }
 
   // ---------------------------------------------------------
-  // 7) UI
+  // 8) UI
   // ---------------------------------------------------------
   return (
     <View style={styles.screen}>
-      <View style={styles.card}>
-        <AppText preset="headline">기록 수정</AppText>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={styles.backBtn}
+          onPress={safeGoBack}
+          disabled={saving}
+        >
+          <AppText preset="body" style={styles.backText}>
+            ←
+          </AppText>
+        </TouchableOpacity>
 
+        <AppText preset="headline" style={styles.headerTitle}>
+          기록 수정
+        </AppText>
+
+        <View style={{ width: 44 }} />
+      </View>
+
+      <View style={styles.card}>
         <AppText preset="caption" style={styles.label}>
           제목
         </AppText>
@@ -258,7 +304,7 @@ export default function RecordEditScreen() {
         </View>
 
         <TouchableOpacity
-          style={styles.primary}
+          style={[styles.primary, saving ? styles.primaryDisabled : null]}
           onPress={onSubmit}
           disabled={saving}
         >
@@ -269,7 +315,8 @@ export default function RecordEditScreen() {
 
         <TouchableOpacity
           style={styles.ghost}
-          onPress={() => navigation.goBack()}
+          onPress={safeGoBack}
+          disabled={saving}
         >
           <AppText preset="caption" style={styles.ghostText}>
             취소
@@ -281,9 +328,34 @@ export default function RecordEditScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, padding: 16, backgroundColor: '#F6F7FB' },
+  screen: { flex: 1, backgroundColor: '#F6F7FB' },
+
+  header: {
+    height: 56,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E6E8F0',
+    backgroundColor: '#FFFFFF',
+  },
+  backBtn: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backText: { fontWeight: '900', color: '#0B1220' },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    color: '#0B1220',
+    fontWeight: '900',
+  },
+
   card: {
-    backgroundColor: '#fff',
+    margin: 16,
+    backgroundColor: '#FFFFFF',
     padding: 16,
     borderRadius: 18,
     borderWidth: 1,
@@ -325,7 +397,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
   },
-  primaryText: { color: '#fff', fontWeight: '900' },
+  primaryDisabled: { opacity: 0.6 },
+  primaryText: { color: '#FFFFFF', fontWeight: '900' },
 
   ghost: { marginTop: 10, paddingVertical: 8, alignItems: 'center' },
   ghostText: { color: '#556070', fontWeight: '700' },

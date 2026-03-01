@@ -2,11 +2,16 @@
 // 목적:
 // - pets 테이블 CRUD (MVP: fetch + create)
 // - DB row → 앱 Pet 타입 매핑
-// - profile_image_url(path) → signed URL 변환
+// - profile_image_url(path) → (Public bucket) public URL 변환
+//
+// Public bucket 운영:
+// - pet-profiles bucket이 public이면 signed URL이 필요 없다
+// - supabase.storage.from(bucket).getPublicUrl(path) 사용
 
 import type { Pet } from '../../store/petStore';
 import { supabase } from './client';
-import { getPetAvatarSignedUrl } from './storagePets';
+
+const PET_PROFILE_BUCKET = 'pet-profiles';
 
 type PetsRow = {
   id: string;
@@ -16,7 +21,7 @@ type PetsRow = {
   adoption_date: string | null;
   weight_kg: number | string | null;
   personality_tags: string[] | null;
-  profile_image_url: string | null;
+  profile_image_url: string | null; // ✅ storage path
   death_date: string | null;
   created_at?: string;
 };
@@ -27,26 +32,20 @@ function toNumberOrNull(v: number | string | null): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-async function mapRowToPet(row: PetsRow): Promise<Pet> {
-  let signedUrl: string | null = null;
+function toPublicUrlOrNull(path: string | null): string | null {
+  if (!path) return null;
+  const { data } = supabase.storage.from(PET_PROFILE_BUCKET).getPublicUrl(path);
+  return data?.publicUrl ?? null;
+}
 
-  if (row.profile_image_url) {
-    try {
-      signedUrl = await getPetAvatarSignedUrl(row.profile_image_url);
-    } catch (e: any) {
-      // ✅ 여기 로그가 찍히면 "버킷명/정책/경로" 문제를 즉시 확인 가능
-      console.warn('[pets] getPetAvatarSignedUrl failed', {
-        path: row.profile_image_url,
-        message: e?.message,
-      });
-      signedUrl = null;
-    }
-  }
+function mapRowToPet(row: PetsRow): Pet {
+  const avatarUrl = toPublicUrlOrNull(row.profile_image_url);
 
   return {
     id: row.id,
     name: row.name,
-    avatarUrl: signedUrl,
+    avatarPath: row.profile_image_url, // ✅ path 유지(향후 교체/삭제에 유리)
+    avatarUrl, // ✅ public url
     adoptionDate: row.adoption_date,
     birthDate: row.birth_date,
     weightKg: toNumberOrNull(row.weight_kg),
@@ -74,8 +73,7 @@ export async function fetchMyPets(): Promise<Pet[]> {
   if (error) throw error;
 
   const rows = (data ?? []) as PetsRow[];
-  const mapped = await Promise.all(rows.map(mapRowToPet));
-  return mapped;
+  return rows.map(mapRowToPet);
 }
 
 /* ---------------------------------------------------------
@@ -87,7 +85,7 @@ export async function createPet(input: {
   birthDate?: string | null;
   weightKg?: number | null;
   tags?: string[];
-  avatarPath?: string | null; // storage path
+  avatarPath?: string | null; // storage path (DB에 저장)
 }): Promise<string> {
   const userRes = await supabase.auth.getUser();
   const userId = userRes.data.user?.id ?? null;

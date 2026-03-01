@@ -1,9 +1,14 @@
 // 파일: src/screens/Main/components/LoggedInHome/LoggedInHome.tsx
 // 목적:
-// - logged_in 전용 홈 레이아웃
-// - 헤더 우측 멀티펫 썸네일 스위처 + (+) 추가
-// - pets booted 후 pets가 0이면 PetCreate로 자동 유도
-// - ✅ Chapter 3: 최근 기록 위젯을 실데이터(memories)로 연결
+// - 로그인 홈 (LoggedInHome)
+// - 헤더: 닉네임 인사 + 멀티펫 썸네일 스위처(최대 4 + +버튼)
+// - 프로필 카드: 선택된 펫 정보/태그
+// - 최근 기록(실데이터) 2개 + 더보기(타임라인)
+//
+// ✅ 안정화 포인트(중요):
+// - Hook 호출을 "항상 동일한 개수/순서"로 고정 (조건문 내부 hook 호출 금지)
+// - zustand selector는 "안전한 단순 접근"만 사용 (getPetState 같은 함수 호출 제거)
+// - activePetId가 null이어도 hook 자체는 호출되되 selector에서 undefined만 리턴
 
 import React, { useEffect, useMemo, useCallback } from 'react';
 import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
@@ -15,9 +20,13 @@ import { useAuthStore } from '../../../../store/authStore';
 import { usePetStore } from '../../../../store/petStore';
 import { useRecordStore } from '../../../../store/recordStore';
 import type { RootStackParamList } from '../../../../navigation/RootNavigator';
+import { getPetAvatarPublicUrl } from '../../../../services/supabase/storagePets';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
+/* ---------------------------------------------------------
+ * 1) utils
+ * -------------------------------------------------------- */
 function diffDaysFromKst(dateYmd: string) {
   const [y, m, d] = dateYmd.split('-').map(Number);
   const start = new Date(Date.UTC(y, m - 1, d, 0, 0, 0));
@@ -36,55 +45,91 @@ function diffDaysFromKst(dateYmd: string) {
   return Math.floor(ms / (1000 * 60 * 60 * 24)) + 1;
 }
 
+function resolveAvatarUri(pet: {
+  avatarUrl?: string | null;
+  avatarPath?: string | null;
+}) {
+  // ---------------------------------------------------------
+  // 우선순위:
+  // 1) store에 avatarUrl이 이미 있으면 그대로 사용
+  // 2) 없으면 avatarPath -> public url 변환해서 사용
+  // ---------------------------------------------------------
+  if (pet.avatarUrl) return pet.avatarUrl;
+  if (pet.avatarPath) return getPetAvatarPublicUrl(pet.avatarPath);
+  return null;
+}
+
+/* ---------------------------------------------------------
+ * 2) component
+ * -------------------------------------------------------- */
 export default function LoggedInHome() {
+  // ---------------------------------------------------------
+  // 0) navigation
+  // ---------------------------------------------------------
   const navigation = useNavigation<Nav>();
 
+  // ---------------------------------------------------------
+  // 1) auth (hook 고정)
+  // ---------------------------------------------------------
   const nicknameRaw = useAuthStore(s => s.profile.nickname);
-  const nickname = useMemo(() => nicknameRaw?.trim() || null, [nicknameRaw]);
 
+  // ---------------------------------------------------------
+  // 2) pets (hook 고정: 한 번에 묶어서 가져오기)
+  // ---------------------------------------------------------
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
   const selectPet = usePetStore(s => s.selectPet);
   const petBooted = usePetStore(s => s.booted);
 
   // ---------------------------------------------------------
-  // 1) pets boot 완료 후, pets가 0이면 PetCreate 자동 유도
+  // 3) derived: selectedPet / activePetId (hook 고정)
   // ---------------------------------------------------------
-  useEffect(() => {
-    if (!petBooted) return;
-    if (pets.length > 0) return;
-
-    navigation.navigate('PetCreate', { from: 'auto' });
-  }, [petBooted, pets.length, navigation]);
+  const nickname = useMemo(() => nicknameRaw?.trim() || null, [nicknameRaw]);
 
   const selectedPet = useMemo(() => {
     if (pets.length === 0) return null;
+
     if (selectedPetId && pets.some(p => p.id === selectedPetId)) {
       return pets.find(p => p.id === selectedPetId) ?? pets[0];
     }
+
     return pets[0];
   }, [pets, selectedPetId]);
 
+  const activePetId = useMemo(() => selectedPet?.id ?? null, [selectedPet]);
+
+  // pets boot 완료 후, pets가 0이면 PetCreate 자동 유도
+  useEffect(() => {
+    if (!petBooted) return;
+    if (pets.length > 0) return;
+    navigation.navigate('PetCreate', { from: 'auto' });
+  }, [petBooted, pets.length, navigation]);
+
   // ---------------------------------------------------------
-  // 2) Chapter 3: records 연결
-  // - home는 "최근 2개"만 필요하지만, store는 Timeline과 공유하므로
-  //   bootstrap으로 1페이지를 받아두고 slice해서 사용
+  // 4) records (hook 고정)
   // ---------------------------------------------------------
   const bootstrapRecords = useRecordStore(s => s.bootstrap);
-  const petRecordsState = useRecordStore(s =>
-    selectedPet?.id ? s.getPetState(selectedPet.id) : null,
-  );
+
+  // ✅ activePetId가 null이어도 hook은 무조건 호출됨
+  //    selector 내부에서만 undefined 반환 -> Hooks order 안정
+  const petRecordsState = useRecordStore(s => {
+    if (!activePetId) return undefined;
+    return s.byPetId[activePetId];
+  });
 
   useEffect(() => {
-    if (!selectedPet?.id) return;
-    bootstrapRecords(selectedPet.id);
-  }, [bootstrapRecords, selectedPet?.id]);
+    if (!activePetId) return;
+    bootstrapRecords(activePetId);
+  }, [bootstrapRecords, activePetId]);
 
   const recentRecords = useMemo(() => {
     const items = petRecordsState?.items ?? [];
     return items.slice(0, 2);
   }, [petRecordsState?.items]);
 
+  // ---------------------------------------------------------
+  // 5) derived texts (hook 고정)
+  // ---------------------------------------------------------
   const greetingTitle = useMemo(() => {
     if (nickname) return `${nickname}님, 반가워요!`;
     return '반가워요!';
@@ -108,35 +153,49 @@ export default function LoggedInHome() {
     return `우리가 함께한 시간 · ${days}일째`;
   }, [selectedPet?.adoptionDate]);
 
+  const selectedAvatarUri = useMemo(() => {
+    if (!selectedPet) return null;
+    return resolveAvatarUri(selectedPet);
+  }, [selectedPet]);
+
   // ---------------------------------------------------------
-  // 3) navigation actions
+  // 6) actions (hook 고정)
   // ---------------------------------------------------------
-  const onPressAddPet = () =>
+  const onPressAddPet = useCallback(() => {
     navigation.navigate('PetCreate', { from: 'header_plus' });
+  }, [navigation]);
 
   const onPressTimeline = useCallback(() => {
-    if (!selectedPet?.id) return;
-    navigation.navigate('Timeline', { petId: selectedPet.id });
-  }, [navigation, selectedPet?.id]);
+    if (!activePetId) return;
+    navigation.navigate('Timeline', { petId: activePetId });
+  }, [navigation, activePetId]);
 
   const onPressRecord = useCallback(() => {
-    if (!selectedPet?.id) return;
-    navigation.navigate('RecordCreate', { petId: selectedPet.id });
-  }, [navigation, selectedPet?.id]);
+    if (!activePetId) return;
+    navigation.navigate('RecordCreate', { petId: activePetId });
+  }, [navigation, activePetId]);
 
   const onPressRecordItem = useCallback(
     (memoryId: string) => {
-      if (!selectedPet?.id) return;
-      navigation.navigate('RecordDetail', { petId: selectedPet.id, memoryId });
+      if (!activePetId) return;
+      navigation.navigate('RecordDetail', { petId: activePetId, memoryId });
     },
-    [navigation, selectedPet?.id],
+    [navigation, activePetId],
   );
 
-  const onPressGuestbook = () => {};
-  const onPressPetChip = (petId: string) => selectPet(petId);
+  const onPressGuestbook = useCallback(() => {
+    // TODO: 방명록 챕터에서 연결
+  }, []);
+
+  const onPressPetChip = useCallback(
+    (petId: string) => {
+      selectPet(petId);
+    },
+    [selectPet],
+  );
 
   // ---------------------------------------------------------
-  // 4) UI
+  // 7) render
   // ---------------------------------------------------------
   return (
     <View style={styles.screen}>
@@ -154,7 +213,9 @@ export default function LoggedInHome() {
 
           <View style={styles.petSwitcherRow}>
             {pets.slice(0, 4).map(p => {
-              const isActive = p.id === selectedPet?.id;
+              const isActive = p.id === activePetId;
+              const uri = resolveAvatarUri(p);
+
               return (
                 <TouchableOpacity
                   key={p.id}
@@ -165,11 +226,8 @@ export default function LoggedInHome() {
                   ]}
                   onPress={() => onPressPetChip(p.id)}
                 >
-                  {p.avatarUrl ? (
-                    <Image
-                      source={{ uri: p.avatarUrl }}
-                      style={styles.petChipImage}
-                    />
+                  {uri ? (
+                    <Image source={{ uri }} style={styles.petChipImage} />
                   ) : (
                     <View style={styles.petChipPlaceholder} />
                   )}
@@ -191,9 +249,9 @@ export default function LoggedInHome() {
         <View style={styles.profileCard}>
           <View style={styles.profileRow}>
             <View style={styles.profileImageWrap}>
-              {selectedPet?.avatarUrl ? (
+              {selectedAvatarUri ? (
                 <Image
-                  source={{ uri: selectedPet.avatarUrl }}
+                  source={{ uri: selectedAvatarUri }}
                   style={styles.profileImage}
                 />
               ) : (

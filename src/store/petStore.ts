@@ -13,7 +13,16 @@ import { create } from 'zustand';
 export type Pet = {
   id: string;
   name: string;
-  avatarUrl?: string | null; // signed url (UI용)
+
+  // ---------------------------------------------------------
+  // avatar
+  // ---------------------------------------------------------
+  avatarPath?: string | null; // ✅ storage path (DB 저장용)
+  avatarUrl?: string | null; // ✅ UI 렌더링용 URL (public url or signed url)
+
+  // ---------------------------------------------------------
+  // meta
+  // ---------------------------------------------------------
   adoptionDate?: string | null; // YYYY-MM-DD
   birthDate?: string | null;
   weightKg?: number | null;
@@ -37,6 +46,9 @@ type PetState = {
   // ---------------------------------------------------------
   setPets: (pets: Pet[]) => void;
   selectPet: (petId: string) => void;
+
+  // avatarUrl만 교체(만료/재요청/즉시 반영용)
+  updatePetAvatarUrl: (petId: string, avatarUrl: string | null) => void;
 
   setLoading: (v: boolean) => void;
   setBooted: (v: boolean) => void;
@@ -68,6 +80,12 @@ export const usePetStore = create<PetState>((set, get) => ({
     const { pets } = get();
     if (!pets.some(p => p.id === petId)) return;
     set({ selectedPetId: petId });
+  },
+
+  updatePetAvatarUrl: (petId: string, avatarUrl: string | null) => {
+    const { pets } = get();
+    const next = pets.map(p => (p.id === petId ? { ...p, avatarUrl } : p));
+    set({ pets: next });
   },
 
   setLoading: (v: boolean) => set({ loading: v }),

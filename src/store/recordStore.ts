@@ -1,8 +1,13 @@
 // 파일: src/store/recordStore.ts
 // 목적:
 // - petId 별 records 캐시 관리 (단순 배열 기반)
-// - pagination 제거 (현재 memories.ts 구조와 100% 정합)
+// - memories.ts(fetchMemoriesByPet) 구조와 100% 정합
 // - optimistic update 지원
+//
+// 중요(⚠️ Fabric/SyncExternalStore 이슈 방지):
+// - getPetState에서 "없는 상태"를 매번 새 객체로 만들면 snapshot이 매번 달라져
+//   React가 무한 루프 위험으로 판단 → 경고/블랙스크린/렌더 멈춤이 발생할 수 있음
+// - 따라서 fallback은 "항상 동일 참조"로 유지해야 한다.
 
 import { create } from 'zustand';
 import type { MemoryRecord } from '../services/supabase/memories';
@@ -41,13 +46,18 @@ const createInitialPetState = (): PetRecordsState => ({
   errorMessage: null,
 });
 
+// ✅ 핵심: fallback은 "항상 같은 객체"여야 함 (new architecture 안전)
+const FALLBACK_PET_STATE: PetRecordsState = createInitialPetState();
+
 export const useRecordStore = create<RecordStore>((set, get) => ({
   byPetId: {},
 
   // ---------------------------------------------------------
-  // 1) helpers
+  // helpers
   // ---------------------------------------------------------
   ensurePetState: (petId: string) => {
+    if (!petId) return;
+
     const cur = get().byPetId[petId];
     if (cur) return;
 
@@ -59,12 +69,14 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
     }));
   },
 
+  // ⚠️ 여기서 매번 createInitialPetState() 만들면 snapshot 흔들림 발생
   getPetState: (petId: string) => {
-    return get().byPetId[petId] ?? createInitialPetState();
+    if (!petId) return FALLBACK_PET_STATE;
+    return get().byPetId[petId] ?? FALLBACK_PET_STATE;
   },
 
   // ---------------------------------------------------------
-  // 2) 최초 로딩
+  // 최초 로딩
   // ---------------------------------------------------------
   bootstrap: async (petId: string) => {
     if (!petId) return;
@@ -77,7 +89,11 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
     set(s => ({
       byPetId: {
         ...s.byPetId,
-        [petId]: { ...s.byPetId[petId], loading: true, errorMessage: null },
+        [petId]: {
+          ...s.byPetId[petId],
+          loading: true,
+          errorMessage: null,
+        },
       },
     }));
 
@@ -89,7 +105,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
           ...s.byPetId,
           [petId]: {
             ...s.byPetId[petId],
-            items: sortByCreatedAtDesc(items),
+            items,
             booted: true,
             loading: false,
             errorMessage: null,
@@ -112,7 +128,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
   },
 
   // ---------------------------------------------------------
-  // 3) 새로고침
+  // 새로고침
   // ---------------------------------------------------------
   refresh: async (petId: string) => {
     if (!petId) return;
@@ -125,7 +141,11 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
     set(s => ({
       byPetId: {
         ...s.byPetId,
-        [petId]: { ...s.byPetId[petId], refreshing: true, errorMessage: null },
+        [petId]: {
+          ...s.byPetId[petId],
+          refreshing: true,
+          errorMessage: null,
+        },
       },
     }));
 
@@ -137,7 +157,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
           ...s.byPetId,
           [petId]: {
             ...s.byPetId[petId],
-            items: sortByCreatedAtDesc(items),
+            items,
             refreshing: false,
             booted: true,
             errorMessage: null,
@@ -151,6 +171,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
           [petId]: {
             ...s.byPetId[petId],
             refreshing: false,
+            booted: true,
             errorMessage: e?.message ?? '새로고침 실패',
           },
         },
@@ -159,7 +180,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
   },
 
   // ---------------------------------------------------------
-  // 4) write helpers
+  // write helpers
   // ---------------------------------------------------------
   replaceAll: (petId, items) => {
     if (!petId) return;
@@ -170,7 +191,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
         ...s.byPetId,
         [petId]: {
           ...s.byPetId[petId],
-          items: sortByCreatedAtDesc(items),
+          items,
           booted: true,
           errorMessage: null,
         },
@@ -195,7 +216,8 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
           ...s.byPetId,
           [petId]: {
             ...cur,
-            items: sortByCreatedAtDesc(next),
+            items: next,
+            booted: true,
           },
         },
       };
@@ -212,13 +234,14 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
         [petId]: {
           ...s.byPetId[petId],
           items: s.byPetId[petId].items.filter(it => it.id !== memoryId),
+          booted: true,
         },
       },
     }));
   },
 
   // ---------------------------------------------------------
-  // 5) clear
+  // clear
   // ---------------------------------------------------------
   clearPet: petId => {
     if (!petId) return;
@@ -231,7 +254,3 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
 
   clearAll: () => set({ byPetId: {} }),
 }));
-
-function sortByCreatedAtDesc(items: MemoryRecord[]) {
-  return [...items].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
-}

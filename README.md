@@ -1005,6 +1005,43 @@ Android의 `content://` URI는 `fetch(uri).blob()` 방식이 불안정합니다.
 - [x] AndroidManifest 권한 정리 완료
 - [x] 이미지 포함 펫 등록 end-to-end 성공
 
+## Chapter 3.5 — Records “완전체” 마무리 (Edit + Delete Storage Cleanup)
+
+### 목표
+
+- Record 수정(Edit) 완성
+- Record 삭제 시 DB row 삭제 + Storage 파일까지 함께 제거 (완전체)
+
+### 구현 내용
+
+#### 1) Record 수정(Edit)
+
+- `updateMemoryFields({ title, content, tags, emotion, occurredAt })`로 필드 수정 지원
+- `RecordEditScreen` 추가 및 라우팅 연결
+- 저장 후 `recordStore.refresh(petId)`로 즉시 동기화
+
+#### 2) Record 삭제 시 Storage 파일 정리(완전체)
+
+- 기존: DB row만 삭제
+- 개선: `deleteMemoryWithFile({ memoryId, imagePath })`로
+  - `memory-images` 버킷 파일 삭제
+  - 이후 `memories` row 삭제
+- Detail 화면에서 삭제 시 `optimistic remove → refresh`로 UX/정합성 모두 보장
+
+### 변경 파일
+
+- `src/navigation/RootNavigator.tsx`
+- `src/store/recordStore.ts`
+- `src/services/supabase/memories.ts`
+- `src/screens/Records/TimelineScreen.tsx`
+- `src/screens/Records/RecordCreateScreen.tsx`
+- `src/screens/Records/RecordDetailScreen.tsx`
+- `src/screens/Records/RecordEditScreen.tsx`
+
+### 결과
+
+- Records CRUD (Create/Read/Edit/Delete) + 이미지 업로드/렌더링 + 삭제 시 스토리지 정리까지 포함한 **Chapter 3 완전체** 완료 ✅
+
 # 26. Final Statement
 
 NURI는 감정을 저장하는 서비스가 아니라, 감정을 구조화하는 시스템입니다.

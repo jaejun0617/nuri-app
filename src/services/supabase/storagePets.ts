@@ -1,20 +1,31 @@
 // 파일: src/services/supabase/storagePets.ts
 // 목적:
-// - pet avatar 업로드 / signed url 발급
-// - bucket: pet-profiles (너의 실제 버킷명)
-// - BlobUtil로 base64 읽고 -> Supabase Storage upload
+// - pet avatar 업로드
+// - (public bucket) public url 발급
+//
+// bucket:
+// - pet-profiles (public)
+//
+// 업로드:
+// - Android content:// 대응을 위해 BlobUtil 기반(base64 -> bytes) 업로드 사용
 
 import { Buffer } from 'buffer';
 import { readFileAsBase64 } from '../files/readFileAsBase64';
 import { supabase } from './client';
-import { getSignedUrl } from './storage';
 
 const PET_PROFILE_BUCKET = 'pet-profiles';
 
-export async function getPetAvatarSignedUrl(path: string): Promise<string> {
-  return getSignedUrl(PET_PROFILE_BUCKET, path, 60 * 60);
+// ---------------------------------------------------------
+// 1) Public URL
+// ---------------------------------------------------------
+export function getPetAvatarPublicUrl(path: string): string {
+  const { data } = supabase.storage.from(PET_PROFILE_BUCKET).getPublicUrl(path);
+  return data.publicUrl;
 }
 
+// ---------------------------------------------------------
+// 2) Upload
+// ---------------------------------------------------------
 export async function uploadPetAvatar(input: {
   userId: string;
   petId: string;
