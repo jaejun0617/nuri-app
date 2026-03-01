@@ -2,19 +2,7 @@
 // 목적:
 // - pets 테이블 CRUD (MVP: fetch + create)
 // - DB row → 앱 Pet 타입 매핑
-//
-// DB 스키마(너 MASTER SETUP 기준):
-// - pets.name
-// - pets.birth_date
-// - pets.adoption_date
-// - pets.weight_kg
-// - pets.personality_tags (text[])
-// - pets.profile_image_url (text)  ← Storage path(or url)
-// - pets.death_date
-//
-// 정책:
-// - DB에는 profile_image_url에 "path" 저장
-// - UI 렌더링은 signed URL로 변환 후 Pet.avatarUrl에 주입
+// - profile_image_url(path) → signed URL 변환
 
 import type { Pet } from '../../store/petStore';
 import { supabase } from './client';
@@ -30,6 +18,7 @@ type PetsRow = {
   personality_tags: string[] | null;
   profile_image_url: string | null;
   death_date: string | null;
+  created_at?: string;
 };
 
 function toNumberOrNull(v: number | string | null): number | null {
@@ -39,9 +28,20 @@ function toNumberOrNull(v: number | string | null): number | null {
 }
 
 async function mapRowToPet(row: PetsRow): Promise<Pet> {
-  const signedUrl = row.profile_image_url
-    ? await getPetAvatarSignedUrl(row.profile_image_url).catch(() => null)
-    : null;
+  let signedUrl: string | null = null;
+
+  if (row.profile_image_url) {
+    try {
+      signedUrl = await getPetAvatarSignedUrl(row.profile_image_url);
+    } catch (e: any) {
+      // ✅ 여기 로그가 찍히면 "버킷명/정책/경로" 문제를 즉시 확인 가능
+      console.warn('[pets] getPetAvatarSignedUrl failed', {
+        path: row.profile_image_url,
+        message: e?.message,
+      });
+      signedUrl = null;
+    }
+  }
 
   return {
     id: row.id,
@@ -79,7 +79,7 @@ export async function fetchMyPets(): Promise<Pet[]> {
 }
 
 /* ---------------------------------------------------------
- * 2) pet 생성 (avatarPath는 DB에 path로 저장)
+ * 2) pet 생성
  * -------------------------------------------------------- */
 export async function createPet(input: {
   name: string;
@@ -108,7 +108,7 @@ export async function createPet(input: {
     .insert(payload)
     .select('id')
     .single();
-  if (error) throw error;
 
+  if (error) throw error;
   return (data as any).id as string;
 }

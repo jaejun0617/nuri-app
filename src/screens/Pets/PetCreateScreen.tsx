@@ -1,11 +1,12 @@
 // 파일: src/screens/Pets/PetCreateScreen.tsx
 // 목적:
 // - 펫 등록(온보딩)
-// - 이미지 선택 → Storage 업로드 → pets.profile_image_url 저장
+// - 이미지 선택 → Storage 업로드 → pets.profile_image_url(path) 저장
 // - 등록 성공 시 fetchMyPets → petStore 주입 → Main reset
 //
-// 패키지:
-// - react-native-image-picker
+// 포인트:
+// - Android content:// 이슈 때문에 fetch(uri).blob() 업로드는 실패할 수 있음
+// - 업로드는 BlobUtil 기반(storagePets.ts)에서 처리
 
 import React, { useMemo, useState } from 'react';
 import {
@@ -67,7 +68,6 @@ export default function PetCreateScreen() {
     const cleaned = raw.trim();
     if (!cleaned) return [];
 
-    // "#a #b" 또는 "a,b" 둘 다 허용
     const byComma = cleaned
       .split(',')
       .map(s => s.trim())
@@ -81,7 +81,6 @@ export default function PetCreateScreen() {
             .map(s => s.trim())
             .filter(Boolean);
 
-    // 저장/표시는 "#태그" 형태로 통일
     return base
       .map(t => t.replace(/^#/, '').trim())
       .filter(Boolean)
@@ -94,6 +93,7 @@ export default function PetCreateScreen() {
       mediaType: 'photo',
       selectionLimit: 1,
       quality: 0.9,
+      // ✅ includeBase64 필요 없음 (업로드는 BlobUtil이 처리)
     });
 
     if (res.didCancel) return;

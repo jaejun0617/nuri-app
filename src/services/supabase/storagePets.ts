@@ -1,44 +1,47 @@
 // 파일: src/services/supabase/storagePets.ts
 // 목적:
 // - pet avatar 업로드 / signed url 발급
-// - bucket은 private 전제
-// - DB에는 path만 저장 (pets.profile_image_url)
-// - UI에서는 signedUrl로 렌더링
+// - bucket: pet-profiles (너의 실제 버킷명)
+// - BlobUtil로 base64 읽고 -> Supabase Storage upload
 
-import { getSignedUrl, uploadFile } from './storage';
+import { Buffer } from 'buffer';
+import { readFileAsBase64 } from '../files/readFileAsBase64';
+import { supabase } from './client';
+import { getSignedUrl } from './storage';
 
-const PET_AVATAR_BUCKET = 'pet-avatars';
+const PET_PROFILE_BUCKET = 'pet-profiles';
 
-// ---------------------------------------------------------
-// 1) signed url (UI용)
-// ---------------------------------------------------------
 export async function getPetAvatarSignedUrl(path: string): Promise<string> {
-  // 1시간 유효 (원하면 더 늘려도 됨)
-  return getSignedUrl(PET_AVATAR_BUCKET, path, 60 * 60);
+  return getSignedUrl(PET_PROFILE_BUCKET, path, 60 * 60);
 }
 
-// ---------------------------------------------------------
-// 2) 업로드
-// ---------------------------------------------------------
 export async function uploadPetAvatar(input: {
   userId: string;
   petId: string;
-  fileUri: string;
+  fileUri: string; // ImagePicker asset.uri
   mimeType: string | null;
 }): Promise<{ path: string }> {
-  const blob = await (await fetch(input.fileUri)).blob();
-
-  // 확장자 최소 보정
   const ext = input.mimeType?.includes('png')
     ? 'png'
     : input.mimeType?.includes('webp')
     ? 'webp'
     : 'jpg';
 
-  // path 규칙: userId/petId/avatar_xxx.jpg
   const path = `${input.userId}/${input.petId}/avatar_${Date.now()}.${ext}`;
 
-  await uploadFile(PET_AVATAR_BUCKET, path, blob, input.mimeType ?? undefined);
+  // ✅ BlobUtil로 base64 읽기 (content:// 대응)
+  const base64 = await readFileAsBase64(input.fileUri);
 
+  // ✅ base64 -> bytes
+  const bytes = Buffer.from(base64, 'base64');
+
+  const { error } = await supabase.storage
+    .from(PET_PROFILE_BUCKET)
+    .upload(path, bytes, {
+      upsert: true,
+      contentType: input.mimeType ?? undefined,
+    });
+
+  if (error) throw error;
   return { path };
 }

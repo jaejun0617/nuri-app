@@ -18,6 +18,11 @@ import NicknameSetupScreen from '../screens/Auth/NicknameSetupScreen';
 
 import PetCreateScreen from '../screens/Pets/PetCreateScreen';
 
+// Chapter 2(Record/memories)
+import TimelineScreen from '../screens/Records/TimelineScreen';
+import RecordCreateScreen from '../screens/Records/RecordCreateScreen';
+import RecordDetailScreen from '../screens/Records/RecordDetailScreen';
+
 export type RootStackParamList = {
   Splash: undefined;
   Main: undefined;
@@ -30,6 +35,11 @@ export type RootStackParamList = {
   PetCreate: { from?: 'auto' | 'cta' | 'header_plus' } | undefined;
 
   DevTest: undefined;
+
+  // ✅ Chapter 2
+  Timeline: { petId: string };
+  RecordCreate: { petId: string };
+  RecordDetail: { petId: string; memoryId: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -82,6 +92,11 @@ export default function RootNavigator() {
         component={PetCreateScreen}
         options={{ title: '반려동물 등록' }}
       />
+
+      {/* ✅ Chapter 2 */}
+      <Stack.Screen name="Timeline" component={TimelineScreen} />
+      <Stack.Screen name="RecordCreate" component={RecordCreateScreen} />
+      <Stack.Screen name="RecordDetail" component={RecordDetailScreen} />
 
       {/* Dev only */}
       {__DEV__ ? (
