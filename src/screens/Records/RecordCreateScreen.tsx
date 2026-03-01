@@ -1,9 +1,9 @@
 // 파일: src/screens/Records/RecordCreateScreen.tsx
 // 목적:
 // - memory(기록) 생성
-// - 이미지 선택 → (1) memories row 생성( id 확보 )
+// - 이미지 선택 → (1) memories row 생성(id 확보)
 //   → (2) Storage 업로드(memory-images) → (3) memories.image_url(path) 업데이트
-// - 성공 시 Timeline으로 이동 + refresh
+// - 성공 시: store.refresh(petId)로 즉시 동기화 후 Timeline으로 이동
 
 import React, { useMemo, useState } from 'react';
 import {
@@ -23,7 +23,6 @@ import { supabase } from '../../services/supabase/client';
 import {
   createMemory,
   type EmotionTag,
-  fetchMemoriesByPet,
   updateMemoryImagePath,
 } from '../../services/supabase/memories';
 import { uploadMemoryImage } from '../../services/supabase/storageMemories';
@@ -55,7 +54,7 @@ export default function RecordCreateScreen() {
   // ---------------------------------------------------------
   // 2) store
   // ---------------------------------------------------------
-  const setRecords = useRecordStore(s => s.setRecords);
+  const refresh = useRecordStore(s => s.refresh);
 
   // ---------------------------------------------------------
   // 3) local state
@@ -84,11 +83,13 @@ export default function RecordCreateScreen() {
     const cleaned = raw.trim();
     if (!cleaned) return [];
 
+    // 1) 콤마 우선
     const byComma = cleaned
       .split(',')
       .map(s => s.trim())
       .filter(Boolean);
 
+    // 2) 콤마가 아니라면 공백 split
     const base =
       byComma.length >= 2
         ? byComma
@@ -97,6 +98,7 @@ export default function RecordCreateScreen() {
             .map(s => s.trim())
             .filter(Boolean);
 
+    // 3) # 정리 + 최대 10개
     return base
       .map(t => t.replace(/^#/, '').trim())
       .filter(Boolean)
@@ -123,6 +125,16 @@ export default function RecordCreateScreen() {
     setImageType(asset.type ?? null);
   };
 
+  const validateOccurredAt = (v: string) => {
+    const t = v.trim();
+    if (!t) return null;
+
+    // 매우 가벼운 형식 검증 (YYYY-MM-DD)
+    const ok = /^\d{4}-\d{2}-\d{2}$/.test(t);
+    if (!ok) throw new Error('날짜 형식은 YYYY-MM-DD 입니다.');
+    return t;
+  };
+
   // ---------------------------------------------------------
   // 5) submit
   // ---------------------------------------------------------
@@ -136,6 +148,8 @@ export default function RecordCreateScreen() {
       const userId = userRes.data.user?.id ?? null;
       if (!userId) throw new Error('로그인 정보가 없습니다.');
 
+      const occurred = validateOccurredAt(occurredAt);
+
       // 1) row 먼저 생성해서 memoryId 확보
       const memoryId = await createMemory({
         petId,
@@ -143,7 +157,7 @@ export default function RecordCreateScreen() {
         content: content.trim() ? content.trim() : null,
         emotion,
         tags: parseTags(tagsText),
-        occurredAt: occurredAt.trim() ? occurredAt.trim() : null,
+        occurredAt: occurred,
         imagePath: null,
       });
 
@@ -160,9 +174,8 @@ export default function RecordCreateScreen() {
         await updateMemoryImagePath({ memoryId, imagePath: path });
       }
 
-      // 3) 목록 리프레시(즉시 UI 반영)
-      const next = await fetchMemoriesByPet(petId);
-      setRecords(next);
+      // 3) store 동기화(최신 데이터 반영)
+      await refresh(petId);
 
       // 4) Timeline으로 이동
       navigation.reset({
@@ -252,6 +265,7 @@ export default function RecordCreateScreen() {
         <AppText preset="caption" style={styles.label}>
           감정(선택)
         </AppText>
+
         <View style={styles.emotionRow}>
           {EMOTIONS.slice(0, 4).map(e => (
             <TouchableOpacity
@@ -376,9 +390,7 @@ const styles = StyleSheet.create({
     borderColor: '#E6E8F0',
     backgroundColor: '#FFFFFF',
   },
-  chipActive: {
-    borderColor: '#6D7CFF',
-  },
+  chipActive: { borderColor: '#6D7CFF' },
   chipText: { color: '#0B1220', fontWeight: '700' },
 
   primary: {

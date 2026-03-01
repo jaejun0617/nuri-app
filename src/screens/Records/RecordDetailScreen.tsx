@@ -1,7 +1,7 @@
 // 파일: src/screens/Records/RecordDetailScreen.tsx
 // 목적:
 // - memory(기록) 상세 화면
-// - 삭제 기능(삭제 후 Timeline 리프레시)
+// - 삭제 기능(삭제 후 store 즉시 반영 + refresh로 서버 동기화)
 
 import React, { useCallback, useMemo, useState } from 'react';
 import { Alert, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -9,10 +9,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
-import {
-  deleteMemory,
-  fetchMemoriesByPet,
-} from '../../services/supabase/memories';
+import { deleteMemory } from '../../services/supabase/memories';
 import { useRecordStore } from '../../store/recordStore';
 import AppText from '../../app/ui/AppText';
 
@@ -35,13 +32,14 @@ export default function RecordDetailScreen() {
   // ---------------------------------------------------------
   // 2) store
   // ---------------------------------------------------------
-  const records = useRecordStore(s => s.records);
-  const setRecords = useRecordStore(s => s.setRecords);
+  const petState = useRecordStore(s => (petId ? s.getPetState(petId) : null));
+  const removeOneLocal = useRecordStore(s => s.removeOneLocal);
+  const refresh = useRecordStore(s => s.refresh);
 
-  const record = useMemo(
-    () => records.find(r => r.id === memoryId) ?? null,
-    [records, memoryId],
-  );
+  const record = useMemo(() => {
+    const items = petState?.items ?? [];
+    return items.find(r => r.id === memoryId) ?? null;
+  }, [memoryId, petState?.items]);
 
   // ---------------------------------------------------------
   // 3) local state
@@ -62,10 +60,15 @@ export default function RecordDetailScreen() {
         onPress: async () => {
           try {
             setDeleting(true);
+
+            // 1) 서버 삭제
             await deleteMemory(memoryId);
 
-            const next = await fetchMemoriesByPet(petId);
-            setRecords(next);
+            // 2) 로컬 즉시 반영(체감 성능/UX)
+            removeOneLocal(petId, memoryId);
+
+            // 3) 서버 재동기화(정합성 보장)
+            await refresh(petId);
 
             navigation.goBack();
           } catch (e: any) {
@@ -76,10 +79,10 @@ export default function RecordDetailScreen() {
         },
       },
     ]);
-  }, [memoryId, navigation, petId, setRecords]);
+  }, [memoryId, navigation, petId, refresh, removeOneLocal]);
 
   // ---------------------------------------------------------
-  // 5) UI
+  // 5) UI (record 없음)
   // ---------------------------------------------------------
   if (!record) {
     return (
@@ -112,6 +115,9 @@ export default function RecordDetailScreen() {
     );
   }
 
+  // ---------------------------------------------------------
+  // 6) UI (정상)
+  // ---------------------------------------------------------
   return (
     <View style={styles.screen}>
       {/* Header */}

@@ -1,7 +1,7 @@
 // 파일: src/screens/Records/TimelineScreen.tsx
 // 목적:
-// - selected pet의 memories 목록(타임라인) 표시
-// - pull-to-refresh로 재조회
+// - petId 기준 memories(타임라인) 표시
+// - pull-to-refresh + pagination(load more)
 // - "기록하기" → RecordCreate
 // - 항목 탭 → RecordDetail
 
@@ -13,15 +13,13 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
-import {
-  fetchMemoriesByPet,
-  type MemoryRecord,
-} from '../../services/supabase/memories';
+import type { MemoryRecord } from '../../services/supabase/memories';
 import { useRecordStore } from '../../store/recordStore';
 import AppText from '../../app/ui/AppText';
 
@@ -37,36 +35,30 @@ export default function TimelineScreen() {
   const petId = route.params?.petId;
 
   // ---------------------------------------------------------
-  // 2) store
+  // 2) store (petId별)
   // ---------------------------------------------------------
-  const records = useRecordStore(s => s.records);
-  const loading = useRecordStore(s => s.loading);
-  const booted = useRecordStore(s => s.booted);
-  const setRecords = useRecordStore(s => s.setRecords);
-  const setLoading = useRecordStore(s => s.setLoading);
-  const setBooted = useRecordStore(s => s.setBooted);
+  const bootstrap = useRecordStore(s => s.bootstrap);
+  const refresh = useRecordStore(s => s.refresh);
+  const loadMore = useRecordStore(s => s.loadMore);
+
+  const petState = useRecordStore(s => (petId ? s.getPetState(petId) : null));
 
   // ---------------------------------------------------------
-  // 3) data fetch
+  // 3) data bootstrap
   // ---------------------------------------------------------
-  const load = useCallback(async () => {
-    if (!petId) return;
-
-    try {
-      setLoading(true);
-      const data = await fetchMemoriesByPet(petId);
-      setRecords(data);
-    } finally {
-      setLoading(false);
-      setBooted(true);
-    }
-  }, [petId, setBooted, setLoading, setRecords]);
-
   useEffect(() => {
-    // 최초 진입 1회
-    if (!booted) load();
-  }, [booted, load]);
+    if (!petId) return;
+    bootstrap(petId);
+  }, [bootstrap, petId]);
 
+  const records = petState?.items ?? [];
+  const refreshing = petState?.refreshing ?? false;
+  const loadingMoreFlag = petState?.loadingMore ?? false;
+  const hasMore = petState?.hasMore ?? false;
+
+  // ---------------------------------------------------------
+  // 4) actions
+  // ---------------------------------------------------------
   const onPressCreate = useCallback(() => {
     if (!petId) return;
     navigation.navigate('RecordCreate', { petId });
@@ -80,8 +72,19 @@ export default function TimelineScreen() {
     [navigation, petId],
   );
 
+  const onRefresh = useCallback(() => {
+    if (!petId) return;
+    refresh(petId);
+  }, [petId, refresh]);
+
+  const onEndReached = useCallback(() => {
+    if (!petId) return;
+    if (!hasMore) return;
+    loadMore(petId);
+  }, [hasMore, loadMore, petId]);
+
   // ---------------------------------------------------------
-  // 4) render
+  // 5) render
   // ---------------------------------------------------------
   const headerTitle = useMemo(() => '추억보기', []);
 
@@ -126,6 +129,7 @@ export default function TimelineScreen() {
               <AppText preset="caption" style={styles.metaText}>
                 {item.occurredAt ?? item.createdAt.slice(0, 10)}
               </AppText>
+
               {item.emotion ? (
                 <View style={styles.badge}>
                   <AppText preset="caption" style={styles.badgeText}>
@@ -149,11 +153,18 @@ export default function TimelineScreen() {
 
   const keyExtractor = useCallback((item: MemoryRecord) => item.id, []);
 
+  const ListFooterComponent = useMemo(() => {
+    if (!loadingMoreFlag) return <View style={{ height: 14 }} />;
+    return (
+      <View style={styles.footer}>
+        <ActivityIndicator />
+      </View>
+    );
+  }, [loadingMoreFlag]);
+
   return (
     <View style={styles.screen}>
-      {/* ----------------------------------------------------- */}
       {/* Header */}
-      {/* ----------------------------------------------------- */}
       <View style={styles.header}>
         <TouchableOpacity
           activeOpacity={0.85}
@@ -180,17 +191,18 @@ export default function TimelineScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* ----------------------------------------------------- */}
       {/* List */}
-      {/* ----------------------------------------------------- */}
       <FlatList
         data={records}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
         contentContainerStyle={records.length ? styles.list : styles.listEmpty}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={load} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
+        onEndReached={onEndReached}
+        onEndReachedThreshold={0.6}
+        ListFooterComponent={ListFooterComponent}
         ListEmptyComponent={
           <View style={styles.empty}>
             <AppText preset="headline" style={styles.emptyTitle}>
@@ -320,4 +332,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   primaryText: { color: '#FFFFFF', fontWeight: '900' },
+
+  footer: {
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

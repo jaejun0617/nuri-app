@@ -896,6 +896,115 @@ hydrate → getSession → setSession
 
 ---
 
+# ✅ Chapter 2 — Android Storage 업로드 안정화 (BlobUtil 기반)
+
+이 챕터는 **Android에서 이미지 업로드가 실제로 끊김 없이 동작하도록 고정하는 안정화 단계**입니다.  
+목표는 단 하나입니다.
+
+> 갤러리(content://) → Storage 업로드 → DB path 저장 → 홈/헤더 즉시 반영  
+> 이 흐름을 완전히 연결하고 끊김 없이 동작하도록 만드는 것
+
+---
+
+## 1. Android 업로드 실패 원인 확정 (content:// + fetch/blob 한계)
+
+### 🔎 현상
+
+- 이미지 선택은 되지만 업로드 실패
+- 업로드 후 DB 반영이 끊겨 목록에 표시되지 않음
+- 네이티브 모듈 에러로 업로드 코드가 런타임에서 중단됨
+
+### 🧠 핵심 결론
+
+Android의 `content://` URI는 `fetch(uri).blob()` 방식이 불안정합니다.
+
+#### ❌ includeBase64 방식의 문제점
+
+- 환경/설정에 따라 base64 값이 없을 수 있음
+- 메모리 사용량이 큼
+- 대용량 이미지에서 크래시 위험
+- 장기적으로 안정적인 구조가 아님
+
+### ✅ 해결 전략
+
+> Android 업로드 파이프라인은 BlobUtil 기반으로 고정
+
+---
+
+## 2. 업로드 전략 통일 (BlobUtil 기준)
+
+### 📌 원칙
+
+- Android 이미지 업로드는 항상 BlobUtil 사용
+- DB에는 full URL 저장 금지
+- DB에는 Storage path만 저장
+- UI 렌더링 시 signed URL 변환 후 사용
+- Storage 버킷은 private 유지
+
+### 📁 핵심 파일
+
+- src/services/supabase/storage.ts
+- src/services/supabase/storagePets.ts
+
+---
+
+## 3. Storage 버킷명 최종 확정 (정합성 통일)
+
+### 🎯 최종 버킷명
+
+- `pet-profiles`
+- `memory-images`
+
+### ❌ 기존 혼용 제거
+
+| 기존 이름     | 통일 이름     |
+| ------------- | ------------- |
+| pet-avatars   | pet-profiles  |
+| record-images | memory-images |
+
+> DB / 코드 / 정책 / README 전부 동일한 명칭으로 통일
+
+---
+
+## 4. Android 권한 설정 정리 (Manifest 안정화)
+
+### 📜 적용 권한
+
+- Android 14+ → `READ_MEDIA_VISUAL_USER_SELECTED`
+- Android 13+ → `READ_MEDIA_IMAGES`
+- Android 12 이하 → `READ_EXTERNAL_STORAGE (maxSdkVersion="32")`
+- 필요 시 → `WRITE_EXTERNAL_STORAGE (maxSdkVersion="32")`
+
+### 📂 파일 위치
+
+- android/app/src/main/AndroidManifest.xml
+
+이 설정으로 갤러리 접근 → 파일 읽기 → 업로드 흐름이 안정화됨.
+
+---
+
+## 5. 업로드 → DB → UI 반영 플로우 완성
+
+### 🔄 최종 성공 흐름
+
+1. PetCreate에서 이미지 선택
+2. BlobUtil 기반 Storage 업로드 성공
+3. `pets.profile_image_url`에 path 저장
+4. `fetchMyPets()` 재조회
+5. 홈 헤더 / 카드 썸네일 즉시 반영
+
+---
+
+# ✅ Chapter 2 Done 체크리스트
+
+- [x] Android content:// 업로드 이슈 BlobUtil 방식으로 해결
+- [x] includeBase64 의존 제거
+- [x] Storage 버킷명 최종 확정
+  - `pet-profiles`
+  - `memory-images`
+- [x] AndroidManifest 권한 정리 완료
+- [x] 이미지 포함 펫 등록 end-to-end 성공
+
 # 26. Final Statement
 
 NURI는 감정을 저장하는 서비스가 아니라, 감정을 구조화하는 시스템입니다.

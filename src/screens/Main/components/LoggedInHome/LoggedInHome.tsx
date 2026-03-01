@@ -3,8 +3,9 @@
 // - logged_in 전용 홈 레이아웃
 // - 헤더 우측 멀티펫 썸네일 스위처 + (+) 추가
 // - pets booted 후 pets가 0이면 PetCreate로 자동 유도
+// - ✅ Chapter 3: 최근 기록 위젯을 실데이터(memories)로 연결
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useCallback } from 'react';
 import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -12,6 +13,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { styles } from '../../MainScreen.styles';
 import { useAuthStore } from '../../../../store/authStore';
 import { usePetStore } from '../../../../store/petStore';
+import { useRecordStore } from '../../../../store/recordStore';
 import type { RootStackParamList } from '../../../../navigation/RootNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -43,7 +45,6 @@ export default function LoggedInHome() {
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
   const selectPet = usePetStore(s => s.selectPet);
-
   const petBooted = usePetStore(s => s.booted);
 
   // ---------------------------------------------------------
@@ -63,6 +64,26 @@ export default function LoggedInHome() {
     }
     return pets[0];
   }, [pets, selectedPetId]);
+
+  // ---------------------------------------------------------
+  // 2) Chapter 3: records 연결
+  // - home는 "최근 2개"만 필요하지만, store는 Timeline과 공유하므로
+  //   bootstrap으로 1페이지를 받아두고 slice해서 사용
+  // ---------------------------------------------------------
+  const bootstrapRecords = useRecordStore(s => s.bootstrap);
+  const petRecordsState = useRecordStore(s =>
+    selectedPet?.id ? s.getPetState(selectedPet.id) : null,
+  );
+
+  useEffect(() => {
+    if (!selectedPet?.id) return;
+    bootstrapRecords(selectedPet.id);
+  }, [bootstrapRecords, selectedPet?.id]);
+
+  const recentRecords = useMemo(() => {
+    const items = petRecordsState?.items ?? [];
+    return items.slice(0, 2);
+  }, [petRecordsState?.items]);
 
   const greetingTitle = useMemo(() => {
     if (nickname) return `${nickname}님, 반가워요!`;
@@ -88,18 +109,35 @@ export default function LoggedInHome() {
   }, [selectedPet?.adoptionDate]);
 
   // ---------------------------------------------------------
-  // 2) 액션
+  // 3) navigation actions
   // ---------------------------------------------------------
   const onPressAddPet = () =>
     navigation.navigate('PetCreate', { from: 'header_plus' });
 
-  // (다음 챕터에서 연결)
-  const onPressTimeline = () => {};
-  const onPressGuestbook = () => {};
-  const onPressRecord = () => {};
+  const onPressTimeline = useCallback(() => {
+    if (!selectedPet?.id) return;
+    navigation.navigate('Timeline', { petId: selectedPet.id });
+  }, [navigation, selectedPet?.id]);
 
+  const onPressRecord = useCallback(() => {
+    if (!selectedPet?.id) return;
+    navigation.navigate('RecordCreate', { petId: selectedPet.id });
+  }, [navigation, selectedPet?.id]);
+
+  const onPressRecordItem = useCallback(
+    (memoryId: string) => {
+      if (!selectedPet?.id) return;
+      navigation.navigate('RecordDetail', { petId: selectedPet.id, memoryId });
+    },
+    [navigation, selectedPet?.id],
+  );
+
+  const onPressGuestbook = () => {};
   const onPressPetChip = (petId: string) => selectPet(petId);
 
+  // ---------------------------------------------------------
+  // 4) UI
+  // ---------------------------------------------------------
   return (
     <View style={styles.screen}>
       <ScrollView
@@ -205,7 +243,7 @@ export default function LoggedInHome() {
           </View>
         </View>
 
-        {/* 5) 최근 기록 */}
+        {/* 5) 최근 기록 (실데이터) */}
         <View style={styles.section}>
           <View style={styles.recentHeader}>
             <Text style={styles.sectionTitle}>최근 기록</Text>
@@ -215,8 +253,48 @@ export default function LoggedInHome() {
           </View>
 
           <View style={styles.recentGrid}>
-            <View style={styles.recentGridItem} />
-            <View style={styles.recentGridItem} />
+            {recentRecords.length === 0 ? (
+              <>
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  style={styles.recentGridItem}
+                  onPress={onPressRecord}
+                />
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  style={styles.recentGridItem}
+                  onPress={onPressRecord}
+                />
+              </>
+            ) : (
+              <>
+                {Array.from({ length: 2 }).map((_, idx) => {
+                  const item = recentRecords[idx] ?? null;
+
+                  return (
+                    <TouchableOpacity
+                      key={idx}
+                      activeOpacity={0.9}
+                      style={styles.recentGridItem}
+                      onPress={() =>
+                        item ? onPressRecordItem(item.id) : onPressRecord()
+                      }
+                    >
+                      {item?.imageUrl ? (
+                        <Image
+                          source={{ uri: item.imageUrl }}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            borderRadius: 18,
+                          }}
+                        />
+                      ) : null}
+                    </TouchableOpacity>
+                  );
+                })}
+              </>
+            )}
           </View>
         </View>
       </ScrollView>
