@@ -1480,30 +1480,33 @@ Phase 2는 기능 구현이 아니라
 
 ---
 
+---
+
 ## 상태 설계
 
 ### authStore
 
 - `status`: guest | logged_in
-- `session`: Supabase session
-- `profile.nickname`
+- `session`: Supabase session (Single Source of Truth)
+- `profile.nickname`: 로컬 persist + 서버 fetch로 정렬
 - `booted`: 부트 완료 신호(Splash 게이트)
 
 ### petStore
 
 - `pets[]`
 - `selectedPetId` (AsyncStorage 영구 복원/저장)
-- `booted`: pets fetch 완료 신호
 - `loading`: pets fetch 중
+- `booted`: pets fetch 완료 신호
 
 ---
 
-## 핵심 구현 포인트
+## UX 안정화 포인트
 
-- **Single Source of Truth:** 세션은 Supabase가 단일 소스
 - **Gate Strategy:** `authBooted && petBooted`가 true가 되기 전까지 화면 전환 금지
 - **Min Splash Time:** 부트가 빨리 끝나도 최소 0.9초는 Splash 유지
 - **selectedPetId Persist:** `nuri.selectedPetId.v1` 키로 저장/복원, pets 주입 시 normalize
+- **Pet 0마리 처리:** LoggedInHome에서 PetCreate로 `reset` 유도(중간 화면 노출 최소화)
+- **Records 안정화:** recordStore는 `getPetState()` 기반 fallback shape 고정
 
 ---
 
@@ -1513,6 +1516,7 @@ Phase 2는 기능 구현이 아니라
 - `src/store/authStore.ts`
 - `src/store/petStore.ts`
 - `src/screens/Home/HomeScreen.tsx`
+- `src/screens/Main/components/LoggedInHome/LoggedInHome.tsx`
 
 ## 부트 시퀀스 (고정)
 

@@ -3,10 +3,13 @@
 // - 로그인 홈 (LoggedInHome)
 // - 헤더: 닉네임 인사 + 멀티펫 썸네일 스위처(최대 4 + +버튼)
 // - 프로필 카드: 선택된 펫 정보/태그
+// - 감성 섹션:
+//   1) 함께한 시간(D-day)
+//   2) 오늘의 추억(작년 오늘 우선 / 없으면 랜덤) + 시간대 메시지(07/12/18) → 1카드
 // - 최근 기록(실데이터) 2개 + 더보기(타임라인)
 //
 // ✅ 안정화 포인트(중요):
-// - Hook 호출을 "항상 동일한 개수/순서"로 고정 (조건문 내부 hook 호출 금지)
+// - Hook 호출을 "항상 동일한 개수/순서"로 고정
 // - zustand selector는 "안전한 단순 접근"만 사용
 // - recordStore는 getPetState로 fallback 고정(shape 고정)
 //
@@ -15,9 +18,8 @@
 // - 애니메이션은 UI thread에서 수행 → 버벅임 감소
 // - 전환 중 연타 방지로 중첩 렌더/끊김 방지
 //
-// ✅ 구조 변경(중요):
-// - 공통 하단 탭은 AppTabsNavigator에서 전역 노출
-// - 따라서 이 파일의 하단 탭 / FAB UI는 제거
+// ✅ 부팅 UX:
+// - pets boot 완료 후 pets=0이면 PetCreate로 reset 유도 (깜빡임 최소화)
 
 import React, { useEffect, useMemo, useCallback, useState } from 'react';
 import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
@@ -34,36 +36,23 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import Screen from '../../../../components/layout/Screen';
-import { styles } from '../../MainScreen.styles';
 import { useAuthStore } from '../../../../store/authStore';
 import { usePetStore } from '../../../../store/petStore';
 import { useRecordStore } from '../../../../store/recordStore';
 
+import type { MemoryRecord } from '../../../../services/supabase/memories';
+import { diffDaysFromKst } from '../../../../utils/date';
+import {
+  pickTodayMemory,
+  generateTimeMessage,
+} from '../../../../services/home/homeRecall';
+
+import { styles } from './LoggedInHome.styles';
+
 type Nav = NativeStackNavigationProp<any>;
 
 /* ---------------------------------------------------------
- * 1) utils
- * -------------------------------------------------------- */
-function diffDaysFromKst(dateYmd: string) {
-  const [y, m, d] = dateYmd.split('-').map(Number);
-  const start = new Date(Date.UTC(y, m - 1, d, 0, 0, 0));
-
-  const now = new Date();
-  const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-  const kstToday = new Date(
-    Date.UTC(
-      kstNow.getUTCFullYear(),
-      kstNow.getUTCMonth(),
-      kstNow.getUTCDate(),
-    ),
-  );
-
-  const ms = kstToday.getTime() - start.getTime();
-  return Math.floor(ms / (1000 * 60 * 60 * 24)) + 1;
-}
-
-/* ---------------------------------------------------------
- * 2) component
+ * 1) component
  * -------------------------------------------------------- */
 export default function LoggedInHome() {
   // ---------------------------------------------------------
@@ -102,8 +91,7 @@ export default function LoggedInHome() {
   const activePetId = useMemo(() => selectedPet?.id ?? null, [selectedPet]);
 
   // ---------------------------------------------------------
-  // ✅ pets boot 완료 후 pets=0이면 PetCreate로 "reset" 유도
-  // - navigate로 가면 LoggedInHome가 잠깐 보일 수 있음
+  // 3.1) pets boot 완료 후 pets=0이면 PetCreate로 reset 유도
   // ---------------------------------------------------------
   useEffect(() => {
     if (!petBooted) return;
@@ -154,6 +142,31 @@ export default function LoggedInHome() {
   }, [petRecordsState.items]);
 
   // ---------------------------------------------------------
+  // 4.5) "오늘의 추억" (작년 오늘 우선 / 없으면 랜덤) + 하루 1회 고정
+  // ---------------------------------------------------------
+  const [todayMemory, setTodayMemory] = useState<MemoryRecord | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function run() {
+      if (!activePetId) {
+        if (mounted) setTodayMemory(null);
+        return;
+      }
+
+      const picked = await pickTodayMemory(activePetId, petRecordsState.items);
+      if (mounted) setTodayMemory(picked);
+    }
+
+    run();
+
+    return () => {
+      mounted = false;
+    };
+  }, [activePetId, petRecordsState.items]);
+
+  // ---------------------------------------------------------
   // 5) derived texts (hook 고정)
   // ---------------------------------------------------------
   const greetingTitle = useMemo(() => {
@@ -184,6 +197,10 @@ export default function LoggedInHome() {
     [selectedPet?.avatarUrl],
   );
 
+  const todayMessage = useMemo(() => {
+    return generateTimeMessage(selectedPet?.name ?? null);
+  }, [selectedPet?.name]);
+
   // ---------------------------------------------------------
   // 6) actions (hook 고정)
   // ---------------------------------------------------------
@@ -207,6 +224,9 @@ export default function LoggedInHome() {
     [navigation, activePetId],
   );
 
+  /**
+   * ✅ Reanimated 기반 펫 전환
+   */
   const onPressPetChip = useCallback(
     (petId: string) => {
       if (switching) return;
@@ -266,7 +286,7 @@ export default function LoggedInHome() {
     <Screen style={styles.screen}>
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContentLoggedIn}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* 1) 헤더 + 멀티펫 스위처 */}
@@ -351,21 +371,32 @@ export default function LoggedInHome() {
             </Text>
           </View>
 
-          {/* 오늘의 메시지(placeholder) */}
+          {/* ✅ 오늘의 추억 (작년 오늘 우선/없으면 랜덤) + 시간대 메시지 (1카드 통일) */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>오늘의 메시지</Text>
+            <Text style={styles.sectionTitle}>오늘의 추억</Text>
 
-            <View style={styles.messageRow}>
-              <View style={styles.messageThumb} />
-              <View style={styles.messageThumb} />
-              <View style={styles.messageThumb} />
-            </View>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={styles.todayCard}
+              onPress={() =>
+                todayMemory
+                  ? onPressRecordItem(todayMemory.id)
+                  : onPressRecord()
+              }
+            >
+              {todayMemory?.imageUrl ? (
+                <Image
+                  source={{ uri: todayMemory.imageUrl }}
+                  style={styles.todayImage}
+                />
+              ) : (
+                <View style={styles.todayPlaceholder} />
+              )}
 
-            <View style={styles.messageCaptionRow}>
-              <Text style={styles.messageCaption}>오늘 아침엔...</Text>
-              <Text style={styles.messageCaption}>점심엔...</Text>
-              <Text style={styles.messageCaption}>오늘은...</Text>
-            </View>
+              <View style={styles.todayOverlay}>
+                <Text style={styles.todayMessage}>{todayMessage}</Text>
+              </View>
+            </TouchableOpacity>
           </View>
 
           {/* 최근 기록 */}
@@ -408,11 +439,7 @@ export default function LoggedInHome() {
                         {item?.imageUrl ? (
                           <Image
                             source={{ uri: item.imageUrl }}
-                            style={{
-                              width: '100%',
-                              height: '100%',
-                              borderRadius: 18,
-                            }}
+                            style={{ width: '100%', height: '100%' }}
                           />
                         ) : null}
                       </TouchableOpacity>
