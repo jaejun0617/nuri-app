@@ -14,7 +14,6 @@ import { supabase } from '../../services/supabase/client';
 import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
-
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function MoreScreen() {

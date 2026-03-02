@@ -1,8 +1,9 @@
-// 파일: index.js
-// 목적:
-// - RN 앱 진입점(Entry)
-// - Supabase RN polyfill을 "가장 먼저" 로드
-// - RNGH는 최상단에서 1회 import로 안정화
+/**
+ * RN Entry
+ * - gesture handler 최상단
+ * - reanimated 1회 import
+ * - supabase polyfill 먼저
+ */
 
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';

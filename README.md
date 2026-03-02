@@ -1181,6 +1181,7 @@ RootStack 구조 변경에 맞춰 정상 복귀 처리.
 - LoggedInHome 루트에 Screen 적용하여 상태바(시간/아이콘) 영역과 UI 간격 안정화
 - 펫 전환 애니메이션을 Reanimated 기반(UI thread)으로 업그레이드하여 버벅임을 감소
 - 전환 타이밍을 runOnJS로 고정하고 연타 방지로 중첩 렌더/끊김 방지
+  ㅇ
 
 # 26. Final Statement
 
