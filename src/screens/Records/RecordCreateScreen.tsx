@@ -1,14 +1,10 @@
 // 파일: src/screens/Records/RecordCreateScreen.tsx
 // 목적:
 // - memory(기록) 생성
-// - 1) memories row 생성 → memoryId 확보
-// - 2) Storage 업로드(memory-images)
-// - 3) updateMemoryImagePath로 DB path 반영
-// - 4) recordStore.refresh(petId) → Timeline 탭으로 이동
-//
-// ✅ 공통 탭 대응(중요):
-// - 탭에서 진입하면 route params가 없을 수 있음
-// - 이 경우 petStore(selectedPetId 또는 첫 pet)에서 petId를 fallback으로 사용
+// - ✅ 저장 직후 홈/타임라인에 "즉시" 보이도록 optimistic upsert 적용
+// - 이후 refresh로 서버와 동기화(이미지 signed url 포함)
+
+// NOTE: UI 스타일은 기존 그대로 유지
 
 import React, { useMemo, useState } from 'react';
 import {
@@ -28,6 +24,7 @@ import {
   createMemory,
   updateMemoryImagePath,
   type EmotionTag,
+  fetchMemoryById, // ✅ 추가
 } from '../../services/supabase/memories';
 import { uploadMemoryImage } from '../../services/supabase/storageMemories';
 import { useRecordStore } from '../../store/recordStore';
@@ -59,7 +56,6 @@ export default function RecordCreateScreen() {
   // ---------------------------------------------------------
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
-
   const petIdFromParams = route?.params?.petId ?? null;
 
   const petId = useMemo(() => {
@@ -74,14 +70,15 @@ export default function RecordCreateScreen() {
   // 2) store
   // ---------------------------------------------------------
   const refresh = useRecordStore(s => s.refresh);
+  const upsertOneLocal = useRecordStore(s => s.upsertOneLocal);
 
   // ---------------------------------------------------------
   // 3) local state
   // ---------------------------------------------------------
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [occurredAt, setOccurredAt] = useState(''); // YYYY-MM-DD
-  const [tagsText, setTagsText] = useState(''); // "#a #b" or "a,b"
+  const [occurredAt, setOccurredAt] = useState('');
+  const [tagsText, setTagsText] = useState('');
   const [emotion, setEmotion] = useState<EmotionTag | null>(null);
 
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -158,6 +155,7 @@ export default function RecordCreateScreen() {
 
       const occurred = validateOccurredAt(occurredAt);
 
+      // 1) create row
       const memoryId = await createMemory({
         petId,
         title: trimmedTitle,
@@ -168,6 +166,7 @@ export default function RecordCreateScreen() {
         imagePath: null,
       });
 
+      // 2) upload image + update path
       if (imageUri) {
         const userRes = await supabase.auth.getUser();
         const userId = userRes.data.user?.id ?? null;
@@ -184,9 +183,19 @@ export default function RecordCreateScreen() {
         await updateMemoryImagePath({ memoryId, imagePath: path });
       }
 
-      await refresh(petId);
+      // ✅ 3) optimistic: 단건 조회 후 store에 즉시 반영
+      // - signed url까지 포함된 완전한 형태로 upsert
+      try {
+        const created = await fetchMemoryById(memoryId);
+        upsertOneLocal(petId, created);
+      } catch {
+        // 단건 조회 실패해도 UX는 유지, refresh로 최종 동기화
+      }
 
-      // ✅ 탭 구조에선 TimelineTab으로 보내는 게 가장 자연스러움
+      // ✅ 4) 서버 동기화(백그라운드)
+      refresh(petId).catch(() => {});
+
+      // 5) TimelineTab 이동
       navigation.navigate('TimelineTab');
     } catch (e: any) {
       Alert.alert('기록 저장 실패', e?.message ?? '다시 시도해 주세요.');

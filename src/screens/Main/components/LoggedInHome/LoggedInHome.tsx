@@ -2,30 +2,18 @@
 // 목적:
 // - 로그인 홈 (LoggedInHome)
 // - 헤더: 닉네임 인사 + 멀티펫 썸네일 스위처(최대 4 + +버튼)
-// - HERO CARD: "큰 프로필 카드(펫 정보) ~ 오늘의 메시지"를 하나로 묶어 사진 레이아웃 구현
+// - HERO CARD + 오늘날의 사진 + 최근기록(가장 최근 7개)
 //
-// ✅ 구현 포인트(사진 레이아웃):
-// - 상단: 이름(굵게) + (견종 | 나이 | 성별 | 몸무게)
-// - 생년월일(YYYY.MM.DD)
-// - 함께한 시간 N일(입양일 기준)
-// - 중단 3컬럼: 취미 / 좋아하는 것 / 싫어하는 것 (불릿 리스트)
-// - 태그 row
-// - 하단: 오늘의 메시지 박스
-//
-// ✅ 안정화 포인트:
-// - Hook 호출은 항상 동일 순서
-// - recordStore getPetState fallback shape 고정
-// - pets=0이면 PetCreate로 reset 유도
-//
-// ✅ UX:
-// - 펫칩 전환 reanimated(fade/slide)
+// ✅ 이번 수정 핵심
+// - 최근기록: 조건 없이 "가장 최근부터 7개"
+// - recordStore 구독을 가장 안전한 형태로 단순화(byPetId[petId] 직접)
+// - activePetId와 store의 petId가 달라서 생기는 “타임라인은 있는데 홈은 없음” 케이스를 확인할 수 있게 로그 추가
 
 import React, { useEffect, useMemo, useCallback, useState } from 'react';
 import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-// ✅ Reanimated
 import Animated, {
   Easing,
   runOnJS,
@@ -40,7 +28,6 @@ import { usePetStore } from '../../../../store/petStore';
 import { useRecordStore } from '../../../../store/recordStore';
 
 import type { MemoryRecord } from '../../../../services/supabase/memories';
-import { daysAgoFromKstToday } from '../../../../utils/date';
 import {
   pickTodayPhoto,
   generateTimeMessage,
@@ -80,7 +67,6 @@ function calcAgeFromBirth(birthYmd: string | null | undefined): number | null {
   const d = Number(s.slice(8, 10));
   if (!y || !m || !d) return null;
 
-  // KST 기준 표시(UTC+9를 더해 "날짜"가 안정적으로 보이게)
   const now = new Date();
   const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
 
@@ -104,7 +90,6 @@ function calcDaysSinceAdoption(
   const d = Number(s.slice(8, 10));
   if (!y || !m || !d) return null;
 
-  // KST 기준 날짜 diff
   const now = new Date();
   const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
 
@@ -117,8 +102,7 @@ function calcDaysSinceAdoption(
 
   const diffDays = Math.floor((endUtc - startUtc) / (24 * 60 * 60 * 1000));
   if (!Number.isFinite(diffDays)) return null;
-  // “함께한 시간”은 보통 1일부터로 보여주고 싶으면 +1 처리 가능.
-  // 디자인상(5331일)처럼 누적 느낌이면 +1이 자연스러워서 적용.
+
   return Math.max(0, diffDays + 1);
 }
 
@@ -136,33 +120,6 @@ function formatWeightKg(v: number | null | undefined): string | null {
   return `${n % 1 === 0 ? n.toFixed(0) : n.toFixed(1)}kg`;
 }
 
-/**
- * pickWeekly7
- * - 최근 기록을 "1주 간격"으로 최대 7개 선택
- * - today 기준 daysAgo로 bucket = floor(daysAgo/7)
- * - bucket 0..6(총 7개)에서 각 bucket의 첫 기록을 선택
- */
-function pickWeekly7(items: MemoryRecord[]) {
-  const picked = new Array<MemoryRecord | null>(7).fill(null);
-
-  for (const it of items) {
-    const ymd = getRecordYmd(it);
-    const daysAgo = daysAgoFromKstToday(ymd);
-
-    if (daysAgo === null) continue;
-    if (daysAgo < 0) continue;
-    if (daysAgo > 48) continue;
-
-    const bucket = Math.floor(daysAgo / 7); // 0..6
-    if (bucket < 0 || bucket > 6) continue;
-
-    if (!picked[bucket]) picked[bucket] = it;
-    if (picked.every(Boolean)) break;
-  }
-
-  return picked.filter(Boolean) as MemoryRecord[];
-}
-
 function clampList(list: string[] | null | undefined, max = 2) {
   const arr = Array.isArray(list) ? list : [];
   return arr
@@ -174,6 +131,22 @@ function clampList(list: string[] | null | undefined, max = 2) {
 /* ---------------------------------------------------------
  * 2) component
  * -------------------------------------------------------- */
+type PetRecordsStateShape = {
+  items: MemoryRecord[];
+  loading: boolean;
+  refreshing: boolean;
+  booted: boolean;
+  errorMessage: string | null;
+};
+
+const FALLBACK_RECORDS_STATE: PetRecordsStateShape = Object.freeze({
+  items: [],
+  loading: false,
+  refreshing: false,
+  booted: false,
+  errorMessage: null,
+});
+
 export default function LoggedInHome() {
   // ---------------------------------------------------------
   // 0) navigation
@@ -207,7 +180,7 @@ export default function LoggedInHome() {
     return pets[0];
   }, [pets, selectedPetId]);
 
-  const activePetId = useMemo(() => selectedPet?.id ?? null, [selectedPet]);
+  const activePetId = useMemo(() => selectedPet?.id ?? null, [selectedPet?.id]);
 
   // ---------------------------------------------------------
   // ✅ pets boot 완료 후 pets=0이면 PetCreate로 reset 유도
@@ -223,7 +196,7 @@ export default function LoggedInHome() {
   }, [petBooted, pets.length, navigation]);
 
   // ---------------------------------------------------------
-  // 3.5) transition animation (Reanimated)
+  // 3.5) transition animation
   // ---------------------------------------------------------
   const [switching, setSwitching] = useState(false);
 
@@ -244,16 +217,28 @@ export default function LoggedInHome() {
   // 4) records
   // ---------------------------------------------------------
   const bootstrapRecords = useRecordStore(s => s.bootstrap);
-  const getPetState = useRecordStore(s => s.getPetState);
 
-  const petRecordsState = useMemo(() => {
-    return getPetState(activePetId ?? '');
-  }, [getPetState, activePetId]);
+  // ✅ selector를 최대한 단순화: activePetId 변경 시 자동으로 다른 slice 구독
+  const petRecordsState = useRecordStore(s =>
+    activePetId ? (s.byPetId[activePetId] as any) : null,
+  ) as PetRecordsStateShape | null;
+
+  const safeRecordsState = petRecordsState ?? FALLBACK_RECORDS_STATE;
 
   useEffect(() => {
     if (!activePetId) return;
     bootstrapRecords(activePetId);
   }, [bootstrapRecords, activePetId]);
+
+  // ✅ 디버그(원인 확인): 홈이 어떤 petId를 보고 있는지 / items가 들어오는지
+  useEffect(() => {
+    console.log(
+      '[LoggedInHome] activePetId=',
+      activePetId,
+      'items=',
+      safeRecordsState.items.length,
+    );
+  }, [activePetId, safeRecordsState.items.length]);
 
   // ---------------------------------------------------------
   // 4.5) today message / today photo
@@ -275,7 +260,7 @@ export default function LoggedInHome() {
         if (mounted) setTodayPhoto({ record: null, mode: 'none' });
         return;
       }
-      const picked = await pickTodayPhoto(activePetId, petRecordsState.items);
+      const picked = await pickTodayPhoto(activePetId, safeRecordsState.items);
       if (mounted) setTodayPhoto(picked);
     }
 
@@ -283,19 +268,23 @@ export default function LoggedInHome() {
     return () => {
       mounted = false;
     };
-  }, [activePetId, petRecordsState.items]);
+  }, [activePetId, safeRecordsState.items]);
 
   // ---------------------------------------------------------
-  // 4.6) recent weekly 7
+  // 4.6) ✅ recent = 최신 7개 (조건 없음)
   // ---------------------------------------------------------
-  const weekly7 = useMemo(
-    () => pickWeekly7(petRecordsState.items),
-    [petRecordsState.items],
+  const recentItems = useMemo(
+    () => safeRecordsState.items.slice(0, 7),
+    [safeRecordsState.items],
   );
-  const showMore = useMemo(() => weekly7.length >= 7, [weekly7.length]);
+
+  const showMore = useMemo(
+    () => safeRecordsState.items.length > 7,
+    [safeRecordsState.items.length],
+  );
 
   // ---------------------------------------------------------
-  // 5) HERO derived (사진 레이아웃)
+  // 5) HERO derived
   // ---------------------------------------------------------
   const petName = useMemo(
     () => selectedPet?.name ?? '우리 아이',
@@ -329,13 +318,11 @@ export default function LoggedInHome() {
   );
 
   const topMetaLine = useMemo(() => {
-    // "말티즈 | 2살 | 남아 | 4.5kg"
     const parts: string[] = [];
     if (breed) parts.push(breed);
     if (ageText) parts.push(ageText);
     if (genderText) parts.push(genderText);
     if (weightText) parts.push(weightText);
-
     if (parts.length === 0) return null;
     return parts.join(' | ');
   }, [breed, ageText, genderText, weightText]);
@@ -359,7 +346,9 @@ export default function LoggedInHome() {
   );
 
   const tags = useMemo(() => {
-    const arr = Array.isArray(selectedPet?.tags) ? selectedPet!.tags! : [];
+    const arr = Array.isArray(selectedPet?.tags)
+      ? (selectedPet?.tags as string[])
+      : [];
     const normalized = arr
       .map(t => (t ?? '').trim())
       .filter(Boolean)
@@ -380,7 +369,7 @@ export default function LoggedInHome() {
   }, [todayPhoto.mode]);
 
   // ---------------------------------------------------------
-  // 6) derived header
+  // 6) header text
   // ---------------------------------------------------------
   const greetingTitle = useMemo(() => {
     if (nickname) return `${nickname}님, 반가워요!`;
@@ -472,7 +461,7 @@ export default function LoggedInHome() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* 1) 헤더 + 멀티펫 스위처 */}
+        {/* 1) 헤더 */}
         <View style={styles.header}>
           <View style={styles.headerTextArea}>
             <Text style={styles.title}>{greetingTitle}</Text>
@@ -513,11 +502,10 @@ export default function LoggedInHome() {
           </View>
         </View>
 
-        {/* 2) 전환 대상 컨텐츠 */}
+        {/* 2) 전환 컨텐츠 */}
         <Animated.View style={animatedContentStyle}>
-          {/* ✅ HERO CARD (사진 레이아웃) */}
+          {/* HERO */}
           <View style={styles.heroCard}>
-            {/* Top: name + meta + avatar */}
             <View style={styles.heroTopRow}>
               <View style={styles.heroLeft}>
                 <Text style={styles.heroName} numberOfLines={1}>
@@ -546,8 +534,8 @@ export default function LoggedInHome() {
                       ♥ 함께한 시간{' '}
                       <Text style={styles.heroTogetherStrong}>
                         {togetherDays}
-                      </Text>
-                      일
+                      </Text>{' '}
+                      일 ♥
                     </Text>
                   </View>
                 ) : null}
@@ -565,10 +553,8 @@ export default function LoggedInHome() {
               </View>
             </View>
 
-            {/* Divider */}
             <View style={styles.heroLine} />
 
-            {/* 3 columns */}
             <View style={styles.heroThreeCol}>
               <View style={styles.heroCol}>
                 <View style={styles.heroColHeader}>
@@ -620,7 +606,6 @@ export default function LoggedInHome() {
               </View>
             </View>
 
-            {/* Tags */}
             <View style={styles.heroTagsRow}>
               {tags.map(t => (
                 <View key={t} style={styles.heroTagChip}>
@@ -629,14 +614,13 @@ export default function LoggedInHome() {
               ))}
             </View>
 
-            {/* Message box */}
             <View style={styles.heroMessageBox}>
               <Text style={styles.heroMessageLabel}>오늘의 메시지</Text>
               <Text style={styles.heroMessageText}>{todayMessage}</Text>
             </View>
           </View>
 
-          {/* 2) 오늘날의 사진 */}
+          {/* 오늘날의 사진 */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>오늘날의 사진</Text>
 
@@ -671,7 +655,7 @@ export default function LoggedInHome() {
             </TouchableOpacity>
           </View>
 
-          {/* 3) 최근 기록 (주간 7개) */}
+          {/* 최근 기록 */}
           <View style={styles.section}>
             <View style={styles.recentHeaderRow}>
               <Text style={styles.sectionTitle}>최근 기록</Text>
@@ -688,7 +672,7 @@ export default function LoggedInHome() {
               )}
             </View>
 
-            {weekly7.length === 0 ? (
+            {recentItems.length === 0 ? (
               <View style={styles.emptyBox}>
                 <Text style={styles.emptyTitle}>아직 기록이 없어요</Text>
                 <Text style={styles.emptyDesc}>첫 번째 추억을 남겨보세요.</Text>
@@ -704,7 +688,7 @@ export default function LoggedInHome() {
             ) : (
               <>
                 <View style={styles.recentList}>
-                  {weekly7.map(item => {
+                  {recentItems.map(item => {
                     const ymd = getRecordYmd(item);
                     const title = item.title?.trim() ? item.title : '제목 없음';
                     const content = toSnippet(item.content, 46);

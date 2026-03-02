@@ -117,19 +117,19 @@ export const styles = StyleSheet.create({
     borderColor: 'rgba(0,0,0,0.06)',
   },
   heroTogetherText: {
-    fontSize: 13,
-    fontWeight: '900',
+    fontSize: 12,
+    fontWeight: '700',
     color: '#2B2622',
   },
   heroTogetherStrong: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '900',
     color: '#2B2622',
   },
 
   heroAvatarWrap: {
-    width: 108,
-    height: 108,
+    width: 150,
+    height: 150,
     borderRadius: 999,
     overflow: 'hidden',
     borderWidth: 5,
@@ -177,6 +177,7 @@ export const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
     color: '#2B2622',
+    marginLeft: 5,
   },
   heroBulletMuted: {
     fontSize: 13,
@@ -233,8 +234,13 @@ export const styles = StyleSheet.create({
   // ---------------------------------------------------------
   // Sections
   // ---------------------------------------------------------
-  section: { gap: 8 },
-  sectionTitle: { fontSize: 14, fontWeight: '900', color: '#000000' },
+  section: { gap: 18 },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#000000',
+    marginBottom: 6,
+  },
 
   // ---------------------------------------------------------
   // Today Photo Card
@@ -270,7 +276,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 2,
+    marginBottom: 1,
   },
   moreBtnText: { fontSize: 11, fontWeight: '900', color: '#000000' },
 

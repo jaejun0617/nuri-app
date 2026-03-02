@@ -4,7 +4,6 @@
 // - signed URL 변환
 // - Edit 지원
 // - Delete 시 Storage 파일 정리(완전체)
-// - image_url 컬럼에는 "path"만 저장 (bucket은 storageMemories가 알고 있음)
 
 import { supabase } from './client';
 import { deleteFile } from './storage';
@@ -29,14 +28,14 @@ export type MemoryRecord = {
   tags: string[];
   occurredAt?: string | null;
   createdAt: string;
-  imageUrl?: string | null; // signed url (렌더용)
-  imagePath?: string | null; // storage path (삭제/재발급용)
+  imageUrl?: string | null;
+  imagePath?: string | null;
 };
 
 type MemoriesRow = {
   id: string;
   pet_id: string;
-  image_url: string | null; // 실제로는 "path"
+  image_url: string | null;
   title: string;
   content: string | null;
   emotion: EmotionTag | null;
@@ -65,6 +64,22 @@ async function mapRow(row: MemoriesRow): Promise<MemoryRecord> {
 }
 
 /* ---------------------------------------------------------
+ * 0) Read one (✅ optimistic 반영용)
+ * -------------------------------------------------------- */
+export async function fetchMemoryById(memoryId: string): Promise<MemoryRecord> {
+  const { data, error } = await supabase
+    .from('memories')
+    .select(
+      'id,pet_id,image_url,title,content,emotion,tags,occurred_at,created_at',
+    )
+    .eq('id', memoryId)
+    .single();
+
+  if (error) throw error;
+  return mapRow(data as MemoriesRow);
+}
+
+/* ---------------------------------------------------------
  * 1) List
  * -------------------------------------------------------- */
 export async function fetchMemoriesByPet(
@@ -79,12 +94,11 @@ export async function fetchMemoriesByPet(
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return Promise.all((data ?? []).map(mapRow));
+  return Promise.all((data ?? []).map(row => mapRow(row as MemoriesRow)));
 }
 
 /* ---------------------------------------------------------
  * 2) Create
- * - imagePath는 생성 시점에는 보통 null
  * -------------------------------------------------------- */
 export async function createMemory(input: {
   petId: string;
@@ -110,7 +124,7 @@ export async function createMemory(input: {
     .single();
 
   if (error) throw error;
-  return data.id;
+  return (data as any).id as string;
 }
 
 /* ---------------------------------------------------------
@@ -154,7 +168,7 @@ export async function updateMemoryImagePath(input: {
 }
 
 /* ---------------------------------------------------------
- * 5) Delete (Storage 정리 포함) - 완전체
+ * 5) Delete (Storage 정리 포함)
  * -------------------------------------------------------- */
 export async function deleteMemoryWithFile(input: {
   memoryId: string;

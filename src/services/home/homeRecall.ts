@@ -84,20 +84,19 @@ export async function pickTodayPhoto(
 
 /**
  * generateTimeMessage
- * - 07:00 / 12:00 / 18:00 기준 메시지 자동 생성(임시 버전)
- * - 다음 단계에서 ai_messages(kind='daily_pet_message')로 치환 가능
+ * - 07:00 / 12:00 / 18:00 기준 메시지 자동 생성(감성 버전)
  */
 export function generateTimeMessage(petName?: string | null) {
   const name = petName?.trim() ? petName.trim() : '우리 아이';
   const phase = getTimePhase();
 
   if (phase === 'morning') {
-    return `${name}와의 아침, 오늘도 천천히 시작해요.`;
+    return `🌤️ ${name}와 눈 맞추는 아침이에요. 오늘도 천천히, 포근하게 시작해요.`;
   }
 
   if (phase === 'noon') {
-    return `${name}가 좋아했을 순간을 잠깐 꺼내볼까요?`;
+    return `☀️ ${name}가 웃던 순간을 살짝 떠올려볼까요? 작은 행복 충전 시간이에요.`;
   }
 
-  return `${name}와의 하루를 따뜻하게 마무리해요.`;
+  return `🌙 ${name}와 보낸 하루를 꼭 안고, 따뜻하게 마무리해요.`;
 }

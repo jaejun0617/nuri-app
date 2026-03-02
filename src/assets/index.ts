@@ -6,6 +6,6 @@
 //   UI 코드(MainScreen 등)는 최대한 덜 흔들리도록 한다.
 
 export const ASSETS = {
-  logo: require('./logo/logo.png'),
-  sampleDogProfile: require('./logo/logo.png'),
+  logo: require('./logo/logo_v2.png'),
+  sampleDogProfile: require('./logo/logo_v2.png'),
 } as const;

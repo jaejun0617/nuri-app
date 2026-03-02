@@ -1616,6 +1616,19 @@ Phase 2는 기능 구현이 아니라
 - RouteProp은 @react-navigation/native-stack이 아닌 @react-navigation/native에서 제공
 - NicknameSetupScreen의 import를 올바르게 수정하여 TS2305 해결
 
+### Home UI - Hero Card(프로필~오늘의 메시지) 사진 레이아웃 적용
+
+- LoggedInHome 상단을 “큰 카드 1장” 구조로 재정렬하여 디자인 시안(프로필 카드) 형태를 구현했다.
+- heroCard 내부 구성:
+  - 이름(굵게) + 메타(견종 | 나이 | 성별 | 몸무게)
+  - 생년월일(YYYY.MM.DD)
+  - 입양일 기준 “함께한 시간 N일” 표시
+  - 취미 / 좋아하는 것 / 싫어하는 것 3컬럼 불릿 리스트
+  - 태그 row
+  - “오늘의 메시지” 박스(점선 보더)로 마무리
+- any를 제거하고 petStore 확장 필드(breed/gender/likes/dislikes/hobbies/tags)를 직접 사용하도록 타입 안정성을 강화했다.
+- 입양일 기준 day 계산은 KST 기준으로 처리했고, 모든 값은 null-safe + fallback 처리로 안정화했다.
+
 # 26. Final Statement
 
 NURI는 감정을 저장하는 서비스가 아니라, 감정을 구조화하는 시스템입니다.

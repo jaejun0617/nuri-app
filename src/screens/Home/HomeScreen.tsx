@@ -47,7 +47,10 @@ export default function HomeScreen() {
   const brandScale = useRef(new Animated.Value(0.96)).current;
   const brandOpacity = useRef(new Animated.Value(0)).current;
 
-  const logoSource = useMemo(() => require('../../assets/logo/logo.png'), []);
+  const logoSource = useMemo(
+    () => require('../../assets/logo/logo_v2.png'),
+    [],
+  );
   const bgSource = useMemo(() => require('../../assets/home/home__bg.png'), []);
   const blurSource = useMemo(
     () => require('../../assets/home/home__blur.png'),

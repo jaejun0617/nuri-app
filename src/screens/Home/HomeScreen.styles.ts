@@ -98,8 +98,8 @@ export const BrandRow = styled(View)`
  * 로고
  */
 export const Logo = styled(Image)`
-  width: 34px;
-  height: 34px;
+  width: 100px;
+  height: 100px;
   margin-right: 6px;
 `;
 
