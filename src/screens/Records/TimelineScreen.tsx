@@ -5,12 +5,9 @@
 // - "기록하기" → RecordCreate
 // - 항목 탭 → RecordDetail
 //
-// ✅ 이번 수정 포인트 (중요)
-// 1) 뒤로가기 안전 처리:
-//    - navigation.canGoBack() ? goBack() : reset(Main)
-//    - RecordCreate 저장 후 reset(Timeline)로 들어온 경우에도 뒤로가기 UX 보장
-// 2) Zustand selector에서 getPetState() 같은 "함수 호출" 제거:
-//    - byPetId[petId] 직접 구독하여 getSnapshot 경고/루프 리스크 제거
+// ✅ 공통 탭 대응(중요):
+// - 탭에서 진입하면 route params가 없을 수 있음
+// - 이 경우 petStore(selectedPetId 또는 첫 pet)에서 petId를 fallback으로 사용
 
 import React, { useCallback, useEffect, useMemo } from 'react';
 import {
@@ -24,21 +21,37 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { MemoryRecord } from '../../services/supabase/memories';
 import { useRecordStore } from '../../store/recordStore';
+import { usePetStore } from '../../store/petStore';
 import AppText from '../../app/ui/AppText';
 
-type Nav = NativeStackNavigationProp<RootStackParamList>;
-type Route = { key: string; name: string; params: { petId: string } };
+type Nav = NativeStackNavigationProp<any>;
 
 export default function TimelineScreen() {
   // ---------------------------------------------------------
-  // 1) navigation / params
+  // 1) navigation / route
   // ---------------------------------------------------------
   const navigation = useNavigation<Nav>();
-  const route = useRoute<Route>();
-  const petId = route.params?.petId ?? null;
+  const route = useRoute<any>();
+
+  // ---------------------------------------------------------
+  // 1.5) petId resolve (params → store fallback)
+  // ---------------------------------------------------------
+  const pets = usePetStore(s => s.pets);
+  const selectedPetId = usePetStore(s => s.selectedPetId);
+
+  const petIdFromParams = route?.params?.petId ?? null;
+
+  const petId = useMemo(() => {
+    if (petIdFromParams) return petIdFromParams;
+
+    // store fallback
+    if (selectedPetId && pets.some(p => p.id === selectedPetId)) {
+      return selectedPetId;
+    }
+    return pets[0]?.id ?? null;
+  }, [petIdFromParams, selectedPetId, pets]);
 
   // ---------------------------------------------------------
   // 2) store
@@ -46,7 +59,6 @@ export default function TimelineScreen() {
   const bootstrap = useRecordStore(s => s.bootstrap);
   const refresh = useRecordStore(s => s.refresh);
 
-  // ✅ 함수 호출(getPetState) 대신 byPetId 직접 구독
   const petState = useRecordStore(s => {
     if (!petId) return undefined;
     return s.byPetId[petId];
@@ -64,28 +76,11 @@ export default function TimelineScreen() {
   const refreshing = petState?.refreshing ?? false;
 
   // ---------------------------------------------------------
-  // 4) navigation helpers
-  // ---------------------------------------------------------
-  const safeGoBack = useCallback(() => {
-    // 스택이 없으면(goBack 불가) 홈으로 보냄
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-      return;
-    }
-
-    // ⚠️ 프로젝트의 "홈 루트" 라우트명이 다르면 여기만 수정
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'Main' as keyof RootStackParamList }],
-    });
-  }, [navigation]);
-
-  // ---------------------------------------------------------
-  // 5) actions
+  // 4) actions
   // ---------------------------------------------------------
   const onPressCreate = useCallback(() => {
     if (!petId) return;
-    navigation.navigate('RecordCreate', { petId });
+    navigation.navigate('RecordCreate', { petId }); // 스택으로도 진입 가능
   }, [navigation, petId]);
 
   const onPressItem = useCallback(
@@ -102,7 +97,7 @@ export default function TimelineScreen() {
   }, [petId, refresh]);
 
   // ---------------------------------------------------------
-  // 6) render
+  // 5) render
   // ---------------------------------------------------------
   const headerTitle = useMemo(() => '추억보기', []);
 
@@ -173,24 +168,12 @@ export default function TimelineScreen() {
 
   return (
     <View style={styles.screen}>
-      {/* -----------------------------------------------------
-       * Header
-       * ---------------------------------------------------- */}
+      {/* 커스텀 헤더(스택 헤더는 숨길 수도/유지할 수도 있는데, 우리는 탭 공통이므로 화면 내 헤더 유지) */}
       <View style={styles.header}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          style={styles.backBtn}
-          onPress={safeGoBack}
-        >
-          <AppText preset="body" style={styles.backText}>
-            ←
-          </AppText>
-        </TouchableOpacity>
-
+        <View style={{ width: 44 }} />
         <AppText preset="headline" style={styles.headerTitle}>
           {headerTitle}
         </AppText>
-
         <TouchableOpacity
           activeOpacity={0.9}
           style={styles.createBtn}
@@ -202,9 +185,6 @@ export default function TimelineScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* -----------------------------------------------------
-       * List
-       * ---------------------------------------------------- */}
       <FlatList
         data={records}
         keyExtractor={keyExtractor}
@@ -239,7 +219,7 @@ export default function TimelineScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#F6F7FB' },
+  screen: { flex: 1, backgroundColor: '#FFFFFF' },
 
   header: {
     height: 56,
@@ -247,20 +227,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#E6E8F0',
+    borderBottomColor: '#EAEAEA',
     backgroundColor: '#FFFFFF',
   },
-  backBtn: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backText: { fontWeight: '900', color: '#0B1220' },
   headerTitle: {
     flex: 1,
     textAlign: 'center',
-    color: '#0B1220',
+    color: '#000000',
     fontWeight: '900',
   },
 
@@ -268,7 +241,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     height: 36,
     borderRadius: 999,
-    backgroundColor: '#6D7CFF',
+    backgroundColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -284,39 +257,39 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E6E8F0',
+    borderColor: '#EAEAEA',
   },
   thumb: {
     width: 88,
     height: 88,
     borderRadius: 16,
     overflow: 'hidden',
-    backgroundColor: '#F6F7FB',
+    backgroundColor: '#F4F4F4',
     borderWidth: 1,
-    borderColor: '#E6E8F0',
+    borderColor: '#EAEAEA',
   },
   thumbImg: { width: '100%', height: '100%' },
   thumbPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  thumbPlaceholderText: { color: '#8A94A6', fontWeight: '800' },
+  thumbPlaceholderText: { color: '#888888', fontWeight: '800' },
 
   itemBody: { flex: 1 },
-  itemTitle: { color: '#0B1220', fontWeight: '900' },
-  itemContent: { marginTop: 6, color: '#556070' },
+  itemTitle: { color: '#000000', fontWeight: '900' },
+  itemContent: { marginTop: 6, color: '#333333' },
 
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
-  metaText: { color: '#8A94A6', fontWeight: '700' },
+  metaText: { color: '#777777', fontWeight: '700' },
 
   badge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#E6E8F0',
+    borderColor: '#EAEAEA',
     backgroundColor: '#FFFFFF',
   },
-  badgeText: { color: '#0B1220', fontWeight: '800' },
+  badgeText: { color: '#000000', fontWeight: '800' },
 
-  tags: { marginTop: 8, color: '#6D7CFF', fontWeight: '800' },
+  tags: { marginTop: 8, color: '#000000', fontWeight: '800' },
 
   empty: {
     flex: 1,
@@ -324,20 +297,20 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E6E8F0',
+    borderColor: '#EAEAEA',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
   },
-  emptyTitle: { color: '#0B1220', fontWeight: '900' },
-  emptyDesc: { color: '#556070', textAlign: 'center' },
+  emptyTitle: { color: '#000000', fontWeight: '900' },
+  emptyDesc: { color: '#333333', textAlign: 'center' },
 
   primary: {
     marginTop: 10,
     height: 48,
     borderRadius: 14,
     paddingHorizontal: 18,
-    backgroundColor: '#6D7CFF',
+    backgroundColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
   },

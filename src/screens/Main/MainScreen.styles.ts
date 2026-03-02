@@ -1,9 +1,8 @@
 // 파일: src/screens/Main/MainScreen.styles.ts
 // 목적:
 // - MainScreen의 Guest/Logged-in UI 스타일
-// - Guest는 "로그인 랜딩 홈"처럼 보이도록 (네 이미지 왼쪽 느낌)
-// - Logged-in은 실제 홈(오른쪽 느낌)
-// - 공통 톤: 베이지/오프화이트 + 소프트 쉐도우 + 라운드 크게
+// - ✅ 현재 단계 목표: Splash 제외 전체 흰/검 베이스로 "무난하게" 통일
+// - ✅ 공통 탭이 전역으로 붙으므로 ScrollView paddingBottom 과다(120) 제거
 
 import { StyleSheet } from 'react-native';
 
@@ -13,7 +12,7 @@ export const styles = StyleSheet.create({
    * -------------------------------------------------------- */
   screen: {
     flex: 1,
-    backgroundColor: '#F6F2EE',
+    backgroundColor: '#FFFFFF',
   },
   scroll: {
     flex: 1,
@@ -21,12 +20,12 @@ export const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 18,
     paddingTop: 18,
-    paddingBottom: 120, // 탭+FAB 고려
+    paddingBottom: 24, // ✅ 전역 탭이 있으니 과한 padding 제거
   },
   scrollContentLoggedIn: {
     paddingHorizontal: 18,
     paddingTop: 18,
-    paddingBottom: 120,
+    paddingBottom: 24,
   },
 
   /* ---------------------------------------------------------
@@ -46,49 +45,33 @@ export const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#1D1B19',
+    color: '#000000',
     marginBottom: 6,
   },
   subTitle: {
     fontSize: 13,
-    color: '#6E6660',
-  },
-
-  // Guest 헤더 우측의 "미니 원(이미지 느낌)"
-  guestMiniCircle: {
-    width: 46,
-    height: 46,
-    borderRadius: 999,
-    backgroundColor: '#EFEAE4',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
+    color: '#333333',
   },
 
   /* ---------------------------------------------------------
-   * 2) Guest: 메인 히어로 카드 (큰 +, CTA)
+   * 2) Guest: 메인 히어로 카드
    * -------------------------------------------------------- */
   heroCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 22,
     paddingVertical: 18,
     paddingHorizontal: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#EAEAEA',
     alignItems: 'center',
   },
   heroPlusCircle: {
     width: 168,
     height: 168,
     borderRadius: 999,
-    backgroundColor: '#F3EEE8',
+    backgroundColor: '#F4F4F4',
     borderWidth: 2,
-    borderColor: '#E6DFD7',
+    borderColor: '#EAEAEA',
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
@@ -96,19 +79,19 @@ export const styles = StyleSheet.create({
   },
   heroPlus: {
     fontSize: 44,
-    color: '#B8B0A8',
+    color: '#777777',
     marginTop: -2,
   },
   heroHint: {
     fontSize: 13,
-    color: '#7A726C',
+    color: '#333333',
     marginBottom: 14,
   },
   heroCta: {
     width: '100%',
     height: 48,
     borderRadius: 14,
-    backgroundColor: '#97A48D',
+    backgroundColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -127,28 +110,13 @@ export const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#1D1B19',
+    color: '#000000',
     marginBottom: 10,
   },
   sectionDesc: {
     fontSize: 13,
-    color: '#6E6660',
+    color: '#333333',
     fontWeight: '600',
-  },
-
-  sectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  sectionTitleIcons: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  sectionTitleIcon: {
-    fontSize: 14,
-    opacity: 0.8,
   },
 
   /* ---------------------------------------------------------
@@ -163,84 +131,13 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: '#EFEAE4',
+    backgroundColor: '#F4F4F4',
+    borderWidth: 1,
+    borderColor: '#EAEAEA',
   },
   tagText: {
     fontSize: 12,
-    color: '#6C645E',
-    fontWeight: '700',
-  },
-
-  /* ---------------------------------------------------------
-   * 5) Guest: 기록하기 가이드 카드
-   * -------------------------------------------------------- */
-  tipCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 14,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 2,
-  },
-  tipHeaderRow: {
-    marginBottom: 12,
-  },
-  tipTitle: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#1D1B19',
-    marginBottom: 6,
-  },
-  tipSub: {
-    fontSize: 12,
-    color: '#6E6660',
-    fontWeight: '600',
-    lineHeight: 17,
-  },
-  tipThumbRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  tipThumb: {
-    flex: 1,
-    height: 74,
-    borderRadius: 14,
-    backgroundColor: '#F3EEE8',
-  },
-
-  /* ---------------------------------------------------------
-   * 6) Guest: 최근 기록 카드
-   * -------------------------------------------------------- */
-  recentCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 14,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 2,
-  },
-  recentRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  recentThumb: {
-    flex: 1,
-    height: 86,
-    borderRadius: 16,
-    backgroundColor: '#F3EEE8',
-  },
-  recentMetaRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 10,
-  },
-  recentMeta: {
-    fontSize: 12,
-    color: '#6E6660',
+    color: '#000000',
     fontWeight: '700',
   },
 
@@ -256,20 +153,16 @@ export const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 999,
-    backgroundColor: '#EFEAE4',
+    backgroundColor: '#F4F4F4',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-
-    // ✅ 기본 테두리(얇게)
     borderWidth: 1,
-    borderColor: '#E6DFD7',
+    borderColor: '#EAEAEA',
   },
-
   petChipActive: {
-    // ✅ active는 두껍게 + 색 변경
     borderWidth: 2,
-    borderColor: '#EFEAE4',
+    borderColor: '#000000',
   },
   petChipImage: {
     width: '100%',
@@ -278,22 +171,22 @@ export const styles = StyleSheet.create({
   petChipPlaceholder: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#EFEFEF', // 플레이스홀더 색상
+    backgroundColor: '#EDEDED',
   },
   petAddChip: {
     width: 42,
     height: 42,
     borderRadius: 999,
-    backgroundColor: '#EFEAE4',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E6DFD7',
+    borderColor: '#EAEAEA',
     borderStyle: 'dashed',
   },
   petAddPlus: {
     fontSize: 20,
-    color: '#B8B0A8',
+    color: '#000000',
     marginTop: -1,
   },
 
@@ -304,11 +197,8 @@ export const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 22,
     padding: 14,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#EAEAEA',
   },
   profileRow: {
     flexDirection: 'row',
@@ -319,7 +209,9 @@ export const styles = StyleSheet.create({
     height: 84,
     borderRadius: 999,
     overflow: 'hidden',
-    backgroundColor: '#EFEAE4',
+    backgroundColor: '#F4F4F4',
+    borderWidth: 1,
+    borderColor: '#EAEAEA',
   },
   profileImage: {
     width: '100%',
@@ -328,7 +220,7 @@ export const styles = StyleSheet.create({
   profileImagePlaceholder: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#EEE7E1',
+    backgroundColor: '#EDEDED',
   },
   profileTextArea: {
     flex: 1,
@@ -336,18 +228,18 @@ export const styles = StyleSheet.create({
   petName: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#1D1B19',
+    color: '#000000',
     marginBottom: 6,
   },
   petMeta: {
     fontSize: 12,
-    color: '#6E6660',
+    color: '#333333',
     fontWeight: '700',
     marginBottom: 10,
   },
 
   /* ---------------------------------------------------------
-   * 9) Logged-in: 오늘의 메시지 (간단 썸네일 row)
+   * 9) Logged-in: 오늘의 메시지
    * -------------------------------------------------------- */
   messageRow: {
     flexDirection: 'row',
@@ -357,7 +249,9 @@ export const styles = StyleSheet.create({
     flex: 1,
     height: 86,
     borderRadius: 16,
-    backgroundColor: '#F3EEE8',
+    backgroundColor: '#F4F4F4',
+    borderWidth: 1,
+    borderColor: '#EAEAEA',
   },
   messageCaptionRow: {
     flexDirection: 'row',
@@ -367,7 +261,7 @@ export const styles = StyleSheet.create({
   messageCaption: {
     flex: 1,
     fontSize: 11,
-    color: '#6E6660',
+    color: '#333333',
     fontWeight: '700',
   },
 
@@ -381,7 +275,7 @@ export const styles = StyleSheet.create({
   },
   recentMore: {
     fontSize: 12,
-    color: '#7A726C',
+    color: '#333333',
     fontWeight: '700',
   },
   recentGrid: {
@@ -392,77 +286,8 @@ export const styles = StyleSheet.create({
     flex: 1,
     height: 140,
     borderRadius: 18,
-    backgroundColor: '#F3EEE8',
-  },
-
-  /* ---------------------------------------------------------
-   * 11) 하단 탭 + 중앙 FAB
-   * -------------------------------------------------------- */
-  bottomTab: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 78,
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
-    paddingHorizontal: 14,
-    paddingTop: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: -6 },
-    elevation: 10,
-  },
-  tabItem: {
-    width: '20%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-  },
-  tabIcon: {
-    fontSize: 18,
-  },
-  tabText: {
-    fontSize: 11,
-    color: '#7A726C',
-    fontWeight: '700',
-  },
-  tabTextActive: {
-    fontSize: 11,
-    color: '#97A48D',
-    fontWeight: '900',
-  },
-
-  fab: {
-    position: 'absolute',
-    bottom: 28,
-    alignSelf: 'center',
-    width: 74,
-    height: 74,
-    borderRadius: 999,
-    backgroundColor: '#97A48D',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 12,
-  },
-  fabPlus: {
-    fontSize: 26,
-    color: '#FFFFFF',
-    marginTop: -2,
-    fontWeight: '900',
-  },
-  fabText: {
-    fontSize: 11,
-    color: '#FFFFFF',
-    fontWeight: '900',
-    marginTop: 2,
+    backgroundColor: '#F4F4F4',
+    borderWidth: 1,
+    borderColor: '#EAEAEA',
   },
 });

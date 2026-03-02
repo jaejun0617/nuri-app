@@ -4,7 +4,11 @@
 // - 1) memories row 생성 → memoryId 확보
 // - 2) Storage 업로드(memory-images)
 // - 3) updateMemoryImagePath로 DB path 반영
-// - 4) recordStore.refresh(petId) → Timeline으로 이동
+// - 4) recordStore.refresh(petId) → Timeline 탭으로 이동
+//
+// ✅ 공통 탭 대응(중요):
+// - 탭에서 진입하면 route params가 없을 수 있음
+// - 이 경우 petStore(selectedPetId 또는 첫 pet)에서 petId를 fallback으로 사용
 
 import React, { useMemo, useState } from 'react';
 import {
@@ -19,7 +23,6 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { supabase } from '../../services/supabase/client';
 import {
   createMemory,
@@ -28,10 +31,10 @@ import {
 } from '../../services/supabase/memories';
 import { uploadMemoryImage } from '../../services/supabase/storageMemories';
 import { useRecordStore } from '../../store/recordStore';
+import { usePetStore } from '../../store/petStore';
 import AppText from '../../app/ui/AppText';
 
-type Nav = NativeStackNavigationProp<RootStackParamList>;
-type Route = { key: string; name: string; params: { petId: string } };
+type Nav = NativeStackNavigationProp<any>;
 
 const EMOTIONS: Array<{ label: string; value: EmotionTag }> = [
   { label: '행복', value: 'happy' },
@@ -46,11 +49,26 @@ const EMOTIONS: Array<{ label: string; value: EmotionTag }> = [
 
 export default function RecordCreateScreen() {
   // ---------------------------------------------------------
-  // 1) navigation / params
+  // 1) navigation / route
   // ---------------------------------------------------------
   const navigation = useNavigation<Nav>();
-  const route = useRoute<Route>();
-  const petId = route.params?.petId;
+  const route = useRoute<any>();
+
+  // ---------------------------------------------------------
+  // 1.5) petId resolve (params → store fallback)
+  // ---------------------------------------------------------
+  const pets = usePetStore(s => s.pets);
+  const selectedPetId = usePetStore(s => s.selectedPetId);
+
+  const petIdFromParams = route?.params?.petId ?? null;
+
+  const petId = useMemo(() => {
+    if (petIdFromParams) return petIdFromParams;
+    if (selectedPetId && pets.some(p => p.id === selectedPetId)) {
+      return selectedPetId;
+    }
+    return pets[0]?.id ?? null;
+  }, [petIdFromParams, selectedPetId, pets]);
 
   // ---------------------------------------------------------
   // 2) store
@@ -140,7 +158,6 @@ export default function RecordCreateScreen() {
 
       const occurred = validateOccurredAt(occurredAt);
 
-      // 1) DB row 생성 → memoryId 확보
       const memoryId = await createMemory({
         petId,
         title: trimmedTitle,
@@ -151,7 +168,6 @@ export default function RecordCreateScreen() {
         imagePath: null,
       });
 
-      // 2) 이미지 업로드 → path 업데이트
       if (imageUri) {
         const userRes = await supabase.auth.getUser();
         const userId = userRes.data.user?.id ?? null;
@@ -168,14 +184,10 @@ export default function RecordCreateScreen() {
         await updateMemoryImagePath({ memoryId, imagePath: path });
       }
 
-      // 3) store refresh
       await refresh(petId);
 
-      // 4) Timeline으로 리셋
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Timeline', params: { petId } }],
-      });
+      // ✅ 탭 구조에선 TimelineTab으로 보내는 게 가장 자연스러움
+      navigation.navigate('TimelineTab');
     } catch (e: any) {
       Alert.alert('기록 저장 실패', e?.message ?? '다시 시도해 주세요.');
     } finally {
@@ -211,7 +223,7 @@ export default function RecordCreateScreen() {
           value={title}
           onChangeText={setTitle}
           placeholder="제목"
-          placeholderTextColor="#8A94A6"
+          placeholderTextColor="#777777"
         />
 
         <AppText preset="caption" style={styles.label}>
@@ -222,7 +234,7 @@ export default function RecordCreateScreen() {
           value={content}
           onChangeText={setContent}
           placeholder="내용"
-          placeholderTextColor="#8A94A6"
+          placeholderTextColor="#777777"
           multiline
         />
 
@@ -234,7 +246,7 @@ export default function RecordCreateScreen() {
           value={occurredAt}
           onChangeText={setOccurredAt}
           placeholder="YYYY-MM-DD"
-          placeholderTextColor="#8A94A6"
+          placeholderTextColor="#777777"
           autoCapitalize="none"
         />
 
@@ -246,12 +258,13 @@ export default function RecordCreateScreen() {
           value={tagsText}
           onChangeText={setTagsText}
           placeholder="#산책 #간식 또는 산책,간식"
-          placeholderTextColor="#8A94A6"
+          placeholderTextColor="#777777"
         />
 
         <AppText preset="caption" style={styles.label}>
           감정(선택)
         </AppText>
+
         <View style={styles.emotionRow}>
           {EMOTIONS.slice(0, 4).map(e => (
             <TouchableOpacity
@@ -270,6 +283,7 @@ export default function RecordCreateScreen() {
             </TouchableOpacity>
           ))}
         </View>
+
         <View style={styles.emotionRow}>
           {EMOTIONS.slice(4).map(e => (
             <TouchableOpacity
@@ -298,58 +312,49 @@ export default function RecordCreateScreen() {
             {saving ? '저장 중...' : '저장'}
           </AppText>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.ghost}
-          onPress={() => navigation.goBack()}
-        >
-          <AppText preset="caption" style={styles.ghostText}>
-            취소
-          </AppText>
-        </TouchableOpacity>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#F6F7FB', padding: 16 },
+  screen: { flex: 1, backgroundColor: '#FFFFFF', padding: 16 },
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E6E8F0',
+    borderColor: '#EAEAEA',
   },
 
-  title: { marginBottom: 10 },
+  title: { marginBottom: 10, color: '#000000', fontWeight: '900' },
 
   imagePicker: {
     height: 160,
     borderRadius: 18,
-    backgroundColor: '#F6F7FB',
+    backgroundColor: '#F4F4F4',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#E6E8F0',
+    borderColor: '#EAEAEA',
   },
-  imagePickerText: { color: '#556070', fontWeight: '700' },
+  imagePickerText: { color: '#333333', fontWeight: '700' },
   image: { width: '100%', height: '100%' },
 
   label: {
     marginTop: 10,
     marginBottom: 6,
-    color: '#556070',
+    color: '#333333',
     fontWeight: '800',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#E6E8F0',
+    borderColor: '#EAEAEA',
     borderRadius: 12,
     padding: 12,
-    color: '#0B1220',
+    color: '#000000',
     backgroundColor: '#FFFFFF',
   },
   multiline: { minHeight: 100, textAlignVertical: 'top' },
@@ -360,22 +365,19 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#E6E8F0',
+    borderColor: '#EAEAEA',
     backgroundColor: '#FFFFFF',
   },
-  chipActive: { borderColor: '#6D7CFF' },
-  chipText: { color: '#0B1220', fontWeight: '700' },
+  chipActive: { borderColor: '#000000' },
+  chipText: { color: '#000000', fontWeight: '700' },
 
   primary: {
     marginTop: 16,
-    backgroundColor: '#6D7CFF',
+    backgroundColor: '#000000',
     padding: 14,
     borderRadius: 12,
     alignItems: 'center',
   },
   primaryDisabled: { opacity: 0.5 },
   primaryText: { color: '#FFFFFF', fontWeight: '900' },
-
-  ghost: { marginTop: 10, paddingVertical: 8, alignItems: 'center' },
-  ghostText: { color: '#556070', fontWeight: '700' },
 });

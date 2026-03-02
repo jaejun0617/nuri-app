@@ -9,9 +9,31 @@
 // - Hook 호출을 "항상 동일한 개수/순서"로 고정 (조건문 내부 hook 호출 금지)
 // - zustand selector는 "안전한 단순 접근"만 사용
 // - activePetId가 null이어도 hook 자체는 호출되되 selector에서 undefined만 리턴
+//
+// ✅ UX 개선:
+// - 펫칩 전환 시: (fade out) → selectedPetId 변경 → (fade in)
+// - 전환 중 연타 방지로 "뚝뚝 끊김" / 중첩 렌더 방지
+//
+// ✅ 구조 변경(중요):
+// - 공통 하단 탭은 AppTabsNavigator에서 전역 노출
+// - 따라서 이 파일의 하단 탭 / FAB UI는 제거
 
-import React, { useEffect, useMemo, useCallback } from 'react';
-import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import React, {
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+  useState,
+} from 'react';
+import {
+  Animated,
+  Easing,
+  Image,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
@@ -19,9 +41,8 @@ import { styles } from '../../MainScreen.styles';
 import { useAuthStore } from '../../../../store/authStore';
 import { usePetStore } from '../../../../store/petStore';
 import { useRecordStore } from '../../../../store/recordStore';
-import type { RootStackParamList } from '../../../../navigation/RootNavigator';
 
-type Nav = NativeStackNavigationProp<RootStackParamList>;
+type Nav = NativeStackNavigationProp<any>;
 
 /* ---------------------------------------------------------
  * 1) utils
@@ -88,19 +109,55 @@ export default function LoggedInHome() {
     navigation.navigate('PetCreate', { from: 'auto' });
   }, [petBooted, pets.length, navigation]);
 
-  // ✅ 디버그: “다른 애들 썸네일 안 보임” 확정용
-  useEffect(() => {
-    if (!__DEV__) return;
-    console.log(
-      '[LoggedInHome] pets for thumbs:',
-      pets.map(p => ({
-        id: p.id,
-        name: p.name,
-        avatarPath: p.avatarPath,
-        avatarUrl: p.avatarUrl,
-      })),
-    );
-  }, [pets]);
+  // ---------------------------------------------------------
+  // 3.5) transition animation (hook 고정)
+  // ---------------------------------------------------------
+  const [switching, setSwitching] = useState(false);
+
+  // 사용자 요청 유지
+  const MIN_OPACITY = 1;
+  const LIFT_PX = 0.1;
+
+  const fade = useRef(new Animated.Value(1)).current;
+  const lift = useRef(new Animated.Value(0)).current;
+
+  const animateOut = useCallback(() => {
+    return new Promise<void>(resolve => {
+      Animated.parallel([
+        Animated.timing(fade, {
+          toValue: MIN_OPACITY,
+          duration: 140,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(lift, {
+          toValue: LIFT_PX,
+          duration: 140,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start(() => resolve());
+    });
+  }, [fade, lift]);
+
+  const animateIn = useCallback(() => {
+    return new Promise<void>(resolve => {
+      Animated.parallel([
+        Animated.timing(fade, {
+          toValue: 1,
+          duration: 180,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(lift, {
+          toValue: 0,
+          duration: 180,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start(() => resolve());
+    });
+  }, [fade, lift]);
 
   // ---------------------------------------------------------
   // 4) records (hook 고정)
@@ -161,32 +218,38 @@ export default function LoggedInHome() {
   }, [navigation]);
 
   const onPressTimeline = useCallback(() => {
-    if (!activePetId) return;
-    navigation.navigate('Timeline', { petId: activePetId });
-  }, [navigation, activePetId]);
+    // 탭으로 이동 (params 없이도 TimelineScreen이 store fallback으로 petId 처리)
+    navigation.navigate('TimelineTab');
+  }, [navigation]);
 
   const onPressRecord = useCallback(() => {
-    if (!activePetId) return;
-    navigation.navigate('RecordCreate', { petId: activePetId });
-  }, [navigation, activePetId]);
+    navigation.navigate('RecordCreateTab');
+  }, [navigation]);
 
   const onPressRecordItem = useCallback(
     (memoryId: string) => {
       if (!activePetId) return;
+      // 상세/편집은 탭 밖(Stack)
       navigation.navigate('RecordDetail', { petId: activePetId, memoryId });
     },
     [navigation, activePetId],
   );
 
-  const onPressGuestbook = useCallback(() => {
-    // TODO: 방명록 챕터에서 연결
-  }, []);
-
   const onPressPetChip = useCallback(
-    (petId: string) => {
-      selectPet(petId);
+    async (petId: string) => {
+      if (switching) return;
+      if (petId === activePetId) return;
+
+      try {
+        setSwitching(true);
+        await animateOut();
+        selectPet(petId);
+        await animateIn();
+      } finally {
+        setSwitching(false);
+      }
     },
-    [selectPet],
+    [switching, activePetId, animateOut, animateIn, selectPet],
   );
 
   // ---------------------------------------------------------
@@ -213,7 +276,7 @@ export default function LoggedInHome() {
 
               return (
                 <TouchableOpacity
-                  key={p.id} // 부모의 key는 그대로 유지
+                  key={p.id}
                   activeOpacity={0.85}
                   style={[
                     styles.petChip,
@@ -222,29 +285,9 @@ export default function LoggedInHome() {
                   onPress={() => onPressPetChip(p.id)}
                 >
                   {uri ? (
-                    <Image
-                      // --- ✨ 여기가 최종 해결책입니다! ---
-                      // Image 컴포넌트 자체에 고유한 key를 부여하여
-                      // uri가 변경되지 않더라도 React가 강제로 다시 그리도록 합니다.
-                      // 펫 ID와 이미지 URI를 조합하여 가장 고유한 key를 생성합니다.
-                      key={`${p.id}-${uri}`}
-                      // ------------------------------------
-                      source={{ uri }}
-                      style={styles.petChipImage}
-                      onError={e => {
-                        console.log('[Thumb Image onError]', {
-                          petId: p.id,
-                          name: p.name,
-                          avatarPath: p.avatarPath,
-                          avatarUrl: p.avatarUrl,
-                          resolved: uri,
-                          nativeEvent: e.nativeEvent,
-                        });
-                      }}
-                    />
+                    <Image source={{ uri }} style={styles.petChipImage} />
                   ) : (
-                    // 플레이스홀더에도 고유한 key를 부여하여 일관성을 맞춥니다.
-                    <View key={p.id} style={styles.petChipPlaceholder} />
+                    <View style={styles.petChipPlaceholder} />
                   )}
                 </TouchableOpacity>
               );
@@ -260,171 +303,125 @@ export default function LoggedInHome() {
           </View>
         </View>
 
-        {/* 2) 프로필 카드 (동일하게 적용) */}
-        <View style={styles.profileCard}>
-          <View style={styles.profileRow}>
-            <View style={styles.profileImageWrap}>
-              {selectedAvatarUri ? (
-                <Image
-                  // --- ✨ 프로필 이미지에도 동일한 원리를 적용합니다 ---
-                  key={`${selectedPet?.id}-${selectedAvatarUri}`}
-                  // -------------------------------------------------
-                  source={{ uri: selectedAvatarUri }}
-                  style={styles.profileImage}
-                  onError={e => {
-                    console.log('[Profile Image onError]', {
-                      petId: selectedPet?.id,
-                      name: selectedPet?.name,
-                      avatarPath: selectedPet?.avatarPath,
-                      avatarUrl: selectedPet?.avatarUrl,
-                      resolved: selectedAvatarUri,
-                      nativeEvent: e.nativeEvent,
-                    });
-                  }}
-                />
-              ) : (
-                <View style={styles.profileImagePlaceholder} />
-              )}
-            </View>
+        {/* 2) 전환 대상 컨텐츠 */}
+        <Animated.View
+          style={{
+            opacity: fade,
+            transform: [{ translateY: lift }],
+          }}
+        >
+          {/* 프로필 카드 */}
+          <View style={styles.profileCard}>
+            <View style={styles.profileRow}>
+              <View style={styles.profileImageWrap}>
+                {selectedAvatarUri ? (
+                  <Image
+                    source={{ uri: selectedAvatarUri }}
+                    style={styles.profileImage}
+                  />
+                ) : (
+                  <View style={styles.profileImagePlaceholder} />
+                )}
+              </View>
 
-            <View style={styles.profileTextArea}>
-              <Text style={styles.petName}>
-                {selectedPet?.name ?? '우리 아이'}
-              </Text>
-              <Text style={styles.petMeta}>사랑으로 기록해요</Text>
+              <View style={styles.profileTextArea}>
+                <Text style={styles.petName}>
+                  {selectedPet?.name ?? '우리 아이'}
+                </Text>
+                <Text style={styles.petMeta}>사랑으로 기록해요</Text>
 
-              <View style={styles.tagsRow}>
-                {tags.map(t => (
-                  <View key={t} style={styles.tagChip}>
-                    <Text style={styles.tagText}>{t}</Text>
-                  </View>
-                ))}
+                <View style={styles.tagsRow}>
+                  {tags.map(t => (
+                    <View key={t} style={styles.tagChip}>
+                      <Text style={styles.tagText}>{t}</Text>
+                    </View>
+                  ))}
+                </View>
               </View>
             </View>
           </View>
-        </View>
 
-        {/* 3) 함께한 시간 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{togetherDaysText}</Text>
-          <Text style={styles.sectionDesc}>
-            오늘도 우리만의 속도로, 천천히 기록해요.
-          </Text>
-        </View>
-
-        {/* 4) 오늘의 메시지(placeholder) */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>오늘의 메시지</Text>
-
-          <View style={styles.messageRow}>
-            <View style={styles.messageThumb} />
-            <View style={styles.messageThumb} />
-            <View style={styles.messageThumb} />
+          {/* 함께한 시간 */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{togetherDaysText}</Text>
+            <Text style={styles.sectionDesc}>
+              오늘도 우리만의 속도로, 천천히 기록해요.
+            </Text>
           </View>
 
-          <View style={styles.messageCaptionRow}>
-            <Text style={styles.messageCaption}>오늘 아침엔...</Text>
-            <Text style={styles.messageCaption}>점심엔...</Text>
-            <Text style={styles.messageCaption}>오늘은...</Text>
-          </View>
-        </View>
+          {/* 오늘의 메시지(placeholder) */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>오늘의 메시지</Text>
 
-        {/* 5) 최근 기록 (실데이터) */}
-        <View style={styles.section}>
-          <View style={styles.recentHeader}>
-            <Text style={styles.sectionTitle}>최근 기록</Text>
-            <TouchableOpacity onPress={onPressTimeline} activeOpacity={0.8}>
-              <Text style={styles.recentMore}>더보기</Text>
-            </TouchableOpacity>
+            <View style={styles.messageRow}>
+              <View style={styles.messageThumb} />
+              <View style={styles.messageThumb} />
+              <View style={styles.messageThumb} />
+            </View>
+
+            <View style={styles.messageCaptionRow}>
+              <Text style={styles.messageCaption}>오늘 아침엔...</Text>
+              <Text style={styles.messageCaption}>점심엔...</Text>
+              <Text style={styles.messageCaption}>오늘은...</Text>
+            </View>
           </View>
 
-          <View style={styles.recentGrid}>
-            {recentRecords.length === 0 ? (
-              <>
-                <TouchableOpacity
-                  activeOpacity={0.9}
-                  style={styles.recentGridItem}
-                  onPress={onPressRecord}
-                />
-                <TouchableOpacity
-                  activeOpacity={0.9}
-                  style={styles.recentGridItem}
-                  onPress={onPressRecord}
-                />
-              </>
-            ) : (
-              <>
-                {Array.from({ length: 2 }).map((_, idx) => {
-                  const item = recentRecords[idx] ?? null;
-                  return (
-                    <TouchableOpacity
-                      key={idx}
-                      activeOpacity={0.9}
-                      style={styles.recentGridItem}
-                      onPress={() =>
-                        item ? onPressRecordItem(item.id) : onPressRecord()
-                      }
-                    >
-                      {item?.imageUrl ? (
-                        <Image
-                          source={{ uri: item.imageUrl }}
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            borderRadius: 18,
-                          }}
-                        />
-                      ) : null}
-                    </TouchableOpacity>
-                  );
-                })}
-              </>
-            )}
+          {/* 최근 기록 */}
+          <View style={styles.section}>
+            <View style={styles.recentHeader}>
+              <Text style={styles.sectionTitle}>최근 기록</Text>
+              <TouchableOpacity onPress={onPressTimeline} activeOpacity={0.8}>
+                <Text style={styles.recentMore}>더보기</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.recentGrid}>
+              {recentRecords.length === 0 ? (
+                <>
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    style={styles.recentGridItem}
+                    onPress={onPressRecord}
+                  />
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    style={styles.recentGridItem}
+                    onPress={onPressRecord}
+                  />
+                </>
+              ) : (
+                <>
+                  {Array.from({ length: 2 }).map((_, idx) => {
+                    const item = recentRecords[idx] ?? null;
+
+                    return (
+                      <TouchableOpacity
+                        key={idx}
+                        activeOpacity={0.9}
+                        style={styles.recentGridItem}
+                        onPress={() =>
+                          item ? onPressRecordItem(item.id) : onPressRecord()
+                        }
+                      >
+                        {item?.imageUrl ? (
+                          <Image
+                            source={{ uri: item.imageUrl }}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              borderRadius: 18,
+                            }}
+                          />
+                        ) : null}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </>
+              )}
+            </View>
           </View>
-        </View>
+        </Animated.View>
       </ScrollView>
-
-      {/* 하단 탭 + 중앙 FAB */}
-      <View style={styles.bottomTab}>
-        <TouchableOpacity activeOpacity={0.85} style={styles.tabItem}>
-          <Text style={styles.tabIcon}>⌂</Text>
-          <Text style={styles.tabTextActive}>홈</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          activeOpacity={0.85}
-          style={styles.tabItem}
-          onPress={onPressTimeline}
-        >
-          <Text style={styles.tabIcon}>🐾</Text>
-          <Text style={styles.tabText}>추억보기</Text>
-        </TouchableOpacity>
-
-        <View style={styles.tabItem} />
-
-        <TouchableOpacity
-          activeOpacity={0.85}
-          style={styles.tabItem}
-          onPress={onPressGuestbook}
-        >
-          <Text style={styles.tabIcon}>✉️</Text>
-          <Text style={styles.tabText}>방명록</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity activeOpacity={0.85} style={styles.tabItem}>
-          <Text style={styles.tabIcon}>≡</Text>
-          <Text style={styles.tabText}>더보기</Text>
-        </TouchableOpacity>
-      </View>
-
-      <TouchableOpacity
-        activeOpacity={0.9}
-        style={styles.fab}
-        onPress={onPressRecord}
-      >
-        <Text style={styles.fabPlus}>＋</Text>
-        <Text style={styles.fabText}>기록하기</Text>
-      </TouchableOpacity>
     </View>
   );
 }

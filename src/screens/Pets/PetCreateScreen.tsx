@@ -2,11 +2,7 @@
 // 목적:
 // - 펫 등록(온보딩)
 // - 이미지 선택 → Storage 업로드 → pets.profile_image_url(path) 저장
-// - 등록 성공 시 fetchMyPets → petStore 주입 → Main reset
-//
-// Public bucket 운영:
-// - DB에는 path만 저장(profile_image_url = path)
-// - 렌더링은 fetchMyPets에서 publicUrl로 변환
+// - 등록 성공 시 fetchMyPets → petStore 주입 → AppTabs reset(=홈으로 복귀)
 
 import React, { useMemo, useState, useCallback } from 'react';
 import {
@@ -28,13 +24,14 @@ import { uploadPetAvatar } from '../../services/supabase/storagePets';
 import { createPet, fetchMyPets } from '../../services/supabase/pets';
 import { usePetStore } from '../../store/petStore';
 
-type Nav = NativeStackNavigationProp<RootStackParamList>;
+type Nav = NativeStackNavigationProp<RootStackParamList, 'PetCreate'>;
 
 function normalizeYmdOrNull(raw: string): string | null {
   const t = raw.trim();
   if (!t) return null;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(t))
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) {
     throw new Error('날짜 형식은 YYYY-MM-DD 입니다.');
+  }
   return t;
 }
 
@@ -42,8 +39,9 @@ function normalizeWeightOrNull(raw: string): number | null {
   const t = raw.trim();
   if (!t) return null;
   const n = Number(t);
-  if (!Number.isFinite(n) || n <= 0)
+  if (!Number.isFinite(n) || n <= 0) {
     throw new Error('몸무게는 0보다 큰 숫자여야 합니다.');
+  }
   return n;
 }
 
@@ -166,21 +164,17 @@ export default function PetCreateScreen() {
           .eq('id', newPetId);
 
         if (upErr) throw upErr;
-
-        if (__DEV__) {
-          console.log('[PetCreate] updated profile_image_url:', {
-            newPetId,
-            path,
-          });
-        }
       }
 
       // 3) pets refetch → store 주입
       const pets = await fetchMyPets();
       setPets(pets);
 
-      // 4) Main reset
-      navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
+      // 4) ✅ AppTabs(=탭 루트)로 reset
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'AppTabs' }],
+      });
     } catch (e: any) {
       Alert.alert('펫 등록 실패', e?.message ?? '다시 시도해 주세요.');
     } finally {
