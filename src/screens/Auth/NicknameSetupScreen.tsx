@@ -1,20 +1,21 @@
 // 파일: src/screens/Auth/NicknameSetupScreen.tsx
+// 목적:
+// - 가입/로그인 후 닉네임 1회 설정
+// - ✅ 완료 시 AppTabs로 reset
+
 import React, { useMemo, useState } from 'react';
-import {
-  Alert,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Alert, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RouteProp } from '@react-navigation/native';
+import type {
+  NativeStackNavigationProp,
+  RouteProp,
+} from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { saveMyNickname } from '../../services/supabase/profile';
 import { useAuthStore } from '../../store/authStore';
+
+import { styles } from './NicknameSetupScreen.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type R = RouteProp<RootStackParamList, 'NicknameSetup'>;
@@ -36,12 +37,18 @@ export default function NicknameSetupScreen() {
       await saveMyNickname(trimmed);
       await setNickname(trimmed);
 
-      // ✅ Main이 아니라 AppTabs
       navigation.reset({ index: 0, routes: [{ name: 'AppTabs' }] });
     } catch (e: any) {
       Alert.alert('닉네임 저장 실패', e?.message ?? '다시 시도해 주세요.');
     }
   };
+
+  const hintText = useMemo(() => {
+    if (!route.params?.after) return null;
+    return route.params.after === 'signup'
+      ? '회원가입 완료 후 첫 설정 단계입니다.'
+      : '로그인 후 닉네임이 없어 설정이 필요합니다.';
+  }, [route.params?.after]);
 
   return (
     <View style={styles.screen}>
@@ -66,68 +73,18 @@ export default function NicknameSetupScreen() {
 
         <TouchableOpacity
           activeOpacity={0.9}
-          style={[styles.primary, disabled ? styles.primaryDisabled : null]}
+          style={[
+            styles.primaryButton,
+            disabled ? styles.primaryButtonDisabled : null,
+          ]}
           disabled={disabled}
           onPress={onSubmit}
         >
-          <Text style={styles.primaryText}>완료</Text>
+          <Text style={styles.primaryButtonText}>완료</Text>
         </TouchableOpacity>
 
-        {route.params?.after ? (
-          <Text style={styles.hint}>
-            {route.params.after === 'signup'
-              ? '회원가입 완료 후 첫 설정 단계입니다.'
-              : '로그인 후 닉네임이 없어 설정이 필요합니다.'}
-          </Text>
-        ) : null}
+        {hintText ? <Text style={styles.hint}>{hintText}</Text> : null}
       </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: '#F6F2EE',
-    padding: 18,
-    justifyContent: 'center',
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    padding: 18,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 3,
-  },
-  title: { fontSize: 20, fontWeight: '900', color: '#1D1B19', marginBottom: 6 },
-  subTitle: {
-    fontSize: 12,
-    color: '#6E6660',
-    fontWeight: '600',
-    lineHeight: 17,
-    marginBottom: 14,
-  },
-  label: { fontSize: 12, color: '#6E6660', fontWeight: '800', marginBottom: 6 },
-  input: {
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: '#F3EEE8',
-    paddingHorizontal: 14,
-    color: '#1D1B19',
-    fontWeight: '800',
-  },
-  primary: {
-    marginTop: 14,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: '#97A48D',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primaryDisabled: { opacity: 0.5 },
-  primaryText: { color: '#FFFFFF', fontSize: 15, fontWeight: '900' },
-  hint: { marginTop: 10, fontSize: 12, color: '#7A726C', fontWeight: '700' },
-});

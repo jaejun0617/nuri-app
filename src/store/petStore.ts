@@ -1,19 +1,32 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { create } from 'zustand';
+// 파일: src/store/petStore.ts
+// 목적:
+// - 전역 pets + selectedPetId 관리
+// - AppProviders 부팅(fetch) 상태를 표현하기 위한 loading/booted 포함
+//
+// 운영 원칙:
+// - pets 비면 selectedPetId는 null
+// - pets 생기면 selectedPetId는 기존 선택 유지 or 첫 번째로 보정
+// - selectedPet 같은 파생은 화면(useMemo)에서 계산 권장
 
-const STORAGE_SELECTED_KEY = 'nuri.selectedPetId.v1';
+import { create } from 'zustand';
 
 export type Pet = {
   id: string;
   name: string;
 
-  avatarPath?: string | null;
-  avatarUrl?: string | null;
+  // ---------------------------------------------------------
+  // avatar
+  // ---------------------------------------------------------
+  avatarPath?: string | null; // ✅ storage path (DB 저장용)
+  avatarUrl?: string | null; // ✅ UI 렌더링용 URL (public url or signed url)
 
-  adoptionDate?: string | null;
+  // ---------------------------------------------------------
+  // meta
+  // ---------------------------------------------------------
+  adoptionDate?: string | null; // YYYY-MM-DD
   birthDate?: string | null;
   weightKg?: number | null;
-  tags?: string[];
+  tags?: string[]; // personality_tags
   deathDate?: string | null;
 };
 
@@ -24,17 +37,17 @@ type PetState = {
   pets: Pet[];
   selectedPetId: string | null;
 
-  loading: boolean;
-  booted: boolean;
+  // App boot 상태
+  loading: boolean; // pets fetch 중
+  booted: boolean; // 앱 부팅 시 1회 pets fetch 완료 여부
 
   // ---------------------------------------------------------
   // 2) 액션
   // ---------------------------------------------------------
-  hydrateSelectedPetId: () => Promise<void>;
-
   setPets: (pets: Pet[]) => void;
   selectPet: (petId: string) => void;
 
+  // avatarUrl만 교체(만료/재요청/즉시 반영용)
   updatePetAvatarUrl: (petId: string, avatarUrl: string | null) => void;
 
   setLoading: (v: boolean) => void;
@@ -50,20 +63,6 @@ function normalizeSelected(pets: Pet[], selectedPetId: string | null) {
   return pets[0].id;
 }
 
-async function loadSelectedPetId(): Promise<string | null> {
-  const raw = await AsyncStorage.getItem(STORAGE_SELECTED_KEY);
-  if (!raw) return null;
-  return raw;
-}
-
-async function saveSelectedPetId(petId: string | null) {
-  if (!petId) {
-    await AsyncStorage.removeItem(STORAGE_SELECTED_KEY);
-    return;
-  }
-  await AsyncStorage.setItem(STORAGE_SELECTED_KEY, petId);
-}
-
 export const usePetStore = create<PetState>((set, get) => ({
   pets: [],
   selectedPetId: null,
@@ -71,36 +70,16 @@ export const usePetStore = create<PetState>((set, get) => ({
   loading: false,
   booted: false,
 
-  // ---------------------------------------------------------
-  // ✅ 부트에서 1회 호출: selectedPetId 복원
-  // ---------------------------------------------------------
-  hydrateSelectedPetId: async () => {
-    const saved = await loadSelectedPetId();
-    set({ selectedPetId: saved ?? null });
-  },
-
-  // ---------------------------------------------------------
-  // pets 주입 시 선택 보정 + persist
-  // ---------------------------------------------------------
   setPets: (pets: Pet[]) => {
     const prevSelected = get().selectedPetId;
     const nextSelected = normalizeSelected(pets, prevSelected);
-
     set({ pets, selectedPetId: nextSelected });
-
-    // 선택값이 결정되면 저장(비동기 fire-and-forget)
-    void saveSelectedPetId(nextSelected);
   },
 
-  // ---------------------------------------------------------
-  // 선택 변경 + persist
-  // ---------------------------------------------------------
   selectPet: (petId: string) => {
     const { pets } = get();
     if (!pets.some(p => p.id === petId)) return;
-
     set({ selectedPetId: petId });
-    void saveSelectedPetId(petId);
   },
 
   updatePetAvatarUrl: (petId: string, avatarUrl: string | null) => {
@@ -112,11 +91,6 @@ export const usePetStore = create<PetState>((set, get) => ({
   setLoading: (v: boolean) => set({ loading: v }),
   setBooted: (v: boolean) => set({ booted: v }),
 
-  // ---------------------------------------------------------
-  // 로그아웃/게스트 전환: 전부 초기화 + persist 제거
-  // ---------------------------------------------------------
-  clear: () => {
-    set({ pets: [], selectedPetId: null, loading: false, booted: false });
-    void saveSelectedPetId(null);
-  },
+  clear: () =>
+    set({ pets: [], selectedPetId: null, loading: false, booted: false }),
 }));

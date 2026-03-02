@@ -2,16 +2,15 @@
 // 목적:
 // - 게스트 유도 랜딩
 // - "로그인 / 회원가입 / 게스트로 계속" 진입점
-//
-// ✅ 변경:
-// - Main 라우트는 RootStack에 없음 → AppTabs로 이동
+// - ✅ RootStack에 Main 없음 → AppTabs로 이동
 
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import { styles } from './AuthLandingScreen.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -30,23 +29,23 @@ export default function AuthLandingScreen() {
 
         <TouchableOpacity
           activeOpacity={0.9}
-          style={styles.primary}
+          style={styles.primaryButton}
           onPress={() => navigation.navigate('SignIn')}
         >
-          <Text style={styles.primaryText}>로그인</Text>
+          <Text style={styles.primaryButtonText}>로그인</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           activeOpacity={0.9}
-          style={styles.secondary}
+          style={styles.secondaryButton}
           onPress={() => navigation.navigate('SignUp')}
         >
-          <Text style={styles.secondaryText}>회원가입</Text>
+          <Text style={styles.secondaryButtonText}>회원가입</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          activeOpacity={0.8}
-          style={styles.ghost}
+          activeOpacity={0.85}
+          style={styles.ghostButton}
           onPress={() =>
             navigation.reset({
               index: 0,
@@ -54,58 +53,9 @@ export default function AuthLandingScreen() {
             })
           }
         >
-          <Text style={styles.ghostText}>게스트로 계속</Text>
+          <Text style={styles.ghostButtonText}>게스트로 계속</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: '#F6F2EE',
-    justifyContent: 'center',
-    padding: 18,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    padding: 18,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 3,
-  },
-  title: { fontSize: 24, fontWeight: '900', color: '#1D1B19', marginBottom: 6 },
-  subTitle: {
-    fontSize: 13,
-    color: '#6E6660',
-    fontWeight: '600',
-    lineHeight: 18,
-  },
-  spacer: { height: 18 },
-
-  primary: {
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: '#97A48D',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primaryText: { color: '#FFFFFF', fontSize: 15, fontWeight: '900' },
-
-  secondary: {
-    marginTop: 10,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: '#EFEAE4',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  secondaryText: { color: '#1D1B19', fontSize: 15, fontWeight: '900' },
-
-  ghost: { marginTop: 12, alignItems: 'center', paddingVertical: 10 },
-  ghostText: { color: '#7A726C', fontSize: 13, fontWeight: '700' },
-});

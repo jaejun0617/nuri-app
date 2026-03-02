@@ -2,24 +2,21 @@
 // 목적:
 // - 로그인 홈 (LoggedInHome)
 // - 헤더: 닉네임 인사 + 멀티펫 썸네일 스위처(최대 4 + +버튼)
-// - 프로필 카드: 선택된 펫 정보/태그
-// - 감성 섹션:
-//   1) 함께한 시간(D-day)
-//   2) 오늘의 추억(작년 오늘 우선 / 없으면 랜덤) + 시간대 메시지(07/12/18) → 1카드
-// - 최근 기록(실데이터) 2개 + 더보기(타임라인)
 //
-// ✅ 안정화 포인트(중요):
-// - Hook 호출을 "항상 동일한 개수/순서"로 고정
-// - zustand selector는 "안전한 단순 접근"만 사용
-// - recordStore는 getPetState로 fallback 고정(shape 고정)
+// ✅ 이번 변경(핵심):
+// - "큰 프로필 카드(펫 정보) ~ 오늘의 메시지" 를 하나의 heroCard로 묶음
+// - 이름 아래: (견종/메타) 나이 · 몸무게 · 생년월일
+// - 태그 row
+// - 태그 아래: 오늘의 메시지
+// - 아래로: 오늘날의 사진 / 최근기록(주간 7개)
 //
-// ✅ UX 개선(Reanimated):
-// - 펫칩 전환 시: (fade/slide out) → selectedPetId 변경 → (fade/slide in)
-// - 애니메이션은 UI thread에서 수행 → 버벅임 감소
-// - 전환 중 연타 방지로 중첩 렌더/끊김 방지
+// ✅ 안정화 포인트:
+// - Hook 호출은 항상 동일 순서
+// - recordStore getPetState fallback shape 고정
+// - pets=0이면 PetCreate로 reset 유도
 //
-// ✅ 부팅 UX:
-// - pets boot 완료 후 pets=0이면 PetCreate로 reset 유도 (깜빡임 최소화)
+// ✅ UX:
+// - 펫칩 전환 reanimated(fade/slide)
 
 import React, { useEffect, useMemo, useCallback, useState } from 'react';
 import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
@@ -41,9 +38,9 @@ import { usePetStore } from '../../../../store/petStore';
 import { useRecordStore } from '../../../../store/recordStore';
 
 import type { MemoryRecord } from '../../../../services/supabase/memories';
-import { diffDaysFromKst } from '../../../../utils/date';
+import { daysAgoFromKstToday } from '../../../../utils/date';
 import {
-  pickTodayMemory,
+  pickTodayPhoto,
   generateTimeMessage,
 } from '../../../../services/home/homeRecall';
 
@@ -52,7 +49,75 @@ import { styles } from './LoggedInHome.styles';
 type Nav = NativeStackNavigationProp<any>;
 
 /* ---------------------------------------------------------
- * 1) component
+ * 1) helpers
+ * -------------------------------------------------------- */
+function getRecordYmd(item: MemoryRecord): string {
+  return (item.occurredAt ?? item.createdAt.slice(0, 10)) as string;
+}
+
+function toSnippet(text: string | null | undefined, max = 46) {
+  const v = (text ?? '').trim();
+  if (!v) return '내용이 없습니다.';
+  if (v.length <= max) return v;
+  return `${v.slice(0, max)}…`;
+}
+
+function formatBirthYmd(birth: any): string | null {
+  const s = typeof birth === 'string' ? birth : null;
+  if (!s || s.length < 10) return null; // YYYY-MM-DD
+  const y = s.slice(0, 4);
+  const m = s.slice(5, 7);
+  const d = s.slice(8, 10);
+  return `${y}.${m}.${d}`;
+}
+
+function calcAgeFromBirth(birthYmd: string | null): number | null {
+  if (!birthYmd) return null;
+  const [y, m, d] = birthYmd.split('-').map(n => Number(n));
+  if (!y || !m || !d) return null;
+
+  // KST 기준(대략) — 화면표시용
+  const now = new Date();
+  const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+
+  let age = kstNow.getUTCFullYear() - y;
+  const curM = kstNow.getUTCMonth() + 1;
+  const curD = kstNow.getUTCDate();
+
+  if (curM < m || (curM === m && curD < d)) age -= 1;
+  if (age < 0) return 0;
+  return age;
+}
+
+/**
+ * pickWeekly7
+ * - 최근 기록을 "1주 간격"으로 최대 7개 선택
+ * - today 기준 daysAgo로 bucket = floor(daysAgo/7)
+ * - bucket 0..6(총 7개)에서 각 bucket의 첫 기록을 선택
+ */
+function pickWeekly7(items: MemoryRecord[]) {
+  const picked = new Array<MemoryRecord | null>(7).fill(null);
+
+  for (const it of items) {
+    const ymd = getRecordYmd(it);
+    const daysAgo = daysAgoFromKstToday(ymd);
+
+    if (daysAgo === null) continue;
+    if (daysAgo < 0) continue;
+    if (daysAgo > 48) continue;
+
+    const bucket = Math.floor(daysAgo / 7); // 0..6
+    if (bucket < 0 || bucket > 6) continue;
+
+    if (!picked[bucket]) picked[bucket] = it;
+    if (picked.every(Boolean)) break;
+  }
+
+  return picked.filter(Boolean) as MemoryRecord[];
+}
+
+/* ---------------------------------------------------------
+ * 2) component
  * -------------------------------------------------------- */
 export default function LoggedInHome() {
   // ---------------------------------------------------------
@@ -61,12 +126,12 @@ export default function LoggedInHome() {
   const navigation = useNavigation<Nav>();
 
   // ---------------------------------------------------------
-  // 1) auth (hook 고정)
+  // 1) auth
   // ---------------------------------------------------------
   const nicknameRaw = useAuthStore(s => s.profile.nickname);
 
   // ---------------------------------------------------------
-  // 2) pets (hook 고정)
+  // 2) pets
   // ---------------------------------------------------------
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
@@ -74,7 +139,7 @@ export default function LoggedInHome() {
   const petBooted = usePetStore(s => s.booted);
 
   // ---------------------------------------------------------
-  // 3) derived (hook 고정)
+  // 3) derived
   // ---------------------------------------------------------
   const nickname = useMemo(() => nicknameRaw?.trim() || null, [nicknameRaw]);
 
@@ -84,14 +149,13 @@ export default function LoggedInHome() {
     if (selectedPetId && pets.some(p => p.id === selectedPetId)) {
       return pets.find(p => p.id === selectedPetId) ?? pets[0];
     }
-
     return pets[0];
   }, [pets, selectedPetId]);
 
   const activePetId = useMemo(() => selectedPet?.id ?? null, [selectedPet]);
 
   // ---------------------------------------------------------
-  // 3.1) pets boot 완료 후 pets=0이면 PetCreate로 reset 유도
+  // ✅ pets boot 완료 후 pets=0이면 PetCreate로 reset 유도
   // ---------------------------------------------------------
   useEffect(() => {
     if (!petBooted) return;
@@ -104,7 +168,7 @@ export default function LoggedInHome() {
   }, [petBooted, pets.length, navigation]);
 
   // ---------------------------------------------------------
-  // 3.5) transition animation (Reanimated, hook 고정)
+  // 3.5) transition animation (Reanimated)
   // ---------------------------------------------------------
   const [switching, setSwitching] = useState(false);
 
@@ -122,12 +186,11 @@ export default function LoggedInHome() {
   }, []);
 
   // ---------------------------------------------------------
-  // 4) records (hook 고정)
+  // 4) records
   // ---------------------------------------------------------
   const bootstrapRecords = useRecordStore(s => s.bootstrap);
   const getPetState = useRecordStore(s => s.getPetState);
 
-  // ✅ fallback shape 고정 (항상 PetRecordsState)
   const petRecordsState = useMemo(() => {
     return getPetState(activePetId ?? '');
   }, [getPetState, activePetId]);
@@ -137,37 +200,116 @@ export default function LoggedInHome() {
     bootstrapRecords(activePetId);
   }, [bootstrapRecords, activePetId]);
 
-  const recentRecords = useMemo(() => {
-    return (petRecordsState.items ?? []).slice(0, 2);
-  }, [petRecordsState.items]);
+  // ---------------------------------------------------------
+  // 4.5) today message / today photo
+  // ---------------------------------------------------------
+  const todayMessage = useMemo(() => {
+    return generateTimeMessage(selectedPet?.name ?? null);
+  }, [selectedPet?.name]);
 
-  // ---------------------------------------------------------
-  // 4.5) "오늘의 추억" (작년 오늘 우선 / 없으면 랜덤) + 하루 1회 고정
-  // ---------------------------------------------------------
-  const [todayMemory, setTodayMemory] = useState<MemoryRecord | null>(null);
+  const [todayPhoto, setTodayPhoto] = useState<{
+    record: MemoryRecord | null;
+    mode: 'anniversary' | 'random' | 'none';
+  }>({ record: null, mode: 'none' });
 
   useEffect(() => {
     let mounted = true;
 
     async function run() {
       if (!activePetId) {
-        if (mounted) setTodayMemory(null);
+        if (mounted) setTodayPhoto({ record: null, mode: 'none' });
         return;
       }
-
-      const picked = await pickTodayMemory(activePetId, petRecordsState.items);
-      if (mounted) setTodayMemory(picked);
+      const picked = await pickTodayPhoto(activePetId, petRecordsState.items);
+      if (mounted) setTodayPhoto(picked);
     }
 
     run();
-
     return () => {
       mounted = false;
     };
   }, [activePetId, petRecordsState.items]);
 
   // ---------------------------------------------------------
-  // 5) derived texts (hook 고정)
+  // 4.6) recent weekly 7
+  // ---------------------------------------------------------
+  const weekly7 = useMemo(
+    () => pickWeekly7(petRecordsState.items),
+    [petRecordsState.items],
+  );
+  const showMore = useMemo(() => weekly7.length >= 7, [weekly7.length]);
+
+  // ---------------------------------------------------------
+  // 5) hero card derived (펫 정보 라인)
+  // - 다양한 필드 네이밍을 안전하게 흡수(any)
+  // ---------------------------------------------------------
+  const petAny = selectedPet as any;
+
+  const petName = useMemo(
+    () => selectedPet?.name ?? '우리 아이',
+    [selectedPet?.name],
+  );
+  const breed = useMemo(() => {
+    const v = (petAny?.breed ?? petAny?.breedName ?? null) as string | null;
+    return v?.trim() ? v.trim() : null;
+  }, [petAny?.breed, petAny?.breedName]);
+
+  const birthYmd = useMemo(() => {
+    const v = (petAny?.birthDate ??
+      petAny?.birth_date ??
+      petAny?.birthday ??
+      null) as string | null;
+    return v?.trim() ? v.trim() : null;
+  }, [petAny?.birthDate, petAny?.birth_date, petAny?.birthday]);
+
+  const birthText = useMemo(() => formatBirthYmd(birthYmd), [birthYmd]);
+
+  const ageText = useMemo(() => {
+    const age = calcAgeFromBirth(birthYmd);
+    if (age === null) return null;
+    return `${age}살`;
+  }, [birthYmd]);
+
+  const weightText = useMemo(() => {
+    const v = petAny?.weightKg ?? petAny?.weight_kg ?? null;
+    if (v === null || v === undefined) return null;
+    const n = Number(v);
+    if (Number.isNaN(n)) return null;
+    // 4.5kg 처럼
+    return `${n % 1 === 0 ? n.toFixed(0) : n.toFixed(1)}kg`;
+  }, [petAny?.weightKg, petAny?.weight_kg]);
+
+  const metaLine = useMemo(() => {
+    // "견종"은 별도 줄로 두고, 메타는 아래 줄로 고정
+    const parts: string[] = [];
+    if (ageText) parts.push(ageText);
+    if (weightText) parts.push(weightText);
+    if (birthText) parts.push(`생년월일 ${birthText}`);
+    return parts.join(' · ');
+  }, [ageText, weightText, birthText]);
+
+  const tags = useMemo(() => {
+    const arr = (petAny?.tags ??
+      petAny?.personalityTags ??
+      petAny?.personality_tags ??
+      []) as string[];
+    if (Array.isArray(arr) && arr.length > 0) return arr;
+    return ['#산책러버', '#간식최애', '#주인바라기'];
+  }, [petAny?.tags, petAny?.personalityTags, petAny?.personality_tags]);
+
+  const selectedAvatarUri = useMemo(
+    () => selectedPet?.avatarUrl ?? null,
+    [selectedPet?.avatarUrl],
+  );
+
+  const todayPhotoOverlayTitle = useMemo(() => {
+    if (todayPhoto.mode === 'anniversary') return '작년 오늘의 기억';
+    if (todayPhoto.mode === 'random') return '오늘 꺼내보는 한 장';
+    return '오늘의 사진';
+  }, [todayPhoto.mode]);
+
+  // ---------------------------------------------------------
+  // 6) derived header
   // ---------------------------------------------------------
   const greetingTitle = useMemo(() => {
     if (nickname) return `${nickname}님, 반가워요!`;
@@ -176,33 +318,11 @@ export default function LoggedInHome() {
 
   const greetingSubTitle = useMemo(() => {
     if (pets.length === 0) return '소중한 아이를 등록하고 추억을 기록해 보세요';
-    return '오늘의 추억을 확인해 보세요';
+    return '오늘의 메시지로 하루를 시작해요';
   }, [pets.length]);
 
-  const tags = useMemo(() => {
-    const petTags = selectedPet?.tags ?? [];
-    if (petTags.length > 0) return petTags;
-    return ['#산책러버', '#간식최애', '#주인바라기'];
-  }, [selectedPet?.tags]);
-
-  const togetherDaysText = useMemo(() => {
-    const adoptionDate = selectedPet?.adoptionDate ?? null;
-    if (!adoptionDate) return '우리가 함께한 시간';
-    const days = diffDaysFromKst(adoptionDate);
-    return `우리가 함께한 시간 · ${days}일째`;
-  }, [selectedPet?.adoptionDate]);
-
-  const selectedAvatarUri = useMemo(
-    () => selectedPet?.avatarUrl ?? null,
-    [selectedPet?.avatarUrl],
-  );
-
-  const todayMessage = useMemo(() => {
-    return generateTimeMessage(selectedPet?.name ?? null);
-  }, [selectedPet?.name]);
-
   // ---------------------------------------------------------
-  // 6) actions (hook 고정)
+  // 7) actions
   // ---------------------------------------------------------
   const onPressAddPet = useCallback(() => {
     navigation.navigate('PetCreate', { from: 'header_plus' });
@@ -224,9 +344,6 @@ export default function LoggedInHome() {
     [navigation, activePetId],
   );
 
-  /**
-   * ✅ Reanimated 기반 펫 전환
-   */
   const onPressPetChip = useCallback(
     (petId: string) => {
       if (switching) return;
@@ -234,7 +351,6 @@ export default function LoggedInHome() {
 
       setSwitching(true);
 
-      // 1) OUT
       svOpacity.value = withTiming(OUT_OPACITY, {
         duration: 140,
         easing: Easing.out(Easing.cubic),
@@ -249,10 +365,8 @@ export default function LoggedInHome() {
             return;
           }
 
-          // 2) pet 변경 (JS)
           runOnJS(selectPet)(petId);
 
-          // 3) IN
           svOpacity.value = withTiming(1, {
             duration: 180,
             easing: Easing.out(Easing.cubic),
@@ -261,9 +375,7 @@ export default function LoggedInHome() {
           svTranslateY.value = withTiming(
             0,
             { duration: 180, easing: Easing.out(Easing.cubic) },
-            () => {
-              runOnJS(setSwitching)(false);
-            },
+            () => runOnJS(setSwitching)(false),
           );
         },
       );
@@ -280,7 +392,7 @@ export default function LoggedInHome() {
   );
 
   // ---------------------------------------------------------
-  // 7) render
+  // 8) render
   // ---------------------------------------------------------
   return (
     <Screen style={styles.screen}>
@@ -332,122 +444,175 @@ export default function LoggedInHome() {
 
         {/* 2) 전환 대상 컨텐츠 */}
         <Animated.View style={animatedContentStyle}>
-          {/* 프로필 카드 */}
-          <View style={styles.profileCard}>
-            <View style={styles.profileRow}>
-              <View style={styles.profileImageWrap}>
-                {selectedAvatarUri ? (
-                  <Image
-                    source={{ uri: selectedAvatarUri }}
-                    style={styles.profileImage}
-                  />
+          {/* ✅ HERO CARD: 큰 프로필카드 ~ 오늘의 메시지 묶음 */}
+          <View style={styles.heroCard}>
+            <View style={styles.heroTopRow}>
+              <View style={styles.heroLeft}>
+                <Text style={styles.heroName} numberOfLines={1}>
+                  {petName}
+                </Text>
+
+                {breed ? (
+                  <Text style={styles.heroBreed} numberOfLines={1}>
+                    {breed}
+                  </Text>
+                ) : null}
+
+                {metaLine ? (
+                  <Text style={styles.heroMeta} numberOfLines={2}>
+                    {metaLine}
+                  </Text>
                 ) : (
-                  <View style={styles.profileImagePlaceholder} />
+                  <Text style={styles.heroMetaMuted} numberOfLines={1}>
+                    아이 정보를 채우면 더 예쁘게 보여요
+                  </Text>
                 )}
               </View>
 
-              <View style={styles.profileTextArea}>
-                <Text style={styles.petName}>
-                  {selectedPet?.name ?? '우리 아이'}
-                </Text>
-                <Text style={styles.petMeta}>사랑으로 기록해요</Text>
-
-                <View style={styles.tagsRow}>
-                  {tags.map(t => (
-                    <View key={t} style={styles.tagChip}>
-                      <Text style={styles.tagText}>{t}</Text>
-                    </View>
-                  ))}
-                </View>
+              <View style={styles.heroAvatarWrap}>
+                {selectedAvatarUri ? (
+                  <Image
+                    source={{ uri: selectedAvatarUri }}
+                    style={styles.heroAvatarImg}
+                  />
+                ) : (
+                  <View style={styles.heroAvatarPlaceholder} />
+                )}
               </View>
             </View>
+
+            <View style={styles.heroTagsRow}>
+              {tags.map(t => (
+                <View key={t} style={styles.heroTagChip}>
+                  <Text style={styles.heroTagText}>{t}</Text>
+                </View>
+              ))}
+            </View>
+
+            <View style={styles.heroDivider} />
+
+            <Text style={styles.heroMessageTitle}>오늘의 메시지</Text>
+            <Text style={styles.heroMessageText}>{todayMessage}</Text>
           </View>
 
-          {/* 함께한 시간 */}
+          {/* 2) 오늘날의 사진 */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{togetherDaysText}</Text>
-            <Text style={styles.sectionDesc}>
-              오늘도 우리만의 속도로, 천천히 기록해요.
-            </Text>
-          </View>
-
-          {/* ✅ 오늘의 추억 (작년 오늘 우선/없으면 랜덤) + 시간대 메시지 (1카드 통일) */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>오늘의 추억</Text>
+            <Text style={styles.sectionTitle}>오늘날의 사진</Text>
 
             <TouchableOpacity
               activeOpacity={0.9}
-              style={styles.todayCard}
+              style={styles.photoCard}
               onPress={() =>
-                todayMemory
-                  ? onPressRecordItem(todayMemory.id)
+                todayPhoto.record
+                  ? onPressRecordItem(todayPhoto.record.id)
                   : onPressRecord()
               }
             >
-              {todayMemory?.imageUrl ? (
+              {todayPhoto.record?.imageUrl ? (
                 <Image
-                  source={{ uri: todayMemory.imageUrl }}
-                  style={styles.todayImage}
+                  source={{ uri: todayPhoto.record.imageUrl }}
+                  style={styles.photoImage}
                 />
               ) : (
-                <View style={styles.todayPlaceholder} />
+                <View style={styles.photoPlaceholder} />
               )}
 
-              <View style={styles.todayOverlay}>
-                <Text style={styles.todayMessage}>{todayMessage}</Text>
+              <View style={styles.photoOverlay}>
+                <Text style={styles.photoOverlayTitle}>
+                  {todayPhotoOverlayTitle}
+                </Text>
+                <Text style={styles.photoOverlaySub} numberOfLines={1}>
+                  {todayPhoto.record?.title?.trim()
+                    ? todayPhoto.record.title
+                    : '추억을 눌러 확인해요'}
+                </Text>
               </View>
             </TouchableOpacity>
           </View>
 
-          {/* 최근 기록 */}
+          {/* 3) 최근 기록 (주간 7개) */}
           <View style={styles.section}>
-            <View style={styles.recentHeader}>
+            <View style={styles.recentHeaderRow}>
               <Text style={styles.sectionTitle}>최근 기록</Text>
-              <TouchableOpacity onPress={onPressTimeline} activeOpacity={0.8}>
-                <Text style={styles.recentMore}>더보기</Text>
-              </TouchableOpacity>
+
+              {showMore ? (
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={onPressTimeline}
+                >
+                  <Text style={styles.moreBtnText}>더보기</Text>
+                </TouchableOpacity>
+              ) : (
+                <View />
+              )}
             </View>
 
-            <View style={styles.recentGrid}>
-              {recentRecords.length === 0 ? (
-                <>
-                  <TouchableOpacity
-                    activeOpacity={0.9}
-                    style={styles.recentGridItem}
-                    onPress={onPressRecord}
-                  />
-                  <TouchableOpacity
-                    activeOpacity={0.9}
-                    style={styles.recentGridItem}
-                    onPress={onPressRecord}
-                  />
-                </>
-              ) : (
-                <>
-                  {Array.from({ length: 2 }).map((_, idx) => {
-                    const item = recentRecords[idx] ?? null;
+            {weekly7.length === 0 ? (
+              <View style={styles.emptyBox}>
+                <Text style={styles.emptyTitle}>아직 기록이 없어요</Text>
+                <Text style={styles.emptyDesc}>첫 번째 추억을 남겨보세요.</Text>
+
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  style={styles.recordBtn}
+                  onPress={onPressRecord}
+                >
+                  <Text style={styles.recordBtnText}>기록하기</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <>
+                <View style={styles.recentList}>
+                  {weekly7.map(item => {
+                    const ymd = getRecordYmd(item);
+                    const title = item.title?.trim() ? item.title : '제목 없음';
+                    const content = toSnippet(item.content, 46);
 
                     return (
                       <TouchableOpacity
-                        key={idx}
+                        key={item.id}
                         activeOpacity={0.9}
-                        style={styles.recentGridItem}
-                        onPress={() =>
-                          item ? onPressRecordItem(item.id) : onPressRecord()
-                        }
+                        style={styles.recentItem}
+                        onPress={() => onPressRecordItem(item.id)}
                       >
-                        {item?.imageUrl ? (
-                          <Image
-                            source={{ uri: item.imageUrl }}
-                            style={{ width: '100%', height: '100%' }}
-                          />
-                        ) : null}
+                        <View style={styles.recentThumb}>
+                          {item.imageUrl ? (
+                            <Image
+                              source={{ uri: item.imageUrl }}
+                              style={styles.recentThumbImg}
+                            />
+                          ) : (
+                            <View style={styles.recentThumbPlaceholder} />
+                          )}
+                        </View>
+
+                        <View style={styles.recentInfo}>
+                          <Text style={styles.recentTitle} numberOfLines={1}>
+                            {title}
+                          </Text>
+                          <Text style={styles.recentContent} numberOfLines={2}>
+                            {content}
+                          </Text>
+
+                          <View style={styles.recentMetaRow}>
+                            <View style={{ flex: 1 }} />
+                            <Text style={styles.recentDate}>{ymd}</Text>
+                          </View>
+                        </View>
                       </TouchableOpacity>
                     );
                   })}
-                </>
-              )}
-            </View>
+                </View>
+
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  style={styles.recordBtn}
+                  onPress={onPressRecord}
+                >
+                  <Text style={styles.recordBtnText}>기록하기</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </Animated.View>
       </ScrollView>

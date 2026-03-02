@@ -2,11 +2,13 @@
 // 목적:
 // - KST 기준 날짜/시간 유틸 통합
 // - 함께한 날짜(D-day) 계산
-// - 오늘 yyyy-mm-dd
-// - 오늘 MM-DD (작년 오늘 매칭용)
-// - 시간대(아침/점심/저녁) 계산: 07:00 / 12:00 / 18:00 기준
+// - 오늘 yyyy-mm-dd / MM-DD
+// - 날짜 + 요일(ko) 표시
+// - record 날짜 기준 daysAgo 계산 (주간 버킷용)
 
 export type TimePhase = 'morning' | 'noon' | 'evening';
+
+const WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토'] as const;
 
 export function getKstNow() {
   const now = new Date();
@@ -26,6 +28,16 @@ export function getKstMonthDay(): string {
   const m = String(d.getUTCMonth() + 1).padStart(2, '0');
   const day = String(d.getUTCDate()).padStart(2, '0');
   return `${m}-${day}`;
+}
+
+export function formatKstDateWithWeekday(): string {
+  const d = getKstNow();
+  const month = d.getUTCMonth() + 1;
+  const day = d.getUTCDate();
+
+  // KST로 보정된 Date이므로 getUTCDay()가 곧 KST weekday
+  const weekday = WEEKDAY_KO[d.getUTCDay()];
+  return `${month}월 ${day}일 (${weekday})`;
 }
 
 /**
@@ -61,9 +73,47 @@ export function diffDaysFromKst(dateYmd: string) {
  */
 export function getTimePhase(): TimePhase {
   const now = getKstNow();
-  const hour = now.getUTCHours(); // KST로 보정된 now라 UTC hours를 써도 KST hour가 됨
+  const hour = now.getUTCHours(); // KST 보정된 now이므로 UTC hours가 KST hour
 
   if (hour >= 7 && hour < 12) return 'morning';
   if (hour >= 12 && hour < 18) return 'noon';
   return 'evening';
+}
+
+export function safeYmd(input: string | null | undefined): string | null {
+  const v = input?.trim() ?? '';
+  if (!v) return null;
+  // YYYY-MM-DD 가정
+  if (v.length >= 10) return v.slice(0, 10);
+  return null;
+}
+
+/**
+ * daysAgoFromKstToday
+ * - ymd(YYYY-MM-DD)가 "오늘로부터 몇 일 전"인지 계산
+ * - 오늘: 0, 어제: 1 ...
+ */
+export function daysAgoFromKstToday(ymd: string): number | null {
+  const safe = safeYmd(ymd);
+  if (!safe) return null;
+
+  const [y, m, d] = safe.split('-').map(Number);
+  const target = new Date(Date.UTC(y, m - 1, d, 0, 0, 0));
+
+  const now = getKstNow();
+  const today = new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      0,
+      0,
+      0,
+    ),
+  );
+
+  const ms = today.getTime() - target.getTime();
+  const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+  if (!Number.isFinite(days)) return null;
+  return days;
 }

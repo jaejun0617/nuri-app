@@ -331,10 +331,12 @@ export default function DevTestScreen() {
           DevTest (Supabase)
         </AppText>
 
-        <S.BtnGhost onPress={() => navigation.navigate('Main')}>
-          <AppText preset="caption" color="#ffffff" weight="700">
-            Main으로
-          </AppText>
+        <S.BtnGhost
+          onPress={() =>
+            navigation.reset({ index: 0, routes: [{ name: 'AppTabs' }] })
+          }
+        >
+          메인으로
         </S.BtnGhost>
       </S.TitleRow>
 

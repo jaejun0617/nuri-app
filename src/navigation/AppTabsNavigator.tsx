@@ -70,7 +70,7 @@ export default function AppTabsNavigator() {
             name="TimelineTab"
             component={TimelineScreen}
             options={{
-              title: '추억보기',
+              title: '타임라인',
               tabBarIcon: ({ color }) => (
                 <Text style={{ color, fontSize: 16 }}>🐾</Text>
               ),
