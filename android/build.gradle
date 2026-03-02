@@ -9,7 +9,7 @@ buildscript {
         targetSdkVersion = 36
         ndkVersion = "27.1.12297006"
         kotlinVersion = "2.1.20"
-        agpVersion = "8.6.1"
+        agpVersion = "8.4.2"
     }
 
     repositories {
@@ -45,3 +45,4 @@ allprojects {
         maven { url "https://www.jitpack.io" }
     }
 }
+

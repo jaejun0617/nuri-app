@@ -99,7 +99,7 @@ export default function AppTabsNavigator() {
               },
             }}
             options={{
-              title: '더보기',
+              title: '전체메뉴',
               tabBarIcon: ({ color }) => (
                 <Text style={{ color, fontSize: 16 }}>≡</Text>
               ),
