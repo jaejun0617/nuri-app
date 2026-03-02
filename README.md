@@ -1448,6 +1448,74 @@ NURI는 단순 기록 앱이 아니다.
 Phase 2는 기능 구현이 아니라  
 제품 완성도를 끌어올리는 단계다.
 
+# Chapter 4 — 로그인 유지 + 부트 전략 고도화 (No Flicker Boot)
+
+## 목표
+
+앱 재실행 시에도 “앱 같다”는 느낌을 만들기 위해, 부팅 1초 안에 모든 초기 상태를 정렬하고
+화면 깜빡임 없이 AppTabs로 진입한다.
+
+- Splash 최소 0.8~1.0초 고정(현재 0.9초)
+- Supabase `getSession()` 기반 세션 복원
+- `profiles.nickname` fetch
+- `pets` fetch
+- `selectedPetId` 자동 복원(영구 저장)
+- booted gate로 “중간 상태 화면 노출(깜빡임)” 제거
+  Splash 진입
+  → authStore.hydrate() (로컬 nickname 복원)
+  → supabase.auth.getSession()
+  → setSession()
+  → if session:
+  fetchMyNickname()
+  hydrateSelectedPetId()
+  fetchMyPets()
+  setPets() (selectedPetId normalize + persist)
+  else:
+  nickname null
+  pets clear
+  → authBooted = true / petBooted = true
+  → Splash 최소 노출 시간(0.9s) 만족 후 AppTabs reset
+
+---
+
+---
+
+## 상태 설계
+
+### authStore
+
+- `status`: guest | logged_in
+- `session`: Supabase session
+- `profile.nickname`
+- `booted`: 부트 완료 신호(Splash 게이트)
+
+### petStore
+
+- `pets[]`
+- `selectedPetId` (AsyncStorage 영구 복원/저장)
+- `booted`: pets fetch 완료 신호
+- `loading`: pets fetch 중
+
+---
+
+## 핵심 구현 포인트
+
+- **Single Source of Truth:** 세션은 Supabase가 단일 소스
+- **Gate Strategy:** `authBooted && petBooted`가 true가 되기 전까지 화면 전환 금지
+- **Min Splash Time:** 부트가 빨리 끝나도 최소 0.9초는 Splash 유지
+- **selectedPetId Persist:** `nuri.selectedPetId.v1` 키로 저장/복원, pets 주입 시 normalize
+
+---
+
+## 변경 파일
+
+- `src/app/providers/AppProviders.tsx`
+- `src/store/authStore.ts`
+- `src/store/petStore.ts`
+- `src/screens/Home/HomeScreen.tsx`
+
+## 부트 시퀀스 (고정)
+
 # 26. Final Statement
 
 NURI는 감정을 저장하는 서비스가 아니라, 감정을 구조화하는 시스템입니다.

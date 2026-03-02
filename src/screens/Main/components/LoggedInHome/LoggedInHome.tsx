@@ -8,7 +8,7 @@
 // ✅ 안정화 포인트(중요):
 // - Hook 호출을 "항상 동일한 개수/순서"로 고정 (조건문 내부 hook 호출 금지)
 // - zustand selector는 "안전한 단순 접근"만 사용
-// - activePetId가 null이어도 hook 자체는 호출되되 selector에서 undefined만 리턴
+// - recordStore는 getPetState로 fallback 고정(shape 고정)
 //
 // ✅ UX 개선(Reanimated):
 // - 펫칩 전환 시: (fade/slide out) → selectedPetId 변경 → (fade/slide in)
@@ -101,11 +101,18 @@ export default function LoggedInHome() {
 
   const activePetId = useMemo(() => selectedPet?.id ?? null, [selectedPet]);
 
-  // pets boot 완료 후 pets가 0이면 PetCreate 자동 유도
+  // ---------------------------------------------------------
+  // ✅ pets boot 완료 후 pets=0이면 PetCreate로 "reset" 유도
+  // - navigate로 가면 LoggedInHome가 잠깐 보일 수 있음
+  // ---------------------------------------------------------
   useEffect(() => {
     if (!petBooted) return;
     if (pets.length > 0) return;
-    navigation.navigate('PetCreate', { from: 'auto' });
+
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'PetCreate', params: { from: 'auto' } }],
+    });
   }, [petBooted, pets.length, navigation]);
 
   // ---------------------------------------------------------
@@ -113,15 +120,12 @@ export default function LoggedInHome() {
   // ---------------------------------------------------------
   const [switching, setSwitching] = useState(false);
 
-  // ✅ 전환 값(원하면 여기만 조절)
   const OUT_OPACITY = 0.9;
   const OUT_LIFT_PX = 6;
 
-  // ✅ shared values
   const svOpacity = useSharedValue(1);
   const svTranslateY = useSharedValue(0);
 
-  // ✅ animated style
   const animatedContentStyle = useAnimatedStyle(() => {
     return {
       opacity: svOpacity.value,
@@ -133,11 +137,12 @@ export default function LoggedInHome() {
   // 4) records (hook 고정)
   // ---------------------------------------------------------
   const bootstrapRecords = useRecordStore(s => s.bootstrap);
+  const getPetState = useRecordStore(s => s.getPetState);
 
-  const petRecordsState = useRecordStore(s => {
-    if (!activePetId) return undefined;
-    return s.byPetId[activePetId];
-  });
+  // ✅ fallback shape 고정 (항상 PetRecordsState)
+  const petRecordsState = useMemo(() => {
+    return getPetState(activePetId ?? '');
+  }, [getPetState, activePetId]);
 
   useEffect(() => {
     if (!activePetId) return;
@@ -145,9 +150,8 @@ export default function LoggedInHome() {
   }, [bootstrapRecords, activePetId]);
 
   const recentRecords = useMemo(() => {
-    const items = petRecordsState?.items ?? [];
-    return items.slice(0, 2);
-  }, [petRecordsState?.items]);
+    return (petRecordsState.items ?? []).slice(0, 2);
+  }, [petRecordsState.items]);
 
   // ---------------------------------------------------------
   // 5) derived texts (hook 고정)
@@ -177,7 +181,7 @@ export default function LoggedInHome() {
 
   const selectedAvatarUri = useMemo(
     () => selectedPet?.avatarUrl ?? null,
-    [selectedPet],
+    [selectedPet?.avatarUrl],
   );
 
   // ---------------------------------------------------------
@@ -203,13 +207,6 @@ export default function LoggedInHome() {
     [navigation, activePetId],
   );
 
-  /**
-   * ✅ Reanimated 기반 펫 전환
-   * - out 애니메이션(UI thread)
-   * - out 완료 시 selectPet(runOnJS)
-   * - in 애니메이션(UI thread)
-   * - 완료 시 switching=false(runOnJS)
-   */
   const onPressPetChip = useCallback(
     (petId: string) => {
       if (switching) return;
@@ -222,6 +219,7 @@ export default function LoggedInHome() {
         duration: 140,
         easing: Easing.out(Easing.cubic),
       });
+
       svTranslateY.value = withTiming(
         OUT_LIFT_PX,
         { duration: 140, easing: Easing.out(Easing.cubic) },
