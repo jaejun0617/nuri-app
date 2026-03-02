@@ -7,7 +7,7 @@
 //
 // ✅ 안정화 포인트(중요):
 // - Hook 호출을 "항상 동일한 개수/순서"로 고정 (조건문 내부 hook 호출 금지)
-// - zustand selector는 "안전한 단순 접근"만 사용 (getPetState 같은 함수 호출 제거)
+// - zustand selector는 "안전한 단순 접근"만 사용
 // - activePetId가 null이어도 hook 자체는 호출되되 selector에서 undefined만 리턴
 
 import React, { useEffect, useMemo, useCallback } from 'react';
@@ -20,7 +20,6 @@ import { useAuthStore } from '../../../../store/authStore';
 import { usePetStore } from '../../../../store/petStore';
 import { useRecordStore } from '../../../../store/recordStore';
 import type { RootStackParamList } from '../../../../navigation/RootNavigator';
-import { getPetAvatarPublicUrl } from '../../../../services/supabase/storagePets';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -45,20 +44,6 @@ function diffDaysFromKst(dateYmd: string) {
   return Math.floor(ms / (1000 * 60 * 60 * 24)) + 1;
 }
 
-function resolveAvatarUri(pet: {
-  avatarUrl?: string | null;
-  avatarPath?: string | null;
-}) {
-  // ---------------------------------------------------------
-  // 우선순위:
-  // 1) store에 avatarUrl이 이미 있으면 그대로 사용
-  // 2) 없으면 avatarPath -> public url 변환해서 사용
-  // ---------------------------------------------------------
-  if (pet.avatarUrl) return pet.avatarUrl;
-  if (pet.avatarPath) return getPetAvatarPublicUrl(pet.avatarPath);
-  return null;
-}
-
 /* ---------------------------------------------------------
  * 2) component
  * -------------------------------------------------------- */
@@ -74,7 +59,7 @@ export default function LoggedInHome() {
   const nicknameRaw = useAuthStore(s => s.profile.nickname);
 
   // ---------------------------------------------------------
-  // 2) pets (hook 고정: 한 번에 묶어서 가져오기)
+  // 2) pets (hook 고정)
   // ---------------------------------------------------------
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
@@ -82,36 +67,46 @@ export default function LoggedInHome() {
   const petBooted = usePetStore(s => s.booted);
 
   // ---------------------------------------------------------
-  // 3) derived: selectedPet / activePetId (hook 고정)
+  // 3) derived (hook 고정)
   // ---------------------------------------------------------
   const nickname = useMemo(() => nicknameRaw?.trim() || null, [nicknameRaw]);
 
   const selectedPet = useMemo(() => {
     if (pets.length === 0) return null;
-
     if (selectedPetId && pets.some(p => p.id === selectedPetId)) {
       return pets.find(p => p.id === selectedPetId) ?? pets[0];
     }
-
     return pets[0];
   }, [pets, selectedPetId]);
 
   const activePetId = useMemo(() => selectedPet?.id ?? null, [selectedPet]);
 
-  // pets boot 완료 후, pets가 0이면 PetCreate 자동 유도
+  // pets boot 완료 후 pets가 0이면 PetCreate 자동 유도
   useEffect(() => {
     if (!petBooted) return;
     if (pets.length > 0) return;
     navigation.navigate('PetCreate', { from: 'auto' });
   }, [petBooted, pets.length, navigation]);
 
+  // ✅ 디버그: “다른 애들 썸네일 안 보임” 확정용
+  useEffect(() => {
+    if (!__DEV__) return;
+    console.log(
+      '[LoggedInHome] pets for thumbs:',
+      pets.map(p => ({
+        id: p.id,
+        name: p.name,
+        avatarPath: p.avatarPath,
+        avatarUrl: p.avatarUrl,
+      })),
+    );
+  }, [pets]);
+
   // ---------------------------------------------------------
   // 4) records (hook 고정)
   // ---------------------------------------------------------
   const bootstrapRecords = useRecordStore(s => s.bootstrap);
 
-  // ✅ activePetId가 null이어도 hook은 무조건 호출됨
-  //    selector 내부에서만 undefined 반환 -> Hooks order 안정
   const petRecordsState = useRecordStore(s => {
     if (!activePetId) return undefined;
     return s.byPetId[activePetId];
@@ -153,10 +148,10 @@ export default function LoggedInHome() {
     return `우리가 함께한 시간 · ${days}일째`;
   }, [selectedPet?.adoptionDate]);
 
-  const selectedAvatarUri = useMemo(() => {
-    if (!selectedPet) return null;
-    return resolveAvatarUri(selectedPet);
-  }, [selectedPet]);
+  const selectedAvatarUri = useMemo(
+    () => selectedPet?.avatarUrl ?? null,
+    [selectedPet],
+  );
 
   // ---------------------------------------------------------
   // 6) actions (hook 고정)
@@ -214,11 +209,11 @@ export default function LoggedInHome() {
           <View style={styles.petSwitcherRow}>
             {pets.slice(0, 4).map(p => {
               const isActive = p.id === activePetId;
-              const uri = resolveAvatarUri(p);
+              const uri = p.avatarUrl ?? null;
 
               return (
                 <TouchableOpacity
-                  key={p.id}
+                  key={p.id} // 부모의 key는 그대로 유지
                   activeOpacity={0.85}
                   style={[
                     styles.petChip,
@@ -227,9 +222,29 @@ export default function LoggedInHome() {
                   onPress={() => onPressPetChip(p.id)}
                 >
                   {uri ? (
-                    <Image source={{ uri }} style={styles.petChipImage} />
+                    <Image
+                      // --- ✨ 여기가 최종 해결책입니다! ---
+                      // Image 컴포넌트 자체에 고유한 key를 부여하여
+                      // uri가 변경되지 않더라도 React가 강제로 다시 그리도록 합니다.
+                      // 펫 ID와 이미지 URI를 조합하여 가장 고유한 key를 생성합니다.
+                      key={`${p.id}-${uri}`}
+                      // ------------------------------------
+                      source={{ uri }}
+                      style={styles.petChipImage}
+                      onError={e => {
+                        console.log('[Thumb Image onError]', {
+                          petId: p.id,
+                          name: p.name,
+                          avatarPath: p.avatarPath,
+                          avatarUrl: p.avatarUrl,
+                          resolved: uri,
+                          nativeEvent: e.nativeEvent,
+                        });
+                      }}
+                    />
                   ) : (
-                    <View style={styles.petChipPlaceholder} />
+                    // 플레이스홀더에도 고유한 key를 부여하여 일관성을 맞춥니다.
+                    <View key={p.id} style={styles.petChipPlaceholder} />
                   )}
                 </TouchableOpacity>
               );
@@ -245,14 +260,27 @@ export default function LoggedInHome() {
           </View>
         </View>
 
-        {/* 2) 프로필 카드 */}
+        {/* 2) 프로필 카드 (동일하게 적용) */}
         <View style={styles.profileCard}>
           <View style={styles.profileRow}>
             <View style={styles.profileImageWrap}>
               {selectedAvatarUri ? (
                 <Image
+                  // --- ✨ 프로필 이미지에도 동일한 원리를 적용합니다 ---
+                  key={`${selectedPet?.id}-${selectedAvatarUri}`}
+                  // -------------------------------------------------
                   source={{ uri: selectedAvatarUri }}
                   style={styles.profileImage}
+                  onError={e => {
+                    console.log('[Profile Image onError]', {
+                      petId: selectedPet?.id,
+                      name: selectedPet?.name,
+                      avatarPath: selectedPet?.avatarPath,
+                      avatarUrl: selectedPet?.avatarUrl,
+                      resolved: selectedAvatarUri,
+                      nativeEvent: e.nativeEvent,
+                    });
+                  }}
                 />
               ) : (
                 <View style={styles.profileImagePlaceholder} />
@@ -328,7 +356,6 @@ export default function LoggedInHome() {
               <>
                 {Array.from({ length: 2 }).map((_, idx) => {
                   const item = recentRecords[idx] ?? null;
-
                   return (
                     <TouchableOpacity
                       key={idx}

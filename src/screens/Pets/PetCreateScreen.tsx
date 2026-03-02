@@ -1,8 +1,12 @@
 // 파일: src/screens/Pets/PetCreateScreen.tsx
 // 목적:
 // - 펫 등록(온보딩)
-// - 이미지 선택 → Storage 업로드(pet-profiles: public) → pets.profile_image_url(path) 저장
+// - 이미지 선택 → Storage 업로드 → pets.profile_image_url(path) 저장
 // - 등록 성공 시 fetchMyPets → petStore 주입 → Main reset
+//
+// Public bucket 운영:
+// - DB에는 path만 저장(profile_image_url = path)
+// - 렌더링은 fetchMyPets에서 publicUrl로 변환
 
 import React, { useMemo, useState, useCallback } from 'react';
 import {
@@ -39,7 +43,7 @@ function normalizeWeightOrNull(raw: string): number | null {
   if (!t) return null;
   const n = Number(t);
   if (!Number.isFinite(n) || n <= 0)
-    throw new Error('몸무게는 양수 숫자만 가능합니다.');
+    throw new Error('몸무게는 0보다 큰 숫자여야 합니다.');
   return n;
 }
 
@@ -58,10 +62,10 @@ export default function PetCreateScreen() {
   // 3) local state
   // ---------------------------------------------------------
   const [name, setName] = useState('');
-  const [adoptionDate, setAdoptionDate] = useState('');
-  const [birthDate, setBirthDate] = useState('');
-  const [weightKg, setWeightKg] = useState('');
-  const [tagsText, setTagsText] = useState('');
+  const [adoptionDate, setAdoptionDate] = useState(''); // YYYY-MM-DD
+  const [birthDate, setBirthDate] = useState(''); // YYYY-MM-DD
+  const [weightKg, setWeightKg] = useState(''); // number string
+  const [tagsText, setTagsText] = useState(''); // "#태그1 #태그2" or "태그1,태그2"
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageType, setImageType] = useState<string | null>(null);
@@ -147,7 +151,7 @@ export default function PetCreateScreen() {
         avatarPath: null,
       });
 
-      // 2) 이미지 업로드 → path 저장
+      // 2) 이미지가 있으면 업로드 후 pets.profile_image_url 업데이트
       if (imageUri) {
         const { path } = await uploadPetAvatar({
           userId,
@@ -162,9 +166,16 @@ export default function PetCreateScreen() {
           .eq('id', newPetId);
 
         if (upErr) throw upErr;
+
+        if (__DEV__) {
+          console.log('[PetCreate] updated profile_image_url:', {
+            newPetId,
+            path,
+          });
+        }
       }
 
-      // 3) pets refetch → store 주입(avatarUrl은 public url로 세팅됨)
+      // 3) pets refetch → store 주입
       const pets = await fetchMyPets();
       setPets(pets);
 
@@ -181,10 +192,10 @@ export default function PetCreateScreen() {
     birthDate,
     weightKg,
     trimmedName,
-    parseTags,
     tagsText,
     imageUri,
     imageType,
+    parseTags,
     setPets,
     navigation,
   ]);
@@ -204,7 +215,6 @@ export default function PetCreateScreen() {
           activeOpacity={0.9}
           style={styles.imagePicker}
           onPress={pickImage}
-          disabled={saving}
         >
           {imageUri ? (
             <Image source={{ uri: imageUri }} style={styles.image} />
@@ -220,7 +230,6 @@ export default function PetCreateScreen() {
           placeholder="예: 누리"
           placeholderTextColor="#B8B0A8"
           style={styles.input}
-          editable={!saving}
         />
 
         <Text style={styles.label}>입양일(선택)</Text>
@@ -231,7 +240,6 @@ export default function PetCreateScreen() {
           placeholderTextColor="#B8B0A8"
           style={styles.input}
           autoCapitalize="none"
-          editable={!saving}
         />
 
         <Text style={styles.label}>생일(선택)</Text>
@@ -242,7 +250,6 @@ export default function PetCreateScreen() {
           placeholderTextColor="#B8B0A8"
           style={styles.input}
           autoCapitalize="none"
-          editable={!saving}
         />
 
         <Text style={styles.label}>몸무게(선택)</Text>
@@ -253,7 +260,6 @@ export default function PetCreateScreen() {
           placeholderTextColor="#B8B0A8"
           keyboardType="decimal-pad"
           style={styles.input}
-          editable={!saving}
         />
 
         <Text style={styles.label}>태그(선택)</Text>
@@ -263,7 +269,6 @@ export default function PetCreateScreen() {
           placeholder="#산책러버 #간식최애 또는 산책러버,간식최애"
           placeholderTextColor="#B8B0A8"
           style={styles.input}
-          editable={!saving}
         />
 
         <TouchableOpacity
@@ -281,7 +286,6 @@ export default function PetCreateScreen() {
           activeOpacity={0.85}
           style={styles.ghost}
           onPress={() => navigation.goBack()}
-          disabled={saving}
         >
           <Text style={styles.ghostText}>나중에 할게요</Text>
         </TouchableOpacity>
@@ -315,7 +319,6 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     marginBottom: 14,
   },
-
   imagePicker: {
     height: 160,
     borderRadius: 18,
@@ -327,7 +330,6 @@ const styles = StyleSheet.create({
   },
   imagePickerText: { color: '#7A726C', fontSize: 13, fontWeight: '800' },
   image: { width: '100%', height: '100%' },
-
   label: {
     fontSize: 12,
     color: '#6E6660',
@@ -343,7 +345,6 @@ const styles = StyleSheet.create({
     color: '#1D1B19',
     fontWeight: '700',
   },
-
   primary: {
     marginTop: 16,
     height: 48,
@@ -354,7 +355,6 @@ const styles = StyleSheet.create({
   },
   primaryDisabled: { opacity: 0.5 },
   primaryText: { color: '#FFFFFF', fontSize: 15, fontWeight: '900' },
-
   ghost: { marginTop: 12, alignItems: 'center', paddingVertical: 8 },
   ghostText: { color: '#7A726C', fontSize: 13, fontWeight: '700' },
 });

@@ -34,17 +34,27 @@ function toNumberOrNull(v: number | string | null): number | null {
 
 function toPublicUrlOrNull(path: string | null): string | null {
   if (!path) return null;
-  const { data } = supabase.storage.from(PET_PROFILE_BUCKET).getPublicUrl(path);
+
+  // getPublicUrl은 내부에서 URL을 만들어주지만,
+  // path에 특수문자/공백이 섞이면 깨질 수 있어서 한번 normalize 해줌.
+  const safePath = path.replace(/^\/+/, '');
+
+  const { data } = supabase.storage
+    .from(PET_PROFILE_BUCKET)
+    .getPublicUrl(safePath);
   return data?.publicUrl ?? null;
 }
 
 function mapRowToPet(row: PetsRow): Pet {
-  const avatarUrl = toPublicUrlOrNull(row.profile_image_url);
+  const avatarPath = row.profile_image_url
+    ? row.profile_image_url.replace(/^\/+/, '')
+    : null;
+  const avatarUrl = toPublicUrlOrNull(avatarPath);
 
   return {
     id: row.id,
     name: row.name,
-    avatarPath: row.profile_image_url, // ✅ path 유지(향후 교체/삭제에 유리)
+    avatarPath, // ✅ path 유지
     avatarUrl, // ✅ public url
     adoptionDate: row.adoption_date,
     birthDate: row.birth_date,
@@ -73,7 +83,22 @@ export async function fetchMyPets(): Promise<Pet[]> {
   if (error) throw error;
 
   const rows = (data ?? []) as PetsRow[];
-  return rows.map(mapRowToPet);
+  const pets = rows.map(mapRowToPet);
+
+  // ✅ 디버그: 썸네일이 안 보일 때 원인 확정용 (개발에서만)
+  if (__DEV__) {
+    console.log(
+      '[fetchMyPets] mapped:',
+      pets.map(p => ({
+        id: p.id,
+        name: p.name,
+        avatarPath: p.avatarPath,
+        avatarUrl: p.avatarUrl,
+      })),
+    );
+  }
+
+  return pets;
 }
 
 /* ---------------------------------------------------------

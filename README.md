@@ -1042,6 +1042,55 @@ Android의 `content://` URI는 `fetch(uri).blob()` 방식이 불안정합니다.
 
 - Records CRUD (Create/Read/Edit/Delete) + 이미지 업로드/렌더링 + 삭제 시 스토리지 정리까지 포함한 **Chapter 3 완전체** 완료 ✅
 
+## Chapter X. LoggedInHome 안정화 (Hooks order fix) + Public Avatar 렌더링 경로 정리
+
+### 배경
+
+LoggedInHome 수정 이후 화면 전환 시 다음 오류가 반복 발생했다.
+
+- `React has detected a change in the order of Hooks called by LoggedInHome`
+- `Rendered more hooks than during the previous render`
+
+이는 **조건부로 zustand hook/selector를 호출하거나, 렌더마다 hook 호출 순서/개수가 달라질 때** 발생한다.
+
+---
+
+### 해결
+
+#### 1) Hooks 호출 순서/개수 고정
+
+- LoggedInHome에서 `useRecordStore` 등 zustand hook은 **항상 동일한 순서로 호출**되도록 정리했다.
+- `activePetId`가 없을 때도 hook 자체는 호출하되, selector 내부에서만 `undefined`를 반환하도록 구성했다.
+- `getPetState()` 같은 store 함수 호출 기반 selector는 제거하고, `byPetId[activePetId]` 직접 구독 방식으로 단순화했다.
+
+#### 2) Public bucket 기준 avatar 렌더링 경로 정리
+
+- UI에서 avatar 표시 시 우선순위를 명확히 했다.
+  - `avatarUrl`(이미 확보된 URL) 우선 사용
+  - 없으면 `avatarPath(profile_image_url)`를 `public url`로 변환하여 렌더링
+
+---
+
+### 현재 상태
+
+- LoggedInHome hooks 에러는 구조적으로 재발하지 않도록 안정화했다.
+- 다만 “다른 반려동물 썸네일이 안 보이는 문제”는 별도 원인(데이터 매핑/스토어 필드/URL 생성 방식 등)으로 판단되어 다음 챕터에서 해결한다.
+
+---
+
+### 다음 작업(예정)
+
+- 썸네일 미노출 이슈 원인 확정 및 수정:
+  - `pets.ts` 매핑에서 `profile_image_url` → `avatarPath` 저장 여부 점검
+  - public url 생성 함수/버킷 설정 일치 여부 점검
+  - petStore/LoggedInHome에서 사용하는 필드 스키마 정합성 맞추기
+
+### Fix: 멀티펫 헤더 썸네일 Active 표시 누락
+
+- 문제: 멀티펫 헤더에서 선택된 펫(active) 표시가 보이지 않아 썸네일이 정상 노출되지 않는 것처럼 보였음
+- 원인: `petChipActive`에 `borderColor`만 적용되고 `borderWidth`가 없어 테두리가 실제로 렌더링되지 않았음
+- 해결: `petChipActive`에 `borderWidth`를 추가(필요 시 기본 `petChip`에도 얇은 테두리 적용)하여 활성 상태가 확실히 구분되도록 수정
+
 # 26. Final Statement
 
 NURI는 감정을 저장하는 서비스가 아니라, 감정을 구조화하는 시스템입니다.

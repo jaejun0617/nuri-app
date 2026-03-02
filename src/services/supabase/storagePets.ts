@@ -19,7 +19,10 @@ const PET_PROFILE_BUCKET = 'pet-profiles';
 // 1) Public URL
 // ---------------------------------------------------------
 export function getPetAvatarPublicUrl(path: string): string {
-  const { data } = supabase.storage.from(PET_PROFILE_BUCKET).getPublicUrl(path);
+  const safePath = path.replace(/^\/+/, '');
+  const { data } = supabase.storage
+    .from(PET_PROFILE_BUCKET)
+    .getPublicUrl(safePath);
   return data.publicUrl;
 }
 
@@ -40,10 +43,7 @@ export async function uploadPetAvatar(input: {
 
   const path = `${input.userId}/${input.petId}/avatar_${Date.now()}.${ext}`;
 
-  // ✅ BlobUtil로 base64 읽기 (content:// 대응)
   const base64 = await readFileAsBase64(input.fileUri);
-
-  // ✅ base64 -> bytes
   const bytes = Buffer.from(base64, 'base64');
 
   const { error } = await supabase.storage

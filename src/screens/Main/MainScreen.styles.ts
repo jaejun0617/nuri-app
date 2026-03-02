@@ -260,10 +260,16 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+
+    // ✅ 기본 테두리(얇게)
+    borderWidth: 1,
+    borderColor: '#E6DFD7',
   },
+
   petChipActive: {
+    // ✅ active는 두껍게 + 색 변경
     borderWidth: 2,
-    borderColor: '#97A48D',
+    borderColor: '#EFEAE4',
   },
   petChipImage: {
     width: '100%',
@@ -272,7 +278,7 @@ export const styles = StyleSheet.create({
   petChipPlaceholder: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#EEE7E1',
+    backgroundColor: '#EFEFEF', // 플레이스홀더 색상
   },
   petAddChip: {
     width: 42,
