@@ -10,33 +10,30 @@
 // - zustand selector는 "안전한 단순 접근"만 사용
 // - activePetId가 null이어도 hook 자체는 호출되되 selector에서 undefined만 리턴
 //
-// ✅ UX 개선:
-// - 펫칩 전환 시: (fade out) → selectedPetId 변경 → (fade in)
-// - 전환 중 연타 방지로 "뚝뚝 끊김" / 중첩 렌더 방지
+// ✅ UX 개선(Reanimated):
+// - 펫칩 전환 시: (fade/slide out) → selectedPetId 변경 → (fade/slide in)
+// - 애니메이션은 UI thread에서 수행 → 버벅임 감소
+// - 전환 중 연타 방지로 중첩 렌더/끊김 방지
 //
 // ✅ 구조 변경(중요):
 // - 공통 하단 탭은 AppTabsNavigator에서 전역 노출
 // - 따라서 이 파일의 하단 탭 / FAB UI는 제거
 
-import React, {
-  useEffect,
-  useMemo,
-  useCallback,
-  useRef,
-  useState,
-} from 'react';
-import {
-  Animated,
-  Easing,
-  Image,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import React, { useEffect, useMemo, useCallback, useState } from 'react';
+import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
+// ✅ Reanimated
+import Animated, {
+  Easing,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
+
+import Screen from '../../../../components/layout/Screen';
 import { styles } from '../../MainScreen.styles';
 import { useAuthStore } from '../../../../store/authStore';
 import { usePetStore } from '../../../../store/petStore';
@@ -94,9 +91,11 @@ export default function LoggedInHome() {
 
   const selectedPet = useMemo(() => {
     if (pets.length === 0) return null;
+
     if (selectedPetId && pets.some(p => p.id === selectedPetId)) {
       return pets.find(p => p.id === selectedPetId) ?? pets[0];
     }
+
     return pets[0];
   }, [pets, selectedPetId]);
 
@@ -110,54 +109,25 @@ export default function LoggedInHome() {
   }, [petBooted, pets.length, navigation]);
 
   // ---------------------------------------------------------
-  // 3.5) transition animation (hook 고정)
+  // 3.5) transition animation (Reanimated, hook 고정)
   // ---------------------------------------------------------
   const [switching, setSwitching] = useState(false);
 
-  // 사용자 요청 유지
-  const MIN_OPACITY = 1;
-  const LIFT_PX = 0.1;
+  // ✅ 전환 값(원하면 여기만 조절)
+  const OUT_OPACITY = 0.9;
+  const OUT_LIFT_PX = 6;
 
-  const fade = useRef(new Animated.Value(1)).current;
-  const lift = useRef(new Animated.Value(0)).current;
+  // ✅ shared values
+  const svOpacity = useSharedValue(1);
+  const svTranslateY = useSharedValue(0);
 
-  const animateOut = useCallback(() => {
-    return new Promise<void>(resolve => {
-      Animated.parallel([
-        Animated.timing(fade, {
-          toValue: MIN_OPACITY,
-          duration: 140,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(lift, {
-          toValue: LIFT_PX,
-          duration: 140,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]).start(() => resolve());
-    });
-  }, [fade, lift]);
-
-  const animateIn = useCallback(() => {
-    return new Promise<void>(resolve => {
-      Animated.parallel([
-        Animated.timing(fade, {
-          toValue: 1,
-          duration: 180,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(lift, {
-          toValue: 0,
-          duration: 180,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]).start(() => resolve());
-    });
-  }, [fade, lift]);
+  // ✅ animated style
+  const animatedContentStyle = useAnimatedStyle(() => {
+    return {
+      opacity: svOpacity.value,
+      transform: [{ translateY: svTranslateY.value }],
+    };
+  }, []);
 
   // ---------------------------------------------------------
   // 4) records (hook 고정)
@@ -218,7 +188,6 @@ export default function LoggedInHome() {
   }, [navigation]);
 
   const onPressTimeline = useCallback(() => {
-    // 탭으로 이동 (params 없이도 TimelineScreen이 store fallback으로 petId 처리)
     navigation.navigate('TimelineTab');
   }, [navigation]);
 
@@ -229,34 +198,74 @@ export default function LoggedInHome() {
   const onPressRecordItem = useCallback(
     (memoryId: string) => {
       if (!activePetId) return;
-      // 상세/편집은 탭 밖(Stack)
       navigation.navigate('RecordDetail', { petId: activePetId, memoryId });
     },
     [navigation, activePetId],
   );
 
+  /**
+   * ✅ Reanimated 기반 펫 전환
+   * - out 애니메이션(UI thread)
+   * - out 완료 시 selectPet(runOnJS)
+   * - in 애니메이션(UI thread)
+   * - 완료 시 switching=false(runOnJS)
+   */
   const onPressPetChip = useCallback(
-    async (petId: string) => {
+    (petId: string) => {
       if (switching) return;
       if (petId === activePetId) return;
 
-      try {
-        setSwitching(true);
-        await animateOut();
-        selectPet(petId);
-        await animateIn();
-      } finally {
-        setSwitching(false);
-      }
+      setSwitching(true);
+
+      // 1) OUT
+      svOpacity.value = withTiming(OUT_OPACITY, {
+        duration: 140,
+        easing: Easing.out(Easing.cubic),
+      });
+      svTranslateY.value = withTiming(
+        OUT_LIFT_PX,
+        { duration: 140, easing: Easing.out(Easing.cubic) },
+        finished => {
+          if (!finished) {
+            runOnJS(setSwitching)(false);
+            return;
+          }
+
+          // 2) pet 변경 (JS)
+          runOnJS(selectPet)(petId);
+
+          // 3) IN
+          svOpacity.value = withTiming(1, {
+            duration: 180,
+            easing: Easing.out(Easing.cubic),
+          });
+
+          svTranslateY.value = withTiming(
+            0,
+            { duration: 180, easing: Easing.out(Easing.cubic) },
+            () => {
+              runOnJS(setSwitching)(false);
+            },
+          );
+        },
+      );
     },
-    [switching, activePetId, animateOut, animateIn, selectPet],
+    [
+      switching,
+      activePetId,
+      selectPet,
+      svOpacity,
+      svTranslateY,
+      OUT_OPACITY,
+      OUT_LIFT_PX,
+    ],
   );
 
   // ---------------------------------------------------------
   // 7) render
   // ---------------------------------------------------------
   return (
-    <View style={styles.screen}>
+    <Screen style={styles.screen}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContentLoggedIn}
@@ -304,12 +313,7 @@ export default function LoggedInHome() {
         </View>
 
         {/* 2) 전환 대상 컨텐츠 */}
-        <Animated.View
-          style={{
-            opacity: fade,
-            transform: [{ translateY: lift }],
-          }}
-        >
+        <Animated.View style={animatedContentStyle}>
           {/* 프로필 카드 */}
           <View style={styles.profileCard}>
             <View style={styles.profileRow}>
@@ -422,6 +426,6 @@ export default function LoggedInHome() {
           </View>
         </Animated.View>
       </ScrollView>
-    </View>
+    </Screen>
   );
 }

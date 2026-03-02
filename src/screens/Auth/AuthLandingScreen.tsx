@@ -2,6 +2,9 @@
 // 목적:
 // - 게스트 유도 랜딩
 // - "로그인 / 회원가입 / 게스트로 계속" 진입점
+//
+// ✅ 변경:
+// - Main 라우트는 RootStack에 없음 → AppTabs로 이동
 
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -44,7 +47,12 @@ export default function AuthLandingScreen() {
         <TouchableOpacity
           activeOpacity={0.8}
           style={styles.ghost}
-          onPress={() => navigation.replace('Main')}
+          onPress={() =>
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'AppTabs' }],
+            })
+          }
         >
           <Text style={styles.ghostText}>게스트로 계속</Text>
         </TouchableOpacity>

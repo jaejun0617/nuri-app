@@ -1166,6 +1166,22 @@ RootStack 구조 변경에 맞춰 정상 복귀 처리.
 - Navigation 구조 안정화 완료
 - 전역 BottomTab 적용 완료
 
+### Chapter 4 — Global Navigation & Layout Stabilization
+
+- BottomTab을 AppTabsNavigator에서 전역 관리하도록 구조 정리
+- GuestHome 내부 중복 탭/FAB 제거
+- SafeAreaInsets 기반 상단 간격 처리로 상태바 영역 안정화
+- 오른쪽 슬라이드 MoreDrawer 오버레이 적용
+- spring 기반 애니메이션으로 UX 부드럽게 개선
+- 전체 UI를 흰/검 베이스로 1차 통일 완료
+
+### Chapter — 홈 상단 SafeArea + 전환 애니메이션 고도화
+
+- Screen 공용 레이아웃 래퍼 추가로 SafeArea(top inset) 처리 표준화
+- LoggedInHome 루트에 Screen 적용하여 상태바(시간/아이콘) 영역과 UI 간격 안정화
+- 펫 전환 애니메이션을 Reanimated 기반(UI thread)으로 업그레이드하여 버벅임을 감소
+- 전환 타이밍을 runOnJS로 고정하고 연타 방지로 중첩 렌더/끊김 방지
+
 # 26. Final Statement
 
 NURI는 감정을 저장하는 서비스가 아니라, 감정을 구조화하는 시스템입니다.

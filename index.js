@@ -5,6 +5,7 @@
 // - RNGH는 최상단에서 1회 import로 안정화
 
 import 'react-native-gesture-handler';
+import 'react-native-reanimated';
 import 'react-native-url-polyfill/auto';
 import 'react-native-get-random-values';
 

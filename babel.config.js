@@ -5,4 +5,8 @@
  */
 module.exports = {
   presets: ['module:@react-native/babel-preset'],
+  plugins: [
+    // ...기존 plugins가 있으면 유지
+    'react-native-reanimated/plugin', // ✅ 반드시 마지막
+  ],
 };

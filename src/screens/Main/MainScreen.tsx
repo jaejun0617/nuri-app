@@ -1,7 +1,8 @@
 // 파일: src/screens/Main/MainScreen.tsx
 // 목적:
-// - 홈 진입점에서 Guest / Logged-in 레이아웃을 완전히 분리
-// - MainScreen은 "분기"만 담당한다.
+// - 홈 진입점
+// - Guest / Logged-in 레이아웃 완전 분리
+// - 이 컴포넌트는 "분기만" 담당
 
 import React from 'react';
 import { useAuthStore } from '../../store/authStore';

@@ -1,19 +1,9 @@
 // 파일: src/store/authStore.ts
-// 목적:
-// - 앱 전역 인증 상태 관리 (guest / logged_in)
-// - Supabase session 저장/복원(AsyncStorage) 기반 자동 로그인 토대
-// - nickname은 profiles 테이블에서 fetch 후 주입
-//
-// 운영 원칙:
-// - guest 우선 (세션 없으면 guest)
-// - 세션 있으면 logged_in
-// - nickname은 optional (없으면 '반가워요!'만 노출)
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Session } from '@supabase/supabase-js';
 import { create } from 'zustand';
 
-const STORAGE_KEY = 'nuri.auth.v1';
+const STORAGE_KEY = 'nuri.profile.v1';
 
 export type AuthStatus = 'guest' | 'logged_in';
 
@@ -21,8 +11,7 @@ export type Profile = {
   nickname?: string | null;
 };
 
-type PersistedAuth = {
-  session: Session | null;
+type PersistedProfile = {
   profile: Profile;
 };
 
@@ -35,7 +24,7 @@ type AuthState = {
   profile: Profile;
 
   // ---------------------------------------------------------
-  // 2) 파생 (값으로 제공)
+  // 2) 파생
   // ---------------------------------------------------------
   isLoggedIn: boolean;
 
@@ -43,31 +32,32 @@ type AuthState = {
   // 3) 액션
   // ---------------------------------------------------------
   hydrate: () => Promise<void>;
-  setGuest: () => Promise<void>;
   setSession: (session: Session | null) => Promise<void>;
   setNickname: (nickname: string | null) => Promise<void>;
   signOutLocal: () => Promise<void>;
 };
 
-async function save(persist: PersistedAuth) {
+async function saveProfile(profile: Profile) {
+  const persist: PersistedProfile = { profile };
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(persist));
 }
 
-async function load(): Promise<PersistedAuth | null> {
+async function loadProfile(): Promise<Profile> {
   const raw = await AsyncStorage.getItem(STORAGE_KEY);
-  if (!raw) return null;
+  if (!raw) return { nickname: null };
   try {
-    return JSON.parse(raw) as PersistedAuth;
+    const parsed = JSON.parse(raw) as PersistedProfile;
+    return parsed.profile ?? { nickname: null };
   } catch {
-    return null;
+    return { nickname: null };
   }
 }
 
-async function clear() {
+async function clearProfile() {
   await AsyncStorage.removeItem(STORAGE_KEY);
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+export const useAuthStore = create<AuthState>(set => ({
   // ---------------------------------------------------------
   // 1) 초기 상태
   // ---------------------------------------------------------
@@ -77,86 +67,47 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isLoggedIn: false,
 
   // ---------------------------------------------------------
-  // 2) hydrate (앱 시작 시 1회)
+  // 2) hydrate (앱 시작 시 1회) - 닉네임만 복원
   // ---------------------------------------------------------
   hydrate: async () => {
-    const persisted = await load();
-
-    if (!persisted?.session) {
-      set({
-        status: 'guest',
-        session: null,
-        profile: { nickname: null },
-        isLoggedIn: false,
-      });
-      return;
-    }
-
-    set({
-      status: 'logged_in',
-      session: persisted.session,
-      profile: persisted.profile ?? { nickname: null },
-      isLoggedIn: true,
-    });
+    const profile = await loadProfile();
+    set({ profile: profile ?? { nickname: null } });
   },
 
   // ---------------------------------------------------------
-  // 3) 게스트 전환
-  // ---------------------------------------------------------
-  setGuest: async () => {
-    set({
-      status: 'guest',
-      session: null,
-      profile: { nickname: null },
-      isLoggedIn: false,
-    });
-    await clear();
-  },
-
-  // ---------------------------------------------------------
-  // 4) 세션 반영 + 저장
+  // 3) 세션 반영(단일 소스: Supabase)
   // ---------------------------------------------------------
   setSession: async (session: Session | null) => {
     if (!session) {
       set({
         status: 'guest',
         session: null,
-        profile: { nickname: null },
         isLoggedIn: false,
       });
-      await clear();
       return;
     }
-
-    const nextProfile = get().profile ?? { nickname: null };
 
     set({
       status: 'logged_in',
       session,
-      profile: nextProfile,
       isLoggedIn: true,
     });
-
-    await save({ session, profile: nextProfile });
   },
 
   // ---------------------------------------------------------
-  // 5) 닉네임 갱신 + 저장
+  // 4) 닉네임 갱신 + 로컬 persist
   // ---------------------------------------------------------
   setNickname: async (nickname: string | null) => {
     const trimmed = nickname?.trim() ?? null;
-    const nextProfile = { nickname: trimmed };
+    const nextProfile: Profile = { nickname: trimmed };
 
     set({ profile: nextProfile });
-
-    const session = get().session;
-    if (session) {
-      await save({ session, profile: nextProfile });
-    }
+    await saveProfile(nextProfile);
   },
 
   // ---------------------------------------------------------
-  // 6) 로컬 로그아웃
+  // 5) 로컬 로그아웃(스토어만 초기화)
+  // - 실제 Supabase signOut은 화면/서비스에서 호출
   // ---------------------------------------------------------
   signOutLocal: async () => {
     set({
@@ -165,6 +116,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       profile: { nickname: null },
       isLoggedIn: false,
     });
-    await clear();
+    await clearProfile();
   },
 }));

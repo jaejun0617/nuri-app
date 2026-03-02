@@ -1,8 +1,4 @@
 // 파일: src/screens/Auth/SignInScreen.tsx
-// 목적:
-// - Email/Password 로그인
-// - 성공 시 nickname 확인 → 없으면 NicknameSetup → 있으면 Main reset
-
 import React, { useMemo, useState } from 'react';
 import {
   Alert,
@@ -54,7 +50,8 @@ export default function SignInScreen() {
         return;
       }
 
-      navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
+      // ✅ Main이 아니라 AppTabs
+      navigation.reset({ index: 0, routes: [{ name: 'AppTabs' }] });
     } catch (e: any) {
       Alert.alert('로그인 실패', e?.message ?? '다시 시도해 주세요.');
     }
