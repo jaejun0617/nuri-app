@@ -1,8 +1,3 @@
-// 파일: src/screens/Home/HomeScreen.tsx
-// (기존 목적/구조 유지)
-// 변경점:
-// - Splash 버튼 이동: Main이 아니라 AppTabs로 진입 (공통 하단 탭 적용)
-
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, Easing, useWindowDimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -14,10 +9,23 @@ import AppText from '../../app/ui/AppText';
 import * as S from './HomeScreen.styles';
 import { textStyles } from './HomeScreen.styles';
 
+import { useAuthStore } from '../../store/authStore';
+import { usePetStore } from '../../store/petStore';
+
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Splash'>;
+
+// ✅ Splash 최소 노출 시간(0.8~1.0s)
+const MIN_SPLASH_MS = 900;
 
 export default function HomeScreen() {
   const navigation = useNavigation<Nav>();
+
+  const authBooted = useAuthStore(s => s.booted);
+  const petBooted = usePetStore(s => s.booted);
+
+  // Splash 시작 시각
+  const startedAtRef = useRef<number>(Date.now());
+  const movedRef = useRef(false);
 
   const { height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -46,11 +54,32 @@ export default function HomeScreen() {
     [],
   );
 
-  // ✅ 변경: AppTabs로 이동
-  const goToMain = () => {
-    navigation.navigate('AppTabs');
-  };
+  // ---------------------------------------------------------
+  // ✅ 핵심: 부트 완료 + 최소 Splash 시간 만족 → AppTabs reset
+  // ---------------------------------------------------------
+  useEffect(() => {
+    if (movedRef.current) return;
+    if (!authBooted || !petBooted) return;
 
+    const elapsed = Date.now() - startedAtRef.current;
+    const wait = Math.max(0, MIN_SPLASH_MS - elapsed);
+
+    const t = setTimeout(() => {
+      if (movedRef.current) return;
+      movedRef.current = true;
+
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'AppTabs' }],
+      });
+    }, wait);
+
+    return () => clearTimeout(t);
+  }, [authBooted, petBooted, navigation]);
+
+  // ---------------------------------------------------------
+  // 애니메이션(기존 유지)
+  // ---------------------------------------------------------
   useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -83,6 +112,13 @@ export default function HomeScreen() {
       }),
     ]).start();
   }, [fadeAnim, brandOpacity, brandTranslateY, brandScale]);
+
+  // ---------------------------------------------------------
+  // Dev 전용: 수동 진입 버튼(원하면 유지)
+  // ---------------------------------------------------------
+  const goToMainDev = () => {
+    navigation.reset({ index: 0, routes: [{ name: 'AppTabs' }] });
+  };
 
   return (
     <S.Background>
@@ -124,19 +160,18 @@ export default function HomeScreen() {
               우리의 시간을 기억으로 남기다
             </AppText>
 
-            <S.Spacer $h={20} />
-
-            <S.Button onPress={goToMain}>
-              <AppText preset="body" color="#000000" weight="600">
-                메인으로 이동
-              </AppText>
-            </S.Button>
-
             {__DEV__ && (
               <>
+                <S.Spacer $h={20} />
+                <S.Button onPress={goToMainDev}>
+                  <AppText preset="body" color="#000000" weight="600">
+                    (DEV) AppTabs로 이동
+                  </AppText>
+                </S.Button>
+
                 <S.Spacer $h={10} />
                 <AppText preset="caption" color="rgba(255,255,255,0.75)">
-                  개발모드: 자동 이동 비활성화
+                  개발모드: Splash 자동 진입(booted gate) 동작 중
                 </AppText>
               </>
             )}

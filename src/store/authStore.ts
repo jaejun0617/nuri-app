@@ -1,4 +1,3 @@
-// 파일: src/store/authStore.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Session } from '@supabase/supabase-js';
 import { create } from 'zustand';
@@ -23,6 +22,9 @@ type AuthState = {
   session: Session | null;
   profile: Profile;
 
+  // ✅ 부트 게이트 (Splash 고정용)
+  booted: boolean;
+
   // ---------------------------------------------------------
   // 2) 파생
   // ---------------------------------------------------------
@@ -34,6 +36,8 @@ type AuthState = {
   hydrate: () => Promise<void>;
   setSession: (session: Session | null) => Promise<void>;
   setNickname: (nickname: string | null) => Promise<void>;
+  setBooted: (v: boolean) => void;
+
   signOutLocal: () => Promise<void>;
 };
 
@@ -45,6 +49,7 @@ async function saveProfile(profile: Profile) {
 async function loadProfile(): Promise<Profile> {
   const raw = await AsyncStorage.getItem(STORAGE_KEY);
   if (!raw) return { nickname: null };
+
   try {
     const parsed = JSON.parse(raw) as PersistedProfile;
     return parsed.profile ?? { nickname: null };
@@ -64,6 +69,9 @@ export const useAuthStore = create<AuthState>(set => ({
   status: 'guest',
   session: null,
   profile: { nickname: null },
+
+  booted: false,
+
   isLoggedIn: false,
 
   // ---------------------------------------------------------
@@ -106,8 +114,12 @@ export const useAuthStore = create<AuthState>(set => ({
   },
 
   // ---------------------------------------------------------
-  // 5) 로컬 로그아웃(스토어만 초기화)
-  // - 실제 Supabase signOut은 화면/서비스에서 호출
+  // 5) booted 제어 (Splash 게이트)
+  // ---------------------------------------------------------
+  setBooted: (v: boolean) => set({ booted: v }),
+
+  // ---------------------------------------------------------
+  // 6) 로컬 로그아웃(스토어만 초기화)
   // ---------------------------------------------------------
   signOutLocal: async () => {
     set({
@@ -115,6 +127,7 @@ export const useAuthStore = create<AuthState>(set => ({
       session: null,
       profile: { nickname: null },
       isLoggedIn: false,
+      booted: false,
     });
     await clearProfile();
   },

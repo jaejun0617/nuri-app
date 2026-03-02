@@ -4,9 +4,11 @@
 // - 로그인 상태/닉네임 표시
 // - 로그아웃 버튼
 // - 닫기(×)
+// - ✅ SafeArea(top) 적용: StatusBar 아래로 자연스럽게 내려오게
 
 import React, { useMemo, useState } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
@@ -69,7 +71,6 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       if (clearRecords) clearRecords();
 
       onRequestClose();
-
       navigation.reset({ index: 0, routes: [{ name: 'Splash' }] });
     } catch (e: any) {
       Alert.alert('로그아웃 실패', e?.message ?? '다시 시도해 주세요.');
@@ -87,49 +88,53 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   // 5) render
   // ---------------------------------------------------------
   return (
-    <View style={styles.screen}>
-      <View style={styles.topRow}>
-        <Text style={styles.title}>더보기</Text>
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <View style={styles.screen}>
+        <View style={styles.topRow}>
+          <Text style={styles.title}>더보기</Text>
 
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={onRequestClose}
-          style={styles.closeBtn}
-        >
-          <Text style={styles.closeText}>✕</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.stateText}>현재 상태</Text>
-        <Text style={styles.stateValue}>{headerTitle}</Text>
-
-        {status === 'logged_in' ? (
           <TouchableOpacity
-            activeOpacity={0.9}
-            style={[styles.primary, loading ? styles.primaryDisabled : null]}
-            onPress={onPressLogout}
-            disabled={loading}
+            activeOpacity={0.85}
+            onPress={onRequestClose}
+            style={styles.closeBtn}
           >
-            <Text style={styles.primaryText}>
-              {loading ? '로그아웃 중...' : '로그아웃'}
-            </Text>
+            <Text style={styles.closeText}>✕</Text>
           </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={styles.primary}
-            onPress={onPressLogin}
-          >
-            <Text style={styles.primaryText}>로그인하러 가기</Text>
-          </TouchableOpacity>
-        )}
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.stateText}>현재 상태</Text>
+          <Text style={styles.stateValue}>{headerTitle}</Text>
+
+          {status === 'logged_in' ? (
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={[styles.primary, loading ? styles.primaryDisabled : null]}
+              onPress={onPressLogout}
+              disabled={loading}
+            >
+              <Text style={styles.primaryText}>
+                {loading ? '로그아웃 중...' : '로그아웃'}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={styles.primary}
+              onPress={onPressLogin}
+            >
+              <Text style={styles.primaryText}>로그인하러 가기</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
+
   screen: { flex: 1, padding: 16, backgroundColor: '#FFFFFF' },
 
   topRow: {

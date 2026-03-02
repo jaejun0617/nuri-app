@@ -1,4 +1,3 @@
-// 파일: src/app/providers/AppProviders.tsx
 import React, { useEffect, useMemo } from 'react';
 import { ThemeProvider } from 'styled-components/native';
 
@@ -8,6 +7,7 @@ import { useThemeMode } from '../theme/useThemeMode';
 import { supabase } from '../../services/supabase/client';
 import { fetchMyNickname } from '../../services/supabase/profile';
 import { fetchMyPets } from '../../services/supabase/pets';
+
 import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
@@ -26,24 +26,32 @@ export default function AppProviders({ children }: Props) {
   // ---------------------------------------------------------
   // 1) stores
   // ---------------------------------------------------------
-  const hydrate = useAuthStore(s => s.hydrate);
+  const hydrateAuth = useAuthStore(s => s.hydrate);
   const setSession = useAuthStore(s => s.setSession);
   const setNickname = useAuthStore(s => s.setNickname);
+  const setAuthBooted = useAuthStore(s => s.setBooted);
 
+  const hydrateSelectedPetId = usePetStore(s => s.hydrateSelectedPetId);
   const setPets = usePetStore(s => s.setPets);
   const clearPets = usePetStore(s => s.clear);
   const setPetLoading = usePetStore(s => s.setLoading);
   const setPetBooted = usePetStore(s => s.setBooted);
 
-  // (있다면) recordStore clear도 로그아웃에 쓰려고 가져옴
-  const clearRecords = useRecordStore(s => (s as any).clear?.() ?? undefined);
+  const recordStore: any = useRecordStore();
+  const clearRecords =
+    typeof recordStore.clearAll === 'function' ? recordStore.clearAll : null;
 
   useEffect(() => {
     let unsub: { unsubscribe: () => void } | null = null;
+    let alive = true;
 
     const loadPets = async () => {
       try {
         setPetLoading(true);
+
+        // ✅ selectedPetId 먼저 복원 (pets 들어오면 normalize됨)
+        await hydrateSelectedPetId();
+
         const pets = await fetchMyPets();
         setPets(pets);
       } finally {
@@ -59,38 +67,59 @@ export default function AppProviders({ children }: Props) {
       } catch {
         // ignore
       }
+
       await loadPets();
     };
 
     const onGuest = async () => {
       await setNickname(null);
       clearPets();
-      // recordStore clear가 있으면 같이
-      if (typeof clearRecords === 'function') clearRecords();
+      if (clearRecords) clearRecords();
       setPetBooted(true);
     };
 
     const boot = async () => {
-      // 1) 로컬(닉네임 등) 복원
-      await hydrate();
+      // ---------------------------------------------------------
+      // ✅ Splash 게이트 ON (부트 시작)
+      // ---------------------------------------------------------
+      setAuthBooted(false);
+      setPetBooted(false);
 
-      // 2) ✅ Supabase가 AsyncStorage에서 세션 복원(핵심)
+      // 1) 로컬(닉네임 등) 복원
+      await hydrateAuth();
+
+      // 2) Supabase 세션 복원
       const { data } = await supabase.auth.getSession();
       const session = data.session ?? null;
 
       await setSession(session);
 
+      // 3) 로그인/게스트 분기 처리
       if (session) await onLoggedIn();
       else await onGuest();
 
-      // 3) auth 이벤트 동기화
+      // ---------------------------------------------------------
+      // ✅ 부트 완료 (여기까지 오면 “세션/닉네임/펫/선택펫” 정렬 완료)
+      // ---------------------------------------------------------
+      if (!alive) return;
+      setAuthBooted(true);
+
+      // 4) auth 이벤트 동기화
       const { data: listener } = supabase.auth.onAuthStateChange(
         async (_event, nextSession) => {
           const s = nextSession ?? null;
+
+          // 부트 중복 방지: 이벤트 들어오면 게이트 잠깐 다시 닫고 정렬
+          setAuthBooted(false);
+          setPetBooted(false);
+
           await setSession(s);
 
           if (s) await onLoggedIn();
           else await onGuest();
+
+          if (!alive) return;
+          setAuthBooted(true);
         },
       );
 
@@ -100,16 +129,21 @@ export default function AppProviders({ children }: Props) {
     boot();
 
     return () => {
+      alive = false;
       if (unsub) unsub.unsubscribe();
     };
   }, [
-    hydrate,
+    hydrateAuth,
     setSession,
     setNickname,
+    setAuthBooted,
+
+    hydrateSelectedPetId,
     setPets,
     clearPets,
     setPetLoading,
     setPetBooted,
+
     clearRecords,
   ]);
 

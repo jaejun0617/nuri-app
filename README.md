@@ -1181,7 +1181,272 @@ RootStack 구조 변경에 맞춰 정상 복귀 처리.
 - LoggedInHome 루트에 Screen 적용하여 상태바(시간/아이콘) 영역과 UI 간격 안정화
 - 펫 전환 애니메이션을 Reanimated 기반(UI thread)으로 업그레이드하여 버벅임을 감소
 - 전환 타이밍을 runOnJS로 고정하고 연타 방지로 중첩 렌더/끊김 방지
-  ㅇ
+
+# 🚀 NURI Roadmap (Phase 2 – Productization Strategy)
+
+> 목적: CRUD 중심 MVP에서 "제품 완성도" 중심 아키텍처로 전환  
+> 기준: React Native + Supabase + Zustand 구조 유지
+
+---
+
+# Chapter 4. 로그인 유지 + 부트 전략 고도화
+
+## 🎯 목표
+
+앱 재실행 시:
+
+- Splash 0.8~1초 고정
+- Supabase getSession()
+- nickname fetch
+- pets fetch
+- selectedPetId 자동 복원
+- 화면 깜빡임 0
+- 완전한 “앱 같다” 느낌 구현
+
+---
+
+## 🧠 설계 철학
+
+앱의 첫 1초는 신뢰도를 결정한다.
+
+- 깜빡임 X
+- 로그인 화면 튀어나옴 X
+- 데이터 늦게 변경 X
+- 상태 뒤틀림 X
+
+---
+
+## 🔄 부트 시퀀스 설계
+
+App Launch  
+↓  
+Splash (0.8~1.0s 고정)  
+↓  
+authStore.hydrate()  
+↓  
+supabase.auth.getSession()  
+↓  
+if session:  
+ fetchProfile()  
+ fetchPets()  
+ restoreSelectedPet()  
+↓  
+AppTabs 진입
+
+---
+
+## 📦 상태 구조
+
+### authStore
+
+- status: 'guest' | 'logged_in'
+- session
+- profile
+- booted: boolean
+
+### petStore
+
+- pets[]
+- selectedPetId
+- booted: boolean
+
+---
+
+## 🔐 핵심 전략
+
+1. booted === false 동안 화면 전환 금지
+2. Splash에서 모든 초기 fetch 처리
+3. selectedPetId 복원 전략
+   - pets.length > 0 → 첫 번째 pet 자동 선택
+   - pets.length === 0 → PetCreate 유도
+
+---
+
+## 🎯 기대 효과
+
+- 앱 재실행 UX 완성도 상승
+- 데이터 동기화 안정화
+- 이후 기능 확장 기반 강화
+
+---
+
+# Chapter 5. 홈 화면 감성 강화 (NURI 정체성 시작점)
+
+## 🎯 목표
+
+CRUD 중심 화면 → 감정 중심 홈으로 전환
+
+---
+
+## 1️⃣ D-Day 계산
+
+목적: 함께한 시간을 수치로 시각화
+
+계산 방식:
+
+- dayjs 기준
+- today - pet.birthDate
+
+예시:
+함께한지 1,284일
+
+---
+
+## 2️⃣ 오늘의 한 줄 추억
+
+목적:
+
+- 감성적 재방문 유도
+- 홈에서 즉시 감정 자극
+
+로직:
+
+- 해당 pet의 memories 중 랜덤 1개
+- 하루 1회 고정 (Daily Recall과 연동 예정)
+
+---
+
+## 3️⃣ 최근 기록 위젯 정제
+
+- 썸네일 + 날짜 + 짧은 본문
+- 3~5개 제한
+- signedUrl 캐싱 최적화
+
+---
+
+## 4️⃣ 감정 태그 시각화
+
+memory.emotion 기반 비율 계산
+
+예시:
+행복 40%  
+그리움 25%  
+평온 20%  
+기타 15%
+
+---
+
+## 🎯 기대 효과
+
+- NURI 브랜드 정체성 강화
+- 단순 기록 앱과 차별화
+- 감정 기반 플랫폼 방향 확립
+
+---
+
+# Chapter 6. Daily Recall 서버 고정 로직
+
+## 🎯 목표
+
+하루 1회 랜덤 추억 고정
+
+---
+
+## 📦 Supabase 테이블 설계
+
+### daily_recall
+
+- id (uuid)
+- user_id (uuid)
+- pet_id (uuid)
+- memory_id (uuid)
+- recall_date (date)
+- created_at (timestamp)
+
+Unique Constraint:
+(pet_id, recall_date)
+
+---
+
+## 🔄 동작 흐름
+
+1. 오늘 날짜 기준 recall 존재 여부 조회
+2. 없으면 memories 중 랜덤 선택 후 insert
+3. 있으면 해당 memory 반환
+
+---
+
+## 🧠 캐시 전략
+
+- 하루 동안 Zustand 캐싱
+- 앱 재시작 시 서버 기준 재검증
+
+---
+
+## 🎯 기대 효과
+
+- 감성적 반복 방문 유도
+- AI 확장 기반 데이터 축적
+- 구독 모델 연결 가능
+
+---
+
+# Chapter 7. 구독/결제 아키텍처 설계 (설계 단계)
+
+> 실제 결제 연동은 추후 진행  
+> 현재는 구조 설계만 정의
+
+---
+
+## 🎯 목표
+
+- 무료/유료 기능 분리
+- Feature Gating 구조 확립
+
+---
+
+## 📦 subscriptions 테이블
+
+- id (uuid)
+- user_id (uuid)
+- plan (free / plus / pro)
+- status
+- expires_at (timestamp)
+
+---
+
+## 🧠 Feature Gating 예시
+
+free:
+
+- dailyRecallLimit = 1
+- aiMessages = 0
+
+plus:
+
+- dailyRecallLimit = unlimited
+- aiMessages = 10/month
+
+---
+
+## 🧱 확장 가능 구조
+
+- AI 위로 메시지 유료화
+- AR 추억 공간
+- 커뮤니티 프리미엄 기능
+- 감정 리포트 제공
+
+---
+
+# 📌 전체 로드맵 흐름
+
+Chapter 4 → 부트 전략 완성  
+Chapter 5 → 감성 홈 강화  
+Chapter 6 → Daily Recall 서버화  
+Chapter 7 → 구독 구조 설계
+
+---
+
+# 🏁 방향성 요약
+
+NURI는 단순 기록 앱이 아니다.
+
+- 감정 데이터를 구조화하고
+- 기억을 재해석하며
+- 반복 방문을 유도하는 플랫폼
+
+Phase 2는 기능 구현이 아니라  
+제품 완성도를 끌어올리는 단계다.
 
 # 26. Final Statement
 
