@@ -1,15 +1,13 @@
 // 파일: src/screens/Auth/NicknameSetupScreen.tsx
 // 목적:
 // - 가입/로그인 후 닉네임 1회 설정
-// - ✅ 완료 시 AppTabs로 reset
+// - 완료 시 AppTabs로 reset
 
 import React, { useMemo, useState } from 'react';
 import { Alert, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import type {
-  NativeStackNavigationProp,
-  RouteProp,
-} from '@react-navigation/native-stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RouteProp } from '@react-navigation/native';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { saveMyNickname } from '../../services/supabase/profile';

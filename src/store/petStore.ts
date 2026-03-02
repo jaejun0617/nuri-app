@@ -1,53 +1,54 @@
 // 파일: src/store/petStore.ts
 // 목적:
-// - 전역 pets + selectedPetId 관리
-// - AppProviders 부팅(fetch) 상태를 표현하기 위한 loading/booted 포함
-//
-// 운영 원칙:
-// - pets 비면 selectedPetId는 null
-// - pets 생기면 selectedPetId는 기존 선택 유지 or 첫 번째로 보정
-// - selectedPet 같은 파생은 화면(useMemo)에서 계산 권장
+// - pets 상태 + selectedPetId persist
+// - AppProviders에서 hydrateSelectedPetId 1회 호출
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
+
+const STORAGE_SELECTED_KEY = 'nuri.selectedPetId.v1';
 
 export type Pet = {
   id: string;
   name: string;
 
-  // ---------------------------------------------------------
-  // avatar
-  // ---------------------------------------------------------
-  avatarPath?: string | null; // ✅ storage path (DB 저장용)
-  avatarUrl?: string | null; // ✅ UI 렌더링용 URL (public url or signed url)
+  avatarPath?: string | null;
+  avatarUrl?: string | null;
 
-  // ---------------------------------------------------------
-  // meta
-  // ---------------------------------------------------------
-  adoptionDate?: string | null; // YYYY-MM-DD
+  adoptionDate?: string | null;
   birthDate?: string | null;
   weightKg?: number | null;
+
+  // ✅ 확장 필드(향후 사용)
+  breed?: string | null;
+  gender?: 'male' | 'female' | 'unknown' | null;
+  neutered?: boolean | null;
+
+  likes?: string[];
+  dislikes?: string[];
+  hobbies?: string[];
   tags?: string[]; // personality_tags
   deathDate?: string | null;
 };
 
-type PetState = {
+export type PetState = {
   // ---------------------------------------------------------
-  // 1) 상태
+  // 1) state
   // ---------------------------------------------------------
   pets: Pet[];
   selectedPetId: string | null;
 
-  // App boot 상태
-  loading: boolean; // pets fetch 중
-  booted: boolean; // 앱 부팅 시 1회 pets fetch 완료 여부
+  loading: boolean;
+  booted: boolean;
 
   // ---------------------------------------------------------
-  // 2) 액션
+  // 2) actions
   // ---------------------------------------------------------
+  hydrateSelectedPetId: () => Promise<void>;
+
   setPets: (pets: Pet[]) => void;
   selectPet: (petId: string) => void;
 
-  // avatarUrl만 교체(만료/재요청/즉시 반영용)
   updatePetAvatarUrl: (petId: string, avatarUrl: string | null) => void;
 
   setLoading: (v: boolean) => void;
@@ -63,6 +64,19 @@ function normalizeSelected(pets: Pet[], selectedPetId: string | null) {
   return pets[0].id;
 }
 
+async function loadSelectedPetId(): Promise<string | null> {
+  const raw = await AsyncStorage.getItem(STORAGE_SELECTED_KEY);
+  return raw ?? null;
+}
+
+async function saveSelectedPetId(petId: string | null) {
+  if (!petId) {
+    await AsyncStorage.removeItem(STORAGE_SELECTED_KEY);
+    return;
+  }
+  await AsyncStorage.setItem(STORAGE_SELECTED_KEY, petId);
+}
+
 export const usePetStore = create<PetState>((set, get) => ({
   pets: [],
   selectedPetId: null,
@@ -70,27 +84,39 @@ export const usePetStore = create<PetState>((set, get) => ({
   loading: false,
   booted: false,
 
+  hydrateSelectedPetId: async () => {
+    const saved = await loadSelectedPetId();
+    set({ selectedPetId: saved ?? null });
+  },
+
   setPets: (pets: Pet[]) => {
     const prevSelected = get().selectedPetId;
     const nextSelected = normalizeSelected(pets, prevSelected);
+
     set({ pets, selectedPetId: nextSelected });
+    void saveSelectedPetId(nextSelected);
   },
 
   selectPet: (petId: string) => {
     const { pets } = get();
     if (!pets.some(p => p.id === petId)) return;
+
     set({ selectedPetId: petId });
+    void saveSelectedPetId(petId);
   },
 
   updatePetAvatarUrl: (petId: string, avatarUrl: string | null) => {
-    const { pets } = get();
-    const next = pets.map(p => (p.id === petId ? { ...p, avatarUrl } : p));
+    const next = get().pets.map(p =>
+      p.id === petId ? { ...p, avatarUrl } : p,
+    );
     set({ pets: next });
   },
 
   setLoading: (v: boolean) => set({ loading: v }),
   setBooted: (v: boolean) => set({ booted: v }),
 
-  clear: () =>
-    set({ pets: [], selectedPetId: null, loading: false, booted: false }),
+  clear: () => {
+    set({ pets: [], selectedPetId: null, loading: false, booted: false });
+    void saveSelectedPetId(null);
+  },
 }));

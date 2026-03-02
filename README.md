@@ -1586,6 +1586,36 @@ Phase 2는 기능 구현이 아니라
 
 > 이제 클라이언트 캐시(AsyncStorage) 기반 “오늘날의 사진” 로직을 Supabase `daily_recall` 테이블로 이전해, 기기 간에도 동일한 ‘하루 1회 고정 리콜’을 서버에서 보장한다.
 
+## Chapter X. Auth UI 톤 통일(사진 스타일) + AppTabs 네비게이션 안정화
+
+### 목표
+
+- AuthLanding / SignIn / SignUp / NicknameSetup 화면을 동일한 톤(베이지 배경 + 카드 UI)으로 통일한다.
+- RootStack에 Main 라우트가 없는 구조에서 인증 완료 후 AppTabs로 안정적으로 진입한다.
+
+### 구현 내용
+
+- 공통 authTheme 분리로 색상/라운드/타이포를 일관되게 유지
+- AuthLanding/SignIn/SignUp/NicknameSetup을 카드형 레이아웃으로 정리
+- 로그인/닉네임 설정 완료 시 navigation.reset → AppTabs 고정
+
+### 다음
+
+- PetCreate(아이 등록) 화면을 pets SQL 스키마(성별/견종/likes/dislikes/hobbies/tags 최소 1개) 기반으로 폼 UX 확정
+- 등록 완료 후 LoggedInHome 프로필 카드(사진 레이아웃)에 즉시 반영
+
+## Fix. TS 컴파일 오류 정리 (petStore / RouteProp)
+
+### 이슈 1) PetState에 hydrateSelectedPetId가 없음
+
+- AppProviders에서 usePetStore(s => s.hydrateSelectedPetId) 접근 시 TS2339 발생
+- petStore.ts를 기준 구현/타입을 일치시키고 hydrateSelectedPetId 액션을 확정하여 해결
+
+### 이슈 2) RouteProp import 경로 오류
+
+- RouteProp은 @react-navigation/native-stack이 아닌 @react-navigation/native에서 제공
+- NicknameSetupScreen의 import를 올바르게 수정하여 TS2305 해결
+
 # 26. Final Statement
 
 NURI는 감정을 저장하는 서비스가 아니라, 감정을 구조화하는 시스템입니다.
