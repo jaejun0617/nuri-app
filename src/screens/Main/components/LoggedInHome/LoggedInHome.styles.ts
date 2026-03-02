@@ -2,7 +2,7 @@
 // 목적:
 // - LoggedInHome 전용 스타일
 // - 모바일 기준 폰트/간격 최적화
-// - HERO CARD: 큰 프로필카드 ~ 오늘의 메시지 묶음
+// - HERO CARD: 사진 레이아웃(정보+3컬럼+태그+오늘의메시지)
 // - 최근기록: 이미지 아래 정보(제목/내용 중앙, 날짜 우측)
 
 import { StyleSheet } from 'react-native';
@@ -65,80 +65,169 @@ export const styles = StyleSheet.create({
   },
 
   // ---------------------------------------------------------
-  // HERO CARD (Profile + Today Message)
+  // HERO CARD (사진 레이아웃)
   // ---------------------------------------------------------
   heroCard: {
     borderRadius: 18,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#EFEFEF',
-    backgroundColor: '#F6F2EE', // screenshot 느낌의 따뜻한 배경 톤
+    borderColor: 'rgba(0,0,0,0.06)',
+    backgroundColor: '#F6F2EE',
   },
+
   heroTopRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 12,
   },
-  heroLeft: { flex: 1, gap: 4 },
-  heroName: { fontSize: 18, fontWeight: '900', color: '#2B2622' },
-  heroBreed: { fontSize: 12, fontWeight: '800', color: '#6A625D' },
-  heroMeta: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#6A625D',
-    lineHeight: 16,
+  heroLeft: { flex: 1, gap: 6 },
+
+  heroName: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#2B2622',
+    letterSpacing: -0.3,
   },
-  heroMetaMuted: { fontSize: 12, fontWeight: '800', color: '#8A827C' },
+  heroTopMeta: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#5F5752',
+    lineHeight: 18,
+  },
+  heroTopMetaMuted: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#8A827C',
+    lineHeight: 18,
+  },
+  heroBirthText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#5F5752',
+  },
+
+  heroTogetherPill: {
+    marginTop: 4,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.65)',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.06)',
+  },
+  heroTogetherText: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#2B2622',
+  },
+  heroTogetherStrong: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#2B2622',
+  },
 
   heroAvatarWrap: {
-    width: 92,
-    height: 92,
+    width: 108,
+    height: 108,
     borderRadius: 999,
     overflow: 'hidden',
-    borderWidth: 4,
+    borderWidth: 5,
     borderColor: 'rgba(255,255,255,0.95)',
     backgroundColor: '#EDE7E2',
   },
   heroAvatarImg: { width: '100%', height: '100%' },
   heroAvatarPlaceholder: { flex: 1, backgroundColor: '#DED7D1' },
 
+  heroLine: {
+    marginTop: 12,
+    marginBottom: 12,
+    height: 1,
+    backgroundColor: 'rgba(0,0,0,0.08)',
+  },
+
+  heroThreeCol: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  heroCol: {
+    flex: 1,
+    paddingHorizontal: 6,
+    gap: 6,
+  },
+  heroColDivider: {
+    width: 1,
+    height: '100%',
+    backgroundColor: 'rgba(0,0,0,0.10)',
+  },
+  heroColHeader: {
+    paddingVertical: 6,
+    borderRadius: 999,
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.55)',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.06)',
+  },
+  heroColTitle: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#2B2622',
+  },
+  heroBullet: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#2B2622',
+  },
+  heroBulletMuted: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#8A827C',
+  },
+
   heroTagsRow: {
-    marginTop: 10,
+    marginTop: 12,
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
+    justifyContent: 'center',
   },
   heroTagChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.7)',
+    backgroundColor: 'rgba(255,255,255,0.65)',
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.06)',
   },
   heroTagText: {
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: '900',
     color: '#3A342F',
   },
 
-  heroDivider: {
-    height: 1,
-    backgroundColor: 'rgba(0,0,0,0.06)',
-    marginTop: 12,
-    marginBottom: 10,
+  heroMessageBox: {
+    marginTop: 14,
+    borderRadius: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.20)',
+    borderStyle: 'dashed',
+    backgroundColor: 'rgba(255,255,255,0.35)',
+    alignItems: 'center',
+    gap: 8,
   },
-  heroMessageTitle: {
-    fontSize: 12,
+  heroMessageLabel: {
+    fontSize: 15,
     fontWeight: '900',
     color: '#2B2622',
-    marginBottom: 6,
   },
   heroMessageText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '800',
     color: '#2B2622',
-    lineHeight: 19,
+    lineHeight: 20,
+    textAlign: 'center',
   },
 
   // ---------------------------------------------------------

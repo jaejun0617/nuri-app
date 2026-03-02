@@ -2,13 +2,15 @@
 // 목적:
 // - 로그인 홈 (LoggedInHome)
 // - 헤더: 닉네임 인사 + 멀티펫 썸네일 스위처(최대 4 + +버튼)
+// - HERO CARD: "큰 프로필 카드(펫 정보) ~ 오늘의 메시지"를 하나로 묶어 사진 레이아웃 구현
 //
-// ✅ 이번 변경(핵심):
-// - "큰 프로필 카드(펫 정보) ~ 오늘의 메시지" 를 하나의 heroCard로 묶음
-// - 이름 아래: (견종/메타) 나이 · 몸무게 · 생년월일
+// ✅ 구현 포인트(사진 레이아웃):
+// - 상단: 이름(굵게) + (견종 | 나이 | 성별 | 몸무게)
+// - 생년월일(YYYY.MM.DD)
+// - 함께한 시간 N일(입양일 기준)
+// - 중단 3컬럼: 취미 / 좋아하는 것 / 싫어하는 것 (불릿 리스트)
 // - 태그 row
-// - 태그 아래: 오늘의 메시지
-// - 아래로: 오늘날의 사진 / 최근기록(주간 7개)
+// - 하단: 오늘의 메시지 박스
 //
 // ✅ 안정화 포인트:
 // - Hook 호출은 항상 동일 순서
@@ -62,21 +64,23 @@ function toSnippet(text: string | null | undefined, max = 46) {
   return `${v.slice(0, max)}…`;
 }
 
-function formatBirthYmd(birth: any): string | null {
-  const s = typeof birth === 'string' ? birth : null;
-  if (!s || s.length < 10) return null; // YYYY-MM-DD
-  const y = s.slice(0, 4);
-  const m = s.slice(5, 7);
-  const d = s.slice(8, 10);
-  return `${y}.${m}.${d}`;
+function formatYmdToDots(ymd: string | null | undefined): string | null {
+  const s = (ymd ?? '').trim();
+  if (!s) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+  return `${s.slice(0, 4)}.${s.slice(5, 7)}.${s.slice(8, 10)}`;
 }
 
-function calcAgeFromBirth(birthYmd: string | null): number | null {
-  if (!birthYmd) return null;
-  const [y, m, d] = birthYmd.split('-').map(n => Number(n));
+function calcAgeFromBirth(birthYmd: string | null | undefined): number | null {
+  const s = (birthYmd ?? '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+
+  const y = Number(s.slice(0, 4));
+  const m = Number(s.slice(5, 7));
+  const d = Number(s.slice(8, 10));
   if (!y || !m || !d) return null;
 
-  // KST 기준(대략) — 화면표시용
+  // KST 기준 표시(UTC+9를 더해 "날짜"가 안정적으로 보이게)
   const now = new Date();
   const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
 
@@ -87,6 +91,49 @@ function calcAgeFromBirth(birthYmd: string | null): number | null {
   if (curM < m || (curM === m && curD < d)) age -= 1;
   if (age < 0) return 0;
   return age;
+}
+
+function calcDaysSinceAdoption(
+  adoptionYmd: string | null | undefined,
+): number | null {
+  const s = (adoptionYmd ?? '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+
+  const y = Number(s.slice(0, 4));
+  const m = Number(s.slice(5, 7));
+  const d = Number(s.slice(8, 10));
+  if (!y || !m || !d) return null;
+
+  // KST 기준 날짜 diff
+  const now = new Date();
+  const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+
+  const startUtc = Date.UTC(y, m - 1, d);
+  const endUtc = Date.UTC(
+    kstNow.getUTCFullYear(),
+    kstNow.getUTCMonth(),
+    kstNow.getUTCDate(),
+  );
+
+  const diffDays = Math.floor((endUtc - startUtc) / (24 * 60 * 60 * 1000));
+  if (!Number.isFinite(diffDays)) return null;
+  // “함께한 시간”은 보통 1일부터로 보여주고 싶으면 +1 처리 가능.
+  // 디자인상(5331일)처럼 누적 느낌이면 +1이 자연스러워서 적용.
+  return Math.max(0, diffDays + 1);
+}
+
+function formatGender(
+  g: 'male' | 'female' | 'unknown' | null | undefined,
+): string | null {
+  if (!g || g === 'unknown') return null;
+  return g === 'male' ? '남아' : '여아';
+}
+
+function formatWeightKg(v: number | null | undefined): string | null {
+  if (v === null || v === undefined) return null;
+  const n = Number(v);
+  if (!Number.isFinite(n)) return null;
+  return `${n % 1 === 0 ? n.toFixed(0) : n.toFixed(1)}kg`;
 }
 
 /**
@@ -114,6 +161,14 @@ function pickWeekly7(items: MemoryRecord[]) {
   }
 
   return picked.filter(Boolean) as MemoryRecord[];
+}
+
+function clampList(list: string[] | null | undefined, max = 2) {
+  const arr = Array.isArray(list) ? list : [];
+  return arr
+    .map(s => (s ?? '').trim())
+    .filter(Boolean)
+    .slice(0, max);
 }
 
 /* ---------------------------------------------------------
@@ -240,62 +295,78 @@ export default function LoggedInHome() {
   const showMore = useMemo(() => weekly7.length >= 7, [weekly7.length]);
 
   // ---------------------------------------------------------
-  // 5) hero card derived (펫 정보 라인)
-  // - 다양한 필드 네이밍을 안전하게 흡수(any)
+  // 5) HERO derived (사진 레이아웃)
   // ---------------------------------------------------------
-  const petAny = selectedPet as any;
-
   const petName = useMemo(
     () => selectedPet?.name ?? '우리 아이',
     [selectedPet?.name],
   );
-  const breed = useMemo(() => {
-    const v = (petAny?.breed ?? petAny?.breedName ?? null) as string | null;
-    return v?.trim() ? v.trim() : null;
-  }, [petAny?.breed, petAny?.breedName]);
 
-  const birthYmd = useMemo(() => {
-    const v = (petAny?.birthDate ??
-      petAny?.birth_date ??
-      petAny?.birthday ??
-      null) as string | null;
-    return v?.trim() ? v.trim() : null;
-  }, [petAny?.birthDate, petAny?.birth_date, petAny?.birthday]);
+  const breed = useMemo(
+    () => (selectedPet?.breed ?? '').trim() || null,
+    [selectedPet?.breed],
+  );
 
-  const birthText = useMemo(() => formatBirthYmd(birthYmd), [birthYmd]);
+  const birthYmd = useMemo(
+    () => (selectedPet?.birthDate ?? '').trim() || null,
+    [selectedPet?.birthDate],
+  );
+  const birthText = useMemo(() => formatYmdToDots(birthYmd), [birthYmd]);
 
   const ageText = useMemo(() => {
     const age = calcAgeFromBirth(birthYmd);
-    if (age === null) return null;
-    return `${age}살`;
+    return age === null ? null : `${age}살`;
   }, [birthYmd]);
 
-  const weightText = useMemo(() => {
-    const v = petAny?.weightKg ?? petAny?.weight_kg ?? null;
-    if (v === null || v === undefined) return null;
-    const n = Number(v);
-    if (Number.isNaN(n)) return null;
-    // 4.5kg 처럼
-    return `${n % 1 === 0 ? n.toFixed(0) : n.toFixed(1)}kg`;
-  }, [petAny?.weightKg, petAny?.weight_kg]);
+  const genderText = useMemo(
+    () => formatGender(selectedPet?.gender ?? null),
+    [selectedPet?.gender],
+  );
 
-  const metaLine = useMemo(() => {
-    // "견종"은 별도 줄로 두고, 메타는 아래 줄로 고정
+  const weightText = useMemo(
+    () => formatWeightKg(selectedPet?.weightKg ?? null),
+    [selectedPet?.weightKg],
+  );
+
+  const topMetaLine = useMemo(() => {
+    // "말티즈 | 2살 | 남아 | 4.5kg"
     const parts: string[] = [];
+    if (breed) parts.push(breed);
     if (ageText) parts.push(ageText);
+    if (genderText) parts.push(genderText);
     if (weightText) parts.push(weightText);
-    if (birthText) parts.push(`생년월일 ${birthText}`);
-    return parts.join(' · ');
-  }, [ageText, weightText, birthText]);
+
+    if (parts.length === 0) return null;
+    return parts.join(' | ');
+  }, [breed, ageText, genderText, weightText]);
+
+  const togetherDays = useMemo(
+    () => calcDaysSinceAdoption(selectedPet?.adoptionDate ?? null),
+    [selectedPet?.adoptionDate],
+  );
+
+  const hobbies = useMemo(
+    () => clampList(selectedPet?.hobbies, 2),
+    [selectedPet?.hobbies],
+  );
+  const likes = useMemo(
+    () => clampList(selectedPet?.likes, 2),
+    [selectedPet?.likes],
+  );
+  const dislikes = useMemo(
+    () => clampList(selectedPet?.dislikes, 2),
+    [selectedPet?.dislikes],
+  );
 
   const tags = useMemo(() => {
-    const arr = (petAny?.tags ??
-      petAny?.personalityTags ??
-      petAny?.personality_tags ??
-      []) as string[];
-    if (Array.isArray(arr) && arr.length > 0) return arr;
+    const arr = Array.isArray(selectedPet?.tags) ? selectedPet!.tags! : [];
+    const normalized = arr
+      .map(t => (t ?? '').trim())
+      .filter(Boolean)
+      .slice(0, 8);
+    if (normalized.length > 0) return normalized;
     return ['#산책러버', '#간식최애', '#주인바라기'];
-  }, [petAny?.tags, petAny?.personalityTags, petAny?.personality_tags]);
+  }, [selectedPet?.tags]);
 
   const selectedAvatarUri = useMemo(
     () => selectedPet?.avatarUrl ?? null,
@@ -444,29 +515,42 @@ export default function LoggedInHome() {
 
         {/* 2) 전환 대상 컨텐츠 */}
         <Animated.View style={animatedContentStyle}>
-          {/* ✅ HERO CARD: 큰 프로필카드 ~ 오늘의 메시지 묶음 */}
+          {/* ✅ HERO CARD (사진 레이아웃) */}
           <View style={styles.heroCard}>
+            {/* Top: name + meta + avatar */}
             <View style={styles.heroTopRow}>
               <View style={styles.heroLeft}>
                 <Text style={styles.heroName} numberOfLines={1}>
                   {petName}
                 </Text>
 
-                {breed ? (
-                  <Text style={styles.heroBreed} numberOfLines={1}>
-                    {breed}
-                  </Text>
-                ) : null}
-
-                {metaLine ? (
-                  <Text style={styles.heroMeta} numberOfLines={2}>
-                    {metaLine}
+                {topMetaLine ? (
+                  <Text style={styles.heroTopMeta} numberOfLines={1}>
+                    {topMetaLine}
                   </Text>
                 ) : (
-                  <Text style={styles.heroMetaMuted} numberOfLines={1}>
+                  <Text style={styles.heroTopMetaMuted} numberOfLines={1}>
                     아이 정보를 채우면 더 예쁘게 보여요
                   </Text>
                 )}
+
+                {birthText ? (
+                  <Text style={styles.heroBirthText} numberOfLines={1}>
+                    생년월일 {birthText}
+                  </Text>
+                ) : null}
+
+                {togetherDays !== null ? (
+                  <View style={styles.heroTogetherPill}>
+                    <Text style={styles.heroTogetherText}>
+                      ♥ 함께한 시간{' '}
+                      <Text style={styles.heroTogetherStrong}>
+                        {togetherDays}
+                      </Text>
+                      일
+                    </Text>
+                  </View>
+                ) : null}
               </View>
 
               <View style={styles.heroAvatarWrap}>
@@ -481,6 +565,62 @@ export default function LoggedInHome() {
               </View>
             </View>
 
+            {/* Divider */}
+            <View style={styles.heroLine} />
+
+            {/* 3 columns */}
+            <View style={styles.heroThreeCol}>
+              <View style={styles.heroCol}>
+                <View style={styles.heroColHeader}>
+                  <Text style={styles.heroColTitle}>🐾 취미</Text>
+                </View>
+                {hobbies.length > 0 ? (
+                  hobbies.map(v => (
+                    <Text key={v} style={styles.heroBullet} numberOfLines={1}>
+                      • {v}
+                    </Text>
+                  ))
+                ) : (
+                  <Text style={styles.heroBulletMuted}>• 아직 없어요</Text>
+                )}
+              </View>
+
+              <View style={styles.heroColDivider} />
+
+              <View style={styles.heroCol}>
+                <View style={styles.heroColHeader}>
+                  <Text style={styles.heroColTitle}>💛 좋아하는 것</Text>
+                </View>
+                {likes.length > 0 ? (
+                  likes.map(v => (
+                    <Text key={v} style={styles.heroBullet} numberOfLines={1}>
+                      • {v}
+                    </Text>
+                  ))
+                ) : (
+                  <Text style={styles.heroBulletMuted}>• 아직 없어요</Text>
+                )}
+              </View>
+
+              <View style={styles.heroColDivider} />
+
+              <View style={styles.heroCol}>
+                <View style={styles.heroColHeader}>
+                  <Text style={styles.heroColTitle}>💔 싫어하는 것</Text>
+                </View>
+                {dislikes.length > 0 ? (
+                  dislikes.map(v => (
+                    <Text key={v} style={styles.heroBullet} numberOfLines={1}>
+                      • {v}
+                    </Text>
+                  ))
+                ) : (
+                  <Text style={styles.heroBulletMuted}>• 아직 없어요</Text>
+                )}
+              </View>
+            </View>
+
+            {/* Tags */}
             <View style={styles.heroTagsRow}>
               {tags.map(t => (
                 <View key={t} style={styles.heroTagChip}>
@@ -489,10 +629,11 @@ export default function LoggedInHome() {
               ))}
             </View>
 
-            <View style={styles.heroDivider} />
-
-            <Text style={styles.heroMessageTitle}>오늘의 메시지</Text>
-            <Text style={styles.heroMessageText}>{todayMessage}</Text>
+            {/* Message box */}
+            <View style={styles.heroMessageBox}>
+              <Text style={styles.heroMessageLabel}>오늘의 메시지</Text>
+              <Text style={styles.heroMessageText}>{todayMessage}</Text>
+            </View>
           </View>
 
           {/* 2) 오늘날의 사진 */}
