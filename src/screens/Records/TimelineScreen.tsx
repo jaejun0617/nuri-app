@@ -54,12 +54,10 @@ type SortMode = 'recent' | 'oldest';
 const DEBOUNCE_MS = 250;
 
 // ✅ 경고/렌더 안정화: 빈 배열/빈 상태는 “항상 동일 참조”
-const EMPTY_ARRAY: readonly MemoryRecord[] = Object.freeze(
-  [] as MemoryRecord[],
-);
-
+// - TS가 []를 never[]로 추론하는 케이스를 막기 위해 generic 지정
+const EMPTY_ITEMS = Object.freeze<MemoryRecord[]>([]);
 const FALLBACK_PET_STATE = Object.freeze({
-  items: EMPTY_ARRAY as MemoryRecord[],
+  items: EMPTY_ITEMS as ReadonlyArray<MemoryRecord>,
   status: 'idle' as const,
   hasMore: false,
   errorMessage: null as string | null,
@@ -89,8 +87,7 @@ function recordMatchesQuery(r: MemoryRecord, q: string) {
 
   const title = (r.title ?? '').toLowerCase();
   const tags = Array.isArray(r.tags) ? r.tags.join(' ').toLowerCase() : '';
-
-  // ✅ 제목/태그 중심 (원하면 content까지 포함 가능)
+  // ✅ 제목/태그 중심
   return title.includes(q) || tags.includes(q);
 }
 
@@ -129,14 +126,22 @@ export default function TimelineScreen() {
     if (!petId) return FALLBACK_PET_STATE;
     return (s.byPetId[petId] as any) ?? FALLBACK_PET_STATE;
   }) as typeof FALLBACK_PET_STATE & {
-    status: any;
+    items: ReadonlyArray<MemoryRecord>;
+    status:
+      | 'idle'
+      | 'loading'
+      | 'ready'
+      | 'refreshing'
+      | 'loadingMore'
+      | 'error';
     hasMore: boolean;
     errorMessage: string | null;
   };
 
   const status = petState.status ?? 'idle';
   const hasMore = petState.hasMore ?? false;
-  const baseItems = petState.items ?? EMPTY_ARRAY;
+  const baseItems =
+    petState.items ?? (EMPTY_ITEMS as ReadonlyArray<MemoryRecord>);
   const refreshing = status === 'refreshing';
 
   // ---------------------------------------------------------
@@ -152,16 +157,14 @@ export default function TimelineScreen() {
   // ---------------------------------------------------------
   const [sortMode, setSortMode] = useState<SortMode>('recent');
 
-  // 검색바 토글(돋보기)
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchInput, setSearchInput] = useState('');
   const [query, setQuery] = useState('');
 
-  // 월/연도 필터 + 섹션 점프
   const [ymFilter, setYmFilter] = useState<string | null>(null);
   const [ymModalOpen, setYmModalOpen] = useState(false);
 
-  // 점프 요청(필터 적용 후 렌더가 끝난 다음 scrollToIndex 하려고)
+  // 점프 요청(필터 적용 후 렌더 완료 다음 scrollToIndex)
   const [pendingJumpYm, setPendingJumpYm] = useState<string | null>(null);
 
   // pet 변경 시: UX 안정화 초기화
@@ -188,7 +191,6 @@ export default function TimelineScreen() {
 
   // ---------------------------------------------------------
   // 4.2) available YM list (for modal)
-  // - baseItems(=store 최신순) 기준으로 계산
   // ---------------------------------------------------------
   const availableYmList = useMemo(() => {
     const set = new Set<string>();
@@ -228,7 +230,6 @@ export default function TimelineScreen() {
   useEffect(() => {
     if (!pendingJumpYm) return;
 
-    // 전체 보기(null)로 점프
     if (pendingJumpYm === '__ALL__') {
       requestAnimationFrame(() => {
         listRef.current?.scrollToOffset({ offset: 0, animated: true });
@@ -271,7 +272,7 @@ export default function TimelineScreen() {
   }, [petId, refresh]);
 
   // ✅ 무한 스크롤(loadMore)
-  // - 검색 중 자동 로드는 “결과 흔들림/비용” 때문에 기본 OFF
+  // - 검색 중 자동 로드는 결과 흔들림/비용 때문에 기본 OFF
   // - 대신 footer에 수동 “검색 결과 더 불러오기” 제공
   const onEndReached = useCallback(() => {
     if (!petId) return;
@@ -287,7 +288,7 @@ export default function TimelineScreen() {
 
     if (!ym) {
       setYmFilter(null);
-      setPendingJumpYm('__ALL__'); // effect에서 처리
+      setPendingJumpYm('__ALL__');
       return;
     }
 
@@ -315,7 +316,6 @@ export default function TimelineScreen() {
     return (
       <View style={styles.controlsWrap}>
         <View style={styles.controlsRow}>
-          {/* Sort */}
           <TouchableOpacity
             activeOpacity={0.9}
             style={styles.controlChip}
@@ -328,7 +328,6 @@ export default function TimelineScreen() {
             </AppText>
           </TouchableOpacity>
 
-          {/* Month/Year Filter + Jump */}
           <TouchableOpacity
             activeOpacity={0.9}
             style={styles.controlChip}
@@ -341,7 +340,6 @@ export default function TimelineScreen() {
 
           <View style={{ flex: 1 }} />
 
-          {/* Search icon */}
           <TouchableOpacity
             activeOpacity={0.9}
             style={styles.iconBtn}
@@ -353,7 +351,6 @@ export default function TimelineScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Search Bar */}
         {searchOpen ? (
           <View style={styles.searchBox}>
             <TextInput
@@ -481,7 +478,6 @@ export default function TimelineScreen() {
       );
     }
 
-    // 검색 중: 수동 로드 버튼 제공
     if (status === 'ready' && hasMore && query) {
       return (
         <View style={styles.footer}>
@@ -519,7 +515,6 @@ export default function TimelineScreen() {
   // ---------------------------------------------------------
   return (
     <View style={styles.screen}>
-      {/* Header */}
       <View style={styles.header}>
         <View style={{ width: 44 }} />
         <AppText preset="headline" style={styles.headerTitle}>
@@ -539,7 +534,7 @@ export default function TimelineScreen() {
 
       <FlatList
         ref={listRef}
-        data={filteredItems}
+        data={filteredItems as MemoryRecord[]}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
         contentContainerStyle={
@@ -551,7 +546,7 @@ export default function TimelineScreen() {
         onEndReached={onEndReached}
         onEndReachedThreshold={0.6}
         ListHeaderComponent={ControlsBar}
-        stickyHeaderIndices={[0]} // ✅ 정렬/검색/필터 바 고정
+        stickyHeaderIndices={[0]}
         ListFooterComponent={ListFooterComponent}
         ListEmptyComponent={
           <View style={styles.empty}>
@@ -589,7 +584,6 @@ export default function TimelineScreen() {
         }}
       />
 
-      {/* Month/Year modal */}
       <Modal
         visible={ymModalOpen}
         transparent
