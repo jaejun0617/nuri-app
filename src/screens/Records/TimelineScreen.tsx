@@ -3,7 +3,7 @@
 // - petId 기준 memories(타임라인) 표시
 // - pull-to-refresh
 // - 무한 스크롤(loadMore)
-// - 정렬 토글(최신/오래된)
+// - 정렬 토글(최신/오래된) ✅ 화면 고정(Sticky)
 // - 돋보기 → 검색바 토글(제목/태그 + debounce)
 // - 월/연도 필터 + 섹션 점프(월 선택 시 해당 구간으로 스크롤)
 // - "기록하기" → RecordCreate(탭)
@@ -16,7 +16,7 @@
 // ✅ 네비 경고 해결:
 // - RecordCreate는 스택('RecordCreate')이 아니라 탭 라우트('RecordCreateTab')로 이동
 //
-// ✅ store 계약(Chapter 6 기준 가정):
+// ✅ store 계약(Chapter 6):
 // - byPetId[petId] = { items, status, hasMore, errorMessage, ... }
 // - status: 'idle' | 'loading' | 'ready' | 'refreshing' | 'loadingMore' | 'error'
 // - actions: bootstrap(petId), refresh(petId), loadMore(petId)
@@ -35,7 +35,6 @@ import {
   Modal,
   Pressable,
   RefreshControl,
-  StyleSheet,
   TextInput,
   TouchableOpacity,
   View,
@@ -47,11 +46,24 @@ import type { MemoryRecord } from '../../services/supabase/memories';
 import { useRecordStore } from '../../store/recordStore';
 import { usePetStore } from '../../store/petStore';
 import AppText from '../../app/ui/AppText';
+import { styles } from './TimelineScreen.styles';
 
 type Nav = NativeStackNavigationProp<any>;
 type SortMode = 'recent' | 'oldest';
 
 const DEBOUNCE_MS = 250;
+
+// ✅ 경고/렌더 안정화: 빈 배열/빈 상태는 “항상 동일 참조”
+const EMPTY_ARRAY: readonly MemoryRecord[] = Object.freeze(
+  [] as MemoryRecord[],
+);
+
+const FALLBACK_PET_STATE = Object.freeze({
+  items: EMPTY_ARRAY as MemoryRecord[],
+  status: 'idle' as const,
+  hasMore: false,
+  errorMessage: null as string | null,
+});
 
 function getYmd(item: MemoryRecord): string {
   const s = (item.occurredAt ?? item.createdAt?.slice(0, 10) ?? '').trim();
@@ -64,7 +76,6 @@ function toYmKey(ymd: string): string | null {
 }
 
 function humanYm(ym: string): string {
-  // YYYY-MM -> YYYY.MM
   if (!/^\d{4}-\d{2}$/.test(ym)) return ym;
   return `${ym.slice(0, 4)}.${ym.slice(5, 7)}`;
 }
@@ -77,11 +88,10 @@ function recordMatchesQuery(r: MemoryRecord, q: string) {
   if (!q) return true;
 
   const title = (r.title ?? '').toLowerCase();
-  const content = (r.content ?? '').toLowerCase();
   const tags = Array.isArray(r.tags) ? r.tags.join(' ').toLowerCase() : '';
 
-  // ✅ 제목/태그 중심 + 내용도 보조로 포함(원치 않으면 content 제거 가능)
-  return title.includes(q) || tags.includes(q) || content.includes(q);
+  // ✅ 제목/태그 중심 (원하면 content까지 포함 가능)
+  return title.includes(q) || tags.includes(q);
 }
 
 export default function TimelineScreen() {
@@ -109,20 +119,25 @@ export default function TimelineScreen() {
   }, [petIdFromParams, selectedPetId, pets]);
 
   // ---------------------------------------------------------
-  // 2) store (✅ 안정: byPetId[petId] 직접 구독)
+  // 2) store (✅ 안정: byPetId[petId] 직접 구독 + 동일참조 fallback)
   // ---------------------------------------------------------
   const bootstrap = useRecordStore(s => s.bootstrap);
   const refresh = useRecordStore(s => s.refresh);
   const loadMore = useRecordStore(s => s.loadMore);
 
   const petState = useRecordStore(s => {
-    if (!petId) return undefined;
-    return s.byPetId[petId];
-  });
+    if (!petId) return FALLBACK_PET_STATE;
+    return (s.byPetId[petId] as any) ?? FALLBACK_PET_STATE;
+  }) as typeof FALLBACK_PET_STATE & {
+    status: any;
+    hasMore: boolean;
+    errorMessage: string | null;
+  };
 
-  const status = petState?.status ?? 'idle';
-  const hasMore = petState?.hasMore ?? false;
-  const baseItems = petState?.items ?? [];
+  const status = petState.status ?? 'idle';
+  const hasMore = petState.hasMore ?? false;
+  const baseItems = petState.items ?? EMPTY_ARRAY;
+  const refreshing = status === 'refreshing';
 
   // ---------------------------------------------------------
   // 3) bootstrap
@@ -142,11 +157,14 @@ export default function TimelineScreen() {
   const [searchInput, setSearchInput] = useState('');
   const [query, setQuery] = useState('');
 
-  // 월/연도 필터(= 선택한 월만 보기) + 섹션 점프
-  const [ymFilter, setYmFilter] = useState<string | null>(null); // YYYY-MM or null(전체)
+  // 월/연도 필터 + 섹션 점프
+  const [ymFilter, setYmFilter] = useState<string | null>(null);
   const [ymModalOpen, setYmModalOpen] = useState(false);
 
-  // pet 변경 시: UX 안정화 기본값으로 초기화
+  // 점프 요청(필터 적용 후 렌더가 끝난 다음 scrollToIndex 하려고)
+  const [pendingJumpYm, setPendingJumpYm] = useState<string | null>(null);
+
+  // pet 변경 시: UX 안정화 초기화
   useEffect(() => {
     setSortMode('recent');
     setSearchOpen(false);
@@ -154,6 +172,7 @@ export default function TimelineScreen() {
     setQuery('');
     setYmFilter(null);
     setYmModalOpen(false);
+    setPendingJumpYm(null);
   }, [petId]);
 
   // ---------------------------------------------------------
@@ -169,7 +188,7 @@ export default function TimelineScreen() {
 
   // ---------------------------------------------------------
   // 4.2) available YM list (for modal)
-  // - baseItems는 store의 최신순 기준(일관된 기준 유지)
+  // - baseItems(=store 최신순) 기준으로 계산
   // ---------------------------------------------------------
   const availableYmList = useMemo(() => {
     const set = new Set<string>();
@@ -177,27 +196,23 @@ export default function TimelineScreen() {
       const ym = toYmKey(getYmd(r));
       if (ym) set.add(ym);
     }
-    // 최신월이 위로 오게 정렬(내림차순)
     return Array.from(set).sort((a, b) => (a > b ? -1 : a < b ? 1 : 0));
   }, [baseItems]);
 
   // ---------------------------------------------------------
   // 4.3) filtered + sorted (렌더 전용)
-  // - store는 pagination 안정성을 위해 "항상 최신순"으로 유지
-  // - 화면에서만 oldest는 reverse
+  // - store는 pagination 안정성을 위해 "항상 최신순" 유지
+  // - oldest는 화면에서만 reverse
   // ---------------------------------------------------------
   const filteredItems = useMemo(() => {
     const q = query;
 
-    // 1) 월 필터
     const byYm = ymFilter
       ? baseItems.filter(r => toYmKey(getYmd(r)) === ymFilter)
       : baseItems;
 
-    // 2) 검색 필터
     const bySearch = q ? byYm.filter(r => recordMatchesQuery(r, q)) : byYm;
 
-    // 3) 정렬(렌더링에서만)
     if (sortMode === 'recent') return bySearch;
 
     const copy = [...bySearch];
@@ -205,7 +220,34 @@ export default function TimelineScreen() {
     return copy;
   }, [baseItems, ymFilter, query, sortMode]);
 
-  const refreshing = status === 'refreshing';
+  // ---------------------------------------------------------
+  // 4.4) 월 점프: 필터 적용 후 렌더 완료 타이밍에 scrollToIndex
+  // ---------------------------------------------------------
+  const listRef = useRef<FlatList<MemoryRecord>>(null);
+
+  useEffect(() => {
+    if (!pendingJumpYm) return;
+
+    // 전체 보기(null)로 점프
+    if (pendingJumpYm === '__ALL__') {
+      requestAnimationFrame(() => {
+        listRef.current?.scrollToOffset({ offset: 0, animated: true });
+      });
+      setPendingJumpYm(null);
+      return;
+    }
+
+    const idx = filteredItems.findIndex(
+      r => toYmKey(getYmd(r)) === pendingJumpYm,
+    );
+
+    requestAnimationFrame(() => {
+      if (idx >= 0)
+        listRef.current?.scrollToIndex({ index: idx, animated: true });
+      else listRef.current?.scrollToOffset({ offset: 0, animated: true });
+      setPendingJumpYm(null);
+    });
+  }, [pendingJumpYm, filteredItems]);
 
   // ---------------------------------------------------------
   // 5) actions
@@ -229,149 +271,45 @@ export default function TimelineScreen() {
   }, [petId, refresh]);
 
   // ✅ 무한 스크롤(loadMore)
-  // - 검색/월필터 중에도 동작은 가능하지만, 과도한 네트워크를 피하려면 막는 게 UX상 더 안정적
-  // - 여기서는 "검색 중일 때만" 자동 loadMore를 막고(디바운스/결과 안정),
-  //   필요하면 사용자가 필터를 끄고 자연스럽게 탐색하도록 유도한다.
+  // - 검색 중 자동 로드는 “결과 흔들림/비용” 때문에 기본 OFF
+  // - 대신 footer에 수동 “검색 결과 더 불러오기” 제공
   const onEndReached = useCallback(() => {
     if (!petId) return;
     if (status !== 'ready') return;
     if (!hasMore) return;
-    if (query) return; // ✅ 검색 중 자동 추가 로드 방지
+    if (query) return;
 
     loadMore(petId);
   }, [petId, status, hasMore, query, loadMore]);
 
-  // ---------------------------------------------------------
-  // 6) section jump (월 선택 시 해당 구간으로 스크롤)
-  // - 현재 화면 데이터(filteredItems) 기준으로 index 계산
-  // ---------------------------------------------------------
-  const listRef = useRef<FlatList<MemoryRecord>>(null);
+  const jumpToYm = useCallback((ym: string | null) => {
+    setYmModalOpen(false);
 
-  const jumpToYm = useCallback(
-    (ym: string | null) => {
-      setYmFilter(ym);
-      setYmModalOpen(false);
+    if (!ym) {
+      setYmFilter(null);
+      setPendingJumpYm('__ALL__'); // effect에서 처리
+      return;
+    }
 
-      // 전체(null)면 그냥 맨 위로
-      if (!ym) {
-        requestAnimationFrame(() => {
-          listRef.current?.scrollToOffset({ offset: 0, animated: true });
-        });
-        return;
-      }
-
-      // 선택 월의 첫 인덱스 찾기(현재 정렬/검색 반영된 filteredItems 기준)
-      // 주의: setYmFilter가 비동기라 즉시 filteredItems가 바뀌지 않음.
-      // → "baseItems에서 먼저 후보 인덱스를 계산"하고 다음 프레임에 scrollToIndex.
-      requestAnimationFrame(() => {
-        const nextBase = baseItems.filter(r => toYmKey(getYmd(r)) === ym);
-        const nextFiltered = query
-          ? nextBase.filter(r => recordMatchesQuery(r, query))
-          : nextBase;
-
-        const nextRender =
-          sortMode === 'recent' ? nextFiltered : [...nextFiltered].reverse();
-
-        if (nextRender.length === 0) {
-          listRef.current?.scrollToOffset({ offset: 0, animated: true });
-          return;
-        }
-
-        // 해당 월의 첫 아이템 id를 기준으로 전체 렌더 배열에서 index 탐색
-        const firstId = nextRender[0].id;
-        const idx = filteredItems.findIndex(r => r.id === firstId);
-
-        if (idx >= 0) {
-          listRef.current?.scrollToIndex({ index: idx, animated: true });
-        } else {
-          listRef.current?.scrollToOffset({ offset: 0, animated: true });
-        }
-      });
-    },
-    [baseItems, filteredItems, query, sortMode],
-  );
+    setYmFilter(ym);
+    setPendingJumpYm(ym);
+  }, []);
 
   // ---------------------------------------------------------
-  // 7) UI helpers
+  // 6) UI derived
   // ---------------------------------------------------------
   const headerTitle = useMemo(() => '타임라인', []);
-
-  const sortLabel = useMemo(() => {
-    return sortMode === 'recent' ? '최신순' : '오래된순';
-  }, [sortMode]);
-
-  const filterLabel = useMemo(() => {
-    if (!ymFilter) return '전체';
-    return humanYm(ymFilter);
-  }, [ymFilter]);
-
-  const renderItem = useCallback(
-    ({ item }: { item: MemoryRecord }) => {
-      return (
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={styles.item}
-          onPress={() => onPressItem(item)}
-        >
-          <View style={styles.thumb}>
-            {item.imageUrl ? (
-              <Image source={{ uri: item.imageUrl }} style={styles.thumbImg} />
-            ) : (
-              <View style={styles.thumbPlaceholder}>
-                <AppText preset="caption" style={styles.thumbPlaceholderText}>
-                  NO IMAGE
-                </AppText>
-              </View>
-            )}
-          </View>
-
-          <View style={styles.itemBody}>
-            <AppText
-              preset="headline"
-              numberOfLines={1}
-              style={styles.itemTitle}
-            >
-              {item.title}
-            </AppText>
-
-            <AppText
-              preset="caption"
-              numberOfLines={2}
-              style={styles.itemContent}
-            >
-              {item.content?.trim() ? item.content.trim() : '내용이 없습니다.'}
-            </AppText>
-
-            <View style={styles.metaRow}>
-              <AppText preset="caption" style={styles.metaText}>
-                {item.occurredAt ?? item.createdAt.slice(0, 10)}
-              </AppText>
-
-              {item.emotion ? (
-                <View style={styles.badge}>
-                  <AppText preset="caption" style={styles.badgeText}>
-                    {item.emotion}
-                  </AppText>
-                </View>
-              ) : null}
-            </View>
-
-            {item.tags?.length ? (
-              <AppText preset="caption" numberOfLines={1} style={styles.tags}>
-                {item.tags.join(' ')}
-              </AppText>
-            ) : null}
-          </View>
-        </TouchableOpacity>
-      );
-    },
-    [onPressItem],
+  const sortLabel = useMemo(
+    () => (sortMode === 'recent' ? '최신순' : '오래된순'),
+    [sortMode],
+  );
+  const filterLabel = useMemo(
+    () => (ymFilter ? humanYm(ymFilter) : '전체'),
+    [ymFilter],
   );
 
-  const keyExtractor = useCallback((item: MemoryRecord) => item.id, []);
-
   // ---------------------------------------------------------
-  // 8) Sticky Controls Bar (정렬/검색/필터 고정)
+  // 7) Sticky Controls Bar
   // ---------------------------------------------------------
   const ControlsBar = useMemo(() => {
     return (
@@ -446,17 +384,85 @@ export default function TimelineScreen() {
           </View>
         ) : null}
 
-        {/* Hint row */}
         {query ? (
           <View style={styles.hintRow}>
             <AppText preset="caption" style={styles.hintText}>
-              검색 중에는 자동 무한 로드를 잠시 멈춥니다(결과 안정).
+              검색 중에는 자동 무한 로드를 멈추고, 하단 버튼으로 추가 로드를
+              제공합니다.
             </AppText>
           </View>
         ) : null}
       </View>
     );
   }, [filterLabel, query, searchInput, searchOpen, sortLabel]);
+
+  // ---------------------------------------------------------
+  // 8) renderItem
+  // ---------------------------------------------------------
+  const renderItem = useCallback(
+    ({ item }: { item: MemoryRecord }) => {
+      return (
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={styles.item}
+          onPress={() => onPressItem(item)}
+        >
+          <View style={styles.thumb}>
+            {item.imageUrl ? (
+              <Image source={{ uri: item.imageUrl }} style={styles.thumbImg} />
+            ) : (
+              <View style={styles.thumbPlaceholder}>
+                <AppText preset="caption" style={styles.thumbPlaceholderText}>
+                  NO IMAGE
+                </AppText>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.itemBody}>
+            <AppText
+              preset="headline"
+              numberOfLines={1}
+              style={styles.itemTitle}
+            >
+              {item.title}
+            </AppText>
+
+            <AppText
+              preset="caption"
+              numberOfLines={2}
+              style={styles.itemContent}
+            >
+              {item.content?.trim() ? item.content.trim() : '내용이 없습니다.'}
+            </AppText>
+
+            <View style={styles.metaRow}>
+              <AppText preset="caption" style={styles.metaText}>
+                {item.occurredAt ?? item.createdAt.slice(0, 10)}
+              </AppText>
+
+              {item.emotion ? (
+                <View style={styles.badge}>
+                  <AppText preset="caption" style={styles.badgeText}>
+                    {item.emotion}
+                  </AppText>
+                </View>
+              ) : null}
+            </View>
+
+            {item.tags?.length ? (
+              <AppText preset="caption" numberOfLines={1} style={styles.tags}>
+                {item.tags.join(' ')}
+              </AppText>
+            ) : null}
+          </View>
+        </TouchableOpacity>
+      );
+    },
+    [onPressItem],
+  );
+
+  const keyExtractor = useCallback((item: MemoryRecord) => item.id, []);
 
   // ---------------------------------------------------------
   // 9) Footer
@@ -475,7 +481,7 @@ export default function TimelineScreen() {
       );
     }
 
-    // 검색 중이면 footer에서 수동 로드를 제공(선택)
+    // 검색 중: 수동 로드 버튼 제공
     if (status === 'ready' && hasMore && query) {
       return (
         <View style={styles.footer}>
@@ -573,9 +579,7 @@ export default function TimelineScreen() {
         maxToRenderPerBatch={8}
         windowSize={9}
         updateCellsBatchingPeriod={50}
-        // scrollToIndex 안정
         onScrollToIndexFailed={info => {
-          // 안전 fallback: 조금 기다렸다가 재시도
           setTimeout(() => {
             listRef.current?.scrollToIndex({
               index: info.index,
@@ -629,214 +633,3 @@ export default function TimelineScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#FFFFFF' },
-
-  header: {
-    height: 56,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EAEAEA',
-    backgroundColor: '#FFFFFF',
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    color: '#000000',
-    fontWeight: '900',
-  },
-
-  createBtn: {
-    paddingHorizontal: 12,
-    height: 36,
-    borderRadius: 999,
-    backgroundColor: '#000000',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  createText: { color: '#ffffff', fontWeight: '900' },
-
-  // sticky controls
-  controlsWrap: {
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EAEAEA',
-    paddingHorizontal: 14,
-    paddingTop: 10,
-    paddingBottom: 10,
-  },
-  controlsRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-
-  controlChip: {
-    height: 34,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#EAEAEA',
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  controlChipText: { color: '#000000', fontWeight: '900' },
-
-  iconBtn: {
-    width: 38,
-    height: 34,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#EAEAEA',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconText: { color: '#000000' },
-
-  searchBox: {
-    marginTop: 10,
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
-  },
-  searchInput: {
-    flex: 1,
-    height: 42,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#EAEAEA',
-    paddingHorizontal: 12,
-    color: '#000000',
-    backgroundColor: '#FFFFFF',
-  },
-  clearBtn: {
-    height: 42,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    backgroundColor: '#000000',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  clearBtnText: { color: '#FFFFFF', fontWeight: '900' },
-
-  hintRow: { marginTop: 8 },
-  hintText: { color: '#777777', fontWeight: '800' },
-
-  list: { padding: 14, gap: 10, paddingBottom: 24 },
-  listEmpty: { flexGrow: 1, padding: 14 },
-
-  item: {
-    flexDirection: 'row',
-    gap: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#EAEAEA',
-  },
-  thumb: {
-    width: 88,
-    height: 88,
-    borderRadius: 16,
-    overflow: 'hidden',
-    backgroundColor: '#F4F4F4',
-    borderWidth: 1,
-    borderColor: '#EAEAEA',
-  },
-  thumbImg: { width: '100%', height: '100%' },
-  thumbPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  thumbPlaceholderText: { color: '#888888', fontWeight: '800' },
-
-  itemBody: { flex: 1 },
-  itemTitle: { color: '#000000', fontWeight: '900' },
-  itemContent: { marginTop: 6, color: '#333333' },
-
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
-  metaText: { color: '#777777', fontWeight: '700' },
-
-  badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#EAEAEA',
-    backgroundColor: '#FFFFFF',
-  },
-  badgeText: { color: '#000000', fontWeight: '800' },
-
-  tags: { marginTop: 8, color: '#000000', fontWeight: '800' },
-
-  empty: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: '#EAEAEA',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  emptyTitle: { color: '#000000', fontWeight: '900' },
-  emptyDesc: { color: '#333333', textAlign: 'center' },
-
-  primary: {
-    marginTop: 10,
-    height: 48,
-    borderRadius: 14,
-    paddingHorizontal: 18,
-    backgroundColor: '#000000',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primaryText: { color: '#FFFFFF', fontWeight: '900' },
-
-  footer: {
-    paddingTop: 12,
-    paddingBottom: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  footerText: { color: '#777777', fontWeight: '800' },
-
-  manualMoreBtn: {
-    height: 40,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#EAEAEA',
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  manualMoreText: { color: '#000000', fontWeight: '900' },
-
-  // modal
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    padding: 18,
-    justifyContent: 'center',
-  },
-  modalCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#EAEAEA',
-  },
-  modalTitle: { color: '#000000', fontWeight: '900', marginBottom: 10 },
-
-  modalItem: {
-    height: 46,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#EAEAEA',
-    paddingHorizontal: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
-  modalItemText: { color: '#000000', fontWeight: '900' },
-});

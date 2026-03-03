@@ -844,6 +844,100 @@ TimelineScreen이 스택 라우트를 호출하고 있었기 때문이다.
 - 검색 중에는 결과 안정성을 위해 자동 loadMore를 제한하고, 필요 시 수동 로드로 확장할 수 있게 구성했습니다.
 - FlatList 기본 성능 옵션(windowSize 등)을 적용하여 스크롤 프레임을 안정화했습니다.
 
+## Chapter 6-2. RecordStore 상태머신 고정 — out-of-order 방지 + cursor pagination 안정화
+
+무한 스크롤/새로고침/부트스트랩이 동시에 발생해도 상태가 꼬이지 않도록 RecordStore를 “실서비스 안전” 기준으로 고정했습니다.
+
+### 1) Out-of-order 응답 방지(requestSeq)
+
+- refresh/boot 요청이 들어온 뒤, 이전 요청(loadMore 포함)의 응답이 늦게 도착하면 최신 상태를 덮어쓸 수 있습니다.
+- `requestSeq`를 도입해 **가장 최신 요청만 상태 반영**되도록 차단했습니다.
+
+### 2) loadMore 실패는 Soft-Error로 처리
+
+- 더 불러오기 실패는 기존 리스트가 이미 존재하므로 치명도가 낮습니다.
+- 따라서 `status=error`로 전환하지 않고 **items 유지 + status=ready 복귀**로 UX를 보존했습니다.
+- 에러 메시지만 남겨 토스트/배너 형태로 사용자에게 안내할 수 있게 했습니다.
+
+### 3) Cursor pagination + 중복 방지 병합
+
+- 서버 페이지 응답을 `id` 기준으로 유니크 병합하여 중복을 방지합니다.
+- 병합 이후에도 `createdAt desc` 정렬을 보장해 타임라인 순서가 흔들리지 않게 했습니다.
+
+## Chapter 6-1. Timeline UX 확정 — Infinite Scroll + Sticky Controls + Search/Month Jump
+
+타임라인을 “실사용 기준”으로 고정했습니다. 무한 스크롤과 정렬/검색/월 점프는 함께 설계되어야 성능과 UX가 동시에 안정됩니다.
+
+### 1) Infinite Scroll은 Pagination이 전제
+
+- 무한 스크롤은 UI 방식이고, 페이지네이션(cursor)은 데이터 로딩 방식입니다.
+- records가 많아질수록 한 번에 전체 로드는 렌더/메모리/네트워크 비용이 폭증합니다.
+- cursor(created_at) 기반 pagination으로 “필요한 만큼만” 안전하게 로드합니다.
+
+### 2) Sticky Controls(정렬/검색/월 필터) 고정
+
+- 정렬(최신/오래된), 월/연도 필터, 검색은 탐색 중 계속 만져야 하므로 상단 고정이 UX상 정답입니다.
+- FlatList `stickyHeaderIndices`로 컨트롤 바를 고정했습니다.
+
+### 3) Search UX(돋보기 토글 + debounce)
+
+- 돋보기 클릭 시 검색바가 열리고, 제목/태그 기준으로 debounce 검색을 수행합니다.
+- 검색 중에는 자동 loadMore를 잠시 멈추고, 하단 “검색 결과 더 불러오기”로 제어해 결과 흔들림을 방지했습니다.
+
+### 4) Month/Year 필터 + 섹션 점프
+
+- 기록에서 월 목록(YYYY-MM)을 자동 수집하여 모달로 제공하고,
+- 월 선택 시 해당 월 섹션으로 스크롤 점프하여 빠른 탐색이 가능하도록 했습니다.
+
+### 5) New Architecture 안정성
+
+- selector fallback은 동일 참조(EMPTY_ARRAY/fallback state)로 유지하여 hook deps/렌더 안정성을 보장합니다.
+
+## Chapter 6-2. Signed URL 캐싱 최종 확정 — TTL + LRU + InFlight Dedupe + Prefetch 최적화
+
+memory-images(Private) 렌더링은 Signed URL이 필수이므로, “리스트 화면에서의 반복 생성 비용”을 구조적으로 제거했습니다.
+
+### 1) TTL 캐시 + 만료 버퍼 갱신
+
+- key=imagePath(storage path)
+- value={ signedUrl, expiresAtMs }
+- 만료 60초 전부터 갱신하여 리스트 스크롤 중 URL 만료로 인한 깜빡임을 방지했습니다.
+
+### 2) LRU(maxSize)로 캐시 메모리 상한 고정
+
+- Map 캐시의 무한 증가를 방지하기 위해 maxSize 기반 LRU pruning을 적용했습니다.
+- 장시간 사용/대량 기록에서도 메모리 사용량이 선형 증가하지 않습니다.
+
+### 3) InFlight Dedupe로 동시 요청 중복 제거
+
+- 동일 imagePath가 동시에 요청되는 경우(리스트/상세/프리패치 동시 발생) 네트워크 호출을 1회로 통합했습니다.
+
+### 4) Prefetch 최적화
+
+- 리스트 상단 N개만 미리 채우고,
+- 캐시에 이미 fresh한 항목은 네트워크를 스킵하여 비용과 지연을 최소화했습니다.
+
+## Chapter 6-3. Pagination Cursor 최종 마감 — createdAt + id 타이브레이커 고정
+
+타임라인 무한스크롤은 단순 `created_at` 커서만 쓰면 “동일 타임스탬프”에서 페이지가 끊길 수 있어, 커서를 최종 확정했습니다.
+
+### 1) 서버 정렬 고정
+
+- `order(created_at desc, id desc)` 로 정렬을 완전히 결정했습니다.
+
+### 2) Compound Cursor(createdAt + id)
+
+- cursor는 `createdAt__id` 형태의 문자열로 저장/전달합니다.
+- 다음 페이지 조건:
+  - `(created_at < cursorCreatedAt)`
+  - OR `(created_at = cursorCreatedAt AND id < cursorId)`
+
+### 3) Store 계약 확정
+
+- RecordStore는 cursor를 그대로 저장하고 loadMore 시 그대로 전달합니다.
+- 화면 정렬은 렌더링에서만 변형(오래된순은 reverse)하고,
+  pagination 안정성을 위해 “store items는 항상 최신순 기준”을 유지합니다.
+
 ## Chapter 6. Daily Recall 서버 고정 로직
 
 - Supabase `daily_recall`로 하루 1회 고정

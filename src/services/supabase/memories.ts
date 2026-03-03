@@ -1,7 +1,7 @@
 // 파일: src/services/supabase/memories.ts
 // 역할:
 // - memories CRUD
-// - pagination cursor(created_at) 고정
+// - pagination cursor(created_at + id) 고정(✅ 타이브레이커 포함)
 // - signed URL 캐싱(getMemoryImageSignedUrlCached) 적용
 // - prefetch 지원
 
@@ -47,6 +47,27 @@ type MemoriesRow = {
   created_at: string;
 };
 
+// ---------------------------------------------------------
+// cursor helpers (✅ createdAt + id 고정)
+// ---------------------------------------------------------
+const CURSOR_SEP = '__';
+
+function encodeCursor(createdAt: string, id: string) {
+  return `${createdAt}${CURSOR_SEP}${id}`;
+}
+
+function decodeCursor(cursor: string) {
+  const raw = (cursor ?? '').trim();
+  const idx = raw.lastIndexOf(CURSOR_SEP);
+  if (idx <= 0) return null;
+
+  const createdAt = raw.slice(0, idx).trim();
+  const id = raw.slice(idx + CURSOR_SEP.length).trim();
+  if (!createdAt || !id) return null;
+
+  return { createdAt, id };
+}
+
 async function mapRow(row: MemoriesRow): Promise<MemoryRecord> {
   const signed = row.image_url
     ? await getMemoryImageSignedUrlCached(row.image_url).catch(() => null)
@@ -68,7 +89,7 @@ async function mapRow(row: MemoriesRow): Promise<MemoryRecord> {
 
 export type FetchMemoriesPageResult = {
   items: MemoryRecord[];
-  nextCursor: string | null; // ✅ createdAt
+  nextCursor: string | null; // ✅ compound cursor: createdAt__id
   hasMore: boolean;
 };
 
@@ -89,14 +110,15 @@ export async function fetchMemoryById(memoryId: string): Promise<MemoryRecord> {
 }
 
 /* ---------------------------------------------------------
- * 1) List (pagination cursor 고정)
- * - order: created_at desc
- * - cursor: lt(created_at, cursor)
+ * 1) List (pagination cursor 최종 확정)
+ * - order: created_at desc, id desc
+ * - cursor: (created_at < cursorCreatedAt)
+ *        OR (created_at = cursorCreatedAt AND id < cursorId)
  * -------------------------------------------------------- */
 export async function fetchMemoriesByPetPage(input: {
   petId: string;
   limit?: number;
-  cursor?: string | null; // createdAt
+  cursor?: string | null; // ✅ compound cursor
   prefetchTop?: number; // default 10
 }): Promise<FetchMemoriesPageResult> {
   const limit = input.limit ?? 20;
@@ -109,10 +131,17 @@ export async function fetchMemoriesByPetPage(input: {
     )
     .eq('pet_id', input.petId)
     .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
     .limit(limit);
 
   if (input.cursor) {
-    q = q.lt('created_at', input.cursor);
+    const c = decodeCursor(input.cursor);
+    if (c) {
+      // ✅ (created_at < c.createdAt) OR (created_at = c.createdAt AND id < c.id)
+      q = q.or(
+        `created_at.lt.${c.createdAt},and(created_at.eq.${c.createdAt},id.lt.${c.id})`,
+      );
+    }
   }
 
   const { data, error } = await q;
@@ -128,7 +157,9 @@ export async function fetchMemoriesByPetPage(input: {
   }).catch(() => null);
 
   const hasMore = items.length === limit;
-  const nextCursor = items.length ? items[items.length - 1].createdAt : null;
+
+  const last = items[items.length - 1] ?? null;
+  const nextCursor = last ? encodeCursor(last.createdAt, last.id) : null;
 
   return { items, hasMore, nextCursor };
 }
