@@ -1,24 +1,15 @@
 // 파일: src/screens/Main/components/LoggedInHome/LoggedInHome.tsx
 // 목적:
 // - 로그인 홈 (LoggedInHome)
-// - 상단: 닉네임 인사 + 우측 아이콘(검색/알림 UI) + 멀티펫 스위처(최대 4 + +버튼)
-// - 프로필 카드: 보라 glow avatar + 메타 + 생년월일 + 함께한 시간 pill
-// - 아코디언: 모두펼치기/개별 펼치기 + 리스트/태그 chip
-// - 섹션 시작: "{pet}와의 소중한 기록"
-// - "오늘날의 사진(전체보기)"
 // - ✅ "오늘날의 기록(전체보기)" : 가로 슬라이드(정사각 5:5, 옆 카드 살짝 보임)
-//
-// ✅ 훅/스토어 안정성(필수)
-// - recordStore 구독: byPetId[activePetId] 직접 접근
-// - fallback 동일 참조(FALLBACK_RECORDS_STATE / Object.freeze)
-// - activePetId 변경 시 UI 상태 초기화(아코디언/오늘사진)
+//   - ✅ UX 고도화: snap 정밀화 + scale/active 강조 + parallax + momentum index 추적 + dot indicator
+//   - ✅ 최대 14개까지만 슬라이더 노출(그 이상은 전체보기 유도)
 
 import React, { useEffect, useMemo, useCallback, useState } from 'react';
 import {
   Dimensions,
   FlatList,
   Image,
-  ListRenderItemInfo,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -29,10 +20,15 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
 import Animated, {
   Easing,
+  Extrapolate,
+  interpolate,
   runOnJS,
+  useAnimatedScrollHandler,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withTiming,
+  type SharedValue,
 } from 'react-native-reanimated';
 
 import Screen from '../../../../components/layout/Screen';
@@ -80,7 +76,6 @@ function calcAgeFromBirth(birthYmd: string | null | undefined): number | null {
   const d = Number(s.slice(8, 10));
   if (!y || !m || !d) return null;
 
-  // KST 기준
   const now = new Date();
   const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
 
@@ -104,7 +99,6 @@ function calcDaysSinceAdoption(
   const d = Number(s.slice(8, 10));
   if (!y || !m || !d) return null;
 
-  // KST 기준
   const now = new Date();
   const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
 
@@ -144,7 +138,7 @@ function clampList(list: string[] | null | undefined, max = 2) {
 }
 
 /* ---------------------------------------------------------
- * 2) types (recordStore safe)
+ * 2) recordStore safe
  * -------------------------------------------------------- */
 type PetRecordsStateShape = {
   status: 'idle' | 'loading' | 'ready' | 'refreshing' | 'loadingMore' | 'error';
@@ -155,7 +149,6 @@ type PetRecordsStateShape = {
   requestSeq?: number;
 };
 
-// ✅ 동일 참조 fallback(새 아키텍처/SyncExternalStore 안전)
 const FALLBACK_RECORDS_STATE: PetRecordsStateShape = Object.freeze({
   status: 'idle',
   items: [],
@@ -164,8 +157,126 @@ const FALLBACK_RECORDS_STATE: PetRecordsStateShape = Object.freeze({
   hasMore: false,
 });
 
-// ✅ 오늘날의 기록 슬라이드 규칙
-const TODAY_RECORDS_MAX = 10;
+const TODAY_RECORDS_MAX = 14;
+
+const AnimatedFlatList = Animated.createAnimatedComponent(
+  FlatList<MemoryRecord>,
+);
+
+/* ---------------------------------------------------------
+ * 3) sub components (hooks-safe)
+ * -------------------------------------------------------- */
+function TodayRecordCard({
+  item,
+  index,
+  cardW,
+  snap,
+  scrollX,
+  onPress,
+}: {
+  item: MemoryRecord;
+  index: number;
+  cardW: number;
+  snap: number;
+  scrollX: SharedValue<number>;
+  onPress: (memoryId: string) => void;
+}) {
+  const ymd = useMemo(() => getRecordYmdDots(item), [item]);
+  const title = useMemo(
+    () => (item.title?.trim() ? item.title : '제목 없음'),
+    [item.title],
+  );
+  const content = useMemo(() => toSnippet(item.content, 44), [item.content]);
+
+  const cardAnimStyle = useAnimatedStyle(() => {
+    const x = scrollX.value;
+    const centerX = index * snap;
+    const dist = Math.abs(x - centerX);
+
+    const s = interpolate(dist, [0, snap], [1.0, 0.92], Extrapolate.CLAMP);
+    const o = interpolate(dist, [0, snap], [1.0, 0.86], Extrapolate.CLAMP);
+
+    return { transform: [{ scale: s }], opacity: o };
+  }, [index, snap]);
+
+  const imageAnimStyle = useAnimatedStyle(() => {
+    const x = scrollX.value;
+    const centerX = index * snap;
+
+    const PARA = 18;
+    const tx = interpolate(
+      x - centerX,
+      [-snap, 0, snap],
+      [PARA, 0, -PARA],
+      Extrapolate.CLAMP,
+    );
+
+    return { transform: [{ translateX: tx }] };
+  }, [index, snap]);
+
+  return (
+    <Animated.View style={cardAnimStyle}>
+      <TouchableOpacity
+        activeOpacity={0.92}
+        style={[styles.todayRecordCard, { width: cardW, height: cardW }]}
+        onPress={() => onPress(item.id)}
+      >
+        <View style={styles.todayRecordMedia}>
+          {item.imageUrl ? (
+            <Animated.Image
+              source={{ uri: item.imageUrl }}
+              style={[styles.todayRecordImg, imageAnimStyle]}
+            />
+          ) : (
+            <View style={styles.todayRecordImgPlaceholder} />
+          )}
+
+          <View style={styles.todayRecordOverlayTint} />
+          <View style={styles.todayRecordBottomTint} />
+          <View style={styles.todayRecordBottomTintDeep} />
+
+          <View style={styles.todayRecordOverlay}>
+            <Text style={styles.todayRecordTitle} numberOfLines={1}>
+              {title}
+            </Text>
+            <Text style={styles.todayRecordContent} numberOfLines={2}>
+              {content}
+            </Text>
+            <View style={styles.todayRecordMetaRow}>
+              <View style={{ flex: 1 }} />
+              <Text style={styles.todayRecordDate}>{ymd}</Text>
+            </View>
+          </View>
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
+
+function IndicatorDot({
+  i,
+  progress,
+}: {
+  i: number;
+  progress: SharedValue<number>;
+}) {
+  const dotStyle = useAnimatedStyle(() => {
+    const p = progress.value;
+    const dist = Math.abs(p - i);
+
+    const s = interpolate(dist, [0, 1, 2], [1.35, 1.0, 0.9], Extrapolate.CLAMP);
+    const o = interpolate(
+      dist,
+      [0, 1, 2],
+      [1.0, 0.55, 0.35],
+      Extrapolate.CLAMP,
+    );
+
+    return { opacity: o, transform: [{ scale: s }] };
+  }, [i]);
+
+  return <Animated.View style={[styles.indicatorDot, dotStyle]} />;
+}
 
 export default function LoggedInHome() {
   // ---------------------------------------------------------
@@ -193,7 +304,6 @@ export default function LoggedInHome() {
 
   const selectedPet = useMemo(() => {
     if (pets.length === 0) return null;
-
     if (selectedPetId && pets.some(p => p.id === selectedPetId)) {
       return pets.find(p => p.id === selectedPetId) ?? pets[0];
     }
@@ -234,7 +344,7 @@ export default function LoggedInHome() {
   }, []);
 
   // ---------------------------------------------------------
-  // 4) records (✅ 안전한 구독: byPetId[petId] 직접)
+  // 4) records
   // ---------------------------------------------------------
   const bootstrapRecords = useRecordStore(s => s.bootstrap);
 
@@ -261,7 +371,6 @@ export default function LoggedInHome() {
     mode: 'anniversary' | 'random' | 'none';
   }>({ record: null, mode: 'none' });
 
-  // ✅ pet 변경 시 오늘 사진 상태 리셋(스냅샷 흔들림/이전값 잔상 방지)
   useEffect(() => {
     setTodayPhoto({ record: null, mode: 'none' });
   }, [activePetId]);
@@ -291,28 +400,73 @@ export default function LoggedInHome() {
   }, [todayPhoto.mode]);
 
   // ---------------------------------------------------------
-  // ✅ 4.4) 오늘날의 기록(슬라이드) 데이터
+  // ✅ 4.4) 오늘날의 기록(슬라이드) 데이터 (최대 14)
   // ---------------------------------------------------------
-  const todayRecords = useMemo(() => {
-    return safeRecordsState.items.slice(0, TODAY_RECORDS_MAX);
-  }, [safeRecordsState.items]);
+  const todayRecordsAll = useMemo(
+    () => safeRecordsState.items,
+    [safeRecordsState.items],
+  );
+  const todayRecords = useMemo(
+    () => todayRecordsAll.slice(0, TODAY_RECORDS_MAX),
+    [todayRecordsAll],
+  );
+
+  const hasMoreThanSlider = useMemo(
+    () => todayRecordsAll.length > TODAY_RECORDS_MAX,
+    [todayRecordsAll.length],
+  );
 
   // ---------------------------------------------------------
-  // ✅ 4.5) 슬라이드 레이아웃 계산(옆 카드 살짝 보이게)
-  // - 5:5 정사각 카드
+  // ✅ 4.5) 슬라이드 레이아웃 계산
   // ---------------------------------------------------------
   const { width: SCREEN_W } = Dimensions.get('window');
-  const SLIDE_GAP = 12;
+  const SLIDE_GAP = 14;
 
-  // screen padding: scrollContent(16) + section paddingHorizontal(14) ≈ 30
-  // 너무 빡세게 계산하면 기기별 오차가 생겨서 "안전값"으로 고정
   const CARD_W = useMemo(() => {
-    const usable = SCREEN_W - 16 * 2; // scrollContent padding 기준
-    const w = Math.floor(usable * 0.82); // 옆 카드 살짝 보이는 폭
+    const usable = SCREEN_W - 16 * 2;
+    const w = Math.floor(usable * 0.72);
     return Math.max(260, Math.min(w, 340));
   }, [SCREEN_W]);
 
   const SNAP = CARD_W + SLIDE_GAP;
+
+  // ---------------------------------------------------------
+  // ✅ 4.6) slider values
+  // ---------------------------------------------------------
+  const scrollX = useSharedValue(0);
+  const [activeSlideIndex, setActiveSlideIndex] = useState(0); // ✅ 이제 실제로 UI에서 사용(하단 힌트)
+
+  useEffect(() => {
+    setActiveSlideIndex(0);
+    scrollX.value = 0;
+  }, [activePetId, scrollX]);
+
+  const progress = useDerivedValue(() => {
+    if (SNAP <= 0) return 0;
+    return scrollX.value / SNAP;
+  }, [SNAP]);
+
+  const onSlideMomentumEnd = useCallback(
+    (offsetX: number) => {
+      if (SNAP <= 0) return;
+      const idx = Math.round(offsetX / SNAP);
+      const clamped = Math.max(
+        0,
+        Math.min(idx, Math.max(0, todayRecords.length - 1)),
+      );
+      setActiveSlideIndex(clamped);
+    },
+    [SNAP, todayRecords.length],
+  );
+
+  const slideScrollHandler = useAnimatedScrollHandler({
+    onScroll: e => {
+      scrollX.value = e.contentOffset.x;
+    },
+    onMomentumEnd: e => {
+      runOnJS(onSlideMomentumEnd)(e.contentOffset.x);
+    },
+  });
 
   // ---------------------------------------------------------
   // 5) HERO derived
@@ -396,10 +550,10 @@ export default function LoggedInHome() {
   // ---------------------------------------------------------
   // 6) header text
   // ---------------------------------------------------------
-  const greetingTitle = useMemo(() => {
-    if (nickname) return `${nickname}님, 반가워요!`;
-    return '반가워요!';
-  }, [nickname]);
+  const greetingTitle = useMemo(
+    () => (nickname ? `${nickname}님, 반가워요!` : '반가워요!'),
+    [nickname],
+  );
 
   const greetingSubTitle = useMemo(() => {
     if (pets.length === 0) return '소중한 아이를 등록하고 추억을 기록해 보세요';
@@ -456,7 +610,6 @@ export default function LoggedInHome() {
             duration: 180,
             easing: Easing.out(Easing.cubic),
           });
-
           svTranslateY.value = withTiming(
             0,
             { duration: 180, easing: Easing.out(Easing.cubic) },
@@ -477,7 +630,7 @@ export default function LoggedInHome() {
   );
 
   // ---------------------------------------------------------
-  // 8) Accordion state (✅ pet 변경 시 초기화)
+  // 8) Accordion state (pet 변경 시 초기화)
   // ---------------------------------------------------------
   const [acc, setAcc] = useState<
     Record<'hobby' | 'like' | 'dislike' | 'tag', boolean>
@@ -492,9 +645,10 @@ export default function LoggedInHome() {
     setAcc({ hobby: false, like: false, dislike: false, tag: false });
   }, [activePetId]);
 
-  const allExpanded = useMemo(() => {
-    return acc.hobby && acc.like && acc.dislike && acc.tag;
-  }, [acc.hobby, acc.like, acc.dislike, acc.tag]);
+  const allExpanded = useMemo(
+    () => acc.hobby && acc.like && acc.dislike && acc.tag,
+    [acc.hobby, acc.like, acc.dislike, acc.tag],
+  );
 
   const onToggleAll = useCallback(() => {
     setAcc(prev => {
@@ -511,54 +665,22 @@ export default function LoggedInHome() {
   );
 
   // ---------------------------------------------------------
-  // ✅ 9) slide render
+  // 9) slider render
   // ---------------------------------------------------------
   const renderTodayRecord = useCallback(
-    ({ item }: ListRenderItemInfo<MemoryRecord>) => {
-      const ymd = getRecordYmdDots(item);
-      const title = item.title?.trim() ? item.title : '제목 없음';
-      const content = toSnippet(item.content, 44);
-
+    ({ item, index }: { item: MemoryRecord; index: number }) => {
       return (
-        <TouchableOpacity
-          activeOpacity={0.92}
-          style={[styles.todayRecordCard, { width: CARD_W, height: CARD_W }]}
-          onPress={() => onPressRecordItem(item.id)}
-        >
-          <View style={styles.todayRecordMedia}>
-            {item.imageUrl ? (
-              <Image
-                source={{ uri: item.imageUrl }}
-                style={styles.todayRecordImg}
-              />
-            ) : (
-              <View style={styles.todayRecordImgPlaceholder} />
-            )}
-
-            {/* ✅ 상단은 거의 투명(오버레이 최소) */}
-            <View style={styles.todayRecordTopTint} />
-
-            {/* ✅ 하단은 오버레이 느낌(밑으로 내려갈수록 어두움) */}
-            <View style={styles.todayRecordBottomTint} />
-
-            {/* ✅ 텍스트는 이미지 위에 얹는다(흰색 바닥 제거) */}
-            <View style={styles.todayRecordOverlay}>
-              <Text style={styles.todayRecordTitle} numberOfLines={1}>
-                {title}
-              </Text>
-              <Text style={styles.todayRecordContent} numberOfLines={2}>
-                {content}
-              </Text>
-              <View style={styles.todayRecordMetaRow}>
-                <View style={{ flex: 1 }} />
-                <Text style={styles.todayRecordDate}>{ymd}</Text>
-              </View>
-            </View>
-          </View>
-        </TouchableOpacity>
+        <TodayRecordCard
+          item={item}
+          index={index}
+          cardW={CARD_W}
+          snap={SNAP}
+          scrollX={scrollX}
+          onPress={onPressRecordItem}
+        />
       );
     },
-    [CARD_W, onPressRecordItem],
+    [CARD_W, SNAP, scrollX, onPressRecordItem],
   );
 
   const keyExtractor = useCallback((it: MemoryRecord) => it.id, []);
@@ -573,9 +695,7 @@ export default function LoggedInHome() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ---------------------------------------------------------
-         * 1) 상단 헤더 (텍스트 + 우측 아이콘 자리)
-         * -------------------------------------------------------- */}
+        {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerTopRow}>
             <View style={styles.headerTextArea}>
@@ -587,9 +707,7 @@ export default function LoggedInHome() {
               <TouchableOpacity
                 activeOpacity={0.85}
                 style={styles.headerIconBtn}
-                onPress={() => {
-                  // TODO: 검색 연결
-                }}
+                onPress={() => {}}
               >
                 <Feather name="search" size={18} color="rgba(11,18,32,0.75)" />
               </TouchableOpacity>
@@ -597,16 +715,14 @@ export default function LoggedInHome() {
               <TouchableOpacity
                 activeOpacity={0.85}
                 style={styles.headerIconBtn}
-                onPress={() => {
-                  // TODO: 알림 연결
-                }}
+                onPress={() => {}}
               >
                 <Feather name="bell" size={18} color="rgba(11,18,32,0.75)" />
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* 멀티펫 스위처 */}
+          {/* Pet switcher */}
           <View style={styles.petSwitcherRow}>
             {pets.slice(0, 4).map(p => {
               const isActive = p.id === activePetId;
@@ -641,19 +757,14 @@ export default function LoggedInHome() {
           </View>
         </View>
 
-        {/* ---------------------------------------------------------
-         * 2) 전환 컨텐츠 (fade + lift)
-         * -------------------------------------------------------- */}
+        {/* Fade container */}
         <Animated.View style={animatedContentStyle}>
-          {/* HERO (프로필 카드) */}
+          {/* HERO */}
           <View style={styles.heroCard}>
-            {/* 우상단 설정 버튼(일단 UI만) */}
             <TouchableOpacity
               activeOpacity={0.85}
               style={styles.heroGearBtn}
-              onPress={() => {
-                // TODO: PetEdit/Settings 라우트 연결 (다음 챕터)
-              }}
+              onPress={() => {}}
             >
               <Feather name="settings" size={16} color="rgba(11,18,32,0.55)" />
             </TouchableOpacity>
@@ -706,25 +817,21 @@ export default function LoggedInHome() {
               ) : null}
             </View>
 
-            {/* 아코디언 */}
+            {/* Accordion */}
             <View style={styles.accordionWrap}>
-              {/* 모두 펼치기 */}
               <TouchableOpacity
                 activeOpacity={0.85}
                 style={styles.accordionAllRow}
                 onPress={onToggleAll}
               >
                 <Text style={styles.accordionAllLabel}>모두펼치기</Text>
-                <Text style={styles.accordionAllIcon}>
-                  <Feather
-                    name={allExpanded ? 'chevron-up' : 'chevron-down'}
-                    size={18}
-                    color="#5D04D9"
-                  />
-                </Text>
+                <Feather
+                  name={allExpanded ? 'chevron-up' : 'chevron-down'}
+                  size={18}
+                  color="#5D04D9"
+                />
               </TouchableOpacity>
 
-              {/* 취미 */}
               <View style={styles.accordionItem}>
                 <TouchableOpacity
                   activeOpacity={0.85}
@@ -744,13 +851,11 @@ export default function LoggedInHome() {
                       취미
                     </Text>
                   </View>
-                  <Text style={styles.accordionChevron}>
-                    <Feather
-                      name={acc.hobby ? 'chevron-up' : 'chevron-down'}
-                      size={18}
-                      color="#5D04D9"
-                    />
-                  </Text>
+                  <Feather
+                    name={acc.hobby ? 'chevron-up' : 'chevron-down'}
+                    size={18}
+                    color="#5D04D9"
+                  />
                 </TouchableOpacity>
 
                 {acc.hobby ? (
@@ -768,7 +873,6 @@ export default function LoggedInHome() {
                 ) : null}
               </View>
 
-              {/* 좋아하는 것 */}
               <View style={styles.accordionItem}>
                 <TouchableOpacity
                   activeOpacity={0.85}
@@ -812,7 +916,6 @@ export default function LoggedInHome() {
                 ) : null}
               </View>
 
-              {/* 싫어하는 것 */}
               <View style={styles.accordionItem}>
                 <TouchableOpacity
                   activeOpacity={0.85}
@@ -854,7 +957,6 @@ export default function LoggedInHome() {
                 ) : null}
               </View>
 
-              {/* 태그 */}
               <View style={[styles.accordionItem, { borderBottomWidth: 0 }]}>
                 <TouchableOpacity
                   activeOpacity={0.85}
@@ -897,7 +999,6 @@ export default function LoggedInHome() {
               </View>
             </View>
 
-            {/* 오늘의 메시지 */}
             <View style={styles.heroMessageBox}>
               <View style={styles.heroMessageIcon}>
                 <Text style={styles.heroMessageIconText}>🌙</Text>
@@ -906,7 +1007,7 @@ export default function LoggedInHome() {
             </View>
           </View>
 
-          {/* 섹션 시작 */}
+          {/* Section lead */}
           <View style={styles.sectionLead}>
             <Text style={styles.sectionLeadTitle}>
               {petName}와의 소중한 기록
@@ -916,7 +1017,7 @@ export default function LoggedInHome() {
             </Text>
           </View>
 
-          {/* 오늘날의 사진 */}
+          {/* Today Photo */}
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionTitle}>오늘날의 사진</Text>
@@ -958,7 +1059,7 @@ export default function LoggedInHome() {
             </TouchableOpacity>
           </View>
 
-          {/* ✅ 오늘날의 기록 (슬라이드) */}
+          {/* ✅ Today Records Slider */}
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionTitle}>오늘날의 기록</Text>
@@ -982,18 +1083,22 @@ export default function LoggedInHome() {
               </View>
             ) : (
               <View style={styles.todayRecordsWrap}>
-                <FlatList
+                <AnimatedFlatList
                   data={todayRecords}
                   keyExtractor={keyExtractor}
-                  renderItem={renderTodayRecord}
+                  renderItem={renderTodayRecord as any}
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  snapToInterval={SNAP}
-                  decelerationRate="fast"
                   bounces={false}
+                  decelerationRate="fast"
+                  snapToInterval={SNAP}
+                  snapToAlignment="start"
+                  disableIntervalMomentum={false}
+                  onScroll={slideScrollHandler}
+                  scrollEventThrottle={16}
                   contentContainerStyle={[
                     styles.todayRecordsContent,
-                    { paddingRight: 16 }, // 마지막 카드 여백
+                    { paddingRight: 16 },
                   ]}
                   ItemSeparatorComponent={() => (
                     <View style={{ width: SLIDE_GAP }} />
@@ -1004,6 +1109,20 @@ export default function LoggedInHome() {
                     index,
                   })}
                 />
+
+                <View style={styles.indicatorRow}>
+                  {todayRecords.map((_, i) => (
+                    <IndicatorDot key={`dot-${i}`} i={i} progress={progress} />
+                  ))}
+                </View>
+
+                {/* ✅ activeSlideIndex 실제 사용 → unused 에러 제거 */}
+                <View style={styles.moreHintRow}>
+                  <Text style={styles.moreHintText}>
+                    {activeSlideIndex + 1} / {todayRecords.length}
+                    {hasMoreThanSlider ? ' · 더 많은 기록은 ‘전체보기’' : ''}
+                  </Text>
+                </View>
               </View>
             )}
           </View>

@@ -1,7 +1,9 @@
 // 파일: src/screens/Main/components/LoggedInHome/LoggedInHome.styles.ts
 // 목적:
 // - LoggedInHome 전용 스타일 (스크린샷 톤)
-// - ✅ 오늘날의 기록(슬라이드): 정사각 5:5, 옆 카드 살짝 보임, 상단 오버레이 최소/하단 오버레이 느낌
+// - ✅ 오늘날의 기록(슬라이드): 정사각 5:5, 옆 카드 살짝 보임
+//   - overlay: 상단 최소 / 하단 그라데이션 강화 + 텍스트는 이미지 위
+//   - indicator dot: BRAND 컬러 기반
 
 import { StyleSheet } from 'react-native';
 
@@ -424,7 +426,7 @@ export const styles = StyleSheet.create({
 
   photoOverlayTint: {
     ...ABS_FILL,
-    backgroundColor: 'rgba(0,0,0,0.2)',
+    backgroundColor: 'rgba(0,0,0,0.18)',
   },
   photoOverlay: {
     flex: 1,
@@ -441,31 +443,29 @@ export const styles = StyleSheet.create({
   },
 
   // ---------------------------------------------------------
-  // ✅ Today Records (Slider)
+  // ✅ Today Records (Slider) - FINAL (PhotoCard 톤과 동일하게 "전체 오버레이 + 하단 강화")
   // ---------------------------------------------------------
   todayRecordsWrap: {
-    // 섹션 안에서 슬라이드가 자연스럽게 보이도록
     marginTop: -6,
   },
   todayRecordsContent: {
-    paddingLeft: 0, // section paddingHorizontal(14) 안쪽에서 시작
+    paddingLeft: 0,
   },
 
-  // 카드 자체(정사각 5:5)
   todayRecordCard: {
     borderRadius: 20,
     overflow: 'hidden',
-    backgroundColor: SURFACE,
+    backgroundColor: 'rgba(0,0,0,0.04)',
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.06)',
+
     shadowColor: '#000000',
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 1,
+    shadowOpacity: 0.1,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 14 },
+    elevation: 3,
   },
 
-  // 상단 이미지 영역
   todayRecordMedia: {
     flex: 1,
     backgroundColor: SURFACE_SOFT,
@@ -477,48 +477,62 @@ export const styles = StyleSheet.create({
   },
   todayRecordImgPlaceholder: {
     ...ABS_FILL,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.10)',
   },
 
-  // ✅ 상단 오버레이 거의 없음
-  todayRecordTopTint: {
+  // ✅ 1) 전체 오버레이(오늘의 사진과 동일한 "전체 틴트")
+  todayRecordOverlayTint: {
     ...ABS_FILL,
-    backgroundColor: 'rgba(0,0,0,0.22)',
+    backgroundColor: 'rgba(0,0,0,0.18)',
   },
 
-  // ✅ 하단 오버레이(밑으로 내려갈수록 더 어둡게 느끼는 톤)
+  // ✅ 2) 하단 강화(텍스트 가독성)
+  // - RN 기본만으로 그라데이션 느낌: 레이어 2개로 처리
   todayRecordBottomTint: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
     height: '100%',
-    backgroundColor: 'rgba(0,0,0,0.22)',
+    // backgroundColor: 'rgba(0,0,0,0.26)',
+  },
+  todayRecordBottomTintDeep: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '100%',
+    backgroundColor: 'rgba(0,0,0,0.26)',
   },
 
-  // ✅ 이미지 위 오버레이 텍스트 영역(흰색 바닥 제거)
+  // ✅ 3) 텍스트 위치/간격
   todayRecordOverlay: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingTop: 10,
     paddingBottom: 12,
     gap: 6,
   },
 
-  // ✅ 썸네일형: 텍스트는 흰색 계열
   todayRecordTitle: {
     fontSize: 13,
     fontWeight: '900',
     color: '#FFFFFF',
+    textShadowColor: 'rgba(0,0,0,0.35)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   todayRecordContent: {
     fontSize: 11,
     fontWeight: '700',
     color: 'rgba(255,255,255,0.92)',
     lineHeight: 15,
+    textShadowColor: 'rgba(0,0,0,0.25)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
 
   todayRecordMetaRow: {
@@ -528,9 +542,38 @@ export const styles = StyleSheet.create({
   },
   todayRecordDate: {
     fontSize: 10,
+    fontWeight: '900',
+    color: 'rgba(255,255,255,0.92)',
+  },
+  // ---------------------------------------------------------
+  // ✅ Indicator Dots (Brand)
+  // ---------------------------------------------------------
+  indicatorRow: {
+    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  indicatorDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: BRAND,
+  },
+
+  // ---------------------------------------------------------
+  // ✅ More Hint
+  // ---------------------------------------------------------
+  moreHintRow: {
+    marginTop: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  moreHintText: {
+    fontSize: 11,
     fontWeight: '800',
-    color: 'rgba(255,255,255,1)',
-    textAlign: 'right',
+    color: 'rgba(85,96,112,0.82)',
   },
 
   // ---------------------------------------------------------
