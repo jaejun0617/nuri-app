@@ -51,6 +51,28 @@ import { styles } from './TimelineScreen.styles';
 type Nav = NativeStackNavigationProp<any>;
 type SortMode = 'recent' | 'oldest';
 
+type Status =
+  | 'idle'
+  | 'loading'
+  | 'ready'
+  | 'refreshing'
+  | 'loadingMore'
+  | 'error';
+
+function normalizeStatus(v: unknown): Status {
+  switch (v) {
+    case 'idle':
+    case 'loading':
+    case 'ready':
+    case 'refreshing':
+    case 'loadingMore':
+    case 'error':
+      return v;
+    default:
+      return 'idle';
+  }
+}
+
 const DEBOUNCE_MS = 250;
 
 // ✅ 경고/렌더 안정화: 빈 배열/빈 상태는 “항상 동일 참조”
@@ -138,10 +160,10 @@ export default function TimelineScreen() {
     errorMessage: string | null;
   };
 
-  const status = petState.status ?? 'idle';
-  const hasMore = petState.hasMore ?? false;
-  const baseItems =
-    petState.items ?? (EMPTY_ITEMS as ReadonlyArray<MemoryRecord>);
+  const status = normalizeStatus(petState.status);
+  const hasMore = Boolean(petState.hasMore);
+  const baseItems = (petState.items ??
+    EMPTY_ITEMS) as ReadonlyArray<MemoryRecord>;
   const refreshing = status === 'refreshing';
 
   // ---------------------------------------------------------
@@ -467,47 +489,54 @@ export default function TimelineScreen() {
   const ListFooterComponent = useMemo(() => {
     if (baseItems.length === 0) return null;
 
-    if (status === 'loadingMore') {
-      return (
-        <View style={styles.footer}>
-          <ActivityIndicator />
-          <AppText preset="caption" style={styles.footerText}>
-            더 불러오는 중...
-          </AppText>
-        </View>
-      );
-    }
-
-    if (status === 'ready' && hasMore && query) {
-      return (
-        <View style={styles.footer}>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={styles.manualMoreBtn}
-            onPress={() => {
-              if (!petId) return;
-              loadMore(petId);
-            }}
-          >
-            <AppText preset="caption" style={styles.manualMoreText}>
-              검색 결과 더 불러오기
+    switch (status) {
+      case 'loadingMore':
+        return (
+          <View style={styles.footer}>
+            <ActivityIndicator />
+            <AppText preset="caption" style={styles.footerText}>
+              더 불러오는 중...
             </AppText>
-          </TouchableOpacity>
-        </View>
-      );
-    }
+          </View>
+        );
 
-    if (status === 'ready' && !hasMore) {
-      return (
-        <View style={styles.footer}>
-          <AppText preset="caption" style={styles.footerText}>
-            마지막 기록이에요
-          </AppText>
-        </View>
-      );
-    }
+      case 'ready':
+        // 검색 중: 수동 로드 버튼 제공
+        if (hasMore && query) {
+          return (
+            <View style={styles.footer}>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={styles.manualMoreBtn}
+                onPress={() => {
+                  if (!petId) return;
+                  loadMore(petId);
+                }}
+              >
+                <AppText preset="caption" style={styles.manualMoreText}>
+                  검색 결과 더 불러오기
+                </AppText>
+              </TouchableOpacity>
+            </View>
+          );
+        }
 
-    return <View style={{ height: 18 }} />;
+        // 더 이상 없음
+        if (!hasMore) {
+          return (
+            <View style={styles.footer}>
+              <AppText preset="caption" style={styles.footerText}>
+                마지막 기록이에요
+              </AppText>
+            </View>
+          );
+        }
+
+        return <View style={{ height: 18 }} />;
+
+      default:
+        return <View style={{ height: 18 }} />;
+    }
   }, [baseItems.length, status, hasMore, query, petId, loadMore]);
 
   // ---------------------------------------------------------

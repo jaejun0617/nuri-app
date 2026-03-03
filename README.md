@@ -864,34 +864,51 @@ TimelineScreen이 스택 라우트를 호출하고 있었기 때문이다.
 - 서버 페이지 응답을 `id` 기준으로 유니크 병합하여 중복을 방지합니다.
 - 병합 이후에도 `createdAt desc` 정렬을 보장해 타임라인 순서가 흔들리지 않게 했습니다.
 
-## Chapter 6-1. Timeline UX 확정 — Infinite Scroll + Sticky Controls + Search/Month Jump
+## 6-1. Timeline — 무한 스크롤 + 정렬/검색/월 필터 + 섹션 점프 (최종)
 
-타임라인을 “실사용 기준”으로 고정했습니다. 무한 스크롤과 정렬/검색/월 점프는 함께 설계되어야 성능과 UX가 동시에 안정됩니다.
+이번 챕터에서는 “타임라인 탐색 UX”를 최종 형태로 고정했습니다.  
+핵심은 **서버 페이지네이션(cursor) 안정성**을 유지하면서도, 화면에서만 **정렬/검색/필터**를 유연하게 제공하는 구조입니다.
 
-### 1) Infinite Scroll은 Pagination이 전제
+### 목표
 
-- 무한 스크롤은 UI 방식이고, 페이지네이션(cursor)은 데이터 로딩 방식입니다.
-- records가 많아질수록 한 번에 전체 로드는 렌더/메모리/네트워크 비용이 폭증합니다.
-- cursor(created_at) 기반 pagination으로 “필요한 만큼만” 안전하게 로드합니다.
+- 타임라인에서 기록이 많아져도 **끊김 없이 탐색**할 수 있어야 한다.
+- 사용자에게는 “최신/오래된 정렬”, “검색”, “월/연도 필터”가 **항상 화면 상단에 고정**되어야 한다.
+- Signed URL은 이미 Chapter 6에서 캐싱/프리패치가 들어가 있으므로, 타임라인은 **cursor 기반 pagination**만 정확히 지키면 된다.
 
-### 2) Sticky Controls(정렬/검색/월 필터) 고정
+### 구현 요약
 
-- 정렬(최신/오래된), 월/연도 필터, 검색은 탐색 중 계속 만져야 하므로 상단 고정이 UX상 정답입니다.
-- FlatList `stickyHeaderIndices`로 컨트롤 바를 고정했습니다.
+- **무한 스크롤**
 
-### 3) Search UX(돋보기 토글 + debounce)
+  - `RecordStore.loadMore(petId)`를 `FlatList.onEndReached`에 연결
+  - 검색 중에는 결과 흔들림/비용을 줄이기 위해 **자동 loadMore는 OFF**
+  - 대신 footer에 **“검색 결과 더 불러오기” 수동 버튼** 제공
 
-- 돋보기 클릭 시 검색바가 열리고, 제목/태그 기준으로 debounce 검색을 수행합니다.
-- 검색 중에는 자동 loadMore를 잠시 멈추고, 하단 “검색 결과 더 불러오기”로 제어해 결과 흔들림을 방지했습니다.
+- **정렬**
 
-### 4) Month/Year 필터 + 섹션 점프
+  - Store(items)는 항상 `created_at desc` 기준(커서 안정성 유지)
+  - 화면에서만 `oldest`는 `reverse()`로 표현 (데이터 계약은 흔들지 않음)
 
-- 기록에서 월 목록(YYYY-MM)을 자동 수집하여 모달로 제공하고,
-- 월 선택 시 해당 월 섹션으로 스크롤 점프하여 빠른 탐색이 가능하도록 했습니다.
+- **검색(제목/태그) + Debounce**
 
-### 5) New Architecture 안정성
+  - 돋보기 버튼으로 검색바 토글
+  - 입력값은 `DEBOUNCE_MS` 후 query 확정
+  - 제목/태그 기준 필터링(원하면 content까지 확장 가능)
 
-- selector fallback은 동일 참조(EMPTY_ARRAY/fallback state)로 유지하여 hook deps/렌더 안정성을 보장합니다.
+- **월/연도 필터 + 섹션 점프**
+
+  - 현재 로딩된 items에서 `YYYY-MM` 목록 생성
+  - 모달에서 월 선택 → 해당 월 첫 아이템으로 `scrollToIndex` 점프
+  - 점프는 “필터 적용 후 렌더가 끝난 시점”에 실행되도록 `pendingJumpYm`로 제어
+
+- **New Architecture / 렌더 안정성**
+  - `EMPTY_ITEMS`, `FALLBACK_PET_STATE`를 **항상 동일 참조**로 유지
+  - TS의 `Object.freeze([])` never[] 추론 이슈는 `Object.freeze<MemoryRecord[]>([])`로 해결
+
+### 결과
+
+- 타임라인은 이제 “기록 수가 커져도” 안정적으로 확장 가능하며,
+- 정렬/검색/월 필터가 고정된 상태로 탐색 흐름이 정리되었다.
+- 다음 챕터에서는 타임라인 기반으로 “검색 고도화(서버 검색/태그 인덱싱)” 또는 “감정/태그별 빠른 필터(칩)” 확장으로 넘어갈 준비가 완료됐다.
 
 ## Chapter 6-2. Signed URL 캐싱 최종 확정 — TTL + LRU + InFlight Dedupe + Prefetch 최적화
 
