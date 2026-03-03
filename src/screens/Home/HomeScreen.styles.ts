@@ -109,9 +109,9 @@ export const Logo = styled(Image)`
  */
 export const textStyles = StyleSheet.create({
   shadow: {
-    textShadowColor: 'rgba(0,0,0,0.55)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    textShadowColor: 'rgba(0,0,0,0.28)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 10,
   },
 });
 

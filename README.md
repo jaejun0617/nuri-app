@@ -519,11 +519,11 @@ MainScreen은 분기만 담당하며, 각 레이아웃은 컴포넌트/스타일
 
 **5) end-to-end 성공 흐름**
 
-1. PetCreate에서 이미지 선택  
-2. BlobUtil 기반 Storage 업로드 성공  
-3. pets.profile_image_url에 path 저장  
-4. fetchMyPets 재조회  
-5. 홈 헤더/카드 즉시 반영  
+1. PetCreate에서 이미지 선택
+2. BlobUtil 기반 Storage 업로드 성공
+3. pets.profile_image_url에 path 저장
+4. fetchMyPets 재조회
+5. 홈 헤더/카드 즉시 반영
 
 **Chapter 2 Done 체크리스트**
 
@@ -604,6 +604,28 @@ MainScreen은 분기만 담당하며, 각 레이아웃은 컴포넌트/스타일
 - getSession 기반 세션 복원
 - nickname/pets/selectedPetId 정렬
 - booted gate로 깜빡임 제거
+
+## Chapter 5 — RecordStore 상태머신 + Selector 최적화(성능/캐싱 고정)
+
+이번 챕터의 목표는 **홈/타임라인이 동일한 Record 캐시를 공유**하면서도, RN New Architecture(Fabric)에서도 안전한 **snapshot 안정성**을 유지하고 렌더 비용을 고정하는 것이다.
+
+### 핵심 변경
+
+- **RecordStore를 petId 단위 상태머신으로 통일**
+  - `idle → loading → refreshing/paginating → idle/error`
+  - `booted`, `errorMessage`, `cursor`, `hasMore`, `lastFetchedAt`를 slice에 포함
+- **커서 기반 pagination 고정**
+  - `fetchMemoriesByPet(petId, { limit, beforeCreatedAt })` 옵션 확장
+  - Timeline은 `onEndReached → loadMore()`로 다음 페이지를 store에서 이어받음
+- **Selector 최적화**
+  - 화면은 `byPetId[petId]` “slice”만 구독 (전역 map 구독 금지)
+  - fallback state는 **항상 동일 참조**로 유지하여 snapshot 흔들림 방지
+
+### 결과
+
+- Home(최근기록/오늘사진)과 Timeline이 동일 캐시를 공유해 **중복 fetch 감소**
+- pet 전환/스크롤 중에도 렌더 범위가 줄어 **체감 성능 상승**
+- New Architecture에서 발생 가능한 **useSyncExternalStore snapshot 경고 리스크 제거**
 
 ## Chapter 5. 홈 화면 감성 강화
 

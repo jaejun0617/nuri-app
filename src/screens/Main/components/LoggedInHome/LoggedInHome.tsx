@@ -2,12 +2,21 @@
 // 목적:
 // - 로그인 홈 (LoggedInHome)
 // - 헤더: 닉네임 인사 + 멀티펫 썸네일 스위처(최대 4 + +버튼)
-// - HERO CARD + 오늘날의 사진 + 최근기록(가장 최근 7개)
+// - HERO CARD + 오늘날의 사진 + 최근기록
 //
-// ✅ 이번 수정 핵심
-// - 최근기록: 조건 없이 "가장 최근부터 7개"
-// - recordStore 구독을 가장 안전한 형태로 단순화(byPetId[petId] 직접)
-// - activePetId와 store의 petId가 달라서 생기는 “타임라인은 있는데 홈은 없음” 케이스를 확인할 수 있게 로그 추가
+// ✅ 최근기록 UX(최종)
+// - 기본: 최신 7개만 노출
+// - 조건: records가 8개 초과(= 9개 이상)면 우측에 더보기 버튼 노출
+// - 동작:
+//   1차 클릭: 7개 더 보여줌(총 14개)
+//   2차 클릭(아직 더 남아있으면): 타임라인으로 이동
+// - 기록이 있을 때: ✅ 하단 “기록하기” 버튼 제거(탭과 중복 제거)
+// - 기록이 없을 때: ✅ Empty 카드 + CTA 1개 유지(첫 전환용)
+//
+// ✅ 훅/스토어 안정성(중요)
+// - recordStore 구독: byPetId[petId] 직접 구독(가장 단순/안전)
+// - selector fallback은 동일 참조(FALLBACK_RECORDS_STATE)로 유지
+// - activePetId 변경 시 recentExpanded 초기화
 
 import React, { useEffect, useMemo, useCallback, useState } from 'react';
 import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
@@ -139,6 +148,7 @@ type PetRecordsStateShape = {
   errorMessage: string | null;
 };
 
+// ✅ 동일 참조 fallback(새 아키텍처/SyncExternalStore 안전)
 const FALLBACK_RECORDS_STATE: PetRecordsStateShape = Object.freeze({
   items: [],
   loading: false,
@@ -146,6 +156,10 @@ const FALLBACK_RECORDS_STATE: PetRecordsStateShape = Object.freeze({
   booted: false,
   errorMessage: null,
 });
+
+// 최근기록 표시 개수 규칙
+const RECENT_BASE = 7;
+const RECENT_EXPANDED = 14;
 
 export default function LoggedInHome() {
   // ---------------------------------------------------------
@@ -214,11 +228,10 @@ export default function LoggedInHome() {
   }, []);
 
   // ---------------------------------------------------------
-  // 4) records
+  // 4) records (✅ 안전한 구독: byPetId[petId] 직접)
   // ---------------------------------------------------------
   const bootstrapRecords = useRecordStore(s => s.bootstrap);
 
-  // ✅ selector를 최대한 단순화: activePetId 변경 시 자동으로 다른 slice 구독
   const petRecordsState = useRecordStore(s =>
     activePetId ? (s.byPetId[activePetId] as any) : null,
   ) as PetRecordsStateShape | null;
@@ -230,7 +243,50 @@ export default function LoggedInHome() {
     bootstrapRecords(activePetId);
   }, [bootstrapRecords, activePetId]);
 
+  // ---------------------------------------------------------
+  // 4.1) 최근 기록 "더보기" 상태
+  // - pet 변경 시 확장 상태 초기화
+  // ---------------------------------------------------------
+  const [recentExpanded, setRecentExpanded] = useState(false);
+
+  useEffect(() => {
+    setRecentExpanded(false);
+  }, [activePetId]);
+
+  // ---------------------------------------------------------
+  // 4.2) 최근 기록 계산
+  // ---------------------------------------------------------
+  // 조건: records가 8개 초과(= 9개 이상)일 때만 버튼 노출
+  const showMoreBtn = useMemo(
+    () => safeRecordsState.items.length > RECENT_BASE + 1,
+    [safeRecordsState.items.length],
+  );
+
+  // 1차 클릭: 14개 노출, 그 외: 7개 노출
+  const visibleRecentCount = useMemo(
+    () => (recentExpanded ? RECENT_EXPANDED : RECENT_BASE),
+    [recentExpanded],
+  );
+
+  const recentItems = useMemo(
+    () => safeRecordsState.items.slice(0, visibleRecentCount),
+    [safeRecordsState.items, visibleRecentCount],
+  );
+
+  // 2차 클릭 시 타임라인 이동 조건: 14개 이후에도 남아있을 때
+  const hasMoreAfterExpanded = useMemo(() => {
+    if (!recentExpanded) return false;
+    return safeRecordsState.items.length > RECENT_EXPANDED;
+  }, [recentExpanded, safeRecordsState.items.length]);
+
+  const moreBtnLabel = useMemo(() => {
+    if (!recentExpanded) return '더보기';
+    return hasMoreAfterExpanded ? '타임라인' : '더보기';
+  }, [recentExpanded, hasMoreAfterExpanded]);
+
+  // ---------------------------------------------------------
   // ✅ 디버그(원인 확인): 홈이 어떤 petId를 보고 있는지 / items가 들어오는지
+  // ---------------------------------------------------------
   useEffect(() => {
     console.log(
       '[LoggedInHome] activePetId=',
@@ -270,18 +326,11 @@ export default function LoggedInHome() {
     };
   }, [activePetId, safeRecordsState.items]);
 
-  // ---------------------------------------------------------
-  // 4.6) ✅ recent = 최신 7개 (조건 없음)
-  // ---------------------------------------------------------
-  const recentItems = useMemo(
-    () => safeRecordsState.items.slice(0, 7),
-    [safeRecordsState.items],
-  );
-
-  const showMore = useMemo(
-    () => safeRecordsState.items.length > 7,
-    [safeRecordsState.items.length],
-  );
+  const todayPhotoOverlayTitle = useMemo(() => {
+    if (todayPhoto.mode === 'anniversary') return '작년 오늘의 기억';
+    if (todayPhoto.mode === 'random') return '오늘 꺼내보는 한 장';
+    return '오늘의 사진';
+  }, [todayPhoto.mode]);
 
   // ---------------------------------------------------------
   // 5) HERO derived
@@ -361,12 +410,6 @@ export default function LoggedInHome() {
     () => selectedPet?.avatarUrl ?? null,
     [selectedPet?.avatarUrl],
   );
-
-  const todayPhotoOverlayTitle = useMemo(() => {
-    if (todayPhoto.mode === 'anniversary') return '작년 오늘의 기억';
-    if (todayPhoto.mode === 'random') return '오늘 꺼내보는 한 장';
-    return '오늘의 사진';
-  }, [todayPhoto.mode]);
 
   // ---------------------------------------------------------
   // 6) header text
@@ -450,6 +493,22 @@ export default function LoggedInHome() {
       OUT_LIFT_PX,
     ],
   );
+
+  const onPressRecentMore = useCallback(() => {
+    // 1차: 확장(14개)
+    if (!recentExpanded) {
+      setRecentExpanded(true);
+      return;
+    }
+
+    // 2차: 아직 더 남아있으면 타임라인 이동
+    if (hasMoreAfterExpanded) {
+      onPressTimeline();
+      return;
+    }
+
+    // 남은 게 없으면 아무 동작 없음(UX상 깜빡임 방지)
+  }, [recentExpanded, hasMoreAfterExpanded, onPressTimeline]);
 
   // ---------------------------------------------------------
   // 8) render
@@ -660,12 +719,12 @@ export default function LoggedInHome() {
             <View style={styles.recentHeaderRow}>
               <Text style={styles.sectionTitle}>최근 기록</Text>
 
-              {showMore ? (
+              {showMoreBtn ? (
                 <TouchableOpacity
                   activeOpacity={0.85}
-                  onPress={onPressTimeline}
+                  onPress={onPressRecentMore}
                 >
-                  <Text style={styles.moreBtnText}>더보기</Text>
+                  <Text style={styles.moreBtnText}>{moreBtnLabel}</Text>
                 </TouchableOpacity>
               ) : (
                 <View />
@@ -677,6 +736,7 @@ export default function LoggedInHome() {
                 <Text style={styles.emptyTitle}>아직 기록이 없어요</Text>
                 <Text style={styles.emptyDesc}>첫 번째 추억을 남겨보세요.</Text>
 
+                {/* ✅ Empty에서만 CTA 1개 유지 */}
                 <TouchableOpacity
                   activeOpacity={0.9}
                   style={styles.recordBtn}
@@ -686,57 +746,47 @@ export default function LoggedInHome() {
                 </TouchableOpacity>
               </View>
             ) : (
-              <>
-                <View style={styles.recentList}>
-                  {recentItems.map(item => {
-                    const ymd = getRecordYmd(item);
-                    const title = item.title?.trim() ? item.title : '제목 없음';
-                    const content = toSnippet(item.content, 46);
+              <View style={styles.recentList}>
+                {recentItems.map(item => {
+                  const ymd = getRecordYmd(item);
+                  const title = item.title?.trim() ? item.title : '제목 없음';
+                  const content = toSnippet(item.content, 46);
 
-                    return (
-                      <TouchableOpacity
-                        key={item.id}
-                        activeOpacity={0.9}
-                        style={styles.recentItem}
-                        onPress={() => onPressRecordItem(item.id)}
-                      >
-                        <View style={styles.recentThumb}>
-                          {item.imageUrl ? (
-                            <Image
-                              source={{ uri: item.imageUrl }}
-                              style={styles.recentThumbImg}
-                            />
-                          ) : (
-                            <View style={styles.recentThumbPlaceholder} />
-                          )}
+                  return (
+                    <TouchableOpacity
+                      key={item.id}
+                      activeOpacity={0.9}
+                      style={styles.recentItem}
+                      onPress={() => onPressRecordItem(item.id)}
+                    >
+                      <View style={styles.recentThumb}>
+                        {item.imageUrl ? (
+                          <Image
+                            source={{ uri: item.imageUrl }}
+                            style={styles.recentThumbImg}
+                          />
+                        ) : (
+                          <View style={styles.recentThumbPlaceholder} />
+                        )}
+                      </View>
+
+                      <View style={styles.recentInfo}>
+                        <Text style={styles.recentTitle} numberOfLines={1}>
+                          {title}
+                        </Text>
+                        <Text style={styles.recentContent} numberOfLines={2}>
+                          {content}
+                        </Text>
+
+                        <View style={styles.recentMetaRow}>
+                          <View style={{ flex: 1 }} />
+                          <Text style={styles.recentDate}>{ymd}</Text>
                         </View>
-
-                        <View style={styles.recentInfo}>
-                          <Text style={styles.recentTitle} numberOfLines={1}>
-                            {title}
-                          </Text>
-                          <Text style={styles.recentContent} numberOfLines={2}>
-                            {content}
-                          </Text>
-
-                          <View style={styles.recentMetaRow}>
-                            <View style={{ flex: 1 }} />
-                            <Text style={styles.recentDate}>{ymd}</Text>
-                          </View>
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-
-                <TouchableOpacity
-                  activeOpacity={0.9}
-                  style={styles.recordBtn}
-                  onPress={onPressRecord}
-                >
-                  <Text style={styles.recordBtnText}>기록하기</Text>
-                </TouchableOpacity>
-              </>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             )}
           </View>
         </Animated.View>

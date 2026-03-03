@@ -15,7 +15,7 @@ import { usePetStore } from '../../store/petStore';
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Splash'>;
 
 // ✅ Splash 최소 노출 시간(0.8~1.0s)
-const MIN_SPLASH_MS = 90000000000;
+const MIN_SPLASH_MS = 2000;
 
 export default function HomeScreen() {
   const navigation = useNavigation<Nav>();
@@ -141,7 +141,15 @@ export default function HomeScreen() {
             >
               <S.BrandRow>
                 {/* <S.Logo source={logoSource} resizeMode="contain" /> */}
-                <AppText preset="title1" color="#ffffff">
+                <AppText
+                  preset="title1"
+                  color="#ffffff"
+                  style={{
+                    textShadowColor: 'rgba(0,0,0,0.25)',
+                    textShadowOffset: { width: 0, height: 2 },
+                    textShadowRadius: 10,
+                  }}
+                >
                   NURI
                 </AppText>
               </S.BrandRow>
@@ -149,13 +157,21 @@ export default function HomeScreen() {
 
             <S.Spacer $h={8} />
 
-            <AppText preset="body" color="#ffffff" style={textStyles.shadow}>
+            <AppText
+              preset="body"
+              color="#ffffff"
+              style={[textStyles.shadow, { fontSize: 18 }]}
+            >
               지금 이 순간도, 함께 기록해요
             </AppText>
 
             <S.Spacer $h={8} />
 
-            <AppText preset="body" color="#ffffff" style={textStyles.shadow}>
+            <AppText
+              preset="body"
+              color="#ffffff"
+              style={[textStyles.shadow, { fontSize: 18 }]}
+            >
               우리의 시간을 기억으로 남기다
             </AppText>
 
