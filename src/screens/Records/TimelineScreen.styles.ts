@@ -1,8 +1,9 @@
 // 파일: src/screens/Records/TimelineScreen.styles.ts
-// 목적:
-// - TimelineScreen 스타일 분리
 
 import { StyleSheet } from 'react-native';
+
+const BRAND = '#5D04D9';
+const TEXT = '#0B1220';
 
 export const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#FFFFFF' },
@@ -19,7 +20,7 @@ export const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     textAlign: 'center',
-    color: '#000000',
+    color: TEXT,
     fontWeight: '900',
   },
 
@@ -27,7 +28,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 12,
     height: 36,
     borderRadius: 999,
-    backgroundColor: '#000000',
+    backgroundColor: BRAND,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -41,6 +42,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingTop: 10,
     paddingBottom: 10,
+    gap: 10,
   },
   controlsRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
 
@@ -49,26 +51,51 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
-    backgroundColor: '#FFFFFF',
+    borderColor: 'rgba(93,4,217,0.16)',
+    backgroundColor: 'rgba(93,4,217,0.06)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  controlChipText: { color: '#000000', fontWeight: '900' },
+  controlChipText: { color: BRAND, fontWeight: '900' },
 
   iconBtn: {
     width: 38,
     height: 34,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: 'rgba(0,0,0,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
   },
-  iconText: { color: '#000000' },
+  iconText: { color: TEXT },
 
+  // category row
+  categoryRow: {},
+  categoryContent: {
+    paddingRight: 14,
+    gap: 8, // ✅ ScrollView + map용 간격
+  },
+  categoryChip: {
+    height: 34,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.08)',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    maxWidth: 120,
+  },
+  categoryChipActive: {
+    borderColor: 'rgba(93,4,217,0.28)',
+    backgroundColor: 'rgba(93,4,217,0.10)',
+  },
+  categoryChipText: { color: '#0B1220', fontWeight: '900' },
+  categoryChipTextActive: { color: BRAND },
+
+  // search
   searchBox: {
-    marginTop: 10,
     flexDirection: 'row',
     gap: 8,
     alignItems: 'center',
@@ -78,23 +105,23 @@ export const styles = StyleSheet.create({
     height: 42,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: 'rgba(0,0,0,0.08)',
     paddingHorizontal: 12,
-    color: '#000000',
+    color: TEXT,
     backgroundColor: '#FFFFFF',
   },
   clearBtn: {
     height: 42,
     paddingHorizontal: 12,
     borderRadius: 12,
-    backgroundColor: '#000000',
+    backgroundColor: BRAND,
     alignItems: 'center',
     justifyContent: 'center',
   },
   clearBtnText: { color: '#FFFFFF', fontWeight: '900' },
 
-  hintRow: { marginTop: 8 },
-  hintText: { color: '#777777', fontWeight: '800' },
+  hintRow: {},
+  hintText: { color: '#6B7280', fontWeight: '800' },
 
   list: { padding: 14, gap: 10, paddingBottom: 24 },
   listEmpty: { flexGrow: 1, padding: 14 },
@@ -106,7 +133,7 @@ export const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: 'rgba(0,0,0,0.08)',
   },
   thumb: {
     width: 88,
@@ -115,30 +142,30 @@ export const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#F4F4F4',
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: 'rgba(0,0,0,0.08)',
   },
   thumbImg: { width: '100%', height: '100%' },
   thumbPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   thumbPlaceholderText: { color: '#888888', fontWeight: '800' },
 
   itemBody: { flex: 1 },
-  itemTitle: { color: '#000000', fontWeight: '900' },
-  itemContent: { marginTop: 6, color: '#333333' },
+  itemTitle: { color: TEXT, fontWeight: '900' },
+  itemContent: { marginTop: 6, color: '#374151' },
 
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
-  metaText: { color: '#777777', fontWeight: '700' },
+  metaText: { color: '#6B7280', fontWeight: '700' },
 
   badge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
-    backgroundColor: '#FFFFFF',
+    borderColor: 'rgba(93,4,217,0.20)',
+    backgroundColor: 'rgba(93,4,217,0.06)',
   },
-  badgeText: { color: '#000000', fontWeight: '800' },
+  badgeText: { color: BRAND, fontWeight: '900' },
 
-  tags: { marginTop: 8, color: '#000000', fontWeight: '800' },
+  tags: { marginTop: 8, color: TEXT, fontWeight: '800' },
 
   empty: {
     flex: 1,
@@ -146,20 +173,20 @@ export const styles = StyleSheet.create({
     borderRadius: 22,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: 'rgba(0,0,0,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
   },
-  emptyTitle: { color: '#000000', fontWeight: '900' },
-  emptyDesc: { color: '#333333', textAlign: 'center' },
+  emptyTitle: { color: TEXT, fontWeight: '900' },
+  emptyDesc: { color: '#374151', textAlign: 'center' },
 
   primary: {
     marginTop: 10,
     height: 48,
     borderRadius: 14,
     paddingHorizontal: 18,
-    backgroundColor: '#000000',
+    backgroundColor: BRAND,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -172,19 +199,19 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  footerText: { color: '#777777', fontWeight: '800' },
+  footerText: { color: '#6B7280', fontWeight: '800' },
 
   manualMoreBtn: {
     height: 40,
     paddingHorizontal: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: 'rgba(0,0,0,0.08)',
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  manualMoreText: { color: '#000000', fontWeight: '900' },
+  manualMoreText: { color: TEXT, fontWeight: '900' },
 
   // modal
   modalBackdrop: {
@@ -198,19 +225,19 @@ export const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: 'rgba(0,0,0,0.08)',
   },
-  modalTitle: { color: '#000000', fontWeight: '900', marginBottom: 10 },
+  modalTitle: { color: TEXT, fontWeight: '900', marginBottom: 10 },
 
   modalItem: {
     height: 46,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: 'rgba(0,0,0,0.08)',
     paddingHorizontal: 12,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10,
   },
-  modalItemText: { color: '#000000', fontWeight: '900' },
+  modalItemText: { color: TEXT, fontWeight: '900' },
 });

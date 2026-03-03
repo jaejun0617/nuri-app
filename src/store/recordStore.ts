@@ -5,6 +5,11 @@
 // - out-of-order 응답 방지(요청 토큰/requestSeq)
 // - signed url은 services(fetchMemoriesByPetPage)에서 캐싱/프리패치 처리
 //
+// ✅ 성능 최적화(중요):
+// - loadMore에서 전체 merge + 전체 sort 금지
+// - 커서 기반 페이지네이션은 "다음 page는 항상 더 오래된 항목"이므로
+//   기존 리스트 뒤에 append 하되, overlap(중복 id)만 제거하는 방식으로 처리
+//
 // 중요(⚠️ New Architecture/SyncExternalStore 안전):
 // - fallback 객체는 항상 동일 참조(FALLBACK_PET_STATE)
 // - selector는 byPetId[petId] 직접 접근(가장 안전)
@@ -66,10 +71,14 @@ const createInitialPetState = (): PetRecordsState => ({
 });
 
 // ✅ 핵심: fallback은 "항상 같은 객체"여야 함 (New Architecture 안전)
+// - freeze는 얕게만 고정됨(내부 배열은 수정 가능) → 하지만 fallback은 읽기용으로만 사용
 const FALLBACK_PET_STATE: PetRecordsState = Object.freeze(
   createInitialPetState(),
 );
 
+// ---------------------------------------------------------
+// helpers
+// ---------------------------------------------------------
 function sortByCreatedAtDesc(items: MemoryRecord[]) {
   items.sort((a, b) => {
     if (a.createdAt === b.createdAt) return 0;
@@ -77,13 +86,37 @@ function sortByCreatedAtDesc(items: MemoryRecord[]) {
   });
 }
 
-function mergeUniqueById(prev: MemoryRecord[], next: MemoryRecord[]) {
-  const map = new Map<string, MemoryRecord>();
-  for (const it of prev) map.set(it.id, it);
-  for (const it of next) map.set(it.id, it);
-  const merged = Array.from(map.values());
-  sortByCreatedAtDesc(merged);
-  return merged;
+/**
+ * ✅ 커서 기반 loadMore 최적화
+ * - prev는 최신→오래된 순으로 정렬되어 있다고 가정
+ * - nextPage도 그보다 더 오래된 데이터가 온다고 가정(cursor)
+ * - 따라서 "정렬" 없이 뒤에 append 하면 됨
+ * - overlap(중복 id)만 제거
+ *
+ * 시간복잡도:
+ * - Set(prev ids) O(n)
+ * - next filter O(m)
+ * - concat O(n+m)
+ * - sort 없음 ✅
+ */
+function appendPageUniqueById(prev: MemoryRecord[], nextPage: MemoryRecord[]) {
+  if (nextPage.length === 0) return prev;
+
+  const seen = new Set<string>();
+  for (const it of prev) seen.add(it.id);
+
+  const append: MemoryRecord[] = [];
+  for (const it of nextPage) {
+    if (seen.has(it.id)) continue;
+    seen.add(it.id);
+    append.push(it);
+  }
+
+  if (append.length === 0) return prev;
+
+  // ✅ prev reference를 최대한 살리려면 mutate가 맞지만(리렌더 최소),
+  // zustand 상태는 immutable 업데이트가 안전.
+  return prev.concat(append);
 }
 
 export const useRecordStore = create<RecordStore>((set, get) => ({
@@ -131,7 +164,6 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
       return;
     }
 
-    // ✅ requestSeq 발급(이 요청만 최신이면 반영)
     const req = st.requestSeq + 1;
 
     set(s => ({
@@ -156,15 +188,18 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
 
       set(s => {
         const cur = s.byPetId[petId];
-        // ✅ out-of-order 방지
         if (!cur || cur.requestSeq !== req) return s;
+
+        // ✅ 서버가 최신순으로 준다고 가정. 혹시 모를 순서 흔들림 방지(한 번만)
+        const items = [...page.items];
+        sortByCreatedAtDesc(items);
 
         return {
           byPetId: {
             ...s.byPetId,
             [petId]: {
               ...cur,
-              items: page.items,
+              items,
               status: 'ready',
               errorMessage: null,
               cursor: page.nextCursor,
@@ -203,7 +238,6 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
 
     if (st.status === 'refreshing') return;
 
-    // ✅ requestSeq 발급 (이 refresh가 최신 상태가 됨)
     const req = st.requestSeq + 1;
 
     set(s => ({
@@ -230,12 +264,15 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
         const cur = s.byPetId[petId];
         if (!cur || cur.requestSeq !== req) return s;
 
+        const items = [...page.items];
+        sortByCreatedAtDesc(items);
+
         return {
           byPetId: {
             ...s.byPetId,
             [petId]: {
               ...cur,
-              items: page.items,
+              items,
               status: 'ready',
               errorMessage: null,
               cursor: page.nextCursor,
@@ -249,7 +286,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
         const cur = s.byPetId[petId];
         if (!cur || cur.requestSeq !== req) return s;
 
-        // ✅ refresh 실패는 이전 items는 유지한 채 에러만 표시
+        // ✅ refresh 실패는 이전 items 유지
         return {
           byPetId: {
             ...s.byPetId,
@@ -265,7 +302,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
   },
 
   // ---------------------------------------------------------
-  // 더 불러오기(커서 기반)
+  // 더 불러오기(커서 기반) ✅ 최적화 핵심
   // ---------------------------------------------------------
   loadMore: async (petId: string) => {
     if (!petId) return;
@@ -275,7 +312,6 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
 
     if (!st.hasMore) return;
 
-    // 진행 중이면 스킵
     if (
       st.status === 'loading' ||
       st.status === 'refreshing' ||
@@ -284,10 +320,9 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
       return;
     }
 
-    // ✅ loadMore는 refresh처럼 requestSeq를 "갱신"하지 않음
-    // - 이유: loadMore 도중 refresh가 들어오면 refresh가 최신이 되어야 함
-    // - 그래서 loadMore는 "현재 requestSeq"를 스냅샷으로 들고간 뒤, 같을 때만 반영
+    // ✅ loadMore는 requestSeq를 올리지 않음 (refresh가 최신이어야 함)
     const req = st.requestSeq;
+    const cursorSnapshot = st.cursor;
 
     set(s => ({
       byPetId: {
@@ -304,7 +339,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
       const page = await fetchMemoriesByPetPage({
         petId,
         limit: PAGE_SIZE,
-        cursor: st.cursor,
+        cursor: cursorSnapshot,
         prefetchTop: 10,
       });
 
@@ -312,10 +347,12 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
         const cur = s.byPetId[petId];
         if (!cur) return s;
 
-        // ✅ out-of-order 방지: refresh/boot가 requestSeq를 올렸으면 이 loadMore는 무시
+        // ✅ out-of-order 방지: refresh/boot가 requestSeq 올렸으면 무시
         if (cur.requestSeq !== req) return s;
 
-        const merged = mergeUniqueById(cur.items, page.items);
+        // ✅ 이미 더 최신 loadMore가 반영되어 cursor가 변했을 수 있음
+        // cursorSnapshot이 오래된 상태면 덮어쓰기 위험이 있으니, "현재 cursor" 기준으로만 갱신
+        const merged = appendPageUniqueById(cur.items, page.items);
 
         return {
           byPetId: {
@@ -336,8 +373,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
         const cur = s.byPetId[petId];
         if (!cur) return s;
 
-        // ✅ loadMore 실패는 치명도 낮음: items 유지 + status ready로 복귀
-        // (에러 메시지만 남겨서 토스트/배너로 알릴 수 있게)
+        // ✅ loadMore 실패는 치명도 낮음: items 유지 + ready 복귀
         return {
           byPetId: {
             ...s.byPetId,
@@ -370,7 +406,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
           items: next,
           status: 'ready',
           errorMessage: null,
-          cursor: next.length ? next[next.length - 1].createdAt : null,
+          cursor: next.length ? next[next.length - 1].createdAt : null, // oldest
           hasMore: true,
         },
       },

@@ -15,7 +15,7 @@ import { usePetStore } from '../../store/petStore';
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Splash'>;
 
 // ✅ Splash 최소 노출 시간(0.8~1.0s)
-const MIN_SPLASH_MS = 2000;
+const MIN_SPLASH_MS = 4000;
 
 export default function HomeScreen() {
   const navigation = useNavigation<Nav>();
