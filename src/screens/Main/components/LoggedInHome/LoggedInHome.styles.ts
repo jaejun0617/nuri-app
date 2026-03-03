@@ -1,18 +1,12 @@
 // 파일: src/screens/Main/components/LoggedInHome/LoggedInHome.styles.ts
 // 목적:
-// - LoggedInHome 전용 스타일 (흰색 + 보라색 통일, 스크린샷 톤)
-// - Header: 텍스트 + 우측 아이콘(검색/알림) + 멀티펫 스위처
-// - HERO: flat 카드 + soft border/shadow + avatar glow + together pill
-// - Accordion: 모두펼치기 + 개별 토글 + 리스트/태그 chip
-// - Today Message: subtle border + soft shadow + icon
-// - Today Photo: 보라 overlay tint + 하단 텍스트
-// - Recent: 카드 톤 통일 + 썸네일 tint
+// - LoggedInHome 전용 스타일 (스크린샷 톤)
+// - ✅ 오늘날의 기록(슬라이드): 정사각 5:5, 옆 카드 살짝 보임, 상단 오버레이 최소/하단 오버레이 느낌
 
 import { StyleSheet } from 'react-native';
 
-const BRAND = '#6D7CFF'; // 브랜드 포인트 (요구사항)
-const BRAND_DEEP = '#5A67FF';
-const BRAND_SOFT = 'rgba(109,124,255,0.12)';
+const BRAND = '#5D04D9';
+const BRAND_DEEP = '#5D04D9';
 
 const TEXT = '#0B1220';
 const MUTED = '#556070';
@@ -21,8 +15,21 @@ const MUTED2 = 'rgba(85,96,112,0.70)';
 const SURFACE = '#FFFFFF';
 const SURFACE_SOFT = '#F6F7FB';
 
-const BORDER = 'rgba(109,124,255,0.18)';
-const BORDER2 = 'rgba(0,0,0,0.06)';
+const BORDER = 'rgba(93,4,217,0.16)';
+const BORDER_SOFT = 'rgba(0,0,0,0.06)';
+
+const ABS_FILL = {
+  position: 'absolute' as const,
+  left: 0,
+  right: 0,
+  top: 0,
+  bottom: 0,
+};
+
+const BLUE = '#2563EB';
+const ORANGE = '#F97316';
+const PINK = '#EF4444';
+const PURPLE = BRAND_DEEP;
 
 export const styles = StyleSheet.create({
   // ---------------------------------------------------------
@@ -33,14 +40,17 @@ export const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 10,
-    paddingBottom: 28,
-    gap: 14,
+    paddingBottom: 34,
+    gap: 18,
   },
 
   // ---------------------------------------------------------
   // Header
   // ---------------------------------------------------------
-  header: { gap: 10, marginBottom: 4 },
+  header: {
+    gap: 12,
+    marginBottom: 2,
+  },
   headerTopRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -85,20 +95,19 @@ export const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: SURFACE_SOFT,
     borderWidth: 1,
-    borderColor: BORDER2,
+    borderColor: BORDER_SOFT,
   },
-  // ✅ active: 보라 링 + 은은 글로우 느낌
   petChipActive: {
     borderColor: BRAND,
     borderWidth: 2,
     shadowColor: BRAND,
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.18,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 6 },
     elevation: 2,
   },
   petChipImage: { width: '100%', height: '100%' },
-  petChipPlaceholder: { flex: 1, backgroundColor: BRAND_SOFT },
+  petChipPlaceholder: { flex: 1, backgroundColor: 'rgba(93,4,217,0.10)' },
 
   petAddChip: {
     width: 40,
@@ -108,7 +117,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: BORDER2,
+    borderColor: BORDER_SOFT,
   },
   petAddPlus: {
     color: BRAND_DEEP,
@@ -118,7 +127,7 @@ export const styles = StyleSheet.create({
   },
 
   // ---------------------------------------------------------
-  // HERO CARD (프로필 카드)
+  // HERO CARD
   // ---------------------------------------------------------
   heroCard: {
     borderRadius: 22,
@@ -126,12 +135,11 @@ export const styles = StyleSheet.create({
     backgroundColor: SURFACE,
     borderWidth: 1,
     borderColor: BORDER,
-    // ✅ 과한 "떠있음" 제거: 아주 얕은 shadow만
-    shadowColor: BRAND,
-    shadowOpacity: 0.07,
+    shadowColor: '#000000',
+    shadowOpacity: 0.1,
     shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 1,
+    shadowOffset: { width: 0, height: 14 },
+    elevation: 6,
   },
 
   heroGearBtn: {
@@ -143,7 +151,9 @@ export const styles = StyleSheet.create({
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(109,124,255,0.10)',
+    backgroundColor: 'rgba(93,4,217,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(93,4,217,0.10)',
   },
   heroGearText: {
     color: 'rgba(11,18,32,0.55)',
@@ -157,7 +167,6 @@ export const styles = StyleSheet.create({
     gap: 6,
   },
 
-  // Avatar: 퍼진 보라 glow + white ring
   heroAvatarOuter: {
     width: 156,
     height: 156,
@@ -170,12 +179,12 @@ export const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: 999,
-    backgroundColor: 'rgba(109,124,255,0.22)',
+    backgroundColor: 'rgba(93,4,217,0.14)',
     shadowColor: BRAND,
-    shadowOpacity: 0.36,
-    shadowRadius: 24,
+    shadowOpacity: 0.4,
+    shadowRadius: 26,
     shadowOffset: { width: 0, height: 12 },
-    elevation: 6,
+    elevation: 7,
   },
   heroAvatarWrap: {
     width: 132,
@@ -184,10 +193,10 @@ export const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 6,
     borderColor: 'rgba(255,255,255,0.98)',
-    backgroundColor: 'rgba(109,124,255,0.08)',
+    backgroundColor: 'rgba(93,4,217,0.06)',
   },
   heroAvatarImg: { width: '100%', height: '100%' },
-  heroAvatarPlaceholder: { flex: 1, backgroundColor: 'rgba(109,124,255,0.18)' },
+  heroAvatarPlaceholder: { flex: 1, backgroundColor: 'rgba(93,4,217,0.12)' },
 
   heroName: {
     fontSize: 28,
@@ -214,19 +223,20 @@ export const styles = StyleSheet.create({
     color: 'rgba(85,96,112,0.85)',
   },
 
-  // Together pill (스크린샷 톤: 진보라 + 부드러운 그림자)
   heroTogetherPill: {
-    marginTop: 10,
+    marginTop: 12,
     alignSelf: 'center',
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+    paddingHorizontal: 22,
+    paddingVertical: 12,
     borderRadius: 999,
-    backgroundColor: BRAND_DEEP,
-    shadowColor: BRAND_DEEP,
-    shadowOpacity: 0.22,
-    shadowRadius: 16,
+    backgroundColor: 'rgba(93,4,217,0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.92)',
+    shadowColor: BRAND,
+    shadowOpacity: 0.1,
+    shadowRadius: 14,
     shadowOffset: { width: 0, height: 10 },
-    elevation: 3,
+    elevation: 8,
   },
   heroTogetherText: {
     fontSize: 13,
@@ -244,40 +254,42 @@ export const styles = StyleSheet.create({
   // Accordion
   // ---------------------------------------------------------
   accordionWrap: {
-    marginTop: 14,
+    marginTop: 16,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: 'rgba(0,0,0,0.05)',
     backgroundColor: SURFACE,
     overflow: 'hidden',
   },
+
   accordionAllRow: {
-    height: 44,
+    height: 38,
     paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(109,124,255,0.06)',
+    justifyContent: 'flex-end',
+    gap: 6,
+    backgroundColor: 'transparent',
     borderBottomWidth: 1,
-    borderBottomColor: BORDER,
+    borderBottomColor: 'rgba(0,0,0,0.04)',
   },
   accordionAllLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '900',
-    color: BRAND_DEEP,
+    color: BRAND,
   },
   accordionAllIcon: {
     fontSize: 14,
     fontWeight: '900',
-    color: BRAND_DEEP,
+    color: 'rgba(11,18,32,0.45)',
     marginTop: -1,
   },
 
   accordionItem: {
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(109,124,255,0.10)',
+    borderBottomColor: 'rgba(0,0,0,0.04)',
   },
   accordionHeaderRow: {
     flexDirection: 'row',
@@ -285,6 +297,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   accordionLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+
   accordionIconCircle: {
     width: 34,
     height: 34,
@@ -292,17 +305,30 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconCircleBlue: { backgroundColor: 'rgba(109,124,255,0.12)' },
-  iconCircleOrange: { backgroundColor: 'rgba(255,176,32,0.14)' },
-  iconCirclePink: { backgroundColor: 'rgba(255,77,79,0.12)' },
-  iconCirclePurple: { backgroundColor: 'rgba(109,124,255,0.12)' },
+  iconCircleBlue: { backgroundColor: 'rgba(37,99,235,0.10)' },
+  iconCircleOrange: { backgroundColor: 'rgba(249,115,22,0.12)' },
+  iconCirclePink: { backgroundColor: 'rgba(239,68,68,0.10)' },
+  iconCirclePurple: { backgroundColor: 'rgba(93,4,217,0.10)' },
 
   accordionIconText: { fontSize: 16, fontWeight: '900', color: TEXT },
-  accordionTitle: { fontSize: 13, fontWeight: '900', color: TEXT },
+
+  accordionTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: TEXT,
+    letterSpacing: 0.8,
+    lineHeight: 18,
+  },
+
+  accTitleBlue: { color: BLUE },
+  accTitleOrange: { color: ORANGE },
+  accTitlePink: { color: PINK },
+  accTitlePurple: { color: PURPLE },
+
   accordionChevron: {
     fontSize: 16,
     fontWeight: '900',
-    color: 'rgba(11,18,32,0.50)',
+    color: 'rgba(11,18,32,0.35)',
     marginTop: -2,
   },
 
@@ -310,42 +336,27 @@ export const styles = StyleSheet.create({
   accordionBullet: { fontSize: 13, fontWeight: '800', color: MUTED },
   accordionEmpty: { fontSize: 13, fontWeight: '800', color: MUTED2 },
 
-  // Tags
-  tagsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
+  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   tagChip: {
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: BORDER,
-    backgroundColor: 'rgba(109,124,255,0.06)',
+    borderColor: 'rgba(93,4,217,0.14)',
+    backgroundColor: 'rgba(93,4,217,0.06)',
   },
-  tagText: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: BRAND_DEEP,
-  },
+  tagText: { fontSize: 12, fontWeight: '900', color: BRAND_DEEP },
 
   // ---------------------------------------------------------
-  // Today Message (스크린샷 톤: border + soft shadow + icon)
+  // Today Message
   // ---------------------------------------------------------
   heroMessageBox: {
-    marginTop: 14,
-    borderRadius: 18,
+    marginTop: 16,
     paddingVertical: 14,
     paddingHorizontal: 14,
-    backgroundColor: SURFACE,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
-    shadowColor: BRAND,
-    shadowOpacity: 0.1,
-    shadowRadius: 18,
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
     shadowOffset: { width: 0, height: 12 },
-    elevation: 2,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -356,13 +367,13 @@ export const styles = StyleSheet.create({
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,196,0,0.12)', // 달 아이콘 옅은 노랑 톤
+    backgroundColor: 'rgba(255,196,0,0.12)',
   },
   heroMessageIconText: { fontSize: 16, fontWeight: '900' },
   heroMessageText: {
     flex: 1,
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
     color: TEXT,
     lineHeight: 18,
   },
@@ -370,46 +381,56 @@ export const styles = StyleSheet.create({
   // ---------------------------------------------------------
   // Section Lead
   // ---------------------------------------------------------
-  sectionLead: { gap: 6, marginTop: 6 },
-  sectionLeadTitle: { fontSize: 22, fontWeight: '900', color: TEXT },
-  sectionLeadSub: { fontSize: 12, fontWeight: '700', color: MUTED },
+  sectionLead: {
+    gap: 6,
+    marginTop: 16,
+    paddingTop: 20,
+    paddingHorizontal: 14,
+  },
+  sectionLeadTitle: { fontSize: 18, fontWeight: '600', color: TEXT },
+  sectionLeadSub: { fontSize: 12, fontWeight: '500', color: MUTED },
 
   // ---------------------------------------------------------
   // Sections
   // ---------------------------------------------------------
-  section: { gap: 12 },
+  section: {
+    gap: 20,
+    marginTop: 6,
+    paddingTop: 20,
+    paddingBottom: 14,
+    paddingHorizontal: 14,
+  },
   sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
   },
-  sectionTitle: { fontSize: 16, fontWeight: '900', color: TEXT },
-  sectionLink: { fontSize: 12, fontWeight: '900', color: BRAND_DEEP },
+  sectionTitle: { fontSize: 14, fontWeight: '600', color: TEXT },
+  sectionLink: { fontSize: 12, fontWeight: '700', color: BRAND_DEEP },
 
   // ---------------------------------------------------------
   // Today Photo Card
   // ---------------------------------------------------------
   photoCard: {
-    height: 160,
+    height: 250,
     borderRadius: 20,
     overflow: 'hidden',
     backgroundColor: SURFACE_SOFT,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: 'rgba(0,0,0,0.06)',
   },
   photoImage: { width: '100%', height: '100%', position: 'absolute' },
-  photoPlaceholder: { flex: 1, backgroundColor: BRAND_SOFT },
+  photoPlaceholder: { flex: 1, backgroundColor: 'rgba(0,0,0,0.06)' },
 
-  // 보라 tint overlay (그라데이션 느낌은 레이어 2장으로 흉내)
   photoOverlayTint: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(109,124,255,0.14)',
+    ...ABS_FILL,
+    backgroundColor: 'rgba(0,0,0,0.2)',
   },
   photoOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
     padding: 14,
-    backgroundColor: 'rgba(11,18,32,0.22)',
+    backgroundColor: 'rgba(0,0,0,0.26)',
   },
   photoOverlayTitle: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
   photoOverlaySub: {
@@ -420,72 +441,100 @@ export const styles = StyleSheet.create({
   },
 
   // ---------------------------------------------------------
-  // Recent (Header)
+  // ✅ Today Records (Slider)
   // ---------------------------------------------------------
-  recentHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 1,
+  todayRecordsWrap: {
+    // 섹션 안에서 슬라이드가 자연스럽게 보이도록
+    marginTop: -6,
   },
-  moreBtnText: { fontSize: 11, fontWeight: '900', color: BRAND_DEEP },
+  todayRecordsContent: {
+    paddingLeft: 0, // section paddingHorizontal(14) 안쪽에서 시작
+  },
 
-  // ---------------------------------------------------------
-  // Recent (List)
-  // ---------------------------------------------------------
-  recentList: { gap: 12 },
-
-  recentItem: {
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: BORDER,
+  // 카드 자체(정사각 5:5)
+  todayRecordCard: {
+    borderRadius: 20,
+    overflow: 'hidden',
     backgroundColor: SURFACE,
-    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.06)',
+    shadowColor: '#000000',
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 1,
   },
 
-  recentThumb: {
-    height: 210,
+  // 상단 이미지 영역
+  todayRecordMedia: {
+    flex: 1,
     backgroundColor: SURFACE_SOFT,
-    overflow: 'hidden',
   },
-  recentThumbImg: { width: '100%', height: '100%' },
-  recentThumbPlaceholder: { flex: 1, backgroundColor: BRAND_SOFT },
-
-  // ✅ tsx에서 올려둔 tint 레이어
-  recentThumbTint: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(109,124,255,0.08)',
+  todayRecordImg: {
+    ...ABS_FILL,
+    width: '100%',
+    height: '100%',
+  },
+  todayRecordImgPlaceholder: {
+    ...ABS_FILL,
+    backgroundColor: 'rgba(0,0,0,0.6)',
   },
 
-  recentInfo: {
+  // ✅ 상단 오버레이 거의 없음
+  todayRecordTopTint: {
+    ...ABS_FILL,
+    backgroundColor: 'rgba(0,0,0,0.22)',
+  },
+
+  // ✅ 하단 오버레이(밑으로 내려갈수록 더 어둡게 느끼는 톤)
+  todayRecordBottomTint: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '100%',
+    backgroundColor: 'rgba(0,0,0,0.22)',
+  },
+
+  // ✅ 이미지 위 오버레이 텍스트 영역(흰색 바닥 제거)
+  todayRecordOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     paddingHorizontal: 12,
     paddingTop: 10,
-    paddingBottom: 10,
+    paddingBottom: 12,
     gap: 6,
   },
-  recentTitle: {
+
+  // ✅ 썸네일형: 텍스트는 흰색 계열
+  todayRecordTitle: {
     fontSize: 13,
     fontWeight: '900',
-    color: TEXT,
-    textAlign: 'center',
+    color: '#FFFFFF',
   },
-  recentContent: {
+  todayRecordContent: {
     fontSize: 11,
     fontWeight: '700',
-    color: MUTED,
-    textAlign: 'center',
+    color: 'rgba(255,255,255,0.92)',
     lineHeight: 15,
   },
-  recentMetaRow: { flexDirection: 'row', alignItems: 'center' },
-  recentDate: {
+
+  todayRecordMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  todayRecordDate: {
     fontSize: 10,
     fontWeight: '800',
-    color: 'rgba(85,96,112,0.65)',
+    color: 'rgba(255,255,255,1)',
     textAlign: 'right',
   },
 
   // ---------------------------------------------------------
-  // CTA Button
+  // CTA Button / Empty Box
   // ---------------------------------------------------------
   recordBtn: {
     height: 46,
@@ -493,29 +542,26 @@ export const styles = StyleSheet.create({
     backgroundColor: BRAND_DEEP,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 6,
+    marginTop: 8,
     shadowColor: BRAND_DEEP,
-    shadowOpacity: 0.18,
+    shadowOpacity: 0.16,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 10 },
     elevation: 2,
   },
   recordBtnText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
 
-  // ---------------------------------------------------------
-  // Empty Box
-  // ---------------------------------------------------------
   emptyBox: {
     borderRadius: 18,
     padding: 14,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: 'rgba(0,0,0,0.06)',
     backgroundColor: SURFACE,
     gap: 6,
   },
-  emptyTitle: { fontSize: 13, fontWeight: '900', color: TEXT },
+  emptyTitle: { fontSize: 13, fontWeight: '600', color: TEXT },
   emptyDesc: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     color: MUTED,
     lineHeight: 15,

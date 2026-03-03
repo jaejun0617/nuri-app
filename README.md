@@ -340,6 +340,19 @@ hydrate(AsyncStorage)
 - Hook/스토어 안정성:
   - pet 변경 시 UI 상태(아코디언/최근기록 확장)를 초기화하여 snapshot 흔들림을 줄였다.
 
+## Chapter X. LoggedInHome 상단 UI 톤 고정(화이트 + 보라)
+
+로그인 홈(LoggedInHome)의 상단 영역을 스크린샷/Tailwind 시안과 동일한 톤으로 재구성했다.
+
+- 헤더: `{nickname}님, 반가워요!` + 서브 문구 + 검색/알림 아이콘 UI 자리 추가
+- 멀티펫 스위처: 최대 4개 + 추가 버튼, 활성 썸네일은 보라 링/은은한 글로우로 강조
+- HERO 카드: flat 카드 + soft border/shadow로 정돈하고, 아바타 보라 glow/화이트 링을 적용
+- 함께한 시간 pill: 숫자 강조(굵기/크기) + 보라 포인트로 감성 강조
+- 아코디언: 모두 펼치기/개별 펼치기 + 리스트/태그 chip 형태로 통일
+- 오늘의 메시지: 과한 “떠있는 카드” 대신 border + soft shadow + 아이콘으로 깔끔하게 배치
+- 오늘날의 사진: 보라 tint overlay로 회색 톤을 제거하고 전체 UI 컬러 일관성 확보
+- 안정성: recordStore는 `byPetId[activePetId]` 직접 구독 + fallback 동일 참조 유지, pet 변경 시 UI state 초기화
+
 # 🚀 Next
 
 ## Chapter 7 — 서버 검색(제목/태그) + 인덱스/정렬 안정화 + 섹션 점프 고도화

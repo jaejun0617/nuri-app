@@ -3,6 +3,7 @@
 // - memory-images 버킷의 signed URL 생성 + TTL 캐싱(핵심)
 // - 동일 imagePath 반복 요청 시 네트워크 재호출 방지
 // - New Architecture 안정성 + 대량 리스트(타임라인) 성능 최적화
+// - ✅ memory-images 업로드(uploadMemoryImage) 포함(RecordCreate에서 사용)
 //
 // ✅ 캐싱/성능 규칙 (Chapter 6 확정)
 // 1) key = imagePath(= storage path)
@@ -11,6 +12,8 @@
 // 4) inFlight dedupe: 동일 path 동시 요청은 1번만 네트워크 호출
 // 5) prefetch: 상단 N개만, 캐시 히트는 스킵, 실패는 무시(UX 안전)
 
+import { Buffer } from 'buffer';
+import RNBlobUtil from 'react-native-blob-util';
 import { supabase } from './client';
 
 type CacheEntry = {
@@ -32,7 +35,7 @@ const REFRESH_BUFFER_MS = 60 * 1000; // 만료 60초 전부터 갱신
 const DEFAULT_MAX_CACHE_SIZE = 350;
 
 // ---------------------------------------------------------
-// 0) internal: LRU helpers
+// 0) internal helpers
 // ---------------------------------------------------------
 function nowMs() {
   return Date.now();
@@ -48,7 +51,6 @@ function touch(key: string) {
 function pruneLRU(maxSize = DEFAULT_MAX_CACHE_SIZE) {
   if (cache.size <= maxSize) return;
 
-  // 가장 오래된 touchedAtMs부터 제거
   const entries = Array.from(cache.entries());
   entries.sort((a, b) => a[1].touchedAtMs - b[1].touchedAtMs);
 
@@ -65,6 +67,19 @@ function isFreshEnough(entry: CacheEntry, bufferMs = REFRESH_BUFFER_MS) {
 
 function normalizePath(p: string | null | undefined) {
   return (p ?? '').trim();
+}
+
+function normalizeFileUri(uri: string) {
+  // RNBlobUtil.fs.readFile: 환경에 따라 file:// 제거가 더 안전
+  return uri.startsWith('file://') ? uri.replace('file://', '') : uri;
+}
+
+function inferExtFromMime(mimeType: string | null) {
+  const mt = (mimeType ?? '').toLowerCase();
+  if (mt.includes('png')) return 'png';
+  if (mt.includes('webp')) return 'webp';
+  if (mt.includes('heic') || mt.includes('heif')) return 'heic';
+  return 'jpg';
 }
 
 // ---------------------------------------------------------
@@ -116,9 +131,7 @@ export async function getMemoryImageSignedUrlCached(
 
   // 2) inFlight dedupe
   const inflight = inFlight.get(path);
-  if (inflight) {
-    return inflight.then(u => u).catch(() => null);
-  }
+  if (inflight) return inflight.then(u => u).catch(() => null);
 
   // 3) fetch & store
   const promise = (async () => {
@@ -170,7 +183,6 @@ export async function prefetchMemorySignedUrls(input: {
 
   if (unique.length === 0) return;
 
-  // ✅ 캐시 fresh hit은 네트워크 스킵
   const targets = unique.filter(p => {
     const hit = cache.get(p);
     if (!hit) return true;
@@ -195,7 +207,49 @@ export function clearMemorySignedUrlCache() {
   inFlight.clear();
 }
 
-// 디버그/운영 지표용(필요 시)
 export function getMemorySignedUrlCacheSize() {
   return cache.size;
+}
+
+// ---------------------------------------------------------
+// 4) upload: memory-images 업로드 (✅ 안전 버전: Buffer base64 decode)
+// - RecordCreateScreen에서 사용하는 함수
+// - DB에는 path만 저장하고, 렌더는 signedUrl로 처리
+// ---------------------------------------------------------
+type UploadMemoryImageParams = {
+  userId: string;
+  petId: string;
+  memoryId: string;
+  fileUri: string; // file://...
+  mimeType: string | null; // image/jpeg 등
+};
+
+export async function uploadMemoryImage({
+  userId,
+  petId,
+  memoryId,
+  fileUri,
+  mimeType,
+}: UploadMemoryImageParams): Promise<{ path: string }> {
+  const ext = inferExtFromMime(mimeType);
+  const path = `${userId}/${petId}/${memoryId}.${ext}`;
+
+  // 1) 로컬 파일 → base64
+  const filePath = normalizeFileUri(fileUri);
+  const base64 = await RNBlobUtil.fs.readFile(filePath, 'base64');
+
+  // 2) base64 → bytes (✅ RN에서 atob 의존 제거)
+  const bytes = Buffer.from(base64, 'base64');
+
+  // 3) upload (upsert)
+  const { error } = await supabase.storage
+    .from('memory-images')
+    .upload(path, bytes, {
+      contentType: mimeType ?? 'image/jpeg',
+      upsert: true,
+    });
+
+  if (error) throw error;
+
+  return { path };
 }

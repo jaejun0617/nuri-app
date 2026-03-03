@@ -3,10 +3,9 @@
 // - memory(기록) 생성
 // - ✅ 저장 직후 홈/타임라인에 "즉시" 보이도록 optimistic upsert 적용
 // - 이후 refresh로 서버와 동기화(이미지 signed url 포함)
+// - ✅ 탭 구조에서 폼이 남는 문제 방지: focus/reset + 성공 후 reset
 
-// NOTE: UI 스타일은 기존 그대로 유지
-
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
   Image,
@@ -16,7 +15,11 @@ import {
   View,
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import {
+  useNavigation,
+  useRoute,
+  useFocusEffect,
+} from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { supabase } from '../../services/supabase/client';
@@ -24,7 +27,7 @@ import {
   createMemory,
   updateMemoryImagePath,
   type EmotionTag,
-  fetchMemoryById, // ✅ 추가
+  fetchMemoryById,
 } from '../../services/supabase/memories';
 import { uploadMemoryImage } from '../../services/supabase/storageMemories';
 import { useRecordStore } from '../../store/recordStore';
@@ -90,6 +93,28 @@ export default function RecordCreateScreen() {
   const disabled = saving || trimmedTitle.length === 0 || !petId;
 
   // ---------------------------------------------------------
+  // 3.5) reset helpers (✅ 탭/재진입 안정화)
+  // ---------------------------------------------------------
+  const resetForm = useCallback(() => {
+    setTitle('');
+    setContent('');
+    setOccurredAt('');
+    setTagsText('');
+    setEmotion(null);
+    setImageUri(null);
+    setImageType(null);
+    setSaving(false);
+  }, []);
+
+  // ✅ 화면 포커스될 때 폼 초기화 (탭 구조에서 state 잔상 방지)
+  useFocusEffect(
+    useCallback(() => {
+      resetForm();
+      return () => {};
+    }, [resetForm]),
+  );
+
+  // ---------------------------------------------------------
   // 4) helpers
   // ---------------------------------------------------------
   const parseTags = (raw: string) => {
@@ -126,6 +151,8 @@ export default function RecordCreateScreen() {
   };
 
   const pickImage = async () => {
+    if (saving) return;
+
     const res = await launchImageLibrary({
       mediaType: 'photo',
       selectionLimit: 1,
@@ -183,19 +210,21 @@ export default function RecordCreateScreen() {
         await updateMemoryImagePath({ memoryId, imagePath: path });
       }
 
-      // ✅ 3) optimistic: 단건 조회 후 store에 즉시 반영
-      // - signed url까지 포함된 완전한 형태로 upsert
+      // 3) optimistic upsert
       try {
         const created = await fetchMemoryById(memoryId);
         upsertOneLocal(petId, created);
       } catch {
-        // 단건 조회 실패해도 UX는 유지, refresh로 최종 동기화
+        // ignore
       }
 
-      // ✅ 4) 서버 동기화(백그라운드)
+      // 4) background refresh
       refresh(petId).catch(() => {});
 
-      // 5) TimelineTab 이동
+      // ✅ 5) 성공 후 폼 리셋(탭에 남아있는 값 제거)
+      resetForm();
+
+      // 6) 이동
       navigation.navigate('TimelineTab');
     } catch (e: any) {
       Alert.alert('기록 저장 실패', e?.message ?? '다시 시도해 주세요.');

@@ -4,19 +4,29 @@
 // - 상단: 닉네임 인사 + 우측 아이콘(검색/알림 UI) + 멀티펫 스위처(최대 4 + +버튼)
 // - 프로필 카드: 보라 glow avatar + 메타 + 생년월일 + 함께한 시간 pill
 // - 아코디언: 모두펼치기/개별 펼치기 + 리스트/태그 chip
-// - 섹션 시작: "{pet}와의 소중한 기록" + "오늘날의 사진(전체보기)" + 보라 overlay
-// - 최근 기록(기존 로직 유지)
+// - 섹션 시작: "{pet}와의 소중한 기록"
+// - "오늘날의 사진(전체보기)"
+// - ✅ "오늘날의 기록(전체보기)" : 가로 슬라이드(정사각 5:5, 옆 카드 살짝 보임)
 //
 // ✅ 훅/스토어 안정성(필수)
 // - recordStore 구독: byPetId[activePetId] 직접 접근
 // - fallback 동일 참조(FALLBACK_RECORDS_STATE / Object.freeze)
-// - activePetId 변경 시 UI 상태 초기화(최근기록 확장/아코디언/오늘사진)
+// - activePetId 변경 시 UI 상태 초기화(아코디언/오늘사진)
 
 import React, { useEffect, useMemo, useCallback, useState } from 'react';
-import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import {
+  Dimensions,
+  FlatList,
+  Image,
+  ListRenderItemInfo,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-
+import Feather from 'react-native-vector-icons/Feather';
 import Animated, {
   Easing,
   runOnJS,
@@ -35,7 +45,6 @@ import {
   pickTodayPhoto,
   generateTimeMessage,
 } from '../../../../services/home/homeRecall';
-
 import { styles } from './LoggedInHome.styles';
 
 type Nav = NativeStackNavigationProp<any>;
@@ -155,11 +164,8 @@ const FALLBACK_RECORDS_STATE: PetRecordsStateShape = Object.freeze({
   hasMore: false,
 });
 
-// 최근기록 표시 개수 규칙
-const RECENT_BASE = 7;
-const RECENT_EXPANDED = 14;
-
-type AccordionKey = 'hobby' | 'like' | 'dislike' | 'tag';
+// ✅ 오늘날의 기록 슬라이드 규칙
+const TODAY_RECORDS_MAX = 10;
 
 export default function LoggedInHome() {
   // ---------------------------------------------------------
@@ -215,7 +221,7 @@ export default function LoggedInHome() {
   const [switching, setSwitching] = useState(false);
 
   const OUT_OPACITY = 0.92;
-  const OUT_LIFT_PX = 6;
+  const OUT_LIFT_PX = 0.1;
 
   const svOpacity = useSharedValue(1);
   const svTranslateY = useSharedValue(0);
@@ -242,42 +248,6 @@ export default function LoggedInHome() {
     if (!activePetId) return;
     bootstrapRecords(activePetId);
   }, [bootstrapRecords, activePetId]);
-
-  // ---------------------------------------------------------
-  // 4.1) 최근기록 "더보기" 상태 (pet 변경 시 초기화)
-  // ---------------------------------------------------------
-  const [recentExpanded, setRecentExpanded] = useState(false);
-  useEffect(() => {
-    setRecentExpanded(false);
-  }, [activePetId]);
-
-  // ---------------------------------------------------------
-  // 4.2) 최근 기록 계산
-  // ---------------------------------------------------------
-  const showMoreBtn = useMemo(
-    () => safeRecordsState.items.length > RECENT_BASE + 1,
-    [safeRecordsState.items.length],
-  );
-
-  const visibleRecentCount = useMemo(
-    () => (recentExpanded ? RECENT_EXPANDED : RECENT_BASE),
-    [recentExpanded],
-  );
-
-  const recentItems = useMemo(
-    () => safeRecordsState.items.slice(0, visibleRecentCount),
-    [safeRecordsState.items, visibleRecentCount],
-  );
-
-  const hasMoreAfterExpanded = useMemo(() => {
-    if (!recentExpanded) return false;
-    return safeRecordsState.items.length > RECENT_EXPANDED;
-  }, [recentExpanded, safeRecordsState.items.length]);
-
-  const moreBtnLabel = useMemo(() => {
-    if (!recentExpanded) return '더보기';
-    return hasMoreAfterExpanded ? '타임라인' : '더보기';
-  }, [recentExpanded, hasMoreAfterExpanded]);
 
   // ---------------------------------------------------------
   // 4.3) today message / today photo
@@ -319,6 +289,30 @@ export default function LoggedInHome() {
     if (todayPhoto.mode === 'random') return '오늘 꺼내보는 한 장';
     return '오늘의 사진';
   }, [todayPhoto.mode]);
+
+  // ---------------------------------------------------------
+  // ✅ 4.4) 오늘날의 기록(슬라이드) 데이터
+  // ---------------------------------------------------------
+  const todayRecords = useMemo(() => {
+    return safeRecordsState.items.slice(0, TODAY_RECORDS_MAX);
+  }, [safeRecordsState.items]);
+
+  // ---------------------------------------------------------
+  // ✅ 4.5) 슬라이드 레이아웃 계산(옆 카드 살짝 보이게)
+  // - 5:5 정사각 카드
+  // ---------------------------------------------------------
+  const { width: SCREEN_W } = Dimensions.get('window');
+  const SLIDE_GAP = 12;
+
+  // screen padding: scrollContent(16) + section paddingHorizontal(14) ≈ 30
+  // 너무 빡세게 계산하면 기기별 오차가 생겨서 "안전값"으로 고정
+  const CARD_W = useMemo(() => {
+    const usable = SCREEN_W - 16 * 2; // scrollContent padding 기준
+    const w = Math.floor(usable * 0.82); // 옆 카드 살짝 보이는 폭
+    return Math.max(260, Math.min(w, 340));
+  }, [SCREEN_W]);
+
+  const SNAP = CARD_W + SLIDE_GAP;
 
   // ---------------------------------------------------------
   // 5) HERO derived
@@ -482,21 +476,12 @@ export default function LoggedInHome() {
     ],
   );
 
-  const onPressRecentMore = useCallback(() => {
-    if (!recentExpanded) {
-      setRecentExpanded(true);
-      return;
-    }
-    if (hasMoreAfterExpanded) {
-      onPressTimeline();
-      return;
-    }
-  }, [recentExpanded, hasMoreAfterExpanded, onPressTimeline]);
-
   // ---------------------------------------------------------
   // 8) Accordion state (✅ pet 변경 시 초기화)
   // ---------------------------------------------------------
-  const [acc, setAcc] = useState<Record<AccordionKey, boolean>>({
+  const [acc, setAcc] = useState<
+    Record<'hobby' | 'like' | 'dislike' | 'tag', boolean>
+  >({
     hobby: false,
     like: false,
     dislike: false,
@@ -518,12 +503,68 @@ export default function LoggedInHome() {
     });
   }, []);
 
-  const onToggleOne = useCallback((key: AccordionKey) => {
-    setAcc(prev => ({ ...prev, [key]: !prev[key] }));
-  }, []);
+  const onToggleOne = useCallback(
+    (key: 'hobby' | 'like' | 'dislike' | 'tag') => {
+      setAcc(prev => ({ ...prev, [key]: !prev[key] }));
+    },
+    [],
+  );
 
   // ---------------------------------------------------------
-  // 9) render
+  // ✅ 9) slide render
+  // ---------------------------------------------------------
+  const renderTodayRecord = useCallback(
+    ({ item }: ListRenderItemInfo<MemoryRecord>) => {
+      const ymd = getRecordYmdDots(item);
+      const title = item.title?.trim() ? item.title : '제목 없음';
+      const content = toSnippet(item.content, 44);
+
+      return (
+        <TouchableOpacity
+          activeOpacity={0.92}
+          style={[styles.todayRecordCard, { width: CARD_W, height: CARD_W }]}
+          onPress={() => onPressRecordItem(item.id)}
+        >
+          <View style={styles.todayRecordMedia}>
+            {item.imageUrl ? (
+              <Image
+                source={{ uri: item.imageUrl }}
+                style={styles.todayRecordImg}
+              />
+            ) : (
+              <View style={styles.todayRecordImgPlaceholder} />
+            )}
+
+            {/* ✅ 상단은 거의 투명(오버레이 최소) */}
+            <View style={styles.todayRecordTopTint} />
+
+            {/* ✅ 하단은 오버레이 느낌(밑으로 내려갈수록 어두움) */}
+            <View style={styles.todayRecordBottomTint} />
+
+            {/* ✅ 텍스트는 이미지 위에 얹는다(흰색 바닥 제거) */}
+            <View style={styles.todayRecordOverlay}>
+              <Text style={styles.todayRecordTitle} numberOfLines={1}>
+                {title}
+              </Text>
+              <Text style={styles.todayRecordContent} numberOfLines={2}>
+                {content}
+              </Text>
+              <View style={styles.todayRecordMetaRow}>
+                <View style={{ flex: 1 }} />
+                <Text style={styles.todayRecordDate}>{ymd}</Text>
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
+      );
+    },
+    [CARD_W, onPressRecordItem],
+  );
+
+  const keyExtractor = useCallback((it: MemoryRecord) => it.id, []);
+
+  // ---------------------------------------------------------
+  // 10) render
   // ---------------------------------------------------------
   return (
     <Screen style={styles.screen}>
@@ -550,7 +591,7 @@ export default function LoggedInHome() {
                   // TODO: 검색 연결
                 }}
               >
-                <Text style={styles.headerIconText}>⌕</Text>
+                <Feather name="search" size={18} color="rgba(11,18,32,0.75)" />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -560,7 +601,7 @@ export default function LoggedInHome() {
                   // TODO: 알림 연결
                 }}
               >
-                <Text style={styles.headerIconText}>🔔</Text>
+                <Feather name="bell" size={18} color="rgba(11,18,32,0.75)" />
               </TouchableOpacity>
             </View>
           </View>
@@ -595,7 +636,7 @@ export default function LoggedInHome() {
               style={styles.petAddChip}
               onPress={onPressAddPet}
             >
-              <Text style={styles.petAddPlus}>＋</Text>
+              <Feather name="plus" size={20} color="#5D04D9" />
             </TouchableOpacity>
           </View>
         </View>
@@ -614,7 +655,7 @@ export default function LoggedInHome() {
                 // TODO: PetEdit/Settings 라우트 연결 (다음 챕터)
               }}
             >
-              <Text style={styles.heroGearText}>⚙︎</Text>
+              <Feather name="settings" size={16} color="rgba(11,18,32,0.55)" />
             </TouchableOpacity>
 
             <View style={styles.heroCenter}>
@@ -675,7 +716,11 @@ export default function LoggedInHome() {
               >
                 <Text style={styles.accordionAllLabel}>모두펼치기</Text>
                 <Text style={styles.accordionAllIcon}>
-                  {allExpanded ? '＾' : '˅'}
+                  <Feather
+                    name={allExpanded ? 'chevron-up' : 'chevron-down'}
+                    size={18}
+                    color="#5D04D9"
+                  />
                 </Text>
               </TouchableOpacity>
 
@@ -695,10 +740,16 @@ export default function LoggedInHome() {
                     >
                       <Text style={styles.accordionIconText}>🐾</Text>
                     </View>
-                    <Text style={styles.accordionTitle}>취미</Text>
+                    <Text style={[styles.accordionTitle, styles.accTitleBlue]}>
+                      취미
+                    </Text>
                   </View>
                   <Text style={styles.accordionChevron}>
-                    {acc.hobby ? '＾' : '˅'}
+                    <Feather
+                      name={acc.hobby ? 'chevron-up' : 'chevron-down'}
+                      size={18}
+                      color="#5D04D9"
+                    />
                   </Text>
                 </TouchableOpacity>
 
@@ -733,11 +784,17 @@ export default function LoggedInHome() {
                     >
                       <Text style={styles.accordionIconText}>💛</Text>
                     </View>
-                    <Text style={styles.accordionTitle}>좋아하는 것</Text>
+                    <Text
+                      style={[styles.accordionTitle, styles.accTitleOrange]}
+                    >
+                      좋아하는 것
+                    </Text>
                   </View>
-                  <Text style={styles.accordionChevron}>
-                    {acc.like ? '＾' : '˅'}
-                  </Text>
+                  <Feather
+                    name={acc.like ? 'chevron-up' : 'chevron-down'}
+                    size={18}
+                    color="#5D04D9"
+                  />
                 </TouchableOpacity>
 
                 {acc.like ? (
@@ -771,11 +828,15 @@ export default function LoggedInHome() {
                     >
                       <Text style={styles.accordionIconText}>💔</Text>
                     </View>
-                    <Text style={styles.accordionTitle}>싫어하는 것</Text>
+                    <Text style={[styles.accordionTitle, styles.accTitlePink]}>
+                      싫어하는 것
+                    </Text>
                   </View>
-                  <Text style={styles.accordionChevron}>
-                    {acc.dislike ? '＾' : '˅'}
-                  </Text>
+                  <Feather
+                    name={acc.dislike ? 'chevron-up' : 'chevron-down'}
+                    size={18}
+                    color="#5D04D9"
+                  />
                 </TouchableOpacity>
 
                 {acc.dislike ? (
@@ -807,13 +868,19 @@ export default function LoggedInHome() {
                         styles.iconCirclePurple,
                       ]}
                     >
-                      <Text style={styles.accordionIconText}>#</Text>
+                      <Feather name="hash" size={16} color="#5D04D9" />
                     </View>
-                    <Text style={styles.accordionTitle}>#태그</Text>
+                    <Text
+                      style={[styles.accordionTitle, styles.accTitlePurple]}
+                    >
+                      #태그
+                    </Text>
                   </View>
-                  <Text style={styles.accordionChevron}>
-                    {acc.tag ? '＾' : '˅'}
-                  </Text>
+                  <Feather
+                    name={acc.tag ? 'chevron-up' : 'chevron-down'}
+                    size={18}
+                    color="#5D04D9"
+                  />
                 </TouchableOpacity>
 
                 {acc.tag ? (
@@ -830,7 +897,7 @@ export default function LoggedInHome() {
               </View>
             </View>
 
-            {/* 오늘의 메시지 (스크린샷 톤: soft border + subtle shadow) */}
+            {/* 오늘의 메시지 */}
             <View style={styles.heroMessageBox}>
               <View style={styles.heroMessageIcon}>
                 <Text style={styles.heroMessageIconText}>🌙</Text>
@@ -849,7 +916,7 @@ export default function LoggedInHome() {
             </Text>
           </View>
 
-          {/* 오늘날의 사진 (전체보기) */}
+          {/* 오늘날의 사진 */}
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionTitle}>오늘날의 사진</Text>
@@ -876,10 +943,8 @@ export default function LoggedInHome() {
                 <View style={styles.photoPlaceholder} />
               )}
 
-              {/* ✅ 보라 tint 오버레이 */}
               <View style={styles.photoOverlayTint} />
 
-              {/* 하단 텍스트 */}
               <View style={styles.photoOverlay}>
                 <Text style={styles.photoOverlayTitle}>
                   {todayPhotoOverlayTitle}
@@ -893,24 +958,16 @@ export default function LoggedInHome() {
             </TouchableOpacity>
           </View>
 
-          {/* 최근 기록 */}
+          {/* ✅ 오늘날의 기록 (슬라이드) */}
           <View style={styles.section}>
-            <View style={styles.recentHeaderRow}>
-              <Text style={styles.sectionTitle}>최근 기록</Text>
-
-              {showMoreBtn ? (
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  onPress={onPressRecentMore}
-                >
-                  <Text style={styles.moreBtnText}>{moreBtnLabel}</Text>
-                </TouchableOpacity>
-              ) : (
-                <View />
-              )}
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>오늘날의 기록</Text>
+              <TouchableOpacity activeOpacity={0.85} onPress={onPressTimeline}>
+                <Text style={styles.sectionLink}>전체보기</Text>
+              </TouchableOpacity>
             </View>
 
-            {recentItems.length === 0 ? (
+            {todayRecords.length === 0 ? (
               <View style={styles.emptyBox}>
                 <Text style={styles.emptyTitle}>아직 기록이 없어요</Text>
                 <Text style={styles.emptyDesc}>첫 번째 추억을 남겨보세요.</Text>
@@ -924,47 +981,29 @@ export default function LoggedInHome() {
                 </TouchableOpacity>
               </View>
             ) : (
-              <View style={styles.recentList}>
-                {recentItems.map(item => {
-                  const ymd = getRecordYmdDots(item);
-                  const title = item.title?.trim() ? item.title : '제목 없음';
-                  const content = toSnippet(item.content, 46);
-
-                  return (
-                    <TouchableOpacity
-                      key={item.id}
-                      activeOpacity={0.92}
-                      style={styles.recentItem}
-                      onPress={() => onPressRecordItem(item.id)}
-                    >
-                      <View style={styles.recentThumb}>
-                        {item.imageUrl ? (
-                          <Image
-                            source={{ uri: item.imageUrl }}
-                            style={styles.recentThumbImg}
-                          />
-                        ) : (
-                          <View style={styles.recentThumbPlaceholder} />
-                        )}
-                        <View style={styles.recentThumbTint} />
-                      </View>
-
-                      <View style={styles.recentInfo}>
-                        <Text style={styles.recentTitle} numberOfLines={1}>
-                          {title}
-                        </Text>
-                        <Text style={styles.recentContent} numberOfLines={2}>
-                          {content}
-                        </Text>
-
-                        <View style={styles.recentMetaRow}>
-                          <View style={{ flex: 1 }} />
-                          <Text style={styles.recentDate}>{ymd}</Text>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
+              <View style={styles.todayRecordsWrap}>
+                <FlatList
+                  data={todayRecords}
+                  keyExtractor={keyExtractor}
+                  renderItem={renderTodayRecord}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  snapToInterval={SNAP}
+                  decelerationRate="fast"
+                  bounces={false}
+                  contentContainerStyle={[
+                    styles.todayRecordsContent,
+                    { paddingRight: 16 }, // 마지막 카드 여백
+                  ]}
+                  ItemSeparatorComponent={() => (
+                    <View style={{ width: SLIDE_GAP }} />
+                  )}
+                  getItemLayout={(_, index) => ({
+                    length: SNAP,
+                    offset: SNAP * index,
+                    index,
+                  })}
+                />
               </View>
             )}
           </View>
