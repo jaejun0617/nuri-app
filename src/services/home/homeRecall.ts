@@ -98,5 +98,5 @@ export function generateTimeMessage(petName?: string | null) {
     return `☀️ ${name}가 웃던 순간을 살짝 떠올려볼까요? 작은 행복 충전 시간이에요.`;
   }
 
-  return `🌙 ${name}와 보낸 하루를 꼭 안고, 따뜻하게 마무리해요.`;
+  return `${name}와 보낸 하루를 꼭 안고, 따뜻하게 마무리해요.`;
 }

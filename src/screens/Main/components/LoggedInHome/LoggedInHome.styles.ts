@@ -1,23 +1,28 @@
 // 파일: src/screens/Main/components/LoggedInHome/LoggedInHome.styles.ts
 // 목적:
-// - LoggedInHome 전용 스타일 (흰색 + 보라색 통일)
-// - HERO: 과한 "떠있는 카드" 제거(Flat + border)
-// - Avatar: 퍼진 보라 shadow/glow + white ring
-// - 오늘의 메시지: 아래 보라 tint + shadow
-// - 아코디언: "모두펼치기" + 개별 펼치기
-// - "누리와의 소중한 기록" + "오늘날의 사진(전체보기)" 시작
+// - LoggedInHome 전용 스타일 (흰색 + 보라색 통일, 스크린샷 톤)
+// - Header: 텍스트 + 우측 아이콘(검색/알림) + 멀티펫 스위처
+// - HERO: flat 카드 + soft border/shadow + avatar glow + together pill
+// - Accordion: 모두펼치기 + 개별 토글 + 리스트/태그 chip
+// - Today Message: subtle border + soft shadow + icon
+// - Today Photo: 보라 overlay tint + 하단 텍스트
+// - Recent: 카드 톤 통일 + 썸네일 tint
 
 import { StyleSheet } from 'react-native';
 
-const BRAND = '#6d28d9';
-const BRAND_DARK = '#5A67FF';
+const BRAND = '#6D7CFF'; // 브랜드 포인트 (요구사항)
+const BRAND_DEEP = '#5A67FF';
+const BRAND_SOFT = 'rgba(109,124,255,0.12)';
+
 const TEXT = '#0B1220';
 const MUTED = '#556070';
 const MUTED2 = 'rgba(85,96,112,0.70)';
-const BORDER = 'rgba(109,124,255,0.18)';
-const BORDER2 = 'rgba(0,0,0,0.06)';
+
 const SURFACE = '#FFFFFF';
 const SURFACE_SOFT = '#F6F7FB';
+
+const BORDER = 'rgba(109,124,255,0.18)';
+const BORDER2 = 'rgba(0,0,0,0.06)';
 
 export const styles = StyleSheet.create({
   // ---------------------------------------------------------
@@ -27,7 +32,7 @@ export const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: SURFACE },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 10,
     paddingBottom: 28,
     gap: 14,
   },
@@ -36,7 +41,12 @@ export const styles = StyleSheet.create({
   // Header
   // ---------------------------------------------------------
   header: { gap: 10, marginBottom: 4 },
-  headerTextArea: { gap: 4 },
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  headerTextArea: { gap: 4, paddingTop: 2, flex: 1 },
   title: { fontSize: 18, fontWeight: '900', color: TEXT },
   subTitle: {
     fontSize: 12,
@@ -45,10 +55,29 @@ export const styles = StyleSheet.create({
     lineHeight: 16,
   },
 
+  headerIcons: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  headerIconBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.04)',
+  },
+  headerIconText: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: 'rgba(11,18,32,0.75)',
+    marginTop: -1,
+  },
+
   // ---------------------------------------------------------
   // Pet Switcher
   // ---------------------------------------------------------
   petSwitcherRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+
   petChip: {
     width: 40,
     height: 40,
@@ -58,25 +87,31 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: BORDER2,
   },
-  petChipActive: { borderColor: BRAND, borderWidth: 2 },
+  // ✅ active: 보라 링 + 은은 글로우 느낌
+  petChipActive: {
+    borderColor: BRAND,
+    borderWidth: 2,
+    shadowColor: BRAND,
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
+  },
   petChipImage: { width: '100%', height: '100%' },
-  petChipPlaceholder: { flex: 1, backgroundColor: 'rgba(109,124,255,0.12)' },
+  petChipPlaceholder: { flex: 1, backgroundColor: BRAND_SOFT },
 
   petAddChip: {
     width: 40,
     height: 40,
     borderRadius: 999,
-    backgroundColor: BRAND,
+    backgroundColor: 'rgba(0,0,0,0.04)',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: BRAND,
-    shadowOpacity: 0.28,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: BORDER2,
   },
   petAddPlus: {
-    color: '#FFFFFF',
+    color: BRAND_DEEP,
     fontSize: 18,
     fontWeight: '900',
     marginTop: -1,
@@ -88,9 +123,15 @@ export const styles = StyleSheet.create({
   heroCard: {
     borderRadius: 22,
     padding: 16,
+    backgroundColor: SURFACE,
     borderWidth: 1,
     borderColor: BORDER,
-    backgroundColor: SURFACE,
+    // ✅ 과한 "떠있음" 제거: 아주 얕은 shadow만
+    shadowColor: BRAND,
+    shadowOpacity: 0.07,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 1,
   },
 
   heroGearBtn: {
@@ -116,7 +157,7 @@ export const styles = StyleSheet.create({
     gap: 6,
   },
 
-  // Avatar: 퍼진 보라 glow + ring
+  // Avatar: 퍼진 보라 glow + white ring
   heroAvatarOuter: {
     width: 156,
     height: 156,
@@ -126,15 +167,15 @@ export const styles = StyleSheet.create({
   },
   heroAvatarGlow: {
     position: 'absolute',
-    width: 148,
-    height: 148,
+    width: 150,
+    height: 150,
     borderRadius: 999,
     backgroundColor: 'rgba(109,124,255,0.22)',
     shadowColor: BRAND,
-    shadowOpacity: 0.45,
-    shadowRadius: 22,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 8,
+    shadowOpacity: 0.36,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 6,
   },
   heroAvatarWrap: {
     width: 132,
@@ -173,19 +214,19 @@ export const styles = StyleSheet.create({
     color: 'rgba(85,96,112,0.85)',
   },
 
-  // ✅ 여기부터 이어서(요청하신 부분)
+  // Together pill (스크린샷 톤: 진보라 + 부드러운 그림자)
   heroTogetherPill: {
-    marginTop: 8,
+    marginTop: 10,
     alignSelf: 'center',
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 999,
-    backgroundColor: BRAND,
-    shadowColor: BRAND,
-    shadowOpacity: 0.3,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 4,
+    backgroundColor: BRAND_DEEP,
+    shadowColor: BRAND_DEEP,
+    shadowOpacity: 0.22,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 3,
   },
   heroTogetherText: {
     fontSize: 13,
@@ -200,10 +241,10 @@ export const styles = StyleSheet.create({
   },
 
   // ---------------------------------------------------------
-  // Accordion: Controls
+  // Accordion
   // ---------------------------------------------------------
   accordionWrap: {
-    marginTop: 12,
+    marginTop: 14,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: BORDER,
@@ -223,12 +264,12 @@ export const styles = StyleSheet.create({
   accordionAllLabel: {
     fontSize: 12,
     fontWeight: '900',
-    color: BRAND_DARK,
+    color: BRAND_DEEP,
   },
   accordionAllIcon: {
     fontSize: 14,
     fontWeight: '900',
-    color: BRAND_DARK,
+    color: BRAND_DEEP,
     marginTop: -1,
   },
 
@@ -269,7 +310,7 @@ export const styles = StyleSheet.create({
   accordionBullet: { fontSize: 13, fontWeight: '800', color: MUTED },
   accordionEmpty: { fontSize: 13, fontWeight: '800', color: MUTED2 },
 
-  // Tags (body)
+  // Tags
   tagsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -286,37 +327,48 @@ export const styles = StyleSheet.create({
   tagText: {
     fontSize: 12,
     fontWeight: '900',
-    color: BRAND_DARK,
+    color: BRAND_DEEP,
   },
 
   // ---------------------------------------------------------
-  // Today Message (아래 음영/보라 tint + shadow)
+  // Today Message (스크린샷 톤: border + soft shadow + icon)
   // ---------------------------------------------------------
   heroMessageBox: {
     marginTop: 14,
-    // borderRadius: 18,
+    borderRadius: 18,
     paddingVertical: 14,
     paddingHorizontal: 14,
-    // backgroundColor: 'rgba(109,124,255,0.08)',
-    // borderWidth: 1,
-    // borderColor: 'rgba(109,124,255,0.14)',
-    // shadowColor: BRAND,
-    // shadowOpacity: 0.22,
-    // shadowRadius: 14,
-    shadowOffset: { width: 0, height: 10 },
-    // elevation: 3,
+    backgroundColor: SURFACE,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+    shadowColor: BRAND,
+    shadowOpacity: 0.1,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 2,
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
   },
+  heroMessageIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,196,0,0.12)', // 달 아이콘 옅은 노랑 톤
+  },
+  heroMessageIconText: { fontSize: 16, fontWeight: '900' },
   heroMessageText: {
-    fontSize: 14,
-    fontWeight: '500',
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '800',
     color: TEXT,
-    lineHeight: 20,
-    textAlign: 'center',
+    lineHeight: 18,
   },
 
   // ---------------------------------------------------------
-  // Section: "누리와의 소중한 기록" Header Block
+  // Section Lead
   // ---------------------------------------------------------
   sectionLead: { gap: 6, marginTop: 6 },
   sectionLeadTitle: { fontSize: 22, fontWeight: '900', color: TEXT },
@@ -331,19 +383,11 @@ export const styles = StyleSheet.create({
     alignItems: 'flex-end',
     justifyContent: 'space-between',
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: TEXT,
-  },
-  sectionLink: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: BRAND_DARK,
-  },
+  sectionTitle: { fontSize: 16, fontWeight: '900', color: TEXT },
+  sectionLink: { fontSize: 12, fontWeight: '900', color: BRAND_DEEP },
 
   // ---------------------------------------------------------
-  // Today Photo Card (보라톤 overlay 통일)
+  // Today Photo Card
   // ---------------------------------------------------------
   photoCard: {
     height: 160,
@@ -354,17 +398,18 @@ export const styles = StyleSheet.create({
     borderColor: BORDER,
   },
   photoImage: { width: '100%', height: '100%', position: 'absolute' },
-  photoPlaceholder: { flex: 1, backgroundColor: 'rgba(109,124,255,0.10)' },
+  photoPlaceholder: { flex: 1, backgroundColor: BRAND_SOFT },
 
+  // 보라 tint overlay (그라데이션 느낌은 레이어 2장으로 흉내)
+  photoOverlayTint: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(109,124,255,0.14)',
+  },
   photoOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
     padding: 14,
-    backgroundColor: 'rgba(11,18,32,0.24)',
-  },
-  photoOverlayTint: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(109,124,255,0.12)',
+    backgroundColor: 'rgba(11,18,32,0.22)',
   },
   photoOverlayTitle: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
   photoOverlaySub: {
@@ -383,7 +428,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 1,
   },
-  moreBtnText: { fontSize: 11, fontWeight: '900', color: BRAND_DARK },
+  moreBtnText: { fontSize: 11, fontWeight: '900', color: BRAND_DEEP },
 
   // ---------------------------------------------------------
   // Recent (List)
@@ -391,17 +436,25 @@ export const styles = StyleSheet.create({
   recentList: { gap: 12 },
 
   recentItem: {
-    borderRadius: 14,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: BORDER,
     backgroundColor: SURFACE,
     overflow: 'hidden',
   },
-  recentThumb: { height: 210, backgroundColor: SURFACE_SOFT },
+
+  recentThumb: {
+    height: 210,
+    backgroundColor: SURFACE_SOFT,
+    overflow: 'hidden',
+  },
   recentThumbImg: { width: '100%', height: '100%' },
-  recentThumbPlaceholder: {
-    flex: 1,
-    backgroundColor: 'rgba(109,124,255,0.10)',
+  recentThumbPlaceholder: { flex: 1, backgroundColor: BRAND_SOFT },
+
+  // ✅ tsx에서 올려둔 tint 레이어
+  recentThumbTint: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(109,124,255,0.08)',
   },
 
   recentInfo: {
@@ -437,15 +490,15 @@ export const styles = StyleSheet.create({
   recordBtn: {
     height: 46,
     borderRadius: 14,
-    backgroundColor: BRAND,
+    backgroundColor: BRAND_DEEP,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 6,
-    shadowColor: BRAND,
-    shadowOpacity: 0.22,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 3,
+    shadowColor: BRAND_DEEP,
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 2,
   },
   recordBtnText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
 
@@ -453,7 +506,7 @@ export const styles = StyleSheet.create({
   // Empty Box
   // ---------------------------------------------------------
   emptyBox: {
-    borderRadius: 14,
+    borderRadius: 18,
     padding: 14,
     borderWidth: 1,
     borderColor: BORDER,
