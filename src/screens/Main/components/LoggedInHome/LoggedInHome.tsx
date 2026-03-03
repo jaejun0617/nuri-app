@@ -215,7 +215,7 @@ export default function LoggedInHome() {
   const [switching, setSwitching] = useState(false);
 
   const OUT_OPACITY = 0.9;
-  const OUT_LIFT_PX = 6;
+  const OUT_LIFT_PX = 0.1;
 
   const svOpacity = useSharedValue(1);
   const svTranslateY = useSharedValue(0);

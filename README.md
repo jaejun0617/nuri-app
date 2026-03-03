@@ -605,6 +605,69 @@ MainScreen은 분기만 담당하며, 각 레이아웃은 컴포넌트/스타일
 - nickname/pets/selectedPetId 정렬
 - booted gate로 깜빡임 제거
 
+## Chapter 5 — Home(LoggedIn) 최근기록 UX 정리 및 상태 안정화
+
+### 1. 최근기록 노출 정책 고정
+
+- 기본: **최신 7개만 노출**
+- 조건: records가 **8개 초과(= 9개 이상)**일 때만 우측에 `더보기` 버튼 노출
+- 동작:
+  - 1차 클릭: **7개 추가 노출 (총 14개)**
+  - 2차 클릭: 아직 더 남아있으면 **타임라인으로 이동**
+- 남은 기록이 없으면 2차 클릭 시 추가 동작 없음 (UX 안정성 유지)
+
+---
+
+### 2. CTA(기록하기) 구조 정리
+
+#### ✅ 기록이 있을 때
+
+- 하단의 **“기록하기” 버튼 제거**
+- 리스트 + 더보기/타임라인 유도 구조로 단순화
+- 하단 탭의 `RecordCreate`와 CTA 중복 제거
+
+#### ✅ 기록이 없을 때 (Empty)
+
+- Empty 카드 유지
+- **CTA 1개만 유지** (초기 전환율 확보 목적)
+- 과도한 버튼 중복 제거
+
+---
+
+### 3. RecordStore 구독 안정성 고정
+
+- `useRecordStore(s => s.byPetId[activePetId])` 직접 구독
+- selector 복잡도 제거
+- 동일 참조 `FALLBACK_RECORDS_STATE` 사용 (Object.freeze)
+- React 18 `useSyncExternalStore` 환경에서 snapshot 흔들림 방지
+- pet 변경 시 `recentExpanded` 상태 자동 초기화
+
+---
+
+### 4. UX/아키텍처 방향성
+
+- 홈은 **요약 화면**
+- 타임라인은 **전체 탐색 화면**
+- 홈에서는 데이터 일부만 노출하고, 확장/탐색은 타임라인으로 위임
+- 중복 CTA 제거로 정보 밀도 감소 및 구조 명확화
+
+---
+
+### 5. 현재 구조 상태
+
+- 홈 최근기록 UX 정책 고정 완료
+- Zustand 구독 안정화 완료
+- 더보기 → 확장 → 타임라인 이동 흐름 고정
+- 펫 전환 시 상태 일관성 유지
+
+---
+
+### 다음 단계
+
+- RecordStore를 **상태머신 기반 구조로 리팩토링**
+- 홈/타임라인 공통 selector 전략 통일
+- 캐싱 정책 및 pagination 전략 완전 고정
+
 ## Chapter 5 — RecordStore 상태머신 + Selector 최적화(성능/캐싱 고정)
 
 이번 챕터의 목표는 **홈/타임라인이 동일한 Record 캐시를 공유**하면서도, RN New Architecture(Fabric)에서도 안전한 **snapshot 안정성**을 유지하고 렌더 비용을 고정하는 것이다.

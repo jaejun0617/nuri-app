@@ -5,9 +5,10 @@
 // - "기록하기" → RecordCreate
 // - 항목 탭 → RecordDetail
 //
-// ✅ 공통 탭 대응(중요):
-// - 탭에서 진입하면 route params가 없을 수 있음
-// - 이 경우 petStore(selectedPetId 또는 첫 pet)에서 petId를 fallback으로 사용
+// ✅ Chapter 5 반영
+// - recordStore는 상태머신(status) 기반
+// - selector는 factory(selectPetRecords)로 고정하여 snapshot 안정성 확보
+// - route params가 없으면 petStore(selectedPetId → 첫 pet)로 fallback
 
 import React, { useCallback, useEffect, useMemo } from 'react';
 import {
@@ -22,7 +23,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import type { MemoryRecord } from '../../services/supabase/memories';
-import { useRecordStore } from '../../store/recordStore';
+import { useRecordStore, selectPetRecords } from '../../store/recordStore';
 import { usePetStore } from '../../store/petStore';
 import AppText from '../../app/ui/AppText';
 
@@ -36,7 +37,7 @@ export default function TimelineScreen() {
   const route = useRoute<any>();
 
   // ---------------------------------------------------------
-  // 1.5) petId resolve (params → store fallback)
+  // 2) petId resolve (params → store fallback)
   // ---------------------------------------------------------
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
@@ -46,7 +47,6 @@ export default function TimelineScreen() {
   const petId = useMemo(() => {
     if (petIdFromParams) return petIdFromParams;
 
-    // store fallback
     if (selectedPetId && pets.some(p => p.id === selectedPetId)) {
       return selectedPetId;
     }
@@ -54,33 +54,31 @@ export default function TimelineScreen() {
   }, [petIdFromParams, selectedPetId, pets]);
 
   // ---------------------------------------------------------
-  // 2) store
+  // 3) store
   // ---------------------------------------------------------
   const bootstrap = useRecordStore(s => s.bootstrap);
   const refresh = useRecordStore(s => s.refresh);
 
-  const petState = useRecordStore(s => {
-    if (!petId) return undefined;
-    return s.byPetId[petId];
-  });
+  // ✅ selector factory로 안정 구독
+  const petState = useRecordStore(s => selectPetRecords(petId)(s));
 
   // ---------------------------------------------------------
-  // 3) bootstrap
+  // 4) bootstrap
   // ---------------------------------------------------------
   useEffect(() => {
     if (!petId) return;
     bootstrap(petId);
   }, [bootstrap, petId]);
 
-  const records = petState?.items ?? [];
-  const refreshing = petState?.refreshing ?? false;
+  const records = petState.items;
+  const refreshing = petState.status === 'refreshing';
 
   // ---------------------------------------------------------
-  // 4) actions
+  // 5) actions
   // ---------------------------------------------------------
   const onPressCreate = useCallback(() => {
     if (!petId) return;
-    navigation.navigate('RecordCreate', { petId }); // 스택으로도 진입 가능
+    navigation.navigate('RecordCreate', { petId });
   }, [navigation, petId]);
 
   const onPressItem = useCallback(
@@ -97,7 +95,7 @@ export default function TimelineScreen() {
   }, [petId, refresh]);
 
   // ---------------------------------------------------------
-  // 5) render
+  // 6) render
   // ---------------------------------------------------------
   const headerTitle = useMemo(() => '추억보기', []);
 
@@ -168,7 +166,6 @@ export default function TimelineScreen() {
 
   return (
     <View style={styles.screen}>
-      {/* 커스텀 헤더(스택 헤더는 숨길 수도/유지할 수도 있는데, 우리는 탭 공통이므로 화면 내 헤더 유지) */}
       <View style={styles.header}>
         <View style={{ width: 44 }} />
         <AppText preset="headline" style={styles.headerTitle}>
