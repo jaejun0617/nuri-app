@@ -1,28 +1,17 @@
 // 파일: src/screens/Main/components/LoggedInHome/LoggedInHome.tsx
 // 목적:
 // - 로그인 홈 (LoggedInHome)
-// - 헤더: 닉네임 인사 + 멀티펫 썸네일 스위처(최대 4 + +버튼)
-// - HERO CARD(✅ 1차: 프로필 카드 UI를 스샷 레이아웃으로 교체) + 오늘날의 사진 + 최근기록
+// - 상단: 닉네임 인사 + 멀티펫 썸네일 스위처(최대 4 + +버튼)
+// - 프로필 카드: 보라 glow avatar + 메타 + 생년월일 + 함께한 시간 + 아코디언(모두펼치기/개별)
+// - 섹션 시작: "누리와의 소중한 기록" + "오늘날의 사진(전체보기)" + 보라 overlay
 //
-// ✅ 이번 단계 범위(중요)
-// - HERO(프로필 카드)만 "중앙 정렬 + 보라 pill + 생년월일 + 모두펼치기 + 아코디언"으로 완성
-// - 오늘날의 사진/최근기록은 기존 그대로 유지
-//
-// ✅ 훅/스토어 안정성(중요)
-// - recordStore 구독: byPetId[petId] 직접 구독(가장 단순/안전)
-// - fallback은 동일 참조(FALLBACK_RECORDS_STATE)로 유지
-// - activePetId 변경 시 recentExpanded/아코디언 상태 초기화
-// - new architecture에서 snapshot 흔들림 방지: "없는 상태"는 매번 new로 만들지 않는다.
+// ✅ 훅/스토어 안정성
+// - recordStore 구독: byPetId[petId] 직접 구독
+// - fallback 동일 참조(FALLBACK_RECORDS_STATE)
+// - activePetId 변경 시 UI 상태 초기화(최근기록 확장/아코디언)
 
 import React, { useEffect, useMemo, useCallback, useState } from 'react';
-import {
-  Alert,
-  Image,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
@@ -66,13 +55,8 @@ function toSnippet(text: string | null | undefined, max = 46) {
 function formatYmdToDots(ymd: string | null | undefined): string | null {
   const s = (ymd ?? '').trim();
   if (!s) return null;
-  // YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-    return `${s.slice(0, 4)}.${s.slice(5, 7)}.${s.slice(8, 10)}`;
-  }
-  // YYYY.MM.DD 형태도 허용
-  if (/^\d{4}\.\d{2}\.\d{2}$/.test(s)) return s;
-  return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+  return `${s.slice(0, 4)}.${s.slice(5, 7)}.${s.slice(8, 10)}`;
 }
 
 function calcAgeFromBirth(birthYmd: string | null | undefined): number | null {
@@ -137,7 +121,7 @@ function formatWeightKg(v: number | null | undefined): string | null {
   return `${n % 1 === 0 ? n.toFixed(0) : n.toFixed(1)}kg`;
 }
 
-function clampList(list: string[] | null | undefined, max = 4) {
+function clampList(list: string[] | null | undefined, max = 2) {
   const arr = Array.isArray(list) ? list : [];
   return arr
     .map(s => (s ?? '').trim())
@@ -146,9 +130,8 @@ function clampList(list: string[] | null | undefined, max = 4) {
 }
 
 /* ---------------------------------------------------------
- * 2) component
+ * 2) types (recordStore safe)
  * -------------------------------------------------------- */
-// ✅ recordStore Chapter 5 상태머신 정합
 type PetRecordsStateShape = {
   status: 'idle' | 'loading' | 'ready' | 'refreshing' | 'error';
   items: MemoryRecord[];
@@ -170,17 +153,7 @@ const FALLBACK_RECORDS_STATE: PetRecordsStateShape = Object.freeze({
 const RECENT_BASE = 7;
 const RECENT_EXPANDED = 14;
 
-// HERO 아코디언 섹션 키
 type AccordionKey = 'hobby' | 'like' | 'dislike' | 'tag';
-const ACC_KEYS: AccordionKey[] = ['hobby', 'like', 'dislike', 'tag'];
-
-// ✅ 동일 참조 초기값(불필요한 new 방지)
-const INITIAL_ACCORDION: Record<AccordionKey, boolean> = Object.freeze({
-  hobby: false,
-  like: false,
-  dislike: false,
-  tag: false,
-});
 
 export default function LoggedInHome() {
   // ---------------------------------------------------------
@@ -231,11 +204,11 @@ export default function LoggedInHome() {
   }, [petBooted, pets.length, navigation]);
 
   // ---------------------------------------------------------
-  // 3.5) transition animation (pet switch)
+  // 3.5) pet switch transition
   // ---------------------------------------------------------
   const [switching, setSwitching] = useState(false);
 
-  const OUT_OPACITY = 0.9;
+  const OUT_OPACITY = 0.92;
   const OUT_LIFT_PX = 6;
 
   const svOpacity = useSharedValue(1);
@@ -265,11 +238,9 @@ export default function LoggedInHome() {
   }, [bootstrapRecords, activePetId]);
 
   // ---------------------------------------------------------
-  // 4.1) 최근 기록 "더보기" 상태
-  // - pet 변경 시 확장 상태 초기화
+  // 4.1) 최근 기록 "더보기" 상태 (pet 변경 시 초기화)
   // ---------------------------------------------------------
   const [recentExpanded, setRecentExpanded] = useState(false);
-
   useEffect(() => {
     setRecentExpanded(false);
   }, [activePetId]);
@@ -339,7 +310,7 @@ export default function LoggedInHome() {
   }, [todayPhoto.mode]);
 
   // ---------------------------------------------------------
-  // 5) HERO derived (✅ 스샷 레이아웃용)
+  // 5) HERO derived
   // ---------------------------------------------------------
   const petName = useMemo(
     () => selectedPet?.name ?? '우리 아이',
@@ -372,15 +343,14 @@ export default function LoggedInHome() {
     [selectedPet?.weightKg],
   );
 
-  const metaLine = useMemo(() => {
-    // 스샷 형태: "말티즈 | 15살 | 남아 | 4.3kg"
+  const topMetaLine = useMemo(() => {
     const parts: string[] = [];
     if (breed) parts.push(breed);
     if (ageText) parts.push(ageText);
     if (genderText) parts.push(genderText);
     if (weightText) parts.push(weightText);
     if (parts.length === 0) return null;
-    return parts.join('  |  ');
+    return parts.join(' | ');
   }, [breed, ageText, genderText, weightText]);
 
   const togetherDays = useMemo(
@@ -389,15 +359,15 @@ export default function LoggedInHome() {
   );
 
   const hobbies = useMemo(
-    () => clampList(selectedPet?.hobbies, 6),
+    () => clampList(selectedPet?.hobbies, 2),
     [selectedPet?.hobbies],
   );
   const likes = useMemo(
-    () => clampList(selectedPet?.likes, 6),
+    () => clampList(selectedPet?.likes, 2),
     [selectedPet?.likes],
   );
   const dislikes = useMemo(
-    () => clampList(selectedPet?.dislikes, 6),
+    () => clampList(selectedPet?.dislikes, 2),
     [selectedPet?.dislikes],
   );
 
@@ -408,7 +378,7 @@ export default function LoggedInHome() {
     const normalized = arr
       .map(t => (t ?? '').trim())
       .filter(Boolean)
-      .slice(0, 12);
+      .slice(0, 8);
     if (normalized.length > 0) return normalized;
     return ['#산책러버', '#간식최애', '#주인바라기'];
   }, [selectedPet?.tags]);
@@ -430,40 +400,6 @@ export default function LoggedInHome() {
     if (pets.length === 0) return '소중한 아이를 등록하고 추억을 기록해 보세요';
     return '오늘의 메시지로 하루를 시작해요';
   }, [pets.length]);
-
-  // ---------------------------------------------------------
-  // 6.5) HERO Accordion state (✅ 스샷: "모두 펼치기" + 개별 펼치기)
-  // ---------------------------------------------------------
-  const [accordion, setAccordion] =
-    useState<Record<AccordionKey, boolean>>(INITIAL_ACCORDION);
-
-  // pet 바뀌면 아코디언 상태 초기화 (UX + 상태 안정)
-  useEffect(() => {
-    setAccordion(INITIAL_ACCORDION);
-  }, [activePetId]);
-
-  const isAllOpen = useMemo(
-    () => ACC_KEYS.every(k => accordion[k]),
-    [accordion],
-  );
-  const anyOpen = useMemo(() => ACC_KEYS.some(k => accordion[k]), [accordion]);
-
-  const onToggleAll = useCallback(() => {
-    setAccordion(prev => {
-      const nextOpen = !ACC_KEYS.every(k => prev[k]); // 모두 열려있으면 닫기, 아니면 열기
-      // ✅ new object 생성은 1회로 제한
-      return {
-        hobby: nextOpen,
-        like: nextOpen,
-        dislike: nextOpen,
-        tag: nextOpen,
-      };
-    });
-  }, []);
-
-  const onToggleOne = useCallback((key: AccordionKey) => {
-    setAccordion(prev => ({ ...prev, [key]: !prev[key] }));
-  }, []);
 
   // ---------------------------------------------------------
   // 7) actions
@@ -546,13 +482,37 @@ export default function LoggedInHome() {
     }
   }, [recentExpanded, hasMoreAfterExpanded, onPressTimeline]);
 
-  const onPressHeroSetting = useCallback(() => {
-    // TODO: 다음 챕터에서 PetProfileEdit/Settings로 연결
-    Alert.alert('준비중', '프로필 설정은 다음 단계에서 연결할게요.');
+  // ---------------------------------------------------------
+  // 8) Accordion state (✅ 훅 안정성: pet 변경 시 초기화)
+  // ---------------------------------------------------------
+  const [acc, setAcc] = useState<Record<AccordionKey, boolean>>({
+    hobby: false,
+    like: false,
+    dislike: false,
+    tag: false,
+  });
+
+  useEffect(() => {
+    setAcc({ hobby: false, like: false, dislike: false, tag: false });
+  }, [activePetId]);
+
+  const allExpanded = useMemo(() => {
+    return acc.hobby && acc.like && acc.dislike && acc.tag;
+  }, [acc.hobby, acc.like, acc.dislike, acc.tag]);
+
+  const onToggleAll = useCallback(() => {
+    setAcc(prev => {
+      const next = !(prev.hobby && prev.like && prev.dislike && prev.tag);
+      return { hobby: next, like: next, dislike: next, tag: next };
+    });
+  }, []);
+
+  const onToggleOne = useCallback((key: AccordionKey) => {
+    setAcc(prev => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
   // ---------------------------------------------------------
-  // 8) render
+  // 9) render
   // ---------------------------------------------------------
   return (
     <Screen style={styles.screen}>
@@ -561,7 +521,7 @@ export default function LoggedInHome() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* 1) 헤더 */}
+        {/* 1) 상단 헤더 */}
         <View style={styles.header}>
           <View style={styles.headerTextArea}>
             <Text style={styles.title}>{greetingTitle}</Text>
@@ -604,268 +564,224 @@ export default function LoggedInHome() {
 
         {/* 2) 전환 컨텐츠 */}
         <Animated.View style={animatedContentStyle}>
-          {/* ---------------------------------------------------------
-           * HERO (✅ 스샷 레이아웃)
-           * -------------------------------------------------------- */}
+          {/* HERO (프로필 카드) */}
           <View style={styles.heroCard}>
-            {/* 설정 아이콘(우상단) */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              style={styles.heroSettingBtn}
-              onPress={onPressHeroSetting}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Text style={styles.heroSettingIcon}>⚙︎</Text>
-            </TouchableOpacity>
-
-            {/* 큰 원형 아바타 */}
-            <View style={styles.heroAvatarOuter}>
-              <View style={styles.heroAvatarWrap}>
-                {selectedAvatarUri ? (
-                  <Image
-                    source={{ uri: selectedAvatarUri }}
-                    style={styles.heroAvatarImg}
-                  />
-                ) : (
-                  <View style={styles.heroAvatarPlaceholder} />
-                )}
-              </View>
-            </View>
-
-            {/* 이름 */}
-            <Text style={styles.heroNameCentered} numberOfLines={1}>
-              {petName}
-            </Text>
-
-            {/* 견종 | 나이 | 성별 | 몸무게 */}
-            {metaLine ? (
-              <Text style={styles.heroMetaLine} numberOfLines={1}>
-                {metaLine}
-              </Text>
-            ) : (
-              <Text style={styles.heroMetaMuted} numberOfLines={1}>
-                아이 정보를 채우면 더 예쁘게 보여요
-              </Text>
-            )}
-
-            {/* 생년월일 */}
-            {birthText ? (
-              <Text style={styles.heroBirthCentered} numberOfLines={1}>
-                생년월일 {birthText}
-              </Text>
-            ) : null}
-
-            {/* 함께한 시간 (보라 pill) */}
-            {togetherDays !== null ? (
-              <View style={styles.heroTogetherPillPurple}>
-                <Text style={styles.heroTogetherPillText}>
-                  ♥ 함께한 시간{' '}
-                  <Text style={styles.heroTogetherPillStrong}>
-                    {togetherDays}
-                  </Text>{' '}
-                  일 ♥
-                </Text>
-              </View>
-            ) : null}
-
-            {/* 모두 펼치기 (아코디언 전체 토글) */}
+            {/* 우상단 설정 버튼(일단 UI만) */}
             <TouchableOpacity
               activeOpacity={0.85}
-              style={styles.heroExpandAllRow}
-              onPress={onToggleAll}
+              style={styles.heroGearBtn}
+              onPress={() => {
+                // TODO: PetEdit/Settings 라우트 연결 (다음 챕터)
+              }}
             >
-              <Text style={styles.heroExpandAllText}>
-                {isAllOpen ? '모두 접기' : '모두 펼치기'}
-              </Text>
-              <Text
-                style={[
-                  styles.heroChevron,
-                  isAllOpen || anyOpen ? styles.heroChevronOpen : null,
-                ]}
-              >
-                ⌄
-              </Text>
+              <Text style={styles.heroGearText}>⚙︎</Text>
             </TouchableOpacity>
 
-            {/* 아코디언 리스트 */}
-            <View style={styles.heroAccordion}>
+            <View style={styles.heroCenter}>
+              <View style={styles.heroAvatarOuter}>
+                <View style={styles.heroAvatarGlow} />
+                <View style={styles.heroAvatarWrap}>
+                  {selectedAvatarUri ? (
+                    <Image
+                      source={{ uri: selectedAvatarUri }}
+                      style={styles.heroAvatarImg}
+                    />
+                  ) : (
+                    <View style={styles.heroAvatarPlaceholder} />
+                  )}
+                </View>
+              </View>
+
+              <Text style={styles.heroName} numberOfLines={1}>
+                {petName}
+              </Text>
+
+              {topMetaLine ? (
+                <Text style={styles.heroMetaLine} numberOfLines={1}>
+                  {topMetaLine}
+                </Text>
+              ) : (
+                <Text style={styles.heroMetaMuted} numberOfLines={1}>
+                  아이 정보를 채우면 더 예쁘게 보여요
+                </Text>
+              )}
+
+              {birthText ? (
+                <Text style={styles.heroBirthText} numberOfLines={1}>
+                  생년월일 {birthText}
+                </Text>
+              ) : null}
+
+              {togetherDays !== null ? (
+                <View style={styles.heroTogetherPill}>
+                  <Text style={styles.heroTogetherText}>
+                    ♥ 함께한 시간{' '}
+                    <Text style={styles.heroTogetherStrong}>
+                      {togetherDays}
+                    </Text>{' '}
+                    일 ♥
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+
+            {/* 아코디언 */}
+            <View style={styles.accordionWrap}>
+              {/* 모두 펼치기 */}
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={styles.accordionAllRow}
+                onPress={onToggleAll}
+              >
+                <Text style={styles.accordionAllLabel}>모두펼치기</Text>
+                <Text style={styles.accordionAllIcon}>
+                  {allExpanded ? '＾' : '˅'}
+                </Text>
+              </TouchableOpacity>
+
               {/* 취미 */}
-              <View style={styles.heroAccItem}>
+              <View style={styles.accordionItem}>
                 <TouchableOpacity
                   activeOpacity={0.85}
-                  style={styles.heroAccHeader}
+                  style={styles.accordionHeaderRow}
                   onPress={() => onToggleOne('hobby')}
                 >
-                  <View
-                    style={[
-                      styles.heroAccIconCircle,
-                      styles.heroAccIconCircleBlue,
-                    ]}
-                  >
-                    <Text style={styles.heroAccIconText}>🐾</Text>
+                  <View style={styles.accordionLeft}>
+                    <View
+                      style={[
+                        styles.accordionIconCircle,
+                        styles.iconCircleBlue,
+                      ]}
+                    >
+                      <Text style={styles.accordionIconText}>🐾</Text>
+                    </View>
+                    <Text style={styles.accordionTitle}>취미</Text>
                   </View>
-                  <Text style={[styles.heroAccTitle, styles.heroAccTitleBlue]}>
-                    취미
-                  </Text>
-                  <View style={{ flex: 1 }} />
-                  <Text
-                    style={[
-                      styles.heroAccChevron,
-                      accordion.hobby ? styles.heroAccChevronOpen : null,
-                    ]}
-                  >
-                    ⌄
+                  <Text style={styles.accordionChevron}>
+                    {acc.hobby ? '＾' : '˅'}
                   </Text>
                 </TouchableOpacity>
 
-                {accordion.hobby ? (
-                  <View style={styles.heroAccBody}>
+                {acc.hobby ? (
+                  <View style={styles.accordionBody}>
                     {hobbies.length > 0 ? (
-                      <View style={styles.heroAccChips}>
-                        {hobbies.map(v => (
-                          <View key={`h-${v}`} style={styles.heroAccChip}>
-                            <Text style={styles.heroAccChipText}>{v}</Text>
-                          </View>
-                        ))}
-                      </View>
+                      hobbies.map(v => (
+                        <Text key={v} style={styles.accordionBullet}>
+                          • {v}
+                        </Text>
+                      ))
                     ) : (
-                      <Text style={styles.heroAccEmptyText}>아직 없어요</Text>
+                      <Text style={styles.accordionEmpty}>• 아직 없어요</Text>
                     )}
                   </View>
                 ) : null}
               </View>
 
               {/* 좋아하는 것 */}
-              <View style={styles.heroAccItem}>
+              <View style={styles.accordionItem}>
                 <TouchableOpacity
                   activeOpacity={0.85}
-                  style={styles.heroAccHeader}
+                  style={styles.accordionHeaderRow}
                   onPress={() => onToggleOne('like')}
                 >
-                  <View
-                    style={[
-                      styles.heroAccIconCircle,
-                      styles.heroAccIconCircleOrange,
-                    ]}
-                  >
-                    <Text style={styles.heroAccIconText}>🧡</Text>
+                  <View style={styles.accordionLeft}>
+                    <View
+                      style={[
+                        styles.accordionIconCircle,
+                        styles.iconCircleOrange,
+                      ]}
+                    >
+                      <Text style={styles.accordionIconText}>💛</Text>
+                    </View>
+                    <Text style={styles.accordionTitle}>좋아하는 것</Text>
                   </View>
-                  <Text
-                    style={[styles.heroAccTitle, styles.heroAccTitleOrange]}
-                  >
-                    좋아하는 것
-                  </Text>
-                  <View style={{ flex: 1 }} />
-                  <Text
-                    style={[
-                      styles.heroAccChevron,
-                      accordion.like ? styles.heroAccChevronOpen : null,
-                    ]}
-                  >
-                    ⌄
+                  <Text style={styles.accordionChevron}>
+                    {acc.like ? '＾' : '˅'}
                   </Text>
                 </TouchableOpacity>
 
-                {accordion.like ? (
-                  <View style={styles.heroAccBody}>
+                {acc.like ? (
+                  <View style={styles.accordionBody}>
                     {likes.length > 0 ? (
-                      <View style={styles.heroAccChips}>
-                        {likes.map(v => (
-                          <View key={`l-${v}`} style={styles.heroAccChip}>
-                            <Text style={styles.heroAccChipText}>{v}</Text>
-                          </View>
-                        ))}
-                      </View>
+                      likes.map(v => (
+                        <Text key={v} style={styles.accordionBullet}>
+                          • {v}
+                        </Text>
+                      ))
                     ) : (
-                      <Text style={styles.heroAccEmptyText}>아직 없어요</Text>
+                      <Text style={styles.accordionEmpty}>• 아직 없어요</Text>
                     )}
                   </View>
                 ) : null}
               </View>
 
               {/* 싫어하는 것 */}
-              <View style={styles.heroAccItem}>
+              <View style={styles.accordionItem}>
                 <TouchableOpacity
                   activeOpacity={0.85}
-                  style={styles.heroAccHeader}
+                  style={styles.accordionHeaderRow}
                   onPress={() => onToggleOne('dislike')}
                 >
-                  <View
-                    style={[
-                      styles.heroAccIconCircle,
-                      styles.heroAccIconCirclePink,
-                    ]}
-                  >
-                    <Text style={styles.heroAccIconText}>💗</Text>
+                  <View style={styles.accordionLeft}>
+                    <View
+                      style={[
+                        styles.accordionIconCircle,
+                        styles.iconCirclePink,
+                      ]}
+                    >
+                      <Text style={styles.accordionIconText}>💔</Text>
+                    </View>
+                    <Text style={styles.accordionTitle}>싫어하는 것</Text>
                   </View>
-                  <Text style={[styles.heroAccTitle, styles.heroAccTitlePink]}>
-                    싫어하는 것
-                  </Text>
-                  <View style={{ flex: 1 }} />
-                  <Text
-                    style={[
-                      styles.heroAccChevron,
-                      accordion.dislike ? styles.heroAccChevronOpen : null,
-                    ]}
-                  >
-                    ⌄
+                  <Text style={styles.accordionChevron}>
+                    {acc.dislike ? '＾' : '˅'}
                   </Text>
                 </TouchableOpacity>
 
-                {accordion.dislike ? (
-                  <View style={styles.heroAccBody}>
+                {acc.dislike ? (
+                  <View style={styles.accordionBody}>
                     {dislikes.length > 0 ? (
-                      <View style={styles.heroAccChips}>
-                        {dislikes.map(v => (
-                          <View key={`d-${v}`} style={styles.heroAccChip}>
-                            <Text style={styles.heroAccChipText}>{v}</Text>
-                          </View>
-                        ))}
-                      </View>
+                      dislikes.map(v => (
+                        <Text key={v} style={styles.accordionBullet}>
+                          • {v}
+                        </Text>
+                      ))
                     ) : (
-                      <Text style={styles.heroAccEmptyText}>아직 없어요</Text>
+                      <Text style={styles.accordionEmpty}>• 아직 없어요</Text>
                     )}
                   </View>
                 ) : null}
               </View>
 
               {/* 태그 */}
-              <View style={styles.heroAccItem}>
+              <View style={[styles.accordionItem, { borderBottomWidth: 0 }]}>
                 <TouchableOpacity
                   activeOpacity={0.85}
-                  style={styles.heroAccHeader}
+                  style={styles.accordionHeaderRow}
                   onPress={() => onToggleOne('tag')}
                 >
-                  <View
-                    style={[
-                      styles.heroAccIconCircle,
-                      styles.heroAccIconCirclePurple,
-                    ]}
-                  >
-                    <Text style={styles.heroAccIconText}>#</Text>
+                  <View style={styles.accordionLeft}>
+                    <View
+                      style={[
+                        styles.accordionIconCircle,
+                        styles.iconCirclePurple,
+                      ]}
+                    >
+                      <Text style={styles.accordionIconText}>#</Text>
+                    </View>
+                    <Text style={styles.accordionTitle}>#태그</Text>
                   </View>
-                  <Text
-                    style={[styles.heroAccTitle, styles.heroAccTitlePurple]}
-                  >
-                    #태그
-                  </Text>
-                  <View style={{ flex: 1 }} />
-                  <Text
-                    style={[
-                      styles.heroAccChevron,
-                      accordion.tag ? styles.heroAccChevronOpen : null,
-                    ]}
-                  >
-                    ⌄
+                  <Text style={styles.accordionChevron}>
+                    {acc.tag ? '＾' : '˅'}
                   </Text>
                 </TouchableOpacity>
 
-                {accordion.tag ? (
-                  <View style={styles.heroAccBody}>
-                    <View style={styles.heroAccChips}>
+                {acc.tag ? (
+                  <View style={styles.accordionBody}>
+                    <View style={styles.tagsRow}>
                       {tags.map(t => (
-                        <View key={`t-${t}`} style={styles.heroAccChip}>
-                          <Text style={styles.heroAccChipText}>{t}</Text>
+                        <View key={t} style={styles.tagChip}>
+                          <Text style={styles.tagText}>{t}</Text>
                         </View>
                       ))}
                     </View>
@@ -874,17 +790,30 @@ export default function LoggedInHome() {
               </View>
             </View>
 
-            {/* 하단 메시지 박스 */}
+            {/* 오늘의 메시지 (보라 음영 + shadow) */}
             <View style={styles.heroMessageBox}>
               <Text style={styles.heroMessageText}>{todayMessage}</Text>
             </View>
           </View>
 
-          {/* ---------------------------------------------------------
-           * 오늘날의 사진 (기존 유지)
-           * -------------------------------------------------------- */}
+          {/* ✅ 섹션 시작: "누리와의 소중한 기록" */}
+          <View style={styles.sectionLead}>
+            <Text style={styles.sectionLeadTitle}>
+              {petName}와의 소중한 기록
+            </Text>
+            <Text style={styles.sectionLeadSub}>
+              오늘도 행복한 추억이 쌓이고 있어요
+            </Text>
+          </View>
+
+          {/* 오늘날의 사진 (전체보기) */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>오늘날의 사진</Text>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>오늘날의 사진</Text>
+              <TouchableOpacity activeOpacity={0.85} onPress={onPressTimeline}>
+                <Text style={styles.sectionLink}>전체보기</Text>
+              </TouchableOpacity>
+            </View>
 
             <TouchableOpacity
               activeOpacity={0.9}
@@ -904,6 +833,9 @@ export default function LoggedInHome() {
                 <View style={styles.photoPlaceholder} />
               )}
 
+              {/* ✅ 보라 tint 오버레이 */}
+              <View style={styles.photoOverlayTint} />
+
               <View style={styles.photoOverlay}>
                 <Text style={styles.photoOverlayTitle}>
                   {todayPhotoOverlayTitle}
@@ -917,9 +849,7 @@ export default function LoggedInHome() {
             </TouchableOpacity>
           </View>
 
-          {/* ---------------------------------------------------------
-           * 최근 기록 (기존 유지)
-           * -------------------------------------------------------- */}
+          {/* 최근 기록 (기존 유지, 보라 링크/보더 통일) */}
           <View style={styles.section}>
             <View style={styles.recentHeaderRow}>
               <Text style={styles.sectionTitle}>최근 기록</Text>

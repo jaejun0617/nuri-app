@@ -1,20 +1,30 @@
 // 파일: src/screens/Main/components/LoggedInHome/LoggedInHome.styles.ts
 // 목적:
-// - LoggedInHome 전용 스타일
-// - ✅ HERO 카드: "스샷 레이아웃" (중앙 정렬 + 보라 pill + 아코디언 + 하단 메시지)
-// - 나머지 섹션(오늘사진/최근기록)은 기존 스타일 유지
+// - LoggedInHome 전용 스타일 (흰색 + 보라색 통일)
+// - HERO: 과한 "떠있는 카드" 제거(Flat + border)
+// - Avatar: 퍼진 보라 shadow/glow + white ring
+// - 오늘의 메시지: 아래 보라 tint + shadow
+// - 아코디언: "모두펼치기" + 개별 펼치기
+// - "누리와의 소중한 기록" + "오늘날의 사진(전체보기)" 시작
 
 import { StyleSheet } from 'react-native';
 
-const BRAND = '#6D7CFF'; // theme.colors.brand와 동일 컨셉(white + purple)
-const BORDER = 'rgba(0,0,0,0.06)';
+const BRAND = '#6d28d9';
+const BRAND_DARK = '#5A67FF';
+const TEXT = '#0B1220';
+const MUTED = '#556070';
+const MUTED2 = 'rgba(85,96,112,0.70)';
+const BORDER = 'rgba(109,124,255,0.18)';
+const BORDER2 = 'rgba(0,0,0,0.06)';
+const SURFACE = '#FFFFFF';
+const SURFACE_SOFT = '#F6F7FB';
 
 export const styles = StyleSheet.create({
   // ---------------------------------------------------------
   // Layout
   // ---------------------------------------------------------
-  screen: { flex: 1, backgroundColor: '#FFFFFF' },
-  scroll: { flex: 1, backgroundColor: '#FFFFFF' },
+  screen: { flex: 1, backgroundColor: SURFACE },
+  scroll: { flex: 1, backgroundColor: SURFACE },
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 12,
@@ -27,11 +37,11 @@ export const styles = StyleSheet.create({
   // ---------------------------------------------------------
   header: { gap: 10, marginBottom: 4 },
   headerTextArea: { gap: 4 },
-  title: { fontSize: 18, fontWeight: '900', color: '#0B1220' },
+  title: { fontSize: 18, fontWeight: '900', color: TEXT },
   subTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#556070',
+    color: MUTED,
     lineHeight: 16,
   },
 
@@ -44,305 +54,324 @@ export const styles = StyleSheet.create({
     height: 40,
     borderRadius: 999,
     overflow: 'hidden',
-    backgroundColor: '#F4F4F4',
+    backgroundColor: SURFACE_SOFT,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: BORDER2,
   },
   petChipActive: { borderColor: BRAND, borderWidth: 2 },
   petChipImage: { width: '100%', height: '100%' },
-  petChipPlaceholder: { flex: 1, backgroundColor: '#EDEDED' },
+  petChipPlaceholder: { flex: 1, backgroundColor: 'rgba(109,124,255,0.12)' },
+
   petAddChip: {
     width: 40,
     height: 40,
     borderRadius: 999,
-    backgroundColor: '#EEF0FF',
-    borderWidth: 1,
-    borderColor: 'rgba(109,124,255,0.35)',
+    backgroundColor: BRAND,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: BRAND,
+    shadowOpacity: 0.28,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
   },
   petAddPlus: {
-    color: BRAND,
+    color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '900',
     marginTop: -1,
   },
 
   // ---------------------------------------------------------
-  // HERO CARD (✅ 스샷 레이아웃)
+  // HERO CARD (프로필 카드)
   // ---------------------------------------------------------
   heroCard: {
     borderRadius: 22,
-    paddingHorizontal: 16,
-    paddingTop: 18,
-    paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
+    padding: 16,
     borderWidth: 1,
     borderColor: BORDER,
-
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 3,
+    backgroundColor: SURFACE,
   },
 
-  heroSettingBtn: {
+  heroGearBtn: {
     position: 'absolute',
-    top: 14,
-    right: 14,
-    width: 34,
-    height: 34,
+    top: 12,
+    right: 12,
+    width: 30,
+    height: 30,
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'rgba(109,124,255,0.10)',
   },
-  heroSettingIcon: {
-    fontSize: 18,
-    color: '#8A94A6',
+  heroGearText: {
+    color: 'rgba(11,18,32,0.55)',
+    fontSize: 16,
     fontWeight: '900',
   },
 
+  heroCenter: {
+    alignItems: 'center',
+    paddingTop: 10,
+    gap: 6,
+  },
+
+  // Avatar: 퍼진 보라 glow + ring
   heroAvatarOuter: {
+    width: 156,
+    height: 156,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 4,
+    marginBottom: 6,
+  },
+  heroAvatarGlow: {
+    position: 'absolute',
+    width: 148,
+    height: 148,
+    borderRadius: 999,
+    backgroundColor: 'rgba(109,124,255,0.22)',
+    shadowColor: BRAND,
+    shadowOpacity: 0.45,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 8,
   },
   heroAvatarWrap: {
-    width: 140,
-    height: 140,
+    width: 132,
+    height: 132,
     borderRadius: 999,
     overflow: 'hidden',
-    borderWidth: 5,
-    borderColor: 'rgba(109,124,255,0.18)',
-    backgroundColor: '#F3F4FF',
+    borderWidth: 6,
+    borderColor: 'rgba(255,255,255,0.98)',
+    backgroundColor: 'rgba(109,124,255,0.08)',
   },
   heroAvatarImg: { width: '100%', height: '100%' },
-  heroAvatarPlaceholder: { flex: 1, backgroundColor: '#E7E9FF' },
+  heroAvatarPlaceholder: { flex: 1, backgroundColor: 'rgba(109,124,255,0.18)' },
 
-  heroNameCentered: {
-    marginTop: 12,
+  heroName: {
     fontSize: 28,
     fontWeight: '900',
-    color: '#0B1220',
-    textAlign: 'center',
-    letterSpacing: -0.3,
+    color: TEXT,
+    letterSpacing: -0.4,
+    marginTop: 2,
   },
-
   heroMetaLine: {
-    marginTop: 6,
     fontSize: 13,
     fontWeight: '800',
-    color: '#556070',
-    textAlign: 'center',
+    color: MUTED,
+    lineHeight: 18,
   },
   heroMetaMuted: {
-    marginTop: 6,
     fontSize: 13,
     fontWeight: '800',
-    color: '#8A94A6',
-    textAlign: 'center',
+    color: 'rgba(85,96,112,0.65)',
+    lineHeight: 18,
+  },
+  heroBirthText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: 'rgba(85,96,112,0.85)',
   },
 
-  heroBirthCentered: {
-    marginTop: 6,
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#8A94A6',
-    textAlign: 'center',
-  },
-
-  heroTogetherPillPurple: {
-    marginTop: 14,
+  // ✅ 여기부터 이어서(요청하신 부분)
+  heroTogetherPill: {
+    marginTop: 8,
     alignSelf: 'center',
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 999,
     backgroundColor: BRAND,
-
     shadowColor: BRAND,
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
+    shadowOpacity: 0.3,
+    shadowRadius: 14,
     shadowOffset: { width: 0, height: 8 },
-    elevation: 3,
+    elevation: 4,
   },
-  heroTogetherPillText: {
+  heroTogetherText: {
     fontSize: 13,
     fontWeight: '900',
     color: '#FFFFFF',
+    letterSpacing: -0.2,
   },
-  heroTogetherPillStrong: {
+  heroTogetherStrong: {
     fontSize: 18,
     fontWeight: '900',
     color: '#FFFFFF',
   },
 
-  heroExpandAllRow: {
-    marginTop: 14,
-    alignSelf: 'flex-end',
+  // ---------------------------------------------------------
+  // Accordion: Controls
+  // ---------------------------------------------------------
+  accordionWrap: {
+    marginTop: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: BORDER,
+    backgroundColor: SURFACE,
+    overflow: 'hidden',
+  },
+  accordionAllRow: {
+    height: 44,
+    paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingVertical: 4,
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(109,124,255,0.06)',
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
   },
-  heroExpandAllText: {
+  accordionAllLabel: {
     fontSize: 12,
-    fontWeight: '800',
-    color: '#8A94A6',
+    fontWeight: '900',
+    color: BRAND_DARK,
   },
-  heroChevron: {
+  accordionAllIcon: {
     fontSize: 14,
     fontWeight: '900',
-    color: '#8A94A6',
-    transform: [{ rotate: '0deg' }],
+    color: BRAND_DARK,
     marginTop: -1,
   },
-  heroChevronOpen: {
-    transform: [{ rotate: '180deg' }],
-  },
 
-  heroAccordion: {
-    marginTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.05)',
-  },
-
-  heroAccItem: {
+  accordionItem: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
+    borderBottomColor: 'rgba(109,124,255,0.10)',
   },
-
-  heroAccHeader: {
-    minHeight: 56,
+  accordionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 6,
-    gap: 10,
+    justifyContent: 'space-between',
   },
-
-  heroAccIconCircle: {
+  accordionLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  accordionIconCircle: {
     width: 34,
     height: 34,
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  heroAccIconCircleBlue: { backgroundColor: '#EAF0FF' },
-  heroAccIconCircleOrange: { backgroundColor: '#FFF2EA' },
-  heroAccIconCirclePink: { backgroundColor: '#FFEAF1' },
-  heroAccIconCirclePurple: { backgroundColor: '#EEF0FF' },
+  iconCircleBlue: { backgroundColor: 'rgba(109,124,255,0.12)' },
+  iconCircleOrange: { backgroundColor: 'rgba(255,176,32,0.14)' },
+  iconCirclePink: { backgroundColor: 'rgba(255,77,79,0.12)' },
+  iconCirclePurple: { backgroundColor: 'rgba(109,124,255,0.12)' },
 
-  heroAccIconText: {
-    fontSize: 15,
+  accordionIconText: { fontSize: 16, fontWeight: '900', color: TEXT },
+  accordionTitle: { fontSize: 13, fontWeight: '900', color: TEXT },
+  accordionChevron: {
+    fontSize: 16,
     fontWeight: '900',
-    color: '#0B1220',
+    color: 'rgba(11,18,32,0.50)',
+    marginTop: -2,
   },
 
-  heroAccTitle: {
-    fontSize: 13,
-    fontWeight: '900',
-  },
-  heroAccTitleBlue: { color: '#2F6BFF' },
-  heroAccTitleOrange: { color: '#FF7A30' },
-  heroAccTitlePink: { color: '#FF4FA3' },
-  heroAccTitlePurple: { color: BRAND },
+  accordionBody: { marginTop: 10, gap: 8, paddingLeft: 44 },
+  accordionBullet: { fontSize: 13, fontWeight: '800', color: MUTED },
+  accordionEmpty: { fontSize: 13, fontWeight: '800', color: MUTED2 },
 
-  heroAccChevron: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#8A94A6',
-    transform: [{ rotate: '0deg' }],
-    marginTop: -1,
-  },
-  heroAccChevronOpen: {
-    transform: [{ rotate: '180deg' }],
-  },
-
-  heroAccBody: {
-    paddingHorizontal: 44,
-    paddingBottom: 12,
-    paddingTop: 2,
-  },
-
-  heroAccChips: {
+  // Tags (body)
+  tagsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
-  heroAccChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+  tagChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     borderRadius: 999,
-    backgroundColor: '#F6F7FB',
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
+    borderColor: BORDER,
+    backgroundColor: 'rgba(109,124,255,0.06)',
   },
-  heroAccChipText: {
+  tagText: {
     fontSize: 12,
-    fontWeight: '800',
-    color: '#0B1220',
-  },
-  heroAccEmptyText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#8A94A6',
+    fontWeight: '900',
+    color: BRAND_DARK,
   },
 
+  // ---------------------------------------------------------
+  // Today Message (아래 음영/보라 tint + shadow)
+  // ---------------------------------------------------------
   heroMessageBox: {
     marginTop: 14,
-    borderRadius: 18,
+    // borderRadius: 18,
     paddingVertical: 14,
     paddingHorizontal: 14,
-    backgroundColor: '#F6F7FB',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
+    // backgroundColor: 'rgba(109,124,255,0.08)',
+    // borderWidth: 1,
+    // borderColor: 'rgba(109,124,255,0.14)',
+    // shadowColor: BRAND,
+    // shadowOpacity: 0.22,
+    // shadowRadius: 14,
+    shadowOffset: { width: 0, height: 10 },
+    // elevation: 3,
     alignItems: 'center',
   },
   heroMessageText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#0B1220',
-    lineHeight: 19,
+    fontSize: 14,
+    fontWeight: '500',
+    color: TEXT,
+    lineHeight: 20,
     textAlign: 'center',
   },
 
   // ---------------------------------------------------------
+  // Section: "누리와의 소중한 기록" Header Block
+  // ---------------------------------------------------------
+  sectionLead: { gap: 6, marginTop: 6 },
+  sectionLeadTitle: { fontSize: 22, fontWeight: '900', color: TEXT },
+  sectionLeadSub: { fontSize: 12, fontWeight: '700', color: MUTED },
+
+  // ---------------------------------------------------------
   // Sections
   // ---------------------------------------------------------
-  section: { gap: 18 },
+  section: { gap: 12 },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+  },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '900',
-    color: '#0B1220',
-    marginBottom: 6,
+    color: TEXT,
+  },
+  sectionLink: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: BRAND_DARK,
   },
 
   // ---------------------------------------------------------
-  // Today Photo Card
+  // Today Photo Card (보라톤 overlay 통일)
   // ---------------------------------------------------------
   photoCard: {
-    height: 200,
-    borderRadius: 18,
+    height: 160,
+    borderRadius: 20,
     overflow: 'hidden',
-    backgroundColor: '#F4F4F4',
+    backgroundColor: SURFACE_SOFT,
     borderWidth: 1,
-    borderColor: '#EEEEEE',
+    borderColor: BORDER,
   },
   photoImage: { width: '100%', height: '100%', position: 'absolute' },
-  photoPlaceholder: { flex: 1, backgroundColor: '#EDEDED' },
+  photoPlaceholder: { flex: 1, backgroundColor: 'rgba(109,124,255,0.10)' },
+
   photoOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    padding: 12,
-    backgroundColor: 'rgba(0,0,0,0.22)',
+    padding: 14,
+    backgroundColor: 'rgba(11,18,32,0.24)',
   },
-  photoOverlayTitle: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
+  photoOverlayTint: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(109,124,255,0.12)',
+  },
+  photoOverlayTitle: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
   photoOverlaySub: {
     color: 'rgba(255,255,255,0.92)',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '800',
-    marginTop: 4,
+    marginTop: 6,
   },
 
   // ---------------------------------------------------------
@@ -354,7 +383,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 1,
   },
-  moreBtnText: { fontSize: 11, fontWeight: '900', color: '#0B1220' },
+  moreBtnText: { fontSize: 11, fontWeight: '900', color: BRAND_DARK },
 
   // ---------------------------------------------------------
   // Recent (List)
@@ -362,15 +391,18 @@ export const styles = StyleSheet.create({
   recentList: { gap: 12 },
 
   recentItem: {
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#EEEEEE',
-    backgroundColor: '#FFFFFF',
+    borderColor: BORDER,
+    backgroundColor: SURFACE,
     overflow: 'hidden',
   },
-  recentThumb: { height: 210, backgroundColor: '#F4F4F4' },
+  recentThumb: { height: 210, backgroundColor: SURFACE_SOFT },
   recentThumbImg: { width: '100%', height: '100%' },
-  recentThumbPlaceholder: { flex: 1, backgroundColor: '#EDEDED' },
+  recentThumbPlaceholder: {
+    flex: 1,
+    backgroundColor: 'rgba(109,124,255,0.10)',
+  },
 
   recentInfo: {
     paddingHorizontal: 12,
@@ -381,13 +413,13 @@ export const styles = StyleSheet.create({
   recentTitle: {
     fontSize: 13,
     fontWeight: '900',
-    color: '#0B1220',
+    color: TEXT,
     textAlign: 'center',
   },
   recentContent: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#556070',
+    color: MUTED,
     textAlign: 'center',
     lineHeight: 15,
   },
@@ -395,7 +427,7 @@ export const styles = StyleSheet.create({
   recentDate: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#8A94A6',
+    color: 'rgba(85,96,112,0.65)',
     textAlign: 'right',
   },
 
@@ -409,6 +441,11 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 6,
+    shadowColor: BRAND,
+    shadowOpacity: 0.22,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3,
   },
   recordBtnText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
 
@@ -416,18 +453,18 @@ export const styles = StyleSheet.create({
   // Empty Box
   // ---------------------------------------------------------
   emptyBox: {
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#EEEEEE',
-    backgroundColor: '#FFFFFF',
+    borderColor: BORDER,
+    backgroundColor: SURFACE,
     gap: 6,
   },
-  emptyTitle: { fontSize: 13, fontWeight: '900', color: '#0B1220' },
+  emptyTitle: { fontSize: 13, fontWeight: '900', color: TEXT },
   emptyDesc: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#556070',
+    color: MUTED,
     lineHeight: 15,
   },
 });
