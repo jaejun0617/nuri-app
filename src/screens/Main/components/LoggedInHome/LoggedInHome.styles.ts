@@ -1,23 +1,20 @@
 // 파일: src/screens/Main/components/LoggedInHome/LoggedInHome.styles.ts
 // 목적:
 // - LoggedInHome 전용 스타일
-// - ✅ 1차: 상단(Header) 디자인을 "화이트 + 퍼플" 톤으로 정리
-// - hero/section 스타일은 기존 유지
+// - ✅ HERO 카드: "스샷 레이아웃" (중앙 정렬 + 보라 pill + 아코디언 + 하단 메시지)
+// - 나머지 섹션(오늘사진/최근기록)은 기존 스타일 유지
 
 import { StyleSheet } from 'react-native';
 
-const PURPLE = '#6D7CFF';
-const BG = '#FFFFFF';
-const TEXT = '#0B1220';
-const MUTED = '#8A94A6';
-const BORDER = '#E6E8F0';
+const BRAND = '#6D7CFF'; // theme.colors.brand와 동일 컨셉(white + purple)
+const BORDER = 'rgba(0,0,0,0.06)';
 
 export const styles = StyleSheet.create({
   // ---------------------------------------------------------
   // Layout
   // ---------------------------------------------------------
-  screen: { flex: 1, backgroundColor: BG },
-  scroll: { flex: 1, backgroundColor: BG },
+  screen: { flex: 1, backgroundColor: '#FFFFFF' },
+  scroll: { flex: 1, backgroundColor: '#FFFFFF' },
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 12,
@@ -26,250 +23,270 @@ export const styles = StyleSheet.create({
   },
 
   // ---------------------------------------------------------
-  // ✅ Header (NEW)
+  // Header
   // ---------------------------------------------------------
-  header: { gap: 12, marginBottom: 4 },
-
-  headerTopRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-
-  headerTextArea: { flex: 1, gap: 4 },
-
-  title: { fontSize: 20, fontWeight: '900', color: TEXT },
+  header: { gap: 10, marginBottom: 4 },
+  headerTextArea: { gap: 4 },
+  title: { fontSize: 18, fontWeight: '900', color: '#0B1220' },
   subTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: MUTED,
+    color: '#556070',
     lineHeight: 16,
   },
 
-  headerIconRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  iconBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 999,
-    backgroundColor: '#F6F7FB',
-    borderWidth: 1,
-    borderColor: BORDER,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconText: { fontSize: 16 },
-
   // ---------------------------------------------------------
-  // ✅ Pet Switcher (스크린샷 톤)
+  // Pet Switcher
   // ---------------------------------------------------------
   petSwitcherRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-
   petChip: {
-    width: 42,
-    height: 42,
+    width: 40,
+    height: 40,
     borderRadius: 999,
     overflow: 'hidden',
     backgroundColor: '#F4F4F4',
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: '#EAEAEA',
   },
-  petChipActive: {
-    borderColor: PURPLE,
-    borderWidth: 2,
-  },
-
+  petChipActive: { borderColor: BRAND, borderWidth: 2 },
   petChipImage: { width: '100%', height: '100%' },
-
-  petChipFallback: {
-    flex: 1,
-    backgroundColor: '#F6F7FB',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  petChipFallbackText: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: TEXT,
-  },
-
-  // active ring 느낌 + 숫자(스크린샷의 "1" 느낌)
-  petChipRing: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 999,
-    borderWidth: 2,
-    borderColor: PURPLE,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(109,124,255,0.06)',
-  },
-  petChipRingNumber: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: PURPLE,
-  },
-
+  petChipPlaceholder: { flex: 1, backgroundColor: '#EDEDED' },
   petAddChip: {
-    width: 42,
-    height: 42,
+    width: 40,
+    height: 40,
     borderRadius: 999,
-    backgroundColor: '#F6F7FB',
+    backgroundColor: '#EEF0FF',
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: 'rgba(109,124,255,0.35)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   petAddPlus: {
-    color: PURPLE,
-    fontSize: 20,
+    color: BRAND,
+    fontSize: 18,
     fontWeight: '900',
     marginTop: -1,
   },
 
   // ---------------------------------------------------------
-  // HERO CARD (기존 유지)
+  // HERO CARD (✅ 스샷 레이아웃)
   // ---------------------------------------------------------
   heroCard: {
-    borderRadius: 18,
-    padding: 14,
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    paddingTop: 18,
+    paddingBottom: 16,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
-    backgroundColor: '#F6F2EE',
+    borderColor: BORDER,
+
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 3,
   },
 
-  heroTopRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-  },
-  heroLeft: { flex: 1, gap: 6 },
-
-  heroName: {
-    fontSize: 26,
-    fontWeight: '900',
-    color: '#2B2622',
-    letterSpacing: -0.3,
-  },
-  heroTopMeta: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#5F5752',
-    lineHeight: 18,
-  },
-  heroTopMetaMuted: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#8A827C',
-    lineHeight: 18,
-  },
-  heroBirthText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#5F5752',
-  },
-
-  heroTogetherPill: {
-    marginTop: 4,
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+  heroSettingBtn: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    width: 34,
+    height: 34,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.65)',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  heroTogetherText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#2B2622',
-  },
-  heroTogetherStrong: {
-    fontSize: 20,
+  heroSettingIcon: {
+    fontSize: 18,
+    color: '#8A94A6',
     fontWeight: '900',
-    color: '#2B2622',
   },
 
+  heroAvatarOuter: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 4,
+  },
   heroAvatarWrap: {
-    width: 150,
-    height: 150,
+    width: 140,
+    height: 140,
     borderRadius: 999,
     overflow: 'hidden',
     borderWidth: 5,
-    borderColor: 'rgba(255,255,255,0.95)',
-    backgroundColor: '#EDE7E2',
+    borderColor: 'rgba(109,124,255,0.18)',
+    backgroundColor: '#F3F4FF',
   },
   heroAvatarImg: { width: '100%', height: '100%' },
-  heroAvatarPlaceholder: { flex: 1, backgroundColor: '#DED7D1' },
+  heroAvatarPlaceholder: { flex: 1, backgroundColor: '#E7E9FF' },
 
-  heroLine: {
+  heroNameCentered: {
     marginTop: 12,
-    marginBottom: 12,
-    height: 1,
-    backgroundColor: 'rgba(0,0,0,0.08)',
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#0B1220',
+    textAlign: 'center',
+    letterSpacing: -0.3,
   },
 
-  heroThreeCol: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+  heroMetaLine: {
+    marginTop: 6,
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#556070',
+    textAlign: 'center',
   },
-  heroCol: {
-    flex: 1,
-    paddingHorizontal: 6,
-    gap: 6,
+  heroMetaMuted: {
+    marginTop: 6,
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#8A94A6',
+    textAlign: 'center',
   },
-  heroColDivider: {
-    width: 1,
-    height: '100%',
-    backgroundColor: 'rgba(0,0,0,0.10)',
+
+  heroBirthCentered: {
+    marginTop: 6,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#8A94A6',
+    textAlign: 'center',
   },
-  heroColHeader: {
-    paddingVertical: 6,
+
+  heroTogetherPillPurple: {
+    marginTop: 14,
+    alignSelf: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
     borderRadius: 999,
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.55)',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
+    backgroundColor: BRAND,
+
+    shadowColor: BRAND,
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3,
   },
-  heroColTitle: {
+  heroTogetherPillText: {
     fontSize: 13,
     fontWeight: '900',
-    color: '#2B2622',
+    color: '#FFFFFF',
   },
-  heroBullet: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#2B2622',
-    marginLeft: 5,
-  },
-  heroBulletMuted: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#8A827C',
+  heroTogetherPillStrong: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#FFFFFF',
   },
 
-  heroTagsRow: {
-    marginTop: 12,
+  heroExpandAllRow: {
+    marginTop: 14,
+    alignSelf: 'flex-end',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 4,
+  },
+  heroExpandAllText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#8A94A6',
+  },
+  heroChevron: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#8A94A6',
+    transform: [{ rotate: '0deg' }],
+    marginTop: -1,
+  },
+  heroChevronOpen: {
+    transform: [{ rotate: '180deg' }],
+  },
+
+  heroAccordion: {
+    marginTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+  },
+
+  heroAccItem: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+  },
+
+  heroAccHeader: {
+    minHeight: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    gap: 10,
+  },
+
+  heroAccIconCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroAccIconCircleBlue: { backgroundColor: '#EAF0FF' },
+  heroAccIconCircleOrange: { backgroundColor: '#FFF2EA' },
+  heroAccIconCirclePink: { backgroundColor: '#FFEAF1' },
+  heroAccIconCirclePurple: { backgroundColor: '#EEF0FF' },
+
+  heroAccIconText: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#0B1220',
+  },
+
+  heroAccTitle: {
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  heroAccTitleBlue: { color: '#2F6BFF' },
+  heroAccTitleOrange: { color: '#FF7A30' },
+  heroAccTitlePink: { color: '#FF4FA3' },
+  heroAccTitlePurple: { color: BRAND },
+
+  heroAccChevron: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#8A94A6',
+    transform: [{ rotate: '0deg' }],
+    marginTop: -1,
+  },
+  heroAccChevronOpen: {
+    transform: [{ rotate: '180deg' }],
+  },
+
+  heroAccBody: {
+    paddingHorizontal: 44,
+    paddingBottom: 12,
+    paddingTop: 2,
+  },
+
+  heroAccChips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    justifyContent: 'center',
   },
-  heroTagChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+  heroAccChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.65)',
+    backgroundColor: '#F6F7FB',
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.06)',
   },
-  heroTagText: {
+  heroAccChipText: {
     fontSize: 12,
-    fontWeight: '900',
-    color: '#3A342F',
+    fontWeight: '800',
+    color: '#0B1220',
+  },
+  heroAccEmptyText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#8A94A6',
   },
 
   heroMessageBox: {
@@ -277,32 +294,27 @@ export const styles = StyleSheet.create({
     borderRadius: 18,
     paddingVertical: 14,
     paddingHorizontal: 14,
-    borderColor: 'rgba(0,0,0,0.20)',
-    backgroundColor: 'rgba(255,255,255,0.35)',
+    backgroundColor: '#F6F7FB',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
     alignItems: 'center',
-    gap: 8,
-  },
-  heroMessageLabel: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: '#2B2622',
   },
   heroMessageText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
-    color: '#2B2622',
-    lineHeight: 20,
+    color: '#0B1220',
+    lineHeight: 19,
     textAlign: 'center',
   },
 
   // ---------------------------------------------------------
-  // Sections (기존 유지)
+  // Sections
   // ---------------------------------------------------------
   section: { gap: 18 },
   sectionTitle: {
     fontSize: 14,
     fontWeight: '900',
-    color: '#000000',
+    color: '#0B1220',
     marginBottom: 6,
   },
 
@@ -342,7 +354,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 1,
   },
-  moreBtnText: { fontSize: 11, fontWeight: '900', color: '#000000' },
+  moreBtnText: { fontSize: 11, fontWeight: '900', color: '#0B1220' },
 
   // ---------------------------------------------------------
   // Recent (List)
@@ -369,13 +381,13 @@ export const styles = StyleSheet.create({
   recentTitle: {
     fontSize: 13,
     fontWeight: '900',
-    color: '#000000',
+    color: '#0B1220',
     textAlign: 'center',
   },
   recentContent: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#555555',
+    color: '#556070',
     textAlign: 'center',
     lineHeight: 15,
   },
@@ -383,7 +395,7 @@ export const styles = StyleSheet.create({
   recentDate: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#888888',
+    color: '#8A94A6',
     textAlign: 'right',
   },
 
@@ -393,7 +405,7 @@ export const styles = StyleSheet.create({
   recordBtn: {
     height: 46,
     borderRadius: 14,
-    backgroundColor: '#000000',
+    backgroundColor: BRAND,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 6,
@@ -411,11 +423,11 @@ export const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     gap: 6,
   },
-  emptyTitle: { fontSize: 13, fontWeight: '900', color: '#000000' },
+  emptyTitle: { fontSize: 13, fontWeight: '900', color: '#0B1220' },
   emptyDesc: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#555555',
+    color: '#556070',
     lineHeight: 15,
   },
 });
