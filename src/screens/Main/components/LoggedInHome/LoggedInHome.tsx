@@ -1,23 +1,12 @@
 // 파일: src/screens/Main/components/LoggedInHome/LoggedInHome.tsx
 // 목적:
 // - 로그인 홈 (LoggedInHome)
-// - 헤더: 닉네임 인사 + 멀티펫 썸네일 스위처(최대 4 + +버튼)
-// - HERO CARD + 오늘날의 사진 + 최근기록
+// - ✅ 1차: 상단(Header) UI를 "인사말 + 아이콘 + 미니 프로필 스위처" 구조로 개선
+// - HERO CARD + 오늘날의 사진 + 최근기록 (기존 로직 유지)
 //
-// ✅ 최근기록 UX(최종)
-// - 기본: 최신 7개만 노출
-// - 조건: records가 8개 초과(= 9개 이상)면 우측에 더보기 버튼 노출
-// - 동작:
-//   1차 클릭: 7개 더 보여줌(총 14개)
-//   2차 클릭(아직 더 남아있으면): 타임라인으로 이동
-// - 기록이 있을 때: ✅ 하단 “기록하기” 버튼 제거(탭과 중복 제거)
-// - 기록이 없을 때: ✅ Empty 카드 + CTA 1개 유지(첫 전환용)
-//
-// ✅ 훅/스토어 안정성(중요)
-// - recordStore 구독: byPetId[petId] 직접 구독(가장 단순/안전)
-// - fallback은 동일 참조(FALLBACK_RECORDS_STATE)로 유지
-// - activePetId 변경 시 recentExpanded 초기화
-// - new architecture에서 snapshot 흔들림 방지: "없는 상태"는 매번 new로 만들지 않는다.
+// NOTE:
+// - 이번 패치는 "상단부터" 교체하는 단계.
+// - hero/sections는 그대로 두고, header만 스크린샷 톤으로 맞춘다.
 
 import React, { useEffect, useMemo, useCallback, useState } from 'react';
 import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
@@ -138,10 +127,15 @@ function clampList(list: string[] | null | undefined, max = 2) {
     .slice(0, max);
 }
 
+function getInitial(name: string | null | undefined) {
+  const v = (name ?? '').trim();
+  if (!v) return '•';
+  return v.slice(0, 1);
+}
+
 /* ---------------------------------------------------------
  * 2) component
  * -------------------------------------------------------- */
-// ✅ recordStore Chapter 5 상태머신 정합
 type PetRecordsStateShape = {
   status: 'idle' | 'loading' | 'ready' | 'refreshing' | 'error';
   items: MemoryRecord[];
@@ -150,7 +144,6 @@ type PetRecordsStateShape = {
   hasMore: boolean;
 };
 
-// ✅ 동일 참조 fallback(새 아키텍처/SyncExternalStore 안전)
 const FALLBACK_RECORDS_STATE: PetRecordsStateShape = Object.freeze({
   status: 'idle',
   items: [],
@@ -159,7 +152,6 @@ const FALLBACK_RECORDS_STATE: PetRecordsStateShape = Object.freeze({
   hasMore: false,
 });
 
-// 최근기록 표시 개수 규칙
 const RECENT_BASE = 7;
 const RECENT_EXPANDED = 14;
 
@@ -212,12 +204,12 @@ export default function LoggedInHome() {
   }, [petBooted, pets.length, navigation]);
 
   // ---------------------------------------------------------
-  // 3.5) transition animation
+  // 3.5) pet switching transition
   // ---------------------------------------------------------
   const [switching, setSwitching] = useState(false);
 
   const OUT_OPACITY = 0.9;
-  const OUT_LIFT_PX = 6; // ✅ UX: 0.1px는 체감 없음 → 정상 수치로 복구
+  const OUT_LIFT_PX = 6;
 
   const svOpacity = useSharedValue(1);
   const svTranslateY = useSharedValue(0);
@@ -230,7 +222,7 @@ export default function LoggedInHome() {
   }, []);
 
   // ---------------------------------------------------------
-  // 4) records (✅ 안전한 구독: byPetId[petId] 직접)
+  // 4) records
   // ---------------------------------------------------------
   const bootstrapRecords = useRecordStore(s => s.bootstrap);
 
@@ -246,8 +238,7 @@ export default function LoggedInHome() {
   }, [bootstrapRecords, activePetId]);
 
   // ---------------------------------------------------------
-  // 4.1) 최근 기록 "더보기" 상태
-  // - pet 변경 시 확장 상태 초기화
+  // 4.1) recent expand state
   // ---------------------------------------------------------
   const [recentExpanded, setRecentExpanded] = useState(false);
 
@@ -256,15 +247,13 @@ export default function LoggedInHome() {
   }, [activePetId]);
 
   // ---------------------------------------------------------
-  // 4.2) 최근 기록 계산
+  // 4.2) recent items
   // ---------------------------------------------------------
-  // 조건: records가 8개 초과(= 9개 이상)일 때만 버튼 노출
   const showMoreBtn = useMemo(
     () => safeRecordsState.items.length > RECENT_BASE + 1,
     [safeRecordsState.items.length],
   );
 
-  // 1차 클릭: 14개 노출, 그 외: 7개 노출
   const visibleRecentCount = useMemo(
     () => (recentExpanded ? RECENT_EXPANDED : RECENT_BASE),
     [recentExpanded],
@@ -275,7 +264,6 @@ export default function LoggedInHome() {
     [safeRecordsState.items, visibleRecentCount],
   );
 
-  // 2차 클릭 시 타임라인 이동 조건: 14개 이후에도 남아있을 때
   const hasMoreAfterExpanded = useMemo(() => {
     if (!recentExpanded) return false;
     return safeRecordsState.items.length > RECENT_EXPANDED;
@@ -323,7 +311,7 @@ export default function LoggedInHome() {
   }, [todayPhoto.mode]);
 
   // ---------------------------------------------------------
-  // 5) HERO derived
+  // 5) HERO derived (existing)
   // ---------------------------------------------------------
   const petName = useMemo(
     () => selectedPet?.name ?? '우리 아이',
@@ -402,7 +390,7 @@ export default function LoggedInHome() {
   );
 
   // ---------------------------------------------------------
-  // 6) header text
+  // 6) header text (✅ new header keeps same content)
   // ---------------------------------------------------------
   const greetingTitle = useMemo(() => {
     if (nickname) return `${nickname}님, 반가워요!`;
@@ -485,20 +473,25 @@ export default function LoggedInHome() {
   );
 
   const onPressRecentMore = useCallback(() => {
-    // 1차: 확장(14개)
     if (!recentExpanded) {
       setRecentExpanded(true);
       return;
     }
-
-    // 2차: 아직 더 남아있으면 타임라인 이동
     if (hasMoreAfterExpanded) {
       onPressTimeline();
       return;
     }
-
-    // 남은 게 없으면 아무 동작 없음
   }, [recentExpanded, hasMoreAfterExpanded, onPressTimeline]);
+
+  // 상단 아이콘(현재는 더미/훅 연결만)
+  const onPressSearch = useCallback(() => {
+    // TODO: 다음 챕터에서 홈 검색(또는 타임라인 검색)으로 연결
+    navigation.navigate('TimelineTab');
+  }, [navigation]);
+
+  const onPressBell = useCallback(() => {
+    // TODO: 다음 챕터에서 notifications 화면/모달로 연결
+  }, []);
 
   // ---------------------------------------------------------
   // 8) render
@@ -510,15 +503,39 @@ export default function LoggedInHome() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* 1) 헤더 */}
+        {/* ---------------------------------------------------------
+         * ✅ 1) NEW HEADER (스크린샷 톤)
+         * - 상단: 인사말(좌) + 아이콘(우)
+         * - 하단: 미니 프로필 스위처 + (+)
+         * -------------------------------------------------------- */}
         <View style={styles.header}>
-          <View style={styles.headerTextArea}>
-            <Text style={styles.title}>{greetingTitle}</Text>
-            <Text style={styles.subTitle}>{greetingSubTitle}</Text>
+          <View style={styles.headerTopRow}>
+            <View style={styles.headerTextArea}>
+              <Text style={styles.title}>{greetingTitle}</Text>
+              <Text style={styles.subTitle}>{greetingSubTitle}</Text>
+            </View>
+
+            <View style={styles.headerIconRow}>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={styles.iconBtn}
+                onPress={onPressSearch}
+              >
+                <Text style={styles.iconText}>🔍</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={styles.iconBtn}
+                onPress={onPressBell}
+              >
+                <Text style={styles.iconText}>🔔</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View style={styles.petSwitcherRow}>
-            {pets.slice(0, 4).map(p => {
+            {pets.slice(0, 4).map((p, idx) => {
               const isActive = p.id === activePetId;
               const uri = p.avatarUrl ?? null;
 
@@ -535,8 +552,19 @@ export default function LoggedInHome() {
                   {uri ? (
                     <Image source={{ uri }} style={styles.petChipImage} />
                   ) : (
-                    <View style={styles.petChipPlaceholder} />
+                    <View style={styles.petChipFallback}>
+                      <Text style={styles.petChipFallbackText}>
+                        {getInitial(p.name)}
+                      </Text>
+                    </View>
                   )}
+
+                  {/* ✅ active ring 느낌(스크린샷 톤) */}
+                  {isActive ? (
+                    <View style={styles.petChipRing}>
+                      <Text style={styles.petChipRingNumber}>{idx + 1}</Text>
+                    </View>
+                  ) : null}
                 </TouchableOpacity>
               );
             })}
@@ -551,7 +579,9 @@ export default function LoggedInHome() {
           </View>
         </View>
 
-        {/* 2) 전환 컨텐츠 */}
+        {/* ---------------------------------------------------------
+         * 2) 전환 컨텐츠 (기존 유지)
+         * -------------------------------------------------------- */}
         <Animated.View style={animatedContentStyle}>
           {/* HERO */}
           <View style={styles.heroCard}>
@@ -664,7 +694,6 @@ export default function LoggedInHome() {
             </View>
 
             <View style={styles.heroMessageBox}>
-              {/* <Text style={styles.heroMessageLabel}>오늘의 메시지</Text> */}
               <Text style={styles.heroMessageText}>{todayMessage}</Text>
             </View>
           </View>
@@ -726,7 +755,6 @@ export default function LoggedInHome() {
                 <Text style={styles.emptyTitle}>아직 기록이 없어요</Text>
                 <Text style={styles.emptyDesc}>첫 번째 추억을 남겨보세요.</Text>
 
-                {/* ✅ Empty에서만 CTA 1개 유지 */}
                 <TouchableOpacity
                   activeOpacity={0.9}
                   style={styles.recordBtn}

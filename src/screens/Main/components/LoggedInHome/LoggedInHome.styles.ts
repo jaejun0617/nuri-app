@@ -1,18 +1,23 @@
 // 파일: src/screens/Main/components/LoggedInHome/LoggedInHome.styles.ts
 // 목적:
 // - LoggedInHome 전용 스타일
-// - 모바일 기준 폰트/간격 최적화
-// - HERO CARD: 사진 레이아웃(정보+3컬럼+태그+오늘의메시지)
-// - 최근기록: 이미지 아래 정보(제목/내용 중앙, 날짜 우측)
+// - ✅ 1차: 상단(Header) 디자인을 "화이트 + 퍼플" 톤으로 정리
+// - hero/section 스타일은 기존 유지
 
 import { StyleSheet } from 'react-native';
+
+const PURPLE = '#6D7CFF';
+const BG = '#FFFFFF';
+const TEXT = '#0B1220';
+const MUTED = '#8A94A6';
+const BORDER = '#E6E8F0';
 
 export const styles = StyleSheet.create({
   // ---------------------------------------------------------
   // Layout
   // ---------------------------------------------------------
-  screen: { flex: 1, backgroundColor: '#FFFFFF' },
-  scroll: { flex: 1, backgroundColor: '#FFFFFF' },
+  screen: { flex: 1, backgroundColor: BG },
+  scroll: { flex: 1, backgroundColor: BG },
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 12,
@@ -21,51 +26,112 @@ export const styles = StyleSheet.create({
   },
 
   // ---------------------------------------------------------
-  // Header
+  // ✅ Header (NEW)
   // ---------------------------------------------------------
-  header: { gap: 10, marginBottom: 4 },
-  headerTextArea: { gap: 4 },
-  title: { fontSize: 18, fontWeight: '900', color: '#000000' },
+  header: { gap: 12, marginBottom: 4 },
+
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+
+  headerTextArea: { flex: 1, gap: 4 },
+
+  title: { fontSize: 20, fontWeight: '900', color: TEXT },
   subTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#555555',
+    color: MUTED,
     lineHeight: 16,
   },
 
+  headerIconRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  iconBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 999,
+    backgroundColor: '#F6F7FB',
+    borderWidth: 1,
+    borderColor: BORDER,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconText: { fontSize: 16 },
+
   // ---------------------------------------------------------
-  // Pet Switcher
+  // ✅ Pet Switcher (스크린샷 톤)
   // ---------------------------------------------------------
   petSwitcherRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+
   petChip: {
-    width: 40,
-    height: 40,
+    width: 42,
+    height: 42,
     borderRadius: 999,
     overflow: 'hidden',
     backgroundColor: '#F4F4F4',
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: BORDER,
   },
-  petChipActive: { borderColor: '#000000', borderWidth: 2 },
+  petChipActive: {
+    borderColor: PURPLE,
+    borderWidth: 2,
+  },
+
   petChipImage: { width: '100%', height: '100%' },
-  petChipPlaceholder: { flex: 1, backgroundColor: '#EDEDED' },
-  petAddChip: {
-    width: 40,
-    height: 40,
+
+  petChipFallback: {
+    flex: 1,
+    backgroundColor: '#F6F7FB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  petChipFallbackText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: TEXT,
+  },
+
+  // active ring 느낌 + 숫자(스크린샷의 "1" 느낌)
+  petChipRing: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    right: 0,
+    bottom: 0,
     borderRadius: 999,
-    backgroundColor: '#000000',
+    borderWidth: 2,
+    borderColor: PURPLE,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(109,124,255,0.06)',
+  },
+  petChipRingNumber: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: PURPLE,
+  },
+
+  petAddChip: {
+    width: 42,
+    height: 42,
+    borderRadius: 999,
+    backgroundColor: '#F6F7FB',
+    borderWidth: 1,
+    borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
   },
   petAddPlus: {
-    color: '#FFFFFF',
-    fontSize: 18,
+    color: PURPLE,
+    fontSize: 20,
     fontWeight: '900',
     marginTop: -1,
   },
 
   // ---------------------------------------------------------
-  // HERO CARD (사진 레이아웃)
+  // HERO CARD (기존 유지)
   // ---------------------------------------------------------
   heroCard: {
     borderRadius: 18,
@@ -211,9 +277,7 @@ export const styles = StyleSheet.create({
     borderRadius: 18,
     paddingVertical: 14,
     paddingHorizontal: 14,
-    // borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.20)',
-    // borderStyle: 'dashed',
     backgroundColor: 'rgba(255,255,255,0.35)',
     alignItems: 'center',
     gap: 8,
@@ -232,7 +296,7 @@ export const styles = StyleSheet.create({
   },
 
   // ---------------------------------------------------------
-  // Sections
+  // Sections (기존 유지)
   // ---------------------------------------------------------
   section: { gap: 18 },
   sectionTitle: {
