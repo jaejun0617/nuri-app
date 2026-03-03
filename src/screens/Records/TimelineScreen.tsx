@@ -76,7 +76,7 @@ export default function TimelineScreen() {
   }, [bootstrap, petId]);
 
   const records = petState?.items ?? [];
-  const refreshing = petState?.refreshing ?? false;
+  const refreshing = petState?.status === 'refreshing';
 
   // ---------------------------------------------------------
   // 4) actions
@@ -104,7 +104,7 @@ export default function TimelineScreen() {
   // ---------------------------------------------------------
   // 5) render
   // ---------------------------------------------------------
-  const headerTitle = useMemo(() => '추억보기', []);
+  const headerTitle = useMemo(() => '타임라인', []);
 
   const renderItem = useCallback(
     ({ item }: { item: MemoryRecord }) => {
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  createText: { color: '#FFFFFF', fontWeight: '900' },
+  createText: { color: '#ffffff', fontWeight: '900' },
 
   list: { padding: 14, gap: 10, paddingBottom: 24 },
   listEmpty: { flexGrow: 1, padding: 14 },

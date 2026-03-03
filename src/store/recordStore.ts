@@ -1,121 +1,76 @@
 // 파일: src/store/recordStore.ts
 // 목적:
-// - petId 별 records 캐시 관리 (상태머신 기반)
-// - memories.ts(fetchMemoriesByPet)와 100% 정합
-// - optimistic update 지원 (create/edit/delete 직후 즉시 반영)
+// - petId 별 records 캐시(페이지네이션 + 상태머신)
+// - cursor(created_at) 고정
+// - signed url은 services에서 캐싱/프리패치 처리
 //
-// 중요(⚠️ Fabric/SyncExternalStore 이슈 방지):
-// - selector에서 "없는 상태"를 매번 새 객체로 만들면 snapshot이 흔들려
-//   React가 무한 루프 위험으로 판단 → 경고/블랙스크린/렌더 멈춤 발생 가능
-// - 따라서 fallback은 "항상 동일 참조"로 유지해야 한다.
-//
-// ✅ Chapter 5 고정 원칙
-// 1) 상태는 boolean 조합이 아니라 "단일 상태(status)"로 고정
-// 2) 화면에서는 byPetId[petId] 직접 구독(또는 selector factory)만 사용
-// 3) bootstrap은 1회만 수행(ready면 재호출 무시), refresh는 강제 재동기화
-// 4) optimistic 작업은 store 내 순수 로컬 write helper로만 처리
+// 중요(⚠️ New Architecture/SyncExternalStore 안전):
+// - fallback 객체는 항상 동일 참조(FALLBACK_PET_STATE)
+// - selector는 byPetId[petId] 직접 접근(가장 안전)
 
 import { create } from 'zustand';
 import type { MemoryRecord } from '../services/supabase/memories';
-import { fetchMemoriesByPet } from '../services/supabase/memories';
+import { fetchMemoriesByPetPage } from '../services/supabase/memories';
 
-/* ---------------------------------------------------------
- * 0) types
- * -------------------------------------------------------- */
-export type RecordStatus =
+type Status =
   | 'idle'
   | 'loading'
   | 'ready'
   | 'refreshing'
+  | 'loadingMore'
   | 'error';
 
 export type PetRecordsState = {
-  status: RecordStatus;
   items: MemoryRecord[];
+  status: Status;
   errorMessage: string | null;
 
-  // 확장 슬롯(향후 pagination 고정 시 사용)
-  cursor: string | null;
+  // pagination
+  cursor: string | null; // createdAt
   hasMore: boolean;
 };
 
-export type RecordStore = {
+type RecordStore = {
   byPetId: Record<string, PetRecordsState>;
 
-  // ---------------------------------------------------------
-  // selectors (factory)
-  // ---------------------------------------------------------
-  selectPet: (petId: string | null) => PetRecordsState;
-
-  // ---------------------------------------------------------
-  // lifecycle
-  // ---------------------------------------------------------
   ensurePetState: (petId: string) => void;
+  getPetState: (petId: string) => PetRecordsState;
+
   bootstrap: (petId: string) => Promise<void>;
   refresh: (petId: string) => Promise<void>;
+  loadMore: (petId: string) => Promise<void>;
 
-  // ---------------------------------------------------------
-  // write helpers (optimistic)
-  // ---------------------------------------------------------
   replaceAll: (petId: string, items: MemoryRecord[]) => void;
   upsertOneLocal: (petId: string, item: MemoryRecord) => void;
   removeOneLocal: (petId: string, memoryId: string) => void;
 
-  // ---------------------------------------------------------
-  // clear
-  // ---------------------------------------------------------
   clearPet: (petId: string) => void;
   clearAll: () => void;
 };
 
-/* ---------------------------------------------------------
- * 1) state factories
- * -------------------------------------------------------- */
 const createInitialPetState = (): PetRecordsState => ({
-  status: 'idle',
   items: [],
+  status: 'idle',
   errorMessage: null,
 
   cursor: null,
-  hasMore: false,
+  hasMore: true,
 });
 
-// ✅ 핵심: fallback은 "항상 같은 객체(같은 참조)"로 고정
 const FALLBACK_PET_STATE: PetRecordsState = Object.freeze(
   createInitialPetState(),
 );
 
-/* ---------------------------------------------------------
- * 2) selector factory (외부에서도 재사용 가능)
- * -------------------------------------------------------- */
-// - 화면에서: useRecordStore(s => selectPetRecords(petId)(s)) 형태로도 가능
-export const selectPetRecords =
-  (petId: string | null) =>
-  (state: Pick<RecordStore, 'byPetId'>): PetRecordsState => {
-    if (!petId) return FALLBACK_PET_STATE;
-    return state.byPetId[petId] ?? FALLBACK_PET_STATE;
-  };
+const PAGE_SIZE = 20;
 
-/* ---------------------------------------------------------
- * 3) store
- * -------------------------------------------------------- */
 export const useRecordStore = create<RecordStore>((set, get) => ({
   byPetId: {},
-
-  // ---------------------------------------------------------
-  // selectors
-  // ---------------------------------------------------------
-  selectPet: (petId: string | null) => {
-    if (!petId) return FALLBACK_PET_STATE;
-    return get().byPetId[petId] ?? FALLBACK_PET_STATE;
-  },
 
   // ---------------------------------------------------------
   // helpers
   // ---------------------------------------------------------
   ensurePetState: (petId: string) => {
     if (!petId) return;
-
     const cur = get().byPetId[petId];
     if (cur) return;
 
@@ -127,51 +82,52 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
     }));
   },
 
+  getPetState: (petId: string) => {
+    if (!petId) return FALLBACK_PET_STATE;
+    return get().byPetId[petId] ?? FALLBACK_PET_STATE;
+  },
+
   // ---------------------------------------------------------
-  // bootstrap (최초 1회)
+  // 최초 로딩
   // ---------------------------------------------------------
   bootstrap: async (petId: string) => {
     if (!petId) return;
 
     get().ensurePetState(petId);
-
-    const st = get().byPetId[petId];
-    if (!st) return;
-
-    // ✅ ready면 재호출 금지, loading/refreshing 중이면 중복 방지
+    const st = get().getPetState(petId);
     if (
-      st.status === 'ready' ||
       st.status === 'loading' ||
-      st.status === 'refreshing'
-    ) {
+      st.status === 'refreshing' ||
+      st.status === 'loadingMore'
+    )
       return;
-    }
+    if (st.status === 'ready' && st.items.length > 0) return;
 
     set(s => ({
       byPetId: {
         ...s.byPetId,
-        [petId]: {
-          ...s.byPetId[petId],
-          status: 'loading',
-          errorMessage: null,
-        },
+        [petId]: { ...s.byPetId[petId], status: 'loading', errorMessage: null },
       },
     }));
 
     try {
-      const items = await fetchMemoriesByPet(petId);
+      const page = await fetchMemoriesByPetPage({
+        petId,
+        limit: PAGE_SIZE,
+        cursor: null,
+        prefetchTop: 10,
+      });
 
       set(s => ({
         byPetId: {
           ...s.byPetId,
           [petId]: {
             ...s.byPetId[petId],
+            items: page.items,
             status: 'ready',
-            items,
             errorMessage: null,
-            // pagination 슬롯은 추후 loadMore 고정 시 채움
-            cursor: null,
-            hasMore: false,
+            cursor: page.nextCursor,
+            hasMore: page.hasMore,
           },
         },
       }));
@@ -190,17 +146,13 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
   },
 
   // ---------------------------------------------------------
-  // refresh (강제 재동기화)
+  // 새로고침(커서 리셋)
   // ---------------------------------------------------------
   refresh: async (petId: string) => {
     if (!petId) return;
 
     get().ensurePetState(petId);
-
-    const st = get().byPetId[petId];
-    if (!st) return;
-
-    // ✅ refresh 중복 방지
+    const st = get().getPetState(petId);
     if (st.status === 'refreshing') return;
 
     set(s => ({
@@ -215,23 +167,27 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
     }));
 
     try {
-      const items = await fetchMemoriesByPet(petId);
+      const page = await fetchMemoriesByPetPage({
+        petId,
+        limit: PAGE_SIZE,
+        cursor: null,
+        prefetchTop: 10,
+      });
 
       set(s => ({
         byPetId: {
           ...s.byPetId,
           [petId]: {
             ...s.byPetId[petId],
+            items: page.items,
             status: 'ready',
-            items,
             errorMessage: null,
-            cursor: null,
-            hasMore: false,
+            cursor: page.nextCursor,
+            hasMore: page.hasMore,
           },
         },
       }));
     } catch (e: any) {
-      // refresh 실패 시에도 기존 items는 유지 (UX 안전)
       set(s => ({
         byPetId: {
           ...s.byPetId,
@@ -246,7 +202,83 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
   },
 
   // ---------------------------------------------------------
-  // write helpers (optimistic)
+  // 더 불러오기(커서 기반)
+  // ---------------------------------------------------------
+  loadMore: async (petId: string) => {
+    if (!petId) return;
+
+    get().ensurePetState(petId);
+    const st = get().getPetState(petId);
+
+    if (!st.hasMore) return;
+    if (
+      st.status === 'loading' ||
+      st.status === 'refreshing' ||
+      st.status === 'loadingMore'
+    )
+      return;
+
+    set(s => ({
+      byPetId: {
+        ...s.byPetId,
+        [petId]: {
+          ...s.byPetId[petId],
+          status: 'loadingMore',
+          errorMessage: null,
+        },
+      },
+    }));
+
+    try {
+      const page = await fetchMemoriesByPetPage({
+        petId,
+        limit: PAGE_SIZE,
+        cursor: st.cursor,
+        prefetchTop: 10,
+      });
+
+      set(s => {
+        const cur = s.byPetId[petId];
+
+        // ✅ 중복 방지(안전): id 기준 유니크 병합
+        const map = new Map<string, MemoryRecord>();
+        cur.items.forEach(it => map.set(it.id, it));
+        page.items.forEach(it => map.set(it.id, it));
+        const merged = Array.from(map.values());
+
+        // createdAt desc 유지(서버도 desc지만 merge 후 보장)
+        merged.sort((a, b) => (a.createdAt > b.createdAt ? -1 : 1));
+
+        return {
+          byPetId: {
+            ...s.byPetId,
+            [petId]: {
+              ...cur,
+              items: merged,
+              status: 'ready',
+              errorMessage: null,
+              cursor: page.nextCursor,
+              hasMore: page.hasMore,
+            },
+          },
+        };
+      });
+    } catch (e: any) {
+      set(s => ({
+        byPetId: {
+          ...s.byPetId,
+          [petId]: {
+            ...s.byPetId[petId],
+            status: 'error',
+            errorMessage: e?.message ?? '더 불러오기 실패',
+          },
+        },
+      }));
+    }
+  },
+
+  // ---------------------------------------------------------
+  // write helpers
   // ---------------------------------------------------------
   replaceAll: (petId, items) => {
     if (!petId) return;
@@ -257,9 +289,11 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
         ...s.byPetId,
         [petId]: {
           ...s.byPetId[petId],
-          status: 'ready',
           items,
+          status: 'ready',
           errorMessage: null,
+          cursor: items.length ? items[items.length - 1].createdAt : null,
+          hasMore: true,
         },
       },
     }));
@@ -277,15 +311,13 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
       if (idx === -1) next.unshift(item);
       else next[idx] = item;
 
+      // 정렬 유지
+      next.sort((a, b) => (a.createdAt > b.createdAt ? -1 : 1));
+
       return {
         byPetId: {
           ...s.byPetId,
-          [petId]: {
-            ...cur,
-            status: 'ready',
-            items: next,
-            errorMessage: null,
-          },
+          [petId]: { ...cur, items: next, status: 'ready' },
         },
       };
     });
@@ -300,9 +332,8 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
         ...s.byPetId,
         [petId]: {
           ...s.byPetId[petId],
-          status: 'ready',
           items: s.byPetId[petId].items.filter(it => it.id !== memoryId),
-          errorMessage: null,
+          status: 'ready',
         },
       },
     }));

@@ -1,83 +1,92 @@
 // 파일: src/services/supabase/storageMemories.ts
 // 목적:
-// - memories(기록) 이미지 업로드 / signed url 발급
-// - bucket: memory-images (private)
-// - DB에는 path만 저장 (memories.image_url)
-// - Signed URL은 "메모리 캐싱"으로 중복 발급 방지
+// - memory-images 버킷의 signed URL 생성 + TTL 캐싱(핵심)
+// - 동일 imagePath 반복 요청 시 네트워크 재호출 방지
+//
+// 캐싱 규칙:
+// - key = imagePath(= storage path)
+// - value = { url, expiresAtMs }
+// - 만료 60초 전이면 갱신(안전 버퍼)
 
-import { Buffer } from 'buffer';
-import { readFileAsBase64 } from '../files/readFileAsBase64';
 import { supabase } from './client';
-import { getSignedUrl } from './storage';
 
-const MEMORY_IMAGES_BUCKET = 'memory-images';
+type CacheEntry = {
+  url: string;
+  expiresAtMs: number;
+};
 
-// ---------------------------------------------------------
-// 1) Signed URL 캐싱 (path → url)
-// - private bucket에서 createSignedUrl()은 비용이 있으므로 캐시 필수
-// ---------------------------------------------------------
-type CacheEntry = { url: string; expiresAt: number };
-const signedUrlCache = new Map<string, CacheEntry>();
+const cache = new Map<string, CacheEntry>();
 
-export async function getMemoryImageSignedUrl(path: string): Promise<string> {
+// ✅ Signed URL 기본 만료(초) - 프로젝트 상황에 맞게 조절 가능
+const DEFAULT_EXPIRES_IN = 60 * 30; // 30분
+const REFRESH_BUFFER_MS = 60 * 1000; // 60초 전부터 갱신
+
+export async function getMemoryImageSignedUrl(
+  imagePath: string,
+  options?: { expiresIn?: number },
+): Promise<string> {
+  const path = (imagePath ?? '').trim();
+  if (!path) throw new Error('imagePath is required');
+
+  const expiresIn = options?.expiresIn ?? DEFAULT_EXPIRES_IN;
+
+  const { data, error } = await supabase.storage
+    .from('memory-images')
+    .createSignedUrl(path, expiresIn);
+
+  if (error) throw error;
+  if (!data?.signedUrl) throw new Error('signedUrl is empty');
+
+  return data.signedUrl;
+}
+
+export async function getMemoryImageSignedUrlCached(
+  imagePath: string | null | undefined,
+  options?: { expiresIn?: number },
+): Promise<string | null> {
+  const path = (imagePath ?? '').trim();
+  if (!path) return null;
+
   const now = Date.now();
+  const hit = cache.get(path);
 
-  const cached = signedUrlCache.get(path);
-  if (cached && cached.expiresAt > now + 10_000) {
-    // 만료 10초 전까진 캐시 사용
-    return cached.url;
+  if (hit && hit.expiresAtMs - now > REFRESH_BUFFER_MS) {
+    return hit.url;
   }
 
-  // expiresIn: 1시간
-  const expiresIn = 60 * 60;
-  const url = await getSignedUrl(MEMORY_IMAGES_BUCKET, path, expiresIn);
+  const expiresIn = options?.expiresIn ?? DEFAULT_EXPIRES_IN;
 
-  signedUrlCache.set(path, {
-    url,
-    expiresAt: now + expiresIn * 1000,
-  });
+  const url = await getMemoryImageSignedUrl(path, { expiresIn });
+  cache.set(path, { url, expiresAtMs: now + expiresIn * 1000 });
 
   return url;
 }
 
-// ---------------------------------------------------------
-// 2) 업로드
-// - Android content:// 안정화는 이미 readFileAsBase64(BlobUtil 기반)로 해결했다고 가정
-// - supabase-js upload에는 bytes(Uint8Array/ArrayBuffer)가 안정적
-// ---------------------------------------------------------
-export async function uploadMemoryImage(input: {
-  userId: string;
-  petId: string;
-  memoryId: string;
-  fileUri: string;
-  mimeType: string | null;
-}): Promise<{ path: string }> {
-  const ext = guessExt(input.mimeType);
+// ✅ 리스트 프리패치: 상단 N개 정도만 미리 캐시 채우기
+export async function prefetchMemorySignedUrls(input: {
+  imagePaths: Array<string | null | undefined>;
+  max?: number;
+  expiresIn?: number;
+}) {
+  const max = input.max ?? 10;
+  const expiresIn = input.expiresIn ?? DEFAULT_EXPIRES_IN;
 
-  const path = `${input.userId}/${input.petId}/${
-    input.memoryId
-  }/image_${Date.now()}.${ext}`;
+  const unique = Array.from(
+    new Set(
+      (input.imagePaths ?? []).map(p => (p ?? '').trim()).filter(Boolean),
+    ),
+  ).slice(0, max);
 
-  const base64 = await readFileAsBase64(input.fileUri);
-  const bytes = Buffer.from(base64, 'base64');
+  if (unique.length === 0) return;
 
-  const { error } = await supabase.storage
-    .from(MEMORY_IMAGES_BUCKET)
-    .upload(path, bytes, {
-      upsert: true,
-      contentType: input.mimeType ?? undefined,
-    });
-
-  if (error) throw error;
-
-  // 업로드 직후, path의 signed url 캐시가 필요하면 여기서 미리 발급해도 되지만
-  // list/detail에서 필요 시 발급하도록 유지 (불필요한 호출 방지)
-  return { path };
+  // ✅ 병렬 프리패치(실패는 무시: UX 안전)
+  await Promise.all(
+    unique.map(p =>
+      getMemoryImageSignedUrlCached(p, { expiresIn }).catch(() => null),
+    ),
+  );
 }
 
-function guessExt(mimeType: string | null) {
-  if (!mimeType) return 'jpg';
-  if (mimeType.includes('png')) return 'png';
-  if (mimeType.includes('webp')) return 'webp';
-  return 'jpg';
+export function clearMemorySignedUrlCache() {
+  cache.clear();
 }

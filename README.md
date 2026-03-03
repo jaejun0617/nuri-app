@@ -764,6 +764,20 @@ RecordStore를 `status` 단일 상태(상태머신)로 고정한 뒤, 화면 레
 
 > 다음 단계: Chapter 6에서 “RecordStore 기반 캐싱 정책(예: Signed URL 캐시 TTL / prefetch / pagination cursor)”을 홈/타임라인 공통 규칙으로 확정한다.
 
+### Fix — Timeline '기록하기' NAVIGATE 경고 해결
+
+타임라인에서 "기록하기"를 눌렀을 때 `RecordCreate` 라우트를 찾지 못해 다음 경고가 발생했다.
+
+- `The action 'NAVIGATE' ... name: 'RecordCreate' was not handled by any navigator`
+
+원인은 네비게이션 구조가 AppTabs 기반으로 변경되면서 **기록 생성 화면이 스택(`RecordCreate`)이 아니라 탭 라우트(`RecordCreateTab`)** 로 존재하는데,
+TimelineScreen이 스택 라우트를 호출하고 있었기 때문이다.
+
+해결:
+
+- TimelineScreen의 이동 타겟을 `RecordCreateTab`으로 변경
+- `petId` params는 그대로 전달하여 생성 화면에서 컨텍스트를 유지
+
 ## Chapter 5. 홈 화면 감성 강화
 
 - D-Day 계산

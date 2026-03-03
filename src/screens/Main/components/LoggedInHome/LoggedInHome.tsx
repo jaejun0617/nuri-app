@@ -664,7 +664,7 @@ export default function LoggedInHome() {
             </View>
 
             <View style={styles.heroMessageBox}>
-              <Text style={styles.heroMessageLabel}>오늘의 메시지</Text>
+              {/* <Text style={styles.heroMessageLabel}>오늘의 메시지</Text> */}
               <Text style={styles.heroMessageText}>{todayMessage}</Text>
             </View>
           </View>
