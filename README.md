@@ -733,6 +733,37 @@ React가 무한 루프 위험으로 판단하는 케이스가 있다.
 
 > 다음 단계: LoggedInHome도 Chapter 5 기준(status + selector factory)으로 완전히 통일하여 “홈/타임라인 불일치”를 엔진 레벨에서 종료한다.
 
+## Chapter 5 — Home/Detail/Edit를 RecordStore 상태머신 기준으로 완전 정렬
+
+RecordStore를 `status` 단일 상태(상태머신)로 고정한 뒤, 화면 레이어에서도 같은 기준으로 동작하도록 홈/상세/수정 흐름을 정렬했다.  
+이 챕터의 목표는 **홈/타임라인/상세/수정이 “동일한 캐시 & 동일한 구독 방식”을 사용하도록 고정**하는 것이다.
+
+### 1) LoggedInHome 최근기록 UX 최종 고정
+
+- 기본: 최신 7개 노출
+- 조건: records가 8개 초과(= 9개 이상)일 때만 우측 버튼 노출
+- 동작: 1차 클릭 → 7개 추가 노출(총 14개), 2차 클릭(남은 데이터가 있으면) → 타임라인 이동
+- 기록이 있을 때: 하단 “기록하기” 버튼 제거(탭 CTA와 중복 제거)
+- 기록이 없을 때: Empty 카드 + CTA 1개 유지(초기 전환율 확보)
+
+### 2) Hook/Selector 안정성 고정
+
+- recordStore 구독은 `byPetId[petId]` 직접 구독으로 단순화
+- “없는 상태” fallback은 항상 동일 참조로 유지하여 Fabric/SyncExternalStore 스냅샷 흔들림 방지
+- activePetId 변경 시 최근기록 확장 상태(recentExpanded) 초기화로 UX 일관성 확보
+
+### 3) RecordEdit 안정화(로드 지연 대응)
+
+- record가 늦게 들어오는 케이스에서 `useState(record?.x)` 초기화가 고정되는 문제를 방지
+- record 로드 후 폼을 “1회 동기화”하고, 사용자가 입력을 시작하면(dirty) 더 이상 덮어쓰지 않도록 보호
+
+### 4) AppProviders 성능/구독 최적화
+
+- `useRecordStore()` 전체 구독을 제거하고, `clearAll`만 selector로 가져오는 형태로 정리
+- 불필요한 렌더/스냅샷 변동 가능성을 최소화하고, 로그아웃 시 records 정리를 확실히 고정
+
+> 다음 단계: Chapter 6에서 “RecordStore 기반 캐싱 정책(예: Signed URL 캐시 TTL / prefetch / pagination cursor)”을 홈/타임라인 공통 규칙으로 확정한다.
+
 ## Chapter 5. 홈 화면 감성 강화
 
 - D-Day 계산

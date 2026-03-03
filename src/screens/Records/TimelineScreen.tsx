@@ -2,13 +2,16 @@
 // 목적:
 // - petId 기준 memories(타임라인) 표시
 // - pull-to-refresh
-// - "기록하기" → RecordCreate
+// - "기록하기" → RecordCreate(탭)
 // - 항목 탭 → RecordDetail
 //
-// ✅ Chapter 5 반영
-// - recordStore는 상태머신(status) 기반
-// - selector는 factory(selectPetRecords)로 고정하여 snapshot 안정성 확보
-// - route params가 없으면 petStore(selectedPetId → 첫 pet)로 fallback
+// ✅ 공통 탭 대응(중요):
+// - 탭에서 진입하면 route params가 없을 수 있음
+// - 이 경우 petStore(selectedPetId 또는 첫 pet)에서 petId를 fallback으로 사용
+//
+// ✅ 이번 수정 핵심
+// - RecordCreate는 스택('RecordCreate')이 아니라 탭 라우트('RecordCreateTab')로 이동
+// - 경고: "NAVIGATE RecordCreate not handled" 해결
 
 import React, { useCallback, useEffect, useMemo } from 'react';
 import {
@@ -23,7 +26,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import type { MemoryRecord } from '../../services/supabase/memories';
-import { useRecordStore, selectPetRecords } from '../../store/recordStore';
+import { useRecordStore } from '../../store/recordStore';
 import { usePetStore } from '../../store/petStore';
 import AppText from '../../app/ui/AppText';
 
@@ -37,7 +40,7 @@ export default function TimelineScreen() {
   const route = useRoute<any>();
 
   // ---------------------------------------------------------
-  // 2) petId resolve (params → store fallback)
+  // 1.5) petId resolve (params → store fallback)
   // ---------------------------------------------------------
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
@@ -54,31 +57,35 @@ export default function TimelineScreen() {
   }, [petIdFromParams, selectedPetId, pets]);
 
   // ---------------------------------------------------------
-  // 3) store
+  // 2) store
   // ---------------------------------------------------------
   const bootstrap = useRecordStore(s => s.bootstrap);
   const refresh = useRecordStore(s => s.refresh);
 
-  // ✅ selector factory로 안정 구독
-  const petState = useRecordStore(s => selectPetRecords(petId)(s));
+  const petState = useRecordStore(s => {
+    if (!petId) return undefined;
+    return s.byPetId[petId];
+  });
 
   // ---------------------------------------------------------
-  // 4) bootstrap
+  // 3) bootstrap
   // ---------------------------------------------------------
   useEffect(() => {
     if (!petId) return;
     bootstrap(petId);
   }, [bootstrap, petId]);
 
-  const records = petState.items;
-  const refreshing = petState.status === 'refreshing';
+  const records = petState?.items ?? [];
+  const refreshing = petState?.refreshing ?? false;
 
   // ---------------------------------------------------------
-  // 5) actions
+  // 4) actions
   // ---------------------------------------------------------
   const onPressCreate = useCallback(() => {
     if (!petId) return;
-    navigation.navigate('RecordCreate', { petId });
+
+    // ✅ 스택 'RecordCreate'가 아니라 탭 라우트로 이동
+    navigation.navigate('RecordCreateTab', { petId });
   }, [navigation, petId]);
 
   const onPressItem = useCallback(
@@ -95,7 +102,7 @@ export default function TimelineScreen() {
   }, [petId, refresh]);
 
   // ---------------------------------------------------------
-  // 6) render
+  // 5) render
   // ---------------------------------------------------------
   const headerTitle = useMemo(() => '추억보기', []);
 
