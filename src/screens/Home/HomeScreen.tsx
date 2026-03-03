@@ -15,7 +15,7 @@ import { usePetStore } from '../../store/petStore';
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Splash'>;
 
 // ✅ Splash 최소 노출 시간(0.8~1.0s)
-const MIN_SPLASH_MS = 900;
+const MIN_SPLASH_MS = 90000000000;
 
 export default function HomeScreen() {
   const navigation = useNavigation<Nav>();
@@ -47,15 +47,15 @@ export default function HomeScreen() {
   const brandScale = useRef(new Animated.Value(0.96)).current;
   const brandOpacity = useRef(new Animated.Value(0)).current;
 
-  const logoSource = useMemo(
-    () => require('../../assets/logo/logo_v2.png'),
+  // const logoSource = useMemo(
+  //   () => require('../../assets/logo/logo_v2.png'),
+  //   [],
+  // );
+  const bgSource = useMemo(
+    () => require('../../assets/home/Splash_bg_v2.png'),
     [],
   );
-  const bgSource = useMemo(() => require('../../assets/home/home__bg.png'), []);
-  const blurSource = useMemo(
-    () => require('../../assets/home/home__blur.png'),
-    [],
-  );
+  // const blurSource = useMemo(() => require('../../assets/home/test.png'), []);
 
   // ---------------------------------------------------------
   // ✅ 핵심: 부트 완료 + 최소 Splash 시간 만족 → AppTabs reset
@@ -119,16 +119,12 @@ export default function HomeScreen() {
   // ---------------------------------------------------------
   // Dev 전용: 수동 진입 버튼(원하면 유지)
   // ---------------------------------------------------------
-  const goToMainDev = () => {
-    navigation.reset({ index: 0, routes: [{ name: 'AppTabs' }] });
-  };
+  // const goToMainDev = () => {
+  //   navigation.reset({ index: 0, routes: [{ name: 'AppTabs' }] });
+  // };
 
   return (
     <S.Background>
-      <S.BgBlur source={blurSource}>
-        <S.Overlay />
-      </S.BgBlur>
-
       <S.BgContain source={bgSource} />
 
       <S.Container $pt={cardTopPadding}>
@@ -144,14 +140,14 @@ export default function HomeScreen() {
               }}
             >
               <S.BrandRow>
-                <S.Logo source={logoSource} resizeMode="contain" />
+                {/* <S.Logo source={logoSource} resizeMode="contain" /> */}
                 <AppText preset="title1" color="#ffffff">
                   NURI
                 </AppText>
               </S.BrandRow>
             </Animated.View>
 
-            <S.Spacer $h={18} />
+            <S.Spacer $h={8} />
 
             <AppText preset="body" color="#ffffff" style={textStyles.shadow}>
               지금 이 순간도, 함께 기록해요
@@ -163,7 +159,7 @@ export default function HomeScreen() {
               우리의 시간을 기억으로 남기다
             </AppText>
 
-            {__DEV__ && (
+            {/* {__DEV__ && (
               <>
                 <S.Spacer $h={20} />
                 <S.Button onPress={goToMainDev}>
@@ -177,7 +173,7 @@ export default function HomeScreen() {
                   개발모드: Splash 자동 진입(booted gate) 동작 중
                 </AppText>
               </>
-            )}
+            )} */}
           </S.Card>
         </Animated.View>
       </S.Container>

@@ -35,7 +35,7 @@ export const BgBlur = styled(ImageBackground).attrs({
  * - contain으로 절대 안 잘림
  */
 export const BgContain = styled(ImageBackground).attrs({
-  resizeMode: 'contain',
+  resizeMode: 'cover',
 })`
   position: absolute;
   top: 0;
@@ -80,7 +80,7 @@ export const Container = styled(View)<{ $pt: number }>`
 export const Card = styled(View)`
   width: 100%;
   max-width: 420px;
-  padding: 24px;
+  /* padding: 24px; */
   border-radius: 18px;
 `;
 
@@ -91,7 +91,7 @@ export const BrandRow = styled(View)`
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  margin-right: 25px;
+  padding-top: 60px;
 `;
 
 /**
