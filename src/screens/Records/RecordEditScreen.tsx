@@ -9,8 +9,10 @@
 //    - canGoBack() ? goBack() : reset(Main)
 // 2) Zustand selector에서 getPetState() 호출 제거:
 //    - byPetId[petId] 직접 구독하여 안정성 확보
+// 3) record 늦게 로드되는 케이스 대비:
+//    - 폼 state를 record로 1회 동기화(useEffect + dirty 방지)
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   StyleSheet,
@@ -61,7 +63,6 @@ export default function RecordEditScreen() {
   // ---------------------------------------------------------
   const refresh = useRecordStore(s => s.refresh);
 
-  // ✅ 함수 호출(getPetState) 대신 byPetId 직접 구독
   const petState = useRecordStore(s => {
     if (!petId) return undefined;
     return s.byPetId[petId];
@@ -74,17 +75,29 @@ export default function RecordEditScreen() {
   }, [petState?.items, memoryId]);
 
   // ---------------------------------------------------------
-  // 3) local state
+  // 3) form state
   // ---------------------------------------------------------
-  const [title, setTitle] = useState(record?.title ?? '');
-  const [content, setContent] = useState(record?.content ?? '');
-  const [occurredAt, setOccurredAt] = useState(record?.occurredAt ?? '');
-  const [tagsText, setTagsText] = useState(record?.tags?.join(' ') ?? '');
-  const [emotion, setEmotion] = useState<EmotionTag | null>(
-    record?.emotion ?? null,
-  );
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [occurredAt, setOccurredAt] = useState('');
+  const [tagsText, setTagsText] = useState('');
+  const [emotion, setEmotion] = useState<EmotionTag | null>(null);
 
   const [saving, setSaving] = useState(false);
+
+  // ✅ 폼 동기화 보호(사용자 입력을 덮어쓰지 않기 위해)
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    if (!record) return;
+    if (dirty) return;
+
+    setTitle(record.title ?? '');
+    setContent(record.content ?? '');
+    setOccurredAt(record.occurredAt ?? '');
+    setTagsText(record.tags?.join(' ') ?? '');
+    setEmotion(record.emotion ?? null);
+  }, [record, dirty]);
 
   // ---------------------------------------------------------
   // 4) navigation helpers
@@ -141,10 +154,15 @@ export default function RecordEditScreen() {
   // ---------------------------------------------------------
   // 6) submit
   // ---------------------------------------------------------
-  const onSubmit = async () => {
+  const onSubmit = useCallback(async () => {
     if (!petId || !memoryId) return;
     if (!record) return;
-    if (!title.trim()) return;
+
+    const nextTitle = title.trim();
+    if (!nextTitle) {
+      Alert.alert('제목을 입력해 주세요.');
+      return;
+    }
 
     try {
       setSaving(true);
@@ -153,7 +171,7 @@ export default function RecordEditScreen() {
 
       await updateMemoryFields({
         memoryId,
-        title: title.trim(),
+        title: nextTitle,
         content: content.trim() || null,
         emotion,
         tags: parseTags(tagsText),
@@ -167,7 +185,18 @@ export default function RecordEditScreen() {
     } finally {
       setSaving(false);
     }
-  };
+  }, [
+    petId,
+    memoryId,
+    record,
+    title,
+    content,
+    occurredAt,
+    emotion,
+    tagsText,
+    refresh,
+    safeGoBack,
+  ]);
 
   // ---------------------------------------------------------
   // 7) guard
@@ -196,7 +225,6 @@ export default function RecordEditScreen() {
   // ---------------------------------------------------------
   return (
     <View style={styles.screen}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           activeOpacity={0.85}
@@ -223,7 +251,10 @@ export default function RecordEditScreen() {
         <TextInput
           style={styles.input}
           value={title}
-          onChangeText={setTitle}
+          onChangeText={v => {
+            setDirty(true);
+            setTitle(v);
+          }}
           placeholder="제목"
           placeholderTextColor="#8A94A6"
         />
@@ -234,7 +265,10 @@ export default function RecordEditScreen() {
         <TextInput
           style={[styles.input, styles.multiline]}
           value={content ?? ''}
-          onChangeText={setContent}
+          onChangeText={v => {
+            setDirty(true);
+            setContent(v);
+          }}
           placeholder="내용"
           placeholderTextColor="#8A94A6"
           multiline
@@ -246,7 +280,10 @@ export default function RecordEditScreen() {
         <TextInput
           style={styles.input}
           value={occurredAt ?? ''}
-          onChangeText={setOccurredAt}
+          onChangeText={v => {
+            setDirty(true);
+            setOccurredAt(v);
+          }}
           placeholder="YYYY-MM-DD"
           placeholderTextColor="#8A94A6"
           autoCapitalize="none"
@@ -258,7 +295,10 @@ export default function RecordEditScreen() {
         <TextInput
           style={styles.input}
           value={tagsText}
-          onChangeText={setTagsText}
+          onChangeText={v => {
+            setDirty(true);
+            setTagsText(v);
+          }}
           placeholder="#산책 #간식 또는 산책,간식"
           placeholderTextColor="#8A94A6"
         />
@@ -266,47 +306,56 @@ export default function RecordEditScreen() {
         <AppText preset="caption" style={styles.label}>
           감정(선택)
         </AppText>
+
         <View style={styles.emotionRow}>
-          {EMOTIONS.slice(0, 4).map(e => (
-            <TouchableOpacity
-              key={e.value}
-              style={[
-                styles.chip,
-                emotion === e.value ? styles.chipActive : null,
-              ]}
-              onPress={() =>
-                setEmotion(prev => (prev === e.value ? null : e.value))
-              }
-            >
-              <AppText preset="caption" style={styles.chipText}>
-                {e.label}
-              </AppText>
-            </TouchableOpacity>
-          ))}
+          {EMOTIONS.slice(0, 4).map(e => {
+            const active = emotion === e.value;
+            return (
+              <TouchableOpacity
+                key={e.value}
+                style={[styles.chip, active ? styles.chipActive : null]}
+                onPress={() => {
+                  setDirty(true);
+                  setEmotion(prev => (prev === e.value ? null : e.value));
+                }}
+                disabled={saving}
+                activeOpacity={0.9}
+              >
+                <AppText preset="caption" style={styles.chipText}>
+                  {e.label}
+                </AppText>
+              </TouchableOpacity>
+            );
+          })}
         </View>
+
         <View style={styles.emotionRow}>
-          {EMOTIONS.slice(4).map(e => (
-            <TouchableOpacity
-              key={e.value}
-              style={[
-                styles.chip,
-                emotion === e.value ? styles.chipActive : null,
-              ]}
-              onPress={() =>
-                setEmotion(prev => (prev === e.value ? null : e.value))
-              }
-            >
-              <AppText preset="caption" style={styles.chipText}>
-                {e.label}
-              </AppText>
-            </TouchableOpacity>
-          ))}
+          {EMOTIONS.slice(4).map(e => {
+            const active = emotion === e.value;
+            return (
+              <TouchableOpacity
+                key={e.value}
+                style={[styles.chip, active ? styles.chipActive : null]}
+                onPress={() => {
+                  setDirty(true);
+                  setEmotion(prev => (prev === e.value ? null : e.value));
+                }}
+                disabled={saving}
+                activeOpacity={0.9}
+              >
+                <AppText preset="caption" style={styles.chipText}>
+                  {e.label}
+                </AppText>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         <TouchableOpacity
           style={[styles.primary, saving ? styles.primaryDisabled : null]}
           onPress={onSubmit}
           disabled={saving}
+          activeOpacity={0.9}
         >
           <AppText preset="body" style={styles.primaryText}>
             {saving ? '저장 중...' : '저장'}
@@ -317,6 +366,7 @@ export default function RecordEditScreen() {
           style={styles.ghost}
           onPress={safeGoBack}
           disabled={saving}
+          activeOpacity={0.9}
         >
           <AppText preset="caption" style={styles.ghostText}>
             취소
@@ -378,7 +428,7 @@ const styles = StyleSheet.create({
   },
   multiline: { minHeight: 100, textAlignVertical: 'top' },
 
-  emotionRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  emotionRow: { flexDirection: 'row', gap: 8, marginTop: 8, flexWrap: 'wrap' },
   chip: {
     paddingHorizontal: 12,
     paddingVertical: 8,

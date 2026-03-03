@@ -690,6 +690,49 @@ MainScreen은 분기만 담당하며, 각 레이아웃은 컴포넌트/스타일
 - pet 전환/스크롤 중에도 렌더 범위가 줄어 **체감 성능 상승**
 - New Architecture에서 발생 가능한 **useSyncExternalStore snapshot 경고 리스크 제거**
 
+## Chapter 5 — RecordStore 상태머신 + Selector 최적화로 홈/타임라인 성능 고정
+
+이번 챕터는 **UI 작업이 아니라 “스토어 엔진 고정”** 이다.  
+홈(Home)과 타임라인(Timeline)이 같은 데이터를 보는데도 서로 다른 기준으로 구독/갱신하면서 생기던 미세한 불일치와 렌더링 리스크를, **상태머신 + selector 최적화** 기준으로 완전히 고정했다.
+
+### 1) 상태머신으로 단일 상태를 보장
+
+기존 RecordStore는 `loading / refreshing / booted` boolean 조합으로 상태를 표현했다.  
+이 방식은 상태가 겹칠 수 있고(예: booted=true + loading=true), 화면에서 조건 분기가 복잡해진다.
+
+이를 `status` 단일 필드로 통일했다:
+
+- `idle` : 아직 bootstrap 전
+- `loading` : 최초 로딩
+- `ready` : 정상 데이터 보유
+- `refreshing` : pull-to-refresh 중
+- `error` : 실패(단, 기존 items는 유지하여 UX 안정)
+
+### 2) Fabric/SyncExternalStore 안정성(Fallback 고정 참조)
+
+New Architecture(Fabric) 환경에서 selector가 **매 렌더마다 새로운 객체를 반환**하면 snapshot이 흔들려,
+React가 무한 루프 위험으로 판단하는 케이스가 있다.
+
+이를 방지하기 위해 fallback 상태를:
+
+- `Object.freeze(createInitialPetState())` 로 **항상 동일 참조**로 유지
+- selector는 `petId ? byPetId[petId] ?? FALLBACK : FALLBACK` 형태로 고정
+
+### 3) Selector Factory로 구독 안정성 고정
+
+화면에서는 “byPetId 전체”를 흔들지 않도록, selector factory를 도입했다.
+
+- `selectPetRecords(petId)(state)` 형태로 특정 pet slice만 안정적으로 구독
+- Timeline은 selector factory 기반으로 전환하고, refreshing도 `status === 'refreshing'`로 판단하도록 고정
+
+### 4) 동작 정책 고정
+
+- `bootstrap(petId)` : `ready/loading/refreshing` 상태면 중복 호출 방지(최초 1회)
+- `refresh(petId)` : 강제 동기화(중복 refresh만 방지)
+- optimistic 업데이트는 `upsertOneLocal / removeOneLocal`로 즉시 반영 후 `refresh()`로 서버 재동기화
+
+> 다음 단계: LoggedInHome도 Chapter 5 기준(status + selector factory)으로 완전히 통일하여 “홈/타임라인 불일치”를 엔진 레벨에서 종료한다.
+
 ## Chapter 5. 홈 화면 감성 강화
 
 - D-Day 계산

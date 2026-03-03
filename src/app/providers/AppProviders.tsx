@@ -1,3 +1,14 @@
+// 파일: src/app/providers/AppProviders.tsx
+// 목적:
+// - ThemeProvider
+// - 앱 부트 시퀀스(세션/닉네임/펫/선택펫) 정렬
+// - auth 이벤트 동기화
+// - 로그아웃 시 pets/records 정리
+//
+// ✅ Chapter 5 반영
+// - recordStore 전체 구독(useRecordStore()) 제거
+// - clearAll만 selector로 구독하여 불필요 렌더/스냅샷 변동 리스크 최소화
+
 import React, { useEffect, useMemo } from 'react';
 import { ThemeProvider } from 'styled-components/native';
 
@@ -37,9 +48,7 @@ export default function AppProviders({ children }: Props) {
   const setPetLoading = usePetStore(s => s.setLoading);
   const setPetBooted = usePetStore(s => s.setBooted);
 
-  const recordStore: any = useRecordStore();
-  const clearRecords =
-    typeof recordStore.clearAll === 'function' ? recordStore.clearAll : null;
+  const clearRecords = useRecordStore(s => s.clearAll);
 
   useEffect(() => {
     let unsub: { unsubscribe: () => void } | null = null;
@@ -74,7 +83,7 @@ export default function AppProviders({ children }: Props) {
     const onGuest = async () => {
       await setNickname(null);
       clearPets();
-      if (clearRecords) clearRecords();
+      clearRecords();
       setPetBooted(true);
     };
 
@@ -85,7 +94,7 @@ export default function AppProviders({ children }: Props) {
       setAuthBooted(false);
       setPetBooted(false);
 
-      // 1) 로컬(닉네임 등) 복원
+      // 1) 로컬 복원
       await hydrateAuth();
 
       // 2) Supabase 세션 복원
@@ -98,9 +107,6 @@ export default function AppProviders({ children }: Props) {
       if (session) await onLoggedIn();
       else await onGuest();
 
-      // ---------------------------------------------------------
-      // ✅ 부트 완료 (여기까지 오면 “세션/닉네임/펫/선택펫” 정렬 완료)
-      // ---------------------------------------------------------
       if (!alive) return;
       setAuthBooted(true);
 
@@ -109,7 +115,7 @@ export default function AppProviders({ children }: Props) {
         async (_event, nextSession) => {
           const s = nextSession ?? null;
 
-          // 부트 중복 방지: 이벤트 들어오면 게이트 잠깐 다시 닫고 정렬
+          // 이벤트 들어오면 게이트 다시 닫고 정렬
           setAuthBooted(false);
           setPetBooted(false);
 

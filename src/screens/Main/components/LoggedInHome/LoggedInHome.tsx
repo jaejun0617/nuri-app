@@ -15,8 +15,9 @@
 //
 // ✅ 훅/스토어 안정성(중요)
 // - recordStore 구독: byPetId[petId] 직접 구독(가장 단순/안전)
-// - selector fallback은 동일 참조(FALLBACK_RECORDS_STATE)로 유지
+// - fallback은 동일 참조(FALLBACK_RECORDS_STATE)로 유지
 // - activePetId 변경 시 recentExpanded 초기화
+// - new architecture에서 snapshot 흔들림 방지: "없는 상태"는 매번 new로 만들지 않는다.
 
 import React, { useEffect, useMemo, useCallback, useState } from 'react';
 import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
@@ -140,21 +141,22 @@ function clampList(list: string[] | null | undefined, max = 2) {
 /* ---------------------------------------------------------
  * 2) component
  * -------------------------------------------------------- */
+// ✅ recordStore Chapter 5 상태머신 정합
 type PetRecordsStateShape = {
+  status: 'idle' | 'loading' | 'ready' | 'refreshing' | 'error';
   items: MemoryRecord[];
-  loading: boolean;
-  refreshing: boolean;
-  booted: boolean;
   errorMessage: string | null;
+  cursor: string | null;
+  hasMore: boolean;
 };
 
 // ✅ 동일 참조 fallback(새 아키텍처/SyncExternalStore 안전)
 const FALLBACK_RECORDS_STATE: PetRecordsStateShape = Object.freeze({
+  status: 'idle',
   items: [],
-  loading: false,
-  refreshing: false,
-  booted: false,
   errorMessage: null,
+  cursor: null,
+  hasMore: false,
 });
 
 // 최근기록 표시 개수 규칙
@@ -215,7 +217,7 @@ export default function LoggedInHome() {
   const [switching, setSwitching] = useState(false);
 
   const OUT_OPACITY = 0.9;
-  const OUT_LIFT_PX = 0.1;
+  const OUT_LIFT_PX = 6; // ✅ UX: 0.1px는 체감 없음 → 정상 수치로 복구
 
   const svOpacity = useSharedValue(1);
   const svTranslateY = useSharedValue(0);
@@ -285,19 +287,7 @@ export default function LoggedInHome() {
   }, [recentExpanded, hasMoreAfterExpanded]);
 
   // ---------------------------------------------------------
-  // ✅ 디버그(원인 확인): 홈이 어떤 petId를 보고 있는지 / items가 들어오는지
-  // ---------------------------------------------------------
-  useEffect(() => {
-    console.log(
-      '[LoggedInHome] activePetId=',
-      activePetId,
-      'items=',
-      safeRecordsState.items.length,
-    );
-  }, [activePetId, safeRecordsState.items.length]);
-
-  // ---------------------------------------------------------
-  // 4.5) today message / today photo
+  // 4.3) today message / today photo
   // ---------------------------------------------------------
   const todayMessage = useMemo(() => {
     return generateTimeMessage(selectedPet?.name ?? null);
@@ -507,7 +497,7 @@ export default function LoggedInHome() {
       return;
     }
 
-    // 남은 게 없으면 아무 동작 없음(UX상 깜빡임 방지)
+    // 남은 게 없으면 아무 동작 없음
   }, [recentExpanded, hasMoreAfterExpanded, onPressTimeline]);
 
   // ---------------------------------------------------------

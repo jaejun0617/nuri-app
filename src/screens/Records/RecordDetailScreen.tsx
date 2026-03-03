@@ -10,6 +10,7 @@
 //    - canGoBack() ? goBack() : reset(Main)
 // 2) Zustand selector에서 getPetState() 호출 제거:
 //    - byPetId[petId] 직접 구독하여 안정성 확보
+// 3) recordStore Chapter 5(status)와 정합 유지
 
 import React, { useCallback, useMemo, useState } from 'react';
 import { Alert, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -156,7 +157,6 @@ export default function RecordDetailScreen() {
   // ---------------------------------------------------------
   return (
     <View style={styles.screen}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           activeOpacity={0.85}
