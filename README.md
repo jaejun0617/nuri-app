@@ -816,6 +816,34 @@ TimelineScreen이 스택 라우트를 호출하고 있었기 때문이다.
 - 최근 기록 위젯 정제 + signedUrl 캐싱 최적화
 - 감정 태그 시각화
 
+## Chapter 6-1. Timeline UX 고정 — Sticky 정렬/검색 + 월/연도 섹션 점프 + Debounce 검색
+
+타임라인을 “많은 기록” 환경에서도 끊김 없이 탐색할 수 있도록 UX/성능을 함께 고정했습니다.
+
+### 1) Sticky Controls (정렬/검색/필터 고정)
+
+- 스크롤 중에도 항상 접근 가능하도록 `FlatList.stickyHeaderIndices`로 컨트롤 바를 고정했습니다.
+- 컨트롤 구성: **정렬(최신/오래된) / 🔍 검색 토글 / 월·연도 선택(필터+점프)**
+
+### 2) 검색(제목/태그) + Debounce
+
+- 🔍 아이콘을 누르면 검색바가 열리는 UX로 구성했습니다.
+- 검색 대상: **제목/태그(및 내용 보조)**
+- 입력은 `debounce` 처리하여 타이핑 중 불필요한 렌더/필터링 비용을 줄였습니다.
+
+### 3) 월/연도 필터 + 섹션 점프
+
+- 기록들의 `occurredAt`(우선) 또는 `createdAt`을 기준으로 월(YYYY-MM) 목록을 구성합니다.
+- 월 선택 시:
+  - 해당 월로 필터링
+  - 동시에 해당 월 첫 항목으로 `scrollToIndex`로 점프하여 탐색 시간을 단축합니다.
+
+### 4) 무한 스크롤(loadMore)과의 결합
+
+- 무한 스크롤은 UI 방식이며, 실제로는 **cursor 기반 pagination(loadMore)** 이 핵심입니다.
+- 검색 중에는 결과 안정성을 위해 자동 loadMore를 제한하고, 필요 시 수동 로드로 확장할 수 있게 구성했습니다.
+- FlatList 기본 성능 옵션(windowSize 등)을 적용하여 스크롤 프레임을 안정화했습니다.
+
 ## Chapter 6. Daily Recall 서버 고정 로직
 
 - Supabase `daily_recall`로 하루 1회 고정

@@ -2,7 +2,8 @@
 // 목적:
 // - petId 별 records 캐시(페이지네이션 + 상태머신)
 // - cursor(created_at) 고정
-// - signed url은 services에서 캐싱/프리패치 처리
+// - out-of-order 응답 방지(요청 토큰/requestSeq)
+// - signed url은 services(fetchMemoriesByPetPage)에서 캐싱/프리패치 처리
 //
 // 중요(⚠️ New Architecture/SyncExternalStore 안전):
 // - fallback 객체는 항상 동일 참조(FALLBACK_PET_STATE)
@@ -26,8 +27,11 @@ export type PetRecordsState = {
   errorMessage: string | null;
 
   // pagination
-  cursor: string | null; // createdAt
+  cursor: string | null; // createdAt cursor (server 기준: "다음 페이지 시작점")
   hasMore: boolean;
+
+  // ✅ out-of-order 방지용
+  requestSeq: number; // 상태 업데이트를 허용할 "최신 요청 번호"
 };
 
 type RecordStore = {
@@ -48,6 +52,8 @@ type RecordStore = {
   clearAll: () => void;
 };
 
+const PAGE_SIZE = 20;
+
 const createInitialPetState = (): PetRecordsState => ({
   items: [],
   status: 'idle',
@@ -55,13 +61,30 @@ const createInitialPetState = (): PetRecordsState => ({
 
   cursor: null,
   hasMore: true,
+
+  requestSeq: 0,
 });
 
+// ✅ 핵심: fallback은 "항상 같은 객체"여야 함 (New Architecture 안전)
 const FALLBACK_PET_STATE: PetRecordsState = Object.freeze(
   createInitialPetState(),
 );
 
-const PAGE_SIZE = 20;
+function sortByCreatedAtDesc(items: MemoryRecord[]) {
+  items.sort((a, b) => {
+    if (a.createdAt === b.createdAt) return 0;
+    return a.createdAt > b.createdAt ? -1 : 1;
+  });
+}
+
+function mergeUniqueById(prev: MemoryRecord[], next: MemoryRecord[]) {
+  const map = new Map<string, MemoryRecord>();
+  for (const it of prev) map.set(it.id, it);
+  for (const it of next) map.set(it.id, it);
+  const merged = Array.from(map.values());
+  sortByCreatedAtDesc(merged);
+  return merged;
+}
 
 export const useRecordStore = create<RecordStore>((set, get) => ({
   byPetId: {},
@@ -95,18 +118,31 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
 
     get().ensurePetState(petId);
     const st = get().getPetState(petId);
+
+    // 이미 데이터가 있으면 부트스트랩 스킵(홈/타임라인 중복 호출 방지)
+    if (st.status === 'ready' && st.items.length > 0) return;
+
+    // 진행 중이면 스킵
     if (
       st.status === 'loading' ||
       st.status === 'refreshing' ||
       st.status === 'loadingMore'
-    )
+    ) {
       return;
-    if (st.status === 'ready' && st.items.length > 0) return;
+    }
+
+    // ✅ requestSeq 발급(이 요청만 최신이면 반영)
+    const req = st.requestSeq + 1;
 
     set(s => ({
       byPetId: {
         ...s.byPetId,
-        [petId]: { ...s.byPetId[petId], status: 'loading', errorMessage: null },
+        [petId]: {
+          ...s.byPetId[petId],
+          status: 'loading',
+          errorMessage: null,
+          requestSeq: req,
+        },
       },
     }));
 
@@ -118,30 +154,41 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
         prefetchTop: 10,
       });
 
-      set(s => ({
-        byPetId: {
-          ...s.byPetId,
-          [petId]: {
-            ...s.byPetId[petId],
-            items: page.items,
-            status: 'ready',
-            errorMessage: null,
-            cursor: page.nextCursor,
-            hasMore: page.hasMore,
+      set(s => {
+        const cur = s.byPetId[petId];
+        // ✅ out-of-order 방지
+        if (!cur || cur.requestSeq !== req) return s;
+
+        return {
+          byPetId: {
+            ...s.byPetId,
+            [petId]: {
+              ...cur,
+              items: page.items,
+              status: 'ready',
+              errorMessage: null,
+              cursor: page.nextCursor,
+              hasMore: page.hasMore,
+            },
           },
-        },
-      }));
+        };
+      });
     } catch (e: any) {
-      set(s => ({
-        byPetId: {
-          ...s.byPetId,
-          [petId]: {
-            ...s.byPetId[petId],
-            status: 'error',
-            errorMessage: e?.message ?? '불러오기 실패',
+      set(s => {
+        const cur = s.byPetId[petId];
+        if (!cur || cur.requestSeq !== req) return s;
+
+        return {
+          byPetId: {
+            ...s.byPetId,
+            [petId]: {
+              ...cur,
+              status: 'error',
+              errorMessage: e?.message ?? '불러오기 실패',
+            },
           },
-        },
-      }));
+        };
+      });
     }
   },
 
@@ -153,7 +200,11 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
 
     get().ensurePetState(petId);
     const st = get().getPetState(petId);
+
     if (st.status === 'refreshing') return;
+
+    // ✅ requestSeq 발급 (이 refresh가 최신 상태가 됨)
+    const req = st.requestSeq + 1;
 
     set(s => ({
       byPetId: {
@@ -162,6 +213,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
           ...s.byPetId[petId],
           status: 'refreshing',
           errorMessage: null,
+          requestSeq: req,
         },
       },
     }));
@@ -174,30 +226,41 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
         prefetchTop: 10,
       });
 
-      set(s => ({
-        byPetId: {
-          ...s.byPetId,
-          [petId]: {
-            ...s.byPetId[petId],
-            items: page.items,
-            status: 'ready',
-            errorMessage: null,
-            cursor: page.nextCursor,
-            hasMore: page.hasMore,
+      set(s => {
+        const cur = s.byPetId[petId];
+        if (!cur || cur.requestSeq !== req) return s;
+
+        return {
+          byPetId: {
+            ...s.byPetId,
+            [petId]: {
+              ...cur,
+              items: page.items,
+              status: 'ready',
+              errorMessage: null,
+              cursor: page.nextCursor,
+              hasMore: page.hasMore,
+            },
           },
-        },
-      }));
+        };
+      });
     } catch (e: any) {
-      set(s => ({
-        byPetId: {
-          ...s.byPetId,
-          [petId]: {
-            ...s.byPetId[petId],
-            status: 'error',
-            errorMessage: e?.message ?? '새로고침 실패',
+      set(s => {
+        const cur = s.byPetId[petId];
+        if (!cur || cur.requestSeq !== req) return s;
+
+        // ✅ refresh 실패는 이전 items는 유지한 채 에러만 표시
+        return {
+          byPetId: {
+            ...s.byPetId,
+            [petId]: {
+              ...cur,
+              status: 'error',
+              errorMessage: e?.message ?? '새로고침 실패',
+            },
           },
-        },
-      }));
+        };
+      });
     }
   },
 
@@ -211,12 +274,20 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
     const st = get().getPetState(petId);
 
     if (!st.hasMore) return;
+
+    // 진행 중이면 스킵
     if (
       st.status === 'loading' ||
       st.status === 'refreshing' ||
       st.status === 'loadingMore'
-    )
+    ) {
       return;
+    }
+
+    // ✅ loadMore는 refresh처럼 requestSeq를 "갱신"하지 않음
+    // - 이유: loadMore 도중 refresh가 들어오면 refresh가 최신이 되어야 함
+    // - 그래서 loadMore는 "현재 requestSeq"를 스냅샷으로 들고간 뒤, 같을 때만 반영
+    const req = st.requestSeq;
 
     set(s => ({
       byPetId: {
@@ -239,15 +310,12 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
 
       set(s => {
         const cur = s.byPetId[petId];
+        if (!cur) return s;
 
-        // ✅ 중복 방지(안전): id 기준 유니크 병합
-        const map = new Map<string, MemoryRecord>();
-        cur.items.forEach(it => map.set(it.id, it));
-        page.items.forEach(it => map.set(it.id, it));
-        const merged = Array.from(map.values());
+        // ✅ out-of-order 방지: refresh/boot가 requestSeq를 올렸으면 이 loadMore는 무시
+        if (cur.requestSeq !== req) return s;
 
-        // createdAt desc 유지(서버도 desc지만 merge 후 보장)
-        merged.sort((a, b) => (a.createdAt > b.createdAt ? -1 : 1));
+        const merged = mergeUniqueById(cur.items, page.items);
 
         return {
           byPetId: {
@@ -264,16 +332,23 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
         };
       });
     } catch (e: any) {
-      set(s => ({
-        byPetId: {
-          ...s.byPetId,
-          [petId]: {
-            ...s.byPetId[petId],
-            status: 'error',
-            errorMessage: e?.message ?? '더 불러오기 실패',
+      set(s => {
+        const cur = s.byPetId[petId];
+        if (!cur) return s;
+
+        // ✅ loadMore 실패는 치명도 낮음: items 유지 + status ready로 복귀
+        // (에러 메시지만 남겨서 토스트/배너로 알릴 수 있게)
+        return {
+          byPetId: {
+            ...s.byPetId,
+            [petId]: {
+              ...cur,
+              status: 'ready',
+              errorMessage: e?.message ?? '더 불러오기 실패',
+            },
           },
-        },
-      }));
+        };
+      });
     }
   },
 
@@ -284,15 +359,18 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
     if (!petId) return;
     get().ensurePetState(petId);
 
+    const next = [...items];
+    sortByCreatedAtDesc(next);
+
     set(s => ({
       byPetId: {
         ...s.byPetId,
         [petId]: {
           ...s.byPetId[petId],
-          items,
+          items: next,
           status: 'ready',
           errorMessage: null,
-          cursor: items.length ? items[items.length - 1].createdAt : null,
+          cursor: next.length ? next[next.length - 1].createdAt : null,
           hasMore: true,
         },
       },
@@ -311,13 +389,16 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
       if (idx === -1) next.unshift(item);
       else next[idx] = item;
 
-      // 정렬 유지
-      next.sort((a, b) => (a.createdAt > b.createdAt ? -1 : 1));
+      sortByCreatedAtDesc(next);
 
       return {
         byPetId: {
           ...s.byPetId,
-          [petId]: { ...cur, items: next, status: 'ready' },
+          [petId]: {
+            ...cur,
+            items: next,
+            status: 'ready',
+          },
         },
       };
     });
