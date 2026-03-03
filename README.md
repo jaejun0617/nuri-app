@@ -778,6 +778,37 @@ TimelineScreen이 스택 라우트를 호출하고 있었기 때문이다.
 - TimelineScreen의 이동 타겟을 `RecordCreateTab`으로 변경
 - `petId` params는 그대로 전달하여 생성 화면에서 컨텍스트를 유지
 
+## Chapter 6. Signed URL 캐싱 + 커서 기반 페이지네이션 + Prefetch 고정
+
+이번 챕터는 **Record(=memories) 목록 성능을 “네트워크/스크롤/이미지 로딩” 관점에서 완전히 고정**하는 단계입니다.
+
+### 1) Signed URL 캐싱 전략(TTL)
+
+- `memory-images`의 signed URL은 **imagePath(Storage path) 기준으로 캐싱**합니다.
+- 캐시 엔트리는 `url + expiresAt` 를 보관하며, **만료 60초 전부터 자동 갱신**합니다.
+- 동일 이미지가 홈/타임라인/상세에서 반복 렌더링되어도 **네트워크 재요청 없이 즉시 표시**됩니다.
+
+### 2) pagination cursor 고정(created_at)
+
+- 페이지네이션은 `created_at DESC` 정렬을 기준으로 커서를 고정합니다.
+- 쿼리 규칙:
+  - 최초: `order(created_at desc) + limit(N)`
+  - 다음 페이지: `lt(created_at, cursor) + order(created_at desc) + limit(N)`
+- 응답 규칙:
+  - `nextCursor = 마지막 아이템의 createdAt`
+  - `hasMore = items.length === limit`
+
+### 3) Prefetch 전략 확정
+
+- 목록 fetch 후 **상단 N개(기본 10개)** 의 `imagePath`를 대상으로 signed URL을 **선 캐싱(prefetch)** 합니다.
+- 결과적으로 스크롤 시점의 signed URL 생성 지연을 줄여 **깜빡임/로딩 체감이 크게 감소**합니다.
+
+### 구현 포인트
+
+- `storageMemories.ts`: `getMemoryImageSignedUrlCached`, `prefetchMemorySignedUrls` 제공
+- `memories.ts`: `fetchMemoriesByPetPage({ limit, cursor })`로 페이지 fetch 고정
+- `recordStore.ts`: `cursor/hasMore/loadMore`를 포함한 상태머신 기반 캐시 구조 확정
+
 ## Chapter 5. 홈 화면 감성 강화
 
 - D-Day 계산
