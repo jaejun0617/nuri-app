@@ -545,6 +545,27 @@ hydrate(AsyncStorage)
 - 일정 화면군의 상단 rhythm을 통일해
   목록 / 생성 / 상세 / 수정이 같은 흐름 안에서 더 안정적으로 보이도록 조정
 
+## ✅ Chapter 6-15 — Schedule 후속 기능 + RecordCreate 최근 태그 실제화
+
+- 일정 도메인에 이미 설계된 필드를 화면에 올려
+  `반복 / 알림 / 완료 처리` 흐름을 실제로 사용 가능하게 정리
+- `ScheduleCreate`, `ScheduleEdit`
+  - 반복: `반복 안 함 / 매일 / 매주 / 매월`
+  - 알림: `없음 / 10분 전 / 1시간 전 / 하루 전`
+  선택을 저장하도록 연결
+- `ScheduleDetail`
+  - 반복 / 알림 / 완료 상태를 함께 표시
+  - `일정 완료 처리 / 완료 해제` 토글로 `completed_at`을 직접 갱신 가능
+- 홈 `최근 활동`의 기타 계열 라벨은 더 자연스럽게 정리
+  - `기타 · 미용`
+  - `기타 · 병원/약`
+  - `기타`
+- 홈의 사용하지 않는 `formatWeeklyDateLabel` helper 제거
+- `RecordCreate`의 `최근 사용` 태그는 더미 배열이 아니라
+  실제로 사용자가 최근 직접 추가한 태그를 `AsyncStorage`에 누적해 다시 보여주도록 변경
+  - 자동 카테고리 태그는 제외
+  - 수동 추가 태그만 최근 사용 대상으로 유지
+
 ## ✅ Chapter 7 — Timeline Performance Optimization
 
 Timeline 화면에서 기록 수가 증가할수록 스크롤이 끊기거나 버벅이는 문제가 발생할 수 있다.  

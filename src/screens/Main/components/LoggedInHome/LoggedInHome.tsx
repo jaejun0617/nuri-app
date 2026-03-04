@@ -371,7 +371,7 @@ function getRecordCategoryMeta(item: MemoryRecord): HomeCategoryMeta {
   const otherSub = normalizeOtherSubKey(readOtherSubCategoryRaw(item));
   if (otherSub === 'grooming') {
     return {
-      label: '··· · 미용',
+      label: '기타 · 미용',
       icon: 'content-cut',
       tint: 'rgba(236,72,153,0.10)',
       mainCategory: 'other',
@@ -381,7 +381,7 @@ function getRecordCategoryMeta(item: MemoryRecord): HomeCategoryMeta {
 
   if (otherSub === 'hospital') {
     return {
-      label: '··· · 병원/약',
+      label: '기타 · 병원/약',
       icon: 'medical-bag',
       tint: 'rgba(34,197,94,0.10)',
       mainCategory: 'other',
@@ -390,19 +390,12 @@ function getRecordCategoryMeta(item: MemoryRecord): HomeCategoryMeta {
   }
 
   return {
-    label: '··· · 기타',
+    label: '기타',
     icon: 'dots-horizontal-circle-outline',
     tint: 'rgba(148,163,184,0.10)',
     mainCategory: 'other',
     otherSubCategory: 'etc',
   };
-}
-
-function formatWeeklyDateLabel(offsetDays: number): string {
-  const nextDate = new Date();
-  nextDate.setDate(nextDate.getDate() + offsetDays);
-  const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
-  return `${nextDate.getMonth() + 1}/${nextDate.getDate()} (${weekdays[nextDate.getDay()]})`;
 }
 
 function createWeekRange(): WeekRange {

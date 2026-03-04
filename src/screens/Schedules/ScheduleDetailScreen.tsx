@@ -10,6 +10,7 @@ import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
   deleteSchedule,
   fetchScheduleById,
+  updateSchedule,
   type PetSchedule,
   type ScheduleColorKey,
   type ScheduleIconKey,
@@ -75,6 +76,31 @@ function mapColor(colorKey: ScheduleColorKey) {
     case 'brand':
     default:
       return { bg: 'rgba(109,106,248,0.12)', fg: '#6D6AF8' };
+  }
+}
+
+function formatReminder(reminderMinutes: number[]) {
+  if (!reminderMinutes.length) return '알림 없음';
+  const value = reminderMinutes[0];
+  if (value === 10) return '10분 전';
+  if (value === 60) return '1시간 전';
+  if (value === 1440) return '하루 전';
+  return `${value}분 전`;
+}
+
+function formatRepeatRule(rule: PetSchedule['repeatRule']) {
+  switch (rule) {
+    case 'daily':
+      return '매일';
+    case 'weekly':
+      return '매주';
+    case 'monthly':
+      return '매월';
+    case 'yearly':
+      return '매년';
+    case 'none':
+    default:
+      return '반복 안 함';
   }
 }
 
@@ -151,6 +177,51 @@ export default function ScheduleDetailScreen() {
       },
     ]);
   }, [deleting, navigation, petId, refreshWeek, scheduleId, weekRange.from, weekRange.to]);
+
+  const onToggleComplete = useCallback(async () => {
+    if (!schedule) return;
+
+    try {
+      const nextCompletedAt = schedule.completedAt
+        ? null
+        : new Date().toISOString();
+
+      await updateSchedule({
+        scheduleId: schedule.id,
+        petId: schedule.petId,
+        title: schedule.title,
+        note: schedule.note,
+        startsAt: schedule.startsAt,
+        endsAt: schedule.endsAt,
+        allDay: schedule.allDay,
+        category: schedule.category,
+        subCategory: schedule.subCategory,
+        iconKey: schedule.iconKey,
+        colorKey: schedule.colorKey,
+        reminderMinutes: schedule.reminderMinutes,
+        repeatRule: schedule.repeatRule,
+        repeatInterval: schedule.repeatInterval,
+        repeatUntil: schedule.repeatUntil,
+        linkedMemoryId: schedule.linkedMemoryId,
+        completedAt: nextCompletedAt,
+        source: schedule.source,
+        externalCalendarId: schedule.externalCalendarId,
+        externalEventId: schedule.externalEventId,
+        syncStatus: schedule.syncStatus,
+      });
+
+      const next = await fetchScheduleById(schedule.id);
+      setSchedule(next);
+      if (petId) {
+        await refreshWeek(petId, weekRange.from, weekRange.to);
+      }
+    } catch (error) {
+      Alert.alert(
+        '상태 변경 실패',
+        error instanceof Error ? error.message : '다시 시도해 주세요.',
+      );
+    }
+  }, [petId, refreshWeek, schedule, weekRange.from, weekRange.to]);
 
   const color = mapColor(schedule?.colorKey ?? 'brand');
 
@@ -229,6 +300,33 @@ export default function ScheduleDetailScreen() {
 
             <View style={styles.metaBlock}>
               <AppText preset="caption" style={styles.metaLabel}>
+                반복
+              </AppText>
+              <AppText preset="body" style={styles.metaValue}>
+                {formatRepeatRule(schedule.repeatRule)}
+              </AppText>
+            </View>
+
+            <View style={styles.metaBlock}>
+              <AppText preset="caption" style={styles.metaLabel}>
+                알림
+              </AppText>
+              <AppText preset="body" style={styles.metaValue}>
+                {formatReminder(schedule.reminderMinutes)}
+              </AppText>
+            </View>
+
+            <View style={styles.metaBlock}>
+              <AppText preset="caption" style={styles.metaLabel}>
+                완료 상태
+              </AppText>
+              <AppText preset="body" style={styles.metaValue}>
+                {schedule.completedAt ? '완료됨' : '진행 중'}
+              </AppText>
+            </View>
+
+            <View style={styles.metaBlock}>
+              <AppText preset="caption" style={styles.metaLabel}>
                 메모
               </AppText>
               <AppText preset="body" style={styles.metaValue}>
@@ -244,6 +342,16 @@ export default function ScheduleDetailScreen() {
               <Feather name="edit-2" size={16} color="#FFFFFF" />
               <AppText preset="body" style={styles.primaryBtnText}>
                 일정 수정하기
+              </AppText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={styles.secondaryBtn}
+              onPress={onToggleComplete}
+            >
+              <AppText preset="body" style={styles.secondaryBtnText}>
+                {schedule.completedAt ? '완료 해제' : '일정 완료 처리'}
               </AppText>
             </TouchableOpacity>
 

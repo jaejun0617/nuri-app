@@ -6,6 +6,7 @@
 // - 탭 구조에서 폼 상태가 남지 않도록 focus/reset 유지
 
 import React, { useCallback, useMemo, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Alert,
   Image,
@@ -71,6 +72,7 @@ const SUGGESTED_TAGS = [
 ] as const;
 
 const RECENT_TAGS = ['#예방접종', '#맛있는간식'] as const;
+const RECENT_TAGS_STORAGE_KEY = 'nuri.recordCreateRecentTags.v1';
 
 const OTHER_SUBCATEGORIES = [
   { key: 'grooming', label: '미용', tag: '#미용' },
@@ -231,6 +233,8 @@ export default function RecordCreateScreen() {
   const [content, setContent] = useState('');
   const [occurredAt, setOccurredAt] = useState(todayYmd);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [recentTags, setRecentTags] =
+    useState<string[]>(Array.from(RECENT_TAGS));
   const [tagDraft, setTagDraft] = useState('');
   const [tagModalVisible, setTagModalVisible] = useState(false);
   const [mainCategoryKey, setMainCategoryKey] =
@@ -285,6 +289,24 @@ export default function RecordCreateScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      AsyncStorage.getItem(RECENT_TAGS_STORAGE_KEY)
+        .then(raw => {
+          if (!raw) return;
+          try {
+            const parsed = JSON.parse(raw) as string[];
+            if (Array.isArray(parsed)) {
+              const next = parsed
+                .map(tag => (tag ?? '').trim())
+                .filter(Boolean)
+                .slice(0, 8);
+              if (next.length) setRecentTags(next);
+            }
+          } catch {
+            // ignore
+          }
+        })
+        .catch(() => {});
+
       resetForm();
       return () => {};
     }, [resetForm]),
@@ -450,6 +472,18 @@ export default function RecordCreateScreen() {
       }
 
       refresh(petId).catch(() => {});
+
+      if (selectedTags.length > 0) {
+        const recentUsedTags = Array.from(
+          new Set([...selectedTags, ...recentTags]),
+        ).slice(0, 8);
+        setRecentTags(recentUsedTags);
+        AsyncStorage.setItem(
+          RECENT_TAGS_STORAGE_KEY,
+          JSON.stringify(recentUsedTags),
+        ).catch(() => {});
+      }
+
       resetForm();
       navigation.navigate('TimelineTab');
     } catch (error) {
@@ -468,6 +502,7 @@ export default function RecordCreateScreen() {
     occurredAt,
     petId,
     refresh,
+    recentTags,
     resetForm,
     selectedTags,
     trimmedTitle,
@@ -905,7 +940,7 @@ export default function RecordCreateScreen() {
               최근 사용
             </AppText>
             <View style={styles.recentList}>
-              {RECENT_TAGS.map(tag => (
+              {recentTags.map(tag => (
                 <TouchableOpacity
                   key={tag}
                   activeOpacity={0.88}

@@ -22,6 +22,7 @@ import {
   type ScheduleCategory,
   type ScheduleColorKey,
   type ScheduleIconKey,
+  type ScheduleRepeatRule,
   type ScheduleSubCategory,
 } from '../../services/supabase/schedules';
 import { useScheduleStore } from '../../store/scheduleStore';
@@ -66,6 +67,18 @@ const COLOR_OPTIONS: Array<{ key: ScheduleColorKey; label: string; color: string
 ];
 
 const TIME_PRESETS = ['09:00', '10:00', '13:00', '15:00', '18:00', '20:00'];
+const REPEAT_OPTIONS: Array<{ key: ScheduleRepeatRule; label: string }> = [
+  { key: 'none', label: '반복 안 함' },
+  { key: 'daily', label: '매일' },
+  { key: 'weekly', label: '매주' },
+  { key: 'monthly', label: '매월' },
+];
+const REMINDER_OPTIONS = [
+  { key: 'none', label: '알림 없음', minutes: [] as number[] },
+  { key: 'ten', label: '10분 전', minutes: [10] },
+  { key: 'hour', label: '1시간 전', minutes: [60] },
+  { key: 'day', label: '하루 전', minutes: [1440] },
+] as const;
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
@@ -165,6 +178,9 @@ export default function ScheduleEditScreen() {
   const [timeModalVisible, setTimeModalVisible] = useState(false);
   const [draftDateText, setDraftDateText] = useState('');
   const [draftTimeText, setDraftTimeText] = useState('10:00');
+  const [repeatRule, setRepeatRule] = useState<ScheduleRepeatRule>('none');
+  const [reminderKey, setReminderKey] =
+    useState<(typeof REMINDER_OPTIONS)[number]['key']>('none');
 
   useEffect(() => {
     let mounted = true;
@@ -184,6 +200,13 @@ export default function ScheduleEditScreen() {
         setCategory(next.category);
         setIconKey(next.iconKey);
         setColorKey(next.colorKey);
+        setRepeatRule(next.repeatRule);
+        const matchedReminder =
+          REMINDER_OPTIONS.find(option =>
+            JSON.stringify(option.minutes) ===
+            JSON.stringify(next.reminderMinutes ?? []),
+          )?.key ?? 'none';
+        setReminderKey(matchedReminder);
       } catch (error) {
         if (mounted) {
           Alert.alert('일정 조회 실패', getErrorMessage(error));
@@ -246,9 +269,15 @@ export default function ScheduleEditScreen() {
         colorKey,
         completedAt: schedule.completedAt,
         linkedMemoryId: schedule.linkedMemoryId,
-        repeatRule: schedule.repeatRule,
+        repeatRule,
         repeatInterval: schedule.repeatInterval,
         repeatUntil: schedule.repeatUntil,
+        reminderMinutes: [
+          ...(
+            REMINDER_OPTIONS.find(option => option.key === reminderKey)
+              ?.minutes ?? []
+          ),
+        ],
         source: schedule.source,
         externalCalendarId: schedule.externalCalendarId,
         externalEventId: schedule.externalEventId,
@@ -273,7 +302,9 @@ export default function ScheduleEditScreen() {
     navigation,
     note,
     petId,
+    reminderKey,
     refreshWeek,
+    repeatRule,
     schedule,
     scheduleId,
     timeText,
@@ -486,6 +517,66 @@ export default function ScheduleEditScreen() {
                         ]}
                       />
                       <AppText preset="caption" style={styles.colorLabel}>
+                        {option.label}
+                      </AppText>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <AppText preset="caption" style={styles.label}>
+                반복
+              </AppText>
+              <View style={styles.optionRow}>
+                {REPEAT_OPTIONS.map(option => {
+                  const active = repeatRule === option.key;
+                  return (
+                    <TouchableOpacity
+                      key={option.key}
+                      activeOpacity={0.9}
+                      style={[
+                        styles.optionChip,
+                        active ? styles.optionChipActive : null,
+                      ]}
+                      onPress={() => setRepeatRule(option.key)}
+                    >
+                      <AppText
+                        preset="caption"
+                        style={[
+                          styles.optionChipText,
+                          active ? styles.optionChipTextActive : null,
+                        ]}
+                      >
+                        {option.label}
+                      </AppText>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <AppText preset="caption" style={styles.label}>
+                알림
+              </AppText>
+              <View style={styles.optionRow}>
+                {REMINDER_OPTIONS.map(option => {
+                  const active = reminderKey === option.key;
+                  return (
+                    <TouchableOpacity
+                      key={option.key}
+                      activeOpacity={0.9}
+                      style={[
+                        styles.optionChip,
+                        active ? styles.optionChipActive : null,
+                      ]}
+                      onPress={() => setReminderKey(option.key)}
+                    >
+                      <AppText
+                        preset="caption"
+                        style={[
+                          styles.optionChipText,
+                          active ? styles.optionChipTextActive : null,
+                        ]}
+                      >
                         {option.label}
                       </AppText>
                     </TouchableOpacity>

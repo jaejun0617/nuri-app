@@ -68,6 +68,15 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   primaryBtnText: { color: '#FFFFFF', fontWeight: '900' },
+  secondaryBtn: {
+    marginTop: 10,
+    height: 48,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EEF2FF',
+  },
+  secondaryBtnText: { color: '#4F46E5', fontWeight: '900' },
   deleteBtn: {
     marginTop: 10,
     height: 48,
