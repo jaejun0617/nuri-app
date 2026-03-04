@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Modal,
   ScrollView,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -75,6 +76,7 @@ export default function RecordDetailScreen() {
   }, [petState?.items, memoryId]);
 
   const [deleting, setDeleting] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [heroIndex, setHeroIndex] = useState(0);
   const [signedUrls, setSignedUrls] = useState<string[]>([]);
   const [imgLoading, setImgLoading] = useState(true);
@@ -148,34 +150,29 @@ export default function RecordDetailScreen() {
 
   const onPressDelete = useCallback(() => {
     if (!petId || !memoryId || !record) return;
+    setDeleteModalVisible(true);
+  }, [petId, memoryId, record]);
 
-    Alert.alert('삭제할까요?', '복구할 수 없습니다.', [
-      { text: '취소', style: 'cancel' },
-      {
-        text: '삭제',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            setDeleting(true);
+  const onConfirmDelete = useCallback(async () => {
+    if (!petId || !memoryId || !record) return;
+    try {
+      setDeleting(true);
 
-            await deleteMemoryWithFile({
-              memoryId,
-              imagePath: record.imagePath,
-              imagePaths: record.imagePaths,
-            });
+      await deleteMemoryWithFile({
+        memoryId,
+        imagePath: record.imagePath,
+        imagePaths: record.imagePaths,
+      });
 
-            removeOneLocal(petId, memoryId);
-            await refresh(petId);
-
-            safeGoBack();
-          } catch (e: any) {
-            Alert.alert('삭제 실패', e?.message ?? '오류');
-          } finally {
-            setDeleting(false);
-          }
-        },
-      },
-    ]);
+      removeOneLocal(petId, memoryId);
+      await refresh(petId);
+      setDeleteModalVisible(false);
+      safeGoBack();
+    } catch (e: any) {
+      Alert.alert('삭제 실패', e?.message ?? '오류');
+    } finally {
+      setDeleting(false);
+    }
   }, [petId, memoryId, record, removeOneLocal, refresh, safeGoBack]);
 
   if (!record) {
@@ -394,6 +391,53 @@ export default function RecordDetailScreen() {
         </View>
 
       </ScrollView>
+
+      <Modal
+        visible={deleteModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDeleteModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalIconCircleDanger}>
+              <Feather name="alert-triangle" size={20} color="#FF4D4F" />
+            </View>
+
+            <AppText preset="title2" style={styles.modalTitle}>
+              정말 삭제할까요?
+            </AppText>
+            <AppText preset="body" style={styles.modalDesc}>
+              삭제된 추억은 다시 복구할 수 없어요.
+            </AppText>
+            <AppText preset="body" style={styles.modalDesc}>
+              신중하게 선택해 주세요.
+            </AppText>
+
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={styles.modalPrimaryBtn}
+              onPress={() => setDeleteModalVisible(false)}
+              disabled={deleting}
+            >
+              <AppText preset="body" style={styles.modalPrimaryBtnText}>
+                취소
+              </AppText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={styles.modalGhostBtn}
+              onPress={onConfirmDelete}
+              disabled={deleting}
+            >
+              <AppText preset="body" style={styles.modalGhostBtnText}>
+                {deleting ? '삭제 중...' : '삭제하기'}
+              </AppText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

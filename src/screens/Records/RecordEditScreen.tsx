@@ -20,6 +20,7 @@ import {
   Alert,
   Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   TextInput,
@@ -33,13 +34,13 @@ import type {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { launchImageLibrary } from 'react-native-image-picker';
+import Feather from 'react-native-vector-icons/Feather';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { TimelineStackParamList } from '../../navigation/TimelineStackNavigator';
 import {
-  fetchMemoryImagePath,
   updateMemoryFields,
-  updateMemoryImagePath,
+  updateMemoryImagePaths,
   type EmotionTag,
 } from '../../services/supabase/memories';
 import {
@@ -59,15 +60,19 @@ type Route = RouteProp<TimelineStackParamList, 'RecordEdit'>;
 
 const ENABLE_SERVER_SYNC = false; // ✅ 필요할 때만 true
 
-const EMOTIONS: Array<{ label: string; value: EmotionTag }> = [
-  { label: '행복', value: 'happy' },
-  { label: '평온', value: 'calm' },
-  { label: '신남', value: 'excited' },
-  { label: '무난', value: 'neutral' },
-  { label: '슬픔', value: 'sad' },
-  { label: '불안', value: 'anxious' },
-  { label: '화남', value: 'angry' },
-  { label: '피곤', value: 'tired' },
+const EMOTIONS: ReadonlyArray<{
+  label: string;
+  value: EmotionTag;
+  emoji: string;
+}> = [
+  { label: '행복해요', value: 'happy', emoji: '😊' },
+  { label: '평온해요', value: 'calm', emoji: '😌' },
+  { label: '신나요', value: 'excited', emoji: '🤩' },
+  { label: '무난해요', value: 'neutral', emoji: '🙂' },
+  { label: '아쉬워요', value: 'sad', emoji: '😢' },
+  { label: '걱정돼요', value: 'anxious', emoji: '😥' },
+  { label: '예민해요', value: 'angry', emoji: '😠' },
+  { label: '피곤해요', value: 'tired', emoji: '😴' },
 ];
 
 function getErrorMessage(err: unknown) {
@@ -77,6 +82,10 @@ function getErrorMessage(err: unknown) {
 }
 
 type PickedImage = { uri: string; mimeType: string | null };
+type AddedImage = PickedImage & { key: string };
+type PreviewItem =
+  | { kind: 'existing'; key: string; path: string; uri: string | null }
+  | { kind: 'added'; key: string; uri: string };
 
 function inferMimeFromFileName(
   fileName: string | null | undefined,
@@ -156,6 +165,7 @@ export default function RecordEditScreen() {
 
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
 
   useEffect(() => {
     if (!record) return;
@@ -187,48 +197,40 @@ export default function RecordEditScreen() {
   // 5) image state (preview + replace flow)
   // ---------------------------------------------------------
   const [imgLoading, setImgLoading] = useState<boolean>(true);
-  const [signedUrl, setSignedUrl] = useState<string | null>(null);
-
-  const [picked, setPicked] = useState<PickedImage | null>(null);
-  const [removeRequested, setRemoveRequested] = useState(false);
-
-  const [originalPath, setOriginalPath] = useState<string | null>(null);
-
-  const effectivePath = useMemo(
-    () => record?.imagePath ?? null,
-    [record?.imagePath],
+  const [baseImagePaths, setBaseImagePaths] = useState<string[]>([]);
+  const [removedPaths, setRemovedPaths] = useState<Set<string>>(new Set());
+  const [addedImages, setAddedImages] = useState<AddedImage[]>([]);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [signedByPath, setSignedByPath] = useState<Record<string, string | null>>(
+    {},
   );
 
-  // 원본 path 서버 truth 확보
+  useEffect(() => {
+    if (!record) return;
+    const nextPaths =
+      record.imagePaths && record.imagePaths.length > 0
+        ? record.imagePaths
+        : record.imagePath
+          ? [record.imagePath]
+          : [];
+    setBaseImagePaths(nextPaths);
+    setRemovedPaths(new Set());
+    setAddedImages([]);
+    setActiveImageIndex(0);
+  }, [record?.id, record?.imagePath, record?.imagePaths]);
+
+  const visibleExistingPaths = useMemo(
+    () => baseImagePaths.filter(path => !removedPaths.has(path)),
+    [baseImagePaths, removedPaths],
+  );
+
   useEffect(() => {
     let mounted = true;
 
     async function run() {
-      if (!memoryId) return;
-      try {
-        const p = await fetchMemoryImagePath(memoryId);
-        if (mounted) setOriginalPath(p);
-      } catch {
-        if (mounted) setOriginalPath(record?.imagePath ?? null);
-      }
-    }
-
-    run();
-    return () => {
-      mounted = false;
-    };
-  }, [memoryId, record?.imagePath]);
-
-  // imagePath → signed url
-  useEffect(() => {
-    let mounted = true;
-
-    async function run() {
-      const path = effectivePath;
-
-      if (!path) {
+      if (visibleExistingPaths.length === 0) {
         if (mounted) {
-          setSignedUrl(null);
+          setSignedByPath({});
           setImgLoading(false);
         }
         return;
@@ -236,10 +238,18 @@ export default function RecordEditScreen() {
 
       try {
         if (mounted) setImgLoading(true);
-        const url = await getMemoryImageSignedUrlCached(path);
-        if (mounted) setSignedUrl(url);
+        const urls = await Promise.all(
+          visibleExistingPaths.map(async path => {
+            const url = await getMemoryImageSignedUrlCached(path);
+            return [path, url] as const;
+          }),
+        );
+        if (!mounted) return;
+        const nextMap: Record<string, string | null> = {};
+        for (const [path, url] of urls) nextMap[path] = url ?? null;
+        setSignedByPath(nextMap);
       } catch {
-        if (mounted) setSignedUrl(null);
+        if (mounted) setSignedByPath({});
       } finally {
         if (mounted) setImgLoading(false);
       }
@@ -249,7 +259,27 @@ export default function RecordEditScreen() {
     return () => {
       mounted = false;
     };
-  }, [effectivePath]);
+  }, [visibleExistingPaths]);
+
+  const previewItems = useMemo<PreviewItem[]>(() => {
+    const existing: PreviewItem[] = visibleExistingPaths.map(path => ({
+      kind: 'existing',
+      key: `e:${path}`,
+      path,
+      uri: signedByPath[path] ?? null,
+    }));
+    const added: PreviewItem[] = addedImages.map(img => ({
+      kind: 'added',
+      key: img.key,
+      uri: img.uri,
+    }));
+    return [...existing, ...added];
+  }, [visibleExistingPaths, signedByPath, addedImages]);
+
+  useEffect(() => {
+    if (activeImageIndex < previewItems.length) return;
+    setActiveImageIndex(previewItems.length > 0 ? previewItems.length - 1 : 0);
+  }, [activeImageIndex, previewItems.length]);
 
   // ---------------------------------------------------------
   // 6) helpers
@@ -296,54 +326,51 @@ export default function RecordEditScreen() {
 
     const res = await launchImageLibrary({
       mediaType: 'photo',
-      selectionLimit: 1,
+      selectionLimit: 10,
       quality: 0.9,
     });
 
     if (res.didCancel) return;
 
-    const asset = res.assets?.[0] as any;
-    const uri: string | null = asset?.uri ?? null;
-
-    if (!uri) {
+    const assets = (res.assets ?? []).filter(asset => !!asset.uri);
+    if (assets.length === 0) {
       Alert.alert('이미지 선택 실패', 'uri를 가져오지 못했습니다.');
       return;
     }
+    setDirty(true);
+    setAddedImages(prev => {
+      const next = [...prev];
+      for (const asset of assets as any[]) {
+        const uri: string | null = asset?.uri ?? null;
+        if (!uri) continue;
+        if (next.some(i => i.uri === uri)) continue;
+        next.push({
+          key: `a:${Date.now()}-${uri}`,
+          uri,
+          mimeType: resolvePickerMimeType(asset),
+        });
+      }
+      return next.slice(0, 10);
+    });
+  }, [saving]);
 
-    const mimeType: string | null = resolvePickerMimeType(asset);
+  const onRemoveActiveImage = useCallback(() => {
+    if (saving) return;
+    const target = previewItems[activeImageIndex];
+    if (!target) return;
 
     setDirty(true);
-    setRemoveRequested(false);
-    setPicked({ uri, mimeType });
-  }, [saving]);
+    if (target.kind === 'added') {
+      setAddedImages(prev => prev.filter(i => i.key !== target.key));
+      return;
+    }
 
-  const onClearPicked = useCallback(() => {
-    if (saving) return;
-    setDirty(true);
-    setPicked(null);
-  }, [saving]);
-
-  const onRemoveImage = useCallback(() => {
-    if (saving) return;
-
-    Alert.alert(
-      '이미지를 제거할까요?',
-      '저장하면 이 기록의 이미지가 삭제됩니다.',
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '제거',
-          style: 'destructive',
-          onPress: () => {
-            setDirty(true);
-            setPicked(null);
-            setRemoveRequested(true);
-            setSignedUrl(null);
-          },
-        },
-      ],
-    );
-  }, [saving]);
+    setRemovedPaths(prev => {
+      const next = new Set(prev);
+      next.add(target.path);
+      return next;
+    });
+  }, [saving, previewItems, activeImageIndex]);
 
   // ---------------------------------------------------------
   // 8) submit (text + image replace) ✅ 즉시 반영
@@ -389,42 +416,44 @@ export default function RecordEditScreen() {
         occurredAt: occurred,
       });
 
-      // 2) 이미지 저장
-      const oldPath = originalPath ?? record.imagePath ?? null;
-
-      // (A) 새 이미지로 교체
-      if (picked?.uri) {
-        const { path: newPath } = await uploadMemoryImage({
-          userId,
-          petId,
-          memoryId,
-          fileUri: picked.uri,
-          mimeType: picked.mimeType,
-        });
-
-        await updateMemoryImagePath({ memoryId, imagePath: newPath });
-
-        // ✅ 즉시 반영(이미지 path)
-        updateOneLocal(petId, memoryId, {
-          imagePath: newPath,
-          imagePaths: newPath ? [newPath] : [],
-        });
-
-        if (oldPath && oldPath !== newPath) {
-          await deleteMemoryImage(oldPath).catch(() => null);
+      // 2) 이미지 저장(다중)
+      const uploadPaths: string[] = [];
+      for (const image of addedImages) {
+        try {
+          const uploaded = await uploadMemoryImage({
+            userId,
+            petId,
+            memoryId,
+            fileUri: image.uri,
+            mimeType: image.mimeType,
+          });
+          uploadPaths.push(uploaded.path);
+        } catch {
+          // skip failed one
         }
       }
 
-      // (B) 이미지 제거
-      if (!picked?.uri && removeRequested) {
-        await updateMemoryImagePath({ memoryId, imagePath: null });
+      const keptExisting = baseImagePaths.filter(path => !removedPaths.has(path));
+      const finalPaths = Array.from(new Set([...keptExisting, ...uploadPaths]));
+      const saveResult = await updateMemoryImagePaths({
+        memoryId,
+        imagePaths: finalPaths,
+      });
 
-        // ✅ 즉시 반영(이미지 제거)
-        updateOneLocal(petId, memoryId, { imagePath: null, imagePaths: [] });
+      updateOneLocal(petId, memoryId, {
+        imagePath: saveResult.savedPaths[0] ?? null,
+        imagePaths: saveResult.savedPaths,
+      });
 
-        if (oldPath) {
-          await deleteMemoryImage(oldPath).catch(() => null);
-        }
+      if (saveResult.mode === 'single_fallback' && finalPaths.length > 1) {
+        Alert.alert(
+          '다중 이미지 저장 미지원',
+          'DB 스키마에 image_urls 컬럼이 없어 첫 번째 사진만 저장됐어요.',
+        );
+      }
+
+      for (const path of removedPaths) {
+        await deleteMemoryImage(path).catch(() => null);
       }
 
       // 3) 서버 정합(옵션) - ✅ 여기서 refresh를 "진짜로 사용"하므로 경고 사라짐
@@ -432,15 +461,7 @@ export default function RecordEditScreen() {
         await refresh(petId);
       }
 
-      navigation.replace('EditDone', {
-        title: '기록 수정 완료!',
-        bodyLines: [
-          '방금 다듬은 기록이 더 또렷하게 정리됐어요.',
-          '이제 상세 화면에서 바로 확인할 수 있어요.',
-        ],
-        buttonLabel: '기록 보러 가기',
-        navigateTo: { type: 'record-detail', petId, memoryId },
-      });
+      setSuccessModalVisible(true);
     } catch (err) {
       Alert.alert('수정 실패', getErrorMessage(err));
     } finally {
@@ -456,15 +477,24 @@ export default function RecordEditScreen() {
     emotion,
     tagsText,
     userId,
-    picked,
-    removeRequested,
-    originalPath,
+    addedImages,
+    baseImagePaths,
+    removedPaths,
     navigation,
     updateOneLocal,
     parseTags,
     validateOccurredAt,
     refresh,
   ]);
+
+  const onConfirmSuccess = useCallback(() => {
+    setSuccessModalVisible(false);
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+    navigation.navigate('RecordDetail', { petId, memoryId });
+  }, [navigation, petId, memoryId]);
 
   // ---------------------------------------------------------
   // 9) guard
@@ -521,18 +551,10 @@ export default function RecordEditScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-      <View style={styles.card}>
+        <View style={styles.card}>
         {/* Image Preview */}
         <View style={styles.heroWrap}>
-          {picked?.uri ? (
-            <Image source={{ uri: picked.uri }} style={styles.heroImg} />
-          ) : removeRequested ? (
-            <View style={styles.heroPlaceholder}>
-              <AppText preset="caption" style={styles.heroPlaceholderText}>
-                NO IMAGE
-              </AppText>
-            </View>
-          ) : !record.imagePath ? (
+          {previewItems.length === 0 ? (
             <View style={styles.heroPlaceholder}>
               <AppText preset="caption" style={styles.heroPlaceholderText}>
                 NO IMAGE
@@ -542,20 +564,36 @@ export default function RecordEditScreen() {
             <View style={styles.heroPlaceholder}>
               <ActivityIndicator size="large" color="#8A94A6" />
             </View>
-          ) : signedUrl ? (
+          ) : (
             <Image
-              source={{ uri: signedUrl }}
+              source={{ uri: previewItems[activeImageIndex]?.uri ?? '' }}
               style={styles.heroImg}
               resizeMode="cover"
               fadeDuration={250}
             />
-          ) : (
-            <View style={styles.heroPlaceholder}>
-              <AppText preset="caption" style={styles.heroPlaceholderText}>
-                ERROR
-              </AppText>
-            </View>
           )}
+
+          {previewItems.length > 1 ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.thumbRow}
+            >
+              {previewItems.map((item, index) => {
+                const active = index === activeImageIndex;
+                return (
+                  <TouchableOpacity
+                    key={item.key}
+                    activeOpacity={0.9}
+                    style={[styles.thumbItem, active ? styles.thumbItemActive : null]}
+                    onPress={() => setActiveImageIndex(index)}
+                  >
+                    <Image source={{ uri: item.uri ?? '' }} style={styles.thumbImage} />
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          ) : null}
 
           <View style={styles.imgActionsRow}>
             <TouchableOpacity
@@ -565,33 +603,20 @@ export default function RecordEditScreen() {
               disabled={saving}
             >
               <AppText preset="caption" style={styles.imgBtnText}>
-                {picked ? '다른 사진 선택' : '사진 선택'}
+                사진 추가
               </AppText>
             </TouchableOpacity>
 
-            {picked ? (
-              <TouchableOpacity
-                activeOpacity={0.9}
-                style={styles.imgBtn}
-                onPress={onClearPicked}
-                disabled={saving}
-              >
-                <AppText preset="caption" style={styles.imgBtnText}>
-                  선택 취소
-                </AppText>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                activeOpacity={0.9}
-                style={[styles.imgBtn, styles.imgBtnDanger]}
-                onPress={onRemoveImage}
-                disabled={saving}
-              >
-                <AppText preset="caption" style={styles.imgBtnDangerText}>
-                  이미지 제거
-                </AppText>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={[styles.imgBtn, styles.imgBtnDanger]}
+              onPress={onRemoveActiveImage}
+              disabled={saving || previewItems.length === 0}
+            >
+              <AppText preset="caption" style={styles.imgBtnDangerText}>
+                현재 사진 제거
+              </AppText>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -661,13 +686,13 @@ export default function RecordEditScreen() {
           감정(선택)
         </AppText>
 
-        <View style={styles.emotionRow}>
-          {EMOTIONS.slice(0, 4).map(em => {
+        <View style={styles.emotionGrid}>
+          {EMOTIONS.map(em => {
             const active = emotion === em.value;
             return (
               <TouchableOpacity
                 key={em.value}
-                style={[styles.chip, active ? styles.chipActive : null]}
+                style={[styles.moodChip, active ? styles.moodChipActive : null]}
                 onPress={() => {
                   setDirty(true);
                   setEmotion(prev => (prev === em.value ? null : em.value));
@@ -675,29 +700,13 @@ export default function RecordEditScreen() {
                 disabled={saving}
                 activeOpacity={0.9}
               >
-                <AppText preset="caption" style={styles.chipText}>
-                  {em.label}
+                <AppText preset="caption" style={styles.moodEmoji}>
+                  {em.emoji}
                 </AppText>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        <View style={styles.emotionRow}>
-          {EMOTIONS.slice(4).map(em => {
-            const active = emotion === em.value;
-            return (
-              <TouchableOpacity
-                key={em.value}
-                style={[styles.chip, active ? styles.chipActive : null]}
-                onPress={() => {
-                  setDirty(true);
-                  setEmotion(prev => (prev === em.value ? null : em.value));
-                }}
-                disabled={saving}
-                activeOpacity={0.9}
-              >
-                <AppText preset="caption" style={styles.chipText}>
+                <AppText
+                  preset="caption"
+                  style={[styles.moodText, active ? styles.moodTextActive : null]}
+                >
                   {em.label}
                 </AppText>
               </TouchableOpacity>
@@ -726,8 +735,43 @@ export default function RecordEditScreen() {
             취소
           </AppText>
         </TouchableOpacity>
-      </View>
+        </View>
       </ScrollView>
+
+      <Modal
+        visible={successModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={onConfirmSuccess}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalIconCircle}>
+              <Feather name="check" size={22} color="#6D6AF8" />
+            </View>
+
+            <AppText preset="title2" style={styles.modalTitle}>
+              수정이 완료되었어요!
+            </AppText>
+            <AppText preset="body" style={styles.modalDesc}>
+              소중한 추억이 안전하게
+            </AppText>
+            <AppText preset="body" style={styles.modalDesc}>
+              업데이트되었습니다.
+            </AppText>
+
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={styles.modalPrimaryBtn}
+              onPress={onConfirmSuccess}
+            >
+              <AppText preset="body" style={styles.modalPrimaryBtnText}>
+                확인
+              </AppText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }

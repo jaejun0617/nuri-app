@@ -67,6 +67,27 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   heroPlaceholderText: { color: '#8A94A6', fontWeight: '800' },
+  thumbRow: {
+    marginTop: 10,
+    gap: 8,
+    paddingHorizontal: 2,
+  },
+  thumbItem: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: 'rgba(0,0,0,0.08)',
+    backgroundColor: '#F1F4F9',
+  },
+  thumbItemActive: {
+    borderColor: BRAND,
+  },
+  thumbImage: {
+    width: '100%',
+    height: '100%',
+  },
 
   imgActionsRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
   imgBtn: {
@@ -107,17 +128,40 @@ export const styles = StyleSheet.create({
   },
   multiline: { minHeight: 100, textAlignVertical: 'top' },
 
-  emotionRow: { flexDirection: 'row', gap: 8, marginTop: 8, flexWrap: 'wrap' },
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: BORDER,
-    backgroundColor: '#FFFFFF',
+  emotionGrid: {
+    marginTop: 8,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
   },
-  chipActive: { borderColor: BRAND, backgroundColor: 'rgba(109,124,255,0.10)' },
-  chipText: { color: TEXT, fontWeight: '700' },
+  moodChip: {
+    width: '23%',
+    minHeight: 40,
+    borderRadius: 14,
+    backgroundColor: '#F1F4F9',
+    borderWidth: 1,
+    borderColor: 'rgba(148,163,184,0.12)',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    paddingVertical: 6,
+  },
+  moodChipActive: {
+    backgroundColor: 'rgba(109,124,255,0.10)',
+    borderColor: 'rgba(109,124,255,0.24)',
+  },
+  moodEmoji: {
+    color: '#556070',
+    fontWeight: '700',
+  },
+  moodText: {
+    color: '#7B879C',
+    fontWeight: '800',
+  },
+  moodTextActive: {
+    color: BRAND,
+  },
 
   primary: {
     marginTop: 14,
@@ -133,4 +177,60 @@ export const styles = StyleSheet.create({
   ghostText: { color: '#556070', fontWeight: '700' },
 
   desc: { marginTop: 8, color: '#556070' },
+
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(12,18,32,0.44)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 26,
+  },
+  modalCard: {
+    width: '100%',
+    borderRadius: 28,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 22,
+    paddingTop: 20,
+    paddingBottom: 18,
+    alignItems: 'center',
+  },
+  modalIconCircle: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: 'rgba(109,124,255,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  modalTitle: {
+    color: '#0B1220',
+    fontWeight: '900',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  modalDesc: {
+    color: '#8A94A6',
+    textAlign: 'center',
+    fontWeight: '700',
+    lineHeight: 20,
+  },
+  modalPrimaryBtn: {
+    width: '100%',
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#6D6AF8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    shadowColor: '#5D57E8',
+    shadowOpacity: 0.26,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 5,
+  },
+  modalPrimaryBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '900',
+  },
 });
