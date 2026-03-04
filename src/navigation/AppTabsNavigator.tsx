@@ -44,7 +44,7 @@ function CustomTabBar(props: BottomTabBarProps & { onOpenMore: () => void }) {
   const { state, navigation, onOpenMore } = props;
   const insets = useSafeAreaInsets();
 
-  const ACTIVE = '#5D04D9';
+  const ACTIVE = '#6D6AF8';
   const INACTIVE = '#777777';
 
   const go = useCallback(
@@ -229,7 +229,7 @@ export default function AppTabsNavigator() {
   );
 }
 
-const BRAND = '#5D04D9';
+const BRAND = '#6D6AF8';
 
 const styles = StyleSheet.create({
   safe: {

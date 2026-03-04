@@ -836,7 +836,7 @@ export default function LoggedInHome() {
               style={styles.petAddChip}
               onPress={onPressAddPet}
             >
-              <Feather name="plus" size={20} color="#5D04D9" />
+              <Feather name="plus" size={20} color="#6D6AF8" />
             </TouchableOpacity>
           </View>
         </View>
@@ -901,7 +901,6 @@ export default function LoggedInHome() {
               ) : null}
             </View>
 
-            {/* Accordion */}
             <View style={styles.accordionWrap}>
               <TouchableOpacity
                 activeOpacity={0.85}
@@ -912,7 +911,7 @@ export default function LoggedInHome() {
                 <Feather
                   name={allExpanded ? 'chevron-up' : 'chevron-down'}
                   size={18}
-                  color="#5D04D9"
+                  color="#6D6AF8"
                 />
               </TouchableOpacity>
 
@@ -938,7 +937,7 @@ export default function LoggedInHome() {
                   <Feather
                     name={acc.hobby ? 'chevron-up' : 'chevron-down'}
                     size={18}
-                    color="#5D04D9"
+                    color="#6D6AF8"
                   />
                 </TouchableOpacity>
 
@@ -981,7 +980,7 @@ export default function LoggedInHome() {
                   <Feather
                     name={acc.like ? 'chevron-up' : 'chevron-down'}
                     size={18}
-                    color="#5D04D9"
+                    color="#6D6AF8"
                   />
                 </TouchableOpacity>
 
@@ -1022,7 +1021,7 @@ export default function LoggedInHome() {
                   <Feather
                     name={acc.dislike ? 'chevron-up' : 'chevron-down'}
                     size={18}
-                    color="#5D04D9"
+                    color="#6D6AF8"
                   />
                 </TouchableOpacity>
 
@@ -1054,7 +1053,7 @@ export default function LoggedInHome() {
                         styles.iconCirclePurple,
                       ]}
                     >
-                      <Feather name="hash" size={16} color="#5D04D9" />
+                      <Feather name="hash" size={16} color="#6D6AF8" />
                     </View>
                     <Text
                       style={[styles.accordionTitle, styles.accTitlePurple]}
@@ -1065,7 +1064,7 @@ export default function LoggedInHome() {
                   <Feather
                     name={acc.tag ? 'chevron-up' : 'chevron-down'}
                     size={18}
-                    color="#5D04D9"
+                    color="#6D6AF8"
                   />
                 </TouchableOpacity>
 

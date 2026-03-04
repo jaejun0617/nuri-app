@@ -7,8 +7,8 @@
 
 import { StyleSheet } from 'react-native';
 
-const BRAND = '#5D04D9';
-const BRAND_DEEP = '#5D04D9';
+const BRAND = '#6D6AF8';
+const BRAND_DEEP = '#5753E6';
 
 const TEXT = '#0B1220';
 const MUTED = '#556070';
@@ -17,7 +17,7 @@ const MUTED2 = 'rgba(85,96,112,0.70)';
 const SURFACE = '#FFFFFF';
 const SURFACE_SOFT = '#F6F7FB';
 
-const BORDER = 'rgba(93,4,217,0.16)';
+const BORDER = 'rgba(109,106,248,0.18)';
 const BORDER_SOFT = 'rgba(0,0,0,0.06)';
 
 const ABS_FILL = {
@@ -109,7 +109,7 @@ export const styles = StyleSheet.create({
     elevation: 2,
   },
   petChipImage: { width: '100%', height: '100%' },
-  petChipPlaceholder: { flex: 1, backgroundColor: 'rgba(93,4,217,0.10)' },
+  petChipPlaceholder: { flex: 1, backgroundColor: 'rgba(109,106,248,0.10)' },
 
   petAddChip: {
     width: 40,
@@ -153,9 +153,9 @@ export const styles = StyleSheet.create({
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(93,4,217,0.08)',
+    backgroundColor: 'rgba(109,106,248,0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(93,4,217,0.10)',
+    borderColor: 'rgba(109,106,248,0.10)',
   },
   heroGearText: {
     color: 'rgba(11,18,32,0.55)',
@@ -181,7 +181,7 @@ export const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: 999,
-    backgroundColor: 'rgba(93,4,217,0.14)',
+    backgroundColor: 'rgba(109,106,248,0.14)',
     shadowColor: BRAND,
     shadowOpacity: 0.4,
     shadowRadius: 26,
@@ -195,10 +195,10 @@ export const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 6,
     borderColor: 'rgba(255,255,255,0.98)',
-    backgroundColor: 'rgba(93,4,217,0.06)',
+    backgroundColor: 'rgba(109,106,248,0.06)',
   },
   heroAvatarImg: { width: '100%', height: '100%' },
-  heroAvatarPlaceholder: { flex: 1, backgroundColor: 'rgba(93,4,217,0.12)' },
+  heroAvatarPlaceholder: { flex: 1, backgroundColor: 'rgba(109,106,248,0.12)' },
 
   heroName: {
     fontSize: 28,
@@ -231,7 +231,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 22,
     paddingVertical: 12,
     borderRadius: 999,
-    backgroundColor: 'rgba(93,4,217,0.14)',
+    backgroundColor: 'rgba(109,106,248,0.14)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.92)',
     shadowColor: BRAND,
@@ -241,7 +241,7 @@ export const styles = StyleSheet.create({
     elevation: 8,
   },
   heroTogetherText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '900',
     color: '#FFFFFF',
     letterSpacing: -0.2,
@@ -310,7 +310,7 @@ export const styles = StyleSheet.create({
   iconCircleBlue: { backgroundColor: 'rgba(37,99,235,0.10)' },
   iconCircleOrange: { backgroundColor: 'rgba(249,115,22,0.12)' },
   iconCirclePink: { backgroundColor: 'rgba(239,68,68,0.10)' },
-  iconCirclePurple: { backgroundColor: 'rgba(93,4,217,0.10)' },
+  iconCirclePurple: { backgroundColor: 'rgba(109,106,248,0.10)' },
 
   accordionIconText: { fontSize: 16, fontWeight: '900', color: TEXT },
 
@@ -344,8 +344,8 @@ export const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(93,4,217,0.14)',
-    backgroundColor: 'rgba(93,4,217,0.06)',
+    borderColor: 'rgba(109,106,248,0.14)',
+    backgroundColor: 'rgba(109,106,248,0.06)',
   },
   tagText: { fontSize: 12, fontWeight: '900', color: BRAND_DEEP },
 
@@ -374,8 +374,8 @@ export const styles = StyleSheet.create({
   heroMessageIconText: { fontSize: 16, fontWeight: '900' },
   heroMessageText: {
     flex: 1,
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '600',
     color: TEXT,
     lineHeight: 18,
   },

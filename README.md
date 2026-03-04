@@ -364,6 +364,14 @@ hydrate(AsyncStorage)
 - `산책`으로 저장한 기록이 `전체`에는 보이지만 `산책` 필터에는 보이지 않던 정합성 이슈 수정
 - `TimelineTab`이 `petId` optional param을 받을 수 있도록 탭 라우트 타입 정리
 
+## ✅ Chapter 6-5 — Home / Timeline / FAB 브랜드 컬러 정합화
+
+- `LoggedInHome`의 메인 보라 톤을 `RecordCreate` / `Timeline`과 동일한 계열로 통일
+- 홈 카드, 반려동물 스위처, 아코디언 포인트 컬러를 `#6D6AF8` 기반으로 재정렬
+- 하단 탭의 활성 색상과 중앙 FAB 컬러를 같은 브랜드 톤으로 맞춤
+- 홈의 반려동물 추가 `+` 아이콘까지 동일 계열로 정리
+- 아코디언 구조는 유지한 상태로 시각 톤만 맞춰 홈 화면의 일관성을 확보
+
 ## ✅ Chapter 7 — Timeline Performance Optimization
 
 Timeline 화면에서 기록 수가 증가할수록 스크롤이 끊기거나 버벅이는 문제가 발생할 수 있다.  
