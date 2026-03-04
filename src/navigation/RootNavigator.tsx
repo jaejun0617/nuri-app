@@ -109,7 +109,11 @@ export default function RootNavigator() {
       <Stack.Screen name="NicknameSetup" component={NicknameSetupScreen} />
 
       {/* Pet */}
-      <Stack.Screen name="PetCreate" component={PetCreateScreen} />
+      <Stack.Screen
+        name="PetCreate"
+        component={PetCreateScreen}
+        options={{ headerShown: false }}
+      />
       <Stack.Screen
         name="PetProfileEdit"
         component={PetProfileEditScreen}

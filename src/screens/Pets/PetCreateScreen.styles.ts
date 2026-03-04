@@ -13,22 +13,31 @@ export const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: SURFACE,
+    paddingTop: 30,
+  },
+  topChrome: {
+    backgroundColor: SURFACE,
   },
   header: {
-    minHeight: 25,
+    minHeight: 20,
     paddingHorizontal: 18,
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 0,
   },
   headerAction: {
-    width: 32,
+    minWidth: 40,
     height: 32,
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'center',
   },
+  headerActionText: {
+    color: '#7F8899',
+    fontSize: 13,
+    fontWeight: '700',
+  },
   headerActionPlaceholder: {
-    width: 32,
+    width: 40,
     height: 32,
   },
   headerTitle: {
@@ -43,24 +52,30 @@ export const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 18,
-    paddingTop: 4,
+    paddingTop: 8,
     paddingBottom: 28,
-    gap: 16,
+    gap: 5,
   },
   progressHeader: {
+    gap: 6,
+    paddingHorizontal: 40,
+    paddingTop: 0,
+    paddingBottom: 6,
+    backgroundColor: SURFACE,
+  },
+  progressMetaRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 16,
+    gap: 10,
   },
   progressMain: {
-    flex: 1,
+    width: '100%',
   },
   progressLabel: {
     color: TEXT,
     fontSize: 13,
     fontWeight: '800',
-    marginBottom: 8,
   },
   progressTrack: {
     width: '100%',
@@ -84,20 +99,21 @@ export const styles = StyleSheet.create({
     color: BRAND,
     fontSize: 12,
     fontWeight: '800',
-    marginTop: 1,
+    textAlign: 'right',
   },
   card: {
     backgroundColor: CARD,
     borderRadius: 28,
+    marginTop: 4,
     paddingHorizontal: 18,
     paddingTop: 22,
     paddingBottom: 20,
     gap: 14,
-    shadowColor: '#0A0F1C',
+    // shadowColor: '#0A0F1C',
     shadowOpacity: 0.04,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 10 },
-    elevation: 3,
+    elevation: 0,
   },
   avatarSection: {
     alignItems: 'center',
@@ -282,7 +298,8 @@ export const styles = StyleSheet.create({
     fontWeight: '900',
   },
   footerActions: {
-    gap: 10,
+    gap: 12,
+    marginTop: 14,
     paddingBottom: 6,
   },
   primaryButton: {

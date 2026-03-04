@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -519,6 +519,7 @@ const StepTwoForm = memo(function StepTwoForm({
 
 export default function PetCreateScreen() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const setPets = usePetStore(s => s.setPets);
 
   const [step, setStep] = useState<Step>(1);
@@ -641,6 +642,7 @@ export default function PetCreateScreen() {
     const merged = `${pickerYear}${pickerMonth}${pickerDay}`;
     return buildDateHint(merged);
   }, [pickerDay, pickerMonth, pickerYear]);
+  const compactTopInset = useMemo(() => Math.max(insets.top - 24, 0), [insets.top]);
 
   const pushUniqueValue = useCallback(
     (
@@ -841,14 +843,15 @@ export default function PetCreateScreen() {
   const removeTag = useCallback((value: string) => removeItem('tags', value), [removeItem]);
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top']}>
+    <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
+      <View style={[styles.topChrome, { paddingTop: compactTopInset }]}>
       <View style={styles.header}>
         <TouchableOpacity
           activeOpacity={0.85}
           style={styles.headerAction}
           onPress={() => navigation.goBack()}
         >
-          <Feather color="#222B3A" name="chevron-left" size={18} />
+          <Text style={styles.headerActionText}>취소</Text>
         </TouchableOpacity>
 
         <Text style={styles.headerTitle}>프로필 등록 ({step}/2)</Text>
@@ -856,28 +859,31 @@ export default function PetCreateScreen() {
         <View style={styles.headerActionPlaceholder} />
       </View>
 
+      <View style={styles.progressHeader}>
+        <View style={styles.progressMetaRow}>
+          <Text style={styles.progressLabel}>
+            {step === 1 ? '기본 정보 입력' : '상세 정보 입력'}
+          </Text>
+          <Text style={styles.progressStepText}>{step}/2</Text>
+        </View>
+        <View style={styles.progressMain}>
+          <View style={styles.progressTrack}>
+            <View
+              style={[
+                styles.progressFill,
+                step === 1 ? styles.progressFillHalf : styles.progressFillFull,
+              ]}
+            />
+          </View>
+        </View>
+      </View>
+      </View>
+
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.progressHeader}>
-          <View style={styles.progressMain}>
-            <Text style={styles.progressLabel}>
-              {step === 1 ? '기본 정보 입력' : '상세 정보 입력'}
-            </Text>
-            <View style={styles.progressTrack}>
-              <View
-                style={[
-                  styles.progressFill,
-                  step === 1 ? styles.progressFillHalf : styles.progressFillFull,
-                ]}
-              />
-            </View>
-          </View>
-          <Text style={styles.progressStepText}>{step}/2</Text>
-        </View>
-
         <View style={styles.card}>
           {step === 1 ? (
             <StepOneForm
