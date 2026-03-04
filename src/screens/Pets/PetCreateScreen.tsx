@@ -781,7 +781,7 @@ export default function PetCreateScreen() {
 
       navigation.reset({
         index: 0,
-        routes: [{ name: 'AppTabs' }],
+        routes: [{ name: 'WelcomeTransition' }],
       });
     } catch (error) {
       Alert.alert('반려동물 등록 실패', getErrorMessage(error));

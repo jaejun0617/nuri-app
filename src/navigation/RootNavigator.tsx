@@ -17,6 +17,7 @@ import AuthLandingScreen from '../screens/Auth/AuthLandingScreen';
 import SignInScreen from '../screens/Auth/SignInScreen';
 import SignUpScreen from '../screens/Auth/SignUpScreen';
 import NicknameSetupScreen from '../screens/Auth/NicknameSetupScreen';
+import WelcomeTransitionScreen from '../screens/Auth/WelcomeTransitionScreen';
 
 import PetCreateScreen from '../screens/Pets/PetCreateScreen';
 import PetProfileEditScreen from '../screens/Pets/PetProfileEditScreen';
@@ -45,6 +46,7 @@ export type RootStackParamList = {
   SignIn: undefined;
   SignUp: undefined;
   NicknameSetup: { after?: 'signin' | 'signup' } | undefined;
+  WelcomeTransition: undefined;
 
   // Pet
   PetCreate: { from?: 'auto' | 'cta' | 'header_plus' } | undefined;
@@ -107,6 +109,11 @@ export default function RootNavigator() {
       <Stack.Screen name="SignIn" component={SignInScreen} />
       <Stack.Screen name="SignUp" component={SignUpScreen} />
       <Stack.Screen name="NicknameSetup" component={NicknameSetupScreen} />
+      <Stack.Screen
+        name="WelcomeTransition"
+        component={WelcomeTransitionScreen}
+        options={{ headerShown: false }}
+      />
 
       {/* Pet */}
       <Stack.Screen
