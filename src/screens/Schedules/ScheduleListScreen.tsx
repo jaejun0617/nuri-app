@@ -28,27 +28,6 @@ type Route = {
   params?: { petId?: string };
 };
 
-function createWeekRange() {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-
-  const end = new Date(start);
-  end.setDate(end.getDate() + 6);
-  end.setHours(23, 59, 59, 999);
-
-  return {
-    from: start.toISOString(),
-    to: end.toISOString(),
-  };
-}
-
-function formatHeaderRangeLabel() {
-  const start = new Date();
-  const end = new Date();
-  end.setDate(end.getDate() + 6);
-  return `${start.getMonth() + 1}.${start.getDate()} - ${end.getMonth() + 1}.${end.getDate()}`;
-}
-
 function formatScheduleDate(schedule: PetSchedule) {
   const date = new Date(schedule.startsAt);
   if (Number.isNaN(date.getTime())) return '';
@@ -124,11 +103,8 @@ export default function ScheduleListScreen() {
     return pets[0]?.id ?? null;
   }, [pets, route.params?.petId, selectedPetId]);
 
-  const weekRange = useMemo(() => createWeekRange(), []);
-  const rangeLabel = useMemo(() => formatHeaderRangeLabel(), []);
-
-  const bootstrapWeek = useScheduleStore(s => s.bootstrapWeek);
-  const refreshWeek = useScheduleStore(s => s.refreshWeek);
+  const bootstrap = useScheduleStore(s => s.bootstrap);
+  const refresh = useScheduleStore(s => s.refresh);
 
   const petState = useScheduleStore(s =>
     petId ? s.byPetId[petId] ?? null : null,
@@ -139,17 +115,24 @@ export default function ScheduleListScreen() {
 
   useEffect(() => {
     if (!petId) return;
-    bootstrapWeek(petId, weekRange.from, weekRange.to);
-  }, [bootstrapWeek, petId, weekRange.from, weekRange.to]);
+    bootstrap(petId);
+  }, [bootstrap, petId]);
 
   const onRefresh = useCallback(() => {
     if (!petId) return;
-    refreshWeek(petId, weekRange.from, weekRange.to);
-  }, [petId, refreshWeek, weekRange.from, weekRange.to]);
+    refresh(petId);
+  }, [petId, refresh]);
 
   const onPressCreate = useCallback(() => {
     navigation.navigate('ScheduleCreate', { petId: petId ?? undefined });
   }, [navigation, petId]);
+
+  const onPressHome = useCallback(() => {
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'AppTabs', params: { screen: 'HomeTab' } }],
+    });
+  }, [navigation]);
 
   const onPressItem = useCallback(
     (scheduleId: string) => {
@@ -167,10 +150,10 @@ export default function ScheduleListScreen() {
         <TouchableOpacity
           activeOpacity={0.85}
           style={styles.headerSideBtn}
-          onPress={() => navigation.goBack()}
+          onPress={onPressHome}
         >
           <AppText preset="body" style={styles.headerSideText}>
-            취소
+            홈으로
           </AppText>
         </TouchableOpacity>
 
@@ -200,10 +183,10 @@ export default function ScheduleListScreen() {
       >
         <View style={styles.heroCard}>
           <AppText preset="headline" style={styles.heroTitle}>
-            이번 주 일정
+            전체 일정
           </AppText>
           <AppText preset="caption" style={styles.heroSub}>
-            {rangeLabel}
+            오래 남겨둘 일정도 한 곳에서 차분히 확인해 보세요
           </AppText>
         </View>
 

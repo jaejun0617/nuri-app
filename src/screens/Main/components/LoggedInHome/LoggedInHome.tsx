@@ -87,11 +87,6 @@ type WeeklyScheduleItem = {
   otherSubCategory?: HomeOtherSubCategory;
 };
 
-type WeekRange = {
-  from: string;
-  to: string;
-};
-
 /* ---------------------------------------------------------
  * 1) helpers
  * -------------------------------------------------------- */
@@ -398,20 +393,6 @@ function getRecordCategoryMeta(item: MemoryRecord): HomeCategoryMeta {
   };
 }
 
-function createWeekRange(): WeekRange {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-
-  const end = new Date(start);
-  end.setDate(end.getDate() + 6);
-  end.setHours(23, 59, 59, 999);
-
-  return {
-    from: start.toISOString(),
-    to: end.toISOString(),
-  };
-}
-
 function formatScheduleDateLabel(schedule: PetSchedule): string {
   const date = new Date(schedule.startsAt);
   if (Number.isNaN(date.getTime())) return '';
@@ -523,7 +504,6 @@ const FALLBACK_SCHEDULES_STATE = Object.freeze({
   items: [] as PetSchedule[],
   status: 'idle' as const,
   errorMessage: null as string | null,
-  rangeKey: null as string | null,
   requestSeq: 0,
 });
 
@@ -888,7 +868,7 @@ export default function LoggedInHome() {
   // 4) records
   // ---------------------------------------------------------
   const bootstrapRecords = useRecordStore(s => s.bootstrap);
-  const bootstrapSchedules = useScheduleStore(s => s.bootstrapWeek);
+  const bootstrapSchedules = useScheduleStore(s => s.bootstrap);
 
   const petRecordsState = useRecordStore(s =>
     activePetId ? s.byPetId[activePetId] ?? null : null,
@@ -905,17 +885,10 @@ export default function LoggedInHome() {
     bootstrapRecords(activePetId);
   }, [bootstrapRecords, activePetId]);
 
-  const currentWeekRange = useMemo(() => createWeekRange(), []);
-
   useEffect(() => {
     if (!activePetId) return;
-    bootstrapSchedules(activePetId, currentWeekRange.from, currentWeekRange.to);
-  }, [
-    activePetId,
-    bootstrapSchedules,
-    currentWeekRange.from,
-    currentWeekRange.to,
-  ]);
+    bootstrapSchedules(activePetId);
+  }, [activePetId, bootstrapSchedules]);
 
   // ---------------------------------------------------------
   // 4.3) today message / today photo
@@ -1302,7 +1275,7 @@ export default function LoggedInHome() {
   }, [safeRecordsState.items]);
 
   const weekScheduleItems = useMemo<WeeklyScheduleItem[]>(() => {
-    return safeSchedulesState.items.slice(0, 5).map(buildScheduleCard);
+    return safeSchedulesState.items.slice(0, 7).map(buildScheduleCard);
   }, [safeSchedulesState.items]);
 
   // ---------------------------------------------------------
@@ -1896,7 +1869,7 @@ export default function LoggedInHome() {
 
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.tipSectionTitle}>이번 주 일정</Text>
+              <Text style={styles.tipSectionTitle}>전체 일정</Text>
               <TouchableOpacity
                 activeOpacity={0.85}
                 onPress={onPressScheduleList}
@@ -1907,9 +1880,9 @@ export default function LoggedInHome() {
 
             {weekScheduleItems.length === 0 ? (
               <View style={styles.emptyBox}>
-                <Text style={styles.emptyTitle}>이번 주 일정이 아직 없어요</Text>
+                <Text style={styles.emptyTitle}>등록된 일정이 아직 없어요</Text>
                 <Text style={styles.emptyDesc}>
-                  병원, 미용, 산책 루틴을 먼저 등록해두면 홈에서 바로 볼 수 있어요.
+                  오래 남겨둘 일정도 한곳에 모아두고 홈에서 가볍게 꺼내볼 수 있어요.
                 </Text>
               </View>
             ) : (
@@ -1957,15 +1930,13 @@ export default function LoggedInHome() {
               </View>
             )}
 
-            {weekScheduleItems.length === 0 ? (
-              <TouchableOpacity
-                activeOpacity={0.9}
-                style={styles.recordBtn}
-                onPress={onPressScheduleCreate}
-              >
-                <Text style={styles.recordBtnText}>일정 추가하기</Text>
-              </TouchableOpacity>
-            ) : null}
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={styles.recordBtn}
+              onPress={onPressScheduleCreate}
+            >
+              <Text style={styles.recordBtnText}>일정 추가하기</Text>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.section}>

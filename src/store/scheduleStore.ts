@@ -1,11 +1,11 @@
 // 파일: src/store/scheduleStore.ts
 // 목적:
-// - petId별 이번 주 일정 캐시
-// - 홈 "이번 주 일정" 빠른 조회
+// - petId별 전체 일정 캐시
+// - 홈 "전체 일정" 빠른 조회
 
 import { create } from 'zustand';
 import type { PetSchedule } from '../services/supabase/schedules';
-import { fetchSchedulesByPetRange } from '../services/supabase/schedules';
+import { fetchSchedulesByPet } from '../services/supabase/schedules';
 
 type Status = 'idle' | 'loading' | 'ready' | 'refreshing' | 'error';
 
@@ -13,7 +13,6 @@ export type PetSchedulesState = {
   items: PetSchedule[];
   status: Status;
   errorMessage: string | null;
-  rangeKey: string | null;
   requestSeq: number;
 };
 
@@ -21,8 +20,8 @@ type ScheduleStore = {
   byPetId: Record<string, PetSchedulesState>;
   ensurePetState: (petId: string) => void;
   getPetState: (petId: string) => PetSchedulesState;
-  bootstrapWeek: (petId: string, from: string, to: string) => Promise<void>;
-  refreshWeek: (petId: string, from: string, to: string) => Promise<void>;
+  bootstrap: (petId: string) => Promise<void>;
+  refresh: (petId: string) => Promise<void>;
   clearPet: (petId: string) => void;
   clearAll: () => void;
 };
@@ -31,17 +30,12 @@ const createInitialPetState = (): PetSchedulesState => ({
   items: [],
   status: 'idle',
   errorMessage: null,
-  rangeKey: null,
   requestSeq: 0,
 });
 
 const FALLBACK_PET_STATE: PetSchedulesState = Object.freeze(
   createInitialPetState(),
 );
-
-function createRangeKey(from: string, to: string) {
-  return `${from}__${to}`;
-}
 
 export const useScheduleStore = create<ScheduleStore>((set, get) => ({
   byPetId: {},
@@ -63,14 +57,13 @@ export const useScheduleStore = create<ScheduleStore>((set, get) => ({
     return get().byPetId[petId] ?? FALLBACK_PET_STATE;
   },
 
-  bootstrapWeek: async (petId, from, to) => {
+  bootstrap: async petId => {
     if (!petId) return;
 
     get().ensurePetState(petId);
     const current = get().getPetState(petId);
-    const rangeKey = createRangeKey(from, to);
 
-    if (current.status === 'ready' && current.rangeKey === rangeKey) return;
+    if (current.status === 'ready') return;
     if (current.status === 'loading' || current.status === 'refreshing') return;
 
     const requestSeq = current.requestSeq + 1;
@@ -82,14 +75,13 @@ export const useScheduleStore = create<ScheduleStore>((set, get) => ({
           ...state.byPetId[petId],
           status: 'loading',
           errorMessage: null,
-          rangeKey,
           requestSeq,
         },
       },
     }));
 
     try {
-      const items = await fetchSchedulesByPetRange({ petId, from, to });
+      const items = await fetchSchedulesByPet({ petId });
 
       set(state => {
         const latest = state.byPetId[petId];
@@ -103,7 +95,6 @@ export const useScheduleStore = create<ScheduleStore>((set, get) => ({
               items,
               status: 'ready',
               errorMessage: null,
-              rangeKey,
             },
           },
         };
@@ -128,12 +119,11 @@ export const useScheduleStore = create<ScheduleStore>((set, get) => ({
     }
   },
 
-  refreshWeek: async (petId, from, to) => {
+  refresh: async petId => {
     if (!petId) return;
 
     get().ensurePetState(petId);
     const current = get().getPetState(petId);
-    const rangeKey = createRangeKey(from, to);
     const requestSeq = current.requestSeq + 1;
 
     set(state => ({
@@ -143,14 +133,13 @@ export const useScheduleStore = create<ScheduleStore>((set, get) => ({
           ...state.byPetId[petId],
           status: 'refreshing',
           errorMessage: null,
-          rangeKey,
           requestSeq,
         },
       },
     }));
 
     try {
-      const items = await fetchSchedulesByPetRange({ petId, from, to });
+      const items = await fetchSchedulesByPet({ petId });
 
       set(state => {
         const latest = state.byPetId[petId];
@@ -164,7 +153,6 @@ export const useScheduleStore = create<ScheduleStore>((set, get) => ({
               items,
               status: 'ready',
               errorMessage: null,
-              rangeKey,
             },
           },
         };

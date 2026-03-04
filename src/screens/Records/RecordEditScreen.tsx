@@ -2,34 +2,47 @@
 // 목적:
 // - 기존 memory 수정(완전체)
 // - title / content / tags / emotion / occurredAt 수정
-// - 저장 후 refresh(petId) + 뒤로
+// - ✅ 이미지 교체(선택→업로드→DB path 업데이트→(선택)기존 파일 삭제)
+// - ✅ 저장 후 "즉시 반영"(refresh 없이도 Detail/Timeline 바로 반영)
+//   - updateOneLocal(patch)로 store를 먼저 갱신
+//   - 필요하면 마지막에 refresh(petId)로 서버 정합만 맞춤(옵션)
 //
-// ✅ 이번 수정 포인트 (중요)
-// 1) 뒤로가기 안전 처리:
-//    - canGoBack() ? goBack() : reset(Main)
-// 2) Zustand selector에서 getPetState() 호출 제거:
-//    - byPetId[petId] 직접 구독하여 안정성 확보
-// 3) record 늦게 로드되는 케이스 대비:
-//    - 폼 state를 record로 1회 동기화(useEffect + dirty 방지)
+// ✅ 안전 규칙
+// 1) 기존 imagePath는 서버에서 fetchMemoryImagePath(memoryId)로 “진실”을 가져온다.
+// 2) 새 이미지 업로드 성공 + DB 업데이트 성공 이후에만 기존 파일 삭제한다.
+// 3) 새 이미지 업로드/DB 업데이트 중 실패하면 기존 이미지는 유지된다(데이터 보호).
+// 4) UI 렌더는 imagePath → getMemoryImageSignedUrlCached() 규칙으로 고정.
+// 5) “이미지 제거” 의도는 removeRequested 플래그로 관리한다.
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
-  StyleSheet,
+  Image,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { launchImageLibrary } from 'react-native-image-picker';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
+  fetchMemoryImagePath,
   updateMemoryFields,
+  updateMemoryImagePath,
   type EmotionTag,
 } from '../../services/supabase/memories';
+import {
+  deleteMemoryImage,
+  getMemoryImageSignedUrlCached,
+  uploadMemoryImage,
+} from '../../services/supabase/storageMemories';
+import { useAuthStore } from '../../store/authStore';
 import { useRecordStore } from '../../store/recordStore';
 import AppText from '../../app/ui/AppText';
+import { styles } from './RecordEditScreen.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = {
@@ -37,6 +50,8 @@ type Route = {
   name: string;
   params: { petId: string; memoryId: string };
 };
+
+const ENABLE_SERVER_SYNC = false; // ✅ 필요할 때만 true
 
 const EMOTIONS: Array<{ label: string; value: EmotionTag }> = [
   { label: '행복', value: 'happy' },
@@ -49,6 +64,51 @@ const EMOTIONS: Array<{ label: string; value: EmotionTag }> = [
   { label: '피곤', value: 'tired' },
 ];
 
+function getErrorMessage(err: unknown) {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  return '오류가 발생했습니다.';
+}
+
+type PickedImage = { uri: string; mimeType: string | null };
+
+function inferMimeFromFileName(
+  fileName: string | null | undefined,
+): string | null {
+  const n = (fileName ?? '').toLowerCase().trim();
+  if (!n) return null;
+  if (n.endsWith('.jpg') || n.endsWith('.jpeg')) return 'image/jpeg';
+  if (n.endsWith('.png')) return 'image/png';
+  if (n.endsWith('.webp')) return 'image/webp';
+  if (n.endsWith('.heic')) return 'image/heic';
+  if (n.endsWith('.heif')) return 'image/heif';
+  return null;
+}
+
+function inferMimeFromUri(uri: string): string | null {
+  const u = uri.toLowerCase().split('?')[0];
+  if (u.endsWith('.jpg') || u.endsWith('.jpeg')) return 'image/jpeg';
+  if (u.endsWith('.png')) return 'image/png';
+  if (u.endsWith('.webp')) return 'image/webp';
+  if (u.endsWith('.heic')) return 'image/heic';
+  if (u.endsWith('.heif')) return 'image/heif';
+  return null;
+}
+
+function resolvePickerMimeType(asset: any): string | null {
+  const t = asset?.type ?? asset?.mime ?? asset?.mimeType ?? null;
+  if (typeof t === 'string' && t.includes('/')) return t;
+
+  const byName = inferMimeFromFileName(asset?.fileName ?? null);
+  if (byName) return byName;
+
+  const byUri =
+    typeof asset?.uri === 'string' ? inferMimeFromUri(asset.uri) : null;
+  if (byUri) return byUri;
+
+  return null;
+}
+
 export default function RecordEditScreen() {
   // ---------------------------------------------------------
   // 1) nav / params
@@ -59,8 +119,11 @@ export default function RecordEditScreen() {
   const memoryId = route.params?.memoryId ?? null;
 
   // ---------------------------------------------------------
-  // 2) store
+  // 2) auth/store
   // ---------------------------------------------------------
+  const userId = useAuthStore(s => s.session?.user?.id ?? null);
+
+  const updateOneLocal = useRecordStore(s => s.updateOneLocal);
   const refresh = useRecordStore(s => s.refresh);
 
   const petState = useRecordStore(s => {
@@ -84,8 +147,6 @@ export default function RecordEditScreen() {
   const [emotion, setEmotion] = useState<EmotionTag | null>(null);
 
   const [saving, setSaving] = useState(false);
-
-  // ✅ 폼 동기화 보호(사용자 입력을 덮어쓰지 않기 위해)
   const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
@@ -108,17 +169,84 @@ export default function RecordEditScreen() {
       return;
     }
 
-    // ⚠️ 프로젝트의 "홈 루트" 라우트명이 다르면 여기만 수정
     navigation.reset({
       index: 0,
-      routes: [{ name: 'Main' as keyof RootStackParamList }],
+      routes: [{ name: 'AppTabs', params: { screen: 'TimelineTab' } }],
     });
   }, [navigation]);
 
   // ---------------------------------------------------------
-  // 5) helpers
+  // 5) image state (preview + replace flow)
   // ---------------------------------------------------------
-  const parseTags = (raw: string) => {
+  const [imgLoading, setImgLoading] = useState<boolean>(true);
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+
+  const [picked, setPicked] = useState<PickedImage | null>(null);
+  const [removeRequested, setRemoveRequested] = useState(false);
+
+  const [originalPath, setOriginalPath] = useState<string | null>(null);
+
+  const effectivePath = useMemo(
+    () => record?.imagePath ?? null,
+    [record?.imagePath],
+  );
+
+  // 원본 path 서버 truth 확보
+  useEffect(() => {
+    let mounted = true;
+
+    async function run() {
+      if (!memoryId) return;
+      try {
+        const p = await fetchMemoryImagePath(memoryId);
+        if (mounted) setOriginalPath(p);
+      } catch {
+        if (mounted) setOriginalPath(record?.imagePath ?? null);
+      }
+    }
+
+    run();
+    return () => {
+      mounted = false;
+    };
+  }, [memoryId, record?.imagePath]);
+
+  // imagePath → signed url
+  useEffect(() => {
+    let mounted = true;
+
+    async function run() {
+      const path = effectivePath;
+
+      if (!path) {
+        if (mounted) {
+          setSignedUrl(null);
+          setImgLoading(false);
+        }
+        return;
+      }
+
+      try {
+        if (mounted) setImgLoading(true);
+        const url = await getMemoryImageSignedUrlCached(path);
+        if (mounted) setSignedUrl(url);
+      } catch {
+        if (mounted) setSignedUrl(null);
+      } finally {
+        if (mounted) setImgLoading(false);
+      }
+    }
+
+    run();
+    return () => {
+      mounted = false;
+    };
+  }, [effectivePath]);
+
+  // ---------------------------------------------------------
+  // 6) helpers
+  // ---------------------------------------------------------
+  const parseTags = useCallback((raw: string) => {
     const cleaned = raw.trim();
     if (!cleaned) return [];
 
@@ -140,19 +268,77 @@ export default function RecordEditScreen() {
       .filter(Boolean)
       .slice(0, 10)
       .map(t => `#${t}`);
-  };
+  }, []);
 
-  const validateOccurredAt = (v: string) => {
+  const validateOccurredAt = useCallback((v: string) => {
     const t = v.trim();
     if (!t) return null;
+
     if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) {
       throw new Error('날짜 형식은 YYYY-MM-DD 입니다.');
     }
     return t;
-  };
+  }, []);
 
   // ---------------------------------------------------------
-  // 6) submit
+  // 7) image actions
+  // ---------------------------------------------------------
+  const onPickImage = useCallback(async () => {
+    if (saving) return;
+
+    const res = await launchImageLibrary({
+      mediaType: 'photo',
+      selectionLimit: 1,
+      quality: 0.9,
+    });
+
+    if (res.didCancel) return;
+
+    const asset = res.assets?.[0] as any;
+    const uri: string | null = asset?.uri ?? null;
+
+    if (!uri) {
+      Alert.alert('이미지 선택 실패', 'uri를 가져오지 못했습니다.');
+      return;
+    }
+
+    const mimeType: string | null = resolvePickerMimeType(asset);
+
+    setDirty(true);
+    setRemoveRequested(false);
+    setPicked({ uri, mimeType });
+  }, [saving]);
+
+  const onClearPicked = useCallback(() => {
+    if (saving) return;
+    setDirty(true);
+    setPicked(null);
+  }, [saving]);
+
+  const onRemoveImage = useCallback(() => {
+    if (saving) return;
+
+    Alert.alert(
+      '이미지를 제거할까요?',
+      '저장하면 이 기록의 이미지가 삭제됩니다.',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '제거',
+          style: 'destructive',
+          onPress: () => {
+            setDirty(true);
+            setPicked(null);
+            setRemoveRequested(true);
+            setSignedUrl(null);
+          },
+        },
+      ],
+    );
+  }, [saving]);
+
+  // ---------------------------------------------------------
+  // 8) submit (text + image replace) ✅ 즉시 반영
   // ---------------------------------------------------------
   const onSubmit = useCallback(async () => {
     if (!petId || !memoryId) return;
@@ -164,24 +350,88 @@ export default function RecordEditScreen() {
       return;
     }
 
+    if (!userId) {
+      Alert.alert('로그인 정보가 없어요', '다시 로그인 후 시도해 주세요.');
+      return;
+    }
+
     try {
       setSaving(true);
 
+      // 1) 텍스트 저장
       const occurred = validateOccurredAt(occurredAt);
+      const nextContent = content.trim() || null;
+      const nextTags = parseTags(tagsText);
 
       await updateMemoryFields({
         memoryId,
         title: nextTitle,
-        content: content.trim() || null,
+        content: nextContent,
         emotion,
-        tags: parseTags(tagsText),
+        tags: nextTags,
         occurredAt: occurred,
       });
 
-      await refresh(petId);
-      safeGoBack();
-    } catch (e: any) {
-      Alert.alert('수정 실패', e?.message ?? '오류');
+      // ✅ 즉시 반영(텍스트)
+      updateOneLocal(petId, memoryId, {
+        title: nextTitle,
+        content: nextContent,
+        emotion,
+        tags: nextTags,
+        occurredAt: occurred,
+      });
+
+      // 2) 이미지 저장
+      const oldPath = originalPath ?? record.imagePath ?? null;
+
+      // (A) 새 이미지로 교체
+      if (picked?.uri) {
+        const { path: newPath } = await uploadMemoryImage({
+          userId,
+          petId,
+          memoryId,
+          fileUri: picked.uri,
+          mimeType: picked.mimeType,
+        });
+
+        await updateMemoryImagePath({ memoryId, imagePath: newPath });
+
+        // ✅ 즉시 반영(이미지 path)
+        updateOneLocal(petId, memoryId, { imagePath: newPath });
+
+        if (oldPath && oldPath !== newPath) {
+          await deleteMemoryImage(oldPath).catch(() => null);
+        }
+      }
+
+      // (B) 이미지 제거
+      if (!picked?.uri && removeRequested) {
+        await updateMemoryImagePath({ memoryId, imagePath: null });
+
+        // ✅ 즉시 반영(이미지 제거)
+        updateOneLocal(petId, memoryId, { imagePath: null });
+
+        if (oldPath) {
+          await deleteMemoryImage(oldPath).catch(() => null);
+        }
+      }
+
+      // 3) 서버 정합(옵션) - ✅ 여기서 refresh를 "진짜로 사용"하므로 경고 사라짐
+      if (ENABLE_SERVER_SYNC) {
+        await refresh(petId);
+      }
+
+      navigation.replace('EditDone', {
+        title: '기록 수정 완료!',
+        bodyLines: [
+          '방금 다듬은 기록이 더 또렷하게 정리됐어요.',
+          '이제 상세 화면에서 바로 확인할 수 있어요.',
+        ],
+        buttonLabel: '기록 보러 가기',
+        navigateTo: { type: 'record-detail', petId, memoryId },
+      });
+    } catch (err) {
+      Alert.alert('수정 실패', getErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -194,12 +444,19 @@ export default function RecordEditScreen() {
     occurredAt,
     emotion,
     tagsText,
+    userId,
+    picked,
+    removeRequested,
+    originalPath,
+    navigation,
+    updateOneLocal,
+    parseTags,
+    validateOccurredAt,
     refresh,
-    safeGoBack,
   ]);
 
   // ---------------------------------------------------------
-  // 7) guard
+  // 9) guard
   // ---------------------------------------------------------
   if (!record) {
     return (
@@ -221,7 +478,7 @@ export default function RecordEditScreen() {
   }
 
   // ---------------------------------------------------------
-  // 8) UI
+  // 10) UI
   // ---------------------------------------------------------
   return (
     <View style={styles.screen}>
@@ -245,6 +502,79 @@ export default function RecordEditScreen() {
       </View>
 
       <View style={styles.card}>
+        {/* Image Preview */}
+        <View style={styles.heroWrap}>
+          {picked?.uri ? (
+            <Image source={{ uri: picked.uri }} style={styles.heroImg} />
+          ) : removeRequested ? (
+            <View style={styles.heroPlaceholder}>
+              <AppText preset="caption" style={styles.heroPlaceholderText}>
+                NO IMAGE
+              </AppText>
+            </View>
+          ) : !record.imagePath ? (
+            <View style={styles.heroPlaceholder}>
+              <AppText preset="caption" style={styles.heroPlaceholderText}>
+                NO IMAGE
+              </AppText>
+            </View>
+          ) : imgLoading ? (
+            <View style={styles.heroPlaceholder}>
+              <ActivityIndicator size="large" color="#8A94A6" />
+            </View>
+          ) : signedUrl ? (
+            <Image
+              source={{ uri: signedUrl }}
+              style={styles.heroImg}
+              resizeMode="cover"
+              fadeDuration={250}
+            />
+          ) : (
+            <View style={styles.heroPlaceholder}>
+              <AppText preset="caption" style={styles.heroPlaceholderText}>
+                ERROR
+              </AppText>
+            </View>
+          )}
+
+          <View style={styles.imgActionsRow}>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={[styles.imgBtn, styles.imgBtnPrimary]}
+              onPress={onPickImage}
+              disabled={saving}
+            >
+              <AppText preset="caption" style={styles.imgBtnText}>
+                {picked ? '다른 사진 선택' : '사진 선택'}
+              </AppText>
+            </TouchableOpacity>
+
+            {picked ? (
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={styles.imgBtn}
+                onPress={onClearPicked}
+                disabled={saving}
+              >
+                <AppText preset="caption" style={styles.imgBtnText}>
+                  선택 취소
+                </AppText>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={[styles.imgBtn, styles.imgBtnDanger]}
+                onPress={onRemoveImage}
+                disabled={saving}
+              >
+                <AppText preset="caption" style={styles.imgBtnDangerText}>
+                  이미지 제거
+                </AppText>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
         <AppText preset="caption" style={styles.label}>
           제목
         </AppText>
@@ -257,6 +587,7 @@ export default function RecordEditScreen() {
           }}
           placeholder="제목"
           placeholderTextColor="#8A94A6"
+          editable={!saving}
         />
 
         <AppText preset="caption" style={styles.label}>
@@ -272,6 +603,7 @@ export default function RecordEditScreen() {
           placeholder="내용"
           placeholderTextColor="#8A94A6"
           multiline
+          editable={!saving}
         />
 
         <AppText preset="caption" style={styles.label}>
@@ -287,6 +619,7 @@ export default function RecordEditScreen() {
           placeholder="YYYY-MM-DD"
           placeholderTextColor="#8A94A6"
           autoCapitalize="none"
+          editable={!saving}
         />
 
         <AppText preset="caption" style={styles.label}>
@@ -301,6 +634,7 @@ export default function RecordEditScreen() {
           }}
           placeholder="#산책 #간식 또는 산책,간식"
           placeholderTextColor="#8A94A6"
+          editable={!saving}
         />
 
         <AppText preset="caption" style={styles.label}>
@@ -308,21 +642,21 @@ export default function RecordEditScreen() {
         </AppText>
 
         <View style={styles.emotionRow}>
-          {EMOTIONS.slice(0, 4).map(e => {
-            const active = emotion === e.value;
+          {EMOTIONS.slice(0, 4).map(em => {
+            const active = emotion === em.value;
             return (
               <TouchableOpacity
-                key={e.value}
+                key={em.value}
                 style={[styles.chip, active ? styles.chipActive : null]}
                 onPress={() => {
                   setDirty(true);
-                  setEmotion(prev => (prev === e.value ? null : e.value));
+                  setEmotion(prev => (prev === em.value ? null : em.value));
                 }}
                 disabled={saving}
                 activeOpacity={0.9}
               >
                 <AppText preset="caption" style={styles.chipText}>
-                  {e.label}
+                  {em.label}
                 </AppText>
               </TouchableOpacity>
             );
@@ -330,21 +664,21 @@ export default function RecordEditScreen() {
         </View>
 
         <View style={styles.emotionRow}>
-          {EMOTIONS.slice(4).map(e => {
-            const active = emotion === e.value;
+          {EMOTIONS.slice(4).map(em => {
+            const active = emotion === em.value;
             return (
               <TouchableOpacity
-                key={e.value}
+                key={em.value}
                 style={[styles.chip, active ? styles.chipActive : null]}
                 onPress={() => {
                   setDirty(true);
-                  setEmotion(prev => (prev === e.value ? null : e.value));
+                  setEmotion(prev => (prev === em.value ? null : em.value));
                 }}
                 disabled={saving}
                 activeOpacity={0.9}
               >
                 <AppText preset="caption" style={styles.chipText}>
-                  {e.label}
+                  {em.label}
                 </AppText>
               </TouchableOpacity>
             );
@@ -376,82 +710,3 @@ export default function RecordEditScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#F6F7FB' },
-
-  header: {
-    height: 56,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E6E8F0',
-    backgroundColor: '#FFFFFF',
-  },
-  backBtn: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backText: { fontWeight: '900', color: '#0B1220' },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    color: '#0B1220',
-    fontWeight: '900',
-  },
-
-  card: {
-    margin: 16,
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#E6E8F0',
-  },
-
-  label: {
-    marginTop: 10,
-    marginBottom: 6,
-    color: '#556070',
-    fontWeight: '800',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#E6E8F0',
-    borderRadius: 12,
-    padding: 12,
-    color: '#0B1220',
-    backgroundColor: '#FFFFFF',
-  },
-  multiline: { minHeight: 100, textAlignVertical: 'top' },
-
-  emotionRow: { flexDirection: 'row', gap: 8, marginTop: 8, flexWrap: 'wrap' },
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#E6E8F0',
-    backgroundColor: '#FFFFFF',
-  },
-  chipActive: { borderColor: '#6D7CFF' },
-  chipText: { color: '#0B1220', fontWeight: '700' },
-
-  primary: {
-    marginTop: 14,
-    backgroundColor: '#6D7CFF',
-    padding: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  primaryDisabled: { opacity: 0.6 },
-  primaryText: { color: '#FFFFFF', fontWeight: '900' },
-
-  ghost: { marginTop: 10, paddingVertical: 8, alignItems: 'center' },
-  ghostText: { color: '#556070', fontWeight: '700' },
-
-  desc: { marginTop: 8, color: '#556070' },
-});

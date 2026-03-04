@@ -124,15 +124,6 @@ function inferSubCategory(category: ScheduleCategory): ScheduleSubCategory | nul
   }
 }
 
-function createWeekRange() {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 6);
-  end.setHours(23, 59, 59, 999);
-  return { from: start.toISOString(), to: end.toISOString() };
-}
-
 function formatDateSummary(dateText: string) {
   const normalized = dateText.replace(/\./g, '-');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return dateText;
@@ -159,8 +150,7 @@ export default function ScheduleEditScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { petId, scheduleId } = route.params;
-  const refreshWeek = useScheduleStore(s => s.refreshWeek);
-  const weekRange = useMemo(() => createWeekRange(), []);
+  const refresh = useScheduleStore(s => s.refresh);
   const datePresets = useMemo(() => createDatePresets(), []);
 
   const [schedule, setSchedule] = useState<PetSchedule | null>(null);
@@ -285,9 +275,17 @@ export default function ScheduleEditScreen() {
       });
 
       if (petId) {
-        await refreshWeek(petId, weekRange.from, weekRange.to);
+        await refresh(petId);
       }
-      navigation.replace('ScheduleDetail', { petId, scheduleId });
+      navigation.replace('EditDone', {
+        title: '일정 수정 완료!',
+        bodyLines: [
+          '방금 고친 일정이 차분하게 정리됐어요.',
+          '이제 전체 일정에서 바로 확인할 수 있어요.',
+        ],
+        buttonLabel: '전체 일정 보기',
+        navigateTo: { type: 'schedule-list', petId },
+      });
     } catch (error) {
       Alert.alert('일정 수정 실패', getErrorMessage(error));
     } finally {
@@ -303,14 +301,12 @@ export default function ScheduleEditScreen() {
     note,
     petId,
     reminderKey,
-    refreshWeek,
+    refresh,
     repeatRule,
     schedule,
     scheduleId,
     timeText,
     title,
-    weekRange.from,
-    weekRange.to,
   ]);
 
   return (
@@ -590,7 +586,7 @@ export default function ScheduleEditScreen() {
               <TextInput
                 value={note}
                 onChangeText={setNote}
-                placeholder="홈 이번 주 일정 카드에 보일 짧은 메모를 남겨보세요"
+                placeholder="홈 일정 카드에 보일 짧은 메모를 남겨보세요"
                 placeholderTextColor="#8A94A6"
                 style={[styles.input, styles.textarea]}
                 multiline

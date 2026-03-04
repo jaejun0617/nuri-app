@@ -127,20 +127,6 @@ function inferSubCategory(category: ScheduleCategory): ScheduleSubCategory | nul
   }
 }
 
-function createWeekRange() {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-
-  const end = new Date(start);
-  end.setDate(end.getDate() + 6);
-  end.setHours(23, 59, 59, 999);
-
-  return {
-    from: start.toISOString(),
-    to: end.toISOString(),
-  };
-}
-
 function formatDateSummary(dateText: string) {
   const normalized = dateText.replace(/\./g, '-');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return dateText;
@@ -173,7 +159,7 @@ export default function ScheduleCreateScreen() {
 
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
-  const refreshWeek = useScheduleStore(s => s.refreshWeek);
+  const refresh = useScheduleStore(s => s.refresh);
 
   const petId = useMemo(() => {
     const petIdFromParams = route.params?.petId ?? null;
@@ -209,7 +195,6 @@ export default function ScheduleCreateScreen() {
   const [reminderKey, setReminderKey] =
     useState<(typeof REMINDER_OPTIONS)[number]['key']>('hour');
 
-  const weekRange = useMemo(() => createWeekRange(), []);
   const datePresets = useMemo(() => createDatePresets(), []);
 
   const onOpenDateModal = useCallback(() => {
@@ -281,7 +266,7 @@ export default function ScheduleCreateScreen() {
         ],
       });
 
-      await refreshWeek(petId, weekRange.from, weekRange.to);
+      await refresh(petId);
       navigation.replace('ScheduleList', { petId });
     } catch (error) {
       Alert.alert('일정 저장 실패', getErrorMessage(error));
@@ -298,12 +283,10 @@ export default function ScheduleCreateScreen() {
     note,
     petId,
     reminderKey,
-    refreshWeek,
+    refresh,
     repeatRule,
     timeText,
     title,
-    weekRange.from,
-    weekRange.to,
   ]);
 
   return (
@@ -574,7 +557,7 @@ export default function ScheduleCreateScreen() {
           <TextInput
             value={note}
             onChangeText={setNote}
-            placeholder="홈 이번 주 일정 카드에 보일 짧은 메모를 남겨보세요"
+            placeholder="홈 일정 카드에 보일 짧은 메모를 남겨보세요"
             placeholderTextColor="#8A94A6"
             style={[styles.input, styles.textarea]}
             multiline

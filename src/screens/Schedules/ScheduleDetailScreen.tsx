@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -24,15 +24,6 @@ type Route = {
   name: 'ScheduleDetail';
   params: { petId?: string; scheduleId: string };
 };
-
-function createWeekRange() {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 6);
-  end.setHours(23, 59, 59, 999);
-  return { from: start.toISOString(), to: end.toISOString() };
-}
 
 function formatScheduleDate(schedule: PetSchedule) {
   const date = new Date(schedule.startsAt);
@@ -109,8 +100,7 @@ export default function ScheduleDetailScreen() {
   const route = useRoute<Route>();
   const { petId, scheduleId } = route.params;
 
-  const refreshWeek = useScheduleStore(s => s.refreshWeek);
-  const weekRange = useMemo(() => createWeekRange(), []);
+  const refresh = useScheduleStore(s => s.refresh);
 
   const [schedule, setSchedule] = useState<PetSchedule | null>(null);
   const [loading, setLoading] = useState(true);
@@ -161,9 +151,7 @@ export default function ScheduleDetailScreen() {
           try {
             setDeleting(true);
             await deleteSchedule(scheduleId);
-            if (petId) {
-              await refreshWeek(petId, weekRange.from, weekRange.to);
-            }
+            if (petId) await refresh(petId);
             navigation.replace('ScheduleList', { petId });
           } catch (error) {
             Alert.alert(
@@ -176,7 +164,7 @@ export default function ScheduleDetailScreen() {
         },
       },
     ]);
-  }, [deleting, navigation, petId, refreshWeek, scheduleId, weekRange.from, weekRange.to]);
+  }, [deleting, navigation, petId, refresh, scheduleId]);
 
   const onToggleComplete = useCallback(async () => {
     if (!schedule) return;
@@ -212,16 +200,14 @@ export default function ScheduleDetailScreen() {
 
       const next = await fetchScheduleById(schedule.id);
       setSchedule(next);
-      if (petId) {
-        await refreshWeek(petId, weekRange.from, weekRange.to);
-      }
+      if (petId) await refresh(petId);
     } catch (error) {
       Alert.alert(
         '상태 변경 실패',
         error instanceof Error ? error.message : '다시 시도해 주세요.',
       );
     }
-  }, [petId, refreshWeek, schedule, weekRange.from, weekRange.to]);
+  }, [petId, refresh, schedule]);
 
   const color = mapColor(schedule?.colorKey ?? 'brand');
 

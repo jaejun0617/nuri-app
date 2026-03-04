@@ -8,6 +8,7 @@
 // - DevTest는 dev-only
 
 import React from 'react';
+import type { NavigatorScreenParams } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import HomeScreen from '../screens/Home/HomeScreen';
@@ -24,18 +25,20 @@ import ScheduleListScreen from '../screens/Schedules/ScheduleListScreen';
 import ScheduleCreateScreen from '../screens/Schedules/ScheduleCreateScreen';
 import ScheduleDetailScreen from '../screens/Schedules/ScheduleDetailScreen';
 import ScheduleEditScreen from '../screens/Schedules/ScheduleEditScreen';
+import EditDoneScreen from '../screens/Common/EditDoneScreen';
 
 // Records (Detail/Edit는 탭 밖으로 빼는 전략)
 import RecordDetailScreen from '../screens/Records/RecordDetailScreen';
 import RecordEditScreen from '../screens/Records/RecordEditScreen';
 
 import AppTabsNavigator from './AppTabsNavigator';
+import type { AppTabParamList } from './AppTabsNavigator';
 
 export type RootStackParamList = {
   Splash: undefined;
 
   // ✅ 공통 탭 영역
-  AppTabs: undefined;
+  AppTabs: NavigatorScreenParams<AppTabParamList> | undefined;
 
   // Auth
   AuthLanding: undefined;
@@ -51,6 +54,15 @@ export type RootStackParamList = {
   ScheduleCreate: { petId?: string; startsAt?: string } | undefined;
   ScheduleDetail: { petId?: string; scheduleId: string };
   ScheduleEdit: { petId?: string; scheduleId: string };
+  EditDone: {
+    title: string;
+    bodyLines: [string, string?];
+    buttonLabel?: string;
+    navigateTo:
+      | { type: 'home' }
+      | { type: 'schedule-list'; petId?: string }
+      | { type: 'record-detail'; petId: string; memoryId: string };
+  };
 
   // Records (탭 밖)
   RecordDetail: { petId: string; memoryId: string };
@@ -126,6 +138,11 @@ export default function RootNavigator() {
       <Stack.Screen
         name="ScheduleEdit"
         component={ScheduleEditScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="EditDone"
+        component={EditDoneScreen}
         options={{ headerShown: false }}
       />
 

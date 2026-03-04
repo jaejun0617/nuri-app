@@ -1,7 +1,7 @@
 // 파일: src/services/supabase/schedules.ts
 // 목적:
 // - pet_schedules 조회/생성/수정/삭제
-// - 홈 "이번 주 일정"과 향후 일정 화면의 기준 서비스
+// - 홈 "전체 일정"과 향후 일정 화면의 기준 서비스
 
 import { supabase } from './client';
 
@@ -189,6 +189,29 @@ export async function fetchSchedulesByPetRange(input: {
     .lte('starts_at', input.to)
     .neq('sync_status', 'deleted')
     .order('starts_at', { ascending: true });
+
+  if (error) throw error;
+
+  const rows = (Array.isArray(data) ? data : []) as unknown as PetSchedulesRow[];
+  return rows.map(mapRow);
+}
+
+export async function fetchSchedulesByPet(input: {
+  petId: string;
+  limit?: number;
+}): Promise<PetSchedule[]> {
+  let query = supabase
+    .from('pet_schedules')
+    .select(SCHEDULE_COLUMNS)
+    .eq('pet_id', input.petId)
+    .neq('sync_status', 'deleted')
+    .order('starts_at', { ascending: true });
+
+  if (typeof input.limit === 'number' && input.limit > 0) {
+    query = query.limit(input.limit);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw error;
 
