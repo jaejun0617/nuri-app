@@ -31,6 +31,7 @@ import React, {
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   type ListRenderItem,
   Modal,
   Pressable,
@@ -839,14 +840,22 @@ export default function TimelineScreen() {
         ListFooterComponent={ListFooterComponent}
         ListEmptyComponent={
           <View style={styles.empty}>
+            <View style={styles.emptyHero}>
+              <Image
+                source={require('../../assets/logo/logo_v2.png')}
+                style={styles.emptyPawImage}
+                resizeMode="contain"
+              />
+            </View>
+
             <AppText preset="headline" style={styles.emptyTitle}>
-              아직 기록이 없어요
+              아직 남겨진 추억이 없어요
             </AppText>
             <AppText preset="body" style={styles.emptyDesc}>
-              우리 아이와 함께한 소중한
+              우리 아이와 함께한 반짝이는 순간을
             </AppText>
             <AppText preset="body" style={styles.emptyDesc}>
-              첫 번째 추억을 남겨보세요.
+              첫 기록으로 천천히 시작해보세요
             </AppText>
 
             <TouchableOpacity
@@ -854,6 +863,9 @@ export default function TimelineScreen() {
               style={styles.primary}
               onPress={onPressCreate}
             >
+              <AppText preset="body" style={styles.primaryIcon}>
+                ✎
+              </AppText>
               <AppText preset="body" style={styles.primaryText}>
                 기록 시작하기
               </AppText>

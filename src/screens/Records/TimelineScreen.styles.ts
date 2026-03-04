@@ -2,7 +2,7 @@
 
 import { StyleSheet } from 'react-native';
 
-const BRAND = '#5D04D9';
+const BRAND = '#6D6AF8';
 const TEXT = '#0B1220';
 
 export const styles = StyleSheet.create({
@@ -37,8 +37,7 @@ export const styles = StyleSheet.create({
   // sticky controls
   controlsWrap: {
     backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EAEAEA',
+    borderBottomWidth: 0,
     paddingHorizontal: 14,
     paddingTop: 10,
     paddingBottom: 10,
@@ -51,8 +50,8 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(93,4,217,0.16)',
-    backgroundColor: 'rgba(93,4,217,0.06)',
+    borderColor: 'rgba(109,106,248,0.18)',
+    backgroundColor: 'rgba(109,106,248,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -88,8 +87,8 @@ export const styles = StyleSheet.create({
     maxWidth: 120,
   },
   categoryChipActive: {
-    borderColor: 'rgba(93,4,217,0.28)',
-    backgroundColor: 'rgba(93,4,217,0.10)',
+    borderColor: 'rgba(109,106,248,0.22)',
+    backgroundColor: 'rgba(109,106,248,0.08)',
   },
   categoryChipText: { color: '#0B1220', fontWeight: '900' },
   categoryChipTextActive: { color: BRAND },
@@ -160,8 +159,8 @@ export const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(93,4,217,0.20)',
-    backgroundColor: 'rgba(93,4,217,0.06)',
+    borderColor: 'rgba(109,106,248,0.18)',
+    backgroundColor: 'rgba(109,106,248,0.08)',
   },
   badgeText: { color: BRAND, fontWeight: '900' },
 
@@ -171,25 +170,49 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
     borderRadius: 22,
-    padding: 18,
+    padding: 22,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
+    borderColor: 'rgba(0,0,0,0.05)',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
   },
-  emptyTitle: { color: TEXT, fontWeight: '900' },
-  emptyDesc: { color: '#374151', textAlign: 'center' },
+  emptyHero: {
+    width: 220,
+    height: 220,
+    marginBottom: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyPawImage: {
+    width: 200,
+    height: 200,
+  },
+  emptyTitle: {
+    color: TEXT,
+    fontWeight: '900',
+    marginTop: -6,
+  },
+  emptyDesc: {
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 21,
+    marginTop: 2,
+  },
 
   primary: {
-    marginTop: 10,
-    height: 48,
-    borderRadius: 14,
-    paddingHorizontal: 18,
+    marginTop: 14,
+    minWidth: 210,
+    height: 56,
+    borderRadius: 18,
+    paddingHorizontal: 24,
     backgroundColor: BRAND,
     alignItems: 'center',
     justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 10,
   },
+  primaryIcon: { color: '#FFFFFF', fontWeight: '900' },
   primaryText: { color: '#FFFFFF', fontWeight: '900' },
 
   footer: {
