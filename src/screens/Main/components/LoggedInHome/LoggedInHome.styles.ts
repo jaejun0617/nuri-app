@@ -721,6 +721,183 @@ export const styles = StyleSheet.create({
   },
 
   // ---------------------------------------------------------
+  // Weekly Schedule
+  // ---------------------------------------------------------
+  scheduleList: {
+    gap: 10,
+  },
+  scheduleCard: {
+    borderRadius: 22,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    backgroundColor: SURFACE,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+    gap: 10,
+  },
+  scheduleDateBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(109,106,248,0.08)',
+  },
+  scheduleDateText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: MUTED,
+  },
+  scheduleBody: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  scheduleIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(109,106,248,0.10)',
+  },
+  scheduleTextCol: {
+    flex: 1,
+    gap: 3,
+  },
+  scheduleTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: TEXT,
+    letterSpacing: -0.3,
+  },
+  scheduleSub: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: MUTED,
+    lineHeight: 18,
+  },
+
+  // ---------------------------------------------------------
+  // Recent Activity
+  // ---------------------------------------------------------
+  activityList: {
+    gap: 10,
+  },
+  activityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: SURFACE,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+  },
+  activityIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  activityTextCol: {
+    flex: 1,
+    gap: 2,
+  },
+  activityTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: TEXT,
+    letterSpacing: -0.2,
+  },
+  activitySub: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: MUTED,
+    lineHeight: 16,
+  },
+  activityTime: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: 'rgba(85,96,112,0.68)',
+  },
+
+  // ---------------------------------------------------------
+  // Home Tip
+  // ---------------------------------------------------------
+  todayTipCard: {
+    borderRadius: 24,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    backgroundColor: 'rgba(109,106,248,0.09)',
+    gap: 10,
+  },
+  todayTipBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  todayTipBadgeText: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: BRAND,
+  },
+  todayTipTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: TEXT,
+    lineHeight: 22,
+    letterSpacing: -0.3,
+  },
+  todayTipDesc: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: MUTED,
+    lineHeight: 18,
+  },
+
+  // ---------------------------------------------------------
+  // Monthly Diary
+  // ---------------------------------------------------------
+  monthDiaryList: {
+    paddingRight: 4,
+    gap: 12,
+  },
+  monthDiaryCard: {
+    width: 112,
+    gap: 8,
+  },
+  monthDiaryCover: {
+    width: 112,
+    height: 112,
+    borderRadius: 24,
+    overflow: 'hidden',
+    backgroundColor: '#E6DED2',
+  },
+  monthDiaryImage: {
+    width: '100%',
+    height: '100%',
+  },
+  monthDiaryFallback: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ECE7DE',
+  },
+  monthDiaryTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: TEXT,
+    lineHeight: 17,
+  },
+  monthDiaryMeta: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: 'rgba(85,96,112,0.68)',
+  },
+
+  // ---------------------------------------------------------
   // CTA Button / Empty Box
   // ---------------------------------------------------------
   recordBtn: {

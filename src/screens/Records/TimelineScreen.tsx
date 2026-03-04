@@ -112,7 +112,7 @@ const MAIN_CATEGORIES: Array<{ key: MainCategory; label: string }> = [
   { key: 'meal', label: '식사' },
   { key: 'health', label: '건강' },
   { key: 'diary', label: '일기장' },
-  { key: 'other', label: '기타' },
+  { key: 'other', label: '···' },
 ];
 
 const OTHER_SUBCATEGORIES: Array<{ key: OtherSubCategory; label: string }> = [
@@ -333,7 +333,7 @@ const ControlsBar = memo(function ControlsBar({
               item.key === 'other'
                 ? mainCategory === 'other'
                   ? categoryLabel
-                  : '기타'
+                  : '···'
                 : item.label;
 
             return (
@@ -685,9 +685,9 @@ export default function TimelineScreen() {
     if (mainCategory !== 'other') {
       return MAIN_CATEGORIES.find(x => x.key === mainCategory)?.label ?? '전체';
     }
-    if (!otherSubCategory) return '기타';
+    if (!otherSubCategory) return '···';
     return (
-      OTHER_SUBCATEGORIES.find(x => x.key === otherSubCategory)?.label ?? '기타'
+      OTHER_SUBCATEGORIES.find(x => x.key === otherSubCategory)?.label ?? '···'
     );
   }, [mainCategory, otherSubCategory]);
 

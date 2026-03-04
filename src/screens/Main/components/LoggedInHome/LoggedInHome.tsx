@@ -59,6 +59,26 @@ type Nav = CompositeNavigationProp<HomeTabNav, RootNav>;
 type TimelineMainCategory = NonNullable<AppTabParamList['TimelineTab']>['mainCategory'];
 type TimelineOtherSubCategory =
   NonNullable<AppTabParamList['TimelineTab']>['otherSubCategory'];
+type HomeMainCategory = Exclude<TimelineMainCategory, undefined>;
+type HomeOtherSubCategory = Exclude<TimelineOtherSubCategory, undefined>;
+
+type HomeCategoryMeta = {
+  label: string;
+  icon: string;
+  tint: string;
+  mainCategory: HomeMainCategory;
+  otherSubCategory?: HomeOtherSubCategory;
+};
+
+type WeeklyScheduleItem = {
+  key: string;
+  dateLabel: string;
+  title: string;
+  subtitle: string;
+  icon: string;
+  mainCategory: HomeMainCategory;
+  otherSubCategory?: HomeOtherSubCategory;
+};
 
 /* ---------------------------------------------------------
  * 1) helpers
@@ -164,6 +184,215 @@ function clampList(list: string[] | null | undefined, max = 2) {
     .slice(0, max);
 }
 
+function toRecordDate(item: MemoryRecord): Date | null {
+  const source = item.occurredAt?.trim() || item.createdAt?.trim() || '';
+  if (!source) return null;
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(source)) {
+    const date = new Date(`${source}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  const date = new Date(source);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function isSameDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+function diffCalendarDays(from: Date, to: Date): number {
+  const start = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  const end = new Date(to.getFullYear(), to.getMonth(), to.getDate());
+  const diff = end.getTime() - start.getTime();
+  return Math.floor(diff / (24 * 60 * 60 * 1000));
+}
+
+function formatRelativeRecordTime(item: MemoryRecord): string {
+  const target = toRecordDate(item);
+  if (!target) return '';
+
+  const now = new Date();
+  const diffMs = now.getTime() - target.getTime();
+  const hourMs = 60 * 60 * 1000;
+
+  if (diffMs < hourMs) return '방금 전';
+
+  if (isSameDay(target, now)) {
+    return `${Math.max(1, Math.floor(diffMs / hourMs))}시간 전`;
+  }
+
+  const diffDays = diffCalendarDays(target, now);
+  if (diffDays === 1) return '어제';
+  if (diffDays < 7) return `${diffDays}일 전`;
+
+  return `${target.getMonth() + 1}.${target.getDate()}`;
+}
+
+function readRecordTagsRaw(r: MemoryRecord): string {
+  if (!Array.isArray(r.tags) || r.tags.length === 0) return '';
+  return r.tags.join(' ').trim();
+}
+
+function readRecordCategoryRaw(r: MemoryRecord): string {
+  const candidate = r as MemoryRecord & {
+    category?: string | null;
+    type?: string | null;
+    kind?: string | null;
+    recordType?: string | null;
+    mainCategory?: string | null;
+    categoryKey?: string | null;
+  };
+
+  const raw =
+    candidate.category ??
+    candidate.type ??
+    candidate.kind ??
+    candidate.recordType ??
+    candidate.mainCategory ??
+    candidate.categoryKey ??
+    '';
+
+  const normalizedRaw = String(raw ?? '').trim();
+  if (normalizedRaw) return normalizedRaw;
+  return readRecordTagsRaw(r);
+}
+
+function normalizeCategoryKey(raw: string): HomeMainCategory {
+  const v = raw.trim().toLowerCase();
+  if (!v) return 'all';
+
+  if (v === 'walk' || v === 'stroll') return 'walk';
+  if (v === 'meal' || v === 'food' || v === 'feed') return 'meal';
+  if (v === 'health' || v === 'medical') return 'health';
+  if (v === 'diary' || v === 'journal') return 'diary';
+  if (v === 'other' || v === 'etc') return 'other';
+
+  if (v.includes('산책')) return 'walk';
+  if (v.includes('식사') || v.includes('간식')) return 'meal';
+  if (v.includes('일기')) return 'diary';
+  if (v.includes('기타') || v.includes('미용')) return 'other';
+  if (v.includes('건강')) return 'health';
+  if (v.includes('병원') || v.includes('약')) {
+    return v.includes('기타') ? 'other' : 'health';
+  }
+
+  return 'other';
+}
+
+function readOtherSubCategoryRaw(r: MemoryRecord): string {
+  const candidate = r as MemoryRecord & {
+    subCategory?: string | null;
+    subcategory?: string | null;
+    sub_type?: string | null;
+    detailCategory?: string | null;
+    otherSubCategory?: string | null;
+  };
+
+  const raw =
+    candidate.subCategory ??
+    candidate.subcategory ??
+    candidate.sub_type ??
+    candidate.detailCategory ??
+    candidate.otherSubCategory ??
+    '';
+
+  const normalizedRaw = String(raw ?? '').trim();
+  if (normalizedRaw) return normalizedRaw;
+  return readRecordTagsRaw(r);
+}
+
+function normalizeOtherSubKey(raw: string): HomeOtherSubCategory {
+  const v = raw.trim().toLowerCase();
+  if (!v) return 'etc';
+
+  if (v === 'grooming') return 'grooming';
+  if (v === 'hospital' || v === 'medicine' || v === 'clinic') return 'hospital';
+  if (v.includes('미용')) return 'grooming';
+  if (v.includes('병원') || v.includes('약')) return 'hospital';
+  return 'etc';
+}
+
+function getRecordCategoryMeta(item: MemoryRecord): HomeCategoryMeta {
+  const mainCategory = normalizeCategoryKey(readRecordCategoryRaw(item));
+
+  if (mainCategory === 'walk') {
+    return {
+      label: '산책 기록',
+      icon: 'walk',
+      tint: 'rgba(109,106,248,0.10)',
+      mainCategory: 'walk',
+    };
+  }
+
+  if (mainCategory === 'meal') {
+    return {
+      label: '식사 기록',
+      icon: 'silverware-fork-knife',
+      tint: 'rgba(249,115,22,0.10)',
+      mainCategory: 'meal',
+    };
+  }
+
+  if (mainCategory === 'health') {
+    return {
+      label: '건강 기록',
+      icon: 'medical-bag',
+      tint: 'rgba(34,197,94,0.10)',
+      mainCategory: 'health',
+    };
+  }
+
+  if (mainCategory === 'diary') {
+    return {
+      label: '일기장',
+      icon: 'notebook-outline',
+      tint: 'rgba(59,130,246,0.10)',
+      mainCategory: 'diary',
+    };
+  }
+
+  const otherSub = normalizeOtherSubKey(readOtherSubCategoryRaw(item));
+  if (otherSub === 'grooming') {
+    return {
+      label: '미용 기록',
+      icon: 'content-cut',
+      tint: 'rgba(236,72,153,0.10)',
+      mainCategory: 'other',
+      otherSubCategory: 'grooming',
+    };
+  }
+
+  if (otherSub === 'hospital') {
+    return {
+      label: '병원/약 기록',
+      icon: 'medical-bag',
+      tint: 'rgba(34,197,94,0.10)',
+      mainCategory: 'other',
+      otherSubCategory: 'hospital',
+    };
+  }
+
+  return {
+    label: '기타 기록',
+    icon: 'dots-horizontal-circle-outline',
+    tint: 'rgba(148,163,184,0.10)',
+    mainCategory: 'other',
+    otherSubCategory: 'etc',
+  };
+}
+
+function formatWeeklyDateLabel(offsetDays: number): string {
+  const nextDate = new Date();
+  nextDate.setDate(nextDate.getDate() + offsetDays);
+  const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+  return `${nextDate.getMonth() + 1}/${nextDate.getDate()} (${weekdays[nextDate.getDay()]})`;
+}
+
 const FALLBACK_RECORDS_STATE: Omit<PetRecordsState, 'requestSeq'> = Object.freeze({
   status: 'idle',
   items: [],
@@ -235,6 +464,13 @@ const TIP_TEMPLATES: Array<{
     icon: 'sun',
   },
 ];
+
+const TODAY_HOME_TIP = {
+  badge: '오늘의 팁',
+  title: '반려동물의 평소 소리를 기억해두면 작은 변화도 더 빨리 알아챌 수 있어요.',
+  description:
+    '산책 후 숨소리, 잠든 뒤 호흡, 식사 직후의 반응처럼 평소의 기준을 남겨두면 컨디션 변화를 더 빨리 알아차릴 수 있어요.',
+};
 
 const AnimatedFlatList = Animated.createAnimatedComponent(
   FlatList<MemoryRecord>,
@@ -397,6 +633,63 @@ function IndicatorDot({
   }, [i]);
 
   return <Animated.View style={[styles.indicatorDot, dotStyle]} />;
+}
+
+function MonthlyDiaryCard({
+  item,
+  onPress,
+}: {
+  item: MemoryRecord;
+  onPress: (memoryId: string) => void;
+}) {
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function run() {
+      if (!item.imagePath) {
+        if (mounted) setSignedUrl(null);
+        return;
+      }
+
+      try {
+        const url = await getMemoryImageSignedUrlCached(item.imagePath);
+        if (mounted) setSignedUrl(url ?? null);
+      } catch {
+        if (mounted) setSignedUrl(null);
+      }
+    }
+
+    run();
+    return () => {
+      mounted = false;
+    };
+  }, [item.imagePath]);
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.92}
+      style={styles.monthDiaryCard}
+      onPress={() => onPress(item.id)}
+    >
+      <View style={styles.monthDiaryCover}>
+        {signedUrl ? (
+          <Image source={{ uri: signedUrl }} style={styles.monthDiaryImage} />
+        ) : (
+          <View style={styles.monthDiaryFallback}>
+            <Feather name="image" size={20} color="rgba(85,96,112,0.55)" />
+          </View>
+        )}
+      </View>
+      <Text style={styles.monthDiaryTitle} numberOfLines={1}>
+        {item.title?.trim() || '기록'}
+      </Text>
+      <Text style={styles.monthDiaryMeta} numberOfLines={1}>
+        {getRecordYmdDots(item)}
+      </Text>
+    </TouchableOpacity>
+  );
 }
 
 export default function LoggedInHome() {
@@ -825,6 +1118,98 @@ export default function LoggedInHome() {
           : item.title,
     }));
   }, [petName]);
+
+  const recentActivities = useMemo(
+    () => safeRecordsState.items.slice(0, 7),
+    [safeRecordsState.items],
+  );
+
+  const currentMonthDiaryEntries = useMemo(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+
+    return safeRecordsState.items
+      .filter(item => {
+        if (normalizeCategoryKey(readRecordCategoryRaw(item)) !== 'diary') {
+          return false;
+        }
+
+        const date = toRecordDate(item);
+        if (!date) return false;
+
+        return date.getFullYear() === year && date.getMonth() === month;
+      })
+      .slice(0, 7);
+  }, [safeRecordsState.items]);
+
+  const weekScheduleItems = useMemo<WeeklyScheduleItem[]>(() => {
+    const items = safeRecordsState.items;
+    const now = new Date();
+
+    const findRecentBy = (matcher: (item: MemoryRecord) => boolean) =>
+      items.find(matcher) ?? null;
+
+    const latestWalk = findRecentBy(
+      item => normalizeCategoryKey(readRecordCategoryRaw(item)) === 'walk',
+    );
+    const latestHealth = findRecentBy(item => {
+      const main = normalizeCategoryKey(readRecordCategoryRaw(item));
+      const sub = normalizeOtherSubKey(readOtherSubCategoryRaw(item));
+      return main === 'health' || (main === 'other' && sub === 'hospital');
+    });
+    const latestGrooming = findRecentBy(item => {
+      const main = normalizeCategoryKey(readRecordCategoryRaw(item));
+      const sub = normalizeOtherSubKey(readOtherSubCategoryRaw(item));
+      return main === 'other' && sub === 'grooming';
+    });
+
+    const cards: WeeklyScheduleItem[] = [];
+    const healthDate = latestHealth ? toRecordDate(latestHealth) : null;
+    const groomingDate = latestGrooming ? toRecordDate(latestGrooming) : null;
+    const latestHealthMeta = latestHealth
+      ? getRecordCategoryMeta(latestHealth)
+      : null;
+
+    if (!healthDate || diffCalendarDays(healthDate, now) >= 10) {
+      cards.push({
+        key: 'health-check',
+        dateLabel: formatWeeklyDateLabel(1),
+        title: '건강 루틴 체크',
+        subtitle: '컨디션이나 약 복용 메모를 한 줄로 남겨보세요',
+        icon: 'medical-bag',
+        mainCategory: latestHealthMeta?.mainCategory ?? 'health',
+        otherSubCategory: latestHealthMeta?.otherSubCategory,
+      });
+    }
+
+    if (!groomingDate || diffCalendarDays(groomingDate, now) >= 21) {
+      cards.push({
+        key: 'grooming-care',
+        dateLabel: formatWeeklyDateLabel(3),
+        title: '미용 루틴 정리',
+        subtitle: '빗질이나 목욕 후기를 가볍게 기록해두세요',
+        icon: 'content-cut',
+        mainCategory: 'other',
+        otherSubCategory: 'grooming',
+      });
+    }
+
+    if (cards.length < 2) {
+      cards.push({
+        key: 'walk-memory',
+        dateLabel: formatWeeklyDateLabel(5),
+        title: '산책 리듬 이어가기',
+        subtitle: latestWalk
+          ? '마지막 산책 이후의 분위기를 짧게 남겨보세요'
+          : '첫 산책 기록으로 이번 주 루틴을 시작해보세요',
+        icon: 'walk',
+        mainCategory: 'walk',
+      });
+    }
+
+    return cards.slice(0, 2);
+  }, [safeRecordsState.items]);
 
   // ---------------------------------------------------------
   // 8) Accordion state (pet 변경 시 초기화)
@@ -1413,6 +1798,167 @@ export default function LoggedInHome() {
                 </TouchableOpacity>
               ))}
             </View>
+          </View>
+
+          <View style={styles.section}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.tipSectionTitle}>이번 주 일정</Text>
+              <TouchableOpacity activeOpacity={0.85} onPress={onPressTimeline}>
+                <Text style={styles.sectionLink}>더보기</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.scheduleList}>
+              {weekScheduleItems.map(item => (
+                <TouchableOpacity
+                  key={item.key}
+                  activeOpacity={0.92}
+                  style={styles.scheduleCard}
+                  onPress={() =>
+                    onPressTimelineCategory(
+                      item.mainCategory,
+                      item.otherSubCategory,
+                    )
+                  }
+                >
+                  <View style={styles.scheduleDateBadge}>
+                    <Text style={styles.scheduleDateText}>{item.dateLabel}</Text>
+                  </View>
+
+                  <View style={styles.scheduleBody}>
+                    <View style={styles.scheduleIconWrap}>
+                      <MaterialCommunityIcons
+                        name={item.icon}
+                        size={18}
+                        color="#6D6AF8"
+                      />
+                    </View>
+
+                    <View style={styles.scheduleTextCol}>
+                      <Text style={styles.scheduleTitle}>{item.title}</Text>
+                      <Text style={styles.scheduleSub} numberOfLines={2}>
+                        {item.subtitle}
+                      </Text>
+                    </View>
+
+                    <Feather
+                      name="chevron-right"
+                      size={18}
+                      color="rgba(85,96,112,0.48)"
+                    />
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.tipSectionTitle}>최근 활동</Text>
+              <TouchableOpacity activeOpacity={0.85} onPress={onPressTimeline}>
+                <Text style={styles.sectionLink}>전체보기</Text>
+              </TouchableOpacity>
+            </View>
+
+            {recentActivities.length === 0 ? (
+              <View style={styles.emptyBox}>
+                <Text style={styles.emptyTitle}>최근 활동이 아직 없어요</Text>
+                <Text style={styles.emptyDesc}>
+                  기록을 남기면 홈에서 최근 움직임을 바로 볼 수 있어요.
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.activityList}>
+                {recentActivities.map(item => {
+                  const meta = getRecordCategoryMeta(item);
+                  return (
+                    <TouchableOpacity
+                      key={item.id}
+                      activeOpacity={0.92}
+                      style={styles.activityRow}
+                      onPress={() => onPressRecordItem(item.id)}
+                    >
+                      <View
+                        style={[
+                          styles.activityIconWrap,
+                          { backgroundColor: meta.tint },
+                        ]}
+                      >
+                        <MaterialCommunityIcons
+                          name={meta.icon}
+                          size={17}
+                          color="#6D6AF8"
+                        />
+                      </View>
+
+                      <View style={styles.activityTextCol}>
+                        <Text style={styles.activityTitle} numberOfLines={1}>
+                          {item.title?.trim() || meta.label}
+                        </Text>
+                        <Text style={styles.activitySub} numberOfLines={1}>
+                          {meta.label}
+                          {item.content?.trim()
+                            ? ` · ${toSnippet(item.content, 26)}`
+                            : ''}
+                        </Text>
+                      </View>
+
+                      <Text style={styles.activityTime}>
+                        {formatRelativeRecordTime(item)}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+
+          <View style={styles.section}>
+            <View style={styles.todayTipCard}>
+              <View style={styles.todayTipBadge}>
+                <Feather name="map-pin" size={12} color="#6D6AF8" />
+                <Text style={styles.todayTipBadgeText}>{TODAY_HOME_TIP.badge}</Text>
+              </View>
+              <Text style={styles.todayTipTitle}>{TODAY_HOME_TIP.title}</Text>
+              <Text style={styles.todayTipDesc}>
+                {TODAY_HOME_TIP.description}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.tipSectionTitle}>이번 달 {petName} 일기</Text>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => onPressTimelineCategory('diary')}
+              >
+                <Text style={styles.sectionLink}>더보기</Text>
+              </TouchableOpacity>
+            </View>
+
+            {currentMonthDiaryEntries.length === 0 ? (
+              <View style={styles.emptyBox}>
+                <Text style={styles.emptyTitle}>이번 달 일기가 아직 없어요</Text>
+                <Text style={styles.emptyDesc}>
+                  일기장 카테고리로 남긴 기록이 이곳에 모여 보여요.
+                </Text>
+              </View>
+            ) : (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.monthDiaryList}
+              >
+                {currentMonthDiaryEntries.map(item => (
+                  <MonthlyDiaryCard
+                    key={item.id}
+                    item={item}
+                    onPress={onPressRecordItem}
+                  />
+                ))}
+              </ScrollView>
+            )}
           </View>
         </Animated.View>
       </ScrollView>
