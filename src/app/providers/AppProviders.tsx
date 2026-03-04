@@ -56,6 +56,20 @@ export default function AppProviders({ children }: Props) {
     let unsub: { unsubscribe: () => void } | null = null;
     let alive = true;
 
+    const resolveValidSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      const session = data.session ?? null;
+      if (!session) return null;
+
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData.user) {
+        await supabase.auth.signOut();
+        return null;
+      }
+
+      return session;
+    };
+
     const loadPets = async () => {
       try {
         setPetLoading(true);
@@ -101,8 +115,7 @@ export default function AppProviders({ children }: Props) {
       await hydrateAuth();
 
       // 2) Supabase 세션 복원
-      const { data } = await supabase.auth.getSession();
-      const session = data.session ?? null;
+      const session = await resolveValidSession();
 
       await setSession(session);
 
@@ -116,7 +129,7 @@ export default function AppProviders({ children }: Props) {
       // 4) auth 이벤트 동기화
       const { data: listener } = supabase.auth.onAuthStateChange(
         async (_event, nextSession) => {
-          const s = nextSession ?? null;
+          const s = nextSession?.user ? nextSession : await resolveValidSession();
 
           // 이벤트 들어오면 게이트 다시 닫고 정렬
           setAuthBooted(false);

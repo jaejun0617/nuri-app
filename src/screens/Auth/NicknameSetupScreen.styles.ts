@@ -89,6 +89,17 @@ export const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 18,
   },
+  checkingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  checkingText: {
+    color: '#98A1B2',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   validationError: {
     color: '#F04452',
   },

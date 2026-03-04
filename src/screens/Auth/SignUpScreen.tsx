@@ -1,7 +1,8 @@
 // 파일: src/screens/Auth/SignUpScreen.tsx
 // 목적:
 // - Email/Password 회원가입
-// - 성공 시 NicknameSetup으로 이동(가입 직후 1회 설정 UX)
+// - 세션이 즉시 생기면 NicknameSetup으로 이동
+// - 이메일 인증 등으로 세션이 없으면 로그인 유도
 
 import React, { useMemo, useState } from 'react';
 import { Alert, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -37,6 +38,20 @@ export default function SignUpScreen() {
       if (error) throw error;
 
       await setSession(data.session ?? null);
+
+      if (!data.session) {
+        Alert.alert(
+          '이메일 확인 필요',
+          '회원가입이 완료되었습니다. 이메일 인증 후 로그인해주세요.',
+          [
+            {
+              text: '확인',
+              onPress: () => navigation.replace('SignIn'),
+            },
+          ],
+        );
+        return;
+      }
 
       navigation.replace('NicknameSetup', { after: 'signup' });
     } catch (e: any) {

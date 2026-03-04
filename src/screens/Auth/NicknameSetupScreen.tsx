@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -29,6 +29,23 @@ type ValidationState =
   | { tone: 'idle'; message: string | null }
   | { tone: 'error'; message: string }
   | { tone: 'success'; message: string };
+
+type NicknameInputSectionProps = {
+  nickname: string;
+  onChangeNickname: (value: string) => void;
+  canCheck: boolean;
+  checking: boolean;
+  onCheckDuplicate: () => void;
+  onBlurNickname: () => void;
+  hintText: string;
+  helperMessage: ValidationState;
+};
+
+type NicknameFooterProps = {
+  canSubmit: boolean;
+  saving: boolean;
+  onSubmit: () => void;
+};
 
 const MAX_NICKNAME_LENGTH = 8;
 const NICKNAME_REGEX = /^[A-Za-z0-9가-힣]+$/;
@@ -63,11 +80,100 @@ function getNicknameValidationMessage(value: string): ValidationState {
   return { tone: 'idle', message: null };
 }
 
+const NicknameInputSection = memo(function NicknameInputSection({
+  nickname,
+  onChangeNickname,
+  canCheck,
+  checking,
+  onCheckDuplicate,
+  onBlurNickname,
+  hintText,
+  helperMessage,
+}: NicknameInputSectionProps) {
+  return (
+    <View style={styles.inputBlock}>
+      <View style={styles.inputRow}>
+        <TextInput
+          value={nickname}
+          onChangeText={onChangeNickname}
+          onBlur={onBlurNickname}
+          placeholder="닉네임을 입력해주세요"
+          placeholderTextColor="#B8C0CE"
+          style={styles.input}
+          autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="done"
+          maxLength={12}
+          onSubmitEditing={onBlurNickname}
+        />
+
+        <TouchableOpacity
+          activeOpacity={0.88}
+          style={[styles.checkButton, !canCheck ? styles.checkButtonDisabled : null]}
+          onPress={onCheckDuplicate}
+          disabled={!canCheck}
+        >
+          {checking ? (
+            <ActivityIndicator color="#98A1B2" size="small" />
+          ) : (
+            <Text style={styles.checkButtonText}>중복확인</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.underline} />
+      <Text style={styles.hintText}>{hintText}</Text>
+
+      {checking ? (
+        <View style={styles.checkingRow}>
+          <ActivityIndicator color="#98A1B2" size="small" />
+          <Text style={styles.checkingText}>닉네임 확인중...</Text>
+        </View>
+      ) : null}
+
+      {helperMessage.message ? (
+        <Text
+          style={[
+            styles.validationText,
+            helperMessage.tone === 'error'
+              ? styles.validationError
+              : helperMessage.tone === 'success'
+                ? styles.validationSuccess
+                : null,
+          ]}
+        >
+          {helperMessage.message}
+        </Text>
+      ) : null}
+    </View>
+  );
+});
+
+const NicknameFooter = memo(function NicknameFooter({
+  canSubmit,
+  saving,
+  onSubmit,
+}: NicknameFooterProps) {
+  return (
+    <View style={styles.footer}>
+      <TouchableOpacity
+        activeOpacity={0.9}
+        style={[styles.primaryButton, !canSubmit ? styles.primaryButtonDisabled : null]}
+        onPress={onSubmit}
+        disabled={!canSubmit}
+      >
+        <Text style={styles.primaryButtonText}>{saving ? '저장 중...' : '완료'}</Text>
+      </TouchableOpacity>
+    </View>
+  );
+});
+
 export default function NicknameSetupScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<R>();
 
   const current = useAuthStore(s => s.profile.nickname) ?? '';
+  const isLoggedIn = useAuthStore(s => s.isLoggedIn);
   const setNickname = useAuthStore(s => s.setNickname);
 
   const [nickname, setLocalNickname] = useState(current);
@@ -78,6 +184,7 @@ export default function NicknameSetupScreen() {
     tone: 'idle',
     message: null,
   });
+  const lastCheckedNicknameRef = useRef<string | null>(null);
 
   const trimmed = useMemo(() => nickname.trim(), [nickname]);
   const localValidation = useMemo(
@@ -109,18 +216,25 @@ export default function NicknameSetupScreen() {
     setLocalNickname(value);
     setAvailabilityChecked(false);
     setValidationState({ tone: 'idle', message: null });
+    lastCheckedNicknameRef.current = null;
   }, []);
 
-  const onCheckDuplicate = useCallback(async () => {
+  const runAvailabilityCheck = useCallback(async () => {
     const syncValidation = getNicknameValidationMessage(trimmed);
     if (syncValidation.tone === 'error') {
+      setAvailabilityChecked(false);
       setValidationState(syncValidation);
+      return;
+    }
+
+    if (lastCheckedNicknameRef.current === trimmed && validationState.tone !== 'idle') {
       return;
     }
 
     try {
       setChecking(true);
       const available = await checkNicknameAvailability(trimmed);
+      lastCheckedNicknameRef.current = trimmed;
 
       if (!available) {
         setAvailabilityChecked(false);
@@ -138,6 +252,7 @@ export default function NicknameSetupScreen() {
       });
     } catch (error) {
       setAvailabilityChecked(false);
+      lastCheckedNicknameRef.current = null;
       setValidationState({
         tone: 'error',
         message: getErrorMessage(error),
@@ -145,7 +260,17 @@ export default function NicknameSetupScreen() {
     } finally {
       setChecking(false);
     }
-  }, [trimmed]);
+  }, [trimmed, validationState.tone]);
+
+  const onBlurNickname = useCallback(() => {
+    if (checking || saving) return;
+    void runAvailabilityCheck();
+  }, [checking, runAvailabilityCheck, saving]);
+
+  const onCheckDuplicate = useCallback(() => {
+    if (checking || saving) return;
+    void runAvailabilityCheck();
+  }, [checking, runAvailabilityCheck, saving]);
 
   const onSubmit = useCallback(async () => {
     if (!canSubmit) return;
@@ -170,78 +295,33 @@ export default function NicknameSetupScreen() {
       : '계속하려면 닉네임 설정이 필요합니다';
   }, [route.params?.after]);
 
+  useEffect(() => {
+    if (isLoggedIn) return;
+
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'AppTabs', params: { screen: 'HomeTab' } }],
+    });
+  }, [isLoggedIn, navigation]);
+
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       <View style={styles.content}>
         <Image source={ASSETS.logo} style={styles.logo} resizeMode="contain" />
 
-        <View style={styles.inputBlock}>
-          <View style={styles.inputRow}>
-            <TextInput
-              value={nickname}
-              onChangeText={onChangeNickname}
-              placeholder="닉네임을 입력해주세요"
-              placeholderTextColor="#B8C0CE"
-              style={styles.input}
-              autoCapitalize="none"
-              autoCorrect={false}
-              returnKeyType="done"
-              maxLength={12}
-              onSubmitEditing={canCheck ? onCheckDuplicate : undefined}
-            />
-
-            <TouchableOpacity
-              activeOpacity={0.88}
-              style={[
-                styles.checkButton,
-                !canCheck ? styles.checkButtonDisabled : null,
-              ]}
-              onPress={onCheckDuplicate}
-              disabled={!canCheck}
-            >
-              {checking ? (
-                <ActivityIndicator color="#98A1B2" size="small" />
-              ) : (
-                <Text style={styles.checkButtonText}>중복확인</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.underline} />
-          <Text style={styles.hintText}>{hintText}</Text>
-
-          {helperMessage.message ? (
-            <Text
-              style={[
-                styles.validationText,
-                helperMessage.tone === 'error'
-                  ? styles.validationError
-                  : helperMessage.tone === 'success'
-                  ? styles.validationSuccess
-                  : null,
-              ]}
-            >
-              {helperMessage.message}
-            </Text>
-          ) : null}
-        </View>
+        <NicknameInputSection
+          nickname={nickname}
+          onChangeNickname={onChangeNickname}
+          canCheck={canCheck}
+          checking={checking}
+          onCheckDuplicate={onCheckDuplicate}
+          onBlurNickname={onBlurNickname}
+          hintText={hintText}
+          helperMessage={helperMessage}
+        />
       </View>
 
-      <View style={styles.footer}>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={[
-            styles.primaryButton,
-            !canSubmit ? styles.primaryButtonDisabled : null,
-          ]}
-          onPress={onSubmit}
-          disabled={!canSubmit}
-        >
-          <Text style={styles.primaryButtonText}>
-            {saving ? '저장 중...' : '완료'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <NicknameFooter canSubmit={canSubmit} saving={saving} onSubmit={onSubmit} />
     </SafeAreaView>
   );
 }

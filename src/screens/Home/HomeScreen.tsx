@@ -58,6 +58,26 @@ export default function HomeScreen() {
     () => require('../../assets/home/Splash_bg_v2.png'),
     [],
   );
+  const nextRoute = useMemo(() => {
+    const trimmedNickname = nickname?.trim() ?? '';
+
+    if (!isLoggedIn) {
+      return { name: 'AppTabs' as const, params: undefined };
+    }
+
+    if (!trimmedNickname) {
+      return { name: 'NicknameSetup' as const, params: undefined };
+    }
+
+    if (pets.length === 0) {
+      return {
+        name: 'PetCreate' as const,
+        params: { from: 'auto' as const },
+      };
+    }
+
+    return { name: 'AppTabs' as const, params: undefined };
+  }, [isLoggedIn, nickname, pets.length]);
   // const blurSource = useMemo(() => require('../../assets/home/test.png'), []);
 
   // ---------------------------------------------------------
@@ -73,41 +93,14 @@ export default function HomeScreen() {
     const t = setTimeout(() => {
       if (movedRef.current) return;
       movedRef.current = true;
-
-      const trimmedNickname = nickname?.trim() ?? '';
-
-      if (!isLoggedIn) {
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'AppTabs' }],
-        });
-        return;
-      }
-
-      if (!trimmedNickname) {
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'NicknameSetup' }],
-        });
-        return;
-      }
-
-      if (pets.length === 0) {
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'PetCreate', params: { from: 'auto' } }],
-        });
-        return;
-      }
-
       navigation.reset({
         index: 0,
-        routes: [{ name: 'AppTabs' }],
+        routes: [{ name: nextRoute.name, params: nextRoute.params }],
       });
     }, wait);
 
     return () => clearTimeout(t);
-  }, [authBooted, isLoggedIn, navigation, nickname, petBooted, pets.length]);
+  }, [authBooted, navigation, nextRoute, petBooted]);
 
   // ---------------------------------------------------------
   // 애니메이션(기존 유지)
