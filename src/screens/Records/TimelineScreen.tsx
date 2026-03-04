@@ -31,7 +31,7 @@ import React, {
 import {
   ActivityIndicator,
   FlatList,
-  Image,
+  type ListRenderItem,
   Modal,
   Pressable,
   RefreshControl,
@@ -40,16 +40,30 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type {
+  CompositeNavigationProp,
+  RouteProp,
+} from '@react-navigation/native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
+// ✅ 따로 분리한 MemoryCard 컴포넌트 불러오기! (경로는 실제 구조에 맞게 수정해주세요)
+import { MemoryCard } from '../../components/MemoryCard/MemoryCard';
+
+import type { AppTabParamList } from '../../navigation/AppTabsNavigator';
+import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { MemoryRecord } from '../../services/supabase/memories';
+import type { PetRecordsState } from '../../store/recordStore';
 import { useRecordStore } from '../../store/recordStore';
 import { usePetStore } from '../../store/petStore';
 import AppText from '../../app/ui/AppText';
 import { styles } from './TimelineScreen.styles';
 
-type Nav = NativeStackNavigationProp<any>;
+type TimelineTabRoute = RouteProp<AppTabParamList, 'TimelineTab'>;
+type TimelineTabNav = BottomTabNavigationProp<AppTabParamList, 'TimelineTab'>;
+type RootNav = NativeStackNavigationProp<RootStackParamList>;
+type Nav = CompositeNavigationProp<TimelineTabNav, RootNav>;
 
 type SortMode = 'recent' | 'oldest';
 type Status =
@@ -135,20 +149,36 @@ function recordMatchesQuery(r: MemoryRecord, q: string) {
   return title.includes(q) || tags.includes(q);
 }
 
+function readRecordTagsRaw(r: MemoryRecord): string {
+  if (!Array.isArray(r.tags) || r.tags.length === 0) return '';
+  return r.tags.join(' ').trim();
+}
+
 /**
  * ✅ record의 category를 최대한 안전하게 읽어서 canonical key로 정규화
  */
 function readRecordCategoryRaw(r: MemoryRecord): string {
-  const anyR = r as any;
+  const candidate = r as MemoryRecord & {
+    category?: string | null;
+    type?: string | null;
+    kind?: string | null;
+    recordType?: string | null;
+    mainCategory?: string | null;
+    categoryKey?: string | null;
+  };
+
   const raw =
-    anyR.category ??
-    anyR.type ??
-    anyR.kind ??
-    anyR.recordType ??
-    anyR.mainCategory ??
-    anyR.categoryKey ??
+    candidate.category ??
+    candidate.type ??
+    candidate.kind ??
+    candidate.recordType ??
+    candidate.mainCategory ??
+    candidate.categoryKey ??
     '';
-  return String(raw ?? '').trim();
+
+  const normalizedRaw = String(raw ?? '').trim();
+  if (normalizedRaw) return normalizedRaw;
+  return readRecordTagsRaw(r);
 }
 
 function normalizeCategoryKey(raw: string): MainCategory {
@@ -165,24 +195,36 @@ function normalizeCategoryKey(raw: string): MainCategory {
   // 한글 라벨 대응
   if (v.includes('산책')) return 'walk';
   if (v.includes('식사') || v.includes('간식')) return 'meal';
-  if (v.includes('건강') || v.includes('병원') || v.includes('약'))
-    return 'health';
   if (v.includes('일기')) return 'diary';
-  if (v.includes('기타')) return 'other';
+  if (v.includes('기타') || v.includes('미용')) return 'other';
+  if (v.includes('건강')) return 'health';
+  if (v.includes('병원') || v.includes('약')) {
+    return v.includes('기타') ? 'other' : 'health';
+  }
 
   return 'other';
 }
 
 function readOtherSubCategoryRaw(r: MemoryRecord): string {
-  const anyR = r as any;
+  const candidate = r as MemoryRecord & {
+    subCategory?: string | null;
+    subcategory?: string | null;
+    sub_type?: string | null;
+    detailCategory?: string | null;
+    otherSubCategory?: string | null;
+  };
+
   const raw =
-    anyR.subCategory ??
-    anyR.subcategory ??
-    anyR.sub_type ??
-    anyR.detailCategory ??
-    anyR.otherSubCategory ??
+    candidate.subCategory ??
+    candidate.subcategory ??
+    candidate.sub_type ??
+    candidate.detailCategory ??
+    candidate.otherSubCategory ??
     '';
-  return String(raw ?? '').trim();
+
+  const normalizedRaw = String(raw ?? '').trim();
+  if (normalizedRaw) return normalizedRaw;
+  return readRecordTagsRaw(r);
 }
 
 function normalizeOtherSubKey(raw: string): OtherSubCategory {
@@ -199,73 +241,6 @@ function normalizeOtherSubKey(raw: string): OtherSubCategory {
 
   return 'etc';
 }
-
-// ---------------------------------------------------------
-// ✅ Memo Row Item (리스트 스크롤 스무스 핵심)
-// ---------------------------------------------------------
-const TimelineRow = memo(function TimelineRow({
-  item,
-  onPress,
-}: {
-  item: MemoryRecord;
-  onPress: (item: MemoryRecord) => void;
-}) {
-  const dateText = item.occurredAt ?? item.createdAt?.slice(0, 10) ?? '';
-
-  return (
-    <TouchableOpacity
-      activeOpacity={0.9}
-      style={styles.item}
-      onPress={() => onPress(item)}
-    >
-      <View style={styles.thumb}>
-        {item.imageUrl ? (
-          <Image
-            source={{ uri: item.imageUrl }}
-            style={styles.thumbImg}
-            fadeDuration={120}
-          />
-        ) : (
-          <View style={styles.thumbPlaceholder}>
-            <AppText preset="caption" style={styles.thumbPlaceholderText}>
-              NO IMAGE
-            </AppText>
-          </View>
-        )}
-      </View>
-
-      <View style={styles.itemBody}>
-        <AppText preset="headline" numberOfLines={1} style={styles.itemTitle}>
-          {(item.title ?? '').trim() ? item.title : '제목 없음'}
-        </AppText>
-
-        <AppText preset="caption" numberOfLines={2} style={styles.itemContent}>
-          {item.content?.trim() ? item.content.trim() : '내용이 없습니다.'}
-        </AppText>
-
-        <View style={styles.metaRow}>
-          <AppText preset="caption" style={styles.metaText}>
-            {dateText}
-          </AppText>
-
-          {item.emotion ? (
-            <View style={styles.badge}>
-              <AppText preset="caption" style={styles.badgeText}>
-                {item.emotion}
-              </AppText>
-            </View>
-          ) : null}
-        </View>
-
-        {item.tags?.length ? (
-          <AppText preset="caption" numberOfLines={1} style={styles.tags}>
-            {item.tags.join(' ')}
-          </AppText>
-        ) : null}
-      </View>
-    </TouchableOpacity>
-  );
-});
 
 // ---------------------------------------------------------
 // ✅ Memo Controls Bar (Sticky 헤더 스무스 핵심)
@@ -430,7 +405,7 @@ export default function TimelineScreen() {
   // 1) navigation / route
   // ---------------------------------------------------------
   const navigation = useNavigation<Nav>();
-  const route = useRoute<any>();
+  const route = useRoute<TimelineTabRoute>();
 
   // ---------------------------------------------------------
   // 1.5) petId resolve (params → store fallback)
@@ -458,13 +433,8 @@ export default function TimelineScreen() {
 
   const petState = useRecordStore(s => {
     if (!petId) return FALLBACK_PET_STATE;
-    return (s.byPetId[petId] as any) ?? FALLBACK_PET_STATE;
-  }) as typeof FALLBACK_PET_STATE & {
-    items: ReadonlyArray<MemoryRecord>;
-    status: Status;
-    hasMore: boolean;
-    errorMessage: string | null;
-  };
+    return s.byPetId[petId] ?? FALLBACK_PET_STATE;
+  }) as PetRecordsState | typeof FALLBACK_PET_STATE;
 
   const status = normalizeStatus(petState.status);
   const hasMore = Boolean(petState.hasMore);
@@ -707,11 +677,12 @@ export default function TimelineScreen() {
   const showSearchHint = Boolean(query);
 
   // ---------------------------------------------------------
-  // 7) renderItem (stable)
+  // 7) renderItem (stable) - 🔥 외부 MemoryCard 호출!
   // ---------------------------------------------------------
-  const renderItem = useCallback(
-    ({ item }: { item: MemoryRecord }) => {
-      return <TimelineRow item={item} onPress={onPressItem} />;
+  const renderItem = useCallback<ListRenderItem<MemoryRecord>>(
+    ({ item }) => {
+      // ✅ TimelineRow를 삭제하고 따로 만든 MemoryCard 컴포넌트를 호출합니다!
+      return <MemoryCard item={item} onPress={onPressItem} />;
     },
     [onPressItem],
   );

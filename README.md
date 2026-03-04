@@ -347,6 +347,23 @@ hydrate(AsyncStorage)
 - `InteractionManager.runAfterInteractions()`를 제거하고 `requestIdleCallback` 기반 idle scheduler로 변경
 - RN 경고 없이 signed URL prefetch가 비동기 idle 타이밍에 실행되도록 수정
 
+## ✅ Chapter 6-4 — RecordCreate 리디자인 + 타임라인 카테고리 정합화
+
+- `RecordCreateScreen`을 이미지 중심 작성 화면으로 전면 리디자인
+- 상단 `취소 / 기록하기 / 완료` 헤더 구조로 재구성
+- 날짜 영역을 카드형 CTA로 정리하고, `오늘 / 어제 / 직접입력` 모달 흐름 추가
+- 사진 업로드 영역을 점선 박스 + 미리보기/변경/제거 구조로 정리
+- 태그 입력을 일반 입력창에서 `태그 추가` 바텀시트 스타일 모달로 변경
+- 추천 태그 / 최근 사용 / 선택 태그 제거 흐름 추가
+- 기록하기 분류 기준을 타임라인과 동일한 축으로 정리
+  - `산책 / 식사 / 건강 / 일기장 / 기타`
+- `기타` 선택 시 세부 분류를 추가
+  - `미용 / 병원·약 / 기타`
+- 저장 시 메인 분류 + 세부 분류가 타임라인 필터에서 읽을 수 있는 태그 조합으로 저장되도록 정리
+- `TimelineScreen`의 카테고리 판별 로직이 태그 기반 저장도 인식하도록 보강
+- `산책`으로 저장한 기록이 `전체`에는 보이지만 `산책` 필터에는 보이지 않던 정합성 이슈 수정
+- `TimelineTab`이 `petId` optional param을 받을 수 있도록 탭 라우트 타입 정리
+
 ## ✅ Chapter 7 — Timeline Performance Optimization
 
 Timeline 화면에서 기록 수가 증가할수록 스크롤이 끊기거나 버벅이는 문제가 발생할 수 있다.  
