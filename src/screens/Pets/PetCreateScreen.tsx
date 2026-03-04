@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { memo, useCallback, useMemo, useState } from 'react';
 import {
   Alert,
   Image,
@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -148,9 +148,377 @@ function splitYmdParts(raw: string): { year: string; month: string; day: string 
   };
 }
 
+type MultiInputSectionProps = {
+  label: string;
+  list: string[];
+  draft: string;
+  onDraftChange: (value: string) => void;
+  onAdd: () => void;
+  onRemove: (value: string) => void;
+  placeholder: string;
+  hint?: string;
+};
+
+const MultiInputSection = memo(function MultiInputSection({
+  label,
+  list,
+  draft,
+  onDraftChange,
+  onAdd,
+  onRemove,
+  placeholder,
+  hint,
+}: MultiInputSectionProps) {
+  return (
+    <View style={styles.fieldBlock}>
+      <View style={styles.fieldLabelRow}>
+        <Text style={styles.label}>{label}</Text>
+        <Text style={styles.countText}>{list.length}/{MAX_MULTI_ITEMS}</Text>
+      </View>
+
+      <View style={styles.tagInputRow}>
+        <TextInput
+          value={draft}
+          onChangeText={onDraftChange}
+          placeholder={placeholder}
+          placeholderTextColor="#A0A7B4"
+          style={[styles.input, styles.tagInput]}
+          returnKeyType="done"
+          onSubmitEditing={onAdd}
+        />
+        <TouchableOpacity activeOpacity={0.88} style={styles.inlineAddButton} onPress={onAdd}>
+          <Text style={styles.inlineAddButtonText}>추가</Text>
+        </TouchableOpacity>
+      </View>
+
+      {hint ? <Text style={styles.inputHint}>{hint}</Text> : null}
+
+      <View style={styles.pillRow}>
+        {list.map(item => (
+          <TouchableOpacity
+            key={item}
+            activeOpacity={0.88}
+            style={styles.pill}
+            onPress={() => onRemove(item)}
+          >
+            <Text style={styles.pillText}>{item}</Text>
+            <Text style={styles.pillX}>×</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+});
+
+type StepOneFormProps = {
+  imageUri: string | null;
+  onPickImage: () => void;
+  name: string;
+  onNameChange: (value: string) => void;
+  birthDate: string;
+  onBirthDateChange: (value: string) => void;
+  onBirthDateBlur: () => void;
+  onOpenBirthModal: () => void;
+  adoptionDate: string;
+  onAdoptionDateChange: (value: string) => void;
+  onAdoptionDateBlur: () => void;
+  onOpenAdoptionModal: () => void;
+  breed: string;
+  onBreedChange: (value: string) => void;
+  gender: PetGender;
+  onGenderChange: (value: PetGender) => void;
+  neutered: boolean | null;
+  onNeuteredChange: (value: boolean) => void;
+};
+
+const StepOneForm = memo(function StepOneForm({
+  imageUri,
+  onPickImage,
+  name,
+  onNameChange,
+  birthDate,
+  onBirthDateChange,
+  onBirthDateBlur,
+  onOpenBirthModal,
+  adoptionDate,
+  onAdoptionDateChange,
+  onAdoptionDateBlur,
+  onOpenAdoptionModal,
+  breed,
+  onBreedChange,
+  gender,
+  onGenderChange,
+  neutered,
+  onNeuteredChange,
+}: StepOneFormProps) {
+  return (
+    <>
+      <TouchableOpacity activeOpacity={0.92} style={styles.avatarSection} onPress={onPickImage}>
+        <View style={styles.avatarCircle}>
+          {imageUri ? (
+            <Image source={{ uri: imageUri }} style={styles.avatarImage} />
+          ) : (
+            <View style={styles.avatarPlaceholder}>
+              <Feather color={BRAND} name="camera" size={18} />
+            </View>
+          )}
+        </View>
+        <View style={styles.avatarEditButton}>
+          <Feather color="#FFFFFF" name="edit-3" size={12} />
+        </View>
+      </TouchableOpacity>
+
+      <Text style={styles.heroCopy}>우리 아이 사진을 등록해주세요</Text>
+
+      <View style={styles.fieldBlock}>
+        <Text style={styles.label}>반려동물 이름</Text>
+        <TextInput
+          value={name}
+          onChangeText={onNameChange}
+          placeholder="이름을 입력해 주세요"
+          placeholderTextColor="#A0A7B4"
+          style={styles.input}
+          returnKeyType="done"
+        />
+      </View>
+
+      <View style={styles.fieldBlock}>
+        <Text style={styles.label}>생일</Text>
+        <View style={styles.iconInputWrap}>
+          <TextInput
+            value={birthDate}
+            onChangeText={onBirthDateChange}
+            onBlur={onBirthDateBlur}
+            placeholder="2011-10-28"
+            placeholderTextColor="#A0A7B4"
+            style={styles.iconInput}
+            keyboardType="number-pad"
+          />
+          <TouchableOpacity activeOpacity={0.88} onPress={onOpenBirthModal}>
+            <Feather color="#98A1B2" name="calendar" size={16} />
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.inputHint}>{buildDateHint(birthDate)}</Text>
+      </View>
+
+      <View style={styles.fieldBlock}>
+        <Text style={styles.label}>입양일</Text>
+        <View style={styles.iconInputWrap}>
+          <TextInput
+            value={adoptionDate}
+            onChangeText={onAdoptionDateChange}
+            onBlur={onAdoptionDateBlur}
+            placeholder="입양일을 입력해 주세요"
+            placeholderTextColor="#A0A7B4"
+            style={styles.iconInput}
+            keyboardType="number-pad"
+          />
+          <TouchableOpacity activeOpacity={0.88} onPress={onOpenAdoptionModal}>
+            <Feather color="#98A1B2" name="calendar" size={16} />
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.inputHint}>{buildDateHint(adoptionDate)}</Text>
+      </View>
+
+      <View style={styles.fieldBlock}>
+        <Text style={styles.label}>품종</Text>
+        <View style={styles.iconInputWrap}>
+          <TextInput
+            value={breed}
+            onChangeText={onBreedChange}
+            placeholder="품종을 입력해 주세요"
+            placeholderTextColor="#A0A7B4"
+            style={styles.iconInput}
+          />
+          <Feather color="#98A1B2" name="search" size={16} />
+        </View>
+      </View>
+
+      <View style={styles.row}>
+        <View style={styles.col}>
+          <Text style={styles.label}>성별</Text>
+          <View style={styles.segmentRow}>
+            <TouchableOpacity
+              activeOpacity={0.88}
+              style={[styles.segmentChip, gender === 'female' ? styles.segmentChipActive : null]}
+              onPress={() => onGenderChange('female')}
+            >
+              <Text
+                style={[
+                  styles.segmentChipText,
+                  gender === 'female' ? styles.segmentChipTextActive : null,
+                ]}
+              >
+                여아
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.88}
+              style={[styles.segmentChip, gender === 'male' ? styles.segmentChipActive : null]}
+              onPress={() => onGenderChange('male')}
+            >
+              <Text
+                style={[
+                  styles.segmentChipText,
+                  gender === 'male' ? styles.segmentChipTextActive : null,
+                ]}
+              >
+                남아
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.col}>
+          <Text style={styles.label}>중성화 여부</Text>
+          <View style={styles.segmentRow}>
+            <TouchableOpacity
+              activeOpacity={0.88}
+              style={[styles.segmentChip, neutered === true ? styles.segmentChipActive : null]}
+              onPress={() => onNeuteredChange(true)}
+            >
+              <Text
+                style={[
+                  styles.segmentChipText,
+                  neutered === true ? styles.segmentChipTextActive : null,
+                ]}
+              >
+                예
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.88}
+              style={[styles.segmentChip, neutered === false ? styles.segmentChipActive : null]}
+              onPress={() => onNeuteredChange(false)}
+            >
+              <Text
+                style={[
+                  styles.segmentChipText,
+                  neutered === false ? styles.segmentChipTextActive : null,
+                ]}
+              >
+                아니오
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </>
+  );
+});
+
+type StepTwoFormProps = {
+  weightKg: string;
+  onWeightChange: (value: string) => void;
+  likes: string[];
+  draftLike: string;
+  onDraftLikeChange: (value: string) => void;
+  onAddLike: () => void;
+  onRemoveLike: (value: string) => void;
+  dislikes: string[];
+  draftDislike: string;
+  onDraftDislikeChange: (value: string) => void;
+  onAddDislike: () => void;
+  onRemoveDislike: (value: string) => void;
+  hobbies: string[];
+  draftHobby: string;
+  onDraftHobbyChange: (value: string) => void;
+  onAddHobby: () => void;
+  onRemoveHobby: (value: string) => void;
+  tags: string[];
+  draftTag: string;
+  onDraftTagChange: (value: string) => void;
+  onAddTag: () => void;
+  onRemoveTag: (value: string) => void;
+};
+
+const StepTwoForm = memo(function StepTwoForm({
+  weightKg,
+  onWeightChange,
+  likes,
+  draftLike,
+  onDraftLikeChange,
+  onAddLike,
+  onRemoveLike,
+  dislikes,
+  draftDislike,
+  onDraftDislikeChange,
+  onAddDislike,
+  onRemoveDislike,
+  hobbies,
+  draftHobby,
+  onDraftHobbyChange,
+  onAddHobby,
+  onRemoveHobby,
+  tags,
+  draftTag,
+  onDraftTagChange,
+  onAddTag,
+  onRemoveTag,
+}: StepTwoFormProps) {
+  return (
+    <>
+      <View style={styles.fieldBlock}>
+        <Text style={styles.label}>몸무게</Text>
+        <View style={styles.iconInputWrap}>
+          <TextInput
+            value={weightKg}
+            onChangeText={onWeightChange}
+            placeholder="0.0"
+            placeholderTextColor="#A0A7B4"
+            style={styles.iconInput}
+            keyboardType="decimal-pad"
+          />
+          <Text style={styles.trailingUnit}>kg</Text>
+        </View>
+      </View>
+
+      <MultiInputSection
+        label="좋아하는 것 (최소 1개)"
+        list={likes}
+        draft={draftLike}
+        onDraftChange={onDraftLikeChange}
+        onAdd={onAddLike}
+        onRemove={onRemoveLike}
+        placeholder="좋아하는 간식, 장난감 등"
+      />
+
+      <MultiInputSection
+        label="싫어하는 것 (최소 1개)"
+        list={dislikes}
+        draft={draftDislike}
+        onDraftChange={onDraftDislikeChange}
+        onAdd={onAddDislike}
+        onRemove={onRemoveDislike}
+        placeholder="싫어하는 소리, 행동 등"
+      />
+
+      <MultiInputSection
+        label="취미 (최소 1개)"
+        list={hobbies}
+        draft={draftHobby}
+        onDraftChange={onDraftHobbyChange}
+        onAdd={onAddHobby}
+        onRemove={onRemoveHobby}
+        placeholder="산책하기, 낮잠자기 등"
+      />
+
+      <MultiInputSection
+        label="태그 (최소 1개)"
+        list={tags}
+        draft={draftTag}
+        onDraftChange={onDraftTagChange}
+        onAdd={onAddTag}
+        onRemove={onRemoveTag}
+        placeholder="우리 아이를 표현해 주세요"
+        hint="태그는 저장 시 #이 자동으로 붙습니다."
+      />
+    </>
+  );
+});
+
 export default function PetCreateScreen() {
   const navigation = useNavigation<Nav>();
-  const insets = useSafeAreaInsets();
   const setPets = usePetStore(s => s.setPets);
 
   const [step, setStep] = useState<Step>(1);
@@ -437,64 +805,44 @@ export default function PetCreateScreen() {
     weightKg,
   ]);
 
-  const renderMultiInput = useCallback(
-    (
-      label: string,
-      list: string[],
-      draft: string,
-      setDraft: React.Dispatch<React.SetStateAction<string>>,
-      kind: 'likes' | 'dislikes' | 'hobbies' | 'tags',
-      placeholder: string,
-      hint?: string,
-    ) => (
-      <View style={styles.fieldBlock}>
-        <View style={styles.fieldLabelRow}>
-          <Text style={styles.label}>{label}</Text>
-          <Text style={styles.countText}>{list.length}/{MAX_MULTI_ITEMS}</Text>
-        </View>
-
-        <View style={styles.tagInputRow}>
-          <TextInput
-            value={draft}
-            onChangeText={setDraft}
-            placeholder={placeholder}
-            placeholderTextColor="#A0A7B4"
-            style={[styles.input, styles.tagInput]}
-            returnKeyType="done"
-            onSubmitEditing={() => addItem(kind)}
-          />
-          <TouchableOpacity
-            activeOpacity={0.88}
-            style={styles.inlineAddButton}
-            onPress={() => addItem(kind)}
-          >
-            <Text style={styles.inlineAddButtonText}>추가</Text>
-          </TouchableOpacity>
-        </View>
-
-        {hint ? <Text style={styles.inputHint}>{hint}</Text> : null}
-
-        <View style={styles.pillRow}>
-          {list.map(item => (
-            <TouchableOpacity
-              key={item}
-              activeOpacity={0.88}
-              style={styles.pill}
-              onPress={() => removeItem(kind, item)}
-            >
-              <Text style={styles.pillText}>{item}</Text>
-              <Text style={styles.pillX}>×</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-    ),
-    [addItem, removeItem],
+  const handleBirthDateChange = useCallback(
+    (text: string) => syncDateInput(setBirthDate, text),
+    [syncDateInput],
   );
+  const handleBirthDateBlur = useCallback(
+    () => finalizeDateInput(birthDate, setBirthDate),
+    [birthDate, finalizeDateInput],
+  );
+  const handleAdoptionDateChange = useCallback(
+    (text: string) => syncDateInput(setAdoptionDate, text),
+    [syncDateInput],
+  );
+  const handleAdoptionDateBlur = useCallback(
+    () => finalizeDateInput(adoptionDate, setAdoptionDate),
+    [adoptionDate, finalizeDateInput],
+  );
+  const openBirthDateModal = useCallback(() => openDateModal('birth'), [openDateModal]);
+  const openAdoptionDateModal = useCallback(
+    () => openDateModal('adoption'),
+    [openDateModal],
+  );
+
+  const addLike = useCallback(() => addItem('likes'), [addItem]);
+  const addDislike = useCallback(() => addItem('dislikes'), [addItem]);
+  const addHobby = useCallback(() => addItem('hobbies'), [addItem]);
+  const addTag = useCallback(() => addItem('tags'), [addItem]);
+
+  const removeLike = useCallback((value: string) => removeItem('likes', value), [removeItem]);
+  const removeDislike = useCallback(
+    (value: string) => removeItem('dislikes', value),
+    [removeItem],
+  );
+  const removeHobby = useCallback((value: string) => removeItem('hobbies', value), [removeItem]);
+  const removeTag = useCallback((value: string) => removeItem('tags', value), [removeItem]);
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      <View style={[styles.header, { paddingTop: Math.max(insets.top * 0.15, 2) }]}>
+      <View style={styles.header}>
         <TouchableOpacity
           activeOpacity={0.85}
           style={styles.headerAction}
@@ -514,7 +862,7 @@ export default function PetCreateScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.progressHeader}>
-          <View>
+          <View style={styles.progressMain}>
             <Text style={styles.progressLabel}>
               {step === 1 ? '기본 정보 입력' : '상세 정보 입력'}
             </Text>
@@ -532,236 +880,51 @@ export default function PetCreateScreen() {
 
         <View style={styles.card}>
           {step === 1 ? (
-            <>
-              <TouchableOpacity
-                activeOpacity={0.92}
-                style={styles.avatarSection}
-                onPress={pickImage}
-              >
-                <View style={styles.avatarCircle}>
-                  {imageUri ? (
-                    <Image source={{ uri: imageUri }} style={styles.avatarImage} />
-                  ) : (
-                    <View style={styles.avatarPlaceholder}>
-                      <Feather color={BRAND} name="camera" size={18} />
-                    </View>
-                  )}
-                </View>
-                <View style={styles.avatarEditButton}>
-                  <Feather color="#FFFFFF" name="edit-3" size={12} />
-                </View>
-              </TouchableOpacity>
-
-              <Text style={styles.heroCopy}>우리 아이 사진을 등록해주세요</Text>
-
-              <View style={styles.fieldBlock}>
-                <Text style={styles.label}>반려동물 이름</Text>
-                <TextInput
-                  value={name}
-                  onChangeText={setName}
-                  placeholder="이름을 입력해 주세요"
-                  placeholderTextColor="#A0A7B4"
-                  style={styles.input}
-                  returnKeyType="done"
-                />
-              </View>
-
-              <View style={styles.fieldBlock}>
-                <Text style={styles.label}>생일</Text>
-                <View style={styles.iconInputWrap}>
-                  <TextInput
-                    value={birthDate}
-                    onChangeText={text => syncDateInput(setBirthDate, text)}
-                    onBlur={() => finalizeDateInput(birthDate, setBirthDate)}
-                    placeholder="2011-10-28"
-                    placeholderTextColor="#A0A7B4"
-                    style={styles.iconInput}
-                    keyboardType="number-pad"
-                  />
-                  <TouchableOpacity
-                    activeOpacity={0.88}
-                    onPress={() => openDateModal('birth')}
-                  >
-                    <Feather color="#98A1B2" name="calendar" size={16} />
-                  </TouchableOpacity>
-                </View>
-                <Text style={styles.inputHint}>{buildDateHint(birthDate)}</Text>
-              </View>
-
-              <View style={styles.fieldBlock}>
-                <Text style={styles.label}>입양일</Text>
-                <View style={styles.iconInputWrap}>
-                  <TextInput
-                    value={adoptionDate}
-                    onChangeText={text => syncDateInput(setAdoptionDate, text)}
-                    onBlur={() =>
-                      finalizeDateInput(adoptionDate, setAdoptionDate)
-                    }
-                    placeholder="입양일을 입력해 주세요"
-                    placeholderTextColor="#A0A7B4"
-                    style={styles.iconInput}
-                    keyboardType="number-pad"
-                  />
-                  <TouchableOpacity
-                    activeOpacity={0.88}
-                    onPress={() => openDateModal('adoption')}
-                  >
-                    <Feather color="#98A1B2" name="calendar" size={16} />
-                  </TouchableOpacity>
-                </View>
-                <Text style={styles.inputHint}>{buildDateHint(adoptionDate)}</Text>
-              </View>
-
-              <View style={styles.fieldBlock}>
-                <Text style={styles.label}>품종</Text>
-                <View style={styles.iconInputWrap}>
-                  <TextInput
-                    value={breed}
-                    onChangeText={setBreed}
-                    placeholder="품종을 입력해 주세요"
-                    placeholderTextColor="#A0A7B4"
-                    style={styles.iconInput}
-                  />
-                  <Feather color="#98A1B2" name="search" size={16} />
-                </View>
-              </View>
-
-              <View style={styles.row}>
-                <View style={styles.col}>
-                  <Text style={styles.label}>성별</Text>
-                  <View style={styles.segmentRow}>
-                    <TouchableOpacity
-                      activeOpacity={0.88}
-                      style={[
-                        styles.segmentChip,
-                        gender === 'female' ? styles.segmentChipActive : null,
-                      ]}
-                      onPress={() => setGender('female')}
-                    >
-                      <Text
-                        style={[
-                          styles.segmentChipText,
-                          gender === 'female' ? styles.segmentChipTextActive : null,
-                        ]}
-                      >
-                        여아
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      activeOpacity={0.88}
-                      style={[
-                        styles.segmentChip,
-                        gender === 'male' ? styles.segmentChipActive : null,
-                      ]}
-                      onPress={() => setGender('male')}
-                    >
-                      <Text
-                        style={[
-                          styles.segmentChipText,
-                          gender === 'male' ? styles.segmentChipTextActive : null,
-                        ]}
-                      >
-                        남아
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                <View style={styles.col}>
-                  <Text style={styles.label}>중성화 여부</Text>
-                  <View style={styles.segmentRow}>
-                    <TouchableOpacity
-                      activeOpacity={0.88}
-                      style={[
-                        styles.segmentChip,
-                        neutered === true ? styles.segmentChipActive : null,
-                      ]}
-                      onPress={() => setNeutered(true)}
-                    >
-                      <Text
-                        style={[
-                          styles.segmentChipText,
-                          neutered === true ? styles.segmentChipTextActive : null,
-                        ]}
-                      >
-                        예
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      activeOpacity={0.88}
-                      style={[
-                        styles.segmentChip,
-                        neutered === false ? styles.segmentChipActive : null,
-                      ]}
-                      onPress={() => setNeutered(false)}
-                    >
-                      <Text
-                        style={[
-                          styles.segmentChipText,
-                          neutered === false ? styles.segmentChipTextActive : null,
-                        ]}
-                      >
-                        아니오
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            </>
+            <StepOneForm
+              imageUri={imageUri}
+              onPickImage={pickImage}
+              name={name}
+              onNameChange={setName}
+              birthDate={birthDate}
+              onBirthDateChange={handleBirthDateChange}
+              onBirthDateBlur={handleBirthDateBlur}
+              onOpenBirthModal={openBirthDateModal}
+              adoptionDate={adoptionDate}
+              onAdoptionDateChange={handleAdoptionDateChange}
+              onAdoptionDateBlur={handleAdoptionDateBlur}
+              onOpenAdoptionModal={openAdoptionDateModal}
+              breed={breed}
+              onBreedChange={setBreed}
+              gender={gender}
+              onGenderChange={setGender}
+              neutered={neutered}
+              onNeuteredChange={setNeutered}
+            />
           ) : (
-            <>
-              <View style={styles.fieldBlock}>
-                <Text style={styles.label}>몸무게</Text>
-                <View style={styles.iconInputWrap}>
-                  <TextInput
-                    value={weightKg}
-                    onChangeText={setWeightKg}
-                    placeholder="0.0"
-                    placeholderTextColor="#A0A7B4"
-                    style={styles.iconInput}
-                    keyboardType="decimal-pad"
-                  />
-                  <Text style={styles.trailingUnit}>kg</Text>
-                </View>
-              </View>
-
-              {renderMultiInput(
-                '좋아하는 것 (최소 1개)',
-                likes,
-                draftLike,
-                setDraftLike,
-                'likes',
-                '좋아하는 간식, 장난감 등',
-              )}
-
-              {renderMultiInput(
-                '싫어하는 것 (최소 1개)',
-                dislikes,
-                draftDislike,
-                setDraftDislike,
-                'dislikes',
-                '싫어하는 소리, 행동 등',
-              )}
-
-              {renderMultiInput(
-                '취미 (최소 1개)',
-                hobbies,
-                draftHobby,
-                setDraftHobby,
-                'hobbies',
-                '산책하기, 낮잠자기 등',
-              )}
-
-              {renderMultiInput(
-                '태그 (최소 1개)',
-                tags,
-                draftTag,
-                setDraftTag,
-                'tags',
-                '우리 아이를 표현해 주세요',
-                '태그는 저장 시 #이 자동으로 붙습니다.',
-              )}
-            </>
+            <StepTwoForm
+              weightKg={weightKg}
+              onWeightChange={setWeightKg}
+              likes={likes}
+              draftLike={draftLike}
+              onDraftLikeChange={setDraftLike}
+              onAddLike={addLike}
+              onRemoveLike={removeLike}
+              dislikes={dislikes}
+              draftDislike={draftDislike}
+              onDraftDislikeChange={setDraftDislike}
+              onAddDislike={addDislike}
+              onRemoveDislike={removeDislike}
+              hobbies={hobbies}
+              draftHobby={draftHobby}
+              onDraftHobbyChange={setDraftHobby}
+              onAddHobby={addHobby}
+              onRemoveHobby={removeHobby}
+              tags={tags}
+              draftTag={draftTag}
+              onDraftTagChange={setDraftTag}
+              onAddTag={addTag}
+              onRemoveTag={removeTag}
+            />
           )}
         </View>
 

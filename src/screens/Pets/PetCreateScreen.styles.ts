@@ -15,10 +15,11 @@ export const styles = StyleSheet.create({
     backgroundColor: SURFACE,
   },
   header: {
-    minHeight: 48,
+    minHeight: 25,
     paddingHorizontal: 18,
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 0,
   },
   headerAction: {
     width: 32,
@@ -42,7 +43,7 @@ export const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 18,
-    paddingTop: 10,
+    paddingTop: 4,
     paddingBottom: 28,
     gap: 16,
   },
@@ -52,6 +53,9 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 16,
   },
+  progressMain: {
+    flex: 1,
+  },
   progressLabel: {
     color: TEXT,
     fontSize: 13,
@@ -59,7 +63,7 @@ export const styles = StyleSheet.create({
     marginBottom: 8,
   },
   progressTrack: {
-    width: 124,
+    width: '100%',
     height: 4,
     borderRadius: 999,
     backgroundColor: 'rgba(109,106,248,0.14)',
@@ -124,7 +128,7 @@ export const styles = StyleSheet.create({
   },
   avatarEditButton: {
     position: 'absolute',
-    right: 92,
+    right: 120,
     bottom: 4,
     width: 26,
     height: 26,
