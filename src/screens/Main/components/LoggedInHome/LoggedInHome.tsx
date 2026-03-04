@@ -730,6 +730,11 @@ export default function LoggedInHome() {
     navigation.navigate('TimelineTab');
   }, [navigation]);
 
+  const onPressPetProfileEdit = useCallback(() => {
+    if (!activePetId) return;
+    rootNavigation.navigate('PetProfileEdit', { petId: activePetId });
+  }, [activePetId, rootNavigation]);
+
   const onPressTimelineCategory = useCallback(
     (
       mainCategory: Exclude<TimelineMainCategory, undefined>,
@@ -957,7 +962,7 @@ export default function LoggedInHome() {
             <TouchableOpacity
               activeOpacity={0.85}
               style={styles.heroGearBtn}
-              onPress={() => {}}
+              onPress={onPressPetProfileEdit}
             >
               <Feather name="settings" size={16} color="rgba(11,18,32,0.55)" />
             </TouchableOpacity>

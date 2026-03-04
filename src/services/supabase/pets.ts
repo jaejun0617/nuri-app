@@ -193,3 +193,49 @@ export async function createPet(input: {
   if (error) throw error;
   return (data as any).id as string;
 }
+
+/* ---------------------------------------------------------
+ * 3) pet 수정
+ * -------------------------------------------------------- */
+export async function updatePet(input: {
+  petId: string;
+  name: string;
+  adoptionDate?: string | null;
+  birthDate?: string | null;
+  weightKg?: number | null;
+  gender?: 'male' | 'female' | 'unknown';
+  neutered?: boolean | null;
+  breed?: string | null;
+  likes?: string[];
+  dislikes?: string[];
+  hobbies?: string[];
+  tags?: string[];
+  avatarPath?: string | null;
+}): Promise<void> {
+  const userRes = await supabase.auth.getUser();
+  const userId = userRes.data.user?.id ?? null;
+  if (!userId) throw new Error('로그인 정보가 없습니다.');
+
+  const payload = {
+    name: input.name,
+    adoption_date: input.adoptionDate ?? null,
+    birth_date: input.birthDate ?? null,
+    weight_kg: input.weightKg ?? null,
+    gender: input.gender ?? 'unknown',
+    neutered: input.neutered ?? null,
+    breed: input.breed ?? null,
+    likes: input.likes ?? [],
+    dislikes: input.dislikes ?? [],
+    hobbies: input.hobbies ?? [],
+    personality_tags: input.tags ?? [],
+    profile_image_url: input.avatarPath ?? null,
+  };
+
+  const { error } = await supabase
+    .from('pets')
+    .update(payload)
+    .eq('id', input.petId)
+    .eq('user_id', userId);
+
+  if (error) throw error;
+}

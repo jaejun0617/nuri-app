@@ -18,6 +18,8 @@ import SignUpScreen from '../screens/Auth/SignUpScreen';
 import NicknameSetupScreen from '../screens/Auth/NicknameSetupScreen';
 
 import PetCreateScreen from '../screens/Pets/PetCreateScreen';
+import PetProfileEditScreen from '../screens/Pets/PetProfileEditScreen';
+import PetProfileEditDoneScreen from '../screens/Pets/PetProfileEditDoneScreen';
 
 // Records (Detail/Edit는 탭 밖으로 빼는 전략)
 import RecordDetailScreen from '../screens/Records/RecordDetailScreen';
@@ -39,6 +41,8 @@ export type RootStackParamList = {
 
   // Pet
   PetCreate: { from?: 'auto' | 'cta' | 'header_plus' } | undefined;
+  PetProfileEdit: { petId: string };
+  PetProfileEditDone: { petId: string; petName: string };
 
   // Records (탭 밖)
   RecordDetail: { petId: string; memoryId: string };
@@ -86,6 +90,16 @@ export default function RootNavigator() {
 
       {/* Pet */}
       <Stack.Screen name="PetCreate" component={PetCreateScreen} />
+      <Stack.Screen
+        name="PetProfileEdit"
+        component={PetProfileEditScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="PetProfileEditDone"
+        component={PetProfileEditDoneScreen}
+        options={{ headerShown: false }}
+      />
 
       {/* Records (탭 밖) */}
       <Stack.Screen

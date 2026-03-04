@@ -1,0 +1,65 @@
+import React from 'react';
+import { TouchableOpacity, View } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import Feather from 'react-native-vector-icons/Feather';
+
+import AppText from '../../app/ui/AppText';
+import type { RootStackParamList } from '../../navigation/RootNavigator';
+import { styles } from './PetProfileEditDoneScreen.styles';
+
+type Nav = NativeStackNavigationProp<RootStackParamList, 'PetProfileEditDone'>;
+type Route = {
+  key: string;
+  name: 'PetProfileEditDone';
+  params: { petId: string; petName: string };
+};
+
+export default function PetProfileEditDoneScreen() {
+  const navigation = useNavigation<Nav>();
+  const route = useRoute<Route>();
+  const petName = route.params.petName;
+
+  return (
+    <View style={styles.screen}>
+      <View style={styles.confettiOne} />
+      <View style={styles.confettiTwo} />
+      <View style={styles.confettiThree} />
+      <View style={styles.confettiFour} />
+      <View style={styles.confettiFive} />
+
+      <View style={styles.hero}>
+        <View style={styles.checkCard}>
+          <View style={styles.checkCircle}>
+            <Feather name="check" size={30} color="#6D6AF8" />
+          </View>
+        </View>
+
+        <AppText preset="title2" style={styles.title}>
+          프로필 수정 완료!
+        </AppText>
+        <AppText preset="body" style={styles.body}>
+          {petName}의 정보를 더 또렷하게 정리했어요.
+        </AppText>
+        <AppText preset="body" style={styles.body}>
+          이제 홈에서 바로 새로운 프로필을 볼 수 있어요.
+        </AppText>
+      </View>
+
+      <TouchableOpacity
+        activeOpacity={0.92}
+        style={styles.primaryButton}
+        onPress={() =>
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'AppTabs' }],
+          })
+        }
+      >
+        <AppText preset="body" style={styles.primaryButtonText}>
+          홈으로 가기
+        </AppText>
+      </TouchableOpacity>
+    </View>
+  );
+}
