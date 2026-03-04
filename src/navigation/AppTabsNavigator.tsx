@@ -79,10 +79,36 @@ function CustomTabBar(props: BottomTabBarProps & { onOpenMore: () => void }) {
         onOpenMore();
         return;
       }
+      if (routeName === 'TimelineTab') {
+        navigation.navigate({
+          name: 'TimelineTab',
+          params: { screen: 'TimelineMain', params: { mainCategory: 'all' } },
+          merge: false,
+        } as never);
+        return;
+      }
       go(routeName);
     },
-    [go, onOpenMore],
+    [go, navigation, onOpenMore],
   );
+
+  const shouldHideTabBar = useMemo(() => {
+    const current = state.routes[state.index];
+    if (!current || current.name !== 'TimelineTab') return false;
+
+    const nested = current.state as
+      | {
+          index?: number;
+          routes?: Array<{ name?: string }>;
+        }
+      | undefined;
+
+    const nestedIndex = nested?.index ?? 0;
+    const nestedName = nested?.routes?.[nestedIndex]?.name ?? 'TimelineMain';
+    return nestedName === 'RecordDetail' || nestedName === 'RecordEdit';
+  }, [state]);
+
+  if (shouldHideTabBar) return null;
 
   return (
     <View style={[styles.tabBarWrap, { height: tabBarHeight }]}>
@@ -253,7 +279,7 @@ const styles = StyleSheet.create({
   tabBar: {
     flex: 1,
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: 10,
     paddingBottom: 10,

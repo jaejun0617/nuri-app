@@ -19,6 +19,9 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
   TextInput,
   TouchableOpacity,
   View,
@@ -489,7 +492,10 @@ export default function RecordEditScreen() {
   // 10) UI
   // ---------------------------------------------------------
   return (
-    <View style={styles.screen}>
+    <KeyboardAvoidingView
+      style={styles.screen}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       <View style={styles.header}>
         <TouchableOpacity
           activeOpacity={0.85}
@@ -509,6 +515,12 @@ export default function RecordEditScreen() {
         <View style={{ width: 44 }} />
       </View>
 
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
       <View style={styles.card}>
         {/* Image Preview */}
         <View style={styles.heroWrap}>
@@ -715,6 +727,7 @@ export default function RecordEditScreen() {
           </AppText>
         </TouchableOpacity>
       </View>
-    </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

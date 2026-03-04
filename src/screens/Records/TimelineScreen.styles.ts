@@ -1,6 +1,7 @@
 // 파일: src/screens/Records/TimelineScreen.styles.ts
 
 import { StyleSheet } from 'react-native';
+import { SCREEN_TOP_SPACING } from '../../theme/layout';
 
 const BRAND = '#6D6AF8';
 const TEXT = '#0B1220';
@@ -39,7 +40,7 @@ export const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 0,
     paddingHorizontal: 14,
-    paddingTop: 10,
+    paddingTop: SCREEN_TOP_SPACING,
     paddingBottom: 10,
     gap: 10,
   },
@@ -155,12 +156,11 @@ export const styles = StyleSheet.create({
   metaText: { color: '#6B7280', fontWeight: '700' },
 
   badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(109,106,248,0.18)',
-    backgroundColor: 'rgba(109,106,248,0.08)',
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    borderRadius: 0,
+    borderWidth: 0,
+    backgroundColor: 'transparent',
   },
   badgeText: { color: BRAND, fontWeight: '900' },
 

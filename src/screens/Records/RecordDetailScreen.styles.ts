@@ -13,13 +13,25 @@ export const styles = StyleSheet.create({
     borderBottomColor: '#E6E8F0',
     backgroundColor: '#FFFFFF',
   },
+  backBtn: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   headerTitle: {
     flex: 1,
     textAlign: 'center',
     color: '#0B1220',
     fontWeight: '900',
   },
-  headerPlaceholder: { width: 44 },
+  headerRight: {
+    minWidth: 70,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 10,
+  },
 
   scroll: { flex: 1 },
   body: { padding: 14, gap: 12, paddingBottom: 20 },
@@ -121,14 +133,6 @@ export const styles = StyleSheet.create({
   },
   tags: { marginTop: 14, color: '#6D7CFF', fontWeight: '800' },
   content: { color: '#556070', lineHeight: 22 },
-  cardOutsideActionRow: {
-    marginTop: 4,
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    gap: 14,
-    paddingHorizontal: 2,
-  },
   simpleActionBtn: {
     minHeight: 24,
     justifyContent: 'center',
@@ -142,6 +146,14 @@ export const styles = StyleSheet.create({
   },
   simpleDeleteText: {
     color: '#FF5A5F',
+  },
+  cardOutsideActionRow: {
+    marginTop: 6,
+    paddingHorizontal: 2,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 14,
   },
 
   empty: {

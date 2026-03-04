@@ -13,6 +13,7 @@ import {
 import type { CompositeNavigationProp, RouteProp } from '@react-navigation/native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import Feather from 'react-native-vector-icons/Feather';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { TimelineStackParamList } from '../../navigation/TimelineStackNavigator';
@@ -84,11 +85,11 @@ export default function RecordDetailScreen() {
       return;
     }
 
-    rootNavigation.reset({
-      index: 0,
-      routes: [{ name: 'Main' as keyof RootStackParamList }],
+    navigation.navigate('TimelineMain', {
+      petId: petId ?? undefined,
+      mainCategory: 'all',
     });
-  }, [navigation, rootNavigation]);
+  }, [navigation, petId]);
 
   const imagePaths = useMemo(() => {
     if (!record) return [];
@@ -181,13 +182,19 @@ export default function RecordDetailScreen() {
     return (
       <View style={styles.screen}>
         <View style={styles.header}>
-          <View style={styles.headerPlaceholder} />
+          <TouchableOpacity
+            activeOpacity={0.85}
+            style={styles.backBtn}
+            onPress={safeGoBack}
+          >
+            <Feather name="chevron-left" size={30} color="#0B1220" />
+          </TouchableOpacity>
 
           <AppText preset="headline" style={styles.headerTitle}>
             추억상세보기
           </AppText>
 
-          <View style={styles.headerPlaceholder} />
+          <View style={styles.headerRight} />
         </View>
 
         <View style={styles.empty}>
@@ -224,13 +231,19 @@ export default function RecordDetailScreen() {
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <View style={styles.headerPlaceholder} />
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={styles.backBtn}
+          onPress={safeGoBack}
+        >
+          <Feather name="chevron-left" size={30} color="#0B1220" />
+        </TouchableOpacity>
 
         <AppText preset="headline" style={styles.headerTitle}>
           추억상세보기
         </AppText>
 
-        <View style={styles.headerPlaceholder} />
+        <View style={styles.headerRight} />
       </View>
 
       <ScrollView
@@ -362,6 +375,7 @@ export default function RecordDetailScreen() {
             </AppText>
           </TouchableOpacity>
         </View>
+
       </ScrollView>
     </View>
   );
