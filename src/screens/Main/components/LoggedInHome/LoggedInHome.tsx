@@ -22,6 +22,8 @@ import type { CompositeNavigationProp } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import LinearGradient from 'react-native-linear-gradient';
 import Animated, {
   Easing,
   Extrapolate,
@@ -54,6 +56,9 @@ import { styles } from './LoggedInHome.styles';
 type HomeTabNav = BottomTabNavigationProp<AppTabParamList, 'HomeTab'>;
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
 type Nav = CompositeNavigationProp<HomeTabNav, RootNav>;
+type TimelineMainCategory = NonNullable<AppTabParamList['TimelineTab']>['mainCategory'];
+type TimelineOtherSubCategory =
+  NonNullable<AppTabParamList['TimelineTab']>['otherSubCategory'];
 
 /* ---------------------------------------------------------
  * 1) helpers
@@ -139,6 +144,18 @@ function formatWeightKg(v: number | null | undefined): string | null {
   return `${n % 1 === 0 ? n.toFixed(0) : n.toFixed(1)}kg`;
 }
 
+function pickObjectParticle(word: string): '을' | '를' {
+  const value = word.trim();
+  if (!value) return '를';
+
+  const lastChar = value.charCodeAt(value.length - 1);
+  const HANGUL_BASE = 0xac00;
+  const HANGUL_LAST = 0xd7a3;
+
+  if (lastChar < HANGUL_BASE || lastChar > HANGUL_LAST) return '를';
+  return (lastChar - HANGUL_BASE) % 28 === 0 ? '를' : '을';
+}
+
 function clampList(list: string[] | null | undefined, max = 2) {
   const arr = Array.isArray(list) ? list : [];
   return arr
@@ -156,6 +173,68 @@ const FALLBACK_RECORDS_STATE: Omit<PetRecordsState, 'requestSeq'> = Object.freez
 });
 
 const TODAY_RECORDS_MAX = 14;
+
+const HOME_SHORTCUTS: Array<{
+  key: string;
+  label: string;
+  note: string;
+  icon: string;
+  mainCategory: Exclude<TimelineMainCategory, undefined>;
+  otherSubCategory?: Exclude<TimelineOtherSubCategory, undefined>;
+}> = [
+  {
+    key: 'walk',
+    label: '산책일지',
+    note: '산책',
+    icon: 'walk',
+    mainCategory: 'walk',
+  },
+  {
+    key: 'health',
+    label: '건강기록',
+    note: '건강',
+    icon: 'medical-bag',
+    mainCategory: 'health',
+  },
+  {
+    key: 'meal',
+    label: '식사기록',
+    note: '식사',
+    icon: 'silverware-fork-knife',
+    mainCategory: 'meal',
+  },
+  {
+    key: 'grooming',
+    label: '미용기록',
+    note: '미용',
+    icon: 'content-cut',
+    mainCategory: 'other',
+    otherSubCategory: 'grooming',
+  },
+];
+
+const TIP_TEMPLATES: Array<{
+  key: string;
+  eyebrow: string;
+  title: string;
+  description: string;
+  icon: string;
+}> = [
+  {
+    key: 'care',
+    eyebrow: '건강 케어',
+    title: '노령견을 위한 관절 관리 팁 5가지',
+    description: '집에서도 천천히 따라할 수 있는 스트레칭부터 시작해요',
+    icon: 'heart',
+  },
+  {
+    key: 'meal',
+    eyebrow: '식단 가이드',
+    title: '꼭 챙기면 좋은 영양 밸런스 체크',
+    description: '나이와 활동량에 맞춘 식사 리듬을 정리해 보세요',
+    icon: 'sun',
+  },
+];
 
 const AnimatedFlatList = Animated.createAnimatedComponent(
   FlatList<MemoryRecord>,
@@ -651,6 +730,20 @@ export default function LoggedInHome() {
     navigation.navigate('TimelineTab');
   }, [navigation]);
 
+  const onPressTimelineCategory = useCallback(
+    (
+      mainCategory: Exclude<TimelineMainCategory, undefined>,
+      otherSubCategory?: Exclude<TimelineOtherSubCategory, undefined>,
+    ) => {
+      navigation.navigate('TimelineTab', {
+        petId: activePetId ?? undefined,
+        mainCategory,
+        otherSubCategory,
+      });
+    },
+    [navigation, activePetId],
+  );
+
   const onPressRecord = useCallback(() => {
     navigation.navigate('RecordCreateTab');
   }, [navigation]);
@@ -711,6 +804,22 @@ export default function LoggedInHome() {
       OUT_LIFT_PX,
     ],
   );
+
+  const quickActionCards = useMemo(() => HOME_SHORTCUTS, []);
+
+  const tipsSectionTitle = useMemo(() => {
+    return `${petName}${pickObjectParticle(petName)} 위한 추천 팁`;
+  }, [petName]);
+
+  const recommendationTips = useMemo(() => {
+    return TIP_TEMPLATES.map(item => ({
+      ...item,
+      title:
+        item.key === 'meal'
+          ? `${petName}에게 꼭 필요한 영양 루틴`
+          : item.title,
+    }));
+  }, [petName]);
 
   // ---------------------------------------------------------
   // 8) Accordion state (pet 변경 시 초기화)
@@ -856,16 +965,30 @@ export default function LoggedInHome() {
             <View style={styles.heroCenter}>
               <View style={styles.heroAvatarOuter}>
                 <View style={styles.heroAvatarGlow} />
-                <View style={styles.heroAvatarWrap}>
-                  {selectedAvatarUri ? (
-                    <Image
-                      source={{ uri: selectedAvatarUri }}
-                      style={styles.heroAvatarImg}
-                    />
-                  ) : (
-                    <View style={styles.heroAvatarPlaceholder} />
-                  )}
-                </View>
+                <LinearGradient
+                  colors={[
+                    'rgba(87,83,230,0.52)',
+                    'rgba(87,83,230,0.18)',
+                    'rgba(87,83,230,0.52)',
+                  ]}
+                  locations={[0, 0.55, 1]}
+                  start={{ x: 0.18, y: 0.12 }}
+                  end={{ x: 0.82, y: 0.9 }}
+                  style={styles.heroAvatarRing}
+                >
+                  <View style={styles.heroAvatarRingInner}>
+                    <View style={styles.heroAvatarWrap}>
+                      {selectedAvatarUri ? (
+                        <Image
+                          source={{ uri: selectedAvatarUri }}
+                          style={styles.heroAvatarImg}
+                        />
+                      ) : (
+                        <View style={styles.heroAvatarPlaceholder} />
+                      )}
+                    </View>
+                  </View>
+                </LinearGradient>
               </View>
 
               <Text style={styles.heroName} numberOfLines={1}>
@@ -1217,6 +1340,68 @@ export default function LoggedInHome() {
                 </View>
               </View>
             )}
+          </View>
+
+          <View style={styles.section}>
+            <View style={styles.quickGrid}>
+              {quickActionCards.map(item => (
+                <View key={item.key} style={styles.quickCardWrap}>
+                  <View style={styles.cardBottomShadow} />
+                  <TouchableOpacity
+                    activeOpacity={0.92}
+                    style={styles.quickCard}
+                    onPress={() =>
+                      onPressTimelineCategory(
+                        item.mainCategory,
+                        item.otherSubCategory,
+                      )
+                    }
+                  >
+                    <View style={styles.quickIconWrap}>
+                      <MaterialCommunityIcons
+                        name={item.icon}
+                        size={24}
+                        color="#6D6AF8"
+                        style={styles.quickIcon}
+                      />
+                    </View>
+                    <Text style={styles.quickCardTitle}>{item.label}</Text>
+                    <Text style={styles.quickCardNote}>{item.note}</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.tipSectionTitle}>{tipsSectionTitle}</Text>
+            </View>
+
+            <View style={styles.tipList}>
+              {recommendationTips.map(item => (
+                <View key={item.key} style={styles.tipCardWrap}>
+                  <View style={styles.cardBottomShadow} />
+                  <TouchableOpacity activeOpacity={0.92} style={styles.tipCard}>
+                    <View style={styles.tipThumb}>
+                      <View style={styles.tipThumbInner}>
+                        <Feather name={item.icon} size={20} color="#6D6AF8" />
+                      </View>
+                    </View>
+
+                    <View style={styles.tipContent}>
+                      <Text style={styles.tipEyebrow}>{item.eyebrow}</Text>
+                      <Text style={styles.tipTitle} numberOfLines={2}>
+                        {item.title}
+                      </Text>
+                      <Text style={styles.tipDescription} numberOfLines={2}>
+                        {item.description}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
           </View>
         </Animated.View>
       </ScrollView>

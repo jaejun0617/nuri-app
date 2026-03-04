@@ -414,6 +414,8 @@ export default function TimelineScreen() {
   const selectedPetId = usePetStore(s => s.selectedPetId);
 
   const petIdFromParams = route?.params?.petId ?? null;
+  const mainCategoryFromParams = route?.params?.mainCategory ?? null;
+  const otherSubCategoryFromParams = route?.params?.otherSubCategory ?? null;
 
   const petId = useMemo(() => {
     if (petIdFromParams) return petIdFromParams;
@@ -486,6 +488,20 @@ export default function TimelineScreen() {
 
     setPendingJumpYm(null);
   }, [petId]);
+
+  useEffect(() => {
+    if (!mainCategoryFromParams) return;
+
+    setMainCategory(mainCategoryFromParams);
+    setOtherModalOpen(false);
+
+    if (mainCategoryFromParams === 'other') {
+      setOtherSubCategory(otherSubCategoryFromParams ?? null);
+      return;
+    }
+
+    setOtherSubCategory(null);
+  }, [mainCategoryFromParams, otherSubCategoryFromParams, petId]);
 
   // ---------------------------------------------------------
   // 4.1) debounce search

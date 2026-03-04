@@ -25,7 +25,13 @@ import MoreDrawer from '../components/MoreDrawer/MoreDrawer';
 
 export type AppTabParamList = {
   HomeTab: undefined;
-  TimelineTab: { petId?: string } | undefined;
+  TimelineTab:
+    | {
+        petId?: string;
+        mainCategory?: 'all' | 'walk' | 'meal' | 'health' | 'diary' | 'other';
+        otherSubCategory?: 'grooming' | 'hospital' | 'etc';
+      }
+    | undefined;
   RecordCreateTab: { petId?: string } | undefined;
   GuestbookTab: undefined;
   MoreTab: undefined;
@@ -113,7 +119,7 @@ function CustomTabBar(props: BottomTabBarProps & { onOpenMore: () => void }) {
           onPress={() => handlePress('TimelineTab')}
         >
           <Feather
-            name="clock"
+            name="activity"
             size={18}
             color={isActive('TimelineTab') ? ACTIVE : INACTIVE}
           />
@@ -283,7 +289,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    top: 18,
+    top: 0,
     alignItems: 'center',
   },
   fabBtn: {
