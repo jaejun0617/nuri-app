@@ -62,9 +62,12 @@ import { styles } from './LoggedInHome.styles';
 type HomeTabNav = BottomTabNavigationProp<AppTabParamList, 'HomeTab'>;
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
 type Nav = CompositeNavigationProp<HomeTabNav, RootNav>;
-type TimelineMainCategory = NonNullable<AppTabParamList['TimelineTab']>['mainCategory'];
-type TimelineOtherSubCategory =
-  NonNullable<AppTabParamList['TimelineTab']>['otherSubCategory'];
+type TimelineMainCategory = NonNullable<
+  AppTabParamList['TimelineTab']
+>['mainCategory'];
+type TimelineOtherSubCategory = NonNullable<
+  AppTabParamList['TimelineTab']
+>['otherSubCategory'];
 type HomeMainCategory = Exclude<TimelineMainCategory, undefined>;
 type HomeOtherSubCategory = Exclude<TimelineOtherSubCategory, undefined>;
 
@@ -398,7 +401,9 @@ function formatScheduleDateLabel(schedule: PetSchedule): string {
   if (Number.isNaN(date.getTime())) return '';
 
   const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
-  const base = `${date.getMonth() + 1}/${date.getDate()} (${weekdays[date.getDay()]})`;
+  const base = `${date.getMonth() + 1}/${date.getDate()} (${
+    weekdays[date.getDay()]
+  })`;
 
   if (schedule.allDay) return base;
 
@@ -484,7 +489,9 @@ function buildScheduleCard(schedule: PetSchedule): WeeklyScheduleItem {
     title: schedule.title,
     subtitle:
       schedule.note?.trim() ||
-      (schedule.allDay ? '하루 일정으로 저장된 항목이에요' : '예정된 일정이에요'),
+      (schedule.allDay
+        ? '하루 일정으로 저장된 항목이에요'
+        : '예정된 일정이에요'),
     icon: mapScheduleIcon(schedule.iconKey),
     tint: mapScheduleColorToTint(schedule.colorKey),
     mainCategory: category.mainCategory,
@@ -492,13 +499,14 @@ function buildScheduleCard(schedule: PetSchedule): WeeklyScheduleItem {
   };
 }
 
-const FALLBACK_RECORDS_STATE: Omit<PetRecordsState, 'requestSeq'> = Object.freeze({
-  status: 'idle',
-  items: [],
-  errorMessage: null,
-  cursor: null,
-  hasMore: false,
-});
+const FALLBACK_RECORDS_STATE: Omit<PetRecordsState, 'requestSeq'> =
+  Object.freeze({
+    status: 'idle',
+    items: [],
+    errorMessage: null,
+    cursor: null,
+    hasMore: false,
+  });
 
 const FALLBACK_SCHEDULES_STATE = Object.freeze({
   items: [] as PetSchedule[],
@@ -573,7 +581,8 @@ const TIP_TEMPLATES: Array<{
 
 const TODAY_HOME_TIP = {
   badge: '오늘의 팁',
-  title: '반려동물의 평소 소리를 기억해두면 작은 변화도 더 빨리 알아챌 수 있어요.',
+  title:
+    '반려동물의 평소 소리를 기억해두면 작은 변화도 더 빨리 알아챌 수 있어요.',
   description:
     '산책 후 숨소리, 잠든 뒤 호흡, 식사 직후의 반응처럼 평소의 기준을 남겨두면 컨디션 변화를 더 빨리 알아차릴 수 있어요.',
 };
@@ -816,7 +825,6 @@ export default function LoggedInHome() {
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
   const selectPet = usePetStore(s => s.selectPet);
-  const petBooted = usePetStore(s => s.booted);
 
   // ---------------------------------------------------------
   // 3) derived
@@ -832,19 +840,6 @@ export default function LoggedInHome() {
   }, [pets, selectedPetId]);
 
   const activePetId = useMemo(() => selectedPet?.id ?? null, [selectedPet?.id]);
-
-  // ---------------------------------------------------------
-  // ✅ pets boot 완료 후 pets=0이면 PetCreate로 reset 유도
-  // ---------------------------------------------------------
-  useEffect(() => {
-    if (!petBooted) return;
-    if (pets.length > 0) return;
-
-    rootNavigation.reset({
-      index: 0,
-      routes: [{ name: 'PetCreate', params: { from: 'auto' } }],
-    });
-  }, [petBooted, pets.length, rootNavigation]);
 
   // ---------------------------------------------------------
   // 3.5) pet switch transition (fade + lift)
@@ -1244,9 +1239,7 @@ export default function LoggedInHome() {
     return TIP_TEMPLATES.map(item => ({
       ...item,
       title:
-        item.key === 'meal'
-          ? `${petName}에게 꼭 필요한 영양 루틴`
-          : item.title,
+        item.key === 'meal' ? `${petName}에게 꼭 필요한 영양 루틴` : item.title,
     }));
   }, [petName]);
 
@@ -1869,7 +1862,7 @@ export default function LoggedInHome() {
 
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.tipSectionTitle}>전체 일정</Text>
+              <Text style={styles.tipSectionTitle}>일정 보기</Text>
               <TouchableOpacity
                 activeOpacity={0.85}
                 onPress={onPressScheduleList}
@@ -1882,7 +1875,8 @@ export default function LoggedInHome() {
               <View style={styles.emptyBox}>
                 <Text style={styles.emptyTitle}>등록된 일정이 아직 없어요</Text>
                 <Text style={styles.emptyDesc}>
-                  오래 남겨둘 일정도 한곳에 모아두고 홈에서 가볍게 꺼내볼 수 있어요.
+                  오래 남겨둘 일정도 한곳에 모아두고 홈에서 가볍게 꺼내볼 수
+                  있어요.
                 </Text>
               </View>
             ) : (
@@ -1895,7 +1889,9 @@ export default function LoggedInHome() {
                     onPress={onPressScheduleList}
                   >
                     <View style={styles.scheduleDateBadge}>
-                      <Text style={styles.scheduleDateText}>{item.dateLabel}</Text>
+                      <Text style={styles.scheduleDateText}>
+                        {item.dateLabel}
+                      </Text>
                     </View>
 
                     <View style={styles.scheduleBody}>
@@ -2004,7 +2000,9 @@ export default function LoggedInHome() {
             <View style={styles.todayTipCard}>
               <View style={styles.todayTipBadge}>
                 <Feather name="map-pin" size={12} color="#6D6AF8" />
-                <Text style={styles.todayTipBadgeText}>{TODAY_HOME_TIP.badge}</Text>
+                <Text style={styles.todayTipBadgeText}>
+                  {TODAY_HOME_TIP.badge}
+                </Text>
               </View>
               <Text style={styles.todayTipTitle}>{TODAY_HOME_TIP.title}</Text>
               <Text style={styles.todayTipDesc}>
@@ -2026,10 +2024,10 @@ export default function LoggedInHome() {
 
             {currentMonthDiaryEntries.length === 0 ? (
               <View style={styles.emptyBox}>
-                <Text style={styles.emptyTitle}>이번 달 일기가 아직 없어요</Text>
-                <Text style={styles.emptyDesc}>
-                  첫 번째 일기를 남겨보세요.
+                <Text style={styles.emptyTitle}>
+                  이번 달 일기가 아직 없어요
                 </Text>
+                <Text style={styles.emptyDesc}>첫 번째 일기를 남겨보세요.</Text>
                 <TouchableOpacity
                   activeOpacity={0.9}
                   style={styles.recordBtn}

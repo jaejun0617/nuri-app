@@ -52,3 +52,30 @@ export async function saveMyNickname(nickname: string): Promise<void> {
 
   if (insertError) throw insertError;
 }
+
+/* ---------------------------------------------------------
+ * 3) 닉네임 사용 가능 여부 확인
+ * -------------------------------------------------------- */
+export async function checkNicknameAvailability(
+  nickname: string,
+): Promise<boolean> {
+  const userRes = await supabase.auth.getUser();
+  const userId = userRes.data.user?.id ?? null;
+  if (!userId) throw new Error('로그인 정보가 없습니다.');
+
+  const trimmed = nickname.trim();
+  if (!trimmed) return false;
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('user_id')
+    .eq('nickname', trimmed);
+
+  if (error) throw error;
+
+  const rows = Array.isArray(data)
+    ? (data as Array<{ user_id?: string | null }>)
+    : [];
+
+  return !rows.some(row => row.user_id && row.user_id !== userId);
+}

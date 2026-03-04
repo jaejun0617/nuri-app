@@ -1,22 +1,67 @@
-// 파일: src/screens/Auth/NicknameSetupScreen.tsx
-// 목적:
-// - 가입/로그인 후 닉네임 1회 설정
-// - 완료 시 AppTabs로 reset
-
-import React, { useMemo, useState } from 'react';
-import { Alert, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 
+import { ASSETS } from '../../assets';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
-import { saveMyNickname } from '../../services/supabase/profile';
+import {
+  checkNicknameAvailability,
+  saveMyNickname,
+} from '../../services/supabase/profile';
 import { useAuthStore } from '../../store/authStore';
-
 import { styles } from './NicknameSetupScreen.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type R = RouteProp<RootStackParamList, 'NicknameSetup'>;
+
+type ValidationState =
+  | { tone: 'idle'; message: string | null }
+  | { tone: 'error'; message: string }
+  | { tone: 'success'; message: string };
+
+const MAX_NICKNAME_LENGTH = 8;
+const NICKNAME_REGEX = /^[A-Za-z0-9가-힣]+$/;
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  return '다시 시도해 주세요.';
+}
+
+function getNicknameValidationMessage(value: string): ValidationState {
+  const trimmed = value.trim();
+  if (!trimmed) return { tone: 'idle', message: null };
+  if (trimmed.length > MAX_NICKNAME_LENGTH) {
+    return {
+      tone: 'error',
+      message: '닉네임은 8자 이내로 입력해주세요',
+    };
+  }
+  if (!NICKNAME_REGEX.test(trimmed)) {
+    return {
+      tone: 'error',
+      message: '특수문자는 사용할수 없습니다',
+    };
+  }
+  if (trimmed.length < 2) {
+    return {
+      tone: 'error',
+      message: '닉네임은 2자 이상 입력해주세요',
+    };
+  }
+  return { tone: 'idle', message: null };
+}
 
 export default function NicknameSetupScreen() {
   const navigation = useNavigation<Nav>();
@@ -26,63 +71,177 @@ export default function NicknameSetupScreen() {
   const setNickname = useAuthStore(s => s.setNickname);
 
   const [nickname, setLocalNickname] = useState(current);
+  const [checking, setChecking] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [availabilityChecked, setAvailabilityChecked] = useState(false);
+  const [validationState, setValidationState] = useState<ValidationState>({
+    tone: 'idle',
+    message: null,
+  });
 
   const trimmed = useMemo(() => nickname.trim(), [nickname]);
-  const disabled = useMemo(() => trimmed.length < 2, [trimmed]);
+  const localValidation = useMemo(
+    () => getNicknameValidationMessage(trimmed),
+    [trimmed],
+  );
 
-  const onSubmit = async () => {
+  const helperMessage = useMemo(() => {
+    if (validationState.tone !== 'idle') return validationState;
+    return localValidation;
+  }, [localValidation, validationState]);
+
+  const isAvailable = useMemo(
+    () => validationState.tone === 'success',
+    [validationState.tone],
+  );
+
+  const canCheck = useMemo(() => {
+    if (checking || saving) return false;
+    return localValidation.tone !== 'error' && trimmed.length >= 2;
+  }, [checking, localValidation.tone, saving, trimmed.length]);
+
+  const canSubmit = useMemo(() => {
+    if (saving || checking) return false;
+    return isAvailable && availabilityChecked;
+  }, [availabilityChecked, checking, isAvailable, saving]);
+
+  const onChangeNickname = useCallback((value: string) => {
+    setLocalNickname(value);
+    setAvailabilityChecked(false);
+    setValidationState({ tone: 'idle', message: null });
+  }, []);
+
+  const onCheckDuplicate = useCallback(async () => {
+    const syncValidation = getNicknameValidationMessage(trimmed);
+    if (syncValidation.tone === 'error') {
+      setValidationState(syncValidation);
+      return;
+    }
+
     try {
+      setChecking(true);
+      const available = await checkNicknameAvailability(trimmed);
+
+      if (!available) {
+        setAvailabilityChecked(false);
+        setValidationState({
+          tone: 'error',
+          message: '이미 사용중인 닉네임 입니다.',
+        });
+        return;
+      }
+
+      setAvailabilityChecked(true);
+      setValidationState({
+        tone: 'success',
+        message: '사용 가능한 닉네임입니다',
+      });
+    } catch (error) {
+      setAvailabilityChecked(false);
+      setValidationState({
+        tone: 'error',
+        message: getErrorMessage(error),
+      });
+    } finally {
+      setChecking(false);
+    }
+  }, [trimmed]);
+
+  const onSubmit = useCallback(async () => {
+    if (!canSubmit) return;
+
+    try {
+      setSaving(true);
       await saveMyNickname(trimmed);
       await setNickname(trimmed);
 
-      navigation.reset({ index: 0, routes: [{ name: 'AppTabs' }] });
-    } catch (e: any) {
-      Alert.alert('닉네임 저장 실패', e?.message ?? '다시 시도해 주세요.');
+      navigation.reset({ index: 0, routes: [{ name: 'PetCreate' }] });
+    } catch (error) {
+      Alert.alert('닉네임 저장 실패', getErrorMessage(error));
+    } finally {
+      setSaving(false);
     }
-  };
+  }, [canSubmit, navigation, setNickname, trimmed]);
 
   const hintText = useMemo(() => {
-    if (!route.params?.after) return null;
+    if (!route.params?.after) return '홈에서 표시될 닉네임을 설정해주세요';
     return route.params.after === 'signup'
-      ? '회원가입 완료 후 첫 설정 단계입니다.'
-      : '로그인 후 닉네임이 없어 설정이 필요합니다.';
+      ? '홈에서 표시될 닉네임을 설정해주세요'
+      : '계속하려면 닉네임 설정이 필요합니다';
   }, [route.params?.after]);
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.card}>
-        <Text style={styles.title}>닉네임 설정</Text>
-        <Text style={styles.subTitle}>
-          홈에서 "{'{닉네임}님, 반가워요!'}"로 표시돼요.
-        </Text>
+    <SafeAreaView style={styles.screen} edges={['top']}>
+      <View style={styles.content}>
+        <Image source={ASSETS.logo} style={styles.logo} resizeMode="contain" />
 
-        <Text style={styles.label}>닉네임</Text>
-        <TextInput
-          value={nickname}
-          onChangeText={setLocalNickname}
-          placeholder="2자 이상"
-          placeholderTextColor="#B8B0A8"
-          style={styles.input}
-          autoCapitalize="none"
-          autoCorrect={false}
-          returnKeyType="done"
-          onSubmitEditing={disabled ? undefined : onSubmit}
-        />
+        <View style={styles.inputBlock}>
+          <View style={styles.inputRow}>
+            <TextInput
+              value={nickname}
+              onChangeText={onChangeNickname}
+              placeholder="닉네임을 입력해주세요"
+              placeholderTextColor="#B8C0CE"
+              style={styles.input}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="done"
+              maxLength={12}
+              onSubmitEditing={canCheck ? onCheckDuplicate : undefined}
+            />
 
+            <TouchableOpacity
+              activeOpacity={0.88}
+              style={[
+                styles.checkButton,
+                !canCheck ? styles.checkButtonDisabled : null,
+              ]}
+              onPress={onCheckDuplicate}
+              disabled={!canCheck}
+            >
+              {checking ? (
+                <ActivityIndicator color="#98A1B2" size="small" />
+              ) : (
+                <Text style={styles.checkButtonText}>중복확인</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.underline} />
+          <Text style={styles.hintText}>{hintText}</Text>
+
+          {helperMessage.message ? (
+            <Text
+              style={[
+                styles.validationText,
+                helperMessage.tone === 'error'
+                  ? styles.validationError
+                  : helperMessage.tone === 'success'
+                  ? styles.validationSuccess
+                  : null,
+              ]}
+            >
+              {helperMessage.message}
+            </Text>
+          ) : null}
+        </View>
+      </View>
+
+      <View style={styles.footer}>
         <TouchableOpacity
           activeOpacity={0.9}
           style={[
             styles.primaryButton,
-            disabled ? styles.primaryButtonDisabled : null,
+            !canSubmit ? styles.primaryButtonDisabled : null,
           ]}
-          disabled={disabled}
           onPress={onSubmit}
+          disabled={!canSubmit}
         >
-          <Text style={styles.primaryButtonText}>완료</Text>
+          <Text style={styles.primaryButtonText}>
+            {saving ? '저장 중...' : '완료'}
+          </Text>
         </TouchableOpacity>
-
-        {hintText ? <Text style={styles.hint}>{hintText}</Text> : null}
       </View>
-    </View>
+    </SafeAreaView>
   );
 }

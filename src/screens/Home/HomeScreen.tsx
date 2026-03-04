@@ -21,7 +21,10 @@ export default function HomeScreen() {
   const navigation = useNavigation<Nav>();
 
   const authBooted = useAuthStore(s => s.booted);
+  const isLoggedIn = useAuthStore(s => s.isLoggedIn);
+  const nickname = useAuthStore(s => s.profile.nickname);
   const petBooted = usePetStore(s => s.booted);
+  const pets = usePetStore(s => s.pets);
 
   // Splash 시작 시각
   const startedAtRef = useRef<number>(Date.now());
@@ -71,6 +74,32 @@ export default function HomeScreen() {
       if (movedRef.current) return;
       movedRef.current = true;
 
+      const trimmedNickname = nickname?.trim() ?? '';
+
+      if (!isLoggedIn) {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'AppTabs' }],
+        });
+        return;
+      }
+
+      if (!trimmedNickname) {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'NicknameSetup' }],
+        });
+        return;
+      }
+
+      if (pets.length === 0) {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'PetCreate', params: { from: 'auto' } }],
+        });
+        return;
+      }
+
       navigation.reset({
         index: 0,
         routes: [{ name: 'AppTabs' }],
@@ -78,7 +107,7 @@ export default function HomeScreen() {
     }, wait);
 
     return () => clearTimeout(t);
-  }, [authBooted, petBooted, navigation]);
+  }, [authBooted, isLoggedIn, navigation, nickname, petBooted, pets.length]);
 
   // ---------------------------------------------------------
   // 애니메이션(기존 유지)
