@@ -26,7 +26,7 @@ import MoreDrawer from '../components/MoreDrawer/MoreDrawer';
 export type AppTabParamList = {
   HomeTab: undefined;
   TimelineTab: undefined;
-  RecordCreateTab: undefined;
+  RecordCreateTab: { petId?: string } | undefined;
   GuestbookTab: undefined;
   MoreTab: undefined;
 };

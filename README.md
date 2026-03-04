@@ -297,6 +297,18 @@ hydrate(AsyncStorage)
 - 검색 중 자동 loadMore는 OFF + footer 수동 버튼 제공
 - RN New Architecture 대비: 동일 참조 `EMPTY_ITEMS/FALLBACK_STATE`로 렌더 안정성 고정
 
+## ✅ Chapter 6-2 — RecordCreate 타입 안정화 + 스타일 분리
+
+- `RecordCreateTab`이 `petId`를 optional param으로 받을 수 있도록 탭 라우트 타입 정식화
+- `RecordCreateScreen`에서 `any` navigation / route 사용 제거
+- `CompositeNavigationProp` + `RouteProp` 적용으로 탭 이동 타입 안전성 확보
+- 이미지 선택 시 MIME type을 `asset.type -> fileName -> uri` 순서로 추론하도록 보강
+- 에러 처리 로직을 `unknown` 기반 메시지 함수로 통일
+- `RecordCreateScreen` 인라인 스타일 제거
+- `RecordCreateScreen.styles.ts`로 스타일 분리하여 Records 화면군 구조 통일
+- `petId` 해석 규칙 유지:
+  - `route.params.petId -> selectedPetId -> pets[0]`
+
 ---
 
 ## Chapter: 홈 UI 2차 업그레이드 (진행 중)
@@ -396,6 +408,135 @@ hydrate(AsyncStorage)
 
 # 🚀 Next
 
+---
+
+# Chapter 7. Timeline Performance Optimization
+
+Timeline 화면에서 기록 수가 증가할수록 스크롤이 끊기거나 버벅이는 문제가 발생할 수 있다.  
+특히 pagination(loadMore) 과정에서 **전체 리스트를 매번 merge + sort 하는 구조**는 데이터가 많아질수록 성능 비용이 크게 증가한다.
+
+이번 챕터에서는 **타임라인 스크롤 경험을 부드럽게 유지하기 위한 구조적 성능 최적화**를 적용하였다.
+
+---
+
+## 문제 원인
+
+기존 구조에서는 `loadMore` 실행 시 다음과 같은 작업이 수행되었다.
+
+1. 기존 리스트 + 새 페이지 데이터를 `Map`으로 병합
+2. 전체 데이터를 다시 `sort`
+3. 정렬된 리스트를 상태에 저장
+
+이 방식은 기록이 누적될수록 매번 **O(n log n)** 정렬이 발생하여 스크롤 중 프레임 드랍을 유발할 수 있다.
+
+---
+
+## 해결 전략
+
+NURI 타임라인은 다음 구조를 가진다.
+
+- 데이터 정렬 기준: `created_at DESC`
+- pagination 방식: `cursor 기반`
+
+즉, **다음 페이지 데이터는 항상 기존 데이터보다 오래된 기록**이다.
+
+이 특성을 활용하여 다음 전략을 적용했다.
+
+### 기존 방식
+
+prevItems + newItems
+→ merge(Map)
+→ 전체 sort
+
+### 개선 방식
+
+prevItems + newItems
+→ 중복 ID 제거
+→ 뒤에 append
+
+이 방식은 다음과 같은 장점을 가진다.
+
+- 전체 정렬 제거
+- 리스트 append 방식 유지
+- FlatList 재렌더 비용 최소화
+- 스크롤 프레임 안정화
+
+---
+
+## 최적화 핵심 로직
+
+```ts
+function appendPageUniqueById(prev: MemoryRecord[], nextPage: MemoryRecord[]) {
+  const seen = new Set(prev.map(it => it.id));
+
+  const append = nextPage.filter(it => {
+    if (seen.has(it.id)) return false;
+    seen.add(it.id);
+    return true;
+  });
+
+  return append.length ? prev.concat(append) : prev;
+}
+
+이 로직은 다음 원칙을 따른다.
+
+기존 배열 순서를 유지
+
+새로운 페이지는 뒤에 추가
+
+중복 데이터는 제거
+
+추가 안정성 설계
+1️⃣ Out-of-order 응답 방지
+
+네트워크 지연으로 인해 이전 요청이 늦게 도착하는 문제를 방지하기 위해
+requestSeq 기반 상태 보호 로직을 유지하였다.
+
+bootstrap / refresh → requestSeq 증가
+loadMore → 현재 requestSeq 스냅샷 비교
+
+이 구조를 통해 오래된 응답이 상태를 덮어쓰는 문제를 방지한다.
+
+2️⃣ FlatList 렌더 안정화
+
+다음 설정을 유지하여 스크롤 성능을 안정화하였다.
+
+removeClippedSubviews
+initialNumToRender
+maxToRenderPerBatch
+windowSize
+updateCellsBatchingPeriod
+결과
+
+최적화 이후 타임라인은 다음과 같은 특성을 가진다.
+
+기록 수 증가에도 스크롤 프레임 유지
+
+loadMore 실행 시 UI 끊김 최소화
+
+대량 데이터에서도 안정적인 pagination
+
+이 구조는 향후 다음 기능에도 안정적으로 확장될 수 있다.
+
+서버 검색
+
+태그 기반 필터
+
+월별 jump navigation
+
+AI 기반 기록 추천
+
+NURI Timeline은 단순한 기록 리스트가 아니라
+감정 기반 기억을 탐색하는 인터페이스이다.
+
+따라서 사용자가 스크롤하는 경험 자체가
+끊김 없이 자연스럽게 흐르는 것이 매우 중요하다.
+
+이번 챕터는 그 경험을 위한 핵심 성능 구조를 확립한 단계이다.
+
+
+
+
 ## Chapter 7 — 서버 검색(제목/태그) + 인덱스/정렬 안정화 + 섹션 점프 고도화
 
 - (1) Supabase 서버 검색(`title ilike`, `tags` 조건 조합)
@@ -410,5 +551,6 @@ hydrate(AsyncStorage)
 
 ## Final Statement
 
-> **NURI는 감정을 저장하는 서비스가 아니라, 감정을 구조화하는 시스템입니다.**  
+> **NURI는 감정을 저장하는 서비스가 아니라, 감정을 구조화하는 시스템입니다.**
 > **Private Founder Build**
+```

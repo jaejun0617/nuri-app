@@ -6,35 +6,39 @@
 // - ✅ 탭 구조에서 폼이 남는 문제 방지: focus/reset + 성공 후 reset
 
 import React, { useCallback, useMemo, useState } from 'react';
+import { Alert, Image, TextInput, TouchableOpacity, View } from 'react-native';
+import type { CompositeNavigationProp, RouteProp } from '@react-navigation/native';
 import {
-  Alert,
-  Image,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { launchImageLibrary } from 'react-native-image-picker';
-import {
+  useFocusEffect,
   useNavigation,
   useRoute,
-  useFocusEffect,
 } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { launchImageLibrary } from 'react-native-image-picker';
 
+import type { RootStackParamList } from '../../navigation/RootNavigator';
+import type { AppTabParamList } from '../../navigation/AppTabsNavigator';
 import { supabase } from '../../services/supabase/client';
 import {
   createMemory,
-  updateMemoryImagePath,
-  type EmotionTag,
   fetchMemoryById,
+  type EmotionTag,
+  updateMemoryImagePath,
 } from '../../services/supabase/memories';
 import { uploadMemoryImage } from '../../services/supabase/storageMemories';
-import { useRecordStore } from '../../store/recordStore';
-import { usePetStore } from '../../store/petStore';
 import AppText from '../../app/ui/AppText';
+import { usePetStore } from '../../store/petStore';
+import { useRecordStore } from '../../store/recordStore';
+import { styles } from './RecordCreateScreen.styles';
 
-type Nav = NativeStackNavigationProp<any>;
+type RecordCreateTabRoute = RouteProp<AppTabParamList, 'RecordCreateTab'>;
+type RecordCreateTabNav = BottomTabNavigationProp<
+  AppTabParamList,
+  'RecordCreateTab'
+>;
+type RootNav = NativeStackNavigationProp<RootStackParamList>;
+type Nav = CompositeNavigationProp<RecordCreateTabNav, RootNav>;
 
 const EMOTIONS: Array<{ label: string; value: EmotionTag }> = [
   { label: '행복', value: 'happy' },
@@ -47,12 +51,58 @@ const EMOTIONS: Array<{ label: string; value: EmotionTag }> = [
   { label: '피곤', value: 'tired' },
 ];
 
+function getErrorMessage(err: unknown) {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  return '다시 시도해 주세요.';
+}
+
+function inferMimeFromFileName(
+  fileName: string | null | undefined,
+): string | null {
+  const value = (fileName ?? '').toLowerCase().trim();
+  if (!value) return null;
+  if (value.endsWith('.jpg') || value.endsWith('.jpeg')) return 'image/jpeg';
+  if (value.endsWith('.png')) return 'image/png';
+  if (value.endsWith('.webp')) return 'image/webp';
+  if (value.endsWith('.heic')) return 'image/heic';
+  if (value.endsWith('.heif')) return 'image/heif';
+  return null;
+}
+
+function inferMimeFromUri(uri: string): string | null {
+  const normalized = uri.toLowerCase().split('?')[0];
+  if (normalized.endsWith('.jpg') || normalized.endsWith('.jpeg')) {
+    return 'image/jpeg';
+  }
+  if (normalized.endsWith('.png')) return 'image/png';
+  if (normalized.endsWith('.webp')) return 'image/webp';
+  if (normalized.endsWith('.heic')) return 'image/heic';
+  if (normalized.endsWith('.heif')) return 'image/heif';
+  return null;
+}
+
+function resolvePickerMimeType(asset: {
+  type?: string | null;
+  fileName?: string | null;
+  uri?: string | null;
+}) {
+  const direct = asset.type ?? null;
+  if (direct && direct.includes('/')) return direct;
+
+  const byName = inferMimeFromFileName(asset.fileName);
+  if (byName) return byName;
+
+  if (asset.uri) return inferMimeFromUri(asset.uri);
+  return null;
+}
+
 export default function RecordCreateScreen() {
   // ---------------------------------------------------------
   // 1) navigation / route
   // ---------------------------------------------------------
   const navigation = useNavigation<Nav>();
-  const route = useRoute<any>();
+  const route = useRoute<RecordCreateTabRoute>();
 
   // ---------------------------------------------------------
   // 1.5) petId resolve (params → store fallback)
@@ -168,7 +218,7 @@ export default function RecordCreateScreen() {
     }
 
     setImageUri(asset.uri);
-    setImageType(asset.type ?? null);
+    setImageType(resolvePickerMimeType(asset));
   };
 
   // ---------------------------------------------------------
@@ -226,8 +276,8 @@ export default function RecordCreateScreen() {
 
       // 6) 이동
       navigation.navigate('TimelineTab');
-    } catch (e: any) {
-      Alert.alert('기록 저장 실패', e?.message ?? '다시 시도해 주세요.');
+    } catch (error) {
+      Alert.alert('기록 저장 실패', getErrorMessage(error));
     } finally {
       setSaving(false);
     }
@@ -354,68 +404,3 @@ export default function RecordCreateScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#FFFFFF', padding: 16 },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#EAEAEA',
-  },
-
-  title: { marginBottom: 10, color: '#000000', fontWeight: '900' },
-
-  imagePicker: {
-    height: 160,
-    borderRadius: 18,
-    backgroundColor: '#F4F4F4',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#EAEAEA',
-  },
-  imagePickerText: { color: '#333333', fontWeight: '700' },
-  image: { width: '100%', height: '100%' },
-
-  label: {
-    marginTop: 10,
-    marginBottom: 6,
-    color: '#333333',
-    fontWeight: '800',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#EAEAEA',
-    borderRadius: 12,
-    padding: 12,
-    color: '#000000',
-    backgroundColor: '#FFFFFF',
-  },
-  multiline: { minHeight: 100, textAlignVertical: 'top' },
-
-  emotionRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#EAEAEA',
-    backgroundColor: '#FFFFFF',
-  },
-  chipActive: { borderColor: '#000000' },
-  chipText: { color: '#000000', fontWeight: '700' },
-
-  primary: {
-    marginTop: 16,
-    backgroundColor: '#000000',
-    padding: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  primaryDisabled: { opacity: 0.5 },
-  primaryText: { color: '#FFFFFF', fontWeight: '900' },
-});
