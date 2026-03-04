@@ -2,15 +2,16 @@
 // 목적:
 // - memory-images 버킷의 signed URL 생성 + TTL 캐싱(핵심)
 // - 동일 imagePath 반복 요청 시 네트워크 재호출 방지
-// - New Architecture 안정성 + 대량 리스트(타임라인) 성능 최적화
-// - ✅ memory-images 업로드(uploadMemoryImage) 포함(RecordCreate에서 사용)
+// - 대량 리스트(타임라인) 성능 최적화
+// - ✅ memory-images 업로드(uploadMemoryImage) 포함(RecordCreate/RecordEdit에서 사용)
 //
-// ✅ 캐싱/성능 규칙 (Chapter 6 확정)
+// ✅ 캐싱/성능 규칙
 // 1) key = imagePath(= storage path)
 // 2) TTL 캐시 + 만료 60초 전 갱신(버퍼)
 // 3) LRU(maxSize)로 캐시 메모리 상한 고정
 // 4) inFlight dedupe: 동일 path 동시 요청은 1번만 네트워크 호출
-// 5) prefetch: 상단 N개만, 캐시 히트는 스킵, 실패는 무시(UX 안전)
+// 5) prefetch: 상단 N개만, 캐시 히트는 스킵, 실패는 무시
+// 6) ✅ prefetch rate-limit(minIntervalMs) + concurrency 제한으로 "잔여 버벅임" 제거
 
 import { Buffer } from 'buffer';
 import RNBlobUtil from 'react-native-blob-util';
@@ -23,22 +24,28 @@ type CacheEntry = {
 };
 
 const cache = new Map<string, CacheEntry>();
-
-// ✅ 동시 요청 dedupe
 const inFlight = new Map<string, Promise<string>>();
 
-// ✅ Signed URL 기본 만료(초)
 const DEFAULT_EXPIRES_IN_SEC = 60 * 30; // 30분
 const REFRESH_BUFFER_MS = 60 * 1000; // 만료 60초 전부터 갱신
-
-// ✅ 캐시 크기 상한 (리스트/스크롤 많아질수록 중요)
 const DEFAULT_MAX_CACHE_SIZE = 350;
 
+const PREFETCH_MIN_INTERVAL_MS = 180; // 180ms (220~260 조정 가능)
+const PREFETCH_MAX_CONCURRENCY = 2; // 2~3 권장
+
 // ---------------------------------------------------------
-// 0) internal helpers
+// internal helpers
 // ---------------------------------------------------------
 function nowMs() {
   return Date.now();
+}
+
+function sleep(ms: number) {
+  return new Promise<void>(resolve => setTimeout(resolve, ms));
+}
+
+function normalizePath(p: string | null | undefined) {
+  return (p ?? '').trim();
 }
 
 function touch(key: string) {
@@ -65,12 +72,7 @@ function isFreshEnough(entry: CacheEntry, bufferMs = REFRESH_BUFFER_MS) {
   return entry.expiresAtMs - nowMs() > bufferMs;
 }
 
-function normalizePath(p: string | null | undefined) {
-  return (p ?? '').trim();
-}
-
 function normalizeFileUri(uri: string) {
-  // RNBlobUtil.fs.readFile: 환경에 따라 file:// 제거가 더 안전
   return uri.startsWith('file://') ? uri.replace('file://', '') : uri;
 }
 
@@ -105,7 +107,7 @@ export async function getMemoryImageSignedUrl(
 }
 
 // ---------------------------------------------------------
-// 2) cached: get signed url with TTL + LRU + dedupe
+// 2) cached: TTL + LRU + inFlight dedupe
 // ---------------------------------------------------------
 export async function getMemoryImageSignedUrlCached(
   imagePath: string | null | undefined,
@@ -161,9 +163,7 @@ export async function getMemoryImageSignedUrlCached(
 }
 
 // ---------------------------------------------------------
-// 3) prefetch: fill cache for top N
-// - 캐시에 이미 fresh한 건 스킵
-// - 실패는 무시
+// 3) prefetch: rate-limited + concurrency-limited
 // ---------------------------------------------------------
 export async function prefetchMemorySignedUrls(input: {
   imagePaths: Array<string | null | undefined>;
@@ -171,11 +171,21 @@ export async function prefetchMemorySignedUrls(input: {
   expiresInSec?: number;
   maxCacheSize?: number;
   refreshBufferMs?: number;
+
+  minIntervalMs?: number;
+  maxConcurrency?: number;
 }) {
   const max = input.max ?? 10;
   const expiresInSec = input.expiresInSec ?? DEFAULT_EXPIRES_IN_SEC;
   const maxCacheSize = input.maxCacheSize ?? DEFAULT_MAX_CACHE_SIZE;
   const refreshBufferMs = input.refreshBufferMs ?? REFRESH_BUFFER_MS;
+
+  // ✅ “실제로 쓰는” 구조 (unused 에러 방지)
+  const minIntervalMs = input.minIntervalMs ?? PREFETCH_MIN_INTERVAL_MS;
+  const effectiveMinIntervalMs = Math.max(60, Math.min(300, minIntervalMs));
+
+  const maxConcurrency = input.maxConcurrency ?? PREFETCH_MAX_CONCURRENCY;
+  const effectiveConcurrency = Math.max(1, Math.min(3, maxConcurrency));
 
   const unique = Array.from(
     new Set((input.imagePaths ?? []).map(normalizePath).filter(Boolean)),
@@ -191,14 +201,36 @@ export async function prefetchMemorySignedUrls(input: {
 
   if (targets.length === 0) return;
 
-  await Promise.all(
-    targets.map(p =>
-      getMemoryImageSignedUrlCached(p, {
+  let cursor = 0;
+
+  const worker = async () => {
+    let lastIssuedAt = 0;
+
+    while (true) {
+      const i = cursor;
+      cursor += 1;
+      if (i >= targets.length) break;
+
+      const path = targets[i];
+      if (!path) continue;
+
+      const now = nowMs();
+      const since = now - lastIssuedAt;
+      if (since < effectiveMinIntervalMs) {
+        await sleep(effectiveMinIntervalMs - since);
+      }
+      lastIssuedAt = nowMs();
+
+      await getMemoryImageSignedUrlCached(path, {
         expiresInSec,
         maxCacheSize,
         refreshBufferMs,
-      }).catch(() => null),
-    ),
+      }).catch(() => null);
+    }
+  };
+
+  await Promise.all(
+    Array.from({ length: effectiveConcurrency }, () => worker()),
   );
 }
 
@@ -212,16 +244,16 @@ export function getMemorySignedUrlCacheSize() {
 }
 
 // ---------------------------------------------------------
-// 4) upload: memory-images 업로드 (✅ 안전 버전: Buffer base64 decode)
-// - RecordCreateScreen에서 사용하는 함수
-// - DB에는 path만 저장하고, 렌더는 signedUrl로 처리
+// 4) upload: memory-images 업로드
 // ---------------------------------------------------------
+// 파일: src/services/supabase/storageMemories.ts
+
 type UploadMemoryImageParams = {
   userId: string;
   petId: string;
   memoryId: string;
-  fileUri: string; // file://...
-  mimeType: string | null; // image/jpeg 등
+  fileUri: string;
+  mimeType: string | null;
 };
 
 export async function uploadMemoryImage({
@@ -232,24 +264,39 @@ export async function uploadMemoryImage({
   mimeType,
 }: UploadMemoryImageParams): Promise<{ path: string }> {
   const ext = inferExtFromMime(mimeType);
-  const path = `${userId}/${petId}/${memoryId}.${ext}`;
 
-  // 1) 로컬 파일 → base64
+  // ✅ 핵심: 매번 새로운 path (타임스탬프 + 랜덤)로 충돌 방지
+  const version = Date.now();
+  const nonce = Math.random().toString(36).slice(2, 10);
+  const path = `${userId}/${petId}/${memoryId}_${version}_${nonce}.${ext}`;
+
   const filePath = normalizeFileUri(fileUri);
   const base64 = await RNBlobUtil.fs.readFile(filePath, 'base64');
-
-  // 2) base64 → bytes (✅ RN에서 atob 의존 제거)
   const bytes = Buffer.from(base64, 'base64');
 
-  // 3) upload (upsert)
+  // ✅ upsert=false (같은 path를 덮어쓰지 않음)
   const { error } = await supabase.storage
     .from('memory-images')
     .upload(path, bytes, {
       contentType: mimeType ?? 'image/jpeg',
-      upsert: true,
+      upsert: false,
     });
 
   if (error) throw error;
 
   return { path };
+}
+
+// ---------------------------------------------------------
+// 5) delete: memory-images 파일 삭제 (+ 캐시 정리)
+// ---------------------------------------------------------
+export async function deleteMemoryImage(imagePath: string) {
+  const path = normalizePath(imagePath);
+  if (!path) return;
+
+  const { error } = await supabase.storage.from('memory-images').remove([path]);
+  if (error) throw error;
+
+  cache.delete(path);
+  inFlight.delete(path);
 }

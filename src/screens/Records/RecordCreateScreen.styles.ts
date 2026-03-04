@@ -131,6 +131,22 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
+  photoCounterBadge: {
+    position: 'absolute',
+    left: 14,
+    bottom: 14,
+    minWidth: 48,
+    height: 26,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    backgroundColor: 'rgba(17,24,39,0.56)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoCounterText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+  },
   photoGhostBtn: {
     height: 32,
     paddingHorizontal: 12,
@@ -142,6 +158,26 @@ export const styles = StyleSheet.create({
   photoGhostBtnText: {
     color: '#FFFFFF',
     fontWeight: '800',
+  },
+  photoThumbRow: {
+    marginTop: 10,
+    gap: 10,
+    paddingHorizontal: 2,
+  },
+  photoThumbWrap: {
+    width: 58,
+    height: 58,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: 'rgba(17,24,39,0.06)',
+    overflow: 'hidden',
+  },
+  photoThumbWrapActive: {
+    borderColor: BRAND,
+  },
+  photoThumb: {
+    width: '100%',
+    height: '100%',
   },
 
   quickTagRow: {
@@ -234,6 +270,39 @@ export const styles = StyleSheet.create({
   fieldLabel: {
     color: TEXT,
     fontWeight: '900',
+  },
+  moodGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  moodChip: {
+    width: '23%',
+    minHeight: 40,
+    borderRadius: 14,
+    backgroundColor: '#F1F4F9',
+    borderWidth: 1,
+    borderColor: 'rgba(148,163,184,0.12)',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    paddingVertical: 6,
+  },
+  moodChipActive: {
+    backgroundColor: 'rgba(109,106,248,0.10)',
+    borderColor: 'rgba(109,106,248,0.24)',
+  },
+  moodEmoji: {
+    color: '#556070',
+    fontWeight: '700',
+  },
+  moodText: {
+    color: '#7B879C',
+    fontWeight: '800',
+  },
+  moodTextActive: {
+    color: BRAND_DARK,
   },
   input: {
     minHeight: 42,
@@ -386,6 +455,24 @@ export const styles = StyleSheet.create({
     marginBottom: 10,
     color: '#9BA6B7',
     fontWeight: '800',
+  },
+  tagSectionHeaderRow: {
+    marginTop: 18,
+    marginBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  tagSectionTitleCompact: {
+    color: '#9BA6B7',
+    fontWeight: '800',
+  },
+  clearRecentText: {
+    color: '#7A71F4',
+    fontWeight: '800',
+  },
+  clearRecentTextDisabled: {
+    color: '#C2C9D6',
   },
   tagChipGrid: {
     flexDirection: 'row',

@@ -1,0 +1,161 @@
+// 파일: src/screens/Records/RecordDetailScreen.styles.ts
+import { StyleSheet } from 'react-native';
+
+export const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: '#F6F7FB' },
+
+  header: {
+    height: 56,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E6E8F0',
+    backgroundColor: '#FFFFFF',
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    color: '#0B1220',
+    fontWeight: '900',
+  },
+  headerPlaceholder: { width: 44 },
+
+  scroll: { flex: 1 },
+  body: { padding: 14, gap: 12, paddingBottom: 20 },
+  heroSlider: {
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#E6E8F0',
+    backgroundColor: '#FFFFFF',
+  },
+  heroImg: {
+    height: 300,
+    borderRadius: 22,
+    backgroundColor: '#F2F4FA',
+  },
+  heroPlaceholder: {
+    width: '100%',
+    height: 300,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#E6E8F0',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroPlaceholderText: { color: '#8A94A6', fontWeight: '800' },
+  heroDots: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: -2,
+  },
+  heroDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#D8DEEA',
+  },
+  heroDotActive: {
+    width: 16,
+    backgroundColor: '#6D6AF8',
+  },
+
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E6E8F0',
+  },
+  title: { color: '#0B1220', fontWeight: '900' },
+
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 10,
+  },
+  metaText: { color: '#8A94A6', fontWeight: '700' },
+  categoryBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: 'rgba(147,95,255,0.14)',
+  },
+  categoryBadgeText: {
+    color: '#6C4DDB',
+    fontWeight: '800',
+  },
+
+  moodCard: {
+    marginTop: 14,
+    minHeight: 56,
+    borderRadius: 18,
+    backgroundColor: '#F2F4FA',
+    borderWidth: 1,
+    borderColor: 'rgba(17,24,39,0.04)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    gap: 10,
+  },
+  moodIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  moodEmoji: { fontSize: 16, color: '#0B1220' },
+  moodTextWrap: { flex: 1 },
+  moodLabel: { color: '#A1ACBE', fontWeight: '700' },
+  moodValue: { color: '#6D6AF8', fontWeight: '900' },
+
+  contentBox: {
+    marginTop: 14,
+    minHeight: 140,
+  },
+  tags: { marginTop: 14, color: '#6D7CFF', fontWeight: '800' },
+  content: { color: '#556070', lineHeight: 22 },
+  cardOutsideActionRow: {
+    marginTop: 4,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 2,
+  },
+  simpleActionBtn: {
+    minHeight: 24,
+    justifyContent: 'center',
+  },
+  simpleActionText: {
+    color: '#6E7B90',
+    fontWeight: '700',
+  },
+  simpleActionTextDisabled: {
+    color: '#9AA4B7',
+  },
+  simpleDeleteText: {
+    color: '#FF5A5F',
+  },
+
+  empty: {
+    margin: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#E6E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  emptyTitle: { color: '#0B1220', fontWeight: '900' },
+  emptyDesc: { color: '#556070', textAlign: 'center' },
+});

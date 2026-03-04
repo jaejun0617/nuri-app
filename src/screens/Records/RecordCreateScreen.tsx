@@ -5,7 +5,7 @@
 // - 저장 직후 홈/타임라인에 즉시 반영
 // - 탭 구조에서 폼 상태가 남지 않도록 focus/reset 유지
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Alert,
@@ -38,8 +38,9 @@ import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { supabase } from '../../services/supabase/client';
 import {
   createMemory,
+  type EmotionTag,
   fetchMemoryById,
-  updateMemoryImagePath,
+  updateMemoryImagePaths,
 } from '../../services/supabase/memories';
 import { uploadMemoryImage } from '../../services/supabase/storageMemories';
 import { usePetStore } from '../../store/petStore';
@@ -83,6 +84,26 @@ const OTHER_SUBCATEGORIES = [
 type MainCategoryKey = (typeof MAIN_CATEGORIES)[number]['key'];
 type OtherSubCategoryKey = (typeof OTHER_SUBCATEGORIES)[number]['key'];
 type DateShortcutKey = 'today' | 'yesterday';
+type SelectedImage = {
+  key: string;
+  uri: string;
+  mimeType: string | null;
+};
+
+const MOOD_OPTIONS: ReadonlyArray<{
+  value: EmotionTag;
+  emoji: string;
+  label: string;
+}> = [
+  { value: 'happy', emoji: '😊', label: '행복해요' },
+  { value: 'calm', emoji: '😌', label: '평온해요' },
+  { value: 'excited', emoji: '🤩', label: '신나요' },
+  { value: 'neutral', emoji: '🙂', label: '무난해요' },
+  { value: 'sad', emoji: '😢', label: '아쉬워요' },
+  { value: 'anxious', emoji: '😥', label: '걱정돼요' },
+  { value: 'angry', emoji: '😠', label: '예민해요' },
+  { value: 'tired', emoji: '😴', label: '피곤해요' },
+];
 
 function getErrorMessage(err: unknown) {
   if (err instanceof Error) return err.message;
@@ -245,8 +266,11 @@ export default function RecordCreateScreen() {
   const [dateDraft, setDateDraft] = useState(todayYmd);
   const [selectedDateShortcut, setSelectedDateShortcut] =
     useState<DateShortcutKey>('today');
-  const [imageUri, setImageUri] = useState<string | null>(null);
-  const [imageType, setImageType] = useState<string | null>(null);
+  const [selectedEmotion, setSelectedEmotion] = useState<EmotionTag | null>(
+    null,
+  );
+  const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [saving, setSaving] = useState(false);
 
   const trimmedTitle = useMemo(() => title.trim(), [title]);
@@ -269,6 +293,17 @@ export default function RecordCreateScreen() {
     () => mergeTags(selectedTags, mainCategoryKey, otherSubCategoryKey),
     [selectedTags, mainCategoryKey, otherSubCategoryKey],
   );
+  const activeImage = useMemo(
+    () => selectedImages[activeImageIndex] ?? selectedImages[0] ?? null,
+    [selectedImages, activeImageIndex],
+  );
+  const photoCounterText = useMemo(
+    () =>
+      selectedImages.length > 0
+        ? `${activeImageIndex + 1}/${selectedImages.length}`
+        : null,
+    [activeImageIndex, selectedImages.length],
+  );
 
   const resetForm = useCallback(() => {
     setTitle('');
@@ -282,10 +317,21 @@ export default function RecordCreateScreen() {
     setDateModalVisible(false);
     setDateDraft(todayYmd);
     setSelectedDateShortcut('today');
-    setImageUri(null);
-    setImageType(null);
+    setSelectedEmotion(null);
+    setSelectedImages([]);
+    setActiveImageIndex(0);
     setSaving(false);
   }, [todayYmd]);
+
+  useEffect(() => {
+    if (selectedImages.length === 0 && activeImageIndex !== 0) {
+      setActiveImageIndex(0);
+      return;
+    }
+    if (activeImageIndex >= selectedImages.length && selectedImages.length > 0) {
+      setActiveImageIndex(selectedImages.length - 1);
+    }
+  }, [activeImageIndex, selectedImages.length]);
 
   useFocusEffect(
     useCallback(() => {
@@ -317,26 +363,43 @@ export default function RecordCreateScreen() {
 
     const res = await launchImageLibrary({
       mediaType: 'photo',
-      selectionLimit: 1,
+      selectionLimit: 10,
       quality: 0.9,
     });
 
     if (res.didCancel) return;
 
-    const asset = res.assets?.[0];
-    if (!asset?.uri) {
+    const assets = (res.assets ?? []).filter(asset => !!asset.uri);
+    if (assets.length === 0) {
       Alert.alert('이미지 선택 실패', '다시 시도해 주세요.');
       return;
     }
 
-    setImageUri(asset.uri);
-    setImageType(resolvePickerMimeType(asset));
+    setSelectedImages(prev => {
+      const next = [...prev];
+
+      for (const asset of assets) {
+        const uri = asset.uri;
+        if (!uri) continue;
+        if (next.some(image => image.uri === uri)) continue;
+
+        next.push({
+          key: `${Date.now()}-${uri}`,
+          uri,
+          mimeType: resolvePickerMimeType(asset),
+        });
+      }
+
+      return next.slice(0, 10);
+    });
   }, [saving]);
 
-  const removeImage = useCallback(() => {
-    setImageUri(null);
-    setImageType(null);
-  }, []);
+  const removeActiveImage = useCallback(() => {
+    setSelectedImages(prev => {
+      if (prev.length === 0) return prev;
+      return prev.filter((_, index) => index !== activeImageIndex);
+    });
+  }, [activeImageIndex]);
 
   const onPressCancel = useCallback(() => {
     resetForm();
@@ -425,6 +488,11 @@ export default function RecordCreateScreen() {
     setSelectedTags(prev => prev.filter(tag => tag !== target));
   }, []);
 
+  const onClearRecentTags = useCallback(() => {
+    setRecentTags([]);
+    AsyncStorage.removeItem(RECENT_TAGS_STORAGE_KEY).catch(() => {});
+  }, []);
+
   const onSubmit = useCallback(async () => {
     if (disabled || !petId) return;
 
@@ -442,26 +510,59 @@ export default function RecordCreateScreen() {
         petId,
         title: trimmedTitle,
         content: content.trim() || null,
-        emotion: null,
+        emotion: selectedEmotion,
         tags: mergedTags,
         occurredAt: occurred,
         imagePath: null,
       });
 
-      if (imageUri) {
+      if (selectedImages.length > 0) {
         const userRes = await supabase.auth.getUser();
         const userId = userRes.data.user?.id ?? null;
         if (!userId) throw new Error('로그인 정보가 없습니다.');
 
-        const { path } = await uploadMemoryImage({
-          userId,
-          petId,
-          memoryId,
-          fileUri: imageUri,
-          mimeType: imageType,
-        });
+        const uploadedPaths: string[] = [];
+        let failedCount = 0;
 
-        await updateMemoryImagePath({ memoryId, imagePath: path });
+        for (const image of selectedImages) {
+          try {
+            const firstTry = await uploadMemoryImage({
+              userId,
+              petId,
+              memoryId,
+              fileUri: image.uri,
+              mimeType: image.mimeType,
+            });
+            uploadedPaths.push(firstTry.path);
+          } catch {
+            try {
+              const retry = await uploadMemoryImage({
+                userId,
+                petId,
+                memoryId,
+                fileUri: image.uri,
+                mimeType: image.mimeType,
+              });
+              uploadedPaths.push(retry.path);
+            } catch {
+              failedCount += 1;
+            }
+          }
+        }
+
+        if (uploadedPaths.length > 0) {
+          await updateMemoryImagePaths({
+            memoryId,
+            imagePaths: uploadedPaths,
+          });
+        }
+
+        if (failedCount > 0) {
+          Alert.alert(
+            '일부 이미지 업로드 실패',
+            '기록은 저장되었고, 실패한 이미지는 나중에 수정에서 다시 올릴 수 있어요.',
+          );
+        }
       }
 
       try {
@@ -494,8 +595,6 @@ export default function RecordCreateScreen() {
   }, [
     content,
     disabled,
-    imageType,
-    imageUri,
     navigation,
     mainCategoryKey,
     otherSubCategoryKey,
@@ -504,6 +603,8 @@ export default function RecordCreateScreen() {
     refresh,
     recentTags,
     resetForm,
+    selectedEmotion,
+    selectedImages,
     selectedTags,
     trimmedTitle,
     upsertOneLocal,
@@ -578,9 +679,9 @@ export default function RecordCreateScreen() {
           style={styles.photoBox}
           onPress={pickImage}
         >
-          {imageUri ? (
+          {activeImage ? (
             <>
-              <Image source={{ uri: imageUri }} style={styles.photoImage} />
+              <Image source={{ uri: activeImage.uri }} style={styles.photoImage} />
               <View style={styles.photoOverlayTop}>
                 <TouchableOpacity
                   activeOpacity={0.85}
@@ -588,19 +689,26 @@ export default function RecordCreateScreen() {
                   onPress={pickImage}
                 >
                   <AppText preset="caption" style={styles.photoGhostBtnText}>
-                    변경
+                    추가
                   </AppText>
                 </TouchableOpacity>
                 <TouchableOpacity
                   activeOpacity={0.85}
                   style={styles.photoGhostBtn}
-                  onPress={removeImage}
+                  onPress={removeActiveImage}
                 >
                   <AppText preset="caption" style={styles.photoGhostBtnText}>
                     제거
                   </AppText>
                 </TouchableOpacity>
               </View>
+              {photoCounterText ? (
+                <View style={styles.photoCounterBadge}>
+                  <AppText preset="caption" style={styles.photoCounterText}>
+                    {photoCounterText}
+                  </AppText>
+                </View>
+              ) : null}
             </>
           ) : (
             <View style={styles.photoPlaceholder}>
@@ -608,11 +716,35 @@ export default function RecordCreateScreen() {
                 <Feather name="camera" size={22} color="#94A1B5" />
               </View>
               <AppText preset="body" style={styles.photoPlaceholderTitle}>
-                사진 선택 (선택)
+                사진 추가 (최대 10장)
               </AppText>
             </View>
           )}
         </TouchableOpacity>
+        {selectedImages.length > 1 ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.photoThumbRow}
+          >
+            {selectedImages.map((image, index) => {
+              const active = index === activeImageIndex;
+              return (
+                <TouchableOpacity
+                  key={image.key}
+                  activeOpacity={0.9}
+                  style={[
+                    styles.photoThumbWrap,
+                    active ? styles.photoThumbWrapActive : null,
+                  ]}
+                  onPress={() => setActiveImageIndex(index)}
+                >
+                  <Image source={{ uri: image.uri }} style={styles.photoThumb} />
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        ) : null}
 
         <View style={styles.quickTagRow}>
         {MAIN_CATEGORIES.map(category => {
@@ -702,6 +834,45 @@ export default function RecordCreateScreen() {
 
         <View style={styles.field}>
           <AppText preset="body" style={styles.fieldLabel}>
+            오늘의 기분
+          </AppText>
+          <View style={styles.moodGrid}>
+            {MOOD_OPTIONS.map(mood => {
+              const active = selectedEmotion === mood.value;
+              return (
+                <TouchableOpacity
+                  key={mood.value}
+                  activeOpacity={0.88}
+                  style={[
+                    styles.moodChip,
+                    active ? styles.moodChipActive : null,
+                  ]}
+                  onPress={() =>
+                    setSelectedEmotion(prev =>
+                      prev === mood.value ? null : mood.value,
+                    )
+                  }
+                >
+                  <AppText preset="caption" style={styles.moodEmoji}>
+                    {mood.emoji}
+                  </AppText>
+                  <AppText
+                    preset="caption"
+                    style={[
+                      styles.moodText,
+                      active ? styles.moodTextActive : null,
+                    ]}
+                  >
+                    {mood.label}
+                  </AppText>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        <View style={styles.field}>
+          <AppText preset="body" style={styles.fieldLabel}>
             제목
           </AppText>
           <TextInput
@@ -715,7 +886,7 @@ export default function RecordCreateScreen() {
 
         <View style={styles.field}>
           <AppText preset="body" style={styles.fieldLabel}>
-            내용 (선택)
+            내용
           </AppText>
           <TextInput
             style={[styles.input, styles.textArea]}
@@ -730,7 +901,7 @@ export default function RecordCreateScreen() {
 
         <View style={styles.field}>
           <AppText preset="body" style={styles.fieldLabel}>
-            태그 (선택)
+            태그
           </AppText>
           <TouchableOpacity
             activeOpacity={0.9}
@@ -936,9 +1107,26 @@ export default function RecordCreateScreen() {
               ))}
             </View>
 
-            <AppText preset="caption" style={styles.tagSectionTitle}>
-              최근 사용
-            </AppText>
+            <View style={styles.tagSectionHeaderRow}>
+              <AppText preset="caption" style={styles.tagSectionTitleCompact}>
+                최근 사용
+              </AppText>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={onClearRecentTags}
+                disabled={recentTags.length === 0}
+              >
+                <AppText
+                  preset="caption"
+                  style={[
+                    styles.clearRecentText,
+                    recentTags.length === 0 ? styles.clearRecentTextDisabled : null,
+                  ]}
+                >
+                  전체 지우기
+                </AppText>
+              </TouchableOpacity>
+            </View>
             <View style={styles.recentList}>
               {recentTags.map(tag => (
                 <TouchableOpacity

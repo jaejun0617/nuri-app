@@ -3,7 +3,6 @@
 // - Splash(탭 없음) → AppTabs(공통 하단 탭) 기본 흐름 유지
 // - Auth 플로우(SignIn/SignUp/NicknameSetup) 라우팅 제공
 // - PetCreate 라우팅 제공 (로그인 후 펫 0마리면 유도 진입)
-// - Records: RecordDetail/Edit는 "몰입 화면"으로 탭 밖(Stack)에서 표시
 // - ✅ UX: 스택 헤더의 모든 글씨(타이틀/뒤로가기 텍스트) 제거
 // - DevTest는 dev-only
 
@@ -26,10 +25,6 @@ import ScheduleCreateScreen from '../screens/Schedules/ScheduleCreateScreen';
 import ScheduleDetailScreen from '../screens/Schedules/ScheduleDetailScreen';
 import ScheduleEditScreen from '../screens/Schedules/ScheduleEditScreen';
 import EditDoneScreen from '../screens/Common/EditDoneScreen';
-
-// Records (Detail/Edit는 탭 밖으로 빼는 전략)
-import RecordDetailScreen from '../screens/Records/RecordDetailScreen';
-import RecordEditScreen from '../screens/Records/RecordEditScreen';
 
 import AppTabsNavigator from './AppTabsNavigator';
 import type { AppTabParamList } from './AppTabsNavigator';
@@ -63,10 +58,6 @@ export type RootStackParamList = {
       | { type: 'schedule-list'; petId?: string }
       | { type: 'record-detail'; petId: string; memoryId: string };
   };
-
-  // Records (탭 밖)
-  RecordDetail: { petId: string; memoryId: string };
-  RecordEdit: { petId: string; memoryId: string };
 
   // Dev
   DevTest: undefined;
@@ -164,18 +155,6 @@ export default function RootNavigator() {
         name="EditDone"
         component={EditDoneScreen}
         options={{ headerShown: false }}
-      />
-
-      {/* Records (탭 밖) */}
-      <Stack.Screen
-        name="RecordDetail"
-        component={RecordDetailScreen}
-        options={{ headerShown: false }} // 화면 내 커스텀 헤더 사용 중이므로 숨김
-      />
-      <Stack.Screen
-        name="RecordEdit"
-        component={RecordEditScreen}
-        options={{ headerShown: false }} // 화면 내 커스텀 헤더 사용 중이므로 숨김
       />
 
       {/* Dev only */}

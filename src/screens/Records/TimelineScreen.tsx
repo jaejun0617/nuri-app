@@ -53,7 +53,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MemoryCard } from '../../components/MemoryCard/MemoryCard';
 
 import type { AppTabParamList } from '../../navigation/AppTabsNavigator';
-import type { RootStackParamList } from '../../navigation/RootNavigator';
+import type { TimelineStackParamList } from '../../navigation/TimelineStackNavigator';
 import type { MemoryRecord } from '../../services/supabase/memories';
 import type { PetRecordsState } from '../../store/recordStore';
 import { useRecordStore } from '../../store/recordStore';
@@ -61,10 +61,13 @@ import { usePetStore } from '../../store/petStore';
 import AppText from '../../app/ui/AppText';
 import { styles } from './TimelineScreen.styles';
 
-type TimelineTabRoute = RouteProp<AppTabParamList, 'TimelineTab'>;
+type TimelineMainRoute = RouteProp<TimelineStackParamList, 'TimelineMain'>;
 type TimelineTabNav = BottomTabNavigationProp<AppTabParamList, 'TimelineTab'>;
-type RootNav = NativeStackNavigationProp<RootStackParamList>;
-type Nav = CompositeNavigationProp<TimelineTabNav, RootNav>;
+type TimelineStackNav = NativeStackNavigationProp<
+  TimelineStackParamList,
+  'TimelineMain'
+>;
+type Nav = CompositeNavigationProp<TimelineStackNav, TimelineTabNav>;
 
 type SortMode = 'recent' | 'oldest';
 type Status =
@@ -406,7 +409,7 @@ export default function TimelineScreen() {
   // 1) navigation / route
   // ---------------------------------------------------------
   const navigation = useNavigation<Nav>();
-  const route = useRoute<TimelineTabRoute>();
+  const route = useRoute<TimelineMainRoute>();
 
   // ---------------------------------------------------------
   // 1.5) petId resolve (params → store fallback)

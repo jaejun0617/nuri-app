@@ -23,11 +23,16 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import type {
+  CompositeNavigationProp,
+  RouteProp,
+} from '@react-navigation/native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { launchImageLibrary } from 'react-native-image-picker';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import type { TimelineStackParamList } from '../../navigation/TimelineStackNavigator';
 import {
   fetchMemoryImagePath,
   updateMemoryFields,
@@ -44,12 +49,10 @@ import { useRecordStore } from '../../store/recordStore';
 import AppText from '../../app/ui/AppText';
 import { styles } from './RecordEditScreen.styles';
 
-type Nav = NativeStackNavigationProp<RootStackParamList>;
-type Route = {
-  key: string;
-  name: string;
-  params: { petId: string; memoryId: string };
-};
+type TimelineNav = NativeStackNavigationProp<TimelineStackParamList, 'RecordEdit'>;
+type RootNav = NativeStackNavigationProp<RootStackParamList>;
+type Nav = CompositeNavigationProp<TimelineNav, RootNav>;
+type Route = RouteProp<TimelineStackParamList, 'RecordEdit'>;
 
 const ENABLE_SERVER_SYNC = false; // ✅ 필요할 때만 true
 
@@ -114,6 +117,8 @@ export default function RecordEditScreen() {
   // 1) nav / params
   // ---------------------------------------------------------
   const navigation = useNavigation<Nav>();
+  const rootNavigation =
+    navigation as unknown as NativeStackNavigationProp<RootStackParamList>;
   const route = useRoute<Route>();
   const petId = route.params?.petId ?? null;
   const memoryId = route.params?.memoryId ?? null;
@@ -169,11 +174,11 @@ export default function RecordEditScreen() {
       return;
     }
 
-    navigation.reset({
+    rootNavigation.reset({
       index: 0,
       routes: [{ name: 'AppTabs', params: { screen: 'TimelineTab' } }],
     });
-  }, [navigation]);
+  }, [navigation, rootNavigation]);
 
   // ---------------------------------------------------------
   // 5) image state (preview + replace flow)
@@ -397,7 +402,10 @@ export default function RecordEditScreen() {
         await updateMemoryImagePath({ memoryId, imagePath: newPath });
 
         // ✅ 즉시 반영(이미지 path)
-        updateOneLocal(petId, memoryId, { imagePath: newPath });
+        updateOneLocal(petId, memoryId, {
+          imagePath: newPath,
+          imagePaths: newPath ? [newPath] : [],
+        });
 
         if (oldPath && oldPath !== newPath) {
           await deleteMemoryImage(oldPath).catch(() => null);
@@ -409,7 +417,7 @@ export default function RecordEditScreen() {
         await updateMemoryImagePath({ memoryId, imagePath: null });
 
         // ✅ 즉시 반영(이미지 제거)
-        updateOneLocal(petId, memoryId, { imagePath: null });
+        updateOneLocal(petId, memoryId, { imagePath: null, imagePaths: [] });
 
         if (oldPath) {
           await deleteMemoryImage(oldPath).catch(() => null);

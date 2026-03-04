@@ -39,6 +39,7 @@ import Animated, {
 
 import Screen from '../../../../components/layout/Screen';
 import type { AppTabParamList } from '../../../../navigation/AppTabsNavigator';
+import type { TimelineStackParamList } from '../../../../navigation/TimelineStackNavigator';
 import type { RootStackParamList } from '../../../../navigation/RootNavigator';
 import { useAuthStore } from '../../../../store/authStore';
 import { usePetStore } from '../../../../store/petStore';
@@ -63,10 +64,10 @@ type HomeTabNav = BottomTabNavigationProp<AppTabParamList, 'HomeTab'>;
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
 type Nav = CompositeNavigationProp<HomeTabNav, RootNav>;
 type TimelineMainCategory = NonNullable<
-  AppTabParamList['TimelineTab']
+  TimelineStackParamList['TimelineMain']
 >['mainCategory'];
 type TimelineOtherSubCategory = NonNullable<
-  AppTabParamList['TimelineTab']
+  TimelineStackParamList['TimelineMain']
 >['otherSubCategory'];
 type HomeMainCategory = Exclude<TimelineMainCategory, undefined>;
 type HomeOtherSubCategory = Exclude<TimelineOtherSubCategory, undefined>;
@@ -1132,8 +1133,11 @@ export default function LoggedInHome() {
 
   const onPressTimeline = useCallback(() => {
     navigation.navigate('TimelineTab', {
-      petId: activePetId ?? undefined,
-      mainCategory: 'all',
+      screen: 'TimelineMain',
+      params: {
+        petId: activePetId ?? undefined,
+        mainCategory: 'all',
+      },
     });
   }, [navigation, activePetId]);
 
@@ -1160,9 +1164,12 @@ export default function LoggedInHome() {
       otherSubCategory?: Exclude<TimelineOtherSubCategory, undefined>,
     ) => {
       navigation.navigate('TimelineTab', {
-        petId: activePetId ?? undefined,
-        mainCategory,
-        otherSubCategory,
+        screen: 'TimelineMain',
+        params: {
+          petId: activePetId ?? undefined,
+          mainCategory,
+          otherSubCategory,
+        },
       });
     },
     [navigation, activePetId],
@@ -1175,12 +1182,15 @@ export default function LoggedInHome() {
   const onPressRecordItem = useCallback(
     (memoryId: string) => {
       if (!activePetId) return;
-      rootNavigation.navigate('RecordDetail', {
-        petId: activePetId,
-        memoryId,
+      navigation.navigate('TimelineTab', {
+        screen: 'RecordDetail',
+        params: {
+          petId: activePetId,
+          memoryId,
+        },
       });
     },
-    [rootNavigation, activePetId],
+    [navigation, activePetId],
   );
 
   const onPressPetChip = useCallback(

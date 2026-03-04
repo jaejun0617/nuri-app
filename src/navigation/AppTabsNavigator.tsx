@@ -14,10 +14,13 @@ import {
 } from 'react-native-safe-area-context';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import type { NavigatorScreenParams } from '@react-navigation/native';
 import Feather from 'react-native-vector-icons/Feather';
 
 import MainScreen from '../screens/Main/MainScreen';
-import TimelineScreen from '../screens/Records/TimelineScreen';
+import TimelineStackNavigator, {
+  type TimelineStackParamList,
+} from './TimelineStackNavigator';
 import RecordCreateScreen from '../screens/Records/RecordCreateScreen';
 import GuestbookScreen from '../screens/Guestbook/GuestbookScreen';
 
@@ -25,13 +28,7 @@ import MoreDrawer from '../components/MoreDrawer/MoreDrawer';
 
 export type AppTabParamList = {
   HomeTab: undefined;
-  TimelineTab:
-    | {
-        petId?: string;
-        mainCategory?: 'all' | 'walk' | 'meal' | 'health' | 'diary' | 'other';
-        otherSubCategory?: 'grooming' | 'hospital' | 'etc';
-      }
-    | undefined;
+  TimelineTab: NavigatorScreenParams<TimelineStackParamList> | undefined;
   RecordCreateTab: { petId?: string } | undefined;
   GuestbookTab: undefined;
   MoreTab: undefined;
@@ -212,7 +209,7 @@ export default function AppTabsNavigator() {
           tabBar={p => <CustomTabBar {...p} onOpenMore={openMore} />}
         >
           <Tab.Screen name="HomeTab" component={MainScreen} />
-          <Tab.Screen name="TimelineTab" component={TimelineScreen} />
+          <Tab.Screen name="TimelineTab" component={TimelineStackNavigator} />
           <Tab.Screen name="RecordCreateTab" component={RecordCreateScreen} />
           <Tab.Screen name="GuestbookTab" component={GuestbookScreen} />
           <Tab.Screen

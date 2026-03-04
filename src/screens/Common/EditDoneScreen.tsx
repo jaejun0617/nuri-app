@@ -41,14 +41,19 @@ export default function EditDoneScreen() {
     }
 
     navigation.reset({
-      index: 1,
+      index: 0,
       routes: [
-        { name: 'AppTabs', params: { screen: 'TimelineTab' } },
         {
-          name: 'RecordDetail',
+          name: 'AppTabs',
           params: {
-            petId: navigateTo.petId,
-            memoryId: navigateTo.memoryId,
+            screen: 'TimelineTab',
+            params: {
+              screen: 'RecordDetail',
+              params: {
+                petId: navigateTo.petId,
+                memoryId: navigateTo.memoryId,
+              },
+            },
           },
         },
       ],

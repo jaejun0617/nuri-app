@@ -1,46 +1,64 @@
-// 파일: src/screens/Records/RecordDetailScreen.tsx
-// 목적:
-// - 기록 상세
-// - 헤더에 "수정" 버튼 → RecordEdit로 이동
-// - deleteMemoryWithFile로 Storage 파일까지 삭제
-// - optimistic remove + refresh
-//
-// ✅ 이번 수정 포인트 (중요)
-// 1) 뒤로가기 안전 처리:
-//    - canGoBack() ? goBack() : reset(Main)
-// 2) Zustand selector에서 getPetState() 호출 제거:
-//    - byPetId[petId] 직접 구독하여 안정성 확보
-// 3) recordStore Chapter 5(status)와 정합 유지
-
-import React, { useCallback, useMemo, useState } from 'react';
-import { Alert, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  ScrollView,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+import type { CompositeNavigationProp, RouteProp } from '@react-navigation/native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import type { TimelineStackParamList } from '../../navigation/TimelineStackNavigator';
 import { deleteMemoryWithFile } from '../../services/supabase/memories';
+import { getMemoryImageSignedUrlCached } from '../../services/supabase/storageMemories';
 import { useRecordStore } from '../../store/recordStore';
 import AppText from '../../app/ui/AppText';
+import { styles } from './RecordDetailScreen.styles';
 
-type Nav = NativeStackNavigationProp<RootStackParamList>;
-type Route = {
-  key: string;
-  name: string;
-  params: { petId: string; memoryId: string };
+type TimelineNav = NativeStackNavigationProp<TimelineStackParamList, 'RecordDetail'>;
+type RootNav = NativeStackNavigationProp<RootStackParamList>;
+type Nav = CompositeNavigationProp<TimelineNav, RootNav>;
+type Route = RouteProp<TimelineStackParamList, 'RecordDetail'>;
+
+const EMOTION_META: Record<
+  string,
+  {
+    emoji: string;
+    label: string;
+  }
+> = {
+  happy: { emoji: '😊', label: '행복해요' },
+  calm: { emoji: '😌', label: '평온해요' },
+  excited: { emoji: '🤩', label: '신나요' },
+  neutral: { emoji: '🙂', label: '무난해요' },
+  sad: { emoji: '😢', label: '아쉬워요' },
+  anxious: { emoji: '😥', label: '걱정돼요' },
+  angry: { emoji: '😠', label: '예민해요' },
+  tired: { emoji: '😴', label: '피곤해요' },
 };
 
+function toKoreanDate(ymd: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return ymd;
+  const [year, month, day] = ymd.split('-');
+  return `${year}.${month}.${day}`;
+}
+
 export default function RecordDetailScreen() {
-  // ---------------------------------------------------------
-  // 1) nav/params
-  // ---------------------------------------------------------
   const navigation = useNavigation<Nav>();
+  const rootNavigation =
+    navigation as unknown as NativeStackNavigationProp<RootStackParamList>;
   const route = useRoute<Route>();
   const petId = route.params?.petId ?? null;
   const memoryId = route.params?.memoryId ?? null;
+  const { width } = useWindowDimensions();
 
-  // ---------------------------------------------------------
-  // 2) store
-  // ---------------------------------------------------------
   const petState = useRecordStore(s => {
     if (!petId) return undefined;
     return s.byPetId[petId];
@@ -55,30 +73,73 @@ export default function RecordDetailScreen() {
     return items.find(r => r.id === memoryId) ?? null;
   }, [petState?.items, memoryId]);
 
-  // ---------------------------------------------------------
-  // 3) local
-  // ---------------------------------------------------------
   const [deleting, setDeleting] = useState(false);
+  const [heroIndex, setHeroIndex] = useState(0);
+  const [signedUrls, setSignedUrls] = useState<string[]>([]);
+  const [imgLoading, setImgLoading] = useState(true);
 
-  // ---------------------------------------------------------
-  // 4) navigation helpers
-  // ---------------------------------------------------------
   const safeGoBack = useCallback(() => {
     if (navigation.canGoBack()) {
       navigation.goBack();
       return;
     }
 
-    // ⚠️ 프로젝트의 "홈 루트" 라우트명이 다르면 여기만 수정
-    navigation.reset({
+    rootNavigation.reset({
       index: 0,
       routes: [{ name: 'Main' as keyof RootStackParamList }],
     });
-  }, [navigation]);
+  }, [navigation, rootNavigation]);
 
-  // ---------------------------------------------------------
-  // 5) actions
-  // ---------------------------------------------------------
+  const imagePaths = useMemo(() => {
+    if (!record) return [];
+    if (Array.isArray(record.imagePaths) && record.imagePaths.length > 0) {
+      return record.imagePaths;
+    }
+    return record.imagePath ? [record.imagePath] : [];
+  }, [record]);
+
+  useEffect(() => {
+    if (heroIndex >= imagePaths.length) {
+      setHeroIndex(0);
+    }
+  }, [heroIndex, imagePaths.length]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function run() {
+      if (imagePaths.length === 0) {
+        if (mounted) {
+          setSignedUrls([]);
+          setImgLoading(false);
+        }
+        return;
+      }
+
+      try {
+        if (mounted) setImgLoading(true);
+        const urls = await Promise.all(
+          imagePaths.map(async path => {
+            const url = await getMemoryImageSignedUrlCached(path);
+            return url ?? '';
+          }),
+        );
+        if (mounted) {
+          setSignedUrls(urls.filter(Boolean));
+        }
+      } catch {
+        if (mounted) setSignedUrls([]);
+      } finally {
+        if (mounted) setImgLoading(false);
+      }
+    }
+
+    run();
+    return () => {
+      mounted = false;
+    };
+  }, [imagePaths]);
+
   const onPressEdit = useCallback(() => {
     if (!petId || !memoryId) return;
     navigation.navigate('RecordEdit', { petId, memoryId });
@@ -99,9 +160,9 @@ export default function RecordDetailScreen() {
             await deleteMemoryWithFile({
               memoryId,
               imagePath: record.imagePath,
+              imagePaths: record.imagePaths,
             });
 
-            // optimistic
             removeOneLocal(petId, memoryId);
             await refresh(petId);
 
@@ -116,28 +177,17 @@ export default function RecordDetailScreen() {
     ]);
   }, [petId, memoryId, record, removeOneLocal, refresh, safeGoBack]);
 
-  // ---------------------------------------------------------
-  // 6) empty
-  // ---------------------------------------------------------
   if (!record) {
     return (
       <View style={styles.screen}>
         <View style={styles.header}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            style={styles.backBtn}
-            onPress={safeGoBack}
-          >
-            <AppText preset="body" style={styles.backText}>
-              ←
-            </AppText>
-          </TouchableOpacity>
+          <View style={styles.headerPlaceholder} />
 
           <AppText preset="headline" style={styles.headerTitle}>
-            상세
+            추억상세보기
           </AppText>
 
-          <View style={{ width: 88 }} />
+          <View style={styles.headerPlaceholder} />
         </View>
 
         <View style={styles.empty}>
@@ -152,215 +202,167 @@ export default function RecordDetailScreen() {
     );
   }
 
-  // ---------------------------------------------------------
-  // 7) UI
-  // ---------------------------------------------------------
+  const ymd = record.occurredAt ?? record.createdAt.slice(0, 10);
+  const displayDate = toKoreanDate(ymd);
+  const moodMeta = record.emotion ? EMOTION_META[record.emotion] : null;
+  const heroUrls = signedUrls.length > 0 ? signedUrls : [];
+  const showSlider = heroUrls.length > 1;
+  const tagLine = record.tags.slice(0, 4).join(' ');
+  const heroWidth = Math.max(220, width - 28);
+
+  const onHeroScrollEnd = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const x = event.nativeEvent.contentOffset.x;
+      const width = event.nativeEvent.layoutMeasurement.width;
+      if (width <= 0) return;
+      const index = Math.max(0, Math.round(x / width));
+      if (index !== heroIndex) setHeroIndex(index);
+    },
+    [heroIndex],
+  );
+
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          style={styles.backBtn}
-          onPress={safeGoBack}
-        >
-          <AppText preset="body" style={styles.backText}>
-            ←
-          </AppText>
-        </TouchableOpacity>
+        <View style={styles.headerPlaceholder} />
 
         <AppText preset="headline" style={styles.headerTitle}>
-          상세
+          추억상세보기
         </AppText>
 
-        <View style={styles.headerRight}>
+        <View style={styles.headerPlaceholder} />
+      </View>
+
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.body}
+        showsVerticalScrollIndicator={false}
+      >
+        {imgLoading ? (
+          <View style={styles.heroPlaceholder}>
+            <ActivityIndicator size="large" color="#8A94A6" />
+          </View>
+        ) : heroUrls.length === 0 ? (
+          <View style={styles.heroPlaceholder}>
+            <AppText preset="caption" style={styles.heroPlaceholderText}>
+              사진이 없어요
+            </AppText>
+          </View>
+        ) : (
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={onHeroScrollEnd}
+            style={styles.heroSlider}
+          >
+            {heroUrls.map(url => (
+              <Image
+                key={url}
+                source={{ uri: url }}
+                style={[styles.heroImg, { width: heroWidth }]}
+                resizeMode="cover"
+                fadeDuration={200}
+              />
+            ))}
+          </ScrollView>
+        )}
+        {showSlider ? (
+          <View style={styles.heroDots}>
+            {heroUrls.map((url, index) => (
+              <View
+                key={`${url}-${index}`}
+                style={[
+                  styles.heroDot,
+                  index === heroIndex ? styles.heroDotActive : null,
+                ]}
+              />
+            ))}
+          </View>
+        ) : null}
+
+        <View style={styles.card}>
+          <View style={styles.metaRow}>
+            {record.tags[0] ? (
+              <View style={styles.categoryBadge}>
+                <AppText preset="caption" style={styles.categoryBadgeText}>
+                  {record.tags[0]}
+                </AppText>
+              </View>
+            ) : null}
+
+            <AppText preset="caption" style={styles.metaText}>
+              {displayDate}
+            </AppText>
+          </View>
+
+          <AppText preset="title2" style={styles.title}>
+            {record.title}
+          </AppText>
+
+          {moodMeta ? (
+            <View style={styles.moodCard}>
+              <View style={styles.moodIconWrap}>
+                <AppText preset="caption" style={styles.moodEmoji}>
+                  {moodMeta.emoji}
+                </AppText>
+              </View>
+              <View style={styles.moodTextWrap}>
+                <AppText preset="caption" style={styles.moodLabel}>
+                  오늘의 기분
+                </AppText>
+                <AppText preset="body" style={styles.moodValue}>
+                  {moodMeta.label}
+                </AppText>
+              </View>
+            </View>
+          ) : null}
+
+          <View style={styles.contentBox}>
+            <AppText preset="body" style={styles.content}>
+              {record.content?.trim()
+                ? record.content.trim()
+                : '내용이 없습니다.'}
+            </AppText>
+          </View>
+
+          {tagLine ? (
+            <AppText preset="caption" style={styles.tags}>
+              {tagLine}
+            </AppText>
+          ) : null}
+        </View>
+
+        <View style={styles.cardOutsideActionRow}>
           <TouchableOpacity
             activeOpacity={0.9}
-            style={styles.editBtn}
+            style={styles.simpleActionBtn}
             onPress={onPressEdit}
             disabled={deleting}
           >
-            <AppText preset="caption" style={styles.editText}>
+            <AppText preset="caption" style={styles.simpleActionText}>
               수정
             </AppText>
           </TouchableOpacity>
 
           <TouchableOpacity
             activeOpacity={0.9}
-            style={[
-              styles.deleteBtn,
-              deleting ? styles.deleteBtnDisabled : null,
-            ]}
+            style={styles.simpleActionBtn}
             onPress={onPressDelete}
             disabled={deleting}
           >
-            <AppText preset="caption" style={styles.deleteText}>
+            <AppText
+              preset="caption"
+              style={[
+                styles.simpleActionText,
+                deleting ? styles.simpleActionTextDisabled : styles.simpleDeleteText,
+              ]}
+            >
               {deleting ? '삭제중' : '삭제'}
             </AppText>
           </TouchableOpacity>
         </View>
-      </View>
-
-      <View style={styles.body}>
-        {record.imageUrl ? (
-          <Image source={{ uri: record.imageUrl }} style={styles.heroImg} />
-        ) : (
-          <View style={styles.heroPlaceholder}>
-            <AppText preset="caption" style={styles.heroPlaceholderText}>
-              NO IMAGE
-            </AppText>
-          </View>
-        )}
-
-        <View style={styles.card}>
-          <AppText preset="title2" style={styles.title}>
-            {record.title}
-          </AppText>
-
-          <View style={styles.metaRow}>
-            <AppText preset="caption" style={styles.metaText}>
-              {record.occurredAt ?? record.createdAt.slice(0, 10)}
-            </AppText>
-
-            {record.emotion ? (
-              <View style={styles.badge}>
-                <AppText preset="caption" style={styles.badgeText}>
-                  {record.emotion}
-                </AppText>
-              </View>
-            ) : null}
-          </View>
-
-          {record.tags?.length ? (
-            <AppText preset="caption" style={styles.tags}>
-              {record.tags.join(' ')}
-            </AppText>
-          ) : null}
-
-          <AppText preset="body" style={styles.content}>
-            {record.content?.trim()
-              ? record.content.trim()
-              : '내용이 없습니다.'}
-          </AppText>
-        </View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#F6F7FB' },
-
-  header: {
-    height: 56,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E6E8F0',
-    backgroundColor: '#FFFFFF',
-  },
-  backBtn: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backText: { fontWeight: '900', color: '#0B1220' },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    color: '#0B1220',
-    fontWeight: '900',
-  },
-
-  headerRight: { flexDirection: 'row', gap: 8 },
-
-  editBtn: {
-    paddingHorizontal: 12,
-    height: 36,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#E6E8F0',
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  editText: { color: '#0B1220', fontWeight: '900' },
-
-  deleteBtn: {
-    paddingHorizontal: 12,
-    height: 36,
-    borderRadius: 999,
-    backgroundColor: '#FF4D4F',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deleteBtnDisabled: { opacity: 0.6 },
-  deleteText: { color: '#FFFFFF', fontWeight: '900' },
-
-  body: { padding: 14, gap: 12 },
-  heroImg: {
-    width: '100%',
-    height: 220,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: '#E6E8F0',
-    backgroundColor: '#FFFFFF',
-  },
-  heroPlaceholder: {
-    width: '100%',
-    height: 220,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: '#E6E8F0',
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroPlaceholderText: { color: '#8A94A6', fontWeight: '800' },
-
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E6E8F0',
-  },
-  title: { color: '#0B1220', fontWeight: '900' },
-
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 10,
-  },
-  metaText: { color: '#8A94A6', fontWeight: '700' },
-
-  badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#E6E8F0',
-    backgroundColor: '#FFFFFF',
-  },
-  badgeText: { color: '#0B1220', fontWeight: '800' },
-
-  tags: { marginTop: 10, color: '#6D7CFF', fontWeight: '800' },
-  content: { marginTop: 14, color: '#556070', lineHeight: 22 },
-
-  empty: {
-    margin: 14,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: '#E6E8F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    flex: 1,
-  },
-  emptyTitle: { color: '#0B1220', fontWeight: '900' },
-  emptyDesc: { color: '#556070', textAlign: 'center' },
-});

@@ -39,12 +39,15 @@ export type MemoryRecord = {
 
   /** ✅ storage path (DB에 저장된 값) */
   imagePath?: string | null;
+  /** ✅ 다중 이미지 path (첫번째는 imagePath와 동일) */
+  imagePaths: string[];
 };
 
 type MemoriesRow = {
   id: string;
   pet_id: string;
   image_url: string | null; // storage path
+  image_urls?: string[] | null;
   title: string;
   content: string | null;
   emotion: EmotionTag | null;
@@ -78,7 +81,22 @@ function decodeCursor(cursor: string) {
  * ✅ mapRow는 동기 변환만 수행
  * - signed URL fetch 절대 금지(리스트 fetch 경로에서 JS thread spike 유발)
  */
+function normalizeImagePaths(row: MemoriesRow) {
+  const list = Array.isArray(row.image_urls)
+    ? row.image_urls
+        .map(path => `${path ?? ''}`.trim())
+        .filter(Boolean)
+    : [];
+
+  if (list.length) return Array.from(new Set(list));
+
+  const single = `${row.image_url ?? ''}`.trim();
+  return single ? [single] : [];
+}
+
 function mapRow(row: MemoriesRow): MemoryRecord {
+  const imagePaths = normalizeImagePaths(row);
+
   return {
     id: row.id,
     petId: row.pet_id,
@@ -91,7 +109,8 @@ function mapRow(row: MemoriesRow): MemoryRecord {
 
     // ✅ 리스트 fetch 단계에서는 null로 둔다 (UI block 방지)
     imageUrl: null,
-    imagePath: row.image_url,
+    imagePath: imagePaths[0] ?? null,
+    imagePaths,
   };
 }
 
@@ -129,9 +148,7 @@ function scheduleAfterInteractions(work: () => Promise<void>) {
 export async function fetchMemoryById(memoryId: string): Promise<MemoryRecord> {
   const { data, error } = await supabase
     .from('memories')
-    .select(
-      'id,pet_id,image_url,title,content,emotion,tags,occurred_at,created_at',
-    )
+    .select('*')
     .eq('id', memoryId)
     .single();
 
@@ -140,12 +157,12 @@ export async function fetchMemoryById(memoryId: string): Promise<MemoryRecord> {
   const item = mapRow(data as MemoriesRow);
 
   // ✅ 단건 캐시 워밍(비동기 / 스크롤 영향 최소)
-  if (item.imagePath) {
-    const path = item.imagePath;
+  if (item.imagePaths.length > 0) {
+    const topPaths = item.imagePaths.slice(0, 3);
     scheduleAfterInteractions(() =>
       prefetchMemorySignedUrls({
-        imagePaths: [path],
-        max: 1,
+        imagePaths: topPaths,
+        max: topPaths.length,
       }),
     );
   }
@@ -175,9 +192,7 @@ export async function fetchMemoriesByPetPage(input: {
 
   let q = supabase
     .from('memories')
-    .select(
-      'id,pet_id,image_url,title,content,emotion,tags,occurred_at,created_at',
-    )
+    .select('*')
     .eq('pet_id', input.petId)
     .order('created_at', { ascending: false })
     .order('id', { ascending: false })
@@ -205,8 +220,7 @@ export async function fetchMemoriesByPetPage(input: {
   // ✅ 프리패치: fetch 완료 직후 "idle 타이밍"으로 미룸
   const paths = items
     .slice(0, prefetchTop)
-    .map(it => it.imagePath ?? null)
-    .filter(Boolean) as string[];
+    .flatMap(it => it.imagePaths.slice(0, 1));
 
   if (paths.length) {
     const topPaths = [...paths]; // 참조 고정
@@ -295,15 +309,71 @@ export async function updateMemoryImagePath(input: {
   if (error) throw error;
 }
 
+function isMissingImageUrlsColumnError(error: unknown) {
+  if (!error || typeof error !== 'object') return false;
+  const message = 'message' in error ? String(error.message ?? '') : '';
+  const details = 'details' in error ? String(error.details ?? '') : '';
+  const code = 'code' in error ? String(error.code ?? '') : '';
+  const joined = `${code} ${message} ${details}`.toLowerCase();
+  return (
+    joined.includes('image_urls') &&
+    (joined.includes('column') ||
+      joined.includes('schema cache') ||
+      joined.includes('pgrst'))
+  );
+}
+
+/* ---------------------------------------------------------
+ * 4-1) Update image paths (multi-image)
+ * - image_urls 컬럼이 없는 DB면 image_url 단일 저장으로 폴백
+ * -------------------------------------------------------- */
+export async function updateMemoryImagePaths(input: {
+  memoryId: string;
+  imagePaths: string[];
+}) {
+  const nextPaths = Array.from(
+    new Set(
+      (input.imagePaths ?? [])
+        .map(path => `${path ?? ''}`.trim())
+        .filter(Boolean),
+    ),
+  );
+  const first = nextPaths[0] ?? null;
+
+  const { error } = await supabase
+    .from('memories')
+    .update({
+      image_url: first,
+      image_urls: nextPaths,
+    } as any)
+    .eq('id', input.memoryId);
+
+  if (!error) return;
+  if (!isMissingImageUrlsColumnError(error)) throw error;
+
+  await updateMemoryImagePath({
+    memoryId: input.memoryId,
+    imagePath: first,
+  });
+}
+
 /* ---------------------------------------------------------
  * 5) Delete (Storage 정리 포함)
  * -------------------------------------------------------- */
 export async function deleteMemoryWithFile(input: {
   memoryId: string;
   imagePath?: string | null;
+  imagePaths?: string[];
 }) {
-  if (input.imagePath) {
-    await deleteFile('memory-images', input.imagePath);
+  const paths = Array.from(
+    new Set([
+      ...((input.imagePaths ?? []).filter(Boolean) as string[]),
+      input.imagePath ?? '',
+    ]),
+  ).filter(Boolean);
+
+  if (paths.length > 0) {
+    await Promise.all(paths.map(path => deleteFile('memory-images', path)));
   }
 
   const { error } = await supabase
