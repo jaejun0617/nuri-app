@@ -216,6 +216,10 @@ export default function RecordDetailScreen() {
   const showSlider = heroUrls.length > 1;
   const tagLine = record.tags.slice(0, 4).join(' ');
   const heroWidth = Math.max(220, width - 28);
+  const pagerText = useMemo(
+    () => `${Math.min(heroIndex + 1, heroUrls.length)}/${heroUrls.length}`,
+    [heroIndex, heroUrls.length],
+  );
 
   const onHeroScrollEnd = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -267,6 +271,14 @@ export default function RecordDetailScreen() {
             pagingEnabled
             showsHorizontalScrollIndicator={false}
             onMomentumScrollEnd={onHeroScrollEnd}
+            snapToInterval={heroWidth}
+            snapToAlignment="start"
+            decelerationRate="fast"
+            disableIntervalMomentum
+            bounces={false}
+            overScrollMode="never"
+            directionalLockEnabled
+            scrollEventThrottle={16}
             style={styles.heroSlider}
           >
             {heroUrls.map(url => (
@@ -281,16 +293,21 @@ export default function RecordDetailScreen() {
           </ScrollView>
         )}
         {showSlider ? (
-          <View style={styles.heroDots}>
-            {heroUrls.map((url, index) => (
-              <View
-                key={`${url}-${index}`}
-                style={[
-                  styles.heroDot,
-                  index === heroIndex ? styles.heroDotActive : null,
-                ]}
-              />
-            ))}
+          <View style={styles.heroPagerBox}>
+            <View style={styles.heroDots}>
+              {heroUrls.map((url, index) => (
+                <View
+                  key={`${url}-${index}`}
+                  style={[
+                    styles.heroDot,
+                    index === heroIndex ? styles.heroDotActive : null,
+                  ]}
+                />
+              ))}
+            </View>
+            <AppText preset="caption" style={styles.heroPagerText}>
+              {pagerText}
+            </AppText>
           </View>
         ) : null}
 

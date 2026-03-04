@@ -57,12 +57,23 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   heroPlaceholderText: { color: '#8A94A6', fontWeight: '800' },
+  heroPagerBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -2,
+    gap: 4,
+  },
   heroDots: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    marginTop: -2,
+  },
+  heroPagerText: {
+    color: '#8A94A6',
+    fontWeight: '800',
+    minWidth: 34,
+    textAlign: 'center',
   },
   heroDot: {
     width: 6,

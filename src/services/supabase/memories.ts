@@ -330,7 +330,7 @@ function isMissingImageUrlsColumnError(error: unknown) {
 export async function updateMemoryImagePaths(input: {
   memoryId: string;
   imagePaths: string[];
-}) {
+}): Promise<{ mode: 'multi' | 'single_fallback'; savedPaths: string[] }> {
   const nextPaths = Array.from(
     new Set(
       (input.imagePaths ?? [])
@@ -348,13 +348,17 @@ export async function updateMemoryImagePaths(input: {
     } as any)
     .eq('id', input.memoryId);
 
-  if (!error) return;
+  if (!error) {
+    return { mode: 'multi', savedPaths: nextPaths };
+  }
   if (!isMissingImageUrlsColumnError(error)) throw error;
 
   await updateMemoryImagePath({
     memoryId: input.memoryId,
     imagePath: first,
   });
+
+  return { mode: 'single_fallback', savedPaths: first ? [first] : [] };
 }
 
 /* ---------------------------------------------------------
