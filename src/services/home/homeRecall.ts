@@ -21,7 +21,9 @@ function buildKey(petId: string, ymd: string) {
 }
 
 function hasImage(m: MemoryRecord) {
-  return Boolean(m.imageUrl && m.imageUrl.trim());
+  return Boolean(
+    (m.imagePath && m.imagePath.trim()) || (m.imageUrl && m.imageUrl.trim()),
+  );
 }
 
 function isSameMonthDay(m: MemoryRecord, mmdd: string) {

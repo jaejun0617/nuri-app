@@ -10,11 +10,15 @@ import {
   Dimensions,
   FlatList,
   Image,
+  type ListRenderItem,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
+  ActivityIndicator, // ✅ 로딩 스피너 추가
 } from 'react-native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { CompositeNavigationProp } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
@@ -32,18 +36,24 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import Screen from '../../../../components/layout/Screen';
+import type { AppTabParamList } from '../../../../navigation/AppTabsNavigator';
+import type { RootStackParamList } from '../../../../navigation/RootNavigator';
 import { useAuthStore } from '../../../../store/authStore';
 import { usePetStore } from '../../../../store/petStore';
+import type { PetRecordsState } from '../../../../store/recordStore';
 import { useRecordStore } from '../../../../store/recordStore';
 
 import type { MemoryRecord } from '../../../../services/supabase/memories';
+import { getMemoryImageSignedUrlCached } from '../../../../services/supabase/storageMemories'; // 🔥 추가된 URL 캐시 호출 함수
 import {
   pickTodayPhoto,
   generateTimeMessage,
 } from '../../../../services/home/homeRecall';
 import { styles } from './LoggedInHome.styles';
 
-type Nav = NativeStackNavigationProp<any>;
+type HomeTabNav = BottomTabNavigationProp<AppTabParamList, 'HomeTab'>;
+type RootNav = NativeStackNavigationProp<RootStackParamList>;
+type Nav = CompositeNavigationProp<HomeTabNav, RootNav>;
 
 /* ---------------------------------------------------------
  * 1) helpers
@@ -137,19 +147,7 @@ function clampList(list: string[] | null | undefined, max = 2) {
     .slice(0, max);
 }
 
-/* ---------------------------------------------------------
- * 2) recordStore safe
- * -------------------------------------------------------- */
-type PetRecordsStateShape = {
-  status: 'idle' | 'loading' | 'ready' | 'refreshing' | 'loadingMore' | 'error';
-  items: MemoryRecord[];
-  errorMessage: string | null;
-  cursor: string | null;
-  hasMore: boolean;
-  requestSeq?: number;
-};
-
-const FALLBACK_RECORDS_STATE: PetRecordsStateShape = Object.freeze({
+const FALLBACK_RECORDS_STATE: Omit<PetRecordsState, 'requestSeq'> = Object.freeze({
   status: 'idle',
   items: [],
   errorMessage: null,
@@ -188,6 +186,38 @@ function TodayRecordCard({
   );
   const content = useMemo(() => toSnippet(item.content, 44), [item.content]);
 
+  // ✅ 이미지 로딩 State 추가
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // ✅ URL 캐싱 훅 추가
+  useEffect(() => {
+    let isMounted = true;
+
+    async function fetchImageUrl() {
+      if (!item.imagePath) {
+        if (isMounted) setIsLoading(false);
+        return;
+      }
+
+      try {
+        const url = await getMemoryImageSignedUrlCached(item.imagePath);
+        if (isMounted && url) {
+          setSignedUrl(url);
+        }
+      } catch (error) {
+        console.error('슬라이드 이미지 로딩 실패:', error);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+
+    fetchImageUrl();
+    return () => {
+      isMounted = false;
+    };
+  }, [item.imagePath]);
+
   const cardAnimStyle = useAnimatedStyle(() => {
     const x = scrollX.value;
     const centerX = index * snap;
@@ -222,9 +252,21 @@ function TodayRecordCard({
         onPress={() => onPress(item.id)}
       >
         <View style={styles.todayRecordMedia}>
-          {item.imageUrl ? (
+          {/* ✅ 로딩 처리 추가 완료 */}
+          {!item.imagePath ? (
+            <View style={styles.todayRecordImgPlaceholder} />
+          ) : isLoading ? (
+            <View
+              style={[
+                styles.todayRecordImgPlaceholder,
+                { justifyContent: 'center', alignItems: 'center' },
+              ]}
+            >
+              <ActivityIndicator size="small" color="#fff" />
+            </View>
+          ) : signedUrl ? (
             <Animated.Image
-              source={{ uri: item.imageUrl }}
+              source={{ uri: signedUrl }}
               style={[styles.todayRecordImg, imageAnimStyle]}
             />
           ) : (
@@ -283,6 +325,7 @@ export default function LoggedInHome() {
   // 0) navigation
   // ---------------------------------------------------------
   const navigation = useNavigation<Nav>();
+  const rootNavigation = navigation as unknown as RootNav;
 
   // ---------------------------------------------------------
   // 1) auth
@@ -319,11 +362,11 @@ export default function LoggedInHome() {
     if (!petBooted) return;
     if (pets.length > 0) return;
 
-    navigation.reset({
+    rootNavigation.reset({
       index: 0,
       routes: [{ name: 'PetCreate', params: { from: 'auto' } }],
     });
-  }, [petBooted, pets.length, navigation]);
+  }, [petBooted, pets.length, rootNavigation]);
 
   // ---------------------------------------------------------
   // 3.5) pet switch transition (fade + lift)
@@ -349,8 +392,8 @@ export default function LoggedInHome() {
   const bootstrapRecords = useRecordStore(s => s.bootstrap);
 
   const petRecordsState = useRecordStore(s =>
-    activePetId ? (s.byPetId[activePetId] as any) : null,
-  ) as PetRecordsStateShape | null;
+    activePetId ? s.byPetId[activePetId] ?? null : null,
+  );
 
   const safeRecordsState = petRecordsState ?? FALLBACK_RECORDS_STATE;
 
@@ -370,6 +413,10 @@ export default function LoggedInHome() {
     record: MemoryRecord | null;
     mode: 'anniversary' | 'random' | 'none';
   }>({ record: null, mode: 'none' });
+
+  // ✅ "오늘의 사진" 전용 이미지 URL State
+  const [todayPhotoUrl, setTodayPhotoUrl] = useState<string | null>(null);
+  const [isTodayPhotoLoading, setIsTodayPhotoLoading] = useState<boolean>(true);
 
   useEffect(() => {
     setTodayPhoto({ record: null, mode: 'none' });
@@ -392,6 +439,39 @@ export default function LoggedInHome() {
       mounted = false;
     };
   }, [activePetId, safeRecordsState.items]);
+
+  // ✅ "오늘의 사진" URL 캐시 훅 추가
+  useEffect(() => {
+    let isMounted = true;
+
+    async function fetchTodayPhotoUrl() {
+      const path = todayPhoto.record?.imagePath;
+      if (!path) {
+        if (isMounted) {
+          setTodayPhotoUrl(null);
+          setIsTodayPhotoLoading(false);
+        }
+        return;
+      }
+
+      try {
+        setIsTodayPhotoLoading(true);
+        const url = await getMemoryImageSignedUrlCached(path);
+        if (isMounted && url) {
+          setTodayPhotoUrl(url);
+        }
+      } catch (error) {
+        console.error('오늘의 사진 URL 로딩 실패:', error);
+      } finally {
+        if (isMounted) setIsTodayPhotoLoading(false);
+      }
+    }
+
+    fetchTodayPhotoUrl();
+    return () => {
+      isMounted = false;
+    };
+  }, [todayPhoto.record?.imagePath]);
 
   const todayPhotoOverlayTitle = useMemo(() => {
     if (todayPhoto.mode === 'anniversary') return '작년 오늘의 기억';
@@ -434,7 +514,7 @@ export default function LoggedInHome() {
   // ✅ 4.6) slider values
   // ---------------------------------------------------------
   const scrollX = useSharedValue(0);
-  const [activeSlideIndex, setActiveSlideIndex] = useState(0); // ✅ 이제 실제로 UI에서 사용(하단 힌트)
+  const [activeSlideIndex, setActiveSlideIndex] = useState(0);
 
   useEffect(() => {
     setActiveSlideIndex(0);
@@ -564,8 +644,8 @@ export default function LoggedInHome() {
   // 7) actions
   // ---------------------------------------------------------
   const onPressAddPet = useCallback(() => {
-    navigation.navigate('PetCreate', { from: 'header_plus' });
-  }, [navigation]);
+    rootNavigation.navigate('PetCreate', { from: 'header_plus' });
+  }, [rootNavigation]);
 
   const onPressTimeline = useCallback(() => {
     navigation.navigate('TimelineTab');
@@ -578,9 +658,12 @@ export default function LoggedInHome() {
   const onPressRecordItem = useCallback(
     (memoryId: string) => {
       if (!activePetId) return;
-      navigation.navigate('RecordDetail', { petId: activePetId, memoryId });
+      rootNavigation.navigate('RecordDetail', {
+        petId: activePetId,
+        memoryId,
+      });
     },
-    [navigation, activePetId],
+    [rootNavigation, activePetId],
   );
 
   const onPressPetChip = useCallback(
@@ -667,8 +750,9 @@ export default function LoggedInHome() {
   // ---------------------------------------------------------
   // 9) slider render
   // ---------------------------------------------------------
-  const renderTodayRecord = useCallback(
-    ({ item, index }: { item: MemoryRecord; index: number }) => {
+  const renderTodayRecord = useCallback<ListRenderItem<MemoryRecord>>(
+    ({ item, index }) => {
+      if (index === undefined) return null;
       return (
         <TodayRecordCard
           item={item}
@@ -1017,13 +1101,10 @@ export default function LoggedInHome() {
             </Text>
           </View>
 
-          {/* Today Photo */}
+          {/* ✅ Today Photo (메인 카드 처리 완료) */}
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionTitle}>오늘날의 사진</Text>
-              <TouchableOpacity activeOpacity={0.85} onPress={onPressTimeline}>
-                <Text style={styles.sectionLink}>전체보기</Text>
-              </TouchableOpacity>
             </View>
 
             <TouchableOpacity
@@ -1035,10 +1116,22 @@ export default function LoggedInHome() {
                   : onPressRecord()
               }
             >
-              {todayPhoto.record?.imageUrl ? (
+              {!todayPhoto.record?.imagePath ? (
+                <View style={styles.photoPlaceholder} />
+              ) : isTodayPhotoLoading ? (
+                <View
+                  style={[
+                    styles.photoPlaceholder,
+                    { justifyContent: 'center', alignItems: 'center' },
+                  ]}
+                >
+                  <ActivityIndicator size="large" color="#fff" />
+                </View>
+              ) : todayPhotoUrl ? (
                 <Image
-                  source={{ uri: todayPhoto.record.imageUrl }}
+                  source={{ uri: todayPhotoUrl }}
                   style={styles.photoImage}
+                  fadeDuration={250}
                 />
               ) : (
                 <View style={styles.photoPlaceholder} />
@@ -1059,7 +1152,7 @@ export default function LoggedInHome() {
             </TouchableOpacity>
           </View>
 
-          {/* ✅ Today Records Slider */}
+          {/* ✅ Today Records Slider (슬라이드 카드 처리 완료) */}
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionTitle}>오늘날의 기록</Text>
@@ -1086,7 +1179,7 @@ export default function LoggedInHome() {
                 <AnimatedFlatList
                   data={todayRecords}
                   keyExtractor={keyExtractor}
-                  renderItem={renderTodayRecord as any}
+                  renderItem={renderTodayRecord}
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   bounces={false}

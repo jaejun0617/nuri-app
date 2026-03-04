@@ -336,6 +336,17 @@ hydrate(AsyncStorage)
 - `petId` 해석 규칙 유지:
   - `route.params.petId -> selectedPetId -> pets[0]`
 
+## ✅ Chapter 6-3 — Home 오늘의 사진 복구 + LoggedInHome 타입 정리
+
+- `homeRecall`의 오늘의 사진 후보 선택 로직을 `imageUrl` 기준에서 `imagePath` 기준까지 포함하도록 수정
+- 리스트 fetch 단계에서 `imageUrl`이 비어 있어도 홈의 "오늘의 사진"이 정상 선택되도록 복구
+- `LoggedInHome`의 today photo 렌더 경로를 `imagePath -> signed URL 캐시` 흐름과 정합되게 유지
+- `LoggedInHome` 내부의 `any` / `as any` 제거
+- 탭 이동과 스택 이동 타입을 정리하여 HomeTab / RootStack 네비게이션 사용 구분
+- `useNavigation()` 중복 호출 구조를 정리하여 Hook order warning 방지
+- `InteractionManager.runAfterInteractions()`를 제거하고 `requestIdleCallback` 기반 idle scheduler로 변경
+- RN 경고 없이 signed URL prefetch가 비동기 idle 타이밍에 실행되도록 수정
+
 ## ✅ Chapter 7 — Timeline Performance Optimization
 
 Timeline 화면에서 기록 수가 증가할수록 스크롤이 끊기거나 버벅이는 문제가 발생할 수 있다.  
