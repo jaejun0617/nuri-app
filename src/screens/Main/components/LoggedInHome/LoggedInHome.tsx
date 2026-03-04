@@ -1213,13 +1213,49 @@ export default function LoggedInHome() {
             </View>
           </View>
 
+          <View style={styles.section}>
+            <View style={styles.sectionHeaderCol}>
+              <Text style={styles.sectionTitle}>자주 쓰는 기록</Text>
+              <Text style={styles.sectionSubText}>
+                산책, 식사, 건강, 미용 기록을 바로 열어보세요
+              </Text>
+            </View>
+
+            <View style={styles.quickGridFrame}>
+              <View style={styles.quickGrid}>
+                {quickActionCards.map(item => (
+                  <TouchableOpacity
+                    key={item.key}
+                    activeOpacity={0.92}
+                    style={styles.quickCard}
+                    onPress={() =>
+                      onPressTimelineCategory(
+                        item.mainCategory,
+                        item.otherSubCategory,
+                      )
+                    }
+                  >
+                    <View style={styles.quickIconWrap}>
+                      <MaterialCommunityIcons
+                        name={item.icon}
+                        size={24}
+                        color="#6D6AF8"
+                        style={styles.quickIcon}
+                      />
+                    </View>
+                    <Text style={styles.quickCardTitle}>{item.label}</Text>
+                    <Text style={styles.quickCardNote}>{item.note}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </View>
+
           {/* Section lead */}
           <View style={styles.sectionLead}>
-            <Text style={styles.sectionLeadTitle}>
-              {petName}와의 소중한 기록
-            </Text>
+            <Text style={styles.sectionLeadTitle}>오늘의 추억 둘러보기</Text>
             <Text style={styles.sectionLeadSub}>
-              오늘도 행복한 추억이 쌓이고 있어요
+              사진과 기록을 천천히 살펴보세요
             </Text>
           </View>
 
@@ -1343,63 +1379,33 @@ export default function LoggedInHome() {
           </View>
 
           <View style={styles.section}>
-            <View style={styles.quickGrid}>
-              {quickActionCards.map(item => (
-                <View key={item.key} style={styles.quickCardWrap}>
-                  <View style={styles.cardBottomShadow} />
-                  <TouchableOpacity
-                    activeOpacity={0.92}
-                    style={styles.quickCard}
-                    onPress={() =>
-                      onPressTimelineCategory(
-                        item.mainCategory,
-                        item.otherSubCategory,
-                      )
-                    }
-                  >
-                    <View style={styles.quickIconWrap}>
-                      <MaterialCommunityIcons
-                        name={item.icon}
-                        size={24}
-                        color="#6D6AF8"
-                        style={styles.quickIcon}
-                      />
-                    </View>
-                    <Text style={styles.quickCardTitle}>{item.label}</Text>
-                    <Text style={styles.quickCardNote}>{item.note}</Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </View>
-          </View>
-
-          <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.tipSectionTitle}>{tipsSectionTitle}</Text>
             </View>
 
             <View style={styles.tipList}>
               {recommendationTips.map(item => (
-                <View key={item.key} style={styles.tipCardWrap}>
-                  <View style={styles.cardBottomShadow} />
-                  <TouchableOpacity activeOpacity={0.92} style={styles.tipCard}>
-                    <View style={styles.tipThumb}>
-                      <View style={styles.tipThumbInner}>
-                        <Feather name={item.icon} size={20} color="#6D6AF8" />
-                      </View>
+                <TouchableOpacity
+                  key={item.key}
+                  activeOpacity={0.92}
+                  style={styles.tipCard}
+                >
+                  <View style={styles.tipThumb}>
+                    <View style={styles.tipThumbInner}>
+                      <Feather name={item.icon} size={20} color="#6D6AF8" />
                     </View>
+                  </View>
 
-                    <View style={styles.tipContent}>
-                      <Text style={styles.tipEyebrow}>{item.eyebrow}</Text>
-                      <Text style={styles.tipTitle} numberOfLines={2}>
-                        {item.title}
-                      </Text>
-                      <Text style={styles.tipDescription} numberOfLines={2}>
-                        {item.description}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                </View>
+                  <View style={styles.tipContent}>
+                    <Text style={styles.tipEyebrow}>{item.eyebrow}</Text>
+                    <Text style={styles.tipTitle} numberOfLines={2}>
+                      {item.title}
+                    </Text>
+                    <Text style={styles.tipDescription} numberOfLines={2}>
+                      {item.description}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
               ))}
             </View>
           </View>

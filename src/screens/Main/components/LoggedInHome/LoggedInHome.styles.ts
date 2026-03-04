@@ -425,7 +425,16 @@ export const styles = StyleSheet.create({
     alignItems: 'flex-end',
     justifyContent: 'space-between',
   },
+  sectionHeaderCol: {
+    gap: 4,
+  },
   sectionTitle: { fontSize: 14, fontWeight: '600', color: TEXT },
+  sectionSubText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: MUTED,
+    lineHeight: 17,
+  },
   sectionLink: { fontSize: 12, fontWeight: '700', color: BRAND_DEEP },
 
   // ---------------------------------------------------------
@@ -599,58 +608,53 @@ export const styles = StyleSheet.create({
   // ---------------------------------------------------------
   quickGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'space-between',
-    rowGap: 12,
+    alignItems: 'stretch',
+    columnGap: 8,
   },
-  quickCardWrap: {
-    width: '48%',
-    position: 'relative',
+  quickGridFrame: {
+    borderRadius: 26,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderWidth: 0,
+    backgroundColor: SURFACE,
   },
   quickCard: {
-    width: '100%',
-    minHeight: 142,
-    borderRadius: 22,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    width: '23%',
+    minHeight: 126,
+    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: SURFACE,
     borderWidth: 0,
   },
-  cardBottomShadow: {
-    position: 'absolute',
-    left: 10,
-    right: 10,
-    bottom: -4,
-    height: 14,
-    borderRadius: 999,
-    backgroundColor: 'rgba(0,0,0,0.06)',
-    opacity: 0.42,
-  },
   quickIconWrap: {
-    width: 54,
-    height: 54,
+    width: 48,
+    height: 48,
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(109,106,248,0.10)',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   quickIcon: {
     marginTop: 0,
   },
   quickCardTitle: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '900',
     color: TEXT,
     letterSpacing: -0.4,
+    textAlign: 'center',
   },
   quickCardNote: {
     marginTop: 4,
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '800',
     color: BRAND,
+    textAlign: 'center',
   },
 
   // ---------------------------------------------------------
@@ -664,9 +668,6 @@ export const styles = StyleSheet.create({
   },
   tipList: {
     gap: 12,
-  },
-  tipCardWrap: {
-    position: 'relative',
   },
   tipCard: {
     flexDirection: 'row',
