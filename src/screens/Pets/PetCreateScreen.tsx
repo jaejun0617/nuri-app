@@ -1,100 +1,173 @@
-// 파일: src/screens/Pets/PetCreateScreen.tsx
-// 목적:
-// - 펫 등록(온보딩)
-// - 이미지 선택 → Storage 업로드 → pets.profile_image_url(path) 저장
-// - 등록 성공 시 fetchMyPets → petStore 주입 → AppTabs reset(=홈으로 복귀)
-//
-// ✅ 이번 변경:
-// - SQL 스키마 필드 확장 입력 반영
-// - likes/dislikes/hobbies/tags: 최소 1개 강제
-// - gender/neutered/breed 입력 추가
-// - 스타일 분리(PetCreateScreen.styles.ts)
-
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
   Image,
+  Modal,
   ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import Feather from 'react-native-vector-icons/Feather';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { supabase } from '../../services/supabase/client';
-import { uploadPetAvatar } from '../../services/supabase/storagePets';
 import { createPet, fetchMyPets } from '../../services/supabase/pets';
+import { uploadPetAvatar } from '../../services/supabase/storagePets';
 import { usePetStore } from '../../store/petStore';
-
 import { styles } from './PetCreateScreen.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'PetCreate'>;
+type Step = 1 | 2;
+type PetGender = 'male' | 'female' | 'unknown';
 
-function normalizeYmdOrNull(raw: string): string | null {
-  const t = raw.trim();
-  if (!t) return null;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) {
-    throw new Error('날짜 형식은 YYYY-MM-DD 입니다.');
-  }
-  return t;
+const BRAND = '#6D6AF8';
+const MAX_MULTI_ITEMS = 10;
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  return '다시 시도해 주세요.';
 }
 
-function normalizeWeightOrNull(raw: string): number | null {
-  const t = raw.trim();
-  if (!t) return null;
-  const n = Number(t);
-  if (!Number.isFinite(n) || n <= 0) {
-    throw new Error('몸무게는 0보다 큰 숫자여야 합니다.');
+function inferMimeFromFileName(fileName: string | null | undefined): string | null {
+  const value = (fileName ?? '').toLowerCase().trim();
+  if (!value) return null;
+  if (value.endsWith('.jpg') || value.endsWith('.jpeg')) return 'image/jpeg';
+  if (value.endsWith('.png')) return 'image/png';
+  if (value.endsWith('.webp')) return 'image/webp';
+  if (value.endsWith('.heic')) return 'image/heic';
+  if (value.endsWith('.heif')) return 'image/heif';
+  return null;
+}
+
+function inferMimeFromUri(uri: string): string | null {
+  const normalized = uri.toLowerCase().split('?')[0];
+  if (normalized.endsWith('.jpg') || normalized.endsWith('.jpeg')) {
+    return 'image/jpeg';
   }
-  return n;
+  if (normalized.endsWith('.png')) return 'image/png';
+  if (normalized.endsWith('.webp')) return 'image/webp';
+  if (normalized.endsWith('.heic')) return 'image/heic';
+  if (normalized.endsWith('.heif')) return 'image/heif';
+  return null;
+}
+
+function resolvePickerMimeType(asset: {
+  type?: string | null;
+  fileName?: string | null;
+  uri?: string | null;
+}): string | null {
+  const direct = asset.type ?? null;
+  if (direct && direct.includes('/')) return direct;
+
+  const byName = inferMimeFromFileName(asset.fileName);
+  if (byName) return byName;
+
+  if (asset.uri) return inferMimeFromUri(asset.uri);
+  return null;
 }
 
 function normalizeTextItem(raw: string): string {
   return raw.trim().replace(/\s+/g, ' ');
 }
 
+function normalizeWeightOrNull(raw: string): number | null {
+  const value = raw.trim();
+  if (!value) return null;
+
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    throw new Error('몸무게는 0보다 큰 숫자여야 합니다.');
+  }
+
+  return numeric;
+}
+
+function formatYmdDigits(raw: string): string {
+  const digits = raw.replace(/\D/g, '').slice(0, 8);
+  if (digits.length <= 4) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
+}
+
+function normalizeYmdOrNull(raw: string): string | null {
+  const value = raw.trim();
+  if (!value) return null;
+
+  const digits = value.replace(/\D/g, '');
+  if (digits.length !== 8) {
+    throw new Error('날짜는 20111028 또는 2011-10-28 형식으로 입력해 주세요.');
+  }
+
+  const normalized = `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
+  const date = new Date(`${normalized}T00:00:00`);
+  if (Number.isNaN(date.getTime())) {
+    throw new Error('올바른 날짜를 입력해 주세요.');
+  }
+
+  const [year, month, day] = normalized.split('-').map(Number);
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() + 1 !== month ||
+    date.getDate() !== day
+  ) {
+    throw new Error('올바른 날짜를 입력해 주세요.');
+  }
+
+  return normalized;
+}
+
 function ensureMinOne(list: string[], label: string) {
-  if (!Array.isArray(list) || list.length < 1) {
-    throw new Error(`${label}은(는) 최소 1개 이상 설정해야 합니다.`);
+  if (list.length < 1) {
+    throw new Error(`${label}은(는) 최소 1개 이상 입력해 주세요.`);
   }
 }
 
-export default function PetCreateScreen() {
-  // ---------------------------------------------------------
-  // 1) navigation
-  // ---------------------------------------------------------
-  const navigation = useNavigation<Nav>();
+function createTagLabel(raw: string): string {
+  const base = normalizeTextItem(raw).replace(/^#/, '');
+  return base ? `#${base}` : '';
+}
 
-  // ---------------------------------------------------------
-  // 2) store
-  // ---------------------------------------------------------
+function buildDateHint(value: string): string {
+  if (!value) return 'YYYY-MM-DD 또는 YYYYMMDD';
+  return formatYmdDigits(value);
+}
+
+function splitYmdParts(raw: string): { year: string; month: string; day: string } {
+  const digits = raw.replace(/\D/g, '').slice(0, 8);
+  return {
+    year: digits.slice(0, 4),
+    month: digits.slice(4, 6),
+    day: digits.slice(6, 8),
+  };
+}
+
+export default function PetCreateScreen() {
+  const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const setPets = usePetStore(s => s.setPets);
 
-  // ---------------------------------------------------------
-  // 3) local state
-  // ---------------------------------------------------------
+  const [step, setStep] = useState<Step>(1);
   const [saving, setSaving] = useState(false);
 
   const [name, setName] = useState('');
-
+  const [birthDate, setBirthDate] = useState('');
+  const [adoptionDate, setAdoptionDate] = useState('');
   const [breed, setBreed] = useState('');
-  const [gender, setGender] = useState<'male' | 'female' | 'unknown'>(
-    'unknown',
-  );
+  const [gender, setGender] = useState<PetGender>('unknown');
   const [neutered, setNeutered] = useState<boolean | null>(null);
 
-  const [adoptionDate, setAdoptionDate] = useState(''); // YYYY-MM-DD
-  const [birthDate, setBirthDate] = useState(''); // YYYY-MM-DD
-  const [weightKg, setWeightKg] = useState(''); // number string
-
+  const [weightKg, setWeightKg] = useState('');
   const [likes, setLikes] = useState<string[]>([]);
   const [dislikes, setDislikes] = useState<string[]>([]);
   const [hobbies, setHobbies] = useState<string[]>([]);
-  const [tags, setTags] = useState<string[]>([]); // '#태그' 형태로 저장
+  const [tags, setTags] = useState<string[]>([]);
 
   const [draftLike, setDraftLike] = useState('');
   const [draftDislike, setDraftDislike] = useState('');
@@ -103,98 +176,146 @@ export default function PetCreateScreen() {
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageType, setImageType] = useState<string | null>(null);
+  const [dateModalTarget, setDateModalTarget] = useState<'birth' | 'adoption' | null>(null);
+  const [pickerYear, setPickerYear] = useState('');
+  const [pickerMonth, setPickerMonth] = useState('');
+  const [pickerDay, setPickerDay] = useState('');
 
   const trimmedName = useMemo(() => name.trim(), [name]);
+  const canGoNext = useMemo(() => {
+    if (trimmedName.length < 1) return false;
+    return true;
+  }, [trimmedName]);
 
-  const disabled = useMemo(() => {
-    if (saving) return true;
-    if (trimmedName.length < 1) return true;
+  const canSubmit = useMemo(() => {
+    if (saving) return false;
+    if (trimmedName.length < 1) return false;
+    if (likes.length < 1) return false;
+    if (dislikes.length < 1) return false;
+    if (hobbies.length < 1) return false;
+    if (tags.length < 1) return false;
+    return true;
+  }, [dislikes.length, hobbies.length, likes.length, saving, tags.length, trimmedName.length]);
 
-    // 최소 1개 규칙(요구사항)
-    if (likes.length < 1) return true;
-    if (dislikes.length < 1) return true;
-    if (hobbies.length < 1) return true;
-    if (tags.length < 1) return true;
+  const syncDateInput = useCallback(
+    (setter: React.Dispatch<React.SetStateAction<string>>, raw: string) => {
+      const digits = raw.replace(/\D/g, '').slice(0, 8);
+      setter(digits.length === 8 ? formatYmdDigits(digits) : digits);
+    },
+    [],
+  );
 
-    return false;
-  }, [
-    saving,
-    trimmedName,
-    likes.length,
-    dislikes.length,
-    hobbies.length,
-    tags.length,
-  ]);
+  const finalizeDateInput = useCallback(
+    (value: string, setter: React.Dispatch<React.SetStateAction<string>>) => {
+      const trimmed = value.trim();
+      if (!trimmed) return;
 
-  // ---------------------------------------------------------
-  // 4) image picker
-  // ---------------------------------------------------------
+      const digits = trimmed.replace(/\D/g, '');
+      if (digits.length === 8) {
+        setter(formatYmdDigits(digits));
+      }
+    },
+    [],
+  );
+
   const pickImage = useCallback(async () => {
-    const res = await launchImageLibrary({
+    const result = await launchImageLibrary({
       mediaType: 'photo',
       selectionLimit: 1,
       quality: 0.9,
     });
 
-    if (res.didCancel) return;
+    if (result.didCancel) return;
 
-    const asset = res.assets?.[0];
+    const asset = result.assets?.[0];
     if (!asset?.uri) {
-      Alert.alert('이미지 선택 실패', '다시 시도해 주세요.');
+      Alert.alert('사진 선택 실패', '이미지를 다시 선택해 주세요.');
       return;
     }
 
     setImageUri(asset.uri);
-    setImageType(asset.type ?? null);
+    setImageType(resolvePickerMimeType(asset));
   }, []);
 
-  // ---------------------------------------------------------
-  // 5) list helpers
-  // ---------------------------------------------------------
+  const openDateModal = useCallback(
+    (target: 'birth' | 'adoption') => {
+      const source = target === 'birth' ? birthDate : adoptionDate;
+      const parts = splitYmdParts(source);
+      setPickerYear(parts.year);
+      setPickerMonth(parts.month);
+      setPickerDay(parts.day);
+      setDateModalTarget(target);
+    },
+    [adoptionDate, birthDate],
+  );
+
+  const closeDateModal = useCallback(() => {
+    setDateModalTarget(null);
+  }, []);
+
+  const applyDateModal = useCallback(() => {
+    try {
+      const merged = `${pickerYear}${pickerMonth}${pickerDay}`;
+      const normalized = normalizeYmdOrNull(merged);
+      if (dateModalTarget === 'birth') {
+        setBirthDate(normalized ?? '');
+      }
+      if (dateModalTarget === 'adoption') {
+        setAdoptionDate(normalized ?? '');
+      }
+      setDateModalTarget(null);
+    } catch (error) {
+      Alert.alert('날짜 확인', getErrorMessage(error));
+    }
+  }, [dateModalTarget, pickerDay, pickerMonth, pickerYear]);
+
+  const datePreview = useMemo(() => {
+    const merged = `${pickerYear}${pickerMonth}${pickerDay}`;
+    return buildDateHint(merged);
+  }, [pickerDay, pickerMonth, pickerYear]);
+
+  const pushUniqueValue = useCallback(
+    (
+      setter: React.Dispatch<React.SetStateAction<string[]>>,
+      raw: string,
+      transform?: (value: string) => string,
+    ) => {
+      const normalizedBase = normalizeTextItem(raw);
+      if (!normalizedBase) return;
+
+      const value = transform ? transform(normalizedBase) : normalizedBase;
+      if (!value) return;
+
+      setter(prev => {
+        if (prev.includes(value)) return prev;
+        return [...prev, value].slice(0, MAX_MULTI_ITEMS);
+      });
+    },
+    [],
+  );
+
   const addItem = useCallback(
     (kind: 'likes' | 'dislikes' | 'hobbies' | 'tags') => {
-      const getDraft = () => {
-        if (kind === 'likes') return draftLike;
-        if (kind === 'dislikes') return draftDislike;
-        if (kind === 'hobbies') return draftHobby;
-        return draftTag;
-      };
-
-      const setDraft = (v: string) => {
-        if (kind === 'likes') setDraftLike(v);
-        else if (kind === 'dislikes') setDraftDislike(v);
-        else if (kind === 'hobbies') setDraftHobby(v);
-        else setDraftTag(v);
-      };
-
-      const raw = normalizeTextItem(getDraft());
-      if (!raw) return;
-
-      if (kind === 'tags') {
-        const normalized = raw.startsWith('#') ? raw : `#${raw}`;
-        setTags(prev =>
-          (prev.includes(normalized) ? prev : [...prev, normalized]).slice(
-            0,
-            12,
-          ),
-        );
-        setDraft('');
+      if (kind === 'likes') {
+        pushUniqueValue(setLikes, draftLike);
+        setDraftLike('');
+        return;
+      }
+      if (kind === 'dislikes') {
+        pushUniqueValue(setDislikes, draftDislike);
+        setDraftDislike('');
+        return;
+      }
+      if (kind === 'hobbies') {
+        pushUniqueValue(setHobbies, draftHobby);
+        setDraftHobby('');
         return;
       }
 
-      const push = (setter: React.Dispatch<React.SetStateAction<string[]>>) => {
-        setter(prev =>
-          (prev.includes(raw) ? prev : [...prev, raw]).slice(0, 12),
-        );
-      };
-
-      if (kind === 'likes') push(setLikes);
-      if (kind === 'dislikes') push(setDislikes);
-      if (kind === 'hobbies') push(setHobbies);
-
-      setDraft('');
+      pushUniqueValue(setTags, draftTag, createTagLabel);
+      setDraftTag('');
     },
-    [draftLike, draftDislike, draftHobby, draftTag],
+    [draftDislike, draftHobby, draftLike, draftTag, pushUniqueValue],
   );
 
   const removeItem = useCallback(
@@ -202,8 +323,9 @@ export default function PetCreateScreen() {
       const filterOut = (
         setter: React.Dispatch<React.SetStateAction<string[]>>,
       ) => {
-        setter(prev => prev.filter(v => v !== value));
+        setter(prev => prev.filter(item => item !== value));
       };
+
       if (kind === 'likes') filterOut(setLikes);
       if (kind === 'dislikes') filterOut(setDislikes);
       if (kind === 'hobbies') filterOut(setHobbies);
@@ -212,11 +334,30 @@ export default function PetCreateScreen() {
     [],
   );
 
-  // ---------------------------------------------------------
-  // 6) submit
-  // ---------------------------------------------------------
+  const goNext = useCallback(() => {
+    try {
+      if (!trimmedName) {
+        throw new Error('반려동물 이름을 입력해 주세요.');
+      }
+
+      if (birthDate.trim()) {
+        const normalizedBirth = normalizeYmdOrNull(birthDate);
+        setBirthDate(normalizedBirth ?? '');
+      }
+
+      if (adoptionDate.trim()) {
+        const normalizedAdoption = normalizeYmdOrNull(adoptionDate);
+        setAdoptionDate(normalizedAdoption ?? '');
+      }
+
+      setStep(2);
+    } catch (error) {
+      Alert.alert('기본 정보 확인', getErrorMessage(error));
+    }
+  }, [adoptionDate, birthDate, trimmedName]);
+
   const onSubmit = useCallback(async () => {
-    if (saving) return;
+    if (!canSubmit) return;
 
     try {
       setSaving(true);
@@ -225,38 +366,30 @@ export default function PetCreateScreen() {
       const userId = userRes.data.user?.id ?? null;
       if (!userId) throw new Error('로그인 정보가 없습니다.');
 
-      const adoption = normalizeYmdOrNull(adoptionDate);
-      const birth = normalizeYmdOrNull(birthDate);
-      const weight = normalizeWeightOrNull(weightKg);
+      const normalizedBirthDate = normalizeYmdOrNull(birthDate);
+      const normalizedAdoptionDate = normalizeYmdOrNull(adoptionDate);
+      const normalizedWeight = normalizeWeightOrNull(weightKg);
 
-      const breedTrim = breed.trim() || null;
-
-      // ✅ 최소 1개 규칙(요구사항)
       ensureMinOne(likes, '좋아하는 것');
       ensureMinOne(dislikes, '싫어하는 것');
       ensureMinOne(hobbies, '취미');
       ensureMinOne(tags, '태그');
 
-      // 1) pets insert 먼저(펫 id 필요)
       const newPetId = await createPet({
         name: trimmedName,
-        adoptionDate: adoption,
-        birthDate: birth,
-        weightKg: weight,
-
+        birthDate: normalizedBirthDate,
+        adoptionDate: normalizedAdoptionDate,
+        weightKg: normalizedWeight,
+        breed: breed.trim() || null,
         gender,
         neutered,
-        breed: breedTrim,
-
         likes,
         dislikes,
         hobbies,
         tags,
-
         avatarPath: null,
       });
 
-      // 2) 이미지가 있으면 업로드 후 pets.profile_image_url 업데이트
       if (imageUri) {
         const { path } = await uploadPetAvatar({
           userId,
@@ -265,371 +398,490 @@ export default function PetCreateScreen() {
           mimeType: imageType,
         });
 
-        const { error: upErr } = await supabase
+        const { error } = await supabase
           .from('pets')
           .update({ profile_image_url: path })
           .eq('id', newPetId);
 
-        if (upErr) throw upErr;
+        if (error) throw error;
       }
 
-      // 3) pets refetch → store 주입
       const pets = await fetchMyPets();
       setPets(pets);
 
-      // 4) ✅ AppTabs(=탭 루트)로 reset
       navigation.reset({
         index: 0,
         routes: [{ name: 'AppTabs' }],
       });
-    } catch (e: any) {
-      Alert.alert('펫 등록 실패', e?.message ?? '다시 시도해 주세요.');
+    } catch (error) {
+      Alert.alert('반려동물 등록 실패', getErrorMessage(error));
     } finally {
       setSaving(false);
     }
   }, [
-    saving,
-    trimmedName,
     adoptionDate,
     birthDate,
-    weightKg,
     breed,
-    gender,
-    neutered,
-    likes,
+    canSubmit,
     dislikes,
+    gender,
     hobbies,
-    tags,
-    imageUri,
     imageType,
-    setPets,
+    imageUri,
+    likes,
     navigation,
+    neutered,
+    setPets,
+    tags,
+    trimmedName,
+    weightKg,
   ]);
 
-  // ---------------------------------------------------------
-  // 7) UI
-  // ---------------------------------------------------------
+  const renderMultiInput = useCallback(
+    (
+      label: string,
+      list: string[],
+      draft: string,
+      setDraft: React.Dispatch<React.SetStateAction<string>>,
+      kind: 'likes' | 'dislikes' | 'hobbies' | 'tags',
+      placeholder: string,
+      hint?: string,
+    ) => (
+      <View style={styles.fieldBlock}>
+        <View style={styles.fieldLabelRow}>
+          <Text style={styles.label}>{label}</Text>
+          <Text style={styles.countText}>{list.length}/{MAX_MULTI_ITEMS}</Text>
+        </View>
+
+        <View style={styles.tagInputRow}>
+          <TextInput
+            value={draft}
+            onChangeText={setDraft}
+            placeholder={placeholder}
+            placeholderTextColor="#A0A7B4"
+            style={[styles.input, styles.tagInput]}
+            returnKeyType="done"
+            onSubmitEditing={() => addItem(kind)}
+          />
+          <TouchableOpacity
+            activeOpacity={0.88}
+            style={styles.inlineAddButton}
+            onPress={() => addItem(kind)}
+          >
+            <Text style={styles.inlineAddButtonText}>추가</Text>
+          </TouchableOpacity>
+        </View>
+
+        {hint ? <Text style={styles.inputHint}>{hint}</Text> : null}
+
+        <View style={styles.pillRow}>
+          {list.map(item => (
+            <TouchableOpacity
+              key={item}
+              activeOpacity={0.88}
+              style={styles.pill}
+              onPress={() => removeItem(kind, item)}
+            >
+              <Text style={styles.pillText}>{item}</Text>
+              <Text style={styles.pillX}>×</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    ),
+    [addItem, removeItem],
+  );
+
   return (
-    <View style={styles.screen}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text style={styles.title}>반려동물 등록</Text>
-          <Text style={styles.subTitle}>
-            입력한 정보로 홈의 큰 프로필 카드가 완성돼요.
-          </Text>
+    <SafeAreaView style={styles.screen} edges={['top']}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top * 0.15, 2) }]}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={styles.headerAction}
+          onPress={() => navigation.goBack()}
+        >
+          <Feather color="#222B3A" name="chevron-left" size={18} />
+        </TouchableOpacity>
+
+        <Text style={styles.headerTitle}>프로필 등록 ({step}/2)</Text>
+
+        <View style={styles.headerActionPlaceholder} />
+      </View>
+
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.progressHeader}>
+          <View>
+            <Text style={styles.progressLabel}>
+              {step === 1 ? '기본 정보 입력' : '상세 정보 입력'}
+            </Text>
+            <View style={styles.progressTrack}>
+              <View
+                style={[
+                  styles.progressFill,
+                  step === 1 ? styles.progressFillHalf : styles.progressFillFull,
+                ]}
+              />
+            </View>
+          </View>
+          <Text style={styles.progressStepText}>{step}/2</Text>
         </View>
 
         <View style={styles.card}>
-          {/* 사진 */}
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={styles.imagePicker}
-            onPress={pickImage}
-          >
-            {imageUri ? (
-              <Image source={{ uri: imageUri }} style={styles.image} />
-            ) : (
-              <Text style={styles.imagePickerText}>사진 선택</Text>
-            )}
-          </TouchableOpacity>
+          {step === 1 ? (
+            <>
+              <TouchableOpacity
+                activeOpacity={0.92}
+                style={styles.avatarSection}
+                onPress={pickImage}
+              >
+                <View style={styles.avatarCircle}>
+                  {imageUri ? (
+                    <Image source={{ uri: imageUri }} style={styles.avatarImage} />
+                  ) : (
+                    <View style={styles.avatarPlaceholder}>
+                      <Feather color={BRAND} name="camera" size={18} />
+                    </View>
+                  )}
+                </View>
+                <View style={styles.avatarEditButton}>
+                  <Feather color="#FFFFFF" name="edit-3" size={12} />
+                </View>
+              </TouchableOpacity>
 
-          {/* 이름 */}
-          <Text style={styles.label}>이름 *</Text>
-          <TextInput
-            value={name}
-            onChangeText={setName}
-            placeholder="예: 누리"
-            placeholderTextColor="#B8B0A8"
-            style={styles.input}
-            returnKeyType="done"
-          />
+              <Text style={styles.heroCopy}>우리 아이 사진을 등록해주세요</Text>
 
-          {/* 견종 */}
-          <Text style={styles.label}>견종</Text>
-          <TextInput
-            value={breed}
-            onChangeText={setBreed}
-            placeholder="예: 말티즈"
-            placeholderTextColor="#B8B0A8"
-            style={styles.input}
-            returnKeyType="done"
-          />
+              <View style={styles.fieldBlock}>
+                <Text style={styles.label}>반려동물 이름</Text>
+                <TextInput
+                  value={name}
+                  onChangeText={setName}
+                  placeholder="이름을 입력해 주세요"
+                  placeholderTextColor="#A0A7B4"
+                  style={styles.input}
+                  returnKeyType="done"
+                />
+              </View>
 
-          {/* 성별 */}
-          <Text style={styles.label}>성별 *</Text>
-          <View style={styles.chipRow}>
-            {(['male', 'female', 'unknown'] as const).map(v => {
-              const active = gender === v;
-              const label =
-                v === 'male' ? '남아' : v === 'female' ? '여아' : '모름';
-              return (
-                <TouchableOpacity
-                  key={v}
-                  activeOpacity={0.9}
-                  style={[styles.chip, active ? styles.chipActive : null]}
-                  onPress={() => setGender(v)}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      active ? styles.chipTextActive : null,
-                    ]}
+              <View style={styles.fieldBlock}>
+                <Text style={styles.label}>생일</Text>
+                <View style={styles.iconInputWrap}>
+                  <TextInput
+                    value={birthDate}
+                    onChangeText={text => syncDateInput(setBirthDate, text)}
+                    onBlur={() => finalizeDateInput(birthDate, setBirthDate)}
+                    placeholder="2011-10-28"
+                    placeholderTextColor="#A0A7B4"
+                    style={styles.iconInput}
+                    keyboardType="number-pad"
+                  />
+                  <TouchableOpacity
+                    activeOpacity={0.88}
+                    onPress={() => openDateModal('birth')}
                   >
-                    {label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+                    <Feather color="#98A1B2" name="calendar" size={16} />
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.inputHint}>{buildDateHint(birthDate)}</Text>
+              </View>
 
-          {/* 중성화 */}
-          <Text style={styles.label}>중성화</Text>
-          <View style={styles.chipRow}>
-            {[
-              { key: 'yes', label: '했어요', value: true as boolean },
-              { key: 'no', label: '안 했어요', value: false as boolean },
-              { key: 'unknown', label: '모름', value: null as boolean | null },
-            ].map(o => {
-              const active = neutered === o.value;
-              return (
-                <TouchableOpacity
-                  key={o.key}
-                  activeOpacity={0.9}
-                  style={[styles.chip, active ? styles.chipActive : null]}
-                  onPress={() => setNeutered(o.value)}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      active ? styles.chipTextActive : null,
-                    ]}
+              <View style={styles.fieldBlock}>
+                <Text style={styles.label}>입양일</Text>
+                <View style={styles.iconInputWrap}>
+                  <TextInput
+                    value={adoptionDate}
+                    onChangeText={text => syncDateInput(setAdoptionDate, text)}
+                    onBlur={() =>
+                      finalizeDateInput(adoptionDate, setAdoptionDate)
+                    }
+                    placeholder="입양일을 입력해 주세요"
+                    placeholderTextColor="#A0A7B4"
+                    style={styles.iconInput}
+                    keyboardType="number-pad"
+                  />
+                  <TouchableOpacity
+                    activeOpacity={0.88}
+                    onPress={() => openDateModal('adoption')}
                   >
-                    {o.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+                    <Feather color="#98A1B2" name="calendar" size={16} />
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.inputHint}>{buildDateHint(adoptionDate)}</Text>
+              </View>
 
-          {/* 날짜/몸무게 */}
-          <View style={styles.row}>
-            <View style={styles.col}>
-              <Text style={styles.label}>생년월일</Text>
-              <TextInput
-                value={birthDate}
-                onChangeText={setBirthDate}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor="#B8B0A8"
-                style={styles.input}
-                autoCapitalize="none"
-              />
-            </View>
-            <View style={styles.col}>
-              <Text style={styles.label}>입양날짜</Text>
-              <TextInput
-                value={adoptionDate}
-                onChangeText={setAdoptionDate}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor="#B8B0A8"
-                style={styles.input}
-                autoCapitalize="none"
-              />
-            </View>
-          </View>
+              <View style={styles.fieldBlock}>
+                <Text style={styles.label}>품종</Text>
+                <View style={styles.iconInputWrap}>
+                  <TextInput
+                    value={breed}
+                    onChangeText={setBreed}
+                    placeholder="품종을 입력해 주세요"
+                    placeholderTextColor="#A0A7B4"
+                    style={styles.iconInput}
+                  />
+                  <Feather color="#98A1B2" name="search" size={16} />
+                </View>
+              </View>
 
-          <Text style={styles.label}>몸무게(kg)</Text>
-          <TextInput
-            value={weightKg}
-            onChangeText={setWeightKg}
-            placeholder="예: 4.5"
-            placeholderTextColor="#B8B0A8"
-            keyboardType="decimal-pad"
-            style={styles.input}
-          />
+              <View style={styles.row}>
+                <View style={styles.col}>
+                  <Text style={styles.label}>성별</Text>
+                  <View style={styles.segmentRow}>
+                    <TouchableOpacity
+                      activeOpacity={0.88}
+                      style={[
+                        styles.segmentChip,
+                        gender === 'female' ? styles.segmentChipActive : null,
+                      ]}
+                      onPress={() => setGender('female')}
+                    >
+                      <Text
+                        style={[
+                          styles.segmentChipText,
+                          gender === 'female' ? styles.segmentChipTextActive : null,
+                        ]}
+                      >
+                        여아
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      activeOpacity={0.88}
+                      style={[
+                        styles.segmentChip,
+                        gender === 'male' ? styles.segmentChipActive : null,
+                      ]}
+                      onPress={() => setGender('male')}
+                    >
+                      <Text
+                        style={[
+                          styles.segmentChipText,
+                          gender === 'male' ? styles.segmentChipTextActive : null,
+                        ]}
+                      >
+                        남아
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
 
-          {/* 좋아하는 것 */}
-          <Text style={styles.label}>좋아하는 것 * (최소 1개)</Text>
-          <View style={styles.multiBox}>
-            <View style={styles.multiTopRow}>
-              <Text style={styles.multiCount}>{likes.length}/12</Text>
+                <View style={styles.col}>
+                  <Text style={styles.label}>중성화 여부</Text>
+                  <View style={styles.segmentRow}>
+                    <TouchableOpacity
+                      activeOpacity={0.88}
+                      style={[
+                        styles.segmentChip,
+                        neutered === true ? styles.segmentChipActive : null,
+                      ]}
+                      onPress={() => setNeutered(true)}
+                    >
+                      <Text
+                        style={[
+                          styles.segmentChipText,
+                          neutered === true ? styles.segmentChipTextActive : null,
+                        ]}
+                      >
+                        예
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      activeOpacity={0.88}
+                      style={[
+                        styles.segmentChip,
+                        neutered === false ? styles.segmentChipActive : null,
+                      ]}
+                      onPress={() => setNeutered(false)}
+                    >
+                      <Text
+                        style={[
+                          styles.segmentChipText,
+                          neutered === false ? styles.segmentChipTextActive : null,
+                        ]}
+                      >
+                        아니오
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </>
+          ) : (
+            <>
+              <View style={styles.fieldBlock}>
+                <Text style={styles.label}>몸무게</Text>
+                <View style={styles.iconInputWrap}>
+                  <TextInput
+                    value={weightKg}
+                    onChangeText={setWeightKg}
+                    placeholder="0.0"
+                    placeholderTextColor="#A0A7B4"
+                    style={styles.iconInput}
+                    keyboardType="decimal-pad"
+                  />
+                  <Text style={styles.trailingUnit}>kg</Text>
+                </View>
+              </View>
+
+              {renderMultiInput(
+                '좋아하는 것 (최소 1개)',
+                likes,
+                draftLike,
+                setDraftLike,
+                'likes',
+                '좋아하는 간식, 장난감 등',
+              )}
+
+              {renderMultiInput(
+                '싫어하는 것 (최소 1개)',
+                dislikes,
+                draftDislike,
+                setDraftDislike,
+                'dislikes',
+                '싫어하는 소리, 행동 등',
+              )}
+
+              {renderMultiInput(
+                '취미 (최소 1개)',
+                hobbies,
+                draftHobby,
+                setDraftHobby,
+                'hobbies',
+                '산책하기, 낮잠자기 등',
+              )}
+
+              {renderMultiInput(
+                '태그 (최소 1개)',
+                tags,
+                draftTag,
+                setDraftTag,
+                'tags',
+                '우리 아이를 표현해 주세요',
+                '태그는 저장 시 #이 자동으로 붙습니다.',
+              )}
+            </>
+          )}
+        </View>
+
+        <View style={styles.footerActions}>
+          {step === 1 ? (
+            <TouchableOpacity
+              activeOpacity={0.9}
+              disabled={!canGoNext}
+              style={[styles.primaryButton, !canGoNext ? styles.buttonDisabled : null]}
+              onPress={goNext}
+            >
+              <Text style={styles.primaryButtonText}>다음으로</Text>
+            </TouchableOpacity>
+          ) : (
+            <>
+              <TouchableOpacity
+                activeOpacity={0.88}
+                style={styles.secondaryButton}
+                onPress={() => setStep(1)}
+              >
+                <Text style={styles.secondaryButtonText}>이전 단계로</Text>
+              </TouchableOpacity>
+
               <TouchableOpacity
                 activeOpacity={0.9}
-                style={styles.miniAddBtn}
-                onPress={() => addItem('likes')}
+                disabled={!canSubmit}
+                style={[styles.primaryButton, !canSubmit ? styles.buttonDisabled : null]}
+                onPress={onSubmit}
               >
-                <Text style={styles.miniAddBtnText}>추가</Text>
+                <Text style={styles.primaryButtonText}>
+                  {saving ? '등록 중...' : '등록 완료'}
+                </Text>
               </TouchableOpacity>
-            </View>
-
-            <TextInput
-              value={draftLike}
-              onChangeText={setDraftLike}
-              placeholder="예: 간식"
-              placeholderTextColor="#B8B0A8"
-              style={styles.input}
-              onSubmitEditing={() => addItem('likes')}
-              returnKeyType="done"
-            />
-
-            <View style={styles.pillRow}>
-              {likes.map(v => (
-                <TouchableOpacity
-                  key={v}
-                  activeOpacity={0.85}
-                  style={styles.pill}
-                  onPress={() => removeItem('likes', v)}
-                >
-                  <Text style={styles.pillText}>{v}</Text>
-                  <Text style={styles.pillX}>×</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* 싫어하는 것 */}
-          <Text style={styles.label}>싫어하는 것 * (최소 1개)</Text>
-          <View style={styles.multiBox}>
-            <View style={styles.multiTopRow}>
-              <Text style={styles.multiCount}>{dislikes.length}/12</Text>
-              <TouchableOpacity
-                activeOpacity={0.9}
-                style={styles.miniAddBtn}
-                onPress={() => addItem('dislikes')}
-              >
-                <Text style={styles.miniAddBtnText}>추가</Text>
-              </TouchableOpacity>
-            </View>
-
-            <TextInput
-              value={draftDislike}
-              onChangeText={setDraftDislike}
-              placeholder="예: 큰 소리"
-              placeholderTextColor="#B8B0A8"
-              style={styles.input}
-              onSubmitEditing={() => addItem('dislikes')}
-              returnKeyType="done"
-            />
-
-            <View style={styles.pillRow}>
-              {dislikes.map(v => (
-                <TouchableOpacity
-                  key={v}
-                  activeOpacity={0.85}
-                  style={styles.pill}
-                  onPress={() => removeItem('dislikes', v)}
-                >
-                  <Text style={styles.pillText}>{v}</Text>
-                  <Text style={styles.pillX}>×</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* 취미 */}
-          <Text style={styles.label}>취미 * (최소 1개)</Text>
-          <View style={styles.multiBox}>
-            <View style={styles.multiTopRow}>
-              <Text style={styles.multiCount}>{hobbies.length}/12</Text>
-              <TouchableOpacity
-                activeOpacity={0.9}
-                style={styles.miniAddBtn}
-                onPress={() => addItem('hobbies')}
-              >
-                <Text style={styles.miniAddBtnText}>추가</Text>
-              </TouchableOpacity>
-            </View>
-
-            <TextInput
-              value={draftHobby}
-              onChangeText={setDraftHobby}
-              placeholder="예: 산책"
-              placeholderTextColor="#B8B0A8"
-              style={styles.input}
-              onSubmitEditing={() => addItem('hobbies')}
-              returnKeyType="done"
-            />
-
-            <View style={styles.pillRow}>
-              {hobbies.map(v => (
-                <TouchableOpacity
-                  key={v}
-                  activeOpacity={0.85}
-                  style={styles.pill}
-                  onPress={() => removeItem('hobbies', v)}
-                >
-                  <Text style={styles.pillText}>{v}</Text>
-                  <Text style={styles.pillX}>×</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* 태그 */}
-          <Text style={styles.label}>태그 * (최소 1개)</Text>
-          <View style={styles.multiBox}>
-            <View style={styles.multiTopRow}>
-              <Text style={styles.multiCount}>{tags.length}/12</Text>
-              <TouchableOpacity
-                activeOpacity={0.9}
-                style={styles.miniAddBtn}
-                onPress={() => addItem('tags')}
-              >
-                <Text style={styles.miniAddBtnText}>추가</Text>
-              </TouchableOpacity>
-            </View>
-
-            <TextInput
-              value={draftTag}
-              onChangeText={setDraftTag}
-              placeholder="예: 산책러버"
-              placeholderTextColor="#B8B0A8"
-              style={styles.input}
-              onSubmitEditing={() => addItem('tags')}
-              returnKeyType="done"
-            />
-
-            <View style={styles.pillRow}>
-              {tags.map(v => (
-                <TouchableOpacity
-                  key={v}
-                  activeOpacity={0.85}
-                  style={styles.pill}
-                  onPress={() => removeItem('tags', v)}
-                >
-                  <Text style={styles.pillText}>{v}</Text>
-                  <Text style={styles.pillX}>×</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* 저장 */}
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={[styles.primary, disabled ? styles.primaryDisabled : null]}
-            disabled={disabled}
-            onPress={onSubmit}
-          >
-            <Text style={styles.primaryText}>
-              {saving ? '저장 중...' : '등록 완료'}
-            </Text>
-          </TouchableOpacity>
-
-          {/* 뒤로 */}
-          <TouchableOpacity
-            activeOpacity={0.85}
-            style={styles.ghost}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.ghostText}>나중에 할게요</Text>
-          </TouchableOpacity>
-
-          <Text style={styles.inputHint}>
-            * 최소 1개 규칙: 좋아하는 것 / 싫어하는 것 / 취미 / 태그는 각각 1개
-            이상 입력해야 해요.
-          </Text>
+            </>
+          )}
         </View>
       </ScrollView>
-    </View>
+
+      <Modal
+        transparent
+        visible={dateModalTarget !== null}
+        animationType="fade"
+        onRequestClose={closeDateModal}
+      >
+        <View style={styles.modalBackdrop}>
+          <TouchableOpacity
+            activeOpacity={1}
+            style={styles.modalScrim}
+            onPress={closeDateModal}
+          />
+          <View style={styles.dateModalCard}>
+            <View style={styles.dateModalHeader}>
+              <Text style={styles.dateModalTitle}>
+                {dateModalTarget === 'birth' ? '생일 선택' : '입양일 선택'}
+              </Text>
+              <TouchableOpacity activeOpacity={0.85} onPress={closeDateModal}>
+                <Feather color="#97A0B1" name="x" size={18} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.dateModalPreview}>{datePreview}</Text>
+
+            <View style={styles.datePickerRow}>
+              <View style={styles.datePickerCol}>
+                <Text style={styles.datePickerLabel}>연도</Text>
+                <TextInput
+                  value={pickerYear}
+                  onChangeText={text => setPickerYear(text.replace(/\D/g, '').slice(0, 4))}
+                  placeholder="2022"
+                  placeholderTextColor="#A0A7B4"
+                  style={styles.datePickerInput}
+                  keyboardType="number-pad"
+                  maxLength={4}
+                />
+              </View>
+              <View style={styles.datePickerMiniCol}>
+                <Text style={styles.datePickerLabel}>월</Text>
+                <TextInput
+                  value={pickerMonth}
+                  onChangeText={text => setPickerMonth(text.replace(/\D/g, '').slice(0, 2))}
+                  placeholder="05"
+                  placeholderTextColor="#A0A7B4"
+                  style={styles.datePickerInput}
+                  keyboardType="number-pad"
+                  maxLength={2}
+                />
+              </View>
+              <View style={styles.datePickerMiniCol}>
+                <Text style={styles.datePickerLabel}>일</Text>
+                <TextInput
+                  value={pickerDay}
+                  onChangeText={text => setPickerDay(text.replace(/\D/g, '').slice(0, 2))}
+                  placeholder="12"
+                  placeholderTextColor="#A0A7B4"
+                  style={styles.datePickerInput}
+                  keyboardType="number-pad"
+                  maxLength={2}
+                />
+              </View>
+            </View>
+
+            <View style={styles.dateModalActions}>
+              <TouchableOpacity
+                activeOpacity={0.88}
+                style={styles.dateGhostButton}
+                onPress={closeDateModal}
+              >
+                <Text style={styles.dateGhostButtonText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={styles.dateConfirmButton}
+                onPress={applyDateModal}
+              >
+                <Text style={styles.dateConfirmButtonText}>적용</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
   );
 }
