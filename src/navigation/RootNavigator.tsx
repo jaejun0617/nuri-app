@@ -20,6 +20,10 @@ import NicknameSetupScreen from '../screens/Auth/NicknameSetupScreen';
 import PetCreateScreen from '../screens/Pets/PetCreateScreen';
 import PetProfileEditScreen from '../screens/Pets/PetProfileEditScreen';
 import PetProfileEditDoneScreen from '../screens/Pets/PetProfileEditDoneScreen';
+import ScheduleListScreen from '../screens/Schedules/ScheduleListScreen';
+import ScheduleCreateScreen from '../screens/Schedules/ScheduleCreateScreen';
+import ScheduleDetailScreen from '../screens/Schedules/ScheduleDetailScreen';
+import ScheduleEditScreen from '../screens/Schedules/ScheduleEditScreen';
 
 // Records (Detail/Edit는 탭 밖으로 빼는 전략)
 import RecordDetailScreen from '../screens/Records/RecordDetailScreen';
@@ -43,6 +47,10 @@ export type RootStackParamList = {
   PetCreate: { from?: 'auto' | 'cta' | 'header_plus' } | undefined;
   PetProfileEdit: { petId: string };
   PetProfileEditDone: { petId: string; petName: string };
+  ScheduleList: { petId?: string } | undefined;
+  ScheduleCreate: { petId?: string; startsAt?: string } | undefined;
+  ScheduleDetail: { petId?: string; scheduleId: string };
+  ScheduleEdit: { petId?: string; scheduleId: string };
 
   // Records (탭 밖)
   RecordDetail: { petId: string; memoryId: string };
@@ -98,6 +106,26 @@ export default function RootNavigator() {
       <Stack.Screen
         name="PetProfileEditDone"
         component={PetProfileEditDoneScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ScheduleList"
+        component={ScheduleListScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ScheduleCreate"
+        component={ScheduleCreateScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ScheduleDetail"
+        component={ScheduleDetailScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ScheduleEdit"
+        component={ScheduleEditScreen}
         options={{ headerShown: false }}
       />
 

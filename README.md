@@ -487,6 +487,64 @@ hydrate(AsyncStorage)
     여러 템플릿 중 하나를 자동 순환 노출하는 구조로 확장 예정
 - 타임라인 메인 카테고리의 `기타` 라벨은 홈/타임라인 톤을 맞추기 위해 `···` 형태로 단순화
 
+## ✅ Chapter 6-11 — Schedule 도메인 연결 시작
+
+- `pet_schedules`를 기준으로 한 일정 도메인 코드를 앱에 추가
+  - Supabase service: `fetchSchedulesByPetRange / createSchedule / updateSchedule / deleteSchedule`
+  - Zustand store: `scheduleStore`
+- 로그인 홈의 `이번 주 일정`은 이제 실제 `pet_schedules` 데이터를 우선 조회
+  - 주간 범위: 오늘 00:00 ~ 6일 뒤 23:59
+  - 홈에서는 최대 5개까지 요약 노출
+- 아직 실제 일정 데이터가 없을 때는 홈이 비어 보이지 않도록
+  기존 루틴 제안 카드(건강/미용/산책)를 fallback으로 유지
+- 일정은 `icon_key + color_key + category + sub_category` 구조로 설계해,
+  홈 카드와 향후 일정 목록 화면에서 더 직관적인 구분이 가능하도록 준비
+- 로그아웃/게스트 전환 시 schedule 캐시도 함께 비우도록 AppProviders를 보강
+- 다음 단계에서는 일정 생성/목록 화면을 붙여
+  홈 `이번 주 일정`이 더미가 아닌 실제 사용자 일정 입력 흐름과 연결되도록 확장 예정
+
+## ✅ Chapter 6-12 — Schedule 목록/생성 화면 연결
+
+- `ScheduleListScreen` 추가
+  - 홈 `이번 주 일정`의 `더보기`가 이제 실제 일정 목록 화면으로 이동
+  - 오늘 포함 7일 범위 일정을 다시 보여주고, 당겨서 새로고침 가능
+  - 아직 일정이 없으면 첫 일정 생성 CTA를 노출
+- `ScheduleCreateScreen` 추가
+  - 일정 제목 / 날짜 / 시간 / 하루 종일 여부
+  - 카테고리
+  - 아이콘
+  - 색상
+  - 메모
+  입력으로 바로 `pet_schedules`에 저장 가능
+- 일정 저장 후에는 주간 범위를 다시 refresh하고 `ScheduleList`로 복귀해
+  홈 / 목록 / store 상태가 같은 기준 데이터를 보도록 정리
+- 홈 `이번 주 일정` 카드 tap 동작도 우선 `ScheduleList`로 연결해,
+  일정 도메인이 타임라인 필터보다 먼저 보이도록 흐름을 분리
+
+## ✅ Chapter 6-13 — Schedule 입력 UX + 상세/수정 플로우
+
+- `ScheduleCreate`의 날짜/시간 입력을 직접 타이핑 중심에서 모달형 선택 UX로 정리
+  - 날짜: `오늘 / 내일 / 이번 주` preset + 직접 입력
+  - 시간: 자주 쓰는 시간 preset + 직접 입력
+  - `하루 종일` 토글과 자연스럽게 맞물리도록 구성
+- `ScheduleDetailScreen` 추가
+  - 일정 제목 / 일정 시간 / 카테고리 / 메모를 한 화면에서 확인
+  - 수정 / 삭제 액션 제공
+- `ScheduleEditScreen` 추가
+  - 생성 화면과 같은 패턴으로 일정 수정 가능
+  - 저장 후 상세 화면으로 복귀하고 주간 일정 캐시를 refresh
+- `ScheduleList`의 각 일정 카드는 이제 상세 화면으로 이동
+  - 목록 -> 상세 -> 수정/삭제 흐름이 실제 도메인 화면으로 닫히도록 정리
+
+## ✅ Chapter 6-14 — Schedule 화면 여백/빈 상태 보정
+
+- 홈 `이번 주 일정`에서 하드코딩 루틴 카드 fallback을 제거
+  - 이제 실제 `pet_schedules`가 없으면 정직한 empty state와 `일정 추가하기` CTA만 노출
+- `ScheduleList`, `ScheduleCreate`, `ScheduleDetail` 헤더 상단 여백을 늘려
+  status bar와 타이틀/액션 버튼이 너무 붙어 보이지 않도록 정리
+- 일정 화면군의 상단 rhythm을 통일해
+  목록 / 생성 / 상세 / 수정이 같은 흐름 안에서 더 안정적으로 보이도록 조정
+
 ## ✅ Chapter 7 — Timeline Performance Optimization
 
 Timeline 화면에서 기록 수가 증가할수록 스크롤이 끊기거나 버벅이는 문제가 발생할 수 있다.  

@@ -22,6 +22,7 @@ import { fetchMyPets } from '../../services/supabase/pets';
 import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
+import { useScheduleStore } from '../../store/scheduleStore';
 
 type Props = {
   children: React.ReactNode;
@@ -49,6 +50,7 @@ export default function AppProviders({ children }: Props) {
   const setPetBooted = usePetStore(s => s.setBooted);
 
   const clearRecords = useRecordStore(s => s.clearAll);
+  const clearSchedules = useScheduleStore(s => s.clearAll);
 
   useEffect(() => {
     let unsub: { unsubscribe: () => void } | null = null;
@@ -84,6 +86,7 @@ export default function AppProviders({ children }: Props) {
       await setNickname(null);
       clearPets();
       clearRecords();
+      clearSchedules();
       setPetBooted(true);
     };
 
@@ -151,6 +154,7 @@ export default function AppProviders({ children }: Props) {
     setPetBooted,
 
     clearRecords,
+    clearSchedules,
   ]);
 
   return <ThemeProvider theme={theme}>{children}</ThemeProvider>;

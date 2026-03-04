@@ -44,8 +44,14 @@ import { useAuthStore } from '../../../../store/authStore';
 import { usePetStore } from '../../../../store/petStore';
 import type { PetRecordsState } from '../../../../store/recordStore';
 import { useRecordStore } from '../../../../store/recordStore';
+import { useScheduleStore } from '../../../../store/scheduleStore';
 
 import type { MemoryRecord } from '../../../../services/supabase/memories';
+import type {
+  PetSchedule,
+  ScheduleColorKey,
+  ScheduleIconKey,
+} from '../../../../services/supabase/schedules';
 import { getMemoryImageSignedUrlCached } from '../../../../services/supabase/storageMemories'; // 🔥 추가된 URL 캐시 호출 함수
 import {
   pickTodayPhoto,
@@ -76,8 +82,14 @@ type WeeklyScheduleItem = {
   title: string;
   subtitle: string;
   icon: string;
+  tint: string;
   mainCategory: HomeMainCategory;
   otherSubCategory?: HomeOtherSubCategory;
+};
+
+type WeekRange = {
+  from: string;
+  to: string;
 };
 
 /* ---------------------------------------------------------
@@ -359,7 +371,7 @@ function getRecordCategoryMeta(item: MemoryRecord): HomeCategoryMeta {
   const otherSub = normalizeOtherSubKey(readOtherSubCategoryRaw(item));
   if (otherSub === 'grooming') {
     return {
-      label: '미용 기록',
+      label: '··· · 미용',
       icon: 'content-cut',
       tint: 'rgba(236,72,153,0.10)',
       mainCategory: 'other',
@@ -369,7 +381,7 @@ function getRecordCategoryMeta(item: MemoryRecord): HomeCategoryMeta {
 
   if (otherSub === 'hospital') {
     return {
-      label: '병원/약 기록',
+      label: '··· · 병원/약',
       icon: 'medical-bag',
       tint: 'rgba(34,197,94,0.10)',
       mainCategory: 'other',
@@ -378,7 +390,7 @@ function getRecordCategoryMeta(item: MemoryRecord): HomeCategoryMeta {
   }
 
   return {
-    label: '기타 기록',
+    label: '··· · 기타',
     icon: 'dots-horizontal-circle-outline',
     tint: 'rgba(148,163,184,0.10)',
     mainCategory: 'other',
@@ -393,12 +405,133 @@ function formatWeeklyDateLabel(offsetDays: number): string {
   return `${nextDate.getMonth() + 1}/${nextDate.getDate()} (${weekdays[nextDate.getDay()]})`;
 }
 
+function createWeekRange(): WeekRange {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
+
+  return {
+    from: start.toISOString(),
+    to: end.toISOString(),
+  };
+}
+
+function formatScheduleDateLabel(schedule: PetSchedule): string {
+  const date = new Date(schedule.startsAt);
+  if (Number.isNaN(date.getTime())) return '';
+
+  const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+  const base = `${date.getMonth() + 1}/${date.getDate()} (${weekdays[date.getDay()]})`;
+
+  if (schedule.allDay) return base;
+
+  const hour = `${date.getHours()}`.padStart(2, '0');
+  const minute = `${date.getMinutes()}`.padStart(2, '0');
+  return `${base} ${hour}:${minute}`;
+}
+
+function mapScheduleColorToTint(colorKey: ScheduleColorKey): string {
+  switch (colorKey) {
+    case 'blue':
+      return 'rgba(59,130,246,0.10)';
+    case 'green':
+      return 'rgba(34,197,94,0.10)';
+    case 'orange':
+      return 'rgba(249,115,22,0.10)';
+    case 'pink':
+      return 'rgba(236,72,153,0.10)';
+    case 'yellow':
+      return 'rgba(245,158,11,0.10)';
+    case 'gray':
+      return 'rgba(148,163,184,0.10)';
+    case 'brand':
+    default:
+      return 'rgba(109,106,248,0.10)';
+  }
+}
+
+function mapScheduleToTimelineCategory(schedule: PetSchedule): {
+  mainCategory: HomeMainCategory;
+  otherSubCategory?: HomeOtherSubCategory;
+} {
+  if (schedule.category === 'walk') return { mainCategory: 'walk' };
+  if (schedule.category === 'meal') return { mainCategory: 'meal' };
+  if (schedule.category === 'health') return { mainCategory: 'health' };
+  if (schedule.category === 'diary') return { mainCategory: 'diary' };
+
+  if (schedule.category === 'grooming') {
+    return { mainCategory: 'other', otherSubCategory: 'grooming' };
+  }
+
+  if (
+    schedule.subCategory === 'hospital' ||
+    schedule.subCategory === 'medicine' ||
+    schedule.subCategory === 'checkup' ||
+    schedule.subCategory === 'vaccine'
+  ) {
+    return { mainCategory: 'other', otherSubCategory: 'hospital' };
+  }
+
+  return { mainCategory: 'other', otherSubCategory: 'etc' };
+}
+
+function mapScheduleIcon(iconKey: ScheduleIconKey): string {
+  switch (iconKey) {
+    case 'meal':
+    case 'bowl':
+      return 'silverware-fork-knife';
+    case 'medical-bag':
+    case 'stethoscope':
+    case 'syringe':
+    case 'pill':
+      return iconKey === 'stethoscope' ? 'stethoscope' : iconKey;
+    case 'content-cut':
+    case 'shower':
+    case 'notebook':
+    case 'heart':
+    case 'star':
+    case 'calendar':
+    case 'dots':
+    case 'walk':
+      return iconKey === 'notebook' ? 'notebook-outline' : iconKey;
+    default:
+      return 'calendar';
+  }
+}
+
+function buildScheduleCard(schedule: PetSchedule): WeeklyScheduleItem {
+  const category = mapScheduleToTimelineCategory(schedule);
+  return {
+    key: schedule.id,
+    dateLabel: formatScheduleDateLabel(schedule),
+    title: schedule.title,
+    subtitle:
+      schedule.note?.trim() ||
+      (schedule.allDay ? '하루 일정으로 저장된 항목이에요' : '예정된 일정이에요'),
+    icon: mapScheduleIcon(schedule.iconKey),
+    tint: mapScheduleColorToTint(schedule.colorKey),
+    mainCategory: category.mainCategory,
+    otherSubCategory: category.otherSubCategory,
+  };
+}
+
 const FALLBACK_RECORDS_STATE: Omit<PetRecordsState, 'requestSeq'> = Object.freeze({
   status: 'idle',
   items: [],
   errorMessage: null,
   cursor: null,
   hasMore: false,
+});
+
+const FALLBACK_SCHEDULES_STATE = Object.freeze({
+  items: [] as PetSchedule[],
+  status: 'idle' as const,
+  errorMessage: null as string | null,
+  rangeKey: null as string | null,
+  requestSeq: 0,
 });
 
 const TODAY_RECORDS_MAX = 14;
@@ -762,17 +895,34 @@ export default function LoggedInHome() {
   // 4) records
   // ---------------------------------------------------------
   const bootstrapRecords = useRecordStore(s => s.bootstrap);
+  const bootstrapSchedules = useScheduleStore(s => s.bootstrapWeek);
 
   const petRecordsState = useRecordStore(s =>
     activePetId ? s.byPetId[activePetId] ?? null : null,
   );
+  const petSchedulesState = useScheduleStore(s =>
+    activePetId ? s.byPetId[activePetId] ?? null : null,
+  );
 
   const safeRecordsState = petRecordsState ?? FALLBACK_RECORDS_STATE;
+  const safeSchedulesState = petSchedulesState ?? FALLBACK_SCHEDULES_STATE;
 
   useEffect(() => {
     if (!activePetId) return;
     bootstrapRecords(activePetId);
   }, [bootstrapRecords, activePetId]);
+
+  const currentWeekRange = useMemo(() => createWeekRange(), []);
+
+  useEffect(() => {
+    if (!activePetId) return;
+    bootstrapSchedules(activePetId, currentWeekRange.from, currentWeekRange.to);
+  }, [
+    activePetId,
+    bootstrapSchedules,
+    currentWeekRange.from,
+    currentWeekRange.to,
+  ]);
 
   // ---------------------------------------------------------
   // 4.3) today message / today photo
@@ -1020,8 +1170,23 @@ export default function LoggedInHome() {
   }, [rootNavigation]);
 
   const onPressTimeline = useCallback(() => {
-    navigation.navigate('TimelineTab');
-  }, [navigation]);
+    navigation.navigate('TimelineTab', {
+      petId: activePetId ?? undefined,
+      mainCategory: 'all',
+    });
+  }, [navigation, activePetId]);
+
+  const onPressScheduleList = useCallback(() => {
+    rootNavigation.navigate('ScheduleList', {
+      petId: activePetId ?? undefined,
+    });
+  }, [activePetId, rootNavigation]);
+
+  const onPressScheduleCreate = useCallback(() => {
+    rootNavigation.navigate('ScheduleCreate', {
+      petId: activePetId ?? undefined,
+    });
+  }, [activePetId, rootNavigation]);
 
   const onPressPetProfileEdit = useCallback(() => {
     if (!activePetId) return;
@@ -1043,8 +1208,8 @@ export default function LoggedInHome() {
   );
 
   const onPressRecord = useCallback(() => {
-    navigation.navigate('RecordCreateTab');
-  }, [navigation]);
+    navigation.navigate('RecordCreateTab', { petId: activePetId ?? undefined });
+  }, [navigation, activePetId]);
 
   const onPressRecordItem = useCallback(
     (memoryId: string) => {
@@ -1144,72 +1309,8 @@ export default function LoggedInHome() {
   }, [safeRecordsState.items]);
 
   const weekScheduleItems = useMemo<WeeklyScheduleItem[]>(() => {
-    const items = safeRecordsState.items;
-    const now = new Date();
-
-    const findRecentBy = (matcher: (item: MemoryRecord) => boolean) =>
-      items.find(matcher) ?? null;
-
-    const latestWalk = findRecentBy(
-      item => normalizeCategoryKey(readRecordCategoryRaw(item)) === 'walk',
-    );
-    const latestHealth = findRecentBy(item => {
-      const main = normalizeCategoryKey(readRecordCategoryRaw(item));
-      const sub = normalizeOtherSubKey(readOtherSubCategoryRaw(item));
-      return main === 'health' || (main === 'other' && sub === 'hospital');
-    });
-    const latestGrooming = findRecentBy(item => {
-      const main = normalizeCategoryKey(readRecordCategoryRaw(item));
-      const sub = normalizeOtherSubKey(readOtherSubCategoryRaw(item));
-      return main === 'other' && sub === 'grooming';
-    });
-
-    const cards: WeeklyScheduleItem[] = [];
-    const healthDate = latestHealth ? toRecordDate(latestHealth) : null;
-    const groomingDate = latestGrooming ? toRecordDate(latestGrooming) : null;
-    const latestHealthMeta = latestHealth
-      ? getRecordCategoryMeta(latestHealth)
-      : null;
-
-    if (!healthDate || diffCalendarDays(healthDate, now) >= 10) {
-      cards.push({
-        key: 'health-check',
-        dateLabel: formatWeeklyDateLabel(1),
-        title: '건강 루틴 체크',
-        subtitle: '컨디션이나 약 복용 메모를 한 줄로 남겨보세요',
-        icon: 'medical-bag',
-        mainCategory: latestHealthMeta?.mainCategory ?? 'health',
-        otherSubCategory: latestHealthMeta?.otherSubCategory,
-      });
-    }
-
-    if (!groomingDate || diffCalendarDays(groomingDate, now) >= 21) {
-      cards.push({
-        key: 'grooming-care',
-        dateLabel: formatWeeklyDateLabel(3),
-        title: '미용 루틴 정리',
-        subtitle: '빗질이나 목욕 후기를 가볍게 기록해두세요',
-        icon: 'content-cut',
-        mainCategory: 'other',
-        otherSubCategory: 'grooming',
-      });
-    }
-
-    if (cards.length < 2) {
-      cards.push({
-        key: 'walk-memory',
-        dateLabel: formatWeeklyDateLabel(5),
-        title: '산책 리듬 이어가기',
-        subtitle: latestWalk
-          ? '마지막 산책 이후의 분위기를 짧게 남겨보세요'
-          : '첫 산책 기록으로 이번 주 루틴을 시작해보세요',
-        icon: 'walk',
-        mainCategory: 'walk',
-      });
-    }
-
-    return cards.slice(0, 2);
-  }, [safeRecordsState.items]);
+    return safeSchedulesState.items.slice(0, 5).map(buildScheduleCard);
+  }, [safeSchedulesState.items]);
 
   // ---------------------------------------------------------
   // 8) Accordion state (pet 변경 시 초기화)
@@ -1803,53 +1904,75 @@ export default function LoggedInHome() {
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.tipSectionTitle}>이번 주 일정</Text>
-              <TouchableOpacity activeOpacity={0.85} onPress={onPressTimeline}>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={onPressScheduleList}
+              >
                 <Text style={styles.sectionLink}>더보기</Text>
               </TouchableOpacity>
             </View>
 
-            <View style={styles.scheduleList}>
-              {weekScheduleItems.map(item => (
-                <TouchableOpacity
-                  key={item.key}
-                  activeOpacity={0.92}
-                  style={styles.scheduleCard}
-                  onPress={() =>
-                    onPressTimelineCategory(
-                      item.mainCategory,
-                      item.otherSubCategory,
-                    )
-                  }
-                >
-                  <View style={styles.scheduleDateBadge}>
-                    <Text style={styles.scheduleDateText}>{item.dateLabel}</Text>
-                  </View>
+            {weekScheduleItems.length === 0 ? (
+              <View style={styles.emptyBox}>
+                <Text style={styles.emptyTitle}>이번 주 일정이 아직 없어요</Text>
+                <Text style={styles.emptyDesc}>
+                  병원, 미용, 산책 루틴을 먼저 등록해두면 홈에서 바로 볼 수 있어요.
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.scheduleList}>
+                {weekScheduleItems.map(item => (
+                  <TouchableOpacity
+                    key={item.key}
+                    activeOpacity={0.92}
+                    style={styles.scheduleCard}
+                    onPress={onPressScheduleList}
+                  >
+                    <View style={styles.scheduleDateBadge}>
+                      <Text style={styles.scheduleDateText}>{item.dateLabel}</Text>
+                    </View>
 
-                  <View style={styles.scheduleBody}>
-                    <View style={styles.scheduleIconWrap}>
-                      <MaterialCommunityIcons
-                        name={item.icon}
+                    <View style={styles.scheduleBody}>
+                      <View
+                        style={[
+                          styles.scheduleIconWrap,
+                          { backgroundColor: item.tint },
+                        ]}
+                      >
+                        <MaterialCommunityIcons
+                          name={item.icon}
+                          size={18}
+                          color="#6D6AF8"
+                        />
+                      </View>
+
+                      <View style={styles.scheduleTextCol}>
+                        <Text style={styles.scheduleTitle}>{item.title}</Text>
+                        <Text style={styles.scheduleSub} numberOfLines={2}>
+                          {item.subtitle}
+                        </Text>
+                      </View>
+
+                      <Feather
+                        name="chevron-right"
                         size={18}
-                        color="#6D6AF8"
+                        color="rgba(85,96,112,0.48)"
                       />
                     </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
 
-                    <View style={styles.scheduleTextCol}>
-                      <Text style={styles.scheduleTitle}>{item.title}</Text>
-                      <Text style={styles.scheduleSub} numberOfLines={2}>
-                        {item.subtitle}
-                      </Text>
-                    </View>
-
-                    <Feather
-                      name="chevron-right"
-                      size={18}
-                      color="rgba(85,96,112,0.48)"
-                    />
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
+            {weekScheduleItems.length === 0 ? (
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={styles.recordBtn}
+                onPress={onPressScheduleCreate}
+              >
+                <Text style={styles.recordBtnText}>일정 추가하기</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
 
           <View style={styles.section}>
@@ -1941,8 +2064,15 @@ export default function LoggedInHome() {
               <View style={styles.emptyBox}>
                 <Text style={styles.emptyTitle}>이번 달 일기가 아직 없어요</Text>
                 <Text style={styles.emptyDesc}>
-                  일기장 카테고리로 남긴 기록이 이곳에 모여 보여요.
+                  첫 번째 일기를 남겨보세요.
                 </Text>
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  style={styles.recordBtn}
+                  onPress={onPressRecord}
+                >
+                  <Text style={styles.recordBtnText}>기록하기</Text>
+                </TouchableOpacity>
               </View>
             ) : (
               <ScrollView
