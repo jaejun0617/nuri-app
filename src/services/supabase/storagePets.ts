@@ -49,7 +49,7 @@ export async function uploadPetAvatar(input: {
   const { error } = await supabase.storage
     .from(PET_PROFILE_BUCKET)
     .upload(path, bytes, {
-      upsert: true,
+      upsert: false,
       contentType: input.mimeType ?? undefined,
     });
 

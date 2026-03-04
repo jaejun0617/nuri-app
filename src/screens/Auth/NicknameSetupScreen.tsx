@@ -176,7 +176,9 @@ export default function NicknameSetupScreen() {
   const isLoggedIn = useAuthStore(s => s.isLoggedIn);
   const setNickname = useAuthStore(s => s.setNickname);
 
-  const [nickname, setLocalNickname] = useState(current);
+  const [nickname, setLocalNickname] = useState(
+    route.params?.after === 'signup' ? '' : current,
+  );
   const [checking, setChecking] = useState(false);
   const [saving, setSaving] = useState(false);
   const [availabilityChecked, setAvailabilityChecked] = useState(false);

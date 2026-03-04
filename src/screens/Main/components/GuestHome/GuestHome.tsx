@@ -85,8 +85,8 @@ const RECOMMENDED_TIPS = [
 export default function GuestHome() {
   const navigation = useNavigation<Nav>();
 
-  const goAuthLanding = useMemo(
-    () => () => navigation.navigate('AuthLanding'),
+  const goSignIn = useMemo(
+    () => () => navigation.navigate('SignIn'),
     [navigation],
   );
 
@@ -126,7 +126,7 @@ export default function GuestHome() {
                 styles.petChip,
                 index === 0 ? styles.petChipActive : null,
               ]}
-              onPress={goAuthLanding}
+              onPress={goSignIn}
             >
               <Image source={{ uri }} style={styles.petChipImage} resizeMode="cover" />
             </TouchableOpacity>
@@ -134,7 +134,7 @@ export default function GuestHome() {
           <TouchableOpacity
             activeOpacity={0.9}
             style={styles.petAddChip}
-            onPress={goAuthLanding}
+            onPress={goSignIn}
           >
             <AppText preset="headline" style={styles.petAddPlus}>
               +
@@ -178,7 +178,7 @@ export default function GuestHome() {
             <TouchableOpacity
               activeOpacity={0.92}
               style={styles.primaryButton}
-              onPress={goAuthLanding}
+              onPress={goSignIn}
             >
               <AppText preset="body" style={styles.primaryButtonText}>
                 로그인하고 시작하기
@@ -203,7 +203,7 @@ export default function GuestHome() {
                 key={item.key}
                 activeOpacity={0.9}
                 style={styles.shortcutItem}
-                onPress={goAuthLanding}
+                onPress={goSignIn}
               >
                 <View style={styles.shortcutIconWrap}>
                   <MaterialCommunityIcons
@@ -240,7 +240,7 @@ export default function GuestHome() {
                 key={uri}
                 activeOpacity={0.92}
                 style={styles.previewCard}
-                onPress={goAuthLanding}
+                onPress={goSignIn}
               >
                 <Image
                   source={{ uri }}
@@ -277,7 +277,7 @@ export default function GuestHome() {
                 key={item.key}
                 activeOpacity={0.92}
                 style={styles.tipCard}
-                onPress={goAuthLanding}
+                onPress={goSignIn}
               >
                 <Image
                   source={{ uri: item.imageUri }}
@@ -316,7 +316,7 @@ export default function GuestHome() {
                 key={item.key}
                 activeOpacity={0.9}
                 style={styles.activityCard}
-                onPress={goAuthLanding}
+                onPress={goSignIn}
               >
                 <View style={styles.activityIconWrap}>
                   <MaterialCommunityIcons
@@ -361,7 +361,7 @@ export default function GuestHome() {
                 key={uri}
                 activeOpacity={0.92}
                 style={styles.diaryCard}
-                onPress={goAuthLanding}
+                onPress={goSignIn}
               >
                 <Image
                   source={{ uri }}

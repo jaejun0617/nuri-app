@@ -1,7 +1,7 @@
 // 파일: src/navigation/RootNavigator.tsx
 // 목적:
 // - Splash(탭 없음) → AppTabs(공통 하단 탭) 기본 흐름 유지
-// - Auth 플로우(AuthLanding/SignIn/SignUp/NicknameSetup) 라우팅 제공
+// - Auth 플로우(SignIn/SignUp/NicknameSetup) 라우팅 제공
 // - PetCreate 라우팅 제공 (로그인 후 펫 0마리면 유도 진입)
 // - Records: RecordDetail/Edit는 "몰입 화면"으로 탭 밖(Stack)에서 표시
 // - ✅ UX: 스택 헤더의 모든 글씨(타이틀/뒤로가기 텍스트) 제거
@@ -13,7 +13,6 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import HomeScreen from '../screens/Home/HomeScreen';
 
-import AuthLandingScreen from '../screens/Auth/AuthLandingScreen';
 import SignInScreen from '../screens/Auth/SignInScreen';
 import SignUpScreen from '../screens/Auth/SignUpScreen';
 import NicknameSetupScreen from '../screens/Auth/NicknameSetupScreen';
@@ -42,7 +41,6 @@ export type RootStackParamList = {
   AppTabs: NavigatorScreenParams<AppTabParamList> | undefined;
 
   // Auth
-  AuthLanding: undefined;
   SignIn: undefined;
   SignUp: undefined;
   NicknameSetup: { after?: 'signin' | 'signup' } | undefined;
@@ -105,10 +103,21 @@ export default function RootNavigator() {
       />
 
       {/* Auth */}
-      <Stack.Screen name="AuthLanding" component={AuthLandingScreen} />
-      <Stack.Screen name="SignIn" component={SignInScreen} />
-      <Stack.Screen name="SignUp" component={SignUpScreen} />
-      <Stack.Screen name="NicknameSetup" component={NicknameSetupScreen} />
+      <Stack.Screen
+        name="SignIn"
+        component={SignInScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="SignUp"
+        component={SignUpScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="NicknameSetup"
+        component={NicknameSetupScreen}
+        options={{ headerShown: false }}
+      />
       <Stack.Screen
         name="WelcomeTransition"
         component={WelcomeTransitionScreen}

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, Easing, Image, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -11,14 +11,7 @@ import { styles } from './WelcomeTransitionScreen.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'WelcomeTransition'>;
 
-const TEST_DURATION_MS = 60 * 60 * 1000;
-
-function formatRemaining(ms: number): string {
-  const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-}
+const TRANSITION_DURATION_MS = 4000;
 
 export default function WelcomeTransitionScreen() {
   const navigation = useNavigation<Nav>();
@@ -26,33 +19,23 @@ export default function WelcomeTransitionScreen() {
   const nickname = useMemo(() => nicknameRaw?.trim() || '누리', [nicknameRaw]);
 
   const progress = useRef(new Animated.Value(0)).current;
-  const [remainingMs, setRemainingMs] = useState(TEST_DURATION_MS);
 
   useEffect(() => {
-    const startedAt = Date.now();
-
     Animated.timing(progress, {
       toValue: 1,
-      duration: TEST_DURATION_MS,
+      duration: TRANSITION_DURATION_MS,
       easing: Easing.linear,
       useNativeDriver: false,
     }).start();
-
-    const intervalId = setInterval(() => {
-      const elapsed = Date.now() - startedAt;
-      const nextRemaining = Math.max(0, TEST_DURATION_MS - elapsed);
-      setRemainingMs(nextRemaining);
-    }, 1000);
 
     const timeoutId = setTimeout(() => {
       navigation.reset({
         index: 0,
         routes: [{ name: 'AppTabs', params: { screen: 'HomeTab' } }],
       });
-    }, TEST_DURATION_MS);
+    }, TRANSITION_DURATION_MS);
 
     return () => {
-      clearInterval(intervalId);
       clearTimeout(timeoutId);
       progress.stopAnimation();
     };
@@ -80,7 +63,6 @@ export default function WelcomeTransitionScreen() {
           <View style={styles.progressTrack}>
             <Animated.View style={[styles.progressFill, { width: progressWidth }]} />
           </View>
-          <Text style={styles.timer}>{formatRemaining(remainingMs)}</Text>
         </View>
 
         <View style={styles.dotRow}>

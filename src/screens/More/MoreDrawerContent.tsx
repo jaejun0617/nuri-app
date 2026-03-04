@@ -81,7 +81,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
 
   const onPressLogin = () => {
     onRequestClose();
-    navigation.navigate('AuthLanding');
+    navigation.navigate('SignIn');
   };
 
   // ---------------------------------------------------------

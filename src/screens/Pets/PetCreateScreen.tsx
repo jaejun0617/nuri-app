@@ -15,6 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
 
+import { ASSETS } from '../../assets';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { supabase } from '../../services/supabase/client';
 import { createPet, fetchMyPets } from '../../services/supabase/pets';
@@ -100,22 +101,36 @@ function normalizeYmdOrNull(raw: string): string | null {
   const value = raw.trim();
   if (!value) return null;
 
-  const digits = value.replace(/\D/g, '');
-  if (digits.length !== 8) {
-    throw new Error('날짜는 20111028 또는 2011-10-28 형식으로 입력해 주세요.');
+  let year = '';
+  let month = '';
+  let day = '';
+
+  const separatedMatch = value.match(/^(\d{4})\D+(\d{1,2})\D+(\d{1,2})$/);
+  if (separatedMatch) {
+    year = separatedMatch[1];
+    month = separatedMatch[2].padStart(2, '0');
+    day = separatedMatch[3].padStart(2, '0');
+  } else {
+    const digits = value.replace(/\D/g, '');
+    if (digits.length !== 8) {
+      throw new Error('날짜는 20111028 또는 2011-10-28 형식으로 입력해 주세요.');
+    }
+    year = digits.slice(0, 4);
+    month = digits.slice(4, 6);
+    day = digits.slice(6, 8);
   }
 
-  const normalized = `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
+  const normalized = `${year}-${month}-${day}`;
   const date = new Date(`${normalized}T00:00:00`);
   if (Number.isNaN(date.getTime())) {
     throw new Error('올바른 날짜를 입력해 주세요.');
   }
 
-  const [year, month, day] = normalized.split('-').map(Number);
+  const [yearNum, monthNum, dayNum] = normalized.split('-').map(Number);
   if (
-    date.getFullYear() !== year ||
-    date.getMonth() + 1 !== month ||
-    date.getDate() !== day
+    date.getFullYear() !== yearNum ||
+    date.getMonth() + 1 !== monthNum ||
+    date.getDate() !== dayNum
   ) {
     throw new Error('올바른 날짜를 입력해 주세요.');
   }
@@ -136,6 +151,7 @@ function createTagLabel(raw: string): string {
 
 function buildDateHint(value: string): string {
   if (!value) return 'YYYY-MM-DD 또는 YYYYMMDD';
+  if (value.includes('-')) return value;
   return formatYmdDigits(value);
 }
 
@@ -545,6 +561,7 @@ export default function PetCreateScreen() {
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageType, setImageType] = useState<string | null>(null);
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
   const [dateModalTarget, setDateModalTarget] = useState<'birth' | 'adoption' | null>(null);
   const [pickerYear, setPickerYear] = useState('');
   const [pickerMonth, setPickerMonth] = useState('');
@@ -568,8 +585,26 @@ export default function PetCreateScreen() {
 
   const syncDateInput = useCallback(
     (setter: React.Dispatch<React.SetStateAction<string>>, raw: string) => {
-      const digits = raw.replace(/\D/g, '').slice(0, 8);
-      setter(digits.length === 8 ? formatYmdDigits(digits) : digits);
+      const sanitized = raw.replace(/[^\d-]/g, '');
+      const hasManualDaySeparator =
+        sanitized.split('-').length >= 3 || sanitized.endsWith('-');
+
+      if (sanitized.includes('-') && hasManualDaySeparator) {
+        const [y = '', m = '', d = ''] = sanitized.split('-');
+        const year = y.replace(/\D/g, '').slice(0, 4);
+        const month = m.replace(/\D/g, '').slice(0, 2);
+        const day = d.replace(/\D/g, '').slice(0, 2);
+
+        let composed = year;
+        if (sanitized.includes('-') || month) composed += `-${month}`;
+        if (sanitized.split('-').length >= 3 || day) composed += `-${day}`;
+
+        setter(composed.slice(0, 10));
+        return;
+      }
+
+      const digits = sanitized.replace(/\D/g, '').slice(0, 8);
+      setter(formatYmdDigits(digits));
     },
     [],
   );
@@ -579,9 +614,11 @@ export default function PetCreateScreen() {
       const trimmed = value.trim();
       if (!trimmed) return;
 
-      const digits = trimmed.replace(/\D/g, '');
-      if (digits.length === 8) {
-        setter(formatYmdDigits(digits));
+      try {
+        const normalized = normalizeYmdOrNull(trimmed);
+        setter(normalized ?? '');
+      } catch {
+        // 입력 중간 단계에서는 사용자가 수정할 수 있도록 값을 유지한다.
       }
     },
     [],
@@ -761,28 +798,35 @@ export default function PetCreateScreen() {
       });
 
       if (imageUri) {
-        const { path } = await uploadPetAvatar({
-          userId,
-          petId: newPetId,
-          fileUri: imageUri,
-          mimeType: imageType,
-        });
+        try {
+          const { path } = await uploadPetAvatar({
+            userId,
+            petId: newPetId,
+            fileUri: imageUri,
+            mimeType: imageType,
+          });
 
-        const { error } = await supabase
-          .from('pets')
-          .update({ profile_image_url: path })
-          .eq('id', newPetId);
+          const { error } = await supabase
+            .from('pets')
+            .update({ profile_image_url: path })
+            .eq('id', newPetId);
 
-        if (error) throw error;
+          if (error) throw error;
+        } catch (imageError) {
+          if (__DEV__) {
+            console.warn('[PetCreate] avatar upload failed:', imageError);
+          }
+          Alert.alert(
+            '이미지 업로드 실패',
+            '반려동물 등록은 완료되었고, 사진은 나중에 프로필 수정에서 다시 등록할 수 있어요.',
+          );
+        }
       }
 
       const pets = await fetchMyPets();
       setPets(pets);
 
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'WelcomeTransition' }],
-      });
+      setSuccessModalVisible(true);
     } catch (error) {
       Alert.alert('반려동물 등록 실패', getErrorMessage(error));
     } finally {
@@ -841,6 +885,13 @@ export default function PetCreateScreen() {
   );
   const removeHobby = useCallback((value: string) => removeItem('hobbies', value), [removeItem]);
   const removeTag = useCallback((value: string) => removeItem('tags', value), [removeItem]);
+  const goToWelcomeTransition = useCallback(() => {
+    setSuccessModalVisible(false);
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'WelcomeTransition' }],
+    });
+  }, [navigation]);
 
   return (
     <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
@@ -968,6 +1019,35 @@ export default function PetCreateScreen() {
           )}
         </View>
       </ScrollView>
+
+      <Modal
+        transparent
+        visible={successModalVisible}
+        animationType="fade"
+        onRequestClose={goToWelcomeTransition}
+      >
+        <View style={styles.successModalBackdrop}>
+          <View style={styles.successModalCard}>
+            <View style={styles.successLogoWrap}>
+              <Image source={ASSETS.logo} style={styles.successLogo} resizeMode="contain" />
+            </View>
+
+            <View style={styles.successCopyWrap}>
+              <Text style={styles.successTitle}>등록이 완료되었어요!</Text>
+              <Text style={styles.successBody}>우리 아이와 함께할 소중한 추억들을</Text>
+              <Text style={styles.successBody}>차곡차곡 쌓아보세요.</Text>
+            </View>
+
+            <TouchableOpacity
+              activeOpacity={0.92}
+              style={styles.successPrimaryButton}
+              onPress={goToWelcomeTransition}
+            >
+              <Text style={styles.successPrimaryButtonText}>시작하기</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         transparent

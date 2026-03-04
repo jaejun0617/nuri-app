@@ -75,7 +75,7 @@ export default function MoreScreen() {
   };
 
   const onPressLogin = () => {
-    navigation.navigate('AuthLanding');
+    navigation.navigate('SignIn');
   };
 
   // ---------------------------------------------------------
