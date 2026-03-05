@@ -1,3 +1,8 @@
+// 파일: src/screens/Auth/NicknameSetupScreen.tsx
+// 역할:
+// - 닉네임 설정/중복검사/정책 검증
+// - 입력 draft 복구 및 완료 후 PetCreate 진입
+
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -265,7 +270,9 @@ export default function NicknameSetupScreen() {
       }
     }
 
-    void hydrateNicknameDraft();
+    hydrateNicknameDraft().catch(() => {
+      // ignore draft hydrate errors
+    });
     return () => {
       mounted = false;
     };
@@ -273,7 +280,9 @@ export default function NicknameSetupScreen() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      void saveNicknameDraft(nickname);
+      saveNicknameDraft(nickname).catch(() => {
+        // ignore draft persist errors
+      });
     }, 220);
     return () => clearTimeout(timer);
   }, [nickname]);
@@ -322,12 +331,16 @@ export default function NicknameSetupScreen() {
 
   const onBlurNickname = useCallback(() => {
     if (checking || saving) return;
-    void runAvailabilityCheck();
+    runAvailabilityCheck().catch(() => {
+      // handled inside runAvailabilityCheck
+    });
   }, [checking, runAvailabilityCheck, saving]);
 
   const onCheckDuplicate = useCallback(() => {
     if (checking || saving) return;
-    void runAvailabilityCheck();
+    runAvailabilityCheck().catch(() => {
+      // handled inside runAvailabilityCheck
+    });
   }, [checking, runAvailabilityCheck, saving]);
 
   useEffect(() => {
@@ -339,7 +352,9 @@ export default function NicknameSetupScreen() {
     }
 
     const timer = setTimeout(() => {
-      void runAvailabilityCheck();
+      runAvailabilityCheck().catch(() => {
+        // handled inside runAvailabilityCheck
+      });
     }, 350);
 
     return () => clearTimeout(timer);

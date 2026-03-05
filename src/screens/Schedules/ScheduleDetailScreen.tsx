@@ -126,7 +126,9 @@ export default function ScheduleDetailScreen() {
       }
     }
 
-    void run();
+    run().catch(() => {
+      // handled inside run
+    });
     return () => {
       mounted = false;
     };

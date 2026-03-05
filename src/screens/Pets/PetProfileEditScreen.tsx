@@ -188,7 +188,9 @@ export default function PetProfileEditScreen() {
       if (mounted) setNameChangeCount(count);
     }
 
-    void run();
+    run().catch(() => {
+      // ignore name change count hydrate errors
+    });
     return () => {
       mounted = false;
     };

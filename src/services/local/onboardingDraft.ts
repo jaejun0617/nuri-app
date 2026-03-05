@@ -1,3 +1,7 @@
+// 파일: src/services/local/onboardingDraft.ts
+// 역할:
+// - 온보딩 입력 중단 복구용 draft 저장/조회/정리
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const NICKNAME_DRAFT_KEY = 'nuri.onboarding.nicknameDraft.v1';

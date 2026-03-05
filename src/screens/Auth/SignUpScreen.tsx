@@ -1,3 +1,8 @@
+// 파일: src/screens/Auth/SignUpScreen.tsx
+// 역할:
+// - 이메일 회원가입 입력/검증/요청 처리
+// - 회원가입 성공 시 닉네임 설정 단계로 진입
+
 import React, { memo, useCallback, useMemo, useState } from 'react';
 import {
   Alert,

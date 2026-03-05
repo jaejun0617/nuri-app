@@ -223,6 +223,10 @@ export default function AppTabsNavigator() {
   const [moreOpen, setMoreOpen] = useState(false);
   const openMore = useCallback(() => setMoreOpen(true), []);
   const closeMore = useCallback(() => setMoreOpen(false), []);
+  const renderTabBar = useCallback(
+    (p: BottomTabBarProps) => <CustomTabBar {...p} onOpenMore={openMore} />,
+    [openMore],
+  );
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -232,7 +236,7 @@ export default function AppTabsNavigator() {
             headerShown: false,
             tabBarHideOnKeyboard: true,
           }}
-          tabBar={p => <CustomTabBar {...p} onOpenMore={openMore} />}
+          tabBar={renderTabBar}
         >
           <Tab.Screen name="HomeTab" component={MainScreen} />
           <Tab.Screen name="TimelineTab" component={TimelineStackNavigator} />

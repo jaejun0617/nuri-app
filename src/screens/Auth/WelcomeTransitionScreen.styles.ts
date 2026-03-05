@@ -1,7 +1,6 @@
 import { StyleSheet } from 'react-native';
 
 const BRAND = '#3E9BFF';
-const SURFACE = '#07172D';
 const SURFACE_DEEP = '#081225';
 
 export const styles = StyleSheet.create({

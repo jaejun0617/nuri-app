@@ -1339,6 +1339,10 @@ export default function LoggedInHome() {
   );
 
   const keyExtractor = useCallback((it: MemoryRecord) => it.id, []);
+  const renderTodayRecordSeparator = useCallback(
+    () => <View style={{ width: SLIDE_GAP }} />,
+    [SLIDE_GAP],
+  );
 
   // ---------------------------------------------------------
   // 10) render
@@ -1815,9 +1819,7 @@ export default function LoggedInHome() {
                     styles.todayRecordsContent,
                     { paddingRight: 16 },
                   ]}
-                  ItemSeparatorComponent={() => (
-                    <View style={{ width: SLIDE_GAP }} />
-                  )}
+                  ItemSeparatorComponent={renderTodayRecordSeparator}
                   getItemLayout={(_, index) => ({
                     length: SNAP,
                     offset: SNAP * index,

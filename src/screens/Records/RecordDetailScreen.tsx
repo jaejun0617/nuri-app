@@ -1,3 +1,7 @@
+// 파일: src/screens/Records/RecordDetailScreen.tsx
+// 역할:
+// - 기록 상세 조회/이미지 슬라이드/삭제/수정 이동
+
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -11,12 +15,11 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import type { CompositeNavigationProp, RouteProp } from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
 
-import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { TimelineStackParamList } from '../../navigation/TimelineStackNavigator';
 import { deleteMemoryWithFile } from '../../services/supabase/memories';
 import { getMemoryImageSignedUrlCached } from '../../services/supabase/storageMemories';
@@ -25,8 +28,6 @@ import AppText from '../../app/ui/AppText';
 import { styles } from './RecordDetailScreen.styles';
 
 type TimelineNav = NativeStackNavigationProp<TimelineStackParamList, 'RecordDetail'>;
-type RootNav = NativeStackNavigationProp<RootStackParamList>;
-type Nav = CompositeNavigationProp<TimelineNav, RootNav>;
 type Route = RouteProp<TimelineStackParamList, 'RecordDetail'>;
 
 const EMOTION_META: Record<
@@ -53,9 +54,7 @@ function toKoreanDate(ymd: string) {
 }
 
 export default function RecordDetailScreen() {
-  const navigation = useNavigation<Nav>();
-  const rootNavigation =
-    navigation as unknown as NativeStackNavigationProp<RootStackParamList>;
+  const navigation = useNavigation<TimelineNav>();
   const route = useRoute<Route>();
   const petId = route.params?.petId ?? null;
   const memoryId = route.params?.memoryId ?? null;
@@ -143,6 +142,14 @@ export default function RecordDetailScreen() {
     };
   }, [imagePaths]);
 
+  const onHeroScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const x = event.nativeEvent.contentOffset.x;
+    const layoutWidth = event.nativeEvent.layoutMeasurement.width;
+    if (layoutWidth <= 0) return;
+    const index = Math.max(0, Math.round(x / layoutWidth));
+    setHeroIndex(prev => (prev === index ? prev : index));
+  };
+
   const onPressEdit = useCallback(() => {
     if (!petId || !memoryId) return;
     navigation.navigate('RecordEdit', { petId, memoryId });
@@ -213,21 +220,7 @@ export default function RecordDetailScreen() {
   const showSlider = heroUrls.length > 1;
   const tagLine = record.tags.slice(0, 4).join(' ');
   const heroWidth = Math.max(220, width - 28);
-  const pagerText = useMemo(
-    () => `${Math.min(heroIndex + 1, heroUrls.length)}/${heroUrls.length}`,
-    [heroIndex, heroUrls.length],
-  );
-
-  const onHeroScrollEnd = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const x = event.nativeEvent.contentOffset.x;
-      const width = event.nativeEvent.layoutMeasurement.width;
-      if (width <= 0) return;
-      const index = Math.max(0, Math.round(x / width));
-      if (index !== heroIndex) setHeroIndex(index);
-    },
-    [heroIndex],
-  );
+  const pagerText = `${Math.min(heroIndex + 1, heroUrls.length)}/${heroUrls.length}`;
 
   return (
     <View style={styles.screen}>

@@ -72,7 +72,6 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
 
       const result = await signOutBestEffort(1200);
       if (result.error && __DEV__) {
-        // eslint-disable-next-line no-console
         console.warn('[logout] signOutBestEffort error:', result.error.message);
       }
     } catch (e: any) {

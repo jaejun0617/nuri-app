@@ -217,7 +217,7 @@ export default function RecordEditScreen() {
     setRemovedPaths(new Set());
     setAddedImages([]);
     setActiveImageIndex(0);
-  }, [record?.id, record?.imagePath, record?.imagePaths]);
+  }, [record]);
 
   const visibleExistingPaths = useMemo(
     () => baseImagePaths.filter(path => !removedPaths.has(path)),
@@ -480,7 +480,6 @@ export default function RecordEditScreen() {
     addedImages,
     baseImagePaths,
     removedPaths,
-    navigation,
     updateOneLocal,
     parseTags,
     validateOccurredAt,

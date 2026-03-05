@@ -1,3 +1,8 @@
+// 파일: src/screens/Pets/PetCreateScreen.tsx
+// 역할:
+// - 온보딩 반려동물 프로필 등록(1/2, 2/2)
+// - 입력 중단 복구(draft 저장/복원) + 완료 후 정리
+
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
@@ -726,7 +731,9 @@ export default function PetCreateScreen() {
       setDraftHydrated(true);
     }
 
-    void hydrateDraft();
+    hydrateDraft().catch(() => {
+      // ignore draft hydrate errors
+    });
     return () => {
       mounted = false;
     };
@@ -736,7 +743,7 @@ export default function PetCreateScreen() {
     if (!draftHydrated || saving || successModalVisible) return;
 
     const timer = setTimeout(() => {
-      void savePetCreateDraft({
+      savePetCreateDraft({
         step,
         name,
         birthDate,
@@ -755,6 +762,8 @@ export default function PetCreateScreen() {
         draftTag,
         imageUri,
         imageType,
+      }).catch(() => {
+        // ignore draft persist errors
       });
     }, 260);
 
@@ -946,7 +955,6 @@ export default function PetCreateScreen() {
     imageType,
     imageUri,
     likes,
-    navigation,
     neutered,
     setPets,
     tags,
@@ -990,7 +998,9 @@ export default function PetCreateScreen() {
   const removeTag = useCallback((value: string) => removeItem('tags', value), [removeItem]);
   const goToWelcomeTransition = useCallback(() => {
     setSuccessModalVisible(false);
-    void clearPetCreateDraft();
+    clearPetCreateDraft().catch(() => {
+      // ignore draft clear errors
+    });
     navigation.reset({
       index: 0,
       routes: [{ name: 'WelcomeTransition' }],

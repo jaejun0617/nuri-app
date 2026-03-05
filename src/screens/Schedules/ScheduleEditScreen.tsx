@@ -206,7 +206,9 @@ export default function ScheduleEditScreen() {
         if (mounted) setLoading(false);
       }
     }
-    void run();
+    run().catch(() => {
+      // handled inside run
+    });
     return () => {
       mounted = false;
     };
@@ -304,7 +306,6 @@ export default function ScheduleEditScreen() {
     refresh,
     repeatRule,
     schedule,
-    scheduleId,
     timeText,
     title,
   ]);

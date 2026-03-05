@@ -67,7 +67,6 @@ export default function MoreScreen() {
       // 3) 서버 signOut은 best-effort (짧은 타임아웃)
       const result = await signOutBestEffort(1200);
       if (result.error && __DEV__) {
-        // eslint-disable-next-line no-console
         console.warn('[logout] signOutBestEffort error:', result.error.message);
       }
     } catch (e: any) {

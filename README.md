@@ -1328,6 +1328,36 @@ NURI는 데이터 입력 도구가 아니라,
 
 ---
 
+## Chapter 6-35 — 전체 코드 점검 + lint/타입 무오류 고정 + 리렌더 안정화
+
+### 무엇을 바꿨나
+
+- 전체 정적 점검을 기준으로 오류를 우선 정리했다.
+  - `yarn lint`
+  - `yarn exec tsc --noEmit`
+- `RecordDetail`에서 조건부 Hook 호출 구조를 제거해 Hook order 오류를 해소했다.
+- `RecordEdit / ScheduleEdit / PetCreate`의 Hook 의존성 배열을 재정리해 불필요 경고를 정리했다.
+- `AppTabsNavigator`와 `LoggedInHome`의 inline 함수 생성 지점을 줄여 렌더 시 컴포넌트 재생성 경고를 해소했다.
+  - TabBar renderer memoization
+  - `ItemSeparatorComponent` inline 제거
+- 비동기 fire-and-forget(`void`) 패턴을 `.catch` 기반으로 바꿔 예외 누락/경고를 정리했다.
+  - Auth / Store / 온보딩 draft / Schedule / ProfileEdit 흐름 포함
+- 핵심 파일 상단에 `파일 위치 + 역할` 주석을 통일해 유지보수 가독성을 개선했다.
+
+### 결과
+
+- lint 경고/오류를 모두 제거해 `lint clean` 상태를 확보했다.
+- 타입체크도 무오류 상태를 유지했다.
+- 탭바/슬라이더/온보딩 입력 구간의 불필요 재생성 포인트가 줄어 렌더 안정성이 개선됐다.
+
+### 의도
+
+기능 개발이 누적된 상태에서는 단일 버그보다 “작은 경고와 불안정 패턴의 누적”이 더 큰 장애로 이어진다.
+이번 점검은 기능 추가보다 코드베이스 건강도를 회복하는 데 초점을 맞춰,
+다음 개발 단계에서도 속도와 안정성을 동시에 유지할 수 있는 기반을 만들었다.
+
+---
+
 # 🚀 Next
 
 ## Chapter 8 — 서버 검색(제목/태그) + 인덱스/정렬 안정화 + 섹션 점프 고도화

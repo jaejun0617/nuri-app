@@ -59,7 +59,7 @@ export async function signOutBestEffort(timeoutMs = 1200): Promise<{
   }
 
   if (timedOut) {
-    void signOutPromise;
+    signOutPromise.catch(() => null);
   }
 
   return { timedOut, error: null };

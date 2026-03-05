@@ -94,7 +94,9 @@ export const usePetStore = create<PetState>((set, get) => ({
     const nextSelected = normalizeSelected(pets, prevSelected);
 
     set({ pets, selectedPetId: nextSelected });
-    void saveSelectedPetId(nextSelected);
+    saveSelectedPetId(nextSelected).catch(() => {
+      // ignore selected pet persist errors
+    });
   },
 
   selectPet: (petId: string) => {
@@ -102,7 +104,9 @@ export const usePetStore = create<PetState>((set, get) => ({
     if (!pets.some(p => p.id === petId)) return;
 
     set({ selectedPetId: petId });
-    void saveSelectedPetId(petId);
+    saveSelectedPetId(petId).catch(() => {
+      // ignore selected pet persist errors
+    });
   },
 
   updatePetAvatarUrl: (petId: string, avatarUrl: string | null) => {
@@ -117,6 +121,8 @@ export const usePetStore = create<PetState>((set, get) => ({
 
   clear: () => {
     set({ pets: [], selectedPetId: null, loading: false, booted: false });
-    void saveSelectedPetId(null);
+    saveSelectedPetId(null).catch(() => {
+      // ignore selected pet clear errors
+    });
   },
 }));
