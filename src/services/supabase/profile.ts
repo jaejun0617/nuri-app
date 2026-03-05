@@ -8,6 +8,50 @@
 
 import { supabase } from './client';
 
+type NicknameAvailabilityCode =
+  | 'ok'
+  | 'not_authenticated'
+  | 'empty'
+  | 'too_short'
+  | 'too_long'
+  | 'invalid_chars'
+  | 'blocked'
+  | 'taken';
+
+type NicknameAvailabilityRow = {
+  available: boolean;
+  code: NicknameAvailabilityCode;
+  normalized: string;
+};
+
+function normalizeNickname(value: string): string {
+  return value.trim();
+}
+
+function mapNicknameError(error: unknown): Error {
+  if (error instanceof Error) {
+    const anyErr = error as Error & {
+      code?: string;
+      message?: string;
+      details?: string;
+      hint?: string;
+    };
+    const code = String(anyErr.code ?? '');
+    const msg = String(anyErr.message ?? '');
+    const details = String(anyErr.details ?? '');
+    const joined = `${code} ${msg} ${details}`.toLowerCase();
+
+    if (code === '23505' || joined.includes('uq_profiles_nickname')) {
+      return new Error('이미 사용중인 닉네임 입니다.');
+    }
+    if (joined.includes('blocked') || joined.includes('금칙')) {
+      return new Error('사용할 수 없는 닉네임입니다.');
+    }
+    return error;
+  }
+  return new Error('다시 시도해 주세요.');
+}
+
 /* ---------------------------------------------------------
  * 1) 내 닉네임 조회
  * -------------------------------------------------------- */
@@ -34,23 +78,14 @@ export async function saveMyNickname(nickname: string): Promise<void> {
   const userId = userRes.data.user?.id ?? null;
   if (!userId) throw new Error('로그인 정보가 없습니다.');
 
-  const trimmed = nickname.trim();
+  const trimmed = normalizeNickname(nickname);
   if (!trimmed) throw new Error('닉네임이 비어있습니다.');
 
-  // 1) update 먼저 시도
-  const { error: updateError } = await supabase
+  const { error } = await supabase
     .from('profiles')
-    .update({ nickname: trimmed })
-    .eq('user_id', userId);
+    .upsert({ user_id: userId, nickname: trimmed }, { onConflict: 'user_id' });
 
-  if (!updateError) return;
-
-  // 2) update 실패(예: row 없음)면 insert fallback
-  const { error: insertError } = await supabase
-    .from('profiles')
-    .insert({ user_id: userId, nickname: trimmed });
-
-  if (insertError) throw insertError;
+  if (error) throw mapNicknameError(error);
 }
 
 /* ---------------------------------------------------------
@@ -59,23 +94,45 @@ export async function saveMyNickname(nickname: string): Promise<void> {
 export async function checkNicknameAvailability(
   nickname: string,
 ): Promise<boolean> {
-  const userRes = await supabase.auth.getUser();
-  const userId = userRes.data.user?.id ?? null;
-  if (!userId) throw new Error('로그인 정보가 없습니다.');
-
-  const trimmed = nickname.trim();
+  const trimmed = normalizeNickname(nickname);
   if (!trimmed) return false;
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('user_id')
-    .eq('nickname', trimmed);
-
+  const { data, error } = await supabase.rpc('check_nickname_availability', {
+    p_nickname: trimmed,
+  });
   if (error) throw error;
 
-  const rows = Array.isArray(data)
-    ? (data as Array<{ user_id?: string | null }>)
-    : [];
+  const rows = Array.isArray(data) ? (data as NicknameAvailabilityRow[]) : [];
+  const row = rows[0] ?? null;
+  if (!row) return false;
+  return row.available;
+}
 
-  return !rows.some(row => row.user_id && row.user_id !== userId);
+export async function checkNicknameAvailabilityDetailed(
+  nickname: string,
+): Promise<NicknameAvailabilityRow> {
+  const trimmed = normalizeNickname(nickname);
+  if (!trimmed) {
+    return { available: false, code: 'empty', normalized: '' };
+  }
+
+  const rpcPromise = supabase.rpc('check_nickname_availability', {
+    p_nickname: trimmed,
+  });
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => {
+      reject(new Error('닉네임 확인이 지연되고 있습니다. 잠시 후 다시 시도해주세요.'));
+    }, 6000);
+  });
+  const { data, error } = await Promise.race([rpcPromise, timeoutPromise]);
+  if (error) throw error;
+
+  const rows = Array.isArray(data) ? (data as NicknameAvailabilityRow[]) : [];
+  return (
+    rows[0] ?? {
+      available: false,
+      code: 'empty',
+      normalized: trimmed,
+    }
+  );
 }

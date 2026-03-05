@@ -16,7 +16,7 @@ import type { RouteProp } from '@react-navigation/native';
 import { ASSETS } from '../../assets';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
-  checkNicknameAvailability,
+  checkNicknameAvailabilityDetailed,
   saveMyNickname,
 } from '../../services/supabase/profile';
 import { useAuthStore } from '../../store/authStore';
@@ -80,6 +80,30 @@ function getNicknameValidationMessage(value: string): ValidationState {
   return { tone: 'idle', message: null };
 }
 
+function mapAvailabilityCodeToMessage(
+  code: string,
+): ValidationState {
+  switch (code) {
+    case 'ok':
+      return { tone: 'success', message: '사용 가능한 닉네임입니다' };
+    case 'taken':
+      return { tone: 'error', message: '이미 사용중인 닉네임 입니다.' };
+    case 'blocked':
+      return { tone: 'error', message: '사용할 수 없는 닉네임입니다' };
+    case 'too_short':
+      return { tone: 'error', message: '닉네임은 2자 이상 입력해주세요' };
+    case 'too_long':
+      return { tone: 'error', message: '닉네임은 8자 이내로 입력해주세요' };
+    case 'invalid_chars':
+      return { tone: 'error', message: '특수문자는 사용할수 없습니다' };
+    case 'not_authenticated':
+      return { tone: 'error', message: '로그인 정보가 없습니다.' };
+    case 'empty':
+    default:
+      return { tone: 'idle', message: null };
+  }
+}
+
 const NicknameInputSection = memo(function NicknameInputSection({
   nickname,
   onChangeNickname,
@@ -103,7 +127,7 @@ const NicknameInputSection = memo(function NicknameInputSection({
           autoCapitalize="none"
           autoCorrect={false}
           returnKeyType="done"
-          maxLength={12}
+          maxLength={MAX_NICKNAME_LENGTH}
           onSubmitEditing={onBlurNickname}
         />
 
@@ -187,6 +211,7 @@ export default function NicknameSetupScreen() {
     message: null,
   });
   const lastCheckedNicknameRef = useRef<string | null>(null);
+  const checkSeqRef = useRef(0);
 
   const trimmed = useMemo(() => nickname.trim(), [nickname]);
   const localValidation = useMemo(
@@ -234,24 +259,23 @@ export default function NicknameSetupScreen() {
     }
 
     try {
+      checkSeqRef.current += 1;
+      const seq = checkSeqRef.current;
       setChecking(true);
-      const available = await checkNicknameAvailability(trimmed);
-      lastCheckedNicknameRef.current = trimmed;
+      const result = await checkNicknameAvailabilityDetailed(trimmed);
+      if (seq !== checkSeqRef.current) return;
 
-      if (!available) {
+      lastCheckedNicknameRef.current = trimmed;
+      const mapped = mapAvailabilityCodeToMessage(result.code);
+
+      if (!result.available) {
         setAvailabilityChecked(false);
-        setValidationState({
-          tone: 'error',
-          message: '이미 사용중인 닉네임 입니다.',
-        });
+        setValidationState(mapped);
         return;
       }
 
       setAvailabilityChecked(true);
-      setValidationState({
-        tone: 'success',
-        message: '사용 가능한 닉네임입니다',
-      });
+      setValidationState(mapped);
     } catch (error) {
       setAvailabilityChecked(false);
       lastCheckedNicknameRef.current = null;
@@ -273,6 +297,28 @@ export default function NicknameSetupScreen() {
     if (checking || saving) return;
     void runAvailabilityCheck();
   }, [checking, runAvailabilityCheck, saving]);
+
+  useEffect(() => {
+    if (checking || saving) return;
+    if (localValidation.tone === 'error') return;
+    if (trimmed.length < 2) return;
+    if (lastCheckedNicknameRef.current === trimmed && validationState.tone !== 'idle') {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      void runAvailabilityCheck();
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [
+    checking,
+    localValidation.tone,
+    runAvailabilityCheck,
+    saving,
+    trimmed,
+    validationState.tone,
+  ]);
 
   const onSubmit = useCallback(async () => {
     if (!canSubmit) return;
