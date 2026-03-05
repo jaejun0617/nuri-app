@@ -119,7 +119,7 @@ export default function RootNavigator() {
       <Stack.Screen
         name="PetCreate"
         component={PetCreateScreen}
-        options={{ headerShown: false }}
+        options={{ headerShown: false, gestureEnabled: false }}
       />
       <Stack.Screen
         name="PetProfileEdit"

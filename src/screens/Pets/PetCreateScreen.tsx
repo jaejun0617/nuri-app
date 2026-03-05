@@ -1,6 +1,7 @@
-import React, { memo, useCallback, useMemo, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
+  BackHandler,
   Image,
   Modal,
   ScrollView,
@@ -11,13 +12,18 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { launchImageLibrary } from 'react-native-image-picker';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
 
 import { ASSETS } from '../../assets';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { supabase } from '../../services/supabase/client';
+import {
+  clearPetCreateDraft,
+  loadPetCreateDraft,
+  savePetCreateDraft,
+} from '../../services/local/onboardingDraft';
 import { createPet, fetchMyPets } from '../../services/supabase/pets';
 import { uploadPetAvatar } from '../../services/supabase/storagePets';
 import { usePetStore } from '../../store/petStore';
@@ -566,6 +572,8 @@ export default function PetCreateScreen() {
   const [pickerYear, setPickerYear] = useState('');
   const [pickerMonth, setPickerMonth] = useState('');
   const [pickerDay, setPickerDay] = useState('');
+  const [draftHydrated, setDraftHydrated] = useState(false);
+  const draftLoadOnceRef = useRef(false);
 
   const trimmedName = useMemo(() => name.trim(), [name]);
   const canGoNext = useMemo(() => {
@@ -680,6 +688,100 @@ export default function PetCreateScreen() {
     return buildDateHint(merged);
   }, [pickerDay, pickerMonth, pickerYear]);
   const compactTopInset = useMemo(() => Math.max(insets.top - 24, 0), [insets.top]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function hydrateDraft() {
+      if (draftLoadOnceRef.current) return;
+      draftLoadOnceRef.current = true;
+
+      const draft = await loadPetCreateDraft();
+      if (!mounted) return;
+
+      if (draft) {
+        setStep(draft.step);
+        setName(draft.name);
+        setBirthDate(draft.birthDate);
+        setAdoptionDate(draft.adoptionDate);
+        setBreed(draft.breed);
+        setGender(draft.gender);
+        setNeutered(draft.neutered);
+
+        setWeightKg(draft.weightKg);
+        setLikes(Array.isArray(draft.likes) ? draft.likes : []);
+        setDislikes(Array.isArray(draft.dislikes) ? draft.dislikes : []);
+        setHobbies(Array.isArray(draft.hobbies) ? draft.hobbies : []);
+        setTags(Array.isArray(draft.tags) ? draft.tags : []);
+
+        setDraftLike(draft.draftLike);
+        setDraftDislike(draft.draftDislike);
+        setDraftHobby(draft.draftHobby);
+        setDraftTag(draft.draftTag);
+
+        setImageUri(draft.imageUri);
+        setImageType(draft.imageType);
+      }
+
+      setDraftHydrated(true);
+    }
+
+    void hydrateDraft();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!draftHydrated || saving || successModalVisible) return;
+
+    const timer = setTimeout(() => {
+      void savePetCreateDraft({
+        step,
+        name,
+        birthDate,
+        adoptionDate,
+        breed,
+        gender,
+        neutered,
+        weightKg,
+        likes,
+        dislikes,
+        hobbies,
+        tags,
+        draftLike,
+        draftDislike,
+        draftHobby,
+        draftTag,
+        imageUri,
+        imageType,
+      });
+    }, 260);
+
+    return () => clearTimeout(timer);
+  }, [
+    adoptionDate,
+    birthDate,
+    breed,
+    dislikes,
+    draftDislike,
+    draftHobby,
+    draftHydrated,
+    draftLike,
+    draftTag,
+    gender,
+    hobbies,
+    imageType,
+    imageUri,
+    likes,
+    name,
+    neutered,
+    saving,
+    step,
+    successModalVisible,
+    tags,
+    weightKg,
+  ]);
 
   const pushUniqueValue = useCallback(
     (
@@ -825,6 +927,7 @@ export default function PetCreateScreen() {
 
       const pets = await fetchMyPets();
       setPets(pets);
+      await clearPetCreateDraft();
 
       setSuccessModalVisible(true);
     } catch (error) {
@@ -887,23 +990,25 @@ export default function PetCreateScreen() {
   const removeTag = useCallback((value: string) => removeItem('tags', value), [removeItem]);
   const goToWelcomeTransition = useCallback(() => {
     setSuccessModalVisible(false);
+    void clearPetCreateDraft();
     navigation.reset({
       index: 0,
       routes: [{ name: 'WelcomeTransition' }],
     });
   }, [navigation]);
 
+  useFocusEffect(
+    useCallback(() => {
+      const sub = BackHandler.addEventListener('hardwareBackPress', () => true);
+      return () => sub.remove();
+    }, []),
+  );
+
   return (
     <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
       <View style={[styles.topChrome, { paddingTop: compactTopInset }]}>
       <View style={styles.header}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          style={styles.headerAction}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.headerActionText}>취소</Text>
-        </TouchableOpacity>
+        <View style={styles.headerActionPlaceholder} />
 
         <Text style={styles.headerTitle}>프로필 등록 ({step}/2)</Text>
 

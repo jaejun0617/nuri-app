@@ -19,6 +19,11 @@ import {
   checkNicknameAvailabilityDetailed,
   saveMyNickname,
 } from '../../services/supabase/profile';
+import {
+  clearNicknameDraft,
+  loadNicknameDraft,
+  saveNicknameDraft,
+} from '../../services/local/onboardingDraft';
 import { useAuthStore } from '../../store/authStore';
 import { styles } from './NicknameSetupScreen.styles';
 
@@ -212,6 +217,7 @@ export default function NicknameSetupScreen() {
   });
   const lastCheckedNicknameRef = useRef<string | null>(null);
   const checkSeqRef = useRef(0);
+  const draftHydratedRef = useRef(false);
 
   const trimmed = useMemo(() => nickname.trim(), [nickname]);
   const localValidation = useMemo(
@@ -245,6 +251,32 @@ export default function NicknameSetupScreen() {
     setValidationState({ tone: 'idle', message: null });
     lastCheckedNicknameRef.current = null;
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function hydrateNicknameDraft() {
+      const draft = await loadNicknameDraft();
+      if (!mounted || draftHydratedRef.current) return;
+      draftHydratedRef.current = true;
+
+      if (draft && !nickname.trim()) {
+        setLocalNickname(draft);
+      }
+    }
+
+    void hydrateNicknameDraft();
+    return () => {
+      mounted = false;
+    };
+  }, [nickname]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void saveNicknameDraft(nickname);
+    }, 220);
+    return () => clearTimeout(timer);
+  }, [nickname]);
 
   const runAvailabilityCheck = useCallback(async () => {
     const syncValidation = getNicknameValidationMessage(trimmed);
@@ -327,8 +359,9 @@ export default function NicknameSetupScreen() {
       setSaving(true);
       await saveMyNickname(trimmed);
       await setNickname(trimmed);
+      await clearNicknameDraft();
 
-      navigation.reset({ index: 0, routes: [{ name: 'PetCreate' }] });
+      navigation.navigate('PetCreate', { from: 'auto' });
     } catch (error) {
       Alert.alert('닉네임 저장 실패', getErrorMessage(error));
     } finally {

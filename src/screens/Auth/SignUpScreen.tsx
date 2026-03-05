@@ -120,6 +120,14 @@ function getSignUpErrorMeta(error: unknown): { title: string; message: string } 
     };
   }
 
+  if (normalized.includes('database error saving new user')) {
+    return {
+      title: '가입 처리 오류',
+      message:
+        '가입 초기화 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.',
+    };
+  }
+
   if (normalized.includes('password')) {
     return {
       title: '비밀번호를 확인해주세요',
@@ -135,6 +143,25 @@ function getSignUpErrorMeta(error: unknown): { title: string; message: string } 
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+async function signUpWithTimeout(email: string, password: string, timeoutMs = 12000) {
+  const signUpPromise = supabase.auth.signUp({
+    email: email.trim(),
+    password,
+  });
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => {
+      reject(
+        new Error(
+          '회원가입 요청이 지연되고 있습니다. 네트워크를 확인한 뒤 다시 시도해주세요.',
+        ),
+      );
+    }, timeoutMs);
+  });
+
+  return Promise.race([signUpPromise, timeoutPromise]);
 }
 
 export default function SignUpScreen() {
@@ -169,10 +196,7 @@ export default function SignUpScreen() {
     try {
       setSubmitting(true);
 
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-      });
+      const { data, error } = await signUpWithTimeout(email, password);
       if (error) throw error;
 
       await setSession(data.session ?? null);

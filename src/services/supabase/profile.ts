@@ -62,12 +62,14 @@ export async function fetchMyNickname(): Promise<string | null> {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('nickname')
+    .select('nickname, nickname_confirmed')
     .eq('user_id', userId)
     .maybeSingle();
 
   if (error) throw error;
-  return (data?.nickname ?? null) as string | null;
+  if (!data) return null;
+  if (!data.nickname_confirmed) return null;
+  return (data.nickname ?? null) as string | null;
 }
 
 /* ---------------------------------------------------------
@@ -83,7 +85,10 @@ export async function saveMyNickname(nickname: string): Promise<void> {
 
   const { error } = await supabase
     .from('profiles')
-    .upsert({ user_id: userId, nickname: trimmed }, { onConflict: 'user_id' });
+    .upsert(
+      { user_id: userId, nickname: trimmed, nickname_confirmed: true },
+      { onConflict: 'user_id' },
+    );
 
   if (error) throw mapNicknameError(error);
 }
