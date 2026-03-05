@@ -28,3 +28,39 @@ export async function signOut() {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
 }
+
+export async function signOutBestEffort(timeoutMs = 1200): Promise<{
+  timedOut: boolean;
+  error: Error | null;
+}> {
+  let timedOut = false;
+
+  const signOutPromise = supabase.auth
+    .signOut()
+    .then(({ error }) => {
+      if (error) throw error;
+      return null;
+    })
+    .catch((error: unknown) => {
+      if (error instanceof Error) return error;
+      return new Error(String(error));
+    });
+
+  const timeoutPromise = new Promise<null>(resolve => {
+    setTimeout(() => {
+      timedOut = true;
+      resolve(null);
+    }, timeoutMs);
+  });
+
+  const winner = await Promise.race([signOutPromise, timeoutPromise]);
+  if (winner instanceof Error) {
+    return { timedOut: false, error: winner };
+  }
+
+  if (timedOut) {
+    void signOutPromise;
+  }
+
+  return { timedOut, error: null };
+}

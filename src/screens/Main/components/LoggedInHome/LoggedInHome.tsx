@@ -57,6 +57,7 @@ import { getMemoryImageSignedUrlCached } from '../../../../services/supabase/sto
 import {
   pickTodayPhoto,
   generateTimeMessage,
+  getTimeMessageEmoji,
 } from '../../../../services/home/homeRecall';
 import { styles } from './LoggedInHome.styles';
 
@@ -892,6 +893,7 @@ export default function LoggedInHome() {
   const todayMessage = useMemo(() => {
     return generateTimeMessage(selectedPet?.name ?? null);
   }, [selectedPet?.name]);
+  const todayMessageEmoji = useMemo(() => getTimeMessageEmoji(), []);
 
   const [todayPhoto, setTodayPhoto] = useState<{
     record: MemoryRecord | null;
@@ -1667,7 +1669,9 @@ export default function LoggedInHome() {
 
             <View style={styles.heroMessageBox}>
               <View style={styles.heroMessageIcon}>
-                <Text style={styles.heroMessageIconText}>🌙</Text>
+                <Text style={styles.heroMessageIconText}>
+                  {todayMessageEmoji}
+                </Text>
               </View>
               <Text style={styles.heroMessageText}>{todayMessage}</Text>
             </View>
@@ -1677,7 +1681,7 @@ export default function LoggedInHome() {
             <View style={styles.sectionHeaderCol}>
               <Text style={styles.sectionTitle}>자주 쓰는 기록</Text>
               <Text style={styles.sectionSubText}>
-                산책, 식사, 건강, 미용 기록을 바로 열어보세요
+                산책 · 식사 · 건강 · 미용 기록을 바로 열어보세요
               </Text>
             </View>
 

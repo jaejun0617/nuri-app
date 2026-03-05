@@ -6,6 +6,7 @@
 //   - indicator dot: BRAND 컬러 기반
 
 import { StyleSheet } from 'react-native';
+import { SCREEN_TOP_SPACING } from '../../../../theme/layout';
 
 const BRAND = '#6D6AF8';
 const BRAND_DEEP = '#5753E6';
@@ -41,7 +42,7 @@ export const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: SURFACE },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 10,
+    paddingTop: SCREEN_TOP_SPACING,
     paddingBottom: 34,
     gap: 18,
   },
@@ -59,7 +60,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   headerTextArea: { gap: 4, paddingTop: 2, flex: 1 },
-  title: { fontSize: 18, fontWeight: '900', color: TEXT },
+  title: { fontSize: 18, fontWeight: '900', color: BRAND_DEEP },
   subTitle: {
     fontSize: 12,
     fontWeight: '700',
@@ -221,7 +222,7 @@ export const styles = StyleSheet.create({
   heroName: {
     fontSize: 28,
     fontWeight: '900',
-    color: TEXT,
+    color: BRAND_DEEP,
     letterSpacing: -0.4,
     marginTop: 2,
   },
@@ -382,14 +383,10 @@ export const styles = StyleSheet.create({
     gap: 10,
   },
   heroMessageIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,196,0,0.12)',
   },
-  heroMessageIconText: { fontSize: 16, fontWeight: '900' },
+  heroMessageIconText: { fontSize: 20, lineHeight: 24 },
   heroMessageText: {
     flex: 1,
     fontSize: 12,
@@ -407,7 +404,7 @@ export const styles = StyleSheet.create({
     paddingTop: 20,
     paddingHorizontal: 14,
   },
-  sectionLeadTitle: { fontSize: 18, fontWeight: '600', color: TEXT },
+  sectionLeadTitle: { fontSize: 18, fontWeight: '600', color: BRAND_DEEP },
   sectionLeadSub: { fontSize: 12, fontWeight: '500', color: MUTED },
 
   // ---------------------------------------------------------
@@ -428,7 +425,7 @@ export const styles = StyleSheet.create({
   sectionHeaderCol: {
     gap: 4,
   },
-  sectionTitle: { fontSize: 14, fontWeight: '600', color: TEXT },
+  sectionTitle: { fontSize: 14, fontWeight: '600', color: BRAND_DEEP },
   sectionSubText: {
     fontSize: 12,
     fontWeight: '600',
@@ -663,7 +660,7 @@ export const styles = StyleSheet.create({
   tipSectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: TEXT,
+    color: BRAND_DEEP,
     letterSpacing: -0.3,
   },
   tipList: {

@@ -93,12 +93,19 @@ export function generateTimeMessage(petName?: string | null) {
   const phase = getTimePhase();
 
   if (phase === 'morning') {
-    return `🌤️ ${name}와 눈 맞추는 아침이에요. 오늘도 천천히, 포근하게 시작해요.`;
+    return `${name}와 눈 맞추는 아침이에요. 오늘도 천천히, 포근하게 시작해요.`;
   }
 
   if (phase === 'noon') {
-    return `☀️ ${name}가 웃던 순간을 살짝 떠올려볼까요? 작은 행복 충전 시간이에요.`;
+    return `${name}가 웃던 순간을 살짝 떠올려볼까요? 작은 행복 충전 시간이에요.`;
   }
 
   return `${name}와 보낸 하루를 꼭 안고, 따뜻하게 마무리해요.`;
+}
+
+export function getTimeMessageEmoji() {
+  const phase = getTimePhase();
+  if (phase === 'morning') return '🌤️';
+  if (phase === 'noon') return '☀️';
+  return '🌙';
 }

@@ -10,7 +10,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
-import { supabase } from '../../services/supabase/client';
+import { signOutBestEffort } from '../../services/supabase/auth';
 import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
@@ -56,17 +56,20 @@ export default function MoreScreen() {
     try {
       setLoading(true);
 
-      // 1) 서버 세션 종료(토큰 제거)
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-
-      // 2) 로컬 스토어 초기화
+      // 1) 로컬 상태 우선 정리 (체감 즉시 로그아웃)
       await signOutLocal();
       clearPets();
       if (clearRecords) clearRecords();
 
-      // 3) Splash로 reset (Splash에서 guest로 내려가도록)
-      navigation.reset({ index: 0, routes: [{ name: 'Splash' }] });
+      // 2) 즉시 게스트 홈으로 이동
+      navigation.reset({ index: 0, routes: [{ name: 'AppTabs' }] });
+
+      // 3) 서버 signOut은 best-effort (짧은 타임아웃)
+      const result = await signOutBestEffort(1200);
+      if (result.error && __DEV__) {
+        // eslint-disable-next-line no-console
+        console.warn('[logout] signOutBestEffort error:', result.error.message);
+      }
     } catch (e: any) {
       Alert.alert('로그아웃 실패', e?.message ?? '다시 시도해 주세요.');
     } finally {

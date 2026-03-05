@@ -13,7 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
-import { supabase } from '../../services/supabase/client';
+import { signOutBestEffort } from '../../services/supabase/auth';
 import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
@@ -63,15 +63,18 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     try {
       setLoading(true);
 
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-
       await signOutLocal();
       clearPets();
       if (clearRecords) clearRecords();
 
       onRequestClose();
-      navigation.reset({ index: 0, routes: [{ name: 'Splash' }] });
+      navigation.reset({ index: 0, routes: [{ name: 'AppTabs' }] });
+
+      const result = await signOutBestEffort(1200);
+      if (result.error && __DEV__) {
+        // eslint-disable-next-line no-console
+        console.warn('[logout] signOutBestEffort error:', result.error.message);
+      }
     } catch (e: any) {
       Alert.alert('로그아웃 실패', e?.message ?? '다시 시도해 주세요.');
     } finally {
