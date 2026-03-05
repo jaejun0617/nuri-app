@@ -3,7 +3,14 @@
 // - 온보딩 반려동물 프로필 등록(1/2, 2/2)
 // - 입력 중단 복구(draft 저장/복원) + 완료 후 정리
 
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   Alert,
   BackHandler,
@@ -15,10 +22,18 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import { launchImageLibrary } from 'react-native-image-picker';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import {
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RouteProp } from '@react-navigation/native';
 import Feather from 'react-native-vector-icons/Feather';
 
 import { ASSETS } from '../../assets';
@@ -35,6 +50,7 @@ import { usePetStore } from '../../store/petStore';
 import { styles } from './PetCreateScreen.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'PetCreate'>;
+type PetCreateRoute = RouteProp<RootStackParamList, 'PetCreate'>;
 type Step = 1 | 2;
 type PetGender = 'male' | 'female' | 'unknown';
 
@@ -47,7 +63,9 @@ function getErrorMessage(error: unknown): string {
   return '다시 시도해 주세요.';
 }
 
-function inferMimeFromFileName(fileName: string | null | undefined): string | null {
+function inferMimeFromFileName(
+  fileName: string | null | undefined,
+): string | null {
   const value = (fileName ?? '').toLowerCase().trim();
   if (!value) return null;
   if (value.endsWith('.jpg') || value.endsWith('.jpeg')) return 'image/jpeg';
@@ -124,7 +142,9 @@ function normalizeYmdOrNull(raw: string): string | null {
   } else {
     const digits = value.replace(/\D/g, '');
     if (digits.length !== 8) {
-      throw new Error('날짜는 20111028 또는 2011-10-28 형식으로 입력해 주세요.');
+      throw new Error(
+        '날짜는 20111028 또는 2011-10-28 형식으로 입력해 주세요.',
+      );
     }
     year = digits.slice(0, 4);
     month = digits.slice(4, 6);
@@ -166,7 +186,11 @@ function buildDateHint(value: string): string {
   return formatYmdDigits(value);
 }
 
-function splitYmdParts(raw: string): { year: string; month: string; day: string } {
+function splitYmdParts(raw: string): {
+  year: string;
+  month: string;
+  day: string;
+} {
   const digits = raw.replace(/\D/g, '').slice(0, 8);
   return {
     year: digits.slice(0, 4),
@@ -200,7 +224,9 @@ const MultiInputSection = memo(function MultiInputSection({
     <View style={styles.fieldBlock}>
       <View style={styles.fieldLabelRow}>
         <Text style={styles.label}>{label}</Text>
-        <Text style={styles.countText}>{list.length}/{MAX_MULTI_ITEMS}</Text>
+        <Text style={styles.countText}>
+          {list.length}/{MAX_MULTI_ITEMS}
+        </Text>
       </View>
 
       <View style={styles.tagInputRow}>
@@ -213,7 +239,11 @@ const MultiInputSection = memo(function MultiInputSection({
           returnKeyType="done"
           onSubmitEditing={onAdd}
         />
-        <TouchableOpacity activeOpacity={0.88} style={styles.inlineAddButton} onPress={onAdd}>
+        <TouchableOpacity
+          activeOpacity={0.88}
+          style={styles.inlineAddButton}
+          onPress={onAdd}
+        >
           <Text style={styles.inlineAddButtonText}>추가</Text>
         </TouchableOpacity>
       </View>
@@ -280,7 +310,11 @@ const StepOneForm = memo(function StepOneForm({
 }: StepOneFormProps) {
   return (
     <>
-      <TouchableOpacity activeOpacity={0.92} style={styles.avatarSection} onPress={onPickImage}>
+      <TouchableOpacity
+        activeOpacity={0.92}
+        style={styles.avatarSection}
+        onPress={onPickImage}
+      >
         <View style={styles.avatarCircle}>
           {imageUri ? (
             <Image source={{ uri: imageUri }} style={styles.avatarImage} />
@@ -367,7 +401,10 @@ const StepOneForm = memo(function StepOneForm({
           <View style={styles.segmentRow}>
             <TouchableOpacity
               activeOpacity={0.88}
-              style={[styles.segmentChip, gender === 'female' ? styles.segmentChipActive : null]}
+              style={[
+                styles.segmentChip,
+                gender === 'female' ? styles.segmentChipActive : null,
+              ]}
               onPress={() => onGenderChange('female')}
             >
               <Text
@@ -381,7 +418,10 @@ const StepOneForm = memo(function StepOneForm({
             </TouchableOpacity>
             <TouchableOpacity
               activeOpacity={0.88}
-              style={[styles.segmentChip, gender === 'male' ? styles.segmentChipActive : null]}
+              style={[
+                styles.segmentChip,
+                gender === 'male' ? styles.segmentChipActive : null,
+              ]}
               onPress={() => onGenderChange('male')}
             >
               <Text
@@ -401,7 +441,10 @@ const StepOneForm = memo(function StepOneForm({
           <View style={styles.segmentRow}>
             <TouchableOpacity
               activeOpacity={0.88}
-              style={[styles.segmentChip, neutered === true ? styles.segmentChipActive : null]}
+              style={[
+                styles.segmentChip,
+                neutered === true ? styles.segmentChipActive : null,
+              ]}
               onPress={() => onNeuteredChange(true)}
             >
               <Text
@@ -415,7 +458,10 @@ const StepOneForm = memo(function StepOneForm({
             </TouchableOpacity>
             <TouchableOpacity
               activeOpacity={0.88}
-              style={[styles.segmentChip, neutered === false ? styles.segmentChipActive : null]}
+              style={[
+                styles.segmentChip,
+                neutered === false ? styles.segmentChipActive : null,
+              ]}
               onPress={() => onNeuteredChange(false)}
             >
               <Text
@@ -546,6 +592,7 @@ const StepTwoForm = memo(function StepTwoForm({
 
 export default function PetCreateScreen() {
   const navigation = useNavigation<Nav>();
+  const route = useRoute<PetCreateRoute>();
   const insets = useSafeAreaInsets();
   const setPets = usePetStore(s => s.setPets);
 
@@ -573,7 +620,9 @@ export default function PetCreateScreen() {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageType, setImageType] = useState<string | null>(null);
   const [successModalVisible, setSuccessModalVisible] = useState(false);
-  const [dateModalTarget, setDateModalTarget] = useState<'birth' | 'adoption' | null>(null);
+  const [dateModalTarget, setDateModalTarget] = useState<
+    'birth' | 'adoption' | null
+  >(null);
   const [pickerYear, setPickerYear] = useState('');
   const [pickerMonth, setPickerMonth] = useState('');
   const [pickerDay, setPickerDay] = useState('');
@@ -585,6 +634,10 @@ export default function PetCreateScreen() {
     if (trimmedName.length < 1) return false;
     return true;
   }, [trimmedName]);
+  const showStepOneExitButton = useMemo(
+    () => route.params?.from === 'header_plus',
+    [route.params?.from],
+  );
 
   const canSubmit = useMemo(() => {
     if (saving) return false;
@@ -594,7 +647,14 @@ export default function PetCreateScreen() {
     if (hobbies.length < 1) return false;
     if (tags.length < 1) return false;
     return true;
-  }, [dislikes.length, hobbies.length, likes.length, saving, tags.length, trimmedName.length]);
+  }, [
+    dislikes.length,
+    hobbies.length,
+    likes.length,
+    saving,
+    tags.length,
+    trimmedName.length,
+  ]);
 
   const syncDateInput = useCallback(
     (setter: React.Dispatch<React.SetStateAction<string>>, raw: string) => {
@@ -692,7 +752,10 @@ export default function PetCreateScreen() {
     const merged = `${pickerYear}${pickerMonth}${pickerDay}`;
     return buildDateHint(merged);
   }, [pickerDay, pickerMonth, pickerYear]);
-  const compactTopInset = useMemo(() => Math.max(insets.top - 24, 0), [insets.top]);
+  const compactTopInset = useMemo(
+    () => Math.max(insets.top - 24, 0),
+    [insets.top],
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -978,7 +1041,10 @@ export default function PetCreateScreen() {
     () => finalizeDateInput(adoptionDate, setAdoptionDate),
     [adoptionDate, finalizeDateInput],
   );
-  const openBirthDateModal = useCallback(() => openDateModal('birth'), [openDateModal]);
+  const openBirthDateModal = useCallback(
+    () => openDateModal('birth'),
+    [openDateModal],
+  );
   const openAdoptionDateModal = useCallback(
     () => openDateModal('adoption'),
     [openDateModal],
@@ -989,13 +1055,22 @@ export default function PetCreateScreen() {
   const addHobby = useCallback(() => addItem('hobbies'), [addItem]);
   const addTag = useCallback(() => addItem('tags'), [addItem]);
 
-  const removeLike = useCallback((value: string) => removeItem('likes', value), [removeItem]);
+  const removeLike = useCallback(
+    (value: string) => removeItem('likes', value),
+    [removeItem],
+  );
   const removeDislike = useCallback(
     (value: string) => removeItem('dislikes', value),
     [removeItem],
   );
-  const removeHobby = useCallback((value: string) => removeItem('hobbies', value), [removeItem]);
-  const removeTag = useCallback((value: string) => removeItem('tags', value), [removeItem]);
+  const removeHobby = useCallback(
+    (value: string) => removeItem('hobbies', value),
+    [removeItem],
+  );
+  const removeTag = useCallback(
+    (value: string) => removeItem('tags', value),
+    [removeItem],
+  );
   const goToWelcomeTransition = useCallback(() => {
     setSuccessModalVisible(false);
     clearPetCreateDraft().catch(() => {
@@ -1004,6 +1079,18 @@ export default function PetCreateScreen() {
     navigation.reset({
       index: 0,
       routes: [{ name: 'WelcomeTransition' }],
+    });
+  }, [navigation]);
+
+  const onPressExitToPrevious = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'AppTabs', params: { screen: 'HomeTab' } }],
     });
   }, [navigation]);
 
@@ -1017,32 +1104,34 @@ export default function PetCreateScreen() {
   return (
     <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
       <View style={[styles.topChrome, { paddingTop: compactTopInset }]}>
-      <View style={styles.header}>
-        <View style={styles.headerActionPlaceholder} />
+        <View style={styles.header}>
+          <View style={styles.headerActionPlaceholder} />
 
-        <Text style={styles.headerTitle}>프로필 등록 ({step}/2)</Text>
+          <Text style={styles.headerTitle}>프로필 등록 ({step}/2)</Text>
 
-        <View style={styles.headerActionPlaceholder} />
-      </View>
-
-      <View style={styles.progressHeader}>
-        <View style={styles.progressMetaRow}>
-          <Text style={styles.progressLabel}>
-            {step === 1 ? '기본 정보 입력' : '상세 정보 입력'}
-          </Text>
-          <Text style={styles.progressStepText}>{step}/2</Text>
+          <View style={styles.headerActionPlaceholder} />
         </View>
-        <View style={styles.progressMain}>
-          <View style={styles.progressTrack}>
-            <View
-              style={[
-                styles.progressFill,
-                step === 1 ? styles.progressFillHalf : styles.progressFillFull,
-              ]}
-            />
+
+        <View style={styles.progressHeader}>
+          <View style={styles.progressMetaRow}>
+            <Text style={styles.progressLabel}>
+              {step === 1 ? '기본 정보 입력' : '상세 정보 입력'}
+            </Text>
+            <Text style={styles.progressStepText}>{step}/2</Text>
+          </View>
+          <View style={styles.progressMain}>
+            <View style={styles.progressTrack}>
+              <View
+                style={[
+                  styles.progressFill,
+                  step === 1
+                    ? styles.progressFillHalf
+                    : styles.progressFillFull,
+                ]}
+              />
+            </View>
           </View>
         </View>
-      </View>
       </View>
 
       <ScrollView
@@ -1102,14 +1191,29 @@ export default function PetCreateScreen() {
 
         <View style={styles.footerActions}>
           {step === 1 ? (
-            <TouchableOpacity
-              activeOpacity={0.9}
-              disabled={!canGoNext}
-              style={[styles.primaryButton, !canGoNext ? styles.buttonDisabled : null]}
-              onPress={goNext}
-            >
-              <Text style={styles.primaryButtonText}>다음으로</Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                disabled={!canGoNext}
+                style={[
+                  styles.primaryButton,
+                  !canGoNext ? styles.buttonDisabled : null,
+                ]}
+                onPress={goNext}
+              >
+                <Text style={styles.primaryButtonText}>다음으로</Text>
+              </TouchableOpacity>
+
+              {showStepOneExitButton ? (
+                <TouchableOpacity
+                  activeOpacity={0.88}
+                  style={styles.secondaryButton}
+                  onPress={onPressExitToPrevious}
+                >
+                  <Text style={styles.secondaryButtonText}>돌아가기</Text>
+                </TouchableOpacity>
+              ) : null}
+            </>
           ) : (
             <>
               <TouchableOpacity
@@ -1123,7 +1227,10 @@ export default function PetCreateScreen() {
               <TouchableOpacity
                 activeOpacity={0.9}
                 disabled={!canSubmit}
-                style={[styles.primaryButton, !canSubmit ? styles.buttonDisabled : null]}
+                style={[
+                  styles.primaryButton,
+                  !canSubmit ? styles.buttonDisabled : null,
+                ]}
                 onPress={onSubmit}
               >
                 <Text style={styles.primaryButtonText}>
@@ -1144,12 +1251,18 @@ export default function PetCreateScreen() {
         <View style={styles.successModalBackdrop}>
           <View style={styles.successModalCard}>
             <View style={styles.successLogoWrap}>
-              <Image source={ASSETS.logo} style={styles.successLogo} resizeMode="contain" />
+              <Image
+                source={ASSETS.logo}
+                style={styles.successLogo}
+                resizeMode="contain"
+              />
             </View>
 
             <View style={styles.successCopyWrap}>
               <Text style={styles.successTitle}>등록이 완료되었어요!</Text>
-              <Text style={styles.successBody}>우리 아이와 함께할 소중한 추억들을</Text>
+              <Text style={styles.successBody}>
+                우리 아이와 함께할 소중한 추억들을
+              </Text>
               <Text style={styles.successBody}>차곡차곡 쌓아보세요.</Text>
             </View>
 
@@ -1193,7 +1306,9 @@ export default function PetCreateScreen() {
                 <Text style={styles.datePickerLabel}>연도</Text>
                 <TextInput
                   value={pickerYear}
-                  onChangeText={text => setPickerYear(text.replace(/\D/g, '').slice(0, 4))}
+                  onChangeText={text =>
+                    setPickerYear(text.replace(/\D/g, '').slice(0, 4))
+                  }
                   placeholder="2022"
                   placeholderTextColor="#A0A7B4"
                   style={styles.datePickerInput}
@@ -1205,7 +1320,9 @@ export default function PetCreateScreen() {
                 <Text style={styles.datePickerLabel}>월</Text>
                 <TextInput
                   value={pickerMonth}
-                  onChangeText={text => setPickerMonth(text.replace(/\D/g, '').slice(0, 2))}
+                  onChangeText={text =>
+                    setPickerMonth(text.replace(/\D/g, '').slice(0, 2))
+                  }
                   placeholder="05"
                   placeholderTextColor="#A0A7B4"
                   style={styles.datePickerInput}
@@ -1217,7 +1334,9 @@ export default function PetCreateScreen() {
                 <Text style={styles.datePickerLabel}>일</Text>
                 <TextInput
                   value={pickerDay}
-                  onChangeText={text => setPickerDay(text.replace(/\D/g, '').slice(0, 2))}
+                  onChangeText={text =>
+                    setPickerDay(text.replace(/\D/g, '').slice(0, 2))
+                  }
                   placeholder="12"
                   placeholderTextColor="#A0A7B4"
                   style={styles.datePickerInput}
