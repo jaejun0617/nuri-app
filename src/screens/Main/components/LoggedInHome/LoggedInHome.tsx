@@ -1257,7 +1257,12 @@ export default function LoggedInHome() {
   // ---------------------------------------------------------
   // 5) HERO derived
   // ---------------------------------------------------------
-  const petName = useMemo(
+  const plainPetName = useMemo(
+    () => selectedPet?.name?.trim() || '우리 아이',
+    [selectedPet?.name],
+  );
+
+  const profilePetName = useMemo(
     () =>
       formatMemorialPetName(
         selectedPet?.name ?? '우리 아이',
@@ -1357,13 +1362,13 @@ export default function LoggedInHome() {
   const homeWidgetSnapshot = useMemo(
     () =>
       buildHomeWidgetSnapshot({
-        petName,
+        petName: plainPetName,
         themeColor: petTheme.primary,
         schedules: safeSchedulesState.items,
         records: safeRecordsState.items,
       }),
     [
-      petName,
+      plainPetName,
       petTheme.primary,
       safeRecordsState.items,
       safeSchedulesState.items,
@@ -1492,16 +1497,18 @@ export default function LoggedInHome() {
   const quickActionCards = HOME_SHORTCUTS;
 
   const tipsSectionTitle = useMemo(() => {
-    return `${petName}${pickObjectParticle(petName)} 위한 추천 팁`;
-  }, [petName]);
+    return `${plainPetName}${pickObjectParticle(plainPetName)} 위한 추천 팁`;
+  }, [plainPetName]);
 
   const recommendationTips = useMemo(() => {
     return TIP_TEMPLATES.map(item => ({
       ...item,
       title:
-        item.key === 'meal' ? `${petName}에게 꼭 필요한 영양 루틴` : item.title,
+        item.key === 'meal'
+          ? `${plainPetName}에게 꼭 필요한 영양 루틴`
+          : item.title,
     }));
-  }, [petName]);
+  }, [plainPetName]);
 
   const recentActivities = useMemo(
     () => safeRecordsState.items.slice(0, 7),
@@ -1734,7 +1741,7 @@ export default function LoggedInHome() {
                 style={[styles.heroName, { color: petTheme.deep }]}
                 numberOfLines={1}
               >
-                {petName}
+                {profilePetName}
               </Text>
 
               {topMetaLine ? (
@@ -2095,7 +2102,7 @@ export default function LoggedInHome() {
           />
 
           <WeeklySummarySection
-            petName={petName}
+            petName={plainPetName}
             walkCount={weeklySummary.walkCount}
             mealCount={weeklySummary.mealCount}
             healthCount={weeklySummary.healthCount}
@@ -2194,7 +2201,7 @@ export default function LoggedInHome() {
           </View>
 
           <MonthlyDiarySection
-            petName={petName}
+            petName={plainPetName}
             currentMonthDiaryEntries={currentMonthDiaryEntries}
             onPressTimelineCategory={onPressTimelineCategory}
             onPressRecord={onPressRecord}

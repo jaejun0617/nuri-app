@@ -29,7 +29,7 @@ type Props = {
 };
 
 const { width: W } = Dimensions.get('window');
-const DRAWER_W = Math.min(320, Math.floor(W * 0.82));
+const DRAWER_W = W;
 
 export default function MoreDrawer({ open, onClose }: Props) {
   // ---------------------------------------------------------
@@ -156,13 +156,6 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     backgroundColor: '#FFFFFF',
-
     overflow: 'hidden',
-    elevation: 12,
-
-    shadowColor: '#000',
-    shadowOpacity: 0.18,
-    shadowRadius: 22,
-    shadowOffset: { width: -6, height: 0 },
   },
 });
