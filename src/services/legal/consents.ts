@@ -27,6 +27,16 @@ type ConsentHistoryRow = {
   policy_version: string;
   source: 'signup';
   captured_at: string;
+  created_at?: string;
+};
+
+export type ConsentHistoryItem = {
+  consentType: 'terms' | 'privacy' | 'marketing';
+  agreed: boolean;
+  policyVersion: string;
+  source: 'signup';
+  capturedAt: string;
+  createdAt: string | null;
 };
 
 export async function savePendingConsentSnapshot(
@@ -117,4 +127,41 @@ export async function flushPendingConsentSnapshot(userId: string): Promise<boole
 
   await clearPendingConsentSnapshot();
   return true;
+}
+
+export async function fetchMyConsentHistory(
+  limit = 12,
+): Promise<ConsentHistoryItem[]> {
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError) throw userError;
+
+  const userId = userData.user?.id ?? null;
+  if (!userId) throw new Error('로그인 세션이 없습니다.');
+
+  const { data, error } = await supabase
+    .from('user_consent_history')
+    .select(
+      'user_id, consent_type, agreed, policy_version, source, captured_at, created_at',
+    )
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    if (isMissingConsentTableError(error)) {
+      throw new Error(
+        'user_consent_history 테이블이 아직 없습니다. release_account_consents.sql 적용 여부를 확인해 주세요.',
+      );
+    }
+    throw error;
+  }
+
+  return ((Array.isArray(data) ? data : []) as ConsentHistoryRow[]).map(row => ({
+    consentType: row.consent_type,
+    agreed: row.agreed,
+    policyVersion: row.policy_version,
+    source: row.source,
+    capturedAt: row.captured_at,
+    createdAt: row.created_at ?? null,
+  }));
 }

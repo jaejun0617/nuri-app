@@ -13,6 +13,9 @@ import { Buffer } from 'buffer';
 import AppText from '../../app/ui/AppText';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
+  fetchMyConsentHistory,
+} from '../../services/legal/consents';
+import {
   captureMonitoringException,
   captureMonitoringMessage,
   isMonitoringEnabled,
@@ -195,6 +198,33 @@ export default function DevTestScreen() {
       Alert.alert('에러', e?.message ?? 'pets select 실패');
     }
   }, [pushLog, requireUser]);
+
+  const onFetchConsentHistory = useCallback(async () => {
+    try {
+      pushLog('동의 이력 조회...');
+      const rows = await fetchMyConsentHistory(12);
+
+      if (rows.length === 0) {
+        pushLog('⚠️ 저장된 동의 이력이 없습니다.');
+        Alert.alert(
+          '동의 이력 없음',
+          '아직 저장된 동의 이력이 없습니다. 회원가입 플로우를 다시 확인해 주세요.',
+        );
+        return;
+      }
+
+      rows.forEach(row => {
+        pushLog(
+          `✅ consent ${row.consentType}=${row.agreed ? 'Y' : 'N'} version=${row.policyVersion} created=${row.createdAt ?? '-'}`,
+        );
+      });
+
+      Alert.alert('OK', `동의 이력 ${rows.length}건을 불러왔어요.`);
+    } catch (e: any) {
+      pushLog(`❌ 동의 이력 조회 실패: ${e?.message ?? String(e)}`);
+      Alert.alert('에러', e?.message ?? '동의 이력 조회 실패');
+    }
+  }, [pushLog]);
 
   // ---------------------------------------------------------
   // 5) Storage 테스트 (base64 업로드)
@@ -474,6 +504,29 @@ export default function DevTestScreen() {
             </AppText>
           </S.BtnGhost>
         </S.Row>
+      </S.Box>
+
+      <S.Box>
+        <AppText preset="headline" color="#ffffff">
+          2-1) Legal / Consent History
+        </AppText>
+
+        <S.Row>
+          <S.BtnGhost onPress={onFetchConsentHistory}>
+            <AppText preset="body" color="#fff" weight="700">
+              동의 이력 조회
+            </AppText>
+          </S.BtnGhost>
+        </S.Row>
+
+        <AppText
+          preset="caption"
+          color="rgba(255,255,255,0.7)"
+          style={{ marginTop: 10 }}
+        >
+          - 회원가입 후 `user_consent_history` 저장 여부를 바로 확인{'\n'}
+          - 최근 12건을 로그에 남겨서 terms/privacy/marketing 상태를 빠르게 점검
+        </AppText>
       </S.Box>
 
       <S.Box>
