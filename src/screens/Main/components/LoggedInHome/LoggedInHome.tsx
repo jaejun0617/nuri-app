@@ -76,6 +76,8 @@ import {
   formatMemorialPetName,
   isMemorialPet,
 } from '../../../../services/pets/memorial';
+import WeatherGuideHomeCard from '../../../../components/weather/WeatherGuideHomeCard';
+import { getWeatherGuideBundle } from '../../../../services/weather/guide';
 import { styles } from './LoggedInHome.styles';
 
 type HomeTabNav = BottomTabNavigationProp<AppTabParamList, 'HomeTab'>;
@@ -1345,6 +1347,7 @@ export default function LoggedInHome() {
     () => buildPetThemePalette(selectedPet?.themeColor),
     [selectedPet?.themeColor],
   );
+  const weatherGuide = useMemo(() => getWeatherGuideBundle('일산동'), []);
 
   // ---------------------------------------------------------
   // 6) header text
@@ -1412,6 +1415,12 @@ export default function LoggedInHome() {
     if (!activePetId) return;
     rootNavigation.navigate('PetProfileEdit', { petId: activePetId });
   }, [activePetId, rootNavigation]);
+
+  const onPressWeatherInsight = useCallback(() => {
+    rootNavigation.navigate('WeatherInsight', {
+      district: weatherGuide.district,
+    });
+  }, [rootNavigation, weatherGuide.district]);
 
   const onPressTimelineCategory = useCallback(
     (
@@ -1687,6 +1696,13 @@ export default function LoggedInHome() {
 
         {/* Fade container */}
         <Animated.View style={animatedContentStyle}>
+          <View style={styles.weatherGuideWrap}>
+            <WeatherGuideHomeCard
+              weather={weatherGuide}
+              onPress={onPressWeatherInsight}
+            />
+          </View>
+
           {/* HERO */}
           <View style={styles.heroCard}>
             <TouchableOpacity

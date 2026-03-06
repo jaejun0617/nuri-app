@@ -25,6 +25,10 @@ import ScheduleCreateScreen from '../screens/Schedules/ScheduleCreateScreen';
 import ScheduleDetailScreen from '../screens/Schedules/ScheduleDetailScreen';
 import ScheduleEditScreen from '../screens/Schedules/ScheduleEditScreen';
 import EditDoneScreen from '../screens/Common/EditDoneScreen';
+import WeatherInsightScreen from '../screens/Weather/WeatherInsightScreen';
+import IndoorActivityRecommendationsScreen from '../screens/Weather/IndoorActivityRecommendationsScreen';
+import ActivityGuideScreen from '../screens/Weather/ActivityGuideScreen';
+import WeatherActivityRecordScreen from '../screens/Weather/WeatherActivityRecordScreen';
 
 import AppTabsNavigator from './AppTabsNavigator';
 import type { AppTabParamList } from './AppTabsNavigator';
@@ -49,6 +53,16 @@ export type RootStackParamList = {
   ScheduleCreate: { petId?: string; startsAt?: string } | undefined;
   ScheduleDetail: { petId?: string; scheduleId: string };
   ScheduleEdit: { petId?: string; scheduleId: string };
+  WeatherInsight: { district?: string } | undefined;
+  IndoorActivityRecommendations: { district?: string } | undefined;
+  ActivityGuide: {
+    guideKey: 'nosework' | 'tug' | 'training' | 'massage';
+    district?: string;
+  };
+  WeatherActivityRecord: {
+    guideKey: 'nosework' | 'tug' | 'training' | 'massage';
+    district?: string;
+  };
   EditDone: {
     title: string;
     bodyLines: [string, string?];
@@ -149,6 +163,26 @@ export default function RootNavigator() {
       <Stack.Screen
         name="ScheduleEdit"
         component={ScheduleEditScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="WeatherInsight"
+        component={WeatherInsightScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="IndoorActivityRecommendations"
+        component={IndoorActivityRecommendationsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ActivityGuide"
+        component={ActivityGuideScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="WeatherActivityRecord"
+        component={WeatherActivityRecordScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen
