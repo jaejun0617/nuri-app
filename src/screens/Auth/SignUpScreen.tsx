@@ -20,8 +20,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import { getRetryableErrorMessage } from '../../services/app/errors';
+import {
+  CURRENT_POLICY_VERSION,
+  flushPendingConsentSnapshot,
+  savePendingConsentSnapshot,
+} from '../../services/legal/consents';
 import { supabase } from '../../services/supabase/client';
 import { useAuthStore } from '../../store/authStore';
+import { showToast } from '../../store/uiStore';
 
 import { styles } from './SignUpScreen.styles';
 
@@ -177,6 +184,8 @@ export default function SignUpScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const [agreePrivacy, setAgreePrivacy] = useState(false);
+  const [agreeMarketing, setAgreeMarketing] = useState(false);
   const [securePassword, setSecurePassword] = useState(true);
   const [secureConfirmPassword, setSecureConfirmPassword] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -191,8 +200,16 @@ export default function SignUpScreen() {
       !emailValid ||
       !passwordValid ||
       !passwordsMatch ||
-      !agreeTerms,
-    [agreeTerms, emailValid, passwordValid, passwordsMatch, submitting],
+      !agreeTerms ||
+      !agreePrivacy,
+    [
+      agreePrivacy,
+      agreeTerms,
+      emailValid,
+      passwordValid,
+      passwordsMatch,
+      submitting,
+    ],
   );
 
   const onSubmit = useCallback(async () => {
@@ -200,6 +217,15 @@ export default function SignUpScreen() {
 
     try {
       setSubmitting(true);
+
+      await savePendingConsentSnapshot({
+        termsAccepted: agreeTerms,
+        privacyAccepted: agreePrivacy,
+        marketingAccepted: agreeMarketing,
+        policyVersion: CURRENT_POLICY_VERSION,
+        capturedAt: new Date().toISOString(),
+        source: 'signup',
+      });
 
       const { data, error } = await signUpWithTimeout(email, password);
       if (error) throw error;
@@ -215,14 +241,41 @@ export default function SignUpScreen() {
         return;
       }
 
+      try {
+        await flushPendingConsentSnapshot(data.session.user.id);
+      } catch {
+        // AppProviders flush에 맡긴다.
+      }
+
+      showToast({
+        tone: 'success',
+        title: '회원가입 완료',
+        message: '계정이 준비됐어요. 닉네임만 정하면 바로 시작할 수 있어요.',
+      });
       navigation.replace('NicknameSetup', { after: 'signup' });
     } catch (error) {
-      const { title, message } = getSignUpErrorMeta(error);
+      const { title } = getSignUpErrorMeta(error);
+      const message = getRetryableErrorMessage(error);
       Alert.alert(title, message);
+      showToast({
+        tone: 'error',
+        title,
+        message,
+        durationMs: 2600,
+      });
     } finally {
       setSubmitting(false);
     }
-  }, [disabled, email, navigation, password, setSession]);
+  }, [
+    agreeMarketing,
+    agreePrivacy,
+    agreeTerms,
+    disabled,
+    email,
+    navigation,
+    password,
+    setSession,
+  ]);
 
   const onSocialPress = useCallback((provider: 'kakao' | 'google') => {
     const label = provider === 'kakao' ? '카카오' : 'Google';
@@ -368,6 +421,52 @@ export default function SignUpScreen() {
               에 동의합니다.
             </Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => setAgreePrivacy(prev => !prev)}
+            style={styles.termsRow}
+          >
+            <View
+              style={[
+                styles.checkbox,
+                agreePrivacy ? styles.checkboxChecked : null,
+              ]}
+            >
+              {agreePrivacy ? (
+                <Feather color="#FFFFFF" name="check" size={12} />
+              ) : null}
+            </View>
+            <Text style={styles.termsText}>
+              개인정보 수집/이용 및 보관 정책에 동의합니다. 가입 이력은 안전하게
+              저장돼요.
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => setAgreeMarketing(prev => !prev)}
+            style={styles.termsRow}
+          >
+            <View
+              style={[
+                styles.checkbox,
+                agreeMarketing ? styles.checkboxChecked : null,
+              ]}
+            >
+              {agreeMarketing ? (
+                <Feather color="#FFFFFF" name="check" size={12} />
+              ) : null}
+            </View>
+            <Text style={styles.termsText}>
+              마케팅 알림 수신에 동의합니다. 이 항목은 선택이고 언제든 변경할 수
+              있어요.
+            </Text>
+          </TouchableOpacity>
+
+          <Text style={styles.termsMeta}>
+            필수 동의: 이용약관, 개인정보 처리방침
+          </Text>
 
           <TouchableOpacity
             activeOpacity={0.9}

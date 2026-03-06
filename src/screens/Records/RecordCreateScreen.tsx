@@ -5,7 +5,7 @@
 // - 저장 직후 홈/타임라인에 즉시 반영
 // - 탭 구조에서 폼 상태가 남지 않도록 focus/reset 유지
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Alert,
@@ -55,6 +55,13 @@ import {
   type RecordOtherSubCategoryKey,
   validateRecordOccurredAt,
 } from '../../services/records/form';
+import {
+  clearRecordCreateDraft,
+  loadRecordCreateDraft,
+  saveRecordCreateDraft,
+} from '../../services/local/recordDraft';
+import { enqueuePendingMemoryUpload } from '../../services/local/uploadQueue';
+import { getRetryableErrorMessage } from '../../services/app/errors';
 import { supabase } from '../../services/supabase/client';
 import {
   createMemory,
@@ -65,6 +72,7 @@ import {
 import { uploadMemoryImage } from '../../services/supabase/storageMemories';
 import { usePetStore } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
+import { showToast } from '../../store/uiStore';
 import RecordDateModal from './components/RecordDateModal';
 import RecordTagModal from './components/RecordTagModal';
 import { styles } from './RecordCreateScreen.styles';
@@ -76,13 +84,6 @@ type RecordCreateTabNav = BottomTabNavigationProp<
 >;
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
 type Nav = CompositeNavigationProp<RecordCreateTabNav, RootNav>;
-
-function getErrorMessage(err: unknown) {
-  if (err instanceof Error) return err.message;
-  if (typeof err === 'string') return err;
-  return '다시 시도해 주세요.';
-}
-
 
 export default function RecordCreateScreen() {
   const navigation = useNavigation<Nav>();
@@ -127,6 +128,8 @@ export default function RecordCreateScreen() {
   const [selectedImages, setSelectedImages] = useState<PickedRecordImage[]>([]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [draftHydrated, setDraftHydrated] = useState(false);
+  const draftLoadedRef = useRef(false);
 
   const trimmedTitle = useMemo(() => title.trim(), [title]);
   const disabled = saving || trimmedTitle.length === 0 || !petId;
@@ -179,6 +182,7 @@ export default function RecordCreateScreen() {
     setSelectedImages([]);
     setActiveImageIndex(0);
     setSaving(false);
+    setDraftHydrated(true);
   }, [todayYmd]);
 
   useEffect(() => {
@@ -207,11 +211,84 @@ export default function RecordCreateScreen() {
           }
         })
         .catch(() => {});
-
-      resetForm();
-      return () => {};
-    }, [resetForm]),
+    }, []),
   );
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function hydrateDraft() {
+      if (draftLoadedRef.current) return;
+      draftLoadedRef.current = true;
+
+      try {
+        const draft = await loadRecordCreateDraft();
+        if (!mounted) return;
+
+        if (draft) {
+          setTitle(draft.title ?? '');
+          setContent(draft.content ?? '');
+          setOccurredAt(draft.occurredAt || todayYmd);
+          setSelectedTags(Array.isArray(draft.selectedTags) ? draft.selectedTags : []);
+          setMainCategoryKey(draft.mainCategoryKey ?? 'walk');
+          setOtherSubCategoryKey(draft.otherSubCategoryKey ?? null);
+          setSelectedEmotion(draft.selectedEmotion ?? null);
+          setSelectedImages(Array.isArray(draft.selectedImages) ? draft.selectedImages : []);
+          setActiveImageIndex(0);
+        }
+      } finally {
+        if (mounted) setDraftHydrated(true);
+      }
+    }
+
+    hydrateDraft().catch(() => {
+      if (mounted) setDraftHydrated(true);
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, [todayYmd]);
+
+  useEffect(() => {
+    if (!draftHydrated || saving) return;
+
+    const hasContent =
+      title.trim().length > 0 ||
+      content.trim().length > 0 ||
+      selectedTags.length > 0 ||
+      selectedImages.length > 0;
+
+    if (!hasContent) {
+      clearRecordCreateDraft().catch(() => {});
+      return;
+    }
+
+    saveRecordCreateDraft({
+      petId,
+      title,
+      content,
+      occurredAt,
+      selectedTags,
+      mainCategoryKey,
+      otherSubCategoryKey,
+      selectedEmotion,
+      selectedImages,
+      updatedAt: new Date().toISOString(),
+    }).catch(() => {});
+  }, [
+    content,
+    draftHydrated,
+    mainCategoryKey,
+    occurredAt,
+    otherSubCategoryKey,
+    petId,
+    saving,
+    selectedEmotion,
+    selectedImages,
+    selectedTags,
+    title,
+  ]);
 
   const pickImage = useCallback(async () => {
     if (saving) return;
@@ -250,6 +327,7 @@ export default function RecordCreateScreen() {
   }, [activeImageIndex]);
 
   const onPressCancel = useCallback(() => {
+    clearRecordCreateDraft().catch(() => {});
     resetForm();
     navigation.navigate('HomeTab');
   }, [navigation, resetForm]);
@@ -371,6 +449,7 @@ export default function RecordCreateScreen() {
 
         const uploadedPaths: string[] = [];
         let failedCount = 0;
+        const queuedImages: PickedRecordImage[] = [];
 
         for (const image of selectedImages) {
           try {
@@ -394,6 +473,7 @@ export default function RecordCreateScreen() {
               uploadedPaths.push(retry.path);
             } catch {
               failedCount += 1;
+              queuedImages.push(image);
             }
           }
         }
@@ -416,10 +496,24 @@ export default function RecordCreateScreen() {
         }
 
         if (failedCount > 0) {
-          Alert.alert(
-            '일부 이미지 업로드 실패',
-            '기록은 저장되었고, 실패한 이미지는 나중에 수정에서 다시 올릴 수 있어요.',
-          );
+          await enqueuePendingMemoryUpload({
+            userId,
+            petId,
+            memoryId,
+            images: queuedImages.map(image => ({
+              key: image.key,
+              uri: image.uri,
+              mimeType: image.mimeType,
+            })),
+          });
+
+          showToast({
+            tone: 'warning',
+            title: '업로드 복구 대기',
+            message:
+              '실패한 이미지는 큐에 저장했어요. 앱이 다시 활성화되면 자동으로 재시도합니다.',
+            durationMs: 3200,
+          });
         }
       }
 
@@ -444,9 +538,23 @@ export default function RecordCreateScreen() {
       }
 
       resetForm();
+      await clearRecordCreateDraft();
+      showToast({
+        tone: 'success',
+        title: '기록 저장 완료',
+        message: '작성 중 draft는 정리했고, 타임라인에 바로 반영했어요.',
+      });
       navigation.navigate('TimelineTab');
     } catch (error) {
-      Alert.alert('기록 저장 실패', getErrorMessage(error));
+      const message = getRetryableErrorMessage(error);
+      Alert.alert('기록 저장 실패', message);
+      showToast({
+        tone: 'error',
+        title: '기록 저장 실패',
+        message:
+          '입력 중인 내용은 draft로 남겨둘게요. 네트워크가 안정되면 다시 저장해 주세요.',
+        durationMs: 3200,
+      });
     } finally {
       setSaving(false);
     }

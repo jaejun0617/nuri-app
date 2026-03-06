@@ -1650,6 +1650,70 @@ NURI는 데이터 입력 도구가 아니라,
 
 ---
 
+## Chapter 6-43 — 출시 전 UX 보강: 전역 토스트, 동의 이력, 계정 삭제, 업로드 복구 큐, 기록 draft, 주간 요약
+
+### 무엇을 진행했나
+
+- 앱 전역 toast 레이어를 추가했다.
+  - `src/store/uiStore.ts`
+  - `src/components/common/GlobalToast.tsx`
+- 네트워크/일반 실패를 같은 톤으로 다루기 위한 에러 정규화 헬퍼를 추가했다.
+  - `src/services/app/errors.ts`
+- 회원가입 동의 저장 흐름을 분리했다.
+  - `terms / privacy / marketing` 스냅샷을 로컬에 저장
+  - 로그인 세션이 준비되면 `user_consent_history`로 flush
+  - `src/services/legal/consents.ts`
+- 로그아웃/탈퇴 후 로컬 정리 규칙을 공용화했다.
+  - `src/services/auth/session.ts`
+  - `MoreScreen`, `MoreDrawerContent`에서 같은 규칙 사용
+- 계정 삭제 RPC와 동의 이력 테이블 SQL 초안을 추가했다.
+  - `docs/sql/release_account_consents.sql`
+- 기록 작성 중단 복구를 위해 `RecordCreate` draft 저장/복원을 붙였다.
+  - `src/services/local/recordDraft.ts`
+  - `src/screens/Records/RecordCreateScreen.tsx`
+- 이미지 업로드 실패분을 나중에 복구하는 큐를 추가했다.
+  - `src/services/local/uploadQueue.ts`
+  - 앱 부팅/포그라운드 복귀 시 재시도
+- 홈에 “이번 주 요약” 카드를 추가했다.
+  - `src/services/home/weeklySummary.ts`
+  - `src/screens/Main/components/LoggedInHome/LoggedInHome.tsx`
+
+### 왜 이렇게 했나
+
+- 지금 단계에서 가장 위험한 건 “실패했을 때 사용자가 뭘 해야 하는지 모르는 상태”였다.
+- 그래서 이번 보강은 기능 추가보다도
+  - 실패를 짧게 알려주는 피드백
+  - 작성 중인 데이터 보존
+  - 업로드 실패 후 나중에 복구되는 경로
+  - 탈퇴/동의처럼 운영에 필요한 상태 이력
+  쪽에 무게를 뒀다.
+- 홈의 주간 요약은 데이터가 쌓이기 시작했을 때 바로 체감이 오도록 넣었다.
+
+### 결과
+
+- 회원가입 후 동의 이력 저장 구조가 앱/SQL 양쪽에 생겼다.
+- 로그아웃과 계정 삭제는 공통 정리 규칙을 쓰게 됐다.
+- `RecordCreate`는 앱을 닫거나 저장이 실패해도 draft를 다시 불러올 수 있다.
+- 이미지 업로드가 일부 실패해도 대기 큐에 넣고 앱이 다시 활성화될 때 재시도한다.
+- 홈에서 이번 주 산책/식사/건강/기록일 수를 바로 볼 수 있다.
+- 전역 toast가 들어가서 Alert만으로 끝나지 않게 됐다.
+
+### 자동 검증
+
+- `yarn tsc --noEmit`
+- `yarn eslint App.tsx ...`
+- `yarn test --watchAll=false --watchman=false`
+- 추가 테스트:
+  - `__tests__/weeklySummary.test.ts`
+  - `__tests__/appErrors.test.ts`
+
+### 남겨둔 것
+
+- `Crashlytics`, 홈 위젯, 진짜 이미지 픽셀 기반 테마 추출, 실제 E2E 도구 연결은 아직 안 들어갔다.
+- 이 항목들은 네이티브 설정/외부 의존성/배포 환경 준비가 더 필요해서 다음 단계로 넘긴다.
+
+---
+
 # 🚀 Next
 
 ## Chapter 8 — 서버 검색(제목/태그) + 인덱스/정렬 안정화 + 섹션 점프 고도화

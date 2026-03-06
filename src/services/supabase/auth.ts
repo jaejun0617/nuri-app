@@ -64,3 +64,31 @@ export async function signOutBestEffort(timeoutMs = 1200): Promise<{
 
   return { timedOut, error: null };
 }
+
+function isMissingDeleteRpcError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+
+  const message = 'message' in error ? String(error.message ?? '') : '';
+  const details = 'details' in error ? String(error.details ?? '') : '';
+  const joined = `${message} ${details}`.toLowerCase();
+
+  return (
+    joined.includes('delete_my_account') &&
+    (joined.includes('does not exist') ||
+      joined.includes('schema cache') ||
+      joined.includes('function'))
+  );
+}
+
+export async function deleteMyAccount(): Promise<void> {
+  const { error } = await supabase.rpc('delete_my_account');
+  if (!error) return;
+
+  if (isMissingDeleteRpcError(error)) {
+    throw new Error(
+      '계정 삭제 SQL 함수가 아직 적용되지 않았습니다. docs/sql/release_account_consents.sql을 먼저 적용해 주세요.',
+    );
+  }
+
+  throw error;
+}

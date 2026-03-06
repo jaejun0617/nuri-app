@@ -10,6 +10,7 @@
 // - clearAll만 selector로 구독하여 불필요 렌더/스냅샷 변동 리스크 최소화
 
 import React, { useEffect, useMemo } from 'react';
+import { AppState } from 'react-native';
 import { ThemeProvider } from 'styled-components/native';
 
 import { createTheme } from '../theme/theme';
@@ -22,6 +23,9 @@ import {
   captureMonitoringException,
   setMonitoringUser,
 } from '../../services/monitoring/sentry';
+import { flushPendingConsentSnapshot } from '../../services/legal/consents';
+import { processPendingMemoryUploads } from '../../services/local/uploadQueue';
+import { showToast } from '../../store/uiStore';
 
 import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
@@ -54,7 +58,50 @@ export default function AppProviders({ children }: Props) {
   const setPetBooted = usePetStore(s => s.setBooted);
 
   const clearRecords = useRecordStore(s => s.clearAll);
+  const refreshRecords = useRecordStore(s => s.refresh);
   const clearSchedules = useScheduleStore(s => s.clearAll);
+
+  useEffect(() => {
+    const processDeferredTasks = async () => {
+      const session = useAuthStore.getState().session;
+      const userId = session?.user?.id ?? null;
+      if (!userId) return;
+
+      try {
+        await flushPendingConsentSnapshot(userId);
+      } catch (error) {
+        captureMonitoringException(error);
+      }
+
+      try {
+        const result = await processPendingMemoryUploads();
+        if (result.succeeded > 0) {
+          result.touchedPetIds.forEach(petId => {
+            refreshRecords(petId).catch(() => {});
+          });
+          showToast({
+            tone: 'success',
+            title: '업로드 복구 완료',
+            message: `${result.succeeded}건의 대기 이미지 업로드를 마쳤어요.`,
+            durationMs: 2800,
+          });
+        }
+      } catch (error) {
+        captureMonitoringException(error);
+      }
+    };
+
+    processDeferredTasks().catch(() => {});
+
+    const sub = AppState.addEventListener('change', state => {
+      if (state !== 'active') return;
+      processDeferredTasks().catch(() => {});
+    });
+
+    return () => {
+      sub.remove();
+    };
+  }, [refreshRecords]);
 
   useEffect(() => {
     let unsub: { unsubscribe: () => void } | null = null;

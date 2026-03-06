@@ -601,6 +601,67 @@ export const styles = StyleSheet.create({
   },
 
   // ---------------------------------------------------------
+  // Weekly Summary
+  // ---------------------------------------------------------
+  summaryCard: {
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: 'rgba(109,106,248,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(109,106,248,0.10)',
+    gap: 12,
+  },
+  summaryTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: TEXT,
+    lineHeight: 22,
+    letterSpacing: -0.2,
+  },
+  summaryDesc: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: MUTED,
+    lineHeight: 18,
+  },
+  summaryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  summaryItem: {
+    width: '47%',
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: 'rgba(109,106,248,0.08)',
+  },
+  summaryValue: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: BRAND_DEEP,
+    marginBottom: 4,
+  },
+  summaryLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: MUTED,
+  },
+  summaryFooterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  summaryFooterText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: 'rgba(85,96,112,0.88)',
+  },
+
+  // ---------------------------------------------------------
   // Quick Actions
   // ---------------------------------------------------------
   quickGrid: {

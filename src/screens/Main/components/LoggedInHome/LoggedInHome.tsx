@@ -64,6 +64,7 @@ import {
   generateTimeMessage,
   getTimeMessageEmoji,
 } from '../../../../services/home/homeRecall';
+import { buildWeeklySummary } from '../../../../services/home/weeklySummary';
 import {
   formatScheduleDateLabel,
   getScheduleColorPalette,
@@ -674,6 +675,70 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
           </View>
         </View>
       )}
+    </View>
+  );
+});
+
+const WeeklySummarySection = React.memo(function WeeklySummarySection({
+  petName,
+  walkCount,
+  mealCount,
+  healthCount,
+  recordDays,
+  totalRecords,
+  upcomingSchedules,
+}: {
+  petName: string;
+  walkCount: number;
+  mealCount: number;
+  healthCount: number;
+  recordDays: number;
+  totalRecords: number;
+  upcomingSchedules: number;
+}) {
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeaderRow}>
+        <Text style={styles.tipSectionTitle}>이번 주 요약</Text>
+      </View>
+
+      <View style={styles.summaryCard}>
+        <Text style={styles.summaryTitle}>
+          이번 주 {petName}의 리듬을 한 장으로 정리했어요
+        </Text>
+        <Text style={styles.summaryDesc}>
+          산책, 식사, 건강기록, 작성일 수를 기준으로 이번 주 흐름을 빠르게 볼 수
+          있어요.
+        </Text>
+
+        <View style={styles.summaryGrid}>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>{walkCount}</Text>
+            <Text style={styles.summaryLabel}>산책 기록</Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>{mealCount}</Text>
+            <Text style={styles.summaryLabel}>식사 기록</Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>{healthCount}</Text>
+            <Text style={styles.summaryLabel}>건강 기록</Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>{recordDays}</Text>
+            <Text style={styles.summaryLabel}>기록한 날</Text>
+          </View>
+        </View>
+
+        <View style={styles.summaryFooterRow}>
+          <Text style={styles.summaryFooterText}>
+            이번 주 기록 {totalRecords}개
+          </Text>
+          <Text style={styles.summaryFooterText}>
+            남은 일정 {upcomingSchedules}개
+          </Text>
+        </View>
+      </View>
     </View>
   );
 });
@@ -1320,6 +1385,10 @@ export default function LoggedInHome() {
   const weekScheduleItems = useMemo<WeeklyScheduleItem[]>(() => {
     return safeSchedulesState.items.slice(0, 7).map(buildScheduleCard);
   }, [safeSchedulesState.items]);
+  const weeklySummary = useMemo(
+    () => buildWeeklySummary(safeRecordsState.items, safeSchedulesState.items),
+    [safeRecordsState.items, safeSchedulesState.items],
+  );
 
   // ---------------------------------------------------------
   // 8) Accordion state (pet 변경 시 초기화)
@@ -1786,6 +1855,16 @@ export default function LoggedInHome() {
             progress={progress}
             activeSlideIndex={activeSlideIndex}
             hasMoreThanSlider={hasMoreThanSlider}
+          />
+
+          <WeeklySummarySection
+            petName={petName}
+            walkCount={weeklySummary.walkCount}
+            mealCount={weeklySummary.mealCount}
+            healthCount={weeklySummary.healthCount}
+            recordDays={weeklySummary.recordDays}
+            totalRecords={weeklySummary.totalRecords}
+            upcomingSchedules={weeklySummary.upcomingSchedules}
           />
 
           <View style={styles.section}>

@@ -15,6 +15,7 @@ import { enableScreens } from 'react-native-screens';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import AppProviders from './src/app/providers/AppProviders';
+import GlobalToast from './src/components/common/GlobalToast';
 import RootNavigator from './src/navigation/RootNavigator';
 import type { RootStackParamList } from './src/navigation/RootNavigator';
 import {
@@ -53,6 +54,7 @@ function App() {
           >
             <RootNavigator />
           </NavigationContainer>
+          <GlobalToast />
         </AppProviders>
       </SafeAreaProvider>
     </GestureHandlerRootView>

@@ -131,6 +131,13 @@ export const styles = StyleSheet.create({
     textDecorationLine: 'underline',
     fontWeight: '900',
   },
+  termsMeta: {
+    marginTop: -8,
+    marginBottom: 18,
+    color: '#9CA3AF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
   primaryButton: {
     height: 56,
     borderRadius: 18,
