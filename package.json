@@ -6,6 +6,7 @@
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "lint": "eslint .",
+    "postinstall": "node scripts/ensure-geolocation-codegen.js",
     "start": "react-native start",
     "start:reset": "react-native start --reset-cache",
     "test": "jest",

@@ -3,6 +3,7 @@
 // - 좌표를 한국 행정동 이름으로 변환하는 역지오코딩 계층
 // - Kakao Local API 연결 전에도 인터페이스를 먼저 고정해 재사용 가능하게 유지
 
+import { KAKAO_REST_API_KEY } from '../../config/runtime';
 import type { DeviceCoordinates } from './currentPosition';
 
 export type DistrictResolveResult = {
@@ -10,11 +11,16 @@ export type DistrictResolveResult = {
   source: 'kakao' | 'fallback';
 };
 
-const KAKAO_REST_API_KEY = '';
+export function getFallbackDistrictLabel(coords: DeviceCoordinates) {
+  const lat = Number(coords.latitude.toFixed(3));
+  const lng = Number(coords.longitude.toFixed(3));
 
-function buildFallbackDistrict(coords: DeviceCoordinates) {
-  const lat = Number(coords.latitude.toFixed(2));
-  const lng = Number(coords.longitude.toFixed(2));
+  if (lat >= 37.675 && lat <= 37.691 && lng >= 126.765 && lng <= 126.781) {
+    return '일산2동';
+  }
+  if (lat >= 37.484 && lat <= 37.496 && lng >= 127.01 && lng <= 127.025) {
+    return '서초1동';
+  }
 
   if (lat >= 37.65 && lng >= 126.75 && lng <= 126.85) {
     return '일산동';
@@ -30,7 +36,7 @@ export async function resolveDistrictFromCoordinates(
 ): Promise<DistrictResolveResult> {
   if (!KAKAO_REST_API_KEY) {
     return {
-      district: buildFallbackDistrict(coords),
+      district: getFallbackDistrictLabel(coords),
       source: 'fallback',
     };
   }
@@ -40,37 +46,63 @@ export async function resolveDistrictFromCoordinates(
     `?x=${coords.longitude}` +
     `&y=${coords.latitude}`;
 
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `KakaoAK ${KAKAO_REST_API_KEY}`,
-    },
-  });
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `KakaoAK ${KAKAO_REST_API_KEY}`,
+      },
+    });
 
-  if (!response.ok) {
-    throw new Error('행정동 정보를 불러오지 못했어요.');
+    if (!response.ok) {
+      console.warn('[district] kakao request failed', {
+        status: response.status,
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+      });
+      return {
+        district: getFallbackDistrictLabel(coords),
+        source: 'fallback',
+      };
+    }
+
+    const json = (await response.json()) as {
+      documents?: Array<{
+        region_type?: string;
+        region_3depth_name?: string;
+        address_name?: string;
+      }>;
+    };
+
+    const docs = Array.isArray(json.documents) ? json.documents : [];
+    const legalDong =
+      docs.find(item => item.region_type === 'H') ??
+      docs.find(item => !!item.region_3depth_name) ??
+      null;
+
+    const district =
+      legalDong?.region_3depth_name?.trim() ||
+      legalDong?.address_name?.trim() ||
+      getFallbackDistrictLabel(coords);
+
+    console.info('[district] resolved', {
+      latitude: coords.latitude,
+      longitude: coords.longitude,
+      district,
+      source: legalDong ? 'kakao' : 'fallback',
+    });
+
+    return {
+      district,
+      source: legalDong ? 'kakao' : 'fallback',
+    };
+  } catch {
+    console.warn('[district] kakao request threw', {
+      latitude: coords.latitude,
+      longitude: coords.longitude,
+    });
+    return {
+      district: getFallbackDistrictLabel(coords),
+      source: 'fallback',
+    };
   }
-
-  const json = (await response.json()) as {
-    documents?: Array<{
-      region_type?: string;
-      region_3depth_name?: string;
-      address_name?: string;
-    }>;
-  };
-
-  const docs = Array.isArray(json.documents) ? json.documents : [];
-  const legalDong =
-    docs.find(item => item.region_type === 'H') ??
-    docs.find(item => !!item.region_3depth_name) ??
-    null;
-
-  const district =
-    legalDong?.region_3depth_name?.trim() ||
-    legalDong?.address_name?.trim() ||
-    buildFallbackDistrict(coords);
-
-  return {
-    district,
-    source: 'kakao',
-  };
 }

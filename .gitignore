@@ -80,3 +80,6 @@ android/bugreport*.zip
 
 # Supabase (local only)
 src/services/supabase/config.ts
+
+# Runtime keys (local only)
+src/config/runtime.ts

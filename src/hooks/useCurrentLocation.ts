@@ -3,7 +3,8 @@
 // - 위치 권한 요청과 현재 좌표 획득을 묶는 공용 훅
 // - 날씨 API 연결 전 단계에서도 loading / error / refresh 인터페이스를 먼저 고정
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 
 import {
   getCurrentCoordinates,
@@ -45,6 +46,7 @@ export function useCurrentLocation(): CurrentLocationState {
     useState<LocationPermissionStatus>('unavailable');
   const [coordinates, setCoordinates] = useState<DeviceCoordinates | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const permissionRef = useRef<LocationPermissionStatus>('unavailable');
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -56,6 +58,7 @@ export function useCurrentLocation(): CurrentLocationState {
         status === 'granted' ? status : await requestLocationPermission();
 
       setPermission(resolvedPermission);
+      permissionRef.current = resolvedPermission;
 
       if (resolvedPermission !== 'granted') {
         setCoordinates(null);
@@ -67,14 +70,26 @@ export function useCurrentLocation(): CurrentLocationState {
       setCoordinates(nextCoordinates);
     } catch (nextError) {
       setCoordinates(null);
-      setError(toLocationErrorMessage(permission, nextError));
+      setError(toLocationErrorMessage(permissionRef.current, nextError));
     } finally {
       setLoading(false);
     }
-  }, [permission]);
+  }, []);
 
   useEffect(() => {
     refresh().catch(() => {});
+  }, [refresh]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active') {
+        refresh().catch(() => {});
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
   }, [refresh]);
 
   return {

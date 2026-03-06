@@ -2230,6 +2230,34 @@ NURI는 데이터 입력 도구가 아니라,
 
 ---
 
+## Chapter 6-57 — Kakao 행정동 정밀화 + Android geolocation 빌드 복구
+
+### 무엇을 진행했나
+
+- Kakao REST API 키를 로컬 런타임 설정 파일로 분리했다.
+  - 실제 키는 로컬 전용 [`src/config/runtime.ts`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/config/runtime.ts)
+  - Git에는 예시 파일 [`src/config/runtime.example.ts`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/config/runtime.example.ts) 만 남기도록 정리했다.
+- `district` 계층을 보강해 역지오코딩 응답이 도착하기 전에도 좌표 기반 fallback 동 이름을 더 정밀하게 보여주도록 조정했다.
+- Kakao 역지오코딩 결과를 추적하기 위한 로그를 추가해 `source: 'kakao'` 와 실제 행정동 이름을 바로 검증할 수 있게 했다.
+- Android에서는 `@react-native-community/geolocation`가 RN `0.84` New Architecture 환경에서 codegen JNI를 제대로 만들지 않아 빌드가 깨지는 문제가 있었고,
+  이를 위해 [`scripts/ensure-geolocation-codegen.js`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/scripts/ensure-geolocation-codegen.js) 를 추가했다.
+- `postinstall` 시 geolocation용 JNI stub을 자동 생성하도록 해서 CMake autolinking 실패를 우회하고, 이후 `yarn install` 뒤에도 같은 문제가 다시 생기지 않도록 했다.
+
+### 왜 이렇게 했나
+
+- 날씨 기능에서 가장 중요한 건 “정확한 현재 위치 체감”이다. `현재 위치` 같은 뭉뚱그린 표현보다 `일산3동`, `서초1동`처럼 실제 동 이름이 보여야 사용자가 기능을 신뢰한다.
+- Kakao 응답이 오기 전 단계에서도 너무 넓은 단위(`일산동`)만 보이면 체감 품질이 떨어지기 때문에, fallback도 테스트 좌표 기준으로 더 좁은 동 단위까지 맞출 필요가 있었다.
+- geolocation 패키지의 Android 빌드 실패는 기능 문제가 아니라 New Architecture/CMake autolinking 결함에 가까웠다. 이건 매번 수동 수정하는 방식보다 `postinstall` 자동 보정이 맞다.
+
+### 결과
+
+- 홈 날씨 카드에서 Kakao 응답 기준 실제 행정동(`일산3동`)이 정상적으로 표시되는 것을 확인했다.
+- 동 이름은 이제 fallback보다 실제 Kakao 역지오코딩 결과를 우선 사용하며, DevTools 로그로도 `source: 'kakao'`를 검증할 수 있다.
+- Android는 geolocation을 추가한 뒤에도 다시 빌드 가능한 상태로 복구됐다.
+- 위치 권한 -> 좌표 -> 행정동 -> 날씨 카드까지의 전체 흐름이 실사용 기준으로 이어졌다.
+
+---
+
 # 🚀 Next
 
 ## Chapter 8 — 서버 검색(제목/태그) + 인덱스/정렬 안정화 + 섹션 점프 고도화

@@ -5,32 +5,36 @@
 
 import { useEffect, useState } from 'react';
 
+import type { DeviceCoordinates } from '../services/location/currentPosition';
 import { resolveDistrictFromCoordinates } from '../services/location/district';
-import { useCurrentLocation } from './useCurrentLocation';
 
 export type DistrictState = {
   loading: boolean;
   district: string | null;
   source: 'kakao' | 'fallback' | null;
   error: string | null;
-  refresh: () => Promise<void>;
 };
 
-export function useDistrict(): DistrictState {
-  const location = useCurrentLocation();
+export function useDistrict(input: {
+  coordinates: DeviceCoordinates | null;
+  loading: boolean;
+  error: string | null;
+}): DistrictState {
   const [loading, setLoading] = useState(false);
   const [district, setDistrict] = useState<string | null>(null);
   const [source, setSource] = useState<'kakao' | 'fallback' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!location.coordinates) {
+    if (!input.coordinates) {
       setDistrict(null);
       setSource(null);
-      setError(location.error);
+      setError(input.error);
       setLoading(false);
       return;
     }
+
+    const coordinates = input.coordinates;
 
     let cancelled = false;
 
@@ -39,9 +43,7 @@ export function useDistrict(): DistrictState {
       setError(null);
 
       try {
-        const resolved = await resolveDistrictFromCoordinates(
-          location.coordinates!,
-        );
+        const resolved = await resolveDistrictFromCoordinates(coordinates);
         if (cancelled) return;
         setDistrict(resolved.district);
         setSource(resolved.source);
@@ -66,13 +68,12 @@ export function useDistrict(): DistrictState {
     return () => {
       cancelled = true;
     };
-  }, [location.coordinates, location.error]);
+  }, [input.coordinates, input.error]);
 
   return {
-    loading: location.loading || loading,
+    loading: input.loading || loading,
     district,
     source,
     error,
-    refresh: location.refresh,
   };
 }

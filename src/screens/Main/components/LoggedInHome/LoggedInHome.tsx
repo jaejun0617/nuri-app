@@ -1347,7 +1347,7 @@ export default function LoggedInHome() {
     () => buildPetThemePalette(selectedPet?.themeColor),
     [selectedPet?.themeColor],
   );
-  const weatherGuideState = useWeatherGuide('일산동');
+  const weatherGuideState = useWeatherGuide('현재 위치');
   const weatherGuide = weatherGuideState.bundle;
 
   // ---------------------------------------------------------

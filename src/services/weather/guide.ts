@@ -460,14 +460,14 @@ export function getWeatherIconName(icon: WeatherIconKey) {
 }
 
 function pickScenarioFromDistrict(district: string): WeatherScenario {
-  const raw = district.trim() || '일산동';
+  const raw = district.trim() || '현재 위치';
   const sum = Array.from(raw).reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const variants: WeatherScenario[] = ['rain', 'dusty', 'fresh'];
   return variants[sum % variants.length] ?? 'rain';
 }
 
-export function getWeatherGuideBundle(district = '일산동'): WeatherGuideBundle {
-  const normalizedDistrict = district.trim() || '일산동';
+export function getWeatherGuideBundle(district = '현재 위치'): WeatherGuideBundle {
+  const normalizedDistrict = district.trim() || '현재 위치';
   const scenario = pickScenarioFromDistrict(normalizedDistrict);
   const base = WEATHER_SCENARIOS[scenario];
 

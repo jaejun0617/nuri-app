@@ -5,6 +5,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
+import { getFallbackDistrictLabel } from '../services/location/district';
 import { fetchOpenMeteoAirQuality, fetchOpenMeteoForecast } from '../services/weather/api';
 import { buildWeatherGuideBundleFromApi } from '../services/weather/mapper';
 import { getWeatherGuideBundle, type WeatherGuideBundle } from '../services/weather/guide';
@@ -19,9 +20,13 @@ export type WeatherGuideState = {
   usingMock: boolean;
 };
 
-export function useWeatherGuide(initialDistrict = '일산동'): WeatherGuideState {
+export function useWeatherGuide(initialDistrict = '현재 위치'): WeatherGuideState {
   const location = useCurrentLocation();
-  const districtState = useDistrict();
+  const districtState = useDistrict({
+    coordinates: location.coordinates,
+    loading: location.loading,
+    error: location.error,
+  });
   const [bundle, setBundle] = useState<WeatherGuideBundle>(
     getWeatherGuideBundle(initialDistrict),
   );
@@ -29,8 +34,12 @@ export function useWeatherGuide(initialDistrict = '일산동'): WeatherGuideStat
   const [error, setError] = useState<string | null>(null);
 
   const resolvedDistrict = useMemo(
-    () => districtState.district ?? initialDistrict,
-    [districtState.district, initialDistrict],
+    () =>
+      districtState.district ??
+      (location.coordinates
+        ? getFallbackDistrictLabel(location.coordinates)
+        : initialDistrict),
+    [districtState.district, initialDistrict, location.coordinates],
   );
 
   useEffect(() => {

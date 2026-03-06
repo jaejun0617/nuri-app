@@ -27,7 +27,7 @@ export function getCurrentCoordinates(): Promise<DeviceCoordinates> {
       {
         enableHighAccuracy: true,
         timeout: 15000,
-        maximumAge: 300000,
+        maximumAge: 0,
       },
     );
   });

@@ -28,7 +28,7 @@ export default function WeatherInsightScreen() {
       name: 'WeatherInsight';
       params?: { district?: string };
     }>();
-  const weatherState = useWeatherGuide(route.params?.district ?? '일산동');
+  const weatherState = useWeatherGuide(route.params?.district ?? '현재 위치');
   const weather = weatherState.bundle;
 
   const onPressPrimary = useCallback(() => {
