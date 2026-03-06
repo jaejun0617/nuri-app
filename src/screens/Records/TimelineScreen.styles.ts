@@ -136,7 +136,14 @@ export const styles = StyleSheet.create({
     gap: 12,
   },
   heatmapHeader: {
+    flex: 1,
     gap: 4,
+  },
+  heatmapToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
   },
   heatmapEyebrow: {
     color: BRAND,

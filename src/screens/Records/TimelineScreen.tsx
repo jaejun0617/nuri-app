@@ -41,6 +41,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Feather from 'react-native-vector-icons/Feather';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type {
   CompositeNavigationProp,
@@ -330,77 +331,97 @@ function getHeatmapIntensityStyle(intensity: 0 | 1 | 2 | 3 | 4) {
 const HeatmapSection = memo(function HeatmapSection({
   monthLabel,
   weeks,
+  expanded,
+  onToggle,
 }: {
   monthLabel: string;
   weeks: TimelineHeatmapWeek[];
+  expanded: boolean;
+  onToggle: () => void;
 }) {
   return (
     <View style={styles.heatmapWrap}>
-      <View style={styles.heatmapHeader}>
-        <AppText preset="caption" style={styles.heatmapEyebrow}>
-          기록 밀도
-        </AppText>
-        <AppText preset="body" style={styles.heatmapTitle}>
-          최근 12주 히트맵
-        </AppText>
-        <AppText preset="caption" style={styles.heatmapDesc}>
-          {monthLabel} 기준으로 기록이 남은 날을 한눈에 보여줘요.
-        </AppText>
-      </View>
-
-      <View style={styles.heatmapGridRow}>
-        <View style={styles.heatmapLabelsCol}>
-          {HEATMAP_DAY_LABELS.map(label => (
-            <AppText
-              key={label}
-              preset="caption"
-              style={styles.heatmapDayLabel}
-            >
-              {label}
-            </AppText>
-          ))}
+      <TouchableOpacity
+        activeOpacity={0.88}
+        style={styles.heatmapToggleRow}
+        onPress={onToggle}
+      >
+        <View style={styles.heatmapHeader}>
+          <AppText preset="caption" style={styles.heatmapEyebrow}>
+            기록 밀도
+          </AppText>
+          <AppText preset="body" style={styles.heatmapTitle}>
+            최근 12주 히트맵
+          </AppText>
+          <AppText preset="caption" style={styles.heatmapDesc}>
+            {monthLabel} 기준으로 기록이 남은 날을 한눈에 보여줘요.
+          </AppText>
         </View>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.heatmapWeeksRow}
-        >
-          {weeks.map(week => (
-            <View key={week.key} style={styles.heatmapWeekCol}>
-              {week.cells.map(cell => (
-                <View
-                  key={cell.key}
-                  style={[
-                    styles.heatmapCell,
-                    getHeatmapIntensityStyle(cell.intensity),
-                    cell.isToday ? styles.heatmapCellToday : null,
-                    !cell.isCurrentMonth ? styles.heatmapCellMuted : null,
-                  ]}
-                />
+        <Feather
+          name={expanded ? 'chevron-up' : 'chevron-down'}
+          size={18}
+          color="#6D6AF8"
+        />
+      </TouchableOpacity>
+
+      {expanded ? (
+        <>
+          <View style={styles.heatmapGridRow}>
+            <View style={styles.heatmapLabelsCol}>
+              {HEATMAP_DAY_LABELS.map(label => (
+                <AppText
+                  key={label}
+                  preset="caption"
+                  style={styles.heatmapDayLabel}
+                >
+                  {label}
+                </AppText>
               ))}
             </View>
-          ))}
-        </ScrollView>
-      </View>
 
-      <View style={styles.heatmapLegendRow}>
-        <AppText preset="caption" style={styles.heatmapLegendText}>
-          적음
-        </AppText>
-        {[0, 1, 2, 3, 4].map(level => (
-          <View
-            key={`legend-${level}`}
-            style={[
-              styles.heatmapLegendCell,
-              getHeatmapIntensityStyle(level as 0 | 1 | 2 | 3 | 4),
-            ]}
-          />
-        ))}
-        <AppText preset="caption" style={styles.heatmapLegendText}>
-          많음
-        </AppText>
-      </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.heatmapWeeksRow}
+            >
+              {weeks.map(week => (
+                <View key={week.key} style={styles.heatmapWeekCol}>
+                  {week.cells.map(cell => (
+                    <View
+                      key={cell.key}
+                      style={[
+                        styles.heatmapCell,
+                        getHeatmapIntensityStyle(cell.intensity),
+                        cell.isToday ? styles.heatmapCellToday : null,
+                        !cell.isCurrentMonth ? styles.heatmapCellMuted : null,
+                      ]}
+                    />
+                  ))}
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+
+          <View style={styles.heatmapLegendRow}>
+            <AppText preset="caption" style={styles.heatmapLegendText}>
+              적음
+            </AppText>
+            {[0, 1, 2, 3, 4].map(level => (
+              <View
+                key={`legend-${level}`}
+                style={[
+                  styles.heatmapLegendCell,
+                  getHeatmapIntensityStyle(level as 0 | 1 | 2 | 3 | 4),
+                ]}
+              />
+            ))}
+            <AppText preset="caption" style={styles.heatmapLegendText}>
+              많음
+            </AppText>
+          </View>
+        </>
+      ) : null}
     </View>
   );
 });
@@ -474,6 +495,7 @@ export default function TimelineScreen() {
   const [otherSubCategory, setOtherSubCategory] =
     useState<OtherSubCategory | null>(null);
   const [otherModalOpen, setOtherModalOpen] = useState(false);
+  const [heatmapExpanded, setHeatmapExpanded] = useState(true);
 
   // 점프 요청(필터 적용 후 렌더 완료 다음 scrollToIndex)
   const [pendingJumpYm, setPendingJumpYm] = useState<string | null>(null);
@@ -490,6 +512,7 @@ export default function TimelineScreen() {
     setMainCategory('all');
     setOtherSubCategory(null);
     setOtherModalOpen(false);
+    setHeatmapExpanded(true);
 
     setPendingJumpYm(null);
   }, [petId]);
@@ -845,7 +868,12 @@ export default function TimelineScreen() {
               onClearSearch={onClearSearch}
               onPressMainCategory={onPressMainCategory}
             />
-            <HeatmapSection monthLabel={monthLabel} weeks={heatmapWeeks} />
+            <HeatmapSection
+              monthLabel={monthLabel}
+              weeks={heatmapWeeks}
+              expanded={heatmapExpanded}
+              onToggle={() => setHeatmapExpanded(prev => !prev)}
+            />
           </>
         }
         stickyHeaderIndices={[0]}

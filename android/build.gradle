@@ -25,6 +25,8 @@ buildscript {
 
 // ✅ [중요] plugins 블록은 다른 설정(allprojects 등)보다 반드시 위에 있어야 합니다.
 plugins {
+    id("com.google.gms.google-services") version "4.4.4" apply false
+    id("com.google.firebase.crashlytics") version "3.0.6" apply false
     id("com.facebook.react.rootproject")
 }
 
@@ -45,4 +47,3 @@ allprojects {
         maven { url "https://www.jitpack.io" }
     }
 }
-

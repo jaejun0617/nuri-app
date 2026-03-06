@@ -5,10 +5,12 @@
 
 import type React from 'react';
 import type { NavigationContainerRef } from '@react-navigation/native';
+import crashlytics from '@react-native-firebase/crashlytics';
 import * as Sentry from '@sentry/react-native';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
+  CRASHLYTICS_ENABLE_IN_DEV,
   SENTRY_DSN,
   SENTRY_ENABLE_IN_DEV,
   SENTRY_ENVIRONMENT,
@@ -17,6 +19,7 @@ import {
 } from './config';
 
 const sentryEnabled = Boolean(SENTRY_DSN) && (!__DEV__ || SENTRY_ENABLE_IN_DEV);
+const crashlyticsEnabled = !__DEV__ || CRASHLYTICS_ENABLE_IN_DEV;
 
 const navigationIntegration = Sentry.reactNavigationIntegration({
   enableTimeToInitialDisplay: true,
@@ -24,24 +27,35 @@ const navigationIntegration = Sentry.reactNavigationIntegration({
 });
 
 let sentryInitialized = false;
+let crashlyticsInitialized = false;
 
 export function initMonitoring(): void {
-  if (!sentryEnabled || sentryInitialized) return;
+  if (sentryEnabled && !sentryInitialized) {
+    Sentry.init({
+      dsn: SENTRY_DSN,
+      environment: SENTRY_ENVIRONMENT,
+      release: SENTRY_RELEASE,
+      tracesSampleRate: SENTRY_TRACES_SAMPLE_RATE,
+      integrations: [
+        Sentry.reactNativeTracingIntegration(),
+        navigationIntegration,
+      ],
+      enableNativeFramesTracking: true,
+      debug: __DEV__,
+    });
 
-  Sentry.init({
-    dsn: SENTRY_DSN,
-    environment: SENTRY_ENVIRONMENT,
-    release: SENTRY_RELEASE,
-    tracesSampleRate: SENTRY_TRACES_SAMPLE_RATE,
-    integrations: [
-      Sentry.reactNativeTracingIntegration(),
-      navigationIntegration,
-    ],
-    enableNativeFramesTracking: true,
-    debug: __DEV__,
-  });
+    sentryInitialized = true;
+  }
 
-  sentryInitialized = true;
+  if (crashlyticsEnabled && !crashlyticsInitialized) {
+    crashlytics().setCrashlyticsCollectionEnabled(true);
+    crashlytics().setAttributes({
+      environment: SENTRY_ENVIRONMENT,
+      release: SENTRY_RELEASE,
+    });
+    crashlytics().log('[monitoring] crashlytics initialized');
+    crashlyticsInitialized = true;
+  }
 }
 
 export function registerSentryNavigation(
@@ -55,36 +69,63 @@ export function setMonitoringUser(params: {
   id: string | null;
   email?: string | null;
 }): void {
-  if (!sentryEnabled || !sentryInitialized) return;
-
-  if (!params.id) {
-    Sentry.setUser(null);
-    return;
+  if (sentryEnabled && sentryInitialized) {
+    if (!params.id) {
+      Sentry.setUser(null);
+    } else {
+      Sentry.setUser({
+        id: params.id,
+        email: params.email ?? undefined,
+      });
+    }
   }
 
-  Sentry.setUser({
-    id: params.id,
-    email: params.email ?? undefined,
-  });
+  if (crashlyticsEnabled && crashlyticsInitialized) {
+    crashlytics().setUserId(params.id ?? '');
+    crashlytics().setAttributes({
+      userId: params.id ?? '',
+      email: params.email ?? '',
+    });
+  }
 }
 
 export function captureMonitoringException(error: unknown): void {
-  if (!sentryEnabled || !sentryInitialized) return;
-  Sentry.captureException(error);
+  if (sentryEnabled && sentryInitialized) {
+    Sentry.captureException(error);
+  }
+
+  if (crashlyticsEnabled && crashlyticsInitialized) {
+    const normalized =
+      error instanceof Error ? error : new Error(String(error ?? 'unknown'));
+    crashlytics().recordError(normalized);
+  }
 }
 
 export function captureMonitoringMessage(message: string): void {
-  if (!sentryEnabled || !sentryInitialized) return;
-  Sentry.captureMessage(message, 'info');
+  if (sentryEnabled && sentryInitialized) {
+    Sentry.captureMessage(message, 'info');
+  }
+
+  if (crashlyticsEnabled && crashlyticsInitialized) {
+    crashlytics().log(message);
+  }
 }
 
 export function triggerMonitoringNativeCrash(): void {
-  if (!sentryEnabled || !sentryInitialized) return;
-  Sentry.nativeCrash();
+  if (sentryEnabled && sentryInitialized) {
+    Sentry.nativeCrash();
+  }
+
+  if (crashlyticsEnabled && crashlyticsInitialized) {
+    crashlytics().crash();
+  }
 }
 
 export function isMonitoringEnabled(): boolean {
-  return sentryEnabled && sentryInitialized;
+  return (
+    (sentryEnabled && sentryInitialized) ||
+    (crashlyticsEnabled && crashlyticsInitialized)
+  );
 }
 
 export function wrapWithSentry<T extends React.ComponentType<any>>(

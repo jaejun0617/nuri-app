@@ -1798,6 +1798,59 @@ NURI는 데이터 입력 도구가 아니라,
 
 ---
 
+## Chapter 6-46 — Crashlytics 1차 연동: Firebase 네이티브 설정 + JS 모니터링 통합
+
+### 무엇을 진행했나
+
+- React Native Firebase 의존성을 추가했다.
+  - `@react-native-firebase/app`
+  - `@react-native-firebase/crashlytics`
+- Android에 Firebase 플러그인을 연결했다.
+  - `android/build.gradle`
+  - `android/app/build.gradle`
+- iOS는 `FirebaseApp.configure()`가 앱 시작 시 1회 실행되도록 연결했다.
+  - `ios/nuri/AppDelegate.swift`
+  - `ios/Podfile`
+- JS 모니터링 래퍼도 Sentry + Crashlytics를 함께 타도록 확장했다.
+  - `src/services/monitoring/sentry.ts`
+  - `src/services/monitoring/config.ts`
+  - `src/services/monitoring/config.example.ts`
+- Firebase 설정은 `firebase.json`으로 추가했다.
+- Jest mock도 보강해서 기존 테스트가 유지되게 맞췄다.
+  - `jest.setup.js`
+
+### 왜 이렇게 했나
+
+- 운영 단계에서는 JS 예외만 수집하는 것보다
+  네이티브 크래시와 릴리즈 심볼 업로드 체인까지 같이 잡히는 구조가 필요하다.
+- 기존 프로젝트는 Sentry는 이미 들어가 있었지만,
+  Firebase Crashlytics가 없어 네이티브 크래시 관점의 운영 안전망이 비어 있었다.
+- 그래서 이번 단계는 “Sentry를 없애는” 방식이 아니라,
+  기존 모니터링 래퍼를 유지하면서 Crashlytics를 병행 수집하는 쪽으로 설계했다.
+
+### 결과
+
+- `captureMonitoringException`, `captureMonitoringMessage`, `setMonitoringUser`,
+  `triggerMonitoringNativeCrash` 호출이 Sentry와 Crashlytics 양쪽으로 퍼지게 됐다.
+- iOS Pods 설치도 완료됐다.
+- 다만 실제 네이티브 빌드 완료를 위해 아래 두 파일은 직접 넣어야 한다.
+  - `android/app/google-services.json`
+  - `ios/nuri/GoogleService-Info.plist`
+
+### 검증
+
+- `yarn tsc --noEmit`
+- `yarn test --watchAll=false --watchman=false __tests__/App.test.tsx __tests__/appErrors.test.ts __tests__/weeklySummary.test.ts __tests__/timelineHeatmap.test.ts`
+- `pod install`
+  - iOS 환경에서 `xcode-select`가 Command Line Tools를 가리키는 경고는 남았지만 설치는 완료됐다.
+
+### 남은 것
+
+- Firebase 콘솔에서 다운로드한 실제 설정 파일 배치
+- Android/iOS release 빌드에서 Crashlytics 이벤트/크래시 실수집 확인
+
+---
+
 # 🚀 Next
 
 ## Chapter 8 — 서버 검색(제목/태그) + 인덱스/정렬 안정화 + 섹션 점프 고도화

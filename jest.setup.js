@@ -37,6 +37,24 @@ jest.mock('@sentry/react-native', () => ({
   captureMessage: jest.fn(),
   setUser: jest.fn(),
   reactNavigationIntegration: jest.fn(() => ({})),
+  reactNativeTracingIntegration: jest.fn(() => ({})),
+  nativeCrash: jest.fn(),
+}));
+jest.mock('@react-native-firebase/crashlytics', () => {
+  const api = {
+    setCrashlyticsCollectionEnabled: jest.fn(() => Promise.resolve()),
+    setAttributes: jest.fn(() => Promise.resolve()),
+    setUserId: jest.fn(() => Promise.resolve()),
+    log: jest.fn(() => Promise.resolve()),
+    recordError: jest.fn(() => Promise.resolve()),
+    crash: jest.fn(),
+  };
+
+  return () => api;
+});
+jest.mock('@react-native-firebase/app', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({})),
 }));
 jest.mock('react-native-blob-util', () => ({
   fs: {

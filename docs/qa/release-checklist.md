@@ -47,5 +47,7 @@
 ## 운영/모니터링
 
 - [ ] Sentry 이벤트 수집 확인
+- [ ] Android `android/app/google-services.json` 배치 확인
+- [ ] iOS `ios/nuri/GoogleService-Info.plist` 배치 확인
 - [ ] 계정 삭제 RPC / 동의 이력 insert 실DB 확인
 - [ ] Crashlytics 연동 여부 확인

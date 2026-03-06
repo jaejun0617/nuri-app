@@ -555,7 +555,7 @@ export default function DevTestScreen() {
 
       <S.Box>
         <AppText preset="headline" color="#ffffff">
-          4) Monitoring (Sentry)
+          4) Monitoring (Sentry + Crashlytics)
         </AppText>
         <AppText
           preset="caption"
