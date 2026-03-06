@@ -5,13 +5,19 @@
 // -------------------------------------------------------------
 
 import React, { useCallback, useMemo, useState } from 'react';
-import { Alert, PermissionsAndroid, Platform } from 'react-native';
+import { Alert, PermissionsAndroid, Platform, ScrollView } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Buffer } from 'buffer';
 import AppText from '../../app/ui/AppText';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import {
+  captureMonitoringException,
+  captureMonitoringMessage,
+  isMonitoringEnabled,
+  triggerMonitoringNativeCrash,
+} from '../../services/monitoring/sentry';
 import { supabase } from '../../services/supabase/client';
 import * as S from './DevTestScreen.styles';
 
@@ -319,6 +325,39 @@ export default function DevTestScreen() {
     }
   }, [base64ToArrayBuffer, pickImageBase64, pushLog, requireUser]);
 
+  const onSentryTestEvent = useCallback(() => {
+    const stamp = new Date().toISOString();
+    captureMonitoringMessage(
+      `[DEV] sentry test message from DevTestScreen @ ${stamp}`,
+    );
+    captureMonitoringException(
+      new Error(`[DEV] sentry test exception @ ${stamp}`),
+    );
+    pushLog('✅ Sentry 테스트 이벤트 전송 요청 완료');
+    Alert.alert(
+      'Sentry 테스트',
+      '테스트 이벤트를 전송했습니다. Sentry Issues/Events에서 확인하세요.',
+    );
+  }, [pushLog]);
+
+  const onSentryNativeCrash = useCallback(() => {
+    Alert.alert(
+      '네이티브 크래시 테스트',
+      '앱이 즉시 종료됩니다. 계속할까요?',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '크래시 발생',
+          style: 'destructive',
+          onPress: () => {
+            pushLog('⚠️ Sentry native crash 트리거');
+            triggerMonitoringNativeCrash();
+          },
+        },
+      ],
+    );
+  }, [pushLog]);
+
   // ---------------------------------------------------------
   // 6) 화면
   // ---------------------------------------------------------
@@ -326,6 +365,11 @@ export default function DevTestScreen() {
 
   return (
     <S.Screen>
+      <ScrollView
+        bounces={false}
+        contentContainerStyle={{ paddingBottom: 28 }}
+        showsVerticalScrollIndicator={false}
+      >
       <S.TitleRow>
         <AppText preset="title2" color="#ffffff">
           DevTest (Supabase)
@@ -336,7 +380,9 @@ export default function DevTestScreen() {
             navigation.reset({ index: 0, routes: [{ name: 'AppTabs' }] })
           }
         >
-          메인으로
+          <AppText preset="body" color="#fff" weight="700">
+            메인으로
+          </AppText>
         </S.BtnGhost>
       </S.TitleRow>
 
@@ -455,6 +501,31 @@ export default function DevTestScreen() {
       </S.Box>
 
       <S.Box>
+        <AppText preset="headline" color="#ffffff">
+          4) Monitoring (Sentry)
+        </AppText>
+        <AppText
+          preset="caption"
+          color="rgba(255,255,255,0.7)"
+          style={{ marginTop: 8 }}
+        >
+          상태: {isMonitoringEnabled() ? '활성' : '비활성(DSN/DEV 설정 확인)'}
+        </AppText>
+        <S.Row>
+          <S.Btn onPress={onSentryTestEvent}>
+            <AppText preset="body" color="#fff" weight="700">
+              테스트 이벤트
+            </AppText>
+          </S.Btn>
+          <S.BtnGhost onPress={onSentryNativeCrash}>
+            <AppText preset="body" color="#fff" weight="700">
+              네이티브 크래시
+            </AppText>
+          </S.BtnGhost>
+        </S.Row>
+      </S.Box>
+
+      <S.Box>
         <S.Row>
           <S.BtnGhost onPress={clearLogs}>
             <AppText preset="body" color="#fff" weight="700">
@@ -469,6 +540,7 @@ export default function DevTestScreen() {
           </AppText>
         </S.LogWrap>
       </S.Box>
+      </ScrollView>
     </S.Screen>
   );
 }

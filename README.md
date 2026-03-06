@@ -1405,6 +1405,61 @@ NURI는 데이터 입력 도구가 아니라,
 
 ---
 
+## Chapter 6-37 — Sentry 모니터링 1차 적용 (크래시/성능/화면 트래킹 기반)
+
+### 무엇을 바꿨나
+
+- `@sentry/react-native`를 프로젝트에 설치했다.
+- 모니터링 공통 레이어를 추가했다.
+  - `src/services/monitoring/sentry.ts`
+  - `src/services/monitoring/config.ts`
+  - `src/services/monitoring/config.example.ts`
+- 앱 시작 시 Sentry 초기화를 1회 수행하도록 연결했다.
+  - DSN이 비어있으면 자동 비활성(오버헤드 없음)
+- React Navigation 컨테이너를 Sentry와 연결해 화면 전환 트레이싱 기반을 만들었다.
+- 인증 세션 변경 시 Sentry user context(`id`, `email`)를 동기화했다.
+- 부팅 예외를 모니터링 레이어로 캡처하도록 연결했다.
+- `metro.config.js`를 `withSentryConfig`로 감싸 소스맵/번들 처리 기반을 맞췄다.
+
+### 결과
+
+- 실제 운영에서 “어디서 터졌는지 모르는 상태”를 벗어날 수 있는 최소 관측 기반이 준비됐다.
+- 화면 전환/부팅 구간에서 장애 추적이 가능해졌다.
+- 현재 설정은 DSN 미입력 시 비활성이라 개발 중 성능/동작에 영향이 없다.
+
+### 운영 적용 메모
+
+- 배포 전 `src/services/monitoring/config.ts`에 실제 `SENTRY_DSN`을 넣어야 수집이 시작된다.
+- 릴리즈 추적 정확도를 위해 `SENTRY_RELEASE`를 빌드 버전에 맞춰 업데이트하는 것을 권장한다.
+
+---
+
+## Chapter 6-38 — Sentry 실검증(DEV) + Release 빌드 검증
+
+### 무엇을 진행했나
+
+- Sentry DSN을 실제 값으로 연결하고, 개발 빌드 수집을 활성화했다.
+  - `SENTRY_ENABLE_IN_DEV = true`
+- `DevTest`에 Monitoring 섹션을 추가해 즉시 검증 가능한 버튼을 연결했다.
+  - `테스트 이벤트`: message + exception 전송
+  - `네이티브 크래시`: native crash 트리거
+- 이벤트 그룹핑으로 확인이 헷갈리지 않도록 테스트 이벤트 메시지에 timestamp를 포함했다.
+- `DevTest` 화면 스크롤/텍스트 렌더 오류를 수정해 테스트 동선을 안정화했다.
+- Android 릴리즈 빌드를 실제 실행했다.
+  - `./gradlew assembleRelease`
+  - 결과: `BUILD SUCCESSFUL`
+
+### 검증 결과
+
+- Sentry 대시보드(`Errors & Outages`)에서 DEV 테스트 이벤트/예외가 정상 수집되는 것을 확인했다.
+- 릴리즈 APK 생성이 성공해 배포 전 단계로 진행 가능한 상태를 확보했다.
+
+### 운영 메모
+
+- 네이티브 크래시 수집은 디버그 빌드에서 재현 편차가 있을 수 있어, 최종 판단은 release 설치 후 1회 확인이 권장된다.
+
+---
+
 # 🚀 Next
 
 ## Chapter 8 — 서버 검색(제목/태그) + 인덱스/정렬 안정화 + 섹션 점프 고도화

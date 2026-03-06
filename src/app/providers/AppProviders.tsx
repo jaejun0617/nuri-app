@@ -18,6 +18,10 @@ import { useThemeMode } from '../theme/useThemeMode';
 import { supabase } from '../../services/supabase/client';
 import { fetchMyNickname } from '../../services/supabase/profile';
 import { fetchMyPets } from '../../services/supabase/pets';
+import {
+  captureMonitoringException,
+  setMonitoringUser,
+} from '../../services/monitoring/sentry';
 
 import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
@@ -118,6 +122,10 @@ export default function AppProviders({ children }: Props) {
       const session = await resolveValidSession();
 
       await setSession(session);
+      setMonitoringUser({
+        id: session?.user?.id ?? null,
+        email: session?.user?.email ?? null,
+      });
 
       // 3) 로그인/게스트 분기 처리
       if (session) await onLoggedIn();
@@ -136,6 +144,10 @@ export default function AppProviders({ children }: Props) {
           setPetBooted(false);
 
           await setSession(s);
+          setMonitoringUser({
+            id: s?.user?.id ?? null,
+            email: s?.user?.email ?? null,
+          });
 
           if (s) await onLoggedIn();
           else await onGuest();
@@ -148,7 +160,11 @@ export default function AppProviders({ children }: Props) {
       unsub = listener.subscription;
     };
 
-    boot();
+    boot().catch(error => {
+      captureMonitoringException(error);
+      setAuthBooted(true);
+      setPetBooted(true);
+    });
 
     return () => {
       alive = false;

@@ -1,17 +1,36 @@
 // 파일: App.tsx
-import React from 'react';
+import React, { useCallback, useRef } from 'react';
 import { StatusBar } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import {
+  createNavigationContainerRef,
+  NavigationContainer,
+} from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { enableScreens } from 'react-native-screens';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import AppProviders from './src/app/providers/AppProviders';
 import RootNavigator from './src/navigation/RootNavigator';
+import type { RootStackParamList } from './src/navigation/RootNavigator';
+import {
+  initMonitoring,
+  registerSentryNavigation,
+  wrapWithSentry,
+} from './src/services/monitoring/sentry';
 
 enableScreens(true);
+initMonitoring();
 
-export default function App() {
+function App() {
+  const navigationRef = useRef(
+    createNavigationContainerRef<RootStackParamList>(),
+  );
+
+  const handleNavigationReady = useCallback(() => {
+    if (!navigationRef.current.isReady()) return;
+    registerSentryNavigation(navigationRef.current);
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       {/* ✅ 흰 배경에서 시간/아이콘이 안 보이는 문제 방지 */}
@@ -23,7 +42,10 @@ export default function App() {
 
       <SafeAreaProvider>
         <AppProviders>
-          <NavigationContainer>
+          <NavigationContainer
+            ref={navigationRef}
+            onReady={handleNavigationReady}
+          >
             <RootNavigator />
           </NavigationContainer>
         </AppProviders>
@@ -31,3 +53,5 @@ export default function App() {
     </GestureHandlerRootView>
   );
 }
+
+export default wrapWithSentry(App);
