@@ -18,7 +18,6 @@ const MUTED2 = 'rgba(85,96,112,0.70)';
 const SURFACE = '#FFFFFF';
 const SURFACE_SOFT = '#F6F7FB';
 
-const BORDER = 'rgba(109,106,248,0.18)';
 const BORDER_SOFT = 'rgba(0,0,0,0.06)';
 
 const ABS_FILL = {
@@ -143,13 +142,6 @@ export const styles = StyleSheet.create({
     borderRadius: 22,
     padding: 16,
     backgroundColor: SURFACE,
-    borderWidth: 1,
-    borderColor: BORDER,
-    shadowColor: '#000000',
-    shadowOpacity: 0.1,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 14 },
-    elevation: 6,
   },
 
   heroGearBtn: {
@@ -387,12 +379,23 @@ export const styles = StyleSheet.create({
     marginTop: 16,
     paddingVertical: 14,
     paddingHorizontal: 14,
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 12 },
+    position: 'relative',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(11,18,32,0.08)',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+    overflow: 'visible',
+  },
+  heroMessageBottomShadow: {
+    position: 'absolute',
+    left: 14,
+    right: 14,
+    bottom: -4,
+    height: 8,
+    borderRadius: 999,
+
+    shadowOffset: { width: 0, height: 4 },
   },
   heroMessageIcon: {
     alignItems: 'center',

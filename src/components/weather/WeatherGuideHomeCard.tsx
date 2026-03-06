@@ -53,7 +53,7 @@ export default React.memo(function WeatherGuideHomeCard({
       <MaterialCommunityIcons
         name="chevron-right"
         size={24}
-        color="#B9C1D0"
+        color="#000000"
       />
     </TouchableOpacity>
   );

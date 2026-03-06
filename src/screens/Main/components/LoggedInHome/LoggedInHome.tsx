@@ -2026,6 +2026,7 @@ export default function LoggedInHome() {
                 </Text>
               </View>
               <Text style={styles.heroMessageText}>{todayMessage}</Text>
+              <View style={styles.heroMessageBottomShadow} />
             </View>
           </View>
 

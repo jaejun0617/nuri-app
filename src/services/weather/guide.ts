@@ -14,6 +14,15 @@ export type WeatherIconKey =
 
 export type AirQualityTone = 'bad' | 'moderate' | 'good';
 export type IndoorActivityKey = 'nosework' | 'tug' | 'training' | 'massage';
+export type WeatherRecordEmotionKey =
+  | 'excited'
+  | 'happy'
+  | 'calm'
+  | 'neutral'
+  | 'tired'
+  | 'sad'
+  | 'anxious'
+  | 'angry';
 
 export type WeeklyWeatherItem = {
   key: string;
@@ -54,12 +63,27 @@ export type IndoorActivityGuide = {
     completionBody: string;
     suggestedTags: string[];
     emotionOptions: Array<{
-      key: 'excited' | 'happy' | 'calm';
+      key: WeatherRecordEmotionKey;
       emoji: string;
       label: string;
     }>;
   };
 };
+
+export const WEATHER_RECORD_EMOTION_OPTIONS: ReadonlyArray<{
+  key: WeatherRecordEmotionKey;
+  emoji: string;
+  label: string;
+}> = [
+  { key: 'excited', emoji: '🤩', label: '신나요' },
+  { key: 'happy', emoji: '🥰', label: '행복해요' },
+  { key: 'calm', emoji: '😌', label: '차분해요' },
+  { key: 'neutral', emoji: '🙂', label: '편안해요' },
+  { key: 'tired', emoji: '😴', label: '나른해요' },
+  { key: 'sad', emoji: '🥺', label: '아쉬워요' },
+  { key: 'anxious', emoji: '😥', label: '조심스러워요' },
+  { key: 'angry', emoji: '😤', label: '예민해요' },
+];
 
 export type WeatherGuideBundle = {
   district: string;

@@ -3,7 +3,8 @@
 // - 실내 활동 완료 후 빠르게 감정/메모/태그를 남기는 전용 기록 화면
 // - 저장 성공 시 완료 팝업을 보여주고 타임라인으로 이어짐
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Alert,
   Image,
@@ -22,8 +23,15 @@ import Feather from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { launchImageLibrary } from 'react-native-image-picker';
 
+import RecordTagModal from '../Records/components/RecordTagModal';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { getBrandedErrorMeta } from '../../services/app/errors';
+import {
+  normalizeRecentRecordTags,
+  parseRecordTags,
+  RECORD_DEFAULT_RECENT_TAGS,
+  RECORD_RECENT_TAGS_STORAGE_KEY,
+} from '../../services/records/form';
 import {
   createMemory,
   fetchMemoryById,
@@ -32,6 +40,8 @@ import { uploadMemoryImage } from '../../services/supabase/storageMemories';
 import {
   getIndoorActivityGuide,
   type IndoorActivityKey,
+  WEATHER_RECORD_EMOTION_OPTIONS,
+  type WeatherRecordEmotionKey,
 } from '../../services/weather/guide';
 import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
@@ -43,6 +53,11 @@ const EMOTION_MAP = {
   excited: 'excited',
   happy: 'happy',
   calm: 'calm',
+  neutral: 'neutral',
+  tired: 'tired',
+  sad: 'sad',
+  anxious: 'anxious',
+  angry: 'angry',
 } as const;
 
 export default function WeatherActivityRecordScreen() {
@@ -66,34 +81,84 @@ export default function WeatherActivityRecordScreen() {
     }
     return pets[0]?.id ?? null;
   }, [pets, selectedPetId]);
-  const selectedPet = useMemo(
-    () => pets.find(item => item.id === petId) ?? null,
-    [petId, pets],
-  );
   const guide = useMemo(
     () => getIndoorActivityGuide(route.params.guideKey),
     [route.params.guideKey],
   );
 
-  const [imageUri, setImageUri] = useState<string | null>(
-    selectedPet?.avatarUrl ?? null,
-  );
+  const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageMimeType, setImageMimeType] = useState<string | null>(null);
-  const [title, setTitle] = useState(guide.recordDraft.title);
+  const [title, setTitle] = useState('');
   const [note, setNote] = useState('');
-  const [selectedEmotion, setSelectedEmotion] = useState<
-    keyof typeof EMOTION_MAP
-  >(guide.recordDraft.emotionOptions[0]?.key ?? 'happy');
+  const [selectedEmotion, setSelectedEmotion] =
+    useState<WeatherRecordEmotionKey>('happy');
   const [selectedTags, setSelectedTags] = useState<string[]>(
     guide.recordDraft.suggestedTags,
   );
+  const [recentTags, setRecentTags] = useState<string[]>(
+    Array.from(RECORD_DEFAULT_RECENT_TAGS),
+  );
+  const [tagDraft, setTagDraft] = useState('');
+  const [tagModalVisible, setTagModalVisible] = useState(false);
   const [saving, setSaving] = useState(false);
   const [doneVisible, setDoneVisible] = useState(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem(RECORD_RECENT_TAGS_STORAGE_KEY)
+      .then(raw => {
+        if (!raw) return;
+        try {
+          const parsed = JSON.parse(raw) as string[];
+          if (Array.isArray(parsed)) {
+            const next = normalizeRecentRecordTags(parsed);
+            if (next.length > 0) setRecentTags(next);
+          }
+        } catch {
+          // ignore
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const toggleTag = useCallback((tag: string) => {
     setSelectedTags(prev =>
       prev.includes(tag) ? prev.filter(item => item !== tag) : [...prev, tag],
     );
+  }, []);
+
+  const onChangeTagDraft = useCallback((value: string) => {
+    setTagDraft(value);
+  }, []);
+
+  const onSubmitDraftTag = useCallback(() => {
+    const parsedTags = parseRecordTags(tagDraft);
+    if (parsedTags.length === 0) return;
+
+    setSelectedTags(prev => Array.from(new Set([...prev, ...parsedTags])));
+    setRecentTags(prev => normalizeRecentRecordTags([...parsedTags, ...prev]));
+    setTagDraft('');
+  }, [tagDraft]);
+
+  const onConfirmTagModal = useCallback(() => {
+    const parsedTags = parseRecordTags(tagDraft);
+    const nextRecent = normalizeRecentRecordTags([...parsedTags, ...recentTags]);
+
+    if (parsedTags.length > 0) {
+      setSelectedTags(prev => Array.from(new Set([...prev, ...parsedTags])));
+      setRecentTags(nextRecent);
+      AsyncStorage.setItem(
+        RECORD_RECENT_TAGS_STORAGE_KEY,
+        JSON.stringify(nextRecent),
+      ).catch(() => {});
+    }
+
+    setTagDraft('');
+    setTagModalVisible(false);
+  }, [recentTags, tagDraft]);
+
+  const onClearRecentTags = useCallback(() => {
+    setRecentTags([]);
+    AsyncStorage.removeItem(RECORD_RECENT_TAGS_STORAGE_KEY).catch(() => {});
   }, []);
 
   const onPickImage = useCallback(async () => {
@@ -152,7 +217,7 @@ export default function WeatherActivityRecordScreen() {
         occurredAt: new Date().toISOString().slice(0, 10),
       });
 
-      if (imageUri && imageUri !== selectedPet?.avatarUrl) {
+      if (imageUri) {
         await uploadMemoryImage({
           userId,
           petId,
@@ -184,7 +249,6 @@ export default function WeatherActivityRecordScreen() {
     refresh,
     saving,
     selectedEmotion,
-    selectedPet?.avatarUrl,
     selectedTags,
     title,
     upsertOneLocal,
@@ -251,6 +315,9 @@ export default function WeatherActivityRecordScreen() {
                   size={54}
                   color="#B39AF5"
                 />
+                <Text style={styles.imagePlaceholderText}>
+                  사진을 추가해 주세요
+                </Text>
               </View>
             )}
 
@@ -263,7 +330,7 @@ export default function WeatherActivityRecordScreen() {
         <View style={styles.section}>
           <Text style={styles.label}>오늘 아이의 기분은?</Text>
           <View style={styles.emotionRow}>
-            {guide.recordDraft.emotionOptions.map(option => {
+            {WEATHER_RECORD_EMOTION_OPTIONS.map(option => {
               const active = selectedEmotion === option.key;
               return (
                 <TouchableOpacity
@@ -288,7 +355,7 @@ export default function WeatherActivityRecordScreen() {
             value={title}
             onChangeText={setTitle}
             style={styles.input}
-            placeholder="제목을 입력해 주세요"
+            placeholder={guide.recordDraft.title}
             placeholderTextColor="#B8C0CF"
           />
         </View>
@@ -308,7 +375,12 @@ export default function WeatherActivityRecordScreen() {
         <View style={styles.section}>
           <View style={styles.tagHeader}>
             <Text style={styles.label}>태그</Text>
-            <Text style={styles.tagAdd}>+ 추가</Text>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => setTagModalVisible(true)}
+            >
+              <Text style={styles.tagAdd}>+ 추가</Text>
+            </TouchableOpacity>
           </View>
           <View style={styles.tagRow}>
             {guide.recordDraft.suggestedTags.map(tag => {
@@ -370,6 +442,24 @@ export default function WeatherActivityRecordScreen() {
           </View>
         </View>
       </Modal>
+
+      <RecordTagModal
+        visible={tagModalVisible}
+        tagDraft={tagDraft}
+        recentTags={recentTags}
+        selectedTags={selectedTags}
+        suggestedTags={guide.recordDraft.suggestedTags}
+        onClose={() => {
+          setTagDraft('');
+          setTagModalVisible(false);
+        }}
+        onChangeTagDraft={onChangeTagDraft}
+        onSubmitDraftTag={onSubmitDraftTag}
+        onPressSuggestedTag={toggleTag}
+        onRemoveTag={toggleTag}
+        onClearRecentTags={onClearRecentTags}
+        onConfirm={onConfirmTagModal}
+      />
     </SafeAreaView>
   );
 }
@@ -463,6 +553,13 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 10,
+  },
+  imagePlaceholderText: {
+    fontSize: 14,
+    lineHeight: 19,
+    color: '#98A3B6',
+    fontWeight: '500',
   },
   imageEditButton: {
     position: 'absolute',
@@ -477,13 +574,14 @@ const styles = StyleSheet.create({
   },
   emotionRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
   },
   emotionChip: {
-    flex: 1,
+    width: '22.8%',
     borderRadius: 18,
-    paddingVertical: 14,
-    paddingHorizontal: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 6,
     alignItems: 'center',
     gap: 6,
     backgroundColor: '#F4F5F9',
@@ -498,10 +596,11 @@ const styles = StyleSheet.create({
     fontSize: 22,
   },
   emotionLabel: {
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 11,
+    lineHeight: 14,
     color: '#9CA6B7',
-    fontWeight: '600',
+    fontWeight: '500',
+    textAlign: 'center',
   },
   emotionLabelActive: {
     color: '#7A45F4',
