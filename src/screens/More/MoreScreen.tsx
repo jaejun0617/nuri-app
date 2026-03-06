@@ -133,6 +133,44 @@ export default function MoreScreen() {
 
         {status === 'logged_in' ? (
           <>
+            <View style={styles.menuSection}>
+              <Text style={styles.menuSectionTitle}>계정 관리</Text>
+
+              <TouchableOpacity
+                activeOpacity={0.88}
+                style={styles.menuRow}
+                onPress={onPressLogout}
+                disabled={loading}
+              >
+                <View>
+                  <Text style={styles.menuRowTitle}>
+                    {loading ? '로그아웃 중...' : '로그아웃'}
+                  </Text>
+                  <Text style={styles.menuRowDesc}>
+                    현재 기기 세션을 정리하고 게스트 상태로 전환해요.
+                  </Text>
+                </View>
+                <Text style={styles.menuRowArrow}>›</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.88}
+                style={[styles.menuRow, styles.menuRowDanger]}
+                onPress={onPressDeleteAccount}
+                disabled={deleting}
+              >
+                <View>
+                  <Text style={styles.menuRowDangerTitle}>
+                    {deleting ? '회원탈퇴 처리 중...' : '회원탈퇴'}
+                  </Text>
+                  <Text style={styles.menuRowDesc}>
+                    계정, 반려동물, 기록, 일정, 동의 이력을 모두 삭제해요.
+                  </Text>
+                </View>
+                <Text style={styles.menuRowDangerArrow}>›</Text>
+              </TouchableOpacity>
+            </View>
+
             <TouchableOpacity
               activeOpacity={0.9}
               style={[styles.primary, loading ? styles.primaryDisabled : null]}
@@ -193,6 +231,59 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 20, fontWeight: '900', color: '#1D1B19', marginBottom: 8 },
   desc: { fontSize: 13, color: '#6E6660', fontWeight: '700', marginBottom: 14 },
+  menuSection: {
+    marginBottom: 14,
+    gap: 10,
+  },
+  menuSectionTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#8C837C',
+  },
+  menuRow: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#ECE7E2',
+    backgroundColor: '#FFFEFD',
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  menuRowDanger: {
+    borderColor: '#F1C7CC',
+    backgroundColor: '#FFF8F8',
+  },
+  menuRowTitle: {
+    color: '#1D1B19',
+    fontSize: 15,
+    fontWeight: '900',
+    marginBottom: 4,
+  },
+  menuRowDangerTitle: {
+    color: '#B42318',
+    fontSize: 15,
+    fontWeight: '900',
+    marginBottom: 4,
+  },
+  menuRowDesc: {
+    color: '#746C66',
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 17,
+    maxWidth: 240,
+  },
+  menuRowArrow: {
+    color: '#9A928C',
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  menuRowDangerArrow: {
+    color: '#B42318',
+    fontSize: 22,
+    fontWeight: '700',
+  },
 
   primary: {
     height: 48,

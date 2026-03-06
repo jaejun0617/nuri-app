@@ -1714,6 +1714,43 @@ NURI는 데이터 입력 도구가 아니라,
 
 ---
 
+## Chapter 6-44 — Timeline 캘린더 히트맵 + Release QA 체크리스트 정리
+
+### 무엇을 진행했나
+
+- 타임라인 상단에 최근 12주 기준의 캘린더 히트맵을 추가했다.
+  - `src/services/timeline/heatmap.ts`
+  - `src/screens/Records/TimelineScreen.tsx`
+  - `src/screens/Records/TimelineScreen.styles.ts`
+- 날짜별 기록 수를 집계해서 강도 5단계(`0~4`)로 시각화했다.
+- 오늘 날짜는 별도 border로 강조하고, 이번 달이 아닌 날짜는 opacity를 낮춰 구분했다.
+- QA 체크리스트 문서도 따로 정리했다.
+  - `docs/qa/release-checklist.md`
+- 히트맵 집계 로직에 대한 테스트를 추가했다.
+  - `__tests__/timelineHeatmap.test.ts`
+
+### 왜 이렇게 했나
+
+- 타임라인은 기록이 많아질수록 “어느 날에 남겼는지” 감으로 보기 어려워진다.
+- 리스트 기반 탐색만으로는 밀도나 공백 구간을 파악하기 어렵기 때문에,
+  최근 12주 흐름을 한 번에 읽을 수 있는 압축 뷰가 필요했다.
+- 그리고 지금 단계에서는 기능 추가만큼 중요한 게
+  출시 전에 뭘 확인해야 하는지 팀 기준을 남기는 일이라서,
+  QA 체크리스트도 같이 문서화했다.
+
+### 결과
+
+- 타임라인 진입 시 상단에서 최근 기록 밀도를 바로 확인할 수 있다.
+- QA 항목이 가입/로그인/로그아웃/회원탈퇴/기록/업로드 복구/홈/모니터링 기준으로 정리됐다.
+
+### 검증
+
+- `yarn tsc --noEmit`
+- `yarn eslint src/screens/Records/TimelineScreen.tsx src/screens/Records/TimelineScreen.styles.ts src/services/timeline/heatmap.ts __tests__/timelineHeatmap.test.ts`
+- `yarn test --watchAll=false --watchman=false __tests__/timelineHeatmap.test.ts`
+
+---
+
 # 🚀 Next
 
 ## Chapter 8 — 서버 검색(제목/태그) + 인덱스/정렬 안정화 + 섹션 점프 고도화

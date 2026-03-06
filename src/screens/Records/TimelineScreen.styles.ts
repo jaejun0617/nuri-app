@@ -123,6 +123,102 @@ export const styles = StyleSheet.create({
   hintRow: {},
   hintText: { color: '#6B7280', fontWeight: '800' },
 
+  heatmapWrap: {
+    marginHorizontal: 14,
+    marginTop: 2,
+    marginBottom: 10,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    backgroundColor: '#FAFAFF',
+    borderWidth: 1,
+    borderColor: 'rgba(109,106,248,0.10)',
+    gap: 12,
+  },
+  heatmapHeader: {
+    gap: 4,
+  },
+  heatmapEyebrow: {
+    color: BRAND,
+    fontWeight: '900',
+  },
+  heatmapTitle: {
+    color: TEXT,
+    fontWeight: '900',
+  },
+  heatmapDesc: {
+    color: '#6B7280',
+    fontWeight: '700',
+    lineHeight: 17,
+  },
+  heatmapGridRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  heatmapLabelsCol: {
+    paddingTop: 1,
+    gap: 6,
+  },
+  heatmapDayLabel: {
+    width: 14,
+    height: 14,
+    color: '#9CA3AF',
+    fontWeight: '800',
+    fontSize: 10,
+    textAlign: 'center',
+  },
+  heatmapWeeksRow: {
+    gap: 6,
+  },
+  heatmapWeekCol: {
+    gap: 6,
+  },
+  heatmapCell: {
+    width: 14,
+    height: 14,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(109,106,248,0.06)',
+  },
+  heatmapCell0: {
+    backgroundColor: '#EFF1F6',
+  },
+  heatmapCell1: {
+    backgroundColor: 'rgba(109,106,248,0.18)',
+  },
+  heatmapCell2: {
+    backgroundColor: 'rgba(109,106,248,0.36)',
+  },
+  heatmapCell3: {
+    backgroundColor: 'rgba(109,106,248,0.58)',
+  },
+  heatmapCell4: {
+    backgroundColor: '#6D6AF8',
+  },
+  heatmapCellMuted: {
+    opacity: 0.45,
+  },
+  heatmapCellToday: {
+    borderColor: '#4338CA',
+    borderWidth: 1.5,
+  },
+  heatmapLegendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 6,
+  },
+  heatmapLegendCell: {
+    width: 12,
+    height: 12,
+    borderRadius: 3,
+  },
+  heatmapLegendText: {
+    color: '#9CA3AF',
+    fontWeight: '800',
+  },
+
   list: { padding: 14, gap: 10, paddingBottom: 24 },
   listEmpty: { flexGrow: 1, padding: 14 },
 

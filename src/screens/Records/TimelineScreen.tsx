@@ -65,6 +65,10 @@ import {
   type MemoryOtherSubCategory,
 } from '../../services/memories/categoryMeta';
 import type { MemoryRecord } from '../../services/supabase/memories';
+import {
+  buildTimelineHeatmap,
+  type TimelineHeatmapWeek,
+} from '../../services/timeline/heatmap';
 import type { PetRecordsState } from '../../store/recordStore';
 import { useRecordStore } from '../../store/recordStore';
 import { usePetStore } from '../../store/petStore';
@@ -302,6 +306,101 @@ const ControlsBar = memo(function ControlsBar({
           </AppText>
         </View>
       ) : null}
+    </View>
+  );
+});
+
+const HEATMAP_DAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'] as const;
+
+function getHeatmapIntensityStyle(intensity: 0 | 1 | 2 | 3 | 4) {
+  switch (intensity) {
+    case 1:
+      return styles.heatmapCell1;
+    case 2:
+      return styles.heatmapCell2;
+    case 3:
+      return styles.heatmapCell3;
+    case 4:
+      return styles.heatmapCell4;
+    default:
+      return styles.heatmapCell0;
+  }
+}
+
+const HeatmapSection = memo(function HeatmapSection({
+  monthLabel,
+  weeks,
+}: {
+  monthLabel: string;
+  weeks: TimelineHeatmapWeek[];
+}) {
+  return (
+    <View style={styles.heatmapWrap}>
+      <View style={styles.heatmapHeader}>
+        <AppText preset="caption" style={styles.heatmapEyebrow}>
+          기록 밀도
+        </AppText>
+        <AppText preset="body" style={styles.heatmapTitle}>
+          최근 12주 히트맵
+        </AppText>
+        <AppText preset="caption" style={styles.heatmapDesc}>
+          {monthLabel} 기준으로 기록이 남은 날을 한눈에 보여줘요.
+        </AppText>
+      </View>
+
+      <View style={styles.heatmapGridRow}>
+        <View style={styles.heatmapLabelsCol}>
+          {HEATMAP_DAY_LABELS.map(label => (
+            <AppText
+              key={label}
+              preset="caption"
+              style={styles.heatmapDayLabel}
+            >
+              {label}
+            </AppText>
+          ))}
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.heatmapWeeksRow}
+        >
+          {weeks.map(week => (
+            <View key={week.key} style={styles.heatmapWeekCol}>
+              {week.cells.map(cell => (
+                <View
+                  key={cell.key}
+                  style={[
+                    styles.heatmapCell,
+                    getHeatmapIntensityStyle(cell.intensity),
+                    cell.isToday ? styles.heatmapCellToday : null,
+                    !cell.isCurrentMonth ? styles.heatmapCellMuted : null,
+                  ]}
+                />
+              ))}
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+
+      <View style={styles.heatmapLegendRow}>
+        <AppText preset="caption" style={styles.heatmapLegendText}>
+          적음
+        </AppText>
+        {[0, 1, 2, 3, 4].map(level => (
+          <View
+            key={`legend-${level}`}
+            style={[
+              styles.heatmapLegendCell,
+              getHeatmapIntensityStyle(level as 0 | 1 | 2 | 3 | 4),
+            ]}
+          />
+        ))}
+        <AppText preset="caption" style={styles.heatmapLegendText}>
+          많음
+        </AppText>
+      </View>
     </View>
   );
 });
@@ -598,6 +697,10 @@ export default function TimelineScreen() {
   }, [mainCategory, otherSubCategory]);
 
   const showSearchHint = Boolean(query);
+  const heatmapWeeks = useMemo(
+    () => buildTimelineHeatmap(baseItems as MemoryRecord[], 12),
+    [baseItems],
+  );
 
   // ---------------------------------------------------------
   // 7) renderItem (stable) - 🔥 외부 MemoryCard 호출!
@@ -726,21 +829,24 @@ export default function TimelineScreen() {
         onEndReached={onEndReached}
         onEndReachedThreshold={0.6}
         ListHeaderComponent={
-          <ControlsBar
-            sortLabel={sortLabel}
-            monthLabel={monthLabel}
-            searchOpen={searchOpen}
-            searchInput={searchInput}
-            showSearchHint={showSearchHint}
-            mainCategory={mainCategory}
-            categoryLabel={categoryLabel}
-            onToggleSort={onToggleSort}
-            onOpenMonthModal={onOpenMonthModal}
-            onToggleSearch={onToggleSearch}
-            onChangeSearch={onChangeSearch}
-            onClearSearch={onClearSearch}
-            onPressMainCategory={onPressMainCategory}
-          />
+          <>
+            <ControlsBar
+              sortLabel={sortLabel}
+              monthLabel={monthLabel}
+              searchOpen={searchOpen}
+              searchInput={searchInput}
+              showSearchHint={showSearchHint}
+              mainCategory={mainCategory}
+              categoryLabel={categoryLabel}
+              onToggleSort={onToggleSort}
+              onOpenMonthModal={onOpenMonthModal}
+              onToggleSearch={onToggleSearch}
+              onChangeSearch={onChangeSearch}
+              onClearSearch={onClearSearch}
+              onPressMainCategory={onPressMainCategory}
+            />
+            <HeatmapSection monthLabel={monthLabel} weeks={heatmapWeeks} />
+          </>
         }
         stickyHeaderIndices={[0]}
         ListFooterComponent={ListFooterComponent}

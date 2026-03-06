@@ -158,6 +158,44 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
 
           {status === 'logged_in' ? (
             <>
+              <View style={styles.menuSection}>
+                <Text style={styles.menuSectionTitle}>계정 관리</Text>
+
+                <TouchableOpacity
+                  activeOpacity={0.88}
+                  style={styles.menuRow}
+                  onPress={onPressLogout}
+                  disabled={loading}
+                >
+                  <View>
+                    <Text style={styles.menuRowTitle}>
+                      {loading ? '로그아웃 중...' : '로그아웃'}
+                    </Text>
+                    <Text style={styles.menuRowDesc}>
+                      현재 기기 세션을 정리하고 게스트 상태로 전환해요.
+                    </Text>
+                  </View>
+                  <Text style={styles.menuRowArrow}>›</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  activeOpacity={0.88}
+                  style={[styles.menuRow, styles.menuRowDanger]}
+                  onPress={onPressDeleteAccount}
+                  disabled={deleting}
+                >
+                  <View>
+                    <Text style={styles.menuRowDangerTitle}>
+                      {deleting ? '회원탈퇴 처리 중...' : '회원탈퇴'}
+                    </Text>
+                    <Text style={styles.menuRowDesc}>
+                      계정, 반려동물, 기록, 일정, 동의 이력을 모두 삭제해요.
+                    </Text>
+                  </View>
+                  <Text style={styles.menuRowDangerArrow}>›</Text>
+                </TouchableOpacity>
+              </View>
+
               <TouchableOpacity
                 activeOpacity={0.9}
                 style={[styles.primary, loading ? styles.primaryDisabled : null]}
@@ -249,6 +287,59 @@ const styles = StyleSheet.create({
     color: '#000000',
     fontWeight: '900',
     marginBottom: 14,
+  },
+  menuSection: {
+    marginBottom: 14,
+    gap: 10,
+  },
+  menuSectionTitle: {
+    fontSize: 12,
+    color: '#666666',
+    fontWeight: '900',
+  },
+  menuRow: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#EAEAEA',
+    backgroundColor: '#FCFCFC',
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  menuRowDanger: {
+    borderColor: '#F2C7CC',
+    backgroundColor: '#FFF8F8',
+  },
+  menuRowTitle: {
+    color: '#111111',
+    fontSize: 15,
+    fontWeight: '900',
+    marginBottom: 4,
+  },
+  menuRowDangerTitle: {
+    color: '#B42318',
+    fontSize: 15,
+    fontWeight: '900',
+    marginBottom: 4,
+  },
+  menuRowDesc: {
+    color: '#666666',
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 17,
+    maxWidth: 220,
+  },
+  menuRowArrow: {
+    color: '#9B9B9B',
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  menuRowDangerArrow: {
+    color: '#B42318',
+    fontSize: 22,
+    fontWeight: '700',
   },
 
   primary: {

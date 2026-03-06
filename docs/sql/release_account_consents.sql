@@ -21,12 +21,18 @@ create index if not exists idx_user_consent_history_user_created_at
 
 alter table public.user_consent_history enable row level security;
 
-create policy if not exists "user_consent_history_select_own"
+drop policy if exists "user_consent_history_select_own"
+  on public.user_consent_history;
+
+create policy "user_consent_history_select_own"
   on public.user_consent_history
   for select
   using (auth.uid() = user_id);
 
-create policy if not exists "user_consent_history_insert_own"
+drop policy if exists "user_consent_history_insert_own"
+  on public.user_consent_history;
+
+create policy "user_consent_history_insert_own"
   on public.user_consent_history
   for insert
   with check (auth.uid() = user_id);
