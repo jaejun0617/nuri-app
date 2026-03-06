@@ -54,11 +54,6 @@ export async function resolveDistrictFromCoordinates(
     });
 
     if (!response.ok) {
-      console.warn('[district] kakao request failed', {
-        status: response.status,
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-      });
       return {
         district: getFallbackDistrictLabel(coords),
         source: 'fallback',
@@ -84,22 +79,11 @@ export async function resolveDistrictFromCoordinates(
       legalDong?.address_name?.trim() ||
       getFallbackDistrictLabel(coords);
 
-    console.info('[district] resolved', {
-      latitude: coords.latitude,
-      longitude: coords.longitude,
-      district,
-      source: legalDong ? 'kakao' : 'fallback',
-    });
-
     return {
       district,
       source: legalDong ? 'kakao' : 'fallback',
     };
   } catch {
-    console.warn('[district] kakao request threw', {
-      latitude: coords.latitude,
-      longitude: coords.longitude,
-    });
     return {
       district: getFallbackDistrictLabel(coords),
       source: 'fallback',

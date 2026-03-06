@@ -5,8 +5,13 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
+import { getBrandedErrorMeta } from '../services/app/errors';
 import { getFallbackDistrictLabel } from '../services/location/district';
 import { fetchOpenMeteoAirQuality, fetchOpenMeteoForecast } from '../services/weather/api';
+import {
+  loadCachedWeatherGuideBundle,
+  saveCachedWeatherGuideBundle,
+} from '../services/weather/cache';
 import { buildWeatherGuideBundleFromApi } from '../services/weather/mapper';
 import { getWeatherGuideBundle, type WeatherGuideBundle } from '../services/weather/guide';
 import { useCurrentLocation } from './useCurrentLocation';
@@ -19,6 +24,28 @@ export type WeatherGuideState = {
   refresh: () => Promise<void>;
   usingMock: boolean;
 };
+
+function getWeatherGuideErrorMessage(error: unknown) {
+  const meta = getBrandedErrorMeta(error, 'generic');
+  return meta.message;
+}
+
+function getLocationFallbackMessage(input: {
+  permission: ReturnType<typeof useCurrentLocation>['permission'];
+  locationError: string | null;
+  districtError: string | null;
+}) {
+  if (input.permission === 'blocked') {
+    return '위치 권한이 꺼져 있어 최근 확인한 날씨를 먼저 보여드릴게요.';
+  }
+  if (input.permission === 'denied') {
+    return '위치 권한이 없어 최근 확인한 날씨를 먼저 보여드릴게요.';
+  }
+  if (input.locationError || input.districtError) {
+    return '현재 위치를 잠시 찾지 못해 최근 확인한 날씨를 먼저 보여드릴게요.';
+  }
+  return null;
+}
 
 export function useWeatherGuide(initialDistrict = '현재 위치'): WeatherGuideState {
   const location = useCurrentLocation();
@@ -48,13 +75,26 @@ export function useWeatherGuide(initialDistrict = '현재 위치'): WeatherGuide
     async function run() {
       if (!location.coordinates) {
         setBundle(getWeatherGuideBundle(resolvedDistrict));
-        setError(districtState.error ?? location.error);
+        setError(
+          getLocationFallbackMessage({
+            permission: location.permission,
+            locationError: location.error,
+            districtError: districtState.error,
+          }),
+        );
         setLoading(location.loading || districtState.loading);
         return;
       }
 
       setLoading(true);
       setError(null);
+
+      const cachedBundle = await loadCachedWeatherGuideBundle(location.coordinates);
+      if (cancelled) return;
+
+      if (cachedBundle) {
+        setBundle(cachedBundle);
+      }
 
       try {
         const [forecast, airQuality] = await Promise.all([
@@ -64,21 +104,26 @@ export function useWeatherGuide(initialDistrict = '현재 위치'): WeatherGuide
 
         if (cancelled) return;
 
-        setBundle(
-          buildWeatherGuideBundleFromApi({
-            district: resolvedDistrict,
-            coords: location.coordinates,
-            forecast,
-            airQuality,
-          }),
-        );
+        const nextBundle = buildWeatherGuideBundleFromApi({
+          district: resolvedDistrict,
+          coords: location.coordinates,
+          forecast,
+          airQuality,
+        });
+
+        setBundle(nextBundle);
+        await saveCachedWeatherGuideBundle(location.coordinates, nextBundle);
       } catch (nextError) {
         if (cancelled) return;
-        setBundle(getWeatherGuideBundle(resolvedDistrict));
+
+        if (!cachedBundle) {
+          setBundle(getWeatherGuideBundle(resolvedDistrict));
+        }
+
         setError(
-          nextError instanceof Error && nextError.message.trim()
-            ? nextError.message
-            : '날씨 정보를 잠시 불러오지 못했어요.',
+          cachedBundle
+            ? '최근 확인한 날씨를 먼저 보여드릴게요. 연결이 안정되면 새 정보로 바뀝니다.'
+            : getWeatherGuideErrorMessage(nextError),
         );
       } finally {
         if (!cancelled) {
@@ -98,6 +143,7 @@ export function useWeatherGuide(initialDistrict = '현재 위치'): WeatherGuide
     location.coordinates,
     location.error,
     location.loading,
+    location.permission,
     resolvedDistrict,
   ]);
 
