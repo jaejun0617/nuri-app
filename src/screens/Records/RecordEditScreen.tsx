@@ -39,6 +39,13 @@ import Feather from 'react-native-vector-icons/Feather';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { TimelineStackParamList } from '../../navigation/TimelineStackNavigator';
 import {
+  buildPickedRecordImages,
+  parseRecordTags,
+  RECORD_EMOTION_OPTIONS,
+  type PickedRecordImage,
+  validateRecordOccurredAt,
+} from '../../services/records/form';
+import {
   updateMemoryFields,
   updateMemoryImagePaths,
   type EmotionTag,
@@ -60,69 +67,16 @@ type Route = RouteProp<TimelineStackParamList, 'RecordEdit'>;
 
 const ENABLE_SERVER_SYNC = false; // ✅ 필요할 때만 true
 
-const EMOTIONS: ReadonlyArray<{
-  label: string;
-  value: EmotionTag;
-  emoji: string;
-}> = [
-  { label: '행복해요', value: 'happy', emoji: '😊' },
-  { label: '평온해요', value: 'calm', emoji: '😌' },
-  { label: '신나요', value: 'excited', emoji: '🤩' },
-  { label: '무난해요', value: 'neutral', emoji: '🙂' },
-  { label: '아쉬워요', value: 'sad', emoji: '😢' },
-  { label: '걱정돼요', value: 'anxious', emoji: '😥' },
-  { label: '예민해요', value: 'angry', emoji: '😠' },
-  { label: '피곤해요', value: 'tired', emoji: '😴' },
-];
-
 function getErrorMessage(err: unknown) {
   if (err instanceof Error) return err.message;
   if (typeof err === 'string') return err;
   return '오류가 발생했습니다.';
 }
 
-type PickedImage = { uri: string; mimeType: string | null };
-type AddedImage = PickedImage & { key: string };
+type AddedImage = PickedRecordImage;
 type PreviewItem =
   | { kind: 'existing'; key: string; path: string; uri: string | null }
   | { kind: 'added'; key: string; uri: string };
-
-function inferMimeFromFileName(
-  fileName: string | null | undefined,
-): string | null {
-  const n = (fileName ?? '').toLowerCase().trim();
-  if (!n) return null;
-  if (n.endsWith('.jpg') || n.endsWith('.jpeg')) return 'image/jpeg';
-  if (n.endsWith('.png')) return 'image/png';
-  if (n.endsWith('.webp')) return 'image/webp';
-  if (n.endsWith('.heic')) return 'image/heic';
-  if (n.endsWith('.heif')) return 'image/heif';
-  return null;
-}
-
-function inferMimeFromUri(uri: string): string | null {
-  const u = uri.toLowerCase().split('?')[0];
-  if (u.endsWith('.jpg') || u.endsWith('.jpeg')) return 'image/jpeg';
-  if (u.endsWith('.png')) return 'image/png';
-  if (u.endsWith('.webp')) return 'image/webp';
-  if (u.endsWith('.heic')) return 'image/heic';
-  if (u.endsWith('.heif')) return 'image/heif';
-  return null;
-}
-
-function resolvePickerMimeType(asset: any): string | null {
-  const t = asset?.type ?? asset?.mime ?? asset?.mimeType ?? null;
-  if (typeof t === 'string' && t.includes('/')) return t;
-
-  const byName = inferMimeFromFileName(asset?.fileName ?? null);
-  if (byName) return byName;
-
-  const byUri =
-    typeof asset?.uri === 'string' ? inferMimeFromUri(asset.uri) : null;
-  if (byUri) return byUri;
-
-  return null;
-}
 
 export default function RecordEditScreen() {
   // ---------------------------------------------------------
@@ -282,43 +236,6 @@ export default function RecordEditScreen() {
   }, [activeImageIndex, previewItems.length]);
 
   // ---------------------------------------------------------
-  // 6) helpers
-  // ---------------------------------------------------------
-  const parseTags = useCallback((raw: string) => {
-    const cleaned = raw.trim();
-    if (!cleaned) return [];
-
-    const byComma = cleaned
-      .split(',')
-      .map(s => s.trim())
-      .filter(Boolean);
-
-    const base =
-      byComma.length >= 2
-        ? byComma
-        : cleaned
-            .split(/\s+/)
-            .map(s => s.trim())
-            .filter(Boolean);
-
-    return base
-      .map(t => t.replace(/^#/, '').trim())
-      .filter(Boolean)
-      .slice(0, 10)
-      .map(t => `#${t}`);
-  }, []);
-
-  const validateOccurredAt = useCallback((v: string) => {
-    const t = v.trim();
-    if (!t) return null;
-
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) {
-      throw new Error('날짜 형식은 YYYY-MM-DD 입니다.');
-    }
-    return t;
-  }, []);
-
-  // ---------------------------------------------------------
   // 7) image actions
   // ---------------------------------------------------------
   const onPickImage = useCallback(async () => {
@@ -339,18 +256,14 @@ export default function RecordEditScreen() {
     }
     setDirty(true);
     setAddedImages(prev => {
-      const next = [...prev];
-      for (const asset of assets as any[]) {
-        const uri: string | null = asset?.uri ?? null;
-        if (!uri) continue;
-        if (next.some(i => i.uri === uri)) continue;
-        next.push({
-          key: `a:${Date.now()}-${uri}`,
-          uri,
-          mimeType: resolvePickerMimeType(asset),
-        });
-      }
-      return next.slice(0, 10);
+      return [
+        ...prev,
+        ...buildPickedRecordImages(assets, {
+          existingUris: prev.map(image => image.uri),
+          keyPrefix: `a:${Date.now()}`,
+          limit: 10 - prev.length,
+        }),
+      ].slice(0, 10);
     });
   }, [saving]);
 
@@ -394,9 +307,9 @@ export default function RecordEditScreen() {
       setSaving(true);
 
       // 1) 텍스트 저장
-      const occurred = validateOccurredAt(occurredAt);
+      const occurred = validateRecordOccurredAt(occurredAt);
       const nextContent = content.trim() || null;
-      const nextTags = parseTags(tagsText);
+      const nextTags = parseRecordTags(tagsText);
 
       await updateMemoryFields({
         memoryId,
@@ -481,8 +394,6 @@ export default function RecordEditScreen() {
     baseImagePaths,
     removedPaths,
     updateOneLocal,
-    parseTags,
-    validateOccurredAt,
     refresh,
   ]);
 
@@ -686,7 +597,7 @@ export default function RecordEditScreen() {
         </AppText>
 
         <View style={styles.emotionGrid}>
-          {EMOTIONS.map(em => {
+          {RECORD_EMOTION_OPTIONS.map(em => {
             const active = emotion === em.value;
             return (
               <TouchableOpacity

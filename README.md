@@ -1551,6 +1551,51 @@ NURI는 데이터 입력 도구가 아니라,
 
 ---
 
+## Chapter 6-41 — Record 생성/수정 폼 공용화 + 입력 규칙 정리
+
+### 무엇을 진행했나
+
+- `RecordCreateScreen`와 `RecordEditScreen`가 각각 들고 있던 폼 헬퍼를 공용 레이어로 분리했다.
+  - `src/services/records/form.ts`
+- 공용화한 항목은 아래 기준이다.
+  - 기록 카테고리/기타 서브카테고리 옵션
+  - 감정 옵션
+  - picker 이미지 mimeType 추론
+  - 다중 이미지 선택 결과 정리
+  - 날짜 포맷/오프셋/검증
+  - 태그 파싱/병합
+  - 최근 태그 저장소 키와 최근 태그 정규화
+- `RecordCreateScreen`는 새 공용 헬퍼를 기준으로
+  이미지 추가, 날짜 단축 선택, 태그 병합, 최근 태그 저장 흐름을 정리했다.
+- `RecordEditScreen`도 같은 공용 규칙을 사용하도록 맞췄다.
+  - 태그 파싱
+  - 날짜 검증
+  - picker 이미지 추가
+  - 감정 옵션 렌더링
+
+### 왜 이렇게 했나
+
+- 레코드 생성/수정 화면은 같은 도메인인데도,
+  실제로는 거의 같은 helper를 각 파일 안에 복제해서 들고 있었다.
+- 이 상태에서는 한쪽만 수정되어 규칙이 어긋날 가능성이 높았고,
+  나중에 태그 정책이나 이미지 선택 규칙을 바꾸면 두 화면을 같이 수정해야 했다.
+- 이번 정리는 “기록 입력 규칙은 한 곳에서 관리한다”는 기준을 세우는 작업이다.
+
+### 결과
+
+- 생성/수정 화면이 같은 입력 규칙을 공유하게 됐다.
+- 레코드 폼 관련 중복 코드가 줄었고, 다음 단계 리팩터링 범위가 더 명확해졌다.
+- 이번 수정 범위 기준 검증:
+  - `yarn tsc --noEmit`
+  - `yarn eslint src/services/records/form.ts src/screens/Records/RecordCreateScreen.tsx src/screens/Records/RecordEditScreen.tsx`
+
+### 다음 후보
+
+- `RecordCreateScreen` / `RecordEditScreen`의 이미지 프리뷰 UI 자체를 공용 컴포넌트로 추출
+- 태그 모달/날짜 모달도 공용 컴포넌트로 승격
+
+---
+
 # 🚀 Next
 
 ## Chapter 8 — 서버 검색(제목/태그) + 인덱스/정렬 안정화 + 섹션 점프 고도화

@@ -35,6 +35,26 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import AppText from '../../app/ui/AppText';
 import type { AppTabParamList } from '../../navigation/AppTabsNavigator';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import {
+  buildPickedRecordImages,
+  formatRecordKoreanDate,
+  mergeRecordTags,
+  normalizeRecentRecordTags,
+  offsetRecordYmd,
+  parseRecordTags,
+  RECORD_DEFAULT_RECENT_TAGS,
+  RECORD_EMOTION_OPTIONS,
+  RECORD_MAIN_CATEGORIES,
+  RECORD_OTHER_SUBCATEGORIES,
+  RECORD_RECENT_TAGS_STORAGE_KEY,
+  RECORD_SUGGESTED_TAGS,
+  toRecordYmd,
+  type PickedRecordImage,
+  type RecordDateShortcutKey,
+  type RecordMainCategoryKey,
+  type RecordOtherSubCategoryKey,
+  validateRecordOccurredAt,
+} from '../../services/records/form';
 import { supabase } from '../../services/supabase/client';
 import {
   createMemory,
@@ -55,179 +75,12 @@ type RecordCreateTabNav = BottomTabNavigationProp<
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
 type Nav = CompositeNavigationProp<RecordCreateTabNav, RootNav>;
 
-const MAIN_CATEGORIES = [
-  { key: 'walk', label: '산책', icon: 'activity' as const, tag: '#산책' },
-  { key: 'meal', label: '식사', icon: 'coffee' as const, tag: '#식사' },
-  { key: 'health', label: '건강', icon: 'heart' as const, tag: '#건강' },
-  { key: 'diary', label: '일기장', icon: 'edit-3' as const, tag: '#일기장' },
-  { key: 'other', label: '기타', icon: 'more-horizontal' as const, tag: '#기타' },
-] as const;
-
-const SUGGESTED_TAGS = [
-  '#산책',
-  '#강아지',
-  '#귀요미',
-  '#일상',
-  '#힐링',
-  '#꽃만남',
-] as const;
-
-const RECENT_TAGS = ['#예방접종', '#맛있는간식'] as const;
-const RECENT_TAGS_STORAGE_KEY = 'nuri.recordCreateRecentTags.v1';
-
-const OTHER_SUBCATEGORIES = [
-  { key: 'grooming', label: '미용', tag: '#미용' },
-  { key: 'hospital', label: '병원/약', tag: '#병원약' },
-  { key: 'etc', label: '기타', tag: '#기타세부' },
-] as const;
-
-type MainCategoryKey = (typeof MAIN_CATEGORIES)[number]['key'];
-type OtherSubCategoryKey = (typeof OTHER_SUBCATEGORIES)[number]['key'];
-type DateShortcutKey = 'today' | 'yesterday';
-type SelectedImage = {
-  key: string;
-  uri: string;
-  mimeType: string | null;
-};
-
-const MOOD_OPTIONS: ReadonlyArray<{
-  value: EmotionTag;
-  emoji: string;
-  label: string;
-}> = [
-  { value: 'happy', emoji: '😊', label: '행복해요' },
-  { value: 'calm', emoji: '😌', label: '평온해요' },
-  { value: 'excited', emoji: '🤩', label: '신나요' },
-  { value: 'neutral', emoji: '🙂', label: '무난해요' },
-  { value: 'sad', emoji: '😢', label: '아쉬워요' },
-  { value: 'anxious', emoji: '😥', label: '걱정돼요' },
-  { value: 'angry', emoji: '😠', label: '예민해요' },
-  { value: 'tired', emoji: '😴', label: '피곤해요' },
-];
-
 function getErrorMessage(err: unknown) {
   if (err instanceof Error) return err.message;
   if (typeof err === 'string') return err;
   return '다시 시도해 주세요.';
 }
 
-function inferMimeFromFileName(
-  fileName: string | null | undefined,
-): string | null {
-  const value = (fileName ?? '').toLowerCase().trim();
-  if (!value) return null;
-  if (value.endsWith('.jpg') || value.endsWith('.jpeg')) return 'image/jpeg';
-  if (value.endsWith('.png')) return 'image/png';
-  if (value.endsWith('.webp')) return 'image/webp';
-  if (value.endsWith('.heic')) return 'image/heic';
-  if (value.endsWith('.heif')) return 'image/heif';
-  return null;
-}
-
-function inferMimeFromUri(uri: string): string | null {
-  const normalized = uri.toLowerCase().split('?')[0];
-  if (normalized.endsWith('.jpg') || normalized.endsWith('.jpeg')) {
-    return 'image/jpeg';
-  }
-  if (normalized.endsWith('.png')) return 'image/png';
-  if (normalized.endsWith('.webp')) return 'image/webp';
-  if (normalized.endsWith('.heic')) return 'image/heic';
-  if (normalized.endsWith('.heif')) return 'image/heif';
-  return null;
-}
-
-function resolvePickerMimeType(asset: {
-  type?: string | null;
-  fileName?: string | null;
-  uri?: string | null;
-}) {
-  const direct = asset.type ?? null;
-  if (direct && direct.includes('/')) return direct;
-
-  const byName = inferMimeFromFileName(asset.fileName);
-  if (byName) return byName;
-
-  if (asset.uri) return inferMimeFromUri(asset.uri);
-  return null;
-}
-
-function toYmd(date: Date) {
-  const y = date.getFullYear();
-  const m = `${date.getMonth() + 1}`.padStart(2, '0');
-  const d = `${date.getDate()}`.padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-function offsetYmd(base: string, offsetDays: number) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(base)) return base;
-  const [y, m, d] = base.split('-').map(Number);
-  const next = new Date(y, m - 1, d + offsetDays);
-  return toYmd(next);
-}
-
-function formatKoreanDate(ymd: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return ymd;
-
-  const [y, m, d] = ymd.split('-').map(Number);
-  const dayIndex = new Date(y, m - 1, d).getDay();
-  const dayText = ['일', '월', '화', '수', '목', '금', '토'][dayIndex] ?? '';
-  return `${y}년 ${m}월 ${d}일 ${dayText}요일`;
-}
-
-function parseTags(raw: string) {
-  const cleaned = raw.trim();
-  if (!cleaned) return [];
-
-  const byComma = cleaned
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean);
-
-  const base =
-    byComma.length >= 2
-      ? byComma
-      : cleaned
-          .split(/\s+/)
-          .map(s => s.trim())
-          .filter(Boolean);
-
-  return base
-    .map(tag => tag.replace(/^#/, '').trim())
-    .filter(Boolean)
-    .slice(0, 10)
-    .map(tag => `#${tag}`);
-}
-
-function mergeTags(
-  selectedTags: string[],
-  mainCategoryKey: MainCategoryKey | null,
-  otherSubCategoryKey: OtherSubCategoryKey | null,
-) {
-  const manual = selectedTags
-    .map(tag => tag.trim())
-    .filter(Boolean)
-    .slice(0, 10);
-  const mainTag =
-    MAIN_CATEGORIES.find(category => category.key === mainCategoryKey)?.tag ??
-    null;
-  const otherSubTag =
-    otherSubCategoryKey && mainCategoryKey === 'other'
-      ? OTHER_SUBCATEGORIES.find(sub => sub.key === otherSubCategoryKey)?.tag ??
-        null
-      : null;
-
-  const merged = [mainTag, otherSubTag, ...manual].filter(Boolean) as string[];
-  return Array.from(new Set(merged));
-}
-
-function validateOccurredAt(value: string) {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-    throw new Error('날짜 형식은 YYYY-MM-DD 입니다.');
-  }
-  return trimmed;
-}
 
 export default function RecordCreateScreen() {
   const navigation = useNavigation<Nav>();
@@ -248,28 +101,28 @@ export default function RecordCreateScreen() {
     return pets[0]?.id ?? null;
   }, [petIdFromParams, selectedPetId, pets]);
 
-  const todayYmd = useMemo(() => toYmd(new Date()), []);
+  const todayYmd = useMemo(() => toRecordYmd(new Date()), []);
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [occurredAt, setOccurredAt] = useState(todayYmd);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [recentTags, setRecentTags] =
-    useState<string[]>(Array.from(RECENT_TAGS));
+    useState<string[]>(Array.from(RECORD_DEFAULT_RECENT_TAGS));
   const [tagDraft, setTagDraft] = useState('');
   const [tagModalVisible, setTagModalVisible] = useState(false);
   const [mainCategoryKey, setMainCategoryKey] =
-    useState<MainCategoryKey>('walk');
+    useState<RecordMainCategoryKey>('walk');
   const [otherSubCategoryKey, setOtherSubCategoryKey] =
-    useState<OtherSubCategoryKey | null>(null);
+    useState<RecordOtherSubCategoryKey | null>(null);
   const [dateModalVisible, setDateModalVisible] = useState(false);
   const [dateDraft, setDateDraft] = useState(todayYmd);
   const [selectedDateShortcut, setSelectedDateShortcut] =
-    useState<DateShortcutKey>('today');
+    useState<RecordDateShortcutKey>('today');
   const [selectedEmotion, setSelectedEmotion] = useState<EmotionTag | null>(
     null,
   );
-  const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
+  const [selectedImages, setSelectedImages] = useState<PickedRecordImage[]>([]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [saving, setSaving] = useState(false);
 
@@ -277,20 +130,23 @@ export default function RecordCreateScreen() {
   const disabled = saving || trimmedTitle.length === 0 || !petId;
   const selectedMainCategory = useMemo(
     () =>
-      MAIN_CATEGORIES.find(category => category.key === mainCategoryKey) ?? null,
+      RECORD_MAIN_CATEGORIES.find(category => category.key === mainCategoryKey) ??
+      null,
     [mainCategoryKey],
   );
   const selectedOtherSubCategory = useMemo(
     () =>
-      OTHER_SUBCATEGORIES.find(sub => sub.key === otherSubCategoryKey) ?? null,
+      RECORD_OTHER_SUBCATEGORIES.find(sub => sub.key === otherSubCategoryKey) ??
+      null,
     [otherSubCategoryKey],
   );
   const formattedDate = useMemo(
-    () => formatKoreanDate(occurredAt || todayYmd),
+    () => formatRecordKoreanDate(occurredAt || todayYmd),
     [occurredAt, todayYmd],
   );
   const mergedPreviewTags = useMemo(
-    () => mergeTags(selectedTags, mainCategoryKey, otherSubCategoryKey),
+    () =>
+      mergeRecordTags(selectedTags, mainCategoryKey, otherSubCategoryKey),
     [selectedTags, mainCategoryKey, otherSubCategoryKey],
   );
   const activeImage = useMemo(
@@ -335,16 +191,13 @@ export default function RecordCreateScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      AsyncStorage.getItem(RECENT_TAGS_STORAGE_KEY)
+      AsyncStorage.getItem(RECORD_RECENT_TAGS_STORAGE_KEY)
         .then(raw => {
           if (!raw) return;
           try {
             const parsed = JSON.parse(raw) as string[];
             if (Array.isArray(parsed)) {
-              const next = parsed
-                .map(tag => (tag ?? '').trim())
-                .filter(Boolean)
-                .slice(0, 8);
+              const next = normalizeRecentRecordTags(parsed);
               if (next.length) setRecentTags(next);
             }
           } catch {
@@ -376,21 +229,14 @@ export default function RecordCreateScreen() {
     }
 
     setSelectedImages(prev => {
-      const next = [...prev];
-
-      for (const asset of assets) {
-        const uri = asset.uri;
-        if (!uri) continue;
-        if (next.some(image => image.uri === uri)) continue;
-
-        next.push({
-          key: `${Date.now()}-${uri}`,
-          uri,
-          mimeType: resolvePickerMimeType(asset),
-        });
-      }
-
-      return next.slice(0, 10);
+      return [
+        ...prev,
+        ...buildPickedRecordImages(assets, {
+          existingUris: prev.map(image => image.uri),
+          keyPrefix: `${Date.now()}`,
+          limit: 10 - prev.length,
+        }),
+      ].slice(0, 10);
     });
   }, [saving]);
 
@@ -406,7 +252,7 @@ export default function RecordCreateScreen() {
     navigation.navigate('HomeTab');
   }, [navigation, resetForm]);
 
-  const onSelectMainCategory = useCallback((nextKey: MainCategoryKey) => {
+  const onSelectMainCategory = useCallback((nextKey: RecordMainCategoryKey) => {
     setMainCategoryKey(nextKey);
     if (nextKey !== 'other') {
       setOtherSubCategoryKey(null);
@@ -414,7 +260,7 @@ export default function RecordCreateScreen() {
   }, []);
 
   const onSelectOtherSubCategory = useCallback(
-    (nextKey: OtherSubCategoryKey) => {
+    (nextKey: RecordOtherSubCategoryKey) => {
       setMainCategoryKey('other');
       setOtherSubCategoryKey(nextKey);
     },
@@ -436,8 +282,8 @@ export default function RecordCreateScreen() {
   }, [occurredAt, todayYmd]);
 
   const onPressDateShortcut = useCallback(
-    (key: DateShortcutKey) => {
-      const next = key === 'today' ? todayYmd : offsetYmd(todayYmd, -1);
+    (key: RecordDateShortcutKey) => {
+      const next = key === 'today' ? todayYmd : offsetRecordYmd(todayYmd, -1);
       setSelectedDateShortcut(key);
       setDateDraft(next);
     },
@@ -445,7 +291,7 @@ export default function RecordCreateScreen() {
   );
 
   const onApplyDate = useCallback(() => {
-    const next = validateOccurredAt(dateDraft) ?? todayYmd;
+    const next = validateRecordOccurredAt(dateDraft) ?? todayYmd;
     setOccurredAt(next);
     setDateModalVisible(false);
   }, [dateDraft, todayYmd]);
@@ -460,7 +306,7 @@ export default function RecordCreateScreen() {
   }, []);
 
   const appendTag = useCallback((raw: string) => {
-    const parsed = parseTags(raw);
+    const parsed = parseRecordTags(raw);
     if (!parsed.length) return;
 
     setSelectedTags(prev => {
@@ -490,7 +336,7 @@ export default function RecordCreateScreen() {
 
   const onClearRecentTags = useCallback(() => {
     setRecentTags([]);
-    AsyncStorage.removeItem(RECENT_TAGS_STORAGE_KEY).catch(() => {});
+    AsyncStorage.removeItem(RECORD_RECENT_TAGS_STORAGE_KEY).catch(() => {});
   }, []);
 
   const onSubmit = useCallback(async () => {
@@ -499,8 +345,8 @@ export default function RecordCreateScreen() {
     try {
       setSaving(true);
 
-      const occurred = validateOccurredAt(occurredAt);
-      const mergedTags = mergeTags(
+      const occurred = validateRecordOccurredAt(occurredAt);
+      const mergedTags = mergeRecordTags(
         selectedTags,
         mainCategoryKey,
         otherSubCategoryKey,
@@ -585,12 +431,12 @@ export default function RecordCreateScreen() {
       refresh(petId).catch(() => {});
 
       if (selectedTags.length > 0) {
-        const recentUsedTags = Array.from(
-          new Set([...selectedTags, ...recentTags]),
-        ).slice(0, 8);
+        const recentUsedTags = normalizeRecentRecordTags(
+          Array.from(new Set([...selectedTags, ...recentTags])),
+        );
         setRecentTags(recentUsedTags);
         AsyncStorage.setItem(
-          RECENT_TAGS_STORAGE_KEY,
+          RECORD_RECENT_TAGS_STORAGE_KEY,
           JSON.stringify(recentUsedTags),
         ).catch(() => {});
       }
@@ -757,7 +603,7 @@ export default function RecordCreateScreen() {
         ) : null}
 
         <View style={styles.quickTagRow}>
-        {MAIN_CATEGORIES.map(category => {
+        {RECORD_MAIN_CATEGORIES.map(category => {
             const active = category.key === mainCategoryKey;
             return (
               <TouchableOpacity
@@ -805,7 +651,7 @@ export default function RecordCreateScreen() {
 
         {mainCategoryKey === 'other' ? (
           <View style={styles.otherSubRow}>
-            {OTHER_SUBCATEGORIES.map(sub => {
+            {RECORD_OTHER_SUBCATEGORIES.map(sub => {
               const active = sub.key === otherSubCategoryKey;
               return (
                 <TouchableOpacity
@@ -847,7 +693,7 @@ export default function RecordCreateScreen() {
             오늘의 기분
           </AppText>
           <View style={styles.moodGrid}>
-            {MOOD_OPTIONS.map(mood => {
+            {RECORD_EMOTION_OPTIONS.map(mood => {
               const active = selectedEmotion === mood.value;
               return (
                 <TouchableOpacity
@@ -1103,7 +949,7 @@ export default function RecordCreateScreen() {
               추천 태그
             </AppText>
             <View style={styles.tagChipGrid}>
-              {SUGGESTED_TAGS.map(tag => (
+              {RECORD_SUGGESTED_TAGS.map(tag => (
                 <TouchableOpacity
                   key={tag}
                   activeOpacity={0.88}
