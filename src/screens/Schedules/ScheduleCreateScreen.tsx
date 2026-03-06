@@ -1,3 +1,9 @@
+// 파일: src/screens/Schedules/ScheduleCreateScreen.tsx
+// 역할:
+// - 반려동물 일정 생성 폼과 날짜/시간/반복/알림 선택 UI를 담당
+// - 홈/상세/목록 등 다른 진입점에서 들어와도 일관된 기본값으로 생성 가능하게 처리
+// - 생성 성공 시 schedule store refresh와 완료 플로우 연결까지 수행
+
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   Alert,

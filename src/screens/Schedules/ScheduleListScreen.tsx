@@ -1,3 +1,9 @@
+// 파일: src/screens/Schedules/ScheduleListScreen.tsx
+// 역할:
+// - 선택된 반려동물 기준으로 전체 일정 목록을 조회하고 렌더링
+// - 새로고침, 상세 이동, 생성 이동 등 일정 관리의 허브 역할을 담당
+// - 빈 상태와 등록 상태를 분기해 홈 회귀나 신규 일정 작성 흐름을 자연스럽게 연결
+
 import React, { useCallback, useEffect, useMemo } from 'react';
 import {
   RefreshControl,

@@ -1,3 +1,9 @@
+// 파일: src/screens/Schedules/ScheduleEditScreen.tsx
+// 역할:
+// - 기존 일정을 불러와 날짜/시간/카테고리/반복/알림 정보를 수정
+// - 수정 완료 시 상세 화면과 목록 화면이 바로 최신 상태를 반영하도록 연결
+// - 생성 화면과 동일한 입력 경험을 유지하면서도 기존 값 초기화를 책임짐
+
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,

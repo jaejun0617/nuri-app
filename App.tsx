@@ -1,4 +1,9 @@
 // 파일: App.tsx
+// 역할:
+// - 앱 전체의 최상위 엔트리 포인트
+// - GestureHandler, SafeArea, NavigationContainer, AppProviders를 순서대로 감싸 런타임 기반을 준비
+// - Sentry 초기화와 네비게이션 트래킹 등록을 통해 부팅 직후부터 모니터링이 연결되도록 유지
+
 import React, { useCallback, useRef } from 'react';
 import { StatusBar } from 'react-native';
 import {

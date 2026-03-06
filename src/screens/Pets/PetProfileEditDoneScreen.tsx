@@ -1,3 +1,9 @@
+// 파일: src/screens/Pets/PetProfileEditDoneScreen.tsx
+// 역할:
+// - 반려동물 프로필 수정 완료 후 보여주는 확인 화면
+// - 수정이 반영됐다는 피드백과 함께 홈 복귀 CTA를 단순하게 제공
+// - 온보딩 완료 화면과 유사한 감정선을 유지하면서 수정 흐름을 마무리
+
 import React from 'react';
 import { TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';

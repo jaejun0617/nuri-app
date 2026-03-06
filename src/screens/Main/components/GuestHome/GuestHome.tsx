@@ -1,4 +1,10 @@
-import React, { useMemo } from 'react';
+// 파일: src/screens/Main/components/GuestHome/GuestHome.tsx
+// 역할:
+// - 비로그인 사용자를 위한 홈 프리뷰 레이아웃을 렌더링
+// - 로그인 이후 제공될 홈 정보 구조(펫 전환, 빠른 기록, 추억 카드, 추천 팁)를 미리 보여줌
+// - 주요 CTA를 SignIn 화면으로 연결해 게스트 상태에서의 진입 동선을 단순하게 유지
+
+import React, { useCallback } from 'react';
 import { Image, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -85,10 +91,9 @@ const RECOMMENDED_TIPS = [
 export default function GuestHome() {
   const navigation = useNavigation<Nav>();
 
-  const goSignIn = useMemo(
-    () => () => navigation.navigate('SignIn'),
-    [navigation],
-  );
+  const goSignIn = useCallback(() => {
+    navigation.navigate('SignIn');
+  }, [navigation]);
 
   return (
     <View style={styles.screen}>

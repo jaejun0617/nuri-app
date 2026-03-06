@@ -1,4 +1,10 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+// 파일: src/screens/Auth/WelcomeTransitionScreen.tsx
+// 역할:
+// - 닉네임 설정 완료 직후 짧은 환영 애니메이션을 보여주는 전환 화면
+// - 사용자가 다음 홈 구조를 인지할 수 있도록 최소 체류 시간을 제공
+// - 일정 시간이 지나면 AppTabs HomeTab으로 reset 이동해 온보딩 플로우를 마무리
+
+import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Image, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -16,7 +22,7 @@ const TRANSITION_DURATION_MS = 4000;
 export default function WelcomeTransitionScreen() {
   const navigation = useNavigation<Nav>();
   const nicknameRaw = useAuthStore(s => s.profile.nickname);
-  const nickname = useMemo(() => nicknameRaw?.trim() || '누리', [nicknameRaw]);
+  const nickname = nicknameRaw?.trim() || '누리';
 
   const progress = useRef(new Animated.Value(0)).current;
 

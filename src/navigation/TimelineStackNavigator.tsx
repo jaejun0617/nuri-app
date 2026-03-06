@@ -1,3 +1,9 @@
+// 파일: src/navigation/TimelineStackNavigator.tsx
+// 역할:
+// - Timeline 탭 내부에서 상세/수정 화면까지 하단 탭을 유지하는 Stack 네비게이터
+// - TimelineMain, RecordDetail, RecordEdit 사이의 타입 안전한 라우팅 경계를 제공
+// - 타임라인 흐름을 루트 스택과 분리해 화면 전환 책임을 명확히 유지
+
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
@@ -28,4 +34,3 @@ export default function TimelineStackNavigator() {
     </Stack.Navigator>
   );
 }
-

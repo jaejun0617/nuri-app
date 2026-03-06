@@ -1,3 +1,9 @@
+// 파일: src/screens/Auth/SignInScreen.tsx
+// 역할:
+// - 이메일/비밀번호 로그인 입력과 기본 검증을 담당
+// - 로그인 성공 시 세션을 스토어에 반영하고 Splash 기준 플로우로 재진입
+// - 소셜 로그인/비밀번호 찾기 등 후속 인증 동선의 임시 진입점 역할도 함께 제공
+
 import React, { memo, useCallback, useMemo, useState } from 'react';
 import {
   Alert,
@@ -146,6 +152,21 @@ export default function SignInScreen() {
     Alert.alert(`${label} 로그인 준비 중`, '소셜 로그인 연동은 다음 단계에서 연결됩니다.');
   }, []);
 
+  const onToggleSecurePassword = useCallback(() => {
+    setSecurePassword(prev => !prev);
+  }, []);
+
+  const onPressForgotPassword = useCallback(() => {
+    Alert.alert(
+      '비밀번호 찾기',
+      '비밀번호 재설정 플로우는 다음 단계에서 연결됩니다.',
+    );
+  }, []);
+
+  const onPressSignUp = useCallback(() => {
+    navigation.replace('SignUp');
+  }, [navigation]);
+
   return (
     <SafeAreaView style={styles.screen}>
       <KeyboardAvoidingView
@@ -187,7 +208,7 @@ export default function SignInScreen() {
             rightAccessory={
               <TouchableOpacity
                 activeOpacity={0.8}
-                onPress={() => setSecurePassword(prev => !prev)}
+                onPress={onToggleSecurePassword}
               >
                 <Feather
                   color="#9DA7BA"
@@ -217,15 +238,12 @@ export default function SignInScreen() {
           <View style={styles.inlineLinks}>
             <TouchableOpacity
               activeOpacity={0.75}
-              onPress={() => Alert.alert('비밀번호 찾기', '비밀번호 재설정 플로우는 다음 단계에서 연결됩니다.')}
+              onPress={onPressForgotPassword}
             >
               <Text style={styles.inlineLinkText}>비밀번호 찾기</Text>
             </TouchableOpacity>
             <Text style={styles.inlineDivider}>|</Text>
-            <TouchableOpacity
-              activeOpacity={0.75}
-              onPress={() => navigation.replace('SignUp')}
-            >
+            <TouchableOpacity activeOpacity={0.75} onPress={onPressSignUp}>
               <Text style={styles.inlineLinkText}>회원가입</Text>
             </TouchableOpacity>
           </View>

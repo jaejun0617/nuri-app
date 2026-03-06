@@ -1,3 +1,9 @@
+// 파일: src/screens/Home/HomeScreen.tsx
+// 역할:
+// - 앱 부팅 직후 보이는 Splash 화면을 렌더링
+// - auth/pet boot 상태와 최소 노출 시간을 함께 보장한 뒤 다음 화면으로 안전하게 이동
+// - 초기 브랜딩 애니메이션과 배경 비주얼을 보여주되, 실제 분기 로직은 최소한으로 유지
+
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, Easing, useWindowDimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -16,6 +22,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'Splash'>;
 
 // ✅ Splash 최소 노출 시간(0.8~1.0s)
 const MIN_SPLASH_MS = 4000;
+const SPLASH_BG_SOURCE = require('../../assets/home/Splash_bg_v2.png');
 
 export default function HomeScreen() {
   const navigation = useNavigation<Nav>();
@@ -54,10 +61,6 @@ export default function HomeScreen() {
   //   () => require('../../assets/logo/logo_v2.png'),
   //   [],
   // );
-  const bgSource = useMemo(
-    () => require('../../assets/home/Splash_bg_v2.png'),
-    [],
-  );
   const nextRoute = useMemo(() => {
     const trimmedNickname = nickname?.trim() ?? '';
 
@@ -147,7 +150,7 @@ export default function HomeScreen() {
 
   return (
     <S.Background>
-      <S.BgContain source={bgSource} />
+      <S.BgContain source={SPLASH_BG_SOURCE} />
 
       <S.Container $pt={cardTopPadding}>
         <Animated.View style={{ opacity: fadeAnim }}>

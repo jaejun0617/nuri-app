@@ -1,4 +1,8 @@
 // 파일: src/components/MemoryCard/MemoryCard.tsx
+// 역할:
+// - memory 단건을 카드 형태로 렌더링하는 공용 프리뷰 컴포넌트
+// - signed URL 이미지 로딩, 감정/날짜 요약, 탭 액션 전달을 한 곳에서 담당
+// - 타임라인/홈 등 리스트 기반 화면에서 재사용되므로 memo 기반으로 불필요 리렌더링을 줄임
 
 import React, { memo, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, TouchableOpacity, View } from 'react-native';

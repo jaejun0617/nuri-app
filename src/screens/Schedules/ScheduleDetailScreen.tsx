@@ -1,3 +1,9 @@
+// 파일: src/screens/Schedules/ScheduleDetailScreen.tsx
+// 역할:
+// - 일정 단건 상세 조회와 완료 처리, 수정 이동, 삭제를 담당
+// - 서버 단건 조회 결과를 기준으로 상세 카드와 메타 정보를 렌더링
+// - 변경 후에는 schedule store를 갱신해 홈/목록과의 상태 일관성을 유지
+
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';

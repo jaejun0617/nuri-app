@@ -1,3 +1,9 @@
+// 파일: src/screens/Pets/PetProfileEditScreen.tsx
+// 역할:
+// - 기존 반려동물 프로필 정보를 수정하는 편집 화면
+// - 이름, 날짜, 태그, 프로필 이미지 등 프로필 전반의 값을 보정
+// - 수정 완료 후 스토어와 후속 완료 화면으로 흐름을 연결해 홈 반영을 빠르게 유지
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
