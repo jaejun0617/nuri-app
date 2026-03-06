@@ -4,13 +4,7 @@
 // - 반려동물/기록/정보/계정 설정 메뉴를 한 화면에서 빠르게 탐색할 수 있게 제공
 // - 닉네임 수정, 비밀번호 변경 모달을 더보기 맥락 안에서 바로 처리
 
-import React, {
-  memo,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Image,
@@ -40,7 +34,10 @@ import {
   performAccountDeletion,
   performLogout,
 } from '../../services/auth/session';
-import { changeMyPassword, isValidPasswordFormat } from '../../services/supabase/account';
+import {
+  changeMyPassword,
+  isValidPasswordFormat,
+} from '../../services/supabase/account';
 import {
   checkNicknameAvailabilityDetailed,
   saveMyNickname,
@@ -68,7 +65,10 @@ type MenuItemSpec = {
 type MenuCardProps = {
   title: string;
   items: MenuItemSpec[];
-  themeColors: Record<'accent' | 'muted' | 'soft', { box: string; icon: string }>;
+  themeColors: Record<
+    'accent' | 'muted' | 'soft',
+    { box: string; icon: string }
+  >;
 };
 
 type MenuRowProps = Omit<MenuItemSpec, 'key'>;
@@ -120,7 +120,10 @@ const MenuRow = memo(function MenuRow({
   badge = null,
   themeColors,
 }: MenuRowProps & {
-  themeColors: Record<'accent' | 'muted' | 'soft', { box: string; icon: string }>;
+  themeColors: Record<
+    'accent' | 'muted' | 'soft',
+    { box: string; icon: string }
+  >;
 }) {
   const tone = themeColors[iconTone];
 
@@ -283,7 +286,10 @@ const PasswordChangeModal = memo(function PasswordChangeModal({
 
           <TouchableOpacity
             activeOpacity={0.92}
-            style={[styles.primaryButton, saving ? styles.disabledButton : null]}
+            style={[
+              styles.primaryButton,
+              saving ? styles.disabledButton : null,
+            ]}
             onPress={onSubmit}
             disabled={saving}
           >
@@ -384,8 +390,8 @@ const ProfileEditModal = memo(function ProfileEditModal({
                 helperTone === 'error'
                   ? styles.profileHelperError
                   : helperTone === 'success'
-                    ? styles.profileHelperSuccess
-                    : null,
+                  ? styles.profileHelperSuccess
+                  : null,
               ]}
             >
               {helperText}
@@ -394,7 +400,10 @@ const ProfileEditModal = memo(function ProfileEditModal({
 
           <TouchableOpacity
             activeOpacity={0.92}
-            style={[styles.primaryButton, saving ? styles.disabledButton : null]}
+            style={[
+              styles.primaryButton,
+              saving ? styles.disabledButton : null,
+            ]}
             onPress={onSubmit}
             disabled={saving}
           >
@@ -424,7 +433,9 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const [profileSaving, setProfileSaving] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [draftNickname, setDraftNickname] = useState('');
-  const [nicknameChangedAt, setNicknameChangedAt] = useState<string | null>(null);
+  const [nicknameChangedAt, setNicknameChangedAt] = useState<string | null>(
+    null,
+  );
   const [currentPassword, setCurrentPassword] = useState('');
   const [nextPassword, setNextPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -498,7 +509,9 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
 
     if (!canEditNicknameNow) {
       return {
-        text: `닉네임은 월 1회만 변경할 수 있어요. ${formatDateLabel(nextNicknameDate)}`,
+        text: `닉네임은 월 1회만 변경할 수 있어요. ${formatDateLabel(
+          nextNicknameDate,
+        )}`,
         tone: 'error' as const,
       };
     }
@@ -645,7 +658,9 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       showToast({
         tone: 'warning',
         title: '닉네임 변경 제한',
-        message: `닉네임은 월 1회만 변경할 수 있어요. ${formatDateLabel(nextNicknameDate)}`,
+        message: `닉네임은 월 1회만 변경할 수 있어요. ${formatDateLabel(
+          nextNicknameDate,
+        )}`,
       });
       return;
     }
@@ -664,12 +679,12 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
           availability.code === 'taken'
             ? '이미 사용중인 닉네임 입니다.'
             : availability.code === 'too_short'
-              ? '닉네임은 2자 이상 입력해주세요'
-              : availability.code === 'too_long'
-                ? '닉네임은 8자 이내로 입력해주세요'
-                : availability.code === 'blocked'
-                  ? '사용할 수 없는 닉네임입니다'
-                  : '닉네임을 다시 확인해 주세요.';
+            ? '닉네임은 2자 이상 입력해주세요'
+            : availability.code === 'too_long'
+            ? '닉네임은 8자 이내로 입력해주세요'
+            : availability.code === 'blocked'
+            ? '사용할 수 없는 닉네임입니다'
+            : '닉네임을 다시 확인해 주세요.';
         throw new Error(codeMessage);
       }
 
@@ -896,6 +911,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         icon: 'message-circle',
         iconTone: 'muted',
         onPress: () => showPreparingToast('커뮤니티'),
+        badge: 'soon',
       },
       {
         key: 'tips',
@@ -903,6 +919,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         icon: 'map-pin',
         iconTone: 'muted',
         onPress: () => showPreparingToast('집사 꿀팁 가이드'),
+        badge: 'soon',
       },
     ],
     [showPreparingToast],
@@ -916,6 +933,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         icon: 'bell',
         iconTone: 'accent',
         onPress: () => showPreparingToast('알림 설정'),
+        badge: 'soon',
       },
       {
         key: 'security',
@@ -944,14 +962,35 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     }
 
     return items;
-  }, [isLoggedIn, openPasswordModal, openPetProfile, openProfileEditModal, showPreparingToast]);
+  }, [
+    isLoggedIn,
+    openPasswordModal,
+    openPetProfile,
+    openProfileEditModal,
+    showPreparingToast,
+  ]);
 
   const quickNavItems = useMemo(
     () => [
       { key: 'home', label: '홈', icon: 'home', onPress: openHome },
-      { key: 'timeline', label: '타임라인', icon: 'activity', onPress: openTimeline },
-      { key: 'record', label: '기록', icon: 'plus-circle', onPress: openRecordCreate },
-      { key: 'guestbook', label: '방명록', icon: 'book-open', onPress: openGuestbook },
+      {
+        key: 'timeline',
+        label: '타임라인',
+        icon: 'activity',
+        onPress: openTimeline,
+      },
+      {
+        key: 'record',
+        label: '기록',
+        icon: 'plus-circle',
+        onPress: openRecordCreate,
+      },
+      {
+        key: 'guestbook',
+        label: '방명록',
+        icon: 'book-open',
+        onPress: openGuestbook,
+      },
     ],
     [openGuestbook, openHome, openRecordCreate, openTimeline],
   );
@@ -973,10 +1012,17 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
             onPress={isLoggedIn ? openProfileEditModal : onPressLogin}
           >
             {avatarUri ? (
-              <Image source={{ uri: avatarUri }} style={styles.headerAvatarImage} />
+              <Image
+                source={{ uri: avatarUri }}
+                style={styles.headerAvatarImage}
+              />
             ) : (
-              <View style={[styles.headerAvatarImage, styles.headerAvatarFallback]}>
-                <Text style={styles.headerAvatarFallbackText}>{avatarFallback}</Text>
+              <View
+                style={[styles.headerAvatarImage, styles.headerAvatarFallback]}
+              >
+                <Text style={styles.headerAvatarFallbackText}>
+                  {avatarFallback}
+                </Text>
               </View>
             )}
             <View style={styles.headerAvatarBadge}>
@@ -1074,18 +1120,17 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
                 style={styles.toolbarItem}
                 onPress={item.onPress}
               >
-                <Feather
-                  name={item.icon as never}
-                  size={18}
-                  color="#7D8696"
-                />
+                <Feather name={item.icon as never} size={18} color="#7D8696" />
                 <Text style={styles.toolbarLabel}>{item.label}</Text>
               </TouchableOpacity>
             ))}
 
             <TouchableOpacity
               activeOpacity={0.92}
-              style={[styles.toolbarRecordButton, { backgroundColor: petTheme.primary }]}
+              style={[
+                styles.toolbarRecordButton,
+                { backgroundColor: petTheme.primary },
+              ]}
               onPress={openRecordCreate}
             >
               <Feather name="plus" size={22} color="#FFFFFF" />
@@ -1098,11 +1143,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
                 style={styles.toolbarItem}
                 onPress={item.onPress}
               >
-                <Feather
-                  name={item.icon as never}
-                  size={18}
-                  color="#7D8696"
-                />
+                <Feather name={item.icon as never} size={18} color="#7D8696" />
                 <Text style={styles.toolbarLabel}>{item.label}</Text>
               </TouchableOpacity>
             ))}
@@ -1144,7 +1185,9 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         onToggleCurrentPasswordVisible={() =>
           setCurrentPasswordVisible(prev => !prev)
         }
-        onToggleNextPasswordVisible={() => setNextPasswordVisible(prev => !prev)}
+        onToggleNextPasswordVisible={() =>
+          setNextPasswordVisible(prev => !prev)
+        }
         onToggleConfirmPasswordVisible={() =>
           setConfirmPasswordVisible(prev => !prev)
         }
@@ -1194,17 +1237,17 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   headerAvatarButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 88,
+    height: 88,
+    borderRadius: 33,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
   headerAvatarImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 88,
+    height: 88,
+    borderRadius: 33,
     backgroundColor: '#F1E1D0',
   },
   headerAvatarFallback: {
@@ -1212,17 +1255,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerAvatarFallbackText: {
-    fontSize: 16,
+    fontSize: 20,
     color: '#8B5E3C',
     fontWeight: '700',
   },
   headerAvatarBadge: {
     position: 'absolute',
-    right: -2,
-    bottom: -2,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    right: 0,
+    bottom: 0,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: '#E8C8AA',
     borderWidth: 2,
     borderColor: '#F7F8FB',

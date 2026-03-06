@@ -26,6 +26,7 @@ import { getMemoryImageSignedUrlCached } from '../../services/supabase/storageMe
 import { useRecordStore } from '../../store/recordStore';
 import AppText from '../../app/ui/AppText';
 import { styles } from './RecordDetailScreen.styles';
+import type { MemoryRecord } from '../../services/supabase/memories';
 
 type TimelineNav = NativeStackNavigationProp<TimelineStackParamList, 'RecordDetail'>;
 type Route = RouteProp<TimelineStackParamList, 'RecordDetail'>;
@@ -53,6 +54,79 @@ function toKoreanDate(ymd: string) {
   return `${year}.${month}.${day}`;
 }
 
+function FeedCard({
+  item,
+  onPress,
+}: {
+  item: MemoryRecord;
+  onPress: () => void;
+}) {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function run() {
+      const path = item.imagePaths[0] ?? item.imagePath ?? null;
+      if (!path) {
+        if (mounted) setPreviewUrl(null);
+        return;
+      }
+
+      const url = await getMemoryImageSignedUrlCached(path);
+      if (mounted) setPreviewUrl(url ?? null);
+    }
+
+    run().catch(() => {
+      if (mounted) setPreviewUrl(null);
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, [item.imagePath, item.imagePaths]);
+
+  const displayDate = toKoreanDate(item.occurredAt ?? item.createdAt.slice(0, 10));
+  const preview = item.content?.trim() || '기록 내용을 확인해 보세요.';
+
+  return (
+    <TouchableOpacity activeOpacity={0.92} style={styles.feedCard} onPress={onPress}>
+      {previewUrl ? (
+        <Image source={{ uri: previewUrl }} style={styles.feedCardImage} />
+      ) : (
+        <View style={styles.feedCardImageFallback}>
+          <AppText preset="caption" style={styles.feedCardImageFallbackText}>
+            사진 없음
+          </AppText>
+        </View>
+      )}
+
+      <View style={styles.feedCardBody}>
+        <View style={styles.feedMetaRow}>
+          {item.tags[0] ? (
+            <View style={styles.feedBadge}>
+              <AppText preset="caption" style={styles.feedBadgeText}>
+                {item.tags[0]}
+              </AppText>
+            </View>
+          ) : null}
+
+          <AppText preset="caption" style={styles.feedDate}>
+            {displayDate}
+          </AppText>
+        </View>
+
+        <AppText preset="body" style={styles.feedTitle}>
+          {item.title}
+        </AppText>
+        <AppText preset="caption" style={styles.feedPreview} numberOfLines={3}>
+          {preview}
+        </AppText>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
 export default function RecordDetailScreen() {
   const navigation = useNavigation<TimelineNav>();
   const route = useRoute<Route>();
@@ -67,12 +141,21 @@ export default function RecordDetailScreen() {
 
   const removeOneLocal = useRecordStore(s => s.removeOneLocal);
   const refresh = useRecordStore(s => s.refresh);
+  const loadMore = useRecordStore(s => s.loadMore);
 
   const record = useMemo(() => {
     if (!memoryId) return null;
     const items = petState?.items ?? [];
     return items.find(r => r.id === memoryId) ?? null;
   }, [petState?.items, memoryId]);
+
+  const relatedRecords = useMemo(() => {
+    if (!memoryId) return [];
+    const items = petState?.items ?? [];
+    return items.filter(item => item.id !== memoryId);
+  }, [memoryId, petState?.items]);
+  const hasMore = Boolean(petState?.hasMore);
+  const status = petState?.status ?? 'idle';
 
   const [deleting, setDeleting] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
@@ -160,6 +243,30 @@ export default function RecordDetailScreen() {
     setDeleteModalVisible(true);
   }, [petId, memoryId, record]);
 
+  const onPressRelatedRecord = useCallback(
+    (nextMemoryId: string) => {
+      if (!petId || !nextMemoryId) return;
+      navigation.push('RecordDetail', { petId, memoryId: nextMemoryId });
+    },
+    [navigation, petId],
+  );
+
+  const onScrollFeed = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (!petId || !hasMore) return;
+      if (status === 'loadingMore' || status === 'loading' || status === 'refreshing') {
+        return;
+      }
+
+      const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+      const remain = contentSize.height - (contentOffset.y + layoutMeasurement.height);
+      if (remain > 480) return;
+
+      loadMore(petId);
+    },
+    [hasMore, loadMore, petId, status],
+  );
+
   const onConfirmDelete = useCallback(async () => {
     if (!petId || !memoryId || !record) return;
     try {
@@ -244,6 +351,8 @@ export default function RecordDetailScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.body}
         showsVerticalScrollIndicator={false}
+        onScroll={onScrollFeed}
+        scrollEventThrottle={16}
       >
         {imgLoading ? (
           <View style={styles.heroPlaceholder}>
@@ -382,6 +491,35 @@ export default function RecordDetailScreen() {
             </AppText>
           </TouchableOpacity>
         </View>
+
+        {relatedRecords.length > 0 ? (
+          <View style={styles.feedSection}>
+            <View style={styles.feedHeader}>
+              <AppText preset="headline" style={styles.feedSectionTitle}>
+                이어지는 기록
+              </AppText>
+              <AppText preset="caption" style={styles.feedSectionCaption}>
+                아래로 내리면 같은 아이의 추억이 계속 이어져요
+              </AppText>
+            </View>
+
+            <View style={styles.feedList}>
+              {relatedRecords.map(item => (
+                <FeedCard
+                  key={item.id}
+                  item={item}
+                  onPress={() => onPressRelatedRecord(item.id)}
+                />
+              ))}
+            </View>
+
+            {status === 'loadingMore' ? (
+              <View style={styles.feedLoading}>
+                <ActivityIndicator size="small" color="#8A94A6" />
+              </View>
+            ) : null}
+          </View>
+        ) : null}
 
       </ScrollView>
 

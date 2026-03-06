@@ -166,6 +166,85 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 14,
   },
+  feedSection: {
+    gap: 12,
+    marginTop: 8,
+  },
+  feedHeader: {
+    paddingHorizontal: 2,
+    gap: 4,
+  },
+  feedSectionTitle: {
+    color: '#0B1220',
+    fontWeight: '800',
+  },
+  feedSectionCaption: {
+    color: '#8A94A6',
+    fontWeight: '700',
+  },
+  feedList: {
+    gap: 10,
+  },
+  feedCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E6E8F0',
+    overflow: 'hidden',
+  },
+  feedCardImage: {
+    width: '100%',
+    height: 198,
+    backgroundColor: '#EEF1F7',
+  },
+  feedCardImageFallback: {
+    width: '100%',
+    height: 158,
+    backgroundColor: '#F2F4FA',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  feedCardImageFallbackText: {
+    color: '#9AA4B7',
+    fontWeight: '700',
+  },
+  feedCardBody: {
+    padding: 15,
+    gap: 10,
+  },
+  feedMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  feedBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: 'rgba(147,95,255,0.10)',
+  },
+  feedBadgeText: {
+    color: '#6C4DDB',
+    fontWeight: '800',
+  },
+  feedDate: {
+    color: '#99A3B5',
+    fontWeight: '700',
+  },
+  feedTitle: {
+    color: '#192132',
+    fontWeight: '800',
+  },
+  feedPreview: {
+    color: '#667284',
+    lineHeight: 18,
+  },
+  feedLoading: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+  },
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(12,18,32,0.44)',
