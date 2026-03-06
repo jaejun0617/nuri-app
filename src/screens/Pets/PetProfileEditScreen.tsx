@@ -9,6 +9,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Image,
+  Modal,
+  Pressable,
   ScrollView,
   TextInput,
   TouchableOpacity,
@@ -20,7 +22,17 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
 
 import AppText from '../../app/ui/AppText';
+import PetMemorialFields from '../../components/pets/PetMemorialFields';
+import PetThemePicker from '../../components/pets/PetThemePicker';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import { readFileAsBase64 } from '../../services/files/readFileAsBase64';
+import {
+  getPetMemorialChoice,
+  type PetMemorialChoice,
+} from '../../services/pets/memorial';
+import {
+  recommendPetThemeColor,
+} from '../../services/pets/themePalette';
 import { supabase } from '../../services/supabase/client';
 import { fetchMyPets, updatePet } from '../../services/supabase/pets';
 import { uploadPetAvatar } from '../../services/supabase/storagePets';
@@ -59,6 +71,19 @@ function toDisplayYmd(raw: string | null | undefined): string {
   const value = (raw ?? '').trim();
   if (!value) return '';
   return value.replace(/-/g, '.');
+}
+
+function splitYmdParts(raw: string): {
+  year: string;
+  month: string;
+  day: string;
+} {
+  const digits = raw.replace(/\D/g, '').slice(0, 8);
+  return {
+    year: digits.slice(0, 4),
+    month: digits.slice(4, 6),
+    day: digits.slice(6, 8),
+  };
 }
 
 function normalizeTextList(raw: string): string[] {
@@ -156,7 +181,10 @@ export default function PetProfileEditScreen() {
   const [name, setName] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [adoptionDate, setAdoptionDate] = useState('');
+  const [deathDate, setDeathDate] = useState('');
   const [breed, setBreed] = useState('');
+  const [memorialChoice, setMemorialChoice] =
+    useState<PetMemorialChoice>('together');
   const [gender, setGender] = useState<'male' | 'female' | 'unknown'>('unknown');
   const [neutered, setNeutered] = useState<boolean | null>(null);
   const [hobbiesText, setHobbiesText] = useState('');
@@ -166,8 +194,13 @@ export default function PetProfileEditScreen() {
   const [draftTag, setDraftTag] = useState('');
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageType, setImageType] = useState<string | null>(null);
+  const [themeColor, setThemeColor] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [nameChangeCount, setNameChangeCount] = useState(0);
+  const [deathDateModalVisible, setDeathDateModalVisible] = useState(false);
+  const [pickerYear, setPickerYear] = useState('');
+  const [pickerMonth, setPickerMonth] = useState('');
+  const [pickerDay, setPickerDay] = useState('');
 
   useEffect(() => {
     if (!pet) return;
@@ -175,7 +208,9 @@ export default function PetProfileEditScreen() {
     setName(pet.name ?? '');
     setBirthDate(toDisplayYmd(pet.birthDate));
     setAdoptionDate(toDisplayYmd(pet.adoptionDate));
+    setDeathDate(toDisplayYmd(pet.deathDate));
     setBreed(pet.breed ?? '');
+    setMemorialChoice(getPetMemorialChoice(pet.deathDate));
     setGender(pet.gender ?? 'unknown');
     setNeutered(pet.neutered ?? null);
     setHobbiesText((pet.hobbies ?? []).join(', '));
@@ -184,6 +219,7 @@ export default function PetProfileEditScreen() {
     setTags((pet.tags ?? []).slice(0, MAX_TAGS));
     setImageUri(pet.avatarUrl ?? null);
     setImageType(null);
+    setThemeColor(pet.themeColor ?? null);
   }, [pet]);
 
   useEffect(() => {
@@ -212,6 +248,32 @@ export default function PetProfileEditScreen() {
     () => imageUri ?? pet?.avatarUrl ?? null,
     [imageUri, pet?.avatarUrl],
   );
+  const displayDeathDate = useMemo(() => deathDate.replace(/\./g, '-'), [deathDate]);
+  const selectedThemeColor = useMemo(
+    () =>
+      themeColor ??
+      recommendPetThemeColor({
+        name: trimmedName || originalName,
+        petId: pet?.id,
+      }),
+    [originalName, pet?.id, themeColor, trimmedName],
+  );
+
+  useEffect(() => {
+    if (imageUri && imageUri !== pet?.avatarUrl) return;
+    setThemeColor(
+      recommendPetThemeColor({
+        name: trimmedName || originalName,
+        petId: pet?.id,
+      }),
+    );
+  }, [imageUri, originalName, pet?.avatarUrl, pet?.id, trimmedName]);
+
+  useEffect(() => {
+    if (memorialChoice === 'memorial') return;
+    if (!deathDate) return;
+    setDeathDate('');
+  }, [deathDate, memorialChoice]);
 
   const addTag = useCallback((raw: string) => {
     const normalizedBase = raw.trim().replace(/^#/, '');
@@ -230,6 +292,53 @@ export default function PetProfileEditScreen() {
     setTags(prev => prev.filter(item => item !== value));
   }, []);
 
+  const onChangeDeathDate = useCallback((value: string) => {
+    setDeathDate(value.replace(/-/g, '.'));
+  }, []);
+
+  const onBlurDeathDate = useCallback(() => {
+    if (!deathDate.trim()) return;
+    try {
+      const normalized = normalizeYmdOrNull(deathDate);
+      setDeathDate(toDisplayYmd(normalized));
+    } catch {
+      // 사용자가 다시 고칠 수 있게 입력값을 유지한다.
+    }
+  }, [deathDate]);
+
+  const openDeathDateModal = useCallback(() => {
+    const parts = splitYmdParts(deathDate);
+    setPickerYear(parts.year);
+    setPickerMonth(parts.month);
+    setPickerDay(parts.day);
+    setDeathDateModalVisible(true);
+  }, [deathDate]);
+
+  const closeDeathDateModal = useCallback(() => {
+    setDeathDateModalVisible(false);
+  }, []);
+
+  const deathDatePreview = useMemo(() => {
+    const merged = `${pickerYear}${pickerMonth}${pickerDay}`;
+    if (!merged) return 'YYYY.MM.DD 또는 YYYY-MM-DD';
+    const year = merged.slice(0, 4);
+    const month = merged.slice(4, 6);
+    const day = merged.slice(6, 8);
+    return [year, month, day].filter(Boolean).join('-');
+  }, [pickerDay, pickerMonth, pickerYear]);
+
+  const applyDeathDateModal = useCallback(() => {
+    try {
+      const normalized = normalizeYmdOrNull(
+        `${pickerYear}${pickerMonth}${pickerDay}`,
+      );
+      setDeathDate(toDisplayYmd(normalized));
+      setDeathDateModalVisible(false);
+    } catch (error) {
+      Alert.alert('날짜 확인', getErrorMessage(error));
+    }
+  }, [pickerDay, pickerMonth, pickerYear]);
+
   const pickImage = useCallback(async () => {
     const result = await launchImageLibrary({
       mediaType: 'photo',
@@ -247,7 +356,24 @@ export default function PetProfileEditScreen() {
 
     setImageUri(asset.uri);
     setImageType(resolvePickerMimeType(asset));
-  }, []);
+    try {
+      const base64 = await readFileAsBase64(asset.uri);
+      setThemeColor(
+        recommendPetThemeColor({
+          imageBase64: base64,
+          name: trimmedName || originalName,
+          petId,
+        }),
+      );
+    } catch {
+      setThemeColor(
+        recommendPetThemeColor({
+          name: trimmedName || originalName,
+          petId,
+        }),
+      );
+    }
+  }, [originalName, petId, trimmedName]);
 
   const onSubmit = useCallback(async () => {
     if (!pet) return;
@@ -282,8 +408,13 @@ export default function PetProfileEditScreen() {
       await updatePet({
         petId: pet.id,
         name: trimmedName,
+        themeColor: selectedThemeColor,
         birthDate: normalizeYmdOrNull(birthDate),
         adoptionDate: normalizeYmdOrNull(adoptionDate),
+        deathDate:
+          memorialChoice === 'memorial'
+            ? normalizeYmdOrNull(displayDeathDate)
+            : null,
         breed: breed.trim() || null,
         gender,
         neutered,
@@ -321,10 +452,13 @@ export default function PetProfileEditScreen() {
     imageUri,
     isNameChanged,
     likesText,
+    displayDeathDate,
+    memorialChoice,
     navigation,
     neutered,
     pet,
     remainingNameChanges,
+    selectedThemeColor,
     setPets,
     tags,
     trimmedName,
@@ -395,6 +529,22 @@ export default function PetProfileEditScreen() {
             <Feather name="camera" size={16} color="#FFFFFF" />
           </View>
         </TouchableOpacity>
+
+        <PetThemePicker
+          selectedColor={selectedThemeColor}
+          helperText="홈 프로필 카드와 위젯 강조색에 함께 반영돼요."
+          onSelectColor={setThemeColor}
+        />
+
+        <PetMemorialFields
+          choice={memorialChoice}
+          deathDate={deathDate}
+          onChangeChoice={setMemorialChoice}
+          onChangeDeathDate={onChangeDeathDate}
+          onBlurDeathDate={onBlurDeathDate}
+          onOpenDeathDateModal={openDeathDateModal}
+          buildHint={value => (value ? value : 'YYYY.MM.DD 또는 YYYY-MM-DD')}
+        />
 
         <View style={styles.formSection}>
           <View style={styles.fieldBlock}>
@@ -668,6 +818,62 @@ export default function PetProfileEditScreen() {
           </AppText>
         </TouchableOpacity>
       </ScrollView>
+
+      <Modal
+        visible={deathDateModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeDeathDateModal}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={closeDeathDateModal}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <AppText preset="headline" style={styles.modalTitle}>
+              추모 날짜 입력
+            </AppText>
+
+            <View style={styles.modalDateRow}>
+              <TextInput
+                value={pickerYear}
+                onChangeText={setPickerYear}
+                placeholder="YYYY"
+                placeholderTextColor="#A0A7B4"
+                style={[styles.input, styles.modalDateInput]}
+                keyboardType="number-pad"
+              />
+              <TextInput
+                value={pickerMonth}
+                onChangeText={setPickerMonth}
+                placeholder="MM"
+                placeholderTextColor="#A0A7B4"
+                style={[styles.input, styles.modalDateInput]}
+                keyboardType="number-pad"
+              />
+              <TextInput
+                value={pickerDay}
+                onChangeText={setPickerDay}
+                placeholder="DD"
+                placeholderTextColor="#A0A7B4"
+                style={[styles.input, styles.modalDateInput]}
+                keyboardType="number-pad"
+              />
+            </View>
+
+            <AppText preset="caption" style={styles.inputHint}>
+              {deathDatePreview}
+            </AppText>
+
+            <TouchableOpacity
+              activeOpacity={0.92}
+              style={styles.primaryButton}
+              onPress={applyDeathDateModal}
+            >
+              <AppText preset="body" style={styles.primaryButtonText}>
+                날짜 적용
+              </AppText>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }

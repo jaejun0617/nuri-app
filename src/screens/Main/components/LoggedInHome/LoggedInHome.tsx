@@ -56,14 +56,14 @@ import { useRecordStore } from '../../../../store/recordStore';
 import { useScheduleStore } from '../../../../store/scheduleStore';
 
 import type { MemoryRecord } from '../../../../services/supabase/memories';
-import type {
-  PetSchedule,
-} from '../../../../services/supabase/schedules';
+import type { PetSchedule } from '../../../../services/supabase/schedules';
 import {
   pickTodayPhoto,
   generateTimeMessage,
   getTimeMessageEmoji,
 } from '../../../../services/home/homeRecall';
+import { buildHomeWidgetSnapshot } from '../../../../services/home/widgetSnapshot';
+import { syncHomeWidgetSnapshot } from '../../../../services/home/widgetBridge';
 import { buildWeeklySummary } from '../../../../services/home/weeklySummary';
 import {
   formatScheduleDateLabel,
@@ -71,6 +71,11 @@ import {
   mapScheduleIconName,
   mapScheduleToMemoryCategory,
 } from '../../../../services/schedules/presentation';
+import { buildPetThemePalette } from '../../../../services/pets/themePalette';
+import {
+  formatMemorialPetName,
+  isMemorialPet,
+} from '../../../../services/pets/memorial';
 import { styles } from './LoggedInHome.styles';
 
 type HomeTabNav = BottomTabNavigationProp<AppTabParamList, 'HomeTab'>;
@@ -385,7 +390,9 @@ const TodayRecordCard = React.memo(function TodayRecordCard({
   );
   const content = useMemo(() => toSnippet(item.content, 44), [item.content]);
 
-  const { signedUrl, loading: isLoading } = useSignedMemoryImage(item.imagePath);
+  const { signedUrl, loading: isLoading } = useSignedMemoryImage(
+    item.imagePath,
+  );
 
   const cardAnimStyle = useAnimatedStyle(() => {
     const x = scrollX.value;
@@ -467,9 +474,11 @@ const TodayRecordCard = React.memo(function TodayRecordCard({
 function IndicatorDot({
   i,
   progress,
+  color,
 }: {
   i: number;
   progress: SharedValue<number>;
+  color: string;
 }) {
   const dotStyle = useAnimatedStyle(() => {
     const p = progress.value;
@@ -486,7 +495,11 @@ function IndicatorDot({
     return { opacity: o, transform: [{ scale: s }] };
   }, [i]);
 
-  return <Animated.View style={[styles.indicatorDot, dotStyle]} />;
+  return (
+    <Animated.View
+      style={[styles.indicatorDot, { backgroundColor: color }, dotStyle]}
+    />
+  );
 }
 
 const MonthlyDiaryCard = React.memo(function MonthlyDiaryCard({
@@ -530,25 +543,34 @@ const TodayPhotoSection = React.memo(function TodayPhotoSection({
   todayPhotoOverlayTitle,
   onPressRecordItem,
   onPressRecord,
+  accentColor,
 }: {
-  todayPhoto: { record: MemoryRecord | null; mode: 'anniversary' | 'random' | 'none' };
+  todayPhoto: {
+    record: MemoryRecord | null;
+    mode: 'anniversary' | 'random' | 'none';
+  };
   todayPhotoUrl: string | null;
   isTodayPhotoLoading: boolean;
   todayPhotoOverlayTitle: string;
   onPressRecordItem: (memoryId: string) => void;
   onPressRecord: () => void;
+  accentColor: string;
 }) {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
-        <Text style={styles.sectionTitle}>오늘날의 사진</Text>
+        <Text style={[styles.sectionTitle, { color: accentColor }]}>
+          오늘날의 사진
+        </Text>
       </View>
 
       <TouchableOpacity
         activeOpacity={0.92}
         style={styles.photoCard}
         onPress={() =>
-          todayPhoto.record ? onPressRecordItem(todayPhoto.record.id) : onPressRecord()
+          todayPhoto.record
+            ? onPressRecordItem(todayPhoto.record.id)
+            : onPressRecord()
         }
       >
         {!todayPhoto.record?.imagePath ? (
@@ -599,6 +621,8 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
   progress,
   activeSlideIndex,
   hasMoreThanSlider,
+  accentColor,
+  accentDeepColor,
 }: {
   todayRecords: MemoryRecord[];
   onPressTimeline: () => void;
@@ -611,13 +635,19 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
   progress: SharedValue<number>;
   activeSlideIndex: number;
   hasMoreThanSlider: boolean;
+  accentColor: string;
+  accentDeepColor: string;
 }) {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
-        <Text style={styles.sectionTitle}>오늘날의 기록</Text>
+        <Text style={[styles.sectionTitle, { color: accentDeepColor }]}>
+          오늘날의 기록
+        </Text>
         <TouchableOpacity activeOpacity={0.85} onPress={onPressTimeline}>
-          <Text style={styles.sectionLink}>전체보기</Text>
+          <Text style={[styles.sectionLink, { color: accentColor }]}>
+            전체보기
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -628,7 +658,13 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
 
           <TouchableOpacity
             activeOpacity={0.9}
-            style={styles.recordBtn}
+            style={[
+              styles.recordBtn,
+              {
+                backgroundColor: accentDeepColor,
+                shadowColor: accentDeepColor,
+              },
+            ]}
             onPress={onPressRecord}
           >
             <Text style={styles.recordBtnText}>기록하기</Text>
@@ -663,7 +699,12 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
 
           <View style={styles.indicatorRow}>
             {todayRecords.map((_, i) => (
-              <IndicatorDot key={`dot-${i}`} i={i} progress={progress} />
+              <IndicatorDot
+                key={`dot-${i}`}
+                i={i}
+                progress={progress}
+                color={accentColor}
+              />
             ))}
           </View>
 
@@ -687,6 +728,9 @@ const WeeklySummarySection = React.memo(function WeeklySummarySection({
   recordDays,
   totalRecords,
   upcomingSchedules,
+  accentDeepColor,
+  accentSoftColor,
+  accentBorderColor,
 }: {
   petName: string;
   walkCount: number;
@@ -695,14 +739,24 @@ const WeeklySummarySection = React.memo(function WeeklySummarySection({
   recordDays: number;
   totalRecords: number;
   upcomingSchedules: number;
+  accentDeepColor: string;
+  accentSoftColor: string;
+  accentBorderColor: string;
 }) {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
-        <Text style={styles.tipSectionTitle}>이번 주 요약</Text>
+        <Text style={[styles.tipSectionTitle, { color: accentDeepColor }]}>
+          이번 주 요약
+        </Text>
       </View>
 
-      <View style={styles.summaryCard}>
+      <View
+        style={[
+          styles.summaryCard,
+          { backgroundColor: accentSoftColor, borderColor: accentBorderColor },
+        ]}
+      >
         <Text style={styles.summaryTitle}>
           이번 주 {petName}의 리듬을 한 장으로 정리했어요
         </Text>
@@ -712,20 +766,36 @@ const WeeklySummarySection = React.memo(function WeeklySummarySection({
         </Text>
 
         <View style={styles.summaryGrid}>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>{walkCount}</Text>
+          <View
+            style={[styles.summaryItem, { borderColor: accentBorderColor }]}
+          >
+            <Text style={[styles.summaryValue, { color: accentDeepColor }]}>
+              {walkCount}
+            </Text>
             <Text style={styles.summaryLabel}>산책 기록</Text>
           </View>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>{mealCount}</Text>
+          <View
+            style={[styles.summaryItem, { borderColor: accentBorderColor }]}
+          >
+            <Text style={[styles.summaryValue, { color: accentDeepColor }]}>
+              {mealCount}
+            </Text>
             <Text style={styles.summaryLabel}>식사 기록</Text>
           </View>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>{healthCount}</Text>
+          <View
+            style={[styles.summaryItem, { borderColor: accentBorderColor }]}
+          >
+            <Text style={[styles.summaryValue, { color: accentDeepColor }]}>
+              {healthCount}
+            </Text>
             <Text style={styles.summaryLabel}>건강 기록</Text>
           </View>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>{recordDays}</Text>
+          <View
+            style={[styles.summaryItem, { borderColor: accentBorderColor }]}
+          >
+            <Text style={[styles.summaryValue, { color: accentDeepColor }]}>
+              {recordDays}
+            </Text>
             <Text style={styles.summaryLabel}>기록한 날</Text>
           </View>
         </View>
@@ -747,17 +817,27 @@ const ScheduleSection = React.memo(function ScheduleSection({
   weekScheduleItems,
   onPressScheduleList,
   onPressScheduleCreate,
+  accentColor,
+  accentDeepColor,
+  accentTint,
 }: {
   weekScheduleItems: WeeklyScheduleItem[];
   onPressScheduleList: () => void;
   onPressScheduleCreate: () => void;
+  accentColor: string;
+  accentDeepColor: string;
+  accentTint: string;
 }) {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
-        <Text style={styles.tipSectionTitle}>일정 보기</Text>
+        <Text style={[styles.tipSectionTitle, { color: accentDeepColor }]}>
+          일정 보기
+        </Text>
         <TouchableOpacity activeOpacity={0.85} onPress={onPressScheduleList}>
-          <Text style={styles.sectionLink}>더보기</Text>
+          <Text style={[styles.sectionLink, { color: accentColor }]}>
+            더보기
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -765,8 +845,7 @@ const ScheduleSection = React.memo(function ScheduleSection({
         <View style={styles.emptyBox}>
           <Text style={styles.emptyTitle}>등록된 일정이 아직 없어요</Text>
           <Text style={styles.emptyDesc}>
-            오래 남겨둘 일정도 한곳에 모아두고 홈에서 가볍게 꺼내볼 수
-            있어요.
+            오래 남겨둘 일정도 한곳에 모아두고 홈에서 가볍게 꺼내볼 수 있어요.
           </Text>
         </View>
       ) : (
@@ -778,7 +857,12 @@ const ScheduleSection = React.memo(function ScheduleSection({
               style={styles.scheduleCard}
               onPress={onPressScheduleList}
             >
-              <View style={styles.scheduleDateBadge}>
+              <View
+                style={[
+                  styles.scheduleDateBadge,
+                  { backgroundColor: accentTint },
+                ]}
+              >
                 <Text style={styles.scheduleDateText}>{item.dateLabel}</Text>
               </View>
 
@@ -792,7 +876,7 @@ const ScheduleSection = React.memo(function ScheduleSection({
                   <MaterialCommunityIcons
                     name={item.icon}
                     size={18}
-                    color="#6D6AF8"
+                    color={accentColor}
                   />
                 </View>
 
@@ -816,7 +900,10 @@ const ScheduleSection = React.memo(function ScheduleSection({
 
       <TouchableOpacity
         activeOpacity={0.9}
-        style={styles.recordBtn}
+        style={[
+          styles.recordBtn,
+          { backgroundColor: accentDeepColor, shadowColor: accentDeepColor },
+        ]}
         onPress={onPressScheduleCreate}
       >
         <Text style={styles.recordBtnText}>일정 추가하기</Text>
@@ -829,17 +916,25 @@ const RecentActivitiesSection = React.memo(function RecentActivitiesSection({
   recentActivities,
   onPressTimeline,
   onPressRecordItem,
+  accentColor,
+  accentDeepColor,
 }: {
   recentActivities: MemoryRecord[];
   onPressTimeline: () => void;
   onPressRecordItem: (memoryId: string) => void;
+  accentColor: string;
+  accentDeepColor: string;
 }) {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
-        <Text style={styles.tipSectionTitle}>최근 활동</Text>
+        <Text style={[styles.tipSectionTitle, { color: accentDeepColor }]}>
+          최근 활동
+        </Text>
         <TouchableOpacity activeOpacity={0.85} onPress={onPressTimeline}>
-          <Text style={styles.sectionLink}>전체보기</Text>
+          <Text style={[styles.sectionLink, { color: accentColor }]}>
+            전체보기
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -870,7 +965,7 @@ const RecentActivitiesSection = React.memo(function RecentActivitiesSection({
                   <MaterialCommunityIcons
                     name={meta.icon}
                     size={17}
-                    color="#6D6AF8"
+                    color={accentColor}
                   />
                 </View>
 
@@ -880,7 +975,9 @@ const RecentActivitiesSection = React.memo(function RecentActivitiesSection({
                   </Text>
                   <Text style={styles.activitySub} numberOfLines={1}>
                     {meta.label}
-                    {item.content?.trim() ? ` · ${toSnippet(item.content, 26)}` : ''}
+                    {item.content?.trim()
+                      ? ` · ${toSnippet(item.content, 26)}`
+                      : ''}
                   </Text>
                 </View>
 
@@ -902,6 +999,8 @@ const MonthlyDiarySection = React.memo(function MonthlyDiarySection({
   onPressTimelineCategory,
   onPressRecord,
   onPressRecordItem,
+  accentColor,
+  accentDeepColor,
 }: {
   petName: string;
   currentMonthDiaryEntries: MemoryRecord[];
@@ -911,16 +1010,22 @@ const MonthlyDiarySection = React.memo(function MonthlyDiarySection({
   ) => void;
   onPressRecord: () => void;
   onPressRecordItem: (memoryId: string) => void;
+  accentColor: string;
+  accentDeepColor: string;
 }) {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
-        <Text style={styles.tipSectionTitle}>이번 달 {petName} 일기</Text>
+        <Text style={[styles.tipSectionTitle, { color: accentDeepColor }]}>
+          이번 달 {petName} 일기
+        </Text>
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={() => onPressTimelineCategory('diary')}
         >
-          <Text style={styles.sectionLink}>더보기</Text>
+          <Text style={[styles.sectionLink, { color: accentColor }]}>
+            더보기
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -930,7 +1035,13 @@ const MonthlyDiarySection = React.memo(function MonthlyDiarySection({
           <Text style={styles.emptyDesc}>첫 번째 일기를 남겨보세요.</Text>
           <TouchableOpacity
             activeOpacity={0.9}
-            style={styles.recordBtn}
+            style={[
+              styles.recordBtn,
+              {
+                backgroundColor: accentDeepColor,
+                shadowColor: accentDeepColor,
+              },
+            ]}
             onPress={onPressRecord}
           >
             <Text style={styles.recordBtnText}>기록하기</Text>
@@ -1035,9 +1146,15 @@ export default function LoggedInHome() {
   // 4.3) today message / today photo
   // ---------------------------------------------------------
   const todayMessage = useMemo(() => {
-    return generateTimeMessage(selectedPet?.name ?? null);
-  }, [selectedPet?.name]);
-  const todayMessageEmoji = useMemo(() => getTimeMessageEmoji(), []);
+    return generateTimeMessage({
+      petName: selectedPet?.name ?? null,
+      deathDate: selectedPet?.deathDate ?? null,
+    });
+  }, [selectedPet?.deathDate, selectedPet?.name]);
+  const todayMessageEmoji = useMemo(
+    () => getTimeMessageEmoji(selectedPet?.deathDate ?? null),
+    [selectedPet?.deathDate],
+  );
 
   const [todayPhoto, setTodayPhoto] = useState<{
     record: MemoryRecord | null;
@@ -1141,8 +1258,12 @@ export default function LoggedInHome() {
   // 5) HERO derived
   // ---------------------------------------------------------
   const petName = useMemo(
-    () => selectedPet?.name ?? '우리 아이',
-    [selectedPet?.name],
+    () =>
+      formatMemorialPetName(
+        selectedPet?.name ?? '우리 아이',
+        selectedPet?.deathDate ?? null,
+      ),
+    [selectedPet?.deathDate, selectedPet?.name],
   );
 
   const breed = useMemo(
@@ -1215,6 +1336,10 @@ export default function LoggedInHome() {
     () => selectedPet?.avatarUrl ?? null,
     [selectedPet?.avatarUrl],
   );
+  const petTheme = useMemo(
+    () => buildPetThemePalette(selectedPet?.themeColor),
+    [selectedPet?.themeColor],
+  );
 
   // ---------------------------------------------------------
   // 6) header text
@@ -1228,6 +1353,26 @@ export default function LoggedInHome() {
     if (pets.length === 0) return '소중한 아이를 등록하고 추억을 기록해 보세요';
     return '오늘의 메시지로 하루를 시작해요';
   }, [pets.length]);
+
+  const homeWidgetSnapshot = useMemo(
+    () =>
+      buildHomeWidgetSnapshot({
+        petName,
+        themeColor: petTheme.primary,
+        schedules: safeSchedulesState.items,
+        records: safeRecordsState.items,
+      }),
+    [
+      petName,
+      petTheme.primary,
+      safeRecordsState.items,
+      safeSchedulesState.items,
+    ],
+  );
+
+  useEffect(() => {
+    syncHomeWidgetSnapshot(homeWidgetSnapshot);
+  }, [homeWidgetSnapshot]);
 
   // ---------------------------------------------------------
   // 7) actions
@@ -1465,7 +1610,9 @@ export default function LoggedInHome() {
         <View style={styles.header}>
           <View style={styles.headerTopRow}>
             <View style={styles.headerTextArea}>
-              <Text style={styles.title}>{greetingTitle}</Text>
+              <Text style={[styles.title, { color: petTheme.primary }]}>
+                {greetingTitle}
+              </Text>
               <Text style={styles.subTitle}>{greetingSubTitle}</Text>
             </View>
 
@@ -1500,7 +1647,15 @@ export default function LoggedInHome() {
                   activeOpacity={0.85}
                   style={[
                     styles.petChip,
-                    isActive ? styles.petChipActive : null,
+                    isActive
+                      ? [
+                          styles.petChipActive,
+                          {
+                            borderColor: petTheme.primary,
+                            shadowColor: petTheme.primary,
+                          },
+                        ]
+                      : null,
                   ]}
                   onPress={() => onPressPetChip(p.id)}
                 >
@@ -1518,7 +1673,7 @@ export default function LoggedInHome() {
               style={styles.petAddChip}
               onPress={onPressAddPet}
             >
-              <Feather name="plus" size={20} color="#6D6AF8" />
+              <Feather name="plus" size={20} color={petTheme.primary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -1532,22 +1687,33 @@ export default function LoggedInHome() {
               style={styles.heroGearBtn}
               onPress={onPressPetProfileEdit}
             >
-              <Feather name="settings" size={16} color="rgba(11,18,32,0.55)" />
+              <MaterialCommunityIcons
+                name="cog-outline"
+                size={22}
+                color={petTheme.deep}
+              />
             </TouchableOpacity>
 
             <View style={styles.heroCenter}>
               <View style={styles.heroAvatarOuter}>
-                <View style={styles.heroAvatarGlow} />
-                <LinearGradient
-                  colors={[
-                    'rgba(87,83,230,0.52)',
-                    'rgba(87,83,230,0.18)',
-                    'rgba(87,83,230,0.52)',
+                <View
+                  style={[
+                    styles.heroAvatarGlow,
+                    {
+                      backgroundColor: petTheme.glow,
+                      shadowColor: petTheme.primary,
+                    },
                   ]}
+                />
+                <LinearGradient
+                  colors={petTheme.ringGradient}
                   locations={[0, 0.55, 1]}
                   start={{ x: 0.18, y: 0.12 }}
                   end={{ x: 0.82, y: 0.9 }}
-                  style={styles.heroAvatarRing}
+                  style={[
+                    styles.heroAvatarRing,
+                    { shadowColor: petTheme.primary },
+                  ]}
                 >
                   <View style={styles.heroAvatarRingInner}>
                     <View style={styles.heroAvatarWrap}>
@@ -1564,13 +1730,18 @@ export default function LoggedInHome() {
                 </LinearGradient>
               </View>
 
-              <Text style={styles.heroName} numberOfLines={1}>
+              <Text
+                style={[styles.heroName, { color: petTheme.deep }]}
+                numberOfLines={1}
+              >
                 {petName}
               </Text>
 
               {topMetaLine ? (
                 <Text style={styles.heroMetaLine} numberOfLines={1}>
-                  {topMetaLine}
+                  {isMemorialPet(selectedPet?.deathDate ?? null)
+                    ? `${topMetaLine}`
+                    : topMetaLine}
                 </Text>
               ) : (
                 <Text style={styles.heroMetaMuted} numberOfLines={1}>
@@ -1585,14 +1756,47 @@ export default function LoggedInHome() {
               ) : null}
 
               {togetherDays !== null ? (
-                <View style={styles.heroTogetherPill}>
-                  <Text style={styles.heroTogetherText}>
-                    ♥ 함께한 시간{' '}
-                    <Text style={styles.heroTogetherStrong}>
-                      {togetherDays}
-                    </Text>{' '}
-                    일 ♥
-                  </Text>
+                <View
+                  style={[
+                    styles.heroTogetherPill,
+                    { backgroundColor: petTheme.deep },
+                  ]}
+                >
+                  <View style={styles.heroTogetherRow}>
+                    <Text
+                      style={[
+                        styles.heroTogetherHeart,
+                        { color: petTheme.heart },
+                      ]}
+                    >
+                      ♥
+                    </Text>
+                    <Text
+                      style={[
+                        styles.heroTogetherText,
+                        { color: petTheme.onDeep },
+                      ]}
+                    >
+                      함께한 시간{' '}
+                      <Text
+                        style={[
+                          styles.heroTogetherStrong,
+                          { color: petTheme.onDeep },
+                        ]}
+                      >
+                        {togetherDays}
+                      </Text>{' '}
+                      일
+                    </Text>
+                    <Text
+                      style={[
+                        styles.heroTogetherHeart,
+                        { color: petTheme.heart },
+                      ]}
+                    >
+                      ♥
+                    </Text>
+                  </View>
                 </View>
               ) : null}
             </View>
@@ -1603,11 +1807,18 @@ export default function LoggedInHome() {
                 style={styles.accordionAllRow}
                 onPress={onToggleAll}
               >
-                <Text style={styles.accordionAllLabel}>모두펼치기</Text>
+                <Text
+                  style={[
+                    styles.accordionAllLabel,
+                    { color: petTheme.primary },
+                  ]}
+                >
+                  모두펼치기
+                </Text>
                 <Feather
                   name={allExpanded ? 'chevron-up' : 'chevron-down'}
                   size={18}
-                  color="#6D6AF8"
+                  color={petTheme.primary}
                 />
               </TouchableOpacity>
 
@@ -1633,7 +1844,7 @@ export default function LoggedInHome() {
                   <Feather
                     name={acc.hobby ? 'chevron-up' : 'chevron-down'}
                     size={18}
-                    color="#6D6AF8"
+                    color={petTheme.primary}
                   />
                 </TouchableOpacity>
 
@@ -1676,7 +1887,7 @@ export default function LoggedInHome() {
                   <Feather
                     name={acc.like ? 'chevron-up' : 'chevron-down'}
                     size={18}
-                    color="#6D6AF8"
+                    color={petTheme.primary}
                   />
                 </TouchableOpacity>
 
@@ -1717,7 +1928,7 @@ export default function LoggedInHome() {
                   <Feather
                     name={acc.dislike ? 'chevron-up' : 'chevron-down'}
                     size={18}
-                    color="#6D6AF8"
+                    color={petTheme.primary}
                   />
                 </TouchableOpacity>
 
@@ -1749,7 +1960,7 @@ export default function LoggedInHome() {
                         styles.iconCirclePurple,
                       ]}
                     >
-                      <Feather name="hash" size={16} color="#6D6AF8" />
+                      <Feather name="hash" size={16} color={petTheme.primary} />
                     </View>
                     <Text
                       style={[styles.accordionTitle, styles.accTitlePurple]}
@@ -1760,7 +1971,7 @@ export default function LoggedInHome() {
                   <Feather
                     name={acc.tag ? 'chevron-up' : 'chevron-down'}
                     size={18}
-                    color="#6D6AF8"
+                    color={petTheme.primary}
                   />
                 </TouchableOpacity>
 
@@ -1768,8 +1979,21 @@ export default function LoggedInHome() {
                   <View style={styles.accordionBody}>
                     <View style={styles.tagsRow}>
                       {tags.map(t => (
-                        <View key={t} style={styles.tagChip}>
-                          <Text style={styles.tagText}>{t}</Text>
+                        <View
+                          key={t}
+                          style={[
+                            styles.tagChip,
+                            {
+                              borderColor: petTheme.border,
+                              backgroundColor: petTheme.tint,
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[styles.tagText, { color: petTheme.deep }]}
+                          >
+                            {t}
+                          </Text>
                         </View>
                       ))}
                     </View>
@@ -1790,7 +2014,9 @@ export default function LoggedInHome() {
 
           <View style={styles.section}>
             <View style={styles.sectionHeaderCol}>
-              <Text style={styles.sectionTitle}>자주 쓰는 기록</Text>
+              <Text style={[styles.sectionTitle, { color: petTheme.deep }]}>
+                자주 쓰는 기록
+              </Text>
               <Text style={styles.sectionSubText}>
                 산책 · 식사 · 건강 · 미용 기록을 바로 열어보세요
               </Text>
@@ -1810,16 +2036,28 @@ export default function LoggedInHome() {
                       )
                     }
                   >
-                    <View style={styles.quickIconWrap}>
+                    <View
+                      style={[
+                        styles.quickIconWrap,
+                        { backgroundColor: petTheme.tint },
+                      ]}
+                    >
                       <MaterialCommunityIcons
                         name={item.icon}
                         size={24}
-                        color="#6D6AF8"
+                        color={petTheme.primary}
                         style={styles.quickIcon}
                       />
                     </View>
                     <Text style={styles.quickCardTitle}>{item.label}</Text>
-                    <Text style={styles.quickCardNote}>{item.note}</Text>
+                    <Text
+                      style={[
+                        styles.quickCardNote,
+                        { color: petTheme.primary },
+                      ]}
+                    >
+                      {item.note}
+                    </Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -1828,7 +2066,9 @@ export default function LoggedInHome() {
 
           {/* Section lead */}
           <View style={styles.sectionLead}>
-            <Text style={styles.sectionLeadTitle}>오늘의 추억 둘러보기</Text>
+            <Text style={[styles.sectionLeadTitle, { color: petTheme.deep }]}>
+              오늘의 추억 둘러보기
+            </Text>
             <Text style={styles.sectionLeadSub}>
               사진과 기록을 천천히 살펴보세요
             </Text>
@@ -1841,6 +2081,7 @@ export default function LoggedInHome() {
             todayPhotoOverlayTitle={todayPhotoOverlayTitle}
             onPressRecordItem={onPressRecordItem}
             onPressRecord={onPressRecord}
+            accentColor={petTheme.deep}
           />
 
           <TodayRecordsSection
@@ -1855,6 +2096,8 @@ export default function LoggedInHome() {
             progress={progress}
             activeSlideIndex={activeSlideIndex}
             hasMoreThanSlider={hasMoreThanSlider}
+            accentColor={petTheme.primary}
+            accentDeepColor={petTheme.deep}
           />
 
           <WeeklySummarySection
@@ -1865,11 +2108,16 @@ export default function LoggedInHome() {
             recordDays={weeklySummary.recordDays}
             totalRecords={weeklySummary.totalRecords}
             upcomingSchedules={weeklySummary.upcomingSchedules}
+            accentDeepColor={petTheme.deep}
+            accentSoftColor={petTheme.soft}
+            accentBorderColor={petTheme.border}
           />
 
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.tipSectionTitle}>{tipsSectionTitle}</Text>
+              <Text style={[styles.tipSectionTitle, { color: petTheme.deep }]}>
+                {tipsSectionTitle}
+              </Text>
             </View>
 
             <View style={styles.tipList}>
@@ -1879,14 +2127,27 @@ export default function LoggedInHome() {
                   activeOpacity={0.92}
                   style={styles.tipCard}
                 >
-                  <View style={styles.tipThumb}>
+                  <View
+                    style={[
+                      styles.tipThumb,
+                      { backgroundColor: petTheme.tint },
+                    ]}
+                  >
                     <View style={styles.tipThumbInner}>
-                      <Feather name={item.icon} size={20} color="#6D6AF8" />
+                      <Feather
+                        name={item.icon}
+                        size={20}
+                        color={petTheme.primary}
+                      />
                     </View>
                   </View>
 
                   <View style={styles.tipContent}>
-                    <Text style={styles.tipEyebrow}>{item.eyebrow}</Text>
+                    <Text
+                      style={[styles.tipEyebrow, { color: petTheme.primary }]}
+                    >
+                      {item.eyebrow}
+                    </Text>
                     <Text style={styles.tipTitle} numberOfLines={2}>
                       {item.title}
                     </Text>
@@ -1903,19 +2164,31 @@ export default function LoggedInHome() {
             weekScheduleItems={weekScheduleItems}
             onPressScheduleList={onPressScheduleList}
             onPressScheduleCreate={onPressScheduleCreate}
+            accentColor={petTheme.primary}
+            accentDeepColor={petTheme.deep}
+            accentTint={petTheme.tint}
           />
 
           <RecentActivitiesSection
             recentActivities={recentActivities}
             onPressTimeline={onPressTimeline}
             onPressRecordItem={onPressRecordItem}
+            accentColor={petTheme.primary}
+            accentDeepColor={petTheme.deep}
           />
 
           <View style={styles.section}>
-            <View style={styles.todayTipCard}>
+            <View
+              style={[styles.todayTipCard, { backgroundColor: petTheme.tint }]}
+            >
               <View style={styles.todayTipBadge}>
-                <Feather name="map-pin" size={12} color="#6D6AF8" />
-                <Text style={styles.todayTipBadgeText}>
+                <Feather name="map-pin" size={12} color={petTheme.primary} />
+                <Text
+                  style={[
+                    styles.todayTipBadgeText,
+                    { color: petTheme.primary },
+                  ]}
+                >
                   {TODAY_HOME_TIP.badge}
                 </Text>
               </View>
@@ -1932,6 +2205,8 @@ export default function LoggedInHome() {
             onPressTimelineCategory={onPressTimelineCategory}
             onPressRecord={onPressRecord}
             onPressRecordItem={onPressRecordItem}
+            accentColor={petTheme.primary}
+            accentDeepColor={petTheme.deep}
           />
         </Animated.View>
       </ScrollView>

@@ -265,6 +265,31 @@ export const styles = StyleSheet.create({
     color: BRAND_DEEP,
     fontWeight: '900',
   },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    backgroundColor: 'rgba(11,18,32,0.28)',
+  },
+  modalCard: {
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    gap: 14,
+  },
+  modalTitle: {
+    color: TEXT,
+    fontWeight: '800',
+  },
+  modalDateRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  modalDateInput: {
+    flex: 1,
+    textAlign: 'center',
+  },
   primaryButton: {
     marginTop: 22,
     height: 56,

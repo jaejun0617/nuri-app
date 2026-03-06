@@ -70,6 +70,7 @@ import {
   buildTimelineHeatmap,
   type TimelineHeatmapWeek,
 } from '../../services/timeline/heatmap';
+import { buildPetThemePalette } from '../../services/pets/themePalette';
 import type { PetRecordsState } from '../../store/recordStore';
 import { useRecordStore } from '../../store/recordStore';
 import { usePetStore } from '../../store/petStore';
@@ -170,6 +171,7 @@ const ControlsBar = memo(function ControlsBar({
   onChangeSearch,
   onClearSearch,
   onPressMainCategory,
+  theme,
 }: {
   sortLabel: string;
   monthLabel: string;
@@ -187,6 +189,7 @@ const ControlsBar = memo(function ControlsBar({
   onClearSearch: () => void;
 
   onPressMainCategory: (key: MainCategory) => void;
+  theme: ReturnType<typeof buildPetThemePalette>;
 }) {
   return (
     <View style={styles.controlsWrap}>
@@ -194,20 +197,38 @@ const ControlsBar = memo(function ControlsBar({
       <View style={styles.controlsRow}>
         <TouchableOpacity
           activeOpacity={0.9}
-          style={styles.controlChip}
+          style={[
+            styles.controlChip,
+            {
+              borderColor: theme.border,
+              backgroundColor: theme.tint,
+            },
+          ]}
           onPress={onToggleSort}
         >
-          <AppText preset="caption" style={styles.controlChipText}>
+          <AppText
+            preset="caption"
+            style={[styles.controlChipText, { color: theme.primary }]}
+          >
             {sortLabel}
           </AppText>
         </TouchableOpacity>
 
         <TouchableOpacity
           activeOpacity={0.9}
-          style={styles.controlChip}
+          style={[
+            styles.controlChip,
+            {
+              borderColor: theme.border,
+              backgroundColor: theme.tint,
+            },
+          ]}
           onPress={onOpenMonthModal}
         >
-          <AppText preset="caption" style={styles.controlChipText}>
+          <AppText
+            preset="caption"
+            style={[styles.controlChipText, { color: theme.primary }]}
+          >
             {monthLabel}
           </AppText>
         </TouchableOpacity>
@@ -216,7 +237,7 @@ const ControlsBar = memo(function ControlsBar({
 
         <TouchableOpacity
           activeOpacity={0.9}
-          style={styles.iconBtn}
+          style={[styles.iconBtn, { borderColor: theme.border }]}
           onPress={onToggleSearch}
         >
           <AppText preset="headline" style={styles.iconText}>
@@ -253,6 +274,12 @@ const ControlsBar = memo(function ControlsBar({
                 style={[
                   styles.categoryChip,
                   active ? styles.categoryChipActive : null,
+                  active
+                    ? {
+                        borderColor: theme.border,
+                        backgroundColor: theme.tint,
+                      }
+                    : null,
                 ]}
                 onPress={() => onPressMainCategory(item.key)}
               >
@@ -261,6 +288,7 @@ const ControlsBar = memo(function ControlsBar({
                   style={[
                     styles.categoryChipText,
                     active ? styles.categoryChipTextActive : null,
+                    active ? { color: theme.primary } : null,
                   ]}
                   numberOfLines={1}
                 >
@@ -288,7 +316,7 @@ const ControlsBar = memo(function ControlsBar({
           {searchInput.trim() ? (
             <TouchableOpacity
               activeOpacity={0.9}
-              style={styles.clearBtn}
+              style={[styles.clearBtn, { backgroundColor: theme.primary }]}
               onPress={onClearSearch}
             >
               <AppText preset="caption" style={styles.clearBtnText}>
@@ -328,26 +356,57 @@ function getHeatmapIntensityStyle(intensity: 0 | 1 | 2 | 3 | 4) {
   }
 }
 
+function getHeatmapIntensityColor(
+  intensity: 0 | 1 | 2 | 3 | 4,
+  theme: ReturnType<typeof buildPetThemePalette>,
+) {
+  switch (intensity) {
+    case 1:
+      return theme.tint;
+    case 2:
+      return theme.glow;
+    case 3:
+      return theme.border;
+    case 4:
+      return theme.primary;
+    default:
+      return '#EFF1F6';
+  }
+}
+
 const HeatmapSection = memo(function HeatmapSection({
   monthLabel,
   weeks,
   expanded,
   onToggle,
+  theme,
 }: {
   monthLabel: string;
   weeks: TimelineHeatmapWeek[];
   expanded: boolean;
   onToggle: () => void;
+  theme: ReturnType<typeof buildPetThemePalette>;
 }) {
   return (
-    <View style={styles.heatmapWrap}>
+    <View
+      style={[
+        styles.heatmapWrap,
+        {
+          backgroundColor: theme.soft,
+          borderColor: theme.border,
+        },
+      ]}
+    >
       <TouchableOpacity
         activeOpacity={0.88}
         style={styles.heatmapToggleRow}
         onPress={onToggle}
       >
         <View style={styles.heatmapHeader}>
-          <AppText preset="caption" style={styles.heatmapEyebrow}>
+          <AppText
+            preset="caption"
+            style={[styles.heatmapEyebrow, { color: theme.primary }]}
+          >
             기록 밀도
           </AppText>
           <AppText preset="body" style={styles.heatmapTitle}>
@@ -361,7 +420,7 @@ const HeatmapSection = memo(function HeatmapSection({
         <Feather
           name={expanded ? 'chevron-up' : 'chevron-down'}
           size={18}
-          color="#6D6AF8"
+          color={theme.primary}
         />
       </TouchableOpacity>
 
@@ -393,7 +452,14 @@ const HeatmapSection = memo(function HeatmapSection({
                       style={[
                         styles.heatmapCell,
                         getHeatmapIntensityStyle(cell.intensity),
+                        {
+                          backgroundColor: getHeatmapIntensityColor(
+                            cell.intensity,
+                            theme,
+                          ),
+                        },
                         cell.isToday ? styles.heatmapCellToday : null,
+                        cell.isToday ? { borderColor: theme.deep } : null,
                         !cell.isCurrentMonth ? styles.heatmapCellMuted : null,
                       ]}
                     />
@@ -413,6 +479,12 @@ const HeatmapSection = memo(function HeatmapSection({
                 style={[
                   styles.heatmapLegendCell,
                   getHeatmapIntensityStyle(level as 0 | 1 | 2 | 3 | 4),
+                  {
+                    backgroundColor: getHeatmapIntensityColor(
+                      level as 0 | 1 | 2 | 3 | 4,
+                      theme,
+                    ),
+                  },
                 ]}
               />
             ))}
@@ -451,6 +523,14 @@ export default function TimelineScreen() {
     }
     return pets[0]?.id ?? null;
   }, [petIdFromParams, selectedPetId, pets]);
+  const selectedPet = useMemo(
+    () => pets.find(item => item.id === petId) ?? null,
+    [petId, pets],
+  );
+  const petTheme = useMemo(
+    () => buildPetThemePalette(selectedPet?.themeColor),
+    [selectedPet?.themeColor],
+  );
 
   // ---------------------------------------------------------
   // 2) store (✅ 안정: byPetId[petId] 직접 구독 + 동일참조 fallback)
@@ -828,7 +908,7 @@ export default function TimelineScreen() {
 
         <TouchableOpacity
           activeOpacity={0.9}
-          style={styles.createBtn}
+          style={[styles.createBtn, { backgroundColor: petTheme.primary }]}
           onPress={onPressCreate}
         >
           <AppText preset="caption" style={styles.createText}>
@@ -867,12 +947,14 @@ export default function TimelineScreen() {
               onChangeSearch={onChangeSearch}
               onClearSearch={onClearSearch}
               onPressMainCategory={onPressMainCategory}
+              theme={petTheme}
             />
             <HeatmapSection
               monthLabel={monthLabel}
               weeks={heatmapWeeks}
               expanded={heatmapExpanded}
               onToggle={() => setHeatmapExpanded(prev => !prev)}
+              theme={petTheme}
             />
           </>
         }
@@ -900,7 +982,7 @@ export default function TimelineScreen() {
 
             <TouchableOpacity
               activeOpacity={0.9}
-              style={styles.primary}
+              style={[styles.primary, { backgroundColor: petTheme.primary }]}
               onPress={onPressCreate}
             >
               <AppText preset="body" style={styles.primaryIcon}>

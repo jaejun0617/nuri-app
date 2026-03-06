@@ -25,6 +25,8 @@ import RecordCreateScreen from '../screens/Records/RecordCreateScreen';
 import GuestbookScreen from '../screens/Guestbook/GuestbookScreen';
 
 import MoreDrawer from '../components/MoreDrawer/MoreDrawer';
+import { buildPetThemePalette } from '../services/pets/themePalette';
+import { usePetStore } from '../store/petStore';
 
 export type AppTabParamList = {
   HomeTab: undefined;
@@ -46,8 +48,18 @@ function MoreNull() {
 function CustomTabBar(props: BottomTabBarProps & { onOpenMore: () => void }) {
   const { state, navigation, onOpenMore } = props;
   const insets = useSafeAreaInsets();
+  const pets = usePetStore(s => s.pets);
+  const selectedPetId = usePetStore(s => s.selectedPetId);
+  const selectedPet = useMemo(
+    () => pets.find(p => p.id === selectedPetId) ?? pets[0] ?? null,
+    [pets, selectedPetId],
+  );
+  const petTheme = useMemo(
+    () => buildPetThemePalette(selectedPet?.themeColor),
+    [selectedPet?.themeColor],
+  );
 
-  const ACTIVE = '#6D6AF8';
+  const ACTIVE = petTheme.primary;
   const INACTIVE = '#777777';
 
   const go = useCallback(
@@ -206,7 +218,7 @@ function CustomTabBar(props: BottomTabBarProps & { onOpenMore: () => void }) {
       <View pointerEvents="box-none" style={styles.fabLayer}>
         <TouchableOpacity
           activeOpacity={0.92}
-          style={styles.fabBtn}
+          style={[styles.fabBtn, { backgroundColor: petTheme.primary }]}
           onPress={() => handlePress('RecordCreateTab')}
         >
           <Feather name="plus" size={26} color="#FFFFFF" />

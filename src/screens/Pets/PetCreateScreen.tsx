@@ -37,13 +37,23 @@ import type { RouteProp } from '@react-navigation/native';
 import Feather from 'react-native-vector-icons/Feather';
 
 import { ASSETS } from '../../assets';
+import PetMemorialFields from '../../components/pets/PetMemorialFields';
+import PetThemePicker from '../../components/pets/PetThemePicker';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import { readFileAsBase64 } from '../../services/files/readFileAsBase64';
 import { supabase } from '../../services/supabase/client';
 import {
   clearPetCreateDraft,
   loadPetCreateDraft,
   savePetCreateDraft,
 } from '../../services/local/onboardingDraft';
+import {
+  recommendPetThemeColor,
+} from '../../services/pets/themePalette';
+import {
+  getPetMemorialChoice,
+  type PetMemorialChoice,
+} from '../../services/pets/memorial';
 import { createPet, fetchMyPets } from '../../services/supabase/pets';
 import { uploadPetAvatar } from '../../services/supabase/storagePets';
 import { usePetStore } from '../../store/petStore';
@@ -270,6 +280,14 @@ const MultiInputSection = memo(function MultiInputSection({
 type StepOneFormProps = {
   imageUri: string | null;
   onPickImage: () => void;
+  selectedThemeColor: string;
+  onSelectThemeColor: (color: string) => void;
+  memorialChoice: PetMemorialChoice;
+  deathDate: string;
+  onChangeMemorialChoice: (choice: PetMemorialChoice) => void;
+  onDeathDateChange: (value: string) => void;
+  onDeathDateBlur: () => void;
+  onOpenDeathDateModal: () => void;
   name: string;
   onNameChange: (value: string) => void;
   birthDate: string;
@@ -291,6 +309,14 @@ type StepOneFormProps = {
 const StepOneForm = memo(function StepOneForm({
   imageUri,
   onPickImage,
+  selectedThemeColor,
+  onSelectThemeColor,
+  memorialChoice,
+  deathDate,
+  onChangeMemorialChoice,
+  onDeathDateChange,
+  onDeathDateBlur,
+  onOpenDeathDateModal,
   name,
   onNameChange,
   birthDate,
@@ -330,6 +356,22 @@ const StepOneForm = memo(function StepOneForm({
       </TouchableOpacity>
 
       <Text style={styles.heroCopy}>우리 아이 사진을 등록해주세요</Text>
+
+      <PetThemePicker
+        selectedColor={selectedThemeColor}
+        helperText="기본값은 자동으로 잡아두고, 원하는 색으로 바꿀 수 있어요."
+        onSelectColor={onSelectThemeColor}
+      />
+
+      <PetMemorialFields
+        choice={memorialChoice}
+        deathDate={deathDate}
+        onChangeChoice={onChangeMemorialChoice}
+        onChangeDeathDate={onDeathDateChange}
+        onBlurDeathDate={onDeathDateBlur}
+        onOpenDeathDateModal={onOpenDeathDateModal}
+        buildHint={buildDateHint}
+      />
 
       <View style={styles.fieldBlock}>
         <Text style={styles.label}>반려동물 이름</Text>
@@ -602,7 +644,10 @@ export default function PetCreateScreen() {
   const [name, setName] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [adoptionDate, setAdoptionDate] = useState('');
+  const [deathDate, setDeathDate] = useState('');
   const [breed, setBreed] = useState('');
+  const [memorialChoice, setMemorialChoice] =
+    useState<PetMemorialChoice>('together');
   const [gender, setGender] = useState<PetGender>('unknown');
   const [neutered, setNeutered] = useState<boolean | null>(null);
 
@@ -619,9 +664,10 @@ export default function PetCreateScreen() {
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageType, setImageType] = useState<string | null>(null);
+  const [themeColor, setThemeColor] = useState<string | null>(null);
   const [successModalVisible, setSuccessModalVisible] = useState(false);
   const [dateModalTarget, setDateModalTarget] = useState<
-    'birth' | 'adoption' | null
+    'birth' | 'adoption' | 'death' | null
   >(null);
   const [pickerYear, setPickerYear] = useState('');
   const [pickerMonth, setPickerMonth] = useState('');
@@ -714,18 +760,38 @@ export default function PetCreateScreen() {
 
     setImageUri(asset.uri);
     setImageType(resolvePickerMimeType(asset));
-  }, []);
+    try {
+      const base64 = await readFileAsBase64(asset.uri);
+      setThemeColor(
+        recommendPetThemeColor({
+          imageBase64: base64,
+          name: trimmedName,
+        }),
+      );
+    } catch {
+      setThemeColor(
+        recommendPetThemeColor({
+          name: trimmedName,
+        }),
+      );
+    }
+  }, [trimmedName]);
 
   const openDateModal = useCallback(
-    (target: 'birth' | 'adoption') => {
-      const source = target === 'birth' ? birthDate : adoptionDate;
+    (target: 'birth' | 'adoption' | 'death') => {
+      const source =
+        target === 'birth'
+          ? birthDate
+          : target === 'adoption'
+          ? adoptionDate
+          : deathDate;
       const parts = splitYmdParts(source);
       setPickerYear(parts.year);
       setPickerMonth(parts.month);
       setPickerDay(parts.day);
       setDateModalTarget(target);
     },
-    [adoptionDate, birthDate],
+    [adoptionDate, birthDate, deathDate],
   );
 
   const closeDateModal = useCallback(() => {
@@ -742,6 +808,9 @@ export default function PetCreateScreen() {
       if (dateModalTarget === 'adoption') {
         setAdoptionDate(normalized ?? '');
       }
+      if (dateModalTarget === 'death') {
+        setDeathDate(normalized ?? '');
+      }
       setDateModalTarget(null);
     } catch (error) {
       Alert.alert('날짜 확인', getErrorMessage(error));
@@ -756,6 +825,29 @@ export default function PetCreateScreen() {
     () => Math.max(insets.top - 24, 0),
     [insets.top],
   );
+  const selectedThemeColor = useMemo(
+    () =>
+      themeColor ??
+      recommendPetThemeColor({
+        name: trimmedName,
+      }),
+    [themeColor, trimmedName],
+  );
+
+  useEffect(() => {
+    if (imageUri) return;
+    setThemeColor(
+      recommendPetThemeColor({
+        name: trimmedName,
+      }),
+    );
+  }, [imageUri, trimmedName]);
+
+  useEffect(() => {
+    if (memorialChoice === 'memorial') return;
+    if (!deathDate) return;
+    setDeathDate('');
+  }, [deathDate, memorialChoice]);
 
   useEffect(() => {
     let mounted = true;
@@ -772,8 +864,11 @@ export default function PetCreateScreen() {
         setName(draft.name);
         setBirthDate(draft.birthDate);
         setAdoptionDate(draft.adoptionDate);
+        setDeathDate(draft.deathDate ?? '');
         setBreed(draft.breed);
+        setThemeColor(draft.themeColor ?? null);
         setGender(draft.gender);
+        setMemorialChoice(draft.memorialChoice ?? getPetMemorialChoice(draft.deathDate));
         setNeutered(draft.neutered);
 
         setWeightKg(draft.weightKg);
@@ -811,8 +906,11 @@ export default function PetCreateScreen() {
         name,
         birthDate,
         adoptionDate,
+        deathDate,
         breed,
+        themeColor: selectedThemeColor,
         gender,
+        memorialChoice,
         neutered,
         weightKg,
         likes,
@@ -834,6 +932,7 @@ export default function PetCreateScreen() {
   }, [
     adoptionDate,
     birthDate,
+    deathDate,
     breed,
     dislikes,
     draftDislike,
@@ -849,8 +948,10 @@ export default function PetCreateScreen() {
     name,
     neutered,
     saving,
+    selectedThemeColor,
     step,
     successModalVisible,
+    memorialChoice,
     tags,
     weightKg,
   ]);
@@ -931,11 +1032,16 @@ export default function PetCreateScreen() {
         setAdoptionDate(normalizedAdoption ?? '');
       }
 
+      if (memorialChoice === 'memorial') {
+        const normalizedDeath = normalizeYmdOrNull(deathDate);
+        setDeathDate(normalizedDeath ?? '');
+      }
+
       setStep(2);
     } catch (error) {
       Alert.alert('기본 정보 확인', getErrorMessage(error));
     }
-  }, [adoptionDate, birthDate, trimmedName]);
+  }, [adoptionDate, birthDate, deathDate, memorialChoice, trimmedName]);
 
   const onSubmit = useCallback(async () => {
     if (!canSubmit) return;
@@ -949,6 +1055,8 @@ export default function PetCreateScreen() {
 
       const normalizedBirthDate = normalizeYmdOrNull(birthDate);
       const normalizedAdoptionDate = normalizeYmdOrNull(adoptionDate);
+      const normalizedDeathDate =
+        memorialChoice === 'memorial' ? normalizeYmdOrNull(deathDate) : null;
       const normalizedWeight = normalizeWeightOrNull(weightKg);
 
       ensureMinOne(likes, '좋아하는 것');
@@ -958,8 +1066,10 @@ export default function PetCreateScreen() {
 
       const newPetId = await createPet({
         name: trimmedName,
+        themeColor: selectedThemeColor,
         birthDate: normalizedBirthDate,
         adoptionDate: normalizedAdoptionDate,
+        deathDate: normalizedDeathDate,
         weightKg: normalizedWeight,
         breed: breed.trim() || null,
         gender,
@@ -1010,6 +1120,7 @@ export default function PetCreateScreen() {
   }, [
     adoptionDate,
     birthDate,
+    deathDate,
     breed,
     canSubmit,
     dislikes,
@@ -1018,6 +1129,8 @@ export default function PetCreateScreen() {
     imageType,
     imageUri,
     likes,
+    memorialChoice,
+    selectedThemeColor,
     neutered,
     setPets,
     tags,
@@ -1041,12 +1154,24 @@ export default function PetCreateScreen() {
     () => finalizeDateInput(adoptionDate, setAdoptionDate),
     [adoptionDate, finalizeDateInput],
   );
+  const handleDeathDateChange = useCallback(
+    (text: string) => syncDateInput(setDeathDate, text),
+    [syncDateInput],
+  );
+  const handleDeathDateBlur = useCallback(
+    () => finalizeDateInput(deathDate, setDeathDate),
+    [deathDate, finalizeDateInput],
+  );
   const openBirthDateModal = useCallback(
     () => openDateModal('birth'),
     [openDateModal],
   );
   const openAdoptionDateModal = useCallback(
     () => openDateModal('adoption'),
+    [openDateModal],
+  );
+  const openDeathDateModal = useCallback(
+    () => openDateModal('death'),
     [openDateModal],
   );
 
@@ -1144,6 +1269,14 @@ export default function PetCreateScreen() {
             <StepOneForm
               imageUri={imageUri}
               onPickImage={pickImage}
+              selectedThemeColor={selectedThemeColor}
+              onSelectThemeColor={setThemeColor}
+              memorialChoice={memorialChoice}
+              deathDate={deathDate}
+              onChangeMemorialChoice={setMemorialChoice}
+              onDeathDateChange={handleDeathDateChange}
+              onDeathDateBlur={handleDeathDateBlur}
+              onOpenDeathDateModal={openDeathDateModal}
               name={name}
               onNameChange={setName}
               birthDate={birthDate}

@@ -12,9 +12,12 @@ export type PetCreateDraft = {
   name: string;
   birthDate: string;
   adoptionDate: string;
+  deathDate: string;
   breed: string;
+  themeColor: string | null;
   gender: 'male' | 'female' | 'unknown';
   neutered: boolean | null;
+  memorialChoice: 'together' | 'memorial';
   weightKg: string;
   likes: string[];
   dislikes: string[];

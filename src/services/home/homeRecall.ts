@@ -8,8 +8,12 @@
 // - 다음 챕터(daily_recall 서버 고정)에서 이 로직을 서버 조회/업서트로 교체 가능
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getKstMonthDay, getKstYmd, getTimePhase } from '../../utils/date';
+import { getKstMonthDay, getKstYmd } from '../../utils/date';
 import type { MemoryRecord } from '../supabase/memories';
+import {
+  buildPetTimeMessage,
+  getPetTimeMessageEmoji,
+} from '../pets/memorial';
 
 function randomPick<T>(arr: T[]): T | null {
   if (!arr.length) return null;
@@ -88,24 +92,16 @@ export async function pickTodayPhoto(
  * generateTimeMessage
  * - 07:00 / 12:00 / 18:00 기준 메시지 자동 생성(감성 버전)
  */
-export function generateTimeMessage(petName?: string | null) {
-  const name = petName?.trim() ? petName.trim() : '우리 아이';
-  const phase = getTimePhase();
-
-  if (phase === 'morning') {
-    return `${name}와 눈 맞추는 아침이에요. 오늘도 천천히, 포근하게 시작해요.`;
-  }
-
-  if (phase === 'noon') {
-    return `${name}가 웃던 순간을 살짝 떠올려볼까요? 작은 행복 충전 시간이에요.`;
-  }
-
-  return `${name}와 보낸 하루를 꼭 안고, 따뜻하게 마무리해요.`;
+export function generateTimeMessage(input?: {
+  petName?: string | null;
+  deathDate?: string | null;
+}) {
+  return buildPetTimeMessage({
+    name: input?.petName,
+    deathDate: input?.deathDate,
+  });
 }
 
-export function getTimeMessageEmoji() {
-  const phase = getTimePhase();
-  if (phase === 'morning') return '🌤️';
-  if (phase === 'noon') return '☀️';
-  return '🌙';
+export function getTimeMessageEmoji(deathDate?: string | null) {
+  return getPetTimeMessageEmoji(deathDate);
 }

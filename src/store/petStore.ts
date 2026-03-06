@@ -11,6 +11,7 @@ const STORAGE_SELECTED_KEY = 'nuri.selectedPetId.v1';
 export type Pet = {
   id: string;
   name: string;
+  themeColor?: string | null;
 
   avatarPath?: string | null;
   avatarUrl?: string | null;

@@ -1,0 +1,28 @@
+appId: com.nuri.app
+---
+- launchApp
+- tapOn: 로그인
+- tapOn: 이메일
+- inputText: ${E2E_EMAIL}
+- tapOn: 비밀번호
+- inputText: ${E2E_PASSWORD}
+- tapOn: 로그인
+- assertVisible: 타임라인
+- tapOn: 기록하기
+- tapOn: 제목을 입력하세요
+- inputText: ${E2E_RECORD_TITLE}
+- tapOn: 오늘의 추억을 남겨주세요
+- inputText: Maestro 자동화로 생성한 기록입니다.
+- tapOn: 완료
+- assertVisible: 타임라인
+- tapOn: ${E2E_RECORD_TITLE}
+- assertVisible: 수정
+- tapOn: 수정
+- tapOn: 오늘의 추억을 남겨주세요
+- inputText: " 내용 수정"
+- tapOn: 저장
+- assertVisible: 수정이 완료되었어요!
+- tapOn: 확인
+- tapOn: 삭제
+- assertVisible: 정말 삭제할까요?
+- tapOn: 삭제하기

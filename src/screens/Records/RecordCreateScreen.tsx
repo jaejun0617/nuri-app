@@ -73,6 +73,7 @@ import { uploadMemoryImage } from '../../services/supabase/storageMemories';
 import { usePetStore } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
 import { showToast } from '../../store/uiStore';
+import { buildPetThemePalette } from '../../services/pets/themePalette';
 import RecordDateModal from './components/RecordDateModal';
 import RecordTagModal from './components/RecordTagModal';
 import { styles } from './RecordCreateScreen.styles';
@@ -103,6 +104,14 @@ export default function RecordCreateScreen() {
     }
     return pets[0]?.id ?? null;
   }, [petIdFromParams, selectedPetId, pets]);
+  const selectedPet = useMemo(
+    () => pets.find(item => item.id === petId) ?? null,
+    [petId, pets],
+  );
+  const petTheme = useMemo(
+    () => buildPetThemePalette(selectedPet?.themeColor),
+    [selectedPet?.themeColor],
+  );
 
   const todayYmd = useMemo(() => toRecordYmd(new Date()), []);
 
@@ -602,13 +611,14 @@ export default function RecordCreateScreen() {
           disabled={disabled}
           onPress={onSubmit}
         >
-          <AppText
-            preset="body"
-            style={[
-              styles.headerDoneText,
-              disabled ? styles.headerDoneTextDisabled : null,
-            ]}
-          >
+        <AppText
+          preset="body"
+          style={[
+            styles.headerDoneText,
+            !disabled ? { color: petTheme.primary } : null,
+            disabled ? styles.headerDoneTextDisabled : null,
+          ]}
+        >
             {saving ? '저장중' : '완료'}
           </AppText>
         </TouchableOpacity>
@@ -622,12 +632,18 @@ export default function RecordCreateScreen() {
       >
         <TouchableOpacity
           activeOpacity={0.9}
-          style={styles.dateCard}
+          style={[
+            styles.dateCard,
+            {
+              backgroundColor: petTheme.soft,
+              borderColor: petTheme.border,
+            },
+          ]}
           onPress={onOpenDateModal}
         >
           <View style={styles.dateLeft}>
             <View style={styles.dateIconWrap}>
-              <Feather name="calendar" size={16} color="#A4ADBD" />
+              <Feather name="calendar" size={16} color={petTheme.primary} />
             </View>
             <AppText preset="body" style={styles.dateText}>
               {formattedDate}
@@ -712,6 +728,12 @@ export default function RecordCreateScreen() {
                   style={[
                     styles.quickTagIconWrap,
                     active ? styles.quickTagIconWrapActive : null,
+                    active
+                      ? {
+                          backgroundColor: petTheme.primary,
+                          shadowColor: petTheme.deep,
+                        }
+                      : null,
                   ]}
                 >
                   <Feather
@@ -725,6 +747,7 @@ export default function RecordCreateScreen() {
                   style={[
                     styles.quickTagLabel,
                     active ? styles.quickTagLabelActive : null,
+                    active ? { color: petTheme.primary } : null,
                   ]}
                 >
                   {category.label}
@@ -735,8 +758,16 @@ export default function RecordCreateScreen() {
         </View>
 
         {selectedMainCategory ? (
-          <View style={styles.quickTagHint}>
-            <AppText preset="caption" style={styles.quickTagHintText}>
+          <View
+            style={[
+              styles.quickTagHint,
+              { backgroundColor: petTheme.tint },
+            ]}
+          >
+            <AppText
+              preset="caption"
+              style={[styles.quickTagHintText, { color: petTheme.deep }]}
+            >
               분류: {selectedMainCategory.label}
               {selectedOtherSubCategory
                 ? ` · ${selectedOtherSubCategory.label}`
@@ -756,6 +787,12 @@ export default function RecordCreateScreen() {
                   style={[
                     styles.otherSubChip,
                     active ? styles.otherSubChipActive : null,
+                    active
+                      ? {
+                          borderColor: petTheme.border,
+                          backgroundColor: petTheme.tint,
+                        }
+                      : null,
                   ]}
                   onPress={() => onSelectOtherSubCategory(sub.key)}
                 >
@@ -764,6 +801,7 @@ export default function RecordCreateScreen() {
                     style={[
                       styles.otherSubChipText,
                       active ? styles.otherSubChipTextActive : null,
+                      active ? { color: petTheme.deep } : null,
                     ]}
                   >
                     {sub.label}
@@ -798,6 +836,12 @@ export default function RecordCreateScreen() {
                   style={[
                     styles.moodChip,
                     active ? styles.moodChipActive : null,
+                    active
+                      ? {
+                          backgroundColor: petTheme.tint,
+                          borderColor: petTheme.border,
+                        }
+                      : null,
                   ]}
                   onPress={() =>
                     setSelectedEmotion(prev =>
@@ -813,6 +857,7 @@ export default function RecordCreateScreen() {
                     style={[
                       styles.moodText,
                       active ? styles.moodTextActive : null,
+                      active ? { color: petTheme.deep } : null,
                     ]}
                   >
                     {mood.label}
@@ -863,8 +908,17 @@ export default function RecordCreateScreen() {
             {mergedPreviewTags.length ? (
               <View style={styles.selectedTagsWrap}>
                 {mergedPreviewTags.map(tag => (
-                  <View key={tag} style={styles.selectedTagChip}>
-                    <AppText preset="caption" style={styles.selectedTagText}>
+                  <View
+                    key={tag}
+                    style={[
+                      styles.selectedTagChip,
+                      { backgroundColor: petTheme.tint },
+                    ]}
+                  >
+                    <AppText
+                      preset="caption"
+                      style={[styles.selectedTagText, { color: petTheme.deep }]}
+                    >
                       {tag}
                     </AppText>
                   </View>
@@ -884,7 +938,16 @@ export default function RecordCreateScreen() {
 
         <TouchableOpacity
           activeOpacity={0.9}
-          style={[styles.bottomSubmitBtn, disabled ? styles.bottomSubmitBtnDisabled : null]}
+          style={[
+            styles.bottomSubmitBtn,
+            disabled ? styles.bottomSubmitBtnDisabled : null,
+            !disabled
+              ? {
+                  backgroundColor: petTheme.primary,
+                  shadowColor: petTheme.deep,
+                }
+              : null,
+          ]}
           disabled={disabled}
           onPress={onSubmit}
         >

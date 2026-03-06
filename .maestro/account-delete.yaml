@@ -1,0 +1,14 @@
+appId: com.nuri.app
+---
+- launchApp
+- tapOn: 로그인
+- tapOn: 이메일
+- inputText: ${E2E_DELETE_EMAIL}
+- tapOn: 비밀번호
+- inputText: ${E2E_DELETE_PASSWORD}
+- tapOn: 로그인
+- tapOn: 전체메뉴
+- assertVisible: 회원탈퇴
+- tapOn: 회원탈퇴
+- assertVisible: 계정을 삭제할까요?
+- tapOn: 삭제

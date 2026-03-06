@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">nuri</string>
+    <string name="nuri_home_widget_desc">오늘 일정과 최근 기록을 바로 확인하는 NURI 홈 위젯</string>
 </resources>

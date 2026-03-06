@@ -13,6 +13,9 @@
 - 타임라인 최근 12주 히트맵
 - 홈 이번 주 요약 카드
 - QA 회귀 테스트 1차 구축
+- Android 홈 위젯
+- 펫 테마 선택 UI
+- Maestro E2E 스모크 플로우
 
 ### 보류중
 
@@ -21,7 +24,6 @@
 ### 출시 전 필수
 
 - Crashlytics 실수집 확인 및 최종 마감
-- 홈 위젯
 - 최종 배포 전 QA 전체 점검
 - 스토어 배포용 release 빌드 기준 모니터링 재검증
 
@@ -1873,6 +1875,82 @@ NURI는 데이터 입력 도구가 아니라,
 
 - Firebase 콘솔에서 다운로드한 실제 설정 파일 배치
 - Android/iOS release 빌드에서 Crashlytics 이벤트/크래시 실수집 확인
+
+---
+
+## Chapter 6-47 — 펫 테마 선택 + Android 홈 위젯 + Maestro E2E 스모크 추가
+
+### 무엇을 진행했나
+
+- 펫 프로필 생성/수정 화면에 공용 `PetThemePicker`를 추가했다.
+  - `src/components/pets/PetThemePicker.tsx`
+- 테마 계산/파생 팔레트를 공용 서비스로 묶었다.
+  - `src/services/pets/themePalette.ts`
+- 홈 화면은 선택된 펫의 테마를 헤더/히어로/태그 강조색에 반영하도록 정리했다.
+  - `src/screens/Main/components/LoggedInHome/LoggedInHome.tsx`
+- 홈의 프로필 진입 버튼은 톱니바퀴 대신 `🐾` 이모티콘으로 바꿨다.
+- 오늘의 메시지 영역은 별도 배경 없이 더 가볍게 보이도록 조정했다.
+- Android 홈 위젯 브리지와 네이티브 위젯을 추가했다.
+  - `src/services/home/widgetBridge.ts`
+  - `src/services/home/widgetSnapshot.ts`
+  - `android/app/src/main/java/com/nuri/widget/*`
+  - `android/app/src/main/res/layout/nuri_home_widget.xml`
+- Maestro 스모크 플로우를 추가했다.
+  - `.maestro/login-record-crud.yaml`
+  - `.maestro/account-delete.yaml`
+
+### 왜 이렇게 했나
+
+- 자동 추천만 노출하면 사용자가 원하는 브랜드 감각을 직접 고르기 어렵다.
+- 그래서 추천 색은 기본값 계산에만 쓰고, 실제 선택은 사용자가 하도록 바꿨다.
+- 홈 위젯은 앱 렌더링 트리와 분리된 네이티브 스냅샷 구조로 붙여야 리렌더링 부담이 없다.
+- QA 자동화도 도메인 테스트만으로는 부족해서, 실제 탭 이동과 CRUD 흐름을 따라가는 스모크 플로우가 필요했다.
+
+### 결과
+
+- 펫별 테마를 사용자가 직접 선택할 수 있다.
+- 홈 카드와 태그 강조색이 선택된 펫의 테마와 함께 움직인다.
+- Android 홈 화면에서 오늘 일정/최근 기록을 바로 볼 수 있다.
+- Maestro로 로그인, 기록 생성/수정/삭제, 회원탈퇴 스모크 플로우를 실행할 수 있다.
+
+---
+
+## Chapter 6-48 — 펫 추모 프로필 + 테마 확장 + Pretendard 적용 준비
+
+### 무엇을 진행했나
+
+- 펫 생성/수정 화면에 `추모 프로필` 선택과 날짜 입력을 공용 UI로 붙였다.
+  - `src/components/pets/PetMemorialFields.tsx`
+  - `src/screens/Pets/PetCreateScreen.tsx`
+  - `src/screens/Pets/PetProfileEditScreen.tsx`
+- 추모 상태 해석을 공용 서비스로 묶고, 홈 문구와 이름 표기에 재사용했다.
+  - `src/services/pets/memorial.ts`
+- 홈, 타임라인, 기록하기, 하단 탭 네비게이션까지 선택된 펫 테마가 이어지게 정리했다.
+  - `src/screens/Main/components/LoggedInHome/LoggedInHome.tsx`
+  - `src/navigation/AppTabsNavigator.tsx`
+  - `src/screens/Records/TimelineScreen.tsx`
+  - `src/screens/Records/RecordCreateScreen.tsx`
+- 홈의 `반가워요!` 문구와 `함께한 시간` 하트도 테마와 연결했다.
+  - 하트는 단순 동일색이 아니라, 테마색과 겹치지 않도록 대비되는 보조색 규칙으로 바꿨다.
+- 전역 폰트 토큰을 `PretendardVariable` 기준으로 받을 수 있게 준비했다.
+  - `src/app/theme/tokens/typography.ts`
+  - `react-native.config.js`
+  - `src/assets/fonts/.gitkeep`
+
+### 왜 이렇게 했나
+
+- 추모 프로필은 생성 시점에만 필요한 정보가 아니라, 이후 언제든 바뀔 수 있는 상태다.
+- 그래서 온보딩과 프로필 수정에서 같은 규칙과 같은 입력 방식을 쓰게 맞췄다.
+- 테마는 홈 한 군데만 바뀌면 어색해서, 기록 작성과 타임라인, 탭까지 함께 움직여야 일관성이 생긴다.
+- 하트처럼 의미 아이콘은 테마색과 겹치면 보이지 않기 쉬워서, 단순 tint가 아니라 대비색 규칙이 필요했다.
+- 폰트도 화면마다 따로 만지기보다 `AppText` 기반 전역 토큰에서 한 번에 바뀌게 잡는 편이 유지보수에 안전하다.
+
+### 결과
+
+- 추모 프로필 사용자도 자연스럽게 등록/수정할 수 있다.
+- 홈의 이름, 오늘의 메시지, 하트, 타임라인/기록하기/탭 액션이 같은 펫 테마를 공유한다.
+- 추모 프로필의 오늘의 메시지 아이콘은 촛불 대신 무지개로 통일했다.
+- Pretendard 폰트 파일만 넣으면 앱 전역 텍스트를 한 번에 바꿀 준비가 끝났다.
 
 ---
 

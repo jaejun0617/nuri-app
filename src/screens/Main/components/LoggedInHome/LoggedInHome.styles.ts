@@ -149,18 +149,15 @@ export const styles = StyleSheet.create({
     position: 'absolute',
     top: 12,
     right: 12,
-    width: 30,
-    height: 30,
+    width: 34,
+    height: 34,
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(109,106,248,0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(109,106,248,0.10)',
   },
   heroGearText: {
     color: 'rgba(11,18,32,0.55)',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '900',
   },
 
@@ -269,6 +266,15 @@ export const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '900',
     color: '#FFFFFF',
+  },
+  heroTogetherRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  heroTogetherHeart: {
+    fontSize: 15,
+    fontWeight: '900',
   },
 
   // ---------------------------------------------------------

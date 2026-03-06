@@ -62,6 +62,7 @@ function mapRowToPet(row: PetsRow): Pet {
   return {
     id: row.id,
     name: row.name,
+    themeColor: row.theme_color ?? null,
 
     avatarPath,
     avatarUrl,
@@ -145,8 +146,10 @@ export async function fetchMyPets(): Promise<Pet[]> {
  * -------------------------------------------------------- */
 export async function createPet(input: {
   name: string;
+  themeColor?: string | null;
   adoptionDate?: string | null;
   birthDate?: string | null;
+  deathDate?: string | null;
   weightKg?: number | null;
 
   gender?: 'male' | 'female' | 'unknown';
@@ -167,9 +170,11 @@ export async function createPet(input: {
   const payload = {
     user_id: userId,
     name: input.name,
+    theme_color: input.themeColor ?? null,
 
     adoption_date: input.adoptionDate ?? null,
     birth_date: input.birthDate ?? null,
+    death_date: input.deathDate ?? null,
     weight_kg: input.weightKg ?? null,
 
     gender: input.gender ?? 'unknown',
@@ -200,8 +205,10 @@ export async function createPet(input: {
 export async function updatePet(input: {
   petId: string;
   name: string;
+  themeColor?: string | null;
   adoptionDate?: string | null;
   birthDate?: string | null;
+  deathDate?: string | null;
   weightKg?: number | null;
   gender?: 'male' | 'female' | 'unknown';
   neutered?: boolean | null;
@@ -218,8 +225,10 @@ export async function updatePet(input: {
 
   const payload = {
     name: input.name,
+    theme_color: input.themeColor ?? null,
     adoption_date: input.adoptionDate ?? null,
     birth_date: input.birthDate ?? null,
+    death_date: input.deathDate ?? null,
     weight_kg: input.weightKg ?? null,
     gender: input.gender ?? 'unknown',
     neutered: input.neutered ?? null,
