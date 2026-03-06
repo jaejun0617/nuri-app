@@ -5,7 +5,11 @@
 
         <!-- ✅ 흰 배경에서 상태바 아이콘을 검정으로 -->
         <item name="android:windowLightStatusBar">true</item>
+        <!-- ✅ 하단 시스템 네비게이션 바도 흰 배경 + 어두운 아이콘 -->
+        <item name="android:windowLightNavigationBar">true</item>
         <!-- ✅ 투명 (translucent StatusBar와 함께) -->
         <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/white</item>
+        <item name="android:enforceNavigationBarContrast">false</item>
     </style>
 </resources>

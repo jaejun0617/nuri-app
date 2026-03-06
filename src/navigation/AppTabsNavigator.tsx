@@ -7,15 +7,11 @@
 // - ✅ 아이콘: react-native-vector-icons/Feather 통일
 
 import React, { useCallback, useMemo } from 'react';
-import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+import { View, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import type { NavigatorScreenParams } from '@react-navigation/native';
-import Feather from 'react-native-vector-icons/Feather';
 
 import MainScreen from '../screens/Main/MainScreen';
 import TimelineStackNavigator, {
@@ -25,8 +21,7 @@ import RecordCreateScreen from '../screens/Records/RecordCreateScreen';
 import GuestbookScreen from '../screens/Guestbook/GuestbookScreen';
 
 import MoreDrawer from '../components/MoreDrawer/MoreDrawer';
-import { buildPetThemePalette } from '../services/pets/themePalette';
-import { usePetStore } from '../store/petStore';
+import AppNavigationToolbar from '../components/navigation/AppNavigationToolbar';
 import { useUiStore } from '../store/uiStore';
 
 export type AppTabParamList = {
@@ -43,190 +38,36 @@ function MoreNull() {
   return <View style={{ flex: 1, backgroundColor: '#FFFFFF' }} />;
 }
 
-/* ---------------------------------------------------------
- * 1) Custom TabBar (중앙 FAB)
- * -------------------------------------------------------- */
-function CustomTabBar(props: BottomTabBarProps & { onOpenMore: () => void }) {
-  const { state, navigation, onOpenMore } = props;
-  const insets = useSafeAreaInsets();
-  const pets = usePetStore(s => s.pets);
-  const selectedPetId = usePetStore(s => s.selectedPetId);
-  const selectedPet = useMemo(
-    () => pets.find(p => p.id === selectedPetId) ?? pets[0] ?? null,
-    [pets, selectedPetId],
-  );
-  const petTheme = useMemo(
-    () => buildPetThemePalette(selectedPet?.themeColor),
-    [selectedPet?.themeColor],
-  );
-
-  const ACTIVE = petTheme.primary;
-  const INACTIVE = '#777777';
-
-  const go = useCallback(
-    (routeName: string) => {
-      navigation.navigate(routeName as never);
-    },
-    [navigation],
-  );
-
-  const currentIndex = state.index;
-  const currentRoute = state.routes[currentIndex];
-  const currentRouteName = currentRoute?.name;
-
-  const isActive = useCallback(
-    (name: string) => currentRouteName === name,
-    [currentRouteName],
-  );
-
-  const tabBarHeight = useMemo(() => {
-    // FAB 때문에 기본보다 약간 높은 탭바(스샷 느낌)
-    const base = 64;
-    const bottom = Math.min(insets.bottom, 18);
-    return base + bottom;
-  }, [insets.bottom]);
-
-  const handlePress = useCallback(
-    (routeName: string) => {
-      if (routeName === 'MoreTab') {
-        onOpenMore();
-        return;
-      }
-      if (routeName === 'TimelineTab') {
-        navigation.navigate({
-          name: 'TimelineTab',
-          params: { screen: 'TimelineMain', params: { mainCategory: 'all' } },
-          merge: false,
-        } as never);
-        return;
-      }
-      go(routeName);
-    },
-    [go, navigation, onOpenMore],
-  );
-
+function CustomTabBar(props: BottomTabBarProps) {
+  const { state } = props;
   const shouldHideTabBar = useMemo(() => {
     const current = state.routes[state.index];
-    if (!current || current.name !== 'TimelineTab') return false;
+    if (!current) return false;
 
-    const nested = current.state as
-      | {
-          index?: number;
-          routes?: Array<{ name?: string }>;
-        }
-      | undefined;
+    if (current.name === 'RecordCreateTab') {
+      return true;
+    }
 
-    const nestedIndex = nested?.index ?? 0;
-    const nestedName = nested?.routes?.[nestedIndex]?.name ?? 'TimelineMain';
-    return nestedName === 'RecordDetail' || nestedName === 'RecordEdit';
+    if (current.name === 'TimelineTab') {
+      return true;
+    }
+
+    return false;
   }, [state]);
 
   if (shouldHideTabBar) return null;
 
-  return (
-    <View style={[styles.tabBarWrap, { height: tabBarHeight }]}>
-      {/* 탭바 본체 */}
-      <View style={styles.tabBar}>
-        {/* Home */}
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={styles.tabItem}
-          onPress={() => handlePress('HomeTab')}
-        >
-          <Feather
-            name="home"
-            size={18}
-            color={isActive('HomeTab') ? ACTIVE : INACTIVE}
-          />
-          <Text
-            style={[
-              styles.tabLabel,
-              { color: isActive('HomeTab') ? ACTIVE : INACTIVE },
-            ]}
-          >
-            홈
-          </Text>
-        </TouchableOpacity>
+  const currentRouteName = state.routes[state.index]?.name;
+  const activeKey =
+    currentRouteName === 'TimelineTab'
+      ? 'timeline'
+      : currentRouteName === 'GuestbookTab'
+        ? 'guestbook'
+        : currentRouteName === 'MoreTab'
+          ? 'more'
+          : 'home';
 
-        {/* Timeline */}
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={styles.tabItem}
-          onPress={() => handlePress('TimelineTab')}
-        >
-          <Feather
-            name="activity"
-            size={18}
-            color={isActive('TimelineTab') ? ACTIVE : INACTIVE}
-          />
-          <Text
-            style={[
-              styles.tabLabel,
-              { color: isActive('TimelineTab') ? ACTIVE : INACTIVE },
-            ]}
-          >
-            타임라인
-          </Text>
-        </TouchableOpacity>
-
-        {/* 중앙 FAB 자리(공간 확보용) */}
-        <View style={styles.fabSlot} />
-
-        {/* Guestbook */}
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={styles.tabItem}
-          onPress={() => handlePress('GuestbookTab')}
-        >
-          <Feather
-            name="book-open"
-            size={18}
-            color={isActive('GuestbookTab') ? ACTIVE : INACTIVE}
-          />
-          <Text
-            style={[
-              styles.tabLabel,
-              { color: isActive('GuestbookTab') ? ACTIVE : INACTIVE },
-            ]}
-          >
-            방명록
-          </Text>
-        </TouchableOpacity>
-
-        {/* More */}
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={styles.tabItem}
-          onPress={() => handlePress('MoreTab')}
-        >
-          <Feather
-            name="menu"
-            size={18}
-            color={isActive('MoreTab') ? ACTIVE : INACTIVE}
-          />
-          <Text
-            style={[
-              styles.tabLabel,
-              { color: isActive('MoreTab') ? ACTIVE : INACTIVE },
-            ]}
-          >
-            전체메뉴
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* 중앙 FAB 버튼 */}
-      <View pointerEvents="box-none" style={styles.fabLayer}>
-        <TouchableOpacity
-          activeOpacity={0.92}
-          style={[styles.fabBtn, { backgroundColor: petTheme.primary }]}
-          onPress={() => handlePress('RecordCreateTab')}
-        >
-          <Feather name="plus" size={26} color="#FFFFFF" />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+  return <AppNavigationToolbar activeKey={activeKey} />;
 }
 
 export default function AppTabsNavigator() {
@@ -234,8 +75,8 @@ export default function AppTabsNavigator() {
   const openMore = useUiStore(s => s.openMoreDrawer);
   const closeMore = useUiStore(s => s.closeMoreDrawer);
   const renderTabBar = useCallback(
-    (p: BottomTabBarProps) => <CustomTabBar {...p} onOpenMore={openMore} />,
-    [openMore],
+    (p: BottomTabBarProps) => <CustomTabBar {...p} />,
+    [],
   );
 
   return (
@@ -272,8 +113,6 @@ export default function AppTabsNavigator() {
   );
 }
 
-const BRAND = '#6D6AF8';
-
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
@@ -282,73 +121,5 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-  },
-
-  // ---------------------------------------------------------
-  // TabBar
-  // ---------------------------------------------------------
-  tabBarWrap: {
-    backgroundColor: 'transparent',
-  },
-  tabBar: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 10,
-    paddingBottom: 10,
-    paddingHorizontal: 10,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#EAEAEA',
-  },
-
-  tabItem: {
-    width: 70,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  tabLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-
-  // 중앙 FAB 자리 확보 (가운데 “구멍” 느낌)
-  fabSlot: {
-    width: 86,
-  },
-
-  // ---------------------------------------------------------
-  // FAB
-  // ---------------------------------------------------------
-  fabLayer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    alignItems: 'center',
-  },
-  fabBtn: {
-    width: 66,
-    height: 66,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: BRAND,
-
-    // ✅ 떠있는 느낌(그림자)
-    shadowColor: BRAND,
-    shadowOpacity: 0.28,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 8,
-
-    // ✅ 탭바 위로 살짝 올라오게
-    marginTop: -20,
-
-    // ✅ 약간의 링 느낌
-    borderWidth: 6,
-    borderColor: 'rgba(255,255,255,0.96)',
   },
 });

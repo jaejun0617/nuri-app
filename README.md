@@ -2281,6 +2281,30 @@ NURI는 데이터 입력 도구가 아니라,
 
 ---
 
+## Chapter 6-59 — 하단 툴바 통일 + 홈/기록 스크롤 보정
+
+### 무엇을 진행했나
+
+- 메인 하단 탭바 구현을 별도로 두지 않고, [`src/components/navigation/AppNavigationToolbar.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/components/navigation/AppNavigationToolbar.tsx) 공용 툴바를 기준으로 통일했다.
+- 라벨은 `더보기` 대신 `전체메뉴`로 정리했다.
+- 홈 화면 [`src/screens/Main/components/LoggedInHome/LoggedInHome.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/screens/Main/components/LoggedInHome/LoggedInHome.tsx) 에 하단 safe area 기반 여백을 추가해서 `이번 달 일기` 섹션이 툴바에 가리지 않도록 보정했다.
+- 기록 생성 화면 [`src/screens/Records/RecordCreateScreen.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/screens/Records/RecordCreateScreen.tsx) 도 하단 저장 버튼이 시스템 네비게이션 바에 가리지 않도록 하단 여백을 늘렸다.
+- 타임라인 [`src/screens/Records/TimelineScreen.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/screens/Records/TimelineScreen.tsx) 헤더 왼쪽에 홈 복귀 버튼을 넣고, `기록 밀도`는 기본 접힘 상태로 변경했다.
+
+### 왜 이렇게 했나
+
+- 오버레이형 툴바를 쓰면 화면마다 스크롤 하단 여백을 별도로 잡아주지 않으면 마지막 카드나 CTA가 가려진다.
+- 탭바와 상세 화면 툴바가 서로 다른 구현을 가지면 미묘한 간격/높이 차이가 계속 누적된다.
+- 공용 툴바를 기준으로 정리해야 이후 홈/방명록/상세의 하단 네비게이션 톤을 한 번에 맞출 수 있다.
+
+### 결과
+
+- 홈과 기록 생성 화면에서 하단 요소가 툴바/시스템 네비게이션에 덜 가려진다.
+- 타임라인은 기본 진입 시 상단이 더 단정하게 보이고, 밀도 섹션도 접힌 상태로 시작한다.
+- 메인/상세/전체메뉴 하단 툴바 기준이 한곳으로 정리됐다.
+
+---
+
 # 🚀 Next
 
 ## Chapter 8 — 서버 검색(제목/태그) + 인덱스/정렬 안정화 + 섹션 점프 고도화

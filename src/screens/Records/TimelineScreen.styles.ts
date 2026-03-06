@@ -18,6 +18,12 @@ export const styles = StyleSheet.create({
     borderBottomColor: '#EAEAEA',
     backgroundColor: '#FFFFFF',
   },
+  homeBtn: {
+    width: 44,
+    height: 40,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+  },
   headerTitle: {
     flex: 1,
     textAlign: 'center',

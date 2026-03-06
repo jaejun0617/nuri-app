@@ -1,7 +1,7 @@
 // 파일: src/components/navigation/AppNavigationToolbar.tsx
 // 역할:
 // - 더보기와 추억 상세에서 공통으로 쓰는 앱 하단 네비게이션 툴바
-// - 홈/타임라인/기록/방명록/더보기 이동을 같은 레이아웃과 테마 규칙으로 제공
+// - 홈/타임라인/기록/방명록/전체메뉴 이동을 같은 레이아웃과 테마 규칙으로 제공
 
 import React, { useCallback, useMemo } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -89,7 +89,7 @@ export default function AppNavigationToolbar({
       { key: 'home' as const, label: '홈', icon: 'home' },
       { key: 'timeline' as const, label: '타임라인', icon: 'activity' },
       { key: 'guestbook' as const, label: '방명록', icon: 'book-open' },
-      { key: 'more' as const, label: '더보기', icon: 'menu' },
+      { key: 'more' as const, label: '전체메뉴', icon: 'menu' },
     ],
     [],
   );
@@ -172,15 +172,13 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    paddingHorizontal: 12,
-    paddingTop: 8,
-    backgroundColor: 'rgba(247, 248, 251, 0.96)',
+    paddingTop: 0,
+    backgroundColor: '#FFFFFF',
   },
   bar: {
     minHeight: 72,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: '#ECEFF5',
+    borderTopWidth: 1,
+    borderTopColor: '#ECEFF5',
     backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     alignItems: 'center',
@@ -201,12 +199,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   recordButton: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 5,
-    borderColor: '#FFFFFF',
+    shadowColor: '#6D6AF8',
+    shadowOpacity: 0.28,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 8,
+
+    borderWidth: 6,
+    borderColor: 'rgba(255,255,255,0.96)',
   },
 });

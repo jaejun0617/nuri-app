@@ -93,7 +93,12 @@ export function useWeatherGuide(initialDistrict = '현재 위치'): WeatherGuide
       if (cancelled) return;
 
       if (cachedBundle) {
-        setBundle(cachedBundle);
+        setBundle(
+          resolvedDistrict !== '현재 위치' &&
+            cachedBundle.district === '현재 위치'
+            ? { ...cachedBundle, district: resolvedDistrict }
+            : cachedBundle,
+        );
       }
 
       try {

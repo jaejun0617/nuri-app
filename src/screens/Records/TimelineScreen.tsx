@@ -575,7 +575,7 @@ export default function TimelineScreen() {
   const [otherSubCategory, setOtherSubCategory] =
     useState<OtherSubCategory | null>(null);
   const [otherModalOpen, setOtherModalOpen] = useState(false);
-  const [heatmapExpanded, setHeatmapExpanded] = useState(true);
+  const [heatmapExpanded, setHeatmapExpanded] = useState(false);
 
   // 점프 요청(필터 적용 후 렌더 완료 다음 scrollToIndex)
   const [pendingJumpYm, setPendingJumpYm] = useState<string | null>(null);
@@ -592,7 +592,7 @@ export default function TimelineScreen() {
     setMainCategory('all');
     setOtherSubCategory(null);
     setOtherModalOpen(false);
-    setHeatmapExpanded(true);
+    setHeatmapExpanded(false);
 
     setPendingJumpYm(null);
   }, [petId]);
@@ -894,6 +894,10 @@ export default function TimelineScreen() {
     setQuery('');
   }, []);
 
+  const onPressHome = useCallback(() => {
+    navigation.navigate('HomeTab');
+  }, [navigation]);
+
   // ---------------------------------------------------------
   // 10) Render
   // ---------------------------------------------------------
@@ -901,7 +905,13 @@ export default function TimelineScreen() {
     <View style={styles.screen}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={{ width: 44 }} />
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={styles.homeBtn}
+          onPress={onPressHome}
+        >
+          <Feather name="home" size={20} color={petTheme.primary} />
+        </TouchableOpacity>
         <AppText preset="headline" style={styles.headerTitle}>
           {headerTitle}
         </AppText>

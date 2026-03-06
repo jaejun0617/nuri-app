@@ -28,6 +28,7 @@ import {
 } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
 import { launchImageLibrary } from 'react-native-image-picker';
 
@@ -91,6 +92,7 @@ type Nav = CompositeNavigationProp<RecordCreateTabNav, RootNav>;
 export default function RecordCreateScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<RecordCreateTabRoute>();
+  const insets = useSafeAreaInsets();
 
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
@@ -631,7 +633,10 @@ export default function RecordCreateScreen() {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: 32 + Math.max(insets.bottom, 18) },
+        ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -945,6 +950,7 @@ export default function RecordCreateScreen() {
           activeOpacity={0.9}
           style={[
             styles.bottomSubmitBtn,
+            { marginBottom: Math.max(insets.bottom, 18) },
             disabled ? styles.bottomSubmitBtnDisabled : null,
             !disabled
               ? {

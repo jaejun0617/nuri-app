@@ -21,6 +21,7 @@ import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
@@ -1072,6 +1073,7 @@ export default function LoggedInHome() {
   // ---------------------------------------------------------
   // 0) navigation
   // ---------------------------------------------------------
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const rootNavigation = navigation as unknown as RootNav;
 
@@ -1620,7 +1622,10 @@ export default function LoggedInHome() {
     <Screen style={styles.screen}>
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: Math.max(132, insets.bottom + 108) },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
