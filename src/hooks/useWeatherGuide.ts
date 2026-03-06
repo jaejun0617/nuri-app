@@ -23,6 +23,9 @@ export type WeatherGuideState = {
   error: string | null;
   refresh: () => Promise<void>;
   usingMock: boolean;
+  districtSource: 'kakao' | 'fallback' | null;
+  districtError: string | null;
+  locationAccuracy: number | null;
 };
 
 function getWeatherGuideErrorMessage(error: unknown) {
@@ -47,7 +50,10 @@ function getLocationFallbackMessage(input: {
   return null;
 }
 
-export function useWeatherGuide(initialDistrict = '현재 위치'): WeatherGuideState {
+export function useWeatherGuide(
+  initialDistrict = '현재 위치',
+  initialBundle?: WeatherGuideBundle,
+): WeatherGuideState {
   const location = useCurrentLocation();
   const districtState = useDistrict({
     coordinates: location.coordinates,
@@ -55,9 +61,9 @@ export function useWeatherGuide(initialDistrict = '현재 위치'): WeatherGuide
     error: location.error,
   });
   const [bundle, setBundle] = useState<WeatherGuideBundle>(
-    getWeatherGuideBundle(initialDistrict),
+    initialBundle ?? getWeatherGuideBundle(initialDistrict),
   );
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialBundle);
   const [error, setError] = useState<string | null>(null);
 
   const resolvedDistrict = useMemo(
@@ -86,7 +92,7 @@ export function useWeatherGuide(initialDistrict = '현재 위치'): WeatherGuide
         return;
       }
 
-      setLoading(true);
+      setLoading(!initialBundle);
       setError(null);
 
       const cachedBundle = await loadCachedWeatherGuideBundle(location.coordinates);
@@ -99,6 +105,7 @@ export function useWeatherGuide(initialDistrict = '현재 위치'): WeatherGuide
             ? { ...cachedBundle, district: resolvedDistrict }
             : cachedBundle,
         );
+        setLoading(false);
       }
 
       try {
@@ -145,6 +152,7 @@ export function useWeatherGuide(initialDistrict = '현재 위치'): WeatherGuide
   }, [
     districtState.error,
     districtState.loading,
+    initialBundle,
     location.coordinates,
     location.error,
     location.loading,
@@ -158,5 +166,8 @@ export function useWeatherGuide(initialDistrict = '현재 위치'): WeatherGuide
     error,
     refresh: location.refresh,
     usingMock: !location.coordinates || !!error,
+    districtSource: districtState.source,
+    districtError: districtState.error,
+    locationAccuracy: location.coordinates?.accuracy ?? null,
   };
 }

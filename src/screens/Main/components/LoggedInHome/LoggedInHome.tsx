@@ -1351,6 +1351,25 @@ export default function LoggedInHome() {
   );
   const weatherGuideState = useWeatherGuide('현재 위치');
   const weatherGuide = weatherGuideState.bundle;
+  const weatherDebugText = useMemo(() => {
+    if (!__DEV__) return null;
+
+    const source = weatherGuideState.districtSource ?? 'none';
+    const accuracy =
+      weatherGuideState.locationAccuracy === null
+        ? '-'
+        : `${Math.round(weatherGuideState.locationAccuracy)}m`;
+    const districtError = weatherGuideState.districtError ?? weatherGuideState.error;
+
+    return districtError
+      ? `source:${source} · accuracy:${accuracy} · error:${districtError}`
+      : `source:${source} · accuracy:${accuracy}`;
+  }, [
+    weatherGuideState.districtError,
+    weatherGuideState.districtSource,
+    weatherGuideState.error,
+    weatherGuideState.locationAccuracy,
+  ]);
 
   // ---------------------------------------------------------
   // 6) header text
@@ -1422,8 +1441,9 @@ export default function LoggedInHome() {
   const onPressWeatherInsight = useCallback(() => {
     rootNavigation.navigate('WeatherInsight', {
       district: weatherGuide.district,
+      initialBundle: weatherGuide,
     });
-  }, [rootNavigation, weatherGuide.district]);
+  }, [rootNavigation, weatherGuide]);
 
   const onPressTimelineCategory = useCallback(
     (
@@ -1705,6 +1725,7 @@ export default function LoggedInHome() {
           <View style={styles.weatherGuideWrap}>
             <WeatherGuideHomeCard
               weather={weatherGuide}
+              debugText={weatherDebugText}
               onPress={onPressWeatherInsight}
             />
           </View>

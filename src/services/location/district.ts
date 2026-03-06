@@ -4,12 +4,39 @@
 // - Kakao Local API 연결 전에도 인터페이스를 먼저 고정해 재사용 가능하게 유지
 
 import { KAKAO_REST_API_KEY } from '../../config/runtime';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { DeviceCoordinates } from './currentPosition';
 
 export type DistrictResolveResult = {
   district: string;
   source: 'kakao' | 'fallback';
 };
+
+const DISTRICT_CACHE_PREFIX = '@nuri/location/district:';
+
+function toDistrictCacheKey(coords: DeviceCoordinates) {
+  return `${DISTRICT_CACHE_PREFIX}${coords.latitude.toFixed(3)},${coords.longitude.toFixed(3)}`;
+}
+
+async function loadCachedDistrict(coords: DeviceCoordinates) {
+  try {
+    const cached = await AsyncStorage.getItem(toDistrictCacheKey(coords));
+    return cached?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+async function saveCachedDistrict(
+  coords: DeviceCoordinates,
+  district: string,
+) {
+  try {
+    await AsyncStorage.setItem(toDistrictCacheKey(coords), district);
+  } catch {
+    // noop
+  }
+}
 
 export function getFallbackDistrictLabel(coords: DeviceCoordinates) {
   const lat = Number(coords.latitude.toFixed(3));
@@ -34,9 +61,11 @@ export function getFallbackDistrictLabel(coords: DeviceCoordinates) {
 export async function resolveDistrictFromCoordinates(
   coords: DeviceCoordinates,
 ): Promise<DistrictResolveResult> {
+  const cachedDistrict = await loadCachedDistrict(coords);
+
   if (!KAKAO_REST_API_KEY) {
     return {
-      district: getFallbackDistrictLabel(coords),
+      district: cachedDistrict ?? getFallbackDistrictLabel(coords),
       source: 'fallback',
     };
   }
@@ -55,7 +84,7 @@ export async function resolveDistrictFromCoordinates(
 
     if (!response.ok) {
       return {
-        district: getFallbackDistrictLabel(coords),
+        district: cachedDistrict ?? getFallbackDistrictLabel(coords),
         source: 'fallback',
       };
     }
@@ -77,7 +106,12 @@ export async function resolveDistrictFromCoordinates(
     const district =
       legalDong?.region_3depth_name?.trim() ||
       legalDong?.address_name?.trim() ||
+      cachedDistrict ||
       getFallbackDistrictLabel(coords);
+
+    if (legalDong && district) {
+      await saveCachedDistrict(coords, district);
+    }
 
     return {
       district,
@@ -85,7 +119,7 @@ export async function resolveDistrictFromCoordinates(
     };
   } catch {
     return {
-      district: getFallbackDistrictLabel(coords),
+      district: cachedDistrict ?? getFallbackDistrictLabel(coords),
       source: 'fallback',
     };
   }

@@ -2305,6 +2305,34 @@ NURI는 데이터 입력 도구가 아니라,
 
 ---
 
+## Chapter 6-60 — 실기기 네비게이션/날씨 체감 보정 + 전체메뉴 활동 확장
+
+### 무엇을 진행했나
+
+- Android 실기기에서 하단 시스템 네비게이션 바가 앱 배경을 비치던 문제를 줄이기 위해 [`android/app/src/main/java/com/nuri/MainActivity.kt`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/android/app/src/main/java/com/nuri/MainActivity.kt) 에 시스템 바 외관 제어를 추가했다.
+- [`src/components/navigation/AppNavigationToolbar.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/components/navigation/AppNavigationToolbar.tsx) 의 하단 툴바 비율을 더 낮추고, 아이콘/라벨은 조금 더 아래로 내렸으며 중앙 `기록하기` 버튼도 한 단계 더 축소했다.
+- 홈 진입점 [`src/screens/Main/MainScreen.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/screens/Main/MainScreen.tsx) 에 Android 뒤로가기 종료 확인을 추가했다.
+- 실기기에서 위치 좌표 수집이 흔들리던 경우를 줄이기 위해 [`src/services/location/currentPosition.ts`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/services/location/currentPosition.ts) 에 고정밀 → 저정밀 → 마지막 성공 좌표 캐시 fallback 흐름을 추가했다.
+- Kakao 행정동 해석이 잠깐 실패해도 지역명이 계속 `현재 위치`로 보이지 않도록 [`src/services/location/district.ts`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/services/location/district.ts) 에 동 이름 캐시를 추가했다.
+- 홈과 날씨 상세가 같은 번들을 즉시 재사용할 수 있게 [`src/hooks/useWeatherGuide.ts`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/hooks/useWeatherGuide.ts), [`src/screens/Main/components/LoggedInHome/LoggedInHome.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/screens/Main/components/LoggedInHome/LoggedInHome.tsx), [`src/screens/Weather/WeatherInsightScreen.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/screens/Weather/WeatherInsightScreen.tsx) 에 초기 날씨 번들 전달 구조를 연결했다.
+- 전체메뉴의 `활동 및 기록` 섹션에 [`src/screens/More/MoreDrawerContent.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/screens/More/MoreDrawerContent.tsx) 기준 `실내 놀이 추천` 항목을 추가했다.
+
+### 왜 이렇게 했나
+
+- 에뮬레이터에서는 정상이던 위치/행정동 흐름도 실기기에서는 권한, GPS 정확도, 마지막 위치, 네트워크 환경 때문에 훨씬 흔들릴 수 있다.
+- 홈에서 이미 확인한 지역/날씨를 상세 화면이 다시 처음부터 불러오면 느리게 느껴지고, 실제로는 같은 데이터를 또 기다리는 UX가 된다.
+- 하단 툴바는 앱의 톤을 결정하는 요소인데, 시스템 네비게이션 바 처리와 비율이 어색하면 화면 전체 완성도가 바로 떨어진다.
+- `실내 놀이 추천`은 날씨-활동-기록 흐름의 일부이기 때문에 `활동 및 기록` 안에 두는 것이 가장 자연스럽다.
+
+### 결과
+
+- 실기기에서도 홈 날씨 카드가 `현재 위치`에 오래 머무르지 않고, 마지막으로 확인한 동 이름과 좌표를 더 안정적으로 유지할 수 있게 됐다.
+- `오늘의 날씨` 상세는 홈에서 이미 확인한 날씨/지역을 먼저 보여주고 뒤에서 최신화하기 때문에 체감 속도가 훨씬 빨라졌다.
+- Android 하단 시스템 네비게이션 바와 앱 하단 툴바가 이전보다 덜 충돌하고, 전체 톤도 더 낮고 자연스럽게 정리됐다.
+- 전체메뉴 `활동 및 기록`에서 `실내 놀이 추천`으로 바로 진입할 수 있어 날씨 흐름과 탐색 흐름이 더 잘 이어진다.
+
+---
+
 # 🚀 Next
 
 ## Chapter 8 — 서버 검색(제목/태그) + 인덱스/정렬 안정화 + 섹션 점프 고도화

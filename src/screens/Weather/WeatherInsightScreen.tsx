@@ -26,10 +26,33 @@ export default function WeatherInsightScreen() {
     useRoute<{
       key: string;
       name: 'WeatherInsight';
-      params?: { district?: string };
+      params?: { district?: string; initialBundle?: import('../../services/weather/guide').WeatherGuideBundle };
     }>();
-  const weatherState = useWeatherGuide(route.params?.district ?? '현재 위치');
+  const weatherState = useWeatherGuide(
+    route.params?.district ?? '현재 위치',
+    route.params?.initialBundle,
+  );
   const weather = weatherState.bundle;
+  const displayDistrict =
+    weather.district === '현재 위치' &&
+    route.params?.district &&
+    route.params.district !== '현재 위치'
+      ? route.params.district
+      : weather.district;
+  const weatherDebugText = __DEV__
+    ? (() => {
+        const source = weatherState.districtSource ?? 'none';
+        const accuracy =
+          weatherState.locationAccuracy === null
+            ? '-'
+            : `${Math.round(weatherState.locationAccuracy)}m`;
+        const error = weatherState.districtError ?? weatherState.error;
+
+        return error
+          ? `source:${source} · accuracy:${accuracy} · error:${error}`
+          : `source:${source} · accuracy:${accuracy}`;
+      })()
+    : null;
 
   const onPressPrimary = useCallback(() => {
     if (weather.scenario === 'fresh') {
@@ -75,11 +98,14 @@ export default function WeatherInsightScreen() {
           <View style={styles.heroWrap}>
             <Text style={styles.locationStatus}>
               {weatherState.loading
-                ? '현재 위치와 날씨를 확인하고 있어요'
+                ? `${displayDistrict} 날씨를 확인하고 있어요`
                 : weatherState.error
-                  ? `${weather.district} 기준`
-                  : `${weather.district} 기준`}
+                  ? `${displayDistrict} 기준`
+                  : `${displayDistrict} 기준`}
             </Text>
+            {weatherDebugText ? (
+              <Text style={styles.debugText}>{weatherDebugText}</Text>
+            ) : null}
             <MaterialCommunityIcons
               name={getWeatherIconName(weather.weatherIcon)}
               size={82}
@@ -176,6 +202,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
     color: '#8B96AA',
+    fontWeight: '500',
+  },
+  debugText: {
+    fontSize: 10,
+    lineHeight: 14,
+    color: '#C26A00',
     fontWeight: '500',
   },
   heroTemp: {

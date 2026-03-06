@@ -15,11 +15,13 @@ import {
 type Props = {
   weather: WeatherGuideBundle;
   onPress: () => void;
+  debugText?: string | null;
 };
 
 export default React.memo(function WeatherGuideHomeCard({
   weather,
   onPress,
+  debugText,
 }: Props) {
   return (
     <TouchableOpacity
@@ -48,6 +50,7 @@ export default React.memo(function WeatherGuideHomeCard({
           </View>
           <Text style={styles.title}>{weather.homeMessage}</Text>
           <Text style={styles.caption}>{weather.homeCaption}</Text>
+          {debugText ? <Text style={styles.debugText}>{debugText}</Text> : null}
         </View>
       </View>
       <MaterialCommunityIcons
@@ -115,5 +118,11 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     color: '#8B96AA',
     fontWeight: '400',
+  },
+  debugText: {
+    fontSize: 10,
+    lineHeight: 14,
+    color: '#C26A00',
+    fontWeight: '500',
   },
 });

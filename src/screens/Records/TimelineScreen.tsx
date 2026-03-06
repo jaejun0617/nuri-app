@@ -30,6 +30,7 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator,
+  BackHandler,
   FlatList,
   Image,
   type ListRenderItem,
@@ -47,7 +48,11 @@ import type {
   CompositeNavigationProp,
   RouteProp,
 } from '@react-navigation/native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import {
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 // ✅ 따로 분리한 MemoryCard 컴포넌트 불러오기! (경로는 실제 구조에 맞게 수정해주세요)
@@ -897,6 +902,22 @@ export default function TimelineScreen() {
   const onPressHome = useCallback(() => {
     navigation.navigate('HomeTab');
   }, [navigation]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener(
+        'hardwareBackPress',
+        () => {
+          navigation.navigate('HomeTab');
+          return true;
+        },
+      );
+
+      return () => {
+        subscription.remove();
+      };
+    }, [navigation]),
+  );
 
   // ---------------------------------------------------------
   // 10) Render

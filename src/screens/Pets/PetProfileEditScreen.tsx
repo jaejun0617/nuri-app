@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
 
@@ -169,6 +170,7 @@ async function incrementNameChangeCount(petId: string): Promise<number> {
 export default function PetProfileEditScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
+  const insets = useSafeAreaInsets();
   const petId = route.params.petId;
 
   const pets = usePetStore(s => s.pets);
@@ -507,7 +509,10 @@ export default function PetProfileEditScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: Math.max(112, insets.bottom + 88) },
+        ]}
       >
         <TouchableOpacity
           activeOpacity={0.92}

@@ -4,7 +4,7 @@
 // - 홈/타임라인/기록/방명록/전체메뉴 이동을 같은 레이아웃과 테마 규칙으로 제공
 
 import React, { useCallback, useMemo } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -40,6 +40,10 @@ export default function AppNavigationToolbar({
   const petTheme = useMemo(
     () => buildPetThemePalette(selectedPet?.themeColor),
     [selectedPet?.themeColor],
+  );
+  const bottomInset = useMemo(
+    () => Math.max(insets.bottom, Platform.OS === 'android' ? 18 : 12),
+    [insets.bottom],
   );
 
   const navigateTo = useCallback(
@@ -98,7 +102,7 @@ export default function AppNavigationToolbar({
     <View
       style={[
         styles.wrap,
-        { paddingBottom: Math.max(12, insets.bottom || 12) },
+        { paddingBottom: bottomInset },
       ]}
     >
       <View style={styles.bar}>
@@ -176,41 +180,44 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   bar: {
-    minHeight: 72,
+    minHeight: 62,
     borderTopWidth: 1,
     borderTopColor: '#ECEFF5',
     backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 8,
-    paddingVertical: 10,
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    paddingBottom: 6,
   },
   item: {
-    width: 58,
+    width: 60,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 4,
+    paddingTop: 4,
   },
   label: {
-    fontSize: 10,
-    lineHeight: 12,
+    fontSize: 9,
+    lineHeight: 11,
     color: '#7D8696',
-    fontWeight: '600',
+    fontWeight: '500',
   },
   recordButton: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#6D6AF8',
-    shadowOpacity: 0.28,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 8,
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
+    marginTop: -8,
 
-    borderWidth: 6,
-    borderColor: 'rgba(255,255,255,0.96)',
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
   },
 });

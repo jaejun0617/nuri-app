@@ -835,6 +835,10 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     closeAndNavigate(() => navigation.navigate('DevTest'));
   }, [closeAndNavigate, navigation]);
 
+  const openIndoorActivities = useCallback(() => {
+    closeAndNavigate(() => navigation.navigate('IndoorActivityRecommendations'));
+  }, [closeAndNavigate, navigation]);
+
   const petItems = useMemo<MenuItemSpec[]>(
     () => [
       {
@@ -873,6 +877,13 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         badge: 'soon',
       },
       {
+        key: 'indoor-activities',
+        label: '실내 놀이 추천',
+        icon: 'sun',
+        iconTone: 'accent',
+        onPress: openIndoorActivities,
+      },
+      {
         key: 'walk-route',
         label: '산책 코스 보관함',
         icon: 'map',
@@ -881,7 +892,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         badge: 'soon',
       },
     ],
-    [openTimeline, showPreparingToast],
+    [openIndoorActivities, openTimeline, showPreparingToast],
   );
 
   const infoItems = useMemo<MenuItemSpec[]>(
