@@ -1596,6 +1596,60 @@ NURI는 데이터 입력 도구가 아니라,
 
 ---
 
+## Chapter 6-42 — LoggedInHome 섹션 분리 + Record/Schedule UI 공용 컴포넌트화 + Jest 복구
+
+### 무엇을 진행했나
+
+- `LoggedInHome`의 큰 렌더 블록을 섹션 컴포넌트로 분리했다.
+  - 오늘의 사진
+  - 오늘의 기록
+  - 일정 보기
+  - 최근 활동
+  - 이번 달 일기
+- 이 분리 목적은 “파일 예쁘게 쪼개기”가 아니라,
+  각 섹션이 독립적인 렌더 경계를 갖도록 만드는 데 있다.
+- 레코드 화면 공용 UI도 추가했다.
+  - `src/components/records/RecordImageGallery.tsx`
+  - `src/screens/Records/components/RecordDateModal.tsx`
+  - `src/screens/Records/components/RecordTagModal.tsx`
+- 일정 생성/수정 화면의 날짜/시간 선택 모달도 공용 컴포넌트로 묶었다.
+  - `src/components/schedules/SchedulePickerModal.tsx`
+- Jest 설정도 실제 루트 스모크 테스트가 통과하도록 보완했다.
+  - `jest.config.js`
+  - `jest.setup.js`
+  - `react-navigation`, `AsyncStorage`, `Sentry`, `image-picker`, `blob-util`, `reanimated` 등 테스트 환경 mock 보강
+
+### 왜 이렇게 했나
+
+- `LoggedInHome`는 데이터가 많아서 펫 전환이나 store 갱신 때 여러 섹션이 한 번에 다시 그려질 여지가 있었다.
+- 레코드 생성 화면은 날짜/태그 모달과 이미지 프리뷰 UI가 파일 안에 크게 붙어 있었고,
+  수정 화면도 별도 이미지 프리뷰 UI를 따로 들고 있었다.
+- 일정 생성/수정은 이미 로직은 공용화했지만, picker modal UI는 그대로 복제 상태였다.
+- 테스트는 “코드가 맞는지”보다 “환경이 못 따라오는 상태”가 더 큰 문제였어서,
+  최소한 루트 렌더 스모크 테스트는 다시 살아나게 만드는 게 우선이었다.
+
+### 결과
+
+- `LoggedInHome`는 큰 섹션 기준으로 렌더 책임이 더 또렷해졌다.
+- 레코드 생성/수정 화면은 공용 이미지 프레임과 공용 모달을 기반으로 정리됐다.
+- 일정 생성/수정 화면은 날짜/시간 모달 UI를 한 컴포넌트로 공유하게 됐다.
+- Jest 기준 최소 스모크 테스트가 다시 통과한다.
+
+### 검증
+
+- `yarn tsc --noEmit`
+- `yarn eslint ...`
+- `yarn test --watchAll=false --watchman=false`
+  - `react-native-screens` 링크 경고 로그는 남지만 테스트 자체는 통과
+
+### 다음 후보
+
+- `LoggedInHome`의 헤더/히어로/아코디언 영역도 별도 파일로 분리
+- `RecordImageGallery`의 variant props를 줄이고 스타일 계약을 더 단단하게 정리
+- Jest에서 `react-native-screens` 경고까지 조용하게 처리
+
+---
+
 # 🚀 Next
 
 ## Chapter 8 — 서버 검색(제목/태그) + 인덱스/정렬 안정화 + 섹션 점프 고도화

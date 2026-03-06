@@ -36,6 +36,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { launchImageLibrary } from 'react-native-image-picker';
 import Feather from 'react-native-vector-icons/Feather';
 
+import RecordImageGallery from '../../components/records/RecordImageGallery';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { TimelineStackParamList } from '../../navigation/TimelineStackNavigator';
 import {
@@ -463,72 +464,65 @@ export default function RecordEditScreen() {
       >
         <View style={styles.card}>
         {/* Image Preview */}
-        <View style={styles.heroWrap}>
-          {previewItems.length === 0 ? (
+        <RecordImageGallery
+          items={previewItems.map(item => ({
+            key: item.key,
+            uri: item.uri ?? '',
+          }))}
+          activeIndex={activeImageIndex}
+          onChangeActiveIndex={setActiveImageIndex}
+          containerStyle={styles.heroWrap}
+          emptyContent={
             <View style={styles.heroPlaceholder}>
               <AppText preset="caption" style={styles.heroPlaceholderText}>
                 NO IMAGE
               </AppText>
             </View>
-          ) : imgLoading ? (
-            <View style={styles.heroPlaceholder}>
-              <ActivityIndicator size="large" color="#8A94A6" />
+          }
+          mainContent={
+            previewItems.length === 0 ? null : imgLoading ? (
+              <View style={styles.heroPlaceholder}>
+                <ActivityIndicator size="large" color="#8A94A6" />
+              </View>
+            ) : (
+              <Image
+                source={{ uri: previewItems[activeImageIndex]?.uri ?? '' }}
+                style={styles.heroImg}
+                resizeMode="cover"
+                fadeDuration={250}
+              />
+            )
+          }
+          thumbRowStyle={styles.thumbRow}
+          thumbItemStyle={styles.thumbItem}
+          thumbItemActiveStyle={styles.thumbItemActive}
+          thumbImageStyle={styles.thumbImage}
+          footerActions={
+            <View style={styles.imgActionsRow}>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={[styles.imgBtn, styles.imgBtnPrimary]}
+                onPress={onPickImage}
+                disabled={saving}
+              >
+                <AppText preset="caption" style={styles.imgBtnText}>
+                  사진 추가
+                </AppText>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={[styles.imgBtn, styles.imgBtnDanger]}
+                onPress={onRemoveActiveImage}
+                disabled={saving || previewItems.length === 0}
+              >
+                <AppText preset="caption" style={styles.imgBtnDangerText}>
+                  현재 사진 제거
+                </AppText>
+              </TouchableOpacity>
             </View>
-          ) : (
-            <Image
-              source={{ uri: previewItems[activeImageIndex]?.uri ?? '' }}
-              style={styles.heroImg}
-              resizeMode="cover"
-              fadeDuration={250}
-            />
-          )}
-
-          {previewItems.length > 1 ? (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.thumbRow}
-            >
-              {previewItems.map((item, index) => {
-                const active = index === activeImageIndex;
-                return (
-                  <TouchableOpacity
-                    key={item.key}
-                    activeOpacity={0.9}
-                    style={[styles.thumbItem, active ? styles.thumbItemActive : null]}
-                    onPress={() => setActiveImageIndex(index)}
-                  >
-                    <Image source={{ uri: item.uri ?? '' }} style={styles.thumbImage} />
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          ) : null}
-
-          <View style={styles.imgActionsRow}>
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={[styles.imgBtn, styles.imgBtnPrimary]}
-              onPress={onPickImage}
-              disabled={saving}
-            >
-              <AppText preset="caption" style={styles.imgBtnText}>
-                사진 추가
-              </AppText>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={[styles.imgBtn, styles.imgBtnDanger]}
-              onPress={onRemoveActiveImage}
-              disabled={saving || previewItems.length === 0}
-            >
-              <AppText preset="caption" style={styles.imgBtnDangerText}>
-                현재 사진 제거
-              </AppText>
-            </TouchableOpacity>
-          </View>
-        </View>
+          }
+        />
 
         <AppText preset="caption" style={styles.label}>
           제목

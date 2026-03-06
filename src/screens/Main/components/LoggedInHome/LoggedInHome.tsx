@@ -522,6 +522,374 @@ const MonthlyDiaryCard = React.memo(function MonthlyDiaryCard({
   );
 });
 
+const TodayPhotoSection = React.memo(function TodayPhotoSection({
+  todayPhoto,
+  todayPhotoUrl,
+  isTodayPhotoLoading,
+  todayPhotoOverlayTitle,
+  onPressRecordItem,
+  onPressRecord,
+}: {
+  todayPhoto: { record: MemoryRecord | null; mode: 'anniversary' | 'random' | 'none' };
+  todayPhotoUrl: string | null;
+  isTodayPhotoLoading: boolean;
+  todayPhotoOverlayTitle: string;
+  onPressRecordItem: (memoryId: string) => void;
+  onPressRecord: () => void;
+}) {
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeaderRow}>
+        <Text style={styles.sectionTitle}>오늘날의 사진</Text>
+      </View>
+
+      <TouchableOpacity
+        activeOpacity={0.92}
+        style={styles.photoCard}
+        onPress={() =>
+          todayPhoto.record ? onPressRecordItem(todayPhoto.record.id) : onPressRecord()
+        }
+      >
+        {!todayPhoto.record?.imagePath ? (
+          <View style={styles.photoPlaceholder} />
+        ) : isTodayPhotoLoading ? (
+          <View
+            style={[
+              styles.photoPlaceholder,
+              { justifyContent: 'center', alignItems: 'center' },
+            ]}
+          >
+            <ActivityIndicator size="large" color="#fff" />
+          </View>
+        ) : todayPhotoUrl ? (
+          <Image
+            source={{ uri: todayPhotoUrl }}
+            style={styles.photoImage}
+            fadeDuration={250}
+          />
+        ) : (
+          <View style={styles.photoPlaceholder} />
+        )}
+
+        <View style={styles.photoOverlayTint} />
+
+        <View style={styles.photoOverlay}>
+          <Text style={styles.photoOverlayTitle}>{todayPhotoOverlayTitle}</Text>
+          <Text style={styles.photoOverlaySub} numberOfLines={1}>
+            {todayPhoto.record?.title?.trim()
+              ? todayPhoto.record.title
+              : '추억을 눌러 확인해요'}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    </View>
+  );
+});
+
+const TodayRecordsSection = React.memo(function TodayRecordsSection({
+  todayRecords,
+  onPressTimeline,
+  onPressRecord,
+  keyExtractor,
+  renderTodayRecord,
+  SNAP,
+  slideScrollHandler,
+  renderTodayRecordSeparator,
+  progress,
+  activeSlideIndex,
+  hasMoreThanSlider,
+}: {
+  todayRecords: MemoryRecord[];
+  onPressTimeline: () => void;
+  onPressRecord: () => void;
+  keyExtractor: (it: MemoryRecord) => string;
+  renderTodayRecord: ListRenderItem<MemoryRecord>;
+  SNAP: number;
+  slideScrollHandler: ReturnType<typeof useAnimatedScrollHandler>;
+  renderTodayRecordSeparator: () => React.JSX.Element;
+  progress: SharedValue<number>;
+  activeSlideIndex: number;
+  hasMoreThanSlider: boolean;
+}) {
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeaderRow}>
+        <Text style={styles.sectionTitle}>오늘날의 기록</Text>
+        <TouchableOpacity activeOpacity={0.85} onPress={onPressTimeline}>
+          <Text style={styles.sectionLink}>전체보기</Text>
+        </TouchableOpacity>
+      </View>
+
+      {todayRecords.length === 0 ? (
+        <View style={styles.emptyBox}>
+          <Text style={styles.emptyTitle}>아직 기록이 없어요</Text>
+          <Text style={styles.emptyDesc}>첫 번째 추억을 남겨보세요.</Text>
+
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={styles.recordBtn}
+            onPress={onPressRecord}
+          >
+            <Text style={styles.recordBtnText}>기록하기</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={styles.todayRecordsWrap}>
+          <AnimatedFlatList
+            data={todayRecords}
+            keyExtractor={keyExtractor}
+            renderItem={renderTodayRecord}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            bounces={false}
+            decelerationRate="fast"
+            snapToInterval={SNAP}
+            snapToAlignment="start"
+            disableIntervalMomentum={false}
+            onScroll={slideScrollHandler}
+            scrollEventThrottle={16}
+            contentContainerStyle={[
+              styles.todayRecordsContent,
+              { paddingRight: 16 },
+            ]}
+            ItemSeparatorComponent={renderTodayRecordSeparator}
+            getItemLayout={(_, index) => ({
+              length: SNAP,
+              offset: SNAP * index,
+              index,
+            })}
+          />
+
+          <View style={styles.indicatorRow}>
+            {todayRecords.map((_, i) => (
+              <IndicatorDot key={`dot-${i}`} i={i} progress={progress} />
+            ))}
+          </View>
+
+          <View style={styles.moreHintRow}>
+            <Text style={styles.moreHintText}>
+              {activeSlideIndex + 1} / {todayRecords.length}
+              {hasMoreThanSlider ? ' · 더 많은 기록은 ‘전체보기’' : ''}
+            </Text>
+          </View>
+        </View>
+      )}
+    </View>
+  );
+});
+
+const ScheduleSection = React.memo(function ScheduleSection({
+  weekScheduleItems,
+  onPressScheduleList,
+  onPressScheduleCreate,
+}: {
+  weekScheduleItems: WeeklyScheduleItem[];
+  onPressScheduleList: () => void;
+  onPressScheduleCreate: () => void;
+}) {
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeaderRow}>
+        <Text style={styles.tipSectionTitle}>일정 보기</Text>
+        <TouchableOpacity activeOpacity={0.85} onPress={onPressScheduleList}>
+          <Text style={styles.sectionLink}>더보기</Text>
+        </TouchableOpacity>
+      </View>
+
+      {weekScheduleItems.length === 0 ? (
+        <View style={styles.emptyBox}>
+          <Text style={styles.emptyTitle}>등록된 일정이 아직 없어요</Text>
+          <Text style={styles.emptyDesc}>
+            오래 남겨둘 일정도 한곳에 모아두고 홈에서 가볍게 꺼내볼 수
+            있어요.
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.scheduleList}>
+          {weekScheduleItems.map(item => (
+            <TouchableOpacity
+              key={item.key}
+              activeOpacity={0.92}
+              style={styles.scheduleCard}
+              onPress={onPressScheduleList}
+            >
+              <View style={styles.scheduleDateBadge}>
+                <Text style={styles.scheduleDateText}>{item.dateLabel}</Text>
+              </View>
+
+              <View style={styles.scheduleBody}>
+                <View
+                  style={[
+                    styles.scheduleIconWrap,
+                    { backgroundColor: item.tint },
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name={item.icon}
+                    size={18}
+                    color="#6D6AF8"
+                  />
+                </View>
+
+                <View style={styles.scheduleTextCol}>
+                  <Text style={styles.scheduleTitle}>{item.title}</Text>
+                  <Text style={styles.scheduleSub} numberOfLines={2}>
+                    {item.subtitle}
+                  </Text>
+                </View>
+
+                <Feather
+                  name="chevron-right"
+                  size={18}
+                  color="rgba(85,96,112,0.48)"
+                />
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
+      <TouchableOpacity
+        activeOpacity={0.9}
+        style={styles.recordBtn}
+        onPress={onPressScheduleCreate}
+      >
+        <Text style={styles.recordBtnText}>일정 추가하기</Text>
+      </TouchableOpacity>
+    </View>
+  );
+});
+
+const RecentActivitiesSection = React.memo(function RecentActivitiesSection({
+  recentActivities,
+  onPressTimeline,
+  onPressRecordItem,
+}: {
+  recentActivities: MemoryRecord[];
+  onPressTimeline: () => void;
+  onPressRecordItem: (memoryId: string) => void;
+}) {
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeaderRow}>
+        <Text style={styles.tipSectionTitle}>최근 활동</Text>
+        <TouchableOpacity activeOpacity={0.85} onPress={onPressTimeline}>
+          <Text style={styles.sectionLink}>전체보기</Text>
+        </TouchableOpacity>
+      </View>
+
+      {recentActivities.length === 0 ? (
+        <View style={styles.emptyBox}>
+          <Text style={styles.emptyTitle}>최근 활동이 아직 없어요</Text>
+          <Text style={styles.emptyDesc}>
+            기록을 남기면 홈에서 최근 움직임을 바로 볼 수 있어요.
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.activityList}>
+          {recentActivities.map(item => {
+            const meta = getRecordCategoryMeta(item);
+            return (
+              <TouchableOpacity
+                key={item.id}
+                activeOpacity={0.92}
+                style={styles.activityRow}
+                onPress={() => onPressRecordItem(item.id)}
+              >
+                <View
+                  style={[
+                    styles.activityIconWrap,
+                    { backgroundColor: meta.tint },
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name={meta.icon}
+                    size={17}
+                    color="#6D6AF8"
+                  />
+                </View>
+
+                <View style={styles.activityTextCol}>
+                  <Text style={styles.activityTitle} numberOfLines={1}>
+                    {item.title?.trim() || meta.label}
+                  </Text>
+                  <Text style={styles.activitySub} numberOfLines={1}>
+                    {meta.label}
+                    {item.content?.trim() ? ` · ${toSnippet(item.content, 26)}` : ''}
+                  </Text>
+                </View>
+
+                <Text style={styles.activityTime}>
+                  {formatRelativeRecordTime(item)}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
+    </View>
+  );
+});
+
+const MonthlyDiarySection = React.memo(function MonthlyDiarySection({
+  petName,
+  currentMonthDiaryEntries,
+  onPressTimelineCategory,
+  onPressRecord,
+  onPressRecordItem,
+}: {
+  petName: string;
+  currentMonthDiaryEntries: MemoryRecord[];
+  onPressTimelineCategory: (
+    mainCategory: Exclude<TimelineMainCategory, undefined>,
+    otherSubCategory?: Exclude<TimelineOtherSubCategory, undefined>,
+  ) => void;
+  onPressRecord: () => void;
+  onPressRecordItem: (memoryId: string) => void;
+}) {
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeaderRow}>
+        <Text style={styles.tipSectionTitle}>이번 달 {petName} 일기</Text>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => onPressTimelineCategory('diary')}
+        >
+          <Text style={styles.sectionLink}>더보기</Text>
+        </TouchableOpacity>
+      </View>
+
+      {currentMonthDiaryEntries.length === 0 ? (
+        <View style={styles.emptyBox}>
+          <Text style={styles.emptyTitle}>이번 달 일기가 아직 없어요</Text>
+          <Text style={styles.emptyDesc}>첫 번째 일기를 남겨보세요.</Text>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={styles.recordBtn}
+            onPress={onPressRecord}
+          >
+            <Text style={styles.recordBtnText}>기록하기</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.monthDiaryList}
+        >
+          {currentMonthDiaryEntries.map(item => (
+            <MonthlyDiaryCard
+              key={item.id}
+              item={item}
+              onPress={onPressRecordItem}
+            />
+          ))}
+        </ScrollView>
+      )}
+    </View>
+  );
+});
+
 export default function LoggedInHome() {
   // ---------------------------------------------------------
   // 0) navigation
@@ -1397,122 +1765,28 @@ export default function LoggedInHome() {
             </Text>
           </View>
 
-          {/* ✅ Today Photo (메인 카드 처리 완료) */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>오늘날의 사진</Text>
-            </View>
+          <TodayPhotoSection
+            todayPhoto={todayPhoto}
+            todayPhotoUrl={todayPhotoUrl}
+            isTodayPhotoLoading={isTodayPhotoLoading}
+            todayPhotoOverlayTitle={todayPhotoOverlayTitle}
+            onPressRecordItem={onPressRecordItem}
+            onPressRecord={onPressRecord}
+          />
 
-            <TouchableOpacity
-              activeOpacity={0.92}
-              style={styles.photoCard}
-              onPress={() =>
-                todayPhoto.record
-                  ? onPressRecordItem(todayPhoto.record.id)
-                  : onPressRecord()
-              }
-            >
-              {!todayPhoto.record?.imagePath ? (
-                <View style={styles.photoPlaceholder} />
-              ) : isTodayPhotoLoading ? (
-                <View
-                  style={[
-                    styles.photoPlaceholder,
-                    { justifyContent: 'center', alignItems: 'center' },
-                  ]}
-                >
-                  <ActivityIndicator size="large" color="#fff" />
-                </View>
-              ) : todayPhotoUrl ? (
-                <Image
-                  source={{ uri: todayPhotoUrl }}
-                  style={styles.photoImage}
-                  fadeDuration={250}
-                />
-              ) : (
-                <View style={styles.photoPlaceholder} />
-              )}
-
-              <View style={styles.photoOverlayTint} />
-
-              <View style={styles.photoOverlay}>
-                <Text style={styles.photoOverlayTitle}>
-                  {todayPhotoOverlayTitle}
-                </Text>
-                <Text style={styles.photoOverlaySub} numberOfLines={1}>
-                  {todayPhoto.record?.title?.trim()
-                    ? todayPhoto.record.title
-                    : '추억을 눌러 확인해요'}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-
-          {/* ✅ Today Records Slider (슬라이드 카드 처리 완료) */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>오늘날의 기록</Text>
-              <TouchableOpacity activeOpacity={0.85} onPress={onPressTimeline}>
-                <Text style={styles.sectionLink}>전체보기</Text>
-              </TouchableOpacity>
-            </View>
-
-            {todayRecords.length === 0 ? (
-              <View style={styles.emptyBox}>
-                <Text style={styles.emptyTitle}>아직 기록이 없어요</Text>
-                <Text style={styles.emptyDesc}>첫 번째 추억을 남겨보세요.</Text>
-
-                <TouchableOpacity
-                  activeOpacity={0.9}
-                  style={styles.recordBtn}
-                  onPress={onPressRecord}
-                >
-                  <Text style={styles.recordBtnText}>기록하기</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={styles.todayRecordsWrap}>
-                <AnimatedFlatList
-                  data={todayRecords}
-                  keyExtractor={keyExtractor}
-                  renderItem={renderTodayRecord}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  bounces={false}
-                  decelerationRate="fast"
-                  snapToInterval={SNAP}
-                  snapToAlignment="start"
-                  disableIntervalMomentum={false}
-                  onScroll={slideScrollHandler}
-                  scrollEventThrottle={16}
-                  contentContainerStyle={[
-                    styles.todayRecordsContent,
-                    { paddingRight: 16 },
-                  ]}
-                  ItemSeparatorComponent={renderTodayRecordSeparator}
-                  getItemLayout={(_, index) => ({
-                    length: SNAP,
-                    offset: SNAP * index,
-                    index,
-                  })}
-                />
-
-                <View style={styles.indicatorRow}>
-                  {todayRecords.map((_, i) => (
-                    <IndicatorDot key={`dot-${i}`} i={i} progress={progress} />
-                  ))}
-                </View>
-
-                {/* ✅ activeSlideIndex 실제 사용 → unused 에러 제거 */}
-                <View style={styles.moreHintRow}>
-                  <Text style={styles.moreHintText}>
-                    {activeSlideIndex + 1} / {todayRecords.length}
-                    {hasMoreThanSlider ? ' · 더 많은 기록은 ‘전체보기’' : ''}
-                  </Text>
-                </View>
-              </View>
-            )}
-          </View>
+          <TodayRecordsSection
+            todayRecords={todayRecords}
+            onPressTimeline={onPressTimeline}
+            onPressRecord={onPressRecord}
+            keyExtractor={keyExtractor}
+            renderTodayRecord={renderTodayRecord}
+            SNAP={SNAP}
+            slideScrollHandler={slideScrollHandler}
+            renderTodayRecordSeparator={renderTodayRecordSeparator}
+            progress={progress}
+            activeSlideIndex={activeSlideIndex}
+            hasMoreThanSlider={hasMoreThanSlider}
+          />
 
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
@@ -1546,141 +1820,17 @@ export default function LoggedInHome() {
             </View>
           </View>
 
-          <View style={styles.section}>
-            <View style={styles.sectionHeaderRow}>
-              <Text style={styles.tipSectionTitle}>일정 보기</Text>
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={onPressScheduleList}
-              >
-                <Text style={styles.sectionLink}>더보기</Text>
-              </TouchableOpacity>
-            </View>
+          <ScheduleSection
+            weekScheduleItems={weekScheduleItems}
+            onPressScheduleList={onPressScheduleList}
+            onPressScheduleCreate={onPressScheduleCreate}
+          />
 
-            {weekScheduleItems.length === 0 ? (
-              <View style={styles.emptyBox}>
-                <Text style={styles.emptyTitle}>등록된 일정이 아직 없어요</Text>
-                <Text style={styles.emptyDesc}>
-                  오래 남겨둘 일정도 한곳에 모아두고 홈에서 가볍게 꺼내볼 수
-                  있어요.
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.scheduleList}>
-                {weekScheduleItems.map(item => (
-                  <TouchableOpacity
-                    key={item.key}
-                    activeOpacity={0.92}
-                    style={styles.scheduleCard}
-                    onPress={onPressScheduleList}
-                  >
-                    <View style={styles.scheduleDateBadge}>
-                      <Text style={styles.scheduleDateText}>
-                        {item.dateLabel}
-                      </Text>
-                    </View>
-
-                    <View style={styles.scheduleBody}>
-                      <View
-                        style={[
-                          styles.scheduleIconWrap,
-                          { backgroundColor: item.tint },
-                        ]}
-                      >
-                        <MaterialCommunityIcons
-                          name={item.icon}
-                          size={18}
-                          color="#6D6AF8"
-                        />
-                      </View>
-
-                      <View style={styles.scheduleTextCol}>
-                        <Text style={styles.scheduleTitle}>{item.title}</Text>
-                        <Text style={styles.scheduleSub} numberOfLines={2}>
-                          {item.subtitle}
-                        </Text>
-                      </View>
-
-                      <Feather
-                        name="chevron-right"
-                        size={18}
-                        color="rgba(85,96,112,0.48)"
-                      />
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={styles.recordBtn}
-              onPress={onPressScheduleCreate}
-            >
-              <Text style={styles.recordBtnText}>일정 추가하기</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.section}>
-            <View style={styles.sectionHeaderRow}>
-              <Text style={styles.tipSectionTitle}>최근 활동</Text>
-              <TouchableOpacity activeOpacity={0.85} onPress={onPressTimeline}>
-                <Text style={styles.sectionLink}>전체보기</Text>
-              </TouchableOpacity>
-            </View>
-
-            {recentActivities.length === 0 ? (
-              <View style={styles.emptyBox}>
-                <Text style={styles.emptyTitle}>최근 활동이 아직 없어요</Text>
-                <Text style={styles.emptyDesc}>
-                  기록을 남기면 홈에서 최근 움직임을 바로 볼 수 있어요.
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.activityList}>
-                {recentActivities.map(item => {
-                  const meta = getRecordCategoryMeta(item);
-                  return (
-                    <TouchableOpacity
-                      key={item.id}
-                      activeOpacity={0.92}
-                      style={styles.activityRow}
-                      onPress={() => onPressRecordItem(item.id)}
-                    >
-                      <View
-                        style={[
-                          styles.activityIconWrap,
-                          { backgroundColor: meta.tint },
-                        ]}
-                      >
-                        <MaterialCommunityIcons
-                          name={meta.icon}
-                          size={17}
-                          color="#6D6AF8"
-                        />
-                      </View>
-
-                      <View style={styles.activityTextCol}>
-                        <Text style={styles.activityTitle} numberOfLines={1}>
-                          {item.title?.trim() || meta.label}
-                        </Text>
-                        <Text style={styles.activitySub} numberOfLines={1}>
-                          {meta.label}
-                          {item.content?.trim()
-                            ? ` · ${toSnippet(item.content, 26)}`
-                            : ''}
-                        </Text>
-                      </View>
-
-                      <Text style={styles.activityTime}>
-                        {formatRelativeRecordTime(item)}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            )}
-          </View>
+          <RecentActivitiesSection
+            recentActivities={recentActivities}
+            onPressTimeline={onPressTimeline}
+            onPressRecordItem={onPressRecordItem}
+          />
 
           <View style={styles.section}>
             <View style={styles.todayTipCard}>
@@ -1697,47 +1847,13 @@ export default function LoggedInHome() {
             </View>
           </View>
 
-          <View style={styles.section}>
-            <View style={styles.sectionHeaderRow}>
-              <Text style={styles.tipSectionTitle}>이번 달 {petName} 일기</Text>
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={() => onPressTimelineCategory('diary')}
-              >
-                <Text style={styles.sectionLink}>더보기</Text>
-              </TouchableOpacity>
-            </View>
-
-            {currentMonthDiaryEntries.length === 0 ? (
-              <View style={styles.emptyBox}>
-                <Text style={styles.emptyTitle}>
-                  이번 달 일기가 아직 없어요
-                </Text>
-                <Text style={styles.emptyDesc}>첫 번째 일기를 남겨보세요.</Text>
-                <TouchableOpacity
-                  activeOpacity={0.9}
-                  style={styles.recordBtn}
-                  onPress={onPressRecord}
-                >
-                  <Text style={styles.recordBtnText}>기록하기</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.monthDiaryList}
-              >
-                {currentMonthDiaryEntries.map(item => (
-                  <MonthlyDiaryCard
-                    key={item.id}
-                    item={item}
-                    onPress={onPressRecordItem}
-                  />
-                ))}
-              </ScrollView>
-            )}
-          </View>
+          <MonthlyDiarySection
+            petName={petName}
+            currentMonthDiaryEntries={currentMonthDiaryEntries}
+            onPressTimelineCategory={onPressTimelineCategory}
+            onPressRecord={onPressRecord}
+            onPressRecordItem={onPressRecordItem}
+          />
         </Animated.View>
       </ScrollView>
     </Screen>

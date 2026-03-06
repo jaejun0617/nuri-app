@@ -7,8 +7,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
-  Modal,
-  Pressable,
   ScrollView,
   TextInput,
   TouchableOpacity,
@@ -20,6 +18,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import AppText from '../../app/ui/AppText';
+import SchedulePickerModal from '../../components/schedules/SchedulePickerModal';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
   createSchedule,
@@ -482,125 +481,39 @@ export default function ScheduleCreateScreen() {
         </View>
       </ScrollView>
 
-      <Modal
+      <SchedulePickerModal
         visible={dateModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setDateModalVisible(false)}
-      >
-        <Pressable
-          style={styles.modalBackdrop}
-          onPress={() => setDateModalVisible(false)}
-        >
-          <Pressable style={styles.modalCard} onPress={() => {}}>
-            <View style={styles.modalHeader}>
-              <AppText preset="headline" style={styles.modalTitle}>
-                날짜 선택
-              </AppText>
-              <TouchableOpacity
-                activeOpacity={0.85}
-                style={styles.modalCloseBtn}
-                onPress={() => setDateModalVisible(false)}
-              >
-                <Feather name="x" size={18} color="#556070" />
-              </TouchableOpacity>
-            </View>
+        title="날짜 선택"
+        value={draftDateText}
+        placeholder="YYYY.MM.DD"
+        presets={datePresets.map(preset => ({
+          key: preset.value,
+          label: preset.label,
+          value: preset.value,
+        }))}
+        onClose={() => setDateModalVisible(false)}
+        onChangeValue={setDraftDateText}
+        onSelectPreset={setDraftDateText}
+        onConfirm={onConfirmDate}
+        confirmLabel="날짜 적용"
+      />
 
-            <View style={styles.presetRow}>
-              {datePresets.map(preset => (
-                <TouchableOpacity
-                  key={preset.value}
-                  activeOpacity={0.9}
-                  style={styles.presetChip}
-                  onPress={() => setDraftDateText(preset.value)}
-                >
-                  <AppText preset="caption" style={styles.presetChipText}>
-                    {preset.label}
-                  </AppText>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <TextInput
-              value={draftDateText}
-              onChangeText={setDraftDateText}
-              placeholder="YYYY.MM.DD"
-              placeholderTextColor="#8A94A6"
-              style={styles.modalInput}
-            />
-
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={styles.modalConfirmBtn}
-              onPress={onConfirmDate}
-            >
-              <AppText preset="body" style={styles.modalConfirmText}>
-                날짜 적용
-              </AppText>
-            </TouchableOpacity>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      <Modal
+      <SchedulePickerModal
         visible={timeModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setTimeModalVisible(false)}
-      >
-        <Pressable
-          style={styles.modalBackdrop}
-          onPress={() => setTimeModalVisible(false)}
-        >
-          <Pressable style={styles.modalCard} onPress={() => {}}>
-            <View style={styles.modalHeader}>
-              <AppText preset="headline" style={styles.modalTitle}>
-                시간 선택
-              </AppText>
-              <TouchableOpacity
-                activeOpacity={0.85}
-                style={styles.modalCloseBtn}
-                onPress={() => setTimeModalVisible(false)}
-              >
-                <Feather name="x" size={18} color="#556070" />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.presetRow}>
-                  {SCHEDULE_TIME_PRESETS.map(preset => (
-                <TouchableOpacity
-                  key={preset}
-                  activeOpacity={0.9}
-                  style={styles.presetChip}
-                  onPress={() => setDraftTimeText(preset)}
-                >
-                  <AppText preset="caption" style={styles.presetChipText}>
-                    {preset}
-                  </AppText>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <TextInput
-              value={draftTimeText}
-              onChangeText={setDraftTimeText}
-              placeholder="HH:MM"
-              placeholderTextColor="#8A94A6"
-              style={styles.modalInput}
-            />
-
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={styles.modalConfirmBtn}
-              onPress={onConfirmTime}
-            >
-              <AppText preset="body" style={styles.modalConfirmText}>
-                시간 적용
-              </AppText>
-            </TouchableOpacity>
-          </Pressable>
-        </Pressable>
-      </Modal>
+        title="시간 선택"
+        value={draftTimeText}
+        placeholder="HH:MM"
+        presets={SCHEDULE_TIME_PRESETS.map(preset => ({
+          key: preset,
+          label: preset,
+          value: preset,
+        }))}
+        onClose={() => setTimeModalVisible(false)}
+        onChangeValue={setDraftTimeText}
+        onSelectPreset={setDraftTimeText}
+        onConfirm={onConfirmTime}
+        confirmLabel="시간 적용"
+      />
     </View>
   );
 }

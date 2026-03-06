@@ -11,7 +11,6 @@ import {
   Alert,
   Image,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   ScrollView,
   TextInput,
@@ -33,6 +32,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import { launchImageLibrary } from 'react-native-image-picker';
 
 import AppText from '../../app/ui/AppText';
+import RecordImageGallery from '../../components/records/RecordImageGallery';
 import type { AppTabParamList } from '../../navigation/AppTabsNavigator';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
@@ -65,6 +65,8 @@ import {
 import { uploadMemoryImage } from '../../services/supabase/storageMemories';
 import { usePetStore } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
+import RecordDateModal from './components/RecordDateModal';
+import RecordTagModal from './components/RecordTagModal';
 import { styles } from './RecordCreateScreen.styles';
 
 type RecordCreateTabRoute = RouteProp<AppTabParamList, 'RecordCreateTab'>;
@@ -532,75 +534,61 @@ export default function RecordCreateScreen() {
 
         <TouchableOpacity
           activeOpacity={0.9}
-          style={styles.photoBox}
           onPress={pickImage}
         >
-          {activeImage ? (
-            <>
-              <Image source={{ uri: activeImage.uri }} style={styles.photoImage} />
-              <View style={styles.photoOverlayTop}>
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  style={styles.photoGhostBtn}
-                  onPress={pickImage}
-                >
-                  <AppText preset="caption" style={styles.photoGhostBtnText}>
-                    추가
-                  </AppText>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  style={styles.photoGhostBtn}
-                  onPress={removeActiveImage}
-                >
-                  <AppText preset="caption" style={styles.photoGhostBtnText}>
-                    제거
-                  </AppText>
-                </TouchableOpacity>
-              </View>
-              {photoCounterText ? (
-                <View style={styles.photoCounterBadge}>
-                  <AppText preset="caption" style={styles.photoCounterText}>
-                    {photoCounterText}
-                  </AppText>
+          <RecordImageGallery
+            items={selectedImages}
+            activeIndex={activeImageIndex}
+            onChangeActiveIndex={setActiveImageIndex}
+            containerStyle={styles.photoBox}
+            emptyContent={
+              <View style={styles.photoPlaceholder}>
+                <View style={styles.photoIconBadge}>
+                  <Feather name="camera" size={22} color="#94A1B5" />
                 </View>
-              ) : null}
-            </>
-          ) : (
-            <View style={styles.photoPlaceholder}>
-              <View style={styles.photoIconBadge}>
-                <Feather name="camera" size={22} color="#94A1B5" />
+                <AppText preset="body" style={styles.photoPlaceholderTitle}>
+                  사진 추가 (최대 10장)
+                </AppText>
               </View>
-              <AppText preset="body" style={styles.photoPlaceholderTitle}>
-                사진 추가 (최대 10장)
-              </AppText>
-            </View>
-          )}
+            }
+            mainContent={
+              activeImage ? (
+                <Image source={{ uri: activeImage.uri }} style={styles.photoImage} />
+              ) : null
+            }
+            topOverlay={
+              activeImage ? (
+                <View style={styles.photoOverlayTop}>
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    style={styles.photoGhostBtn}
+                    onPress={pickImage}
+                  >
+                    <AppText preset="caption" style={styles.photoGhostBtnText}>
+                      추가
+                    </AppText>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    style={styles.photoGhostBtn}
+                    onPress={removeActiveImage}
+                  >
+                    <AppText preset="caption" style={styles.photoGhostBtnText}>
+                      제거
+                    </AppText>
+                  </TouchableOpacity>
+                </View>
+              ) : null
+            }
+            thumbRowStyle={styles.photoThumbRow}
+            thumbItemStyle={styles.photoThumbWrap}
+            thumbItemActiveStyle={styles.photoThumbWrapActive}
+            thumbImageStyle={styles.photoThumb}
+            counterText={photoCounterText}
+            counterBadgeStyle={styles.photoCounterBadge}
+            counterTextStyle={styles.photoCounterText}
+          />
         </TouchableOpacity>
-        {selectedImages.length > 1 ? (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.photoThumbRow}
-          >
-            {selectedImages.map((image, index) => {
-              const active = index === activeImageIndex;
-              return (
-                <TouchableOpacity
-                  key={image.key}
-                  activeOpacity={0.9}
-                  style={[
-                    styles.photoThumbWrap,
-                    active ? styles.photoThumbWrapActive : null,
-                  ]}
-                  onPress={() => setActiveImageIndex(index)}
-                >
-                  <Image source={{ uri: image.uri }} style={styles.photoThumb} />
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        ) : null}
 
         <View style={styles.quickTagRow}>
         {RECORD_MAIN_CATEGORIES.map(category => {
@@ -798,248 +786,36 @@ export default function RecordCreateScreen() {
         </TouchableOpacity>
       </ScrollView>
 
-      <Modal
+      <RecordDateModal
         visible={dateModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={onCloseDateModal}
-      >
-        <View style={styles.modalBackdrop}>
-          <TouchableOpacity
-            activeOpacity={1}
-            style={styles.modalDismissZone}
-            onPress={onCloseDateModal}
-          />
+        selectedDateShortcut={selectedDateShortcut}
+        dateDraft={dateDraft}
+        onClose={onCloseDateModal}
+        onPressDateShortcut={onPressDateShortcut}
+        onChangeDateDraft={text => {
+          setSelectedDateShortcut('today');
+          setDateDraft(text);
+        }}
+        onApplyDate={onApplyDate}
+      />
 
-          <View style={styles.tagModalCard}>
-            <View style={styles.tagModalHeader}>
-              <AppText preset="headline" style={styles.tagModalTitle}>
-                날짜 선택
-              </AppText>
-              <TouchableOpacity
-                activeOpacity={0.85}
-                style={styles.tagModalCloseBtn}
-                onPress={onCloseDateModal}
-              >
-                <Feather name="x" size={18} color="#8E98AA" />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.dateShortcutRow}>
-              <TouchableOpacity
-                activeOpacity={0.88}
-                style={[
-                  styles.dateShortcutChip,
-                  selectedDateShortcut === 'today'
-                    ? styles.dateShortcutChipActive
-                    : null,
-                ]}
-                onPress={() => onPressDateShortcut('today')}
-              >
-                <AppText
-                  preset="caption"
-                  style={[
-                    styles.dateShortcutText,
-                    selectedDateShortcut === 'today'
-                      ? styles.dateShortcutTextActive
-                      : null,
-                  ]}
-                >
-                  오늘
-                </AppText>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                activeOpacity={0.88}
-                style={[
-                  styles.dateShortcutChip,
-                  selectedDateShortcut === 'yesterday'
-                    ? styles.dateShortcutChipActive
-                    : null,
-                ]}
-                onPress={() => onPressDateShortcut('yesterday')}
-              >
-                <AppText
-                  preset="caption"
-                  style={[
-                    styles.dateShortcutText,
-                    selectedDateShortcut === 'yesterday'
-                      ? styles.dateShortcutTextActive
-                      : null,
-                  ]}
-                >
-                  어제
-                </AppText>
-              </TouchableOpacity>
-            </View>
-
-            <AppText preset="caption" style={styles.tagSectionTitle}>
-              직접 입력
-            </AppText>
-            <TextInput
-              style={styles.dateInput}
-              value={dateDraft}
-              onChangeText={text => {
-                setSelectedDateShortcut('today');
-                setDateDraft(text);
-              }}
-              autoCapitalize="none"
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor="#B5BDCB"
-            />
-            <AppText preset="caption" style={styles.helperText}>
-              `YYYY-MM-DD` 형식으로 기록 날짜를 저장합니다.
-            </AppText>
-
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={styles.addTagBtn}
-              onPress={onApplyDate}
-            >
-              <AppText preset="body" style={styles.addTagBtnText}>
-                날짜 적용
-              </AppText>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal
+      <RecordTagModal
         visible={tagModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={onCloseTagModal}
-      >
-        <View style={styles.modalBackdrop}>
-          <TouchableOpacity
-            activeOpacity={1}
-            style={styles.modalDismissZone}
-            onPress={onCloseTagModal}
-          />
-
-          <View style={styles.tagModalCard}>
-            <View style={styles.tagModalHeader}>
-              <AppText preset="headline" style={styles.tagModalTitle}>
-                태그 추가
-              </AppText>
-              <TouchableOpacity
-                activeOpacity={0.85}
-                style={styles.tagModalCloseBtn}
-                onPress={onCloseTagModal}
-              >
-                <Feather name="x" size={18} color="#8E98AA" />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.tagInputRow}>
-              <Feather name="hash" size={16} color="#7A71F4" />
-              <TextInput
-                style={styles.tagModalInput}
-                value={tagDraft}
-                onChangeText={setTagDraft}
-                placeholder="가을산책"
-                placeholderTextColor="#B5BDCB"
-                autoCapitalize="none"
-                autoCorrect={false}
-                onSubmitEditing={onSubmitDraftTag}
-              />
-            </View>
-
-            <AppText preset="caption" style={styles.tagSectionTitle}>
-              추천 태그
-            </AppText>
-            <View style={styles.tagChipGrid}>
-              {RECORD_SUGGESTED_TAGS.map(tag => (
-                <TouchableOpacity
-                  key={tag}
-                  activeOpacity={0.88}
-                  style={styles.suggestChip}
-                  onPress={() => onPressSuggestedTag(tag)}
-                >
-                  <AppText preset="caption" style={styles.suggestChipText}>
-                    {tag}
-                  </AppText>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <View style={styles.tagSectionHeaderRow}>
-              <AppText preset="caption" style={styles.tagSectionTitleCompact}>
-                최근 사용
-              </AppText>
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={onClearRecentTags}
-                disabled={recentTags.length === 0}
-              >
-                <AppText
-                  preset="caption"
-                  style={[
-                    styles.clearRecentText,
-                    recentTags.length === 0 ? styles.clearRecentTextDisabled : null,
-                  ]}
-                >
-                  전체 지우기
-                </AppText>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.recentList}>
-              {recentTags.map(tag => (
-                <TouchableOpacity
-                  key={tag}
-                  activeOpacity={0.88}
-                  style={styles.recentItem}
-                  onPress={() => onPressSuggestedTag(tag)}
-                >
-                  <Feather name="rotate-ccw" size={15} color="#B6BECC" />
-                  <AppText preset="body" style={styles.recentItemText}>
-                    {tag}
-                  </AppText>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {selectedTags.length ? (
-              <>
-                <AppText preset="caption" style={styles.tagSectionTitle}>
-                  선택된 태그
-                </AppText>
-                <View style={styles.tagChipGrid}>
-                  {selectedTags.map(tag => (
-                    <TouchableOpacity
-                      key={tag}
-                      activeOpacity={0.88}
-                      style={styles.selectedModalChip}
-                      onPress={() => onRemoveTag(tag)}
-                    >
-                      <AppText
-                        preset="caption"
-                        style={styles.selectedModalChipText}
-                      >
-                        {tag}
-                      </AppText>
-                      <Feather name="x" size={12} color="#6D6AF8" />
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </>
-            ) : null}
-
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={styles.addTagBtn}
-              onPress={() => {
-                onSubmitDraftTag();
-                onCloseTagModal();
-              }}
-            >
-              <AppText preset="body" style={styles.addTagBtnText}>
-                추가하기
-              </AppText>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+        tagDraft={tagDraft}
+        recentTags={recentTags}
+        selectedTags={selectedTags}
+        suggestedTags={RECORD_SUGGESTED_TAGS}
+        onClose={onCloseTagModal}
+        onChangeTagDraft={setTagDraft}
+        onSubmitDraftTag={onSubmitDraftTag}
+        onPressSuggestedTag={onPressSuggestedTag}
+        onRemoveTag={onRemoveTag}
+        onClearRecentTags={onClearRecentTags}
+        onConfirm={() => {
+          onSubmitDraftTag();
+          onCloseTagModal();
+        }}
+      />
     </KeyboardAvoidingView>
   );
 }
