@@ -1764,12 +1764,9 @@ export default function LoggedInHome() {
                 >
                   <View style={styles.heroTogetherRow}>
                     <Text
-                      style={[
-                        styles.heroTogetherHeart,
-                        { color: petTheme.heart },
-                      ]}
+                      style={styles.heroTogetherHeart}
                     >
-                      ♥
+                      {petTheme.heartEmoji}
                     </Text>
                     <Text
                       style={[
@@ -1789,12 +1786,9 @@ export default function LoggedInHome() {
                       일
                     </Text>
                     <Text
-                      style={[
-                        styles.heroTogetherHeart,
-                        { color: petTheme.heart },
-                      ]}
+                      style={styles.heroTogetherHeart}
                     >
-                      ♥
+                      {petTheme.heartEmoji}
                     </Text>
                   </View>
                 </View>

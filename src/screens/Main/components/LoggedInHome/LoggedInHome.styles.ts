@@ -273,8 +273,7 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   heroTogetherHeart: {
-    fontSize: 15,
-    fontWeight: '900',
+    fontSize: 16,
   },
 
   // ---------------------------------------------------------

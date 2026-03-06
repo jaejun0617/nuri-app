@@ -130,14 +130,14 @@ function getHueFromHex(hex: string): number {
   return Math.round(hue * 60 < 0 ? hue * 60 + 360 : hue * 60);
 }
 
-function pickHeartColor(primary: string): string {
+function pickHeartEmoji(primary: string): string {
   const hue = getHueFromHex(primary);
 
-  if (hue < 30 || hue >= 330) return '#C7F9FF';
-  if (hue < 70) return '#FFE3F1';
-  if (hue < 170) return '#FFE7BA';
-  if (hue < 250) return '#FFE6C7';
-  return '#D9F99D';
+  if (hue < 30 || hue >= 330) return '🩵';
+  if (hue < 70) return '🩷';
+  if (hue < 170) return '🧡';
+  if (hue < 250) return '💛';
+  return '💚';
 }
 
 function hashText(value: string): number {
@@ -198,7 +198,7 @@ export function buildPetThemePalette(themeColor: string | null | undefined) {
   const glow = mixHex(primary, '#FFFFFF', 0.58);
   const onPrimary = getReadableTextColor(primary);
   const onDeep = getReadableTextColor(deep);
-  const heart = pickHeartColor(primary);
+  const heartEmoji = pickHeartEmoji(primary);
   const muted = mixHex(primary, '#0B1220', 0.22);
 
   return {
@@ -210,7 +210,7 @@ export function buildPetThemePalette(themeColor: string | null | undefined) {
     glow,
     onPrimary,
     onDeep,
-    heart,
+    heartEmoji,
     muted,
     ringGradient: [
       mixHex(primary, '#FFFFFF', 0.18),
