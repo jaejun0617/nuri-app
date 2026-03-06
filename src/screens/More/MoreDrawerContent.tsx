@@ -1,8 +1,8 @@
 // 파일: src/screens/More/MoreDrawerContent.tsx
 // 역할:
-// - 전체 화면형 더보기 드로어를 렌더링
-// - 상단 프로필 카드, 섹션형 메뉴, 계정 설정 모달(내 정보 수정/비밀번호 변경)을 제공
-// - 간격 규칙을 통일해 화면 전체가 플랫하고 정리된 인상으로 보이도록 유지
+// - 전체 화면형 더보기 드로어를 인사형 헤더 + 섹션 카드 구조로 렌더링
+// - 반려동물/기록/정보/계정 설정 메뉴를 한 화면에서 빠르게 탐색할 수 있게 제공
+// - 닉네임 수정, 비밀번호 변경 모달을 더보기 맥락 안에서 바로 처리
 
 import React, {
   memo,
@@ -27,7 +27,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
@@ -46,6 +45,7 @@ import {
   checkNicknameAvailabilityDetailed,
   saveMyNickname,
 } from '../../services/supabase/profile';
+import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
 import { showToast } from '../../store/uiStore';
@@ -60,17 +60,18 @@ type MenuItemSpec = {
   key: string;
   label: string;
   icon: string;
-  iconTone?: 'purple' | 'slate' | 'peach';
+  iconTone?: 'accent' | 'muted' | 'soft';
   onPress: () => void;
-  dot?: boolean;
+  badge?: 'dot' | 'soon' | null;
 };
 
-type MenuSectionProps = {
+type MenuCardProps = {
   title: string;
   items: MenuItemSpec[];
+  themeColors: Record<'accent' | 'muted' | 'soft', { box: string; icon: string }>;
 };
 
-type MenuRowProps = MenuItemSpec;
+type MenuRowProps = Omit<MenuItemSpec, 'key'>;
 
 type PasswordModalProps = {
   visible: boolean;
@@ -91,11 +92,6 @@ type PasswordModalProps = {
   onSubmit: () => void;
 };
 
-type SuccessModalProps = {
-  visible: boolean;
-  onClose: () => void;
-};
-
 type ProfileEditModalProps = {
   visible: boolean;
   nickname: string;
@@ -106,21 +102,6 @@ type ProfileEditModalProps = {
   onChangeNickname: (value: string) => void;
   onSubmit: () => void;
 };
-
-const ICON_TONES = {
-  purple: {
-    box: '#F4EEFF',
-    icon: '#9B6DFF',
-  },
-  slate: {
-    box: '#F3F5F8',
-    icon: '#667085',
-  },
-  peach: {
-    box: '#FFF1EE',
-    icon: '#FF8A7A',
-  },
-} as const;
 
 function formatDateLabel(value: Date | null): string {
   if (!value) return '지금은 변경할 수 있어요.';
@@ -134,11 +115,14 @@ function formatDateLabel(value: Date | null): string {
 const MenuRow = memo(function MenuRow({
   label,
   icon,
-  iconTone = 'purple',
+  iconTone = 'accent',
   onPress,
-  dot = false,
-}: MenuRowProps) {
-  const tone = ICON_TONES[iconTone];
+  badge = null,
+  themeColors,
+}: MenuRowProps & {
+  themeColors: Record<'accent' | 'muted' | 'soft', { box: string; icon: string }>;
+}) {
+  const tone = themeColors[iconTone];
 
   return (
     <TouchableOpacity
@@ -146,31 +130,36 @@ const MenuRow = memo(function MenuRow({
       style={styles.menuRow}
       onPress={onPress}
     >
-      <View style={styles.menuRowLeft}>
+      <View style={styles.menuLeft}>
         <View style={[styles.menuIconBox, { backgroundColor: tone.box }]}>
-          <Feather name={icon as never} size={18} color={tone.icon} />
+          <Feather name={icon as never} size={17} color={tone.icon} />
         </View>
         <Text style={styles.menuLabel}>{label}</Text>
       </View>
 
-      <View style={styles.menuRowRight}>
-        {dot ? <View style={styles.menuDot} /> : null}
-        <Feather name="chevron-right" size={18} color="#C5CCD8" />
+      <View style={styles.menuRight}>
+        {badge === 'dot' ? <View style={styles.menuDot} /> : null}
+        {badge === 'soon' ? <Text style={styles.badgeSoon}>soon</Text> : null}
+        <Feather name="chevron-right" size={18} color="#C2CBD8" />
       </View>
     </TouchableOpacity>
   );
 });
 
-const MenuSection = memo(function MenuSection({
+const MenuCard = memo(function MenuCard({
   title,
   items,
-}: MenuSectionProps) {
+  themeColors,
+}: MenuCardProps) {
   return (
-    <View style={styles.section}>
+    <View style={styles.sectionWrap}>
       <Text style={styles.sectionTitle}>{title}</Text>
-      <View style={styles.sectionBody}>
-        {items.map(({ key, ...item }) => (
-          <MenuRow key={key} {...item} />
+      <View style={styles.menuCard}>
+        {items.map(({ key, ...item }, index) => (
+          <View key={key}>
+            {index > 0 ? <View style={styles.menuDivider} /> : null}
+            <MenuRow {...item} themeColors={themeColors} />
+          </View>
         ))}
       </View>
     </View>
@@ -195,15 +184,15 @@ const PasswordField = memo(function PasswordField({
   helper?: string | null;
 }) {
   return (
-    <View style={styles.modalFieldBlock}>
-      <Text style={styles.modalFieldLabel}>{label}</Text>
-      <View style={styles.passwordInputWrap}>
+    <View style={styles.modalField}>
+      <Text style={styles.modalLabel}>{label}</Text>
+      <View style={styles.inputShell}>
         <TextInput
           value={value}
           onChangeText={onChangeText}
-          style={styles.passwordInput}
+          style={styles.inputText}
           placeholder={placeholder}
-          placeholderTextColor="#B6C0D1"
+          placeholderTextColor="#B7C0D0"
           secureTextEntry={secureTextEntry}
           autoCapitalize="none"
           autoCorrect={false}
@@ -216,11 +205,11 @@ const PasswordField = memo(function PasswordField({
           <Feather
             name={secureTextEntry ? 'eye' : 'eye-off'}
             size={18}
-            color="#A6B1C2"
+            color="#A5AFC0"
           />
         </TouchableOpacity>
       </View>
-      {helper ? <Text style={styles.modalHelperText}>{helper}</Text> : null}
+      {helper ? <Text style={styles.modalHelper}>{helper}</Text> : null}
     </View>
   );
 });
@@ -252,15 +241,15 @@ const PasswordChangeModal = memo(function PasswordChangeModal({
     >
       <View style={styles.modalBackdrop}>
         <Pressable style={styles.modalScrim} onPress={onClose} />
-        <View style={styles.bottomSheetCard}>
-          <View style={styles.bottomSheetHeader}>
-            <Text style={styles.bottomSheetTitle}>비밀번호 변경</Text>
+        <View style={styles.sheetCard}>
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>비밀번호 변경</Text>
             <TouchableOpacity
               activeOpacity={0.88}
-              style={styles.bottomSheetClose}
+              style={styles.sheetClose}
               onPress={onClose}
             >
-              <Feather name="x" size={20} color="#A2ABBC" />
+              <Feather name="x" size={20} color="#A6B0C1" />
             </TouchableOpacity>
           </View>
 
@@ -294,11 +283,11 @@ const PasswordChangeModal = memo(function PasswordChangeModal({
 
           <TouchableOpacity
             activeOpacity={0.92}
-            style={[styles.primaryActionButton, saving ? styles.buttonDisabled : null]}
+            style={[styles.primaryButton, saving ? styles.disabledButton : null]}
             onPress={onSubmit}
             disabled={saving}
           >
-            <Text style={styles.primaryActionButtonText}>
+            <Text style={styles.primaryButtonText}>
               {saving ? '변경 중...' : '변경하기'}
             </Text>
           </TouchableOpacity>
@@ -311,7 +300,10 @@ const PasswordChangeModal = memo(function PasswordChangeModal({
 const PasswordChangeSuccessModal = memo(function PasswordChangeSuccessModal({
   visible,
   onClose,
-}: SuccessModalProps) {
+}: {
+  visible: boolean;
+  onClose: () => void;
+}) {
   return (
     <Modal
       visible={visible}
@@ -321,23 +313,21 @@ const PasswordChangeSuccessModal = memo(function PasswordChangeSuccessModal({
     >
       <View style={styles.successBackdrop}>
         <View style={styles.successCard}>
-          <View style={styles.successIconHalo}>
-            <View style={styles.successIconCircle}>
-              <Feather name="check" size={28} color="#FFFFFF" />
+          <View style={styles.successHalo}>
+            <View style={styles.successIcon}>
+              <Feather name="check" size={26} color="#FFFFFF" />
             </View>
           </View>
-
           <Text style={styles.successTitle}>비밀번호 변경 완료</Text>
           <Text style={styles.successBody}>
-            비밀번호가 성공적으로 변경되었습니다.
+            비밀번호가 성공적으로{'\n'}변경되었습니다.
           </Text>
-
           <TouchableOpacity
             activeOpacity={0.92}
-            style={styles.primaryActionButton}
+            style={styles.primaryButton}
             onPress={onClose}
           >
-            <Text style={styles.primaryActionButtonText}>확인</Text>
+            <Text style={styles.primaryButtonText}>확인</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -364,33 +354,33 @@ const ProfileEditModal = memo(function ProfileEditModal({
     >
       <View style={styles.modalBackdrop}>
         <Pressable style={styles.modalScrim} onPress={onClose} />
-        <View style={styles.bottomSheetCard}>
-          <View style={styles.bottomSheetHeader}>
-            <Text style={styles.bottomSheetTitle}>내 정보 수정</Text>
+        <View style={styles.sheetCard}>
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>닉네임 수정</Text>
             <TouchableOpacity
               activeOpacity={0.88}
-              style={styles.bottomSheetClose}
+              style={styles.sheetClose}
               onPress={onClose}
             >
-              <Feather name="x" size={20} color="#A2ABBC" />
+              <Feather name="x" size={20} color="#A6B0C1" />
             </TouchableOpacity>
           </View>
 
-          <View style={styles.modalFieldBlock}>
-            <Text style={styles.modalFieldLabel}>닉네임</Text>
+          <View style={styles.modalField}>
+            <Text style={styles.modalLabel}>닉네임</Text>
             <TextInput
               value={nickname}
               onChangeText={onChangeNickname}
               style={styles.nicknameInput}
               placeholder="닉네임을 입력해 주세요"
-              placeholderTextColor="#B6C0D1"
+              placeholderTextColor="#B7C0D0"
               autoCapitalize="none"
               autoCorrect={false}
               maxLength={8}
             />
             <Text
               style={[
-                styles.profileHelperText,
+                styles.profileHelper,
                 helperTone === 'error'
                   ? styles.profileHelperError
                   : helperTone === 'success'
@@ -404,11 +394,11 @@ const ProfileEditModal = memo(function ProfileEditModal({
 
           <TouchableOpacity
             activeOpacity={0.92}
-            style={[styles.primaryActionButton, saving ? styles.buttonDisabled : null]}
+            style={[styles.primaryButton, saving ? styles.disabledButton : null]}
             onPress={onSubmit}
             disabled={saving}
           >
-            <Text style={styles.primaryActionButtonText}>
+            <Text style={styles.primaryButtonText}>
               {saving ? '저장 중...' : '저장하기'}
             </Text>
           </TouchableOpacity>
@@ -420,8 +410,6 @@ const ProfileEditModal = memo(function ProfileEditModal({
 
 export default function MoreDrawerContent({ onRequestClose }: Props) {
   const navigation = useNavigation<Nav>();
-
-  const status = useAuthStore(s => s.status);
   const nicknameRaw = useAuthStore(s => s.profile.nickname);
   const isLoggedIn = useAuthStore(s => s.isLoggedIn);
   const session = useAuthStore(s => s.session);
@@ -449,14 +437,35 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     () => pets.find(p => p.id === selectedPetId) ?? pets[0] ?? null,
     [pets, selectedPetId],
   );
+  const petTheme = useMemo(
+    () => buildPetThemePalette(selectedPet?.themeColor),
+    [selectedPet?.themeColor],
+  );
+  const menuThemeColors = useMemo(
+    () => ({
+      accent: {
+        box: petTheme.tint,
+        icon: petTheme.primary,
+      },
+      muted: {
+        box: petTheme.soft,
+        icon: petTheme.deep,
+      },
+      soft: {
+        box: petTheme.glow,
+        icon: petTheme.primary,
+      },
+    }),
+    [petTheme],
+  );
   const avatarUri = useMemo(
     () => selectedPet?.avatarUrl?.trim() || null,
     [selectedPet?.avatarUrl],
   );
-  const displayName = useMemo(() => {
-    if (status === 'logged_in') return nickname ? `${nickname}님` : '반가워요';
-    return '게스트';
-  }, [nickname, status]);
+  const greetingName = useMemo(
+    () => (nickname ? `${nickname}님!` : '반가워요!'),
+    [nickname],
+  );
   const avatarFallback = useMemo(
     () => selectedPet?.name?.trim()?.charAt(0) || 'N',
     [selectedPet?.name],
@@ -469,6 +478,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     () => getNextNicknameChangeDate(nicknameChangedAt),
     [nicknameChangedAt],
   );
+
   const profileHelper = useMemo(() => {
     if (!isLoggedIn) {
       return {
@@ -531,7 +541,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     showToast({
       tone: 'info',
       title: '준비 중',
-      message: `${label} 메뉴는 다음 단계에서 열릴 예정이에요.`,
+      message: `${label} 메뉴는 다음 업데이트에서 열릴 예정이에요.`,
     });
   }, []);
 
@@ -564,6 +574,31 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
           screen: 'TimelineMain',
           params: { mainCategory: 'all' },
         },
+      }),
+    );
+  }, [closeAndNavigate, navigation]);
+
+  const openHome = useCallback(() => {
+    closeAndNavigate(() =>
+      navigation.navigate('AppTabs', {
+        screen: 'HomeTab',
+      }),
+    );
+  }, [closeAndNavigate, navigation]);
+
+  const openRecordCreate = useCallback(() => {
+    closeAndNavigate(() =>
+      navigation.navigate('AppTabs', {
+        screen: 'RecordCreateTab',
+        params: selectedPet?.id ? { petId: selectedPet.id } : undefined,
+      }),
+    );
+  }, [closeAndNavigate, navigation, selectedPet?.id]);
+
+  const openGuestbook = useCallback(() => {
+    closeAndNavigate(() =>
+      navigation.navigate('AppTabs', {
+        screen: 'GuestbookTab',
       }),
     );
   }, [closeAndNavigate, navigation]);
@@ -647,7 +682,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       setProfileModalVisible(false);
       showToast({
         tone: 'success',
-        title: '내 정보 수정 완료',
+        title: '닉네임 수정 완료',
         message: '닉네임이 새로운 이름으로 저장됐어요.',
       });
     } catch (error) {
@@ -746,8 +781,8 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
           ? '기기에서는 바로 로그아웃됐어요. 서버 세션 정리는 이어서 진행됩니다.'
           : '안전하게 로그아웃했어요.',
       });
-    } catch (e: any) {
-      const message = getRetryableErrorMessage(e);
+    } catch (error) {
+      const message = getRetryableErrorMessage(error);
       Alert.alert('로그아웃 실패', message);
       showToast({ tone: 'error', title: '로그아웃 실패', message });
     } finally {
@@ -804,124 +839,149 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     closeAndNavigate(() => navigation.navigate('DevTest'));
   }, [closeAndNavigate, navigation]);
 
-  const petManagementItems = useMemo<MenuItemSpec[]>(
+  const petItems = useMemo<MenuItemSpec[]>(
     () => [
       {
         key: 'pet-manage',
-        label: '반려동물 관리',
-        icon: 'heart',
+        label: '아이들 프로필 관리',
+        icon: 'user',
+        iconTone: 'accent',
         onPress: openPetProfile,
       },
       {
-        key: 'vaccine',
-        label: '예방접종 기록',
-        icon: 'clipboard',
+        key: 'important-schedule',
+        label: '중요 일정 & 기념일',
+        icon: 'calendar',
+        iconTone: 'accent',
         onPress: openScheduleList,
       },
-      {
-        key: 'health-note',
-        label: '건강 수첩',
-        icon: 'book-open',
-        onPress: openTimeline,
-      },
     ],
-    [openPetProfile, openScheduleList, openTimeline],
+    [openPetProfile, openScheduleList],
   );
 
-  const communityItems = useMemo<MenuItemSpec[]>(
+  const activityItems = useMemo<MenuItemSpec[]>(
     () => [
       {
-        key: 'friends',
-        label: '내 친구들',
-        icon: 'users',
-        iconTone: 'slate',
-        onPress: () => showPreparingToast('내 친구들'),
+        key: 'memory-diary',
+        label: '추억 다이어리',
+        icon: 'book-open',
+        iconTone: 'accent',
+        onPress: openTimeline,
       },
       {
-        key: 'popular',
-        label: '인기 게시글',
-        icon: 'trending-up',
-        iconTone: 'slate',
-        onPress: () => showPreparingToast('인기 게시글'),
+        key: 'health-report',
+        label: '건강 기록 리포트',
+        icon: 'clipboard',
+        iconTone: 'accent',
+        onPress: () => showPreparingToast('건강 기록 리포트'),
+        badge: 'soon',
       },
       {
-        key: 'event',
-        label: '이벤트',
-        icon: 'zap',
-        iconTone: 'slate',
-        onPress: () => showPreparingToast('이벤트'),
-        dot: true,
+        key: 'walk-route',
+        label: '산책 코스 보관함',
+        icon: 'map',
+        iconTone: 'accent',
+        onPress: () => showPreparingToast('산책 코스 보관함'),
+        badge: 'soon',
+      },
+    ],
+    [openTimeline, showPreparingToast],
+  );
+
+  const infoItems = useMemo<MenuItemSpec[]>(
+    () => [
+      {
+        key: 'community',
+        label: '커뮤니티',
+        icon: 'message-circle',
+        iconTone: 'muted',
+        onPress: () => showPreparingToast('커뮤니티'),
+      },
+      {
+        key: 'tips',
+        label: '집사 꿀팁 가이드',
+        icon: 'map-pin',
+        iconTone: 'muted',
+        onPress: () => showPreparingToast('집사 꿀팁 가이드'),
       },
     ],
     [showPreparingToast],
   );
 
-  const accountItems = useMemo<MenuItemSpec[]>(() => {
-    if (!isLoggedIn) {
-      return [
-        {
-          key: 'login',
-          label: '로그인하기',
-          icon: 'log-in',
-          iconTone: 'peach',
-          onPress: onPressLogin,
-        },
-      ];
-    }
-
-    return [
+  const serviceItems = useMemo<MenuItemSpec[]>(() => {
+    const items: MenuItemSpec[] = [
       {
-        key: 'my-profile',
-        label: '내 정보 수정',
-        icon: 'user',
-        iconTone: 'peach',
-        onPress: openProfileEditModal,
+        key: 'notification',
+        label: '알림 설정',
+        icon: 'bell',
+        iconTone: 'accent',
+        onPress: () => showPreparingToast('알림 설정'),
       },
       {
-        key: 'password',
-        label: '비밀번호 변경',
-        icon: 'lock',
-        iconTone: 'peach',
+        key: 'security',
+        label: '보안 및 개인정보',
+        icon: 'shield',
+        iconTone: 'accent',
         onPress: openPasswordModal,
       },
       {
-        key: 'logout',
-        label: loading ? '로그아웃 중...' : '로그아웃',
-        icon: 'log-out',
-        iconTone: 'peach',
-        onPress: onPressLogout,
-      },
-      {
-        key: 'delete-account',
-        label: deleting ? '회원탈퇴 처리 중...' : '회원탈퇴',
-        icon: 'user-minus',
-        iconTone: 'peach',
-        onPress: onPressDeleteAccount,
+        key: 'theme',
+        label: '테마 설정',
+        icon: 'moon',
+        iconTone: 'accent',
+        onPress: openPetProfile,
       },
     ];
-  }, [
-    deleting,
-    isLoggedIn,
-    loading,
-    onPressDeleteAccount,
-    onPressLogin,
-    onPressLogout,
-    openPasswordModal,
-    openProfileEditModal,
-  ]);
+
+    if (isLoggedIn) {
+      items.unshift({
+        key: 'my-profile',
+        label: '닉네임 수정',
+        icon: 'edit-3',
+        iconTone: 'accent',
+        onPress: openProfileEditModal,
+      });
+    }
+
+    return items;
+  }, [isLoggedIn, openPasswordModal, openPetProfile, openProfileEditModal, showPreparingToast]);
+
+  const quickNavItems = useMemo(
+    () => [
+      { key: 'home', label: '홈', icon: 'home', onPress: openHome },
+      { key: 'timeline', label: '타임라인', icon: 'activity', onPress: openTimeline },
+      { key: 'record', label: '기록', icon: 'plus-circle', onPress: openRecordCreate },
+      { key: 'guestbook', label: '방명록', icon: 'book-open', onPress: openGuestbook },
+    ],
+    [openGuestbook, openHome, openRecordCreate, openTimeline],
+  );
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.screen}>
-        <View style={styles.header}>
-          <Text style={styles.title}>더보기</Text>
+        <View style={styles.headerRow}>
+          <View style={styles.headerTextWrap}>
+            <Text style={styles.headerTitle}>안녕하세요, {greetingName}</Text>
+            <Text style={styles.headerSubtitle}>
+              반가운 오늘, 아이들은 어땠나요?
+            </Text>
+          </View>
 
           <TouchableOpacity
-            activeOpacity={0.88}
-            onPress={onRequestClose}
-            style={styles.closeButton}
+            activeOpacity={0.9}
+            style={styles.headerAvatarButton}
+            onPress={isLoggedIn ? openProfileEditModal : onPressLogin}
           >
-            <Feather name="x" size={22} color="#8E97A8" />
+            {avatarUri ? (
+              <Image source={{ uri: avatarUri }} style={styles.headerAvatarImage} />
+            ) : (
+              <View style={[styles.headerAvatarImage, styles.headerAvatarFallback]}>
+                <Text style={styles.headerAvatarFallbackText}>{avatarFallback}</Text>
+              </View>
+            )}
+            <View style={styles.headerAvatarBadge}>
+              <Feather name="edit-3" size={10} color="#FFFFFF" />
+            </View>
           </TouchableOpacity>
         </View>
 
@@ -930,49 +990,69 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
         >
-          <TouchableOpacity
-            activeOpacity={0.92}
-            style={styles.profileCard}
-            onPress={openPetProfile}
-          >
-            <View style={styles.profileAvatarWrap}>
-              {avatarUri ? (
-                <Image source={{ uri: avatarUri }} style={styles.profileAvatar} />
-              ) : (
-                <View style={[styles.profileAvatar, styles.profileAvatarFallback]}>
-                  <Text style={styles.profileAvatarFallbackText}>
-                    {avatarFallback}
-                  </Text>
-                </View>
-              )}
-
-              <View style={styles.profileBadge}>
-                <MaterialCommunityIcons name="paw" size={13} color="#FFFFFF" />
-              </View>
-            </View>
-
-            <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>{displayName}</Text>
-              <View style={styles.profileEditRow}>
-                <Text style={styles.profileEditText}>프로필 수정</Text>
-                <Feather name="chevron-right" size={14} color="#A8B0C2" />
-              </View>
-            </View>
-          </TouchableOpacity>
-
-          <MenuSection title="반려동물 관리" items={petManagementItems} />
-          <MenuSection title="커뮤니티" items={communityItems} />
-          <MenuSection title="내 계정" items={accountItems} />
+          <MenuCard
+            title="나의 반려동물"
+            items={petItems}
+            themeColors={menuThemeColors}
+          />
+          <MenuCard
+            title="활동 및 기록"
+            items={activityItems}
+            themeColors={menuThemeColors}
+          />
+          <MenuCard
+            title="소통 및 정보"
+            items={infoItems}
+            themeColors={menuThemeColors}
+          />
+          <MenuCard
+            title="앱 서비스 설정"
+            items={serviceItems}
+            themeColors={menuThemeColors}
+          />
 
           {session?.user?.email ? (
-            <View style={styles.accountHintCard}>
-              <Text style={styles.accountHintTitle}>지금 로그인된 계정</Text>
-              <Text style={styles.accountHintValue}>{session.user.email}</Text>
-              <Text style={styles.accountHintBody}>
+            <View style={styles.accountMeta}>
+              <Text style={styles.accountMetaEmail}>{session.user.email}</Text>
+              <Text style={styles.accountMetaText}>
                 닉네임은 월 1회, 비밀번호는 필요할 때 바로 변경할 수 있어요.
               </Text>
             </View>
           ) : null}
+
+          {isLoggedIn ? (
+            <View style={styles.bottomActions}>
+              <TouchableOpacity
+                activeOpacity={0.88}
+                style={styles.bottomTextButton}
+                onPress={onPressLogout}
+                disabled={loading}
+              >
+                <Text style={styles.bottomTextButtonLabel}>
+                  {loading ? '로그아웃 중...' : '로그아웃'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.88}
+                style={styles.bottomDangerButton}
+                onPress={onPressDeleteAccount}
+                disabled={deleting}
+              >
+                <Text style={styles.bottomDangerButtonLabel}>
+                  {deleting ? '회원탈퇴 처리 중...' : '회원탈퇴'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={styles.loginButton}
+              onPress={onPressLogin}
+            >
+              <Text style={styles.loginButtonLabel}>로그인하러 가기</Text>
+            </TouchableOpacity>
+          )}
 
           {__DEV__ ? (
             <TouchableOpacity
@@ -980,10 +1060,61 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
               style={styles.devButton}
               onPress={onPressDevTest}
             >
-              <Text style={styles.devButtonText}>DevTest 열기</Text>
+              <Text style={styles.devButtonLabel}>DevTest 열기</Text>
             </TouchableOpacity>
           ) : null}
         </ScrollView>
+
+        <View style={styles.toolbarWrap}>
+          <View style={styles.toolbar}>
+            {quickNavItems.slice(0, 2).map(item => (
+              <TouchableOpacity
+                key={item.key}
+                activeOpacity={0.9}
+                style={styles.toolbarItem}
+                onPress={item.onPress}
+              >
+                <Feather
+                  name={item.icon as never}
+                  size={18}
+                  color="#7D8696"
+                />
+                <Text style={styles.toolbarLabel}>{item.label}</Text>
+              </TouchableOpacity>
+            ))}
+
+            <TouchableOpacity
+              activeOpacity={0.92}
+              style={[styles.toolbarRecordButton, { backgroundColor: petTheme.primary }]}
+              onPress={openRecordCreate}
+            >
+              <Feather name="plus" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+
+            {quickNavItems.slice(3).map(item => (
+              <TouchableOpacity
+                key={item.key}
+                activeOpacity={0.9}
+                style={styles.toolbarItem}
+                onPress={item.onPress}
+              >
+                <Feather
+                  name={item.icon as never}
+                  size={18}
+                  color="#7D8696"
+                />
+                <Text style={styles.toolbarLabel}>{item.label}</Text>
+              </TouchableOpacity>
+            ))}
+
+            <View style={styles.toolbarItem}>
+              <Feather name="menu" size={18} color={petTheme.primary} />
+              <Text style={[styles.toolbarLabel, { color: petTheme.primary }]}>
+                더보기
+              </Text>
+            </View>
+          </View>
+        </View>
       </View>
 
       <ProfileEditModal
@@ -1031,30 +1162,70 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F7F8FB',
   },
   screen: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F7F8FB',
   },
-  header: {
-    paddingTop: 10,
+  headerRow: {
     paddingHorizontal: 22,
+    paddingTop: 8,
     paddingBottom: 18,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 16,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#111827',
+  headerTextWrap: {
+    flex: 1,
+    gap: 5,
   },
-  closeButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#F3F6FA',
+  headerTitle: {
+    fontSize: 26,
+    lineHeight: 32,
+    color: '#182133',
+    fontWeight: '800',
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#A0A8B8',
+    fontWeight: '500',
+  },
+  headerAvatarButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  headerAvatarImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F1E1D0',
+  },
+  headerAvatarFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerAvatarFallbackText: {
+    fontSize: 16,
+    color: '#8B5E3C',
+    fontWeight: '700',
+  },
+  headerAvatarBadge: {
+    position: 'absolute',
+    right: -2,
+    bottom: -2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#E8C8AA',
+    borderWidth: 2,
+    borderColor: '#F7F8FB',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1062,114 +1233,65 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingHorizontal: 22,
-    paddingBottom: 28,
-    gap: 24,
-  },
-  profileCard: {
-    borderWidth: 1,
-    borderColor: '#ECEEF4',
-    borderRadius: 24,
     paddingHorizontal: 18,
-    paddingVertical: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    backgroundColor: '#FFFFFF',
+    paddingBottom: 118,
+    gap: 18,
   },
-  profileAvatarWrap: {
-    position: 'relative',
-  },
-  profileAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#F6E8D8',
-  },
-  profileAvatarFallback: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  profileAvatarFallbackText: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#8B5E3C',
-  },
-  profileBadge: {
-    position: 'absolute',
-    right: -3,
-    bottom: -3,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#9B6DFF',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  profileInfo: {
-    flex: 1,
-    gap: 6,
-  },
-  profileName: {
-    fontSize: 17,
-    fontWeight: '900',
-    color: '#202633',
-  },
-  profileEditRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  profileEditText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#A3ACC0',
-  },
-  section: {
-    gap: 14,
+  sectionWrap: {
+    gap: 10,
   },
   sectionTitle: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: '#B5BED0',
-    letterSpacing: 0.2,
+    paddingHorizontal: 6,
+    fontSize: 12,
+    lineHeight: 16,
+    color: '#A9B2C1',
+    fontWeight: '600',
   },
-  sectionBody: {
-    gap: 4,
+  menuCard: {
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#EDF0F5',
+    overflow: 'hidden',
+  },
+  menuDivider: {
+    height: 1,
+    backgroundColor: '#F2F4F8',
+    marginLeft: 64,
   },
   menuRow: {
-    minHeight: 64,
+    minHeight: 62,
+    paddingHorizontal: 16,
     paddingVertical: 12,
-    paddingHorizontal: 2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
   },
-  menuRowLeft: {
+  menuLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: 14,
     flex: 1,
   },
   menuIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 13,
+    width: 34,
+    height: 34,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   menuLabel: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#2A3140',
+    fontSize: 15,
+    lineHeight: 20,
+    color: '#2C3445',
+    fontWeight: '600',
   },
-  menuRowRight: {
+  menuRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginLeft: 12,
+    gap: 10,
+    marginLeft: 14,
   },
   menuDot: {
     width: 8,
@@ -1177,46 +1299,121 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: '#F29A98',
   },
-  accountHintCard: {
-    marginTop: 2,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#EEF1F6',
-    backgroundColor: '#FAFBFC',
-    paddingHorizontal: 16,
-    paddingVertical: 15,
-    gap: 6,
+  badgeSoon: {
+    fontSize: 11,
+    color: '#C3A4FF',
+    fontWeight: '600',
   },
-  accountHintTitle: {
+  accountMeta: {
+    alignItems: 'center',
+    gap: 4,
+    paddingTop: 4,
+  },
+  accountMetaEmail: {
     fontSize: 12,
-    fontWeight: '900',
-    color: '#A0AAB9',
+    color: '#98A1B2',
+    fontWeight: '500',
   },
-  accountHintValue: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#1F2937',
+  accountMetaText: {
+    fontSize: 11,
+    lineHeight: 16,
+    color: '#B0B8C6',
+    fontWeight: '500',
+    textAlign: 'center',
   },
-  accountHintBody: {
-    fontSize: 12,
-    lineHeight: 18,
-    color: '#909AA9',
-    fontWeight: '700',
+  bottomActions: {
+    alignItems: 'center',
+    gap: 8,
+    paddingTop: 4,
   },
-  devButton: {
-    marginTop: 2,
-    minHeight: 48,
-    borderRadius: 16,
-    backgroundColor: '#F7F6FF',
-    borderWidth: 1,
-    borderColor: '#E6DFFF',
+  bottomTextButton: {
+    minHeight: 34,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  devButtonText: {
+  bottomTextButtonLabel: {
+    fontSize: 13,
+    color: '#A0A8B8',
+    fontWeight: '600',
+  },
+  bottomDangerButton: {
+    minHeight: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bottomDangerButtonLabel: {
+    fontSize: 12,
+    color: '#C3AEB0',
+    fontWeight: '500',
+  },
+  loginButton: {
+    minHeight: 50,
+    borderRadius: 16,
+    backgroundColor: '#8B5CF6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loginButtonLabel: {
+    fontSize: 15,
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  devButton: {
+    minHeight: 46,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2DBFF',
+    backgroundColor: '#F7F5FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  devButtonLabel: {
     fontSize: 14,
-    fontWeight: '900',
     color: '#7A57E8',
+    fontWeight: '700',
+  },
+  toolbarWrap: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 12,
+    backgroundColor: 'rgba(247, 248, 251, 0.96)',
+  },
+  toolbar: {
+    minHeight: 72,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#ECEFF5',
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+    paddingVertical: 10,
+  },
+  toolbarItem: {
+    width: 58,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  toolbarLabel: {
+    fontSize: 10,
+    lineHeight: 12,
+    color: '#7D8696',
+    fontWeight: '600',
+  },
+  toolbarRecordButton: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 5,
+    borderColor: '#FFFFFF',
   },
   modalBackdrop: {
     flex: 1,
@@ -1226,7 +1423,7 @@ const styles = StyleSheet.create({
   modalScrim: {
     flex: 1,
   },
-  bottomSheetCard: {
+  sheetCard: {
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
@@ -1235,17 +1432,17 @@ const styles = StyleSheet.create({
     paddingBottom: 26,
     gap: 18,
   },
-  bottomSheetHeader: {
+  sheetHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  bottomSheetTitle: {
+  sheetTitle: {
     fontSize: 17,
-    fontWeight: '900',
     color: '#202633',
+    fontWeight: '700',
   },
-  bottomSheetClose: {
+  sheetClose: {
     width: 34,
     height: 34,
     borderRadius: 17,
@@ -1253,15 +1450,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  modalFieldBlock: {
+  modalField: {
     gap: 8,
   },
-  modalFieldLabel: {
+  modalLabel: {
     fontSize: 14,
-    fontWeight: '900',
     color: '#263041',
+    fontWeight: '700',
   },
-  passwordInputWrap: {
+  inputShell: {
     minHeight: 52,
     borderRadius: 14,
     backgroundColor: '#F7F9FC',
@@ -1270,11 +1467,11 @@ const styles = StyleSheet.create({
     paddingLeft: 16,
     paddingRight: 10,
   },
-  passwordInput: {
+  inputText: {
     flex: 1,
     fontSize: 15,
-    fontWeight: '700',
     color: '#1F2937',
+    fontWeight: '500',
   },
   eyeButton: {
     width: 34,
@@ -1282,11 +1479,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  modalHelperText: {
+  modalHelper: {
     fontSize: 12,
     lineHeight: 18,
     color: '#A0A9B8',
-    fontWeight: '700',
+    fontWeight: '500',
   },
   nicknameInput: {
     minHeight: 52,
@@ -1294,14 +1491,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#F7F9FC',
     paddingHorizontal: 16,
     fontSize: 15,
-    fontWeight: '700',
     color: '#1F2937',
+    fontWeight: '500',
   },
-  profileHelperText: {
+  profileHelper: {
     fontSize: 12,
     lineHeight: 18,
     color: '#97A2B4',
-    fontWeight: '700',
+    fontWeight: '500',
   },
   profileHelperError: {
     color: '#E05A68',
@@ -1309,7 +1506,7 @@ const styles = StyleSheet.create({
   profileHelperSuccess: {
     color: '#7A57E8',
   },
-  primaryActionButton: {
+  primaryButton: {
     minHeight: 52,
     borderRadius: 16,
     backgroundColor: '#8B5CF6',
@@ -1317,12 +1514,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 2,
   },
-  primaryActionButtonText: {
+  primaryButtonText: {
     fontSize: 16,
-    fontWeight: '900',
     color: '#FFFFFF',
+    fontWeight: '700',
   },
-  buttonDisabled: {
+  disabledButton: {
     opacity: 0.6,
   },
   successBackdrop: {
@@ -1342,7 +1539,7 @@ const styles = StyleSheet.create({
     paddingBottom: 22,
     alignItems: 'center',
   },
-  successIconHalo: {
+  successHalo: {
     width: 68,
     height: 68,
     borderRadius: 34,
@@ -1351,7 +1548,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 20,
   },
-  successIconCircle: {
+  successIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
@@ -1361,15 +1558,15 @@ const styles = StyleSheet.create({
   },
   successTitle: {
     fontSize: 18,
-    fontWeight: '900',
     color: '#172033',
+    fontWeight: '800',
     marginBottom: 10,
   },
   successBody: {
     fontSize: 14,
     lineHeight: 21,
     color: '#99A3B5',
-    fontWeight: '700',
+    fontWeight: '500',
     textAlign: 'center',
     marginBottom: 26,
   },
