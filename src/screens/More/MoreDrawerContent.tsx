@@ -22,6 +22,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
 
+import AppNavigationToolbar from '../../components/navigation/AppNavigationToolbar';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
   canChangeNickname,
@@ -591,31 +592,6 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     );
   }, [closeAndNavigate, navigation]);
 
-  const openHome = useCallback(() => {
-    closeAndNavigate(() =>
-      navigation.navigate('AppTabs', {
-        screen: 'HomeTab',
-      }),
-    );
-  }, [closeAndNavigate, navigation]);
-
-  const openRecordCreate = useCallback(() => {
-    closeAndNavigate(() =>
-      navigation.navigate('AppTabs', {
-        screen: 'RecordCreateTab',
-        params: selectedPet?.id ? { petId: selectedPet.id } : undefined,
-      }),
-    );
-  }, [closeAndNavigate, navigation, selectedPet?.id]);
-
-  const openGuestbook = useCallback(() => {
-    closeAndNavigate(() =>
-      navigation.navigate('AppTabs', {
-        screen: 'GuestbookTab',
-      }),
-    );
-  }, [closeAndNavigate, navigation]);
-
   const openProfileEditModal = useCallback(() => {
     setDraftNickname(nickname ?? '');
     setProfileModalVisible(true);
@@ -970,31 +946,6 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     showPreparingToast,
   ]);
 
-  const quickNavItems = useMemo(
-    () => [
-      { key: 'home', label: '홈', icon: 'home', onPress: openHome },
-      {
-        key: 'timeline',
-        label: '타임라인',
-        icon: 'activity',
-        onPress: openTimeline,
-      },
-      {
-        key: 'record',
-        label: '기록',
-        icon: 'plus-circle',
-        onPress: openRecordCreate,
-      },
-      {
-        key: 'guestbook',
-        label: '방명록',
-        icon: 'book-open',
-        onPress: openGuestbook,
-      },
-    ],
-    [openGuestbook, openHome, openRecordCreate, openTimeline],
-  );
-
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.screen}>
@@ -1111,51 +1062,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
           ) : null}
         </ScrollView>
 
-        <View style={styles.toolbarWrap}>
-          <View style={styles.toolbar}>
-            {quickNavItems.slice(0, 2).map(item => (
-              <TouchableOpacity
-                key={item.key}
-                activeOpacity={0.9}
-                style={styles.toolbarItem}
-                onPress={item.onPress}
-              >
-                <Feather name={item.icon as never} size={18} color="#7D8696" />
-                <Text style={styles.toolbarLabel}>{item.label}</Text>
-              </TouchableOpacity>
-            ))}
-
-            <TouchableOpacity
-              activeOpacity={0.92}
-              style={[
-                styles.toolbarRecordButton,
-                { backgroundColor: petTheme.primary },
-              ]}
-              onPress={openRecordCreate}
-            >
-              <Feather name="plus" size={22} color="#FFFFFF" />
-            </TouchableOpacity>
-
-            {quickNavItems.slice(3).map(item => (
-              <TouchableOpacity
-                key={item.key}
-                activeOpacity={0.9}
-                style={styles.toolbarItem}
-                onPress={item.onPress}
-              >
-                <Feather name={item.icon as never} size={18} color="#7D8696" />
-                <Text style={styles.toolbarLabel}>{item.label}</Text>
-              </TouchableOpacity>
-            ))}
-
-            <View style={styles.toolbarItem}>
-              <Feather name="menu" size={18} color={petTheme.primary} />
-              <Text style={[styles.toolbarLabel, { color: petTheme.primary }]}>
-                더보기
-              </Text>
-            </View>
-          </View>
-        </View>
+        <AppNavigationToolbar activeKey="more" onBeforeNavigate={onRequestClose} />
       </View>
 
       <ProfileEditModal
@@ -1414,49 +1321,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#7A57E8',
     fontWeight: '700',
-  },
-  toolbarWrap: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: 12,
-    paddingTop: 8,
-    paddingBottom: 12,
-    backgroundColor: 'rgba(247, 248, 251, 0.96)',
-  },
-  toolbar: {
-    minHeight: 72,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: '#ECEFF5',
-    backgroundColor: '#FFFFFF',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 8,
-    paddingVertical: 10,
-  },
-  toolbarItem: {
-    width: 58,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  toolbarLabel: {
-    fontSize: 10,
-    lineHeight: 12,
-    color: '#7D8696',
-    fontWeight: '600',
-  },
-  toolbarRecordButton: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 5,
-    borderColor: '#FFFFFF',
   },
   modalBackdrop: {
     flex: 1,

@@ -6,7 +6,7 @@
 // - ✅ 전역 SafeArea(top) 적용
 // - ✅ 아이콘: react-native-vector-icons/Feather 통일
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import {
   SafeAreaView,
@@ -27,6 +27,7 @@ import GuestbookScreen from '../screens/Guestbook/GuestbookScreen';
 import MoreDrawer from '../components/MoreDrawer/MoreDrawer';
 import { buildPetThemePalette } from '../services/pets/themePalette';
 import { usePetStore } from '../store/petStore';
+import { useUiStore } from '../store/uiStore';
 
 export type AppTabParamList = {
   HomeTab: undefined;
@@ -229,12 +230,9 @@ function CustomTabBar(props: BottomTabBarProps & { onOpenMore: () => void }) {
 }
 
 export default function AppTabsNavigator() {
-  // ---------------------------------------------------------
-  // 1) drawer state
-  // ---------------------------------------------------------
-  const [moreOpen, setMoreOpen] = useState(false);
-  const openMore = useCallback(() => setMoreOpen(true), []);
-  const closeMore = useCallback(() => setMoreOpen(false), []);
+  const moreOpen = useUiStore(s => s.moreDrawerOpen);
+  const openMore = useUiStore(s => s.openMoreDrawer);
+  const closeMore = useUiStore(s => s.closeMoreDrawer);
   const renderTabBar = useCallback(
     (p: BottomTabBarProps) => <CustomTabBar {...p} onOpenMore={openMore} />,
     [openMore],

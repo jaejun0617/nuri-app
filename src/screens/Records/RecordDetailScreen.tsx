@@ -1,6 +1,8 @@
 // 파일: src/screens/Records/RecordDetailScreen.tsx
 // 역할:
-// - 기록 상세 조회/이미지 슬라이드/삭제/수정 이동
+// - 추억 상세를 인스타그램형 피드 감각으로 재구성한 화면
+// - 현재 기록과 같은 아이의 다른 기록을 카드 단위 피드로 이어서 보여줌
+// - 각 카드마다 바로 수정/삭제 가능한 액션 메뉴를 제공
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -8,11 +10,11 @@ import {
   Alert,
   Image,
   Modal,
+  Pressable,
   ScrollView,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   TouchableOpacity,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import type { RouteProp } from '@react-navigation/native';
@@ -20,13 +22,15 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
 
+import AppNavigationToolbar from '../../components/navigation/AppNavigationToolbar';
+import AppText from '../../app/ui/AppText';
 import type { TimelineStackParamList } from '../../navigation/TimelineStackNavigator';
+import type { MemoryRecord } from '../../services/supabase/memories';
 import { deleteMemoryWithFile } from '../../services/supabase/memories';
 import { getMemoryImageSignedUrlCached } from '../../services/supabase/storageMemories';
+import { usePetStore } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
-import AppText from '../../app/ui/AppText';
 import { styles } from './RecordDetailScreen.styles';
-import type { MemoryRecord } from '../../services/supabase/memories';
 
 type TimelineNav = NativeStackNavigationProp<TimelineStackParamList, 'RecordDetail'>;
 type Route = RouteProp<TimelineStackParamList, 'RecordDetail'>;
@@ -54,14 +58,40 @@ function toKoreanDate(ymd: string) {
   return `${year}.${month}.${day}`;
 }
 
-function FeedCard({
+function formatRelativeTime(value: string) {
+  const target = new Date(value).getTime();
+  if (!Number.isFinite(target)) return '';
+
+  const diffMs = Math.max(0, Date.now() - target);
+  const minute = 60 * 1000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  if (diffMs < hour) {
+    const minutes = Math.max(1, Math.floor(diffMs / minute));
+    return `${minutes}분 전`;
+  }
+  if (diffMs < day) {
+    const hours = Math.max(1, Math.floor(diffMs / hour));
+    return `${hours}시간 전`;
+  }
+  const days = Math.max(1, Math.floor(diffMs / day));
+  return `${days}일 전`;
+}
+
+function FeedPostCard({
   item,
-  onPress,
+  petName,
+  petAvatarUrl,
+  onPressMore,
 }: {
   item: MemoryRecord;
-  onPress: () => void;
+  petName: string;
+  petAvatarUrl: string | null;
+  onPressMore: () => void;
 }) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const moodMeta = item.emotion ? EMOTION_META[item.emotion] : null;
 
   useEffect(() => {
     let mounted = true;
@@ -86,44 +116,114 @@ function FeedCard({
     };
   }, [item.imagePath, item.imagePaths]);
 
-  const displayDate = toKoreanDate(item.occurredAt ?? item.createdAt.slice(0, 10));
-  const preview = item.content?.trim() || '기록 내용을 확인해 보세요.';
+  const displayDate = useMemo(
+    () => toKoreanDate(item.occurredAt ?? item.createdAt.slice(0, 10)),
+    [item.createdAt, item.occurredAt],
+  );
+  const relativeTime = useMemo(
+    () => formatRelativeTime(item.createdAt),
+    [item.createdAt],
+  );
+  const avatarFallback = useMemo(
+    () => petName.trim().charAt(0) || 'N',
+    [petName],
+  );
+  const contentText = useMemo(() => item.content?.trim() || '', [item.content]);
+  const tagsText = useMemo(
+    () => (item.tags.length > 0 ? item.tags.join(' ') : ''),
+    [item.tags],
+  );
 
   return (
-    <TouchableOpacity activeOpacity={0.92} style={styles.feedCard} onPress={onPress}>
+    <View style={styles.postCard}>
+      <View style={styles.postHeader}>
+        <View style={styles.postHeaderLeft}>
+          {petAvatarUrl ? (
+            <Image source={{ uri: petAvatarUrl }} style={styles.postAvatar} />
+          ) : (
+            <View style={[styles.postAvatar, styles.postAvatarFallback]}>
+              <AppText preset="caption" style={styles.postAvatarFallbackText}>
+                {avatarFallback}
+              </AppText>
+            </View>
+          )}
+
+          <View style={styles.postHeaderTextWrap}>
+            <AppText preset="body" style={styles.postPetName}>
+              {petName}
+            </AppText>
+            <AppText preset="caption" style={styles.postMetaLine}>
+              {displayDate}
+              {relativeTime ? ` · ${relativeTime}` : ''}
+            </AppText>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          activeOpacity={0.88}
+          style={styles.postMoreBtn}
+          onPress={onPressMore}
+        >
+          <Feather name="more-horizontal" size={18} color="#9CA6B7" />
+        </TouchableOpacity>
+      </View>
+
       {previewUrl ? (
-        <Image source={{ uri: previewUrl }} style={styles.feedCardImage} />
+        <Image source={{ uri: previewUrl }} style={styles.postImage} resizeMode="cover" />
       ) : (
-        <View style={styles.feedCardImageFallback}>
-          <AppText preset="caption" style={styles.feedCardImageFallbackText}>
-            사진 없음
+        <View style={styles.postImageFallback}>
+          <AppText preset="caption" style={styles.postImageFallbackText}>
+            사진이 없어요
           </AppText>
         </View>
       )}
 
-      <View style={styles.feedCardBody}>
-        <View style={styles.feedMetaRow}>
-          {item.tags[0] ? (
-            <View style={styles.feedBadge}>
-              <AppText preset="caption" style={styles.feedBadgeText}>
-                {item.tags[0]}
-              </AppText>
-            </View>
-          ) : null}
-
-          <AppText preset="caption" style={styles.feedDate}>
-            {displayDate}
-          </AppText>
+      <View style={styles.postActions}>
+        <View style={styles.postActionsLeft}>
+          <Feather name="heart" size={20} color="#1C2434" />
+          <Feather name="message-circle" size={20} color="#1C2434" />
+          <Feather name="send" size={20} color="#1C2434" />
         </View>
+        <Feather name="bookmark" size={20} color="#1C2434" />
+      </View>
 
-        <AppText preset="body" style={styles.feedTitle}>
-          {item.title}
+      <View style={styles.postBody}>
+        <AppText preset="body" style={styles.postAuthorLine}>
+          {petName}
         </AppText>
-        <AppText preset="caption" style={styles.feedPreview} numberOfLines={3}>
-          {preview}
+
+        <AppText preset="title2" style={styles.postTitleText}>
+          {item.title.trim()}
+        </AppText>
+
+        {contentText ? (
+          <AppText preset="body" style={styles.postContentText}>
+            {contentText}
+          </AppText>
+        ) : null}
+
+        {moodMeta ? (
+          <View style={styles.postMoodRow}>
+            <AppText preset="caption" style={styles.postMoodEmoji}>
+              {moodMeta.emoji}
+            </AppText>
+            <AppText preset="caption" style={styles.postMoodLabel}>
+              {moodMeta.label}
+            </AppText>
+          </View>
+        ) : null}
+
+        {tagsText ? (
+          <AppText preset="caption" style={styles.postTagsText}>
+            {tagsText}
+          </AppText>
+        ) : null}
+
+        <AppText preset="caption" style={styles.postDateText}>
+          {displayDate}
         </AppText>
       </View>
-    </TouchableOpacity>
+    </View>
   );
 }
 
@@ -132,180 +232,128 @@ export default function RecordDetailScreen() {
   const route = useRoute<Route>();
   const petId = route.params?.petId ?? null;
   const memoryId = route.params?.memoryId ?? null;
-  const { width } = useWindowDimensions();
 
   const petState = useRecordStore(s => {
     if (!petId) return undefined;
     return s.byPetId[petId];
   });
-
+  const loadMore = useRecordStore(s => s.loadMore);
   const removeOneLocal = useRecordStore(s => s.removeOneLocal);
   const refresh = useRecordStore(s => s.refresh);
-  const loadMore = useRecordStore(s => s.loadMore);
+  const pets = usePetStore(s => s.pets);
+
+  const selectedPet = useMemo(
+    () => pets.find(item => item.id === petId) ?? null,
+    [petId, pets],
+  );
+  const petName = useMemo(
+    () => selectedPet?.name?.trim() || '우리 아이',
+    [selectedPet?.name],
+  );
+  const petAvatarUrl = useMemo(
+    () => selectedPet?.avatarUrl ?? null,
+    [selectedPet?.avatarUrl],
+  );
 
   const record = useMemo(() => {
     if (!memoryId) return null;
     const items = petState?.items ?? [];
-    return items.find(r => r.id === memoryId) ?? null;
-  }, [petState?.items, memoryId]);
-
-  const relatedRecords = useMemo(() => {
-    if (!memoryId) return [];
-    const items = petState?.items ?? [];
-    return items.filter(item => item.id !== memoryId);
+    return items.find(item => item.id === memoryId) ?? null;
   }, [memoryId, petState?.items]);
+
+  const feedRecords = useMemo(() => {
+    if (!record) return [];
+    const items = petState?.items ?? [];
+    return [record, ...items.filter(item => item.id !== record.id)];
+  }, [petState?.items, record]);
+
   const hasMore = Boolean(petState?.hasMore);
   const status = petState?.status ?? 'idle';
 
   const [deleting, setDeleting] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [heroIndex, setHeroIndex] = useState(0);
-  const [signedUrls, setSignedUrls] = useState<string[]>([]);
-  const [imgLoading, setImgLoading] = useState(true);
+  const [actionMenuVisible, setActionMenuVisible] = useState(false);
+  const [actionTargetId, setActionTargetId] = useState<string | null>(null);
 
-  const safeGoBack = useCallback(() => {
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-      return;
-    }
+  const actionTarget = useMemo(
+    () => feedRecords.find(item => item.id === actionTargetId) ?? null,
+    [actionTargetId, feedRecords],
+  );
 
-    navigation.navigate('TimelineMain', {
-      petId: petId ?? undefined,
-      mainCategory: 'all',
-    });
-  }, [navigation, petId]);
+  const openActionMenu = useCallback((targetId: string) => {
+    setActionTargetId(targetId);
+    setActionMenuVisible(true);
+  }, []);
 
-  const imagePaths = useMemo(() => {
-    if (!record) return [];
-    if (Array.isArray(record.imagePaths) && record.imagePaths.length > 0) {
-      return record.imagePaths;
-    }
-    return record.imagePath ? [record.imagePath] : [];
-  }, [record]);
-
-  useEffect(() => {
-    if (heroIndex >= imagePaths.length) {
-      setHeroIndex(0);
-    }
-  }, [heroIndex, imagePaths.length]);
-
-  useEffect(() => {
-    let mounted = true;
-
-    async function run() {
-      if (imagePaths.length === 0) {
-        if (mounted) {
-          setSignedUrls([]);
-          setImgLoading(false);
-        }
-        return;
-      }
-
-      try {
-        if (mounted) setImgLoading(true);
-        const urls = await Promise.all(
-          imagePaths.map(async path => {
-            const url = await getMemoryImageSignedUrlCached(path);
-            return url ?? '';
-          }),
-        );
-        if (mounted) {
-          setSignedUrls(urls.filter(Boolean));
-        }
-      } catch {
-        if (mounted) setSignedUrls([]);
-      } finally {
-        if (mounted) setImgLoading(false);
-      }
-    }
-
-    run();
-    return () => {
-      mounted = false;
-    };
-  }, [imagePaths]);
-
-  const onHeroScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const x = event.nativeEvent.contentOffset.x;
-    const layoutWidth = event.nativeEvent.layoutMeasurement.width;
-    if (layoutWidth <= 0) return;
-    const index = Math.max(0, Math.round(x / layoutWidth));
-    setHeroIndex(prev => (prev === index ? prev : index));
-  };
+  const closeActionMenu = useCallback(() => {
+    setActionMenuVisible(false);
+    setActionTargetId(null);
+  }, []);
 
   const onPressEdit = useCallback(() => {
-    if (!petId || !memoryId) return;
-    navigation.navigate('RecordEdit', { petId, memoryId });
-  }, [navigation, petId, memoryId]);
+    if (!petId || !actionTargetId) return;
+    closeActionMenu();
+    navigation.navigate('RecordEdit', { petId, memoryId: actionTargetId });
+  }, [actionTargetId, closeActionMenu, navigation, petId]);
 
   const onPressDelete = useCallback(() => {
-    if (!petId || !memoryId || !record) return;
+    if (!petId || !actionTarget) return;
+    closeActionMenu();
     setDeleteModalVisible(true);
-  }, [petId, memoryId, record]);
+  }, [actionTarget, closeActionMenu, petId]);
 
-  const onPressRelatedRecord = useCallback(
-    (nextMemoryId: string) => {
-      if (!petId || !nextMemoryId) return;
-      navigation.push('RecordDetail', { petId, memoryId: nextMemoryId });
-    },
-    [navigation, petId],
-  );
+  const onConfirmDelete = useCallback(async () => {
+    if (!petId || !actionTarget) return;
+
+    try {
+      setDeleting(true);
+      await deleteMemoryWithFile({
+        memoryId: actionTarget.id,
+        imagePath: actionTarget.imagePath,
+        imagePaths: actionTarget.imagePaths,
+      });
+
+      removeOneLocal(petId, actionTarget.id);
+      await refresh(petId);
+      setDeleteModalVisible(false);
+
+      if (actionTarget.id === memoryId) {
+        navigation.navigate('TimelineMain', {
+          petId: petId ?? undefined,
+          mainCategory: 'all',
+        });
+      }
+    } catch (error: any) {
+      Alert.alert('삭제 실패', error?.message ?? '오류');
+    } finally {
+      setDeleting(false);
+      setActionTargetId(null);
+    }
+  }, [actionTarget, memoryId, navigation, petId, refresh, removeOneLocal]);
 
   const onScrollFeed = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       if (!petId || !hasMore) return;
-      if (status === 'loadingMore' || status === 'loading' || status === 'refreshing') {
+      if (status === 'loading' || status === 'refreshing' || status === 'loadingMore') {
         return;
       }
 
       const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
       const remain = contentSize.height - (contentOffset.y + layoutMeasurement.height);
-      if (remain > 480) return;
+      if (remain > 560) return;
 
       loadMore(petId);
     },
     [hasMore, loadMore, petId, status],
   );
 
-  const onConfirmDelete = useCallback(async () => {
-    if (!petId || !memoryId || !record) return;
-    try {
-      setDeleting(true);
-
-      await deleteMemoryWithFile({
-        memoryId,
-        imagePath: record.imagePath,
-        imagePaths: record.imagePaths,
-      });
-
-      removeOneLocal(petId, memoryId);
-      await refresh(petId);
-      setDeleteModalVisible(false);
-      safeGoBack();
-    } catch (e: any) {
-      Alert.alert('삭제 실패', e?.message ?? '오류');
-    } finally {
-      setDeleting(false);
-    }
-  }, [petId, memoryId, record, removeOneLocal, refresh, safeGoBack]);
-
   if (!record) {
     return (
       <View style={styles.screen}>
         <View style={styles.header}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            style={styles.backBtn}
-            onPress={safeGoBack}
-          >
-            <Feather name="chevron-left" size={30} color="#0B1220" />
-          </TouchableOpacity>
-
           <AppText preset="headline" style={styles.headerTitle}>
             추억상세보기
           </AppText>
-
-          <View style={styles.headerRight} />
         </View>
 
         <View style={styles.empty}>
@@ -316,35 +364,18 @@ export default function RecordDetailScreen() {
             목록으로 돌아가서 새로고침 해주세요.
           </AppText>
         </View>
+
+        <AppNavigationToolbar activeKey="timeline" />
       </View>
     );
   }
 
-  const ymd = record.occurredAt ?? record.createdAt.slice(0, 10);
-  const displayDate = toKoreanDate(ymd);
-  const moodMeta = record.emotion ? EMOTION_META[record.emotion] : null;
-  const heroUrls = signedUrls.length > 0 ? signedUrls : [];
-  const showSlider = heroUrls.length > 1;
-  const tagLine = record.tags.slice(0, 4).join(' ');
-  const heroWidth = Math.max(220, width - 28);
-  const pagerText = `${Math.min(heroIndex + 1, heroUrls.length)}/${heroUrls.length}`;
-
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          style={styles.backBtn}
-          onPress={safeGoBack}
-        >
-          <Feather name="chevron-left" size={30} color="#0B1220" />
-        </TouchableOpacity>
-
         <AppText preset="headline" style={styles.headerTitle}>
           추억상세보기
         </AppText>
-
-        <View style={styles.headerRight} />
       </View>
 
       <ScrollView
@@ -354,174 +385,72 @@ export default function RecordDetailScreen() {
         onScroll={onScrollFeed}
         scrollEventThrottle={16}
       >
-        {imgLoading ? (
-          <View style={styles.heroPlaceholder}>
-            <ActivityIndicator size="large" color="#8A94A6" />
-          </View>
-        ) : heroUrls.length === 0 ? (
-          <View style={styles.heroPlaceholder}>
-            <AppText preset="caption" style={styles.heroPlaceholderText}>
-              사진이 없어요
-            </AppText>
-          </View>
-        ) : (
-          <ScrollView
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onMomentumScrollEnd={onHeroScrollEnd}
-            snapToInterval={heroWidth}
-            snapToAlignment="start"
-            decelerationRate="fast"
-            disableIntervalMomentum
-            bounces={false}
-            overScrollMode="never"
-            directionalLockEnabled
-            scrollEventThrottle={16}
-            style={styles.heroSlider}
-          >
-            {heroUrls.map(url => (
-              <Image
-                key={url}
-                source={{ uri: url }}
-                style={[styles.heroImg, { width: heroWidth }]}
-                resizeMode="cover"
-                fadeDuration={200}
-              />
-            ))}
-          </ScrollView>
-        )}
-        {showSlider ? (
-          <View style={styles.heroPagerBox}>
-            <View style={styles.heroDots}>
-              {heroUrls.map((url, index) => (
-                <View
-                  key={`${url}-${index}`}
-                  style={[
-                    styles.heroDot,
-                    index === heroIndex ? styles.heroDotActive : null,
-                  ]}
-                />
-              ))}
-            </View>
-            <AppText preset="caption" style={styles.heroPagerText}>
-              {pagerText}
-            </AppText>
+        {feedRecords.map(item => (
+          <FeedPostCard
+            key={item.id}
+            item={item}
+            petName={petName}
+            petAvatarUrl={petAvatarUrl}
+            onPressMore={() => openActionMenu(item.id)}
+          />
+        ))}
+
+        {status === 'loadingMore' ? (
+          <View style={styles.feedLoading}>
+            <ActivityIndicator size="small" color="#8A94A6" />
           </View>
         ) : null}
-
-        <View style={styles.card}>
-          <View style={styles.metaRow}>
-            {record.tags[0] ? (
-              <View style={styles.categoryBadge}>
-                <AppText preset="caption" style={styles.categoryBadgeText}>
-                  {record.tags[0]}
-                </AppText>
-              </View>
-            ) : null}
-
-            <AppText preset="caption" style={styles.metaText}>
-              {displayDate}
-            </AppText>
-          </View>
-
-          <AppText preset="title2" style={styles.title}>
-            {record.title}
-          </AppText>
-
-          {moodMeta ? (
-            <View style={styles.moodCard}>
-              <View style={styles.moodIconWrap}>
-                <AppText preset="caption" style={styles.moodEmoji}>
-                  {moodMeta.emoji}
-                </AppText>
-              </View>
-              <View style={styles.moodTextWrap}>
-                <AppText preset="caption" style={styles.moodLabel}>
-                  오늘의 기분
-                </AppText>
-                <AppText preset="body" style={styles.moodValue}>
-                  {moodMeta.label}
-                </AppText>
-              </View>
-            </View>
-          ) : null}
-
-          <View style={styles.contentBox}>
-            <AppText preset="body" style={styles.content}>
-              {record.content?.trim()
-                ? record.content.trim()
-                : '내용이 없습니다.'}
-            </AppText>
-          </View>
-
-          {tagLine ? (
-            <AppText preset="caption" style={styles.tags}>
-              {tagLine}
-            </AppText>
-          ) : null}
-        </View>
-
-        <View style={styles.cardOutsideActionRow}>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={styles.simpleActionBtn}
-            onPress={onPressEdit}
-            disabled={deleting}
-          >
-            <AppText preset="caption" style={styles.simpleActionText}>
-              수정
-            </AppText>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={styles.simpleActionBtn}
-            onPress={onPressDelete}
-            disabled={deleting}
-          >
-            <AppText
-              preset="caption"
-              style={[
-                styles.simpleActionText,
-                deleting ? styles.simpleActionTextDisabled : styles.simpleDeleteText,
-              ]}
-            >
-              {deleting ? '삭제중' : '삭제'}
-            </AppText>
-          </TouchableOpacity>
-        </View>
-
-        {relatedRecords.length > 0 ? (
-          <View style={styles.feedSection}>
-            <View style={styles.feedHeader}>
-              <AppText preset="headline" style={styles.feedSectionTitle}>
-                이어지는 기록
-              </AppText>
-              <AppText preset="caption" style={styles.feedSectionCaption}>
-                아래로 내리면 같은 아이의 추억이 계속 이어져요
-              </AppText>
-            </View>
-
-            <View style={styles.feedList}>
-              {relatedRecords.map(item => (
-                <FeedCard
-                  key={item.id}
-                  item={item}
-                  onPress={() => onPressRelatedRecord(item.id)}
-                />
-              ))}
-            </View>
-
-            {status === 'loadingMore' ? (
-              <View style={styles.feedLoading}>
-                <ActivityIndicator size="small" color="#8A94A6" />
-              </View>
-            ) : null}
-          </View>
-        ) : null}
-
       </ScrollView>
+
+      <AppNavigationToolbar activeKey="timeline" />
+
+      <Modal
+        visible={actionMenuVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeActionMenu}
+      >
+        <View style={styles.sheetBackdrop}>
+          <Pressable style={styles.sheetDismiss} onPress={closeActionMenu} />
+          <View style={styles.actionSheet}>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={styles.sheetActionRow}
+              onPress={onPressEdit}
+              disabled={deleting}
+            >
+              <Feather name="edit-2" size={18} color="#243042" />
+              <AppText preset="body" style={styles.sheetActionText}>
+                수정
+              </AppText>
+            </TouchableOpacity>
+
+            <View style={styles.sheetActionDivider} />
+
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={styles.sheetActionRow}
+              onPress={onPressDelete}
+              disabled={deleting}
+            >
+              <Feather name="trash-2" size={18} color="#FF5A5F" />
+              <AppText preset="body" style={styles.sheetActionDeleteText}>
+                {deleting ? '삭제중' : '삭제'}
+              </AppText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={styles.sheetCancelButton}
+              onPress={closeActionMenu}
+            >
+              <AppText preset="body" style={styles.sheetCancelText}>
+                취소
+              </AppText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         visible={deleteModalVisible}

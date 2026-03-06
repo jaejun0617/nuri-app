@@ -20,8 +20,11 @@ type ToastState = {
   message: string;
   tone: ToastTone;
   durationMs: number;
+  moreDrawerOpen: boolean;
   showToast: (payload: ToastPayload) => void;
   hideToast: () => void;
+  openMoreDrawer: () => void;
+  closeMoreDrawer: () => void;
 };
 
 let hideTimer: ReturnType<typeof setTimeout> | null = null;
@@ -38,6 +41,7 @@ export const useUiStore = create<ToastState>(set => ({
   message: '',
   tone: 'info',
   durationMs: 2200,
+  moreDrawerOpen: false,
   showToast: payload => {
     clearHideTimer();
 
@@ -60,6 +64,8 @@ export const useUiStore = create<ToastState>(set => ({
     clearHideTimer();
     set({ visible: false });
   },
+  openMoreDrawer: () => set({ moreDrawerOpen: true }),
+  closeMoreDrawer: () => set({ moreDrawerOpen: false }),
 }));
 
 export function showToast(payload: ToastPayload) {
@@ -68,4 +74,12 @@ export function showToast(payload: ToastPayload) {
 
 export function hideToast() {
   useUiStore.getState().hideToast();
+}
+
+export function openMoreDrawer() {
+  useUiStore.getState().openMoreDrawer();
+}
+
+export function closeMoreDrawer() {
+  useUiStore.getState().closeMoreDrawer();
 }
