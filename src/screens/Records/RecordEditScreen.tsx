@@ -66,8 +66,6 @@ type RootNav = NativeStackNavigationProp<RootStackParamList>;
 type Nav = CompositeNavigationProp<TimelineNav, RootNav>;
 type Route = RouteProp<TimelineStackParamList, 'RecordEdit'>;
 
-const ENABLE_SERVER_SYNC = false; // ✅ 필요할 때만 true
-
 function getErrorMessage(err: unknown) {
   if (err instanceof Error) return err.message;
   if (typeof err === 'string') return err;
@@ -370,10 +368,8 @@ export default function RecordEditScreen() {
         await deleteMemoryImage(path).catch(() => null);
       }
 
-      // 3) 서버 정합(옵션) - ✅ 여기서 refresh를 "진짜로 사용"하므로 경고 사라짐
-      if (ENABLE_SERVER_SYNC) {
-        await refresh(petId);
-      }
+      // 3) 서버 정합을 한 번 더 맞춰서 상세/리스트가 확실히 최신 상태를 보게 한다.
+      await refresh(petId);
 
       setSuccessModalVisible(true);
     } catch (err) {

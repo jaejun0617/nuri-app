@@ -118,13 +118,11 @@ export const styles = StyleSheet.create({
     paddingBottom: 16,
     gap: 8,
   },
-  postAuthorLine: {
-    color: '#101828',
-    fontWeight: '700',
-  },
   postTitleText: {
-    color: '#182133',
-    fontWeight: '700',
+    color: '#223047',
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '500',
   },
   postContentText: {
     color: '#445065',

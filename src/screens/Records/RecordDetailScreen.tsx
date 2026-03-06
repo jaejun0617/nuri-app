@@ -188,11 +188,7 @@ function FeedPostCard({
       </View>
 
       <View style={styles.postBody}>
-        <AppText preset="body" style={styles.postAuthorLine}>
-          {petName}
-        </AppText>
-
-        <AppText preset="title2" style={styles.postTitleText}>
+        <AppText preset="body" style={styles.postTitleText}>
           {item.title.trim()}
         </AppText>
 
