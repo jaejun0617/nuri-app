@@ -1,0 +1,207 @@
+// 파일: src/services/memories/categoryMeta.ts
+// 역할:
+// - memory category/subcategory를 화면 공통 기준으로 정규화
+// - 타임라인 필터와 홈 카드가 같은 카테고리 해석 규칙을 공유하도록 보장
+// - 레이블/아이콘/색상 메타를 한 곳에서 관리해 화면별 분기 중복을 줄임
+
+import type { MemoryRecord } from '../supabase/memories';
+
+export type MemoryMainCategory =
+  | 'all'
+  | 'walk'
+  | 'meal'
+  | 'health'
+  | 'diary'
+  | 'other';
+
+export type MemoryOtherSubCategory = 'grooming' | 'hospital' | 'etc';
+
+export type MemoryCategoryMeta = {
+  label: string;
+  icon: string;
+  tint: string;
+  mainCategory: Exclude<MemoryMainCategory, 'all'>;
+  otherSubCategory?: MemoryOtherSubCategory;
+};
+
+export const MAIN_CATEGORY_OPTIONS: Array<{
+  key: MemoryMainCategory;
+  label: string;
+}> = [
+  { key: 'all', label: '전체' },
+  { key: 'walk', label: '산책' },
+  { key: 'meal', label: '식사' },
+  { key: 'health', label: '건강' },
+  { key: 'diary', label: '일기장' },
+  { key: 'other', label: '···' },
+];
+
+export const OTHER_SUBCATEGORY_OPTIONS: Array<{
+  key: MemoryOtherSubCategory;
+  label: string;
+}> = [
+  { key: 'grooming', label: '미용' },
+  { key: 'hospital', label: '병원/약' },
+  { key: 'etc', label: '기타(추가예정)' },
+];
+
+function readRecordTagsRaw(record: MemoryRecord): string {
+  if (!Array.isArray(record.tags) || record.tags.length === 0) return '';
+  return record.tags.join(' ').trim();
+}
+
+export function readRecordCategoryRaw(record: MemoryRecord): string {
+  const candidate = record as MemoryRecord & {
+    category?: string | null;
+    type?: string | null;
+    kind?: string | null;
+    recordType?: string | null;
+    mainCategory?: string | null;
+    categoryKey?: string | null;
+  };
+
+  const raw =
+    candidate.category ??
+    candidate.type ??
+    candidate.kind ??
+    candidate.recordType ??
+    candidate.mainCategory ??
+    candidate.categoryKey ??
+    '';
+
+  const normalized = String(raw ?? '').trim();
+  if (normalized) return normalized;
+  return readRecordTagsRaw(record);
+}
+
+export function normalizeCategoryKey(raw: string): MemoryMainCategory {
+  const value = raw.trim().toLowerCase();
+  if (!value) return 'all';
+
+  if (value === 'walk' || value === 'stroll') return 'walk';
+  if (value === 'meal' || value === 'food' || value === 'feed') return 'meal';
+  if (value === 'health' || value === 'medical') return 'health';
+  if (value === 'diary' || value === 'journal') return 'diary';
+  if (value === 'other' || value === 'etc') return 'other';
+
+  if (value.includes('산책')) return 'walk';
+  if (value.includes('식사') || value.includes('간식')) return 'meal';
+  if (value.includes('일기')) return 'diary';
+  if (value.includes('기타') || value.includes('미용')) return 'other';
+  if (value.includes('건강')) return 'health';
+  if (value.includes('병원') || value.includes('약')) {
+    return value.includes('기타') ? 'other' : 'health';
+  }
+
+  return 'other';
+}
+
+export function readOtherSubCategoryRaw(record: MemoryRecord): string {
+  const candidate = record as MemoryRecord & {
+    subCategory?: string | null;
+    subcategory?: string | null;
+    sub_type?: string | null;
+    detailCategory?: string | null;
+    otherSubCategory?: string | null;
+  };
+
+  const raw =
+    candidate.subCategory ??
+    candidate.subcategory ??
+    candidate.sub_type ??
+    candidate.detailCategory ??
+    candidate.otherSubCategory ??
+    '';
+
+  const normalized = String(raw ?? '').trim();
+  if (normalized) return normalized;
+  return readRecordTagsRaw(record);
+}
+
+export function normalizeOtherSubKey(raw: string): MemoryOtherSubCategory {
+  const value = raw.trim().toLowerCase();
+  if (!value) return 'etc';
+
+  if (value === 'grooming') return 'grooming';
+  if (value === 'hospital' || value === 'medicine' || value === 'clinic') {
+    return 'hospital';
+  }
+  if (value.includes('미용')) return 'grooming';
+  if (value.includes('병원') || value.includes('약')) return 'hospital';
+
+  return 'etc';
+}
+
+export function getRecordCategoryMeta(
+  record: MemoryRecord,
+): MemoryCategoryMeta {
+  const mainCategory = normalizeCategoryKey(readRecordCategoryRaw(record));
+
+  if (mainCategory === 'walk') {
+    return {
+      label: '산책 기록',
+      icon: 'walk',
+      tint: 'rgba(109,106,248,0.10)',
+      mainCategory: 'walk',
+    };
+  }
+
+  if (mainCategory === 'meal') {
+    return {
+      label: '식사 기록',
+      icon: 'silverware-fork-knife',
+      tint: 'rgba(249,115,22,0.10)',
+      mainCategory: 'meal',
+    };
+  }
+
+  if (mainCategory === 'health') {
+    return {
+      label: '건강 기록',
+      icon: 'medical-bag',
+      tint: 'rgba(34,197,94,0.10)',
+      mainCategory: 'health',
+    };
+  }
+
+  if (mainCategory === 'diary') {
+    return {
+      label: '일기장',
+      icon: 'notebook-outline',
+      tint: 'rgba(59,130,246,0.10)',
+      mainCategory: 'diary',
+    };
+  }
+
+  const otherSubCategory = normalizeOtherSubKey(
+    readOtherSubCategoryRaw(record),
+  );
+
+  if (otherSubCategory === 'grooming') {
+    return {
+      label: '기타 · 미용',
+      icon: 'content-cut',
+      tint: 'rgba(236,72,153,0.10)',
+      mainCategory: 'other',
+      otherSubCategory,
+    };
+  }
+
+  if (otherSubCategory === 'hospital') {
+    return {
+      label: '기타 · 병원/약',
+      icon: 'medical-bag',
+      tint: 'rgba(34,197,94,0.10)',
+      mainCategory: 'other',
+      otherSubCategory,
+    };
+  }
+
+  return {
+    label: '기타',
+    icon: 'dots-horizontal-circle-outline',
+    tint: 'rgba(148,163,184,0.10)',
+    mainCategory: 'other',
+    otherSubCategory: 'etc',
+  };
+}

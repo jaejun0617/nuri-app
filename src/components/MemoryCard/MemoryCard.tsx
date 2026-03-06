@@ -4,11 +4,11 @@
 // - signed URL 이미지 로딩, 감정/날짜 요약, 탭 액션 전달을 한 곳에서 담당
 // - 타임라인/홈 등 리스트 기반 화면에서 재사용되므로 memo 기반으로 불필요 리렌더링을 줄임
 
-import React, { memo, useEffect, useMemo, useState } from 'react';
+import React, { memo, useMemo } from 'react';
 import { ActivityIndicator, Image, TouchableOpacity, View } from 'react-native';
 
+import { useSignedMemoryImage } from '../../hooks/useSignedMemoryImage';
 import type { MemoryRecord } from '../../services/supabase/memories';
-import { getMemoryImageSignedUrlCached } from '../../services/supabase/storageMemories';
 import AppText from '../../app/ui/AppText';
 
 // ✅ 기존 TimelineScreen.styles 그대로 사용 (UI 유지)
@@ -34,8 +34,7 @@ export const MemoryCard = memo(function MemoryCard({
   item,
   onPress,
 }: MemoryCardProps) {
-  const [signedUrl, setSignedUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
+  const { signedUrl, loading } = useSignedMemoryImage(item.imagePath);
 
   const dateText = useMemo(
     () => item.occurredAt ?? item.createdAt?.slice(0, 10) ?? '',
@@ -45,38 +44,6 @@ export const MemoryCard = memo(function MemoryCard({
     if (!item.emotion) return null;
     return EMOTION_EMOJI[item.emotion] ?? item.emotion;
   }, [item.emotion]);
-
-  useEffect(() => {
-    let mounted = true;
-
-    async function run() {
-      const path = item.imagePath ?? null;
-
-      // ✅ path 없으면 상태 정리
-      if (!path) {
-        if (mounted) {
-          setSignedUrl(null);
-          setLoading(false);
-        }
-        return;
-      }
-
-      try {
-        if (mounted) setLoading(true);
-        const url = await getMemoryImageSignedUrlCached(path);
-        if (mounted) setSignedUrl(url);
-      } catch {
-        if (mounted) setSignedUrl(null);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }
-
-    run();
-    return () => {
-      mounted = false;
-    };
-  }, [item.imagePath]);
 
   return (
     <TouchableOpacity

@@ -20,9 +20,11 @@ import AppText from '../../app/ui/AppText';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type {
   PetSchedule,
-  ScheduleColorKey,
-  ScheduleIconKey,
 } from '../../services/supabase/schedules';
+import {
+  getScheduleColorPalette,
+  mapScheduleIconName,
+} from '../../services/schedules/presentation';
 import { usePetStore } from '../../store/petStore';
 import { useScheduleStore } from '../../store/scheduleStore';
 import { styles } from './ScheduleListScreen.styles';
@@ -46,51 +48,6 @@ function formatScheduleDate(schedule: PetSchedule) {
   const hour = `${date.getHours()}`.padStart(2, '0');
   const minute = `${date.getMinutes()}`.padStart(2, '0');
   return `${base} · ${hour}:${minute}`;
-}
-
-function mapScheduleIcon(iconKey: ScheduleIconKey): string {
-  switch (iconKey) {
-    case 'meal':
-    case 'bowl':
-      return 'silverware-fork-knife';
-    case 'stethoscope':
-      return 'stethoscope';
-    case 'notebook':
-      return 'notebook-outline';
-    case 'medical-bag':
-    case 'syringe':
-    case 'pill':
-    case 'content-cut':
-    case 'shower':
-    case 'heart':
-    case 'star':
-    case 'calendar':
-    case 'dots':
-    case 'walk':
-      return iconKey;
-    default:
-      return 'calendar';
-  }
-}
-
-function mapColor(colorKey: ScheduleColorKey) {
-  switch (colorKey) {
-    case 'blue':
-      return { bg: 'rgba(59,130,246,0.12)', fg: '#2563EB' };
-    case 'green':
-      return { bg: 'rgba(34,197,94,0.12)', fg: '#16A34A' };
-    case 'orange':
-      return { bg: 'rgba(249,115,22,0.12)', fg: '#EA580C' };
-    case 'pink':
-      return { bg: 'rgba(236,72,153,0.12)', fg: '#DB2777' };
-    case 'yellow':
-      return { bg: 'rgba(245,158,11,0.12)', fg: '#D97706' };
-    case 'gray':
-      return { bg: 'rgba(148,163,184,0.12)', fg: '#64748B' };
-    case 'brand':
-    default:
-      return { bg: 'rgba(109,106,248,0.12)', fg: '#6D6AF8' };
-  }
 }
 
 export default function ScheduleListScreen() {
@@ -222,7 +179,7 @@ export default function ScheduleListScreen() {
         ) : (
           <View style={styles.list}>
             {schedules.map(schedule => {
-              const color = mapColor(schedule.colorKey);
+              const color = getScheduleColorPalette(schedule.colorKey);
               return (
                 <TouchableOpacity
                   key={schedule.id}
@@ -237,7 +194,7 @@ export default function ScheduleListScreen() {
                     ]}
                   >
                     <MaterialCommunityIcons
-                      name={mapScheduleIcon(schedule.iconKey)}
+                      name={mapScheduleIconName(schedule.iconKey)}
                       size={19}
                       color={color.fg}
                     />

@@ -29,8 +29,24 @@ import {
   type ScheduleColorKey,
   type ScheduleIconKey,
   type ScheduleRepeatRule,
-  type ScheduleSubCategory,
 } from '../../services/supabase/schedules';
+import {
+  createScheduleDatePresets,
+  formatScheduleDateSummary,
+  getReminderKeyByMinutes,
+  getReminderMinutesByKey,
+  inferScheduleSubCategory,
+  normalizeScheduleDateInput,
+  normalizeScheduleTimeInput,
+  SCHEDULE_CATEGORY_OPTIONS,
+  SCHEDULE_COLOR_OPTIONS,
+  SCHEDULE_ICON_OPTIONS,
+  SCHEDULE_REMINDER_OPTIONS,
+  SCHEDULE_REPEAT_OPTIONS,
+  SCHEDULE_TIME_PRESETS,
+  toScheduleDateInput,
+  type ScheduleReminderOptionKey,
+} from '../../services/schedules/form';
 import { useScheduleStore } from '../../store/scheduleStore';
 import { styles } from './ScheduleCreateScreen.styles';
 
@@ -41,115 +57,10 @@ type Route = {
   params: { petId?: string; scheduleId: string };
 };
 
-const CATEGORY_OPTIONS: Array<{ key: ScheduleCategory; label: string; icon: string }> = [
-  { key: 'walk', label: '산책', icon: 'walk' },
-  { key: 'meal', label: '식사', icon: 'silverware-fork-knife' },
-  { key: 'health', label: '건강', icon: 'medical-bag' },
-  { key: 'grooming', label: '미용', icon: 'content-cut' },
-  { key: 'diary', label: '일기', icon: 'notebook-outline' },
-  { key: 'other', label: '···', icon: 'dots-horizontal-circle-outline' },
-];
-
-const ICON_OPTIONS: Array<{ key: ScheduleIconKey; label: string; icon: string }> = [
-  { key: 'walk', label: '산책', icon: 'walk' },
-  { key: 'meal', label: '식사', icon: 'silverware-fork-knife' },
-  { key: 'medical-bag', label: '병원', icon: 'medical-bag' },
-  { key: 'syringe', label: '접종', icon: 'syringe' },
-  { key: 'pill', label: '약', icon: 'pill' },
-  { key: 'content-cut', label: '미용', icon: 'content-cut' },
-  { key: 'shower', label: '목욕', icon: 'shower' },
-  { key: 'notebook', label: '일기', icon: 'notebook-outline' },
-  { key: 'heart', label: '케어', icon: 'heart' },
-  { key: 'star', label: '기타', icon: 'star' },
-];
-
-const COLOR_OPTIONS: Array<{ key: ScheduleColorKey; label: string; color: string }> = [
-  { key: 'brand', label: '보라', color: '#6D6AF8' },
-  { key: 'blue', label: '파랑', color: '#3B82F6' },
-  { key: 'green', label: '초록', color: '#22C55E' },
-  { key: 'orange', label: '주황', color: '#F97316' },
-  { key: 'pink', label: '핑크', color: '#EC4899' },
-  { key: 'gray', label: '회색', color: '#94A3B8' },
-];
-
-const TIME_PRESETS = ['09:00', '10:00', '13:00', '15:00', '18:00', '20:00'];
-const REPEAT_OPTIONS: Array<{ key: ScheduleRepeatRule; label: string }> = [
-  { key: 'none', label: '반복 안 함' },
-  { key: 'daily', label: '매일' },
-  { key: 'weekly', label: '매주' },
-  { key: 'monthly', label: '매월' },
-];
-const REMINDER_OPTIONS = [
-  { key: 'none', label: '알림 없음', minutes: [] as number[] },
-  { key: 'ten', label: '10분 전', minutes: [10] },
-  { key: 'hour', label: '1시간 전', minutes: [60] },
-  { key: 'day', label: '하루 전', minutes: [1440] },
-] as const;
-
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (typeof error === 'string') return error;
   return '다시 시도해 주세요.';
-}
-
-function toDateInput(date: Date) {
-  return `${date.getFullYear()}.${`${date.getMonth() + 1}`.padStart(2, '0')}.${`${date.getDate()}`.padStart(2, '0')}`;
-}
-
-function normalizeDateInput(raw: string): string {
-  const value = raw.trim().replace(/\./g, '-');
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    throw new Error('날짜 형식은 YYYY.MM.DD 입니다.');
-  }
-  return value;
-}
-
-function normalizeTimeInput(raw: string): string {
-  const value = raw.trim();
-  if (!/^\d{2}:\d{2}$/.test(value)) {
-    throw new Error('시간 형식은 HH:MM 입니다.');
-  }
-  return value;
-}
-
-function inferSubCategory(category: ScheduleCategory): ScheduleSubCategory | null {
-  switch (category) {
-    case 'grooming':
-      return 'bath';
-    case 'health':
-      return 'checkup';
-    case 'walk':
-      return 'walk-routine';
-    case 'meal':
-      return 'meal-plan';
-    case 'diary':
-      return 'journal';
-    case 'other':
-    default:
-      return 'etc';
-  }
-}
-
-function formatDateSummary(dateText: string) {
-  const normalized = dateText.replace(/\./g, '-');
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return dateText;
-  const date = new Date(`${normalized}T00:00:00`);
-  const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
-  return `${dateText} (${weekdays[date.getDay()]})`;
-}
-
-function createDatePresets() {
-  const base = new Date();
-  base.setHours(0, 0, 0, 0);
-  return Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(base);
-    date.setDate(base.getDate() + index);
-    const labels = ['오늘', '내일', '모레'];
-    return {
-      label: labels[index] ?? `${date.getMonth() + 1}/${date.getDate()}`,
-      value: toDateInput(date),
-    };
-  });
 }
 
 export default function ScheduleEditScreen() {
@@ -157,7 +68,7 @@ export default function ScheduleEditScreen() {
   const route = useRoute<Route>();
   const { petId, scheduleId } = route.params;
   const refresh = useScheduleStore(s => s.refresh);
-  const datePresets = useMemo(() => createDatePresets(), []);
+  const datePresets = useMemo(() => createScheduleDatePresets(), []);
 
   const [schedule, setSchedule] = useState<PetSchedule | null>(null);
   const [title, setTitle] = useState('');
@@ -176,7 +87,7 @@ export default function ScheduleEditScreen() {
   const [draftTimeText, setDraftTimeText] = useState('10:00');
   const [repeatRule, setRepeatRule] = useState<ScheduleRepeatRule>('none');
   const [reminderKey, setReminderKey] =
-    useState<(typeof REMINDER_OPTIONS)[number]['key']>('none');
+    useState<ScheduleReminderOptionKey>('none');
 
   useEffect(() => {
     let mounted = true;
@@ -188,7 +99,7 @@ export default function ScheduleEditScreen() {
         setSchedule(next);
         setTitle(next.title);
         setNote(next.note ?? '');
-        setDateText(toDateInput(startsAt));
+        setDateText(toScheduleDateInput(startsAt));
         setTimeText(
           `${`${startsAt.getHours()}`.padStart(2, '0')}:${`${startsAt.getMinutes()}`.padStart(2, '0')}`,
         );
@@ -197,12 +108,7 @@ export default function ScheduleEditScreen() {
         setIconKey(next.iconKey);
         setColorKey(next.colorKey);
         setRepeatRule(next.repeatRule);
-        const matchedReminder =
-          REMINDER_OPTIONS.find(option =>
-            JSON.stringify(option.minutes) ===
-            JSON.stringify(next.reminderMinutes ?? []),
-          )?.key ?? 'none';
-        setReminderKey(matchedReminder);
+        setReminderKey(getReminderKeyByMinutes(next.reminderMinutes));
       } catch (error) {
         if (mounted) {
           Alert.alert('일정 조회 실패', getErrorMessage(error));
@@ -222,7 +128,7 @@ export default function ScheduleEditScreen() {
 
   const onConfirmDate = useCallback(() => {
     try {
-      const normalized = normalizeDateInput(draftDateText);
+      const normalized = normalizeScheduleDateInput(draftDateText);
       setDateText(normalized.replace(/-/g, '.'));
       setDateModalVisible(false);
     } catch (error) {
@@ -232,7 +138,7 @@ export default function ScheduleEditScreen() {
 
   const onConfirmTime = useCallback(() => {
     try {
-      const normalized = normalizeTimeInput(draftTimeText);
+      const normalized = normalizeScheduleTimeInput(draftTimeText);
       setTimeText(normalized);
       setTimeModalVisible(false);
     } catch (error) {
@@ -249,10 +155,10 @@ export default function ScheduleEditScreen() {
 
     try {
       setSaving(true);
-      const normalizedDate = normalizeDateInput(dateText);
+      const normalizedDate = normalizeScheduleDateInput(dateText);
       const startsAt = allDay
         ? `${normalizedDate}T00:00:00`
-        : `${normalizedDate}T${normalizeTimeInput(timeText)}:00`;
+        : `${normalizedDate}T${normalizeScheduleTimeInput(timeText)}:00`;
 
       await updateSchedule({
         scheduleId: schedule.id,
@@ -262,7 +168,7 @@ export default function ScheduleEditScreen() {
         startsAt: new Date(startsAt).toISOString(),
         allDay,
         category,
-        subCategory: inferSubCategory(category),
+        subCategory: inferScheduleSubCategory(category),
         iconKey,
         colorKey,
         completedAt: schedule.completedAt,
@@ -270,12 +176,7 @@ export default function ScheduleEditScreen() {
         repeatRule,
         repeatInterval: schedule.repeatInterval,
         repeatUntil: schedule.repeatUntil,
-        reminderMinutes: [
-          ...(
-            REMINDER_OPTIONS.find(option => option.key === reminderKey)
-              ?.minutes ?? []
-          ),
-        ],
+        reminderMinutes: getReminderMinutesByKey(reminderKey),
         source: schedule.source,
         externalCalendarId: schedule.externalCalendarId,
         externalEventId: schedule.externalEventId,
@@ -374,7 +275,7 @@ export default function ScheduleEditScreen() {
                 }}
               >
                 <AppText preset="body" style={styles.pickerFieldText}>
-                  {formatDateSummary(dateText)}
+                  {formatScheduleDateSummary(dateText)}
                 </AppText>
                 <Feather name="chevron-right" size={18} color="#8A94A6" />
               </TouchableOpacity>
@@ -433,7 +334,7 @@ export default function ScheduleEditScreen() {
                 카테고리
               </AppText>
               <View style={styles.optionRow}>
-                {CATEGORY_OPTIONS.map(option => {
+                {SCHEDULE_CATEGORY_OPTIONS.map(option => {
                   const active = category === option.key;
                   return (
                     <TouchableOpacity
@@ -468,7 +369,7 @@ export default function ScheduleEditScreen() {
                 아이콘
               </AppText>
               <View style={styles.iconGrid}>
-                {ICON_OPTIONS.map(option => {
+                {SCHEDULE_ICON_OPTIONS.map(option => {
                   const active = iconKey === option.key;
                   return (
                     <TouchableOpacity
@@ -503,7 +404,7 @@ export default function ScheduleEditScreen() {
                 색상
               </AppText>
               <View style={styles.colorRow}>
-                {COLOR_OPTIONS.map(option => {
+                {SCHEDULE_COLOR_OPTIONS.map(option => {
                   const active = colorKey === option.key;
                   return (
                     <TouchableOpacity
@@ -531,7 +432,7 @@ export default function ScheduleEditScreen() {
                 반복
               </AppText>
               <View style={styles.optionRow}>
-                {REPEAT_OPTIONS.map(option => {
+                {SCHEDULE_REPEAT_OPTIONS.map(option => {
                   const active = repeatRule === option.key;
                   return (
                     <TouchableOpacity
@@ -561,7 +462,7 @@ export default function ScheduleEditScreen() {
                 알림
               </AppText>
               <View style={styles.optionRow}>
-                {REMINDER_OPTIONS.map(option => {
+                {SCHEDULE_REMINDER_OPTIONS.map(option => {
                   const active = reminderKey === option.key;
                   return (
                     <TouchableOpacity
@@ -696,7 +597,7 @@ export default function ScheduleEditScreen() {
               </TouchableOpacity>
             </View>
             <View style={styles.presetRow}>
-              {TIME_PRESETS.map(preset => (
+                  {SCHEDULE_TIME_PRESETS.map(preset => (
                 <TouchableOpacity
                   key={preset}
                   activeOpacity={0.9}

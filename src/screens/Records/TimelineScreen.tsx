@@ -54,6 +54,16 @@ import { MemoryCard } from '../../components/MemoryCard/MemoryCard';
 
 import type { AppTabParamList } from '../../navigation/AppTabsNavigator';
 import type { TimelineStackParamList } from '../../navigation/TimelineStackNavigator';
+import {
+  MAIN_CATEGORY_OPTIONS,
+  OTHER_SUBCATEGORY_OPTIONS,
+  normalizeCategoryKey,
+  normalizeOtherSubKey,
+  readOtherSubCategoryRaw,
+  readRecordCategoryRaw,
+  type MemoryMainCategory,
+  type MemoryOtherSubCategory,
+} from '../../services/memories/categoryMeta';
 import type { MemoryRecord } from '../../services/supabase/memories';
 import type { PetRecordsState } from '../../store/recordStore';
 import { useRecordStore } from '../../store/recordStore';
@@ -106,23 +116,8 @@ const FALLBACK_PET_STATE = Object.freeze({
 // ---------------------------------------------------------
 // ✅ Category 정의 (UI key)
 // ---------------------------------------------------------
-type MainCategory = 'all' | 'walk' | 'meal' | 'health' | 'diary' | 'other';
-type OtherSubCategory = 'grooming' | 'hospital' | 'etc';
-
-const MAIN_CATEGORIES: Array<{ key: MainCategory; label: string }> = [
-  { key: 'all', label: '전체' },
-  { key: 'walk', label: '산책' },
-  { key: 'meal', label: '식사' },
-  { key: 'health', label: '건강' },
-  { key: 'diary', label: '일기장' },
-  { key: 'other', label: '···' },
-];
-
-const OTHER_SUBCATEGORIES: Array<{ key: OtherSubCategory; label: string }> = [
-  { key: 'grooming', label: '미용' },
-  { key: 'hospital', label: '병원/약' },
-  { key: 'etc', label: '기타(추가예정)' },
-];
+type MainCategory = MemoryMainCategory;
+type OtherSubCategory = MemoryOtherSubCategory;
 
 // ---------------------------------------------------------
 // helpers
@@ -151,99 +146,6 @@ function recordMatchesQuery(r: MemoryRecord, q: string) {
   const title = (r.title ?? '').toLowerCase();
   const tags = Array.isArray(r.tags) ? r.tags.join(' ').toLowerCase() : '';
   return title.includes(q) || tags.includes(q);
-}
-
-function readRecordTagsRaw(r: MemoryRecord): string {
-  if (!Array.isArray(r.tags) || r.tags.length === 0) return '';
-  return r.tags.join(' ').trim();
-}
-
-/**
- * ✅ record의 category를 최대한 안전하게 읽어서 canonical key로 정규화
- */
-function readRecordCategoryRaw(r: MemoryRecord): string {
-  const candidate = r as MemoryRecord & {
-    category?: string | null;
-    type?: string | null;
-    kind?: string | null;
-    recordType?: string | null;
-    mainCategory?: string | null;
-    categoryKey?: string | null;
-  };
-
-  const raw =
-    candidate.category ??
-    candidate.type ??
-    candidate.kind ??
-    candidate.recordType ??
-    candidate.mainCategory ??
-    candidate.categoryKey ??
-    '';
-
-  const normalizedRaw = String(raw ?? '').trim();
-  if (normalizedRaw) return normalizedRaw;
-  return readRecordTagsRaw(r);
-}
-
-function normalizeCategoryKey(raw: string): MainCategory {
-  const v = raw.trim().toLowerCase();
-  if (!v) return 'all';
-
-  // 영문 canonical
-  if (v === 'walk' || v === 'stroll') return 'walk';
-  if (v === 'meal' || v === 'food' || v === 'feed') return 'meal';
-  if (v === 'health' || v === 'medical') return 'health';
-  if (v === 'diary' || v === 'journal') return 'diary';
-  if (v === 'other' || v === 'etc') return 'other';
-
-  // 한글 라벨 대응
-  if (v.includes('산책')) return 'walk';
-  if (v.includes('식사') || v.includes('간식')) return 'meal';
-  if (v.includes('일기')) return 'diary';
-  if (v.includes('기타') || v.includes('미용')) return 'other';
-  if (v.includes('건강')) return 'health';
-  if (v.includes('병원') || v.includes('약')) {
-    return v.includes('기타') ? 'other' : 'health';
-  }
-
-  return 'other';
-}
-
-function readOtherSubCategoryRaw(r: MemoryRecord): string {
-  const candidate = r as MemoryRecord & {
-    subCategory?: string | null;
-    subcategory?: string | null;
-    sub_type?: string | null;
-    detailCategory?: string | null;
-    otherSubCategory?: string | null;
-  };
-
-  const raw =
-    candidate.subCategory ??
-    candidate.subcategory ??
-    candidate.sub_type ??
-    candidate.detailCategory ??
-    candidate.otherSubCategory ??
-    '';
-
-  const normalizedRaw = String(raw ?? '').trim();
-  if (normalizedRaw) return normalizedRaw;
-  return readRecordTagsRaw(r);
-}
-
-function normalizeOtherSubKey(raw: string): OtherSubCategory {
-  const v = raw.trim().toLowerCase();
-  if (!v) return 'etc';
-
-  // 영문
-  if (v === 'grooming') return 'grooming';
-  if (v === 'hospital' || v === 'medicine' || v === 'clinic') return 'hospital';
-
-  // 한글
-  if (v.includes('미용')) return 'grooming';
-  if (v.includes('병원') || v.includes('약')) return 'hospital';
-
-  return 'etc';
 }
 
 // ---------------------------------------------------------
@@ -325,7 +227,7 @@ const ControlsBar = memo(function ControlsBar({
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoryContent}
         >
-          {MAIN_CATEGORIES.map(item => {
+          {MAIN_CATEGORY_OPTIONS.map(item => {
             const active =
               item.key === 'other'
                 ? mainCategory === 'other'
@@ -686,11 +588,12 @@ export default function TimelineScreen() {
 
   const categoryLabel = useMemo(() => {
     if (mainCategory !== 'other') {
-      return MAIN_CATEGORIES.find(x => x.key === mainCategory)?.label ?? '전체';
+      return MAIN_CATEGORY_OPTIONS.find(x => x.key === mainCategory)?.label ?? '전체';
     }
     if (!otherSubCategory) return '···';
     return (
-      OTHER_SUBCATEGORIES.find(x => x.key === otherSubCategory)?.label ?? '···'
+      OTHER_SUBCATEGORY_OPTIONS.find(x => x.key === otherSubCategory)?.label ??
+      '···'
     );
   }, [mainCategory, otherSubCategory]);
 
@@ -962,7 +865,7 @@ export default function TimelineScreen() {
               </AppText>
             </TouchableOpacity>
 
-            {OTHER_SUBCATEGORIES.map(sub => (
+            {OTHER_SUBCATEGORY_OPTIONS.map(sub => (
               <TouchableOpacity
                 key={sub.key}
                 activeOpacity={0.9}

@@ -38,9 +38,17 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import Screen from '../../../../components/layout/Screen';
+import { useSignedMemoryImage } from '../../../../hooks/useSignedMemoryImage';
 import type { AppTabParamList } from '../../../../navigation/AppTabsNavigator';
 import type { TimelineStackParamList } from '../../../../navigation/TimelineStackNavigator';
 import type { RootStackParamList } from '../../../../navigation/RootNavigator';
+import {
+  getRecordCategoryMeta,
+  normalizeCategoryKey,
+  readRecordCategoryRaw,
+  type MemoryMainCategory,
+  type MemoryOtherSubCategory,
+} from '../../../../services/memories/categoryMeta';
 import { useAuthStore } from '../../../../store/authStore';
 import { usePetStore } from '../../../../store/petStore';
 import type { PetRecordsState } from '../../../../store/recordStore';
@@ -50,15 +58,18 @@ import { useScheduleStore } from '../../../../store/scheduleStore';
 import type { MemoryRecord } from '../../../../services/supabase/memories';
 import type {
   PetSchedule,
-  ScheduleColorKey,
-  ScheduleIconKey,
 } from '../../../../services/supabase/schedules';
-import { getMemoryImageSignedUrlCached } from '../../../../services/supabase/storageMemories'; // 🔥 추가된 URL 캐시 호출 함수
 import {
   pickTodayPhoto,
   generateTimeMessage,
   getTimeMessageEmoji,
 } from '../../../../services/home/homeRecall';
+import {
+  formatScheduleDateLabel,
+  getScheduleColorPalette,
+  mapScheduleIconName,
+  mapScheduleToMemoryCategory,
+} from '../../../../services/schedules/presentation';
 import { styles } from './LoggedInHome.styles';
 
 type HomeTabNav = BottomTabNavigationProp<AppTabParamList, 'HomeTab'>;
@@ -70,16 +81,8 @@ type TimelineMainCategory = NonNullable<
 type TimelineOtherSubCategory = NonNullable<
   TimelineStackParamList['TimelineMain']
 >['otherSubCategory'];
-type HomeMainCategory = Exclude<TimelineMainCategory, undefined>;
-type HomeOtherSubCategory = Exclude<TimelineOtherSubCategory, undefined>;
-
-type HomeCategoryMeta = {
-  label: string;
-  icon: string;
-  tint: string;
-  mainCategory: HomeMainCategory;
-  otherSubCategory?: HomeOtherSubCategory;
-};
+type HomeMainCategory = Exclude<MemoryMainCategory, 'all'>;
+type HomeOtherSubCategory = MemoryOtherSubCategory;
 
 type WeeklyScheduleItem = {
   key: string;
@@ -245,246 +248,9 @@ function formatRelativeRecordTime(item: MemoryRecord): string {
   return `${target.getMonth() + 1}.${target.getDate()}`;
 }
 
-function readRecordTagsRaw(r: MemoryRecord): string {
-  if (!Array.isArray(r.tags) || r.tags.length === 0) return '';
-  return r.tags.join(' ').trim();
-}
-
-function readRecordCategoryRaw(r: MemoryRecord): string {
-  const candidate = r as MemoryRecord & {
-    category?: string | null;
-    type?: string | null;
-    kind?: string | null;
-    recordType?: string | null;
-    mainCategory?: string | null;
-    categoryKey?: string | null;
-  };
-
-  const raw =
-    candidate.category ??
-    candidate.type ??
-    candidate.kind ??
-    candidate.recordType ??
-    candidate.mainCategory ??
-    candidate.categoryKey ??
-    '';
-
-  const normalizedRaw = String(raw ?? '').trim();
-  if (normalizedRaw) return normalizedRaw;
-  return readRecordTagsRaw(r);
-}
-
-function normalizeCategoryKey(raw: string): HomeMainCategory {
-  const v = raw.trim().toLowerCase();
-  if (!v) return 'all';
-
-  if (v === 'walk' || v === 'stroll') return 'walk';
-  if (v === 'meal' || v === 'food' || v === 'feed') return 'meal';
-  if (v === 'health' || v === 'medical') return 'health';
-  if (v === 'diary' || v === 'journal') return 'diary';
-  if (v === 'other' || v === 'etc') return 'other';
-
-  if (v.includes('산책')) return 'walk';
-  if (v.includes('식사') || v.includes('간식')) return 'meal';
-  if (v.includes('일기')) return 'diary';
-  if (v.includes('기타') || v.includes('미용')) return 'other';
-  if (v.includes('건강')) return 'health';
-  if (v.includes('병원') || v.includes('약')) {
-    return v.includes('기타') ? 'other' : 'health';
-  }
-
-  return 'other';
-}
-
-function readOtherSubCategoryRaw(r: MemoryRecord): string {
-  const candidate = r as MemoryRecord & {
-    subCategory?: string | null;
-    subcategory?: string | null;
-    sub_type?: string | null;
-    detailCategory?: string | null;
-    otherSubCategory?: string | null;
-  };
-
-  const raw =
-    candidate.subCategory ??
-    candidate.subcategory ??
-    candidate.sub_type ??
-    candidate.detailCategory ??
-    candidate.otherSubCategory ??
-    '';
-
-  const normalizedRaw = String(raw ?? '').trim();
-  if (normalizedRaw) return normalizedRaw;
-  return readRecordTagsRaw(r);
-}
-
-function normalizeOtherSubKey(raw: string): HomeOtherSubCategory {
-  const v = raw.trim().toLowerCase();
-  if (!v) return 'etc';
-
-  if (v === 'grooming') return 'grooming';
-  if (v === 'hospital' || v === 'medicine' || v === 'clinic') return 'hospital';
-  if (v.includes('미용')) return 'grooming';
-  if (v.includes('병원') || v.includes('약')) return 'hospital';
-  return 'etc';
-}
-
-function getRecordCategoryMeta(item: MemoryRecord): HomeCategoryMeta {
-  const mainCategory = normalizeCategoryKey(readRecordCategoryRaw(item));
-
-  if (mainCategory === 'walk') {
-    return {
-      label: '산책 기록',
-      icon: 'walk',
-      tint: 'rgba(109,106,248,0.10)',
-      mainCategory: 'walk',
-    };
-  }
-
-  if (mainCategory === 'meal') {
-    return {
-      label: '식사 기록',
-      icon: 'silverware-fork-knife',
-      tint: 'rgba(249,115,22,0.10)',
-      mainCategory: 'meal',
-    };
-  }
-
-  if (mainCategory === 'health') {
-    return {
-      label: '건강 기록',
-      icon: 'medical-bag',
-      tint: 'rgba(34,197,94,0.10)',
-      mainCategory: 'health',
-    };
-  }
-
-  if (mainCategory === 'diary') {
-    return {
-      label: '일기장',
-      icon: 'notebook-outline',
-      tint: 'rgba(59,130,246,0.10)',
-      mainCategory: 'diary',
-    };
-  }
-
-  const otherSub = normalizeOtherSubKey(readOtherSubCategoryRaw(item));
-  if (otherSub === 'grooming') {
-    return {
-      label: '기타 · 미용',
-      icon: 'content-cut',
-      tint: 'rgba(236,72,153,0.10)',
-      mainCategory: 'other',
-      otherSubCategory: 'grooming',
-    };
-  }
-
-  if (otherSub === 'hospital') {
-    return {
-      label: '기타 · 병원/약',
-      icon: 'medical-bag',
-      tint: 'rgba(34,197,94,0.10)',
-      mainCategory: 'other',
-      otherSubCategory: 'hospital',
-    };
-  }
-
-  return {
-    label: '기타',
-    icon: 'dots-horizontal-circle-outline',
-    tint: 'rgba(148,163,184,0.10)',
-    mainCategory: 'other',
-    otherSubCategory: 'etc',
-  };
-}
-
-function formatScheduleDateLabel(schedule: PetSchedule): string {
-  const date = new Date(schedule.startsAt);
-  if (Number.isNaN(date.getTime())) return '';
-
-  const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
-  const base = `${date.getMonth() + 1}/${date.getDate()} (${
-    weekdays[date.getDay()]
-  })`;
-
-  if (schedule.allDay) return base;
-
-  const hour = `${date.getHours()}`.padStart(2, '0');
-  const minute = `${date.getMinutes()}`.padStart(2, '0');
-  return `${base} ${hour}:${minute}`;
-}
-
-function mapScheduleColorToTint(colorKey: ScheduleColorKey): string {
-  switch (colorKey) {
-    case 'blue':
-      return 'rgba(59,130,246,0.10)';
-    case 'green':
-      return 'rgba(34,197,94,0.10)';
-    case 'orange':
-      return 'rgba(249,115,22,0.10)';
-    case 'pink':
-      return 'rgba(236,72,153,0.10)';
-    case 'yellow':
-      return 'rgba(245,158,11,0.10)';
-    case 'gray':
-      return 'rgba(148,163,184,0.10)';
-    case 'brand':
-    default:
-      return 'rgba(109,106,248,0.10)';
-  }
-}
-
-function mapScheduleToTimelineCategory(schedule: PetSchedule): {
-  mainCategory: HomeMainCategory;
-  otherSubCategory?: HomeOtherSubCategory;
-} {
-  if (schedule.category === 'walk') return { mainCategory: 'walk' };
-  if (schedule.category === 'meal') return { mainCategory: 'meal' };
-  if (schedule.category === 'health') return { mainCategory: 'health' };
-  if (schedule.category === 'diary') return { mainCategory: 'diary' };
-
-  if (schedule.category === 'grooming') {
-    return { mainCategory: 'other', otherSubCategory: 'grooming' };
-  }
-
-  if (
-    schedule.subCategory === 'hospital' ||
-    schedule.subCategory === 'medicine' ||
-    schedule.subCategory === 'checkup' ||
-    schedule.subCategory === 'vaccine'
-  ) {
-    return { mainCategory: 'other', otherSubCategory: 'hospital' };
-  }
-
-  return { mainCategory: 'other', otherSubCategory: 'etc' };
-}
-
-function mapScheduleIcon(iconKey: ScheduleIconKey): string {
-  switch (iconKey) {
-    case 'meal':
-    case 'bowl':
-      return 'silverware-fork-knife';
-    case 'medical-bag':
-    case 'stethoscope':
-    case 'syringe':
-    case 'pill':
-      return iconKey === 'stethoscope' ? 'stethoscope' : iconKey;
-    case 'content-cut':
-    case 'shower':
-    case 'notebook':
-    case 'heart':
-    case 'star':
-    case 'calendar':
-    case 'dots':
-    case 'walk':
-      return iconKey === 'notebook' ? 'notebook-outline' : iconKey;
-    default:
-      return 'calendar';
-  }
-}
-
 function buildScheduleCard(schedule: PetSchedule): WeeklyScheduleItem {
-  const category = mapScheduleToTimelineCategory(schedule);
+  const category = mapScheduleToMemoryCategory(schedule);
+  const palette = getScheduleColorPalette(schedule.colorKey);
   return {
     key: schedule.id,
     dateLabel: formatScheduleDateLabel(schedule),
@@ -494,8 +260,8 @@ function buildScheduleCard(schedule: PetSchedule): WeeklyScheduleItem {
       (schedule.allDay
         ? '하루 일정으로 저장된 항목이에요'
         : '예정된 일정이에요'),
-    icon: mapScheduleIcon(schedule.iconKey),
-    tint: mapScheduleColorToTint(schedule.colorKey),
+    icon: mapScheduleIconName(schedule.iconKey),
+    tint: palette.tint,
     mainCategory: category.mainCategory,
     otherSubCategory: category.otherSubCategory,
   };
@@ -596,7 +362,7 @@ const AnimatedFlatList = Animated.createAnimatedComponent(
 /* ---------------------------------------------------------
  * 3) sub components (hooks-safe)
  * -------------------------------------------------------- */
-function TodayRecordCard({
+const TodayRecordCard = React.memo(function TodayRecordCard({
   item,
   index,
   cardW,
@@ -618,37 +384,7 @@ function TodayRecordCard({
   );
   const content = useMemo(() => toSnippet(item.content, 44), [item.content]);
 
-  // ✅ 이미지 로딩 State 추가
-  const [signedUrl, setSignedUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-
-  // ✅ URL 캐싱 훅 추가
-  useEffect(() => {
-    let isMounted = true;
-
-    async function fetchImageUrl() {
-      if (!item.imagePath) {
-        if (isMounted) setIsLoading(false);
-        return;
-      }
-
-      try {
-        const url = await getMemoryImageSignedUrlCached(item.imagePath);
-        if (isMounted && url) {
-          setSignedUrl(url);
-        }
-      } catch (error) {
-        console.error('슬라이드 이미지 로딩 실패:', error);
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
-    }
-
-    fetchImageUrl();
-    return () => {
-      isMounted = false;
-    };
-  }, [item.imagePath]);
+  const { signedUrl, loading: isLoading } = useSignedMemoryImage(item.imagePath);
 
   const cardAnimStyle = useAnimatedStyle(() => {
     const x = scrollX.value;
@@ -725,7 +461,7 @@ function TodayRecordCard({
       </TouchableOpacity>
     </Animated.View>
   );
-}
+});
 
 function IndicatorDot({
   i,
@@ -752,37 +488,14 @@ function IndicatorDot({
   return <Animated.View style={[styles.indicatorDot, dotStyle]} />;
 }
 
-function MonthlyDiaryCard({
+const MonthlyDiaryCard = React.memo(function MonthlyDiaryCard({
   item,
   onPress,
 }: {
   item: MemoryRecord;
   onPress: (memoryId: string) => void;
 }) {
-  const [signedUrl, setSignedUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    let mounted = true;
-
-    async function run() {
-      if (!item.imagePath) {
-        if (mounted) setSignedUrl(null);
-        return;
-      }
-
-      try {
-        const url = await getMemoryImageSignedUrlCached(item.imagePath);
-        if (mounted) setSignedUrl(url ?? null);
-      } catch {
-        if (mounted) setSignedUrl(null);
-      }
-    }
-
-    run();
-    return () => {
-      mounted = false;
-    };
-  }, [item.imagePath]);
+  const { signedUrl } = useSignedMemoryImage(item.imagePath);
 
   return (
     <TouchableOpacity
@@ -807,7 +520,7 @@ function MonthlyDiaryCard({
       </Text>
     </TouchableOpacity>
   );
-}
+});
 
 export default function LoggedInHome() {
   // ---------------------------------------------------------
@@ -835,13 +548,11 @@ export default function LoggedInHome() {
 
   const selectedPet = useMemo(() => {
     if (pets.length === 0) return null;
-    if (selectedPetId && pets.some(p => p.id === selectedPetId)) {
-      return pets.find(p => p.id === selectedPetId) ?? pets[0];
-    }
-    return pets[0];
+    if (!selectedPetId) return pets[0];
+    return pets.find(p => p.id === selectedPetId) ?? pets[0];
   }, [pets, selectedPetId]);
 
-  const activePetId = useMemo(() => selectedPet?.id ?? null, [selectedPet?.id]);
+  const activePetId = selectedPet?.id ?? null;
 
   // ---------------------------------------------------------
   // 3.5) pet switch transition (fade + lift)
@@ -900,10 +611,6 @@ export default function LoggedInHome() {
     mode: 'anniversary' | 'random' | 'none';
   }>({ record: null, mode: 'none' });
 
-  // ✅ "오늘의 사진" 전용 이미지 URL State
-  const [todayPhotoUrl, setTodayPhotoUrl] = useState<string | null>(null);
-  const [isTodayPhotoLoading, setIsTodayPhotoLoading] = useState<boolean>(true);
-
   useEffect(() => {
     setTodayPhoto({ record: null, mode: 'none' });
   }, [activePetId]);
@@ -926,38 +633,8 @@ export default function LoggedInHome() {
     };
   }, [activePetId, safeRecordsState.items]);
 
-  // ✅ "오늘의 사진" URL 캐시 훅 추가
-  useEffect(() => {
-    let isMounted = true;
-
-    async function fetchTodayPhotoUrl() {
-      const path = todayPhoto.record?.imagePath;
-      if (!path) {
-        if (isMounted) {
-          setTodayPhotoUrl(null);
-          setIsTodayPhotoLoading(false);
-        }
-        return;
-      }
-
-      try {
-        setIsTodayPhotoLoading(true);
-        const url = await getMemoryImageSignedUrlCached(path);
-        if (isMounted && url) {
-          setTodayPhotoUrl(url);
-        }
-      } catch (error) {
-        console.error('오늘의 사진 URL 로딩 실패:', error);
-      } finally {
-        if (isMounted) setIsTodayPhotoLoading(false);
-      }
-    }
-
-    fetchTodayPhotoUrl();
-    return () => {
-      isMounted = false;
-    };
-  }, [todayPhoto.record?.imagePath]);
+  const { signedUrl: todayPhotoUrl, loading: isTodayPhotoLoading } =
+    useSignedMemoryImage(todayPhoto.record?.imagePath);
 
   const todayPhotoOverlayTitle = useMemo(() => {
     if (todayPhoto.mode === 'anniversary') return '작년 오늘의 기억';
@@ -968,19 +645,12 @@ export default function LoggedInHome() {
   // ---------------------------------------------------------
   // ✅ 4.4) 오늘날의 기록(슬라이드) 데이터 (최대 14)
   // ---------------------------------------------------------
-  const todayRecordsAll = useMemo(
-    () => safeRecordsState.items,
-    [safeRecordsState.items],
-  );
+  const todayRecordsAll = safeRecordsState.items;
   const todayRecords = useMemo(
     () => todayRecordsAll.slice(0, TODAY_RECORDS_MAX),
     [todayRecordsAll],
   );
-
-  const hasMoreThanSlider = useMemo(
-    () => todayRecordsAll.length > TODAY_RECORDS_MAX,
-    [todayRecordsAll.length],
-  );
+  const hasMoreThanSlider = todayRecordsAll.length > TODAY_RECORDS_MAX;
 
   // ---------------------------------------------------------
   // ✅ 4.5) 슬라이드 레이아웃 계산
@@ -1241,7 +911,7 @@ export default function LoggedInHome() {
     ],
   );
 
-  const quickActionCards = useMemo(() => HOME_SHORTCUTS, []);
+  const quickActionCards = HOME_SHORTCUTS;
 
   const tipsSectionTitle = useMemo(() => {
     return `${petName}${pickObjectParticle(petName)} 위한 추천 팁`;

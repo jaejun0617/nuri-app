@@ -1494,6 +1494,63 @@ NURI는 데이터 입력 도구가 아니라,
 
 ---
 
+## Chapter 6-40 — 홈/타임라인/일정 화면 리렌더링 최적화 + 공용 재사용 레이어 정리
+
+### 무엇을 진행했나
+
+- 리렌더링 비용이 큰 화면과 중복 로직이 많은 화면을 우선 정리했다.
+  - `LoggedInHome`
+  - `TimelineScreen`
+  - `ScheduleCreateScreen`
+  - `ScheduleEditScreen`
+  - `ScheduleListScreen`
+  - `ScheduleDetailScreen`
+  - `MemoryCard`
+- 화면 안에 흩어져 있던 공통 규칙을 재사용 가능한 레이어로 분리했다.
+  - `src/hooks/useSignedMemoryImage.ts`
+    - memory image path → signed URL 변환/로딩 상태 공용 훅
+  - `src/services/memories/categoryMeta.ts`
+    - 기록 카테고리/서브카테고리 해석
+    - 타임라인 필터 / 홈 카드 메타 공용화
+  - `src/services/schedules/form.ts`
+    - 일정 생성/수정 폼 옵션, 날짜/시간 정규화, reminder 매핑 공용화
+  - `src/services/schedules/presentation.ts`
+    - 일정 아이콘/색상/날짜 표시 규칙 공용화
+- `LoggedInHome`에서는 중복 effect와 파생 계산을 줄였다.
+  - signed URL 로딩 effect를 공용 훅으로 이동
+  - 선택 펫 계산을 단순화
+  - 불필요한 `useMemo` 일부 제거
+  - 카드/월간 일기 서브 컴포넌트를 `memo` 기준으로 정리
+- `TimelineScreen`과 홈의 카테고리 해석 규칙을 같은 유틸을 쓰도록 맞췄다.
+- 일정 화면군(Create/Edit/List/Detail)이 서로 다른 방식으로 들고 있던
+  아이콘/색상/날짜/알림 옵션을 한 군데로 묶었다.
+
+### 왜 이렇게 했나
+
+- 이전 구조는 화면별로 “거의 같은 코드”를 따로 들고 있어서,
+  한쪽만 수정되면 다른 화면 규칙이 쉽게 어긋날 수 있었다.
+- 특히 일정 화면군은 생성/수정 폼의 옵션과 검증 로직이 거의 복제 상태였고,
+  홈/타임라인은 같은 기록 카테고리를 서로 다른 함수로 읽고 있었다.
+- 이번 정리는 단순히 코드 줄이기 목적이 아니라,
+  **같은 도메인 규칙은 같은 파일에서 관리한다**는 기준을 세우는 작업이다.
+
+### 결과
+
+- 홈/타임라인/일정 화면이 같은 규칙을 공유하게 됐다.
+- signed URL 로딩 로직이 공용 훅으로 정리돼 이미지 카드 계열의 중복 effect가 줄었다.
+- 일정 화면군의 옵션/검증 로직이 한 곳으로 모여 이후 기능 추가 시 수정 지점이 명확해졌다.
+- 이번 수정 범위 기준으로 아래 검증을 통과했다.
+  - `yarn tsc --noEmit`
+  - `yarn eslint ...`
+
+### 다음에 바로 이어서 보기 좋은 지점
+
+- `LoggedInHome`를 섹션 단위 컴포넌트로 더 쪼개기
+- `RecordCreateScreen` / `RecordEditScreen`의 날짜/태그/이미지 로직 공용화
+- 다중 이미지 signed URL도 단건 훅처럼 공용 훅으로 승격
+
+---
+
 # 🚀 Next
 
 ## Chapter 8 — 서버 검색(제목/태그) + 인덱스/정렬 안정화 + 섹션 점프 고도화

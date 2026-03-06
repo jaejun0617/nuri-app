@@ -18,9 +18,12 @@ import {
   fetchScheduleById,
   updateSchedule,
   type PetSchedule,
-  type ScheduleColorKey,
-  type ScheduleIconKey,
 } from '../../services/supabase/schedules';
+import {
+  formatScheduleDetailDate,
+  getScheduleColorPalette,
+  mapScheduleIconName,
+} from '../../services/schedules/presentation';
 import { useScheduleStore } from '../../store/scheduleStore';
 import { styles } from './ScheduleDetailScreen.styles';
 
@@ -30,51 +33,6 @@ type Route = {
   name: 'ScheduleDetail';
   params: { petId?: string; scheduleId: string };
 };
-
-function formatScheduleDate(schedule: PetSchedule) {
-  const date = new Date(schedule.startsAt);
-  if (Number.isNaN(date.getTime())) return '';
-
-  const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
-  const base = `${date.getFullYear()}.${`${date.getMonth() + 1}`.padStart(2, '0')}.${`${date.getDate()}`.padStart(2, '0')} (${weekdays[date.getDay()]})`;
-
-  if (schedule.allDay) return `${base} · 하루 종일`;
-  return `${base} · ${`${date.getHours()}`.padStart(2, '0')}:${`${date.getMinutes()}`.padStart(2, '0')}`;
-}
-
-function mapScheduleIcon(iconKey: ScheduleIconKey): string {
-  switch (iconKey) {
-    case 'meal':
-    case 'bowl':
-      return 'silverware-fork-knife';
-    case 'stethoscope':
-      return 'stethoscope';
-    case 'notebook':
-      return 'notebook-outline';
-    default:
-      return iconKey;
-  }
-}
-
-function mapColor(colorKey: ScheduleColorKey) {
-  switch (colorKey) {
-    case 'blue':
-      return { bg: 'rgba(59,130,246,0.12)', fg: '#2563EB' };
-    case 'green':
-      return { bg: 'rgba(34,197,94,0.12)', fg: '#16A34A' };
-    case 'orange':
-      return { bg: 'rgba(249,115,22,0.12)', fg: '#EA580C' };
-    case 'pink':
-      return { bg: 'rgba(236,72,153,0.12)', fg: '#DB2777' };
-    case 'yellow':
-      return { bg: 'rgba(245,158,11,0.12)', fg: '#D97706' };
-    case 'gray':
-      return { bg: 'rgba(148,163,184,0.12)', fg: '#64748B' };
-    case 'brand':
-    default:
-      return { bg: 'rgba(109,106,248,0.12)', fg: '#6D6AF8' };
-  }
-}
 
 function formatReminder(reminderMinutes: number[]) {
   if (!reminderMinutes.length) return '알림 없음';
@@ -217,7 +175,7 @@ export default function ScheduleDetailScreen() {
     }
   }, [petId, refresh, schedule]);
 
-  const color = mapColor(schedule?.colorKey ?? 'brand');
+  const color = getScheduleColorPalette(schedule?.colorKey ?? 'brand');
 
   return (
     <View style={styles.screen}>
@@ -263,7 +221,7 @@ export default function ScheduleDetailScreen() {
           <View style={styles.card}>
             <View style={[styles.iconWrap, { backgroundColor: color.bg }]}>
               <MaterialCommunityIcons
-                name={mapScheduleIcon(schedule.iconKey)}
+                name={mapScheduleIconName(schedule.iconKey)}
                 size={24}
                 color={color.fg}
               />
@@ -278,7 +236,7 @@ export default function ScheduleDetailScreen() {
                 일정 시간
               </AppText>
               <AppText preset="body" style={styles.metaValue}>
-                {formatScheduleDate(schedule)}
+              {formatScheduleDetailDate(schedule)}
               </AppText>
             </View>
 
