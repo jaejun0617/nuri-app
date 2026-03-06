@@ -3,7 +3,7 @@
 // - 현재 위치 기준 날씨/대기질 요약과 맞춤 추천을 보여주는 상세 페이지
 // - 날씨 API 연결 전에는 mock 데이터를 사용해 레이아웃과 흐름을 먼저 고정
 
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -14,11 +14,9 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 
 import AirQualityInsightCard from '../../components/weather/AirQualityInsightCard';
 import WeatherForecastStrip from '../../components/weather/WeatherForecastStrip';
+import { useWeatherGuide } from '../../hooks/useWeatherGuide';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
-import {
-  getWeatherGuideBundle,
-  getWeatherIconName,
-} from '../../services/weather/guide';
+import { getWeatherIconName } from '../../services/weather/guide';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'WeatherInsight'>;
 
@@ -30,11 +28,8 @@ export default function WeatherInsightScreen() {
       name: 'WeatherInsight';
       params?: { district?: string };
     }>();
-
-  const weather = useMemo(
-    () => getWeatherGuideBundle(route.params?.district),
-    [route.params?.district],
-  );
+  const weatherState = useWeatherGuide(route.params?.district ?? '일산동');
+  const weather = weatherState.bundle;
 
   const onPressPrimary = useCallback(() => {
     if (weather.scenario === 'fresh') {
@@ -78,6 +73,13 @@ export default function WeatherInsightScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.heroWrap}>
+            <Text style={styles.locationStatus}>
+              {weatherState.loading
+                ? '현재 위치와 날씨를 확인하고 있어요'
+                : weatherState.error
+                  ? `${weather.district} 기준`
+                  : `${weather.district} 기준`}
+            </Text>
             <MaterialCommunityIcons
               name={getWeatherIconName(weather.weatherIcon)}
               size={82}
@@ -169,6 +171,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     paddingTop: 14,
+  },
+  locationStatus: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: '#8B96AA',
+    fontWeight: '500',
   },
   heroTemp: {
     fontSize: 62,

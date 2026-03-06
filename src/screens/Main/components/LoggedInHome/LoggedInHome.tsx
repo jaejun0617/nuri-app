@@ -38,6 +38,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import Screen from '../../../../components/layout/Screen';
+import { useWeatherGuide } from '../../../../hooks/useWeatherGuide';
 import { useSignedMemoryImage } from '../../../../hooks/useSignedMemoryImage';
 import type { AppTabParamList } from '../../../../navigation/AppTabsNavigator';
 import type { TimelineStackParamList } from '../../../../navigation/TimelineStackNavigator';
@@ -77,7 +78,6 @@ import {
   isMemorialPet,
 } from '../../../../services/pets/memorial';
 import WeatherGuideHomeCard from '../../../../components/weather/WeatherGuideHomeCard';
-import { getWeatherGuideBundle } from '../../../../services/weather/guide';
 import { styles } from './LoggedInHome.styles';
 
 type HomeTabNav = BottomTabNavigationProp<AppTabParamList, 'HomeTab'>;
@@ -1347,7 +1347,8 @@ export default function LoggedInHome() {
     () => buildPetThemePalette(selectedPet?.themeColor),
     [selectedPet?.themeColor],
   );
-  const weatherGuide = useMemo(() => getWeatherGuideBundle('일산동'), []);
+  const weatherGuideState = useWeatherGuide('일산동');
+  const weatherGuide = weatherGuideState.bundle;
 
   // ---------------------------------------------------------
   // 6) header text
