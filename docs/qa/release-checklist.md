@@ -1,5 +1,10 @@
 # Release QA Checklist
 
+## 자동화 실행
+
+- [ ] `yarn test:qa`
+- [ ] `yarn test --watchAll=false --watchman=false`
+
 ## 가입/인증
 
 - [ ] 회원가입
