@@ -25,6 +25,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import AppNavigationToolbar from '../../components/navigation/AppNavigationToolbar';
 import AppText from '../../app/ui/AppText';
 import type { TimelineStackParamList } from '../../navigation/TimelineStackNavigator';
+import { getBrandedErrorMeta } from '../../services/app/errors';
 import type { MemoryRecord } from '../../services/supabase/memories';
 import { deleteMemoryWithFile } from '../../services/supabase/memories';
 import { getMemoryImageSignedUrlCached } from '../../services/supabase/storageMemories';
@@ -320,7 +321,8 @@ export default function RecordDetailScreen() {
         });
       }
     } catch (error: any) {
-      Alert.alert('삭제 실패', error?.message ?? '오류');
+      const { title, message } = getBrandedErrorMeta(error, 'record-delete');
+      Alert.alert(title, message);
     } finally {
       setDeleting(false);
       setActionTargetId(null);

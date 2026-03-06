@@ -30,7 +30,9 @@ import {
   getNicknameChangedAt,
   saveNicknameChangedAt,
 } from '../../services/local/accountPreferences';
-import { getRetryableErrorMessage } from '../../services/app/errors';
+import {
+  getBrandedErrorMeta,
+} from '../../services/app/errors';
 import {
   performAccountDeletion,
   performLogout,
@@ -677,10 +679,10 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         message: '닉네임이 새로운 이름으로 저장됐어요.',
       });
     } catch (error) {
-      const message = getRetryableErrorMessage(error);
+      const { title, message } = getBrandedErrorMeta(error, 'nickname');
       showToast({
         tone: 'error',
-        title: '닉네임 저장 실패',
+        title,
         message,
         durationMs: 3200,
       });
@@ -741,10 +743,10 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       setConfirmPassword('');
       setPasswordDoneVisible(true);
     } catch (error) {
-      const message = getRetryableErrorMessage(error);
+      const { title, message } = getBrandedErrorMeta(error, 'password-change');
       showToast({
         tone: 'error',
-        title: '비밀번호 변경 실패',
+        title,
         message,
         durationMs: 3200,
       });
@@ -773,9 +775,9 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
           : '안전하게 로그아웃했어요.',
       });
     } catch (error) {
-      const message = getRetryableErrorMessage(error);
-      Alert.alert('로그아웃 실패', message);
-      showToast({ tone: 'error', title: '로그아웃 실패', message });
+      const { title, message } = getBrandedErrorMeta(error, 'logout');
+      Alert.alert(title, message);
+      showToast({ tone: 'error', title, message });
     } finally {
       setLoading(false);
     }
@@ -805,11 +807,14 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
                 durationMs: 3000,
               });
             } catch (error) {
-              const message = getRetryableErrorMessage(error);
-              Alert.alert('계정 삭제 실패', message);
+              const { title, message } = getBrandedErrorMeta(
+                error,
+                'account-delete',
+              );
+              Alert.alert(title, message);
               showToast({
                 tone: 'error',
-                title: '계정 삭제 실패',
+                title,
                 message,
                 durationMs: 3200,
               });

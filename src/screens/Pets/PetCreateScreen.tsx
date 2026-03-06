@@ -40,6 +40,7 @@ import { ASSETS } from '../../assets';
 import PetMemorialFields from '../../components/pets/PetMemorialFields';
 import PetThemePicker from '../../components/pets/PetThemePicker';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import { getBrandedErrorMeta, getErrorMessage } from '../../services/app/errors';
 import { readFileAsBase64 } from '../../services/files/readFileAsBase64';
 import { supabase } from '../../services/supabase/client';
 import {
@@ -66,12 +67,6 @@ type PetGender = 'male' | 'female' | 'unknown';
 
 const BRAND = '#6D6AF8';
 const MAX_MULTI_ITEMS = 10;
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'string') return error;
-  return '다시 시도해 주세요.';
-}
 
 function inferMimeFromFileName(
   fileName: string | null | undefined,
@@ -1113,7 +1108,8 @@ export default function PetCreateScreen() {
 
       setSuccessModalVisible(true);
     } catch (error) {
-      Alert.alert('반려동물 등록 실패', getErrorMessage(error));
+      const { title, message } = getBrandedErrorMeta(error, 'pet-create');
+      Alert.alert(title, message);
     } finally {
       setSaving(false);
     }

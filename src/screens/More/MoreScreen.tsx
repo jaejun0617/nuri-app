@@ -10,7 +10,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
-import { getRetryableErrorMessage } from '../../services/app/errors';
+import { getBrandedErrorMeta } from '../../services/app/errors';
 import {
   performAccountDeletion,
   performLogout,
@@ -66,9 +66,9 @@ export default function MoreScreen() {
           : '안전하게 로그아웃했어요.',
       });
     } catch (e: any) {
-      const message = getRetryableErrorMessage(e);
-      Alert.alert('로그아웃 실패', message);
-      showToast({ tone: 'error', title: '로그아웃 실패', message });
+      const { title: alertTitle, message } = getBrandedErrorMeta(e, 'logout');
+      Alert.alert(alertTitle, message);
+      showToast({ tone: 'error', title: alertTitle, message });
     } finally {
       setLoading(false);
     }
@@ -97,11 +97,14 @@ export default function MoreScreen() {
                 durationMs: 3000,
               });
             } catch (error) {
-              const message = getRetryableErrorMessage(error);
-              Alert.alert('계정 삭제 실패', message);
+              const { title: alertTitle, message } = getBrandedErrorMeta(
+                error,
+                'account-delete',
+              );
+              Alert.alert(alertTitle, message);
               showToast({
                 tone: 'error',
-                title: '계정 삭제 실패',
+                title: alertTitle,
                 message,
                 durationMs: 3200,
               });

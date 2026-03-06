@@ -21,6 +21,10 @@ import AppText from '../../app/ui/AppText';
 import SchedulePickerModal from '../../components/schedules/SchedulePickerModal';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
+  getBrandedErrorMeta,
+  getErrorMessage,
+} from '../../services/app/errors';
+import {
   createSchedule,
   type ScheduleCategory,
   type ScheduleColorKey,
@@ -53,12 +57,6 @@ type Route = {
   name: 'ScheduleCreate';
   params?: { petId?: string; startsAt?: string };
 };
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'string') return error;
-  return '다시 시도해 주세요.';
-}
 
 export default function ScheduleCreateScreen() {
   const navigation = useNavigation<Nav>();
@@ -173,7 +171,11 @@ export default function ScheduleCreateScreen() {
       await refresh(petId);
       navigation.replace('ScheduleList', { petId });
     } catch (error) {
-      Alert.alert('일정 저장 실패', getErrorMessage(error));
+      const { title: alertTitle, message } = getBrandedErrorMeta(
+        error,
+        'schedule-create',
+      );
+      Alert.alert(alertTitle, message);
     } finally {
       setSaving(false);
     }

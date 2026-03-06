@@ -61,7 +61,9 @@ import {
   saveRecordCreateDraft,
 } from '../../services/local/recordDraft';
 import { enqueuePendingMemoryUpload } from '../../services/local/uploadQueue';
-import { getRetryableErrorMessage } from '../../services/app/errors';
+import {
+  getBrandedErrorMeta,
+} from '../../services/app/errors';
 import { supabase } from '../../services/supabase/client';
 import {
   createMemory,
@@ -555,11 +557,14 @@ export default function RecordCreateScreen() {
       });
       navigation.navigate('TimelineTab');
     } catch (error) {
-      const message = getRetryableErrorMessage(error);
-      Alert.alert('기록 저장 실패', message);
+      const { title: alertTitle, message } = getBrandedErrorMeta(
+        error,
+        'record-create',
+      );
+      Alert.alert(alertTitle, message);
       showToast({
         tone: 'error',
-        title: '기록 저장 실패',
+        title: alertTitle,
         message:
           '입력 중인 내용은 draft로 남겨둘게요. 네트워크가 안정되면 다시 저장해 주세요.',
         durationMs: 3200,

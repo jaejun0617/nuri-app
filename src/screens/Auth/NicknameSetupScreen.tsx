@@ -20,6 +20,7 @@ import type { RouteProp } from '@react-navigation/native';
 
 import { ASSETS } from '../../assets';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import { getBrandedErrorMeta } from '../../services/app/errors';
 import {
   checkNicknameAvailabilityDetailed,
   saveMyNickname,
@@ -59,12 +60,6 @@ type NicknameFooterProps = {
 
 const MAX_NICKNAME_LENGTH = 8;
 const NICKNAME_REGEX = /^[A-Za-z0-9가-힣]+$/;
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'string') return error;
-  return '다시 시도해 주세요.';
-}
 
 function getNicknameValidationMessage(value: string): ValidationState {
   const trimmed = value.trim();
@@ -322,7 +317,7 @@ export default function NicknameSetupScreen() {
       lastCheckedNicknameRef.current = null;
       setValidationState({
         tone: 'error',
-        message: getErrorMessage(error),
+        message: getBrandedErrorMeta(error, 'nickname').message,
       });
     } finally {
       setChecking(false);
@@ -378,7 +373,8 @@ export default function NicknameSetupScreen() {
 
       navigation.navigate('PetCreate', { from: 'auto' });
     } catch (error) {
-      Alert.alert('닉네임 저장 실패', getErrorMessage(error));
+      const { title, message } = getBrandedErrorMeta(error, 'nickname');
+      Alert.alert(title, message);
     } finally {
       setSaving(false);
     }

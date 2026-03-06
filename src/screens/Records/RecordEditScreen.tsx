@@ -39,6 +39,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import RecordImageGallery from '../../components/records/RecordImageGallery';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { TimelineStackParamList } from '../../navigation/TimelineStackNavigator';
+import { getBrandedErrorMeta } from '../../services/app/errors';
 import {
   buildPickedRecordImages,
   parseRecordTags,
@@ -65,12 +66,6 @@ type TimelineNav = NativeStackNavigationProp<TimelineStackParamList, 'RecordEdit
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
 type Nav = CompositeNavigationProp<TimelineNav, RootNav>;
 type Route = RouteProp<TimelineStackParamList, 'RecordEdit'>;
-
-function getErrorMessage(err: unknown) {
-  if (err instanceof Error) return err.message;
-  if (typeof err === 'string') return err;
-  return '오류가 발생했습니다.';
-}
 
 type AddedImage = PickedRecordImage;
 type PreviewItem =
@@ -373,7 +368,11 @@ export default function RecordEditScreen() {
 
       setSuccessModalVisible(true);
     } catch (err) {
-      Alert.alert('수정 실패', getErrorMessage(err));
+      const { title: alertTitle, message } = getBrandedErrorMeta(
+        err,
+        'record-update',
+      );
+      Alert.alert(alertTitle, message);
     } finally {
       setSaving(false);
     }

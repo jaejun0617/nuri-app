@@ -23,6 +23,7 @@ import Feather from 'react-native-vector-icons/Feather';
 
 import { ASSETS } from '../../assets';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import { getBrandedErrorMeta } from '../../services/app/errors';
 import { supabase } from '../../services/supabase/client';
 import { useAuthStore } from '../../store/authStore';
 
@@ -105,12 +106,6 @@ const SocialButton = memo(function SocialButton({
   );
 });
 
-function getErrorMessage(error: unknown) {
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'string') return error;
-  return '다시 시도해 주세요.';
-}
-
 export default function SignInScreen() {
   const navigation = useNavigation<Nav>();
 
@@ -141,7 +136,8 @@ export default function SignInScreen() {
       await setSession(data.session ?? null);
       navigation.reset({ index: 0, routes: [{ name: 'Splash' }] });
     } catch (error) {
-      Alert.alert('로그인 실패', getErrorMessage(error));
+      const { title, message } = getBrandedErrorMeta(error, 'signin');
+      Alert.alert(title, message);
     } finally {
       setSubmitting(false);
     }

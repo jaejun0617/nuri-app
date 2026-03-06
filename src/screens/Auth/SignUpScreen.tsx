@@ -20,7 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
-import { getRetryableErrorMessage } from '../../services/app/errors';
+import { getBrandedErrorMeta } from '../../services/app/errors';
 import {
   CURRENT_POLICY_VERSION,
   flushPendingConsentSnapshot,
@@ -107,51 +107,6 @@ const SocialButton = memo(function SocialButton({
     </TouchableOpacity>
   );
 });
-
-function getErrorMessage(error: unknown) {
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'string') return error;
-  return '다시 시도해 주세요.';
-}
-
-function getSignUpErrorMeta(error: unknown): { title: string; message: string } {
-  const raw = getErrorMessage(error);
-  const normalized = raw.toLowerCase();
-
-  if (normalized.includes('email rate limit exceeded')) {
-    return {
-      title: '가입 요청이 많습니다',
-      message: '이메일 발송 요청이 많아 잠시 제한되었습니다. 잠시 후 다시 시도해주세요.',
-    };
-  }
-
-  if (normalized.includes('user already registered')) {
-    return {
-      title: '이미 가입된 이메일입니다',
-      message: '이미 가입된 계정입니다. 로그인 화면에서 다시 진행해주세요.',
-    };
-  }
-
-  if (normalized.includes('database error saving new user')) {
-    return {
-      title: '가입 처리 오류',
-      message:
-        '가입 초기화 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.',
-    };
-  }
-
-  if (normalized.includes('password')) {
-    return {
-      title: '비밀번호를 확인해주세요',
-      message: raw,
-    };
-  }
-
-  return {
-    title: '회원가입 실패',
-    message: raw,
-  };
-}
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
@@ -254,8 +209,7 @@ export default function SignUpScreen() {
       });
       navigation.replace('NicknameSetup', { after: 'signup' });
     } catch (error) {
-      const { title } = getSignUpErrorMeta(error);
-      const message = getRetryableErrorMessage(error);
+      const { title, message } = getBrandedErrorMeta(error, 'signup');
       Alert.alert(title, message);
       showToast({
         tone: 'error',

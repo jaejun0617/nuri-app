@@ -25,6 +25,10 @@ import AppText from '../../app/ui/AppText';
 import PetMemorialFields from '../../components/pets/PetMemorialFields';
 import PetThemePicker from '../../components/pets/PetThemePicker';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import {
+  getBrandedErrorMeta,
+  getErrorMessage,
+} from '../../services/app/errors';
 import { readFileAsBase64 } from '../../services/files/readFileAsBase64';
 import {
   getPetMemorialChoice,
@@ -92,12 +96,6 @@ function normalizeTextList(raw: string): string[] {
     .map(v => v.trim().replace(/\s+/g, ' '))
     .filter(Boolean)
     .slice(0, 8);
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'string') return error;
-  return '다시 시도해 주세요.';
 }
 
 function inferMimeFromFileName(fileName: string | null | undefined): string | null {
@@ -438,7 +436,8 @@ export default function PetProfileEditScreen() {
         petName: trimmedName,
       });
     } catch (error) {
-      Alert.alert('프로필 수정 실패', getErrorMessage(error));
+      const { title, message } = getBrandedErrorMeta(error, 'pet-update');
+      Alert.alert(title, message);
     } finally {
       setSaving(false);
     }

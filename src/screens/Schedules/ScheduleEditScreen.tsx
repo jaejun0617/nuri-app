@@ -21,6 +21,10 @@ import AppText from '../../app/ui/AppText';
 import SchedulePickerModal from '../../components/schedules/SchedulePickerModal';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
+  getBrandedErrorMeta,
+  getErrorMessage,
+} from '../../services/app/errors';
+import {
   fetchScheduleById,
   updateSchedule,
   type PetSchedule,
@@ -55,12 +59,6 @@ type Route = {
   name: 'ScheduleEdit';
   params: { petId?: string; scheduleId: string };
 };
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'string') return error;
-  return '다시 시도해 주세요.';
-}
 
 export default function ScheduleEditScreen() {
   const navigation = useNavigation<Nav>();
@@ -110,7 +108,11 @@ export default function ScheduleEditScreen() {
         setReminderKey(getReminderKeyByMinutes(next.reminderMinutes));
       } catch (error) {
         if (mounted) {
-          Alert.alert('일정 조회 실패', getErrorMessage(error));
+          const { title: alertTitle, message } = getBrandedErrorMeta(
+            error,
+            'schedule-fetch',
+          );
+          Alert.alert(alertTitle, message);
           navigation.goBack();
         }
       } finally {
@@ -195,7 +197,11 @@ export default function ScheduleEditScreen() {
         navigateTo: { type: 'schedule-list', petId },
       });
     } catch (error) {
-      Alert.alert('일정 수정 실패', getErrorMessage(error));
+      const { title: alertTitle, message } = getBrandedErrorMeta(
+        error,
+        'schedule-update',
+      );
+      Alert.alert(alertTitle, message);
     } finally {
       setSaving(false);
     }
