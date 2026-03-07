@@ -11,6 +11,7 @@
 
 import React, { useEffect, useMemo } from 'react';
 import { AppState } from 'react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'styled-components/native';
 
 import { createTheme } from '../theme/theme';
@@ -35,6 +36,17 @@ import { useScheduleStore } from '../../store/scheduleStore';
 type Props = {
   children: React.ReactNode;
 };
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: true,
+      refetchOnMount: false,
+    },
+  },
+});
 
 export default function AppProviders({ children }: Props) {
   // ---------------------------------------------------------
@@ -233,5 +245,9 @@ export default function AppProviders({ children }: Props) {
     clearSchedules,
   ]);
 
-  return <ThemeProvider theme={theme}>{children}</ThemeProvider>;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider theme={theme}>{children}</ThemeProvider>
+    </QueryClientProvider>
+  );
 }

@@ -2360,6 +2360,36 @@ NURI는 데이터 입력 도구가 아니라,
 
 ---
 
+## Chapter 6-62 — 날씨 캐시를 TanStack Query + Zustand 조합으로 전환
+
+### 무엇을 진행했나
+
+- [`package.json`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/package.json), [`yarn.lock`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/yarn.lock) 에 `@tanstack/react-query`를 추가했다.
+- [`src/app/providers/AppProviders.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/app/providers/AppProviders.tsx) 에 `QueryClientProvider`를 연결해 앱 전역에서 Query 캐시를 사용할 수 있게 했다.
+- [`src/store/weatherStore.ts`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/store/weatherStore.ts) 를 새로 만들어, 좌표별 날씨 번들을 `zustand` 메모리 캐시로 10분 유지하도록 구성했다.
+- [`src/hooks/useWeatherGuide.ts`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/hooks/useWeatherGuide.ts) 는 기존 훅 내부 캐시 중심 구조에서 벗어나 다음 순서로 데이터를 조회하도록 바꿨다.
+  - 1) `Zustand` 메모리 TTL 캐시
+  - 2) `AsyncStorage` TTL 캐시
+  - 3) `TanStack Query` 기반 API 호출
+- [`src/services/weather/cache.ts`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/services/weather/cache.ts) 의 캐시 키는 `v2`로 올려서 이전 형식의 주간예보 라벨 캐시를 자동 무효화했다.
+- [`src/services/weather/mapper.ts`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/services/weather/mapper.ts) 는 주간예보 라벨을 고정 배열이 아니라 실제 날짜 기준으로 계산하도록 바꿨다.
+
+### 왜 이렇게 했나
+
+- 홈 → 날씨 상세 → 다시 홈 → 다시 상세로 돌아갈 때, 같은 좌표와 짧은 시간 범위 안에서는 같은 날씨 데이터를 재사용하는 편이 훨씬 자연스럽다.
+- 기존 구조는 `AsyncStorage` 캐시가 있어도 훅이 다시 돌면서 메모리 레벨 재사용이 약했고, 화면 왕복에서 체감 로딩이 남아 있었다.
+- 서버 상태 캐시는 `TanStack Query`, 앱 메모리 상태는 `Zustand`가 맡도록 역할을 분리하면 유지보수성과 확장성이 더 좋다.
+- 주간예보 라벨도 실제 날짜를 기준으로 계산해야 `오늘 / 내일 / 월 / 화 / 수 ...`처럼 직관적으로 보일 수 있다.
+
+### 결과
+
+- 같은 좌표 기준으로 10분 안에 다시 상세에 들어오면 API를 다시 호출하지 않고 메모리/로컬 캐시를 재사용한다.
+- 날씨 상세 진입 시 홈에서 이미 확인한 데이터가 훨씬 자연스럽게 유지되고, 왕복 체감 속도도 개선됐다.
+- 주간예보는 더 이상 `오늘 / 내일 / 수 / 목 ...`처럼 고정 배열 때문에 어색하게 보이지 않고, 실제 요일 순서대로 렌더링된다.
+- 날씨 데이터 계층은 이제 `TanStack Query + Zustand + AsyncStorage fallback` 구조로 정리돼, 이후 다른 서버 조회 흐름에도 같은 패턴을 적용하기 쉬워졌다.
+
+---
+
 # 🚀 Next
 
 ## Chapter 8 — 서버 검색(제목/태그) + 인덱스/정렬 안정화 + 섹션 점프 고도화

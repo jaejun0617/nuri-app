@@ -72,13 +72,24 @@ function buildWeeklyItems(
   daily: OpenMeteoForecastResponse['daily'],
   isDay: boolean,
 ): WeeklyWeatherItem[] {
-  const labels = ['오늘', '내일', '수', '목', '금', '토', '일'];
+  const weekdayLabels = ['일', '월', '화', '수', '목', '금', '토'];
 
   return (daily?.time ?? []).slice(0, 7).map((_, index) => {
     const weatherCode = daily?.weather_code?.[index] ?? 1;
+    const dateString = daily?.time?.[index];
+    const date = dateString ? new Date(`${dateString}T12:00:00+09:00`) : null;
+    const dayLabel =
+      index === 0
+        ? '오늘'
+        : index === 1
+          ? '내일'
+          : date
+            ? weekdayLabels[date.getDay()] ?? `${index + 1}일`
+            : `${index + 1}일`;
+
     return {
       key: `day:${index}`,
-      label: labels[index] ?? `${index + 1}일`,
+      label: dayLabel,
       icon: mapWeatherCodeToIcon(weatherCode, isDay),
       temperature: Math.round(daily?.temperature_2m_max?.[index] ?? 0),
       lowTemperature: Math.round(daily?.temperature_2m_min?.[index] ?? 0),

@@ -1,9 +1,10 @@
 // 파일: src/hooks/useWeatherGuide.ts
 // 역할:
-// - 위치 권한, 좌표, 동 이름, Open-Meteo API를 묶어 WeatherGuideBundle을 반환
-// - 화면에서는 mock/실데이터 차이 없이 같은 모델만 소비하도록 연결
+// - 위치 권한, 좌표, 동 이름, 날씨/대기질 API를 TanStack Query + Zustand 조합으로 연결
+// - 메모리 TTL -> AsyncStorage TTL -> API 순서로 조회해 화면 왕복 시 재호출을 줄이기
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { getBrandedErrorMeta } from '../services/app/errors';
 import { getFallbackDistrictLabel } from '../services/location/district';
@@ -14,8 +15,12 @@ import {
 } from '../services/weather/cache';
 import { buildWeatherGuideBundleFromApi } from '../services/weather/mapper';
 import { getWeatherGuideBundle, type WeatherGuideBundle } from '../services/weather/guide';
+import { useWeatherStore, getWeatherStoreCoordsKey } from '../store/weatherStore';
 import { useCurrentLocation } from './useCurrentLocation';
 import { useDistrict } from './useDistrict';
+
+const WEATHER_QUERY_STALE_MS = 10 * 60 * 1000;
+const WEATHER_QUERY_GC_MS = 15 * 60 * 1000;
 
 export type WeatherGuideState = {
   loading: boolean;
@@ -51,17 +56,13 @@ export function useWeatherGuide(
   initialDistrict = '현재 위치',
   initialBundle?: WeatherGuideBundle,
 ): WeatherGuideState {
+  const queryClient = useQueryClient();
   const location = useCurrentLocation();
   const districtState = useDistrict({
     coordinates: location.coordinates,
     loading: location.loading,
     error: location.error,
   });
-  const [bundle, setBundle] = useState<WeatherGuideBundle>(
-    initialBundle ?? getWeatherGuideBundle(initialDistrict),
-  );
-  const [loading, setLoading] = useState(!initialBundle);
-  const [error, setError] = useState<string | null>(null);
 
   const resolvedDistrict = useMemo(
     () =>
@@ -72,96 +73,129 @@ export function useWeatherGuide(
     [districtState.district, initialDistrict, location.coordinates],
   );
 
+  const coordsKey = useMemo(
+    () => (location.coordinates ? getWeatherStoreCoordsKey(location.coordinates) : null),
+    [location.coordinates],
+  );
+
+  const memoryEntry = useMemo(() => {
+    if (!location.coordinates) return null;
+    useWeatherStore.getState().clearExpired();
+    return useWeatherStore.getState().getFreshEntry(location.coordinates);
+  }, [location.coordinates]);
+
   useEffect(() => {
     let cancelled = false;
 
-    async function run() {
-      if (!location.coordinates) {
-        setBundle(getWeatherGuideBundle(resolvedDistrict));
-        setError(
-          getLocationFallbackMessage({
-            permission: location.permission,
-            locationError: location.error,
-            districtError: districtState.error,
-          }),
-        );
-        setLoading(location.loading || districtState.loading);
-        return;
-      }
-
-      setLoading(!initialBundle);
-      setError(null);
+    async function hydrateDiskCache() {
+      if (!location.coordinates || memoryEntry || initialBundle || !coordsKey) return;
 
       const cachedBundle = await loadCachedWeatherGuideBundle(location.coordinates);
-      if (cancelled) return;
+      if (!cachedBundle || cancelled) return;
 
-      if (cachedBundle) {
-        setBundle(
-          resolvedDistrict !== '현재 위치' &&
-            cachedBundle.district === '현재 위치'
-            ? { ...cachedBundle, district: resolvedDistrict }
-            : cachedBundle,
-        );
-        setLoading(false);
-      }
-
-      try {
-        const [forecast, airQuality] = await Promise.all([
-          fetchOpenMeteoForecast(location.coordinates),
-          fetchOpenMeteoAirQuality(location.coordinates),
-        ]);
-
-        if (cancelled) return;
-
-        const nextBundle = buildWeatherGuideBundleFromApi({
-          district: resolvedDistrict,
-          coords: location.coordinates,
-          forecast,
-          airQuality,
-        });
-
-        setBundle(nextBundle);
-        await saveCachedWeatherGuideBundle(location.coordinates, nextBundle);
-      } catch (nextError) {
-        if (cancelled) return;
-
-        if (!cachedBundle) {
-          setBundle(getWeatherGuideBundle(resolvedDistrict));
-        }
-
-        setError(
-          cachedBundle
-            ? '최근 확인한 날씨를 먼저 보여드릴게요. 연결이 안정되면 새 정보로 바뀝니다.'
-            : getWeatherGuideErrorMessage(nextError),
-        );
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
+      useWeatherStore.getState().saveBundle(location.coordinates, cachedBundle);
+      queryClient.setQueryData(['weather-guide', coordsKey], cachedBundle);
     }
 
-    run().catch(() => {});
+    hydrateDiskCache().catch(() => {});
 
     return () => {
       cancelled = true;
     };
+  }, [coordsKey, initialBundle, location.coordinates, memoryEntry, queryClient]);
+
+  const weatherQuery = useQuery<WeatherGuideBundle>({
+    queryKey: ['weather-guide', coordsKey],
+    enabled: !!location.coordinates && !!coordsKey,
+    staleTime: WEATHER_QUERY_STALE_MS,
+    gcTime: WEATHER_QUERY_GC_MS,
+    initialData: initialBundle ?? memoryEntry?.bundle,
+    initialDataUpdatedAt: memoryEntry?.savedAt ?? (initialBundle ? Date.now() : undefined),
+    queryFn: async () => {
+      if (!location.coordinates) {
+        throw new Error('현재 위치를 아직 확인하지 못했어요.');
+      }
+
+      const [forecast, airQuality] = await Promise.all([
+        fetchOpenMeteoForecast(location.coordinates),
+        fetchOpenMeteoAirQuality(location.coordinates),
+      ]);
+
+      return buildWeatherGuideBundleFromApi({
+        district: resolvedDistrict,
+        coords: location.coordinates,
+        forecast,
+        airQuality,
+      });
+    },
+  });
+
+  useEffect(() => {
+    if (!location.coordinates || !weatherQuery.data) return;
+
+    useWeatherStore.getState().saveBundle(location.coordinates, weatherQuery.data);
+    saveCachedWeatherGuideBundle(location.coordinates, weatherQuery.data).catch(() => {});
+  }, [location.coordinates, weatherQuery.data]);
+
+  const bundle = useMemo(() => {
+    const sourceBundle =
+      weatherQuery.data ?? initialBundle ?? getWeatherGuideBundle(resolvedDistrict);
+
+    if (resolvedDistrict === '현재 위치') return sourceBundle;
+    if (sourceBundle.district === resolvedDistrict) return sourceBundle;
+
+    return {
+      ...sourceBundle,
+      district: resolvedDistrict,
+    };
+  }, [initialBundle, resolvedDistrict, weatherQuery.data]);
+
+  const error = useMemo(() => {
+    const locationFallback = getLocationFallbackMessage({
+      permission: location.permission,
+      locationError: location.error,
+      districtError: districtState.error,
+    });
+
+    if (locationFallback && !location.coordinates) {
+      return locationFallback;
+    }
+
+    if (weatherQuery.error) {
+      return memoryEntry || initialBundle
+        ? '최근 확인한 날씨를 먼저 보여드릴게요. 연결이 안정되면 새 정보로 바뀝니다.'
+        : getWeatherGuideErrorMessage(weatherQuery.error);
+    }
+
+    return locationFallback;
   }, [
     districtState.error,
-    districtState.loading,
     initialBundle,
     location.coordinates,
     location.error,
-    location.loading,
     location.permission,
-    resolvedDistrict,
+    memoryEntry,
+    weatherQuery.error,
   ]);
+
+  const refresh = useCallback(async () => {
+    await location.refresh();
+    if (coordsKey) {
+      await queryClient.invalidateQueries({ queryKey: ['weather-guide', coordsKey] });
+    }
+    await weatherQuery.refetch();
+  }, [coordsKey, location, queryClient, weatherQuery]);
+
+  const loading =
+    !weatherQuery.data &&
+    !initialBundle &&
+    (location.loading || districtState.loading || weatherQuery.isLoading);
 
   return {
     loading,
     bundle,
     error,
-    refresh: location.refresh,
-    usingMock: !location.coordinates || !!error,
+    refresh,
+    usingMock: (!location.coordinates && !weatherQuery.data) || (!!error && !weatherQuery.data),
   };
 }
