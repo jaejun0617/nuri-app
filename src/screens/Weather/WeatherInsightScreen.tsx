@@ -50,6 +50,8 @@ type ScenePalette = {
 
 const CLEAR_DAY_IMAGE = require('../../assets/weather/clear-day.png');
 const CLEAR_NIGHT_IMAGE = require('../../assets/weather/clear-night.png');
+const RAIN_IMAGE = require('../../assets/weather/rain.png');
+const SNOW_IMAGE = require('../../assets/weather/snow.png');
 
 function getScenePalette(
   scenario: WeatherScenario,
@@ -227,15 +229,30 @@ function getBackgroundMoodCopy(weather: WeatherGuideBundle) {
     : '고요한 밤 공기와 함께 하루를 정리해 보세요.';
 }
 
-function getHeroImageSource(weather: WeatherGuideBundle) {
-  if (weather.scenario !== 'fresh') {
-    return null;
+function getHeroImageSource(scenario: WeatherScenario, isDaytime: boolean) {
+  if (scenario === 'fresh') {
+    return isDaytime ? CLEAR_DAY_IMAGE : CLEAR_NIGHT_IMAGE;
   }
 
-  return weather.isDaytime ? CLEAR_DAY_IMAGE : CLEAR_NIGHT_IMAGE;
+  if (scenario === 'rain') {
+    return RAIN_IMAGE;
+  }
+
+  if (scenario === 'snow') {
+    return SNOW_IMAGE;
+  }
+
+  return null;
 }
 
-type HeroPreviewMode = 'auto' | 'clear-day' | 'clear-night';
+type HeroPreviewMode =
+  | 'auto'
+  | 'clear-day'
+  | 'clear-night'
+  | 'rain-day'
+  | 'rain-night'
+  | 'snow-day'
+  | 'snow-night';
 
 export default function WeatherInsightScreen() {
   const navigation = useNavigation<Nav>();
@@ -249,13 +266,38 @@ export default function WeatherInsightScreen() {
     route.params?.initialBundle,
   );
   const weather = weatherState.bundle;
-  const previewIsDaytime = heroPreviewMode === 'clear-day';
-  const sceneIsDaytime =
-    weather.scenario === 'fresh' ? previewIsDaytime : weather.isDaytime;
+  const previewScene = useMemo(() => {
+    switch (heroPreviewMode) {
+      case 'clear-day':
+        return { scenario: 'fresh' as const, isDaytime: true };
+      case 'clear-night':
+        return { scenario: 'fresh' as const, isDaytime: false };
+      case 'rain-day':
+        return { scenario: 'rain' as const, isDaytime: true };
+      case 'rain-night':
+        return { scenario: 'rain' as const, isDaytime: false };
+      case 'snow-day':
+        return { scenario: 'snow' as const, isDaytime: true };
+      case 'snow-night':
+        return { scenario: 'snow' as const, isDaytime: false };
+      default:
+        return null;
+    }
+  }, [heroPreviewMode]);
+  const displayScenario = previewScene?.scenario ?? weather.scenario;
+  const sceneIsDaytime = previewScene?.isDaytime ?? weather.isDaytime;
+  const displayWeather = useMemo(
+    () => ({
+      ...weather,
+      scenario: displayScenario,
+      isDaytime: sceneIsDaytime,
+    }),
+    [displayScenario, sceneIsDaytime, weather],
+  );
 
   const palette = useMemo(
-    () => getScenePalette(weather.scenario, sceneIsDaytime),
-    [sceneIsDaytime, weather.scenario],
+    () => getScenePalette(displayScenario, sceneIsDaytime),
+    [displayScenario, sceneIsDaytime],
   );
 
   const displayDistrict =
@@ -320,38 +362,30 @@ export default function WeatherInsightScreen() {
       {
         key: 'visibility',
         title: '시야 가이드',
-        value: weather.scenario === 'dusty' ? '주의' : '좋음',
-        description: getVisibilityMessage(weather),
+        value: displayWeather.scenario === 'dusty' ? '주의' : '좋음',
+        description: getVisibilityMessage(displayWeather),
       },
       {
         key: 'pressure',
         title: '컨디션 힌트',
-        value: weather.scenario === 'fresh' ? '안정적' : '체크 필요',
-        description: getPressureMessage(weather),
+        value: displayWeather.scenario === 'fresh' ? '안정적' : '체크 필요',
+        description: getPressureMessage(displayWeather),
       },
       {
         key: 'day-phase',
         title: '현재 시간대',
         value: sceneIsDaytime ? '낮' : '밤',
-        description: `${getWeatherEmoji(weather.weatherIcon)} ${
+        description: `${getWeatherEmoji(displayWeather.weatherIcon)} ${
           weather.detailStatus
         }`,
       },
     ],
-    [sceneIsDaytime, weather],
+    [displayWeather, sceneIsDaytime, weather.cloudCover, weather.detailStatus],
   );
 
   const heroImageSource = useMemo(() => {
-    if (heroPreviewMode === 'clear-day') {
-      return CLEAR_DAY_IMAGE;
-    }
-
-    if (heroPreviewMode === 'clear-night') {
-      return CLEAR_NIGHT_IMAGE;
-    }
-
-    return getHeroImageSource(weather);
-  }, [heroPreviewMode, weather]);
+    return getHeroImageSource(displayScenario, sceneIsDaytime);
+  }, [displayScenario, sceneIsDaytime]);
 
   const heroImageTextPalette = useMemo(() => {
     return {
@@ -363,7 +397,7 @@ export default function WeatherInsightScreen() {
   }, []);
 
   const forecastTextPalette = useMemo(() => {
-    if (weather.scenario === 'fresh' && sceneIsDaytime) {
+    if (displayScenario === 'fresh' && sceneIsDaytime) {
       return {
         label: '#18345F',
         precipitation: 'rgba(24,52,95,0.64)',
@@ -378,7 +412,59 @@ export default function WeatherInsightScreen() {
       temperature: '#FFFFFF',
       lowTemperature: 'rgba(226,236,248,0.74)',
     };
-  }, [sceneIsDaytime, weather.scenario]);
+  }, [displayScenario, sceneIsDaytime]);
+
+  const heroBlendColors = useMemo(() => {
+    if (displayScenario === 'fresh' && sceneIsDaytime) {
+      return [
+        'rgba(247,251,255,0)',
+        'rgba(234,245,255,0.36)',
+        'rgba(234,245,255,0.92)',
+      ];
+    }
+
+    if (displayScenario === 'fresh' && !sceneIsDaytime) {
+      return [
+        'rgba(4,15,39,0)',
+        'rgba(13,42,99,0.34)',
+        'rgba(13,42,99,0.94)',
+      ];
+    }
+
+    if (displayScenario === 'rain') {
+      return sceneIsDaytime
+        ? [
+            'rgba(27,61,114,0)',
+            'rgba(27,61,114,0.34)',
+            'rgba(23,61,119,0.94)',
+          ]
+        : [
+            'rgba(4,18,38,0)',
+            'rgba(16,47,92,0.34)',
+            'rgba(16,47,92,0.94)',
+          ];
+    }
+
+    if (displayScenario === 'snow') {
+      return sceneIsDaytime
+        ? [
+            'rgba(216,231,255,0)',
+            'rgba(125,176,255,0.26)',
+            'rgba(125,176,255,0.86)',
+          ]
+        : [
+            'rgba(7,21,47,0)',
+            'rgba(22,56,107,0.34)',
+            'rgba(22,56,107,0.92)',
+          ];
+    }
+
+    return [
+      'rgba(255,255,255,0)',
+      'rgba(255,255,255,0.12)',
+      'rgba(255,255,255,0.28)',
+    ];
+  }, [displayScenario, sceneIsDaytime]);
 
   const onPressPrimary = useCallback(() => {
     try {
@@ -546,11 +632,7 @@ export default function WeatherInsightScreen() {
                     </View>
                   </View>
                   <LinearGradient
-                    colors={[
-                      'rgba(234,245,255,0)',
-                      'rgba(234,245,255,0.36)',
-                      'rgba(234,245,255,0.92)',
-                    ]}
+                    colors={heroBlendColors}
                     style={styles.heroImageBottomBlend}
                   />
                 </ImageBackground>
@@ -671,7 +753,7 @@ export default function WeatherInsightScreen() {
             <Text
               style={[styles.heroMoodCopy, { color: palette.textSecondary }]}
             >
-              {getBackgroundMoodCopy(weather)}
+              {getBackgroundMoodCopy(displayWeather)}
             </Text>
             {weatherState.error ? (
               <Text
@@ -722,6 +804,90 @@ export default function WeatherInsightScreen() {
                     ]}
                   >
                     맑음 밤
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={[
+                    styles.previewChip,
+                    heroPreviewMode === 'rain-day'
+                      ? styles.previewChipActive
+                      : null,
+                  ]}
+                  onPress={() => setHeroPreviewMode('rain-day')}
+                >
+                  <Text
+                    style={[
+                      styles.previewChipText,
+                      heroPreviewMode === 'rain-day'
+                        ? styles.previewChipTextActive
+                        : null,
+                    ]}
+                  >
+                    비 낮
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={[
+                    styles.previewChip,
+                    heroPreviewMode === 'rain-night'
+                      ? styles.previewChipActive
+                      : null,
+                  ]}
+                  onPress={() => setHeroPreviewMode('rain-night')}
+                >
+                  <Text
+                    style={[
+                      styles.previewChipText,
+                      heroPreviewMode === 'rain-night'
+                        ? styles.previewChipTextActive
+                        : null,
+                    ]}
+                  >
+                    비 밤
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={[
+                    styles.previewChip,
+                    heroPreviewMode === 'snow-day'
+                      ? styles.previewChipActive
+                      : null,
+                  ]}
+                  onPress={() => setHeroPreviewMode('snow-day')}
+                >
+                  <Text
+                    style={[
+                      styles.previewChipText,
+                      heroPreviewMode === 'snow-day'
+                        ? styles.previewChipTextActive
+                        : null,
+                    ]}
+                  >
+                    눈 낮
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={[
+                    styles.previewChip,
+                    heroPreviewMode === 'snow-night'
+                      ? styles.previewChipActive
+                      : null,
+                  ]}
+                  onPress={() => setHeroPreviewMode('snow-night')}
+                >
+                  <Text
+                    style={[
+                      styles.previewChipText,
+                      heroPreviewMode === 'snow-night'
+                        ? styles.previewChipTextActive
+                        : null,
+                    ]}
+                  >
+                    눈 밤
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -1139,6 +1305,7 @@ const styles = StyleSheet.create({
   previewRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 8,
     marginTop: 2,
   },
