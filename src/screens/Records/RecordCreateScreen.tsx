@@ -76,6 +76,7 @@ import { uploadMemoryImage } from '../../services/supabase/storageMemories';
 import { usePetStore } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
 import { showToast } from '../../store/uiStore';
+import { openMoreDrawer } from '../../store/uiStore';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
 import RecordDateModal from './components/RecordDateModal';
 import RecordTagModal from './components/RecordTagModal';
@@ -100,6 +101,7 @@ export default function RecordCreateScreen() {
   const upsertOneLocal = useRecordStore(s => s.upsertOneLocal);
 
   const petIdFromParams = route.params?.petId ?? null;
+  const returnTo = route.params?.returnTo;
 
   const petId = useMemo(() => {
     if (petIdFromParams) return petIdFromParams;
@@ -339,11 +341,41 @@ export default function RecordCreateScreen() {
     });
   }, [activeImageIndex]);
 
+  const navigateBackToOrigin = useCallback(() => {
+    if (returnTo?.tab === 'TimelineTab') {
+      navigation.navigate('TimelineTab', returnTo.params);
+      return;
+    }
+
+    if (returnTo?.tab === 'GuestbookTab') {
+      navigation.navigate('GuestbookTab');
+      return;
+    }
+
+    if (returnTo?.tab === 'MoreTab') {
+      navigation.navigate('HomeTab');
+      openMoreDrawer();
+      return;
+    }
+
+    if (returnTo?.tab === 'HomeTab') {
+      navigation.navigate('HomeTab');
+      return;
+    }
+
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+
+    navigation.navigate('HomeTab');
+  }, [navigation, returnTo]);
+
   const onPressCancel = useCallback(() => {
     clearRecordCreateDraft().catch(() => {});
     resetForm();
-    navigation.navigate('HomeTab');
-  }, [navigation, resetForm]);
+    navigateBackToOrigin();
+  }, [navigateBackToOrigin, resetForm]);
 
   const onSelectMainCategory = useCallback((nextKey: RecordMainCategoryKey) => {
     setMainCategoryKey(nextKey);

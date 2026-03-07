@@ -716,8 +716,22 @@ export default function TimelineScreen() {
   // ---------------------------------------------------------
   const onPressCreate = useCallback(() => {
     if (!petId) return;
-    navigation.navigate('RecordCreateTab', { petId });
-  }, [navigation, petId]);
+    navigation.navigate('RecordCreateTab', {
+      petId,
+      returnTo: {
+        tab: 'TimelineTab',
+        params: {
+          screen: 'TimelineMain',
+          params: {
+            petId,
+            mainCategory,
+            otherSubCategory:
+              mainCategory === 'other' ? otherSubCategory ?? undefined : undefined,
+          },
+        },
+      },
+    });
+  }, [navigation, petId, mainCategory, otherSubCategory]);
 
   const onPressItem = useCallback(
     (item: MemoryRecord) => {

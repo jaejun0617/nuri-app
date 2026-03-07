@@ -28,7 +28,19 @@ import { useUiStore } from '../store/uiStore';
 export type AppTabParamList = {
   HomeTab: undefined;
   TimelineTab: NavigatorScreenParams<TimelineStackParamList> | undefined;
-  RecordCreateTab: { petId?: string } | undefined;
+  RecordCreateTab:
+    | {
+        petId?: string;
+        returnTo?:
+          | { tab: 'HomeTab' }
+          | {
+              tab: 'TimelineTab';
+              params?: NavigatorScreenParams<TimelineStackParamList>;
+            }
+          | { tab: 'GuestbookTab' }
+          | { tab: 'MoreTab' };
+      }
+    | undefined;
   GuestbookTab: undefined;
   MoreTab: undefined;
 };

@@ -2422,6 +2422,30 @@ NURI는 데이터 입력 도구가 아니라,
 
 ---
 
+## Chapter 6-64 — 기록 작성 취소 복귀 흐름을 진입 탭 기준으로 안정화
+
+### 무엇을 진행했나
+
+- [`src/navigation/AppTabsNavigator.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/navigation/AppTabsNavigator.tsx) 의 `RecordCreateTab` 파라미터에 `returnTo` 타입을 추가해, 기록 작성 진입 시 원래 돌아가야 할 탭 정보를 함께 들고 다니게 했다.
+- [`src/components/navigation/AppNavigationToolbar.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/components/navigation/AppNavigationToolbar.tsx) 는 공용 하단 툴바에서 `기록하기`로 이동할 때 현재 활성 탭을 기준으로 복귀 목적지를 같이 넘기도록 바꿨다.
+- [`src/screens/Main/components/LoggedInHome/LoggedInHome.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/screens/Main/components/LoggedInHome/LoggedInHome.tsx) 에서 홈 → 기록하기 진입 시 `HomeTab` 복귀 목적지를 함께 전달하도록 맞췄다.
+- [`src/screens/Records/TimelineScreen.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/screens/Records/TimelineScreen.tsx) 에서 타임라인 → 기록하기 진입 시 `TimelineMain`과 현재 필터 기준을 복귀 목적으로 함께 전달하도록 바꿨다.
+- [`src/screens/Records/RecordCreateScreen.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/screens/Records/RecordCreateScreen.tsx) 의 `취소`는 더 이상 `HomeTab`으로 하드코딩 이동하지 않고, `returnTo → goBack → HomeTab fallback` 순서로 안전하게 복귀한다.
+
+### 왜 이렇게 했나
+
+- 기존 구조는 타임라인에서 기록 작성을 열어도 `취소`를 누르면 무조건 홈으로 이동해서, 사용자가 원래 보던 문맥을 잃었다.
+- 같은 문제는 공용 툴바나 다른 탭에서 기록 작성으로 들어갈 때도 재발할 수 있어, 화면 내부 하드코딩이 아니라 “진입 시 복귀 목적지를 함께 전달하는 방식”으로 묶는 편이 안전하다.
+- 최소 수정으로 기존 탭/스택 구조를 유지하면서도, 실제 서비스 UX 기준으로는 “원래 보던 탭으로 돌아가는 동작”이 맞다.
+
+### 결과
+
+- 타임라인 → 기록하기 → 취소 시 다시 타임라인으로 복귀한다.
+- 홈/공용 툴바에서 기록하기로 들어간 경우에도, 진입한 탭을 기준으로 자연스럽게 되돌아간다.
+- 기록 작성 화면의 취소 로직은 이제 하드코딩 경로 대신 타입 안전한 `returnTo` 규칙을 따르므로, 같은 종류의 네비게이션 버그를 줄이기 쉬운 구조가 됐다.
+
+---
+
 # 🚀 Next
 
 ## Chapter 8 — 서버 검색(제목/태그) + 인덱스/정렬 안정화 + 섹션 점프 고도화

@@ -47,6 +47,24 @@ export default function AppNavigationToolbar({
     () => Math.max(insets.bottom, Platform.OS === 'android' ? 18 : 12),
     [insets.bottom],
   );
+  const recordReturnTo = useMemo(() => {
+    switch (activeKey) {
+      case 'home':
+        return { tab: 'HomeTab' } as const;
+      case 'timeline':
+        return {
+          tab: 'TimelineTab',
+          params: {
+            screen: 'TimelineMain',
+            params: { mainCategory: 'all' },
+          },
+        } as const;
+      case 'guestbook':
+        return { tab: 'GuestbookTab' } as const;
+      default:
+        return undefined;
+    }
+  }, [activeKey]);
 
   const navigateTo = useCallback(
     (target: ActiveTabKey) => {
@@ -71,7 +89,13 @@ export default function AppNavigationToolbar({
       if (target === 'record') {
         navigation.navigate('AppTabs', {
           screen: 'RecordCreateTab',
-          params: selectedPet?.id ? { petId: selectedPet.id } : undefined,
+          params:
+            selectedPet?.id || recordReturnTo
+              ? {
+                  petId: selectedPet?.id,
+                  returnTo: recordReturnTo,
+                }
+              : undefined,
         });
         return;
       }
@@ -87,7 +111,7 @@ export default function AppNavigationToolbar({
         screen: 'HomeTab',
       });
     },
-    [navigation, onBeforeNavigate, selectedPet?.id],
+    [navigation, onBeforeNavigate, recordReturnTo, selectedPet?.id],
   );
 
   const tabs = useMemo(

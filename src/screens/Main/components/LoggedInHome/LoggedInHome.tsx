@@ -1342,15 +1342,23 @@ export default function LoggedInHome() {
   }, [selectedPet?.tags]);
 
   const selectedAvatarUri = useMemo(
-    () => selectedPet?.avatarUrl ?? null,
+    () => selectedPet?.avatarUrl?.trim() || null,
     [selectedPet?.avatarUrl],
   );
+  const visiblePets = useMemo(() => pets.slice(0, 4), [pets]);
   const petTheme = useMemo(
     () => buildPetThemePalette(selectedPet?.themeColor),
     [selectedPet?.themeColor],
   );
   const weatherGuideState = useWeatherGuide('현재 위치');
   const weatherGuide = weatherGuideState.bundle;
+  const weatherInsightParams = useMemo(
+    () => ({
+      district: weatherGuide.district,
+      initialBundle: weatherGuide,
+    }),
+    [weatherGuide],
+  );
 
   // ---------------------------------------------------------
   // 6) header text
@@ -1420,11 +1428,8 @@ export default function LoggedInHome() {
   }, [activePetId, rootNavigation]);
 
   const onPressWeatherInsight = useCallback(() => {
-    rootNavigation.navigate('WeatherInsight', {
-      district: weatherGuide.district,
-      initialBundle: weatherGuide,
-    });
-  }, [rootNavigation, weatherGuide]);
+    rootNavigation.navigate('WeatherInsight', weatherInsightParams);
+  }, [rootNavigation, weatherInsightParams]);
 
   const onPressTimelineCategory = useCallback(
     (
@@ -1444,7 +1449,10 @@ export default function LoggedInHome() {
   );
 
   const onPressRecord = useCallback(() => {
-    navigation.navigate('RecordCreateTab', { petId: activePetId ?? undefined });
+    navigation.navigate('RecordCreateTab', {
+      petId: activePetId ?? undefined,
+      returnTo: { tab: 'HomeTab' },
+    });
   }, [navigation, activePetId]);
 
   const onPressRecordItem = useCallback(
@@ -1660,9 +1668,9 @@ export default function LoggedInHome() {
 
           {/* Pet switcher */}
           <View style={styles.petSwitcherRow}>
-            {pets.slice(0, 4).map(p => {
+            {visiblePets.map(p => {
               const isActive = p.id === activePetId;
-              const uri = p.avatarUrl ?? null;
+              const uri = p.avatarUrl?.trim() || null;
 
               return (
                 <TouchableOpacity
