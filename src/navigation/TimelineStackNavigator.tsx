@@ -10,13 +10,14 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import TimelineScreen from '../screens/Records/TimelineScreen';
 import RecordDetailScreen from '../screens/Records/RecordDetailScreen';
 import RecordEditScreen from '../screens/Records/RecordEditScreen';
+import type { MemoryOtherSubCategory } from '../services/memories/categoryMeta';
 
 export type TimelineStackParamList = {
   TimelineMain:
     | {
         petId?: string;
         mainCategory?: 'all' | 'walk' | 'meal' | 'health' | 'diary' | 'other';
-        otherSubCategory?: 'grooming' | 'hospital' | 'etc';
+        otherSubCategory?: MemoryOtherSubCategory;
       }
     | undefined;
   RecordDetail: { petId: string; memoryId: string };

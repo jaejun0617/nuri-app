@@ -54,6 +54,7 @@ import {
   useRoute,
 } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useTheme } from 'styled-components/native';
 
 // ✅ 따로 분리한 MemoryCard 컴포넌트 불러오기! (경로는 실제 구조에 맞게 수정해주세요)
 import { MemoryCard } from '../../components/MemoryCard/MemoryCard';
@@ -507,6 +508,7 @@ export default function TimelineScreen() {
   // ---------------------------------------------------------
   // 1) navigation / route
   // ---------------------------------------------------------
+  const theme = useTheme();
   const navigation = useNavigation<Nav>();
   const route = useRoute<TimelineMainRoute>();
 
@@ -743,7 +745,7 @@ export default function TimelineScreen() {
     if (now - endReachedLockRef.current < 800) return;
     endReachedLockRef.current = now;
 
-    loadMore(petId);
+    loadMore(petId).catch(() => {});
   }, [petId, status, hasMore, query, loadMore]);
 
   const jumpToYm = useCallback((ym: string | null) => {
@@ -849,7 +851,7 @@ export default function TimelineScreen() {
                 style={styles.manualMoreBtn}
                 onPress={() => {
                   if (!petId) return;
-                  loadMore(petId);
+                  loadMore(petId).catch(() => {});
                 }}
               >
                 <AppText preset="caption" style={styles.manualMoreText}>
@@ -1052,20 +1054,38 @@ export default function TimelineScreen() {
         onRequestClose={() => setYmModalOpen(false)}
       >
         <Pressable
-          style={styles.modalBackdrop}
+          style={[styles.modalBackdrop, { backgroundColor: theme.colors.overlay }]}
           onPress={() => setYmModalOpen(false)}
         >
-          <Pressable style={styles.modalCard} onPress={() => {}}>
-            <AppText preset="headline" style={styles.modalTitle}>
+          <Pressable
+            style={[
+              styles.modalCard,
+              {
+                backgroundColor: theme.colors.surfaceElevated,
+                borderColor: theme.colors.border,
+              },
+            ]}
+            onPress={() => {}}
+          >
+            <AppText
+              preset="headline"
+              style={[styles.modalTitle, { color: theme.colors.textPrimary }]}
+            >
               월/연도 선택
             </AppText>
 
             <TouchableOpacity
               activeOpacity={0.9}
-              style={styles.modalItem}
+              style={[
+                styles.modalItem,
+                { borderColor: theme.colors.border },
+              ]}
               onPress={() => jumpToYm(null)}
             >
-              <AppText preset="body" style={styles.modalItemText}>
+              <AppText
+                preset="body"
+                style={[styles.modalItemText, { color: theme.colors.textPrimary }]}
+              >
                 전체 보기
               </AppText>
             </TouchableOpacity>
@@ -1074,10 +1094,19 @@ export default function TimelineScreen() {
               <TouchableOpacity
                 key={ym}
                 activeOpacity={0.9}
-                style={styles.modalItem}
+                style={[
+                  styles.modalItem,
+                  { borderColor: theme.colors.border },
+                ]}
                 onPress={() => jumpToYm(ym)}
               >
-                <AppText preset="body" style={styles.modalItemText}>
+                <AppText
+                  preset="body"
+                  style={[
+                    styles.modalItemText,
+                    { color: theme.colors.textPrimary },
+                  ]}
+                >
                   {humanYm(ym)}
                 </AppText>
               </TouchableOpacity>
@@ -1094,20 +1123,38 @@ export default function TimelineScreen() {
         onRequestClose={() => setOtherModalOpen(false)}
       >
         <Pressable
-          style={styles.modalBackdrop}
+          style={[styles.modalBackdrop, { backgroundColor: theme.colors.overlay }]}
           onPress={() => setOtherModalOpen(false)}
         >
-          <Pressable style={styles.modalCard} onPress={() => {}}>
-            <AppText preset="headline" style={styles.modalTitle}>
+          <Pressable
+            style={[
+              styles.modalCard,
+              {
+                backgroundColor: theme.colors.surfaceElevated,
+                borderColor: theme.colors.border,
+              },
+            ]}
+            onPress={() => {}}
+          >
+            <AppText
+              preset="headline"
+              style={[styles.modalTitle, { color: theme.colors.textPrimary }]}
+            >
               기타 선택
             </AppText>
 
             <TouchableOpacity
               activeOpacity={0.9}
-              style={styles.modalItem}
+              style={[
+                styles.modalItem,
+                { borderColor: theme.colors.border },
+              ]}
               onPress={clearOtherSub}
             >
-              <AppText preset="body" style={styles.modalItemText}>
+              <AppText
+                preset="body"
+                style={[styles.modalItemText, { color: theme.colors.textPrimary }]}
+              >
                 기타(전체)
               </AppText>
             </TouchableOpacity>
@@ -1116,10 +1163,19 @@ export default function TimelineScreen() {
               <TouchableOpacity
                 key={sub.key}
                 activeOpacity={0.9}
-                style={styles.modalItem}
+                style={[
+                  styles.modalItem,
+                  { borderColor: theme.colors.border },
+                ]}
                 onPress={() => applyOtherSub(sub.key)}
               >
-                <AppText preset="body" style={styles.modalItemText}>
+                <AppText
+                  preset="body"
+                  style={[
+                    styles.modalItemText,
+                    { color: theme.colors.textPrimary },
+                  ]}
+                >
                   {sub.label}
                 </AppText>
               </TouchableOpacity>

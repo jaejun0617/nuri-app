@@ -6,6 +6,7 @@
 import React from 'react';
 import { Modal, TextInput, TouchableOpacity, View } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
+import { useTheme } from 'styled-components/native';
 
 import AppText from '../../../app/ui/AppText';
 import { styles } from '../RecordCreateScreen.styles';
@@ -29,6 +30,8 @@ export default function RecordDateModal({
   onChangeDateDraft,
   onApplyDate,
 }: Props) {
+  const theme = useTheme();
+
   return (
     <Modal
       visible={visible}
@@ -53,7 +56,11 @@ export default function RecordDateModal({
               style={styles.tagModalCloseBtn}
               onPress={onClose}
             >
-              <Feather name="x" size={18} color="#8E98AA" />
+              <Feather
+                name="x"
+                size={18}
+                color={theme.colors.textMuted}
+              />
             </TouchableOpacity>
           </View>
 
@@ -114,7 +121,7 @@ export default function RecordDateModal({
             onChangeText={onChangeDateDraft}
             autoCapitalize="none"
             placeholder="YYYY-MM-DD"
-            placeholderTextColor="#B5BDCB"
+            placeholderTextColor={theme.colors.textMuted}
           />
           <AppText preset="caption" style={styles.helperText}>
             `YYYY-MM-DD` 형식으로 기록 날짜를 저장합니다.

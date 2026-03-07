@@ -4,7 +4,7 @@
 // - 현재 기록과 같은 아이의 다른 기록을 카드 단위 피드로 이어서 보여줌
 // - 각 카드마다 바로 수정/삭제 가능한 액션 메뉴를 제공
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -21,6 +21,7 @@ import type { RouteProp } from '@react-navigation/native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
+import { useTheme } from 'styled-components/native';
 
 import AppNavigationToolbar from '../../components/navigation/AppNavigationToolbar';
 import AppText from '../../app/ui/AppText';
@@ -80,7 +81,7 @@ function formatRelativeTime(value: string) {
   return `${days}일 전`;
 }
 
-function FeedPostCard({
+const FeedPostCard = memo(function FeedPostCard({
   item,
   petName,
   petAvatarUrl,
@@ -222,9 +223,10 @@ function FeedPostCard({
       </View>
     </View>
   );
-}
+});
 
 export default function RecordDetailScreen() {
+  const theme = useTheme();
   const navigation = useNavigation<TimelineNav>();
   const route = useRoute<Route>();
   const petId = route.params?.petId ?? null;
@@ -271,10 +273,15 @@ export default function RecordDetailScreen() {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [actionMenuVisible, setActionMenuVisible] = useState(false);
   const [actionTargetId, setActionTargetId] = useState<string | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const actionTarget = useMemo(
     () => feedRecords.find(item => item.id === actionTargetId) ?? null,
     [actionTargetId, feedRecords],
+  );
+  const deleteTarget = useMemo(
+    () => feedRecords.find(item => item.id === deleteTargetId) ?? null,
+    [deleteTargetId, feedRecords],
   );
 
   const openActionMenu = useCallback((targetId: string) => {
@@ -299,29 +306,31 @@ export default function RecordDetailScreen() {
   const onPressDelete = useCallback(() => {
     if (!petId || !actionTarget) return;
     hideActionMenu();
+    setDeleteTargetId(actionTarget.id);
     setDeleteModalVisible(true);
   }, [actionTarget, hideActionMenu, petId]);
   const closeDeleteModal = useCallback(() => {
     setDeleteModalVisible(false);
+    setDeleteTargetId(null);
     setActionTargetId(null);
   }, []);
 
   const onConfirmDelete = useCallback(async () => {
-    if (!petId || !actionTarget || deleting) return;
+    if (!petId || !deleteTarget || deleting) return;
 
     try {
       setDeleting(true);
       await deleteMemoryWithFile({
-        memoryId: actionTarget.id,
-        imagePath: actionTarget.imagePath,
-        imagePaths: actionTarget.imagePaths,
+        memoryId: deleteTarget.id,
+        imagePath: deleteTarget.imagePath,
+        imagePaths: deleteTarget.imagePaths,
       });
 
-      removeOneLocal(petId, actionTarget.id);
+      removeOneLocal(petId, deleteTarget.id);
       await refresh(petId);
       closeDeleteModal();
 
-      if (actionTarget.id === memoryId) {
+      if (deleteTarget.id === memoryId) {
         navigation.navigate('TimelineMain', {
           petId: petId ?? undefined,
           mainCategory: 'all',
@@ -333,7 +342,7 @@ export default function RecordDetailScreen() {
     } finally {
       setDeleting(false);
     }
-  }, [actionTarget, closeDeleteModal, deleting, memoryId, navigation, petId, refresh, removeOneLocal]);
+  }, [closeDeleteModal, deleteTarget, deleting, memoryId, navigation, petId, refresh, removeOneLocal]);
 
   const onScrollFeed = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -414,22 +423,50 @@ export default function RecordDetailScreen() {
         animationType="fade"
         onRequestClose={closeActionMenu}
       >
-        <View style={styles.sheetBackdrop}>
+        <View
+          style={[
+            styles.sheetBackdrop,
+            { backgroundColor: theme.colors.overlay },
+          ]}
+        >
           <Pressable style={styles.sheetDismiss} onPress={closeActionMenu} />
-          <View style={styles.actionSheet}>
+          <View
+            style={[
+              styles.actionSheet,
+              {
+                backgroundColor: theme.colors.surfaceElevated,
+                borderColor: theme.colors.border,
+              },
+            ]}
+          >
             <TouchableOpacity
               activeOpacity={0.9}
               style={styles.sheetActionRow}
               onPress={onPressEdit}
               disabled={deleting}
             >
-              <Feather name="edit-2" size={18} color="#243042" />
-              <AppText preset="body" style={styles.sheetActionText}>
+              <Feather
+                name="edit-2"
+                size={18}
+                color={theme.colors.textPrimary}
+              />
+              <AppText
+                preset="body"
+                style={[
+                  styles.sheetActionText,
+                  { color: theme.colors.textPrimary },
+                ]}
+              >
                 수정
               </AppText>
             </TouchableOpacity>
 
-            <View style={styles.sheetActionDivider} />
+            <View
+              style={[
+                styles.sheetActionDivider,
+                { backgroundColor: theme.colors.border },
+              ]}
+            />
 
             <TouchableOpacity
               activeOpacity={0.9}
@@ -452,19 +489,38 @@ export default function RecordDetailScreen() {
         animationType="fade"
         onRequestClose={closeDeleteModal}
       >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
+        <View
+          style={[
+            styles.modalBackdrop,
+            { backgroundColor: theme.colors.overlay },
+          ]}
+        >
+          <View
+            style={[
+              styles.modalCard,
+              { backgroundColor: theme.colors.surfaceElevated },
+            ]}
+          >
             <View style={styles.modalIconCircleDanger}>
               <Feather name="alert-triangle" size={20} color="#FF4D4F" />
             </View>
 
-            <AppText preset="title2" style={styles.modalTitle}>
+            <AppText
+              preset="title2"
+              style={[styles.modalTitle, { color: theme.colors.textPrimary }]}
+            >
               정말 삭제할까요?
             </AppText>
-            <AppText preset="body" style={styles.modalDesc}>
+            <AppText
+              preset="body"
+              style={[styles.modalDesc, { color: theme.colors.textSecondary }]}
+            >
               삭제된 추억은 다시 복구할 수 없어요.
             </AppText>
-            <AppText preset="body" style={styles.modalDesc}>
+            <AppText
+              preset="body"
+              style={[styles.modalDesc, { color: theme.colors.textSecondary }]}
+            >
               신중하게 선택해 주세요.
             </AppText>
 
@@ -474,7 +530,13 @@ export default function RecordDetailScreen() {
               onPress={closeDeleteModal}
               disabled={deleting}
             >
-              <AppText preset="body" style={styles.modalGhostBtnText}>
+              <AppText
+                preset="body"
+                style={[
+                  styles.modalGhostBtnText,
+                  { color: theme.colors.textSecondary },
+                ]}
+              >
                 취소
               </AppText>
             </TouchableOpacity>

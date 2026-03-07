@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
 import { hideToast, useUiStore } from '../../store/uiStore';
@@ -24,6 +25,7 @@ const TONE_COLORS = {
 
 export default function GlobalToast() {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const visible = useUiStore(s => s.visible);
   const title = useUiStore(s => s.title);
   const message = useUiStore(s => s.message);
@@ -65,15 +67,26 @@ export default function GlobalToast() {
           onPress={hideToast}
           style={[
             styles.card,
-            { borderLeftColor: TONE_COLORS[tone] },
+            {
+              backgroundColor: theme.colors.surfaceElevated,
+              borderLeftColor: TONE_COLORS[tone],
+              shadowColor:
+                theme.mode === 'dark' ? 'rgba(0,0,0,0.45)' : '#000000',
+            },
           ]}
         >
           {title ? (
-            <AppText preset="body" style={styles.title}>
+            <AppText
+              preset="body"
+              style={[styles.title, { color: theme.colors.textPrimary }]}
+            >
               {title}
             </AppText>
           ) : null}
-          <AppText preset="caption" style={styles.message}>
+          <AppText
+            preset="caption"
+            style={[styles.message, { color: theme.colors.textSecondary }]}
+          >
             {message}
           </AppText>
         </Pressable>
@@ -95,24 +108,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   card: {
-    backgroundColor: 'rgba(255,255,255,0.98)',
     borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderLeftWidth: 5,
-    shadowColor: '#000000',
     shadowOpacity: 0.14,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 10 },
     elevation: 8,
   },
   title: {
-    color: '#111827',
     fontWeight: '900',
     marginBottom: 3,
   },
   message: {
-    color: '#374151',
     lineHeight: 18,
   },
 });

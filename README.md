@@ -2390,6 +2390,38 @@ NURI는 데이터 입력 도구가 아니라,
 
 ---
 
+## Chapter 6-63 — 타임라인 기타 필터 확장 + 모달 테마 일관성 정리
+
+### 무엇을 진행했나
+
+- [`src/services/memories/categoryMeta.ts`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/services/memories/categoryMeta.ts), [`src/services/records/form.ts`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/services/records/form.ts), [`src/navigation/TimelineStackNavigator.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/navigation/TimelineStackNavigator.tsx) 를 기준으로 `기타` 서브카테고리를 확장했다.
+  - `미용`
+  - `병원/약`
+  - `실내 놀이`
+  - `교육/훈련`
+  - `외출/여행`
+  - `용품/쇼핑`
+  - `목욕/위생`
+  - `기타`
+- [`src/components/common/GlobalToast.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/components/common/GlobalToast.tsx), [`src/screens/Records/components/RecordTagModal.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/screens/Records/components/RecordTagModal.tsx), [`src/screens/Records/components/RecordDateModal.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/screens/Records/components/RecordDateModal.tsx), [`src/components/schedules/SchedulePickerModal.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/components/schedules/SchedulePickerModal.tsx) 에서 모달/팝업의 하드코딩 컬러를 줄이고 `theme` 기반 색을 직접 읽도록 정리했다.
+- [`src/screens/Records/TimelineScreen.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/screens/Records/TimelineScreen.tsx) 의 월/연도 선택, `기타 선택` 모달도 `theme.colors.overlay / surfaceElevated / border / textPrimary`를 기준으로 렌더링되게 맞췄다.
+- [`src/screens/Records/RecordDetailScreen.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/screens/Records/RecordDetailScreen.tsx) 의 상세 액션 모달은 삭제 대상 id를 분리해 보관하도록 바꿔, `삭제하기`가 무반응이던 구조적 리스크를 줄였다.
+
+### 왜 이렇게 했나
+
+- 타임라인의 `기타` 필터가 사실상 `미용 / 병원 / 기타`만 지원하면 실제 기록 종류를 충분히 나누기 어렵고, 생성 화면과 조회 화면의 분류 체계도 쉽게 어긋난다.
+- 테마 전환이 공용 레이어까지만 먹고 모달/팝업이 하드코딩 컬러를 유지하면, 실제 서비스 톤이 라이트/다크 또는 브랜드 테마에서 쉽게 깨진다.
+- 상세 액션에서 삭제 대상 id를 메뉴 상태와 같은 상태로만 관리하면, 모달 전환 타이밍에 값이 비어 `삭제하기`가 눌려도 실제 삭제가 안 되는 문제가 생길 수 있다.
+
+### 결과
+
+- 타임라인 `기타` 필터와 레코드 작성 화면이 같은 서브카테고리 목록을 공유하게 됐고, 실제 분류 범위도 넓어졌다.
+- 전역 토스트, 태그/날짜 모달, 일정 피커, 타임라인 선택 모달은 `theme`를 직접 읽어 서비스 전반 톤과 더 자연스럽게 맞춰진다.
+- 타임라인 상세의 액션/삭제 모달도 테마 톤을 따르면서, 삭제 대상 상태를 분리해 실제 삭제 반응 안정성이 올라갔다.
+- 무한 스크롤 `loadMore` 경로에는 `catch`를 추가해 비동기 실패가 화면 전체 에러로 번질 가능성을 줄였다.
+
+---
+
 # 🚀 Next
 
 ## Chapter 8 — 서버 검색(제목/태그) + 인덱스/정렬 안정화 + 섹션 점프 고도화

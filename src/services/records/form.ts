@@ -19,6 +19,11 @@ export const RECORD_MAIN_CATEGORIES = [
 export const RECORD_OTHER_SUBCATEGORIES = [
   { key: 'grooming', label: '미용', tag: '#미용' },
   { key: 'hospital', label: '병원/약', tag: '#병원약' },
+  { key: 'indoor', label: '실내 놀이', tag: '#실내놀이' },
+  { key: 'training', label: '교육/훈련', tag: '#훈련' },
+  { key: 'outing', label: '외출/여행', tag: '#외출' },
+  { key: 'shopping', label: '용품/쇼핑', tag: '#쇼핑' },
+  { key: 'bathing', label: '목욕/위생', tag: '#목욕' },
   { key: 'etc', label: '기타', tag: '#기타세부' },
 ] as const;
 

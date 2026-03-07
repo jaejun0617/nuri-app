@@ -6,6 +6,7 @@
 import React from 'react';
 import { Modal, TextInput, TouchableOpacity, View } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
+import { useTheme } from 'styled-components/native';
 
 import AppText from '../../../app/ui/AppText';
 import { styles } from '../RecordCreateScreen.styles';
@@ -39,6 +40,8 @@ export default function RecordTagModal({
   onClearRecentTags,
   onConfirm,
 }: Props) {
+  const theme = useTheme();
+
   return (
     <Modal
       visible={visible}
@@ -63,18 +66,22 @@ export default function RecordTagModal({
               style={styles.tagModalCloseBtn}
               onPress={onClose}
             >
-              <Feather name="x" size={18} color="#8E98AA" />
+              <Feather
+                name="x"
+                size={18}
+                color={theme.colors.textMuted}
+              />
             </TouchableOpacity>
           </View>
 
           <View style={styles.tagInputRow}>
-            <Feather name="hash" size={16} color="#7A71F4" />
+            <Feather name="hash" size={16} color={theme.colors.brand} />
             <TextInput
               style={styles.tagModalInput}
               value={tagDraft}
               onChangeText={onChangeTagDraft}
               placeholder="가을산책"
-              placeholderTextColor="#B5BDCB"
+              placeholderTextColor={theme.colors.textMuted}
               autoCapitalize="none"
               autoCorrect={false}
               onSubmitEditing={onSubmitDraftTag}
@@ -127,7 +134,11 @@ export default function RecordTagModal({
                 style={styles.recentItem}
                 onPress={() => onPressSuggestedTag(tag)}
               >
-                <Feather name="rotate-ccw" size={15} color="#B6BECC" />
+                <Feather
+                  name="rotate-ccw"
+                  size={15}
+                  color={theme.colors.textMuted}
+                />
                 <AppText preset="body" style={styles.recentItemText}>
                   {tag}
                 </AppText>
@@ -154,7 +165,7 @@ export default function RecordTagModal({
                     >
                       {tag}
                     </AppText>
-                    <Feather name="x" size={12} color="#6D6AF8" />
+                    <Feather name="x" size={12} color={theme.colors.brand} />
                   </TouchableOpacity>
                 ))}
               </View>

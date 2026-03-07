@@ -14,7 +14,15 @@ export type MemoryMainCategory =
   | 'diary'
   | 'other';
 
-export type MemoryOtherSubCategory = 'grooming' | 'hospital' | 'etc';
+export type MemoryOtherSubCategory =
+  | 'grooming'
+  | 'hospital'
+  | 'indoor'
+  | 'training'
+  | 'outing'
+  | 'shopping'
+  | 'bathing'
+  | 'etc';
 
 export type MemoryCategoryMeta = {
   label: string;
@@ -42,7 +50,12 @@ export const OTHER_SUBCATEGORY_OPTIONS: Array<{
 }> = [
   { key: 'grooming', label: '미용' },
   { key: 'hospital', label: '병원/약' },
-  { key: 'etc', label: '기타(추가예정)' },
+  { key: 'indoor', label: '실내 놀이' },
+  { key: 'training', label: '교육/훈련' },
+  { key: 'outing', label: '외출/여행' },
+  { key: 'shopping', label: '용품/쇼핑' },
+  { key: 'bathing', label: '목욕/위생' },
+  { key: 'etc', label: '기타' },
 ];
 
 function readRecordTagsRaw(record: MemoryRecord): string {
@@ -126,8 +139,20 @@ export function normalizeOtherSubKey(raw: string): MemoryOtherSubCategory {
   if (value === 'hospital' || value === 'medicine' || value === 'clinic') {
     return 'hospital';
   }
+  if (value === 'indoor' || value === 'indoorplay') return 'indoor';
+  if (value === 'training' || value === 'lesson') return 'training';
+  if (value === 'outing' || value === 'travel') return 'outing';
+  if (value === 'shopping' || value === 'goods') return 'shopping';
+  if (value === 'bathing' || value === 'bath' || value === 'hygiene') {
+    return 'bathing';
+  }
   if (value.includes('미용')) return 'grooming';
   if (value.includes('병원') || value.includes('약')) return 'hospital';
+  if (value.includes('실내') || value.includes('놀이')) return 'indoor';
+  if (value.includes('훈련') || value.includes('교육')) return 'training';
+  if (value.includes('외출') || value.includes('여행')) return 'outing';
+  if (value.includes('쇼핑') || value.includes('용품')) return 'shopping';
+  if (value.includes('목욕') || value.includes('위생')) return 'bathing';
 
   return 'etc';
 }
@@ -192,6 +217,56 @@ export function getRecordCategoryMeta(
       label: '기타 · 병원/약',
       icon: 'medical-bag',
       tint: 'rgba(34,197,94,0.10)',
+      mainCategory: 'other',
+      otherSubCategory,
+    };
+  }
+
+  if (otherSubCategory === 'indoor') {
+    return {
+      label: '기타 · 실내 놀이',
+      icon: 'home-heart',
+      tint: 'rgba(109,106,248,0.10)',
+      mainCategory: 'other',
+      otherSubCategory,
+    };
+  }
+
+  if (otherSubCategory === 'training') {
+    return {
+      label: '기타 · 교육/훈련',
+      icon: 'school-outline',
+      tint: 'rgba(59,130,246,0.10)',
+      mainCategory: 'other',
+      otherSubCategory,
+    };
+  }
+
+  if (otherSubCategory === 'outing') {
+    return {
+      label: '기타 · 외출/여행',
+      icon: 'map-marker-path',
+      tint: 'rgba(249,115,22,0.10)',
+      mainCategory: 'other',
+      otherSubCategory,
+    };
+  }
+
+  if (otherSubCategory === 'shopping') {
+    return {
+      label: '기타 · 용품/쇼핑',
+      icon: 'shopping-outline',
+      tint: 'rgba(168,85,247,0.10)',
+      mainCategory: 'other',
+      otherSubCategory,
+    };
+  }
+
+  if (otherSubCategory === 'bathing') {
+    return {
+      label: '기타 · 목욕/위생',
+      icon: 'shower',
+      tint: 'rgba(14,165,233,0.10)',
       mainCategory: 'other',
       otherSubCategory,
     };

@@ -7,6 +7,7 @@
 import React from 'react';
 import { Modal, Pressable, TextInput, TouchableOpacity, View } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
+import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
 import { styles } from '../../screens/Schedules/ScheduleCreateScreen.styles';
@@ -36,6 +37,8 @@ export default function SchedulePickerModal({
   onConfirm,
   confirmLabel,
 }: Props) {
+  const theme = useTheme();
+
   return (
     <Modal
       visible={visible}
@@ -54,7 +57,11 @@ export default function SchedulePickerModal({
               style={styles.modalCloseBtn}
               onPress={onClose}
             >
-              <Feather name="x" size={18} color="#556070" />
+              <Feather
+                name="x"
+                size={18}
+                color={theme.colors.textSecondary}
+              />
             </TouchableOpacity>
           </View>
 
@@ -77,7 +84,7 @@ export default function SchedulePickerModal({
             value={value}
             onChangeText={onChangeValue}
             placeholder={placeholder}
-            placeholderTextColor="#8A94A6"
+            placeholderTextColor={theme.colors.textMuted}
             style={styles.modalInput}
           />
 
