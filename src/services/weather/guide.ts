@@ -679,9 +679,11 @@ function pickScenarioFromDistrict(district: string): WeatherScenario {
   return variants[sum % variants.length] ?? 'rain';
 }
 
-export function getWeatherGuideBundle(district = '현재 위치'): WeatherGuideBundle {
+export function buildWeatherGuideBundleForScenario(
+  scenario: WeatherScenario,
+  district = '현재 위치',
+): WeatherGuideBundle {
   const normalizedDistrict = district.trim() || '현재 위치';
-  const scenario = pickScenarioFromDistrict(normalizedDistrict);
   const base = WEATHER_SCENARIOS[scenario];
 
   return {
@@ -695,6 +697,14 @@ export function getWeatherGuideBundle(district = '현재 위치'): WeatherGuideB
         ? ['training', 'massage']
         : ['nosework', 'tug', 'training', 'massage'],
   };
+}
+
+export function getWeatherGuideBundle(district = '현재 위치'): WeatherGuideBundle {
+  const normalizedDistrict = district.trim() || '현재 위치';
+  return buildWeatherGuideBundleForScenario(
+    pickScenarioFromDistrict(normalizedDistrict),
+    normalizedDistrict,
+  );
 }
 
 export function getIndoorActivityGuide(key: IndoorActivityKey) {

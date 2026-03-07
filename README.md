@@ -2446,6 +2446,28 @@ NURI는 데이터 입력 도구가 아니라,
 
 ---
 
+## Chapter 6-65 — 실제 날씨 시나리오와 상세 문구 불일치 수정
+
+### 무엇을 진행했나
+
+- [`src/services/weather/guide.ts`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/services/weather/guide.ts) 에 `buildWeatherGuideBundleForScenario()`를 추가해, mock 번들을 동 이름 해시가 아니라 명시적인 시나리오 기준으로도 만들 수 있게 정리했다.
+- [`src/services/weather/mapper.ts`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/services/weather/mapper.ts) 는 API 응답을 화면 번들로 변환할 때, 이제 `district 기반 mock 시나리오`가 아니라 실제 `weatherCode + air quality`에서 계산한 시나리오를 기준으로 상태 문구, 추천 카드, 배경까지 함께 가져오도록 바꿨다.
+- [`src/services/weather/cache.ts`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/services/weather/cache.ts) 의 캐시 키를 `v3`로 올려, 잘못 저장된 예전 날씨 문구 캐시가 남아 있지 않게 했다.
+
+### 왜 이렇게 했나
+
+- 기존 구조는 실제 API로 `scenario`만 덮어쓰고, 상세 문구와 추천 카드 문구는 여전히 `일산3동` 같은 동 이름 기반 mock 시나리오에서 가져오고 있었다.
+- 그래서 아이콘은 흐림/부분 흐림인데도 `비가 오고 있어요` 같은 거짓 정보가 섞일 수 있었다.
+- 실제 날씨 시나리오와 화면 문구는 같은 데이터 원천을 봐야, 실기기에서 홈 카드와 상세 화면이 일관되게 보인다.
+
+### 결과
+
+- 이제 실제 API가 `rain / dusty / fresh` 중 어떤 시나리오로 해석됐는지에 따라 상태 문구, 추천 카드, 배경이 모두 같은 기준으로 렌더링된다.
+- `비는 안 오는데 비가 오고 있어요`처럼 아이콘/문구가 어긋나는 현상이 사라진다.
+- 캐시도 새 버전으로 초기화돼서, 예전 잘못된 상세 문구가 남아 있지 않다.
+
+---
+
 # 🚀 Next
 
 ## Chapter 8 — 서버 검색(제목/태그) + 인덱스/정렬 안정화 + 섹션 점프 고도화

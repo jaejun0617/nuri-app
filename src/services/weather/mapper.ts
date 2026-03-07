@@ -9,7 +9,7 @@ import type {
   OpenMeteoForecastResponse,
 } from './api';
 import {
-  getWeatherGuideBundle,
+  buildWeatherGuideBundleForScenario,
   type AirQualityMetric,
   type AirQualityTone,
   type WeatherGuideBundle,
@@ -157,7 +157,7 @@ export function buildWeatherGuideBundleFromApi(input: {
     pm25: air.pm2_5 ?? 0,
     usAqi: air.us_aqi ?? 0,
   });
-  const base = getWeatherGuideBundle(input.district);
+  const base = buildWeatherGuideBundleForScenario(scenario, input.district);
 
   return {
     ...base,
