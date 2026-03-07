@@ -158,20 +158,22 @@ export const styles = StyleSheet.create({
   sheetBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(12,18,32,0.28)',
-    justifyContent: 'flex-end',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
   },
   sheetDismiss: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
   },
   actionSheet: {
-    marginHorizontal: 16,
-    marginBottom: 12,
+    width: '100%',
+    maxWidth: 320,
     borderRadius: 24,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E7EAF1',
     overflow: 'hidden',
-    paddingVertical: 8,
+    paddingVertical: 10,
   },
   sheetActionRow: {
     minHeight: 54,
@@ -190,16 +192,6 @@ export const styles = StyleSheet.create({
   },
   sheetActionDeleteText: {
     color: '#FF5A5F',
-    fontWeight: '700',
-  },
-  sheetCancelButton: {
-    minHeight: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 6,
-  },
-  sheetCancelText: {
-    color: '#8A94A6',
     fontWeight: '700',
   },
 
@@ -244,23 +236,31 @@ export const styles = StyleSheet.create({
     width: '100%',
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#6D6AF8',
+    backgroundColor: '#FF4D4F',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 20,
+    marginTop: 12,
   },
   modalPrimaryBtnText: {
     color: '#FFFFFF',
     fontWeight: '800',
   },
+  modalPrimaryBtnDisabled: {
+    opacity: 0.6,
+  },
   modalGhostBtn: {
-    marginTop: 12,
-    minHeight: 28,
+    width: '100%',
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 20,
+    backgroundColor: '#FFFFFF',
   },
   modalGhostBtnText: {
-    color: '#9AA4B7',
+    color: '#667085',
     fontWeight: '700',
   },
 

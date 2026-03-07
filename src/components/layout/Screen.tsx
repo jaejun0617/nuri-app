@@ -12,6 +12,7 @@
 import React from 'react';
 import { View, StyleProp, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from 'styled-components/native';
 
 type Props = {
   children: React.ReactNode;
@@ -21,9 +22,19 @@ type Props = {
 
 export default function Screen({ children, style, noTopInset }: Props) {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
 
   return (
-    <View style={[{ flex: 1, paddingTop: noTopInset ? 0 : insets.top }, style]}>
+    <View
+      style={[
+        {
+          flex: 1,
+          paddingTop: noTopInset ? 0 : insets.top,
+          backgroundColor: theme.colors.background,
+        },
+        style,
+      ]}
+    >
       {children}
     </View>
   );

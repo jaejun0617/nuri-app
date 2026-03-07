@@ -286,6 +286,9 @@ export default function RecordDetailScreen() {
     setActionMenuVisible(false);
     setActionTargetId(null);
   }, []);
+  const hideActionMenu = useCallback(() => {
+    setActionMenuVisible(false);
+  }, []);
 
   const onPressEdit = useCallback(() => {
     if (!petId || !actionTargetId) return;
@@ -295,12 +298,16 @@ export default function RecordDetailScreen() {
 
   const onPressDelete = useCallback(() => {
     if (!petId || !actionTarget) return;
-    closeActionMenu();
+    hideActionMenu();
     setDeleteModalVisible(true);
-  }, [actionTarget, closeActionMenu, petId]);
+  }, [actionTarget, hideActionMenu, petId]);
+  const closeDeleteModal = useCallback(() => {
+    setDeleteModalVisible(false);
+    setActionTargetId(null);
+  }, []);
 
   const onConfirmDelete = useCallback(async () => {
-    if (!petId || !actionTarget) return;
+    if (!petId || !actionTarget || deleting) return;
 
     try {
       setDeleting(true);
@@ -312,7 +319,7 @@ export default function RecordDetailScreen() {
 
       removeOneLocal(petId, actionTarget.id);
       await refresh(petId);
-      setDeleteModalVisible(false);
+      closeDeleteModal();
 
       if (actionTarget.id === memoryId) {
         navigation.navigate('TimelineMain', {
@@ -325,9 +332,8 @@ export default function RecordDetailScreen() {
       Alert.alert(title, message);
     } finally {
       setDeleting(false);
-      setActionTargetId(null);
     }
-  }, [actionTarget, memoryId, navigation, petId, refresh, removeOneLocal]);
+  }, [actionTarget, closeDeleteModal, deleting, memoryId, navigation, petId, refresh, removeOneLocal]);
 
   const onScrollFeed = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -433,17 +439,7 @@ export default function RecordDetailScreen() {
             >
               <Feather name="trash-2" size={18} color="#FF5A5F" />
               <AppText preset="body" style={styles.sheetActionDeleteText}>
-                {deleting ? '삭제중' : '삭제'}
-              </AppText>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={styles.sheetCancelButton}
-              onPress={closeActionMenu}
-            >
-              <AppText preset="body" style={styles.sheetCancelText}>
-                취소
+                {deleting ? '삭제 중' : '삭제'}
               </AppText>
             </TouchableOpacity>
           </View>
@@ -454,7 +450,7 @@ export default function RecordDetailScreen() {
         visible={deleteModalVisible}
         transparent
         animationType="fade"
-        onRequestClose={() => setDeleteModalVisible(false)}
+        onRequestClose={closeDeleteModal}
       >
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
@@ -474,22 +470,25 @@ export default function RecordDetailScreen() {
 
             <TouchableOpacity
               activeOpacity={0.9}
-              style={styles.modalPrimaryBtn}
-              onPress={() => setDeleteModalVisible(false)}
+              style={styles.modalGhostBtn}
+              onPress={closeDeleteModal}
               disabled={deleting}
             >
-              <AppText preset="body" style={styles.modalPrimaryBtnText}>
+              <AppText preset="body" style={styles.modalGhostBtnText}>
                 취소
               </AppText>
             </TouchableOpacity>
 
             <TouchableOpacity
               activeOpacity={0.9}
-              style={styles.modalGhostBtn}
+              style={[
+                styles.modalPrimaryBtn,
+                deleting ? styles.modalPrimaryBtnDisabled : null,
+              ]}
               onPress={onConfirmDelete}
               disabled={deleting}
             >
-              <AppText preset="body" style={styles.modalGhostBtnText}>
+              <AppText preset="body" style={styles.modalPrimaryBtnText}>
                 {deleting ? '삭제 중...' : '삭제하기'}
               </AppText>
             </TouchableOpacity>

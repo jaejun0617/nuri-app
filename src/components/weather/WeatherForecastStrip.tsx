@@ -4,10 +4,9 @@
 
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import {
-  getWeatherIconName,
+  getWeatherEmoji,
   type WeeklyWeatherItem,
 } from '../../services/weather/guide';
 
@@ -29,11 +28,9 @@ export default React.memo(function WeatherForecastStrip({
       {items.map((item, index) => (
         <View key={item.key} style={[styles.card, index === 0 ? styles.cardActive : null]}>
           <Text style={styles.label}>{item.label}</Text>
-          <MaterialCommunityIcons
-            name={getWeatherIconName(item.icon)}
-            size={22}
-            color={accentColor}
-          />
+          <Text style={[styles.emoji, { color: accentColor }]}>
+            {getWeatherEmoji(item.icon)}
+          </Text>
           <Text style={styles.temp}>{item.temperature}°</Text>
           <Text style={styles.low}>{item.lowTemperature}°</Text>
         </View>
@@ -65,6 +62,10 @@ const styles = StyleSheet.create({
     lineHeight: 14,
     color: '#A0A8B8',
     fontWeight: '600',
+  },
+  emoji: {
+    fontSize: 20,
+    lineHeight: 24,
   },
   temp: {
     fontSize: 22,

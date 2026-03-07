@@ -5,7 +5,7 @@
 
 import React, { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
@@ -13,26 +13,28 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 
 import ActivityGuideHeroCard from '../../components/weather/ActivityGuideHeroCard';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
-import { getIndoorActivityGuide } from '../../services/weather/guide';
+import {
+  getIndoorActivityGuide,
+  type IndoorActivityKey,
+} from '../../services/weather/guide';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'ActivityGuide'>;
 
 export default function ActivityGuideScreen() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const route =
     useRoute<{
       key: string;
       name: 'ActivityGuide';
       params: {
-        guideKey: 'nosework' | 'tug' | 'training' | 'massage';
+        guideKey: IndoorActivityKey;
         district?: string;
       };
     }>();
 
-  const guide = useMemo(
-    () => getIndoorActivityGuide(route.params.guideKey),
-    [route.params.guideKey],
-  );
+  const guideKey = route.params?.guideKey ?? 'nosework';
+  const guide = useMemo(() => getIndoorActivityGuide(guideKey), [guideKey]);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -50,7 +52,10 @@ export default function ActivityGuideScreen() {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: 96 + Math.max(insets.bottom, 18) },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <ActivityGuideHeroCard guide={guide} />
@@ -84,16 +89,25 @@ export default function ActivityGuideScreen() {
         </View>
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View
+        style={[
+          styles.footer,
+          { paddingBottom: Math.max(insets.bottom, 18) },
+        ]}
+      >
         <TouchableOpacity
           activeOpacity={0.92}
           style={styles.primaryButton}
-          onPress={() =>
-            navigation.navigate('WeatherActivityRecord', {
-              guideKey: guide.key,
-              district: route.params.district,
-            })
-          }
+          onPress={() => {
+            try {
+              navigation.navigate('WeatherActivityRecord', {
+                guideKey: guide.key,
+                district: route.params?.district,
+              });
+            } catch {
+              // noop
+            }
+          }}
         >
           <MaterialCommunityIcons
             name="check-circle-outline"
@@ -139,7 +153,6 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 16,
-    paddingBottom: 130,
     gap: 26,
   },
   section: {
@@ -204,8 +217,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     paddingHorizontal: 14,
-    paddingTop: 10,
-    paddingBottom: 18,
+    paddingTop: 6,
     backgroundColor: 'rgba(250,249,253,0.96)',
   },
   primaryButton: {

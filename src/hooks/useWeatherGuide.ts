@@ -23,9 +23,6 @@ export type WeatherGuideState = {
   error: string | null;
   refresh: () => Promise<void>;
   usingMock: boolean;
-  districtSource: 'kakao' | 'fallback' | null;
-  districtError: string | null;
-  locationAccuracy: number | null;
 };
 
 function getWeatherGuideErrorMessage(error: unknown) {
@@ -166,8 +163,5 @@ export function useWeatherGuide(
     error,
     refresh: location.refresh,
     usingMock: !location.coordinates || !!error,
-    districtSource: districtState.source,
-    districtError: districtState.error,
-    locationAccuracy: location.coordinates?.accuracy ?? null,
   };
 }

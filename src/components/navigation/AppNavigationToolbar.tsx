@@ -8,6 +8,7 @@ import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useTheme } from 'styled-components/native';
 import Feather from 'react-native-vector-icons/Feather';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -30,6 +31,7 @@ export default function AppNavigationToolbar({
 }: Props) {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
 
@@ -102,10 +104,19 @@ export default function AppNavigationToolbar({
     <View
       style={[
         styles.wrap,
+        { backgroundColor: theme.colors.background },
         { paddingBottom: bottomInset },
       ]}
     >
-      <View style={styles.bar}>
+      <View
+        style={[
+          styles.bar,
+          {
+            backgroundColor: theme.colors.background,
+            borderTopColor: theme.colors.border,
+          },
+        ]}
+      >
         {tabs.slice(0, 2).map(tab => {
           const active = activeKey === tab.key;
           return (
@@ -118,11 +129,12 @@ export default function AppNavigationToolbar({
               <Feather
                 name={tab.icon as never}
                 size={18}
-                color={active ? petTheme.primary : '#7D8696'}
+                color={active ? petTheme.primary : theme.colors.textMuted}
               />
               <Text
                 style={[
                   styles.label,
+                  { color: theme.colors.textMuted },
                   active ? { color: petTheme.primary } : null,
                 ]}
               >
@@ -152,11 +164,12 @@ export default function AppNavigationToolbar({
               <Feather
                 name={tab.icon as never}
                 size={18}
-                color={active ? petTheme.primary : '#7D8696'}
+                color={active ? petTheme.primary : theme.colors.textMuted}
               />
               <Text
                 style={[
                   styles.label,
+                  { color: theme.colors.textMuted },
                   active ? { color: petTheme.primary } : null,
                 ]}
               >
@@ -177,13 +190,10 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     paddingTop: 0,
-    backgroundColor: '#FFFFFF',
   },
   bar: {
     minHeight: 62,
     borderTopWidth: 1,
-    borderTopColor: '#ECEFF5',
-    backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -201,7 +211,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 9,
     lineHeight: 11,
-    color: '#7D8696',
     fontWeight: '500',
   },
   recordButton: {

@@ -10,10 +10,31 @@ export type WeatherIconKey =
   | 'weather-sunny'
   | 'weather-partly-cloudy'
   | 'weather-night-partly-cloudy'
-  | 'weather-windy';
+  | 'weather-windy'
+  | 'weather-lightning'
+  | 'weather-snowy'
+  | 'weather-fog';
 
 export type AirQualityTone = 'bad' | 'moderate' | 'good';
-export type IndoorActivityKey = 'nosework' | 'tug' | 'training' | 'massage';
+export type IndoorActivityKey =
+  | 'nosework'
+  | 'tug'
+  | 'training'
+  | 'massage'
+  | 'sniff-mat'
+  | 'hide-and-seek'
+  | 'stretching'
+  | 'balance-walk';
+export const ALL_INDOOR_ACTIVITY_KEYS: ReadonlyArray<IndoorActivityKey> = [
+  'nosework',
+  'tug',
+  'training',
+  'massage',
+  'sniff-mat',
+  'hide-and-seek',
+  'stretching',
+  'balance-walk',
+];
 export type WeatherRecordEmotionKey =
   | 'excited'
   | 'happy'
@@ -453,10 +474,202 @@ export const INDOOR_ACTIVITY_GUIDES: Record<IndoorActivityKey, IndoorActivityGui
       ],
     },
   },
+  'sniff-mat': {
+    key: 'sniff-mat',
+    badge: 'SNIFF PLAY',
+    accentLabel: '후각 만족',
+    title: '스니프 매트',
+    subtitle: '매트 사이에 간식을 숨기며 천천히 몰입하는 놀이예요.',
+    shortTip: '간식을 너무 깊게 숨기기보다 찾기 쉬운 곳부터 시작해 주세요.',
+    heroEmoji: '🧩',
+    heroBackground: ['#F8F1FF', '#F3E8FF'],
+    heroIcon: 'cards-outline',
+    steps: [
+      {
+        key: 'spread',
+        title: '매트를 편안하게 펼치기',
+        description: '미끄럽지 않은 바닥에 매트를 펼치고 아이가 충분히 냄새를 맡게 해 주세요.',
+        icon: 'dots-grid',
+      },
+      {
+        key: 'hide-snacks',
+        title: '간식을 군데군데 숨기기',
+        description: '처음에는 눈에 조금 보이게 두고, 익숙해지면 점점 안쪽으로 숨겨 주세요.',
+        icon: 'cookie-outline',
+      },
+      {
+        key: 'slow-down',
+        title: '천천히 찾도록 기다리기',
+        description: '보호자가 너무 빨리 도와주기보다 스스로 찾는 시간을 충분히 주세요.',
+        icon: 'timer-sand',
+      },
+    ],
+    recordDraft: {
+      title: '스니프 매트로 놀았어요',
+      notePrompt: '오늘 아이가 가장 집중했던 순간을 적어보세요.',
+      completionTitle: '기록 완료!',
+      completionBody: '천천히 몰입한 후각 놀이 시간이 추억으로 남았어요.',
+      suggestedTags: ['#실내놀이', '#스니프매트', '#후각놀이'],
+      emotionOptions: [
+        { key: 'excited', emoji: '🧐', label: '집중해요' },
+        { key: 'happy', emoji: '😋', label: '만족해요' },
+        { key: 'calm', emoji: '😌', label: '차분해요' },
+      ],
+    },
+  },
+  'hide-and-seek': {
+    key: 'hide-and-seek',
+    badge: 'BONDING PLAY',
+    accentLabel: '교감 놀이',
+    title: '숨바꼭질',
+    subtitle: '보호자를 찾으며 집중력과 교감을 함께 높이는 놀이예요.',
+    shortTip: '짧게 숨어도 괜찮아요. 찾았을 때 크게 칭찬해 주세요.',
+    heroEmoji: '🙈',
+    heroBackground: ['#FFF7ED', '#FFEDD5'],
+    heroIcon: 'account-search-outline',
+    steps: [
+      {
+        key: 'cue',
+        title: '이름을 먼저 불러주기',
+        description: '아이에게 놀이가 시작된다는 신호를 주고, 짧은 거리에서 시작해 주세요.',
+        icon: 'bullhorn-outline',
+      },
+      {
+        key: 'hide',
+        title: '가볍게 숨기',
+        description: '문 뒤나 커튼 옆처럼 안전하고 가까운 곳에 숨어 아이가 성공 경험을 얻도록 해 주세요.',
+        icon: 'curtains',
+      },
+      {
+        key: 'praise',
+        title: '찾으면 크게 칭찬하기',
+        description: '찾아왔을 때 간식이나 밝은 목소리로 반응하면 놀이 만족도가 높아져요.',
+        icon: 'party-popper',
+      },
+    ],
+    recordDraft: {
+      title: '숨바꼭질 놀이 완료',
+      notePrompt: '오늘 아이가 가장 신나 했던 순간을 남겨보세요.',
+      completionTitle: '기록 완료!',
+      completionBody: '보호자를 찾으며 웃었던 시간이 예쁘게 저장됐어요.',
+      suggestedTags: ['#실내놀이', '#숨바꼭질', '#교감놀이'],
+      emotionOptions: [
+        { key: 'excited', emoji: '😆', label: '신나요' },
+        { key: 'happy', emoji: '🥰', label: '가까워요' },
+        { key: 'calm', emoji: '🙂', label: '안정돼요' },
+      ],
+    },
+  },
+  stretching: {
+    key: 'stretching',
+    badge: 'BODY CARE',
+    accentLabel: '가벼운 움직임',
+    title: '가벼운 스트레칭',
+    subtitle: '실내에서도 몸을 부드럽게 풀어주는 짧은 움직임 루틴이에요.',
+    shortTip: '억지로 자세를 만들기보다 자연스러운 움직임을 유도해 주세요.',
+    heroEmoji: '🧘',
+    heroBackground: ['#ECFDF5', '#D1FAE5'],
+    heroIcon: 'meditation',
+    steps: [
+      {
+        key: 'walk',
+        title: '짧게 걷기',
+        description: '방 안을 천천히 한 바퀴 돌며 몸을 먼저 풀어 주세요.',
+        icon: 'walk',
+      },
+      {
+        key: 'reach',
+        title: '간식으로 자세 유도하기',
+        description: '간식을 좌우로 천천히 움직여 목과 몸통을 부드럽게 쓰게 해 주세요.',
+        icon: 'hand-front-right-outline',
+      },
+      {
+        key: 'rest',
+        title: '짧게 쉬며 마무리하기',
+        description: '무리하지 않고 짧게 끝내야 아이도 편안하게 받아들여요.',
+        icon: 'pause-circle-outline',
+      },
+    ],
+    recordDraft: {
+      title: '가벼운 스트레칭 시간',
+      notePrompt: '오늘 아이 몸 상태가 어땠는지 적어보세요.',
+      completionTitle: '기록 완료!',
+      completionBody: '부드럽게 몸을 푼 시간이 추억으로 남았어요.',
+      suggestedTags: ['#실내놀이', '#스트레칭', '#몸풀기'],
+      emotionOptions: [
+        { key: 'calm', emoji: '😌', label: '편안해요' },
+        { key: 'happy', emoji: '😊', label: '개운해요' },
+        { key: 'tired', emoji: '😴', label: '나른해요' },
+      ],
+    },
+  },
+  'balance-walk': {
+    key: 'balance-walk',
+    badge: 'FOCUS WALK',
+    accentLabel: '집중 루틴',
+    title: '실내 밸런스 워크',
+    subtitle: '쿠션이나 매트를 이용해 천천히 중심을 잡는 놀이예요.',
+    shortTip: '미끄러운 재질은 피하고, 짧은 구간으로 안전하게 시작해 주세요.',
+    heroEmoji: '🚶',
+    heroBackground: ['#EEF2FF', '#E0E7FF'],
+    heroIcon: 'map-marker-path',
+    steps: [
+      {
+        key: 'path',
+        title: '짧은 동선 만들기',
+        description: '쿠션, 매트, 접은 담요 등을 일렬로 두고 안전한 길을 만들어 주세요.',
+        icon: 'map-outline',
+      },
+      {
+        key: 'guide',
+        title: '천천히 유도하기',
+        description: '간식이나 손짓으로 한 걸음씩 천천히 이동하게 해 주세요.',
+        icon: 'gesture-tap-hold',
+      },
+      {
+        key: 'finish',
+        title: '성공하면 쉬기',
+        description: '짧게 성공하고 쉬는 방식이 아이에게 더 좋은 경험으로 남아요.',
+        icon: 'flag-checkered',
+      },
+    ],
+    recordDraft: {
+      title: '실내 밸런스 워크 완료',
+      notePrompt: '오늘 아이가 어느 구간에서 가장 자신 있어 했는지 적어보세요.',
+      completionTitle: '기록 완료!',
+      completionBody: '집 안에서도 차분히 움직인 시간이 남았어요.',
+      suggestedTags: ['#실내놀이', '#밸런스워크', '#집중놀이'],
+      emotionOptions: [
+        { key: 'excited', emoji: '🤗', label: '도전해요' },
+        { key: 'calm', emoji: '😌', label: '집중해요' },
+        { key: 'happy', emoji: '😄', label: '뿌듯해요' },
+      ],
+    },
+  },
 };
 
-export function getWeatherIconName(icon: WeatherIconKey) {
-  return icon;
+export function getWeatherEmoji(icon: WeatherIconKey) {
+  switch (icon) {
+    case 'weather-sunny':
+      return '☀️';
+    case 'weather-partly-cloudy':
+    case 'weather-night-partly-cloudy':
+      return '⛅';
+    case 'weather-cloudy':
+      return '☁️';
+    case 'weather-pouring':
+      return '🌧️';
+    case 'weather-lightning':
+      return '🌩️';
+    case 'weather-snowy':
+      return '❄️';
+    case 'weather-fog':
+      return '🌫️';
+    case 'weather-windy':
+      return '💨';
+    default:
+      return '☀️';
+  }
 }
 
 function pickScenarioFromDistrict(district: string): WeatherScenario {

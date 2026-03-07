@@ -81,10 +81,8 @@ export default function WeatherActivityRecordScreen() {
     }
     return pets[0]?.id ?? null;
   }, [pets, selectedPetId]);
-  const guide = useMemo(
-    () => getIndoorActivityGuide(route.params.guideKey),
-    [route.params.guideKey],
-  );
+  const guideKey = route.params?.guideKey ?? 'nosework';
+  const guide = useMemo(() => getIndoorActivityGuide(guideKey), [guideKey]);
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageMimeType, setImageMimeType] = useState<string | null>(null);

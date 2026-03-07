@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import type { NavigatorScreenParams } from '@react-navigation/native';
+import { useTheme } from 'styled-components/native';
 
 import MainScreen from '../screens/Main/MainScreen';
 import TimelineStackNavigator, {
@@ -35,7 +36,8 @@ export type AppTabParamList = {
 const Tab = createBottomTabNavigator<AppTabParamList>();
 
 function MoreNull() {
-  return <View style={{ flex: 1, backgroundColor: '#FFFFFF' }} />;
+  const theme = useTheme();
+  return <View style={{ flex: 1, backgroundColor: theme.colors.background }} />;
 }
 
 function CustomTabBar(props: BottomTabBarProps) {
@@ -71,6 +73,7 @@ function CustomTabBar(props: BottomTabBarProps) {
 }
 
 export default function AppTabsNavigator() {
+  const theme = useTheme();
   const moreOpen = useUiStore(s => s.moreDrawerOpen);
   const openMore = useUiStore(s => s.openMoreDrawer);
   const closeMore = useUiStore(s => s.closeMoreDrawer);
@@ -80,8 +83,11 @@ export default function AppTabsNavigator() {
   );
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.root}>
+    <SafeAreaView
+      style={[styles.safe, { backgroundColor: theme.colors.background }]}
+      edges={['top']}
+    >
+      <View style={[styles.root, { backgroundColor: theme.colors.background }]}>
         <Tab.Navigator
           screenOptions={{
             headerShown: false,

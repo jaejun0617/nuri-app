@@ -47,9 +47,14 @@ export function useCurrentLocation(): CurrentLocationState {
   const [coordinates, setCoordinates] = useState<DeviceCoordinates | null>(null);
   const [error, setError] = useState<string | null>(null);
   const permissionRef = useRef<LocationPermissionStatus>('unavailable');
+  const coordinatesRef = useRef<DeviceCoordinates | null>(null);
+
+  useEffect(() => {
+    coordinatesRef.current = coordinates;
+  }, [coordinates]);
 
   const refresh = useCallback(async () => {
-    setLoading(true);
+    setLoading(current => (coordinatesRef.current ? current : true));
     setError(null);
 
     try {
@@ -69,7 +74,6 @@ export function useCurrentLocation(): CurrentLocationState {
       const nextCoordinates = await getCurrentCoordinates();
       setCoordinates(nextCoordinates);
     } catch (nextError) {
-      setCoordinates(null);
       setError(toLocationErrorMessage(permissionRef.current, nextError));
     } finally {
       setLoading(false);

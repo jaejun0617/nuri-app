@@ -29,11 +29,23 @@ function getProgress(value: number, max: number) {
 }
 
 function mapWeatherCodeToIcon(code: number, isDay: boolean): WeatherIconKey {
+  if ([95, 96, 99].includes(code)) {
+    return 'weather-lightning';
+  }
+  if ([71, 73, 75, 77, 85, 86].includes(code)) {
+    return 'weather-snowy';
+  }
   if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) {
     return 'weather-pouring';
   }
-  if ([1, 2, 3, 45, 48].includes(code)) {
+  if ([45, 48].includes(code)) {
+    return 'weather-fog';
+  }
+  if ([1, 2].includes(code)) {
     return isDay ? 'weather-partly-cloudy' : 'weather-night-partly-cloudy';
+  }
+  if (code === 3) {
+    return 'weather-cloudy';
   }
   if (code === 0) {
     return isDay ? 'weather-sunny' : 'weather-night-partly-cloudy';

@@ -29,7 +29,10 @@ import WeatherInsightScreen from '../screens/Weather/WeatherInsightScreen';
 import IndoorActivityRecommendationsScreen from '../screens/Weather/IndoorActivityRecommendationsScreen';
 import ActivityGuideScreen from '../screens/Weather/ActivityGuideScreen';
 import WeatherActivityRecordScreen from '../screens/Weather/WeatherActivityRecordScreen';
-import type { WeatherGuideBundle } from '../services/weather/guide';
+import type {
+  IndoorActivityKey,
+  WeatherGuideBundle,
+} from '../services/weather/guide';
 
 import AppTabsNavigator from './AppTabsNavigator';
 import type { AppTabParamList } from './AppTabsNavigator';
@@ -62,11 +65,11 @@ export type RootStackParamList = {
     | undefined;
   IndoorActivityRecommendations: { district?: string } | undefined;
   ActivityGuide: {
-    guideKey: 'nosework' | 'tug' | 'training' | 'massage';
+    guideKey: IndoorActivityKey;
     district?: string;
   };
   WeatherActivityRecord: {
-    guideKey: 'nosework' | 'tug' | 'training' | 'massage';
+    guideKey: IndoorActivityKey;
     district?: string;
   };
   EditDone: {

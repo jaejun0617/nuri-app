@@ -2333,6 +2333,33 @@ NURI는 데이터 입력 도구가 아니라,
 
 ---
 
+## Chapter 6-61 — 날씨/테마 공용 레이어 정리 + 상세 액션 모달 안정화
+
+### 무엇을 진행했나
+
+- 날씨 아이콘 체계를 [`src/services/weather/guide.ts`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/services/weather/guide.ts), [`src/services/weather/mapper.ts`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/services/weather/mapper.ts), [`src/components/weather/WeatherGuideHomeCard.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/components/weather/WeatherGuideHomeCard.tsx), [`src/components/weather/WeatherForecastStrip.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/components/weather/WeatherForecastStrip.tsx) 기준으로 이모지 기반으로 통일했다.
+- 실내 놀이 추천 데이터는 4종에서 8종으로 확장하고, [`src/screens/Weather/IndoorActivityRecommendationsScreen.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/screens/Weather/IndoorActivityRecommendationsScreen.tsx), [`src/screens/Weather/ActivityGuideScreen.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/screens/Weather/WeatherActivityRecordScreen.tsx) 에서 공용 키 타입과 안전한 라우팅 흐름을 맞췄다.
+- [`src/components/layout/Screen.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/components/layout/Screen.tsx), [`src/components/navigation/AppNavigationToolbar.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/components/navigation/AppNavigationToolbar.tsx), [`src/navigation/AppTabsNavigator.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/navigation/AppTabsNavigator.tsx) 에서 공용 레이어가 `theme`를 직접 읽도록 정리했다.
+- 위치/행정동 훅은 [`src/hooks/useCurrentLocation.ts`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/hooks/useCurrentLocation.ts), [`src/hooks/useDistrict.ts`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/hooks/useDistrict.ts), [`src/hooks/useWeatherGuide.ts`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/hooks/useWeatherGuide.ts) 기준으로 transient failure 시 기존 값을 유지하도록 보강했다.
+- 타임라인 상세 [`src/screens/Records/RecordDetailScreen.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/screens/Records/RecordDetailScreen.tsx), [`src/screens/Records/RecordDetailScreen.styles.ts`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/screens/Records/RecordDetailScreen.styles.ts) 의 `...` 액션 모달을 화면 중앙 정렬로 바꾸고, 삭제 확인 모달도 프로덕션 톤으로 다시 정리했다.
+
+### 왜 이렇게 했나
+
+- 날씨 아이콘이 플랫폼 아이콘/문자 체계가 섞여 있으면 일관성이 떨어지고, 렌더링 계층도 복잡해진다.
+- 공용 Screen/Toolbar가 테마를 직접 보지 않으면, 화면 개별 스타일을 다 수정하지 않는 한 테마 변경이 전체 앱에 자연스럽게 번지지 않는다.
+- 실기기 위치는 일시 실패가 잦기 때문에, 실패 순간마다 `현재 위치`나 빈 값으로 흔들리면 체감 완성도가 크게 떨어진다.
+- 상세 액션 시트에서 삭제 대상 id를 모달 열기 전에 지워버리면 `삭제하기`를 눌러도 반응이 없는 구조적 버그가 생긴다.
+
+### 결과
+
+- 홈 카드, 주간 예보, 날씨 상세가 모두 같은 이모지 날씨 표현을 사용하게 됐다.
+- 실내 놀이 추천은 8종으로 확장됐고, 하단 툴바와 겹치지 않게 여백도 같이 정리됐다.
+- 공용 레이어는 테마 변경을 직접 따라가므로, 이후 남은 하드코딩 컬러만 줄이면 전체 화면 통일성이 더 쉽게 올라가는 구조가 됐다.
+- 위치/행정동 훅은 실기기에서 잠깐 실패해도 이전 안정 값을 유지해서 깜빡임이 줄었다.
+- 타임라인 상세의 `...` 모달은 중앙 정렬된 깔끔한 팝업으로 바뀌었고, 삭제 확인 팝업의 `삭제하기`는 빨간 CTA로 바뀌면서 실제 삭제 동작도 다시 정상 작동하게 됐다.
+
+---
+
 # 🚀 Next
 
 ## Chapter 8 — 서버 검색(제목/태그) + 인덱스/정렬 안정화 + 섹션 점프 고도화

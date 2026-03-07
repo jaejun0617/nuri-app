@@ -49,8 +49,6 @@ export function useDistrict(input: {
         setSource(resolved.source);
       } catch (nextError) {
         if (cancelled) return;
-        setDistrict(null);
-        setSource(null);
         setError(
           nextError instanceof Error && nextError.message.trim()
             ? nextError.message

@@ -5,23 +5,20 @@
 
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import {
-  getWeatherIconName,
+  getWeatherEmoji,
   type WeatherGuideBundle,
 } from '../../services/weather/guide';
 
 type Props = {
   weather: WeatherGuideBundle;
   onPress: () => void;
-  debugText?: string | null;
 };
 
 export default React.memo(function WeatherGuideHomeCard({
   weather,
   onPress,
-  debugText,
 }: Props) {
   return (
     <TouchableOpacity
@@ -37,11 +34,7 @@ export default React.memo(function WeatherGuideHomeCard({
     >
       <View style={styles.left}>
         <View style={styles.iconWrap}>
-          <MaterialCommunityIcons
-            name={getWeatherIconName(weather.weatherIcon)}
-            size={30}
-            color="#F4B400"
-          />
+          <Text style={styles.iconEmoji}>{getWeatherEmoji(weather.weatherIcon)}</Text>
         </View>
         <View style={styles.textWrap}>
           <View style={styles.tempRow}>
@@ -50,14 +43,9 @@ export default React.memo(function WeatherGuideHomeCard({
           </View>
           <Text style={styles.title}>{weather.homeMessage}</Text>
           <Text style={styles.caption}>{weather.homeCaption}</Text>
-          {debugText ? <Text style={styles.debugText}>{debugText}</Text> : null}
         </View>
       </View>
-      <MaterialCommunityIcons
-        name="chevron-right"
-        size={24}
-        color="#000000"
-      />
+      <Text style={styles.chevron}>{'>'}</Text>
     </TouchableOpacity>
   );
 });
@@ -85,6 +73,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.72)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  iconEmoji: {
+    fontSize: 28,
+    lineHeight: 34,
   },
   textWrap: {
     flex: 1,
@@ -119,10 +111,10 @@ const styles = StyleSheet.create({
     color: '#8B96AA',
     fontWeight: '400',
   },
-  debugText: {
-    fontSize: 10,
-    lineHeight: 14,
-    color: '#C26A00',
+  chevron: {
+    fontSize: 22,
+    lineHeight: 24,
+    color: '#000000',
     fontWeight: '500',
   },
 });

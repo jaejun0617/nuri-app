@@ -3,9 +3,9 @@
 // - 날씨가 좋지 않을 때 추천하는 실내 놀이 목록 화면
 // - 활동 카드와 다음 가이드 진입 흐름을 한 화면에서 정리
 
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
@@ -13,8 +13,10 @@ import Feather from 'react-native-vector-icons/Feather';
 import IndoorActivityCard from '../../components/weather/IndoorActivityCard';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
+  ALL_INDOOR_ACTIVITY_KEYS,
   getIndoorActivityGuide,
   getWeatherGuideBundle,
+  type IndoorActivityKey,
 } from '../../services/weather/guide';
 
 type Nav = NativeStackNavigationProp<
@@ -24,6 +26,7 @@ type Nav = NativeStackNavigationProp<
 
 export default function IndoorActivityRecommendationsScreen() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const route =
     useRoute<{
       key: string;
@@ -36,8 +39,30 @@ export default function IndoorActivityRecommendationsScreen() {
     [route.params?.district],
   );
   const guides = useMemo(
-    () => weather.recommendedGuideKeys.map(getIndoorActivityGuide),
+    () => {
+      const orderedKeys = [
+        ...weather.recommendedGuideKeys,
+        ...ALL_INDOOR_ACTIVITY_KEYS,
+      ].filter(
+        (key, index, list) => list.indexOf(key) === index,
+      );
+
+      return orderedKeys.map(getIndoorActivityGuide);
+    },
     [weather.recommendedGuideKeys],
+  );
+  const onPressGuide = useCallback(
+    (guideKey: IndoorActivityKey) => {
+      try {
+        navigation.navigate('ActivityGuide', {
+          guideKey,
+          district: weather.district,
+        });
+      } catch {
+        // noop
+      }
+    },
+    [navigation, weather.district],
   );
 
   return (
@@ -56,7 +81,10 @@ export default function IndoorActivityRecommendationsScreen() {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: Math.max(insets.bottom + 28, 40) },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.heroCard}>
@@ -77,12 +105,7 @@ export default function IndoorActivityRecommendationsScreen() {
             <IndoorActivityCard
               key={item.key}
               item={item}
-              onPress={() =>
-                navigation.navigate('ActivityGuide', {
-                  guideKey: item.key,
-                  district: weather.district,
-                })
-              }
+              onPress={() => onPressGuide(item.key)}
             />
           ))}
         </View>

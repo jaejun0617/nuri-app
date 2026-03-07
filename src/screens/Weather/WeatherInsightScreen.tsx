@@ -10,13 +10,12 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import LinearGradient from 'react-native-linear-gradient';
 import Feather from 'react-native-vector-icons/Feather';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import AirQualityInsightCard from '../../components/weather/AirQualityInsightCard';
 import WeatherForecastStrip from '../../components/weather/WeatherForecastStrip';
 import { useWeatherGuide } from '../../hooks/useWeatherGuide';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
-import { getWeatherIconName } from '../../services/weather/guide';
+import { getWeatherEmoji } from '../../services/weather/guide';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'WeatherInsight'>;
 
@@ -39,36 +38,26 @@ export default function WeatherInsightScreen() {
     route.params.district !== '현재 위치'
       ? route.params.district
       : weather.district;
-  const weatherDebugText = __DEV__
-    ? (() => {
-        const source = weatherState.districtSource ?? 'none';
-        const accuracy =
-          weatherState.locationAccuracy === null
-            ? '-'
-            : `${Math.round(weatherState.locationAccuracy)}m`;
-        const error = weatherState.districtError ?? weatherState.error;
-
-        return error
-          ? `source:${source} · accuracy:${accuracy} · error:${error}`
-          : `source:${source} · accuracy:${accuracy}`;
-      })()
-    : null;
 
   const onPressPrimary = useCallback(() => {
-    if (weather.scenario === 'fresh') {
-      navigation.navigate('AppTabs', {
-        screen: 'TimelineTab',
-        params: {
-          screen: 'TimelineMain',
-          params: { mainCategory: 'walk' },
-        },
-      });
-      return;
-    }
+    try {
+      if (weather.scenario === 'fresh') {
+        navigation.navigate('AppTabs', {
+          screen: 'TimelineTab',
+          params: {
+            screen: 'TimelineMain',
+            params: { mainCategory: 'walk' },
+          },
+        });
+        return;
+      }
 
-    navigation.navigate('IndoorActivityRecommendations', {
-      district: weather.district,
-    });
+      navigation.navigate('IndoorActivityRecommendations', {
+        district: weather.district,
+      });
+    } catch {
+      // noop
+    }
   }, [navigation, weather.district, weather.scenario]);
 
   const accentColor = weather.scenario === 'fresh' ? '#1D8DDB' : '#8C7A62';
@@ -103,14 +92,7 @@ export default function WeatherInsightScreen() {
                   ? `${displayDistrict} 기준`
                   : `${displayDistrict} 기준`}
             </Text>
-            {weatherDebugText ? (
-              <Text style={styles.debugText}>{weatherDebugText}</Text>
-            ) : null}
-            <MaterialCommunityIcons
-              name={getWeatherIconName(weather.weatherIcon)}
-              size={82}
-              color={weather.scenario === 'fresh' ? '#F4B400' : '#8C7A62'}
-            />
+            <Text style={styles.heroEmoji}>{getWeatherEmoji(weather.weatherIcon)}</Text>
             <Text style={styles.heroTemp}>{weather.currentTemperature}°</Text>
             <Text style={[styles.heroStatus, { color: accentColor }]}>
               {weather.detailStatus}
@@ -136,7 +118,7 @@ export default function WeatherInsightScreen() {
 
           <View style={styles.recommendCard}>
             <View style={styles.recommendIconWrap}>
-              <MaterialCommunityIcons name="paw" size={20} color="#7A45F4" />
+              <Text style={styles.recommendEmoji}>🐾</Text>
             </View>
             <View style={styles.recommendTextWrap}>
               <Text style={styles.recommendTitle}>{weather.activityCardTitle}</Text>
@@ -204,11 +186,9 @@ const styles = StyleSheet.create({
     color: '#8B96AA',
     fontWeight: '500',
   },
-  debugText: {
-    fontSize: 10,
-    lineHeight: 14,
-    color: '#C26A00',
-    fontWeight: '500',
+  heroEmoji: {
+    fontSize: 68,
+    lineHeight: 82,
   },
   heroTemp: {
     fontSize: 62,
@@ -272,6 +252,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#EFE6FF',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  recommendEmoji: {
+    fontSize: 18,
+    lineHeight: 20,
   },
   recommendTextWrap: {
     gap: 6,
