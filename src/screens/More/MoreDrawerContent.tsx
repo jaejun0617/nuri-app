@@ -547,8 +547,18 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
 
   const closeAndNavigate = useCallback(
     (navigate: () => void) => {
-      onRequestClose();
-      navigate();
+      try {
+        onRequestClose();
+        navigate();
+      } catch (error) {
+        const { title, message } = getBrandedErrorMeta(error, 'generic');
+        showToast({
+          tone: 'error',
+          title,
+          message,
+          durationMs: 2800,
+        });
+      }
     },
     [onRequestClose],
   );
@@ -764,9 +774,6 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
 
       onRequestClose();
       navigation.reset({ index: 0, routes: [{ name: 'AppTabs' }] });
-      if (result.error && __DEV__) {
-        console.warn('[logout] signOutBestEffort error:', result.error.message);
-      }
       showToast({
         tone: 'success',
         title: '로그아웃 완료',
@@ -1148,8 +1155,8 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   headerTitle: {
-    fontSize: 26,
-    lineHeight: 32,
+    fontSize: 16,
+    lineHeight: 22,
     color: '#182133',
     fontWeight: '800',
   },
@@ -1178,7 +1185,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerAvatarFallbackText: {
-    fontSize: 20,
+    fontSize: 16,
     color: '#8B5E3C',
     fontWeight: '700',
   },
@@ -1361,7 +1368,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   sheetTitle: {
-    fontSize: 17,
+    fontSize: 16,
     color: '#202633',
     fontWeight: '700',
   },
@@ -1480,7 +1487,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   successTitle: {
-    fontSize: 18,
+    fontSize: 16,
     color: '#172033',
     fontWeight: '800',
     marginBottom: 10,

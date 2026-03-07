@@ -55,9 +55,6 @@ export default function MoreScreen() {
       const result = await performLogout(1200);
 
       navigation.reset({ index: 0, routes: [{ name: 'AppTabs' }] });
-      if (result.error && __DEV__) {
-        console.warn('[logout] signOutBestEffort error:', result.error.message);
-      }
       showToast({
         tone: 'success',
         title: '로그아웃 완료',
@@ -232,7 +229,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     elevation: 3,
   },
-  title: { fontSize: 20, fontWeight: '900', color: '#1D1B19', marginBottom: 8 },
+  title: { fontSize: 16, fontWeight: '900', color: '#1D1B19', marginBottom: 8 },
   desc: { fontSize: 13, color: '#6E6660', fontWeight: '700', marginBottom: 14 },
   menuSection: {
     marginBottom: 14,

@@ -25,7 +25,7 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
   title: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '900',
     color: '#0B1220',
   },

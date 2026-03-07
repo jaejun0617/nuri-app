@@ -36,8 +36,8 @@ export const styles = StyleSheet.create({
   },
   heroTitle: {
     marginTop: 18,
-    fontSize: 20,
-    lineHeight: 30,
+    fontSize: 16,
+    lineHeight: 22,
     fontWeight: '900',
     color: TEXT,
   },

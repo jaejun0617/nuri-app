@@ -94,14 +94,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   title: {
-    fontSize: 22,
-    lineHeight: 30,
+    fontSize: 16,
+    lineHeight: 22,
     color: '#182133',
     fontWeight: '700',
   },
   subtitle: {
     fontSize: 16,
-    lineHeight: 24,
+    lineHeight: 20,
     color: '#7A8598',
     fontWeight: '400',
   },

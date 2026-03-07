@@ -30,7 +30,7 @@ export const styles = StyleSheet.create({
   name: {
     marginTop: 18,
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '900',
     textAlign: 'center',
   },

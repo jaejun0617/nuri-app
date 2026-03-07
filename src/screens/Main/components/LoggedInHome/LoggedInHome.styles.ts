@@ -59,7 +59,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   headerTextArea: { gap: 4, paddingTop: 2, flex: 1 },
-  title: { fontSize: 18, fontWeight: '900', color: BRAND_DEEP },
+  title: { fontSize: 16, fontWeight: '900', color: BRAND_DEEP },
   subTitle: {
     fontSize: 12,
     fontWeight: '700',
@@ -262,7 +262,7 @@ export const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
   heroTogetherStrong: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '900',
     color: '#FFFFFF',
   },
@@ -419,7 +419,7 @@ export const styles = StyleSheet.create({
     paddingTop: 20,
     paddingHorizontal: 14,
   },
-  sectionLeadTitle: { fontSize: 18, fontWeight: '600', color: BRAND_DEEP },
+  sectionLeadTitle: { fontSize: 16, fontWeight: '600', color: BRAND_DEEP },
   sectionLeadSub: { fontSize: 12, fontWeight: '500', color: MUTED },
 
   // ---------------------------------------------------------
@@ -734,7 +734,7 @@ export const styles = StyleSheet.create({
   // Recommendation Tips
   // ---------------------------------------------------------
   tipSectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: BRAND_DEEP,
     letterSpacing: -0.3,

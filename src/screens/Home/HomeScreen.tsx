@@ -185,7 +185,7 @@ export default function HomeScreen() {
             <AppText
               preset="body"
               color="#ffffff"
-              style={[textStyles.shadow, { fontSize: 18 }]}
+              style={[textStyles.shadow, { fontSize: 16 }]}
             >
               지금 이 순간도, 함께 기록해요
             </AppText>
@@ -195,7 +195,7 @@ export default function HomeScreen() {
             <AppText
               preset="body"
               color="#ffffff"
-              style={[textStyles.shadow, { fontSize: 18 }]}
+              style={[textStyles.shadow, { fontSize: 16 }]}
             >
               우리의 시간을 기억으로 남기다
             </AppText>

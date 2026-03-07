@@ -460,7 +460,7 @@ export const styles = StyleSheet.create({
   },
   successTitle: {
     color: TEXT,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '900',
     textAlign: 'center',
     marginTop: -4,

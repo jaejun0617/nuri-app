@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 16,
     lineHeight: 24,
     color: '#1B2434',
     fontWeight: '700',
@@ -159,8 +159,8 @@ const styles = StyleSheet.create({
     gap: 18,
   },
   sectionTitle: {
-    fontSize: 20,
-    lineHeight: 26,
+    fontSize: 16,
+    lineHeight: 22,
     color: '#1B2434',
     fontWeight: '700',
   },
@@ -200,8 +200,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   stepTitle: {
-    fontSize: 18,
-    lineHeight: 24,
+    fontSize: 16,
+    lineHeight: 22,
     color: '#1B2434',
     fontWeight: '700',
   },

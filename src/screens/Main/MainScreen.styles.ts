@@ -43,7 +43,7 @@ export const styles = StyleSheet.create({
     paddingRight: 8,
   },
   title: {
-    fontSize: 22,
+    fontSize: 16,
     fontWeight: '800',
     color: '#000000',
     marginBottom: 6,
@@ -226,7 +226,7 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   petName: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '900',
     color: '#000000',
     marginBottom: 6,
