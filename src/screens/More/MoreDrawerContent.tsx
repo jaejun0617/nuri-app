@@ -17,9 +17,10 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useTheme } from 'styled-components/native';
 import Feather from 'react-native-vector-icons/Feather';
 
 import AppNavigationToolbar from '../../components/navigation/AppNavigationToolbar';
@@ -78,6 +79,7 @@ type MenuRowProps = Omit<MenuItemSpec, 'key'>;
 
 type PasswordModalProps = {
   visible: boolean;
+  bottomInset: number;
   currentPassword: string;
   nextPassword: string;
   confirmPassword: string;
@@ -97,6 +99,7 @@ type PasswordModalProps = {
 
 type ProfileEditModalProps = {
   visible: boolean;
+  bottomInset: number;
   nickname: string;
   helperText: string;
   helperTone: 'info' | 'error' | 'success';
@@ -128,25 +131,35 @@ const MenuRow = memo(function MenuRow({
     { box: string; icon: string }
   >;
 }) {
+  const theme = useTheme();
   const tone = themeColors[iconTone];
 
   return (
     <TouchableOpacity
       activeOpacity={0.9}
-      style={styles.menuRow}
+      style={[
+        styles.menuRow,
+        { backgroundColor: theme.colors.surfaceElevated },
+      ]}
       onPress={onPress}
     >
       <View style={styles.menuLeft}>
         <View style={[styles.menuIconBox, { backgroundColor: tone.box }]}>
           <Feather name={icon as never} size={17} color={tone.icon} />
         </View>
-        <Text style={styles.menuLabel}>{label}</Text>
+        <Text style={[styles.menuLabel, { color: theme.colors.textPrimary }]}>
+          {label}
+        </Text>
       </View>
 
       <View style={styles.menuRight}>
         {badge === 'dot' ? <View style={styles.menuDot} /> : null}
         {badge === 'soon' ? <Text style={styles.badgeSoon}>soon</Text> : null}
-        <Feather name="chevron-right" size={18} color="#C2CBD8" />
+        <Feather
+          name="chevron-right"
+          size={18}
+          color={theme.colors.textMuted}
+        />
       </View>
     </TouchableOpacity>
   );
@@ -157,13 +170,31 @@ const MenuCard = memo(function MenuCard({
   items,
   themeColors,
 }: MenuCardProps) {
+  const theme = useTheme();
   return (
     <View style={styles.sectionWrap}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <View style={styles.menuCard}>
+      <Text style={[styles.sectionTitle, { color: theme.colors.textMuted }]}>
+        {title}
+      </Text>
+      <View
+        style={[
+          styles.menuCard,
+          {
+            backgroundColor: theme.colors.surfaceElevated,
+            borderColor: theme.colors.border,
+          },
+        ]}
+      >
         {items.map(({ key, ...item }, index) => (
           <View key={key}>
-            {index > 0 ? <View style={styles.menuDivider} /> : null}
+            {index > 0 ? (
+              <View
+                style={[
+                  styles.menuDivider,
+                  { backgroundColor: theme.colors.border },
+                ]}
+              />
+            ) : null}
             <MenuRow {...item} themeColors={themeColors} />
           </View>
         ))}
@@ -189,16 +220,17 @@ const PasswordField = memo(function PasswordField({
   onToggleSecure: () => void;
   helper?: string | null;
 }) {
+  const theme = useTheme();
   return (
     <View style={styles.modalField}>
       <Text style={styles.modalLabel}>{label}</Text>
-      <View style={styles.inputShell}>
+      <View style={[styles.inputShell, { backgroundColor: theme.colors.surface }]}>
         <TextInput
           value={value}
           onChangeText={onChangeText}
-          style={styles.inputText}
+          style={[styles.inputText, { color: theme.colors.textPrimary }]}
           placeholder={placeholder}
-          placeholderTextColor="#B7C0D0"
+          placeholderTextColor={theme.colors.textMuted}
           secureTextEntry={secureTextEntry}
           autoCapitalize="none"
           autoCorrect={false}
@@ -211,17 +243,22 @@ const PasswordField = memo(function PasswordField({
           <Feather
             name={secureTextEntry ? 'eye' : 'eye-off'}
             size={18}
-            color="#A5AFC0"
+            color={theme.colors.textMuted}
           />
         </TouchableOpacity>
       </View>
-      {helper ? <Text style={styles.modalHelper}>{helper}</Text> : null}
+      {helper ? (
+        <Text style={[styles.modalHelper, { color: theme.colors.textMuted }]}>
+          {helper}
+        </Text>
+      ) : null}
     </View>
   );
 });
 
 const PasswordChangeModal = memo(function PasswordChangeModal({
   visible,
+  bottomInset,
   currentPassword,
   nextPassword,
   confirmPassword,
@@ -238,6 +275,7 @@ const PasswordChangeModal = memo(function PasswordChangeModal({
   onToggleConfirmPasswordVisible,
   onSubmit,
 }: PasswordModalProps) {
+  const theme = useTheme();
   return (
     <Modal
       visible={visible}
@@ -245,17 +283,27 @@ const PasswordChangeModal = memo(function PasswordChangeModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.modalBackdrop}>
+      <View style={[styles.modalBackdrop, { backgroundColor: theme.colors.overlay }]}>
         <Pressable style={styles.modalScrim} onPress={onClose} />
-        <View style={styles.sheetCard}>
+        <View
+          style={[
+            styles.sheetCard,
+            {
+              backgroundColor: theme.colors.surfaceElevated,
+              paddingBottom: 26 + bottomInset,
+            },
+          ]}
+        >
           <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>비밀번호 변경</Text>
+            <Text style={[styles.sheetTitle, { color: theme.colors.textPrimary }]}>
+              비밀번호 변경
+            </Text>
             <TouchableOpacity
               activeOpacity={0.88}
-              style={styles.sheetClose}
+              style={[styles.sheetClose, { backgroundColor: theme.colors.surface }]}
               onPress={onClose}
             >
-              <Feather name="x" size={20} color="#A6B0C1" />
+              <Feather name="x" size={20} color={theme.colors.textMuted} />
             </TouchableOpacity>
           </View>
 
@@ -291,6 +339,7 @@ const PasswordChangeModal = memo(function PasswordChangeModal({
             activeOpacity={0.92}
             style={[
               styles.primaryButton,
+              { backgroundColor: theme.colors.brand },
               saving ? styles.disabledButton : null,
             ]}
             onPress={onSubmit}
@@ -313,6 +362,7 @@ const PasswordChangeSuccessModal = memo(function PasswordChangeSuccessModal({
   visible: boolean;
   onClose: () => void;
 }) {
+  const theme = useTheme();
   return (
     <Modal
       visible={visible}
@@ -320,20 +370,22 @@ const PasswordChangeSuccessModal = memo(function PasswordChangeSuccessModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.successBackdrop}>
-        <View style={styles.successCard}>
-          <View style={styles.successHalo}>
-            <View style={styles.successIcon}>
+      <View style={[styles.successBackdrop, { backgroundColor: theme.colors.overlay }]}>
+        <View style={[styles.successCard, { backgroundColor: theme.colors.surfaceElevated }]}>
+          <View style={[styles.successHalo, { backgroundColor: theme.colors.surface }]}>
+            <View style={[styles.successIcon, { backgroundColor: theme.colors.success }]}>
               <Feather name="check" size={26} color="#FFFFFF" />
             </View>
           </View>
-          <Text style={styles.successTitle}>비밀번호 변경 완료</Text>
-          <Text style={styles.successBody}>
+          <Text style={[styles.successTitle, { color: theme.colors.textPrimary }]}>
+            비밀번호 변경 완료
+          </Text>
+          <Text style={[styles.successBody, { color: theme.colors.textSecondary }]}>
             비밀번호가 성공적으로{'\n'}변경되었습니다.
           </Text>
           <TouchableOpacity
             activeOpacity={0.92}
-            style={styles.primaryButton}
+            style={[styles.primaryButton, { backgroundColor: theme.colors.brand }]}
             onPress={onClose}
           >
             <Text style={styles.primaryButtonText}>확인</Text>
@@ -346,6 +398,7 @@ const PasswordChangeSuccessModal = memo(function PasswordChangeSuccessModal({
 
 const ProfileEditModal = memo(function ProfileEditModal({
   visible,
+  bottomInset,
   nickname,
   helperText,
   helperTone,
@@ -354,6 +407,7 @@ const ProfileEditModal = memo(function ProfileEditModal({
   onChangeNickname,
   onSubmit,
 }: ProfileEditModalProps) {
+  const theme = useTheme();
   return (
     <Modal
       visible={visible}
@@ -361,28 +415,46 @@ const ProfileEditModal = memo(function ProfileEditModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.modalBackdrop}>
+      <View style={[styles.modalBackdrop, { backgroundColor: theme.colors.overlay }]}>
         <Pressable style={styles.modalScrim} onPress={onClose} />
-        <View style={styles.sheetCard}>
+        <View
+          style={[
+            styles.sheetCard,
+            {
+              backgroundColor: theme.colors.surfaceElevated,
+              paddingBottom: 26 + bottomInset,
+            },
+          ]}
+        >
           <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>닉네임 수정</Text>
+            <Text style={[styles.sheetTitle, { color: theme.colors.textPrimary }]}>
+              닉네임 수정
+            </Text>
             <TouchableOpacity
               activeOpacity={0.88}
-              style={styles.sheetClose}
+              style={[styles.sheetClose, { backgroundColor: theme.colors.surface }]}
               onPress={onClose}
             >
-              <Feather name="x" size={20} color="#A6B0C1" />
+              <Feather name="x" size={20} color={theme.colors.textMuted} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.modalField}>
-            <Text style={styles.modalLabel}>닉네임</Text>
+            <Text style={[styles.modalLabel, { color: theme.colors.textPrimary }]}>
+              닉네임
+            </Text>
             <TextInput
               value={nickname}
               onChangeText={onChangeNickname}
-              style={styles.nicknameInput}
+              style={[
+                styles.nicknameInput,
+                {
+                  backgroundColor: theme.colors.surface,
+                  color: theme.colors.textPrimary,
+                },
+              ]}
               placeholder="닉네임을 입력해 주세요"
-              placeholderTextColor="#B7C0D0"
+              placeholderTextColor={theme.colors.textMuted}
               autoCapitalize="none"
               autoCorrect={false}
               maxLength={8}
@@ -390,6 +462,11 @@ const ProfileEditModal = memo(function ProfileEditModal({
             <Text
               style={[
                 styles.profileHelper,
+                helperTone === 'error'
+                  ? { color: theme.colors.danger }
+                  : helperTone === 'success'
+                  ? { color: theme.colors.brand }
+                  : { color: theme.colors.textMuted },
                 helperTone === 'error'
                   ? styles.profileHelperError
                   : helperTone === 'success'
@@ -405,6 +482,7 @@ const ProfileEditModal = memo(function ProfileEditModal({
             activeOpacity={0.92}
             style={[
               styles.primaryButton,
+              { backgroundColor: theme.colors.brand },
               saving ? styles.disabledButton : null,
             ]}
             onPress={onSubmit}
@@ -422,6 +500,8 @@ const ProfileEditModal = memo(function ProfileEditModal({
 
 export default function MoreDrawerContent({ onRequestClose }: Props) {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const nicknameRaw = useAuthStore(s => s.profile.nickname);
   const isLoggedIn = useAuthStore(s => s.isLoggedIn);
   const session = useAuthStore(s => s.session);
@@ -628,6 +708,18 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     setNextPasswordVisible(false);
     setConfirmPasswordVisible(false);
   }, [passwordSaving]);
+  const toggleCurrentPasswordVisibility = useCallback(() => {
+    setCurrentPasswordVisible(prev => !prev);
+  }, []);
+  const toggleNextPasswordVisibility = useCallback(() => {
+    setNextPasswordVisible(prev => !prev);
+  }, []);
+  const toggleConfirmPasswordVisibility = useCallback(() => {
+    setConfirmPasswordVisible(prev => !prev);
+  }, []);
+  const closePasswordDoneModal = useCallback(() => {
+    setPasswordDoneVisible(false);
+  }, []);
 
   const onSubmitProfile = useCallback(async () => {
     if (profileSaving) return;
@@ -970,12 +1062,17 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   ]);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.screen}>
+    <SafeAreaView
+      style={[styles.safe, { backgroundColor: theme.colors.background }]}
+      edges={['top']}
+    >
+      <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
         <View style={styles.headerRow}>
           <View style={styles.headerTextWrap}>
-            <Text style={styles.headerTitle}>안녕하세요, {greetingName}</Text>
-            <Text style={styles.headerSubtitle}>
+            <Text style={[styles.headerTitle, { color: theme.colors.textPrimary }]}>
+              안녕하세요, {greetingName}
+            </Text>
+            <Text style={[styles.headerSubtitle, { color: theme.colors.textMuted }]}>
               반가운 오늘, 아이들은 어땠나요?
             </Text>
           </View>
@@ -994,12 +1091,25 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
               <View
                 style={[styles.headerAvatarImage, styles.headerAvatarFallback]}
               >
-                <Text style={styles.headerAvatarFallbackText}>
+                <Text
+                  style={[
+                    styles.headerAvatarFallbackText,
+                    { color: petTheme.deep },
+                  ]}
+                >
                   {avatarFallback}
                 </Text>
               </View>
             )}
-            <View style={styles.headerAvatarBadge}>
+            <View
+              style={[
+                styles.headerAvatarBadge,
+                {
+                  backgroundColor: petTheme.primary,
+                  borderColor: theme.colors.background,
+                },
+              ]}
+            >
               <Feather name="edit-3" size={10} color="#FFFFFF" />
             </View>
           </TouchableOpacity>
@@ -1033,8 +1143,14 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
 
           {session?.user?.email ? (
             <View style={styles.accountMeta}>
-              <Text style={styles.accountMetaEmail}>{session.user.email}</Text>
-              <Text style={styles.accountMetaText}>
+              <Text
+                style={[styles.accountMetaEmail, { color: theme.colors.textSecondary }]}
+              >
+                {session.user.email}
+              </Text>
+              <Text
+                style={[styles.accountMetaText, { color: theme.colors.textMuted }]}
+              >
                 닉네임은 월 1회, 비밀번호는 필요할 때 바로 변경할 수 있어요.
               </Text>
             </View>
@@ -1048,7 +1164,12 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
                 onPress={onPressLogout}
                 disabled={loading}
               >
-                <Text style={styles.bottomTextButtonLabel}>
+                <Text
+                  style={[
+                    styles.bottomTextButtonLabel,
+                    { color: theme.colors.textMuted },
+                  ]}
+                >
                   {loading ? '로그아웃 중...' : '로그아웃'}
                 </Text>
               </TouchableOpacity>
@@ -1059,7 +1180,12 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
                 onPress={onPressDeleteAccount}
                 disabled={deleting}
               >
-                <Text style={styles.bottomDangerButtonLabel}>
+                <Text
+                  style={[
+                    styles.bottomDangerButtonLabel,
+                    { color: theme.colors.danger },
+                  ]}
+                >
                   {deleting ? '회원탈퇴 처리 중...' : '회원탈퇴'}
                 </Text>
               </TouchableOpacity>
@@ -1067,7 +1193,10 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
           ) : (
             <TouchableOpacity
               activeOpacity={0.9}
-              style={styles.loginButton}
+              style={[
+                styles.loginButton,
+                { backgroundColor: theme.colors.brand },
+              ]}
               onPress={onPressLogin}
             >
               <Text style={styles.loginButtonLabel}>로그인하러 가기</Text>
@@ -1077,10 +1206,20 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
           {__DEV__ ? (
             <TouchableOpacity
               activeOpacity={0.9}
-              style={styles.devButton}
+              style={[
+                styles.devButton,
+                {
+                  borderColor: theme.colors.border,
+                  backgroundColor: theme.colors.surface,
+                },
+              ]}
               onPress={onPressDevTest}
             >
-              <Text style={styles.devButtonLabel}>DevTest 열기</Text>
+              <Text
+                style={[styles.devButtonLabel, { color: theme.colors.brand }]}
+              >
+                DevTest 열기
+              </Text>
             </TouchableOpacity>
           ) : null}
         </ScrollView>
@@ -1090,6 +1229,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
 
       <ProfileEditModal
         visible={profileModalVisible}
+        bottomInset={Math.max(insets.bottom, 6)}
         nickname={draftNickname}
         helperText={profileHelper.text}
         helperTone={profileHelper.tone}
@@ -1101,6 +1241,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
 
       <PasswordChangeModal
         visible={passwordModalVisible}
+        bottomInset={Math.max(insets.bottom, 6)}
         currentPassword={currentPassword}
         nextPassword={nextPassword}
         confirmPassword={confirmPassword}
@@ -1112,21 +1253,15 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         onChangeCurrentPassword={setCurrentPassword}
         onChangeNextPassword={setNextPassword}
         onChangeConfirmPassword={setConfirmPassword}
-        onToggleCurrentPasswordVisible={() =>
-          setCurrentPasswordVisible(prev => !prev)
-        }
-        onToggleNextPasswordVisible={() =>
-          setNextPasswordVisible(prev => !prev)
-        }
-        onToggleConfirmPasswordVisible={() =>
-          setConfirmPasswordVisible(prev => !prev)
-        }
+        onToggleCurrentPasswordVisible={toggleCurrentPasswordVisibility}
+        onToggleNextPasswordVisible={toggleNextPasswordVisibility}
+        onToggleConfirmPasswordVisible={toggleConfirmPasswordVisibility}
         onSubmit={onSubmitPasswordChange}
       />
 
       <PasswordChangeSuccessModal
         visible={passwordDoneVisible}
-        onClose={() => setPasswordDoneVisible(false)}
+        onClose={closePasswordDoneModal}
       />
     </SafeAreaView>
   );

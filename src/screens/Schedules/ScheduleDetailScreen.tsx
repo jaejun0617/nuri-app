@@ -13,6 +13,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 
 import AppText from '../../app/ui/AppText';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import { getErrorMessage } from '../../services/app/errors';
 import {
   deleteSchedule,
   fetchScheduleById,
@@ -77,12 +78,9 @@ export default function ScheduleDetailScreen() {
       try {
         const next = await fetchScheduleById(scheduleId);
         if (mounted) setSchedule(next);
-      } catch (error) {
+      } catch (error: unknown) {
         if (mounted) {
-          Alert.alert(
-            '일정 조회 실패',
-            error instanceof Error ? error.message : '다시 시도해 주세요.',
-          );
+          Alert.alert('일정 조회 실패', getErrorMessage(error));
           navigation.goBack();
         }
       } finally {
@@ -119,11 +117,8 @@ export default function ScheduleDetailScreen() {
             await deleteSchedule(scheduleId);
             if (petId) await refresh(petId);
             navigation.replace('ScheduleList', { petId });
-          } catch (error) {
-            Alert.alert(
-              '삭제 실패',
-              error instanceof Error ? error.message : '다시 시도해 주세요.',
-            );
+          } catch (error: unknown) {
+            Alert.alert('삭제 실패', getErrorMessage(error));
           } finally {
             setDeleting(false);
           }
@@ -167,11 +162,8 @@ export default function ScheduleDetailScreen() {
       const next = await fetchScheduleById(schedule.id);
       setSchedule(next);
       if (petId) await refresh(petId);
-    } catch (error) {
-      Alert.alert(
-        '상태 변경 실패',
-        error instanceof Error ? error.message : '다시 시도해 주세요.',
-      );
+    } catch (error: unknown) {
+      Alert.alert('상태 변경 실패', getErrorMessage(error));
     }
   }, [petId, refresh, schedule]);
 

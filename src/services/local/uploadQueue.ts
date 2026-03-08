@@ -114,7 +114,7 @@ export async function processPendingMemoryUploads(): Promise<{
       }
 
       succeeded += 1;
-    } catch (error) {
+    } catch (error: unknown) {
       captureMonitoringException(error);
 
       const attempts = task.attempts + 1;

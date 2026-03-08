@@ -61,6 +61,7 @@ type Route = {
 export default function ScheduleCreateScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
+  const startsAtParam = route.params?.startsAt?.trim() ?? null;
 
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
@@ -76,12 +77,12 @@ export default function ScheduleCreateScreen() {
   }, [pets, route.params?.petId, selectedPetId]);
 
   const initialDate = useMemo(() => {
-    if (route.params?.startsAt) {
-      const date = new Date(route.params.startsAt);
+    if (startsAtParam) {
+      const date = new Date(startsAtParam);
       if (!Number.isNaN(date.getTime())) return date;
     }
     return new Date();
-  }, [route.params?.startsAt]);
+  }, [startsAtParam]);
 
   const [title, setTitle] = useState('');
   const [note, setNote] = useState('');

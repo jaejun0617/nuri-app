@@ -44,7 +44,7 @@ export default function AppNavigationToolbar({
     [selectedPet?.themeColor],
   );
   const bottomInset = useMemo(
-    () => Math.max(insets.bottom, Platform.OS === 'android' ? 18 : 12),
+    () => Math.max(insets.bottom, Platform.OS === 'android' ? 16 : 10),
     [insets.bottom],
   );
   const recordReturnTo = useMemo(() => {
@@ -170,7 +170,13 @@ export default function AppNavigationToolbar({
 
         <TouchableOpacity
           activeOpacity={0.92}
-          style={[styles.recordButton, { backgroundColor: petTheme.primary }]}
+          style={[
+            styles.recordButton,
+            {
+              backgroundColor: petTheme.primary,
+              borderColor: theme.colors.background,
+            },
+          ]}
           onPress={() => navigateTo('record')}
         >
           <Feather name="plus" size={22} color="#FFFFFF" />

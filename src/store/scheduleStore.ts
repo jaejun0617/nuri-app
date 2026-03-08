@@ -4,6 +4,7 @@
 // - 홈 "전체 일정" 빠른 조회
 
 import { create } from 'zustand';
+import { getErrorMessage } from '../services/app/errors';
 import type { PetSchedule } from '../services/supabase/schedules';
 import { fetchSchedulesByPet } from '../services/supabase/schedules';
 
@@ -99,7 +100,7 @@ export const useScheduleStore = create<ScheduleStore>((set, get) => ({
           },
         };
       });
-    } catch (error) {
+    } catch (error: unknown) {
       set(state => {
         const latest = state.byPetId[petId];
         if (!latest || latest.requestSeq !== requestSeq) return state;
@@ -110,8 +111,7 @@ export const useScheduleStore = create<ScheduleStore>((set, get) => ({
             [petId]: {
               ...latest,
               status: 'error',
-              errorMessage:
-                error instanceof Error ? error.message : '일정을 불러오지 못했어요.',
+              errorMessage: getErrorMessage(error),
             },
           },
         };
@@ -157,7 +157,7 @@ export const useScheduleStore = create<ScheduleStore>((set, get) => ({
           },
         };
       });
-    } catch (error) {
+    } catch (error: unknown) {
       set(state => {
         const latest = state.byPetId[petId];
         if (!latest || latest.requestSeq !== requestSeq) return state;
@@ -168,8 +168,7 @@ export const useScheduleStore = create<ScheduleStore>((set, get) => ({
             [petId]: {
               ...latest,
               status: 'error',
-              errorMessage:
-                error instanceof Error ? error.message : '일정을 새로고침하지 못했어요.',
+              errorMessage: getErrorMessage(error),
             },
           },
         };

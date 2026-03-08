@@ -81,7 +81,7 @@ export default function AppProviders({ children }: Props) {
 
       try {
         await flushPendingConsentSnapshot(userId);
-      } catch (error) {
+      } catch (error: unknown) {
         captureMonitoringException(error);
       }
 
@@ -98,7 +98,7 @@ export default function AppProviders({ children }: Props) {
             durationMs: 2800,
           });
         }
-      } catch (error) {
+      } catch (error: unknown) {
         captureMonitoringException(error);
       }
     };
