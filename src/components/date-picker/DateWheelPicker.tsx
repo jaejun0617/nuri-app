@@ -7,7 +7,6 @@ import React, {
 } from 'react';
 import type { ListRenderItem, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { FlatList, TouchableOpacity, View } from 'react-native';
-import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
 import {
@@ -48,7 +47,6 @@ const WheelColumn = memo(function WheelColumn({
   compact = false,
   onSelect,
 }: WheelColumnProps) {
-  const theme = useTheme();
   const listRef = useRef<FlatList<number> | null>(null);
   const selectedIndex = useMemo(
     () => Math.max(items.findIndex(item => item === selectedValue), 0),
@@ -92,13 +90,9 @@ const WheelColumn = memo(function WheelColumn({
             style={[
               styles.wheelText,
               {
-                color: active
-                  ? theme.mode === 'dark'
-                    ? '#FFFFFF'
-                    : '#243B7A'
-                  : theme.colors.textMuted,
-                fontSize: active ? 16 : 14,
-                fontWeight: active ? '700' : '500',
+                color: active ? '#FFFFFF' : 'rgba(255,255,255,0.58)',
+                fontSize: active ? 17 : 13,
+                fontWeight: active ? '800' : '600',
               },
             ]}
           >
@@ -107,7 +101,7 @@ const WheelColumn = memo(function WheelColumn({
         </TouchableOpacity>
       );
     },
-    [disabled, onSelect, selectedValue, theme.colors.textMuted, theme.mode],
+    [disabled, onSelect, selectedValue],
   );
 
   const onScrollEnd = useCallback(
@@ -129,7 +123,12 @@ const WheelColumn = memo(function WheelColumn({
         preset="caption"
         style={[
           styles.pickerLabel,
-          { color: theme.colors.textMuted, fontSize: 12, fontWeight: '600' },
+          {
+            color: 'rgba(255,255,255,0.68)',
+            fontSize: 11,
+            fontWeight: '700',
+            letterSpacing: 0.2,
+          },
         ]}
       >
         {label}
@@ -138,8 +137,8 @@ const WheelColumn = memo(function WheelColumn({
         style={[
           styles.wheelFrame,
           {
-            backgroundColor: `${theme.colors.surface}C7`,
-            borderColor: `${theme.colors.border}8A`,
+            backgroundColor: 'rgba(255,255,255,0.06)',
+            borderColor: 'rgba(255,255,255,0.10)',
             opacity: disabled ? 0.5 : 1,
           },
         ]}
@@ -166,14 +165,8 @@ const WheelColumn = memo(function WheelColumn({
           style={[
             styles.wheelCenterHighlight,
             {
-              backgroundColor:
-                theme.mode === 'dark'
-                  ? 'rgba(255,255,255,0.12)'
-                  : 'rgba(109,124,255,0.12)',
-              borderColor:
-                theme.mode === 'dark'
-                  ? 'rgba(255,255,255,0.18)'
-                  : 'rgba(109,124,255,0.28)',
+              backgroundColor: 'rgba(124,137,255,0.20)',
+              borderColor: 'rgba(167,182,255,0.34)',
             },
           ]}
         />

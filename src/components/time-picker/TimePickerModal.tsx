@@ -64,7 +64,6 @@ function TimeWheel({
   disabled: boolean;
   onChange: (next: string) => void;
 }) {
-  const theme = useTheme();
   const listRef = useRef<FlatList<string>>(null);
   const selectedIndex = useMemo(
     () => Math.max(0, options.indexOf(value)),
@@ -106,10 +105,8 @@ function TimeWheel({
             style={[
               styles.wheelText,
               {
-                color: selected
-                  ? theme.colors.textPrimary
-                  : `${theme.colors.textSecondary}CC`,
-                fontSize: selected ? 30 : 24,
+                color: selected ? '#FFFFFF' : 'rgba(255,255,255,0.58)',
+                fontSize: selected ? 28 : 22,
                 fontWeight: selected ? '800' : '600',
               },
             ]}
@@ -119,7 +116,7 @@ function TimeWheel({
         </View>
       );
     },
-    [theme.colors.textPrimary, theme.colors.textSecondary, value],
+    [value],
   );
 
   return (
@@ -128,7 +125,12 @@ function TimeWheel({
         preset="caption"
         style={[
           styles.wheelLabel,
-          { color: theme.colors.textSecondary, fontWeight: '700', fontSize: 12 },
+          {
+            color: 'rgba(255,255,255,0.68)',
+            fontWeight: '700',
+            fontSize: 11,
+            letterSpacing: 0.2,
+          },
         ]}
       >
         {label}
@@ -138,14 +140,8 @@ function TimeWheel({
         style={[
           styles.wheelFrame,
           {
-            backgroundColor:
-              theme.mode === 'dark'
-                ? 'rgba(255,255,255,0.08)'
-                : 'rgba(255,255,255,0.72)',
-            borderColor:
-              theme.mode === 'dark'
-                ? 'rgba(255,255,255,0.14)'
-                : 'rgba(109,106,248,0.10)',
+            backgroundColor: 'rgba(255,255,255,0.06)',
+            borderColor: 'rgba(255,255,255,0.10)',
             opacity: disabled ? 0.55 : 1,
           },
         ]}
@@ -155,14 +151,8 @@ function TimeWheel({
           style={[
             styles.wheelCenterHighlight,
             {
-              backgroundColor:
-                theme.mode === 'dark'
-                  ? 'rgba(255,255,255,0.12)'
-                  : 'rgba(109,106,248,0.14)',
-              borderColor:
-                theme.mode === 'dark'
-                  ? 'rgba(255,255,255,0.18)'
-                  : 'rgba(109,106,248,0.22)',
+              backgroundColor: 'rgba(124,137,255,0.20)',
+              borderColor: 'rgba(167,182,255,0.34)',
             },
           ]}
         />
@@ -229,23 +219,23 @@ function TimePickerModalBase({
         <View
           style={[
             styles.modalCard,
-            {
-              backgroundColor:
-                theme.mode === 'dark'
-                  ? 'rgba(22,54,93,0.34)'
-                  : 'rgba(255,255,255,0.34)',
-              borderColor: `${theme.colors.border}88`,
+              {
+              backgroundColor: 'rgba(14, 24, 46, 0.78)',
+              borderColor: 'rgba(255,255,255,0.14)',
               paddingBottom: 20 + Math.max(insets.bottom, 8),
             },
           ]}
         >
           <LinearGradient
             pointerEvents="none"
-            colors={
-              theme.mode === 'dark'
-                ? ['rgba(255,255,255,0.18)', 'rgba(255,255,255,0.03)']
-                : ['rgba(255,255,255,0.42)', 'rgba(255,255,255,0.08)']
-            }
+            colors={['rgba(255,255,255,0.10)', 'rgba(124,137,255,0.08)', 'rgba(9,19,36,0.02)']}
+            start={{ x: 0.08, y: 0 }}
+            end={{ x: 0.92, y: 1 }}
+            style={styles.glassTint}
+          />
+          <LinearGradient
+            pointerEvents="none"
+            colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0.02)']}
             start={{ x: 0.15, y: 0 }}
             end={{ x: 0.85, y: 1 }}
             style={styles.glassGlow}
@@ -282,15 +272,15 @@ function TimePickerModalBase({
               style={[
                 styles.secondaryButton,
                 {
-                  backgroundColor: theme.colors.surface,
-                  borderColor: theme.colors.border,
+                  backgroundColor: 'rgba(255,255,255,0.08)',
+                  borderColor: 'rgba(255,255,255,0.12)',
                 },
               ]}
               onPress={onCancel}
             >
               <AppText
                 preset="caption"
-                style={{ color: theme.colors.textPrimary, fontSize: 14, fontWeight: '600' }}
+                style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '600' }}
               >
                 {cancelText}
               </AppText>
@@ -299,21 +289,29 @@ function TimePickerModalBase({
             <TouchableOpacity
               activeOpacity={0.9}
               disabled={disabled}
-              style={[
-                styles.primaryButton,
-                {
-                  backgroundColor: disabled ? theme.colors.border : theme.colors.brand,
-                  opacity: disabled ? 0.65 : 1,
-                },
-              ]}
+              style={[styles.primaryButton, { opacity: disabled ? 0.65 : 1 }]}
               onPress={handleConfirm}
             >
-              <AppText
-                preset="caption"
-                style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '700' }}
+              <LinearGradient
+                colors={
+                  disabled
+                    ? [theme.colors.border, theme.colors.border]
+                    : ['#7C89FF', theme.colors.brand]
+                }
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[
+                  styles.primaryButton,
+                  { width: '100%', borderRadius: 16 },
+                ]}
               >
-                {confirmText}
-              </AppText>
+                <AppText
+                  preset="caption"
+                  style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '700' }}
+                >
+                  {confirmText}
+                </AppText>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         </View>
