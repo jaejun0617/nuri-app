@@ -25,6 +25,30 @@ export const SCHEDULE_CATEGORY_OPTIONS: Array<{
   { key: 'other', label: '···', icon: 'dots-horizontal-circle-outline' },
 ];
 
+export type ScheduleOtherUiSubCategoryKey =
+  | 'grooming'
+  | 'hospital'
+  | 'indoor'
+  | 'training'
+  | 'outing'
+  | 'shopping'
+  | 'bathing'
+  | 'etc';
+
+export const SCHEDULE_OTHER_UI_SUBCATEGORY_OPTIONS: Array<{
+  key: ScheduleOtherUiSubCategoryKey;
+  label: string;
+}> = [
+  { key: 'grooming', label: '미용' },
+  { key: 'hospital', label: '병원/약' },
+  { key: 'indoor', label: '실내 놀이' },
+  { key: 'training', label: '교육/훈련' },
+  { key: 'outing', label: '외출/여행' },
+  { key: 'shopping', label: '용품/쇼핑' },
+  { key: 'bathing', label: '목욕/위생' },
+  { key: 'etc', label: '기타' },
+];
+
 export const SCHEDULE_ICON_OPTIONS: Array<{
   key: ScheduleIconKey;
   label: string;
@@ -106,6 +130,7 @@ export function normalizeScheduleTimeInput(raw: string): string {
 
 export function inferScheduleSubCategory(
   category: ScheduleCategory,
+  otherUiKey?: ScheduleOtherUiSubCategoryKey | null,
 ): ScheduleSubCategory | null {
   switch (category) {
     case 'grooming':
@@ -119,6 +144,43 @@ export function inferScheduleSubCategory(
     case 'diary':
       return 'journal';
     case 'other':
+      switch (otherUiKey) {
+        case 'hospital':
+          return 'hospital';
+        case 'grooming':
+        case 'bathing':
+          return 'bath';
+        case 'indoor':
+        case 'training':
+        case 'outing':
+        case 'shopping':
+        case 'etc':
+        default:
+          return 'etc';
+      }
+    default:
+      return 'etc';
+  }
+}
+
+export function mapScheduleSubCategoryToOtherUiKey(
+  category: ScheduleCategory,
+  subCategory: ScheduleSubCategory | null | undefined,
+): ScheduleOtherUiSubCategoryKey | null {
+  if (category !== 'other') return null;
+
+  switch (subCategory) {
+    case 'hospital':
+    case 'medicine':
+    case 'checkup':
+      return 'hospital';
+    case 'bath':
+    case 'haircut':
+    case 'nail':
+      return 'bathing';
+    case 'etc':
+    case null:
+    case undefined:
     default:
       return 'etc';
   }

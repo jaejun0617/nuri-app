@@ -36,14 +36,17 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { launchImageLibrary } from 'react-native-image-picker';
 import Feather from 'react-native-vector-icons/Feather';
 
+import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import RecordImageGallery from '../../components/records/RecordImageGallery';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { TimelineStackParamList } from '../../navigation/TimelineStackNavigator';
 import { getBrandedErrorMeta } from '../../services/app/errors';
 import {
   buildPickedRecordImages,
+  formatRecordKoreanDate,
   parseRecordTags,
   RECORD_EMOTION_OPTIONS,
+  toRecordYmd,
   type PickedRecordImage,
   validateRecordOccurredAt,
 } from '../../services/records/form';
@@ -110,6 +113,7 @@ export default function RecordEditScreen() {
   const [occurredAt, setOccurredAt] = useState('');
   const [tagsText, setTagsText] = useState('');
   const [emotion, setEmotion] = useState<EmotionTag | null>(null);
+  const [dateModalVisible, setDateModalVisible] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -125,6 +129,12 @@ export default function RecordEditScreen() {
     setTagsText(record.tags?.join(' ') ?? '');
     setEmotion(record.emotion ?? null);
   }, [record, dirty]);
+
+  const occurredAtLabel = useMemo(() => {
+    const normalized = validateRecordOccurredAt(occurredAt);
+    if (!normalized) return '날짜를 선택해 주세요';
+    return formatRecordKoreanDate(normalized);
+  }, [occurredAt]);
 
   // ---------------------------------------------------------
   // 4) navigation helpers
@@ -224,6 +234,22 @@ export default function RecordEditScreen() {
     return [...existing, ...added];
   }, [visibleExistingPaths, signedByPath, addedImages]);
 
+  const galleryItems = useMemo(
+    () =>
+      previewItems
+        .map(item => ({
+          key: item.key,
+          uri: (item.uri ?? '').trim(),
+        }))
+        .filter(item => item.uri.length > 0),
+    [previewItems],
+  );
+
+  const activeImageUri = useMemo(
+    () => (previewItems[activeImageIndex]?.uri ?? '').trim(),
+    [activeImageIndex, previewItems],
+  );
+
   useEffect(() => {
     if (activeImageIndex < previewItems.length) return;
     setActiveImageIndex(previewItems.length > 0 ? previewItems.length - 1 : 0);
@@ -260,6 +286,21 @@ export default function RecordEditScreen() {
       ].slice(0, 10);
     });
   }, [saving]);
+
+  const openDateModal = useCallback(() => {
+    if (saving) return;
+    setDateModalVisible(true);
+  }, [saving]);
+
+  const closeDateModal = useCallback(() => {
+    setDateModalVisible(false);
+  }, []);
+
+  const applyDateModal = useCallback((nextDate: Date) => {
+    setDirty(true);
+    setOccurredAt(toRecordYmd(nextDate));
+    setDateModalVisible(false);
+  }, []);
 
   const onRemoveActiveImage = useCallback(() => {
     if (saving) return;
@@ -460,10 +501,7 @@ export default function RecordEditScreen() {
         <View style={styles.card}>
         {/* Image Preview */}
         <RecordImageGallery
-          items={previewItems.map(item => ({
-            key: item.key,
-            uri: item.uri ?? '',
-          }))}
+          items={galleryItems}
           activeIndex={activeImageIndex}
           onChangeActiveIndex={setActiveImageIndex}
           containerStyle={styles.heroWrap}
@@ -479,9 +517,15 @@ export default function RecordEditScreen() {
               <View style={styles.heroPlaceholder}>
                 <ActivityIndicator size="large" color="#8A94A6" />
               </View>
+            ) : !activeImageUri ? (
+              <View style={styles.heroPlaceholder}>
+                <AppText preset="caption" style={styles.heroPlaceholderText}>
+                  NO IMAGE
+                </AppText>
+              </View>
             ) : (
               <Image
-                source={{ uri: previewItems[activeImageIndex]?.uri ?? '' }}
+                source={{ uri: activeImageUri }}
                 style={styles.heroImg}
                 resizeMode="cover"
                 fadeDuration={250}
@@ -553,18 +597,19 @@ export default function RecordEditScreen() {
         <AppText preset="caption" style={styles.label}>
           날짜(선택)
         </AppText>
-        <TextInput
+        <TouchableOpacity
+          activeOpacity={0.9}
           style={styles.input}
-          value={occurredAt ?? ''}
-          onChangeText={v => {
-            setDirty(true);
-            setOccurredAt(v);
-          }}
-          placeholder="YYYY-MM-DD"
-          placeholderTextColor="#8A94A6"
-          autoCapitalize="none"
-          editable={!saving}
-        />
+          onPress={openDateModal}
+          disabled={saving}
+        >
+          <AppText
+            preset="body"
+            style={{ color: occurredAt ? '#0B1220' : '#8A94A6' }}
+          >
+            {occurredAt ? occurredAtLabel : '날짜를 선택해 주세요'}
+          </AppText>
+        </TouchableOpacity>
 
         <AppText preset="caption" style={styles.label}>
           태그(선택)
@@ -671,6 +716,13 @@ export default function RecordEditScreen() {
           </View>
         </View>
       </Modal>
+
+      <DatePickerModal
+        visible={dateModalVisible}
+        initialDate={occurredAt || null}
+        onCancel={closeDateModal}
+        onConfirm={applyDateModal}
+      />
     </KeyboardAvoidingView>
   );
 }

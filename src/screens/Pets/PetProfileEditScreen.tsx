@@ -9,8 +9,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Image,
-  Modal,
-  Pressable,
   ScrollView,
   TextInput,
   TouchableOpacity,
@@ -23,6 +21,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
 
 import AppText from '../../app/ui/AppText';
+import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import PetMemorialFields from '../../components/pets/PetMemorialFields';
 import PetThemePicker from '../../components/pets/PetThemePicker';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -48,7 +47,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'PetProfileEdit'>;
 type Route = {
   key: string;
   name: 'PetProfileEdit';
-  params: { petId: string };
+  params?: { petId?: string };
 };
 
 const NAME_CHANGE_LIMIT = 3;
@@ -76,19 +75,6 @@ function toDisplayYmd(raw: string | null | undefined): string {
   const value = (raw ?? '').trim();
   if (!value) return '';
   return value.replace(/-/g, '.');
-}
-
-function splitYmdParts(raw: string): {
-  year: string;
-  month: string;
-  day: string;
-} {
-  const digits = raw.replace(/\D/g, '').slice(0, 8);
-  return {
-    year: digits.slice(0, 4),
-    month: digits.slice(4, 6),
-    day: digits.slice(6, 8),
-  };
 }
 
 function normalizeTextList(raw: string): string[] {
@@ -171,7 +157,7 @@ export default function PetProfileEditScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
-  const petId = route.params.petId;
+  const petId = route.params?.petId?.trim() || '';
 
   const pets = usePetStore(s => s.pets);
   const setPets = usePetStore(s => s.setPets);
@@ -197,10 +183,30 @@ export default function PetProfileEditScreen() {
   const [themeColor, setThemeColor] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [nameChangeCount, setNameChangeCount] = useState(0);
-  const [deathDateModalVisible, setDeathDateModalVisible] = useState(false);
-  const [pickerYear, setPickerYear] = useState('');
-  const [pickerMonth, setPickerMonth] = useState('');
-  const [pickerDay, setPickerDay] = useState('');
+  const [dateModalTarget, setDateModalTarget] = useState<
+    'birth' | 'adoption' | 'death' | null
+  >(null);
+
+  useEffect(() => {
+    if (petId) return;
+
+    Alert.alert('프로필을 열지 못했어요', '아이 정보를 다시 불러온 뒤 시도해 주세요.', [
+      {
+        text: '확인',
+        onPress: () => {
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+            return;
+          }
+
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'AppTabs' }],
+          });
+        },
+      },
+    ]);
+  }, [navigation, petId]);
 
   useEffect(() => {
     if (!pet) return;
@@ -217,7 +223,7 @@ export default function PetProfileEditScreen() {
     setLikesText((pet.likes ?? []).join(', '));
     setDislikesText((pet.dislikes ?? []).join(', '));
     setTags((pet.tags ?? []).slice(0, MAX_TAGS));
-    setImageUri(pet.avatarUrl ?? null);
+    setImageUri(pet.avatarUrl?.trim() || null);
     setImageType(null);
     setThemeColor(pet.themeColor ?? null);
   }, [pet]);
@@ -245,7 +251,7 @@ export default function PetProfileEditScreen() {
   const canEditName = remainingNameChanges > 0 || !originalName;
 
   const avatarSourceUri = useMemo(
-    () => imageUri ?? pet?.avatarUrl ?? null,
+    () => imageUri?.trim() || pet?.avatarUrl?.trim() || null,
     [imageUri, pet?.avatarUrl],
   );
   const displayDeathDate = useMemo(() => deathDate.replace(/\./g, '-'), [deathDate]);
@@ -306,38 +312,49 @@ export default function PetProfileEditScreen() {
     }
   }, [deathDate]);
 
-  const openDeathDateModal = useCallback(() => {
-    const parts = splitYmdParts(deathDate);
-    setPickerYear(parts.year);
-    setPickerMonth(parts.month);
-    setPickerDay(parts.day);
-    setDeathDateModalVisible(true);
-  }, [deathDate]);
-
-  const closeDeathDateModal = useCallback(() => {
-    setDeathDateModalVisible(false);
+  const openBirthDateModal = useCallback(() => {
+    setDateModalTarget('birth');
   }, []);
 
-  const deathDatePreview = useMemo(() => {
-    const merged = `${pickerYear}${pickerMonth}${pickerDay}`;
-    if (!merged) return 'YYYY.MM.DD 또는 YYYY-MM-DD';
-    const year = merged.slice(0, 4);
-    const month = merged.slice(4, 6);
-    const day = merged.slice(6, 8);
-    return [year, month, day].filter(Boolean).join('-');
-  }, [pickerDay, pickerMonth, pickerYear]);
+  const openAdoptionDateModal = useCallback(() => {
+    setDateModalTarget('adoption');
+  }, []);
 
-  const applyDeathDateModal = useCallback(() => {
+  const openDeathDateModal = useCallback(() => {
+    setDateModalTarget('death');
+  }, []);
+
+  const closeDateModal = useCallback(() => {
+    setDateModalTarget(null);
+  }, []);
+
+  const dateModalInitialValue = useMemo(() => {
+    if (dateModalTarget === 'birth') return birthDate;
+    if (dateModalTarget === 'adoption') return adoptionDate;
+    if (dateModalTarget === 'death') return deathDate;
+    return null;
+  }, [adoptionDate, birthDate, dateModalTarget, deathDate]);
+
+  const applyDateModal = useCallback((date: Date) => {
     try {
       const normalized = normalizeYmdOrNull(
-        `${pickerYear}${pickerMonth}${pickerDay}`,
+        `${date.getFullYear()}-${`${date.getMonth() + 1}`.padStart(2, '0')}-${`${date.getDate()}`.padStart(2, '0')}`,
       );
-      setDeathDate(toDisplayYmd(normalized));
-      setDeathDateModalVisible(false);
+      const displayValue = toDisplayYmd(normalized);
+
+      if (dateModalTarget === 'birth') {
+        setBirthDate(displayValue);
+      } else if (dateModalTarget === 'adoption') {
+        setAdoptionDate(displayValue);
+      } else if (dateModalTarget === 'death') {
+        setDeathDate(displayValue);
+      }
+
+      setDateModalTarget(null);
     } catch (error) {
       Alert.alert('날짜 확인', getErrorMessage(error));
     }
-  }, [pickerDay, pickerMonth, pickerYear]);
+  }, [dateModalTarget]);
 
   const pickImage = useCallback(async () => {
     const result = await launchImageLibrary({
@@ -573,26 +590,42 @@ export default function PetProfileEditScreen() {
               <AppText preset="caption" style={styles.label}>
                 생일
               </AppText>
-              <TextInput
-                value={birthDate}
-                onChangeText={setBirthDate}
-                placeholder="YYYY.MM.DD"
-                placeholderTextColor="#A0A7B4"
+              <TouchableOpacity
+                activeOpacity={0.88}
                 style={styles.input}
-              />
+                onPress={openBirthDateModal}
+              >
+                <TextInput
+                  value={birthDate}
+                  onChangeText={setBirthDate}
+                  placeholder="YYYY.MM.DD"
+                  placeholderTextColor="#A0A7B4"
+                  style={styles.readonlyInputText}
+                  editable={false}
+                  pointerEvents="none"
+                />
+              </TouchableOpacity>
             </View>
 
             <View style={styles.col}>
               <AppText preset="caption" style={styles.label}>
                 입양일
               </AppText>
-              <TextInput
-                value={adoptionDate}
-                onChangeText={setAdoptionDate}
-                placeholder="YYYY.MM.DD"
-                placeholderTextColor="#A0A7B4"
+              <TouchableOpacity
+                activeOpacity={0.88}
                 style={styles.input}
-              />
+                onPress={openAdoptionDateModal}
+              >
+                <TextInput
+                  value={adoptionDate}
+                  onChangeText={setAdoptionDate}
+                  placeholder="YYYY.MM.DD"
+                  placeholderTextColor="#A0A7B4"
+                  style={styles.readonlyInputText}
+                  editable={false}
+                  pointerEvents="none"
+                />
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -823,61 +856,13 @@ export default function PetProfileEditScreen() {
         </TouchableOpacity>
       </ScrollView>
 
-      <Modal
-        visible={deathDateModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={closeDeathDateModal}
-      >
-        <Pressable style={styles.modalBackdrop} onPress={closeDeathDateModal}>
-          <Pressable style={styles.modalCard} onPress={() => {}}>
-            <AppText preset="headline" style={styles.modalTitle}>
-              추모 날짜 입력
-            </AppText>
-
-            <View style={styles.modalDateRow}>
-              <TextInput
-                value={pickerYear}
-                onChangeText={setPickerYear}
-                placeholder="YYYY"
-                placeholderTextColor="#A0A7B4"
-                style={[styles.input, styles.modalDateInput]}
-                keyboardType="number-pad"
-              />
-              <TextInput
-                value={pickerMonth}
-                onChangeText={setPickerMonth}
-                placeholder="MM"
-                placeholderTextColor="#A0A7B4"
-                style={[styles.input, styles.modalDateInput]}
-                keyboardType="number-pad"
-              />
-              <TextInput
-                value={pickerDay}
-                onChangeText={setPickerDay}
-                placeholder="DD"
-                placeholderTextColor="#A0A7B4"
-                style={[styles.input, styles.modalDateInput]}
-                keyboardType="number-pad"
-              />
-            </View>
-
-            <AppText preset="caption" style={styles.inputHint}>
-              {deathDatePreview}
-            </AppText>
-
-            <TouchableOpacity
-              activeOpacity={0.92}
-              style={styles.primaryButton}
-              onPress={applyDeathDateModal}
-            >
-              <AppText preset="body" style={styles.primaryButtonText}>
-                날짜 적용
-              </AppText>
-            </TouchableOpacity>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <DatePickerModal
+        visible={dateModalTarget !== null}
+        title="날짜 선택"
+        initialDate={dateModalInitialValue}
+        onCancel={closeDateModal}
+        onConfirm={applyDateModal}
+      />
     </View>
   );
 }

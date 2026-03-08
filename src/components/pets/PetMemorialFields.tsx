@@ -94,7 +94,9 @@ export default memo(function PetMemorialFields({
           >
             무지개다리를 건넌 날짜
           </Text>
-          <View
+          <TouchableOpacity
+            activeOpacity={0.88}
+            onPress={onOpenDeathDateModal}
             style={{
               minHeight: 48,
               borderRadius: 16,
@@ -118,12 +120,11 @@ export default memo(function PetMemorialFields({
                 fontWeight: '700',
                 paddingVertical: 12,
               }}
-              keyboardType="number-pad"
+              editable={false}
+              pointerEvents="none"
             />
-            <TouchableOpacity activeOpacity={0.88} onPress={onOpenDeathDateModal}>
-              <Feather color="#98A1B2" name="calendar" size={16} />
-            </TouchableOpacity>
-          </View>
+            <Feather color="#98A1B2" name="calendar" size={16} />
+          </TouchableOpacity>
           <Text
             style={{
               color: '#A0A7B4',

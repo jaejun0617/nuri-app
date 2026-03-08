@@ -98,6 +98,13 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 14,
     color: TEXT,
     fontWeight: '700',
+    justifyContent: 'center',
+  },
+  readonlyInputText: {
+    color: TEXT,
+    fontWeight: '700',
+    paddingVertical: 0,
+    paddingHorizontal: 0,
   },
   inputDisabled: {
     opacity: 0.7,

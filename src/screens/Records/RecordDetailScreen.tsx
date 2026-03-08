@@ -81,6 +81,17 @@ function formatRelativeTime(value: string) {
   return `${days}일 전`;
 }
 
+function toRelativeDateSource(
+  occurredAt: string | null | undefined,
+  createdAt: string,
+) {
+  if (typeof occurredAt === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(occurredAt)) {
+    return `${occurredAt}T00:00:00`;
+  }
+
+  return createdAt;
+}
+
 const FeedPostCard = memo(function FeedPostCard({
   item,
   petName,
@@ -123,8 +134,8 @@ const FeedPostCard = memo(function FeedPostCard({
     [item.createdAt, item.occurredAt],
   );
   const relativeTime = useMemo(
-    () => formatRelativeTime(item.createdAt),
-    [item.createdAt],
+    () => formatRelativeTime(toRelativeDateSource(item.occurredAt, item.createdAt)),
+    [item.createdAt, item.occurredAt],
   );
   const avatarFallback = useMemo(
     () => petName.trim().charAt(0) || 'N',
@@ -250,7 +261,7 @@ export default function RecordDetailScreen() {
     [selectedPet?.name],
   );
   const petAvatarUrl = useMemo(
-    () => selectedPet?.avatarUrl ?? null,
+    () => selectedPet?.avatarUrl?.trim() || null,
     [selectedPet?.avatarUrl],
   );
 
@@ -336,7 +347,7 @@ export default function RecordDetailScreen() {
           mainCategory: 'all',
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       const { title, message } = getBrandedErrorMeta(error, 'record-delete');
       Alert.alert(title, message);
     } finally {

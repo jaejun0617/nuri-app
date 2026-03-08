@@ -157,9 +157,10 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
+    justifyContent: 'center',
   },
   iconCard: {
-    width: '23%',
+    width: 78,
     minHeight: 72,
     borderRadius: 18,
     alignItems: 'center',

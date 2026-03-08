@@ -18,7 +18,8 @@ import Feather from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import AppText from '../../app/ui/AppText';
-import SchedulePickerModal from '../../components/schedules/SchedulePickerModal';
+import DatePickerModal from '../../components/date-picker/DatePickerModal';
+import TimePickerModal from '../../components/time-picker/TimePickerModal';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
   getBrandedErrorMeta,
@@ -32,7 +33,6 @@ import {
   type ScheduleRepeatRule,
 } from '../../services/supabase/schedules';
 import {
-  createScheduleDatePresets,
   formatScheduleDateSummary,
   getReminderMinutesByKey,
   inferScheduleSubCategory,
@@ -41,10 +41,11 @@ import {
   SCHEDULE_CATEGORY_OPTIONS,
   SCHEDULE_COLOR_OPTIONS,
   SCHEDULE_ICON_OPTIONS,
+  SCHEDULE_OTHER_UI_SUBCATEGORY_OPTIONS,
   SCHEDULE_REMINDER_OPTIONS,
   SCHEDULE_REPEAT_OPTIONS,
-  SCHEDULE_TIME_PRESETS,
   toScheduleDateInput,
+  type ScheduleOtherUiSubCategoryKey,
   type ScheduleReminderOptionKey,
 } from '../../services/schedules/form';
 import { usePetStore } from '../../store/petStore';
@@ -90,40 +91,31 @@ export default function ScheduleCreateScreen() {
   const [timeText, setTimeText] = useState('10:00');
   const [allDay, setAllDay] = useState(false);
   const [category, setCategory] = useState<ScheduleCategory>('health');
+  const [otherUiSubCategoryKey, setOtherUiSubCategoryKey] =
+    useState<ScheduleOtherUiSubCategoryKey | null>(null);
   const [iconKey, setIconKey] = useState<ScheduleIconKey>('medical-bag');
   const [colorKey, setColorKey] = useState<ScheduleColorKey>('brand');
   const [saving, setSaving] = useState(false);
   const [dateModalVisible, setDateModalVisible] = useState(false);
   const [timeModalVisible, setTimeModalVisible] = useState(false);
-  const [draftDateText, setDraftDateText] = useState(
-    toScheduleDateInput(initialDate),
-  );
   const [draftTimeText, setDraftTimeText] = useState('10:00');
   const [repeatRule, setRepeatRule] = useState<ScheduleRepeatRule>('none');
   const [reminderKey, setReminderKey] =
     useState<ScheduleReminderOptionKey>('hour');
 
-  const datePresets = useMemo(() => createScheduleDatePresets(), []);
-
   const onOpenDateModal = useCallback(() => {
-    setDraftDateText(dateText);
     setDateModalVisible(true);
-  }, [dateText]);
+  }, []);
 
   const onOpenTimeModal = useCallback(() => {
     setDraftTimeText(timeText);
     setTimeModalVisible(true);
   }, [timeText]);
 
-  const onConfirmDate = useCallback(() => {
-    try {
-      const normalized = normalizeScheduleDateInput(draftDateText);
-      setDateText(normalized.replace(/-/g, '.'));
-      setDateModalVisible(false);
-    } catch (error) {
-      Alert.alert('날짜 확인', getErrorMessage(error));
-    }
-  }, [draftDateText]);
+  const onConfirmDate = useCallback((nextDate: Date) => {
+    setDateText(toScheduleDateInput(nextDate).replace(/-/g, '.'));
+    setDateModalVisible(false);
+  }, []);
 
   const onConfirmTime = useCallback(() => {
     try {
@@ -134,6 +126,15 @@ export default function ScheduleCreateScreen() {
       Alert.alert('시간 확인', getErrorMessage(error));
     }
   }, [draftTimeText]);
+
+  const onSelectCategory = useCallback((nextCategory: ScheduleCategory) => {
+    setCategory(nextCategory);
+    if (nextCategory !== 'other') {
+      setOtherUiSubCategoryKey(null);
+    } else {
+      setOtherUiSubCategoryKey(prev => prev ?? 'etc');
+    }
+  }, []);
 
   const onSubmit = useCallback(async () => {
     if (!petId) {
@@ -162,7 +163,7 @@ export default function ScheduleCreateScreen() {
         startsAt: new Date(startsAt).toISOString(),
         allDay,
         category,
-        subCategory: inferScheduleSubCategory(category),
+        subCategory: inferScheduleSubCategory(category, otherUiSubCategoryKey),
         iconKey,
         colorKey,
         repeatRule,
@@ -188,6 +189,7 @@ export default function ScheduleCreateScreen() {
     iconKey,
     navigation,
     note,
+    otherUiSubCategoryKey,
     petId,
     reminderKey,
     refresh,
@@ -317,7 +319,7 @@ export default function ScheduleCreateScreen() {
                     styles.optionChip,
                     active ? styles.optionChipActive : null,
                   ]}
-                  onPress={() => setCategory(option.key)}
+                    onPress={() => onSelectCategory(option.key)}
                 >
                   <MaterialCommunityIcons
                     name={option.icon}
@@ -337,6 +339,40 @@ export default function ScheduleCreateScreen() {
               );
             })}
           </View>
+
+          {category === 'other' ? (
+            <>
+              <AppText preset="caption" style={styles.label}>
+                기타 분류
+              </AppText>
+              <View style={styles.optionRow}>
+                {SCHEDULE_OTHER_UI_SUBCATEGORY_OPTIONS.map(option => {
+                  const active = otherUiSubCategoryKey === option.key;
+                  return (
+                    <TouchableOpacity
+                      key={option.key}
+                      activeOpacity={0.9}
+                      style={[
+                        styles.optionChip,
+                        active ? styles.optionChipActive : null,
+                      ]}
+                      onPress={() => setOtherUiSubCategoryKey(option.key)}
+                    >
+                      <AppText
+                        preset="caption"
+                        style={[
+                          styles.optionChipText,
+                          active ? styles.optionChipTextActive : null,
+                        ]}
+                      >
+                        {option.label}
+                      </AppText>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </>
+          ) : null}
 
           <AppText preset="caption" style={styles.label}>
             아이콘
@@ -484,38 +520,18 @@ export default function ScheduleCreateScreen() {
         </View>
       </ScrollView>
 
-      <SchedulePickerModal
+      <DatePickerModal
         visible={dateModalVisible}
-        title="날짜 선택"
-        value={draftDateText}
-        placeholder="YYYY.MM.DD"
-        presets={datePresets.map(preset => ({
-          key: preset.value,
-          label: preset.label,
-          value: preset.value,
-        }))}
-        onClose={() => setDateModalVisible(false)}
-        onChangeValue={setDraftDateText}
-        onSelectPreset={setDraftDateText}
+        initialDate={dateText}
+        onCancel={() => setDateModalVisible(false)}
         onConfirm={onConfirmDate}
-        confirmLabel="날짜 적용"
       />
 
-      <SchedulePickerModal
+      <TimePickerModal
         visible={timeModalVisible}
-        title="시간 선택"
         value={draftTimeText}
-        placeholder="HH:MM"
-        presets={SCHEDULE_TIME_PRESETS.map(preset => ({
-          key: preset,
-          label: preset,
-          value: preset,
-        }))}
-        onClose={() => setTimeModalVisible(false)}
-        onChangeValue={setDraftTimeText}
-        onSelectPreset={setDraftTimeText}
+        onCancel={() => setTimeModalVisible(false)}
         onConfirm={onConfirmTime}
-        confirmLabel="시간 적용"
       />
     </View>
   );

@@ -37,6 +37,7 @@ import type { RouteProp } from '@react-navigation/native';
 import Feather from 'react-native-vector-icons/Feather';
 
 import { ASSETS } from '../../assets';
+import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import PetMemorialFields from '../../components/pets/PetMemorialFields';
 import PetThemePicker from '../../components/pets/PetThemePicker';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -189,19 +190,6 @@ function buildDateHint(value: string): string {
   if (!value) return 'YYYY-MM-DD 또는 YYYYMMDD';
   if (value.includes('-')) return value;
   return formatYmdDigits(value);
-}
-
-function splitYmdParts(raw: string): {
-  year: string;
-  month: string;
-  day: string;
-} {
-  const digits = raw.replace(/\D/g, '').slice(0, 8);
-  return {
-    year: digits.slice(0, 4),
-    month: digits.slice(4, 6),
-    day: digits.slice(6, 8),
-  };
 }
 
 type MultiInputSectionProps = {
@@ -382,7 +370,11 @@ const StepOneForm = memo(function StepOneForm({
 
       <View style={styles.fieldBlock}>
         <Text style={styles.label}>생일</Text>
-        <View style={styles.iconInputWrap}>
+        <TouchableOpacity
+          activeOpacity={0.88}
+          style={styles.iconInputWrap}
+          onPress={onOpenBirthModal}
+        >
           <TextInput
             value={birthDate}
             onChangeText={onBirthDateChange}
@@ -390,18 +382,21 @@ const StepOneForm = memo(function StepOneForm({
             placeholder="2011-10-28"
             placeholderTextColor="#A0A7B4"
             style={styles.iconInput}
-            keyboardType="number-pad"
+            editable={false}
+            pointerEvents="none"
           />
-          <TouchableOpacity activeOpacity={0.88} onPress={onOpenBirthModal}>
-            <Feather color="#98A1B2" name="calendar" size={16} />
-          </TouchableOpacity>
-        </View>
+          <Feather color="#98A1B2" name="calendar" size={16} />
+        </TouchableOpacity>
         <Text style={styles.inputHint}>{buildDateHint(birthDate)}</Text>
       </View>
 
       <View style={styles.fieldBlock}>
         <Text style={styles.label}>입양일</Text>
-        <View style={styles.iconInputWrap}>
+        <TouchableOpacity
+          activeOpacity={0.88}
+          style={styles.iconInputWrap}
+          onPress={onOpenAdoptionModal}
+        >
           <TextInput
             value={adoptionDate}
             onChangeText={onAdoptionDateChange}
@@ -409,12 +404,11 @@ const StepOneForm = memo(function StepOneForm({
             placeholder="입양일을 입력해 주세요"
             placeholderTextColor="#A0A7B4"
             style={styles.iconInput}
-            keyboardType="number-pad"
+            editable={false}
+            pointerEvents="none"
           />
-          <TouchableOpacity activeOpacity={0.88} onPress={onOpenAdoptionModal}>
-            <Feather color="#98A1B2" name="calendar" size={16} />
-          </TouchableOpacity>
-        </View>
+          <Feather color="#98A1B2" name="calendar" size={16} />
+        </TouchableOpacity>
         <Text style={styles.inputHint}>{buildDateHint(adoptionDate)}</Text>
       </View>
 
@@ -665,9 +659,6 @@ export default function PetCreateScreen() {
   const [dateModalTarget, setDateModalTarget] = useState<
     'birth' | 'adoption' | 'death' | null
   >(null);
-  const [pickerYear, setPickerYear] = useState('');
-  const [pickerMonth, setPickerMonth] = useState('');
-  const [pickerDay, setPickerDay] = useState('');
   const [draftHydrated, setDraftHydrated] = useState(false);
   const draftLoadOnceRef = useRef(false);
 
@@ -785,48 +776,51 @@ export default function PetCreateScreen() {
 
   const openDateModal = useCallback(
     (target: 'birth' | 'adoption' | 'death') => {
-      const source =
-        target === 'birth'
-          ? birthDate
-          : target === 'adoption'
-          ? adoptionDate
-          : deathDate;
-      const parts = splitYmdParts(source);
-      setPickerYear(parts.year);
-      setPickerMonth(parts.month);
-      setPickerDay(parts.day);
       setDateModalTarget(target);
     },
-    [adoptionDate, birthDate, deathDate],
+    [],
   );
 
   const closeDateModal = useCallback(() => {
     setDateModalTarget(null);
   }, []);
 
-  const applyDateModal = useCallback(() => {
-    try {
-      const merged = `${pickerYear}${pickerMonth}${pickerDay}`;
-      const normalized = normalizeYmdOrNull(merged);
-      if (dateModalTarget === 'birth') {
-        setBirthDate(normalized ?? '');
-      }
-      if (dateModalTarget === 'adoption') {
-        setAdoptionDate(normalized ?? '');
-      }
-      if (dateModalTarget === 'death') {
-        setDeathDate(normalized ?? '');
-      }
-      setDateModalTarget(null);
-    } catch (error) {
-      Alert.alert('날짜 확인', getErrorMessage(error));
-    }
-  }, [dateModalTarget, pickerDay, pickerMonth, pickerYear]);
+  const dateModalInitialValue = useMemo(() => {
+    if (dateModalTarget === 'birth') return birthDate;
+    if (dateModalTarget === 'adoption') return adoptionDate;
+    if (dateModalTarget === 'death') return deathDate;
+    return null;
+  }, [adoptionDate, birthDate, dateModalTarget, deathDate]);
 
-  const datePreview = useMemo(() => {
-    const merged = `${pickerYear}${pickerMonth}${pickerDay}`;
-    return buildDateHint(merged);
-  }, [pickerDay, pickerMonth, pickerYear]);
+  const dateModalTitle = useMemo(() => {
+    if (dateModalTarget === 'birth') return '생일 선택';
+    if (dateModalTarget === 'adoption') return '입양일 선택';
+    if (dateModalTarget === 'death') return '추모 날짜 선택';
+    return '날짜 선택';
+  }, [dateModalTarget]);
+
+  const onConfirmDateModal = useCallback(
+    (date: Date) => {
+      try {
+        const normalized = normalizeYmdOrNull(
+          `${date.getFullYear()}-${`${date.getMonth() + 1}`.padStart(2, '0')}-${`${date.getDate()}`.padStart(2, '0')}`,
+        );
+        if (dateModalTarget === 'birth') {
+          setBirthDate(normalized ?? '');
+        }
+        if (dateModalTarget === 'adoption') {
+          setAdoptionDate(normalized ?? '');
+        }
+        if (dateModalTarget === 'death') {
+          setDeathDate(normalized ?? '');
+        }
+        setDateModalTarget(null);
+      } catch (error) {
+        Alert.alert('날짜 확인', getErrorMessage(error));
+      }
+    },
+    [dateModalTarget],
+  );
   const compactTopInset = useMemo(
     () => Math.max(insets.top - 24, 0),
     [insets.top],
@@ -1420,94 +1414,13 @@ export default function PetCreateScreen() {
         </View>
       </Modal>
 
-      <Modal
-        transparent
+      <DatePickerModal
         visible={dateModalTarget !== null}
-        animationType="fade"
-        onRequestClose={closeDateModal}
-      >
-        <View style={styles.modalBackdrop}>
-          <TouchableOpacity
-            activeOpacity={1}
-            style={styles.modalScrim}
-            onPress={closeDateModal}
-          />
-          <View style={styles.dateModalCard}>
-            <View style={styles.dateModalHeader}>
-              <Text style={styles.dateModalTitle}>
-                {dateModalTarget === 'birth' ? '생일 선택' : '입양일 선택'}
-              </Text>
-              <TouchableOpacity activeOpacity={0.85} onPress={closeDateModal}>
-                <Feather color="#97A0B1" name="x" size={18} />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.dateModalPreview}>{datePreview}</Text>
-
-            <View style={styles.datePickerRow}>
-              <View style={styles.datePickerCol}>
-                <Text style={styles.datePickerLabel}>연도</Text>
-                <TextInput
-                  value={pickerYear}
-                  onChangeText={text =>
-                    setPickerYear(text.replace(/\D/g, '').slice(0, 4))
-                  }
-                  placeholder="2022"
-                  placeholderTextColor="#A0A7B4"
-                  style={styles.datePickerInput}
-                  keyboardType="number-pad"
-                  maxLength={4}
-                />
-              </View>
-              <View style={styles.datePickerMiniCol}>
-                <Text style={styles.datePickerLabel}>월</Text>
-                <TextInput
-                  value={pickerMonth}
-                  onChangeText={text =>
-                    setPickerMonth(text.replace(/\D/g, '').slice(0, 2))
-                  }
-                  placeholder="05"
-                  placeholderTextColor="#A0A7B4"
-                  style={styles.datePickerInput}
-                  keyboardType="number-pad"
-                  maxLength={2}
-                />
-              </View>
-              <View style={styles.datePickerMiniCol}>
-                <Text style={styles.datePickerLabel}>일</Text>
-                <TextInput
-                  value={pickerDay}
-                  onChangeText={text =>
-                    setPickerDay(text.replace(/\D/g, '').slice(0, 2))
-                  }
-                  placeholder="12"
-                  placeholderTextColor="#A0A7B4"
-                  style={styles.datePickerInput}
-                  keyboardType="number-pad"
-                  maxLength={2}
-                />
-              </View>
-            </View>
-
-            <View style={styles.dateModalActions}>
-              <TouchableOpacity
-                activeOpacity={0.88}
-                style={styles.dateGhostButton}
-                onPress={closeDateModal}
-              >
-                <Text style={styles.dateGhostButtonText}>취소</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                activeOpacity={0.9}
-                style={styles.dateConfirmButton}
-                onPress={applyDateModal}
-              >
-                <Text style={styles.dateConfirmButtonText}>적용</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        title={dateModalTitle}
+        initialDate={dateModalInitialValue}
+        onCancel={closeDateModal}
+        onConfirm={onConfirmDateModal}
+      />
     </SafeAreaView>
   );
 }

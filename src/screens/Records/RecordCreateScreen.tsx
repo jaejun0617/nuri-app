@@ -33,6 +33,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import { launchImageLibrary } from 'react-native-image-picker';
 
 import AppText from '../../app/ui/AppText';
+import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import RecordImageGallery from '../../components/records/RecordImageGallery';
 import type { AppTabParamList } from '../../navigation/AppTabsNavigator';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -41,7 +42,6 @@ import {
   formatRecordKoreanDate,
   mergeRecordTags,
   normalizeRecentRecordTags,
-  offsetRecordYmd,
   parseRecordTags,
   RECORD_DEFAULT_RECENT_TAGS,
   RECORD_EMOTION_OPTIONS,
@@ -51,7 +51,6 @@ import {
   RECORD_SUGGESTED_TAGS,
   toRecordYmd,
   type PickedRecordImage,
-  type RecordDateShortcutKey,
   type RecordMainCategoryKey,
   type RecordOtherSubCategoryKey,
   validateRecordOccurredAt,
@@ -78,7 +77,6 @@ import { useRecordStore } from '../../store/recordStore';
 import { showToast } from '../../store/uiStore';
 import { openMoreDrawer } from '../../store/uiStore';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
-import RecordDateModal from './components/RecordDateModal';
 import RecordTagModal from './components/RecordTagModal';
 import { styles } from './RecordCreateScreen.styles';
 
@@ -92,6 +90,8 @@ type Nav = CompositeNavigationProp<RecordCreateTabNav, RootNav>;
 
 export default function RecordCreateScreen() {
   const navigation = useNavigation<Nav>();
+  const rootNavigation =
+    navigation as unknown as NativeStackNavigationProp<RootStackParamList>;
   const route = useRoute<RecordCreateTabRoute>();
   const insets = useSafeAreaInsets();
 
@@ -134,9 +134,6 @@ export default function RecordCreateScreen() {
   const [otherSubCategoryKey, setOtherSubCategoryKey] =
     useState<RecordOtherSubCategoryKey | null>(null);
   const [dateModalVisible, setDateModalVisible] = useState(false);
-  const [dateDraft, setDateDraft] = useState(todayYmd);
-  const [selectedDateShortcut, setSelectedDateShortcut] =
-    useState<RecordDateShortcutKey>('today');
   const [selectedEmotion, setSelectedEmotion] = useState<EmotionTag | null>(
     null,
   );
@@ -191,8 +188,6 @@ export default function RecordCreateScreen() {
     setMainCategoryKey('walk');
     setOtherSubCategoryKey(null);
     setDateModalVisible(false);
-    setDateDraft(todayYmd);
-    setSelectedDateShortcut('today');
     setSelectedEmotion(null);
     setSelectedImages([]);
     setActiveImageIndex(0);
@@ -343,23 +338,26 @@ export default function RecordCreateScreen() {
 
   const navigateBackToOrigin = useCallback(() => {
     if (returnTo?.tab === 'TimelineTab') {
-      navigation.navigate('TimelineTab', returnTo.params);
+      rootNavigation.navigate('AppTabs', {
+        screen: 'TimelineTab',
+        params: returnTo.params,
+      });
       return;
     }
 
     if (returnTo?.tab === 'GuestbookTab') {
-      navigation.navigate('GuestbookTab');
+      rootNavigation.navigate('AppTabs', { screen: 'GuestbookTab' });
       return;
     }
 
     if (returnTo?.tab === 'MoreTab') {
-      navigation.navigate('HomeTab');
+      rootNavigation.navigate('AppTabs', { screen: 'HomeTab' });
       openMoreDrawer();
       return;
     }
 
     if (returnTo?.tab === 'HomeTab') {
-      navigation.navigate('HomeTab');
+      rootNavigation.navigate('AppTabs', { screen: 'HomeTab' });
       return;
     }
 
@@ -368,8 +366,8 @@ export default function RecordCreateScreen() {
       return;
     }
 
-    navigation.navigate('HomeTab');
-  }, [navigation, returnTo]);
+    rootNavigation.navigate('AppTabs', { screen: 'HomeTab' });
+  }, [navigation, returnTo, rootNavigation]);
 
   const onPressCancel = useCallback(() => {
     clearRecordCreateDraft().catch(() => {});
@@ -397,29 +395,17 @@ export default function RecordCreateScreen() {
   }, []);
 
   const onOpenDateModal = useCallback(() => {
-    setDateDraft(occurredAt || todayYmd);
     setDateModalVisible(true);
-  }, [occurredAt, todayYmd]);
+  }, []);
 
   const onCloseDateModal = useCallback(() => {
     setDateModalVisible(false);
-    setDateDraft(occurredAt || todayYmd);
-  }, [occurredAt, todayYmd]);
+  }, []);
 
-  const onPressDateShortcut = useCallback(
-    (key: RecordDateShortcutKey) => {
-      const next = key === 'today' ? todayYmd : offsetRecordYmd(todayYmd, -1);
-      setSelectedDateShortcut(key);
-      setDateDraft(next);
-    },
-    [todayYmd],
-  );
-
-  const onApplyDate = useCallback(() => {
-    const next = validateRecordOccurredAt(dateDraft) ?? todayYmd;
-    setOccurredAt(next);
+  const onConfirmDate = useCallback((nextDate: Date) => {
+    setOccurredAt(toRecordYmd(nextDate));
     setDateModalVisible(false);
-  }, [dateDraft, todayYmd]);
+  }, []);
 
   const onOpenTagModal = useCallback(() => {
     setTagModalVisible(true);
@@ -1000,17 +986,11 @@ export default function RecordCreateScreen() {
         </TouchableOpacity>
       </ScrollView>
 
-      <RecordDateModal
+      <DatePickerModal
         visible={dateModalVisible}
-        selectedDateShortcut={selectedDateShortcut}
-        dateDraft={dateDraft}
-        onClose={onCloseDateModal}
-        onPressDateShortcut={onPressDateShortcut}
-        onChangeDateDraft={text => {
-          setSelectedDateShortcut('today');
-          setDateDraft(text);
-        }}
-        onApplyDate={onApplyDate}
+        initialDate={occurredAt || todayYmd}
+        onCancel={onCloseDateModal}
+        onConfirm={onConfirmDate}
       />
 
       <RecordTagModal
