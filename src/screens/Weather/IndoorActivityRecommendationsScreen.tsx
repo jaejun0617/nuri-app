@@ -33,10 +33,11 @@ export default function IndoorActivityRecommendationsScreen() {
       name: 'IndoorActivityRecommendations';
       params?: { district?: string };
     }>();
+  const district = route.params?.district?.trim() || '현재 위치';
 
   const weather = useMemo(
-    () => getWeatherGuideBundle(route.params?.district),
-    [route.params?.district],
+    () => getWeatherGuideBundle(district),
+    [district],
   );
   const guides = useMemo(
     () => {

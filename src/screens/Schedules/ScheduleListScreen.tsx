@@ -53,18 +53,18 @@ function formatScheduleDate(schedule: PetSchedule) {
 export default function ScheduleListScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
+  const routePetId = route.params?.petId ?? null;
 
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
 
   const petId = useMemo(() => {
-    const petIdFromParams = route.params?.petId ?? null;
-    if (petIdFromParams) return petIdFromParams;
+    if (routePetId) return routePetId;
     if (selectedPetId && pets.some(p => p.id === selectedPetId)) {
       return selectedPetId;
     }
     return pets[0]?.id ?? null;
-  }, [pets, route.params?.petId, selectedPetId]);
+  }, [pets, routePetId, selectedPetId]);
 
   const bootstrap = useScheduleStore(s => s.bootstrap);
   const refresh = useScheduleStore(s => s.refresh);

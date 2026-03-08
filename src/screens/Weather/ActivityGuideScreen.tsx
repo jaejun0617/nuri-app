@@ -32,8 +32,8 @@ export default function ActivityGuideScreen() {
         district?: string;
       };
     }>();
-
   const guideKey = route.params?.guideKey ?? 'nosework';
+  const district = route.params?.district?.trim() || '현재 위치';
   const guide = useMemo(() => getIndoorActivityGuide(guideKey), [guideKey]);
 
   return (
@@ -102,7 +102,7 @@ export default function ActivityGuideScreen() {
             try {
               navigation.navigate('WeatherActivityRecord', {
                 guideKey: guide.key,
-                district: route.params?.district,
+                district,
               });
             } catch {
               // noop

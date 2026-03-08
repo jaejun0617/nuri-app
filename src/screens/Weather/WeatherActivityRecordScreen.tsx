@@ -82,6 +82,7 @@ export default function WeatherActivityRecordScreen() {
     return pets[0]?.id ?? null;
   }, [pets, selectedPetId]);
   const guideKey = route.params?.guideKey ?? 'nosework';
+  const district = route.params?.district?.trim() || '현재 위치';
   const guide = useMemo(() => getIndoorActivityGuide(guideKey), [guideKey]);
 
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -283,11 +284,11 @@ export default function WeatherActivityRecordScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryTextWrap}>
-            <Text style={styles.summaryTitle}>{guide.title} 완료!</Text>
-            <Text style={styles.summaryLink}>오늘의 활동 요약</Text>
-          </View>
+      <View style={styles.summaryCard}>
+        <View style={styles.summaryTextWrap}>
+          <Text style={styles.summaryTitle}>{guide.title} 완료!</Text>
+          <Text style={styles.summaryLink}>{district} 활동 기록</Text>
+        </View>
           <View style={styles.summaryIcon}>
             <MaterialCommunityIcons
               name={guide.heroIcon as never}

@@ -61,6 +61,7 @@ type Route = {
 export default function ScheduleCreateScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
+  const routePetId = route.params?.petId ?? null;
   const startsAtParam = route.params?.startsAt?.trim() ?? null;
 
   const pets = usePetStore(s => s.pets);
@@ -68,13 +69,12 @@ export default function ScheduleCreateScreen() {
   const refresh = useScheduleStore(s => s.refresh);
 
   const petId = useMemo(() => {
-    const petIdFromParams = route.params?.petId ?? null;
-    if (petIdFromParams) return petIdFromParams;
+    if (routePetId) return routePetId;
     if (selectedPetId && pets.some(p => p.id === selectedPetId)) {
       return selectedPetId;
     }
     return pets[0]?.id ?? null;
-  }, [pets, route.params?.petId, selectedPetId]);
+  }, [pets, routePetId, selectedPetId]);
 
   const initialDate = useMemo(() => {
     if (startsAtParam) {

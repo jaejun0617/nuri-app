@@ -630,6 +630,7 @@ const StepTwoForm = memo(function StepTwoForm({
 export default function PetCreateScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<PetCreateRoute>();
+  const routeFrom = route.params?.from ?? null;
   const insets = useSafeAreaInsets();
   const setPets = usePetStore(s => s.setPets);
 
@@ -676,8 +677,8 @@ export default function PetCreateScreen() {
     return true;
   }, [trimmedName]);
   const showStepOneExitButton = useMemo(
-    () => route.params?.from === 'header_plus',
-    [route.params?.from],
+    () => routeFrom === 'header_plus',
+    [routeFrom],
   );
 
   const canSubmit = useMemo(() => {
@@ -739,36 +740,46 @@ export default function PetCreateScreen() {
   );
 
   const pickImage = useCallback(async () => {
-    const result = await launchImageLibrary({
-      mediaType: 'photo',
-      selectionLimit: 1,
-      quality: 0.9,
-    });
-
-    if (result.didCancel) return;
-
-    const asset = result.assets?.[0];
-    if (!asset?.uri) {
-      Alert.alert('사진 선택 실패', '이미지를 다시 선택해 주세요.');
-      return;
-    }
-
-    setImageUri(asset.uri);
-    setImageType(resolvePickerMimeType(asset));
     try {
-      const base64 = await readFileAsBase64(asset.uri);
-      setThemeColor(
-        recommendPetThemeColor({
-          imageBase64: base64,
-          name: trimmedName,
-        }),
-      );
-    } catch {
-      setThemeColor(
-        recommendPetThemeColor({
-          name: trimmedName,
-        }),
-      );
+      const result = await launchImageLibrary({
+        mediaType: 'photo',
+        selectionLimit: 1,
+        quality: 0.9,
+      });
+
+      if (result.didCancel) return;
+      if (result.errorCode) {
+        const message = result.errorMessage?.trim() || '이미지를 다시 선택해 주세요.';
+        Alert.alert('사진 선택 실패', message);
+        return;
+      }
+
+      const asset = result.assets?.[0];
+      if (!asset?.uri) {
+        Alert.alert('사진 선택 실패', '이미지를 다시 선택해 주세요.');
+        return;
+      }
+
+      setImageUri(asset.uri);
+      setImageType(resolvePickerMimeType(asset));
+      try {
+        const base64 = await readFileAsBase64(asset.uri);
+        setThemeColor(
+          recommendPetThemeColor({
+            imageBase64: base64,
+            name: trimmedName,
+          }),
+        );
+      } catch {
+        setThemeColor(
+          recommendPetThemeColor({
+            name: trimmedName,
+          }),
+        );
+      }
+    } catch (error) {
+      const { title, message } = getBrandedErrorMeta(error, 'image-pick');
+      Alert.alert(title, message);
     }
   }, [trimmedName]);
 
@@ -850,42 +861,45 @@ export default function PetCreateScreen() {
     async function hydrateDraft() {
       if (draftLoadOnceRef.current) return;
       draftLoadOnceRef.current = true;
+      try {
+        const draft = await loadPetCreateDraft();
+        if (!mounted) return;
 
-      const draft = await loadPetCreateDraft();
-      if (!mounted) return;
+        if (draft) {
+          setStep(draft.step);
+          setName(draft.name);
+          setBirthDate(draft.birthDate);
+          setAdoptionDate(draft.adoptionDate);
+          setDeathDate(draft.deathDate ?? '');
+          setBreed(draft.breed);
+          setThemeColor(draft.themeColor ?? null);
+          setGender(draft.gender);
+          setMemorialChoice(
+            draft.memorialChoice ?? getPetMemorialChoice(draft.deathDate),
+          );
+          setNeutered(draft.neutered);
 
-      if (draft) {
-        setStep(draft.step);
-        setName(draft.name);
-        setBirthDate(draft.birthDate);
-        setAdoptionDate(draft.adoptionDate);
-        setDeathDate(draft.deathDate ?? '');
-        setBreed(draft.breed);
-        setThemeColor(draft.themeColor ?? null);
-        setGender(draft.gender);
-        setMemorialChoice(draft.memorialChoice ?? getPetMemorialChoice(draft.deathDate));
-        setNeutered(draft.neutered);
+          setWeightKg(draft.weightKg);
+          setLikes(Array.isArray(draft.likes) ? draft.likes : []);
+          setDislikes(Array.isArray(draft.dislikes) ? draft.dislikes : []);
+          setHobbies(Array.isArray(draft.hobbies) ? draft.hobbies : []);
+          setTags(Array.isArray(draft.tags) ? draft.tags : []);
 
-        setWeightKg(draft.weightKg);
-        setLikes(Array.isArray(draft.likes) ? draft.likes : []);
-        setDislikes(Array.isArray(draft.dislikes) ? draft.dislikes : []);
-        setHobbies(Array.isArray(draft.hobbies) ? draft.hobbies : []);
-        setTags(Array.isArray(draft.tags) ? draft.tags : []);
+          setDraftLike(draft.draftLike);
+          setDraftDislike(draft.draftDislike);
+          setDraftHobby(draft.draftHobby);
+          setDraftTag(draft.draftTag);
 
-        setDraftLike(draft.draftLike);
-        setDraftDislike(draft.draftDislike);
-        setDraftHobby(draft.draftHobby);
-        setDraftTag(draft.draftTag);
-
-        setImageUri(draft.imageUri);
-        setImageType(draft.imageType);
+          setImageUri(draft.imageUri);
+          setImageType(draft.imageType);
+        }
+      } finally {
+        if (mounted) setDraftHydrated(true);
       }
-
-      setDraftHydrated(true);
     }
 
     hydrateDraft().catch(() => {
-      // ignore draft hydrate errors
+      if (mounted) setDraftHydrated(true);
     });
     return () => {
       mounted = false;
@@ -1091,10 +1105,7 @@ export default function PetCreateScreen() {
             .eq('id', newPetId);
 
           if (error) throw error;
-        } catch (imageError) {
-          if (__DEV__) {
-            console.warn('[PetCreate] avatar upload failed:', imageError);
-          }
+        } catch {
           Alert.alert(
             '이미지 업로드 실패',
             '반려동물 등록은 완료되었고, 사진은 나중에 프로필 수정에서 다시 등록할 수 있어요.',
@@ -1133,6 +1144,9 @@ export default function PetCreateScreen() {
     trimmedName,
     weightKg,
   ]);
+  const goPrevStep = useCallback(() => {
+    setStep(1);
+  }, []);
 
   const handleBirthDateChange = useCallback(
     (text: string) => syncDateInput(setBirthDate, text),
@@ -1348,7 +1362,7 @@ export default function PetCreateScreen() {
               <TouchableOpacity
                 activeOpacity={0.88}
                 style={styles.secondaryButton}
-                onPress={() => setStep(1)}
+                onPress={goPrevStep}
               >
                 <Text style={styles.secondaryButtonText}>이전 단계로</Text>
               </TouchableOpacity>

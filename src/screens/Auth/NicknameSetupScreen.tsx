@@ -200,14 +200,13 @@ const NicknameFooter = memo(function NicknameFooter({
 export default function NicknameSetupScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<R>();
+  const after = route.params?.after ?? 'signup';
 
   const current = useAuthStore(s => s.profile.nickname) ?? '';
   const isLoggedIn = useAuthStore(s => s.isLoggedIn);
   const setNickname = useAuthStore(s => s.setNickname);
 
-  const [nickname, setLocalNickname] = useState(
-    route.params?.after === 'signup' ? '' : current,
-  );
+  const [nickname, setLocalNickname] = useState(after === 'signup' ? '' : current);
   const [checking, setChecking] = useState(false);
   const [saving, setSaving] = useState(false);
   const [availabilityChecked, setAvailabilityChecked] = useState(false);
@@ -381,11 +380,11 @@ export default function NicknameSetupScreen() {
   }, [canSubmit, navigation, setNickname, trimmed]);
 
   const hintText = useMemo(() => {
-    if (!route.params?.after) return '홈에서 표시될 닉네임을 설정해주세요';
-    return route.params.after === 'signup'
+    if (!after) return '홈에서 표시될 닉네임을 설정해주세요';
+    return after === 'signup'
       ? '홈에서 표시될 닉네임을 설정해주세요'
       : '계속하려면 닉네임 설정이 필요합니다';
-  }, [route.params?.after]);
+  }, [after]);
 
   useEffect(() => {
     if (isLoggedIn) return;
