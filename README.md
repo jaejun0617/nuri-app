@@ -2766,6 +2766,65 @@ NURI는 데이터 입력 도구가 아니라,
 - Android에서 공통 사진 선택기 호출 시 실패 확률이 줄어들고, 예외가 화면 바깥으로 새는 대신 취소/재시도 가능한 흐름으로 정리됐다.
 - 기록 생성/수정의 다중 사진 선택, 펫 프로필 이미지 선택, 날씨 활동 기록 이미지 선택이 같은 공통 경로를 더 안정적으로 공유하게 됐다.
 
+## Chapter 6-73 — 날씨 unavailable 정책 고정 + 실기기 검증 마감
+
+### 무엇을 진행했나
+
+- [`src/hooks/useWeatherGuide.ts`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/hooks/useWeatherGuide.ts) 의 상태명을 `usingMock` 대신 `isUnavailable`로 정리하고, 위치/네트워크 실패 시 에러 문구도 현재 정책에 맞게 다시 썼다.
+- 같은 파일에서 `initialBundle`, 메모리 캐시, 디스크 캐시는 이제 "로딩 중 미리보기"로만 쓰고, API 실패가 확정되면 반드시 unavailable 번들로 내려가도록 흐름을 고쳤다.
+- [`__tests__/useWeatherGuide.test.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/__tests__/useWeatherGuide.test.tsx) 를 추가해 `실데이터 성공 / 위치 권한 거부 / 초기 live 번들 보유 상태에서 API 실패` 세 가지를 회귀 테스트로 고정했다.
+- 날씨 계층 주석과 용어도 mock 중심 표현에서 `live / unavailable / preview` 기준으로 정리했다.
+
+### 왜 이렇게 했나
+
+- 이번 날씨 안정화 목표는 "실데이터 성공 시 실제 표시, 실패 시 unavailable 표시"였는데, 일부 문구와 네이밍은 여전히 과거 mock/fallback 구조를 전제로 남아 있었다.
+- 특히 홈에서 상세로 넘긴 `initialBundle`이나 짧은 캐시가 있으면, 실패 뒤에도 예전 live 숫자가 그대로 남을 수 있는 경로가 있어 운영 기준과 어긋났다.
+- 상태명과 문서 용어가 실제 정책과 다르면 이후 유지보수에서 다시 가짜 데이터 경로를 되살릴 위험이 있다.
+
+### 실기기 검증 결과
+
+- Android 에뮬레이터에서 위치 허용 상태를 확인했다.
+  - 홈 카드에 실제 온도, 실제 지역명, 실제 대기질 문구가 표시됐다.
+  - 상세 화면에서도 같은 지역명과 같은 시나리오가 유지돼 홈/상세 상태 일관성이 확인됐다.
+- Android 에뮬레이터에서 위치 거부 상태를 확인했다.
+  - 홈 카드가 `실시간 확인 필요`로 바뀌고 가짜 숫자는 사라졌다.
+  - 상세 화면도 `정보 없음`, 빈 주간예보, 빈 대기질 카드로 내려가 unavailable 상태가 유지됐다.
+- 네트워크 실패는 debug 빌드에서 직접 재현 시 Metro 연결까지 함께 끊겨 red screen이 발생했다.
+  - 그래서 현재 turn에서는 훅 회귀 테스트로 실패 정책을 고정했고, 런타임 최종 확인은 bundle 내장 빌드 기준으로 별도 계획을 남겼다.
+
+### release 또는 dev bundle 내장 빌드 기준 네트워크 실패 검증 계획
+
+1. Metro 비의존 빌드를 준비한다.
+   - Android release APK 또는 dev bundle 내장 빌드로 설치한다.
+   - 핵심 조건은 네트워크를 꺼도 JS 실행 자체는 유지되는 상태여야 한다.
+2. 시작 상태를 정리한다.
+   - 앱 데이터 삭제 또는 날씨 캐시 키 초기화
+   - 위치 권한 허용
+   - 네트워크 ON 상태로 1회 실행해 live 화면 기준을 확인
+3. 네트워크 실패를 재현한다.
+   - `adb shell svc wifi disable`
+   - `adb shell svc data disable`
+   - 앱 강제 종료 후 재실행 또는 상세 화면에서 새로고침
+4. 확인 포인트를 체크한다.
+   - 홈 카드에 숫자 fallback 대신 `실시간 확인 필요`가 보이는지
+   - 상세 화면에 `정보 없음`, 빈 주간예보, 빈 대기질 카드가 보이는지
+   - 오류 문구가 "최근 확인한 날씨"가 아니라 실제 연결 실패를 설명하는지
+   - 홈 → 상세 → 홈 왕복 시 unavailable 상태가 일관되게 유지되는지
+5. 복구도 확인한다.
+   - `adb shell svc wifi enable`
+   - `adb shell svc data enable`
+   - 새로고침 후 live 데이터로 정상 복귀하는지 확인한다.
+
+### 남은 후속 과제 체크리스트
+
+- [ ] release 또는 dev bundle 내장 Android 빌드에서 네트워크 실패 런타임 검증을 실제 캡처와 함께 완료
+- [ ] iOS 실기기 또는 시뮬레이터에서도 위치 허용/거부/unavailable 상태를 같은 기준으로 재검증
+- [ ] 날씨 상세의 새로고침 액션이 unavailable -> live 복귀 시점에 UX상 충분히 명확한지 점검
+- [ ] Kakao 역지오코딩 실패 + Open-Meteo 성공 조합에서 지역명 fallback 품질을 추가 점검
+- [ ] 날씨 관련 E2E 시나리오가 가능해지면 권한 거부/허용 기본 smoke를 Maestro 또는 동급 도구로 자동화
+- [ ] README의 과거 날씨 캐시 설명 중 "최근 확인한 날씨를 먼저 보여준다" 정책은 현재 정책과 충돌하지 않는지 후속 정리
+- [ ] `getWeatherGuideBundle()` 같은 과거 호환 API가 더 필요 없는지 정리 후 축소 여부 검토
+
 ---
 
 # 🚀 Next

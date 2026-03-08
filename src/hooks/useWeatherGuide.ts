@@ -3,7 +3,7 @@
 // - 위치 권한, 좌표, 동 이름, 날씨/대기질 API를 TanStack Query + Zustand 조합으로 연결
 // - 메모리 TTL -> AsyncStorage TTL -> API 순서로 조회해 화면 왕복 시 재호출을 줄이기
 
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { getBrandedErrorMeta } from '../services/app/errors';
@@ -14,7 +14,10 @@ import {
   saveCachedWeatherGuideBundle,
 } from '../services/weather/cache';
 import { buildWeatherGuideBundleFromApi } from '../services/weather/mapper';
-import { getWeatherGuideBundle, type WeatherGuideBundle } from '../services/weather/guide';
+import {
+  createUnavailableWeatherGuideBundle,
+  type WeatherGuideBundle,
+} from '../services/weather/guide';
 import { useWeatherStore, getWeatherStoreCoordsKey } from '../store/weatherStore';
 import { useCurrentLocation } from './useCurrentLocation';
 import { useDistrict } from './useDistrict';
@@ -27,7 +30,7 @@ export type WeatherGuideState = {
   bundle: WeatherGuideBundle;
   error: string | null;
   refresh: () => Promise<void>;
-  usingMock: boolean;
+  isUnavailable: boolean;
 };
 
 function getWeatherGuideErrorMessage(error: unknown) {
@@ -41,13 +44,13 @@ function getLocationFallbackMessage(input: {
   districtError: string | null;
 }) {
   if (input.permission === 'blocked') {
-    return '위치 권한이 꺼져 있어 최근 확인한 날씨를 먼저 보여드릴게요.';
+    return '위치 권한이 꺼져 있어 실제 날씨 정보를 확인할 수 없어요.';
   }
   if (input.permission === 'denied') {
-    return '위치 권한이 없어 최근 확인한 날씨를 먼저 보여드릴게요.';
+    return '위치 권한이 없어 실제 날씨 정보를 확인할 수 없어요.';
   }
   if (input.locationError || input.districtError) {
-    return '현재 위치를 잠시 찾지 못해 최근 확인한 날씨를 먼저 보여드릴게요.';
+    return '현재 위치를 잠시 찾지 못해 실제 날씨 정보를 불러오지 못했어요.';
   }
   return null;
 }
@@ -58,6 +61,7 @@ export function useWeatherGuide(
 ): WeatherGuideState {
   const queryClient = useQueryClient();
   const location = useCurrentLocation();
+  const [diskPreviewBundle, setDiskPreviewBundle] = useState<WeatherGuideBundle | null>(null);
   const districtState = useDistrict({
     coordinates: location.coordinates,
     loading: location.loading,
@@ -87,30 +91,28 @@ export function useWeatherGuide(
   useEffect(() => {
     let cancelled = false;
 
-    async function hydrateDiskCache() {
-      if (!location.coordinates || memoryEntry || initialBundle || !coordsKey) return;
+    async function hydrateDiskPreview() {
+      if (!location.coordinates || memoryEntry || initialBundle) return;
 
       const cachedBundle = await loadCachedWeatherGuideBundle(location.coordinates);
       if (!cachedBundle || cancelled) return;
 
-      useWeatherStore.getState().saveBundle(location.coordinates, cachedBundle);
-      queryClient.setQueryData(['weather-guide', coordsKey], cachedBundle);
+      setDiskPreviewBundle(cachedBundle);
     }
 
-    hydrateDiskCache().catch(() => {});
+    setDiskPreviewBundle(null);
+    hydrateDiskPreview().catch(() => {});
 
     return () => {
       cancelled = true;
     };
-  }, [coordsKey, initialBundle, location.coordinates, memoryEntry, queryClient]);
+  }, [initialBundle, location.coordinates, memoryEntry]);
 
   const weatherQuery = useQuery<WeatherGuideBundle>({
     queryKey: ['weather-guide', coordsKey],
     enabled: !!location.coordinates && !!coordsKey,
     staleTime: WEATHER_QUERY_STALE_MS,
     gcTime: WEATHER_QUERY_GC_MS,
-    initialData: initialBundle ?? memoryEntry?.bundle,
-    initialDataUpdatedAt: memoryEntry?.savedAt ?? (initialBundle ? Date.now() : undefined),
     queryFn: async () => {
       if (!location.coordinates) {
         throw new Error('현재 위치를 아직 확인하지 못했어요.');
@@ -137,9 +139,16 @@ export function useWeatherGuide(
     saveCachedWeatherGuideBundle(location.coordinates, weatherQuery.data).catch(() => {});
   }, [location.coordinates, weatherQuery.data]);
 
+  const previewBundle = useMemo(() => {
+    if (weatherQuery.data || weatherQuery.error) return null;
+    return initialBundle ?? memoryEntry?.bundle ?? diskPreviewBundle;
+  }, [diskPreviewBundle, initialBundle, memoryEntry, weatherQuery.data, weatherQuery.error]);
+
   const bundle = useMemo(() => {
     const sourceBundle =
-      weatherQuery.data ?? initialBundle ?? getWeatherGuideBundle(resolvedDistrict);
+      weatherQuery.data ??
+      previewBundle ??
+      createUnavailableWeatherGuideBundle(resolvedDistrict);
 
     if (resolvedDistrict === '현재 위치') return sourceBundle;
     if (sourceBundle.district === resolvedDistrict) return sourceBundle;
@@ -148,7 +157,7 @@ export function useWeatherGuide(
       ...sourceBundle,
       district: resolvedDistrict,
     };
-  }, [initialBundle, resolvedDistrict, weatherQuery.data]);
+  }, [previewBundle, resolvedDistrict, weatherQuery.data]);
 
   const error = useMemo(() => {
     const locationFallback = getLocationFallbackMessage({
@@ -162,19 +171,15 @@ export function useWeatherGuide(
     }
 
     if (weatherQuery.error) {
-      return memoryEntry || initialBundle
-        ? '최근 확인한 날씨를 먼저 보여드릴게요. 연결이 안정되면 새 정보로 바뀝니다.'
-        : getWeatherGuideErrorMessage(weatherQuery.error);
+      return getWeatherGuideErrorMessage(weatherQuery.error);
     }
 
     return locationFallback;
   }, [
     districtState.error,
-    initialBundle,
     location.coordinates,
     location.error,
     location.permission,
-    memoryEntry,
     weatherQuery.error,
   ]);
 
@@ -188,7 +193,7 @@ export function useWeatherGuide(
 
   const loading =
     !weatherQuery.data &&
-    !initialBundle &&
+    !previewBundle &&
     (location.loading || districtState.loading || weatherQuery.isLoading);
 
   return {
@@ -196,6 +201,6 @@ export function useWeatherGuide(
     bundle,
     error,
     refresh,
-    usingMock: (!location.coordinates && !weatherQuery.data) || (!!error && !weatherQuery.data),
+    isUnavailable: bundle.dataSource === 'unavailable',
   };
 }

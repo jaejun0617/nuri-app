@@ -10,13 +10,19 @@ export type OpenMeteoForecastResponse = {
     temperature_2m?: number;
     apparent_temperature?: number;
     weather_code?: number;
-    is_day?: number;
+    relative_humidity_2m?: number;
+    wind_speed_10m?: number;
+    cloud_cover?: number;
   };
   daily?: {
     time?: string[];
     weather_code?: number[];
     temperature_2m_max?: number[];
     temperature_2m_min?: number[];
+    sunrise?: string[];
+    sunset?: string[];
+    uv_index_max?: number[];
+    precipitation_probability_max?: number[];
   };
 };
 
@@ -25,7 +31,6 @@ export type OpenMeteoAirQualityResponse = {
     pm10?: number;
     pm2_5?: number;
     ozone?: number;
-    us_aqi?: number;
   };
 };
 
@@ -36,8 +41,8 @@ export async function fetchOpenMeteoForecast(
     `https://api.open-meteo.com/v1/forecast` +
     `?latitude=${coords.latitude}` +
     `&longitude=${coords.longitude}` +
-    `&current=temperature_2m,apparent_temperature,weather_code,is_day` +
-    `&daily=weather_code,temperature_2m_max,temperature_2m_min` +
+    `&current=temperature_2m,apparent_temperature,weather_code,relative_humidity_2m,wind_speed_10m,cloud_cover` +
+    `&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max,precipitation_probability_max` +
     `&timezone=Asia%2FSeoul` +
     `&forecast_days=7`;
 
@@ -57,7 +62,7 @@ export async function fetchOpenMeteoAirQuality(
     `https://air-quality-api.open-meteo.com/v1/air-quality` +
     `?latitude=${coords.latitude}` +
     `&longitude=${coords.longitude}` +
-    `&current=pm10,pm2_5,ozone,us_aqi` +
+    `&current=pm10,pm2_5,ozone` +
     `&timezone=Asia%2FSeoul`;
 
   const response = await fetch(url);

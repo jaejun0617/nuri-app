@@ -1,9 +1,12 @@
 // 파일: src/services/weather/guide.ts
 // 역할:
-// - 날씨 API 연결 전 단계에서 사용할 홈/상세/실내놀이 추천 mock 모델 제공
-// - 위치명에 따라 날씨 시나리오를 결정하고, 화면 전반에서 같은 구조를 재사용
+// - 홈/상세/실내놀이 화면이 함께 쓰는 날씨 번들 모델 제공
+// - live 응답과 unavailable 상태가 같은 UI 구조를 재사용하도록 정리
 
-export type WeatherScenario = 'rain' | 'dusty' | 'fresh';
+import { getCurrentWeatherIsDaytime } from './dayPhase';
+
+export type WeatherScenario = 'rain' | 'snow' | 'dusty' | 'fresh';
+export type WeatherDataSource = 'live' | 'unavailable';
 export type WeatherIconKey =
   | 'weather-pouring'
   | 'weather-cloudy'
@@ -51,6 +54,7 @@ export type WeeklyWeatherItem = {
   icon: WeatherIconKey;
   temperature: number;
   lowTemperature: number;
+  precipitationChance?: number;
 };
 
 export type AirQualityMetric = {
@@ -109,10 +113,20 @@ export const WEATHER_RECORD_EMOTION_OPTIONS: ReadonlyArray<{
 export type WeatherGuideBundle = {
   district: string;
   scenario: WeatherScenario;
+  dataSource: WeatherDataSource;
+  airQualityConcern: boolean;
   weatherIcon: WeatherIconKey;
+  isDaytime: boolean;
   currentTemperature: number;
+  apparentTemperature: number;
   highTemperature: number;
   lowTemperature: number;
+  humidity: number;
+  windSpeed: number;
+  cloudCover: number;
+  uvIndex: number;
+  sunriseTime: string | null;
+  sunsetTime: string | null;
   homeMessage: string;
   homeCaption: string;
   detailStatus: string;
@@ -138,6 +152,8 @@ const WEATHER_SCENARIOS: Record<
     WeatherGuideBundle,
     | 'district'
     | 'scenario'
+    | 'dataSource'
+    | 'airQualityConcern'
     | 'weekly'
     | 'airQualityMetrics'
     | 'recommendedGuideKeys'
@@ -145,15 +161,23 @@ const WEATHER_SCENARIOS: Record<
 > = {
   rain: {
     weatherIcon: 'weather-pouring',
+    isDaytime: true,
     currentTemperature: 18,
+    apparentTemperature: 17,
     highTemperature: 21,
     lowTemperature: 15,
+    humidity: 74,
+    windSpeed: 2.8,
+    cloudCover: 82,
+    uvIndex: 1,
+    sunriseTime: '오전 6:58',
+    sunsetTime: '오후 6:28',
     homeMessage: '산책하기 딱 좋은 날씨는 아니에요',
     homeCaption: '오늘은 누리와 집 안에서 더 깊은 시간을 보내요',
     detailStatus: '비가 오고 있어요',
     detailHeadline: '산책보다 실내 놀이가 더 잘 어울리는 날이에요',
     detailBadge: 'RAINY DAY',
-    activityCardTitle: '반려견 케어 가이드',
+    activityCardTitle: '실내에서 차분하게 에너지를 풀어주세요',
     activityCardBody:
       '비가 오는 날엔 실내 에너지를 부드럽게 풀어주는 놀이가 좋아요. 오늘은 노즈워크와 터그 놀이를 추천해요.',
     activityButtonLabel: '실내 놀이 더보기',
@@ -164,17 +188,54 @@ const WEATHER_SCENARIOS: Record<
       cardBorder: 'rgba(110,117,140,0.10)',
     },
   },
+  snow: {
+    weatherIcon: 'weather-snowy',
+    isDaytime: true,
+    currentTemperature: -1,
+    apparentTemperature: -4,
+    highTemperature: 2,
+    lowTemperature: -5,
+    humidity: 81,
+    windSpeed: 3.1,
+    cloudCover: 88,
+    uvIndex: 1,
+    sunriseTime: '오전 6:59',
+    sunsetTime: '오후 6:27',
+    homeMessage: '눈길이라 산책은 천천히 판단하는 편이 좋아요',
+    homeCaption: '오늘은 발바닥 온도와 미끄럼을 먼저 확인해 주세요',
+    detailStatus: '눈이 내리고 있어요',
+    detailHeadline: '눈길이 걱정되는 날엔 짧은 산책보다 실내 활동이 더 안전해요',
+    detailBadge: 'SNOW DAY',
+    activityCardTitle: '체온과 발바닥 컨디션을 먼저 살펴주세요',
+    activityCardBody:
+      '눈이 오는 날엔 발바닥과 체온 관리가 먼저예요. 짧은 산책 후엔 집에서 노즈워크로 에너지를 천천히 풀어주세요.',
+    activityButtonLabel: '실내 놀이 더보기',
+    background: {
+      top: '#E2EEFF',
+      bottom: '#EDF5FF',
+      card: '#FFFFFF',
+      cardBorder: 'rgba(119,147,185,0.12)',
+    },
+  },
   dusty: {
     weatherIcon: 'weather-cloudy',
+    isDaytime: true,
     currentTemperature: 18,
+    apparentTemperature: 18,
     highTemperature: 21,
     lowTemperature: 15,
+    humidity: 55,
+    windSpeed: 1.8,
+    cloudCover: 56,
+    uvIndex: 2,
+    sunriseTime: '오전 6:57',
+    sunsetTime: '오후 6:29',
     homeMessage: '미세먼지가 높아 실내 활동이 좋아 보여요',
     homeCaption: '짧은 산책보다 아이와 집에서 차분히 놀아보는 하루를 추천해요',
     detailStatus: '미세먼지 나쁨',
     detailHeadline: '오늘은 공기보다 아이의 호흡을 먼저 생각해 주세요',
     detailBadge: 'WARNING',
-    activityCardTitle: '반려견 케어 가이드',
+    activityCardTitle: '호흡이 편안한 실내 활동을 우선해 주세요',
     activityCardBody:
       '미세먼지가 높은 날엔 산책 시간을 줄이고, 실내에서 노즈워크나 터그 놀이로 에너지를 풀어주는 편이 더 좋아요.',
     activityButtonLabel: '실내 놀이 더보기',
@@ -187,15 +248,23 @@ const WEATHER_SCENARIOS: Record<
   },
   fresh: {
     weatherIcon: 'weather-sunny',
+    isDaytime: true,
     currentTemperature: 22,
+    apparentTemperature: 21,
     highTemperature: 24,
     lowTemperature: 17,
+    humidity: 48,
+    windSpeed: 1.3,
+    cloudCover: 12,
+    uvIndex: 4,
+    sunriseTime: '오전 6:56',
+    sunsetTime: '오후 6:32',
     homeMessage: '산책하기 딱 좋은 날씨예요',
     homeCaption: '오늘은 아이와 바깥 공기를 천천히 즐겨보세요',
     detailStatus: '미세먼지 좋음',
     detailHeadline: '공기가 아주 깨끗해요! 신나게 야외 활동을 즐겨보세요',
     detailBadge: 'FRESH',
-    activityCardTitle: '반려견 케어 가이드',
+    activityCardTitle: '오늘은 가볍고 기분 좋은 야외 시간을 추천해요',
     activityCardBody:
       '공기가 아주 맑아요! 오늘은 무리한 훈련보다 산책과 가벼운 놀이로 컨디션을 기분 좋게 채워주세요.',
     activityButtonLabel: '산책 기록 보러가기',
@@ -210,22 +279,28 @@ const WEATHER_SCENARIOS: Record<
 
 const SCENARIO_WEEKLY: Record<WeatherScenario, WeeklyWeatherItem[]> = {
   rain: [
-    { key: 'today', label: '오늘', icon: 'weather-pouring', temperature: 18, lowTemperature: 15 },
-    { key: 'tomorrow', label: '내일', icon: 'weather-cloudy', temperature: 20, lowTemperature: 16 },
-    { key: 'wed', label: '수', icon: 'weather-sunny', temperature: 22, lowTemperature: 17 },
-    { key: 'thu', label: '목', icon: 'weather-sunny', temperature: 24, lowTemperature: 18 },
+    { key: 'today', label: '오늘', icon: 'weather-pouring', temperature: 18, lowTemperature: 15, precipitationChance: 80 },
+    { key: 'tomorrow', label: '내일', icon: 'weather-cloudy', temperature: 20, lowTemperature: 16, precipitationChance: 30 },
+    { key: 'wed', label: '수', icon: 'weather-sunny', temperature: 22, lowTemperature: 17, precipitationChance: 10 },
+    { key: 'thu', label: '목', icon: 'weather-sunny', temperature: 24, lowTemperature: 18, precipitationChance: 0 },
+  ],
+  snow: [
+    { key: 'today', label: '오늘', icon: 'weather-snowy', temperature: -1, lowTemperature: -5, precipitationChance: 70 },
+    { key: 'tomorrow', label: '내일', icon: 'weather-cloudy', temperature: 1, lowTemperature: -4, precipitationChance: 20 },
+    { key: 'wed', label: '수', icon: 'weather-sunny', temperature: 4, lowTemperature: -2, precipitationChance: 0 },
+    { key: 'thu', label: '목', icon: 'weather-partly-cloudy', temperature: 6, lowTemperature: -1, precipitationChance: 0 },
   ],
   dusty: [
-    { key: 'today', label: '오늘', icon: 'weather-cloudy', temperature: 18, lowTemperature: 15 },
-    { key: 'tomorrow', label: '내일', icon: 'weather-partly-cloudy', temperature: 20, lowTemperature: 16 },
-    { key: 'wed', label: '수', icon: 'weather-sunny', temperature: 22, lowTemperature: 17 },
-    { key: 'thu', label: '목', icon: 'weather-sunny', temperature: 24, lowTemperature: 18 },
+    { key: 'today', label: '오늘', icon: 'weather-cloudy', temperature: 18, lowTemperature: 15, precipitationChance: 0 },
+    { key: 'tomorrow', label: '내일', icon: 'weather-partly-cloudy', temperature: 20, lowTemperature: 16, precipitationChance: 10 },
+    { key: 'wed', label: '수', icon: 'weather-sunny', temperature: 22, lowTemperature: 17, precipitationChance: 0 },
+    { key: 'thu', label: '목', icon: 'weather-sunny', temperature: 24, lowTemperature: 18, precipitationChance: 0 },
   ],
   fresh: [
-    { key: 'today', label: '오늘', icon: 'weather-sunny', temperature: 22, lowTemperature: 17 },
-    { key: 'tomorrow', label: '내일', icon: 'weather-sunny', temperature: 23, lowTemperature: 18 },
-    { key: 'wed', label: '수', icon: 'weather-sunny', temperature: 24, lowTemperature: 18 },
-    { key: 'thu', label: '목', icon: 'weather-partly-cloudy', temperature: 21, lowTemperature: 16 },
+    { key: 'today', label: '오늘', icon: 'weather-sunny', temperature: 22, lowTemperature: 17, precipitationChance: 0 },
+    { key: 'tomorrow', label: '내일', icon: 'weather-sunny', temperature: 23, lowTemperature: 18, precipitationChance: 0 },
+    { key: 'wed', label: '수', icon: 'weather-sunny', temperature: 24, lowTemperature: 18, precipitationChance: 0 },
+    { key: 'thu', label: '목', icon: 'weather-partly-cloudy', temperature: 21, lowTemperature: 16, precipitationChance: 10 },
   ],
 };
 
@@ -251,6 +326,29 @@ const SCENARIO_AIR: Record<WeatherScenario, AirQualityMetric[]> = {
       valueLabel: '좋음',
       tone: 'good',
       progress: 0.28,
+    },
+  ],
+  snow: [
+    {
+      key: 'pm10',
+      label: '미세먼지',
+      valueLabel: '보통 (31ug/m³)',
+      tone: 'moderate',
+      progress: 0.31,
+    },
+    {
+      key: 'pm25',
+      label: '초미세먼지',
+      valueLabel: '보통',
+      tone: 'moderate',
+      progress: 0.24,
+    },
+    {
+      key: 'ozone',
+      label: '오존',
+      valueLabel: '좋음',
+      tone: 'good',
+      progress: 0.14,
     },
   ],
   dusty: [
@@ -300,6 +398,73 @@ const SCENARIO_AIR: Record<WeatherScenario, AirQualityMetric[]> = {
     },
   ],
 };
+
+export function getWeatherBackgroundByPhase(
+  scenario: WeatherScenario,
+  isDaytime: boolean,
+) {
+  if (scenario === 'snow') {
+    return isDaytime
+      ? {
+          top: '#E2EEFF',
+          bottom: '#EDF5FF',
+          card: '#FFFFFF',
+          cardBorder: 'rgba(119,147,185,0.12)',
+        }
+      : {
+          top: '#0B1730',
+          bottom: '#16294D',
+          card: 'rgba(14,28,56,0.92)',
+          cardBorder: 'rgba(188,212,244,0.16)',
+        };
+  }
+
+  if (scenario === 'rain') {
+    return isDaytime
+      ? {
+          top: '#F7F8FC',
+          bottom: '#F1F3F8',
+          card: '#FFFFFF',
+          cardBorder: 'rgba(110,117,140,0.10)',
+        }
+      : {
+          top: '#0A1630',
+          bottom: '#11284B',
+          card: 'rgba(11,25,53,0.92)',
+          cardBorder: 'rgba(178,196,228,0.16)',
+        };
+  }
+
+  if (scenario === 'dusty') {
+    return isDaytime
+      ? {
+          top: '#F6F1E7',
+          bottom: '#F1ECE1',
+          card: '#FFFFFF',
+          cardBorder: 'rgba(139,118,91,0.10)',
+        }
+      : {
+          top: '#241F1A',
+          bottom: '#39322C',
+          card: 'rgba(41,34,28,0.92)',
+          cardBorder: 'rgba(227,203,176,0.14)',
+        };
+  }
+
+  return isDaytime
+    ? {
+        top: '#EAF5FF',
+        bottom: '#F4FAFF',
+        card: '#FFFFFF',
+        cardBorder: 'rgba(85,160,220,0.10)',
+      }
+    : {
+        top: '#081327',
+        bottom: '#123264',
+        card: 'rgba(9,24,52,0.92)',
+        cardBorder: 'rgba(180,208,255,0.16)',
+      };
+}
 
 export const INDOOR_ACTIVITY_GUIDES: Record<IndoorActivityKey, IndoorActivityGuide> = {
   nosework: {
@@ -672,24 +837,25 @@ export function getWeatherEmoji(icon: WeatherIconKey) {
   }
 }
 
-function pickScenarioFromDistrict(district: string): WeatherScenario {
-  const raw = district.trim() || '현재 위치';
-  const sum = Array.from(raw).reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const variants: WeatherScenario[] = ['rain', 'dusty', 'fresh'];
-  return variants[sum % variants.length] ?? 'rain';
-}
-
 export function buildWeatherGuideBundleForScenario(
   scenario: WeatherScenario,
   district = '현재 위치',
+  options?: {
+    isDaytime?: boolean;
+  },
 ): WeatherGuideBundle {
   const normalizedDistrict = district.trim() || '현재 위치';
   const base = WEATHER_SCENARIOS[scenario];
+  const isDaytime = options?.isDaytime ?? getCurrentWeatherIsDaytime();
 
   return {
     district: normalizedDistrict,
     scenario,
+    dataSource: 'live',
     ...base,
+    isDaytime,
+    airQualityConcern: scenario === 'dusty',
+    background: getWeatherBackgroundByPhase(scenario, isDaytime),
     weekly: SCENARIO_WEEKLY[scenario],
     airQualityMetrics: SCENARIO_AIR[scenario],
     recommendedGuideKeys:
@@ -699,12 +865,51 @@ export function buildWeatherGuideBundleForScenario(
   };
 }
 
-export function getWeatherGuideBundle(district = '현재 위치'): WeatherGuideBundle {
+export function createUnavailableWeatherGuideBundle(
+  district = '현재 위치',
+): WeatherGuideBundle {
   const normalizedDistrict = district.trim() || '현재 위치';
-  return buildWeatherGuideBundleForScenario(
-    pickScenarioFromDistrict(normalizedDistrict),
-    normalizedDistrict,
-  );
+  const isDaytime = getCurrentWeatherIsDaytime();
+  return {
+    ...buildWeatherGuideBundleForScenario('fresh', normalizedDistrict, {
+      isDaytime,
+    }),
+    dataSource: 'unavailable',
+    isDaytime,
+    airQualityConcern: false,
+    currentTemperature: 0,
+    apparentTemperature: 0,
+    highTemperature: 0,
+    lowTemperature: 0,
+    humidity: 0,
+    windSpeed: 0,
+    cloudCover: 0,
+    uvIndex: 0,
+    sunriseTime: null,
+    sunsetTime: null,
+    homeMessage: '실제 날씨 정보를 아직 확인하지 못했어요',
+    homeCaption: '위치 권한과 네트워크 연결이 확인되면 실시간 정보로 바뀝니다',
+    detailStatus: '실시간 날씨 연결 필요',
+    detailHeadline: '현재는 실제 날씨 데이터를 받아오지 못한 상태예요',
+    detailBadge: 'WEATHER OFFLINE',
+    weekly: [],
+    airQualityMetrics: [],
+    activityCardTitle: '실내외 활동 전 날씨 연결 상태를 먼저 확인해 주세요',
+    activityCardBody:
+      '현재 화면의 추천은 일반 가이드만 보여주고 있어요. 위치와 네트워크가 확인되면 실제 날씨 기준으로 바뀝니다.',
+    activityButtonLabel: '실내 놀이 둘러보기',
+    background: {
+      top: '#EEF2F7',
+      bottom: '#E4EAF2',
+      card: '#FFFFFF',
+      cardBorder: 'rgba(120,136,160,0.12)',
+    },
+    recommendedGuideKeys: ['nosework', 'training', 'massage'],
+  };
+}
+
+export function getWeatherGuideBundle(district = '현재 위치'): WeatherGuideBundle {
+  return createUnavailableWeatherGuideBundle(district);
 }
 
 export function getIndoorActivityGuide(key: IndoorActivityKey) {

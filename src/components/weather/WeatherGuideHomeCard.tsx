@@ -20,6 +20,16 @@ export default React.memo(function WeatherGuideHomeCard({
   weather,
   onPress,
 }: Props) {
+  const hasLiveData = weather.dataSource === 'live';
+  const isNightCard = hasLiveData && !weather.isDaytime;
+  const textPrimary = isNightCard ? '#F8FBFF' : '#1B2434';
+  const textSecondary = isNightCard ? 'rgba(226,236,248,0.74)' : '#8B96AA';
+  const locationColor = isNightCard ? 'rgba(208,220,238,0.72)' : '#9BA5B6';
+  const chevronColor = isNightCard ? '#F8FBFF' : '#000000';
+  const iconWrapBackground = isNightCard
+    ? 'rgba(255,255,255,0.12)'
+    : 'rgba(255,255,255,0.72)';
+
   return (
     <TouchableOpacity
       activeOpacity={0.94}
@@ -33,19 +43,29 @@ export default React.memo(function WeatherGuideHomeCard({
       onPress={onPress}
     >
       <View style={styles.left}>
-        <View style={styles.iconWrap}>
+        <View style={[styles.iconWrap, { backgroundColor: iconWrapBackground }]}>
           <Text style={styles.iconEmoji}>{getWeatherEmoji(weather.weatherIcon)}</Text>
         </View>
         <View style={styles.textWrap}>
           <View style={styles.tempRow}>
-            <Text style={styles.tempText}>{weather.currentTemperature}°C</Text>
-            <Text style={styles.locationText}>{weather.district}</Text>
+            <Text
+              style={[
+                styles.tempText,
+                hasLiveData ? null : styles.tempTextFallback,
+                { color: textPrimary },
+              ]}
+            >
+              {hasLiveData ? `${weather.currentTemperature}°C` : '실시간 확인 필요'}
+            </Text>
+            <Text style={[styles.locationText, { color: locationColor }]}>
+              {weather.district}
+            </Text>
           </View>
-          <Text style={styles.title}>{weather.homeMessage}</Text>
-          <Text style={styles.caption}>{weather.homeCaption}</Text>
+          <Text style={[styles.title, { color: textPrimary }]}>{weather.homeMessage}</Text>
+          <Text style={[styles.caption, { color: textSecondary }]}>{weather.homeCaption}</Text>
         </View>
       </View>
-      <Text style={styles.chevron}>{'>'}</Text>
+      <Text style={[styles.chevron, { color: chevronColor }]}>{'>'}</Text>
     </TouchableOpacity>
   );
 });
@@ -70,7 +90,6 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.72)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -93,28 +112,28 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1B2434',
   },
+  tempTextFallback: {
+    fontSize: 18,
+    lineHeight: 24,
+  },
   locationText: {
     fontSize: 12,
     lineHeight: 16,
-    color: '#9BA5B6',
     fontWeight: '500',
   },
   title: {
     fontSize: 14,
     lineHeight: 19,
-    color: '#1E293B',
     fontWeight: '600',
   },
   caption: {
     fontSize: 12,
     lineHeight: 17,
-    color: '#8B96AA',
     fontWeight: '400',
   },
   chevron: {
     fontSize: 22,
     lineHeight: 24,
-    color: '#000000',
     fontWeight: '500',
   },
 });
