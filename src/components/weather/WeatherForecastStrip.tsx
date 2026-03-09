@@ -1,9 +1,5 @@
-// 파일: src/components/weather/WeatherForecastStrip.tsx
-// 역할:
-// - 날씨 상세에서 주간 예보 카드 스트립을 재사용
-
 import React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import {
   getWeatherEmoji,
@@ -13,70 +9,129 @@ import {
 type Props = {
   items: WeeklyWeatherItem[];
   accentColor: string;
+  labelColor?: string;
+  precipitationColor?: string;
+  temperatureColor?: string;
+  lowTemperatureColor?: string;
 };
 
 export default React.memo(function WeatherForecastStrip({
   items,
   accentColor,
+  labelColor = '#F8FBFF',
+  precipitationColor = 'rgba(234,242,255,0.76)',
+  temperatureColor = '#FFFFFF',
+  lowTemperatureColor = 'rgba(226,236,248,0.74)',
 }: Props) {
+  if (items.length === 0) {
+    return (
+      <View style={styles.emptyWrap}>
+        <Text style={[styles.emptyText, { color: labelColor }]}>
+          주간 예보를 아직 받아오지 못했어요.
+        </Text>
+      </View>
+    );
+  }
+
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.row}
-    >
+    <View style={styles.table}>
       {items.map((item, index) => (
-        <View key={item.key} style={[styles.card, index === 0 ? styles.cardActive : null]}>
-          <Text style={styles.label}>{item.label}</Text>
-          <Text style={[styles.emoji, { color: accentColor }]}>
-            {getWeatherEmoji(item.icon)}
+        <View
+          key={item.key}
+          style={[styles.row, index === items.length - 1 ? styles.rowLast : null]}
+        >
+          <Text style={[styles.label, { color: labelColor }]}>{item.label}</Text>
+
+          <View style={styles.precipWrap}>
+            <Text style={styles.precipEmoji}>💧</Text>
+            <Text style={[styles.precipText, { color: precipitationColor }]}>
+              {item.precipitationChance ?? 0}%
+            </Text>
+          </View>
+
+          <View style={styles.iconGroup}>
+            <Text style={[styles.emoji, { color: accentColor }]}>
+              {getWeatherEmoji(item.icon)}
+            </Text>
+          </View>
+
+          <Text style={[styles.tempText, { color: temperatureColor }]}>
+            {item.temperature}°{' '}
+            <Text style={[styles.lowText, { color: lowTemperatureColor }]}>
+              {item.lowTemperature}°
+            </Text>
           </Text>
-          <Text style={styles.temp}>{item.temperature}°</Text>
-          <Text style={styles.low}>{item.lowTemperature}°</Text>
         </View>
       ))}
-    </ScrollView>
+    </View>
   );
 });
 
 const styles = StyleSheet.create({
-  row: {
-    gap: 10,
+  table: {
+    gap: 0,
   },
-  card: {
-    width: 76,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.74)',
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    alignItems: 'center',
-    gap: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(17,24,39,0.05)',
+  emptyWrap: {
+    paddingVertical: 18,
   },
-  cardActive: {
-    backgroundColor: '#FFFFFF',
-  },
-  label: {
-    fontSize: 11,
-    lineHeight: 14,
-    color: '#A0A8B8',
+  emptyText: {
+    fontSize: 13,
+    lineHeight: 18,
     fontWeight: '600',
   },
-  emoji: {
-    fontSize: 20,
-    lineHeight: 24,
+  row: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.10)',
   },
-  temp: {
-    fontSize: 22,
-    lineHeight: 26,
-    color: '#1B2434',
+  rowLast: {
+    borderBottomWidth: 0,
+  },
+  label: {
+    width: 36,
+    fontSize: 14,
+    lineHeight: 18,
+    color: '#F8FBFF',
     fontWeight: '700',
   },
-  low: {
+  precipWrap: {
+    width: 58,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  precipEmoji: {
     fontSize: 11,
     lineHeight: 14,
-    color: '#A0A8B8',
-    fontWeight: '500',
+    opacity: 0.8,
+  },
+  precipText: {
+    fontSize: 12,
+    lineHeight: 16,
+    color: 'rgba(234,242,255,0.76)',
+    fontWeight: '600',
+  },
+  iconGroup: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emoji: {
+    fontSize: 21,
+    lineHeight: 24,
+  },
+  tempText: {
+    width: 74,
+    textAlign: 'right',
+    fontSize: 16,
+    lineHeight: 20,
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  lowText: {
+    color: 'rgba(226,236,248,0.74)',
+    fontWeight: '600',
   },
 });

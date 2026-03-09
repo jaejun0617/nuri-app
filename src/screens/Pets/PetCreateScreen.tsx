@@ -26,7 +26,6 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
-import { launchImageLibrary } from 'react-native-image-picker';
 import {
   useFocusEffect,
   useNavigation,
@@ -38,11 +37,13 @@ import Feather from 'react-native-vector-icons/Feather';
 
 import { ASSETS } from '../../assets';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
+import PhotoAddCard from '../../components/media/PhotoAddCard';
 import PetMemorialFields from '../../components/pets/PetMemorialFields';
 import PetThemePicker from '../../components/pets/PetThemePicker';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { getBrandedErrorMeta, getErrorMessage } from '../../services/app/errors';
 import { readFileAsBase64 } from '../../services/files/readFileAsBase64';
+import { pickPhotoAssets } from '../../services/media/photoPicker';
 import { supabase } from '../../services/supabase/client';
 import {
   clearPetCreateDraft,
@@ -59,6 +60,7 @@ import {
 import { createPet, fetchMyPets } from '../../services/supabase/pets';
 import { uploadPetAvatar } from '../../services/supabase/storagePets';
 import { usePetStore } from '../../store/petStore';
+import { showToast } from '../../store/uiStore';
 import { styles } from './PetCreateScreen.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'PetCreate'>;
@@ -68,46 +70,6 @@ type PetGender = 'male' | 'female' | 'unknown';
 
 const BRAND = '#6D6AF8';
 const MAX_MULTI_ITEMS = 10;
-
-function inferMimeFromFileName(
-  fileName: string | null | undefined,
-): string | null {
-  const value = (fileName ?? '').toLowerCase().trim();
-  if (!value) return null;
-  if (value.endsWith('.jpg') || value.endsWith('.jpeg')) return 'image/jpeg';
-  if (value.endsWith('.png')) return 'image/png';
-  if (value.endsWith('.webp')) return 'image/webp';
-  if (value.endsWith('.heic')) return 'image/heic';
-  if (value.endsWith('.heif')) return 'image/heif';
-  return null;
-}
-
-function inferMimeFromUri(uri: string): string | null {
-  const normalized = uri.toLowerCase().split('?')[0];
-  if (normalized.endsWith('.jpg') || normalized.endsWith('.jpeg')) {
-    return 'image/jpeg';
-  }
-  if (normalized.endsWith('.png')) return 'image/png';
-  if (normalized.endsWith('.webp')) return 'image/webp';
-  if (normalized.endsWith('.heic')) return 'image/heic';
-  if (normalized.endsWith('.heif')) return 'image/heif';
-  return null;
-}
-
-function resolvePickerMimeType(asset: {
-  type?: string | null;
-  fileName?: string | null;
-  uri?: string | null;
-}): string | null {
-  const direct = asset.type ?? null;
-  if (direct && direct.includes('/')) return direct;
-
-  const byName = inferMimeFromFileName(asset.fileName);
-  if (byName) return byName;
-
-  if (asset.uri) return inferMimeFromUri(asset.uri);
-  return null;
-}
 
 function normalizeTextItem(raw: string): string {
   return raw.trim().replace(/\s+/g, ' ');
@@ -319,24 +281,19 @@ const StepOneForm = memo(function StepOneForm({
 }: StepOneFormProps) {
   return (
     <>
-      <TouchableOpacity
-        activeOpacity={0.92}
-        style={styles.avatarSection}
-        onPress={onPickImage}
-      >
-        <View style={styles.avatarCircle}>
-          {imageUri ? (
-            <Image source={{ uri: imageUri }} style={styles.avatarImage} />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Feather color={BRAND} name="camera" size={18} />
-            </View>
-          )}
-        </View>
-        <View style={styles.avatarEditButton}>
-          <Feather color="#FFFFFF" name="edit-3" size={12} />
-        </View>
-      </TouchableOpacity>
+      <View style={styles.avatarSection}>
+        <PhotoAddCard
+          imageUri={imageUri}
+          onPress={onPickImage}
+          containerStyle={styles.avatarCircle}
+          imageStyle={styles.avatarImage}
+          placeholderStyle={styles.avatarPlaceholder}
+          placeholderIconColor={BRAND}
+          placeholderIconSize={18}
+          editButtonStyle={styles.avatarEditButton}
+          editIconSize={12}
+        />
+      </View>
 
       <Text style={styles.heroCopy}>우리 아이 사진을 등록해주세요</Text>
 
@@ -732,27 +689,16 @@ export default function PetCreateScreen() {
 
   const pickImage = useCallback(async () => {
     try {
-      const result = await launchImageLibrary({
-        mediaType: 'photo',
+      const result = await pickPhotoAssets({
         selectionLimit: 1,
         quality: 0.9,
       });
+      if (result.status === 'cancelled') return;
 
-      if (result.didCancel) return;
-      if (result.errorCode) {
-        const message = result.errorMessage?.trim() || '이미지를 다시 선택해 주세요.';
-        Alert.alert('사진 선택 실패', message);
-        return;
-      }
-
-      const asset = result.assets?.[0];
-      if (!asset?.uri) {
-        Alert.alert('사진 선택 실패', '이미지를 다시 선택해 주세요.');
-        return;
-      }
+      const asset = result.assets[0];
 
       setImageUri(asset.uri);
-      setImageType(resolvePickerMimeType(asset));
+      setImageType(asset.mimeType);
       try {
         const base64 = await readFileAsBase64(asset.uri);
         setThemeColor(
@@ -770,7 +716,7 @@ export default function PetCreateScreen() {
       }
     } catch (error) {
       const { title, message } = getBrandedErrorMeta(error, 'image-pick');
-      Alert.alert(title, message);
+      showToast({ tone: 'error', title, message });
     }
   }, [trimmedName]);
 
@@ -1108,7 +1054,7 @@ export default function PetCreateScreen() {
       }
 
       const pets = await fetchMyPets();
-      setPets(pets);
+      setPets(pets, { userId });
       await clearPetCreateDraft();
 
       setSuccessModalVisible(true);

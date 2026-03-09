@@ -13,6 +13,8 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 
 import AppText from '../../app/ui/AppText';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import type { RootScreenRoute } from '../../navigation/types';
+import { createLatestRequestController } from '../../services/app/async';
 import { getErrorMessage } from '../../services/app/errors';
 import {
   deleteSchedule,
@@ -29,11 +31,7 @@ import { useScheduleStore } from '../../store/scheduleStore';
 import { styles } from './ScheduleDetailScreen.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'ScheduleDetail'>;
-type Route = {
-  key: string;
-  name: 'ScheduleDetail';
-  params: { petId?: string; scheduleId: string };
-};
+type Route = RootScreenRoute<'ScheduleDetail'>;
 
 function formatReminder(reminderMinutes: number[]) {
   if (!reminderMinutes.length) return '알림 없음';
@@ -72,19 +70,20 @@ export default function ScheduleDetailScreen() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    let mounted = true;
+    const request = createLatestRequestController();
 
     async function run() {
+      const requestId = request.begin();
       try {
         const next = await fetchScheduleById(scheduleId);
-        if (mounted) setSchedule(next);
+        if (request.isCurrent(requestId)) setSchedule(next);
       } catch (error: unknown) {
-        if (mounted) {
+        if (request.isCurrent(requestId)) {
           Alert.alert('일정 조회 실패', getErrorMessage(error));
           navigation.goBack();
         }
       } finally {
-        if (mounted) setLoading(false);
+        if (request.isCurrent(requestId)) setLoading(false);
       }
     }
 
@@ -92,7 +91,7 @@ export default function ScheduleDetailScreen() {
       // handled inside run
     });
     return () => {
-      mounted = false;
+      request.cancel();
     };
   }, [navigation, scheduleId]);
 

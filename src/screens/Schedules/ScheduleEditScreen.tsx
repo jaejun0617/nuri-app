@@ -21,6 +21,8 @@ import AppText from '../../app/ui/AppText';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import TimePickerModal from '../../components/time-picker/TimePickerModal';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import type { RootScreenRoute } from '../../navigation/types';
+import { createLatestRequestController } from '../../services/app/async';
 import {
   getBrandedErrorMeta,
   getErrorMessage,
@@ -56,11 +58,7 @@ import { useScheduleStore } from '../../store/scheduleStore';
 import { styles } from './ScheduleCreateScreen.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'ScheduleEdit'>;
-type Route = {
-  key: string;
-  name: 'ScheduleEdit';
-  params: { petId?: string; scheduleId: string };
-};
+type Route = RootScreenRoute<'ScheduleEdit'>;
 
 export default function ScheduleEditScreen() {
   const navigation = useNavigation<Nav>();
@@ -89,11 +87,12 @@ export default function ScheduleEditScreen() {
     useState<ScheduleReminderOptionKey>('none');
 
   useEffect(() => {
-    let mounted = true;
+    const request = createLatestRequestController();
     async function run() {
+      const requestId = request.begin();
       try {
         const next = await fetchScheduleById(scheduleId);
-        if (!mounted) return;
+        if (!request.isCurrent(requestId)) return;
         const startsAt = new Date(next.startsAt);
         setSchedule(next);
         setTitle(next.title);
@@ -112,7 +111,7 @@ export default function ScheduleEditScreen() {
         setRepeatRule(next.repeatRule);
         setReminderKey(getReminderKeyByMinutes(next.reminderMinutes));
       } catch (error) {
-        if (mounted) {
+        if (request.isCurrent(requestId)) {
           const { title: alertTitle, message } = getBrandedErrorMeta(
             error,
             'schedule-fetch',
@@ -121,14 +120,14 @@ export default function ScheduleEditScreen() {
           navigation.goBack();
         }
       } finally {
-        if (mounted) setLoading(false);
+        if (request.isCurrent(requestId)) setLoading(false);
       }
     }
     run().catch(() => {
       // handled inside run
     });
     return () => {
-      mounted = false;
+      request.cancel();
     };
   }, [navigation, scheduleId]);
 

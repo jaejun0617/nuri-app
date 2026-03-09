@@ -63,7 +63,12 @@ export type RootStackParamList = {
         initialBundle?: WeatherGuideBundle;
       }
     | undefined;
-  IndoorActivityRecommendations: { district?: string } | undefined;
+  IndoorActivityRecommendations:
+    | {
+        district?: string;
+        initialBundle?: WeatherGuideBundle;
+      }
+    | undefined;
   ActivityGuide: {
     guideKey: IndoorActivityKey;
     district?: string;

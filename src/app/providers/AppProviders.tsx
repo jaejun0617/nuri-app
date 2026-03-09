@@ -9,8 +9,9 @@
 // - recordStore 전체 구독(useRecordStore()) 제거
 // - clearAll만 selector로 구독하여 불필요 렌더/스냅샷 변동 리스크 최소화
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { AppState } from 'react-native';
+import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'styled-components/native';
 
@@ -26,6 +27,11 @@ import {
 } from '../../services/monitoring/sentry';
 import { flushPendingConsentSnapshot } from '../../services/legal/consents';
 import { processPendingMemoryUploads } from '../../services/local/uploadQueue';
+import {
+  getSessionUserId,
+  shouldReloadUserScopedState,
+  withTimeout,
+} from '../../services/app/boot';
 import { showToast } from '../../store/uiStore';
 
 import { useAuthStore } from '../../store/authStore';
@@ -48,6 +54,11 @@ const queryClient = new QueryClient({
   },
 });
 
+const LOCAL_HYDRATION_TIMEOUT_MS = 3_000;
+const SESSION_READ_TIMEOUT_MS = 4_000;
+const SESSION_VALIDATE_TIMEOUT_MS = 5_000;
+const USER_SCOPED_FETCH_TIMEOUT_MS = 6_000;
+
 export default function AppProviders({ children }: Props) {
   // ---------------------------------------------------------
   // 0) Theme
@@ -61,17 +72,22 @@ export default function AppProviders({ children }: Props) {
   const hydrateAuth = useAuthStore(s => s.hydrate);
   const setSession = useAuthStore(s => s.setSession);
   const setNickname = useAuthStore(s => s.setNickname);
+  const setProfileSyncState = useAuthStore(s => s.setProfileSyncState);
   const setAuthBooted = useAuthStore(s => s.setBooted);
 
   const hydrateSelectedPetId = usePetStore(s => s.hydrateSelectedPetId);
+  const hydratePetsCache = usePetStore(s => s.hydratePetsCache);
   const setPets = usePetStore(s => s.setPets);
-  const clearPets = usePetStore(s => s.clear);
   const setPetLoading = usePetStore(s => s.setLoading);
   const setPetBooted = usePetStore(s => s.setBooted);
+  const setPetErrorMessage = usePetStore(s => s.setErrorMessage);
 
   const clearRecords = useRecordStore(s => s.clearAll);
   const refreshRecords = useRecordStore(s => s.refresh);
   const clearSchedules = useScheduleStore(s => s.clearAll);
+  const transitionSeqRef = useRef(0);
+  const lastUserIdRef = useRef<string | null>(null);
+  const localHydrationPromiseRef = useRef<Promise<void> | null>(null);
 
   useEffect(() => {
     const processDeferredTasks = async () => {
@@ -120,11 +136,28 @@ export default function AppProviders({ children }: Props) {
     let alive = true;
 
     const resolveValidSession = async () => {
-      const { data } = await supabase.auth.getSession();
+      const { data } = await withTimeout(
+        supabase.auth.getSession(),
+        SESSION_READ_TIMEOUT_MS,
+        'auth.getSession',
+      );
       const session = data.session ?? null;
       if (!session) return null;
 
-      const { data: userData, error: userError } = await supabase.auth.getUser();
+      const userResult = await withTimeout(
+        supabase.auth.getUser(),
+        SESSION_VALIDATE_TIMEOUT_MS,
+        'auth.getUser',
+      ).catch(error => {
+        captureMonitoringException(error);
+        return null;
+      });
+
+      if (!userResult) {
+        return session;
+      }
+
+      const { data: userData, error: userError } = userResult;
       if (userError || !userData.user) {
         await supabase.auth.signOut();
         return null;
@@ -133,52 +166,143 @@ export default function AppProviders({ children }: Props) {
       return session;
     };
 
-    const loadPets = async () => {
-      try {
-        setPetLoading(true);
-
-        // ✅ selectedPetId 먼저 복원 (pets 들어오면 normalize됨)
-        await hydrateSelectedPetId();
-
-        const pets = await fetchMyPets();
-        setPets(pets);
-      } finally {
-        setPetLoading(false);
-        setPetBooted(true);
-      }
+    const beginTransition = () => {
+      setAuthBooted(false);
+      setPetBooted(false);
+      setPetLoading(true);
     };
 
-    const onLoggedIn = async () => {
-      try {
-        const nickname = await fetchMyNickname();
-        await setNickname(nickname);
-      } catch {
-        // ignore
-      }
-
-      await loadPets();
-    };
-
-    const onGuest = async () => {
-      await setNickname(null);
-      clearPets();
-      clearRecords();
-      clearSchedules();
+    const finishTransition = (seq: number) => {
+      if (!alive || transitionSeqRef.current !== seq) return;
+      setAuthBooted(true);
       setPetBooted(true);
     };
 
-    const boot = async () => {
-      // ---------------------------------------------------------
-      // ✅ Splash 게이트 ON (부트 시작)
-      // ---------------------------------------------------------
-      setAuthBooted(false);
-      setPetBooted(false);
+    const clearUserScopedStores = () => {
+      setPets([], { userId: null });
+      clearRecords();
+      clearSchedules();
+      setPetErrorMessage(null);
+    };
 
-      // 1) 로컬 복원
-      await hydrateAuth();
+    const loadUserScopedState = async (userId: string) => {
+      setProfileSyncState('loading');
+      setPetLoading(true);
 
-      // 2) Supabase 세션 복원
-      const session = await resolveValidSession();
+      const currentSelectedPetId = usePetStore.getState().selectedPetId;
+      const cachedPets = usePetStore.getState().pets;
+
+      const fetchPetsSafely = async () => {
+        const first = await withTimeout(
+          fetchMyPets(userId),
+          USER_SCOPED_FETCH_TIMEOUT_MS,
+          'fetchMyPets',
+        );
+
+        if (
+          first.length > 0 ||
+          (!currentSelectedPetId && cachedPets.length === 0)
+        ) {
+          return first;
+        }
+
+        const { data: validatedUser } = await withTimeout(
+          supabase.auth.getUser(),
+          SESSION_VALIDATE_TIMEOUT_MS,
+          'auth.getUser(pets retry)',
+        );
+        if (validatedUser.user?.id !== userId) {
+          return first;
+        }
+
+        return withTimeout(
+          fetchMyPets(userId),
+          USER_SCOPED_FETCH_TIMEOUT_MS,
+          'fetchMyPets(retry)',
+        );
+      };
+
+      const [nicknameResult, petsResult] = await Promise.allSettled([
+        withTimeout(
+          fetchMyNickname(userId),
+          USER_SCOPED_FETCH_TIMEOUT_MS,
+          'fetchMyNickname',
+        ),
+        fetchPetsSafely(),
+      ]);
+
+      return { nicknameResult, petsResult };
+    };
+
+    const applyGuestState = async (seq: number) => {
+      await setNickname(null);
+      setProfileSyncState('ready');
+      clearUserScopedStores();
+      setPetLoading(false);
+      lastUserIdRef.current = null;
+      finishTransition(seq);
+    };
+
+    const applyLoggedInState = async (
+      session: Session,
+      seq: number,
+      options: { forceReload: boolean },
+    ) => {
+      const userId = getSessionUserId(session);
+      if (!userId) {
+        await applyGuestState(seq);
+        return;
+      }
+
+      const shouldReload = options.forceReload || lastUserIdRef.current !== userId;
+      await hydratePetsCache(userId);
+      if (!shouldReload) {
+        setProfileSyncState('ready');
+        setPetErrorMessage(null);
+        lastUserIdRef.current = userId;
+        finishTransition(seq);
+        return;
+      }
+
+      const { nicknameResult, petsResult } = await loadUserScopedState(userId);
+      if (!alive || transitionSeqRef.current !== seq) return;
+
+      try {
+        if (nicknameResult.status === 'fulfilled') {
+          await setNickname(nicknameResult.value);
+          setProfileSyncState('ready');
+        } else {
+          captureMonitoringException(nicknameResult.reason);
+          setProfileSyncState('error', '닉네임 동기화 실패');
+        }
+
+        if (petsResult.status === 'fulfilled') {
+          const pets = petsResult.value;
+          if (pets.length === 0 && usePetStore.getState().pets.length > 0) {
+            setPetErrorMessage('반려동물 목록 재동기화가 지연되고 있어요');
+          } else {
+            setPets(pets, { userId });
+            setPetErrorMessage(null);
+          }
+        } else {
+          captureMonitoringException(petsResult.reason);
+          setPetErrorMessage('반려동물 목록 동기화 실패');
+        }
+      } finally {
+        setPetLoading(false);
+      }
+
+      lastUserIdRef.current = userId;
+      finishTransition(seq);
+    };
+
+    const applySessionTransition = async (
+      event: AuthChangeEvent | 'boot',
+      session: Session | null,
+    ) => {
+      const seq = transitionSeqRef.current + 1;
+      transitionSeqRef.current = seq;
+      beginTransition();
 
       await setSession(session);
       setMonitoringUser({
@@ -186,41 +310,62 @@ export default function AppProviders({ children }: Props) {
         email: session?.user?.email ?? null,
       });
 
-      // 3) 로그인/게스트 분기 처리
-      if (session) await onLoggedIn();
-      else await onGuest();
+      if (!session) {
+        await applyGuestState(seq);
+        return;
+      }
 
-      if (!alive) return;
-      setAuthBooted(true);
-
-      // 4) auth 이벤트 동기화
-      const { data: listener } = supabase.auth.onAuthStateChange(
-        async (_event, nextSession) => {
-          const s = nextSession?.user ? nextSession : await resolveValidSession();
-
-          // 이벤트 들어오면 게이트 다시 닫고 정렬
-          setAuthBooted(false);
-          setPetBooted(false);
-
-          await setSession(s);
-          setMonitoringUser({
-            id: s?.user?.id ?? null,
-            email: s?.user?.email ?? null,
-          });
-
-          if (s) await onLoggedIn();
-          else await onGuest();
-
-          if (!alive) return;
-          setAuthBooted(true);
-        },
-      );
-
-      unsub = listener.subscription;
+      await applyLoggedInState(session, seq, {
+        forceReload: shouldReloadUserScopedState({
+          event,
+          prevUserId: lastUserIdRef.current,
+          nextUserId: getSessionUserId(session),
+        }),
+      });
     };
+
+    const boot = async () => {
+      localHydrationPromiseRef.current = withTimeout(
+        Promise.all([hydrateAuth(), hydrateSelectedPetId()]).then(() => undefined),
+        LOCAL_HYDRATION_TIMEOUT_MS,
+        'local hydration',
+      ).catch(error => {
+        captureMonitoringException(error);
+      });
+      await localHydrationPromiseRef.current;
+
+      const session = await resolveValidSession();
+      await applySessionTransition('boot', session);
+    };
+
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      async (event, nextSession) => {
+        try {
+          await localHydrationPromiseRef.current;
+          const resolvedSession = nextSession?.user
+            ? nextSession
+            : await resolveValidSession();
+          await applySessionTransition(event, resolvedSession);
+        } catch (error: unknown) {
+          captureMonitoringException(error);
+          setAuthBooted(true);
+          setPetBooted(true);
+          setPetLoading(false);
+        }
+      },
+    );
+
+    unsub = listener.subscription;
 
     boot().catch(error => {
       captureMonitoringException(error);
+      const message =
+        error instanceof Error && error.message.includes('timed out')
+          ? '앱 준비가 지연되고 있어요'
+          : '앱 부트 실패';
+      setProfileSyncState('error', message);
+      setPetErrorMessage(message);
+      setPetLoading(false);
       setAuthBooted(true);
       setPetBooted(true);
     });
@@ -233,13 +378,15 @@ export default function AppProviders({ children }: Props) {
     hydrateAuth,
     setSession,
     setNickname,
+    setProfileSyncState,
     setAuthBooted,
 
     hydrateSelectedPetId,
+    hydratePetsCache,
     setPets,
-    clearPets,
     setPetLoading,
     setPetBooted,
+    setPetErrorMessage,
 
     clearRecords,
     clearSchedules,

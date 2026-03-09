@@ -5,6 +5,7 @@
 
 import { useEffect, useState } from 'react';
 
+import { createLatestRequestController } from '../services/app/async';
 import type { DeviceCoordinates } from '../services/location/currentPosition';
 import { resolveDistrictFromCoordinates } from '../services/location/district';
 
@@ -24,38 +25,44 @@ export function useDistrict(input: {
   const [district, setDistrict] = useState<string | null>(null);
   const [source, setSource] = useState<'kakao' | 'fallback' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const coordinatesKey = input.coordinates
+    ? `${input.coordinates.latitude.toFixed(3)}:${input.coordinates.longitude.toFixed(3)}`
+    : null;
+  const sourceError = input.error;
 
   useEffect(() => {
+    const request = createLatestRequestController();
+
     if (!input.coordinates) {
       setDistrict(null);
       setSource(null);
-      setError(input.error);
+      setError(sourceError);
       setLoading(false);
+      request.cancel();
       return;
     }
 
     const coordinates = input.coordinates;
 
-    let cancelled = false;
-
     async function run() {
+      const requestId = request.begin();
       setLoading(true);
       setError(null);
 
       try {
         const resolved = await resolveDistrictFromCoordinates(coordinates);
-        if (cancelled) return;
+        if (!request.isCurrent(requestId)) return;
         setDistrict(resolved.district);
         setSource(resolved.source);
       } catch (nextError) {
-        if (cancelled) return;
+        if (!request.isCurrent(requestId)) return;
         setError(
           nextError instanceof Error && nextError.message.trim()
             ? nextError.message
             : '동 이름을 불러오지 못했어요.',
         );
       } finally {
-        if (!cancelled) {
+        if (request.isCurrent(requestId)) {
           setLoading(false);
         }
       }
@@ -64,9 +71,14 @@ export function useDistrict(input: {
     run().catch(() => {});
 
     return () => {
-      cancelled = true;
+      request.cancel();
     };
-  }, [input.coordinates, input.error]);
+  }, [coordinatesKey, input.coordinates, sourceError]);
+
+  useEffect(() => {
+    if (input.coordinates) return;
+    setError(sourceError);
+  }, [input.coordinates, sourceError]);
 
   return {
     loading: input.loading || loading,

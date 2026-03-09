@@ -64,10 +64,6 @@ import type { TimelineStackParamList } from '../../navigation/TimelineStackNavig
 import {
   MAIN_CATEGORY_OPTIONS,
   OTHER_SUBCATEGORY_OPTIONS,
-  normalizeCategoryKey,
-  normalizeOtherSubKey,
-  readOtherSubCategoryRaw,
-  readRecordCategoryRaw,
   type MemoryMainCategory,
   type MemoryOtherSubCategory,
 } from '../../services/memories/categoryMeta';
@@ -76,10 +72,17 @@ import {
   buildTimelineHeatmap,
   type TimelineHeatmapWeek,
 } from '../../services/timeline/heatmap';
+import {
+  buildTimelineView,
+  humanizeTimelineMonthKey,
+  normalizeTimelineQuery,
+  shouldAutoLoadMoreTimeline,
+  type TimelineSortMode,
+} from '../../services/timeline/query';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
 import type { PetRecordsState } from '../../store/recordStore';
 import { useRecordStore } from '../../store/recordStore';
-import { usePetStore } from '../../store/petStore';
+import { resolveSelectedPetId, usePetStore } from '../../store/petStore';
 import AppText from '../../app/ui/AppText';
 import { styles } from './TimelineScreen.styles';
 
@@ -91,7 +94,6 @@ type TimelineStackNav = NativeStackNavigationProp<
 >;
 type Nav = CompositeNavigationProp<TimelineStackNav, TimelineTabNav>;
 
-type SortMode = 'recent' | 'oldest';
 type Status =
   | 'idle'
   | 'loading'
@@ -115,6 +117,7 @@ function normalizeStatus(v: unknown): Status {
 }
 
 const DEBOUNCE_MS = 250;
+const JUMP_TO_ALL = '__ALL__';
 
 // ✅ 경고/렌더 안정화: 빈 배열/빈 상태는 “항상 동일 참조”
 const EMPTY_ITEMS = Object.freeze<MemoryRecord[]>([]);
@@ -130,35 +133,6 @@ const FALLBACK_PET_STATE = Object.freeze({
 // ---------------------------------------------------------
 type MainCategory = MemoryMainCategory;
 type OtherSubCategory = MemoryOtherSubCategory;
-
-// ---------------------------------------------------------
-// helpers
-// ---------------------------------------------------------
-function getYmd(item: MemoryRecord): string {
-  const s = (item.occurredAt ?? item.createdAt?.slice(0, 10) ?? '').trim();
-  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : item.createdAt?.slice(0, 10) ?? '';
-}
-
-function toYmKey(ymd: string): string | null {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return null;
-  return `${ymd.slice(0, 4)}-${ymd.slice(5, 7)}`; // YYYY-MM
-}
-
-function humanYm(ym: string): string {
-  if (!/^\d{4}-\d{2}$/.test(ym)) return ym;
-  return `${ym.slice(0, 4)}.${ym.slice(5, 7)}`;
-}
-
-function normalizeQuery(q: string) {
-  return q.trim().toLowerCase();
-}
-
-function recordMatchesQuery(r: MemoryRecord, q: string) {
-  if (!q) return true;
-  const title = (r.title ?? '').toLowerCase();
-  const tags = Array.isArray(r.tags) ? r.tags.join(' ').toLowerCase() : '';
-  return title.includes(q) || tags.includes(q);
-}
 
 // ---------------------------------------------------------
 // ✅ Memo Controls Bar (Sticky 헤더 스무스 핵심)
@@ -265,12 +239,11 @@ const ControlsBar = memo(function ControlsBar({
                 ? mainCategory === 'other'
                 : mainCategory === item.key;
 
-            // ✅ other 라벨은 "other가 active일 때만" 서브라벨로 표시
             const label =
               item.key === 'other'
                 ? mainCategory === 'other'
                   ? categoryLabel
-                  : '···'
+                  : item.label
                 : item.label;
 
             return (
@@ -523,12 +496,7 @@ export default function TimelineScreen() {
   const otherSubCategoryFromParams = route?.params?.otherSubCategory ?? null;
 
   const petId = useMemo(() => {
-    if (petIdFromParams) return petIdFromParams;
-
-    if (selectedPetId && pets.some(p => p.id === selectedPetId)) {
-      return selectedPetId;
-    }
-    return pets[0]?.id ?? null;
+    return resolveSelectedPetId(pets, selectedPetId, petIdFromParams);
   }, [petIdFromParams, selectedPetId, pets]);
   const selectedPet = useMemo(
     () => pets.find(item => item.id === petId) ?? null,
@@ -568,7 +536,7 @@ export default function TimelineScreen() {
   // ---------------------------------------------------------
   // 4) UI state: sort / search / month / category
   // ---------------------------------------------------------
-  const [sortMode, setSortMode] = useState<SortMode>('recent');
+  const [sortMode, setSortMode] = useState<TimelineSortMode>('recent');
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchInput, setSearchInput] = useState('');
@@ -623,7 +591,7 @@ export default function TimelineScreen() {
   // ---------------------------------------------------------
   useEffect(() => {
     const t = setTimeout(() => {
-      setQuery(normalizeQuery(searchInput));
+      setQuery(normalizeTimelineQuery(searchInput));
     }, DEBOUNCE_MS);
 
     return () => clearTimeout(t);
@@ -632,56 +600,22 @@ export default function TimelineScreen() {
   // ---------------------------------------------------------
   // 4.2) available YM list (for modal)
   // ---------------------------------------------------------
-  const availableYmList = useMemo(() => {
-    const set = new Set<string>();
-    for (const r of baseItems) {
-      const ym = toYmKey(getYmd(r));
-      if (ym) set.add(ym);
-    }
-    return Array.from(set).sort((a, b) => (a > b ? -1 : a < b ? 1 : 0));
-  }, [baseItems]);
-
-  // ---------------------------------------------------------
-  // 4.3) filtered + sorted (✅ 3중 filter 제거 → 단일 루프)
-  // ---------------------------------------------------------
-  const filteredItems = useMemo(() => {
-    const out: MemoryRecord[] = [];
-    const q = query;
-
-    for (const r of baseItems) {
-      // (1) YM
-      if (ymFilter) {
-        const ym = toYmKey(getYmd(r));
-        if (ym !== ymFilter) continue;
-      }
-
-      // (2) Category
-      if (mainCategory !== 'all') {
-        const cat = normalizeCategoryKey(readRecordCategoryRaw(r));
-        if (mainCategory !== 'other') {
-          if (cat !== mainCategory) continue;
-        } else {
-          // mainCategory === 'other'
-          if (cat !== 'other') continue;
-
-          // sub filter (선택 시)
-          if (otherSubCategory) {
-            const sub = normalizeOtherSubKey(readOtherSubCategoryRaw(r));
-            if (sub !== otherSubCategory) continue;
-          }
-        }
-      }
-
-      // (3) Search
-      if (q && !recordMatchesQuery(r, q)) continue;
-
-      out.push(r);
-    }
-
-    // (4) Sort
-    if (sortMode === 'oldest') out.reverse();
-    return out;
-  }, [baseItems, ymFilter, mainCategory, otherSubCategory, query, sortMode]);
+  const timelineView = useMemo(
+    () =>
+      buildTimelineView({
+        items: baseItems,
+        filters: {
+          ymFilter,
+          mainCategory,
+          otherSubCategory,
+          query,
+          sortMode,
+        },
+      }),
+    [baseItems, ymFilter, mainCategory, otherSubCategory, query, sortMode],
+  );
+  const availableYmList = timelineView.availableMonthKeys;
+  const filteredItems = timelineView.filteredItems;
 
   // ---------------------------------------------------------
   // 4.4) 월 점프: 필터 적용 후 렌더 완료 타이밍에 scrollToIndex
@@ -691,7 +625,7 @@ export default function TimelineScreen() {
   useEffect(() => {
     if (!pendingJumpYm) return;
 
-    if (pendingJumpYm === '__ALL__') {
+    if (pendingJumpYm === JUMP_TO_ALL) {
       requestAnimationFrame(() => {
         listRef.current?.scrollToOffset({ offset: 0, animated: true });
       });
@@ -699,9 +633,7 @@ export default function TimelineScreen() {
       return;
     }
 
-    const idx = filteredItems.findIndex(
-      r => toYmKey(getYmd(r)) === pendingJumpYm,
-    );
+    const idx = timelineView.firstIndexByMonth.get(pendingJumpYm) ?? -1;
 
     requestAnimationFrame(() => {
       if (idx >= 0)
@@ -709,7 +641,7 @@ export default function TimelineScreen() {
       else listRef.current?.scrollToOffset({ offset: 0, animated: true });
       setPendingJumpYm(null);
     });
-  }, [pendingJumpYm, filteredItems]);
+  }, [pendingJumpYm, timelineView.firstIndexByMonth]);
 
   // ---------------------------------------------------------
   // 5) actions
@@ -751,23 +683,43 @@ export default function TimelineScreen() {
 
   const onEndReached = useCallback(() => {
     if (!petId) return;
-    if (status !== 'ready') return;
-    if (!hasMore) return;
-    if (query) return;
+    if (
+      !shouldAutoLoadMoreTimeline({
+        status,
+        hasMore,
+        query,
+        pendingJumpMonth: pendingJumpYm,
+        ymFilter,
+        mainCategory,
+        otherSubCategory,
+      })
+    ) {
+      return;
+    }
 
     const now = Date.now();
     if (now - endReachedLockRef.current < 800) return;
     endReachedLockRef.current = now;
 
     loadMore(petId).catch(() => {});
-  }, [petId, status, hasMore, query, loadMore]);
+  }, [
+    petId,
+    status,
+    hasMore,
+    query,
+    pendingJumpYm,
+    ymFilter,
+    mainCategory,
+    otherSubCategory,
+    loadMore,
+  ]);
 
   const jumpToYm = useCallback((ym: string | null) => {
     setYmModalOpen(false);
 
     if (!ym) {
       setYmFilter(null);
-      setPendingJumpYm('__ALL__');
+      setPendingJumpYm(JUMP_TO_ALL);
       return;
     }
 
@@ -805,7 +757,7 @@ export default function TimelineScreen() {
   );
 
   const monthLabel = useMemo(
-    () => (ymFilter ? humanYm(ymFilter) : '월/전체'),
+    () => (ymFilter ? humanizeTimelineMonthKey(ymFilter) : '월/전체'),
     [ymFilter],
   );
 
@@ -813,18 +765,55 @@ export default function TimelineScreen() {
     if (mainCategory !== 'other') {
       return MAIN_CATEGORY_OPTIONS.find(x => x.key === mainCategory)?.label ?? '전체';
     }
-    if (!otherSubCategory) return '···';
+    if (!otherSubCategory) {
+      return MAIN_CATEGORY_OPTIONS.find(x => x.key === 'other')?.label ?? '생활';
+    }
     return (
       OTHER_SUBCATEGORY_OPTIONS.find(x => x.key === otherSubCategory)?.label ??
-      '···'
+      (MAIN_CATEGORY_OPTIONS.find(x => x.key === 'other')?.label ?? '생활')
     );
   }, [mainCategory, otherSubCategory]);
 
   const showSearchHint = Boolean(query);
+  const autoLoadEnabled = useMemo(
+    () =>
+      shouldAutoLoadMoreTimeline({
+        status,
+        hasMore,
+        query,
+        pendingJumpMonth: pendingJumpYm,
+        ymFilter,
+        mainCategory,
+        otherSubCategory,
+      }),
+    [
+      status,
+      hasMore,
+      query,
+      pendingJumpYm,
+      ymFilter,
+      mainCategory,
+      otherSubCategory,
+    ],
+  );
   const heatmapWeeks = useMemo(
     () => buildTimelineHeatmap(baseItems as MemoryRecord[], 12),
     [baseItems],
   );
+  const manualLoadMoreLabel = useMemo(() => {
+    if (normalizeTimelineQuery(query)) return '검색 결과 더 불러오기';
+    if (ymFilter || mainCategory !== 'all' || otherSubCategory) {
+      return '필터 결과 더 불러오기';
+    }
+    return '기록 더 불러오기';
+  }, [mainCategory, otherSubCategory, query, ymFilter]);
+  const isFilteredEmpty = baseItems.length > 0 && filteredItems.length === 0;
+  const emptyTitle = isFilteredEmpty
+    ? '조건에 맞는 기록이 없어요'
+    : '아직 남겨진 추억이 없어요';
+  const emptyLines = isFilteredEmpty
+    ? ['검색어나 필터 조건을 조금 바꿔서', '다른 기록도 찾아보세요']
+    : ['우리 아이와 함께한 반짝이는 순간을', '첫 기록으로 천천히 시작해보세요'];
 
   // ---------------------------------------------------------
   // 7) renderItem (stable) - 🔥 외부 MemoryCard 호출!
@@ -857,7 +846,7 @@ export default function TimelineScreen() {
         );
 
       case 'ready':
-        if (hasMore && query) {
+        if (hasMore && !autoLoadEnabled) {
           return (
             <View style={styles.footer}>
               <TouchableOpacity
@@ -869,7 +858,7 @@ export default function TimelineScreen() {
                 }}
               >
                 <AppText preset="caption" style={styles.manualMoreText}>
-                  검색 결과 더 불러오기
+                  {manualLoadMoreLabel}
                 </AppText>
               </TouchableOpacity>
             </View>
@@ -891,7 +880,15 @@ export default function TimelineScreen() {
       default:
         return <View style={{ height: 18 }} />;
     }
-  }, [baseItems.length, status, hasMore, query, petId, loadMore]);
+  }, [
+    baseItems.length,
+    status,
+    hasMore,
+    autoLoadEnabled,
+    petId,
+    loadMore,
+    manualLoadMoreLabel,
+  ]);
 
   // ---------------------------------------------------------
   // 9) Handlers for ControlsBar (stable)
@@ -1018,13 +1015,13 @@ export default function TimelineScreen() {
             </View>
 
             <AppText preset="headline" style={styles.emptyTitle}>
-              아직 남겨진 추억이 없어요
+              {emptyTitle}
             </AppText>
             <AppText preset="body" style={styles.emptyDesc}>
-              우리 아이와 함께한 반짝이는 순간을
+              {emptyLines[0]}
             </AppText>
             <AppText preset="body" style={styles.emptyDesc}>
-              첫 기록으로 천천히 시작해보세요
+              {emptyLines[1]}
             </AppText>
 
             <TouchableOpacity
@@ -1121,7 +1118,7 @@ export default function TimelineScreen() {
                     { color: theme.colors.textPrimary },
                   ]}
                 >
-                  {humanYm(ym)}
+                  {humanizeTimelineMonthKey(ym)}
                 </AppText>
               </TouchableOpacity>
             ))}
@@ -1154,7 +1151,7 @@ export default function TimelineScreen() {
               preset="headline"
               style={[styles.modalTitle, { color: theme.colors.textPrimary }]}
             >
-              기타 선택
+              생활 선택
             </AppText>
 
             <TouchableOpacity
@@ -1169,7 +1166,7 @@ export default function TimelineScreen() {
                 preset="body"
                 style={[styles.modalItemText, { color: theme.colors.textPrimary }]}
               >
-                기타(전체)
+                생활(전체)
               </AppText>
             </TouchableOpacity>
 

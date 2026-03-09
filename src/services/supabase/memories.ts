@@ -8,6 +8,7 @@
 import { supabase } from './client';
 import { deleteFile } from './storage';
 import { prefetchMemorySignedUrls } from './storageMemories';
+import { normalizeMemoryRecord } from '../records/imageSources';
 
 export type EmotionTag =
   | 'happy'
@@ -26,6 +27,9 @@ export type MemoryRecord = {
   content?: string | null;
   emotion?: EmotionTag | null;
   tags: string[];
+  category?: string | null;
+  subCategory?: string | null;
+  price?: number | null;
   occurredAt?: string | null;
   createdAt: string;
 
@@ -52,8 +56,15 @@ type MemoriesRow = {
   content: string | null;
   emotion: EmotionTag | null;
   tags: string[] | null;
+  category?: string | null;
+  sub_category?: string | null;
+  price?: number | null;
   occurred_at: string | null;
   created_at: string;
+};
+
+type InsertedMemoryIdRow = {
+  id: string;
 };
 
 // ---------------------------------------------------------
@@ -61,7 +72,7 @@ type MemoriesRow = {
 // ---------------------------------------------------------
 const CURSOR_SEP = '__';
 
-function encodeCursor(createdAt: string, id: string) {
+export function encodeMemoriesCursor(createdAt: string, id: string) {
   return `${createdAt}${CURSOR_SEP}${id}`;
 }
 
@@ -95,23 +106,24 @@ function normalizeImagePaths(row: MemoriesRow) {
 }
 
 function mapRow(row: MemoriesRow): MemoryRecord {
-  const imagePaths = normalizeImagePaths(row);
-
-  return {
+  return normalizeMemoryRecord({
     id: row.id,
     petId: row.pet_id,
     title: row.title,
     content: row.content,
     emotion: row.emotion,
     tags: row.tags ?? [],
+    category: row.category ?? null,
+    subCategory: row.sub_category ?? null,
+    price: typeof row.price === 'number' ? row.price : null,
     occurredAt: row.occurred_at,
     createdAt: row.created_at,
 
-    // ✅ 리스트 fetch 단계에서는 null로 둔다 (UI block 방지)
+    // ✅ 리스트 fetch 단계에서는 signed url을 넣지 않는다.
     imageUrl: null,
-    imagePath: imagePaths[0] ?? null,
-    imagePaths,
-  };
+    imagePath: row.image_url,
+    imagePaths: normalizeImagePaths(row),
+  });
 }
 
 export type FetchMemoriesPageResult = {
@@ -234,7 +246,9 @@ export async function fetchMemoriesByPetPage(input: {
 
   const hasMore = items.length === limit;
   const last = items[items.length - 1] ?? null;
-  const nextCursor = last ? encodeCursor(last.createdAt, last.id) : null;
+  const nextCursor = last
+    ? encodeMemoriesCursor(last.createdAt, last.id)
+    : null;
 
   return { items, hasMore, nextCursor };
 }
@@ -248,6 +262,9 @@ export async function createMemory(input: {
   content?: string | null;
   emotion?: EmotionTag | null;
   tags?: string[];
+  category?: string | null;
+  subCategory?: string | null;
+  price?: number | null;
   occurredAt?: string | null;
   imagePath?: string | null;
 }): Promise<string> {
@@ -259,6 +276,9 @@ export async function createMemory(input: {
       content: input.content ?? null,
       emotion: input.emotion ?? null,
       tags: input.tags ?? [],
+      category: input.category ?? null,
+      sub_category: input.subCategory ?? null,
+      price: input.price ?? null,
       occurred_at: input.occurredAt ?? null,
       image_url: input.imagePath ?? null,
     })
@@ -266,7 +286,11 @@ export async function createMemory(input: {
     .single();
 
   if (error) throw error;
-  return (data as any).id as string;
+  const inserted = data as InsertedMemoryIdRow | null;
+  if (!inserted?.id) {
+    throw new Error('기록 식별자를 확인하지 못했어요.');
+  }
+  return inserted.id;
 }
 
 /* ---------------------------------------------------------
@@ -278,6 +302,9 @@ export async function updateMemoryFields(input: {
   content?: string | null;
   emotion?: EmotionTag | null;
   tags?: string[];
+  category?: string | null;
+  subCategory?: string | null;
+  price?: number | null;
   occurredAt?: string | null;
 }) {
   const { error } = await supabase
@@ -287,6 +314,9 @@ export async function updateMemoryFields(input: {
       content: input.content ?? null,
       emotion: input.emotion ?? null,
       tags: input.tags ?? [],
+      category: input.category ?? null,
+      sub_category: input.subCategory ?? null,
+      price: input.price ?? null,
       occurred_at: input.occurredAt ?? null,
     })
     .eq('id', input.memoryId);
@@ -339,13 +369,14 @@ export async function updateMemoryImagePaths(input: {
     ),
   );
   const first = nextPaths[0] ?? null;
+  const updatePayload = {
+    image_url: first,
+    image_urls: nextPaths,
+  };
 
   const { error } = await supabase
     .from('memories')
-    .update({
-      image_url: first,
-      image_urls: nextPaths,
-    } as any)
+    .update(updatePayload)
     .eq('id', input.memoryId);
 
   if (!error) {

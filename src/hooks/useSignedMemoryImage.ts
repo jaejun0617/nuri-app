@@ -6,19 +6,27 @@
 
 import { useEffect, useState } from 'react';
 
+import { createLatestRequestController } from '../services/app/async';
+import { getPrimaryMemoryImageRef } from '../services/records/imageSources';
 import { getMemoryImageSignedUrlCached } from '../services/supabase/storageMemories';
 
 export function useSignedMemoryImage(imagePath: string | null | undefined) {
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const imageRef = getPrimaryMemoryImageRef({
+    imagePath,
+    imagePaths: [],
+    imageUrl: null,
+  });
 
   useEffect(() => {
-    let mounted = true;
+    const request = createLatestRequestController();
 
     async function run() {
-      const path = imagePath?.trim() ?? null;
+      const requestId = request.begin();
+      const path = imageRef?.trim() ?? null;
       if (!path) {
-        if (mounted) {
+        if (request.isCurrent(requestId)) {
           setSignedUrl(null);
           setLoading(false);
         }
@@ -26,21 +34,21 @@ export function useSignedMemoryImage(imagePath: string | null | undefined) {
       }
 
       try {
-        if (mounted) setLoading(true);
+        if (request.isCurrent(requestId)) setLoading(true);
         const url = await getMemoryImageSignedUrlCached(path);
-        if (mounted) setSignedUrl(url ?? null);
+        if (request.isCurrent(requestId)) setSignedUrl(url ?? null);
       } catch {
-        if (mounted) setSignedUrl(null);
+        if (request.isCurrent(requestId)) setSignedUrl(null);
       } finally {
-        if (mounted) setLoading(false);
+        if (request.isCurrent(requestId)) setLoading(false);
       }
     }
 
     run();
     return () => {
-      mounted = false;
+      request.cancel();
     };
-  }, [imagePath]);
+  }, [imageRef]);
 
   return { signedUrl, loading };
 }

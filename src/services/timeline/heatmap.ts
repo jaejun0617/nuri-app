@@ -4,6 +4,13 @@
 // - 최근 n주 기준으로 날짜별 기록 수와 강도를 계산
 
 import type { MemoryRecord } from '../supabase/memories';
+import {
+  addDaysToYmd,
+  getKstYmd,
+  getMonthKeyFromYmd,
+  getStartOfWeekYmd,
+} from '../../utils/date';
+import { getRecordDisplayYmd } from '../records/date';
 
 export type TimelineHeatmapCell = {
   key: string;
@@ -20,28 +27,6 @@ export type TimelineHeatmapWeek = {
   cells: TimelineHeatmapCell[];
 };
 
-function toRecordYmd(record: MemoryRecord): string | null {
-  const raw = (record.occurredAt ?? record.createdAt.slice(0, 10) ?? '').trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
-  return null;
-}
-
-function formatYmd(date: Date): string {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, '0');
-  const day = `${date.getDate()}`.padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function getWeekStart(date: Date): Date {
-  const start = new Date(date);
-  const day = start.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  start.setHours(0, 0, 0, 0);
-  start.setDate(start.getDate() + diff);
-  return start;
-}
-
 function getIntensity(count: number): 0 | 1 | 2 | 3 | 4 {
   if (count <= 0) return 0;
   if (count === 1) return 1;
@@ -56,50 +41,57 @@ export function buildTimelineHeatmap(
   now = new Date(),
 ): TimelineHeatmapWeek[] {
   const safeWeeks = Math.max(4, Math.min(20, weeks));
-  const today = new Date(now);
-  today.setHours(0, 0, 0, 0);
+  const todayYmd = getKstYmd(now);
+  const currentMonthKey = getMonthKeyFromYmd(todayYmd);
 
   const dateCounts = new Map<string, number>();
   for (const record of records) {
-    const ymd = toRecordYmd(record);
+    const ymd = getRecordDisplayYmd(record);
     if (!ymd) continue;
     dateCounts.set(ymd, (dateCounts.get(ymd) ?? 0) + 1);
   }
 
-  const currentWeekStart = getWeekStart(today);
-  const start = new Date(currentWeekStart);
-  start.setDate(start.getDate() - (safeWeeks - 1) * 7);
+  const currentWeekStartYmd = getStartOfWeekYmd(todayYmd, {
+    weekStartsOn: 1,
+  });
+  const startYmd = addDaysToYmd(
+    currentWeekStartYmd,
+    -(safeWeeks - 1) * 7,
+  );
+  if (!currentWeekStartYmd || !startYmd) return [];
 
   const weeksOutput: TimelineHeatmapWeek[] = [];
-  const cursor = new Date(start);
+  let cursorYmd = startYmd;
 
   for (let weekIndex = 0; weekIndex < safeWeeks; weekIndex += 1) {
-    const weekStartYmd = formatYmd(cursor);
     const cells: TimelineHeatmapCell[] = [];
 
     for (let dayIndex = 0; dayIndex < 7; dayIndex += 1) {
-      const day = new Date(cursor);
-      day.setDate(cursor.getDate() + dayIndex);
-      const ymd = formatYmd(day);
+      const ymd = addDaysToYmd(cursorYmd, dayIndex);
+      if (!ymd) continue;
       const count = dateCounts.get(ymd) ?? 0;
+      const month = Number(ymd.slice(5, 7));
+      const day = Number(ymd.slice(8, 10));
 
       cells.push({
-        key: `${weekStartYmd}:${dayIndex}`,
+        key: `${cursorYmd}:${dayIndex}`,
         ymd,
-        label: `${day.getMonth() + 1}/${day.getDate()}`,
+        label: `${month}/${day}`,
         count,
         intensity: getIntensity(count),
-        isCurrentMonth: day.getMonth() === today.getMonth(),
-        isToday: ymd === formatYmd(today),
+        isCurrentMonth: getMonthKeyFromYmd(ymd) === currentMonthKey,
+        isToday: ymd === todayYmd,
       });
     }
 
     weeksOutput.push({
-      key: weekStartYmd,
+      key: cursorYmd,
       cells,
     });
 
-    cursor.setDate(cursor.getDate() + 7);
+    const nextCursorYmd = addDaysToYmd(cursorYmd, 7);
+    if (!nextCursorYmd) break;
+    cursorYmd = nextCursorYmd;
   }
 
   return weeksOutput;

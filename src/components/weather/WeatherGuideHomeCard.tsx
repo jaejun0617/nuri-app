@@ -21,6 +21,7 @@ export default React.memo(function WeatherGuideHomeCard({
   onPress,
 }: Props) {
   const hasLiveData = weather.dataSource === 'live';
+  const isPreview = weather.dataSource === 'preview';
   const isNightCard = hasLiveData && !weather.isDaytime;
   const textPrimary = isNightCard ? '#F8FBFF' : '#1B2434';
   const textSecondary = isNightCard ? 'rgba(226,236,248,0.74)' : '#8B96AA';
@@ -55,14 +56,22 @@ export default React.memo(function WeatherGuideHomeCard({
                 { color: textPrimary },
               ]}
             >
-              {hasLiveData ? `${weather.currentTemperature}°C` : '실시간 확인 필요'}
+              {hasLiveData
+                ? `${weather.currentTemperature}°C`
+                : isPreview
+                  ? `최근 확인 ${weather.currentTemperature}°C`
+                  : '실시간 확인 필요'}
             </Text>
             <Text style={[styles.locationText, { color: locationColor }]}>
               {weather.district}
             </Text>
           </View>
           <Text style={[styles.title, { color: textPrimary }]}>{weather.homeMessage}</Text>
-          <Text style={[styles.caption, { color: textSecondary }]}>{weather.homeCaption}</Text>
+          <Text style={[styles.caption, { color: textSecondary }]}>
+            {isPreview
+              ? '최근 확인한 날씨를 잠시 보여주고 있어요. 연결되면 실시간 정보로 바뀝니다.'
+              : weather.homeCaption}
+          </Text>
         </View>
       </View>
       <Text style={[styles.chevron, { color: chevronColor }]}>{'>'}</Text>

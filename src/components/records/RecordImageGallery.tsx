@@ -8,6 +8,7 @@ import React from 'react';
 import {
   Image,
   ScrollView,
+  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -27,6 +28,7 @@ type RecordImageGalleryProps = {
   activeIndex: number;
   onChangeActiveIndex: (index: number) => void;
   containerStyle: StyleProp<ViewStyle>;
+  stageStyle?: StyleProp<ViewStyle>;
   emptyContent: React.ReactNode;
   mainContent: React.ReactNode;
   topOverlay?: React.ReactNode;
@@ -45,6 +47,7 @@ export default function RecordImageGallery({
   activeIndex,
   onChangeActiveIndex,
   containerStyle,
+  stageStyle,
   emptyContent,
   mainContent,
   topOverlay,
@@ -59,15 +62,17 @@ export default function RecordImageGallery({
 }: RecordImageGalleryProps) {
   return (
     <View style={containerStyle}>
-      {items.length === 0 ? emptyContent : mainContent}
+      <View style={[recordImageGalleryStyles.defaultStage, stageStyle]}>
+        {items.length === 0 ? emptyContent : mainContent}
 
-      {topOverlay}
+        {topOverlay}
 
-      {counterText ? (
-        <View style={counterBadgeStyle}>
-          <Text style={counterTextStyle}>{counterText}</Text>
-        </View>
-      ) : null}
+        {counterText ? (
+          <View style={counterBadgeStyle}>
+            <Text style={counterTextStyle}>{counterText}</Text>
+          </View>
+        ) : null}
+      </View>
 
       {items.length > 1 ? (
         <ScrollView
@@ -95,3 +100,12 @@ export default function RecordImageGallery({
     </View>
   );
 }
+
+export const recordImageGalleryStyles = StyleSheet.create({
+  defaultStage: {
+    minHeight: 220,
+    borderRadius: 24,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+});

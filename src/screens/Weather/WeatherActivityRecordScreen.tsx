@@ -7,7 +7,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Alert,
-  Image,
   Modal,
   ScrollView,
   StyleSheet,
@@ -21,11 +20,13 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { launchImageLibrary } from 'react-native-image-picker';
 
+import PhotoAddCard from '../../components/media/PhotoAddCard';
 import RecordTagModal from '../Records/components/RecordTagModal';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import type { RootScreenRoute } from '../../navigation/types';
 import { getBrandedErrorMeta } from '../../services/app/errors';
+import { pickPhotoAssets } from '../../services/media/photoPicker';
 import {
   normalizeRecentRecordTags,
   parseRecordTags,
@@ -35,19 +36,23 @@ import {
 import {
   createMemory,
   fetchMemoryById,
+  updateMemoryImagePaths,
 } from '../../services/supabase/memories';
+import { normalizeMemoryRecord } from '../../services/records/imageSources';
 import { uploadMemoryImage } from '../../services/supabase/storageMemories';
 import {
   getIndoorActivityGuide,
-  type IndoorActivityKey,
   WEATHER_RECORD_EMOTION_OPTIONS,
   type WeatherRecordEmotionKey,
 } from '../../services/weather/guide';
+import { getKstYmd } from '../../utils/date';
 import { useAuthStore } from '../../store/authStore';
-import { usePetStore } from '../../store/petStore';
+import { resolveSelectedPetId, usePetStore } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
+import { showToast } from '../../store/uiStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'WeatherActivityRecord'>;
+type Route = RootScreenRoute<'WeatherActivityRecord'>;
 
 const EMOTION_MAP = {
   excited: 'excited',
@@ -62,12 +67,7 @@ const EMOTION_MAP = {
 
 export default function WeatherActivityRecordScreen() {
   const navigation = useNavigation<Nav>();
-  const route =
-    useRoute<{
-      key: string;
-      name: 'WeatherActivityRecord';
-      params: { guideKey: IndoorActivityKey; district?: string };
-    }>();
+  const route = useRoute<Route>();
 
   const userId = useAuthStore(s => s.session?.user?.id ?? null);
   const pets = usePetStore(s => s.pets);
@@ -76,12 +76,9 @@ export default function WeatherActivityRecordScreen() {
   const refresh = useRecordStore(s => s.refresh);
 
   const petId = useMemo(() => {
-    if (selectedPetId && pets.some(item => item.id === selectedPetId)) {
-      return selectedPetId;
-    }
-    return pets[0]?.id ?? null;
+    return resolveSelectedPetId(pets, selectedPetId);
   }, [pets, selectedPetId]);
-  const guideKey = route.params?.guideKey ?? 'nosework';
+  const guideKey = route.params.guideKey;
   const district = route.params?.district?.trim() || '현재 위치';
   const guide = useMemo(() => getIndoorActivityGuide(guideKey), [guideKey]);
 
@@ -161,26 +158,23 @@ export default function WeatherActivityRecordScreen() {
   }, []);
 
   const onPickImage = useCallback(async () => {
-    const result = await launchImageLibrary({
-      mediaType: 'photo',
-      selectionLimit: 1,
-      quality: 0.9,
-    });
+    try {
+      const result = await pickPhotoAssets({
+        selectionLimit: 1,
+        quality: 0.9,
+      });
+      if (result.status === 'cancelled') return;
 
-    if (result.didCancel) return;
-
-    const asset = result.assets?.[0];
-    if (!asset?.uri) {
+      const asset = result.assets[0];
+      setImageUri(asset.uri);
+      setImageMimeType(asset.mimeType);
+    } catch (error) {
       const { title: alertTitle, message } = getBrandedErrorMeta(
-        new Error('image pick failed'),
+        error,
         'image-pick',
       );
-      Alert.alert(alertTitle, message);
-      return;
+      showToast({ tone: 'error', title: alertTitle, message });
     }
-
-    setImageUri(asset.uri);
-    setImageMimeType(asset.type ?? null);
   }, []);
 
   const onSubmit = useCallback(async () => {
@@ -206,6 +200,9 @@ export default function WeatherActivityRecordScreen() {
 
     try {
       setSaving(true);
+      let savedImagePaths: string[] = [];
+      const occurredAt = getKstYmd();
+      const createdAt = new Date().toISOString();
 
       const memoryId = await createMemory({
         petId,
@@ -213,21 +210,45 @@ export default function WeatherActivityRecordScreen() {
         content: note.trim() || null,
         emotion: EMOTION_MAP[selectedEmotion],
         tags: selectedTags,
-        occurredAt: new Date().toISOString().slice(0, 10),
+        occurredAt,
       });
 
       if (imageUri) {
-        await uploadMemoryImage({
+        const uploaded = await uploadMemoryImage({
           userId,
           petId,
           memoryId,
           fileUri: imageUri,
           mimeType: imageMimeType ?? 'image/jpeg',
-        }).catch(() => null);
+        });
+        const saveResult = await updateMemoryImagePaths({
+          memoryId,
+          imagePaths: [uploaded.path],
+        });
+        savedImagePaths = saveResult.savedPaths;
       }
 
-      const created = await fetchMemoryById(memoryId);
-      upsertOneLocal(petId, created);
+      try {
+        const created = await fetchMemoryById(memoryId);
+        upsertOneLocal(petId, created);
+      } catch {
+        upsertOneLocal(
+          petId,
+          normalizeMemoryRecord({
+            id: memoryId,
+            petId,
+            title: trimmedTitle,
+            content: note.trim() || null,
+            emotion: EMOTION_MAP[selectedEmotion],
+            tags: selectedTags,
+            occurredAt,
+            createdAt,
+            imagePath: savedImagePaths[0] ?? null,
+            imagePaths: savedImagePaths,
+            imageUrl: null,
+          }),
+        );
+      }
       refresh(petId).catch(() => null);
 
       setDoneVisible(true);
@@ -300,30 +321,20 @@ export default function WeatherActivityRecordScreen() {
 
         <View style={styles.section}>
           <Text style={styles.label}>사진 업로드</Text>
-          <TouchableOpacity
-            activeOpacity={0.92}
-            style={styles.imageCard}
-            onPress={onPickImage}
-          >
-            {imageUri ? (
-              <Image source={{ uri: imageUri }} style={styles.image} />
-            ) : (
-              <View style={styles.imagePlaceholder}>
-                <MaterialCommunityIcons
-                  name={guide.heroIcon as never}
-                  size={54}
-                  color="#B39AF5"
-                />
-                <Text style={styles.imagePlaceholderText}>
-                  사진을 추가해 주세요
-                </Text>
-              </View>
-            )}
-
-            <View style={styles.imageEditButton}>
-              <Feather name="edit-3" size={16} color="#FFFFFF" />
-            </View>
-          </TouchableOpacity>
+            <PhotoAddCard
+              imageUri={imageUri}
+              onPress={onPickImage}
+              containerStyle={styles.imageCard}
+              imageStyle={styles.image}
+              placeholderStyle={styles.imagePlaceholder}
+              placeholderIconName="image"
+              placeholderIconColor="#B39AF5"
+              placeholderIconSize={54}
+            placeholderText="사진을 추가해 주세요"
+            placeholderTextStyle={styles.imagePlaceholderText}
+            editButtonStyle={styles.imageEditButton}
+            editIconSize={16}
+          />
         </View>
 
         <View style={styles.section}>

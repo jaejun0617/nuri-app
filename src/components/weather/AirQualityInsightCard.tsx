@@ -9,6 +9,15 @@ import type { AirQualityMetric } from '../../services/weather/guide';
 
 type Props = {
   metrics: AirQualityMetric[];
+  headerHint?: string;
+  titleColor?: string;
+  hintColor?: string;
+  metricLabelColor?: string;
+  valueColor?: string;
+  trackColor?: string;
+  progressColor?: string;
+  backgroundColor?: string;
+  borderColor?: string;
 };
 
 function getToneColor(tone: AirQualityMetric['tone']) {
@@ -35,34 +44,66 @@ function getToneLabelColor(tone: AirQualityMetric['tone']) {
   }
 }
 
-export default React.memo(function AirQualityInsightCard({ metrics }: Props) {
+export default React.memo(function AirQualityInsightCard({
+  metrics,
+  headerHint = '실시간 기준',
+  titleColor = '#F8FBFF',
+  hintColor = 'rgba(230,238,248,0.72)',
+  metricLabelColor = '#E8EEF6',
+  valueColor,
+  trackColor = 'rgba(255,255,255,0.18)',
+  progressColor,
+  backgroundColor,
+  borderColor,
+}: Props) {
   return (
-    <View style={styles.card}>
+    <View
+      style={[
+        styles.card,
+        backgroundColor ? { backgroundColor } : null,
+        borderColor ? { borderColor } : null,
+      ]}
+    >
       <View style={styles.headerRow}>
-        <Text style={styles.title}>대기 질 정보</Text>
-        <Text style={styles.headerHint}>오늘 기준</Text>
+        <Text style={[styles.title, { color: titleColor }]}>대기 질 정보</Text>
+        <Text style={[styles.headerHint, { color: hintColor }]}>
+          {headerHint}
+        </Text>
       </View>
 
       <View style={styles.metricList}>
+        {metrics.length === 0 ? (
+          <Text style={[styles.emptyText, { color: hintColor }]}>
+            대기 질 데이터를 아직 받아오지 못했어요.
+          </Text>
+        ) : null}
+
         {metrics.map(item => {
           const barColor = getToneColor(item.tone);
-          const labelColor = getToneLabelColor(item.tone);
+          const toneLabelColor = getToneLabelColor(item.tone);
 
           return (
             <View key={item.key} style={styles.metricRow}>
               <View style={styles.metricLabelRow}>
-                <Text style={styles.metricLabel}>{item.label}</Text>
-                <Text style={[styles.metricValue, { color: labelColor }]}>
+                <Text style={[styles.metricLabel, { color: metricLabelColor }]}>
+                  {item.label}
+                </Text>
+                <Text
+                  style={[
+                    styles.metricValue,
+                    { color: valueColor ?? toneLabelColor },
+                  ]}
+                >
                   {item.valueLabel}
                 </Text>
               </View>
-              <View style={styles.progressTrack}>
+              <View style={[styles.progressTrack, { backgroundColor: trackColor }]}>
                 <View
                   style={[
                     styles.progressBar,
                     {
                       width: `${Math.max(10, Math.round(item.progress * 100))}%`,
-                      backgroundColor: barColor,
+                      backgroundColor: progressColor ?? barColor,
                     },
                   ]}
                 />
@@ -78,11 +119,11 @@ export default React.memo(function AirQualityInsightCard({ metrics }: Props) {
 const styles = StyleSheet.create({
   card: {
     borderRadius: 28,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.12)',
     paddingHorizontal: 18,
     paddingVertical: 18,
     borderWidth: 1,
-    borderColor: 'rgba(15,23,42,0.05)',
+    borderColor: 'rgba(255,255,255,0.16)',
     gap: 16,
   },
   headerRow: {
@@ -91,19 +132,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   title: {
-    fontSize: 19,
-    lineHeight: 24,
-    color: '#1B2434',
+    fontSize: 16,
+    lineHeight: 20,
+    color: '#F8FBFF',
     fontWeight: '700',
   },
   headerHint: {
     fontSize: 12,
     lineHeight: 16,
-    color: '#C39C6B',
+    color: 'rgba(230,238,248,0.72)',
     fontWeight: '600',
   },
   metricList: {
     gap: 16,
+  },
+  emptyText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
   },
   metricRow: {
     gap: 8,
@@ -115,20 +161,20 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   metricLabel: {
-    fontSize: 14,
-    lineHeight: 18,
-    color: '#455066',
+    fontSize: 13,
+    lineHeight: 17,
+    color: '#E8EEF6',
     fontWeight: '600',
   },
   metricValue: {
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 13,
+    lineHeight: 17,
     fontWeight: '700',
   },
   progressTrack: {
     height: 6,
     borderRadius: 999,
-    backgroundColor: '#EEF2F6',
+    backgroundColor: 'rgba(255,255,255,0.18)',
     overflow: 'hidden',
   },
   progressBar: {

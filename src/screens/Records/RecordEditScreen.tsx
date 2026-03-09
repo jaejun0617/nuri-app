@@ -27,30 +27,42 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import type {
-  CompositeNavigationProp,
-  RouteProp,
-} from '@react-navigation/native';
+import type { CompositeNavigationProp } from '@react-navigation/native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { launchImageLibrary } from 'react-native-image-picker';
 import Feather from 'react-native-vector-icons/Feather';
 
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import RecordImageGallery from '../../components/records/RecordImageGallery';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { TimelineStackParamList } from '../../navigation/TimelineStackNavigator';
+import type { TimelineScreenRoute } from '../../navigation/types';
+import { createLatestRequestController } from '../../services/app/async';
 import { getBrandedErrorMeta } from '../../services/app/errors';
+import { pickPhotoAssets } from '../../services/media/photoPicker';
+import {
+  normalizeCategoryKey,
+  normalizeOtherSubKey,
+} from '../../services/memories/categoryMeta';
 import {
   buildPickedRecordImages,
   formatRecordKoreanDate,
+  formatRecordPriceLabel,
+  isShoppingRecordCategory,
   parseRecordTags,
+  parseRecordPrice,
+  RECORD_MAIN_CATEGORIES,
+  RECORD_OTHER_SUBCATEGORIES,
   RECORD_EMOTION_OPTIONS,
+  type RecordMainCategoryKey,
+  type RecordOtherSubCategoryKey,
+  normalizeRecordPriceInput,
   toRecordYmd,
   type PickedRecordImage,
   validateRecordOccurredAt,
 } from '../../services/records/form';
 import {
+  fetchMemoryById,
   updateMemoryFields,
   updateMemoryImagePaths,
   type EmotionTag,
@@ -62,13 +74,14 @@ import {
 } from '../../services/supabase/storageMemories';
 import { useAuthStore } from '../../store/authStore';
 import { useRecordStore } from '../../store/recordStore';
+import { showToast } from '../../store/uiStore';
 import AppText from '../../app/ui/AppText';
 import { styles } from './RecordEditScreen.styles';
 
 type TimelineNav = NativeStackNavigationProp<TimelineStackParamList, 'RecordEdit'>;
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
 type Nav = CompositeNavigationProp<TimelineNav, RootNav>;
-type Route = RouteProp<TimelineStackParamList, 'RecordEdit'>;
+type Route = TimelineScreenRoute<'RecordEdit'>;
 
 type AddedImage = PickedRecordImage;
 type PreviewItem =
@@ -80,11 +93,9 @@ export default function RecordEditScreen() {
   // 1) nav / params
   // ---------------------------------------------------------
   const navigation = useNavigation<Nav>();
-  const rootNavigation =
-    navigation as unknown as NativeStackNavigationProp<RootStackParamList>;
   const route = useRoute<Route>();
-  const petId = route.params?.petId ?? null;
-  const memoryId = route.params?.memoryId ?? null;
+  const petId = route.params.petId;
+  const memoryId = route.params.memoryId;
 
   // ---------------------------------------------------------
   // 2) auth/store
@@ -92,6 +103,7 @@ export default function RecordEditScreen() {
   const userId = useAuthStore(s => s.session?.user?.id ?? null);
 
   const updateOneLocal = useRecordStore(s => s.updateOneLocal);
+  const upsertOneLocal = useRecordStore(s => s.upsertOneLocal);
   const refresh = useRecordStore(s => s.refresh);
 
   const petState = useRecordStore(s => {
@@ -105,6 +117,26 @@ export default function RecordEditScreen() {
     return items.find(r => r.id === memoryId) ?? null;
   }, [petState?.items, memoryId]);
 
+  useEffect(() => {
+    let mounted = true;
+
+    async function hydrateMissingRecord() {
+      if (!petId || !memoryId || record) return;
+      try {
+        const fetched = await fetchMemoryById(memoryId);
+        if (!mounted) return;
+        upsertOneLocal(petId, fetched);
+      } catch {
+        // 화면 하단 가드가 처리한다.
+      }
+    }
+
+    hydrateMissingRecord();
+    return () => {
+      mounted = false;
+    };
+  }, [memoryId, petId, record, upsertOneLocal]);
+
   // ---------------------------------------------------------
   // 3) form state
   // ---------------------------------------------------------
@@ -113,6 +145,11 @@ export default function RecordEditScreen() {
   const [occurredAt, setOccurredAt] = useState('');
   const [tagsText, setTagsText] = useState('');
   const [emotion, setEmotion] = useState<EmotionTag | null>(null);
+  const [mainCategoryKey, setMainCategoryKey] =
+    useState<RecordMainCategoryKey>('walk');
+  const [otherSubCategoryKey, setOtherSubCategoryKey] =
+    useState<RecordOtherSubCategoryKey | null>(null);
+  const [priceText, setPriceText] = useState('');
   const [dateModalVisible, setDateModalVisible] = useState(false);
 
   const [saving, setSaving] = useState(false);
@@ -128,7 +165,42 @@ export default function RecordEditScreen() {
     setOccurredAt(record.occurredAt ?? '');
     setTagsText(record.tags?.join(' ') ?? '');
     setEmotion(record.emotion ?? null);
+    const nextMainCategory = normalizeCategoryKey(
+      record.category ?? record.tags.join(' '),
+    );
+    setMainCategoryKey(nextMainCategory === 'all' ? 'walk' : nextMainCategory);
+    setOtherSubCategoryKey(
+      nextMainCategory === 'other'
+        ? normalizeOtherSubKey(record.subCategory ?? record.tags.join(' '))
+        : null,
+    );
+    setPriceText(
+      typeof record.price === 'number' && Number.isFinite(record.price)
+        ? `${record.price}`
+        : '',
+    );
   }, [record, dirty]);
+
+  const selectedMainCategory = useMemo(
+    () =>
+      RECORD_MAIN_CATEGORIES.find(category => category.key === mainCategoryKey) ??
+      null,
+    [mainCategoryKey],
+  );
+  const selectedOtherSubCategory = useMemo(
+    () =>
+      RECORD_OTHER_SUBCATEGORIES.find(sub => sub.key === otherSubCategoryKey) ??
+      null,
+    [otherSubCategoryKey],
+  );
+  const isShoppingCategory = useMemo(
+    () => isShoppingRecordCategory(mainCategoryKey, otherSubCategoryKey),
+    [mainCategoryKey, otherSubCategoryKey],
+  );
+  const priceLabel = useMemo(
+    () => formatRecordPriceLabel(parseRecordPrice(priceText)),
+    [priceText],
+  );
 
   const occurredAtLabel = useMemo(() => {
     const normalized = validateRecordOccurredAt(occurredAt);
@@ -145,11 +217,8 @@ export default function RecordEditScreen() {
       return;
     }
 
-    rootNavigation.reset({
-      index: 0,
-      routes: [{ name: 'AppTabs', params: { screen: 'TimelineTab' } }],
-    });
-  }, [navigation, rootNavigation]);
+    navigation.navigate('TimelineMain', { petId });
+  }, [navigation, petId]);
 
   // ---------------------------------------------------------
   // 5) image state (preview + replace flow)
@@ -183,11 +252,12 @@ export default function RecordEditScreen() {
   );
 
   useEffect(() => {
-    let mounted = true;
+    const request = createLatestRequestController();
 
     async function run() {
+      const requestId = request.begin();
       if (visibleExistingPaths.length === 0) {
-        if (mounted) {
+        if (request.isCurrent(requestId)) {
           setSignedByPath({});
           setImgLoading(false);
         }
@@ -195,27 +265,27 @@ export default function RecordEditScreen() {
       }
 
       try {
-        if (mounted) setImgLoading(true);
+        if (request.isCurrent(requestId)) setImgLoading(true);
         const urls = await Promise.all(
           visibleExistingPaths.map(async path => {
             const url = await getMemoryImageSignedUrlCached(path);
             return [path, url] as const;
           }),
         );
-        if (!mounted) return;
+        if (!request.isCurrent(requestId)) return;
         const nextMap: Record<string, string | null> = {};
         for (const [path, url] of urls) nextMap[path] = url ?? null;
         setSignedByPath(nextMap);
       } catch {
-        if (mounted) setSignedByPath({});
+        if (request.isCurrent(requestId)) setSignedByPath({});
       } finally {
-        if (mounted) setImgLoading(false);
+        if (request.isCurrent(requestId)) setImgLoading(false);
       }
     }
 
     run();
     return () => {
-      mounted = false;
+      request.cancel();
     };
   }, [visibleExistingPaths]);
 
@@ -261,30 +331,37 @@ export default function RecordEditScreen() {
   const onPickImage = useCallback(async () => {
     if (saving) return;
 
-    const res = await launchImageLibrary({
-      mediaType: 'photo',
-      selectionLimit: 10,
-      quality: 0.9,
-    });
+    try {
+      const result = await pickPhotoAssets({
+        selectionLimit: 10,
+        quality: 0.9,
+      });
+      if (result.status === 'cancelled') return;
 
-    if (res.didCancel) return;
+      const assets = result.assets.map(asset => ({
+        uri: asset.uri,
+        type: asset.mimeType ?? undefined,
+        fileName: asset.fileName ?? undefined,
+      }));
 
-    const assets = (res.assets ?? []).filter(asset => !!asset.uri);
-    if (assets.length === 0) {
-      Alert.alert('이미지 선택 실패', 'uri를 가져오지 못했습니다.');
-      return;
+      setDirty(true);
+      setAddedImages(prev => {
+        return [
+          ...prev,
+          ...buildPickedRecordImages(assets, {
+            existingUris: prev.map(image => image.uri),
+            keyPrefix: `a:${Date.now()}`,
+            limit: 10 - prev.length,
+          }),
+        ].slice(0, 10);
+      });
+    } catch (error) {
+      const { title: alertTitle, message } = getBrandedErrorMeta(
+        error,
+        'image-pick',
+      );
+      showToast({ tone: 'error', title: alertTitle, message });
     }
-    setDirty(true);
-    setAddedImages(prev => {
-      return [
-        ...prev,
-        ...buildPickedRecordImages(assets, {
-          existingUris: prev.map(image => image.uri),
-          keyPrefix: `a:${Date.now()}`,
-          limit: 10 - prev.length,
-        }),
-      ].slice(0, 10);
-    });
   }, [saving]);
 
   const openDateModal = useCallback(() => {
@@ -300,6 +377,38 @@ export default function RecordEditScreen() {
     setDirty(true);
     setOccurredAt(toRecordYmd(nextDate));
     setDateModalVisible(false);
+  }, []);
+
+  const onSelectMainCategory = useCallback((nextKey: RecordMainCategoryKey) => {
+    setDirty(true);
+    setMainCategoryKey(nextKey);
+    if (nextKey !== 'other') {
+      setOtherSubCategoryKey(null);
+      setPriceText('');
+    }
+  }, []);
+
+  const onSelectOtherSubCategory = useCallback(
+    (nextKey: RecordOtherSubCategoryKey) => {
+      setDirty(true);
+      setMainCategoryKey('other');
+      setOtherSubCategoryKey(nextKey);
+      if (nextKey !== 'shopping') {
+        setPriceText('');
+      }
+    },
+    [],
+  );
+
+  const clearOtherSubCategory = useCallback(() => {
+    setDirty(true);
+    setOtherSubCategoryKey(null);
+    setPriceText('');
+  }, []);
+
+  const onChangePriceText = useCallback((value: string) => {
+    setDirty(true);
+    setPriceText(normalizeRecordPriceInput(value));
   }, []);
 
   const onRemoveActiveImage = useCallback(() => {
@@ -345,6 +454,7 @@ export default function RecordEditScreen() {
       const occurred = validateRecordOccurredAt(occurredAt);
       const nextContent = content.trim() || null;
       const nextTags = parseRecordTags(tagsText);
+      const nextPrice = isShoppingCategory ? parseRecordPrice(priceText) : null;
 
       await updateMemoryFields({
         memoryId,
@@ -352,6 +462,9 @@ export default function RecordEditScreen() {
         content: nextContent,
         emotion,
         tags: nextTags,
+        category: mainCategoryKey,
+        subCategory: otherSubCategoryKey,
+        price: nextPrice,
         occurredAt: occurred,
       });
 
@@ -361,6 +474,9 @@ export default function RecordEditScreen() {
         content: nextContent,
         emotion,
         tags: nextTags,
+        category: mainCategoryKey,
+        subCategory: otherSubCategoryKey,
+        price: nextPrice,
         occurredAt: occurred,
       });
 
@@ -424,6 +540,10 @@ export default function RecordEditScreen() {
     title,
     content,
     occurredAt,
+    isShoppingCategory,
+    mainCategoryKey,
+    otherSubCategoryKey,
+    priceText,
     emotion,
     tagsText,
     userId,
@@ -610,6 +730,107 @@ export default function RecordEditScreen() {
             {occurredAt ? occurredAtLabel : '날짜를 선택해 주세요'}
           </AppText>
         </TouchableOpacity>
+
+        <AppText preset="caption" style={styles.label}>
+          분류
+        </AppText>
+        <View style={styles.categoryGrid}>
+          {RECORD_MAIN_CATEGORIES.map(category => {
+            const active = category.key === mainCategoryKey;
+            return (
+              <TouchableOpacity
+                key={category.key}
+                style={[
+                  styles.categoryChip,
+                  active ? styles.categoryChipActive : null,
+                ]}
+                onPress={() => onSelectMainCategory(category.key)}
+                disabled={saving}
+                activeOpacity={0.9}
+              >
+                <AppText
+                  preset="caption"
+                  style={[
+                    styles.categoryChipText,
+                    active ? styles.categoryChipTextActive : null,
+                  ]}
+                >
+                  {category.label}
+                </AppText>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {selectedMainCategory ? (
+          <AppText preset="caption" style={styles.helperText}>
+            분류: {selectedMainCategory.label}
+            {selectedOtherSubCategory ? ` · ${selectedOtherSubCategory.label}` : ''}
+          </AppText>
+        ) : null}
+
+        {mainCategoryKey === 'other' ? (
+          <View style={styles.subCategoryGrid}>
+            {RECORD_OTHER_SUBCATEGORIES.map(sub => {
+              const active = sub.key === otherSubCategoryKey;
+              return (
+                <TouchableOpacity
+                  key={sub.key}
+                  style={[
+                    styles.subCategoryChip,
+                    active ? styles.subCategoryChipActive : null,
+                  ]}
+                  onPress={() => onSelectOtherSubCategory(sub.key)}
+                  disabled={saving}
+                  activeOpacity={0.9}
+                >
+                  <AppText
+                    preset="caption"
+                    style={[
+                      styles.subCategoryChipText,
+                      active ? styles.subCategoryChipTextActive : null,
+                    ]}
+                  >
+                    {sub.label}
+                  </AppText>
+                </TouchableOpacity>
+              );
+            })}
+
+            {otherSubCategoryKey ? (
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={styles.subCategoryClearBtn}
+                onPress={clearOtherSubCategory}
+                disabled={saving}
+              >
+                <Feather name="x" size={14} color="#9AA4B6" />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        ) : null}
+
+        {isShoppingCategory ? (
+          <>
+            <AppText preset="caption" style={styles.label}>
+              구매 가격
+            </AppText>
+            <TextInput
+              style={styles.input}
+              value={priceText}
+              onChangeText={onChangePriceText}
+              placeholder="예: 25000"
+              placeholderTextColor="#8A94A6"
+              keyboardType="number-pad"
+              editable={!saving}
+            />
+            <AppText preset="caption" style={styles.helperText}>
+              {priceLabel
+                ? `저장 예정 금액: ${priceLabel}`
+                : '숫자만 입력하면 자동으로 원 단위로 저장돼요.'}
+            </AppText>
+          </>
+        ) : null}
 
         <AppText preset="caption" style={styles.label}>
           태그(선택)

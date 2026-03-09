@@ -16,6 +16,15 @@ react {
   autolinkLibrariesWithApp()
 }
 
+def geolocationCodegenScript = rootProject.file("../scripts/ensure-geolocation-codegen.js")
+
+tasks.register("ensureGeolocationCodegen", Exec) {
+  workingDir rootProject.projectDir.parentFile
+  commandLine("node", geolocationCodegenScript.absolutePath)
+}
+
+preBuild.dependsOn("ensureGeolocationCodegen")
+
 def enableProguardInReleaseBuilds = false
 def jscFlavor = "io.github.react-native-community:jsc-android:2026004.+"
 

@@ -13,31 +13,37 @@ import type {
   MemoryMainCategory,
   MemoryOtherSubCategory,
 } from '../memories/categoryMeta';
+import {
+  formatDateLabelFromDate,
+  getKstDateParts,
+} from '../../utils/date';
 
 export function formatScheduleDateLabel(schedule: PetSchedule): string {
-  const date = new Date(schedule.startsAt);
-  if (Number.isNaN(date.getTime())) return '';
+  const parts = getKstDateParts(schedule.startsAt);
+  if (!parts) return '';
 
   const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
-  const base = `${date.getMonth() + 1}/${date.getDate()} (${weekdays[date.getDay()]})`;
+  const base = `${parts.month}/${parts.day} (${weekdays[parts.weekday]})`;
 
   if (schedule.allDay) return base;
 
-  const hour = `${date.getHours()}`.padStart(2, '0');
-  const minute = `${date.getMinutes()}`.padStart(2, '0');
+  const hour = `${parts.hour}`.padStart(2, '0');
+  const minute = `${parts.minute}`.padStart(2, '0');
   return `${base} ${hour}:${minute}`;
 }
 
 export function formatScheduleDetailDate(schedule: PetSchedule): string {
-  const date = new Date(schedule.startsAt);
-  if (Number.isNaN(date.getTime())) return '';
+  const parts = getKstDateParts(schedule.startsAt);
+  if (!parts) return '';
 
   const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
-  const base = `${date.getFullYear()}.${`${date.getMonth() + 1}`.padStart(2, '0')}.${`${date.getDate()}`.padStart(2, '0')} (${weekdays[date.getDay()]})`;
+  const dateLabel = formatDateLabelFromDate(new Date(schedule.startsAt));
+  if (!dateLabel) return '';
+  const base = `${dateLabel} (${weekdays[parts.weekday]})`;
 
   if (schedule.allDay) return `${base} · 하루 종일`;
 
-  return `${base} · ${`${date.getHours()}`.padStart(2, '0')}:${`${date.getMinutes()}`.padStart(2, '0')}`;
+  return `${base} · ${`${parts.hour}`.padStart(2, '0')}:${`${parts.minute}`.padStart(2, '0')}`;
 }
 
 export function mapScheduleIconName(iconKey: ScheduleIconKey): string {

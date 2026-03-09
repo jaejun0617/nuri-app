@@ -8,6 +8,7 @@ import type {
   OpenMeteoAirQualityResponse,
   OpenMeteoForecastResponse,
 } from './api';
+import { safeYmd } from '../../utils/date';
 import { getCurrentWeatherIsDaytime } from './dayPhase';
 import {
   buildWeatherGuideBundleForScenario,
@@ -74,7 +75,7 @@ function buildWeeklyItems(
 
   return (daily?.time ?? []).slice(0, 7).map((_, index) => {
     const weatherCode = daily?.weather_code?.[index] ?? 1;
-    const dateString = daily?.time?.[index];
+    const dateString = safeYmd(daily?.time?.[index]);
     const date = dateString ? new Date(`${dateString}T12:00:00+09:00`) : null;
     const dayLabel =
       index === 0

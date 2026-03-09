@@ -12,14 +12,11 @@ import Feather from 'react-native-vector-icons/Feather';
 
 import AppText from '../../app/ui/AppText';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import type { RootScreenRoute } from '../../navigation/types';
 import { styles } from './EditDoneScreen.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'EditDone'>;
-type Route = {
-  key: string;
-  name: 'EditDone';
-  params: RootStackParamList['EditDone'];
-};
+type Route = RootScreenRoute<'EditDone'>;
 
 export default function EditDoneScreen() {
   const navigation = useNavigation<Nav>();

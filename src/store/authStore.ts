@@ -21,6 +21,8 @@ type AuthState = {
   status: AuthStatus;
   session: Session | null;
   profile: Profile;
+  profileSyncStatus: 'idle' | 'loading' | 'ready' | 'error';
+  profileErrorMessage: string | null;
 
   // ✅ 부트 게이트 (Splash 고정용)
   booted: boolean;
@@ -36,6 +38,10 @@ type AuthState = {
   hydrate: () => Promise<void>;
   setSession: (session: Session | null) => Promise<void>;
   setNickname: (nickname: string | null) => Promise<void>;
+  setProfileSyncState: (
+    status: 'idle' | 'loading' | 'ready' | 'error',
+    errorMessage?: string | null,
+  ) => void;
   setBooted: (v: boolean) => void;
 
   signOutLocal: () => Promise<void>;
@@ -69,6 +75,8 @@ export const useAuthStore = create<AuthState>(set => ({
   status: 'guest',
   session: null,
   profile: { nickname: null },
+  profileSyncStatus: 'idle',
+  profileErrorMessage: null,
 
   booted: false,
 
@@ -91,6 +99,8 @@ export const useAuthStore = create<AuthState>(set => ({
         status: 'guest',
         session: null,
         isLoggedIn: false,
+        profileSyncStatus: 'idle',
+        profileErrorMessage: null,
       });
       return;
     }
@@ -113,6 +123,13 @@ export const useAuthStore = create<AuthState>(set => ({
     await saveProfile(nextProfile);
   },
 
+  setProfileSyncState: (status, errorMessage = null) =>
+    set({
+      profileSyncStatus: status,
+      profileErrorMessage:
+        status === 'error' ? (errorMessage ?? '프로필 동기화 실패') : null,
+    }),
+
   // ---------------------------------------------------------
   // 5) booted 제어 (Splash 게이트)
   // ---------------------------------------------------------
@@ -126,6 +143,8 @@ export const useAuthStore = create<AuthState>(set => ({
       status: 'guest',
       session: null,
       profile: { nickname: null },
+      profileSyncStatus: 'idle',
+      profileErrorMessage: null,
       isLoggedIn: false,
       // 수동 로그아웃에서는 부트 게이트를 닫지 않는다.
       // Splash 최소 대기(4s)에 다시 걸리면 체감 지연이 발생한다.

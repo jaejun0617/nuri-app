@@ -6,6 +6,11 @@ import {
   resolveRecordPickerMimeType,
   validateRecordOccurredAt,
 } from '../src/services/records/form';
+import {
+  getMemoryImageRefs,
+  getPrimaryMemoryImageRef,
+  normalizeMemoryImageFields,
+} from '../src/services/records/imageSources';
 
 describe('records form helpers', () => {
   it('태그 입력을 #형태 배열로 정규화한다', () => {
@@ -18,7 +23,7 @@ describe('records form helpers', () => {
 
   it('메인/서브 카테고리 태그를 수동 태그와 합친다', () => {
     expect(mergeRecordTags(['#직접입력'], 'other', 'grooming')).toEqual([
-      '#기타',
+      '#생활',
       '#미용',
       '#직접입력',
     ]);
@@ -54,5 +59,41 @@ describe('records form helpers', () => {
     expect(() => validateRecordOccurredAt('2026/03/06')).toThrow(
       '날짜 형식은 YYYY-MM-DD 입니다.',
     );
+  });
+
+  it('이미지 필드를 storage path와 direct uri로 안정적으로 정규화한다', () => {
+    expect(
+      normalizeMemoryImageFields({
+        imagePath: ' https://cdn.example.com/a.jpg ',
+        imagePaths: ['users/pet/a.jpg', ' users/pet/a.jpg '],
+        imageUrl: 'file:///tmp/picked.jpg',
+      }),
+    ).toEqual({
+      imagePath: 'users/pet/a.jpg',
+      imagePaths: ['users/pet/a.jpg'],
+      imageUrl: 'https://cdn.example.com/a.jpg',
+    });
+  });
+
+  it('대표 이미지 ref를 우선순위대로 계산한다', () => {
+    expect(
+      getPrimaryMemoryImageRef({
+        imagePath: null,
+        imagePaths: [],
+        imageUrl: 'https://cdn.example.com/a.jpg',
+      }),
+    ).toBe('https://cdn.example.com/a.jpg');
+
+    expect(
+      getMemoryImageRefs({
+        imagePath: 'users/pet/a.jpg',
+        imagePaths: ['users/pet/a.jpg', 'users/pet/b.jpg'],
+        imageUrl: 'https://cdn.example.com/fallback.jpg',
+      }).map(image => image.key),
+    ).toEqual([
+      'storage:users/pet/a.jpg',
+      'storage:users/pet/b.jpg',
+      'remote:https://cdn.example.com/fallback.jpg',
+    ]);
   });
 });

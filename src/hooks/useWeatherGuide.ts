@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { createLatestRequestController } from '../services/app/async';
 import { getBrandedErrorMeta } from '../services/app/errors';
 import { getFallbackDistrictLabel } from '../services/location/district';
 import { fetchOpenMeteoAirQuality, fetchOpenMeteoForecast } from '../services/weather/api';
@@ -15,6 +16,7 @@ import {
 } from '../services/weather/cache';
 import { buildWeatherGuideBundleFromApi } from '../services/weather/mapper';
 import {
+  createPreviewWeatherGuideBundle,
   createUnavailableWeatherGuideBundle,
   type WeatherGuideBundle,
 } from '../services/weather/guide';
@@ -31,6 +33,7 @@ export type WeatherGuideState = {
   error: string | null;
   refresh: () => Promise<void>;
   isUnavailable: boolean;
+  isPreview: boolean;
 };
 
 function getWeatherGuideErrorMessage(error: unknown) {
@@ -89,13 +92,14 @@ export function useWeatherGuide(
   }, [location.coordinates]);
 
   useEffect(() => {
-    let cancelled = false;
+    const request = createLatestRequestController();
 
     async function hydrateDiskPreview() {
+      const requestId = request.begin();
       if (!location.coordinates || memoryEntry || initialBundle) return;
 
       const cachedBundle = await loadCachedWeatherGuideBundle(location.coordinates);
-      if (!cachedBundle || cancelled) return;
+      if (!cachedBundle || !request.isCurrent(requestId)) return;
 
       setDiskPreviewBundle(cachedBundle);
     }
@@ -104,7 +108,7 @@ export function useWeatherGuide(
     hydrateDiskPreview().catch(() => {});
 
     return () => {
-      cancelled = true;
+      request.cancel();
     };
   }, [initialBundle, location.coordinates, memoryEntry]);
 
@@ -141,8 +145,17 @@ export function useWeatherGuide(
 
   const previewBundle = useMemo(() => {
     if (weatherQuery.data || weatherQuery.error) return null;
-    return initialBundle ?? memoryEntry?.bundle ?? diskPreviewBundle;
-  }, [diskPreviewBundle, initialBundle, memoryEntry, weatherQuery.data, weatherQuery.error]);
+    const candidate = initialBundle ?? memoryEntry?.bundle ?? diskPreviewBundle;
+    if (!candidate) return null;
+    return createPreviewWeatherGuideBundle(candidate, resolvedDistrict);
+  }, [
+    diskPreviewBundle,
+    initialBundle,
+    memoryEntry,
+    resolvedDistrict,
+    weatherQuery.data,
+    weatherQuery.error,
+  ]);
 
   const bundle = useMemo(() => {
     const sourceBundle =
@@ -174,12 +187,17 @@ export function useWeatherGuide(
       return getWeatherGuideErrorMessage(weatherQuery.error);
     }
 
+    if (previewBundle) {
+      return locationFallback;
+    }
+
     return locationFallback;
   }, [
     districtState.error,
     location.coordinates,
     location.error,
     location.permission,
+    previewBundle,
     weatherQuery.error,
   ]);
 
@@ -202,5 +220,6 @@ export function useWeatherGuide(
     error,
     refresh,
     isUnavailable: bundle.dataSource === 'unavailable',
+    isPreview: bundle.dataSource === 'preview',
   };
 }

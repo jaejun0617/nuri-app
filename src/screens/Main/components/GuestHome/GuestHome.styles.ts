@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { SCREEN_TOP_SPACING } from '../../../../theme/layout';
 
 const BRAND = '#6D6AF8';
 const BRAND_DEEP = '#5753E6';
@@ -14,7 +15,7 @@ export const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: SURFACE },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 10,
+    paddingTop: SCREEN_TOP_SPACING,
     paddingBottom: 34,
     gap: 20,
   },

@@ -12,19 +12,16 @@ import Feather from 'react-native-vector-icons/Feather';
 
 import AppText from '../../app/ui/AppText';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import type { RootScreenRoute } from '../../navigation/types';
 import { styles } from './PetProfileEditDoneScreen.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'PetProfileEditDone'>;
-type Route = {
-  key: string;
-  name: 'PetProfileEditDone';
-  params: { petId: string; petName: string };
-};
+type Route = RootScreenRoute<'PetProfileEditDone'>;
 
 export default function PetProfileEditDoneScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
-  const petName = route.params.petName;
+  const petName = route.params?.petName?.trim() || '아이';
 
   return (
     <View style={styles.screen}>

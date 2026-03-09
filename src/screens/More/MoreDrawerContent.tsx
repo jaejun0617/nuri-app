@@ -31,6 +31,7 @@ import {
   getNicknameChangedAt,
   saveNicknameChangedAt,
 } from '../../services/local/accountPreferences';
+import { formatDateLabelFromDate } from '../../utils/date';
 import {
   getBrandedErrorMeta,
 } from '../../services/app/errors';
@@ -111,11 +112,8 @@ type ProfileEditModalProps = {
 
 function formatDateLabel(value: Date | null): string {
   if (!value) return '지금은 변경할 수 있어요.';
-
-  const year = value.getFullYear();
-  const month = String(value.getMonth() + 1).padStart(2, '0');
-  const day = String(value.getDate()).padStart(2, '0');
-  return `${year}.${month}.${day} 이후에 다시 변경할 수 있어요.`;
+  const label = formatDateLabelFromDate(value);
+  return `${label || '날짜 확인 후'} 이후에 다시 변경할 수 있어요.`;
 }
 
 const MenuRow = memo(function MenuRow({

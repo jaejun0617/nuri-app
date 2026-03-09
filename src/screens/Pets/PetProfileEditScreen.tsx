@@ -8,28 +8,31 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
-  Image,
+  AppState,
+  InteractionManager,
   ScrollView,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { launchImageLibrary } from 'react-native-image-picker';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
 
 import AppText from '../../app/ui/AppText';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
+import PhotoAddCard from '../../components/media/PhotoAddCard';
 import PetMemorialFields from '../../components/pets/PetMemorialFields';
 import PetThemePicker from '../../components/pets/PetThemePicker';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import type { RootScreenRoute } from '../../navigation/types';
 import {
   getBrandedErrorMeta,
   getErrorMessage,
 } from '../../services/app/errors';
 import { readFileAsBase64 } from '../../services/files/readFileAsBase64';
+import { pickPhotoAssets } from '../../services/media/photoPicker';
 import {
   getPetMemorialChoice,
   type PetMemorialChoice,
@@ -41,14 +44,11 @@ import { supabase } from '../../services/supabase/client';
 import { fetchMyPets, updatePet } from '../../services/supabase/pets';
 import { uploadPetAvatar } from '../../services/supabase/storagePets';
 import { usePetStore } from '../../store/petStore';
+import { showToast } from '../../store/uiStore';
 import { styles } from './PetProfileEditScreen.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'PetProfileEdit'>;
-type Route = {
-  key: string;
-  name: 'PetProfileEdit';
-  params?: { petId?: string };
-};
+type Route = RootScreenRoute<'PetProfileEdit'>;
 
 const NAME_CHANGE_LIMIT = 3;
 const NAME_CHANGE_STORAGE_KEY = 'nuri.petNameChangeCounts.v1';
@@ -85,44 +85,6 @@ function normalizeTextList(raw: string): string[] {
     .slice(0, 8);
 }
 
-function inferMimeFromFileName(fileName: string | null | undefined): string | null {
-  const value = (fileName ?? '').toLowerCase().trim();
-  if (!value) return null;
-  if (value.endsWith('.jpg') || value.endsWith('.jpeg')) return 'image/jpeg';
-  if (value.endsWith('.png')) return 'image/png';
-  if (value.endsWith('.webp')) return 'image/webp';
-  if (value.endsWith('.heic')) return 'image/heic';
-  if (value.endsWith('.heif')) return 'image/heif';
-  return null;
-}
-
-function inferMimeFromUri(uri: string): string | null {
-  const normalized = uri.toLowerCase().split('?')[0];
-  if (normalized.endsWith('.jpg') || normalized.endsWith('.jpeg')) {
-    return 'image/jpeg';
-  }
-  if (normalized.endsWith('.png')) return 'image/png';
-  if (normalized.endsWith('.webp')) return 'image/webp';
-  if (normalized.endsWith('.heic')) return 'image/heic';
-  if (normalized.endsWith('.heif')) return 'image/heif';
-  return null;
-}
-
-function resolvePickerMimeType(asset: {
-  type?: string | null;
-  fileName?: string | null;
-  uri?: string | null;
-}): string | null {
-  const direct = asset.type ?? null;
-  if (direct && direct.includes('/')) return direct;
-
-  const fromName = inferMimeFromFileName(asset.fileName);
-  if (fromName) return fromName;
-
-  if (asset.uri) return inferMimeFromUri(asset.uri);
-  return null;
-}
-
 async function loadNameChangeCount(petId: string): Promise<number> {
   const raw = await AsyncStorage.getItem(NAME_CHANGE_STORAGE_KEY);
   if (!raw) return 0;
@@ -156,6 +118,7 @@ async function incrementNameChangeCount(petId: string): Promise<number> {
 export default function PetProfileEditScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
+  const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
   const petId = route.params?.petId?.trim() || '';
 
@@ -188,25 +151,35 @@ export default function PetProfileEditScreen() {
   >(null);
 
   useEffect(() => {
-    if (petId) return;
+    if (petId || !isFocused) return;
 
-    Alert.alert('프로필을 열지 못했어요', '아이 정보를 다시 불러온 뒤 시도해 주세요.', [
-      {
-        text: '확인',
-        onPress: () => {
-          if (navigation.canGoBack()) {
-            navigation.goBack();
-            return;
-          }
+    let cancelled = false;
+    const task = InteractionManager.runAfterInteractions(() => {
+      if (cancelled || AppState.currentState !== 'active') return;
 
-          navigation.reset({
-            index: 0,
-            routes: [{ name: 'AppTabs' }],
-          });
+      Alert.alert('프로필을 열지 못했어요', '아이 정보를 다시 불러온 뒤 시도해 주세요.', [
+        {
+          text: '확인',
+          onPress: () => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+              return;
+            }
+
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'AppTabs' }],
+            });
+          },
         },
-      },
-    ]);
-  }, [navigation, petId]);
+      ]);
+    });
+
+    return () => {
+      cancelled = true;
+      task.cancel();
+    };
+  }, [isFocused, navigation, petId]);
 
   useEffect(() => {
     if (!pet) return;
@@ -357,38 +330,37 @@ export default function PetProfileEditScreen() {
   }, [dateModalTarget]);
 
   const pickImage = useCallback(async () => {
-    const result = await launchImageLibrary({
-      mediaType: 'photo',
-      selectionLimit: 1,
-      quality: 0.9,
-    });
-
-    if (result.didCancel) return;
-
-    const asset = result.assets?.[0];
-    if (!asset?.uri) {
-      Alert.alert('이미지 선택 실패', '다시 시도해 주세요.');
-      return;
-    }
-
-    setImageUri(asset.uri);
-    setImageType(resolvePickerMimeType(asset));
     try {
-      const base64 = await readFileAsBase64(asset.uri);
-      setThemeColor(
-        recommendPetThemeColor({
-          imageBase64: base64,
-          name: trimmedName || originalName,
-          petId,
-        }),
-      );
-    } catch {
-      setThemeColor(
-        recommendPetThemeColor({
-          name: trimmedName || originalName,
-          petId,
-        }),
-      );
+      const result = await pickPhotoAssets({
+        selectionLimit: 1,
+        quality: 0.9,
+      });
+      if (result.status === 'cancelled') return;
+
+      const asset = result.assets[0];
+
+      setImageUri(asset.uri);
+      setImageType(asset.mimeType);
+      try {
+        const base64 = await readFileAsBase64(asset.uri);
+        setThemeColor(
+          recommendPetThemeColor({
+            imageBase64: base64,
+            name: trimmedName || originalName,
+            petId,
+          }),
+        );
+      } catch {
+        setThemeColor(
+          recommendPetThemeColor({
+            name: trimmedName || originalName,
+            petId,
+          }),
+        );
+      }
+    } catch (error) {
+      const { title, message } = getBrandedErrorMeta(error, 'image-pick');
+      showToast({ tone: 'error', title, message });
     }
   }, [originalName, petId, trimmedName]);
 
@@ -448,7 +420,7 @@ export default function PetProfileEditScreen() {
       }
 
       const refreshedPets = await fetchMyPets();
-      setPets(refreshedPets);
+      setPets(refreshedPets, { userId });
 
       navigation.replace('PetProfileEditDone', {
         petId: pet.id,
@@ -531,25 +503,21 @@ export default function PetProfileEditScreen() {
           { paddingBottom: Math.max(112, insets.bottom + 88) },
         ]}
       >
-        <TouchableOpacity
-          activeOpacity={0.92}
-          style={styles.avatarSection}
-          onPress={pickImage}
-        >
-          <View style={styles.avatarWrap}>
-            {avatarSourceUri ? (
-              <Image source={{ uri: avatarSourceUri }} style={styles.avatarImage} />
-            ) : (
-              <View style={styles.avatarFallback}>
-                <Feather name="image" size={28} color="#A0A7B4" />
-              </View>
-            )}
-          </View>
-
-          <View style={styles.avatarCameraBtn}>
-            <Feather name="camera" size={16} color="#FFFFFF" />
-          </View>
-        </TouchableOpacity>
+        <View style={styles.avatarSection}>
+          <PhotoAddCard
+            imageUri={avatarSourceUri}
+            onPress={pickImage}
+            containerStyle={styles.avatarWrap}
+            imageStyle={styles.avatarImage}
+            placeholderStyle={styles.avatarFallback}
+            placeholderIconName="image"
+            placeholderIconColor="#A0A7B4"
+            placeholderIconSize={28}
+            editButtonStyle={styles.avatarCameraBtn}
+            editIconName="camera"
+            editIconSize={16}
+          />
+        </View>
 
         <PetThemePicker
           selectedColor={selectedThemeColor}

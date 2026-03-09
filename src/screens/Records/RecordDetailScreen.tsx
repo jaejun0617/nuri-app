@@ -8,7 +8,9 @@ import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
   Image,
+  LayoutChangeEvent,
   Modal,
   Pressable,
   ScrollView,
@@ -27,15 +29,25 @@ import AppNavigationToolbar from '../../components/navigation/AppNavigationToolb
 import AppText from '../../app/ui/AppText';
 import type { TimelineStackParamList } from '../../navigation/TimelineStackNavigator';
 import { getBrandedErrorMeta } from '../../services/app/errors';
+import {
+  formatRecordDisplayDate,
+  formatRecordRelativeTime,
+} from '../../services/records/date';
+import { getMemoryImageRefs } from '../../services/records/imageSources';
+import { formatRecordPriceLabel } from '../../services/records/form';
 import type { MemoryRecord } from '../../services/supabase/memories';
-import { deleteMemoryWithFile } from '../../services/supabase/memories';
-import { getMemoryImageSignedUrlCached } from '../../services/supabase/storageMemories';
+import { deleteMemoryWithFile, fetchMemoryById } from '../../services/supabase/memories';
+import { getMemoryImageSignedUrlsCached } from '../../services/supabase/storageMemories';
 import { usePetStore } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
 import { styles } from './RecordDetailScreen.styles';
 
 type TimelineNav = NativeStackNavigationProp<TimelineStackParamList, 'RecordDetail'>;
 type Route = RouteProp<TimelineStackParamList, 'RecordDetail'>;
+type PreviewImageSource = {
+  key: string;
+  uri: string;
+};
 
 const EMOTION_META: Record<
   string,
@@ -54,44 +66,6 @@ const EMOTION_META: Record<
   tired: { emoji: '😴', label: '피곤해요' },
 };
 
-function toKoreanDate(ymd: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return ymd;
-  const [year, month, day] = ymd.split('-');
-  return `${year}.${month}.${day}`;
-}
-
-function formatRelativeTime(value: string) {
-  const target = new Date(value).getTime();
-  if (!Number.isFinite(target)) return '';
-
-  const diffMs = Math.max(0, Date.now() - target);
-  const minute = 60 * 1000;
-  const hour = 60 * minute;
-  const day = 24 * hour;
-
-  if (diffMs < hour) {
-    const minutes = Math.max(1, Math.floor(diffMs / minute));
-    return `${minutes}분 전`;
-  }
-  if (diffMs < day) {
-    const hours = Math.max(1, Math.floor(diffMs / hour));
-    return `${hours}시간 전`;
-  }
-  const days = Math.max(1, Math.floor(diffMs / day));
-  return `${days}일 전`;
-}
-
-function toRelativeDateSource(
-  occurredAt: string | null | undefined,
-  createdAt: string,
-) {
-  if (typeof occurredAt === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(occurredAt)) {
-    return `${occurredAt}T00:00:00`;
-  }
-
-  return createdAt;
-}
-
 const FeedPostCard = memo(function FeedPostCard({
   item,
   petName,
@@ -103,39 +77,66 @@ const FeedPostCard = memo(function FeedPostCard({
   petAvatarUrl: string | null;
   onPressMore: () => void;
 }) {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewImageSources, setPreviewImageSources] = useState<
+    PreviewImageSource[]
+  >([]);
+  const [imageIndex, setImageIndex] = useState(0);
+  const [carouselWidth, setCarouselWidth] = useState(0);
   const moodMeta = item.emotion ? EMOTION_META[item.emotion] : null;
+
+  const imagePaths = useMemo(() => {
+    return getMemoryImageRefs(item);
+  }, [item]);
 
   useEffect(() => {
     let mounted = true;
 
     async function run() {
-      const path = item.imagePaths[0] ?? item.imagePath ?? null;
-      if (!path) {
-        if (mounted) setPreviewUrl(null);
+      if (imagePaths.length === 0) {
+        if (mounted) setPreviewImageSources([]);
         return;
       }
 
-      const url = await getMemoryImageSignedUrlCached(path);
-      if (mounted) setPreviewUrl(url ?? null);
+      const urls = await getMemoryImageSignedUrlsCached(
+        imagePaths.map(image => image.value),
+      );
+      if (!mounted) return;
+
+      setPreviewImageSources(
+        urls.flatMap((url, index) => {
+          const uri = `${url ?? ''}`.trim();
+          if (!uri) return [];
+          return [
+            {
+              key: imagePaths[index]?.key ?? `${item.id}:${index}:${uri}`,
+              uri,
+            },
+          ];
+        }),
+      );
     }
 
     run().catch(() => {
-      if (mounted) setPreviewUrl(null);
+      if (mounted) setPreviewImageSources([]);
     });
 
     return () => {
       mounted = false;
     };
-  }, [item.imagePath, item.imagePaths]);
+  }, [imagePaths, item.id]);
+
+  useEffect(() => {
+    if (imageIndex < previewImageSources.length) return;
+    setImageIndex(0);
+  }, [imageIndex, previewImageSources.length]);
 
   const displayDate = useMemo(
-    () => toKoreanDate(item.occurredAt ?? item.createdAt.slice(0, 10)),
-    [item.createdAt, item.occurredAt],
+    () => formatRecordDisplayDate(item),
+    [item],
   );
   const relativeTime = useMemo(
-    () => formatRelativeTime(toRelativeDateSource(item.occurredAt, item.createdAt)),
-    [item.createdAt, item.occurredAt],
+    () => formatRecordRelativeTime(item),
+    [item],
   );
   const avatarFallback = useMemo(
     () => petName.trim().charAt(0) || 'N',
@@ -145,6 +146,39 @@ const FeedPostCard = memo(function FeedPostCard({
   const tagsText = useMemo(
     () => (item.tags.length > 0 ? item.tags.join(' ') : ''),
     [item.tags],
+  );
+  const priceText = useMemo(
+    () => formatRecordPriceLabel(item.price),
+    [item.price],
+  );
+  const slideWidth = useMemo(() => Math.max(carouselWidth, 1), [carouselWidth]);
+
+  const onImageViewportLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      const nextWidth = Math.round(event.nativeEvent.layout.width);
+      if (!nextWidth || nextWidth === carouselWidth) return;
+      setCarouselWidth(nextWidth);
+    },
+    [carouselWidth],
+  );
+
+  const onMomentumEnd = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const width = event.nativeEvent.layoutMeasurement.width || slideWidth;
+      if (!width) return;
+      const nextIndex = Math.round(event.nativeEvent.contentOffset.x / width);
+      setImageIndex(nextIndex);
+    },
+    [slideWidth],
+  );
+
+  const renderPreviewImage = useCallback(
+    ({ item: previewImage }: { item: PreviewImageSource }) => (
+      <View style={[styles.postImageSlide, { width: slideWidth }]}>
+        <Image source={{ uri: previewImage.uri }} style={styles.postImage} resizeMode="cover" />
+      </View>
+    ),
+    [slideWidth],
   );
 
   return (
@@ -181,8 +215,42 @@ const FeedPostCard = memo(function FeedPostCard({
         </TouchableOpacity>
       </View>
 
-      {previewUrl ? (
-        <Image source={{ uri: previewUrl }} style={styles.postImage} resizeMode="cover" />
+      {previewImageSources.length > 1 ? (
+        <View style={styles.postImageViewport} onLayout={onImageViewportLayout}>
+          <FlatList
+            data={previewImageSources}
+            horizontal
+            pagingEnabled
+            keyExtractor={previewImage => previewImage.key}
+            renderItem={renderPreviewImage}
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={onMomentumEnd}
+            removeClippedSubviews={false}
+            getItemLayout={(_, index) => ({
+              length: slideWidth,
+              offset: slideWidth * index,
+              index,
+            })}
+          />
+          <View style={styles.postImagePager}>
+            <AppText preset="caption" style={styles.postImagePagerText}>
+              {imageIndex + 1} / {previewImageSources.length}
+            </AppText>
+          </View>
+          <View style={styles.postImageDots}>
+            {previewImageSources.map((previewImage, index) => (
+              <View
+                key={previewImage.key}
+                style={[
+                  styles.postImageDot,
+                  index === imageIndex ? styles.postImageDotActive : null,
+                ]}
+              />
+            ))}
+          </View>
+        </View>
+      ) : previewImageSources.length === 1 ? (
+        <Image source={{ uri: previewImageSources[0].uri }} style={styles.postImage} resizeMode="cover" />
       ) : (
         <View style={styles.postImageFallback}>
           <AppText preset="caption" style={styles.postImageFallbackText}>
@@ -228,6 +296,12 @@ const FeedPostCard = memo(function FeedPostCard({
           </AppText>
         ) : null}
 
+        {priceText ? (
+          <AppText preset="caption" style={styles.postTagsText}>
+            구매 가격 {priceText}
+          </AppText>
+        ) : null}
+
         <AppText preset="caption" style={styles.postDateText}>
           {displayDate}
         </AppText>
@@ -250,6 +324,7 @@ export default function RecordDetailScreen() {
   const loadMore = useRecordStore(s => s.loadMore);
   const removeOneLocal = useRecordStore(s => s.removeOneLocal);
   const refresh = useRecordStore(s => s.refresh);
+  const upsertOneLocal = useRecordStore(s => s.upsertOneLocal);
   const pets = usePetStore(s => s.pets);
 
   const selectedPet = useMemo(
@@ -270,6 +345,26 @@ export default function RecordDetailScreen() {
     const items = petState?.items ?? [];
     return items.find(item => item.id === memoryId) ?? null;
   }, [memoryId, petState?.items]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function hydrateMissingRecord() {
+      if (!petId || !memoryId || record) return;
+      try {
+        const fetched = await fetchMemoryById(memoryId);
+        if (!mounted) return;
+        upsertOneLocal(petId, fetched);
+      } catch {
+        // 상세 화면 가드가 처리한다.
+      }
+    }
+
+    hydrateMissingRecord();
+    return () => {
+      mounted = false;
+    };
+  }, [memoryId, petId, record, upsertOneLocal]);
 
   const feedRecords = useMemo(() => {
     if (!record) return [];

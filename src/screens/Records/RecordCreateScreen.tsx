@@ -30,7 +30,6 @@ import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
-import { launchImageLibrary } from 'react-native-image-picker';
 
 import AppText from '../../app/ui/AppText';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
@@ -40,21 +39,26 @@ import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
   buildPickedRecordImages,
   formatRecordKoreanDate,
+  formatRecordPriceLabel,
+  isShoppingRecordCategory,
   mergeRecordTags,
   normalizeRecentRecordTags,
   parseRecordTags,
+  parseRecordPrice,
   RECORD_DEFAULT_RECENT_TAGS,
   RECORD_EMOTION_OPTIONS,
   RECORD_MAIN_CATEGORIES,
   RECORD_OTHER_SUBCATEGORIES,
   RECORD_RECENT_TAGS_STORAGE_KEY,
   RECORD_SUGGESTED_TAGS,
+  normalizeRecordPriceInput,
   toRecordYmd,
   type PickedRecordImage,
   type RecordMainCategoryKey,
   type RecordOtherSubCategoryKey,
   validateRecordOccurredAt,
 } from '../../services/records/form';
+import { normalizeMemoryRecord } from '../../services/records/imageSources';
 import {
   clearRecordCreateDraft,
   loadRecordCreateDraft,
@@ -64,6 +68,7 @@ import { enqueuePendingMemoryUpload } from '../../services/local/uploadQueue';
 import {
   getBrandedErrorMeta,
 } from '../../services/app/errors';
+import { pickPhotoAssets } from '../../services/media/photoPicker';
 import { supabase } from '../../services/supabase/client';
 import {
   createMemory,
@@ -72,7 +77,7 @@ import {
   updateMemoryImagePaths,
 } from '../../services/supabase/memories';
 import { uploadMemoryImage } from '../../services/supabase/storageMemories';
-import { usePetStore } from '../../store/petStore';
+import { resolveSelectedPetId, usePetStore } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
 import { showToast } from '../../store/uiStore';
 import { openMoreDrawer } from '../../store/uiStore';
@@ -90,8 +95,6 @@ type Nav = CompositeNavigationProp<RecordCreateTabNav, RootNav>;
 
 export default function RecordCreateScreen() {
   const navigation = useNavigation<Nav>();
-  const rootNavigation =
-    navigation as unknown as NativeStackNavigationProp<RootStackParamList>;
   const route = useRoute<RecordCreateTabRoute>();
   const insets = useSafeAreaInsets();
 
@@ -104,11 +107,7 @@ export default function RecordCreateScreen() {
   const returnTo = route.params?.returnTo;
 
   const petId = useMemo(() => {
-    if (petIdFromParams) return petIdFromParams;
-    if (selectedPetId && pets.some(p => p.id === selectedPetId)) {
-      return selectedPetId;
-    }
-    return pets[0]?.id ?? null;
+    return resolveSelectedPetId(pets, selectedPetId, petIdFromParams);
   }, [petIdFromParams, selectedPetId, pets]);
   const selectedPet = useMemo(
     () => pets.find(item => item.id === petId) ?? null,
@@ -133,6 +132,7 @@ export default function RecordCreateScreen() {
     useState<RecordMainCategoryKey>('walk');
   const [otherSubCategoryKey, setOtherSubCategoryKey] =
     useState<RecordOtherSubCategoryKey | null>(null);
+  const [priceText, setPriceText] = useState('');
   const [dateModalVisible, setDateModalVisible] = useState(false);
   const [selectedEmotion, setSelectedEmotion] = useState<EmotionTag | null>(
     null,
@@ -157,6 +157,14 @@ export default function RecordCreateScreen() {
       null,
     [otherSubCategoryKey],
   );
+  const isShoppingCategory = useMemo(
+    () => isShoppingRecordCategory(mainCategoryKey, otherSubCategoryKey),
+    [mainCategoryKey, otherSubCategoryKey],
+  );
+  const priceLabel = useMemo(
+    () => formatRecordPriceLabel(parseRecordPrice(priceText)),
+    [priceText],
+  );
   const formattedDate = useMemo(
     () => formatRecordKoreanDate(occurredAt || todayYmd),
     [occurredAt, todayYmd],
@@ -170,14 +178,6 @@ export default function RecordCreateScreen() {
     () => selectedImages[activeImageIndex] ?? selectedImages[0] ?? null,
     [selectedImages, activeImageIndex],
   );
-  const photoCounterText = useMemo(
-    () =>
-      selectedImages.length > 0
-        ? `${activeImageIndex + 1}/${selectedImages.length}`
-        : null,
-    [activeImageIndex, selectedImages.length],
-  );
-
   const resetForm = useCallback(() => {
     setTitle('');
     setContent('');
@@ -187,6 +187,7 @@ export default function RecordCreateScreen() {
     setTagModalVisible(false);
     setMainCategoryKey('walk');
     setOtherSubCategoryKey(null);
+    setPriceText('');
     setDateModalVisible(false);
     setSelectedEmotion(null);
     setSelectedImages([]);
@@ -242,6 +243,7 @@ export default function RecordCreateScreen() {
           setSelectedTags(Array.isArray(draft.selectedTags) ? draft.selectedTags : []);
           setMainCategoryKey(draft.mainCategoryKey ?? 'walk');
           setOtherSubCategoryKey(draft.otherSubCategoryKey ?? null);
+          setPriceText(normalizeRecordPriceInput(draft.priceText ?? ''));
           setSelectedEmotion(draft.selectedEmotion ?? null);
           setSelectedImages(Array.isArray(draft.selectedImages) ? draft.selectedImages : []);
           setActiveImageIndex(0);
@@ -267,6 +269,7 @@ export default function RecordCreateScreen() {
       title.trim().length > 0 ||
       content.trim().length > 0 ||
       selectedTags.length > 0 ||
+      priceText.trim().length > 0 ||
       selectedImages.length > 0;
 
     if (!hasContent) {
@@ -282,6 +285,7 @@ export default function RecordCreateScreen() {
       selectedTags,
       mainCategoryKey,
       otherSubCategoryKey,
+      priceText,
       selectedEmotion,
       selectedImages,
       updatedAt: new Date().toISOString(),
@@ -293,6 +297,7 @@ export default function RecordCreateScreen() {
     occurredAt,
     otherSubCategoryKey,
     petId,
+    priceText,
     saving,
     selectedEmotion,
     selectedImages,
@@ -303,30 +308,36 @@ export default function RecordCreateScreen() {
   const pickImage = useCallback(async () => {
     if (saving) return;
 
-    const res = await launchImageLibrary({
-      mediaType: 'photo',
-      selectionLimit: 10,
-      quality: 0.9,
-    });
+    try {
+      const result = await pickPhotoAssets({
+        selectionLimit: 10,
+        quality: 0.9,
+      });
+      if (result.status === 'cancelled') return;
 
-    if (res.didCancel) return;
+      const assets = result.assets.map(asset => ({
+        uri: asset.uri,
+        type: asset.mimeType ?? undefined,
+        fileName: asset.fileName ?? undefined,
+      }));
 
-    const assets = (res.assets ?? []).filter(asset => !!asset.uri);
-    if (assets.length === 0) {
-      Alert.alert('이미지 선택 실패', '다시 시도해 주세요.');
-      return;
+      setSelectedImages(prev => {
+        return [
+          ...prev,
+          ...buildPickedRecordImages(assets, {
+            existingUris: prev.map(image => image.uri),
+            keyPrefix: `${Date.now()}`,
+            limit: 10 - prev.length,
+          }),
+        ].slice(0, 10);
+      });
+    } catch (error) {
+      const { title: alertTitle, message } = getBrandedErrorMeta(
+        error,
+        'image-pick',
+      );
+      showToast({ tone: 'error', title: alertTitle, message });
     }
-
-    setSelectedImages(prev => {
-      return [
-        ...prev,
-        ...buildPickedRecordImages(assets, {
-          existingUris: prev.map(image => image.uri),
-          keyPrefix: `${Date.now()}`,
-          limit: 10 - prev.length,
-        }),
-      ].slice(0, 10);
-    });
   }, [saving]);
 
   const removeActiveImage = useCallback(() => {
@@ -338,7 +349,7 @@ export default function RecordCreateScreen() {
 
   const navigateBackToOrigin = useCallback(() => {
     if (returnTo?.tab === 'TimelineTab') {
-      rootNavigation.navigate('AppTabs', {
+      navigation.navigate('AppTabs', {
         screen: 'TimelineTab',
         params: returnTo.params,
       });
@@ -346,18 +357,18 @@ export default function RecordCreateScreen() {
     }
 
     if (returnTo?.tab === 'GuestbookTab') {
-      rootNavigation.navigate('AppTabs', { screen: 'GuestbookTab' });
+      navigation.navigate('AppTabs', { screen: 'GuestbookTab' });
       return;
     }
 
     if (returnTo?.tab === 'MoreTab') {
-      rootNavigation.navigate('AppTabs', { screen: 'HomeTab' });
+      navigation.navigate('AppTabs', { screen: 'HomeTab' });
       openMoreDrawer();
       return;
     }
 
     if (returnTo?.tab === 'HomeTab') {
-      rootNavigation.navigate('AppTabs', { screen: 'HomeTab' });
+      navigation.navigate('AppTabs', { screen: 'HomeTab' });
       return;
     }
 
@@ -366,8 +377,8 @@ export default function RecordCreateScreen() {
       return;
     }
 
-    rootNavigation.navigate('AppTabs', { screen: 'HomeTab' });
-  }, [navigation, returnTo, rootNavigation]);
+    navigation.navigate('AppTabs', { screen: 'HomeTab' });
+  }, [navigation, returnTo]);
 
   const onPressCancel = useCallback(() => {
     clearRecordCreateDraft().catch(() => {});
@@ -379,6 +390,7 @@ export default function RecordCreateScreen() {
     setMainCategoryKey(nextKey);
     if (nextKey !== 'other') {
       setOtherSubCategoryKey(null);
+      setPriceText('');
     }
   }, []);
 
@@ -386,12 +398,20 @@ export default function RecordCreateScreen() {
     (nextKey: RecordOtherSubCategoryKey) => {
       setMainCategoryKey('other');
       setOtherSubCategoryKey(nextKey);
+      if (nextKey !== 'shopping') {
+        setPriceText('');
+      }
     },
     [],
   );
 
   const clearOtherSubCategory = useCallback(() => {
     setOtherSubCategoryKey(null);
+    setPriceText('');
+  }, []);
+
+  const onChangePriceText = useCallback((value: string) => {
+    setPriceText(normalizeRecordPriceInput(value));
   }, []);
 
   const onOpenDateModal = useCallback(() => {
@@ -462,6 +482,8 @@ export default function RecordCreateScreen() {
         mainCategoryKey,
         otherSubCategoryKey,
       );
+      const price = isShoppingCategory ? parseRecordPrice(priceText) : null;
+      let savedImagePaths: string[] = [];
 
       const memoryId = await createMemory({
         petId,
@@ -469,6 +491,9 @@ export default function RecordCreateScreen() {
         content: content.trim() || null,
         emotion: selectedEmotion,
         tags: mergedTags,
+        category: mainCategoryKey,
+        subCategory: otherSubCategoryKey,
+        price,
         occurredAt: occurred,
         imagePath: null,
       });
@@ -514,6 +539,7 @@ export default function RecordCreateScreen() {
             memoryId,
             imagePaths: uploadedPaths,
           });
+          savedImagePaths = saveResult.savedPaths;
 
           if (
             saveResult.mode === 'single_fallback' &&
@@ -552,7 +578,25 @@ export default function RecordCreateScreen() {
         const created = await fetchMemoryById(memoryId);
         upsertOneLocal(petId, created);
       } catch {
-        // optimistic 반영 실패는 refresh에 맡긴다.
+        upsertOneLocal(
+          petId,
+          normalizeMemoryRecord({
+            id: memoryId,
+            petId,
+            title: trimmedTitle,
+            content: content.trim() || null,
+            emotion: selectedEmotion,
+            tags: mergedTags,
+            category: mainCategoryKey,
+            subCategory: otherSubCategoryKey,
+            price,
+            occurredAt: occurred,
+            createdAt: new Date().toISOString(),
+            imagePath: savedImagePaths[0] ?? null,
+            imagePaths: savedImagePaths,
+            imageUrl: null,
+          }),
+        );
       }
 
       refresh(petId).catch(() => {});
@@ -595,11 +639,13 @@ export default function RecordCreateScreen() {
   }, [
     content,
     disabled,
+    isShoppingCategory,
     navigation,
     mainCategoryKey,
     otherSubCategoryKey,
     occurredAt,
     petId,
+    priceText,
     refresh,
     recentTags,
     resetForm,
@@ -684,16 +730,18 @@ export default function RecordCreateScreen() {
           />
         </TouchableOpacity>
 
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={pickImage}
-        >
-          <RecordImageGallery
-            items={selectedImages}
-            activeIndex={activeImageIndex}
-            onChangeActiveIndex={setActiveImageIndex}
-            containerStyle={styles.photoBox}
-            emptyContent={
+        <RecordImageGallery
+          items={selectedImages}
+          activeIndex={activeImageIndex}
+          onChangeActiveIndex={setActiveImageIndex}
+          containerStyle={styles.photoBox}
+          stageStyle={styles.photoStage}
+          emptyContent={
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={styles.photoPlaceholderTouch}
+              onPress={pickImage}
+            >
               <View style={styles.photoPlaceholder}>
                 <View style={styles.photoIconBadge}>
                   <Feather name="camera" size={22} color="#94A1B5" />
@@ -702,45 +750,42 @@ export default function RecordCreateScreen() {
                   사진 추가 (최대 10장)
                 </AppText>
               </View>
-            }
-            mainContent={
-              activeImage ? (
-                <Image source={{ uri: activeImage.uri }} style={styles.photoImage} />
-              ) : null
-            }
-            topOverlay={
-              activeImage ? (
-                <View style={styles.photoOverlayTop}>
-                  <TouchableOpacity
-                    activeOpacity={0.85}
-                    style={styles.photoGhostBtn}
-                    onPress={pickImage}
-                  >
-                    <AppText preset="caption" style={styles.photoGhostBtnText}>
-                      추가
-                    </AppText>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    activeOpacity={0.85}
-                    style={styles.photoGhostBtn}
-                    onPress={removeActiveImage}
-                  >
-                    <AppText preset="caption" style={styles.photoGhostBtnText}>
-                      제거
-                    </AppText>
-                  </TouchableOpacity>
-                </View>
-              ) : null
-            }
-            thumbRowStyle={styles.photoThumbRow}
-            thumbItemStyle={styles.photoThumbWrap}
-            thumbItemActiveStyle={styles.photoThumbWrapActive}
-            thumbImageStyle={styles.photoThumb}
-            counterText={photoCounterText}
-            counterBadgeStyle={styles.photoCounterBadge}
-            counterTextStyle={styles.photoCounterText}
-          />
-        </TouchableOpacity>
+            </TouchableOpacity>
+          }
+          mainContent={
+            activeImage ? (
+              <Image source={{ uri: activeImage.uri }} style={styles.photoImage} />
+            ) : null
+          }
+          topOverlay={
+            activeImage ? (
+              <View style={styles.photoOverlayTop}>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={styles.photoGhostBtn}
+                  onPress={pickImage}
+                >
+                  <AppText preset="caption" style={styles.photoGhostBtnText}>
+                    추가
+                  </AppText>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={styles.photoGhostBtn}
+                  onPress={removeActiveImage}
+                >
+                  <AppText preset="caption" style={styles.photoGhostBtnText}>
+                    제거
+                  </AppText>
+                </TouchableOpacity>
+              </View>
+            ) : null
+          }
+          thumbRowStyle={styles.photoThumbRow}
+          thumbItemStyle={styles.photoThumbWrap}
+          thumbItemActiveStyle={styles.photoThumbWrapActive}
+          thumbImageStyle={styles.photoThumb}
+        />
 
         <View style={styles.quickTagRow}>
         {RECORD_MAIN_CATEGORIES.map(category => {
@@ -847,6 +892,32 @@ export default function RecordCreateScreen() {
                 <Feather name="x" size={14} color="#9AA4B6" />
               </TouchableOpacity>
             ) : null}
+          </View>
+        ) : null}
+
+        {isShoppingCategory ? (
+          <View style={styles.field}>
+            <AppText preset="body" style={styles.fieldLabel}>
+              구매 가격
+            </AppText>
+            <TextInput
+              style={styles.input}
+              value={priceText}
+              onChangeText={onChangePriceText}
+              placeholder="예: 25000"
+              placeholderTextColor="#8A94A6"
+              keyboardType="number-pad"
+              editable={!saving}
+            />
+            {priceLabel ? (
+              <AppText preset="caption" style={styles.helperText}>
+                저장 예정 금액: {priceLabel}
+              </AppText>
+            ) : (
+              <AppText preset="caption" style={styles.helperText}>
+                숫자만 입력하면 자동으로 원 단위로 저장돼요.
+              </AppText>
+            )}
           </View>
         ) : null}
 

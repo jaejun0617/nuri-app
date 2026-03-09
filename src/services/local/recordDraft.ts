@@ -22,6 +22,7 @@ export type RecordCreateDraft = {
   selectedTags: string[];
   mainCategoryKey: RecordMainCategoryKey;
   otherSubCategoryKey: RecordOtherSubCategoryKey | null;
+  priceText?: string;
   selectedEmotion: EmotionTag | null;
   selectedImages: PickedRecordImage[];
   updatedAt: string;

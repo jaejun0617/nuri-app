@@ -11,12 +11,13 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
 
 import IndoorActivityCard from '../../components/weather/IndoorActivityCard';
+import { useWeatherGuide } from '../../hooks/useWeatherGuide';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
   ALL_INDOOR_ACTIVITY_KEYS,
   getIndoorActivityGuide,
-  getWeatherGuideBundle,
   type IndoorActivityKey,
+  type WeatherGuideBundle,
 } from '../../services/weather/guide';
 
 type Nav = NativeStackNavigationProp<
@@ -31,14 +32,24 @@ export default function IndoorActivityRecommendationsScreen() {
     useRoute<{
       key: string;
       name: 'IndoorActivityRecommendations';
-      params?: { district?: string };
+      params?: {
+        district?: string;
+        initialBundle?: WeatherGuideBundle;
+      };
     }>();
   const district = route.params?.district?.trim() || '현재 위치';
-
-  const weather = useMemo(
-    () => getWeatherGuideBundle(district),
-    [district],
-  );
+  const weatherState = useWeatherGuide(district, route.params?.initialBundle);
+  const weather = weatherState.bundle;
+  const heroTitle = weatherState.isUnavailable
+    ? '실시간 날씨 연결이 필요해요'
+    : weatherState.isPreview
+      ? '최근 확인한 날씨 기준 추천이에요'
+      : '밖은 위험해요!\n집에서 즐겁게 놀아요 🏠';
+  const heroBody = weatherState.isUnavailable
+    ? '위치 권한과 네트워크가 확인되면 실제 날씨 기준으로 추천이 다시 맞춰집니다.'
+    : weatherState.isPreview
+      ? `${weather.detailStatus} 기준의 최근 추천을 잠시 보여주고 있어요. 연결되면 실시간 정보로 갱신됩니다.`
+      : `${weather.detailStatus}인 날엔 산책보다 아이와 함께하는 실내 활동이 더 편안할 수 있어요.`;
   const guides = useMemo(
     () => {
       const orderedKeys = [
@@ -90,11 +101,11 @@ export default function IndoorActivityRecommendationsScreen() {
       >
         <View style={styles.heroCard}>
           <Text style={styles.heroBadge}>TODAY&apos;S GUIDE</Text>
-          <Text style={styles.heroTitle}>밖은 위험해요!{'\n'}집에서 즐겁게 놀아요 🏠</Text>
-          <Text style={styles.heroBody}>
-            {weather.detailStatus}인 날엔 산책보다 아이와 함께하는 실내 활동이 더
-            편안할 수 있어요.
-          </Text>
+          <Text style={styles.heroTitle}>{heroTitle}</Text>
+          <Text style={styles.heroBody}>{heroBody}</Text>
+          {weatherState.error ? (
+            <Text style={styles.heroHint}>{weatherState.error}</Text>
+          ) : null}
         </View>
 
         <View style={styles.sectionHeader}>
@@ -181,6 +192,12 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     color: '#7D879A',
     fontWeight: '400',
+  },
+  heroHint: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#8B5CF6',
+    fontWeight: '600',
   },
   sectionHeader: {
     marginTop: 4,

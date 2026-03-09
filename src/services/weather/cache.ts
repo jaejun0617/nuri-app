@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { DeviceCoordinates } from '../location/currentPosition';
 import type { WeatherGuideBundle } from './guide';
 
-const WEATHER_GUIDE_CACHE_KEY = '@nuri/weather-guide-cache/v3';
+const WEATHER_GUIDE_CACHE_KEY = '@nuri/weather-guide-cache/v5';
 const WEATHER_GUIDE_CACHE_MAX_AGE_MS = 10 * 60 * 1000;
 
 type WeatherGuideCacheEntry = {

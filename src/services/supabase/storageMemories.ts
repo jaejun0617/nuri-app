@@ -15,6 +15,8 @@
 
 import { Buffer } from 'buffer';
 import RNBlobUtil from 'react-native-blob-util';
+import { readFileAsBase64 } from '../files/readFileAsBase64';
+import { isDirectMemoryImageUri } from '../records/imageSources';
 import { supabase } from './client';
 
 type CacheEntry = {
@@ -119,6 +121,7 @@ export async function getMemoryImageSignedUrlCached(
 ): Promise<string | null> {
   const path = normalizePath(imagePath);
   if (!path) return null;
+  if (isDirectMemoryImageUri(path)) return path;
 
   const maxCacheSize = options?.maxCacheSize ?? DEFAULT_MAX_CACHE_SIZE;
   const refreshBufferMs = options?.refreshBufferMs ?? REFRESH_BUFFER_MS;
@@ -160,6 +163,40 @@ export async function getMemoryImageSignedUrlCached(
   } finally {
     inFlight.delete(path);
   }
+}
+
+export async function getMemoryImageSignedUrlsCached(
+  imagePaths: Array<string | null | undefined>,
+  options?: {
+    expiresInSec?: number;
+    maxCacheSize?: number;
+    refreshBufferMs?: number;
+  },
+): Promise<Array<string | null>> {
+  const normalizedPaths = (imagePaths ?? []).map(normalizePath);
+  if (normalizedPaths.length === 0) return [];
+
+  const storagePaths = Array.from(
+    new Set(
+      normalizedPaths.filter(
+        (path): path is string => Boolean(path) && !isDirectMemoryImageUri(path),
+      ),
+    ),
+  );
+
+  const signedEntries = await Promise.all(
+    storagePaths.map(async path => {
+      const signedUrl = await getMemoryImageSignedUrlCached(path, options);
+      return [path, signedUrl] as const;
+    }),
+  );
+  const signedByPath = new Map(signedEntries);
+
+  return normalizedPaths.map(path => {
+    if (!path) return null;
+    if (isDirectMemoryImageUri(path)) return path;
+    return signedByPath.get(path) ?? null;
+  });
 }
 
 // ---------------------------------------------------------
@@ -271,7 +308,9 @@ export async function uploadMemoryImage({
   const path = `${userId}/${petId}/${memoryId}_${version}_${nonce}.${ext}`;
 
   const filePath = normalizeFileUri(fileUri);
-  const base64 = await RNBlobUtil.fs.readFile(filePath, 'base64');
+  const base64 = filePath.startsWith('content://')
+    ? await readFileAsBase64(filePath)
+    : await RNBlobUtil.fs.readFile(filePath, 'base64');
   const bytes = Buffer.from(base64, 'base64');
 
   // ✅ upsert=false (같은 path를 덮어쓰지 않음)

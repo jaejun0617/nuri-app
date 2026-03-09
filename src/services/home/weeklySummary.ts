@@ -5,6 +5,14 @@
 
 import type { MemoryRecord } from '../supabase/memories';
 import type { PetSchedule } from '../supabase/schedules';
+import {
+  addDaysToYmd,
+  diffCalendarDaysBetweenYmd,
+  getDateYmdInKst,
+  getKstYmd,
+  getStartOfWeekYmd,
+} from '../../utils/date';
+import { getRecordDisplayYmd } from '../records/date';
 
 export type WeeklySummary = {
   walkCount: number;
@@ -15,36 +23,16 @@ export type WeeklySummary = {
   upcomingSchedules: number;
 };
 
-function toLocalDate(value: string | null | undefined): Date | null {
-  const raw = (value ?? '').trim();
-  if (!raw) return null;
-
-  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-    const date = new Date(`${raw}T00:00:00`);
-    return Number.isNaN(date.getTime()) ? null : date;
-  }
-
-  const date = new Date(raw);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function startOfWeek(date: Date): Date {
-  const start = new Date(date);
-  const day = start.getDay();
-  const offset = day === 0 ? -6 : 1 - day;
-  start.setHours(0, 0, 0, 0);
-  start.setDate(start.getDate() + offset);
-  return start;
-}
-
-function endOfWeek(date: Date): Date {
-  const end = startOfWeek(date);
-  end.setDate(end.getDate() + 7);
-  return end;
-}
-
-function isWithinWeek(date: Date, weekStart: Date, weekEnd: Date): boolean {
-  return date >= weekStart && date < weekEnd;
+function isWithinWeekYmd(
+  ymd: string | null,
+  weekStartYmd: string,
+  weekEndYmdExclusive: string,
+): boolean {
+  if (!ymd) return false;
+  const fromStart = diffCalendarDaysBetweenYmd(weekStartYmd, ymd);
+  const toEnd = diffCalendarDaysBetweenYmd(ymd, weekEndYmdExclusive);
+  if (fromStart === null || toEnd === null) return false;
+  return fromStart >= 0 && toEnd > 0;
 }
 
 function hasTag(record: MemoryRecord, keyword: string): boolean {
@@ -56,8 +44,19 @@ export function buildWeeklySummary(
   schedules: PetSchedule[],
   now = new Date(),
 ): WeeklySummary {
-  const weekStart = startOfWeek(now);
-  const weekEnd = endOfWeek(now);
+  const todayYmd = getKstYmd(now);
+  const weekStartYmd = getStartOfWeekYmd(todayYmd, { weekStartsOn: 1 });
+  const weekEndYmd = addDaysToYmd(weekStartYmd, 7);
+  if (!weekStartYmd || !weekEndYmd) {
+    return {
+      walkCount: 0,
+      mealCount: 0,
+      healthCount: 0,
+      recordDays: 0,
+      totalRecords: 0,
+      upcomingSchedules: 0,
+    };
+  }
   const seenDays = new Set<string>();
 
   let walkCount = 0;
@@ -67,11 +66,11 @@ export function buildWeeklySummary(
   let upcomingSchedules = 0;
 
   for (const record of records) {
-    const date = toLocalDate(record.occurredAt ?? record.createdAt);
-    if (!date || !isWithinWeek(date, weekStart, weekEnd)) continue;
+    const ymd = getRecordDisplayYmd(record);
+    if (!isWithinWeekYmd(ymd, weekStartYmd, weekEndYmd)) continue;
 
     totalRecords += 1;
-    seenDays.add(date.toISOString().slice(0, 10));
+    seenDays.add(ymd as string);
 
     if (hasTag(record, 'walk')) walkCount += 1;
     if (hasTag(record, 'meal')) mealCount += 1;
@@ -79,8 +78,8 @@ export function buildWeeklySummary(
   }
 
   for (const schedule of schedules) {
-    const date = toLocalDate(schedule.startsAt);
-    if (!date || !isWithinWeek(date, weekStart, weekEnd)) continue;
+    const ymd = getDateYmdInKst(schedule.startsAt);
+    if (!isWithinWeekYmd(ymd, weekStartYmd, weekEndYmd)) continue;
     upcomingSchedules += 1;
   }
 

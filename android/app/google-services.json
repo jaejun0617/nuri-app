@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "198368140155",
+    "project_id": "nuri-app-49b7e",
+    "storage_bucket": "nuri-app-49b7e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:198368140155:android:895c42cbc95b50e9a7fbde",
+        "android_client_info": {
+          "package_name": "com.nuri.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBBmmUMRcCJNdj5-tmX77iK_zPGXQ-Ozq0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

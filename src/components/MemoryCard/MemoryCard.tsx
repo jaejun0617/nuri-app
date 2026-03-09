@@ -8,6 +8,11 @@ import React, { memo, useMemo } from 'react';
 import { ActivityIndicator, Image, TouchableOpacity, View } from 'react-native';
 
 import { useSignedMemoryImage } from '../../hooks/useSignedMemoryImage';
+import {
+  getPrimaryMemoryImageRef,
+  hasMemoryImage,
+} from '../../services/records/imageSources';
+import { formatRecordDisplayDate } from '../../services/records/date';
 import type { MemoryRecord } from '../../services/supabase/memories';
 import AppText from '../../app/ui/AppText';
 
@@ -34,11 +39,13 @@ export const MemoryCard = memo(function MemoryCard({
   item,
   onPress,
 }: MemoryCardProps) {
-  const { signedUrl, loading } = useSignedMemoryImage(item.imagePath);
+  const imageRef = getPrimaryMemoryImageRef(item);
+  const { signedUrl, loading } = useSignedMemoryImage(imageRef);
+  const hasImage = hasMemoryImage(item);
 
   const dateText = useMemo(
-    () => item.occurredAt ?? item.createdAt?.slice(0, 10) ?? '',
-    [item.occurredAt, item.createdAt],
+    () => formatRecordDisplayDate(item),
+    [item],
   );
   const emotionText = useMemo(() => {
     if (!item.emotion) return null;
@@ -51,9 +58,8 @@ export const MemoryCard = memo(function MemoryCard({
       style={styles.item}
       onPress={() => onPress(item)}
     >
-      {/* 썸네일 */}
       <View style={styles.thumb}>
-        {!item.imagePath ? (
+        {!hasImage ? (
           <View style={styles.thumbPlaceholder}>
             <AppText preset="caption" style={styles.thumbPlaceholderText}>
               NO IMAGE

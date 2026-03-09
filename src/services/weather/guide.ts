@@ -6,7 +6,7 @@
 import { getCurrentWeatherIsDaytime } from './dayPhase';
 
 export type WeatherScenario = 'rain' | 'snow' | 'dusty' | 'fresh';
-export type WeatherDataSource = 'live' | 'unavailable';
+export type WeatherDataSource = 'live' | 'preview' | 'unavailable';
 export type WeatherIconKey =
   | 'weather-pouring'
   | 'weather-cloudy'
@@ -905,6 +905,19 @@ export function createUnavailableWeatherGuideBundle(
       cardBorder: 'rgba(120,136,160,0.12)',
     },
     recommendedGuideKeys: ['nosework', 'training', 'massage'],
+  };
+}
+
+export function createPreviewWeatherGuideBundle(
+  bundle: WeatherGuideBundle,
+  district?: string | null,
+): WeatherGuideBundle {
+  const nextDistrict = district?.trim() || bundle.district.trim() || '현재 위치';
+
+  return {
+    ...bundle,
+    district: nextDistrict,
+    dataSource: 'preview',
   };
 }
 

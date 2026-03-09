@@ -48,35 +48,57 @@ export function useCurrentLocation(): CurrentLocationState {
   const [error, setError] = useState<string | null>(null);
   const permissionRef = useRef<LocationPermissionStatus>('unavailable');
   const coordinatesRef = useRef<DeviceCoordinates | null>(null);
+  const refreshInFlightRef = useRef<Promise<void> | null>(null);
+  const lastRefreshAtRef = useRef(0);
 
   useEffect(() => {
     coordinatesRef.current = coordinates;
   }, [coordinates]);
 
   const refresh = useCallback(async () => {
-    setLoading(current => (coordinatesRef.current ? current : true));
-    setError(null);
+    if (refreshInFlightRef.current) {
+      await refreshInFlightRef.current;
+      return;
+    }
 
-    try {
-      const status = await getLocationPermissionStatus();
-      const resolvedPermission =
-        status === 'granted' ? status : await requestLocationPermission();
+    const now = Date.now();
+    if (coordinatesRef.current && now - lastRefreshAtRef.current < 1500) {
+      return;
+    }
 
-      setPermission(resolvedPermission);
-      permissionRef.current = resolvedPermission;
+    const task = (async () => {
+      setLoading(current => (coordinatesRef.current ? current : true));
+      setError(null);
 
-      if (resolvedPermission !== 'granted') {
-        setCoordinates(null);
-        setError(toLocationErrorMessage(resolvedPermission, null));
-        return;
+      try {
+        const status = await getLocationPermissionStatus();
+        const resolvedPermission =
+          status === 'granted' ? status : await requestLocationPermission();
+
+        setPermission(resolvedPermission);
+        permissionRef.current = resolvedPermission;
+
+        if (resolvedPermission !== 'granted') {
+          setCoordinates(null);
+          setError(toLocationErrorMessage(resolvedPermission, null));
+          return;
+        }
+
+        const nextCoordinates = await getCurrentCoordinates();
+        setCoordinates(nextCoordinates);
+        lastRefreshAtRef.current = Date.now();
+      } catch (nextError) {
+        setError(toLocationErrorMessage(permissionRef.current, nextError));
+      } finally {
+        setLoading(false);
       }
+    })();
 
-      const nextCoordinates = await getCurrentCoordinates();
-      setCoordinates(nextCoordinates);
-    } catch (nextError) {
-      setError(toLocationErrorMessage(permissionRef.current, nextError));
+    refreshInFlightRef.current = task;
+    try {
+      await task;
     } finally {
-      setLoading(false);
+      refreshInFlightRef.current = null;
     }
   }, []);
 

@@ -44,6 +44,7 @@ import { useSignedMemoryImage } from '../../../../hooks/useSignedMemoryImage';
 import type { AppTabParamList } from '../../../../navigation/AppTabsNavigator';
 import type { TimelineStackParamList } from '../../../../navigation/TimelineStackNavigator';
 import type { RootStackParamList } from '../../../../navigation/RootNavigator';
+import { createLatestRequestController } from '../../../../services/app/async';
 import {
   getRecordCategoryMeta,
   normalizeCategoryKey,
@@ -51,6 +52,10 @@ import {
   type MemoryMainCategory,
   type MemoryOtherSubCategory,
 } from '../../../../services/memories/categoryMeta';
+import {
+  getPrimaryMemoryImageRef,
+  hasMemoryImage,
+} from '../../../../services/records/imageSources';
 import { useAuthStore } from '../../../../store/authStore';
 import { usePetStore } from '../../../../store/petStore';
 import type { PetRecordsState } from '../../../../store/recordStore';
@@ -68,6 +73,11 @@ import { buildHomeWidgetSnapshot } from '../../../../services/home/widgetSnapsho
 import { syncHomeWidgetSnapshot } from '../../../../services/home/widgetBridge';
 import { buildWeeklySummary } from '../../../../services/home/weeklySummary';
 import {
+  formatRecordDisplayDate,
+  formatRecordRelativeTime,
+  getRecordDisplayYmd,
+} from '../../../../services/records/date';
+import {
   formatScheduleDateLabel,
   getScheduleColorPalette,
   mapScheduleIconName,
@@ -78,6 +88,13 @@ import {
   formatMemorialPetName,
   isMemorialPet,
 } from '../../../../services/pets/memorial';
+import {
+  calcAgeFromBirthYmd,
+  diffDaysFromKst,
+  formatYmdToDots,
+  getMonthKeyFromYmd,
+  getMonthKeyInKst,
+} from '../../../../utils/date';
 import WeatherGuideHomeCard from '../../../../components/weather/WeatherGuideHomeCard';
 import { styles } from './LoggedInHome.styles';
 
@@ -114,64 +131,8 @@ function toSnippet(text: string | null | undefined, max = 46) {
   return `${v.slice(0, max)}…`;
 }
 
-function formatYmdToDots(ymd: string | null | undefined): string | null {
-  const s = (ymd ?? '').trim();
-  if (!s) return null;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
-  return `${s.slice(0, 4)}.${s.slice(5, 7)}.${s.slice(8, 10)}`;
-}
-
 function getRecordYmdDots(item: MemoryRecord): string {
-  const raw = (item.occurredAt ?? item.createdAt.slice(0, 10)) as string;
-  return formatYmdToDots(raw) ?? raw;
-}
-
-function calcAgeFromBirth(birthYmd: string | null | undefined): number | null {
-  const s = (birthYmd ?? '').trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
-
-  const y = Number(s.slice(0, 4));
-  const m = Number(s.slice(5, 7));
-  const d = Number(s.slice(8, 10));
-  if (!y || !m || !d) return null;
-
-  const now = new Date();
-  const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-
-  let age = kstNow.getUTCFullYear() - y;
-  const curM = kstNow.getUTCMonth() + 1;
-  const curD = kstNow.getUTCDate();
-
-  if (curM < m || (curM === m && curD < d)) age -= 1;
-  if (age < 0) return 0;
-  return age;
-}
-
-function calcDaysSinceAdoption(
-  adoptionYmd: string | null | undefined,
-): number | null {
-  const s = (adoptionYmd ?? '').trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
-
-  const y = Number(s.slice(0, 4));
-  const m = Number(s.slice(5, 7));
-  const d = Number(s.slice(8, 10));
-  if (!y || !m || !d) return null;
-
-  const now = new Date();
-  const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-
-  const startUtc = Date.UTC(y, m - 1, d);
-  const endUtc = Date.UTC(
-    kstNow.getUTCFullYear(),
-    kstNow.getUTCMonth(),
-    kstNow.getUTCDate(),
-  );
-
-  const diffDays = Math.floor((endUtc - startUtc) / (24 * 60 * 60 * 1000));
-  if (!Number.isFinite(diffDays)) return null;
-
-  return Math.max(0, diffDays + 1);
+  return formatRecordDisplayDate(item);
 }
 
 function formatGender(
@@ -208,53 +169,8 @@ function clampList(list: string[] | null | undefined, max = 2) {
     .slice(0, max);
 }
 
-function toRecordDate(item: MemoryRecord): Date | null {
-  const source = item.occurredAt?.trim() || item.createdAt?.trim() || '';
-  if (!source) return null;
-
-  if (/^\d{4}-\d{2}-\d{2}$/.test(source)) {
-    const date = new Date(`${source}T00:00:00`);
-    return Number.isNaN(date.getTime()) ? null : date;
-  }
-
-  const date = new Date(source);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function isSameDay(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
-
-function diffCalendarDays(from: Date, to: Date): number {
-  const start = new Date(from.getFullYear(), from.getMonth(), from.getDate());
-  const end = new Date(to.getFullYear(), to.getMonth(), to.getDate());
-  const diff = end.getTime() - start.getTime();
-  return Math.floor(diff / (24 * 60 * 60 * 1000));
-}
-
 function formatRelativeRecordTime(item: MemoryRecord): string {
-  const target = toRecordDate(item);
-  if (!target) return '';
-
-  const now = new Date();
-  const diffMs = now.getTime() - target.getTime();
-  const hourMs = 60 * 60 * 1000;
-
-  if (diffMs < hourMs) return '방금 전';
-
-  if (isSameDay(target, now)) {
-    return `${Math.max(1, Math.floor(diffMs / hourMs))}시간 전`;
-  }
-
-  const diffDays = diffCalendarDays(target, now);
-  if (diffDays === 1) return '어제';
-  if (diffDays < 7) return `${diffDays}일 전`;
-
-  return `${target.getMonth() + 1}.${target.getDate()}`;
+  return formatRecordRelativeTime(item);
 }
 
 function buildScheduleCard(schedule: PetSchedule): WeeklyScheduleItem {
@@ -393,9 +309,8 @@ const TodayRecordCard = React.memo(function TodayRecordCard({
   );
   const content = useMemo(() => toSnippet(item.content, 44), [item.content]);
 
-  const { signedUrl, loading: isLoading } = useSignedMemoryImage(
-    item.imagePath,
-  );
+  const imageRef = getPrimaryMemoryImageRef(item);
+  const { signedUrl, loading: isLoading } = useSignedMemoryImage(imageRef);
 
   const cardAnimStyle = useAnimatedStyle(() => {
     const x = scrollX.value;
@@ -432,7 +347,7 @@ const TodayRecordCard = React.memo(function TodayRecordCard({
       >
         <View style={styles.todayRecordMedia}>
           {/* ✅ 로딩 처리 추가 완료 */}
-          {!item.imagePath ? (
+          {!hasMemoryImage(item) ? (
             <View style={styles.todayRecordImgPlaceholder} />
           ) : isLoading ? (
             <View
@@ -474,6 +389,49 @@ const TodayRecordCard = React.memo(function TodayRecordCard({
   );
 });
 
+const PetChipButton = React.memo(function PetChipButton({
+  petId,
+  isActive,
+  imageUri,
+  petThemePrimary,
+  onPress,
+}: {
+  petId: string;
+  isActive: boolean;
+  imageUri: string | null;
+  petThemePrimary: string;
+  onPress: (petId: string) => void;
+}) {
+  const handlePress = useCallback(() => {
+    onPress(petId);
+  }, [onPress, petId]);
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      style={[
+        styles.petChip,
+        isActive
+          ? [
+              styles.petChipActive,
+              {
+                borderColor: petThemePrimary,
+                shadowColor: petThemePrimary,
+              },
+            ]
+          : null,
+      ]}
+      onPress={handlePress}
+    >
+      {imageUri ? (
+        <Image source={{ uri: imageUri }} style={styles.petChipImage} />
+      ) : (
+        <View style={styles.petChipPlaceholder} />
+      )}
+    </TouchableOpacity>
+  );
+});
+
 function IndicatorDot({
   i,
   progress,
@@ -512,7 +470,8 @@ const MonthlyDiaryCard = React.memo(function MonthlyDiaryCard({
   item: MemoryRecord;
   onPress: (memoryId: string) => void;
 }) {
-  const { signedUrl } = useSignedMemoryImage(item.imagePath);
+  const imageRef = getPrimaryMemoryImageRef(item);
+  const { signedUrl } = useSignedMemoryImage(imageRef);
 
   return (
     <TouchableOpacity
@@ -576,7 +535,7 @@ const TodayPhotoSection = React.memo(function TodayPhotoSection({
             : onPressRecord()
         }
       >
-        {!todayPhoto.record?.imagePath ? (
+        {!todayPhoto.record || !hasMemoryImage(todayPhoto.record) ? (
           <View style={styles.photoPlaceholder} />
         ) : isTodayPhotoLoading ? (
           <View
@@ -1087,6 +1046,7 @@ export default function LoggedInHome() {
   // ---------------------------------------------------------
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
+  const petLoading = usePetStore(s => s.loading);
   const selectPet = usePetStore(s => s.selectPet);
 
   // ---------------------------------------------------------
@@ -1170,25 +1130,30 @@ export default function LoggedInHome() {
   }, [activePetId]);
 
   useEffect(() => {
-    let mounted = true;
+    const request = createLatestRequestController();
 
     async function run() {
+      const requestId = request.begin();
       if (!activePetId) {
-        if (mounted) setTodayPhoto({ record: null, mode: 'none' });
+        if (request.isCurrent(requestId)) {
+          setTodayPhoto({ record: null, mode: 'none' });
+        }
         return;
       }
       const picked = await pickTodayPhoto(activePetId, safeRecordsState.items);
-      if (mounted) setTodayPhoto(picked);
+      if (request.isCurrent(requestId)) setTodayPhoto(picked);
     }
 
     run();
     return () => {
-      mounted = false;
+      request.cancel();
     };
   }, [activePetId, safeRecordsState.items]);
 
   const { signedUrl: todayPhotoUrl, loading: isTodayPhotoLoading } =
-    useSignedMemoryImage(todayPhoto.record?.imagePath);
+    useSignedMemoryImage(
+      todayPhoto.record ? getPrimaryMemoryImageRef(todayPhoto.record) : null,
+    );
 
   const todayPhotoOverlayTitle = useMemo(() => {
     if (todayPhoto.mode === 'anniversary') return '작년 오늘의 기억';
@@ -1262,8 +1227,10 @@ export default function LoggedInHome() {
   // 5) HERO derived
   // ---------------------------------------------------------
   const plainPetName = useMemo(
-    () => selectedPet?.name?.trim() || '우리 아이',
-    [selectedPet?.name],
+    () =>
+      selectedPet?.name?.trim() ||
+      (petLoading && pets.length === 0 ? '반려동물' : '우리 아이'),
+    [petLoading, pets.length, selectedPet?.name],
   );
 
   const profilePetName = useMemo(
@@ -1287,7 +1254,7 @@ export default function LoggedInHome() {
   const birthText = useMemo(() => formatYmdToDots(birthYmd), [birthYmd]);
 
   const ageText = useMemo(() => {
-    const age = calcAgeFromBirth(birthYmd);
+    const age = calcAgeFromBirthYmd(birthYmd);
     return age === null ? null : `${age}살`;
   }, [birthYmd]);
 
@@ -1312,7 +1279,7 @@ export default function LoggedInHome() {
   }, [breed, ageText, genderText, weightText]);
 
   const togetherDays = useMemo(
-    () => calcDaysSinceAdoption(selectedPet?.adoptionDate ?? null),
+    () => diffDaysFromKst(selectedPet?.adoptionDate ?? ''),
     [selectedPet?.adoptionDate],
   );
 
@@ -1369,9 +1336,12 @@ export default function LoggedInHome() {
   );
 
   const greetingSubTitle = useMemo(() => {
+    if (petLoading && pets.length === 0) {
+      return '반려동물 정보를 불러오는 중이에요';
+    }
     if (pets.length === 0) return '소중한 아이를 등록하고 추억을 기록해 보세요';
     return '오늘의 메시지로 하루를 시작해요';
-  }, [pets.length]);
+  }, [petLoading, pets.length]);
 
   const homeWidgetSnapshot = useMemo(
     () =>
@@ -1537,20 +1507,14 @@ export default function LoggedInHome() {
   );
 
   const currentMonthDiaryEntries = useMemo(() => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
+    const currentMonthKey = getMonthKeyInKst(new Date());
 
     return safeRecordsState.items
       .filter(item => {
         if (normalizeCategoryKey(readRecordCategoryRaw(item)) !== 'diary') {
           return false;
         }
-
-        const date = toRecordDate(item);
-        if (!date) return false;
-
-        return date.getFullYear() === year && date.getMonth() === month;
+        return getMonthKeyFromYmd(getRecordDisplayYmd(item)) === currentMonthKey;
       })
       .slice(0, 7);
   }, [safeRecordsState.items]);
@@ -1623,6 +1587,9 @@ export default function LoggedInHome() {
     () => <View style={{ width: SLIDE_GAP }} />,
     [SLIDE_GAP],
   );
+  const noopHeaderAction = useCallback(() => {
+    // 추후 검색/알림 연결 전까지 레이아웃만 유지한다.
+  }, []);
 
   // ---------------------------------------------------------
   // 10) render
@@ -1651,7 +1618,7 @@ export default function LoggedInHome() {
               <TouchableOpacity
                 activeOpacity={0.85}
                 style={styles.headerIconBtn}
-                onPress={() => {}}
+                onPress={noopHeaderAction}
               >
                 <Feather name="search" size={18} color="rgba(11,18,32,0.75)" />
               </TouchableOpacity>
@@ -1659,7 +1626,7 @@ export default function LoggedInHome() {
               <TouchableOpacity
                 activeOpacity={0.85}
                 style={styles.headerIconBtn}
-                onPress={() => {}}
+                onPress={noopHeaderAction}
               >
                 <Feather name="bell" size={18} color="rgba(11,18,32,0.75)" />
               </TouchableOpacity>
@@ -1669,33 +1636,15 @@ export default function LoggedInHome() {
           {/* Pet switcher */}
           <View style={styles.petSwitcherRow}>
             {visiblePets.map(p => {
-              const isActive = p.id === activePetId;
-              const uri = p.avatarUrl?.trim() || null;
-
               return (
-                <TouchableOpacity
+                <PetChipButton
                   key={p.id}
-                  activeOpacity={0.85}
-                  style={[
-                    styles.petChip,
-                    isActive
-                      ? [
-                          styles.petChipActive,
-                          {
-                            borderColor: petTheme.primary,
-                            shadowColor: petTheme.primary,
-                          },
-                        ]
-                      : null,
-                  ]}
-                  onPress={() => onPressPetChip(p.id)}
-                >
-                  {uri ? (
-                    <Image source={{ uri }} style={styles.petChipImage} />
-                  ) : (
-                    <View style={styles.petChipPlaceholder} />
-                  )}
-                </TouchableOpacity>
+                  petId={p.id}
+                  isActive={p.id === activePetId}
+                  imageUri={p.avatarUrl?.trim() || null}
+                  petThemePrimary={petTheme.primary}
+                  onPress={onPressPetChip}
+                />
               );
             })}
 

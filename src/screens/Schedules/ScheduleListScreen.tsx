@@ -18,6 +18,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 
 import AppText from '../../app/ui/AppText';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import type { RootScreenRoute } from '../../navigation/types';
 import type {
   PetSchedule,
 } from '../../services/supabase/schedules';
@@ -25,16 +26,12 @@ import {
   getScheduleColorPalette,
   mapScheduleIconName,
 } from '../../services/schedules/presentation';
-import { usePetStore } from '../../store/petStore';
+import { resolveSelectedPetId, usePetStore } from '../../store/petStore';
 import { useScheduleStore } from '../../store/scheduleStore';
 import { styles } from './ScheduleListScreen.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'ScheduleList'>;
-type Route = {
-  key: string;
-  name: 'ScheduleList';
-  params?: { petId?: string };
-};
+type Route = RootScreenRoute<'ScheduleList'>;
 
 function formatScheduleDate(schedule: PetSchedule) {
   const date = new Date(schedule.startsAt);
@@ -59,11 +56,7 @@ export default function ScheduleListScreen() {
   const selectedPetId = usePetStore(s => s.selectedPetId);
 
   const petId = useMemo(() => {
-    if (routePetId) return routePetId;
-    if (selectedPetId && pets.some(p => p.id === selectedPetId)) {
-      return selectedPetId;
-    }
-    return pets[0]?.id ?? null;
+    return resolveSelectedPetId(pets, selectedPetId, routePetId);
   }, [pets, routePetId, selectedPetId]);
 
   const bootstrap = useScheduleStore(s => s.bootstrap);
@@ -74,7 +67,10 @@ export default function ScheduleListScreen() {
   );
   const schedules = petState?.items ?? [];
   const status = petState?.status ?? 'idle';
+  const errorMessage = petState?.errorMessage ?? null;
   const refreshing = status === 'refreshing';
+  const isInitialLoading = status === 'loading' && schedules.length === 0;
+  const isError = status === 'error' && schedules.length === 0;
 
   useEffect(() => {
     if (!petId) return;
@@ -153,7 +149,44 @@ export default function ScheduleListScreen() {
           </AppText>
         </View>
 
-        {schedules.length === 0 ? (
+        {isInitialLoading ? (
+          <View style={styles.emptyCard}>
+            <MaterialCommunityIcons
+              name="calendar-clock-outline"
+              size={34}
+              color="#6D6AF8"
+            />
+            <AppText preset="headline" style={styles.emptyTitle}>
+              일정을 불러오는 중이에요
+            </AppText>
+            <AppText preset="body" style={styles.emptyDesc}>
+              저장된 일정을 정리해서 보여드리고 있어요.
+            </AppText>
+          </View>
+        ) : isError ? (
+          <View style={styles.emptyCard}>
+            <MaterialCommunityIcons
+              name="calendar-alert-outline"
+              size={34}
+              color="#6D6AF8"
+            />
+            <AppText preset="headline" style={styles.emptyTitle}>
+              일정을 불러오지 못했어요
+            </AppText>
+            <AppText preset="body" style={styles.emptyDesc}>
+              {errorMessage ?? '잠시 후 다시 시도해 주세요.'}
+            </AppText>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={styles.primaryBtn}
+              onPress={onRefresh}
+            >
+              <AppText preset="body" style={styles.primaryBtnText}>
+                다시 불러오기
+              </AppText>
+            </TouchableOpacity>
+          </View>
+        ) : schedules.length === 0 ? (
           <View style={styles.emptyCard}>
             <MaterialCommunityIcons
               name="calendar-blank-outline"

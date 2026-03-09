@@ -127,6 +127,74 @@ export const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   multiline: { minHeight: 100, textAlignVertical: 'top' },
+  categoryGrid: {
+    marginTop: 4,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  categoryChip: {
+    minHeight: 38,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(148,163,184,0.16)',
+    backgroundColor: '#F1F4F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryChipActive: {
+    borderColor: 'rgba(109,124,255,0.24)',
+    backgroundColor: 'rgba(109,124,255,0.10)',
+  },
+  categoryChipText: {
+    color: '#7B879C',
+    fontWeight: '800',
+  },
+  categoryChipTextActive: {
+    color: BRAND,
+  },
+  subCategoryGrid: {
+    marginTop: 10,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    alignItems: 'center',
+  },
+  subCategoryChip: {
+    minHeight: 34,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(148,163,184,0.16)',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  subCategoryChipActive: {
+    borderColor: 'rgba(109,124,255,0.24)',
+    backgroundColor: 'rgba(109,124,255,0.10)',
+  },
+  subCategoryChipText: {
+    color: '#7B879C',
+    fontWeight: '800',
+  },
+  subCategoryChipTextActive: {
+    color: BRAND,
+  },
+  subCategoryClearBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F1F4F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  helperText: {
+    marginTop: 8,
+    color: '#7B879C',
+    fontWeight: '700',
+  },
 
   emotionGrid: {
     marginTop: 8,

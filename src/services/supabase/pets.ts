@@ -36,6 +36,10 @@ type PetsRow = {
   updated_at?: string;
 };
 
+type InsertedPetIdRow = {
+  id: string;
+};
+
 function toNumberOrNull(v: number | string | null): number | null {
   if (v === null || v === undefined) return null;
   const n = typeof v === 'number' ? v : Number(v);
@@ -88,9 +92,11 @@ function mapRowToPet(row: PetsRow): Pet {
 /* ---------------------------------------------------------
  * 1) 내 pets 가져오기
  * -------------------------------------------------------- */
-export async function fetchMyPets(): Promise<Pet[]> {
-  const userRes = await supabase.auth.getUser();
-  const userId = userRes.data.user?.id ?? null;
+export async function fetchMyPets(userIdInput?: string | null): Promise<Pet[]> {
+  const userId =
+    userIdInput ??
+    (await supabase.auth.getUser()).data.user?.id ??
+    null;
   if (!userId) return [];
 
   const columns = [
@@ -125,18 +131,6 @@ export async function fetchMyPets(): Promise<Pet[]> {
   // ✅ supabase 타입이 스키마를 모르면 data가 unknown 성격을 띰 → 정석 캐스팅
   const rows = (Array.isArray(data) ? data : []) as unknown as PetsRow[];
   const pets = rows.map(mapRowToPet);
-
-  if (__DEV__) {
-    console.log(
-      '[fetchMyPets] mapped:',
-      pets.map(p => ({
-        id: p.id,
-        name: p.name,
-        avatarPath: p.avatarPath,
-        avatarUrl: p.avatarUrl,
-      })),
-    );
-  }
 
   return pets;
 }
@@ -196,7 +190,11 @@ export async function createPet(input: {
     .single();
 
   if (error) throw error;
-  return (data as any).id as string;
+  const inserted = data as InsertedPetIdRow | null;
+  if (!inserted?.id) {
+    throw new Error('아이 프로필 식별자를 확인하지 못했어요.');
+  }
+  return inserted.id;
 }
 
 /* ---------------------------------------------------------

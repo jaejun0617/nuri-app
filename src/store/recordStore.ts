@@ -15,8 +15,14 @@
 // - selector는 byPetId[petId] 직접 접근(가장 안전)
 
 import { create } from 'zustand';
+import { getErrorMessage } from '../services/app/errors';
+import { normalizeMemoryRecord } from '../services/records/imageSources';
+import { compareTimelineRecords } from '../services/timeline/query';
 import type { MemoryRecord } from '../services/supabase/memories';
-import { fetchMemoriesByPetPage } from '../services/supabase/memories';
+import {
+  encodeMemoriesCursor,
+  fetchMemoriesByPetPage,
+} from '../services/supabase/memories';
 
 type Status =
   | 'idle'
@@ -94,20 +100,19 @@ function sortByDisplayDateDesc(items: MemoryRecord[]) {
   items.sort((a, b) => {
     const diff = getDisplaySortValue(b) - getDisplaySortValue(a);
     if (diff !== 0) return diff;
-
-    if (a.createdAt === b.createdAt) return 0;
-    return a.createdAt > b.createdAt ? -1 : 1;
+    return compareTimelineRecords(a, b);
   });
 }
 
-function findOldestCreatedAt(items: MemoryRecord[]): string | null {
-  if (items.length === 0) return null;
+function normalizeRecordItems(items: MemoryRecord[]) {
+  return items.map(item => normalizeMemoryRecord(item));
+}
 
-  let oldest = items[0].createdAt;
-  for (const item of items) {
-    if (item.createdAt < oldest) oldest = item.createdAt;
-  }
-  return oldest;
+function getNextCursorFromItems(items: MemoryRecord[]): string | null {
+  if (items.length === 0) return null;
+  const last = items[items.length - 1] ?? null;
+  if (!last) return null;
+  return encodeMemoriesCursor(last.createdAt, last.id);
 }
 
 /**
@@ -199,7 +204,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
         const cur = s.byPetId[petId];
         if (!cur || cur.requestSeq !== req) return s;
 
-        const items = [...page.items];
+        const items = normalizeRecordItems([...page.items]);
         sortByDisplayDateDesc(items);
 
         return {
@@ -216,7 +221,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
           },
         };
       });
-    } catch (e: any) {
+    } catch (error: unknown) {
       set(s => {
         const cur = s.byPetId[petId];
         if (!cur || cur.requestSeq !== req) return s;
@@ -227,7 +232,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
             [petId]: {
               ...cur,
               status: 'error',
-              errorMessage: e?.message ?? '불러오기 실패',
+              errorMessage: getErrorMessage(error) || '불러오기 실패',
             },
           },
         };
@@ -272,7 +277,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
         const cur = s.byPetId[petId];
         if (!cur || cur.requestSeq !== req) return s;
 
-        const items = [...page.items];
+        const items = normalizeRecordItems([...page.items]);
         sortByDisplayDateDesc(items);
 
         return {
@@ -289,7 +294,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
           },
         };
       });
-    } catch (e: any) {
+    } catch (error: unknown) {
       set(s => {
         const cur = s.byPetId[petId];
         if (!cur || cur.requestSeq !== req) return s;
@@ -300,7 +305,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
             [petId]: {
               ...cur,
               status: 'error',
-              errorMessage: e?.message ?? '새로고침 실패',
+              errorMessage: getErrorMessage(error) || '새로고침 실패',
             },
           },
         };
@@ -354,7 +359,10 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
         if (!cur) return s;
         if (cur.requestSeq !== req) return s;
 
-        const merged = appendPageUniqueById(cur.items, page.items);
+        const merged = appendPageUniqueById(
+          cur.items,
+          normalizeRecordItems(page.items),
+        );
         const nextItems = [...merged];
         sortByDisplayDateDesc(nextItems);
 
@@ -372,7 +380,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
           },
         };
       });
-    } catch (e: any) {
+    } catch (error: unknown) {
       set(s => {
         const cur = s.byPetId[petId];
         if (!cur) return s;
@@ -383,7 +391,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
             [petId]: {
               ...cur,
               status: 'ready',
-              errorMessage: e?.message ?? '더 불러오기 실패',
+              errorMessage: getErrorMessage(error) || '더 불러오기 실패',
             },
           },
         };
@@ -398,7 +406,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
     if (!petId) return;
     get().ensurePetState(petId);
 
-    const next = [...items];
+    const next = normalizeRecordItems([...items]);
     sortByDisplayDateDesc(next);
 
     set(s => ({
@@ -409,8 +417,8 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
           items: next,
           status: 'ready',
           errorMessage: null,
-          cursor: findOldestCreatedAt(next),
-          hasMore: true,
+          cursor: getNextCursorFromItems(next),
+          hasMore: next.length >= PAGE_SIZE,
         },
       },
     }));
@@ -425,15 +433,21 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
       const idx = cur.items.findIndex(it => it.id === item.id);
 
       const next = [...cur.items];
-      if (idx === -1) next.unshift(item);
-      else next[idx] = item;
+      const normalizedItem = normalizeMemoryRecord(item);
+      if (idx === -1) next.unshift(normalizedItem);
+      else next[idx] = normalizedItem;
 
       sortByDisplayDateDesc(next);
 
       return {
         byPetId: {
           ...s.byPetId,
-          [petId]: { ...cur, items: next, status: 'ready' },
+          [petId]: {
+            ...cur,
+            items: next,
+            status: 'ready',
+            cursor: getNextCursorFromItems(next),
+          },
         },
       };
     });
@@ -451,13 +465,21 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
       if (idx === -1) return s;
 
       const next = [...cur.items];
-      next[idx] = { ...next[idx], ...patch };
+      next[idx] = normalizeMemoryRecord({
+        ...next[idx],
+        ...patch,
+      });
       sortByDisplayDateDesc(next);
 
       return {
         byPetId: {
           ...s.byPetId,
-          [petId]: { ...cur, items: next, status: 'ready' },
+          [petId]: {
+            ...cur,
+            items: next,
+            status: 'ready',
+            cursor: getNextCursorFromItems(next),
+          },
         },
       };
     });
@@ -474,6 +496,9 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
           ...s.byPetId[petId],
           items: s.byPetId[petId].items.filter(it => it.id !== memoryId),
           status: 'ready',
+          cursor: getNextCursorFromItems(
+            s.byPetId[petId].items.filter(it => it.id !== memoryId),
+          ),
         },
       },
     }));

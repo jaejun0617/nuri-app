@@ -7,13 +7,18 @@
 import type { Asset as ImagePickerAsset } from 'react-native-image-picker';
 
 import type { EmotionTag } from '../supabase/memories';
+import {
+  addDaysToYmd,
+  formatYmdWithWeekday,
+  getDateYmdInKst,
+} from '../../utils/date';
 
 export const RECORD_MAIN_CATEGORIES = [
   { key: 'walk', label: '산책', icon: 'activity' as const, tag: '#산책' },
   { key: 'meal', label: '식사', icon: 'coffee' as const, tag: '#식사' },
   { key: 'health', label: '건강', icon: 'heart' as const, tag: '#건강' },
   { key: 'diary', label: '일기장', icon: 'edit-3' as const, tag: '#일기장' },
-  { key: 'other', label: '기타', icon: 'more-horizontal' as const, tag: '#기타' },
+  { key: 'other', label: '생활', icon: 'more-horizontal' as const, tag: '#생활' },
 ] as const;
 
 export const RECORD_OTHER_SUBCATEGORIES = [
@@ -69,6 +74,34 @@ export type PickedRecordImage = {
   uri: string;
   mimeType: string | null;
 };
+
+export function isShoppingRecordCategory(
+  mainCategoryKey: RecordMainCategoryKey | null,
+  otherSubCategoryKey: RecordOtherSubCategoryKey | null,
+) {
+  return mainCategoryKey === 'other' && otherSubCategoryKey === 'shopping';
+}
+
+export function normalizeRecordPriceInput(value: string) {
+  return value.replace(/[^\d]/g, '').slice(0, 9);
+}
+
+export function parseRecordPrice(value: string) {
+  const normalized = normalizeRecordPriceInput(value);
+  if (!normalized) return null;
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    throw new Error('가격을 다시 확인해 주세요.');
+  }
+  return parsed;
+}
+
+export function formatRecordPriceLabel(price: number | null | undefined) {
+  if (typeof price !== 'number' || !Number.isFinite(price) || price < 0) {
+    return '';
+  }
+  return `${price.toLocaleString('ko-KR')}원`;
+}
 
 function inferMimeFromFileName(
   fileName: string | null | undefined,
@@ -141,26 +174,15 @@ export function buildPickedRecordImages(
 }
 
 export function toRecordYmd(date: Date) {
-  const y = date.getFullYear();
-  const m = `${date.getMonth() + 1}`.padStart(2, '0');
-  const d = `${date.getDate()}`.padStart(2, '0');
-  return `${y}-${m}-${d}`;
+  return getDateYmdInKst(date) ?? '';
 }
 
 export function offsetRecordYmd(base: string, offsetDays: number) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(base)) return base;
-  const [y, m, d] = base.split('-').map(Number);
-  const next = new Date(y, m - 1, d + offsetDays);
-  return toRecordYmd(next);
+  return addDaysToYmd(base, offsetDays) ?? base;
 }
 
 export function formatRecordKoreanDate(ymd: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return ymd;
-
-  const [y, m, d] = ymd.split('-').map(Number);
-  const dayIndex = new Date(y, m - 1, d).getDay();
-  const dayText = ['일', '월', '화', '수', '목', '금', '토'][dayIndex] ?? '';
-  return `${y}년 ${m}월 ${d}일 ${dayText}요일`;
+  return formatYmdWithWeekday(ymd) ?? ymd;
 }
 
 export function parseRecordTags(raw: string) {

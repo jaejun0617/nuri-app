@@ -14,6 +14,7 @@ import type { RootStackParamList } from '../../navigation/RootNavigator';
 import AppText from '../../app/ui/AppText';
 import * as S from './HomeScreen.styles';
 import { textStyles } from './HomeScreen.styles';
+import { resolveBootRoute } from '../../services/app/boot';
 
 import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
@@ -30,8 +31,10 @@ export default function HomeScreen() {
   const authBooted = useAuthStore(s => s.booted);
   const isLoggedIn = useAuthStore(s => s.isLoggedIn);
   const nickname = useAuthStore(s => s.profile.nickname);
+  const profileSyncStatus = useAuthStore(s => s.profileSyncStatus);
   const petBooted = usePetStore(s => s.booted);
   const pets = usePetStore(s => s.pets);
+  const petErrorMessage = usePetStore(s => s.errorMessage);
 
   // Splash 시작 시각
   const startedAtRef = useRef<number>(Date.now());
@@ -62,25 +65,14 @@ export default function HomeScreen() {
   //   [],
   // );
   const nextRoute = useMemo(() => {
-    const trimmedNickname = nickname?.trim() ?? '';
-
-    if (!isLoggedIn) {
-      return { name: 'AppTabs' as const, params: undefined };
-    }
-
-    if (!trimmedNickname) {
-      return { name: 'NicknameSetup' as const, params: undefined };
-    }
-
-    if (pets.length === 0) {
-      return {
-        name: 'PetCreate' as const,
-        params: { from: 'auto' as const },
-      };
-    }
-
-    return { name: 'AppTabs' as const, params: undefined };
-  }, [isLoggedIn, nickname, pets.length]);
+    return resolveBootRoute({
+      isLoggedIn,
+      nickname,
+      profileSyncStatus,
+      petsCount: pets.length,
+      petErrorMessage,
+    });
+  }, [isLoggedIn, nickname, profileSyncStatus, pets.length, petErrorMessage]);
   // const blurSource = useMemo(() => require('../../assets/home/test.png'), []);
 
   // ---------------------------------------------------------

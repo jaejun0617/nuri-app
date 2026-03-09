@@ -41,7 +41,7 @@ export const MAIN_CATEGORY_OPTIONS: Array<{
   { key: 'meal', label: '식사' },
   { key: 'health', label: '건강' },
   { key: 'diary', label: '일기장' },
-  { key: 'other', label: '···' },
+  { key: 'other', label: '생활' },
 ];
 
 export const OTHER_SUBCATEGORY_OPTIONS: Array<{

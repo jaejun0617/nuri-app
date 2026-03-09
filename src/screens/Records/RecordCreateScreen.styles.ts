@@ -93,6 +93,8 @@ export const styles = StyleSheet.create({
 
   photoBox: {
     marginTop: 20,
+  },
+  photoStage: {
     height: 222,
     borderRadius: 28,
     borderWidth: 2,
@@ -107,6 +109,12 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
+  },
+  photoPlaceholderTouch: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   photoIconBadge: {
     width: 52,
@@ -130,22 +138,6 @@ export const styles = StyleSheet.create({
     right: 14,
     flexDirection: 'row',
     gap: 8,
-  },
-  photoCounterBadge: {
-    position: 'absolute',
-    left: 14,
-    bottom: 14,
-    minWidth: 48,
-    height: 26,
-    paddingHorizontal: 10,
-    borderRadius: 999,
-    backgroundColor: 'rgba(17,24,39,0.56)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  photoCounterText: {
-    color: '#FFFFFF',
-    fontWeight: '800',
   },
   photoGhostBtn: {
     height: 32,

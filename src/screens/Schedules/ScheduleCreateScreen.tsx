@@ -21,6 +21,7 @@ import AppText from '../../app/ui/AppText';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import TimePickerModal from '../../components/time-picker/TimePickerModal';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import type { RootScreenRoute } from '../../navigation/types';
 import {
   getBrandedErrorMeta,
   getErrorMessage,
@@ -48,16 +49,12 @@ import {
   type ScheduleOtherUiSubCategoryKey,
   type ScheduleReminderOptionKey,
 } from '../../services/schedules/form';
-import { usePetStore } from '../../store/petStore';
+import { resolveSelectedPetId, usePetStore } from '../../store/petStore';
 import { useScheduleStore } from '../../store/scheduleStore';
 import { styles } from './ScheduleCreateScreen.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'ScheduleCreate'>;
-type Route = {
-  key: string;
-  name: 'ScheduleCreate';
-  params?: { petId?: string; startsAt?: string };
-};
+type Route = RootScreenRoute<'ScheduleCreate'>;
 
 export default function ScheduleCreateScreen() {
   const navigation = useNavigation<Nav>();
@@ -70,11 +67,7 @@ export default function ScheduleCreateScreen() {
   const refresh = useScheduleStore(s => s.refresh);
 
   const petId = useMemo(() => {
-    if (routePetId) return routePetId;
-    if (selectedPetId && pets.some(p => p.id === selectedPetId)) {
-      return selectedPetId;
-    }
-    return pets[0]?.id ?? null;
+    return resolveSelectedPetId(pets, selectedPetId, routePetId);
   }, [pets, routePetId, selectedPetId]);
 
   const initialDate = useMemo(() => {

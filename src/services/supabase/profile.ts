@@ -55,9 +55,11 @@ function mapNicknameError(error: unknown): Error {
 /* ---------------------------------------------------------
  * 1) 내 닉네임 조회
  * -------------------------------------------------------- */
-export async function fetchMyNickname(): Promise<string | null> {
-  const userRes = await supabase.auth.getUser();
-  const userId = userRes.data.user?.id ?? null;
+export async function fetchMyNickname(userIdInput?: string | null): Promise<string | null> {
+  const userId =
+    userIdInput ??
+    (await supabase.auth.getUser()).data.user?.id ??
+    null;
   if (!userId) return null;
 
   const { data, error } = await supabase

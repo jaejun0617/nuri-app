@@ -62,8 +62,11 @@ export default function MoreScreen() {
           ? '기기에서는 바로 로그아웃됐어요. 서버 세션 정리는 잠시 뒤 이어집니다.'
           : '안전하게 로그아웃했어요.',
       });
-    } catch (e: any) {
-      const { title: alertTitle, message } = getBrandedErrorMeta(e, 'logout');
+    } catch (error: unknown) {
+      const { title: alertTitle, message } = getBrandedErrorMeta(
+        error,
+        'logout',
+      );
       Alert.alert(alertTitle, message);
       showToast({ tone: 'error', title: alertTitle, message });
     } finally {

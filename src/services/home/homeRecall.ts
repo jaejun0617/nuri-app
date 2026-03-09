@@ -9,6 +9,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getKstMonthDay, getKstYmd } from '../../utils/date';
+import { hasMemoryImage } from '../records/imageSources';
 import type { MemoryRecord } from '../supabase/memories';
 import {
   buildPetTimeMessage,
@@ -25,9 +26,7 @@ function buildKey(petId: string, ymd: string) {
 }
 
 function hasImage(m: MemoryRecord) {
-  return Boolean(
-    (m.imagePath && m.imagePath.trim()) || (m.imageUrl && m.imageUrl.trim()),
-  );
+  return hasMemoryImage(m);
 }
 
 function isSameMonthDay(m: MemoryRecord, mmdd: string) {

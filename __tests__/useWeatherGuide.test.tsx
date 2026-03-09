@@ -230,14 +230,78 @@ describe('useWeatherGuide', () => {
       );
     });
 
-    expect(latestState?.bundle.dataSource).toBe('live');
-    expect(latestState?.bundle.currentTemperature).toBe(initialBundle.currentTemperature);
-
     await waitFor(() => latestState?.bundle.dataSource === 'unavailable');
 
     expect(latestState?.bundle.dataSource).toBe('unavailable');
     expect(latestState?.bundle.currentTemperature).toBe(0);
     expect(latestState?.error).toBe('날씨 정보를 불러오지 못했어요.');
+
+    await cleanup(renderer!, client);
+  });
+
+  it('캐시/초기 번들이 있으면 preview로 표시하다가 API 성공 후 live로 전환한다', async () => {
+    const initialBundle = buildWeatherGuideBundleForScenario('fresh', '서초동');
+
+    useCurrentLocation.mockReturnValue({
+      loading: false,
+      permission: 'granted',
+      coordinates: coords,
+      error: null,
+      refresh: jest.fn(),
+    });
+    useDistrict.mockReturnValue({
+      loading: false,
+      district: '서초동',
+      source: 'kakao',
+      error: null,
+    });
+    fetchOpenMeteoForecast.mockResolvedValue({
+      current: {
+        temperature_2m: 21.1,
+        apparent_temperature: 22.4,
+        weather_code: 1,
+        relative_humidity_2m: 41,
+        wind_speed_10m: 1.6,
+        cloud_cover: 8,
+      },
+      daily: {
+        time: ['2026-03-09'],
+        weather_code: [1],
+        temperature_2m_max: [24],
+        temperature_2m_min: [14],
+        sunrise: ['2026-03-09T06:43:00+09:00'],
+        sunset: ['2026-03-09T18:27:00+09:00'],
+        uv_index_max: [4.1],
+        precipitation_probability_max: [4],
+      },
+    });
+    fetchOpenMeteoAirQuality.mockResolvedValue({
+      current: {
+        pm10: 12,
+        pm2_5: 5,
+        ozone: 0.02,
+      },
+    });
+
+    const client = createClient();
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+
+    await ReactTestRenderer.act(async () => {
+      renderer = ReactTestRenderer.create(
+        <QueryClientProvider client={client}>
+          <Harness initialDistrict="서초동" initialBundle={initialBundle} />
+        </QueryClientProvider>,
+      );
+    });
+
+    expect(latestState?.bundle.dataSource).toBe('preview');
+    expect(latestState?.isPreview).toBe(true);
+
+    await waitFor(() => latestState?.bundle.dataSource === 'live');
+
+    expect(latestState?.bundle.dataSource).toBe('live');
+    expect(latestState?.isPreview).toBe(false);
+    expect(latestState?.bundle.currentTemperature).toBe(21);
 
     await cleanup(renderer!, client);
   });
