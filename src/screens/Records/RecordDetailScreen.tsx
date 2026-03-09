@@ -4,7 +4,7 @@
 // - 현재 기록과 같은 아이의 다른 기록을 카드 단위 피드로 이어서 보여줌
 // - 각 카드마다 바로 수정/삭제 가능한 액션 메뉴를 제공
 
-import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -20,7 +20,7 @@ import {
   View,
 } from 'react-native';
 import type { RouteProp } from '@react-navigation/native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from 'styled-components/native';
@@ -314,6 +314,7 @@ export default function RecordDetailScreen() {
   const theme = useTheme();
   const navigation = useNavigation<TimelineNav>();
   const route = useRoute<Route>();
+  const isFocused = useIsFocused();
   const petId = route.params?.petId ?? null;
   const memoryId = route.params?.memoryId ?? null;
 
@@ -325,7 +326,14 @@ export default function RecordDetailScreen() {
   const removeOneLocal = useRecordStore(s => s.removeOneLocal);
   const refresh = useRecordStore(s => s.refresh);
   const upsertOneLocal = useRecordStore(s => s.upsertOneLocal);
+  const focusedMemoryId = useRecordStore(s =>
+    petId ? s.focusedMemoryIdByPet[petId] ?? null : null,
+  );
+  const clearFocusedMemoryId = useRecordStore(s => s.clearFocusedMemoryId);
   const pets = usePetStore(s => s.pets);
+  const scrollRef = useRef<ScrollView | null>(null);
+  const itemOffsetMapRef = useRef<Record<string, number>>({});
+  const lastScrollTargetKeyRef = useRef<string | null>(null);
 
   const selectedPet = useMemo(
     () => pets.find(item => item.id === petId) ?? null,
@@ -367,10 +375,56 @@ export default function RecordDetailScreen() {
   }, [memoryId, petId, record, upsertOneLocal]);
 
   const feedRecords = useMemo(() => {
-    if (!record) return [];
     const items = petState?.items ?? [];
-    return [record, ...items.filter(item => item.id !== record.id)];
-  }, [petState?.items, record]);
+    return items;
+  }, [petState?.items]);
+
+  const scrollTargetMemoryId = focusedMemoryId ?? memoryId;
+  const shouldConsumeFocusedTarget = Boolean(
+    focusedMemoryId && focusedMemoryId === scrollTargetMemoryId,
+  );
+  const scrollTargetKey = scrollTargetMemoryId
+    ? `${shouldConsumeFocusedTarget ? 'focused' : 'route'}:${scrollTargetMemoryId}`
+    : null;
+
+  useEffect(() => {
+    lastScrollTargetKeyRef.current = null;
+  }, [feedRecords.length, scrollTargetKey]);
+
+  const scrollToMemoryIfNeeded = useCallback(
+    (targetMemoryId: string | null) => {
+      if (!targetMemoryId) return false;
+      if (!isFocused) return false;
+      if (!scrollTargetKey) return false;
+      if (lastScrollTargetKeyRef.current === scrollTargetKey) return false;
+
+      const offset = itemOffsetMapRef.current[targetMemoryId];
+      if (typeof offset !== 'number') return false;
+
+      scrollRef.current?.scrollTo({
+        y: Math.max(0, offset - 12),
+        animated: false,
+      });
+      lastScrollTargetKeyRef.current = scrollTargetKey;
+
+      if (petId && shouldConsumeFocusedTarget) {
+        clearFocusedMemoryId(petId);
+      }
+      return true;
+    },
+    [
+      clearFocusedMemoryId,
+      isFocused,
+      petId,
+      scrollTargetKey,
+      shouldConsumeFocusedTarget,
+    ],
+  );
+
+  useEffect(() => {
+    if (!scrollTargetMemoryId) return;
+    scrollToMemoryIfNeeded(scrollTargetMemoryId);
+  }, [feedRecords, scrollTargetMemoryId, scrollToMemoryIfNeeded]);
 
   const hasMore = Boolean(petState?.hasMore);
   const status = petState?.status ?? 'idle';
@@ -498,6 +552,7 @@ export default function RecordDetailScreen() {
       </View>
 
       <ScrollView
+        ref={scrollRef}
         style={styles.scroll}
         contentContainerStyle={styles.body}
         showsVerticalScrollIndicator={false}
@@ -505,13 +560,23 @@ export default function RecordDetailScreen() {
         scrollEventThrottle={16}
       >
         {feedRecords.map(item => (
-          <FeedPostCard
+          <View
             key={item.id}
-            item={item}
-            petName={petName}
-            petAvatarUrl={petAvatarUrl}
-            onPressMore={() => openActionMenu(item.id)}
-          />
+            onLayout={event => {
+              if (item.id !== scrollTargetMemoryId) return;
+              itemOffsetMapRef.current[item.id] = event.nativeEvent.layout.y;
+              if (item.id === scrollTargetMemoryId) {
+                scrollToMemoryIfNeeded(scrollTargetMemoryId);
+              }
+            }}
+          >
+            <FeedPostCard
+              item={item}
+              petName={petName}
+              petAvatarUrl={petAvatarUrl}
+              onPressMore={() => openActionMenu(item.id)}
+            />
+          </View>
         ))}
 
         {status === 'loadingMore' ? (

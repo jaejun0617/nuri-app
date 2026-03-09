@@ -50,6 +50,7 @@ import type {
 } from '@react-navigation/native';
 import {
   useFocusEffect,
+  useIsFocused,
   useNavigation,
   useRoute,
 } from '@react-navigation/native';
@@ -484,6 +485,7 @@ export default function TimelineScreen() {
   const theme = useTheme();
   const navigation = useNavigation<Nav>();
   const route = useRoute<TimelineMainRoute>();
+  const isFocused = useIsFocused();
 
   // ---------------------------------------------------------
   // 1.5) petId resolve (params → store fallback)
@@ -513,6 +515,10 @@ export default function TimelineScreen() {
   const bootstrap = useRecordStore(s => s.bootstrap);
   const refresh = useRecordStore(s => s.refresh);
   const loadMore = useRecordStore(s => s.loadMore);
+  const focusedMemoryId = useRecordStore(s =>
+    petId ? s.focusedMemoryIdByPet[petId] ?? null : null,
+  );
+  const clearFocusedMemoryId = useRecordStore(s => s.clearFocusedMemoryId);
 
   const petState = useRecordStore(s => {
     if (!petId) return FALLBACK_PET_STATE;
@@ -621,6 +627,71 @@ export default function TimelineScreen() {
   // 4.4) 월 점프: 필터 적용 후 렌더 완료 타이밍에 scrollToIndex
   // ---------------------------------------------------------
   const listRef = useRef<FlatList<MemoryRecord>>(null);
+  const targetLayoutOffsetRef = useRef<number | null>(null);
+  const pendingFocusedMemoryIdRef = useRef<string | null>(null);
+  const pendingFocusedIndexRef = useRef<number | null>(null);
+
+  const clearPendingFocusedMemory = useCallback(() => {
+    targetLayoutOffsetRef.current = null;
+    pendingFocusedMemoryIdRef.current = null;
+    pendingFocusedIndexRef.current = null;
+  }, []);
+
+  const finalizeFocusedMemoryScroll = useCallback(
+    (targetMemoryId: string) => {
+      if (!petId) return false;
+      if (pendingFocusedMemoryIdRef.current !== targetMemoryId) return false;
+
+      const offset = targetLayoutOffsetRef.current;
+      if (typeof offset !== 'number') return false;
+
+      listRef.current?.scrollToOffset({
+        offset: Math.max(0, offset - 12),
+        animated: true,
+      });
+      clearFocusedMemoryId(petId);
+      clearPendingFocusedMemory();
+      return true;
+    },
+    [clearFocusedMemoryId, clearPendingFocusedMemory, petId],
+  );
+
+  const consumeFocusedMemory = useCallback(() => {
+    if (!petId || !focusedMemoryId || !isFocused) return false;
+    if (filteredItems.length === 0) return false;
+
+    const index = filteredItems.findIndex(item => item.id === focusedMemoryId);
+    if (index < 0) return false;
+
+    pendingFocusedMemoryIdRef.current = focusedMemoryId;
+    pendingFocusedIndexRef.current = index;
+    targetLayoutOffsetRef.current = null;
+
+    if (finalizeFocusedMemoryScroll(focusedMemoryId)) {
+      return true;
+    }
+
+    const list = listRef.current;
+    if (!list) return false;
+
+    if (index === 0) {
+      list.scrollToOffset({ offset: 0, animated: true });
+    } else {
+      list.scrollToIndex({
+        index,
+        animated: true,
+        viewPosition: 0.35,
+      });
+    }
+
+    return true;
+  }, [
+    finalizeFocusedMemoryScroll,
+    filteredItems,
+    focusedMemoryId,
+    isFocused,
+    petId,
+  ]);
 
   useEffect(() => {
     if (!pendingJumpYm) return;
@@ -642,6 +713,15 @@ export default function TimelineScreen() {
       setPendingJumpYm(null);
     });
   }, [pendingJumpYm, timelineView.firstIndexByMonth]);
+
+  useEffect(() => {
+    if (focusedMemoryId) return;
+    clearPendingFocusedMemory();
+  }, [clearPendingFocusedMemory, focusedMemoryId]);
+
+  useEffect(() => {
+    consumeFocusedMemory();
+  }, [consumeFocusedMemory]);
 
   // ---------------------------------------------------------
   // 5) actions
@@ -820,10 +900,19 @@ export default function TimelineScreen() {
   // ---------------------------------------------------------
   const renderItem = useCallback<ListRenderItem<MemoryRecord>>(
     ({ item }) => {
-      // ✅ TimelineRow를 삭제하고 따로 만든 MemoryCard 컴포넌트를 호출합니다!
-      return <MemoryCard item={item} onPress={onPressItem} />;
+      return (
+        <View
+          onLayout={event => {
+            if (item.id !== pendingFocusedMemoryIdRef.current) return;
+            targetLayoutOffsetRef.current = event.nativeEvent.layout.y;
+            finalizeFocusedMemoryScroll(item.id);
+          }}
+        >
+          <MemoryCard item={item} onPress={onPressItem} />
+        </View>
+      );
     },
-    [onPressItem],
+    [finalizeFocusedMemoryScroll, onPressItem],
   );
 
   const keyExtractor = useCallback((item: MemoryRecord) => item.id, []);
@@ -1046,14 +1135,27 @@ export default function TimelineScreen() {
         windowSize={11}
         updateCellsBatchingPeriod={50}
         scrollEventThrottle={16}
+        onContentSizeChange={() => {
+          consumeFocusedMemory();
+        }}
         keyboardShouldPersistTaps="handled"
         onScrollToIndexFailed={info => {
-          setTimeout(() => {
+          if (pendingFocusedIndexRef.current !== info.index) {
             listRef.current?.scrollToIndex({
               index: info.index,
               animated: true,
             });
-          }, 120);
+            return;
+          }
+
+          const measuredIndex = Math.max(0, info.highestMeasuredFrameIndex);
+          listRef.current?.scrollToIndex({
+            index: measuredIndex,
+            animated: false,
+          });
+          requestAnimationFrame(() => {
+            consumeFocusedMemory();
+          });
         }}
       />
 

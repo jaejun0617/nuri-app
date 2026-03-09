@@ -3080,15 +3080,17 @@ NURI는 데이터 입력 도구가 아니라,
 - `recordStore` 정렬을 공용 `getRecordSortTimestamp()` 기준으로 통일
 - `RecordEdit` 저장 직후 `updateOneLocal -> upsertOneLocal -> background refresh` 순으로 보강해 상세/리스트 stale 체감을 줄임
 - 상세 화면은 현재 record를 무조건 맨 위에 고정하지 않고 실제 정렬 순서를 그대로 보여주게 변경
-- 타임라인/상세 모두 수정된 `memoryId`를 기준으로 자동 포커스를 잡되, target index / target layout이 준비된 뒤에만 스크롤하도록 정리
-- `InteractionManager`는 제거하고 `requestIdleCallback` fallback 기반으로 타이밍 제어를 교체
-- 타임라인은 target 카드가 실제로 viewable 되었을 때만 포커스를 소비하도록 조정
+- 타임라인/상세 모두 수정된 `memoryId` 1개만 추적하고, 그 카드 1개에 대해서만 layout을 저장한 뒤 실제 위치로 스크롤하도록 단순화
+- 상세 화면의 초기 스크롤 타겟 우선순위를 `focusedMemoryId -> route.params.memoryId`로 고정해, 타임라인에서 누른 게시글이 상세 진입 직후 바로 보이도록 보정
+- 타임라인 `scrollToIndex` 실패 fallback은 추정 offset으로 끝까지 밀지 않고, 마지막 measured index까지만 이동한 뒤 target 카드의 실제 layout으로 재시도하도록 정리
+- `InteractionManager` 같은 추가 타이밍 제어 없이, 렌더 완료 후 target 1개가 실제로 측정되었을 때만 스크롤하고 포커스를 소비하도록 변경
 
 정리하면 이번 챕터의 의도는 명확하다.
 
 - 기록 플랫폼에서는 업로드 시각보다 사용자가 지정한 기록 날짜가 우선 반영되어야 한다.
 - 과거 날짜로 수정하면 타임라인에서도 아래로 내려가고, 더 최근 날짜면 위로 올라가야 한다.
 - 수정 후 사용자가 그 게시물을 다시 찾기 위해 수동으로 스크롤할 필요가 없어야 한다.
+- 타임라인에서 특정 게시글을 눌러 상세로 들어가면, 상세에서도 그 게시글이 첫 화면에 바로 보여야 한다.
 
 ### 현재 상태의 최종 판정
 
