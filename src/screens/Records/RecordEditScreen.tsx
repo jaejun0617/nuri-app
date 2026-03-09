@@ -19,10 +19,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
-  ScrollView,
   TextInput,
   TouchableOpacity,
   View,
@@ -30,6 +27,7 @@ import {
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import Feather from 'react-native-vector-icons/Feather';
 
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
@@ -105,6 +103,7 @@ export default function RecordEditScreen() {
   const updateOneLocal = useRecordStore(s => s.updateOneLocal);
   const upsertOneLocal = useRecordStore(s => s.upsertOneLocal);
   const refresh = useRecordStore(s => s.refresh);
+  const setFocusedMemoryId = useRecordStore(s => s.setFocusedMemoryId);
 
   const petState = useRecordStore(s => {
     if (!petId) return undefined;
@@ -479,6 +478,7 @@ export default function RecordEditScreen() {
         price: nextPrice,
         occurredAt: occurred,
       });
+      setFocusedMemoryId(petId, memoryId);
 
       // 2) 이미지 저장(다중)
       const uploadPaths: string[] = [];
@@ -504,10 +504,21 @@ export default function RecordEditScreen() {
         imagePaths: finalPaths,
       });
 
-      updateOneLocal(petId, memoryId, {
+      const latestLocalPatch = {
+        title: nextTitle,
+        content: nextContent,
+        emotion,
+        tags: nextTags,
+        category: mainCategoryKey,
+        subCategory: otherSubCategoryKey,
+        price: nextPrice,
+        occurredAt: occurred,
         imagePath: saveResult.savedPaths[0] ?? null,
         imagePaths: saveResult.savedPaths,
-      });
+      } as const;
+
+      updateOneLocal(petId, memoryId, latestLocalPatch);
+      setFocusedMemoryId(petId, memoryId);
 
       if (saveResult.mode === 'single_fallback' && finalPaths.length > 1) {
         Alert.alert(
@@ -520,8 +531,24 @@ export default function RecordEditScreen() {
         await deleteMemoryImage(path).catch(() => null);
       }
 
-      // 3) 서버 정합을 한 번 더 맞춰서 상세/리스트가 확실히 최신 상태를 보게 한다.
-      await refresh(petId);
+      // 3) 즉시 반영을 우선하고, 서버 단건을 다시 읽어 최신 스냅샷으로 한 번 더 보정한다.
+      try {
+        const latest = await fetchMemoryById(memoryId);
+        upsertOneLocal(petId, latest);
+      } catch {
+        upsertOneLocal(petId, {
+          ...record,
+          ...latestLocalPatch,
+        });
+      }
+
+      // 4) 전체 refresh는 상세/리스트를 잠깐 비우지 않도록 백그라운드로만 돌린다.
+      refresh(petId)
+        .then(() => fetchMemoryById(memoryId))
+        .then(latest => {
+          upsertOneLocal(petId, latest);
+        })
+        .catch(() => {});
 
       setSuccessModalVisible(true);
     } catch (err) {
@@ -550,8 +577,10 @@ export default function RecordEditScreen() {
     addedImages,
     baseImagePaths,
     removedPaths,
-    updateOneLocal,
     refresh,
+    setFocusedMemoryId,
+    updateOneLocal,
+    upsertOneLocal,
   ]);
 
   const onConfirmSuccess = useCallback(() => {
@@ -589,10 +618,7 @@ export default function RecordEditScreen() {
   // 10) UI
   // ---------------------------------------------------------
   return (
-    <KeyboardAvoidingView
-      style={styles.screen}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <View style={styles.screen}>
       <View style={styles.header}>
         <TouchableOpacity
           activeOpacity={0.85}
@@ -612,11 +638,15 @@ export default function RecordEditScreen() {
         <View style={{ width: 44 }} />
       </View>
 
-      <ScrollView
+      <KeyboardAwareScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        enableOnAndroid
+        extraScrollHeight={28}
+        extraHeight={120}
       >
         <View style={styles.card}>
         {/* Image Preview */}
@@ -901,7 +931,7 @@ export default function RecordEditScreen() {
           </AppText>
         </TouchableOpacity>
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       <Modal
         visible={successModalVisible}
@@ -944,6 +974,6 @@ export default function RecordEditScreen() {
         onCancel={closeDateModal}
         onConfirm={applyDateModal}
       />
-    </KeyboardAvoidingView>
+    </View>
   );
 }

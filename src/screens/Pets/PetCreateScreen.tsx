@@ -16,12 +16,12 @@ import {
   BackHandler,
   Image,
   Modal,
-  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -618,6 +618,7 @@ export default function PetCreateScreen() {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageType, setImageType] = useState<string | null>(null);
   const [themeColor, setThemeColor] = useState<string | null>(null);
+  const [createdPetName, setCreatedPetName] = useState<string | null>(null);
   const [successModalVisible, setSuccessModalVisible] = useState(false);
   const [dateModalTarget, setDateModalTarget] = useState<
     'birth' | 'adoption' | 'death' | null
@@ -1037,6 +1038,7 @@ export default function PetCreateScreen() {
       });
 
       upsertPet(createdPet, { userId, select: true });
+      setCreatedPetName(createdPet.name?.trim() || trimmedName);
 
       if (imageUri) {
         try {
@@ -1185,9 +1187,14 @@ export default function PetCreateScreen() {
     });
     navigation.reset({
       index: 0,
-      routes: [{ name: 'WelcomeTransition' }],
+      routes: [
+        {
+          name: 'WelcomeTransition',
+          params: createdPetName ? { petName: createdPetName } : undefined,
+        },
+      ],
     });
-  }, [navigation]);
+  }, [createdPetName, navigation]);
 
   const onPressExitToPrevious = useCallback(() => {
     if (navigation.canGoBack()) {
@@ -1241,10 +1248,23 @@ export default function PetCreateScreen() {
         </View>
       </View>
 
-      <ScrollView
+      <KeyboardAwareScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingBottom:
+              step === 2
+                ? Math.max(insets.bottom + 180, 220)
+                : Math.max(insets.bottom + 72, 96),
+          },
+        ]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        enableOnAndroid
+        extraScrollHeight={step === 2 ? 56 : 28}
+        extraHeight={step === 2 ? 180 : 120}
       >
         <View style={styles.card}>
           {step === 1 ? (
@@ -1355,7 +1375,7 @@ export default function PetCreateScreen() {
             </>
           )}
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       <Modal
         transparent

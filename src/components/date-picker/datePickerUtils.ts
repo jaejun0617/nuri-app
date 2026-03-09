@@ -40,6 +40,14 @@ export function clampDateParts(
   return { year, month, day };
 }
 
+export function formatDatePart(value: number, width = 2) {
+  return `${value}`.padStart(width, '0');
+}
+
+export function formatDateParts(value: DateParts) {
+  return `${formatDatePart(value.year, 4)}-${formatDatePart(value.month)}-${formatDatePart(value.day)}`;
+}
+
 function toDatePartsFromDate(date: Date): DateParts {
   return {
     year: date.getFullYear(),
@@ -94,4 +102,17 @@ export function parseInitialDate(
 
 export function partsToDate(value: DateParts) {
   return new Date(value.year, value.month - 1, value.day);
+}
+
+export function validateDateParts(value: DateParts) {
+  if (value.month < 1 || value.month > 12) {
+    return '월은 1~12 사이에서 입력해 주세요.';
+  }
+
+  const maxDay = getDaysInMonth(value.year, value.month);
+  if (value.day < 1 || value.day > maxDay) {
+    return `일은 ${value.year}-${formatDatePart(value.month)} 기준 1~${maxDay} 사이여야 합니다.`;
+  }
+
+  return null;
 }

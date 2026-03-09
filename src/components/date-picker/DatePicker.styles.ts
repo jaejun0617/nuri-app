@@ -35,6 +35,46 @@ export const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     borderRadius: 30,
   },
+  headerBlock: {
+    gap: 4,
+    paddingHorizontal: 4,
+    paddingBottom: 2,
+  },
+  helperText: {
+    lineHeight: 18,
+  },
+  previewText: {
+    lineHeight: 22,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  inputSection: {
+    marginTop: 8,
+    gap: 6,
+  },
+  inputGroup: {
+    flex: 1,
+    gap: 6,
+  },
+  inputField: {
+    minHeight: 46,
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    fontSize: 17,
+    fontWeight: '700',
+    textAlign: 'center',
+    color: '#FFFFFF',
+  },
+  inputHintRow: {
+    minHeight: 18,
+    paddingHorizontal: 4,
+  },
+  errorText: {
+    lineHeight: 18,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

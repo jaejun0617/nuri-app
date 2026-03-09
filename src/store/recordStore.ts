@@ -16,6 +16,7 @@
 
 import { create } from 'zustand';
 import { getErrorMessage } from '../services/app/errors';
+import { getRecordSortTimestamp } from '../services/records/date';
 import { normalizeMemoryRecord } from '../services/records/imageSources';
 import { compareTimelineRecords } from '../services/timeline/query';
 import type { MemoryRecord } from '../services/supabase/memories';
@@ -45,6 +46,7 @@ export type PetRecordsState = {
 
 type RecordStore = {
   byPetId: Record<string, PetRecordsState>;
+  focusedMemoryIdByPet: Record<string, string | null>;
 
   ensurePetState: (petId: string) => void;
   getPetState: (petId: string) => PetRecordsState;
@@ -63,6 +65,8 @@ type RecordStore = {
   ) => void;
 
   removeOneLocal: (petId: string, memoryId: string) => void;
+  setFocusedMemoryId: (petId: string, memoryId: string | null) => void;
+  clearFocusedMemoryId: (petId: string) => void;
 
   clearPet: (petId: string) => void;
   clearAll: () => void;
@@ -84,21 +88,9 @@ const FALLBACK_PET_STATE: PetRecordsState = Object.freeze(
   createInitialPetState(),
 );
 
-function getDisplaySortValue(item: MemoryRecord): number {
-  const occurredAt = (item.occurredAt ?? '').trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(occurredAt)) {
-    const time = new Date(`${occurredAt}T23:59:59.999`).getTime();
-    if (Number.isFinite(time)) return time;
-  }
-
-  const createdTime = new Date(item.createdAt).getTime();
-  if (Number.isFinite(createdTime)) return createdTime;
-  return 0;
-}
-
 function sortByDisplayDateDesc(items: MemoryRecord[]) {
   items.sort((a, b) => {
-    const diff = getDisplaySortValue(b) - getDisplaySortValue(a);
+    const diff = getRecordSortTimestamp(b) - getRecordSortTimestamp(a);
     if (diff !== 0) return diff;
     return compareTimelineRecords(a, b);
   });
@@ -140,6 +132,7 @@ function appendPageUniqueById(prev: MemoryRecord[], nextPage: MemoryRecord[]) {
 
 export const useRecordStore = create<RecordStore>((set, get) => ({
   byPetId: {},
+  focusedMemoryIdByPet: {},
 
   ensurePetState: petId => {
     if (!petId) return;
@@ -504,6 +497,26 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
     }));
   },
 
+  setFocusedMemoryId: (petId, memoryId) => {
+    if (!petId) return;
+    set(s => ({
+      focusedMemoryIdByPet: {
+        ...s.focusedMemoryIdByPet,
+        [petId]: memoryId,
+      },
+    }));
+  },
+
+  clearFocusedMemoryId: petId => {
+    if (!petId) return;
+    set(s => ({
+      focusedMemoryIdByPet: {
+        ...s.focusedMemoryIdByPet,
+        [petId]: null,
+      },
+    }));
+  },
+
   // ---------------------------------------------------------
   // clear
   // ---------------------------------------------------------
@@ -511,10 +524,12 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
     if (!petId) return;
     set(s => {
       const next = { ...s.byPetId };
+      const nextFocused = { ...s.focusedMemoryIdByPet };
       delete next[petId];
-      return { byPetId: next };
+      delete nextFocused[petId];
+      return { byPetId: next, focusedMemoryIdByPet: nextFocused };
     });
   },
 
-  clearAll: () => set({ byPetId: {} }),
+  clearAll: () => set({ byPetId: {}, focusedMemoryIdByPet: {} }),
 }));

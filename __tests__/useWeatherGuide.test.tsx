@@ -6,6 +6,16 @@ import { useWeatherGuide, type WeatherGuideState } from '../src/hooks/useWeather
 import { buildWeatherGuideBundleForScenario } from '../src/services/weather/guide';
 import { useWeatherStore } from '../src/store/weatherStore';
 
+jest.mock('@react-navigation/native', () => {
+  const actual = jest.requireActual('@react-navigation/native');
+  return {
+    ...actual,
+    useFocusEffect: (effect: () => void | (() => void)) => {
+      require('react').useEffect(effect, [effect]);
+    },
+  };
+});
+
 jest.mock('../src/hooks/useCurrentLocation', () => ({
   useCurrentLocation: jest.fn(),
 }));
@@ -302,6 +312,67 @@ describe('useWeatherGuide', () => {
     expect(latestState?.bundle.dataSource).toBe('live');
     expect(latestState?.isPreview).toBe(false);
     expect(latestState?.bundle.currentTemperature).toBe(21);
+
+    await cleanup(renderer!, client);
+  });
+
+  it('대기질 응답이 실패해도 예보 응답만으로 live 날씨와 주간 예보를 갱신한다', async () => {
+    const initialBundle = buildWeatherGuideBundleForScenario('fresh', '서초동');
+
+    useCurrentLocation.mockReturnValue({
+      loading: false,
+      permission: 'granted',
+      coordinates: coords,
+      error: null,
+      refresh: jest.fn(),
+    });
+    useDistrict.mockReturnValue({
+      loading: false,
+      district: '서초동',
+      source: 'kakao',
+      error: null,
+    });
+    fetchOpenMeteoForecast.mockResolvedValue({
+      current: {
+        temperature_2m: 19.2,
+        apparent_temperature: 20.1,
+        weather_code: 1,
+        relative_humidity_2m: 44,
+        wind_speed_10m: 2.1,
+        cloud_cover: 10,
+      },
+      daily: {
+        time: ['2026-03-09', '2026-03-10'],
+        weather_code: [1, 2],
+        temperature_2m_max: [21, 22],
+        temperature_2m_min: [12, 13],
+        sunrise: ['2026-03-09T06:43:00+09:00', '2026-03-10T06:41:00+09:00'],
+        sunset: ['2026-03-09T18:27:00+09:00', '2026-03-10T18:28:00+09:00'],
+        uv_index_max: [4.1, 4.4],
+        precipitation_probability_max: [4, 8],
+      },
+    });
+    fetchOpenMeteoAirQuality.mockRejectedValue(
+      new Error('대기질 정보를 불러오지 못했어요.'),
+    );
+
+    const client = createClient();
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+
+    await ReactTestRenderer.act(async () => {
+      renderer = ReactTestRenderer.create(
+        <QueryClientProvider client={client}>
+          <Harness initialDistrict="서초동" initialBundle={initialBundle} />
+        </QueryClientProvider>,
+      );
+    });
+
+    await waitFor(() => latestState?.bundle.dataSource === 'live');
+
+    expect(latestState?.bundle.dataSource).toBe('live');
+    expect(latestState?.bundle.currentTemperature).toBe(19);
+    expect(latestState?.bundle.weekly).toHaveLength(2);
+    expect(latestState?.error).toBeNull();
 
     await cleanup(renderer!, client);
   });

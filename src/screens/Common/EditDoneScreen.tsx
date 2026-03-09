@@ -8,6 +8,7 @@ import React, { useCallback } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
 
 import AppText from '../../app/ui/AppText';
@@ -21,6 +22,7 @@ type Route = RootScreenRoute<'EditDone'>;
 export default function EditDoneScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
+  const insets = useSafeAreaInsets();
   const { title, bodyLines, buttonLabel, navigateTo } = route.params;
 
   const onPressPrimary = useCallback(() => {
@@ -64,7 +66,15 @@ export default function EditDoneScreen() {
   }, [navigateTo, navigation]);
 
   return (
-    <View style={styles.screen}>
+    <View
+      style={[
+        styles.screen,
+        {
+          paddingTop: Math.max(insets.top + 16, 40),
+          paddingBottom: Math.max(insets.bottom + 18, 32),
+        },
+      ]}
+    >
       <View style={styles.confettiOne} />
       <View style={styles.confettiTwo} />
       <View style={styles.confettiThree} />
@@ -93,7 +103,10 @@ export default function EditDoneScreen() {
 
       <TouchableOpacity
         activeOpacity={0.92}
-        style={styles.primaryButton}
+        style={[
+          styles.primaryButton,
+          { marginBottom: Math.max(insets.bottom, 0) },
+        ]}
         onPress={onPressPrimary}
       >
         <AppText preset="body" style={styles.primaryButtonText}>

@@ -2,6 +2,7 @@ import React, { useCallback, useMemo } from 'react';
 import {
   ImageBackground,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -591,6 +592,13 @@ export default function WeatherInsightScreen() {
 
   return (
     <LinearGradient colors={palette.background} style={styles.screen}>
+      <StatusBar
+        barStyle={
+          hasRenderableWeather && !sceneIsDaytime ? 'light-content' : 'dark-content'
+        }
+        backgroundColor="transparent"
+        translucent
+      />
       <SafeAreaView style={styles.safe}>
         <ScrollView
           contentContainerStyle={[

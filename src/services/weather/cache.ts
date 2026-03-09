@@ -7,9 +7,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { DeviceCoordinates } from '../location/currentPosition';
 import type { WeatherGuideBundle } from './guide';
+import { WEATHER_PREVIEW_MAX_AGE_MS } from './policy';
 
 const WEATHER_GUIDE_CACHE_KEY = '@nuri/weather-guide-cache/v5';
-const WEATHER_GUIDE_CACHE_MAX_AGE_MS = 10 * 60 * 1000;
 
 type WeatherGuideCacheEntry = {
   savedAt: number;
@@ -45,7 +45,7 @@ export async function loadCachedWeatherGuideBundle(
   const entry = store[getCoordsKey(coords)];
 
   if (!entry) return null;
-  if (Date.now() - entry.savedAt > WEATHER_GUIDE_CACHE_MAX_AGE_MS) {
+  if (Date.now() - entry.savedAt > WEATHER_PREVIEW_MAX_AGE_MS) {
     delete store[getCoordsKey(coords)];
     await writeWeatherGuideCacheStore(store);
     return null;

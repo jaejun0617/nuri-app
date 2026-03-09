@@ -6,13 +6,9 @@
 // - 탭 구조에서 폼 상태가 남지 않도록 focus/reset 유지
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Alert,
   Image,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
   TextInput,
   TouchableOpacity,
   View,
@@ -22,13 +18,13 @@ import type {
   RouteProp,
 } from '@react-navigation/native';
 import {
-  useFocusEffect,
   useNavigation,
   useRoute,
 } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import Feather from 'react-native-vector-icons/Feather';
 
 import AppText from '../../app/ui/AppText';
@@ -42,15 +38,11 @@ import {
   formatRecordPriceLabel,
   isShoppingRecordCategory,
   mergeRecordTags,
-  normalizeRecentRecordTags,
   parseRecordTags,
   parseRecordPrice,
-  RECORD_DEFAULT_RECENT_TAGS,
   RECORD_EMOTION_OPTIONS,
   RECORD_MAIN_CATEGORIES,
   RECORD_OTHER_SUBCATEGORIES,
-  RECORD_RECENT_TAGS_STORAGE_KEY,
-  RECORD_SUGGESTED_TAGS,
   normalizeRecordPriceInput,
   toRecordYmd,
   type PickedRecordImage,
@@ -124,8 +116,6 @@ export default function RecordCreateScreen() {
   const [content, setContent] = useState('');
   const [occurredAt, setOccurredAt] = useState(todayYmd);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [recentTags, setRecentTags] =
-    useState<string[]>(Array.from(RECORD_DEFAULT_RECENT_TAGS));
   const [tagDraft, setTagDraft] = useState('');
   const [tagModalVisible, setTagModalVisible] = useState(false);
   const [mainCategoryKey, setMainCategoryKey] =
@@ -205,25 +195,6 @@ export default function RecordCreateScreen() {
       setActiveImageIndex(selectedImages.length - 1);
     }
   }, [activeImageIndex, selectedImages.length]);
-
-  useFocusEffect(
-    useCallback(() => {
-      AsyncStorage.getItem(RECORD_RECENT_TAGS_STORAGE_KEY)
-        .then(raw => {
-          if (!raw) return;
-          try {
-            const parsed = JSON.parse(raw) as string[];
-            if (Array.isArray(parsed)) {
-              const next = normalizeRecentRecordTags(parsed);
-              if (next.length) setRecentTags(next);
-            }
-          } catch {
-            // ignore
-          }
-        })
-        .catch(() => {});
-    }, []),
-  );
 
   useEffect(() => {
     let mounted = true;
@@ -454,20 +425,8 @@ export default function RecordCreateScreen() {
     setTagDraft('');
   }, [appendTag, tagDraft]);
 
-  const onPressSuggestedTag = useCallback(
-    (tag: string) => {
-      appendTag(tag);
-    },
-    [appendTag],
-  );
-
   const onRemoveTag = useCallback((target: string) => {
     setSelectedTags(prev => prev.filter(tag => tag !== target));
-  }, []);
-
-  const onClearRecentTags = useCallback(() => {
-    setRecentTags([]);
-    AsyncStorage.removeItem(RECORD_RECENT_TAGS_STORAGE_KEY).catch(() => {});
   }, []);
 
   const onSubmit = useCallback(async () => {
@@ -601,17 +560,6 @@ export default function RecordCreateScreen() {
 
       refresh(petId).catch(() => {});
 
-      if (selectedTags.length > 0) {
-        const recentUsedTags = normalizeRecentRecordTags(
-          Array.from(new Set([...selectedTags, ...recentTags])),
-        );
-        setRecentTags(recentUsedTags);
-        AsyncStorage.setItem(
-          RECORD_RECENT_TAGS_STORAGE_KEY,
-          JSON.stringify(recentUsedTags),
-        ).catch(() => {});
-      }
-
       resetForm();
       await clearRecordCreateDraft();
       showToast({
@@ -647,7 +595,6 @@ export default function RecordCreateScreen() {
     petId,
     priceText,
     refresh,
-    recentTags,
     resetForm,
     selectedEmotion,
     selectedImages,
@@ -657,10 +604,7 @@ export default function RecordCreateScreen() {
   ]);
 
   return (
-    <KeyboardAvoidingView
-      style={styles.screen}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <View style={styles.screen}>
       <View style={styles.header}>
         <TouchableOpacity
           activeOpacity={0.8}
@@ -695,14 +639,18 @@ export default function RecordCreateScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
+      <KeyboardAwareScrollView
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,
           { paddingBottom: 32 + Math.max(insets.bottom, 18) },
         ]}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
         showsVerticalScrollIndicator={false}
+        enableOnAndroid
+        extraScrollHeight={28}
+        extraHeight={120}
       >
         <TouchableOpacity
           activeOpacity={0.9}
@@ -1055,7 +1003,7 @@ export default function RecordCreateScreen() {
             {saving ? '기록 저장 중...' : '완료'}
           </AppText>
         </TouchableOpacity>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       <DatePickerModal
         visible={dateModalVisible}
@@ -1067,20 +1015,12 @@ export default function RecordCreateScreen() {
       <RecordTagModal
         visible={tagModalVisible}
         tagDraft={tagDraft}
-        recentTags={recentTags}
         selectedTags={selectedTags}
-        suggestedTags={RECORD_SUGGESTED_TAGS}
         onClose={onCloseTagModal}
         onChangeTagDraft={setTagDraft}
         onSubmitDraftTag={onSubmitDraftTag}
-        onPressSuggestedTag={onPressSuggestedTag}
         onRemoveTag={onRemoveTag}
-        onClearRecentTags={onClearRecentTags}
-        onConfirm={() => {
-          onSubmitDraftTag();
-          onCloseTagModal();
-        }}
       />
-    </KeyboardAvoidingView>
+    </View>
   );
 }

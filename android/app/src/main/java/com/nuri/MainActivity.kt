@@ -11,11 +11,8 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 
 class MainActivity : ReactActivity() {
-
-  override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
-
-    WindowCompat.setDecorFitsSystemWindows(window, true)
+  private fun applySystemBarStyle() {
+    window.statusBarColor = Color.TRANSPARENT
     window.navigationBarColor = Color.WHITE
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -26,6 +23,18 @@ class MainActivity : ReactActivity() {
       isAppearanceLightNavigationBars = true
       isAppearanceLightStatusBars = true
     }
+  }
+
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+
+    WindowCompat.setDecorFitsSystemWindows(window, true)
+    applySystemBarStyle()
+  }
+
+  override fun onResume() {
+    super.onResume()
+    applySystemBarStyle()
   }
 
   /**

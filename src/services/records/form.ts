@@ -32,23 +32,6 @@ export const RECORD_OTHER_SUBCATEGORIES = [
   { key: 'etc', label: '기타', tag: '#기타세부' },
 ] as const;
 
-export const RECORD_SUGGESTED_TAGS = [
-  '#산책',
-  '#강아지',
-  '#귀요미',
-  '#일상',
-  '#힐링',
-  '#꽃만남',
-] as const;
-
-export const RECORD_DEFAULT_RECENT_TAGS = [
-  '#예방접종',
-  '#맛있는간식',
-] as const;
-
-export const RECORD_RECENT_TAGS_STORAGE_KEY =
-  'nuri.recordCreateRecentTags.v1';
-
 export const RECORD_EMOTION_OPTIONS: ReadonlyArray<{
   value: EmotionTag;
   emoji: string;
@@ -238,11 +221,4 @@ export function validateRecordOccurredAt(value: string) {
     throw new Error('날짜 형식은 YYYY-MM-DD 입니다.');
   }
   return trimmed;
-}
-
-export function normalizeRecentRecordTags(tags: string[]) {
-  return tags
-    .map(tag => (tag ?? '').trim())
-    .filter(Boolean)
-    .slice(0, 8);
 }

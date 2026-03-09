@@ -7,8 +7,7 @@ import { create } from 'zustand';
 
 import type { DeviceCoordinates } from '../services/location/currentPosition';
 import type { WeatherGuideBundle } from '../services/weather/guide';
-
-const WEATHER_STORE_TTL_MS = 10 * 60 * 1000;
+import { WEATHER_PREVIEW_MAX_AGE_MS } from '../services/weather/policy';
 
 type WeatherStoreEntry = {
   savedAt: number;
@@ -32,7 +31,7 @@ export const useWeatherStore = create<WeatherStoreState>((set, get) => ({
   getFreshEntry: coords => {
     const entry = get().byCoordsKey[getWeatherStoreCoordsKey(coords)];
     if (!entry) return null;
-    if (Date.now() - entry.savedAt > WEATHER_STORE_TTL_MS) {
+    if (Date.now() - entry.savedAt > WEATHER_PREVIEW_MAX_AGE_MS) {
       return null;
     }
     return entry;
@@ -56,7 +55,7 @@ export const useWeatherStore = create<WeatherStoreState>((set, get) => ({
     const now = Date.now();
     const nextEntries = Object.fromEntries(
       Object.entries(get().byCoordsKey).filter(
-        ([, entry]) => now - entry.savedAt <= WEATHER_STORE_TTL_MS,
+        ([, entry]) => now - entry.savedAt <= WEATHER_PREVIEW_MAX_AGE_MS,
       ),
     );
     set({ byCoordsKey: nextEntries });

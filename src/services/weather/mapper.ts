@@ -161,15 +161,20 @@ export function buildWeatherGuideBundleFromApi(input: {
   district: string;
   coords: DeviceCoordinates;
   forecast: OpenMeteoForecastResponse;
-  airQuality: OpenMeteoAirQualityResponse;
+  airQuality?: OpenMeteoAirQualityResponse | null;
+  fallbackAirQualityMetrics?: AirQualityMetric[];
+  fallbackAirQualityConcern?: boolean;
 }): WeatherGuideBundle {
   const current = input.forecast.current ?? {};
   const daily = input.forecast.daily ?? {};
-  const air = input.airQuality.current ?? {};
+  const air = input.airQuality?.current ?? null;
 
   const weatherCode = current.weather_code ?? 1;
   const isDaytime = getCurrentWeatherIsDaytime();
-  const airQualityConcern = (air.pm10 ?? 0) >= 81 || (air.pm2_5 ?? 0) > 36;
+  const airQualityConcern =
+    air !== null
+      ? (air.pm10 ?? 0) >= 81 || (air.pm2_5 ?? 0) > 36
+      : (input.fallbackAirQualityConcern ?? false);
   const scenario = mapScenarioFromData({
     weatherCode,
   });
@@ -207,7 +212,12 @@ export function buildWeatherGuideBundleFromApi(input: {
       buildWeeklyItems(daily, isDaytime).length > 0
         ? buildWeeklyItems(daily, isDaytime)
         : base.weekly,
-    airQualityMetrics: buildAirQualityMetrics(air),
+    airQualityMetrics:
+      air !== null
+        ? buildAirQualityMetrics(air)
+        : (input.fallbackAirQualityMetrics?.length
+            ? input.fallbackAirQualityMetrics
+            : base.airQualityMetrics),
     homeMessage: airGuide?.homeMessage ?? base.homeMessage,
     homeCaption: airGuide?.homeCaption ?? base.homeCaption,
     detailStatus: airGuide?.detailStatus ?? base.detailStatus,

@@ -47,7 +47,7 @@ export type RootStackParamList = {
   SignIn: undefined;
   SignUp: undefined;
   NicknameSetup: { after?: 'signin' | 'signup' } | undefined;
-  WelcomeTransition: undefined;
+  WelcomeTransition: { petName?: string } | undefined;
 
   // Pet
   PetCreate: { from?: 'auto' | 'cta' | 'header_plus' } | undefined;

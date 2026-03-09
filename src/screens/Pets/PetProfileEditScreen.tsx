@@ -10,12 +10,12 @@ import {
   Alert,
   AppState,
   InteractionManager,
-  ScrollView,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
@@ -237,16 +237,6 @@ export default function PetProfileEditScreen() {
       }),
     [originalName, pet?.id, themeColor, trimmedName],
   );
-
-  useEffect(() => {
-    if (imageUri && imageUri !== pet?.avatarUrl) return;
-    setThemeColor(
-      recommendPetThemeColor({
-        name: trimmedName || originalName,
-        petId: pet?.id,
-      }),
-    );
-  }, [imageUri, originalName, pet?.avatarUrl, pet?.id, trimmedName]);
 
   useEffect(() => {
     if (memorialChoice === 'memorial') return;
@@ -496,12 +486,17 @@ export default function PetProfileEditScreen() {
         <View style={styles.headerTextBtn} />
       </View>
 
-      <ScrollView
+      <KeyboardAwareScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.scrollContent,
           { paddingBottom: Math.max(112, insets.bottom + 88) },
         ]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        enableOnAndroid
+        extraScrollHeight={28}
+        extraHeight={120}
       >
         <View style={styles.avatarSection}>
           <PhotoAddCard
@@ -822,7 +817,7 @@ export default function PetProfileEditScreen() {
             {saving ? '수정 중...' : '수정 완료'}
           </AppText>
         </TouchableOpacity>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       <DatePickerModal
         visible={dateModalTarget !== null}

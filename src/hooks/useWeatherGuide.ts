@@ -3,7 +3,9 @@
 // - 위치 권한, 좌표, 동 이름, 날씨/대기질 API를 TanStack Query + Zustand 조합으로 연결
 // - 메모리 TTL -> AsyncStorage TTL -> API 순서로 조회해 화면 왕복 시 재호출을 줄이기
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { createLatestRequestController } from '../services/app/async';
@@ -20,12 +22,14 @@ import {
   createUnavailableWeatherGuideBundle,
   type WeatherGuideBundle,
 } from '../services/weather/guide';
+import {
+  WEATHER_FOCUS_REFRESH_MS,
+  WEATHER_QUERY_GC_MS,
+  WEATHER_QUERY_STALE_MS,
+} from '../services/weather/policy';
 import { useWeatherStore, getWeatherStoreCoordsKey } from '../store/weatherStore';
 import { useCurrentLocation } from './useCurrentLocation';
 import { useDistrict } from './useDistrict';
-
-const WEATHER_QUERY_STALE_MS = 10 * 60 * 1000;
-const WEATHER_QUERY_GC_MS = 15 * 60 * 1000;
 
 export type WeatherGuideState = {
   loading: boolean;
@@ -65,6 +69,7 @@ export function useWeatherGuide(
   const queryClient = useQueryClient();
   const location = useCurrentLocation();
   const [diskPreviewBundle, setDiskPreviewBundle] = useState<WeatherGuideBundle | null>(null);
+  const lastRefreshRequestAtRef = useRef(0);
   const districtState = useDistrict({
     coordinates: location.coordinates,
     loading: location.loading,
@@ -117,21 +122,31 @@ export function useWeatherGuide(
     enabled: !!location.coordinates && !!coordsKey,
     staleTime: WEATHER_QUERY_STALE_MS,
     gcTime: WEATHER_QUERY_GC_MS,
+    refetchOnMount: true,
     queryFn: async () => {
       if (!location.coordinates) {
         throw new Error('현재 위치를 아직 확인하지 못했어요.');
       }
 
-      const [forecast, airQuality] = await Promise.all([
+      const previewCandidate =
+        initialBundle ?? memoryEntry?.bundle ?? diskPreviewBundle ?? null;
+      const [forecastResult, airQualityResult] = await Promise.allSettled([
         fetchOpenMeteoForecast(location.coordinates),
         fetchOpenMeteoAirQuality(location.coordinates),
       ]);
 
+      if (forecastResult.status !== 'fulfilled') {
+        throw forecastResult.reason;
+      }
+
       return buildWeatherGuideBundleFromApi({
         district: resolvedDistrict,
         coords: location.coordinates,
-        forecast,
-        airQuality,
+        forecast: forecastResult.value,
+        airQuality:
+          airQualityResult.status === 'fulfilled' ? airQualityResult.value : null,
+        fallbackAirQualityMetrics: previewCandidate?.airQualityMetrics,
+        fallbackAirQualityConcern: previewCandidate?.airQualityConcern,
       });
     },
   });
@@ -203,11 +218,66 @@ export function useWeatherGuide(
 
   const refresh = useCallback(async () => {
     await location.refresh();
-    if (coordsKey) {
-      await queryClient.invalidateQueries({ queryKey: ['weather-guide', coordsKey] });
+    if (!coordsKey) return;
+
+    lastRefreshRequestAtRef.current = Date.now();
+    await queryClient.invalidateQueries({
+      queryKey: ['weather-guide', coordsKey],
+      exact: true,
+      refetchType: 'active',
+    });
+  }, [coordsKey, location, queryClient]);
+
+  const shouldRefreshWeather = useCallback(() => {
+    if (!coordsKey || !location.coordinates) return false;
+    if (weatherQuery.isFetching) return false;
+
+    if (previewBundle || !weatherQuery.data) {
+      return true;
     }
-    await weatherQuery.refetch();
-  }, [coordsKey, location, queryClient, weatherQuery]);
+
+    return Date.now() - weatherQuery.dataUpdatedAt >= WEATHER_FOCUS_REFRESH_MS;
+  }, [
+    coordsKey,
+    location.coordinates,
+    previewBundle,
+    weatherQuery.data,
+    weatherQuery.dataUpdatedAt,
+    weatherQuery.isFetching,
+  ]);
+
+  const requestForegroundRefresh = useCallback(() => {
+    const now = Date.now();
+    if (now - lastRefreshRequestAtRef.current < 1500) return;
+    if (!shouldRefreshWeather()) return;
+
+    lastRefreshRequestAtRef.current = now;
+    queryClient
+      .invalidateQueries({
+        queryKey: ['weather-guide', coordsKey],
+        exact: true,
+        refetchType: 'active',
+      })
+      .catch(() => {});
+  }, [coordsKey, queryClient, shouldRefreshWeather]);
+
+  useFocusEffect(
+    useCallback(() => {
+      requestForegroundRefresh();
+      return undefined;
+    }, [requestForegroundRefresh]),
+  );
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', state => {
+      if (state !== 'active') return;
+      requestForegroundRefresh();
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [requestForegroundRefresh]);
 
   const loading =
     !weatherQuery.data &&

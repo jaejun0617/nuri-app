@@ -3,8 +3,7 @@
 // - 실내 활동 완료 후 빠르게 감정/메모/태그를 남기는 전용 기록 화면
 // - 저장 성공 시 완료 팝업을 보여주고 타임라인으로 이어짐
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
   Modal,
@@ -28,10 +27,7 @@ import type { RootScreenRoute } from '../../navigation/types';
 import { getBrandedErrorMeta } from '../../services/app/errors';
 import { pickPhotoAssets } from '../../services/media/photoPicker';
 import {
-  normalizeRecentRecordTags,
   parseRecordTags,
-  RECORD_DEFAULT_RECENT_TAGS,
-  RECORD_RECENT_TAGS_STORAGE_KEY,
 } from '../../services/records/form';
 import {
   createMemory,
@@ -91,30 +87,10 @@ export default function WeatherActivityRecordScreen() {
   const [selectedTags, setSelectedTags] = useState<string[]>(
     guide.recordDraft.suggestedTags,
   );
-  const [recentTags, setRecentTags] = useState<string[]>(
-    Array.from(RECORD_DEFAULT_RECENT_TAGS),
-  );
   const [tagDraft, setTagDraft] = useState('');
   const [tagModalVisible, setTagModalVisible] = useState(false);
   const [saving, setSaving] = useState(false);
   const [doneVisible, setDoneVisible] = useState(false);
-
-  useEffect(() => {
-    AsyncStorage.getItem(RECORD_RECENT_TAGS_STORAGE_KEY)
-      .then(raw => {
-        if (!raw) return;
-        try {
-          const parsed = JSON.parse(raw) as string[];
-          if (Array.isArray(parsed)) {
-            const next = normalizeRecentRecordTags(parsed);
-            if (next.length > 0) setRecentTags(next);
-          }
-        } catch {
-          // ignore
-        }
-      })
-      .catch(() => {});
-  }, []);
 
   const toggleTag = useCallback((tag: string) => {
     setSelectedTags(prev =>
@@ -131,31 +107,8 @@ export default function WeatherActivityRecordScreen() {
     if (parsedTags.length === 0) return;
 
     setSelectedTags(prev => Array.from(new Set([...prev, ...parsedTags])));
-    setRecentTags(prev => normalizeRecentRecordTags([...parsedTags, ...prev]));
     setTagDraft('');
   }, [tagDraft]);
-
-  const onConfirmTagModal = useCallback(() => {
-    const parsedTags = parseRecordTags(tagDraft);
-    const nextRecent = normalizeRecentRecordTags([...parsedTags, ...recentTags]);
-
-    if (parsedTags.length > 0) {
-      setSelectedTags(prev => Array.from(new Set([...prev, ...parsedTags])));
-      setRecentTags(nextRecent);
-      AsyncStorage.setItem(
-        RECORD_RECENT_TAGS_STORAGE_KEY,
-        JSON.stringify(nextRecent),
-      ).catch(() => {});
-    }
-
-    setTagDraft('');
-    setTagModalVisible(false);
-  }, [recentTags, tagDraft]);
-
-  const onClearRecentTags = useCallback(() => {
-    setRecentTags([]);
-    AsyncStorage.removeItem(RECORD_RECENT_TAGS_STORAGE_KEY).catch(() => {});
-  }, []);
 
   const onPickImage = useCallback(async () => {
     try {
@@ -456,19 +409,14 @@ export default function WeatherActivityRecordScreen() {
       <RecordTagModal
         visible={tagModalVisible}
         tagDraft={tagDraft}
-        recentTags={recentTags}
         selectedTags={selectedTags}
-        suggestedTags={guide.recordDraft.suggestedTags}
         onClose={() => {
           setTagDraft('');
           setTagModalVisible(false);
         }}
         onChangeTagDraft={onChangeTagDraft}
         onSubmitDraftTag={onSubmitDraftTag}
-        onPressSuggestedTag={toggleTag}
         onRemoveTag={toggleTag}
-        onClearRecentTags={onClearRecentTags}
-        onConfirm={onConfirmTagModal}
       />
     </SafeAreaView>
   );
