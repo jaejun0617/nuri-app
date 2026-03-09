@@ -1059,6 +1059,7 @@ export default function LoggedInHome() {
     if (!selectedPetId) return pets[0];
     return pets.find(p => p.id === selectedPetId) ?? pets[0];
   }, [pets, selectedPetId]);
+  const hasPets = pets.length > 0;
 
   const activePetId = selectedPet?.id ?? null;
 
@@ -1227,10 +1228,8 @@ export default function LoggedInHome() {
   // 5) HERO derived
   // ---------------------------------------------------------
   const plainPetName = useMemo(
-    () =>
-      selectedPet?.name?.trim() ||
-      (petLoading && pets.length === 0 ? '반려동물' : '우리 아이'),
-    [petLoading, pets.length, selectedPet?.name],
+    () => selectedPet?.name?.trim() || (petLoading && !hasPets ? '반려동물' : '우리 아이'),
+    [hasPets, petLoading, selectedPet?.name],
   );
 
   const profilePetName = useMemo(
@@ -1336,12 +1335,12 @@ export default function LoggedInHome() {
   );
 
   const greetingSubTitle = useMemo(() => {
-    if (petLoading && pets.length === 0) {
+    if (petLoading && !hasPets) {
       return '반려동물 정보를 불러오는 중이에요';
     }
-    if (pets.length === 0) return '소중한 아이를 등록하고 추억을 기록해 보세요';
+    if (!hasPets) return '소중한 아이를 등록하고 추억을 기록해 보세요';
     return '오늘의 메시지로 하루를 시작해요';
-  }, [petLoading, pets.length]);
+  }, [hasPets, petLoading]);
 
   const homeWidgetSnapshot = useMemo(
     () =>

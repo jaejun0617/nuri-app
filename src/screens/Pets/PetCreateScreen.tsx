@@ -57,7 +57,11 @@ import {
   getPetMemorialChoice,
   type PetMemorialChoice,
 } from '../../services/pets/memorial';
-import { createPet, fetchMyPets } from '../../services/supabase/pets';
+import {
+  createPet,
+  fetchMyPets,
+  toPublicPetAvatarUrl,
+} from '../../services/supabase/pets';
 import { uploadPetAvatar } from '../../services/supabase/storagePets';
 import { usePetStore } from '../../store/petStore';
 import { showToast } from '../../store/uiStore';
@@ -584,6 +588,8 @@ export default function PetCreateScreen() {
   const routeFrom = route.params?.from ?? null;
   const insets = useSafeAreaInsets();
   const setPets = usePetStore(s => s.setPets);
+  const upsertPet = usePetStore(s => s.upsertPet);
+  const updatePetAvatar = usePetStore(s => s.updatePetAvatar);
 
   const [step, setStep] = useState<Step>(1);
   const [saving, setSaving] = useState(false);
@@ -1013,7 +1019,7 @@ export default function PetCreateScreen() {
       ensureMinOne(hobbies, '취미');
       ensureMinOne(tags, '태그');
 
-      const newPetId = await createPet({
+      const createdPet = await createPet({
         name: trimmedName,
         themeColor: selectedThemeColor,
         birthDate: normalizedBirthDate,
@@ -1030,11 +1036,13 @@ export default function PetCreateScreen() {
         avatarPath: null,
       });
 
+      upsertPet(createdPet, { userId, select: true });
+
       if (imageUri) {
         try {
           const { path } = await uploadPetAvatar({
             userId,
-            petId: newPetId,
+            petId: createdPet.id,
             fileUri: imageUri,
             mimeType: imageType,
           });
@@ -1042,9 +1050,18 @@ export default function PetCreateScreen() {
           const { error } = await supabase
             .from('pets')
             .update({ profile_image_url: path })
-            .eq('id', newPetId);
+            .eq('id', createdPet.id);
 
           if (error) throw error;
+
+          updatePetAvatar(
+            createdPet.id,
+            {
+              avatarPath: path,
+              avatarUrl: toPublicPetAvatarUrl(path),
+            },
+            { userId },
+          );
         } catch {
           Alert.alert(
             '이미지 업로드 실패',
@@ -1053,8 +1070,21 @@ export default function PetCreateScreen() {
         }
       }
 
-      const pets = await fetchMyPets();
-      setPets(pets, { userId });
+      const refreshedPets = await fetchMyPets(userId);
+      const currentPets = usePetStore.getState().pets;
+      const includesCreatedPet = refreshedPets.some(p => p.id === createdPet.id);
+
+      if (refreshedPets.length === 0 && currentPets.length > 0) {
+        showToast({
+          tone: 'info',
+          title: '프로필 동기화 중',
+          message: '새로 등록한 반려동물 정보를 먼저 보여드리고 있어요.',
+          durationMs: 2200,
+        });
+      } else if (includesCreatedPet || refreshedPets.length >= currentPets.length) {
+        setPets(refreshedPets, { userId, preferredPetId: createdPet.id });
+      }
+
       await clearPetCreateDraft();
 
       setSuccessModalVisible(true);
@@ -1080,6 +1110,8 @@ export default function PetCreateScreen() {
     selectedThemeColor,
     neutered,
     setPets,
+    updatePetAvatar,
+    upsertPet,
     tags,
     trimmedName,
     weightKg,

@@ -36,17 +36,13 @@ type PetsRow = {
   updated_at?: string;
 };
 
-type InsertedPetIdRow = {
-  id: string;
-};
-
 function toNumberOrNull(v: number | string | null): number | null {
   if (v === null || v === undefined) return null;
   const n = typeof v === 'number' ? v : Number(v);
   return Number.isFinite(n) ? n : null;
 }
 
-function toPublicUrlOrNull(path: string | null): string | null {
+export function toPublicPetAvatarUrl(path: string | null): string | null {
   if (!path) return null;
 
   const safePath = path.replace(/^\/+/, '');
@@ -61,7 +57,7 @@ function mapRowToPet(row: PetsRow): Pet {
     ? row.profile_image_url.replace(/^\/+/, '')
     : null;
 
-  const avatarUrl = toPublicUrlOrNull(avatarPath);
+  const avatarUrl = toPublicPetAvatarUrl(avatarPath);
 
   return {
     id: row.id,
@@ -156,7 +152,7 @@ export async function createPet(input: {
   tags?: string[];
 
   avatarPath?: string | null; // storage path (DB에 저장)
-}): Promise<string> {
+}): Promise<Pet> {
   const userRes = await supabase.auth.getUser();
   const userId = userRes.data.user?.id ?? null;
   if (!userId) throw new Error('로그인 정보가 없습니다.');
@@ -183,18 +179,39 @@ export async function createPet(input: {
     profile_image_url: input.avatarPath ?? null,
   };
 
+  const columns = [
+    'id',
+    'user_id',
+    'name',
+    'birth_date',
+    'adoption_date',
+    'weight_kg',
+    'gender',
+    'neutered',
+    'breed',
+    'profile_image_url',
+    'theme_color',
+    'likes',
+    'dislikes',
+    'hobbies',
+    'personality_tags',
+    'death_date',
+    'created_at',
+    'updated_at',
+  ].join(',');
+
   const { data, error } = await supabase
     .from('pets')
     .insert(payload)
-    .select('id')
+    .select(columns)
     .single();
 
   if (error) throw error;
-  const inserted = data as InsertedPetIdRow | null;
+  const inserted = data as unknown as PetsRow | null;
   if (!inserted?.id) {
     throw new Error('아이 프로필 식별자를 확인하지 못했어요.');
   }
-  return inserted.id;
+  return mapRowToPet(inserted);
 }
 
 /* ---------------------------------------------------------

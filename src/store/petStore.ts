@@ -56,11 +56,30 @@ export type PetState = {
     options?: {
       userId?: string | null;
       persist?: boolean;
+      preferredPetId?: string | null;
+    },
+  ) => void;
+  upsertPet: (
+    pet: Pet,
+    options?: {
+      userId?: string | null;
+      persist?: boolean;
+      select?: boolean;
     },
   ) => void;
   selectPet: (petId: string) => void;
 
-  updatePetAvatarUrl: (petId: string, avatarUrl: string | null) => void;
+  updatePetAvatar: (
+    petId: string,
+    avatar: {
+      avatarPath?: string | null;
+      avatarUrl?: string | null;
+    },
+    options?: {
+      userId?: string | null;
+      persist?: boolean;
+    },
+  ) => void;
 
   setLoading: (v: boolean) => void;
   setBooted: (v: boolean) => void;
@@ -159,7 +178,11 @@ export const usePetStore = create<PetState>((set, get) => ({
 
   setPets: (pets: Pet[], options) => {
     const prevSelected = get().selectedPetId;
-    const nextSelected = resolveSelectedPetId(pets, prevSelected);
+    const nextSelected = resolveSelectedPetId(
+      pets,
+      prevSelected,
+      options?.preferredPetId,
+    );
     const persist = options?.persist ?? true;
     const userId = options?.userId ?? null;
 
@@ -174,6 +197,21 @@ export const usePetStore = create<PetState>((set, get) => ({
     }
   },
 
+  upsertPet: (pet, options) => {
+    const currentPets = get().pets;
+    const existingIndex = currentPets.findIndex(item => item.id === pet.id);
+    const nextPets =
+      existingIndex >= 0
+        ? currentPets.map(item => (item.id === pet.id ? { ...item, ...pet } : item))
+        : [...currentPets, pet];
+
+    get().setPets(nextPets, {
+      userId: options?.userId ?? null,
+      persist: options?.persist,
+      preferredPetId: options?.select ? pet.id : undefined,
+    });
+  },
+
   selectPet: (petId: string) => {
     const { pets } = get();
     if (!pets.some(p => p.id === petId)) return;
@@ -184,11 +222,24 @@ export const usePetStore = create<PetState>((set, get) => ({
     });
   },
 
-  updatePetAvatarUrl: (petId: string, avatarUrl: string | null) => {
+  updatePetAvatar: (petId, avatar, options) => {
     const next = get().pets.map(p =>
-      p.id === petId ? { ...p, avatarUrl } : p,
+      p.id === petId
+        ? {
+            ...p,
+            avatarPath:
+              avatar.avatarPath !== undefined ? avatar.avatarPath : p.avatarPath,
+            avatarUrl:
+              avatar.avatarUrl !== undefined ? avatar.avatarUrl : p.avatarUrl,
+          }
+        : p,
     );
-    set({ pets: next });
+
+    get().setPets(next, {
+      userId: options?.userId ?? null,
+      persist: options?.persist,
+      preferredPetId: get().selectedPetId,
+    });
   },
 
   setLoading: (v: boolean) => set({ loading: v }),

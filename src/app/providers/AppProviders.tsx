@@ -63,7 +63,7 @@ export default function AppProviders({ children }: Props) {
   // ---------------------------------------------------------
   // 0) Theme
   // ---------------------------------------------------------
-  const { mode } = useThemeMode({ followSystem: true, defaultMode: 'dark' });
+  const { mode } = useThemeMode({ followSystem: false, defaultMode: 'light' });
   const theme = useMemo(() => createTheme(mode), [mode]);
 
   // ---------------------------------------------------------
@@ -189,9 +189,6 @@ export default function AppProviders({ children }: Props) {
       setProfileSyncState('loading');
       setPetLoading(true);
 
-      const currentSelectedPetId = usePetStore.getState().selectedPetId;
-      const cachedPets = usePetStore.getState().pets;
-
       const fetchPetsSafely = async () => {
         const first = await withTimeout(
           fetchMyPets(userId),
@@ -199,10 +196,7 @@ export default function AppProviders({ children }: Props) {
           'fetchMyPets',
         );
 
-        if (
-          first.length > 0 ||
-          (!currentSelectedPetId && cachedPets.length === 0)
-        ) {
+        if (first.length > 0) {
           return first;
         }
 
