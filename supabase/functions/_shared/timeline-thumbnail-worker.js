@@ -12,9 +12,9 @@ const STUCK_JOB_MINUTES = 15;
 const MAX_RETRY_COUNT = 8;
 
 export function createWorkerContext() {
-  const supabaseUrl = requireEnv('SUPABASE_URL');
-  const serviceRoleKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
-  const databaseUrl = requireEnv('SUPABASE_DB_URL');
+  const supabaseUrl = requireEnv('THUMBNAIL_WORKER_SUPABASE_URL');
+  const serviceRoleKey = requireEnv('THUMBNAIL_WORKER_SERVICE_ROLE_KEY');
+  const databaseUrl = requireEnv('THUMBNAIL_WORKER_DB_URL');
 
   const supabase = createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
@@ -114,13 +114,73 @@ export async function lockCandidateRows(sql, limit) {
   });
 }
 
+export async function lockSpecificRows(sql, ids) {
+  const normalizedIds = Array.from(
+    new Set((ids ?? []).map(value => `${value ?? ''}`.trim()).filter(Boolean)),
+  );
+  if (normalizedIds.length === 0) return [];
+
+  return sql.begin(async tx => {
+    const rows = await tx.unsafe(
+      `
+        with candidate as (
+          select mi.id
+          from public.memory_images mi
+          where mi.id = any($1::uuid[])
+          order by mi.created_at asc
+          for update skip locked
+        )
+        update public.memory_images mi
+        set
+          processing_started_at = now(),
+          last_processed_at = now(),
+          updated_at = now()
+        from candidate c
+        where mi.id = c.id
+        returning
+          mi.id,
+          mi.memory_id,
+          mi.user_id,
+          mi.pet_id,
+          mi.sort_order,
+          mi.original_path,
+          mi.timeline_thumb_path,
+          mi.status,
+          coalesce(mi.retry_count, 0) as retry_count,
+          mi.last_error_code,
+          mi.last_error_message,
+          mi.last_processed_at,
+          mi.processing_started_at,
+          mi.created_at,
+          mi.updated_at
+      `,
+      [normalizedIds],
+    );
+
+    return rows;
+  });
+}
+
 export async function processThumbnailBatch(input) {
   const { sql, supabase } = input;
   const startedAt = Date.now();
-  const rows = await lockCandidateRows(sql, input.limit);
+  const targetedIds = Array.from(
+    new Set((input.memoryImageIds ?? []).map(value => `${value ?? ''}`.trim()).filter(Boolean)),
+  );
+  const rows =
+    targetedIds.length > 0
+      ? await lockSpecificRows(sql, targetedIds)
+      : await lockCandidateRows(sql, input.limit);
+  const lockedIds = rows.map(row => row.id);
   const summary = {
     requested: input.limit,
+    targeted: targetedIds.length,
     locked: rows.length,
+    lockedIds,
+    notLockedIds:
+      targetedIds.length > 0
+        ? targetedIds.filter(id => !lockedIds.includes(id))
+        : [],
     success: 0,
     failed: 0,
     recovered: 0,
@@ -161,6 +221,25 @@ async function processSingleRow(input) {
   const thumbnailPath = buildTimelineThumbnailPath(row);
 
   try {
+    if (!forceRegenerate && row.status === 'ready' && `${row.timeline_thumb_path ?? ''}`.trim()) {
+      console.log(
+        JSON.stringify({
+          scope: 'timeline-thumbnail-worker',
+          event: 'row_skipped',
+          id: row.id,
+          reason: 'already_ready',
+          thumbnailPath: row.timeline_thumb_path,
+        }),
+      );
+
+      return {
+        id: row.id,
+        status: 'skipped',
+        reason: 'already_ready',
+        thumbnailPath: row.timeline_thumb_path,
+      };
+    }
+
     if (!forceRegenerate) {
       const recovered = await recoverIfThumbnailAlreadyExists({
         supabase,

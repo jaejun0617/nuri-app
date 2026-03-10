@@ -16,6 +16,13 @@ function jsonResponse(body, status = 200) {
   });
 }
 
+function normalizeMemoryImageIds(value) {
+  if (!Array.isArray(value)) return [];
+  return Array.from(
+    new Set(value.map(item => `${item ?? ''}`.trim()).filter(Boolean)),
+  );
+}
+
 async function readJsonBody(request) {
   if (request.method === 'GET') return {};
   const contentType = request.headers.get('content-type') ?? '';
@@ -48,6 +55,7 @@ Deno.serve(async request => {
   const body = await readJsonBody(request);
   const url = new URL(request.url);
   const limit = normalizeBatchSize(body.limit ?? url.searchParams.get('limit'));
+  const memoryImageIds = normalizeMemoryImageIds(body.memoryImageIds);
   const forceRegenerate = Boolean(
     body.forceRegenerate ??
       (url.searchParams.get('forceRegenerate') || '').toLowerCase() === 'true',
@@ -59,12 +67,14 @@ Deno.serve(async request => {
     const summary = await processThumbnailBatch({
       ...context,
       limit,
+      memoryImageIds,
       forceRegenerate,
     });
 
     return jsonResponse({
       ok: true,
       limit,
+      memoryImageIds,
       forceRegenerate,
       summary,
     });
