@@ -3,45 +3,29 @@
 // - petId 기준 memories(타임라인) 표시
 // - pull-to-refresh
 // - 무한 스크롤(loadMore)
-// - 정렬 토글(최신/오래된) ✅ 화면 고정(Sticky)
-// - 돋보기 → 검색바 토글(제목/태그 + debounce)
-// - ✅ 카테고리 필터(전체/산책/식사/건강기록/일기장/기타) + 기타 서브카테고리(미용/병원&약 ...)
-// - 월/연도 필터 + 섹션 점프(월 선택 시 해당 구간으로 스크롤)
+// - 월/카테고리 필터 + 월 점프
 // - "기록하기" → RecordCreate(탭)
 // - 항목 탭 → RecordDetail
-//
-// ✅ 공통 탭 대응(중요):
-// - 탭에서 진입하면 route params가 없을 수 있음
-// - 이 경우 petStore(selectedPetId 또는 첫 pet)에서 petId를 fallback으로 사용
-//
-// ✅ store 계약(Chapter 6):
-// - byPetId[petId] = { items, status, hasMore, errorMessage, ... }
-// - status: 'idle' | 'loading' | 'ready' | 'refreshing' | 'loadingMore' | 'error'
-// - actions: bootstrap(petId), refresh(petId), loadMore(petId)
 
-import React, {
-  memo,
-  startTransition,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   BackHandler,
-  FlatList,
   Image,
-  type ListRenderItem,
+  InteractionManager,
+  type LayoutChangeEvent,
   Modal,
   Pressable,
-  RefreshControl,
   ScrollView,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import {
+  FlashList,
+  type FlashListRef,
+  type ListRenderItem,
+  type ViewToken,
+} from '@shopify/flash-list';
 import Feather from 'react-native-vector-icons/Feather';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type {
@@ -57,9 +41,9 @@ import {
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from 'styled-components/native';
 
-// ✅ 따로 분리한 MemoryCard 컴포넌트 불러오기! (경로는 실제 구조에 맞게 수정해주세요)
 import { MemoryCard } from '../../components/MemoryCard/MemoryCard';
-
+import { preloadOptimizedImages } from '../../components/images/OptimizedImage';
+import AppText from '../../app/ui/AppText';
 import type { AppTabParamList } from '../../navigation/AppTabsNavigator';
 import type { TimelineStackParamList } from '../../navigation/TimelineStackNavigator';
 import {
@@ -68,23 +52,17 @@ import {
   type MemoryMainCategory,
   type MemoryOtherSubCategory,
 } from '../../services/memories/categoryMeta';
+import { buildPetThemePalette } from '../../services/pets/themePalette';
 import type { MemoryRecord } from '../../services/supabase/memories';
-import {
-  buildTimelineHeatmap,
-  type TimelineHeatmapWeek,
-} from '../../services/timeline/heatmap';
 import {
   buildTimelineView,
   humanizeTimelineMonthKey,
-  normalizeTimelineQuery,
-  shouldAutoLoadMoreTimeline,
   type TimelineSortMode,
 } from '../../services/timeline/query';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
-import type { PetRecordsState } from '../../store/recordStore';
+import { getPrimaryMemoryImageRef } from '../../services/records/imageSources';
+import { getMemoryImageSignedUrlsCached } from '../../services/supabase/storageMemories';
+import { usePetStore, resolveSelectedPetId } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
-import { resolveSelectedPetId, usePetStore } from '../../store/petStore';
-import AppText from '../../app/ui/AppText';
 import { styles } from './TimelineScreen.styles';
 
 type TimelineMainRoute = RouteProp<TimelineStackParamList, 'TimelineMain'>;
@@ -95,6 +73,8 @@ type TimelineStackNav = NativeStackNavigationProp<
 >;
 type Nav = CompositeNavigationProp<TimelineStackNav, TimelineTabNav>;
 
+type MainCategory = MemoryMainCategory;
+type OtherSubCategory = MemoryOtherSubCategory;
 type Status =
   | 'idle'
   | 'loading'
@@ -117,73 +97,53 @@ function normalizeStatus(v: unknown): Status {
   }
 }
 
-const DEBOUNCE_MS = 250;
 const JUMP_TO_ALL = '__ALL__';
+const TIMELINE_WINDOW_SIZE = 3;
+const TIMELINE_EAGER_IMAGE_COUNT = 2;
+const TIMELINE_INITIAL_IMAGE_WINDOW = {
+  start: 0,
+  end: 4,
+  eagerUntil: 1,
+};
+const TIMELINE_IMAGE_BUFFER_BEHIND = 2;
+const TIMELINE_IMAGE_BUFFER_AHEAD = 4;
+const TIMELINE_ITEM_HEIGHT = 96;
+const TIMELINE_PRELOAD_VISIBLE_COUNT = 2;
+const TIMELINE_PRELOAD_DEFERRED_COUNT = 2;
+const TIMELINE_PRELOAD_DEFER_DELAY_MS = 180;
+const TIMELINE_DIAG_LOG_VIEWABILITY = true;
+const TIMELINE_DIAG_LOG_RENDERS = true;
 
-// ✅ 경고/렌더 안정화: 빈 배열/빈 상태는 “항상 동일 참조”
-const EMPTY_ITEMS = Object.freeze<MemoryRecord[]>([]);
-const FALLBACK_PET_STATE = Object.freeze({
-  items: EMPTY_ITEMS as ReadonlyArray<MemoryRecord>,
-  status: 'idle' as const,
-  hasMore: false,
-  errorMessage: null as string | null,
-});
+let timelineScreenRenderCount = 0;
+let timelineViewabilityLogCount = 0;
 
-// ---------------------------------------------------------
-// ✅ Category 정의 (UI key)
-// ---------------------------------------------------------
-type MainCategory = MemoryMainCategory;
-type OtherSubCategory = MemoryOtherSubCategory;
-
-// ---------------------------------------------------------
-// ✅ Memo Controls Bar (Sticky 헤더 스무스 핵심)
-// ---------------------------------------------------------
 const ControlsBar = memo(function ControlsBar({
   sortLabel,
   monthLabel,
-  searchOpen,
-  searchInput,
-  showSearchHint,
   mainCategory,
   categoryLabel,
   onToggleSort,
   onOpenMonthModal,
-  onToggleSearch,
-  onChangeSearch,
-  onClearSearch,
   onPressMainCategory,
   theme,
 }: {
   sortLabel: string;
   monthLabel: string;
-  searchOpen: boolean;
-  searchInput: string;
-  showSearchHint: boolean;
   mainCategory: MainCategory;
   categoryLabel: string;
-
   onToggleSort: () => void;
   onOpenMonthModal: () => void;
-  onToggleSearch: () => void;
-
-  onChangeSearch: (t: string) => void;
-  onClearSearch: () => void;
-
   onPressMainCategory: (key: MainCategory) => void;
   theme: ReturnType<typeof buildPetThemePalette>;
 }) {
   return (
     <View style={styles.controlsWrap}>
-      {/* row 1: sort / month / search */}
       <View style={styles.controlsRow}>
         <TouchableOpacity
           activeOpacity={0.9}
           style={[
             styles.controlChip,
-            {
-              borderColor: theme.border,
-              backgroundColor: theme.tint,
-            },
+            { borderColor: theme.border, backgroundColor: theme.tint },
           ]}
           onPress={onToggleSort}
         >
@@ -199,10 +159,7 @@ const ControlsBar = memo(function ControlsBar({
           activeOpacity={0.9}
           style={[
             styles.controlChip,
-            {
-              borderColor: theme.border,
-              backgroundColor: theme.tint,
-            },
+            { borderColor: theme.border, backgroundColor: theme.tint },
           ]}
           onPress={onOpenMonthModal}
         >
@@ -213,21 +170,8 @@ const ControlsBar = memo(function ControlsBar({
             {monthLabel}
           </AppText>
         </TouchableOpacity>
-
-        <View style={{ flex: 1 }} />
-
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={[styles.iconBtn, { borderColor: theme.border }]}
-          onPress={onToggleSearch}
-        >
-          <AppText preset="headline" style={styles.iconText}>
-            🔍
-          </AppText>
-        </TouchableOpacity>
       </View>
 
-      {/* row 2: categories (✅ FlatList 제거 → ScrollView map) */}
       <View style={styles.categoryRow}>
         <ScrollView
           horizontal
@@ -239,12 +183,9 @@ const ControlsBar = memo(function ControlsBar({
               item.key === 'other'
                 ? mainCategory === 'other'
                 : mainCategory === item.key;
-
             const label =
-              item.key === 'other'
-                ? mainCategory === 'other'
-                  ? categoryLabel
-                  : item.label
+              item.key === 'other' && mainCategory === 'other'
+                ? categoryLabel
                 : item.label;
 
             return (
@@ -279,227 +220,35 @@ const ControlsBar = memo(function ControlsBar({
           })}
         </ScrollView>
       </View>
-
-      {searchOpen ? (
-        <View style={styles.searchBox}>
-          <TextInput
-            value={searchInput}
-            onChangeText={onChangeSearch}
-            placeholder="제목/태그로 검색"
-            placeholderTextColor="#8A94A6"
-            style={styles.searchInput}
-            autoCapitalize="none"
-            autoCorrect={false}
-            returnKeyType="search"
-          />
-
-          {searchInput.trim() ? (
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={[styles.clearBtn, { backgroundColor: theme.primary }]}
-              onPress={onClearSearch}
-            >
-              <AppText preset="caption" style={styles.clearBtnText}>
-                지우기
-              </AppText>
-            </TouchableOpacity>
-          ) : null}
-        </View>
-      ) : null}
-
-      {showSearchHint ? (
-        <View style={styles.hintRow}>
-          <AppText preset="caption" style={styles.hintText}>
-            검색 중에는 자동 무한 로드를 멈추고, 하단 버튼으로 추가 로드를
-            제공합니다.
-          </AppText>
-        </View>
-      ) : null}
-    </View>
-  );
-});
-
-const HEATMAP_DAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'] as const;
-
-function getHeatmapIntensityStyle(intensity: 0 | 1 | 2 | 3 | 4) {
-  switch (intensity) {
-    case 1:
-      return styles.heatmapCell1;
-    case 2:
-      return styles.heatmapCell2;
-    case 3:
-      return styles.heatmapCell3;
-    case 4:
-      return styles.heatmapCell4;
-    default:
-      return styles.heatmapCell0;
-  }
-}
-
-function getHeatmapIntensityColor(
-  intensity: 0 | 1 | 2 | 3 | 4,
-  theme: ReturnType<typeof buildPetThemePalette>,
-) {
-  switch (intensity) {
-    case 1:
-      return theme.tint;
-    case 2:
-      return theme.glow;
-    case 3:
-      return theme.border;
-    case 4:
-      return theme.primary;
-    default:
-      return '#EFF1F6';
-  }
-}
-
-const HeatmapSection = memo(function HeatmapSection({
-  monthLabel,
-  weeks,
-  expanded,
-  onToggle,
-  theme,
-}: {
-  monthLabel: string;
-  weeks: TimelineHeatmapWeek[];
-  expanded: boolean;
-  onToggle: () => void;
-  theme: ReturnType<typeof buildPetThemePalette>;
-}) {
-  return (
-    <View
-      style={[
-        styles.heatmapWrap,
-        {
-          backgroundColor: theme.soft,
-          borderColor: theme.border,
-        },
-      ]}
-    >
-      <TouchableOpacity
-        activeOpacity={0.88}
-        style={styles.heatmapToggleRow}
-        onPress={onToggle}
-      >
-        <View style={styles.heatmapHeader}>
-          <AppText
-            preset="caption"
-            style={[styles.heatmapEyebrow, { color: theme.primary }]}
-          >
-            기록 밀도
-          </AppText>
-          <AppText preset="body" style={styles.heatmapTitle}>
-            최근 12주 히트맵
-          </AppText>
-          <AppText preset="caption" style={styles.heatmapDesc}>
-            {monthLabel} 기준으로 기록이 남은 날을 한눈에 보여줘요.
-          </AppText>
-        </View>
-
-        <Feather
-          name={expanded ? 'chevron-up' : 'chevron-down'}
-          size={18}
-          color={theme.primary}
-        />
-      </TouchableOpacity>
-
-      {expanded ? (
-        <>
-          <View style={styles.heatmapGridRow}>
-            <View style={styles.heatmapLabelsCol}>
-              {HEATMAP_DAY_LABELS.map(label => (
-                <AppText
-                  key={label}
-                  preset="caption"
-                  style={styles.heatmapDayLabel}
-                >
-                  {label}
-                </AppText>
-              ))}
-            </View>
-
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.heatmapWeeksRow}
-            >
-              {weeks.map(week => (
-                <View key={week.key} style={styles.heatmapWeekCol}>
-                  {week.cells.map(cell => (
-                    <View
-                      key={cell.key}
-                      style={[
-                        styles.heatmapCell,
-                        getHeatmapIntensityStyle(cell.intensity),
-                        {
-                          backgroundColor: getHeatmapIntensityColor(
-                            cell.intensity,
-                            theme,
-                          ),
-                        },
-                        cell.isToday ? styles.heatmapCellToday : null,
-                        cell.isToday ? { borderColor: theme.deep } : null,
-                        !cell.isCurrentMonth ? styles.heatmapCellMuted : null,
-                      ]}
-                    />
-                  ))}
-                </View>
-              ))}
-            </ScrollView>
-          </View>
-
-          <View style={styles.heatmapLegendRow}>
-            <AppText preset="caption" style={styles.heatmapLegendText}>
-              적음
-            </AppText>
-            {[0, 1, 2, 3, 4].map(level => (
-              <View
-                key={`legend-${level}`}
-                style={[
-                  styles.heatmapLegendCell,
-                  getHeatmapIntensityStyle(level as 0 | 1 | 2 | 3 | 4),
-                  {
-                    backgroundColor: getHeatmapIntensityColor(
-                      level as 0 | 1 | 2 | 3 | 4,
-                      theme,
-                    ),
-                  },
-                ]}
-              />
-            ))}
-            <AppText preset="caption" style={styles.heatmapLegendText}>
-              많음
-            </AppText>
-          </View>
-        </>
-      ) : null}
     </View>
   );
 });
 
 export default function TimelineScreen() {
-  // ---------------------------------------------------------
-  // 1) navigation / route
-  // ---------------------------------------------------------
+  if (__DEV__ && TIMELINE_DIAG_LOG_RENDERS) {
+    timelineScreenRenderCount += 1;
+    if (timelineScreenRenderCount <= 12 || timelineScreenRenderCount % 10 === 0) {
+      console.debug('[TimelineDiag] TimelineScreen render', {
+        count: timelineScreenRenderCount,
+      });
+    }
+  }
+
   const theme = useTheme();
   const navigation = useNavigation<Nav>();
   const route = useRoute<TimelineMainRoute>();
   const isFocused = useIsFocused();
 
-  // ---------------------------------------------------------
-  // 1.5) petId resolve (params → store fallback)
-  // ---------------------------------------------------------
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
-
   const petIdFromParams = route?.params?.petId ?? null;
   const mainCategoryFromParams = route?.params?.mainCategory ?? null;
   const otherSubCategoryFromParams = route?.params?.otherSubCategory ?? null;
 
-  const petId = useMemo(() => {
-    return resolveSelectedPetId(pets, selectedPetId, petIdFromParams);
-  }, [petIdFromParams, selectedPetId, pets]);
+  const petId = useMemo(
+    () => resolveSelectedPetId(pets, selectedPetId, petIdFromParams),
+    [petIdFromParams, pets, selectedPetId],
+  );
   const selectedPet = useMemo(
     () => pets.find(item => item.id === petId) ?? null,
     [petId, pets],
@@ -509,78 +258,52 @@ export default function TimelineScreen() {
     [selectedPet?.themeColor],
   );
 
-  // ---------------------------------------------------------
-  // 2) store (✅ 안정: byPetId[petId] 직접 구독 + 동일참조 fallback)
-  // ---------------------------------------------------------
   const bootstrap = useRecordStore(s => s.bootstrap);
   const refresh = useRecordStore(s => s.refresh);
   const loadMore = useRecordStore(s => s.loadMore);
+  const timelineIds = useRecordStore(s => s.selectTimelineIdsByPetId(petId));
+  const timelineStatus = useRecordStore(s => s.selectTimelineStatusByPetId(petId));
+  const hasMore = useRecordStore(s => s.selectTimelineHasMoreByPetId(petId));
+  useRecordStore(s => s.selectTimelineEntityVersionByPetId(petId));
   const focusedMemoryId = useRecordStore(s =>
     petId ? s.focusedMemoryIdByPet[petId] ?? null : null,
   );
   const clearFocusedMemoryId = useRecordStore(s => s.clearFocusedMemoryId);
-
-  const petState = useRecordStore(s => {
-    if (!petId) return FALLBACK_PET_STATE;
-    return s.byPetId[petId] ?? FALLBACK_PET_STATE;
-  }) as PetRecordsState | typeof FALLBACK_PET_STATE;
-
-  const status = normalizeStatus(petState.status);
-  const hasMore = Boolean(petState.hasMore);
-  const baseItems = (petState.items ??
-    EMPTY_ITEMS) as ReadonlyArray<MemoryRecord>;
+  const recordsById = useRecordStore.getState().recordsById;
+  const status = normalizeStatus(timelineStatus);
   const refreshing = status === 'refreshing';
 
-  // ---------------------------------------------------------
-  // 3) bootstrap
-  // ---------------------------------------------------------
   useEffect(() => {
     if (!petId) return;
     bootstrap(petId);
   }, [bootstrap, petId]);
 
-  // ---------------------------------------------------------
-  // 4) UI state: sort / search / month / category
-  // ---------------------------------------------------------
   const [sortMode, setSortMode] = useState<TimelineSortMode>('recent');
-
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchInput, setSearchInput] = useState('');
-  const [query, setQuery] = useState('');
-
+  const [diagDisableImages, setDiagDisableImages] = useState(false);
   const [ymFilter, setYmFilter] = useState<string | null>(null);
   const [ymModalOpen, setYmModalOpen] = useState(false);
-
-  // ✅ category
   const [mainCategory, setMainCategory] = useState<MainCategory>('all');
   const [otherSubCategory, setOtherSubCategory] =
     useState<OtherSubCategory | null>(null);
   const [otherModalOpen, setOtherModalOpen] = useState(false);
-  const [heatmapExpanded, setHeatmapExpanded] = useState(false);
-
-  // 점프 요청(필터 적용 후 렌더 완료 다음 scrollToIndex)
   const [pendingJumpYm, setPendingJumpYm] = useState<string | null>(null);
+  const [imageWindow, setImageWindow] = useState(TIMELINE_INITIAL_IMAGE_WINDOW);
+  const imageWindowRef = useRef(TIMELINE_INITIAL_IMAGE_WINDOW);
 
-  // pet 변경 시: UX 안정화 초기화
   useEffect(() => {
     setSortMode('recent');
-    setSearchOpen(false);
-    setSearchInput('');
-    setQuery('');
     setYmFilter(null);
     setYmModalOpen(false);
-
     setMainCategory('all');
     setOtherSubCategory(null);
     setOtherModalOpen(false);
-    setHeatmapExpanded(false);
-
     setPendingJumpYm(null);
+    setImageWindow(TIMELINE_INITIAL_IMAGE_WINDOW);
+    imageWindowRef.current = TIMELINE_INITIAL_IMAGE_WINDOW;
   }, [petId]);
 
   useEffect(() => {
     if (!mainCategoryFromParams) return;
-
     setMainCategory(mainCategoryFromParams);
     setOtherModalOpen(false);
 
@@ -592,49 +315,32 @@ export default function TimelineScreen() {
     setOtherSubCategory(null);
   }, [mainCategoryFromParams, otherSubCategoryFromParams, petId]);
 
-  // ---------------------------------------------------------
-  // 4.1) debounce search
-  // ---------------------------------------------------------
-  useEffect(() => {
-    const t = setTimeout(() => {
-      setQuery(normalizeTimelineQuery(searchInput));
-    }, DEBOUNCE_MS);
-
-    return () => clearTimeout(t);
-  }, [searchInput]);
-
-  // ---------------------------------------------------------
-  // 4.2) available YM list (for modal)
-  // ---------------------------------------------------------
   const timelineView = useMemo(
     () =>
       buildTimelineView({
-        items: baseItems,
+        ids: timelineIds,
+        recordsById,
         filters: {
           ymFilter,
           mainCategory,
           otherSubCategory,
-          query,
+          query: '',
           sortMode,
         },
       }),
-    [baseItems, ymFilter, mainCategory, otherSubCategory, query, sortMode],
+    [mainCategory, otherSubCategory, recordsById, sortMode, timelineIds, ymFilter],
   );
   const availableYmList = timelineView.availableMonthKeys;
-  const filteredItems = timelineView.filteredItems;
+  const filteredIds = timelineView.filteredIds;
+  const preloadSignatureRef = useRef<string>('');
 
-  // ---------------------------------------------------------
-  // 4.4) 월 점프: 필터 적용 후 렌더 완료 타이밍에 scrollToIndex
-  // ---------------------------------------------------------
-  const listRef = useRef<FlatList<MemoryRecord>>(null);
+  const listRef = useRef<FlashListRef<string>>(null);
   const targetLayoutOffsetRef = useRef<number | null>(null);
   const pendingFocusedMemoryIdRef = useRef<string | null>(null);
-  const pendingFocusedIndexRef = useRef<number | null>(null);
 
   const clearPendingFocusedMemory = useCallback(() => {
     targetLayoutOffsetRef.current = null;
     pendingFocusedMemoryIdRef.current = null;
-    pendingFocusedIndexRef.current = null;
   }, []);
 
   const finalizeFocusedMemoryScroll = useCallback(
@@ -658,40 +364,28 @@ export default function TimelineScreen() {
 
   const consumeFocusedMemory = useCallback(() => {
     if (!petId || !focusedMemoryId || !isFocused) return false;
-    if (filteredItems.length === 0) return false;
+    if (filteredIds.length === 0) return false;
 
-    const index = filteredItems.findIndex(item => item.id === focusedMemoryId);
+    const index = filteredIds.indexOf(focusedMemoryId);
     if (index < 0) return false;
 
     pendingFocusedMemoryIdRef.current = focusedMemoryId;
-    pendingFocusedIndexRef.current = index;
     targetLayoutOffsetRef.current = null;
 
-    if (finalizeFocusedMemoryScroll(focusedMemoryId)) {
+    if (finalizeFocusedMemoryScroll(focusedMemoryId)) return true;
+
+    if (index === 0) {
+      listRef.current?.scrollToOffset({ offset: 0, animated: true });
       return true;
     }
 
-    const list = listRef.current;
-    if (!list) return false;
-
-    if (index === 0) {
-      list.scrollToOffset({ offset: 0, animated: true });
-    } else {
-      list.scrollToIndex({
-        index,
-        animated: true,
-        viewPosition: 0.35,
-      });
-    }
-
+    listRef.current?.scrollToIndex({
+      index,
+      animated: true,
+      viewPosition: 0.35,
+    });
     return true;
-  }, [
-    finalizeFocusedMemoryScroll,
-    filteredItems,
-    focusedMemoryId,
-    isFocused,
-    petId,
-  ]);
+  }, [filteredIds, finalizeFocusedMemoryScroll, focusedMemoryId, isFocused, petId]);
 
   useEffect(() => {
     if (!pendingJumpYm) return;
@@ -705,11 +399,12 @@ export default function TimelineScreen() {
     }
 
     const idx = timelineView.firstIndexByMonth.get(pendingJumpYm) ?? -1;
-
     requestAnimationFrame(() => {
-      if (idx >= 0)
+      if (idx >= 0) {
         listRef.current?.scrollToIndex({ index: idx, animated: true });
-      else listRef.current?.scrollToOffset({ offset: 0, animated: true });
+      } else {
+        listRef.current?.scrollToOffset({ offset: 0, animated: true });
+      }
       setPendingJumpYm(null);
     });
   }, [pendingJumpYm, timelineView.firstIndexByMonth]);
@@ -723,9 +418,76 @@ export default function TimelineScreen() {
     consumeFocusedMemory();
   }, [consumeFocusedMemory]);
 
-  // ---------------------------------------------------------
-  // 5) actions
-  // ---------------------------------------------------------
+  const timelinePreloadImageRefs = useMemo(() => {
+    if (diagDisableImages) return { immediate: [], deferred: [] };
+
+    const visible = filteredIds
+      .slice(imageWindow.start, imageWindow.end + 1)
+      .map(id => recordsById[id])
+      .filter((item): item is MemoryRecord => Boolean(item))
+      .map(record => getPrimaryMemoryImageRef(record))
+      .filter((value): value is string => Boolean(value));
+
+    return {
+      immediate: visible.slice(0, TIMELINE_PRELOAD_VISIBLE_COUNT),
+      deferred: visible.slice(
+        TIMELINE_PRELOAD_VISIBLE_COUNT,
+        TIMELINE_PRELOAD_VISIBLE_COUNT + TIMELINE_PRELOAD_DEFERRED_COUNT,
+      ),
+    };
+  }, [diagDisableImages, filteredIds, imageWindow.end, imageWindow.start, recordsById]);
+
+  useEffect(() => {
+    if (diagDisableImages) return;
+
+    const immediateSignature = timelinePreloadImageRefs.immediate.join('|');
+    const deferredSignature = timelinePreloadImageRefs.deferred.join('|');
+    const nextSignature = `${immediateSignature}__${deferredSignature}`;
+    if (!nextSignature || nextSignature === preloadSignatureRef.current) return;
+    preloadSignatureRef.current = nextSignature;
+
+    let cancelled = false;
+    let deferredTimer: ReturnType<typeof setTimeout> | null = null;
+    const interactionTask = InteractionManager.runAfterInteractions(() => {
+      (async () => {
+        const immediateUrls = await getMemoryImageSignedUrlsCached(
+          timelinePreloadImageRefs.immediate,
+          {
+            maxCacheSize: 450,
+            refreshBufferMs: 90 * 1000,
+          },
+        );
+        if (cancelled) return;
+        preloadOptimizedImages(
+          immediateUrls.filter((value): value is string => Boolean(value)),
+        );
+
+        if (timelinePreloadImageRefs.deferred.length === 0) return;
+        deferredTimer = setTimeout(async () => {
+          const deferredUrls = await getMemoryImageSignedUrlsCached(
+            timelinePreloadImageRefs.deferred,
+            {
+              maxCacheSize: 450,
+              refreshBufferMs: 90 * 1000,
+            },
+          );
+          if (cancelled) return;
+          preloadOptimizedImages(
+            deferredUrls.filter((value): value is string => Boolean(value)),
+          );
+        }, TIMELINE_PRELOAD_DEFER_DELAY_MS);
+      })().catch(() => {});
+    });
+
+    return () => {
+      cancelled = true;
+      if (typeof interactionTask.cancel === 'function') {
+        interactionTask.cancel();
+      }
+      if (deferredTimer) clearTimeout(deferredTimer);
+    };
+  }, [diagDisableImages, timelinePreloadImageRefs]);
+
   const onPressCreate = useCallback(() => {
     if (!petId) return;
     navigation.navigate('RecordCreateTab', {
@@ -743,7 +505,7 @@ export default function TimelineScreen() {
         },
       },
     });
-  }, [navigation, petId, mainCategory, otherSubCategory]);
+  }, [mainCategory, navigation, otherSubCategory, petId]);
 
   const onPressItem = useCallback(
     (item: MemoryRecord) => {
@@ -758,41 +520,93 @@ export default function TimelineScreen() {
     refresh(petId);
   }, [petId, refresh]);
 
-  // ✅ 무한 스크롤(loadMore) 중복 호출 방지
-  const endReachedLockRef = useRef(0);
+  const onFocusedItemLayout = useCallback(
+    (itemId: string, event: LayoutChangeEvent) => {
+      targetLayoutOffsetRef.current = event.nativeEvent.layout.y;
+      finalizeFocusedMemoryScroll(itemId);
+    },
+    [finalizeFocusedMemoryScroll],
+  );
 
+  const onViewableItemsChanged = useCallback(
+    ({
+      viewableItems,
+    }: {
+      viewableItems: Array<ViewToken<string>>;
+      changed: Array<ViewToken<string>>;
+    }) => {
+      let topVisibleIndex = Number.POSITIVE_INFINITY;
+      let bottomVisibleIndex = -1;
+
+      for (const token of viewableItems) {
+        if (!token.isViewable) continue;
+        const index = token.index;
+        if (typeof index !== 'number') continue;
+        if (index < topVisibleIndex) topVisibleIndex = index;
+        if (index > bottomVisibleIndex) bottomVisibleIndex = index;
+      }
+
+      if (!Number.isFinite(topVisibleIndex)) return;
+
+      const nextWindow = {
+        start: Math.max(0, topVisibleIndex - TIMELINE_IMAGE_BUFFER_BEHIND),
+        end: Math.max(
+          TIMELINE_INITIAL_IMAGE_WINDOW.end,
+          bottomVisibleIndex + TIMELINE_IMAGE_BUFFER_AHEAD,
+        ),
+        eagerUntil: Math.max(
+          TIMELINE_INITIAL_IMAGE_WINDOW.eagerUntil,
+          bottomVisibleIndex >= 0
+            ? Math.min(
+                bottomVisibleIndex,
+                topVisibleIndex + TIMELINE_EAGER_IMAGE_COUNT - 1,
+              )
+            : TIMELINE_INITIAL_IMAGE_WINDOW.eagerUntil,
+        ),
+      };
+
+      const currentWindow = imageWindowRef.current;
+      if (
+        currentWindow.start === nextWindow.start &&
+        currentWindow.end === nextWindow.end &&
+        currentWindow.eagerUntil === nextWindow.eagerUntil
+      ) {
+        return;
+      }
+
+      if (__DEV__ && TIMELINE_DIAG_LOG_VIEWABILITY) {
+        timelineViewabilityLogCount += 1;
+        if (
+          timelineViewabilityLogCount <= 20 ||
+          timelineViewabilityLogCount % 10 === 0
+        ) {
+          console.debug('[TimelineDiag] viewability -> imageWindow', {
+            count: timelineViewabilityLogCount,
+            topVisibleIndex,
+            bottomVisibleIndex,
+            currentWindow,
+            nextWindow,
+          });
+        }
+      }
+
+      imageWindowRef.current = nextWindow;
+      setImageWindow(nextWindow);
+    },
+    [],
+  );
+
+  const endReachedLockRef = useRef(0);
   const onEndReached = useCallback(() => {
-    if (!petId) return;
-    if (
-      !shouldAutoLoadMoreTimeline({
-        status,
-        hasMore,
-        query,
-        pendingJumpMonth: pendingJumpYm,
-        ymFilter,
-        mainCategory,
-        otherSubCategory,
-      })
-    ) {
-      return;
-    }
+    if (!petId || !hasMore || status !== 'ready') return;
+    if (ymFilter || mainCategory !== 'all' || otherSubCategory) return;
 
     const now = Date.now();
     if (now - endReachedLockRef.current < 800) return;
     endReachedLockRef.current = now;
 
     loadMore(petId).catch(() => {});
-  }, [
-    petId,
-    status,
-    hasMore,
-    query,
-    pendingJumpYm,
-    ymFilter,
-    mainCategory,
-    otherSubCategory,
-    loadMore,
-  ]);
+  }, [hasMore, loadMore, mainCategory, otherSubCategory, petId, status, ymFilter]);
 
   const jumpToYm = useCallback((ym: string | null) => {
     setYmModalOpen(false);
@@ -827,20 +641,14 @@ export default function TimelineScreen() {
     setOtherModalOpen(false);
   }, []);
 
-  // ---------------------------------------------------------
-  // 6) UI derived
-  // ---------------------------------------------------------
-  const headerTitle = useMemo(() => '타임라인', []);
   const sortLabel = useMemo(
     () => (sortMode === 'recent' ? '최신순' : '오래된순'),
     [sortMode],
   );
-
   const monthLabel = useMemo(
     () => (ymFilter ? humanizeTimelineMonthKey(ymFilter) : '월/전체'),
     [ymFilter],
   );
-
   const categoryLabel = useMemo(() => {
     if (mainCategory !== 'other') {
       return MAIN_CATEGORY_OPTIONS.find(x => x.key === mainCategory)?.label ?? '전체';
@@ -854,152 +662,66 @@ export default function TimelineScreen() {
     );
   }, [mainCategory, otherSubCategory]);
 
-  const showSearchHint = Boolean(query);
-  const autoLoadEnabled = useMemo(
-    () =>
-      shouldAutoLoadMoreTimeline({
-        status,
-        hasMore,
-        query,
-        pendingJumpMonth: pendingJumpYm,
-        ymFilter,
-        mainCategory,
-        otherSubCategory,
-      }),
-    [
-      status,
-      hasMore,
-      query,
-      pendingJumpYm,
-      ymFilter,
-      mainCategory,
-      otherSubCategory,
-    ],
-  );
-  const heatmapWeeks = useMemo(
-    () => buildTimelineHeatmap(baseItems as MemoryRecord[], 12),
-    [baseItems],
-  );
-  const manualLoadMoreLabel = useMemo(() => {
-    if (normalizeTimelineQuery(query)) return '검색 결과 더 불러오기';
-    if (ymFilter || mainCategory !== 'all' || otherSubCategory) {
-      return '필터 결과 더 불러오기';
-    }
-    return '기록 더 불러오기';
-  }, [mainCategory, otherSubCategory, query, ymFilter]);
-  const isFilteredEmpty = baseItems.length > 0 && filteredItems.length === 0;
-  const emptyTitle = isFilteredEmpty
-    ? '조건에 맞는 기록이 없어요'
-    : '아직 남겨진 추억이 없어요';
-  const emptyLines = isFilteredEmpty
-    ? ['검색어나 필터 조건을 조금 바꿔서', '다른 기록도 찾아보세요']
-    : ['우리 아이와 함께한 반짝이는 순간을', '첫 기록으로 천천히 시작해보세요'];
+  const renderItem = useCallback<ListRenderItem<string>>(
+    ({ item, index }) => {
+      const record = recordsById[item];
+      if (!record) return null;
 
-  // ---------------------------------------------------------
-  // 7) renderItem (stable) - 🔥 외부 MemoryCard 호출!
-  // ---------------------------------------------------------
-  const renderItem = useCallback<ListRenderItem<MemoryRecord>>(
-    ({ item }) => {
+      const enableImageLoad =
+        index >= imageWindow.start && index <= imageWindow.end;
+      const shouldDeferImage =
+        enableImageLoad && index > imageWindow.eagerUntil;
+
       return (
-        <View
-          onLayout={event => {
-            if (item.id !== pendingFocusedMemoryIdRef.current) return;
-            targetLayoutOffsetRef.current = event.nativeEvent.layout.y;
-            finalizeFocusedMemoryScroll(item.id);
-          }}
-        >
-          <MemoryCard item={item} onPress={onPressItem} />
-        </View>
+        <MemoryCard
+          item={record}
+          onPress={onPressItem}
+          enableImageLoad={diagDisableImages ? false : enableImageLoad}
+          deferImageLoad={shouldDeferImage}
+          isFocused={focusedMemoryId === item}
+          onFocusedLayout={onFocusedItemLayout}
+        />
       );
     },
-    [finalizeFocusedMemoryScroll, onPressItem],
+    [
+      diagDisableImages,
+      focusedMemoryId,
+      imageWindow,
+      onFocusedItemLayout,
+      onPressItem,
+      recordsById,
+    ],
   );
 
-  const keyExtractor = useCallback((item: MemoryRecord) => item.id, []);
+  const keyExtractor = useCallback((itemId: string) => itemId, []);
+  const getItemType = useCallback(() => 'memory', []);
 
-  // ---------------------------------------------------------
-  // 8) Footer
-  // ---------------------------------------------------------
-  const ListFooterComponent = useMemo(() => {
-    if (baseItems.length === 0) return null;
+  const listFooterComponent = useMemo(() => {
+    if (timelineIds.length === 0) return null;
 
-    switch (status) {
-      case 'loadingMore':
-        return (
-          <View style={styles.footer}>
-            <ActivityIndicator />
-            <AppText preset="caption" style={styles.footerText}>
-              더 불러오는 중...
-            </AppText>
-          </View>
-        );
-
-      case 'ready':
-        if (hasMore && !autoLoadEnabled) {
-          return (
-            <View style={styles.footer}>
-              <TouchableOpacity
-                activeOpacity={0.9}
-                style={styles.manualMoreBtn}
-                onPress={() => {
-                  if (!petId) return;
-                  loadMore(petId).catch(() => {});
-                }}
-              >
-                <AppText preset="caption" style={styles.manualMoreText}>
-                  {manualLoadMoreLabel}
-                </AppText>
-              </TouchableOpacity>
-            </View>
-          );
-        }
-
-        if (!hasMore) {
-          return (
-            <View style={styles.footer}>
-              <AppText preset="caption" style={styles.footerText}>
-                마지막 기록이에요
-              </AppText>
-            </View>
-          );
-        }
-
-        return <View style={{ height: 18 }} />;
-
-      default:
-        return <View style={{ height: 18 }} />;
+    if (status === 'loadingMore') {
+      return (
+        <View style={styles.footer}>
+          <ActivityIndicator />
+          <AppText preset="caption" style={styles.footerText}>
+            더 불러오는 중...
+          </AppText>
+        </View>
+      );
     }
-  }, [
-    baseItems.length,
-    status,
-    hasMore,
-    autoLoadEnabled,
-    petId,
-    loadMore,
-    manualLoadMoreLabel,
-  ]);
 
-  // ---------------------------------------------------------
-  // 9) Handlers for ControlsBar (stable)
-  // ---------------------------------------------------------
-  const onToggleSort = useCallback(() => {
-    setSortMode(prev => (prev === 'recent' ? 'oldest' : 'recent'));
-  }, []);
+    if (status === 'ready' && !hasMore) {
+      return (
+        <View style={styles.footer}>
+          <AppText preset="caption" style={styles.footerText}>
+            마지막 기록이에요
+          </AppText>
+        </View>
+      );
+    }
 
-  const onOpenMonthModal = useCallback(() => setYmModalOpen(true), []);
-  const onToggleSearch = useCallback(() => setSearchOpen(v => !v), []);
-
-  const onChangeSearch = useCallback((t: string) => {
-    // ✅ 입력 스무스: 타이핑을 UI 우선으로 두고, 상태 업데이트는 transition
-    startTransition(() => {
-      setSearchInput(t);
-    });
-  }, []);
-
-  const onClearSearch = useCallback(() => {
-    setSearchInput('');
-    setQuery('');
-  }, []);
+    return <View style={{ height: 18 }} />;
+  }, [hasMore, status, timelineIds.length]);
 
   const onPressHome = useCallback(() => {
     navigation.navigate('HomeTab');
@@ -1021,12 +743,8 @@ export default function TimelineScreen() {
     }, [navigation]),
   );
 
-  // ---------------------------------------------------------
-  // 10) Render
-  // ---------------------------------------------------------
   return (
     <View style={styles.screen}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           activeOpacity={0.9}
@@ -1036,9 +754,8 @@ export default function TimelineScreen() {
           <Feather name="home" size={20} color={petTheme.primary} />
         </TouchableOpacity>
         <AppText preset="headline" style={styles.headerTitle}>
-          {headerTitle}
+          타임라인
         </AppText>
-
         <TouchableOpacity
           activeOpacity={0.9}
           style={[styles.createBtn, { backgroundColor: petTheme.primary }]}
@@ -1050,49 +767,61 @@ export default function TimelineScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* List */}
-      <FlatList
+      {__DEV__ ? (
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={[
+            styles.diagBadge,
+            diagDisableImages
+              ? styles.diagBadgeOff
+              : styles.diagBadgeOn,
+          ]}
+          onPress={() => {
+            setDiagDisableImages(prev => {
+              const next = !prev;
+              console.debug('[TimelineDiag] toggle images', {
+                disabled: next,
+              });
+              return next;
+            });
+          }}
+        >
+          <AppText preset="caption" style={styles.diagBadgeText}>
+            {diagDisableImages ? 'IMG OFF' : 'IMG ON'}
+          </AppText>
+        </TouchableOpacity>
+      ) : null}
+
+      <ControlsBar
+        sortLabel={sortLabel}
+        monthLabel={monthLabel}
+        mainCategory={mainCategory}
+        categoryLabel={categoryLabel}
+        onToggleSort={() =>
+          setSortMode(prev => (prev === 'recent' ? 'oldest' : 'recent'))
+        }
+        onOpenMonthModal={() => setYmModalOpen(true)}
+        onPressMainCategory={onPressMainCategory}
+        theme={petTheme}
+      />
+
+      <FlashList
         ref={listRef}
-        data={filteredItems}
+        data={filteredIds}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
+        drawDistance={TIMELINE_ITEM_HEIGHT * TIMELINE_WINDOW_SIZE}
+        getItemType={getItemType}
+        extraData={{ imageWindow, focusedMemoryId }}
         contentContainerStyle={
-          filteredItems.length ? styles.list : styles.listEmpty
+          filteredIds.length ? styles.list : styles.listEmpty
         }
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        refreshing={refreshing}
+        onRefresh={onRefresh}
         onEndReached={onEndReached}
         onEndReachedThreshold={0.6}
-        ListHeaderComponent={
-          <>
-            <ControlsBar
-              sortLabel={sortLabel}
-              monthLabel={monthLabel}
-              searchOpen={searchOpen}
-              searchInput={searchInput}
-              showSearchHint={showSearchHint}
-              mainCategory={mainCategory}
-              categoryLabel={categoryLabel}
-              onToggleSort={onToggleSort}
-              onOpenMonthModal={onOpenMonthModal}
-              onToggleSearch={onToggleSearch}
-              onChangeSearch={onChangeSearch}
-              onClearSearch={onClearSearch}
-              onPressMainCategory={onPressMainCategory}
-              theme={petTheme}
-            />
-            <HeatmapSection
-              monthLabel={monthLabel}
-              weeks={heatmapWeeks}
-              expanded={heatmapExpanded}
-              onToggle={() => setHeatmapExpanded(prev => !prev)}
-              theme={petTheme}
-            />
-          </>
-        }
-        stickyHeaderIndices={[0]}
-        ListFooterComponent={ListFooterComponent}
+        onViewableItemsChanged={onViewableItemsChanged}
+        ListFooterComponent={listFooterComponent}
         ListEmptyComponent={
           <View style={styles.empty}>
             <View style={styles.emptyHero}>
@@ -1102,17 +831,15 @@ export default function TimelineScreen() {
                 resizeMode="contain"
               />
             </View>
-
             <AppText preset="headline" style={styles.emptyTitle}>
-              {emptyTitle}
+              아직 남겨진 추억이 없어요
             </AppText>
             <AppText preset="body" style={styles.emptyDesc}>
-              {emptyLines[0]}
+              우리 아이와 함께한 반짝이는 순간을
             </AppText>
             <AppText preset="body" style={styles.emptyDesc}>
-              {emptyLines[1]}
+              첫 기록으로 천천히 시작해보세요
             </AppText>
-
             <TouchableOpacity
               activeOpacity={0.9}
               style={[styles.primary, { backgroundColor: petTheme.primary }]}
@@ -1127,39 +854,13 @@ export default function TimelineScreen() {
             </TouchableOpacity>
           </View>
         }
-        // ✅ FlatList 성능 옵션
-        // removeClippedSubviews 는 Android에서 "깜빡임/튐"이 있으면 false로 내려도 됨.
         removeClippedSubviews
-        initialNumToRender={8}
-        maxToRenderPerBatch={8}
-        windowSize={11}
-        updateCellsBatchingPeriod={50}
-        scrollEventThrottle={16}
         onContentSizeChange={() => {
           consumeFocusedMemory();
         }}
         keyboardShouldPersistTaps="handled"
-        onScrollToIndexFailed={info => {
-          if (pendingFocusedIndexRef.current !== info.index) {
-            listRef.current?.scrollToIndex({
-              index: info.index,
-              animated: true,
-            });
-            return;
-          }
-
-          const measuredIndex = Math.max(0, info.highestMeasuredFrameIndex);
-          listRef.current?.scrollToIndex({
-            index: measuredIndex,
-            animated: false,
-          });
-          requestAnimationFrame(() => {
-            consumeFocusedMemory();
-          });
-        }}
       />
 
-      {/* Month/Year Modal */}
       <Modal
         visible={ymModalOpen}
         transparent
@@ -1189,10 +890,7 @@ export default function TimelineScreen() {
 
             <TouchableOpacity
               activeOpacity={0.9}
-              style={[
-                styles.modalItem,
-                { borderColor: theme.colors.border },
-              ]}
+              style={[styles.modalItem, { borderColor: theme.colors.border }]}
               onPress={() => jumpToYm(null)}
             >
               <AppText
@@ -1207,18 +905,12 @@ export default function TimelineScreen() {
               <TouchableOpacity
                 key={ym}
                 activeOpacity={0.9}
-                style={[
-                  styles.modalItem,
-                  { borderColor: theme.colors.border },
-                ]}
+                style={[styles.modalItem, { borderColor: theme.colors.border }]}
                 onPress={() => jumpToYm(ym)}
               >
                 <AppText
                   preset="body"
-                  style={[
-                    styles.modalItemText,
-                    { color: theme.colors.textPrimary },
-                  ]}
+                  style={[styles.modalItemText, { color: theme.colors.textPrimary }]}
                 >
                   {humanizeTimelineMonthKey(ym)}
                 </AppText>
@@ -1228,7 +920,6 @@ export default function TimelineScreen() {
         </Pressable>
       </Modal>
 
-      {/* Other SubCategory Modal */}
       <Modal
         visible={otherModalOpen}
         transparent
@@ -1253,43 +944,34 @@ export default function TimelineScreen() {
               preset="headline"
               style={[styles.modalTitle, { color: theme.colors.textPrimary }]}
             >
-              생활 선택
+              생활 카테고리
             </AppText>
 
             <TouchableOpacity
               activeOpacity={0.9}
-              style={[
-                styles.modalItem,
-                { borderColor: theme.colors.border },
-              ]}
+              style={[styles.modalItem, { borderColor: theme.colors.border }]}
               onPress={clearOtherSub}
             >
               <AppText
                 preset="body"
                 style={[styles.modalItemText, { color: theme.colors.textPrimary }]}
               >
-                생활(전체)
+                전체 보기
               </AppText>
             </TouchableOpacity>
 
-            {OTHER_SUBCATEGORY_OPTIONS.map(sub => (
+            {OTHER_SUBCATEGORY_OPTIONS.map(option => (
               <TouchableOpacity
-                key={sub.key}
+                key={option.key}
                 activeOpacity={0.9}
-                style={[
-                  styles.modalItem,
-                  { borderColor: theme.colors.border },
-                ]}
-                onPress={() => applyOtherSub(sub.key)}
+                style={[styles.modalItem, { borderColor: theme.colors.border }]}
+                onPress={() => applyOtherSub(option.key)}
               >
                 <AppText
                   preset="body"
-                  style={[
-                    styles.modalItemText,
-                    { color: theme.colors.textPrimary },
-                  ]}
+                  style={[styles.modalItemText, { color: theme.colors.textPrimary }]}
                 >
-                  {sub.label}
+                  {option.label}
                 </AppText>
               </TouchableOpacity>
             ))}

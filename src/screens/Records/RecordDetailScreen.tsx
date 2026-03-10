@@ -1,16 +1,13 @@
 // 파일: src/screens/Records/RecordDetailScreen.tsx
 // 역할:
-// - 추억 상세를 인스타그램형 피드 감각으로 재구성한 화면
-// - 현재 기록과 같은 아이의 다른 기록을 카드 단위 피드로 이어서 보여줌
-// - 각 카드마다 바로 수정/삭제 가능한 액션 메뉴를 제공
+// - 선택한 추억 1개를 집중해서 보여주는 상세 화면
+// - 다중 이미지 캐러셀, 수정/삭제 액션, fallback fetch를 담당
+// - 타임라인 목록과 상세 화면의 역할을 분리해 렌더 비용을 줄임
 
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
-  FlatList,
-  Image,
-  LayoutChangeEvent,
+  type LayoutChangeEvent,
   Modal,
   Pressable,
   ScrollView,
@@ -19,14 +16,16 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import type { RouteProp } from '@react-navigation/native';
-import { useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from 'styled-components/native';
 
 import AppNavigationToolbar from '../../components/navigation/AppNavigationToolbar';
 import AppText from '../../app/ui/AppText';
+import OptimizedImage from '../../components/images/OptimizedImage';
 import type { TimelineStackParamList } from '../../navigation/TimelineStackNavigator';
 import { getBrandedErrorMeta } from '../../services/app/errors';
 import {
@@ -48,6 +47,24 @@ type PreviewImageSource = {
   key: string;
   uri: string;
 };
+
+const RELATED_IMAGE_HYDRATION_DELAY_MS = 140;
+function toPreviewImageSources(
+  imagePaths: ReturnType<typeof getMemoryImageRefs>,
+  urls: Array<string | null>,
+  itemId: string,
+) {
+  return urls.flatMap((url, index) => {
+    const uri = `${url ?? ''}`.trim();
+    if (!uri) return [];
+    return [
+      {
+        key: imagePaths[index]?.key ?? `${itemId}:${index}:${uri}`,
+        uri,
+      },
+    ];
+  });
+}
 
 const EMOTION_META: Record<
   string,
@@ -71,11 +88,13 @@ const FeedPostCard = memo(function FeedPostCard({
   petName,
   petAvatarUrl,
   onPressMore,
+  imagePriority = 'primary',
 }: {
   item: MemoryRecord;
   petName: string;
   petAvatarUrl: string | null;
   onPressMore: () => void;
+  imagePriority?: 'primary' | 'related';
 }) {
   const [previewImageSources, setPreviewImageSources] = useState<
     PreviewImageSource[]
@@ -83,15 +102,48 @@ const FeedPostCard = memo(function FeedPostCard({
   const [imageIndex, setImageIndex] = useState(0);
   const [carouselWidth, setCarouselWidth] = useState(0);
   const moodMeta = item.emotion ? EMOTION_META[item.emotion] : null;
-
   const imagePaths = useMemo(() => {
     return getMemoryImageRefs(item);
   }, [item]);
 
   useEffect(() => {
     let mounted = true;
+    let delayTimer: ReturnType<typeof setTimeout> | null = null;
+    let frameId: number | null = null;
 
-    async function run() {
+    async function hydratePrimaryFirstImage() {
+      if (imagePaths.length === 0) {
+        if (mounted) setPreviewImageSources([]);
+        return;
+      }
+
+      const firstImage = imagePaths[0];
+      const firstUrls = await getMemoryImageSignedUrlsCached(
+        firstImage ? [firstImage.value] : [],
+      );
+      if (!mounted) return;
+
+      setPreviewImageSources(toPreviewImageSources(imagePaths, firstUrls, item.id));
+
+      if (imagePaths.length <= 1) return;
+
+      frameId = requestAnimationFrame(() => {
+        getMemoryImageSignedUrlsCached(imagePaths.map(image => image.value))
+          .then(urls => {
+            if (!mounted) return;
+            setPreviewImageSources(toPreviewImageSources(imagePaths, urls, item.id));
+          })
+          .catch(() => {
+            if (mounted) {
+              setPreviewImageSources(prev =>
+                prev.length > 0 ? prev : [],
+              );
+            }
+          });
+      });
+    }
+
+    async function hydrateDeferredImages() {
       if (imagePaths.length === 0) {
         if (mounted) setPreviewImageSources([]);
         return;
@@ -102,28 +154,27 @@ const FeedPostCard = memo(function FeedPostCard({
       );
       if (!mounted) return;
 
-      setPreviewImageSources(
-        urls.flatMap((url, index) => {
-          const uri = `${url ?? ''}`.trim();
-          if (!uri) return [];
-          return [
-            {
-              key: imagePaths[index]?.key ?? `${item.id}:${index}:${uri}`,
-              uri,
-            },
-          ];
-        }),
-      );
+      setPreviewImageSources(toPreviewImageSources(imagePaths, urls, item.id));
     }
 
-    run().catch(() => {
-      if (mounted) setPreviewImageSources([]);
-    });
+    if (imagePriority === 'primary') {
+      hydratePrimaryFirstImage().catch(() => {
+        if (mounted) setPreviewImageSources([]);
+      });
+    } else {
+      delayTimer = setTimeout(() => {
+        hydrateDeferredImages().catch(() => {
+          if (mounted) setPreviewImageSources([]);
+        });
+      }, RELATED_IMAGE_HYDRATION_DELAY_MS);
+    }
 
     return () => {
       mounted = false;
+      if (delayTimer) clearTimeout(delayTimer);
+      if (frameId !== null) cancelAnimationFrame(frameId);
     };
-  }, [imagePaths, item.id]);
+  }, [imagePaths, imagePriority, item.id]);
 
   useEffect(() => {
     if (imageIndex < previewImageSources.length) return;
@@ -175,10 +226,15 @@ const FeedPostCard = memo(function FeedPostCard({
   const renderPreviewImage = useCallback(
     ({ item: previewImage }: { item: PreviewImageSource }) => (
       <View style={[styles.postImageSlide, { width: slideWidth }]}>
-        <Image source={{ uri: previewImage.uri }} style={styles.postImage} resizeMode="cover" />
+        <OptimizedImage
+          uri={previewImage.uri}
+          style={styles.postImage}
+          resizeMode="cover"
+          priority={imagePriority === 'primary' ? 'high' : 'normal'}
+        />
       </View>
     ),
-    [slideWidth],
+    [imagePriority, slideWidth],
   );
 
   return (
@@ -186,7 +242,12 @@ const FeedPostCard = memo(function FeedPostCard({
       <View style={styles.postHeader}>
         <View style={styles.postHeaderLeft}>
           {petAvatarUrl ? (
-            <Image source={{ uri: petAvatarUrl }} style={styles.postAvatar} />
+            <OptimizedImage
+              uri={petAvatarUrl}
+              style={styles.postAvatar}
+              resizeMode="cover"
+              priority="low"
+            />
           ) : (
             <View style={[styles.postAvatar, styles.postAvatarFallback]}>
               <AppText preset="caption" style={styles.postAvatarFallbackText}>
@@ -215,9 +276,9 @@ const FeedPostCard = memo(function FeedPostCard({
         </TouchableOpacity>
       </View>
 
-      {previewImageSources.length > 1 ? (
+      {imagePaths.length > 1 ? (
         <View style={styles.postImageViewport} onLayout={onImageViewportLayout}>
-          <FlatList
+          <FlashList
             data={previewImageSources}
             horizontal
             pagingEnabled
@@ -226,20 +287,20 @@ const FeedPostCard = memo(function FeedPostCard({
             showsHorizontalScrollIndicator={false}
             onMomentumScrollEnd={onMomentumEnd}
             removeClippedSubviews={false}
-            getItemLayout={(_, index) => ({
-              length: slideWidth,
-              offset: slideWidth * index,
-              index,
-            })}
           />
           <View style={styles.postImagePager}>
             <AppText preset="caption" style={styles.postImagePagerText}>
-              {imageIndex + 1} / {previewImageSources.length}
+              {Math.min(imageIndex + 1, imagePaths.length)} / {imagePaths.length}
             </AppText>
           </View>
         </View>
       ) : previewImageSources.length === 1 ? (
-        <Image source={{ uri: previewImageSources[0].uri }} style={styles.postImage} resizeMode="cover" />
+        <OptimizedImage
+          uri={previewImageSources[0].uri}
+          style={styles.postImage}
+          resizeMode="cover"
+          priority={imagePriority === 'primary' ? 'high' : 'normal'}
+        />
       ) : (
         <View style={styles.postImageFallback}>
           <AppText preset="caption" style={styles.postImageFallbackText}>
@@ -294,6 +355,7 @@ const FeedPostCard = memo(function FeedPostCard({
         <AppText preset="caption" style={styles.postDateText}>
           {displayDate}
         </AppText>
+
       </View>
     </View>
   );
@@ -303,26 +365,14 @@ export default function RecordDetailScreen() {
   const theme = useTheme();
   const navigation = useNavigation<TimelineNav>();
   const route = useRoute<Route>();
-  const isFocused = useIsFocused();
   const petId = route.params?.petId ?? null;
   const memoryId = route.params?.memoryId ?? null;
 
-  const petState = useRecordStore(s => {
-    if (!petId) return undefined;
-    return s.byPetId[petId];
-  });
-  const loadMore = useRecordStore(s => s.loadMore);
+  const record = useRecordStore(s => s.selectRecordById(memoryId));
   const removeOneLocal = useRecordStore(s => s.removeOneLocal);
   const refresh = useRecordStore(s => s.refresh);
   const upsertOneLocal = useRecordStore(s => s.upsertOneLocal);
-  const focusedMemoryId = useRecordStore(s =>
-    petId ? s.focusedMemoryIdByPet[petId] ?? null : null,
-  );
-  const clearFocusedMemoryId = useRecordStore(s => s.clearFocusedMemoryId);
   const pets = usePetStore(s => s.pets);
-  const scrollRef = useRef<ScrollView | null>(null);
-  const itemOffsetMapRef = useRef<Record<string, number>>({});
-  const lastScrollTargetKeyRef = useRef<string | null>(null);
 
   const selectedPet = useMemo(
     () => pets.find(item => item.id === petId) ?? null,
@@ -336,12 +386,6 @@ export default function RecordDetailScreen() {
     () => selectedPet?.avatarUrl?.trim() || null,
     [selectedPet?.avatarUrl],
   );
-
-  const record = useMemo(() => {
-    if (!memoryId) return null;
-    const items = petState?.items ?? [];
-    return items.find(item => item.id === memoryId) ?? null;
-  }, [memoryId, petState?.items]);
 
   useEffect(() => {
     let mounted = true;
@@ -363,150 +407,73 @@ export default function RecordDetailScreen() {
     };
   }, [memoryId, petId, record, upsertOneLocal]);
 
-  const feedRecords = useMemo(() => {
-    const items = petState?.items ?? [];
-    return items;
-  }, [petState?.items]);
-
-  const scrollTargetMemoryId = focusedMemoryId ?? memoryId;
-  const shouldConsumeFocusedTarget = Boolean(
-    focusedMemoryId && focusedMemoryId === scrollTargetMemoryId,
-  );
-  const scrollTargetKey = scrollTargetMemoryId
-    ? `${shouldConsumeFocusedTarget ? 'focused' : 'route'}:${scrollTargetMemoryId}`
-    : null;
-
-  useEffect(() => {
-    lastScrollTargetKeyRef.current = null;
-  }, [feedRecords.length, scrollTargetKey]);
-
-  const scrollToMemoryIfNeeded = useCallback(
-    (targetMemoryId: string | null) => {
-      if (!targetMemoryId) return false;
-      if (!isFocused) return false;
-      if (!scrollTargetKey) return false;
-      if (lastScrollTargetKeyRef.current === scrollTargetKey) return false;
-
-      const offset = itemOffsetMapRef.current[targetMemoryId];
-      if (typeof offset !== 'number') return false;
-
-      scrollRef.current?.scrollTo({
-        y: Math.max(0, offset - 12),
-        animated: false,
-      });
-      lastScrollTargetKeyRef.current = scrollTargetKey;
-
-      if (petId && shouldConsumeFocusedTarget) {
-        clearFocusedMemoryId(petId);
-      }
-      return true;
-    },
-    [
-      clearFocusedMemoryId,
-      isFocused,
-      petId,
-      scrollTargetKey,
-      shouldConsumeFocusedTarget,
-    ],
-  );
-
-  useEffect(() => {
-    if (!scrollTargetMemoryId) return;
-    scrollToMemoryIfNeeded(scrollTargetMemoryId);
-  }, [feedRecords, scrollTargetMemoryId, scrollToMemoryIfNeeded]);
-
-  const hasMore = Boolean(petState?.hasMore);
-  const status = petState?.status ?? 'idle';
-
   const [deleting, setDeleting] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [actionMenuVisible, setActionMenuVisible] = useState(false);
-  const [actionTargetId, setActionTargetId] = useState<string | null>(null);
-  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
-
-  const actionTarget = useMemo(
-    () => feedRecords.find(item => item.id === actionTargetId) ?? null,
-    [actionTargetId, feedRecords],
-  );
-  const deleteTarget = useMemo(
-    () => feedRecords.find(item => item.id === deleteTargetId) ?? null,
-    [deleteTargetId, feedRecords],
-  );
-
-  const openActionMenu = useCallback((targetId: string) => {
-    setActionTargetId(targetId);
+  const openActionMenu = useCallback(() => {
     setActionMenuVisible(true);
   }, []);
 
   const closeActionMenu = useCallback(() => {
     setActionMenuVisible(false);
-    setActionTargetId(null);
   }, []);
   const hideActionMenu = useCallback(() => {
     setActionMenuVisible(false);
   }, []);
 
   const onPressEdit = useCallback(() => {
-    if (!petId || !actionTargetId) return;
+    if (!petId || !record) return;
     closeActionMenu();
-    navigation.navigate('RecordEdit', { petId, memoryId: actionTargetId });
-  }, [actionTargetId, closeActionMenu, navigation, petId]);
+    navigation.navigate('RecordEdit', { petId, memoryId: record.id });
+  }, [closeActionMenu, navigation, petId, record]);
 
   const onPressDelete = useCallback(() => {
-    if (!petId || !actionTarget) return;
+    if (!petId || !record) return;
     hideActionMenu();
-    setDeleteTargetId(actionTarget.id);
     setDeleteModalVisible(true);
-  }, [actionTarget, hideActionMenu, petId]);
+  }, [hideActionMenu, petId, record]);
   const closeDeleteModal = useCallback(() => {
     setDeleteModalVisible(false);
-    setDeleteTargetId(null);
-    setActionTargetId(null);
   }, []);
 
   const onConfirmDelete = useCallback(async () => {
-    if (!petId || !deleteTarget || deleting) return;
+    if (!petId || !record || deleting) return;
 
     try {
       setDeleting(true);
       await deleteMemoryWithFile({
-        memoryId: deleteTarget.id,
-        imagePath: deleteTarget.imagePath,
-        imagePaths: deleteTarget.imagePaths,
+        memoryId: record.id,
+        imagePath: record.imagePath,
+        imagePaths: record.imagePaths,
       });
 
-      removeOneLocal(petId, deleteTarget.id);
-      await refresh(petId);
+      removeOneLocal(petId, record.id);
       closeDeleteModal();
 
-      if (deleteTarget.id === memoryId) {
-        navigation.navigate('TimelineMain', {
-          petId: petId ?? undefined,
-          mainCategory: 'all',
-        });
-      }
+      navigation.navigate('TimelineMain', {
+        petId: petId ?? undefined,
+        mainCategory: 'all',
+      });
+      refresh(petId).catch(() => {});
     } catch (error: unknown) {
       const { title, message } = getBrandedErrorMeta(error, 'record-delete');
       Alert.alert(title, message);
     } finally {
       setDeleting(false);
     }
-  }, [closeDeleteModal, deleteTarget, deleting, memoryId, navigation, petId, refresh, removeOneLocal]);
+  }, [closeDeleteModal, deleting, navigation, petId, record, refresh, removeOneLocal]);
 
-  const onScrollFeed = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      if (!petId || !hasMore) return;
-      if (status === 'loading' || status === 'refreshing' || status === 'loadingMore') {
-        return;
-      }
-
-      const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
-      const remain = contentSize.height - (contentOffset.y + layoutMeasurement.height);
-      if (remain > 560) return;
-
-      loadMore(petId);
-    },
-    [hasMore, loadMore, petId, status],
+  const renderFeedCard = useCallback(
+    (item: MemoryRecord) => (
+      <FeedPostCard
+        item={item}
+        petName={petName}
+        petAvatarUrl={petAvatarUrl}
+        onPressMore={openActionMenu}
+        imagePriority="primary"
+      />
+    ),
+    [openActionMenu, petAvatarUrl, petName],
   );
 
   if (!record) {
@@ -534,45 +501,22 @@ export default function RecordDetailScreen() {
 
   return (
     <View style={styles.screen}>
-      <View style={styles.header}>
-        <AppText preset="headline" style={styles.headerTitle}>
+      <TouchableOpacity
+        activeOpacity={0.8}
+        style={styles.headerLink}
+        onPress={() => navigation.goBack()}
+      >
+        <AppText preset="headline" style={styles.headerLinkText}>
           추억상세보기
         </AppText>
-      </View>
+      </TouchableOpacity>
 
       <ScrollView
-        ref={scrollRef}
         style={styles.scroll}
         contentContainerStyle={styles.body}
         showsVerticalScrollIndicator={false}
-        onScroll={onScrollFeed}
-        scrollEventThrottle={16}
       >
-        {feedRecords.map(item => (
-          <View
-            key={item.id}
-            onLayout={event => {
-              if (item.id !== scrollTargetMemoryId) return;
-              itemOffsetMapRef.current[item.id] = event.nativeEvent.layout.y;
-              if (item.id === scrollTargetMemoryId) {
-                scrollToMemoryIfNeeded(scrollTargetMemoryId);
-              }
-            }}
-          >
-            <FeedPostCard
-              item={item}
-              petName={petName}
-              petAvatarUrl={petAvatarUrl}
-              onPressMore={() => openActionMenu(item.id)}
-            />
-          </View>
-        ))}
-
-        {status === 'loadingMore' ? (
-          <View style={styles.feedLoading}>
-            <ActivityIndicator size="small" color="#8A94A6" />
-          </View>
-        ) : null}
+        {renderFeedCard(record)}
       </ScrollView>
 
       <AppNavigationToolbar activeKey="timeline" />

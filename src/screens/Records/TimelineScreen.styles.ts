@@ -40,6 +40,28 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   createText: { color: '#ffffff', fontWeight: '900' },
+  diagBadge: {
+    position: 'absolute',
+    top: 62,
+    right: 14,
+    zIndex: 10,
+    minWidth: 74,
+    height: 30,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  diagBadgeOn: {
+    backgroundColor: '#0F766E',
+  },
+  diagBadgeOff: {
+    backgroundColor: '#991B1B',
+  },
+  diagBadgeText: {
+    color: '#FFFFFF',
+    fontWeight: '900',
+  },
 
   // sticky controls
   controlsWrap: {
@@ -232,36 +254,41 @@ export const styles = StyleSheet.create({
     fontWeight: '800',
   },
 
-  list: { padding: 14, gap: 10, paddingBottom: 24 },
+  list: { padding: 14, paddingBottom: 14 },
   listEmpty: { flexGrow: 1, padding: 14 },
 
   item: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
-    padding: 12,
+    padding: 10,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.08)',
+    marginBottom: 10,
   },
   thumb: {
-    width: 88,
-    height: 88,
-    borderRadius: 16,
+    width: 72,
+    height: 72,
+    borderRadius: 0,
     overflow: 'hidden',
-    backgroundColor: '#F4F4F4',
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.08)',
   },
-  thumbImg: { width: '100%', height: '100%' },
-  thumbPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  thumbImg: { width: '100%', height: '100%', borderRadius: 0 },
+  thumbPlaceholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 0,
+    backgroundColor: '#F4F4F4',
+  },
   thumbPlaceholderText: { color: '#888888', fontWeight: '800' },
 
-  itemBody: { flex: 1 },
+  itemBody: { flex: 1, justifyContent: 'center', gap: 4 },
   itemTitle: { color: TEXT, fontWeight: '900' },
-  itemContent: { marginTop: 6, color: '#374151' },
-
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
+  itemContent: { marginTop: 4, color: '#374151' },
+  metaRow: { flexDirection: 'row', alignItems: 'center' },
   metaText: { color: '#6B7280', fontWeight: '700' },
 
   badge: {

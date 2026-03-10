@@ -11,18 +11,29 @@ export const styles = StyleSheet.create({
     backgroundColor: '#F6F7FB',
   },
   header: {
-    height: 56,
-    justifyContent: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E9ECF2',
-    backgroundColor: '#FFFFFF',
+    width: '100%',
+    paddingTop: 14,
+    paddingBottom: 6,
+    backgroundColor: '#F6F7FB',
+    alignItems: 'center',
   },
   headerTitle: {
-    textAlign: 'center',
     color: '#111827',
     fontWeight: '800',
+    textAlign: 'center',
   },
-
+  headerLink: {
+    width: '100%',
+    paddingTop: 14,
+    paddingBottom: 6,
+    backgroundColor: '#F6F7FB',
+    alignItems: 'center',
+  },
+  headerLinkText: {
+    color: '#111827',
+    fontWeight: '800',
+    textAlign: 'center',
+  },
   scroll: {
     flex: 1,
   },
@@ -171,11 +182,6 @@ export const styles = StyleSheet.create({
   postDateText: {
     color: '#9AA4B7',
     fontWeight: '600',
-  },
-  feedLoading: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
   },
 
   sheetBackdrop: {
