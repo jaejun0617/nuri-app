@@ -11,7 +11,10 @@ import {
   getPrimaryMemoryImageRef,
   isDirectMemoryImageUri,
 } from '../services/records/imageSources';
-import { getMemoryImageSignedUrlCached } from '../services/supabase/storageMemories';
+import {
+  getMemoryImageSignedUrlCached,
+  type MemoryImageVariant,
+} from '../services/supabase/storageMemories';
 
 type GlobalWithIdleCallback = typeof globalThis & {
   requestIdleCallback?: (
@@ -36,20 +39,33 @@ type QueueTask = {
   onCancel?: () => void;
 };
 
-function readSignedUrlMemoryCache(path: string | null | undefined) {
+function buildSignedUrlMemoryCacheKey(
+  path: string | null | undefined,
+  variant: MemoryImageVariant | null | undefined,
+) {
   const normalized = `${path ?? ''}`.trim();
   if (!normalized) return null;
-  return signedUrlMemoryCache.get(normalized) ?? null;
+  return `${variant ?? 'original'}::${normalized}`;
+}
+
+function readSignedUrlMemoryCache(
+  path: string | null | undefined,
+  variant: MemoryImageVariant | null | undefined,
+) {
+  const key = buildSignedUrlMemoryCacheKey(path, variant);
+  if (!key) return null;
+  return signedUrlMemoryCache.get(key) ?? null;
 }
 
 function writeSignedUrlMemoryCache(
   path: string | null | undefined,
   url: string | null | undefined,
+  variant: MemoryImageVariant | null | undefined,
 ) {
-  const normalizedPath = `${path ?? ''}`.trim();
+  const key = buildSignedUrlMemoryCacheKey(path, variant);
   const normalizedUrl = `${url ?? ''}`.trim();
-  if (!normalizedPath || !normalizedUrl) return;
-  signedUrlMemoryCache.set(normalizedPath, normalizedUrl);
+  if (!key || !normalizedUrl) return;
+  signedUrlMemoryCache.set(key, normalizedUrl);
 }
 
 function pumpSignedUrlQueue() {
@@ -112,6 +128,7 @@ export function useSignedMemoryImage(
     defer?: boolean;
     delayMs?: number;
     trackLoading?: boolean;
+    variant?: MemoryImageVariant;
   },
 ) {
   const imageRef = getPrimaryMemoryImageRef({
@@ -119,8 +136,11 @@ export function useSignedMemoryImage(
     imagePaths: [],
     imageUrl: null,
   });
+  const variant = options?.variant ?? 'original';
   const initialSignedUrl =
-    isDirectMemoryImageUri(imageRef) ? imageRef : readSignedUrlMemoryCache(imageRef);
+    isDirectMemoryImageUri(imageRef)
+      ? imageRef
+      : readSignedUrlMemoryCache(imageRef, variant);
   const [signedUrl, setSignedUrl] = useState<string | null>(initialSignedUrl);
   const [loading, setLoading] = useState(false);
   const [resolved, setResolved] = useState(Boolean(initialSignedUrl));
@@ -152,7 +172,7 @@ export function useSignedMemoryImage(
       }
 
       if (isDirectMemoryImageUri(path)) {
-        writeSignedUrlMemoryCache(path, path);
+        writeSignedUrlMemoryCache(path, path, variant);
         if (request.isCurrent(requestId)) {
           setSignedUrl(path);
           if (trackLoading) setLoading(false);
@@ -161,7 +181,7 @@ export function useSignedMemoryImage(
         return;
       }
 
-      const cachedUrl = readSignedUrlMemoryCache(path);
+      const cachedUrl = readSignedUrlMemoryCache(path, variant);
       if (cachedUrl) {
         if (request.isCurrent(requestId)) {
           setSignedUrl(cachedUrl);
@@ -191,9 +211,9 @@ export function useSignedMemoryImage(
                   });
                 }
 
-                const url = await getMemoryImageSignedUrlCached(path);
+                const url = await getMemoryImageSignedUrlCached(path, { variant });
                 if (url) {
-                  writeSignedUrlMemoryCache(path, url);
+                  writeSignedUrlMemoryCache(path, url, variant);
                 }
 
                 if (request.isCurrent(requestId)) {
@@ -233,7 +253,9 @@ export function useSignedMemoryImage(
 
     if (!enabled) {
       const cachedUrl =
-        isDirectMemoryImageUri(imageRef) ? imageRef : readSignedUrlMemoryCache(imageRef);
+        isDirectMemoryImageUri(imageRef)
+          ? imageRef
+          : readSignedUrlMemoryCache(imageRef, variant);
       setSignedUrl(cachedUrl);
       if (trackLoading) setLoading(false);
       setResolved(Boolean(cachedUrl));
@@ -266,7 +288,7 @@ export function useSignedMemoryImage(
       cancelQueueTask?.();
       request.cancel();
     };
-  }, [delayMs, defer, enabled, imageRef, trackLoading]);
+  }, [delayMs, defer, enabled, imageRef, trackLoading, variant]);
 
   return { signedUrl, loading, resolved };
 }

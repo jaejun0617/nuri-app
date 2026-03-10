@@ -25,6 +25,15 @@ type CacheEntry = {
   touchedAtMs: number; // LRU
 };
 
+export type MemoryImageVariant = 'original' | 'timeline-thumb';
+
+type MemoryImageTransformOptions = {
+  width?: number;
+  height?: number;
+  resize?: 'cover' | 'contain' | 'fill';
+  quality?: number;
+};
+
 const cache = new Map<string, CacheEntry>();
 const inFlight = new Map<string, Promise<string>>();
 
@@ -48,6 +57,30 @@ function sleep(ms: number) {
 
 function normalizePath(p: string | null | undefined) {
   return (p ?? '').trim();
+}
+
+function resolveVariantTransform(
+  variant: MemoryImageVariant | null | undefined,
+): MemoryImageTransformOptions | null {
+  switch (variant) {
+    case 'timeline-thumb':
+      return {
+        width: 144,
+        height: 144,
+        resize: 'cover',
+        quality: 72,
+      };
+    default:
+      return null;
+  }
+}
+
+function buildCacheKey(
+  path: string,
+  variant: MemoryImageVariant | null | undefined,
+) {
+  const normalizedVariant = variant ?? 'original';
+  return `${normalizedVariant}::${path}`;
 }
 
 function touch(key: string) {
@@ -91,16 +124,20 @@ function inferExtFromMime(mimeType: string | null) {
 // ---------------------------------------------------------
 export async function getMemoryImageSignedUrl(
   imagePath: string,
-  options?: { expiresInSec?: number },
+  options?: {
+    expiresInSec?: number;
+    variant?: MemoryImageVariant;
+  },
 ): Promise<string> {
   const path = normalizePath(imagePath);
   if (!path) throw new Error('imagePath is required');
 
   const expiresInSec = options?.expiresInSec ?? DEFAULT_EXPIRES_IN_SEC;
+  const transform = resolveVariantTransform(options?.variant);
 
   const { data, error } = await supabase.storage
     .from('memory-images')
-    .createSignedUrl(path, expiresInSec);
+    .createSignedUrl(path, expiresInSec, transform ? { transform } : undefined);
 
   if (error) throw error;
   if (!data?.signedUrl) throw new Error('signedUrl is empty');
@@ -117,6 +154,7 @@ export async function getMemoryImageSignedUrlCached(
     expiresInSec?: number;
     maxCacheSize?: number;
     refreshBufferMs?: number;
+    variant?: MemoryImageVariant;
   },
 ): Promise<string | null> {
   const path = normalizePath(imagePath);
@@ -126,24 +164,28 @@ export async function getMemoryImageSignedUrlCached(
   const maxCacheSize = options?.maxCacheSize ?? DEFAULT_MAX_CACHE_SIZE;
   const refreshBufferMs = options?.refreshBufferMs ?? REFRESH_BUFFER_MS;
   const expiresInSec = options?.expiresInSec ?? DEFAULT_EXPIRES_IN_SEC;
+  const cacheKey = buildCacheKey(path, options?.variant);
 
   // 1) cache hit
-  const hit = cache.get(path);
+  const hit = cache.get(cacheKey);
   if (hit && isFreshEnough(hit, refreshBufferMs)) {
-    touch(path);
+    touch(cacheKey);
     return hit.url;
   }
 
   // 2) inFlight dedupe
-  const inflight = inFlight.get(path);
+  const inflight = inFlight.get(cacheKey);
   if (inflight) return inflight.then(u => u).catch(() => null);
 
   // 3) fetch & store
   const promise = (async () => {
-    const url = await getMemoryImageSignedUrl(path, { expiresInSec });
+    const url = await getMemoryImageSignedUrl(path, {
+      expiresInSec,
+      variant: options?.variant,
+    });
 
     const t = nowMs();
-    cache.set(path, {
+    cache.set(cacheKey, {
       url,
       expiresAtMs: t + expiresInSec * 1000,
       touchedAtMs: t,
@@ -153,7 +195,7 @@ export async function getMemoryImageSignedUrlCached(
     return url;
   })();
 
-  inFlight.set(path, promise);
+  inFlight.set(cacheKey, promise);
 
   try {
     const url = await promise;
@@ -161,7 +203,7 @@ export async function getMemoryImageSignedUrlCached(
   } catch {
     return null;
   } finally {
-    inFlight.delete(path);
+    inFlight.delete(cacheKey);
   }
 }
 
@@ -171,6 +213,7 @@ export async function getMemoryImageSignedUrlsCached(
     expiresInSec?: number;
     maxCacheSize?: number;
     refreshBufferMs?: number;
+    variant?: MemoryImageVariant;
   },
 ): Promise<Array<string | null>> {
   const normalizedPaths = (imagePaths ?? []).map(normalizePath);
@@ -208,6 +251,7 @@ export async function prefetchMemorySignedUrls(input: {
   expiresInSec?: number;
   maxCacheSize?: number;
   refreshBufferMs?: number;
+  variant?: MemoryImageVariant;
 
   minIntervalMs?: number;
   maxConcurrency?: number;
@@ -231,7 +275,7 @@ export async function prefetchMemorySignedUrls(input: {
   if (unique.length === 0) return;
 
   const targets = unique.filter(p => {
-    const hit = cache.get(p);
+    const hit = cache.get(buildCacheKey(p, input.variant));
     if (!hit) return true;
     return !isFreshEnough(hit, refreshBufferMs);
   });
@@ -262,6 +306,7 @@ export async function prefetchMemorySignedUrls(input: {
         expiresInSec,
         maxCacheSize,
         refreshBufferMs,
+        variant: input.variant,
       }).catch(() => null);
     }
   };

@@ -455,6 +455,7 @@ export default function TimelineScreen() {
           {
             maxCacheSize: 450,
             refreshBufferMs: 90 * 1000,
+            variant: 'timeline-thumb',
           },
         );
         if (cancelled) return;
@@ -469,6 +470,7 @@ export default function TimelineScreen() {
             {
               maxCacheSize: 450,
               refreshBufferMs: 90 * 1000,
+              variant: 'timeline-thumb',
             },
           );
           if (cancelled) return;
@@ -678,6 +680,7 @@ export default function TimelineScreen() {
           onPress={onPressItem}
           enableImageLoad={diagDisableImages ? false : enableImageLoad}
           deferImageLoad={shouldDeferImage}
+          imageVariant="timeline-thumb"
           isFocused={focusedMemoryId === item}
           onFocusedLayout={onFocusedItemLayout}
         />

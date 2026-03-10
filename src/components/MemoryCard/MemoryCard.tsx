@@ -16,6 +16,7 @@ import {
 } from '../../services/records/imageSources';
 import { formatRecordDisplayDate } from '../../services/records/date';
 import type { MemoryRecord } from '../../services/supabase/memories';
+import type { MemoryImageVariant } from '../../services/supabase/storageMemories';
 import AppText from '../../app/ui/AppText';
 
 // ✅ 기존 TimelineScreen.styles 그대로 사용 (UI 유지)
@@ -42,6 +43,7 @@ interface MemoryCardProps {
   enableImageLoad?: boolean;
   isFocused?: boolean;
   onFocusedLayout?: (itemId: string, event: LayoutChangeEvent) => void;
+  imageVariant?: MemoryImageVariant;
 }
 
 function MemoryCardComponent({
@@ -51,6 +53,7 @@ function MemoryCardComponent({
   enableImageLoad = true,
   isFocused = false,
   onFocusedLayout,
+  imageVariant = 'original',
 }: MemoryCardProps) {
   if (__DEV__ && MEMORY_CARD_DIAG_LOG_RENDERS) {
     memoryCardRenderCount += 1;
@@ -71,6 +74,7 @@ function MemoryCardComponent({
     defer: deferImageLoad,
     delayMs: deferImageLoad ? 220 : 0,
     trackLoading: false,
+    variant: imageVariant,
   });
   const hasImage = hasMemoryImage(item);
 
@@ -143,5 +147,6 @@ export const MemoryCard = memo(
     prev.deferImageLoad === next.deferImageLoad &&
     prev.enableImageLoad === next.enableImageLoad &&
     prev.isFocused === next.isFocused &&
-    prev.onFocusedLayout === next.onFocusedLayout,
+    prev.onFocusedLayout === next.onFocusedLayout &&
+    prev.imageVariant === next.imageVariant,
 );
