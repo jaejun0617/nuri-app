@@ -8,6 +8,10 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -22,6 +26,10 @@ import {
   updateSchedule,
   type PetSchedule,
 } from '../../services/supabase/schedules';
+import {
+  clearScheduleNotification,
+  upsertScheduleNotification,
+} from '../../services/schedules/notifications';
 import {
   formatScheduleDetailDate,
   getScheduleColorPalette,
@@ -61,6 +69,7 @@ function formatRepeatRule(rule: PetSchedule['repeatRule']) {
 export default function ScheduleDetailScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
+  const insets = useSafeAreaInsets();
   const { petId, scheduleId } = route.params;
 
   const refresh = useScheduleStore(s => s.refresh);
@@ -114,6 +123,7 @@ export default function ScheduleDetailScreen() {
           try {
             setDeleting(true);
             await deleteSchedule(scheduleId);
+            clearScheduleNotification(scheduleId);
             if (petId) await refresh(petId);
             navigation.replace('ScheduleList', { petId });
           } catch (error: unknown) {
@@ -158,6 +168,21 @@ export default function ScheduleDetailScreen() {
         syncStatus: schedule.syncStatus,
       });
 
+      if (nextCompletedAt) {
+        clearScheduleNotification(schedule.id);
+      } else {
+        await upsertScheduleNotification({
+          id: schedule.id,
+          petId: schedule.petId,
+          title: schedule.title,
+          note: schedule.note,
+          startsAt: schedule.startsAt,
+          repeatRule: schedule.repeatRule,
+          reminderMinutes: schedule.reminderMinutes,
+          completedAt: nextCompletedAt,
+        });
+      }
+
       const next = await fetchScheduleById(schedule.id);
       setSchedule(next);
       if (petId) await refresh(petId);
@@ -167,10 +192,11 @@ export default function ScheduleDetailScreen() {
   }, [petId, refresh, schedule]);
 
   const color = getScheduleColorPalette(schedule?.colorKey ?? 'brand');
+  const headerTopInset = Math.max(insets.top, 12);
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.header}>
+    <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
+      <View style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
         <TouchableOpacity
           activeOpacity={0.85}
           style={styles.headerSideBtn}
@@ -310,6 +336,6 @@ export default function ScheduleDetailScreen() {
           </View>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }

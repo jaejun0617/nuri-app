@@ -9,6 +9,8 @@
     <!-- ✅ Android 14+ (API 34+) 선택한 사진만 접근(기기/픽커에 따라 필요) -->
     <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
 
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <!-- ✅ Android 12 이하 (API 32-) -->
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"

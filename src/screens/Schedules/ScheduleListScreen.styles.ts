@@ -19,7 +19,7 @@ export const styles = StyleSheet.create({
 
   header: {
     paddingHorizontal: 16,
-    paddingTop: 26,
+    paddingTop: 16,
     paddingBottom: 14,
     flexDirection: 'row',
     alignItems: 'center',

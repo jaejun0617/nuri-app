@@ -13,6 +13,10 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -50,6 +54,7 @@ function formatScheduleDate(schedule: PetSchedule) {
 export default function ScheduleListScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
+  const insets = useSafeAreaInsets();
   const routePetId = route.params?.petId ?? null;
 
   const pets = usePetStore(s => s.pets);
@@ -103,9 +108,11 @@ export default function ScheduleListScreen() {
     [navigation, petId],
   );
 
+  const headerTopInset = Math.max(insets.top, 12);
+
   return (
-    <View style={styles.screen}>
-      <View style={styles.header}>
+    <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
+      <View style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
         <TouchableOpacity
           activeOpacity={0.85}
           style={styles.headerSideBtn}
@@ -252,6 +259,6 @@ export default function ScheduleListScreen() {
           </View>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }

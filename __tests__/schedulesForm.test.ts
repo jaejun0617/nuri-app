@@ -1,6 +1,7 @@
 import {
   createScheduleDatePresets,
   formatScheduleDateSummary,
+  getAutoScheduleIconKey,
   getReminderKeyByMinutes,
   getReminderMinutesByKey,
   inferScheduleSubCategory,
@@ -20,6 +21,13 @@ describe('schedules form helpers', () => {
   it('카테고리에 맞는 기본 서브카테고리를 추론한다', () => {
     expect(inferScheduleSubCategory('health')).toBe('checkup');
     expect(inferScheduleSubCategory('grooming')).toBe('bath');
+  });
+
+  it('카테고리와 기타 분류에 맞는 기본 아이콘을 고른다', () => {
+    expect(getAutoScheduleIconKey('walk')).toBe('walk');
+    expect(getAutoScheduleIconKey('meal')).toBe('meal');
+    expect(getAutoScheduleIconKey('other', 'hospital')).toBe('medical-bag');
+    expect(getAutoScheduleIconKey('other', 'bathing')).toBe('shower');
   });
 
   it('알림 키와 분 배열을 서로 역변환한다', () => {

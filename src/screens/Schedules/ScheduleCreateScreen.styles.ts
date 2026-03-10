@@ -18,7 +18,7 @@ export const styles = StyleSheet.create({
 
   header: {
     paddingHorizontal: 16,
-    paddingTop: 26,
+    paddingTop: 16,
     paddingBottom: 14,
     flexDirection: 'row',
     alignItems: 'center',
@@ -152,6 +152,11 @@ export const styles = StyleSheet.create({
   optionChipTextActive: {
     color: BRAND,
   },
+  helperText: {
+    marginTop: 8,
+    color: MUTED,
+    lineHeight: 18,
+  },
 
   iconGrid: {
     flexDirection: 'row',
@@ -207,7 +212,6 @@ export const styles = StyleSheet.create({
   },
 
   primaryBtn: {
-    marginTop: 18,
     height: 52,
     borderRadius: 16,
     backgroundColor: BRAND,
@@ -219,6 +223,16 @@ export const styles = StyleSheet.create({
   primaryBtnText: {
     color: '#FFFFFF',
     fontWeight: '900',
+  },
+  bottomSubmitBtn: {
+    marginTop: 18,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: BRAND,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
 
   modalBackdrop: {

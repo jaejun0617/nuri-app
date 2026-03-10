@@ -163,6 +163,42 @@ export function inferScheduleSubCategory(
   }
 }
 
+export function getAutoScheduleIconKey(
+  category: ScheduleCategory,
+  otherUiKey?: ScheduleOtherUiSubCategoryKey | null,
+): ScheduleIconKey {
+  switch (category) {
+    case 'walk':
+      return 'walk';
+    case 'meal':
+      return 'meal';
+    case 'health':
+      return 'medical-bag';
+    case 'grooming':
+      return 'content-cut';
+    case 'diary':
+      return 'notebook';
+    case 'other':
+      switch (otherUiKey) {
+        case 'hospital':
+          return 'medical-bag';
+        case 'grooming':
+          return 'content-cut';
+        case 'bathing':
+          return 'shower';
+        case 'indoor':
+        case 'training':
+        case 'outing':
+        case 'shopping':
+        case 'etc':
+        default:
+          return 'star';
+      }
+    default:
+      return 'star';
+  }
+}
+
 export function mapScheduleSubCategoryToOtherUiKey(
   category: ScheduleCategory,
   subCategory: ScheduleSubCategory | null | undefined,

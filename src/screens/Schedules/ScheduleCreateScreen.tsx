@@ -4,16 +4,20 @@
 // - 홈/상세/목록 등 다른 진입점에서 들어와도 일관된 기본값으로 생성 가능하게 처리
 // - 생성 성공 시 schedule store refresh와 완료 플로우 연결까지 수행
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
-  ScrollView,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -35,6 +39,7 @@ import {
 } from '../../services/supabase/schedules';
 import {
   formatScheduleDateSummary,
+  getAutoScheduleIconKey,
   getReminderMinutesByKey,
   inferScheduleSubCategory,
   normalizeScheduleDateInput,
@@ -49,6 +54,13 @@ import {
   type ScheduleOtherUiSubCategoryKey,
   type ScheduleReminderOptionKey,
 } from '../../services/schedules/form';
+import {
+  checkScheduleNotificationPermission,
+  getScheduleNotificationHelperText,
+  requestScheduleNotificationPermission,
+  upsertScheduleNotification,
+  type ScheduleNotificationPermissionStatus,
+} from '../../services/schedules/notifications';
 import { resolveSelectedPetId, usePetStore } from '../../store/petStore';
 import { useScheduleStore } from '../../store/scheduleStore';
 import { styles } from './ScheduleCreateScreen.styles';
@@ -59,6 +71,7 @@ type Route = RootScreenRoute<'ScheduleCreate'>;
 export default function ScheduleCreateScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
+  const insets = useSafeAreaInsets();
   const routePetId = route.params?.petId ?? null;
   const startsAtParam = route.params?.startsAt?.trim() ?? null;
 
@@ -95,6 +108,16 @@ export default function ScheduleCreateScreen() {
   const [repeatRule, setRepeatRule] = useState<ScheduleRepeatRule>('none');
   const [reminderKey, setReminderKey] =
     useState<ScheduleReminderOptionKey>('hour');
+  const [notificationPermissionStatus, setNotificationPermissionStatus] =
+    useState<ScheduleNotificationPermissionStatus>('unsupported');
+
+  useEffect(() => {
+    checkScheduleNotificationPermission()
+      .then(setNotificationPermissionStatus)
+      .catch(() => {
+        setNotificationPermissionStatus('unsupported');
+      });
+  }, []);
 
   const onOpenDateModal = useCallback(() => {
     setDateModalVisible(true);
@@ -124,10 +147,47 @@ export default function ScheduleCreateScreen() {
     setCategory(nextCategory);
     if (nextCategory !== 'other') {
       setOtherUiSubCategoryKey(null);
+      setIconKey(getAutoScheduleIconKey(nextCategory));
     } else {
-      setOtherUiSubCategoryKey(prev => prev ?? 'etc');
+      setOtherUiSubCategoryKey(prev => {
+        const nextOtherKey = prev ?? 'etc';
+        setIconKey(getAutoScheduleIconKey(nextCategory, nextOtherKey));
+        return nextOtherKey;
+      });
     }
   }, []);
+
+  const onSelectOtherSubCategory = useCallback(
+    (nextKey: ScheduleOtherUiSubCategoryKey) => {
+      setOtherUiSubCategoryKey(nextKey);
+      setIconKey(getAutoScheduleIconKey('other', nextKey));
+    },
+    [],
+  );
+
+  const onSelectReminder = useCallback(
+    async (nextKey: ScheduleReminderOptionKey) => {
+      setReminderKey(nextKey);
+      if (nextKey === 'none') return;
+
+      const currentPermission = await checkScheduleNotificationPermission();
+      if (currentPermission === 'granted') {
+        setNotificationPermissionStatus(currentPermission);
+        return;
+      }
+
+      const requestedPermission = await requestScheduleNotificationPermission();
+      setNotificationPermissionStatus(requestedPermission);
+
+      if (requestedPermission !== 'granted') {
+        Alert.alert(
+          '알림 권한 필요',
+          '권한이 허용되지 않으면 일정 데이터에는 저장되지만 실제 기기 알림은 오지 않아요.',
+        );
+      }
+    },
+    [],
+  );
 
   const onSubmit = useCallback(async () => {
     if (!petId) {
@@ -149,18 +209,31 @@ export default function ScheduleCreateScreen() {
         ? `${normalizedDate}T00:00:00`
         : `${normalizedDate}T${normalizeScheduleTimeInput(timeText)}:00`;
 
-      await createSchedule({
+      const startsAtIso = new Date(startsAt).toISOString();
+      const reminderMinutes = getReminderMinutesByKey(reminderKey);
+      const createdScheduleId = await createSchedule({
         petId,
         title: trimmedTitle,
         note: note.trim() || null,
-        startsAt: new Date(startsAt).toISOString(),
+        startsAt: startsAtIso,
         allDay,
         category,
         subCategory: inferScheduleSubCategory(category, otherUiSubCategoryKey),
         iconKey,
         colorKey,
         repeatRule,
-        reminderMinutes: getReminderMinutesByKey(reminderKey),
+        reminderMinutes,
+      });
+
+      await upsertScheduleNotification({
+        id: createdScheduleId,
+        petId,
+        title: trimmedTitle,
+        note: note.trim() || null,
+        startsAt: startsAtIso,
+        repeatRule,
+        reminderMinutes,
+        completedAt: null,
       });
 
       await refresh(petId);
@@ -191,9 +264,23 @@ export default function ScheduleCreateScreen() {
     title,
   ]);
 
+  const reminderMinutes = useMemo(
+    () => getReminderMinutesByKey(reminderKey),
+    [reminderKey],
+  );
+  const reminderHelperText = useMemo(
+    () =>
+      getScheduleNotificationHelperText(
+        reminderMinutes,
+        notificationPermissionStatus,
+      ),
+    [notificationPermissionStatus, reminderMinutes],
+  );
+  const headerTopInset = Math.max(insets.top, 12);
+
   return (
-    <View style={styles.screen}>
-      <View style={styles.header}>
+    <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
+      <View style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
         <TouchableOpacity
           activeOpacity={0.85}
           style={styles.headerSideBtn}
@@ -220,10 +307,18 @@ export default function ScheduleCreateScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
+      <KeyboardAwareScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: Math.max(insets.bottom + 316, 376) },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
         showsVerticalScrollIndicator={false}
+        enableOnAndroid
+        extraScrollHeight={82}
+        extraHeight={228}
       >
         <View style={styles.card}>
           <AppText preset="caption" style={styles.label}>
@@ -349,7 +444,7 @@ export default function ScheduleCreateScreen() {
                         styles.optionChip,
                         active ? styles.optionChipActive : null,
                       ]}
-                      onPress={() => setOtherUiSubCategoryKey(option.key)}
+                      onPress={() => onSelectOtherSubCategory(option.key)}
                     >
                       <AppText
                         preset="caption"
@@ -471,7 +566,11 @@ export default function ScheduleCreateScreen() {
                     styles.optionChip,
                     active ? styles.optionChipActive : null,
                   ]}
-                  onPress={() => setReminderKey(option.key)}
+                  onPress={() => {
+                    onSelectReminder(option.key).catch(() => {
+                      // permission alert is handled in the request flow
+                    });
+                  }}
                 >
                   <AppText
                     preset="caption"
@@ -486,6 +585,9 @@ export default function ScheduleCreateScreen() {
               );
             })}
           </View>
+          <AppText preset="caption" style={styles.helperText}>
+            {reminderHelperText}
+          </AppText>
 
           <AppText preset="caption" style={styles.label}>
             메모
@@ -498,20 +600,22 @@ export default function ScheduleCreateScreen() {
             style={[styles.input, styles.textarea]}
             multiline
           />
-
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={styles.primaryBtn}
-            onPress={onSubmit}
-            disabled={saving}
-          >
-            <Feather name="plus" size={16} color="#FFFFFF" />
-            <AppText preset="body" style={styles.primaryBtnText}>
-              {saving ? '일정 저장 중...' : '일정 저장하기'}
-            </AppText>
-          </TouchableOpacity>
         </View>
-      </ScrollView>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={[
+            styles.bottomSubmitBtn,
+            { marginBottom: Math.max(insets.bottom, 18) },
+          ]}
+          onPress={onSubmit}
+          disabled={saving}
+        >
+          <Feather name="plus" size={16} color="#FFFFFF" />
+          <AppText preset="body" style={styles.primaryBtnText}>
+            {saving ? '일정 저장 중...' : '일정 저장하기'}
+          </AppText>
+        </TouchableOpacity>
+      </KeyboardAwareScrollView>
 
       <DatePickerModal
         visible={dateModalVisible}
@@ -526,6 +630,6 @@ export default function ScheduleCreateScreen() {
         onCancel={() => setTimeModalVisible(false)}
         onConfirm={onConfirmTime}
       />
-    </View>
+    </SafeAreaView>
   );
 }
