@@ -600,7 +600,7 @@ Chapter 6 계열 로그가 길어져서, 아래처럼 기능/도메인 기준으
   - `updatePet`
   - `fetchMyPets`
   - `setPets`
-  흐름으로 정합성을 고정
+    흐름으로 정합성을 고정
 - 프로필 이미지는 기존 `pet-profiles` 업로드 파이프라인을 재사용하여 변경 가능하도록 연결
 - 태그는 칩 UI + 추천 태그 구조로 편집할 수 있게 구성
 - 이름 변경은 실수 방지를 위해 최대 3회 제한을 적용
@@ -671,7 +671,7 @@ Chapter 6 계열 로그가 길어져서, 아래처럼 기능/도메인 기준으
   - 아이콘
   - 색상
   - 메모
-  입력으로 바로 `pet_schedules`에 저장 가능
+    입력으로 바로 `pet_schedules`에 저장 가능
 - 일정 저장 후에는 주간 범위를 다시 refresh하고 `ScheduleList`로 복귀해
   홈 / 목록 / store 상태가 같은 기준 데이터를 보도록 정리
 - 홈 `이번 주 일정` 카드 tap 동작도 우선 `ScheduleList`로 연결해,
@@ -708,7 +708,7 @@ Chapter 6 계열 로그가 길어져서, 아래처럼 기능/도메인 기준으
 - `ScheduleCreate`, `ScheduleEdit`
   - 반복: `반복 안 함 / 매일 / 매주 / 매월`
   - 알림: `없음 / 10분 전 / 1시간 전 / 하루 전`
-  선택을 저장하도록 연결
+    선택을 저장하도록 연결
 - `ScheduleDetail`
   - 반복 / 알림 / 완료 상태를 함께 표시
   - `일정 완료 처리 / 완료 해제` 토글로 `completed_at`을 직접 갱신 가능
@@ -901,7 +901,7 @@ NURI에서 중요한 것은 글을 언제 작성했는지가 아니라,
   - 타임라인 `최신순 / 오래된순`
   - 홈 `최근 활동`
   - 월별 필터 기준
-  이 모두가 수정된 날짜를 기준으로 다시 반영되도록 정리
+    이 모두가 수정된 날짜를 기준으로 다시 반영되도록 정리
 
 ### 의도
 
@@ -1844,7 +1844,7 @@ NURI는 데이터 입력 도구가 아니라,
   - 작성 중인 데이터 보존
   - 업로드 실패 후 나중에 복구되는 경로
   - 탈퇴/동의처럼 운영에 필요한 상태 이력
-  쪽에 무게를 뒀다.
+    쪽에 무게를 뒀다.
 - 홈의 주간 요약은 데이터가 쌓이기 시작했을 때 바로 체감이 오도록 넣었다.
 
 ### 결과
@@ -2503,9 +2503,9 @@ NURI는 데이터 입력 도구가 아니라,
 - [`src/app/providers/AppProviders.tsx`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/app/providers/AppProviders.tsx) 에 `QueryClientProvider`를 연결해 앱 전역에서 Query 캐시를 사용할 수 있게 했다.
 - [`src/store/weatherStore.ts`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/store/weatherStore.ts) 를 새로 만들어, 좌표별 날씨 번들을 `zustand` 메모리 캐시로 10분 유지하도록 구성했다.
 - [`src/hooks/useWeatherGuide.ts`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/hooks/useWeatherGuide.ts) 는 기존 훅 내부 캐시 중심 구조에서 벗어나 다음 순서로 데이터를 조회하도록 바꿨다.
-  - 1) `Zustand` 메모리 TTL 캐시
-  - 2) `AsyncStorage` TTL 캐시
-  - 3) `TanStack Query` 기반 API 호출
+  - 1. `Zustand` 메모리 TTL 캐시
+  - 2. `AsyncStorage` TTL 캐시
+  - 3. `TanStack Query` 기반 API 호출
 - [`src/services/weather/cache.ts`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/services/weather/cache.ts) 의 캐시 키는 `v2`로 올려서 이전 형식의 주간예보 라벨 캐시를 자동 무효화했다.
 - [`src/services/weather/mapper.ts`](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/services/weather/mapper.ts) 는 주간예보 라벨을 고정 배열이 아니라 실제 날짜 기준으로 계산하도록 바꿨다.
 
@@ -3106,6 +3106,66 @@ NURI는 데이터 입력 도구가 아니라,
 
 ---
 
+### 15) 3블럭 — 태그 입력 / 키보드 대응 / 최근사용 태그 UX 마감
+
+이번 3블럭에서는 기록하기 태그 입력 UX와 실기기 키보드 대응, 최근사용 태그 저장 범위를 함께 정리했다.
+
+핵심은 두 가지였다.
+
+첫째, 태그 입력 계열 화면에서 키보드가 올라왔을 때 입력 흐름이 자연스럽게 이어져야 했다.  
+기존에는 기록하기 태그 추가 모달이 `Modal + 고정 카드` 구조라 키보드가 올라와도 내부 콘텐츠와 CTA가 충분히 재배치되지 않았고, 긴 폼 화면들도 `KeyboardAvoidingView` 수준에 머물러 실기기 입력 UX가 불안정했다.
+
+둘째, 최근사용 태그는 계정별로 분리되어야 했다.  
+기존 단일 AsyncStorage 키 구조는 다른 계정의 최근사용 태그가 섞여 보일 가능성이 있었기 때문에, 이를 `userId` 기준으로 분리 저장하도록 바꿨다.
+
+이번 수정에서는 아래를 반영했다.
+
+- 기록하기 태그 추가 모달의 keyboard-safe 구조 정리
+- 최근사용 / 선택된 태그 / 추가하기 버튼 흐름 보정
+- 긴 폼 화면(`RecordCreate`, `RecordEdit`, `PetCreate`, `PetProfileEdit`)의 키보드 대응 구조 개선
+- 최근사용 태그를 `userId` 기준으로 분리 저장
+- 실기기 기준으로 최근사용 영역 높이와 footer CTA 위치 보정
+
+정리하면 이번 챕터의 의도는 명확하다.
+
+- 긴 입력 폼은 단순히 화면을 조금 미는 것으로 끝나면 안 된다.
+- 키보드가 올라와도 현재 입력 중인 위치까지 자연스럽게 접근 가능해야 한다.
+- 태그 모달은 내부 콘텐츠와 CTA가 함께 살아 있는 구조여야 한다.
+- 최근사용 태그는 반드시 계정별로 분리돼야 한다.
+
+### 16) 기록 반영 속도 / 포커스 정합 / 태그 모달 정리
+
+이번 묶음에서는 기록하기와 기록수정 직후의 반영 체감, 상세/타임라인 포커스 정합, 태그 모달 dead code를 한 번에 정리했다.
+
+핵심 문제는 세 가지였다.
+
+첫째, 기록 생성(create) 직후에는 상세로 이동하더라도 방금 만든 게시물이 store에 한 박자 늦게 들어와 최신 기록처럼 바로 보이지 않는 구간이 남아 있었다.  
+기존에는 `createMemory` 이후 이미지 업로드와 `fetchMemoryById`를 먼저 기다린 뒤 `upsertOneLocal`이 실행되는 구조라, 첫 진입 체감이 네트워크 완료 시점에 묶여 있었다.
+
+둘째, 기록 수정(edit) 직후에는 수정한 게시물 1개를 정확히 따라가야 하는데, `updateOneLocal -> focusedMemoryId -> detail/timeline 복귀`보다 서버 재조회와 `refresh` 타이밍이 앞뒤로 섞이면서 다시 어긋나는 순간이 있었다.  
+즉 create는 먼저 보이는데 edit는 여전히 "수정한 게시물 하나"에 대한 즉시성 보장이 약했다.
+
+셋째, 태그 추가 모달은 추천/최근사용 태그를 제거한 현재 UX와 코드가 완전히 맞지 않았고, 상세 이미지 영역도 dot과 fraction을 같이 보여 중복 표시가 남아 있었다.
+
+이번 수정에서는 아래를 반영했다.
+
+- `RecordCreate`는 `create -> local optimistic upsert -> focusedMemoryId 설정 -> detail 이동 -> background fetchById -> refresh` 순서로 재정렬
+- 생성 직후 store에 새 기록이 먼저 들어가도록 바꿔, 상세 첫 진입에서도 방금 만든 게시물을 즉시 읽게 정리
+- `RecordEdit`는 수정한 `memoryId` 1개만 기준으로 `updateOneLocal / upsertOneLocal / setFocusedMemoryId` 흐름을 다시 고정
+- edit 성공 후에는 수정한 게시물 1건을 background `fetchMemoryById`로 먼저 보정하고, 전체 `refresh`는 그 뒤로 미뤄 stale 덮어쓰기 체감을 줄임
+- 상세 화면은 이미지 pager에서 dot을 제거하고 fraction(`1 / n`)만 유지
+- 태그 모달에서는 추천/최근사용 태그 관련 props, helper, storage dead code를 제거
+- `recentRecordTags` 저장 유틸과 `RECORD_DEFAULT_RECENT_TAGS`, `normalizeRecentRecordTags` 등 미사용 상수/헬퍼를 정리
+- 태그 추가 모달은 하단 시트가 아니라 화면 중앙 정렬 카드로 변경
+- 기록하기 화면은 버튼 구조를 유지한 채 `KeyboardAwareScrollView` 하단 여백만 키워, 펫 등록과 같은 방향의 스크롤 보정만 남기도록 정리
+
+정리하면 이번 챕터의 의도는 명확하다.
+
+- 생성과 수정 모두 "방금 바꾼 게시물 1개"가 먼저 보이도록 해야 한다.
+- 상세/타임라인/포커스는 전체 리스트보다 현재 `memoryId` 추적을 우선해야 한다.
+- 서버 재조회는 정합 보정 역할이어야지, 첫 화면 반영을 지연시키는 전제조건이 되면 안 된다.
+- 태그 모달은 현재 UX와 남은 코드가 완전히 일치해야 한다.
+
 # 🚀 Next
 
 ## Chapter 8 — 서버 검색(제목/태그) + 인덱스/정렬 안정화 + 섹션 점프 고도화
@@ -3122,5 +3182,4 @@ NURI는 데이터 입력 도구가 아니라,
 
 ## Final Statement
 
-> **NURI는 감정을 저장하는 서비스가 아니라, 감정을 구조화하는 시스템입니다.**
-> **Private Founder Build**
+> **NURI는 감정을 저장하는 서비스가 아니라, 감정을 구조화하는 시스템입니다.** > **Private Founder Build**

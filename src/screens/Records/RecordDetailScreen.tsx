@@ -237,17 +237,6 @@ const FeedPostCard = memo(function FeedPostCard({
               {imageIndex + 1} / {previewImageSources.length}
             </AppText>
           </View>
-          <View style={styles.postImageDots}>
-            {previewImageSources.map((previewImage, index) => (
-              <View
-                key={previewImage.key}
-                style={[
-                  styles.postImageDot,
-                  index === imageIndex ? styles.postImageDotActive : null,
-                ]}
-              />
-            ))}
-          </View>
         </View>
       ) : previewImageSources.length === 1 ? (
         <Image source={{ uri: previewImageSources[0].uri }} style={styles.postImage} resizeMode="cover" />

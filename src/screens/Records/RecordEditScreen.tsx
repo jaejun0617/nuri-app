@@ -531,26 +531,23 @@ export default function RecordEditScreen() {
         await deleteMemoryImage(path).catch(() => null);
       }
 
-      // 3) 즉시 반영을 우선하고, 서버 단건을 다시 읽어 최신 스냅샷으로 한 번 더 보정한다.
-      try {
-        const latest = await fetchMemoryById(memoryId);
-        upsertOneLocal(petId, latest);
-      } catch {
-        upsertOneLocal(petId, {
-          ...record,
-          ...latestLocalPatch,
-        });
-      }
-
-      // 4) 전체 refresh는 상세/리스트를 잠깐 비우지 않도록 백그라운드로만 돌린다.
-      refresh(petId)
-        .then(() => fetchMemoryById(memoryId))
-        .then(latest => {
-          upsertOneLocal(petId, latest);
-        })
-        .catch(() => {});
-
       setSuccessModalVisible(true);
+
+      // 3) 수정한 게시물 1건을 먼저 서버 스냅샷으로 보정하고, 그 뒤 전체 refresh를 백그라운드로 돌린다.
+      (async () => {
+        try {
+          const latest = await fetchMemoryById(memoryId);
+          upsertOneLocal(petId, latest);
+          setFocusedMemoryId(petId, memoryId);
+          refresh(petId).catch(() => {});
+        } catch {
+          upsertOneLocal(petId, {
+            ...record,
+            ...latestLocalPatch,
+          });
+          setFocusedMemoryId(petId, memoryId);
+        }
+      })().catch(() => {});
     } catch (err) {
       const { title: alertTitle, message } = getBrandedErrorMeta(
         err,
@@ -585,12 +582,13 @@ export default function RecordEditScreen() {
 
   const onConfirmSuccess = useCallback(() => {
     setSuccessModalVisible(false);
+    setFocusedMemoryId(petId, memoryId);
     if (navigation.canGoBack()) {
       navigation.goBack();
       return;
     }
     navigation.navigate('RecordDetail', { petId, memoryId });
-  }, [navigation, petId, memoryId]);
+  }, [memoryId, navigation, petId, setFocusedMemoryId]);
 
   // ---------------------------------------------------------
   // 9) guard

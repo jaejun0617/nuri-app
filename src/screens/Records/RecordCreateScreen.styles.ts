@@ -373,16 +373,19 @@ export const styles = StyleSheet.create({
 
   modalBackdrop: {
     flex: 1,
-    justifyContent: 'flex-end',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: 'rgba(17,24,39,0.28)',
+    paddingHorizontal: 20,
   },
   modalDismissZone: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
   },
   tagModalCard: {
+    width: '100%',
+    maxWidth: 420,
     backgroundColor: CARD,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderRadius: 28,
     paddingHorizontal: 20,
     paddingTop: 18,
     paddingBottom: 28,

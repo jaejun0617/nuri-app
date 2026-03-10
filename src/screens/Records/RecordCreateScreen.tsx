@@ -93,6 +93,7 @@ export default function RecordCreateScreen() {
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
   const refresh = useRecordStore(s => s.refresh);
+  const setFocusedMemoryId = useRecordStore(s => s.setFocusedMemoryId);
   const upsertOneLocal = useRecordStore(s => s.upsertOneLocal);
 
   const petIdFromParams = route.params?.petId ?? null;
@@ -436,6 +437,7 @@ export default function RecordCreateScreen() {
       setSaving(true);
 
       const occurred = validateRecordOccurredAt(occurredAt);
+      const createdAt = new Date().toISOString();
       const mergedTags = mergeRecordTags(
         selectedTags,
         mainCategoryKey,
@@ -457,117 +459,132 @@ export default function RecordCreateScreen() {
         imagePath: null,
       });
 
-      if (selectedImages.length > 0) {
-        const userRes = await supabase.auth.getUser();
-        const userId = userRes.data.user?.id ?? null;
-        if (!userId) throw new Error('로그인 정보가 없습니다.');
+      const optimisticRecord = normalizeMemoryRecord({
+        id: memoryId,
+        petId,
+        title: trimmedTitle,
+        content: content.trim() || null,
+        emotion: selectedEmotion,
+        tags: mergedTags,
+        category: mainCategoryKey,
+        subCategory: otherSubCategoryKey,
+        price,
+        occurredAt: occurred,
+        createdAt,
+        imagePath: null,
+        imagePaths: [],
+        imageUrl: selectedImages[0]?.uri ?? null,
+      });
 
-        const uploadedPaths: string[] = [];
-        let failedCount = 0;
-        const queuedImages: PickedRecordImage[] = [];
+      upsertOneLocal(petId, optimisticRecord);
+      setFocusedMemoryId(petId, memoryId);
 
-        for (const image of selectedImages) {
-          try {
-            const firstTry = await uploadMemoryImage({
-              userId,
-              petId,
-              memoryId,
-              fileUri: image.uri,
-              mimeType: image.mimeType,
-            });
-            uploadedPaths.push(firstTry.path);
-          } catch {
-            try {
-              const retry = await uploadMemoryImage({
+      (async () => {
+        let latestLocal = optimisticRecord;
+
+        try {
+          if (selectedImages.length > 0) {
+            const userRes = await supabase.auth.getUser();
+            const userId = userRes.data.user?.id ?? null;
+            if (!userId) throw new Error('로그인 정보가 없습니다.');
+
+            const uploadedPaths: string[] = [];
+            let failedCount = 0;
+            const queuedImages: PickedRecordImage[] = [];
+
+            for (const image of selectedImages) {
+              try {
+                const firstTry = await uploadMemoryImage({
+                  userId,
+                  petId,
+                  memoryId,
+                  fileUri: image.uri,
+                  mimeType: image.mimeType,
+                });
+                uploadedPaths.push(firstTry.path);
+              } catch {
+                try {
+                  const retry = await uploadMemoryImage({
+                    userId,
+                    petId,
+                    memoryId,
+                    fileUri: image.uri,
+                    mimeType: image.mimeType,
+                  });
+                  uploadedPaths.push(retry.path);
+                } catch {
+                  failedCount += 1;
+                  queuedImages.push(image);
+                }
+              }
+            }
+
+            if (uploadedPaths.length > 0) {
+              const saveResult = await updateMemoryImagePaths({
+                memoryId,
+                imagePaths: uploadedPaths,
+              });
+              savedImagePaths = saveResult.savedPaths;
+              latestLocal = normalizeMemoryRecord({
+                ...latestLocal,
+                imagePath: savedImagePaths[0] ?? null,
+                imagePaths: savedImagePaths,
+                imageUrl: null,
+              });
+              upsertOneLocal(petId, latestLocal);
+
+              if (
+                saveResult.mode === 'single_fallback' &&
+                uploadedPaths.length > 1
+              ) {
+                Alert.alert(
+                  '다중 이미지 저장 미지원',
+                  'DB 스키마에 image_urls 컬럼이 없어 첫 번째 사진만 저장됐어요. SQL 마이그레이션을 적용하면 슬라이드가 정상 동작해요.',
+                );
+              }
+            }
+
+            if (failedCount > 0) {
+              await enqueuePendingMemoryUpload({
                 userId,
                 petId,
                 memoryId,
-                fileUri: image.uri,
-                mimeType: image.mimeType,
+                images: queuedImages.map(image => ({
+                  key: image.key,
+                  uri: image.uri,
+                  mimeType: image.mimeType,
+                })),
               });
-              uploadedPaths.push(retry.path);
-            } catch {
-              failedCount += 1;
-              queuedImages.push(image);
+
+              showToast({
+                tone: 'warning',
+                title: '업로드 복구 대기',
+                message:
+                  '실패한 이미지는 큐에 저장했어요. 앱이 다시 활성화되면 자동으로 재시도합니다.',
+                durationMs: 3200,
+              });
             }
           }
+
+          const created = await fetchMemoryById(memoryId);
+          upsertOneLocal(petId, created);
+          refresh(petId).catch(() => {});
+        } catch {
+          upsertOneLocal(petId, latestLocal);
         }
-
-        if (uploadedPaths.length > 0) {
-          const saveResult = await updateMemoryImagePaths({
-            memoryId,
-            imagePaths: uploadedPaths,
-          });
-          savedImagePaths = saveResult.savedPaths;
-
-          if (
-            saveResult.mode === 'single_fallback' &&
-            uploadedPaths.length > 1
-          ) {
-            Alert.alert(
-              '다중 이미지 저장 미지원',
-              'DB 스키마에 image_urls 컬럼이 없어 첫 번째 사진만 저장됐어요. SQL 마이그레이션을 적용하면 슬라이드가 정상 동작해요.',
-            );
-          }
-        }
-
-        if (failedCount > 0) {
-          await enqueuePendingMemoryUpload({
-            userId,
-            petId,
-            memoryId,
-            images: queuedImages.map(image => ({
-              key: image.key,
-              uri: image.uri,
-              mimeType: image.mimeType,
-            })),
-          });
-
-          showToast({
-            tone: 'warning',
-            title: '업로드 복구 대기',
-            message:
-              '실패한 이미지는 큐에 저장했어요. 앱이 다시 활성화되면 자동으로 재시도합니다.',
-            durationMs: 3200,
-          });
-        }
-      }
-
-      try {
-        const created = await fetchMemoryById(memoryId);
-        upsertOneLocal(petId, created);
-      } catch {
-        upsertOneLocal(
-          petId,
-          normalizeMemoryRecord({
-            id: memoryId,
-            petId,
-            title: trimmedTitle,
-            content: content.trim() || null,
-            emotion: selectedEmotion,
-            tags: mergedTags,
-            category: mainCategoryKey,
-            subCategory: otherSubCategoryKey,
-            price,
-            occurredAt: occurred,
-            createdAt: new Date().toISOString(),
-            imagePath: savedImagePaths[0] ?? null,
-            imagePaths: savedImagePaths,
-            imageUrl: null,
-          }),
-        );
-      }
-
-      refresh(petId).catch(() => {});
+      })().catch(() => {});
 
       resetForm();
       await clearRecordCreateDraft();
       showToast({
         tone: 'success',
         title: '기록 저장 완료',
-        message: '작성 중 draft는 정리했고, 타임라인에 바로 반영했어요.',
+        message: '방금 기록을 먼저 반영했고, 상세에서 바로 확인할 수 있어요.',
       });
-      navigation.navigate('TimelineTab');
+      navigation.navigate('TimelineTab', {
+        screen: 'RecordDetail',
+        params: { petId, memoryId },
+      });
     } catch (error) {
       const { title: alertTitle, message } = getBrandedErrorMeta(
         error,
@@ -599,6 +616,7 @@ export default function RecordCreateScreen() {
     selectedEmotion,
     selectedImages,
     selectedTags,
+    setFocusedMemoryId,
     trimmedTitle,
     upsertOneLocal,
   ]);
@@ -643,7 +661,7 @@ export default function RecordCreateScreen() {
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,
-          { paddingBottom: 32 + Math.max(insets.bottom, 18) },
+          { paddingBottom: Math.max(insets.bottom + 180, 220) },
         ]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
