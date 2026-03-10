@@ -5,22 +5,19 @@
 // - 저장 직후 홈/타임라인에 즉시 반영
 // - 탭 구조에서 폼 상태가 남지 않도록 focus/reset 유지
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Alert,
-  Image,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { Alert, Image, TextInput, TouchableOpacity, View } from 'react-native';
 import type {
   CompositeNavigationProp,
   RouteProp,
 } from '@react-navigation/native';
-import {
-  useNavigation,
-  useRoute,
-} from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -30,6 +27,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import AppText from '../../app/ui/AppText';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import RecordImageGallery from '../../components/records/RecordImageGallery';
+import { useKeyboardInset } from '../../hooks/useKeyboardInset';
 import type { AppTabParamList } from '../../navigation/AppTabsNavigator';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
@@ -57,15 +55,14 @@ import {
   saveRecordCreateDraft,
 } from '../../services/local/recordDraft';
 import { enqueuePendingMemoryUpload } from '../../services/local/uploadQueue';
-import {
-  getBrandedErrorMeta,
-} from '../../services/app/errors';
+import { getBrandedErrorMeta } from '../../services/app/errors';
 import { pickPhotoAssets } from '../../services/media/photoPicker';
 import { supabase } from '../../services/supabase/client';
 import {
   createMemory,
   type EmotionTag,
   fetchMemoryById,
+  type MemoryRecord,
   updateMemoryImagePaths,
 } from '../../services/supabase/memories';
 import { uploadMemoryImage } from '../../services/supabase/storageMemories';
@@ -89,6 +86,7 @@ export default function RecordCreateScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<RecordCreateTabRoute>();
   const insets = useSafeAreaInsets();
+  const keyboardInset = useKeyboardInset();
 
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
@@ -138,8 +136,9 @@ export default function RecordCreateScreen() {
   const disabled = saving || trimmedTitle.length === 0 || !petId;
   const selectedMainCategory = useMemo(
     () =>
-      RECORD_MAIN_CATEGORIES.find(category => category.key === mainCategoryKey) ??
-      null,
+      RECORD_MAIN_CATEGORIES.find(
+        category => category.key === mainCategoryKey,
+      ) ?? null,
     [mainCategoryKey],
   );
   const selectedOtherSubCategory = useMemo(
@@ -161,14 +160,20 @@ export default function RecordCreateScreen() {
     [occurredAt, todayYmd],
   );
   const mergedPreviewTags = useMemo(
-    () =>
-      mergeRecordTags(selectedTags, mainCategoryKey, otherSubCategoryKey),
+    () => mergeRecordTags(selectedTags, mainCategoryKey, otherSubCategoryKey),
     [selectedTags, mainCategoryKey, otherSubCategoryKey],
   );
   const activeImage = useMemo(
     () => selectedImages[activeImageIndex] ?? selectedImages[0] ?? null,
     [selectedImages, activeImageIndex],
   );
+  const scrollBottomInset = useMemo(() => {
+    return Math.max(insets.bottom + 240, keyboardInset + 140, 280);
+  }, [insets.bottom, keyboardInset]);
+  const bottomSubmitMargin = useMemo(() => {
+    if (keyboardInset > 0) return Math.max(insets.bottom, 18) + 20;
+    return Math.max(insets.bottom, 18);
+  }, [insets.bottom, keyboardInset]);
   const resetForm = useCallback(() => {
     setTitle('');
     setContent('');
@@ -192,7 +197,10 @@ export default function RecordCreateScreen() {
       setActiveImageIndex(0);
       return;
     }
-    if (activeImageIndex >= selectedImages.length && selectedImages.length > 0) {
+    if (
+      activeImageIndex >= selectedImages.length &&
+      selectedImages.length > 0
+    ) {
       setActiveImageIndex(selectedImages.length - 1);
     }
   }, [activeImageIndex, selectedImages.length]);
@@ -212,12 +220,16 @@ export default function RecordCreateScreen() {
           setTitle(draft.title ?? '');
           setContent(draft.content ?? '');
           setOccurredAt(draft.occurredAt || todayYmd);
-          setSelectedTags(Array.isArray(draft.selectedTags) ? draft.selectedTags : []);
+          setSelectedTags(
+            Array.isArray(draft.selectedTags) ? draft.selectedTags : [],
+          );
           setMainCategoryKey(draft.mainCategoryKey ?? 'walk');
           setOtherSubCategoryKey(draft.otherSubCategoryKey ?? null);
           setPriceText(normalizeRecordPriceInput(draft.priceText ?? ''));
           setSelectedEmotion(draft.selectedEmotion ?? null);
-          setSelectedImages(Array.isArray(draft.selectedImages) ? draft.selectedImages : []);
+          setSelectedImages(
+            Array.isArray(draft.selectedImages) ? draft.selectedImages : [],
+          );
           setActiveImageIndex(0);
         }
       } finally {
@@ -459,7 +471,7 @@ export default function RecordCreateScreen() {
         imagePath: null,
       });
 
-      const optimisticRecord = normalizeMemoryRecord({
+      const optimisticRecord: MemoryRecord = normalizeMemoryRecord({
         id: memoryId,
         petId,
         title: trimmedTitle,
@@ -480,7 +492,7 @@ export default function RecordCreateScreen() {
       setFocusedMemoryId(petId, memoryId);
 
       (async () => {
-        let latestLocal = optimisticRecord;
+        let latestLocal: MemoryRecord = optimisticRecord;
 
         try {
           if (selectedImages.length > 0) {
@@ -644,14 +656,14 @@ export default function RecordCreateScreen() {
           disabled={disabled}
           onPress={onSubmit}
         >
-        <AppText
-          preset="body"
-          style={[
-            styles.headerDoneText,
-            !disabled ? { color: petTheme.primary } : null,
-            disabled ? styles.headerDoneTextDisabled : null,
-          ]}
-        >
+          <AppText
+            preset="body"
+            style={[
+              styles.headerDoneText,
+              !disabled ? { color: petTheme.primary } : null,
+              disabled ? styles.headerDoneTextDisabled : null,
+            ]}
+          >
             {saving ? '저장중' : '완료'}
           </AppText>
         </TouchableOpacity>
@@ -661,7 +673,7 @@ export default function RecordCreateScreen() {
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,
-          { paddingBottom: Math.max(insets.bottom + 180, 220) },
+          { paddingBottom: Math.max(scrollBottomInset, 300) },
         ]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
@@ -689,11 +701,7 @@ export default function RecordCreateScreen() {
               {formattedDate}
             </AppText>
           </View>
-          <Feather
-            name="chevron-right"
-            size={18}
-            color="#C4CAD6"
-          />
+          <Feather name="chevron-right" size={18} color="#C4CAD6" />
         </TouchableOpacity>
 
         <RecordImageGallery
@@ -720,7 +728,10 @@ export default function RecordCreateScreen() {
           }
           mainContent={
             activeImage ? (
-              <Image source={{ uri: activeImage.uri }} style={styles.photoImage} />
+              <Image
+                source={{ uri: activeImage.uri }}
+                style={styles.photoImage}
+              />
             ) : null
           }
           topOverlay={
@@ -754,7 +765,7 @@ export default function RecordCreateScreen() {
         />
 
         <View style={styles.quickTagRow}>
-        {RECORD_MAIN_CATEGORIES.map(category => {
+          {RECORD_MAIN_CATEGORIES.map(category => {
             const active = category.key === mainCategoryKey;
             return (
               <TouchableOpacity
@@ -798,10 +809,7 @@ export default function RecordCreateScreen() {
 
         {selectedMainCategory ? (
           <View
-            style={[
-              styles.quickTagHint,
-              { backgroundColor: petTheme.tint },
-            ]}
+            style={[styles.quickTagHint, { backgroundColor: petTheme.tint }]}
           >
             <AppText
               preset="caption"
@@ -1005,7 +1013,7 @@ export default function RecordCreateScreen() {
           activeOpacity={0.9}
           style={[
             styles.bottomSubmitBtn,
-            { marginBottom: Math.max(insets.bottom, 18) },
+            { marginBottom: bottomSubmitMargin },
             disabled ? styles.bottomSubmitBtnDisabled : null,
             !disabled
               ? {
