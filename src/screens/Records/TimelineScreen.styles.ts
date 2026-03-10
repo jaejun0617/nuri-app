@@ -40,11 +40,15 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   createText: { color: '#ffffff', fontWeight: '900' },
-  diagBadge: {
+  diagBadgeStack: {
     position: 'absolute',
     top: 62,
     right: 14,
     zIndex: 10,
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  diagBadge: {
     minWidth: 74,
     height: 30,
     paddingHorizontal: 10,
@@ -57,6 +61,12 @@ export const styles = StyleSheet.create({
   },
   diagBadgeOff: {
     backgroundColor: '#991B1B',
+  },
+  diagBadgeNeutral: {
+    backgroundColor: '#475569',
+  },
+  diagBadgeWarn: {
+    backgroundColor: '#92400E',
   },
   diagBadgeText: {
     color: '#FFFFFF',

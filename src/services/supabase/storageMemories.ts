@@ -75,10 +75,7 @@ function resolveVariantTransform(
   }
 }
 
-function buildCacheKey(
-  path: string,
-  variant: MemoryImageVariant | null | undefined,
-) {
+function buildCacheKey(path: string, variant: MemoryImageVariant | null | undefined) {
   const normalizedVariant = variant ?? 'original';
   return `${normalizedVariant}::${path}`;
 }
@@ -381,6 +378,8 @@ export async function deleteMemoryImage(imagePath: string) {
   const { error } = await supabase.storage.from('memory-images').remove([path]);
   if (error) throw error;
 
-  cache.delete(path);
-  inFlight.delete(path);
+  cache.delete(buildCacheKey(path, 'original'));
+  cache.delete(buildCacheKey(path, 'timeline-thumb'));
+  inFlight.delete(buildCacheKey(path, 'original'));
+  inFlight.delete(buildCacheKey(path, 'timeline-thumb'));
 }

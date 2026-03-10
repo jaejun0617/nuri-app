@@ -240,6 +240,7 @@ export async function fetchMemoriesByPetPage(input: {
       prefetchMemorySignedUrls({
         imagePaths: topPaths,
         max: prefetchTop,
+        variant: 'timeline-thumb',
       }),
     );
   }
