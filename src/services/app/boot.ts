@@ -2,6 +2,9 @@ import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 export type BootRouteName = 'AppTabs' | 'NicknameSetup' | 'PetCreate';
 
+const SPLASH_DEFAULT_HOLD_MS = 700;
+const SPLASH_FORM_HOLD_MS = 900;
+
 export function getSessionUserId(session: Session | null | undefined) {
   return session?.user?.id ?? null;
 }
@@ -79,4 +82,11 @@ export function resolveBootRoute(input: {
   }
 
   return { name: 'AppTabs' as const, params: undefined };
+}
+
+export function getBootSplashHoldMs(routeName: BootRouteName) {
+  if (routeName === 'PetCreate' || routeName === 'NicknameSetup') {
+    return SPLASH_FORM_HOLD_MS;
+  }
+  return SPLASH_DEFAULT_HOLD_MS;
 }

@@ -147,7 +147,7 @@ export const useAuthStore = create<AuthState>(set => ({
       profileErrorMessage: null,
       isLoggedIn: false,
       // 수동 로그아웃에서는 부트 게이트를 닫지 않는다.
-      // Splash 최소 대기(4s)에 다시 걸리면 체감 지연이 발생한다.
+      // 세션 종료 후에도 Splash 브랜딩 대기까지 다시 타면 체감 지연이 커진다.
       booted: true,
     });
     await clearProfile();

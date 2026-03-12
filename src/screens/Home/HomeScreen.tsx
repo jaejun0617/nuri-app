@@ -14,15 +14,16 @@ import type { RootStackParamList } from '../../navigation/RootNavigator';
 import AppText from '../../app/ui/AppText';
 import * as S from './HomeScreen.styles';
 import { textStyles } from './HomeScreen.styles';
-import { resolveBootRoute } from '../../services/app/boot';
+import {
+  getBootSplashHoldMs,
+  resolveBootRoute,
+} from '../../services/app/boot';
 
 import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Splash'>;
 
-// ✅ Splash 최소 노출 시간(0.8~1.0s)
-const MIN_SPLASH_MS = 4000;
 const SPLASH_BG_SOURCE = require('../../assets/home/Splash_bg_v2.png');
 
 export default function HomeScreen() {
@@ -73,6 +74,10 @@ export default function HomeScreen() {
       petErrorMessage,
     });
   }, [isLoggedIn, nickname, profileSyncStatus, pets.length, petErrorMessage]);
+  const splashHoldMs = useMemo(
+    () => getBootSplashHoldMs(nextRoute.name),
+    [nextRoute.name],
+  );
   // const blurSource = useMemo(() => require('../../assets/home/test.png'), []);
 
   // ---------------------------------------------------------
@@ -83,7 +88,7 @@ export default function HomeScreen() {
     if (!authBooted || !petBooted) return;
 
     const elapsed = Date.now() - startedAtRef.current;
-    const wait = Math.max(0, MIN_SPLASH_MS - elapsed);
+    const wait = Math.max(0, splashHoldMs - elapsed);
 
     const t = setTimeout(() => {
       if (movedRef.current) return;
@@ -95,7 +100,7 @@ export default function HomeScreen() {
     }, wait);
 
     return () => clearTimeout(t);
-  }, [authBooted, navigation, nextRoute, petBooted]);
+  }, [authBooted, navigation, nextRoute, petBooted, splashHoldMs]);
 
   // ---------------------------------------------------------
   // 애니메이션(기존 유지)
