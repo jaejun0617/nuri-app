@@ -3568,3 +3568,67 @@ legacy 반영이 실패하면:
   가 여전히 같은 화면 안에서 함께 재계산된다.
 - 이번 챕터는 selector 폭과 widget 계산을 줄인 1차 정리라,
   다음 단계에서는 `hero / tips / summary` 쪽을 더 분리하는 게 맞다.
+
+### Chapter X. 홈 정적 섹션 분리 2차 최적화
+
+이번 챕터에서는 `LoggedInHome` 안에 함께 섞여 있던 정적/저빈도 영역을 별도 `React.memo` 컴포넌트로 분리해, 홈 전체가 한 번에 다시 그려지는 범위를 줄였다.
+
+#### 핵심 변경
+
+- `LoggedInHome` 내부에서 정적/저빈도 영역을 별도 memo 컴포넌트로 분리했다.
+- 분리한 섹션:
+  - `HomeHeaderSection`
+  - `HeroProfileSection`
+  - `QuickActionsSection`
+  - `MemorySectionLead`
+  - `RecommendationTipsSection`
+  - `TodayHomeTipSection`
+- 부모는 이제 이 섹션들을 조립만 하도록 바뀌어, 큰 단일 JSX 블록 재평가를 줄였다.
+
+#### 렌더 의존 범위 축소
+
+- `records / schedules` 가 바뀌어도
+  - 헤더
+  - hero
+  - quick actions
+  - 팁 섹션
+    은 관련 props가 바뀌지 않으면 재렌더를 피하게 됐다.
+- 이전에는 `LoggedInHome` 한 컴포넌트 안에서 정적 섹션 JSX가 모두 같이 다시 평가됐지만,
+  지금은 정적 섹션과 동적 섹션의 경계가 더 명확해졌다.
+- hero는 pet 프로필 / accordion 상태에만 반응하고,
+  quick actions / 팁 섹션은 `petTheme`, `plainPetName`, navigation callback 변화에만 반응한다.
+- 동적 영역은 기존 memo 섹션을 유지해
+  - today photo
+  - today records
+  - weekly summary
+  - schedule
+  - recent activities
+  - diary
+    만 데이터 변화에 직접 반응하도록 유지했다.
+
+#### 멀티펫 전환 체감 개선
+
+- 멀티펫 전환 시 실제로 바뀌는 pet 프로필 관련 영역만 강하게 반응하고,
+  `records / schedules` 와 무관한 정적 섹션은 별도 memo 경계 안에 남는다.
+- prewarm 이후 `records / schedules` 가 뒤늦게 바뀌어도 헤더/hero 외 정적 영역이 덜 흔들린다.
+- 결과적으로 펫 전환 직후 홈 전체가 다시 그려지는 느낌을 더 줄였다.
+
+#### 실기기 UX 기준 개선 포인트
+
+- 홈 첫 진입과 펫 전환 시 상단 hero, 빠른 액션, 추천 팁 같은 영역이 더 안정적으로 유지된다.
+- 기록/일정이 갱신될 때 실제로 바뀌는 섹션만 움직이므로 화면 전체 출렁임 체감이 줄어든다.
+- 상단 정적 영역이 덜 흔들리면서, 실기기에서 “화면이 다시 갈아엎어지는” 느낌이 약해진다.
+
+#### 남은 리스크
+
+- `HeroProfileSection` 은 아직 accordion 상태와 pet 프로필 UI를 함께 들고 있어 영역 자체는 여전히 크다.
+- records 변화가 발생하면
+  - today photo
+  - weekly summary
+  - recent activities
+  - monthly diary
+    는 여전히 같은 부모 안에서 각각 재계산된다.
+- 다음 단계에서는 동적 섹션들 중
+  - today photo / records
+  - summary / recent / diary
+    를 더 묶거나, 파생 계산을 각 섹션 내부로 더 밀어 넣는 최적화가 남아 있다.

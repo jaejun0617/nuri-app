@@ -489,25 +489,61 @@ const MonthlyDiaryCard = React.memo(function MonthlyDiaryCard({
 });
 
 const TodayPhotoSection = React.memo(function TodayPhotoSection({
-  todayPhoto,
-  todayPhotoUrl,
-  isTodayPhotoLoading,
-  todayPhotoOverlayTitle,
+  activePetId,
+  recordItems,
   onPressRecordItem,
   onPressRecord,
   accentColor,
 }: {
-  todayPhoto: {
-    record: MemoryRecord | null;
-    mode: 'anniversary' | 'random' | 'none';
-  };
-  todayPhotoUrl: string | null;
-  isTodayPhotoLoading: boolean;
-  todayPhotoOverlayTitle: string;
+  activePetId: string | null;
+  recordItems: MemoryRecord[];
   onPressRecordItem: (memoryId: string) => void;
   onPressRecord: () => void;
   accentColor: string;
 }) {
+  const [todayPhoto, setTodayPhoto] = useState<{
+    record: MemoryRecord | null;
+    mode: 'anniversary' | 'random' | 'none';
+  }>({ record: null, mode: 'none' });
+
+  useEffect(() => {
+    setTodayPhoto({ record: null, mode: 'none' });
+  }, [activePetId]);
+
+  useEffect(() => {
+    const request = createLatestRequestController();
+
+    async function run() {
+      const requestId = request.begin();
+      if (!activePetId) {
+        if (request.isCurrent(requestId)) {
+          setTodayPhoto({ record: null, mode: 'none' });
+        }
+        return;
+      }
+      const picked = await pickTodayPhoto(activePetId, recordItems);
+      if (request.isCurrent(requestId)) {
+        setTodayPhoto(picked);
+      }
+    }
+
+    run();
+    return () => {
+      request.cancel();
+    };
+  }, [activePetId, recordItems]);
+
+  const { signedUrl: todayPhotoUrl, loading: isTodayPhotoLoading } =
+    useSignedMemoryImage(
+      todayPhoto.record ? getPrimaryMemoryImageRef(todayPhoto.record) : null,
+    );
+
+  const todayPhotoOverlayTitle = useMemo(() => {
+    if (todayPhoto.mode === 'anniversary') return '작년 오늘의 기억';
+    if (todayPhoto.mode === 'random') return '오늘 꺼내보는 한 장';
+    return '오늘의 사진';
+  }, [todayPhoto.mode]);
+
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
@@ -647,24 +683,14 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
   );
 });
 
-const HeroProfileSection = React.memo(function HeroProfileSection({
+const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
   petTheme,
   selectedAvatarUri,
   profilePetName,
   topMetaLine,
   birthText,
   togetherDays,
-  hobbies,
-  likes,
-  dislikes,
-  tags,
-  allExpanded,
-  acc,
-  todayMessageEmoji,
-  todayMessage,
   onPressPetProfileEdit,
-  onToggleAll,
-  onToggleOne,
 }: {
   petTheme: ReturnType<typeof buildPetThemePalette>;
   selectedAvatarUri: string | null;
@@ -672,20 +698,10 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
   topMetaLine: string | null;
   birthText: string | null;
   togetherDays: number | null;
-  hobbies: string[];
-  likes: string[];
-  dislikes: string[];
-  tags: string[];
-  allExpanded: boolean;
-  acc: Record<ProfileAccordionKey, boolean>;
-  todayMessageEmoji: string;
-  todayMessage: string;
   onPressPetProfileEdit: () => void;
-  onToggleAll: () => void;
-  onToggleOne: (key: ProfileAccordionKey) => void;
 }) {
   return (
-    <View style={styles.heroCard}>
+    <>
       <TouchableOpacity
         activeOpacity={0.85}
         style={styles.heroGearBtn}
@@ -776,179 +792,214 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
           </View>
         ) : null}
       </View>
+    </>
+  );
+});
 
-      <View style={styles.accordionWrap}>
+const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
+  petTheme,
+  hobbies,
+  likes,
+  dislikes,
+  tags,
+  allExpanded,
+  acc,
+  onToggleAll,
+  onToggleOne,
+}: {
+  petTheme: ReturnType<typeof buildPetThemePalette>;
+  hobbies: string[];
+  likes: string[];
+  dislikes: string[];
+  tags: string[];
+  allExpanded: boolean;
+  acc: Record<ProfileAccordionKey, boolean>;
+  onToggleAll: () => void;
+  onToggleOne: (key: ProfileAccordionKey) => void;
+}) {
+  return (
+    <View style={styles.accordionWrap}>
+      <TouchableOpacity
+        activeOpacity={0.85}
+        style={styles.accordionAllRow}
+        onPress={onToggleAll}
+      >
+        <Text style={[styles.accordionAllLabel, { color: petTheme.primary }]}>
+          모두펼치기
+        </Text>
+        <Feather
+          name={allExpanded ? 'chevron-up' : 'chevron-down'}
+          size={18}
+          color={petTheme.primary}
+        />
+      </TouchableOpacity>
+
+      <View style={styles.accordionItem}>
         <TouchableOpacity
           activeOpacity={0.85}
-          style={styles.accordionAllRow}
-          onPress={onToggleAll}
+          style={styles.accordionHeaderRow}
+          onPress={() => onToggleOne('hobby')}
         >
-          <Text style={[styles.accordionAllLabel, { color: petTheme.primary }]}>
-            모두펼치기
-          </Text>
+          <View style={styles.accordionLeft}>
+            <View style={[styles.accordionIconCircle, styles.iconCircleBlue]}>
+              <Text style={styles.accordionIconText}>🐾</Text>
+            </View>
+            <Text style={[styles.accordionTitle, styles.accTitleBlue]}>취미</Text>
+          </View>
           <Feather
-            name={allExpanded ? 'chevron-up' : 'chevron-down'}
+            name={acc.hobby ? 'chevron-up' : 'chevron-down'}
             size={18}
             color={petTheme.primary}
           />
         </TouchableOpacity>
 
-        <View style={styles.accordionItem}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            style={styles.accordionHeaderRow}
-            onPress={() => onToggleOne('hobby')}
-          >
-            <View style={styles.accordionLeft}>
-              <View style={[styles.accordionIconCircle, styles.iconCircleBlue]}>
-                <Text style={styles.accordionIconText}>🐾</Text>
-              </View>
-              <Text style={[styles.accordionTitle, styles.accTitleBlue]}>취미</Text>
-            </View>
-            <Feather
-              name={acc.hobby ? 'chevron-up' : 'chevron-down'}
-              size={18}
-              color={petTheme.primary}
-            />
-          </TouchableOpacity>
-
-          {acc.hobby ? (
-            <View style={styles.accordionBody}>
-              {hobbies.length > 0 ? (
-                hobbies.map(v => (
-                  <Text key={v} style={styles.accordionBullet}>
-                    • {v}
-                  </Text>
-                ))
-              ) : (
-                <Text style={styles.accordionEmpty}>• 아직 없어요</Text>
-              )}
-            </View>
-          ) : null}
-        </View>
-
-        <View style={styles.accordionItem}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            style={styles.accordionHeaderRow}
-            onPress={() => onToggleOne('like')}
-          >
-            <View style={styles.accordionLeft}>
-              <View
-                style={[styles.accordionIconCircle, styles.iconCircleOrange]}
-              >
-                <Text style={styles.accordionIconText}>💛</Text>
-              </View>
-              <Text style={[styles.accordionTitle, styles.accTitleOrange]}>
-                좋아하는 것
-              </Text>
-            </View>
-            <Feather
-              name={acc.like ? 'chevron-up' : 'chevron-down'}
-              size={18}
-              color={petTheme.primary}
-            />
-          </TouchableOpacity>
-
-          {acc.like ? (
-            <View style={styles.accordionBody}>
-              {likes.length > 0 ? (
-                likes.map(v => (
-                  <Text key={v} style={styles.accordionBullet}>
-                    • {v}
-                  </Text>
-                ))
-              ) : (
-                <Text style={styles.accordionEmpty}>• 아직 없어요</Text>
-              )}
-            </View>
-          ) : null}
-        </View>
-
-        <View style={styles.accordionItem}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            style={styles.accordionHeaderRow}
-            onPress={() => onToggleOne('dislike')}
-          >
-            <View style={styles.accordionLeft}>
-              <View style={[styles.accordionIconCircle, styles.iconCirclePink]}>
-                <Text style={styles.accordionIconText}>💔</Text>
-              </View>
-              <Text style={[styles.accordionTitle, styles.accTitlePink]}>
-                싫어하는 것
-              </Text>
-            </View>
-            <Feather
-              name={acc.dislike ? 'chevron-up' : 'chevron-down'}
-              size={18}
-              color={petTheme.primary}
-            />
-          </TouchableOpacity>
-
-          {acc.dislike ? (
-            <View style={styles.accordionBody}>
-              {dislikes.length > 0 ? (
-                dislikes.map(v => (
-                  <Text key={v} style={styles.accordionBullet}>
-                    • {v}
-                  </Text>
-                ))
-              ) : (
-                <Text style={styles.accordionEmpty}>• 아직 없어요</Text>
-              )}
-            </View>
-          ) : null}
-        </View>
-
-        <View style={[styles.accordionItem, { borderBottomWidth: 0 }]}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            style={styles.accordionHeaderRow}
-            onPress={() => onToggleOne('tag')}
-          >
-            <View style={styles.accordionLeft}>
-              <View
-                style={[styles.accordionIconCircle, styles.iconCirclePurple]}
-              >
-                <Feather name="hash" size={16} color={petTheme.primary} />
-              </View>
-              <Text style={[styles.accordionTitle, styles.accTitlePurple]}>
-                #태그
-              </Text>
-            </View>
-            <Feather
-              name={acc.tag ? 'chevron-up' : 'chevron-down'}
-              size={18}
-              color={petTheme.primary}
-            />
-          </TouchableOpacity>
-
-          {acc.tag ? (
-            <View style={styles.accordionBody}>
-              <View style={styles.tagsRow}>
-                {tags.map(t => (
-                  <View
-                    key={t}
-                    style={[
-                      styles.tagChip,
-                      {
-                        borderColor: petTheme.border,
-                        backgroundColor: petTheme.tint,
-                      },
-                    ]}
-                  >
-                    <Text style={[styles.tagText, { color: petTheme.deep }]}>
-                      {t}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          ) : null}
-        </View>
+        {acc.hobby ? (
+          <View style={styles.accordionBody}>
+            {hobbies.length > 0 ? (
+              hobbies.map(v => (
+                <Text key={v} style={styles.accordionBullet}>
+                  • {v}
+                </Text>
+              ))
+            ) : (
+              <Text style={styles.accordionEmpty}>• 아직 없어요</Text>
+            )}
+          </View>
+        ) : null}
       </View>
 
+      <View style={styles.accordionItem}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={styles.accordionHeaderRow}
+          onPress={() => onToggleOne('like')}
+        >
+          <View style={styles.accordionLeft}>
+            <View
+              style={[styles.accordionIconCircle, styles.iconCircleOrange]}
+            >
+              <Text style={styles.accordionIconText}>💛</Text>
+            </View>
+            <Text style={[styles.accordionTitle, styles.accTitleOrange]}>
+              좋아하는 것
+            </Text>
+          </View>
+          <Feather
+            name={acc.like ? 'chevron-up' : 'chevron-down'}
+            size={18}
+            color={petTheme.primary}
+          />
+        </TouchableOpacity>
+
+        {acc.like ? (
+          <View style={styles.accordionBody}>
+            {likes.length > 0 ? (
+              likes.map(v => (
+                <Text key={v} style={styles.accordionBullet}>
+                  • {v}
+                </Text>
+              ))
+            ) : (
+              <Text style={styles.accordionEmpty}>• 아직 없어요</Text>
+            )}
+          </View>
+        ) : null}
+      </View>
+
+      <View style={styles.accordionItem}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={styles.accordionHeaderRow}
+          onPress={() => onToggleOne('dislike')}
+        >
+          <View style={styles.accordionLeft}>
+            <View style={[styles.accordionIconCircle, styles.iconCirclePink]}>
+              <Text style={styles.accordionIconText}>💔</Text>
+            </View>
+            <Text style={[styles.accordionTitle, styles.accTitlePink]}>
+              싫어하는 것
+            </Text>
+          </View>
+          <Feather
+            name={acc.dislike ? 'chevron-up' : 'chevron-down'}
+            size={18}
+            color={petTheme.primary}
+          />
+        </TouchableOpacity>
+
+        {acc.dislike ? (
+          <View style={styles.accordionBody}>
+            {dislikes.length > 0 ? (
+              dislikes.map(v => (
+                <Text key={v} style={styles.accordionBullet}>
+                  • {v}
+                </Text>
+              ))
+            ) : (
+              <Text style={styles.accordionEmpty}>• 아직 없어요</Text>
+            )}
+          </View>
+        ) : null}
+      </View>
+
+      <View style={[styles.accordionItem, { borderBottomWidth: 0 }]}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={styles.accordionHeaderRow}
+          onPress={() => onToggleOne('tag')}
+        >
+          <View style={styles.accordionLeft}>
+            <View
+              style={[styles.accordionIconCircle, styles.iconCirclePurple]}
+            >
+              <Feather name="hash" size={16} color={petTheme.primary} />
+            </View>
+            <Text style={[styles.accordionTitle, styles.accTitlePurple]}>
+              #태그
+            </Text>
+          </View>
+          <Feather
+            name={acc.tag ? 'chevron-up' : 'chevron-down'}
+            size={18}
+            color={petTheme.primary}
+          />
+        </TouchableOpacity>
+
+        {acc.tag ? (
+          <View style={styles.accordionBody}>
+            <View style={styles.tagsRow}>
+              {tags.map(t => (
+                <View
+                  key={t}
+                  style={[
+                    styles.tagChip,
+                    {
+                      borderColor: petTheme.border,
+                      backgroundColor: petTheme.tint,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.tagText, { color: petTheme.deep }]}>
+                    {t}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : null}
+      </View>
+    </View>
+  );
+});
+
+const HeroProfileMessage = React.memo(function HeroProfileMessage({
+  todayMessageEmoji,
+  todayMessage,
+}: {
+  todayMessageEmoji: string;
+  todayMessage: string;
+}) {
+  return (
       <View style={styles.heroMessageBox}>
         <View style={styles.heroMessageIcon}>
           <Text style={styles.heroMessageIconText}>{todayMessageEmoji}</Text>
@@ -956,6 +1007,72 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
         <Text style={styles.heroMessageText}>{todayMessage}</Text>
         <View style={styles.heroMessageBottomShadow} />
       </View>
+  );
+});
+
+const HeroProfileSection = React.memo(function HeroProfileSection({
+  petTheme,
+  selectedAvatarUri,
+  profilePetName,
+  topMetaLine,
+  birthText,
+  togetherDays,
+  hobbies,
+  likes,
+  dislikes,
+  tags,
+  allExpanded,
+  acc,
+  todayMessageEmoji,
+  todayMessage,
+  onPressPetProfileEdit,
+  onToggleAll,
+  onToggleOne,
+}: {
+  petTheme: ReturnType<typeof buildPetThemePalette>;
+  selectedAvatarUri: string | null;
+  profilePetName: string;
+  topMetaLine: string | null;
+  birthText: string | null;
+  togetherDays: number | null;
+  hobbies: string[];
+  likes: string[];
+  dislikes: string[];
+  tags: string[];
+  allExpanded: boolean;
+  acc: Record<ProfileAccordionKey, boolean>;
+  todayMessageEmoji: string;
+  todayMessage: string;
+  onPressPetProfileEdit: () => void;
+  onToggleAll: () => void;
+  onToggleOne: (key: ProfileAccordionKey) => void;
+}) {
+  return (
+    <View style={styles.heroCard}>
+      <HeroProfileIdentity
+        petTheme={petTheme}
+        selectedAvatarUri={selectedAvatarUri}
+        profilePetName={profilePetName}
+        topMetaLine={topMetaLine}
+        birthText={birthText}
+        togetherDays={togetherDays}
+        onPressPetProfileEdit={onPressPetProfileEdit}
+      />
+      <HeroProfileAccordion
+        petTheme={petTheme}
+        hobbies={hobbies}
+        likes={likes}
+        dislikes={dislikes}
+        tags={tags}
+        allExpanded={allExpanded}
+        acc={acc}
+        onToggleAll={onToggleAll}
+        onToggleOne={onToggleOne}
+      />
+      <HeroProfileMessage
+        todayMessageEmoji={todayMessageEmoji}
+        todayMessage={todayMessage}
+      />
     </View>
   );
 });
@@ -1218,27 +1335,24 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
 
 const WeeklySummarySection = React.memo(function WeeklySummarySection({
   petName,
-  walkCount,
-  mealCount,
-  healthCount,
-  recordDays,
-  totalRecords,
-  upcomingSchedules,
+  records,
+  schedules,
   accentDeepColor,
   accentSoftColor,
   accentBorderColor,
 }: {
   petName: string;
-  walkCount: number;
-  mealCount: number;
-  healthCount: number;
-  recordDays: number;
-  totalRecords: number;
-  upcomingSchedules: number;
+  records: MemoryRecord[];
+  schedules: PetSchedule[];
   accentDeepColor: string;
   accentSoftColor: string;
   accentBorderColor: string;
 }) {
+  const weeklySummary = useMemo(
+    () => buildWeeklySummary(records, schedules),
+    [records, schedules],
+  );
+
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
@@ -1266,7 +1380,7 @@ const WeeklySummarySection = React.memo(function WeeklySummarySection({
             style={[styles.summaryItem, { borderColor: accentBorderColor }]}
           >
             <Text style={[styles.summaryValue, { color: accentDeepColor }]}>
-              {walkCount}
+              {weeklySummary.walkCount}
             </Text>
             <Text style={styles.summaryLabel}>산책 기록</Text>
           </View>
@@ -1274,7 +1388,7 @@ const WeeklySummarySection = React.memo(function WeeklySummarySection({
             style={[styles.summaryItem, { borderColor: accentBorderColor }]}
           >
             <Text style={[styles.summaryValue, { color: accentDeepColor }]}>
-              {mealCount}
+              {weeklySummary.mealCount}
             </Text>
             <Text style={styles.summaryLabel}>식사 기록</Text>
           </View>
@@ -1282,7 +1396,7 @@ const WeeklySummarySection = React.memo(function WeeklySummarySection({
             style={[styles.summaryItem, { borderColor: accentBorderColor }]}
           >
             <Text style={[styles.summaryValue, { color: accentDeepColor }]}>
-              {healthCount}
+              {weeklySummary.healthCount}
             </Text>
             <Text style={styles.summaryLabel}>건강 기록</Text>
           </View>
@@ -1290,7 +1404,7 @@ const WeeklySummarySection = React.memo(function WeeklySummarySection({
             style={[styles.summaryItem, { borderColor: accentBorderColor }]}
           >
             <Text style={[styles.summaryValue, { color: accentDeepColor }]}>
-              {recordDays}
+              {weeklySummary.recordDays}
             </Text>
             <Text style={styles.summaryLabel}>기록한 날</Text>
           </View>
@@ -1298,10 +1412,10 @@ const WeeklySummarySection = React.memo(function WeeklySummarySection({
 
         <View style={styles.summaryFooterRow}>
           <Text style={styles.summaryFooterText}>
-            이번 주 기록 {totalRecords}개
+            이번 주 기록 {weeklySummary.totalRecords}개
           </Text>
           <Text style={styles.summaryFooterText}>
-            남은 일정 {upcomingSchedules}개
+            남은 일정 {weeklySummary.upcomingSchedules}개
           </Text>
         </View>
       </View>
@@ -1310,20 +1424,24 @@ const WeeklySummarySection = React.memo(function WeeklySummarySection({
 });
 
 const ScheduleSection = React.memo(function ScheduleSection({
-  weekScheduleItems,
+  scheduleItems,
   onPressScheduleList,
   onPressScheduleCreate,
   accentColor,
   accentDeepColor,
   accentTint,
 }: {
-  weekScheduleItems: WeeklyScheduleItem[];
+  scheduleItems: PetSchedule[];
   onPressScheduleList: () => void;
   onPressScheduleCreate: () => void;
   accentColor: string;
   accentDeepColor: string;
   accentTint: string;
 }) {
+  const weekScheduleItems = useMemo<WeeklyScheduleItem[]>(() => {
+    return scheduleItems.slice(0, 7).map(buildScheduleCard);
+  }, [scheduleItems]);
+
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
@@ -1409,18 +1527,20 @@ const ScheduleSection = React.memo(function ScheduleSection({
 });
 
 const RecentActivitiesSection = React.memo(function RecentActivitiesSection({
-  recentActivities,
+  recordItems,
   onPressTimeline,
   onPressRecordItem,
   accentColor,
   accentDeepColor,
 }: {
-  recentActivities: MemoryRecord[];
+  recordItems: MemoryRecord[];
   onPressTimeline: () => void;
   onPressRecordItem: (memoryId: string) => void;
   accentColor: string;
   accentDeepColor: string;
 }) {
+  const recentActivities = useMemo(() => recordItems.slice(0, 7), [recordItems]);
+
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
@@ -1491,7 +1611,7 @@ const RecentActivitiesSection = React.memo(function RecentActivitiesSection({
 
 const MonthlyDiarySection = React.memo(function MonthlyDiarySection({
   petName,
-  currentMonthDiaryEntries,
+  recordItems,
   onPressTimelineCategory,
   onPressRecord,
   onPressRecordItem,
@@ -1499,7 +1619,7 @@ const MonthlyDiarySection = React.memo(function MonthlyDiarySection({
   accentDeepColor,
 }: {
   petName: string;
-  currentMonthDiaryEntries: MemoryRecord[];
+  recordItems: MemoryRecord[];
   onPressTimelineCategory: (
     mainCategory: Exclude<TimelineMainCategory, undefined>,
     otherSubCategory?: Exclude<TimelineOtherSubCategory, undefined>,
@@ -1509,6 +1629,19 @@ const MonthlyDiarySection = React.memo(function MonthlyDiarySection({
   accentColor: string;
   accentDeepColor: string;
 }) {
+  const currentMonthDiaryEntries = useMemo(() => {
+    const currentMonthKey = getMonthKeyInKst(new Date());
+
+    return recordItems
+      .filter(item => {
+        if (normalizeCategoryKey(readRecordCategoryRaw(item)) !== 'diary') {
+          return false;
+        }
+        return getMonthKeyFromYmd(getRecordDisplayYmd(item)) === currentMonthKey;
+      })
+      .slice(0, 7);
+  }, [recordItems]);
+
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
@@ -1641,7 +1774,7 @@ export default function LoggedInHome() {
   }, [activePetId, bootstrapSchedules]);
 
   // ---------------------------------------------------------
-  // 4.3) today message / today photo
+  // 4.3) today message
   // ---------------------------------------------------------
   const todayMessage = useMemo(() => {
     return generateTimeMessage({
@@ -1653,47 +1786,6 @@ export default function LoggedInHome() {
     () => getTimeMessageEmoji(selectedPet?.deathDate ?? null),
     [selectedPet?.deathDate],
   );
-
-  const [todayPhoto, setTodayPhoto] = useState<{
-    record: MemoryRecord | null;
-    mode: 'anniversary' | 'random' | 'none';
-  }>({ record: null, mode: 'none' });
-
-  useEffect(() => {
-    setTodayPhoto({ record: null, mode: 'none' });
-  }, [activePetId]);
-
-  useEffect(() => {
-    const request = createLatestRequestController();
-
-    async function run() {
-      const requestId = request.begin();
-      if (!activePetId) {
-        if (request.isCurrent(requestId)) {
-          setTodayPhoto({ record: null, mode: 'none' });
-        }
-        return;
-      }
-      const picked = await pickTodayPhoto(activePetId, recordItems);
-      if (request.isCurrent(requestId)) setTodayPhoto(picked);
-    }
-
-    run();
-    return () => {
-      request.cancel();
-    };
-  }, [activePetId, recordItems]);
-
-  const { signedUrl: todayPhotoUrl, loading: isTodayPhotoLoading } =
-    useSignedMemoryImage(
-      todayPhoto.record ? getPrimaryMemoryImageRef(todayPhoto.record) : null,
-    );
-
-  const todayPhotoOverlayTitle = useMemo(() => {
-    if (todayPhoto.mode === 'anniversary') return '작년 오늘의 기억';
-    if (todayPhoto.mode === 'random') return '오늘 꺼내보는 한 장';
-    return '오늘의 사진';
-  }, [todayPhoto.mode]);
 
   // ---------------------------------------------------------
   // ✅ 4.4) 오늘날의 기록(슬라이드) 데이터 (최대 14)
@@ -2040,32 +2132,6 @@ export default function LoggedInHome() {
     }));
   }, [plainPetName]);
 
-  const recentActivities = useMemo(
-    () => recordItems.slice(0, 7),
-    [recordItems],
-  );
-
-  const currentMonthDiaryEntries = useMemo(() => {
-    const currentMonthKey = getMonthKeyInKst(new Date());
-
-    return recordItems
-      .filter(item => {
-        if (normalizeCategoryKey(readRecordCategoryRaw(item)) !== 'diary') {
-          return false;
-        }
-        return getMonthKeyFromYmd(getRecordDisplayYmd(item)) === currentMonthKey;
-      })
-      .slice(0, 7);
-  }, [recordItems]);
-
-  const weekScheduleItems = useMemo<WeeklyScheduleItem[]>(() => {
-    return scheduleItems.slice(0, 7).map(buildScheduleCard);
-  }, [scheduleItems]);
-  const weeklySummary = useMemo(
-    () => buildWeeklySummary(recordItems, scheduleItems),
-    [recordItems, scheduleItems],
-  );
-
   // ---------------------------------------------------------
   // 8) Accordion state (pet 변경 시 초기화)
   // ---------------------------------------------------------
@@ -2188,10 +2254,8 @@ export default function LoggedInHome() {
           <MemorySectionLead accentDeepColor={petTheme.deep} />
 
           <TodayPhotoSection
-            todayPhoto={todayPhoto}
-            todayPhotoUrl={todayPhotoUrl}
-            isTodayPhotoLoading={isTodayPhotoLoading}
-            todayPhotoOverlayTitle={todayPhotoOverlayTitle}
+            activePetId={activePetId}
+            recordItems={recordItems}
             onPressRecordItem={onPressRecordItem}
             onPressRecord={onPressRecord}
             accentColor={petTheme.deep}
@@ -2215,12 +2279,8 @@ export default function LoggedInHome() {
 
           <WeeklySummarySection
             petName={plainPetName}
-            walkCount={weeklySummary.walkCount}
-            mealCount={weeklySummary.mealCount}
-            healthCount={weeklySummary.healthCount}
-            recordDays={weeklySummary.recordDays}
-            totalRecords={weeklySummary.totalRecords}
-            upcomingSchedules={weeklySummary.upcomingSchedules}
+            records={recordItems}
+            schedules={scheduleItems}
             accentDeepColor={petTheme.deep}
             accentSoftColor={petTheme.soft}
             accentBorderColor={petTheme.border}
@@ -2233,7 +2293,7 @@ export default function LoggedInHome() {
           />
 
           <ScheduleSection
-            weekScheduleItems={weekScheduleItems}
+            scheduleItems={scheduleItems}
             onPressScheduleList={onPressScheduleList}
             onPressScheduleCreate={onPressScheduleCreate}
             accentColor={petTheme.primary}
@@ -2242,7 +2302,7 @@ export default function LoggedInHome() {
           />
 
           <RecentActivitiesSection
-            recentActivities={recentActivities}
+            recordItems={recordItems}
             onPressTimeline={onPressTimeline}
             onPressRecordItem={onPressRecordItem}
             accentColor={petTheme.primary}
@@ -2253,7 +2313,7 @@ export default function LoggedInHome() {
 
           <MonthlyDiarySection
             petName={plainPetName}
-            currentMonthDiaryEntries={currentMonthDiaryEntries}
+            recordItems={recordItems}
             onPressTimelineCategory={onPressTimelineCategory}
             onPressRecord={onPressRecord}
             onPressRecordItem={onPressRecordItem}
