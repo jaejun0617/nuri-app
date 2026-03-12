@@ -192,21 +192,10 @@ function buildScheduleCard(schedule: PetSchedule): WeeklyScheduleItem {
   };
 }
 
-const FALLBACK_RECORDS_STATE: Omit<PetRecordsState, 'requestSeq'> =
-  Object.freeze({
-    status: 'idle',
-    items: [],
-    errorMessage: null,
-    cursor: null,
-    hasMore: false,
-  });
-
-const FALLBACK_SCHEDULES_STATE = Object.freeze({
-  items: [] as PetSchedule[],
-  status: 'idle' as const,
-  errorMessage: null as string | null,
-  requestSeq: 0,
-});
+const EMPTY_RECORD_ITEMS: MemoryRecord[] = [];
+Object.freeze(EMPTY_RECORD_ITEMS);
+const EMPTY_SCHEDULE_ITEMS: PetSchedule[] = [];
+Object.freeze(EMPTY_SCHEDULE_ITEMS);
 
 const TODAY_RECORDS_MAX = 14;
 
@@ -1101,15 +1090,14 @@ export default function LoggedInHome() {
   const bootstrapRecords = useRecordStore(s => s.bootstrap);
   const bootstrapSchedules = useScheduleStore(s => s.bootstrap);
 
-  const petRecordsState = useRecordStore(s =>
-    activePetId ? s.byPetId[activePetId] ?? null : null,
+  const recordItems = useRecordStore(s =>
+    activePetId ? s.byPetId[activePetId]?.items ?? EMPTY_RECORD_ITEMS : EMPTY_RECORD_ITEMS,
   );
-  const petSchedulesState = useScheduleStore(s =>
-    activePetId ? s.byPetId[activePetId] ?? null : null,
+  const scheduleItems = useScheduleStore(s =>
+    activePetId
+      ? s.byPetId[activePetId]?.items ?? EMPTY_SCHEDULE_ITEMS
+      : EMPTY_SCHEDULE_ITEMS,
   );
-
-  const safeRecordsState = petRecordsState ?? FALLBACK_RECORDS_STATE;
-  const safeSchedulesState = petSchedulesState ?? FALLBACK_SCHEDULES_STATE;
 
   useEffect(() => {
     if (!activePetId) return;
@@ -1155,7 +1143,7 @@ export default function LoggedInHome() {
         }
         return;
       }
-      const picked = await pickTodayPhoto(activePetId, safeRecordsState.items);
+      const picked = await pickTodayPhoto(activePetId, recordItems);
       if (request.isCurrent(requestId)) setTodayPhoto(picked);
     }
 
@@ -1163,7 +1151,7 @@ export default function LoggedInHome() {
     return () => {
       request.cancel();
     };
-  }, [activePetId, safeRecordsState.items]);
+  }, [activePetId, recordItems]);
 
   const { signedUrl: todayPhotoUrl, loading: isTodayPhotoLoading } =
     useSignedMemoryImage(
@@ -1179,7 +1167,7 @@ export default function LoggedInHome() {
   // ---------------------------------------------------------
   // ✅ 4.4) 오늘날의 기록(슬라이드) 데이터 (최대 14)
   // ---------------------------------------------------------
-  const todayRecordsAll = safeRecordsState.items;
+  const todayRecordsAll = recordItems;
   const todayRecords = useMemo(
     () => todayRecordsAll.slice(0, TODAY_RECORDS_MAX),
     [todayRecordsAll],
@@ -1362,14 +1350,15 @@ export default function LoggedInHome() {
       buildHomeWidgetSnapshot({
         petName: plainPetName,
         themeColor: petTheme.primary,
-        schedules: safeSchedulesState.items,
-        records: safeRecordsState.items,
+        nextSchedule: scheduleItems[0] ?? null,
+        recentRecord: recordItems[0] ?? null,
+        recordCount: recordItems.length,
       }),
     [
       plainPetName,
       petTheme.primary,
-      safeRecordsState.items,
-      safeSchedulesState.items,
+      recordItems,
+      scheduleItems,
     ],
   );
 
@@ -1521,14 +1510,14 @@ export default function LoggedInHome() {
   }, [plainPetName]);
 
   const recentActivities = useMemo(
-    () => safeRecordsState.items.slice(0, 7),
-    [safeRecordsState.items],
+    () => recordItems.slice(0, 7),
+    [recordItems],
   );
 
   const currentMonthDiaryEntries = useMemo(() => {
     const currentMonthKey = getMonthKeyInKst(new Date());
 
-    return safeRecordsState.items
+    return recordItems
       .filter(item => {
         if (normalizeCategoryKey(readRecordCategoryRaw(item)) !== 'diary') {
           return false;
@@ -1536,14 +1525,14 @@ export default function LoggedInHome() {
         return getMonthKeyFromYmd(getRecordDisplayYmd(item)) === currentMonthKey;
       })
       .slice(0, 7);
-  }, [safeRecordsState.items]);
+  }, [recordItems]);
 
   const weekScheduleItems = useMemo<WeeklyScheduleItem[]>(() => {
-    return safeSchedulesState.items.slice(0, 7).map(buildScheduleCard);
-  }, [safeSchedulesState.items]);
+    return scheduleItems.slice(0, 7).map(buildScheduleCard);
+  }, [scheduleItems]);
   const weeklySummary = useMemo(
-    () => buildWeeklySummary(safeRecordsState.items, safeSchedulesState.items),
-    [safeRecordsState.items, safeSchedulesState.items],
+    () => buildWeeklySummary(recordItems, scheduleItems),
+    [recordItems, scheduleItems],
   );
 
   // ---------------------------------------------------------

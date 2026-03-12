@@ -15,12 +15,18 @@ function trimOrFallback(value: string | null | undefined, fallback: string): str
 export function buildHomeWidgetSnapshot(input: {
   petName: string | null | undefined;
   themeColor: string;
-  schedules: PetSchedule[];
-  records: MemoryRecord[];
+  schedules?: PetSchedule[];
+  records?: MemoryRecord[];
+  nextSchedule?: PetSchedule | null;
+  recentRecord?: MemoryRecord | null;
+  recordCount?: number;
 }) {
   const petName = trimOrFallback(input.petName, '우리 아이');
-  const nextSchedule = input.schedules[0] ?? null;
-  const recentRecord = input.records[0] ?? null;
+  const schedules = input.schedules ?? [];
+  const records = input.records ?? [];
+  const nextSchedule = input.nextSchedule ?? schedules[0] ?? null;
+  const recentRecord = input.recentRecord ?? records[0] ?? null;
+  const recordCount = input.recordCount ?? records.length;
 
   return {
     petName,
@@ -32,7 +38,7 @@ export function buildHomeWidgetSnapshot(input: {
     recentRecordTitle:
       trimOrFallback(recentRecord?.title, '최근 기록이 아직 없어요'),
     recentRecordMeta: recentRecord
-      ? `${input.records.length}건의 기록이 홈과 타임라인에 동기화돼 있어요`
+      ? `${recordCount}건의 기록이 홈과 타임라인에 동기화돼 있어요`
       : '첫 기록을 남기면 최근 추억이 여기에 표시돼요',
     themeColor: input.themeColor,
   };
