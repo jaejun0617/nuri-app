@@ -11,6 +11,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createLatestRequestController } from '../services/app/async';
 import { getBrandedErrorMeta } from '../services/app/errors';
 import { getFallbackDistrictLabel } from '../services/location/district';
+import type { DeviceCoordinates } from '../services/location/currentPosition';
 import { fetchOpenMeteoAirQuality, fetchOpenMeteoForecast } from '../services/weather/api';
 import {
   loadCachedWeatherGuideBundle,
@@ -38,6 +39,14 @@ export type WeatherGuideState = {
   refresh: () => Promise<void>;
   isUnavailable: boolean;
   isPreview: boolean;
+  coordinates: DeviceCoordinates | null;
+};
+
+type UseWeatherGuideOptions = {
+  initialCoordinates?: DeviceCoordinates | null;
+  autoRefreshOnMount?: boolean;
+  autoRefreshOnFocus?: boolean;
+  autoRefreshOnActive?: boolean;
 };
 
 function getWeatherGuideErrorMessage(error: unknown) {
@@ -65,15 +74,29 @@ function getLocationFallbackMessage(input: {
 export function useWeatherGuide(
   initialDistrict = '현재 위치',
   initialBundle?: WeatherGuideBundle,
+  options: UseWeatherGuideOptions = {},
 ): WeatherGuideState {
   const queryClient = useQueryClient();
-  const location = useCurrentLocation();
+  const autoRefreshOnMount = options.autoRefreshOnMount ?? true;
+  const autoRefreshOnFocus = options.autoRefreshOnFocus ?? true;
+  const autoRefreshOnActive = options.autoRefreshOnActive ?? true;
+  const currentSnapshot = useMemo(() => {
+    useWeatherStore.getState().clearExpired();
+    return useWeatherStore.getState().getFreshCurrentSnapshot();
+  }, []);
+  const location = useCurrentLocation({
+    initialCoordinates: options.initialCoordinates ?? currentSnapshot?.coords ?? null,
+    autoRefreshOnMount,
+    autoRefreshOnActive,
+  });
   const [diskPreviewBundle, setDiskPreviewBundle] = useState<WeatherGuideBundle | null>(null);
   const lastRefreshRequestAtRef = useRef(0);
   const districtState = useDistrict({
     coordinates: location.coordinates,
     loading: location.loading,
     error: location.error,
+    enabled: autoRefreshOnMount || !initialBundle,
+    initialDistrict: initialBundle?.district ?? initialDistrict,
   });
 
   const resolvedDistrict = useMemo(
@@ -122,7 +145,11 @@ export function useWeatherGuide(
     enabled: !!location.coordinates && !!coordsKey,
     staleTime: WEATHER_QUERY_STALE_MS,
     gcTime: WEATHER_QUERY_GC_MS,
-    refetchOnMount: true,
+    refetchOnMount: autoRefreshOnMount,
+    initialData:
+      initialBundle && location.coordinates ? initialBundle : memoryEntry?.bundle,
+    initialDataUpdatedAt:
+      initialBundle || memoryEntry?.bundle ? Date.now() : undefined,
     queryFn: async () => {
       if (!location.coordinates) {
         throw new Error('현재 위치를 아직 확인하지 못했어요.');
@@ -263,12 +290,17 @@ export function useWeatherGuide(
 
   useFocusEffect(
     useCallback(() => {
+      if (!autoRefreshOnFocus) return undefined;
       requestForegroundRefresh();
       return undefined;
-    }, [requestForegroundRefresh]),
+    }, [autoRefreshOnFocus, requestForegroundRefresh]),
   );
 
   useEffect(() => {
+    if (!autoRefreshOnActive) {
+      return undefined;
+    }
+
     const subscription = AppState.addEventListener('change', state => {
       if (state !== 'active') return;
       requestForegroundRefresh();
@@ -277,7 +309,7 @@ export function useWeatherGuide(
     return () => {
       subscription.remove();
     };
-  }, [requestForegroundRefresh]);
+  }, [autoRefreshOnActive, requestForegroundRefresh]);
 
   const loading =
     !weatherQuery.data &&
@@ -291,5 +323,6 @@ export function useWeatherGuide(
     refresh,
     isUnavailable: bundle.dataSource === 'unavailable',
     isPreview: bundle.dataSource === 'preview',
+    coordinates: location.coordinates,
   };
 }

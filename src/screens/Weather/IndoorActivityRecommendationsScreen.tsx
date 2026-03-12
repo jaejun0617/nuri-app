@@ -13,6 +13,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import IndoorActivityCard from '../../components/weather/IndoorActivityCard';
 import { useWeatherGuide } from '../../hooks/useWeatherGuide';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import type { DeviceCoordinates } from '../../services/location/currentPosition';
 import {
   ALL_INDOOR_ACTIVITY_KEYS,
   getIndoorActivityGuide,
@@ -35,10 +36,16 @@ export default function IndoorActivityRecommendationsScreen() {
       params?: {
         district?: string;
         initialBundle?: WeatherGuideBundle;
+        initialCoordinates?: DeviceCoordinates;
       };
     }>();
   const district = route.params?.district?.trim() || '현재 위치';
-  const weatherState = useWeatherGuide(district, route.params?.initialBundle);
+  const weatherState = useWeatherGuide(district, route.params?.initialBundle, {
+    initialCoordinates: route.params?.initialCoordinates,
+    autoRefreshOnMount: !route.params?.initialBundle,
+    autoRefreshOnFocus: false,
+    autoRefreshOnActive: false,
+  });
   const weather = weatherState.bundle;
   const heroTitle = weatherState.isUnavailable
     ? '실시간 날씨 연결이 필요해요'

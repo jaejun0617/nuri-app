@@ -24,6 +24,12 @@ export type CurrentLocationState = {
   refresh: () => Promise<void>;
 };
 
+type UseCurrentLocationOptions = {
+  initialCoordinates?: DeviceCoordinates | null;
+  autoRefreshOnMount?: boolean;
+  autoRefreshOnActive?: boolean;
+};
+
 function toLocationErrorMessage(
   permission: LocationPermissionStatus,
   error: unknown,
@@ -40,16 +46,38 @@ function toLocationErrorMessage(
   return '현재 위치를 불러오는 중 잠시 멈췄어요.';
 }
 
-export function useCurrentLocation(): CurrentLocationState {
-  const [loading, setLoading] = useState(true);
-  const [permission, setPermission] =
-    useState<LocationPermissionStatus>('unavailable');
-  const [coordinates, setCoordinates] = useState<DeviceCoordinates | null>(null);
+export function useCurrentLocation(
+  options: UseCurrentLocationOptions = {},
+): CurrentLocationState {
+  const {
+    initialCoordinates = null,
+    autoRefreshOnMount = true,
+    autoRefreshOnActive = true,
+  } = options;
+  const [loading, setLoading] = useState(!initialCoordinates);
+  const [permission, setPermission] = useState<LocationPermissionStatus>(
+    initialCoordinates ? 'granted' : 'unavailable',
+  );
+  const [coordinates, setCoordinates] = useState<DeviceCoordinates | null>(
+    initialCoordinates,
+  );
   const [error, setError] = useState<string | null>(null);
-  const permissionRef = useRef<LocationPermissionStatus>('unavailable');
-  const coordinatesRef = useRef<DeviceCoordinates | null>(null);
+  const permissionRef = useRef<LocationPermissionStatus>(
+    initialCoordinates ? 'granted' : 'unavailable',
+  );
+  const coordinatesRef = useRef<DeviceCoordinates | null>(initialCoordinates);
   const refreshInFlightRef = useRef<Promise<void> | null>(null);
   const lastRefreshAtRef = useRef(0);
+
+  useEffect(() => {
+    if (!initialCoordinates) return;
+    setCoordinates(current => current ?? initialCoordinates);
+    coordinatesRef.current = coordinatesRef.current ?? initialCoordinates;
+    setPermission(current => (current === 'unavailable' ? 'granted' : current));
+    permissionRef.current =
+      permissionRef.current === 'unavailable' ? 'granted' : permissionRef.current;
+    setLoading(false);
+  }, [initialCoordinates]);
 
   useEffect(() => {
     coordinatesRef.current = coordinates;
@@ -103,10 +131,18 @@ export function useCurrentLocation(): CurrentLocationState {
   }, []);
 
   useEffect(() => {
+    if (!autoRefreshOnMount) {
+      setLoading(false);
+      return;
+    }
     refresh().catch(() => {});
-  }, [refresh]);
+  }, [autoRefreshOnMount, refresh]);
 
   useEffect(() => {
+    if (!autoRefreshOnActive) {
+      return undefined;
+    }
+
     const subscription = AppState.addEventListener('change', state => {
       if (state === 'active') {
         refresh().catch(() => {});
@@ -116,7 +152,7 @@ export function useCurrentLocation(): CurrentLocationState {
     return () => {
       subscription.remove();
     };
-  }, [refresh]);
+  }, [autoRefreshOnActive, refresh]);
 
   return {
     loading,

@@ -29,6 +29,7 @@ import WeatherInsightScreen from '../screens/Weather/WeatherInsightScreen';
 import IndoorActivityRecommendationsScreen from '../screens/Weather/IndoorActivityRecommendationsScreen';
 import ActivityGuideScreen from '../screens/Weather/ActivityGuideScreen';
 import WeatherActivityRecordScreen from '../screens/Weather/WeatherActivityRecordScreen';
+import type { DeviceCoordinates } from '../services/location/currentPosition';
 import type {
   IndoorActivityKey,
   WeatherGuideBundle,
@@ -61,12 +62,14 @@ export type RootStackParamList = {
     | {
         district?: string;
         initialBundle?: WeatherGuideBundle;
+        initialCoordinates?: DeviceCoordinates;
       }
     | undefined;
   IndoorActivityRecommendations:
     | {
         district?: string;
         initialBundle?: WeatherGuideBundle;
+        initialCoordinates?: DeviceCoordinates;
       }
     | undefined;
   ActivityGuide: {

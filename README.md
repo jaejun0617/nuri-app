@@ -3315,3 +3315,78 @@ safe area inset 기준으로 상단 chrome을 다시 잡아야 했다.
 - 최신 task 교체 구조가 들어갔지만, 이미 실행 중인 구 task가 먼저 끝난 뒤 최신 task가 다시 도는 창은 남아 있다.
 - edit 실패 시 텍스트는 즉시 반영되지만 이미지 변경은 큐 완료 전까지 상세에서 바로 보이지 않을 수 있다.
 - `memory_images`와 legacy 필드의 원자적 동기화 문제는 아직 남아 있다.
+
+### Chapter X. delete 정합성 + memory_images 동기화 안정성 2차 보강
+
+이번 챕터에서는 `delete` 플로우와 `memory_images / legacy image_url(image_urls)` 동기화 구조를 더 안전하게 정리했다.
+
+#### 핵심 변경
+
+- `deleteMemoryWithFile`를 기존 `storage 먼저 삭제 -> DB row 삭제` 순서에서
+  `DB row 삭제 우선 -> storage cleanup 후행 best-effort` 구조로 변경했다.
+- 이제 `memories` 삭제가 실패하면 파일은 건드리지 않는다.
+- row 삭제가 성공한 뒤에만:
+  - `memory_images` row 정리 시도
+  - 원본/썸네일 storage 파일 cleanup 시도
+- cleanup 실패는 monitoring으로만 남기고 사용자 흐름은 깨지지 않게 처리했다.
+
+#### 왜 이렇게 바꿨는가
+
+기존 구조에서는 파일만 먼저 지워지고 DB row가 남는 경우, 앱에서 가장 치명적인 정합성 문제가 생길 수 있었다.
+이번 구조는 그 반대로:
+
+- 앱 입장에서는 row가 사라졌고
+- 최악의 경우 파일만 orphan으로 남는 쪽으로 바뀌었다.
+
+즉, 앱 정합성 기준으로 더 안전한 방향이다.
+
+#### memory_images / legacy 동기화 정리
+
+`updateMemoryImagePaths`는 이제 `memory_images`를 우선 source of truth로 맞추고,
+`legacy image_url / image_urls`는 fallback/호환 목적의 mirror로 반영한다.
+
+처리 순서는 다음처럼 정리했다.
+
+1. 현재 legacy 상태 스냅샷 확보
+2. 현재 `memory_images` 스냅샷 확보
+3. `memory_images` 동기화
+4. legacy `image_url/image_urls` 반영
+5. 성공 후 제거된 thumb 파일 cleanup
+
+legacy 반영이 실패하면:
+
+- `memory_images`를 이전 스냅샷으로 복원
+- legacy도 이전 값으로 되돌리기 시도
+
+즉, partial state가 남을 가능성을 이전보다 줄였다.
+
+#### source of truth 정리
+
+- 읽기 경로:
+  - `memory_images`가 있으면 우선 사용
+  - 없으면 legacy fallback 사용
+- 쓰기 경로:
+  - `memory_images`를 먼저 맞춤
+  - legacy는 mirror로 유지
+- worker / backfill / fallback 계약은 유지
+
+#### queue 경합 창 완화
+
+같은 `memoryId`에 대해 최신 task가 들어오면, 실행 중 old task가 최종 commit까지 가는 창을 줄였다.
+
+추가한 보강:
+
+- 같은 memory의 최신 task 판별
+- task 처리 시작 전 superseded 체크
+- 업로드 루프 중간 superseded 체크
+- 최종 `updateMemoryImagePaths` 직전 superseded 체크
+- 다음 task pick도 최신 `updatedAt/createdAt` 우선
+
+이제 superseded된 old task는 commit하지 않고 제거된다.
+
+#### 남은 리스크
+
+- DB 트랜잭션이 아닌 이상 `memories / memory_images / storage`를 완전 원자적으로 묶을 수는 없다.
+- delete 후 storage cleanup 실패 시 orphan 파일은 남을 수 있다.
+- queue supersede 구조가 commit 경합은 줄였지만, 업로드 시작 직후 교체된 old task의 일부 파일이 orphan으로 남을 가능성은 있다.
+- legacy 필드를 완전히 제거하지 않았기 때문에 장기적으로는 mirror 비용이 남는다.

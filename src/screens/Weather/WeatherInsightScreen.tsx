@@ -22,6 +22,7 @@ import WeatherForecastStrip from '../../components/weather/WeatherForecastStrip'
 import WeatherGlassCard from '../../components/weather/WeatherGlassCard';
 import { useWeatherGuide } from '../../hooks/useWeatherGuide';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import type { DeviceCoordinates } from '../../services/location/currentPosition';
 import {
   getWeatherEmoji,
   type WeatherGuideBundle,
@@ -36,6 +37,7 @@ type WeatherInsightRoute = {
   params?: {
     district?: string;
     initialBundle?: WeatherGuideBundle;
+    initialCoordinates?: DeviceCoordinates;
   };
 };
 
@@ -272,6 +274,12 @@ export default function WeatherInsightScreen() {
   const weatherState = useWeatherGuide(
     route.params?.district ?? '현재 위치',
     route.params?.initialBundle,
+    {
+      initialCoordinates: route.params?.initialCoordinates,
+      autoRefreshOnMount: !route.params?.initialBundle,
+      autoRefreshOnFocus: false,
+      autoRefreshOnActive: false,
+    },
   );
   const weather = weatherState.bundle;
   const hasLiveWeather = weather.dataSource === 'live';
@@ -580,6 +588,7 @@ export default function WeatherInsightScreen() {
       navigation.navigate('IndoorActivityRecommendations', {
         district: displayWeather.district,
         initialBundle: displayWeather,
+        initialCoordinates: weatherState.coordinates ?? route.params?.initialCoordinates,
       });
     } catch {
       // noop
@@ -588,6 +597,8 @@ export default function WeatherInsightScreen() {
     displayWeather,
     hasLiveWeather,
     navigation,
+    route.params?.initialCoordinates,
+    weatherState.coordinates,
   ]);
 
   return (

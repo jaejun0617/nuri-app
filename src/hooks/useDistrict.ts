@@ -20,9 +20,12 @@ export function useDistrict(input: {
   coordinates: DeviceCoordinates | null;
   loading: boolean;
   error: string | null;
+  enabled?: boolean;
+  initialDistrict?: string | null;
 }): DistrictState {
+  const initialDistrict = input.initialDistrict?.trim() || null;
   const [loading, setLoading] = useState(false);
-  const [district, setDistrict] = useState<string | null>(null);
+  const [district, setDistrict] = useState<string | null>(initialDistrict);
   const [source, setSource] = useState<'kakao' | 'fallback' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const coordinatesKey = input.coordinates
@@ -31,10 +34,22 @@ export function useDistrict(input: {
   const sourceError = input.error;
 
   useEffect(() => {
+    if (!initialDistrict) return;
+    setDistrict(current => current ?? initialDistrict);
+  }, [initialDistrict]);
+
+  useEffect(() => {
     const request = createLatestRequestController();
 
+    if (input.enabled === false) {
+      setLoading(input.loading);
+      setError(sourceError);
+      request.cancel();
+      return;
+    }
+
     if (!input.coordinates) {
-      setDistrict(null);
+      setDistrict(initialDistrict);
       setSource(null);
       setError(sourceError);
       setLoading(false);
@@ -73,7 +88,14 @@ export function useDistrict(input: {
     return () => {
       request.cancel();
     };
-  }, [coordinatesKey, input.coordinates, sourceError]);
+  }, [
+    coordinatesKey,
+    initialDistrict,
+    input.coordinates,
+    input.enabled,
+    input.loading,
+    sourceError,
+  ]);
 
   useEffect(() => {
     if (input.coordinates) return;

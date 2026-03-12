@@ -35,7 +35,7 @@ import {
 import { showToast } from '../../store/uiStore';
 
 import { useAuthStore } from '../../store/authStore';
-import { usePetStore } from '../../store/petStore';
+import { resolveSelectedPetId, usePetStore, type Pet } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
 import { useScheduleStore } from '../../store/scheduleStore';
 
@@ -185,6 +185,30 @@ export default function AppProviders({ children }: Props) {
       setPetErrorMessage(null);
     };
 
+    const pruneRemovedPetScopedState = (prevPets: Pet[], nextPets: Pet[]) => {
+      const nextPetIdSet = new Set(nextPets.map(pet => pet.id));
+      const recordStore = useRecordStore.getState();
+      const scheduleStore = useScheduleStore.getState();
+
+      prevPets.forEach(pet => {
+        if (nextPetIdSet.has(pet.id)) return;
+        recordStore.clearPet(pet.id);
+        scheduleStore.clearPet(pet.id);
+      });
+    };
+
+    const warmSelectedPetScopedState = () => {
+      const petState = usePetStore.getState();
+      const nextSelectedPetId = resolveSelectedPetId(
+        petState.pets,
+        petState.selectedPetId,
+      );
+      if (!nextSelectedPetId) return;
+
+      useRecordStore.getState().bootstrap(nextSelectedPetId).catch(() => {});
+      useScheduleStore.getState().bootstrap(nextSelectedPetId).catch(() => {});
+    };
+
     const loadUserScopedState = async (userId: string) => {
       setProfileSyncState('loading');
       setPetLoading(true);
@@ -249,7 +273,10 @@ export default function AppProviders({ children }: Props) {
       }
 
       const shouldReload = options.forceReload || lastUserIdRef.current !== userId;
-      await hydratePetsCache(userId);
+      const cachedPets = await hydratePetsCache(userId);
+      if (cachedPets.length > 0) {
+        warmSelectedPetScopedState();
+      }
       if (!shouldReload) {
         setProfileSyncState('ready');
         setPetErrorMessage(null);
@@ -272,15 +299,22 @@ export default function AppProviders({ children }: Props) {
 
         if (petsResult.status === 'fulfilled') {
           const pets = petsResult.value;
-          if (pets.length === 0 && usePetStore.getState().pets.length > 0) {
-            setPetErrorMessage('반려동물 목록 재동기화가 지연되고 있어요');
-          } else {
-            setPets(pets, { userId });
-            setPetErrorMessage(null);
-          }
+          const prevPets = usePetStore.getState().pets;
+          setPets(pets, { userId });
+          pruneRemovedPetScopedState(prevPets, pets);
+          setPetErrorMessage(null);
+          warmSelectedPetScopedState();
         } else {
           captureMonitoringException(petsResult.reason);
-          setPetErrorMessage('반려동물 목록 동기화 실패');
+          if (cachedPets.length > 0) {
+            setPetErrorMessage('최근 반려동물 목록을 먼저 보여드리고 있어요');
+            warmSelectedPetScopedState();
+          } else {
+            const prevPets = usePetStore.getState().pets;
+            setPets([], { userId });
+            pruneRemovedPetScopedState(prevPets, []);
+            setPetErrorMessage('반려동물 목록 동기화 실패');
+          }
         }
       } finally {
         setPetLoading(false);

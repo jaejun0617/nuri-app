@@ -571,6 +571,20 @@ const TodayPhotoSection = React.memo(function TodayPhotoSection({
   );
 });
 
+const HomeWeatherSection = React.memo(function HomeWeatherSection({
+  weather,
+  onPress,
+}: {
+  weather: ReturnType<typeof useWeatherGuide>['bundle'];
+  onPress: () => void;
+}) {
+  return (
+    <View style={styles.weatherGuideWrap}>
+      <WeatherGuideHomeCard weather={weather} onPress={onPress} />
+    </View>
+  );
+});
+
 const TodayRecordsSection = React.memo(function TodayRecordsSection({
   todayRecords,
   onPressTimeline,
@@ -1322,8 +1336,9 @@ export default function LoggedInHome() {
     () => ({
       district: weatherGuide.district,
       initialBundle: weatherGuide,
+      initialCoordinates: weatherGuideState.coordinates ?? undefined,
     }),
-    [weatherGuide],
+    [weatherGuide, weatherGuideState.coordinates],
   );
 
   // ---------------------------------------------------------
@@ -1443,6 +1458,9 @@ export default function LoggedInHome() {
       if (switching) return;
       if (petId === activePetId) return;
 
+      bootstrapRecords(petId).catch(() => {});
+      bootstrapSchedules(petId).catch(() => {});
+
       setSwitching(true);
 
       svOpacity.value = withTiming(OUT_OPACITY, {
@@ -1476,6 +1494,8 @@ export default function LoggedInHome() {
     [
       switching,
       activePetId,
+      bootstrapRecords,
+      bootstrapSchedules,
       selectPet,
       svOpacity,
       svTranslateY,
@@ -1659,12 +1679,10 @@ export default function LoggedInHome() {
 
         {/* Fade container */}
         <Animated.View style={animatedContentStyle}>
-          <View style={styles.weatherGuideWrap}>
-            <WeatherGuideHomeCard
-              weather={weatherGuide}
-              onPress={onPressWeatherInsight}
-            />
-          </View>
+          <HomeWeatherSection
+            weather={weatherGuide}
+            onPress={onPressWeatherInsight}
+          />
 
           {/* HERO */}
           <View style={styles.heroCard}>
