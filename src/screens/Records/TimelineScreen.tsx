@@ -85,7 +85,6 @@ type Status =
   | 'refreshing'
   | 'loadingMore'
   | 'error';
-type DevDummyMode = 'off' | 'text500' | 'image500';
 type TimelinePreloadRef = {
   path: string;
   variant: MemoryImageVariant;
@@ -119,56 +118,6 @@ const TIMELINE_ITEM_HEIGHT = 96;
 const TIMELINE_PRELOAD_VISIBLE_COUNT = 2;
 const TIMELINE_PRELOAD_DEFERRED_COUNT = 2;
 const TIMELINE_PRELOAD_DEFER_DELAY_MS = 180;
-const TIMELINE_DIAG_LOG_VIEWABILITY = true;
-const TIMELINE_DIAG_LOG_RENDERS = true;
-
-let timelineScreenRenderCount = 0;
-let timelineViewabilityLogCount = 0;
-
-function buildDevDummyRecord(input: {
-  index: number;
-  petId: string | null;
-  sampleImagePath: string | null;
-  mode: Exclude<DevDummyMode, 'off'>;
-}): MemoryRecord {
-  const monthOffset = input.index % 18;
-  const day = (input.index % 27) + 1;
-  const hour = input.index % 24;
-  const minute = (input.index * 7) % 60;
-  const createdAt = new Date(
-    Date.UTC(2026, 2 - monthOffset, day, hour, minute, 0),
-  ).toISOString();
-  const categoryCycle: MainCategory[] = ['walk', 'meal', 'health', 'diary', 'other'];
-  const mainCategory = categoryCycle[input.index % categoryCycle.length];
-  const otherSubCategory =
-    mainCategory === 'other'
-      ? OTHER_SUBCATEGORY_OPTIONS[input.index % OTHER_SUBCATEGORY_OPTIONS.length]?.key ??
-        'etc'
-      : null;
-  const imagePath =
-    input.mode === 'image500' && input.sampleImagePath
-      ? input.sampleImagePath
-      : null;
-
-  return {
-    id: `__dev_dummy_memory_${input.mode}_${input.index}`,
-    petId: input.petId ?? '__dev_dummy_pet__',
-    title: `더미 기록 ${input.index + 1}`,
-    content: `타임라인 대량 스크롤 검증용 더미 내용 ${input.index + 1}`,
-    emotion: null,
-    tags: [`#dummy${(input.index % 8) + 1}`],
-    category: mainCategory,
-    subCategory: otherSubCategory,
-    price: null,
-    occurredAt: createdAt.slice(0, 10),
-    createdAt,
-    imageUrl: null,
-    imagePath,
-    imagePaths: imagePath ? [imagePath] : [],
-    timelineImagePath: imagePath,
-    timelineImageVariant: imagePath ? 'timeline-thumb' : null,
-  };
-}
 
 const ControlsBar = memo(function ControlsBar({
   sortLabel,
@@ -278,15 +227,6 @@ const ControlsBar = memo(function ControlsBar({
 });
 
 export default function TimelineScreen() {
-  if (__DEV__ && TIMELINE_DIAG_LOG_RENDERS) {
-    timelineScreenRenderCount += 1;
-    if (timelineScreenRenderCount <= 12 || timelineScreenRenderCount % 10 === 0) {
-      console.debug('[TimelineDiag] TimelineScreen render', {
-        count: timelineScreenRenderCount,
-      });
-    }
-  }
-
   const theme = useTheme();
   const navigation = useNavigation<Nav>();
   const route = useRoute<TimelineMainRoute>();
@@ -332,8 +272,6 @@ export default function TimelineScreen() {
   }, [bootstrap, petId]);
 
   const [sortMode, setSortMode] = useState<TimelineSortMode>('recent');
-  const [diagDisableImages, setDiagDisableImages] = useState(false);
-  const [devDummyMode, setDevDummyMode] = useState<DevDummyMode>('off');
   const [ymFilter, setYmFilter] = useState<string | null>(null);
   const [ymModalOpen, setYmModalOpen] = useState(false);
   const [mainCategory, setMainCategory] = useState<MainCategory>('all');
@@ -354,7 +292,6 @@ export default function TimelineScreen() {
     setPendingJumpYm(null);
     setImageWindow(TIMELINE_INITIAL_IMAGE_WINDOW);
     imageWindowRef.current = TIMELINE_INITIAL_IMAGE_WINDOW;
-    setDevDummyMode('off');
   }, [petId]);
 
   useEffect(() => {
@@ -370,52 +307,11 @@ export default function TimelineScreen() {
     setOtherSubCategory(null);
   }, [mainCategoryFromParams, otherSubCategoryFromParams, petId]);
 
-  const devSampleImagePath = useMemo(() => {
-    for (const id of timelineIds) {
-      const record = recordsById[id];
-      const imageRef = record
-        ? getTimelinePrimaryMemoryImageSource(record).value
-        : null;
-      if (imageRef) return imageRef;
-    }
-    return null;
-  }, [recordsById, timelineIds]);
-
-  const devDummyRecords = useMemo(() => {
-    if (!__DEV__ || devDummyMode === 'off') return [] as MemoryRecord[];
-
-    return Array.from({ length: 500 }, (_, index) =>
-      buildDevDummyRecord({
-        index,
-        petId,
-        sampleImagePath: devSampleImagePath,
-        mode: devDummyMode,
-      }),
-    );
-  }, [devDummyMode, devSampleImagePath, petId]);
-
-  const devDummyRecordsById = useMemo(() => {
-    if (!__DEV__ || devDummyMode === 'off') {
-      return {} as Record<string, MemoryRecord>;
-    }
-    return Object.fromEntries(devDummyRecords.map(record => [record.id, record]));
-  }, [devDummyMode, devDummyRecords]);
-
-  const activeRecordsById = useMemo(() => {
-    if (!__DEV__ || devDummyMode === 'off') return recordsById;
-    return devDummyRecordsById;
-  }, [devDummyMode, devDummyRecordsById, recordsById]);
-
-  const activeTimelineIds = useMemo(() => {
-    if (!__DEV__ || devDummyMode === 'off') return timelineIds;
-    return devDummyRecords.map(record => record.id);
-  }, [devDummyMode, devDummyRecords, timelineIds]);
-
   const timelineView = useMemo(
     () =>
       buildTimelineView({
-        ids: activeTimelineIds,
-        recordsById: activeRecordsById,
+        ids: timelineIds,
+        recordsById,
         filters: {
           ymFilter,
           mainCategory,
@@ -425,8 +321,8 @@ export default function TimelineScreen() {
         },
       }),
     [
-      activeRecordsById,
-      activeTimelineIds,
+      recordsById,
+      timelineIds,
       mainCategory,
       otherSubCategory,
       sortMode,
@@ -522,13 +418,9 @@ export default function TimelineScreen() {
   }, [consumeFocusedMemory]);
 
   const timelinePreloadImageRefs = useMemo(() => {
-    if (diagDisableImages) {
-      return { immediate: [] as TimelinePreloadRef[], deferred: [] as TimelinePreloadRef[] };
-    }
-
     const visible = filteredIds
       .slice(imageWindow.start, imageWindow.end + 1)
-      .map(id => activeRecordsById[id])
+      .map(id => recordsById[id])
       .filter((item): item is MemoryRecord => Boolean(item))
       .reduce<TimelinePreloadRef[]>((acc, record) => {
         const source = getTimelinePrimaryMemoryImageSource(record);
@@ -548,16 +440,13 @@ export default function TimelineScreen() {
       ),
     };
   }, [
-    activeRecordsById,
-    diagDisableImages,
     filteredIds,
     imageWindow.end,
     imageWindow.start,
+    recordsById,
   ]);
 
   useEffect(() => {
-    if (diagDisableImages) return;
-
     const immediateSignature = timelinePreloadImageRefs.immediate
       .map(item => `${item.variant}:${item.path}`)
       .join('|');
@@ -601,7 +490,7 @@ export default function TimelineScreen() {
         if (cancelled) return;
         preloadOptimizedImages(immediateUrls);
 
-        if (timelinePreloadImageRefs.deferred.length === 0) return;
+      if (timelinePreloadImageRefs.deferred.length === 0) return;
         deferredTimer = setTimeout(async () => {
           const deferredUrls = await preloadByVariant(
             timelinePreloadImageRefs.deferred,
@@ -619,7 +508,7 @@ export default function TimelineScreen() {
       }
       if (deferredTimer) clearTimeout(deferredTimer);
     };
-  }, [diagDisableImages, timelinePreloadImageRefs]);
+  }, [timelinePreloadImageRefs]);
 
   const onPressCreate = useCallback(() => {
     if (!petId) return;
@@ -642,24 +531,16 @@ export default function TimelineScreen() {
 
   const onPressItem = useCallback(
     (item: MemoryRecord) => {
-      if (__DEV__ && devDummyMode !== 'off') {
-        console.debug('[TimelineDiag] dummy item press ignored', {
-          itemId: item.id,
-          mode: devDummyMode,
-        });
-        return;
-      }
       if (!petId) return;
       navigation.navigate('RecordDetail', { petId, memoryId: item.id });
     },
-    [devDummyMode, navigation, petId],
+    [navigation, petId],
   );
 
   const onRefresh = useCallback(() => {
-    if (__DEV__ && devDummyMode !== 'off') return;
     if (!petId) return;
     refresh(petId);
-  }, [devDummyMode, petId, refresh]);
+  }, [petId, refresh]);
 
   const onFocusedItemLayout = useCallback(
     (itemId: string, event: LayoutChangeEvent) => {
@@ -715,22 +596,6 @@ export default function TimelineScreen() {
         return;
       }
 
-      if (__DEV__ && TIMELINE_DIAG_LOG_VIEWABILITY) {
-        timelineViewabilityLogCount += 1;
-        if (
-          timelineViewabilityLogCount <= 20 ||
-          timelineViewabilityLogCount % 10 === 0
-        ) {
-          console.debug('[TimelineDiag] viewability -> imageWindow', {
-            count: timelineViewabilityLogCount,
-            topVisibleIndex,
-            bottomVisibleIndex,
-            currentWindow,
-            nextWindow,
-          });
-        }
-      }
-
       imageWindowRef.current = nextWindow;
       setImageWindow(nextWindow);
     },
@@ -739,7 +604,6 @@ export default function TimelineScreen() {
 
   const endReachedLockRef = useRef(0);
   const onEndReached = useCallback(() => {
-    if (__DEV__ && devDummyMode !== 'off') return;
     if (!petId || !hasMore || status !== 'ready') return;
     if (ymFilter || mainCategory !== 'all' || otherSubCategory) return;
 
@@ -749,7 +613,6 @@ export default function TimelineScreen() {
 
     loadMore(petId).catch(() => {});
   }, [
-    devDummyMode,
     hasMore,
     loadMore,
     mainCategory,
@@ -815,7 +678,7 @@ export default function TimelineScreen() {
 
   const renderItem = useCallback<ListRenderItem<string>>(
     ({ item, index }) => {
-      const record = activeRecordsById[item];
+      const record = recordsById[item];
       if (!record) return null;
 
       const enableImageLoad =
@@ -827,7 +690,7 @@ export default function TimelineScreen() {
         <MemoryCard
           item={record}
           onPress={onPressItem}
-          enableImageLoad={diagDisableImages ? false : enableImageLoad}
+          enableImageLoad={enableImageLoad}
           deferImageLoad={shouldDeferImage}
           isFocused={focusedMemoryId === item}
           onFocusedLayout={onFocusedItemLayout}
@@ -835,12 +698,11 @@ export default function TimelineScreen() {
       );
     },
     [
-      diagDisableImages,
       focusedMemoryId,
       imageWindow,
       onFocusedItemLayout,
       onPressItem,
-      activeRecordsById,
+      recordsById,
     ],
   );
 
@@ -848,16 +710,7 @@ export default function TimelineScreen() {
   const getItemType = useCallback(() => 'memory', []);
 
   const listFooterComponent = useMemo(() => {
-    if (activeTimelineIds.length === 0) return null;
-    if (__DEV__ && devDummyMode !== 'off') {
-      return (
-        <View style={styles.footer}>
-          <AppText preset="caption" style={styles.footerText}>
-            DEV {devDummyMode === 'text500' ? 'TXT500' : 'IMG500'} 데이터
-          </AppText>
-        </View>
-      );
-    }
+    if (timelineIds.length === 0) return null;
 
     if (status === 'loadingMore') {
       return (
@@ -881,7 +734,7 @@ export default function TimelineScreen() {
     }
 
     return <View style={{ height: 18 }} />;
-  }, [activeTimelineIds.length, devDummyMode, hasMore, status]);
+  }, [hasMore, status, timelineIds.length]);
 
   const onPressHome = useCallback(() => {
     navigation.navigate('HomeTab');
@@ -926,64 +779,6 @@ export default function TimelineScreen() {
           </AppText>
         </TouchableOpacity>
       </View>
-
-      {__DEV__ ? (
-        <View style={styles.diagBadgeStack}>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={[
-              styles.diagBadge,
-              diagDisableImages ? styles.diagBadgeOff : styles.diagBadgeOn,
-            ]}
-            onPress={() => {
-              setDiagDisableImages(prev => {
-                const next = !prev;
-                console.debug('[TimelineDiag] toggle images', {
-                  disabled: next,
-                });
-                return next;
-              });
-            }}
-          >
-            <AppText preset="caption" style={styles.diagBadgeText}>
-              {diagDisableImages ? 'IMG OFF' : 'IMG ON'}
-            </AppText>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={[
-              styles.diagBadge,
-              devDummyMode === 'off' ? styles.diagBadgeNeutral : styles.diagBadgeWarn,
-            ]}
-            onPress={() => {
-              setDevDummyMode(prev => {
-                const next =
-                  prev === 'off'
-                    ? 'text500'
-                    : prev === 'text500'
-                      ? 'image500'
-                      : 'off';
-                console.debug('[TimelineDiag] toggle dummy mode', {
-                  mode: next,
-                });
-                setImageWindow(TIMELINE_INITIAL_IMAGE_WINDOW);
-                imageWindowRef.current = TIMELINE_INITIAL_IMAGE_WINDOW;
-                return next;
-              });
-            }}
-          >
-            <AppText preset="caption" style={styles.diagBadgeText}>
-              {devDummyMode === 'off'
-                ? 'DUMMY OFF'
-                : devDummyMode === 'text500'
-                  ? 'TXT500'
-                  : 'IMG500'}
-            </AppText>
-          </TouchableOpacity>
-        </View>
-      ) : null}
-
       <ControlsBar
         sortLabel={sortLabel}
         monthLabel={monthLabel}
@@ -1004,11 +799,11 @@ export default function TimelineScreen() {
         renderItem={renderItem}
         drawDistance={TIMELINE_ITEM_HEIGHT * TIMELINE_WINDOW_SIZE}
         getItemType={getItemType}
-        extraData={{ devDummyMode, imageWindow, focusedMemoryId }}
+        extraData={{ imageWindow, focusedMemoryId }}
         contentContainerStyle={
           filteredIds.length ? styles.list : styles.listEmpty
         }
-        refreshing={__DEV__ && devDummyMode !== 'off' ? false : refreshing}
+        refreshing={refreshing}
         onRefresh={onRefresh}
         onEndReached={onEndReached}
         onEndReachedThreshold={0.6}

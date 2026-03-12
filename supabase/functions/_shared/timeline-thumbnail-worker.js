@@ -240,22 +240,6 @@ async function processSingleRow(input) {
       };
     }
 
-    if (!forceRegenerate) {
-      const recovered = await recoverIfThumbnailAlreadyExists({
-        supabase,
-        sql,
-        row,
-        thumbnailPath,
-      });
-      if (recovered) {
-        return {
-          id: row.id,
-          status: 'recovered',
-          thumbnailPath,
-        };
-      }
-    }
-
     const transformedBlob = await downloadTransformedThumbnail(supabase, row.original_path);
     await uploadTimelineThumbnail(supabase, thumbnailPath, transformedBlob);
     await markRowReady(sql, row.id, thumbnailPath);
@@ -295,24 +279,6 @@ async function processSingleRow(input) {
       message: normalized.message,
     };
   }
-}
-
-async function recoverIfThumbnailAlreadyExists(input) {
-  const { supabase, sql, row, thumbnailPath } = input;
-  const expectedPath = row.timeline_thumb_path?.trim() || thumbnailPath;
-
-  const { data: exists, error } = await supabase.storage
-    .from(BUCKET)
-    .exists(expectedPath);
-
-  if (error) {
-    throw new TransientWorkerError('storage_exists_failed', error.message);
-  }
-
-  if (!exists) return false;
-
-  await markRowReady(sql, row.id, expectedPath);
-  return true;
 }
 
 async function downloadTransformedThumbnail(supabase, originalPath) {

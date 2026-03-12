@@ -24,9 +24,6 @@ type GlobalWithIdleCallback = typeof globalThis & {
   cancelIdleCallback?: (handle: number) => void;
 };
 
-const SIGNED_IMAGE_DIAG_LOG = true;
-let signedImageRequestStarted = 0;
-let signedImageRequestResolved = 0;
 const SIGNED_URL_QUEUE_MAX_CONCURRENCY = 2;
 const signedUrlMemoryCache = new Map<string, string>();
 const signedUrlHighPriorityQueue: Array<QueueTask> = [];
@@ -200,17 +197,6 @@ export function useSignedMemoryImage(
               cancelled: false,
               onCancel: () => resolve(),
               run: async () => {
-                if (__DEV__ && SIGNED_IMAGE_DIAG_LOG) {
-                  signedImageRequestStarted += 1;
-                  console.debug('[TimelineDiag] signedUrl request:start', {
-                    count: signedImageRequestStarted,
-                    path,
-                    defer,
-                    delayMs,
-                    enabled,
-                  });
-                }
-
                 const url = await getMemoryImageSignedUrlCached(path, { variant });
                 if (url) {
                   writeSignedUrlMemoryCache(path, url, variant);
@@ -218,14 +204,6 @@ export function useSignedMemoryImage(
 
                 if (request.isCurrent(requestId)) {
                   setSignedUrl(url ?? null);
-                  if (__DEV__ && SIGNED_IMAGE_DIAG_LOG) {
-                    signedImageRequestResolved += 1;
-                    console.debug('[TimelineDiag] signedUrl request:done', {
-                      count: signedImageRequestResolved,
-                      path,
-                      hit: Boolean(url),
-                    });
-                  }
                 }
 
                 resolve();
@@ -237,11 +215,6 @@ export function useSignedMemoryImage(
       } catch {
         if (request.isCurrent(requestId)) {
           setSignedUrl(null);
-          if (__DEV__ && SIGNED_IMAGE_DIAG_LOG) {
-            console.debug('[TimelineDiag] signedUrl request:error', {
-              path,
-            });
-          }
         }
       } finally {
         if (request.isCurrent(requestId)) {

@@ -22,9 +22,6 @@ import AppText from '../../app/ui/AppText';
 // ✅ 기존 TimelineScreen.styles 그대로 사용 (UI 유지)
 import { styles } from '../../screens/Records/TimelineScreen.styles';
 
-const MEMORY_CARD_DIAG_LOG_RENDERS = true;
-let memoryCardRenderCount = 0;
-
 const EMOTION_EMOJI: Record<string, string> = {
   happy: '😊',
   calm: '😌',
@@ -55,19 +52,6 @@ function MemoryCardComponent({
   onFocusedLayout,
   imageVariant,
 }: MemoryCardProps) {
-  if (__DEV__ && MEMORY_CARD_DIAG_LOG_RENDERS) {
-    memoryCardRenderCount += 1;
-    if (memoryCardRenderCount <= 20 || memoryCardRenderCount % 25 === 0) {
-      console.debug('[TimelineDiag] MemoryCard render', {
-        count: memoryCardRenderCount,
-        itemId: item.id,
-        enableImageLoad,
-        deferImageLoad,
-        isFocused,
-      });
-    }
-  }
-
   const timelineImage = getTimelinePrimaryMemoryImageSource(item);
   const effectiveVariant = imageVariant ?? timelineImage.variant;
   const { signedUrl } = useSignedMemoryImage(timelineImage.value, {

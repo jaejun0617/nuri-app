@@ -40,38 +40,6 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   createText: { color: '#ffffff', fontWeight: '900' },
-  diagBadgeStack: {
-    position: 'absolute',
-    top: 62,
-    right: 14,
-    zIndex: 10,
-    alignItems: 'flex-end',
-    gap: 8,
-  },
-  diagBadge: {
-    minWidth: 74,
-    height: 30,
-    paddingHorizontal: 10,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  diagBadgeOn: {
-    backgroundColor: '#0F766E',
-  },
-  diagBadgeOff: {
-    backgroundColor: '#991B1B',
-  },
-  diagBadgeNeutral: {
-    backgroundColor: '#475569',
-  },
-  diagBadgeWarn: {
-    backgroundColor: '#92400E',
-  },
-  diagBadgeText: {
-    color: '#FFFFFF',
-    fontWeight: '900',
-  },
 
   // sticky controls
   controlsWrap: {
