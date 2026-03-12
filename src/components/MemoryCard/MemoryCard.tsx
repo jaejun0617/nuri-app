@@ -11,7 +11,7 @@ import type { LayoutChangeEvent } from 'react-native';
 import OptimizedImage from '../images/OptimizedImage';
 import { useSignedMemoryImage } from '../../hooks/useSignedMemoryImage';
 import {
-  getPrimaryMemoryImageRef,
+  getTimelinePrimaryMemoryImageSource,
   hasMemoryImage,
 } from '../../services/records/imageSources';
 import { formatRecordDisplayDate } from '../../services/records/date';
@@ -53,7 +53,7 @@ function MemoryCardComponent({
   enableImageLoad = true,
   isFocused = false,
   onFocusedLayout,
-  imageVariant = 'original',
+  imageVariant,
 }: MemoryCardProps) {
   if (__DEV__ && MEMORY_CARD_DIAG_LOG_RENDERS) {
     memoryCardRenderCount += 1;
@@ -68,15 +68,16 @@ function MemoryCardComponent({
     }
   }
 
-  const imageRef = getPrimaryMemoryImageRef(item);
-  const { signedUrl } = useSignedMemoryImage(imageRef, {
+  const timelineImage = getTimelinePrimaryMemoryImageSource(item);
+  const effectiveVariant = imageVariant ?? timelineImage.variant;
+  const { signedUrl } = useSignedMemoryImage(timelineImage.value, {
     enabled: enableImageLoad,
     defer: deferImageLoad,
     delayMs: deferImageLoad ? 220 : 0,
     trackLoading: false,
-    variant: imageVariant,
+    variant: effectiveVariant,
   });
-  const hasImage = hasMemoryImage(item);
+  const hasImage = Boolean(timelineImage.value) || hasMemoryImage(item);
 
   const dateText = useMemo(
     () => formatRecordDisplayDate(item),

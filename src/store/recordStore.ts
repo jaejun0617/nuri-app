@@ -144,6 +144,49 @@ function normalizeRecordItems(items: MemoryRecord[]) {
   return items.map(item => normalizeMemoryRecord(item));
 }
 
+function hasOwnKey<T extends object>(value: T, key: keyof MemoryRecord) {
+  return Object.prototype.hasOwnProperty.call(value, key);
+}
+
+function deriveTimelineImageFields(
+  input: Partial<MemoryRecord>,
+): Pick<MemoryRecord, 'timelineImagePath' | 'timelineImageVariant'> {
+  const primaryStoragePath =
+    input.imagePaths?.find(path => `${path ?? ''}`.trim()) ??
+    `${input.imagePath ?? ''}`.trim() ??
+    null;
+  const directImageUrl = `${input.imageUrl ?? ''}`.trim();
+
+  if (directImageUrl) {
+    return {
+      timelineImagePath: null,
+      timelineImageVariant: null,
+    };
+  }
+
+  return {
+    timelineImagePath: primaryStoragePath || null,
+    timelineImageVariant: primaryStoragePath ? 'timeline-thumb' : null,
+  };
+}
+
+function withNormalizedTimelineFields<T extends Partial<MemoryRecord>>(input: T): T {
+  const hasTimelineFields =
+    hasOwnKey(input, 'timelineImagePath') || hasOwnKey(input, 'timelineImageVariant');
+  if (hasTimelineFields) return input;
+
+  const hasImageFields =
+    hasOwnKey(input, 'imagePath') ||
+    hasOwnKey(input, 'imagePaths') ||
+    hasOwnKey(input, 'imageUrl');
+  if (!hasImageFields) return input;
+
+  return {
+    ...input,
+    ...deriveTimelineImageFields(input),
+  };
+}
+
 function upsertRecordEntities(
   prev: Record<string, MemoryRecord>,
   items: MemoryRecord[],
@@ -639,7 +682,9 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
     get().ensurePetState(petId);
 
     set(s => {
-      const normalizedItem = normalizeMemoryRecord(item);
+      const normalizedItem = normalizeMemoryRecord(
+        withNormalizedTimelineFields(item),
+      );
       const nextRecordsById = upsertRecordEntities(s.recordsById, [normalizedItem]);
       const curTimeline =
         s.timelineByPetId[petId] ?? createInitialTimelineState();
@@ -686,6 +731,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
       const nextRecord = normalizeMemoryRecord({
         ...current,
         ...patch,
+        ...withNormalizedTimelineFields(patch),
       });
       const nextRecordsById = upsertRecordEntities(s.recordsById, [nextRecord]);
       const curTimeline =

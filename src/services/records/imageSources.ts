@@ -1,4 +1,5 @@
 import type { MemoryRecord } from '../supabase/memories';
+import type { MemoryImageVariant } from '../supabase/storageMemories';
 
 type MemoryImageFields = Pick<MemoryRecord, 'imagePath' | 'imagePaths' | 'imageUrl'>;
 
@@ -101,6 +102,27 @@ export function getMemoryImageRefs(input: Partial<MemoryImageFields>): MemoryIma
 
 export function getPrimaryMemoryImageRef(input: Partial<MemoryImageFields>) {
   return getMemoryImageRefs(input)[0]?.value ?? null;
+}
+
+export function getTimelinePrimaryMemoryImageSource(
+  input: Partial<MemoryImageFields> &
+    Pick<Partial<MemoryRecord>, 'timelineImagePath' | 'timelineImageVariant'>,
+): {
+  value: string | null;
+  variant: MemoryImageVariant;
+} {
+  const timelineImagePath = normalizeString(input.timelineImagePath);
+  if (timelineImagePath) {
+    return {
+      value: timelineImagePath,
+      variant: input.timelineImageVariant ?? 'original',
+    };
+  }
+
+  return {
+    value: getPrimaryMemoryImageRef(input),
+    variant: 'original',
+  };
 }
 
 export function hasMemoryImage(input: Partial<MemoryImageFields>) {

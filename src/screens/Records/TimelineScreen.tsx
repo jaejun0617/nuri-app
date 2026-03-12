@@ -59,8 +59,11 @@ import {
   humanizeTimelineMonthKey,
   type TimelineSortMode,
 } from '../../services/timeline/query';
-import { getPrimaryMemoryImageRef } from '../../services/records/imageSources';
-import { getMemoryImageSignedUrlsCached } from '../../services/supabase/storageMemories';
+import { getTimelinePrimaryMemoryImageSource } from '../../services/records/imageSources';
+import {
+  getMemoryImageSignedUrlsCached,
+  type MemoryImageVariant,
+} from '../../services/supabase/storageMemories';
 import { usePetStore, resolveSelectedPetId } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
 import { styles } from './TimelineScreen.styles';
@@ -83,6 +86,10 @@ type Status =
   | 'loadingMore'
   | 'error';
 type DevDummyMode = 'off' | 'text500' | 'image500';
+type TimelinePreloadRef = {
+  path: string;
+  variant: MemoryImageVariant;
+};
 
 function normalizeStatus(v: unknown): Status {
   switch (v) {
@@ -158,6 +165,8 @@ function buildDevDummyRecord(input: {
     imageUrl: null,
     imagePath,
     imagePaths: imagePath ? [imagePath] : [],
+    timelineImagePath: imagePath,
+    timelineImageVariant: imagePath ? 'timeline-thumb' : null,
   };
 }
 
@@ -364,7 +373,9 @@ export default function TimelineScreen() {
   const devSampleImagePath = useMemo(() => {
     for (const id of timelineIds) {
       const record = recordsById[id];
-      const imageRef = record ? getPrimaryMemoryImageRef(record) : null;
+      const imageRef = record
+        ? getTimelinePrimaryMemoryImageSource(record).value
+        : null;
       if (imageRef) return imageRef;
     }
     return null;
@@ -511,14 +522,23 @@ export default function TimelineScreen() {
   }, [consumeFocusedMemory]);
 
   const timelinePreloadImageRefs = useMemo(() => {
-    if (diagDisableImages) return { immediate: [], deferred: [] };
+    if (diagDisableImages) {
+      return { immediate: [] as TimelinePreloadRef[], deferred: [] as TimelinePreloadRef[] };
+    }
 
     const visible = filteredIds
       .slice(imageWindow.start, imageWindow.end + 1)
       .map(id => activeRecordsById[id])
       .filter((item): item is MemoryRecord => Boolean(item))
-      .map(record => getPrimaryMemoryImageRef(record))
-      .filter((value): value is string => Boolean(value));
+      .reduce<TimelinePreloadRef[]>((acc, record) => {
+        const source = getTimelinePrimaryMemoryImageSource(record);
+        if (!source.value) return acc;
+        acc.push({
+          path: source.value,
+          variant: source.variant,
+        });
+        return acc;
+      }, []);
 
     return {
       immediate: visible.slice(0, TIMELINE_PRELOAD_VISIBLE_COUNT),
@@ -538,43 +558,56 @@ export default function TimelineScreen() {
   useEffect(() => {
     if (diagDisableImages) return;
 
-    const immediateSignature = timelinePreloadImageRefs.immediate.join('|');
-    const deferredSignature = timelinePreloadImageRefs.deferred.join('|');
+    const immediateSignature = timelinePreloadImageRefs.immediate
+      .map(item => `${item.variant}:${item.path}`)
+      .join('|');
+    const deferredSignature = timelinePreloadImageRefs.deferred
+      .map(item => `${item.variant}:${item.path}`)
+      .join('|');
     const nextSignature = `${immediateSignature}__${deferredSignature}`;
     if (!nextSignature || nextSignature === preloadSignatureRef.current) return;
     preloadSignatureRef.current = nextSignature;
 
     let cancelled = false;
     let deferredTimer: ReturnType<typeof setTimeout> | null = null;
+    const preloadByVariant = async (targets: TimelinePreloadRef[]) => {
+      const grouped = targets.reduce<Record<MemoryImageVariant, string[]>>(
+        (acc, item) => {
+          acc[item.variant].push(item.path);
+          return acc;
+        },
+        { original: [], 'timeline-thumb': [] },
+      );
+
+      const signedUrlGroups = await Promise.all(
+        (Object.entries(grouped) as Array<[MemoryImageVariant, string[]]>)
+          .filter(([, imagePaths]) => imagePaths.length > 0)
+          .map(async ([variant, imagePaths]) =>
+            getMemoryImageSignedUrlsCached(imagePaths, {
+              maxCacheSize: 450,
+              refreshBufferMs: 90 * 1000,
+              variant,
+            }),
+          ),
+      );
+
+      return signedUrlGroups.flat().filter((value): value is string => Boolean(value));
+    };
     const interactionTask = InteractionManager.runAfterInteractions(() => {
       (async () => {
-        const immediateUrls = await getMemoryImageSignedUrlsCached(
+        const immediateUrls = await preloadByVariant(
           timelinePreloadImageRefs.immediate,
-          {
-            maxCacheSize: 450,
-            refreshBufferMs: 90 * 1000,
-            variant: 'timeline-thumb',
-          },
         );
         if (cancelled) return;
-        preloadOptimizedImages(
-          immediateUrls.filter((value): value is string => Boolean(value)),
-        );
+        preloadOptimizedImages(immediateUrls);
 
         if (timelinePreloadImageRefs.deferred.length === 0) return;
         deferredTimer = setTimeout(async () => {
-          const deferredUrls = await getMemoryImageSignedUrlsCached(
+          const deferredUrls = await preloadByVariant(
             timelinePreloadImageRefs.deferred,
-            {
-              maxCacheSize: 450,
-              refreshBufferMs: 90 * 1000,
-              variant: 'timeline-thumb',
-            },
           );
           if (cancelled) return;
-          preloadOptimizedImages(
-            deferredUrls.filter((value): value is string => Boolean(value)),
-          );
+          preloadOptimizedImages(deferredUrls);
         }, TIMELINE_PRELOAD_DEFER_DELAY_MS);
       })().catch(() => {});
     });
@@ -796,7 +829,6 @@ export default function TimelineScreen() {
           onPress={onPressItem}
           enableImageLoad={diagDisableImages ? false : enableImageLoad}
           deferImageLoad={shouldDeferImage}
-          imageVariant="timeline-thumb"
           isFocused={focusedMemoryId === item}
           onFocusedLayout={onFocusedItemLayout}
         />
