@@ -58,7 +58,6 @@ import {
 } from '../../../../services/records/imageSources';
 import { useAuthStore } from '../../../../store/authStore';
 import { usePetStore, type Pet } from '../../../../store/petStore';
-import type { PetRecordsState } from '../../../../store/recordStore';
 import { useRecordStore } from '../../../../store/recordStore';
 import { useScheduleStore } from '../../../../store/scheduleStore';
 
@@ -86,7 +85,6 @@ import {
 import { buildPetThemePalette } from '../../../../services/pets/themePalette';
 import {
   formatMemorialPetName,
-  isMemorialPet,
 } from '../../../../services/pets/memorial';
 import {
   calcAgeFromBirthYmd,
@@ -1223,34 +1221,95 @@ const TodayHomeTipSection = React.memo(function TodayHomeTipSection({
 });
 
 const TodayRecordsSection = React.memo(function TodayRecordsSection({
-  todayRecords,
+  activePetId,
+  recordItems,
   onPressTimeline,
   onPressRecord,
-  keyExtractor,
-  renderTodayRecord,
-  SNAP,
-  slideScrollHandler,
-  renderTodayRecordSeparator,
-  progress,
-  activeSlideIndex,
-  hasMoreThanSlider,
+  onPressRecordItem,
   accentColor,
   accentDeepColor,
 }: {
-  todayRecords: MemoryRecord[];
+  activePetId: string | null;
+  recordItems: MemoryRecord[];
   onPressTimeline: () => void;
   onPressRecord: () => void;
-  keyExtractor: (it: MemoryRecord) => string;
-  renderTodayRecord: ListRenderItem<MemoryRecord>;
-  SNAP: number;
-  slideScrollHandler: ReturnType<typeof useAnimatedScrollHandler>;
-  renderTodayRecordSeparator: () => React.JSX.Element;
-  progress: SharedValue<number>;
-  activeSlideIndex: number;
-  hasMoreThanSlider: boolean;
+  onPressRecordItem: (memoryId: string) => void;
   accentColor: string;
   accentDeepColor: string;
 }) {
+  const todayRecords = useMemo(
+    () => recordItems.slice(0, TODAY_RECORDS_MAX),
+    [recordItems],
+  );
+  const hasMoreThanSlider = recordItems.length > TODAY_RECORDS_MAX;
+
+  const { width: screenW } = Dimensions.get('window');
+  const slideGap = 14;
+  const cardW = useMemo(() => {
+    const usable = screenW - 16 * 2;
+    const width = Math.floor(usable * 0.72);
+    return Math.max(260, Math.min(width, 340));
+  }, [screenW]);
+  const snap = cardW + slideGap;
+
+  const scrollX = useSharedValue(0);
+  const [activeSlideIndex, setActiveSlideIndex] = useState(0);
+
+  useEffect(() => {
+    setActiveSlideIndex(0);
+    scrollX.value = 0;
+  }, [activePetId, scrollX]);
+
+  const progress = useDerivedValue(() => {
+    if (snap <= 0) return 0;
+    return scrollX.value / snap;
+  }, [snap]);
+
+  const onSlideMomentumEnd = useCallback(
+    (offsetX: number) => {
+      if (snap <= 0) return;
+      const idx = Math.round(offsetX / snap);
+      const clamped = Math.max(
+        0,
+        Math.min(idx, Math.max(0, todayRecords.length - 1)),
+      );
+      setActiveSlideIndex(clamped);
+    },
+    [snap, todayRecords.length],
+  );
+
+  const slideScrollHandler = useAnimatedScrollHandler({
+    onScroll: e => {
+      scrollX.value = e.contentOffset.x;
+    },
+    onMomentumEnd: e => {
+      runOnJS(onSlideMomentumEnd)(e.contentOffset.x);
+    },
+  });
+
+  const renderTodayRecord = useCallback<ListRenderItem<MemoryRecord>>(
+    ({ item, index }) => {
+      if (index === undefined) return null;
+      return (
+        <TodayRecordCard
+          item={item}
+          index={index}
+          cardW={cardW}
+          snap={snap}
+          scrollX={scrollX}
+          onPress={onPressRecordItem}
+        />
+      );
+    },
+    [cardW, onPressRecordItem, scrollX, snap],
+  );
+
+  const keyExtractor = useCallback((it: MemoryRecord) => it.id, []);
+  const renderTodayRecordSeparator = useCallback(
+    () => <View style={{ width: slideGap }} />,
+    [slideGap],
+  );
+
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
@@ -1293,7 +1352,7 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
             showsHorizontalScrollIndicator={false}
             bounces={false}
             decelerationRate="fast"
-            snapToInterval={SNAP}
+            snapToInterval={snap}
             snapToAlignment="start"
             disableIntervalMomentum={false}
             onScroll={slideScrollHandler}
@@ -1304,8 +1363,8 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
             ]}
             ItemSeparatorComponent={renderTodayRecordSeparator}
             getItemLayout={(_, index) => ({
-              length: SNAP,
-              offset: SNAP * index,
+              length: snap,
+              offset: snap * index,
               index,
             })}
           />
@@ -1788,68 +1847,6 @@ export default function LoggedInHome() {
   );
 
   // ---------------------------------------------------------
-  // ✅ 4.4) 오늘날의 기록(슬라이드) 데이터 (최대 14)
-  // ---------------------------------------------------------
-  const todayRecordsAll = recordItems;
-  const todayRecords = useMemo(
-    () => todayRecordsAll.slice(0, TODAY_RECORDS_MAX),
-    [todayRecordsAll],
-  );
-  const hasMoreThanSlider = todayRecordsAll.length > TODAY_RECORDS_MAX;
-
-  // ---------------------------------------------------------
-  // ✅ 4.5) 슬라이드 레이아웃 계산
-  // ---------------------------------------------------------
-  const { width: SCREEN_W } = Dimensions.get('window');
-  const SLIDE_GAP = 14;
-
-  const CARD_W = useMemo(() => {
-    const usable = SCREEN_W - 16 * 2;
-    const w = Math.floor(usable * 0.72);
-    return Math.max(260, Math.min(w, 340));
-  }, [SCREEN_W]);
-
-  const SNAP = CARD_W + SLIDE_GAP;
-
-  // ---------------------------------------------------------
-  // ✅ 4.6) slider values
-  // ---------------------------------------------------------
-  const scrollX = useSharedValue(0);
-  const [activeSlideIndex, setActiveSlideIndex] = useState(0);
-
-  useEffect(() => {
-    setActiveSlideIndex(0);
-    scrollX.value = 0;
-  }, [activePetId, scrollX]);
-
-  const progress = useDerivedValue(() => {
-    if (SNAP <= 0) return 0;
-    return scrollX.value / SNAP;
-  }, [SNAP]);
-
-  const onSlideMomentumEnd = useCallback(
-    (offsetX: number) => {
-      if (SNAP <= 0) return;
-      const idx = Math.round(offsetX / SNAP);
-      const clamped = Math.max(
-        0,
-        Math.min(idx, Math.max(0, todayRecords.length - 1)),
-      );
-      setActiveSlideIndex(clamped);
-    },
-    [SNAP, todayRecords.length],
-  );
-
-  const slideScrollHandler = useAnimatedScrollHandler({
-    onScroll: e => {
-      scrollX.value = e.contentOffset.x;
-    },
-    onMomentumEnd: e => {
-      runOnJS(onSlideMomentumEnd)(e.contentOffset.x);
-    },
-  });
-
-  // ---------------------------------------------------------
   // 5) HERO derived
   // ---------------------------------------------------------
   const plainPetName = useMemo(
@@ -2165,31 +2162,6 @@ export default function LoggedInHome() {
     [],
   );
 
-  // ---------------------------------------------------------
-  // 9) slider render
-  // ---------------------------------------------------------
-  const renderTodayRecord = useCallback<ListRenderItem<MemoryRecord>>(
-    ({ item, index }) => {
-      if (index === undefined) return null;
-      return (
-        <TodayRecordCard
-          item={item}
-          index={index}
-          cardW={CARD_W}
-          snap={SNAP}
-          scrollX={scrollX}
-          onPress={onPressRecordItem}
-        />
-      );
-    },
-    [CARD_W, SNAP, scrollX, onPressRecordItem],
-  );
-
-  const keyExtractor = useCallback((it: MemoryRecord) => it.id, []);
-  const renderTodayRecordSeparator = useCallback(
-    () => <View style={{ width: SLIDE_GAP }} />,
-    [SLIDE_GAP],
-  );
   const noopHeaderAction = useCallback(() => {
     // 추후 검색/알림 연결 전까지 레이아웃만 유지한다.
   }, []);
@@ -2262,17 +2234,11 @@ export default function LoggedInHome() {
           />
 
           <TodayRecordsSection
-            todayRecords={todayRecords}
+            activePetId={activePetId}
+            recordItems={recordItems}
             onPressTimeline={onPressTimeline}
             onPressRecord={onPressRecord}
-            keyExtractor={keyExtractor}
-            renderTodayRecord={renderTodayRecord}
-            SNAP={SNAP}
-            slideScrollHandler={slideScrollHandler}
-            renderTodayRecordSeparator={renderTodayRecordSeparator}
-            progress={progress}
-            activeSlideIndex={activeSlideIndex}
-            hasMoreThanSlider={hasMoreThanSlider}
+            onPressRecordItem={onPressRecordItem}
             accentColor={petTheme.primary}
             accentDeepColor={petTheme.deep}
           />

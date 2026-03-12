@@ -3632,3 +3632,70 @@ legacy 반영이 실패하면:
   - today photo / records
   - summary / recent / diary
     를 더 묶거나, 파생 계산을 각 섹션 내부로 더 밀어 넣는 최적화가 남아 있다.
+
+### Chapter X. 홈 동적 섹션 계산 분리 3차 최적화
+
+이번 챕터에서는 `LoggedInHome` 부모에 모여 있던 동적 섹션 파생 계산을 각 섹션 내부로 이동시켜, 기록 변경 시 홈 전체 계산이 한 번에 다시 도는 범위를 더 줄였다.
+
+#### 핵심 변경
+
+- `TodayPhotoSection`:
+  - 이제 `activePetId + recordItems` 를 받아 내부에서만
+    - `pickTodayPhoto`
+    - overlay title 계산
+    - signed image 로딩
+      을 처리한다.
+- `WeeklySummarySection`:
+  - 부모가 count를 미리 계산하지 않고, 섹션 내부에서만 `buildWeeklySummary(records, schedules)` 를 실행한다.
+- `ScheduleSection`:
+  - 내부에서만 `scheduleItems.slice(0, 7).map(buildScheduleCard)` 를 계산한다.
+- `RecentActivitiesSection`:
+  - 내부에서만 `recordItems.slice(0, 7)` 를 계산한다.
+- `MonthlyDiarySection`:
+  - 내부에서만 diary 필터링과 월별 슬라이스를 계산한다.
+
+#### 렌더 범위 축소
+
+- 부모 `LoggedInHome` 에서:
+  - `todayPhoto`
+  - `weeklySummary`
+  - `weekScheduleItems`
+  - `recentActivities`
+  - `currentMonthDiaryEntries`
+    파생 계산을 제거했다.
+- 이제 부모는 `raw recordItems / scheduleItems` 만 전달하고,
+  각 동적 섹션은 자기 계산만 다시 수행한다.
+- `TodayRecordsSection` 만 슬라이더 상태 때문에 부모 계산을 유지했고,
+  나머지 동적 섹션은 계산 경계를 분리했다.
+
+#### Hero 영역 추가 분리
+
+- `HeroProfileSection` 내부를 다시:
+  - `HeroProfileIdentity`
+  - `HeroProfileAccordion`
+  - `HeroProfileMessage`
+    로 분리했다.
+- accordion 토글 시 hero의 프로필 표시 영역과 메시지 영역이 같이 크게 흔들리는 범위를 더 줄였다.
+
+#### 실기기 UX 기준 개선 포인트
+
+- 기록 갱신 시 홈 전체가 다시 계산되는 범위가 줄어, 섹션별 반응이 더 안정적이다.
+- 멀티펫 전환 시:
+  - today photo
+  - summary
+  - recent
+  - diary
+  - schedule
+    이 각자 필요한 계산만 수행하게 되어 체감 흔들림이 더 줄었다.
+- hero accordion 조작도 프로필 정적 영역까지 같이 흔드는 범위를 더 좁혔다.
+
+#### 레이아웃/UI
+
+- 카드 순서, 섹션 순서, 섹션 위치, 여백 체계, 정렬 방식, 화면 배치, 보이는 구조는 변경하지 않았다.
+- 이번 챕터는 계산/메모 경계만 조정했다.
+
+#### 남은 리스크
+
+- `TodayRecordsSection` 은 슬라이더 상태와 `todayRecords` 길이에 묶여 있어 여전히 부모 쪽 계산이 일부 남아 있다.
+- `recordItems` 자체가 새 참조로 바뀌면 today photo / summary / recent / diary는 여전히 각자 다시 계산된다.
+- 다음 단계에서는 `today records` 슬라이더를 별도 controller/section으로 빼는 최적화가 남아 있다.
