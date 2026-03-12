@@ -3509,3 +3509,62 @@ legacy 반영이 실패하면:
 - Splash 브랜딩 화면 자체는 유지되므로, 더 과감한 체감 개선을 원하면 이후엔 **네이티브 launch screen과 앱 Splash 역할 분리**까지 검토할 수 있다.
 - 현재는 route별 hold만 다르게 뒀고, 네트워크 품질이나 디바이스 성능에 따른 동적 조정까지 하진 않았다.
 - 부트 실패 시 fallback 문구/에러 안내 UX는 추가 개선 여지가 있다.
+
+### Chapter X. 홈 렌더 최적화 1차 (selector 폭 축소 + widget 계산 경량화)
+
+이번 챕터에서는 `LoggedInHome` 이 records / schedules 상태 전체를 넓게 구독하면서 홈 전체가 자주 흔들리던 문제를 먼저 줄였다.
+
+#### 핵심 변경
+
+- 홈이 `record/schedule state` 전체를 구독하던 구조에서,
+  실제로 필요한 `items` 배열만 직접 구독하도록 변경했다.
+- 이로써:
+  - `loading`
+  - `refreshing`
+  - `requestSeq`
+  - `errorMessage`
+    같은 상태 변화가 있어도 홈 전체가 같이 다시 그려지는 범위를 줄였다.
+- 홈 내부의 빈 fallback도 frozen empty array로 고정해,
+  active pet이 없거나 캐시가 아직 없을 때 불필요한 참조 변경이 생기지 않게 했다.
+
+#### 파생 계산 최적화
+
+- 오늘의 사진
+- 최근 활동
+- 이번 달 일기
+- 주간 요약
+- 일정 카드
+  계산이 이제 `recordItems / scheduleItems` 배열 변화에만 반응하도록 정리했다.
+- 홈 위젯 snapshot은 더 이상 전체 `records / schedules` 배열을 그대로 넘기지 않고,
+  실제로 쓰는:
+  - 첫 일정
+  - 첫 기록
+  - 기록 총 개수
+    만 넘기도록 줄였다.
+- `buildHomeWidgetSnapshot` 도 경량 입력을 받을 수 있게 확장했고,
+  기존 테스트/호출부와의 호환성은 유지했다.
+
+#### 멀티펫 전환 체감 개선
+
+- 펫 전환 시 홈이 records / schedules 상태머신 전체에 매달려 흔들리던 부분이 줄었다.
+- prewarm 이후 `loading -> ready` 같은 상태 전이만 발생하는 동안에는,
+  실제 `items` 가 안 바뀌면 홈 주요 파생 계산이 다시 돌지 않는다.
+- 결과적으로 펫 전환 애니메이션 뒤에 store의 중간 상태가 홈 전체를 흔드는 빈도를 줄였다.
+
+#### 실기기 UX 기준 개선 포인트
+
+- 홈 첫 진입 직후 bootstrap이 돌아도,
+  데이터 배열이 준비되기 전 중간 상태 변화 때문에 섹션 전체가 덜 출렁인다.
+- 멀티펫 전환 때 필요한 데이터가 실제로 바뀌는 시점에만
+  요약 / 최근 활동 / 일정 섹션 계산이 다시 돌아 체감이 더 안정적이다.
+- 위젯 브리지용 snapshot 계산도 가벼워져 홈 진입 직후 메인 스레드 부담을 조금 더 줄였다.
+
+#### 남은 리스크
+
+- `LoggedInHome` 자체는 여전히 큰 단일 컴포넌트라,
+  `hero / quick actions / tips` 같은 정적 섹션을 더 쪼개면 추가 이득이 남아 있다.
+- `records` 배열이 실제로 바뀌면
+  `today photo / weekly summary / recent activities / diary`
+  가 여전히 같은 화면 안에서 함께 재계산된다.
+- 이번 챕터는 selector 폭과 widget 계산을 줄인 1차 정리라,
+  다음 단계에서는 `hero / tips / summary` 쪽을 더 분리하는 게 맞다.

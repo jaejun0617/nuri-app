@@ -57,7 +57,7 @@ import {
   hasMemoryImage,
 } from '../../../../services/records/imageSources';
 import { useAuthStore } from '../../../../store/authStore';
-import { usePetStore } from '../../../../store/petStore';
+import { usePetStore, type Pet } from '../../../../store/petStore';
 import type { PetRecordsState } from '../../../../store/recordStore';
 import { useRecordStore } from '../../../../store/recordStore';
 import { useScheduleStore } from '../../../../store/scheduleStore';
@@ -109,6 +109,7 @@ type TimelineOtherSubCategory = NonNullable<
 >['otherSubCategory'];
 type HomeMainCategory = Exclude<MemoryMainCategory, 'all'>;
 type HomeOtherSubCategory = MemoryOtherSubCategory;
+type ProfileAccordionKey = 'hobby' | 'like' | 'dislike' | 'tag';
 
 type WeeklyScheduleItem = {
   key: string;
@@ -570,6 +571,536 @@ const HomeWeatherSection = React.memo(function HomeWeatherSection({
   return (
     <View style={styles.weatherGuideWrap}>
       <WeatherGuideHomeCard weather={weather} onPress={onPress} />
+    </View>
+  );
+});
+
+const HomeHeaderSection = React.memo(function HomeHeaderSection({
+  greetingTitle,
+  greetingSubTitle,
+  visiblePets,
+  activePetId,
+  petThemePrimary,
+  onPressPetChip,
+  onPressAddPet,
+  onPressHeaderAction,
+}: {
+  greetingTitle: string;
+  greetingSubTitle: string;
+  visiblePets: Pet[];
+  activePetId: string | null;
+  petThemePrimary: string;
+  onPressPetChip: (petId: string) => void;
+  onPressAddPet: () => void;
+  onPressHeaderAction: () => void;
+}) {
+  return (
+    <View style={styles.header}>
+      <View style={styles.headerTopRow}>
+        <View style={styles.headerTextArea}>
+          <Text style={[styles.title, { color: petThemePrimary }]}>
+            {greetingTitle}
+          </Text>
+          <Text style={styles.subTitle}>{greetingSubTitle}</Text>
+        </View>
+
+        <View style={styles.headerIcons}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            style={styles.headerIconBtn}
+            onPress={onPressHeaderAction}
+          >
+            <Feather name="search" size={18} color="rgba(11,18,32,0.75)" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.85}
+            style={styles.headerIconBtn}
+            onPress={onPressHeaderAction}
+          >
+            <Feather name="bell" size={18} color="rgba(11,18,32,0.75)" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.petSwitcherRow}>
+        {visiblePets.map(p => (
+          <PetChipButton
+            key={p.id}
+            petId={p.id}
+            isActive={p.id === activePetId}
+            imageUri={p.avatarUrl?.trim() || null}
+            petThemePrimary={petThemePrimary}
+            onPress={onPressPetChip}
+          />
+        ))}
+
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={styles.petAddChip}
+          onPress={onPressAddPet}
+        >
+          <Feather name="plus" size={20} color={petThemePrimary} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+});
+
+const HeroProfileSection = React.memo(function HeroProfileSection({
+  petTheme,
+  selectedAvatarUri,
+  profilePetName,
+  topMetaLine,
+  birthText,
+  togetherDays,
+  hobbies,
+  likes,
+  dislikes,
+  tags,
+  allExpanded,
+  acc,
+  todayMessageEmoji,
+  todayMessage,
+  onPressPetProfileEdit,
+  onToggleAll,
+  onToggleOne,
+}: {
+  petTheme: ReturnType<typeof buildPetThemePalette>;
+  selectedAvatarUri: string | null;
+  profilePetName: string;
+  topMetaLine: string | null;
+  birthText: string | null;
+  togetherDays: number | null;
+  hobbies: string[];
+  likes: string[];
+  dislikes: string[];
+  tags: string[];
+  allExpanded: boolean;
+  acc: Record<ProfileAccordionKey, boolean>;
+  todayMessageEmoji: string;
+  todayMessage: string;
+  onPressPetProfileEdit: () => void;
+  onToggleAll: () => void;
+  onToggleOne: (key: ProfileAccordionKey) => void;
+}) {
+  return (
+    <View style={styles.heroCard}>
+      <TouchableOpacity
+        activeOpacity={0.85}
+        style={styles.heroGearBtn}
+        onPress={onPressPetProfileEdit}
+      >
+        <MaterialCommunityIcons
+          name="cog-outline"
+          size={22}
+          color={petTheme.deep}
+        />
+      </TouchableOpacity>
+
+      <View style={styles.heroCenter}>
+        <View style={styles.heroAvatarOuter}>
+          <View
+            style={[
+              styles.heroAvatarGlow,
+              {
+                backgroundColor: petTheme.glow,
+                shadowColor: petTheme.primary,
+              },
+            ]}
+          />
+          <LinearGradient
+            colors={petTheme.ringGradient}
+            locations={[0, 0.55, 1]}
+            start={{ x: 0.18, y: 0.12 }}
+            end={{ x: 0.82, y: 0.9 }}
+            style={[styles.heroAvatarRing, { shadowColor: petTheme.primary }]}
+          >
+            <View style={styles.heroAvatarRingInner}>
+              <View style={styles.heroAvatarWrap}>
+                {selectedAvatarUri ? (
+                  <Image
+                    source={{ uri: selectedAvatarUri }}
+                    style={styles.heroAvatarImg}
+                  />
+                ) : (
+                  <View style={styles.heroAvatarPlaceholder} />
+                )}
+              </View>
+            </View>
+          </LinearGradient>
+        </View>
+
+        <Text style={[styles.heroName, { color: petTheme.deep }]} numberOfLines={1}>
+          {profilePetName}
+        </Text>
+
+        {topMetaLine ? (
+          <Text style={styles.heroMetaLine} numberOfLines={1}>
+            {topMetaLine}
+          </Text>
+        ) : (
+          <Text style={styles.heroMetaMuted} numberOfLines={1}>
+            아이 정보를 채우면 더 예쁘게 보여요
+          </Text>
+        )}
+
+        {birthText ? (
+          <Text style={styles.heroBirthText} numberOfLines={1}>
+            생년월일 {birthText}
+          </Text>
+        ) : null}
+
+        {togetherDays !== null ? (
+          <View
+            style={[
+              styles.heroTogetherPill,
+              { backgroundColor: petTheme.deep },
+            ]}
+          >
+            <View style={styles.heroTogetherRow}>
+              <Text style={styles.heroTogetherHeart}>{petTheme.heartEmoji}</Text>
+              <Text
+                style={[styles.heroTogetherText, { color: petTheme.onDeep }]}
+              >
+                함께한 시간{' '}
+                <Text
+                  style={[styles.heroTogetherStrong, { color: petTheme.onDeep }]}
+                >
+                  {togetherDays}
+                </Text>{' '}
+                일
+              </Text>
+              <Text style={styles.heroTogetherHeart}>{petTheme.heartEmoji}</Text>
+            </View>
+          </View>
+        ) : null}
+      </View>
+
+      <View style={styles.accordionWrap}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={styles.accordionAllRow}
+          onPress={onToggleAll}
+        >
+          <Text style={[styles.accordionAllLabel, { color: petTheme.primary }]}>
+            모두펼치기
+          </Text>
+          <Feather
+            name={allExpanded ? 'chevron-up' : 'chevron-down'}
+            size={18}
+            color={petTheme.primary}
+          />
+        </TouchableOpacity>
+
+        <View style={styles.accordionItem}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            style={styles.accordionHeaderRow}
+            onPress={() => onToggleOne('hobby')}
+          >
+            <View style={styles.accordionLeft}>
+              <View style={[styles.accordionIconCircle, styles.iconCircleBlue]}>
+                <Text style={styles.accordionIconText}>🐾</Text>
+              </View>
+              <Text style={[styles.accordionTitle, styles.accTitleBlue]}>취미</Text>
+            </View>
+            <Feather
+              name={acc.hobby ? 'chevron-up' : 'chevron-down'}
+              size={18}
+              color={petTheme.primary}
+            />
+          </TouchableOpacity>
+
+          {acc.hobby ? (
+            <View style={styles.accordionBody}>
+              {hobbies.length > 0 ? (
+                hobbies.map(v => (
+                  <Text key={v} style={styles.accordionBullet}>
+                    • {v}
+                  </Text>
+                ))
+              ) : (
+                <Text style={styles.accordionEmpty}>• 아직 없어요</Text>
+              )}
+            </View>
+          ) : null}
+        </View>
+
+        <View style={styles.accordionItem}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            style={styles.accordionHeaderRow}
+            onPress={() => onToggleOne('like')}
+          >
+            <View style={styles.accordionLeft}>
+              <View
+                style={[styles.accordionIconCircle, styles.iconCircleOrange]}
+              >
+                <Text style={styles.accordionIconText}>💛</Text>
+              </View>
+              <Text style={[styles.accordionTitle, styles.accTitleOrange]}>
+                좋아하는 것
+              </Text>
+            </View>
+            <Feather
+              name={acc.like ? 'chevron-up' : 'chevron-down'}
+              size={18}
+              color={petTheme.primary}
+            />
+          </TouchableOpacity>
+
+          {acc.like ? (
+            <View style={styles.accordionBody}>
+              {likes.length > 0 ? (
+                likes.map(v => (
+                  <Text key={v} style={styles.accordionBullet}>
+                    • {v}
+                  </Text>
+                ))
+              ) : (
+                <Text style={styles.accordionEmpty}>• 아직 없어요</Text>
+              )}
+            </View>
+          ) : null}
+        </View>
+
+        <View style={styles.accordionItem}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            style={styles.accordionHeaderRow}
+            onPress={() => onToggleOne('dislike')}
+          >
+            <View style={styles.accordionLeft}>
+              <View style={[styles.accordionIconCircle, styles.iconCirclePink]}>
+                <Text style={styles.accordionIconText}>💔</Text>
+              </View>
+              <Text style={[styles.accordionTitle, styles.accTitlePink]}>
+                싫어하는 것
+              </Text>
+            </View>
+            <Feather
+              name={acc.dislike ? 'chevron-up' : 'chevron-down'}
+              size={18}
+              color={petTheme.primary}
+            />
+          </TouchableOpacity>
+
+          {acc.dislike ? (
+            <View style={styles.accordionBody}>
+              {dislikes.length > 0 ? (
+                dislikes.map(v => (
+                  <Text key={v} style={styles.accordionBullet}>
+                    • {v}
+                  </Text>
+                ))
+              ) : (
+                <Text style={styles.accordionEmpty}>• 아직 없어요</Text>
+              )}
+            </View>
+          ) : null}
+        </View>
+
+        <View style={[styles.accordionItem, { borderBottomWidth: 0 }]}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            style={styles.accordionHeaderRow}
+            onPress={() => onToggleOne('tag')}
+          >
+            <View style={styles.accordionLeft}>
+              <View
+                style={[styles.accordionIconCircle, styles.iconCirclePurple]}
+              >
+                <Feather name="hash" size={16} color={petTheme.primary} />
+              </View>
+              <Text style={[styles.accordionTitle, styles.accTitlePurple]}>
+                #태그
+              </Text>
+            </View>
+            <Feather
+              name={acc.tag ? 'chevron-up' : 'chevron-down'}
+              size={18}
+              color={petTheme.primary}
+            />
+          </TouchableOpacity>
+
+          {acc.tag ? (
+            <View style={styles.accordionBody}>
+              <View style={styles.tagsRow}>
+                {tags.map(t => (
+                  <View
+                    key={t}
+                    style={[
+                      styles.tagChip,
+                      {
+                        borderColor: petTheme.border,
+                        backgroundColor: petTheme.tint,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.tagText, { color: petTheme.deep }]}>
+                      {t}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : null}
+        </View>
+      </View>
+
+      <View style={styles.heroMessageBox}>
+        <View style={styles.heroMessageIcon}>
+          <Text style={styles.heroMessageIconText}>{todayMessageEmoji}</Text>
+        </View>
+        <Text style={styles.heroMessageText}>{todayMessage}</Text>
+        <View style={styles.heroMessageBottomShadow} />
+      </View>
+    </View>
+  );
+});
+
+const QuickActionsSection = React.memo(function QuickActionsSection({
+  petTheme,
+  quickActionCards,
+  onPressTimelineCategory,
+}: {
+  petTheme: ReturnType<typeof buildPetThemePalette>;
+  quickActionCards: typeof HOME_SHORTCUTS;
+  onPressTimelineCategory: (
+    mainCategory: Exclude<TimelineMainCategory, undefined>,
+    otherSubCategory?: Exclude<TimelineOtherSubCategory, undefined>,
+  ) => void;
+}) {
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeaderCol}>
+        <Text style={[styles.sectionTitle, { color: petTheme.deep }]}>
+          자주 쓰는 기록
+        </Text>
+        <Text style={styles.sectionSubText}>
+          산책 · 식사 · 건강 · 미용 기록을 바로 열어보세요
+        </Text>
+      </View>
+
+      <View style={styles.quickGridFrame}>
+        <View style={styles.quickGrid}>
+          {quickActionCards.map(item => (
+            <TouchableOpacity
+              key={item.key}
+              activeOpacity={0.92}
+              style={styles.quickCard}
+              onPress={() =>
+                onPressTimelineCategory(item.mainCategory, item.otherSubCategory)
+              }
+            >
+              <View
+                style={[
+                  styles.quickIconWrap,
+                  { backgroundColor: petTheme.tint },
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name={item.icon}
+                  size={24}
+                  color={petTheme.primary}
+                  style={styles.quickIcon}
+                />
+              </View>
+              <Text style={styles.quickCardTitle}>{item.label}</Text>
+              <Text style={[styles.quickCardNote, { color: petTheme.primary }]}>
+                {item.note}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+});
+
+const MemorySectionLead = React.memo(function MemorySectionLead({
+  accentDeepColor,
+}: {
+  accentDeepColor: string;
+}) {
+  return (
+    <View style={styles.sectionLead}>
+      <Text style={[styles.sectionLeadTitle, { color: accentDeepColor }]}>
+        오늘의 추억 둘러보기
+      </Text>
+      <Text style={styles.sectionLeadSub}>
+        사진과 기록을 천천히 살펴보세요
+      </Text>
+    </View>
+  );
+});
+
+const RecommendationTipsSection = React.memo(function RecommendationTipsSection({
+  title,
+  tips,
+  petTheme,
+}: {
+  title: string;
+  tips: Array<(typeof TIP_TEMPLATES)[number]>;
+  petTheme: ReturnType<typeof buildPetThemePalette>;
+}) {
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeaderRow}>
+        <Text style={[styles.tipSectionTitle, { color: petTheme.deep }]}>
+          {title}
+        </Text>
+      </View>
+
+      <View style={styles.tipList}>
+        {tips.map(item => (
+          <TouchableOpacity
+            key={item.key}
+            activeOpacity={0.92}
+            style={styles.tipCard}
+          >
+            <View style={[styles.tipThumb, { backgroundColor: petTheme.tint }]}>
+              <View style={styles.tipThumbInner}>
+                <Feather name={item.icon} size={20} color={petTheme.primary} />
+              </View>
+            </View>
+
+            <View style={styles.tipContent}>
+              <Text style={[styles.tipEyebrow, { color: petTheme.primary }]}>
+                {item.eyebrow}
+              </Text>
+              <Text style={styles.tipTitle} numberOfLines={2}>
+                {item.title}
+              </Text>
+              <Text style={styles.tipDescription} numberOfLines={2}>
+                {item.description}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+});
+
+const TodayHomeTipSection = React.memo(function TodayHomeTipSection({
+  petTheme,
+}: {
+  petTheme: ReturnType<typeof buildPetThemePalette>;
+}) {
+  return (
+    <View style={styles.section}>
+      <View style={[styles.todayTipCard, { backgroundColor: petTheme.tint }]}>
+        <View style={styles.todayTipBadge}>
+          <Feather name="map-pin" size={12} color={petTheme.primary} />
+          <Text style={[styles.todayTipBadgeText, { color: petTheme.primary }]}>
+            {TODAY_HOME_TIP.badge}
+          </Text>
+        </View>
+        <Text style={styles.todayTipTitle}>{TODAY_HOME_TIP.title}</Text>
+        <Text style={styles.todayTipDesc}>{TODAY_HOME_TIP.description}</Text>
+      </View>
     </View>
   );
 });
@@ -1538,9 +2069,7 @@ export default function LoggedInHome() {
   // ---------------------------------------------------------
   // 8) Accordion state (pet 변경 시 초기화)
   // ---------------------------------------------------------
-  const [acc, setAcc] = useState<
-    Record<'hobby' | 'like' | 'dislike' | 'tag', boolean>
-  >({
+  const [acc, setAcc] = useState<Record<ProfileAccordionKey, boolean>>({
     hobby: false,
     like: false,
     dislike: false,
@@ -1564,7 +2093,7 @@ export default function LoggedInHome() {
   }, []);
 
   const onToggleOne = useCallback(
-    (key: 'hobby' | 'like' | 'dislike' | 'tag') => {
+    (key: ProfileAccordionKey) => {
       setAcc(prev => ({ ...prev, [key]: !prev[key] }));
     },
     [],
@@ -1612,59 +2141,16 @@ export default function LoggedInHome() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerTopRow}>
-            <View style={styles.headerTextArea}>
-              <Text style={[styles.title, { color: petTheme.primary }]}>
-                {greetingTitle}
-              </Text>
-              <Text style={styles.subTitle}>{greetingSubTitle}</Text>
-            </View>
-
-            <View style={styles.headerIcons}>
-              <TouchableOpacity
-                activeOpacity={0.85}
-                style={styles.headerIconBtn}
-                onPress={noopHeaderAction}
-              >
-                <Feather name="search" size={18} color="rgba(11,18,32,0.75)" />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                activeOpacity={0.85}
-                style={styles.headerIconBtn}
-                onPress={noopHeaderAction}
-              >
-                <Feather name="bell" size={18} color="rgba(11,18,32,0.75)" />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Pet switcher */}
-          <View style={styles.petSwitcherRow}>
-            {visiblePets.map(p => {
-              return (
-                <PetChipButton
-                  key={p.id}
-                  petId={p.id}
-                  isActive={p.id === activePetId}
-                  imageUri={p.avatarUrl?.trim() || null}
-                  petThemePrimary={petTheme.primary}
-                  onPress={onPressPetChip}
-                />
-              );
-            })}
-
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={styles.petAddChip}
-              onPress={onPressAddPet}
-            >
-              <Feather name="plus" size={20} color={petTheme.primary} />
-            </TouchableOpacity>
-          </View>
-        </View>
+        <HomeHeaderSection
+          greetingTitle={greetingTitle}
+          greetingSubTitle={greetingSubTitle}
+          visiblePets={visiblePets}
+          activePetId={activePetId}
+          petThemePrimary={petTheme.primary}
+          onPressPetChip={onPressPetChip}
+          onPressAddPet={onPressAddPet}
+          onPressHeaderAction={noopHeaderAction}
+        />
 
         {/* Fade container */}
         <Animated.View style={animatedContentStyle}>
@@ -1673,394 +2159,33 @@ export default function LoggedInHome() {
             onPress={onPressWeatherInsight}
           />
 
-          {/* HERO */}
-          <View style={styles.heroCard}>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              style={styles.heroGearBtn}
-              onPress={onPressPetProfileEdit}
-            >
-              <MaterialCommunityIcons
-                name="cog-outline"
-                size={22}
-                color={petTheme.deep}
-              />
-            </TouchableOpacity>
+          <HeroProfileSection
+            petTheme={petTheme}
+            selectedAvatarUri={selectedAvatarUri}
+            profilePetName={profilePetName}
+            topMetaLine={topMetaLine}
+            birthText={birthText}
+            togetherDays={togetherDays}
+            hobbies={hobbies}
+            likes={likes}
+            dislikes={dislikes}
+            tags={tags}
+            allExpanded={allExpanded}
+            acc={acc}
+            todayMessageEmoji={todayMessageEmoji}
+            todayMessage={todayMessage}
+            onPressPetProfileEdit={onPressPetProfileEdit}
+            onToggleAll={onToggleAll}
+            onToggleOne={onToggleOne}
+          />
 
-            <View style={styles.heroCenter}>
-              <View style={styles.heroAvatarOuter}>
-                <View
-                  style={[
-                    styles.heroAvatarGlow,
-                    {
-                      backgroundColor: petTheme.glow,
-                      shadowColor: petTheme.primary,
-                    },
-                  ]}
-                />
-                <LinearGradient
-                  colors={petTheme.ringGradient}
-                  locations={[0, 0.55, 1]}
-                  start={{ x: 0.18, y: 0.12 }}
-                  end={{ x: 0.82, y: 0.9 }}
-                  style={[
-                    styles.heroAvatarRing,
-                    { shadowColor: petTheme.primary },
-                  ]}
-                >
-                  <View style={styles.heroAvatarRingInner}>
-                    <View style={styles.heroAvatarWrap}>
-                      {selectedAvatarUri ? (
-                        <Image
-                          source={{ uri: selectedAvatarUri }}
-                          style={styles.heroAvatarImg}
-                        />
-                      ) : (
-                        <View style={styles.heroAvatarPlaceholder} />
-                      )}
-                    </View>
-                  </View>
-                </LinearGradient>
-              </View>
+          <QuickActionsSection
+            petTheme={petTheme}
+            quickActionCards={quickActionCards}
+            onPressTimelineCategory={onPressTimelineCategory}
+          />
 
-              <Text
-                style={[styles.heroName, { color: petTheme.deep }]}
-                numberOfLines={1}
-              >
-                {profilePetName}
-              </Text>
-
-              {topMetaLine ? (
-                <Text style={styles.heroMetaLine} numberOfLines={1}>
-                  {isMemorialPet(selectedPet?.deathDate ?? null)
-                    ? `${topMetaLine}`
-                    : topMetaLine}
-                </Text>
-              ) : (
-                <Text style={styles.heroMetaMuted} numberOfLines={1}>
-                  아이 정보를 채우면 더 예쁘게 보여요
-                </Text>
-              )}
-
-              {birthText ? (
-                <Text style={styles.heroBirthText} numberOfLines={1}>
-                  생년월일 {birthText}
-                </Text>
-              ) : null}
-
-              {togetherDays !== null ? (
-                <View
-                  style={[
-                    styles.heroTogetherPill,
-                    { backgroundColor: petTheme.deep },
-                  ]}
-                >
-                  <View style={styles.heroTogetherRow}>
-                    <Text
-                      style={styles.heroTogetherHeart}
-                    >
-                      {petTheme.heartEmoji}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.heroTogetherText,
-                        { color: petTheme.onDeep },
-                      ]}
-                    >
-                      함께한 시간{' '}
-                      <Text
-                        style={[
-                          styles.heroTogetherStrong,
-                          { color: petTheme.onDeep },
-                        ]}
-                      >
-                        {togetherDays}
-                      </Text>{' '}
-                      일
-                    </Text>
-                    <Text
-                      style={styles.heroTogetherHeart}
-                    >
-                      {petTheme.heartEmoji}
-                    </Text>
-                  </View>
-                </View>
-              ) : null}
-            </View>
-
-            <View style={styles.accordionWrap}>
-              <TouchableOpacity
-                activeOpacity={0.85}
-                style={styles.accordionAllRow}
-                onPress={onToggleAll}
-              >
-                <Text
-                  style={[
-                    styles.accordionAllLabel,
-                    { color: petTheme.primary },
-                  ]}
-                >
-                  모두펼치기
-                </Text>
-                <Feather
-                  name={allExpanded ? 'chevron-up' : 'chevron-down'}
-                  size={18}
-                  color={petTheme.primary}
-                />
-              </TouchableOpacity>
-
-              <View style={styles.accordionItem}>
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  style={styles.accordionHeaderRow}
-                  onPress={() => onToggleOne('hobby')}
-                >
-                  <View style={styles.accordionLeft}>
-                    <View
-                      style={[
-                        styles.accordionIconCircle,
-                        styles.iconCircleBlue,
-                      ]}
-                    >
-                      <Text style={styles.accordionIconText}>🐾</Text>
-                    </View>
-                    <Text style={[styles.accordionTitle, styles.accTitleBlue]}>
-                      취미
-                    </Text>
-                  </View>
-                  <Feather
-                    name={acc.hobby ? 'chevron-up' : 'chevron-down'}
-                    size={18}
-                    color={petTheme.primary}
-                  />
-                </TouchableOpacity>
-
-                {acc.hobby ? (
-                  <View style={styles.accordionBody}>
-                    {hobbies.length > 0 ? (
-                      hobbies.map(v => (
-                        <Text key={v} style={styles.accordionBullet}>
-                          • {v}
-                        </Text>
-                      ))
-                    ) : (
-                      <Text style={styles.accordionEmpty}>• 아직 없어요</Text>
-                    )}
-                  </View>
-                ) : null}
-              </View>
-
-              <View style={styles.accordionItem}>
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  style={styles.accordionHeaderRow}
-                  onPress={() => onToggleOne('like')}
-                >
-                  <View style={styles.accordionLeft}>
-                    <View
-                      style={[
-                        styles.accordionIconCircle,
-                        styles.iconCircleOrange,
-                      ]}
-                    >
-                      <Text style={styles.accordionIconText}>💛</Text>
-                    </View>
-                    <Text
-                      style={[styles.accordionTitle, styles.accTitleOrange]}
-                    >
-                      좋아하는 것
-                    </Text>
-                  </View>
-                  <Feather
-                    name={acc.like ? 'chevron-up' : 'chevron-down'}
-                    size={18}
-                    color={petTheme.primary}
-                  />
-                </TouchableOpacity>
-
-                {acc.like ? (
-                  <View style={styles.accordionBody}>
-                    {likes.length > 0 ? (
-                      likes.map(v => (
-                        <Text key={v} style={styles.accordionBullet}>
-                          • {v}
-                        </Text>
-                      ))
-                    ) : (
-                      <Text style={styles.accordionEmpty}>• 아직 없어요</Text>
-                    )}
-                  </View>
-                ) : null}
-              </View>
-
-              <View style={styles.accordionItem}>
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  style={styles.accordionHeaderRow}
-                  onPress={() => onToggleOne('dislike')}
-                >
-                  <View style={styles.accordionLeft}>
-                    <View
-                      style={[
-                        styles.accordionIconCircle,
-                        styles.iconCirclePink,
-                      ]}
-                    >
-                      <Text style={styles.accordionIconText}>💔</Text>
-                    </View>
-                    <Text style={[styles.accordionTitle, styles.accTitlePink]}>
-                      싫어하는 것
-                    </Text>
-                  </View>
-                  <Feather
-                    name={acc.dislike ? 'chevron-up' : 'chevron-down'}
-                    size={18}
-                    color={petTheme.primary}
-                  />
-                </TouchableOpacity>
-
-                {acc.dislike ? (
-                  <View style={styles.accordionBody}>
-                    {dislikes.length > 0 ? (
-                      dislikes.map(v => (
-                        <Text key={v} style={styles.accordionBullet}>
-                          • {v}
-                        </Text>
-                      ))
-                    ) : (
-                      <Text style={styles.accordionEmpty}>• 아직 없어요</Text>
-                    )}
-                  </View>
-                ) : null}
-              </View>
-
-              <View style={[styles.accordionItem, { borderBottomWidth: 0 }]}>
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  style={styles.accordionHeaderRow}
-                  onPress={() => onToggleOne('tag')}
-                >
-                  <View style={styles.accordionLeft}>
-                    <View
-                      style={[
-                        styles.accordionIconCircle,
-                        styles.iconCirclePurple,
-                      ]}
-                    >
-                      <Feather name="hash" size={16} color={petTheme.primary} />
-                    </View>
-                    <Text
-                      style={[styles.accordionTitle, styles.accTitlePurple]}
-                    >
-                      #태그
-                    </Text>
-                  </View>
-                  <Feather
-                    name={acc.tag ? 'chevron-up' : 'chevron-down'}
-                    size={18}
-                    color={petTheme.primary}
-                  />
-                </TouchableOpacity>
-
-                {acc.tag ? (
-                  <View style={styles.accordionBody}>
-                    <View style={styles.tagsRow}>
-                      {tags.map(t => (
-                        <View
-                          key={t}
-                          style={[
-                            styles.tagChip,
-                            {
-                              borderColor: petTheme.border,
-                              backgroundColor: petTheme.tint,
-                            },
-                          ]}
-                        >
-                          <Text
-                            style={[styles.tagText, { color: petTheme.deep }]}
-                          >
-                            {t}
-                          </Text>
-                        </View>
-                      ))}
-                    </View>
-                  </View>
-                ) : null}
-              </View>
-            </View>
-
-            <View style={styles.heroMessageBox}>
-              <View style={styles.heroMessageIcon}>
-                <Text style={styles.heroMessageIconText}>
-                  {todayMessageEmoji}
-                </Text>
-              </View>
-              <Text style={styles.heroMessageText}>{todayMessage}</Text>
-              <View style={styles.heroMessageBottomShadow} />
-            </View>
-          </View>
-
-          <View style={styles.section}>
-            <View style={styles.sectionHeaderCol}>
-              <Text style={[styles.sectionTitle, { color: petTheme.deep }]}>
-                자주 쓰는 기록
-              </Text>
-              <Text style={styles.sectionSubText}>
-                산책 · 식사 · 건강 · 미용 기록을 바로 열어보세요
-              </Text>
-            </View>
-
-            <View style={styles.quickGridFrame}>
-              <View style={styles.quickGrid}>
-                {quickActionCards.map(item => (
-                  <TouchableOpacity
-                    key={item.key}
-                    activeOpacity={0.92}
-                    style={styles.quickCard}
-                    onPress={() =>
-                      onPressTimelineCategory(
-                        item.mainCategory,
-                        item.otherSubCategory,
-                      )
-                    }
-                  >
-                    <View
-                      style={[
-                        styles.quickIconWrap,
-                        { backgroundColor: petTheme.tint },
-                      ]}
-                    >
-                      <MaterialCommunityIcons
-                        name={item.icon}
-                        size={24}
-                        color={petTheme.primary}
-                        style={styles.quickIcon}
-                      />
-                    </View>
-                    <Text style={styles.quickCardTitle}>{item.label}</Text>
-                    <Text
-                      style={[
-                        styles.quickCardNote,
-                        { color: petTheme.primary },
-                      ]}
-                    >
-                      {item.note}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          </View>
-
-          {/* Section lead */}
-          <View style={styles.sectionLead}>
-            <Text style={[styles.sectionLeadTitle, { color: petTheme.deep }]}>
-              오늘의 추억 둘러보기
-            </Text>
-            <Text style={styles.sectionLeadSub}>
-              사진과 기록을 천천히 살펴보세요
-            </Text>
-          </View>
+          <MemorySectionLead accentDeepColor={petTheme.deep} />
 
           <TodayPhotoSection
             todayPhoto={todayPhoto}
@@ -2101,52 +2226,11 @@ export default function LoggedInHome() {
             accentBorderColor={petTheme.border}
           />
 
-          <View style={styles.section}>
-            <View style={styles.sectionHeaderRow}>
-              <Text style={[styles.tipSectionTitle, { color: petTheme.deep }]}>
-                {tipsSectionTitle}
-              </Text>
-            </View>
-
-            <View style={styles.tipList}>
-              {recommendationTips.map(item => (
-                <TouchableOpacity
-                  key={item.key}
-                  activeOpacity={0.92}
-                  style={styles.tipCard}
-                >
-                  <View
-                    style={[
-                      styles.tipThumb,
-                      { backgroundColor: petTheme.tint },
-                    ]}
-                  >
-                    <View style={styles.tipThumbInner}>
-                      <Feather
-                        name={item.icon}
-                        size={20}
-                        color={petTheme.primary}
-                      />
-                    </View>
-                  </View>
-
-                  <View style={styles.tipContent}>
-                    <Text
-                      style={[styles.tipEyebrow, { color: petTheme.primary }]}
-                    >
-                      {item.eyebrow}
-                    </Text>
-                    <Text style={styles.tipTitle} numberOfLines={2}>
-                      {item.title}
-                    </Text>
-                    <Text style={styles.tipDescription} numberOfLines={2}>
-                      {item.description}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
+          <RecommendationTipsSection
+            title={tipsSectionTitle}
+            tips={recommendationTips}
+            petTheme={petTheme}
+          />
 
           <ScheduleSection
             weekScheduleItems={weekScheduleItems}
@@ -2165,27 +2249,7 @@ export default function LoggedInHome() {
             accentDeepColor={petTheme.deep}
           />
 
-          <View style={styles.section}>
-            <View
-              style={[styles.todayTipCard, { backgroundColor: petTheme.tint }]}
-            >
-              <View style={styles.todayTipBadge}>
-                <Feather name="map-pin" size={12} color={petTheme.primary} />
-                <Text
-                  style={[
-                    styles.todayTipBadgeText,
-                    { color: petTheme.primary },
-                  ]}
-                >
-                  {TODAY_HOME_TIP.badge}
-                </Text>
-              </View>
-              <Text style={styles.todayTipTitle}>{TODAY_HOME_TIP.title}</Text>
-              <Text style={styles.todayTipDesc}>
-                {TODAY_HOME_TIP.description}
-              </Text>
-            </View>
-          </View>
+          <TodayHomeTipSection petTheme={petTheme} />
 
           <MonthlyDiarySection
             petName={plainPetName}
