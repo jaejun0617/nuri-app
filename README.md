@@ -3390,3 +3390,40 @@ legacy 반영이 실패하면:
 - delete 후 storage cleanup 실패 시 orphan 파일은 남을 수 있다.
 - queue supersede 구조가 commit 경합은 줄였지만, 업로드 시작 직후 교체된 old task의 일부 파일이 orphan으로 남을 가능성은 있다.
 - legacy 필드를 완전히 제거하지 않았기 때문에 장기적으로는 mirror 비용이 남는다.
+
+### Chapter X. 날씨 상세 진입 최적화 1차
+
+이번 챕터에서는 날씨 상세 화면 진입 시 체감이 무거웠던 원인인 **중복 fetch / 위치 재조회 / 구 해석 재실행 / invalidate 과다**를 줄이는 방향으로 정리했다.
+
+#### 핵심 변경
+
+- 홈에서 만든 `weather bundle + coordinates` 를 상세 화면과 추천 화면으로 함께 전달하도록 변경
+- `useWeatherGuide` 에:
+  - 초기 좌표(`initialCoordinates`)
+  - 자동 refresh 정책(`autoRefreshOnFocus`, `autoRefreshOnActive`)
+    옵션을 추가
+- 상세/추천 화면은 초기 번들이 있으면:
+  - 위치 재조회
+  - reverse geocode
+  - 날씨 API 체인
+    을 진입 직후 다시 시작하지 않고, 초기 데이터로 먼저 렌더하도록 조정
+- `useQuery` 에 `initialData` 를 넣고 `refetchOnMount` 를 제어해 상세 첫 진입 재요청 압력을 완화
+- `weatherStore` 에 최신 `coords + bundle snapshot` 을 함께 보관하도록 확장
+- `useDistrict` 도 `initialDistrict + enabled` 를 받아 이미 알고 있는 지역명을 다시 해석하지 않도록 정리
+- 라우트 타입에 `initialCoordinates` 를 추가해 홈 → 상세 → 추천 흐름 전체가 같은 좌표를 공유하도록 맞춤
+
+#### 체감 개선 포인트
+
+- 상세 진입 직후:
+  - 현재 위치 확인
+  - 구 해석
+  - forecast / air-quality fetch
+    체인이 다시 연쇄로 도는 구간을 크게 줄였다.
+- focus 복귀 / app active 복귀 시 자동 invalidate를 상세/추천 화면에서는 끄도록 해서, 상세 복귀 체감이 덜 출렁이게 했다.
+- 화면 자체를 크게 쪼개기보다, 이번 턴은 데이터 갱신 빈도 자체를 줄이는 쪽이 체감 개선 폭이 더 컸다.
+
+#### 남은 리스크
+
+- `WeatherInsightScreen` 은 여전히 큰 단일 컴포넌트라 이후 섹션 분리 최적화 여지는 남아 있다.
+- 수동 새로고침 경로는 여전히 위치 재조회 + invalidate를 탈 수 있다.
+- 홈/상세 날씨 상태 공유는 많이 줄였지만, 완전한 단일 query consumer 구조는 아니라 장기적으로는 weather 전용 controller/store 정리가 한 번 더 필요하다.
