@@ -37,6 +37,11 @@ import type { TimelineStackParamList } from '../../navigation/TimelineStackNavig
 import type { TimelineScreenRoute } from '../../navigation/types';
 import { createLatestRequestController } from '../../services/app/async';
 import { getBrandedErrorMeta } from '../../services/app/errors';
+import {
+  enqueuePendingMemoryUpload,
+  processPendingMemoryUploads,
+  type PendingMemoryUploadEntry,
+} from '../../services/local/uploadQueue';
 import { pickPhotoAssets } from '../../services/media/photoPicker';
 import {
   normalizeCategoryKey,
@@ -68,7 +73,6 @@ import {
 import {
   deleteMemoryImage,
   getMemoryImageSignedUrlCached,
-  uploadMemoryImage,
 } from '../../services/supabase/storageMemories';
 import { useAuthStore } from '../../store/authStore';
 import { useRecordStore } from '../../store/recordStore';
@@ -481,43 +485,72 @@ export default function RecordEditScreen() {
       setFocusedMemoryId(petId, memoryId);
 
       // 2) 이미지 저장(다중)
-      const uploadPaths: string[] = [];
-      for (const image of addedImages) {
-        try {
-          const uploaded = await uploadMemoryImage({
-            userId,
-            petId,
-            memoryId,
-            fileUri: image.uri,
-            mimeType: image.mimeType,
-          });
-          uploadPaths.push(uploaded.path);
-        } catch {
-          // skip failed one
-        }
+      const imagePlanChanged =
+        removedPaths.size > 0 || addedImages.length > 0;
+      const keptExisting = baseImagePaths.filter(path => !removedPaths.has(path));
+      const finalEntries: PendingMemoryUploadEntry[] = [
+        ...keptExisting.map(path => ({ kind: 'existing' as const, path })),
+        ...addedImages.map(image => ({
+          kind: 'pending' as const,
+          key: image.key,
+          uri: image.uri,
+          mimeType: image.mimeType,
+        })),
+      ];
+
+      if (!imagePlanChanged) {
+        setSuccessModalVisible(true);
+
+        (async () => {
+          try {
+            const latest = await fetchMemoryById(memoryId);
+            upsertOneLocal(petId, latest);
+            setFocusedMemoryId(petId, memoryId);
+            refresh(petId).catch(() => {});
+          } catch {
+            upsertOneLocal(petId, {
+              ...record,
+              title: nextTitle,
+              content: nextContent,
+              emotion,
+              tags: nextTags,
+              category: mainCategoryKey,
+              subCategory: otherSubCategoryKey,
+              price: nextPrice,
+              occurredAt: occurred,
+            });
+            setFocusedMemoryId(petId, memoryId);
+          }
+        })().catch(() => {});
+        return;
       }
 
-      const keptExisting = baseImagePaths.filter(path => !removedPaths.has(path));
-      const finalPaths = Array.from(new Set([...keptExisting, ...uploadPaths]));
-      const saveResult = await updateMemoryImagePaths({
+      const queuedTask = await enqueuePendingMemoryUpload({
+        userId,
+        petId,
         memoryId,
-        imagePaths: finalPaths,
+        mode: 'edit',
+        finalEntries,
       });
+      const queueResult = await processPendingMemoryUploads();
+      const imageSaveSucceeded = queueResult.succeededTaskIds.includes(
+        queuedTask.taskId,
+      );
 
-      const latestLocalPatch = {
-        title: nextTitle,
-        content: nextContent,
-        emotion,
-        tags: nextTags,
-        category: mainCategoryKey,
-        subCategory: otherSubCategoryKey,
-        price: nextPrice,
-        occurredAt: occurred,
-        imagePath: saveResult.savedPaths[0] ?? null,
-        imagePaths: saveResult.savedPaths,
-      } as const;
+      if (!imageSaveSucceeded) {
+        showToast({
+          tone: 'warning',
+          title: '이미지 변경 복구 대기',
+          message:
+            '텍스트 변경은 저장됐고 사진 변경은 큐에서 이어서 처리합니다. 앱 복귀 시 자동 재시도됩니다.',
+          durationMs: 3600,
+        });
+        navigation.goBack();
+        return;
+      }
 
-      updateOneLocal(petId, memoryId, latestLocalPatch);
+      const latest = await fetchMemoryById(memoryId);
+      upsertOneLocal(petId, latest);
       setFocusedMemoryId(petId, memoryId);
 
       for (const path of removedPaths) {
@@ -525,22 +558,7 @@ export default function RecordEditScreen() {
       }
 
       setSuccessModalVisible(true);
-
-      // 3) 수정한 게시물 1건을 먼저 서버 스냅샷으로 보정하고, 그 뒤 전체 refresh를 백그라운드로 돌린다.
-      (async () => {
-        try {
-          const latest = await fetchMemoryById(memoryId);
-          upsertOneLocal(petId, latest);
-          setFocusedMemoryId(petId, memoryId);
-          refresh(petId).catch(() => {});
-        } catch {
-          upsertOneLocal(petId, {
-            ...record,
-            ...latestLocalPatch,
-          });
-          setFocusedMemoryId(petId, memoryId);
-        }
-      })().catch(() => {});
+      refresh(petId).catch(() => {});
     } catch (err) {
       const { title: alertTitle, message } = getBrandedErrorMeta(
         err,

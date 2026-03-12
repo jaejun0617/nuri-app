@@ -54,7 +54,11 @@ import {
   loadRecordCreateDraft,
   saveRecordCreateDraft,
 } from '../../services/local/recordDraft';
-import { enqueuePendingMemoryUpload } from '../../services/local/uploadQueue';
+import {
+  enqueuePendingMemoryUpload,
+  processPendingMemoryUploads,
+  type PendingMemoryUploadEntry,
+} from '../../services/local/uploadQueue';
 import { getBrandedErrorMeta } from '../../services/app/errors';
 import { pickPhotoAssets } from '../../services/media/photoPicker';
 import { supabase } from '../../services/supabase/client';
@@ -63,9 +67,7 @@ import {
   type EmotionTag,
   fetchMemoryById,
   type MemoryRecord,
-  updateMemoryImagePaths,
 } from '../../services/supabase/memories';
-import { uploadMemoryImage } from '../../services/supabase/storageMemories';
 import { resolveSelectedPetId, usePetStore } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
 import { showToast } from '../../store/uiStore';
@@ -456,7 +458,6 @@ export default function RecordCreateScreen() {
         otherSubCategoryKey,
       );
       const price = isShoppingCategory ? parseRecordPrice(priceText) : null;
-      let savedImagePaths: string[] = [];
 
       const memoryId = await createMemory({
         petId,
@@ -493,6 +494,7 @@ export default function RecordCreateScreen() {
 
       (async () => {
         let latestLocal: MemoryRecord = optimisticRecord;
+        let shouldHydrateFromServer = true;
 
         try {
           if (selectedImages.length > 0) {
@@ -500,78 +502,42 @@ export default function RecordCreateScreen() {
             const userId = userRes.data.user?.id ?? null;
             if (!userId) throw new Error('로그인 정보가 없습니다.');
 
-            const uploadedPaths: string[] = [];
-            let failedCount = 0;
-            const queuedImages: PickedRecordImage[] = [];
+            const finalEntries: PendingMemoryUploadEntry[] = selectedImages.map(
+              image => ({
+                kind: 'pending',
+                key: image.key,
+                uri: image.uri,
+                mimeType: image.mimeType,
+              }),
+            );
+            const queuedTask = await enqueuePendingMemoryUpload({
+              userId,
+              petId,
+              memoryId,
+              mode: 'create',
+              finalEntries,
+            });
+            const queueResult = await processPendingMemoryUploads();
 
-            for (const image of selectedImages) {
-              try {
-                const firstTry = await uploadMemoryImage({
-                  userId,
-                  petId,
-                  memoryId,
-                  fileUri: image.uri,
-                  mimeType: image.mimeType,
-                });
-                uploadedPaths.push(firstTry.path);
-              } catch {
-                try {
-                  const retry = await uploadMemoryImage({
-                    userId,
-                    petId,
-                    memoryId,
-                    fileUri: image.uri,
-                    mimeType: image.mimeType,
-                  });
-                  uploadedPaths.push(retry.path);
-                } catch {
-                  failedCount += 1;
-                  queuedImages.push(image);
-                }
-              }
-            }
-
-            if (uploadedPaths.length > 0) {
-              const saveResult = await updateMemoryImagePaths({
-                memoryId,
-                imagePaths: uploadedPaths,
-              });
-              savedImagePaths = saveResult.savedPaths;
-              latestLocal = normalizeMemoryRecord({
-                ...latestLocal,
-                imagePath: savedImagePaths[0] ?? null,
-                imagePaths: savedImagePaths,
-                imageUrl: null,
-              });
-              upsertOneLocal(petId, latestLocal);
-
-            }
-
-            if (failedCount > 0) {
-              await enqueuePendingMemoryUpload({
-                userId,
-                petId,
-                memoryId,
-                images: queuedImages.map(image => ({
-                  key: image.key,
-                  uri: image.uri,
-                  mimeType: image.mimeType,
-                })),
-              });
-
+            if (!queueResult.succeededTaskIds.includes(queuedTask.taskId)) {
+              shouldHydrateFromServer = false;
               showToast({
                 tone: 'warning',
-                title: '업로드 복구 대기',
+                title: '이미지 업로드 복구 대기',
                 message:
-                  '실패한 이미지는 큐에 저장했어요. 앱이 다시 활성화되면 자동으로 재시도합니다.',
-                durationMs: 3200,
+                  '기록은 저장됐고 사진 업로드는 큐에서 이어서 처리합니다. 앱 복귀 시 자동 재시도됩니다.',
+                durationMs: 3600,
               });
             }
           }
 
-          const created = await fetchMemoryById(memoryId);
-          upsertOneLocal(petId, created);
-          refresh(petId).catch(() => {});
+          if (shouldHydrateFromServer) {
+            const created = await fetchMemoryById(memoryId);
+            upsertOneLocal(petId, created);
+            refresh(petId).catch(() => {});
+          } else {
+            upsertOneLocal(petId, latestLocal);
+          }
         } catch {
           upsertOneLocal(petId, latestLocal);
         }

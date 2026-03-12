@@ -7,10 +7,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { captureMonitoringException } from '../monitoring/sentry';
 import { fetchMemoryById, updateMemoryImagePaths } from '../supabase/memories';
-import { uploadMemoryImage } from '../supabase/storageMemories';
+import {
+  deleteMemoryImage,
+  uploadMemoryImage,
+} from '../supabase/storageMemories';
 
 const MEMORY_UPLOAD_QUEUE_STORAGE_KEY = 'nuri.memory-upload-queue.v1';
 const MAX_ATTEMPTS = 5;
+let processingPromise: Promise<ProcessPendingMemoryUploadsResult> | null = null;
+const claimedTaskIds = new Set<string>();
 
 export type PendingMemoryUploadImage = {
   key: string;
@@ -18,24 +23,118 @@ export type PendingMemoryUploadImage = {
   mimeType: string | null;
 };
 
+export type PendingMemoryUploadEntry =
+  | {
+      kind: 'existing';
+      path: string;
+    }
+  | ({
+      kind: 'pending';
+    } & PendingMemoryUploadImage);
+
 export type PendingMemoryUploadTask = {
   taskId: string;
   userId: string;
   petId: string;
   memoryId: string;
-  images: PendingMemoryUploadImage[];
+  mode: 'create' | 'edit';
+  finalEntries: PendingMemoryUploadEntry[];
   attempts: number;
   createdAt: string;
   updatedAt: string;
+  lastErrorMessage?: string | null;
 };
+
+type ProcessPendingMemoryUploadsResult = {
+  processed: number;
+  succeeded: number;
+  failed: number;
+  touchedPetIds: string[];
+  succeededTaskIds: string[];
+  failedTaskIds: string[];
+};
+
+type LegacyPendingMemoryUploadTask = Omit<
+  PendingMemoryUploadTask,
+  'mode' | 'finalEntries'
+> & {
+  images?: PendingMemoryUploadImage[];
+  finalEntries?: PendingMemoryUploadEntry[];
+  mode?: 'create' | 'edit';
+};
+
+function normalizeString(value: string | null | undefined) {
+  return `${value ?? ''}`.trim();
+}
+
+function normalizePendingEntry(
+  entry: PendingMemoryUploadEntry | PendingMemoryUploadImage | null | undefined,
+): PendingMemoryUploadEntry | null {
+  if (!entry || typeof entry !== 'object') return null;
+
+  if ('kind' in entry && entry.kind === 'existing') {
+    const path = normalizeString(entry.path);
+    if (!path) return null;
+    return { kind: 'existing', path };
+  }
+
+  const key = normalizeString('key' in entry ? entry.key : '');
+  const uri = normalizeString('uri' in entry ? entry.uri : '');
+  if (!key || !uri) return null;
+
+  return {
+    kind: 'pending',
+    key,
+    uri,
+    mimeType:
+      'mimeType' in entry ? normalizeString(entry.mimeType) || null : null,
+  };
+}
+
+function normalizeTask(
+  task: LegacyPendingMemoryUploadTask | null | undefined,
+): PendingMemoryUploadTask | null {
+  if (!task || typeof task !== 'object') return null;
+
+  const taskId = normalizeString(task.taskId);
+  const userId = normalizeString(task.userId);
+  const petId = normalizeString(task.petId);
+  const memoryId = normalizeString(task.memoryId);
+  if (!taskId || !userId || !petId || !memoryId) return null;
+
+  const rawEntries = Array.isArray(task.finalEntries)
+    ? task.finalEntries
+    : Array.isArray(task.images)
+      ? task.images
+      : [];
+  const finalEntries = rawEntries
+    .map(normalizePendingEntry)
+    .filter((entry): entry is PendingMemoryUploadEntry => Boolean(entry));
+
+  return {
+    taskId,
+    userId,
+    petId,
+    memoryId,
+    mode: task.mode === 'edit' ? 'edit' : 'create',
+    finalEntries,
+    attempts: Math.max(0, Number(task.attempts ?? 0)),
+    createdAt: normalizeString(task.createdAt) || new Date().toISOString(),
+    updatedAt: normalizeString(task.updatedAt) || new Date().toISOString(),
+    lastErrorMessage: normalizeString(task.lastErrorMessage) || null,
+  };
+}
 
 async function loadQueue(): Promise<PendingMemoryUploadTask[]> {
   const raw = await AsyncStorage.getItem(MEMORY_UPLOAD_QUEUE_STORAGE_KEY);
   if (!raw) return [];
 
   try {
-    const parsed = JSON.parse(raw) as PendingMemoryUploadTask[];
-    return Array.isArray(parsed) ? parsed : [];
+    const parsed = JSON.parse(raw) as LegacyPendingMemoryUploadTask[];
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map(normalizeTask)
+      .filter((task): task is PendingMemoryUploadTask => Boolean(task));
   } catch {
     return [];
   }
@@ -49,23 +148,35 @@ async function saveQueue(tasks: PendingMemoryUploadTask[]): Promise<void> {
 }
 
 export async function enqueuePendingMemoryUpload(
-  input: Omit<PendingMemoryUploadTask, 'taskId' | 'attempts' | 'createdAt' | 'updatedAt'>,
-): Promise<void> {
+  input: Omit<
+    PendingMemoryUploadTask,
+    'taskId' | 'attempts' | 'createdAt' | 'updatedAt' | 'lastErrorMessage'
+  >,
+): Promise<PendingMemoryUploadTask> {
   const current = await loadQueue();
   const now = new Date().toISOString();
 
   const nextTask: PendingMemoryUploadTask = {
-    taskId: `${input.memoryId}:${Date.now()}`,
+    taskId: `${input.memoryId}:${Date.now()}:${Math.random()
+      .toString(36)
+      .slice(2, 8)}`,
     userId: input.userId,
     petId: input.petId,
     memoryId: input.memoryId,
-    images: input.images,
+    mode: input.mode,
+    finalEntries: input.finalEntries.map(entry => ({ ...entry })),
     attempts: 0,
     createdAt: now,
     updatedAt: now,
+    lastErrorMessage: null,
   };
 
-  await saveQueue([...current, nextTask]);
+  const nextQueue = current.filter(task => {
+    if (task.memoryId !== input.memoryId) return true;
+    return claimedTaskIds.has(task.taskId);
+  });
+  await saveQueue([...nextQueue, nextTask]);
+  return nextTask;
 }
 
 export async function getPendingMemoryUploadCount(): Promise<number> {
@@ -73,68 +184,168 @@ export async function getPendingMemoryUploadCount(): Promise<number> {
   return current.length;
 }
 
-export async function processPendingMemoryUploads(): Promise<{
-  processed: number;
-  succeeded: number;
-  failed: number;
-  touchedPetIds: string[];
-}> {
-  const queue = await loadQueue();
-  if (queue.length === 0) {
-    return { processed: 0, succeeded: 0, failed: 0, touchedPetIds: [] };
+async function removeTask(taskId: string): Promise<void> {
+  const current = await loadQueue();
+  await saveQueue(current.filter(task => task.taskId !== taskId));
+}
+
+async function updateTask(taskId: string, updater: (task: PendingMemoryUploadTask) => PendingMemoryUploadTask | null) {
+  const current = await loadQueue();
+  let changed = false;
+  const next = current.flatMap(task => {
+    if (task.taskId !== taskId) return [task];
+    changed = true;
+    const updated = updater(task);
+    return updated ? [updated] : [];
+  });
+  if (changed) {
+    await saveQueue(next);
   }
+}
 
-  const nextQueue: PendingMemoryUploadTask[] = [];
-  const touchedPetIds = new Set<string>();
-  let succeeded = 0;
-  let failed = 0;
+function isMemoryNotFoundError(error: unknown) {
+  if (!error || typeof error !== 'object') return false;
+  const message = 'message' in error ? String(error.message ?? '') : '';
+  const code = 'code' in error ? String(error.code ?? '') : '';
+  const details = 'details' in error ? String(error.details ?? '') : '';
+  const joined = `${code} ${message} ${details}`.toLowerCase();
+  return (
+    joined.includes('pgrst116') ||
+    joined.includes('json object requested') ||
+    joined.includes('0 rows')
+  );
+}
 
-  for (const task of queue) {
-    try {
-      const currentMemory = await fetchMemoryById(task.memoryId);
-      const uploadedPaths: string[] = [];
+async function processTask(task: PendingMemoryUploadTask): Promise<void> {
+  await fetchMemoryById(task.memoryId);
 
-      for (const image of task.images) {
-        const uploaded = await uploadMemoryImage({
-          userId: task.userId,
-          petId: task.petId,
-          memoryId: task.memoryId,
-          fileUri: image.uri,
-          mimeType: image.mimeType,
-        });
-        uploadedPaths.push(uploaded.path);
-      }
+  const uploadedPathsByKey = new Map<string, string>();
+  const uploadedNewPaths: string[] = [];
 
-      if (uploadedPaths.length > 0) {
-        await updateMemoryImagePaths({
-          memoryId: task.memoryId,
-          imagePaths: [...(currentMemory.imagePaths ?? []), ...uploadedPaths],
-        });
-        touchedPetIds.add(task.petId);
-      }
+  try {
+    for (const entry of task.finalEntries) {
+      if (entry.kind !== 'pending') continue;
 
-      succeeded += 1;
-    } catch (error: unknown) {
-      captureMonitoringException(error);
-
-      const attempts = task.attempts + 1;
-      if (attempts < MAX_ATTEMPTS) {
-        nextQueue.push({
-          ...task,
-          attempts,
-          updatedAt: new Date().toISOString(),
-        });
-      }
-      failed += 1;
+      const uploaded = await uploadMemoryImage({
+        userId: task.userId,
+        petId: task.petId,
+        memoryId: task.memoryId,
+        fileUri: entry.uri,
+        mimeType: entry.mimeType,
+      });
+      uploadedPathsByKey.set(entry.key, uploaded.path);
+      uploadedNewPaths.push(uploaded.path);
     }
+  } catch (error) {
+    await Promise.all(
+      uploadedNewPaths.map(path => deleteMemoryImage(path).catch(() => null)),
+    );
+    throw error;
   }
 
-  await saveQueue(nextQueue);
+  const finalPaths = task.finalEntries.flatMap(entry => {
+    if (entry.kind === 'existing') {
+      const path = normalizeString(entry.path);
+      return path ? [path] : [];
+    }
 
-  return {
-    processed: queue.length,
-    succeeded,
-    failed,
-    touchedPetIds: Array.from(touchedPetIds),
-  };
+    const uploadedPath = normalizeString(uploadedPathsByKey.get(entry.key));
+    return uploadedPath ? [uploadedPath] : [];
+  });
+
+  await updateMemoryImagePaths({
+    memoryId: task.memoryId,
+    imagePaths: finalPaths,
+  });
+}
+
+function pickNextTask(queue: PendingMemoryUploadTask[]) {
+  return (
+    queue.find(task => !claimedTaskIds.has(task.taskId)) ?? null
+  );
+}
+
+export async function processPendingMemoryUploads(): Promise<ProcessPendingMemoryUploadsResult> {
+  if (processingPromise) {
+    await processingPromise;
+    const remainingQueue = await loadQueue();
+    if (pickNextTask(remainingQueue)) {
+      return processPendingMemoryUploads();
+    }
+    return {
+      processed: 0,
+      succeeded: 0,
+      failed: 0,
+      touchedPetIds: [],
+      succeededTaskIds: [],
+      failedTaskIds: [],
+    };
+  }
+
+  processingPromise = (async () => {
+    const touchedPetIds = new Set<string>();
+    const succeededTaskIds: string[] = [];
+    const failedTaskIds: string[] = [];
+    let processed = 0;
+    let succeeded = 0;
+    let failed = 0;
+
+    while (true) {
+      const queue = await loadQueue();
+      const task = pickNextTask(queue);
+      if (!task) break;
+
+      claimedTaskIds.add(task.taskId);
+      processed += 1;
+
+      try {
+        await processTask(task);
+        await removeTask(task.taskId);
+        touchedPetIds.add(task.petId);
+        succeeded += 1;
+        succeededTaskIds.push(task.taskId);
+      } catch (error: unknown) {
+        captureMonitoringException(error);
+
+        if (isMemoryNotFoundError(error)) {
+          await removeTask(task.taskId);
+        } else {
+          const attempts = task.attempts + 1;
+          if (attempts >= MAX_ATTEMPTS) {
+            await removeTask(task.taskId);
+          } else {
+            await updateTask(task.taskId, currentTask => ({
+              ...currentTask,
+              attempts,
+              updatedAt: new Date().toISOString(),
+              lastErrorMessage:
+                error instanceof Error && error.message.trim()
+                  ? error.message
+                  : '이미지 업로드 재시도 대기',
+            }));
+          }
+        }
+
+        failed += 1;
+        failedTaskIds.push(task.taskId);
+      } finally {
+        claimedTaskIds.delete(task.taskId);
+      }
+    }
+
+    return {
+      processed,
+      succeeded,
+      failed,
+      touchedPetIds: Array.from(touchedPetIds),
+      succeededTaskIds,
+      failedTaskIds,
+    };
+  })();
+
+  try {
+    return await processingPromise;
+  } finally {
+    processingPromise = null;
+  }
 }
