@@ -17,6 +17,13 @@ const MAX_ATTEMPTS = 5;
 let processingPromise: Promise<ProcessPendingMemoryUploadsResult> | null = null;
 const claimedTaskIds = new Set<string>();
 
+class SupersededMemoryUploadTaskError extends Error {
+  constructor() {
+    super('최신 이미지 저장 계획으로 교체되어 기존 업로드 작업을 중단합니다.');
+    this.name = 'SupersededMemoryUploadTaskError';
+  }
+}
+
 export type PendingMemoryUploadImage = {
   key: string;
   uri: string;
@@ -216,7 +223,34 @@ function isMemoryNotFoundError(error: unknown) {
   );
 }
 
+function isSupersededTaskError(error: unknown) {
+  return error instanceof SupersededMemoryUploadTaskError;
+}
+
+function findLatestTaskForMemory(
+  queue: PendingMemoryUploadTask[],
+  memoryId: string,
+) {
+  return queue
+    .filter(task => task.memoryId === memoryId)
+    .sort((a, b) => {
+      const updatedDiff = a.updatedAt.localeCompare(b.updatedAt);
+      if (updatedDiff !== 0) return updatedDiff;
+      return a.createdAt.localeCompare(b.createdAt);
+    })
+    .at(-1) ?? null;
+}
+
+async function assertTaskNotSuperseded(task: PendingMemoryUploadTask) {
+  const queue = await loadQueue();
+  const latestTask = findLatestTaskForMemory(queue, task.memoryId);
+  if (!latestTask) return;
+  if (latestTask.taskId === task.taskId) return;
+  throw new SupersededMemoryUploadTaskError();
+}
+
 async function processTask(task: PendingMemoryUploadTask): Promise<void> {
+  await assertTaskNotSuperseded(task);
   await fetchMemoryById(task.memoryId);
 
   const uploadedPathsByKey = new Map<string, string>();
@@ -225,6 +259,7 @@ async function processTask(task: PendingMemoryUploadTask): Promise<void> {
   try {
     for (const entry of task.finalEntries) {
       if (entry.kind !== 'pending') continue;
+      await assertTaskNotSuperseded(task);
 
       const uploaded = await uploadMemoryImage({
         userId: task.userId,
@@ -253,6 +288,7 @@ async function processTask(task: PendingMemoryUploadTask): Promise<void> {
     return uploadedPath ? [uploadedPath] : [];
   });
 
+  await assertTaskNotSuperseded(task);
   await updateMemoryImagePaths({
     memoryId: task.memoryId,
     imagePaths: finalPaths,
@@ -260,9 +296,13 @@ async function processTask(task: PendingMemoryUploadTask): Promise<void> {
 }
 
 function pickNextTask(queue: PendingMemoryUploadTask[]) {
-  return (
-    queue.find(task => !claimedTaskIds.has(task.taskId)) ?? null
-  );
+  return [...queue]
+    .filter(task => !claimedTaskIds.has(task.taskId))
+    .sort((a, b) => {
+      const updatedDiff = b.updatedAt.localeCompare(a.updatedAt);
+      if (updatedDiff !== 0) return updatedDiff;
+      return b.createdAt.localeCompare(a.createdAt);
+    })[0] ?? null;
 }
 
 export async function processPendingMemoryUploads(): Promise<ProcessPendingMemoryUploadsResult> {
@@ -305,6 +345,11 @@ export async function processPendingMemoryUploads(): Promise<ProcessPendingMemor
         succeeded += 1;
         succeededTaskIds.push(task.taskId);
       } catch (error: unknown) {
+        if (isSupersededTaskError(error)) {
+          await removeTask(task.taskId);
+          continue;
+        }
+
         captureMonitoringException(error);
 
         if (isMemoryNotFoundError(error)) {

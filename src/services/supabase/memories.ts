@@ -11,6 +11,7 @@ import {
   prefetchMemorySignedUrls,
   type MemoryImageVariant,
 } from './storageMemories';
+import { captureMonitoringException } from '../monitoring/sentry';
 import { normalizeMemoryRecord } from '../records/imageSources';
 
 export type EmotionTag =
@@ -82,6 +83,12 @@ type MemoryImageRow = {
   status: 'pending' | 'ready' | 'failed';
 };
 
+type LegacyMemoryImageState = {
+  imageUrl: string | null;
+  imageUrls: string[];
+  mode: 'multi' | 'single_fallback';
+};
+
 function normalizePathValue(value: string | null | undefined) {
   return `${value ?? ''}`.trim();
 }
@@ -134,6 +141,19 @@ async function fetchMemoryImagesByMemoryIds(memoryIds: string[]) {
   }
 
   return grouped;
+}
+
+async function fetchMemoryImagesSnapshot(memoryId: string) {
+  const { data, error } = await supabase
+    .from('memory_images')
+    .select(
+      'memory_id,sort_order,original_path,timeline_thumb_path,status',
+    )
+    .eq('memory_id', memoryId)
+    .order('sort_order', { ascending: true });
+
+  if (error) throw error;
+  return (data ?? []) as MemoryImageRow[];
 }
 
 // ---------------------------------------------------------
@@ -535,15 +555,98 @@ async function syncMemoryImages(input: {
       );
 
     if (deleteError) throw deleteError;
-
-    await Promise.all(
-      removedRows.map(async row => {
-        const thumbPath = normalizePathValue(row.timeline_thumb_path);
-        if (!thumbPath) return;
-        await deleteFile('memory-images', thumbPath).catch(() => null);
-      }),
-    );
   }
+
+  return {
+    removedThumbPaths: removedRows
+      .map(row => normalizePathValue(row.timeline_thumb_path))
+      .filter(Boolean),
+  };
+}
+
+async function restoreMemoryImagesSnapshot(input: {
+  memoryId: string;
+  rows: MemoryImageRow[];
+}) {
+  const snapshotRows = [...input.rows].sort((a, b) => a.sort_order - b.sort_order);
+  const snapshotPaths = new Set(
+    snapshotRows
+      .map(row => normalizePathValue(row.original_path))
+      .filter(Boolean),
+  );
+
+  if (snapshotRows.length > 0) {
+    const payload = snapshotRows.map(row => ({
+      memory_id: input.memoryId,
+      sort_order: row.sort_order,
+      original_path: normalizePathValue(row.original_path),
+      timeline_thumb_path: normalizePathValue(row.timeline_thumb_path) || null,
+      status: row.status,
+    }));
+
+    const { error: restoreError } = await supabase
+      .from('memory_images')
+      .upsert(payload, { onConflict: 'memory_id,original_path' });
+
+    if (restoreError) throw restoreError;
+  }
+
+  const currentRows = await fetchMemoryImagesSnapshot(input.memoryId);
+  const extraPaths = currentRows
+    .map(row => normalizePathValue(row.original_path))
+    .filter(path => path && !snapshotPaths.has(path));
+
+  if (extraPaths.length > 0) {
+    const { error: deleteError } = await supabase
+      .from('memory_images')
+      .delete()
+      .eq('memory_id', input.memoryId)
+      .in('original_path', extraPaths);
+
+    if (deleteError) throw deleteError;
+  }
+}
+
+async function cleanupMemoryThumbPaths(paths: string[]) {
+  const targets = dedupeOrderedPaths(paths);
+  if (targets.length === 0) return;
+
+  await Promise.all(
+    targets.map(async path => {
+      await deleteFile('memory-images', path).catch(error => {
+        captureMonitoringException(error);
+      });
+    }),
+  );
+}
+
+async function persistLegacyMemoryImageState(input: {
+  memoryId: string;
+  nextPaths: string[];
+  preferredMode?: LegacyMemoryImageState['mode'];
+}): Promise<LegacyMemoryImageState['mode']> {
+  const nextPaths = dedupeOrderedPaths(input.nextPaths);
+  const first = nextPaths[0] ?? null;
+  const updatePayload = {
+    image_url: first,
+    image_urls: nextPaths,
+  };
+
+  if (input.preferredMode !== 'single_fallback') {
+    const { error } = await supabase
+      .from('memories')
+      .update(updatePayload)
+      .eq('id', input.memoryId);
+
+    if (!error) return 'multi';
+    if (!isMissingImageUrlsColumnError(error)) throw error;
+  }
+
+  await updateMemoryImagePath({
+    memoryId: input.memoryId,
+    imagePath: first,
+  });
+  return 'single_fallback';
 }
 
 function isMissingImageUrlsColumnError(error: unknown) {
@@ -560,6 +663,47 @@ function isMissingImageUrlsColumnError(error: unknown) {
   );
 }
 
+async function fetchLegacyMemoryImageState(
+  memoryId: string,
+): Promise<LegacyMemoryImageState> {
+  const multiSelect = await supabase
+    .from('memories')
+    .select('image_url,image_urls')
+    .eq('id', memoryId)
+    .single();
+
+  if (!multiSelect.error) {
+    const row = multiSelect.data as {
+      image_url: string | null;
+      image_urls?: string[] | null;
+    } | null;
+    return {
+      imageUrl: row?.image_url ?? null,
+      imageUrls: Array.isArray(row?.image_urls) ? row.image_urls : [],
+      mode: 'multi',
+    };
+  }
+
+  if (!isMissingImageUrlsColumnError(multiSelect.error)) {
+    throw multiSelect.error;
+  }
+
+  const singleSelect = await supabase
+    .from('memories')
+    .select('image_url')
+    .eq('id', memoryId)
+    .single();
+  if (singleSelect.error) throw singleSelect.error;
+
+  const row = singleSelect.data as { image_url: string | null } | null;
+  const imageUrl = row?.image_url ?? null;
+  return {
+    imageUrl,
+    imageUrls: imageUrl ? [imageUrl] : [],
+    mode: 'single_fallback',
+  };
+}
+
 /* ---------------------------------------------------------
  * 4-1) Update image paths (multi-image)
  * - image_urls 컬럼이 없는 DB면 image_url 단일 저장으로 폴백
@@ -568,43 +712,49 @@ export async function updateMemoryImagePaths(input: {
   memoryId: string;
   imagePaths: string[];
 }): Promise<{ mode: 'multi' | 'single_fallback'; savedPaths: string[] }> {
-  const nextPaths = Array.from(
-    new Set(
-      (input.imagePaths ?? [])
-        .map(path => `${path ?? ''}`.trim())
-        .filter(Boolean),
-    ),
-  );
-  const first = nextPaths[0] ?? null;
-  const updatePayload = {
-    image_url: first,
-    image_urls: nextPaths,
-  };
+  const nextPaths = dedupeOrderedPaths(input.imagePaths);
+  const [legacySnapshot, memoryImagesSnapshot] = await Promise.all([
+    fetchLegacyMemoryImageState(input.memoryId),
+    fetchMemoryImagesSnapshot(input.memoryId),
+  ]);
 
-  const { error } = await supabase
-    .from('memories')
-    .update(updatePayload)
-    .eq('id', input.memoryId);
-
-  if (!error) {
-    await syncMemoryImages({
-      memoryId: input.memoryId,
-      imagePaths: nextPaths,
-    });
-    return { mode: 'multi', savedPaths: nextPaths };
-  }
-  if (!isMissingImageUrlsColumnError(error)) throw error;
-
-  await updateMemoryImagePath({
-    memoryId: input.memoryId,
-    imagePath: first,
-  });
-  await syncMemoryImages({
+  const syncResult = await syncMemoryImages({
     memoryId: input.memoryId,
     imagePaths: nextPaths,
   });
 
-  return { mode: 'single_fallback', savedPaths: nextPaths };
+  try {
+    const mode = await persistLegacyMemoryImageState({
+      memoryId: input.memoryId,
+      nextPaths,
+      preferredMode: legacySnapshot.mode,
+    });
+
+    await cleanupMemoryThumbPaths(syncResult.removedThumbPaths);
+    return { mode, savedPaths: nextPaths };
+  } catch (error) {
+    await restoreMemoryImagesSnapshot({
+      memoryId: input.memoryId,
+      rows: memoryImagesSnapshot,
+    }).catch(restoreError => {
+      captureMonitoringException(restoreError);
+    });
+
+    await persistLegacyMemoryImageState({
+      memoryId: input.memoryId,
+      nextPaths:
+        legacySnapshot.imageUrls.length > 0
+          ? legacySnapshot.imageUrls
+          : legacySnapshot.imageUrl
+            ? [legacySnapshot.imageUrl]
+            : [],
+      preferredMode: legacySnapshot.mode,
+    }).catch(restoreError => {
+      captureMonitoringException(restoreError);
+    });
+
+    throw error;
+  }
 }
 
 /* ---------------------------------------------------------
@@ -644,16 +794,32 @@ export async function deleteMemoryWithFile(input: {
   }>).flatMap(row => [row.original_path ?? '', row.timeline_thumb_path ?? '']);
   const paths = Array.from(new Set([...basePaths, ...memoryImagePaths])).filter(Boolean);
 
-  if (paths.length > 0) {
-    await Promise.all(paths.map(path => deleteFile('memory-images', path)));
-  }
-
   const { error } = await supabase
     .from('memories')
     .delete()
     .eq('id', input.memoryId);
 
   if (error) throw error;
+
+  try {
+    await supabase
+      .from('memory_images')
+      .delete()
+      .eq('memory_id', input.memoryId)
+      .throwOnError();
+  } catch (deleteError) {
+    captureMonitoringException(deleteError);
+  }
+
+  if (paths.length > 0) {
+    await Promise.all(
+      paths.map(async path => {
+        await deleteFile('memory-images', path).catch(deleteError => {
+          captureMonitoringException(deleteError);
+        });
+      }),
+    );
+  }
 }
 
 /* ---------------------------------------------------------

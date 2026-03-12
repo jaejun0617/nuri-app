@@ -3246,3 +3246,72 @@ safe area inset 기준으로 상단 chrome을 다시 잡아야 했다.
 - 기록하기 화면에서는 "현재 입력 중인 필드"만 아니라 "마지막 완료 CTA"까지 함께 접근 가능해야 한다.
 - 실기기 키보드 대응은 추정 padding보다 실제 keyboard inset 기준이 더 안정적이다.
 - CTA는 키보드 높이를 그대로 따라가면 과하게 뜨기 쉬우므로, 스크롤 여백과 버튼 상승량을 분리해서 다뤄야 한다.
+
+### Chapter X. 업로드 큐 안정화 + 기록 저장 복구 구조 1차 정리
+
+이번 챕터에서는 `create/edit` 직후 이미지 저장 정합성과 업로드 큐 중복 실행 문제를 우선 안정화했다.
+
+#### 핵심 변경
+
+- `uploadQueue`에 전역 실행 락과 task claim 구조를 추가해 부트/foreground 복귀 시 중복 처리 가능성을 줄였다.
+- 큐 저장 구조를 단순 `images[]` 재시도 방식에서 `finalEntries[]` 기반 최종 이미지 계획 방식으로 변경했다.
+  - `existing path`
+  - `pending local image`
+- `enqueue` 시 같은 `memoryId`의 미처리 task는 최신 task로 교체하고, 이미 claim된 task만 유지하도록 정리했다.
+- 큐 처리 결과에 `succeededTaskIds / failedTaskIds`를 추가해 화면이 자기 task 성공 여부를 정확히 판단할 수 있게 했다.
+- 구형 큐 데이터는 로드 시 마이그레이션되도록 유지했다.
+
+#### RecordCreate 개선
+
+- memory row 생성 직후 이미지가 있으면 업로드 시도보다 먼저 큐에 최종 이미지 계획을 저장하도록 변경했다.
+- 그 다음 큐를 즉시 한 번 처리한다.
+- 즉시 처리 성공 시 기존처럼 서버 스냅샷으로 보정하고 refresh한다.
+- 즉시 처리 실패 시:
+  - 성공처럼 처리하지 않고 warning toast를 노출
+  - local optimistic record를 유지해 첫 이미지의 local URI 반영이 바로 사라지지 않도록 유지
+  - 앱 재실행 / foreground 복귀 시 큐가 이어서 처리하도록 연결
+
+#### RecordEdit 개선
+
+- 텍스트 필드는 기존처럼 먼저 저장하고 로컬에 즉시 반영한다.
+- 이미지 변경은 `kept existing + added pending` 순서의 최종 계획으로 큐에 저장한다.
+- 기존처럼 업로드 실패 이미지를 skip해서 finalPaths에 없는 상태로 성공 처리하지 않도록 수정했다.
+- 즉시 처리 성공 시:
+  - 서버 스냅샷 재조회 후 로컬 반영
+  - 제거 대상 기존 파일 삭제
+  - success modal 유지
+- 즉시 처리 실패 시:
+  - success modal은 띄우지 않음
+  - warning toast만 표시
+  - 텍스트 저장은 유지한 채 뒤로 복귀
+  - 이미지 변경은 큐 복구 대기로 남김
+
+#### 실패 처리 정책
+
+- 정책은 `즉시 처리 시도 -> 실패하면 큐 유지 -> 사용자에게 warning 명시`로 통일했다.
+- create:
+  - 기록 row는 저장
+  - 이미지 실패 시 큐 복구 대기
+  - local optimistic 이미지 유지
+- edit:
+  - 텍스트 저장은 유지
+  - 이미지 실패 시 full success로 보이지 않게 warning 처리
+  - 큐가 최종 이미지 계획을 기준으로 재시도
+- queue 내부에서는 업로드 중 일부 실패하면 task 전체를 실패로 보고 재시도한다.
+- 업로드 단계 중간에 생긴 신규 파일은 정합 반영 전에 실패하면 바로 정리하도록 처리했다.
+
+#### 이번 챕터에서 유지한 것
+
+- create 후 상세 진입 유지
+- edit 후 텍스트 즉시 반영 유지
+- delete 흐름은 건드리지 않음
+- local URI 즉시 반영 유지
+- 다중 이미지 순서 유지
+- `memory_images / legacy fallback / worker / backfill` 구조는 유지
+
+#### 남은 리스크
+
+- delete 순서 문제는 아직 남아 있다. (DB delete 실패 시 storage만 먼저 지워질 수 있음)
+- 최신 task 교체 구조가 들어갔지만, 이미 실행 중인 구 task가 먼저 끝난 뒤 최신 task가 다시 도는 창은 남아 있다.
+- edit 실패 시 텍스트는 즉시 반영되지만 이미지 변경은 큐 완료 전까지 상세에서 바로 보이지 않을 수 있다.
+- `memory_images`와 legacy 필드의 원자적 동기화 문제는 아직 남아 있다.
