@@ -520,13 +520,6 @@ export default function RecordEditScreen() {
       updateOneLocal(petId, memoryId, latestLocalPatch);
       setFocusedMemoryId(petId, memoryId);
 
-      if (saveResult.mode === 'single_fallback' && finalPaths.length > 1) {
-        Alert.alert(
-          '다중 이미지 저장 미지원',
-          'DB 스키마에 image_urls 컬럼이 없어 첫 번째 사진만 저장됐어요.',
-        );
-      }
-
       for (const path of removedPaths) {
         await deleteMemoryImage(path).catch(() => null);
       }

@@ -545,15 +545,6 @@ export default function RecordCreateScreen() {
               });
               upsertOneLocal(petId, latestLocal);
 
-              if (
-                saveResult.mode === 'single_fallback' &&
-                uploadedPaths.length > 1
-              ) {
-                Alert.alert(
-                  '다중 이미지 저장 미지원',
-                  'DB 스키마에 image_urls 컬럼이 없어 첫 번째 사진만 저장됐어요. SQL 마이그레이션을 적용하면 슬라이드가 정상 동작해요.',
-                );
-              }
             }
 
             if (failedCount > 0) {

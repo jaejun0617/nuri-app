@@ -477,6 +477,75 @@ export async function updateMemoryImagePath(input: {
   if (error) throw error;
 }
 
+async function syncMemoryImages(input: {
+  memoryId: string;
+  imagePaths: string[];
+}) {
+  const nextPaths = dedupeOrderedPaths(input.imagePaths);
+
+  const { data, error } = await supabase
+    .from('memory_images')
+    .select('id,original_path,timeline_thumb_path,status')
+    .eq('memory_id', input.memoryId)
+    .order('sort_order', { ascending: true });
+
+  if (error) throw error;
+
+  const existingRows = (data ?? []) as Array<{
+    id: string;
+    original_path: string;
+    timeline_thumb_path: string | null;
+    status: 'pending' | 'ready' | 'failed';
+  }>;
+  const existingByPath = new Map(
+    existingRows.map(row => [normalizePathValue(row.original_path), row] as const),
+  );
+
+  if (nextPaths.length > 0) {
+    const payload = nextPaths.map((path, index) => {
+      const existing = existingByPath.get(path);
+      return {
+        memory_id: input.memoryId,
+        sort_order: index,
+        original_path: path,
+        timeline_thumb_path: existing?.timeline_thumb_path ?? null,
+        status: existing?.status ?? ('pending' as const),
+      };
+    });
+
+    const { error: upsertError } = await supabase
+      .from('memory_images')
+      .upsert(payload, { onConflict: 'memory_id,original_path' });
+
+    if (upsertError) throw upsertError;
+  }
+
+  const nextPathSet = new Set(nextPaths);
+  const removedRows = existingRows.filter(
+    row => !nextPathSet.has(normalizePathValue(row.original_path)),
+  );
+
+  if (removedRows.length > 0) {
+    const { error: deleteError } = await supabase
+      .from('memory_images')
+      .delete()
+      .in(
+        'id',
+        removedRows.map(row => row.id),
+      );
+
+    if (deleteError) throw deleteError;
+
+    await Promise.all(
+      removedRows.map(async row => {
+        const thumbPath = normalizePathValue(row.timeline_thumb_path);
+        if (!thumbPath) return;
+        await deleteFile('memory-images', thumbPath).catch(() => null);
+      }),
+    );
+  }
+}
+
 function isMissingImageUrlsColumnError(error: unknown) {
   if (!error || typeof error !== 'object') return false;
   const message = 'message' in error ? String(error.message ?? '') : '';
@@ -518,6 +587,10 @@ export async function updateMemoryImagePaths(input: {
     .eq('id', input.memoryId);
 
   if (!error) {
+    await syncMemoryImages({
+      memoryId: input.memoryId,
+      imagePaths: nextPaths,
+    });
     return { mode: 'multi', savedPaths: nextPaths };
   }
   if (!isMissingImageUrlsColumnError(error)) throw error;
@@ -526,8 +599,12 @@ export async function updateMemoryImagePaths(input: {
     memoryId: input.memoryId,
     imagePath: first,
   });
+  await syncMemoryImages({
+    memoryId: input.memoryId,
+    imagePaths: nextPaths,
+  });
 
-  return { mode: 'single_fallback', savedPaths: first ? [first] : [] };
+  return { mode: 'single_fallback', savedPaths: nextPaths };
 }
 
 /* ---------------------------------------------------------
