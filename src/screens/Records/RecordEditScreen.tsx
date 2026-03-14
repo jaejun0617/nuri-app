@@ -71,7 +71,6 @@ import {
   type EmotionTag,
 } from '../../services/supabase/memories';
 import {
-  deleteMemoryImage,
   getMemoryImageSignedUrlCached,
 } from '../../services/supabase/storageMemories';
 import { useAuthStore } from '../../store/authStore';
@@ -552,11 +551,6 @@ export default function RecordEditScreen() {
       const latest = await fetchMemoryById(memoryId);
       upsertOneLocal(petId, latest);
       setFocusedMemoryId(petId, memoryId);
-
-      for (const path of removedPaths) {
-        await deleteMemoryImage(path).catch(() => null);
-      }
-
       setSuccessModalVisible(true);
       refresh(petId).catch(() => {});
     } catch (err) {

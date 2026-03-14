@@ -6,12 +6,15 @@
 // - ✅ prefetchMemorySignedUrls는 fetch 흐름 밖에서 async 스케줄링(스크롤 버벅임 방지)
 
 import { supabase } from './client';
-import { deleteFile } from './storage';
 import {
+  deleteMemoryImage,
   prefetchMemorySignedUrls,
   type MemoryImageVariant,
 } from './storageMemories';
-import { captureMonitoringException } from '../monitoring/sentry';
+import {
+  captureMonitoringException,
+  captureMonitoringMessage,
+} from '../monitoring/sentry';
 import { normalizeMemoryRecord } from '../records/imageSources';
 
 export type EmotionTag =
@@ -89,6 +92,18 @@ type LegacyMemoryImageState = {
   mode: 'multi' | 'single_fallback';
 };
 
+type MemoryImagesReadFailureReason = 'runtime_read_failure' | 'schema_fallback';
+
+type LegacyReadFallbackReason =
+  | MemoryImagesReadFailureReason
+  | 'recent_create_gap'
+  | 'legacy_only_row';
+
+type MemoryImagesFetchResult = {
+  grouped: Map<string, MemoryImageRow[]>;
+  readFailureReason: MemoryImagesReadFailureReason | null;
+};
+
 function normalizePathValue(value: string | null | undefined) {
   return `${value ?? ''}`.trim();
 }
@@ -107,12 +122,33 @@ function dedupeOrderedPaths(paths: Array<string | null | undefined>) {
   return ordered;
 }
 
-async function fetchMemoryImagesByMemoryIds(memoryIds: string[]) {
+function isMemoryImagesSchemaFallbackError(error: unknown) {
+  if (!error || typeof error !== 'object') return false;
+  const message = 'message' in error ? String(error.message ?? '') : '';
+  const details = 'details' in error ? String(error.details ?? '') : '';
+  const code = 'code' in error ? String(error.code ?? '') : '';
+  const joined = `${code} ${message} ${details}`.toLowerCase();
+  return (
+    joined.includes('memory_images') &&
+    (joined.includes('column') ||
+      joined.includes('relation') ||
+      joined.includes('schema cache') ||
+      joined.includes('does not exist') ||
+      joined.includes('pgrst'))
+  );
+}
+
+async function fetchMemoryImagesByMemoryIds(
+  memoryIds: string[],
+): Promise<MemoryImagesFetchResult> {
   const normalizedIds = Array.from(
     new Set((memoryIds ?? []).map(id => `${id ?? ''}`.trim()).filter(Boolean)),
   );
   if (normalizedIds.length === 0) {
-    return new Map<string, MemoryImageRow[]>();
+    return {
+      grouped: new Map<string, MemoryImageRow[]>(),
+      readFailureReason: null,
+    };
   }
 
   const { data, error } = await supabase
@@ -125,10 +161,27 @@ async function fetchMemoryImagesByMemoryIds(memoryIds: string[]) {
     .order('sort_order', { ascending: true });
 
   if (error) {
+    const reason: MemoryImagesReadFailureReason =
+      isMemoryImagesSchemaFallbackError(error)
+        ? 'schema_fallback'
+        : 'runtime_read_failure';
     console.warn('[memories] memory_images fallback to legacy fields', {
       message: error.message,
     });
-    return new Map<string, MemoryImageRow[]>();
+    captureMonitoringMessage('memory_images_read_fallback', {
+      level: 'warning',
+      tags: {
+        reason,
+      },
+      extras: {
+        memoryIdsCount: normalizedIds.length,
+        message: error.message,
+      },
+    });
+    return {
+      grouped: new Map<string, MemoryImageRow[]>(),
+      readFailureReason: reason,
+    };
   }
 
   const grouped = new Map<string, MemoryImageRow[]>();
@@ -140,7 +193,10 @@ async function fetchMemoryImagesByMemoryIds(memoryIds: string[]) {
     grouped.set(memoryId, current);
   }
 
-  return grouped;
+  return {
+    grouped,
+    readFailureReason: null,
+  };
 }
 
 async function fetchMemoryImagesSnapshot(memoryId: string) {
@@ -194,9 +250,16 @@ function normalizeImagePaths(row: MemoriesRow) {
   return single ? [single] : [];
 }
 
+function isLikelyRecentCreateGap(createdAt: string | null | undefined) {
+  const timestamp = Date.parse(`${createdAt ?? ''}`);
+  if (!Number.isFinite(timestamp)) return false;
+  return Date.now() - timestamp <= 10 * 60 * 1000;
+}
+
 function resolveRecordImages(
   row: MemoriesRow,
   memoryImages?: MemoryImageRow[],
+  readFailureReason?: MemoryImagesReadFailureReason | null,
 ) {
   const legacyPaths = normalizeImagePaths(row);
   const orderedMemoryImages = (memoryImages ?? [])
@@ -222,47 +285,99 @@ function resolveRecordImages(
       ? 'timeline-thumb'
       : null;
 
+  const fallbackReason: LegacyReadFallbackReason | null =
+    originalPaths.length > 0 || legacyPaths.length === 0
+      ? null
+      : readFailureReason
+        ? readFailureReason
+        : isLikelyRecentCreateGap(row.created_at)
+          ? 'recent_create_gap'
+          : 'legacy_only_row';
+
   return {
     imagePath: primaryOriginalPath,
     imagePaths: resolvedOriginalPaths,
     timelineImagePath,
     timelineImageVariant,
+    fallbackReason,
   };
 }
 
-function mapRow(row: MemoriesRow, memoryImages?: MemoryImageRow[]): MemoryRecord {
-  const imageState = resolveRecordImages(row, memoryImages);
-  return normalizeMemoryRecord({
-    id: row.id,
-    petId: row.pet_id,
-    title: row.title,
-    content: row.content,
-    emotion: row.emotion,
-    tags: row.tags ?? [],
-    category: row.category ?? null,
-    subCategory: row.sub_category ?? null,
-    price: typeof row.price === 'number' ? row.price : null,
-    occurredAt: row.occurred_at,
-    createdAt: row.created_at,
+function mapRowWithResolution(
+  row: MemoriesRow,
+  memoryImages?: MemoryImageRow[],
+  readFailureReason?: MemoryImagesReadFailureReason | null,
+) {
+  const imageState = resolveRecordImages(row, memoryImages, readFailureReason);
+  return {
+    record: normalizeMemoryRecord({
+      id: row.id,
+      petId: row.pet_id,
+      title: row.title,
+      content: row.content,
+      emotion: row.emotion,
+      tags: row.tags ?? [],
+      category: row.category ?? null,
+      subCategory: row.sub_category ?? null,
+      price: typeof row.price === 'number' ? row.price : null,
+      occurredAt: row.occurred_at,
+      createdAt: row.created_at,
 
-    // ✅ 리스트 fetch 단계에서는 signed url을 넣지 않는다.
-    imageUrl: null,
-    imagePath: imageState.imagePath,
-    imagePaths: imageState.imagePaths,
-    timelineImagePath: imageState.timelineImagePath,
-    timelineImageVariant: imageState.timelineImageVariant,
-  });
+      // ✅ 리스트 fetch 단계에서는 signed url을 넣지 않는다.
+      imageUrl: null,
+      imagePath: imageState.imagePath,
+      imagePaths: imageState.imagePaths,
+      timelineImagePath: imageState.timelineImagePath,
+      timelineImageVariant: imageState.timelineImageVariant,
+    }),
+    fallbackReason: imageState.fallbackReason,
+  };
+}
+
+function logLegacyReadFallbackUsage(input: {
+  source: 'fetch_one' | 'fetch_list';
+  petId?: string | null;
+  memoryId?: string | null;
+  counts: Partial<Record<LegacyReadFallbackReason, number>>;
+}) {
+  for (const [reason, count] of Object.entries(input.counts) as Array<
+    [LegacyReadFallbackReason, number | undefined]
+  >) {
+    if (!count) continue;
+    captureMonitoringMessage('memory_images_legacy_read_used', {
+      level: reason === 'runtime_read_failure' ? 'warning' : 'info',
+      tags: {
+        reason,
+        source: input.source,
+      },
+      extras: {
+        count,
+        petId: input.petId ?? null,
+        memoryId: input.memoryId ?? null,
+      },
+    });
+  }
+}
+
+function buildLegacyFallbackCounts(
+  reasons: Array<LegacyReadFallbackReason | null | undefined>,
+) {
+  return reasons.reduce<Partial<Record<LegacyReadFallbackReason, number>>>(
+    (acc, reason) => {
+      if (!reason) return acc;
+      acc[reason] = (acc[reason] ?? 0) + 1;
+      return acc;
+    },
+    {},
+  );
 }
 
 export type FetchMemoriesPageResult = {
   items: MemoryRecord[];
-  nextCursor: string | null; // ✅ compound cursor: createdAt__id
+  nextCursor: string | null;
   hasMore: boolean;
 };
 
-// ---------------------------------------------------------
-// prefetch scheduler (✅ 스크롤/터치 끝난 뒤 실행)
-// ---------------------------------------------------------
 function scheduleAfterInteractions(work: () => Promise<void>) {
   const run = () => {
     work().catch(() => null);
@@ -286,7 +401,7 @@ function scheduleAfterInteractions(work: () => Promise<void>) {
  * - prefetch는 idle 타이밍에 캐시 워밍(옵션)
  * -------------------------------------------------------- */
 export async function fetchMemoryById(memoryId: string): Promise<MemoryRecord> {
-  const [{ data, error }, memoryImagesByMemoryId] = await Promise.all([
+  const [{ data, error }, memoryImagesResult] = await Promise.all([
     supabase
       .from('memories')
       .select('*')
@@ -297,10 +412,20 @@ export async function fetchMemoryById(memoryId: string): Promise<MemoryRecord> {
 
   if (error) throw error;
 
-  const item = mapRow(
+  const { record: item, fallbackReason } = mapRowWithResolution(
     data as MemoriesRow,
-    memoryImagesByMemoryId.get(memoryId) ?? [],
+    memoryImagesResult.grouped.get(memoryId) ?? [],
+    memoryImagesResult.readFailureReason,
   );
+
+  if (fallbackReason) {
+    logLegacyReadFallbackUsage({
+      source: 'fetch_one',
+      memoryId,
+      petId: item.petId,
+      counts: { [fallbackReason]: 1 },
+    });
+  }
 
   // ✅ 단건 캐시 워밍(비동기 / 스크롤 영향 최소)
   if (item.imagePaths.length > 0) {
@@ -359,12 +484,29 @@ export async function fetchMemoriesByPetPage(input: {
   if (error) throw error;
 
   const rows = (data ?? []) as MemoriesRow[];
-  const memoryImagesByMemoryId = await fetchMemoryImagesByMemoryIds(
+  const memoryImagesResult = await fetchMemoryImagesByMemoryIds(
     rows.map(row => row.id),
   );
 
   // ✅ signed url 없이 row → item 변환(즉시 반환 가능)
-  const items = rows.map(row => mapRow(row, memoryImagesByMemoryId.get(row.id) ?? []));
+  const mapped = rows.map(row =>
+    mapRowWithResolution(
+      row,
+      memoryImagesResult.grouped.get(row.id) ?? [],
+      memoryImagesResult.readFailureReason,
+    ),
+  );
+  const items = mapped.map(entry => entry.record);
+  const fallbackCounts = buildLegacyFallbackCounts(
+    mapped.map(entry => entry.fallbackReason),
+  );
+  if (Object.keys(fallbackCounts).length > 0) {
+    logLegacyReadFallbackUsage({
+      source: 'fetch_list',
+      petId: input.petId,
+      counts: fallbackCounts,
+    });
+  }
 
   // ✅ 프리패치: fetch 완료 직후 "idle 타이밍"으로 미룸
   const timelineThumbPaths = items
@@ -558,6 +700,9 @@ async function syncMemoryImages(input: {
   }
 
   return {
+    removedOriginalPaths: removedRows
+      .map(row => normalizePathValue(row.original_path))
+      .filter(Boolean),
     removedThumbPaths: removedRows
       .map(row => normalizePathValue(row.timeline_thumb_path))
       .filter(Boolean),
@@ -607,13 +752,13 @@ async function restoreMemoryImagesSnapshot(input: {
   }
 }
 
-async function cleanupMemoryThumbPaths(paths: string[]) {
+async function cleanupMemoryStoragePaths(paths: string[]) {
   const targets = dedupeOrderedPaths(paths);
   if (targets.length === 0) return;
 
   await Promise.all(
     targets.map(async path => {
-      await deleteFile('memory-images', path).catch(error => {
+      await deleteMemoryImage(path).catch(error => {
         captureMonitoringException(error);
       });
     }),
@@ -730,7 +875,10 @@ export async function updateMemoryImagePaths(input: {
       preferredMode: legacySnapshot.mode,
     });
 
-    await cleanupMemoryThumbPaths(syncResult.removedThumbPaths);
+    await cleanupMemoryStoragePaths([
+      ...syncResult.removedOriginalPaths,
+      ...syncResult.removedThumbPaths,
+    ]);
     return { mode, savedPaths: nextPaths };
   } catch (error) {
     await restoreMemoryImagesSnapshot({
@@ -814,7 +962,7 @@ export async function deleteMemoryWithFile(input: {
   if (paths.length > 0) {
     await Promise.all(
       paths.map(async path => {
-        await deleteFile('memory-images', path).catch(deleteError => {
+        await deleteMemoryImage(path).catch((deleteError: unknown) => {
           captureMonitoringException(deleteError);
         });
       }),

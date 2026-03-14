@@ -101,13 +101,42 @@ export function captureMonitoringException(error: unknown): void {
   }
 }
 
-export function captureMonitoringMessage(message: string): void {
+export function captureMonitoringMessage(
+  message: string,
+  options?: {
+    level?: 'info' | 'warning' | 'error';
+    tags?: Record<string, string | number | boolean | null | undefined>;
+    extras?: Record<string, unknown>;
+  },
+): void {
+  const level = options?.level ?? 'info';
+
   if (sentryEnabled && sentryInitialized) {
-    Sentry.captureMessage(message, 'info');
+    Sentry.withScope(scope => {
+      scope.setLevel(level);
+
+      for (const [key, value] of Object.entries(options?.tags ?? {})) {
+        if (value === null || value === undefined) continue;
+        scope.setTag(key, String(value));
+      }
+
+      for (const [key, value] of Object.entries(options?.extras ?? {})) {
+        scope.setExtra(key, value);
+      }
+
+      Sentry.captureMessage(message, level);
+    });
   }
 
   if (crashlyticsEnabled && crashlyticsInitialized) {
-    crashlytics().log(message);
+    const payload =
+      options && (options.tags || options.extras)
+        ? ` ${JSON.stringify({
+            tags: options.tags ?? {},
+            extras: options.extras ?? {},
+          })}`
+        : '';
+    crashlytics().log(`${message}${payload}`);
   }
 }
 

@@ -5,7 +5,10 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { captureMonitoringException } from '../monitoring/sentry';
+import {
+  captureMonitoringException,
+  captureMonitoringMessage,
+} from '../monitoring/sentry';
 import { fetchMemoryById, updateMemoryImagePaths } from '../supabase/memories';
 import {
   deleteMemoryImage,
@@ -288,11 +291,18 @@ async function processTask(task: PendingMemoryUploadTask): Promise<void> {
     return uploadedPath ? [uploadedPath] : [];
   });
 
-  await assertTaskNotSuperseded(task);
-  await updateMemoryImagePaths({
-    memoryId: task.memoryId,
-    imagePaths: finalPaths,
-  });
+  try {
+    await assertTaskNotSuperseded(task);
+    await updateMemoryImagePaths({
+      memoryId: task.memoryId,
+      imagePaths: finalPaths,
+    });
+  } catch (error) {
+    await Promise.all(
+      uploadedNewPaths.map(path => deleteMemoryImage(path).catch(() => null)),
+    );
+    throw error;
+  }
 }
 
 function pickNextTask(queue: PendingMemoryUploadTask[]) {
@@ -344,6 +354,19 @@ export async function processPendingMemoryUploads(): Promise<ProcessPendingMemor
         touchedPetIds.add(task.petId);
         succeeded += 1;
         succeededTaskIds.push(task.taskId);
+        if (task.attempts > 0) {
+          captureMonitoringMessage('memory_upload_queue_recovered', {
+            tags: {
+              mode: task.mode,
+              attempts: task.attempts,
+            },
+            extras: {
+              taskId: task.taskId,
+              memoryId: task.memoryId,
+              petId: task.petId,
+            },
+          });
+        }
       } catch (error: unknown) {
         if (isSupersededTaskError(error)) {
           await removeTask(task.taskId);

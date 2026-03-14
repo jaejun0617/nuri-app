@@ -5,9 +5,11 @@
 //   - ✅ UX 고도화: snap 정밀화 + scale/active 강조 + parallax + momentum index 추적 + dot indicator
 //   - ✅ 최대 14개까지만 슬라이더 노출(그 이상은 전체보기 유도)
 
-import React, { useEffect, useMemo, useCallback, useState } from 'react';
+import React, { useEffect, useMemo, useCallback, useRef, useState } from 'react';
 import {
+  AppState,
   Dimensions,
+  type AppStateStatus,
   FlatList,
   Image,
   type ListRenderItem,
@@ -19,7 +21,7 @@ import {
 } from 'react-native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { CompositeNavigationProp } from '@react-navigation/native';
-import { useNavigation } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
@@ -282,6 +284,7 @@ const TodayRecordCard = React.memo(function TodayRecordCard({
   snap,
   scrollX,
   onPress,
+  eagerImage,
 }: {
   item: MemoryRecord;
   index: number;
@@ -289,6 +292,7 @@ const TodayRecordCard = React.memo(function TodayRecordCard({
   snap: number;
   scrollX: SharedValue<number>;
   onPress: (memoryId: string) => void;
+  eagerImage: boolean;
 }) {
   const ymd = useMemo(() => getRecordYmdDots(item), [item]);
   const title = useMemo(
@@ -298,7 +302,9 @@ const TodayRecordCard = React.memo(function TodayRecordCard({
   const content = useMemo(() => toSnippet(item.content, 44), [item.content]);
 
   const imageRef = getPrimaryMemoryImageRef(item);
-  const { signedUrl, loading: isLoading } = useSignedMemoryImage(imageRef);
+  const { signedUrl, loading: isLoading } = useSignedMemoryImage(imageRef, {
+    defer: !eagerImage,
+  });
 
   const cardAnimStyle = useAnimatedStyle(() => {
     const x = scrollX.value;
@@ -1237,13 +1243,19 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
   accentColor: string;
   accentDeepColor: string;
 }) {
+  const isFocused = useIsFocused();
   const todayRecords = useMemo(
     () => recordItems.slice(0, TODAY_RECORDS_MAX),
     [recordItems],
   );
   const hasMoreThanSlider = recordItems.length > TODAY_RECORDS_MAX;
 
-  const { width: screenW } = Dimensions.get('window');
+  const listRef = useRef<FlatList<MemoryRecord> | null>(null);
+  const startTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
+  const screenW = Dimensions.get('window').width;
   const slideGap = 14;
   const cardW = useMemo(() => {
     const usable = screenW - 16 * 2;
@@ -1254,11 +1266,71 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
 
   const scrollX = useSharedValue(0);
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
+  const [isUserInteracting, setIsUserInteracting] = useState(false);
+  const activeItem = todayRecords[activeSlideIndex] ?? todayRecords[0] ?? null;
+  const nextAutoSlideIndex =
+    todayRecords.length <= 1
+      ? 0
+      : activeSlideIndex >= todayRecords.length - 1
+        ? 0
+        : activeSlideIndex + 1;
+  const nextAutoSlideItem = todayRecords[nextAutoSlideIndex] ?? null;
+  const activeImageRef = activeItem ? getPrimaryMemoryImageRef(activeItem) : null;
+  const nextAutoSlideImageRef = nextAutoSlideItem
+    ? getPrimaryMemoryImageRef(nextAutoSlideItem)
+    : null;
+  const { resolved: activeImageResolved } = useSignedMemoryImage(activeImageRef, {
+    enabled: Boolean(activeImageRef),
+    trackLoading: false,
+  });
+  const { resolved: nextAutoSlideImageResolved } = useSignedMemoryImage(
+    nextAutoSlideImageRef,
+    {
+      enabled: Boolean(nextAutoSlideImageRef),
+      trackLoading: false,
+    },
+  );
+  const activeItemVisualReady = activeItem ? !hasMemoryImage(activeItem) || activeImageResolved : false;
+  const nextItemVisualReady = nextAutoSlideItem
+    ? !hasMemoryImage(nextAutoSlideItem) || nextAutoSlideImageResolved
+    : false;
+  const shouldAutoSlide =
+    isFocused &&
+    appState === 'active' &&
+    todayRecords.length >= 2 &&
+    activeItemVisualReady &&
+    nextItemVisualReady &&
+    !isUserInteracting;
+
+  const clearAutoSlideTimers = useCallback(() => {
+    if (startTimerRef.current) {
+      clearTimeout(startTimerRef.current);
+      startTimerRef.current = null;
+    }
+    if (resumeTimerRef.current) {
+      clearTimeout(resumeTimerRef.current);
+      resumeTimerRef.current = null;
+    }
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     setActiveSlideIndex(0);
+    setIsUserInteracting(false);
     scrollX.value = 0;
   }, [activePetId, scrollX]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', nextState => {
+      setAppState(nextState);
+    });
+    return () => {
+      sub.remove();
+    };
+  }, []);
 
   const progress = useDerivedValue(() => {
     if (snap <= 0) return 0;
@@ -1282,10 +1354,62 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
     onScroll: e => {
       scrollX.value = e.contentOffset.x;
     },
-    onMomentumEnd: e => {
-      runOnJS(onSlideMomentumEnd)(e.contentOffset.x);
-    },
   });
+
+  const scrollToIndex = useCallback(
+    (nextIndex: number, animated: boolean) => {
+      if (snap <= 0 || todayRecords.length <= 1) return;
+      const clampedIndex = Math.max(0, Math.min(nextIndex, todayRecords.length - 1));
+      listRef.current?.scrollToOffset({
+        offset: clampedIndex * snap,
+        animated,
+      });
+      if (!animated) {
+        setActiveSlideIndex(clampedIndex);
+        scrollX.value = clampedIndex * snap;
+      }
+    },
+    [scrollX, snap, todayRecords.length],
+  );
+
+  const pauseAutoSlide = useCallback(() => {
+    clearAutoSlideTimers();
+    setIsUserInteracting(true);
+  }, [clearAutoSlideTimers]);
+
+  const scheduleAutoSlideResume = useCallback(() => {
+    clearAutoSlideTimers();
+    resumeTimerRef.current = setTimeout(() => {
+      setIsUserInteracting(false);
+    }, 5000);
+  }, [clearAutoSlideTimers]);
+
+  const handleMomentumEnd = useCallback(
+    (offsetX: number) => {
+      onSlideMomentumEnd(offsetX);
+      scheduleAutoSlideResume();
+    },
+    [onSlideMomentumEnd, scheduleAutoSlideResume],
+  );
+
+  useEffect(() => {
+    clearAutoSlideTimers();
+    if (!shouldAutoSlide) return;
+
+    startTimerRef.current = setTimeout(() => {
+      intervalRef.current = setInterval(() => {
+        setActiveSlideIndex(prev => {
+          const nextIndex = prev >= todayRecords.length - 1 ? 0 : prev + 1;
+          scrollToIndex(nextIndex, true);
+          return nextIndex;
+        });
+      }, 4500);
+    }, 2000);
+
+    return () => {
+      clearAutoSlideTimers();
+    };
+  }, [clearAutoSlideTimers, scrollToIndex, shouldAutoSlide, todayRecords.length]);
 
   const renderTodayRecord = useCallback<ListRenderItem<MemoryRecord>>(
     ({ item, index }) => {
@@ -1298,10 +1422,11 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
           snap={snap}
           scrollX={scrollX}
           onPress={onPressRecordItem}
+          eagerImage={Math.abs(index - activeSlideIndex) <= 1}
         />
       );
     },
-    [cardW, onPressRecordItem, scrollX, snap],
+    [activeSlideIndex, cardW, onPressRecordItem, scrollX, snap],
   );
 
   const keyExtractor = useCallback((it: MemoryRecord) => it.id, []);
@@ -1345,6 +1470,7 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
       ) : (
         <View style={styles.todayRecordsWrap}>
           <AnimatedFlatList
+            ref={listRef}
             data={todayRecords}
             keyExtractor={keyExtractor}
             renderItem={renderTodayRecord}
@@ -1356,7 +1482,16 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
             snapToAlignment="start"
             disableIntervalMomentum={false}
             onScroll={slideScrollHandler}
+            onMomentumScrollEnd={event => {
+              handleMomentumEnd(event.nativeEvent.contentOffset.x);
+            }}
+            onScrollBeginDrag={pauseAutoSlide}
+            onTouchStart={pauseAutoSlide}
             scrollEventThrottle={16}
+            initialNumToRender={3}
+            maxToRenderPerBatch={3}
+            windowSize={3}
+            removeClippedSubviews
             contentContainerStyle={[
               styles.todayRecordsContent,
               { paddingRight: 16 },
