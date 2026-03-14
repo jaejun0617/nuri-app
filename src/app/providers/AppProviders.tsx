@@ -272,6 +272,13 @@ export default function AppProviders({ children }: Props) {
         return;
       }
 
+      const prevUserId = lastUserIdRef.current;
+      const didUserChange = !!prevUserId && prevUserId !== userId;
+      if (didUserChange) {
+        await setNickname(null);
+        clearUserScopedStores();
+      }
+
       const shouldReload = options.forceReload || lastUserIdRef.current !== userId;
       const cachedPets = await hydratePetsCache(userId);
       if (cachedPets.length > 0) {
@@ -280,6 +287,8 @@ export default function AppProviders({ children }: Props) {
       if (!shouldReload) {
         setProfileSyncState('ready');
         setPetErrorMessage(null);
+        setPetLoading(false);
+        warmSelectedPetScopedState();
         lastUserIdRef.current = userId;
         finishTransition(seq);
         return;

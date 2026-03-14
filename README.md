@@ -253,6 +253,7 @@ subscriptions
 - 세션 / 프로필 / 펫 목록 / 선택 펫 bootstrap 흐름을 기다린 뒤 진입
 - 과거의 고정 4초 대기 대신, 실제 준비도에 맞춘 더 짧고 유연한 splash hold 사용
 - 로그인 직후 / 앱 재실행 / 0-pet 상태에서 불필요한 대기를 줄이는 방향으로 정리
+- 재로그인이나 세션 전환처럼 userId가 바뀌는 경계에서는 이전 사용자의 닉네임과 펫/기록 스코프 상태를 먼저 비워 stale state가 잠깐 남지 않도록 정리했습니다
 
 ### 6.2 홈(LoggedInHome)
 
@@ -323,6 +324,7 @@ subscriptions
 - `0-pet` 상태와 fetch 실패 상태를 분리
 - 펫 전환 직전 prewarm으로 홈 공백 완화
 - 첫 진입 splash 구조 유연화
+- 같은 기기에서 로그아웃 후 재로그인하거나 세션이 다른 사용자로 전환될 때는, 새 사용자 캐시 hydrate 전에 이전 사용자의 닉네임과 user-scoped store를 먼저 정리해 희귀한 stale state 노출 가능성을 더 줄였습니다
 
 ### 7.4 홈 렌더 최적화
 
@@ -428,7 +430,7 @@ legacy read fallback을 **즉시 제거할 단계는 아직 아닙니다.**
 1. 최종 QA와 운영 회귀 점검
 2. Crashlytics 실수집 확인
 3. 남아 있는 fallback / legacy 축소 판단
-4. auth / boot edge case와 타입 우회 / 런타임 shape 리스크 점검
+4. auth / boot edge case와 타입 우회 / 런타임 shape 리스크 마무리 점검
 5. 출시 빌드 기준 실기기 검증
 
 ### 이후 확장 후보
