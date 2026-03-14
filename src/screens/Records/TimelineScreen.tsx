@@ -257,7 +257,9 @@ export default function TimelineScreen() {
   const timelineIds = useRecordStore(s => s.selectTimelineIdsByPetId(petId));
   const timelineStatus = useRecordStore(s => s.selectTimelineStatusByPetId(petId));
   const hasMore = useRecordStore(s => s.selectTimelineHasMoreByPetId(petId));
-  useRecordStore(s => s.selectTimelineEntityVersionByPetId(petId));
+  const timelineEntityVersion = useRecordStore(s =>
+    s.selectTimelineEntityVersionByPetId(petId),
+  );
   const focusedMemoryId = useRecordStore(s =>
     petId ? s.focusedMemoryIdByPet[petId] ?? null : null,
   );
@@ -327,6 +329,7 @@ export default function TimelineScreen() {
       otherSubCategory,
       sortMode,
       ymFilter,
+      timelineEntityVersion,
     ],
   );
   const availableYmList = timelineView.availableMonthKeys;
@@ -447,6 +450,7 @@ export default function TimelineScreen() {
   ]);
 
   useEffect(() => {
+    if (!isFocused) return;
     const immediateSignature = timelinePreloadImageRefs.immediate
       .map(item => `${item.variant}:${item.path}`)
       .join('|');
@@ -508,7 +512,7 @@ export default function TimelineScreen() {
       }
       if (deferredTimer) clearTimeout(deferredTimer);
     };
-  }, [timelinePreloadImageRefs]);
+  }, [isFocused, timelinePreloadImageRefs]);
 
   const onPressCreate = useCallback(() => {
     if (!petId) return;
@@ -736,6 +740,15 @@ export default function TimelineScreen() {
     return <View style={{ height: 18 }} />;
   }, [hasMore, status, timelineIds.length]);
 
+  const listExtraData = useMemo(
+    () => ({
+      imageWindow,
+      focusedMemoryId,
+      timelineEntityVersion,
+    }),
+    [focusedMemoryId, imageWindow, timelineEntityVersion],
+  );
+
   const onPressHome = useCallback(() => {
     navigation.navigate('HomeTab');
   }, [navigation]);
@@ -799,7 +812,7 @@ export default function TimelineScreen() {
         renderItem={renderItem}
         drawDistance={TIMELINE_ITEM_HEIGHT * TIMELINE_WINDOW_SIZE}
         getItemType={getItemType}
-        extraData={{ imageWindow, focusedMemoryId }}
+        extraData={listExtraData}
         contentContainerStyle={
           filteredIds.length ? styles.list : styles.listEmpty
         }

@@ -7,6 +7,7 @@
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
+  ActivityIndicator,
   type LayoutChangeEvent,
   Modal,
   Pressable,
@@ -49,6 +50,7 @@ type PreviewImageSource = {
 };
 
 const RELATED_IMAGE_HYDRATION_DELAY_MS = 140;
+const DETAIL_EAGER_IMAGE_COUNT = 4;
 function toPreviewImageSources(
   imagePaths: ReturnType<typeof getMemoryImageRefs>,
   urls: Array<string | null>,
@@ -128,10 +130,31 @@ const FeedPostCard = memo(function FeedPostCard({
       if (imagePaths.length <= 1) return;
 
       frameId = requestAnimationFrame(() => {
-        getMemoryImageSignedUrlsCached(imagePaths.map(image => image.value))
+        const eagerRefs = imagePaths
+          .slice(1, DETAIL_EAGER_IMAGE_COUNT)
+          .map(image => image.value);
+        getMemoryImageSignedUrlsCached(eagerRefs)
           .then(urls => {
             if (!mounted) return;
-            setPreviewImageSources(toPreviewImageSources(imagePaths, urls, item.id));
+            const merged = toPreviewImageSources(
+              imagePaths.slice(0, DETAIL_EAGER_IMAGE_COUNT),
+              [firstUrls[0] ?? null, ...urls],
+              item.id,
+            );
+            setPreviewImageSources(merged);
+
+            if (imagePaths.length <= DETAIL_EAGER_IMAGE_COUNT) return;
+
+            delayTimer = setTimeout(() => {
+              getMemoryImageSignedUrlsCached(imagePaths.map(image => image.value))
+                .then(allUrls => {
+                  if (!mounted) return;
+                  setPreviewImageSources(
+                    toPreviewImageSources(imagePaths, allUrls, item.id),
+                  );
+                })
+                .catch(() => null);
+            }, RELATED_IMAGE_HYDRATION_DELAY_MS);
           })
           .catch(() => {
             if (mounted) {
@@ -386,18 +409,30 @@ export default function RecordDetailScreen() {
     () => selectedPet?.avatarUrl?.trim() || null,
     [selectedPet?.avatarUrl],
   );
+  const [hydratingMissingRecord, setHydratingMissingRecord] = useState(
+    () => Boolean(petId && memoryId && !record),
+  );
 
   useEffect(() => {
     let mounted = true;
 
     async function hydrateMissingRecord() {
-      if (!petId || !memoryId || record) return;
+      if (!petId || !memoryId) {
+        if (mounted) setHydratingMissingRecord(false);
+        return;
+      }
+      if (record) {
+        if (mounted) setHydratingMissingRecord(false);
+        return;
+      }
       try {
         const fetched = await fetchMemoryById(memoryId);
         if (!mounted) return;
         upsertOneLocal(petId, fetched);
       } catch {
         // 상세 화면 가드가 처리한다.
+      } finally {
+        if (mounted) setHydratingMissingRecord(false);
       }
     }
 
@@ -475,6 +510,27 @@ export default function RecordDetailScreen() {
     ),
     [openActionMenu, petAvatarUrl, petName],
   );
+
+  if (!record && hydratingMissingRecord) {
+    return (
+      <View style={styles.screen}>
+        <View style={styles.header}>
+          <AppText preset="headline" style={styles.headerTitle}>
+            추억상세보기
+          </AppText>
+        </View>
+
+        <View style={styles.empty}>
+          <ActivityIndicator size="small" />
+          <AppText preset="body" style={styles.emptyDesc}>
+            기록을 불러오는 중이에요.
+          </AppText>
+        </View>
+
+        <AppNavigationToolbar activeKey="timeline" />
+      </View>
+    );
+  }
 
   if (!record) {
     return (

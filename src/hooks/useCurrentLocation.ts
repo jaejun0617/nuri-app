@@ -101,13 +101,19 @@ export function useCurrentLocation(
       try {
         const status = await getLocationPermissionStatus();
         const resolvedPermission =
-          status === 'granted' ? status : await requestLocationPermission();
+          status === 'granted'
+            ? status
+            : status === 'unavailable'
+              ? await requestLocationPermission()
+              : status;
 
         setPermission(resolvedPermission);
         permissionRef.current = resolvedPermission;
 
         if (resolvedPermission !== 'granted') {
-          setCoordinates(null);
+          if (!coordinatesRef.current) {
+            setCoordinates(null);
+          }
           setError(toLocationErrorMessage(resolvedPermission, null));
           return;
         }

@@ -95,7 +95,9 @@ export function useWeatherGuide(
     coordinates: location.coordinates,
     loading: location.loading,
     error: location.error,
-    enabled: autoRefreshOnMount || !initialBundle,
+    enabled:
+      location.permission === 'granted' &&
+      (autoRefreshOnMount || !initialBundle),
     initialDistrict: initialBundle?.district ?? initialDistrict,
   });
 
@@ -140,9 +142,14 @@ export function useWeatherGuide(
     };
   }, [initialBundle, location.coordinates, memoryEntry]);
 
+  const canFetchLiveWeather =
+    !!location.coordinates &&
+    !!coordsKey &&
+    location.permission === 'granted';
+
   const weatherQuery = useQuery<WeatherGuideBundle>({
     queryKey: ['weather-guide', coordsKey],
-    enabled: !!location.coordinates && !!coordsKey,
+    enabled: canFetchLiveWeather,
     staleTime: WEATHER_QUERY_STALE_MS,
     gcTime: WEATHER_QUERY_GC_MS,
     refetchOnMount: autoRefreshOnMount,
@@ -257,6 +264,7 @@ export function useWeatherGuide(
 
   const shouldRefreshWeather = useCallback(() => {
     if (!coordsKey || !location.coordinates) return false;
+    if (location.permission !== 'granted') return false;
     if (weatherQuery.isFetching) return false;
 
     if (previewBundle || !weatherQuery.data) {
@@ -266,6 +274,7 @@ export function useWeatherGuide(
     return Date.now() - weatherQuery.dataUpdatedAt >= WEATHER_FOCUS_REFRESH_MS;
   }, [
     coordsKey,
+    location.permission,
     location.coordinates,
     previewBundle,
     weatherQuery.data,
