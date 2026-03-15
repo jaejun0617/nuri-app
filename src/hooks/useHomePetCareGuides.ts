@@ -2,13 +2,19 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { createLatestRequestController } from '../services/app/async';
 import { getHomePetCareGuideRecommendations } from '../services/guides/service';
-import type { GuidePersonalizationContext, PetCareGuide } from '../services/guides/types';
+import type {
+  GuideDataSource,
+  GuidePersonalizationContext,
+  PetCareGuide,
+} from '../services/guides/types';
 import { usePetCareGuideCatalog } from './usePetCareGuideCatalog';
 
 type UseHomePetCareGuidesState = {
   loading: boolean;
   guides: PetCareGuide[];
   error: string | null;
+  source: GuideDataSource;
+  sourceReason: 'published' | 'empty-success' | 'remote-error';
 };
 
 const EMPTY_GUIDES: PetCareGuide[] = [];
@@ -23,6 +29,8 @@ export function useHomePetCareGuides(
     loading: true,
     guides: EMPTY_GUIDES,
     error: null,
+    source: catalogState.source,
+    sourceReason: catalogState.sourceReason,
   });
   const catalogSignature = useMemo(
     () =>
@@ -66,6 +74,8 @@ export function useHomePetCareGuides(
           loading: false,
           guides,
           error: catalogState.error,
+          source: catalogState.source,
+          sourceReason: catalogState.sourceReason,
         });
       } catch {
         if (!request.isCurrent(requestId)) return;
@@ -73,6 +83,8 @@ export function useHomePetCareGuides(
           loading: false,
           guides: EMPTY_GUIDES,
           error: '추천 팁을 불러오지 못했어요.',
+          source: catalogState.source,
+          sourceReason: catalogState.sourceReason,
         });
       }
     }
@@ -88,6 +100,8 @@ export function useHomePetCareGuides(
     catalogSignature,
     catalogState.error,
     catalogState.loading,
+    catalogState.source,
+    catalogState.sourceReason,
     petId,
     species,
     speciesDetailKey,

@@ -14,9 +14,10 @@ import type { PetCareGuide } from '../../services/guides/types';
 type Props = {
   guide: PetCareGuide;
   onPress: (guideId: string) => void;
+  debugBadgeText?: string | null;
 };
 
-function GuideListCardBase({ guide, onPress }: Props) {
+function GuideListCardBase({ guide, onPress, debugBadgeText }: Props) {
   return (
     <TouchableOpacity
       activeOpacity={0.92}
@@ -40,6 +41,13 @@ function GuideListCardBase({ guide, onPress }: Props) {
       <AppText preset="headline" style={styles.title}>
         {guide.title}
       </AppText>
+      {debugBadgeText ? (
+        <View style={styles.debugBadge}>
+          <AppText preset="caption" style={styles.debugBadgeText}>
+            {debugBadgeText}
+          </AppText>
+        </View>
+      ) : null}
       <AppText preset="body" style={styles.summary}>
         {guide.summary}
       </AppText>
@@ -104,6 +112,17 @@ const styles = StyleSheet.create({
     color: '#0B1220',
     fontWeight: '900',
   },
+  debugBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(245,158,11,0.14)',
+  },
+  debugBadgeText: {
+    color: '#8A5A00',
+    fontWeight: '900',
+  },
   summary: {
     color: '#556070',
     lineHeight: 21,
@@ -139,4 +158,3 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
-

@@ -72,7 +72,15 @@ async function saveExposureState(next: ExposureState): Promise<void> {
 }
 
 function getContextKey(context: GuidePersonalizationContext): string {
-  return `${context.userId ?? 'guest'}:${context.petId ?? 'no-pet'}`;
+  return [
+    context.userId ?? 'guest',
+    context.petId ?? 'no-pet',
+    context.species ?? 'no-species',
+    context.speciesDetailKey ?? 'no-detail',
+    context.speciesDisplayName ?? 'no-display',
+    context.birthDate ?? 'no-birth',
+    context.deathDate ?? 'no-death',
+  ].join(':');
 }
 
 function hashString(value: string): number {

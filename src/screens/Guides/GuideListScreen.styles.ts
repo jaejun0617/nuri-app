@@ -96,6 +96,26 @@ export const styles = StyleSheet.create({
     color: BRAND,
     fontWeight: '800',
   },
+  debugBadge: {
+    minHeight: 24,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  debugBadgeRemote: {
+    backgroundColor: 'rgba(16,185,129,0.12)',
+  },
+  debugBadgeSeed: {
+    backgroundColor: 'rgba(245,158,11,0.14)',
+  },
+  debugBadgeEmpty: {
+    backgroundColor: 'rgba(239,68,68,0.12)',
+  },
+  debugBadgeText: {
+    color: TEXT,
+    fontWeight: '800',
+  },
   suggestionCard: {
     marginHorizontal: 16,
     marginTop: 12,

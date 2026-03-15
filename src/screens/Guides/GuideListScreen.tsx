@@ -29,6 +29,12 @@ import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { getAgeInMonthsFromBirthDate } from '../../services/guides/agePolicy';
 import { buildGuideEventMetadata } from '../../services/guides/analytics';
 import {
+  getGuideDataSourceDescription,
+  getGuideDataSourceLabel,
+} from '../../services/guides/source';
+import { isLocalGuideSeedGuide } from '../../services/guides/seed';
+import {
+  filterPetCareGuidesForListAudience,
   recordPetCareGuideEvents,
   rankPetCareGuidesForList,
 } from '../../services/guides/service';
@@ -69,15 +75,25 @@ export default function GuideListScreen() {
     [birthDate],
   );
 
-  const rankedGuides = useMemo(
+  const filteredCatalogGuides = useMemo(
     () =>
-      rankPetCareGuidesForList(catalogState.guides, {
+      filterPetCareGuidesForListAudience(catalogState.guides, {
         species,
         speciesDetailKey,
         speciesDisplayName,
         birthDate,
       }),
     [birthDate, catalogState.guides, species, speciesDetailKey, speciesDisplayName],
+  );
+  const rankedGuides = useMemo(
+    () =>
+      rankPetCareGuidesForList(filteredCatalogGuides, {
+        species,
+        speciesDetailKey,
+        speciesDisplayName,
+        birthDate,
+      }),
+    [birthDate, filteredCatalogGuides, species, speciesDetailKey, speciesDisplayName],
   );
   const rankedGuideSignature = useMemo(
     () =>
@@ -116,6 +132,12 @@ export default function GuideListScreen() {
         .slice(0, 6),
     [popularSearchState.keywords, recentKeywords],
   );
+  const audienceLabel = useMemo(() => {
+    return selectedPet?.speciesDisplayName?.trim() || '선택한 반려동물';
+  }, [selectedPet?.speciesDisplayName]);
+  const catalogSourceLabel = useMemo(() => {
+    return getGuideDataSourceLabel(catalogState.source);
+  }, [catalogState.source]);
 
   useEffect(() => {
     if (searchVisible) return;
@@ -219,9 +241,17 @@ export default function GuideListScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: (typeof visibleGuides)[number] }) => (
-      <GuideListCard guide={item} onPress={onPressGuide} />
+      <GuideListCard
+        guide={item}
+        onPress={onPressGuide}
+        debugBadgeText={
+          __DEV__ && catalogState.source === 'local-seed' && isLocalGuideSeedGuide(item)
+            ? '테스트 seed'
+            : null
+        }
+      />
     ),
-    [onPressGuide],
+    [catalogState.source, onPressGuide],
   );
 
   const headerTopInset = Math.max(insets.top, 12);
@@ -295,6 +325,22 @@ export default function GuideListScreen() {
                 ? '검색어와 가장 가까운 가이드를 우선 보여드려요.'
                 : '최근 검색어는 이 기기에 저장되고, 인기 검색어는 서버 기준으로 불러와요.'}
             </AppText>
+            {__DEV__ ? (
+              <View
+                style={[
+                  styles.debugBadge,
+                  catalogState.source === 'local-seed'
+                    ? styles.debugBadgeSeed
+                    : catalogState.source === 'remote'
+                      ? styles.debugBadgeRemote
+                      : styles.debugBadgeEmpty,
+                ]}
+              >
+                <AppText preset="caption" style={styles.debugBadgeText}>
+                  {catalogSourceLabel}
+                </AppText>
+              </View>
+            ) : null}
             {hasSearchQuery && searchState.loading ? (
               <AppText preset="caption" style={styles.searchMetaLoadingText}>
                 검색 중
@@ -460,12 +506,23 @@ export default function GuideListScreen() {
         <View style={styles.emptyCard}>
           <Feather name={hasSearchQuery ? 'search' : 'book-open'} size={28} color="#6D6AF8" />
           <AppText preset="headline" style={styles.emptyTitle}>
-            {hasSearchQuery ? '검색 결과가 없어요' : '공개된 가이드가 아직 없어요'}
+            {hasSearchQuery
+              ? '검색 결과가 없어요'
+              : catalogState.guides.length > 0
+                ? `${audienceLabel}에게 맞는 가이드가 아직 없어요`
+                : '공개된 가이드가 아직 없어요'}
           </AppText>
           <AppText preset="body" style={styles.emptyDesc}>
             {hasSearchQuery
               ? '검색어를 조금 다르게 입력하거나 태그·종 이름으로 다시 찾아보세요.'
-              : '운영에서 콘텐츠를 활성화하면 이 화면에 바로 노출됩니다.'}
+              : catalogState.guides.length > 0
+                ? '지금은 선택한 반려동물 기준 팁과 공통 팁만 먼저 보여드리고 있어요. 다른 종 전용 팁은 기본 목록에서 숨겨집니다.'
+                : catalogState.source === 'remote-empty'
+                ? getGuideDataSourceDescription({
+                    source: catalogState.source,
+                    reason: catalogState.sourceReason,
+                  })
+                : '운영에서 콘텐츠를 활성화하면 이 화면에 바로 노출됩니다.'}
           </AppText>
           {hasSearchQuery ? (
             <TouchableOpacity

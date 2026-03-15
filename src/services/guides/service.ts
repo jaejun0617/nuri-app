@@ -6,6 +6,7 @@ import { pickHomeGuideRecommendations } from './rotation';
 import { searchPetCareGuides } from './search';
 import type {
   GuideContentStatus,
+  GuideDataSource,
   GuidePersonalizationContext,
   GuideSearchContext,
   GuideSearchKeyword,
@@ -32,12 +33,18 @@ export type GuideListContext = Partial<
   >
 >;
 
+export type PetCareGuideCatalogResult = {
+  guides: PetCareGuide[];
+  source: GuideDataSource;
+  reason: 'published' | 'empty-success' | 'remote-error';
+};
+
 function normalizeSearchKeyword(value: string): string {
   return value.trim().replace(/\s+/g, ' ');
 }
 
 function shouldUseLocalGuideSeedFallback(guides: ReadonlyArray<PetCareGuide>): boolean {
-  return __DEV__ && guides.length === 0;
+  return guides.length === 0;
 }
 
 function isMeaningfulSearchKeyword(value: string): boolean {
@@ -99,15 +106,38 @@ function sortGuidesForList(
 }
 
 export async function fetchPetCareGuideCatalog(): Promise<PetCareGuide[]> {
+  const result = await fetchPetCareGuideCatalogResult();
+  return result.guides;
+}
+
+export async function fetchPetCareGuideCatalogResult(): Promise<PetCareGuideCatalogResult> {
   try {
     const guides = await fetchPublishedPetCareGuideCatalog();
-    if (guides.length > 0) return guides;
-    if (shouldUseLocalGuideSeedFallback(guides)) {
-      return [...PET_CARE_GUIDES];
+    if (guides.length > 0) {
+      return {
+        guides,
+        source: 'remote',
+        reason: 'published',
+      };
     }
-    return [];
+    if (shouldUseLocalGuideSeedFallback(guides)) {
+      return {
+        guides: [...PET_CARE_GUIDES],
+        source: 'local-seed',
+        reason: 'empty-success',
+      };
+    }
+    return {
+      guides: [],
+      source: 'remote-empty',
+      reason: 'empty-success',
+    };
   } catch {
-    return [...PET_CARE_GUIDES];
+    return {
+      guides: [...PET_CARE_GUIDES],
+      source: 'local-seed',
+      reason: 'remote-error',
+    };
   }
 }
 
@@ -137,6 +167,19 @@ export function rankPetCareGuidesForList(
     ...sortGuidesForList(preferred, normalizedContext),
     ...sortGuidesForList(remainder, normalizedContext),
   ];
+}
+
+export function filterPetCareGuidesForListAudience(
+  guides: ReadonlyArray<PetCareGuide>,
+  context: GuideListContext = {},
+): PetCareGuide[] {
+  const normalizedContext = normalizeGuideListContext(context);
+
+  if (!normalizedContext.species) {
+    return [...guides];
+  }
+
+  return guides.filter(guide => supportsSpecies(guide, normalizedContext));
 }
 
 export function filterPetCareGuidesBySearch(

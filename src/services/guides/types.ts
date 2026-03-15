@@ -20,6 +20,7 @@ export type GuideEventPlacement =
   | 'guide-detail';
 export type GuideSearchSource = 'rpc' | 'fallback';
 export type GuideSearchKeywordSource = 'events' | 'catalog';
+export type GuideDataSource = 'remote' | 'local-seed' | 'remote-empty';
 
 export type GuideAgePolicy =
   | {

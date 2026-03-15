@@ -739,6 +739,33 @@ export const styles = StyleSheet.create({
     color: BRAND_DEEP,
     letterSpacing: -0.3,
   },
+  tipSectionHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexShrink: 1,
+  },
+  guideDebugBadge: {
+    minHeight: 24,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  guideDebugBadgeRemote: {
+    backgroundColor: 'rgba(16,185,129,0.12)',
+  },
+  guideDebugBadgeSeed: {
+    backgroundColor: 'rgba(245,158,11,0.14)',
+  },
+  guideDebugBadgeEmpty: {
+    backgroundColor: 'rgba(239,68,68,0.12)',
+  },
+  guideDebugBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: TEXT,
+  },
   tipList: {
     gap: 12,
   },

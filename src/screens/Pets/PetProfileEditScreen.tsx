@@ -9,6 +9,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   AppState,
+  KeyboardAvoidingView,
+  Platform,
   TextInput,
   TouchableOpacity,
   View,
@@ -108,6 +110,18 @@ function normalizeYmdOrNull(raw: string): string | null {
   return value;
 }
 
+function normalizeWeightOrNull(raw: string): number | null {
+  const value = raw.trim();
+  if (!value) return null;
+
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    throw new Error('몸무게는 0보다 큰 숫자로 입력해 주세요.');
+  }
+
+  return numeric;
+}
+
 function toDisplayYmd(raw: string | null | undefined): string {
   const value = (raw ?? '').trim();
   if (!value) return '';
@@ -171,7 +185,7 @@ export default function PetProfileEditScreen() {
   const [birthDate, setBirthDate] = useState('');
   const [adoptionDate, setAdoptionDate] = useState('');
   const [deathDate, setDeathDate] = useState('');
-  const [breed, setBreed] = useState('');
+  const [weightKg, setWeightKg] = useState('');
   const [memorialChoice, setMemorialChoice] =
     useState<PetMemorialChoice>('together');
   const [gender, setGender] = useState<'male' | 'female' | 'unknown'>('unknown');
@@ -238,7 +252,11 @@ export default function PetProfileEditScreen() {
     setBirthDate(toDisplayYmd(pet.birthDate));
     setAdoptionDate(toDisplayYmd(pet.adoptionDate));
     setDeathDate(toDisplayYmd(pet.deathDate));
-    setBreed(pet.breed ?? '');
+    setWeightKg(
+      typeof pet.weightKg === 'number' && Number.isFinite(pet.weightKg)
+        ? String(pet.weightKg)
+        : '',
+    );
     setMemorialChoice(getPetMemorialChoice(pet.deathDate));
     setGender(pet.gender ?? 'unknown');
     setNeutered(pet.neutered ?? null);
@@ -409,9 +427,6 @@ export default function PetProfileEditScreen() {
       const option = getRepresentativeSpeciesOption(value);
       setRepresentativeSpecies(value);
       setSpeciesDetailKey(option.defaultDisplayName);
-      if (!option.showBreedField) {
-        setBreed('');
-      }
     },
     [],
   );
@@ -464,7 +479,8 @@ export default function PetProfileEditScreen() {
           memorialChoice === 'memorial'
             ? normalizeYmdOrNull(displayDeathDate)
             : null,
-        breed: breed.trim() || null,
+        weightKg: normalizeWeightOrNull(weightKg),
+        breed: speciesDetailKey.trim() || null,
         gender,
         neutered,
         hobbies: normalizeTextList(hobbiesText),
@@ -495,7 +511,6 @@ export default function PetProfileEditScreen() {
   }, [
     adoptionDate,
     birthDate,
-    breed,
     gender,
     hobbiesText,
     imageType,
@@ -515,6 +530,7 @@ export default function PetProfileEditScreen() {
     tags,
     trimmedName,
     dislikesText,
+    weightKg,
   ]);
 
   if (!pet) {
@@ -561,17 +577,25 @@ export default function PetProfileEditScreen() {
         <View style={styles.headerTextBtn} />
       </View>
 
+      <KeyboardAvoidingView
+        style={styles.keyboardArea}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
+      >
       <KeyboardAwareScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: Math.max(112, insets.bottom + 88) },
+          { paddingBottom: Math.max(156, insets.bottom + 132) },
         ]}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="interactive"
+        keyboardShouldPersistTaps="always"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         enableOnAndroid
-        extraScrollHeight={28}
-        extraHeight={120}
+        enableAutomaticScroll
+        enableResetScrollToCoords={false}
+        keyboardOpeningTime={0}
+        extraScrollHeight={88}
+        extraHeight={140}
       >
         <View style={styles.avatarSection}>
           <PhotoAddCard
@@ -610,14 +634,15 @@ export default function PetProfileEditScreen() {
             <AppText preset="caption" style={styles.label}>
               반려동물 이름
             </AppText>
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              editable={canEditName}
-              placeholder="이름"
-              placeholderTextColor="#A0A7B4"
-              style={[styles.input, !canEditName ? styles.inputDisabled : null]}
-            />
+              <TextInput
+                value={name}
+                onChangeText={setName}
+                editable={canEditName}
+                placeholder="이름"
+                placeholderTextColor="#A0A7B4"
+                style={[styles.input, !canEditName ? styles.inputDisabled : null]}
+                returnKeyType="next"
+              />
             <AppText preset="caption" style={styles.inputHint}>
               이름 변경은 최대 3회까지 가능해요. 남은 횟수 {remainingNameChanges}회
             </AppText>
@@ -743,28 +768,11 @@ export default function PetProfileEditScreen() {
                 placeholderTextColor="#A0A7B4"
                 style={styles.searchInput}
                 autoCapitalize="none"
+                returnKeyType={representativeOption.showBreedField ? 'next' : 'done'}
               />
               <Feather name="search" size={16} color="#A0A7B4" />
             </View>
           </View>
-
-          {representativeOption.showBreedField ? (
-            <View style={styles.fieldBlock}>
-              <AppText preset="caption" style={styles.label}>
-                품종
-              </AppText>
-              <View style={styles.searchInputWrap}>
-                <TextInput
-                  value={breed}
-                  onChangeText={setBreed}
-                  placeholder={representativeOption.placeholders.breed}
-                  placeholderTextColor="#A0A7B4"
-                  style={styles.searchInput}
-                />
-                <Feather name="search" size={16} color="#A0A7B4" />
-              </View>
-            </View>
-          ) : null}
 
           <View style={styles.row}>
             <View style={styles.col}>
@@ -833,6 +841,26 @@ export default function PetProfileEditScreen() {
           </View>
 
           <View style={styles.fieldBlock}>
+            <AppText preset="caption" style={styles.label}>
+              몸무게
+            </AppText>
+            <View style={styles.searchInputWrap}>
+              <TextInput
+                value={weightKg}
+                onChangeText={setWeightKg}
+                placeholder="0.0"
+                placeholderTextColor="#A0A7B4"
+                style={styles.searchInput}
+                keyboardType="decimal-pad"
+                returnKeyType="done"
+              />
+              <AppText preset="caption" style={styles.unitText}>
+                kg
+              </AppText>
+            </View>
+          </View>
+
+          <View style={styles.fieldBlock}>
             <View style={styles.inlineLabel}>
               <Feather name="home" size={13} color="#6D6AF8" />
               <AppText preset="caption" style={styles.labelInlineText}>
@@ -846,6 +874,7 @@ export default function PetProfileEditScreen() {
               placeholderTextColor="#A0A7B4"
               style={[styles.input, styles.multilineInput]}
               multiline
+              returnKeyType="default"
             />
           </View>
 
@@ -863,6 +892,7 @@ export default function PetProfileEditScreen() {
               placeholderTextColor="#A0A7B4"
               style={[styles.input, styles.multilineInput]}
               multiline
+              returnKeyType="default"
             />
           </View>
 
@@ -880,6 +910,7 @@ export default function PetProfileEditScreen() {
               placeholderTextColor="#A0A7B4"
               style={[styles.input, styles.multilineInput]}
               multiline
+              returnKeyType="default"
             />
           </View>
 
@@ -965,17 +996,26 @@ export default function PetProfileEditScreen() {
           </View>
         </View>
 
-        <TouchableOpacity
-          activeOpacity={0.92}
-          style={[styles.primaryButton, saving ? styles.primaryButtonDisabled : null]}
-          onPress={onSubmit}
-          disabled={saving}
-        >
-          <AppText preset="body" style={styles.primaryButtonText}>
-            {saving ? '수정 중...' : '수정 완료'}
-          </AppText>
-        </TouchableOpacity>
       </KeyboardAwareScrollView>
+
+        <View
+          style={[
+            styles.footerActionBar,
+            { paddingBottom: Math.max(insets.bottom, 12) },
+          ]}
+        >
+          <TouchableOpacity
+            activeOpacity={0.92}
+            style={[styles.primaryButton, saving ? styles.primaryButtonDisabled : null]}
+            onPress={onSubmit}
+            disabled={saving}
+          >
+            <AppText preset="body" style={styles.primaryButtonText}>
+              {saving ? '수정 중...' : '수정 완료'}
+            </AppText>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
 
       <DatePickerModal
         visible={dateModalTarget !== null}

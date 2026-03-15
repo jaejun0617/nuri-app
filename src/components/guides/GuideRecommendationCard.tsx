@@ -16,6 +16,7 @@ type Props = {
   accentDeepColor: string;
   tintColor: string;
   onPress: (guideId: string) => void;
+  debugBadgeText?: string | null;
 };
 
 function GuideRecommendationCardBase({
@@ -24,6 +25,7 @@ function GuideRecommendationCardBase({
   accentDeepColor,
   tintColor,
   onPress,
+  debugBadgeText,
 }: Props) {
   return (
     <TouchableOpacity
@@ -48,6 +50,13 @@ function GuideRecommendationCardBase({
         <AppText preset="body" style={styles.title} numberOfLines={2}>
           {guide.title}
         </AppText>
+        {debugBadgeText ? (
+          <View style={styles.debugBadge}>
+            <AppText preset="caption" style={styles.debugBadgeText}>
+              {debugBadgeText}
+            </AppText>
+          </View>
+        ) : null}
         <AppText preset="caption" style={styles.desc} numberOfLines={2}>
           {guide.summary}
         </AppText>
@@ -105,6 +114,17 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     letterSpacing: -0.2,
   },
+  debugBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(245,158,11,0.14)',
+  },
+  debugBadgeText: {
+    color: '#8A5A00',
+    fontWeight: '900',
+  },
   desc: {
     color: '#556070',
     fontWeight: '700',
@@ -115,4 +135,3 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 });
-

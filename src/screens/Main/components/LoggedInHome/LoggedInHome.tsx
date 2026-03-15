@@ -96,6 +96,11 @@ import {
 } from '../../../../services/pets/memorial';
 import { getAgeInMonthsFromBirthDate } from '../../../../services/guides/agePolicy';
 import { buildGuideEventMetadata } from '../../../../services/guides/analytics';
+import {
+  getGuideDataSourceDescription,
+  getGuideDataSourceLabel,
+} from '../../../../services/guides/source';
+import { isLocalGuideSeedGuide } from '../../../../services/guides/seed';
 import { getGuideRotationWindowKey } from '../../../../services/guides/rotation';
 import { recordPetCareGuideEvents } from '../../../../services/guides/service';
 import {
@@ -1245,6 +1250,8 @@ const RecommendationTipsSection = React.memo(function RecommendationTipsSection(
   loading,
   error,
   isMemorial,
+  source,
+  sourceReason,
   petTheme,
   onPressGuide,
   onPressMore,
@@ -1253,16 +1260,36 @@ const RecommendationTipsSection = React.memo(function RecommendationTipsSection(
   loading: boolean;
   error: string | null;
   isMemorial: boolean;
+  source: 'remote' | 'local-seed' | 'remote-empty';
+  sourceReason: 'published' | 'empty-success' | 'remote-error';
   petTheme: ReturnType<typeof buildPetThemePalette>;
   onPressGuide: (guideId: string) => void;
   onPressMore: () => void;
 }) {
+  const debugSourceLabel = getGuideDataSourceLabel(source);
+
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
-        <Text style={[styles.tipSectionTitle, { color: petTheme.deep }]}>
-          {isMemorial ? '함께한 시간을 돌아보는 홈' : '우리 아이를 위한 추천 팁'}
-        </Text>
+        <View style={styles.tipSectionHeading}>
+          <Text style={[styles.tipSectionTitle, { color: petTheme.deep }]}>
+            {isMemorial ? '함께한 시간을 돌아보는 홈' : '우리 아이를 위한 추천 팁'}
+          </Text>
+          {__DEV__ ? (
+            <View
+              style={[
+                styles.guideDebugBadge,
+                source === 'local-seed'
+                  ? styles.guideDebugBadgeSeed
+                  : source === 'remote'
+                    ? styles.guideDebugBadgeRemote
+                    : styles.guideDebugBadgeEmpty,
+              ]}
+            >
+              <Text style={styles.guideDebugBadgeText}>{debugSourceLabel}</Text>
+            </View>
+          ) : null}
+        </View>
         {!isMemorial ? (
           <TouchableOpacity activeOpacity={0.85} onPress={onPressMore}>
             <Text style={[styles.sectionLink, { color: petTheme.deep }]}>더보기</Text>
@@ -1290,6 +1317,16 @@ const RecommendationTipsSection = React.memo(function RecommendationTipsSection(
           <Text style={styles.emptyTitle}>추천 팁을 불러오지 못했어요</Text>
           <Text style={styles.emptyDesc}>{error}</Text>
         </View>
+      ) : guides.length === 0 ? (
+        <View style={styles.emptyBox}>
+          <Text style={styles.emptyTitle}>추천 가능한 공개 가이드가 아직 없어요</Text>
+          <Text style={styles.emptyDesc}>
+            {getGuideDataSourceDescription({
+              source,
+              reason: sourceReason,
+            })}
+          </Text>
+        </View>
       ) : (
         <View style={styles.tipList}>
           {guides.map(guide => (
@@ -1300,6 +1337,11 @@ const RecommendationTipsSection = React.memo(function RecommendationTipsSection(
               accentDeepColor={petTheme.deep}
               tintColor={petTheme.tint}
               onPress={onPressGuide}
+              debugBadgeText={
+                __DEV__ && source === 'local-seed' && isLocalGuideSeedGuide(guide)
+                  ? '테스트 seed'
+                  : null
+              }
             />
           ))}
         </View>
@@ -2571,6 +2613,8 @@ export default function LoggedInHome() {
             loading={homeGuideState.loading}
             error={homeGuideState.error}
             isMemorial={isMemorialPet(selectedPet?.deathDate)}
+            source={homeGuideState.source}
+            sourceReason={homeGuideState.sourceReason}
             petTheme={petTheme}
             onPressGuide={onPressGuideDetail}
             onPressMore={onPressGuideList}

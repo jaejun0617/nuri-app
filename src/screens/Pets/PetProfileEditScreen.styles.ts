@@ -12,6 +12,9 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: SURFACE,
   },
+  keyboardArea: {
+    flex: 1,
+  },
   scrollContent: {
     paddingHorizontal: 18,
     paddingBottom: 28,
@@ -134,6 +137,10 @@ export const styles = StyleSheet.create({
     flex: 1,
     color: TEXT,
     fontWeight: '700',
+  },
+  unitText: {
+    color: '#8A94A6',
+    fontWeight: '800',
   },
   segmentRow: {
     flexDirection: 'row',
@@ -346,6 +353,13 @@ export const styles = StyleSheet.create({
   primaryButtonText: {
     color: '#FFFFFF',
     fontWeight: '900',
+  },
+  footerActionBar: {
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    backgroundColor: 'rgba(246,247,251,0.96)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(11,18,32,0.06)',
   },
   centerFallback: {
     flex: 1,
