@@ -8,9 +8,31 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { DeviceCoordinates } from './currentPosition';
 
 export type DistrictResolveResult = {
+  province: string | null;
+  city: string | null;
   district: string;
   source: 'kakao' | 'fallback';
 };
+export type WalkDistrictOption = {
+  value: string;
+  label: string;
+};
+
+const GOYANG_ILSAN_WALK_DISTRICTS = [
+  '일산1동',
+  '일산2동',
+  '일산3동',
+  '장항동',
+  '정발산동',
+  '마두동',
+  '백석동',
+  '주엽동',
+  '대화동',
+  '탄현동',
+  '식사동',
+  '풍동',
+  '중산동',
+] as const;
 
 const DISTRICT_CACHE_PREFIX = '@nuri/location/district:';
 
@@ -58,6 +80,48 @@ export function getFallbackDistrictLabel(coords: DeviceCoordinates) {
   return '현재 위치';
 }
 
+export function normalizeDistrictLabel(value: string | null | undefined): string | null {
+  const district = (value ?? '').trim();
+  if (!district) return null;
+  if (district === '현재 위치') return district;
+
+  const normalizedDongMatch = district.match(/^(.+?)(\d+)동$/);
+  if (normalizedDongMatch) {
+    return `${normalizedDongMatch[1]}동`;
+  }
+
+  return district;
+}
+
+export function getWalkDistrictOptions(
+  value: string | null | undefined,
+): WalkDistrictOption[] {
+  const district = (value ?? '').trim();
+  if (!district || district === '현재 위치') {
+    return [];
+  }
+
+  const normalizedDistrict = normalizeDistrictLabel(district);
+  if (
+    normalizedDistrict === '일산동' ||
+    GOYANG_ILSAN_WALK_DISTRICTS.includes(
+      district as (typeof GOYANG_ILSAN_WALK_DISTRICTS)[number],
+    )
+  ) {
+    return GOYANG_ILSAN_WALK_DISTRICTS.map(option => ({
+      value: option,
+      label: option,
+    }));
+  }
+
+  return [
+    {
+      value: district,
+      label: district,
+    },
+  ];
+}
+
 export async function resolveDistrictFromCoordinates(
   coords: DeviceCoordinates,
 ): Promise<DistrictResolveResult> {
@@ -65,6 +129,8 @@ export async function resolveDistrictFromCoordinates(
 
   if (!KAKAO_REST_API_KEY) {
     return {
+      province: null,
+      city: null,
       district: cachedDistrict ?? getFallbackDistrictLabel(coords),
       source: 'fallback',
     };
@@ -84,6 +150,8 @@ export async function resolveDistrictFromCoordinates(
 
     if (!response.ok) {
       return {
+        province: null,
+        city: null,
         district: cachedDistrict ?? getFallbackDistrictLabel(coords),
         source: 'fallback',
       };
@@ -92,6 +160,8 @@ export async function resolveDistrictFromCoordinates(
     const json = (await response.json()) as {
       documents?: Array<{
         region_type?: string;
+        region_1depth_name?: string;
+        region_2depth_name?: string;
         region_3depth_name?: string;
         address_name?: string;
       }>;
@@ -114,11 +184,15 @@ export async function resolveDistrictFromCoordinates(
     }
 
     return {
+      province: legalDong?.region_1depth_name?.trim() || null,
+      city: legalDong?.region_2depth_name?.trim() || null,
       district,
       source: legalDong ? 'kakao' : 'fallback',
     };
   } catch {
     return {
+      province: null,
+      city: null,
       district: cachedDistrict ?? getFallbackDistrictLabel(coords),
       source: 'fallback',
     };

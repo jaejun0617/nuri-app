@@ -7,11 +7,17 @@ import { useEffect, useState } from 'react';
 
 import { createLatestRequestController } from '../services/app/async';
 import type { DeviceCoordinates } from '../services/location/currentPosition';
-import { resolveDistrictFromCoordinates } from '../services/location/district';
+import {
+  normalizeDistrictLabel,
+  resolveDistrictFromCoordinates,
+} from '../services/location/district';
 
 export type DistrictState = {
   loading: boolean;
   district: string | null;
+  normalizedDistrict: string | null;
+  city: string | null;
+  province: string | null;
   source: 'kakao' | 'fallback' | null;
   error: string | null;
 };
@@ -26,6 +32,8 @@ export function useDistrict(input: {
   const initialDistrict = input.initialDistrict?.trim() || null;
   const [loading, setLoading] = useState(false);
   const [district, setDistrict] = useState<string | null>(initialDistrict);
+  const [city, setCity] = useState<string | null>(null);
+  const [province, setProvince] = useState<string | null>(null);
   const [source, setSource] = useState<'kakao' | 'fallback' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const coordinatesKey = input.coordinates
@@ -50,6 +58,8 @@ export function useDistrict(input: {
 
     if (!input.coordinates) {
       setDistrict(initialDistrict);
+      setCity(null);
+      setProvince(null);
       setSource(null);
       setError(sourceError);
       setLoading(false);
@@ -68,6 +78,8 @@ export function useDistrict(input: {
         const resolved = await resolveDistrictFromCoordinates(coordinates);
         if (!request.isCurrent(requestId)) return;
         setDistrict(resolved.district);
+        setCity(resolved.city);
+        setProvince(resolved.province);
         setSource(resolved.source);
       } catch (nextError) {
         if (!request.isCurrent(requestId)) return;
@@ -105,6 +117,9 @@ export function useDistrict(input: {
   return {
     loading: input.loading || loading,
     district,
+    normalizedDistrict: normalizeDistrictLabel(district),
+    city,
+    province,
     source,
     error,
   };

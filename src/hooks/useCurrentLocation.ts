@@ -8,6 +8,7 @@ import { AppState } from 'react-native';
 
 import {
   getCurrentCoordinates,
+  getLastCoordinates,
   type DeviceCoordinates,
 } from '../services/location/currentPosition';
 import {
@@ -79,6 +80,25 @@ export function useCurrentLocation(
     permissionRef.current =
       permissionRef.current === 'unavailable' ? 'granted' : permissionRef.current;
     setLoading(false);
+  }, [initialCoordinates]);
+
+  useEffect(() => {
+    if (initialCoordinates) return;
+
+    let mounted = true;
+
+    getLastCoordinates()
+      .then(cached => {
+        if (!mounted || !cached) return;
+        setCoordinates(current => current ?? cached);
+        coordinatesRef.current = coordinatesRef.current ?? cached;
+        setLoading(false);
+      })
+      .catch(() => {});
+
+    return () => {
+      mounted = false;
+    };
   }, [initialCoordinates]);
 
   useEffect(() => {

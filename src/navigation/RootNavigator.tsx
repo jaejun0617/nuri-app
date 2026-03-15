@@ -33,7 +33,12 @@ import GuideListScreen from '../screens/Guides/GuideListScreen';
 import GuideDetailScreen from '../screens/Guides/GuideDetailScreen';
 import GuideAdminListScreen from '../screens/Guides/GuideAdminListScreen';
 import GuideAdminEditorScreen from '../screens/Guides/GuideAdminEditorScreen';
+import NearbyWalkListScreen from '../screens/LocationDiscovery/NearbyWalkListScreen';
+import NearbyWalkDetailScreen from '../screens/LocationDiscovery/NearbyWalkDetailScreen';
+import PetFriendlyPlaceListScreen from '../screens/LocationDiscovery/PetFriendlyPlaceListScreen';
+import PetFriendlyPlaceDetailScreen from '../screens/LocationDiscovery/PetFriendlyPlaceDetailScreen';
 import type { DeviceCoordinates } from '../services/location/currentPosition';
+import type { LocationDiscoveryItem } from '../services/locationDiscovery/types';
 import type {
   IndoorActivityKey,
   WeatherGuideBundle,
@@ -87,6 +92,15 @@ export type RootStackParamList = {
   GuideList: undefined;
   GuideDetail: {
     guideId: string;
+  };
+  WalkSpotList: undefined;
+  WalkSpotDetail: {
+    item: LocationDiscoveryItem;
+    resultItems?: LocationDiscoveryItem[];
+  };
+  PetFriendlyPlaceList: undefined;
+  PetFriendlyPlaceDetail: {
+    item: LocationDiscoveryItem;
   };
   GuideAdminList: undefined;
   GuideAdminEditor:
@@ -222,6 +236,26 @@ export default function RootNavigator() {
       <Stack.Screen
         name="GuideDetail"
         component={GuideDetailScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="WalkSpotList"
+        component={NearbyWalkListScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="WalkSpotDetail"
+        component={NearbyWalkDetailScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="PetFriendlyPlaceList"
+        component={PetFriendlyPlaceListScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="PetFriendlyPlaceDetail"
+        component={PetFriendlyPlaceDetailScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

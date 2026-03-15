@@ -38,7 +38,7 @@ function requestCoordinates(options: {
   });
 }
 
-async function loadLastCoordinates(): Promise<DeviceCoordinates | null> {
+export async function getLastCoordinates(): Promise<DeviceCoordinates | null> {
   try {
     const raw = await AsyncStorage.getItem(LAST_COORDINATES_KEY);
     if (!raw) return null;
@@ -90,7 +90,7 @@ export async function getCurrentCoordinates(): Promise<DeviceCoordinates> {
       await saveLastCoordinates(balanced);
       return balanced;
     } catch (fallbackError) {
-      const cached = await loadLastCoordinates();
+      const cached = await getLastCoordinates();
       if (cached) {
         return cached;
       }

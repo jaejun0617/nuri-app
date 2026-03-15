@@ -945,6 +945,14 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     closeAndNavigate(() => navigation.navigate('IndoorActivityRecommendations'));
   }, [closeAndNavigate, navigation]);
 
+  const openWalkDiscovery = useCallback(() => {
+    closeAndNavigate(() => navigation.navigate('WalkSpotList'));
+  }, [closeAndNavigate, navigation]);
+
+  const openPetFriendlyPlaces = useCallback(() => {
+    closeAndNavigate(() => navigation.navigate('PetFriendlyPlaceList'));
+  }, [closeAndNavigate, navigation]);
+
   const petItems = useMemo<MenuItemSpec[]>(
     () => [
       {
@@ -990,19 +998,25 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         onPress: openIndoorActivities,
       },
       {
-        key: 'walk-route',
-        label: '산책 코스 보관함',
+        key: 'walk-nearby',
+        label: '우리동네 산책 / 산책 동선 추천',
         icon: 'map',
         iconTone: 'accent',
-        onPress: () => showPreparingToast('산책 코스 보관함'),
-        badge: 'soon',
+        onPress: openWalkDiscovery,
       },
     ],
-    [openIndoorActivities, openTimeline, showPreparingToast],
+    [openIndoorActivities, openTimeline, openWalkDiscovery, showPreparingToast],
   );
 
   const infoItems = useMemo<MenuItemSpec[]>(
     () => [
+      {
+        key: 'pet-friendly-places',
+        label: '펫동반 카페 / 공간 찾기',
+        icon: 'coffee',
+        iconTone: 'muted',
+        onPress: openPetFriendlyPlaces,
+      },
       {
         key: 'community',
         label: '커뮤니티',
@@ -1019,7 +1033,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         onPress: openGuideList,
       },
     ],
-    [openGuideList, showPreparingToast],
+    [openGuideList, openPetFriendlyPlaces, showPreparingToast],
   );
 
   const serviceItems = useMemo<MenuItemSpec[]>(() => {
