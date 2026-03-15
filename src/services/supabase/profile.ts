@@ -7,6 +7,7 @@
 // - profiles PK: user_id (auth.uid())
 
 import { supabase } from './client';
+import type { AppRole, Profile } from '../../store/authStore';
 
 type NicknameAvailabilityCode =
   | 'ok'
@@ -23,6 +24,10 @@ type NicknameAvailabilityRow = {
   code: NicknameAvailabilityCode;
   normalized: string;
 };
+
+function normalizeRole(value: unknown): AppRole {
+  return value === 'admin' || value === 'super_admin' ? value : 'user';
+}
 
 function normalizeNickname(value: string): string {
   return value.trim();
@@ -53,25 +58,34 @@ function mapNicknameError(error: unknown): Error {
 }
 
 /* ---------------------------------------------------------
- * 1) 내 닉네임 조회
+ * 1) 내 프로필 조회
  * -------------------------------------------------------- */
-export async function fetchMyNickname(userIdInput?: string | null): Promise<string | null> {
+export async function fetchMyProfile(
+  userIdInput?: string | null,
+): Promise<Profile> {
   const userId =
     userIdInput ??
     (await supabase.auth.getUser()).data.user?.id ??
     null;
-  if (!userId) return null;
+  if (!userId) return { nickname: null, role: 'user' };
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('nickname, nickname_confirmed')
+    .select('nickname, nickname_confirmed, role')
     .eq('user_id', userId)
     .maybeSingle();
 
   if (error) throw error;
-  if (!data) return null;
-  if (!data.nickname_confirmed) return null;
-  return (data.nickname ?? null) as string | null;
+  if (!data) return { nickname: null, role: 'user' };
+  return {
+    nickname: data.nickname_confirmed ? ((data.nickname ?? null) as string | null) : null,
+    role: normalizeRole(data.role),
+  };
+}
+
+export async function fetchMyNickname(userIdInput?: string | null): Promise<string | null> {
+  const profile = await fetchMyProfile(userIdInput);
+  return profile.nickname ?? null;
 }
 
 /* ---------------------------------------------------------

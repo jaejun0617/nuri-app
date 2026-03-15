@@ -67,7 +67,6 @@ import {
 import {
   fetchMemoryById,
   updateMemoryFields,
-  updateMemoryImagePaths,
   type EmotionTag,
 } from '../../services/supabase/memories';
 import {
@@ -531,7 +530,7 @@ export default function RecordEditScreen() {
         mode: 'edit',
         finalEntries,
       });
-      const queueResult = await processPendingMemoryUploads();
+      const queueResult = await processPendingMemoryUploads({ userId });
       const imageSaveSucceeded = queueResult.succeededTaskIds.includes(
         queuedTask.taskId,
       );
@@ -579,6 +578,7 @@ export default function RecordEditScreen() {
     addedImages,
     baseImagePaths,
     removedPaths,
+    navigation,
     refresh,
     setFocusedMemoryId,
     updateOneLocal,

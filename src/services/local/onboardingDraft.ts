@@ -3,6 +3,7 @@
 // - 온보딩 입력 중단 복구용 draft 저장/조회/정리
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { PetSpeciesGroup } from '../pets/species';
 
 const NICKNAME_DRAFT_KEY = 'nuri.onboarding.nicknameDraft.v1';
 const PET_CREATE_DRAFT_KEY = 'nuri.onboarding.petCreateDraft.v1';
@@ -10,6 +11,9 @@ const PET_CREATE_DRAFT_KEY = 'nuri.onboarding.petCreateDraft.v1';
 export type PetCreateDraft = {
   step: 1 | 2;
   name: string;
+  species: PetSpeciesGroup;
+  speciesDetailKey: string;
+  speciesDisplayName: string;
   birthDate: string;
   adoptionDate: string;
   deathDate: string;

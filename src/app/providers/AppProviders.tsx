@@ -19,7 +19,7 @@ import { createTheme } from '../theme/theme';
 import { useThemeMode } from '../theme/useThemeMode';
 
 import { supabase } from '../../services/supabase/client';
-import { fetchMyNickname } from '../../services/supabase/profile';
+import { fetchMyProfile } from '../../services/supabase/profile';
 import { fetchMyPets } from '../../services/supabase/pets';
 import {
   captureMonitoringException,
@@ -27,6 +27,7 @@ import {
 } from '../../services/monitoring/sentry';
 import { flushPendingConsentSnapshot } from '../../services/legal/consents';
 import { processPendingMemoryUploads } from '../../services/local/uploadQueue';
+import { clearMemorySignedUrlCache } from '../../services/supabase/storageMemories';
 import {
   getSessionUserId,
   shouldReloadUserScopedState,
@@ -71,7 +72,7 @@ export default function AppProviders({ children }: Props) {
   // ---------------------------------------------------------
   const hydrateAuth = useAuthStore(s => s.hydrate);
   const setSession = useAuthStore(s => s.setSession);
-  const setNickname = useAuthStore(s => s.setNickname);
+  const setProfile = useAuthStore(s => s.setProfile);
   const setProfileSyncState = useAuthStore(s => s.setProfileSyncState);
   const setAuthBooted = useAuthStore(s => s.setBooted);
 
@@ -102,7 +103,7 @@ export default function AppProviders({ children }: Props) {
       }
 
       try {
-        const result = await processPendingMemoryUploads();
+        const result = await processPendingMemoryUploads({ userId });
         if (result.succeeded > 0) {
           result.touchedPetIds.forEach(petId => {
             refreshRecords(petId).catch(() => {});
@@ -179,6 +180,7 @@ export default function AppProviders({ children }: Props) {
     };
 
     const clearUserScopedStores = () => {
+      clearMemorySignedUrlCache();
       setPets([], { userId: null });
       clearRecords();
       clearSchedules();
@@ -240,20 +242,20 @@ export default function AppProviders({ children }: Props) {
         );
       };
 
-      const [nicknameResult, petsResult] = await Promise.allSettled([
+      const [profileResult, petsResult] = await Promise.allSettled([
         withTimeout(
-          fetchMyNickname(userId),
+          fetchMyProfile(userId),
           USER_SCOPED_FETCH_TIMEOUT_MS,
-          'fetchMyNickname',
+          'fetchMyProfile',
         ),
         fetchPetsSafely(),
       ]);
 
-      return { nicknameResult, petsResult };
+      return { profileResult, petsResult };
     };
 
     const applyGuestState = async (seq: number) => {
-      await setNickname(null);
+      await setProfile({ nickname: null, role: 'user' });
       setProfileSyncState('ready');
       clearUserScopedStores();
       setPetLoading(false);
@@ -275,7 +277,7 @@ export default function AppProviders({ children }: Props) {
       const prevUserId = lastUserIdRef.current;
       const didUserChange = !!prevUserId && prevUserId !== userId;
       if (didUserChange) {
-        await setNickname(null);
+        await setProfile({ nickname: null, role: 'user' });
         clearUserScopedStores();
       }
 
@@ -294,16 +296,16 @@ export default function AppProviders({ children }: Props) {
         return;
       }
 
-      const { nicknameResult, petsResult } = await loadUserScopedState(userId);
+      const { profileResult, petsResult } = await loadUserScopedState(userId);
       if (!alive || transitionSeqRef.current !== seq) return;
 
       try {
-        if (nicknameResult.status === 'fulfilled') {
-          await setNickname(nicknameResult.value);
+        if (profileResult.status === 'fulfilled') {
+          await setProfile(profileResult.value);
           setProfileSyncState('ready');
         } else {
-          captureMonitoringException(nicknameResult.reason);
-          setProfileSyncState('error', '닉네임 동기화 실패');
+          captureMonitoringException(profileResult.reason);
+          setProfileSyncState('error', '프로필 동기화 실패');
         }
 
         if (petsResult.status === 'fulfilled') {
@@ -414,7 +416,7 @@ export default function AppProviders({ children }: Props) {
   }, [
     hydrateAuth,
     setSession,
-    setNickname,
+    setProfile,
     setProfileSyncState,
     setAuthBooted,
 

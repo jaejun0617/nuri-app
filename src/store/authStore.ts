@@ -5,14 +5,37 @@ import { create } from 'zustand';
 const STORAGE_KEY = 'nuri.profile.v1';
 
 export type AuthStatus = 'guest' | 'logged_in';
+export type AppRole = 'user' | 'admin' | 'super_admin';
 
 export type Profile = {
   nickname?: string | null;
+  role?: AppRole;
 };
 
 type PersistedProfile = {
   profile: Profile;
 };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function normalizeRole(value: unknown): AppRole {
+  return value === 'admin' || value === 'super_admin' ? value : 'user';
+}
+
+function normalizePersistedProfile(value: unknown): Profile {
+  if (!isRecord(value)) return { nickname: null, role: 'user' };
+
+  const profile = isRecord(value.profile) ? value.profile : null;
+  const nickname = profile?.nickname;
+  const role = profile?.role;
+
+  return {
+    nickname: typeof nickname === 'string' ? nickname : null,
+    role: normalizeRole(role),
+  };
+}
 
 type AuthState = {
   // ---------------------------------------------------------
@@ -37,6 +60,7 @@ type AuthState = {
   // ---------------------------------------------------------
   hydrate: () => Promise<void>;
   setSession: (session: Session | null) => Promise<void>;
+  setProfile: (profile: Profile) => Promise<void>;
   setNickname: (nickname: string | null) => Promise<void>;
   setProfileSyncState: (
     status: 'idle' | 'loading' | 'ready' | 'error',
@@ -54,13 +78,12 @@ async function saveProfile(profile: Profile) {
 
 async function loadProfile(): Promise<Profile> {
   const raw = await AsyncStorage.getItem(STORAGE_KEY);
-  if (!raw) return { nickname: null };
+  if (!raw) return { nickname: null, role: 'user' };
 
   try {
-    const parsed = JSON.parse(raw) as PersistedProfile;
-    return parsed.profile ?? { nickname: null };
+    return normalizePersistedProfile(JSON.parse(raw));
   } catch {
-    return { nickname: null };
+    return { nickname: null, role: 'user' };
   }
 }
 
@@ -74,7 +97,7 @@ export const useAuthStore = create<AuthState>(set => ({
   // ---------------------------------------------------------
   status: 'guest',
   session: null,
-  profile: { nickname: null },
+  profile: { nickname: null, role: 'user' },
   profileSyncStatus: 'idle',
   profileErrorMessage: null,
 
@@ -87,7 +110,7 @@ export const useAuthStore = create<AuthState>(set => ({
   // ---------------------------------------------------------
   hydrate: async () => {
     const profile = await loadProfile();
-    set({ profile: profile ?? { nickname: null } });
+    set({ profile: profile ?? { nickname: null, role: 'user' } });
   },
 
   // ---------------------------------------------------------
@@ -112,12 +135,23 @@ export const useAuthStore = create<AuthState>(set => ({
     });
   },
 
+  setProfile: async profile => {
+    const nextProfile: Profile = {
+      nickname: profile.nickname?.trim() ?? null,
+      role: normalizeRole(profile.role),
+    };
+
+    set({ profile: nextProfile });
+    await saveProfile(nextProfile);
+  },
+
   // ---------------------------------------------------------
   // 4) 닉네임 갱신 + 로컬 persist
   // ---------------------------------------------------------
   setNickname: async (nickname: string | null) => {
     const trimmed = nickname?.trim() ?? null;
-    const nextProfile: Profile = { nickname: trimmed };
+    const currentRole = useAuthStore.getState().profile.role ?? 'user';
+    const nextProfile: Profile = { nickname: trimmed, role: currentRole };
 
     set({ profile: nextProfile });
     await saveProfile(nextProfile);
@@ -142,7 +176,7 @@ export const useAuthStore = create<AuthState>(set => ({
     set({
       status: 'guest',
       session: null,
-      profile: { nickname: null },
+      profile: { nickname: null, role: 'user' },
       profileSyncStatus: 'idle',
       profileErrorMessage: null,
       isLoggedIn: false,

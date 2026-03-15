@@ -9,7 +9,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   AppState,
-  InteractionManager,
   TextInput,
   TouchableOpacity,
   View,
@@ -38,6 +37,14 @@ import {
   type PetMemorialChoice,
 } from '../../services/pets/memorial';
 import {
+  buildPetSpeciesSelection,
+  deriveRepresentativeSpeciesKey,
+  getPetSpeciesQuickDetailOptions,
+  getRepresentativeSpeciesOption,
+  PET_REPRESENTATIVE_SPECIES_OPTIONS,
+  type PetRepresentativeSpeciesKey,
+} from '../../services/pets/species';
+import {
   recommendPetThemeColor,
 } from '../../services/pets/themePalette';
 import { supabase } from '../../services/supabase/client';
@@ -61,6 +68,36 @@ const RECOMMEND_STYLES = [
   'recommendChipPink',
   'recommendChipPurple',
 ] as const;
+
+type GlobalWithIdleCallback = typeof globalThis & {
+  requestIdleCallback?: (
+    callback: () => void,
+    options?: { timeout?: number },
+  ) => number;
+  cancelIdleCallback?: (handle: number) => void;
+};
+
+function scheduleIdleTask(task: () => void, timeout = 180) {
+  const globalScope = globalThis as GlobalWithIdleCallback;
+
+  if (typeof globalScope.requestIdleCallback === 'function') {
+    const handle = globalScope.requestIdleCallback(
+      () => {
+        task();
+      },
+      { timeout },
+    );
+
+    return () => {
+      if (typeof globalScope.cancelIdleCallback === 'function') {
+        globalScope.cancelIdleCallback(handle);
+      }
+    };
+  }
+
+  const timer = setTimeout(task, 48);
+  return () => clearTimeout(timer);
+}
 
 function normalizeYmdOrNull(raw: string): string | null {
   const value = raw.trim().replace(/\./g, '-');
@@ -128,6 +165,9 @@ export default function PetProfileEditScreen() {
   const pet = useMemo(() => pets.find(item => item.id === petId) ?? null, [pets, petId]);
 
   const [name, setName] = useState('');
+  const [representativeSpecies, setRepresentativeSpecies] =
+    useState<PetRepresentativeSpeciesKey>('other');
+  const [speciesDetailKey, setSpeciesDetailKey] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [adoptionDate, setAdoptionDate] = useState('');
   const [deathDate, setDeathDate] = useState('');
@@ -154,7 +194,7 @@ export default function PetProfileEditScreen() {
     if (petId || !isFocused) return;
 
     let cancelled = false;
-    const task = InteractionManager.runAfterInteractions(() => {
+    const cancelIdleTask = scheduleIdleTask(() => {
       if (cancelled || AppState.currentState !== 'active') return;
 
       Alert.alert('프로필을 열지 못했어요', '아이 정보를 다시 불러온 뒤 시도해 주세요.', [
@@ -177,7 +217,7 @@ export default function PetProfileEditScreen() {
 
     return () => {
       cancelled = true;
-      task.cancel();
+      cancelIdleTask();
     };
   }, [isFocused, navigation, petId]);
 
@@ -185,6 +225,16 @@ export default function PetProfileEditScreen() {
     if (!pet) return;
 
     setName(pet.name ?? '');
+    setRepresentativeSpecies(
+      deriveRepresentativeSpeciesKey({
+        species: pet.species ?? 'other',
+        speciesDetailKey: pet.speciesDetailKey,
+        speciesDisplayName: pet.speciesDisplayName,
+      }),
+    );
+    setSpeciesDetailKey(
+      pet.speciesDetailKey ?? pet.speciesDisplayName ?? '',
+    );
     setBirthDate(toDisplayYmd(pet.birthDate));
     setAdoptionDate(toDisplayYmd(pet.adoptionDate));
     setDeathDate(toDisplayYmd(pet.deathDate));
@@ -354,6 +404,18 @@ export default function PetProfileEditScreen() {
     }
   }, [originalName, petId, trimmedName]);
 
+  const handleRepresentativeSpeciesChange = useCallback(
+    (value: PetRepresentativeSpeciesKey) => {
+      const option = getRepresentativeSpeciesOption(value);
+      setRepresentativeSpecies(value);
+      setSpeciesDetailKey(option.defaultDisplayName);
+      if (!option.showBreedField) {
+        setBreed('');
+      }
+    },
+    [],
+  );
+
   const onSubmit = useCallback(async () => {
     if (!pet) return;
     if (!trimmedName) {
@@ -384,9 +446,17 @@ export default function PetProfileEditScreen() {
         nextAvatarPath = path;
       }
 
+      const speciesSelection = buildPetSpeciesSelection(
+        representativeSpecies,
+        speciesDetailKey,
+      );
+
       await updatePet({
         petId: pet.id,
         name: trimmedName,
+        species: speciesSelection.species,
+        speciesDetailKey: speciesSelection.speciesDetailKey,
+        speciesDisplayName: speciesSelection.speciesDisplayName,
         themeColor: selectedThemeColor,
         birthDate: normalizeYmdOrNull(birthDate),
         adoptionDate: normalizeYmdOrNull(adoptionDate),
@@ -438,8 +508,10 @@ export default function PetProfileEditScreen() {
     neutered,
     pet,
     remainingNameChanges,
+    representativeSpecies,
     selectedThemeColor,
     setPets,
+    speciesDetailKey,
     tags,
     trimmedName,
     dislikesText,
@@ -465,6 +537,9 @@ export default function PetProfileEditScreen() {
       </View>
     );
   }
+
+  const representativeOption = getRepresentativeSpeciesOption(representativeSpecies);
+  const quickDetailOptions = getPetSpeciesQuickDetailOptions(representativeSpecies);
 
   return (
     <View style={styles.screen}>
@@ -594,19 +669,102 @@ export default function PetProfileEditScreen() {
 
           <View style={styles.fieldBlock}>
             <AppText preset="caption" style={styles.label}>
-              품종
+              대표 종
             </AppText>
+            <View style={styles.segmentWrap}>
+              {PET_REPRESENTATIVE_SPECIES_OPTIONS.map(option => {
+                const active = representativeSpecies === option.key;
+                return (
+                  <TouchableOpacity
+                    key={option.key}
+                    activeOpacity={0.92}
+                    style={[
+                      styles.segmentChip,
+                      styles.segmentChipWide,
+                      active ? styles.segmentChipActive : null,
+                    ]}
+                    onPress={() => handleRepresentativeSpeciesChange(option.key)}
+                  >
+                    <AppText
+                      preset="caption"
+                      style={[
+                        styles.segmentChipText,
+                        active ? styles.segmentChipTextActive : null,
+                      ]}
+                    >
+                      {option.label}
+                    </AppText>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <AppText preset="caption" style={styles.inputHint}>
+              {representativeOption.description}
+            </AppText>
+          </View>
+
+          <View style={styles.fieldBlock}>
+            <AppText preset="caption" style={styles.label}>
+              {representativeOption.showBreedField ? '품종/세부 종' : '세부 종'}
+            </AppText>
+            {quickDetailOptions.length > 0 ? (
+              <View style={styles.segmentWrap}>
+                {quickDetailOptions.map(option => {
+                  const active = speciesDetailKey.trim() === option.label;
+                  return (
+                    <TouchableOpacity
+                      key={option.detailKey}
+                      activeOpacity={0.92}
+                      style={[
+                        styles.quickChip,
+                        active ? styles.quickChipActive : null,
+                      ]}
+                      onPress={() => setSpeciesDetailKey(option.label)}
+                    >
+                      <AppText
+                        preset="caption"
+                        style={[
+                          styles.quickChipText,
+                          active ? styles.quickChipTextActive : null,
+                        ]}
+                      >
+                        {option.label}
+                      </AppText>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ) : null}
             <View style={styles.searchInputWrap}>
               <TextInput
-                value={breed}
-                onChangeText={setBreed}
-                placeholder="품종"
+                value={speciesDetailKey}
+                onChangeText={setSpeciesDetailKey}
+                placeholder={representativeOption.placeholders.detail}
                 placeholderTextColor="#A0A7B4"
                 style={styles.searchInput}
+                autoCapitalize="none"
               />
               <Feather name="search" size={16} color="#A0A7B4" />
             </View>
           </View>
+
+          {representativeOption.showBreedField ? (
+            <View style={styles.fieldBlock}>
+              <AppText preset="caption" style={styles.label}>
+                품종
+              </AppText>
+              <View style={styles.searchInputWrap}>
+                <TextInput
+                  value={breed}
+                  onChangeText={setBreed}
+                  placeholder={representativeOption.placeholders.breed}
+                  placeholderTextColor="#A0A7B4"
+                  style={styles.searchInput}
+                />
+                <Feather name="search" size={16} color="#A0A7B4" />
+              </View>
+            </View>
+          ) : null}
 
           <View style={styles.row}>
             <View style={styles.col}>

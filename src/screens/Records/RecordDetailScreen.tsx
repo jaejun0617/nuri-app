@@ -388,8 +388,8 @@ export default function RecordDetailScreen() {
   const theme = useTheme();
   const navigation = useNavigation<TimelineNav>();
   const route = useRoute<Route>();
-  const petId = route.params?.petId ?? null;
-  const memoryId = route.params?.memoryId ?? null;
+  const petId = route.params?.petId?.trim() || null;
+  const memoryId = route.params?.memoryId?.trim() || null;
 
   const record = useRecordStore(s => s.selectRecordById(memoryId));
   const removeOneLocal = useRecordStore(s => s.removeOneLocal);
@@ -397,9 +397,10 @@ export default function RecordDetailScreen() {
   const upsertOneLocal = useRecordStore(s => s.upsertOneLocal);
   const pets = usePetStore(s => s.pets);
 
+  const resolvedPetId = record?.petId?.trim() || petId;
   const selectedPet = useMemo(
-    () => pets.find(item => item.id === petId) ?? null,
-    [petId, pets],
+    () => pets.find(item => item.id === resolvedPetId) ?? null,
+    [pets, resolvedPetId],
   );
   const petName = useMemo(
     () => selectedPet?.name?.trim() || '우리 아이',
@@ -412,12 +413,28 @@ export default function RecordDetailScreen() {
   const [hydratingMissingRecord, setHydratingMissingRecord] = useState(
     () => Boolean(petId && memoryId && !record),
   );
+  const [hydrateErrorMessage, setHydrateErrorMessage] = useState<string | null>(null);
+  const [hydrateAttempt, setHydrateAttempt] = useState(0);
+
+  const isRecordMissingError = useCallback((error: unknown) => {
+    if (!error || typeof error !== 'object') return false;
+    const message = 'message' in error ? String(error.message ?? '') : '';
+    const code = 'code' in error ? String(error.code ?? '') : '';
+    const details = 'details' in error ? String(error.details ?? '') : '';
+    const joined = `${code} ${message} ${details}`.toLowerCase();
+    return (
+      joined.includes('pgrst116') ||
+      joined.includes('json object requested') ||
+      joined.includes('0 rows')
+    );
+  }, []);
 
   useEffect(() => {
     let mounted = true;
 
     async function hydrateMissingRecord() {
-      if (!petId || !memoryId) {
+      if (mounted) setHydrateErrorMessage(null);
+      if (!memoryId) {
         if (mounted) setHydratingMissingRecord(false);
         return;
       }
@@ -428,9 +445,13 @@ export default function RecordDetailScreen() {
       try {
         const fetched = await fetchMemoryById(memoryId);
         if (!mounted) return;
-        upsertOneLocal(petId, fetched);
-      } catch {
-        // 상세 화면 가드가 처리한다.
+        upsertOneLocal(fetched.petId, fetched);
+      } catch (error) {
+        if (!mounted) return;
+        if (!isRecordMissingError(error)) {
+          const { message } = getBrandedErrorMeta(error, 'generic');
+          setHydrateErrorMessage(message);
+        }
       } finally {
         if (mounted) setHydratingMissingRecord(false);
       }
@@ -440,7 +461,7 @@ export default function RecordDetailScreen() {
     return () => {
       mounted = false;
     };
-  }, [memoryId, petId, record, upsertOneLocal]);
+  }, [hydrateAttempt, isRecordMissingError, memoryId, record, upsertOneLocal]);
 
   const [deleting, setDeleting] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
@@ -457,22 +478,22 @@ export default function RecordDetailScreen() {
   }, []);
 
   const onPressEdit = useCallback(() => {
-    if (!petId || !record) return;
+    if (!resolvedPetId || !record) return;
     closeActionMenu();
-    navigation.navigate('RecordEdit', { petId, memoryId: record.id });
-  }, [closeActionMenu, navigation, petId, record]);
+    navigation.navigate('RecordEdit', { petId: resolvedPetId, memoryId: record.id });
+  }, [closeActionMenu, navigation, record, resolvedPetId]);
 
   const onPressDelete = useCallback(() => {
-    if (!petId || !record) return;
+    if (!resolvedPetId || !record) return;
     hideActionMenu();
     setDeleteModalVisible(true);
-  }, [hideActionMenu, petId, record]);
+  }, [hideActionMenu, record, resolvedPetId]);
   const closeDeleteModal = useCallback(() => {
     setDeleteModalVisible(false);
   }, []);
 
   const onConfirmDelete = useCallback(async () => {
-    if (!petId || !record || deleting) return;
+    if (!resolvedPetId || !record || deleting) return;
 
     try {
       setDeleting(true);
@@ -482,21 +503,29 @@ export default function RecordDetailScreen() {
         imagePaths: record.imagePaths,
       });
 
-      removeOneLocal(petId, record.id);
+      removeOneLocal(resolvedPetId, record.id);
       closeDeleteModal();
 
       navigation.navigate('TimelineMain', {
-        petId: petId ?? undefined,
+        petId: resolvedPetId,
         mainCategory: 'all',
       });
-      refresh(petId).catch(() => {});
+      refresh(resolvedPetId).catch(() => {});
     } catch (error: unknown) {
       const { title, message } = getBrandedErrorMeta(error, 'record-delete');
       Alert.alert(title, message);
     } finally {
       setDeleting(false);
     }
-  }, [closeDeleteModal, deleting, navigation, petId, record, refresh, removeOneLocal]);
+  }, [
+    closeDeleteModal,
+    deleting,
+    navigation,
+    record,
+    refresh,
+    removeOneLocal,
+    resolvedPetId,
+  ]);
 
   const renderFeedCard = useCallback(
     (item: MemoryRecord) => (
@@ -510,6 +539,12 @@ export default function RecordDetailScreen() {
     ),
     [openActionMenu, petAvatarUrl, petName],
   );
+
+  const retryHydrateRecord = useCallback(() => {
+    setHydrateErrorMessage(null);
+    setHydratingMissingRecord(true);
+    setHydrateAttempt(current => current + 1);
+  }, []);
 
   if (!record && hydratingMissingRecord) {
     return (
@@ -533,6 +568,38 @@ export default function RecordDetailScreen() {
   }
 
   if (!record) {
+    if (hydrateErrorMessage) {
+      return (
+        <View style={styles.screen}>
+          <View style={styles.header}>
+            <AppText preset="headline" style={styles.headerTitle}>
+              추억상세보기
+            </AppText>
+          </View>
+
+          <View style={styles.empty}>
+            <AppText preset="headline" style={styles.emptyTitle}>
+              기록을 불러오지 못했어요
+            </AppText>
+            <AppText preset="body" style={styles.emptyDesc}>
+              {hydrateErrorMessage}
+            </AppText>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={styles.modalPrimaryBtn}
+              onPress={retryHydrateRecord}
+            >
+              <AppText preset="body" style={styles.modalPrimaryBtnText}>
+                다시 시도
+              </AppText>
+            </TouchableOpacity>
+          </View>
+
+          <AppNavigationToolbar activeKey="timeline" />
+        </View>
+      );
+    }
+
     return (
       <View style={styles.screen}>
         <View style={styles.header}>

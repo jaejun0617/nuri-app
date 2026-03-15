@@ -517,7 +517,7 @@ export default function RecordCreateScreen() {
               mode: 'create',
               finalEntries,
             });
-            const queueResult = await processPendingMemoryUploads();
+            const queueResult = await processPendingMemoryUploads({ userId });
 
             if (!queueResult.succeededTaskIds.includes(queuedTask.taskId)) {
               shouldHydrateFromServer = false;

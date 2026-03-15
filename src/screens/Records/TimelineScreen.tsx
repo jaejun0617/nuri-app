@@ -12,7 +12,6 @@ import {
   ActivityIndicator,
   BackHandler,
   Image,
-  InteractionManager,
   type LayoutChangeEvent,
   Modal,
   Pressable,
@@ -90,6 +89,18 @@ type TimelinePreloadRef = {
   variant: MemoryImageVariant;
 };
 
+type GlobalWithIdleCallback = typeof globalThis & {
+  requestIdleCallback?: (
+    callback: () => void,
+    options?: { timeout?: number },
+  ) => number;
+  cancelIdleCallback?: (handle: number) => void;
+};
+
+type DeferredTaskHandle = {
+  cancel: () => void;
+};
+
 function normalizeStatus(v: unknown): Status {
   switch (v) {
     case 'idle':
@@ -102,6 +113,35 @@ function normalizeStatus(v: unknown): Status {
     default:
       return 'idle';
   }
+}
+
+function scheduleIdleTask(
+  task: () => void,
+  timeout = 180,
+): DeferredTaskHandle {
+  const globalScope = globalThis as GlobalWithIdleCallback;
+
+  if (typeof globalScope.requestIdleCallback === 'function') {
+    const handle = globalScope.requestIdleCallback(
+      () => {
+        task();
+      },
+      { timeout },
+    );
+
+    return {
+      cancel: () => {
+        if (typeof globalScope.cancelIdleCallback === 'function') {
+          globalScope.cancelIdleCallback(handle);
+        }
+      },
+    };
+  }
+
+  const timer = setTimeout(task, 48);
+  return {
+    cancel: () => clearTimeout(timer),
+  };
 }
 
 const JUMP_TO_ALL = '__ALL__';
@@ -118,6 +158,12 @@ const TIMELINE_ITEM_HEIGHT = 96;
 const TIMELINE_PRELOAD_VISIBLE_COUNT = 2;
 const TIMELINE_PRELOAD_DEFERRED_COUNT = 2;
 const TIMELINE_PRELOAD_DEFER_DELAY_MS = 180;
+const MAIN_CATEGORY_KEY_SET = new Set<MainCategory>(
+  MAIN_CATEGORY_OPTIONS.map(item => item.key),
+);
+const OTHER_SUBCATEGORY_KEY_SET = new Set<OtherSubCategory>(
+  OTHER_SUBCATEGORY_OPTIONS.map(item => item.key),
+);
 
 const ControlsBar = memo(function ControlsBar({
   sortLabel,
@@ -234,9 +280,17 @@ export default function TimelineScreen() {
 
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
-  const petIdFromParams = route?.params?.petId ?? null;
-  const mainCategoryFromParams = route?.params?.mainCategory ?? null;
-  const otherSubCategoryFromParams = route?.params?.otherSubCategory ?? null;
+  const petIdFromParams = route?.params?.petId?.trim() || null;
+  const mainCategoryFromParams = MAIN_CATEGORY_KEY_SET.has(
+    route?.params?.mainCategory ?? 'all',
+  )
+    ? (route?.params?.mainCategory ?? null)
+    : null;
+  const otherSubCategoryFromParams = OTHER_SUBCATEGORY_KEY_SET.has(
+    route?.params?.otherSubCategory ?? 'etc',
+  )
+    ? (route?.params?.otherSubCategory ?? null)
+    : null;
 
   const petId = useMemo(
     () => resolveSelectedPetId(pets, selectedPetId, petIdFromParams),
@@ -310,10 +364,12 @@ export default function TimelineScreen() {
   }, [mainCategoryFromParams, otherSubCategoryFromParams, petId]);
 
   const timelineView = useMemo(
-    () =>
-      buildTimelineView({
+    () => {
+      const recordsSnapshot =
+        timelineEntityVersion >= 0 ? recordsById : recordsById;
+      return buildTimelineView({
         ids: timelineIds,
-        recordsById,
+        recordsById: recordsSnapshot,
         filters: {
           ymFilter,
           mainCategory,
@@ -321,7 +377,8 @@ export default function TimelineScreen() {
           query: '',
           sortMode,
         },
-      }),
+      });
+    },
     [
       recordsById,
       timelineIds,
@@ -486,7 +543,7 @@ export default function TimelineScreen() {
 
       return signedUrlGroups.flat().filter((value): value is string => Boolean(value));
     };
-    const interactionTask = InteractionManager.runAfterInteractions(() => {
+    const deferredTask = scheduleIdleTask(() => {
       (async () => {
         const immediateUrls = await preloadByVariant(
           timelinePreloadImageRefs.immediate,
@@ -494,7 +551,7 @@ export default function TimelineScreen() {
         if (cancelled) return;
         preloadOptimizedImages(immediateUrls);
 
-      if (timelinePreloadImageRefs.deferred.length === 0) return;
+        if (timelinePreloadImageRefs.deferred.length === 0) return;
         deferredTimer = setTimeout(async () => {
           const deferredUrls = await preloadByVariant(
             timelinePreloadImageRefs.deferred,
@@ -507,9 +564,7 @@ export default function TimelineScreen() {
 
     return () => {
       cancelled = true;
-      if (typeof interactionTask.cancel === 'function') {
-        interactionTask.cancel();
-      }
+      deferredTask.cancel();
       if (deferredTimer) clearTimeout(deferredTimer);
     };
   }, [isFocused, timelinePreloadImageRefs]);
@@ -740,6 +795,74 @@ export default function TimelineScreen() {
     return <View style={{ height: 18 }} />;
   }, [hasMore, status, timelineIds.length]);
 
+  const listEmptyComponent = useMemo(() => {
+    if (status === 'loading' || status === 'idle') {
+      return (
+        <View style={styles.empty}>
+          <ActivityIndicator />
+          <AppText preset="body" style={styles.emptyDesc}>
+            기록을 불러오는 중이에요.
+          </AppText>
+        </View>
+      );
+    }
+
+    if (status === 'error') {
+      return (
+        <View style={styles.empty}>
+          <AppText preset="headline" style={styles.emptyTitle}>
+            기록을 불러오지 못했어요
+          </AppText>
+          <AppText preset="body" style={styles.emptyDesc}>
+            네트워크를 확인한 뒤 다시 시도해 주세요.
+          </AppText>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={[styles.primary, { backgroundColor: petTheme.primary }]}
+            onPress={onRefresh}
+          >
+            <AppText preset="body" style={styles.primaryText}>
+              다시 불러오기
+            </AppText>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.empty}>
+        <View style={styles.emptyHero}>
+          <Image
+            source={require('../../assets/logo/logo_v2.png')}
+            style={styles.emptyPawImage}
+            resizeMode="contain"
+          />
+        </View>
+        <AppText preset="headline" style={styles.emptyTitle}>
+          아직 남겨진 추억이 없어요
+        </AppText>
+        <AppText preset="body" style={styles.emptyDesc}>
+          우리 아이와 함께한 반짝이는 순간을
+        </AppText>
+        <AppText preset="body" style={styles.emptyDesc}>
+          첫 기록으로 천천히 시작해보세요
+        </AppText>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={[styles.primary, { backgroundColor: petTheme.primary }]}
+          onPress={onPressCreate}
+        >
+          <AppText preset="body" style={styles.primaryIcon}>
+            ✎
+          </AppText>
+          <AppText preset="body" style={styles.primaryText}>
+            기록 시작하기
+          </AppText>
+        </TouchableOpacity>
+      </View>
+    );
+  }, [onPressCreate, onRefresh, petTheme.primary, status]);
+
   const listExtraData = useMemo(
     () => ({
       imageWindow,
@@ -822,38 +945,7 @@ export default function TimelineScreen() {
         onEndReachedThreshold={0.6}
         onViewableItemsChanged={onViewableItemsChanged}
         ListFooterComponent={listFooterComponent}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <View style={styles.emptyHero}>
-              <Image
-                source={require('../../assets/logo/logo_v2.png')}
-                style={styles.emptyPawImage}
-                resizeMode="contain"
-              />
-            </View>
-            <AppText preset="headline" style={styles.emptyTitle}>
-              아직 남겨진 추억이 없어요
-            </AppText>
-            <AppText preset="body" style={styles.emptyDesc}>
-              우리 아이와 함께한 반짝이는 순간을
-            </AppText>
-            <AppText preset="body" style={styles.emptyDesc}>
-              첫 기록으로 천천히 시작해보세요
-            </AppText>
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={[styles.primary, { backgroundColor: petTheme.primary }]}
-              onPress={onPressCreate}
-            >
-              <AppText preset="body" style={styles.primaryIcon}>
-                ✎
-              </AppText>
-              <AppText preset="body" style={styles.primaryText}>
-                기록 시작하기
-              </AppText>
-            </TouchableOpacity>
-          </View>
-        }
+        ListEmptyComponent={listEmptyComponent}
         removeClippedSubviews
         onContentSizeChange={() => {
           consumeFocusedMemory();

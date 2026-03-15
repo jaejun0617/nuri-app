@@ -5,6 +5,12 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
+import {
+  normalizePetSpeciesDetailKey,
+  normalizePetSpeciesDisplayName,
+  normalizePetSpeciesGroup,
+  type PetSpeciesGroup,
+} from '../services/pets/species';
 
 const STORAGE_SELECTED_KEY = 'nuri.selectedPetId.v1';
 const STORAGE_PETS_KEY = 'nuri.pets.cache.v1';
@@ -13,6 +19,9 @@ export type Pet = {
   id: string;
   name: string;
   themeColor?: string | null;
+  species?: PetSpeciesGroup | null;
+  speciesDetailKey?: string | null;
+  speciesDisplayName?: string | null;
 
   avatarPath?: string | null;
   avatarUrl?: string | null;
@@ -105,7 +114,8 @@ export function resolveSelectedPetId(
 
 async function loadSelectedPetId(): Promise<string | null> {
   const raw = await AsyncStorage.getItem(STORAGE_SELECTED_KEY);
-  return raw ?? null;
+  const normalized = `${raw ?? ''}`.trim();
+  return normalized || null;
 }
 
 async function saveSelectedPetId(petId: string | null) {
@@ -121,17 +131,84 @@ type PersistedPetsCache = {
   pets: Pet[];
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isPersistedPet(value: unknown): value is Pet {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.name === 'string'
+  );
+}
+
+function normalizeString(value: unknown) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function normalizeStringList(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map(item => normalizeString(item))
+    .filter(Boolean);
+}
+
+function normalizePersistedPet(value: unknown): Pet | null {
+  if (!isPersistedPet(value)) return null;
+
+  const id = normalizeString(value.id);
+  const name = normalizeString(value.name);
+  if (!id || !name) return null;
+
+  const weightCandidate =
+    typeof value.weightKg === 'number' ? value.weightKg : Number(value.weightKg);
+  const gender =
+    value.gender === 'male' || value.gender === 'female' || value.gender === 'unknown'
+      ? value.gender
+      : null;
+
+  return {
+    id,
+    name,
+    themeColor: normalizeString(value.themeColor) || null,
+    species: normalizePetSpeciesGroup(value.species),
+    speciesDetailKey: normalizePetSpeciesDetailKey(value.speciesDetailKey),
+    speciesDisplayName: normalizePetSpeciesDisplayName(value.speciesDisplayName),
+    avatarPath: normalizeString(value.avatarPath) || null,
+    avatarUrl: normalizeString(value.avatarUrl) || null,
+    adoptionDate: normalizeString(value.adoptionDate) || null,
+    birthDate: normalizeString(value.birthDate) || null,
+    weightKg: Number.isFinite(weightCandidate) ? weightCandidate : null,
+    breed: normalizeString(value.breed) || null,
+    gender,
+    neutered: typeof value.neutered === 'boolean' ? value.neutered : null,
+    likes: normalizeStringList(value.likes),
+    dislikes: normalizeStringList(value.dislikes),
+    hobbies: normalizeStringList(value.hobbies),
+    tags: normalizeStringList(value.tags),
+    deathDate: normalizeString(value.deathDate) || null,
+  };
+}
+
+function normalizePersistedPetsCache(value: unknown): PersistedPetsCache | null {
+  if (!isRecord(value)) return null;
+  if (!Array.isArray(value.pets)) return null;
+
+  const pets = value.pets
+    .map(normalizePersistedPet)
+    .filter((pet): pet is Pet => Boolean(pet));
+  const userId = normalizeString(value.userId) || null;
+
+  return { userId, pets };
+}
+
 async function loadPetsCache(): Promise<PersistedPetsCache | null> {
   const raw = await AsyncStorage.getItem(STORAGE_PETS_KEY);
   if (!raw) return null;
 
   try {
-    const parsed = JSON.parse(raw) as PersistedPetsCache;
-    if (!Array.isArray(parsed?.pets)) return null;
-    return {
-      userId: parsed?.userId ?? null,
-      pets: parsed.pets,
-    };
+    return normalizePersistedPetsCache(JSON.parse(raw));
   } catch {
     return null;
   }

@@ -139,6 +139,11 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
+  segmentWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
   segmentChip: {
     flex: 1,
     minHeight: 40,
@@ -146,6 +151,12 @@ export const styles = StyleSheet.create({
     backgroundColor: CARD,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  segmentChipWide: {
+    flexGrow: 0,
+    flexBasis: '31%',
+    minWidth: '31%',
+    paddingHorizontal: 10,
   },
   segmentChipActive: {
     backgroundColor: 'rgba(109,106,248,0.12)',
@@ -155,6 +166,25 @@ export const styles = StyleSheet.create({
     fontWeight: '800',
   },
   segmentChipTextActive: {
+    color: BRAND_DEEP,
+    fontWeight: '900',
+  },
+  quickChip: {
+    minHeight: 36,
+    borderRadius: 999,
+    backgroundColor: CARD,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickChipActive: {
+    backgroundColor: 'rgba(109,106,248,0.12)',
+  },
+  quickChipText: {
+    color: '#8A94A6',
+    fontWeight: '800',
+  },
+  quickChipTextActive: {
     color: BRAND_DEEP,
     fontWeight: '900',
   },

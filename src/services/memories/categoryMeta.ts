@@ -63,26 +63,31 @@ function readRecordTagsRaw(record: MemoryRecord): string {
   return record.tags.join(' ').trim();
 }
 
+function readLegacyStringField(
+  record: MemoryRecord,
+  keys: readonly string[],
+): string {
+  const source = record as Record<string, unknown>;
+
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value !== 'string') continue;
+    const normalized = value.trim();
+    if (normalized) return normalized;
+  }
+
+  return '';
+}
+
 export function readRecordCategoryRaw(record: MemoryRecord): string {
-  const candidate = record as MemoryRecord & {
-    category?: string | null;
-    type?: string | null;
-    kind?: string | null;
-    recordType?: string | null;
-    mainCategory?: string | null;
-    categoryKey?: string | null;
-  };
-
-  const raw =
-    candidate.category ??
-    candidate.type ??
-    candidate.kind ??
-    candidate.recordType ??
-    candidate.mainCategory ??
-    candidate.categoryKey ??
-    '';
-
-  const normalized = String(raw ?? '').trim();
+  const normalized = readLegacyStringField(record, [
+    'category',
+    'type',
+    'kind',
+    'recordType',
+    'mainCategory',
+    'categoryKey',
+  ]);
   if (normalized) return normalized;
   return readRecordTagsRaw(record);
 }
@@ -110,23 +115,13 @@ export function normalizeCategoryKey(raw: string): MemoryMainCategory {
 }
 
 export function readOtherSubCategoryRaw(record: MemoryRecord): string {
-  const candidate = record as MemoryRecord & {
-    subCategory?: string | null;
-    subcategory?: string | null;
-    sub_type?: string | null;
-    detailCategory?: string | null;
-    otherSubCategory?: string | null;
-  };
-
-  const raw =
-    candidate.subCategory ??
-    candidate.subcategory ??
-    candidate.sub_type ??
-    candidate.detailCategory ??
-    candidate.otherSubCategory ??
-    '';
-
-  const normalized = String(raw ?? '').trim();
+  const normalized = readLegacyStringField(record, [
+    'subCategory',
+    'subcategory',
+    'sub_type',
+    'detailCategory',
+    'otherSubCategory',
+  ]);
   if (normalized) return normalized;
   return readRecordTagsRaw(record);
 }

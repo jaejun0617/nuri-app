@@ -501,6 +501,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const nicknameRaw = useAuthStore(s => s.profile.nickname);
+  const role = useAuthStore(s => s.profile.role ?? 'user');
   const isLoggedIn = useAuthStore(s => s.isLoggedIn);
   const session = useAuthStore(s => s.session);
   const pets = usePetStore(s => s.pets);
@@ -680,6 +681,14 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         },
       }),
     );
+  }, [closeAndNavigate, navigation]);
+
+  const openGuideList = useCallback(() => {
+    closeAndNavigate(() => navigation.navigate('GuideList'));
+  }, [closeAndNavigate, navigation]);
+
+  const openGuideAdmin = useCallback(() => {
+    closeAndNavigate(() => navigation.navigate('GuideAdminList'));
   }, [closeAndNavigate, navigation]);
 
   const openProfileEditModal = useCallback(() => {
@@ -1007,11 +1016,10 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         label: '집사 꿀팁 가이드',
         icon: 'map-pin',
         iconTone: 'muted',
-        onPress: () => showPreparingToast('집사 꿀팁 가이드'),
-        badge: 'soon',
+        onPress: openGuideList,
       },
     ],
-    [showPreparingToast],
+    [openGuideList, showPreparingToast],
   );
 
   const serviceItems = useMemo<MenuItemSpec[]>(() => {
@@ -1058,6 +1066,21 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     openProfileEditModal,
     showPreparingToast,
   ]);
+
+  const adminItems = useMemo<MenuItemSpec[]>(
+    () => [
+      {
+        key: 'guide-admin',
+        label: '가이드 운영',
+        icon: 'edit',
+        iconTone: 'soft',
+        onPress: openGuideAdmin,
+      },
+    ],
+    [openGuideAdmin],
+  );
+
+  const isGuideAdmin = role === 'admin' || role === 'super_admin';
 
   return (
     <SafeAreaView
@@ -1138,6 +1161,13 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
             items={serviceItems}
             themeColors={menuThemeColors}
           />
+          {isGuideAdmin ? (
+            <MenuCard
+              title="운영"
+              items={adminItems}
+              themeColors={menuThemeColors}
+            />
+          ) : null}
 
           {session?.user?.email ? (
             <View style={styles.accountMeta}>

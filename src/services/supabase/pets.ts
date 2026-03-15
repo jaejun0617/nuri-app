@@ -5,6 +5,12 @@
 // - profile_image_url(path) → (Public bucket) public URL 변환
 
 import type { Pet } from '../../store/petStore';
+import {
+  normalizePetSpeciesDetailKey,
+  normalizePetSpeciesDisplayName,
+  normalizePetSpeciesGroup,
+  type PetSpeciesGroup,
+} from '../pets/species';
 import { supabase } from './client';
 
 const PET_PROFILE_BUCKET = 'pet-profiles';
@@ -14,6 +20,9 @@ type PetsRow = {
   user_id: string;
 
   name: string;
+  species_group: PetSpeciesGroup | null;
+  species_detail_key: string | null;
+  species_display_name: string | null;
   birth_date: string | null;
   adoption_date: string | null;
   weight_kg: number | string | null;
@@ -35,6 +44,24 @@ type PetsRow = {
   created_at?: string;
   updated_at?: string;
 };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isPetsRow(value: unknown): value is PetsRow {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.user_id === 'string' &&
+    typeof value.name === 'string'
+  );
+}
+
+function toPetsRows(data: unknown): PetsRow[] {
+  if (!Array.isArray(data)) return [];
+  return data.filter(isPetsRow);
+}
 
 function toNumberOrNull(v: number | string | null): number | null {
   if (v === null || v === undefined) return null;
@@ -63,6 +90,9 @@ function mapRowToPet(row: PetsRow): Pet {
     id: row.id,
     name: row.name,
     themeColor: row.theme_color ?? null,
+    species: normalizePetSpeciesGroup(row.species_group),
+    speciesDetailKey: normalizePetSpeciesDetailKey(row.species_detail_key),
+    speciesDisplayName: normalizePetSpeciesDisplayName(row.species_display_name),
 
     avatarPath,
     avatarUrl,
@@ -99,6 +129,9 @@ export async function fetchMyPets(userIdInput?: string | null): Promise<Pet[]> {
     'id',
     'user_id',
     'name',
+    'species_group',
+    'species_detail_key',
+    'species_display_name',
     'birth_date',
     'adoption_date',
     'weight_kg',
@@ -125,7 +158,7 @@ export async function fetchMyPets(userIdInput?: string | null): Promise<Pet[]> {
   if (error) throw error;
 
   // ✅ supabase 타입이 스키마를 모르면 data가 unknown 성격을 띰 → 정석 캐스팅
-  const rows = (Array.isArray(data) ? data : []) as unknown as PetsRow[];
+  const rows = toPetsRows(data);
   const pets = rows.map(mapRowToPet);
 
   return pets;
@@ -136,6 +169,9 @@ export async function fetchMyPets(userIdInput?: string | null): Promise<Pet[]> {
  * -------------------------------------------------------- */
 export async function createPet(input: {
   name: string;
+  species?: PetSpeciesGroup | null;
+  speciesDetailKey?: string | null;
+  speciesDisplayName?: string | null;
   themeColor?: string | null;
   adoptionDate?: string | null;
   birthDate?: string | null;
@@ -160,6 +196,9 @@ export async function createPet(input: {
   const payload = {
     user_id: userId,
     name: input.name,
+    species_group: input.species ?? 'other',
+    species_detail_key: normalizePetSpeciesDetailKey(input.speciesDetailKey),
+    species_display_name: normalizePetSpeciesDisplayName(input.speciesDisplayName),
     theme_color: input.themeColor ?? null,
 
     adoption_date: input.adoptionDate ?? null,
@@ -183,6 +222,9 @@ export async function createPet(input: {
     'id',
     'user_id',
     'name',
+    'species_group',
+    'species_detail_key',
+    'species_display_name',
     'birth_date',
     'adoption_date',
     'weight_kg',
@@ -207,7 +249,7 @@ export async function createPet(input: {
     .single();
 
   if (error) throw error;
-  const inserted = data as unknown as PetsRow | null;
+  const inserted = isPetsRow(data) ? data : null;
   if (!inserted?.id) {
     throw new Error('아이 프로필 식별자를 확인하지 못했어요.');
   }
@@ -220,6 +262,9 @@ export async function createPet(input: {
 export async function updatePet(input: {
   petId: string;
   name: string;
+  species?: PetSpeciesGroup | null;
+  speciesDetailKey?: string | null;
+  speciesDisplayName?: string | null;
   themeColor?: string | null;
   adoptionDate?: string | null;
   birthDate?: string | null;
@@ -240,6 +285,9 @@ export async function updatePet(input: {
 
   const payload = {
     name: input.name,
+    species_group: input.species ?? 'other',
+    species_detail_key: normalizePetSpeciesDetailKey(input.speciesDetailKey),
+    species_display_name: normalizePetSpeciesDisplayName(input.speciesDisplayName),
     theme_color: input.themeColor ?? null,
     adoption_date: input.adoptionDate ?? null,
     birth_date: input.birthDate ?? null,

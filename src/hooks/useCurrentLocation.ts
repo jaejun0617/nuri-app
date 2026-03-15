@@ -21,7 +21,7 @@ export type CurrentLocationState = {
   permission: LocationPermissionStatus;
   coordinates: DeviceCoordinates | null;
   error: string | null;
-  refresh: () => Promise<void>;
+  refresh: () => Promise<DeviceCoordinates | null>;
 };
 
 type UseCurrentLocationOptions = {
@@ -66,7 +66,9 @@ export function useCurrentLocation(
     initialCoordinates ? 'granted' : 'unavailable',
   );
   const coordinatesRef = useRef<DeviceCoordinates | null>(initialCoordinates);
-  const refreshInFlightRef = useRef<Promise<void> | null>(null);
+  const refreshInFlightRef = useRef<Promise<DeviceCoordinates | null> | null>(
+    null,
+  );
   const lastRefreshAtRef = useRef(0);
 
   useEffect(() => {
@@ -85,16 +87,15 @@ export function useCurrentLocation(
 
   const refresh = useCallback(async () => {
     if (refreshInFlightRef.current) {
-      await refreshInFlightRef.current;
-      return;
+      return refreshInFlightRef.current;
     }
 
     const now = Date.now();
     if (coordinatesRef.current && now - lastRefreshAtRef.current < 1500) {
-      return;
+      return coordinatesRef.current;
     }
 
-    const task = (async () => {
+    const task = (async (): Promise<DeviceCoordinates | null> => {
       setLoading(current => (coordinatesRef.current ? current : true));
       setError(null);
 
@@ -115,14 +116,18 @@ export function useCurrentLocation(
             setCoordinates(null);
           }
           setError(toLocationErrorMessage(resolvedPermission, null));
-          return;
+          return coordinatesRef.current;
         }
 
         const nextCoordinates = await getCurrentCoordinates();
         setCoordinates(nextCoordinates);
+        coordinatesRef.current = nextCoordinates;
+        setError(null);
         lastRefreshAtRef.current = Date.now();
+        return nextCoordinates;
       } catch (nextError) {
         setError(toLocationErrorMessage(permissionRef.current, nextError));
+        return coordinatesRef.current;
       } finally {
         setLoading(false);
       }
@@ -130,7 +135,7 @@ export function useCurrentLocation(
 
     refreshInFlightRef.current = task;
     try {
-      await task;
+      return await task;
     } finally {
       refreshInFlightRef.current = null;
     }

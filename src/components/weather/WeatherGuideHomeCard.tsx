@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Feather from 'react-native-vector-icons/Feather';
 
 import {
   getWeatherEmoji,
@@ -26,7 +27,7 @@ export default React.memo(function WeatherGuideHomeCard({
   const textPrimary = isNightCard ? '#F8FBFF' : '#1B2434';
   const textSecondary = isNightCard ? 'rgba(226,236,248,0.74)' : '#8B96AA';
   const locationColor = isNightCard ? 'rgba(208,220,238,0.72)' : '#9BA5B6';
-  const chevronColor = isNightCard ? '#F8FBFF' : '#000000';
+  const chevronColor = isNightCard ? '#F8FBFF' : '#98A1B2';
   const iconWrapBackground = isNightCard
     ? 'rgba(255,255,255,0.12)'
     : 'rgba(255,255,255,0.72)';
@@ -74,7 +75,7 @@ export default React.memo(function WeatherGuideHomeCard({
           </Text>
         </View>
       </View>
-      <Text style={[styles.chevron, { color: chevronColor }]}>{'>'}</Text>
+      <Feather name="chevron-right" size={18} color={chevronColor} />
     </TouchableOpacity>
   );
 });
@@ -139,10 +140,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
     fontWeight: '400',
-  },
-  chevron: {
-    fontSize: 22,
-    lineHeight: 24,
-    fontWeight: '500',
   },
 });

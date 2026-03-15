@@ -29,6 +29,10 @@ import WeatherInsightScreen from '../screens/Weather/WeatherInsightScreen';
 import IndoorActivityRecommendationsScreen from '../screens/Weather/IndoorActivityRecommendationsScreen';
 import ActivityGuideScreen from '../screens/Weather/ActivityGuideScreen';
 import WeatherActivityRecordScreen from '../screens/Weather/WeatherActivityRecordScreen';
+import GuideListScreen from '../screens/Guides/GuideListScreen';
+import GuideDetailScreen from '../screens/Guides/GuideDetailScreen';
+import GuideAdminListScreen from '../screens/Guides/GuideAdminListScreen';
+import GuideAdminEditorScreen from '../screens/Guides/GuideAdminEditorScreen';
 import type { DeviceCoordinates } from '../services/location/currentPosition';
 import type {
   IndoorActivityKey,
@@ -80,6 +84,14 @@ export type RootStackParamList = {
     guideKey: IndoorActivityKey;
     district?: string;
   };
+  GuideList: undefined;
+  GuideDetail: {
+    guideId: string;
+  };
+  GuideAdminList: undefined;
+  GuideAdminEditor:
+    | { mode: 'create' }
+    | { mode: 'edit'; guideId: string };
   EditDone: {
     title: string;
     bodyLines: [string, string?];
@@ -200,6 +212,26 @@ export default function RootNavigator() {
       <Stack.Screen
         name="WeatherActivityRecord"
         component={WeatherActivityRecordScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="GuideList"
+        component={GuideListScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="GuideDetail"
+        component={GuideDetailScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="GuideAdminList"
+        component={GuideAdminListScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="GuideAdminEditor"
+        component={GuideAdminEditorScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

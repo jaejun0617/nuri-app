@@ -120,6 +120,30 @@ type PetSchedulesRow = {
   updated_at: string;
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isPetSchedulesRow(value: unknown): value is PetSchedulesRow {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.user_id === 'string' &&
+    typeof value.pet_id === 'string' &&
+    typeof value.title === 'string' &&
+    typeof value.starts_at === 'string' &&
+    typeof value.category === 'string' &&
+    typeof value.icon_key === 'string' &&
+    typeof value.created_at === 'string' &&
+    typeof value.updated_at === 'string'
+  );
+}
+
+function toPetSchedulesRows(data: unknown): PetSchedulesRow[] {
+  if (!Array.isArray(data)) return [];
+  return data.filter(isPetSchedulesRow);
+}
+
 function mapRow(row: PetSchedulesRow): PetSchedule {
   return {
     id: row.id,
@@ -192,7 +216,7 @@ export async function fetchSchedulesByPetRange(input: {
 
   if (error) throw error;
 
-  const rows = (Array.isArray(data) ? data : []) as unknown as PetSchedulesRow[];
+  const rows = toPetSchedulesRows(data);
   return rows.map(mapRow);
 }
 
@@ -215,7 +239,7 @@ export async function fetchSchedulesByPet(input: {
 
   if (error) throw error;
 
-  const rows = (Array.isArray(data) ? data : []) as unknown as PetSchedulesRow[];
+  const rows = toPetSchedulesRows(data);
   return rows.map(mapRow);
 }
 
@@ -227,7 +251,10 @@ export async function fetchScheduleById(scheduleId: string): Promise<PetSchedule
     .single();
 
   if (error) throw error;
-  return mapRow(data as unknown as PetSchedulesRow);
+  if (!isPetSchedulesRow(data)) {
+    throw new Error('일정 데이터를 올바르게 읽지 못했어요.');
+  }
+  return mapRow(data);
 }
 
 export async function createSchedule(input: {
@@ -286,7 +313,15 @@ export async function createSchedule(input: {
 
   if (error) throw error;
 
-  return (data as { id: string }).id;
+  if (
+    !isRecord(data) ||
+    typeof data.id !== 'string' ||
+    data.id.trim().length === 0
+  ) {
+    throw new Error('일정 식별자를 확인하지 못했어요.');
+  }
+
+  return data.id;
 }
 
 export async function updateSchedule(input: {

@@ -104,6 +104,50 @@ type MemoryImagesFetchResult = {
   readFailureReason: MemoryImagesReadFailureReason | null;
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isMemoryImageStatus(value: unknown): value is MemoryImageRow['status'] {
+  return value === 'pending' || value === 'ready' || value === 'failed';
+}
+
+function isMemoryImageRow(value: unknown): value is MemoryImageRow {
+  return (
+    isRecord(value) &&
+    typeof value.memory_id === 'string' &&
+    typeof value.sort_order === 'number' &&
+    typeof value.original_path === 'string' &&
+    (typeof value.timeline_thumb_path === 'string' ||
+      value.timeline_thumb_path === null) &&
+    isMemoryImageStatus(value.status)
+  );
+}
+
+function isMemoriesRow(value: unknown): value is MemoriesRow {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.pet_id === 'string' &&
+    typeof value.title === 'string' &&
+    typeof value.created_at === 'string'
+  );
+}
+
+function isInsertedMemoryIdRow(value: unknown): value is InsertedMemoryIdRow {
+  return isRecord(value) && typeof value.id === 'string' && value.id.trim().length > 0;
+}
+
+function toMemoryImageRows(data: unknown): MemoryImageRow[] {
+  if (!Array.isArray(data)) return [];
+  return data.filter(isMemoryImageRow);
+}
+
+function toMemoriesRows(data: unknown): MemoriesRow[] {
+  if (!Array.isArray(data)) return [];
+  return data.filter(isMemoriesRow);
+}
+
 function normalizePathValue(value: string | null | undefined) {
   return `${value ?? ''}`.trim();
 }
@@ -185,7 +229,7 @@ async function fetchMemoryImagesByMemoryIds(
   }
 
   const grouped = new Map<string, MemoryImageRow[]>();
-  for (const row of (data ?? []) as MemoryImageRow[]) {
+  for (const row of toMemoryImageRows(data)) {
     const memoryId = `${row.memory_id ?? ''}`.trim();
     if (!memoryId) continue;
     const current = grouped.get(memoryId) ?? [];
@@ -209,7 +253,7 @@ async function fetchMemoryImagesSnapshot(memoryId: string) {
     .order('sort_order', { ascending: true });
 
   if (error) throw error;
-  return (data ?? []) as MemoryImageRow[];
+  return toMemoryImageRows(data);
 }
 
 // ---------------------------------------------------------
@@ -280,9 +324,9 @@ function resolveRecordImages(
 
   const timelineImagePath = readyThumbPath ?? primaryOriginalPath;
   const timelineImageVariant: MemoryImageVariant | null = readyThumbPath
-    ? 'original'
+    ? 'timeline-thumb'
     : timelineImagePath
-      ? 'timeline-thumb'
+      ? 'original'
       : null;
 
   const fallbackReason: LegacyReadFallbackReason | null =
@@ -411,9 +455,12 @@ export async function fetchMemoryById(memoryId: string): Promise<MemoryRecord> {
   ]);
 
   if (error) throw error;
+  if (!isMemoriesRow(data)) {
+    throw new Error('기록 데이터를 올바르게 읽지 못했어요.');
+  }
 
   const { record: item, fallbackReason } = mapRowWithResolution(
-    data as MemoriesRow,
+    data,
     memoryImagesResult.grouped.get(memoryId) ?? [],
     memoryImagesResult.readFailureReason,
   );
@@ -449,7 +496,7 @@ export async function fetchMemoryById(memoryId: string): Promise<MemoryRecord> {
  *
  * ✅ 성능 포인트
  * - mapRow에서 signed url 생성 제거
- * - prefetch는 fetch 흐름 밖(InteractionManager)에서 async 스케줄링
+ * - prefetch는 fetch 흐름 밖(idle callback)에서 async 스케줄링
  * -------------------------------------------------------- */
 export async function fetchMemoriesByPetPage(input: {
   petId: string;
@@ -483,7 +530,7 @@ export async function fetchMemoriesByPetPage(input: {
   const { data, error } = await q;
   if (error) throw error;
 
-  const rows = (data ?? []) as MemoriesRow[];
+  const rows = toMemoriesRows(data);
   const memoryImagesResult = await fetchMemoryImagesByMemoryIds(
     rows.map(row => row.id),
   );
@@ -586,11 +633,10 @@ export async function createMemory(input: {
     .single();
 
   if (error) throw error;
-  const inserted = data as InsertedMemoryIdRow | null;
-  if (!inserted?.id) {
+  if (!isInsertedMemoryIdRow(data)) {
     throw new Error('기록 식별자를 확인하지 못했어요.');
   }
-  return inserted.id;
+  return data.id;
 }
 
 /* ---------------------------------------------------------
@@ -653,12 +699,22 @@ async function syncMemoryImages(input: {
 
   if (error) throw error;
 
-  const existingRows = (data ?? []) as Array<{
-    id: string;
-    original_path: string;
-    timeline_thumb_path: string | null;
-    status: 'pending' | 'ready' | 'failed';
-  }>;
+  const existingRows = (Array.isArray(data) ? data : []).filter(
+    (
+      row,
+    ): row is {
+      id: string;
+      original_path: string;
+      timeline_thumb_path: string | null;
+      status: 'pending' | 'ready' | 'failed';
+    } =>
+      isRecord(row) &&
+      typeof row.id === 'string' &&
+      typeof row.original_path === 'string' &&
+      (typeof row.timeline_thumb_path === 'string' ||
+        row.timeline_thumb_path === null) &&
+      isMemoryImageStatus(row.status),
+  );
   const existingByPath = new Map(
     existingRows.map(row => [normalizePathValue(row.original_path), row] as const),
   );
@@ -913,12 +969,10 @@ export async function deleteMemoryWithFile(input: {
   imagePath?: string | null;
   imagePaths?: string[];
 }) {
-  const basePaths = Array.from(
-    new Set([
-      ...((input.imagePaths ?? []).filter(Boolean) as string[]),
-      input.imagePath ?? '',
-    ]),
-  ).filter(Boolean);
+  const basePaths = dedupeOrderedPaths([
+    ...(input.imagePaths ?? []),
+    input.imagePath,
+  ]);
   let memoryImageRows: Array<{
     original_path: string | null;
     timeline_thumb_path: string | null;
@@ -929,18 +983,26 @@ export async function deleteMemoryWithFile(input: {
       .select('original_path,timeline_thumb_path')
       .eq('memory_id', input.memoryId)
       .throwOnError();
-    memoryImageRows = (data ?? []) as Array<{
-      original_path: string | null;
-      timeline_thumb_path: string | null;
-    }>;
+    memoryImageRows = (Array.isArray(data) ? data : []).filter(
+      (
+        row,
+      ): row is {
+        original_path: string | null;
+        timeline_thumb_path: string | null;
+      } =>
+        isRecord(row) &&
+        (typeof row.original_path === 'string' || row.original_path === null) &&
+        (typeof row.timeline_thumb_path === 'string' ||
+          row.timeline_thumb_path === null),
+    );
   } catch {
     memoryImageRows = [];
   }
-  const memoryImagePaths = ((memoryImageRows ?? []) as Array<{
-    original_path: string | null;
-    timeline_thumb_path: string | null;
-  }>).flatMap(row => [row.original_path ?? '', row.timeline_thumb_path ?? '']);
-  const paths = Array.from(new Set([...basePaths, ...memoryImagePaths])).filter(Boolean);
+  const memoryImagePaths = memoryImageRows.flatMap(row => [
+    row.original_path ?? '',
+    row.timeline_thumb_path ?? '',
+  ]);
+  const paths = dedupeOrderedPaths([...basePaths, ...memoryImagePaths]);
 
   const { error } = await supabase
     .from('memories')

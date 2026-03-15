@@ -251,12 +251,15 @@ export function useWeatherGuide(
   ]);
 
   const refresh = useCallback(async () => {
-    await location.refresh();
-    if (!coordsKey) return;
+    const refreshedCoordinates = await location.refresh();
+    const nextCoordsKey = refreshedCoordinates
+      ? getWeatherStoreCoordsKey(refreshedCoordinates)
+      : coordsKey;
+    if (!nextCoordsKey) return;
 
     lastRefreshRequestAtRef.current = Date.now();
     await queryClient.invalidateQueries({
-      queryKey: ['weather-guide', coordsKey],
+      queryKey: ['weather-guide', nextCoordsKey],
       exact: true,
       refetchType: 'active',
     });

@@ -75,33 +75,43 @@ export function preloadOptimizedImages(uris: ReadonlyArray<string>) {
   );
 }
 
-export default function OptimizedImage({
-  uri,
-  style,
-  resizeMode = 'cover',
-  priority = 'normal',
-  fallback = false,
-}: Props) {
-  if (!uri || fallback || !isRemoteHttpUri(uri) || !hasFastImageNativeView()) {
+type NativeOptimizedImageRef =
+  | React.ComponentRef<typeof Image>
+  | React.ComponentRef<typeof FastImage>;
+
+const OptimizedImage = React.forwardRef<NativeOptimizedImageRef, Props>(
+  function OptimizedImage(
+    {
+      uri,
+      style,
+      resizeMode = 'cover',
+      priority = 'normal',
+      fallback = false,
+    },
+    _ref,
+  ) {
+    if (!uri || fallback || !isRemoteHttpUri(uri) || !hasFastImageNativeView()) {
+      return (
+        <Image
+          source={{ uri }}
+          style={style}
+          resizeMode={resizeMode}
+          fadeDuration={250}
+        />
+      );
+    }
     return (
-      <Image
-        source={{ uri }}
-        style={style}
-        resizeMode={resizeMode}
-        fadeDuration={250}
+      <FastImage
+        source={{
+          uri,
+          priority: mapPriority(priority),
+          cache: FastImage.cacheControl.immutable,
+        }}
+        style={style as StyleProp<FastImageStyle>}
+        resizeMode={mapResizeMode(resizeMode)}
       />
     );
-  }
+  },
+);
 
-  return (
-    <FastImage
-      source={{
-        uri,
-        priority: mapPriority(priority),
-        cache: FastImage.cacheControl.immutable,
-      }}
-      style={style as StyleProp<FastImageStyle>}
-      resizeMode={mapResizeMode(resizeMode)}
-    />
-  );
-}
+export default OptimizedImage;

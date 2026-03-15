@@ -58,6 +58,14 @@ import {
   type PetMemorialChoice,
 } from '../../services/pets/memorial';
 import {
+  buildPetSpeciesSelection,
+  deriveRepresentativeSpeciesKey,
+  getPetSpeciesQuickDetailOptions,
+  getRepresentativeSpeciesOption,
+  PET_REPRESENTATIVE_SPECIES_OPTIONS,
+  type PetRepresentativeSpeciesKey,
+} from '../../services/pets/species';
+import {
   createPet,
   fetchMyPets,
   toPublicPetAvatarUrl,
@@ -247,6 +255,10 @@ type StepOneFormProps = {
   onAdoptionDateChange: (value: string) => void;
   onAdoptionDateBlur: () => void;
   onOpenAdoptionModal: () => void;
+  representativeSpecies: PetRepresentativeSpeciesKey;
+  onRepresentativeSpeciesChange: (value: PetRepresentativeSpeciesKey) => void;
+  speciesDetailKey: string;
+  onSpeciesDetailKeyChange: (value: string) => void;
   breed: string;
   onBreedChange: (value: string) => void;
   gender: PetGender;
@@ -276,6 +288,10 @@ const StepOneForm = memo(function StepOneForm({
   onAdoptionDateChange,
   onAdoptionDateBlur,
   onOpenAdoptionModal,
+  representativeSpecies,
+  onRepresentativeSpeciesChange,
+  speciesDetailKey,
+  onSpeciesDetailKeyChange,
   breed,
   onBreedChange,
   gender,
@@ -283,6 +299,9 @@ const StepOneForm = memo(function StepOneForm({
   neutered,
   onNeuteredChange,
 }: StepOneFormProps) {
+  const representativeOption = getRepresentativeSpeciesOption(representativeSpecies);
+  const quickDetailOptions = getPetSpeciesQuickDetailOptions(representativeSpecies);
+
   return (
     <>
       <View style={styles.avatarSection}>
@@ -374,18 +393,93 @@ const StepOneForm = memo(function StepOneForm({
       </View>
 
       <View style={styles.fieldBlock}>
-        <Text style={styles.label}>품종</Text>
+        <Text style={styles.label}>대표 종</Text>
+        <View style={styles.segmentWrap}>
+          {PET_REPRESENTATIVE_SPECIES_OPTIONS.map(option => {
+            const active = representativeSpecies === option.key;
+            return (
+              <TouchableOpacity
+                key={option.key}
+                activeOpacity={0.88}
+                style={[
+                  styles.segmentChip,
+                  styles.segmentChipWide,
+                  active ? styles.segmentChipActive : null,
+                ]}
+                onPress={() => onRepresentativeSpeciesChange(option.key)}
+              >
+                <Text
+                  style={[
+                    styles.segmentChipText,
+                    active ? styles.segmentChipTextActive : null,
+                  ]}
+                >
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+        <Text style={styles.inputHint}>{representativeOption.description}</Text>
+      </View>
+
+      <View style={styles.fieldBlock}>
+        <Text style={styles.label}>{representativeOption.showBreedField ? '품종/세부 종' : '세부 종'}</Text>
+        {quickDetailOptions.length > 0 ? (
+          <View style={styles.segmentWrap}>
+            {quickDetailOptions.map(option => {
+              const active = speciesDetailKey.trim() === option.label;
+              return (
+                <TouchableOpacity
+                  key={option.detailKey}
+                  activeOpacity={0.88}
+                  style={[
+                    styles.quickChip,
+                    active ? styles.quickChipActive : null,
+                  ]}
+                  onPress={() => onSpeciesDetailKeyChange(option.label)}
+                >
+                  <Text
+                    style={[
+                      styles.quickChipText,
+                      active ? styles.quickChipTextActive : null,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ) : null}
         <View style={styles.iconInputWrap}>
           <TextInput
-            value={breed}
-            onChangeText={onBreedChange}
-            placeholder="품종을 입력해 주세요"
+            value={speciesDetailKey}
+            onChangeText={onSpeciesDetailKeyChange}
+            placeholder={representativeOption.placeholders.detail}
             placeholderTextColor="#A0A7B4"
             style={styles.iconInput}
+            autoCapitalize="none"
           />
           <Feather color="#98A1B2" name="search" size={16} />
         </View>
       </View>
+
+      {representativeOption.showBreedField ? (
+        <View style={styles.fieldBlock}>
+          <Text style={styles.label}>품종</Text>
+          <View style={styles.iconInputWrap}>
+            <TextInput
+              value={breed}
+              onChangeText={onBreedChange}
+              placeholder={representativeOption.placeholders.breed}
+              placeholderTextColor="#A0A7B4"
+              style={styles.iconInput}
+            />
+            <Feather color="#98A1B2" name="search" size={16} />
+          </View>
+        </View>
+      ) : null}
 
       <View style={styles.row}>
         <View style={styles.col}>
@@ -595,6 +689,9 @@ export default function PetCreateScreen() {
   const [saving, setSaving] = useState(false);
 
   const [name, setName] = useState('');
+  const [representativeSpecies, setRepresentativeSpecies] =
+    useState<PetRepresentativeSpeciesKey>('other');
+  const [speciesDetailKey, setSpeciesDetailKey] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [adoptionDate, setAdoptionDate] = useState('');
   const [deathDate, setDeathDate] = useState('');
@@ -815,6 +912,16 @@ export default function PetCreateScreen() {
         if (draft) {
           setStep(draft.step);
           setName(draft.name);
+          setRepresentativeSpecies(
+            deriveRepresentativeSpeciesKey({
+              species: draft.species ?? 'other',
+              speciesDetailKey: draft.speciesDetailKey,
+              speciesDisplayName: draft.speciesDisplayName,
+            }),
+          );
+          setSpeciesDetailKey(
+            draft.speciesDetailKey ?? draft.speciesDisplayName ?? '',
+          );
           setBirthDate(draft.birthDate);
           setAdoptionDate(draft.adoptionDate);
           setDeathDate(draft.deathDate ?? '');
@@ -857,9 +964,17 @@ export default function PetCreateScreen() {
     if (!draftHydrated || saving || successModalVisible) return;
 
     const timer = setTimeout(() => {
+      const speciesSelection = buildPetSpeciesSelection(
+        representativeSpecies,
+        speciesDetailKey,
+      );
+
       savePetCreateDraft({
         step,
         name,
+        species: speciesSelection.species,
+        speciesDetailKey,
+        speciesDisplayName: speciesSelection.speciesDisplayName,
         birthDate,
         adoptionDate,
         deathDate,
@@ -890,6 +1005,8 @@ export default function PetCreateScreen() {
     birthDate,
     deathDate,
     breed,
+    representativeSpecies,
+    speciesDetailKey,
     dislikes,
     draftDislike,
     draftHobby,
@@ -1014,6 +1131,10 @@ export default function PetCreateScreen() {
       const normalizedDeathDate =
         memorialChoice === 'memorial' ? normalizeYmdOrNull(deathDate) : null;
       const normalizedWeight = normalizeWeightOrNull(weightKg);
+      const speciesSelection = buildPetSpeciesSelection(
+        representativeSpecies,
+        speciesDetailKey,
+      );
 
       ensureMinOne(likes, '좋아하는 것');
       ensureMinOne(dislikes, '싫어하는 것');
@@ -1022,6 +1143,9 @@ export default function PetCreateScreen() {
 
       const createdPet = await createPet({
         name: trimmedName,
+        species: speciesSelection.species,
+        speciesDetailKey: speciesSelection.speciesDetailKey,
+        speciesDisplayName: speciesSelection.speciesDisplayName,
         themeColor: selectedThemeColor,
         birthDate: normalizedBirthDate,
         adoptionDate: normalizedAdoptionDate,
@@ -1109,8 +1233,10 @@ export default function PetCreateScreen() {
     imageUri,
     likes,
     memorialChoice,
-    selectedThemeColor,
     neutered,
+    representativeSpecies,
+    selectedThemeColor,
+    speciesDetailKey,
     setPets,
     updatePetAvatar,
     upsertPet,
@@ -1137,6 +1263,17 @@ export default function PetCreateScreen() {
   const handleAdoptionDateBlur = useCallback(
     () => finalizeDateInput(adoptionDate, setAdoptionDate),
     [adoptionDate, finalizeDateInput],
+  );
+  const handleRepresentativeSpeciesChange = useCallback(
+    (value: PetRepresentativeSpeciesKey) => {
+      const option = getRepresentativeSpeciesOption(value);
+      setRepresentativeSpecies(value);
+      setSpeciesDetailKey(option.defaultDisplayName);
+      if (!option.showBreedField) {
+        setBreed('');
+      }
+    },
+    [],
   );
   const handleDeathDateChange = useCallback(
     (text: string) => syncDateInput(setDeathDate, text),
@@ -1289,6 +1426,10 @@ export default function PetCreateScreen() {
               onAdoptionDateChange={handleAdoptionDateChange}
               onAdoptionDateBlur={handleAdoptionDateBlur}
               onOpenAdoptionModal={openAdoptionDateModal}
+              representativeSpecies={representativeSpecies}
+              onRepresentativeSpeciesChange={handleRepresentativeSpeciesChange}
+              speciesDetailKey={speciesDetailKey}
+              onSpeciesDetailKeyChange={setSpeciesDetailKey}
               breed={breed}
               onBreedChange={setBreed}
               gender={gender}

@@ -41,7 +41,11 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import Screen from '../../../../components/layout/Screen';
+import { preloadOptimizedImages } from '../../../../components/images/OptimizedImage';
+import OptimizedImage from '../../../../components/images/OptimizedImage';
+import GuideRecommendationCard from '../../../../components/guides/GuideRecommendationCard';
 import { useWeatherGuide } from '../../../../hooks/useWeatherGuide';
+import { useHomePetCareGuides } from '../../../../hooks/useHomePetCareGuides';
 import { useSignedMemoryImage } from '../../../../hooks/useSignedMemoryImage';
 import type { AppTabParamList } from '../../../../navigation/AppTabsNavigator';
 import type { TimelineStackParamList } from '../../../../navigation/TimelineStackNavigator';
@@ -65,6 +69,7 @@ import { useScheduleStore } from '../../../../store/scheduleStore';
 
 import type { MemoryRecord } from '../../../../services/supabase/memories';
 import type { PetSchedule } from '../../../../services/supabase/schedules';
+import { getMemoryImageSignedUrlsCached } from '../../../../services/supabase/storageMemories';
 import {
   pickTodayPhoto,
   generateTimeMessage,
@@ -87,7 +92,12 @@ import {
 import { buildPetThemePalette } from '../../../../services/pets/themePalette';
 import {
   formatMemorialPetName,
+  isMemorialPet,
 } from '../../../../services/pets/memorial';
+import { getAgeInMonthsFromBirthDate } from '../../../../services/guides/agePolicy';
+import { buildGuideEventMetadata } from '../../../../services/guides/analytics';
+import { getGuideRotationWindowKey } from '../../../../services/guides/rotation';
+import { recordPetCareGuideEvents } from '../../../../services/guides/service';
 import {
   calcAgeFromBirthYmd,
   diffDaysFromKst,
@@ -96,11 +106,14 @@ import {
   getMonthKeyInKst,
 } from '../../../../utils/date';
 import WeatherGuideHomeCard from '../../../../components/weather/WeatherGuideHomeCard';
+import type { PetCareGuide } from '../../../../services/guides/types';
 import { styles } from './LoggedInHome.styles';
 
 type HomeTabNav = BottomTabNavigationProp<AppTabParamList, 'HomeTab'>;
-type RootNav = NativeStackNavigationProp<RootStackParamList>;
-type Nav = CompositeNavigationProp<HomeTabNav, RootNav>;
+type Nav = CompositeNavigationProp<
+  HomeTabNav,
+  NativeStackNavigationProp<RootStackParamList>
+>;
 type TimelineMainCategory = NonNullable<
   TimelineStackParamList['TimelineMain']
 >['mainCategory'];
@@ -120,6 +133,18 @@ type WeeklyScheduleItem = {
   tint: string;
   mainCategory: HomeMainCategory;
   otherSubCategory?: HomeOtherSubCategory;
+};
+
+type GlobalWithIdleCallback = typeof globalThis & {
+  requestIdleCallback?: (
+    callback: () => void,
+    options?: { timeout?: number },
+  ) => number;
+  cancelIdleCallback?: (handle: number) => void;
+};
+
+type DeferredTaskHandle = {
+  cancel: () => void;
 };
 
 /* ---------------------------------------------------------
@@ -150,18 +175,6 @@ function formatWeightKg(v: number | null | undefined): string | null {
   return `${n % 1 === 0 ? n.toFixed(0) : n.toFixed(1)}kg`;
 }
 
-function pickObjectParticle(word: string): '을' | '를' {
-  const value = word.trim();
-  if (!value) return '를';
-
-  const lastChar = value.charCodeAt(value.length - 1);
-  const HANGUL_BASE = 0xac00;
-  const HANGUL_LAST = 0xd7a3;
-
-  if (lastChar < HANGUL_BASE || lastChar > HANGUL_LAST) return '를';
-  return (lastChar - HANGUL_BASE) % 28 === 0 ? '를' : '을';
-}
-
 function clampList(list: string[] | null | undefined, max = 2) {
   const arr = Array.isArray(list) ? list : [];
   return arr
@@ -190,6 +203,77 @@ function buildScheduleCard(schedule: PetSchedule): WeeklyScheduleItem {
     tint: palette.tint,
     mainCategory: category.mainCategory,
     otherSubCategory: category.otherSubCategory,
+  };
+}
+
+function scheduleIdleTask(
+  task: () => void,
+  timeout = 180,
+): DeferredTaskHandle {
+  const globalScope = globalThis as GlobalWithIdleCallback;
+
+  if (typeof globalScope.requestIdleCallback === 'function') {
+    const handle = globalScope.requestIdleCallback(
+      () => {
+        task();
+      },
+      { timeout },
+    );
+
+    return {
+      cancel: () => {
+        if (typeof globalScope.cancelIdleCallback === 'function') {
+          globalScope.cancelIdleCallback(handle);
+        }
+      },
+    };
+  }
+
+  const timer = setTimeout(task, 48);
+  return {
+    cancel: () => clearTimeout(timer),
+  };
+}
+
+function scheduleDeferredImagePreload(
+  targets: string[],
+  options?: {
+    batchSize?: number;
+    onUrls: (urls: string[]) => void;
+  },
+): DeferredTaskHandle {
+  const batchSize = Math.max(1, options?.batchSize ?? 2);
+  let cancelled = false;
+  let currentTask: DeferredTaskHandle | null = null;
+  let currentIndex = 0;
+
+  const runBatch = () => {
+    if (cancelled || currentIndex >= targets.length) return;
+
+    const batch = targets.slice(currentIndex, currentIndex + batchSize);
+    currentIndex += batch.length;
+
+    getMemoryImageSignedUrlsCached(batch)
+      .then(urls => {
+        if (cancelled) return;
+        options?.onUrls(urls.filter((url): url is string => Boolean(url)));
+        if (currentIndex >= targets.length || cancelled) return;
+        currentTask = scheduleIdleTask(runBatch);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        if (currentIndex >= targets.length) return;
+        currentTask = scheduleIdleTask(runBatch);
+      });
+  };
+
+  currentTask = scheduleIdleTask(runBatch);
+
+  return {
+    cancel: () => {
+      cancelled = true;
+      currentTask?.cancel();
+    },
   };
 }
 
@@ -239,29 +323,6 @@ const HOME_SHORTCUTS: Array<{
   },
 ];
 
-const TIP_TEMPLATES: Array<{
-  key: string;
-  eyebrow: string;
-  title: string;
-  description: string;
-  icon: string;
-}> = [
-  {
-    key: 'care',
-    eyebrow: '건강 케어',
-    title: '노령견을 위한 관절 관리 팁 5가지',
-    description: '집에서도 천천히 따라할 수 있는 스트레칭부터 시작해요',
-    icon: 'heart',
-  },
-  {
-    key: 'meal',
-    eyebrow: '식단 가이드',
-    title: '꼭 챙기면 좋은 영양 밸런스 체크',
-    description: '나이와 활동량에 맞춘 식사 리듬을 정리해 보세요',
-    icon: 'sun',
-  },
-];
-
 const TODAY_HOME_TIP = {
   badge: '오늘의 팁',
   title:
@@ -273,6 +334,9 @@ const TODAY_HOME_TIP = {
 const AnimatedFlatList = Animated.createAnimatedComponent(
   FlatList<MemoryRecord>,
 );
+const AnimatedOptimizedImage = Animated.createAnimatedComponent(OptimizedImage);
+const TODAY_RECORDS_IMMEDIATE_PREFETCH_COUNT = 3;
+const TODAY_RECORDS_DEFERRED_PREFETCH_COUNT = 4;
 
 /* ---------------------------------------------------------
  * 3) sub components (hooks-safe)
@@ -304,6 +368,8 @@ const TodayRecordCard = React.memo(function TodayRecordCard({
   const imageRef = getPrimaryMemoryImageRef(item);
   const { signedUrl, loading: isLoading } = useSignedMemoryImage(imageRef, {
     defer: !eagerImage,
+    delayMs: eagerImage ? 0 : 80,
+    trackLoading: eagerImage,
   });
 
   const cardAnimStyle = useAnimatedStyle(() => {
@@ -353,9 +419,11 @@ const TodayRecordCard = React.memo(function TodayRecordCard({
               <ActivityIndicator size="small" color="#fff" />
             </View>
           ) : signedUrl ? (
-            <Animated.Image
-              source={{ uri: signedUrl }}
+            <AnimatedOptimizedImage
+              uri={signedUrl}
               style={[styles.todayRecordImg, imageAnimStyle]}
+              resizeMode="cover"
+              priority={eagerImage ? 'high' : 'normal'}
             />
           ) : (
             <View style={styles.todayRecordImgPlaceholder} />
@@ -495,12 +563,14 @@ const MonthlyDiaryCard = React.memo(function MonthlyDiaryCard({
 const TodayPhotoSection = React.memo(function TodayPhotoSection({
   activePetId,
   recordItems,
+  recordStatus,
   onPressRecordItem,
   onPressRecord,
   accentColor,
 }: {
   activePetId: string | null;
   recordItems: MemoryRecord[];
+  recordStatus: 'idle' | 'loading' | 'ready' | 'refreshing' | 'loadingMore' | 'error';
   onPressRecordItem: (memoryId: string) => void;
   onPressRecord: () => void;
   accentColor: string;
@@ -547,6 +617,10 @@ const TodayPhotoSection = React.memo(function TodayPhotoSection({
     if (todayPhoto.mode === 'random') return '오늘 꺼내보는 한 장';
     return '오늘의 사진';
   }, [todayPhoto.mode]);
+  const isRecordBootstrapPending =
+    (recordStatus === 'idle' || recordStatus === 'loading') &&
+    recordItems.length === 0 &&
+    !todayPhoto.record;
 
   return (
     <View style={styles.section}>
@@ -565,7 +639,16 @@ const TodayPhotoSection = React.memo(function TodayPhotoSection({
             : onPressRecord()
         }
       >
-        {!todayPhoto.record || !hasMemoryImage(todayPhoto.record) ? (
+        {isRecordBootstrapPending ? (
+          <View
+            style={[
+              styles.photoPlaceholder,
+              { justifyContent: 'center', alignItems: 'center' },
+            ]}
+          >
+            <ActivityIndicator size="large" color="#fff" />
+          </View>
+        ) : !todayPhoto.record || !hasMemoryImage(todayPhoto.record) ? (
           <View style={styles.photoPlaceholder} />
         ) : isTodayPhotoLoading ? (
           <View
@@ -1158,49 +1241,69 @@ const MemorySectionLead = React.memo(function MemorySectionLead({
 });
 
 const RecommendationTipsSection = React.memo(function RecommendationTipsSection({
-  title,
-  tips,
+  guides,
+  loading,
+  error,
+  isMemorial,
   petTheme,
+  onPressGuide,
+  onPressMore,
 }: {
-  title: string;
-  tips: Array<(typeof TIP_TEMPLATES)[number]>;
+  guides: PetCareGuide[];
+  loading: boolean;
+  error: string | null;
+  isMemorial: boolean;
   petTheme: ReturnType<typeof buildPetThemePalette>;
+  onPressGuide: (guideId: string) => void;
+  onPressMore: () => void;
 }) {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
         <Text style={[styles.tipSectionTitle, { color: petTheme.deep }]}>
-          {title}
+          {isMemorial ? '함께한 시간을 돌아보는 홈' : '우리 아이를 위한 추천 팁'}
         </Text>
-      </View>
-
-      <View style={styles.tipList}>
-        {tips.map(item => (
-          <TouchableOpacity
-            key={item.key}
-            activeOpacity={0.92}
-            style={styles.tipCard}
-          >
-            <View style={[styles.tipThumb, { backgroundColor: petTheme.tint }]}>
-              <View style={styles.tipThumbInner}>
-                <Feather name={item.icon} size={20} color={petTheme.primary} />
-              </View>
-            </View>
-
-            <View style={styles.tipContent}>
-              <Text style={[styles.tipEyebrow, { color: petTheme.primary }]}>
-                {item.eyebrow}
-              </Text>
-              <Text style={styles.tipTitle} numberOfLines={2}>
-                {item.title}
-              </Text>
-              <Text style={styles.tipDescription} numberOfLines={2}>
-                {item.description}
-              </Text>
-            </View>
+        {!isMemorial ? (
+          <TouchableOpacity activeOpacity={0.85} onPress={onPressMore}>
+            <Text style={[styles.sectionLink, { color: petTheme.deep }]}>더보기</Text>
           </TouchableOpacity>
-        ))}
+        ) : null}
       </View>
+
+      {isMemorial ? (
+        <View style={styles.emptyBox}>
+          <Text style={styles.emptyTitle}>케어 추천은 잠시 쉬어둘게요</Text>
+          <Text style={styles.emptyDesc}>
+            함께한 시간을 조용히 돌아볼 수 있도록, 일반 케어 팁 대신 기록과 추억을 중심으로
+            홈을 보여드릴게요.
+          </Text>
+        </View>
+      ) : loading ? (
+        <View style={styles.emptyBox}>
+          <Text style={styles.emptyTitle}>추천 팁을 불러오는 중이에요</Text>
+          <Text style={styles.emptyDesc}>
+            우리 아이 기준으로 먼저 보여드릴 가이드를 정리하고 있어요.
+          </Text>
+        </View>
+      ) : error ? (
+        <View style={styles.emptyBox}>
+          <Text style={styles.emptyTitle}>추천 팁을 불러오지 못했어요</Text>
+          <Text style={styles.emptyDesc}>{error}</Text>
+        </View>
+      ) : (
+        <View style={styles.tipList}>
+          {guides.map(guide => (
+            <GuideRecommendationCard
+              key={guide.id}
+              guide={guide}
+              accentColor={petTheme.primary}
+              accentDeepColor={petTheme.deep}
+              tintColor={petTheme.tint}
+              onPress={onPressGuide}
+            />
+          ))}
+        </View>
+      )}
     </View>
   );
 });
@@ -1229,6 +1332,7 @@ const TodayHomeTipSection = React.memo(function TodayHomeTipSection({
 const TodayRecordsSection = React.memo(function TodayRecordsSection({
   activePetId,
   recordItems,
+  recordStatus,
   onPressTimeline,
   onPressRecord,
   onPressRecordItem,
@@ -1237,6 +1341,7 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
 }: {
   activePetId: string | null;
   recordItems: MemoryRecord[];
+  recordStatus: 'idle' | 'loading' | 'ready' | 'refreshing' | 'loadingMore' | 'error';
   onPressTimeline: () => void;
   onPressRecord: () => void;
   onPressRecordItem: (memoryId: string) => void;
@@ -1249,11 +1354,12 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
     [recordItems],
   );
   const hasMoreThanSlider = recordItems.length > TODAY_RECORDS_MAX;
+  const isRecordBootstrapPending =
+    (recordStatus === 'idle' || recordStatus === 'loading') &&
+    recordItems.length === 0;
 
   const listRef = useRef<FlatList<MemoryRecord> | null>(null);
-  const startTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const preloadSignatureRef = useRef('');
   const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
   const screenW = Dimensions.get('window').width;
   const slideGap = 14;
@@ -1266,60 +1372,10 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
 
   const scrollX = useSharedValue(0);
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
-  const [isUserInteracting, setIsUserInteracting] = useState(false);
-  const activeItem = todayRecords[activeSlideIndex] ?? todayRecords[0] ?? null;
-  const nextAutoSlideIndex =
-    todayRecords.length <= 1
-      ? 0
-      : activeSlideIndex >= todayRecords.length - 1
-        ? 0
-        : activeSlideIndex + 1;
-  const nextAutoSlideItem = todayRecords[nextAutoSlideIndex] ?? null;
-  const activeImageRef = activeItem ? getPrimaryMemoryImageRef(activeItem) : null;
-  const nextAutoSlideImageRef = nextAutoSlideItem
-    ? getPrimaryMemoryImageRef(nextAutoSlideItem)
-    : null;
-  const { resolved: activeImageResolved } = useSignedMemoryImage(activeImageRef, {
-    enabled: Boolean(activeImageRef),
-    trackLoading: false,
-  });
-  const { resolved: nextAutoSlideImageResolved } = useSignedMemoryImage(
-    nextAutoSlideImageRef,
-    {
-      enabled: Boolean(nextAutoSlideImageRef),
-      trackLoading: false,
-    },
-  );
-  const activeItemVisualReady = activeItem ? !hasMemoryImage(activeItem) || activeImageResolved : false;
-  const nextItemVisualReady = nextAutoSlideItem
-    ? !hasMemoryImage(nextAutoSlideItem) || nextAutoSlideImageResolved
-    : false;
-  const shouldAutoSlide =
-    isFocused &&
-    appState === 'active' &&
-    todayRecords.length >= 2 &&
-    activeItemVisualReady &&
-    nextItemVisualReady &&
-    !isUserInteracting;
-
-  const clearAutoSlideTimers = useCallback(() => {
-    if (startTimerRef.current) {
-      clearTimeout(startTimerRef.current);
-      startTimerRef.current = null;
-    }
-    if (resumeTimerRef.current) {
-      clearTimeout(resumeTimerRef.current);
-      resumeTimerRef.current = null;
-    }
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  }, []);
 
   useEffect(() => {
     setActiveSlideIndex(0);
-    setIsUserInteracting(false);
+    preloadSignatureRef.current = '';
     scrollX.value = 0;
   }, [activePetId, scrollX]);
 
@@ -1331,6 +1387,63 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
       sub.remove();
     };
   }, []);
+
+  useEffect(() => {
+    if (!isFocused || appState !== 'active') return;
+
+    const immediateTargets = todayRecords
+      .slice(
+        activeSlideIndex,
+        Math.min(
+          todayRecords.length,
+          activeSlideIndex + TODAY_RECORDS_IMMEDIATE_PREFETCH_COUNT,
+        ),
+      )
+      .map(record => getPrimaryMemoryImageRef(record))
+      .filter((value): value is string => Boolean(value));
+    const deferredTargets = todayRecords
+      .slice(
+        activeSlideIndex + TODAY_RECORDS_IMMEDIATE_PREFETCH_COUNT,
+        Math.min(
+          todayRecords.length,
+          activeSlideIndex + TODAY_RECORDS_DEFERRED_PREFETCH_COUNT,
+        ),
+      )
+      .map(record => getPrimaryMemoryImageRef(record))
+      .filter((value): value is string => Boolean(value));
+
+    const signature = `${immediateTargets.join('|')}__${deferredTargets.join('|')}`;
+    if (!signature || signature === preloadSignatureRef.current) return;
+    preloadSignatureRef.current = signature;
+
+    let cancelled = false;
+    const preloadImmediate = async () => {
+      const urls = await getMemoryImageSignedUrlsCached(immediateTargets);
+      if (cancelled) return;
+      preloadOptimizedImages(urls.filter((url): url is string => Boolean(url)));
+    };
+
+    preloadImmediate().catch(() => {});
+
+    if (deferredTargets.length === 0) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const deferredTask = scheduleDeferredImagePreload(deferredTargets, {
+      batchSize: 2,
+      onUrls: urls => {
+        if (cancelled || urls.length === 0) return;
+        preloadOptimizedImages(urls);
+      },
+    });
+
+    return () => {
+      cancelled = true;
+      deferredTask.cancel();
+    };
+  }, [activeSlideIndex, appState, isFocused, todayRecords]);
 
   const progress = useDerivedValue(() => {
     if (snap <= 0) return 0;
@@ -1356,61 +1469,6 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
     },
   });
 
-  const scrollToIndex = useCallback(
-    (nextIndex: number, animated: boolean) => {
-      if (snap <= 0 || todayRecords.length <= 1) return;
-      const clampedIndex = Math.max(0, Math.min(nextIndex, todayRecords.length - 1));
-      listRef.current?.scrollToOffset({
-        offset: clampedIndex * snap,
-        animated,
-      });
-      if (!animated) {
-        setActiveSlideIndex(clampedIndex);
-        scrollX.value = clampedIndex * snap;
-      }
-    },
-    [scrollX, snap, todayRecords.length],
-  );
-
-  const pauseAutoSlide = useCallback(() => {
-    clearAutoSlideTimers();
-    setIsUserInteracting(true);
-  }, [clearAutoSlideTimers]);
-
-  const scheduleAutoSlideResume = useCallback(() => {
-    clearAutoSlideTimers();
-    resumeTimerRef.current = setTimeout(() => {
-      setIsUserInteracting(false);
-    }, 5000);
-  }, [clearAutoSlideTimers]);
-
-  const handleMomentumEnd = useCallback(
-    (offsetX: number) => {
-      onSlideMomentumEnd(offsetX);
-      scheduleAutoSlideResume();
-    },
-    [onSlideMomentumEnd, scheduleAutoSlideResume],
-  );
-
-  useEffect(() => {
-    clearAutoSlideTimers();
-    if (!shouldAutoSlide) return;
-
-    startTimerRef.current = setTimeout(() => {
-      intervalRef.current = setInterval(() => {
-        setActiveSlideIndex(prev => {
-          const nextIndex = prev >= todayRecords.length - 1 ? 0 : prev + 1;
-          scrollToIndex(nextIndex, true);
-          return nextIndex;
-        });
-      }, 4500);
-    }, 2000);
-
-    return () => {
-      clearAutoSlideTimers();
-    };
-  }, [clearAutoSlideTimers, scrollToIndex, shouldAutoSlide, todayRecords.length]);
-
   const renderTodayRecord = useCallback<ListRenderItem<MemoryRecord>>(
     ({ item, index }) => {
       if (index === undefined) return null;
@@ -1422,7 +1480,7 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
           snap={snap}
           scrollX={scrollX}
           onPress={onPressRecordItem}
-          eagerImage={Math.abs(index - activeSlideIndex) <= 1}
+          eagerImage={index === activeSlideIndex || index === activeSlideIndex + 1}
         />
       );
     },
@@ -1448,7 +1506,12 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
         </TouchableOpacity>
       </View>
 
-      {todayRecords.length === 0 ? (
+      {isRecordBootstrapPending ? (
+        <View style={styles.emptyBox}>
+          <ActivityIndicator size="small" color={accentDeepColor} />
+          <Text style={styles.emptyDesc}>기록을 불러오는 중이에요.</Text>
+        </View>
+      ) : todayRecords.length === 0 ? (
         <View style={styles.emptyBox}>
           <Text style={styles.emptyTitle}>아직 기록이 없어요</Text>
           <Text style={styles.emptyDesc}>첫 번째 추억을 남겨보세요.</Text>
@@ -1483,10 +1546,8 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
             disableIntervalMomentum={false}
             onScroll={slideScrollHandler}
             onMomentumScrollEnd={event => {
-              handleMomentumEnd(event.nativeEvent.contentOffset.x);
+              onSlideMomentumEnd(event.nativeEvent.contentOffset.x);
             }}
-            onScrollBeginDrag={pauseAutoSlide}
-            onTouchStart={pauseAutoSlide}
             scrollEventThrottle={16}
             initialNumToRender={3}
             maxToRenderPerBatch={3}
@@ -1895,7 +1956,6 @@ export default function LoggedInHome() {
   // ---------------------------------------------------------
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
-  const rootNavigation = navigation as unknown as RootNav;
 
   // ---------------------------------------------------------
   // 1) auth
@@ -1950,6 +2010,9 @@ export default function LoggedInHome() {
 
   const recordItems = useRecordStore(s =>
     activePetId ? s.byPetId[activePetId]?.items ?? EMPTY_RECORD_ITEMS : EMPTY_RECORD_ITEMS,
+  );
+  const recordStatus = useRecordStore(s =>
+    activePetId ? s.byPetId[activePetId]?.status ?? 'idle' : 'idle',
   );
   const scheduleItems = useScheduleStore(s =>
     activePetId
@@ -2125,8 +2188,8 @@ export default function LoggedInHome() {
   // 7) actions
   // ---------------------------------------------------------
   const onPressAddPet = useCallback(() => {
-    rootNavigation.navigate('PetCreate', { from: 'header_plus' });
-  }, [rootNavigation]);
+    navigation.navigate('PetCreate', { from: 'header_plus' });
+  }, [navigation]);
 
   const onPressTimeline = useCallback(() => {
     navigation.navigate('TimelineTab', {
@@ -2139,25 +2202,25 @@ export default function LoggedInHome() {
   }, [navigation, activePetId]);
 
   const onPressScheduleList = useCallback(() => {
-    rootNavigation.navigate('ScheduleList', {
+    navigation.navigate('ScheduleList', {
       petId: activePetId ?? undefined,
     });
-  }, [activePetId, rootNavigation]);
+  }, [activePetId, navigation]);
 
   const onPressScheduleCreate = useCallback(() => {
-    rootNavigation.navigate('ScheduleCreate', {
+    navigation.navigate('ScheduleCreate', {
       petId: activePetId ?? undefined,
     });
-  }, [activePetId, rootNavigation]);
+  }, [activePetId, navigation]);
 
   const onPressPetProfileEdit = useCallback(() => {
     if (!activePetId) return;
-    rootNavigation.navigate('PetProfileEdit', { petId: activePetId });
-  }, [activePetId, rootNavigation]);
+    navigation.navigate('PetProfileEdit', { petId: activePetId });
+  }, [activePetId, navigation]);
 
   const onPressWeatherInsight = useCallback(() => {
-    rootNavigation.navigate('WeatherInsight', weatherInsightParams);
-  }, [rootNavigation, weatherInsightParams]);
+    navigation.navigate('WeatherInsight', weatherInsightParams);
+  }, [navigation, weatherInsightParams]);
 
   const onPressTimelineCategory = useCallback(
     (
@@ -2249,20 +2312,29 @@ export default function LoggedInHome() {
   );
 
   const quickActionCards = HOME_SHORTCUTS;
-
-  const tipsSectionTitle = useMemo(() => {
-    return `${plainPetName}${pickObjectParticle(plainPetName)} 위한 추천 팁`;
-  }, [plainPetName]);
-
-  const recommendationTips = useMemo(() => {
-    return TIP_TEMPLATES.map(item => ({
-      ...item,
-      title:
-        item.key === 'meal'
-          ? `${plainPetName}에게 꼭 필요한 영양 루틴`
-          : item.title,
-    }));
-  }, [plainPetName]);
+  const sessionUserId = useAuthStore(s => s.session?.user.id ?? null);
+  const homeGuideContext = useMemo(
+    () => ({
+      userId: sessionUserId,
+      petId: activePetId,
+      species: selectedPet?.species ?? null,
+      speciesDetailKey: selectedPet?.speciesDetailKey ?? null,
+      speciesDisplayName: selectedPet?.speciesDisplayName ?? null,
+      birthDate: selectedPet?.birthDate ?? null,
+      deathDate: selectedPet?.deathDate ?? null,
+    }),
+    [
+      activePetId,
+      selectedPet?.birthDate,
+      selectedPet?.deathDate,
+      selectedPet?.species,
+      selectedPet?.speciesDetailKey,
+      selectedPet?.speciesDisplayName,
+      sessionUserId,
+    ],
+  );
+  const homeGuideState = useHomePetCareGuides(homeGuideContext);
+  const homeGuideExposureSignatureRef = useRef('');
 
   // ---------------------------------------------------------
   // 8) Accordion state (pet 변경 시 초기화)
@@ -2300,6 +2372,111 @@ export default function LoggedInHome() {
   const noopHeaderAction = useCallback(() => {
     // 추후 검색/알림 연결 전까지 레이아웃만 유지한다.
   }, []);
+
+  const onPressGuideList = useCallback(() => {
+    navigation.navigate('GuideList');
+  }, [navigation]);
+
+  const onPressGuideDetail = useCallback(
+    (guideId: string) => {
+      const selectedGuide =
+        homeGuideState.guides.find(guide => guide.id === guideId) ?? null;
+
+      recordPetCareGuideEvents([
+        {
+          userId: sessionUserId,
+          petId: activePetId,
+          guideId,
+          eventType: 'list_click',
+          placement: 'logged-in-home',
+          rotationWindowKey: getGuideRotationWindowKey(),
+          contextSpeciesGroup: selectedPet?.species ?? null,
+          contextSpeciesDetailKey: selectedPet?.speciesDetailKey ?? null,
+          contextAgeInMonths: getAgeInMonthsFromBirthDate(
+            selectedPet?.birthDate ?? null,
+          ),
+          metadata: selectedGuide
+            ? buildGuideEventMetadata({
+                guide: selectedGuide,
+                source: 'home-recommendation',
+                context: {
+                  species: selectedPet?.species ?? null,
+                  speciesDetailKey: selectedPet?.speciesDetailKey ?? null,
+                  speciesDisplayName: selectedPet?.speciesDisplayName ?? null,
+                  birthDate: selectedPet?.birthDate ?? null,
+                  deathDate: selectedPet?.deathDate ?? null,
+                },
+              })
+            : { source: 'home-recommendation' },
+        },
+      ]).catch(() => {});
+      navigation.navigate('GuideDetail', { guideId });
+    },
+    [
+      activePetId,
+      homeGuideState.guides,
+      navigation,
+      selectedPet?.birthDate,
+      selectedPet?.deathDate,
+      selectedPet?.species,
+      selectedPet?.speciesDetailKey,
+      selectedPet?.speciesDisplayName,
+      sessionUserId,
+    ],
+  );
+
+  useEffect(() => {
+    if (homeGuideState.loading) return;
+    if (homeGuideState.guides.length === 0) return;
+
+    const rotationWindowKey = getGuideRotationWindowKey();
+    const signature = [
+      sessionUserId ?? 'guest',
+      activePetId ?? 'no-pet',
+      rotationWindowKey,
+      ...homeGuideState.guides.map(guide => guide.id),
+    ].join(':');
+
+    if (homeGuideExposureSignatureRef.current === signature) return;
+    homeGuideExposureSignatureRef.current = signature;
+
+    recordPetCareGuideEvents(
+      homeGuideState.guides.map(guide => ({
+        userId: sessionUserId,
+        petId: activePetId,
+        guideId: guide.id,
+        eventType: 'home_impression',
+        placement: 'logged-in-home',
+        rotationWindowKey,
+        contextSpeciesGroup: selectedPet?.species ?? null,
+        contextSpeciesDetailKey: selectedPet?.speciesDetailKey ?? null,
+        contextAgeInMonths: getAgeInMonthsFromBirthDate(
+          selectedPet?.birthDate ?? null,
+        ),
+        metadata: buildGuideEventMetadata({
+          guide,
+          source: 'home-recommendation',
+          context: {
+            species: selectedPet?.species ?? null,
+            speciesDetailKey: selectedPet?.speciesDetailKey ?? null,
+            speciesDisplayName: selectedPet?.speciesDisplayName ?? null,
+            birthDate: selectedPet?.birthDate ?? null,
+            deathDate: selectedPet?.deathDate ?? null,
+          },
+        }),
+      })),
+    ).catch(() => {});
+  }, [
+    activePetId,
+    homeGuideState.guides,
+    homeGuideState.loading,
+    selectedPet?.birthDate,
+    selectedPet?.deathDate,
+    selectedPet?.species,
+    selectedPet?.speciesDetailKey,
+    selectedPet?.speciesDisplayName,
+    sessionUserId,
+  ]);
 
   // ---------------------------------------------------------
   // 10) render
@@ -2363,6 +2540,7 @@ export default function LoggedInHome() {
           <TodayPhotoSection
             activePetId={activePetId}
             recordItems={recordItems}
+            recordStatus={recordStatus}
             onPressRecordItem={onPressRecordItem}
             onPressRecord={onPressRecord}
             accentColor={petTheme.deep}
@@ -2371,6 +2549,7 @@ export default function LoggedInHome() {
           <TodayRecordsSection
             activePetId={activePetId}
             recordItems={recordItems}
+            recordStatus={recordStatus}
             onPressTimeline={onPressTimeline}
             onPressRecord={onPressRecord}
             onPressRecordItem={onPressRecordItem}
@@ -2388,9 +2567,13 @@ export default function LoggedInHome() {
           />
 
           <RecommendationTipsSection
-            title={tipsSectionTitle}
-            tips={recommendationTips}
+            guides={homeGuideState.guides}
+            loading={homeGuideState.loading}
+            error={homeGuideState.error}
+            isMemorial={isMemorialPet(selectedPet?.deathDate)}
             petTheme={petTheme}
+            onPressGuide={onPressGuideDetail}
+            onPressMore={onPressGuideList}
           />
 
           <ScheduleSection

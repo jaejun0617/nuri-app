@@ -10,6 +10,7 @@ import {
   captureMonitoringMessage,
 } from '../monitoring/sentry';
 import { fetchMemoryById, updateMemoryImagePaths } from '../supabase/memories';
+import { supabase } from '../supabase/client';
 import {
   deleteMemoryImage,
   uploadMemoryImage,
@@ -140,7 +141,7 @@ async function loadQueue(): Promise<PendingMemoryUploadTask[]> {
   if (!raw) return [];
 
   try {
-    const parsed = JSON.parse(raw) as LegacyPendingMemoryUploadTask[];
+    const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed)) return [];
     return parsed
       .map(normalizeTask)
@@ -315,12 +316,41 @@ function pickNextTask(queue: PendingMemoryUploadTask[]) {
     })[0] ?? null;
 }
 
-export async function processPendingMemoryUploads(): Promise<ProcessPendingMemoryUploadsResult> {
+async function resolveActiveQueueUserId(userId?: string | null) {
+  const normalizedUserId = normalizeString(userId);
+  if (normalizedUserId) return normalizedUserId;
+
+  const { data } = await supabase.auth.getUser();
+  return normalizeString(data.user?.id) || null;
+}
+
+function pickNextTaskForUser(
+  queue: PendingMemoryUploadTask[],
+  userId: string,
+) {
+  return pickNextTask(queue.filter(task => task.userId === userId));
+}
+
+export async function processPendingMemoryUploads(input?: {
+  userId?: string | null;
+}): Promise<ProcessPendingMemoryUploadsResult> {
+  const activeUserId = await resolveActiveQueueUserId(input?.userId);
+  if (!activeUserId) {
+    return {
+      processed: 0,
+      succeeded: 0,
+      failed: 0,
+      touchedPetIds: [],
+      succeededTaskIds: [],
+      failedTaskIds: [],
+    };
+  }
+
   if (processingPromise) {
     await processingPromise;
     const remainingQueue = await loadQueue();
-    if (pickNextTask(remainingQueue)) {
-      return processPendingMemoryUploads();
+    if (pickNextTaskForUser(remainingQueue, activeUserId)) {
+      return processPendingMemoryUploads({ userId: activeUserId });
     }
     return {
       processed: 0,
@@ -341,8 +371,13 @@ export async function processPendingMemoryUploads(): Promise<ProcessPendingMemor
     let failed = 0;
 
     while (true) {
+      const latestActiveUserId = await resolveActiveQueueUserId(activeUserId);
+      if (latestActiveUserId !== activeUserId) {
+        break;
+      }
+
       const queue = await loadQueue();
-      const task = pickNextTask(queue);
+      const task = pickNextTaskForUser(queue, activeUserId);
       if (!task) break;
 
       claimedTaskIds.add(task.taskId);
