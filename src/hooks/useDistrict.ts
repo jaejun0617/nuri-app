@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { createLatestRequestController } from '../services/app/async';
 import type { DeviceCoordinates } from '../services/location/currentPosition';
 import {
+  getFallbackDistrictLabel,
   normalizeDistrictLabel,
   resolveDistrictFromCoordinates,
 } from '../services/location/district';
@@ -68,10 +69,15 @@ export function useDistrict(input: {
     }
 
     const coordinates = input.coordinates;
+    const fallbackDistrict = getFallbackDistrictLabel(coordinates);
 
     async function run() {
       const requestId = request.begin();
       setLoading(true);
+      setDistrict(fallbackDistrict);
+      setCity(null);
+      setProvince(null);
+      setSource('fallback');
       setError(null);
 
       try {
@@ -83,6 +89,10 @@ export function useDistrict(input: {
         setSource(resolved.source);
       } catch (nextError) {
         if (!request.isCurrent(requestId)) return;
+        setDistrict(fallbackDistrict);
+        setCity(null);
+        setProvince(null);
+        setSource('fallback');
         setError(
           nextError instanceof Error && nextError.message.trim()
             ? nextError.message

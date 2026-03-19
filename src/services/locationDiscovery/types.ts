@@ -1,6 +1,31 @@
 import type { DeviceCoordinates } from '../location/currentPosition';
 
 export type LocationDiscoveryDomain = 'walk' | 'pet-friendly-place';
+export type LocationDiscoverySource = 'kakao' | 'supabase';
+export type LocationDiscoveryVerificationStatus =
+  | 'service-ranked'
+  | 'unknown'
+  | 'keyword-inferred'
+  | 'user-reported'
+  | 'admin-verified'
+  | 'rejected';
+export type LocationDiscoveryVerificationTone =
+  | 'neutral'
+  | 'caution'
+  | 'positive'
+  | 'critical';
+export type LocationDiscoverySortOption =
+  | 'recommended'
+  | 'distance-asc'
+  | 'distance-desc';
+export type LocationDiscoveryItemKind =
+  | 'walk-spot'
+  | 'cafe'
+  | 'restaurant'
+  | 'indoor-space'
+  | 'outdoor-space'
+  | 'pet-friendly-place';
+export type LocationDiscoverySourceType = 'external-api' | 'service-meta';
 
 export type LocationDiscoverySearchScope = {
   displayLabel: string;
@@ -18,6 +43,7 @@ export type LocationDiscoverySearchInput = {
 export type LocationDiscoveryItem = {
   id: string;
   domain: LocationDiscoveryDomain;
+  kind: LocationDiscoveryItemKind;
   name: string;
   description: string;
   categoryLabel: string;
@@ -30,15 +56,34 @@ export type LocationDiscoveryItem = {
   longitude: number;
   placeUrl: string | null;
   phone: string | null;
-  petNotice: string | null;
+  operatingStatusLabel: string | null;
+  source: {
+    provider: LocationDiscoverySource;
+    providerLabel: string;
+    type: LocationDiscoverySourceType;
+    externalPlaceId: string | null;
+  };
+  verification: {
+    status: LocationDiscoveryVerificationStatus;
+    label: string;
+    description: string;
+    tone: LocationDiscoveryVerificationTone;
+    sourceLabel: string;
+    requiresConfirmation: boolean;
+  };
+  petPolicy: {
+    summaryLabel: string | null;
+    detail: string | null;
+  };
+  coordinateLabel: string;
   mapPreviewUrl: string;
 };
 
 export type LocationDiscoveryResponse = {
   items: LocationDiscoveryItem[];
   query: string | null;
-  source: 'kakao';
-  verificationStatus: 'verified' | 'unverified';
+  source: LocationDiscoverySource;
+  verificationStatus: LocationDiscoveryVerificationStatus;
   scope: LocationDiscoverySearchScope;
 };
 

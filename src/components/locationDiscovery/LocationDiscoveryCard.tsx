@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 
@@ -15,8 +15,32 @@ type Props = {
   onPress: (item: LocationDiscoveryItem) => void;
 };
 
-export default function LocationDiscoveryCard({ item, onPress }: Props) {
+function LocationDiscoveryCard({ item, onPress }: Props) {
   const durationLabel = formatDurationLabel(item.estimatedMinutes);
+  const verificationBadgeStyle = (() => {
+    switch (item.verification.tone) {
+      case 'positive':
+        return styles.cardVerificationBadgePositive;
+      case 'critical':
+        return styles.cardVerificationBadgeCritical;
+      case 'caution':
+        return styles.cardVerificationBadgeCaution;
+      default:
+        return styles.cardVerificationBadgeNeutral;
+    }
+  })();
+  const verificationTextStyle = (() => {
+    switch (item.verification.tone) {
+      case 'positive':
+        return styles.cardVerificationBadgeTextPositive;
+      case 'critical':
+        return styles.cardVerificationBadgeTextCritical;
+      case 'caution':
+        return styles.cardVerificationBadgeTextCaution;
+      default:
+        return styles.cardVerificationBadgeTextNeutral;
+    }
+  })();
 
   return (
     <TouchableOpacity
@@ -45,6 +69,22 @@ export default function LocationDiscoveryCard({ item, onPress }: Props) {
         </AppText>
       </View>
 
+      <View style={styles.cardBadgeRow}>
+        <View style={styles.cardSourceBadge}>
+          <AppText preset="caption" style={styles.cardSourceBadgeText}>
+            {item.source.providerLabel}
+          </AppText>
+        </View>
+        <View style={[styles.cardVerificationBadge, verificationBadgeStyle]}>
+          <AppText
+            preset="caption"
+            style={[styles.cardVerificationBadgeText, verificationTextStyle]}
+          >
+            {item.verification.label}
+          </AppText>
+        </View>
+      </View>
+
       <AppText preset="body" style={styles.cardDescription}>
         {item.description}
       </AppText>
@@ -56,6 +96,12 @@ export default function LocationDiscoveryCard({ item, onPress }: Props) {
             {item.address}
           </AppText>
         </View>
+        <View style={styles.cardMetaPill}>
+          <Feather name="crosshair" size={12} color="#7B8597" />
+          <AppText preset="caption" style={styles.cardMetaText}>
+            {item.coordinateLabel}
+          </AppText>
+        </View>
         {durationLabel ? (
           <View style={styles.cardMetaPill}>
             <Feather name="clock" size={12} color="#7B8597" />
@@ -64,13 +110,23 @@ export default function LocationDiscoveryCard({ item, onPress }: Props) {
             </AppText>
           </View>
         ) : null}
+        {item.operatingStatusLabel ? (
+          <View style={styles.cardMetaPill}>
+            <Feather name="clock" size={12} color="#7B8597" />
+            <AppText preset="caption" style={styles.cardMetaText}>
+              {item.operatingStatusLabel}
+            </AppText>
+          </View>
+        ) : null}
       </View>
 
-      {item.petNotice ? (
+      {item.petPolicy.detail ? (
         <AppText preset="caption" style={styles.cardNotice}>
-          {item.petNotice}
+          {item.petPolicy.detail}
         </AppText>
       ) : null}
     </TouchableOpacity>
   );
 }
+
+export default memo(LocationDiscoveryCard);

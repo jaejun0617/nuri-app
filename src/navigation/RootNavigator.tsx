@@ -101,6 +101,7 @@ export type RootStackParamList = {
   PetFriendlyPlaceList: undefined;
   PetFriendlyPlaceDetail: {
     item: LocationDiscoveryItem;
+    resultItems?: LocationDiscoveryItem[];
   };
   GuideAdminList: undefined;
   GuideAdminEditor:

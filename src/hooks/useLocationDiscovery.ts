@@ -1,13 +1,20 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 
 import { useCurrentLocation } from './useCurrentLocation';
 import { useDistrict } from './useDistrict';
 import { searchLocationDiscovery } from '../services/locationDiscovery/service';
+import {
+  getLocationAgeMs,
+  isFreshLocationCoordinates,
+  LOCATION_AUTO_REFRESH_INTERVAL_MS,
+} from '../services/location/currentPosition';
 import type {
   LocationDiscoveryDomain,
   LocationDiscoveryItem,
   LocationDiscoverySearchScope,
+  LocationDiscoveryVerificationStatus,
 } from '../services/locationDiscovery/types';
 
 export type LocationDiscoveryState = {
@@ -16,12 +23,14 @@ export type LocationDiscoveryState = {
   searching: boolean;
   items: LocationDiscoveryItem[];
   error: string | null;
-  verificationStatus: 'verified' | 'unverified';
+  verificationStatus: LocationDiscoveryVerificationStatus;
   permission: ReturnType<typeof useCurrentLocation>['permission'];
   coordinates: ReturnType<typeof useCurrentLocation>['coordinates'];
   district: string | null;
   normalizedDistrict: string | null;
   city: string | null;
+  hasFreshLocation: boolean;
+  usingStaleLocation: boolean;
   scope: LocationDiscoverySearchScope;
   refresh: () => Promise<void>;
 };
@@ -44,6 +53,7 @@ export function useLocationDiscovery(input: {
     () => input.query.trim().replace(/\s+/g, ' '),
     [input.query],
   );
+  const refreshLocation = locationState.refresh;
   const hasSearchQuery = normalizedQuery.length >= 2;
   const coordinatesKey = locationState.coordinates
     ? `${locationState.coordinates.latitude.toFixed(3)}:${locationState.coordinates.longitude.toFixed(3)}`
@@ -52,15 +62,29 @@ export function useLocationDiscovery(input: {
   const normalizedDistrict = districtState.normalizedDistrict?.trim() || district;
   const scope = useMemo<LocationDiscoverySearchScope>(
     () => ({
-      displayLabel: district ?? '현재 위치',
+      displayLabel:
+        !locationState.isFresh && locationState.loading
+          ? '새 위치 확인 중'
+          : district ?? (locationState.isFresh ? '현재 위치' : '최근 확인 위치'),
       queryLabel:
         districtState.city && district
           ? `${districtState.city} ${district}`.trim()
           : district,
       anchorCoordinates: locationState.coordinates,
-      distanceLabel: '현재 위치 기준',
+      distanceLabel:
+        !locationState.isFresh && locationState.loading
+          ? '새 위치 확인 중'
+          : locationState.isFresh
+            ? '현재 위치 기준'
+            : '최근 확인 위치 기준',
     }),
-    [district, districtState.city, locationState.coordinates],
+    [
+      district,
+      districtState.city,
+      locationState.coordinates,
+      locationState.isFresh,
+      locationState.loading,
+    ],
   );
 
   const query = useQuery({
@@ -76,11 +100,37 @@ export function useLocationDiscovery(input: {
         scope,
         useNearbySearch: !hasSearchQuery,
       }),
-    enabled: hasSearchQuery || Boolean(locationState.coordinates),
+    enabled: hasSearchQuery || (Boolean(locationState.coordinates) && locationState.isFresh),
     staleTime: 2 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     placeholderData: previous => previous,
   });
+
+  const shouldRefreshLocation = useCallback(() => {
+    if (!locationState.coordinates) return true;
+    if (!locationState.isFresh) return true;
+
+    const ageMs = getLocationAgeMs(locationState.coordinates);
+    return ageMs === null || ageMs >= LOCATION_AUTO_REFRESH_INTERVAL_MS;
+  }, [locationState.coordinates, locationState.isFresh]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!shouldRefreshLocation()) {
+        return undefined;
+      }
+
+      (async () => {
+        const nextCoordinates = await refreshLocation();
+        if (hasSearchQuery || !isFreshLocationCoordinates(nextCoordinates)) {
+          return;
+        }
+        await query.refetch();
+      })().catch(() => {});
+
+      return undefined;
+    }, [hasSearchQuery, query, refreshLocation, shouldRefreshLocation]),
+  );
 
   return {
     loading:
@@ -88,21 +138,29 @@ export function useLocationDiscovery(input: {
       query.isLoading,
     refreshing: query.isRefetching && !hasSearchQuery,
     searching: query.isFetching && hasSearchQuery,
-    items: query.data?.items ?? [],
+    items:
+      !hasSearchQuery && !locationState.isFresh ? [] : query.data?.items ?? [],
     error:
       (query.error instanceof Error ? query.error.message : null) ??
       (!hasSearchQuery ? locationState.error : null),
-    verificationStatus: query.data?.verificationStatus ?? 'unverified',
+    verificationStatus: query.data?.verificationStatus ?? 'unknown',
     permission: locationState.permission,
     coordinates: locationState.coordinates,
     district,
     normalizedDistrict,
     city: districtState.city,
+    hasFreshLocation: locationState.isFresh,
+    usingStaleLocation: locationState.isStale,
     scope: query.data?.scope ?? scope,
     refresh: async () => {
-      if (!hasSearchQuery) {
-        await locationState.refresh();
+      const nextCoordinates = hasSearchQuery
+        ? locationState.coordinates
+        : await refreshLocation();
+
+      if (!hasSearchQuery && !isFreshLocationCoordinates(nextCoordinates)) {
+        return;
       }
+
       await query.refetch();
     },
   };

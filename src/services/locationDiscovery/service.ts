@@ -1,12 +1,16 @@
 import type { DeviceCoordinates } from '../location/currentPosition';
+import type { PetFriendlyPlaceServiceMeta } from './placeMeta';
+import { loadPetFriendlyPlaceServiceMeta } from './placeMeta';
 import { buildStaticMapPreviewUrl } from './maps';
 import { kakaoLocalSearchProvider } from './kakaoLocal';
 import type {
   KakaoPlaceDocument,
   LocationDiscoveryDomain,
   LocationDiscoveryItem,
+  LocationDiscoveryItemKind,
   LocationDiscoveryResponse,
   LocationDiscoverySearchInput,
+  LocationDiscoveryVerificationStatus,
 } from './types';
 
 const WALK_BASE_KEYWORDS = [
@@ -21,7 +25,13 @@ const WALK_BASE_KEYWORDS = [
   '둘레길',
   '숲길',
 ] as const;
-const PLACE_DEFAULT_QUERIES = ['애견동반 카페', '애견동반 식당'] as const;
+const PLACE_DEFAULT_QUERIES = [
+  '애견동반 카페',
+  '애견동반 식당',
+  '반려동물 동반',
+  '애견카페',
+  '반려견 운동장',
+] as const;
 const WALK_POSITIVE_KEYWORDS = [
   '공원',
   '도시근린공원',
@@ -89,6 +99,63 @@ const WALK_STRONG_PRIORITY_KEYWORDS = [
   '숲길',
 ] as const;
 const DEFAULT_QUERY_PAGE_SIZE = 15;
+const PET_POSITIVE_KEYWORDS = [
+  '애견',
+  '반려',
+  '펫',
+  '동반',
+  '테라스',
+  '야외',
+  '운동장',
+  '놀이터',
+] as const;
+const PET_NEGATIVE_KEYWORDS = [
+  '동물병원',
+  '병원',
+  '약국',
+  '호텔',
+  '유치원',
+  '미용',
+  '용품',
+  '펫샵',
+  '마트',
+  '아파트',
+  '오피스텔',
+  '정류장',
+  '주차장',
+  '게이트',
+  '출입구',
+  '학교',
+  '학원',
+] as const;
+
+type NormalizedPlaceBase = {
+  id: string;
+  kind: LocationDiscoveryItemKind;
+  name: string;
+  description: string;
+  categoryLabel: string;
+  address: string;
+  roadAddress: string | null;
+  distanceMeters: number | null;
+  distanceLabel: string;
+  estimatedMinutes: number | null;
+  latitude: number;
+  longitude: number;
+  placeUrl: string | null;
+  phone: string | null;
+  coordinateLabel: string;
+  externalPlaceId: string | null;
+};
+
+type NormalizedPetFriendlyCandidate = NormalizedPlaceBase & {
+  domain: 'pet-friendly-place';
+  hasKeywordEvidence: boolean;
+};
+
+function formatCoordinateLabel(latitude: number, longitude: number): string {
+  return `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+}
 
 function normalizeQuery(value: string | null | undefined): string | null {
   const normalized = (value ?? '').trim().replace(/\s+/g, ' ');
@@ -137,22 +204,40 @@ function buildWalkDescription(document: KakaoPlaceDocument): string {
     document.category_group_name?.trim() ||
     document.category_name?.split('>').pop()?.trim() ||
     '산책 장소';
-  const area = document.road_address_name?.trim() || document.address_name?.trim() || '';
+  const area =
+    document.road_address_name?.trim() || document.address_name?.trim() || '';
   if (!area) {
     return `${category} 주변을 가볍게 둘러보기 좋아요.`;
   }
   return `${area} 근처에서 ${category} 분위기를 느끼며 걷기 좋아요.`;
 }
 
-function buildPetFriendlyNotice(document: KakaoPlaceDocument): string {
-  const category =
-    document.category_name?.split('>').pop()?.trim() ||
-    document.category_group_name?.trim() ||
-    '매장';
-  return `${category} 방문 전 실제 반려동물 동반 가능 여부를 꼭 다시 확인해 주세요.`;
+function buildPetFriendlyDescription(
+  document: KakaoPlaceDocument,
+  kind: LocationDiscoveryItemKind,
+): string {
+  const address =
+    document.road_address_name?.trim() || document.address_name?.trim();
+  const areaLabel = address ? `${address} 근처에서` : '근처에서';
+
+  switch (kind) {
+    case 'cafe':
+      return `${areaLabel} 쉬어가기 좋은 펫동반 카페 후보예요.`;
+    case 'restaurant':
+      return `${areaLabel} 식사와 함께 들르기 좋은 펫동반 식당 후보예요.`;
+    case 'outdoor-space':
+      return `${areaLabel} 야외에서 머물기 좋은 펫동반 공간 후보예요.`;
+    case 'indoor-space':
+      return `${areaLabel} 실내에서 머물기 좋은 펫동반 공간 후보예요.`;
+    default:
+      return `${areaLabel} 들르기 좋은 펫동반 장소 후보예요.`;
+  }
 }
 
-function matchesPositiveKeyword(value: string, keywords: ReadonlyArray<string>): boolean {
+function matchesPositiveKeyword(
+  value: string,
+  keywords: ReadonlyArray<string>,
+): boolean {
   return keywords.some(keyword => value.includes(keyword));
 }
 
@@ -193,11 +278,70 @@ function getWalkPriority(item: LocationDiscoveryItem): number {
   return WALK_STRONG_PRIORITY_KEYWORDS.length;
 }
 
-function dedupeItems(items: ReadonlyArray<LocationDiscoveryItem>): LocationDiscoveryItem[] {
+function inferPetFriendlyPlaceKind(
+  document: KakaoPlaceDocument,
+): LocationDiscoveryItemKind {
+  const category = `${document.category_group_name ?? ''} ${
+    document.category_name ?? ''
+  }`;
+  const name = document.place_name?.trim() || '';
+  const haystack = `${name} ${category}`;
+
+  if (/(카페|커피|디저트)/.test(haystack)) return 'cafe';
+  if (/(음식점|식당|레스토랑|브런치|주점)/.test(haystack)) {
+    return 'restaurant';
+  }
+  if (/(공원|운동장|놀이터|테라스|정원|야외|둘레길|산책로)/.test(haystack)) {
+    return 'outdoor-space';
+  }
+  if (/(쇼룸|라운지|공방|스튜디오|전시|복합|실내)/.test(haystack)) {
+    return 'indoor-space';
+  }
+  return 'pet-friendly-place';
+}
+
+function filterPetFriendlyDocument(document: KakaoPlaceDocument): boolean {
+  const name = document.place_name?.trim() || '';
+  const category = document.category_name?.trim() || '';
+  const groupName = document.category_group_name?.trim() || '';
+  const haystack = `${name} ${category} ${groupName}`;
+
+  if (!name) return false;
+  if (matchesPositiveKeyword(haystack, PET_NEGATIVE_KEYWORDS)) {
+    return false;
+  }
+
+  return true;
+}
+
+function getPetFriendlyPriority(item: LocationDiscoveryItem): number {
+  const haystack = `${item.name} ${item.categoryLabel} ${item.description}`;
+  const hasPetKeyword =
+    item.verification.status === 'keyword-inferred' ||
+    matchesPositiveKeyword(haystack, PET_POSITIVE_KEYWORDS);
+
+  switch (item.kind) {
+    case 'cafe':
+      return hasPetKeyword ? 0 : 1;
+    case 'restaurant':
+      return hasPetKeyword ? 2 : 3;
+    case 'outdoor-space':
+      return hasPetKeyword ? 4 : 5;
+    case 'indoor-space':
+      return hasPetKeyword ? 6 : 7;
+    default:
+      return hasPetKeyword ? 8 : 9;
+  }
+}
+
+function dedupeItems(
+  items: ReadonlyArray<LocationDiscoveryItem>,
+): LocationDiscoveryItem[] {
   const map = new Map<string, LocationDiscoveryItem>();
 
   items.forEach(item => {
-    const key = item.id || `${item.name}:${item.latitude.toFixed(5)}:${item.longitude.toFixed(5)}`;
+    const key =
+      item.id || `${item.name}:${item.latitude.toFixed(5)}:${item.longitude.toFixed(5)}`;
     const existing = map.get(key);
     if (!existing) {
       map.set(key, item);
@@ -214,6 +358,106 @@ function dedupeItems(items: ReadonlyArray<LocationDiscoveryItem>): LocationDisco
   return [...map.values()];
 }
 
+function buildWalkVerification() {
+  return {
+    status: 'service-ranked' as const,
+    label: '서비스 추천',
+    description: '현재 위치와 산책 키워드를 기준으로 정리한 추천 결과예요.',
+    tone: 'neutral' as const,
+    sourceLabel: 'NURI 추천 정렬',
+    requiresConfirmation: false,
+  };
+}
+
+function buildPetFriendlyVerification(
+  status: Exclude<LocationDiscoveryVerificationStatus, 'service-ranked'>,
+  sourceType: 'external-only' | 'service-meta',
+) {
+  switch (status) {
+    case 'admin-verified':
+      return {
+        status,
+        label: '펫동반 가능',
+        description: '운영 검수 메타 기준으로 확인된 장소예요.',
+        tone: 'positive' as const,
+        sourceLabel: 'NURI 운영 검수',
+        requiresConfirmation: false,
+      };
+    case 'user-reported':
+      return {
+        status,
+        label: '사용자 제보 기반',
+        description: '사용자 제보가 있으니 방문 전 정책을 다시 확인해 주세요.',
+        tone: 'caution' as const,
+        sourceLabel: '사용자 제보',
+        requiresConfirmation: true,
+      };
+    case 'rejected':
+      return {
+        status,
+        label: '동반 불가 제보',
+        description: '동반 불가 제보가 있어 방문 전 반드시 매장에 확인해 주세요.',
+        tone: 'critical' as const,
+        sourceLabel: '서비스 메타',
+        requiresConfirmation: true,
+      };
+    case 'keyword-inferred':
+      return {
+        status,
+        label: '펫동반 가능성 있음',
+        description:
+          sourceType === 'service-meta'
+            ? '서비스 메타와 외부 후보를 함께 참고한 추정 결과예요.'
+            : '외부 검색 키워드 기반 후보예요. 현장 확인이 필요해요.',
+        tone: 'caution' as const,
+        sourceLabel:
+          sourceType === 'service-meta' ? '서비스 메타 + 외부 후보' : 'Kakao Local 후보',
+        requiresConfirmation: true,
+      };
+    case 'unknown':
+    default:
+      return {
+        status: 'unknown' as const,
+        label: '현장 확인 필요',
+        description:
+          sourceType === 'service-meta'
+            ? '서비스 메타가 아직 확정되지 않았어요. 방문 전 정책을 확인해 주세요.'
+            : '외부 장소 후보만 확보된 상태예요. 실제 반려동물 동반 가능 여부는 현장 확인이 필요해요.',
+        tone: 'caution' as const,
+        sourceLabel:
+          sourceType === 'service-meta' ? '서비스 메타 미확정' : 'Kakao Local 후보',
+        requiresConfirmation: true,
+      };
+  }
+}
+
+function getPetPolicySummaryLabel(
+  status: Exclude<LocationDiscoveryVerificationStatus, 'service-ranked'>,
+): string {
+  switch (status) {
+    case 'admin-verified':
+      return '펫동반 가능';
+    case 'keyword-inferred':
+      return '펫동반 가능성 있음';
+    case 'user-reported':
+      return '사용자 제보 기반';
+    case 'rejected':
+      return '동반 불가 제보';
+    case 'unknown':
+    default:
+      return '현장 확인 필요';
+  }
+}
+
+function buildExternalPetPolicyNote(document: KakaoPlaceDocument): string {
+  const category =
+    document.category_name?.split('>').pop()?.trim() ||
+    document.category_group_name?.trim() ||
+    '매장';
+
+  return `${category} 방문 전 실제 반려동물 동반 가능 여부와 입장 조건을 꼭 다시 확인해 주세요.`;
+}
+
 function toWalkItem(
   document: KakaoPlaceDocument,
   distanceReferenceCoordinates: DeviceCoordinates | null,
@@ -222,7 +466,8 @@ function toWalkItem(
   const latitude = parseCoordinate(document.y);
   const longitude = parseCoordinate(document.x);
   const name = document.place_name?.trim() || '';
-  const address = document.road_address_name?.trim() || document.address_name?.trim() || '';
+  const address =
+    document.road_address_name?.trim() || document.address_name?.trim() || '';
 
   if (!latitude || !longitude || !name || !address) {
     return null;
@@ -238,6 +483,7 @@ function toWalkItem(
   return {
     id: document.id?.trim() || `${name}:${latitude}:${longitude}`,
     domain: 'walk',
+    kind: 'walk-spot',
     name,
     description: buildWalkDescription(document),
     categoryLabel:
@@ -253,34 +499,54 @@ function toWalkItem(
     longitude,
     placeUrl: document.place_url?.trim() || null,
     phone: document.phone?.trim() || null,
-    petNotice: null,
+    operatingStatusLabel: null,
+    source: {
+      provider: 'kakao',
+      providerLabel: 'Kakao Local',
+      type: 'external-api',
+      externalPlaceId: document.id?.trim() || null,
+    },
+    verification: buildWalkVerification(),
+    petPolicy: {
+      summaryLabel: null,
+      detail: null,
+    },
+    coordinateLabel: formatCoordinateLabel(latitude, longitude),
     mapPreviewUrl: buildStaticMapPreviewUrl({ latitude, longitude }),
   };
 }
 
-function toPetFriendlyPlaceItem(
+function toNormalizedPetFriendlyCandidate(
   document: KakaoPlaceDocument,
   distanceReferenceCoordinates: DeviceCoordinates | null,
   distanceLabel: string,
-): LocationDiscoveryItem | null {
+): NormalizedPetFriendlyCandidate | null {
   const latitude = parseCoordinate(document.y);
   const longitude = parseCoordinate(document.x);
   const name = document.place_name?.trim() || '';
-  const address = document.road_address_name?.trim() || document.address_name?.trim() || '';
+  const address =
+    document.road_address_name?.trim() || document.address_name?.trim() || '';
 
   if (!latitude || !longitude || !name || !address) {
     return null;
   }
 
+  const kind = inferPetFriendlyPlaceKind(document);
+  const categoryLabel =
+    document.category_name?.split('>').pop()?.trim() ||
+    document.category_group_name?.trim() ||
+    '펫동반 장소';
+  const keywordHaystack = `${name} ${categoryLabel} ${
+    document.category_name ?? ''
+  } ${document.category_group_name ?? ''}`;
+
   return {
     id: document.id?.trim() || `${name}:${latitude}:${longitude}`,
     domain: 'pet-friendly-place',
+    kind,
     name,
-    description: `${address} 주변에서 쉬어가기 좋은 펫동반 장소예요.`,
-    categoryLabel:
-      document.category_name?.split('>').pop()?.trim() ||
-      document.category_group_name?.trim() ||
-      '펫동반 장소',
+    description: buildPetFriendlyDescription(document, kind),
+    categoryLabel,
     address,
     roadAddress: document.road_address_name?.trim() || null,
     distanceMeters: parseDistanceMeters(
@@ -295,8 +561,60 @@ function toPetFriendlyPlaceItem(
     longitude,
     placeUrl: document.place_url?.trim() || null,
     phone: document.phone?.trim() || null,
-    petNotice: buildPetFriendlyNotice(document),
-    mapPreviewUrl: buildStaticMapPreviewUrl({ latitude, longitude }),
+    coordinateLabel: formatCoordinateLabel(latitude, longitude),
+    externalPlaceId: document.id?.trim() || null,
+    hasKeywordEvidence: matchesPositiveKeyword(keywordHaystack, PET_POSITIVE_KEYWORDS),
+  };
+}
+
+function mergePetFriendlyCandidate(
+  candidate: NormalizedPetFriendlyCandidate,
+  document: KakaoPlaceDocument,
+  serviceMeta: PetFriendlyPlaceServiceMeta | undefined,
+): LocationDiscoveryItem {
+  const verificationStatus =
+    serviceMeta?.verificationStatus ??
+    (candidate.hasKeywordEvidence ? 'keyword-inferred' : 'unknown');
+  const sourceType = serviceMeta ? 'service-meta' : 'external-only';
+  const verification = buildPetFriendlyVerification(
+    verificationStatus,
+    sourceType,
+  );
+
+  return {
+    id: candidate.id,
+    domain: candidate.domain,
+    kind: candidate.kind,
+    name: candidate.name,
+    description: candidate.description,
+    categoryLabel: candidate.categoryLabel,
+    address: candidate.address,
+    roadAddress: candidate.roadAddress,
+    distanceMeters: candidate.distanceMeters,
+    distanceLabel: candidate.distanceLabel,
+    estimatedMinutes: candidate.estimatedMinutes,
+    latitude: candidate.latitude,
+    longitude: candidate.longitude,
+    placeUrl: candidate.placeUrl,
+    phone: candidate.phone,
+    operatingStatusLabel: serviceMeta?.operatingStatusLabel ?? null,
+    source: {
+      provider: serviceMeta ? 'supabase' : 'kakao',
+      providerLabel: serviceMeta ? 'NURI 메타 + Kakao Local' : 'Kakao Local 후보',
+      type: serviceMeta ? 'service-meta' : 'external-api',
+      externalPlaceId: candidate.externalPlaceId,
+    },
+    verification,
+    petPolicy: {
+      summaryLabel: getPetPolicySummaryLabel(verification.status),
+      detail:
+        serviceMeta?.petPolicyText ?? buildExternalPetPolicyNote(document),
+    },
+    coordinateLabel: candidate.coordinateLabel,
+    mapPreviewUrl: buildStaticMapPreviewUrl({
+      latitude: candidate.latitude,
+      longitude: candidate.longitude,
+    }),
   };
 }
 
@@ -316,7 +634,12 @@ function buildPetFriendlyQueries(input: LocationDiscoverySearchInput): string[] 
     if (/(애견|반려|펫)/.test(normalizedQuery)) {
       return [normalizedQuery];
     }
-    return [`애견동반 ${normalizedQuery}`, normalizedQuery];
+
+    return [
+      `애견동반 ${normalizedQuery}`,
+      `반려동물 동반 ${normalizedQuery}`,
+      normalizedQuery,
+    ];
   }
 
   return [...PLACE_DEFAULT_QUERIES];
@@ -352,6 +675,18 @@ function sortItems(items: ReadonlyArray<LocationDiscoveryItem>): LocationDiscove
     if (left.domain === 'walk' && right.domain === 'walk') {
       const leftPriority = getWalkPriority(left);
       const rightPriority = getWalkPriority(right);
+
+      if (leftPriority !== rightPriority) {
+        return leftPriority - rightPriority;
+      }
+    }
+
+    if (
+      left.domain === 'pet-friendly-place' &&
+      right.domain === 'pet-friendly-place'
+    ) {
+      const leftPriority = getPetFriendlyPriority(left);
+      const rightPriority = getPetFriendlyPriority(right);
 
       if (leftPriority !== rightPriority) {
         return leftPriority - rightPriority;
@@ -396,9 +731,27 @@ async function searchWalkLocations(
     items,
     query: normalizeQuery(input.query),
     source: 'kakao',
-    verificationStatus: 'verified',
+    verificationStatus: 'service-ranked',
     scope: input.scope,
   };
+}
+
+function getResponseVerificationStatus(
+  items: ReadonlyArray<LocationDiscoveryItem>,
+): Exclude<LocationDiscoveryVerificationStatus, 'service-ranked'> {
+  if (items.some(item => item.verification.status === 'admin-verified')) {
+    return 'admin-verified';
+  }
+  if (items.some(item => item.verification.status === 'user-reported')) {
+    return 'user-reported';
+  }
+  if (items.some(item => item.verification.status === 'keyword-inferred')) {
+    return 'keyword-inferred';
+  }
+  if (items.some(item => item.verification.status === 'rejected')) {
+    return 'rejected';
+  }
+  return 'unknown';
 }
 
 async function searchPetFriendlyPlaces(
@@ -408,23 +761,49 @@ async function searchPetFriendlyPlaces(
     buildPetFriendlyQueries(input),
     input.scope.anchorCoordinates,
     {
-      radiusMeters: 3500,
+      radiusMeters: input.scope.anchorCoordinates ? 4000 : 20000,
       size: 10,
-      maxPages: 1,
+      maxPages: input.scope.anchorCoordinates ? 2 : 1,
     },
   );
 
+  const candidates = documents
+    .filter(filterPetFriendlyDocument)
+    .map(document => ({
+      document,
+      candidate: toNormalizedPetFriendlyCandidate(
+        document,
+        input.scope.anchorCoordinates,
+        input.scope.distanceLabel,
+      ),
+    }))
+    .filter(
+      (
+        entry,
+      ): entry is {
+        document: KakaoPlaceDocument;
+        candidate: NormalizedPetFriendlyCandidate;
+      } => Boolean(entry.candidate),
+    );
+
+  const serviceMetaMap = await loadPetFriendlyPlaceServiceMeta({
+    provider: 'kakao',
+    providerPlaceIds: candidates
+      .map(({ candidate }) => candidate.externalPlaceId)
+      .filter((value): value is string => Boolean(value)),
+  });
+
   const items = sortItems(
     dedupeItems(
-      documents
-        .map(document =>
-          toPetFriendlyPlaceItem(
-            document,
-            input.scope.anchorCoordinates,
-            input.scope.distanceLabel,
-          ),
-        )
-        .filter((item): item is LocationDiscoveryItem => Boolean(item)),
+      candidates.map(({ document, candidate }) =>
+        mergePetFriendlyCandidate(
+          candidate,
+          document,
+          candidate.externalPlaceId
+            ? serviceMetaMap.get(candidate.externalPlaceId)
+            : undefined,
+        ),
+      ),
     ),
   );
 
@@ -432,7 +811,7 @@ async function searchPetFriendlyPlaces(
     items,
     query: normalizeQuery(input.query),
     source: 'kakao',
-    verificationStatus: 'unverified',
+    verificationStatus: getResponseVerificationStatus(items),
     scope: input.scope,
   };
 }
@@ -446,7 +825,7 @@ export async function searchLocationDiscovery(
       items: [],
       query: null,
       source: 'kakao',
-      verificationStatus: domain === 'walk' ? 'verified' : 'unverified',
+      verificationStatus: domain === 'walk' ? 'service-ranked' : 'unknown',
       scope: input.scope,
     };
   }

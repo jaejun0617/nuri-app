@@ -232,6 +232,54 @@ export const styles = StyleSheet.create({
     color: '#2F8F48',
     fontWeight: '900',
   },
+  cardBadgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  cardSourceBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#EEF2F8',
+  },
+  cardSourceBadgeText: {
+    color: '#506074',
+    fontWeight: '800',
+  },
+  cardVerificationBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  cardVerificationBadgeNeutral: {
+    backgroundColor: '#EEF2F8',
+  },
+  cardVerificationBadgeCaution: {
+    backgroundColor: 'rgba(250,107,45,0.12)',
+  },
+  cardVerificationBadgePositive: {
+    backgroundColor: 'rgba(47,143,72,0.12)',
+  },
+  cardVerificationBadgeCritical: {
+    backgroundColor: 'rgba(199,53,79,0.12)',
+  },
+  cardVerificationBadgeText: {
+    fontWeight: '900',
+  },
+  cardVerificationBadgeTextNeutral: {
+    color: '#506074',
+  },
+  cardVerificationBadgeTextCaution: {
+    color: '#D75B23',
+  },
+  cardVerificationBadgeTextPositive: {
+    color: '#23733A',
+  },
+  cardVerificationBadgeTextCritical: {
+    color: '#B42318',
+    fontWeight: '900',
+  },
   cardDescription: {
     color: '#4D586A',
     lineHeight: 20,
@@ -310,6 +358,70 @@ export const styles = StyleSheet.create({
   relatedSectionCaption: {
     color: '#7B8597',
     fontWeight: '700',
+  },
+  infoBanner: {
+    borderRadius: 18,
+    backgroundColor: '#FFF4ED',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 4,
+    marginBottom: 12,
+  },
+  infoBannerTitle: {
+    color: '#D75B23',
+    fontWeight: '900',
+  },
+  infoBannerBody: {
+    color: '#7A4A30',
+    lineHeight: 20,
+  },
+  verificationBanner: {
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 4,
+  },
+  verificationBannerNeutral: {
+    backgroundColor: '#EEF2F8',
+  },
+  verificationBannerCaution: {
+    backgroundColor: '#FFF4ED',
+  },
+  verificationBannerPositive: {
+    backgroundColor: '#ECFDF3',
+  },
+  verificationBannerCritical: {
+    backgroundColor: '#FEF3F2',
+  },
+  verificationBannerTitle: {
+    fontWeight: '900',
+  },
+  verificationBannerTitleNeutral: {
+    color: '#506074',
+  },
+  verificationBannerTitleCaution: {
+    color: '#D75B23',
+  },
+  verificationBannerTitlePositive: {
+    color: '#23733A',
+  },
+  verificationBannerTitleCritical: {
+    color: '#B42318',
+  },
+  verificationBannerBody: {
+    lineHeight: 20,
+  },
+  verificationBannerBodyNeutral: {
+    color: '#5D6B7C',
+  },
+  verificationBannerBodyCaution: {
+    color: '#7A4A30',
+  },
+  verificationBannerBodyPositive: {
+    color: '#335B3E',
+  },
+  verificationBannerBodyCritical: {
+    color: '#7A271A',
   },
   relatedList: {
     gap: 12,

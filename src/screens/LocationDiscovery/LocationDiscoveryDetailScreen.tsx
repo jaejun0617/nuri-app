@@ -7,6 +7,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import AppText from '../../app/ui/AppText';
 import Screen from '../../components/layout/Screen';
 import LocationDiscoveryCard from '../../components/locationDiscovery/LocationDiscoveryCard';
+import LocationDiscoveryMapPreview from '../../components/locationDiscovery/LocationDiscoveryMapPreview';
 import { styles } from '../../components/locationDiscovery/LocationDiscovery.styles';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
@@ -36,7 +37,10 @@ export default function LocationDiscoveryDetailScreen({ domain }: Props) {
       }
     | undefined);
   const item = params?.item;
-  const resultItems = params?.resultItems ?? [];
+  const resultItems = useMemo(
+    () => params?.resultItems ?? [],
+    [params?.resultItems],
+  );
   const navigateBackToMore = useCallback(() => {
     navigation.goBack();
     requestAnimationFrame(() => {
@@ -63,10 +67,10 @@ export default function LocationDiscoveryDetailScreen({ domain }: Props) {
   const [visibleRelatedCount, setVisibleRelatedCount] = useState(6);
   const relatedItems = useMemo(
     () =>
-      domain === 'walk' && item
+      item
         ? resultItems.filter(candidate => candidate.id !== item.id)
         : [],
-    [domain, item, resultItems],
+    [item, resultItems],
   );
   const visibleRelatedItems = useMemo(
     () => relatedItems.slice(0, visibleRelatedCount),
@@ -105,9 +109,45 @@ export default function LocationDiscoveryDetailScreen({ domain }: Props) {
   }
 
   const durationLabel = formatDurationLabel(item.estimatedMinutes);
+  const verificationBannerStyle = (() => {
+    switch (item.verification.tone) {
+      case 'positive':
+        return {
+          container: styles.verificationBannerPositive,
+          title: styles.verificationBannerTitlePositive,
+          body: styles.verificationBannerBodyPositive,
+        };
+      case 'critical':
+        return {
+          container: styles.verificationBannerCritical,
+          title: styles.verificationBannerTitleCritical,
+          body: styles.verificationBannerBodyCritical,
+        };
+      case 'caution':
+        return {
+          container: styles.verificationBannerCaution,
+          title: styles.verificationBannerTitleCaution,
+          body: styles.verificationBannerBodyCaution,
+        };
+      default:
+        return {
+          container: styles.verificationBannerNeutral,
+          title: styles.verificationBannerTitleNeutral,
+          body: styles.verificationBannerBodyNeutral,
+        };
+    }
+  })();
 
   const onPressRelatedItem = (nextItem: LocationDiscoveryItem) => {
-    navigation.push('WalkSpotDetail', {
+    if (domain === 'walk') {
+      navigation.push('WalkSpotDetail', {
+        item: nextItem,
+        resultItems,
+      });
+      return;
+    }
+
+    navigation.push('PetFriendlyPlaceDetail', {
       item: nextItem,
       resultItems,
     });
@@ -144,11 +184,59 @@ export default function LocationDiscoveryDetailScreen({ domain }: Props) {
               {item.description}
             </AppText>
 
+            {domain === 'pet-friendly-place' ? (
+              <View
+                style={[styles.verificationBanner, verificationBannerStyle.container]}
+              >
+                <AppText
+                  preset="caption"
+                  style={[
+                    styles.verificationBannerTitle,
+                    verificationBannerStyle.title,
+                  ]}
+                >
+                  {item.verification.label}
+                </AppText>
+                <AppText
+                  preset="body"
+                  style={[styles.verificationBannerBody, verificationBannerStyle.body]}
+                >
+                  {item.verification.description}
+                </AppText>
+              </View>
+            ) : null}
+
             <View style={styles.detailMetaGrid}>
+              <View style={styles.detailMetaRow}>
+                <Feather name="layers" size={15} color="#7B8597" />
+                <AppText preset="body" style={styles.detailMetaText}>
+                  출처: {item.source.providerLabel}
+                </AppText>
+              </View>
+              <View style={styles.detailMetaRow}>
+                <Feather name="shield" size={15} color="#7B8597" />
+                <AppText preset="body" style={styles.detailMetaText}>
+                  검증 상태: {item.verification.label}
+                </AppText>
+              </View>
+              {domain === 'pet-friendly-place' ? (
+                <View style={styles.detailMetaRow}>
+                  <Feather name="info" size={15} color="#7B8597" />
+                  <AppText preset="body" style={styles.detailMetaText}>
+                    검증 근거: {item.verification.sourceLabel}
+                  </AppText>
+                </View>
+              ) : null}
               <View style={styles.detailMetaRow}>
                 <Feather name="map-pin" size={15} color="#7B8597" />
                 <AppText preset="body" style={styles.detailMetaText}>
                   {item.address}
+                </AppText>
+              </View>
+              <View style={styles.detailMetaRow}>
+                <Feather name="crosshair" size={15} color="#7B8597" />
+                <AppText preset="body" style={styles.detailMetaText}>
+                  좌표 {item.coordinateLabel}
                 </AppText>
               </View>
               <View style={styles.detailMetaRow}>
@@ -165,11 +253,19 @@ export default function LocationDiscoveryDetailScreen({ domain }: Props) {
                   </AppText>
                 </View>
               ) : null}
-              {item.petNotice ? (
+              {item.operatingStatusLabel ? (
+                <View style={styles.detailMetaRow}>
+                  <Feather name="clock" size={15} color="#7B8597" />
+                  <AppText preset="body" style={styles.detailMetaText}>
+                    {item.operatingStatusLabel}
+                  </AppText>
+                </View>
+              ) : null}
+              {item.petPolicy.detail ? (
                 <View style={styles.detailMetaRow}>
                   <Feather name="info" size={15} color="#7B8597" />
                   <AppText preset="body" style={styles.detailMetaText}>
-                    {item.petNotice}
+                    {item.petPolicy.detail}
                   </AppText>
                 </View>
               ) : null}
@@ -215,21 +311,26 @@ export default function LocationDiscoveryDetailScreen({ domain }: Props) {
             </View>
           </View>
 
+          <LocationDiscoveryMapPreview
+            uri={item.mapPreviewUrl}
+            title={`${item.name} 지도 미리보기`}
+          />
+
           {visibleRelatedItems.length > 0 ? (
             <View style={styles.relatedSection}>
               <View style={styles.relatedSectionHeader}>
                 <AppText preset="headline" style={styles.relatedSectionTitle}>
-                  주변 산책 장소
+                  {domain === 'walk' ? '주변 산책 장소' : '연관 펫동반 장소'}
                 </AppText>
                 <AppText preset="caption" style={styles.relatedSectionCaption}>
-                  현재 장소와 함께 보기 좋은 추천
+                  현재 결과 컬렉션에서 이어서 둘러볼 수 있어요
                 </AppText>
               </View>
 
               <View style={styles.relatedList}>
                 {visibleRelatedItems.map(relatedItem => (
                   <LocationDiscoveryCard
-                    key={`walk-related:${relatedItem.id}`}
+                    key={`${domain}-related:${relatedItem.id}`}
                     item={relatedItem}
                     onPress={onPressRelatedItem}
                   />

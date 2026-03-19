@@ -1,4 +1,4 @@
-import React, { useCallback, useDeferredValue, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   BackHandler,
   FlatList,
@@ -26,6 +26,7 @@ import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type {
   LocationDiscoveryDomain,
   LocationDiscoveryItem,
+  LocationDiscoverySortOption,
 } from '../../services/locationDiscovery/types';
 import { openMoreDrawer } from '../../store/uiStore';
 
@@ -40,9 +41,9 @@ function getDomainCopy(domain: LocationDiscoveryDomain) {
     return {
       title: '우리동네 산책 리스트',
       sectionTitle: '주변 산책 추천 코스',
-      placeholder: '장소, 키워드 검색',
+      placeholder: '공원, 산책로, 지역 검색',
       helperText:
-        '현재 위치 기준 산책 장소를 먼저 보여드리고, 검색어로도 바로 탐색할 수 있어요.',
+        '현재 위치 주변 추천이 기본이며, 검색어를 입력한 뒤 검색 버튼으로 직접 찾을 수 있어요.',
       detailRoute: 'WalkSpotDetail' as const,
     };
   }
@@ -50,10 +51,10 @@ function getDomainCopy(domain: LocationDiscoveryDomain) {
   return {
     title: '펫동반 카페 / 공간 찾기',
     sectionTitle: '주변 펫동반 카페 / 공간',
-    placeholder: '카페, 공간, 지역 검색',
+    placeholder: '카페명, 식당명, 지역명, 키워드 검색',
     helperText:
-      '현재 위치 주변 펫동반 카페/공간을 먼저 찾고, 상호명이나 지역명으로도 탐색할 수 있어요.',
-    detailRoute: 'PetFriendlyPlaceDetail' as const,
+      '현재 위치 주변 추천이 기본이며, 상호명·지역명·애견카페·테라스 같은 키워드로도 찾을 수 있어요.',
+      detailRoute: 'PetFriendlyPlaceDetail' as const,
   };
 }
 
@@ -61,13 +62,11 @@ export default function LocationDiscoveryListScreen({ domain }: Props) {
   const navigation = useNavigation<Nav>();
   const copy = getDomainCopy(domain);
   const [searchInput, setSearchInput] = useState('');
-  const [sortOrder, setSortOrder] = useState<'recommended' | 'distance-asc' | 'distance-desc'>(
-    'recommended',
-  );
-  const deferredSearchInput = useDeferredValue(searchInput);
+  const [submittedQuery, setSubmittedQuery] = useState('');
+  const [sortOrder, setSortOrder] = useState<LocationDiscoverySortOption>('recommended');
   const discoveryState = useLocationDiscovery({
     domain,
-    query: deferredSearchInput,
+    query: submittedQuery,
   });
   const locationTitle = useMemo(() => {
     return (
@@ -77,10 +76,21 @@ export default function LocationDiscoveryListScreen({ domain }: Props) {
     );
   }, [discoveryState.district, discoveryState.scope?.displayLabel]);
   const locationSubtitle = useMemo(() => {
-    return deferredSearchInput.trim().length >= 2
+    if (discoveryState.usingStaleLocation && discoveryState.loading) {
+      return '새 위치를 빠르게 확인하고 있어요';
+    }
+
+    return submittedQuery.trim().length >= 2
       ? '검색어와 현재 위치를 함께 참고하고 있어요'
-      : '현재 위치 기준 추천';
-  }, [deferredSearchInput]);
+      : discoveryState.hasFreshLocation
+        ? '현재 위치 기준 추천'
+        : '최근 확인 위치 기준';
+  }, [
+    submittedQuery,
+    discoveryState.hasFreshLocation,
+    discoveryState.loading,
+    discoveryState.usingStaleLocation,
+  ]);
   const sortedItems = useMemo(() => {
     if (sortOrder === 'recommended') {
       return discoveryState.items;
@@ -105,12 +115,50 @@ export default function LocationDiscoveryListScreen({ domain }: Props) {
 
     return items;
   }, [discoveryState.items, sortOrder]);
+  const handleSubmitSearch = useCallback(() => {
+    const normalized = searchInput.trim().replace(/\s+/g, ' ');
+    setSubmittedQuery(normalized);
+  }, [searchInput]);
+  const handleChangeSearchInput = useCallback((value: string) => {
+    setSearchInput(value);
+
+    if (!value.trim()) {
+      setSubmittedQuery('');
+    }
+  }, []);
   const navigateBackToMore = useCallback(() => {
     navigation.goBack();
     requestAnimationFrame(() => {
       openMoreDrawer();
     });
   }, [navigation]);
+  const onPressItem = useCallback(
+    (item: LocationDiscoveryItem) => {
+      if (domain === 'walk') {
+        navigation.navigate('WalkSpotDetail', {
+          item,
+          resultItems: sortedItems,
+        });
+        return;
+      }
+
+      navigation.navigate('PetFriendlyPlaceDetail', {
+        item,
+        resultItems: sortedItems,
+      });
+    },
+    [domain, navigation, sortedItems],
+  );
+  const renderItem = useCallback(
+    ({ item }: { item: LocationDiscoveryItem }) => (
+      <LocationDiscoveryCard item={item} onPress={onPressItem} />
+    ),
+    [onPressItem],
+  );
+  const keyExtractor = useCallback(
+    (item: LocationDiscoveryItem) => `${domain}:${item.id}`,
+    [domain],
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -127,18 +175,6 @@ export default function LocationDiscoveryListScreen({ domain }: Props) {
       };
     }, [navigateBackToMore]),
   );
-
-  const onPressItem = (item: LocationDiscoveryItem) => {
-    if (domain === 'walk') {
-      navigation.navigate('WalkSpotDetail', {
-        item,
-        resultItems: sortedItems,
-      });
-      return;
-    }
-
-    navigation.navigate('PetFriendlyPlaceDetail', { item });
-  };
 
   return (
     <Screen style={styles.screen}>
@@ -162,7 +198,8 @@ export default function LocationDiscoveryListScreen({ domain }: Props) {
 
         <LocationDiscoverySearchBar
           value={searchInput}
-          onChangeText={setSearchInput}
+          onChangeText={handleChangeSearchInput}
+          onSubmit={handleSubmitSearch}
           placeholder={copy.placeholder}
           helperText={copy.helperText}
           loadingText={
@@ -170,7 +207,7 @@ export default function LocationDiscoveryListScreen({ domain }: Props) {
               ? '검색 중'
               : discoveryState.loading
                 ? '불러오는 중'
-                : null
+              : null
           }
         />
 
@@ -204,76 +241,85 @@ export default function LocationDiscoveryListScreen({ domain }: Props) {
           </TouchableOpacity>
         </View>
 
-        {domain === 'walk' ? (
-          <View style={styles.filterSection}>
-            <View style={styles.sortRow}>
-              <TouchableOpacity
-                activeOpacity={0.9}
+        <View style={styles.filterSection}>
+          <View style={styles.sortRow}>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={[
+                styles.sortChip,
+                sortOrder === 'recommended' ? styles.sortChipSelected : null,
+              ]}
+              onPress={() => {
+                setSortOrder('recommended');
+              }}
+            >
+              <AppText
+                preset="caption"
                 style={[
-                  styles.sortChip,
-                  sortOrder === 'recommended' ? styles.sortChipSelected : null,
+                  styles.sortChipText,
+                  sortOrder === 'recommended' ? styles.sortChipTextSelected : null,
                 ]}
-                onPress={() => {
-                  setSortOrder('recommended');
-                }}
               >
-                <AppText
-                  preset="caption"
-                  style={[
-                    styles.sortChipText,
-                    sortOrder === 'recommended' ? styles.sortChipTextSelected : null,
-                  ]}
-                >
-                  추천순
-                </AppText>
-              </TouchableOpacity>
-              <TouchableOpacity
-                activeOpacity={0.9}
+                추천순
+              </AppText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={[
+                styles.sortChip,
+                sortOrder === 'distance-asc' ? styles.sortChipSelected : null,
+              ]}
+              onPress={() => {
+                setSortOrder('distance-asc');
+              }}
+            >
+              <AppText
+                preset="caption"
                 style={[
-                  styles.sortChip,
-                  sortOrder === 'distance-asc' ? styles.sortChipSelected : null,
+                  styles.sortChipText,
+                  sortOrder === 'distance-asc' ? styles.sortChipTextSelected : null,
                 ]}
-                onPress={() => {
-                  setSortOrder('distance-asc');
-                }}
               >
-                <AppText
-                  preset="caption"
-                  style={[
-                    styles.sortChipText,
-                    sortOrder === 'distance-asc' ? styles.sortChipTextSelected : null,
-                  ]}
-                >
-                  가까운순
-                </AppText>
-              </TouchableOpacity>
-              <TouchableOpacity
-                activeOpacity={0.9}
+                가까운순
+              </AppText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={[
+                styles.sortChip,
+                sortOrder === 'distance-desc' ? styles.sortChipSelected : null,
+              ]}
+              onPress={() => {
+                setSortOrder('distance-desc');
+              }}
+            >
+              <AppText
+                preset="caption"
                 style={[
-                  styles.sortChip,
-                  sortOrder === 'distance-desc' ? styles.sortChipSelected : null,
+                  styles.sortChipText,
+                  sortOrder === 'distance-desc' ? styles.sortChipTextSelected : null,
                 ]}
-                onPress={() => {
-                  setSortOrder('distance-desc');
-                }}
               >
-                <AppText
-                  preset="caption"
-                  style={[
-                    styles.sortChipText,
-                    sortOrder === 'distance-desc' ? styles.sortChipTextSelected : null,
-                  ]}
-                >
-                  멀리순
-                </AppText>
-              </TouchableOpacity>
-            </View>
+                먼순
+              </AppText>
+            </TouchableOpacity>
           </View>
-        ) : null}
+        </View>
 
         <AppText preset="headline" style={styles.sectionTitle}>
           {copy.sectionTitle}
         </AppText>
+
+        {domain === 'pet-friendly-place' ? (
+          <View style={styles.infoBanner}>
+            <AppText preset="caption" style={styles.infoBannerTitle}>
+              현재는 외부 후보 검색 + 서비스 검증 상태 분리 구조예요
+            </AppText>
+            <AppText preset="body" style={styles.infoBannerBody}>
+              장소 후보는 Kakao Local에서 수집하고, 펫동반 가능 여부는 별도 검증 상태로 표시해요. 자체 Supabase 장소 메타 DB는 아직 없어 방문 전 정책 재확인이 필요해요.
+            </AppText>
+          </View>
+        ) : null}
 
         {discoveryState.loading && sortedItems.length === 0 ? (
           <LocationDiscoveryStatusCard
@@ -288,19 +334,12 @@ export default function LocationDiscoveryListScreen({ domain }: Props) {
             title="장소를 불러오지 못했어요"
             body={discoveryState.error}
           />
-        ) : domain === 'pet-friendly-place' &&
-          discoveryState.verificationStatus !== 'verified' ? (
-          <LocationDiscoveryStatusCard
-            icon="shield"
-            title="검증된 펫동반 데이터 연결이 먼저 필요해요"
-            body="현재 Kakao 키워드 검색만으로는 실제 반려동물 동반 가능 여부를 보장할 수 없어, 안전을 위해 결과를 바로 노출하지 않고 있어요. 검증된 제휴/공공데이터 소스를 연결한 뒤 다시 여는 것이 맞습니다."
-          />
         ) : sortedItems.length === 0 ? (
-          deferredSearchInput.trim().length >= 2 ? (
+          submittedQuery.trim().length >= 2 ? (
             <LocationDiscoveryStatusCard
               icon="search"
               title="검색 결과가 없어요"
-              body="검색어를 조금 다르게 입력하거나 지역명과 함께 다시 찾아보세요."
+              body="검색어를 조금 바꾸거나 지역명과 함께 다시 검색해 보세요."
             />
           ) : discoveryState.permission !== 'granted' ? (
             <LocationDiscoveryStatusCard
@@ -311,25 +350,31 @@ export default function LocationDiscoveryListScreen({ domain }: Props) {
             <LocationDiscoveryStatusCard
               icon="map"
               title={
-                '현재 위치 주변 추천을 아직 찾지 못했어요'
+                discoveryState.usingStaleLocation
+                  ? '현재 위치를 다시 확인하는 중이에요'
+                  : '현재 위치 주변 추천을 아직 찾지 못했어요'
               }
               body={
-                '현재 위치를 다시 확인하거나 검색으로 직접 장소를 찾아보세요.'
+                discoveryState.usingStaleLocation
+                  ? '최근 확인 위치는 있지만 최신 GPS가 아직 잡히지 않았어요. 새로고침하거나 검색으로 직접 찾아보세요.'
+                  : '현재 위치를 다시 확인하거나 검색으로 직접 장소를 찾아보세요.'
               }
             />
           )
         ) : (
           <FlatList
             data={sortedItems}
-            keyExtractor={item => `${domain}:${item.id}`}
-            renderItem={({ item }) => (
-              <LocationDiscoveryCard item={item} onPress={onPressItem} />
-            )}
+            keyExtractor={keyExtractor}
+            renderItem={renderItem}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
             automaticallyAdjustKeyboardInsets
+            removeClippedSubviews={Platform.OS === 'android'}
+            initialNumToRender={8}
+            maxToRenderPerBatch={8}
+            windowSize={7}
             refreshControl={
               <RefreshControl
                 refreshing={discoveryState.refreshing}

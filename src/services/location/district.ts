@@ -35,15 +35,27 @@ const GOYANG_ILSAN_WALK_DISTRICTS = [
 ] as const;
 
 const DISTRICT_CACHE_PREFIX = '@nuri/location/district:';
+const districtMemoryCache = new Map<string, string>();
+const districtInFlight = new Map<string, Promise<DistrictResolveResult>>();
 
 function toDistrictCacheKey(coords: DeviceCoordinates) {
   return `${DISTRICT_CACHE_PREFIX}${coords.latitude.toFixed(3)},${coords.longitude.toFixed(3)}`;
 }
 
 async function loadCachedDistrict(coords: DeviceCoordinates) {
+  const cacheKey = toDistrictCacheKey(coords);
+  const memoryHit = districtMemoryCache.get(cacheKey);
+  if (memoryHit) {
+    return memoryHit;
+  }
+
   try {
-    const cached = await AsyncStorage.getItem(toDistrictCacheKey(coords));
-    return cached?.trim() || null;
+    const cached = await AsyncStorage.getItem(cacheKey);
+    const trimmed = cached?.trim() || null;
+    if (trimmed) {
+      districtMemoryCache.set(cacheKey, trimmed);
+    }
+    return trimmed;
   } catch {
     return null;
   }
@@ -53,8 +65,10 @@ async function saveCachedDistrict(
   coords: DeviceCoordinates,
   district: string,
 ) {
+  const cacheKey = toDistrictCacheKey(coords);
   try {
-    await AsyncStorage.setItem(toDistrictCacheKey(coords), district);
+    districtMemoryCache.set(cacheKey, district);
+    await AsyncStorage.setItem(cacheKey, district);
   } catch {
     // noop
   }
@@ -125,6 +139,13 @@ export function getWalkDistrictOptions(
 export async function resolveDistrictFromCoordinates(
   coords: DeviceCoordinates,
 ): Promise<DistrictResolveResult> {
+  const cacheKey = toDistrictCacheKey(coords);
+  const inFlight = districtInFlight.get(cacheKey);
+  if (inFlight) {
+    return inFlight;
+  }
+
+  const task = (async (): Promise<DistrictResolveResult> => {
   const cachedDistrict = await loadCachedDistrict(coords);
 
   if (!KAKAO_REST_API_KEY) {
@@ -196,5 +217,13 @@ export async function resolveDistrictFromCoordinates(
       district: cachedDistrict ?? getFallbackDistrictLabel(coords),
       source: 'fallback',
     };
+  }
+  })();
+
+  districtInFlight.set(cacheKey, task);
+  try {
+    return await task;
+  } finally {
+    districtInFlight.delete(cacheKey);
   }
 }

@@ -11,6 +11,7 @@ type Props = {
   helperText: string;
   loadingText?: string | null;
   onChangeText: (value: string) => void;
+  onSubmit: () => void;
   onOpenFilters?: () => void;
 };
 
@@ -20,6 +21,7 @@ export default function LocationDiscoverySearchBar({
   helperText,
   loadingText,
   onChangeText,
+  onSubmit,
   onOpenFilters,
 }: Props) {
   return (
@@ -29,6 +31,7 @@ export default function LocationDiscoverySearchBar({
         <TextInput
           value={value}
           onChangeText={onChangeText}
+          onSubmitEditing={onSubmit}
           placeholder={placeholder}
           placeholderTextColor="#98A1B2"
           style={styles.searchInput}
@@ -47,6 +50,9 @@ export default function LocationDiscoverySearchBar({
             <Feather name="sliders" size={18} color="#7D87A0" />
           </Pressable>
         ) : null}
+        <Pressable onPress={onSubmit} hitSlop={10}>
+          <Feather name="arrow-right-circle" size={18} color="#2F8F48" />
+        </Pressable>
       </View>
       <View style={styles.searchMetaRow}>
         <AppText preset="caption" style={styles.searchHelperText}>

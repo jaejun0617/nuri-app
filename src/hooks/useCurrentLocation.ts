@@ -7,9 +7,16 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 
 import {
-  getCurrentCoordinates,
+  getLocationCapturedAt,
+  getLocationAgeMs,
   getLastCoordinates,
+  getPreciseCurrentCoordinates,
+  getQuickCurrentCoordinates,
+  isFreshLocationCoordinates,
+  LOCATION_AUTO_REFRESH_INTERVAL_MS,
+  shouldPromoteLocationCoordinates,
   type DeviceCoordinates,
+  type LocationCoordinateSource,
 } from '../services/location/currentPosition';
 import {
   getLocationPermissionStatus,
@@ -21,6 +28,12 @@ export type CurrentLocationState = {
   loading: boolean;
   permission: LocationPermissionStatus;
   coordinates: DeviceCoordinates | null;
+  source: LocationCoordinateSource | null;
+  isFresh: boolean;
+  isStale: boolean;
+  lastUpdatedAt: number | null;
+  isRefreshing: boolean;
+  isRefining: boolean;
   error: string | null;
   refresh: () => Promise<DeviceCoordinates | null>;
 };
@@ -62,6 +75,8 @@ export function useCurrentLocation(
   const [coordinates, setCoordinates] = useState<DeviceCoordinates | null>(
     initialCoordinates,
   );
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isRefining, setIsRefining] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const permissionRef = useRef<LocationPermissionStatus>(
     initialCoordinates ? 'granted' : 'unavailable',
@@ -70,6 +85,7 @@ export function useCurrentLocation(
   const refreshInFlightRef = useRef<Promise<DeviceCoordinates | null> | null>(
     null,
   );
+  const refineRequestIdRef = useRef(0);
   const lastRefreshAtRef = useRef(0);
 
   useEffect(() => {
@@ -105,6 +121,49 @@ export function useCurrentLocation(
     coordinatesRef.current = coordinates;
   }, [coordinates]);
 
+  const applyCoordinates = useCallback((nextCoordinates: DeviceCoordinates) => {
+    setCoordinates(current => {
+      if (!shouldPromoteLocationCoordinates(current, nextCoordinates)) {
+        return current;
+      }
+      return nextCoordinates;
+    });
+
+    if (shouldPromoteLocationCoordinates(coordinatesRef.current, nextCoordinates)) {
+      coordinatesRef.current = nextCoordinates;
+    }
+  }, []);
+
+  const shouldRefreshLocation = useCallback(() => {
+    if (!coordinatesRef.current) return true;
+    if (!isFreshLocationCoordinates(coordinatesRef.current)) return true;
+
+    const ageMs = getLocationAgeMs(coordinatesRef.current);
+    return ageMs === null || ageMs >= LOCATION_AUTO_REFRESH_INTERVAL_MS;
+  }, []);
+
+  const refineWithPreciseCoordinates = useCallback(async () => {
+    const requestId = ++refineRequestIdRef.current;
+    setIsRefining(true);
+
+    try {
+      const preciseCoordinates = await getPreciseCurrentCoordinates();
+      if (refineRequestIdRef.current !== requestId) {
+        return;
+      }
+
+      applyCoordinates(preciseCoordinates);
+      setError(null);
+      lastRefreshAtRef.current = Date.now();
+    } catch {
+      // noop
+    } finally {
+      if (refineRequestIdRef.current === requestId) {
+        setIsRefining(false);
+      }
+    }
+  }, [applyCoordinates]);
+
   const refresh = useCallback(async () => {
     if (refreshInFlightRef.current) {
       return refreshInFlightRef.current;
@@ -116,7 +175,10 @@ export function useCurrentLocation(
     }
 
     const task = (async (): Promise<DeviceCoordinates | null> => {
-      setLoading(current => (coordinatesRef.current ? current : true));
+      refineRequestIdRef.current += 1;
+      setIsRefining(false);
+      setLoading(current => current || !isFreshLocationCoordinates(coordinatesRef.current));
+      setIsRefreshing(true);
       setError(null);
 
       try {
@@ -132,6 +194,7 @@ export function useCurrentLocation(
         permissionRef.current = resolvedPermission;
 
         if (resolvedPermission !== 'granted') {
+          refineRequestIdRef.current += 1;
           if (!coordinatesRef.current) {
             setCoordinates(null);
           }
@@ -139,16 +202,23 @@ export function useCurrentLocation(
           return coordinatesRef.current;
         }
 
-        const nextCoordinates = await getCurrentCoordinates();
-        setCoordinates(nextCoordinates);
-        coordinatesRef.current = nextCoordinates;
+        const nextCoordinates = await getQuickCurrentCoordinates();
+        applyCoordinates(nextCoordinates);
         setError(null);
         lastRefreshAtRef.current = Date.now();
+
+        if (nextCoordinates.source !== 'gps') {
+          refineWithPreciseCoordinates().catch(() => {});
+        }
+
         return nextCoordinates;
       } catch (nextError) {
+        refineRequestIdRef.current += 1;
+        setIsRefining(false);
         setError(toLocationErrorMessage(permissionRef.current, nextError));
         return coordinatesRef.current;
       } finally {
+        setIsRefreshing(false);
         setLoading(false);
       }
     })();
@@ -159,7 +229,7 @@ export function useCurrentLocation(
     } finally {
       refreshInFlightRef.current = null;
     }
-  }, []);
+  }, [applyCoordinates, refineWithPreciseCoordinates]);
 
   useEffect(() => {
     if (!autoRefreshOnMount) {
@@ -175,7 +245,7 @@ export function useCurrentLocation(
     }
 
     const subscription = AppState.addEventListener('change', state => {
-      if (state === 'active') {
+      if (state === 'active' && shouldRefreshLocation()) {
         refresh().catch(() => {});
       }
     });
@@ -183,12 +253,18 @@ export function useCurrentLocation(
     return () => {
       subscription.remove();
     };
-  }, [autoRefreshOnActive, refresh]);
+  }, [autoRefreshOnActive, refresh, shouldRefreshLocation]);
 
   return {
     loading,
     permission,
     coordinates,
+    source: coordinates?.source ?? null,
+    isFresh: isFreshLocationCoordinates(coordinates),
+    isStale: Boolean(coordinates) && !isFreshLocationCoordinates(coordinates),
+    lastUpdatedAt: getLocationCapturedAt(coordinates),
+    isRefreshing,
+    isRefining,
     error,
     refresh,
   };
