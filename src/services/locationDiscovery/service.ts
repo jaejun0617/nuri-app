@@ -1,6 +1,9 @@
 import type { DeviceCoordinates } from '../location/currentPosition';
 import type { PetFriendlyPlaceServiceMeta } from './placeMeta';
-import { loadPetFriendlyPlaceServiceMeta } from './placeMeta';
+import {
+  buildPetPlaceSourceLookupKey,
+  loadPetFriendlyPlaceServiceMeta,
+} from './placeMeta';
 import { buildStaticMapPreviewUrl } from './maps';
 import { kakaoLocalSearchProvider } from './kakaoLocal';
 import type {
@@ -800,7 +803,9 @@ async function searchPetFriendlyPlaces(
           candidate,
           document,
           candidate.externalPlaceId
-            ? serviceMetaMap.get(candidate.externalPlaceId)
+            ? serviceMetaMap.get(
+                buildPetPlaceSourceLookupKey('kakao', candidate.externalPlaceId),
+              )
             : undefined,
         ),
       ),
