@@ -15,21 +15,32 @@ export const styles = StyleSheet.create({
   scrollContent: { paddingBottom: 28 },
 
   header: {
-    height: 56,
-    paddingHorizontal: 14,
+    minHeight: 56,
+    paddingHorizontal: 18,
+    paddingTop: 8,
+    paddingBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
     backgroundColor: '#FFFFFF',
   },
+  headerSideSlot: {
+    width: 40,
+    minHeight: 40,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  headerSideSlotRight: {
+    alignItems: 'flex-end',
+  },
   backBtn: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backText: { fontWeight: '900', color: TEXT },
   headerTitle: {
     flex: 1,
     textAlign: 'center',

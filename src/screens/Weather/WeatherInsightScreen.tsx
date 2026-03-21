@@ -1,3 +1,17 @@
+// 파일: src/screens/Weather/WeatherInsightScreen.tsx
+// 파일 목적:
+// - 현재 위치 기준 날씨/대기질/활동 인사이트를 사용자에게 상세하게 보여주는 대표 화면이다.
+// 어디서 쓰이는지:
+// - RootNavigator의 `WeatherInsight` 라우트에서 사용되며, 홈의 날씨 카드에서 진입한다.
+// 핵심 역할:
+// - `useWeatherGuide`가 만든 bundle을 바탕으로 현재 날씨, 예보, 대기질, 실내 놀이 진입 CTA를 렌더링한다.
+// - 날씨 시나리오별 배경/팔레트를 적용해 정보와 분위기를 함께 전달한다.
+// 데이터·상태 흐름:
+// - initial bundle/coordinates가 있으면 이를 우선 사용하고, 이후 hook이 실제 위치와 최신 데이터를 이어받아 갱신한다.
+// - 화면 자체는 표시 계층이고, 위치/날씨 조회 정책은 hook과 service 계층에 위임한다.
+// 수정 시 주의:
+// - 시각 표현을 바꿀 때도 unavailable/preview 상태를 숨기면 안 된다.
+// - 배경 이미지나 레이아웃 변경보다 우선해야 하는 것은 위치 실패/권한 거부 시 정보 전달의 명확성이다.
 import React, { useCallback, useMemo } from 'react';
 import {
   ImageBackground,
@@ -619,21 +633,19 @@ export default function WeatherInsightScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
-              <Feather
-                name="chevron-left"
-                size={22}
-                color={palette.textPrimary}
-              />
-            </TouchableOpacity>
+            <View style={styles.headerSideSlot}>
+              <TouchableOpacity
+                activeOpacity={0.88}
+                style={styles.backButton}
+                onPress={() => navigation.goBack()}
+              >
+                <Feather name="arrow-left" size={20} color="#102033" />
+              </TouchableOpacity>
+            </View>
             <Text style={[styles.headerTitle, { color: palette.textPrimary }]}>
               오늘의 날씨
             </Text>
-            <View style={styles.headerSpacer} />
+            <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
           </View>
 
           <View style={styles.hero}>
@@ -1097,24 +1109,32 @@ const styles = StyleSheet.create({
     gap: 18,
   },
   header: {
-    minHeight: 52,
+    minHeight: 56,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 12,
+  },
+  headerSideSlot: {
+    width: 40,
+    minHeight: 40,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  headerSideSlotRight: {
+    alignItems: 'flex-end',
   },
   backButton: {
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: '700',
-  },
-  headerSpacer: {
-    width: 36,
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: '900',
   },
   hero: {
     gap: 14,

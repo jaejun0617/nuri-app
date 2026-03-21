@@ -74,7 +74,7 @@ export function resolveBootRoute(input: {
     return { name: 'NicknameSetup' as const, params: undefined };
   }
 
-  if (!input.petErrorMessage && input.petsCount === 0) {
+  if (input.petsCount === 0) {
     return {
       name: 'PetCreate' as const,
       params: { from: 'auto' as const },

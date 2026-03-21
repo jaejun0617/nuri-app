@@ -10,18 +10,28 @@ export const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#FFFFFF' },
 
   header: {
-    height: 56,
-    paddingHorizontal: 14,
+    minHeight: 56,
+    paddingHorizontal: 18,
+    paddingTop: 8,
+    paddingBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EAEAEA',
+    gap: 12,
     backgroundColor: '#FFFFFF',
   },
-  homeBtn: {
-    width: 44,
-    height: 40,
+  headerSideSlot: {
+    width: 88,
+    minHeight: 40,
+    justifyContent: 'center',
     alignItems: 'flex-start',
+  },
+  headerSideSlotRight: {
+    alignItems: 'flex-end',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {

@@ -20,6 +20,10 @@ jest.mock('../src/hooks/useCurrentLocation', () => ({
   useCurrentLocation: jest.fn(),
 }));
 
+jest.mock('@react-native-community/geolocation', () => ({
+  getCurrentPosition: jest.fn(),
+}));
+
 jest.mock('../src/hooks/useDistrict', () => ({
   useDistrict: jest.fn(),
 }));
@@ -101,7 +105,7 @@ describe('useWeatherGuide', () => {
   beforeEach(() => {
     latestState = null;
     jest.clearAllMocks();
-    useWeatherStore.setState({ byCoordsKey: {} });
+    useWeatherStore.setState({ byCoordsKey: {}, currentSnapshot: null });
   });
 
   it('위치와 API가 정상일 때 실제 날씨 번들을 반환한다', async () => {
@@ -109,6 +113,10 @@ describe('useWeatherGuide', () => {
       loading: false,
       permission: 'granted',
       coordinates: coords,
+      source: 'gps',
+      isFresh: true,
+      isStale: false,
+      lastUpdatedAt: Date.now(),
       error: null,
       refresh: jest.fn(),
     });
@@ -173,6 +181,10 @@ describe('useWeatherGuide', () => {
       loading: false,
       permission: 'denied',
       coordinates: null,
+      source: null,
+      isFresh: false,
+      isStale: false,
+      lastUpdatedAt: null,
       error: '위치 권한이 없어 현재 지역을 불러오지 못했어요.',
       refresh: jest.fn(),
     });
@@ -211,6 +223,10 @@ describe('useWeatherGuide', () => {
       loading: false,
       permission: 'granted',
       coordinates: coords,
+      source: 'gps',
+      isFresh: true,
+      isStale: false,
+      lastUpdatedAt: Date.now(),
       error: null,
       refresh: jest.fn(),
     });
@@ -256,6 +272,10 @@ describe('useWeatherGuide', () => {
       loading: false,
       permission: 'granted',
       coordinates: coords,
+      source: 'gps',
+      isFresh: true,
+      isStale: false,
+      lastUpdatedAt: Date.now(),
       error: null,
       refresh: jest.fn(),
     });
@@ -323,6 +343,10 @@ describe('useWeatherGuide', () => {
       loading: false,
       permission: 'granted',
       coordinates: coords,
+      source: 'gps',
+      isFresh: true,
+      isStale: false,
+      lastUpdatedAt: Date.now(),
       error: null,
       refresh: jest.fn(),
     });

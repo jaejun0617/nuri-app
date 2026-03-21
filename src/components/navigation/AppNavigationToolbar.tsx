@@ -1,7 +1,17 @@
 // 파일: src/components/navigation/AppNavigationToolbar.tsx
-// 역할:
-// - 더보기와 추억 상세에서 공통으로 쓰는 앱 하단 네비게이션 툴바
-// - 홈/타임라인/기록/방명록/전체메뉴 이동을 같은 레이아웃과 테마 규칙으로 제공
+// 파일 목적:
+// - 앱 하단 공통 이동 UI를 한 컴포넌트로 유지해 홈/상세/드로어에서 같은 동작을 재사용한다.
+// 어디서 쓰이는지:
+// - AppTabsNavigator의 커스텀 탭바와 More 드로어/일부 상세 화면 하단 툴바에서 사용된다.
+// 핵심 역할:
+// - 홈, 타임라인, 기록 작성, 전체메뉴 이동을 제공한다.
+// - 현재 선택 펫 테마를 읽어 아이콘과 FAB 강조색을 맞춘다.
+// 데이터·상태 흐름:
+// - selectedPetId와 pets는 petStore에서 읽고, More 오픈 상태는 uiStore를 사용한다.
+// - 기록 작성으로 이동할 때는 현재 activeKey를 기반으로 복귀용 returnTo 파라미터를 만든다.
+// 수정 시 주의:
+// - activeKey와 returnTo 규칙은 RecordCreateScreen 복귀 흐름과 맞물려 있으므로 함께 봐야 한다.
+// - 탭 라벨이나 target route를 바꿀 때는 AppTabsNavigator와 RootNavigator 타입까지 같이 확인해야 한다.
 
 import React, { useCallback, useMemo } from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -16,7 +26,7 @@ import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { usePetStore } from '../../store/petStore';
 import { openMoreDrawer } from '../../store/uiStore';
 
-type ActiveTabKey = 'home' | 'timeline' | 'record' | 'guestbook' | 'more';
+type ActiveTabKey = 'home' | 'timeline' | 'record' | 'more';
 
 type Props = {
   activeKey: ActiveTabKey;
@@ -59,8 +69,6 @@ export default function AppNavigationToolbar({
             params: { mainCategory: 'all' },
           },
         } as const;
-      case 'guestbook':
-        return { tab: 'GuestbookTab' } as const;
       default:
         return undefined;
     }
@@ -100,13 +108,6 @@ export default function AppNavigationToolbar({
         return;
       }
 
-      if (target === 'guestbook') {
-        navigation.navigate('AppTabs', {
-          screen: 'GuestbookTab',
-        });
-        return;
-      }
-
       navigation.navigate('AppTabs', {
         screen: 'HomeTab',
       });
@@ -118,7 +119,6 @@ export default function AppNavigationToolbar({
     () => [
       { key: 'home' as const, label: '홈', icon: 'home' },
       { key: 'timeline' as const, label: '타임라인', icon: 'activity' },
-      { key: 'guestbook' as const, label: '방명록', icon: 'book-open' },
       { key: 'more' as const, label: '전체메뉴', icon: 'menu' },
     ],
     [],

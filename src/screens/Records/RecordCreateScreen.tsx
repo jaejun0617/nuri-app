@@ -1,9 +1,17 @@
 // 파일: src/screens/Records/RecordCreateScreen.tsx
-// 목적:
-// - memory(기록) 생성
-// - 이미지 중심 폼 UI로 재구성
-// - 저장 직후 홈/타임라인에 즉시 반영
-// - 탭 구조에서 폼 상태가 남지 않도록 focus/reset 유지
+// 파일 목적:
+// - 반려동물 기록을 작성하고, 저장 직후 홈/타임라인에 즉시 반영하는 작성 화면이다.
+// 어디서 쓰이는지:
+// - AppTabsNavigator의 `RecordCreateTab`과 날씨 활동 기록/홈/타임라인 CTA에서 공통 작성 화면으로 사용된다.
+// 핵심 역할:
+// - 텍스트/감정/카테고리/가격/날짜/이미지 입력을 수집해 `createMemory`를 호출한다.
+// - draft 복구, 낙관적 store 반영, 업로드 큐 등록, 작성 후 복귀 경로 처리까지 담당한다.
+// 데이터·상태 흐름:
+// - 메모리 본문은 Supabase에 먼저 저장하고, 이미지 업로드는 local upload queue가 이어받아 비동기 복구를 지원한다.
+// - 저장 직후 recordStore를 먼저 갱신해 홈/타임라인이 즉시 같은 엔티티를 보도록 만든다.
+// 수정 시 주의:
+// - returnTo와 탭 복귀 규칙은 하단 탭/More 드로어 흐름과 연결돼 있으므로 독립적으로 바꾸면 안 된다.
+// - 이미지 업로드는 저장과 분리돼 있어, 폼 성공과 업로드 완료를 같은 시점으로 가정하면 상태가 꼬일 수 있다.
 
 import React, {
   useCallback,
@@ -342,11 +350,6 @@ export default function RecordCreateScreen() {
       return;
     }
 
-    if (returnTo?.tab === 'GuestbookTab') {
-      navigation.navigate('AppTabs', { screen: 'GuestbookTab' });
-      return;
-    }
-
     if (returnTo?.tab === 'MoreTab') {
       navigation.navigate('AppTabs', { screen: 'HomeTab' });
       openMoreDrawer();
@@ -593,37 +596,39 @@ export default function RecordCreateScreen() {
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <TouchableOpacity
-          activeOpacity={0.8}
-          style={styles.headerSideBtn}
-          onPress={onPressCancel}
-        >
-          <AppText preset="body" style={styles.headerCancelText}>
-            취소
-          </AppText>
-        </TouchableOpacity>
+        <View style={styles.headerSideSlot}>
+          <TouchableOpacity
+            activeOpacity={0.88}
+            style={styles.headerBackButton}
+            onPress={onPressCancel}
+          >
+            <Feather name="arrow-left" size={20} color="#102033" />
+          </TouchableOpacity>
+        </View>
 
         <AppText preset="headline" style={styles.headerTitle}>
           기록하기
         </AppText>
 
-        <TouchableOpacity
-          activeOpacity={0.8}
-          style={styles.headerSideBtn}
-          disabled={disabled}
-          onPress={onSubmit}
-        >
-          <AppText
-            preset="body"
-            style={[
-              styles.headerDoneText,
-              !disabled ? { color: petTheme.primary } : null,
-              disabled ? styles.headerDoneTextDisabled : null,
-            ]}
+        <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={styles.headerSideBtn}
+            disabled={disabled}
+            onPress={onSubmit}
           >
-            {saving ? '저장중' : '완료'}
-          </AppText>
-        </TouchableOpacity>
+            <AppText
+              preset="body"
+              style={[
+                styles.headerDoneText,
+                !disabled ? { color: petTheme.primary } : null,
+                disabled ? styles.headerDoneTextDisabled : null,
+              ]}
+            >
+              {saving ? '저장중' : '완료'}
+            </AppText>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <KeyboardAwareScrollView

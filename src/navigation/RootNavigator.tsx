@@ -1,10 +1,17 @@
 // 파일: src/navigation/RootNavigator.tsx
-// 목적:
-// - Splash(탭 없음) → AppTabs(공통 하단 탭) 기본 흐름 유지
-// - Auth 플로우(SignIn/SignUp/NicknameSetup) 라우팅 제공
-// - PetCreate 라우팅 제공 (로그인 후 펫 0마리면 유도 진입)
-// - ✅ UX: 스택 헤더의 모든 글씨(타이틀/뒤로가기 텍스트) 제거
-// - DevTest는 dev-only
+// 파일 목적:
+// - 앱 전체 스택 라우트의 source of truth를 정의한다.
+// 어디서 쓰이는지:
+// - App.tsx의 NavigationContainer 아래에서 최상위 스택 네비게이터로 사용된다.
+// 핵심 역할:
+// - Splash에서 시작해 AppTabs, Auth, Pets, Schedules, Weather, Guides, LocationDiscovery, PetTravel 등 도메인 라우트를 연결한다.
+// - 앱 첫 진입과 탭 바깥 화면 전환에 필요한 스택 구조를 유지한다.
+// 데이터·상태 흐름:
+// - 실제 진입 분기는 Splash와 AppProviders가 결정하고, 이 파일은 그 결과를 받아 화면 간 이동 경로를 제공한다.
+// - 각 화면이 navigation.navigate/reset에 사용하는 파라미터 타입도 여기서 관리한다.
+// 수정 시 주의:
+// - route name이나 param 타입을 바꾸면 여러 화면과 툴바, More 메뉴, 탭 복귀 흐름이 함께 깨질 수 있다.
+// - 숨겨진 헤더 정책과 reset 진입 흐름을 함부로 바꾸면 앱 첫 진입 UX가 흔들린다.
 
 import React from 'react';
 import type { NavigatorScreenParams } from '@react-navigation/native';
@@ -37,8 +44,11 @@ import NearbyWalkListScreen from '../screens/LocationDiscovery/NearbyWalkListScr
 import NearbyWalkDetailScreen from '../screens/LocationDiscovery/NearbyWalkDetailScreen';
 import PetFriendlyPlaceListScreen from '../screens/LocationDiscovery/PetFriendlyPlaceListScreen';
 import PetFriendlyPlaceDetailScreen from '../screens/LocationDiscovery/PetFriendlyPlaceDetailScreen';
+import PetTravelListScreen from '../screens/PetTravel/PetTravelListScreen';
+import PetTravelDetailScreen from '../screens/PetTravel/PetTravelDetailScreen';
 import type { DeviceCoordinates } from '../services/location/currentPosition';
 import type { LocationDiscoveryItem } from '../services/locationDiscovery/types';
+import type { PetTravelItem } from '../services/petTravel/types';
 import type {
   IndoorActivityKey,
   WeatherGuideBundle,
@@ -102,6 +112,10 @@ export type RootStackParamList = {
   PetFriendlyPlaceDetail: {
     item: LocationDiscoveryItem;
     resultItems?: LocationDiscoveryItem[];
+  };
+  PetTravelList: undefined;
+  PetTravelDetail: {
+    item: PetTravelItem;
   };
   GuideAdminList: undefined;
   GuideAdminEditor:
@@ -257,6 +271,16 @@ export default function RootNavigator() {
       <Stack.Screen
         name="PetFriendlyPlaceDetail"
         component={PetFriendlyPlaceDetailScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="PetTravelList"
+        component={PetTravelListScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="PetTravelDetail"
+        component={PetTravelDetailScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

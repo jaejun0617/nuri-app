@@ -20,26 +20,35 @@ export const styles = StyleSheet.create({
     paddingBottom: 28,
   },
   header: {
-    height: 56,
-    paddingHorizontal: 14,
+    minHeight: 56,
+    paddingHorizontal: 18,
+    paddingTop: 8,
+    paddingBottom: 8,
     marginTop: 12,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
   },
-  headerTextBtn: {
-    minWidth: 44,
-    minHeight: 36,
+  headerSideSlot: {
+    width: 40,
+    minHeight: 40,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  headerSideSlotRight: {
+    alignItems: 'flex-end',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     flex: 1,
     textAlign: 'center',
     color: TEXT,
-    fontWeight: '800',
-  },
-  headerTextButtonLabel: {
-    color: '#8A94A6',
-    fontWeight: '700',
+    fontWeight: '900',
   },
   avatarSection: {
     marginTop: 12,

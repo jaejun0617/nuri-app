@@ -13,17 +13,30 @@ export const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32 },
 
   header: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 14,
+    paddingHorizontal: 18,
+    paddingTop: 8,
+    paddingBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 12,
     backgroundColor: BG,
   },
-  headerSideBtn: { minWidth: 44, height: 34, justifyContent: 'center' },
-  headerSideText: { color: MUTED, fontWeight: '700' },
-  headerTitle: { color: TEXT, fontWeight: '900' },
+  headerSideSlot: {
+    width: 56,
+    minHeight: 40,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  headerSideSlotRight: {
+    alignItems: 'flex-end',
+  },
+  headerBackButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: { flex: 1, textAlign: 'center', color: TEXT, fontWeight: '900' },
   headerActionBtn: { minWidth: 44, height: 34, alignItems: 'flex-end', justifyContent: 'center' },
   headerActionText: { color: BRAND, fontWeight: '900' },
 

@@ -17,6 +17,15 @@ export const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 8,
   },
+  headerSideSlot: {
+    width: 40,
+    minHeight: 40,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  headerSideSlotRight: {
+    alignItems: 'flex-end',
+  },
   backButton: {
     width: 40,
     height: 40,
@@ -24,6 +33,8 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
+    flex: 1,
+    textAlign: 'center',
     color: '#0B1220',
     fontWeight: '900',
   },

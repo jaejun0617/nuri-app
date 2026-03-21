@@ -1,8 +1,17 @@
 // 파일: src/screens/Home/HomeScreen.tsx
-// 역할:
-// - 앱 부팅 직후 보이는 Splash 화면을 렌더링
-// - auth/pet boot 상태와 최소 노출 시간을 함께 보장한 뒤 다음 화면으로 안전하게 이동
-// - 초기 브랜딩 애니메이션과 배경 비주얼을 보여주되, 실제 분기 로직은 최소한으로 유지
+// 파일 목적:
+// - 앱 부팅 직후 보이는 Splash 화면을 렌더링하며, 첫 진입 라우트 결정을 안전하게 지연한다.
+// 어디서 쓰이는지:
+// - RootNavigator의 `Splash` 화면으로 사용되며, 앱 시작 직후 가장 먼저 보이는 화면이다.
+// 핵심 역할:
+// - auth/pet boot 완료와 최소 노출 시간을 기다린 뒤 `resolveBootRoute` 결과로 다음 화면을 reset 이동한다.
+// - 브랜딩 애니메이션과 배경 비주얼을 보여주되, 실제 business decision은 boot 서비스와 store 상태를 따른다.
+// 데이터·상태 흐름:
+// - authStore와 petStore의 boot 상태, 닉네임, 펫 수를 읽어 다음 진입 경로를 계산한다.
+// - AppProviders가 채운 부트 상태가 안정화된 뒤에만 실제 화면 전환이 일어난다.
+// 수정 시 주의:
+// - 이 화면에서 직접 분기 정책을 늘리기보다 `services/app/boot.ts`를 기준으로 유지해야 가드 규칙이 한곳에 모인다.
+// - reset 이동과 최소 노출 시간 규칙을 바꾸면 첫 실행 UX와 로그인 복귀 흐름이 흔들릴 수 있다.
 
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, Easing, useWindowDimensions } from 'react-native';

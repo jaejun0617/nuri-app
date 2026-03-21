@@ -255,21 +255,21 @@ export default function GuideAdminEditorScreen() {
         ]}
       >
         <View style={styles.header}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            style={styles.headerSideButton}
-            onPress={() => navigation.goBack()}
-          >
-            <AppText preset="body" style={styles.headerSideText}>
-              뒤로가기
-            </AppText>
-          </TouchableOpacity>
+          <View style={styles.headerSideSlot}>
+            <TouchableOpacity
+              activeOpacity={0.88}
+              style={styles.headerBackButton}
+              onPress={() => navigation.goBack()}
+            >
+              <Feather name="arrow-left" size={20} color="#102033" />
+            </TouchableOpacity>
+          </View>
 
           <AppText preset="headline" style={styles.headerTitle}>
             {route.params.mode === 'create' ? '가이드 등록' : '가이드 편집'}
           </AppText>
 
-          <View style={styles.headerSideButton} />
+          <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
         </View>
 
         <View style={styles.heroCard}>
@@ -592,21 +592,32 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   header: {
+    minHeight: 56,
+    paddingHorizontal: 18,
+    paddingTop: 8,
     paddingBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 12,
   },
-  headerSideButton: {
-    minWidth: 68,
-    height: 34,
+  headerSideSlot: {
+    width: 40,
+    minHeight: 40,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  headerSideSlotRight: {
+    alignItems: 'flex-end',
+  },
+  headerBackButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  headerSideText: {
-    color: '#556070',
-    fontWeight: '700',
-  },
   headerTitle: {
+    flex: 1,
+    textAlign: 'center',
     color: '#0B1220',
     fontWeight: '900',
   },

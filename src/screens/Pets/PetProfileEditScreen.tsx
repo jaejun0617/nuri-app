@@ -560,21 +560,21 @@ export default function PetProfileEditScreen() {
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={styles.headerTextBtn}
-          onPress={() => navigation.goBack()}
-        >
-          <AppText preset="body" style={styles.headerTextButtonLabel}>
-            취소
-          </AppText>
-        </TouchableOpacity>
+        <View style={styles.headerSideSlot}>
+          <TouchableOpacity
+            activeOpacity={0.88}
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Feather name="arrow-left" size={20} color="#102033" />
+          </TouchableOpacity>
+        </View>
 
         <AppText preset="headline" style={styles.headerTitle}>
           프로필 수정
         </AppText>
 
-        <View style={styles.headerTextBtn} />
+        <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
       </View>
 
       <KeyboardAvoidingView

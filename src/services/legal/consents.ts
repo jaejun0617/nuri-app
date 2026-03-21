@@ -150,7 +150,7 @@ export async function fetchMyConsentHistory(
   if (error) {
     if (isMissingConsentTableError(error)) {
       throw new Error(
-        'user_consent_history 테이블이 아직 없습니다. release_account_consents.sql 적용 여부를 확인해 주세요.',
+        'user_consent_history 테이블이 아직 없습니다. 계정-동의-이력-및-계정-삭제.sql 적용 여부를 확인해 주세요.',
       );
     }
     throw error;

@@ -184,16 +184,19 @@ export default function LocationDiscoveryListScreen({ domain }: Props) {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
       >
         <View style={styles.header}>
-          <TouchableOpacity
-            activeOpacity={0.88}
-            style={styles.backButton}
-            onPress={navigateBackToMore}
-          >
-            <Feather name="arrow-left" size={20} color="#102033" />
-          </TouchableOpacity>
+          <View style={styles.headerSideSlot}>
+            <TouchableOpacity
+              activeOpacity={0.88}
+              style={styles.backButton}
+              onPress={navigateBackToMore}
+            >
+              <Feather name="arrow-left" size={20} color="#102033" />
+            </TouchableOpacity>
+          </View>
           <AppText preset="headline" style={styles.headerTitle}>
             {copy.title}
           </AppText>
+          <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
         </View>
 
         <LocationDiscoverySearchBar

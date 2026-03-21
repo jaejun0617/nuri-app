@@ -20,6 +20,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven { url("https://devrepo.kakao.com/nexus/content/groups/public/") }
 
         // 🔥 AsyncStorage v3 로컬 경로
         maven { 

@@ -112,15 +112,15 @@ export default function GuideDetailScreen() {
           ]}
         >
           <View style={styles.topBar}>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              style={styles.headerSideBtn}
-              onPress={() => navigation.goBack()}
-            >
-              <AppText preset="body" style={styles.headerSideText}>
-                뒤로가기
-              </AppText>
-            </TouchableOpacity>
+            <View style={styles.headerSideSlot}>
+              <TouchableOpacity
+                activeOpacity={0.88}
+                style={styles.headerBackButton}
+                onPress={() => navigation.goBack()}
+              >
+                <Feather name="arrow-left" size={20} color="#102033" />
+              </TouchableOpacity>
+            </View>
 
             <View style={styles.topBarTitleWrap}>
               <AppText preset="headline" style={styles.headerTitle}>
@@ -128,7 +128,7 @@ export default function GuideDetailScreen() {
               </AppText>
             </View>
 
-            <View style={styles.headerSideBtn} />
+            <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
           </View>
 
           <View style={styles.heroCard}>

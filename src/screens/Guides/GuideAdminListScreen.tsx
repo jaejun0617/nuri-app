@@ -87,30 +87,32 @@ export default function GuideAdminListScreen() {
   return (
     <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
       <View style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          style={styles.headerSideButton}
-          onPress={() => navigation.goBack()}
-        >
-          <AppText preset="body" style={styles.headerSideText}>
-            뒤로가기
-          </AppText>
-        </TouchableOpacity>
+        <View style={styles.headerSideSlot}>
+          <TouchableOpacity
+            activeOpacity={0.88}
+            style={styles.headerBackButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Feather name="arrow-left" size={20} color="#102033" />
+          </TouchableOpacity>
+        </View>
 
         <AppText preset="headline" style={styles.headerTitle}>
           가이드 운영
         </AppText>
 
         {isGuideAdmin ? (
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={styles.createButton}
-            onPress={() => navigation.navigate('GuideAdminEditor', { mode: 'create' })}
-          >
-            <Feather name="plus" size={16} color="#6D6AF8" />
-          </TouchableOpacity>
+          <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={styles.createButton}
+              onPress={() => navigation.navigate('GuideAdminEditor', { mode: 'create' })}
+            >
+              <Feather name="plus" size={16} color="#6D6AF8" />
+            </TouchableOpacity>
+          </View>
         ) : (
-          <View style={styles.headerSideButton} />
+          <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
         )}
       </View>
 
@@ -221,22 +223,31 @@ const styles = {
     backgroundColor: '#F6F7FB',
   },
   header: {
-    paddingHorizontal: 16,
-    paddingBottom: 14,
+    paddingHorizontal: 18,
+    paddingTop: 8,
+    paddingBottom: 8,
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    justifyContent: 'space-between' as const,
+    gap: 12,
   },
-  headerSideButton: {
-    minWidth: 68,
-    height: 34,
+  headerSideSlot: {
+    width: 40,
+    minHeight: 40,
+    justifyContent: 'center' as const,
+    alignItems: 'flex-start' as const,
+  },
+  headerSideSlotRight: {
+    alignItems: 'flex-end' as const,
+  },
+  headerBackButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
-  headerSideText: {
-    color: '#556070',
-    fontWeight: '700' as const,
-  },
   headerTitle: {
+    flex: 1,
+    textAlign: 'center' as const,
     color: '#0B1220',
     fontWeight: '900' as const,
   },

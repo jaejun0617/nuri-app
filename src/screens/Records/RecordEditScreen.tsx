@@ -623,22 +623,22 @@ export default function RecordEditScreen() {
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          style={styles.backBtn}
-          onPress={safeGoBack}
-          disabled={saving}
-        >
-          <AppText preset="body" style={styles.backText}>
-            ←
-          </AppText>
-        </TouchableOpacity>
+        <View style={styles.headerSideSlot}>
+          <TouchableOpacity
+            activeOpacity={0.88}
+            style={styles.backBtn}
+            onPress={safeGoBack}
+            disabled={saving}
+          >
+            <Feather name="arrow-left" size={20} color="#102033" />
+          </TouchableOpacity>
+        </View>
 
         <AppText preset="headline" style={styles.headerTitle}>
           기록 수정
         </AppText>
 
-        <View style={{ width: 44 }} />
+        <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
       </View>
 
       <KeyboardAwareScrollView

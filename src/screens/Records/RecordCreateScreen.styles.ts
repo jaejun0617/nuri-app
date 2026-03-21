@@ -15,14 +15,31 @@ export const styles = StyleSheet.create({
   },
 
   header: {
-    height: 56,
-    paddingHorizontal: 14,
+    minHeight: 56,
+    paddingHorizontal: 18,
+    paddingTop: 8,
+    paddingBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 12,
     backgroundColor: CARD,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(17,24,39,0.04)',
+  },
+  headerSideSlot: {
+    width: 56,
+    minHeight: 40,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  headerSideSlotRight: {
+    alignItems: 'flex-end',
+  },
+  headerBackButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerSideBtn: {
     minWidth: 52,
@@ -30,13 +47,10 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
+    flex: 1,
     color: TEXT,
     fontWeight: '900',
     textAlign: 'center',
-  },
-  headerCancelText: {
-    color: '#C2C9D6',
-    fontWeight: '800',
   },
   headerDoneText: {
     color: BRAND,

@@ -197,30 +197,32 @@ export default function ScheduleDetailScreen() {
   return (
     <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
       <View style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          style={styles.headerSideBtn}
-          onPress={() => navigation.goBack()}
-        >
-          <AppText preset="body" style={styles.headerSideText}>
-            취소
-          </AppText>
-        </TouchableOpacity>
+        <View style={styles.headerSideSlot}>
+          <TouchableOpacity
+            activeOpacity={0.88}
+            style={styles.headerBackButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Feather name="arrow-left" size={20} color="#102033" />
+          </TouchableOpacity>
+        </View>
 
         <AppText preset="headline" style={styles.headerTitle}>
           일정 상세
         </AppText>
 
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={styles.headerActionBtn}
-          onPress={onPressEdit}
-          disabled={!schedule}
-        >
-          <AppText preset="caption" style={styles.headerActionText}>
-            수정
-          </AppText>
-        </TouchableOpacity>
+        <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={styles.headerActionBtn}
+            onPress={onPressEdit}
+            disabled={!schedule}
+          >
+            <AppText preset="caption" style={styles.headerActionText}>
+              수정
+            </AppText>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView

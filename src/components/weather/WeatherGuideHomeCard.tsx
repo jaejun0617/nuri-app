@@ -14,11 +14,13 @@ import {
 
 type Props = {
   weather: WeatherGuideBundle;
+  locationLabel?: string;
   onPress: () => void;
 };
 
 export default React.memo(function WeatherGuideHomeCard({
   weather,
+  locationLabel,
   onPress,
 }: Props) {
   const hasLiveData = weather.dataSource === 'live';
@@ -64,7 +66,7 @@ export default React.memo(function WeatherGuideHomeCard({
                   : '실시간 확인 필요'}
             </Text>
             <Text style={[styles.locationText, { color: locationColor }]}>
-              {weather.district}
+              {locationLabel ?? weather.district}
             </Text>
           </View>
           <Text style={[styles.title, { color: textPrimary }]}>{weather.homeMessage}</Text>

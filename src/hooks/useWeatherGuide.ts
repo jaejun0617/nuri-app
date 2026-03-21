@@ -1,7 +1,17 @@
 // 파일: src/hooks/useWeatherGuide.ts
-// 역할:
-// - 위치 권한, 좌표, 동 이름, 날씨/대기질 API를 TanStack Query + Zustand 조합으로 연결
-// - 메모리 TTL -> AsyncStorage TTL -> API 순서로 조회해 화면 왕복 시 재호출을 줄이기
+// 파일 목적:
+// - 날씨 도메인에서 필요한 위치, 행정동, 예보, 대기질 데이터를 하나의 읽기 모델로 묶는다.
+// 어디서 쓰이는지:
+// - 홈 로그인 화면, WeatherInsightScreen, 실내 활동 추천 화면 등 날씨 기반 화면에서 공통으로 사용된다.
+// 핵심 역할:
+// - 위치 권한 확인, 좌표 확보, district 조회, Open-Meteo fetch, preview/unavailable fallback 구성을 담당한다.
+// - 메모리 캐시와 디스크 캐시를 사용해 화면 왕복 시 재요청을 줄인다.
+// 데이터·상태 흐름:
+// - `useCurrentLocation`과 `useDistrict` 결과를 바탕으로 Query key를 만들고, 최종적으로 `WeatherGuideBundle`을 반환한다.
+// - weatherStore는 최신 snapshot 캐시를 유지하고, 이 hook은 화면이 바로 소비할 수 있는 상태 객체를 조합한다.
+// 수정 시 주의:
+// - 위치 freshness, focus refresh, active refresh 규칙이 함께 맞물려 있으므로 하나만 바꾸면 체감 UX가 흔들린다.
+// - iOS 권한 계층이 단순화돼 있는 상태라 권한 흐름 주석이나 로직을 과장하면 안 된다.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
@@ -11,7 +21,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createLatestRequestController } from '../services/app/async';
 import { getBrandedErrorMeta } from '../services/app/errors';
 import { getFallbackDistrictLabel } from '../services/location/district';
-import type { DeviceCoordinates } from '../services/location/currentPosition';
+import {
+  getLocationAgeMs,
+  isFreshLocationCoordinates,
+  LOCATION_AUTO_REFRESH_INTERVAL_MS,
+  type DeviceCoordinates,
+} from '../services/location/currentPosition';
 import { fetchOpenMeteoAirQuality, fetchOpenMeteoForecast } from '../services/weather/api';
 import {
   loadCachedWeatherGuideBundle,
@@ -40,6 +55,9 @@ export type WeatherGuideState = {
   isUnavailable: boolean;
   isPreview: boolean;
   coordinates: DeviceCoordinates | null;
+  hasFreshLocation: boolean;
+  usingStaleLocation: boolean;
+  locationLabel: string;
 };
 
 type UseWeatherGuideOptions = {
@@ -145,7 +163,8 @@ export function useWeatherGuide(
   const canFetchLiveWeather =
     !!location.coordinates &&
     !!coordsKey &&
-    location.permission === 'granted';
+    location.permission === 'granted' &&
+    location.isFresh;
 
   const weatherQuery = useQuery<WeatherGuideBundle>({
     queryKey: ['weather-guide', coordsKey],
@@ -153,10 +172,6 @@ export function useWeatherGuide(
     staleTime: WEATHER_QUERY_STALE_MS,
     gcTime: WEATHER_QUERY_GC_MS,
     refetchOnMount: autoRefreshOnMount,
-    initialData:
-      initialBundle && location.coordinates ? initialBundle : memoryEntry?.bundle,
-    initialDataUpdatedAt:
-      initialBundle || memoryEntry?.bundle ? Date.now() : undefined,
     queryFn: async () => {
       if (!location.coordinates) {
         throw new Error('현재 위치를 아직 확인하지 못했어요.');
@@ -250,8 +265,19 @@ export function useWeatherGuide(
     weatherQuery.error,
   ]);
 
+  const shouldRefreshLocation = useCallback(() => {
+    if (!location.coordinates) return true;
+    if (!location.isFresh) return true;
+
+    const ageMs = getLocationAgeMs(location.coordinates);
+    return ageMs === null || ageMs >= LOCATION_AUTO_REFRESH_INTERVAL_MS;
+  }, [location.coordinates, location.isFresh]);
+
   const refresh = useCallback(async () => {
     const refreshedCoordinates = await location.refresh();
+    if (!isFreshLocationCoordinates(refreshedCoordinates)) {
+      return;
+    }
     const nextCoordsKey = refreshedCoordinates
       ? getWeatherStoreCoordsKey(refreshedCoordinates)
       : coordsKey;
@@ -288,17 +314,33 @@ export function useWeatherGuide(
   const requestForegroundRefresh = useCallback(() => {
     const now = Date.now();
     if (now - lastRefreshRequestAtRef.current < 1500) return;
-    if (!shouldRefreshWeather()) return;
+    if (!shouldRefreshWeather() && !shouldRefreshLocation()) return;
 
     lastRefreshRequestAtRef.current = now;
-    queryClient
-      .invalidateQueries({
-        queryKey: ['weather-guide', coordsKey],
+    (async () => {
+      const refreshedCoordinates = shouldRefreshLocation()
+        ? await location.refresh()
+        : location.coordinates;
+      const nextCoordsKey = refreshedCoordinates
+        ? getWeatherStoreCoordsKey(refreshedCoordinates)
+        : coordsKey;
+      if (!nextCoordsKey || !isFreshLocationCoordinates(refreshedCoordinates)) {
+        return;
+      }
+
+      await queryClient.invalidateQueries({
+        queryKey: ['weather-guide', nextCoordsKey],
         exact: true,
         refetchType: 'active',
-      })
-      .catch(() => {});
-  }, [coordsKey, queryClient, shouldRefreshWeather]);
+      });
+    })().catch(() => {});
+  }, [
+    coordsKey,
+    location,
+    queryClient,
+    shouldRefreshLocation,
+    shouldRefreshWeather,
+  ]);
 
   useFocusEffect(
     useCallback(() => {
@@ -327,6 +369,14 @@ export function useWeatherGuide(
     !weatherQuery.data &&
     !previewBundle &&
     (location.loading || districtState.loading || weatherQuery.isLoading);
+  const locationLabel =
+    !location.isFresh && location.loading
+      ? '새 위치 확인 중'
+      : location.isFresh
+        ? bundle.district
+        : bundle.district === '현재 위치'
+          ? '최근 확인 위치'
+          : `최근 확인 위치 · ${bundle.district}`;
 
   return {
     loading,
@@ -336,5 +386,8 @@ export function useWeatherGuide(
     isUnavailable: bundle.dataSource === 'unavailable',
     isPreview: bundle.dataSource === 'preview',
     coordinates: location.coordinates,
+    hasFreshLocation: location.isFresh,
+    usingStaleLocation: location.isStale,
+    locationLabel,
   };
 }

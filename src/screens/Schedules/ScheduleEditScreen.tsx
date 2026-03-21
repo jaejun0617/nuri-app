@@ -321,28 +321,30 @@ export default function ScheduleEditScreen() {
   return (
     <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
       <View style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          style={styles.headerSideBtn}
-          onPress={() => navigation.goBack()}
-        >
-          <AppText preset="body" style={styles.headerSideText}>
-            취소
-          </AppText>
-        </TouchableOpacity>
+        <View style={styles.headerSideSlot}>
+          <TouchableOpacity
+            activeOpacity={0.88}
+            style={styles.headerBackButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Feather name="arrow-left" size={20} color="#102033" />
+          </TouchableOpacity>
+        </View>
         <AppText preset="headline" style={styles.headerTitle}>
           일정 수정
         </AppText>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={styles.headerDoneBtn}
-          onPress={onSubmit}
-          disabled={saving || loading}
-        >
-          <AppText preset="caption" style={styles.headerDoneText}>
-            {saving ? '저장 중' : '완료'}
-          </AppText>
-        </TouchableOpacity>
+        <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={styles.headerDoneBtn}
+            onPress={onSubmit}
+            disabled={saving || loading}
+          >
+            <AppText preset="caption" style={styles.headerDoneText}>
+              {saving ? '저장 중' : '완료'}
+            </AppText>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <KeyboardAwareScrollView

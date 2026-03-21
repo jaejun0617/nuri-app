@@ -87,15 +87,17 @@ export default function IndoorActivityRecommendationsScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Feather name="chevron-left" size={24} color="#1B2434" />
-        </TouchableOpacity>
+        <View style={styles.headerSideSlot}>
+          <TouchableOpacity
+            activeOpacity={0.88}
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Feather name="arrow-left" size={20} color="#102033" />
+          </TouchableOpacity>
+        </View>
         <Text style={styles.headerTitle}>실내놀이추천</Text>
-        <View style={styles.headerSpace} />
+        <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
       </View>
 
       <ScrollView
@@ -139,26 +141,36 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F7FC',
   },
   header: {
-    height: 52,
-    paddingHorizontal: 16,
+    minHeight: 56,
+    paddingHorizontal: 18,
+    paddingTop: 8,
+    paddingBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 12,
+  },
+  headerSideSlot: {
+    width: 40,
+    minHeight: 40,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  headerSideSlotRight: {
+    alignItems: 'flex-end',
   },
   backButton: {
-    width: 34,
-    height: 34,
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 16,
-    lineHeight: 20,
-    color: '#1B2434',
-    fontWeight: '700',
-  },
-  headerSpace: {
-    width: 34,
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 17,
+    lineHeight: 22,
+    color: '#0B1220',
+    fontWeight: '900',
   },
   scroll: {
     flex: 1,

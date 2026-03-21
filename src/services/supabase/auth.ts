@@ -86,7 +86,7 @@ export async function deleteMyAccount(): Promise<void> {
 
   if (isMissingDeleteRpcError(error)) {
     throw new Error(
-      '계정 삭제 SQL 함수가 아직 적용되지 않았습니다. docs/sql/release_account_consents.sql을 먼저 적용해 주세요.',
+      '계정 삭제 SQL 함수가 아직 적용되지 않았습니다. docs/sql/공용-릴리즈-묶음/기능-추가/계정-동의-이력-및-계정-삭제.sql을 먼저 적용해 주세요.',
     );
   }
 

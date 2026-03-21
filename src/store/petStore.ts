@@ -1,7 +1,17 @@
 // 파일: src/store/petStore.ts
-// 목적:
-// - pets 상태 + selectedPetId persist
-// - AppProviders에서 hydrateSelectedPetId 1회 호출
+// 파일 목적:
+// - 사용자 펫 목록과 현재 선택된 펫 상태를 전역에서 일관되게 관리한다.
+// 어디서 쓰이는지:
+// - AppProviders, 홈, 펫 생성/수정, 기록, 일정, 날씨, More 메뉴 등 대부분의 로그인 도메인에서 사용된다.
+// 핵심 역할:
+// - pets 배열, selectedPetId, hydrate 상태, 로딩/에러 상태를 유지한다.
+// - 펫 목록 캐시와 선택 펫을 AsyncStorage에 저장하고 복원한다.
+// 데이터·상태 흐름:
+// - AppProviders가 서버에서 가져온 펫 목록을 setPets로 주입하고, 각 화면은 selectedPetId를 기준으로 현재 펫 컨텍스트를 공유한다.
+// - 멀티펫 전환과 펫 생성/수정 직후 동기화도 이 store를 중심으로 이뤄진다.
+// 수정 시 주의:
+// - 선택 펫 해석 규칙을 바꾸면 홈/기록/일정의 현재 컨텍스트가 전부 바뀐다.
+// - user별 캐시 키와 hydrate 순서를 건드릴 때는 계정 전환 시 이전 사용자 데이터가 남지 않는지 함께 확인해야 한다.
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';

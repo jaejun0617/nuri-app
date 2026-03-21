@@ -1,3 +1,17 @@
+// 파일: src/services/locationDiscovery/service.ts
+// 파일 목적:
+// - 산책 장소와 펫동반 장소 탐색 도메인의 핵심 후보 수집/정제 로직을 제공한다.
+// 어디서 쓰이는지:
+// - `useLocationDiscovery` 훅과 주변 산책/펫동반 장소 리스트·상세 화면에서 사용된다.
+// 핵심 역할:
+// - Kakao Local 후보를 수집하고, 도메인별 키워드/정렬/검증 상태 규칙으로 `LocationDiscoveryItem` 목록을 만든다.
+// - 펫동반 장소의 경우 Supabase 메타와 외부 후보를 병합해 서비스 표시 모델로 정규화한다.
+// 데이터·상태 흐름:
+// - 외부 검색 원본은 Kakao Local이고, 필요 시 `placeMeta.ts`가 canonical 메타/보조 신호를 덧씌운다.
+// - 화면은 이 파일이 만든 normalized item만 소비하고, source/provider 차이는 내부에서 숨긴다.
+// 수정 시 주의:
+// - 현재 source of truth는 외부 후보 + 선택적 메타 merge이므로, 검증 상태를 과하게 확정하는 방향으로 바꾸면 안 된다.
+// - 정렬/필터 패턴 하나만 바꿔도 산책과 펫동반 장소 양쪽 체감 품질이 동시에 달라지므로 실기기 검색 QA가 필요하다.
 import type { DeviceCoordinates } from '../location/currentPosition';
 import type { PetFriendlyPlaceServiceMeta } from './placeMeta';
 import {

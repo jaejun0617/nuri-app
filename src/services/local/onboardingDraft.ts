@@ -17,7 +17,7 @@ export type PetCreateDraft = {
   birthDate: string;
   adoptionDate: string;
   deathDate: string;
-  breed: string;
+  breed?: string;
   themeColor: string | null;
   gender: 'male' | 'female' | 'unknown';
   neutered: boolean | null;

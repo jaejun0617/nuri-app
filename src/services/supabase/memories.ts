@@ -1,9 +1,17 @@
 // 파일: src/services/supabase/memories.ts
-// 역할:
-// - memories CRUD
-// - pagination cursor(created_at + id) 고정(✅ 타이브레이커 포함)
-// - ✅ signed URL 생성은 "리스트 fetch 경로"에서 제거(UI block 방지)
-// - ✅ prefetchMemorySignedUrls는 fetch 흐름 밖에서 async 스케줄링(스크롤 버벅임 방지)
+// 파일 목적:
+// - 기록 도메인의 Supabase CRUD와 이미지 메타 정규화를 담당하는 핵심 서비스다.
+// 어디서 쓰이는지:
+// - recordStore, RecordCreate/Edit/Detail 화면, 업로드 큐, 홈/타임라인 보조 로직에서 공통으로 사용된다.
+// 핵심 역할:
+// - 메모리 생성/수정/삭제, 단건/목록 조회, cursor 페이지네이션, 이미지 path 정리, 레거시 필드 호환을 처리한다.
+// - 리스트 fetch에서는 signed URL 생성을 분리해 UI block을 줄이고, 필요한 곳에서 prefetch만 수행한다.
+// 데이터·상태 흐름:
+// - DB 원본 row를 내부 `MemoryRecord`로 정규화해 store와 화면이 같은 모델을 공유하게 만든다.
+// - 이미지 원본은 storage path 기준으로 다루고, signed URL은 렌더링 직전 계층에서 채우는 구조다.
+// 수정 시 주의:
+// - `memory_images`와 legacy `image_url/image_urls` 호환을 동시에 다루고 있어, 한쪽 규칙만 바꾸면 기존 데이터가 깨질 수 있다.
+// - pagination cursor와 삭제 시 storage 정리 흐름은 타임라인/상세/업로드 큐가 같이 의존하므로 회귀 검증이 필수다.
 
 import { supabase } from './client';
 import {

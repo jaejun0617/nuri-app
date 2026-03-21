@@ -1,13 +1,18 @@
 // 파일: src/app/providers/AppProviders.tsx
-// 목적:
-// - ThemeProvider
-// - 앱 부트 시퀀스(세션/닉네임/펫/선택펫) 정렬
-// - auth 이벤트 동기화
-// - 로그아웃 시 pets/records 정리
-//
-// ✅ Chapter 5 반영
-// - recordStore 전체 구독(useRecordStore()) 제거
-// - clearAll만 selector로 구독하여 불필요 렌더/스냅샷 변동 리스크 최소화
+// 파일 목적:
+// - 앱 전역 Provider를 묶고, 로그인 사용자 기준 부트스트랩 순서를 한 곳에서 통제한다.
+// 어디서 쓰이는지:
+// - App.tsx에서 NavigationContainer를 감싸는 최상위 provider로 사용된다.
+// 핵심 역할:
+// - ThemeProvider와 QueryClientProvider를 제공한다.
+// - 세션 확인, 프로필 조회, 펫 목록 hydrate, 선택 펫 복원, auth 이벤트 동기화를 처리한다.
+// - 로그아웃/계정 전환 시 pets, records, schedules, signed URL 캐시를 정리한다.
+// 데이터·상태 흐름:
+// - Supabase 세션/프로필/펫 데이터를 읽어 authStore, petStore, recordStore, scheduleStore의 초기 상태를 맞춘다.
+// - 앱 활성화 시 미처리 동의서 flush와 메모리 이미지 업로드 큐 복구도 여기서 트리거된다.
+// 수정 시 주의:
+// - 부트 순서와 timeout/fallback 정책을 바꾸면 Splash 이후 진입 가드가 쉽게 어긋난다.
+// - 여러 store를 동시에 만지는 파일이므로 selector 범위와 effect 의존성을 넓히면 불필요한 재실행과 회귀가 커진다.
 
 import React, { useEffect, useMemo, useRef } from 'react';
 import { AppState } from 'react-native';

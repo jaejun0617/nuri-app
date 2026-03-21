@@ -1,7 +1,17 @@
 // 파일: src/services/supabase/schedules.ts
-// 목적:
-// - pet_schedules 조회/생성/수정/삭제
-// - 홈 "전체 일정"과 향후 일정 화면의 기준 서비스
+// 파일 목적:
+// - 일정 도메인의 Supabase CRUD와 공통 타입 정의를 제공한다.
+// 어디서 쓰이는지:
+// - scheduleStore, 일정 생성/상세/수정 화면, 홈 일정 요약, 알림 동기화 로직에서 사용된다.
+// 핵심 역할:
+// - `pet_schedules` 테이블 조회/생성/수정/삭제와 row -> `PetSchedule` 정규화를 담당한다.
+// - 반복, 리마인더, 완료 상태, 외부 캘린더 연동 필드까지 포함한 일정 모델의 기준 타입을 유지한다.
+// 데이터·상태 흐름:
+// - 화면은 이 서비스가 만든 `PetSchedule`을 읽고, store는 petId별 캐시를 유지한다.
+// - 알림 예약은 별도 notifications 서비스가 담당하지만, 그 기준 데이터는 이 파일의 schedule 타입을 따른다.
+// 수정 시 주의:
+// - category/subCategory/icon/color/repeat 규칙은 폼과 표시 계층이 함께 의존하므로 타입만 따로 바꾸면 안 된다.
+// - 외부 캘린더 관련 필드는 아직 확장 여지가 큰 영역이라, 현재 미완성 기능을 완료된 것처럼 주석에 적지 말아야 한다.
 
 import { supabase } from './client';
 

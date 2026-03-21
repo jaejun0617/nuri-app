@@ -1,3 +1,17 @@
+// 파일: src/services/guides/service.ts
+// 파일 목적:
+// - 가이드 도메인의 사용자용/관리자용 읽기 모델과 fallback 정책을 한곳에서 제공한다.
+// 어디서 쓰이는지:
+// - GuideList/Detail 화면, 홈 추천 훅, 관리자 가이드 훅에서 공통으로 사용된다.
+// 핵심 역할:
+// - 공개 가이드 목록/상세 조회, 검색, 인기 검색어, 홈 추천, 관리자 목록/상세 저장 흐름을 래핑한다.
+// - 원격 fetch 실패 시 로컬 seed fallback을 사용해 가이드 화면의 최소 가용성을 유지한다.
+// 데이터·상태 흐름:
+// - 실제 원본은 Supabase guides/RPC이고, 이 파일은 화면이 쓰기 쉬운 정렬/검색/개인화 결과로 가공한다.
+// - 종/세부종/연령 기반 personal score를 계산해 홈과 목록 정렬에 반영한다.
+// 수정 시 주의:
+// - fallback seed는 운영 콘텐츠를 대체하는 구조가 아니라 비상용 가용성 장치이므로, 원격/로컬 source 구분을 흐리면 안 된다.
+// - 사용자용 공개 데이터와 관리자용 비공개 편집 데이터를 같은 규칙으로 섞지 않도록 주의해야 한다.
 import { GUIDE_POPULAR_SEARCH_LIMIT, GUIDE_SEARCH_RESULT_LIMIT } from './config';
 import { PET_CARE_GUIDES } from './data';
 import { getGuidePersonalizationScore, getGuideSpeciesScore } from './personalization';

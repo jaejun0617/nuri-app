@@ -1,7 +1,16 @@
 // 파일: src/screens/Auth/NicknameSetupScreen.tsx
-// 역할:
-// - 닉네임 설정/중복검사/정책 검증
-// - 입력 draft 복구 및 완료 후 PetCreate 진입
+// 파일 목적:
+// - 회원가입/로그인 직후 닉네임을 확정해 본격적인 앱 사용 전 마지막 사용자 식별 정보를 채운다.
+// 어디서 쓰이는지:
+// - RootNavigator의 `NicknameSetup` 라우트에서 사용되며, SignUp 이후 또는 로그인 후 닉네임 미설정 가드로 진입한다.
+// 핵심 역할:
+// - 닉네임 입력, 정책 검증, 중복 확인 RPC 호출, 최종 저장을 담당한다.
+// - 입력 중단 시 draft를 복구하고, 완료 후 PetCreate 단계로 이동시킨다.
+// 데이터·상태 흐름:
+// - 저장 성공 시 Supabase profile 업데이트와 authStore nickname 반영이 이어지고, 이후 펫 생성 온보딩이 시작된다.
+// 수정 시 주의:
+// - 닉네임 검증 규칙과 availability 메시지는 서버 RPC 정책과 어긋나지 않아야 한다.
+// - 비로그인 상태 fallback과 draft 복구 타이밍을 바꾸면 온보딩 진입 흐름이 쉽게 깨진다.
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {

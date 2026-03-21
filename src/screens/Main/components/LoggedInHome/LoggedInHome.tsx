@@ -691,14 +691,20 @@ const TodayPhotoSection = React.memo(function TodayPhotoSection({
 
 const HomeWeatherSection = React.memo(function HomeWeatherSection({
   weather,
+  locationLabel,
   onPress,
 }: {
   weather: ReturnType<typeof useWeatherGuide>['bundle'];
+  locationLabel: ReturnType<typeof useWeatherGuide>['locationLabel'];
   onPress: () => void;
 }) {
   return (
     <View style={styles.weatherGuideWrap}>
-      <WeatherGuideHomeCard weather={weather} onPress={onPress} />
+      <WeatherGuideHomeCard
+        weather={weather}
+        locationLabel={locationLabel}
+        onPress={onPress}
+      />
     </View>
   );
 });
@@ -2548,6 +2554,7 @@ export default function LoggedInHome() {
         <Animated.View style={animatedContentStyle}>
           <HomeWeatherSection
             weather={weatherGuide}
+            locationLabel={weatherGuideState.locationLabel}
             onPress={onPressWeatherInsight}
           />
 

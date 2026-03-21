@@ -13,24 +13,32 @@ export const styles = StyleSheet.create({
     backgroundColor: BG,
   },
   header: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 14,
+    paddingHorizontal: 18,
+    paddingTop: 8,
+    paddingBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 12,
     backgroundColor: BG,
   },
-  headerSideBtn: {
-    minWidth: 44,
-    height: 34,
+  headerSideSlot: {
+    width: 40,
+    minHeight: 40,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  headerSideSlotRight: {
+    alignItems: 'flex-end',
+  },
+  headerBackButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  headerSideText: {
-    color: MUTED,
-    fontWeight: '700',
-  },
   headerTitle: {
+    flex: 1,
+    textAlign: 'center',
     color: TEXT,
     fontWeight: '900',
   },

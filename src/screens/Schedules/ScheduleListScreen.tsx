@@ -1,8 +1,17 @@
 // 파일: src/screens/Schedules/ScheduleListScreen.tsx
-// 역할:
-// - 선택된 반려동물 기준으로 전체 일정 목록을 조회하고 렌더링
-// - 새로고침, 상세 이동, 생성 이동 등 일정 관리의 허브 역할을 담당
-// - 빈 상태와 등록 상태를 분기해 홈 회귀나 신규 일정 작성 흐름을 자연스럽게 연결
+// 파일 목적:
+// - 선택된 반려동물 기준 일정 목록을 보여주는 일정 도메인의 허브 화면이다.
+// 어디서 쓰이는지:
+// - RootNavigator의 `ScheduleList` 라우트에서 사용되며, 홈과 More 메뉴에서 진입한다.
+// 핵심 역할:
+// - 일정 목록 조회, 새로고침, 상세 이동, 새 일정 작성 이동, 빈 상태 안내를 담당한다.
+// - 선택 펫이 없거나 일정이 비어 있는 경우에도 다음 행동으로 자연스럽게 이어지게 만든다.
+// 데이터·상태 흐름:
+// - petStore에서 현재 펫 컨텍스트를 해석하고, scheduleStore의 petId별 캐시를 읽어 화면 상태를 구성한다.
+// - 실제 서버 fetch는 store bootstrap/refresh가 수행한다.
+// 수정 시 주의:
+// - route petId와 selectedPetId 해석 우선순위를 바꾸면 홈에서 들어온 일정 컨텍스트가 달라질 수 있다.
+// - 일정 목록은 홈 요약과 같은 캐시를 공유하므로 로딩/갱신 UX를 과하게 따로 만들면 상태가 어긋날 수 있다.
 
 import React, { useCallback, useEffect, useMemo } from 'react';
 import {
@@ -113,30 +122,32 @@ export default function ScheduleListScreen() {
   return (
     <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
       <View style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          style={styles.headerSideBtn}
-          onPress={onPressHome}
-        >
-          <AppText preset="body" style={styles.headerSideText}>
-            홈으로
-          </AppText>
-        </TouchableOpacity>
+        <View style={styles.headerSideSlot}>
+          <TouchableOpacity
+            activeOpacity={0.88}
+            style={styles.headerBackButton}
+            onPress={onPressHome}
+          >
+            <Feather name="arrow-left" size={20} color="#102033" />
+          </TouchableOpacity>
+        </View>
 
         <AppText preset="headline" style={styles.headerTitle}>
           일정 보기
         </AppText>
 
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={styles.headerCreateBtn}
-          onPress={onPressCreate}
-        >
-          <Feather name="plus" size={16} color="#FFFFFF" />
-          <AppText preset="caption" style={styles.headerCreateText}>
-            일정 추가
-          </AppText>
-        </TouchableOpacity>
+        <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={styles.headerCreateBtn}
+            onPress={onPressCreate}
+          >
+            <Feather name="plus" size={16} color="#FFFFFF" />
+            <AppText preset="caption" style={styles.headerCreateText}>
+              일정 추가
+            </AppText>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView

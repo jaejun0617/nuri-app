@@ -1,7 +1,17 @@
 // 파일: src/store/scheduleStore.ts
-// 목적:
-// - petId별 전체 일정 캐시
-// - 홈 "전체 일정" 빠른 조회
+// 파일 목적:
+// - 펫별 일정 목록 캐시를 전역에서 관리해 홈과 일정 화면이 같은 데이터를 재사용하게 한다.
+// 어디서 쓰이는지:
+// - AppProviders 로그아웃 정리, 홈, 일정 목록/상세/수정 화면에서 사용된다.
+// 핵심 역할:
+// - petId별 일정 리스트, 로딩 상태, 에러 상태, 요청 순서를 저장한다.
+// - bootstrap/refresh/clear 계열 액션으로 일정 도메인의 기본 상태머신을 제공한다.
+// 데이터·상태 흐름:
+// - 실제 CRUD는 `services/supabase/schedules.ts`가 담당하고, 이 store는 화면 공통 캐시와 갱신 타이밍을 관리한다.
+// - 홈 요약과 일정 상세 화면은 같은 petId 캐시를 공유한다.
+// 수정 시 주의:
+// - requestSeq와 fallback state 규칙을 바꾸면 오래된 응답이 최신 상태를 덮는 문제가 생길 수 있다.
+// - 기록/펫 전환과 함께 clear 타이밍이 맞물리므로 로그아웃/계정 전환 시나리오를 같이 봐야 한다.
 
 import { create } from 'zustand';
 import { getErrorMessage } from '../services/app/errors';

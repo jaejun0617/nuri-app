@@ -1,7 +1,17 @@
 // 파일: src/screens/Pets/PetCreateScreen.tsx
-// 역할:
-// - 온보딩 반려동물 프로필 등록(1/2, 2/2)
-// - 입력 중단 복구(draft 저장/복원) + 완료 후 정리
+// 파일 목적:
+// - 로그인 직후 또는 추가 등록 시 반려동물 프로필을 생성하는 온보딩 핵심 화면이다.
+// 어디서 쓰이는지:
+// - RootNavigator의 `PetCreate` 라우트에서 사용되며, 닉네임 완료 후 자동 진입하거나 More/홈 CTA로도 열린다.
+// 핵심 역할:
+// - 2단계 폼으로 펫 기본 정보, 성향 정보, 추모 정보, 이미지 업로드를 수집해 `createPet`으로 저장한다.
+// - 작성 중 draft 저장/복원, 성공 후 펫 목록 refresh와 welcome 흐름 연결까지 담당한다.
+// 데이터·상태 흐름:
+// - 입력값은 local onboarding draft에 저장되고, 최종 저장 후 Supabase pets/storage와 petStore가 함께 갱신된다.
+// - 선택 펫은 생성 직후 새 펫으로 맞춰져 홈과 다른 도메인 컨텍스트가 이어진다.
+// 수정 시 주의:
+// - 온보딩 가드가 이 화면을 강제 진입시키므로, 취소/뒤로가기/성공 후 이동 흐름을 함부로 바꾸면 첫 사용 흐름이 깨진다.
+// - draft 필드와 폼 state 계약은 타입과 UX가 함께 얽혀 있어 optional 값 처리 변경 시 복원 로직을 같이 봐야 한다.
 
 import React, {
   memo,
@@ -925,7 +935,7 @@ export default function PetCreateScreen() {
           setBirthDate(draft.birthDate);
           setAdoptionDate(draft.adoptionDate);
           setDeathDate(draft.deathDate ?? '');
-          setBreed(draft.breed);
+          setBreed(draft.breed ?? '');
           setThemeColor(draft.themeColor ?? null);
           setGender(draft.gender);
           setMemorialChoice(

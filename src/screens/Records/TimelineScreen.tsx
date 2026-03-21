@@ -1,11 +1,17 @@
 // 파일: src/screens/Records/TimelineScreen.tsx
-// 목적:
-// - petId 기준 memories(타임라인) 표시
-// - pull-to-refresh
-// - 무한 스크롤(loadMore)
-// - 월/카테고리 필터 + 월 점프
-// - "기록하기" → RecordCreate(탭)
-// - 항목 탭 → RecordDetail
+// 파일 목적:
+// - 선택된 펫의 기록을 시간순 타임라인으로 탐색하는 메인 목록 화면이다.
+// 어디서 쓰이는지:
+// - TimelineStackNavigator의 `TimelineMain` 화면으로 사용되며, 홈과 하단 탭에서 진입한다.
+// 핵심 역할:
+// - 기록 목록, 월 이동, 카테고리 필터, 무한 스크롤, 상세 진입, 기록 작성 이동을 담당한다.
+// - 이미지 프리로드와 포커스 복귀를 포함한 타임라인 UX를 한 곳에서 관리한다.
+// 데이터·상태 흐름:
+// - 실제 리스트 상태는 recordStore에서 읽고, 화면은 buildTimelineView로 필터/정렬된 표시 모델을 만든다.
+// - 상세/수정/삭제 이후에도 같은 store 엔티티를 재사용해 목록을 다시 그린다.
+// 수정 시 주의:
+// - 대량 데이터 성능에 민감한 화면이라 렌더링, 이미지 prefetch, filter 계산 비용을 함께 봐야 한다.
+// - 타임라인 ids와 entity cache가 분리돼 있으므로 목록 표시 로직만 바꾸면 상세 복귀가 어긋날 수 있다.
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -872,7 +878,7 @@ export default function TimelineScreen() {
     [focusedMemoryId, imageWindow, timelineEntityVersion],
   );
 
-  const onPressHome = useCallback(() => {
+  const onPressBack = useCallback(() => {
     navigation.navigate('HomeTab');
   }, [navigation]);
 
@@ -895,25 +901,29 @@ export default function TimelineScreen() {
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={styles.homeBtn}
-          onPress={onPressHome}
-        >
-          <Feather name="home" size={20} color={petTheme.primary} />
-        </TouchableOpacity>
+        <View style={styles.headerSideSlot}>
+          <TouchableOpacity
+            activeOpacity={0.88}
+            style={styles.backButton}
+            onPress={onPressBack}
+          >
+            <Feather name="arrow-left" size={20} color="#102033" />
+          </TouchableOpacity>
+        </View>
         <AppText preset="headline" style={styles.headerTitle}>
           타임라인
         </AppText>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={[styles.createBtn, { backgroundColor: petTheme.primary }]}
-          onPress={onPressCreate}
-        >
-          <AppText preset="caption" style={styles.createText}>
-            기록하기
-          </AppText>
-        </TouchableOpacity>
+        <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={[styles.createBtn, { backgroundColor: petTheme.primary }]}
+            onPress={onPressCreate}
+          >
+            <AppText preset="caption" style={styles.createText}>
+              기록하기
+            </AppText>
+          </TouchableOpacity>
+        </View>
       </View>
       <ControlsBar
         sortLabel={sortLabel}

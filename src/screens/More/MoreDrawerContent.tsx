@@ -1,8 +1,17 @@
 // 파일: src/screens/More/MoreDrawerContent.tsx
-// 역할:
-// - 전체 화면형 더보기 드로어를 인사형 헤더 + 섹션 카드 구조로 렌더링
-// - 반려동물/기록/정보/계정 설정 메뉴를 한 화면에서 빠르게 탐색할 수 있게 제공
-// - 닉네임 수정, 비밀번호 변경 모달을 더보기 맥락 안에서 바로 처리
+// 파일 목적:
+// - 더보기 드로어 안에서 주요 메뉴 허브와 계정 관리 기능을 한 화면으로 제공한다.
+// 어디서 쓰이는지:
+// - MoreDrawer 컴포넌트 내부 콘텐츠로 사용되며, 하단 툴바의 전체메뉴 버튼으로 열린다.
+// 핵심 역할:
+// - 반려동물, 기록, 정보, 계정 관련 메뉴를 섹션별로 렌더링한다.
+// - 닉네임 수정, 비밀번호 변경, 로그아웃, 계정 삭제 같은 계정 작업을 드로어 맥락에서 바로 처리한다.
+// 데이터·상태 흐름:
+// - authStore와 petStore를 읽어 로그인 상태, role, 현재 선택 펫을 기준으로 메뉴와 계정 액션을 분기한다.
+// - 대부분의 메뉴 이동은 드로어를 닫고 RootNavigator 라우트로 넘기는 방식으로 동작한다.
+// 수정 시 주의:
+// - 이 파일은 실제 구현된 기능만 노출해야 하므로 placeholder 메뉴를 다시 넣을 때는 사용자 기대치와 실제 동작을 함께 검증해야 한다.
+// - 계정 액션과 일반 메뉴 이동이 섞여 있어, 모달 상태와 navigation 호출 순서를 함부로 바꾸면 드로어 닫힘/복귀 UX가 어긋날 수 있다.
 
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -642,14 +651,6 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     [onRequestClose],
   );
 
-  const showPreparingToast = useCallback((label: string) => {
-    showToast({
-      tone: 'info',
-      title: '준비 중',
-      message: `${label} 메뉴는 다음 업데이트에서 열릴 예정이에요.`,
-    });
-  }, []);
-
   const openPetProfile = useCallback(() => {
     if (selectedPet?.id) {
       closeAndNavigate(() =>
@@ -953,6 +954,10 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     closeAndNavigate(() => navigation.navigate('PetFriendlyPlaceList'));
   }, [closeAndNavigate, navigation]);
 
+  const openPetTravel = useCallback(() => {
+    closeAndNavigate(() => navigation.navigate('PetTravelList'));
+  }, [closeAndNavigate, navigation]);
+
   const petItems = useMemo<MenuItemSpec[]>(
     () => [
       {
@@ -983,14 +988,6 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         onPress: openTimeline,
       },
       {
-        key: 'health-report',
-        label: '건강 기록 리포트',
-        icon: 'clipboard',
-        iconTone: 'accent',
-        onPress: () => showPreparingToast('건강 기록 리포트'),
-        badge: 'soon',
-      },
-      {
         key: 'indoor-activities',
         label: '실내 놀이 추천',
         icon: 'sun',
@@ -999,31 +996,30 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       },
       {
         key: 'walk-nearby',
-        label: '우리동네 산책 / 산책 동선 추천',
+        label: '우리동네 산책 장소 찾기',
         icon: 'map',
         iconTone: 'accent',
         onPress: openWalkDiscovery,
       },
     ],
-    [openIndoorActivities, openTimeline, openWalkDiscovery, showPreparingToast],
+    [openIndoorActivities, openTimeline, openWalkDiscovery],
   );
 
   const infoItems = useMemo<MenuItemSpec[]>(
     () => [
+      {
+        key: 'pet-travel',
+        label: '반려동물과 여행',
+        icon: 'compass',
+        iconTone: 'muted',
+        onPress: openPetTravel,
+      },
       {
         key: 'pet-friendly-places',
         label: '펫동반 카페 / 공간 찾기',
         icon: 'coffee',
         iconTone: 'muted',
         onPress: openPetFriendlyPlaces,
-      },
-      {
-        key: 'community',
-        label: '커뮤니티',
-        icon: 'message-circle',
-        iconTone: 'muted',
-        onPress: () => showPreparingToast('커뮤니티'),
-        badge: 'soon',
       },
       {
         key: 'tips',
@@ -1033,32 +1029,17 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         onPress: openGuideList,
       },
     ],
-    [openGuideList, openPetFriendlyPlaces, showPreparingToast],
+    [openGuideList, openPetFriendlyPlaces, openPetTravel],
   );
 
   const serviceItems = useMemo<MenuItemSpec[]>(() => {
     const items: MenuItemSpec[] = [
-      {
-        key: 'notification',
-        label: '알림 설정',
-        icon: 'bell',
-        iconTone: 'accent',
-        onPress: () => showPreparingToast('알림 설정'),
-        badge: 'soon',
-      },
       {
         key: 'security',
         label: '보안 및 개인정보',
         icon: 'shield',
         iconTone: 'accent',
         onPress: openPasswordModal,
-      },
-      {
-        key: 'theme',
-        label: '테마 설정',
-        icon: 'moon',
-        iconTone: 'accent',
-        onPress: openPetProfile,
       },
     ];
 
@@ -1076,9 +1057,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   }, [
     isLoggedIn,
     openPasswordModal,
-    openPetProfile,
     openProfileEditModal,
-    showPreparingToast,
   ]);
 
   const adminItems = useMemo<MenuItemSpec[]>(

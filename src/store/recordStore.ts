@@ -1,18 +1,17 @@
 // 파일: src/store/recordStore.ts
-// 목적:
-// - petId 별 records 캐시(페이지네이션 + 상태머신)
-// - cursor(created_at) 고정
-// - out-of-order 응답 방지(요청 토큰/requestSeq)
-// - signed url은 services(fetchMemoriesByPetPage)에서 캐싱/프리패치 처리
-//
-// ✅ 성능 최적화(중요):
-// - loadMore에서 전체 merge + 전체 sort 금지
-// - 커서 기반 페이지네이션은 "다음 page는 항상 더 오래된 항목"이므로
-//   기존 리스트 뒤에 append 하되, overlap(중복 id)만 제거하는 방식으로 처리
-//
-// 중요(⚠️ New Architecture/SyncExternalStore 안전):
-// - fallback 객체는 항상 동일 참조(FALLBACK_PET_STATE)
-// - selector는 byPetId[petId] 직접 접근(가장 안전)
+// 파일 목적:
+// - 펫별 기록 리스트와 타임라인 엔티티 캐시를 전역 store로 관리한다.
+// 어디서 쓰이는지:
+// - 홈, 타임라인, 기록 생성/수정/상세, 업로드 큐 복구 흐름에서 공통으로 사용된다.
+// 핵심 역할:
+// - petId별 리스트 상태, cursor 기반 페이지네이션, recordsById 엔티티 캐시, 타임라인 전용 ids 상태를 유지한다.
+// - 낙관적 추가/수정/삭제와 포커스 복귀용 memory id 관리도 담당한다.
+// 데이터·상태 흐름:
+// - 실제 데이터 fetch는 `services/supabase/memories.ts`가 담당하고, 이 store는 화면이 재사용할 수 있는 읽기 모델과 상태머신을 유지한다.
+// - 이미지 signed URL은 fetch 단계가 아니라 렌더링/프리패치 단계에서 채우도록 분리돼 있다.
+// 수정 시 주의:
+// - cursor, requestSeq, append 규칙을 바꾸면 중복/순서 꼬임/무한스크롤 회귀가 발생하기 쉽다.
+// - 엔티티 캐시와 타임라인 ids는 함께 움직여야 하므로 한쪽만 바꾸는 식의 수정은 피해야 한다.
 
 import { create } from 'zustand';
 import { getErrorMessage } from '../services/app/errors';

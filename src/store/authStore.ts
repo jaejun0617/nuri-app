@@ -1,3 +1,17 @@
+// 파일: src/store/authStore.ts
+// 파일 목적:
+// - 인증 세션과 사용자 프로필 요약 상태를 전역 store로 관리한다.
+// 어디서 쓰이는지:
+// - AppProviders, Auth 화면, 홈 가드, More 계정 기능, 관리자 권한 분기에서 공통으로 사용된다.
+// 핵심 역할:
+// - 로그인 여부, Supabase 세션, 닉네임, role, 프로필 동기화 상태, boot 완료 여부를 저장한다.
+// - AsyncStorage에 최소 프로필 정보를 저장해 앱 재실행 시 빠른 복구를 돕는다.
+// 데이터·상태 흐름:
+// - 실제 프로필 원본은 Supabase에 있고, AppProviders가 가져온 값을 이 store에 반영한다.
+// - Splash와 홈 가드는 `booted`, `status`, `profileSyncStatus`, `profile.nickname`을 기준으로 분기한다.
+// 수정 시 주의:
+// - 이 store의 shape를 바꾸면 앱 첫 진입 가드와 More 권한 분기가 같이 영향을 받는다.
+// - 서버 source of truth를 대체하는 store가 아니므로, 서버 정책을 로컬 상태만으로 확정하면 안 된다.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Session } from '@supabase/supabase-js';
 import { create } from 'zustand';

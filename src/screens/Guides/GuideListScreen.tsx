@@ -259,30 +259,32 @@ export default function GuideListScreen() {
   return (
     <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
       <View style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          style={styles.headerSideBtn}
-          onPress={() => navigation.goBack()}
-        >
-          <AppText preset="body" style={styles.headerSideText}>
-            뒤로
-          </AppText>
-        </TouchableOpacity>
+        <View style={styles.headerSideSlot}>
+          <TouchableOpacity
+            activeOpacity={0.88}
+            style={styles.headerBackButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Feather name="arrow-left" size={20} color="#102033" />
+          </TouchableOpacity>
+        </View>
 
         <AppText preset="headline" style={styles.headerTitle}>
           집사 꿀팁 가이드
         </AppText>
 
-        <Pressable
-          style={styles.searchToggleButton}
-          onPress={() => {
-            startTransition(() => {
-              setSearchVisible(prev => !prev);
-            });
-          }}
-        >
-          <Feather name="search" size={18} color="#6D6AF8" />
-        </Pressable>
+        <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
+          <Pressable
+            style={styles.searchToggleButton}
+            onPress={() => {
+              startTransition(() => {
+                setSearchVisible(prev => !prev);
+              });
+            }}
+          >
+            <Feather name="search" size={18} color="#6D6AF8" />
+          </Pressable>
+        </View>
       </View>
 
       {searchVisible ? (
