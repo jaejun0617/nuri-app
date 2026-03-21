@@ -56,6 +56,7 @@ export default memo(function PetThemePicker({
       >
         {PET_THEME_OPTIONS.map(color => {
           const active = color === selectedColor;
+          const optionPreview = buildPetThemePalette(color);
           return (
             <TouchableOpacity
               key={color}
@@ -69,10 +70,18 @@ export default memo(function PetThemePicker({
                 justifyContent: 'center',
                 backgroundColor: color,
                 borderWidth: active ? 3 : 1,
-                borderColor: active ? '#FFFFFF' : 'rgba(11,18,32,0.08)',
+                borderColor: active
+                  ? optionPreview.onPrimary
+                  : 'rgba(11,18,32,0.08)',
               }}
             >
-              {active ? <Feather name="check" size={15} color="#FFFFFF" /> : null}
+              {active ? (
+                <Feather
+                  name="check"
+                  size={15}
+                  color={optionPreview.onPrimary}
+                />
+              ) : null}
             </TouchableOpacity>
           );
         })}

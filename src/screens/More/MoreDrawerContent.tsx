@@ -34,6 +34,7 @@ import Feather from 'react-native-vector-icons/Feather';
 
 import AppNavigationToolbar from '../../components/navigation/AppNavigationToolbar';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import PetThemePicker from '../../components/pets/PetThemePicker';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
   canChangeNickname,
@@ -53,6 +54,7 @@ import {
   changeMyPassword,
   isValidPasswordFormat,
 } from '../../services/supabase/account';
+import { fetchMyPets, updatePet } from '../../services/supabase/pets';
 import {
   checkNicknameAvailabilityDetailed,
   saveMyNickname,
@@ -119,6 +121,19 @@ type ProfileEditModalProps = {
   accentColor: string;
   onClose: () => void;
   onChangeNickname: (value: string) => void;
+  onSubmit: () => void;
+};
+
+type ThemeSettingsModalProps = {
+  visible: boolean;
+  bottomInset: number;
+  petName: string | null;
+  helperText: string;
+  selectedColor: string;
+  accentColor: string;
+  saving: boolean;
+  onClose: () => void;
+  onSelectColor: (color: string) => void;
   onSubmit: () => void;
 };
 
@@ -366,6 +381,86 @@ const PasswordChangeModal = memo(function PasswordChangeModal({
   );
 });
 
+const ThemeSettingsModal = memo(function ThemeSettingsModal({
+  visible,
+  bottomInset,
+  petName,
+  helperText,
+  selectedColor,
+  accentColor,
+  saving,
+  onClose,
+  onSelectColor,
+  onSubmit,
+}: ThemeSettingsModalProps) {
+  const theme = useTheme();
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <View style={[styles.modalBackdrop, { backgroundColor: theme.colors.overlay }]}>
+        <Pressable style={styles.modalScrim} onPress={onClose} />
+        <View
+          style={[
+            styles.sheetCard,
+            {
+              backgroundColor: theme.colors.surfaceElevated,
+              paddingBottom: Math.max(bottomInset + 18, 26),
+            },
+          ]}
+        >
+          <View style={styles.sheetHeader}>
+            <Text style={[styles.sheetTitle, { color: theme.colors.textPrimary }]}>
+              테마 설정
+            </Text>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={[styles.sheetClose, { backgroundColor: theme.colors.surface }]}
+              onPress={onClose}
+            >
+              <Feather name="x" size={20} color={theme.colors.textMuted} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.themeInfoBlock}>
+            <Text style={[styles.themeInfoTitle, { color: theme.colors.textPrimary }]}>
+              {petName ? `${petName}의 테마를 바꿔볼까요?` : '현재 아이의 테마를 바꿔볼까요?'}
+            </Text>
+            <Text style={[styles.themeInfoBody, { color: theme.colors.textSecondary }]}>
+              {helperText}
+            </Text>
+          </View>
+
+          <PetThemePicker
+            selectedColor={selectedColor}
+            helperText="홈 카드, 기록, 일정, 더보기의 강조색에 함께 반영돼요."
+            onSelectColor={onSelectColor}
+          />
+
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={[
+              styles.primaryButton,
+              { backgroundColor: accentColor },
+              saving ? styles.disabledButton : null,
+            ]}
+            onPress={onSubmit}
+            disabled={saving}
+          >
+            <Text style={styles.primaryButtonText}>
+              {saving ? '저장 중...' : '테마 적용하기'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+});
+
 const PasswordChangeSuccessModal = memo(function PasswordChangeSuccessModal({
   visible,
   onClose,
@@ -522,17 +617,21 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const session = useAuthStore(s => s.session);
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
+  const setPets = usePetStore(s => s.setPets);
 
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [passwordModalVisible, setPasswordModalVisible] = useState(false);
   const [passwordDoneVisible, setPasswordDoneVisible] = useState(false);
+  const [themeModalVisible, setThemeModalVisible] = useState(false);
   const [logoutConfirmVisible, setLogoutConfirmVisible] = useState(false);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
+  const [themeSaving, setThemeSaving] = useState(false);
   const [draftNickname, setDraftNickname] = useState('');
+  const [draftThemeColor, setDraftThemeColor] = useState<string | null>(null);
   const [nicknameChangedAt, setNicknameChangedAt] = useState<string | null>(
     null,
   );
@@ -551,6 +650,10 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const petTheme = useMemo(
     () => buildPetThemePalette(selectedPet?.themeColor),
     [selectedPet?.themeColor],
+  );
+  const draftThemePalette = useMemo(
+    () => buildPetThemePalette(draftThemeColor ?? selectedPet?.themeColor),
+    [draftThemeColor, selectedPet?.themeColor],
   );
   const menuThemeColors = useMemo(
     () => ({
@@ -728,6 +831,26 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const openPasswordModal = useCallback(() => {
     setPasswordModalVisible(true);
   }, []);
+
+  const openThemeModal = useCallback(() => {
+    if (!selectedPet) {
+      showToast({
+        tone: 'info',
+        title: '먼저 아이를 등록해 주세요',
+        message: '테마 설정은 반려동물 프로필이 있어야 적용할 수 있어요.',
+      });
+      return;
+    }
+
+    setDraftThemeColor(selectedPet.themeColor ?? petTheme.primary);
+    setThemeModalVisible(true);
+  }, [petTheme.primary, selectedPet]);
+
+  const closeThemeModal = useCallback(() => {
+    if (themeSaving) return;
+    setThemeModalVisible(false);
+    setDraftThemeColor(null);
+  }, [themeSaving]);
 
   const closePasswordModal = useCallback(() => {
     if (passwordSaving) return;
@@ -960,6 +1083,70 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     closeAndNavigate(() => navigation.navigate('SignIn'));
   }, [closeAndNavigate, navigation]);
 
+  const onSubmitTheme = useCallback(async () => {
+    if (!selectedPet || themeSaving) return;
+
+    const nextThemeColor = draftThemeColor ?? selectedPet.themeColor ?? petTheme.primary;
+    if (nextThemeColor === (selectedPet.themeColor ?? null)) {
+      setThemeModalVisible(false);
+      return;
+    }
+
+    try {
+      setThemeSaving(true);
+
+      await updatePet({
+        petId: selectedPet.id,
+        name: selectedPet.name,
+        species: selectedPet.species ?? 'other',
+        speciesDetailKey: selectedPet.speciesDetailKey ?? null,
+        speciesDisplayName: selectedPet.speciesDisplayName ?? null,
+        themeColor: nextThemeColor,
+        birthDate: selectedPet.birthDate ?? null,
+        adoptionDate: selectedPet.adoptionDate ?? null,
+        deathDate: selectedPet.deathDate ?? null,
+        weightKg: selectedPet.weightKg ?? null,
+        breed: selectedPet.breed ?? null,
+        gender: selectedPet.gender ?? 'unknown',
+        neutered: selectedPet.neutered ?? null,
+        hobbies: selectedPet.hobbies ?? [],
+        likes: selectedPet.likes ?? [],
+        dislikes: selectedPet.dislikes ?? [],
+        tags: selectedPet.tags ?? [],
+        avatarPath: selectedPet.avatarPath ?? null,
+      });
+
+      const userId = session?.user?.id ?? null;
+      const refreshedPets = await fetchMyPets(userId ?? undefined);
+      setPets(refreshedPets, { userId, preferredPetId: selectedPet.id });
+
+      setThemeModalVisible(false);
+      setDraftThemeColor(null);
+      showToast({
+        tone: 'success',
+        title: '테마 적용 완료',
+        message: '현재 아이의 강조색을 새 테마로 바꿨어요.',
+      });
+    } catch (error) {
+      const { title, message } = getBrandedErrorMeta(error, 'pet-update');
+      showToast({
+        tone: 'error',
+        title,
+        message,
+        durationMs: 3200,
+      });
+    } finally {
+      setThemeSaving(false);
+    }
+  }, [
+    draftThemeColor,
+    petTheme.primary,
+    setPets,
+    selectedPet,
+    session?.user?.id,
+    themeSaving,
+  ]);
+
   const openIndoorActivities = useCallback(() => {
     closeAndNavigate(() =>
       navigation.navigate('IndoorActivityRecommendations', {
@@ -1111,8 +1298,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         label: '테마 설정',
         icon: 'moon',
         iconTone: 'accent',
-        onPress: () => showPreparingToast('테마 설정'),
-        badge: 'soon',
+        onPress: openThemeModal,
       },
     ];
 
@@ -1131,6 +1317,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     isLoggedIn,
     openPasswordModal,
     openProfileEditModal,
+    openThemeModal,
     showPreparingToast,
   ]);
 
@@ -1346,6 +1533,20 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         visible={passwordDoneVisible}
         accentColor={petTheme.primary}
         onClose={closePasswordDoneModal}
+      />
+      <ThemeSettingsModal
+        visible={themeModalVisible}
+        bottomInset={Math.max(insets.bottom, 6)}
+        petName={selectedPet?.name ?? null}
+        helperText="현재 선택한 아이의 강조색을 바꾸는 설정이에요. 홈과 주요 버튼의 포인트 컬러에 함께 반영돼요."
+        selectedColor={draftThemeColor ?? selectedPet?.themeColor ?? petTheme.primary}
+        accentColor={draftThemePalette.primary}
+        saving={themeSaving}
+        onClose={closeThemeModal}
+        onSelectColor={setDraftThemeColor}
+        onSubmit={() => {
+          onSubmitTheme().catch(() => {});
+        }}
       />
       <ConfirmDialog
         visible={logoutConfirmVisible}
@@ -1674,6 +1875,19 @@ const styles = StyleSheet.create({
   },
   profileHelperSuccess: {
     color: '#7A57E8',
+  },
+  themeInfoBlock: {
+    gap: 6,
+  },
+  themeInfoTitle: {
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: '800',
+  },
+  themeInfoBody: {
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: '500',
   },
   primaryButton: {
     minHeight: 52,

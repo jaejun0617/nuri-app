@@ -62,6 +62,7 @@ import {
   savePetCreateDraft,
 } from '../../services/local/onboardingDraft';
 import {
+  buildPetThemePalette,
   recommendPetThemeColor,
 } from '../../services/pets/themePalette';
 import {
@@ -91,7 +92,6 @@ type PetCreateRoute = RouteProp<RootStackParamList, 'PetCreate'>;
 type Step = 1 | 2;
 type PetGender = 'male' | 'female' | 'unknown';
 
-const BRAND = '#6D6AF8';
 const MAX_MULTI_ITEMS = 10;
 
 function normalizeTextItem(raw: string): string {
@@ -310,6 +310,7 @@ const StepOneForm = memo(function StepOneForm({
   neutered,
   onNeuteredChange,
 }: StepOneFormProps) {
+  const selectedTheme = buildPetThemePalette(selectedThemeColor);
   const representativeOption = getRepresentativeSpeciesOption(representativeSpecies);
   const quickDetailOptions = getPetSpeciesQuickDetailOptions(representativeSpecies);
 
@@ -322,10 +323,11 @@ const StepOneForm = memo(function StepOneForm({
           containerStyle={styles.avatarCircle}
           imageStyle={styles.avatarImage}
           placeholderStyle={styles.avatarPlaceholder}
-          placeholderIconColor={BRAND}
+          placeholderIconColor={selectedTheme.primary}
           placeholderIconSize={18}
           editButtonStyle={styles.avatarEditButton}
           editIconSize={12}
+          editIconColor={selectedTheme.onPrimary}
         />
       </View>
 
@@ -894,6 +896,10 @@ export default function PetCreateScreen() {
         name: trimmedName,
       }),
     [themeColor, trimmedName],
+  );
+  const selectedTheme = useMemo(
+    () => buildPetThemePalette(selectedThemeColor),
+    [selectedThemeColor],
   );
 
   useEffect(() => {
@@ -1496,11 +1502,22 @@ export default function PetCreateScreen() {
                 disabled={!canGoNext}
                 style={[
                   styles.primaryButton,
+                  {
+                    backgroundColor: selectedTheme.primary,
+                    shadowColor: selectedTheme.primary,
+                  },
                   !canGoNext ? styles.buttonDisabled : null,
                 ]}
                 onPress={goNext}
               >
-                <Text style={styles.primaryButtonText}>다음으로</Text>
+                <Text
+                  style={[
+                    styles.primaryButtonText,
+                    { color: selectedTheme.onPrimary },
+                  ]}
+                >
+                  다음으로
+                </Text>
               </TouchableOpacity>
 
               {showStepOneExitButton ? (
@@ -1528,11 +1545,20 @@ export default function PetCreateScreen() {
                 disabled={!canSubmit}
                 style={[
                   styles.primaryButton,
+                  {
+                    backgroundColor: selectedTheme.primary,
+                    shadowColor: selectedTheme.primary,
+                  },
                   !canSubmit ? styles.buttonDisabled : null,
                 ]}
                 onPress={onSubmit}
               >
-                <Text style={styles.primaryButtonText}>
+                <Text
+                  style={[
+                    styles.primaryButtonText,
+                    { color: selectedTheme.onPrimary },
+                  ]}
+                >
                   {saving ? '등록 중...' : '등록 완료'}
                 </Text>
               </TouchableOpacity>
@@ -1567,10 +1593,23 @@ export default function PetCreateScreen() {
 
             <TouchableOpacity
               activeOpacity={0.92}
-              style={styles.successPrimaryButton}
+              style={[
+                styles.successPrimaryButton,
+                {
+                  backgroundColor: selectedTheme.primary,
+                  shadowColor: selectedTheme.primary,
+                },
+              ]}
               onPress={goToWelcomeTransition}
             >
-              <Text style={styles.successPrimaryButtonText}>시작하기</Text>
+              <Text
+                style={[
+                  styles.successPrimaryButtonText,
+                  { color: selectedTheme.onPrimary },
+                ]}
+              >
+                시작하기
+              </Text>
             </TouchableOpacity>
           </View>
         </View>

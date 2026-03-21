@@ -14,6 +14,12 @@ export const PET_THEME_OPTIONS = [
   '#22C55E',
   '#F59E0B',
   '#8B5CF6',
+  '#EF4444',
+  '#F43F5E',
+  '#06B6D4',
+  '#0EA5E9',
+  '#6366F1',
+  '#D946EF',
 ] as const;
 
 function clamp(value: number, min: number, max: number): number {
@@ -102,7 +108,7 @@ function relativeLuminance(hex: string): number {
   return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
 }
 
-function getReadableTextColor(hex: string): string {
+export function getReadableTextColor(hex: string): string {
   return relativeLuminance(hex) > 0.46 ? '#10203D' : '#FFFFFF';
 }
 
