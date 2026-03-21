@@ -99,6 +99,13 @@ export type PetState = {
       persist?: boolean;
     },
   ) => void;
+  invalidatePetAvatar: (
+    petId: string,
+    options?: {
+      userId?: string | null;
+      persist?: boolean;
+    },
+  ) => void;
 
   setLoading: (v: boolean) => void;
   setBooted: (v: boolean) => void;
@@ -318,6 +325,24 @@ export const usePetStore = create<PetState>((set, get) => ({
               avatar.avatarPath !== undefined ? avatar.avatarPath : p.avatarPath,
             avatarUrl:
               avatar.avatarUrl !== undefined ? avatar.avatarUrl : p.avatarUrl,
+          }
+        : p,
+    );
+
+    get().setPets(next, {
+      userId: options?.userId ?? null,
+      persist: options?.persist,
+      preferredPetId: get().selectedPetId,
+    });
+  },
+
+  invalidatePetAvatar: (petId, options) => {
+    const next = get().pets.map(p =>
+      p.id === petId
+        ? {
+            ...p,
+            avatarPath: p.avatarPath ?? null,
+            avatarUrl: null,
           }
         : p,
     );

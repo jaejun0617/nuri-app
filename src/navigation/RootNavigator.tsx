@@ -25,6 +25,7 @@ import NicknameSetupScreen from '../screens/Auth/NicknameSetupScreen';
 import WelcomeTransitionScreen from '../screens/Auth/WelcomeTransitionScreen';
 
 import PetCreateScreen from '../screens/Pets/PetCreateScreen';
+import PetManagementScreen from '../screens/Pets/PetManagementScreen';
 import PetProfileEditScreen from '../screens/Pets/PetProfileEditScreen';
 import PetProfileEditDoneScreen from '../screens/Pets/PetProfileEditDoneScreen';
 import ScheduleListScreen from '../screens/Schedules/ScheduleListScreen';
@@ -72,6 +73,7 @@ export type RootStackParamList = {
 
   // Pet
   PetCreate: { from?: 'auto' | 'cta' | 'header_plus' } | undefined;
+  PetManagement: { entrySource?: ScreenEntrySource } | undefined;
   PetProfileEdit: { petId: string; entrySource?: ScreenEntrySource };
   PetProfileEditDone: { petId: string; petName: string };
   ScheduleList:
@@ -208,6 +210,11 @@ export default function RootNavigator() {
         name="PetCreate"
         component={PetCreateScreen}
         options={{ headerShown: false, gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="PetManagement"
+        component={PetManagementScreen}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="PetProfileEdit"

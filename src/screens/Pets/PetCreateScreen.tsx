@@ -24,8 +24,11 @@ import React, {
 import {
   Alert,
   BackHandler,
+  findNodeHandle,
   Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Text,
   TextInput,
   TouchableOpacity,
@@ -270,8 +273,8 @@ type StepOneFormProps = {
   onRepresentativeSpeciesChange: (value: PetRepresentativeSpeciesKey) => void;
   speciesDetailKey: string;
   onSpeciesDetailKeyChange: (value: string) => void;
-  breed: string;
-  onBreedChange: (value: string) => void;
+  onSpeciesDetailFocus: () => void;
+  speciesDetailInputRef: React.RefObject<TextInput | null>;
   gender: PetGender;
   onGenderChange: (value: PetGender) => void;
   neutered: boolean | null;
@@ -303,8 +306,8 @@ const StepOneForm = memo(function StepOneForm({
   onRepresentativeSpeciesChange,
   speciesDetailKey,
   onSpeciesDetailKeyChange,
-  breed,
-  onBreedChange,
+  onSpeciesDetailFocus,
+  speciesDetailInputRef,
   gender,
   onGenderChange,
   neutered,
@@ -467,32 +470,19 @@ const StepOneForm = memo(function StepOneForm({
         ) : null}
         <View style={styles.iconInputWrap}>
           <TextInput
+            ref={speciesDetailInputRef}
             value={speciesDetailKey}
             onChangeText={onSpeciesDetailKeyChange}
+            onFocus={onSpeciesDetailFocus}
             placeholder={representativeOption.placeholders.detail}
             placeholderTextColor="#A0A7B4"
             style={styles.iconInput}
             autoCapitalize="none"
+            returnKeyType="done"
           />
           <Feather color="#98A1B2" name="search" size={16} />
         </View>
       </View>
-
-      {representativeOption.showBreedField ? (
-        <View style={styles.fieldBlock}>
-          <Text style={styles.label}>품종</Text>
-          <View style={styles.iconInputWrap}>
-            <TextInput
-              value={breed}
-              onChangeText={onBreedChange}
-              placeholder={representativeOption.placeholders.breed}
-              placeholderTextColor="#A0A7B4"
-              style={styles.iconInput}
-            />
-            <Feather color="#98A1B2" name="search" size={16} />
-          </View>
-        </View>
-      ) : null}
 
       <View style={styles.row}>
         <View style={styles.col}>
@@ -708,7 +698,6 @@ export default function PetCreateScreen() {
   const [birthDate, setBirthDate] = useState('');
   const [adoptionDate, setAdoptionDate] = useState('');
   const [deathDate, setDeathDate] = useState('');
-  const [breed, setBreed] = useState('');
   const [memorialChoice, setMemorialChoice] =
     useState<PetMemorialChoice>('together');
   const [gender, setGender] = useState<PetGender>('unknown');
@@ -736,6 +725,8 @@ export default function PetCreateScreen() {
   >(null);
   const [draftHydrated, setDraftHydrated] = useState(false);
   const draftLoadOnceRef = useRef(false);
+  const keyboardScrollRef = useRef<KeyboardAwareScrollView | null>(null);
+  const speciesDetailInputRef = useRef<TextInput | null>(null);
 
   const trimmedName = useMemo(() => name.trim(), [name]);
   const canGoNext = useMemo(() => {
@@ -943,7 +934,6 @@ export default function PetCreateScreen() {
           setBirthDate(draft.birthDate);
           setAdoptionDate(draft.adoptionDate);
           setDeathDate(draft.deathDate ?? '');
-          setBreed(draft.breed ?? '');
           setThemeColor(draft.themeColor ?? null);
           setGender(draft.gender);
           setMemorialChoice(
@@ -996,7 +986,6 @@ export default function PetCreateScreen() {
         birthDate,
         adoptionDate,
         deathDate,
-        breed,
         themeColor: selectedThemeColor,
         gender,
         memorialChoice,
@@ -1022,7 +1011,6 @@ export default function PetCreateScreen() {
     adoptionDate,
     birthDate,
     deathDate,
-    breed,
     representativeSpecies,
     speciesDetailKey,
     dislikes,
@@ -1169,7 +1157,10 @@ export default function PetCreateScreen() {
         adoptionDate: normalizedAdoptionDate,
         deathDate: normalizedDeathDate,
         weightKg: normalizedWeight,
-        breed: breed.trim() || null,
+        breed:
+          speciesSelection.speciesDisplayName.trim() ||
+          speciesSelection.speciesDetailKey.trim() ||
+          null,
         gender,
         neutered,
         likes,
@@ -1242,7 +1233,6 @@ export default function PetCreateScreen() {
     adoptionDate,
     birthDate,
     deathDate,
-    breed,
     canSubmit,
     dislikes,
     gender,
@@ -1287,9 +1277,6 @@ export default function PetCreateScreen() {
       const option = getRepresentativeSpeciesOption(value);
       setRepresentativeSpecies(value);
       setSpeciesDetailKey(option.defaultDisplayName);
-      if (!option.showBreedField) {
-        setBreed('');
-      }
     },
     [],
   );
@@ -1313,6 +1300,15 @@ export default function PetCreateScreen() {
     () => openDateModal('death'),
     [openDateModal],
   );
+  const handleFocusSpeciesDetail = useCallback(() => {
+    const inputNode = findNodeHandle(speciesDetailInputRef.current);
+    if (!inputNode) return;
+
+    requestAnimationFrame(() => {
+      keyboardScrollRef.current?.scrollToFocusedInput?.(inputNode);
+      keyboardScrollRef.current?.scrollToPosition?.(0, 280, true);
+    });
+  }, []);
 
   const addLike = useCallback(() => addItem('likes'), [addItem]);
   const addDislike = useCallback(() => addItem('dislikes'), [addItem]);
@@ -1414,158 +1410,170 @@ export default function PetCreateScreen() {
         </View>
       </View>
 
-      <KeyboardAwareScrollView
+      <KeyboardAvoidingView
         style={styles.scroll}
-        contentContainerStyle={[
-          styles.scrollContent,
-          {
-            paddingBottom:
-              step === 2
-                ? Math.max(insets.bottom + 180, 220)
-                : Math.max(insets.bottom + 72, 96),
-          },
-        ]}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="interactive"
-        enableOnAndroid
-        extraScrollHeight={step === 2 ? 56 : 28}
-        extraHeight={step === 2 ? 180 : 120}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
       >
-        <View style={styles.card}>
-          {step === 1 ? (
-            <StepOneForm
-              imageUri={imageUri}
-              onPickImage={pickImage}
-              selectedThemeColor={selectedThemeColor}
-              onSelectThemeColor={setThemeColor}
-              memorialChoice={memorialChoice}
-              deathDate={deathDate}
-              onChangeMemorialChoice={setMemorialChoice}
-              onDeathDateChange={handleDeathDateChange}
-              onDeathDateBlur={handleDeathDateBlur}
-              onOpenDeathDateModal={openDeathDateModal}
-              name={name}
-              onNameChange={setName}
-              birthDate={birthDate}
-              onBirthDateChange={handleBirthDateChange}
-              onBirthDateBlur={handleBirthDateBlur}
-              onOpenBirthModal={openBirthDateModal}
-              adoptionDate={adoptionDate}
-              onAdoptionDateChange={handleAdoptionDateChange}
-              onAdoptionDateBlur={handleAdoptionDateBlur}
-              onOpenAdoptionModal={openAdoptionDateModal}
-              representativeSpecies={representativeSpecies}
-              onRepresentativeSpeciesChange={handleRepresentativeSpeciesChange}
-              speciesDetailKey={speciesDetailKey}
-              onSpeciesDetailKeyChange={setSpeciesDetailKey}
-              breed={breed}
-              onBreedChange={setBreed}
-              gender={gender}
-              onGenderChange={setGender}
-              neutered={neutered}
-              onNeuteredChange={setNeutered}
-            />
-          ) : (
-            <StepTwoForm
-              weightKg={weightKg}
-              onWeightChange={setWeightKg}
-              likes={likes}
-              draftLike={draftLike}
-              onDraftLikeChange={setDraftLike}
-              onAddLike={addLike}
-              onRemoveLike={removeLike}
-              dislikes={dislikes}
-              draftDislike={draftDislike}
-              onDraftDislikeChange={setDraftDislike}
-              onAddDislike={addDislike}
-              onRemoveDislike={removeDislike}
-              hobbies={hobbies}
-              draftHobby={draftHobby}
-              onDraftHobbyChange={setDraftHobby}
-              onAddHobby={addHobby}
-              onRemoveHobby={removeHobby}
-              tags={tags}
-              draftTag={draftTag}
-              onDraftTagChange={setDraftTag}
-              onAddTag={addTag}
-              onRemoveTag={removeTag}
-            />
-          )}
-        </View>
+        <KeyboardAwareScrollView
+          innerRef={ref => {
+            keyboardScrollRef.current = ref;
+          }}
+          style={styles.scroll}
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingBottom:
+                step === 2
+                  ? Math.max(220, insets.bottom + 196)
+                  : Math.max(220, insets.bottom + 196),
+            },
+          ]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="always"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          enableOnAndroid
+          enableAutomaticScroll
+          enableResetScrollToCoords={false}
+          keyboardOpeningTime={0}
+          extraScrollHeight={176}
+          extraHeight={228}
+        >
+          <View style={styles.card}>
+            {step === 1 ? (
+              <StepOneForm
+                imageUri={imageUri}
+                onPickImage={pickImage}
+                selectedThemeColor={selectedThemeColor}
+                onSelectThemeColor={setThemeColor}
+                memorialChoice={memorialChoice}
+                deathDate={deathDate}
+                onChangeMemorialChoice={setMemorialChoice}
+                onDeathDateChange={handleDeathDateChange}
+                onDeathDateBlur={handleDeathDateBlur}
+                onOpenDeathDateModal={openDeathDateModal}
+                name={name}
+                onNameChange={setName}
+                birthDate={birthDate}
+                onBirthDateChange={handleBirthDateChange}
+                onBirthDateBlur={handleBirthDateBlur}
+                onOpenBirthModal={openBirthDateModal}
+                adoptionDate={adoptionDate}
+                onAdoptionDateChange={handleAdoptionDateChange}
+                onAdoptionDateBlur={handleAdoptionDateBlur}
+                onOpenAdoptionModal={openAdoptionDateModal}
+                representativeSpecies={representativeSpecies}
+                onRepresentativeSpeciesChange={handleRepresentativeSpeciesChange}
+                speciesDetailKey={speciesDetailKey}
+                onSpeciesDetailKeyChange={setSpeciesDetailKey}
+                onSpeciesDetailFocus={handleFocusSpeciesDetail}
+                speciesDetailInputRef={speciesDetailInputRef}
+                gender={gender}
+                onGenderChange={setGender}
+                neutered={neutered}
+                onNeuteredChange={setNeutered}
+              />
+            ) : (
+              <StepTwoForm
+                weightKg={weightKg}
+                onWeightChange={setWeightKg}
+                likes={likes}
+                draftLike={draftLike}
+                onDraftLikeChange={setDraftLike}
+                onAddLike={addLike}
+                onRemoveLike={removeLike}
+                dislikes={dislikes}
+                draftDislike={draftDislike}
+                onDraftDislikeChange={setDraftDislike}
+                onAddDislike={addDislike}
+                onRemoveDislike={removeDislike}
+                hobbies={hobbies}
+                draftHobby={draftHobby}
+                onDraftHobbyChange={setDraftHobby}
+                onAddHobby={addHobby}
+                onRemoveHobby={removeHobby}
+                tags={tags}
+                draftTag={draftTag}
+                onDraftTagChange={setDraftTag}
+                onAddTag={addTag}
+                onRemoveTag={removeTag}
+              />
+            )}
+          </View>
 
-        <View style={styles.footerActions}>
-          {step === 1 ? (
-            <>
-              <TouchableOpacity
-                activeOpacity={0.9}
-                disabled={!canGoNext}
-                style={[
-                  styles.primaryButton,
-                  {
-                    backgroundColor: selectedTheme.primary,
-                    shadowColor: selectedTheme.primary,
-                  },
-                  !canGoNext ? styles.buttonDisabled : null,
-                ]}
-                onPress={goNext}
-              >
-                <Text
+          <View style={styles.footerActions}>
+            {step === 1 ? (
+              <>
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  disabled={!canGoNext}
                   style={[
-                    styles.primaryButtonText,
-                    { color: selectedTheme.onPrimary },
+                    styles.primaryButton,
+                    {
+                      backgroundColor: selectedTheme.primary,
+                      shadowColor: selectedTheme.primary,
+                    },
+                    !canGoNext ? styles.buttonDisabled : null,
                   ]}
+                  onPress={goNext}
                 >
-                  다음으로
-                </Text>
-              </TouchableOpacity>
+                  <Text
+                    style={[
+                      styles.primaryButtonText,
+                      { color: selectedTheme.onPrimary },
+                    ]}
+                  >
+                    다음으로
+                  </Text>
+                </TouchableOpacity>
 
-              {showStepOneExitButton ? (
+                {showStepOneExitButton ? (
+                  <TouchableOpacity
+                    activeOpacity={0.88}
+                    style={styles.secondaryButton}
+                    onPress={onPressRequestExit}
+                  >
+                    <Text style={styles.secondaryButtonText}>돌아가기</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </>
+            ) : (
+              <>
                 <TouchableOpacity
                   activeOpacity={0.88}
                   style={styles.secondaryButton}
-                  onPress={onPressRequestExit}
+                  onPress={goPrevStep}
                 >
-                  <Text style={styles.secondaryButtonText}>돌아가기</Text>
+                  <Text style={styles.secondaryButtonText}>이전 단계로</Text>
                 </TouchableOpacity>
-              ) : null}
-            </>
-          ) : (
-            <>
-              <TouchableOpacity
-                activeOpacity={0.88}
-                style={styles.secondaryButton}
-                onPress={goPrevStep}
-              >
-                <Text style={styles.secondaryButtonText}>이전 단계로</Text>
-              </TouchableOpacity>
 
-              <TouchableOpacity
-                activeOpacity={0.9}
-                disabled={!canSubmit}
-                style={[
-                  styles.primaryButton,
-                  {
-                    backgroundColor: selectedTheme.primary,
-                    shadowColor: selectedTheme.primary,
-                  },
-                  !canSubmit ? styles.buttonDisabled : null,
-                ]}
-                onPress={onSubmit}
-              >
-                <Text
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  disabled={!canSubmit}
                   style={[
-                    styles.primaryButtonText,
-                    { color: selectedTheme.onPrimary },
+                    styles.primaryButton,
+                    {
+                      backgroundColor: selectedTheme.primary,
+                      shadowColor: selectedTheme.primary,
+                    },
+                    !canSubmit ? styles.buttonDisabled : null,
                   ]}
+                  onPress={onSubmit}
                 >
-                  {saving ? '등록 중...' : '등록 완료'}
-                </Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-      </KeyboardAwareScrollView>
+                  <Text
+                    style={[
+                      styles.primaryButtonText,
+                      { color: selectedTheme.onPrimary },
+                    ]}
+                  >
+                    {saving ? '등록 중...' : '등록 완료'}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </KeyboardAwareScrollView>
+      </KeyboardAvoidingView>
 
       <Modal
         transparent

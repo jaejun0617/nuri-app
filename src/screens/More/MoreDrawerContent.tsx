@@ -74,6 +74,7 @@ type MenuItemSpec = {
   key: string;
   label: string;
   icon: string;
+  iconEmoji?: string | null;
   iconTone?: 'accent' | 'muted' | 'soft';
   onPress: () => void;
   badge?: 'dot' | 'soon' | null;
@@ -146,6 +147,7 @@ function formatDateLabel(value: Date | null): string {
 const MenuRow = memo(function MenuRow({
   label,
   icon,
+  iconEmoji = null,
   iconTone = 'accent',
   onPress,
   badge = null,
@@ -170,7 +172,11 @@ const MenuRow = memo(function MenuRow({
     >
       <View style={styles.menuLeft}>
         <View style={[styles.menuIconBox, { backgroundColor: tone.box }]}>
-          <Feather name={icon as never} size={17} color={tone.icon} />
+          {iconEmoji ? (
+            <Text style={styles.menuEmojiIcon}>{iconEmoji}</Text>
+          ) : (
+            <Feather name={icon as never} size={17} color={tone.icon} />
+          )}
         </View>
         <Text style={[styles.menuLabel, { color: theme.colors.textPrimary }]}>
           {label}
@@ -771,21 +777,13 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     });
   }, []);
 
-  const openPetProfile = useCallback(() => {
-    if (selectedPet?.id) {
-      closeAndNavigate(() =>
-        navigation.navigate('PetProfileEdit', {
-          petId: selectedPet.id,
-          entrySource: 'more',
-        }),
-      );
-      return;
-    }
-
+  const openPetManagement = useCallback(() => {
     closeAndNavigate(() =>
-      navigation.navigate('PetCreate', { from: 'header_plus' }),
+      navigation.navigate('PetManagement', {
+        entrySource: 'more',
+      }),
     );
-  }, [closeAndNavigate, navigation, selectedPet?.id]);
+  }, [closeAndNavigate, navigation]);
 
   const openScheduleList = useCallback(() => {
     closeAndNavigate(() =>
@@ -1180,7 +1178,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         label: '아이들 프로필 관리',
         icon: 'user',
         iconTone: 'accent',
-        onPress: openPetProfile,
+        onPress: openPetManagement,
       },
       {
         key: 'important-schedule',
@@ -1190,7 +1188,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         onPress: openScheduleList,
       },
     ],
-    [openPetProfile, openScheduleList],
+    [openPetManagement, openScheduleList],
   );
 
   const activityItems = useMemo<MenuItemSpec[]>(
@@ -1296,9 +1294,17 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       {
         key: 'theme',
         label: '테마 설정',
-        icon: 'moon',
+        icon: 'palette',
+        iconEmoji: '🎨',
         iconTone: 'accent',
         onPress: openThemeModal,
+      },
+      {
+        key: 'logout',
+        label: loading ? '로그아웃 중...' : '로그아웃',
+        icon: 'log-out',
+        iconTone: 'accent',
+        onPress: onPressLogout,
       },
     ];
 
@@ -1315,6 +1321,8 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     return items;
   }, [
     isLoggedIn,
+    loading,
+    onPressLogout,
     openPasswordModal,
     openProfileEditModal,
     openThemeModal,
@@ -1440,43 +1448,50 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
 
           {isLoggedIn ? (
             <View style={styles.bottomActions}>
-              <TouchableOpacity
-                activeOpacity={0.88}
+              <View
                 style={[
-                  styles.bottomTextButton,
-                  { backgroundColor: petTheme.soft },
+                  styles.deleteSection,
+                  {
+                    backgroundColor: theme.colors.surfaceElevated,
+                    borderColor: 'rgba(224, 90, 104, 0.16)',
+                  },
                 ]}
-                onPress={onPressLogout}
-                disabled={loading}
               >
                 <Text
                   style={[
-                    styles.bottomTextButtonLabel,
-                    { color: petTheme.deep },
-                  ]}
-                >
-                  {loading ? '로그아웃 중...' : '로그아웃'}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                activeOpacity={0.88}
-                style={[
-                  styles.bottomDangerButton,
-                  { backgroundColor: 'rgba(224, 90, 104, 0.12)' },
-                ]}
-                onPress={onPressDeleteAccount}
-                disabled={deleting}
-              >
-                <Text
-                  style={[
-                    styles.bottomDangerButtonLabel,
+                    styles.deleteSectionTitle,
                     { color: theme.colors.danger },
                   ]}
                 >
-                  {deleting ? '회원탈퇴 처리 중...' : '회원탈퇴'}
+                  계정 삭제
                 </Text>
-              </TouchableOpacity>
+                <Text
+                  style={[
+                    styles.deleteSectionBody,
+                    { color: theme.colors.textMuted },
+                  ]}
+                >
+                  계정과 연결된 반려동물 정보, 기록, 일정이 함께 사라져요.
+                </Text>
+                <TouchableOpacity
+                  activeOpacity={0.88}
+                  style={[
+                    styles.bottomDangerButton,
+                    { backgroundColor: 'rgba(224, 90, 104, 0.12)' },
+                  ]}
+                  onPress={onPressDeleteAccount}
+                  disabled={deleting}
+                >
+                  <Text
+                    style={[
+                      styles.bottomDangerButtonLabel,
+                      { color: theme.colors.danger },
+                    ]}
+                  >
+                    {deleting ? '회원탈퇴 처리 중...' : '회원탈퇴'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           ) : (
             <TouchableOpacity
@@ -1702,6 +1717,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  menuEmojiIcon: {
+    fontSize: 17,
+    lineHeight: 20,
+  },
   menuLabel: {
     fontSize: 15,
     lineHeight: 20,
@@ -1744,25 +1763,31 @@ const styles = StyleSheet.create({
   },
   bottomActions: {
     alignItems: 'center',
-    gap: 8,
-    paddingTop: 4,
+    gap: 14,
+    paddingTop: 6,
   },
-  bottomTextButton: {
-    minHeight: 44,
-    minWidth: 172,
-    paddingHorizontal: 18,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
+  deleteSection: {
+    width: '100%',
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 14,
+    gap: 10,
   },
-  bottomTextButtonLabel: {
+  deleteSectionTitle: {
     fontSize: 14,
-    color: '#A0A8B8',
+    lineHeight: 20,
     fontWeight: '800',
+  },
+  deleteSectionBody: {
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '500',
   },
   bottomDangerButton: {
     minHeight: 44,
-    minWidth: 172,
+    width: '100%',
     paddingHorizontal: 18,
     borderRadius: 14,
     alignItems: 'center',

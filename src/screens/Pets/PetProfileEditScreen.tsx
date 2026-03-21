@@ -178,6 +178,7 @@ export default function PetProfileEditScreen() {
 
   const pets = usePetStore(s => s.pets);
   const setPets = usePetStore(s => s.setPets);
+  const invalidatePetAvatar = usePetStore(s => s.invalidatePetAvatar);
 
   const pet = useMemo(() => pets.find(item => item.id === petId) ?? null, [pets, petId]);
 
@@ -458,6 +459,7 @@ export default function PetProfileEditScreen() {
       if (!userId) throw new Error('로그인 정보가 없습니다.');
 
       let nextAvatarPath = pet.avatarPath ?? null;
+      let avatarPathChanged = false;
       if (imageUri && imageUri !== pet.avatarUrl) {
         const { path } = await uploadPetAvatar({
           userId,
@@ -466,6 +468,7 @@ export default function PetProfileEditScreen() {
           mimeType: imageType,
         });
         nextAvatarPath = path;
+        avatarPathChanged = path !== (pet.avatarPath ?? null);
       }
 
       const speciesSelection = buildPetSpeciesSelection(
@@ -502,6 +505,10 @@ export default function PetProfileEditScreen() {
         setNameChangeCount(nextCount);
       }
 
+      if (avatarPathChanged) {
+        invalidatePetAvatar(pet.id, { userId });
+      }
+
       const refreshedPets = await fetchMyPets();
       setPets(refreshedPets, { userId });
 
@@ -522,6 +529,7 @@ export default function PetProfileEditScreen() {
     hobbiesText,
     imageType,
     imageUri,
+    invalidatePetAvatar,
     isNameChanged,
     likesText,
     displayDeathDate,
