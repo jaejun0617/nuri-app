@@ -16,7 +16,6 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  BackHandler,
   Image,
   type LayoutChangeEvent,
   Modal,
@@ -37,18 +36,15 @@ import type {
   CompositeNavigationProp,
   RouteProp,
 } from '@react-navigation/native';
-import {
-  useFocusEffect,
-  useIsFocused,
-  useNavigation,
-  useRoute,
-} from '@react-navigation/native';
+import { useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from 'styled-components/native';
 
 import { MemoryCard } from '../../components/MemoryCard/MemoryCard';
 import { preloadOptimizedImages } from '../../components/images/OptimizedImage';
 import AppText from '../../app/ui/AppText';
+import HeaderIconActionButton from '../../components/navigation/HeaderIconActionButton';
+import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { AppTabParamList } from '../../navigation/AppTabsNavigator';
 import type { TimelineStackParamList } from '../../navigation/TimelineStackNavigator';
 import {
@@ -71,6 +67,7 @@ import {
 } from '../../services/supabase/storageMemories';
 import { usePetStore, resolveSelectedPetId } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
+import { openMoreDrawer } from '../../store/uiStore';
 import { styles } from './TimelineScreen.styles';
 
 type TimelineMainRoute = RouteProp<TimelineStackParamList, 'TimelineMain'>;
@@ -878,25 +875,18 @@ export default function TimelineScreen() {
     [focusedMemoryId, imageWindow, timelineEntityVersion],
   );
 
-  const onPressBack = useCallback(() => {
-    navigation.navigate('HomeTab');
-  }, [navigation]);
-
-  useFocusEffect(
-    useCallback(() => {
-      const subscription = BackHandler.addEventListener(
-        'hardwareBackPress',
-        () => {
-          navigation.navigate('HomeTab');
-          return true;
-        },
-      );
-
-      return () => {
-        subscription.remove();
-      };
-    }, [navigation]),
-  );
+  const onPressBack = useEntryAwareBackAction({
+    entrySource: route.params?.entrySource,
+    onHome: () => {
+      navigation.navigate('HomeTab');
+    },
+    onMore: () => {
+      openMoreDrawer();
+    },
+    onFallback: () => {
+      navigation.navigate('HomeTab');
+    },
+  });
 
   return (
     <View style={styles.screen}>
@@ -914,15 +904,11 @@ export default function TimelineScreen() {
           타임라인
         </AppText>
         <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={[styles.createBtn, { backgroundColor: petTheme.primary }]}
+          <HeaderIconActionButton
+            accessibilityLabel="기록하기"
+            backgroundColor={petTheme.primary}
             onPress={onPressCreate}
-          >
-            <AppText preset="caption" style={styles.createText}>
-              기록하기
-            </AppText>
-          </TouchableOpacity>
+          />
         </View>
       </View>
       <ControlsBar

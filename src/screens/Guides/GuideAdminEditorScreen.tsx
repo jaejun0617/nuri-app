@@ -20,6 +20,7 @@ import AppText from '../../app/ui/AppText';
 import { useManagedPetCareGuideDetail } from '../../hooks/useManagedPetCareGuideDetail';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
+import { buildPetThemePalette } from '../../services/pets/themePalette';
 import {
   buildGuideAdminUpsertInput,
   buildGuideSlug,
@@ -43,6 +44,7 @@ import type {
   PetGuideSpecies,
 } from '../../services/guides/types';
 import { useAuthStore } from '../../store/authStore';
+import { usePetStore } from '../../store/petStore';
 import { showToast } from '../../store/uiStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'GuideAdminEditor'>;
@@ -107,10 +109,20 @@ export default function GuideAdminEditorScreen() {
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const role = useAuthStore(s => s.profile.role ?? 'user');
+  const pets = usePetStore(s => s.pets);
+  const selectedPetId = usePetStore(s => s.selectedPetId);
   const detailState = useManagedPetCareGuideDetail(
     route.params.mode === 'edit' ? route.params.guideId : null,
   );
   const isGuideAdmin = role === 'admin' || role === 'super_admin';
+  const selectedPet = useMemo(
+    () => pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
+    [pets, selectedPetId],
+  );
+  const petTheme = useMemo(
+    () => buildPetThemePalette(selectedPet?.themeColor),
+    [selectedPet?.themeColor],
+  );
   const headerTopInset = Math.max(insets.top, 12);
 
   const [formValues, setFormValues] = useState<GuideAdminFormValues>(
@@ -202,7 +214,7 @@ export default function GuideAdminEditorScreen() {
     return (
       <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
         <View style={styles.emptyCard}>
-          <Feather name="shield-off" size={28} color="#6D6AF8" />
+          <Feather name="shield-off" size={28} color={petTheme.primary} />
           <AppText preset="headline" style={styles.emptyTitle}>
             운영 권한이 필요해요
           </AppText>
@@ -215,7 +227,7 @@ export default function GuideAdminEditorScreen() {
     return (
       <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
         <View style={styles.emptyCard}>
-          <Feather name="loader" size={28} color="#6D6AF8" />
+          <Feather name="loader" size={28} color={petTheme.primary} />
           <AppText preset="headline" style={styles.emptyTitle}>
             가이드 편집 정보를 불러오는 중이에요
           </AppText>
@@ -228,7 +240,7 @@ export default function GuideAdminEditorScreen() {
     return (
       <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
         <View style={styles.emptyCard}>
-          <Feather name="alert-circle" size={28} color="#6D6AF8" />
+          <Feather name="alert-circle" size={28} color={petTheme.primary} />
           <AppText preset="headline" style={styles.emptyTitle}>
             편집할 가이드를 찾지 못했어요
           </AppText>
@@ -287,13 +299,20 @@ export default function GuideAdminEditorScreen() {
               onPress={() => saveGuide('draft')}
               disabled={saving}
             >
-              <AppText preset="caption" style={styles.actionButtonText}>
+              <AppText
+                preset="caption"
+                style={[styles.actionButtonText, { color: petTheme.deep }]}
+              >
                 초안 저장
               </AppText>
             </TouchableOpacity>
             <TouchableOpacity
               activeOpacity={0.9}
-              style={[styles.actionButton, styles.actionButtonPrimary]}
+              style={[
+                styles.actionButton,
+                styles.actionButtonPrimary,
+                { backgroundColor: petTheme.primary },
+              ]}
               onPress={() => saveGuide('published')}
               disabled={saving}
             >
@@ -307,7 +326,10 @@ export default function GuideAdminEditorScreen() {
               onPress={() => saveGuide('archived')}
               disabled={saving}
             >
-              <AppText preset="caption" style={styles.actionButtonText}>
+              <AppText
+                preset="caption"
+                style={[styles.actionButtonText, { color: petTheme.deep }]}
+              >
                 보관
               </AppText>
             </TouchableOpacity>
@@ -365,12 +387,20 @@ export default function GuideAdminEditorScreen() {
               return (
                 <Pressable
                   key={category}
-                  style={[styles.choiceChip, active ? styles.choiceChipActive : null]}
+                  style={[
+                    styles.choiceChip,
+                    active ? styles.choiceChipActive : null,
+                    active ? { backgroundColor: petTheme.tint } : null,
+                  ]}
                   onPress={() => updateField('category', category)}
                 >
                   <AppText
                     preset="caption"
-                    style={[styles.choiceChipText, active ? styles.choiceChipTextActive : null]}
+                    style={[
+                      styles.choiceChipText,
+                      active ? styles.choiceChipTextActive : null,
+                      active ? { color: petTheme.deep } : null,
+                    ]}
                   >
                     {getGuideCategoryLabel(category)}
                   </AppText>
@@ -406,12 +436,20 @@ export default function GuideAdminEditorScreen() {
               return (
                 <Pressable
                   key={species}
-                  style={[styles.choiceChip, active ? styles.choiceChipActive : null]}
+                  style={[
+                    styles.choiceChip,
+                    active ? styles.choiceChipActive : null,
+                    active ? { backgroundColor: petTheme.tint } : null,
+                  ]}
                   onPress={() => toggleTargetSpecies(species)}
                 >
                   <AppText
                     preset="caption"
-                    style={[styles.choiceChipText, active ? styles.choiceChipTextActive : null]}
+                    style={[
+                      styles.choiceChipText,
+                      active ? styles.choiceChipTextActive : null,
+                      active ? { color: petTheme.deep } : null,
+                    ]}
                   >
                     {species}
                   </AppText>
@@ -426,12 +464,20 @@ export default function GuideAdminEditorScreen() {
               return (
                 <Pressable
                   key={type}
-                  style={[styles.choiceChip, active ? styles.choiceChipActive : null]}
+                  style={[
+                    styles.choiceChip,
+                    active ? styles.choiceChipActive : null,
+                    active ? { backgroundColor: petTheme.tint } : null,
+                  ]}
                   onPress={() => updateField('agePolicyType', type)}
                 >
                   <AppText
                     preset="caption"
-                    style={[styles.choiceChipText, active ? styles.choiceChipTextActive : null]}
+                    style={[
+                      styles.choiceChipText,
+                      active ? styles.choiceChipTextActive : null,
+                      active ? { color: petTheme.deep } : null,
+                    ]}
                   >
                     {type === 'all'
                       ? '전 연령'
@@ -451,14 +497,22 @@ export default function GuideAdminEditorScreen() {
                 return (
                   <Pressable
                     key={stage}
-                    style={[styles.choiceChip, active ? styles.choiceChipActive : null]}
+                    style={[
+                      styles.choiceChip,
+                      active ? styles.choiceChipActive : null,
+                      active ? { backgroundColor: petTheme.tint } : null,
+                    ]}
                     onPress={() =>
                       updateField('agePolicyLifeStage', stage as GuideLifeStage)
                     }
                   >
                     <AppText
                       preset="caption"
-                      style={[styles.choiceChipText, active ? styles.choiceChipTextActive : null]}
+                      style={[
+                        styles.choiceChipText,
+                        active ? styles.choiceChipTextActive : null,
+                        active ? { color: petTheme.deep } : null,
+                      ]}
                     >
                       {stage}
                     </AppText>
@@ -524,12 +578,20 @@ export default function GuideAdminEditorScreen() {
               return (
                 <Pressable
                   key={status}
-                  style={[styles.choiceChip, active ? styles.choiceChipActive : null]}
+                  style={[
+                    styles.choiceChip,
+                    active ? styles.choiceChipActive : null,
+                    active ? { backgroundColor: petTheme.tint } : null,
+                  ]}
                   onPress={() => updateField('status', status)}
                 >
                   <AppText
                     preset="caption"
-                    style={[styles.choiceChipText, active ? styles.choiceChipTextActive : null]}
+                    style={[
+                      styles.choiceChipText,
+                      active ? styles.choiceChipTextActive : null,
+                      active ? { color: petTheme.deep } : null,
+                    ]}
                   >
                     {formatGuideStatusLabel(status)}
                   </AppText>
@@ -550,8 +612,8 @@ export default function GuideAdminEditorScreen() {
             <Switch
               value={formValues.isActive}
               onValueChange={value => updateField('isActive', value)}
-              trackColor={{ false: '#D7DBE3', true: '#B8B6FF' }}
-              thumbColor={formValues.isActive ? '#6D6AF8' : '#FFFFFF'}
+              trackColor={{ false: '#D7DBE3', true: petTheme.tint }}
+              thumbColor={formValues.isActive ? petTheme.primary : '#FFFFFF'}
             />
           </View>
         </Section>

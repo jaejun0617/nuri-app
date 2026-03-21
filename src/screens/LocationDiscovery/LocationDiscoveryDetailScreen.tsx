@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, BackHandler, Linking, ScrollView, TouchableOpacity, View } from 'react-native';
-import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Alert, Linking, ScrollView, TouchableOpacity, View } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
 
@@ -19,8 +19,6 @@ import type {
   LocationDiscoveryDomain,
   LocationDiscoveryItem,
 } from '../../services/locationDiscovery/types';
-import { openMoreDrawer } from '../../store/uiStore';
-
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 type Props = {
@@ -41,29 +39,6 @@ export default function LocationDiscoveryDetailScreen({ domain }: Props) {
     () => params?.resultItems ?? [],
     [params?.resultItems],
   );
-  const navigateBackToMore = useCallback(() => {
-    navigation.goBack();
-    requestAnimationFrame(() => {
-      openMoreDrawer();
-    });
-  }, [navigation]);
-
-  useFocusEffect(
-    useCallback(() => {
-      const subscription = BackHandler.addEventListener(
-        'hardwareBackPress',
-        () => {
-          navigateBackToMore();
-          return true;
-        },
-      );
-
-      return () => {
-        subscription.remove();
-      };
-    }, [navigateBackToMore]),
-  );
-
   const [visibleRelatedCount, setVisibleRelatedCount] = useState(6);
   const relatedItems = useMemo(
     () =>
@@ -91,7 +66,7 @@ export default function LocationDiscoveryDetailScreen({ domain }: Props) {
               <TouchableOpacity
                 activeOpacity={0.88}
                 style={styles.backButton}
-                onPress={navigateBackToMore}
+                onPress={() => navigation.goBack()}
               >
                 <Feather name="arrow-left" size={20} color="#102033" />
               </TouchableOpacity>
@@ -162,10 +137,10 @@ export default function LocationDiscoveryDetailScreen({ domain }: Props) {
         <View style={styles.header}>
           <View style={styles.headerSideSlot}>
             <TouchableOpacity
-              activeOpacity={0.88}
-              style={styles.backButton}
-              onPress={navigateBackToMore}
-            >
+                activeOpacity={0.88}
+                style={styles.backButton}
+                onPress={() => navigation.goBack()}
+              >
               <Feather name="arrow-left" size={20} color="#102033" />
             </TouchableOpacity>
           </View>

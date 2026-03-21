@@ -33,6 +33,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import Feather from 'react-native-vector-icons/Feather';
 
 import AppText from '../../app/ui/AppText';
+import HeaderTextActionButton from '../../components/navigation/HeaderTextActionButton';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import RecordImageGallery from '../../components/records/RecordImageGallery';
 import { useKeyboardInset } from '../../hooks/useKeyboardInset';
@@ -356,6 +357,11 @@ export default function RecordCreateScreen() {
       return;
     }
 
+    if (returnTo?.tab === 'GuestbookTab') {
+      navigation.navigate('AppTabs', { screen: 'GuestbookTab' });
+      return;
+    }
+
     if (returnTo?.tab === 'HomeTab') {
       navigation.navigate('AppTabs', { screen: 'HomeTab' });
       return;
@@ -611,23 +617,15 @@ export default function RecordCreateScreen() {
         </AppText>
 
         <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            style={styles.headerSideBtn}
+          <HeaderTextActionButton
+            accessibilityLabel={saving ? '기록 저장 중' : '기록 저장 완료'}
+            backgroundColor={petTheme.tint}
+            borderColor={petTheme.border}
             disabled={disabled}
+            label={saving ? '저장중' : '완료'}
             onPress={onSubmit}
-          >
-            <AppText
-              preset="body"
-              style={[
-                styles.headerDoneText,
-                !disabled ? { color: petTheme.primary } : null,
-                disabled ? styles.headerDoneTextDisabled : null,
-              ]}
-            >
-              {saving ? '저장중' : '완료'}
-            </AppText>
-          </TouchableOpacity>
+            textColor={petTheme.primary}
+          />
         </View>
       </View>
 

@@ -26,6 +26,7 @@ import TimelineStackNavigator, {
   type TimelineStackParamList,
 } from './TimelineStackNavigator';
 import RecordCreateScreen from '../screens/Records/RecordCreateScreen';
+import GuestbookScreen from '../screens/Guestbook/GuestbookScreen';
 
 import MoreDrawer from '../components/MoreDrawer/MoreDrawer';
 import AppNavigationToolbar from '../components/navigation/AppNavigationToolbar';
@@ -43,9 +44,11 @@ export type AppTabParamList = {
               tab: 'TimelineTab';
               params?: NavigatorScreenParams<TimelineStackParamList>;
             }
+          | { tab: 'GuestbookTab' }
           | { tab: 'MoreTab' };
       }
     | undefined;
+  GuestbookTab: undefined;
   MoreTab: undefined;
 };
 
@@ -79,6 +82,8 @@ function CustomTabBar(props: BottomTabBarProps) {
   const activeKey =
     currentRouteName === 'TimelineTab'
       ? 'timeline'
+      : currentRouteName === 'GuestbookTab'
+        ? 'guestbook'
       : currentRouteName === 'MoreTab'
           ? 'more'
           : 'home';
@@ -112,6 +117,7 @@ export default function AppTabsNavigator() {
           <Tab.Screen name="HomeTab" component={MainScreen} />
           <Tab.Screen name="TimelineTab" component={TimelineStackNavigator} />
           <Tab.Screen name="RecordCreateTab" component={RecordCreateScreen} />
+          <Tab.Screen name="GuestbookTab" component={GuestbookScreen} />
           <Tab.Screen
             name="MoreTab"
             component={MoreNull}

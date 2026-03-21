@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-  BackHandler,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -8,7 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
 
@@ -21,16 +20,22 @@ import {
   buildLocationPermissionCopy,
 } from '../../components/locationDiscovery/LocationDiscoveryStatusCard';
 import { styles } from '../../components/locationDiscovery/LocationDiscovery.styles';
+import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import { useLocationDiscovery } from '../../hooks/useLocationDiscovery';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import type { RootScreenRoute } from '../../navigation/types';
+import { buildPetThemePalette } from '../../services/pets/themePalette';
 import type {
   LocationDiscoveryDomain,
   LocationDiscoveryItem,
   LocationDiscoverySortOption,
 } from '../../services/locationDiscovery/types';
+import { usePetStore } from '../../store/petStore';
 import { openMoreDrawer } from '../../store/uiStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+type WalkRoute = RootScreenRoute<'WalkSpotList'>;
+type PetFriendlyRoute = RootScreenRoute<'PetFriendlyPlaceList'>;
 
 type Props = {
   domain: LocationDiscoveryDomain;
@@ -60,6 +65,9 @@ function getDomainCopy(domain: LocationDiscoveryDomain) {
 
 export default function LocationDiscoveryListScreen({ domain }: Props) {
   const navigation = useNavigation<Nav>();
+  const route = useRoute<WalkRoute | PetFriendlyRoute>();
+  const pets = usePetStore(s => s.pets);
+  const selectedPetId = usePetStore(s => s.selectedPetId);
   const copy = getDomainCopy(domain);
   const [searchInput, setSearchInput] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
@@ -68,6 +76,14 @@ export default function LocationDiscoveryListScreen({ domain }: Props) {
     domain,
     query: submittedQuery,
   });
+  const selectedPet = useMemo(
+    () => pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
+    [pets, selectedPetId],
+  );
+  const petTheme = useMemo(
+    () => buildPetThemePalette(selectedPet?.themeColor),
+    [selectedPet?.themeColor],
+  );
   const locationTitle = useMemo(() => {
     return (
       discoveryState.scope?.displayLabel ??
@@ -126,12 +142,24 @@ export default function LocationDiscoveryListScreen({ domain }: Props) {
       setSubmittedQuery('');
     }
   }, []);
-  const navigateBackToMore = useCallback(() => {
-    navigation.goBack();
-    requestAnimationFrame(() => {
-      openMoreDrawer();
-    });
-  }, [navigation]);
+  const onPressBack = useEntryAwareBackAction({
+    entrySource: route.params?.entrySource,
+    onHome: () => {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'AppTabs', params: { screen: 'HomeTab' } }],
+      });
+    },
+    onMore: () => {
+      navigation.goBack();
+      requestAnimationFrame(() => {
+        openMoreDrawer();
+      });
+    },
+    onFallback: () => {
+      navigation.goBack();
+    },
+  });
   const onPressItem = useCallback(
     (item: LocationDiscoveryItem) => {
       if (domain === 'walk') {
@@ -160,22 +188,6 @@ export default function LocationDiscoveryListScreen({ domain }: Props) {
     [domain],
   );
 
-  useFocusEffect(
-    useCallback(() => {
-      const subscription = BackHandler.addEventListener(
-        'hardwareBackPress',
-        () => {
-          navigateBackToMore();
-          return true;
-        },
-      );
-
-      return () => {
-        subscription.remove();
-      };
-    }, [navigateBackToMore]),
-  );
-
   return (
     <Screen style={styles.screen}>
       <KeyboardAvoidingView
@@ -188,7 +200,7 @@ export default function LocationDiscoveryListScreen({ domain }: Props) {
             <TouchableOpacity
               activeOpacity={0.88}
               style={styles.backButton}
-              onPress={navigateBackToMore}
+              onPress={onPressBack}
             >
               <Feather name="arrow-left" size={20} color="#102033" />
             </TouchableOpacity>
@@ -205,6 +217,8 @@ export default function LocationDiscoveryListScreen({ domain }: Props) {
           onSubmit={handleSubmitSearch}
           placeholder={copy.placeholder}
           helperText={copy.helperText}
+          accentColor={petTheme.primary}
+          loadingColor={petTheme.primary}
           loadingText={
             discoveryState.searching
               ? '검색 중'
@@ -215,8 +229,10 @@ export default function LocationDiscoveryListScreen({ domain }: Props) {
         />
 
         <View style={styles.locationInfoCard}>
-          <View style={styles.locationIconWrap}>
-            <Feather name="map-pin" size={18} color="#2F8F48" />
+          <View
+            style={[styles.locationIconWrap, { backgroundColor: petTheme.tint }]}
+          >
+            <Feather name="map-pin" size={18} color={petTheme.primary} />
           </View>
           <View style={styles.locationCopy}>
             <AppText preset="caption" style={styles.locationSubtitle}>
@@ -233,12 +249,18 @@ export default function LocationDiscoveryListScreen({ domain }: Props) {
           </View>
           <TouchableOpacity
             activeOpacity={0.9}
-            style={styles.locationRefreshButton}
+            style={[
+              styles.locationRefreshButton,
+              { backgroundColor: petTheme.tint },
+            ]}
             onPress={() => {
               discoveryState.refresh().catch(() => {});
             }}
           >
-            <AppText preset="caption" style={styles.locationRefreshButtonText}>
+            <AppText
+              preset="caption"
+              style={[styles.locationRefreshButtonText, { color: petTheme.primary }]}
+            >
               새로고침
             </AppText>
           </TouchableOpacity>
@@ -250,7 +272,15 @@ export default function LocationDiscoveryListScreen({ domain }: Props) {
               activeOpacity={0.9}
               style={[
                 styles.sortChip,
-                sortOrder === 'recommended' ? styles.sortChipSelected : null,
+                sortOrder === 'recommended'
+                  ? [
+                      styles.sortChipSelected,
+                      {
+                        borderColor: petTheme.border,
+                        backgroundColor: petTheme.tint,
+                      },
+                    ]
+                  : null,
               ]}
               onPress={() => {
                 setSortOrder('recommended');
@@ -260,7 +290,9 @@ export default function LocationDiscoveryListScreen({ domain }: Props) {
                 preset="caption"
                 style={[
                   styles.sortChipText,
-                  sortOrder === 'recommended' ? styles.sortChipTextSelected : null,
+                  sortOrder === 'recommended'
+                    ? [styles.sortChipTextSelected, { color: petTheme.primary }]
+                    : null,
                 ]}
               >
                 추천순
@@ -270,7 +302,15 @@ export default function LocationDiscoveryListScreen({ domain }: Props) {
               activeOpacity={0.9}
               style={[
                 styles.sortChip,
-                sortOrder === 'distance-asc' ? styles.sortChipSelected : null,
+                sortOrder === 'distance-asc'
+                  ? [
+                      styles.sortChipSelected,
+                      {
+                        borderColor: petTheme.border,
+                        backgroundColor: petTheme.tint,
+                      },
+                    ]
+                  : null,
               ]}
               onPress={() => {
                 setSortOrder('distance-asc');
@@ -280,7 +320,9 @@ export default function LocationDiscoveryListScreen({ domain }: Props) {
                 preset="caption"
                 style={[
                   styles.sortChipText,
-                  sortOrder === 'distance-asc' ? styles.sortChipTextSelected : null,
+                  sortOrder === 'distance-asc'
+                    ? [styles.sortChipTextSelected, { color: petTheme.primary }]
+                    : null,
                 ]}
               >
                 가까운순
@@ -290,7 +332,15 @@ export default function LocationDiscoveryListScreen({ domain }: Props) {
               activeOpacity={0.9}
               style={[
                 styles.sortChip,
-                sortOrder === 'distance-desc' ? styles.sortChipSelected : null,
+                sortOrder === 'distance-desc'
+                  ? [
+                      styles.sortChipSelected,
+                      {
+                        borderColor: petTheme.border,
+                        backgroundColor: petTheme.tint,
+                      },
+                    ]
+                  : null,
               ]}
               onPress={() => {
                 setSortOrder('distance-desc');
@@ -300,7 +350,9 @@ export default function LocationDiscoveryListScreen({ domain }: Props) {
                 preset="caption"
                 style={[
                   styles.sortChipText,
-                  sortOrder === 'distance-desc' ? styles.sortChipTextSelected : null,
+                  sortOrder === 'distance-desc'
+                    ? [styles.sortChipTextSelected, { color: petTheme.primary }]
+                    : null,
                 ]}
               >
                 먼순

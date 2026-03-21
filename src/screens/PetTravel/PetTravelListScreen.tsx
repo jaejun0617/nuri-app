@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  BackHandler,
   FlatList,
   Pressable,
   ScrollView,
@@ -8,13 +7,16 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
 
 import AppText from '../../app/ui/AppText';
 import Screen from '../../components/layout/Screen';
+import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import type { RootScreenRoute } from '../../navigation/types';
+import { buildPetThemePalette } from '../../services/pets/themePalette';
 import {
   getPetTravelCategories,
   getPetTravelPetAllowedLabel,
@@ -25,10 +27,12 @@ import type {
   PetTravelCategory,
   PetTravelItem,
 } from '../../services/petTravel/types';
+import { usePetStore } from '../../store/petStore';
 import { openMoreDrawer } from '../../store/uiStore';
 import { styles } from './PetTravel.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+type Route = RootScreenRoute<'PetTravelList'>;
 
 function getCategoryIcon(categoryId: PetTravelCategory['id']): string {
   switch (categoryId) {
@@ -100,6 +104,9 @@ function buildResultMeta(params: {
 
 export default function PetTravelListScreen() {
   const navigation = useNavigation<Nav>();
+  const route = useRoute<Route>();
+  const pets = usePetStore(s => s.pets);
+  const selectedPetId = usePetStore(s => s.selectedPetId);
   const categories = useMemo(() => getPetTravelCategories(), []);
   const [queryInput, setQueryInput] = useState('');
   const [appliedQuery, setAppliedQuery] = useState('');
@@ -119,28 +126,32 @@ export default function PetTravelListScreen() {
     () => categories.find(category => category.id === selectedCategoryId) ?? null,
     [categories, selectedCategoryId],
   );
-  const navigateBackToMore = useCallback(() => {
-    navigation.goBack();
-    requestAnimationFrame(() => {
-      openMoreDrawer();
-    });
-  }, [navigation]);
-
-  useFocusEffect(
-    useCallback(() => {
-      const subscription = BackHandler.addEventListener(
-        'hardwareBackPress',
-        () => {
-          navigateBackToMore();
-          return true;
-        },
-      );
-
-      return () => {
-        subscription.remove();
-      };
-    }, [navigateBackToMore]),
+  const selectedPet = useMemo(
+    () => pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
+    [pets, selectedPetId],
   );
+  const petTheme = useMemo(
+    () => buildPetThemePalette(selectedPet?.themeColor),
+    [selectedPet?.themeColor],
+  );
+  const onPressBack = useEntryAwareBackAction({
+    entrySource: route.params?.entrySource,
+    onHome: () => {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'AppTabs', params: { screen: 'HomeTab' } }],
+      });
+    },
+    onMore: () => {
+      navigation.goBack();
+      requestAnimationFrame(() => {
+        openMoreDrawer();
+      });
+    },
+    onFallback: () => {
+      navigation.goBack();
+    },
+  });
 
   const onPressItem = useCallback(
     (item: PetTravelItem) => {
@@ -251,6 +262,12 @@ export default function PetTravelListScreen() {
         style={[
           styles.chip,
           selectedCategoryId === category.id ? styles.chipSelected : null,
+          selectedCategoryId === category.id
+            ? {
+                borderColor: petTheme.border,
+                backgroundColor: petTheme.tint,
+              }
+            : null,
         ]}
         onPress={() => {
           setSelectedCategoryId(category.id);
@@ -264,13 +281,16 @@ export default function PetTravelListScreen() {
           style={[
             styles.chipText,
             selectedCategoryId === category.id ? styles.chipTextSelected : null,
+            selectedCategoryId === category.id
+              ? { color: petTheme.primary }
+              : null,
           ]}
         >
           {category.label}
         </AppText>
       </TouchableOpacity>
     ),
-    [selectedCategoryId],
+    [petTheme.border, petTheme.primary, petTheme.tint, selectedCategoryId],
   );
 
   const renderItem = useCallback(
@@ -293,11 +313,14 @@ export default function PetTravelListScreen() {
               <Feather
                 name={getCategoryIcon(item.categoryId)}
                 size={18}
-                color="#2F8F48"
+                color={petTheme.primary}
               />
             </View>
             <View style={styles.cardHeaderCopy}>
-              <AppText preset="caption" style={styles.cardCategory}>
+              <AppText
+                preset="caption"
+                style={[styles.cardCategory, { color: petTheme.primary }]}
+              >
                 {item.categoryLabel}
               </AppText>
               <AppText preset="headline" style={styles.cardTitle}>
@@ -353,7 +376,7 @@ export default function PetTravelListScreen() {
         </TouchableOpacity>
       );
     },
-    [onPressItem],
+    [onPressItem, petTheme.primary],
   );
 
   const resultMetaText = useMemo(
@@ -380,7 +403,7 @@ export default function PetTravelListScreen() {
             <TouchableOpacity
               activeOpacity={0.88}
               style={styles.backButton}
-              onPress={navigateBackToMore}
+              onPress={onPressBack}
             >
               <Feather name="arrow-left" size={20} color="#102033" />
             </TouchableOpacity>
@@ -422,7 +445,11 @@ export default function PetTravelListScreen() {
                     </Pressable>
                   ) : null}
                   <Pressable onPress={submitSearch} hitSlop={10}>
-                    <Feather name="arrow-right-circle" size={18} color="#2F8F48" />
+                    <Feather
+                      name="arrow-right-circle"
+                      size={18}
+                      color={petTheme.primary}
+                    />
                   </Pressable>
                 </View>
                 <AppText preset="caption" style={styles.searchHelperText}>
@@ -459,12 +486,18 @@ export default function PetTravelListScreen() {
                   </AppText>
                   <TouchableOpacity
                     activeOpacity={0.9}
-                    style={styles.retryButton}
+                    style={[
+                      styles.retryButton,
+                      { backgroundColor: petTheme.tint },
+                    ]}
                     onPress={() => {
                       loadList().catch(() => {});
                     }}
                   >
-                    <AppText preset="caption" style={styles.retryButtonText}>
+                    <AppText
+                      preset="caption"
+                      style={[styles.retryButtonText, { color: petTheme.primary }]}
+                    >
                       다시 시도
                     </AppText>
                   </TouchableOpacity>
@@ -499,10 +532,16 @@ export default function PetTravelListScreen() {
                 {appliedQuery ? (
                   <TouchableOpacity
                     activeOpacity={0.9}
-                    style={styles.retryButton}
+                    style={[
+                      styles.retryButton,
+                      { backgroundColor: petTheme.tint },
+                    ]}
                     onPress={clearSearch}
                   >
-                    <AppText preset="caption" style={styles.retryButtonText}>
+                    <AppText
+                      preset="caption"
+                      style={[styles.retryButtonText, { color: petTheme.primary }]}
+                    >
                       검색어 지우고 전체 보기
                     </AppText>
                   </TouchableOpacity>

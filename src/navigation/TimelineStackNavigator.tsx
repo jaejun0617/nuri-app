@@ -11,6 +11,7 @@ import TimelineScreen from '../screens/Records/TimelineScreen';
 import RecordDetailScreen from '../screens/Records/RecordDetailScreen';
 import RecordEditScreen from '../screens/Records/RecordEditScreen';
 import type { MemoryOtherSubCategory } from '../services/memories/categoryMeta';
+import type { ScreenEntrySource } from './entry';
 
 export type TimelineStackParamList = {
   TimelineMain:
@@ -18,6 +19,7 @@ export type TimelineStackParamList = {
         petId?: string;
         mainCategory?: 'all' | 'walk' | 'meal' | 'health' | 'diary' | 'other';
         otherSubCategory?: MemoryOtherSubCategory;
+        entrySource?: ScreenEntrySource;
       }
     | undefined;
   RecordDetail: { petId: string; memoryId: string };

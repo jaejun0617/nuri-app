@@ -26,6 +26,7 @@ import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import PhotoAddCard from '../../components/media/PhotoAddCard';
 import PetMemorialFields from '../../components/pets/PetMemorialFields';
 import PetThemePicker from '../../components/pets/PetThemePicker';
+import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
 import {
@@ -47,13 +48,14 @@ import {
   type PetRepresentativeSpeciesKey,
 } from '../../services/pets/species';
 import {
+  buildPetThemePalette,
   recommendPetThemeColor,
 } from '../../services/pets/themePalette';
 import { supabase } from '../../services/supabase/client';
 import { fetchMyPets, updatePet } from '../../services/supabase/pets';
 import { uploadPetAvatar } from '../../services/supabase/storagePets';
 import { usePetStore } from '../../store/petStore';
-import { showToast } from '../../store/uiStore';
+import { openMoreDrawer, showToast } from '../../store/uiStore';
 import { styles } from './PetProfileEditScreen.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'PetProfileEdit'>;
@@ -305,6 +307,10 @@ export default function PetProfileEditScreen() {
       }),
     [originalName, pet?.id, themeColor, trimmedName],
   );
+  const petTheme = useMemo(
+    () => buildPetThemePalette(selectedThemeColor),
+    [selectedThemeColor],
+  );
 
   useEffect(() => {
     if (memorialChoice === 'memorial') return;
@@ -533,6 +539,25 @@ export default function PetProfileEditScreen() {
     weightKg,
   ]);
 
+  const onPressBack = useEntryAwareBackAction({
+    entrySource: route.params?.entrySource,
+    onHome: () => {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'AppTabs', params: { screen: 'HomeTab' } }],
+      });
+    },
+    onMore: () => {
+      navigation.goBack();
+      requestAnimationFrame(() => {
+        openMoreDrawer();
+      });
+    },
+    onFallback: () => {
+      navigation.goBack();
+    },
+  });
+
   if (!pet) {
     return (
       <View style={styles.screen}>
@@ -542,8 +567,11 @@ export default function PetProfileEditScreen() {
           </AppText>
           <TouchableOpacity
             activeOpacity={0.92}
-            style={styles.primaryButton}
-            onPress={() => navigation.goBack()}
+            style={[
+              styles.primaryButton,
+              { backgroundColor: petTheme.primary, shadowColor: petTheme.primary },
+            ]}
+            onPress={onPressBack}
           >
             <AppText preset="body" style={styles.primaryButtonText}>
               돌아가기
@@ -564,7 +592,7 @@ export default function PetProfileEditScreen() {
           <TouchableOpacity
             activeOpacity={0.88}
             style={styles.backButton}
-            onPress={() => navigation.goBack()}
+            onPress={onPressBack}
           >
             <Feather name="arrow-left" size={20} color="#102033" />
           </TouchableOpacity>
@@ -607,7 +635,10 @@ export default function PetProfileEditScreen() {
             placeholderIconName="image"
             placeholderIconColor="#A0A7B4"
             placeholderIconSize={28}
-            editButtonStyle={styles.avatarCameraBtn}
+            editButtonStyle={[
+              styles.avatarCameraBtn,
+              { backgroundColor: petTheme.primary },
+            ]}
             editIconName="camera"
             editIconSize={16}
           />
@@ -707,6 +738,9 @@ export default function PetProfileEditScreen() {
                       styles.segmentChip,
                       styles.segmentChipWide,
                       active ? styles.segmentChipActive : null,
+                      active
+                        ? { backgroundColor: petTheme.tint }
+                        : null,
                     ]}
                     onPress={() => handleRepresentativeSpeciesChange(option.key)}
                   >
@@ -715,6 +749,7 @@ export default function PetProfileEditScreen() {
                       style={[
                         styles.segmentChipText,
                         active ? styles.segmentChipTextActive : null,
+                        active ? { color: petTheme.deep } : null,
                       ]}
                     >
                       {option.label}
@@ -743,6 +778,7 @@ export default function PetProfileEditScreen() {
                       style={[
                         styles.quickChip,
                         active ? styles.quickChipActive : null,
+                        active ? { backgroundColor: petTheme.tint } : null,
                       ]}
                       onPress={() => setSpeciesDetailKey(option.label)}
                     >
@@ -751,6 +787,7 @@ export default function PetProfileEditScreen() {
                         style={[
                           styles.quickChipText,
                           active ? styles.quickChipTextActive : null,
+                          active ? { color: petTheme.deep } : null,
                         ]}
                       >
                         {option.label}
@@ -789,7 +826,11 @@ export default function PetProfileEditScreen() {
                     <TouchableOpacity
                       key={item.value}
                       activeOpacity={0.92}
-                      style={[styles.segmentChip, active ? styles.segmentChipActive : null]}
+                      style={[
+                        styles.segmentChip,
+                        active ? styles.segmentChipActive : null,
+                        active ? { backgroundColor: petTheme.tint } : null,
+                      ]}
                       onPress={() => setGender(item.value)}
                     >
                       <AppText
@@ -797,6 +838,7 @@ export default function PetProfileEditScreen() {
                         style={[
                           styles.segmentChipText,
                           active ? styles.segmentChipTextActive : null,
+                          active ? { color: petTheme.deep } : null,
                         ]}
                       >
                         {item.label}
@@ -821,7 +863,11 @@ export default function PetProfileEditScreen() {
                     <TouchableOpacity
                       key={item.label}
                       activeOpacity={0.92}
-                      style={[styles.segmentChip, active ? styles.segmentChipActive : null]}
+                      style={[
+                        styles.segmentChip,
+                        active ? styles.segmentChipActive : null,
+                        active ? { backgroundColor: petTheme.tint } : null,
+                      ]}
                       onPress={() => setNeutered(item.value)}
                     >
                       <AppText
@@ -829,6 +875,7 @@ export default function PetProfileEditScreen() {
                         style={[
                           styles.segmentChipText,
                           active ? styles.segmentChipTextActive : null,
+                          active ? { color: petTheme.deep } : null,
                         ]}
                       >
                         {item.label}
@@ -862,7 +909,7 @@ export default function PetProfileEditScreen() {
 
           <View style={styles.fieldBlock}>
             <View style={styles.inlineLabel}>
-              <Feather name="home" size={13} color="#6D6AF8" />
+              <Feather name="home" size={13} color={petTheme.primary} />
               <AppText preset="caption" style={styles.labelInlineText}>
                 취미
               </AppText>
@@ -916,7 +963,7 @@ export default function PetProfileEditScreen() {
 
           <View style={styles.fieldBlock}>
             <View style={styles.inlineLabel}>
-              <Feather name="hash" size={13} color="#7B5CFA" />
+              <Feather name="hash" size={13} color={petTheme.primary} />
               <AppText preset="caption" style={styles.labelInlineText}>
                 태그
               </AppText>
@@ -954,10 +1001,13 @@ export default function PetProfileEditScreen() {
 
                 <TouchableOpacity
                   activeOpacity={0.92}
-                  style={styles.tagAddButton}
+                  style={[styles.tagAddButton, { backgroundColor: petTheme.tint }]}
                   onPress={() => addTag(draftTag)}
                 >
-                  <AppText preset="caption" style={styles.tagAddButtonText}>
+                  <AppText
+                    preset="caption"
+                    style={[styles.tagAddButtonText, { color: petTheme.deep }]}
+                  >
                     추가
                   </AppText>
                 </TouchableOpacity>
@@ -982,10 +1032,21 @@ export default function PetProfileEditScreen() {
                       style={[
                         styles.recommendChip,
                         styles[RECOMMEND_STYLES[index]],
+                        index === RECOMMENDED_TAGS.length - 1
+                          ? { backgroundColor: petTheme.tint }
+                          : null,
                       ]}
                       onPress={() => addTag(tag)}
                     >
-                      <AppText preset="caption" style={styles.recommendChipText}>
+                      <AppText
+                        preset="caption"
+                        style={[
+                          styles.recommendChipText,
+                          index === RECOMMENDED_TAGS.length - 1
+                            ? { color: petTheme.deep }
+                            : null,
+                        ]}
+                      >
                         {tag}
                       </AppText>
                     </TouchableOpacity>
@@ -1006,7 +1067,11 @@ export default function PetProfileEditScreen() {
         >
           <TouchableOpacity
             activeOpacity={0.92}
-            style={[styles.primaryButton, saving ? styles.primaryButtonDisabled : null]}
+            style={[
+              styles.primaryButton,
+              { backgroundColor: petTheme.primary, shadowColor: petTheme.primary },
+              saving ? styles.primaryButtonDisabled : null,
+            ]}
             onPress={onSubmit}
             disabled={saving}
           >

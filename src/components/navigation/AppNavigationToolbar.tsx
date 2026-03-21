@@ -22,11 +22,12 @@ import { useTheme } from 'styled-components/native';
 import Feather from 'react-native-vector-icons/Feather';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import type { ScreenEntrySource } from '../../navigation/entry';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { usePetStore } from '../../store/petStore';
 import { openMoreDrawer } from '../../store/uiStore';
 
-type ActiveTabKey = 'home' | 'timeline' | 'record' | 'more';
+type ActiveTabKey = 'home' | 'timeline' | 'record' | 'guestbook' | 'more';
 
 type Props = {
   activeKey: ActiveTabKey;
@@ -69,6 +70,8 @@ export default function AppNavigationToolbar({
             params: { mainCategory: 'all' },
           },
         } as const;
+      case 'guestbook':
+        return { tab: 'GuestbookTab' } as const;
       default:
         return undefined;
     }
@@ -77,6 +80,7 @@ export default function AppNavigationToolbar({
   const navigateTo = useCallback(
     (target: ActiveTabKey) => {
       onBeforeNavigate?.();
+      const entrySource: ScreenEntrySource = activeKey === 'more' ? 'more' : 'home';
 
       if (target === 'more') {
         openMoreDrawer();
@@ -88,7 +92,7 @@ export default function AppNavigationToolbar({
           screen: 'TimelineTab',
           params: {
             screen: 'TimelineMain',
-            params: { mainCategory: 'all' },
+            params: { mainCategory: 'all', entrySource },
           },
         });
         return;
@@ -108,17 +112,25 @@ export default function AppNavigationToolbar({
         return;
       }
 
+      if (target === 'guestbook') {
+        navigation.navigate('AppTabs', {
+          screen: 'GuestbookTab',
+        });
+        return;
+      }
+
       navigation.navigate('AppTabs', {
         screen: 'HomeTab',
       });
     },
-    [navigation, onBeforeNavigate, recordReturnTo, selectedPet?.id],
+    [activeKey, navigation, onBeforeNavigate, recordReturnTo, selectedPet?.id],
   );
 
   const tabs = useMemo(
     () => [
       { key: 'home' as const, label: '홈', icon: 'home' },
       { key: 'timeline' as const, label: '타임라인', icon: 'activity' },
+      { key: 'guestbook' as const, label: '방명록', icon: 'book-open' },
       { key: 'more' as const, label: '전체메뉴', icon: 'menu' },
     ],
     [],

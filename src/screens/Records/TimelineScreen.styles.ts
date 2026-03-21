@@ -42,14 +42,18 @@ export const styles = StyleSheet.create({
   },
 
   createBtn: {
-    paddingHorizontal: 12,
+    width: 36,
     height: 36,
     borderRadius: 999,
     backgroundColor: BRAND,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#0B1220',
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
-  createText: { color: '#ffffff', fontWeight: '900' },
 
   // sticky controls
   controlsWrap: {

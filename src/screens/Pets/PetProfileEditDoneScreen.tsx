@@ -4,7 +4,7 @@
 // - 수정이 반영됐다는 피드백과 함께 홈 복귀 CTA를 단순하게 제공
 // - 온보딩 완료 화면과 유사한 감정선을 유지하면서 수정 흐름을 마무리
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -14,6 +14,8 @@ import Feather from 'react-native-vector-icons/Feather';
 import AppText from '../../app/ui/AppText';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
+import { buildPetThemePalette } from '../../services/pets/themePalette';
+import { usePetStore } from '../../store/petStore';
 import { styles } from './PetProfileEditDoneScreen.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'PetProfileEditDone'>;
@@ -23,7 +25,16 @@ export default function PetProfileEditDoneScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
+  const pets = usePetStore(s => s.pets);
+  const pet = useMemo(
+    () => pets.find(item => item.id === route.params?.petId) ?? null,
+    [pets, route.params?.petId],
+  );
   const petName = route.params?.petName?.trim() || '아이';
+  const petTheme = useMemo(
+    () => buildPetThemePalette(pet?.themeColor),
+    [pet?.themeColor],
+  );
 
   return (
     <View
@@ -44,7 +55,7 @@ export default function PetProfileEditDoneScreen() {
       <View style={styles.hero}>
         <View style={styles.checkCard}>
           <View style={styles.checkCircle}>
-            <Feather name="check" size={30} color="#6D6AF8" />
+            <Feather name="check" size={30} color={petTheme.primary} />
           </View>
         </View>
 
@@ -63,6 +74,7 @@ export default function PetProfileEditDoneScreen() {
         activeOpacity={0.92}
         style={[
           styles.primaryButton,
+          { backgroundColor: petTheme.primary, shadowColor: petTheme.primary },
           { marginBottom: Math.max(insets.bottom, 0) },
         ]}
         onPress={() =>

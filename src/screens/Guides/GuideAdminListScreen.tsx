@@ -13,15 +13,19 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
 
 import AppText from '../../app/ui/AppText';
+import HeaderIconActionButton from '../../components/navigation/HeaderIconActionButton';
 import GuideAdminListCard from '../../components/guides/GuideAdminListCard';
+import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import { useManagedPetCareGuideCatalog } from '../../hooks/useManagedPetCareGuideCatalog';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import type { RootScreenRoute } from '../../navigation/types';
+import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { formatGuideStatusLabel } from '../../services/guides/presentation';
 import {
   filterManagedPetCareGuidesByStatus,
@@ -29,8 +33,11 @@ import {
 } from '../../services/guides/service';
 import type { GuideContentStatus } from '../../services/guides/types';
 import { useAuthStore } from '../../store/authStore';
+import { usePetStore } from '../../store/petStore';
+import { openMoreDrawer } from '../../store/uiStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'GuideAdminList'>;
+type Route = RootScreenRoute<'GuideAdminList'>;
 type StatusFilter = GuideContentStatus | 'all';
 
 const STATUS_FILTERS: ReadonlyArray<StatusFilter> = [
@@ -44,8 +51,11 @@ const ItemSeparator = () => <View style={styles.separator} />;
 
 export default function GuideAdminListScreen() {
   const navigation = useNavigation<Nav>();
+  const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
   const role = useAuthStore(s => s.profile.role ?? 'user');
+  const pets = usePetStore(s => s.pets);
+  const selectedPetId = usePetStore(s => s.selectedPetId);
   const catalogState = useManagedPetCareGuideCatalog();
   const refreshCatalog = catalogState.refresh;
 
@@ -66,9 +76,35 @@ export default function GuideAdminListScreen() {
     );
     return filterPetCareGuidesBySearch(statusApplied, deferredSearchQuery);
   }, [catalogState.guides, deferredSearchQuery, statusFilter]);
+  const selectedPet = useMemo(
+    () => pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
+    [pets, selectedPetId],
+  );
+  const petTheme = useMemo(
+    () => buildPetThemePalette(selectedPet?.themeColor),
+    [selectedPet?.themeColor],
+  );
 
   const headerTopInset = Math.max(insets.top, 12);
   const isGuideAdmin = role === 'admin' || role === 'super_admin';
+  const onPressBack = useEntryAwareBackAction({
+    entrySource: route.params?.entrySource,
+    onHome: () => {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'AppTabs', params: { screen: 'HomeTab' } }],
+      });
+    },
+    onMore: () => {
+      navigation.goBack();
+      requestAnimationFrame(() => {
+        openMoreDrawer();
+      });
+    },
+    onFallback: () => {
+      navigation.goBack();
+    },
+  });
 
   const onPressGuide = useCallback(
     (guideId: string) => {
@@ -91,7 +127,7 @@ export default function GuideAdminListScreen() {
           <TouchableOpacity
             activeOpacity={0.88}
             style={styles.headerBackButton}
-            onPress={() => navigation.goBack()}
+            onPress={onPressBack}
           >
             <Feather name="arrow-left" size={20} color="#102033" />
           </TouchableOpacity>
@@ -103,13 +139,11 @@ export default function GuideAdminListScreen() {
 
         {isGuideAdmin ? (
           <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={styles.createButton}
+            <HeaderIconActionButton
+              accessibilityLabel="가이드 추가"
+              backgroundColor={petTheme.primary}
               onPress={() => navigation.navigate('GuideAdminEditor', { mode: 'create' })}
-            >
-              <Feather name="plus" size={16} color="#6D6AF8" />
-            </TouchableOpacity>
+            />
           </View>
         ) : (
           <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
@@ -118,7 +152,7 @@ export default function GuideAdminListScreen() {
 
       {!isGuideAdmin ? (
         <View style={styles.emptyCard}>
-          <Feather name="shield-off" size={28} color="#6D6AF8" />
+          <Feather name="shield-off" size={28} color={petTheme.primary} />
           <AppText preset="headline" style={styles.emptyTitle}>
             운영 권한이 필요해요
           </AppText>
@@ -153,7 +187,11 @@ export default function GuideAdminListScreen() {
                 return (
                   <Pressable
                     key={item}
-                    style={[styles.filterChip, active ? styles.filterChipActive : null]}
+                    style={[
+                      styles.filterChip,
+                      active ? styles.filterChipActive : null,
+                      active ? { backgroundColor: petTheme.tint } : null,
+                    ]}
                     onPress={() => setStatusFilter(item)}
                   >
                     <AppText
@@ -161,6 +199,7 @@ export default function GuideAdminListScreen() {
                       style={[
                         styles.filterChipText,
                         active ? styles.filterChipTextActive : null,
+                        active ? { color: petTheme.deep } : null,
                       ]}
                     >
                       {item === 'all' ? '전체' : formatGuideStatusLabel(item)}
@@ -173,14 +212,14 @@ export default function GuideAdminListScreen() {
 
           {catalogState.loading ? (
             <View style={styles.emptyCard}>
-              <Feather name="loader" size={28} color="#6D6AF8" />
+              <Feather name="loader" size={28} color={petTheme.primary} />
               <AppText preset="headline" style={styles.emptyTitle}>
                 운영 목록을 불러오는 중이에요
               </AppText>
             </View>
           ) : catalogState.error ? (
             <View style={styles.emptyCard}>
-              <Feather name="alert-circle" size={28} color="#6D6AF8" />
+              <Feather name="alert-circle" size={28} color={petTheme.primary} />
               <AppText preset="headline" style={styles.emptyTitle}>
                 운영 목록을 불러오지 못했어요
               </AppText>
@@ -190,7 +229,7 @@ export default function GuideAdminListScreen() {
             </View>
           ) : filteredGuides.length === 0 ? (
             <View style={styles.emptyCard}>
-              <Feather name="book-open" size={28} color="#6D6AF8" />
+              <Feather name="book-open" size={28} color={petTheme.primary} />
               <AppText preset="headline" style={styles.emptyTitle}>
                 조건에 맞는 가이드가 없어요
               </AppText>

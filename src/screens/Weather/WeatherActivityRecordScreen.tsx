@@ -36,6 +36,7 @@ import {
 } from '../../services/supabase/memories';
 import { normalizeMemoryRecord } from '../../services/records/imageSources';
 import { uploadMemoryImage } from '../../services/supabase/storageMemories';
+import { buildPetThemePalette } from '../../services/pets/themePalette';
 import {
   getIndoorActivityGuide,
   WEATHER_RECORD_EMOTION_OPTIONS,
@@ -77,6 +78,14 @@ export default function WeatherActivityRecordScreen() {
   const guideKey = route.params.guideKey;
   const district = route.params?.district?.trim() || '현재 위치';
   const guide = useMemo(() => getIndoorActivityGuide(guideKey), [guideKey]);
+  const selectedPet = useMemo(
+    () => pets.find(candidate => candidate.id === petId) ?? pets[0] ?? null,
+    [petId, pets],
+  );
+  const petTheme = useMemo(
+    () => buildPetThemePalette(selectedPet?.themeColor),
+    [selectedPet?.themeColor],
+  );
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageMimeType, setImageMimeType] = useState<string | null>(null);
@@ -269,7 +278,7 @@ export default function WeatherActivityRecordScreen() {
             <MaterialCommunityIcons
               name={guide.heroIcon as never}
               size={24}
-              color="#7A45F4"
+              color={petTheme.primary}
             />
           </View>
         </View>
@@ -283,11 +292,14 @@ export default function WeatherActivityRecordScreen() {
               imageStyle={styles.image}
               placeholderStyle={styles.imagePlaceholder}
               placeholderIconName="image"
-              placeholderIconColor="#B39AF5"
+              placeholderIconColor={petTheme.primary}
               placeholderIconSize={54}
             placeholderText="사진을 추가해 주세요"
             placeholderTextStyle={styles.imagePlaceholderText}
-            editButtonStyle={styles.imageEditButton}
+            editButtonStyle={[
+              styles.imageEditButton,
+              { backgroundColor: petTheme.primary },
+            ]}
             editIconSize={16}
           />
         </View>
@@ -301,11 +313,26 @@ export default function WeatherActivityRecordScreen() {
                 <TouchableOpacity
                   key={option.key}
                   activeOpacity={0.9}
-                  style={[styles.emotionChip, active ? styles.emotionChipActive : null]}
+                  style={[
+                    styles.emotionChip,
+                    active ? styles.emotionChipActive : null,
+                    active
+                      ? {
+                          borderColor: petTheme.border,
+                          backgroundColor: petTheme.tint,
+                        }
+                      : null,
+                  ]}
                   onPress={() => setSelectedEmotion(option.key)}
                 >
                   <Text style={styles.emotionEmoji}>{option.emoji}</Text>
-                  <Text style={[styles.emotionLabel, active ? styles.emotionLabelActive : null]}>
+                  <Text
+                    style={[
+                      styles.emotionLabel,
+                      active ? styles.emotionLabelActive : null,
+                      active ? { color: petTheme.deep } : null,
+                    ]}
+                  >
                     {option.label}
                   </Text>
                 </TouchableOpacity>
@@ -344,7 +371,7 @@ export default function WeatherActivityRecordScreen() {
               activeOpacity={0.85}
               onPress={() => setTagModalVisible(true)}
             >
-              <Text style={styles.tagAdd}>+ 추가</Text>
+              <Text style={[styles.tagAdd, { color: petTheme.primary }]}>+ 추가</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.tagRow}>
@@ -354,10 +381,20 @@ export default function WeatherActivityRecordScreen() {
                 <TouchableOpacity
                   key={tag}
                   activeOpacity={0.9}
-                  style={[styles.tagChip, active ? styles.tagChipActive : null]}
+                  style={[
+                    styles.tagChip,
+                    active ? styles.tagChipActive : null,
+                    active ? { backgroundColor: petTheme.tint } : null,
+                  ]}
                   onPress={() => toggleTag(tag)}
                 >
-                  <Text style={[styles.tagText, active ? styles.tagTextActive : null]}>
+                  <Text
+                    style={[
+                      styles.tagText,
+                      active ? styles.tagTextActive : null,
+                      active ? { color: petTheme.deep } : null,
+                    ]}
+                  >
                     {tag}
                   </Text>
                 </TouchableOpacity>
@@ -368,7 +405,11 @@ export default function WeatherActivityRecordScreen() {
 
         <TouchableOpacity
           activeOpacity={0.92}
-          style={[styles.primaryButton, saving ? styles.primaryButtonDisabled : null]}
+          style={[
+            styles.primaryButton,
+            { backgroundColor: petTheme.primary },
+            saving ? styles.primaryButtonDisabled : null,
+          ]}
           onPress={onSubmit}
           disabled={saving}
         >
@@ -391,14 +432,14 @@ export default function WeatherActivityRecordScreen() {
               <MaterialCommunityIcons
                 name="check-circle-outline"
                 size={48}
-                color="#2280E3"
+                color={petTheme.primary}
               />
             </View>
             <Text style={styles.modalTitle}>{guide.recordDraft.completionTitle}</Text>
             <Text style={styles.modalBody}>{guide.recordDraft.completionBody}</Text>
             <TouchableOpacity
               activeOpacity={0.92}
-              style={styles.modalButton}
+              style={[styles.modalButton, { backgroundColor: petTheme.primary }]}
               onPress={onPressDone}
             >
               <Text style={styles.modalButtonText}>확인</Text>

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -18,6 +18,7 @@ import {
   getGuideCategoryLabel,
 } from '../../services/guides/presentation';
 import { recordPetCareGuideEvents } from '../../services/guides/service';
+import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
 import { styles } from './GuideDetailScreen.styles';
@@ -39,6 +40,10 @@ export default function GuideDetailScreen() {
   const guideState = usePetCareGuideDetail(route.params.guideId);
   const headerTopInset = Math.max(insets.top, 12);
   const ageInMonths = getAgeInMonthsFromBirthDate(selectedPet?.birthDate ?? null);
+  const petTheme = useMemo(
+    () => buildPetThemePalette(selectedPet?.themeColor),
+    [selectedPet?.themeColor],
+  );
 
   useEffect(() => {
     if (!guideState.guide) return;
@@ -85,7 +90,7 @@ export default function GuideDetailScreen() {
     <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
       {guideState.loading ? (
         <View style={styles.emptyCard}>
-          <Feather name="loader" size={28} color="#6D6AF8" />
+          <Feather name="loader" size={28} color={petTheme.primary} />
           <AppText preset="headline" style={styles.emptyTitle}>
             가이드를 불러오는 중이에요
           </AppText>
@@ -95,7 +100,7 @@ export default function GuideDetailScreen() {
         </View>
       ) : !guideState.guide ? (
         <View style={styles.emptyCard}>
-          <Feather name="alert-circle" size={28} color="#6D6AF8" />
+          <Feather name="alert-circle" size={28} color={petTheme.primary} />
           <AppText preset="headline" style={styles.emptyTitle}>
             가이드를 찾지 못했어요
           </AppText>
@@ -139,17 +144,37 @@ export default function GuideDetailScreen() {
                 resizeMode="cover"
               />
             ) : (
-              <View style={styles.heroPlaceholder}>
-                <Feather name="book-open" size={28} color="#6D6AF8" />
-                <AppText preset="body" style={styles.heroPlaceholderText}>
+              <View
+                style={[
+                  styles.heroPlaceholder,
+                  { backgroundColor: petTheme.tint },
+                ]}
+              >
+                <Feather name="book-open" size={28} color={petTheme.primary} />
+                <AppText
+                  preset="body"
+                  style={[styles.heroPlaceholderText, { color: petTheme.primary }]}
+                >
                   이미지가 준비되면 여기에 노출됩니다
                 </AppText>
               </View>
             )}
 
             <View style={styles.heroBody}>
-              <View style={styles.categoryBadge}>
-                <AppText preset="caption" style={styles.categoryText}>
+              <View
+                style={[
+                  styles.categoryBadge,
+                  {
+                    backgroundColor: petTheme.tint,
+                    borderColor: petTheme.border,
+                    borderWidth: 1,
+                  },
+                ]}
+              >
+                <AppText
+                  preset="caption"
+                  style={[styles.categoryText, { color: petTheme.primary }]}
+                >
                   {getGuideCategoryLabel(guideState.guide.category)}
                 </AppText>
               </View>

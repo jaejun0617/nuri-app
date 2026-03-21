@@ -13,10 +13,12 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 
 import ActivityGuideHeroCard from '../../components/weather/ActivityGuideHeroCard';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import { buildPetThemePalette } from '../../services/pets/themePalette';
 import {
   getIndoorActivityGuide,
   type IndoorActivityKey,
 } from '../../services/weather/guide';
+import { usePetStore } from '../../store/petStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'ActivityGuide'>;
 
@@ -35,6 +37,15 @@ export default function ActivityGuideScreen() {
   const guideKey = route.params?.guideKey ?? 'nosework';
   const district = route.params?.district?.trim() || '현재 위치';
   const guide = useMemo(() => getIndoorActivityGuide(guideKey), [guideKey]);
+  const selectedPet = usePetStore(s => {
+    if (s.pets.length === 0) return null;
+    if (!s.selectedPetId) return s.pets[0];
+    return s.pets.find(pet => pet.id === s.selectedPetId) ?? s.pets[0];
+  });
+  const petTheme = useMemo(
+    () => buildPetThemePalette(selectedPet?.themeColor),
+    [selectedPet?.themeColor],
+  );
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -60,7 +71,7 @@ export default function ActivityGuideScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <ActivityGuideHeroCard guide={guide} />
+        <ActivityGuideHeroCard guide={guide} accentColor={petTheme.primary} />
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>놀이 순서</Text>
@@ -72,16 +83,23 @@ export default function ActivityGuideScreen() {
                     <MaterialCommunityIcons
                       name={step.icon as never}
                       size={20}
-                      color="#8B5CF6"
+                      color={petTheme.primary}
                     />
                   </View>
                   {index < guide.steps.length - 1 ? (
-                    <View style={styles.stepLine} />
+                    <View
+                      style={[
+                        styles.stepLine,
+                        { backgroundColor: petTheme.border },
+                      ]}
+                    />
                   ) : null}
                 </View>
 
                 <View style={styles.stepTextWrap}>
-                  <Text style={styles.stepLabel}>STEP {index + 1}</Text>
+                  <Text style={[styles.stepLabel, { color: petTheme.primary }]}>
+                    STEP {index + 1}
+                  </Text>
                   <Text style={styles.stepTitle}>{step.title}</Text>
                   <Text style={styles.stepDescription}>{step.description}</Text>
                 </View>
@@ -99,7 +117,7 @@ export default function ActivityGuideScreen() {
       >
         <TouchableOpacity
           activeOpacity={0.92}
-          style={styles.primaryButton}
+          style={[styles.primaryButton, { backgroundColor: petTheme.primary }]}
           onPress={() => {
             try {
               navigation.navigate('WeatherActivityRecord', {

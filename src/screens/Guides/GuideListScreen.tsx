@@ -14,18 +14,21 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
 
 import AppText from '../../app/ui/AppText';
 import GuideListCard from '../../components/guides/GuideListCard';
+import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import { useGuidePopularSearches } from '../../hooks/useGuidePopularSearches';
 import { usePetCareGuideCatalog } from '../../hooks/usePetCareGuideCatalog';
 import { usePetCareGuideSearch } from '../../hooks/usePetCareGuideSearch';
 import { useRecentPetCareGuideSearches } from '../../hooks/useRecentPetCareGuideSearches';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import type { RootScreenRoute } from '../../navigation/types';
+import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { getAgeInMonthsFromBirthDate } from '../../services/guides/agePolicy';
 import { buildGuideEventMetadata } from '../../services/guides/analytics';
 import {
@@ -40,13 +43,16 @@ import {
 } from '../../services/guides/service';
 import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
+import { openMoreDrawer } from '../../store/uiStore';
 import { styles } from './GuideListScreen.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'GuideList'>;
+type Route = RootScreenRoute<'GuideList'>;
 const ItemSeparator = () => <View style={styles.separator} />;
 
 export default function GuideListScreen() {
   const navigation = useNavigation<Nav>();
+  const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
@@ -67,6 +73,10 @@ export default function GuideListScreen() {
   }, [pets, selectedPetId]);
 
   const species = selectedPet?.species ?? null;
+  const petTheme = useMemo(
+    () => buildPetThemePalette(selectedPet?.themeColor),
+    [selectedPet?.themeColor],
+  );
   const speciesDetailKey = selectedPet?.speciesDetailKey ?? null;
   const speciesDisplayName = selectedPet?.speciesDisplayName ?? null;
   const birthDate = selectedPet?.birthDate ?? null;
@@ -135,6 +145,24 @@ export default function GuideListScreen() {
   const audienceLabel = useMemo(() => {
     return selectedPet?.speciesDisplayName?.trim() || '선택한 반려동물';
   }, [selectedPet?.speciesDisplayName]);
+  const onPressBack = useEntryAwareBackAction({
+    entrySource: route.params?.entrySource,
+    onHome: () => {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'AppTabs', params: { screen: 'HomeTab' } }],
+      });
+    },
+    onMore: () => {
+      navigation.goBack();
+      requestAnimationFrame(() => {
+        openMoreDrawer();
+      });
+    },
+    onFallback: () => {
+      navigation.goBack();
+    },
+  });
   const catalogSourceLabel = useMemo(() => {
     return getGuideDataSourceLabel(catalogState.source);
   }, [catalogState.source]);
@@ -263,7 +291,7 @@ export default function GuideListScreen() {
           <TouchableOpacity
             activeOpacity={0.88}
             style={styles.headerBackButton}
-            onPress={() => navigation.goBack()}
+            onPress={onPressBack}
           >
             <Feather name="arrow-left" size={20} color="#102033" />
           </TouchableOpacity>
@@ -275,14 +303,17 @@ export default function GuideListScreen() {
 
         <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
           <Pressable
-            style={styles.searchToggleButton}
+            style={[
+              styles.searchToggleButton,
+              { backgroundColor: petTheme.tint },
+            ]}
             onPress={() => {
               startTransition(() => {
                 setSearchVisible(prev => !prev);
               });
             }}
           >
-            <Feather name="search" size={18} color="#6D6AF8" />
+            <Feather name="search" size={18} color={petTheme.primary} />
           </Pressable>
         </View>
       </View>
@@ -344,7 +375,10 @@ export default function GuideListScreen() {
               </View>
             ) : null}
             {hasSearchQuery && searchState.loading ? (
-              <AppText preset="caption" style={styles.searchMetaLoadingText}>
+              <AppText
+                preset="caption"
+                style={[styles.searchMetaLoadingText, { color: petTheme.primary }]}
+              >
                 검색 중
               </AppText>
             ) : null}
@@ -404,14 +438,25 @@ export default function GuideListScreen() {
                     {recentKeywords.map(keyword => (
                       <Pressable
                         key={`recent-${keyword}`}
-                        style={[styles.chipButton, styles.chipButtonActive]}
+                        style={[
+                          styles.chipButton,
+                          styles.chipButtonActive,
+                          {
+                            backgroundColor: petTheme.tint,
+                            borderColor: petTheme.border,
+                          },
+                        ]}
                         onPress={() => {
                           applySearchKeyword(keyword);
                         }}
                       >
                         <AppText
                           preset="caption"
-                          style={[styles.chipButtonText, styles.chipButtonTextActive]}
+                          style={[
+                            styles.chipButtonText,
+                            styles.chipButtonTextActive,
+                            { color: petTheme.primary },
+                          ]}
                         >
                           {keyword}
                         </AppText>
@@ -466,12 +511,18 @@ export default function GuideListScreen() {
                     {popularKeywords.map(keyword => (
                       <Pressable
                         key={`popular-${keyword}`}
-                        style={styles.chipButton}
+                        style={[
+                          styles.chipButton,
+                          { borderColor: petTheme.border },
+                        ]}
                         onPress={() => {
                           applySearchKeyword(keyword);
                         }}
                       >
-                        <AppText preset="caption" style={styles.chipButtonText}>
+                        <AppText
+                          preset="caption"
+                          style={[styles.chipButtonText, { color: petTheme.primary }]}
+                        >
                           {keyword}
                         </AppText>
                       </Pressable>
@@ -486,7 +537,7 @@ export default function GuideListScreen() {
 
       {catalogState.loading ? (
         <View style={styles.emptyCard}>
-          <Feather name="loader" size={28} color="#6D6AF8" />
+          <Feather name="loader" size={28} color={petTheme.primary} />
           <AppText preset="headline" style={styles.emptyTitle}>
             가이드를 불러오는 중이에요
           </AppText>
@@ -496,7 +547,7 @@ export default function GuideListScreen() {
         </View>
       ) : catalogState.error && rankedGuides.length === 0 ? (
         <View style={styles.emptyCard}>
-          <Feather name="alert-circle" size={28} color="#6D6AF8" />
+          <Feather name="alert-circle" size={28} color={petTheme.primary} />
           <AppText preset="headline" style={styles.emptyTitle}>
             가이드를 불러오지 못했어요
           </AppText>
@@ -506,7 +557,11 @@ export default function GuideListScreen() {
         </View>
       ) : visibleGuides.length === 0 ? (
         <View style={styles.emptyCard}>
-          <Feather name={hasSearchQuery ? 'search' : 'book-open'} size={28} color="#6D6AF8" />
+          <Feather
+            name={hasSearchQuery ? 'search' : 'book-open'}
+            size={28}
+            color={petTheme.primary}
+          />
           <AppText preset="headline" style={styles.emptyTitle}>
             {hasSearchQuery
               ? '검색 결과가 없어요'
@@ -529,14 +584,20 @@ export default function GuideListScreen() {
           {hasSearchQuery ? (
             <TouchableOpacity
               activeOpacity={0.88}
-              style={styles.resetSearchButton}
+              style={[
+                styles.resetSearchButton,
+                { backgroundColor: petTheme.tint },
+              ]}
               onPress={() => {
                 startTransition(() => {
                   setSearchQuery('');
                 });
               }}
             >
-              <AppText preset="caption" style={styles.resetSearchButtonText}>
+              <AppText
+                preset="caption"
+                style={[styles.resetSearchButtonText, { color: petTheme.primary }]}
+              >
                 검색어 지우기
               </AppText>
             </TouchableOpacity>

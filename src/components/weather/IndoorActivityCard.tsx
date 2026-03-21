@@ -12,16 +12,25 @@ import type { IndoorActivityGuide } from '../../services/weather/guide';
 type Props = {
   item: IndoorActivityGuide;
   onPress: () => void;
+  accentColor?: string;
+  accentTint?: string;
+  chevronColor?: string;
 };
 
-export default React.memo(function IndoorActivityCard({ item, onPress }: Props) {
+export default React.memo(function IndoorActivityCard({
+  item,
+  onPress,
+  accentColor = '#7A45F4',
+  accentTint = '#F2EAFF',
+  chevronColor = '#BDC6D5',
+}: Props) {
   return (
     <TouchableOpacity activeOpacity={0.92} style={styles.card} onPress={onPress}>
-      <View style={styles.iconWrap}>
+      <View style={[styles.iconWrap, { backgroundColor: accentTint }]}>
         <MaterialCommunityIcons
           name={item.heroIcon as never}
           size={24}
-          color="#7A45F4"
+          color={accentColor}
         />
       </View>
       <View style={styles.content}>
@@ -30,7 +39,7 @@ export default React.memo(function IndoorActivityCard({ item, onPress }: Props) 
           {item.shortTip}
         </Text>
       </View>
-      <Feather name="chevron-right" size={18} color="#BDC6D5" />
+      <Feather name="chevron-right" size={18} color={chevronColor} />
     </TouchableOpacity>
   );
 });

@@ -97,6 +97,7 @@ type PasswordModalProps = {
   nextPasswordVisible: boolean;
   confirmPasswordVisible: boolean;
   saving: boolean;
+  accentColor: string;
   onClose: () => void;
   onChangeCurrentPassword: (value: string) => void;
   onChangeNextPassword: (value: string) => void;
@@ -114,6 +115,7 @@ type ProfileEditModalProps = {
   helperText: string;
   helperTone: 'info' | 'error' | 'success';
   saving: boolean;
+  accentColor: string;
   onClose: () => void;
   onChangeNickname: (value: string) => void;
   onSubmit: () => void;
@@ -273,6 +275,7 @@ const PasswordChangeModal = memo(function PasswordChangeModal({
   nextPasswordVisible,
   confirmPasswordVisible,
   saving,
+  accentColor,
   onClose,
   onChangeCurrentPassword,
   onChangeNextPassword,
@@ -346,7 +349,7 @@ const PasswordChangeModal = memo(function PasswordChangeModal({
             activeOpacity={0.92}
             style={[
               styles.primaryButton,
-              { backgroundColor: theme.colors.brand },
+              { backgroundColor: accentColor },
               saving ? styles.disabledButton : null,
             ]}
             onPress={onSubmit}
@@ -365,9 +368,11 @@ const PasswordChangeModal = memo(function PasswordChangeModal({
 const PasswordChangeSuccessModal = memo(function PasswordChangeSuccessModal({
   visible,
   onClose,
+  accentColor,
 }: {
   visible: boolean;
   onClose: () => void;
+  accentColor: string;
 }) {
   const theme = useTheme();
   return (
@@ -392,7 +397,7 @@ const PasswordChangeSuccessModal = memo(function PasswordChangeSuccessModal({
           </Text>
           <TouchableOpacity
             activeOpacity={0.92}
-            style={[styles.primaryButton, { backgroundColor: theme.colors.brand }]}
+            style={[styles.primaryButton, { backgroundColor: accentColor }]}
             onPress={onClose}
           >
             <Text style={styles.primaryButtonText}>확인</Text>
@@ -410,6 +415,7 @@ const ProfileEditModal = memo(function ProfileEditModal({
   helperText,
   helperTone,
   saving,
+  accentColor,
   onClose,
   onChangeNickname,
   onSubmit,
@@ -472,7 +478,7 @@ const ProfileEditModal = memo(function ProfileEditModal({
                 helperTone === 'error'
                   ? { color: theme.colors.danger }
                   : helperTone === 'success'
-                  ? { color: theme.colors.brand }
+                  ? { color: accentColor }
                   : { color: theme.colors.textMuted },
                 helperTone === 'error'
                   ? styles.profileHelperError
@@ -489,7 +495,7 @@ const ProfileEditModal = memo(function ProfileEditModal({
             activeOpacity={0.92}
             style={[
               styles.primaryButton,
-              { backgroundColor: theme.colors.brand },
+              { backgroundColor: accentColor },
               saving ? styles.disabledButton : null,
             ]}
             onPress={onSubmit}
@@ -651,10 +657,21 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     [onRequestClose],
   );
 
+  const showPreparingToast = useCallback((label: string) => {
+    showToast({
+      tone: 'info',
+      title: '준비 중',
+      message: `${label} 메뉴는 다음 업데이트에서 열릴 예정이에요.`,
+    });
+  }, []);
+
   const openPetProfile = useCallback(() => {
     if (selectedPet?.id) {
       closeAndNavigate(() =>
-        navigation.navigate('PetProfileEdit', { petId: selectedPet.id }),
+        navigation.navigate('PetProfileEdit', {
+          petId: selectedPet.id,
+          entrySource: 'more',
+        }),
       );
       return;
     }
@@ -668,6 +685,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     closeAndNavigate(() =>
       navigation.navigate('ScheduleList', {
         petId: selectedPet?.id ?? undefined,
+        entrySource: 'more',
       }),
     );
   }, [closeAndNavigate, navigation, selectedPet?.id]);
@@ -678,18 +696,20 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         screen: 'TimelineTab',
         params: {
           screen: 'TimelineMain',
-          params: { mainCategory: 'all' },
+          params: { mainCategory: 'all', entrySource: 'more' },
         },
       }),
     );
   }, [closeAndNavigate, navigation]);
 
   const openGuideList = useCallback(() => {
-    closeAndNavigate(() => navigation.navigate('GuideList'));
+    closeAndNavigate(() => navigation.navigate('GuideList', { entrySource: 'more' }));
   }, [closeAndNavigate, navigation]);
 
   const openGuideAdmin = useCallback(() => {
-    closeAndNavigate(() => navigation.navigate('GuideAdminList'));
+    closeAndNavigate(() =>
+      navigation.navigate('GuideAdminList', { entrySource: 'more' }),
+    );
   }, [closeAndNavigate, navigation]);
 
   const openProfileEditModal = useCallback(() => {
@@ -865,41 +885,53 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     }
   }, [confirmPassword, currentPassword, nextPassword, passwordSaving]);
 
-  const onPressLogout = useCallback(async () => {
+  const onPressLogout = useCallback(() => {
     if (loading) return;
 
-    try {
-      setLoading(true);
-      const result = await performLogout(1200);
+    Alert.alert(
+      '로그아웃할까요?',
+      '현재 기기에서만 로그아웃되며, 다시 로그인하면 이어서 사용할 수 있어요.',
+      [
+        { text: '계속 머무르기', style: 'cancel' },
+        {
+          text: '로그아웃',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              const result = await performLogout(1200);
 
-      onRequestClose();
-      navigation.reset({ index: 0, routes: [{ name: 'AppTabs' }] });
-      showToast({
-        tone: 'success',
-        title: '로그아웃 완료',
-        message: result.timedOut
-          ? '기기에서는 바로 로그아웃됐어요. 서버 세션 정리는 이어서 진행됩니다.'
-          : '안전하게 로그아웃했어요.',
-      });
-    } catch (error) {
-      const { title, message } = getBrandedErrorMeta(error, 'logout');
-      Alert.alert(title, message);
-      showToast({ tone: 'error', title, message });
-    } finally {
-      setLoading(false);
-    }
+              onRequestClose();
+              navigation.reset({ index: 0, routes: [{ name: 'AppTabs' }] });
+              showToast({
+                tone: 'success',
+                title: '로그아웃 완료',
+                message: result.timedOut
+                  ? '이 기기에서는 바로 로그아웃되었어요. 서버 세션 정리는 잠시 이어질 수 있어요.'
+                  : '안전하게 로그아웃되었어요.',
+              });
+            } catch (error) {
+              const { title, message } = getBrandedErrorMeta(error, 'logout');
+              Alert.alert(title, message);
+              showToast({ tone: 'error', title, message });
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ],
+    );
   }, [loading, navigation, onRequestClose]);
 
   const onPressDeleteAccount = useCallback(() => {
     if (!isLoggedIn || deleting) return;
 
     Alert.alert(
-      '계정을 삭제할까요?',
-      '반려동물, 기록, 일정, 동의 이력이 함께 삭제됩니다. 이 작업은 되돌릴 수 없습니다.',
+      '회원탈퇴를 진행할까요?',
+      '반려동물 정보, 기록, 일정, 계정 정보가 함께 삭제되며 이후에는 되돌릴 수 없어요.',
       [
-        { text: '취소', style: 'cancel' },
+        { text: '계속 유지하기', style: 'cancel' },
         {
-          text: '삭제',
+          text: '회원탈퇴',
           style: 'destructive',
           onPress: async () => {
             try {
@@ -938,24 +970,30 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     closeAndNavigate(() => navigation.navigate('SignIn'));
   }, [closeAndNavigate, navigation]);
 
-  const onPressDevTest = useCallback(() => {
-    closeAndNavigate(() => navigation.navigate('DevTest'));
-  }, [closeAndNavigate, navigation]);
-
   const openIndoorActivities = useCallback(() => {
-    closeAndNavigate(() => navigation.navigate('IndoorActivityRecommendations'));
+    closeAndNavigate(() =>
+      navigation.navigate('IndoorActivityRecommendations', {
+        entrySource: 'more',
+      }),
+    );
   }, [closeAndNavigate, navigation]);
 
   const openWalkDiscovery = useCallback(() => {
-    closeAndNavigate(() => navigation.navigate('WalkSpotList'));
+    closeAndNavigate(() =>
+      navigation.navigate('WalkSpotList', { entrySource: 'more' }),
+    );
   }, [closeAndNavigate, navigation]);
 
   const openPetFriendlyPlaces = useCallback(() => {
-    closeAndNavigate(() => navigation.navigate('PetFriendlyPlaceList'));
+    closeAndNavigate(() =>
+      navigation.navigate('PetFriendlyPlaceList', { entrySource: 'more' }),
+    );
   }, [closeAndNavigate, navigation]);
 
   const openPetTravel = useCallback(() => {
-    closeAndNavigate(() => navigation.navigate('PetTravelList'));
+    closeAndNavigate(() =>
+      navigation.navigate('PetTravelList', { entrySource: 'more' }),
+    );
   }, [closeAndNavigate, navigation]);
 
   const petItems = useMemo<MenuItemSpec[]>(
@@ -988,6 +1026,14 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         onPress: openTimeline,
       },
       {
+        key: 'health-report',
+        label: '건강 기록 리포트',
+        icon: 'clipboard',
+        iconTone: 'accent',
+        onPress: () => showPreparingToast('건강 기록 리포트'),
+        badge: 'soon',
+      },
+      {
         key: 'indoor-activities',
         label: '실내 놀이 추천',
         icon: 'sun',
@@ -1001,8 +1047,21 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         iconTone: 'accent',
         onPress: openWalkDiscovery,
       },
+      {
+        key: 'walk-route-recommendation',
+        label: '산책 동선 추천',
+        icon: 'navigation',
+        iconTone: 'accent',
+        onPress: () => showPreparingToast('산책 동선 추천'),
+        badge: 'soon',
+      },
     ],
-    [openIndoorActivities, openTimeline, openWalkDiscovery],
+    [
+      openIndoorActivities,
+      openTimeline,
+      openWalkDiscovery,
+      showPreparingToast,
+    ],
   );
 
   const infoItems = useMemo<MenuItemSpec[]>(
@@ -1022,6 +1081,14 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         onPress: openPetFriendlyPlaces,
       },
       {
+        key: 'community',
+        label: '커뮤니티',
+        icon: 'message-circle',
+        iconTone: 'muted',
+        onPress: () => showPreparingToast('커뮤니티'),
+        badge: 'soon',
+      },
+      {
         key: 'tips',
         label: '집사 꿀팁 가이드',
         icon: 'map-pin',
@@ -1029,17 +1096,33 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         onPress: openGuideList,
       },
     ],
-    [openGuideList, openPetFriendlyPlaces, openPetTravel],
+    [openGuideList, openPetFriendlyPlaces, openPetTravel, showPreparingToast],
   );
 
   const serviceItems = useMemo<MenuItemSpec[]>(() => {
     const items: MenuItemSpec[] = [
+      {
+        key: 'notification',
+        label: '알림 설정',
+        icon: 'bell',
+        iconTone: 'accent',
+        onPress: () => showPreparingToast('알림 설정'),
+        badge: 'soon',
+      },
       {
         key: 'security',
         label: '보안 및 개인정보',
         icon: 'shield',
         iconTone: 'accent',
         onPress: openPasswordModal,
+      },
+      {
+        key: 'theme',
+        label: '테마 설정',
+        icon: 'moon',
+        iconTone: 'accent',
+        onPress: () => showPreparingToast('테마 설정'),
+        badge: 'soon',
       },
     ];
 
@@ -1058,6 +1141,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     isLoggedIn,
     openPasswordModal,
     openProfileEditModal,
+    showPreparingToast,
   ]);
 
   const adminItems = useMemo<MenuItemSpec[]>(
@@ -1181,14 +1265,17 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
             <View style={styles.bottomActions}>
               <TouchableOpacity
                 activeOpacity={0.88}
-                style={styles.bottomTextButton}
+                style={[
+                  styles.bottomTextButton,
+                  { backgroundColor: petTheme.soft },
+                ]}
                 onPress={onPressLogout}
                 disabled={loading}
               >
                 <Text
                   style={[
                     styles.bottomTextButtonLabel,
-                    { color: theme.colors.textMuted },
+                    { color: petTheme.deep },
                   ]}
                 >
                   {loading ? '로그아웃 중...' : '로그아웃'}
@@ -1197,7 +1284,10 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
 
               <TouchableOpacity
                 activeOpacity={0.88}
-                style={styles.bottomDangerButton}
+                style={[
+                  styles.bottomDangerButton,
+                  { backgroundColor: 'rgba(224, 90, 104, 0.12)' },
+                ]}
                 onPress={onPressDeleteAccount}
                 disabled={deleting}
               >
@@ -1216,33 +1306,13 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
               activeOpacity={0.9}
               style={[
                 styles.loginButton,
-                { backgroundColor: theme.colors.brand },
+                { backgroundColor: petTheme.primary },
               ]}
               onPress={onPressLogin}
             >
               <Text style={styles.loginButtonLabel}>로그인하러 가기</Text>
             </TouchableOpacity>
           )}
-
-          {__DEV__ ? (
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={[
-                styles.devButton,
-                {
-                  borderColor: theme.colors.border,
-                  backgroundColor: theme.colors.surface,
-                },
-              ]}
-              onPress={onPressDevTest}
-            >
-              <Text
-                style={[styles.devButtonLabel, { color: theme.colors.brand }]}
-              >
-                DevTest 열기
-              </Text>
-            </TouchableOpacity>
-          ) : null}
         </ScrollView>
 
         <AppNavigationToolbar activeKey="more" onBeforeNavigate={onRequestClose} />
@@ -1255,6 +1325,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         helperText={profileHelper.text}
         helperTone={profileHelper.tone}
         saving={profileSaving}
+        accentColor={petTheme.primary}
         onClose={closeProfileEditModal}
         onChangeNickname={setDraftNickname}
         onSubmit={onSubmitProfile}
@@ -1270,6 +1341,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         nextPasswordVisible={nextPasswordVisible}
         confirmPasswordVisible={confirmPasswordVisible}
         saving={passwordSaving}
+        accentColor={petTheme.primary}
         onClose={closePasswordModal}
         onChangeCurrentPassword={setCurrentPassword}
         onChangeNextPassword={setNextPassword}
@@ -1282,6 +1354,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
 
       <PasswordChangeSuccessModal
         visible={passwordDoneVisible}
+        accentColor={petTheme.primary}
         onClose={closePasswordDoneModal}
       />
     </SafeAreaView>
@@ -1456,24 +1529,30 @@ const styles = StyleSheet.create({
     paddingTop: 4,
   },
   bottomTextButton: {
-    minHeight: 34,
+    minHeight: 44,
+    minWidth: 172,
+    paddingHorizontal: 18,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   bottomTextButtonLabel: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#A0A8B8',
-    fontWeight: '600',
+    fontWeight: '800',
   },
   bottomDangerButton: {
-    minHeight: 34,
+    minHeight: 44,
+    minWidth: 172,
+    paddingHorizontal: 18,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   bottomDangerButtonLabel: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#C3AEB0',
-    fontWeight: '500',
+    fontWeight: '800',
   },
   loginButton: {
     minHeight: 50,
@@ -1485,20 +1564,6 @@ const styles = StyleSheet.create({
   loginButtonLabel: {
     fontSize: 15,
     color: '#FFFFFF',
-    fontWeight: '700',
-  },
-  devButton: {
-    minHeight: 46,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E2DBFF',
-    backgroundColor: '#F7F5FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  devButtonLabel: {
-    fontSize: 14,
-    color: '#7A57E8',
     fontWeight: '700',
   },
   modalBackdrop: {

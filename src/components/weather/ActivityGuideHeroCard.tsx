@@ -11,9 +11,13 @@ import type { IndoorActivityGuide } from '../../services/weather/guide';
 
 type Props = {
   guide: IndoorActivityGuide;
+  accentColor?: string;
 };
 
-export default React.memo(function ActivityGuideHeroCard({ guide }: Props) {
+export default React.memo(function ActivityGuideHeroCard({
+  guide,
+  accentColor = '#7A45F4',
+}: Props) {
   return (
     <View style={styles.wrap}>
       <LinearGradient colors={guide.heroBackground} style={styles.heroPanel}>
@@ -22,7 +26,7 @@ export default React.memo(function ActivityGuideHeroCard({ guide }: Props) {
           <MaterialCommunityIcons
             name={guide.heroIcon as never}
             size={36}
-            color="#7A45F4"
+            color={accentColor}
           />
         </View>
       </LinearGradient>
@@ -30,7 +34,9 @@ export default React.memo(function ActivityGuideHeroCard({ guide }: Props) {
       <View style={styles.contentCard}>
         <View style={styles.badgeRow}>
           <Text style={styles.badge}>{guide.badge}</Text>
-          <Text style={styles.accent}>{guide.accentLabel}</Text>
+          <Text style={[styles.accent, { color: accentColor }]}>
+            {guide.accentLabel}
+          </Text>
         </View>
         <Text style={styles.title}>{guide.title}</Text>
         <Text style={styles.subtitle}>{guide.subtitle}</Text>
@@ -90,7 +96,6 @@ const styles = StyleSheet.create({
   accent: {
     fontSize: 12,
     lineHeight: 16,
-    color: '#FDBA2D',
     fontWeight: '700',
   },
   title: {

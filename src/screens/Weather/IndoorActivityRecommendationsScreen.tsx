@@ -11,8 +11,10 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
 
 import IndoorActivityCard from '../../components/weather/IndoorActivityCard';
+import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import { useWeatherGuide } from '../../hooks/useWeatherGuide';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import { buildPetThemePalette } from '../../services/pets/themePalette';
 import type { DeviceCoordinates } from '../../services/location/currentPosition';
 import {
   ALL_INDOOR_ACTIVITY_KEYS,
@@ -20,6 +22,8 @@ import {
   type IndoorActivityKey,
   type WeatherGuideBundle,
 } from '../../services/weather/guide';
+import { usePetStore } from '../../store/petStore';
+import { openMoreDrawer } from '../../store/uiStore';
 
 type Nav = NativeStackNavigationProp<
   RootStackParamList,
@@ -29,6 +33,8 @@ type Nav = NativeStackNavigationProp<
 export default function IndoorActivityRecommendationsScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
+  const pets = usePetStore(s => s.pets);
+  const selectedPetId = usePetStore(s => s.selectedPetId);
   const route =
     useRoute<{
       key: string;
@@ -37,9 +43,36 @@ export default function IndoorActivityRecommendationsScreen() {
         district?: string;
         initialBundle?: WeatherGuideBundle;
         initialCoordinates?: DeviceCoordinates;
+        entrySource?: 'home' | 'more';
       };
     }>();
+  const onPressBack = useEntryAwareBackAction({
+    entrySource: route.params?.entrySource,
+    onHome: () => {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'AppTabs', params: { screen: 'HomeTab' } }],
+      });
+    },
+    onMore: () => {
+      navigation.goBack();
+      requestAnimationFrame(() => {
+        openMoreDrawer();
+      });
+    },
+    onFallback: () => {
+      navigation.goBack();
+    },
+  });
   const district = route.params?.district?.trim() || '현재 위치';
+  const selectedPet = useMemo(
+    () => pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
+    [pets, selectedPetId],
+  );
+  const petTheme = useMemo(
+    () => buildPetThemePalette(selectedPet?.themeColor),
+    [selectedPet?.themeColor],
+  );
   const weatherState = useWeatherGuide(district, route.params?.initialBundle, {
     initialCoordinates: route.params?.initialCoordinates,
     autoRefreshOnMount: !route.params?.initialBundle,
@@ -91,7 +124,7 @@ export default function IndoorActivityRecommendationsScreen() {
           <TouchableOpacity
             activeOpacity={0.88}
             style={styles.backButton}
-            onPress={() => navigation.goBack()}
+            onPress={onPressBack}
           >
             <Feather name="arrow-left" size={20} color="#102033" />
           </TouchableOpacity>
@@ -109,11 +142,20 @@ export default function IndoorActivityRecommendationsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.heroCard}>
-          <Text style={styles.heroBadge}>TODAY&apos;S GUIDE</Text>
+          <Text
+            style={[
+              styles.heroBadge,
+              { color: petTheme.primary, backgroundColor: '#FFFFFF' },
+            ]}
+          >
+            TODAY&apos;S GUIDE
+          </Text>
           <Text style={styles.heroTitle}>{heroTitle}</Text>
           <Text style={styles.heroBody}>{heroBody}</Text>
           {weatherState.error ? (
-            <Text style={styles.heroHint}>{weatherState.error}</Text>
+            <Text style={[styles.heroHint, { color: petTheme.primary }]}>
+              {weatherState.error}
+            </Text>
           ) : null}
         </View>
 
@@ -126,6 +168,9 @@ export default function IndoorActivityRecommendationsScreen() {
             <IndoorActivityCard
               key={item.key}
               item={item}
+              accentColor={petTheme.primary}
+              accentTint={petTheme.tint}
+              chevronColor={petTheme.muted}
               onPress={() => onPressGuide(item.key)}
             />
           ))}

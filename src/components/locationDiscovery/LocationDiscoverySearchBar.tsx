@@ -10,6 +10,8 @@ type Props = {
   placeholder: string;
   helperText: string;
   loadingText?: string | null;
+  accentColor?: string;
+  loadingColor?: string;
   onChangeText: (value: string) => void;
   onSubmit: () => void;
   onOpenFilters?: () => void;
@@ -20,6 +22,8 @@ export default function LocationDiscoverySearchBar({
   placeholder,
   helperText,
   loadingText,
+  accentColor = '#2F8F48',
+  loadingColor = '#6D6AF8',
   onChangeText,
   onSubmit,
   onOpenFilters,
@@ -51,7 +55,7 @@ export default function LocationDiscoverySearchBar({
           </Pressable>
         ) : null}
         <Pressable onPress={onSubmit} hitSlop={10}>
-          <Feather name="arrow-right-circle" size={18} color="#2F8F48" />
+          <Feather name="arrow-right-circle" size={18} color={accentColor} />
         </Pressable>
       </View>
       <View style={styles.searchMetaRow}>
@@ -59,7 +63,10 @@ export default function LocationDiscoverySearchBar({
           {helperText}
         </AppText>
         {loadingText ? (
-          <AppText preset="caption" style={styles.searchLoadingText}>
+          <AppText
+            preset="caption"
+            style={[styles.searchLoadingText, { color: loadingColor }]}
+          >
             {loadingText}
           </AppText>
         ) : null}

@@ -30,17 +30,21 @@ import Feather from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import AppText from '../../app/ui/AppText';
+import HeaderIconActionButton from '../../components/navigation/HeaderIconActionButton';
+import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
 import type {
   PetSchedule,
 } from '../../services/supabase/schedules';
+import { buildPetThemePalette } from '../../services/pets/themePalette';
 import {
   getScheduleColorPalette,
   mapScheduleIconName,
 } from '../../services/schedules/presentation';
 import { resolveSelectedPetId, usePetStore } from '../../store/petStore';
 import { useScheduleStore } from '../../store/scheduleStore';
+import { openMoreDrawer } from '../../store/uiStore';
 import { styles } from './ScheduleListScreen.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'ScheduleList'>;
@@ -72,6 +76,14 @@ export default function ScheduleListScreen() {
   const petId = useMemo(() => {
     return resolveSelectedPetId(pets, selectedPetId, routePetId);
   }, [pets, routePetId, selectedPetId]);
+  const selectedPet = useMemo(
+    () => pets.find(candidate => candidate.id === petId) ?? pets[0] ?? null,
+    [petId, pets],
+  );
+  const petTheme = useMemo(
+    () => buildPetThemePalette(selectedPet?.themeColor),
+    [selectedPet?.themeColor],
+  );
 
   const bootstrap = useScheduleStore(s => s.bootstrap);
   const refresh = useScheduleStore(s => s.refresh);
@@ -100,12 +112,24 @@ export default function ScheduleListScreen() {
     navigation.navigate('ScheduleCreate', { petId: petId ?? undefined });
   }, [navigation, petId]);
 
-  const onPressHome = useCallback(() => {
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'AppTabs', params: { screen: 'HomeTab' } }],
-    });
-  }, [navigation]);
+  const onPressBack = useEntryAwareBackAction({
+    entrySource: route.params?.entrySource,
+    onHome: () => {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'AppTabs', params: { screen: 'HomeTab' } }],
+      });
+    },
+    onMore: () => {
+      navigation.goBack();
+      requestAnimationFrame(() => {
+        openMoreDrawer();
+      });
+    },
+    onFallback: () => {
+      navigation.goBack();
+    },
+  });
 
   const onPressItem = useCallback(
     (scheduleId: string) => {
@@ -126,7 +150,7 @@ export default function ScheduleListScreen() {
           <TouchableOpacity
             activeOpacity={0.88}
             style={styles.headerBackButton}
-            onPress={onPressHome}
+            onPress={onPressBack}
           >
             <Feather name="arrow-left" size={20} color="#102033" />
           </TouchableOpacity>
@@ -137,16 +161,11 @@ export default function ScheduleListScreen() {
         </AppText>
 
         <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={styles.headerCreateBtn}
+          <HeaderIconActionButton
+            accessibilityLabel="일정 추가"
+            backgroundColor={petTheme.primary}
             onPress={onPressCreate}
-          >
-            <Feather name="plus" size={16} color="#FFFFFF" />
-            <AppText preset="caption" style={styles.headerCreateText}>
-              일정 추가
-            </AppText>
-          </TouchableOpacity>
+          />
         </View>
       </View>
 
@@ -172,7 +191,7 @@ export default function ScheduleListScreen() {
             <MaterialCommunityIcons
               name="calendar-clock-outline"
               size={34}
-              color="#6D6AF8"
+              color={petTheme.primary}
             />
             <AppText preset="headline" style={styles.emptyTitle}>
               일정을 불러오는 중이에요
@@ -186,7 +205,7 @@ export default function ScheduleListScreen() {
             <MaterialCommunityIcons
               name="calendar-alert-outline"
               size={34}
-              color="#6D6AF8"
+              color={petTheme.primary}
             />
             <AppText preset="headline" style={styles.emptyTitle}>
               일정을 불러오지 못했어요
@@ -196,7 +215,7 @@ export default function ScheduleListScreen() {
             </AppText>
             <TouchableOpacity
               activeOpacity={0.9}
-              style={styles.primaryBtn}
+              style={[styles.primaryBtn, { backgroundColor: petTheme.primary }]}
               onPress={onRefresh}
             >
               <AppText preset="body" style={styles.primaryBtnText}>
@@ -209,7 +228,7 @@ export default function ScheduleListScreen() {
             <MaterialCommunityIcons
               name="calendar-blank-outline"
               size={34}
-              color="#6D6AF8"
+              color={petTheme.primary}
             />
             <AppText preset="headline" style={styles.emptyTitle}>
               등록된 일정이 아직 없어요
@@ -219,7 +238,7 @@ export default function ScheduleListScreen() {
             </AppText>
             <TouchableOpacity
               activeOpacity={0.9}
-              style={styles.primaryBtn}
+              style={[styles.primaryBtn, { backgroundColor: petTheme.primary }]}
               onPress={onPressCreate}
             >
               <AppText preset="body" style={styles.primaryBtnText}>

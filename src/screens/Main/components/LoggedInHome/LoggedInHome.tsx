@@ -2245,6 +2245,7 @@ export default function LoggedInHome() {
       params: {
         petId: activePetId ?? undefined,
         mainCategory: 'all',
+        entrySource: 'home',
       },
     });
   }, [navigation, activePetId]);
@@ -2252,6 +2253,7 @@ export default function LoggedInHome() {
   const onPressScheduleList = useCallback(() => {
     navigation.navigate('ScheduleList', {
       petId: activePetId ?? undefined,
+      entrySource: 'home',
     });
   }, [activePetId, navigation]);
 
@@ -2263,7 +2265,10 @@ export default function LoggedInHome() {
 
   const onPressPetProfileEdit = useCallback(() => {
     if (!activePetId) return;
-    navigation.navigate('PetProfileEdit', { petId: activePetId });
+    navigation.navigate('PetProfileEdit', {
+      petId: activePetId,
+      entrySource: 'home',
+    });
   }, [activePetId, navigation]);
 
   const onPressWeatherInsight = useCallback(() => {
@@ -2281,6 +2286,7 @@ export default function LoggedInHome() {
           petId: activePetId ?? undefined,
           mainCategory,
           otherSubCategory,
+          entrySource: 'home',
         },
       });
     },
@@ -2422,7 +2428,7 @@ export default function LoggedInHome() {
   }, []);
 
   const onPressGuideList = useCallback(() => {
-    navigation.navigate('GuideList');
+    navigation.navigate('GuideList', { entrySource: 'home' });
   }, [navigation]);
 
   const onPressGuideDetail = useCallback(

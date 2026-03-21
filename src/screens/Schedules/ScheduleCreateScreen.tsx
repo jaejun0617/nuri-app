@@ -22,6 +22,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import AppText from '../../app/ui/AppText';
+import HeaderTextActionButton from '../../components/navigation/HeaderTextActionButton';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import TimePickerModal from '../../components/time-picker/TimePickerModal';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -61,6 +62,7 @@ import {
   upsertScheduleNotification,
   type ScheduleNotificationPermissionStatus,
 } from '../../services/schedules/notifications';
+import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { resolveSelectedPetId, usePetStore } from '../../store/petStore';
 import { useScheduleStore } from '../../store/scheduleStore';
 import { styles } from './ScheduleCreateScreen.styles';
@@ -82,6 +84,14 @@ export default function ScheduleCreateScreen() {
   const petId = useMemo(() => {
     return resolveSelectedPetId(pets, selectedPetId, routePetId);
   }, [pets, routePetId, selectedPetId]);
+  const selectedPet = useMemo(
+    () => pets.find(candidate => candidate.id === petId) ?? pets[0] ?? null,
+    [petId, pets],
+  );
+  const petTheme = useMemo(
+    () => buildPetThemePalette(selectedPet?.themeColor),
+    [selectedPet?.themeColor],
+  );
 
   const initialDate = useMemo(() => {
     if (startsAtParam) {
@@ -296,16 +306,15 @@ export default function ScheduleCreateScreen() {
         </AppText>
 
         <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={styles.headerDoneBtn}
-            onPress={onSubmit}
+          <HeaderTextActionButton
+            accessibilityLabel={saving ? '일정 저장 중' : '일정 저장 완료'}
+            backgroundColor={petTheme.tint}
+            borderColor={petTheme.border}
             disabled={saving}
-          >
-            <AppText preset="caption" style={styles.headerDoneText}>
-              {saving ? '저장 중' : '완료'}
-            </AppText>
-          </TouchableOpacity>
+            label={saving ? '저장 중' : '완료'}
+            onPress={onSubmit}
+            textColor={petTheme.primary}
+          />
         </View>
       </View>
 
@@ -380,6 +389,12 @@ export default function ScheduleCreateScreen() {
               style={[
                 styles.allDayChip,
                 allDay ? styles.allDayChipActive : null,
+                allDay
+                  ? {
+                      backgroundColor: petTheme.tint,
+                      borderColor: petTheme.border,
+                    }
+                  : null,
               ]}
               onPress={() => setAllDay(prev => !prev)}
             >
@@ -388,6 +403,7 @@ export default function ScheduleCreateScreen() {
                 style={[
                   styles.allDayChipText,
                   allDay ? styles.allDayChipTextActive : null,
+                  allDay ? { color: petTheme.primary } : null,
                 ]}
               >
                 하루 종일
@@ -408,19 +424,26 @@ export default function ScheduleCreateScreen() {
                   style={[
                     styles.optionChip,
                     active ? styles.optionChipActive : null,
+                    active
+                      ? {
+                          backgroundColor: petTheme.tint,
+                          borderColor: petTheme.border,
+                        }
+                      : null,
                   ]}
-                    onPress={() => onSelectCategory(option.key)}
+                  onPress={() => onSelectCategory(option.key)}
                 >
                   <MaterialCommunityIcons
                     name={option.icon}
                     size={16}
-                    color={active ? '#6D6AF8' : '#556070'}
+                    color={active ? petTheme.primary : '#556070'}
                   />
                   <AppText
                     preset="caption"
                     style={[
                       styles.optionChipText,
                       active ? styles.optionChipTextActive : null,
+                      active ? { color: petTheme.primary } : null,
                     ]}
                   >
                     {option.label}
@@ -445,6 +468,12 @@ export default function ScheduleCreateScreen() {
                       style={[
                         styles.optionChip,
                         active ? styles.optionChipActive : null,
+                        active
+                          ? {
+                              backgroundColor: petTheme.tint,
+                              borderColor: petTheme.border,
+                            }
+                          : null,
                       ]}
                       onPress={() => onSelectOtherSubCategory(option.key)}
                     >
@@ -453,6 +482,7 @@ export default function ScheduleCreateScreen() {
                         style={[
                           styles.optionChipText,
                           active ? styles.optionChipTextActive : null,
+                          active ? { color: petTheme.primary } : null,
                         ]}
                       >
                         {option.label}
@@ -474,19 +504,29 @@ export default function ScheduleCreateScreen() {
                 <TouchableOpacity
                   key={option.key}
                   activeOpacity={0.9}
-                  style={[styles.iconCard, active ? styles.iconCardActive : null]}
+                  style={[
+                    styles.iconCard,
+                    active ? styles.iconCardActive : null,
+                    active
+                      ? {
+                          backgroundColor: petTheme.tint,
+                          borderColor: petTheme.border,
+                        }
+                      : null,
+                  ]}
                   onPress={() => setIconKey(option.key)}
                 >
                   <MaterialCommunityIcons
                     name={option.icon}
                     size={18}
-                    color={active ? '#6D6AF8' : '#556070'}
+                    color={active ? petTheme.primary : '#556070'}
                   />
                   <AppText
                     preset="caption"
                     style={[
                       styles.iconLabel,
                       active ? styles.iconLabelActive : null,
+                      active ? { color: petTheme.primary } : null,
                     ]}
                   >
                     {option.label}
@@ -514,6 +554,7 @@ export default function ScheduleCreateScreen() {
                       styles.colorDot,
                       { backgroundColor: option.color },
                       active ? styles.colorDotActive : null,
+                      active ? { borderColor: petTheme.border } : null,
                     ]}
                   />
                   <AppText preset="caption" style={styles.colorLabel}>
@@ -537,6 +578,12 @@ export default function ScheduleCreateScreen() {
                   style={[
                     styles.optionChip,
                     active ? styles.optionChipActive : null,
+                    active
+                      ? {
+                          backgroundColor: petTheme.tint,
+                          borderColor: petTheme.border,
+                        }
+                      : null,
                   ]}
                   onPress={() => setRepeatRule(option.key)}
                 >
@@ -545,6 +592,7 @@ export default function ScheduleCreateScreen() {
                     style={[
                       styles.optionChipText,
                       active ? styles.optionChipTextActive : null,
+                      active ? { color: petTheme.primary } : null,
                     ]}
                   >
                     {option.label}
@@ -567,6 +615,12 @@ export default function ScheduleCreateScreen() {
                   style={[
                     styles.optionChip,
                     active ? styles.optionChipActive : null,
+                    active
+                      ? {
+                          backgroundColor: petTheme.tint,
+                          borderColor: petTheme.border,
+                        }
+                      : null,
                   ]}
                   onPress={() => {
                     onSelectReminder(option.key).catch(() => {
@@ -579,6 +633,7 @@ export default function ScheduleCreateScreen() {
                     style={[
                       styles.optionChipText,
                       active ? styles.optionChipTextActive : null,
+                      active ? { color: petTheme.primary } : null,
                     ]}
                   >
                     {option.label}
@@ -607,6 +662,7 @@ export default function ScheduleCreateScreen() {
           activeOpacity={0.9}
           style={[
             styles.bottomSubmitBtn,
+            { backgroundColor: petTheme.primary },
             { marginBottom: Math.max(insets.bottom, 18) },
           ]}
           onPress={onSubmit}

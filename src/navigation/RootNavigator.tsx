@@ -49,6 +49,7 @@ import PetTravelDetailScreen from '../screens/PetTravel/PetTravelDetailScreen';
 import type { DeviceCoordinates } from '../services/location/currentPosition';
 import type { LocationDiscoveryItem } from '../services/locationDiscovery/types';
 import type { PetTravelItem } from '../services/petTravel/types';
+import type { ScreenEntrySource } from './entry';
 import type {
   IndoorActivityKey,
   WeatherGuideBundle,
@@ -71,9 +72,11 @@ export type RootStackParamList = {
 
   // Pet
   PetCreate: { from?: 'auto' | 'cta' | 'header_plus' } | undefined;
-  PetProfileEdit: { petId: string };
+  PetProfileEdit: { petId: string; entrySource?: ScreenEntrySource };
   PetProfileEditDone: { petId: string; petName: string };
-  ScheduleList: { petId?: string } | undefined;
+  ScheduleList:
+    | { petId?: string; entrySource?: ScreenEntrySource }
+    | undefined;
   ScheduleCreate: { petId?: string; startsAt?: string } | undefined;
   ScheduleDetail: { petId?: string; scheduleId: string };
   ScheduleEdit: { petId?: string; scheduleId: string };
@@ -89,6 +92,7 @@ export type RootStackParamList = {
         district?: string;
         initialBundle?: WeatherGuideBundle;
         initialCoordinates?: DeviceCoordinates;
+        entrySource?: ScreenEntrySource;
       }
     | undefined;
   ActivityGuide: {
@@ -99,25 +103,25 @@ export type RootStackParamList = {
     guideKey: IndoorActivityKey;
     district?: string;
   };
-  GuideList: undefined;
+  GuideList: { entrySource?: ScreenEntrySource } | undefined;
   GuideDetail: {
     guideId: string;
   };
-  WalkSpotList: undefined;
+  WalkSpotList: { entrySource?: ScreenEntrySource } | undefined;
   WalkSpotDetail: {
     item: LocationDiscoveryItem;
     resultItems?: LocationDiscoveryItem[];
   };
-  PetFriendlyPlaceList: undefined;
+  PetFriendlyPlaceList: { entrySource?: ScreenEntrySource } | undefined;
   PetFriendlyPlaceDetail: {
     item: LocationDiscoveryItem;
     resultItems?: LocationDiscoveryItem[];
   };
-  PetTravelList: undefined;
+  PetTravelList: { entrySource?: ScreenEntrySource } | undefined;
   PetTravelDetail: {
     item: PetTravelItem;
   };
-  GuideAdminList: undefined;
+  GuideAdminList: { entrySource?: ScreenEntrySource } | undefined;
   GuideAdminEditor:
     | { mode: 'create' }
     | { mode: 'edit'; guideId: string };
