@@ -2,8 +2,7 @@ import { safeYmd } from '../../utils/date';
 
 export type PetAgeSnapshot = {
   ageInMonths: number | null;
-  years: number | null;
-  remainingMonths: number | null;
+  displayYears: number | null;
   label: string | null;
 };
 
@@ -39,6 +38,7 @@ export function getPetAgeInMonthsFromBirthDate(
 
 export function formatPetAgeLabelFromMonths(
   ageInMonths: number | null | undefined,
+  options?: { birthDate?: string | null | undefined },
 ): string | null {
   if (ageInMonths === null || ageInMonths === undefined) return null;
   if (!Number.isFinite(ageInMonths)) return null;
@@ -48,14 +48,13 @@ export function formatPetAgeLabelFromMonths(
     return `생후 ${normalizedMonths}개월`;
   }
 
-  const years = Math.floor(normalizedMonths / 12);
-  const remainingMonths = normalizedMonths % 12;
-
-  if (remainingMonths === 0) {
-    return `${years}살`;
+  const birthYear = Number(`${options?.birthDate ?? ''}`.slice(0, 4));
+  const currentYear = new Date().getFullYear();
+  if (Number.isFinite(birthYear) && birthYear > 0) {
+    return `${Math.max(0, currentYear - birthYear + 1)}살`;
   }
 
-  return `${years}살 ${remainingMonths}개월`;
+  return `${Math.floor(normalizedMonths / 12) + 1}살`;
 }
 
 export function buildPetAgeSnapshot(
@@ -66,20 +65,21 @@ export function buildPetAgeSnapshot(
   if (ageInMonths === null) {
     return {
       ageInMonths: null,
-      years: null,
-      remainingMonths: null,
+      displayYears: null,
       label: null,
     };
   }
 
-  const years = Math.floor(ageInMonths / 12);
-  const remainingMonths = ageInMonths % 12;
+  const birthYear = Number(`${birthDate ?? ''}`.slice(0, 4));
+  const displayYears =
+    ageInMonths < 12 || !Number.isFinite(birthYear)
+      ? null
+      : Math.max(0, now.getFullYear() - birthYear + 1);
 
   return {
     ageInMonths,
-    years,
-    remainingMonths,
-    label: formatPetAgeLabelFromMonths(ageInMonths),
+    displayYears,
+    label: formatPetAgeLabelFromMonths(ageInMonths, { birthDate }),
   };
 }
 
