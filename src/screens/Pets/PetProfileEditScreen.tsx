@@ -35,6 +35,7 @@ import {
 } from '../../services/app/errors';
 import { readFileAsBase64 } from '../../services/files/readFileAsBase64';
 import { pickPhotoAssets } from '../../services/media/photoPicker';
+import { formatPetAgeLabelFromBirthDate } from '../../services/pets/age';
 import {
   getPetMemorialChoice,
   type PetMemorialChoice,
@@ -557,6 +558,27 @@ export default function PetProfileEditScreen() {
       navigation.goBack();
     },
   });
+  const representativeOption = getRepresentativeSpeciesOption(representativeSpecies);
+  const quickDetailOptions = getPetSpeciesQuickDetailOptions(representativeSpecies);
+  const normalizedBirthDate = useMemo(
+    () => birthDate.trim().replace(/\./g, '-') || null,
+    [birthDate],
+  );
+  const profileSpeciesLabel = useMemo(() => {
+    const detail = speciesDetailKey.trim();
+    if (detail) return detail;
+    return representativeOption.label;
+  }, [representativeOption.label, speciesDetailKey]);
+  const profileAgeLabel = useMemo(
+    () => formatPetAgeLabelFromBirthDate(normalizedBirthDate),
+    [normalizedBirthDate],
+  );
+  const profileSummaryLine = useMemo(() => {
+    const parts: string[] = [];
+    if (profileSpeciesLabel) parts.push(profileSpeciesLabel);
+    if (profileAgeLabel) parts.push(profileAgeLabel);
+    return parts.length > 0 ? parts.join(' · ') : null;
+  }, [profileAgeLabel, profileSpeciesLabel]);
 
   if (!pet) {
     return (
@@ -581,9 +603,6 @@ export default function PetProfileEditScreen() {
       </View>
     );
   }
-
-  const representativeOption = getRepresentativeSpeciesOption(representativeSpecies);
-  const quickDetailOptions = getPetSpeciesQuickDetailOptions(representativeSpecies);
 
   return (
     <View style={styles.screen}>
@@ -642,6 +661,18 @@ export default function PetProfileEditScreen() {
             editIconName="camera"
             editIconSize={16}
           />
+          <AppText preset="title2" style={[styles.profileName, { color: petTheme.deep }]}>
+            {trimmedName || pet.name || '우리 아이'}
+          </AppText>
+          {profileSummaryLine ? (
+            <AppText preset="body" style={styles.profileMeta}>
+              {profileSummaryLine}
+            </AppText>
+          ) : (
+            <AppText preset="caption" style={styles.profileMetaMuted}>
+              품종과 생일을 입력하면 나이를 함께 보여드려요
+            </AppText>
+          )}
         </View>
 
         <PetThemePicker

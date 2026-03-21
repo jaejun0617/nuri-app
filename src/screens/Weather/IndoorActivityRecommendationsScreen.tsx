@@ -109,12 +109,13 @@ export default function IndoorActivityRecommendationsScreen() {
         navigation.navigate('ActivityGuide', {
           guideKey,
           district: weather.district,
+          entrySource: route.params?.entrySource,
         });
       } catch {
         // noop
       }
     },
-    [navigation, weather.district],
+    [navigation, route.params?.entrySource, weather.district],
   );
 
   return (

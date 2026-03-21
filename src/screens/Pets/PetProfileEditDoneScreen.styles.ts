@@ -52,6 +52,12 @@ export const styles = StyleSheet.create({
     color: MUTED,
     textAlign: 'center',
   },
+  meta: {
+    marginTop: 10,
+    color: BRAND_DEEP,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
   primaryButton: {
     height: 56,
     borderRadius: 18,

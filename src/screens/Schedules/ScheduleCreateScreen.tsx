@@ -7,11 +7,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
+  BackHandler,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import {
@@ -22,6 +23,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import AppText from '../../app/ui/AppText';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
 import HeaderTextActionButton from '../../components/navigation/HeaderTextActionButton';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import TimePickerModal from '../../components/time-picker/TimePickerModal';
@@ -65,6 +67,7 @@ import {
 import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { resolveSelectedPetId, usePetStore } from '../../store/petStore';
 import { useScheduleStore } from '../../store/scheduleStore';
+import { openMoreDrawer } from '../../store/uiStore';
 import { styles } from './ScheduleCreateScreen.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'ScheduleCreate'>;
@@ -100,6 +103,7 @@ export default function ScheduleCreateScreen() {
     }
     return new Date();
   }, [startsAtParam]);
+  const initialDateText = useMemo(() => toScheduleDateInput(initialDate), [initialDate]);
 
   const [title, setTitle] = useState('');
   const [note, setNote] = useState('');
@@ -112,6 +116,7 @@ export default function ScheduleCreateScreen() {
   const [iconKey, setIconKey] = useState<ScheduleIconKey>('medical-bag');
   const [colorKey, setColorKey] = useState<ScheduleColorKey>('brand');
   const [saving, setSaving] = useState(false);
+  const [exitConfirmVisible, setExitConfirmVisible] = useState(false);
   const [dateModalVisible, setDateModalVisible] = useState(false);
   const [timeModalVisible, setTimeModalVisible] = useState(false);
   const [draftTimeText, setDraftTimeText] = useState('10:00');
@@ -120,6 +125,34 @@ export default function ScheduleCreateScreen() {
     useState<ScheduleReminderOptionKey>('hour');
   const [notificationPermissionStatus, setNotificationPermissionStatus] =
     useState<ScheduleNotificationPermissionStatus>('unsupported');
+  const hasUnsavedChanges = useMemo(
+    () =>
+      title.trim().length > 0 ||
+      note.trim().length > 0 ||
+      dateText !== initialDateText ||
+      timeText !== '10:00' ||
+      allDay ||
+      category !== 'health' ||
+      otherUiSubCategoryKey !== null ||
+      iconKey !== 'medical-bag' ||
+      colorKey !== 'brand' ||
+      repeatRule !== 'none' ||
+      reminderKey !== 'hour',
+    [
+      allDay,
+      category,
+      colorKey,
+      dateText,
+      iconKey,
+      initialDateText,
+      note,
+      otherUiSubCategoryKey,
+      reminderKey,
+      repeatRule,
+      timeText,
+      title,
+    ],
+  );
 
   useEffect(() => {
     checkScheduleNotificationPermission()
@@ -128,6 +161,51 @@ export default function ScheduleCreateScreen() {
         setNotificationPermissionStatus('unsupported');
       });
   }, []);
+
+  const goBackByEntrySource = useCallback(() => {
+    if (route.params?.entrySource === 'home') {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'AppTabs', params: { screen: 'HomeTab' } }],
+      });
+      return;
+    }
+
+    if (route.params?.entrySource === 'more') {
+      navigation.goBack();
+      requestAnimationFrame(() => {
+        openMoreDrawer();
+      });
+      return;
+    }
+
+    navigation.goBack();
+  }, [navigation, route.params?.entrySource]);
+
+  const onPressBack = useCallback(() => {
+    if (saving) return;
+    if (hasUnsavedChanges) {
+      setExitConfirmVisible(true);
+      return;
+    }
+    goBackByEntrySource();
+  }, [goBackByEntrySource, hasUnsavedChanges, saving]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener(
+        'hardwareBackPress',
+        () => {
+          onPressBack();
+          return true;
+        },
+      );
+
+      return () => {
+        subscription.remove();
+      };
+    }, [onPressBack]),
+  );
 
   const onOpenDateModal = useCallback(() => {
     setDateModalVisible(true);
@@ -295,7 +373,7 @@ export default function ScheduleCreateScreen() {
           <TouchableOpacity
             activeOpacity={0.88}
             style={styles.headerBackButton}
-            onPress={() => navigation.goBack()}
+            onPress={onPressBack}
           >
             <Feather name="arrow-left" size={20} color="#102033" />
           </TouchableOpacity>
@@ -687,6 +765,22 @@ export default function ScheduleCreateScreen() {
         value={draftTimeText}
         onCancel={() => setTimeModalVisible(false)}
         onConfirm={onConfirmTime}
+      />
+      <ConfirmDialog
+        visible={exitConfirmVisible}
+        title="저장하지 않고 나갈까요?"
+        message={
+          '입력한 일정 내용은 아직 저장되지 않았으며\n지금 나가면 현재 화면에서 사라져요.'
+        }
+        cancelLabel="계속 작성하기"
+        confirmLabel="나가기"
+        tone="warning"
+        accentColor={petTheme.primary}
+        onCancel={() => setExitConfirmVisible(false)}
+        onConfirm={() => {
+          setExitConfirmVisible(false);
+          goBackByEntrySource();
+        }}
       />
     </SafeAreaView>
   );

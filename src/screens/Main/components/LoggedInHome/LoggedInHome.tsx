@@ -90,6 +90,7 @@ import {
   mapScheduleToMemoryCategory,
 } from '../../../../services/schedules/presentation';
 import { buildPetThemePalette } from '../../../../services/pets/themePalette';
+import { formatPetAgeLabelFromBirthDate } from '../../../../services/pets/age';
 import {
   formatMemorialPetName,
   isMemorialPet,
@@ -104,7 +105,6 @@ import { isLocalGuideSeedGuide } from '../../../../services/guides/seed';
 import { getGuideRotationWindowKey } from '../../../../services/guides/rotation';
 import { recordPetCareGuideEvents } from '../../../../services/guides/service';
 import {
-  calcAgeFromBirthYmd,
   diffDaysFromKst,
   formatYmdToDots,
   getMonthKeyFromYmd,
@@ -2121,8 +2121,7 @@ export default function LoggedInHome() {
   const birthText = useMemo(() => formatYmdToDots(birthYmd), [birthYmd]);
 
   const ageText = useMemo(() => {
-    const age = calcAgeFromBirthYmd(birthYmd);
-    return age === null ? null : `${age}살`;
+    return formatPetAgeLabelFromBirthDate(birthYmd);
   }, [birthYmd]);
 
   const genderText = useMemo(
@@ -2260,6 +2259,7 @@ export default function LoggedInHome() {
   const onPressScheduleCreate = useCallback(() => {
     navigation.navigate('ScheduleCreate', {
       petId: activePetId ?? undefined,
+      entrySource: 'home',
     });
   }, [activePetId, navigation]);
 

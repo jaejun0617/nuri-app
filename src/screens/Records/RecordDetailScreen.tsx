@@ -26,9 +26,11 @@ import { useTheme } from 'styled-components/native';
 
 import AppNavigationToolbar from '../../components/navigation/AppNavigationToolbar';
 import AppText from '../../app/ui/AppText';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
 import OptimizedImage from '../../components/images/OptimizedImage';
 import type { TimelineStackParamList } from '../../navigation/TimelineStackNavigator';
 import { getBrandedErrorMeta } from '../../services/app/errors';
+import { buildPetThemePalette } from '../../services/pets/themePalette';
 import {
   formatRecordDisplayDate,
   formatRecordRelativeTime,
@@ -402,6 +404,10 @@ export default function RecordDetailScreen() {
     () => pets.find(item => item.id === resolvedPetId) ?? null,
     [pets, resolvedPetId],
   );
+  const petTheme = useMemo(
+    () => buildPetThemePalette(selectedPet?.themeColor),
+    [selectedPet?.themeColor],
+  );
   const petName = useMemo(
     () => selectedPet?.name?.trim() || '우리 아이',
     [selectedPet?.name],
@@ -488,10 +494,6 @@ export default function RecordDetailScreen() {
     hideActionMenu();
     setDeleteModalVisible(true);
   }, [hideActionMenu, record, resolvedPetId]);
-  const closeDeleteModal = useCallback(() => {
-    setDeleteModalVisible(false);
-  }, []);
-
   const onConfirmDelete = useCallback(async () => {
     if (!resolvedPetId || !record || deleting) return;
 
@@ -504,7 +506,7 @@ export default function RecordDetailScreen() {
       });
 
       removeOneLocal(resolvedPetId, record.id);
-      closeDeleteModal();
+      setDeleteModalVisible(false);
 
       navigation.navigate('TimelineMain', {
         petId: resolvedPetId,
@@ -518,7 +520,6 @@ export default function RecordDetailScreen() {
       setDeleting(false);
     }
   }, [
-    closeDeleteModal,
     deleting,
     navigation,
     record,
@@ -710,80 +711,19 @@ export default function RecordDetailScreen() {
         </View>
       </Modal>
 
-      <Modal
+      <ConfirmDialog
         visible={deleteModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={closeDeleteModal}
-      >
-        <View
-          style={[
-            styles.modalBackdrop,
-            { backgroundColor: theme.colors.overlay },
-          ]}
-        >
-          <View
-            style={[
-              styles.modalCard,
-              { backgroundColor: theme.colors.surfaceElevated },
-            ]}
-          >
-            <View style={styles.modalIconCircleDanger}>
-              <Feather name="alert-triangle" size={20} color="#FF4D4F" />
-            </View>
-
-            <AppText
-              preset="title2"
-              style={[styles.modalTitle, { color: theme.colors.textPrimary }]}
-            >
-              정말 삭제할까요?
-            </AppText>
-            <AppText
-              preset="body"
-              style={[styles.modalDesc, { color: theme.colors.textSecondary }]}
-            >
-              삭제된 추억은 다시 복구할 수 없어요.
-            </AppText>
-            <AppText
-              preset="body"
-              style={[styles.modalDesc, { color: theme.colors.textSecondary }]}
-            >
-              신중하게 선택해 주세요.
-            </AppText>
-
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={styles.modalGhostBtn}
-              onPress={closeDeleteModal}
-              disabled={deleting}
-            >
-              <AppText
-                preset="body"
-                style={[
-                  styles.modalGhostBtnText,
-                  { color: theme.colors.textSecondary },
-                ]}
-              >
-                취소
-              </AppText>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={[
-                styles.modalPrimaryBtn,
-                deleting ? styles.modalPrimaryBtnDisabled : null,
-              ]}
-              onPress={onConfirmDelete}
-              disabled={deleting}
-            >
-              <AppText preset="body" style={styles.modalPrimaryBtnText}>
-                {deleting ? '삭제 중...' : '삭제하기'}
-              </AppText>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+        title="정말 삭제할까요?"
+        message={'삭제된 추억은 다시 복구할 수 없어요.\n신중하게 선택해 주세요.'}
+        cancelLabel="취소"
+        confirmLabel={deleting ? '삭제 중...' : '삭제하기'}
+        tone="danger"
+        accentColor={petTheme.primary}
+        onCancel={() => setDeleteModalVisible(false)}
+        onConfirm={() => {
+          onConfirmDelete().catch(() => {});
+        }}
+      />
     </View>
   );
 }

@@ -77,9 +77,19 @@ export type RootStackParamList = {
   ScheduleList:
     | { petId?: string; entrySource?: ScreenEntrySource }
     | undefined;
-  ScheduleCreate: { petId?: string; startsAt?: string } | undefined;
-  ScheduleDetail: { petId?: string; scheduleId: string };
-  ScheduleEdit: { petId?: string; scheduleId: string };
+  ScheduleCreate:
+    | { petId?: string; startsAt?: string; entrySource?: ScreenEntrySource }
+    | undefined;
+  ScheduleDetail: {
+    petId?: string;
+    scheduleId: string;
+    entrySource?: ScreenEntrySource;
+  };
+  ScheduleEdit: {
+    petId?: string;
+    scheduleId: string;
+    entrySource?: ScreenEntrySource;
+  };
   WeatherInsight:
     | {
         district?: string;
@@ -98,10 +108,12 @@ export type RootStackParamList = {
   ActivityGuide: {
     guideKey: IndoorActivityKey;
     district?: string;
+    entrySource?: ScreenEntrySource;
   };
   WeatherActivityRecord: {
     guideKey: IndoorActivityKey;
     district?: string;
+    entrySource?: ScreenEntrySource;
   };
   GuideList: { entrySource?: ScreenEntrySource } | undefined;
   GuideDetail: {

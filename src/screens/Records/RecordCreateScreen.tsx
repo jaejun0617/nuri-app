@@ -20,12 +20,12 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { Alert, Image, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, BackHandler, Image, TextInput, TouchableOpacity, View } from 'react-native';
 import type {
   CompositeNavigationProp,
   RouteProp,
 } from '@react-navigation/native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -33,6 +33,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import Feather from 'react-native-vector-icons/Feather';
 
 import AppText from '../../app/ui/AppText';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
 import HeaderTextActionButton from '../../components/navigation/HeaderTextActionButton';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import RecordImageGallery from '../../components/records/RecordImageGallery';
@@ -140,6 +141,7 @@ export default function RecordCreateScreen() {
   const [selectedImages, setSelectedImages] = useState<PickedRecordImage[]>([]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [exitConfirmVisible, setExitConfirmVisible] = useState(false);
   const [draftHydrated, setDraftHydrated] = useState(false);
   const draftLoadedRef = useRef(false);
 
@@ -178,6 +180,30 @@ export default function RecordCreateScreen() {
     () => selectedImages[activeImageIndex] ?? selectedImages[0] ?? null,
     [selectedImages, activeImageIndex],
   );
+  const hasDraftContent = useMemo(() => {
+    return (
+      title.trim().length > 0 ||
+      content.trim().length > 0 ||
+      selectedTags.length > 0 ||
+      priceText.trim().length > 0 ||
+      selectedImages.length > 0 ||
+      occurredAt !== todayYmd ||
+      mainCategoryKey !== 'walk' ||
+      otherSubCategoryKey !== null ||
+      selectedEmotion !== null
+    );
+  }, [
+    content,
+    mainCategoryKey,
+    occurredAt,
+    otherSubCategoryKey,
+    priceText,
+    selectedEmotion,
+    selectedImages.length,
+    selectedTags.length,
+    title,
+    todayYmd,
+  ]);
   const scrollBottomInset = useMemo(() => {
     return Math.max(insets.bottom + 240, keyboardInset + 140, 280);
   }, [insets.bottom, keyboardInset]);
@@ -376,10 +402,31 @@ export default function RecordCreateScreen() {
   }, [navigation, returnTo]);
 
   const onPressCancel = useCallback(() => {
+    if (saving) return;
+    if (hasDraftContent) {
+      setExitConfirmVisible(true);
+      return;
+    }
     clearRecordCreateDraft().catch(() => {});
     resetForm();
     navigateBackToOrigin();
-  }, [navigateBackToOrigin, resetForm]);
+  }, [hasDraftContent, navigateBackToOrigin, resetForm, saving]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener(
+        'hardwareBackPress',
+        () => {
+          onPressCancel();
+          return true;
+        },
+      );
+
+      return () => {
+        subscription.remove();
+      };
+    }, [onPressCancel]),
+  );
 
   const onSelectMainCategory = useCallback((nextKey: RecordMainCategoryKey) => {
     setMainCategoryKey(nextKey);
@@ -1006,6 +1053,22 @@ export default function RecordCreateScreen() {
         onChangeTagDraft={setTagDraft}
         onSubmitDraftTag={onSubmitDraftTag}
         onRemoveTag={onRemoveTag}
+      />
+      <ConfirmDialog
+        visible={exitConfirmVisible}
+        title="작성을 멈추고 나갈까요?"
+        message={
+          '입력 중인 기록 내용은 임시 저장된 상태로 남아\n다음에 다시 이어서 작성할 수 있어요.'
+        }
+        cancelLabel="계속 작성하기"
+        confirmLabel="나가기"
+        tone="warning"
+        accentColor={petTheme.primary}
+        onCancel={() => setExitConfirmVisible(false)}
+        onConfirm={() => {
+          setExitConfirmVisible(false);
+          navigateBackToOrigin();
+        }}
       />
     </View>
   );

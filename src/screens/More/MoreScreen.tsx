@@ -130,10 +130,6 @@ export default function MoreScreen() {
     navigation.navigate('SignIn');
   };
 
-  const onPressDevTest = () => {
-    navigation.navigate('DevTest');
-  };
-
   // ---------------------------------------------------------
   // 5) UI
   // ---------------------------------------------------------
@@ -185,7 +181,11 @@ export default function MoreScreen() {
 
             <TouchableOpacity
               activeOpacity={0.9}
-              style={[styles.primary, loading ? styles.primaryDisabled : null]}
+              style={[
+                styles.primary,
+                { backgroundColor: petTheme.primary },
+                loading ? styles.primaryDisabled : null,
+              ]}
               onPress={onPressLogout}
               disabled={loading}
             >
@@ -208,22 +208,12 @@ export default function MoreScreen() {
         ) : (
           <TouchableOpacity
             activeOpacity={0.9}
-            style={styles.primary}
+            style={[styles.primary, { backgroundColor: petTheme.primary }]}
             onPress={onPressLogin}
           >
             <Text style={styles.primaryText}>로그인하러 가기</Text>
           </TouchableOpacity>
         )}
-
-        {__DEV__ ? (
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={styles.devButton}
-            onPress={onPressDevTest}
-          >
-            <Text style={styles.devButtonText}>DevTest 열기</Text>
-          </TouchableOpacity>
-        ) : null}
       </View>
       <ConfirmDialog
         visible={logoutConfirmVisible}
@@ -336,17 +326,6 @@ const styles = StyleSheet.create({
   },
   primaryDisabled: { opacity: 0.6 },
   primaryText: { color: '#FFFFFF', fontSize: 15, fontWeight: '900' },
-  devButton: {
-    marginTop: 10,
-    height: 42,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#6D6AF8',
-    backgroundColor: '#F7F6FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  devButtonText: { color: '#6D6AF8', fontSize: 14, fontWeight: '800' },
   dangerButton: {
     marginTop: 10,
     height: 44,

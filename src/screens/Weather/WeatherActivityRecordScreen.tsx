@@ -20,6 +20,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
+import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import PhotoAddCard from '../../components/media/PhotoAddCard';
 import RecordTagModal from '../Records/components/RecordTagModal';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -46,7 +47,7 @@ import { getKstYmd } from '../../utils/date';
 import { useAuthStore } from '../../store/authStore';
 import { resolveSelectedPetId, usePetStore } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
-import { showToast } from '../../store/uiStore';
+import { openMoreDrawer, showToast } from '../../store/uiStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'WeatherActivityRecord'>;
 type Route = RootScreenRoute<'WeatherActivityRecord'>;
@@ -86,6 +87,24 @@ export default function WeatherActivityRecordScreen() {
     () => buildPetThemePalette(selectedPet?.themeColor),
     [selectedPet?.themeColor],
   );
+  const onPressBack = useEntryAwareBackAction({
+    entrySource: route.params?.entrySource,
+    onHome: () => {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'AppTabs', params: { screen: 'HomeTab' } }],
+      });
+    },
+    onMore: () => {
+      navigation.goBack();
+      requestAnimationFrame(() => {
+        openMoreDrawer();
+      });
+    },
+    onFallback: () => {
+      navigation.goBack();
+    },
+  });
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageMimeType, setImageMimeType] = useState<string | null>(null);
@@ -255,7 +274,7 @@ export default function WeatherActivityRecordScreen() {
           <TouchableOpacity
             activeOpacity={0.88}
             style={styles.headerSide}
-            onPress={() => navigation.goBack()}
+            onPress={onPressBack}
           >
             <Feather name="arrow-left" size={20} color="#102033" />
           </TouchableOpacity>

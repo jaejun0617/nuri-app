@@ -121,8 +121,9 @@ export default function ScheduleDetailScreen() {
     navigation.navigate('ScheduleEdit', {
       petId,
       scheduleId,
+      entrySource: route.params?.entrySource,
     });
-  }, [navigation, petId, scheduleId]);
+  }, [navigation, petId, route.params?.entrySource, scheduleId]);
 
   const onPressDelete = useCallback(() => {
     if (deleting) return;

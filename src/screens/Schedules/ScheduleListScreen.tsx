@@ -109,8 +109,11 @@ export default function ScheduleListScreen() {
   }, [petId, refresh]);
 
   const onPressCreate = useCallback(() => {
-    navigation.navigate('ScheduleCreate', { petId: petId ?? undefined });
-  }, [navigation, petId]);
+    navigation.navigate('ScheduleCreate', {
+      petId: petId ?? undefined,
+      entrySource: route.params?.entrySource,
+    });
+  }, [navigation, petId, route.params?.entrySource]);
 
   const onPressBack = useEntryAwareBackAction({
     entrySource: route.params?.entrySource,
@@ -136,9 +139,10 @@ export default function ScheduleListScreen() {
       navigation.navigate('ScheduleDetail', {
         petId: petId ?? undefined,
         scheduleId,
+        entrySource: route.params?.entrySource,
       });
     },
-    [navigation, petId],
+    [navigation, petId, route.params?.entrySource],
   );
 
   const headerTopInset = Math.max(insets.top, 12);

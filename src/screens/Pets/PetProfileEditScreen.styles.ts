@@ -55,6 +55,7 @@ export const styles = StyleSheet.create({
     marginBottom: 22,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
   },
   avatarWrap: {
     width: 156,
@@ -92,6 +93,22 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: '#FFFFFF',
+  },
+  profileName: {
+    marginTop: 10,
+    color: TEXT,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  profileMeta: {
+    color: '#5F6B7C',
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  profileMetaMuted: {
+    color: '#A0A7B4',
+    fontWeight: '700',
+    textAlign: 'center',
   },
   formSection: {
     gap: 16,

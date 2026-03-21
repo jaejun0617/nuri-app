@@ -14,6 +14,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import AppText from '../../app/ui/AppText';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
+import { formatPetAgeLabelFromBirthDate } from '../../services/pets/age';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { usePetStore } from '../../store/petStore';
 import { styles } from './PetProfileEditDoneScreen.styles';
@@ -35,6 +36,20 @@ export default function PetProfileEditDoneScreen() {
     () => buildPetThemePalette(pet?.themeColor),
     [pet?.themeColor],
   );
+  const petSpeciesLabel = useMemo(
+    () => pet?.speciesDisplayName?.trim() || null,
+    [pet?.speciesDisplayName],
+  );
+  const petAgeLabel = useMemo(
+    () => formatPetAgeLabelFromBirthDate(pet?.birthDate ?? null),
+    [pet?.birthDate],
+  );
+  const petMetaLine = useMemo(() => {
+    const parts = [petSpeciesLabel, petAgeLabel].filter(
+      (value): value is string => Boolean(value),
+    );
+    return parts.length > 0 ? parts.join(' · ') : null;
+  }, [petAgeLabel, petSpeciesLabel]);
 
   return (
     <View
@@ -65,6 +80,11 @@ export default function PetProfileEditDoneScreen() {
         <AppText preset="body" style={styles.body}>
           {petName}의 정보를 더 또렷하게 정리했어요.
         </AppText>
+        {petMetaLine ? (
+          <AppText preset="body" style={styles.meta}>
+            {petMetaLine}
+          </AppText>
+        ) : null}
         <AppText preset="body" style={styles.body}>
           이제 홈에서 바로 새로운 프로필을 볼 수 있어요.
         </AppText>

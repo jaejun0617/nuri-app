@@ -118,11 +118,14 @@ function DatePickerModalBase({
   const previewText = useMemo(() => formatDateParts(value), [value]);
 
   const applyValue = useCallback(
-    (next: DateParts) => {
+    (next: DateParts, options?: { syncDraftOnSuccess?: boolean }) => {
+      const shouldSyncDraft = options?.syncDraftOnSuccess ?? true;
       const clamped = clampDateParts(next, minYear, maxYear);
       const validationMessage = validateDateParts(clamped);
       setValue(clamped);
-      syncDraft(toDraft(clamped));
+      if (shouldSyncDraft) {
+        syncDraft(toDraft(clamped));
+      }
       setErrorMessage(validationMessage);
       return !validationMessage;
     },
@@ -130,7 +133,10 @@ function DatePickerModalBase({
   );
 
   const commitDraft = useCallback(
-    (nextDraft: DateDraft) => {
+    (
+      nextDraft: DateDraft,
+      options?: { syncDraftOnSuccess?: boolean },
+    ) => {
       const year = Number(nextDraft.year);
       const month = Number(nextDraft.month);
       const day = Number(nextDraft.day);
@@ -162,7 +168,10 @@ function DatePickerModalBase({
       }
 
       setErrorMessage(null);
-      return applyValue({ year, month, day });
+      return applyValue(
+        { year, month, day },
+        { syncDraftOnSuccess: options?.syncDraftOnSuccess },
+      );
     },
     [applyValue],
   );
@@ -215,7 +224,7 @@ function DatePickerModalBase({
       const dayReady = nextDraft.day.length >= 1;
 
       if (yearReady && monthReady && dayReady) {
-        commitDraft(nextDraft);
+        commitDraft(nextDraft, { syncDraftOnSuccess: false });
       } else {
         setErrorMessage(null);
       }
@@ -230,16 +239,12 @@ function DatePickerModalBase({
 
   const handleInputBlur = useCallback(() => {
     setFocusedField(null);
-    const committed = commitDraft(draftRef.current);
-    if (!committed) {
-      syncDraft(toDraft(value));
-      setErrorMessage(null);
-    }
-  }, [commitDraft, syncDraft, value]);
+    commitDraft(draftRef.current, { syncDraftOnSuccess: false });
+  }, [commitDraft]);
 
   const handleConfirm = useCallback(() => {
     setFocusedField(null);
-    const committed = commitDraft(draftRef.current);
+    const committed = commitDraft(draftRef.current, { syncDraftOnSuccess: true });
     if (!committed) return;
     const nextDraft = draftRef.current;
     onConfirm(

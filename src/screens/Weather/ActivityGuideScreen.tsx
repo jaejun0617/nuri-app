@@ -12,6 +12,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import ActivityGuideHeroCard from '../../components/weather/ActivityGuideHeroCard';
+import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
 import {
@@ -19,6 +20,7 @@ import {
   type IndoorActivityKey,
 } from '../../services/weather/guide';
 import { usePetStore } from '../../store/petStore';
+import { openMoreDrawer } from '../../store/uiStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'ActivityGuide'>;
 
@@ -32,6 +34,7 @@ export default function ActivityGuideScreen() {
       params: {
         guideKey: IndoorActivityKey;
         district?: string;
+        entrySource?: 'home' | 'more';
       };
     }>();
   const guideKey = route.params?.guideKey ?? 'nosework';
@@ -46,6 +49,24 @@ export default function ActivityGuideScreen() {
     () => buildPetThemePalette(selectedPet?.themeColor),
     [selectedPet?.themeColor],
   );
+  const onPressBack = useEntryAwareBackAction({
+    entrySource: route.params?.entrySource,
+    onHome: () => {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'AppTabs', params: { screen: 'HomeTab' } }],
+      });
+    },
+    onMore: () => {
+      navigation.goBack();
+      requestAnimationFrame(() => {
+        openMoreDrawer();
+      });
+    },
+    onFallback: () => {
+      navigation.goBack();
+    },
+  });
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -54,7 +75,7 @@ export default function ActivityGuideScreen() {
           <TouchableOpacity
             activeOpacity={0.88}
             style={styles.backButton}
-            onPress={() => navigation.goBack()}
+            onPress={onPressBack}
           >
             <Feather name="arrow-left" size={20} color="#102033" />
           </TouchableOpacity>
@@ -123,6 +144,7 @@ export default function ActivityGuideScreen() {
               navigation.navigate('WeatherActivityRecord', {
                 guideKey: guide.key,
                 district,
+                entrySource: route.params?.entrySource,
               });
             } catch {
               // noop
