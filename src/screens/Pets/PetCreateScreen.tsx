@@ -46,6 +46,7 @@ import type { RouteProp } from '@react-navigation/native';
 import Feather from 'react-native-vector-icons/Feather';
 
 import { ASSETS } from '../../assets';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import PhotoAddCard from '../../components/media/PhotoAddCard';
 import PetMemorialFields from '../../components/pets/PetMemorialFields';
@@ -727,6 +728,7 @@ export default function PetCreateScreen() {
   const [themeColor, setThemeColor] = useState<string | null>(null);
   const [createdPetName, setCreatedPetName] = useState<string | null>(null);
   const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [exitConfirmVisible, setExitConfirmVisible] = useState(false);
   const [dateModalTarget, setDateModalTarget] = useState<
     'birth' | 'adoption' | 'death' | null
   >(null);
@@ -1355,11 +1357,22 @@ export default function PetCreateScreen() {
     });
   }, [navigation]);
 
+  const onPressRequestExit = useCallback(() => {
+    if (!showStepOneExitButton || saving || successModalVisible) return;
+    setExitConfirmVisible(true);
+  }, [saving, showStepOneExitButton, successModalVisible]);
+
   useFocusEffect(
     useCallback(() => {
-      const sub = BackHandler.addEventListener('hardwareBackPress', () => true);
+      const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+        if (!showStepOneExitButton || saving || successModalVisible) {
+          return true;
+        }
+        setExitConfirmVisible(true);
+        return true;
+      });
       return () => sub.remove();
-    }, []),
+    }, [saving, showStepOneExitButton, successModalVisible]),
   );
 
   return (
@@ -1494,7 +1507,7 @@ export default function PetCreateScreen() {
                 <TouchableOpacity
                   activeOpacity={0.88}
                   style={styles.secondaryButton}
-                  onPress={onPressExitToPrevious}
+                  onPress={onPressRequestExit}
                 >
                   <Text style={styles.secondaryButtonText}>돌아가기</Text>
                 </TouchableOpacity>
@@ -1569,6 +1582,22 @@ export default function PetCreateScreen() {
         initialDate={dateModalInitialValue}
         onCancel={closeDateModal}
         onConfirm={onConfirmDateModal}
+      />
+      <ConfirmDialog
+        visible={exitConfirmVisible}
+        title="등록을 멈추고 나갈까요?"
+        message={
+          '입력 중인 내용은 임시 저장되어\n다음에 다시 이어서 작성할 수 있어요.'
+        }
+        cancelLabel="계속 작성하기"
+        confirmLabel="나가기"
+        tone="warning"
+        accentColor={selectedThemeColor}
+        onCancel={() => setExitConfirmVisible(false)}
+        onConfirm={() => {
+          setExitConfirmVisible(false);
+          onPressExitToPrevious();
+        }}
       />
     </SafeAreaView>
   );

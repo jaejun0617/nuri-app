@@ -33,6 +33,7 @@ import { useTheme } from 'styled-components/native';
 import Feather from 'react-native-vector-icons/Feather';
 
 import AppNavigationToolbar from '../../components/navigation/AppNavigationToolbar';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
   canChangeNickname,
@@ -527,6 +528,8 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [passwordModalVisible, setPasswordModalVisible] = useState(false);
   const [passwordDoneVisible, setPasswordDoneVisible] = useState(false);
+  const [logoutConfirmVisible, setLogoutConfirmVisible] = useState(false);
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [draftNickname, setDraftNickname] = useState('');
@@ -885,86 +888,73 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     }
   }, [confirmPassword, currentPassword, nextPassword, passwordSaving]);
 
-  const onPressLogout = useCallback(() => {
+  const executeLogout = useCallback(async () => {
     if (loading) return;
 
-    Alert.alert(
-      '로그아웃할까요?',
-      '현재 기기에서만 로그아웃되며, 다시 로그인하면 이어서 사용할 수 있어요.',
-      [
-        { text: '계속 머무르기', style: 'cancel' },
-        {
-          text: '로그아웃',
-          onPress: async () => {
-            try {
-              setLoading(true);
-              const result = await performLogout(1200);
+    try {
+      setLoading(true);
+      setLogoutConfirmVisible(false);
+      const result = await performLogout(1200);
 
-              onRequestClose();
-              navigation.reset({ index: 0, routes: [{ name: 'AppTabs' }] });
-              showToast({
-                tone: 'success',
-                title: '로그아웃 완료',
-                message: result.timedOut
-                  ? '이 기기에서는 바로 로그아웃되었어요. 서버 세션 정리는 잠시 이어질 수 있어요.'
-                  : '안전하게 로그아웃되었어요.',
-              });
-            } catch (error) {
-              const { title, message } = getBrandedErrorMeta(error, 'logout');
-              Alert.alert(title, message);
-              showToast({ tone: 'error', title, message });
-            } finally {
-              setLoading(false);
-            }
-          },
-        },
-      ],
-    );
+      onRequestClose();
+      navigation.reset({ index: 0, routes: [{ name: 'AppTabs' }] });
+      showToast({
+        tone: 'success',
+        title: '로그아웃 완료',
+        message: result.timedOut
+          ? '이 기기에서는 바로 로그아웃되었어요.\n서버 세션 정리는 잠시 이어질 수 있어요.'
+          : '안전하게 로그아웃되었어요.',
+      });
+    } catch (error) {
+      const { title, message } = getBrandedErrorMeta(error, 'logout');
+      Alert.alert(title, message);
+      showToast({ tone: 'error', title, message });
+    } finally {
+      setLoading(false);
+    }
   }, [loading, navigation, onRequestClose]);
+
+  const onPressLogout = useCallback(() => {
+    if (loading) return;
+    setLogoutConfirmVisible(true);
+  }, [loading]);
+
+  const executeDeleteAccount = useCallback(async () => {
+    if (!isLoggedIn || deleting) return;
+
+    try {
+      setDeleting(true);
+      setDeleteConfirmVisible(false);
+      await performAccountDeletion();
+      onRequestClose();
+      navigation.reset({ index: 0, routes: [{ name: 'AppTabs' }] });
+      showToast({
+        tone: 'warning',
+        title: '계정 삭제 완료',
+        message: '계정과 연결된 로컬 상태를 정리했어요.',
+        durationMs: 3000,
+      });
+    } catch (error) {
+      const { title, message } = getBrandedErrorMeta(
+        error,
+        'account-delete',
+      );
+      Alert.alert(title, message);
+      showToast({
+        tone: 'error',
+        title,
+        message,
+        durationMs: 3200,
+      });
+    } finally {
+      setDeleting(false);
+    }
+  }, [deleting, isLoggedIn, navigation, onRequestClose]);
 
   const onPressDeleteAccount = useCallback(() => {
     if (!isLoggedIn || deleting) return;
-
-    Alert.alert(
-      '회원탈퇴를 진행할까요?',
-      '반려동물 정보, 기록, 일정, 계정 정보가 함께 삭제되며 이후에는 되돌릴 수 없어요.',
-      [
-        { text: '계속 유지하기', style: 'cancel' },
-        {
-          text: '회원탈퇴',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setDeleting(true);
-              await performAccountDeletion();
-              onRequestClose();
-              navigation.reset({ index: 0, routes: [{ name: 'AppTabs' }] });
-              showToast({
-                tone: 'warning',
-                title: '계정 삭제 완료',
-                message: '계정과 연결된 로컬 상태를 정리했어요.',
-                durationMs: 3000,
-              });
-            } catch (error) {
-              const { title, message } = getBrandedErrorMeta(
-                error,
-                'account-delete',
-              );
-              Alert.alert(title, message);
-              showToast({
-                tone: 'error',
-                title,
-                message,
-                durationMs: 3200,
-              });
-            } finally {
-              setDeleting(false);
-            }
-          },
-        },
-      ],
-    );
-  }, [deleting, isLoggedIn, navigation, onRequestClose]);
+    setDeleteConfirmVisible(true);
+  }, [deleting, isLoggedIn]);
 
   const onPressLogin = useCallback(() => {
     closeAndNavigate(() => navigation.navigate('SignIn'));
@@ -1356,6 +1346,34 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         visible={passwordDoneVisible}
         accentColor={petTheme.primary}
         onClose={closePasswordDoneModal}
+      />
+      <ConfirmDialog
+        visible={logoutConfirmVisible}
+        title="로그아웃할까요?"
+        message={'현재 기기에서만 로그아웃되며,\n다시 로그인하면 이어서 사용할 수 있어요.'}
+        cancelLabel="계속 머무르기"
+        confirmLabel={loading ? '로그아웃 중...' : '로그아웃'}
+        tone="warning"
+        accentColor={petTheme.primary}
+        onCancel={() => setLogoutConfirmVisible(false)}
+        onConfirm={() => {
+          executeLogout().catch(() => {});
+        }}
+      />
+      <ConfirmDialog
+        visible={deleteConfirmVisible}
+        title="회원탈퇴를 진행할까요?"
+        message={
+          '반려동물 정보, 기록, 일정, 계정 정보가 함께 삭제되며\n이후에는 되돌릴 수 없어요.'
+        }
+        cancelLabel="계속 유지하기"
+        confirmLabel={deleting ? '회원탈퇴 처리 중...' : '회원탈퇴'}
+        tone="danger"
+        accentColor={petTheme.primary}
+        onCancel={() => setDeleteConfirmVisible(false)}
+        onConfirm={() => {
+          executeDeleteAccount().catch(() => {});
+        }}
       />
     </SafeAreaView>
   );

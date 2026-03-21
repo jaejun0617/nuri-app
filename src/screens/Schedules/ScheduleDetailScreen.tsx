@@ -4,7 +4,7 @@
 // - 서버 단건 조회 결과를 기준으로 상세 카드와 메타 정보를 렌더링
 // - 변경 후에는 schedule store를 갱신해 홈/목록과의 상태 일관성을 유지
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -16,10 +16,12 @@ import Feather from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import AppText from '../../app/ui/AppText';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
 import { createLatestRequestController } from '../../services/app/async';
 import { getErrorMessage } from '../../services/app/errors';
+import { buildPetThemePalette } from '../../services/pets/themePalette';
 import {
   deleteSchedule,
   fetchScheduleById,
@@ -35,6 +37,7 @@ import {
   getScheduleColorPalette,
   mapScheduleIconName,
 } from '../../services/schedules/presentation';
+import { usePetStore } from '../../store/petStore';
 import { useScheduleStore } from '../../store/scheduleStore';
 import { styles } from './ScheduleDetailScreen.styles';
 
@@ -73,10 +76,20 @@ export default function ScheduleDetailScreen() {
   const { petId, scheduleId } = route.params;
 
   const refresh = useScheduleStore(s => s.refresh);
+  const pets = usePetStore(s => s.pets);
 
   const [schedule, setSchedule] = useState<PetSchedule | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const selectedPet = useMemo(
+    () => pets.find(candidate => candidate.id === petId) ?? pets[0] ?? null,
+    [petId, pets],
+  );
+  const petTheme = useMemo(
+    () => buildPetThemePalette(selectedPet?.themeColor),
+    [selectedPet?.themeColor],
+  );
 
   useEffect(() => {
     const request = createLatestRequestController();
@@ -113,28 +126,23 @@ export default function ScheduleDetailScreen() {
 
   const onPressDelete = useCallback(() => {
     if (deleting) return;
+    setDeleteConfirmVisible(true);
+  }, [deleting]);
 
-    Alert.alert('일정 삭제', '이 일정을 삭제할까요?', [
-      { text: '취소', style: 'cancel' },
-      {
-        text: '삭제',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            setDeleting(true);
-            await deleteSchedule(scheduleId);
-            clearScheduleNotification(scheduleId);
-            if (petId) await refresh(petId);
-            navigation.replace('ScheduleList', { petId });
-          } catch (error: unknown) {
-            Alert.alert('삭제 실패', getErrorMessage(error));
-          } finally {
-            setDeleting(false);
-          }
-        },
-      },
-    ]);
-  }, [deleting, navigation, petId, refresh, scheduleId]);
+  const executeDelete = useCallback(async () => {
+    try {
+      setDeleting(true);
+      setDeleteConfirmVisible(false);
+      await deleteSchedule(scheduleId);
+      clearScheduleNotification(scheduleId);
+      if (petId) await refresh(petId);
+      navigation.replace('ScheduleList', { petId });
+    } catch (error: unknown) {
+      Alert.alert('삭제 실패', getErrorMessage(error));
+    } finally {
+      setDeleting(false);
+    }
+  }, [navigation, petId, refresh, scheduleId]);
 
   const onToggleComplete = useCallback(async () => {
     if (!schedule) return;
@@ -338,6 +346,19 @@ export default function ScheduleDetailScreen() {
           </View>
         )}
       </ScrollView>
+      <ConfirmDialog
+        visible={deleteConfirmVisible}
+        title="일정을 삭제할까요?"
+        message={'이 일정은 목록과 홈 카드에서 함께 사라지며\n삭제 후에는 다시 되돌릴 수 없어요.'}
+        cancelLabel="계속 유지하기"
+        confirmLabel={deleting ? '삭제 중...' : '일정 삭제'}
+        tone="danger"
+        accentColor={petTheme.primary}
+        onCancel={() => setDeleteConfirmVisible(false)}
+        onConfirm={() => {
+          executeDelete().catch(() => {});
+        }}
+      />
     </SafeAreaView>
   );
 }

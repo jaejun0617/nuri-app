@@ -9,13 +9,16 @@ import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
+import ConfirmDialog from '../../components/common/ConfirmDialog';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { getBrandedErrorMeta } from '../../services/app/errors';
 import {
   performAccountDeletion,
   performLogout,
 } from '../../services/auth/session';
+import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { useAuthStore } from '../../store/authStore';
+import { usePetStore } from '../../store/petStore';
 import { showToast } from '../../store/uiStore';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -36,6 +39,16 @@ export default function MoreScreen() {
   // 3) derived
   // ---------------------------------------------------------
   const nickname = useMemo(() => nicknameRaw?.trim() || null, [nicknameRaw]);
+  const pets = usePetStore(s => s.pets);
+  const selectedPetId = usePetStore(s => s.selectedPetId);
+  const selectedPet = useMemo(
+    () => pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
+    [pets, selectedPetId],
+  );
+  const petTheme = useMemo(
+    () => buildPetThemePalette(selectedPet?.themeColor),
+    [selectedPet?.themeColor],
+  );
   const title = useMemo(() => {
     if (status === 'logged_in') return nickname ? `${nickname}님` : '로그인됨';
     return '게스트';
@@ -43,11 +56,13 @@ export default function MoreScreen() {
 
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [logoutConfirmVisible, setLogoutConfirmVisible] = useState(false);
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
 
   // ---------------------------------------------------------
   // 4) actions
   // ---------------------------------------------------------
-  const onPressLogout = async () => {
+  const executeLogout = async () => {
     if (loading) return;
 
     try {
@@ -59,8 +74,8 @@ export default function MoreScreen() {
         tone: 'success',
         title: '로그아웃 완료',
         message: result.timedOut
-          ? '기기에서는 바로 로그아웃됐어요. 서버 세션 정리는 잠시 뒤 이어집니다.'
-          : '안전하게 로그아웃했어요.',
+          ? '이 기기에서는 바로 로그아웃되었어요.\n서버 세션 정리는 잠시 이어질 수 있어요.'
+          : '안전하게 로그아웃되었어요.',
       });
     } catch (error: unknown) {
       const { title: alertTitle, message } = getBrandedErrorMeta(
@@ -73,48 +88,42 @@ export default function MoreScreen() {
       setLoading(false);
     }
   };
+  const onPressLogout = () => {
+    if (loading) return;
+    setLogoutConfirmVisible(true);
+  };
 
+  const executeDeleteAccount = async () => {
+    if (!isLoggedIn || deleting) return;
+    try {
+      setDeleting(true);
+      await performAccountDeletion();
+      navigation.reset({ index: 0, routes: [{ name: 'AppTabs' }] });
+      showToast({
+        tone: 'warning',
+        title: '계정 삭제 완료',
+        message: '계정과 연결된 로컬 상태를 모두 정리했어요.',
+        durationMs: 3000,
+      });
+    } catch (error) {
+      const { title: alertTitle, message } = getBrandedErrorMeta(
+        error,
+        'account-delete',
+      );
+      Alert.alert(alertTitle, message);
+      showToast({
+        tone: 'error',
+        title: alertTitle,
+        message,
+        durationMs: 3200,
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
   const onPressDeleteAccount = () => {
     if (!isLoggedIn || deleting) return;
-
-    Alert.alert(
-      '계정을 삭제할까요?',
-      '반려동물, 기록, 일정, 동의 이력이 함께 삭제됩니다. 이 작업은 되돌릴 수 없습니다.',
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '삭제',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setDeleting(true);
-              await performAccountDeletion();
-              navigation.reset({ index: 0, routes: [{ name: 'AppTabs' }] });
-              showToast({
-                tone: 'warning',
-                title: '계정 삭제 완료',
-                message: '계정과 연결된 로컬 상태를 모두 정리했어요.',
-                durationMs: 3000,
-              });
-            } catch (error) {
-              const { title: alertTitle, message } = getBrandedErrorMeta(
-                error,
-                'account-delete',
-              );
-              Alert.alert(alertTitle, message);
-              showToast({
-                tone: 'error',
-                title: alertTitle,
-                message,
-                durationMs: 3200,
-              });
-            } finally {
-              setDeleting(false);
-            }
-          },
-        },
-      ],
-    );
+    setDeleteConfirmVisible(true);
   };
 
   const onPressLogin = () => {
@@ -216,6 +225,36 @@ export default function MoreScreen() {
           </TouchableOpacity>
         ) : null}
       </View>
+      <ConfirmDialog
+        visible={logoutConfirmVisible}
+        title="로그아웃할까요?"
+        message={'현재 기기에서만 로그아웃되며,\n다시 로그인하면 이어서 사용할 수 있어요.'}
+        cancelLabel="계속 머무르기"
+        confirmLabel={loading ? '로그아웃 중...' : '로그아웃'}
+        tone="warning"
+        accentColor={petTheme.primary}
+        onCancel={() => setLogoutConfirmVisible(false)}
+        onConfirm={() => {
+          setLogoutConfirmVisible(false);
+          executeLogout().catch(() => {});
+        }}
+      />
+      <ConfirmDialog
+        visible={deleteConfirmVisible}
+        title="회원탈퇴를 진행할까요?"
+        message={
+          '반려동물 정보, 기록, 일정, 계정 정보가 함께 삭제되며\n이후에는 되돌릴 수 없어요.'
+        }
+        cancelLabel="계속 유지하기"
+        confirmLabel={deleting ? '회원탈퇴 처리 중...' : '회원탈퇴'}
+        tone="danger"
+        accentColor={petTheme.primary}
+        onCancel={() => setDeleteConfirmVisible(false)}
+        onConfirm={() => {
+          setDeleteConfirmVisible(false);
+          executeDeleteAccount().catch(() => {});
+        }}
+      />
     </View>
   );
 }
