@@ -3,6 +3,7 @@ import {
   deleteCommunityImageSafely,
   enqueueCommunityImageCleanup,
   uploadCommunityImage,
+  uploadCommunityImages,
 } from '../../services/supabase/storageCommunity';
 import type {
   CommunityPost,
@@ -15,11 +16,12 @@ type PetSnapshot = NonNullable<CreateCommunityPostParams['petSnapshot']>;
 
 type CreateSubmitDependencies = {
   userId: string;
+  title: string;
   content: string;
   category: CommunityPostCategory;
   petId: string | null;
   petSnapshot: PetSnapshot | null;
-  pickedImage: PickedPhotoAsset | null;
+  pickedImages: PickedPhotoAsset[];
   submitPost: (params: CreateCommunityPostParams, userId: string) => Promise<CommunityPost>;
   editPost: (postId: string, params: UpdateCommunityPostParams) => Promise<void>;
   onImageUploadWarning: () => void;
@@ -28,6 +30,7 @@ type CreateSubmitDependencies = {
 type EditSubmitDependencies = {
   userId: string;
   postId: string;
+  title: string;
   content: string;
   category: CommunityPostCategory;
   petId: string | null;
@@ -46,34 +49,55 @@ function isRemotePath(value: string | null | undefined) {
 export async function runCommunityCreateSubmitFlow(
   dependencies: CreateSubmitDependencies,
 ): Promise<CommunityPost> {
-  const post = await dependencies.submitPost(
-    {
-      content: dependencies.content,
-      category: dependencies.category,
-      petId: dependencies.petId,
-      imagePath: null,
-      petSnapshot: dependencies.petSnapshot,
-    },
-    dependencies.userId,
-  );
+  const initialImagePaths: string[] = [];
+  let post: CommunityPost;
+  try {
+    post = await dependencies.submitPost(
+      {
+        title: dependencies.title,
+        content: dependencies.content,
+        category: dependencies.category,
+        petId: dependencies.petId,
+        imagePath: null,
+        imagePaths: initialImagePaths,
+        petSnapshot: dependencies.petSnapshot,
+      },
+      dependencies.userId,
+    );
+  } catch (error) {
+    console.error('[CommunityCreate] posts-insert:failed', error);
+    throw error;
+  }
 
-  if (!dependencies.pickedImage) {
+  if (dependencies.pickedImages.length === 0) {
     return post;
   }
 
-  let uploadedImagePath: string | null = null;
+  let uploadedImagePaths: string[] = [];
   try {
-    uploadedImagePath = await uploadCommunityImage({
-      userId: dependencies.userId,
-      postId: post.id,
-      fileUri: dependencies.pickedImage.uri,
-      mimeType: dependencies.pickedImage.mimeType,
-    });
+    uploadedImagePaths = await uploadCommunityImages(
+      dependencies.pickedImages.map(image => ({
+        userId: dependencies.userId,
+        postId: post.id,
+        fileUri: image.uri,
+        mimeType: image.mimeType,
+      })),
+    );
+  } catch (error) {
+    console.error('[CommunityCreate] image-upload:failed', error);
+    dependencies.onImageUploadWarning();
+    return post;
+  }
 
-    await dependencies.editPost(post.id, { imagePath: uploadedImagePath });
-  } catch {
-    if (uploadedImagePath) {
-      await enqueueCommunityImageCleanup(uploadedImagePath);
+  try {
+    await dependencies.editPost(post.id, {
+      imagePath: uploadedImagePaths[0] ?? null,
+      imagePaths: uploadedImagePaths,
+    });
+  } catch (error) {
+    console.error('[CommunityCreate] image-urls-update:failed', error);
+    for (const path of uploadedImagePaths) {
+      await enqueueCommunityImageCleanup(path);
     }
     dependencies.onImageUploadWarning();
   }
@@ -99,6 +123,7 @@ export async function runCommunityEditSubmitFlow(
     }
 
     await dependencies.editPost(dependencies.postId, {
+      title: dependencies.title,
       content: dependencies.content,
       category: dependencies.category,
       petId: dependencies.petId,

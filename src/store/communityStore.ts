@@ -21,6 +21,7 @@ import {
   fetchCommunityComments,
   fetchCommunityPostById,
   fetchCommunityPosts,
+  toggleCommunityCommentLike,
   toggleCommunityPostLike,
   updateCommunityPost,
 } from '../services/supabase/community';
@@ -59,7 +60,13 @@ type CommunityStore = {
   editPost: (postId: string, params: UpdateCommunityPostParams) => Promise<void>;
   removePost: (postId: string) => Promise<void>;
   togglePostLike: (postId: string, userId: string) => Promise<void>;
-  submitComment: (postId: string, content: string, userId: string) => Promise<void>;
+  toggleCommentLike: (commentId: string, postId: string, userId: string) => Promise<void>;
+  submitComment: (
+    postId: string,
+    content: string,
+    userId: string,
+    parentCommentId?: string | null,
+  ) => Promise<void>;
   removeComment: (commentId: string, postId: string) => Promise<void>;
   reportContent: (
     targetType: 'post' | 'comment',
@@ -318,14 +325,20 @@ export const useCommunityStore = create<CommunityStore>((set, get) => ({
           : params.petSnapshot?.ageLabel ?? current.petAgeLabel;
 
     get().updatePostInCache(postId, {
+      title: params.title ?? current.title,
       content: params.content ?? current.content,
       category: params.category ?? current.category,
       petId: params.petId !== undefined ? params.petId : current.petId,
       imagePath: params.imagePath !== undefined ? params.imagePath : current.imagePath,
+      imagePaths:
+        params.imagePaths !== undefined ? params.imagePaths : current.imagePaths,
+      imageUrls: params.imagePaths !== undefined ? [] : current.imageUrls,
       hasImage:
-        params.imagePath !== undefined
-          ? `${params.imagePath ?? ''}`.trim().length > 0
-          : current.hasImage,
+        params.imagePaths !== undefined
+          ? params.imagePaths.some(path => `${path ?? ''}`.trim().length > 0)
+          : params.imagePath !== undefined
+            ? `${params.imagePath ?? ''}`.trim().length > 0
+            : current.hasImage,
       imageUrl: params.imagePath !== undefined ? null : current.imageUrl,
       petName: nextPetName,
       petBreed: nextPetBreed,
@@ -386,12 +399,73 @@ export const useCommunityStore = create<CommunityStore>((set, get) => ({
     }
   },
 
-  submitComment: async (postId, content, userId) => {
-    const comment = await createCommunityComment({ postId, content }, userId);
+  toggleCommentLike: async (commentId, postId, userId) => {
+    const comments = get().commentsByPostId[postId] ?? [];
+    const current = comments.find(comment => comment.id === commentId) ?? null;
+    if (!current) return;
+
+    const optimisticIsLiked = !current.isLikedByMe;
+    const optimisticLikeCount = optimisticIsLiked
+      ? current.likeCount + 1
+      : Math.max(current.likeCount - 1, 0);
+
     set(prev => ({
       commentsByPostId: {
         ...prev.commentsByPostId,
-        [postId]: [...(prev.commentsByPostId[postId] ?? []), comment],
+        [postId]: (prev.commentsByPostId[postId] ?? []).map(comment =>
+          comment.id === commentId
+            ? {
+                ...comment,
+                isLikedByMe: optimisticIsLiked,
+                likeCount: optimisticLikeCount,
+              }
+            : comment,
+        ),
+      },
+    }));
+
+    try {
+      await toggleCommunityCommentLike(commentId, userId, current.isLikedByMe);
+    } catch (error) {
+      set(prev => ({
+        commentsByPostId: {
+          ...prev.commentsByPostId,
+          [postId]: (prev.commentsByPostId[postId] ?? []).map(comment =>
+            comment.id === commentId
+              ? {
+                  ...comment,
+                  isLikedByMe: current.isLikedByMe,
+                  likeCount: current.likeCount,
+                }
+              : comment,
+          ),
+        },
+      }));
+      throw error;
+    }
+  },
+
+  submitComment: async (postId, content, userId, parentCommentId) => {
+    const comment = await createCommunityComment(
+      { postId, content, parentCommentId: parentCommentId ?? null },
+      userId,
+    );
+    set(prev => ({
+      commentsByPostId: {
+        ...prev.commentsByPostId,
+        [postId]: ((): CommunityComment[] => {
+          const currentComments = prev.commentsByPostId[postId] ?? [];
+          const nextComments = [...currentComments, comment];
+          if (!comment.parentCommentId) {
+            return nextComments;
+          }
+
+          return nextComments.map(item =>
+            item.id === comment.parentCommentId
+              ? { ...item, replyCount: item.replyCount + 1 }
+              : item,
+          );
+        })(),
       },
       commentsStatusByPostId: {
         ...prev.commentsStatusByPostId,
@@ -415,29 +489,68 @@ export const useCommunityStore = create<CommunityStore>((set, get) => ({
   },
 
   removeComment: async (commentId, postId) => {
-    await deleteCommunityComment(commentId);
-    set(prev => ({
-      commentsByPostId: {
-        ...prev.commentsByPostId,
-        [postId]: (prev.commentsByPostId[postId] ?? []).filter(
-          comment => comment.id !== commentId,
-        ),
-      },
-      postsById: prev.postsById[postId]
-        ? {
-            ...prev.postsById,
-            [postId]: {
-              ...prev.postsById[postId],
-              commentCount: Math.max(prev.postsById[postId].commentCount - 1, 0),
-            },
+    set(prev => {
+      const currentComments = prev.commentsByPostId[postId] ?? [];
+      const target = currentComments.find(comment => comment.id === commentId) ?? null;
+      const removedCommentIds = new Set<string>([commentId]);
+
+      if (target && target.parentCommentId === null) {
+        currentComments.forEach(comment => {
+          if (comment.parentCommentId === target.id) {
+            removedCommentIds.add(comment.id);
           }
-        : prev.postsById,
-      posts: prev.posts.map(post =>
-        post.id === postId
-          ? { ...post, commentCount: Math.max(post.commentCount - 1, 0) }
-          : post,
-      ),
-    }));
+        });
+      }
+
+      const removedCount = removedCommentIds.size;
+      const filteredComments = currentComments.filter(
+        comment => !removedCommentIds.has(comment.id),
+      );
+
+      return {
+        commentsByPostId: {
+          ...prev.commentsByPostId,
+          [postId]:
+            target?.parentCommentId
+              ? filteredComments.map(comment =>
+                  comment.id === target.parentCommentId
+                    ? {
+                        ...comment,
+                        replyCount: Math.max(comment.replyCount - 1, 0),
+                      }
+                    : comment,
+                )
+              : filteredComments,
+        },
+        postsById: prev.postsById[postId]
+          ? {
+              ...prev.postsById,
+              [postId]: {
+                ...prev.postsById[postId],
+                commentCount: Math.max(
+                  prev.postsById[postId].commentCount - removedCount,
+                  0,
+                ),
+              },
+            }
+          : prev.postsById,
+        posts: prev.posts.map(post =>
+          post.id === postId
+            ? {
+                ...post,
+                commentCount: Math.max(post.commentCount - removedCount, 0),
+              }
+            : post,
+        ),
+      };
+    });
+
+    try {
+      await deleteCommunityComment(commentId);
+    } catch (error) {
+      await get().fetchPostComments(postId);
+      throw error;
+    }
   },
 
   reportContent: async (targetType, targetId, reasonCategory, reason, reporterId) => {

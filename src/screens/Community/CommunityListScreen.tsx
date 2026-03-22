@@ -1,6 +1,15 @@
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   ActivityIndicator,
+  Animated,
+  Easing,
   FlatList,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -11,14 +20,17 @@ import {
   View,
   type ListRenderItem,
 } from 'react-native';
-import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
+import {
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
-import HeaderIconActionButton from '../../components/navigation/HeaderIconActionButton';
 import { useCommunityAuth } from '../../hooks/useCommunityAuth';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -27,7 +39,11 @@ import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { useCommunityStore } from '../../store/communityStore';
 import { usePetStore } from '../../store/petStore';
 import { openMoreDrawer, showToast } from '../../store/uiStore';
-import type { CommunityPost, CommunityPostCategory } from '../../types/community';
+import type {
+  CommunityComment,
+  CommunityPost,
+  CommunityPostCategory,
+} from '../../types/community';
 import PostCard from './components/PostCard';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'CommunityList'>;
@@ -48,10 +64,7 @@ const CATEGORY_CHIPS: CategoryChip[] = [
 ];
 
 const keyExtractor = (item: CommunityPost) => item.id;
-
-const ItemSeparator = memo(function ItemSeparator() {
-  return <View style={styles.itemSeparator} />;
-});
+const EMPTY_COMMENTS: ReadonlyArray<CommunityComment> = [];
 
 const ListFooterLoading = memo(function ListFooterLoading() {
   return (
@@ -61,13 +74,82 @@ const ListFooterLoading = memo(function ListFooterLoading() {
   );
 });
 
+type CategoryChipButtonProps = {
+  chip: CategoryChip;
+  isActive: boolean;
+  activeColor: string;
+  onPress: (category: CommunityPostCategory | null) => void;
+};
+
+const CategoryChipButton = memo(function CategoryChipButton({
+  chip,
+  isActive,
+  activeColor,
+  onPress,
+}: CategoryChipButtonProps) {
+  const underlineProgress = useRef(new Animated.Value(isActive ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.timing(underlineProgress, {
+      toValue: isActive ? 1 : 0,
+      duration: 180,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [isActive, underlineProgress]);
+
+  const handlePress = useCallback(() => {
+    onPress(chip.value);
+  }, [chip.value, onPress]);
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.88}
+      style={styles.categoryChip}
+      onPress={handlePress}
+    >
+      <AppText
+        preset="caption"
+        style={[
+          styles.categoryChipText,
+          isActive
+            ? [styles.categoryChipTextActive, { color: activeColor }]
+            : { color: '#8A8A8A' },
+        ]}
+      >
+        {chip.label}
+      </AppText>
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.categoryChipUnderline,
+          {
+            backgroundColor: activeColor,
+            opacity: underlineProgress,
+            transform: [
+              {
+                scaleX: underlineProgress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.35, 1],
+                }),
+              },
+            ],
+          },
+        ]}
+      />
+    </TouchableOpacity>
+  );
+});
+
 export default function CommunityListScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const flatListRef = useRef<FlatList<CommunityPost> | null>(null);
-  const pendingCategoryTransitionRef = useRef<CommunityPostCategory | null | 'all'>(null);
+  const pendingCategoryTransitionRef = useRef<
+    CommunityPostCategory | null | 'all'
+  >(null);
 
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
@@ -86,9 +168,12 @@ export default function CommunityListScreen() {
   const hasMore = useCommunityStore(s => s.hasMore);
   const activeCategory = useCommunityStore(s => s.activeCategory);
   const lastFetchedAt = useCommunityStore(s => s.lastFetchedAt);
+  const commentsByPostId = useCommunityStore(s => s.commentsByPostId);
+  const commentsStatusByPostId = useCommunityStore(s => s.commentsStatusByPostId);
   const fetchPosts = useCommunityStore(s => s.fetchPosts);
   const refreshPosts = useCommunityStore(s => s.refreshPosts);
   const loadMorePosts = useCommunityStore(s => s.loadMorePosts);
+  const fetchPostComments = useCommunityStore(s => s.fetchPostComments);
   const togglePostLike = useCommunityStore(s => s.togglePostLike);
 
   const [showTopButton, setShowTopButton] = useState(false);
@@ -214,16 +299,34 @@ export default function CommunityListScreen() {
     [currentUserId, requireLogin, togglePostLike],
   );
 
+  useEffect(() => {
+    posts.forEach(post => {
+      if (post.commentCount <= 0) return;
+      const comments = commentsByPostId[post.id] ?? EMPTY_COMMENTS;
+      const commentsStatus = commentsStatusByPostId[post.id] ?? 'idle';
+      if (comments.length > 0) return;
+      if (commentsStatus !== 'idle') return;
+      fetchPostComments(post.id).catch(() => {});
+    });
+  }, [commentsByPostId, commentsStatusByPostId, fetchPostComments, posts]);
+
   const renderItem = useCallback<ListRenderItem<CommunityPost>>(
-    ({ item }) => (
-      <PostCard
-        post={item}
-        onPressPost={handlePressPost}
-        onPressLike={handlePressLike}
-        relativeTimeTick={relativeTimeTick}
-      />
-    ),
-    [handlePressLike, handlePressPost, relativeTimeTick],
+    ({ item }) => {
+      const comments = commentsByPostId[item.id] ?? EMPTY_COMMENTS;
+      const latestComment =
+        comments.length > 0 ? comments[comments.length - 1] : null;
+
+      return (
+        <PostCard
+          post={item}
+          latestComment={latestComment}
+          onPressPost={handlePressPost}
+          onPressLike={handlePressLike}
+          relativeTimeTick={relativeTimeTick}
+        />
+      );
+    },
+    [commentsByPostId, handlePressLike, handlePressPost, relativeTimeTick],
   );
 
   const isCategoryTransitioning =
@@ -233,45 +336,21 @@ export default function CommunityListScreen() {
   const listHeader = useMemo(
     () => (
       <View style={styles.listHeader}>
-        <View style={styles.titleBlock}>
-          <AppText preset="headline" style={[styles.headline, { color: theme.colors.textPrimary }]}>
-            반려동물 이야기를 함께 나눠요
-          </AppText>
-          <AppText preset="caption" style={[styles.subHeadline, { color: theme.colors.textMuted }]}>
-            텍스트 중심으로 빠르게 훑고, 자세한 내용은 상세에서 확인해 보세요.
-          </AppText>
-        </View>
-        <View style={styles.categoryRow}>
+        <View
+          style={[
+            styles.categoryRow,
+            { borderBottomColor: theme.colors.border },
+          ]}
+        >
           {CATEGORY_CHIPS.map(chip => {
-            const isActive = chip.value === activeCategory;
             return (
-              <TouchableOpacity
+              <CategoryChipButton
                 key={chip.key}
-                activeOpacity={0.88}
-                style={[
-                  styles.categoryChip,
-                  isActive
-                    ? {
-                        backgroundColor: petTheme.primary,
-                        borderColor: petTheme.primary,
-                      }
-                    : {
-                        backgroundColor: theme.colors.surfaceElevated,
-                        borderColor: theme.colors.border,
-                      },
-                ]}
-                onPress={() => handlePressCategory(chip.value)}
-              >
-                <AppText
-                  preset="caption"
-                  style={[
-                    styles.categoryChipText,
-                    { color: isActive ? petTheme.onPrimary : theme.colors.textMuted },
-                  ]}
-                >
-                  {chip.label}
-                </AppText>
-              </TouchableOpacity>
+                chip={chip}
+                isActive={chip.value === activeCategory}
+                activeColor={petTheme.primary}
+                onPress={handlePressCategory}
+              />
             );
           })}
         </View>
@@ -280,22 +359,48 @@ export default function CommunityListScreen() {
             <ActivityIndicator size="small" color={petTheme.primary} />
             <AppText
               preset="caption"
-              style={[styles.categoryLoadingText, { color: theme.colors.textMuted }]}
+              style={[
+                styles.categoryLoadingText,
+                { color: theme.colors.textMuted },
+              ]}
             >
               목록을 바꾸는 중이에요
             </AppText>
           </View>
         ) : null}
+        <View style={styles.sectionHeader}>
+          <View style={styles.sectionHeaderTextBlock}>
+            <View style={styles.sectionHeaderTitleRow}>
+              <AppText
+                preset="caption"
+                style={[styles.sectionHeaderLabel, { color: theme.colors.textPrimary }]}
+              >
+                최근 글
+              </AppText>
+              <AppText
+                preset="caption"
+                style={[styles.sectionHeaderCount, { color: theme.colors.textMuted }]}
+              >
+                {posts.length}개
+              </AppText>
+            </View>
+            <AppText
+              preset="caption"
+              style={[styles.headline, { color: '#000000' }]}
+            >
+              반려생활 이야기를 나눠보세요 :)
+            </AppText>
+          </View>
+        </View>
       </View>
     ),
     [
       activeCategory,
       handlePressCategory,
       isCategoryTransitioning,
-      petTheme.onPrimary,
+      posts.length,
       petTheme.primary,
       theme.colors.border,
-      theme.colors.surfaceElevated,
       theme.colors.textMuted,
       theme.colors.textPrimary,
     ],
@@ -304,13 +409,24 @@ export default function CommunityListScreen() {
   const emptyComponent = useMemo(
     () => (
       <View style={styles.emptyWrap}>
-        <View style={[styles.emptyIcon, { backgroundColor: `${petTheme.primary}14` }]}>
+        <View
+          style={[
+            styles.emptyIcon,
+            { backgroundColor: `${petTheme.primary}14` },
+          ]}
+        >
           <Feather name="message-circle" size={22} color={petTheme.primary} />
         </View>
-        <AppText preset="headline" style={[styles.emptyTitle, { color: theme.colors.textPrimary }]}>
+        <AppText
+          preset="headline"
+          style={[styles.emptyTitle, { color: theme.colors.textPrimary }]}
+        >
           아직 게시글이 없어요
         </AppText>
-        <AppText preset="body" style={[styles.emptyBody, { color: theme.colors.textMuted }]}>
+        <AppText
+          preset="body"
+          style={[styles.emptyBody, { color: theme.colors.textMuted }]}
+        >
           첫 번째로 공유해 보세요!
         </AppText>
         <TouchableOpacity
@@ -318,8 +434,11 @@ export default function CommunityListScreen() {
           style={[styles.emptyButton, { backgroundColor: petTheme.primary }]}
           onPress={handlePressCreate}
         >
-          <AppText preset="body" style={[styles.emptyButtonText, { color: petTheme.onPrimary }]}>
-            글 작성은 곧 열릴 예정이에요
+          <AppText
+            preset="body"
+            style={[styles.emptyButtonText, { color: petTheme.onPrimary }]}
+          >
+            첫 글 작성하기
           </AppText>
         </TouchableOpacity>
       </View>
@@ -337,9 +456,9 @@ export default function CommunityListScreen() {
     if (listStatus !== 'loadingMore') return null;
     return <ListFooterLoading />;
   }, [listStatus]);
-
   const refreshing = listStatus === 'refreshing';
-  const isInitialLoading = (listStatus === 'idle' || listStatus === 'loading') && posts.length === 0;
+  const isInitialLoading =
+    (listStatus === 'idle' || listStatus === 'loading') && posts.length === 0;
   const isError = listStatus === 'error' && posts.length === 0;
 
   useEffect(() => {
@@ -366,7 +485,11 @@ export default function CommunityListScreen() {
             onPress={handlePressBack}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Feather name="arrow-left" size={20} color={theme.colors.textPrimary} />
+            <Feather
+              name="arrow-left"
+              size={20}
+              color={theme.colors.textPrimary}
+            />
           </TouchableOpacity>
         </View>
 
@@ -378,14 +501,7 @@ export default function CommunityListScreen() {
           커뮤니티
         </AppText>
 
-        <View style={[styles.headerSide, styles.headerRight]}>
-          <HeaderIconActionButton
-            accessibilityLabel="새 게시글"
-            backgroundColor={petTheme.primary}
-            iconColor={petTheme.onPrimary}
-            onPress={handlePressCreate}
-          />
-        </View>
+        <View style={[styles.headerSide, styles.headerRight]} />
       </View>
 
       {isInitialLoading ? (
@@ -394,10 +510,16 @@ export default function CommunityListScreen() {
         </View>
       ) : isError ? (
         <View style={styles.centerState}>
-          <AppText preset="headline" style={[styles.errorTitle, { color: theme.colors.textPrimary }]}>
+          <AppText
+            preset="headline"
+            style={[styles.errorTitle, { color: theme.colors.textPrimary }]}
+          >
             게시글을 불러오지 못했어요
           </AppText>
-          <AppText preset="body" style={[styles.errorBody, { color: theme.colors.textMuted }]}>
+          <AppText
+            preset="body"
+            style={[styles.errorBody, { color: theme.colors.textMuted }]}
+          >
             {listErrorMessage ?? '잠시 후 다시 시도해 주세요.'}
           </AppText>
           <TouchableOpacity
@@ -405,7 +527,10 @@ export default function CommunityListScreen() {
             style={[styles.retryButton, { backgroundColor: petTheme.primary }]}
             onPress={handleRetry}
           >
-            <AppText preset="body" style={[styles.retryButtonText, { color: petTheme.onPrimary }]}>
+            <AppText
+              preset="body"
+              style={[styles.retryButtonText, { color: petTheme.onPrimary }]}
+            >
               다시 시도
             </AppText>
           </TouchableOpacity>
@@ -427,7 +552,6 @@ export default function CommunityListScreen() {
             onScroll={handleScroll}
             scrollEventThrottle={16}
             showsVerticalScrollIndicator={false}
-            ItemSeparatorComponent={ItemSeparator}
             ListHeaderComponent={listHeader}
             ListEmptyComponent={emptyComponent}
             ListFooterComponent={footerComponent}
@@ -447,19 +571,38 @@ export default function CommunityListScreen() {
             ]}
           />
 
+          <Pressable
+            android_ripple={{ color: `${petTheme.onPrimary}18` }}
+            style={[
+              styles.createFab,
+              {
+                backgroundColor: petTheme.primary,
+                bottom: Math.max(insets.bottom + 76, 92),
+              },
+            ]}
+            onPress={handlePressCreate}
+          >
+            <Feather name="edit-3" size={18} color={petTheme.onPrimary} />
+          </Pressable>
+
           {showTopButton ? (
             <Pressable
               android_ripple={{ color: `${petTheme.onPrimary}22` }}
               style={[
                 styles.topButton,
                 {
-                  backgroundColor: petTheme.primary,
+                  backgroundColor: theme.colors.surfaceElevated,
                   bottom: Math.max(insets.bottom + 18, 28),
+                  borderColor: theme.colors.border,
                 },
               ]}
               onPress={handlePressTop}
             >
-              <Feather name="arrow-up" size={18} color={petTheme.onPrimary} />
+              <Feather
+                name="arrow-up"
+                size={18}
+                color={theme.colors.textPrimary}
+              />
             </Pressable>
           ) : null}
         </View>
@@ -526,7 +669,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     flexGrow: 1,
-    paddingHorizontal: 20,
   },
   listWrap: {
     flex: 1,
@@ -535,21 +677,19 @@ const styles = StyleSheet.create({
     paddingTop: 6,
     paddingBottom: 16,
   },
-  titleBlock: {
-    gap: 4,
-    marginBottom: 14,
-  },
   headline: {
-    lineHeight: 30,
-  },
-  subHeadline: {
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '700',
   },
   categoryRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 12,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
   },
   categoryLoadingWrap: {
     flexDirection: 'row',
@@ -563,22 +703,55 @@ const styles = StyleSheet.create({
   },
   categoryChip: {
     minHeight: 34,
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 14,
+    borderRadius: 0,
+    paddingHorizontal: 16,
+    paddingBottom: 3,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
   },
   categoryChipText: {
+    fontSize: 13,
     fontWeight: '700',
   },
-  itemSeparator: {
-    height: 12,
+  categoryChipTextActive: {
+    fontWeight: '800',
+    letterSpacing: -0.2,
+  },
+  categoryChipUnderline: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 3,
+  },
+  sectionHeader: {
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    paddingBottom: 6,
+  },
+  sectionHeaderTextBlock: {
+    gap: 4,
+  },
+  sectionHeaderTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  sectionHeaderLabel: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '700',
+  },
+  sectionHeaderCount: {
+    fontSize: 11,
+    lineHeight: 16,
   },
   emptyWrap: {
     alignItems: 'center',
     paddingTop: 48,
-    paddingHorizontal: 12,
+    paddingHorizontal: 24,
   },
   emptyIcon: {
     width: 54,
@@ -612,15 +785,32 @@ const styles = StyleSheet.create({
   topButton: {
     position: 'absolute',
     right: 20,
-    width: 42,
-    height: 42,
-    borderRadius: 999,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    shadowColor: '#0B1220',
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+    zIndex: 4,
+  },
+  createFab: {
+    position: 'absolute',
+    right: 20,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#0B1220',
-    shadowOpacity: 0.16,
-    shadowRadius: 10,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    elevation: 6,
+    zIndex: 5,
   },
 });

@@ -1,14 +1,20 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  BackHandler,
-  View,
-} from 'react-native';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { BackHandler, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import RNBlobUtil from 'react-native-blob-util';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
@@ -16,8 +22,14 @@ import ConfirmDialog from '../../components/common/ConfirmDialog';
 import HeaderTextActionButton from '../../components/navigation/HeaderTextActionButton';
 import { useKeyboardInset } from '../../hooks/useKeyboardInset';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
-import { getBrandedErrorMeta, getErrorMessage } from '../../services/app/errors';
-import { pickPhotoAssets, type PickedPhotoAsset } from '../../services/media/photoPicker';
+import {
+  getBrandedErrorMeta,
+  getErrorMessage,
+} from '../../services/app/errors';
+import {
+  pickPhotoAssets,
+  type PickedPhotoAsset,
+} from '../../services/media/photoPicker';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { flushPendingCommunityImageCleanup } from '../../services/supabase/storageCommunity';
 import { useCommunityAuth } from '../../hooks/useCommunityAuth';
@@ -37,17 +49,22 @@ import { runCommunityCreateSubmitFlow } from './communityPostSubmit.shared';
 type Nav = NativeStackNavigationProp<RootStackParamList, 'CommunityCreate'>;
 
 type DraftPayload = {
+  title: string;
   content: string;
   category: CommunityPostCategory;
   petId: string | null;
-  pickedImage: PickedPhotoAsset | null;
+  pickedImages: PickedPhotoAsset[];
   showPetAge: boolean;
 };
 
 const DRAFT_KEY = 'nuri.community.draft.v1';
-
 function isValidCategory(value: unknown): value is CommunityPostCategory {
-  return value === 'question' || value === 'info' || value === 'daily' || value === 'free';
+  return (
+    value === 'question' ||
+    value === 'info' ||
+    value === 'daily' ||
+    value === 'free'
+  );
 }
 
 function parseDraft(raw: string | null): DraftPayload | null {
@@ -57,60 +74,71 @@ function parseDraft(raw: string | null): DraftPayload | null {
     const parsed: unknown = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object') return null;
     const record = parsed as Record<string, unknown>;
+    const title = typeof record.title === 'string' ? record.title : '';
     const content = typeof record.content === 'string' ? record.content : '';
-    const category = isValidCategory(record.category) ? record.category : 'question';
+    const category = isValidCategory(record.category)
+      ? record.category
+      : 'question';
     const petId = typeof record.petId === 'string' ? record.petId : null;
     const showPetAge =
       typeof record.showPetAge === 'boolean' ? record.showPetAge : true;
-    const imageRecord = record.pickedImage;
-    const pickedImage =
-      imageRecord &&
-      typeof imageRecord === 'object' &&
-      typeof (imageRecord as Record<string, unknown>).uri === 'string'
-        ? {
-            uri: (imageRecord as Record<string, unknown>).uri as string,
-            mimeType:
-              typeof (imageRecord as Record<string, unknown>).mimeType === 'string'
-                ? ((imageRecord as Record<string, unknown>).mimeType as string)
-                : null,
-            fileName:
-              typeof (imageRecord as Record<string, unknown>).fileName === 'string'
-                ? ((imageRecord as Record<string, unknown>).fileName as string)
-                : null,
-          }
-        : null;
-    if (!content.trim() && !pickedImage) return null;
-    return { content, category, petId, pickedImage, showPetAge };
+    const rawPickedImages = Array.isArray(record.pickedImages)
+      ? record.pickedImages
+      : record.pickedImage
+      ? [record.pickedImage]
+      : [];
+    const pickedImages = rawPickedImages
+      .map(item => {
+        if (!item || typeof item !== 'object') return null;
+        const image = item as Record<string, unknown>;
+        if (typeof image.uri !== 'string') return null;
+        return {
+          uri: image.uri,
+          mimeType: typeof image.mimeType === 'string' ? image.mimeType : null,
+          fileName: typeof image.fileName === 'string' ? image.fileName : null,
+        } satisfies PickedPhotoAsset;
+      })
+      .filter((item): item is PickedPhotoAsset => item !== null)
+      .slice(0, 3);
+    if (!title.trim() && !content.trim() && pickedImages.length === 0) return null;
+    return { title, content, category, petId, pickedImages, showPetAge };
   } catch {
     return null;
   }
 }
 
-async function validateRestoredPickedImage(
-  asset: PickedPhotoAsset | null,
-): Promise<PickedPhotoAsset | null> {
-  if (!asset?.uri) return null;
+async function validateRestoredPickedImages(
+  assets: PickedPhotoAsset[],
+): Promise<PickedPhotoAsset[]> {
+  const restored: PickedPhotoAsset[] = [];
+  for (const asset of assets) {
+    if (!asset?.uri) continue;
 
-  const rawUri = asset.uri.trim();
-  if (!rawUri) return null;
-  if (rawUri.startsWith('content://')) {
-    return asset;
+    const rawUri = asset.uri.trim();
+    if (!rawUri) continue;
+    if (rawUri.startsWith('content://')) {
+      restored.push(asset);
+      continue;
+    }
+
+    if (!RNBlobUtil?.fs?.exists) {
+      restored.push(asset);
+      continue;
+    }
+
+    const normalizedPath = rawUri.startsWith('file://')
+      ? rawUri.replace('file://', '')
+      : rawUri;
+
+    try {
+      const exists = await RNBlobUtil.fs.exists(normalizedPath);
+      if (exists) restored.push(asset);
+    } catch {
+      continue;
+    }
   }
 
-  if (!RNBlobUtil?.fs?.exists) {
-    return asset;
-  }
-
-  const normalizedPath = rawUri.startsWith('file://')
-    ? rawUri.replace('file://', '')
-    : rawUri;
-
-  try {
-    const exists = await RNBlobUtil.fs.exists(normalizedPath);
-    return exists ? asset : null;
-  } catch {
-    return null;
-  }
+  return restored;
 }
 
 export default function CommunityCreateScreen() {
@@ -118,6 +146,7 @@ export default function CommunityCreateScreen() {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const draftHydratedRef = useRef(false);
+  const scrollViewRef = useRef<KeyboardAwareScrollView | null>(null);
   const keyboardInset = useKeyboardInset();
 
   const pets = usePetStore(s => s.pets);
@@ -134,16 +163,20 @@ export default function CommunityCreateScreen() {
   const submitPost = useCommunityStore(s => s.submitPost);
   const editPost = useCommunityStore(s => s.editPost);
 
+  const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [category, setCategory] = useState<CommunityPostCategory>('question');
-  const [linkedPetId, setLinkedPetId] = useState<string | null>(selectedPetId ?? null);
-  const [pickedImage, setPickedImage] = useState<PickedPhotoAsset | null>(null);
+  const [linkedPetId, setLinkedPetId] = useState<string | null>(
+    selectedPetId ?? null,
+  );
+  const [pickedImages, setPickedImages] = useState<PickedPhotoAsset[]>([]);
   const [showPetAge, setShowPetAge] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [exitConfirmVisible, setExitConfirmVisible] = useState(false);
   const [restoreDraftVisible, setRestoreDraftVisible] = useState(false);
   const [pendingDraft, setPendingDraft] = useState<DraftPayload | null>(null);
-  const [imageRestoreWarningVisible, setImageRestoreWarningVisible] = useState(false);
+  const [imageRestoreWarningVisible, setImageRestoreWarningVisible] =
+    useState(false);
   const linkedPet = useMemo(
     () => pets.find(pet => pet.id === linkedPetId) ?? null,
     [linkedPetId, pets],
@@ -182,7 +215,10 @@ export default function CommunityCreateScreen() {
   }, []);
 
   useEffect(() => {
-    const hasDraftContent = content.trim().length > 0 || pickedImage !== null;
+    const hasDraftContent =
+      title.trim().length > 0 ||
+      content.trim().length > 0 ||
+      pickedImages.length > 0;
     if (
       !hasDraftContent &&
       category === 'question' &&
@@ -196,26 +232,29 @@ export default function CommunityCreateScreen() {
     AsyncStorage.setItem(
       DRAFT_KEY,
       JSON.stringify({
+        title,
         content,
         category,
         petId: linkedPetId,
-        pickedImage,
+        pickedImages,
         showPetAge,
       } satisfies DraftPayload),
     ).catch(() => {});
-  }, [category, content, linkedPetId, pickedImage, selectedPetId, showPetAge]);
+  }, [category, content, linkedPetId, pickedImages, selectedPetId, showPetAge, title]);
 
   const hasUnsavedChanges = useMemo(
     () =>
       hasCommunityEditorDraftChanges(
         {
+          title,
           content,
           category,
           linkedPetId,
           showPetAge,
-          hasPickedImage: pickedImage !== null,
+          hasPickedImage: pickedImages.length > 0,
         },
         {
+          title: '',
           content: '',
           category: 'question',
           linkedPetId: selectedPetId ?? null,
@@ -223,7 +262,7 @@ export default function CommunityCreateScreen() {
           hasImage: false,
         },
       ),
-    [category, content, linkedPetId, pickedImage, selectedPetId, showPetAge],
+    [category, content, linkedPetId, pickedImages, selectedPetId, showPetAge, title],
   );
 
   const handleBack = useCallback(() => {
@@ -237,10 +276,13 @@ export default function CommunityCreateScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-        handleBack();
-        return true;
-      });
+      const subscription = BackHandler.addEventListener(
+        'hardwareBackPress',
+        () => {
+          handleBack();
+          return true;
+        },
+      );
 
       return () => {
         subscription.remove();
@@ -250,23 +292,46 @@ export default function CommunityCreateScreen() {
 
   const handlePickImage = useCallback(async () => {
     try {
-      const result = await pickPhotoAssets({ selectionLimit: 1, quality: 0.9 });
+      const remaining = Math.max(3 - pickedImages.length, 0);
+      if (remaining === 0) return;
+      const result = await pickPhotoAssets({
+        selectionLimit: remaining,
+        quality: 0.9,
+      });
       if (result.status !== 'success') return;
-      setPickedImage(result.assets[0] ?? null);
+      setPickedImages(prev => {
+        const existingUris = new Set(prev.map(image => image.uri));
+        const appended = result.assets.filter(
+          asset => !existingUris.has(asset.uri),
+        );
+        return [...prev, ...appended].slice(0, 3);
+      });
     } catch (error: unknown) {
       const meta = getBrandedErrorMeta(error, 'image-pick');
       showToast({ tone: 'error', title: meta.title, message: meta.message });
     }
-  }, []);
+  }, [pickedImages.length]);
 
-  const handleRemoveImage = useCallback(() => {
-    setPickedImage(null);
+  const handleRemoveImage = useCallback((index?: number) => {
+    if (index === undefined) {
+      setPickedImages([]);
+      return;
+    }
+    setPickedImages(prev => prev.filter((_, itemIndex) => itemIndex !== index));
   }, []);
 
   const handleSubmit = useCallback(async () => {
+    const trimmedTitle = title.trim();
     const trimmed = content.trim();
     if (!currentUserId) {
       navigation.replace('SignIn');
+      return;
+    }
+    if (trimmedTitle.length === 0 || trimmedTitle.length > 80) {
+      showToast({
+        tone: 'warning',
+        message: '제목은 1자 이상 80자 이하로 작성해 주세요.',
+      });
       return;
     }
     if (trimmed.length === 0 || trimmed.length > 5000) {
@@ -279,13 +344,21 @@ export default function CommunityCreateScreen() {
 
     setSubmitting(true);
     try {
+      console.log('[CommunityCreate] submit:start', {
+        titleLength: trimmedTitle.length,
+        contentLength: trimmed.length,
+        category,
+        petId: linkedPetId,
+        pickedImages: pickedImages.length,
+      });
       await runCommunityCreateSubmitFlow({
         userId: currentUserId,
+        title: trimmedTitle,
         content: trimmed,
         category,
         petId: linkedPetId,
         petSnapshot: buildCommunityPetSnapshot(linkedPet, showPetAge),
-        pickedImage,
+        pickedImages,
         submitPost,
         editPost,
         onImageUploadWarning: () => {
@@ -299,6 +372,7 @@ export default function CommunityCreateScreen() {
       await AsyncStorage.removeItem(DRAFT_KEY).catch(() => {});
       navigation.goBack();
     } catch (error: unknown) {
+      console.error('[CommunityCreate] submit:failed', error);
       const meta = getBrandedErrorMeta(error, 'generic');
       showToast({
         tone: 'error',
@@ -316,23 +390,53 @@ export default function CommunityCreateScreen() {
     linkedPetId,
     linkedPet,
     navigation,
-    pickedImage,
+    pickedImages,
     showPetAge,
     submitPost,
+    title,
   ]);
 
-  const disabled = submitting || content.trim().length === 0;
+  const disabled =
+    submitting || title.trim().length === 0 || content.trim().length === 0;
+  const hasPickedImage = pickedImages.length > 0;
   const scrollBottomInset = useMemo(() => {
-    return Math.max(insets.bottom + 240, keyboardInset + 160, 280);
-  }, [insets.bottom, keyboardInset]);
+    if (keyboardInset > 0) {
+      if (hasPickedImage) {
+        return Math.max(keyboardInset + 32, insets.bottom + 112);
+      }
+      return Math.max(keyboardInset + 56, insets.bottom + 128);
+    }
+    return hasPickedImage ? insets.bottom + 120 : insets.bottom + 132;
+  }, [hasPickedImage, insets.bottom, keyboardInset]);
   const bottomSubmitMargin = useMemo(() => {
-    if (keyboardInset > 0) return Math.max(insets.bottom, 18) + 20;
+    if (keyboardInset > 0) {
+      return (
+        Math.max(keyboardInset - 200, 0) +
+        (hasPickedImage
+          ? Math.max(insets.bottom, 12) + 4
+          : Math.max(insets.bottom, 12) + 8)
+      );
+    }
     return Math.max(insets.bottom, 18);
-  }, [insets.bottom, keyboardInset]);
+  }, [hasPickedImage, insets.bottom, keyboardInset]);
+
+  const handleFocusContent = useCallback(() => {
+    requestAnimationFrame(() => {
+      scrollViewRef.current?.scrollToEnd(true);
+    });
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd(true);
+    }, 180);
+  }, []);
 
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: theme.colors.background }]} edges={['left', 'right', 'bottom']}>
-      <View style={[styles.header, { paddingTop: Math.max(insets.top + 8, 20) }]}>
+    <SafeAreaView
+      style={[styles.screen, { backgroundColor: theme.colors.background }]}
+      edges={['left', 'right', 'bottom']}
+    >
+      <View
+        style={[styles.header, { paddingTop: Math.max(insets.top + 8, 20) }]}
+      >
         <View style={styles.headerSide}>
           <HeaderTextActionButton
             label="취소"
@@ -345,7 +449,10 @@ export default function CommunityCreateScreen() {
           />
         </View>
 
-        <AppText preset="headline" style={[styles.headerTitle, { color: theme.colors.textPrimary }]}>
+        <AppText
+          preset="headline"
+          style={[styles.headerTitle, { color: theme.colors.textPrimary }]}
+        >
           새 게시글
         </AppText>
 
@@ -362,16 +469,19 @@ export default function CommunityCreateScreen() {
       </View>
 
       <KeyboardAwareScrollView
+        innerRef={ref => {
+          scrollViewRef.current = ref;
+        }}
         enableOnAndroid
         keyboardShouldPersistTaps="always"
-        keyboardDismissMode="on-drag"
+        keyboardDismissMode="interactive"
         enableAutomaticScroll
         contentContainerStyle={[
           styles.scrollContent,
           { paddingBottom: scrollBottomInset },
         ]}
-        extraScrollHeight={132}
-        extraHeight={196}
+        extraScrollHeight={hasPickedImage ? 18 : 42}
+        extraHeight={hasPickedImage ? 54 : 78}
         showsVerticalScrollIndicator={false}
       >
         <CommunityPostEditorForm
@@ -381,8 +491,10 @@ export default function CommunityCreateScreen() {
           linkedPetMetaLabel={linkedPetMetaLabel}
           showPetAge={showPetAge}
           category={category}
+          title={title}
           content={content}
-          imageUri={pickedImage?.uri ?? null}
+          imageUri={pickedImages[0]?.uri ?? null}
+          imageUris={pickedImages.map(image => image.uri)}
           accentPalette={petTheme}
           bottomSubmitMargin={bottomSubmitMargin}
           submitLabel={submitting ? '글 등록 중...' : '글 등록'}
@@ -390,18 +502,20 @@ export default function CommunityCreateScreen() {
           onChangeCategory={setCategory}
           onChangeLinkedPetId={setLinkedPetId}
           onToggleShowPetAge={() => setShowPetAge(prev => !prev)}
+          onChangeTitle={setTitle}
           onChangeContent={setContent}
+          onContentFocus={handleFocusContent}
           onPickImage={handlePickImage}
           onRemoveImage={handleRemoveImage}
           onImageError={() => {
-            setPickedImage(null);
+            setPickedImages([]);
             showToast({
               tone: 'warning',
-              message: '첨부 이미지를 다시 불러오지 못했어요. 이미지를 다시 선택해 주세요.',
+              message:
+                '첨부 이미지를 다시 불러오지 못했어요. 이미지를 다시 선택해 주세요.',
             });
           }}
           onSubmit={handleSubmit}
-          petHintText="현재 프로필 기준으로 미리 보여주고 있어요. 게시글 저장 시점에 고정되는 스냅샷 구조는 다음 단계에서 함께 열 예정이에요."
         />
       </KeyboardAwareScrollView>
 
@@ -423,9 +537,9 @@ export default function CommunityCreateScreen() {
         visible={restoreDraftVisible}
         title="임시저장된 글이 있어요"
         message={
-          pendingDraft?.pickedImage
-            ? '이전에 입력한 본문과 첨부한 이미지를 그대로 이어서 작성할까요?'
-            : '이전에 입력한 본문을 그대로 이어서 작성할까요?'
+          pendingDraft?.pickedImages.length
+            ? '이전에 입력한 제목, 본문과 첨부한 이미지를 그대로 이어서 작성할까요?'
+            : '이전에 입력한 제목과 본문을 그대로 이어서 작성할까요?'
         }
         cancelLabel="버리기"
         confirmLabel="이어쓰기"
@@ -443,15 +557,19 @@ export default function CommunityCreateScreen() {
             return;
           }
 
+          setTitle(pendingDraft.title);
           setContent(pendingDraft.content);
           setCategory(pendingDraft.category);
           setLinkedPetId(pendingDraft.petId);
           setShowPetAge(pendingDraft.showPetAge);
 
-          validateRestoredPickedImage(pendingDraft.pickedImage)
-            .then(restoredImage => {
-              setPickedImage(restoredImage);
-              if (pendingDraft.pickedImage && !restoredImage) {
+          validateRestoredPickedImages(pendingDraft.pickedImages)
+            .then(restoredImages => {
+              setPickedImages(restoredImages);
+              if (
+                pendingDraft.pickedImages.length > 0 &&
+                restoredImages.length !== pendingDraft.pickedImages.length
+              ) {
                 setImageRestoreWarningVisible(true);
               }
             })
@@ -465,7 +583,9 @@ export default function CommunityCreateScreen() {
         visible={imageRestoreWarningVisible}
         tone="warning"
         title="첨부 이미지를 다시 불러오지 못했어요"
-        message={'기기에 남아 있는 본문과 설정만 먼저 복원했어요.\n이미지는 다시 선택해 주세요.'}
+        message={
+          '기기에 남아 있는 본문과 설정만 먼저 복원했어요.\n이미지는 다시 선택해 주세요.'
+        }
         confirmLabel="확인"
         accentColor={petTheme.primary}
         onCancel={() => setImageRestoreWarningVisible(false)}

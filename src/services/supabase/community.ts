@@ -10,9 +10,6 @@
 // - profiles는 posts에 직접 FK가 없으므로 별도 조회 후 매핑해야 한다.
 // - 목록 fetch에서 signed URL 생성을 남발하면 스크롤 성능이 흔들릴 수 있으므로 상세 1건만 해석한다.
 
-import { supabase } from './client';
-import { formatPetAgeLabelFromBirthDate } from '../pets/age';
-import { toPublicPetAvatarUrl } from './pets';
 import type {
   CommunityComment,
   CommunityCommentRow,
@@ -23,18 +20,22 @@ import type {
   CommunityPostRow,
   CommunityPostStatus,
   CommunityProfileRow,
-  CreateCommunityPostParams,
   CreateCommunityCommentParams,
+  CreateCommunityPostParams,
   CreateCommunityReportParams,
   FetchCommunityPostsParams,
   UpdateCommunityPostParams,
 } from '../../types/community';
+import { formatPetAgeLabelFromBirthDate } from '../pets/age';
+import { supabase } from './client';
+import { toPublicPetAvatarUrl } from './pets';
 
 const COMMUNITY_PAGE_SIZE = 20;
 const COMMUNITY_POST_SELECT_LEGACY =
   'id, user_id, pet_id, visibility, content, image_url, status, category, like_count, comment_count, deleted_at, created_at, updated_at';
-const COMMUNITY_POST_SELECT_SNAPSHOT =
-  `${COMMUNITY_POST_SELECT_LEGACY}, author_snapshot_nickname, author_snapshot_avatar_url, pet_snapshot_name, pet_snapshot_species, pet_snapshot_breed, pet_snapshot_age_label, pet_snapshot_avatar_path, show_pet_age`;
+const COMMUNITY_POST_SELECT_TITLE =
+  'id, user_id, pet_id, visibility, title, content, image_url, status, category, like_count, comment_count, deleted_at, created_at, updated_at';
+const COMMUNITY_POST_SELECT_SNAPSHOT = `${COMMUNITY_POST_SELECT_TITLE}, image_urls, author_snapshot_nickname, author_snapshot_avatar_url, pet_snapshot_name, pet_snapshot_species, pet_snapshot_breed, pet_snapshot_age_label, pet_snapshot_avatar_path, show_pet_age`;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -50,11 +51,15 @@ function isCommunityPostStatus(value: unknown): value is CommunityPostStatus {
   );
 }
 
-function isCommunityCommentStatus(value: unknown): value is CommunityCommentStatus {
+function isCommunityCommentStatus(
+  value: unknown,
+): value is CommunityCommentStatus {
   return value === 'active' || value === 'hidden' || value === 'deleted';
 }
 
-function isCommunityPostCategory(value: unknown): value is CommunityPostCategory {
+function isCommunityPostCategory(
+  value: unknown,
+): value is CommunityPostCategory {
   return (
     value === 'free' ||
     value === 'question' ||
@@ -86,6 +91,10 @@ function isCommunityCommentRow(value: unknown): value is CommunityCommentRow {
   );
 }
 
+function toCommentDepth(value: unknown): 0 | 1 {
+  return value === 1 ? 1 : 0;
+}
+
 function isCommunityProfileRow(value: unknown): value is CommunityProfileRow {
   return (
     isRecord(value) &&
@@ -102,7 +111,8 @@ function isCommunityPetRow(value: unknown): value is CommunityPetRow {
     (typeof value.name === 'string' || value.name === null) &&
     (typeof value.breed === 'string' || value.breed === null) &&
     (typeof value.birth_date === 'string' || value.birth_date === null) &&
-    (typeof value.profile_image_url === 'string' || value.profile_image_url === null) &&
+    (typeof value.profile_image_url === 'string' ||
+      value.profile_image_url === null) &&
     (typeof value.species_group === 'string' || value.species_group === null) &&
     (typeof value.species_display_name === 'string' ||
       value.species_display_name === null)
@@ -146,6 +156,18 @@ function looksLikeRemoteUrl(value: string | null | undefined) {
   return raw.startsWith('https://') || raw.startsWith('http://');
 }
 
+function normalizeImagePaths(row: CommunityPostRow): string[] {
+  const rawPaths = Array.isArray(row.image_urls)
+    ? row.image_urls
+    : row.image_url
+    ? [row.image_url]
+    : [];
+
+  return rawPaths
+    .map(path => `${path ?? ''}`.trim())
+    .filter(path => path.length > 0);
+}
+
 function normalizePost(
   row: CommunityPostRow,
   profilesByUserId: Map<string, CommunityProfileRow>,
@@ -153,18 +175,26 @@ function normalizePost(
   likedPostIds: Set<string>,
   likeCountsByPostId: Map<string, number>,
   resolvedImageUrl?: string | null,
+  resolvedImageUrls?: Array<string | null>,
 ): CommunityPost {
   const profile = profilesByUserId.get(row.user_id) ?? null;
   const pet = row.pet_id ? petsById.get(row.pet_id) ?? null : null;
-  const rawImage = `${row.image_url ?? ''}`.trim();
-  const inlineRemoteImageUrl = looksLikeRemoteUrl(rawImage) ? rawImage : null;
-  const snapshotAuthorNickname = `${row.author_snapshot_nickname ?? ''}`.trim() || null;
-  const snapshotAuthorAvatarUrl = `${row.author_snapshot_avatar_url ?? ''}`.trim() || null;
+  const imagePaths = normalizeImagePaths(row);
+  const rawImage = imagePaths[0] ?? `${row.image_url ?? ''}`.trim();
+  const inlineRemoteImageUrls = imagePaths.filter(path =>
+    looksLikeRemoteUrl(path),
+  );
+  const inlineRemoteImageUrl = inlineRemoteImageUrls[0] ?? null;
+  const snapshotAuthorNickname =
+    `${row.author_snapshot_nickname ?? ''}`.trim() || null;
+  const snapshotAuthorAvatarUrl =
+    `${row.author_snapshot_avatar_url ?? ''}`.trim() || null;
   const snapshotName = `${row.pet_snapshot_name ?? ''}`.trim() || null;
   const snapshotSpecies = `${row.pet_snapshot_species ?? ''}`.trim() || null;
   const snapshotBreed = `${row.pet_snapshot_breed ?? ''}`.trim() || null;
   const snapshotAgeLabel = `${row.pet_snapshot_age_label ?? ''}`.trim() || null;
-  const snapshotAvatarPath = `${row.pet_snapshot_avatar_path ?? ''}`.trim() || null;
+  const snapshotAvatarPath =
+    `${row.pet_snapshot_avatar_path ?? ''}`.trim() || null;
   const showPetAge = row.show_pet_age !== false;
   const liveAvatarUrl = toPublicPetAvatarUrl(
     pet?.profile_image_url?.replace(/^\/+/, '') ?? null,
@@ -188,13 +218,24 @@ function normalizePost(
       pet?.species_group?.trim() ??
       null,
     petAgeLabel: showPetAge
-      ? snapshotAgeLabel ?? formatPetAgeLabelFromBirthDate(pet?.birth_date ?? null)
+      ? snapshotAgeLabel ??
+        formatPetAgeLabelFromBirthDate(pet?.birth_date ?? null)
       : null,
     petAvatarUrl: snapshotAvatarUrl ?? liveAvatarUrl,
     showPetAge,
+    title: `${row.title ?? ''}`.trim() || null,
     content: row.content,
     imagePath: rawImage || null,
     imageUrl: resolvedImageUrl ?? inlineRemoteImageUrl,
+    imagePaths,
+    imageUrls:
+      resolvedImageUrls && resolvedImageUrls.length > 0
+        ? resolvedImageUrls.filter(
+            (value): value is string => typeof value === 'string' && value.length > 0,
+          )
+        : resolvedImageUrl && imagePaths.length > 0
+          ? [resolvedImageUrl, ...inlineRemoteImageUrls.slice(1)]
+          : inlineRemoteImageUrls,
     hasImage: rawImage.length > 0,
     status: normalizePostStatus(row.status),
     category: normalizeCategory(row.category),
@@ -213,6 +254,8 @@ function normalizePost(
 function normalizeComment(
   row: CommunityCommentRow,
   profilesByUserId: Map<string, CommunityProfileRow>,
+  likedCommentIds: Set<string>,
+  likeCountsByCommentId: Map<string, number>,
 ): CommunityComment {
   const profile = profilesByUserId.get(row.user_id) ?? null;
   return {
@@ -221,6 +264,14 @@ function normalizeComment(
     authorId: row.user_id,
     authorNickname: profile?.nickname?.trim() || '알 수 없는 사용자',
     authorAvatarUrl: profile?.avatar_url ?? null,
+    parentCommentId: row.parent_comment_id ?? null,
+    depth: toCommentDepth(row.depth),
+    replyCount:
+      typeof row.reply_count === 'number' ? Math.max(row.reply_count, 0) : 0,
+    likeCount:
+      likeCountsByCommentId.get(row.id) ??
+      (typeof row.like_count === 'number' ? Math.max(row.like_count, 0) : 0),
+    isLikedByMe: likedCommentIds.has(row.id),
     content: row.content,
     status: normalizeCommentStatus(row.status),
     deletedAt: row.deleted_at ?? null,
@@ -251,7 +302,9 @@ async function fetchPetsByIds(petIds: string[]) {
 
   const { data, error } = await supabase
     .from('pets')
-    .select('id, name, breed, birth_date, profile_image_url, species_group, species_display_name')
+    .select(
+      'id, name, breed, birth_date, profile_image_url, species_group, species_display_name',
+    )
     .in('id', ids);
 
   if (error) throw error;
@@ -286,7 +339,10 @@ async function fetchLikeMetaForPosts(
 }> {
   const ids = Array.from(new Set(postIds.filter(Boolean)));
   if (ids.length === 0) {
-    return { likedPostIds: new Set<string>(), likeCountsByPostId: new Map<string, number>() };
+    return {
+      likedPostIds: new Set<string>(),
+      likeCountsByPostId: new Map<string, number>(),
+    };
   }
 
   const { data, error } = await supabase
@@ -314,6 +370,56 @@ async function fetchLikeMetaForPosts(
   return { likedPostIds, likeCountsByPostId };
 }
 
+async function fetchLikeMetaForComments(
+  commentIds: string[],
+  currentUserId: string | null,
+): Promise<{
+  likedCommentIds: Set<string>;
+  likeCountsByCommentId: Map<string, number>;
+}> {
+  const ids = Array.from(new Set(commentIds.filter(Boolean)));
+  if (ids.length === 0) {
+    return {
+      likedCommentIds: new Set<string>(),
+      likeCountsByCommentId: new Map<string, number>(),
+    };
+  }
+
+  const { data, error } = await supabase
+    .from('comment_likes')
+    .select('comment_id, user_id')
+    .in('comment_id', ids);
+
+  if (error) {
+    const code = `${error.code ?? ''}`.toUpperCase();
+    const message = `${error.message ?? ''}`.toLowerCase();
+    if (code === '42P01' || code === 'PGRST205' || message.includes('comment_likes')) {
+      return {
+        likedCommentIds: new Set<string>(),
+        likeCountsByCommentId: new Map<string, number>(),
+      };
+    }
+    throw error;
+  }
+
+  const likeCountsByCommentId = new Map<string, number>();
+  const likedCommentIds = new Set<string>();
+
+  (Array.isArray(data) ? data : []).forEach(item => {
+    if (!isRecord(item) || typeof item.comment_id !== 'string') return;
+    likeCountsByCommentId.set(
+      item.comment_id,
+      (likeCountsByCommentId.get(item.comment_id) ?? 0) + 1,
+    );
+
+    if (currentUserId && item.user_id === currentUserId) {
+      likedCommentIds.add(item.comment_id);
+    }
+  });
+
+  return { likedCommentIds, likeCountsByCommentId };
+}
+
 export function encodeCommunityCursor(createdAt: string, id: string) {
   return `${createdAt}::${id}`;
 }
@@ -333,10 +439,62 @@ function isMissingSnapshotColumnsError(error: unknown) {
   return (
     code === '42703' ||
     code === 'PGRST204' ||
+    message.includes('title') ||
     message.includes('author_snapshot_') ||
     message.includes('pet_snapshot_') ||
     message.includes('show_pet_age')
   );
+}
+
+function isMissingCommentColumnsError(error: unknown) {
+  if (!isRecord(error)) return false;
+  const message = `${error.message ?? ''}`.toLowerCase();
+  const code = `${error.code ?? ''}`.toUpperCase();
+  return (
+    code === '42703' ||
+    code === 'PGRST204' ||
+    message.includes('parent_comment_id') ||
+    message.includes('reply_count') ||
+    message.includes('like_count') ||
+    message.includes('updated_at') ||
+    message.includes('deleted_at') ||
+    message.includes('comment_likes') ||
+    message.includes('depth')
+  );
+}
+
+function normalizeLegacyCommentRow(data: unknown): CommunityCommentRow | null {
+  if (!isRecord(data)) return null;
+  if (
+    typeof data.id !== 'string' ||
+    typeof data.post_id !== 'string' ||
+    typeof data.user_id !== 'string' ||
+    typeof data.content !== 'string' ||
+    typeof data.created_at !== 'string'
+  ) {
+    return null;
+  }
+
+  return {
+    id: data.id,
+    post_id: data.post_id,
+    user_id: data.user_id,
+    parent_comment_id: null,
+    depth: 0,
+    reply_count: 0,
+    like_count: 0,
+    content: data.content,
+    status:
+      typeof data.status === 'string' && data.status.trim().length > 0
+        ? data.status
+        : 'active',
+    deleted_at: typeof data.deleted_at === 'string' ? data.deleted_at : null,
+    created_at: data.created_at,
+    updated_at:
+      typeof data.updated_at === 'string' && data.updated_at.trim().length > 0
+        ? data.updated_at
+        : data.created_at,
+  };
 }
 
 async function fetchCurrentAuthorSnapshot(userId: string) {
@@ -353,7 +511,9 @@ async function fetchCurrentAuthorSnapshot(userId: string) {
   const nickname =
     typeof data?.nickname === 'string' ? data.nickname.trim() || null : null;
   const avatarUrl =
-    typeof data?.avatar_url === 'string' ? data.avatar_url.trim() || null : null;
+    typeof data?.avatar_url === 'string'
+      ? data.avatar_url.trim() || null
+      : null;
 
   return { nickname, avatarUrl };
 }
@@ -457,7 +617,13 @@ export async function fetchCommunityPosts(
   );
 
   const items = pageRows.map(row =>
-    normalizePost(row, profilesByUserId, petsById, likedPostIds, likeCountsByPostId),
+    normalizePost(
+      row,
+      profilesByUserId,
+      petsById,
+      likedPostIds,
+      likeCountsByPostId,
+    ),
   );
   const last = pageRows[pageRows.length - 1];
 
@@ -472,10 +638,17 @@ export async function fetchCommunityPostById(postId: string) {
   const data = await selectCommunityPostByIdWithFallback(postId);
   if (!data || !isCommunityPostRow(data)) return null;
 
-  const [profilesByUserId, petsById, imageUrl] = await Promise.all([
+  const imagePaths =
+    Array.isArray(data.image_urls) && data.image_urls.length > 0
+      ? data.image_urls
+      : data.image_url
+        ? [data.image_url]
+        : [];
+
+  const [profilesByUserId, petsById, resolvedImageUrls] = await Promise.all([
     fetchProfilesByUserIds([data.user_id]),
     fetchPetsByIds([data.pet_id ?? ''].filter(Boolean)),
-    resolveCommunityImageUrl(data.image_url ?? null),
+    Promise.all(imagePaths.map(path => resolveCommunityImageUrl(path))),
   ]);
   const currentUserId = await getCommunityCurrentUserId();
   const { likedPostIds, likeCountsByPostId } = await fetchLikeMetaForPosts(
@@ -489,27 +662,56 @@ export async function fetchCommunityPostById(postId: string) {
     petsById,
     likedPostIds,
     likeCountsByPostId,
-    imageUrl,
+    resolvedImageUrls[0] ?? null,
+    resolvedImageUrls,
   );
 }
 
 export async function fetchCommunityComments(postId: string) {
-  const { data, error } = await supabase
+  const primary = await supabase
     .from('comments')
-    .select('id, post_id, user_id, content, status, deleted_at, created_at, updated_at')
+    .select(
+      'id, post_id, user_id, parent_comment_id, depth, reply_count, like_count, content, status, deleted_at, created_at, updated_at',
+    )
     .eq('post_id', postId)
     .eq('status', 'active')
     .is('deleted_at', null)
     .order('created_at', { ascending: true })
     .order('id', { ascending: true });
 
-  if (error) throw error;
+  let rows = toCommunityCommentRows(primary.data);
 
-  const rows = toCommunityCommentRows(data);
-  const profilesByUserId = await fetchProfilesByUserIds(
-    rows.map(row => row.user_id),
+  if (primary.error) {
+    if (!isMissingCommentColumnsError(primary.error)) {
+      throw primary.error;
+    }
+
+    const fallback = await supabase
+      .from('comments')
+      .select('id, post_id, user_id, content, created_at, status, deleted_at')
+      .eq('post_id', postId)
+      .order('created_at', { ascending: true })
+      .order('id', { ascending: true });
+
+    if (fallback.error) throw fallback.error;
+    rows = (Array.isArray(fallback.data) ? fallback.data : [])
+      .map(normalizeLegacyCommentRow)
+      .filter((row): row is CommunityCommentRow => row !== null)
+      .filter(row => row.deleted_at === null && row.status === 'active');
+  }
+
+  const currentUserId = await getCommunityCurrentUserId();
+  const [profilesByUserId, { likedCommentIds, likeCountsByCommentId }] =
+    await Promise.all([
+      fetchProfilesByUserIds(rows.map(row => row.user_id)),
+      fetchLikeMetaForComments(
+        rows.map(row => row.id),
+        currentUserId,
+      ),
+    ]);
+  return rows.map(row =>
+    normalizeComment(row, profilesByUserId, likedCommentIds, likeCountsByCommentId),
   );
-  return rows.map(row => normalizeComment(row, profilesByUserId));
 }
 
 export async function createCommunityPost(
@@ -517,15 +719,19 @@ export async function createCommunityPost(
   userId: string,
 ) {
   const authorSnapshot =
-    params.authorSnapshot ??
-    (await fetchCurrentAuthorSnapshot(userId));
+    params.authorSnapshot ?? (await fetchCurrentAuthorSnapshot(userId));
 
   const basePayload = {
     user_id: userId,
     pet_id: params.petId ?? null,
     visibility: 'public' as const,
+    title: params.title.trim(),
     content: params.content.trim(),
     image_url: params.imagePath ?? null,
+    image_urls:
+      params.imagePaths && params.imagePaths.length > 0
+        ? params.imagePaths
+        : [],
     category: params.category,
     status: 'active' as const,
   };
@@ -560,9 +766,11 @@ export async function createCommunityPost(
   if (!primary.error) {
     data = primary.data;
   } else if (isMissingSnapshotColumnsError(primary.error)) {
+    const fallbackPayload: Record<string, unknown> = { ...basePayload };
+    delete fallbackPayload.title;
     const fallback = await supabase
       .from('posts')
-      .insert(basePayload)
+      .insert(fallbackPayload)
       .select(COMMUNITY_POST_SELECT_LEGACY)
       .single();
     data = fallback.data;
@@ -595,10 +803,12 @@ export async function updateCommunityPost(
   params: UpdateCommunityPostParams,
 ) {
   const patch: Record<string, unknown> = {};
+  if (params.title !== undefined) patch.title = params.title.trim();
   if (params.content !== undefined) patch.content = params.content.trim();
   if (params.category !== undefined) patch.category = params.category;
   if (params.petId !== undefined) patch.pet_id = params.petId;
   if (params.imagePath !== undefined) patch.image_url = params.imagePath;
+  if (params.imagePaths !== undefined) patch.image_urls = params.imagePaths;
   if (params.petSnapshot !== undefined) {
     patch.pet_snapshot_name = params.petSnapshot?.name ?? null;
     patch.pet_snapshot_species = params.petSnapshot?.species ?? null;
@@ -614,16 +824,18 @@ export async function updateCommunityPost(
   if (!primary.error) return;
 
   if (
-    params.petSnapshot !== undefined &&
+    (params.petSnapshot !== undefined || params.title !== undefined) &&
     isMissingSnapshotColumnsError(primary.error)
   ) {
     const fallbackPatch = { ...patch };
+    delete fallbackPatch.title;
     delete fallbackPatch.pet_snapshot_name;
     delete fallbackPatch.pet_snapshot_species;
     delete fallbackPatch.pet_snapshot_breed;
     delete fallbackPatch.pet_snapshot_age_label;
     delete fallbackPatch.pet_snapshot_avatar_path;
     delete fallbackPatch.show_pet_age;
+    delete fallbackPatch.image_urls;
     const fallback = await supabase
       .from('posts')
       .update(fallbackPatch)
@@ -671,35 +883,99 @@ export async function createCommunityComment(
   params: CreateCommunityCommentParams,
   userId: string,
 ) {
-  const { data, error } = await supabase
+  const primary = await supabase
     .from('comments')
     .insert({
       post_id: params.postId,
       user_id: userId,
+      parent_comment_id: params.parentCommentId ?? null,
+      depth: params.parentCommentId ? 1 : 0,
       content: params.content.trim(),
       status: 'active',
     })
-    .select('id, post_id, user_id, content, status, deleted_at, created_at, updated_at')
+    .select(
+      'id, post_id, user_id, parent_comment_id, depth, reply_count, like_count, content, status, deleted_at, created_at, updated_at',
+    )
     .single();
 
-  if (error) throw error;
-  if (!isCommunityCommentRow(data)) {
+  let data: CommunityCommentRow | null = null;
+
+  if (!primary.error) {
+    data = isCommunityCommentRow(primary.data) ? primary.data : null;
+  } else if (isMissingCommentColumnsError(primary.error)) {
+    if (params.parentCommentId) {
+      throw new Error('답글 기능 적용이 아직 완료되지 않았어요.');
+    }
+
+    const fallback = await supabase
+      .from('comments')
+      .insert({
+        post_id: params.postId,
+        user_id: userId,
+        content: params.content.trim(),
+      })
+      .select('id, post_id, user_id, content, created_at')
+      .single();
+
+    if (fallback.error) throw fallback.error;
+    data = normalizeLegacyCommentRow(fallback.data);
+  } else {
+    throw primary.error;
+  }
+
+  if (!data) {
     throw new Error('댓글 저장 결과를 읽지 못했어요.');
   }
 
   const profilesByUserId = await fetchProfilesByUserIds([data.user_id]);
-  return normalizeComment(data, profilesByUserId);
+  return normalizeComment(
+    data,
+    profilesByUserId,
+    new Set<string>(),
+    new Map<string, number>(),
+  );
 }
 
 export async function deleteCommunityComment(commentId: string) {
   const deletedAt = new Date().toISOString();
-  const { error } = await supabase
+  const primary = await supabase
     .from('comments')
     .update({ status: 'deleted', deleted_at: deletedAt })
     .eq('id', commentId);
 
-  if (error) throw error;
+  if (!primary.error) {
+    return deletedAt;
+  }
+
+  if (!isMissingCommentColumnsError(primary.error)) {
+    throw primary.error;
+  }
+
+  const fallback = await supabase.from('comments').delete().eq('id', commentId);
+  if (fallback.error) throw fallback.error;
   return deletedAt;
+}
+
+export async function toggleCommunityCommentLike(
+  commentId: string,
+  userId: string,
+  isLikedByMe: boolean,
+) {
+  if (isLikedByMe) {
+    const { error } = await supabase
+      .from('comment_likes')
+      .delete()
+      .eq('comment_id', commentId)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+    return;
+  }
+
+  const { error } = await supabase
+    .from('comment_likes')
+    .insert({ comment_id: commentId, user_id: userId });
+  if (error && error.code !== '23505') throw error;
 }
 
 export async function createCommunityReport(

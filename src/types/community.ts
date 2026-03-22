@@ -32,8 +32,10 @@ export type CommunityPostRow = {
   user_id: string;
   pet_id: string | null;
   visibility: 'public' | 'private';
+  title?: string | null;
   content: string;
   image_url: string | null;
+  image_urls?: string[] | null;
   status: string;
   category: string | null;
   like_count: number | null;
@@ -56,6 +58,10 @@ export type CommunityCommentRow = {
   id: string;
   post_id: string;
   user_id: string;
+  parent_comment_id?: string | null;
+  depth?: number | null;
+  reply_count?: number | null;
+  like_count?: number | null;
   content: string;
   status: string;
   deleted_at: string | null;
@@ -91,9 +97,12 @@ export type CommunityPost = {
   petAgeLabel: string | null;
   petAvatarUrl: string | null;
   showPetAge: boolean;
+  title: string | null;
   content: string;
   imagePath: string | null;
   imageUrl: string | null;
+  imagePaths?: string[];
+  imageUrls?: string[];
   hasImage: boolean;
   status: CommunityPostStatus;
   category: CommunityPostCategory | null;
@@ -112,6 +121,11 @@ export type CommunityComment = {
   authorId: string;
   authorNickname: string;
   authorAvatarUrl: string | null;
+  parentCommentId: string | null;
+  depth: 0 | 1;
+  replyCount: number;
+  likeCount: number;
+  isLikedByMe: boolean;
   content: string;
   status: CommunityCommentStatus;
   deletedAt: string | null;
@@ -143,10 +157,12 @@ export type FetchCommunityPostsParams = {
 };
 
 export type CreateCommunityPostParams = {
+  title: string;
   content: string;
   category: CommunityPostCategory;
   petId?: string | null;
   imagePath?: string | null;
+  imagePaths?: string[];
   authorSnapshot?: {
     nickname: string | null;
     avatarUrl: string | null;
@@ -162,10 +178,12 @@ export type CreateCommunityPostParams = {
 };
 
 export type UpdateCommunityPostParams = {
+  title?: string;
   content?: string;
   category?: CommunityPostCategory;
   petId?: string | null;
   imagePath?: string | null;
+  imagePaths?: string[];
   petSnapshot?: {
     name: string | null;
     species: string | null;
@@ -179,6 +197,7 @@ export type UpdateCommunityPostParams = {
 export type CreateCommunityCommentParams = {
   postId: string;
   content: string;
+  parentCommentId?: string | null;
 };
 
 export type CreateCommunityReportParams = {

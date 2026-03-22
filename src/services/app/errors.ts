@@ -7,6 +7,12 @@
 export function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (typeof error === 'string') return error;
+  if (typeof error === 'object' && error !== null) {
+    const maybeMessage = 'message' in error ? error.message : null;
+    if (typeof maybeMessage === 'string' && maybeMessage.trim().length > 0) {
+      return maybeMessage.trim();
+    }
+  }
   return '다시 시도해 주세요.';
 }
 

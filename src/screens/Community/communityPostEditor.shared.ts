@@ -51,6 +51,7 @@ export function buildCommunityPetSnapshot(
 }
 
 type CommunityEditorDraftState = {
+  title: string;
   content: string;
   category: CommunityPostCategory;
   linkedPetId: string | null;
@@ -59,6 +60,7 @@ type CommunityEditorDraftState = {
 };
 
 type CommunityEditorDraftBaseline = {
+  title: string;
   content: string;
   category: CommunityPostCategory;
   linkedPetId: string | null;
@@ -70,8 +72,14 @@ export function hasCommunityEditorDraftChanges(
   current: CommunityEditorDraftState,
   baseline: CommunityEditorDraftBaseline,
 ) {
+  const currentTitle = `${current.title ?? ''}`.trim();
+  const baselineTitle = `${baseline.title ?? ''}`.trim();
+  const currentContent = `${current.content ?? ''}`.trim();
+  const baselineContent = `${baseline.content ?? ''}`.trim();
+
   return (
-    current.content.trim() !== baseline.content.trim() ||
+    currentTitle !== baselineTitle ||
+    currentContent !== baselineContent ||
     current.category !== baseline.category ||
     current.linkedPetId !== baseline.linkedPetId ||
     current.showPetAge !== baseline.showPetAge ||

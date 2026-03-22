@@ -62,6 +62,7 @@ export default function CommunityEditScreen() {
   const fetchPostDetail = useCommunityStore(s => s.fetchPostDetail);
   const editPost = useCommunityStore(s => s.editPost);
 
+  const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [category, setCategory] = useState<CommunityPostCategory>('question');
   const [linkedPetId, setLinkedPetId] = useState<string | null>(null);
@@ -100,6 +101,7 @@ export default function CommunityEditScreen() {
   useEffect(() => {
     if (!post || hydratedRef.current) return;
     hydratedRef.current = true;
+    setTitle(post.title ?? '');
     setContent(post.content);
     setCategory(post.category ?? 'question');
     setLinkedPetId(post.petId ?? null);
@@ -120,6 +122,7 @@ export default function CommunityEditScreen() {
     return (
       hasCommunityEditorDraftChanges(
         {
+          title,
           content,
           category,
           linkedPetId,
@@ -127,6 +130,7 @@ export default function CommunityEditScreen() {
           hasPickedImage: nextHasImage,
         },
         {
+          title: post.title ?? '',
           content: post.content,
           category: post.category ?? 'question',
           linkedPetId: post.petId ?? null,
@@ -136,7 +140,7 @@ export default function CommunityEditScreen() {
       ) ||
       existingImagePath !== (post.imagePath ?? null)
     );
-  }, [category, content, existingImagePath, linkedPetId, pickedImage, post, showPetAge]);
+  }, [category, content, existingImagePath, linkedPetId, pickedImage, post, showPetAge, title]);
 
   const handleBack = useCallback(() => {
     if (submitting) return;
@@ -180,7 +184,15 @@ export default function CommunityEditScreen() {
 
   const handleSubmit = useCallback(async () => {
     if (!post || !currentUserId) return;
+    const trimmedTitle = title.trim();
     const trimmed = content.trim();
+    if (trimmedTitle.length === 0 || trimmedTitle.length > 80) {
+      showToast({
+        tone: 'warning',
+        message: '제목은 1자 이상 80자 이하로 작성해 주세요.',
+      });
+      return;
+    }
     if (trimmed.length === 0 || trimmed.length > 5000) {
       showToast({
         tone: 'warning',
@@ -195,6 +207,7 @@ export default function CommunityEditScreen() {
       await runCommunityEditSubmitFlow({
         userId: currentUserId,
         postId: post.id,
+        title: trimmedTitle,
         content: trimmed,
         category,
         petId: linkedPetId,
@@ -228,9 +241,15 @@ export default function CommunityEditScreen() {
     pickedImage,
     post,
     showPetAge,
+    title,
   ]);
 
-  const disabled = submitting || !post || !isMyPost || content.trim().length === 0;
+  const disabled =
+    submitting ||
+    !post ||
+    !isMyPost ||
+    title.trim().length === 0 ||
+    content.trim().length === 0;
   const scrollBottomInset = useMemo(
     () => Math.max(insets.bottom + 240, keyboardInset + 160, 280),
     [insets.bottom, keyboardInset],
@@ -324,6 +343,7 @@ export default function CommunityEditScreen() {
           linkedPetMetaLabel={linkedPetMetaLabel}
           showPetAge={showPetAge}
           category={category}
+          title={title}
           content={content}
           imageUri={pickedImage?.uri ?? existingImageUrl}
           accentPalette={petTheme}
@@ -333,6 +353,7 @@ export default function CommunityEditScreen() {
           onChangeCategory={setCategory}
           onChangeLinkedPetId={setLinkedPetId}
           onToggleShowPetAge={() => setShowPetAge(prev => !prev)}
+          onChangeTitle={setTitle}
           onChangeContent={setContent}
           onPickImage={handlePickImage}
           onRemoveImage={handleRemoveImage}

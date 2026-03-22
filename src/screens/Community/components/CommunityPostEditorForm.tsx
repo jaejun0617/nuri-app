@@ -28,8 +28,10 @@ type Props = {
   linkedPetMetaLabel: string | null;
   showPetAge: boolean;
   category: CommunityPostCategory;
+  title: string;
   content: string;
   imageUri: string | null;
+  imageUris?: string[];
   accentPalette: AccentPalette;
   scrollBottomInset?: number;
   bottomSubmitMargin?: number;
@@ -38,9 +40,11 @@ type Props = {
   onChangeCategory: (category: CommunityPostCategory) => void;
   onChangeLinkedPetId: (petId: string | null) => void;
   onToggleShowPetAge: () => void;
+  onChangeTitle: (title: string) => void;
   onChangeContent: (content: string) => void;
+  onContentFocus?: () => void;
   onPickImage: () => void;
-  onRemoveImage: () => void;
+  onRemoveImage: (index?: number) => void;
   onImageError?: () => void;
   onSubmit: () => void;
   petHintText?: string | null;
@@ -53,8 +57,10 @@ function CommunityPostEditorFormBase({
   linkedPetMetaLabel,
   showPetAge,
   category,
+  title,
   content,
   imageUri,
+  imageUris,
   accentPalette,
   bottomSubmitMargin = 18,
   submitLabel,
@@ -62,7 +68,9 @@ function CommunityPostEditorFormBase({
   onChangeCategory,
   onChangeLinkedPetId,
   onToggleShowPetAge,
+  onChangeTitle,
   onChangeContent,
+  onContentFocus,
   onPickImage,
   onRemoveImage,
   onImageError,
@@ -70,6 +78,12 @@ function CommunityPostEditorFormBase({
   petHintText,
 }: Props) {
   const theme = useTheme();
+  const thumbnailUris =
+    imageUris && imageUris.length > 0
+      ? imageUris.slice(0, 3)
+      : imageUri
+        ? [imageUri]
+        : [];
 
   return (
     <>
@@ -193,95 +207,95 @@ function CommunityPostEditorFormBase({
           </View>
 
           {linkedPet ? (
-            <View
-              style={[
-                styles.linkedPetPreview,
-                {
-                  backgroundColor: theme.colors.surfaceElevated,
-                  borderColor: theme.colors.border,
-                },
-              ]}
-            >
-              {linkedPet.avatarUrl ? (
-                <Image
-                  source={{ uri: linkedPet.avatarUrl }}
-                  style={styles.linkedPetAvatar}
-                  resizeMode="cover"
-                />
-              ) : (
-                <View
-                  style={[
-                    styles.linkedPetAvatarFallback,
-                    { backgroundColor: accentPalette.tint },
-                  ]}
-                >
-                  <AppText
-                    preset="body"
-                    style={[
-                      styles.linkedPetAvatarFallbackText,
-                      { color: accentPalette.deep },
-                    ]}
-                  >
-                    {linkedPet.name.trim().charAt(0) || 'N'}
-                  </AppText>
-                </View>
-              )}
-
-              <View style={styles.linkedPetInfo}>
-                <AppText
-                  preset="body"
-                  style={[styles.linkedPetName, { color: theme.colors.textPrimary }]}
-                >
-                  {linkedPet.name}
-                </AppText>
-                {linkedPetMetaLabel ? (
-                  <AppText
-                    preset="caption"
-                    style={[styles.linkedPetMeta, { color: theme.colors.textSecondary }]}
-                  >
-                    {linkedPetMetaLabel}
-                  </AppText>
-                ) : null}
-              </View>
-            </View>
-          ) : null}
-
-          {linkedPet ? (
-            <TouchableOpacity
-              activeOpacity={0.88}
-              style={[
-                styles.ageToggleButton,
-                showPetAge
-                  ? {
-                      backgroundColor: accentPalette.tint,
-                      borderColor: accentPalette.primary,
-                    }
-                  : {
-                      backgroundColor: theme.colors.surfaceElevated,
-                      borderColor: theme.colors.border,
-                    },
-              ]}
-              onPress={onToggleShowPetAge}
-            >
-              <Feather
-                name={showPetAge ? 'check-circle' : 'circle'}
-                size={15}
-                color={showPetAge ? accentPalette.primary : theme.colors.textMuted}
-              />
-              <AppText
-                preset="caption"
+            <View style={styles.linkedPetMetaRow}>
+              <View
                 style={[
-                  styles.ageToggleText,
+                  styles.linkedPetPreview,
                   {
-                    color: showPetAge
-                      ? accentPalette.deep
-                      : theme.colors.textPrimary,
+                    backgroundColor: theme.colors.surfaceElevated,
+                    borderColor: theme.colors.border,
                   },
                 ]}
               >
-                나이 함께 표시
-              </AppText>
-            </TouchableOpacity>
+                {linkedPet.avatarUrl ? (
+                  <Image
+                    source={{ uri: linkedPet.avatarUrl }}
+                    style={styles.linkedPetAvatar}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View
+                    style={[
+                      styles.linkedPetAvatarFallback,
+                      { backgroundColor: accentPalette.tint },
+                    ]}
+                  >
+                    <AppText
+                      preset="body"
+                      style={[
+                        styles.linkedPetAvatarFallbackText,
+                        { color: accentPalette.deep },
+                      ]}
+                    >
+                      {linkedPet.name.trim().charAt(0) || 'N'}
+                    </AppText>
+                  </View>
+                )}
+
+                <View style={styles.linkedPetInfo}>
+                  <AppText
+                    preset="body"
+                    style={[styles.linkedPetName, { color: theme.colors.textPrimary }]}
+                  >
+                    {linkedPet.name}
+                  </AppText>
+                  {linkedPetMetaLabel ? (
+                    <AppText
+                      preset="caption"
+                      style={[styles.linkedPetMeta, { color: theme.colors.textSecondary }]}
+                    >
+                      {linkedPetMetaLabel}
+                    </AppText>
+                  ) : null}
+                </View>
+              </View>
+
+              <TouchableOpacity
+                activeOpacity={0.88}
+                style={[
+                  styles.ageToggleButton,
+                  showPetAge
+                    ? {
+                        backgroundColor: accentPalette.tint,
+                        borderColor: accentPalette.primary,
+                      }
+                    : {
+                        backgroundColor: theme.colors.surfaceElevated,
+                        borderColor: theme.colors.border,
+                      },
+                ]}
+                onPress={onToggleShowPetAge}
+              >
+                <Feather
+                  name={showPetAge ? 'check-circle' : 'circle'}
+                  size={15}
+                  color={showPetAge ? accentPalette.primary : theme.colors.textMuted}
+                />
+                <AppText
+                  preset="caption"
+                  style={[
+                    styles.ageToggleText,
+                    {
+                      color: showPetAge
+                        ? accentPalette.deep
+                        : theme.colors.textPrimary,
+                    },
+                  ]}
+                >
+                  나이 함께 표시
+                </AppText>
+              </TouchableOpacity>
+            </View>
           ) : null}
 
           {linkedPet && petHintText ? (
@@ -294,6 +308,86 @@ function CommunityPostEditorFormBase({
           ) : null}
         </View>
       ) : null}
+
+      <View style={styles.section}>
+        <AppText preset="caption" style={[styles.label, { color: theme.colors.textMuted }]}>
+          이미지 첨부
+        </AppText>
+        <View style={styles.thumbnailRow}>
+          {[0, 1, 2].map(index => {
+            const uri = thumbnailUris[index] ?? null;
+            if (uri) {
+              return (
+                <View key={`image-${index}`} style={styles.thumbnailWrap}>
+                  <Image
+                    source={{ uri }}
+                    style={styles.thumbnailImage}
+                    resizeMode="cover"
+                    onError={onImageError}
+                  />
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    style={[
+                      styles.removeImageButton,
+                      { backgroundColor: `${theme.colors.textPrimary}D9` },
+                    ]}
+                    onPress={() => onRemoveImage(index)}
+                  >
+                    <Feather name="x" size={14} color="#FFFFFF" />
+                  </TouchableOpacity>
+                </View>
+              );
+            }
+
+            return (
+              <TouchableOpacity
+                key={`empty-${index}`}
+                activeOpacity={0.9}
+                style={[
+                  styles.imagePickerSlot,
+                  {
+                    backgroundColor: theme.colors.surfaceElevated,
+                    borderColor: theme.colors.border,
+                  },
+                ]}
+                onPress={onPickImage}
+              >
+                <Feather name="plus" size={20} color={accentPalette.primary} />
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <View style={styles.bodyHeader}>
+          <AppText preset="caption" style={[styles.label, { color: theme.colors.textMuted }]}>
+            제목
+          </AppText>
+          <AppText preset="caption" style={[styles.counter, { color: theme.colors.textMuted }]}>
+            {title.length} / 80
+          </AppText>
+        </View>
+        <View
+          style={[
+            styles.titleInputShell,
+            {
+              backgroundColor: theme.colors.surfaceElevated,
+              borderColor: theme.colors.border,
+            },
+          ]}
+        >
+          <TextInput
+            value={title}
+            onChangeText={onChangeTitle}
+            placeholder="제목을 입력해 주세요."
+            placeholderTextColor={theme.colors.textMuted}
+            style={[styles.titleInput, { color: theme.colors.textPrimary }]}
+            maxLength={80}
+            returnKeyType="next"
+          />
+        </View>
+      </View>
 
       <View style={styles.section}>
         <View style={styles.bodyHeader}>
@@ -317,6 +411,7 @@ function CommunityPostEditorFormBase({
             multiline
             value={content}
             onChangeText={onChangeContent}
+            onFocus={onContentFocus}
             placeholder="반려동물과 나누고 싶은 이야기를 적어 보세요."
             placeholderTextColor={theme.colors.textMuted}
             style={[styles.input, { color: theme.colors.textPrimary }]}
@@ -324,52 +419,6 @@ function CommunityPostEditorFormBase({
             textAlignVertical="top"
           />
         </View>
-      </View>
-
-      <View style={styles.section}>
-        <AppText preset="caption" style={[styles.label, { color: theme.colors.textMuted }]}>
-          이미지 첨부
-        </AppText>
-        {imageUri ? (
-          <View style={styles.imageWrap}>
-            <Image
-              source={{ uri: imageUri }}
-              style={styles.previewImage}
-              resizeMode="cover"
-              onError={onImageError}
-            />
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={[
-                styles.removeImageButton,
-                { backgroundColor: `${theme.colors.textPrimary}D9` },
-              ]}
-              onPress={onRemoveImage}
-            >
-              <Feather name="x" size={16} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={[
-              styles.imagePickerButton,
-              {
-                backgroundColor: theme.colors.surfaceElevated,
-                borderColor: theme.colors.border,
-              },
-            ]}
-            onPress={onPickImage}
-          >
-            <Feather name="image" size={18} color={accentPalette.primary} />
-            <AppText
-              preset="body"
-              style={[styles.imagePickerText, { color: theme.colors.textPrimary }]}
-            >
-              사진 1장 추가하기
-            </AppText>
-          </TouchableOpacity>
-        )}
       </View>
 
       <TouchableOpacity
@@ -426,8 +475,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   linkedPetPreview: {
-    marginTop: 2,
+    flex: 1,
     minHeight: 64,
+    minWidth: 0,
     borderRadius: 20,
     borderWidth: 1,
     paddingHorizontal: 14,
@@ -453,6 +503,7 @@ const styles = StyleSheet.create({
   },
   linkedPetInfo: {
     flex: 1,
+    minWidth: 0,
     gap: 4,
   },
   linkedPetName: {
@@ -461,14 +512,22 @@ const styles = StyleSheet.create({
   linkedPetMeta: {
     lineHeight: 18,
   },
+  linkedPetMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
   ageToggleButton: {
     minHeight: 40,
     borderRadius: 16,
     borderWidth: 1,
     paddingHorizontal: 14,
+    paddingVertical: 10,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    alignSelf: 'stretch',
   },
   ageToggleText: {
     fontWeight: '700',
@@ -484,6 +543,19 @@ const styles = StyleSheet.create({
   counter: {
     lineHeight: 18,
   },
+  titleInputShell: {
+    minHeight: 56,
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+  },
+  titleInput: {
+    fontSize: 16,
+    lineHeight: 22,
+    padding: 0,
+    fontWeight: '600',
+  },
   inputShell: {
     minHeight: 220,
     borderRadius: 22,
@@ -497,35 +569,37 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     padding: 0,
   },
-  imageWrap: {
+  thumbnailRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  thumbnailWrap: {
+    flex: 1,
+    aspectRatio: 1,
     position: 'relative',
   },
-  previewImage: {
+  thumbnailImage: {
     width: '100%',
-    height: 240,
-    borderRadius: 20,
+    height: '100%',
+    borderRadius: 18,
   },
   removeImageButton: {
     position: 'absolute',
-    top: 12,
-    right: 12,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  imagePickerButton: {
-    minHeight: 56,
-    borderRadius: 20,
+  imagePickerSlot: {
+    flex: 1,
+    aspectRatio: 1,
+    borderRadius: 18,
     borderWidth: 1,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-  },
-  imagePickerText: {
-    fontWeight: '700',
   },
   bottomSubmitButton: {
     minHeight: 52,

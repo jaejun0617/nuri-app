@@ -1,11 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   ActivityIndicator,
+  FlatList,
   Image,
   Modal,
-  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -13,14 +12,16 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
+import PostImageSlider from '../../components/community/PostImageSlider';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { useCommunityAuth } from '../../hooks/useCommunityAuth';
+import { useKeyboardInset } from '../../hooks/useKeyboardInset';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
 import { getErrorMessage } from '../../services/app/errors';
@@ -32,7 +33,11 @@ import type {
   CommunityComment,
   CommunityReportReasonCategory,
 } from '../../types/community';
-import { formatRelativeTimeFromNow } from '../../utils/date';
+import { formatRelativeTimeFromNow, getKstDateParts } from '../../utils/date';
+
+const DETAIL_DIVIDER_COLOR = '#00000008';
+const COMMENT_PAGE_SIZE = 10;
+const REPLY_PREVIEW_COUNT = 2;
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'CommunityDetail'>;
 type Route = RootScreenRoute<'CommunityDetail'>;
@@ -95,12 +100,34 @@ function getCategoryTone(category: string | null) {
   }
 }
 
+function formatDetailMetaDate(input: string) {
+  const parts = getKstDateParts(input);
+  if (!parts) return '';
+  const month = String(parts.month).padStart(2, '0');
+  const day = String(parts.day).padStart(2, '0');
+  return `${parts.year}.${month}.${day}`;
+}
+
+function resolveReplyParentId(comment: CommunityComment) {
+  if (comment.depth === 0) {
+    return comment.id;
+  }
+
+  return comment.parentCommentId ?? comment.id;
+}
+
+function isBestComment(comment: CommunityComment) {
+  return comment.depth === 0 && comment.likeCount >= 5 && comment.status === 'active';
+}
+
 export default function CommunityDetailScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const scrollViewRef = useRef<ScrollView | null>(null);
+  const flatListRef = useRef<FlatList<CommunityComment> | null>(null);
+  const commentInputRef = useRef<TextInput | null>(null);
+  const keyboardInset = useKeyboardInset();
 
   const { currentUserId, requireLogin } = useCommunityAuth();
   const pets = usePetStore(s => s.pets);
@@ -129,6 +156,7 @@ export default function CommunityDetailScreen() {
   const fetchPostComments = useCommunityStore(s => s.fetchPostComments);
   const removePost = useCommunityStore(s => s.removePost);
   const togglePostLike = useCommunityStore(s => s.togglePostLike);
+  const toggleCommentLike = useCommunityStore(s => s.toggleCommentLike);
   const submitComment = useCommunityStore(s => s.submitComment);
   const removeComment = useCommunityStore(s => s.removeComment);
   const reportContent = useCommunityStore(s => s.reportContent);
@@ -137,6 +165,11 @@ export default function CommunityDetailScreen() {
   const [deleting, setDeleting] = React.useState(false);
   const [commentDraft, setCommentDraft] = React.useState('');
   const [commentSubmitting, setCommentSubmitting] = React.useState(false);
+  const [visibleCommentCount, setVisibleCommentCount] =
+    React.useState(COMMENT_PAGE_SIZE);
+  const [replyTarget, setReplyTarget] = React.useState<CommunityComment | null>(null);
+  const [expandedRepliesByCommentId, setExpandedRepliesByCommentId] =
+    React.useState<Record<string, boolean>>({});
   const [commentDeleteTarget, setCommentDeleteTarget] =
     React.useState<CommunityComment | null>(null);
   const [reportTarget, setReportTarget] = React.useState<{
@@ -153,6 +186,12 @@ export default function CommunityDetailScreen() {
     fetchPostComments(postId).catch(() => {});
   }, [fetchPostComments, fetchPostDetail, postId]);
 
+  useEffect(() => {
+    setVisibleCommentCount(COMMENT_PAGE_SIZE);
+    setExpandedRepliesByCommentId({});
+    setReplyTarget(null);
+  }, [postId]);
+
   const handleBack = () => {
     navigation.goBack();
   };
@@ -165,12 +204,12 @@ export default function CommunityDetailScreen() {
     detailStatus !== 'moderated' &&
     detailStatus !== 'not_found';
 
-  const relativeTime = useMemo(() => {
+  const postMetaDate = useMemo(() => {
     if (!post) return '';
-    return formatRelativeTimeFromNow(post.createdAt);
+    return formatDetailMetaDate(post.createdAt);
   }, [post]);
 
-  const handlePressLike = () => {
+  const handlePressLike = useCallback(() => {
     requireLogin(() => {
       if (!post || !currentUserId) return;
       togglePostLike(post.id, currentUserId).catch(error => {
@@ -180,7 +219,7 @@ export default function CommunityDetailScreen() {
         });
       });
     });
-  };
+  }, [currentUserId, post, requireLogin, togglePostLike]);
 
   const handleSubmitComment = () => {
     requireLogin(() => {
@@ -192,9 +231,18 @@ export default function CommunityDetailScreen() {
       }
 
       setCommentSubmitting(true);
-      submitComment(postId, trimmed, currentUserId)
+      submitComment(
+        postId,
+        trimmed,
+        currentUserId,
+        replyTarget ? resolveReplyParentId(replyTarget) : null,
+      )
         .then(() => {
           setCommentDraft('');
+          setReplyTarget(null);
+          setTimeout(() => {
+            flatListRef.current?.scrollToEnd({ animated: true });
+          }, 100);
         })
         .catch(error => {
           showToast({
@@ -209,16 +257,41 @@ export default function CommunityDetailScreen() {
   };
 
   const scrollCommentComposerIntoView = useCallback(() => {
-    requestAnimationFrame(() => {
-      scrollViewRef.current?.scrollToEnd({ animated: true });
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 140);
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 280);
-    });
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 150);
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 300);
   }, []);
+
+  const focusCommentComposer = useCallback(() => {
+    commentInputRef.current?.focus();
+    scrollCommentComposerIntoView();
+  }, [scrollCommentComposerIntoView]);
+
+  const handlePressReply = useCallback(
+    (comment: CommunityComment) => {
+      setReplyTarget(comment);
+      focusCommentComposer();
+    },
+    [focusCommentComposer],
+  );
+
+  const handleToggleCommentLike = useCallback(
+    (comment: CommunityComment) => {
+      requireLogin(() => {
+        if (!currentUserId) return;
+        toggleCommentLike(comment.id, postId, currentUserId).catch(error => {
+          showToast({
+            tone: 'error',
+            message: getErrorMessage(error) || '댓글 좋아요 처리에 실패했어요.',
+          });
+        });
+      });
+    },
+    [currentUserId, postId, requireLogin, toggleCommentLike],
+  );
 
   const handleSubmitReport = () => {
     requireLogin(() => {
@@ -264,242 +337,175 @@ export default function CommunityDetailScreen() {
     });
   };
 
-  const stateBody = (() => {
-    if ((detailStatus === 'idle' || detailStatus === 'loading') && !post) {
-      return (
-        <View style={styles.centerState}>
-          <ActivityIndicator size="small" color={petTheme.primary} />
-        </View>
-      );
-    }
-
-    if (detailStatus === 'not_found') {
-      return (
-        <StateMessage
-          title="게시글을 찾을 수 없어요"
-          body="삭제되었거나 더 이상 볼 수 없는 게시글일 수 있어요."
-          buttonLabel="뒤로 가기"
-          onPress={handleBack}
-        />
-      );
-    }
-
-    if (detailStatus === 'deleted') {
-      return (
-        <StateMessage
-          title="삭제된 게시글입니다"
-          body="원문은 더 이상 확인할 수 없어요."
-          buttonLabel="뒤로 가기"
-          onPress={handleBack}
-        />
-      );
-    }
-
-    if (detailStatus === 'moderated') {
-      return (
-        <StateMessage
-          title="운영 검토 중인 게시글입니다"
-          body="검토가 끝나면 다시 노출될 수 있어요."
-          buttonLabel="뒤로 가기"
-          onPress={handleBack}
-        />
-      );
-    }
-
-    if (detailStatus === 'error' && !post) {
-      return (
-        <StateMessage
-          title="게시글을 불러오지 못했어요"
-          body="잠시 후 다시 시도해 주세요."
-          buttonLabel="다시 시도"
-          onPress={() => {
-            fetchPostDetail(postId).catch(() => {});
-            fetchPostComments(postId).catch(() => {});
-          }}
-        />
-      );
-    }
-
+  const listHeader = useMemo(() => {
     if (!post) return null;
 
-    const petName = post.petName?.trim() || null;
-    const petBreedAge = [post.petBreed || post.petSpecies, post.petAgeLabel]
-      .filter(Boolean)
-      .join(' · ');
     const categoryTone = getCategoryTone(post.category);
 
     return (
-      <ScrollView
-        ref={scrollViewRef}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: detailBottomInset },
-        ]}
-        keyboardShouldPersistTaps="always"
-        keyboardDismissMode="on-drag"
-        showsVerticalScrollIndicator={false}
-      >
-        <View
-          style={[
-            styles.postCard,
-            {
-              backgroundColor: theme.colors.surfaceElevated,
-              borderColor: theme.colors.border,
-            },
-          ]}
-        >
+      <View style={styles.scrollContent}>
+        <View style={styles.postSection}>
           <View style={styles.postTop}>
-            <View style={styles.authorBlock}>
-              <View style={styles.profileRow}>
-                {post.petAvatarUrl ? (
-                  <Image
-                    source={{ uri: post.petAvatarUrl }}
-                    style={[
-                      styles.petAvatar,
-                      { borderColor: theme.colors.border },
-                    ]}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View
-                    style={[
-                      styles.petAvatarFallback,
-                      {
-                        backgroundColor: theme.colors.surface,
-                        borderColor: theme.colors.border,
-                      },
-                    ]}
-                  >
-                    <Feather
-                      name="user"
-                      size={16}
-                      color={theme.colors.textMuted}
-                    />
-                  </View>
-                )}
-                <View style={styles.profileTextBlock}>
-                  <AppText
-                    preset="headline"
-                    style={[
-                      styles.authorName,
-                      { color: theme.colors.textPrimary },
-                    ]}
-                  >
-                    {post.authorNickname}
-                  </AppText>
-                  {petName ? (
-                    <AppText
-                      preset="body"
-                      numberOfLines={1}
-                      style={[
-                        styles.petNameLine,
-                        { color: theme.colors.textPrimary },
-                      ]}
-                    >
-                      {petName}
-                    </AppText>
-                  ) : null}
-                  {petBreedAge ? (
-                    <AppText
-                      preset="caption"
-                      numberOfLines={1}
-                      style={[
-                        styles.metaLine,
-                        { color: theme.colors.textMuted },
-                      ]}
-                    >
-                      {petBreedAge}
-                    </AppText>
-                  ) : null}
-                </View>
-              </View>
-              <AppText
-                preset="caption"
-                style={[styles.metaLine, { color: theme.colors.textMuted }]}
+            {post.category && categoryTone ? (
+              <View
+                style={[
+                  styles.categoryBadge,
+                  {
+                    backgroundColor: categoryTone.backgroundColor,
+                    borderColor: categoryTone.borderColor,
+                  },
+                ]}
               >
-                {relativeTime}
-              </AppText>
-            </View>
+                <AppText
+                  preset="caption"
+                  style={[
+                    styles.categoryText,
+                    { color: categoryTone.textColor },
+                  ]}
+                >
+                  {getCategoryLabel(post.category)}
+                </AppText>
+              </View>
+            ) : (
+              <View />
+            )}
+            {isMyPost ? (
+              <TouchableOpacity
+                activeOpacity={0.88}
+                style={[
+                  styles.moreButton,
+                  { borderColor: theme.colors.border },
+                ]}
+                onPress={() => setMenuVisible(true)}
+              >
+                <Feather
+                  name="more-vertical"
+                  size={18}
+                  color={theme.colors.textPrimary}
+                />
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.moreButtonPlaceholder} />
+            )}
+          </View>
 
-            <View style={styles.postTopRight}>
-              {post.category && categoryTone ? (
+          {post.title ? (
+            <AppText
+              preset="headline"
+              style={[styles.postTitle, { color: theme.colors.textPrimary }]}
+            >
+              {post.title}
+            </AppText>
+          ) : null}
+
+          <View style={styles.postMetaRow}>
+            <View style={styles.profileRow}>
+              {post.petAvatarUrl ? (
+                <Image
+                  source={{ uri: post.petAvatarUrl }}
+                  style={[
+                    styles.petAvatar,
+                    { borderColor: theme.colors.border },
+                  ]}
+                  resizeMode="cover"
+                />
+              ) : (
                 <View
                   style={[
-                    styles.categoryBadge,
+                    styles.petAvatarFallback,
                     {
-                      backgroundColor: categoryTone.backgroundColor,
-                      borderColor: categoryTone.borderColor,
+                      backgroundColor: theme.colors.surface,
+                      borderColor: theme.colors.border,
                     },
                   ]}
                 >
-                  <AppText
-                    preset="caption"
-                    style={[
-                      styles.categoryText,
-                      { color: categoryTone.textColor },
-                    ]}
-                  >
-                    {getCategoryLabel(post.category)}
-                  </AppText>
-                </View>
-              ) : null}
-              {post ? (
-                <TouchableOpacity
-                  activeOpacity={0.88}
-                  style={[
-                    styles.moreButton,
-                    { borderColor: theme.colors.border },
-                  ]}
-                  onPress={() => setMenuVisible(true)}
-                >
                   <Feather
-                    name="more-vertical"
-                    size={18}
-                    color={theme.colors.textPrimary}
+                    name="user"
+                    size={16}
+                    color={theme.colors.textMuted}
                   />
-                </TouchableOpacity>
-              ) : null}
+                </View>
+              )}
+              <View style={styles.profileTextBlock}>
+                <AppText
+                  preset="body"
+                  style={[
+                    styles.authorName,
+                    { color: theme.colors.textPrimary },
+                  ]}
+                >
+                  {post.authorNickname}
+                </AppText>
+                <AppText
+                  preset="caption"
+                  style={[styles.metaLine, { color: theme.colors.textMuted }]}
+                >
+                  {postMetaDate
+                    ? `${postMetaDate} · 조회수 ${post.viewCount.toLocaleString()}`
+                    : `조회수 ${post.viewCount.toLocaleString()}`}
+                </AppText>
+              </View>
             </View>
           </View>
 
-          <AppText
-            preset="body"
-            style={[styles.postContent, { color: theme.colors.textPrimary }]}
-          >
-            {post.content}
-          </AppText>
-
-          {post.imageUrl ? (
-            <Image
-              source={{ uri: post.imageUrl }}
-              style={styles.postImage}
-              resizeMode="cover"
-            />
-          ) : post.hasImage ? (
-            <View
-              style={[
-                styles.imageFallback,
-                { backgroundColor: theme.colors.surface },
-              ]}
-            >
-              <Feather name="image" size={18} color={theme.colors.textMuted} />
-              <AppText
-                preset="caption"
-                style={[
-                  styles.imageFallbackText,
-                  { color: theme.colors.textMuted },
-                ]}
-              >
-                이미지를 불러오지 못했어요.
-              </AppText>
+          {(post.imageUrls?.length ?? 0) > 0 || post.hasImage ? (
+            <View style={styles.mediaSection}>
+              {(post.imageUrls?.length ?? 0) > 0 ? (
+                <PostImageSlider imageUrls={post.imageUrls ?? []} />
+              ) : (
+                <View
+                  style={[
+                    styles.imageFallback,
+                    { backgroundColor: theme.colors.surface },
+                  ]}
+                >
+                  <Feather
+                    name="image"
+                    size={18}
+                    color={theme.colors.textMuted}
+                  />
+                  <AppText
+                    preset="caption"
+                    style={[
+                      styles.imageFallbackText,
+                      { color: theme.colors.textMuted },
+                    ]}
+                  >
+                    이미지를 불러오지 못했어요.
+                  </AppText>
+                </View>
+              )}
             </View>
           ) : null}
 
-          <View style={styles.countRow}>
-            <Pressable style={styles.countItem} onPress={handlePressLike}>
+          <View
+            style={[
+              styles.postContentSection,
+              { borderTopColor: DETAIL_DIVIDER_COLOR },
+            ]}
+          >
+            <AppText
+              preset="body"
+              style={[styles.postContent, { color: theme.colors.textPrimary }]}
+            >
+              {post.content}
+            </AppText>
+          </View>
+
+          <View style={styles.actionRow}>
+            <Pressable
+              style={[
+                styles.actionPill,
+                {
+                  backgroundColor: theme.colors.surfaceElevated,
+                  borderColor: theme.colors.border,
+                },
+              ]}
+              onPress={handlePressLike}
+            >
               <Feather
                 name="heart"
-                size={17}
+                size={16}
                 color={
                   post.isLikedByMe
                     ? theme.colors.danger
@@ -508,52 +514,64 @@ export default function CommunityDetailScreen() {
               />
               <AppText
                 preset="caption"
-                style={[styles.countText, { color: theme.colors.textMuted }]}
+                style={[
+                  styles.actionPillText,
+                  {
+                    color: post.isLikedByMe
+                      ? theme.colors.danger
+                      : theme.colors.textPrimary,
+                  },
+                ]}
               >
-                {post.likeCount}
+                좋아요 {post.likeCount.toLocaleString()}
               </AppText>
             </Pressable>
-            <View style={styles.countItem}>
-              <Feather
-                name="message-circle"
-                size={17}
-                color={theme.colors.textMuted}
-              />
-              <AppText
-                preset="caption"
-                style={[styles.countText, { color: theme.colors.textMuted }]}
+            {!isMyPost ? (
+              <Pressable
+                style={[
+                  styles.actionPill,
+                  {
+                    backgroundColor: theme.colors.surfaceElevated,
+                    borderColor: theme.colors.border,
+                  },
+                ]}
+                onPress={() => {
+                  setReportTarget({ targetType: 'post', targetId: postId });
+                  setReportReason('');
+                  setReportReasonCategory('spam');
+                }}
               >
-                {post.commentCount}
-              </AppText>
-            </View>
-            <View style={styles.countItem}>
-              <Feather name="eye" size={17} color={theme.colors.textMuted} />
-              <AppText
-                preset="caption"
-                style={[styles.countText, { color: theme.colors.textMuted }]}
-              >
-                {post.viewCount}
-              </AppText>
-            </View>
+                <MaterialCommunityIcons
+                  name="alarm-light-outline"
+                  size={16}
+                  color={theme.colors.textMuted}
+                />
+                <AppText
+                  preset="caption"
+                  style={[styles.actionPillText, { color: theme.colors.textPrimary }]}
+                >
+                  신고하기
+                </AppText>
+              </Pressable>
+            ) : null}
           </View>
         </View>
 
-        <View
-          style={[
-            styles.commentsCard,
-            {
-              backgroundColor: theme.colors.surfaceElevated,
-              borderColor: theme.colors.border,
-            },
-          ]}
-        >
-          <AppText
-            preset="headline"
-            style={[styles.commentsTitle, { color: theme.colors.textPrimary }]}
-          >
-            댓글
-          </AppText>
-
+        <View style={styles.commentsSection}>
+          <View style={styles.commentsHeader}>
+            <AppText
+              preset="headline"
+              style={[styles.commentsTitle, { color: theme.colors.textPrimary }]}
+            >
+              댓글
+            </AppText>
+            <AppText
+              preset="caption"
+              style={[styles.commentsCount, { color: theme.colors.textMuted }]}
+            >
+              {post.commentCount.toLocaleString()}개
+            </AppText>
+          </View>
           {commentsStatus === 'loading' ? (
             <View style={styles.commentsLoading}>
               <ActivityIndicator size="small" color={petTheme.primary} />
@@ -565,37 +583,271 @@ export default function CommunityDetailScreen() {
             >
               아직 댓글이 없어요.
             </AppText>
-          ) : (
-            comments.map((comment, index) => (
-              <View
-                key={comment.id}
-                style={[
-                  styles.commentItem,
-                  index > 0
-                    ? { borderTopColor: theme.colors.border, borderTopWidth: 1 }
-                    : null,
-                ]}
-              >
-                <View style={styles.commentTop}>
-                  <AppText
-                    preset="body"
+          ) : null}
+        </View>
+      </View>
+    );
+  }, [
+    comments.length,
+    commentsStatus,
+    handlePressLike,
+    isMyPost,
+    petTheme.primary,
+    post,
+    postId,
+    postMetaDate,
+    theme.colors.border,
+    theme.colors.danger,
+    theme.colors.surface,
+    theme.colors.surfaceElevated,
+    theme.colors.textMuted,
+    theme.colors.textPrimary,
+  ]);
+
+  const { topLevelComments, repliesByParentId } = useMemo(() => {
+    const topLevel: CommunityComment[] = [];
+    const replyMap = new Map<string, CommunityComment[]>();
+
+    comments.forEach(comment => {
+      if (comment.depth === 0 || !comment.parentCommentId) {
+        topLevel.push(comment);
+        return;
+      }
+
+      const currentReplies = replyMap.get(comment.parentCommentId) ?? [];
+      currentReplies.push(comment);
+      replyMap.set(comment.parentCommentId, currentReplies);
+    });
+
+    return {
+      topLevelComments: topLevel,
+      repliesByParentId: replyMap,
+    };
+  }, [comments]);
+
+  if ((detailStatus === 'idle' || detailStatus === 'loading') && !post) {
+    return (
+      <View
+        style={[styles.screen, { backgroundColor: theme.colors.background }]}
+      >
+        <Header onBack={handleBack} topInset={Math.max(insets.top + 8, 20)} />
+        <View style={styles.centerState}>
+          <ActivityIndicator size="small" color={petTheme.primary} />
+        </View>
+      </View>
+    );
+  }
+
+  if (detailStatus === 'not_found') {
+    return (
+      <View
+        style={[styles.screen, { backgroundColor: theme.colors.background }]}
+      >
+        <Header onBack={handleBack} topInset={Math.max(insets.top + 8, 20)} />
+        <StateMessage
+          title="게시글을 찾을 수 없어요"
+          body="삭제되었거나 더 이상 볼 수 없는 게시글일 수 있어요."
+          buttonLabel="뒤로 가기"
+          onPress={handleBack}
+        />
+      </View>
+    );
+  }
+
+  if (detailStatus === 'deleted') {
+    return (
+      <View
+        style={[styles.screen, { backgroundColor: theme.colors.background }]}
+      >
+        <Header onBack={handleBack} topInset={Math.max(insets.top + 8, 20)} />
+        <StateMessage
+          title="삭제된 게시글입니다"
+          body="원문은 더 이상 확인할 수 없어요."
+          buttonLabel="뒤로 가기"
+          onPress={handleBack}
+        />
+      </View>
+    );
+  }
+
+  if (detailStatus === 'moderated') {
+    return (
+      <View
+        style={[styles.screen, { backgroundColor: theme.colors.background }]}
+      >
+        <Header onBack={handleBack} topInset={Math.max(insets.top + 8, 20)} />
+        <StateMessage
+          title="운영 검토 중인 게시글입니다"
+          body="검토가 끝나면 다시 노출될 수 있어요."
+          buttonLabel="뒤로 가기"
+          onPress={handleBack}
+        />
+      </View>
+    );
+  }
+
+  if (detailStatus === 'error' && !post) {
+    return (
+      <View
+        style={[styles.screen, { backgroundColor: theme.colors.background }]}
+      >
+        <Header onBack={handleBack} topInset={Math.max(insets.top + 8, 20)} />
+        <StateMessage
+          title="게시글을 불러오지 못했어요"
+          body="잠시 후 다시 시도해 주세요."
+          buttonLabel="다시 시도"
+          onPress={() => {
+            fetchPostDetail(postId).catch(() => {});
+            fetchPostComments(postId).catch(() => {});
+          }}
+        />
+      </View>
+    );
+  }
+
+  if (!post) return null;
+
+  const visibleTopLevelComments = topLevelComments.slice(0, visibleCommentCount);
+  const remainingCommentCount = Math.max(
+    topLevelComments.length - visibleTopLevelComments.length,
+    0,
+  );
+
+  return (
+    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
+      <Header onBack={handleBack} topInset={Math.max(insets.top + 8, 20)} />
+
+      <FlatList
+        ref={flatListRef}
+        data={visibleTopLevelComments}
+        keyExtractor={item => item.id}
+        style={styles.contentArea}
+        contentContainerStyle={{ paddingBottom: detailBottomInset }}
+        keyboardShouldPersistTaps="always"
+        keyboardDismissMode="interactive"
+        automaticallyAdjustKeyboardInsets={true}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={listHeader}
+        renderItem={({ item: comment, index }) => {
+          const replies = repliesByParentId.get(comment.id) ?? EMPTY_COMMENTS;
+          const repliesExpanded = expandedRepliesByCommentId[comment.id] === true;
+          const visibleReplies = repliesExpanded
+            ? replies
+            : replies.slice(0, REPLY_PREVIEW_COUNT);
+          const remainingReplyCount = Math.max(replies.length - visibleReplies.length, 0);
+
+          return (
+            <View
+              style={[
+                styles.commentThreadWrap,
+                index > 0
+                  ? { borderTopColor: DETAIL_DIVIDER_COLOR, borderTopWidth: 1 }
+                  : null,
+              ]}
+            >
+              <View style={styles.commentRow}>
+                {comment.authorAvatarUrl ? (
+                  <Image
+                    source={{ uri: comment.authorAvatarUrl }}
+                    style={[styles.commentAvatar, { borderColor: theme.colors.border }]}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View
                     style={[
-                      styles.commentAuthor,
-                      { color: theme.colors.textPrimary },
+                      styles.commentAvatarFallback,
+                      {
+                        backgroundColor: theme.colors.surface,
+                        borderColor: theme.colors.border,
+                      },
                     ]}
                   >
-                    {comment.authorNickname}
-                  </AppText>
-                  <View style={styles.commentTopRight}>
+                    <Feather name="user" size={12} color={theme.colors.textMuted} />
+                  </View>
+                )}
+
+                <View style={styles.commentBodyWrap}>
+                  <View style={styles.commentMetaRow}>
+                    <View style={styles.commentMetaInline}>
+                      <AppText
+                        preset="caption"
+                        style={[
+                          styles.commentMetaText,
+                          { color: theme.colors.textMuted },
+                        ]}
+                      >
+                        {`${comment.authorNickname} · ${formatRelativeTimeFromNow(comment.createdAt)}`}
+                      </AppText>
+                      {isBestComment(comment) ? (
+                        <View
+                          style={[
+                            styles.bestBadge,
+                            { backgroundColor: `${petTheme.primary}12` },
+                          ]}
+                        >
+                          <AppText
+                            preset="caption"
+                            style={[styles.bestBadgeText, { color: petTheme.primary }]}
+                          >
+                            Best
+                          </AppText>
+                        </View>
+                      ) : null}
+                    </View>
+                  </View>
+
+                  <View
+                    style={[
+                      styles.commentBubble,
+                      { backgroundColor: theme.colors.surfaceElevated },
+                    ]}
+                  >
                     <AppText
-                      preset="caption"
+                      preset="body"
                       style={[
-                        styles.commentTime,
-                        { color: theme.colors.textMuted },
+                        styles.commentContent,
+                        { color: theme.colors.textPrimary },
                       ]}
                     >
-                      {formatRelativeTimeFromNow(comment.createdAt)}
+                      {comment.content}
                     </AppText>
+                  </View>
+
+                  <View style={styles.commentActionRow}>
+                    <TouchableOpacity
+                      activeOpacity={0.88}
+                      onPress={() => handlePressReply(comment)}
+                    >
+                      <AppText
+                        preset="caption"
+                        style={[
+                          styles.commentActionText,
+                          { color: theme.colors.textMuted },
+                        ]}
+                      >
+                        답글쓰기
+                      </AppText>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      activeOpacity={0.88}
+                      onPress={() => handleToggleCommentLike(comment)}
+                    >
+                      <AppText
+                        preset="caption"
+                        style={[
+                          styles.commentActionText,
+                          {
+                            color: comment.isLikedByMe
+                              ? theme.colors.danger
+                              : theme.colors.textMuted,
+                          },
+                        ]}
+                      >
+                        좋아요 {comment.likeCount}
+                      </AppText>
+                    </TouchableOpacity>
+
                     {currentUserId ? (
                       comment.authorId === currentUserId ? (
                         <TouchableOpacity
@@ -637,125 +889,286 @@ export default function CommunityDetailScreen() {
                       )
                     ) : null}
                   </View>
+
+                  {visibleReplies.length > 0 ? (
+                    <View style={styles.replyListWrap}>
+                      {visibleReplies.map(reply => (
+                        <View key={reply.id} style={styles.replyRow}>
+                          <View style={styles.replyConnector} />
+                          <View style={styles.replyContentWrap}>
+                            <View style={styles.replyMetaRow}>
+                              <AppText
+                                preset="caption"
+                                style={[
+                                  styles.replyMetaText,
+                                  { color: theme.colors.textMuted },
+                                ]}
+                              >
+                                {`${reply.authorNickname} · ${formatRelativeTimeFromNow(reply.createdAt)}`}
+                              </AppText>
+                            </View>
+                            <View
+                              style={[
+                                styles.replyBubble,
+                                { backgroundColor: theme.colors.surface },
+                              ]}
+                            >
+                              <AppText
+                                preset="body"
+                                style={[
+                                  styles.replyContent,
+                                  { color: theme.colors.textPrimary },
+                                ]}
+                              >
+                                {reply.content}
+                              </AppText>
+                            </View>
+                            <View style={styles.replyActionRow}>
+                              <TouchableOpacity
+                                activeOpacity={0.88}
+                                onPress={() => handlePressReply(reply)}
+                              >
+                                <AppText
+                                  preset="caption"
+                                  style={[
+                                    styles.commentActionText,
+                                    { color: theme.colors.textMuted },
+                                  ]}
+                                >
+                                  답글쓰기
+                                </AppText>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                activeOpacity={0.88}
+                                onPress={() => handleToggleCommentLike(reply)}
+                              >
+                                <AppText
+                                  preset="caption"
+                                  style={[
+                                    styles.commentActionText,
+                                    {
+                                      color: reply.isLikedByMe
+                                        ? theme.colors.danger
+                                        : theme.colors.textMuted,
+                                    },
+                                  ]}
+                                >
+                                  좋아요 {reply.likeCount}
+                                </AppText>
+                              </TouchableOpacity>
+                              {currentUserId ? (
+                                reply.authorId === currentUserId ? (
+                                  <TouchableOpacity
+                                    activeOpacity={0.88}
+                                    onPress={() => setCommentDeleteTarget(reply)}
+                                  >
+                                    <AppText
+                                      preset="caption"
+                                      style={[
+                                        styles.commentActionText,
+                                        { color: theme.colors.danger },
+                                      ]}
+                                    >
+                                      삭제
+                                    </AppText>
+                                  </TouchableOpacity>
+                                ) : (
+                                  <TouchableOpacity
+                                    activeOpacity={0.88}
+                                    onPress={() => {
+                                      setReportTarget({
+                                        targetType: 'comment',
+                                        targetId: reply.id,
+                                      });
+                                      setReportReason('');
+                                      setReportReasonCategory('spam');
+                                    }}
+                                  >
+                                    <AppText
+                                      preset="caption"
+                                      style={[
+                                        styles.commentActionText,
+                                        { color: theme.colors.textMuted },
+                                      ]}
+                                    >
+                                      신고
+                                    </AppText>
+                                  </TouchableOpacity>
+                                )
+                              ) : null}
+                            </View>
+                          </View>
+                        </View>
+                      ))}
+
+                      {remainingReplyCount > 0 ? (
+                        <TouchableOpacity
+                          activeOpacity={0.88}
+                          style={styles.moreRepliesButton}
+                          onPress={() => {
+                            setExpandedRepliesByCommentId(prev => ({
+                              ...prev,
+                              [comment.id]: true,
+                            }));
+                          }}
+                        >
+                          <AppText
+                            preset="caption"
+                            style={[
+                              styles.moreRepliesText,
+                              { color: petTheme.primary },
+                            ]}
+                          >
+                            답글 {remainingReplyCount}개 더보기
+                          </AppText>
+                        </TouchableOpacity>
+                      ) : null}
+                    </View>
+                  ) : comment.replyCount > 0 ? (
+                    <TouchableOpacity
+                      activeOpacity={0.88}
+                      style={styles.moreRepliesButton}
+                      onPress={() => {
+                        setExpandedRepliesByCommentId(prev => ({
+                          ...prev,
+                          [comment.id]: true,
+                        }));
+                      }}
+                    >
+                      <AppText
+                        preset="caption"
+                        style={[
+                          styles.moreRepliesText,
+                          { color: petTheme.primary },
+                        ]}
+                      >
+                        답글 {comment.replyCount}개 보기
+                      </AppText>
+                    </TouchableOpacity>
+                  ) : null}
                 </View>
-                <AppText
-                  preset="body"
-                  style={[
-                    styles.commentContent,
-                    { color: theme.colors.textPrimary },
-                  ]}
-                >
-                  {comment.content}
-                </AppText>
               </View>
-            ))
-          )}
-        </View>
-      </ScrollView>
-    );
-  })();
+            </View>
+          );
+        }}
+      />
 
-  return (
-    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
-      <View
-        style={[
-          styles.header,
-          {
-            paddingTop: Math.max(insets.top + 8, 20),
-            backgroundColor: theme.colors.background,
-          },
-        ]}
-      >
-        <View style={styles.headerSide}>
+      {remainingCommentCount > 0 ? (
+        <View style={styles.moreCommentsWrap}>
           <TouchableOpacity
-            activeOpacity={0.88}
-            style={styles.backButton}
-            onPress={handleBack}
-          >
-            <Feather
-              name="arrow-left"
-              size={20}
-              color={theme.colors.textPrimary}
-            />
-          </TouchableOpacity>
-        </View>
-        <AppText
-          preset="headline"
-          style={[styles.headerTitle, { color: theme.colors.textPrimary }]}
-        >
-          커뮤니티
-        </AppText>
-        <View style={styles.headerSide} />
-      </View>
-
-      <KeyboardAvoidingView
-        style={styles.contentArea}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <View style={styles.contentArea}>{stateBody}</View>
-
-        {canShowCommentComposer ? (
-          <View
+            activeOpacity={0.9}
             style={[
-              styles.commentComposerWrap,
+              styles.moreCommentsButton,
               {
                 backgroundColor: theme.colors.background,
-                borderTopColor: theme.colors.border,
-                paddingBottom: Math.max(insets.bottom, 12),
+                borderColor: theme.colors.border,
+              },
+            ]}
+            onPress={() => {
+              setVisibleCommentCount(previousCount =>
+                Math.min(previousCount + COMMENT_PAGE_SIZE, topLevelComments.length),
+              );
+            }}
+          >
+            <AppText
+              preset="caption"
+              style={[styles.moreCommentsText, { color: theme.colors.textPrimary }]}
+            >
+              댓글 {remainingCommentCount.toLocaleString()}개 더보기
+            </AppText>
+            <Feather name="chevron-right" size={15} color={theme.colors.textPrimary} />
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
+      {canShowCommentComposer ? (
+        <View
+          style={[
+            styles.commentComposerWrap,
+            {
+              backgroundColor: theme.colors.background,
+              borderTopColor: theme.colors.border,
+              paddingBottom: Math.max(insets.bottom, 12),
+              marginBottom: keyboardInset,
+            },
+          ]}
+        >
+          {replyTarget ? (
+            <View
+              style={[
+                styles.replyComposerBanner,
+                { backgroundColor: theme.colors.surface },
+              ]}
+            >
+              <AppText
+                preset="caption"
+                style={[styles.replyComposerText, { color: theme.colors.textPrimary }]}
+              >
+                {`${replyTarget.authorNickname}님에게 답글 남기는 중`}
+              </AppText>
+              <TouchableOpacity
+                activeOpacity={0.88}
+                onPress={() => setReplyTarget(null)}
+              >
+                <AppText
+                  preset="caption"
+                  style={[styles.replyComposerCancel, { color: theme.colors.textMuted }]}
+                >
+                  취소
+                </AppText>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+          <View
+            style={[
+              styles.commentComposer,
+              {
+                backgroundColor: theme.colors.surfaceElevated,
+                borderColor: theme.colors.border,
               },
             ]}
           >
-            <View
+            <TextInput
+              ref={commentInputRef}
+              value={commentDraft}
+              onChangeText={setCommentDraft}
+              placeholder={
+                currentUserId
+                  ? replyTarget
+                    ? '답글을 입력해 주세요'
+                    : '댓글을 입력해 주세요'
+                  : '로그인 후 댓글을 남길 수 있어요'
+              }
+              placeholderTextColor={theme.colors.textMuted}
+              editable={!!currentUserId && !commentSubmitting}
+              style={[styles.commentInput, { color: theme.colors.textPrimary }]}
+              multiline
+              maxLength={500}
+              onFocus={() => {
+                if (!currentUserId) {
+                  navigation.navigate('SignIn');
+                  return;
+                }
+                scrollCommentComposerIntoView();
+              }}
+            />
+            <TouchableOpacity
+              activeOpacity={0.88}
               style={[
-                styles.commentComposer,
+                styles.commentSubmitButton,
                 {
-                  backgroundColor: theme.colors.surfaceElevated,
-                  borderColor: theme.colors.border,
+                  backgroundColor: petTheme.primary,
+                  opacity: commentSubmitting ? 0.72 : 1,
                 },
               ]}
+              disabled={commentSubmitting}
+              onPress={handleSubmitComment}
             >
-              <TextInput
-                value={commentDraft}
-                onChangeText={setCommentDraft}
-                placeholder={
-                  currentUserId
-                    ? '댓글을 입력해 주세요'
-                    : '로그인 후 댓글을 남길 수 있어요'
-                }
-                placeholderTextColor={theme.colors.textMuted}
-                editable={!!currentUserId && !commentSubmitting}
-                style={[
-                  styles.commentInput,
-                  { color: theme.colors.textPrimary },
-                ]}
-                multiline
-                maxLength={500}
-                onFocus={() => {
-                  if (!currentUserId) {
-                    navigation.navigate('SignIn');
-                    return;
-                  }
-                  scrollCommentComposerIntoView();
-                }}
-              />
-              <TouchableOpacity
-                activeOpacity={0.88}
-                style={[
-                  styles.commentSubmitButton,
-                  {
-                    backgroundColor: petTheme.primary,
-                    opacity: commentSubmitting ? 0.72 : 1,
-                  },
-                ]}
-                disabled={commentSubmitting}
-                onPress={handleSubmitComment}
-              >
-                <Feather name="send" size={17} color={petTheme.onPrimary} />
-              </TouchableOpacity>
-            </View>
+              <Feather name="send" size={17} color={petTheme.onPrimary} />
+            </TouchableOpacity>
           </View>
-        ) : null}
-      </KeyboardAvoidingView>
+        </View>
+      ) : null}
 
       <Modal
         visible={menuVisible}
@@ -1040,6 +1453,49 @@ export default function CommunityDetailScreen() {
   );
 }
 
+function Header({
+  onBack,
+  topInset,
+}: {
+  onBack: () => void;
+  topInset: number;
+}) {
+  const theme = useTheme();
+
+  return (
+    <View
+      style={[
+        styles.header,
+        {
+          paddingTop: topInset,
+          backgroundColor: theme.colors.background,
+        },
+      ]}
+    >
+      <View style={styles.headerSide}>
+        <TouchableOpacity
+          activeOpacity={0.88}
+          style={styles.backButton}
+          onPress={onBack}
+        >
+          <Feather
+            name="arrow-left"
+            size={20}
+            color={theme.colors.textPrimary}
+          />
+        </TouchableOpacity>
+      </View>
+      <AppText
+        preset="headline"
+        style={[styles.headerTitle, { color: theme.colors.textPrimary }]}
+      >
+        커뮤니티
+      </AppText>
+      <View style={styles.headerSide} />
+    </View>
+  );
+}
+
 function StateMessage({
   title,
   body,
@@ -1141,6 +1597,12 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
     gap: 12,
+    paddingTop: 12,
+  },
+  postSection: {
+    paddingTop: 4,
+    paddingBottom: 18,
+    gap: 16,
   },
   postCard: {
     borderWidth: 1,
@@ -1167,9 +1629,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
+  postMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
   authorName: {
-    lineHeight: 28,
-    fontSize: 18,
+    lineHeight: 22,
+    fontSize: 15,
     fontWeight: '700',
   },
   petAvatar: {
@@ -1219,9 +1687,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  moreButtonPlaceholder: {
+    width: 34,
+    height: 34,
+  },
+  postTitle: {
+    fontSize: 24,
+    lineHeight: 34,
+    fontWeight: '700',
+  },
+  mediaSection: {
+    marginTop: 4,
+    marginBottom: 6,
+  },
   postContent: {
-    lineHeight: 26,
-    fontSize: 16,
+    lineHeight: 32,
+    fontSize: 18,
+  },
+  postContentSection: {
+    borderTopWidth: 1,
+    minHeight: 300,
+    paddingTop: 20,
+    paddingBottom: 8,
   },
   postImage: {
     width: '100%',
@@ -1238,6 +1725,27 @@ const styles = StyleSheet.create({
   imageFallbackText: {
     lineHeight: 18,
     fontSize: 12,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingTop: 2,
+    justifyContent: 'space-between',
+  },
+  actionPill: {
+    minHeight: 40,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  actionPillText: {
+    lineHeight: 18,
+    fontSize: 12,
+    fontWeight: '700',
   },
   countRow: {
     flexDirection: 'row',
@@ -1258,58 +1766,220 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     padding: 18,
   },
+  commentsSection: {
+    paddingTop: 6,
+  },
+  commentsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: DETAIL_DIVIDER_COLOR,
+    marginBottom: 8,
+  },
   commentsTitle: {
-    marginBottom: 14,
     fontSize: 18,
     fontWeight: '700',
   },
+  commentsCount: {
+    fontSize: 12,
+    lineHeight: 18,
+  },
   commentsLoading: {
-    paddingVertical: 8,
+    paddingVertical: 10,
   },
   emptyComments: {
     lineHeight: 22,
     fontSize: 14,
   },
-  commentItem: {
-    paddingVertical: 12,
+  commentItemWrap: {
+    paddingHorizontal: 20,
+    paddingVertical: 14,
   },
-  commentTop: {
+  commentThreadWrap: {
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+  },
+  commentRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     gap: 10,
+  },
+  commentAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  commentAvatarFallback: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  commentBodyWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  commentMetaRow: {
     marginBottom: 6,
   },
-  commentAuthor: {
-    fontSize: 14,
+  commentMetaInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  commentMetaText: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  bestBadge: {
+    minHeight: 20,
+    borderRadius: 10,
+    paddingHorizontal: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bestBadgeText: {
+    fontSize: 10,
+    lineHeight: 12,
     fontWeight: '700',
   },
-  commentTopRight: {
+  commentBubble: {
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    alignSelf: 'flex-start',
+    maxWidth: '100%',
+  },
+  commentActionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-  },
-  commentTime: {
-    lineHeight: 18,
-    fontSize: 12,
+    marginTop: 8,
+    paddingLeft: 2,
   },
   commentActionText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   commentContent: {
-    lineHeight: 22,
-    fontSize: 15,
+    lineHeight: 23,
+    fontSize: 14,
+  },
+  replyListWrap: {
+    marginTop: 10,
+    gap: 10,
+  },
+  replyRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    paddingLeft: 4,
+  },
+  replyConnector: {
+    width: 14,
+    minHeight: 34,
+    borderLeftWidth: 1,
+    borderBottomWidth: 1,
+    borderBottomLeftRadius: 0,
+    borderColor: DETAIL_DIVIDER_COLOR,
+  },
+  replyContentWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  replyMetaRow: {
+    marginBottom: 5,
+  },
+  replyMetaText: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  replyBubble: {
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    alignSelf: 'flex-start',
+    maxWidth: '100%',
+  },
+  replyContent: {
+    fontSize: 13,
+    lineHeight: 21,
+  },
+  replyActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 7,
+    paddingLeft: 2,
+  },
+  moreRepliesButton: {
+    alignSelf: 'flex-start',
+    paddingLeft: 26,
+    paddingTop: 2,
+    minHeight: 28,
+    justifyContent: 'center',
+  },
+  moreRepliesText: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '700',
+  },
+  moreCommentsWrap: {
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 10,
+  },
+  moreCommentsButton: {
+    minHeight: 44,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  moreCommentsText: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '700',
   },
   commentComposerWrap: {
     borderTopWidth: 1,
     paddingHorizontal: 20,
     paddingTop: 10,
   },
+  replyComposerBanner: {
+    minHeight: 34,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  replyComposerText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '600',
+  },
+  replyComposerCancel: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '700',
+  },
   commentComposer: {
     borderWidth: 1,
     borderRadius: 18,
-    minHeight: 56,
+    minHeight: 58,
     paddingLeft: 14,
     paddingRight: 8,
     paddingVertical: 8,

@@ -384,11 +384,14 @@ create table if not exists public.posts (
   user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   pet_id uuid references public.pets(id) on delete set null,
   visibility public.visibility not null default 'public',
+  title text not null,
   content text not null,
   image_url text,
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now()),
 
+  constraint posts_title_length_check
+    check (char_length(btrim(title)) between 1 and 80),
   constraint posts_content_length_check
     check (char_length(btrim(content)) between 1 and 5000)
 );
@@ -407,15 +410,45 @@ create table if not exists public.comments (
   id uuid primary key default gen_random_uuid(),
   post_id uuid not null references public.posts(id) on delete cascade,
   user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  parent_comment_id uuid references public.comments(id) on delete cascade,
+  depth smallint not null default 0,
+  reply_count integer not null default 0,
+  like_count integer not null default 0,
   content text not null,
+  status text not null default 'active',
+  deleted_at timestamptz,
   created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now()),
 
   constraint comments_content_length_check
-    check (char_length(btrim(content)) between 1 and 2000)
+    check (char_length(btrim(content)) between 1 and 2000),
+  constraint comments_depth_check
+    check (depth in (0, 1)),
+  constraint comments_depth_parent_consistency_check
+    check (
+      (depth = 0 and parent_comment_id is null)
+      or (depth = 1 and parent_comment_id is not null)
+    ),
+  constraint comments_parent_not_self_check
+    check (parent_comment_id is null or parent_comment_id <> id),
+  constraint comments_status_check
+    check (status in ('active', 'hidden', 'deleted')),
+  constraint comments_deleted_consistency_check
+    check (
+      (deleted_at is null and status <> 'deleted')
+      or (deleted_at is not null and status = 'deleted')
+    )
 );
 
 create index if not exists idx_comments_post_created_at
   on public.comments (post_id, created_at asc);
+
+create index if not exists idx_comments_post_parent_created_at
+  on public.comments (post_id, parent_comment_id, created_at asc, id asc);
+
+create index if not exists idx_comments_parent_created_at
+  on public.comments (parent_comment_id, created_at asc, id asc)
+  where parent_comment_id is not null;
 
 create table if not exists public.likes (
   id uuid primary key default gen_random_uuid(),
@@ -427,6 +460,17 @@ create table if not exists public.likes (
 
 create index if not exists idx_likes_post
   on public.likes (post_id);
+
+create table if not exists public.comment_likes (
+  id uuid primary key default gen_random_uuid(),
+  comment_id uuid not null references public.comments(id) on delete cascade,
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  created_at timestamptz not null default timezone('utc', now()),
+  unique(comment_id, user_id)
+);
+
+create index if not exists idx_comment_likes_comment
+  on public.comment_likes (comment_id);
 
 create table if not exists public.reports (
   id uuid primary key default gen_random_uuid(),
@@ -623,6 +667,42 @@ create policy "profiles_select_own"
 on public.profiles for select
 using (auth.uid() = user_id);
 
+create or replace function public.can_insert_community_comment(
+  target_post_id uuid,
+  target_parent_comment_id uuid
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+stable
+as $$
+begin
+  if target_parent_comment_id is null then
+    return exists (
+      select 1
+      from public.posts p
+      where p.id = target_post_id
+        and (p.visibility = 'public' or p.user_id = auth.uid())
+    );
+  end if;
+
+  return exists (
+    select 1
+    from public.posts p
+    join public.comments parent on parent.post_id = p.id
+    where p.id = target_post_id
+      and parent.id = target_parent_comment_id
+      and parent.post_id = target_post_id
+      and parent.parent_comment_id is null
+      and parent.depth = 0
+      and parent.deleted_at is null
+      and parent.status = 'active'
+      and (p.visibility = 'public' or p.user_id = auth.uid())
+  );
+end;
+$$;
+
 drop policy if exists "profiles_insert_own" on public.profiles;
 create policy "profiles_insert_own"
 on public.profiles for insert
@@ -713,7 +793,10 @@ using (
 drop policy if exists "comments_insert_own" on public.comments;
 create policy "comments_insert_own"
 on public.comments for insert
-with check (auth.uid() = user_id);
+with check (
+  auth.uid() = user_id
+  and public.can_insert_community_comment(comments.post_id, comments.parent_comment_id)
+);
 
 drop policy if exists "comments_update_own" on public.comments;
 create policy "comments_update_own"
@@ -747,6 +830,32 @@ with check (auth.uid() = user_id);
 drop policy if exists "likes_delete_own" on public.likes;
 create policy "likes_delete_own"
 on public.likes for delete
+using (auth.uid() = user_id);
+
+drop policy if exists "comment_likes_select_by_comment_visibility" on public.comment_likes;
+create policy "comment_likes_select_by_comment_visibility"
+on public.comment_likes for select
+using (
+  exists (
+    select 1
+    from public.comments c
+    join public.posts p on p.id = c.post_id
+    where c.id = comment_likes.comment_id
+      and c.deleted_at is null
+      and c.status = 'active'
+      and (p.visibility = 'public' or p.user_id = auth.uid())
+  )
+  or comment_likes.user_id = auth.uid()
+);
+
+drop policy if exists "comment_likes_insert_own" on public.comment_likes;
+create policy "comment_likes_insert_own"
+on public.comment_likes for insert
+with check (auth.uid() = user_id);
+
+drop policy if exists "comment_likes_delete_own" on public.comment_likes;
+create policy "comment_likes_delete_own"
+on public.comment_likes for delete
 using (auth.uid() = user_id);
 
 drop policy if exists "reports_insert_own" on public.reports;

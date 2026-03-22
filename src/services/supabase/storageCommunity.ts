@@ -60,6 +60,16 @@ export async function uploadCommunityImage(
   return storagePath;
 }
 
+export async function uploadCommunityImages(
+  params: UploadCommunityImageParams[],
+): Promise<string[]> {
+  const uploaded: string[] = [];
+  for (const item of params) {
+    uploaded.push(await uploadCommunityImage(item));
+  }
+  return uploaded;
+}
+
 export async function getCommunityImageSignedUrl(storagePath: string) {
   const { data, error } = await supabase.storage
     .from(COMMUNITY_BUCKET)
