@@ -25,6 +25,7 @@ export default function HeaderIconActionButton({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       disabled={disabled}
+      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       style={[
         styles.button,
         { backgroundColor },

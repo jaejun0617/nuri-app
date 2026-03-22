@@ -47,6 +47,10 @@ import PetFriendlyPlaceListScreen from '../screens/LocationDiscovery/PetFriendly
 import PetFriendlyPlaceDetailScreen from '../screens/LocationDiscovery/PetFriendlyPlaceDetailScreen';
 import PetTravelListScreen from '../screens/PetTravel/PetTravelListScreen';
 import PetTravelDetailScreen from '../screens/PetTravel/PetTravelDetailScreen';
+import CommunityListScreen from '../screens/Community/CommunityListScreen';
+import CommunityDetailScreen from '../screens/Community/CommunityDetailScreen';
+import CommunityCreateScreen from '../screens/Community/CommunityCreateScreen';
+import CommunityEditScreen from '../screens/Community/CommunityEditScreen';
 import type { DeviceCoordinates } from '../services/location/currentPosition';
 import type { LocationDiscoveryItem } from '../services/locationDiscovery/types';
 import type { PetTravelItem } from '../services/petTravel/types';
@@ -135,6 +139,10 @@ export type RootStackParamList = {
   PetTravelDetail: {
     item: PetTravelItem;
   };
+  CommunityList: { entrySource?: ScreenEntrySource } | undefined;
+  CommunityDetail: { postId: string };
+  CommunityCreate: undefined;
+  CommunityEdit: { postId: string };
   GuideAdminList: { entrySource?: ScreenEntrySource } | undefined;
   GuideAdminEditor:
     | { mode: 'create' }
@@ -304,6 +312,26 @@ export default function RootNavigator() {
       <Stack.Screen
         name="PetTravelDetail"
         component={PetTravelDetailScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="CommunityList"
+        component={CommunityListScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="CommunityDetail"
+        component={CommunityDetailScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="CommunityCreate"
+        component={CommunityCreateScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="CommunityEdit"
+        component={CommunityEditScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

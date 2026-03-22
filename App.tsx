@@ -21,6 +21,7 @@ import {
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { enableScreens } from 'react-native-screens';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 import AppProviders from './src/app/providers/AppProviders';
 import GlobalToast from './src/components/common/GlobalToast';
@@ -54,17 +55,19 @@ function App() {
         translucent
       />
 
-      <SafeAreaProvider>
-        <AppProviders>
-          <NavigationContainer
-            ref={navigationRef}
-            onReady={handleNavigationReady}
-          >
-            <RootNavigator />
-          </NavigationContainer>
-          <GlobalToast />
-        </AppProviders>
-      </SafeAreaProvider>
+      <KeyboardProvider>
+        <SafeAreaProvider>
+          <AppProviders>
+            <NavigationContainer
+              ref={navigationRef}
+              onReady={handleNavigationReady}
+            >
+              <RootNavigator />
+            </NavigationContainer>
+            <GlobalToast />
+          </AppProviders>
+        </SafeAreaProvider>
+      </KeyboardProvider>
     </GestureHandlerRootView>
   );
 }

@@ -33,6 +33,7 @@ import {
 import { flushPendingConsentSnapshot } from '../../services/legal/consents';
 import { processPendingMemoryUploads } from '../../services/local/uploadQueue';
 import { clearMemorySignedUrlCache } from '../../services/supabase/storageMemories';
+import { flushPendingCommunityImageCleanup } from '../../services/supabase/storageCommunity';
 import {
   getSessionUserId,
   shouldReloadUserScopedState,
@@ -42,6 +43,7 @@ import { showToast } from '../../store/uiStore';
 
 import { useAuthStore } from '../../store/authStore';
 import { resolveSelectedPetId, usePetStore, type Pet } from '../../store/petStore';
+import { useCommunityStore } from '../../store/communityStore';
 import { useRecordStore } from '../../store/recordStore';
 import { useScheduleStore } from '../../store/scheduleStore';
 
@@ -91,6 +93,7 @@ export default function AppProviders({ children }: Props) {
   const clearRecords = useRecordStore(s => s.clearAll);
   const refreshRecords = useRecordStore(s => s.refresh);
   const clearSchedules = useScheduleStore(s => s.clearAll);
+  const clearCommunity = useCommunityStore(s => s.clearAll);
   const transitionSeqRef = useRef(0);
   const lastUserIdRef = useRef<string | null>(null);
   const localHydrationPromiseRef = useRef<Promise<void> | null>(null);
@@ -120,6 +123,12 @@ export default function AppProviders({ children }: Props) {
             durationMs: 2800,
           });
         }
+      } catch (error: unknown) {
+        captureMonitoringException(error);
+      }
+
+      try {
+        await flushPendingCommunityImageCleanup();
       } catch (error: unknown) {
         captureMonitoringException(error);
       }
@@ -189,6 +198,7 @@ export default function AppProviders({ children }: Props) {
       setPets([], { userId: null });
       clearRecords();
       clearSchedules();
+      clearCommunity();
       setPetErrorMessage(null);
     };
 
@@ -434,6 +444,7 @@ export default function AppProviders({ children }: Props) {
 
     clearRecords,
     clearSchedules,
+    clearCommunity,
   ]);
 
   return (

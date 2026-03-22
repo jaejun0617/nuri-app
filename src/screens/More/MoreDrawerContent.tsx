@@ -810,6 +810,12 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     closeAndNavigate(() => navigation.navigate('GuideList', { entrySource: 'more' }));
   }, [closeAndNavigate, navigation]);
 
+  const openCommunity = useCallback(() => {
+    closeAndNavigate(() =>
+      navigation.navigate('CommunityList', { entrySource: 'more' }),
+    );
+  }, [closeAndNavigate, navigation]);
+
   const openGuideAdmin = useCallback(() => {
     closeAndNavigate(() =>
       navigation.navigate('GuideAdminList', { entrySource: 'more' }),
@@ -1222,14 +1228,6 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         iconTone: 'accent',
         onPress: openWalkDiscovery,
       },
-      {
-        key: 'walk-route-recommendation',
-        label: '산책 동선 추천',
-        icon: 'navigation',
-        iconTone: 'accent',
-        onPress: () => showPreparingToast('산책 동선 추천'),
-        badge: 'soon',
-      },
     ],
     [
       openIndoorActivities,
@@ -1260,8 +1258,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         label: '커뮤니티',
         icon: 'message-circle',
         iconTone: 'muted',
-        onPress: () => showPreparingToast('커뮤니티'),
-        badge: 'soon',
+        onPress: openCommunity,
       },
       {
         key: 'tips',
@@ -1271,7 +1268,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         onPress: openGuideList,
       },
     ],
-    [openGuideList, openPetFriendlyPlaces, openPetTravel, showPreparingToast],
+    [openCommunity, openGuideList, openPetFriendlyPlaces, openPetTravel],
   );
 
   const serviceItems = useMemo<MenuItemSpec[]>(() => {
