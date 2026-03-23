@@ -2,11 +2,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
-import { BackHandler, View } from 'react-native';
+import { BackHandler } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
@@ -17,7 +18,6 @@ import {
 } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
 
-import AppText from '../../app/ui/AppText';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import HeaderTextActionButton from '../../components/navigation/HeaderTextActionButton';
 import { useKeyboardInset } from '../../hooks/useKeyboardInset';
@@ -273,6 +273,26 @@ export default function CommunityCreateScreen() {
     }
     navigation.goBack();
   }, [hasUnsavedChanges, navigation, submitting]);
+  const renderHeaderLeft = useCallback(
+    () => (
+      <HeaderTextActionButton
+        label="취소"
+        accessibilityLabel="작성 취소"
+        onPress={handleBack}
+        disabled={submitting}
+        backgroundColor={theme.colors.surfaceElevated}
+        textColor={theme.colors.textPrimary}
+        borderColor={theme.colors.border}
+      />
+    ),
+    [
+      handleBack,
+      submitting,
+      theme.colors.border,
+      theme.colors.surfaceElevated,
+      theme.colors.textPrimary,
+    ],
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -344,13 +364,6 @@ export default function CommunityCreateScreen() {
 
     setSubmitting(true);
     try {
-      console.log('[CommunityCreate] submit:start', {
-        titleLength: trimmedTitle.length,
-        contentLength: trimmed.length,
-        category,
-        petId: linkedPetId,
-        pickedImages: pickedImages.length,
-      });
       await runCommunityCreateSubmitFlow({
         userId: currentUserId,
         title: trimmedTitle,
@@ -372,7 +385,6 @@ export default function CommunityCreateScreen() {
       await AsyncStorage.removeItem(DRAFT_KEY).catch(() => {});
       navigation.goBack();
     } catch (error: unknown) {
-      console.error('[CommunityCreate] submit:failed', error);
       const meta = getBrandedErrorMeta(error, 'generic');
       showToast({
         tone: 'error',
@@ -398,6 +410,30 @@ export default function CommunityCreateScreen() {
 
   const disabled =
     submitting || title.trim().length === 0 || content.trim().length === 0;
+  const renderHeaderRight = useCallback(
+    () => (
+      <HeaderTextActionButton
+        label="등록"
+        accessibilityLabel="게시글 등록"
+        onPress={handleSubmit}
+        disabled={disabled}
+        backgroundColor={petTheme.primary}
+        textColor={petTheme.onPrimary}
+      />
+    ),
+    [disabled, handleSubmit, petTheme.onPrimary, petTheme.primary],
+  );
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerTitle: '새 게시글',
+      headerLeft: renderHeaderLeft,
+      headerRight: renderHeaderRight,
+    });
+  }, [
+    navigation,
+    renderHeaderLeft,
+    renderHeaderRight,
+  ]);
   const hasPickedImage = pickedImages.length > 0;
   const scrollBottomInset = useMemo(() => {
     if (keyboardInset > 0) {
@@ -434,40 +470,6 @@ export default function CommunityCreateScreen() {
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
       edges={['left', 'right', 'bottom']}
     >
-      <View
-        style={[styles.header, { paddingTop: Math.max(insets.top + 8, 20) }]}
-      >
-        <View style={styles.headerSide}>
-          <HeaderTextActionButton
-            label="취소"
-            accessibilityLabel="작성 취소"
-            onPress={handleBack}
-            disabled={submitting}
-            backgroundColor={theme.colors.surfaceElevated}
-            textColor={theme.colors.textPrimary}
-            borderColor={theme.colors.border}
-          />
-        </View>
-
-        <AppText
-          preset="headline"
-          style={[styles.headerTitle, { color: theme.colors.textPrimary }]}
-        >
-          새 게시글
-        </AppText>
-
-        <View style={[styles.headerSide, styles.headerRight]}>
-          <HeaderTextActionButton
-            label="등록"
-            accessibilityLabel="게시글 등록"
-            onPress={handleSubmit}
-            disabled={disabled}
-            backgroundColor={petTheme.primary}
-            textColor={petTheme.onPrimary}
-          />
-        </View>
-      </View>
-
       <KeyboardAwareScrollView
         innerRef={ref => {
           scrollViewRef.current = ref;
@@ -598,24 +600,6 @@ export default function CommunityCreateScreen() {
 const styles = {
   screen: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-  },
-  headerSide: {
-    width: 72,
-    alignItems: 'flex-start' as const,
-    justifyContent: 'center' as const,
-  },
-  headerRight: {
-    alignItems: 'flex-end' as const,
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center' as const,
   },
   scrollContent: {
     paddingHorizontal: 20,

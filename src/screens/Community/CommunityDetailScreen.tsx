@@ -1,11 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import {
   ActivityIndicator,
   FlatList,
   Image,
   Modal,
+  Platform,
   Pressable,
-  StyleSheet,
   TextInput,
   TouchableOpacity,
   View,
@@ -33,15 +33,18 @@ import type {
   CommunityComment,
   CommunityReportReasonCategory,
 } from '../../types/community';
-import { formatRelativeTimeFromNow, getKstDateParts } from '../../utils/date';
-
-const DETAIL_DIVIDER_COLOR = '#00000008';
+import { getKstDateParts } from '../../utils/date';
+import CommentThreadItem from './components/CommentThreadItem';
+import {
+  DETAIL_DIVIDER_COLOR,
+  styles,
+} from './CommunityDetailScreen.styles';
 const COMMENT_PAGE_SIZE = 10;
 const REPLY_PREVIEW_COUNT = 2;
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'CommunityDetail'>;
 type Route = RootScreenRoute<'CommunityDetail'>;
-const EMPTY_COMMENTS: ReadonlyArray<CommunityComment> = [];
+const EMPTY_COMMENT_IDS: ReadonlyArray<string> = [];
 const REPORT_REASON_OPTIONS: Array<{
   key: CommunityReportReasonCategory;
   label: string;
@@ -116,18 +119,17 @@ function resolveReplyParentId(comment: CommunityComment) {
   return comment.parentCommentId ?? comment.id;
 }
 
-function isBestComment(comment: CommunityComment) {
-  return comment.depth === 0 && comment.likeCount >= 5 && comment.status === 'active';
-}
-
 export default function CommunityDetailScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const flatListRef = useRef<FlatList<CommunityComment> | null>(null);
+  const flatListRef = useRef<FlatList<string> | null>(null);
   const commentInputRef = useRef<TextInput | null>(null);
   const keyboardInset = useKeyboardInset();
+  const commentLikeDebounceTimersRef = useRef<
+    Record<string, ReturnType<typeof setTimeout>>
+  >({});
 
   const { currentUserId, requireLogin } = useCommunityAuth();
   const pets = usePetStore(s => s.pets);
@@ -143,8 +145,8 @@ export default function CommunityDetailScreen() {
 
   const postId = route.params.postId;
   const post = useCommunityStore(s => s.postsById[postId] ?? null);
-  const comments = useCommunityStore(
-    s => s.commentsByPostId[postId] ?? EMPTY_COMMENTS,
+  const topLevelCommentIds = useCommunityStore(
+    s => s.topLevelCommentIdsByPostId[postId] ?? EMPTY_COMMENT_IDS,
   );
   const detailStatus = useCommunityStore(
     s => s.detailStatusByPostId[postId] ?? 'idle',
@@ -167,11 +169,11 @@ export default function CommunityDetailScreen() {
   const [commentSubmitting, setCommentSubmitting] = React.useState(false);
   const [visibleCommentCount, setVisibleCommentCount] =
     React.useState(COMMENT_PAGE_SIZE);
-  const [replyTarget, setReplyTarget] = React.useState<CommunityComment | null>(null);
+  const [replyTargetId, setReplyTargetId] = React.useState<string | null>(null);
   const [expandedRepliesByCommentId, setExpandedRepliesByCommentId] =
     React.useState<Record<string, boolean>>({});
-  const [commentDeleteTarget, setCommentDeleteTarget] =
-    React.useState<CommunityComment | null>(null);
+  const [commentDeleteTargetId, setCommentDeleteTargetId] =
+    React.useState<string | null>(null);
   const [reportTarget, setReportTarget] = React.useState<{
     targetType: 'post' | 'comment';
     targetId: string;
@@ -180,6 +182,13 @@ export default function CommunityDetailScreen() {
     React.useState<CommunityReportReasonCategory>('spam');
   const [reportReason, setReportReason] = React.useState('');
   const [reportSubmitting, setReportSubmitting] = React.useState(false);
+  const replyTarget = useCommunityStore(
+    useCallback(
+      s =>
+        replyTargetId !== null ? s.commentEntitiesById[replyTargetId] ?? null : null,
+      [replyTargetId],
+    ),
+  );
 
   useEffect(() => {
     fetchPostDetail(postId).catch(() => {});
@@ -189,12 +198,22 @@ export default function CommunityDetailScreen() {
   useEffect(() => {
     setVisibleCommentCount(COMMENT_PAGE_SIZE);
     setExpandedRepliesByCommentId({});
-    setReplyTarget(null);
+    setReplyTargetId(null);
   }, [postId]);
 
-  const handleBack = () => {
+  useEffect(
+    () => () => {
+      Object.values(commentLikeDebounceTimersRef.current).forEach(timer => {
+        clearTimeout(timer);
+      });
+      commentLikeDebounceTimersRef.current = {};
+    },
+    [],
+  );
+
+  const handleBack = useCallback(() => {
     navigation.goBack();
-  };
+  }, [navigation]);
 
   const isMyPost = !!post && !!currentUserId && post.authorId === currentUserId;
   const detailBottomInset = insets.bottom + 156;
@@ -203,11 +222,57 @@ export default function CommunityDetailScreen() {
     detailStatus !== 'deleted' &&
     detailStatus !== 'moderated' &&
     detailStatus !== 'not_found';
+  const canSubmitComment =
+    !!currentUserId && !commentSubmitting && commentDraft.trim().length > 0;
 
   const postMetaDate = useMemo(() => {
     if (!post) return '';
     return formatDetailMetaDate(post.createdAt);
   }, [post]);
+  const renderHeaderLeft = useCallback(
+    () => (
+      <TouchableOpacity
+        activeOpacity={0.88}
+        style={styles.backButton}
+        onPress={handleBack}
+      >
+        <Feather
+          name="arrow-left"
+          size={20}
+          color={theme.colors.textPrimary}
+        />
+      </TouchableOpacity>
+    ),
+    [handleBack, theme.colors.textPrimary],
+  );
+  const renderHeaderRight = useCallback(
+    () =>
+      isMyPost ? (
+        <TouchableOpacity
+          activeOpacity={0.88}
+          style={[
+            styles.moreButton,
+            { borderColor: theme.colors.border },
+          ]}
+          onPress={() => setMenuVisible(true)}
+        >
+          <Feather
+            name="more-vertical"
+            size={18}
+            color={theme.colors.textPrimary}
+          />
+        </TouchableOpacity>
+      ) : null,
+    [isMyPost, theme.colors.border, theme.colors.textPrimary],
+  );
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerTitle: '커뮤니티',
+      headerLeft: renderHeaderLeft,
+      headerRight: renderHeaderRight,
+    });
+  }, [navigation, renderHeaderLeft, renderHeaderRight]);
 
   const handlePressLike = useCallback(() => {
     requireLogin(() => {
@@ -239,7 +304,7 @@ export default function CommunityDetailScreen() {
       )
         .then(() => {
           setCommentDraft('');
-          setReplyTarget(null);
+          setReplyTargetId(null);
           setTimeout(() => {
             flatListRef.current?.scrollToEnd({ animated: true });
           }, 100);
@@ -271,27 +336,54 @@ export default function CommunityDetailScreen() {
   }, [scrollCommentComposerIntoView]);
 
   const handlePressReply = useCallback(
-    (comment: CommunityComment) => {
-      setReplyTarget(comment);
+    (commentId: string) => {
+      setReplyTargetId(commentId);
       focusCommentComposer();
     },
     [focusCommentComposer],
   );
 
   const handleToggleCommentLike = useCallback(
-    (comment: CommunityComment) => {
+    (commentId: string) => {
       requireLogin(() => {
         if (!currentUserId) return;
-        toggleCommentLike(comment.id, postId, currentUserId).catch(error => {
+        if (commentLikeDebounceTimersRef.current[commentId]) return;
+        toggleCommentLike(commentId, postId, currentUserId).catch(error => {
           showToast({
             tone: 'error',
             message: getErrorMessage(error) || '댓글 좋아요 처리에 실패했어요.',
           });
         });
+        commentLikeDebounceTimersRef.current[commentId] = setTimeout(() => {
+          delete commentLikeDebounceTimersRef.current[commentId];
+        }, 300);
       });
     },
     [currentUserId, postId, requireLogin, toggleCommentLike],
   );
+
+  const handleRequestDeleteComment = useCallback((commentId: string) => {
+    setCommentDeleteTargetId(commentId);
+  }, []);
+
+  const handleRequestReportComment = useCallback((commentId: string) => {
+    setReportTarget({
+      targetType: 'comment',
+      targetId: commentId,
+    });
+    setReportReason('');
+    setReportReasonCategory('spam');
+  }, []);
+
+  const handleExpandReplies = useCallback((commentId: string) => {
+    setExpandedRepliesByCommentId(prev => {
+      if (prev[commentId] === true) return prev;
+      return {
+        ...prev,
+        [commentId]: true,
+      };
+    });
+  }, []);
 
   const handleSubmitReport = () => {
     requireLogin(() => {
@@ -369,24 +461,7 @@ export default function CommunityDetailScreen() {
             ) : (
               <View />
             )}
-            {isMyPost ? (
-              <TouchableOpacity
-                activeOpacity={0.88}
-                style={[
-                  styles.moreButton,
-                  { borderColor: theme.colors.border },
-                ]}
-                onPress={() => setMenuVisible(true)}
-              >
-                <Feather
-                  name="more-vertical"
-                  size={18}
-                  color={theme.colors.textPrimary}
-                />
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.moreButtonPlaceholder} />
-            )}
+            <View style={styles.moreButtonPlaceholder} />
           </View>
 
           {post.title ? (
@@ -576,7 +651,7 @@ export default function CommunityDetailScreen() {
             <View style={styles.commentsLoading}>
               <ActivityIndicator size="small" color={petTheme.primary} />
             </View>
-          ) : comments.length === 0 ? (
+          ) : topLevelCommentIds.length === 0 ? (
             <AppText
               preset="body"
               style={[styles.emptyComments, { color: theme.colors.textMuted }]}
@@ -588,7 +663,6 @@ export default function CommunityDetailScreen() {
       </View>
     );
   }, [
-    comments.length,
     commentsStatus,
     handlePressLike,
     isMyPost,
@@ -596,6 +670,7 @@ export default function CommunityDetailScreen() {
     post,
     postId,
     postMetaDate,
+    topLevelCommentIds.length,
     theme.colors.border,
     theme.colors.danger,
     theme.colors.surface,
@@ -604,33 +679,84 @@ export default function CommunityDetailScreen() {
     theme.colors.textPrimary,
   ]);
 
-  const { topLevelComments, repliesByParentId } = useMemo(() => {
-    const topLevel: CommunityComment[] = [];
-    const replyMap = new Map<string, CommunityComment[]>();
+  const visibleTopLevelCommentIds = topLevelCommentIds.slice(0, visibleCommentCount);
+  const remainingCommentCount = Math.max(
+    topLevelCommentIds.length - visibleTopLevelCommentIds.length,
+    0,
+  );
 
-    comments.forEach(comment => {
-      if (comment.depth === 0 || !comment.parentCommentId) {
-        topLevel.push(comment);
-        return;
-      }
+  const listFooter = useMemo(() => {
+    if (remainingCommentCount <= 0) {
+      return <View style={styles.listFooterSpacer} />;
+    }
 
-      const currentReplies = replyMap.get(comment.parentCommentId) ?? [];
-      currentReplies.push(comment);
-      replyMap.set(comment.parentCommentId, currentReplies);
-    });
+    return (
+      <View style={styles.listFooterWrap}>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={[
+            styles.moreCommentsButton,
+            {
+              backgroundColor: theme.colors.background,
+              borderColor: theme.colors.border,
+            },
+          ]}
+          onPress={() => {
+            setVisibleCommentCount(previousCount =>
+              Math.min(previousCount + COMMENT_PAGE_SIZE, topLevelCommentIds.length),
+            );
+          }}
+        >
+          <AppText
+            preset="caption"
+            style={[styles.moreCommentsText, { color: theme.colors.textPrimary }]}
+          >
+            댓글 {remainingCommentCount.toLocaleString()}개 더보기
+          </AppText>
+          <Feather name="chevron-right" size={15} color={theme.colors.textPrimary} />
+        </TouchableOpacity>
+      </View>
+    );
+  }, [
+    remainingCommentCount,
+    theme.colors.background,
+    theme.colors.border,
+    theme.colors.textPrimary,
+    topLevelCommentIds.length,
+  ]);
 
-    return {
-      topLevelComments: topLevel,
-      repliesByParentId: replyMap,
-    };
-  }, [comments]);
+  const renderCommentThread = useCallback(
+    ({ item: commentId }: { item: string }) => (
+      <CommentThreadItem
+        commentId={commentId}
+        repliesExpanded={expandedRepliesByCommentId[commentId] === true}
+        previewCount={REPLY_PREVIEW_COUNT}
+        currentUserId={currentUserId}
+        bestBadgeColor={petTheme.primary}
+        onPressReply={handlePressReply}
+        onToggleLike={handleToggleCommentLike}
+        onPressDelete={handleRequestDeleteComment}
+        onPressReport={handleRequestReportComment}
+        onExpandReplies={handleExpandReplies}
+      />
+    ),
+    [
+      currentUserId,
+      expandedRepliesByCommentId,
+      handleExpandReplies,
+      handlePressReply,
+      handleRequestDeleteComment,
+      handleRequestReportComment,
+      handleToggleCommentLike,
+      petTheme.primary,
+    ],
+  );
 
   if ((detailStatus === 'idle' || detailStatus === 'loading') && !post) {
     return (
       <View
         style={[styles.screen, { backgroundColor: theme.colors.background }]}
       >
-        <Header onBack={handleBack} topInset={Math.max(insets.top + 8, 20)} />
         <View style={styles.centerState}>
           <ActivityIndicator size="small" color={petTheme.primary} />
         </View>
@@ -643,7 +769,6 @@ export default function CommunityDetailScreen() {
       <View
         style={[styles.screen, { backgroundColor: theme.colors.background }]}
       >
-        <Header onBack={handleBack} topInset={Math.max(insets.top + 8, 20)} />
         <StateMessage
           title="게시글을 찾을 수 없어요"
           body="삭제되었거나 더 이상 볼 수 없는 게시글일 수 있어요."
@@ -659,7 +784,6 @@ export default function CommunityDetailScreen() {
       <View
         style={[styles.screen, { backgroundColor: theme.colors.background }]}
       >
-        <Header onBack={handleBack} topInset={Math.max(insets.top + 8, 20)} />
         <StateMessage
           title="삭제된 게시글입니다"
           body="원문은 더 이상 확인할 수 없어요."
@@ -675,7 +799,6 @@ export default function CommunityDetailScreen() {
       <View
         style={[styles.screen, { backgroundColor: theme.colors.background }]}
       >
-        <Header onBack={handleBack} topInset={Math.max(insets.top + 8, 20)} />
         <StateMessage
           title="운영 검토 중인 게시글입니다"
           body="검토가 끝나면 다시 노출될 수 있어요."
@@ -691,7 +814,6 @@ export default function CommunityDetailScreen() {
       <View
         style={[styles.screen, { backgroundColor: theme.colors.background }]}
       >
-        <Header onBack={handleBack} topInset={Math.max(insets.top + 8, 20)} />
         <StateMessage
           title="게시글을 불러오지 못했어요"
           body="잠시 후 다시 시도해 주세요."
@@ -707,379 +829,27 @@ export default function CommunityDetailScreen() {
 
   if (!post) return null;
 
-  const visibleTopLevelComments = topLevelComments.slice(0, visibleCommentCount);
-  const remainingCommentCount = Math.max(
-    topLevelComments.length - visibleTopLevelComments.length,
-    0,
-  );
-
   return (
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
-      <Header onBack={handleBack} topInset={Math.max(insets.top + 8, 20)} />
-
       <FlatList
         ref={flatListRef}
-        data={visibleTopLevelComments}
-        keyExtractor={item => item.id}
+        data={visibleTopLevelCommentIds}
+        keyExtractor={item => item}
         style={styles.contentArea}
         contentContainerStyle={{ paddingBottom: detailBottomInset }}
         keyboardShouldPersistTaps="always"
         keyboardDismissMode="interactive"
         automaticallyAdjustKeyboardInsets={true}
         showsVerticalScrollIndicator={false}
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={7}
+        updateCellsBatchingPeriod={50}
+        removeClippedSubviews={Platform.OS === 'android'}
         ListHeaderComponent={listHeader}
-        renderItem={({ item: comment, index }) => {
-          const replies = repliesByParentId.get(comment.id) ?? EMPTY_COMMENTS;
-          const repliesExpanded = expandedRepliesByCommentId[comment.id] === true;
-          const visibleReplies = repliesExpanded
-            ? replies
-            : replies.slice(0, REPLY_PREVIEW_COUNT);
-          const remainingReplyCount = Math.max(replies.length - visibleReplies.length, 0);
-
-          return (
-            <View
-              style={[
-                styles.commentThreadWrap,
-                index > 0
-                  ? { borderTopColor: DETAIL_DIVIDER_COLOR, borderTopWidth: 1 }
-                  : null,
-              ]}
-            >
-              <View style={styles.commentRow}>
-                {comment.authorAvatarUrl ? (
-                  <Image
-                    source={{ uri: comment.authorAvatarUrl }}
-                    style={[styles.commentAvatar, { borderColor: theme.colors.border }]}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View
-                    style={[
-                      styles.commentAvatarFallback,
-                      {
-                        backgroundColor: theme.colors.surface,
-                        borderColor: theme.colors.border,
-                      },
-                    ]}
-                  >
-                    <Feather name="user" size={12} color={theme.colors.textMuted} />
-                  </View>
-                )}
-
-                <View style={styles.commentBodyWrap}>
-                  <View style={styles.commentMetaRow}>
-                    <View style={styles.commentMetaInline}>
-                      <AppText
-                        preset="caption"
-                        style={[
-                          styles.commentMetaText,
-                          { color: theme.colors.textMuted },
-                        ]}
-                      >
-                        {`${comment.authorNickname} · ${formatRelativeTimeFromNow(comment.createdAt)}`}
-                      </AppText>
-                      {isBestComment(comment) ? (
-                        <View
-                          style={[
-                            styles.bestBadge,
-                            { backgroundColor: `${petTheme.primary}12` },
-                          ]}
-                        >
-                          <AppText
-                            preset="caption"
-                            style={[styles.bestBadgeText, { color: petTheme.primary }]}
-                          >
-                            Best
-                          </AppText>
-                        </View>
-                      ) : null}
-                    </View>
-                  </View>
-
-                  <View
-                    style={[
-                      styles.commentBubble,
-                      { backgroundColor: theme.colors.surfaceElevated },
-                    ]}
-                  >
-                    <AppText
-                      preset="body"
-                      style={[
-                        styles.commentContent,
-                        { color: theme.colors.textPrimary },
-                      ]}
-                    >
-                      {comment.content}
-                    </AppText>
-                  </View>
-
-                  <View style={styles.commentActionRow}>
-                    <TouchableOpacity
-                      activeOpacity={0.88}
-                      onPress={() => handlePressReply(comment)}
-                    >
-                      <AppText
-                        preset="caption"
-                        style={[
-                          styles.commentActionText,
-                          { color: theme.colors.textMuted },
-                        ]}
-                      >
-                        답글쓰기
-                      </AppText>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      activeOpacity={0.88}
-                      onPress={() => handleToggleCommentLike(comment)}
-                    >
-                      <AppText
-                        preset="caption"
-                        style={[
-                          styles.commentActionText,
-                          {
-                            color: comment.isLikedByMe
-                              ? theme.colors.danger
-                              : theme.colors.textMuted,
-                          },
-                        ]}
-                      >
-                        좋아요 {comment.likeCount}
-                      </AppText>
-                    </TouchableOpacity>
-
-                    {currentUserId ? (
-                      comment.authorId === currentUserId ? (
-                        <TouchableOpacity
-                          activeOpacity={0.88}
-                          onPress={() => setCommentDeleteTarget(comment)}
-                        >
-                          <AppText
-                            preset="caption"
-                            style={[
-                              styles.commentActionText,
-                              { color: theme.colors.danger },
-                            ]}
-                          >
-                            삭제
-                          </AppText>
-                        </TouchableOpacity>
-                      ) : (
-                        <TouchableOpacity
-                          activeOpacity={0.88}
-                          onPress={() => {
-                            setReportTarget({
-                              targetType: 'comment',
-                              targetId: comment.id,
-                            });
-                            setReportReason('');
-                            setReportReasonCategory('spam');
-                          }}
-                        >
-                          <AppText
-                            preset="caption"
-                            style={[
-                              styles.commentActionText,
-                              { color: theme.colors.textMuted },
-                            ]}
-                          >
-                            신고
-                          </AppText>
-                        </TouchableOpacity>
-                      )
-                    ) : null}
-                  </View>
-
-                  {visibleReplies.length > 0 ? (
-                    <View style={styles.replyListWrap}>
-                      {visibleReplies.map(reply => (
-                        <View key={reply.id} style={styles.replyRow}>
-                          <View style={styles.replyConnector} />
-                          <View style={styles.replyContentWrap}>
-                            <View style={styles.replyMetaRow}>
-                              <AppText
-                                preset="caption"
-                                style={[
-                                  styles.replyMetaText,
-                                  { color: theme.colors.textMuted },
-                                ]}
-                              >
-                                {`${reply.authorNickname} · ${formatRelativeTimeFromNow(reply.createdAt)}`}
-                              </AppText>
-                            </View>
-                            <View
-                              style={[
-                                styles.replyBubble,
-                                { backgroundColor: theme.colors.surface },
-                              ]}
-                            >
-                              <AppText
-                                preset="body"
-                                style={[
-                                  styles.replyContent,
-                                  { color: theme.colors.textPrimary },
-                                ]}
-                              >
-                                {reply.content}
-                              </AppText>
-                            </View>
-                            <View style={styles.replyActionRow}>
-                              <TouchableOpacity
-                                activeOpacity={0.88}
-                                onPress={() => handlePressReply(reply)}
-                              >
-                                <AppText
-                                  preset="caption"
-                                  style={[
-                                    styles.commentActionText,
-                                    { color: theme.colors.textMuted },
-                                  ]}
-                                >
-                                  답글쓰기
-                                </AppText>
-                              </TouchableOpacity>
-                              <TouchableOpacity
-                                activeOpacity={0.88}
-                                onPress={() => handleToggleCommentLike(reply)}
-                              >
-                                <AppText
-                                  preset="caption"
-                                  style={[
-                                    styles.commentActionText,
-                                    {
-                                      color: reply.isLikedByMe
-                                        ? theme.colors.danger
-                                        : theme.colors.textMuted,
-                                    },
-                                  ]}
-                                >
-                                  좋아요 {reply.likeCount}
-                                </AppText>
-                              </TouchableOpacity>
-                              {currentUserId ? (
-                                reply.authorId === currentUserId ? (
-                                  <TouchableOpacity
-                                    activeOpacity={0.88}
-                                    onPress={() => setCommentDeleteTarget(reply)}
-                                  >
-                                    <AppText
-                                      preset="caption"
-                                      style={[
-                                        styles.commentActionText,
-                                        { color: theme.colors.danger },
-                                      ]}
-                                    >
-                                      삭제
-                                    </AppText>
-                                  </TouchableOpacity>
-                                ) : (
-                                  <TouchableOpacity
-                                    activeOpacity={0.88}
-                                    onPress={() => {
-                                      setReportTarget({
-                                        targetType: 'comment',
-                                        targetId: reply.id,
-                                      });
-                                      setReportReason('');
-                                      setReportReasonCategory('spam');
-                                    }}
-                                  >
-                                    <AppText
-                                      preset="caption"
-                                      style={[
-                                        styles.commentActionText,
-                                        { color: theme.colors.textMuted },
-                                      ]}
-                                    >
-                                      신고
-                                    </AppText>
-                                  </TouchableOpacity>
-                                )
-                              ) : null}
-                            </View>
-                          </View>
-                        </View>
-                      ))}
-
-                      {remainingReplyCount > 0 ? (
-                        <TouchableOpacity
-                          activeOpacity={0.88}
-                          style={styles.moreRepliesButton}
-                          onPress={() => {
-                            setExpandedRepliesByCommentId(prev => ({
-                              ...prev,
-                              [comment.id]: true,
-                            }));
-                          }}
-                        >
-                          <AppText
-                            preset="caption"
-                            style={[
-                              styles.moreRepliesText,
-                              { color: petTheme.primary },
-                            ]}
-                          >
-                            답글 {remainingReplyCount}개 더보기
-                          </AppText>
-                        </TouchableOpacity>
-                      ) : null}
-                    </View>
-                  ) : comment.replyCount > 0 ? (
-                    <TouchableOpacity
-                      activeOpacity={0.88}
-                      style={styles.moreRepliesButton}
-                      onPress={() => {
-                        setExpandedRepliesByCommentId(prev => ({
-                          ...prev,
-                          [comment.id]: true,
-                        }));
-                      }}
-                    >
-                      <AppText
-                        preset="caption"
-                        style={[
-                          styles.moreRepliesText,
-                          { color: petTheme.primary },
-                        ]}
-                      >
-                        답글 {comment.replyCount}개 보기
-                      </AppText>
-                    </TouchableOpacity>
-                  ) : null}
-                </View>
-              </View>
-            </View>
-          );
-        }}
+        ListFooterComponent={listFooter}
+        renderItem={renderCommentThread}
       />
-
-      {remainingCommentCount > 0 ? (
-        <View style={styles.moreCommentsWrap}>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={[
-              styles.moreCommentsButton,
-              {
-                backgroundColor: theme.colors.background,
-                borderColor: theme.colors.border,
-              },
-            ]}
-            onPress={() => {
-              setVisibleCommentCount(previousCount =>
-                Math.min(previousCount + COMMENT_PAGE_SIZE, topLevelComments.length),
-              );
-            }}
-          >
-            <AppText
-              preset="caption"
-              style={[styles.moreCommentsText, { color: theme.colors.textPrimary }]}
-            >
-              댓글 {remainingCommentCount.toLocaleString()}개 더보기
-            </AppText>
-            <Feather name="chevron-right" size={15} color={theme.colors.textPrimary} />
-          </TouchableOpacity>
-        </View>
-      ) : null}
 
       {canShowCommentComposer ? (
         <View
@@ -1108,7 +878,7 @@ export default function CommunityDetailScreen() {
               </AppText>
               <TouchableOpacity
                 activeOpacity={0.88}
-                onPress={() => setReplyTarget(null)}
+                onPress={() => setReplyTargetId(null)}
               >
                 <AppText
                   preset="caption"
@@ -1158,10 +928,10 @@ export default function CommunityDetailScreen() {
                 styles.commentSubmitButton,
                 {
                   backgroundColor: petTheme.primary,
-                  opacity: commentSubmitting ? 0.72 : 1,
+                  opacity: canSubmitComment ? 1 : 0.48,
                 },
               ]}
-              disabled={commentSubmitting}
+              disabled={!canSubmitComment}
               onPress={handleSubmitComment}
             >
               <Feather name="send" size={17} color={petTheme.onPrimary} />
@@ -1294,7 +1064,7 @@ export default function CommunityDetailScreen() {
       />
 
       <ConfirmDialog
-        visible={commentDeleteTarget !== null}
+        visible={commentDeleteTargetId !== null}
         tone="danger"
         title="댓글을 삭제할까요?"
         message={
@@ -1302,12 +1072,12 @@ export default function CommunityDetailScreen() {
         }
         confirmLabel="삭제"
         cancelLabel="취소"
-        onCancel={() => setCommentDeleteTarget(null)}
+        onCancel={() => setCommentDeleteTargetId(null)}
         onConfirm={() => {
-          if (!commentDeleteTarget) return;
-          removeComment(commentDeleteTarget.id, postId)
+          if (!commentDeleteTargetId) return;
+          removeComment(commentDeleteTargetId, postId)
             .then(() => {
-              setCommentDeleteTarget(null);
+              setCommentDeleteTargetId(null);
             })
             .catch(error => {
               showToast({
@@ -1453,49 +1223,6 @@ export default function CommunityDetailScreen() {
   );
 }
 
-function Header({
-  onBack,
-  topInset,
-}: {
-  onBack: () => void;
-  topInset: number;
-}) {
-  const theme = useTheme();
-
-  return (
-    <View
-      style={[
-        styles.header,
-        {
-          paddingTop: topInset,
-          backgroundColor: theme.colors.background,
-        },
-      ]}
-    >
-      <View style={styles.headerSide}>
-        <TouchableOpacity
-          activeOpacity={0.88}
-          style={styles.backButton}
-          onPress={onBack}
-        >
-          <Feather
-            name="arrow-left"
-            size={20}
-            color={theme.colors.textPrimary}
-          />
-        </TouchableOpacity>
-      </View>
-      <AppText
-        preset="headline"
-        style={[styles.headerTitle, { color: theme.colors.textPrimary }]}
-      >
-        커뮤니티
-      </AppText>
-      <View style={styles.headerSide} />
-    </View>
-  );
-}
-
 function StateMessage({
   title,
   body,
@@ -1538,551 +1265,3 @@ function StateMessage({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-  },
-  contentArea: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-  },
-  headerSide: {
-    width: 44,
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-  },
-  backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-  },
-  centerState: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 28,
-  },
-  stateTitle: {
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  stateBody: {
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  stateButton: {
-    marginTop: 18,
-    minHeight: 44,
-    borderRadius: 999,
-    paddingHorizontal: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stateButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    gap: 12,
-    paddingTop: 12,
-  },
-  postSection: {
-    paddingTop: 4,
-    paddingBottom: 18,
-    gap: 16,
-  },
-  postCard: {
-    borderWidth: 1,
-    borderRadius: 22,
-    padding: 18,
-    gap: 16,
-  },
-  postTop: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  postTopRight: {
-    alignItems: 'flex-end',
-    gap: 8,
-  },
-  authorBlock: {
-    flex: 1,
-    gap: 4,
-  },
-  profileRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  postMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  authorName: {
-    lineHeight: 22,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  petAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 1,
-  },
-  petAvatarFallback: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  profileTextBlock: {
-    flex: 1,
-    gap: 4,
-  },
-  petNameLine: {
-    lineHeight: 22,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  metaLine: {
-    lineHeight: 18,
-    fontSize: 12,
-  },
-  categoryBadge: {
-    minHeight: 28,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-  },
-  categoryText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  moreButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  moreButtonPlaceholder: {
-    width: 34,
-    height: 34,
-  },
-  postTitle: {
-    fontSize: 24,
-    lineHeight: 34,
-    fontWeight: '700',
-  },
-  mediaSection: {
-    marginTop: 4,
-    marginBottom: 6,
-  },
-  postContent: {
-    lineHeight: 32,
-    fontSize: 18,
-  },
-  postContentSection: {
-    borderTopWidth: 1,
-    minHeight: 300,
-    paddingTop: 20,
-    paddingBottom: 8,
-  },
-  postImage: {
-    width: '100%',
-    height: 260,
-    borderRadius: 18,
-  },
-  imageFallback: {
-    minHeight: 84,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  imageFallbackText: {
-    lineHeight: 18,
-    fontSize: 12,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    paddingTop: 2,
-    justifyContent: 'space-between',
-  },
-  actionPill: {
-    minHeight: 40,
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  actionPillText: {
-    lineHeight: 18,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  countRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
-  countItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  countText: {
-    lineHeight: 18,
-    fontSize: 12,
-  },
-  commentsCard: {
-    borderWidth: 1,
-    borderRadius: 22,
-    padding: 18,
-  },
-  commentsSection: {
-    paddingTop: 6,
-  },
-  commentsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: DETAIL_DIVIDER_COLOR,
-    marginBottom: 8,
-  },
-  commentsTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  commentsCount: {
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  commentsLoading: {
-    paddingVertical: 10,
-  },
-  emptyComments: {
-    lineHeight: 22,
-    fontSize: 14,
-  },
-  commentItemWrap: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-  },
-  commentThreadWrap: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-  },
-  commentRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-  },
-  commentAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 1,
-  },
-  commentAvatarFallback: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  commentBodyWrap: {
-    flex: 1,
-    minWidth: 0,
-  },
-  commentMetaRow: {
-    marginBottom: 6,
-  },
-  commentMetaInline: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  commentMetaText: {
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  bestBadge: {
-    minHeight: 20,
-    borderRadius: 10,
-    paddingHorizontal: 7,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bestBadgeText: {
-    fontSize: 10,
-    lineHeight: 12,
-    fontWeight: '700',
-  },
-  commentBubble: {
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    alignSelf: 'flex-start',
-    maxWidth: '100%',
-  },
-  commentActionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 8,
-    paddingLeft: 2,
-  },
-  commentActionText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  commentContent: {
-    lineHeight: 23,
-    fontSize: 14,
-  },
-  replyListWrap: {
-    marginTop: 10,
-    gap: 10,
-  },
-  replyRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    paddingLeft: 4,
-  },
-  replyConnector: {
-    width: 14,
-    minHeight: 34,
-    borderLeftWidth: 1,
-    borderBottomWidth: 1,
-    borderBottomLeftRadius: 0,
-    borderColor: DETAIL_DIVIDER_COLOR,
-  },
-  replyContentWrap: {
-    flex: 1,
-    minWidth: 0,
-  },
-  replyMetaRow: {
-    marginBottom: 5,
-  },
-  replyMetaText: {
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  replyBubble: {
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    alignSelf: 'flex-start',
-    maxWidth: '100%',
-  },
-  replyContent: {
-    fontSize: 13,
-    lineHeight: 21,
-  },
-  replyActionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 7,
-    paddingLeft: 2,
-  },
-  moreRepliesButton: {
-    alignSelf: 'flex-start',
-    paddingLeft: 26,
-    paddingTop: 2,
-    minHeight: 28,
-    justifyContent: 'center',
-  },
-  moreRepliesText: {
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '700',
-  },
-  moreCommentsWrap: {
-    paddingHorizontal: 20,
-    paddingTop: 4,
-    paddingBottom: 10,
-  },
-  moreCommentsButton: {
-    minHeight: 44,
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  moreCommentsText: {
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '700',
-  },
-  commentComposerWrap: {
-    borderTopWidth: 1,
-    paddingHorizontal: 20,
-    paddingTop: 10,
-  },
-  replyComposerBanner: {
-    minHeight: 34,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    marginBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
-  replyComposerText: {
-    flex: 1,
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '600',
-  },
-  replyComposerCancel: {
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '700',
-  },
-  commentComposer: {
-    borderWidth: 1,
-    borderRadius: 18,
-    minHeight: 58,
-    paddingLeft: 14,
-    paddingRight: 8,
-    paddingVertical: 8,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 10,
-  },
-  commentInput: {
-    flex: 1,
-    minHeight: 36,
-    maxHeight: 96,
-    fontSize: 15,
-    lineHeight: 22,
-    paddingTop: 4,
-    paddingBottom: 4,
-  },
-  commentSubmitButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  menuBackdrop: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-  },
-  menuScrim: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  menuSheet: {
-    borderWidth: 1,
-    borderRadius: 22,
-    paddingVertical: 8,
-    maxWidth: 320,
-    width: '100%',
-    alignSelf: 'center',
-  },
-  menuAction: {
-    minHeight: 52,
-    paddingHorizontal: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  menuDangerAction: {
-    borderTopWidth: 1,
-    borderTopColor: '#00000010',
-  },
-  menuActionText: {
-    fontWeight: '700',
-  },
-  reportSheet: {
-    borderWidth: 1,
-    borderRadius: 22,
-    padding: 18,
-    gap: 14,
-    maxWidth: 360,
-    width: '100%',
-    alignSelf: 'center',
-  },
-  reportTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  reportReasonList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  reportReasonButton: {
-    minHeight: 34,
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  reportReasonText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  reportInput: {
-    minHeight: 92,
-    borderRadius: 16,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    textAlignVertical: 'top',
-    fontSize: 14,
-    lineHeight: 21,
-  },
-  reportActions: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  reportActionButton: {
-    flex: 1,
-    minHeight: 44,
-    borderRadius: 16,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

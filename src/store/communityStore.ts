@@ -12,6 +12,7 @@ import { create } from 'zustand';
 
 import { getErrorMessage } from '../services/app/errors';
 import { toPublicPetAvatarUrl } from '../services/supabase/pets';
+import { groupCommentsIntoThreads } from '../screens/Community/utils/commentHelpers';
 import {
   createCommunityComment,
   createCommunityPost,
@@ -42,6 +43,9 @@ type CommunityStore = {
   posts: CommunityPost[];
   postsById: Record<string, CommunityPost>;
   commentsByPostId: Record<string, CommunityComment[]>;
+  commentEntitiesById: Record<string, CommunityComment>;
+  topLevelCommentIdsByPostId: Record<string, string[]>;
+  replyCommentIdsByParentId: Record<string, string[]>;
   commentsStatusByPostId: Record<string, 'idle' | 'loading' | 'ready' | 'error'>;
   detailStatusByPostId: Record<string, CommunityDetailStatus>;
   listStatus: CommunityListStatus;
@@ -95,6 +99,9 @@ export const useCommunityStore = create<CommunityStore>((set, get) => ({
   posts: [],
   postsById: {},
   commentsByPostId: {},
+  commentEntitiesById: {},
+  topLevelCommentIdsByPostId: {},
+  replyCommentIdsByParentId: {},
   commentsStatusByPostId: {},
   detailStatusByPostId: {},
   listStatus: 'idle',
@@ -274,10 +281,46 @@ export const useCommunityStore = create<CommunityStore>((set, get) => ({
 
     try {
       const comments = await fetchCommunityComments(postId);
+      const grouped = groupCommentsIntoThreads(comments);
       set(prev => ({
+        ...((): Pick<
+          CommunityStore,
+          'commentEntitiesById' | 'replyCommentIdsByParentId'
+        > => {
+          const previousCommentIds = new Set(
+            (prev.commentsByPostId[postId] ?? []).map(comment => comment.id),
+          );
+          const nextCommentEntitiesById = { ...prev.commentEntitiesById };
+          previousCommentIds.forEach(commentId => {
+            delete nextCommentEntitiesById[commentId];
+          });
+
+          const nextReplyCommentIdsByParentId = {
+            ...prev.replyCommentIdsByParentId,
+          };
+          const previousTopLevelIds = prev.topLevelCommentIdsByPostId[postId] ?? [];
+          previousTopLevelIds.forEach(commentId => {
+            delete nextReplyCommentIdsByParentId[commentId];
+          });
+
+          return {
+            commentEntitiesById: {
+              ...nextCommentEntitiesById,
+              ...grouped.commentEntitiesById,
+            },
+            replyCommentIdsByParentId: {
+              ...nextReplyCommentIdsByParentId,
+              ...grouped.replyCommentIdsByParentId,
+            },
+          };
+        })(),
         commentsByPostId: {
           ...prev.commentsByPostId,
           [postId]: comments,
+        },
+        topLevelCommentIdsByPostId: {
+          ...prev.topLevelCommentIdsByPostId,
+          [postId]: grouped.topLevelCommentIds,
         },
         commentsStatusByPostId: {
           ...prev.commentsStatusByPostId,
@@ -400,8 +443,7 @@ export const useCommunityStore = create<CommunityStore>((set, get) => ({
   },
 
   toggleCommentLike: async (commentId, postId, userId) => {
-    const comments = get().commentsByPostId[postId] ?? [];
-    const current = comments.find(comment => comment.id === commentId) ?? null;
+    const current = get().commentEntitiesById[commentId] ?? null;
     if (!current) return;
 
     const optimisticIsLiked = !current.isLikedByMe;
@@ -422,6 +464,14 @@ export const useCommunityStore = create<CommunityStore>((set, get) => ({
             : comment,
         ),
       },
+      commentEntitiesById: {
+        ...prev.commentEntitiesById,
+        [commentId]: {
+          ...prev.commentEntitiesById[commentId],
+          isLikedByMe: optimisticIsLiked,
+          likeCount: optimisticLikeCount,
+        },
+      },
     }));
 
     try {
@@ -439,6 +489,14 @@ export const useCommunityStore = create<CommunityStore>((set, get) => ({
                 }
               : comment,
           ),
+        },
+        commentEntitiesById: {
+          ...prev.commentEntitiesById,
+          [commentId]: {
+            ...prev.commentEntitiesById[commentId],
+            isLikedByMe: current.isLikedByMe,
+            likeCount: current.likeCount,
+          },
         },
       }));
       throw error;
@@ -462,11 +520,39 @@ export const useCommunityStore = create<CommunityStore>((set, get) => ({
 
           return nextComments.map(item =>
             item.id === comment.parentCommentId
-              ? { ...item, replyCount: item.replyCount + 1 }
+                ? { ...item, replyCount: item.replyCount + 1 }
               : item,
           );
         })(),
       },
+      commentEntitiesById: {
+        ...prev.commentEntitiesById,
+        ...(comment.parentCommentId && prev.commentEntitiesById[comment.parentCommentId]
+          ? {
+              [comment.parentCommentId]: {
+                ...prev.commentEntitiesById[comment.parentCommentId],
+                replyCount:
+                  prev.commentEntitiesById[comment.parentCommentId].replyCount + 1,
+              },
+            }
+          : {}),
+        [comment.id]: comment,
+      },
+      topLevelCommentIdsByPostId: {
+        ...prev.topLevelCommentIdsByPostId,
+        [postId]: comment.parentCommentId
+          ? prev.topLevelCommentIdsByPostId[postId] ?? []
+          : [...(prev.topLevelCommentIdsByPostId[postId] ?? []), comment.id],
+      },
+      replyCommentIdsByParentId: comment.parentCommentId
+        ? {
+            ...prev.replyCommentIdsByParentId,
+            [comment.parentCommentId]: [
+              ...(prev.replyCommentIdsByParentId[comment.parentCommentId] ?? []),
+              comment.id,
+            ],
+          }
+        : prev.replyCommentIdsByParentId,
       commentsStatusByPostId: {
         ...prev.commentsStatusByPostId,
         [postId]: 'ready',
@@ -491,20 +577,37 @@ export const useCommunityStore = create<CommunityStore>((set, get) => ({
   removeComment: async (commentId, postId) => {
     set(prev => {
       const currentComments = prev.commentsByPostId[postId] ?? [];
-      const target = currentComments.find(comment => comment.id === commentId) ?? null;
+      const target = prev.commentEntitiesById[commentId] ?? null;
       const removedCommentIds = new Set<string>([commentId]);
 
       if (target && target.parentCommentId === null) {
-        currentComments.forEach(comment => {
-          if (comment.parentCommentId === target.id) {
-            removedCommentIds.add(comment.id);
-          }
+        (prev.replyCommentIdsByParentId[target.id] ?? []).forEach(replyId => {
+          removedCommentIds.add(replyId);
         });
       }
 
       const removedCount = removedCommentIds.size;
       const filteredComments = currentComments.filter(
         comment => !removedCommentIds.has(comment.id),
+      );
+      const nextCommentEntitiesById = { ...prev.commentEntitiesById };
+      removedCommentIds.forEach(removedId => {
+        delete nextCommentEntitiesById[removedId];
+      });
+      const nextReplyCommentIdsByParentId = { ...prev.replyCommentIdsByParentId };
+
+      if (target?.parentCommentId) {
+        nextReplyCommentIdsByParentId[target.parentCommentId] = (
+          prev.replyCommentIdsByParentId[target.parentCommentId] ?? []
+        ).filter(id => id !== commentId);
+      }
+
+      if (target && target.parentCommentId === null) {
+        delete nextReplyCommentIdsByParentId[target.id];
+      }
+
+      const nextTopLevelCommentIds = (prev.topLevelCommentIdsByPostId[postId] ?? []).filter(
+        id => !removedCommentIds.has(id),
       );
 
       return {
@@ -522,6 +625,24 @@ export const useCommunityStore = create<CommunityStore>((set, get) => ({
                 )
               : filteredComments,
         },
+        commentEntitiesById:
+          target?.parentCommentId && prev.commentEntitiesById[target.parentCommentId]
+            ? {
+                ...nextCommentEntitiesById,
+                [target.parentCommentId]: {
+                  ...prev.commentEntitiesById[target.parentCommentId],
+                  replyCount: Math.max(
+                    prev.commentEntitiesById[target.parentCommentId].replyCount - 1,
+                    0,
+                  ),
+                },
+              }
+            : nextCommentEntitiesById,
+        topLevelCommentIdsByPostId: {
+          ...prev.topLevelCommentIdsByPostId,
+          [postId]: nextTopLevelCommentIds,
+        },
+        replyCommentIdsByParentId: nextReplyCommentIdsByParentId,
         postsById: prev.postsById[postId]
           ? {
               ...prev.postsById,
@@ -577,6 +698,9 @@ export const useCommunityStore = create<CommunityStore>((set, get) => ({
       posts: [],
       postsById: {},
       commentsByPostId: {},
+      commentEntitiesById: {},
+      topLevelCommentIdsByPostId: {},
+      replyCommentIdsByParentId: {},
       commentsStatusByPostId: {},
       detailStatusByPostId: {},
       listStatus: 'idle',

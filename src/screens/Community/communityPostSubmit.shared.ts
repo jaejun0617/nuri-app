@@ -65,7 +65,6 @@ export async function runCommunityCreateSubmitFlow(
       dependencies.userId,
     );
   } catch (error) {
-    console.error('[CommunityCreate] posts-insert:failed', error);
     throw error;
   }
 
@@ -83,8 +82,7 @@ export async function runCommunityCreateSubmitFlow(
         mimeType: image.mimeType,
       })),
     );
-  } catch (error) {
-    console.error('[CommunityCreate] image-upload:failed', error);
+  } catch {
     dependencies.onImageUploadWarning();
     return post;
   }
@@ -94,8 +92,7 @@ export async function runCommunityCreateSubmitFlow(
       imagePath: uploadedImagePaths[0] ?? null,
       imagePaths: uploadedImagePaths,
     });
-  } catch (error) {
-    console.error('[CommunityCreate] image-urls-update:failed', error);
+  } catch {
     for (const path of uploadedImagePaths) {
       await enqueueCommunityImageCleanup(path);
     }

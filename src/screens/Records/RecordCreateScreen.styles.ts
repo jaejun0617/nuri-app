@@ -5,7 +5,7 @@ const BRAND_DARK = '#5753E6';
 const TEXT = '#111827';
 const MUTED = '#97A2B6';
 const BORDER = '#E5EAF3';
-const BG = '#F7F8FB';
+const BG = '#FFFFFF';
 const CARD = '#FFFFFF';
 
 export const styles = StyleSheet.create({

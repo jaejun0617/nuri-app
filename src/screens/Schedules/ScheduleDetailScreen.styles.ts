@@ -2,7 +2,7 @@ import { StyleSheet } from 'react-native';
 
 const TEXT = '#0B1220';
 const MUTED = '#556070';
-const BG = '#F6F7FB';
+const BG = '#FFFFFF';
 const SURFACE = '#FFFFFF';
 const BORDER = 'rgba(0,0,0,0.06)';
 const BRAND = '#6D6AF8';

@@ -2294,7 +2294,7 @@ export default function LoggedInHome() {
   );
 
   const onPressRecord = useCallback(() => {
-    navigation.navigate('RecordCreateTab', {
+    navigation.navigate('RecordCreate', {
       petId: activePetId ?? undefined,
       returnTo: { tab: 'HomeTab' },
     });
@@ -2308,6 +2308,7 @@ export default function LoggedInHome() {
         params: {
           petId: activePetId,
           memoryId,
+          entrySource: 'home',
         },
       });
     },

@@ -16,6 +16,7 @@
 import React from 'react';
 import type { NavigatorScreenParams } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import type { NativeStackHeaderProps } from '@react-navigation/native-stack';
 
 import HomeScreen from '../screens/Home/HomeScreen';
 
@@ -51,6 +52,8 @@ import CommunityListScreen from '../screens/Community/CommunityListScreen';
 import CommunityDetailScreen from '../screens/Community/CommunityDetailScreen';
 import CommunityCreateScreen from '../screens/Community/CommunityCreateScreen';
 import CommunityEditScreen from '../screens/Community/CommunityEditScreen';
+import RecordCreateScreen from '../screens/Records/RecordCreateScreen';
+import CommunityStackHeader from './CommunityStackHeader';
 import type { DeviceCoordinates } from '../services/location/currentPosition';
 import type { LocationDiscoveryItem } from '../services/locationDiscovery/types';
 import type { PetTravelItem } from '../services/petTravel/types';
@@ -61,7 +64,7 @@ import type {
 } from '../services/weather/guide';
 
 import AppTabsNavigator from './AppTabsNavigator';
-import type { AppTabParamList } from './AppTabsNavigator';
+import type { AppTabParamList, RecordCreateReturnTo } from './AppTabsNavigator';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -143,6 +146,12 @@ export type RootStackParamList = {
   CommunityDetail: { postId: string };
   CommunityCreate: undefined;
   CommunityEdit: { postId: string };
+  RecordCreate:
+    | {
+        petId?: string;
+        returnTo?: RecordCreateReturnTo;
+      }
+    | undefined;
   GuideAdminList: { entrySource?: ScreenEntrySource } | undefined;
   GuideAdminEditor:
     | { mode: 'create' }
@@ -162,6 +171,9 @@ export type RootStackParamList = {
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+const renderCommunityHeader = (props: NativeStackHeaderProps) => (
+  <CommunityStackHeader {...props} />
+);
 
 export default function RootNavigator() {
   return (
@@ -317,21 +329,42 @@ export default function RootNavigator() {
       <Stack.Screen
         name="CommunityList"
         component={CommunityListScreen}
-        options={{ headerShown: false }}
+        options={{
+          headerShown: true,
+          headerTitle: '커뮤니티',
+          header: renderCommunityHeader,
+        }}
       />
       <Stack.Screen
         name="CommunityDetail"
         component={CommunityDetailScreen}
-        options={{ headerShown: false }}
+        options={{
+          headerShown: true,
+          headerTitle: '커뮤니티',
+          header: renderCommunityHeader,
+        }}
       />
       <Stack.Screen
         name="CommunityCreate"
         component={CommunityCreateScreen}
-        options={{ headerShown: false }}
+        options={{
+          headerShown: true,
+          headerTitle: '새 게시글',
+          header: renderCommunityHeader,
+        }}
       />
       <Stack.Screen
         name="CommunityEdit"
         component={CommunityEditScreen}
+        options={{
+          headerShown: true,
+          headerTitle: '게시글 수정',
+          header: renderCommunityHeader,
+        }}
+      />
+      <Stack.Screen
+        name="RecordCreate"
+        component={RecordCreateScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

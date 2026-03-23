@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
 
-const BG = '#F6F7FB';
+const BG = '#FFFFFF';
 const SURFACE = '#FFFFFF';
 const TEXT = '#0B1220';
 const MUTED = '#556070';

@@ -2,7 +2,7 @@
 // 파일 목적:
 // - 반려동물 기록을 작성하고, 저장 직후 홈/타임라인에 즉시 반영하는 작성 화면이다.
 // 어디서 쓰이는지:
-// - AppTabsNavigator의 `RecordCreateTab`과 날씨 활동 기록/홈/타임라인 CTA에서 공통 작성 화면으로 사용된다.
+// - RootNavigator의 `RecordCreate`와 날씨 활동 기록/홈/타임라인 CTA에서 공통 작성 화면으로 사용된다.
 // 핵심 역할:
 // - 텍스트/감정/카테고리/가격/날짜/이미지 입력을 수집해 `createMemory`를 호출한다.
 // - draft 복구, 낙관적 store 반영, 업로드 큐 등록, 작성 후 복귀 경로 처리까지 담당한다.
@@ -21,12 +21,8 @@ import React, {
   useState,
 } from 'react';
 import { Alert, BackHandler, Image, TextInput, TouchableOpacity, View } from 'react-native';
-import type {
-  CompositeNavigationProp,
-  RouteProp,
-} from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
-import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
@@ -38,7 +34,6 @@ import HeaderTextActionButton from '../../components/navigation/HeaderTextAction
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import RecordImageGallery from '../../components/records/RecordImageGallery';
 import { useKeyboardInset } from '../../hooks/useKeyboardInset';
-import type { AppTabParamList } from '../../navigation/AppTabsNavigator';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
   buildPickedRecordImages,
@@ -86,17 +81,12 @@ import { buildPetThemePalette } from '../../services/pets/themePalette';
 import RecordTagModal from './components/RecordTagModal';
 import { styles } from './RecordCreateScreen.styles';
 
-type RecordCreateTabRoute = RouteProp<AppTabParamList, 'RecordCreateTab'>;
-type RecordCreateTabNav = BottomTabNavigationProp<
-  AppTabParamList,
-  'RecordCreateTab'
->;
-type RootNav = NativeStackNavigationProp<RootStackParamList>;
-type Nav = CompositeNavigationProp<RecordCreateTabNav, RootNav>;
+type RecordCreateRoute = RouteProp<RootStackParamList, 'RecordCreate'>;
+type Nav = NativeStackNavigationProp<RootStackParamList, 'RecordCreate'>;
 
 export default function RecordCreateScreen() {
   const navigation = useNavigation<Nav>();
-  const route = useRoute<RecordCreateTabRoute>();
+  const route = useRoute<RecordCreateRoute>();
   const insets = useSafeAreaInsets();
   const keyboardInset = useKeyboardInset();
 
@@ -205,10 +195,10 @@ export default function RecordCreateScreen() {
     todayYmd,
   ]);
   const scrollBottomInset = useMemo(() => {
-    return Math.max(insets.bottom + 240, keyboardInset + 140, 280);
+    return Math.max(insets.bottom + 184, keyboardInset + 108, 224);
   }, [insets.bottom, keyboardInset]);
   const bottomSubmitMargin = useMemo(() => {
-    if (keyboardInset > 0) return Math.max(insets.bottom, 18) + 20;
+    if (keyboardInset > 0) return Math.max(insets.bottom, 18) + 12;
     return Math.max(insets.bottom, 18);
   }, [insets.bottom, keyboardInset]);
   const resetForm = useCallback(() => {
@@ -606,9 +596,18 @@ export default function RecordCreateScreen() {
         title: '기록 저장 완료',
         message: '방금 기록을 먼저 반영했고, 상세에서 바로 확인할 수 있어요.',
       });
-      navigation.navigate('TimelineTab', {
-        screen: 'RecordDetail',
-        params: { petId, memoryId },
+      const detailEntrySource =
+        returnTo?.tab === 'HomeTab'
+          ? 'home'
+          : returnTo?.tab === 'MoreTab'
+            ? 'more'
+            : undefined;
+      navigation.navigate('AppTabs', {
+        screen: 'TimelineTab',
+        params: {
+          screen: 'RecordDetail',
+          params: { petId, memoryId, entrySource: detailEntrySource },
+        },
       });
     } catch (error) {
       const { title: alertTitle, message } = getBrandedErrorMeta(
@@ -638,6 +637,7 @@ export default function RecordCreateScreen() {
     priceText,
     refresh,
     resetForm,
+    returnTo,
     selectedEmotion,
     selectedImages,
     selectedTags,
@@ -686,8 +686,8 @@ export default function RecordCreateScreen() {
         keyboardDismissMode="interactive"
         showsVerticalScrollIndicator={false}
         enableOnAndroid
-        extraScrollHeight={28}
-        extraHeight={120}
+        extraScrollHeight={12}
+        extraHeight={88}
       >
         <TouchableOpacity
           activeOpacity={0.9}

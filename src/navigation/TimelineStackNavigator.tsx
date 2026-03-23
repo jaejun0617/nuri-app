@@ -22,7 +22,11 @@ export type TimelineStackParamList = {
         entrySource?: ScreenEntrySource;
       }
     | undefined;
-  RecordDetail: { petId: string; memoryId: string };
+  RecordDetail: {
+    petId: string;
+    memoryId: string;
+    entrySource?: ScreenEntrySource;
+  };
   RecordEdit: { petId: string; memoryId: string };
 };
 

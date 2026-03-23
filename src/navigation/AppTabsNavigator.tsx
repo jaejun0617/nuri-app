@@ -4,11 +4,10 @@
 // 어디서 쓰이는지:
 // - RootNavigator의 `AppTabs` 라우트에서 메인 네비게이터로 사용된다.
 // 핵심 역할:
-// - Home, Timeline, RecordCreate, More 진입을 하나의 탭 레이아웃으로 묶는다.
-// - 중앙 기록 작성 FAB와 More 오버레이 드로어를 탭 구조 안에서 특수 동작으로 연결한다.
+// - Home, Timeline, Community, More 진입을 하나의 탭 레이아웃으로 묶는다.
+// - More 오버레이 드로어를 탭 구조 안에서 특수 동작으로 연결한다.
 // 데이터·상태 흐름:
 // - 현재 탭 상태를 AppNavigationToolbar에 전달하고, More 드로어 open/close 상태는 uiStore가 관리한다.
-// - RecordCreate는 탭이지만 실제로는 작성 완료 후 returnTo 파라미터를 따라 복귀하는 진입점으로 사용된다.
 // 수정 시 주의:
 // - 탭 목록이나 param 타입을 바꾸면 하단 툴바, 기록 작성 복귀 흐름, More 드로어 동작이 함께 영향을 받는다.
 // - MoreTab은 실제 화면 이동이 아니라 오버레이를 여는 동작이므로 일반 탭처럼 취급하면 안 된다.
@@ -25,29 +24,26 @@ import MainScreen from '../screens/Main/MainScreen';
 import TimelineStackNavigator, {
   type TimelineStackParamList,
 } from './TimelineStackNavigator';
-import RecordCreateScreen from '../screens/Records/RecordCreateScreen';
+import CommunityTabStackNavigator from './CommunityTabStackNavigator';
 import GuestbookScreen from '../screens/Guestbook/GuestbookScreen';
 
 import MoreDrawer from '../components/MoreDrawer/MoreDrawer';
 import AppNavigationToolbar from '../components/navigation/AppNavigationToolbar';
 import { useUiStore } from '../store/uiStore';
 
+export type RecordCreateReturnTo =
+  | { tab: 'HomeTab' }
+  | {
+      tab: 'TimelineTab';
+      params?: NavigatorScreenParams<TimelineStackParamList>;
+    }
+  | { tab: 'GuestbookTab' }
+  | { tab: 'MoreTab' };
+
 export type AppTabParamList = {
   HomeTab: undefined;
   TimelineTab: NavigatorScreenParams<TimelineStackParamList> | undefined;
-  RecordCreateTab:
-    | {
-        petId?: string;
-        returnTo?:
-          | { tab: 'HomeTab' }
-          | {
-              tab: 'TimelineTab';
-              params?: NavigatorScreenParams<TimelineStackParamList>;
-            }
-          | { tab: 'GuestbookTab' }
-          | { tab: 'MoreTab' };
-      }
-    | undefined;
+  CommunityTab: undefined;
   GuestbookTab: undefined;
   MoreTab: undefined;
 };
@@ -65,10 +61,6 @@ function CustomTabBar(props: BottomTabBarProps) {
     const current = state.routes[state.index];
     if (!current) return false;
 
-    if (current.name === 'RecordCreateTab') {
-      return true;
-    }
-
     if (current.name === 'TimelineTab') {
       return true;
     }
@@ -82,6 +74,8 @@ function CustomTabBar(props: BottomTabBarProps) {
   const activeKey =
     currentRouteName === 'TimelineTab'
       ? 'timeline'
+      : currentRouteName === 'CommunityTab'
+        ? 'community'
       : currentRouteName === 'GuestbookTab'
         ? 'guestbook'
       : currentRouteName === 'MoreTab'
@@ -116,7 +110,10 @@ export default function AppTabsNavigator() {
         >
           <Tab.Screen name="HomeTab" component={MainScreen} />
           <Tab.Screen name="TimelineTab" component={TimelineStackNavigator} />
-          <Tab.Screen name="RecordCreateTab" component={RecordCreateScreen} />
+          <Tab.Screen
+            name="CommunityTab"
+            component={CommunityTabStackNavigator}
+          />
           <Tab.Screen name="GuestbookTab" component={GuestbookScreen} />
           <Tab.Screen
             name="MoreTab"

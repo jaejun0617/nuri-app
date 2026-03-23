@@ -166,7 +166,7 @@ export default function ActivityGuideScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#FAF9FD',
+    backgroundColor: '#FFFFFF',
   },
   header: {
     minHeight: 56,
@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     paddingHorizontal: 14,
     paddingTop: 6,
-    backgroundColor: 'rgba(250,249,253,0.96)',
+    backgroundColor: 'rgba(255,255,255,0.96)',
   },
   primaryButton: {
     height: 56,

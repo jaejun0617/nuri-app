@@ -46,6 +46,7 @@ import AppText from '../../app/ui/AppText';
 import HeaderIconActionButton from '../../components/navigation/HeaderIconActionButton';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { AppTabParamList } from '../../navigation/AppTabsNavigator';
+import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { TimelineStackParamList } from '../../navigation/TimelineStackNavigator';
 import {
   MAIN_CATEGORY_OPTIONS,
@@ -76,7 +77,11 @@ type TimelineStackNav = NativeStackNavigationProp<
   TimelineStackParamList,
   'TimelineMain'
 >;
-type Nav = CompositeNavigationProp<TimelineStackNav, TimelineTabNav>;
+type RootNav = NativeStackNavigationProp<RootStackParamList>;
+type Nav = CompositeNavigationProp<
+  TimelineStackNav,
+  CompositeNavigationProp<TimelineTabNav, RootNav>
+>;
 
 type MainCategory = MemoryMainCategory;
 type OtherSubCategory = MemoryOtherSubCategory;
@@ -574,7 +579,7 @@ export default function TimelineScreen() {
 
   const onPressCreate = useCallback(() => {
     if (!petId) return;
-    navigation.navigate('RecordCreateTab', {
+    navigation.navigate('RecordCreate', {
       petId,
       returnTo: {
         tab: 'TimelineTab',
@@ -594,9 +599,13 @@ export default function TimelineScreen() {
   const onPressItem = useCallback(
     (item: MemoryRecord) => {
       if (!petId) return;
-      navigation.navigate('RecordDetail', { petId, memoryId: item.id });
+      navigation.navigate('RecordDetail', {
+        petId,
+        memoryId: item.id,
+        entrySource: route.params?.entrySource,
+      });
     },
-    [navigation, petId],
+    [navigation, petId, route.params?.entrySource],
   );
 
   const onRefresh = useCallback(() => {

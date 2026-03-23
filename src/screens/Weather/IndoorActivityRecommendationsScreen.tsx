@@ -184,7 +184,7 @@ export default function IndoorActivityRecommendationsScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#F8F7FC',
+    backgroundColor: '#FFFFFF',
   },
   header: {
     minHeight: 56,

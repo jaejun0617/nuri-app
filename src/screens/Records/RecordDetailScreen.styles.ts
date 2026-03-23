@@ -8,7 +8,7 @@ import { StyleSheet } from 'react-native';
 export const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#F6F7FB',
+    backgroundColor: '#FFFFFF',
   },
   header: {
     width: '100%',
@@ -23,13 +23,32 @@ export const styles = StyleSheet.create({
     textAlign: 'center',
   },
   headerLink: {
-    width: '100%',
-    paddingTop: 14,
-    paddingBottom: 6,
-    backgroundColor: '#F6F7FB',
+    minHeight: 56,
+    paddingHorizontal: 18,
+    paddingTop: 8,
+    paddingBottom: 8,
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
+  },
+  headerSideSlot: {
+    width: 88,
+    minHeight: 40,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  headerSideSlotRight: {
+    alignItems: 'flex-end',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerLinkText: {
+    flex: 1,
     color: '#111827',
     fontWeight: '800',
     textAlign: 'center',
@@ -45,8 +64,6 @@ export const styles = StyleSheet.create({
 
   postCard: {
     backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
     borderColor: '#E8EBF2',
   },
   postHeader: {

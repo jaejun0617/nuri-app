@@ -1,19 +1,20 @@
 import React, { memo, useCallback, useMemo } from 'react';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { useTheme } from 'styled-components/native';
 import Feather from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import FastImage from 'react-native-fast-image';
 
 import AppText from '../../../app/ui/AppText';
 import type { CommunityComment, CommunityPost } from '../../../types/community';
 import { getKstDateParts } from '../../../utils/date';
+import { styles } from './PostCard.styles';
 
 type Props = {
   post: CommunityPost;
   latestComment: CommunityComment | null;
   onPressPost: (postId: string) => void;
   onPressLike: (postId: string) => void;
-  relativeTimeTick: number;
 };
 
 function getCategoryLabel(category: CommunityPost['category']) {
@@ -131,7 +132,6 @@ function PostCardBase({
   latestComment,
   onPressPost,
   onPressLike,
-  relativeTimeTick: _relativeTimeTick,
 }: Props) {
   const theme = useTheme();
   const createdAtLabel = useMemo(
@@ -166,6 +166,20 @@ function PostCardBase({
   const bodyPreview = trimText(preview);
   const authorAvatarUrl =
     trimText(post.authorAvatarUrl) || trimText(post.petAvatarUrl) || null;
+  const authorAvatarSource = useMemo(() => {
+    if (!authorAvatarUrl) return null;
+    return {
+      uri: authorAvatarUrl,
+      priority: FastImage.priority.normal,
+    };
+  }, [authorAvatarUrl]);
+  const latestCommentAvatarSource = useMemo(() => {
+    if (!latestComment?.authorAvatarUrl) return null;
+    return {
+      uri: latestComment.authorAvatarUrl,
+      priority: FastImage.priority.normal,
+    };
+  }, [latestComment?.authorAvatarUrl]);
   const handlePress = useCallback(() => {
     onPressPost(post.id);
   }, [onPressPost, post.id]);
@@ -187,11 +201,11 @@ function PostCardBase({
     >
       <View style={styles.headerRow}>
         <View style={styles.headerMeta}>
-          {authorAvatarUrl ? (
-            <Image
-              source={{ uri: authorAvatarUrl }}
+          {authorAvatarSource ? (
+            <FastImage
+              source={authorAvatarSource}
               style={[styles.avatar, { borderColor: theme.colors.border }]}
-              resizeMode="cover"
+              resizeMode={FastImage.resizeMode.cover}
             />
           ) : (
             <View
@@ -277,14 +291,14 @@ function PostCardBase({
               { borderColor: theme.colors.textMuted },
             ]}
           />
-          {latestComment?.authorAvatarUrl ? (
-            <Image
-              source={{ uri: latestComment.authorAvatarUrl }}
+          {latestCommentAvatarSource ? (
+            <FastImage
+              source={latestCommentAvatarSource}
               style={[
                 styles.commentPreviewAvatar,
                 { borderColor: theme.colors.border },
               ]}
-              resizeMode="cover"
+              resizeMode={FastImage.resizeMode.cover}
             />
           ) : (
             <View
@@ -382,160 +396,6 @@ function PostCardBase({
   );
 }
 
-const styles = StyleSheet.create({
-  rowCard: {
-    marginHorizontal: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 18,
-    borderBottomWidth: 1,
-  },
-  headerRow: {
-    marginBottom: 14,
-  },
-  headerMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
-  },
-  avatarFallback: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTextBlock: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  metaTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
-    minHeight: 24,
-  },
-  authorMeta: {
-    fontWeight: '600',
-    flex: 1,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  petMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 6,
-    flex: 1,
-    minWidth: 0,
-  },
-  petNameText: {
-    fontWeight: '600',
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  petSubMetaText: {
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  categoryChip: {
-    minHeight: 24,
-    borderRadius: 7,
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  categoryChipText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  bodySection: {
-    gap: 6,
-    marginBottom: 12,
-  },
-  titleText: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: '700',
-  },
-  previewText: {
-    fontSize: 13,
-    lineHeight: 21,
-  },
-  commentPreviewRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    minHeight: 22,
-    marginBottom: 12,
-  },
-  commentPreviewConnector: {
-    width: 12,
-    height: 12,
-    borderLeftWidth: 1.5,
-    borderBottomWidth: 1.5,
-    marginLeft: 2,
-    marginRight: 2,
-    marginBottom: 6,
-  },
-  commentPreviewAvatar: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 1,
-  },
-  commentPreviewAvatarFallback: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  commentPreviewText: {
-    flex: 1,
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  footerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  footerActionGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
-  footerMetaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  footerMetaText: {
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  likeAction: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    minHeight: 24,
-  },
-  likeActionText: {
-    fontSize: 12,
-    lineHeight: 16,
-  },
-});
 
 const areEqual = (prev: Props, next: Props) =>
   prev.post.id === next.post.id &&

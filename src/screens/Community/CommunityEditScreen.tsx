@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   BackHandler,
   TouchableOpacity,
@@ -150,6 +150,26 @@ export default function CommunityEditScreen() {
     }
     navigation.goBack();
   }, [hasUnsavedChanges, navigation, submitting]);
+  const renderHeaderLeft = useCallback(
+    () => (
+      <HeaderTextActionButton
+        label="취소"
+        accessibilityLabel="수정 취소"
+        onPress={handleBack}
+        disabled={submitting}
+        backgroundColor={theme.colors.surfaceElevated}
+        textColor={theme.colors.textPrimary}
+        borderColor={theme.colors.border}
+      />
+    ),
+    [
+      handleBack,
+      submitting,
+      theme.colors.border,
+      theme.colors.surfaceElevated,
+      theme.colors.textPrimary,
+    ],
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -250,6 +270,30 @@ export default function CommunityEditScreen() {
     !isMyPost ||
     title.trim().length === 0 ||
     content.trim().length === 0;
+  const renderHeaderRight = useCallback(
+    () => (
+      <HeaderTextActionButton
+        label="저장"
+        accessibilityLabel="게시글 저장"
+        onPress={handleSubmit}
+        disabled={disabled}
+        backgroundColor={petTheme.primary}
+        textColor={petTheme.onPrimary}
+      />
+    ),
+    [disabled, handleSubmit, petTheme.onPrimary, petTheme.primary],
+  );
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerTitle: '게시글 수정',
+      headerLeft: renderHeaderLeft,
+      headerRight: renderHeaderRight,
+    });
+  }, [
+    navigation,
+    renderHeaderLeft,
+    renderHeaderRight,
+  ]);
   const scrollBottomInset = useMemo(
     () => Math.max(insets.bottom + 240, keyboardInset + 160, 280),
     [insets.bottom, keyboardInset],
@@ -297,35 +341,6 @@ export default function CommunityEditScreen() {
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: theme.colors.background }]} edges={['left', 'right', 'bottom']}>
-      <View style={[styles.header, { paddingTop: Math.max(insets.top + 8, 20) }]}>
-        <View style={styles.headerSide}>
-          <HeaderTextActionButton
-            label="취소"
-            accessibilityLabel="수정 취소"
-            onPress={handleBack}
-            disabled={submitting}
-            backgroundColor={theme.colors.surfaceElevated}
-            textColor={theme.colors.textPrimary}
-            borderColor={theme.colors.border}
-          />
-        </View>
-
-        <AppText preset="headline" style={[styles.headerTitle, { color: theme.colors.textPrimary }]}>
-          게시글 수정
-        </AppText>
-
-        <View style={[styles.headerSide, styles.headerRight]}>
-          <HeaderTextActionButton
-            label="저장"
-            accessibilityLabel="게시글 저장"
-            onPress={handleSubmit}
-            disabled={disabled}
-            backgroundColor={petTheme.primary}
-            textColor={petTheme.onPrimary}
-          />
-        </View>
-      </View>
-
       <KeyboardAwareScrollView
         enableOnAndroid
         keyboardShouldPersistTaps="always"
@@ -407,24 +422,6 @@ const styles = {
     paddingHorizontal: 18,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
-  },
-  header: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-  },
-  headerSide: {
-    width: 72,
-    alignItems: 'flex-start' as const,
-    justifyContent: 'center' as const,
-  },
-  headerRight: {
-    alignItems: 'flex-end' as const,
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center' as const,
   },
   scrollContent: {
     paddingHorizontal: 20,

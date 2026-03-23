@@ -18,7 +18,7 @@ import {
   View,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import type { RouteProp } from '@react-navigation/native';
+import type { CompositeNavigationProp, RouteProp } from '@react-navigation/native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
@@ -27,7 +27,9 @@ import { useTheme } from 'styled-components/native';
 import AppNavigationToolbar from '../../components/navigation/AppNavigationToolbar';
 import AppText from '../../app/ui/AppText';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import OptimizedImage from '../../components/images/OptimizedImage';
+import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { TimelineStackParamList } from '../../navigation/TimelineStackNavigator';
 import { getBrandedErrorMeta } from '../../services/app/errors';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
@@ -42,9 +44,13 @@ import { deleteMemoryWithFile, fetchMemoryById } from '../../services/supabase/m
 import { getMemoryImageSignedUrlsCached } from '../../services/supabase/storageMemories';
 import { usePetStore } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
+import { openMoreDrawer } from '../../store/uiStore';
 import { styles } from './RecordDetailScreen.styles';
 
-type TimelineNav = NativeStackNavigationProp<TimelineStackParamList, 'RecordDetail'>;
+type TimelineNav = CompositeNavigationProp<
+  NativeStackNavigationProp<TimelineStackParamList, 'RecordDetail'>,
+  NativeStackNavigationProp<RootStackParamList, 'AppTabs'>
+>;
 type Route = RouteProp<TimelineStackParamList, 'RecordDetail'>;
 type PreviewImageSource = {
   key: string;
@@ -489,6 +495,24 @@ export default function RecordDetailScreen() {
     navigation.navigate('RecordEdit', { petId: resolvedPetId, memoryId: record.id });
   }, [closeActionMenu, navigation, record, resolvedPetId]);
 
+  const onPressBack = useEntryAwareBackAction({
+    entrySource: route.params?.entrySource,
+    onHome: () => {
+      navigation.navigate('AppTabs', { screen: 'HomeTab' });
+    },
+    onMore: () => {
+      navigation.navigate('AppTabs', { screen: 'HomeTab' });
+      openMoreDrawer();
+    },
+    onFallback: () => {
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+        return;
+      }
+      navigation.navigate('TimelineMain');
+    },
+  });
+
   const onPressDelete = useCallback(() => {
     if (!resolvedPetId || !record) return;
     hideActionMenu();
@@ -625,15 +649,21 @@ export default function RecordDetailScreen() {
 
   return (
     <View style={styles.screen}>
-      <TouchableOpacity
-        activeOpacity={0.8}
-        style={styles.headerLink}
-        onPress={() => navigation.goBack()}
-      >
+      <View style={styles.headerLink}>
+        <View style={styles.headerSideSlot}>
+          <TouchableOpacity
+            activeOpacity={0.88}
+            style={styles.backButton}
+            onPress={onPressBack}
+          >
+            <Feather name="arrow-left" size={20} color="#102033" />
+          </TouchableOpacity>
+        </View>
         <AppText preset="headline" style={styles.headerLinkText}>
           추억상세보기
         </AppText>
-      </TouchableOpacity>
+        <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
+      </View>
 
       <ScrollView
         style={styles.scroll}

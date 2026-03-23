@@ -2,6 +2,7 @@ import React, {
   memo,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -13,9 +14,9 @@ import {
   FlatList,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Platform,
   Pressable,
   RefreshControl,
-  StyleSheet,
   TouchableOpacity,
   View,
   type ListRenderItem,
@@ -40,11 +41,10 @@ import { useCommunityStore } from '../../store/communityStore';
 import { usePetStore } from '../../store/petStore';
 import { openMoreDrawer, showToast } from '../../store/uiStore';
 import type {
-  CommunityComment,
-  CommunityPost,
   CommunityPostCategory,
 } from '../../types/community';
-import PostCard from './components/PostCard';
+import { styles } from './CommunityListScreen.styles';
+import CommunityPostListItem from './components/CommunityPostListItem';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'CommunityList'>;
 type Route = RootScreenRoute<'CommunityList'>;
@@ -63,8 +63,7 @@ const CATEGORY_CHIPS: CategoryChip[] = [
   { key: 'free', label: '정보', value: 'free' },
 ];
 
-const keyExtractor = (item: CommunityPost) => item.id;
-const EMPTY_COMMENTS: ReadonlyArray<CommunityComment> = [];
+const keyExtractor = (item: string) => item;
 
 const ListFooterLoading = memo(function ListFooterLoading() {
   return (
@@ -146,10 +145,13 @@ export default function CommunityListScreen() {
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const flatListRef = useRef<FlatList<CommunityPost> | null>(null);
+  const flatListRef = useRef<FlatList<string> | null>(null);
   const pendingCategoryTransitionRef = useRef<
     CommunityPostCategory | null | 'all'
   >(null);
+  const postLikeDebounceTimersRef = useRef<
+    Record<string, ReturnType<typeof setTimeout>>
+  >({});
 
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
@@ -168,8 +170,6 @@ export default function CommunityListScreen() {
   const hasMore = useCommunityStore(s => s.hasMore);
   const activeCategory = useCommunityStore(s => s.activeCategory);
   const lastFetchedAt = useCommunityStore(s => s.lastFetchedAt);
-  const commentsByPostId = useCommunityStore(s => s.commentsByPostId);
-  const commentsStatusByPostId = useCommunityStore(s => s.commentsStatusByPostId);
   const fetchPosts = useCommunityStore(s => s.fetchPosts);
   const refreshPosts = useCommunityStore(s => s.refreshPosts);
   const loadMorePosts = useCommunityStore(s => s.loadMorePosts);
@@ -177,7 +177,6 @@ export default function CommunityListScreen() {
   const togglePostLike = useCommunityStore(s => s.togglePostLike);
 
   const [showTopButton, setShowTopButton] = useState(false);
-  const [relativeTimeTick, setRelativeTimeTick] = useState(() => Date.now());
   const { currentUserId, requireLogin } = useCommunityAuth();
 
   useEffect(() => {
@@ -187,12 +186,6 @@ export default function CommunityListScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      setRelativeTimeTick(Date.now());
-
-      const intervalId = setInterval(() => {
-        setRelativeTimeTick(Date.now());
-      }, 60 * 1000);
-
       const now = Date.now();
       const shouldRefreshOnFocus =
         posts.length > 0 &&
@@ -206,9 +199,7 @@ export default function CommunityListScreen() {
         refreshPosts().catch(() => {});
       }
 
-      return () => {
-        clearInterval(intervalId);
-      };
+      return undefined;
     }, [lastFetchedAt, listStatus, posts.length, refreshPosts]),
   );
 
@@ -230,6 +221,42 @@ export default function CommunityListScreen() {
       navigation.goBack();
     },
   });
+  const renderHeaderLeft = useCallback(
+    () => (
+      <TouchableOpacity
+        activeOpacity={0.88}
+        style={styles.backButton}
+        onPress={handlePressBack}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <Feather
+          name="arrow-left"
+          size={20}
+          color={theme.colors.textPrimary}
+        />
+      </TouchableOpacity>
+    ),
+    [handlePressBack, theme.colors.textPrimary],
+  );
+  const renderHeaderRight = useCallback(() => null, []);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerTitle: '커뮤니티',
+      headerLeft: renderHeaderLeft,
+      headerRight: renderHeaderRight,
+    });
+  }, [navigation, renderHeaderLeft, renderHeaderRight]);
+
+  useEffect(
+    () => () => {
+      Object.values(postLikeDebounceTimersRef.current).forEach(timer => {
+        clearTimeout(timer);
+      });
+      postLikeDebounceTimersRef.current = {};
+    },
+    [],
+  );
 
   const handlePressCreate = useCallback(() => {
     requireLogin(() => {
@@ -248,7 +275,6 @@ export default function CommunityListScreen() {
   );
 
   const handleRefresh = useCallback(() => {
-    setRelativeTimeTick(Date.now());
     refreshPosts().catch(() => {});
   }, [refreshPosts]);
 
@@ -288,45 +314,42 @@ export default function CommunityListScreen() {
     (postId: string) => {
       requireLogin(() => {
         if (!currentUserId) return;
+        if (postLikeDebounceTimersRef.current[postId]) return;
         togglePostLike(postId, currentUserId).catch(() => {
           showToast({
             tone: 'error',
             message: '좋아요 처리에 실패했어요.',
           });
         });
+        postLikeDebounceTimersRef.current[postId] = setTimeout(() => {
+          delete postLikeDebounceTimersRef.current[postId];
+        }, 300);
       });
     },
     [currentUserId, requireLogin, togglePostLike],
   );
 
+  const postIds = useMemo(() => posts.map(post => post.id), [posts]);
+
   useEffect(() => {
+    const { commentsStatusByPostId } = useCommunityStore.getState();
     posts.forEach(post => {
       if (post.commentCount <= 0) return;
-      const comments = commentsByPostId[post.id] ?? EMPTY_COMMENTS;
       const commentsStatus = commentsStatusByPostId[post.id] ?? 'idle';
-      if (comments.length > 0) return;
       if (commentsStatus !== 'idle') return;
       fetchPostComments(post.id).catch(() => {});
     });
-  }, [commentsByPostId, commentsStatusByPostId, fetchPostComments, posts]);
+  }, [fetchPostComments, posts]);
 
-  const renderItem = useCallback<ListRenderItem<CommunityPost>>(
-    ({ item }) => {
-      const comments = commentsByPostId[item.id] ?? EMPTY_COMMENTS;
-      const latestComment =
-        comments.length > 0 ? comments[comments.length - 1] : null;
-
-      return (
-        <PostCard
-          post={item}
-          latestComment={latestComment}
-          onPressPost={handlePressPost}
-          onPressLike={handlePressLike}
-          relativeTimeTick={relativeTimeTick}
-        />
-      );
-    },
-    [commentsByPostId, handlePressLike, handlePressPost, relativeTimeTick],
+  const renderItem = useCallback<ListRenderItem<string>>(
+    ({ item: postId }) => (
+      <CommunityPostListItem
+        postId={postId}
+        onPressPost={handlePressPost}
+        onPressLike={handlePressLike}
+      />
+    ),
+    [handlePressLike, handlePressPost],
   );
 
   const isCategoryTransitioning =
@@ -381,7 +404,7 @@ export default function CommunityListScreen() {
                 preset="caption"
                 style={[styles.sectionHeaderCount, { color: theme.colors.textMuted }]}
               >
-                {posts.length}개
+                {postIds.length}개
               </AppText>
             </View>
             <AppText
@@ -398,7 +421,7 @@ export default function CommunityListScreen() {
       activeCategory,
       handlePressCategory,
       isCategoryTransitioning,
-      posts.length,
+      postIds.length,
       petTheme.primary,
       theme.colors.border,
       theme.colors.textMuted,
@@ -458,8 +481,8 @@ export default function CommunityListScreen() {
   }, [listStatus]);
   const refreshing = listStatus === 'refreshing';
   const isInitialLoading =
-    (listStatus === 'idle' || listStatus === 'loading') && posts.length === 0;
-  const isError = listStatus === 'error' && posts.length === 0;
+    (listStatus === 'idle' || listStatus === 'loading') && postIds.length === 0;
+  const isError = listStatus === 'error' && postIds.length === 0;
 
   useEffect(() => {
     if (pendingCategoryTransitionRef.current === null) return;
@@ -469,41 +492,6 @@ export default function CommunityListScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
-      <View
-        style={[
-          styles.header,
-          {
-            paddingTop: Math.max(insets.top + 8, 20),
-            backgroundColor: theme.colors.background,
-          },
-        ]}
-      >
-        <View style={styles.headerSide}>
-          <TouchableOpacity
-            activeOpacity={0.88}
-            style={styles.backButton}
-            onPress={handlePressBack}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Feather
-              name="arrow-left"
-              size={20}
-              color={theme.colors.textPrimary}
-            />
-          </TouchableOpacity>
-        </View>
-
-        <AppText
-          preset="headline"
-          pointerEvents="none"
-          style={[styles.headerTitle, { color: theme.colors.textPrimary }]}
-        >
-          커뮤니티
-        </AppText>
-
-        <View style={[styles.headerSide, styles.headerRight]} />
-      </View>
-
       {isInitialLoading ? (
         <View style={styles.centerState}>
           <ActivityIndicator size="small" color={petTheme.primary} />
@@ -539,14 +527,15 @@ export default function CommunityListScreen() {
         <View style={styles.listWrap}>
           <FlatList
             ref={flatListRef}
-            data={posts}
+            data={postIds}
             overScrollMode="always"
             keyExtractor={keyExtractor}
             renderItem={renderItem}
-            initialNumToRender={8}
-            maxToRenderPerBatch={8}
+            initialNumToRender={6}
+            maxToRenderPerBatch={6}
             windowSize={7}
-            removeClippedSubviews
+            updateCellsBatchingPeriod={50}
+            removeClippedSubviews={Platform.OS === 'android'}
             onEndReached={handleLoadMore}
             onEndReachedThreshold={0.3}
             onScroll={handleScroll}
@@ -610,207 +599,3 @@ export default function CommunityListScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-  },
-  headerSide: {
-    width: 44,
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-    zIndex: 2,
-    elevation: 2,
-  },
-  headerRight: {
-    alignItems: 'flex-end',
-  },
-  backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-  },
-  centerState: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 28,
-  },
-  errorTitle: {
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  errorBody: {
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  retryButton: {
-    marginTop: 18,
-    minHeight: 44,
-    borderRadius: 999,
-    paddingHorizontal: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  retryButtonText: {
-    fontWeight: '700',
-  },
-  listContent: {
-    flexGrow: 1,
-  },
-  listWrap: {
-    flex: 1,
-  },
-  listHeader: {
-    paddingTop: 6,
-    paddingBottom: 16,
-  },
-  headline: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '700',
-  },
-  categoryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexWrap: 'wrap',
-    gap: 12,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-  },
-  categoryLoadingWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 12,
-    minHeight: 20,
-  },
-  categoryLoadingText: {
-    lineHeight: 18,
-  },
-  categoryChip: {
-    minHeight: 34,
-    borderRadius: 0,
-    paddingHorizontal: 16,
-    paddingBottom: 3,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  categoryChipText: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  categoryChipTextActive: {
-    fontWeight: '800',
-    letterSpacing: -0.2,
-  },
-  categoryChipUnderline: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 3,
-  },
-  sectionHeader: {
-    paddingHorizontal: 20,
-    paddingTop: 14,
-    paddingBottom: 6,
-  },
-  sectionHeaderTextBlock: {
-    gap: 4,
-  },
-  sectionHeaderTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  sectionHeaderLabel: {
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '700',
-  },
-  sectionHeaderCount: {
-    fontSize: 11,
-    lineHeight: 16,
-  },
-  emptyWrap: {
-    alignItems: 'center',
-    paddingTop: 48,
-    paddingHorizontal: 24,
-  },
-  emptyIcon: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    marginBottom: 8,
-  },
-  emptyBody: {
-    lineHeight: 22,
-    textAlign: 'center',
-  },
-  emptyButton: {
-    marginTop: 18,
-    minHeight: 44,
-    borderRadius: 999,
-    paddingHorizontal: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyButtonText: {
-    fontWeight: '700',
-  },
-  footerLoading: {
-    paddingVertical: 18,
-  },
-  topButton: {
-    position: 'absolute',
-    right: 20,
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    shadowColor: '#0B1220',
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
-    zIndex: 4,
-  },
-  createFab: {
-    position: 'absolute',
-    right: 20,
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#0B1220',
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
-    zIndex: 5,
-  },
-});
