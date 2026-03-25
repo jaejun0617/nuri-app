@@ -3,7 +3,6 @@ import {
   deleteCommunityImageSafely,
   enqueueCommunityImageCleanup,
   uploadCommunityImage,
-  uploadCommunityImages,
 } from '../../services/supabase/storageCommunity';
 import type {
   CommunityPost,
@@ -24,7 +23,7 @@ type CreateSubmitDependencies = {
   pickedImages: PickedPhotoAsset[];
   submitPost: (params: CreateCommunityPostParams, userId: string) => Promise<CommunityPost>;
   editPost: (postId: string, params: UpdateCommunityPostParams) => Promise<void>;
-  onImageUploadWarning: () => void;
+  onImageUploadWarning: (error?: unknown) => void;
 };
 
 type EditSubmitDependencies = {
@@ -74,16 +73,20 @@ export async function runCommunityCreateSubmitFlow(
 
   let uploadedImagePaths: string[] = [];
   try {
-    uploadedImagePaths = await uploadCommunityImages(
-      dependencies.pickedImages.map(image => ({
+    for (const image of dependencies.pickedImages) {
+      const uploadedPath = await uploadCommunityImage({
         userId: dependencies.userId,
         postId: post.id,
         fileUri: image.uri,
         mimeType: image.mimeType,
-      })),
-    );
-  } catch {
-    dependencies.onImageUploadWarning();
+      });
+      uploadedImagePaths.push(uploadedPath);
+    }
+  } catch (error) {
+    for (const path of uploadedImagePaths) {
+      await enqueueCommunityImageCleanup(path);
+    }
+    dependencies.onImageUploadWarning(error);
     return post;
   }
 
@@ -92,11 +95,11 @@ export async function runCommunityCreateSubmitFlow(
       imagePath: uploadedImagePaths[0] ?? null,
       imagePaths: uploadedImagePaths,
     });
-  } catch {
+  } catch (error) {
     for (const path of uploadedImagePaths) {
       await enqueueCommunityImageCleanup(path);
     }
-    dependencies.onImageUploadWarning();
+    dependencies.onImageUploadWarning(error);
   }
 
   return post;

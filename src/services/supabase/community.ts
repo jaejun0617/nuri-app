@@ -31,11 +31,19 @@ import { supabase } from './client';
 import { toPublicPetAvatarUrl } from './pets';
 
 const COMMUNITY_PAGE_SIZE = 20;
+const UNKNOWN_COMMUNITY_AUTHOR_NICKNAME = '알 수 없는 사용자';
+const COMMUNITY_REPORT_RATE_LIMIT_MESSAGE =
+  '신고는 10분에 5건, 하루에 20건까지 접수할 수 있어요.';
 const COMMUNITY_POST_SELECT_LEGACY =
   'id, user_id, pet_id, visibility, content, image_url, status, category, like_count, comment_count, deleted_at, created_at, updated_at';
 const COMMUNITY_POST_SELECT_TITLE =
   'id, user_id, pet_id, visibility, title, content, image_url, status, category, like_count, comment_count, deleted_at, created_at, updated_at';
 const COMMUNITY_POST_SELECT_SNAPSHOT = `${COMMUNITY_POST_SELECT_TITLE}, image_urls, author_snapshot_nickname, author_snapshot_avatar_url, pet_snapshot_name, pet_snapshot_species, pet_snapshot_breed, pet_snapshot_age_label, pet_snapshot_avatar_path, show_pet_age`;
+
+type CommunityAuthorSnapshot = {
+  nickname: string | null;
+  avatarUrl: string | null;
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -54,7 +62,12 @@ function isCommunityPostStatus(value: unknown): value is CommunityPostStatus {
 function isCommunityCommentStatus(
   value: unknown,
 ): value is CommunityCommentStatus {
-  return value === 'active' || value === 'hidden' || value === 'deleted';
+  return (
+    value === 'active' ||
+    value === 'hidden' ||
+    value === 'auto_hidden' ||
+    value === 'deleted'
+  );
 }
 
 function isCommunityPostCategory(
@@ -119,6 +132,22 @@ function isCommunityPetRow(value: unknown): value is CommunityPetRow {
   );
 }
 
+function isCommunityReportRateLimitError(error: unknown) {
+  if (!isRecord(error)) return false;
+  if (typeof error.message !== 'string') return false;
+  return error.message.includes(COMMUNITY_REPORT_RATE_LIMIT_MESSAGE);
+}
+
+async function persistCommunityReportRateLimitTrace(reporterId: string) {
+  const { error } = await supabase.rpc('bump_community_reporter_rate_limit', {
+    target_reporter_id: reporterId,
+  });
+
+  if (error) {
+    console.warn('community_report_rate_limit_trace_failed', error);
+  }
+}
+
 function toCommunityPostRows(data: unknown): CommunityPostRow[] {
   if (!Array.isArray(data)) return [];
   return data.filter(isCommunityPostRow);
@@ -179,6 +208,8 @@ function normalizePost(
 ): CommunityPost {
   const profile = profilesByUserId.get(row.user_id) ?? null;
   const pet = row.pet_id ? petsById.get(row.pet_id) ?? null : null;
+  const normalizedStatus = normalizePostStatus(row.status);
+  const canExposeImages = normalizedStatus === 'active' && row.deleted_at === null;
   const imagePaths = normalizeImagePaths(row);
   const rawImage = imagePaths[0] ?? `${row.image_url ?? ''}`.trim();
   const inlineRemoteImageUrls = imagePaths.filter(path =>
@@ -226,18 +257,19 @@ function normalizePost(
     title: `${row.title ?? ''}`.trim() || null,
     content: row.content,
     imagePath: rawImage || null,
-    imageUrl: resolvedImageUrl ?? inlineRemoteImageUrl,
+    imageUrl: canExposeImages ? (resolvedImageUrl ?? inlineRemoteImageUrl) : null,
     imagePaths,
-    imageUrls:
-      resolvedImageUrls && resolvedImageUrls.length > 0
+    imageUrls: canExposeImages
+      ? resolvedImageUrls && resolvedImageUrls.length > 0
         ? resolvedImageUrls.filter(
             (value): value is string => typeof value === 'string' && value.length > 0,
           )
         : resolvedImageUrl && imagePaths.length > 0
           ? [resolvedImageUrl, ...inlineRemoteImageUrls.slice(1)]
-          : inlineRemoteImageUrls,
-    hasImage: rawImage.length > 0,
-    status: normalizePostStatus(row.status),
+          : inlineRemoteImageUrls
+      : [],
+    hasImage: canExposeImages && rawImage.length > 0,
+    status: normalizedStatus,
     category: normalizeCategory(row.category),
     likeCount:
       likeCountsByPostId.get(row.id) ??
@@ -254,16 +286,26 @@ function normalizePost(
 function normalizeComment(
   row: CommunityCommentRow,
   profilesByUserId: Map<string, CommunityProfileRow>,
+  authorSnapshotsByUserId: Map<string, CommunityAuthorSnapshot>,
   likedCommentIds: Set<string>,
   likeCountsByCommentId: Map<string, number>,
 ): CommunityComment {
   const profile = profilesByUserId.get(row.user_id) ?? null;
+  const authorSnapshot = authorSnapshotsByUserId.get(row.user_id) ?? null;
+  const profileNickname = profile?.nickname?.trim() || null;
+  const profileAvatarUrl =
+    typeof profile?.avatar_url === 'string'
+      ? profile.avatar_url.trim() || null
+      : null;
   return {
     id: row.id,
     postId: row.post_id,
     authorId: row.user_id,
-    authorNickname: profile?.nickname?.trim() || '알 수 없는 사용자',
-    authorAvatarUrl: profile?.avatar_url ?? null,
+    authorNickname:
+      profileNickname ??
+      authorSnapshot?.nickname ??
+      UNKNOWN_COMMUNITY_AUTHOR_NICKNAME,
+    authorAvatarUrl: profileAvatarUrl ?? authorSnapshot?.avatarUrl ?? null,
     parentCommentId: row.parent_comment_id ?? null,
     depth: toCommentDepth(row.depth),
     replyCount:
@@ -294,6 +336,46 @@ async function fetchProfilesByUserIds(userIds: string[]) {
   return new Map(
     toCommunityProfileRows(data).map(row => [row.user_id, row] as const),
   );
+}
+
+async function fetchPublicPostAuthorSnapshotsByUserIds(userIds: string[]) {
+  const ids = Array.from(new Set(userIds.filter(Boolean)));
+  if (ids.length === 0) return new Map<string, CommunityAuthorSnapshot>();
+
+  const { data, error } = await supabase
+    .from('posts')
+    .select(
+      'id, user_id, author_snapshot_nickname, author_snapshot_avatar_url, created_at',
+    )
+    .in('user_id', ids)
+    .eq('visibility', 'public')
+    .eq('status', 'active')
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false });
+
+  if (error) throw error;
+
+  const snapshotsByUserId = new Map<string, CommunityAuthorSnapshot>();
+
+  (Array.isArray(data) ? data : []).forEach(item => {
+    if (!isRecord(item) || typeof item.user_id !== 'string') return;
+    if (snapshotsByUserId.has(item.user_id)) return;
+
+    const nickname =
+      typeof item.author_snapshot_nickname === 'string'
+        ? item.author_snapshot_nickname.trim() || null
+        : null;
+    const avatarUrl =
+      typeof item.author_snapshot_avatar_url === 'string'
+        ? item.author_snapshot_avatar_url.trim() || null
+        : null;
+
+    if (!nickname && !avatarUrl) return;
+    snapshotsByUserId.set(item.user_id, { nickname, avatarUrl });
+  });
+
+  return snapshotsByUserId;
 }
 
 async function fetchPetsByIds(petIds: string[]) {
@@ -637,6 +719,7 @@ export async function fetchCommunityPosts(
 export async function fetchCommunityPostById(postId: string) {
   const data = await selectCommunityPostByIdWithFallback(postId);
   if (!data || !isCommunityPostRow(data)) return null;
+  const canExposeImages = data.deleted_at === null && data.status === 'active';
 
   const imagePaths =
     Array.isArray(data.image_urls) && data.image_urls.length > 0
@@ -648,7 +731,9 @@ export async function fetchCommunityPostById(postId: string) {
   const [profilesByUserId, petsById, resolvedImageUrls] = await Promise.all([
     fetchProfilesByUserIds([data.user_id]),
     fetchPetsByIds([data.pet_id ?? ''].filter(Boolean)),
-    Promise.all(imagePaths.map(path => resolveCommunityImageUrl(path))),
+    canExposeImages
+      ? Promise.all(imagePaths.map(path => resolveCommunityImageUrl(path)))
+      : Promise.resolve([]),
   ]);
   const currentUserId = await getCommunityCurrentUserId();
   const { likedPostIds, likeCountsByPostId } = await fetchLikeMetaForPosts(
@@ -701,16 +786,26 @@ export async function fetchCommunityComments(postId: string) {
   }
 
   const currentUserId = await getCommunityCurrentUserId();
-  const [profilesByUserId, { likedCommentIds, likeCountsByCommentId }] =
-    await Promise.all([
-      fetchProfilesByUserIds(rows.map(row => row.user_id)),
-      fetchLikeMetaForComments(
-        rows.map(row => row.id),
-        currentUserId,
-      ),
-    ]);
+  const [
+    profilesByUserId,
+    authorSnapshotsByUserId,
+    { likedCommentIds, likeCountsByCommentId },
+  ] = await Promise.all([
+    fetchProfilesByUserIds(rows.map(row => row.user_id)),
+    fetchPublicPostAuthorSnapshotsByUserIds(rows.map(row => row.user_id)),
+    fetchLikeMetaForComments(
+      rows.map(row => row.id),
+      currentUserId,
+    ),
+  ]);
   return rows.map(row =>
-    normalizeComment(row, profilesByUserId, likedCommentIds, likeCountsByCommentId),
+    normalizeComment(
+      row,
+      profilesByUserId,
+      authorSnapshotsByUserId,
+      likedCommentIds,
+      likeCountsByCommentId,
+    ),
   );
 }
 
@@ -931,6 +1026,7 @@ export async function createCommunityComment(
   return normalizeComment(
     data,
     profilesByUserId,
+    new Map<string, CommunityAuthorSnapshot>(),
     new Set<string>(),
     new Map<string, number>(),
   );
@@ -993,5 +1089,8 @@ export async function createCommunityReport(
 
   if (!error) return 'created' as const;
   if (error.code === '23505') return 'duplicate' as const;
+  if (isCommunityReportRateLimitError(error)) {
+    await persistCommunityReportRateLimitTrace(reporterId);
+  }
   throw error;
 }

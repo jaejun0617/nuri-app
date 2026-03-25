@@ -374,10 +374,12 @@ export default function CommunityCreateScreen() {
         pickedImages,
         submitPost,
         editPost,
-        onImageUploadWarning: () => {
+        onImageUploadWarning: error => {
           showToast({
             tone: 'warning',
-            message: '이미지 업로드에 실패했어요. 텍스트만 등록됐습니다.',
+            message: error
+              ? getErrorMessage(error)
+              : '이미지 업로드에 실패했어요. 텍스트만 등록됐습니다.',
           });
         },
       });

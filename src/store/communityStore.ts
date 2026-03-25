@@ -38,6 +38,7 @@ import type {
 } from '../types/community';
 
 const COMMUNITY_PAGE_SIZE = 20;
+const UNKNOWN_COMMENT_AUTHOR_NICKNAME = '알 수 없는 사용자';
 
 type CommunityStore = {
   posts: CommunityPost[];
@@ -93,6 +94,32 @@ function mergePostsById(
     next[post.id] = post;
   });
   return next;
+}
+
+function hasKnownCommentAuthorNickname(comment: CommunityComment | null | undefined) {
+  const nickname = `${comment?.authorNickname ?? ''}`.trim();
+  return (
+    nickname.length > 0 && nickname !== UNKNOWN_COMMENT_AUTHOR_NICKNAME
+  );
+}
+
+function preserveCommentAuthorMetadata(
+  nextComment: CommunityComment,
+  previousComment: CommunityComment | null | undefined,
+) {
+  if (!previousComment) return nextComment;
+  if (previousComment.authorId !== nextComment.authorId) return nextComment;
+
+  return {
+    ...nextComment,
+    authorNickname:
+      hasKnownCommentAuthorNickname(nextComment) ||
+      !hasKnownCommentAuthorNickname(previousComment)
+        ? nextComment.authorNickname
+        : previousComment.authorNickname,
+    authorAvatarUrl:
+      nextComment.authorAvatarUrl ?? previousComment.authorAvatarUrl ?? null,
+  };
 }
 
 export const useCommunityStore = create<CommunityStore>((set, get) => ({
@@ -221,6 +248,13 @@ export const useCommunityStore = create<CommunityStore>((set, get) => ({
       const post = await fetchCommunityPostById(postId);
       if (!post) {
         set(prev => ({
+          posts: prev.posts.filter(item => item.id !== postId),
+          postsById: (() => {
+            if (!prev.postsById[postId]) return prev.postsById;
+            const nextPostsById = { ...prev.postsById };
+            delete nextPostsById[postId];
+            return nextPostsById;
+          })(),
           detailStatusByPostId: {
             ...prev.detailStatusByPostId,
             [postId]: 'not_found',
@@ -281,7 +315,16 @@ export const useCommunityStore = create<CommunityStore>((set, get) => ({
 
     try {
       const comments = await fetchCommunityComments(postId);
-      const grouped = groupCommentsIntoThreads(comments);
+      const previousCommentsById = new Map(
+        (get().commentsByPostId[postId] ?? []).map(comment => [comment.id, comment] as const),
+      );
+      const mergedComments = comments.map(comment =>
+        preserveCommentAuthorMetadata(
+          comment,
+          previousCommentsById.get(comment.id),
+        ),
+      );
+      const grouped = groupCommentsIntoThreads(mergedComments);
       set(prev => ({
         ...((): Pick<
           CommunityStore,
@@ -316,7 +359,7 @@ export const useCommunityStore = create<CommunityStore>((set, get) => ({
         })(),
         commentsByPostId: {
           ...prev.commentsByPostId,
-          [postId]: comments,
+          [postId]: mergedComments,
         },
         topLevelCommentIdsByPostId: {
           ...prev.topLevelCommentIdsByPostId,

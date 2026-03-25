@@ -17,7 +17,11 @@ export type CommunityPostStatus =
 
 export type CommunityPostCategory = 'free' | 'question' | 'info' | 'daily';
 
-export type CommunityCommentStatus = 'active' | 'hidden' | 'deleted';
+export type CommunityCommentStatus =
+  | 'active'
+  | 'hidden'
+  | 'auto_hidden'
+  | 'deleted';
 export type CommunityReportReasonCategory =
   | 'spam'
   | 'hate'

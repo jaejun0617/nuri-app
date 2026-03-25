@@ -406,6 +406,7 @@ export default function CommunityDetailScreen() {
         currentUserId,
       )
         .then(result => {
+          const submittedTarget = reportTarget;
           showToast({
             tone: result === 'duplicate' ? 'info' : 'success',
             message:
@@ -413,6 +414,12 @@ export default function CommunityDetailScreen() {
                 ? '이미 신고한 내용이에요.'
                 : '신고가 접수되었어요.',
           });
+
+          fetchPostDetail(postId).catch(() => {});
+          if (submittedTarget.targetType === 'comment') {
+            fetchPostComments(postId).catch(() => {});
+          }
+
           setReportTarget(null);
           setReportReason('');
           setReportReasonCategory('spam');
@@ -426,7 +433,7 @@ export default function CommunityDetailScreen() {
         .finally(() => {
           setReportSubmitting(false);
         });
-    });
+      });
   };
 
   const listHeader = useMemo(() => {
