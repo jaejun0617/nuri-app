@@ -13,12 +13,11 @@ import type { TextProps, TextStyle } from 'react-native';
 import { StyleSheet } from 'react-native';
 import { useTheme } from 'styled-components/native';
 
+import type { TypographyPresetName } from '../theme/tokens/typography';
 import { StyledText } from './AppText.styles';
 
-type Preset = 'title1' | 'title2' | 'headline' | 'body' | 'caption';
-
 type Props = TextProps & {
-  preset?: Preset;
+  preset?: TypographyPresetName;
   color?: string; // theme 컬러 대신 임의 색상 지정이 필요할 때
   align?: 'auto' | 'left' | 'right' | 'center' | 'justify';
   weight?: TextStyle['fontWeight']; // preset fontWeight를 덮어쓰기 할 때
@@ -29,6 +28,8 @@ function AppTextBase({
   color,
   align,
   weight,
+  allowFontScaling = true,
+  maxFontSizeMultiplier = 2,
   style,
   children,
   ...rest
@@ -50,7 +51,14 @@ function AppTextBase({
   );
 
   return (
-    <StyledText $color={color} $align={align} style={composedStyle} {...rest}>
+    <StyledText
+      $color={color}
+      $align={align}
+      allowFontScaling={allowFontScaling}
+      maxFontSizeMultiplier={maxFontSizeMultiplier}
+      style={composedStyle}
+      {...rest}
+    >
       {children}
     </StyledText>
   );

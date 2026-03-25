@@ -27,6 +27,7 @@ import AppProviders from './src/app/providers/AppProviders';
 import GlobalToast from './src/components/common/GlobalToast';
 import RootNavigator from './src/navigation/RootNavigator';
 import type { RootStackParamList } from './src/navigation/RootNavigator';
+import { appLinking } from './src/navigation/linking';
 import {
   initMonitoring,
   registerSentryNavigation,
@@ -59,6 +60,7 @@ function App() {
         <SafeAreaProvider>
           <AppProviders>
             <NavigationContainer
+              linking={appLinking}
               ref={navigationRef}
               onReady={handleNavigationReady}
             >

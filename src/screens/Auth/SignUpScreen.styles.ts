@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { typography } from '../../app/theme/tokens/typography';
 
 const TEXT = '#1B2435';
 const SUB = '#8B96A9';
@@ -25,34 +26,32 @@ export const styles = StyleSheet.create({
     marginBottom: 30,
   },
   headerBackButton: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     color: TEXT,
-    fontSize: 16,
-    fontWeight: '900',
+    ...typography.role.titleSm,
+    fontWeight: '800',
   },
   headerSpacer: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
   },
   heroCopy: {
     marginBottom: 26,
   },
   heroTitle: {
     color: TEXT,
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: '900',
+    ...typography.role.titleLg,
+    fontWeight: '800',
     marginBottom: 8,
   },
   heroBody: {
     color: SUB,
-    fontSize: 12,
-    lineHeight: 18,
+    ...typography.role.bodySm,
     fontWeight: '700',
   },
   fieldBlock: {
@@ -60,12 +59,12 @@ export const styles = StyleSheet.create({
   },
   label: {
     color: TEXT,
-    fontSize: 12,
-    fontWeight: '800',
+    ...typography.role.helper,
+    fontWeight: '700',
     marginBottom: 8,
   },
   inputRow: {
-    height: 56,
+    minHeight: 56,
     borderRadius: 16,
     backgroundColor: '#F7F9FC',
     borderWidth: 1,
@@ -77,7 +76,7 @@ export const styles = StyleSheet.create({
   input: {
     flex: 1,
     color: TEXT,
-    fontSize: 14,
+    ...typography.role.body,
     fontWeight: '700',
   },
   inputAccessory: {
@@ -85,8 +84,7 @@ export const styles = StyleSheet.create({
   },
   errorText: {
     color: '#E34F5F',
-    fontSize: 12,
-    lineHeight: 18,
+    ...typography.role.helper,
     fontWeight: '700',
     marginTop: -4,
     marginBottom: 8,
@@ -94,15 +92,122 @@ export const styles = StyleSheet.create({
   termsRow: {
     marginTop: 6,
     marginBottom: 18,
-    minHeight: 48,
-    borderRadius: 16,
+  },
+  termsCard: {
+    marginTop: 6,
+    marginBottom: 10,
+    borderRadius: 20,
     backgroundColor: '#FBFCFE',
     borderWidth: 1,
     borderColor: '#EEF2F7',
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    gap: 12,
+  },
+  termsCardHeader: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  termsCardHeaderCopy: {
+    flex: 1,
+    gap: 6,
+  },
+  termsCardTitle: {
+    color: TEXT,
+    ...typography.role.body,
+    fontWeight: '800',
+  },
+  termsCardBody: {
+    color: '#6B778C',
+    ...typography.role.helper,
+    fontWeight: '700',
+  },
+  allAgreeButton: {
+    minHeight: 48,
+    minWidth: 124,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E3E8F2',
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  allAgreeLabel: {
+    color: TEXT,
+    ...typography.role.tab,
+    fontWeight: '900',
+    marginLeft: 8,
+  },
+  termsDivider: {
+    height: 1,
+    backgroundColor: '#EEF2F7',
+  },
+  consentCardRow: {
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#EEF2F7',
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 12,
+    gap: 10,
+  },
+  consentHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  consentToggle: {
+    flex: 1,
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  disclosureButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  consentCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  consentTitleRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8,
+  },
+  consentBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  requiredBadge: {
+    backgroundColor: '#FDECEC',
+  },
+  optionalBadge: {
+    backgroundColor: '#EEF2FF',
+  },
+  consentBadgeText: {
+    ...typography.role.caption,
+    fontWeight: '900',
+  },
+  requiredBadgeText: {
+    color: '#C34D5C',
+  },
+  optionalBadgeText: {
+    color: '#4F63D9',
+  },
+  consentTitle: {
+    color: TEXT,
+    ...typography.role.bodySm,
+    fontWeight: '900',
   },
   checkbox: {
     width: 22,
@@ -114,32 +219,108 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
     marginRight: 10,
+    marginTop: 1,
   },
   checkboxChecked: {
     backgroundColor: BRAND,
     borderColor: BRAND,
   },
+  checkboxDisabled: {
+    opacity: 0.55,
+  },
   termsText: {
     flex: 1,
     color: '#6B778C',
-    fontSize: 12,
-    lineHeight: 18,
+    ...typography.role.helper,
     fontWeight: '700',
   },
-  termsLink: {
+  consentExpandedBox: {
+    borderRadius: 14,
+    backgroundColor: '#F8FAFD',
+    borderWidth: 1,
+    borderColor: '#E8EDF6',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  expandedMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  expandedTitle: {
+    flex: 1,
+    color: TEXT,
+    ...typography.role.helper,
+    fontWeight: '900',
+  },
+  statusChip: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: '#EEF2FF',
+  },
+  statusChipText: {
+    color: '#4F63D9',
+    ...typography.role.caption,
+    fontWeight: '900',
+  },
+  expandedSummary: {
+    color: TEXT,
+    ...typography.role.helper,
+    fontWeight: '800',
+  },
+  expandedDescription: {
+    color: '#6B778C',
+    ...typography.role.helper,
+    fontWeight: '700',
+  },
+  documentButton: {
+    minHeight: 42,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#DCE3F0',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+  documentButtonText: {
     color: BRAND,
-    textDecorationLine: 'underline',
+    ...typography.role.tab,
     fontWeight: '900',
   },
   termsMeta: {
-    marginTop: -8,
+    marginTop: -2,
     marginBottom: 18,
     color: '#9CA3AF',
-    fontSize: 11,
+    ...typography.role.helper,
+    fontWeight: '700',
+  },
+  legalNoticeBox: {
+    marginTop: -6,
+    marginBottom: 18,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E7ECF5',
+    backgroundColor: '#F8FAFD',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 6,
+  },
+  legalNoticeTitle: {
+    color: TEXT,
+    ...typography.role.helper,
+    fontWeight: '900',
+  },
+  legalNoticeBody: {
+    color: '#718096',
+    ...typography.role.helper,
     fontWeight: '700',
   },
   primaryButton: {
-    height: 56,
+    minHeight: 56,
     borderRadius: 18,
     backgroundColor: BRAND,
     alignItems: 'center',
@@ -155,19 +336,18 @@ export const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    ...typography.role.button,
     fontWeight: '900',
   },
   socialLead: {
     textAlign: 'center',
     color: '#C0C7D4',
-    fontSize: 12,
-    lineHeight: 18,
+    ...typography.role.helper,
     fontWeight: '700',
     marginVertical: 18,
   },
   socialButton: {
-    height: 56,
+    minHeight: 56,
     borderRadius: 16,
     borderWidth: 1,
     flexDirection: 'row',
@@ -180,7 +360,7 @@ export const styles = StyleSheet.create({
     left: 18,
   },
   socialButtonText: {
-    fontSize: 15,
+    ...typography.role.button,
     fontWeight: '900',
   },
   kakaoBadge: {
@@ -199,7 +379,7 @@ export const styles = StyleSheet.create({
   },
   googleBadgeText: {
     color: '#4285F4',
-    fontSize: 12,
+    ...typography.role.caption,
     fontWeight: '900',
   },
   signInRow: {
@@ -211,12 +391,12 @@ export const styles = StyleSheet.create({
   },
   signInHint: {
     color: '#B9C1CE',
-    fontSize: 12,
+    ...typography.role.helper,
     fontWeight: '700',
   },
   signInLink: {
     color: BRAND,
-    fontSize: 12,
+    ...typography.role.helper,
     fontWeight: '900',
   },
 });

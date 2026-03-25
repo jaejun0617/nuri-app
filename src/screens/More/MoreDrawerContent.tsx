@@ -51,6 +51,10 @@ import {
   performLogout,
 } from '../../services/auth/session';
 import {
+  LEGAL_DOCUMENTS,
+  openLegalDocument,
+} from '../../services/legal/documents';
+import {
   changeMyPassword,
   isValidPasswordFormat,
 } from '../../services/supabase/account';
@@ -647,6 +651,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const [currentPasswordVisible, setCurrentPasswordVisible] = useState(false);
   const [nextPasswordVisible, setNextPasswordVisible] = useState(false);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
+  const [openingDeletionGuide, setOpeningDeletionGuide] = useState(false);
 
   const nickname = useMemo(() => nicknameRaw?.trim() || null, [nicknameRaw]);
   const selectedPet = useMemo(
@@ -1052,14 +1057,43 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     try {
       setDeleting(true);
       setDeleteConfirmVisible(false);
-      await performAccountDeletion();
-      onRequestClose();
-      navigation.reset({ index: 0, routes: [{ name: 'AppTabs' }] });
+      const result = await performAccountDeletion();
+
+      if (
+        result.status === 'completed' ||
+        result.status === 'completed_with_cleanup_pending'
+      ) {
+        onRequestClose();
+        navigation.reset({ index: 0, routes: [{ name: 'AppTabs' }] });
+        showToast({
+          tone: 'warning',
+          title: '계정 삭제 요청 처리',
+          message:
+            result.status === 'completed_with_cleanup_pending'
+              ? '계정 삭제 요청은 처리됐고 일부 파일 정리가 이어질 수 있어요.'
+              : '계정 삭제 요청이 처리되었어요.',
+          durationMs: 3400,
+        });
+        return;
+      }
+
+      if (result.status === 'unknown_pending_confirmation') {
+        showToast({
+          tone: 'warning',
+          title: '삭제 상태 확인 중',
+          message:
+            '요청 완료 여부를 아직 확인하지 못했어요. 잠시 후 다시 확인해도 상태가 불명확하면 운영 확인이 필요해요.',
+          durationMs: 3600,
+        });
+        return;
+      }
+
       showToast({
         tone: 'warning',
-        title: '계정 삭제 완료',
-        message: '계정과 연결된 로컬 상태를 정리했어요.',
-        durationMs: 3000,
+        title: '삭제 요청 진행 중',
+        message:
+          '계정 삭제 요청은 접수됐지만 아직 최종 상태가 확정되지 않았어요. 잠시 후 다시 확인해 주세요.',
+        durationMs: 3600,
       });
     } catch (error) {
       const { title, message } = getBrandedErrorMeta(
@@ -1082,6 +1116,30 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     if (!isLoggedIn || deleting) return;
     setDeleteConfirmVisible(true);
   }, [deleting, isLoggedIn]);
+
+  const onPressDeletionGuide = useCallback(async () => {
+    if (openingDeletionGuide) return;
+
+    try {
+      setOpeningDeletionGuide(true);
+      const result = await openLegalDocument('accountDeletion');
+
+      if (!result.ok) {
+        if (result.reason === 'failed') {
+          Alert.alert(result.document.title, result.message);
+        }
+
+        showToast({
+          tone: result.reason === 'failed' ? 'error' : 'info',
+          title: result.document.title,
+          message: result.message,
+          durationMs: 3400,
+        });
+      }
+    } finally {
+      setOpeningDeletionGuide(false);
+    }
+  }, [openingDeletionGuide]);
 
   const onPressLogin = useCallback(() => {
     closeAndNavigate(() => navigation.navigate('SignIn'));
@@ -1468,8 +1526,51 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
                     { color: theme.colors.textMuted },
                   ]}
                 >
-                  계정과 연결된 반려동물 정보, 기록, 일정이 함께 사라져요.
+                  회원탈퇴는 삭제 요청을 보내는 단계예요. 실제 정리 완료 시점과
+                  파일 정리 완료 시점은 즉시 아닐 수 있어요.
                 </Text>
+                <Text
+                  style={[
+                    styles.deleteSectionNote,
+                    { color: theme.colors.textMuted },
+                  ]}
+                >
+                  개인 콘텐츠는 삭제되고, 일부 동의/신고 이력은 식별자를 제거한 뒤
+                  보관될 수 있어요.
+                </Text>
+                <TouchableOpacity
+                  activeOpacity={0.88}
+                  disabled={openingDeletionGuide}
+                  onPress={() => {
+                    onPressDeletionGuide().catch(() => {});
+                  }}
+                  style={[
+                    styles.deleteGuideButton,
+                    {
+                      backgroundColor: theme.colors.surface,
+                      borderColor: theme.colors.border,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.deleteGuideButtonLabel,
+                      { color: theme.colors.textPrimary },
+                    ]}
+                  >
+                    {openingDeletionGuide ? '안내 상태 확인 중...' : '삭제 안내 상태 확인'}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.deleteGuideButtonMeta,
+                      { color: theme.colors.textMuted },
+                    ]}
+                  >
+                    {LEGAL_DOCUMENTS.accountDeletion.status === 'external'
+                      ? '공식 안내 문서 연결 완료'
+                      : '안내 문서 미정, 현재는 상태 안내만 제공'}
+                  </Text>
+                </TouchableOpacity>
                 <TouchableOpacity
                   activeOpacity={0.88}
                   style={[
@@ -1577,7 +1678,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         visible={deleteConfirmVisible}
         title="회원탈퇴를 진행할까요?"
         message={
-          '반려동물 정보, 기록, 일정, 계정 정보가 함께 삭제되며\n이후에는 되돌릴 수 없어요.'
+          '회원탈퇴는 삭제 요청을 보내는 단계예요.\n개인 콘텐츠는 삭제되고 일부 운영 이력은 식별자를 제거한 뒤 보관될 수 있어요.\n파일 정리는 비동기로 이어질 수 있어요.'
         }
         cancelLabel="계속 유지하기"
         confirmLabel={deleting ? '회원탈퇴 처리 중...' : '회원탈퇴'}
@@ -1781,6 +1882,28 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     fontWeight: '500',
+  },
+  deleteSectionNote: {
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '600',
+  },
+  deleteGuideButton: {
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 4,
+  },
+  deleteGuideButtonLabel: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '800',
+  },
+  deleteGuideButtonMeta: {
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: '700',
   },
   bottomDangerButton: {
     minHeight: 44,

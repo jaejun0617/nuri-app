@@ -118,7 +118,7 @@ function ConfirmDialogBase({
                 line.trim().length > 0 ? (
                   <AppText
                     key={`${line}-${index}`}
-                    preset="body"
+                    preset="bodySm"
                     style={[styles.message, { color: theme.colors.textSecondary }]}
                   >
                     {line}
@@ -140,7 +140,7 @@ function ConfirmDialogBase({
               ]}
               onPress={onCancel}
             >
-              <AppText preset="body" style={[styles.cancelButtonText, { color: toneMeta.cancelText }]}>
+              <AppText preset="button" style={[styles.cancelButtonText, { color: toneMeta.cancelText }]}>
                 {cancelLabel}
               </AppText>
             </TouchableOpacity>
@@ -154,7 +154,7 @@ function ConfirmDialogBase({
               ]}
               onPress={onConfirm}
             >
-              <AppText preset="body" style={[styles.confirmButtonText, { color: toneMeta.confirmText }]}>
+              <AppText preset="button" style={[styles.confirmButtonText, { color: toneMeta.confirmText }]}>
                 {confirmLabel}
               </AppText>
             </TouchableOpacity>

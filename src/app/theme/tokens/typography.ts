@@ -7,14 +7,91 @@ const pretendardFamily = Platform.select({
   default: 'System',
 });
 
+const semanticPreset = {
+  display: {
+    fontSize: 28,
+    lineHeight: 36,
+    fontWeight: '700' as const,
+    letterSpacing: -0.2,
+    fontFamily: pretendardFamily,
+  },
+  titleLg: {
+    fontSize: 24,
+    lineHeight: 32,
+    fontWeight: '700' as const,
+    letterSpacing: -0.1,
+    fontFamily: pretendardFamily,
+  },
+  titleMd: {
+    fontSize: 20,
+    lineHeight: 28,
+    fontWeight: '700' as const,
+    letterSpacing: -0.05,
+    fontFamily: pretendardFamily,
+  },
+  titleSm: {
+    fontSize: 18,
+    lineHeight: 26,
+    fontWeight: '600' as const,
+    letterSpacing: 0,
+    fontFamily: pretendardFamily,
+  },
+  body: {
+    fontSize: 16,
+    lineHeight: 24,
+    fontWeight: '400' as const,
+    letterSpacing: 0,
+    fontFamily: pretendardFamily,
+  },
+  bodySm: {
+    fontSize: 14,
+    lineHeight: 22,
+    fontWeight: '400' as const,
+    letterSpacing: 0,
+    fontFamily: pretendardFamily,
+  },
+  button: {
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: '600' as const,
+    letterSpacing: 0.1,
+    fontFamily: pretendardFamily,
+  },
+  tab: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600' as const,
+    letterSpacing: 0.1,
+    fontFamily: pretendardFamily,
+  },
+  helper: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '400' as const,
+    letterSpacing: 0,
+    fontFamily: pretendardFamily,
+  },
+  caption: {
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '400' as const,
+    letterSpacing: 0,
+    fontFamily: pretendardFamily,
+  },
+} as const;
+
 export const typography = {
+  family: {
+    sans: pretendardFamily,
+  },
   size: {
     xs: 12,
-    sm: 14,
-    md: 16,
+    sm: 13,
+    md: 14,
     lg: 16,
-    xl: 24,
-    xxl: 32,
+    xl: 20,
+    xxl: 24,
+    display: 28,
   },
   weight: {
     regular: '400',
@@ -25,41 +102,23 @@ export const typography = {
   },
   lineHeight: {
     tight: 18,
+    helper: 18,
     normal: 22,
-    relaxed: 26,
-    loose: 30,
+    body: 24,
+    relaxed: 28,
+    loose: 32,
+    display: 36,
   },
-  // 텍스트 프리셋(공통 타이포 스케일)
+  role: semanticPreset,
   preset: {
-    title1: {
-      fontSize: 32,
-      lineHeight: 40,
-      fontWeight: '800' as const,
-      fontFamily: pretendardFamily,
-    },
-    title2: {
-      fontSize: 24,
-      lineHeight: 32,
-      fontWeight: '700' as const,
-      fontFamily: pretendardFamily,
-    },
-    headline: {
-      fontSize: 16,
-      lineHeight: 22,
-      fontWeight: '700' as const,
-      fontFamily: pretendardFamily,
-    },
-    body: {
-      fontSize: 14,
-      lineHeight: 20,
-      fontWeight: '500' as const,
-      fontFamily: pretendardFamily,
-    },
-    caption: {
-      fontSize: 12,
-      lineHeight: 16,
-      fontWeight: '500' as const,
-      fontFamily: pretendardFamily,
-    },
+    ...semanticPreset,
+    title1: semanticPreset.display,
+    title2: semanticPreset.titleLg,
+    headline: semanticPreset.titleSm,
+    body: semanticPreset.body,
+    caption: semanticPreset.helper,
   },
 } as const;
+
+export type TypographyRoleName = keyof typeof semanticPreset;
+export type TypographyPresetName = keyof typeof typography.preset;

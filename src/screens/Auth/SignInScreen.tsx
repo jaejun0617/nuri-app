@@ -12,7 +12,7 @@
 // - 로그인 성공 직후 바로 홈으로 보내지 않고 Splash를 다시 거쳐야 닉네임/펫 가드가 맞게 작동한다.
 // - 소셜 로그인/비밀번호 재설정은 아직 placeholder이므로 실제 구현 전까지 과장된 주석을 넣으면 안 된다.
 
-import React, { memo, useCallback, useMemo, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Image,
@@ -25,6 +25,8 @@ import {
   View,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useRoute } from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
@@ -34,10 +36,12 @@ import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { getBrandedErrorMeta } from '../../services/app/errors';
 import { supabase } from '../../services/supabase/client';
 import { useAuthStore } from '../../store/authStore';
+import { showToast } from '../../store/uiStore';
 
 import { styles } from './SignInScreen.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+type SignInRoute = RouteProp<RootStackParamList, 'SignIn'>;
 
 type FieldProps = {
   label: string;
@@ -116,6 +120,7 @@ const SocialButton = memo(function SocialButton({
 
 export default function SignInScreen() {
   const navigation = useNavigation<Nav>();
+  const route = useRoute<SignInRoute>();
 
   const setSession = useAuthStore(s => s.setSession);
 
@@ -161,15 +166,29 @@ export default function SignInScreen() {
   }, []);
 
   const onPressForgotPassword = useCallback(() => {
-    Alert.alert(
-      '비밀번호 찾기',
-      '비밀번호 재설정 플로우는 다음 단계에서 연결됩니다.',
-    );
-  }, []);
+    navigation.navigate('PasswordResetRequest', {
+      email: email.trim() || undefined,
+    });
+  }, [email, navigation]);
 
   const onPressSignUp = useCallback(() => {
     navigation.replace('SignUp');
   }, [navigation]);
+
+  useEffect(() => {
+    if (route.params?.notice !== 'password-reset-success') {
+      return;
+    }
+
+    showToast({
+      tone: 'success',
+      title: '비밀번호가 변경되었습니다',
+      message: '새 비밀번호로 다시 로그인해 주세요.',
+      durationMs: 3200,
+    });
+
+    navigation.setParams({ notice: undefined });
+  }, [navigation, route.params?.notice]);
 
   return (
     <SafeAreaView style={styles.screen}>

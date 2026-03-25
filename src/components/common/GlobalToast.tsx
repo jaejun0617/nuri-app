@@ -77,14 +77,14 @@ export default function GlobalToast() {
         >
           {title ? (
             <AppText
-              preset="body"
+              preset="bodySm"
               style={[styles.title, { color: theme.colors.textPrimary }]}
             >
               {title}
             </AppText>
           ) : null}
           <AppText
-            preset="caption"
+            preset="helper"
             style={[styles.message, { color: theme.colors.textSecondary }]}
           >
             {message}

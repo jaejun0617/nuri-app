@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { typography } from '../../../../app/theme/tokens/typography';
 import { SCREEN_TOP_SPACING } from '../../../../theme/layout';
 
 const BRAND = '#6D6AF8';
@@ -27,17 +28,16 @@ export const styles = StyleSheet.create({
     gap: 12,
   },
   headerTextArea: { gap: 4, paddingTop: 2, flex: 1 },
-  title: { color: TEXT, fontWeight: '900', fontSize: 16, lineHeight: 21 },
+  title: { ...typography.role.titleMd, color: TEXT, fontWeight: '800' },
   subTitle: {
     color: MUTED,
+    ...typography.role.helper,
     fontWeight: '700',
-    fontSize: 12,
-    lineHeight: 16,
   },
   headerIcons: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   headerIconBtn: {
-    width: 34,
-    height: 34,
+    width: 44,
+    height: 44,
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
@@ -147,24 +147,21 @@ export const styles = StyleSheet.create({
   heroAvatarImg: { width: '100%', height: '100%' },
   heroName: {
     color: TEXT,
-    fontWeight: '900',
+    ...typography.role.titleLg,
+    fontWeight: '800',
     textAlign: 'center',
-    fontSize: 16,
-    lineHeight: 22,
   },
   heroMetaLine: {
     color: MUTED,
-    fontWeight: '800',
+    ...typography.role.bodySm,
+    fontWeight: '700',
     textAlign: 'center',
-    fontSize: 14,
-    lineHeight: 20,
   },
   heroMetaMuted: {
     color: 'rgba(85,96,112,0.65)',
-    fontWeight: '800',
+    ...typography.role.helper,
+    fontWeight: '700',
     textAlign: 'center',
-    fontSize: 12,
-    lineHeight: 16,
   },
   heroTogetherPill: {
     marginTop: 12,
@@ -183,13 +180,13 @@ export const styles = StyleSheet.create({
   },
   heroTogetherText: {
     color: '#FFFFFF',
-    fontWeight: '900',
-    fontSize: 12,
+    ...typography.role.helper,
+    fontWeight: '800',
   },
   primaryButton: {
     marginTop: 14,
     width: '100%',
-    height: 52,
+    minHeight: 56,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
@@ -197,8 +194,8 @@ export const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: '#FFFFFF',
-    fontWeight: '900',
-    fontSize: 15,
+    ...typography.role.button,
+    fontWeight: '800',
   },
 
   section: { gap: 8 },
@@ -209,15 +206,13 @@ export const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: TEXT,
-    fontWeight: '900',
-    fontSize: 16,
-    lineHeight: 21,
+    ...typography.role.titleMd,
+    fontWeight: '800',
   },
   sectionSubTitle: {
     color: MUTED,
+    ...typography.role.helper,
     fontWeight: '700',
-    fontSize: 12,
-    lineHeight: 16,
     marginTop: -2,
   },
 
@@ -243,10 +238,9 @@ export const styles = StyleSheet.create({
   },
   shortcutLabel: {
     color: MUTED,
-    fontWeight: '800',
+    ...typography.role.helper,
+    fontWeight: '700',
     textAlign: 'center',
-    fontSize: 12,
-    lineHeight: 16,
   },
 
   previewRow: {
@@ -278,14 +272,13 @@ export const styles = StyleSheet.create({
   },
   previewEyebrow: {
     color: 'rgba(255,255,255,0.82)',
-    fontWeight: '900',
-    fontSize: 12,
+    ...typography.role.helper,
+    fontWeight: '800',
   },
   previewTitle: {
     color: '#FFFFFF',
-    fontWeight: '900',
-    fontSize: 15,
-    lineHeight: 21,
+    ...typography.role.body,
+    fontWeight: '800',
   },
 
   tipList: {
@@ -314,20 +307,18 @@ export const styles = StyleSheet.create({
   },
   tipEyebrow: {
     color: BRAND,
-    fontWeight: '900',
-    fontSize: 12,
+    ...typography.role.helper,
+    fontWeight: '800',
   },
   tipTitle: {
     color: TEXT,
-    fontWeight: '800',
-    fontSize: 15,
-    lineHeight: 21,
+    ...typography.role.body,
+    fontWeight: '700',
   },
   tipDescription: {
     color: MUTED,
+    ...typography.role.helper,
     fontWeight: '700',
-    fontSize: 12,
-    lineHeight: 17,
   },
 
   activityList: {
@@ -359,20 +350,18 @@ export const styles = StyleSheet.create({
   },
   activityTitle: {
     color: TEXT,
-    fontWeight: '800',
-    fontSize: 15,
-    lineHeight: 20,
+    ...typography.role.body,
+    fontWeight: '700',
   },
   activitySub: {
     color: MUTED,
+    ...typography.role.helper,
     fontWeight: '700',
-    fontSize: 12,
-    lineHeight: 16,
   },
   activityTime: {
     color: 'rgba(85,96,112,0.76)',
-    fontWeight: '800',
-    fontSize: 12,
+    ...typography.role.helper,
+    fontWeight: '700',
   },
 
   diaryRow: {

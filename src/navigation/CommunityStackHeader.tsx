@@ -40,7 +40,8 @@ export default function CommunityStackHeader({
     >
       <View style={styles.headerSide}>{headerLeft}</View>
       <AppText
-        preset="headline"
+        preset="titleSm"
+        maxFontSizeMultiplier={1.6}
         numberOfLines={1}
         style={[styles.headerTitle, { color: theme.colors.textPrimary }]}
       >

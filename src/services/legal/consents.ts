@@ -7,8 +7,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { captureMonitoringException } from '../monitoring/sentry';
 import { supabase } from '../supabase/client';
+import { CURRENT_LEGAL_POLICY_VERSION } from './documents';
 
-export const CURRENT_POLICY_VERSION = '2026-03-06.v1';
+export const CURRENT_POLICY_VERSION = CURRENT_LEGAL_POLICY_VERSION;
 const CONSENT_PENDING_STORAGE_KEY = 'nuri.pending-consents.v1';
 
 export type ConsentSnapshot = {

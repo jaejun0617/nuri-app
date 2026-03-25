@@ -38,7 +38,11 @@ export default function HeaderTextActionButton({
         disabled ? styles.disabled : null,
       ]}
     >
-      <AppText preset="caption" style={[styles.text, { color: textColor }]}>
+      <AppText
+        preset="tab"
+        maxFontSizeMultiplier={1.5}
+        style={[styles.text, { color: textColor }]}
+      >
         {label}
       </AppText>
     </TouchableOpacity>
@@ -48,7 +52,7 @@ export default function HeaderTextActionButton({
 const styles = StyleSheet.create({
   button: {
     minWidth: 58,
-    height: 34,
+    minHeight: 44,
     paddingHorizontal: 12,
     borderRadius: 999,
     alignItems: 'center',

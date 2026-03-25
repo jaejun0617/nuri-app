@@ -24,6 +24,9 @@ import SignInScreen from '../screens/Auth/SignInScreen';
 import SignUpScreen from '../screens/Auth/SignUpScreen';
 import NicknameSetupScreen from '../screens/Auth/NicknameSetupScreen';
 import WelcomeTransitionScreen from '../screens/Auth/WelcomeTransitionScreen';
+import PasswordResetRequestScreen from '../screens/Auth/PasswordResetRequestScreen';
+import PasswordResetRecoveryScreen from '../screens/Auth/PasswordResetRecoveryScreen';
+import PasswordResetFormScreen from '../screens/Auth/PasswordResetFormScreen';
 
 import PetCreateScreen from '../screens/Pets/PetCreateScreen';
 import PetManagementScreen from '../screens/Pets/PetManagementScreen';
@@ -73,10 +76,26 @@ export type RootStackParamList = {
   AppTabs: NavigatorScreenParams<AppTabParamList> | undefined;
 
   // Auth
-  SignIn: undefined;
+  SignIn: { notice?: 'password-reset-success' } | undefined;
   SignUp: undefined;
   NicknameSetup: { after?: 'signin' | 'signup' } | undefined;
   WelcomeTransition: { petName?: string } | undefined;
+  PasswordResetRequest:
+    | {
+        email?: string;
+        reason?: 'expired' | 'invalid';
+      }
+    | undefined;
+  PasswordResetRecovery:
+    | {
+        access_token?: string;
+        refresh_token?: string;
+        type?: string;
+        error_code?: string;
+        error_description?: string;
+      }
+    | undefined;
+  PasswordResetForm: undefined;
 
   // Pet
   PetCreate: { from?: 'auto' | 'cta' | 'header_plus' } | undefined;
@@ -212,6 +231,21 @@ export default function RootNavigator() {
       <Stack.Screen
         name="SignUp"
         component={SignUpScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="PasswordResetRequest"
+        component={PasswordResetRequestScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="PasswordResetRecovery"
+        component={PasswordResetRecoveryScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="PasswordResetForm"
+        component={PasswordResetFormScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { typography } from '../../app/theme/tokens/typography';
 
 const BRAND = '#6D6AF8';
 const TEXT = '#1B2230';
@@ -12,8 +13,8 @@ export const styles = StyleSheet.create({
     position: 'absolute',
     top: 54,
     right: 22,
-    width: 34,
-    height: 34,
+    width: 44,
+    height: 44,
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
@@ -27,9 +28,8 @@ export const styles = StyleSheet.create({
   },
   title: {
     color: TEXT,
-    fontSize: 16,
-    fontWeight: '900',
-    letterSpacing: -0.2,
+    ...typography.role.titleLg,
+    fontWeight: '800',
   },
   logo: {
     width: 200,
@@ -49,15 +49,15 @@ export const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    minHeight: 42,
+    minHeight: 48,
     color: TEXT,
-    fontSize: 16,
+    ...typography.role.body,
     fontWeight: '700',
     paddingVertical: 6,
   },
   checkButton: {
     minWidth: 72,
-    height: 34,
+    minHeight: 44,
     borderRadius: 999,
     paddingHorizontal: 14,
     backgroundColor: '#F7F8FC',
@@ -69,7 +69,7 @@ export const styles = StyleSheet.create({
   },
   checkButtonText: {
     color: BRAND,
-    fontSize: 12,
+    ...typography.role.tab,
     fontWeight: '800',
   },
   underline: {
@@ -78,16 +78,14 @@ export const styles = StyleSheet.create({
   },
   hintText: {
     color: '#A1A9B8',
-    fontSize: 12,
+    ...typography.role.helper,
     fontWeight: '700',
     textAlign: 'center',
-    lineHeight: 18,
   },
   validationText: {
-    fontSize: 12,
+    ...typography.role.helper,
     fontWeight: '800',
     textAlign: 'center',
-    lineHeight: 18,
   },
   checkingRow: {
     flexDirection: 'row',
@@ -97,7 +95,7 @@ export const styles = StyleSheet.create({
   },
   checkingText: {
     color: '#98A1B2',
-    fontSize: 12,
+    ...typography.role.helper,
     fontWeight: '700',
   },
   validationError: {
@@ -111,7 +109,7 @@ export const styles = StyleSheet.create({
     paddingBottom: 34,
   },
   primaryButton: {
-    height: 56,
+    minHeight: 56,
     borderRadius: 18,
     backgroundColor: BRAND,
     alignItems: 'center',
@@ -129,7 +127,7 @@ export const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    ...typography.role.button,
     fontWeight: '900',
   },
 });

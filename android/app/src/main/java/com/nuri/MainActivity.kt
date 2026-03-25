@@ -1,6 +1,7 @@
 package com.nuri
 
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Bundle
 import com.facebook.react.ReactActivity
@@ -12,6 +13,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 
 class MainActivity : ReactActivity() {
   private fun applySystemBarStyle() {
+    window.setBackgroundDrawable(ColorDrawable(Color.WHITE))
     window.statusBarColor = Color.TRANSPARENT
     window.navigationBarColor = Color.WHITE
 
@@ -35,6 +37,14 @@ class MainActivity : ReactActivity() {
   override fun onResume() {
     super.onResume()
     applySystemBarStyle()
+  }
+
+  override fun onWindowFocusChanged(hasFocus: Boolean) {
+    super.onWindowFocusChanged(hasFocus)
+
+    if (hasFocus) {
+      applySystemBarStyle()
+    }
   }
 
   /**

@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { typography } from '../../../app/theme/tokens/typography';
 
 export const styles = StyleSheet.create({
   rowCard: {
@@ -41,10 +42,9 @@ export const styles = StyleSheet.create({
     minHeight: 24,
   },
   authorMeta: {
-    fontWeight: '600',
     flex: 1,
-    fontSize: 13,
-    lineHeight: 18,
+    ...typography.role.helper,
+    fontWeight: '600',
   },
   petMetaRow: {
     flexDirection: 'row',
@@ -55,13 +55,11 @@ export const styles = StyleSheet.create({
     minWidth: 0,
   },
   petNameText: {
+    ...typography.role.helper,
     fontWeight: '600',
-    fontSize: 12,
-    lineHeight: 16,
   },
   petSubMetaText: {
-    fontSize: 12,
-    lineHeight: 16,
+    ...typography.role.helper,
   },
   categoryChip: {
     minHeight: 24,
@@ -72,7 +70,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   categoryChipText: {
-    fontSize: 11,
+    ...typography.role.caption,
     fontWeight: '700',
   },
   bodySection: {
@@ -80,13 +78,11 @@ export const styles = StyleSheet.create({
     marginBottom: 12,
   },
   titleText: {
-    fontSize: 16,
-    lineHeight: 24,
+    ...typography.role.body,
     fontWeight: '700',
   },
   previewText: {
-    fontSize: 13,
-    lineHeight: 21,
+    ...typography.role.helper,
   },
   commentPreviewRow: {
     flexDirection: 'row',
@@ -120,8 +116,7 @@ export const styles = StyleSheet.create({
   },
   commentPreviewText: {
     flex: 1,
-    fontSize: 12,
-    lineHeight: 16,
+    ...typography.role.helper,
   },
   footerRow: {
     flexDirection: 'row',
@@ -140,8 +135,7 @@ export const styles = StyleSheet.create({
     gap: 4,
   },
   footerMetaText: {
-    fontSize: 12,
-    lineHeight: 16,
+    ...typography.role.helper,
   },
   likeAction: {
     flexDirection: 'row',
@@ -150,7 +144,6 @@ export const styles = StyleSheet.create({
     minHeight: 24,
   },
   likeActionText: {
-    fontSize: 12,
-    lineHeight: 16,
+    ...typography.role.helper,
   },
 });

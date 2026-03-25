@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { typography } from '../../app/theme/tokens/typography';
 
 export const DETAIL_DIVIDER_COLOR = '#00000008';
 export const COMMENT_BUBBLE_BEIGE = '#F7F1E8';
@@ -23,8 +24,8 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   backButton: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
@@ -101,8 +102,7 @@ export const styles = StyleSheet.create({
     gap: 12,
   },
   authorName: {
-    lineHeight: 22,
-    fontSize: 15,
+    ...typography.role.body,
     fontWeight: '700',
   },
   petAvatar: {
@@ -124,13 +124,11 @@ export const styles = StyleSheet.create({
     gap: 4,
   },
   petNameLine: {
-    lineHeight: 22,
-    fontSize: 15,
+    ...typography.role.body,
     fontWeight: '600',
   },
   metaLine: {
-    lineHeight: 18,
-    fontSize: 12,
+    ...typography.role.helper,
   },
   categoryBadge: {
     minHeight: 28,
@@ -141,24 +139,23 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
   },
   categoryText: {
-    fontSize: 12,
+    ...typography.role.helper,
     fontWeight: '700',
   },
   moreButton: {
-    width: 34,
-    height: 34,
+    width: 44,
+    height: 44,
     borderRadius: 17,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   moreButtonPlaceholder: {
-    width: 34,
-    height: 34,
+    width: 44,
+    height: 44,
   },
   postTitle: {
-    fontSize: 24,
-    lineHeight: 34,
+    ...typography.role.titleLg,
     fontWeight: '700',
   },
   mediaSection: {
@@ -166,8 +163,7 @@ export const styles = StyleSheet.create({
     marginBottom: 6,
   },
   postContent: {
-    lineHeight: 24,
-    fontSize: 14,
+    ...typography.role.body,
   },
   postContentSection: {
     borderTopWidth: 1,
@@ -188,8 +184,7 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   imageFallbackText: {
-    lineHeight: 18,
-    fontSize: 12,
+    ...typography.role.helper,
   },
   actionRow: {
     flexDirection: 'row',
@@ -199,7 +194,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   actionPill: {
-    minHeight: 40,
+    minHeight: 44,
     borderRadius: 999,
     borderWidth: 1,
     paddingHorizontal: 16,
@@ -208,8 +203,7 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   actionPillText: {
-    lineHeight: 18,
-    fontSize: 12,
+    ...typography.role.helper,
     fontWeight: '700',
   },
   countRow: {
@@ -223,8 +217,7 @@ export const styles = StyleSheet.create({
     gap: 4,
   },
   countText: {
-    lineHeight: 18,
-    fontSize: 12,
+    ...typography.role.helper,
   },
   commentsCard: {
     borderWidth: 1,
@@ -244,19 +237,17 @@ export const styles = StyleSheet.create({
     marginBottom: 8,
   },
   commentsTitle: {
-    fontSize: 18,
+    ...typography.role.titleSm,
     fontWeight: '700',
   },
   commentsCount: {
-    fontSize: 12,
-    lineHeight: 18,
+    ...typography.role.helper,
   },
   commentsLoading: {
     paddingVertical: 10,
   },
   emptyComments: {
-    lineHeight: 22,
-    fontSize: 14,
+    ...typography.role.bodySm,
   },
   commentItemWrap: {
     paddingHorizontal: 20,
@@ -300,8 +291,7 @@ export const styles = StyleSheet.create({
     gap: 6,
   },
   commentMetaText: {
-    fontSize: 12,
-    lineHeight: 16,
+    ...typography.role.helper,
   },
   bestBadge: {
     minHeight: 20,
@@ -311,8 +301,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   bestBadgeText: {
-    fontSize: 10,
-    lineHeight: 12,
+    ...typography.role.caption,
     fontWeight: '700',
   },
   commentBubble: {
@@ -330,12 +319,11 @@ export const styles = StyleSheet.create({
     paddingLeft: 2,
   },
   commentActionText: {
-    fontSize: 12,
+    ...typography.role.helper,
     fontWeight: '600',
   },
   commentContent: {
-    lineHeight: 23,
-    fontSize: 14,
+    ...typography.role.bodySm,
   },
   replyListWrap: {
     marginTop: 10,
@@ -388,8 +376,7 @@ export const styles = StyleSheet.create({
     marginBottom: 5,
   },
   replyMetaText: {
-    fontSize: 12,
-    lineHeight: 16,
+    ...typography.role.helper,
   },
   replyBubble: {
     borderRadius: 14,
@@ -399,8 +386,7 @@ export const styles = StyleSheet.create({
     maxWidth: '100%',
   },
   replyContent: {
-    fontSize: 13,
-    lineHeight: 21,
+    ...typography.role.helper,
   },
   replyActionRow: {
     flexDirection: 'row',
@@ -417,8 +403,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   moreRepliesText: {
-    fontSize: 12,
-    lineHeight: 16,
+    ...typography.role.helper,
     fontWeight: '700',
   },
   listFooterWrap: {
@@ -440,8 +425,7 @@ export const styles = StyleSheet.create({
     gap: 6,
   },
   moreCommentsText: {
-    fontSize: 12,
-    lineHeight: 16,
+    ...typography.role.helper,
     fontWeight: '700',
   },
   commentComposerWrap: {
@@ -461,13 +445,11 @@ export const styles = StyleSheet.create({
   },
   replyComposerText: {
     flex: 1,
-    fontSize: 12,
-    lineHeight: 16,
+    ...typography.role.helper,
     fontWeight: '600',
   },
   replyComposerCancel: {
-    fontSize: 12,
-    lineHeight: 16,
+    ...typography.role.helper,
     fontWeight: '700',
   },
   commentComposer: {
@@ -485,14 +467,13 @@ export const styles = StyleSheet.create({
     flex: 1,
     minHeight: 36,
     maxHeight: 96,
-    fontSize: 15,
-    lineHeight: 22,
+    ...typography.role.body,
     paddingTop: 4,
     paddingBottom: 4,
   },
   commentSubmitButton: {
-    width: 38,
-    height: 38,
+    width: 44,
+    height: 44,
     borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
@@ -537,7 +518,7 @@ export const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   reportTitle: {
-    fontSize: 18,
+    ...typography.role.titleSm,
     fontWeight: '700',
   },
   reportReasonList: {
@@ -546,7 +527,7 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   reportReasonButton: {
-    minHeight: 34,
+    minHeight: 40,
     borderRadius: 999,
     borderWidth: 1,
     paddingHorizontal: 12,
@@ -554,7 +535,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   reportReasonText: {
-    fontSize: 12,
+    ...typography.role.helper,
     fontWeight: '700',
   },
   reportInput: {
@@ -564,8 +545,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     textAlignVertical: 'top',
-    fontSize: 14,
-    lineHeight: 21,
+    ...typography.role.bodySm,
   },
   reportActions: {
     flexDirection: 'row',

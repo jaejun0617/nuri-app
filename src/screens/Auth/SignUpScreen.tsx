@@ -35,6 +35,14 @@ import {
   flushPendingConsentSnapshot,
   savePendingConsentSnapshot,
 } from '../../services/legal/consents';
+import {
+  LEGAL_DOCUMENTS,
+  getLegalDocumentActionLabel,
+  getLegalDocumentStatusLabel,
+  openLegalDocument,
+  type LegalDocumentConfig,
+  type LegalDocumentId,
+} from '../../services/legal/documents';
 import { supabase } from '../../services/supabase/client';
 import { useAuthStore } from '../../store/authStore';
 import { showToast } from '../../store/uiStore';
@@ -82,6 +90,130 @@ const InputField = memo(function InputField({
           <View style={styles.inputAccessory}>{rightAccessory}</View>
         ) : null}
       </View>
+    </View>
+  );
+});
+
+type ConsentRowProps = {
+  actionLabel: string;
+  checked: boolean;
+  description: string;
+  disabled?: boolean;
+  expanded: boolean;
+  isOpening: boolean;
+  onPressAction: () => void;
+  onPressDisclosure: () => void;
+  required: boolean;
+  statusLabel: string;
+  summary: string;
+  title: string;
+  detailDescription: string;
+  onToggle: () => void;
+};
+
+const ConsentRow = memo(function ConsentRow({
+  actionLabel,
+  checked,
+  description,
+  disabled = false,
+  expanded,
+  isOpening,
+  onPressAction,
+  onPressDisclosure,
+  required,
+  statusLabel,
+  summary,
+  title,
+  detailDescription,
+  onToggle,
+}: ConsentRowProps) {
+  return (
+    <View style={styles.consentCardRow}>
+      <View style={styles.consentHeaderRow}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked, disabled }}
+          disabled={disabled}
+          onPress={onToggle}
+          style={styles.consentToggle}
+        >
+          <View
+            style={[
+              styles.checkbox,
+              checked ? styles.checkboxChecked : null,
+              disabled ? styles.checkboxDisabled : null,
+            ]}
+          >
+            {checked ? (
+              <Feather color="#FFFFFF" name="check" size={12} />
+            ) : null}
+          </View>
+          <View style={styles.consentCopy}>
+            <View style={styles.consentTitleRow}>
+              <View
+                style={[
+                  styles.consentBadge,
+                  required ? styles.requiredBadge : styles.optionalBadge,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.consentBadgeText,
+                    required
+                      ? styles.requiredBadgeText
+                      : styles.optionalBadgeText,
+                  ]}
+                >
+                  {required ? '필수' : '선택'}
+                </Text>
+              </View>
+              <Text style={styles.consentTitle}>{title}</Text>
+            </View>
+            <Text style={styles.termsText}>{description}</Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          accessibilityHint={`${title} 상세 안내를 ${expanded ? '접습니다' : '엽니다'}.`}
+          accessibilityRole="button"
+          accessibilityState={{ expanded }}
+          activeOpacity={0.85}
+          disabled={disabled}
+          onPress={onPressDisclosure}
+          style={styles.disclosureButton}
+        >
+          <Feather
+            color="#8B96A9"
+            name={expanded ? 'chevron-down' : 'chevron-right'}
+            size={18}
+          />
+        </TouchableOpacity>
+      </View>
+
+      {expanded ? (
+        <View style={styles.consentExpandedBox}>
+          <View style={styles.expandedMetaRow}>
+            <Text style={styles.expandedTitle}>{title}</Text>
+            <View style={styles.statusChip}>
+              <Text style={styles.statusChipText}>{statusLabel}</Text>
+            </View>
+          </View>
+          <Text style={styles.expandedSummary}>{summary}</Text>
+          <Text style={styles.expandedDescription}>{detailDescription}</Text>
+          <TouchableOpacity
+            accessibilityRole="button"
+            activeOpacity={0.85}
+            disabled={disabled || isOpening}
+            onPress={onPressAction}
+            style={styles.documentButton}
+          >
+            <Text style={styles.documentButtonText}>
+              {isOpening ? '열어보는 중...' : actionLabel}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
     </View>
   );
 });
@@ -153,6 +285,12 @@ export default function SignUpScreen() {
   const [securePassword, setSecurePassword] = useState(true);
   const [secureConfirmPassword, setSecureConfirmPassword] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [expandedConsentId, setExpandedConsentId] = useState<LegalDocumentId | null>(
+    null,
+  );
+  const [openingDocumentId, setOpeningDocumentId] = useState<LegalDocumentId | null>(
+    null,
+  );
 
   const emailValid = useMemo(() => isValidEmail(email), [email]);
   const passwordValid = password.length >= 8;
@@ -174,6 +312,65 @@ export default function SignUpScreen() {
       passwordsMatch,
       submitting,
     ],
+  );
+  const consentErrorVisible = useMemo(
+    () =>
+      emailValid &&
+      passwordValid &&
+      passwordsMatch &&
+      (!agreeTerms || !agreePrivacy),
+    [agreePrivacy, agreeTerms, emailValid, passwordValid, passwordsMatch],
+  );
+
+  const requiredDocumentPending = useMemo(
+    () =>
+      LEGAL_DOCUMENTS.terms.status !== 'external' ||
+      LEGAL_DOCUMENTS.privacy.status !== 'external',
+    [],
+  );
+  const allConsentsChecked = agreeTerms && agreePrivacy && agreeMarketing;
+
+  const consentItems = useMemo<
+    Array<{
+      checked: boolean;
+      description: string;
+      document: LegalDocumentConfig;
+      id: LegalDocumentId;
+      onToggle: () => void;
+      required: boolean;
+      title: string;
+    }>
+  >(
+    () => [
+      {
+        id: 'terms',
+        title: '이용약관 동의',
+        description: '회원가입과 기본 서비스 이용에 필요한 필수 동의예요.',
+        checked: agreeTerms,
+        required: true,
+        document: LEGAL_DOCUMENTS.terms,
+        onToggle: () => setAgreeTerms(prev => !prev),
+      },
+      {
+        id: 'privacy',
+        title: '개인정보처리방침 동의',
+        description: '개인정보 수집, 이용, 보관 원칙을 안내하는 필수 동의예요.',
+        checked: agreePrivacy,
+        required: true,
+        document: LEGAL_DOCUMENTS.privacy,
+        onToggle: () => setAgreePrivacy(prev => !prev),
+      },
+      {
+        id: 'marketing',
+        title: '마케팅 수신 동의',
+        description: '혜택과 업데이트 소식을 받기 위한 선택 동의예요.',
+        checked: agreeMarketing,
+        required: false,
+        document: LEGAL_DOCUMENTS.marketing,
+        onToggle: () => setAgreeMarketing(prev => !prev),
+      },
+    ],
+    [agreeMarketing, agreePrivacy, agreeTerms],
   );
 
   const onSubmit = useCallback(async () => {
@@ -248,10 +445,40 @@ export default function SignUpScreen() {
     );
   }, []);
 
-  const onOpenTerms = useCallback((kind: 'terms' | 'privacy') => {
-    const title = kind === 'terms' ? '이용약관' : '개인정보 처리방침';
-    Alert.alert(title, `${title} 화면은 다음 단계에서 실제 문서와 연결됩니다.`);
+  const onPressLegalDocument = useCallback(async (documentId: LegalDocumentId) => {
+    if (openingDocumentId) return;
+
+    try {
+      setOpeningDocumentId(documentId);
+      const result = await openLegalDocument(documentId);
+
+      if (!result.ok) {
+        if (result.reason === 'failed') {
+          Alert.alert(result.document.title, result.message);
+        }
+
+        showToast({
+          tone: result.reason === 'failed' ? 'error' : 'info',
+          title: result.document.title,
+          message: result.message,
+          durationMs: 3200,
+        });
+      }
+    } finally {
+      setOpeningDocumentId(null);
+    }
+  }, [openingDocumentId]);
+
+  const onToggleExpandedConsent = useCallback((documentId: LegalDocumentId) => {
+    setExpandedConsentId(current => (current === documentId ? null : documentId));
   }, []);
+
+  const onToggleAllConsents = useCallback(() => {
+    const nextValue = !allConsentsChecked;
+    setAgreeTerms(nextValue);
+    setAgreePrivacy(nextValue);
+    setAgreeMarketing(nextValue);
+  }, [allConsentsChecked]);
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -352,84 +579,80 @@ export default function SignUpScreen() {
             <Text style={styles.errorText}>비밀번호가 일치하지 않습니다.</Text>
           ) : null}
 
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() => setAgreeTerms(prev => !prev)}
-            style={styles.termsRow}
-          >
-            <View
-              style={[
-                styles.checkbox,
-                agreeTerms ? styles.checkboxChecked : null,
-              ]}
-            >
-              {agreeTerms ? (
-                <Feather color="#FFFFFF" name="check" size={12} />
-              ) : null}
-            </View>
-            <Text style={styles.termsText}>
-              <Text
-                onPress={() => onOpenTerms('terms')}
-                style={styles.termsLink}
+          <View style={styles.termsCard}>
+            <View style={styles.termsCardHeader}>
+              <View style={styles.termsCardHeaderCopy}>
+                <Text style={styles.termsCardTitle}>약관 및 정책 동의</Text>
+                <Text style={styles.termsCardBody}>
+                  필수 2개 동의가 완료되면 가입할 수 있고, 마케팅 수신은 선택으로
+                  둘 수 있어요.
+                </Text>
+              </View>
+              <TouchableOpacity
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: allConsentsChecked }}
+                activeOpacity={0.85}
+                onPress={onToggleAllConsents}
+                style={styles.allAgreeButton}
               >
-                이용약관
-              </Text>{' '}
-              및{' '}
-              <Text
-                onPress={() => onOpenTerms('privacy')}
-                style={styles.termsLink}
-              >
-                개인정보 처리방침
-              </Text>
-              에 동의합니다.
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() => setAgreePrivacy(prev => !prev)}
-            style={styles.termsRow}
-          >
-            <View
-              style={[
-                styles.checkbox,
-                agreePrivacy ? styles.checkboxChecked : null,
-              ]}
-            >
-              {agreePrivacy ? (
-                <Feather color="#FFFFFF" name="check" size={12} />
-              ) : null}
+                <View
+                  style={[
+                    styles.checkbox,
+                    allConsentsChecked ? styles.checkboxChecked : null,
+                  ]}
+                >
+                  {allConsentsChecked ? (
+                    <Feather color="#FFFFFF" name="check" size={12} />
+                  ) : null}
+                </View>
+                <Text style={styles.allAgreeLabel}>모두 동의하기</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={styles.termsText}>
-              개인정보 수집/이용 및 보관 정책에 동의합니다. 가입 이력은 안전하게
-              저장돼요.
-            </Text>
-          </TouchableOpacity>
 
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() => setAgreeMarketing(prev => !prev)}
-            style={styles.termsRow}
-          >
-            <View
-              style={[
-                styles.checkbox,
-                agreeMarketing ? styles.checkboxChecked : null,
-              ]}
-            >
-              {agreeMarketing ? (
-                <Feather color="#FFFFFF" name="check" size={12} />
-              ) : null}
-            </View>
-            <Text style={styles.termsText}>
-              마케팅 알림 수신에 동의합니다. 이 항목은 선택이고 언제든 변경할 수
-              있어요.
-            </Text>
-          </TouchableOpacity>
+            <View style={styles.termsDivider} />
+
+            {consentItems.map(item => (
+              <ConsentRow
+                key={item.id}
+                actionLabel={getLegalDocumentActionLabel(item.document)}
+                checked={item.checked}
+                description={item.description}
+                detailDescription={item.document.description}
+                disabled={submitting}
+                expanded={expandedConsentId === item.id}
+                isOpening={openingDocumentId === item.id}
+                onPressAction={() => {
+                  onPressLegalDocument(item.id).catch(() => {});
+                }}
+                onPressDisclosure={() => onToggleExpandedConsent(item.id)}
+                onToggle={item.onToggle}
+                required={item.required}
+                statusLabel={getLegalDocumentStatusLabel(item.document.status)}
+                summary={item.document.summary}
+                title={item.title}
+              />
+            ))}
+          </View>
 
           <Text style={styles.termsMeta}>
-            필수 동의: 이용약관, 개인정보 처리방침
+            필수 동의: 이용약관, 개인정보처리방침
           </Text>
+          {consentErrorVisible ? (
+            <Text style={styles.errorText}>
+              회원가입을 진행하려면 필수 동의 2가지를 모두 체크해 주세요.
+            </Text>
+          ) : null}
+          {requiredDocumentPending ? (
+            <View style={styles.legalNoticeBox}>
+              <Text style={styles.legalNoticeTitle}>
+                정책 문서 연결 상태 안내
+              </Text>
+              <Text style={styles.legalNoticeBody}>
+                현재 앱에서는 정책 초안 구조와 요약만 먼저 제공합니다. 전체 문서
+                열람 연결과 최종 법무 문안은 후속 운영 작업에서 확정됩니다.
+              </Text>
+            </View>
+          ) : null}
 
           <TouchableOpacity
             activeOpacity={0.9}

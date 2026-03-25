@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { typography } from '../../app/theme/tokens/typography';
 
 export const styles = StyleSheet.create({
   screen: {
@@ -21,8 +22,8 @@ export const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   backButton: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
@@ -67,8 +68,7 @@ export const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   headline: {
-    fontSize: 14,
-    lineHeight: 20,
+    ...typography.role.bodySm,
     fontWeight: '700',
   },
   categoryRow: {
@@ -91,7 +91,7 @@ export const styles = StyleSheet.create({
     lineHeight: 18,
   },
   categoryChip: {
-    minHeight: 34,
+    minHeight: 40,
     borderRadius: 0,
     paddingHorizontal: 16,
     paddingBottom: 3,
@@ -100,7 +100,7 @@ export const styles = StyleSheet.create({
     position: 'relative',
   },
   categoryChipText: {
-    fontSize: 13,
+    ...typography.role.tab,
     fontWeight: '700',
   },
   categoryChipTextActive: {
@@ -129,13 +129,11 @@ export const styles = StyleSheet.create({
     gap: 12,
   },
   sectionHeaderLabel: {
-    fontSize: 12,
-    lineHeight: 16,
+    ...typography.role.helper,
     fontWeight: '700',
   },
   sectionHeaderCount: {
-    fontSize: 11,
-    lineHeight: 16,
+    ...typography.role.helper,
   },
   emptyWrap: {
     alignItems: 'center',
@@ -174,8 +172,8 @@ export const styles = StyleSheet.create({
   topButton: {
     position: 'absolute',
     right: 20,
-    width: 46,
-    height: 46,
+    width: 48,
+    height: 48,
     borderRadius: 23,
     alignItems: 'center',
     justifyContent: 'center',
@@ -190,8 +188,8 @@ export const styles = StyleSheet.create({
   createFab: {
     position: 'absolute',
     right: 20,
-    width: 46,
-    height: 46,
+    width: 48,
+    height: 48,
     borderRadius: 23,
     alignItems: 'center',
     justifyContent: 'center',

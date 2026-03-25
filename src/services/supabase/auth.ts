@@ -4,6 +4,34 @@
 // - 성공 시 session 반환 (store 반영은 화면/AppProviders에서 수행)
 
 import { supabase } from './client';
+import { isValidPasswordFormat } from './account';
+
+export const APP_URL_SCHEME = 'nuri';
+export const PASSWORD_RESET_REDIRECT_URL = `${APP_URL_SCHEME}://auth/reset`;
+
+const EMAIL_RULE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export type AccountDeletionStatus =
+  | 'requested'
+  | 'in_progress'
+  | 'db_deleted'
+  | 'cleanup_pending'
+  | 'completed'
+  | 'completed_with_cleanup_pending'
+  | 'failed'
+  | 'unknown_pending_confirmation';
+
+export type AccountDeletionResult = {
+  requestId: string;
+  status: AccountDeletionStatus;
+  storageCleanupPending: boolean;
+  cleanupItemCount: number;
+  cleanupCompletedCount: number;
+  requestedAt: string | null;
+  completedAt: string | null;
+  lastErrorCode: string | null;
+  lastErrorMessage: string | null;
+};
 
 export async function signInWithEmail(email: string, password: string) {
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -26,6 +54,62 @@ export async function signUpWithEmail(email: string, password: string) {
 
 export async function signOut() {
   const { error } = await supabase.auth.signOut();
+  if (error) throw error;
+}
+
+export async function clearLocalAuthSession(): Promise<void> {
+  const { error } = await supabase.auth.signOut({ scope: 'local' });
+  if (error) throw error;
+}
+
+export function isValidEmailFormat(value: string): boolean {
+  return EMAIL_RULE.test(value.trim());
+}
+
+export async function requestPasswordReset(email: string): Promise<void> {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!isValidEmailFormat(normalizedEmail)) {
+    throw new Error('올바른 이메일 주소를 입력해 주세요.');
+  }
+
+  const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+    redirectTo: PASSWORD_RESET_REDIRECT_URL,
+  });
+  if (error) throw error;
+}
+
+export async function completePasswordRecoverySession(input: {
+  accessToken: string;
+  refreshToken: string;
+}): Promise<void> {
+  const accessToken = input.accessToken.trim();
+  const refreshToken = input.refreshToken.trim();
+
+  if (!accessToken || !refreshToken) {
+    throw new Error('복구 링크 정보를 확인하지 못했어요.');
+  }
+
+  await supabase.auth.signOut({ scope: 'local' });
+
+  const { error } = await supabase.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+  });
+  if (error) throw error;
+}
+
+export async function updatePasswordWithRecovery(nextPassword: string): Promise<void> {
+  const normalizedPassword = nextPassword.trim();
+  if (!normalizedPassword) {
+    throw new Error('새 비밀번호를 입력해 주세요.');
+  }
+  if (!isValidPasswordFormat(normalizedPassword)) {
+    throw new Error('영문, 숫자, 특수문자를 포함한 8자 이상으로 입력해 주세요.');
+  }
+
+  const { error } = await supabase.auth.updateUser({
+    password: normalizedPassword,
+  });
   if (error) throw error;
 }
 
@@ -73,22 +157,157 @@ function isMissingDeleteRpcError(error: unknown): boolean {
   const joined = `${message} ${details}`.toLowerCase();
 
   return (
-    joined.includes('delete_my_account') &&
+    (joined.includes('delete_my_account') ||
+      joined.includes('create_account_deletion_request') ||
+      joined.includes('mark_account_deletion_unknown')) &&
     (joined.includes('does not exist') ||
       joined.includes('schema cache') ||
       joined.includes('function'))
   );
 }
 
-export async function deleteMyAccount(): Promise<void> {
-  const { error } = await supabase.rpc('delete_my_account');
-  if (!error) return;
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
 
-  if (isMissingDeleteRpcError(error)) {
+function isAccountDeletionStatus(value: unknown): value is AccountDeletionStatus {
+  return (
+    value === 'requested' ||
+    value === 'in_progress' ||
+    value === 'db_deleted' ||
+    value === 'cleanup_pending' ||
+    value === 'completed' ||
+    value === 'completed_with_cleanup_pending' ||
+    value === 'failed' ||
+    value === 'unknown_pending_confirmation'
+  );
+}
+
+function parseAccountDeletionResult(data: unknown): AccountDeletionResult | null {
+  if (!isRecord(data)) return null;
+
+  const requestId = data.request_id;
+  const status = data.status;
+  if (typeof requestId !== 'string' || !isAccountDeletionStatus(status)) {
+    return null;
+  }
+
+  const cleanupItemCount =
+    typeof data.cleanup_item_count === 'number' ? data.cleanup_item_count : 0;
+  const cleanupCompletedCount =
+    typeof data.cleanup_completed_count === 'number'
+      ? data.cleanup_completed_count
+      : 0;
+
+  return {
+    requestId,
+    status,
+    storageCleanupPending: Boolean(data.storage_cleanup_pending),
+    cleanupItemCount,
+    cleanupCompletedCount,
+    requestedAt:
+      typeof data.requested_at === 'string' ? data.requested_at : null,
+    completedAt:
+      typeof data.completed_at === 'string' ? data.completed_at : null,
+    lastErrorCode:
+      typeof data.last_error_code === 'string' ? data.last_error_code : null,
+    lastErrorMessage:
+      typeof data.last_error_message === 'string'
+        ? data.last_error_message
+        : null,
+  };
+}
+
+async function createAccountDeletionRequest(requestOrigin = 'app') {
+  const { data, error } = await supabase.rpc('create_account_deletion_request', {
+    p_request_origin: requestOrigin,
+  });
+  if (error) throw error;
+
+  const parsed = parseAccountDeletionResult(data);
+  if (!parsed) {
+    throw new Error('계정 삭제 요청 상태를 해석하지 못했어요.');
+  }
+
+  return parsed;
+}
+
+async function markAccountDeletionUnknown(requestId: string): Promise<void> {
+  const { error } = await supabase.rpc('mark_account_deletion_unknown', {
+    p_request_id: requestId,
+  });
+  if (error) throw error;
+}
+
+export async function deleteMyAccount(options?: {
+  requestOrigin?: string;
+  timeoutMs?: number;
+}): Promise<AccountDeletionResult> {
+  const timeoutMs = options?.timeoutMs ?? 8000;
+  let request: AccountDeletionResult;
+  try {
+    request = await createAccountDeletionRequest(options?.requestOrigin);
+  } catch (error) {
+    if (isMissingDeleteRpcError(error)) {
+      throw new Error(
+        '계정 삭제 SQL 함수가 아직 적용되지 않았습니다. docs/sql/공용-릴리즈-묶음/기능-추가/계정-동의-이력-및-계정-삭제.sql을 먼저 적용해 주세요.',
+      );
+    }
+    throw error;
+  }
+
+  const rpcPromise = supabase
+    .rpc('delete_my_account', {
+      p_request_id: request.requestId,
+    })
+    .then(({ data, error }) => {
+      if (error) throw error;
+      const parsed = parseAccountDeletionResult(data);
+      if (!parsed) {
+        throw new Error('계정 삭제 결과를 해석하지 못했어요.');
+      }
+      return parsed;
+    });
+
+  const timeoutPromise = new Promise<AccountDeletionResult>(resolve => {
+    setTimeout(() => {
+      resolve({
+        requestId: request.requestId,
+        status: 'unknown_pending_confirmation',
+        storageCleanupPending: request.storageCleanupPending,
+        cleanupItemCount: request.cleanupItemCount,
+        cleanupCompletedCount: request.cleanupCompletedCount,
+        requestedAt: request.requestedAt,
+        completedAt: null,
+        lastErrorCode: null,
+        lastErrorMessage: null,
+      });
+    }, timeoutMs);
+  });
+
+  let result: AccountDeletionResult;
+  try {
+    result = await Promise.race([rpcPromise, timeoutPromise]);
+  } catch (error) {
+    if (isMissingDeleteRpcError(error)) {
+      throw new Error(
+        '계정 삭제 SQL 함수가 아직 적용되지 않았습니다. docs/sql/공용-릴리즈-묶음/기능-추가/계정-동의-이력-및-계정-삭제.sql을 먼저 적용해 주세요.',
+      );
+    }
+    throw error;
+  }
+
+  if (result.status === 'unknown_pending_confirmation') {
+    markAccountDeletionUnknown(result.requestId).catch(() => null);
+    return result;
+  }
+
+  if (result.status === 'failed') {
     throw new Error(
-      '계정 삭제 SQL 함수가 아직 적용되지 않았습니다. docs/sql/공용-릴리즈-묶음/기능-추가/계정-동의-이력-및-계정-삭제.sql을 먼저 적용해 주세요.',
+      result.lastErrorMessage ??
+        '회원 정리를 완료하지 못했어요. 잠시 후 다시 시도해 주세요.',
     );
   }
 
-  throw error;
+  return result;
 }

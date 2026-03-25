@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { typography } from '../../app/theme/tokens/typography';
 
 const TEXT = '#1B2435';
 
@@ -36,17 +37,16 @@ export const styles = StyleSheet.create({
   },
   heroTitle: {
     marginTop: 18,
-    fontSize: 16,
-    lineHeight: 22,
-    fontWeight: '900',
+    ...typography.role.titleLg,
+    fontWeight: '800',
     color: TEXT,
   },
   heroBody: {
     marginTop: 8,
-    fontSize: 16,
-    lineHeight: 20,
+    ...typography.role.body,
     fontWeight: '600',
     color: '#000000',
+    textAlign: 'center',
   },
   fieldBlock: {
     marginBottom: 16,
@@ -55,7 +55,7 @@ export const styles = StyleSheet.create({
     display: 'none',
   },
   inputRow: {
-    height: 56,
+    minHeight: 56,
     borderRadius: 16,
     backgroundColor: '#F7F9FC',
     borderWidth: 1,
@@ -67,7 +67,7 @@ export const styles = StyleSheet.create({
   input: {
     flex: 1,
     color: TEXT,
-    fontSize: 15,
+    ...typography.role.body,
     fontWeight: '700',
   },
   inputAccessory: {
@@ -75,7 +75,7 @@ export const styles = StyleSheet.create({
   },
   primaryButton: {
     marginTop: 10,
-    height: 56,
+    minHeight: 56,
     borderRadius: 18,
     backgroundColor: BRAND,
     alignItems: 'center',
@@ -91,7 +91,7 @@ export const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    ...typography.role.button,
     fontWeight: '900',
   },
   inlineLinks: {
@@ -103,12 +103,12 @@ export const styles = StyleSheet.create({
   },
   inlineLinkText: {
     color: '#7D8798',
-    fontSize: 12,
+    ...typography.role.helper,
     fontWeight: '800',
   },
   inlineDivider: {
     color: '#C8D0DC',
-    fontSize: 12,
+    ...typography.role.helper,
     fontWeight: '700',
   },
   socialSection: {
@@ -125,11 +125,11 @@ export const styles = StyleSheet.create({
   },
   socialSectionTitle: {
     color: '#AAB3C1',
-    fontSize: 12,
+    ...typography.role.helper,
     fontWeight: '800',
   },
   socialButton: {
-    height: 56,
+    minHeight: 56,
     borderRadius: 16,
     borderWidth: 1,
     flexDirection: 'row',
@@ -142,7 +142,7 @@ export const styles = StyleSheet.create({
     left: 18,
   },
   socialButtonText: {
-    fontSize: 15,
+    ...typography.role.button,
     fontWeight: '900',
   },
   kakaoBadge: {
@@ -161,7 +161,7 @@ export const styles = StyleSheet.create({
   },
   googleBadgeText: {
     color: '#4285F4',
-    fontSize: 12,
+    ...typography.role.caption,
     fontWeight: '900',
   },
 });

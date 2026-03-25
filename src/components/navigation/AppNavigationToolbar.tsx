@@ -12,13 +12,14 @@
 // - 탭 라벨이나 target route를 바꿀 때는 AppTabsNavigator와 RootNavigator 타입까지 같이 확인해야 한다.
 
 import React, { useCallback, useMemo } from 'react';
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from 'styled-components/native';
 import Feather from 'react-native-vector-icons/Feather';
 
+import AppText from '../../app/ui/AppText';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { ScreenEntrySource } from '../../navigation/entry';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
@@ -133,6 +134,8 @@ export default function AppNavigationToolbar({
             <TouchableOpacity
               key={tab.key}
               activeOpacity={0.9}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: active }}
               style={styles.item}
               onPress={() => navigateTo(tab.key)}
             >
@@ -141,7 +144,9 @@ export default function AppNavigationToolbar({
                 size={18}
                 color={active ? petTheme.primary : theme.colors.textMuted}
               />
-              <Text
+              <AppText
+                preset="tab"
+                maxFontSizeMultiplier={1.6}
                 style={[
                   styles.label,
                   { color: theme.colors.textMuted },
@@ -149,7 +154,7 @@ export default function AppNavigationToolbar({
                 ]}
               >
                 {tab.label}
-              </Text>
+              </AppText>
             </TouchableOpacity>
           );
         })}
@@ -167,25 +172,24 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   bar: {
-    minHeight: 62,
+    minHeight: 74,
     borderTopWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 10,
-    paddingTop: 10,
-    paddingBottom: 6,
+    paddingTop: 8,
+    paddingBottom: 8,
   },
   item: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
-    paddingTop: 4,
+    minHeight: 48,
+    paddingVertical: 6,
   },
   label: {
-    fontSize: 9,
-    lineHeight: 11,
-    fontWeight: '500',
+    textAlign: 'center',
   },
 });
