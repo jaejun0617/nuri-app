@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   BackHandler,
   Linking,
   ScrollView,
-  StyleSheet,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -13,153 +13,58 @@ import Feather from 'react-native-vector-icons/Feather';
 import WebView from 'react-native-webview';
 
 import AppText from '../../app/ui/AppText';
+import ExpandableBodyText from '../../components/common/ExpandableBodyText';
 import Screen from '../../components/layout/Screen';
+import { usePetTravelUserLayer } from '../../hooks/usePetTravelUserLayer';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
-import {
-  getPetTravelPetAllowedLabel,
-  getPetTravelPlaceTypeLabel,
-} from '../../services/petTravel/catalog';
+import { buildInteractiveMapPreviewHtml } from '../../services/locationDiscovery/maps';
+import { getPetTravelPlaceTypeLabel } from '../../services/petTravel/catalog';
 import { fetchPetTravelDetail } from '../../services/petTravel/api';
 import type { PetTravelDetail, PetTravelItem } from '../../services/petTravel/types';
+import type { PublicTrustTone } from '../../services/trust/publicTrust';
+import { getPetTravelOwnReportLabel } from '../../services/trust/userLayerLabels';
 import { styles } from './PetTravel.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-const MAP_TILE_SIZE = 256;
-const MAP_VIEWPORT_WIDTH = 360;
-const MAP_VIEWPORT_HEIGHT = 210;
-const MAP_PREVIEW_ZOOM = 15;
 
-function getConfidenceBadgeStyle(label: string) {
-  return label === '동반 확인됨' || label === '방문자 확인'
-    ? styles.petStatusBadgeConfirmed
-    : label === '동반 가능성 높음'
-      ? styles.petStatusBadgeConfirmed
-      : label === '동반 가능성 있음'
-        ? styles.petStatusBadgePossible
-        : styles.petStatusBadgeCautious;
+function formatLayerLabel(layer: 'candidate' | 'trust' | 'user'): string {
+  switch (layer) {
+    case 'trust':
+      return '검수';
+    case 'user':
+      return '사용자';
+    case 'candidate':
+    default:
+      return '후보';
+  }
 }
 
-function getConfidenceBadgeTextStyle(label: string) {
-  return label === '동반 확인됨' || label === '방문자 확인'
-    ? styles.petStatusBadgeTextConfirmed
-    : label === '동반 가능성 높음'
-      ? styles.petStatusBadgeTextConfirmed
-      : label === '동반 가능성 있음'
-        ? styles.petStatusBadgeTextPossible
-        : styles.petStatusBadgeTextCautious;
+function getConfidenceBadgeStyle(tone: PublicTrustTone) {
+  switch (tone) {
+    case 'positive':
+      return styles.petStatusBadgeConfirmed;
+    case 'critical':
+      return styles.petStatusBadgeCritical;
+    case 'caution':
+      return styles.petStatusBadgeCautious;
+    case 'neutral':
+    default:
+      return styles.petStatusBadgeNeutral;
+  }
 }
 
-function longitudeToTileX(longitude: number, zoom: number): number {
-  return ((longitude + 180) / 360) * 2 ** zoom;
-}
-
-function latitudeToTileY(latitude: number, zoom: number): number {
-  const radian = (latitude * Math.PI) / 180;
-  return (
-    ((1 - Math.log(Math.tan(radian) + 1 / Math.cos(radian)) / Math.PI) / 2) *
-    2 ** zoom
-  );
-}
-
-function buildMapPreviewHtml(latitude: number, longitude: number): string {
-  const tileX = longitudeToTileX(longitude, MAP_PREVIEW_ZOOM);
-  const tileY = latitudeToTileY(latitude, MAP_PREVIEW_ZOOM);
-  const startTileX = Math.floor(tileX) - 1;
-  const startTileY = Math.floor(tileY) - 1;
-  const gridWidth = MAP_TILE_SIZE * 3;
-  const gridHeight = MAP_TILE_SIZE * 3;
-  const offsetX =
-    (tileX - startTileX) * MAP_TILE_SIZE - MAP_VIEWPORT_WIDTH / 2;
-  const offsetY =
-    (tileY - startTileY) * MAP_TILE_SIZE - MAP_VIEWPORT_HEIGHT / 2;
-
-  const tiles = Array.from({ length: 9 }, (_, index) => {
-    const row = Math.floor(index / 3);
-    const column = index % 3;
-    const x = startTileX + column;
-    const y = startTileY + row;
-
-    return `<img
-      src="https://tile.openstreetmap.org/${MAP_PREVIEW_ZOOM}/${x}/${y}.png"
-      style="position:absolute;left:${column * MAP_TILE_SIZE}px;top:${row * MAP_TILE_SIZE}px;width:${MAP_TILE_SIZE}px;height:${MAP_TILE_SIZE}px;"
-    />`;
-  }).join('');
-
-  return `<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
-    />
-    <style>
-      html, body {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-        background: #d7e3ef;
-      }
-      .viewport {
-        position: relative;
-        width: 100vw;
-        height: 100vh;
-        overflow: hidden;
-        background: linear-gradient(180deg, #dfe8f1 0%, #cfdbe8 100%);
-      }
-      .tiles {
-        position: absolute;
-        width: ${gridWidth}px;
-        height: ${gridHeight}px;
-        left: -${offsetX}px;
-        top: -${offsetY}px;
-      }
-      .marker {
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        width: 22px;
-        height: 22px;
-        transform: translate(-50%, -100%);
-        border-radius: 999px 999px 999px 0;
-        background: #e2552f;
-        rotate: -45deg;
-        box-shadow: 0 8px 18px rgba(16, 32, 51, 0.22);
-      }
-      .marker::after {
-        content: '';
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        width: 8px;
-        height: 8px;
-        transform: translate(-50%, -50%);
-        border-radius: 999px;
-        background: #ffffff;
-      }
-      .fade {
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(
-          180deg,
-          rgba(255,255,255,0.06) 0%,
-          rgba(255,255,255,0) 36%,
-          rgba(16,32,51,0.04) 100%
-        );
-        pointer-events: none;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="viewport">
-      <div class="tiles">${tiles}</div>
-      <div class="marker"></div>
-      <div class="fade"></div>
-    </div>
-  </body>
-</html>`;
+function getConfidenceBadgeTextStyle(tone: PublicTrustTone) {
+  switch (tone) {
+    case 'positive':
+      return styles.petStatusBadgeTextConfirmed;
+    case 'critical':
+      return styles.petStatusBadgeTextCritical;
+    case 'caution':
+      return styles.petStatusBadgeTextCautious;
+    case 'neutral':
+    default:
+      return styles.petStatusBadgeTextNeutral;
+  }
 }
 
 export default function PetTravelDetailScreen() {
@@ -171,6 +76,8 @@ export default function PetTravelDetailScreen() {
   const [loading, setLoading] = useState(false);
   const [isMapPreviewFailed, setIsMapPreviewFailed] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [reportSaving, setReportSaving] = useState(false);
+  const travelUserLayer = usePetTravelUserLayer();
 
   const goBack = useCallback(() => {
     navigation.goBack();
@@ -199,7 +106,10 @@ export default function PetTravelDetailScreen() {
       return null;
     }
 
-    return buildMapPreviewHtml(targetItem.latitude, targetItem.longitude);
+    return buildInteractiveMapPreviewHtml({
+      latitude: targetItem.latitude,
+      longitude: targetItem.longitude,
+    });
   }, [targetItem]);
 
   const loadDetail = useCallback(async () => {
@@ -280,12 +190,88 @@ export default function PetTravelDetailScreen() {
     );
   }
 
-  const confidenceStyle = getConfidenceBadgeStyle(
-    targetItem.petConfidenceLabel,
-  );
+  const confidenceStyle = getConfidenceBadgeStyle(targetItem.publicTrust.tone);
   const confidenceTextStyle = getConfidenceBadgeTextStyle(
-    targetItem.petConfidenceLabel,
+    targetItem.publicTrust.tone,
   );
+  const personalRecord = targetItem.userLayer.targetId
+    ? travelUserLayer.records.get(targetItem.userLayer.targetId) ?? null
+    : null;
+  const personalReportLabel = getPetTravelOwnReportLabel(
+    personalRecord?.ownReportType,
+  );
+  const onPressReport = () => {
+    if (!travelUserLayer.isLoggedIn) {
+      Alert.alert('로그인이 필요해요', '내 제보 상태는 로그인 후 개인화 정보로만 기록돼요.');
+      return;
+    }
+    if (!targetItem.userLayer.targetId || !targetItem.userLayer.supportsReport) {
+      Alert.alert(
+        '아직 제보할 수 없어요',
+        '이 여행 후보는 아직 개인 제보 대상과 연결되지 않았어요. 공개 라벨은 그대로 보수적으로 유지돼요.',
+      );
+      return;
+    }
+
+    Alert.alert(
+      '내 제보 남기기',
+      '이 제보는 개인 제보 원본으로 저장되며 공개 라벨을 직접 올리지 않아요.',
+      [
+        {
+          text: '동반 가능',
+          onPress: () => {
+            setReportSaving(true);
+            travelUserLayer
+              .submitReport(targetItem.userLayer.targetId!, 'pet_allowed')
+              .catch(error => {
+                Alert.alert(
+                  '제보를 저장하지 못했어요',
+                  error instanceof Error ? error.message : '잠시 후 다시 시도해 주세요.',
+                );
+              })
+              .finally(() => {
+                setReportSaving(false);
+              });
+          },
+        },
+        {
+          text: '제한/불가',
+          onPress: () => {
+            setReportSaving(true);
+            travelUserLayer
+              .submitReport(targetItem.userLayer.targetId!, 'pet_restricted')
+              .catch(error => {
+                Alert.alert(
+                  '제보를 저장하지 못했어요',
+                  error instanceof Error ? error.message : '잠시 후 다시 시도해 주세요.',
+                );
+              })
+              .finally(() => {
+                setReportSaving(false);
+              });
+          },
+        },
+        {
+          text: '정보 변경',
+          onPress: () => {
+            setReportSaving(true);
+            travelUserLayer
+              .submitReport(targetItem.userLayer.targetId!, 'info_outdated')
+              .catch(error => {
+                Alert.alert(
+                  '제보를 저장하지 못했어요',
+                  error instanceof Error ? error.message : '잠시 후 다시 시도해 주세요.',
+                );
+              })
+              .finally(() => {
+                setReportSaving(false);
+              });
+          },
+        },
+        { text: '취소', style: 'cancel' },
+      ],
+    );
+  };
 
   return (
     <Screen style={styles.screen}>
@@ -350,9 +336,10 @@ export default function PetTravelDetailScreen() {
             <AppText preset="headline" style={styles.detailTitle}>
               {targetItem.name}
             </AppText>
-            <AppText preset="body" style={styles.detailSummary}>
-              {targetItem.summary}
-            </AppText>
+            <ExpandableBodyText
+              text={targetItem.summary}
+              textStyle={styles.detailSummary}
+            />
             <View style={styles.badgeRow}>
               <View style={styles.neutralBadge}>
                 <AppText preset="caption" style={styles.neutralBadgeText}>
@@ -366,12 +353,18 @@ export default function PetTravelDetailScreen() {
                   preset="caption"
                   style={[styles.petStatusBadgeText, confidenceTextStyle]}
                 >
-                  {targetItem.petConfidenceLabel}
+                  {targetItem.publicTrust.label}
                 </AppText>
               </View>
             </View>
 
             <View style={styles.detailMetaGrid}>
+              <View style={styles.detailMetaRow}>
+                <Feather name="shield" size={15} color="#7B8597" />
+                <AppText preset="body" style={styles.detailMetaText}>
+                  공개 라벨: {targetItem.publicTrust.label}
+                </AppText>
+              </View>
               <View style={styles.detailMetaRow}>
                 <Feather name="flag" size={15} color="#7B8597" />
                 <AppText preset="body" style={styles.detailMetaText}>
@@ -410,6 +403,14 @@ export default function PetTravelDetailScreen() {
                   </AppText>
                 </View>
               ) : null}
+              {targetItem.publicTrust.basisDateLabel ? (
+                <View style={styles.detailMetaRow}>
+                  <Feather name="calendar" size={15} color="#7B8597" />
+                  <AppText preset="body" style={styles.detailMetaText}>
+                    {targetItem.publicTrust.basisDateLabel}
+                  </AppText>
+                </View>
+              ) : null}
               {detail?.restDate ? (
                 <View style={styles.detailMetaRow}>
                   <Feather name="calendar" size={15} color="#7B8597" />
@@ -421,15 +422,162 @@ export default function PetTravelDetailScreen() {
             </View>
           </View>
 
+          {mapPreviewHtml ? (
+            <View style={styles.detailSectionCard}>
+              <AppText preset="headline" style={styles.detailSectionTitle}>
+                위치 미리보기
+              </AppText>
+              <View style={styles.mapCard}>
+                {isMapPreviewFailed ? (
+                  <View style={styles.mapFallbackCard}>
+                    <Feather name="map-pin" size={20} color="#2F8F48" />
+                    <AppText preset="body" style={styles.mapFallbackTitle}>
+                      지도 미리보기를 불러오지 못했어요
+                    </AppText>
+                    <AppText preset="caption" style={styles.mapFallbackBody}>
+                      아래 외부 지도 버튼으로 정확한 위치를 다시 확인할 수 있어요.
+                    </AppText>
+                  </View>
+                ) : (
+                  <WebView
+                    source={{ html: mapPreviewHtml }}
+                    originWhitelist={['*']}
+                    style={styles.mapWebView}
+                    scrollEnabled
+                    nestedScrollEnabled
+                    javaScriptEnabled
+                    domStorageEnabled
+                    setSupportMultipleWindows={false}
+                    onError={() => {
+                      setIsMapPreviewFailed(true);
+                    }}
+                    onHttpError={() => {
+                      setIsMapPreviewFailed(true);
+                    }}
+                  />
+                )}
+                <View pointerEvents="none" style={styles.mapOverlay}>
+                  <AppText preset="caption" style={styles.mapOverlayText}>
+                    한 손가락으로 이동하고 두 손가락으로 확대/축소할 수 있어요
+                  </AppText>
+                </View>
+              </View>
+            </View>
+          ) : null}
+
+          <View style={styles.detailSectionCard}>
+            <AppText preset="headline" style={styles.detailSectionTitle}>
+              공개 신뢰도 안내
+            </AppText>
+            <ExpandableBodyText
+              text={targetItem.publicTrust.description}
+              textStyle={styles.detailSectionBody}
+            />
+            <ExpandableBodyText
+              text={targetItem.publicTrust.guidance}
+              textStyle={styles.detailSectionBody}
+            />
+            <View style={styles.detailTrustMetaWrap}>
+              <View style={styles.detailTrustMetaRow}>
+                <AppText preset="caption" style={styles.detailTrustMetaLabel}>
+                  판단 근거
+                </AppText>
+                <AppText preset="caption" style={styles.detailTrustMetaValue}>
+                  {targetItem.publicTrust.sourceLabel}
+                </AppText>
+              </View>
+              <View style={styles.detailTrustMetaRow}>
+                <AppText preset="caption" style={styles.detailTrustMetaLabel}>
+                  데이터 계층
+                </AppText>
+                <AppText preset="caption" style={styles.detailTrustMetaValue}>
+                  {targetItem.publicTrust.layers.map(formatLayerLabel).join(' / ')}
+                </AppText>
+              </View>
+              {targetItem.publicTrust.basisDateLabel ? (
+                <View style={styles.detailTrustMetaRow}>
+                  <AppText preset="caption" style={styles.detailTrustMetaLabel}>
+                    기준일
+                  </AppText>
+                  <AppText preset="caption" style={styles.detailTrustMetaValue}>
+                    {targetItem.publicTrust.basisDateLabel}
+                  </AppText>
+                </View>
+              ) : null}
+            </View>
+            {targetItem.publicTrust.hasConflict ? (
+              <AppText preset="caption" style={styles.detailTrustNotice}>
+                외부 원본과 검수 정보가 다를 수 있어 가장 보수적인 라벨을 유지했어요.
+              </AppText>
+            ) : null}
+            {targetItem.publicTrust.isStale ? (
+              <AppText preset="caption" style={styles.detailTrustNotice}>
+                기준일이 오래돼 최신 정책은 방문 전에 다시 확인하는 편이 안전해요.
+              </AppText>
+            ) : null}
+          </View>
+
+          <View style={styles.personalSectionCard}>
+            <AppText preset="headline" style={styles.detailSectionTitle}>
+              내 상태
+            </AppText>
+            <ExpandableBodyText
+              text="내가 제보함은 개인 제보 원본이에요. 공개 라벨과 검수 반영 여부는 여기서 직접 올라가지 않아요."
+              textStyle={styles.detailSectionBody}
+            />
+            {targetItem.userLayer.targetId ? (
+              <>
+                <View style={styles.personalBadgeRow}>
+                  {personalRecord ? (
+                    <View style={styles.personalBadge}>
+                      <AppText preset="caption" style={styles.personalBadgeText}>
+                        내가 제보함
+                      </AppText>
+                    </View>
+                  ) : (
+                    <AppText preset="caption" style={styles.personalStatusEmpty}>
+                      아직 남긴 개인 제보가 없어요.
+                    </AppText>
+                  )}
+                </View>
+                {personalReportLabel ? (
+                  <AppText preset="caption" style={styles.personalStateNote}>
+                    {personalReportLabel}
+                  </AppText>
+                ) : null}
+                <TouchableOpacity
+                  activeOpacity={0.92}
+                  style={styles.personalActionButton}
+                  onPress={onPressReport}
+                >
+                  <AppText preset="body" style={styles.personalActionButtonText}>
+                    {reportSaving
+                      ? '제보 저장 중'
+                      : personalRecord
+                        ? '내 제보 갱신'
+                        : '내 제보 남기기'}
+                  </AppText>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <AppText preset="caption" style={styles.personalStatusEmpty}>
+                이 여행 후보는 아직 개인 제보 대상과 연결되지 않았어요. 공개 라벨만 보수적으로 보여줘요.
+              </AppText>
+            )}
+          </View>
+
           <View style={styles.detailSectionCard}>
             <AppText preset="headline" style={styles.detailSectionTitle}>
               반려동물 동반 안내
             </AppText>
-            <AppText preset="body" style={styles.detailSectionBody}>
-              {targetItem.petAllowed === 'confirmed'
-                ? targetItem.petNotice
-                : `${getPetTravelPetAllowedLabel(targetItem.petAllowed)} · ${targetItem.petNotice}`}
-            </AppText>
+            <ExpandableBodyText
+              text={targetItem.publicTrust.shortReason}
+              textStyle={styles.detailSectionBody}
+            />
+            <ExpandableBodyText
+              text={`세부 안내: ${targetItem.petNotice}`}
+              textStyle={styles.detailSectionBody}
+            />
           </View>
 
           <View style={styles.detailSectionCard}>
@@ -453,81 +601,23 @@ export default function PetTravelDetailScreen() {
                 이용 정보
               </AppText>
               {detail?.overview ? (
-                <AppText preset="body" style={styles.detailSectionBody}>
-                  {detail.overview}
-                </AppText>
+                <ExpandableBodyText
+                  text={detail.overview}
+                  textStyle={styles.detailSectionBody}
+                />
               ) : null}
               {detail?.usageInfo ? (
-                <AppText preset="body" style={styles.detailSectionBody}>
-                  이용 안내: {detail.usageInfo}
-                </AppText>
+                <ExpandableBodyText
+                  text={`이용 안내: ${detail.usageInfo}`}
+                  textStyle={styles.detailSectionBody}
+                />
               ) : null}
               {detail?.parkingInfo ? (
-                <AppText preset="body" style={styles.detailSectionBody}>
-                  주차 안내: {detail.parkingInfo}
-                </AppText>
-              ) : null}
-            </View>
-          ) : null}
-
-          {mapPreviewHtml ? (
-            <View style={styles.detailSectionCard}>
-              <AppText preset="headline" style={styles.detailSectionTitle}>
-                위치 미리보기
-              </AppText>
-              <View style={styles.mapCard}>
-                {isMapPreviewFailed ? (
-                  <View style={styles.mapFallbackCard}>
-                    <Feather name="map-pin" size={20} color="#2F8F48" />
-                    <AppText preset="body" style={styles.mapFallbackTitle}>
-                      지도 미리보기를 불러오지 못했어요
-                    </AppText>
-                    <AppText preset="caption" style={styles.mapFallbackBody}>
-                      아래 지도를 탭하면 카카오맵에서 정확한 위치를 확인할 수 있어요.
-                    </AppText>
-                  </View>
-                ) : (
-                  <WebView
-                    source={{ html: mapPreviewHtml }}
-                    originWhitelist={['*']}
-                    style={styles.mapWebView}
-                    scrollEnabled={false}
-                    nestedScrollEnabled={false}
-                    javaScriptEnabled={false}
-                    domStorageEnabled={false}
-                    setSupportMultipleWindows={false}
-                    onError={() => {
-                      setIsMapPreviewFailed(true);
-                    }}
-                    onHttpError={() => {
-                      setIsMapPreviewFailed(true);
-                    }}
-                  />
-                )}
-                <View style={styles.mapOverlay}>
-                  <AppText preset="caption" style={styles.mapOverlayText}>
-                    지도를 탭하면 카카오맵으로 열려요
-                  </AppText>
-                </View>
-                <TouchableOpacity
-                  activeOpacity={0.0}
-                  style={StyleSheet.absoluteFillObject}
-                  onPress={() => {
-                    const target = detail ?? item;
-                    if (!target) return;
-                    const deepLink = target.kakaoMapUrl;
-                    const webUrl = target.kakaoMapWebUrl;
-                    if (!deepLink || !webUrl) return;
-                    Linking.canOpenURL(deepLink)
-                      .then(supported => {
-                        return Linking.openURL(supported ? deepLink : webUrl);
-                      })
-                      .catch(() => {
-                        if (webUrl) Linking.openURL(webUrl).catch(() => {});
-                      });
-                  }}
+                <ExpandableBodyText
+                  text={`주차 안내: ${detail.parkingInfo}`}
+                  textStyle={styles.detailSectionBody}
                 />
-              </View>
+              ) : null}
             </View>
           ) : null}
 

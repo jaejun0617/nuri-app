@@ -1,4 +1,5 @@
 import type { DeviceCoordinates } from '../location/currentPosition';
+import type { PublicTrustInfo } from '../trust/publicTrust';
 
 export type LocationDiscoveryDomain = 'walk' | 'pet-friendly-place';
 export type LocationDiscoverySource = 'kakao' | 'supabase';
@@ -70,6 +71,12 @@ export type LocationDiscoveryItem = {
     tone: LocationDiscoveryVerificationTone;
     sourceLabel: string;
     requiresConfirmation: boolean;
+  };
+  publicTrust: PublicTrustInfo;
+  userLayer: {
+    targetId: string | null;
+    supportsBookmark: boolean;
+    supportsReport: boolean;
   };
   petPolicy: {
     summaryLabel: string | null;

@@ -7,12 +7,27 @@
 // - `KorPetTourService2`의 리스트/검색/상세 API를 호출하고, 지역 intent와 카테고리 조건에 맞는 후보를 만든다.
 // - `placeType`, `petAllowed`, score breakdown을 계산해 화면이 바로 쓸 수 있는 여행 후보 모델을 반환한다.
 // 데이터·상태 흐름:
-// - 현재 런타임은 TourAPI raw를 받아 candidate-layer 수준의 결과를 만들고, trust layer는 아직 붙지 않은 상태다.
+// - 현재 런타임은 TourAPI 후보를 기본으로 만들고, 있으면 trust layer를 read-only로 붙여 public label을 더 보수적으로 재결정한다.
 // - 리스트와 상세는 모두 이 파일을 거치며, 화면은 외부 API 스키마 대신 내부 `PetTravelItem/Detail` 타입만 사용한다.
 // 수정 시 주의:
 // - raw 문구나 정규식만으로 `confirmed`를 열지 않는 것이 현재 운영 원칙이다.
 // - 지역 intent, commercial penalty, pet score 규칙은 검색 품질과 신뢰도에 직결되므로 예외처리 추가보다 전체 규칙 기준으로 수정해야 한다.
 import { TOUR_API_SERVICE_KEY } from '../../config/runtime';
+import type { PublicTrustInfo } from '../trust/publicTrust';
+import {
+  buildTrustBasisDateLabel,
+  canKeepTrustReviewed,
+  getPublicTrustLabelText,
+  getPublicTrustPriority,
+  hasAnyTrustEvidence,
+  hasTrustBasisDate,
+  isTrustDateStale,
+} from '../trust/publicTrust';
+import {
+  loadPetTravelTrustSnapshotsBySourceIds,
+  type PetTravelTrustPlaceSnapshot,
+  type PetTravelTrustPolicySnapshot,
+} from '../supabase/petTravelTrust';
 import {
   getPetTravelCategoryById,
   resolvePetTravelRegionIntent,
@@ -190,6 +205,30 @@ const PET_CHECK_REQUIRED_PATTERNS = [
   /정책/,
   /확인/,
 ] as const;
+const BROAD_TRAVEL_QUERY_KEYWORDS = [
+  '여행',
+  '숙소',
+  '호텔',
+  '펜션',
+  '리조트',
+  '맛집',
+  '식당',
+  '카페',
+  '공원',
+  '해변',
+  '바다',
+  '캠핑',
+  '산책',
+  '체험',
+  '박물관',
+  '애견',
+  '반려',
+  '강아지',
+  '펫',
+  '동반',
+] as const;
+
+type PetTravelQueryIntent = 'none' | 'region-only' | 'broad' | 'specific';
 
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === 'object' && value !== null;
@@ -205,6 +244,38 @@ function normalizeString(value: unknown): string | null {
     .replace(/&nbsp;/gi, ' ')
     .trim();
   return trimmed ? trimmed : null;
+}
+
+function getPetTravelQueryIntent(
+  keyword: string,
+  regionIntent: PetTravelRegionIntent | null,
+): PetTravelQueryIntent {
+  const trimmedKeyword = keyword.trim();
+  if (!trimmedKeyword) {
+    return 'none';
+  }
+
+  if (regionIntent?.isRegionOnlyQuery) {
+    return 'region-only';
+  }
+
+  const tokens = trimmedKeyword
+    .split(/\s+/)
+    .map(token => token.trim())
+    .filter(Boolean);
+
+  const isBroad = tokens.some(token => {
+    if (token.length <= 4) {
+      return true;
+    }
+
+    return BROAD_TRAVEL_QUERY_KEYWORDS.some(
+      keywordText =>
+        token.includes(keywordText) || keywordText.includes(token),
+    );
+  });
+
+  return isBroad ? 'broad' : 'specific';
 }
 
 function toFiniteNumber(value: unknown): number | null {
@@ -554,16 +625,370 @@ function buildPetPolicy(record: JsonRecord, title: string): PetTravelPetPolicy {
   };
 }
 
-function buildPetConfidenceLabel(policy: PetTravelPetPolicy): string {
-  if (policy.status === 'db-verified') return '동반 확인됨';
-  if (policy.status === 'user-reported') return '방문자 확인';
-  if (policy.petAllowed === 'possible' && policy.confidence >= 0.6) {
-    return '동반 가능성 높음';
+function getPolicySourcePriority(policy: PetTravelTrustPolicySnapshot): number {
+  switch (policy.sourceType) {
+    case 'admin-review':
+      return 0;
+    case 'user-report':
+      return 1;
+    case 'tour-api':
+      return 2;
+    case 'system-inference':
+    default:
+      return 3;
   }
-  if (policy.petAllowed === 'possible' && policy.confidence >= 0.4) {
-    return '동반 가능성 있음';
+}
+
+function sortTrustPolicies(
+  left: PetTravelTrustPolicySnapshot,
+  right: PetTravelTrustPolicySnapshot,
+): number {
+  const sourcePriorityDiff =
+    getPolicySourcePriority(left) - getPolicySourcePriority(right);
+  if (sourcePriorityDiff !== 0) {
+    return sourcePriorityDiff;
   }
-  return '현장 확인 필요';
+
+  return Date.parse(right.updatedAt) - Date.parse(left.updatedAt);
+}
+
+function pickPrimaryTrustPolicy(
+  trustSnapshot: PetTravelTrustPlaceSnapshot | null,
+): PetTravelTrustPolicySnapshot | null {
+  const policies = trustSnapshot?.activePolicies ?? [];
+  if (!policies.length) {
+    return null;
+  }
+
+  return [...policies].sort(sortTrustPolicies)[0] ?? null;
+}
+
+function hasPetTravelTrustConflict(params: {
+  petPolicy: PetTravelPetPolicy;
+  trustSnapshot: PetTravelTrustPlaceSnapshot | null;
+}): boolean {
+  const { petPolicy, trustSnapshot } = params;
+  const policies = trustSnapshot?.activePolicies ?? [];
+  if (!policies.length) {
+    return false;
+  }
+
+  const distinctStatuses = new Set(policies.map(policy => policy.policyStatus));
+  if (distinctStatuses.size > 1) {
+    return true;
+  }
+
+  const primaryPolicy = pickPrimaryTrustPolicy(trustSnapshot);
+  if (!primaryPolicy) {
+    return false;
+  }
+
+  if (
+    petPolicy.petAllowed === 'possible' &&
+    (primaryPolicy.policyStatus === 'restricted' ||
+      primaryPolicy.policyStatus === 'not_allowed')
+  ) {
+    return true;
+  }
+
+  return (
+    primaryPolicy.sourceType === 'admin-review' &&
+    primaryPolicy.policyStatus === 'allowed' &&
+    petPolicy.petAllowed !== 'possible'
+  );
+}
+
+function buildPetTravelPublicTrust(params: {
+  petPolicy: PetTravelPetPolicy;
+  sourceUpdatedAt: string | null;
+  trustSnapshot: PetTravelTrustPlaceSnapshot | null;
+}): PublicTrustInfo {
+  const { petPolicy, sourceUpdatedAt, trustSnapshot } = params;
+  const primaryPolicy = pickPrimaryTrustPolicy(trustSnapshot);
+  const hasTrust = Boolean(trustSnapshot && trustSnapshot.activePolicies.length > 0);
+  const layers: Array<'candidate' | 'trust' | 'user'> = ['candidate'];
+
+  if (hasTrust) {
+    layers.push('trust');
+  }
+  if (
+    trustSnapshot?.activePolicies.some(policy => policy.sourceType === 'user-report')
+  ) {
+    layers.push('user');
+  }
+
+  const trustBasisDate = primaryPolicy?.updatedAt ?? null;
+  const isStale = isTrustDateStale(trustBasisDate);
+  const hasConflict = hasPetTravelTrustConflict({
+    petPolicy,
+    trustSnapshot,
+  });
+  const hasEvidence = hasAnyTrustEvidence({
+    summaryText: primaryPolicy?.evidenceSummary,
+    noteText: primaryPolicy?.policyNote,
+    payload: primaryPolicy?.evidencePayload ?? null,
+  });
+  const hasFreshnessBasis = hasTrustBasisDate(trustBasisDate);
+  const canPublishTrustReviewed = canKeepTrustReviewed({
+    isAdminReviewed:
+      primaryPolicy?.sourceType === 'admin-review' &&
+      primaryPolicy.policyStatus === 'allowed',
+    basisDate: trustBasisDate,
+    hasConflict,
+    requiresOnsiteCheck: primaryPolicy?.requiresOnsiteCheck ?? false,
+    hasEvidence,
+  });
+
+  if (canPublishTrustReviewed && primaryPolicy) {
+    return {
+      publicLabel: 'trust_reviewed',
+      label: getPublicTrustLabelText('trust_reviewed'),
+      shortReason: '운영 검수 이력이 반영된 여행지예요.',
+      description:
+        '검수 메타를 참고한 정보지만 외부 원본과 실제 현장 정책은 달라질 수 있어요.',
+      guidance: '실제 방문 전 반려동물 동반 조건을 다시 확인해 주세요.',
+      tone: 'positive',
+      sourceLabel: '운영 검수',
+      basisDate: trustBasisDate,
+      basisDateLabel: buildTrustBasisDateLabel(trustBasisDate, '검수 기준일'),
+      isStale: false,
+      hasConflict,
+      layers,
+    };
+  }
+
+  if (
+    primaryPolicy &&
+    (primaryPolicy.policyStatus === 'restricted' ||
+      primaryPolicy.policyStatus === 'not_allowed')
+  ) {
+    return {
+      publicLabel: 'needs_verification',
+      label: getPublicTrustLabelText('needs_verification'),
+      shortReason: '제한 또는 불가 이력이 있어 재확인이 필요해요.',
+      description:
+        '외부 원본과 정책 메타가 다를 수 있어 가장 보수적인 라벨을 유지해요.',
+      guidance: '실제 방문 전 운영 정책을 직접 확인해 주세요.',
+      tone: primaryPolicy.policyStatus === 'not_allowed' ? 'critical' : 'caution',
+      sourceLabel:
+        primaryPolicy.sourceType === 'admin-review' ? '운영 검수' : '정책 메타',
+      basisDate: trustBasisDate,
+      basisDateLabel: buildTrustBasisDateLabel(trustBasisDate, '정책 기준일'),
+      isStale,
+      hasConflict,
+      layers,
+    };
+  }
+
+  if (primaryPolicy) {
+    return {
+      publicLabel: 'needs_verification',
+      label: getPublicTrustLabelText('needs_verification'),
+      shortReason:
+        primaryPolicy.sourceType === 'user-report'
+          ? '사용자 제보가 있지만 운영 확정 단계는 아니에요.'
+          : hasConflict
+            ? '검수 메타와 외부 원본이 엇갈려 재확인이 필요해요.'
+            : isStale
+              ? '검수 또는 정책 기준일이 오래돼 최신 여부를 다시 확인해야 해요.'
+              : !hasFreshnessBasis
+                ? '정책 기준일이 없어 공개 라벨을 더 올리지 않았어요.'
+              : primaryPolicy.requiresOnsiteCheck
+                ? '검수 이력이 있어도 현장 확인이 필요한 상태예요.'
+                : !hasEvidence
+                  ? '정책 메타는 있지만 공개 라벨을 올릴 근거가 아직 부족해요.'
+                  : '정책 메타는 있지만 확정 문구를 열 수 있는 단계는 아니에요.',
+      description:
+        'trust 데이터가 있어도 evidence와 최신성이 충분치 않으면 보수 라벨을 유지해요.',
+      guidance: '실제 방문 전 반려동물 동반 조건을 다시 확인해 주세요.',
+      tone: 'caution',
+      sourceLabel:
+        primaryPolicy.sourceType === 'user-report'
+          ? '사용자 제보'
+          : primaryPolicy.sourceType === 'admin-review'
+            ? '운영 검수'
+            : '정책 메타',
+      basisDate: trustBasisDate,
+      basisDateLabel: buildTrustBasisDateLabel(trustBasisDate, '기준일'),
+      isStale,
+      hasConflict,
+      layers,
+    };
+  }
+
+  if (petPolicy.petAllowed === 'possible') {
+    return {
+      publicLabel: 'needs_verification',
+      label: getPublicTrustLabelText('needs_verification'),
+      shortReason: '외부 원본에 동반 가능성 신호가 있지만 검수 이력은 없어요.',
+      description:
+        'TourAPI 원문과 후보 점수는 참고용이며 실제 정책을 확정하지 않아요.',
+      guidance: '실제 방문 전 반려동물 동반 조건을 다시 확인해 주세요.',
+      tone: 'caution',
+      sourceLabel: 'TourAPI 후보',
+      basisDate: sourceUpdatedAt,
+      basisDateLabel: buildTrustBasisDateLabel(sourceUpdatedAt, '외부 기준일'),
+      isStale: false,
+      hasConflict: false,
+      layers,
+    };
+  }
+
+  return {
+    publicLabel: 'candidate',
+    label: getPublicTrustLabelText('candidate'),
+    shortReason: '검증 근거가 부족한 여행 후보예요.',
+    description:
+      '후보는 보이지만 trust 데이터와 검수 이력이 없어 공적 라벨을 올리지 않았어요.',
+    guidance: '실제 방문 전 반려동물 동반 조건을 다시 확인해 주세요.',
+    tone: 'neutral',
+    sourceLabel: 'TourAPI 후보',
+    basisDate: sourceUpdatedAt,
+    basisDateLabel: buildTrustBasisDateLabel(sourceUpdatedAt, '외부 기준일'),
+    isStale: false,
+    hasConflict: false,
+    layers,
+  };
+}
+
+async function hydratePetTravelPublicTrust(
+  items: ReadonlyArray<PetTravelItem>,
+): Promise<PetTravelItem[]> {
+  const trustSnapshotMap = await loadPetTravelTrustSnapshotsBySourceIds(
+    items.map(item => item.source.contentId),
+  );
+
+  return items.map(item => {
+    const trustSnapshot = trustSnapshotMap.get(item.source.contentId) ?? null;
+    const publicTrust = buildPetTravelPublicTrust({
+      petPolicy: item.petPolicy,
+      sourceUpdatedAt: item.source.sourceUpdatedAt || null,
+      trustSnapshot,
+    });
+
+    return {
+      ...item,
+      publicTrust,
+      petConfidenceLabel: publicTrust.label,
+      userLayer: {
+        targetId: trustSnapshot?.placeId ?? item.userLayer.targetId,
+        supportsReport: Boolean(trustSnapshot?.placeId),
+      },
+    };
+  });
+}
+
+function sortPetTravelByPublicTrust(items: ReadonlyArray<PetTravelItem>): PetTravelItem[] {
+  return [...items].sort((left, right) => {
+    const trustPriorityDiff =
+      getPublicTrustPriority(left.publicTrust.publicLabel) -
+      getPublicTrustPriority(right.publicTrust.publicLabel);
+    if (trustPriorityDiff !== 0) {
+      return trustPriorityDiff;
+    }
+
+    if (
+      right.aggregation.score.finalScore !== left.aggregation.score.finalScore
+    ) {
+      return right.aggregation.score.finalScore - left.aggregation.score.finalScore;
+    }
+
+    if (
+      right.aggregation.score.travelScore !== left.aggregation.score.travelScore
+    ) {
+      return right.aggregation.score.travelScore - left.aggregation.score.travelScore;
+    }
+
+    return right.aggregation.score.petScore - left.aggregation.score.petScore;
+  });
+}
+
+function applyPetTravelExposureGuard(
+  items: ReadonlyArray<PetTravelItem>,
+  queryIntent: PetTravelQueryIntent,
+): PetTravelItem[] {
+  const sortedItems = sortPetTravelByPublicTrust(items);
+  const trustReviewed = sortedItems.filter(
+    item => item.publicTrust.publicLabel === 'trust_reviewed',
+  );
+  const needsVerification = sortedItems.filter(
+    item => item.publicTrust.publicLabel === 'needs_verification',
+  );
+  const candidates = sortedItems.filter(
+    item => item.publicTrust.publicLabel === 'candidate',
+  );
+  const hasStrongerResults = trustReviewed.length + needsVerification.length > 0;
+
+  const filteredNeedsVerification = needsVerification.filter(item => {
+    const minimumScore =
+      queryIntent === 'none'
+        ? 0.34
+        : queryIntent === 'region-only'
+          ? 0.42
+          : queryIntent === 'broad'
+            ? 0.36
+            : 0.3;
+    return item.aggregation.score.finalScore >= minimumScore;
+  }).slice(
+    0,
+    queryIntent === 'none'
+      ? 5
+      : queryIntent === 'region-only'
+        ? 3
+        : queryIntent === 'broad'
+          ? 4
+          : 6,
+  );
+  const filteredCandidates = candidates
+    .filter(item => {
+      const minimumScore =
+        queryIntent === 'none'
+          ? 0.56
+          : queryIntent === 'region-only'
+            ? 0.64
+            : queryIntent === 'broad'
+              ? 0.58
+              : 0.5;
+
+      if (item.aggregation.score.finalScore < minimumScore) {
+        return false;
+      }
+
+      if (
+        queryIntent !== 'specific' &&
+        item.aggregation.score.petScore < 0.24 &&
+        item.petAllowed === 'check-required'
+      ) {
+        return false;
+      }
+
+      if (
+        (queryIntent === 'region-only' || queryIntent === 'broad') &&
+        item.placeType === 'restaurant'
+      ) {
+        return item.aggregation.score.finalScore >= minimumScore + 0.08;
+      }
+
+      return true;
+    })
+    .slice(
+      0,
+      queryIntent === 'none'
+        ? hasStrongerResults
+          ? 1
+          : 2
+        : queryIntent === 'region-only'
+          ? 1
+          : queryIntent === 'broad'
+            ? hasStrongerResults
+              ? 1
+              : 2
+            : hasStrongerResults
+              ? 2
+              : 3,
+    );
+
+  return [...trustReviewed, ...filteredNeedsVerification, ...filteredCandidates];
 }
 
 function buildKakaoMapUrl(
@@ -716,7 +1141,12 @@ function mapListItem(record: JsonRecord, regionId: string): PetTravelItem | null
   const petNotice = buildPetNotice(record);
   const placeType = getPlaceType(contentTypeId, categoryId, name, normalizedCategoryLabel);
   const petPolicy = buildPetPolicy(record, name);
-  const petConfidenceLabel = buildPetConfidenceLabel(petPolicy);
+  const publicTrust = buildPetTravelPublicTrust({
+    petPolicy,
+    sourceUpdatedAt: normalizeString(record.modifiedtime),
+    trustSnapshot: null,
+  });
+  const petConfidenceLabel = publicTrust.label;
   const kakaoMapUrl = buildKakaoMapUrl(name, latitude, longitude);
   const kakaoMapWebUrl = buildKakaoMapWebUrl(name, latitude, longitude);
   const aggregation = {
@@ -765,6 +1195,11 @@ function mapListItem(record: JsonRecord, regionId: string): PetTravelItem | null
     },
     petPolicy,
     aggregation,
+    publicTrust,
+    userLayer: {
+      targetId: null,
+      supportsReport: false,
+    },
   };
 }
 
@@ -819,8 +1254,14 @@ function filterAndRankSearchResults(
     return items;
   }
 
-  const isRegionOnlyQuery = Boolean(regionIntent?.isRegionOnlyQuery);
-  const minScore = isRegionOnlyQuery && categoryId === 'all' ? 0.44 : 0.26;
+  const queryIntent = getPetTravelQueryIntent(trimmedKeyword, regionIntent);
+  const isRegionOnlyQuery = queryIntent === 'region-only';
+  const minScore =
+    queryIntent === 'region-only'
+      ? 0.52
+      : queryIntent === 'broad'
+        ? 0.34
+        : 0.28;
 
   return items
     .map(item => ({
@@ -845,6 +1286,13 @@ function filterAndRankSearchResults(
         return false;
       }
       if (score.travelScore < 0.2) {
+        return false;
+      }
+      if (
+        queryIntent !== 'specific' &&
+        item.publicTrust.publicLabel === 'candidate' &&
+        score.petScore < 0.24
+      ) {
         return false;
       }
       if (
@@ -945,6 +1393,7 @@ function mapDetail(
   commonRecord: JsonRecord | null,
   introRecord: JsonRecord | null,
   petRecord: JsonRecord | null,
+  trustSnapshot: PetTravelTrustPlaceSnapshot | null,
 ): PetTravelDetail {
   const mergedRecord: JsonRecord = {
     ...(commonRecord ?? {}),
@@ -956,6 +1405,14 @@ function mapDetail(
   const overview =
     normalizeString((commonRecord ?? {}).overview) ??
     normalizeString(mergedRecord.overview);
+  const publicTrust = buildPetTravelPublicTrust({
+    petPolicy,
+    sourceUpdatedAt:
+      normalizeString((commonRecord ?? {}).modifiedtime) ??
+      baseItem.source.sourceUpdatedAt ??
+      null,
+    trustSnapshot,
+  });
 
   return {
     ...baseItem,
@@ -970,6 +1427,8 @@ function mapDetail(
     petPolicy,
     petAllowed: petPolicy.petAllowed,
     petNotice: buildPetNotice(mergedRecord),
+    petConfidenceLabel: publicTrust.label,
+    publicTrust,
     facilityHighlights: buildFacilityHighlights(mergedRecord).length
       ? buildFacilityHighlights(mergedRecord)
       : [...baseItem.facilityHighlights],
@@ -986,6 +1445,10 @@ function mapDetail(
       normalizeString((commonRecord ?? {}).modifiedtime) ??
       baseItem.source.sourceUpdatedAt ??
       null,
+    userLayer: {
+      targetId: trustSnapshot?.placeId ?? baseItem.userLayer.targetId,
+      supportsReport: Boolean(trustSnapshot?.placeId ?? baseItem.userLayer.targetId),
+    },
   };
 }
 
@@ -1019,10 +1482,15 @@ export async function fetchPetTravelList(
       input.categoryId,
       resolvedRegionIntent,
     ).filter(isConfirmedPetFriendly);
+    const hydratedRegionItems = await hydratePetTravelPublicTrust(rankedRegionItems);
+    const exposedRegionItems = applyPetTravelExposureGuard(
+      hydratedRegionItems,
+      getPetTravelQueryIntent(trimmedKeyword, resolvedRegionIntent),
+    );
 
     return {
-      items: rankedRegionItems,
-      totalCount: rankedRegionItems.length,
+      items: exposedRegionItems,
+      totalCount: exposedRegionItems.length,
       apiTotalCount: rankedRegionItems.length,
     };
   }
@@ -1069,10 +1537,15 @@ export async function fetchPetTravelList(
             b.aggregation.score.travelScore -
             a.aggregation.score.travelScore,
         );
+  const hydratedItems = await hydratePetTravelPublicTrust(rankedItems);
+  const exposedItems = applyPetTravelExposureGuard(
+    hydratedItems,
+    getPetTravelQueryIntent(trimmedKeyword, resolvedRegionIntent),
+  );
 
   return {
-    items: rankedItems,
-    totalCount: rankedItems.length,
+    items: exposedItems,
+    totalCount: exposedItems.length,
     apiTotalCount: parsed.totalCount,
   };
 }
@@ -1095,11 +1568,15 @@ export async function fetchPetTravelDetail(
   const commonItems = readTourApiItems(commonJson).items;
   const introItems = readTourApiItems(introJson).items;
   const petItems = readTourApiItems(petJson).items;
+  const trustSnapshotMap = await loadPetTravelTrustSnapshotsBySourceIds([
+    input.item.source.contentId,
+  ]);
 
   return mapDetail(
     input.item,
     commonItems[0] ?? null,
     introItems[0] ?? null,
     petItems[0] ?? null,
+    trustSnapshotMap.get(input.item.source.contentId) ?? null,
   );
 }

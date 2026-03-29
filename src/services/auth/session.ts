@@ -8,6 +8,7 @@ import {
   signOutBestEffort,
   type AccountDeletionResult,
 } from '../supabase/auth';
+import { clearAllRecentPersonalSearches } from '../local/placeTravelSearch';
 import { setMonitoringUser } from '../monitoring/sentry';
 import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
@@ -16,6 +17,7 @@ import { useScheduleStore } from '../../store/scheduleStore';
 
 export async function clearLocalSessionState(): Promise<void> {
   setMonitoringUser({ id: null, email: null });
+  await clearAllRecentPersonalSearches();
   await useAuthStore.getState().signOutLocal();
   usePetStore.getState().clear();
   useRecordStore.getState().clearAll();

@@ -67,8 +67,8 @@
   - [ ] `[자동+수동]` 같은 제목+본문 게시글은 30초 안에 중복 등록되지 않는다.
   - [ ] `[자동+수동]` 댓글 작성은 1분 5회, 10분 20회 제한을 초과하면 서버 기준으로 차단된다.
   - [ ] `[자동+수동]` 같은 게시글에는 같은 댓글이 30초 안에 중복 등록되지 않는다.
-  - [ ] `[수동]` 콘텐츠 정책 차단 시 create/edit/comment 화면이 raw 서버 문구 대신 보수적인 한국어 UX 문구를 보여준다.
-  - [ ] `[수동]` 게시글 작성/수정, 댓글 작성 차단 후 입력값이 지워지지 않고 같은 화면에서 바로 수정 재시도가 가능하다.
+  - [x] `[수동]` Android emulator 기준 post create, post edit, comment create 차단 시 raw 서버 문구 대신 보수적인 한국어 UX 문구가 노출된다.
+  - [x] `[수동]` Android emulator 기준 게시글 작성/수정, 댓글 작성 차단 후 입력값이 지워지지 않고 같은 화면에서 바로 수정 재시도가 가능하다.
   - [x] `[자동]` comment update 서버 guard는 실제 차단됐다. 앱 comment edit UI는 아직 없으므로 수동 UI 검증 항목은 별도로 만들지 않는다.
 - [ ] 신고 / moderation
   - [ ] `[자동+수동]` 신고는 10분 5회, 1일 20회 제한을 초과하면 서버 기준으로 차단된다.
@@ -84,6 +84,7 @@
   - [ ] `[자동+수동]` `rejected_abuse` 처리 시 `community_reporter_flags`에 반복 악성 신고 추적 근거가 남는다.
 - [ ] 이미지 / cleanup
   - [ ] `[자동+수동]` 먼저 community image upload 자체가 성공해 실제 bucket object가 생성되는지 확인한다. `StorageApiError(database error, code: P0001)` 상태면 이후 hidden/cleanup 검증으로 넘어가지 않는다.
+  - [ ] `[수동]` create/edit 이미지 upload warning 또는 image-pick 오류는 raw 원문이 아니라 branded message로 노출되는지 확인한다.
   - [ ] `[자동+수동]` `community-images` 업로드는 10분 10장, 게시글당 최대 3장 제한을 초과하면 서버 기준으로 차단된다.
   - [ ] `[자동+수동]` hidden / auto_hidden / deleted / banned 게시글은 이미지를 다시 signed URL로 노출하지 않는다.
   - [ ] `[자동+수동]` hidden 이미지 비노출은 `object not found`만으로 통과 처리하지 않는다. 업로드 성공과 attach row가 먼저 확인돼야 한다.

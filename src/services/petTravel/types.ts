@@ -1,3 +1,5 @@
+import type { PublicTrustInfo } from '../trust/publicTrust';
+
 export type PetTravelRegion = {
   id: string;
   label: string;
@@ -176,6 +178,11 @@ export type PetTravelItem = {
   source: PetTravelSource;
   petPolicy: PetTravelPetPolicy;
   aggregation: PetTravelAggregationMeta;
+  publicTrust: PublicTrustInfo;
+  userLayer: {
+    targetId: string | null;
+    supportsReport: boolean;
+  };
 };
 
 export type PetTravelListResult = {

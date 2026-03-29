@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
   Pressable,
@@ -14,19 +14,23 @@ import Feather from 'react-native-vector-icons/Feather';
 import AppText from '../../app/ui/AppText';
 import Screen from '../../components/layout/Screen';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
+import { usePetTravelUserLayer } from '../../hooks/usePetTravelUserLayer';
+import { useRecentPersonalSearches } from '../../hooks/useRecentPersonalSearches';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
 import {
   getPetTravelCategories,
-  getPetTravelPetAllowedLabel,
   getPetTravelPlaceTypeLabel,
 } from '../../services/petTravel/catalog';
 import { fetchPetTravelList } from '../../services/petTravel/api';
+import { recordUserSearchLog } from '../../services/supabase/placeTravelUserLayer';
 import type {
   PetTravelCategory,
   PetTravelItem,
 } from '../../services/petTravel/types';
+import type { PublicTrustTone } from '../../services/trust/publicTrust';
+import { getPetTravelOwnReportLabel } from '../../services/trust/userLayerLabels';
 import { usePetStore } from '../../store/petStore';
 import { openMoreDrawer } from '../../store/uiStore';
 import { styles } from './PetTravel.styles';
@@ -51,24 +55,32 @@ function getCategoryIcon(categoryId: PetTravelCategory['id']): string {
   }
 }
 
-function getConfidenceBadgeStyle(label: string) {
-  return label === '동반 확인됨' || label === '방문자 확인'
-    ? styles.petStatusBadgeConfirmed
-    : label === '동반 가능성 높음'
-      ? styles.petStatusBadgeConfirmed
-      : label === '동반 가능성 있음'
-        ? styles.petStatusBadgePossible
-        : styles.petStatusBadgeCautious;
+function getConfidenceBadgeStyle(tone: PublicTrustTone) {
+  switch (tone) {
+    case 'positive':
+      return styles.petStatusBadgeConfirmed;
+    case 'critical':
+      return styles.petStatusBadgeCritical;
+    case 'caution':
+      return styles.petStatusBadgeCautious;
+    case 'neutral':
+    default:
+      return styles.petStatusBadgeNeutral;
+  }
 }
 
-function getConfidenceBadgeTextStyle(label: string) {
-  return label === '동반 확인됨' || label === '방문자 확인'
-    ? styles.petStatusBadgeTextConfirmed
-    : label === '동반 가능성 높음'
-      ? styles.petStatusBadgeTextConfirmed
-      : label === '동반 가능성 있음'
-        ? styles.petStatusBadgeTextPossible
-        : styles.petStatusBadgeTextCautious;
+function getConfidenceBadgeTextStyle(tone: PublicTrustTone) {
+  switch (tone) {
+    case 'positive':
+      return styles.petStatusBadgeTextConfirmed;
+    case 'critical':
+      return styles.petStatusBadgeTextCritical;
+    case 'caution':
+      return styles.petStatusBadgeTextCautious;
+    case 'neutral':
+    default:
+      return styles.petStatusBadgeTextNeutral;
+  }
 }
 
 function buildResultMeta(params: {
@@ -121,6 +133,9 @@ export default function PetTravelListScreen() {
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const recentSearches = useRecentPersonalSearches('pet-travel');
+  const travelUserLayer = usePetTravelUserLayer();
+  const lastLoggedSearchRef = useRef<string | null>(null);
 
   const selectedCategory = useMemo(
     () => categories.find(category => category.id === selectedCategoryId) ?? null,
@@ -230,6 +245,9 @@ export default function PetTravelListScreen() {
 
   const submitSearch = useCallback(() => {
     const nextQuery = queryInput.trim();
+    if (nextQuery.length >= 2) {
+      recentSearches.save(nextQuery).catch(() => {});
+    }
     if (nextQuery === appliedQuery) {
       loadList().catch(() => {});
       return;
@@ -239,7 +257,7 @@ export default function PetTravelListScreen() {
     setHasMore(true);
     setItems([]);
     setAppliedQuery(nextQuery);
-  }, [appliedQuery, loadList, queryInput]);
+  }, [appliedQuery, loadList, queryInput, recentSearches]);
 
   const clearSearch = useCallback(() => {
     setQueryInput('');
@@ -295,9 +313,16 @@ export default function PetTravelListScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: PetTravelItem }) => {
-      const confidenceStyle = getConfidenceBadgeStyle(item.petConfidenceLabel);
-      const confidenceTextStyle = getConfidenceBadgeTextStyle(
-        item.petConfidenceLabel,
+      const confidenceStyle = getConfidenceBadgeStyle(item.publicTrust.tone);
+      const confidenceTextStyle = getConfidenceBadgeTextStyle(item.publicTrust.tone);
+      const cardNotice = item.publicTrust.basisDateLabel
+        ? `${item.publicTrust.shortReason} · ${item.publicTrust.basisDateLabel}`
+        : item.publicTrust.shortReason;
+      const personalRecord = item.userLayer.targetId
+        ? travelUserLayer.records.get(item.userLayer.targetId) ?? null
+        : null;
+      const personalReportLabel = getPetTravelOwnReportLabel(
+        personalRecord?.ownReportType,
       );
 
       return (
@@ -349,7 +374,7 @@ export default function PetTravelListScreen() {
                 preset="caption"
                 style={[styles.petStatusBadgeText, confidenceTextStyle]}
               >
-                {item.petConfidenceLabel}
+                {item.publicTrust.label}
               </AppText>
             </View>
             {item.facilityHighlights.slice(0, 2).map(highlight => (
@@ -369,14 +394,32 @@ export default function PetTravelListScreen() {
           </View>
 
           <AppText preset="caption" style={styles.cardNotice}>
-            {item.petAllowed === 'confirmed'
-              ? item.petNotice
-              : `${getPetTravelPetAllowedLabel(item.petAllowed)} · ${item.petNotice}`}
+            {cardNotice}
           </AppText>
+
+          {personalRecord ? (
+            <View style={styles.personalStateSection}>
+              <AppText preset="caption" style={styles.personalStateLabel}>
+                내 상태
+              </AppText>
+              <View style={styles.personalBadgeRow}>
+                <View style={styles.personalBadge}>
+                  <AppText preset="caption" style={styles.personalBadgeText}>
+                    내가 제보함
+                  </AppText>
+                </View>
+              </View>
+              <AppText preset="caption" style={styles.personalStateNote}>
+                {personalReportLabel
+                  ? `${personalReportLabel}. 개인 상태는 공개 라벨을 올리지 않아요.`
+                  : '개인 상태는 공개 라벨을 올리지 않아요.'}
+              </AppText>
+            </View>
+          ) : null}
         </TouchableOpacity>
       );
     },
-    [onPressItem, petTheme.primary],
+    [onPressItem, petTheme.primary, travelUserLayer.records],
   );
 
   const resultMetaText = useMemo(
@@ -390,10 +433,52 @@ export default function PetTravelListScreen() {
       }),
     [appliedQuery, apiTotalCount, loading, selectedCategory, totalCount],
   );
+  const publicLabelCounts = useMemo(() => {
+    return items.reduce(
+      (accumulator, item) => {
+        accumulator[item.publicTrust.publicLabel] += 1;
+        return accumulator;
+      },
+      {
+        candidate: 0,
+        needs_verification: 0,
+        trust_reviewed: 0,
+      },
+    );
+  }, [items]);
 
   const helperText = appliedQuery
-    ? '지역명 단독 검색은 여행지 중심으로 더 좁게 정제해서 보여줘요.'
-    : '검색어가 없으면 공식 areaBasedList2 응답으로 전체 후보를 보여줘요.';
+    ? '검수 반영, 확인 필요, 후보 순으로 더 보수적으로 정렬해 보여줘요.'
+    : '검색어가 없으면 검수 근거가 약한 후보를 더 낮게 정렬해 보여줘요.';
+
+  useEffect(() => {
+    const normalizedQuery = appliedQuery.trim();
+    if (normalizedQuery.length < 2) {
+      lastLoggedSearchRef.current = null;
+      return;
+    }
+
+    if (loading || errorMessage) {
+      return;
+    }
+
+    const signature = [
+      normalizedQuery,
+      selectedCategoryId,
+      items.length,
+    ].join(':');
+    if (lastLoggedSearchRef.current === signature) {
+      return;
+    }
+
+    lastLoggedSearchRef.current = signature;
+    recordUserSearchLog({
+      sourceDomain: 'pet-travel',
+      queryText: normalizedQuery,
+      resultCount: items.length,
+      providerMix: ['tour-api'],
+    }).catch(() => {});
+  }, [appliedQuery, errorMessage, items.length, loading, selectedCategoryId]);
 
   return (
     <Screen style={styles.screen}>
@@ -457,6 +542,54 @@ export default function PetTravelListScreen() {
                 </AppText>
               </View>
 
+              {recentSearches.searches.length ? (
+                <View style={styles.recentSearchSection}>
+                  <View style={styles.recentSearchHeader}>
+                    <AppText preset="headline" style={styles.sectionTitle}>
+                      최근 검색
+                    </AppText>
+                    <TouchableOpacity
+                      activeOpacity={0.88}
+                      style={styles.recentSearchClearButton}
+                      onPress={() => {
+                        recentSearches.clear().catch(() => {});
+                      }}
+                    >
+                      <AppText
+                        preset="caption"
+                        style={styles.recentSearchClearButtonText}
+                      >
+                        지우기
+                      </AppText>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.recentSearchChipRow}>
+                    {recentSearches.searches.map(entry => (
+                      <TouchableOpacity
+                        key={`pet-travel:recent:${entry.query}`}
+                        activeOpacity={0.9}
+                        style={styles.recentSearchChip}
+                        onPress={() => {
+                          setQueryInput(entry.query);
+                          setAppliedQuery(entry.query);
+                          recentSearches.save(entry.query).catch(() => {});
+                        }}
+                      >
+                        <AppText
+                          preset="caption"
+                          style={styles.recentSearchChipText}
+                        >
+                          {entry.query}
+                        </AppText>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <AppText preset="caption" style={styles.recentSearchCaption}>
+                    최근 검색은 내 검색 편의를 위한 개인 상태예요. 공개 신뢰 라벨과는 별개로만 보여줘요.
+                  </AppText>
+                </View>
+              ) : null}
+
               <View style={styles.sectionWrap}>
                 <AppText preset="headline" style={styles.sectionTitle}>
                   카테고리
@@ -473,6 +606,11 @@ export default function PetTravelListScreen() {
               <View style={styles.resultMetaBar}>
                 <AppText preset="caption" style={styles.resultMetaText}>
                   {resultMetaText}
+                </AppText>
+                <AppText preset="caption" style={styles.resultMetaSubtext}>
+                  검수 반영 {publicLabelCounts.trust_reviewed}곳 · 확인 필요{' '}
+                  {publicLabelCounts.needs_verification}곳 · 후보{' '}
+                  {publicLabelCounts.candidate}곳
                 </AppText>
               </View>
 

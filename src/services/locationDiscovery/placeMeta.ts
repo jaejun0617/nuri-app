@@ -61,6 +61,7 @@ export type PetFriendlyPlaceServiceMeta = {
   operatingStatusLabel: string | null;
   userReportCount: number;
   bookmarkedCount: number;
+  lastVerifiedAt: string | null;
   sourceLinks: ReadonlyArray<PetFriendlyPlaceSourceLink>;
   externalSignals: ReadonlyArray<PetFriendlyPlaceExternalSignal>;
   createdAt: string;
@@ -83,6 +84,7 @@ type PetPlaceServiceMetaRow = {
   operating_status_label: string | null;
   user_report_count: number | null;
   bookmarked_count: number | null;
+  last_verified_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -238,6 +240,7 @@ function mapServiceMetaRow(
     operatingStatusLabel: normalizeString(row.operating_status_label),
     userReportCount: row.user_report_count ?? 0,
     bookmarkedCount: row.bookmarked_count ?? 0,
+    lastVerifiedAt: row.last_verified_at,
     sourceLinks: [],
     externalSignals: [],
     createdAt: row.created_at,
@@ -338,7 +341,7 @@ export async function loadPetFriendlyPlaceServiceMeta(
       supabase
         .from('pet_place_service_meta')
         .select(
-          'id, verification_status, source_type, primary_source_provider, primary_source_place_id, pet_policy_text, admin_note, operating_status_label, user_report_count, bookmarked_count, created_at, updated_at',
+          'id, verification_status, source_type, primary_source_provider, primary_source_place_id, pet_policy_text, admin_note, operating_status_label, user_report_count, bookmarked_count, last_verified_at, created_at, updated_at',
         )
         .in('id', metaIds),
       supabase

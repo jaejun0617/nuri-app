@@ -110,6 +110,52 @@ export const styles = StyleSheet.create({
     lineHeight: 18,
     fontWeight: '700',
   },
+  resultMetaSubtext: {
+    color: '#7B8597',
+    lineHeight: 18,
+    marginTop: 4,
+  },
+  recentSearchSection: {
+    gap: 10,
+    marginBottom: 14,
+  },
+  recentSearchHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  recentSearchClearButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#EEF2F6',
+  },
+  recentSearchClearButtonText: {
+    color: '#516074',
+    fontWeight: '800',
+  },
+  recentSearchChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  recentSearchChip: {
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D7DEE8',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  recentSearchChipText: {
+    color: '#4B5565',
+    fontWeight: '800',
+  },
+  recentSearchCaption: {
+    color: '#697586',
+    lineHeight: 18,
+  },
   listContent: {
     paddingBottom: 32,
     gap: 10,
@@ -206,6 +252,36 @@ export const styles = StyleSheet.create({
     color: '#7C4A00',
     lineHeight: 20,
   },
+  personalStateSection: {
+    gap: 8,
+    borderRadius: 16,
+    backgroundColor: '#F7F9FC',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  personalStateLabel: {
+    color: '#697586',
+    fontWeight: '900',
+  },
+  personalBadgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  personalBadge: {
+    borderRadius: 999,
+    backgroundColor: '#E7EDF5',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  personalBadgeText: {
+    color: '#455468',
+    fontWeight: '800',
+  },
+  personalStateNote: {
+    color: '#697586',
+    lineHeight: 18,
+  },
   petStatusBadge: {
     borderRadius: 999,
     paddingHorizontal: 10,
@@ -214,11 +290,14 @@ export const styles = StyleSheet.create({
   petStatusBadgeConfirmed: {
     backgroundColor: '#E8F7EC',
   },
-  petStatusBadgePossible: {
-    backgroundColor: '#EEF6EA',
+  petStatusBadgeNeutral: {
+    backgroundColor: '#EEF2F6',
   },
   petStatusBadgeCautious: {
     backgroundColor: '#FFF5E8',
+  },
+  petStatusBadgeCritical: {
+    backgroundColor: '#FDECEA',
   },
   petStatusBadgeText: {
     fontWeight: '800',
@@ -226,11 +305,14 @@ export const styles = StyleSheet.create({
   petStatusBadgeTextConfirmed: {
     color: '#196A34',
   },
-  petStatusBadgeTextPossible: {
-    color: '#2F8F48',
+  petStatusBadgeTextNeutral: {
+    color: '#516074',
   },
   petStatusBadgeTextCautious: {
     color: '#A05B00',
+  },
+  petStatusBadgeTextCritical: {
+    color: '#B9382F',
   },
   emptyCard: {
     borderRadius: 20,
@@ -337,6 +419,12 @@ export const styles = StyleSheet.create({
     padding: 18,
     gap: 10,
   },
+  personalSectionCard: {
+    borderRadius: 22,
+    backgroundColor: '#F7F9FC',
+    padding: 18,
+    gap: 10,
+  },
   detailSectionTitle: {
     color: '#102033',
     fontWeight: '900',
@@ -344,6 +432,45 @@ export const styles = StyleSheet.create({
   detailSectionBody: {
     color: '#526070',
     lineHeight: 21,
+  },
+  detailTrustMetaWrap: {
+    gap: 8,
+    marginTop: 2,
+  },
+  detailTrustMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  detailTrustMetaLabel: {
+    color: '#7B8597',
+    fontWeight: '800',
+  },
+  detailTrustMetaValue: {
+    flex: 1,
+    color: '#526070',
+    textAlign: 'right',
+    lineHeight: 18,
+  },
+  detailTrustNotice: {
+    color: '#A05B00',
+    lineHeight: 18,
+  },
+  personalStatusEmpty: {
+    color: '#697586',
+    lineHeight: 18,
+  },
+  personalActionButton: {
+    minHeight: 46,
+    borderRadius: 16,
+    backgroundColor: '#E7EDF5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  personalActionButtonText: {
+    color: '#102033',
+    fontWeight: '900',
   },
   detailHighlightWrap: {
     flexDirection: 'row',

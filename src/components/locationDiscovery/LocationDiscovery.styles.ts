@@ -311,6 +311,36 @@ export const styles = StyleSheet.create({
     color: '#FA6B2D',
     fontWeight: '800',
   },
+  personalStateSection: {
+    gap: 8,
+    borderRadius: 16,
+    backgroundColor: '#F7F9FC',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  personalStateLabel: {
+    color: '#6B7688',
+    fontWeight: '900',
+  },
+  personalBadgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  personalBadge: {
+    borderRadius: 999,
+    backgroundColor: '#E7EDF5',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  personalBadgeText: {
+    color: '#455468',
+    fontWeight: '800',
+  },
+  personalStateNote: {
+    color: '#6B7688',
+    lineHeight: 18,
+  },
   emptyCard: {
     borderRadius: 22,
     backgroundColor: '#FFFFFF',
@@ -461,6 +491,95 @@ export const styles = StyleSheet.create({
     color: '#566273',
     fontWeight: '700',
     flex: 1,
+  },
+  personalSectionCard: {
+    borderRadius: 18,
+    backgroundColor: '#F7F9FC',
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    gap: 10,
+  },
+  personalSectionTitle: {
+    color: '#102033',
+    fontWeight: '900',
+  },
+  personalSectionBody: {
+    color: '#586678',
+    lineHeight: 20,
+  },
+  personalStatusWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  personalStatusEmpty: {
+    color: '#7B8597',
+    lineHeight: 19,
+  },
+  personalActionRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  personalActionButton: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 14,
+    backgroundColor: '#E7EDF5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+  },
+  personalActionButtonPrimary: {
+    backgroundColor: '#DFF1E4',
+  },
+  personalActionButtonText: {
+    color: '#102033',
+    fontWeight: '900',
+  },
+  recentSearchSection: {
+    gap: 10,
+    marginBottom: 14,
+  },
+  recentSearchHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  recentSearchTitle: {
+    color: '#102033',
+    fontWeight: '900',
+  },
+  recentSearchClearButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#EEF2F8',
+  },
+  recentSearchClearButtonText: {
+    color: '#506074',
+    fontWeight: '800',
+  },
+  recentSearchChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  recentSearchChip: {
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D8DEEA',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  recentSearchChipText: {
+    color: '#4F5B6B',
+    fontWeight: '800',
+  },
+  recentSearchCaption: {
+    color: '#7B8597',
+    lineHeight: 18,
   },
   actionRow: {
     flexDirection: 'row',

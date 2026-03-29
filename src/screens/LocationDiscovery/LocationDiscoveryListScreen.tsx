@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -22,6 +22,8 @@ import {
 import { styles } from '../../components/locationDiscovery/LocationDiscovery.styles';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import { useLocationDiscovery } from '../../hooks/useLocationDiscovery';
+import { usePlaceUserLayer } from '../../hooks/usePlaceUserLayer';
+import { useRecentPersonalSearches } from '../../hooks/useRecentPersonalSearches';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
@@ -30,6 +32,8 @@ import type {
   LocationDiscoveryItem,
   LocationDiscoverySortOption,
 } from '../../services/locationDiscovery/types';
+import { recordUserSearchLog } from '../../services/supabase/placeTravelUserLayer';
+import { getPetPlaceOwnReportLabel } from '../../services/trust/userLayerLabels';
 import { usePetStore } from '../../store/petStore';
 import { openMoreDrawer } from '../../store/uiStore';
 
@@ -45,10 +49,10 @@ function getDomainCopy(domain: LocationDiscoveryDomain) {
   if (domain === 'walk') {
     return {
       title: '우리동네 산책 리스트',
-      sectionTitle: '주변 산책 추천 코스',
+      sectionTitle: '주변 산책 후보',
       placeholder: '공원, 산책로, 지역 검색',
       helperText:
-        '현재 위치 주변 추천이 기본이며, 검색어를 입력한 뒤 검색 버튼으로 직접 찾을 수 있어요.',
+        '현재 위치 주변 후보가 기본이며, 검색어를 입력한 뒤 검색 버튼으로 직접 찾을 수 있어요.',
       detailRoute: 'WalkSpotDetail' as const,
     };
   }
@@ -58,7 +62,7 @@ function getDomainCopy(domain: LocationDiscoveryDomain) {
     sectionTitle: '주변 펫동반 카페 / 공간',
     placeholder: '카페명, 식당명, 지역명, 키워드 검색',
     helperText:
-      '현재 위치 주변 추천이 기본이며, 상호명·지역명·애견카페·테라스 같은 키워드로도 찾을 수 있어요.',
+      '현재 위치 주변 후보가 기본이며, 상호명·지역명·애견카페·테라스 같은 키워드로도 찾을 수 있어요.',
       detailRoute: 'PetFriendlyPlaceDetail' as const,
   };
 }
@@ -72,6 +76,11 @@ export default function LocationDiscoveryListScreen({ domain }: Props) {
   const [searchInput, setSearchInput] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<LocationDiscoverySortOption>('recommended');
+  const recentSearches = useRecentPersonalSearches(domain);
+  const placeUserLayer = usePlaceUserLayer({
+    enabled: domain === 'pet-friendly-place',
+  });
+  const lastLoggedSearchRef = useRef<string | null>(null);
   const discoveryState = useLocationDiscovery({
     domain,
     query: submittedQuery,
@@ -99,8 +108,8 @@ export default function LocationDiscoveryListScreen({ domain }: Props) {
     return submittedQuery.trim().length >= 2
       ? '검색어와 현재 위치를 함께 참고하고 있어요'
       : discoveryState.hasFreshLocation
-        ? '현재 위치 기준 추천'
-        : '최근 확인 위치 기준';
+        ? '현재 위치 기준 후보'
+        : '최근 확인 위치 기준 후보';
   }, [
     submittedQuery,
     discoveryState.hasFreshLocation,
@@ -131,10 +140,59 @@ export default function LocationDiscoveryListScreen({ domain }: Props) {
 
     return items;
   }, [discoveryState.items, sortOrder]);
+  const publicLabelCounts = useMemo(() => {
+    return sortedItems.reduce(
+      (accumulator, item) => {
+        accumulator[item.publicTrust.publicLabel] += 1;
+        return accumulator;
+      },
+      {
+        candidate: 0,
+        needs_verification: 0,
+        trust_reviewed: 0,
+      },
+    );
+  }, [sortedItems]);
+  const buildCardPersonalState = useCallback(
+    (item: LocationDiscoveryItem) => {
+      if (domain !== 'pet-friendly-place' || !item.userLayer.targetId) {
+        return null;
+      }
+
+      const record = placeUserLayer.records.get(item.userLayer.targetId);
+      if (!record) {
+        return null;
+      }
+
+      const badges: string[] = [];
+      if (record.isBookmarked) {
+        badges.push('저장함');
+      }
+      if (record.ownReportStatus) {
+        badges.push('내가 제보함');
+      }
+
+      if (!badges.length) {
+        return null;
+      }
+
+      const reportLabel = getPetPlaceOwnReportLabel(record.ownReportStatus);
+      return {
+        badges,
+        note: reportLabel
+          ? `${reportLabel}. 개인 상태는 공개 라벨을 올리지 않아요.`
+          : '개인 상태는 공개 라벨을 올리지 않아요.',
+      };
+    },
+    [domain, placeUserLayer.records],
+  );
   const handleSubmitSearch = useCallback(() => {
     const normalized = searchInput.trim().replace(/\s+/g, ' ');
+    if (normalized.length >= 2) {
+      recentSearches.save(normalized).catch(() => {});
+    }
     setSubmittedQuery(normalized);
-  }, [searchInput]);
+  }, [recentSearches, searchInput]);
   const handleChangeSearchInput = useCallback((value: string) => {
     setSearchInput(value);
 
@@ -179,14 +237,65 @@ export default function LocationDiscoveryListScreen({ domain }: Props) {
   );
   const renderItem = useCallback(
     ({ item }: { item: LocationDiscoveryItem }) => (
-      <LocationDiscoveryCard item={item} onPress={onPressItem} />
+      <LocationDiscoveryCard
+        item={item}
+        onPress={onPressItem}
+        personalState={buildCardPersonalState(item)}
+      />
     ),
-    [onPressItem],
+    [buildCardPersonalState, onPressItem],
   );
   const keyExtractor = useCallback(
     (item: LocationDiscoveryItem) => `${domain}:${item.id}`,
     [domain],
   );
+
+  useEffect(() => {
+    if (domain !== 'pet-friendly-place') {
+      return;
+    }
+
+    const normalizedQuery = submittedQuery.trim();
+    if (normalizedQuery.length < 2) {
+      lastLoggedSearchRef.current = null;
+      return;
+    }
+
+    if (discoveryState.loading || discoveryState.searching || discoveryState.error) {
+      return;
+    }
+
+    const signature = [
+      domain,
+      normalizedQuery,
+      discoveryState.scope.anchorCoordinates?.latitude?.toFixed(3) ?? 'na',
+      discoveryState.scope.anchorCoordinates?.longitude?.toFixed(3) ?? 'na',
+      sortedItems.length,
+    ].join(':');
+
+    if (lastLoggedSearchRef.current === signature) {
+      return;
+    }
+
+    lastLoggedSearchRef.current = signature;
+    recordUserSearchLog({
+      sourceDomain: 'pet-friendly-place',
+      queryText: normalizedQuery,
+      anchorLatitude: discoveryState.scope.anchorCoordinates?.latitude ?? null,
+      anchorLongitude: discoveryState.scope.anchorCoordinates?.longitude ?? null,
+      resultCount: sortedItems.length,
+      providerMix: ['kakao'],
+    }).catch(() => {});
+  }, [
+    discoveryState.error,
+    discoveryState.loading,
+    discoveryState.scope.anchorCoordinates?.latitude,
+    discoveryState.scope.anchorCoordinates?.longitude,
+    discoveryState.searching,
+    domain,
+    sortedItems.length,
+    submittedQuery,
+  ]);
 
   return (
     <Screen style={styles.screen}>
@@ -227,6 +336,51 @@ export default function LocationDiscoveryListScreen({ domain }: Props) {
               : null
           }
         />
+
+        {recentSearches.searches.length ? (
+          <View style={styles.recentSearchSection}>
+            <View style={styles.recentSearchHeader}>
+              <AppText preset="headline" style={styles.recentSearchTitle}>
+                최근 검색
+              </AppText>
+              <TouchableOpacity
+                activeOpacity={0.88}
+                style={styles.recentSearchClearButton}
+                onPress={() => {
+                  recentSearches.clear().catch(() => {});
+                }}
+              >
+                <AppText
+                  preset="caption"
+                  style={styles.recentSearchClearButtonText}
+                >
+                  지우기
+                </AppText>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.recentSearchChipRow}>
+              {recentSearches.searches.map(entry => (
+                <TouchableOpacity
+                  key={`${domain}:recent:${entry.query}`}
+                  activeOpacity={0.9}
+                  style={styles.recentSearchChip}
+                  onPress={() => {
+                    setSearchInput(entry.query);
+                    setSubmittedQuery(entry.query);
+                    recentSearches.save(entry.query).catch(() => {});
+                  }}
+                >
+                  <AppText preset="caption" style={styles.recentSearchChipText}>
+                    {entry.query}
+                  </AppText>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <AppText preset="caption" style={styles.recentSearchCaption}>
+              최근 검색은 내 기기 편의를 위한 개인 상태예요. 공개 라벨에는 영향을 주지 않아요.
+            </AppText>
+          </View>
+        ) : null}
 
         <View style={styles.locationInfoCard}>
           <View
@@ -295,7 +449,7 @@ export default function LocationDiscoveryListScreen({ domain }: Props) {
                     : null,
                 ]}
               >
-                추천순
+                신뢰 우선
               </AppText>
             </TouchableOpacity>
             <TouchableOpacity
@@ -368,10 +522,12 @@ export default function LocationDiscoveryListScreen({ domain }: Props) {
         {domain === 'pet-friendly-place' ? (
           <View style={styles.infoBanner}>
             <AppText preset="caption" style={styles.infoBannerTitle}>
-              현재는 외부 후보 검색 + 서비스 검증 상태 분리 구조예요
+              검수 반영 {publicLabelCounts.trust_reviewed}곳 · 확인 필요{' '}
+              {publicLabelCounts.needs_verification}곳 · 후보{' '}
+              {publicLabelCounts.candidate}곳
             </AppText>
             <AppText preset="body" style={styles.infoBannerBody}>
-              장소 후보는 Kakao Local에서 수집하고, 펫동반 가능 여부는 별도 검증 상태로 표시해요. 자체 Supabase 장소 메타 DB는 아직 없어 방문 전 정책 재확인이 필요해요.
+              검수 정보가 없는 후보는 더 보수적으로 낮춰 보여줘요. 외부 원본과 검수 정보가 다를 수 있으니 실제 방문 전 정책을 다시 확인해 주세요.
             </AppText>
           </View>
         ) : null}
@@ -407,7 +563,9 @@ export default function LocationDiscoveryListScreen({ domain }: Props) {
               title={
                 discoveryState.usingStaleLocation
                   ? '현재 위치를 다시 확인하는 중이에요'
-                  : '현재 위치 주변 추천을 아직 찾지 못했어요'
+                  : domain === 'walk'
+                    ? '현재 위치 주변 산책 후보를 아직 찾지 못했어요'
+                    : '현재 위치 주변 펫동반 후보를 아직 찾지 못했어요'
               }
               body={
                 discoveryState.usingStaleLocation

@@ -13,6 +13,16 @@
 // - 현재 source of truth는 외부 후보 + 선택적 메타 merge이므로, 검증 상태를 과하게 확정하는 방향으로 바꾸면 안 된다.
 // - 정렬/필터 패턴 하나만 바꿔도 산책과 펫동반 장소 양쪽 체감 품질이 동시에 달라지므로 실기기 검색 QA가 필요하다.
 import type { DeviceCoordinates } from '../location/currentPosition';
+import type { PublicTrustInfo } from '../trust/publicTrust';
+import {
+  buildTrustBasisDateLabel,
+  canKeepTrustReviewed,
+  getPublicTrustPriority,
+  getPublicTrustLabelText,
+  hasAnyTrustEvidence,
+  hasTrustBasisDate,
+  isTrustDateStale,
+} from '../trust/publicTrust';
 import type { PetFriendlyPlaceServiceMeta } from './placeMeta';
 import {
   buildPetPlaceSourceLookupKey,
@@ -145,6 +155,41 @@ const PET_NEGATIVE_KEYWORDS = [
   '학교',
   '학원',
 ] as const;
+const PLACE_CONFLICT_SIGNAL_KEYS = new Set([
+  'allows-dogs',
+  'official-pet-policy',
+  'pet-travel-listing',
+]);
+const PLACE_BROAD_QUERY_KEYWORDS = [
+  '애견',
+  '반려',
+  '강아지',
+  '펫',
+  '동반',
+  '카페',
+  '식당',
+  '레스토랑',
+  '테라스',
+  '공간',
+  '장소',
+  '맛집',
+  '브런치',
+  '펍',
+] as const;
+const WALK_BROAD_QUERY_KEYWORDS = [
+  '공원',
+  '산책',
+  '산책로',
+  '둘레길',
+  '숲길',
+  '호수',
+  '해변',
+  '강변',
+  '수변',
+  '트레킹',
+  '러닝',
+  '코스',
+] as const;
 
 type NormalizedPlaceBase = {
   id: string;
@@ -165,6 +210,8 @@ type NormalizedPlaceBase = {
   externalPlaceId: string | null;
 };
 
+type DiscoveryQueryIntent = 'none' | 'broad' | 'specific';
+
 type NormalizedPetFriendlyCandidate = NormalizedPlaceBase & {
   domain: 'pet-friendly-place';
   hasKeywordEvidence: boolean;
@@ -177,6 +224,33 @@ function formatCoordinateLabel(latitude: number, longitude: number): string {
 function normalizeQuery(value: string | null | undefined): string | null {
   const normalized = (value ?? '').trim().replace(/\s+/g, ' ');
   return normalized || null;
+}
+
+function getDiscoveryQueryIntent(
+  value: string | null | undefined,
+  broadKeywords: ReadonlyArray<string>,
+): DiscoveryQueryIntent {
+  const normalized = normalizeQuery(value);
+  if (!normalized) {
+    return 'none';
+  }
+
+  const tokens = normalized
+    .split(' ')
+    .map(token => token.trim())
+    .filter(Boolean);
+
+  const isBroadToken = tokens.some(token => {
+    if (token.length <= 3) {
+      return true;
+    }
+
+    return broadKeywords.some(
+      keyword => token.includes(keyword) || keyword.includes(token),
+    );
+  });
+
+  return isBroadToken ? 'broad' : 'specific';
 }
 
 function parseCoordinate(value: string | undefined): number | null {
@@ -334,7 +408,7 @@ function filterPetFriendlyDocument(document: KakaoPlaceDocument): boolean {
 function getPetFriendlyPriority(item: LocationDiscoveryItem): number {
   const haystack = `${item.name} ${item.categoryLabel} ${item.description}`;
   const hasPetKeyword =
-    item.verification.status === 'keyword-inferred' ||
+    item.publicTrust.publicLabel !== 'candidate' ||
     matchesPositiveKeyword(haystack, PET_POSITIVE_KEYWORDS);
 
   switch (item.kind) {
@@ -378,11 +452,30 @@ function dedupeItems(
 function buildWalkVerification() {
   return {
     status: 'service-ranked' as const,
-    label: '서비스 추천',
-    description: '현재 위치와 산책 키워드를 기준으로 정리한 추천 결과예요.',
+    label: '현재 위치 기반 후보',
+    description:
+      '현재 위치와 산책 키워드를 기준으로 정리한 후보예요. 실제 이용 가능 여부는 다시 확인해 주세요.',
     tone: 'neutral' as const,
     sourceLabel: 'NURI 추천 정렬',
-    requiresConfirmation: false,
+    requiresConfirmation: true,
+  };
+}
+
+function buildWalkPublicTrust(): PublicTrustInfo {
+  return {
+    publicLabel: 'candidate',
+    label: getPublicTrustLabelText('candidate'),
+    shortReason: '거리와 키워드를 기준으로 정리한 산책 후보예요.',
+    description:
+      '현재 위치 기반 편의 추천이며 공적 검수 정보와는 별도예요.',
+    guidance: '실제 운영 상태와 이용 가능 여부는 현장에서 다시 확인해 주세요.',
+    tone: 'neutral',
+    sourceLabel: '현재 위치 기반 추천',
+    basisDate: null,
+    basisDateLabel: null,
+    isStale: false,
+    hasConflict: false,
+    layers: ['candidate'],
   };
 }
 
@@ -475,6 +568,194 @@ function buildExternalPetPolicyNote(document: KakaoPlaceDocument): string {
   return `${category} 방문 전 실제 반려동물 동반 가능 여부와 입장 조건을 꼭 다시 확인해 주세요.`;
 }
 
+function buildPetFriendlyPublicTrust(params: {
+  candidate: NormalizedPetFriendlyCandidate;
+  serviceMeta: PetFriendlyPlaceServiceMeta | undefined;
+}): PublicTrustInfo {
+  const { candidate, serviceMeta } = params;
+  const layers: Array<'candidate' | 'trust' | 'user'> = ['candidate'];
+  const isStale = isTrustDateStale(serviceMeta?.lastVerifiedAt);
+  const hasPositiveExternalSignal = Boolean(
+    serviceMeta?.externalSignals.some(signal => {
+      if (!PLACE_CONFLICT_SIGNAL_KEYS.has(signal.signalKey)) {
+        return false;
+      }
+
+      if (signal.signalValueBoolean === true) {
+        return true;
+      }
+
+      return signal.signalScore >= 0.65;
+    }),
+  );
+  const hasNegativeExternalSignal = Boolean(
+    serviceMeta?.externalSignals.some(
+      signal =>
+        PLACE_CONFLICT_SIGNAL_KEYS.has(signal.signalKey) &&
+        signal.signalValueBoolean === false,
+    ),
+  );
+  const hasEvidence = hasAnyTrustEvidence({
+    summaryText: serviceMeta?.petPolicyText,
+    noteText: serviceMeta?.adminNote,
+    linkCount: serviceMeta?.sourceLinks.length ?? 0,
+    signalCount: serviceMeta?.externalSignals.length ?? 0,
+  });
+  const hasFreshnessBasis = hasTrustBasisDate(serviceMeta?.lastVerifiedAt);
+  const hasConflict =
+    Boolean(serviceMeta) &&
+    ((serviceMeta?.verificationStatus === 'rejected' &&
+      (candidate.hasKeywordEvidence || hasPositiveExternalSignal)) ||
+      (serviceMeta?.verificationStatus === 'admin-verified' &&
+        hasNegativeExternalSignal));
+
+  if (serviceMeta) {
+    layers.push('trust');
+    if (
+      serviceMeta.sourceType === 'user-report' ||
+      serviceMeta.userReportCount > 0
+    ) {
+      layers.push('user');
+    }
+  }
+
+  const canPublishTrustReviewed = canKeepTrustReviewed({
+    isAdminReviewed: serviceMeta?.verificationStatus === 'admin-verified',
+    basisDate: serviceMeta?.lastVerifiedAt,
+    hasConflict,
+    hasEvidence,
+  });
+
+  if (canPublishTrustReviewed && serviceMeta?.verificationStatus === 'admin-verified') {
+    return {
+      publicLabel: 'trust_reviewed',
+      label: getPublicTrustLabelText('trust_reviewed'),
+      shortReason: '운영 검수 이력이 반영된 장소예요.',
+      description:
+        '검수 메타를 참고한 정보지만 외부 원본과 실제 현장 정책은 달라질 수 있어요.',
+      guidance: '실제 방문 전 반려동물 동반 조건을 다시 한 번 확인해 주세요.',
+      tone: 'positive',
+      sourceLabel: '운영 검수 메타',
+      basisDate: serviceMeta.lastVerifiedAt,
+      basisDateLabel: buildTrustBasisDateLabel(
+        serviceMeta.lastVerifiedAt,
+        '검수 기준일',
+      ),
+      isStale: false,
+      hasConflict,
+      layers,
+    };
+  }
+
+  if (serviceMeta?.verificationStatus === 'rejected') {
+    return {
+      publicLabel: 'needs_verification',
+      label: getPublicTrustLabelText('needs_verification'),
+      shortReason: '동반 불가 이력이 있어 재확인이 필요해요.',
+      description:
+        '외부 후보와 운영 메타가 다를 수 있어 가장 보수적인 라벨을 유지해요.',
+      guidance: '매장 또는 시설의 최신 정책을 직접 확인해 주세요.',
+      tone: 'critical',
+      sourceLabel: '동반 불가 이력',
+      basisDate: serviceMeta.lastVerifiedAt,
+      basisDateLabel: buildTrustBasisDateLabel(
+        serviceMeta.lastVerifiedAt,
+        '검수 기준일',
+      ),
+      isStale,
+      hasConflict,
+      layers,
+    };
+  }
+
+  if (
+    serviceMeta?.verificationStatus === 'user-reported' ||
+    serviceMeta?.sourceType === 'user-report'
+  ) {
+    return {
+      publicLabel: 'needs_verification',
+      label: getPublicTrustLabelText('needs_verification'),
+      shortReason: '사용자 제보가 있지만 운영 확정 단계는 아니에요.',
+      description:
+        '사용자 제보는 참고용 신호이며 외부 원본과 실제 현장 정책이 다를 수 있어요.',
+      guidance: '실제 방문 전 반려동물 동반 조건을 다시 확인해 주세요.',
+      tone: 'caution',
+      sourceLabel: '사용자 제보',
+      basisDate: serviceMeta.lastVerifiedAt,
+      basisDateLabel: buildTrustBasisDateLabel(
+        serviceMeta.lastVerifiedAt,
+        '제보 기준일',
+      ),
+      isStale,
+      hasConflict,
+      layers,
+    };
+  }
+
+  if (serviceMeta) {
+    return {
+      publicLabel: 'needs_verification',
+      label: getPublicTrustLabelText('needs_verification'),
+      shortReason: hasConflict
+        ? '검수 메타와 외부 신호가 엇갈려 재확인이 필요해요.'
+        : isStale
+          ? '검수 기준일이 오래돼 다시 확인이 필요해요.'
+          : !hasFreshnessBasis
+            ? '검수 기준일이 없어 공적 라벨을 더 올리지 않았어요.'
+          : !hasEvidence
+            ? '검수 메타는 있지만 공개 라벨을 올릴 근거가 아직 부족해요.'
+            : '서비스 메타는 있지만 확정 검수 단계는 아니에요.',
+      description:
+        '서비스 메타가 있어도 기준일, 근거, 외부 신호가 충분히 맞지 않으면 더 보수적인 라벨을 유지해요.',
+      guidance: '실제 방문 전 반려동물 동반 조건을 다시 확인해 주세요.',
+      tone: 'caution',
+      sourceLabel: '서비스 메타',
+      basisDate: serviceMeta.lastVerifiedAt,
+      basisDateLabel: buildTrustBasisDateLabel(
+        serviceMeta.lastVerifiedAt,
+        '기준일',
+      ),
+      isStale,
+      hasConflict,
+      layers,
+    };
+  }
+
+  if (candidate.hasKeywordEvidence) {
+    return {
+      publicLabel: 'needs_verification',
+      label: getPublicTrustLabelText('needs_verification'),
+      shortReason: '펫 관련 키워드가 잡힌 외부 후보예요.',
+      description:
+        '외부 원본만으로는 실제 동반 가능 여부를 확정할 수 없어요.',
+      guidance: '실제 방문 전 반려동물 동반 조건을 다시 확인해 주세요.',
+      tone: 'caution',
+      sourceLabel: 'Kakao Local 후보',
+      basisDate: null,
+      basisDateLabel: null,
+      isStale: false,
+      hasConflict: false,
+      layers,
+    };
+  }
+
+  return {
+    publicLabel: 'candidate',
+    label: getPublicTrustLabelText('candidate'),
+    shortReason: '검증 근거가 부족한 외부 후보예요.',
+    description:
+      '후보는 보이지만 공적 검수 정보가 없어 신뢰 라벨을 올리지 않았어요.',
+    guidance: '실제 방문 전 반려동물 동반 조건을 다시 확인해 주세요.',
+    tone: 'neutral',
+    sourceLabel: 'Kakao Local 후보',
+    basisDate: null,
+    basisDateLabel: null,
+    isStale: false,
+    hasConflict: false,
+    layers,
+  };
+}
+
 function toWalkItem(
   document: KakaoPlaceDocument,
   distanceReferenceCoordinates: DeviceCoordinates | null,
@@ -524,6 +805,12 @@ function toWalkItem(
       externalPlaceId: document.id?.trim() || null,
     },
     verification: buildWalkVerification(),
+    publicTrust: buildWalkPublicTrust(),
+    userLayer: {
+      targetId: null,
+      supportsBookmark: false,
+      supportsReport: false,
+    },
     petPolicy: {
       summaryLabel: null,
       detail: null,
@@ -597,6 +884,10 @@ function mergePetFriendlyCandidate(
     verificationStatus,
     sourceType,
   );
+  const publicTrust = buildPetFriendlyPublicTrust({
+    candidate,
+    serviceMeta,
+  });
 
   return {
     id: candidate.id,
@@ -622,6 +913,12 @@ function mergePetFriendlyCandidate(
       externalPlaceId: candidate.externalPlaceId,
     },
     verification,
+    publicTrust,
+    userLayer: {
+      targetId: serviceMeta?.id ?? null,
+      supportsBookmark: Boolean(serviceMeta?.id),
+      supportsReport: Boolean(serviceMeta?.id),
+    },
     petPolicy: {
       summaryLabel: getPetPolicySummaryLabel(verification.status),
       detail:
@@ -689,6 +986,13 @@ async function searchDocumentsByQueries(
 
 function sortItems(items: ReadonlyArray<LocationDiscoveryItem>): LocationDiscoveryItem[] {
   return [...items].sort((left, right) => {
+    const trustPriorityDiff =
+      getPublicTrustPriority(left.publicTrust.publicLabel) -
+      getPublicTrustPriority(right.publicTrust.publicLabel);
+    if (trustPriorityDiff !== 0) {
+      return trustPriorityDiff;
+    }
+
     if (left.domain === 'walk' && right.domain === 'walk') {
       const leftPriority = getWalkPriority(left);
       const rightPriority = getWalkPriority(right);
@@ -720,6 +1024,69 @@ function sortItems(items: ReadonlyArray<LocationDiscoveryItem>): LocationDiscove
   });
 }
 
+function applyWalkExposureGuard(
+  items: ReadonlyArray<LocationDiscoveryItem>,
+  query: string | null | undefined,
+): LocationDiscoveryItem[] {
+  const queryIntent = getDiscoveryQueryIntent(query, WALK_BROAD_QUERY_KEYWORDS);
+  const distanceCapMeters =
+    queryIntent === 'none' ? 3200 : queryIntent === 'broad' ? 4500 : null;
+  const itemCap =
+    queryIntent === 'none' ? 8 : queryIntent === 'broad' ? 10 : 12;
+
+  const distanceFiltered = items.filter((item, index) => {
+    if (distanceCapMeters === null) {
+      return true;
+    }
+
+    if (item.distanceMeters === null || item.distanceMeters <= distanceCapMeters) {
+      return true;
+    }
+
+    return index < 3;
+  });
+
+  return distanceFiltered.slice(0, itemCap);
+}
+
+function applyPetFriendlyExposureGuard(
+  items: ReadonlyArray<LocationDiscoveryItem>,
+  query: string | null | undefined,
+): LocationDiscoveryItem[] {
+  const queryIntent = getDiscoveryQueryIntent(query, PLACE_BROAD_QUERY_KEYWORDS);
+  const trustReviewed = items.filter(
+    item => item.publicTrust.publicLabel === 'trust_reviewed',
+  );
+  const needsVerification = items.filter(
+    item => item.publicTrust.publicLabel === 'needs_verification',
+  );
+  const candidates = items.filter(
+    item => item.publicTrust.publicLabel === 'candidate',
+  );
+  const strongerCount = trustReviewed.length + needsVerification.length;
+
+  const needsVerificationCap =
+    queryIntent === 'none' ? 4 : queryIntent === 'broad' ? 5 : 6;
+  const candidateCap =
+    queryIntent === 'none'
+      ? strongerCount > 0
+        ? 1
+        : 2
+      : queryIntent === 'broad'
+        ? strongerCount > 0
+          ? 1
+          : 2
+        : strongerCount > 0
+          ? 2
+          : 3;
+
+  return [
+    ...trustReviewed,
+    ...needsVerification.slice(0, needsVerificationCap),
+    ...candidates.slice(0, candidateCap),
+  ];
+}
+
 async function searchWalkLocations(
   input: LocationDiscoverySearchInput,
 ): Promise<LocationDiscoveryResponse> {
@@ -733,15 +1100,18 @@ async function searchWalkLocations(
     },
   );
 
-  const items = sortItems(
-    dedupeItems(
-      documents
-        .filter(filterWalkDocument)
-        .map(document =>
-          toWalkItem(document, input.scope.anchorCoordinates, input.scope.distanceLabel),
-        )
-        .filter((item): item is LocationDiscoveryItem => Boolean(item)),
+  const items = applyWalkExposureGuard(
+    sortItems(
+      dedupeItems(
+        documents
+          .filter(filterWalkDocument)
+          .map(document =>
+            toWalkItem(document, input.scope.anchorCoordinates, input.scope.distanceLabel),
+          )
+          .filter((item): item is LocationDiscoveryItem => Boolean(item)),
+      ),
     ),
+    input.query,
   );
 
   return {
@@ -809,21 +1179,39 @@ async function searchPetFriendlyPlaces(
       .map(({ candidate }) => candidate.externalPlaceId)
       .filter((value): value is string => Boolean(value)),
   });
+  const hasExplicitQuery = Boolean(normalizeQuery(input.query));
 
-  const items = sortItems(
-    dedupeItems(
-      candidates.map(({ document, candidate }) =>
-        mergePetFriendlyCandidate(
-          candidate,
-          document,
-          candidate.externalPlaceId
-            ? serviceMetaMap.get(
-                buildPetPlaceSourceLookupKey('kakao', candidate.externalPlaceId),
-              )
-            : undefined,
-        ),
+  const items = applyPetFriendlyExposureGuard(
+    sortItems(
+      dedupeItems(
+        candidates
+          .filter(({ candidate }) => {
+            const serviceMeta = candidate.externalPlaceId
+              ? serviceMetaMap.get(
+                  buildPetPlaceSourceLookupKey('kakao', candidate.externalPlaceId),
+                )
+              : undefined;
+
+            if (hasExplicitQuery) {
+              return true;
+            }
+
+            return candidate.hasKeywordEvidence || Boolean(serviceMeta);
+          })
+          .map(({ document, candidate }) =>
+            mergePetFriendlyCandidate(
+              candidate,
+              document,
+              candidate.externalPlaceId
+                ? serviceMetaMap.get(
+                    buildPetPlaceSourceLookupKey('kakao', candidate.externalPlaceId),
+                  )
+                : undefined,
+            ),
+          ),
       ),
     ),
+    input.query,
   );
 
   return {

@@ -13,12 +13,16 @@ import { styles } from './LocationDiscovery.styles';
 type Props = {
   item: LocationDiscoveryItem;
   onPress: (item: LocationDiscoveryItem) => void;
+  personalState?: {
+    badges: ReadonlyArray<string>;
+    note?: string | null;
+  } | null;
 };
 
-function LocationDiscoveryCard({ item, onPress }: Props) {
+function LocationDiscoveryCard({ item, onPress, personalState }: Props) {
   const durationLabel = formatDurationLabel(item.estimatedMinutes);
   const verificationBadgeStyle = (() => {
-    switch (item.verification.tone) {
+    switch (item.publicTrust.tone) {
       case 'positive':
         return styles.cardVerificationBadgePositive;
       case 'critical':
@@ -30,7 +34,7 @@ function LocationDiscoveryCard({ item, onPress }: Props) {
     }
   })();
   const verificationTextStyle = (() => {
-    switch (item.verification.tone) {
+    switch (item.publicTrust.tone) {
       case 'positive':
         return styles.cardVerificationBadgeTextPositive;
       case 'critical':
@@ -80,7 +84,7 @@ function LocationDiscoveryCard({ item, onPress }: Props) {
             preset="caption"
             style={[styles.cardVerificationBadgeText, verificationTextStyle]}
           >
-            {item.verification.label}
+            {item.publicTrust.label}
           </AppText>
         </View>
       </View>
@@ -120,10 +124,32 @@ function LocationDiscoveryCard({ item, onPress }: Props) {
         ) : null}
       </View>
 
-      {item.petPolicy.detail ? (
+      {item.publicTrust.shortReason ? (
         <AppText preset="caption" style={styles.cardNotice}>
-          {item.petPolicy.detail}
+          {item.publicTrust.shortReason}
         </AppText>
+      ) : null}
+
+      {personalState?.badges.length ? (
+        <View style={styles.personalStateSection}>
+          <AppText preset="caption" style={styles.personalStateLabel}>
+            내 상태
+          </AppText>
+          <View style={styles.personalBadgeRow}>
+            {personalState.badges.map(badge => (
+              <View key={`${item.id}:${badge}`} style={styles.personalBadge}>
+                <AppText preset="caption" style={styles.personalBadgeText}>
+                  {badge}
+                </AppText>
+              </View>
+            ))}
+          </View>
+          {personalState.note ? (
+            <AppText preset="caption" style={styles.personalStateNote}>
+              {personalState.note}
+            </AppText>
+          ) : null}
+        </View>
       ) : null}
     </TouchableOpacity>
   );
