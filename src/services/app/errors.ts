@@ -16,6 +16,40 @@ export function getErrorMessage(error: unknown): string {
   return '다시 시도해 주세요.';
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+export function getStructuredErrorDetail(
+  error: unknown,
+): Record<string, unknown> | null {
+  if (!isRecord(error)) return null;
+  const details = error.details;
+  if (typeof details !== 'string') return null;
+
+  const trimmed = details.trim();
+  if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) {
+    return null;
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(trimmed);
+    return isRecord(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export function getStableAppErrorCode(error: unknown): string | null {
+  const detail = getStructuredErrorDetail(error);
+  if (!detail) return null;
+
+  const appCode = detail.app_code;
+  return typeof appCode === 'string' && appCode.trim().length > 0
+    ? appCode.trim()
+    : null;
+}
+
 export type BrandedErrorContext =
   | 'signup'
   | 'signin'

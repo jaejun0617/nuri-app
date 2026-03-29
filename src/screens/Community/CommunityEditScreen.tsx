@@ -17,7 +17,8 @@ import { useCommunityAuth } from '../../hooks/useCommunityAuth';
 import { useKeyboardInset } from '../../hooks/useKeyboardInset';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
-import { getBrandedErrorMeta, getErrorMessage } from '../../services/app/errors';
+import { getBrandedErrorMeta } from '../../services/app/errors';
+import { getCommunityMutationErrorMeta } from '../../services/community/errors';
 import { pickPhotoAssets, type PickedPhotoAsset } from '../../services/media/photoPicker';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { flushPendingCommunityImageCleanup } from '../../services/supabase/storageCommunity';
@@ -240,11 +241,11 @@ export default function CommunityEditScreen() {
 
       navigation.goBack();
     } catch (error: unknown) {
-      const meta = getBrandedErrorMeta(error, 'generic');
+      const meta = getCommunityMutationErrorMeta(error, 'post-update');
       showToast({
         tone: 'error',
         title: meta.title,
-        message: getErrorMessage(error) || meta.message,
+        message: meta.message,
       });
     } finally {
       setSubmitting(false);

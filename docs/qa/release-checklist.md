@@ -3,8 +3,10 @@
 ## Release Gate
 
 - [ ] 아래 계정 삭제 / 커뮤니티 abuse QA 증적이 모두 확보되지 않으면 배포 완료로 간주하지 않는다.
+- [ ] 아래 장소/여행/산책 공개 신뢰도 QA 증적이 확보되지 않으면 배포 완료로 간주하지 않는다.
+- [ ] Android 또는 iOS 중 최소 1대의 물리 실기기에서 장소/여행/산책 공개 신뢰도 QA 증적이 확보되지 않으면 emulator 확인만으로 배포 완료로 간주하지 않는다.
 - [ ] 자동 검증과 수동 검증 항목이 각각 실행되고, 증적 캡처가 남아야 한다.
-- [ ] Task 4 실증에서 확인된 `댓글 auto-hide 제약 오류`, `reporter flag 미기록`, `community image upload 실패`가 해소되지 않으면 배포를 중단한다.
+- [ ] Task 4 실증에서 확인된 `댓글 auto-hide 제약 오류`, `reporter flag 미기록`, `community image upload 실패`가 staging/prod에서 다시 재현되면 배포를 중단한다.
 
 ## 자동화 실행
 
@@ -58,10 +60,16 @@
 
 - [ ] 아래 커뮤니티 항목은 `repo 기준 확인 가능 항목`과 `staging/prod 적용 확인 항목`을 분리해 증적을 남긴다.
 - [ ] 게시글/댓글 작성
+  - [x] `[자동]` linked project remote에 `community_blocked_terms`, `community_blocked_term_patterns`, `assert_community_content_policy()`, `trg_guard_community_post_update`, `trg_guard_community_comment_update`가 실제 배포돼 있다.
+  - [x] `[자동]` `community_blocked_terms`와 `community_blocked_term_patterns`에 초기 운영 seed가 실제 존재한다. 현재 기준 `term 4건 + pattern 1건`이며, false positive 우선 원칙 때문에 보수적으로 유지한다.
+  - [x] `[자동]` post create/update, comment create/update가 같은 콘텐츠 정책 contract와 stable error code(`community_content_policy_violation` 등)를 반환한다.
   - [ ] `[자동+수동]` 게시글 작성은 5분 3회, 1시간 10회 제한을 초과하면 서버 기준으로 차단된다.
   - [ ] `[자동+수동]` 같은 제목+본문 게시글은 30초 안에 중복 등록되지 않는다.
   - [ ] `[자동+수동]` 댓글 작성은 1분 5회, 10분 20회 제한을 초과하면 서버 기준으로 차단된다.
   - [ ] `[자동+수동]` 같은 게시글에는 같은 댓글이 30초 안에 중복 등록되지 않는다.
+  - [ ] `[수동]` 콘텐츠 정책 차단 시 create/edit/comment 화면이 raw 서버 문구 대신 보수적인 한국어 UX 문구를 보여준다.
+  - [ ] `[수동]` 게시글 작성/수정, 댓글 작성 차단 후 입력값이 지워지지 않고 같은 화면에서 바로 수정 재시도가 가능하다.
+  - [x] `[자동]` comment update 서버 guard는 실제 차단됐다. 앱 comment edit UI는 아직 없으므로 수동 UI 검증 항목은 별도로 만들지 않는다.
 - [ ] 신고 / moderation
   - [ ] `[자동+수동]` 신고는 10분 5회, 1일 20회 제한을 초과하면 서버 기준으로 차단된다.
   - [ ] `[자동+수동]` 같은 대상 중복 신고는 기존 unique 계약대로 1회만 허용된다.
@@ -84,6 +92,33 @@
   - [ ] `[자동+수동]` 다중 이미지 업로드가 일부만 성공하고 중간에 실패해도 이미 성공한 path가 orphan로 방치되지 않고 cleanup queue 또는 후속 delete 증적으로 회수된다.
   - [ ] `[자동+수동]` 게시글 이미지 제거/숨김/삭제 후 즉시 hard delete 대신 cleanup pending 계약이 남는다.
   - [ ] `[자동+수동]` 복구 시 아직 삭제되지 않은 이미지 경로는 다시 attached 상태로 되돌릴 수 있다.
+
+## 장소/여행/산책 공개 신뢰도
+
+- [ ] 아래 항목은 최소 `walk candidate`, `pet-friendly-place trust_reviewed/needs_verification`, `pet-travel trust_reviewed/needs_verification/candidate` 예시를 캡처로 남긴다.
+- [ ] 산책 리스트 / 상세
+  - [ ] `[수동]` 산책 리스트 카드에서 공개 라벨이 `후보`로만 보이고 개인 상태와 혼동되지 않는다.
+  - [ ] `[수동]` 산책 상세 상단의 `현재 위치 기반 후보` 설명이 검수/확정 정보처럼 읽히지 않는다.
+  - [ ] `[수동]` 거리/편의 정보와 공개 신뢰 라벨이 같은 축으로 오해되지 않는다.
+  - [ ] `[수동]` 산책 상세 지도 미리보기가 실제 기기에서 한 손가락 이동과 두 손가락 확대/축소로 동작하고, 스크롤과 충돌하지 않는다.
+- [ ] 펫동반 장소 리스트 / 상세
+  - [ ] `[수동]` 리스트 카드에서 `후보 / 확인 필요 / 검수 반영`이 첫눈에 구분되고 `내 상태`와 시각적으로 분리된다.
+  - [ ] `[수동]` 상세에서 기준일, 재확인 권장, stale/conflict 경고가 과한 확신이나 `confirmed`처럼 읽히지 않는다.
+  - [ ] `[수동]` canonical id가 없는 후보는 저장/제보 버튼 대신 보수적 안내만 노출되고, 사용자에게 과도하게 어색하지 않다.
+  - [ ] `[수동]` 검색어 없음 또는 약한 검색어에서 trust 근거가 약한 후보가 상단을 다시 과다 점유하지 않는다.
+  - [ ] `[수동]` 상세 지도 미리보기가 실제 기기에서 한 손가락 이동과 두 손가락 확대/축소로 동작하고, 외부 지도 버튼과 역할이 섞이지 않는다.
+  - [ ] `[수동]` 긴 설명 문단은 기본 3줄 + `더보기/접기`로 보이고, 공개 라벨과 `내 상태`보다 더 강하게 읽히지 않는다.
+- [ ] 반려동물과 여행 리스트 / 상세
+  - [ ] `[수동]` 리스트 카드에서 공개 라벨과 `내 상태`가 섞여 보이지 않는다.
+  - [ ] `[수동]` `trust_reviewed / needs_verification / candidate` 차이가 배지 색/문구/설명으로 구분된다.
+  - [ ] `[수동]` 상세에서 기준일, 공개 신뢰도 안내, stale/conflict 문구가 `확정`처럼 읽히지 않는다.
+  - [ ] `[수동]` 지역명 단독 검색에서 애매한 후보가 다시 상단에 과다 노출되지 않는다.
+  - [ ] `[수동]` 상세 지도 미리보기가 실제 기기에서 한 손가락 이동과 두 손가락 확대/축소로 동작하고, 스크롤과 충돌하지 않는다.
+  - [ ] `[수동]` 긴 설명 문단은 기본 3줄 + `더보기/접기`로 보이고, 개인 상태와 공개 신뢰 섹션보다 더 먼저 시선을 빼앗지 않는다.
+- [ ] stale / conflict 예시 캡처
+  - [ ] `[수동]` stale trust 예시 1건 이상을 리스트와 상세에서 각각 캡처한다.
+  - [ ] `[수동]` source conflict 예시 1건 이상을 상세에서 캡처한다.
+  - [ ] `[수동]` 개인 상태(`저장함 / 최근 검색 / 내가 제보함`)가 public trust를 올리지 않는 예시를 캡처한다.
 
 ## 기록
 
@@ -123,6 +158,14 @@
   - [ ] `posts/comments/reports/storage.objects` trigger가 staging/prod에도 동일하게 배포됐는지 확인한다.
   - [ ] `community_moderation_queue`, `community_moderation_actions`, `community_reporter_flags`, `community_image_assets` 실DB row 생성 증적을 남긴다.
   - [ ] auto-hide / restore / cleanup pending 시나리오를 staging/prod 또는 동등 환경에서 재연한 캡처를 남긴다.
+- [ ] Release 직전 운영 캡처 순서
+  - [ ] 1단계. `community_moderation_queue`에서 auto-hide 대상의 `report_count / unique_reporter_count / queue_status / priority`를 캡처한다.
+  - [ ] 2단계. `community_moderation_actions`에서 before/after status, actor, reason, source_report 연결 캡처를 남긴다.
+  - [ ] 3단계. `community_image_assets`에서 `attached -> cleanup_pending` 전환 또는 `hidden 이미지 비노출` 근거를 캡처한다.
+  - [ ] 4단계. `qa-task4-*` 계정/게시글/신고/이미지 object 정리 여부를 체크하고 release 전 삭제 또는 격리 근거를 남긴다.
+  - [ ] 5단계. 장소/여행 stale/conflict 예시 화면과 공개 라벨/개인 상태 분리 화면을 캡처한다.
+  - [ ] 6단계. 장소/여행 상세의 `더보기/접기` 정상 노출 화면과 지도 터치 이동/확대/축소 화면을 최소 1대 물리 실기기에서 캡처하고, 기기명 또는 OS 버전을 함께 기록한다.
+  - [ ] 7단계. release 담당자가 위 캡처와 자동 검증 결과를 한 묶음으로 보관했는지 확인한다.
 - [ ] 계정 삭제 증적 캡처
   - [ ] 요청 전 데이터 존재 캡처
   - [ ] 요청 직후 auth/users 및 요청 상태 캡처

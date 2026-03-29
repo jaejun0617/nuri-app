@@ -22,10 +22,8 @@ import ConfirmDialog from '../../components/common/ConfirmDialog';
 import HeaderTextActionButton from '../../components/navigation/HeaderTextActionButton';
 import { useKeyboardInset } from '../../hooks/useKeyboardInset';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
-import {
-  getBrandedErrorMeta,
-  getErrorMessage,
-} from '../../services/app/errors';
+import { getBrandedErrorMeta } from '../../services/app/errors';
+import { getCommunityMutationErrorMeta } from '../../services/community/errors';
 import {
   pickPhotoAssets,
   type PickedPhotoAsset,
@@ -375,11 +373,14 @@ export default function CommunityCreateScreen() {
         submitPost,
         editPost,
         onImageUploadWarning: error => {
+          const meta = error
+            ? getBrandedErrorMeta(error, 'image-upload')
+            : null;
           showToast({
             tone: 'warning',
-            message: error
-              ? getErrorMessage(error)
-              : '이미지 업로드에 실패했어요. 텍스트만 등록됐습니다.',
+            title: meta?.title,
+            message:
+              meta?.message ?? '이미지 업로드에 실패했어요. 텍스트만 등록됐습니다.',
           });
         },
       });
@@ -387,11 +388,11 @@ export default function CommunityCreateScreen() {
       await AsyncStorage.removeItem(DRAFT_KEY).catch(() => {});
       navigation.goBack();
     } catch (error: unknown) {
-      const meta = getBrandedErrorMeta(error, 'generic');
+      const meta = getCommunityMutationErrorMeta(error, 'post-create');
       showToast({
         tone: 'error',
         title: meta.title,
-        message: getErrorMessage(error) || meta.message,
+        message: meta.message,
       });
     } finally {
       setSubmitting(false);

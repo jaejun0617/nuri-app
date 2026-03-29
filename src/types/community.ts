@@ -30,6 +30,22 @@ export type CommunityReportReasonCategory =
   | 'personal_info'
   | 'other';
 export type CommunityReportTargetType = 'post' | 'comment';
+export type CommunityContentPolicyTargetField = 'title' | 'content';
+export type CommunityContentPolicyMatchSource = 'term' | 'pattern';
+export type CommunityMutationErrorCode =
+  | 'community_content_policy_violation'
+  | 'community_post_rate_limited'
+  | 'community_post_duplicate_recent'
+  | 'community_post_write_forbidden'
+  | 'community_comment_rate_limited'
+  | 'community_comment_duplicate_recent'
+  | 'community_comment_write_forbidden';
+export type CommunityMutationErrorDetail = {
+  app_code: CommunityMutationErrorCode;
+  target_type?: CommunityReportTargetType | null;
+  target_field?: CommunityContentPolicyTargetField | null;
+  match_source?: CommunityContentPolicyMatchSource | null;
+};
 
 export type CommunityPostRow = {
   id: string;

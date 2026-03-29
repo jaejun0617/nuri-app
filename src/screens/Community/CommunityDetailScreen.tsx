@@ -25,6 +25,7 @@ import { useKeyboardInset } from '../../hooks/useKeyboardInset';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
 import { getErrorMessage } from '../../services/app/errors';
+import { getCommunityMutationErrorMeta } from '../../services/community/errors';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { useCommunityStore } from '../../store/communityStore';
 import { usePetStore } from '../../store/petStore';
@@ -310,9 +311,11 @@ export default function CommunityDetailScreen() {
           }, 100);
         })
         .catch(error => {
+          const meta = getCommunityMutationErrorMeta(error, 'comment-create');
           showToast({
             tone: 'error',
-            message: getErrorMessage(error) || '댓글 등록에 실패했어요.',
+            title: meta.title,
+            message: meta.message,
           });
         })
         .finally(() => {
