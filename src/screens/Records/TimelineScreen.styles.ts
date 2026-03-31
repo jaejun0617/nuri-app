@@ -8,6 +8,12 @@ const TEXT = '#0B1220';
 
 export const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#FFFFFF' },
+  guestGateWrap: {
+    flex: 1,
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 32,
+  },
 
   header: {
     minHeight: 56,
@@ -298,8 +304,6 @@ export const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 22,
     padding: 22,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,

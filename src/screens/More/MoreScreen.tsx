@@ -69,14 +69,19 @@ export default function MoreScreen() {
       setLoading(true);
       const result = await performLogout(1200);
 
-      navigation.reset({ index: 0, routes: [{ name: 'AppTabs' }] });
-      showToast({
-        tone: 'success',
-        title: '로그아웃 완료',
-        message: result.timedOut
-          ? '이 기기에서는 바로 로그아웃되었어요.\n서버 세션 정리는 잠시 이어질 수 있어요.'
-          : '안전하게 로그아웃되었어요.',
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'SignIn', params: { notice: 'logout-success' } }],
       });
+
+      if (result.timedOut) {
+        showToast({
+          tone: 'info',
+          title: '세션 정리 진행 중',
+          message:
+            '이 기기에서는 바로 로그아웃되었고 서버 세션 정리는 잠시 이어질 수 있어요.',
+        });
+      }
     } catch (error: unknown) {
       const { title: alertTitle, message } = getBrandedErrorMeta(
         error,
@@ -103,15 +108,14 @@ export default function MoreScreen() {
         result.status === 'completed' ||
         result.status === 'completed_with_cleanup_pending'
       ) {
-        navigation.reset({ index: 0, routes: [{ name: 'AppTabs' }] });
-        showToast({
-          tone: 'warning',
-          title: '계정 삭제 요청 처리',
-          message:
-            result.status === 'completed_with_cleanup_pending'
-              ? '계정 삭제 요청은 처리됐고 일부 파일 정리가 이어질 수 있어요.'
-              : '계정 삭제 요청이 처리되었어요.',
-          durationMs: 3400,
+        navigation.reset({
+          index: 0,
+          routes: [
+            {
+              name: 'SignIn',
+              params: { notice: 'account-deletion-success' },
+            },
+          ],
         });
         return;
       }

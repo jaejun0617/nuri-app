@@ -2,23 +2,22 @@ import { StyleSheet } from 'react-native';
 import { typography } from '../../../../app/theme/tokens/typography';
 import { SCREEN_TOP_SPACING } from '../../../../theme/layout';
 
-const BRAND = '#6D6AF8';
-const BRAND_DEEP = '#5753E6';
 const TEXT = '#0B1220';
 const MUTED = '#556070';
-const SURFACE = '#FFFFFF';
-const SURFACE_SOFT = '#F6F7FB';
-const BORDER = 'rgba(109,106,248,0.18)';
-const BORDER_SOFT = 'rgba(0,0,0,0.06)';
 
 export const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: SURFACE },
-  scroll: { flex: 1, backgroundColor: SURFACE },
+  screen: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  scroll: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: SCREEN_TOP_SPACING,
-    paddingBottom: 34,
-    gap: 20,
+    gap: 22,
   },
 
   header: {
@@ -27,66 +26,79 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 12,
   },
-  headerTextArea: { gap: 4, paddingTop: 2, flex: 1 },
-  title: { ...typography.role.titleMd, color: TEXT, fontWeight: '800' },
+  headerTextArea: {
+    flex: 1,
+    gap: 4,
+    paddingTop: 2,
+  },
+  title: {
+    ...typography.role.titleMd,
+    fontWeight: '800',
+  },
   subTitle: {
-    color: MUTED,
     ...typography.role.helper,
+    lineHeight: 18,
     fontWeight: '700',
   },
-  headerIcons: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  headerIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
   headerIconBtn: {
-    width: 44,
-    height: 44,
+    width: 42,
+    height: 42,
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.04)',
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.04)',
+    borderColor: 'rgba(109,124,255,0.14)',
   },
-  petSwitcherRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  petSwitcherRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
   petChip: {
     width: 40,
     height: 40,
     borderRadius: 999,
-    overflow: 'hidden',
-    backgroundColor: SURFACE_SOFT,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F6F7FB',
     borderWidth: 1,
-    borderColor: BORDER_SOFT,
+    borderColor: 'rgba(0,0,0,0.06)',
   },
   petChipActive: {
-    borderColor: BRAND,
     borderWidth: 2,
-    shadowColor: BRAND,
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
+    shadowColor: '#6D7CFF',
+    shadowOpacity: 0.16,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
     elevation: 2,
   },
-  petChipImage: { width: '100%', height: '100%' },
+  petChipLogo: {
+    width: 32,
+    height: 32,
+  },
   petAddChip: {
     width: 40,
     height: 40,
     borderRadius: 999,
-    backgroundColor: 'rgba(0,0,0,0.04)',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: BORDER_SOFT,
   },
   petAddPlus: {
-    color: BRAND_DEEP,
     fontWeight: '900',
     marginTop: -2,
   },
 
   heroCard: {
     borderRadius: 22,
-    padding: 16,
-    backgroundColor: SURFACE,
     borderWidth: 1,
-    borderColor: BORDER,
+    padding: 16,
     shadowColor: '#000000',
     shadowOpacity: 0.08,
     shadowRadius: 18,
@@ -110,8 +122,6 @@ export const styles = StyleSheet.create({
     width: 154,
     height: 154,
     borderRadius: 999,
-    backgroundColor: 'rgba(87,83,230,0.18)',
-    shadowColor: BRAND_DEEP,
     shadowOpacity: 0.22,
     shadowRadius: 32,
     shadowOffset: { width: 0, height: 0 },
@@ -122,7 +132,7 @@ export const styles = StyleSheet.create({
     height: 144,
     borderRadius: 999,
     padding: 6,
-    shadowColor: BRAND_DEEP,
+    shadowColor: '#5753E6',
     shadowOpacity: 0.2,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 0 },
@@ -144,24 +154,35 @@ export const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.96)',
     backgroundColor: 'rgba(87,83,230,0.08)',
   },
-  heroAvatarImg: { width: '100%', height: '100%' },
+  heroAvatarImg: {
+    width: '100%',
+    height: '100%',
+  },
   heroName: {
-    color: TEXT,
     ...typography.role.titleLg,
     fontWeight: '800',
     textAlign: 'center',
   },
   heroMetaLine: {
-    color: MUTED,
     ...typography.role.bodySm,
     fontWeight: '700',
     textAlign: 'center',
   },
   heroMetaMuted: {
-    color: 'rgba(85,96,112,0.65)',
     ...typography.role.helper,
     fontWeight: '700',
     textAlign: 'center',
+  },
+  primaryButton: {
+    marginTop: 8,
+    minHeight: 56,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '900',
   },
   heroTogetherPill: {
     marginTop: 12,
@@ -169,7 +190,6 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 999,
-    backgroundColor: BRAND_DEEP,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.20)',
     shadowColor: '#000000',
@@ -178,163 +198,174 @@ export const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     elevation: 9,
   },
+  heroTogetherRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   heroTogetherText: {
     color: '#FFFFFF',
     ...typography.role.helper,
     fontWeight: '800',
   },
-  primaryButton: {
-    marginTop: 14,
-    width: '100%',
-    minHeight: 56,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: BRAND,
-  },
-  primaryButtonText: {
+  heroTogetherHeart: {
     color: '#FFFFFF',
-    ...typography.role.button,
+    ...typography.role.helper,
     fontWeight: '800',
   },
 
-  section: { gap: 8 },
+  section: {
+    gap: 10,
+  },
   sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   sectionTitle: {
-    color: TEXT,
     ...typography.role.titleMd,
     fontWeight: '800',
   },
   sectionSubTitle: {
-    color: MUTED,
     ...typography.role.helper,
+    lineHeight: 18,
     fontWeight: '700',
-    marginTop: -2,
   },
 
-  shortcutRow: {
+  quickGrid: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
-  shortcutItem: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 8,
-  },
-  shortcutIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(109,106,248,0.08)',
-  },
-  shortcutLabel: {
-    color: MUTED,
-    ...typography.role.helper,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-
-  previewRow: {
-    paddingTop: 4,
-    paddingRight: 16,
+    flexWrap: 'wrap',
     gap: 12,
   },
-  previewCard: {
-    width: 238,
+  quickCard: {
+    width: '48%',
+    minHeight: 116,
+    borderRadius: 22,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 12,
+    justifyContent: 'space-between',
+  },
+  quickIconWrap: {
+    width: 46,
+    height: 46,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(109,124,255,0.10)',
+  },
+  quickLabel: {
+    fontWeight: '800',
+    lineHeight: 22,
+  },
+
+  photoCard: {
     height: 238,
     borderRadius: 24,
     overflow: 'hidden',
-    backgroundColor: SURFACE_SOFT,
+    backgroundColor: '#F6F7FB',
   },
-  previewImage: {
+  photoCardImage: {
     width: '100%',
     height: '100%',
   },
-  previewOverlay: {
+  photoOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(11,18,32,0.26)',
   },
-  previewTextWrap: {
+  photoTextWrap: {
     position: 'absolute',
     left: 16,
     right: 16,
     bottom: 16,
     gap: 4,
   },
-  previewEyebrow: {
-    color: 'rgba(255,255,255,0.82)',
+  photoEyebrow: {
+    color: 'rgba(255,255,255,0.84)',
     ...typography.role.helper,
     fontWeight: '800',
   },
-  previewTitle: {
+  photoTitle: {
     color: '#FFFFFF',
     ...typography.role.body,
     fontWeight: '800',
   },
+  photoBody: {
+    color: 'rgba(255,255,255,0.82)',
+    ...typography.role.helper,
+    fontWeight: '700',
+  },
 
-  tipList: {
-    paddingTop: 4,
+  featureGrid: {
     gap: 12,
   },
-  tipCard: {
+  featureCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 16,
+    gap: 10,
+  },
+  featureIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(109,124,255,0.10)',
+  },
+  featureTitle: {
+    fontWeight: '800',
+  },
+  featureBody: {
+    fontWeight: '600',
+    lineHeight: 20,
+  },
+
+  flowList: {
+    gap: 12,
+  },
+  flowCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
-    padding: 14,
+    gap: 12,
     borderRadius: 22,
-    backgroundColor: SURFACE,
     borderWidth: 1,
-    borderColor: BORDER_SOFT,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
   },
-  tipThumb: {
-    width: 72,
-    height: 72,
-    borderRadius: 18,
-    backgroundColor: SURFACE_SOFT,
+  flowIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(109,124,255,0.10)',
   },
-  tipContent: {
+  flowCopy: {
     flex: 1,
     gap: 4,
   },
-  tipEyebrow: {
-    color: BRAND,
-    ...typography.role.helper,
+  flowLabel: {
+    color: TEXT,
     fontWeight: '800',
   },
-  tipTitle: {
-    color: TEXT,
-    ...typography.role.body,
-    fontWeight: '700',
-  },
-  tipDescription: {
+  flowDescription: {
     color: MUTED,
-    ...typography.role.helper,
-    fontWeight: '700',
+    fontWeight: '600',
+    lineHeight: 20,
   },
 
   activityList: {
-    paddingTop: 4,
     gap: 10,
   },
   activityCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    borderRadius: 18,
+    borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 14,
-    borderRadius: 18,
-    backgroundColor: SURFACE,
-    borderWidth: 1,
-    borderColor: BORDER_SOFT,
   },
   activityIconWrap: {
     width: 38,
@@ -342,45 +373,20 @@ export const styles = StyleSheet.create({
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(109,106,248,0.08)',
+    backgroundColor: 'rgba(109,124,255,0.08)',
   },
   activityTextCol: {
     flex: 1,
     gap: 4,
   },
   activityTitle: {
-    color: TEXT,
-    ...typography.role.body,
     fontWeight: '700',
   },
   activitySub: {
-    color: MUTED,
-    ...typography.role.helper,
     fontWeight: '700',
+    lineHeight: 18,
   },
   activityTime: {
-    color: 'rgba(85,96,112,0.76)',
-    ...typography.role.helper,
     fontWeight: '700',
-  },
-
-  diaryRow: {
-    paddingTop: 4,
-    paddingRight: 16,
-    gap: 12,
-  },
-  diaryCard: {
-    width: 104,
-    height: 104,
-    borderRadius: 22,
-    backgroundColor: '#E8E2D7',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 14,
-  },
-  diaryThumb: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 12,
   },
 });

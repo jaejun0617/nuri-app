@@ -68,6 +68,7 @@ import type {
 
 import AppTabsNavigator from './AppTabsNavigator';
 import type { AppTabParamList, RecordCreateReturnTo } from './AppTabsNavigator';
+import type { RouteSignInNotice } from '../services/auth/notices';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -76,7 +77,7 @@ export type RootStackParamList = {
   AppTabs: NavigatorScreenParams<AppTabParamList> | undefined;
 
   // Auth
-  SignIn: { notice?: 'password-reset-success' } | undefined;
+  SignIn: { notice?: RouteSignInNotice } | undefined;
   SignUp: undefined;
   NicknameSetup: { after?: 'signin' | 'signup' } | undefined;
   WelcomeTransition: { petName?: string } | undefined;

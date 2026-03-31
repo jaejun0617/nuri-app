@@ -658,13 +658,17 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     () => pets.find(p => p.id === selectedPetId) ?? pets[0] ?? null,
     [pets, selectedPetId],
   );
+  const accentThemeColor = useMemo(
+    () => (isLoggedIn ? selectedPet?.themeColor : theme.colors.brand),
+    [isLoggedIn, selectedPet?.themeColor, theme.colors.brand],
+  );
   const petTheme = useMemo(
-    () => buildPetThemePalette(selectedPet?.themeColor),
-    [selectedPet?.themeColor],
+    () => buildPetThemePalette(accentThemeColor),
+    [accentThemeColor],
   );
   const draftThemePalette = useMemo(
-    () => buildPetThemePalette(draftThemeColor ?? selectedPet?.themeColor),
-    [draftThemeColor, selectedPet?.themeColor],
+    () => buildPetThemePalette(draftThemeColor ?? accentThemeColor),
+    [accentThemeColor, draftThemeColor],
   );
   const menuThemeColors = useMemo(
     () => ({
@@ -690,6 +694,19 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const greetingName = useMemo(
     () => (nickname ? `${nickname}님!` : '반가워요!'),
     [nickname],
+  );
+  const canShowLogout = Boolean(session?.user?.id) && isLoggedIn;
+  const headerTitle = useMemo(
+    () =>
+      isLoggedIn ? `안녕하세요, ${greetingName}` : 'NURI에 오신 것을\n환영합니다.',
+    [greetingName, isLoggedIn],
+  );
+  const headerSubtitle = useMemo(
+    () =>
+      isLoggedIn
+        ? '반가운 오늘, 아이들은 어땠나요?'
+        : '로그인하고 더 많은 여정을\n함께하세요.',
+    [isLoggedIn],
   );
   const avatarFallback = useMemo(
     () => selectedPet?.name?.trim()?.charAt(0) || 'N',
@@ -1029,14 +1046,19 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       const result = await performLogout(1200);
 
       onRequestClose();
-      navigation.reset({ index: 0, routes: [{ name: 'AppTabs' }] });
-      showToast({
-        tone: 'success',
-        title: '로그아웃 완료',
-        message: result.timedOut
-          ? '이 기기에서는 바로 로그아웃되었어요.\n서버 세션 정리는 잠시 이어질 수 있어요.'
-          : '안전하게 로그아웃되었어요.',
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'SignIn', params: { notice: 'logout-success' } }],
       });
+
+      if (result.timedOut) {
+        showToast({
+          tone: 'info',
+          title: '세션 정리 진행 중',
+          message:
+            '이 기기에서는 바로 로그아웃되었고 서버 세션 정리는 잠시 이어질 수 있어요.',
+        });
+      }
     } catch (error) {
       const { title, message } = getBrandedErrorMeta(error, 'logout');
       Alert.alert(title, message);
@@ -1064,15 +1086,14 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         result.status === 'completed_with_cleanup_pending'
       ) {
         onRequestClose();
-        navigation.reset({ index: 0, routes: [{ name: 'AppTabs' }] });
-        showToast({
-          tone: 'warning',
-          title: '계정 삭제 요청 처리',
-          message:
-            result.status === 'completed_with_cleanup_pending'
-              ? '계정 삭제 요청은 처리됐고 일부 파일 정리가 이어질 수 있어요.'
-              : '계정 삭제 요청이 처리되었어요.',
-          durationMs: 3400,
+        navigation.reset({
+          index: 0,
+          routes: [
+            {
+              name: 'SignIn',
+              params: { notice: 'account-deletion-success' },
+            },
+          ],
         });
         return;
       }
@@ -1242,17 +1263,17 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         label: '아이들 프로필 관리',
         icon: 'user',
         iconTone: 'accent',
-        onPress: openPetManagement,
+        onPress: isLoggedIn ? openPetManagement : onPressLogin,
       },
       {
         key: 'important-schedule',
         label: '중요 일정 & 기념일',
         icon: 'calendar',
         iconTone: 'accent',
-        onPress: openScheduleList,
+        onPress: isLoggedIn ? openScheduleList : onPressLogin,
       },
     ],
-    [openPetManagement, openScheduleList],
+    [isLoggedIn, onPressLogin, openPetManagement, openScheduleList],
   );
 
   const activityItems = useMemo<MenuItemSpec[]>(
@@ -1262,14 +1283,16 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         label: '추억 다이어리',
         icon: 'book-open',
         iconTone: 'accent',
-        onPress: openTimeline,
+        onPress: isLoggedIn ? openTimeline : onPressLogin,
       },
       {
         key: 'health-report',
         label: '건강 기록 리포트',
         icon: 'clipboard',
         iconTone: 'accent',
-        onPress: () => showPreparingToast('건강 기록 리포트'),
+        onPress: isLoggedIn
+          ? () => showPreparingToast('건강 기록 리포트')
+          : onPressLogin,
         badge: 'soon',
       },
       {
@@ -1277,18 +1300,20 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         label: '실내 놀이 추천',
         icon: 'sun',
         iconTone: 'accent',
-        onPress: openIndoorActivities,
+        onPress: isLoggedIn ? openIndoorActivities : onPressLogin,
       },
       {
         key: 'walk-nearby',
         label: '우리동네 산책 장소 찾기',
         icon: 'map',
         iconTone: 'accent',
-        onPress: openWalkDiscovery,
+        onPress: isLoggedIn ? openWalkDiscovery : onPressLogin,
       },
     ],
     [
+      isLoggedIn,
       openIndoorActivities,
+      onPressLogin,
       openTimeline,
       openWalkDiscovery,
       showPreparingToast,
@@ -1330,6 +1355,18 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   );
 
   const serviceItems = useMemo<MenuItemSpec[]>(() => {
+    if (!isLoggedIn) {
+      return [
+        {
+          key: 'login',
+          label: '로그인하고 더 많은 여정 보기',
+          icon: 'log-in',
+          iconTone: 'accent',
+          onPress: onPressLogin,
+        },
+      ];
+    }
+
     const items: MenuItemSpec[] = [
       {
         key: 'notification',
@@ -1360,7 +1397,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         icon: 'log-out',
         iconTone: 'accent',
         onPress: onPressLogout,
-      },
+      }
     ];
 
     if (isLoggedIn) {
@@ -1373,10 +1410,16 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       });
     }
 
+    if (!canShowLogout) {
+      return items.filter(item => item.key !== 'logout');
+    }
+
     return items;
   }, [
+    canShowLogout,
     isLoggedIn,
     loading,
+    onPressLogin,
     onPressLogout,
     openPasswordModal,
     openProfileEditModal,
@@ -1407,11 +1450,23 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
         <View style={styles.headerRow}>
           <View style={styles.headerTextWrap}>
-            <Text style={[styles.headerTitle, { color: theme.colors.textPrimary }]}>
-              안녕하세요, {greetingName}
+            <Text
+              style={[
+                styles.headerTitle,
+                !isLoggedIn ? styles.guestHeaderTitle : null,
+                { color: isLoggedIn ? theme.colors.textPrimary : theme.colors.brand },
+              ]}
+            >
+              {headerTitle}
             </Text>
-            <Text style={[styles.headerSubtitle, { color: theme.colors.textMuted }]}>
-              반가운 오늘, 아이들은 어땠나요?
+            <Text
+              style={[
+                styles.headerSubtitle,
+                !isLoggedIn ? styles.guestHeaderSubtitle : null,
+                { color: isLoggedIn ? theme.colors.textMuted : petTheme.deep },
+              ]}
+            >
+              {headerSubtitle}
             </Text>
           </View>
 
@@ -1725,6 +1780,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: '#A0A8B8',
+    fontWeight: '500',
+  },
+  guestHeaderTitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '800',
+  },
+  guestHeaderSubtitle: {
+    fontSize: 12,
+    lineHeight: 18,
     fontWeight: '500',
   },
   headerAvatarButton: {

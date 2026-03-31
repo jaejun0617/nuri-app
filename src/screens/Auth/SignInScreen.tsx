@@ -17,9 +17,7 @@ import {
   Alert,
   Image,
   KeyboardAvoidingView,
-  Modal,
   Platform,
-  Pressable,
   ScrollView,
   Text,
   TextInput,
@@ -36,8 +34,14 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useTheme } from 'styled-components/native';
 
 import { ASSETS } from '../../assets';
+import PremiumNoticeModal from '../../components/common/PremiumNoticeModal';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { getBrandedErrorMeta } from '../../services/app/errors';
+import {
+  isInvalidCredentialSignInError,
+  resolveSignInNotice,
+  type SignInNotice,
+} from '../../services/auth/notices';
 import { clearLocalAuthSession } from '../../services/supabase/auth';
 import { supabase } from '../../services/supabase/client';
 import { useAuthStore } from '../../store/authStore';
@@ -153,8 +157,7 @@ export default function SignInScreen() {
   const [password, setPassword] = useState('');
   const [securePassword, setSecurePassword] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [passwordResetSuccessModalVisible, setPasswordResetSuccessModalVisible] =
-    useState(false);
+  const [activeNotice, setActiveNotice] = useState<SignInNotice | null>(null);
 
   const disabled = useMemo(
     () => submitting || !email.trim() || password.length < 8,
@@ -166,6 +169,7 @@ export default function SignInScreen() {
 
     try {
       setSubmitting(true);
+      setActiveNotice(null);
       await clearPasswordRecovery();
       await clearLocalAuthSession();
 
@@ -178,6 +182,11 @@ export default function SignInScreen() {
       await setSession(data.session ?? null);
       navigation.reset({ index: 0, routes: [{ name: 'Splash' }] });
     } catch (error) {
+      if (isInvalidCredentialSignInError(error)) {
+        setActiveNotice('account-invite');
+        return;
+      }
+
       const { title, message } = getBrandedErrorMeta(error, 'signin');
       Alert.alert(title, message);
     } finally {
@@ -216,16 +225,36 @@ export default function SignInScreen() {
 
   useEffect(() => {
     if (route.params?.notice !== 'password-reset-success') {
-      return;
+      if (
+        route.params?.notice !== 'logout-success' &&
+        route.params?.notice !== 'account-deletion-success'
+      ) {
+        return;
+      }
     }
 
-    setPasswordResetSuccessModalVisible(true);
+    setActiveNotice(route.params.notice);
     navigation.setParams({ notice: undefined });
   }, [navigation, route.params?.notice]);
 
-  const closePasswordResetSuccessModal = useCallback(() => {
-    setPasswordResetSuccessModalVisible(false);
+  const closeNoticeModal = useCallback(() => {
+    setActiveNotice(null);
   }, []);
+
+  const handleNoticeConfirm = useCallback(() => {
+    if (activeNotice === 'account-invite') {
+      setActiveNotice(null);
+      navigation.navigate('SignUp');
+      return;
+    }
+
+    closeNoticeModal();
+  }, [activeNotice, closeNoticeModal, navigation]);
+
+  const noticeConfig = useMemo(
+    () => (activeNotice ? resolveSignInNotice(activeNotice) : null),
+    [activeNotice],
+  );
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -334,69 +363,19 @@ export default function SignInScreen() {
           />
         </ScrollView>
 
-        <Modal
-          visible={passwordResetSuccessModalVisible}
-          transparent
-          animationType="fade"
-          onRequestClose={closePasswordResetSuccessModal}
-        >
-          <View style={styles.successBackdrop}>
-            <Pressable
-              style={[styles.successScrim, { backgroundColor: theme.colors.overlay }]}
-              onPress={closePasswordResetSuccessModal}
-            />
-            <View
-              style={[
-                styles.successCard,
-                {
-                  backgroundColor: theme.colors.surfaceElevated,
-                  borderColor: theme.colors.border,
-                },
-              ]}
-            >
-              <View
-                style={[
-                  styles.successHalo,
-                  {
-                    backgroundColor: theme.colors.surface,
-                    borderColor: theme.colors.border,
-                  },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.successIcon,
-                    { backgroundColor: theme.colors.brand },
-                  ]}
-                >
-                  <Feather name="check" size={28} color="#FFF8EE" />
-                </View>
-              </View>
-
-              <Text style={[styles.successEyebrow, { color: theme.colors.brand }]}>
-                PASSWORD UPDATED
-              </Text>
-              <Text style={[styles.successTitle, { color: theme.colors.textPrimary }]}>
-                비밀번호가 변경되었습니다
-              </Text>
-              <Text style={[styles.successBody, { color: theme.colors.textSecondary }]}>
-                보안을 위해 임시 세션을 종료했어요.{'\n'}새 비밀번호로 다시 로그인해
-                주세요.
-              </Text>
-
-              <TouchableOpacity
-                activeOpacity={0.92}
-                onPress={closePasswordResetSuccessModal}
-                style={[
-                  styles.successButton,
-                  { backgroundColor: theme.colors.brand },
-                ]}
-              >
-                <Text style={styles.successButtonText}>확인</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
+        {noticeConfig ? (
+          <PremiumNoticeModal
+            visible
+            eyebrow={noticeConfig.eyebrow}
+            iconName={noticeConfig.iconName}
+            titleLines={noticeConfig.titleLines}
+            bodyLines={noticeConfig.bodyLines}
+            confirmLabel={noticeConfig.confirmLabel}
+            accentColor={theme.colors.brand}
+            onClose={closeNoticeModal}
+            onConfirm={handleNoticeConfirm}
+          />
+        ) : null}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

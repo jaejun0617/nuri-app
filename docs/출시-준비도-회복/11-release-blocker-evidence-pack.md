@@ -30,7 +30,7 @@
 - [x] Step 1 recovery session 오분기 repo-side blocker fix
 - [ ] physical-device QA 캡처
 - [x] 비밀번호 재설정 메일 복귀 실기기 재검증
-- [ ] 계정 삭제 row-level 실행 증적
+- [x] 계정 삭제 row-level 실행 증적
 - [ ] 커뮤니티 moderation / cleanup row-level 실행 증적
 - [ ] 장소/여행/산책 공개 신뢰도 실기기 캡처
 
@@ -139,8 +139,53 @@
   - Step 1 release blocker는 repo fix + physical-device 재검증 기준으로 해소됐다.
   - 이전 blocker의 본질이었던 recovery session의 일반 로그인 승격과 `PetCreate(from: 'auto')` side effect 재발은 이번 시나리오에서 재현되지 않았다.
 - 운영 메모:
-  - `2026-03-31 02:11:30 UTC`에 생성된 historical garbage pet row는 여전히 남아 있다.
-  - 이 row는 Step 1 성공과 별개인 운영/DB 정리 task다.
+- `2026-03-31 02:11:30 UTC`에 생성된 historical garbage pet row는 여전히 남아 있다.
+- 이 row는 Step 1 성공과 별개인 운영/DB 정리 task다.
+
+## 2026-03-31 physical-device Step 2 account deletion hard delete 검증
+
+- 실기기: `SM_S937N`
+- QA 계정: `test1234@test.com`
+- baseline 대상 `user_id`: `74cd98ab-5c3c-4502-b6cc-6543d8bd6a70`
+- baseline 스냅샷:
+  - `role = user`
+  - `account_deletion_requests = 0`
+  - `account_deletion_cleanup_items = 0`
+  - `posts = 13`
+  - `comments = 35`
+  - `pets = 2`
+- 사용자 시각 검증 결과:
+  - 실기기에서 계정 삭제 실행 후 삭제 완료 토스트가 노출됐다.
+  - 같은 자격 증명으로 다시 로그인 시도했을 때 계정이 삭제된 상태로 확인됐다.
+  - 관리자 계정으로 커뮤니티를 확인했을 때 해당 계정이 남긴 게시글이 read-path에서 사라진 것을 확인했다.
+- linked remote post-delete fact check 결과:
+  - `auth.users = 0`
+  - `public.profiles = 0`
+  - `public.posts = 0`
+  - `public.comments = 0`
+  - `public.pets = 0`
+  - `public.memories = 0`
+  - `public.memory_images = 0`
+  - `public.account_deletion_requests = 1`
+  - `public.account_deletion_cleanup_items = 17`
+- 최신 `account_deletion_requests` row:
+  - `id = be833a80-31b1-44b3-8d95-cf9ec051fdd1`
+  - `status = completed_with_cleanup_pending`
+  - `storage_cleanup_pending = true`
+  - `cleanup_item_count = 17`
+  - `cleanup_completed_count = 0`
+  - `requested_at = 2026-03-31 04:24:14.494449+00`
+  - `completed_at = 2026-03-31 04:24:14.693494+00`
+- cleanup queue row-level 결과:
+  - `pet-profiles`, `community-images` bucket 대상으로 총 17건 생성
+  - 현재 상태는 모두 `pending`
+  - 이번 시점에서는 cleanup worker가 아직 실행되지 않아 object storage 삭제는 미완료
+- logcat 모니터링:
+  - `ReactNativeJS:I`, `AndroidRuntime:E` 필터 기준 관측 창에서 치명적 에러 출력은 포착되지 않았다.
+- 판정:
+  - 계정 삭제 DB hard delete는 `auth.users / profiles / posts / comments / pets` 기준으로 확인됐다.
+  - `memories / memory_images`는 삭제 후 0건을 확인했지만, 이번 실행 전 baseline을 별도로 수집하지 않았기 때문에 “전후 비교형 hard delete 증적”로는 약하다.
+  - storage cleanup은 별도 비동기 단계이며, 현재는 `completed_with_cleanup_pending` 상태라 Step 2를 “DB hard delete 성공 + storage cleanup 후속 확인 필요”로 잠근다.
 
 ## 2026-03-30 snapshot 판정
 
@@ -148,7 +193,7 @@
 | --- | --- | --- | --- |
 | 물리 기기 연결 | `adb` 기준 emulator만 연결 | 미완료 | 실기기 QA blocker 유지 |
 | 비밀번호 재설정 local 계약 | 앱 deep link와 Android intent-filter 존재 | 부분 확보 | 메일 앱 복귀 실증과 allowlist 증적이 필요 |
-| 계정 삭제 row-level | 관련 테이블 0건, 최근 요청 없음 | 미완료 | 구조는 배포됐지만 운영 증적은 아직 없음 |
+| 계정 삭제 row-level | Step 2 실기기 삭제 시나리오 1회 성공 | 부분 확보 | DB hard delete는 확인됐고 storage cleanup은 pending 17건으로 남음 |
 | 커뮤니티 moderation row-level | queue/action/reporter/image row 존재 | 부분 확보 | resolved / cleanup_pending / restore 시나리오는 아직 미확보 |
 | linked remote / migration | 정합 | 확보 | 자동 스크립트로 재현 가능 |
 
@@ -158,7 +203,7 @@
 | --- | --- | --- | --- | --- |
 | physical-device QA | 미완료 | 불가 | 물리 실기기 캡처와 조작이 필요 | 최소 1대 기기에서 장소/여행/산책, reset, 커뮤니티 캡처 확보 |
 | 비밀번호 재설정 메일 복귀 | local 계약만 확인 | 부분 가능 | 실제 메일 앱/딥링크 복귀와 allowlist 콘솔은 외부 장치/콘솔 접근 필요 | Supabase redirect allowlist 캡처 후 실기기 메일 복귀 캡처 |
-| 계정 삭제 row-level 증적 | 구조 배포 / 운영 row 0건 | 부분 가능 | 실제 삭제 대상 QA 계정과 storage 정리 시나리오가 필요 | QA 계정 준비 후 요청 전/후 테이블과 bucket 캡처 |
+| 계정 삭제 row-level 증적 | Step 2 1회 확보 | 부분 확보 | storage cleanup worker 완료 증적이 아직 없음 | cleanup item pending -> completed 전환을 추가 캡처 |
 | 커뮤니티 moderation / cleanup row-level | queue/action/image 실row 존재 | 부분 가능 | resolved / cleanup_pending / restore 시나리오가 아직 없음 | QA 게시글/댓글/신고/이미지 시나리오를 재현해 row 상태 전환 캡처 |
 | linked remote schema / migration | 확보 | 가능 | 없음 | 자동 스크립트로 재검증 |
 
@@ -175,11 +220,12 @@
 - 커뮤니티는 실row가 있어도 `resolved`, `cleanup_pending`, `restored` 전환이 없으면 cleanup gate를 통과할 수 없다.
 - 비밀번호 재설정 Step 1은 이번 재검증으로 닫혔지만, historical garbage pet row 1건은 별도 운영 정리 전까지 남는다.
 - `2026-03-31 02:11:30 UTC` pet row는 아직 운영 정리 전이다. repo-side fix가 들어가도 이 historical garbage row가 자동으로 사라지지는 않는다.
+- Step 2는 DB hard delete를 확인했지만, storage cleanup worker가 아직 돌지 않아 object cleanup 완료 증적은 후속 확인이 필요하다.
 
 ## 다음 액션
 
-- Step 2 account deletion 실기기 QA를 수행해 `account_deletion_requests`, `account_deletion_cleanup_items` row-level 증적을 확보한다.
-- Step 2와 Step 3은 Step 1 blocker가 해소된 뒤 진행한다.
+- Step 2 cleanup item의 `pending -> completed` 전환을 후속 확인해 storage cleanup 운영 증적을 확보한다.
+- Step 3 community moderation 실기기 QA를 수행해 `reports`, `community_moderation_queue`, cleanup 관련 row-level 증적을 확보한다.
 
 ## 상태
 

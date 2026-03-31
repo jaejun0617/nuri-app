@@ -23,6 +23,7 @@ import AppText from '../../app/ui/AppText';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { ScreenEntrySource } from '../../navigation/entry';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
+import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
 import { openMoreDrawer } from '../../store/uiStore';
 
@@ -42,6 +43,7 @@ export default function AppNavigationToolbar({
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+  const isLoggedIn = useAuthStore(s => s.isLoggedIn);
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
 
@@ -57,6 +59,7 @@ export default function AppNavigationToolbar({
     () => Math.max(insets.bottom, Platform.OS === 'android' ? 16 : 10),
     [insets.bottom],
   );
+  const activeColor = isLoggedIn ? petTheme.primary : theme.colors.brand;
 
   const navigateTo = useCallback(
     (target: ActiveTabKey) => {
@@ -143,7 +146,7 @@ export default function AppNavigationToolbar({
               <Feather
                 name={tab.icon as never}
                 size={18}
-                color={active ? petTheme.primary : theme.colors.textMuted}
+                color={active ? activeColor : theme.colors.textMuted}
               />
               <AppText
                 preset="tab"
@@ -151,7 +154,7 @@ export default function AppNavigationToolbar({
                 style={[
                   styles.label,
                   { color: theme.colors.textMuted },
-                  active ? { color: petTheme.primary } : null,
+                  active ? { color: activeColor } : null,
                 ]}
               >
                 {tab.label}

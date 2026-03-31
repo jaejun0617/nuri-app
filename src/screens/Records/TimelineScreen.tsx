@@ -43,6 +43,7 @@ import { useTheme } from 'styled-components/native';
 import { MemoryCard } from '../../components/MemoryCard/MemoryCard';
 import { preloadOptimizedImages } from '../../components/images/OptimizedImage';
 import AppText from '../../app/ui/AppText';
+import AppNavigationToolbar from '../../components/navigation/AppNavigationToolbar';
 import HeaderIconActionButton from '../../components/navigation/HeaderIconActionButton';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { AppTabParamList } from '../../navigation/AppTabsNavigator';
@@ -68,6 +69,7 @@ import {
 } from '../../services/supabase/storageMemories';
 import { usePetStore, resolveSelectedPetId } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
+import { useAuthStore } from '../../store/authStore';
 import { openMoreDrawer } from '../../store/uiStore';
 import { styles } from './TimelineScreen.styles';
 
@@ -285,6 +287,7 @@ export default function TimelineScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<TimelineMainRoute>();
   const isFocused = useIsFocused();
+  const isLoggedIn = useAuthStore(s => s.isLoggedIn);
 
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
@@ -312,6 +315,10 @@ export default function TimelineScreen() {
     () => buildPetThemePalette(selectedPet?.themeColor),
     [selectedPet?.themeColor],
   );
+  const guestTimelineTheme = useMemo(
+    () => buildPetThemePalette(theme.colors.brand),
+    [theme.colors.brand],
+  );
 
   const bootstrap = useRecordStore(s => s.bootstrap);
   const refresh = useRecordStore(s => s.refresh);
@@ -331,9 +338,9 @@ export default function TimelineScreen() {
   const refreshing = status === 'refreshing';
 
   useEffect(() => {
-    if (!petId) return;
+    if (!isLoggedIn || !petId) return;
     bootstrap(petId);
-  }, [bootstrap, petId]);
+  }, [bootstrap, isLoggedIn, petId]);
 
   const [sortMode, setSortMode] = useState<TimelineSortMode>('recent');
   const [ymFilter, setYmFilter] = useState<string | null>(null);
@@ -896,6 +903,77 @@ export default function TimelineScreen() {
       navigation.navigate('HomeTab');
     },
   });
+
+  const goSignIn = useCallback(() => {
+    navigation.navigate('SignIn');
+  }, [navigation]);
+
+  if (!isLoggedIn) {
+    return (
+      <View style={styles.screen}>
+        <View style={styles.header}>
+          <View style={styles.headerSideSlot}>
+            <TouchableOpacity
+              activeOpacity={0.88}
+              style={styles.backButton}
+              onPress={onPressBack}
+            >
+              <Feather name="arrow-left" size={20} color="#102033" />
+            </TouchableOpacity>
+          </View>
+          <AppText preset="headline" style={styles.headerTitle}>
+            타임라인
+          </AppText>
+          <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
+        </View>
+
+        <ControlsBar
+          sortLabel={sortLabel}
+          monthLabel={monthLabel}
+          mainCategory={mainCategory}
+          categoryLabel={categoryLabel}
+          onToggleSort={goSignIn}
+          onOpenMonthModal={goSignIn}
+          onPressMainCategory={() => {
+            goSignIn();
+          }}
+          theme={guestTimelineTheme}
+        />
+
+        <View style={styles.guestGateWrap}>
+          <View style={styles.empty}>
+            <View style={styles.emptyHero}>
+              <Image
+                source={require('../../assets/logo/logo_v2.png')}
+                style={styles.emptyPawImage}
+                resizeMode="contain"
+              />
+            </View>
+            <AppText preset="headline" style={styles.emptyTitle}>
+              NURI의 모든 기능을 경험해 보세요
+            </AppText>
+            <AppText preset="body" style={styles.emptyDesc}>
+              로그인 후 우리 아이의 기록과 시간을
+            </AppText>
+            <AppText preset="body" style={styles.emptyDesc}>
+              타임라인으로 차분하게 모아볼 수 있어요
+            </AppText>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={[styles.primary, { backgroundColor: theme.colors.brand }]}
+              onPress={goSignIn}
+            >
+              <AppText preset="body" style={styles.primaryText}>
+                로그인하고 기록하기
+              </AppText>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <AppNavigationToolbar activeKey="timeline" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.screen}>
