@@ -5,7 +5,14 @@ export type RouteSignInNotice =
   | 'logout-success'
   | 'account-deletion-success';
 
-export type SignInNotice = RouteSignInNotice | 'account-invite';
+export type SignInNotice = RouteSignInNotice | 'invalid-credentials';
+
+export type PremiumNoticeActionKind = 'password-reset' | 'signup';
+
+export type PremiumNoticeSecondaryAction = {
+  label: string;
+  kind: PremiumNoticeActionKind;
+};
 
 export type PremiumNoticeConfig = {
   eyebrow: string;
@@ -13,6 +20,7 @@ export type PremiumNoticeConfig = {
   titleLines: [string, ...string[]];
   bodyLines: [string, ...string[]];
   confirmLabel: string;
+  secondaryActions?: readonly PremiumNoticeSecondaryAction[];
 };
 
 export function resolveSignInNotice(
@@ -41,16 +49,20 @@ export function resolveSignInNotice(
         ],
         confirmLabel: '확인',
       };
-    case 'account-invite':
+    case 'invalid-credentials':
       return {
-        eyebrow: 'WELCOME TO NURI',
-        iconName: 'user-plus',
-        titleLines: ['가입되지 않은', '이메일입니다.'],
+        eyebrow: 'SIGN IN',
+        iconName: 'shield',
+        titleLines: ['로그인 정보를 다시 확인해 주세요'],
         bodyLines: [
-          'NURI의 회원이 되어',
-          '특별한 경험을 시작해 보세요.',
+          '입력하신 이메일 또는 비밀번호가 일치하지 않습니다.',
+          'NURI가 처음이시라면 회원가입 후 특별한 여정을 시작해 보세요.',
         ],
-        confirmLabel: '회원가입 살펴보기',
+        confirmLabel: '다시 입력하기',
+        secondaryActions: [
+          { label: '비밀번호 재설정', kind: 'password-reset' },
+          { label: '회원가입', kind: 'signup' },
+        ],
       };
     case 'password-reset-success':
     default:

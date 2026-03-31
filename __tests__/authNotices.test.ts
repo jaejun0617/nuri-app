@@ -27,6 +27,23 @@ describe('auth notices', () => {
     });
   });
 
+  it('invalid credentials는 중립 로그인 실패 모달과 보조 액션을 반환한다', () => {
+    expect(resolveSignInNotice('invalid-credentials')).toEqual({
+      eyebrow: 'SIGN IN',
+      iconName: 'shield',
+      titleLines: ['로그인 정보를 다시 확인해 주세요'],
+      bodyLines: [
+        '입력하신 이메일 또는 비밀번호가 일치하지 않습니다.',
+        'NURI가 처음이시라면 회원가입 후 특별한 여정을 시작해 보세요.',
+      ],
+      confirmLabel: '다시 입력하기',
+      secondaryActions: [
+        { label: '비밀번호 재설정', kind: 'password-reset' },
+        { label: '회원가입', kind: 'signup' },
+      ],
+    });
+  });
+
   it('invalid credential helper는 Supabase 기본 메시지를 잡아낸다', () => {
     expect(
       isInvalidCredentialSignInError(new Error('Invalid login credentials')),

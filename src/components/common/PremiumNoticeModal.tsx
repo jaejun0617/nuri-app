@@ -14,6 +14,11 @@ import AppText from '../../app/ui/AppText';
 
 type NoticeIconName = 'check' | 'shield' | 'user-plus';
 
+type SecondaryAction = {
+  label: string;
+  onPress: () => void;
+};
+
 type Props = {
   visible: boolean;
   eyebrow: string;
@@ -22,6 +27,7 @@ type Props = {
   bodyLines: readonly string[];
   confirmLabel?: string;
   accentColor?: string;
+  secondaryActions?: readonly SecondaryAction[];
   onClose: () => void;
   onConfirm?: () => void;
 };
@@ -34,6 +40,7 @@ function PremiumNoticeModalBase({
   bodyLines,
   confirmLabel = '확인',
   accentColor,
+  secondaryActions,
   onClose,
   onConfirm,
 }: Props) {
@@ -125,6 +132,32 @@ function PremiumNoticeModalBase({
               {confirmLabel}
             </AppText>
           </TouchableOpacity>
+
+          {secondaryActions && secondaryActions.length > 0 ? (
+            <View style={styles.secondaryRow}>
+              {secondaryActions.map(action => (
+                <TouchableOpacity
+                  key={action.label}
+                  activeOpacity={0.88}
+                  onPress={action.onPress}
+                  style={[
+                    styles.secondaryButton,
+                    {
+                      borderColor: theme.colors.border,
+                      backgroundColor: theme.colors.surface,
+                    },
+                  ]}
+                >
+                  <AppText
+                    preset="button"
+                    style={[styles.secondaryButtonText, { color: primaryColor }]}
+                  >
+                    {action.label}
+                  </AppText>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : null}
         </View>
       </View>
     </Modal>
@@ -183,24 +216,31 @@ const styles = StyleSheet.create({
     marginTop: 18,
     fontWeight: '900',
     letterSpacing: 1.6,
+    fontSize: 11,
+    lineHeight: 15,
   },
   copyBlock: {
-    marginTop: 10,
+    marginTop: 8,
     width: '100%',
     gap: 2,
   },
   title: {
     textAlign: 'center',
     fontWeight: '800',
+    fontSize: 18,
+    lineHeight: 25,
+    letterSpacing: -0.2,
   },
   body: {
     textAlign: 'center',
     fontWeight: '600',
+    fontSize: 13,
+    lineHeight: 20,
   },
   button: {
     width: '100%',
-    marginTop: 24,
-    minHeight: 54,
+    marginTop: 22,
+    minHeight: 52,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
@@ -208,6 +248,29 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#FFF8EE',
     fontWeight: '900',
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  secondaryRow: {
+    width: '100%',
+    marginTop: 10,
+    flexDirection: 'row',
+    gap: 10,
+  },
+  secondaryButton: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  secondaryButtonText: {
+    fontWeight: '900',
+    textAlign: 'center',
+    fontSize: 13,
+    lineHeight: 18,
   },
 });
 

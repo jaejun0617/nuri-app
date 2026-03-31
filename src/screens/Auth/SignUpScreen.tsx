@@ -397,7 +397,7 @@ export default function SignUpScreen() {
         Alert.alert(
           '이메일 확인 필요',
           '회원가입이 완료되었습니다. 이메일 인증 후 로그인해주세요.',
-          [{ text: '확인', onPress: () => navigation.replace('SignIn') }],
+          [{ text: '확인', onPress: () => navigation.navigate('SignIn') }],
         );
         return;
       }
@@ -495,7 +495,7 @@ export default function SignUpScreen() {
           <View style={styles.headerRow}>
             <TouchableOpacity
               activeOpacity={0.75}
-              onPress={() => navigation.goBack()}
+              onPress={() => navigation.navigate('SignIn')}
               style={styles.headerBackButton}
             >
               <Feather color="#1B2435" name="arrow-left" size={20} />
@@ -696,7 +696,7 @@ export default function SignUpScreen() {
             <Text style={styles.signInHint}>이미 계정이 있으신가요?</Text>
             <TouchableOpacity
               activeOpacity={0.75}
-              onPress={() => navigation.replace('SignIn')}
+              onPress={() => navigation.navigate('SignIn')}
             >
               <Text style={styles.signInLink}>로그인</Text>
             </TouchableOpacity>

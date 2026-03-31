@@ -12,7 +12,7 @@
 // - 로그인 성공 직후 바로 홈으로 보내지 않고 Splash를 다시 거쳐야 닉네임/펫 가드가 맞게 작동한다.
 // - 소셜 로그인/비밀번호 재설정은 아직 placeholder이므로 실제 구현 전까지 과장된 주석을 넣으면 안 된다.
 
-import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Image,
@@ -60,6 +60,7 @@ type FieldProps = {
   keyboardType?: 'default' | 'email-address';
   autoCapitalize?: 'none' | 'sentences';
   rightAccessory?: React.ReactNode;
+  inputRef?: React.Ref<TextInput>;
 };
 
 const AuthField = memo(function AuthField({
@@ -71,6 +72,7 @@ const AuthField = memo(function AuthField({
   keyboardType = 'default',
   autoCapitalize = 'sentences',
   rightAccessory,
+  inputRef,
 }: FieldProps) {
   return (
     <View style={styles.fieldBlock}>
@@ -82,6 +84,7 @@ const AuthField = memo(function AuthField({
           onChangeText={onChangeText}
           placeholder={placeholder}
           placeholderTextColor="#B7C0D0"
+          ref={inputRef}
           secureTextEntry={secureTextEntry}
           style={styles.input}
           value={value}
@@ -158,6 +161,8 @@ export default function SignInScreen() {
   const [securePassword, setSecurePassword] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [activeNotice, setActiveNotice] = useState<SignInNotice | null>(null);
+  const emailInputRef = useRef<TextInput>(null);
+  const passwordInputRef = useRef<TextInput>(null);
 
   const disabled = useMemo(
     () => submitting || !email.trim() || password.length < 8,
@@ -183,7 +188,7 @@ export default function SignInScreen() {
       navigation.reset({ index: 0, routes: [{ name: 'Splash' }] });
     } catch (error) {
       if (isInvalidCredentialSignInError(error)) {
-        setActiveNotice('account-invite');
+        setActiveNotice('invalid-credentials');
         return;
       }
 
@@ -210,7 +215,7 @@ export default function SignInScreen() {
   }, [email, navigation]);
 
   const onPressSignUp = useCallback(() => {
-    navigation.replace('SignUp');
+    navigation.navigate('SignUp');
   }, [navigation]);
 
   useEffect(() => {
@@ -237,23 +242,64 @@ export default function SignInScreen() {
     navigation.setParams({ notice: undefined });
   }, [navigation, route.params?.notice]);
 
-  const closeNoticeModal = useCallback(() => {
-    setActiveNotice(null);
-  }, []);
+  const focusCredentialField = useCallback(() => {
+    const target = password.trim().length > 0
+      ? passwordInputRef.current
+      : emailInputRef.current;
 
-  const handleNoticeConfirm = useCallback(() => {
-    if (activeNotice === 'account-invite') {
-      setActiveNotice(null);
-      navigation.navigate('SignUp');
+    setTimeout(() => {
+      target?.focus();
+    }, 0);
+  }, [password]);
+
+  const closeNoticeModal = useCallback(() => {
+    const shouldClearPassword = activeNotice === 'invalid-credentials';
+    setActiveNotice(null);
+
+    if (shouldClearPassword) {
+      setPassword('');
+      setTimeout(() => {
+        passwordInputRef.current?.focus();
+      }, 0);
       return;
     }
 
+    focusCredentialField();
+  }, [activeNotice, focusCredentialField]);
+
+  const handleNoticeConfirm = useCallback(() => {
     closeNoticeModal();
-  }, [activeNotice, closeNoticeModal, navigation]);
+  }, [closeNoticeModal]);
+
+  const handleNoticeSecondaryAction = useCallback(
+    (kind: 'password-reset' | 'signup') => {
+      setActiveNotice(null);
+      setPassword('');
+
+      if (kind === 'password-reset') {
+        navigation.navigate('PasswordResetRequest', {
+          email: email.trim() || undefined,
+        });
+        return;
+      }
+
+      navigation.navigate('SignUp');
+    },
+    [email, navigation],
+  );
 
   const noticeConfig = useMemo(
     () => (activeNotice ? resolveSignInNotice(activeNotice) : null),
     [activeNotice],
+  );
+
+  const secondaryActions = useMemo(
+    () =>
+      noticeConfig?.secondaryActions?.map(action => ({
+        label: action.label,
+        onPress: () => handleNoticeSecondaryAction(action.kind),
+      })),
+    [handleNoticeSecondaryAction, noticeConfig?.secondaryActions],
   );
 
   return (
@@ -283,6 +329,7 @@ export default function SignInScreen() {
 
           <AuthField
             autoCapitalize="none"
+            inputRef={emailInputRef}
             keyboardType="email-address"
             label=""
             onChangeText={setEmail}
@@ -292,6 +339,7 @@ export default function SignInScreen() {
 
           <AuthField
             autoCapitalize="none"
+            inputRef={passwordInputRef}
             label=""
             onChangeText={setPassword}
             placeholder="비밀번호"
@@ -372,6 +420,7 @@ export default function SignInScreen() {
             bodyLines={noticeConfig.bodyLines}
             confirmLabel={noticeConfig.confirmLabel}
             accentColor={theme.colors.brand}
+            secondaryActions={secondaryActions}
             onClose={closeNoticeModal}
             onConfirm={handleNoticeConfirm}
           />
