@@ -17,6 +17,8 @@ import type { Session } from '@supabase/supabase-js';
 import { create } from 'zustand';
 
 const STORAGE_KEY = 'nuri.profile.v1';
+const PASSWORD_RECOVERY_STORAGE_KEY = 'nuri.auth.passwordRecovery.v1';
+const PASSWORD_RECOVERY_TTL_MS = 30 * 60 * 1000;
 
 export type AuthStatus = 'guest' | 'logged_in';
 export type AppRole = 'user' | 'admin' | 'super_admin';
@@ -26,8 +28,17 @@ export type Profile = {
   role?: AppRole;
 };
 
+export type PasswordRecoveryFlowState =
+  | { status: 'inactive'; startedAt: null }
+  | { status: 'active'; startedAt: number };
+
 type PersistedProfile = {
   profile: Profile;
+};
+
+type PersistedPasswordRecoveryFlow = {
+  status?: 'inactive' | 'active';
+  startedAt?: number | null;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -51,6 +62,49 @@ function normalizePersistedProfile(value: unknown): Profile {
   };
 }
 
+function createInactivePasswordRecoveryFlow(): PasswordRecoveryFlowState {
+  return { status: 'inactive', startedAt: null };
+}
+
+function normalizePasswordRecoveryFlow(
+  value: unknown,
+  now = Date.now(),
+): PasswordRecoveryFlowState {
+  if (!isRecord(value)) return createInactivePasswordRecoveryFlow();
+
+  const raw = value as PersistedPasswordRecoveryFlow;
+  if (raw.status !== 'active') {
+    return createInactivePasswordRecoveryFlow();
+  }
+
+  const startedAt =
+    typeof raw.startedAt === 'number' && Number.isFinite(raw.startedAt)
+      ? raw.startedAt
+      : null;
+
+  if (!startedAt || startedAt <= 0) {
+    return createInactivePasswordRecoveryFlow();
+  }
+
+  if (now - startedAt > PASSWORD_RECOVERY_TTL_MS) {
+    return createInactivePasswordRecoveryFlow();
+  }
+
+  return { status: 'active', startedAt };
+}
+
+async function savePasswordRecoveryFlow(flow: PasswordRecoveryFlowState) {
+  if (flow.status !== 'active') {
+    await AsyncStorage.removeItem(PASSWORD_RECOVERY_STORAGE_KEY);
+    return;
+  }
+
+  await AsyncStorage.setItem(
+    PASSWORD_RECOVERY_STORAGE_KEY,
+    JSON.stringify(flow),
+  );
+}
+
 type AuthState = {
   // ---------------------------------------------------------
   // 1) 상태
@@ -60,6 +114,7 @@ type AuthState = {
   profile: Profile;
   profileSyncStatus: 'idle' | 'loading' | 'ready' | 'error';
   profileErrorMessage: string | null;
+  passwordRecoveryFlow: PasswordRecoveryFlowState;
 
   // ✅ 부트 게이트 (Splash 고정용)
   booted: boolean;
@@ -80,6 +135,8 @@ type AuthState = {
     status: 'idle' | 'loading' | 'ready' | 'error',
     errorMessage?: string | null,
   ) => void;
+  activatePasswordRecovery: () => Promise<void>;
+  clearPasswordRecovery: () => Promise<void>;
   setBooted: (v: boolean) => void;
 
   signOutLocal: () => Promise<void>;
@@ -101,6 +158,22 @@ async function loadProfile(): Promise<Profile> {
   }
 }
 
+async function loadPasswordRecoveryFlow(): Promise<PasswordRecoveryFlowState> {
+  const raw = await AsyncStorage.getItem(PASSWORD_RECOVERY_STORAGE_KEY);
+  if (!raw) return createInactivePasswordRecoveryFlow();
+
+  try {
+    const next = normalizePasswordRecoveryFlow(JSON.parse(raw));
+    if (next.status !== 'active') {
+      await AsyncStorage.removeItem(PASSWORD_RECOVERY_STORAGE_KEY);
+    }
+    return next;
+  } catch {
+    await AsyncStorage.removeItem(PASSWORD_RECOVERY_STORAGE_KEY);
+    return createInactivePasswordRecoveryFlow();
+  }
+}
+
 async function clearProfile() {
   await AsyncStorage.removeItem(STORAGE_KEY);
 }
@@ -114,6 +187,7 @@ export const useAuthStore = create<AuthState>(set => ({
   profile: { nickname: null, role: 'user' },
   profileSyncStatus: 'idle',
   profileErrorMessage: null,
+  passwordRecoveryFlow: createInactivePasswordRecoveryFlow(),
 
   booted: false,
 
@@ -123,8 +197,15 @@ export const useAuthStore = create<AuthState>(set => ({
   // 2) hydrate (앱 시작 시 1회) - 닉네임만 복원
   // ---------------------------------------------------------
   hydrate: async () => {
-    const profile = await loadProfile();
-    set({ profile: profile ?? { nickname: null, role: 'user' } });
+    const [profile, passwordRecoveryFlow] = await Promise.all([
+      loadProfile(),
+      loadPasswordRecoveryFlow(),
+    ]);
+
+    set({
+      profile: profile ?? { nickname: null, role: 'user' },
+      passwordRecoveryFlow,
+    });
   },
 
   // ---------------------------------------------------------
@@ -132,6 +213,17 @@ export const useAuthStore = create<AuthState>(set => ({
   // ---------------------------------------------------------
   setSession: async (session: Session | null) => {
     if (!session) {
+      set({
+        status: 'guest',
+        session: null,
+        isLoggedIn: false,
+        profileSyncStatus: 'idle',
+        profileErrorMessage: null,
+      });
+      return;
+    }
+
+    if (useAuthStore.getState().passwordRecoveryFlow.status === 'active') {
       set({
         status: 'guest',
         session: null,
@@ -178,6 +270,21 @@ export const useAuthStore = create<AuthState>(set => ({
         status === 'error' ? (errorMessage ?? '프로필 동기화 실패') : null,
     }),
 
+  activatePasswordRecovery: async () => {
+    const next: PasswordRecoveryFlowState = {
+      status: 'active',
+      startedAt: Date.now(),
+    };
+    set({ passwordRecoveryFlow: next });
+    await savePasswordRecoveryFlow(next);
+  },
+
+  clearPasswordRecovery: async () => {
+    const next = createInactivePasswordRecoveryFlow();
+    set({ passwordRecoveryFlow: next });
+    await savePasswordRecoveryFlow(next);
+  },
+
   // ---------------------------------------------------------
   // 5) booted 제어 (Splash 게이트)
   // ---------------------------------------------------------
@@ -193,11 +300,15 @@ export const useAuthStore = create<AuthState>(set => ({
       profile: { nickname: null, role: 'user' },
       profileSyncStatus: 'idle',
       profileErrorMessage: null,
+      passwordRecoveryFlow: createInactivePasswordRecoveryFlow(),
       isLoggedIn: false,
       // 수동 로그아웃에서는 부트 게이트를 닫지 않는다.
       // 세션 종료 후에도 Splash 브랜딩 대기까지 다시 타면 체감 지연이 커진다.
       booted: true,
     });
-    await clearProfile();
+    await Promise.all([
+      clearProfile(),
+      AsyncStorage.removeItem(PASSWORD_RECOVERY_STORAGE_KEY),
+    ]);
   },
 }));

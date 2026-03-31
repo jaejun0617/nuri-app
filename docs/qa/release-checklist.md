@@ -70,6 +70,13 @@
   - [x] `[수동]` Android emulator 기준 post create, post edit, comment create 차단 시 raw 서버 문구 대신 보수적인 한국어 UX 문구가 노출된다.
   - [x] `[수동]` Android emulator 기준 게시글 작성/수정, 댓글 작성 차단 후 입력값이 지워지지 않고 같은 화면에서 바로 수정 재시도가 가능하다.
   - [x] `[자동]` comment update 서버 guard는 실제 차단됐다. 앱 comment edit UI는 아직 없으므로 수동 UI 검증 항목은 별도로 만들지 않는다.
+- [ ] 조회수
+  - [x] `[자동]` linked project remote에 `public.posts.view_count`, `public.community_post_view_events`, `record_community_post_view()`가 실제 배포돼 있다.
+  - [x] `[자동]` self-view는 집계하지 않고, 로그인 사용자 detail open 1회 증가는 실제 remote write로 검증됐다.
+  - [x] `[자동]` 같은 로그인 사용자 6시간 내 재진입과 같은 `guest_session_id` 6시간 내 재진입은 모두 무증가로 검증됐다.
+  - [x] `[자동]` list/detail read는 실제 `view_count`를 읽는다. `posts?select=id,view_count` remote read와 linked public typegen에서 column/RPC가 확인됐다.
+  - [x] `[자동]` list impression 기반 증가와 optimistic counter는 구현되지 않았다.
+  - [ ] `[수동]` 실제 앱 화면에서 detail 진입 후 조회수가 1회만 반영되고, back/focus 재진입으로 즉시 다시 오르지 않는지 확인한다.
 - [ ] 신고 / moderation
   - [ ] `[자동+수동]` 신고는 10분 5회, 1일 20회 제한을 초과하면 서버 기준으로 차단된다.
   - [ ] `[자동+수동]` 같은 대상 중복 신고는 기존 unique 계약대로 1회만 허용된다.

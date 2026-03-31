@@ -1,10 +1,7 @@
 import React, { memo, useCallback } from 'react';
 
 import { useCommunityStore } from '../../../store/communityStore';
-import type { CommunityComment } from '../../../types/community';
 import PostCard from './PostCard';
-
-const EMPTY_COMMENTS: ReadonlyArray<CommunityComment> = [];
 
 type Props = {
   postId: string;
@@ -21,11 +18,7 @@ function CommunityPostListItemBase({
     useCallback(s => s.postsById[postId] ?? null, [postId]),
   );
   const latestComment = useCommunityStore(
-    useCallback(s => {
-      const comments = s.commentsByPostId[postId] ?? EMPTY_COMMENTS;
-      if (comments.length === 0) return null;
-      return comments[comments.length - 1] ?? null;
-    }, [postId]),
+    useCallback(s => s.latestCommentByPostId[postId] ?? null, [postId]),
   );
 
   if (!post) return null;
@@ -33,7 +26,7 @@ function CommunityPostListItemBase({
   return (
     <PostCard
       post={post}
-      latestComment={latestComment}
+      latestComment={post.commentCount > 0 ? latestComment : null}
       onPressPost={onPressPost}
       onPressLike={onPressLike}
     />

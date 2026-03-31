@@ -1,12 +1,29 @@
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
+import type { PasswordRecoveryFlowState } from '../../store/authStore';
 
-export type BootRouteName = 'AppTabs' | 'NicknameSetup' | 'PetCreate';
+export type BootRouteName = 'AppTabs' | 'NicknameSetup' | 'PetCreate' | 'SignIn';
 
 const SPLASH_DEFAULT_HOLD_MS = 700;
 const SPLASH_FORM_HOLD_MS = 900;
 
 export function getSessionUserId(session: Session | null | undefined) {
   return session?.user?.id ?? null;
+}
+
+export function isPasswordRecoveryFlowActive(
+  flow: PasswordRecoveryFlowState | null | undefined,
+) {
+  return flow?.status === 'active';
+}
+
+export function shouldKeepGuestSandboxForRecovery(input: {
+  passwordRecoveryFlow: PasswordRecoveryFlowState | null | undefined;
+  session: Session | null | undefined;
+}) {
+  return (
+    isPasswordRecoveryFlowActive(input.passwordRecoveryFlow) &&
+    !!getSessionUserId(input.session)
+  );
 }
 
 export function createBootTimeoutError(label: string, timeoutMs: number) {
@@ -64,7 +81,12 @@ export function resolveBootRoute(input: {
   profileSyncStatus: 'idle' | 'loading' | 'ready' | 'error';
   petsCount: number;
   petErrorMessage: string | null;
+  passwordRecoveryFlow?: PasswordRecoveryFlowState | null;
 }) {
+  if (isPasswordRecoveryFlowActive(input.passwordRecoveryFlow)) {
+    return { name: 'SignIn' as const, params: undefined };
+  }
+
   if (!input.isLoggedIn) {
     return { name: 'AppTabs' as const, params: undefined };
   }
@@ -72,6 +94,10 @@ export function resolveBootRoute(input: {
   const trimmedNickname = input.nickname?.trim() ?? '';
   if (input.profileSyncStatus === 'ready' && !trimmedNickname) {
     return { name: 'NicknameSetup' as const, params: undefined };
+  }
+
+  if (input.petErrorMessage) {
+    return { name: 'AppTabs' as const, params: undefined };
   }
 
   if (input.petsCount === 0) {

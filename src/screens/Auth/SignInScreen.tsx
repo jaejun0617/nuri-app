@@ -17,7 +17,9 @@ import {
   Alert,
   Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  Pressable,
   ScrollView,
   Text,
   TextInput,
@@ -34,9 +36,9 @@ import Feather from 'react-native-vector-icons/Feather';
 import { ASSETS } from '../../assets';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { getBrandedErrorMeta } from '../../services/app/errors';
+import { clearLocalAuthSession } from '../../services/supabase/auth';
 import { supabase } from '../../services/supabase/client';
 import { useAuthStore } from '../../store/authStore';
-import { showToast } from '../../store/uiStore';
 
 import { styles } from './SignInScreen.styles';
 
@@ -123,11 +125,15 @@ export default function SignInScreen() {
   const route = useRoute<SignInRoute>();
 
   const setSession = useAuthStore(s => s.setSession);
+  const clearPasswordRecovery = useAuthStore(s => s.clearPasswordRecovery);
+  const passwordRecoveryStatus = useAuthStore(s => s.passwordRecoveryFlow.status);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [securePassword, setSecurePassword] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [passwordResetSuccessModalVisible, setPasswordResetSuccessModalVisible] =
+    useState(false);
 
   const disabled = useMemo(
     () => submitting || !email.trim() || password.length < 8,
@@ -139,6 +145,8 @@ export default function SignInScreen() {
 
     try {
       setSubmitting(true);
+      await clearPasswordRecovery();
+      await clearLocalAuthSession();
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
@@ -154,7 +162,7 @@ export default function SignInScreen() {
     } finally {
       setSubmitting(false);
     }
-  }, [disabled, email, navigation, password, setSession]);
+  }, [clearPasswordRecovery, disabled, email, navigation, password, setSession]);
 
   const onSocialPress = useCallback((provider: 'kakao' | 'google') => {
     const label = provider === 'kakao' ? '카카오' : 'Google';
@@ -176,19 +184,27 @@ export default function SignInScreen() {
   }, [navigation]);
 
   useEffect(() => {
+    if (passwordRecoveryStatus !== 'active') {
+      return;
+    }
+
+    clearPasswordRecovery()
+      .then(() => clearLocalAuthSession())
+      .catch(() => {});
+  }, [clearPasswordRecovery, passwordRecoveryStatus]);
+
+  useEffect(() => {
     if (route.params?.notice !== 'password-reset-success') {
       return;
     }
 
-    showToast({
-      tone: 'success',
-      title: '비밀번호가 변경되었습니다',
-      message: '새 비밀번호로 다시 로그인해 주세요.',
-      durationMs: 3200,
-    });
-
+    setPasswordResetSuccessModalVisible(true);
     navigation.setParams({ notice: undefined });
   }, [navigation, route.params?.notice]);
+
+  const closePasswordResetSuccessModal = useCallback(() => {
+    setPasswordResetSuccessModalVisible(false);
+  }, []);
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -299,6 +315,42 @@ export default function SignInScreen() {
             textColor="#334155"
           />
         </ScrollView>
+
+        <Modal
+          visible={passwordResetSuccessModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={closePasswordResetSuccessModal}
+        >
+          <View style={styles.successBackdrop}>
+            <Pressable
+              style={styles.successScrim}
+              onPress={closePasswordResetSuccessModal}
+            />
+            <View style={styles.successCard}>
+              <View style={styles.successHalo}>
+                <View style={styles.successIcon}>
+                  <Feather name="check" size={28} color="#FFF8EE" />
+                </View>
+              </View>
+
+              <Text style={styles.successEyebrow}>PASSWORD UPDATED</Text>
+              <Text style={styles.successTitle}>비밀번호가 변경되었습니다</Text>
+              <Text style={styles.successBody}>
+                보안을 위해 임시 세션을 종료했어요.{'\n'}새 비밀번호로 다시 로그인해
+                주세요.
+              </Text>
+
+              <TouchableOpacity
+                activeOpacity={0.92}
+                onPress={closePasswordResetSuccessModal}
+                style={styles.successButton}
+              >
+                <Text style={styles.successButtonText}>확인</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

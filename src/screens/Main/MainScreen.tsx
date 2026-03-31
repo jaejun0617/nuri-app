@@ -31,10 +31,14 @@ export default function MainScreen() {
   const isLoggedIn = useAuthStore(s => s.isLoggedIn);
   const nickname = useAuthStore(s => s.profile.nickname);
   const profileSyncStatus = useAuthStore(s => s.profileSyncStatus);
+  const isPasswordRecoveryActive = useAuthStore(
+    s => s.passwordRecoveryFlow.status === 'active',
+  );
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
   const petsCount = usePetStore(s => s.pets.length);
   const petLoading = usePetStore(s => s.loading);
+  const petErrorMessage = usePetStore(s => s.errorMessage);
   const [exitConfirmVisible, setExitConfirmVisible] = useState(false);
   const selectedPet = useMemo(
     () => pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
@@ -65,10 +69,15 @@ export default function MainScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      if (isPasswordRecoveryActive) {
+        navigation.reset({ index: 0, routes: [{ name: 'SignIn' }] });
+        return undefined;
+      }
+
       if (!isLoggedIn) {
         return undefined;
       }
-      if (profileSyncStatus !== 'ready' || petLoading) {
+      if (profileSyncStatus !== 'ready' || petLoading || petErrorMessage) {
         return undefined;
       }
 
@@ -83,12 +92,21 @@ export default function MainScreen() {
       }
 
       return undefined;
-    }, [isLoggedIn, navigation, nickname, petLoading, petsCount, profileSyncStatus]),
+    }, [
+      isLoggedIn,
+      isPasswordRecoveryActive,
+      navigation,
+      nickname,
+      petLoading,
+      petErrorMessage,
+      petsCount,
+      profileSyncStatus,
+    ]),
   );
 
   return (
     <>
-      {isLoggedIn ? <LoggedInHome /> : <GuestHome />}
+      {isLoggedIn && !isPasswordRecoveryActive ? <LoggedInHome /> : <GuestHome />}
       <ConfirmDialog
         visible={exitConfirmVisible}
         title="앱을 종료할까요?"

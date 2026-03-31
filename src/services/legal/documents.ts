@@ -70,15 +70,15 @@ const LEGAL_DOCUMENT_CONFIG: Record<LegalDocumentId, LegalDocumentConfig> = {
     id: 'marketing',
     title: '마케팅 수신 안내',
     version: CURRENT_LEGAL_POLICY_VERSION,
-    status: 'pending',
+    status: 'draft',
     url: null,
     requiredInSignup: false,
     summary: '혜택, 소식, 마케팅 알림 수신 여부를 다루는 선택 동의 항목',
     description:
-      '혜택, 소식, 프로모션 안내 수신 여부를 다루는 선택 동의 항목입니다. 세부 문구와 제공 채널은 후속 운영 확정이 필요합니다.',
-    draftPath: null,
+      '혜택, 소식, 프로모션 안내 수신 여부와 철회 원칙을 다루는 앱 연결용 초안입니다.',
+    draftPath: 'docs/policies/마케팅-수신-안내-초안.md',
     unavailableMessage:
-      '마케팅 수신 관련 별도 안내 문서는 아직 준비 중입니다. 현재는 선택 동의 상태만 저장하며 세부 문구는 후속 운영 작업에서 확정됩니다.',
+      '마케팅 수신 안내 초안 구조는 준비됐지만 앱에서 전체 문서를 여는 연결은 아직 확정되지 않았습니다. 현재는 선택 동의 상태만 저장하며 세부 문구와 채널은 후속 운영 작업에서 확정됩니다.',
   },
   accountDeletion: {
     id: 'accountDeletion',

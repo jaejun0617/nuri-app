@@ -22,5 +22,9 @@ export function getGuideDataSourceDescription(input: {
     return '공개 row가 0건이라 로컬 테스트 seed를 대신 보여주고 있습니다.';
   }
 
+  if (input.reason === 'remote-error') {
+    return '공개 가이드 원격 조회에 실패해 운영 가이드를 비운 상태입니다.';
+  }
+
   return '원격 조회는 성공했지만 공개 조건을 만족한 가이드 row가 0건인 상태입니다.';
 }

@@ -19,6 +19,9 @@ import type {
   CommunityPostCategory,
   CommunityPostRow,
   CommunityPostStatus,
+  CommunityPostViewRecordReason,
+  CommunityPostViewRecordResult,
+  CommunityPostViewViewerType,
   CommunityProfileRow,
   CreateCommunityCommentParams,
   CreateCommunityPostParams,
@@ -26,6 +29,7 @@ import type {
   FetchCommunityPostsParams,
   UpdateCommunityPostParams,
 } from '../../types/community';
+import { getCommunityGuestSessionId } from '../community/guestSession';
 import { formatPetAgeLabelFromBirthDate } from '../pets/age';
 import { supabase } from './client';
 import { toPublicPetAvatarUrl } from './pets';
@@ -35,10 +39,18 @@ const UNKNOWN_COMMUNITY_AUTHOR_NICKNAME = '알 수 없는 사용자';
 const COMMUNITY_REPORT_RATE_LIMIT_MESSAGE =
   '신고는 10분에 5건, 하루에 20건까지 접수할 수 있어요.';
 const COMMUNITY_POST_SELECT_LEGACY =
-  'id, user_id, pet_id, visibility, content, image_url, status, category, like_count, comment_count, deleted_at, created_at, updated_at';
+  'id, user_id, pet_id, visibility, content, image_url, status, category, like_count, comment_count, view_count, deleted_at, created_at, updated_at';
 const COMMUNITY_POST_SELECT_TITLE =
-  'id, user_id, pet_id, visibility, title, content, image_url, status, category, like_count, comment_count, deleted_at, created_at, updated_at';
+  'id, user_id, pet_id, visibility, title, content, image_url, status, category, like_count, comment_count, view_count, deleted_at, created_at, updated_at';
 const COMMUNITY_POST_SELECT_SNAPSHOT = `${COMMUNITY_POST_SELECT_TITLE}, image_urls, author_snapshot_nickname, author_snapshot_avatar_url, pet_snapshot_name, pet_snapshot_species, pet_snapshot_breed, pet_snapshot_age_label, pet_snapshot_avatar_path, show_pet_age`;
+
+type CommunityPostViewRecordRow = {
+  counted?: boolean | null;
+  view_count?: number | null;
+  viewer_type?: string | null;
+  dedupe_window_start?: string | null;
+  reason?: string | null;
+};
 
 type CommunityAuthorSnapshot = {
   nickname: string | null;
@@ -180,6 +192,61 @@ function normalizeCategory(value: string | null): CommunityPostCategory | null {
   return isCommunityPostCategory(value) ? value : null;
 }
 
+function normalizeCountValue(value: unknown) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return Math.max(Math.trunc(value), 0);
+  }
+  if (typeof value === 'string') {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isFinite(parsed)) {
+      return Math.max(parsed, 0);
+    }
+  }
+  return 0;
+}
+
+function normalizeCommunityPostViewViewerType(
+  value: unknown,
+): CommunityPostViewViewerType {
+  return value === 'guest' ? 'guest' : 'user';
+}
+
+function normalizeCommunityPostViewReason(
+  value: unknown,
+): CommunityPostViewRecordReason {
+  switch (value) {
+    case 'counted':
+    case 'deduped':
+    case 'self_view':
+    case 'post_ineligible':
+    case 'missing_guest_session':
+    case 'post_not_found':
+      return value;
+    default:
+      return 'deduped';
+  }
+}
+
+function normalizeCommunityPostViewRecordResult(
+  value: unknown,
+): CommunityPostViewRecordResult {
+  const row =
+    isRecord(value) && !Array.isArray(value)
+      ? (value as CommunityPostViewRecordRow)
+      : null;
+
+  return {
+    counted: row?.counted === true,
+    viewCount: normalizeCountValue(row?.view_count),
+    viewerType: normalizeCommunityPostViewViewerType(row?.viewer_type),
+    dedupeWindowStart:
+      typeof row?.dedupe_window_start === 'string'
+        ? row.dedupe_window_start
+        : null,
+    reason: normalizeCommunityPostViewReason(row?.reason),
+  };
+}
+
 function looksLikeRemoteUrl(value: string | null | undefined) {
   const raw = `${value ?? ''}`.trim();
   return raw.startsWith('https://') || raw.startsWith('http://');
@@ -273,9 +340,9 @@ function normalizePost(
     category: normalizeCategory(row.category),
     likeCount:
       likeCountsByPostId.get(row.id) ??
-      (typeof row.like_count === 'number' ? row.like_count : 0),
-    commentCount: typeof row.comment_count === 'number' ? row.comment_count : 0,
-    viewCount: typeof row.view_count === 'number' ? row.view_count : 0,
+      normalizeCountValue(row.like_count),
+    commentCount: normalizeCountValue(row.comment_count),
+    viewCount: normalizeCountValue(row.view_count),
     isLikedByMe: likedPostIds.has(row.id),
     deletedAt: row.deleted_at ?? null,
     createdAt: row.created_at,
@@ -720,19 +787,13 @@ export async function fetchCommunityPostById(postId: string) {
   const data = await selectCommunityPostByIdWithFallback(postId);
   if (!data || !isCommunityPostRow(data)) return null;
   const canExposeImages = data.deleted_at === null && data.status === 'active';
-
-  const imagePaths =
-    Array.isArray(data.image_urls) && data.image_urls.length > 0
-      ? data.image_urls
-      : data.image_url
-        ? [data.image_url]
-        : [];
+  const imagePaths = normalizeImagePaths(data);
 
   const [profilesByUserId, petsById, resolvedImageUrls] = await Promise.all([
     fetchProfilesByUserIds([data.user_id]),
     fetchPetsByIds([data.pet_id ?? ''].filter(Boolean)),
     canExposeImages
-      ? Promise.all(imagePaths.map(path => resolveCommunityImageUrl(path)))
+      ? Promise.all(imagePaths.map(resolveCommunityImageUrl))
       : Promise.resolve([]),
   ]);
   const currentUserId = await getCommunityCurrentUserId();
@@ -750,6 +811,25 @@ export async function fetchCommunityPostById(postId: string) {
     resolvedImageUrls[0] ?? null,
     resolvedImageUrls,
   );
+}
+
+export async function recordCommunityPostView(
+  postId: string,
+): Promise<CommunityPostViewRecordResult> {
+  const currentUserId = await getCommunityCurrentUserId();
+  const guestSessionId = currentUserId
+    ? null
+    : await getCommunityGuestSessionId();
+
+  const { data, error } = await supabase.rpc('record_community_post_view', {
+    p_post_id: postId,
+    p_guest_session_id: guestSessionId,
+  });
+
+  if (error) throw error;
+
+  const row = Array.isArray(data) ? data[0] ?? null : data;
+  return normalizeCommunityPostViewRecordResult(row);
 }
 
 export async function fetchCommunityComments(postId: string) {
@@ -806,6 +886,63 @@ export async function fetchCommunityComments(postId: string) {
       likedCommentIds,
       likeCountsByCommentId,
     ),
+  );
+}
+
+export async function fetchLatestCommunityCommentPreview(postId: string) {
+  const primary = await supabase
+    .from('comments')
+    .select(
+      'id, post_id, user_id, parent_comment_id, depth, reply_count, like_count, content, status, deleted_at, created_at, updated_at',
+    )
+    .eq('post_id', postId)
+    .eq('status', 'active')
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  let row: CommunityCommentRow | null = null;
+
+  if (!primary.error) {
+    row = isCommunityCommentRow(primary.data) ? primary.data : null;
+  } else if (isMissingCommentColumnsError(primary.error)) {
+    const fallback = await supabase
+      .from('comments')
+      .select('id, post_id, user_id, content, created_at, status, deleted_at')
+      .eq('post_id', postId)
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (fallback.error) throw fallback.error;
+    row = normalizeLegacyCommentRow(fallback.data);
+  } else {
+    throw primary.error;
+  }
+
+  if (row && (row.deleted_at !== null || row.status !== 'active')) {
+    row = null;
+  }
+
+  if (!row) return null;
+
+  const profilesByUserId = await fetchProfilesByUserIds([row.user_id]);
+  const profile = profilesByUserId.get(row.user_id) ?? null;
+  const needsAuthorSnapshot =
+    !profile?.nickname?.trim() && !profile?.avatar_url?.trim();
+  const authorSnapshotsByUserId = needsAuthorSnapshot
+    ? await fetchPublicPostAuthorSnapshotsByUserIds([row.user_id])
+    : new Map<string, CommunityAuthorSnapshot>();
+
+  return normalizeComment(
+    row,
+    profilesByUserId,
+    authorSnapshotsByUserId,
+    new Set<string>(),
+    new Map<string, number>(),
   );
 }
 

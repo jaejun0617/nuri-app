@@ -75,12 +75,12 @@ function CustomTabBar(props: BottomTabBarProps) {
     currentRouteName === 'TimelineTab'
       ? 'timeline'
       : currentRouteName === 'CommunityTab'
-        ? 'community'
+      ? 'community'
       : currentRouteName === 'GuestbookTab'
-        ? 'guestbook'
+      ? 'guestbook'
       : currentRouteName === 'MoreTab'
-          ? 'more'
-          : 'home';
+      ? 'more'
+      : 'home';
 
   return <AppNavigationToolbar activeKey={activeKey} />;
 }

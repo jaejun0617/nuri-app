@@ -4,6 +4,10 @@ import {
 } from '../src/services/petTravel/catalog';
 import { fetchPetTravelList } from '../src/services/petTravel/api';
 
+jest.mock('../src/services/supabase/petTravelTrust', () => ({
+  loadPetTravelTrustSnapshotsBySourceIds: jest.fn(async () => new Map()),
+}));
+
 function buildTourApiListResponse(itemOverrides: Record<string, unknown> = {}) {
   return {
     response: {
@@ -71,6 +75,7 @@ describe('fetchPetTravelList', () => {
     expect(result.items).toHaveLength(1);
     expect(result.items[0]?.petAllowed).toBe('possible');
     expect(result.items[0]?.petPolicy.status).toBe('tour-api-positive');
+    expect(result.items[0]?.publicTrust.publicLabel).toBe('needs_verification');
     expect(result.items[0]?.aggregation.score.travelScore).toBeGreaterThan(0);
     expect(result.items[0]?.aggregation.score.petScore).toBeLessThan(
       result.items[0]?.aggregation.score.travelScore ?? 1,

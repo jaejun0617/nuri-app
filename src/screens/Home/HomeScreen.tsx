@@ -42,6 +42,7 @@ export default function HomeScreen() {
   const isLoggedIn = useAuthStore(s => s.isLoggedIn);
   const nickname = useAuthStore(s => s.profile.nickname);
   const profileSyncStatus = useAuthStore(s => s.profileSyncStatus);
+  const passwordRecoveryFlow = useAuthStore(s => s.passwordRecoveryFlow);
   const petBooted = usePetStore(s => s.booted);
   const pets = usePetStore(s => s.pets);
   const petErrorMessage = usePetStore(s => s.errorMessage);
@@ -81,8 +82,16 @@ export default function HomeScreen() {
       profileSyncStatus,
       petsCount: pets.length,
       petErrorMessage,
+      passwordRecoveryFlow,
     });
-  }, [isLoggedIn, nickname, profileSyncStatus, pets.length, petErrorMessage]);
+  }, [
+    isLoggedIn,
+    nickname,
+    passwordRecoveryFlow,
+    profileSyncStatus,
+    pets.length,
+    petErrorMessage,
+  ]);
   const splashHoldMs = useMemo(
     () => getBootSplashHoldMs(nextRoute.name),
     [nextRoute.name],

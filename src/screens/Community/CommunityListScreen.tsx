@@ -63,6 +63,11 @@ const CATEGORY_CHIPS: CategoryChip[] = [
   { key: 'free', label: '정보', value: 'free' },
 ];
 
+const FLOATING_BUTTON_SIZE = 48;
+const FLOATING_BUTTON_GAP = 14;
+const TOP_BUTTON_SHOW_SCROLL_Y = 260;
+const FLOATING_BUTTON_RAISE_STEP = 24;
+
 const keyExtractor = (item: string) => item;
 
 const ListFooterLoading = memo(function ListFooterLoading() {
@@ -173,7 +178,9 @@ export default function CommunityListScreen() {
   const fetchPosts = useCommunityStore(s => s.fetchPosts);
   const refreshPosts = useCommunityStore(s => s.refreshPosts);
   const loadMorePosts = useCommunityStore(s => s.loadMorePosts);
-  const fetchPostComments = useCommunityStore(s => s.fetchPostComments);
+  const fetchLatestCommentPreview = useCommunityStore(
+    s => s.fetchLatestCommentPreview,
+  );
   const togglePostLike = useCommunityStore(s => s.togglePostLike);
 
   const [showTopButton, setShowTopButton] = useState(false);
@@ -291,8 +298,8 @@ export default function CommunityListScreen() {
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       const y = event.nativeEvent.contentOffset.y;
       setShowTopButton(prev => {
-        if (y > 180 && !prev) return true;
-        if (y <= 180 && prev) return false;
+        if (y > TOP_BUTTON_SHOW_SCROLL_Y && !prev) return true;
+        if (y <= TOP_BUTTON_SHOW_SCROLL_Y && prev) return false;
         return prev;
       });
     },
@@ -332,14 +339,14 @@ export default function CommunityListScreen() {
   const postIds = useMemo(() => posts.map(post => post.id), [posts]);
 
   useEffect(() => {
-    const { commentsStatusByPostId } = useCommunityStore.getState();
+    const { latestCommentStatusByPostId } = useCommunityStore.getState();
     posts.forEach(post => {
       if (post.commentCount <= 0) return;
-      const commentsStatus = commentsStatusByPostId[post.id] ?? 'idle';
-      if (commentsStatus !== 'idle') return;
-      fetchPostComments(post.id).catch(() => {});
+      const latestCommentStatus = latestCommentStatusByPostId[post.id] ?? 'idle';
+      if (latestCommentStatus !== 'idle') return;
+      fetchLatestCommentPreview(post.id).catch(() => {});
     });
-  }, [fetchPostComments, posts]);
+  }, [fetchLatestCommentPreview, posts]);
 
   const renderItem = useCallback<ListRenderItem<string>>(
     ({ item: postId }) => (
@@ -356,15 +363,17 @@ export default function CommunityListScreen() {
     pendingCategoryTransitionRef.current !== null &&
     (listStatus === 'loading' || listStatus === 'refreshing');
 
-  const listHeader = useMemo(
+  const categoryHeader = useMemo(
     () => (
-      <View style={styles.listHeader}>
-        <View
-          style={[
-            styles.categoryRow,
-            { borderBottomColor: theme.colors.border },
-          ]}
-        >
+      <View
+        style={[
+          styles.stickyCategoryHeader,
+          {
+            backgroundColor: theme.colors.background,
+          },
+        ]}
+      >
+        <View style={styles.categoryRow}>
           {CATEGORY_CHIPS.map(chip => {
             return (
               <CategoryChipButton
@@ -391,6 +400,21 @@ export default function CommunityListScreen() {
             </AppText>
           </View>
         ) : null}
+      </View>
+    ),
+    [
+      activeCategory,
+      handlePressCategory,
+      isCategoryTransitioning,
+      petTheme.primary,
+      theme.colors.background,
+      theme.colors.textMuted,
+    ],
+  );
+
+  const listHeader = useMemo(
+    () => (
+      <View style={styles.listIntroHeader}>
         <View style={styles.sectionHeader}>
           <View style={styles.sectionHeaderTextBlock}>
             <View style={styles.sectionHeaderTitleRow}>
@@ -418,12 +442,7 @@ export default function CommunityListScreen() {
       </View>
     ),
     [
-      activeCategory,
-      handlePressCategory,
-      isCategoryTransitioning,
       postIds.length,
-      petTheme.primary,
-      theme.colors.border,
       theme.colors.textMuted,
       theme.colors.textPrimary,
     ],
@@ -490,6 +509,31 @@ export default function CommunityListScreen() {
     pendingCategoryTransitionRef.current = null;
   }, [listStatus]);
 
+  const createFabBottom = useMemo(
+    () =>
+      Math.max(
+        insets.bottom + 126 + FLOATING_BUTTON_RAISE_STEP,
+        142 + FLOATING_BUTTON_RAISE_STEP,
+      ),
+    [insets.bottom],
+  );
+  const topButtonBottom = useMemo(
+    () =>
+      Math.max(
+        createFabBottom - FLOATING_BUTTON_SIZE - FLOATING_BUTTON_GAP,
+        insets.bottom + 34,
+      ),
+    [createFabBottom, insets.bottom],
+  );
+  const listBottomInset = useMemo(
+    () =>
+      Math.max(
+        createFabBottom + FLOATING_BUTTON_SIZE + 28,
+        insets.bottom + 176,
+      ),
+    [createFabBottom, insets.bottom],
+  );
+
   return (
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
       {isInitialLoading ? (
@@ -525,8 +569,10 @@ export default function CommunityListScreen() {
         </View>
       ) : (
         <View style={styles.listWrap}>
+          {categoryHeader}
           <FlatList
             ref={flatListRef}
+            style={styles.postList}
             data={postIds}
             overScrollMode="always"
             keyExtractor={keyExtractor}
@@ -555,7 +601,7 @@ export default function CommunityListScreen() {
             contentContainerStyle={[
               styles.listContent,
               {
-                paddingBottom: Math.max(insets.bottom + 108, 132),
+                paddingBottom: listBottomInset,
               },
             ]}
           />
@@ -566,7 +612,7 @@ export default function CommunityListScreen() {
               styles.createFab,
               {
                 backgroundColor: petTheme.primary,
-                bottom: Math.max(insets.bottom + 76, 92),
+                bottom: createFabBottom,
               },
             ]}
             onPress={handlePressCreate}
@@ -581,7 +627,7 @@ export default function CommunityListScreen() {
                 styles.topButton,
                 {
                   backgroundColor: theme.colors.surfaceElevated,
-                  bottom: Math.max(insets.bottom + 18, 28),
+                  bottom: topButtonBottom,
                   borderColor: theme.colors.border,
                 },
               ]}

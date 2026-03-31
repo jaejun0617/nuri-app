@@ -128,6 +128,7 @@ export default function CommunityDetailScreen() {
   const flatListRef = useRef<FlatList<string> | null>(null);
   const commentInputRef = useRef<TextInput | null>(null);
   const keyboardInset = useKeyboardInset();
+  const viewRecordAttemptedPostIdsRef = useRef<Record<string, boolean>>({});
   const commentLikeDebounceTimersRef = useRef<
     Record<string, ReturnType<typeof setTimeout>>
   >({});
@@ -156,6 +157,7 @@ export default function CommunityDetailScreen() {
     s => s.commentsStatusByPostId[postId] ?? 'idle',
   );
   const fetchPostDetail = useCommunityStore(s => s.fetchPostDetail);
+  const recordPostView = useCommunityStore(s => s.recordPostView);
   const fetchPostComments = useCommunityStore(s => s.fetchPostComments);
   const removePost = useCommunityStore(s => s.removePost);
   const togglePostLike = useCommunityStore(s => s.togglePostLike);
@@ -195,6 +197,14 @@ export default function CommunityDetailScreen() {
     fetchPostDetail(postId).catch(() => {});
     fetchPostComments(postId).catch(() => {});
   }, [fetchPostComments, fetchPostDetail, postId]);
+
+  useEffect(() => {
+    if (!post || detailStatus !== 'ready') return;
+    if (viewRecordAttemptedPostIdsRef.current[postId]) return;
+
+    viewRecordAttemptedPostIdsRef.current[postId] = true;
+    recordPostView(postId).catch(() => {});
+  }, [detailStatus, post, postId, recordPostView]);
 
   useEffect(() => {
     setVisibleCommentCount(COMMENT_PAGE_SIZE);

@@ -1015,6 +1015,7 @@ function buildScoreBreakdown(
     'name' | 'address' | 'categoryLabel' | 'source' | 'placeType' | 'facilityHighlights' | 'petPolicy'
   >,
   keyword: string,
+  regionIntent: PetTravelRegionIntent | null,
 ): PetTravelScoreBreakdown {
   const title = item.name;
   const address = item.address;
@@ -1023,6 +1024,9 @@ function buildScoreBreakdown(
   const combinedText = `${title} ${address} ${categoryLabel}`;
   const normalizedCombined = normalizeSearchText(combinedText);
   const hasTravelPositive = hasAnyPattern(combinedText, TRAVEL_POSITIVE_PATTERNS);
+  const hasRegionScopeMatch = regionIntent
+    ? matchesRegionScope(item as PetTravelItem, regionIntent.region)
+    : false;
 
   let travelScore = 0.2;
   switch (item.source.contentTypeId) {
@@ -1056,6 +1060,12 @@ function buildScoreBreakdown(
   }
   if (keywordText && normalizedCombined.includes(keywordText)) {
     travelScore += 0.05;
+  }
+  if (hasRegionScopeMatch) {
+    // Region-only 검색은 area scope를 이미 좁혀 온 결과이므로,
+    // 행정명 별칭 차이(예: `제주도` vs `제주특별자치도`) 때문에
+    // 적합한 후보가 과하게 탈락하지 않도록 최소 가산점을 준다.
+    travelScore += regionIntent?.isRegionOnlyQuery ? 0.1 : 0.04;
   }
   if (hasTravelPositive) {
     travelScore += 0.18;
@@ -1266,7 +1276,7 @@ function filterAndRankSearchResults(
   return items
     .map(item => ({
       item,
-      score: buildScoreBreakdown(item, trimmedKeyword),
+      score: buildScoreBreakdown(item, trimmedKeyword, regionIntent),
     }))
     .map(({ item, score }) => ({
       item: {
@@ -1529,7 +1539,7 @@ export async function fetchPetTravelList(
           ...item,
           aggregation: {
             ...item.aggregation,
-            score: buildScoreBreakdown(item, ''),
+            score: buildScoreBreakdown(item, '', null),
           },
         }))
         .sort(

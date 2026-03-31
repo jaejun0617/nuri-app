@@ -47,6 +47,22 @@ export type CommunityMutationErrorDetail = {
   match_source?: CommunityContentPolicyMatchSource | null;
 };
 
+export type CommunityPostViewViewerType = 'user' | 'guest';
+export type CommunityPostViewRecordReason =
+  | 'counted'
+  | 'deduped'
+  | 'self_view'
+  | 'post_ineligible'
+  | 'missing_guest_session'
+  | 'post_not_found';
+export type CommunityPostViewRecordResult = {
+  counted: boolean;
+  viewCount: number;
+  viewerType: CommunityPostViewViewerType;
+  dedupeWindowStart: string | null;
+  reason: CommunityPostViewRecordReason;
+};
+
 export type CommunityPostRow = {
   id: string;
   user_id: string;

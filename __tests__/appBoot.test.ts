@@ -1,12 +1,40 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { Session } from '@supabase/supabase-js';
 
 import {
   createBootTimeoutError,
   resolveBootRoute,
+  shouldKeepGuestSandboxForRecovery,
   shouldReloadUserScopedState,
   withTimeout,
 } from '../src/services/app/boot';
 import { usePetStore } from '../src/store/petStore';
+
+function createSession(userId = 'user-1'): Session {
+  return {
+    access_token: 'access-token',
+    refresh_token: 'refresh-token',
+    expires_in: 3600,
+    expires_at: 1_762_000_000,
+    token_type: 'bearer',
+    user: {
+      id: userId,
+      aud: 'authenticated',
+      role: 'authenticated',
+      email: 'qa@example.com',
+      email_confirmed_at: '2026-03-31T00:00:00.000Z',
+      phone: '',
+      confirmed_at: '2026-03-31T00:00:00.000Z',
+      last_sign_in_at: '2026-03-31T00:00:00.000Z',
+      app_metadata: { provider: 'email', providers: ['email'] },
+      user_metadata: {},
+      identities: [],
+      created_at: '2026-03-31T00:00:00.000Z',
+      updated_at: '2026-03-31T00:00:00.000Z',
+      is_anonymous: false,
+    },
+  } as Session;
+}
 
 describe('app boot helpers', () => {
   beforeEach(() => {
@@ -52,6 +80,44 @@ describe('app boot helpers', () => {
         petErrorMessage: null,
       }),
     ).toEqual({ name: 'NicknameSetup', params: undefined });
+  });
+
+  it('password recovery 중에는 로그인 bootstrap 대신 SignIn으로 되돌린다', () => {
+    expect(
+      resolveBootRoute({
+        isLoggedIn: true,
+        nickname: '누리',
+        profileSyncStatus: 'ready',
+        petsCount: 2,
+        petErrorMessage: null,
+        passwordRecoveryFlow: {
+          status: 'active',
+          startedAt: Date.now(),
+        },
+      }),
+    ).toEqual({ name: 'SignIn', params: undefined });
+  });
+
+  it('recovery 세션은 사용자 세션이 있어도 guest sandbox에 머문다', () => {
+    expect(
+      shouldKeepGuestSandboxForRecovery({
+        passwordRecoveryFlow: {
+          status: 'active',
+          startedAt: Date.now(),
+        },
+        session: createSession(),
+      }),
+    ).toBe(true);
+
+    expect(
+      shouldKeepGuestSandboxForRecovery({
+        passwordRecoveryFlow: {
+          status: 'active',
+          startedAt: Date.now(),
+        },
+        session: null,
+      }),
+    ).toBe(false);
   });
 
   it('selectedPetId hydrate는 1회만 수행해 런타임 선택값을 다시 덮어쓰지 않는다', async () => {

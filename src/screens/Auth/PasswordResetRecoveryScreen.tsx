@@ -4,15 +4,25 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import { disposePasswordRecoverySession } from '../../services/auth/session';
 import { completePasswordRecoverySession } from '../../services/supabase/auth';
+import { useAuthStore } from '../../store/authStore';
 
 import { styles } from './PasswordResetFlow.styles';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PasswordResetRecovery'>;
 
 export default function PasswordResetRecoveryScreen({ navigation, route }: Props) {
+  const activatePasswordRecovery = useAuthStore(s => s.activatePasswordRecovery);
+
   useEffect(() => {
     let active = true;
+
+    const failRecoveryEntry = async () => {
+      await disposePasswordRecoverySession();
+      if (!active) return;
+      navigation.replace('PasswordResetRequest', { reason: 'invalid' });
+    };
 
     const handleRecovery = async () => {
       const accessToken = route.params?.access_token?.trim() ?? '';
@@ -20,12 +30,12 @@ export default function PasswordResetRecoveryScreen({ navigation, route }: Props
       const type = route.params?.type?.trim() ?? '';
 
       if (type !== 'recovery' || !accessToken || !refreshToken) {
-        if (!active) return;
-        navigation.replace('PasswordResetRequest', { reason: 'invalid' });
+        await failRecoveryEntry();
         return;
       }
 
       try {
+        await activatePasswordRecovery();
         await completePasswordRecoverySession({
           accessToken,
           refreshToken,
@@ -41,7 +51,7 @@ export default function PasswordResetRecoveryScreen({ navigation, route }: Props
             {
               text: '확인',
               onPress: () => {
-                navigation.replace('PasswordResetRequest', { reason: 'invalid' });
+                failRecoveryEntry().catch(() => {});
               },
             },
           ],
@@ -50,14 +60,13 @@ export default function PasswordResetRecoveryScreen({ navigation, route }: Props
     };
 
     handleRecovery().catch(() => {
-      if (!active) return;
-      navigation.replace('PasswordResetRequest', { reason: 'invalid' });
+      failRecoveryEntry().catch(() => {});
     });
 
     return () => {
       active = false;
     };
-  }, [navigation, route.params]);
+  }, [activatePasswordRecovery, navigation, route.params]);
 
   return (
     <SafeAreaView style={styles.screen}>

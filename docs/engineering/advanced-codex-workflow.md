@@ -418,10 +418,11 @@ Codex는 이 프로젝트에서 항상 다음 역할로 행동한다.
 원칙:
 
 - 앱 코드 변경과 DB 변경을 동일 작업으로 취급하지 않는다.
-- SQL은 모두 `docs/sql/` 아래에 둔다.
-- 도메인 SQL: `docs/sql/도메인/<작업명>/`
-- migration SQL: `docs/sql/마이그레이션/`
-- 수동 실행용 릴리즈 묶음: `docs/sql/공용-릴리즈-묶음/`
+- 사람이 읽는 SQL 문서는 `docs/sql/` 아래에 둔다.
+- 도메인 최종본 SQL: `docs/sql/<도메인명>/*-최종.sql`
+- 도메인 레거시/단계 SQL: `docs/sql/<도메인명>/레거시/`
+- 공용 bootstrap/manual bundle: `docs/sql/공용/`
+- 실행 migration 이력: `supabase/migrations/`
 - SQL은 seed/보정/복구/개발용 보조 수단으로 설명한다.
 - Supabase가 최종 source of truth인 경우, 문서에도 동일하게 명시한다.
 

@@ -4,12 +4,17 @@
 // - MoreScreen / Drawer가 같은 세션 종료 규칙을 공유하도록 유지
 
 import {
+  clearLocalAuthSession,
   deleteMyAccount,
+  signOut,
   signOutBestEffort,
   type AccountDeletionResult,
 } from '../supabase/auth';
 import { clearAllRecentPersonalSearches } from '../local/placeTravelSearch';
-import { setMonitoringUser } from '../monitoring/sentry';
+import {
+  captureMonitoringException,
+  setMonitoringUser,
+} from '../monitoring/sentry';
 import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
@@ -22,6 +27,24 @@ export async function clearLocalSessionState(): Promise<void> {
   usePetStore.getState().clear();
   useRecordStore.getState().clearAll();
   useScheduleStore.getState().clearAll();
+}
+
+export async function disposePasswordRecoverySession(): Promise<void> {
+  await useAuthStore.getState().clearPasswordRecovery();
+
+  try {
+    await signOut();
+  } catch (error: unknown) {
+    captureMonitoringException(error);
+  }
+
+  try {
+    await clearLocalAuthSession();
+  } catch (error: unknown) {
+    captureMonitoringException(error);
+  }
+
+  await clearLocalSessionState();
 }
 
 export async function performLogout(timeoutMs = 1200) {

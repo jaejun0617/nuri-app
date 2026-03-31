@@ -53,12 +53,24 @@ export type PetCareGuideCatalogResult = {
   reason: 'published' | 'empty-success' | 'remote-error';
 };
 
+const GUIDE_LOCAL_SEED_ALLOWED = __DEV__;
+
 function normalizeSearchKeyword(value: string): string {
   return value.trim().replace(/\s+/g, ' ');
 }
 
 function shouldUseLocalGuideSeedFallback(guides: ReadonlyArray<PetCareGuide>): boolean {
-  return guides.length === 0;
+  return GUIDE_LOCAL_SEED_ALLOWED && guides.length === 0;
+}
+
+function buildRemoteGuideEmptyResult(
+  reason: PetCareGuideCatalogResult['reason'],
+): PetCareGuideCatalogResult {
+  return {
+    guides: [],
+    source: 'remote-empty',
+    reason,
+  };
 }
 
 function isMeaningfulSearchKeyword(value: string): boolean {
@@ -141,17 +153,17 @@ export async function fetchPetCareGuideCatalogResult(): Promise<PetCareGuideCata
         reason: 'empty-success',
       };
     }
-    return {
-      guides: [],
-      source: 'remote-empty',
-      reason: 'empty-success',
-    };
+    return buildRemoteGuideEmptyResult('empty-success');
   } catch {
-    return {
-      guides: [...PET_CARE_GUIDES],
-      source: 'local-seed',
-      reason: 'remote-error',
-    };
+    if (GUIDE_LOCAL_SEED_ALLOWED) {
+      return {
+        guides: [...PET_CARE_GUIDES],
+        source: 'local-seed',
+        reason: 'remote-error',
+      };
+    }
+
+    return buildRemoteGuideEmptyResult('remote-error');
   }
 }
 
@@ -361,6 +373,10 @@ export async function getPetCareGuideById(id: string): Promise<PetCareGuide | nu
     if (remote) return remote;
   } catch {
     // fallback below
+  }
+
+  if (!GUIDE_LOCAL_SEED_ALLOWED) {
+    return null;
   }
 
   return PET_CARE_GUIDES.find(guide => guide.id === normalizedId && guide.isActive) ?? null;

@@ -36,6 +36,7 @@ import { clearMemorySignedUrlCache } from '../../services/supabase/storageMemori
 import { flushPendingCommunityImageCleanup } from '../../services/supabase/storageCommunity';
 import {
   getSessionUserId,
+  shouldKeepGuestSandboxForRecovery,
   shouldReloadUserScopedState,
   withTimeout,
 } from '../../services/app/boot';
@@ -273,6 +274,21 @@ export default function AppProviders({ children }: Props) {
       await setProfile({ nickname: null, role: 'user' });
       setProfileSyncState('ready');
       clearUserScopedStores();
+      setMonitoringUser({ id: null, email: null });
+      setPetErrorMessage(null);
+      setPetLoading(false);
+      lastUserIdRef.current = null;
+      finishTransition(seq);
+    };
+
+    const applyPasswordRecoverySandboxState = async (seq: number) => {
+      // Recovery session은 비밀번호 변경 전용 임시 세션이므로
+      // 일반 로그인 bootstrap과 사용자 write path를 열지 않는다.
+      await setProfile({ nickname: null, role: 'user' });
+      setProfileSyncState('idle');
+      clearUserScopedStores();
+      setMonitoringUser({ id: null, email: null });
+      setPetErrorMessage(null);
       setPetLoading(false);
       lastUserIdRef.current = null;
       finishTransition(seq);
@@ -359,15 +375,26 @@ export default function AppProviders({ children }: Props) {
       beginTransition();
 
       await setSession(session);
-      setMonitoringUser({
-        id: session?.user?.id ?? null,
-        email: session?.user?.email ?? null,
-      });
+
+      if (
+        shouldKeepGuestSandboxForRecovery({
+          passwordRecoveryFlow: useAuthStore.getState().passwordRecoveryFlow,
+          session,
+        })
+      ) {
+        await applyPasswordRecoverySandboxState(seq);
+        return;
+      }
 
       if (!session) {
         await applyGuestState(seq);
         return;
       }
+
+      setMonitoringUser({
+        id: session.user.id,
+        email: session.user.email ?? null,
+      });
 
       await applyLoggedInState(session, seq, {
         forceReload: shouldReloadUserScopedState({

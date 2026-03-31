@@ -61,7 +61,8 @@ export default function AppNavigationToolbar({
   const navigateTo = useCallback(
     (target: ActiveTabKey) => {
       onBeforeNavigate?.();
-      const entrySource: ScreenEntrySource = activeKey === 'more' ? 'more' : 'home';
+      const entrySource: ScreenEntrySource =
+        activeKey === 'more' ? 'more' : 'home';
 
       if (target === 'more') {
         openMoreDrawer();
@@ -172,20 +173,20 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   bar: {
-    minHeight: 74,
+    minHeight: 48,
     borderTopWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingTop: 8,
-    paddingBottom: 8,
+    paddingBottom: 0,
   },
   item: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: 2,
     minHeight: 48,
     paddingVertical: 6,
   },

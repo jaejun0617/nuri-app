@@ -20,8 +20,10 @@ import {
   deleteCommunityPost,
   deleteCommunityComment,
   fetchCommunityComments,
+  fetchLatestCommunityCommentPreview,
   fetchCommunityPostById,
   fetchCommunityPosts,
+  recordCommunityPostView,
   toggleCommunityCommentLike,
   toggleCommunityPostLike,
   updateCommunityPost,
@@ -44,11 +46,17 @@ type CommunityStore = {
   posts: CommunityPost[];
   postsById: Record<string, CommunityPost>;
   commentsByPostId: Record<string, CommunityComment[]>;
+  latestCommentByPostId: Record<string, CommunityComment | null>;
   commentEntitiesById: Record<string, CommunityComment>;
   topLevelCommentIdsByPostId: Record<string, string[]>;
   replyCommentIdsByParentId: Record<string, string[]>;
   commentsStatusByPostId: Record<string, 'idle' | 'loading' | 'ready' | 'error'>;
+  latestCommentStatusByPostId: Record<string, 'idle' | 'loading' | 'ready' | 'error'>;
   detailStatusByPostId: Record<string, CommunityDetailStatus>;
+  postViewRecordStatusByPostId: Record<
+    string,
+    'idle' | 'loading' | 'ready' | 'error'
+  >;
   listStatus: CommunityListStatus;
   listErrorMessage: string | null;
   cursor: string | null;
@@ -60,7 +68,9 @@ type CommunityStore = {
   refreshPosts: () => Promise<void>;
   loadMorePosts: () => Promise<void>;
   fetchPostDetail: (postId: string) => Promise<void>;
+  recordPostView: (postId: string) => Promise<void>;
   fetchPostComments: (postId: string) => Promise<void>;
+  fetchLatestCommentPreview: (postId: string) => Promise<void>;
   submitPost: (params: CreateCommunityPostParams, userId: string) => Promise<CommunityPost>;
   editPost: (postId: string, params: UpdateCommunityPostParams) => Promise<void>;
   removePost: (postId: string) => Promise<void>;
@@ -122,15 +132,58 @@ function preserveCommentAuthorMetadata(
   };
 }
 
+function getLatestCommentPreview(
+  comments: readonly CommunityComment[],
+): CommunityComment | null {
+  if (comments.length === 0) return null;
+  return comments[comments.length - 1] ?? null;
+}
+
+function reconcileLatestCommentPreviewState(
+  prevPostsById: Record<string, CommunityPost>,
+  prevLatestCommentByPostId: Record<string, CommunityComment | null>,
+  prevLatestCommentStatusByPostId: Record<
+    string,
+    'idle' | 'loading' | 'ready' | 'error'
+  >,
+  nextPosts: CommunityPost[],
+) {
+  const nextLatestCommentByPostId = { ...prevLatestCommentByPostId };
+  const nextLatestCommentStatusByPostId = {
+    ...prevLatestCommentStatusByPostId,
+  };
+
+  nextPosts.forEach(post => {
+    const previousPost = prevPostsById[post.id] ?? null;
+    if (post.commentCount <= 0) {
+      nextLatestCommentByPostId[post.id] = null;
+      nextLatestCommentStatusByPostId[post.id] = 'ready';
+      return;
+    }
+
+    if (!previousPost || previousPost.commentCount !== post.commentCount) {
+      nextLatestCommentStatusByPostId[post.id] = 'idle';
+    }
+  });
+
+  return {
+    latestCommentByPostId: nextLatestCommentByPostId,
+    latestCommentStatusByPostId: nextLatestCommentStatusByPostId,
+  };
+}
+
 export const useCommunityStore = create<CommunityStore>((set, get) => ({
   posts: [],
   postsById: {},
   commentsByPostId: {},
+  latestCommentByPostId: {},
   commentEntitiesById: {},
   topLevelCommentIdsByPostId: {},
   replyCommentIdsByParentId: {},
   commentsStatusByPostId: {},
+  latestCommentStatusByPostId: {},
   detailStatusByPostId: {},
+  postViewRecordStatusByPostId: {},
   listStatus: 'idle',
   listErrorMessage: null,
   cursor: null,
@@ -155,6 +208,12 @@ export const useCommunityStore = create<CommunityStore>((set, get) => ({
       set(prev => ({
         posts: result.items,
         postsById: mergePostsById(prev.postsById, result.items),
+        ...reconcileLatestCommentPreviewState(
+          prev.postsById,
+          prev.latestCommentByPostId,
+          prev.latestCommentStatusByPostId,
+          result.items,
+        ),
         listStatus: 'ready',
         cursor: result.nextCursor,
         hasMore: result.hasMore,
@@ -183,6 +242,12 @@ export const useCommunityStore = create<CommunityStore>((set, get) => ({
       set(prev => ({
         posts: result.items,
         postsById: mergePostsById(prev.postsById, result.items),
+        ...reconcileLatestCommentPreviewState(
+          prev.postsById,
+          prev.latestCommentByPostId,
+          prev.latestCommentStatusByPostId,
+          result.items,
+        ),
         listStatus: 'ready',
         cursor: result.nextCursor,
         hasMore: result.hasMore,
@@ -220,6 +285,12 @@ export const useCommunityStore = create<CommunityStore>((set, get) => ({
       set(prev => ({
         posts: [...prev.posts, ...appended],
         postsById: mergePostsById(prev.postsById, result.items),
+        ...reconcileLatestCommentPreviewState(
+          prev.postsById,
+          prev.latestCommentByPostId,
+          prev.latestCommentStatusByPostId,
+          result.items,
+        ),
         listStatus: 'ready',
         cursor: result.nextCursor,
         hasMore: result.hasMore,
@@ -303,6 +374,70 @@ export const useCommunityStore = create<CommunityStore>((set, get) => ({
     }
   },
 
+  recordPostView: async postId => {
+    if (get().postViewRecordStatusByPostId[postId] === 'loading') return;
+    if (!get().postsById[postId]) return;
+
+    set(prev => ({
+      postViewRecordStatusByPostId: {
+        ...prev.postViewRecordStatusByPostId,
+        [postId]: 'loading',
+      },
+    }));
+
+    try {
+      const result = await recordCommunityPostView(postId);
+      set(prev => {
+        const current = prev.postsById[postId] ?? null;
+        const nextStatusMap = {
+          ...prev.postViewRecordStatusByPostId,
+          [postId]: 'ready' as const,
+        };
+
+        if (!current) {
+          return {
+            postViewRecordStatusByPostId: nextStatusMap,
+          };
+        }
+
+        if (current.viewCount === result.viewCount) {
+          return {
+            postViewRecordStatusByPostId: nextStatusMap,
+          };
+        }
+
+        const updatedPost: CommunityPost = {
+          ...current,
+          viewCount: result.viewCount,
+        };
+
+        return {
+          postViewRecordStatusByPostId: nextStatusMap,
+          postsById: {
+            ...prev.postsById,
+            [postId]: updatedPost,
+          },
+          posts: prev.posts.map(post =>
+            post.id === postId
+              ? {
+                  ...post,
+                  viewCount: result.viewCount,
+                }
+              : post,
+          ),
+        };
+      });
+    } catch (error) {
+      console.warn('community_post_view_record_failed', error);
+      set(prev => ({
+        postViewRecordStatusByPostId: {
+          ...prev.postViewRecordStatusByPostId,
+          [postId]: 'error',
+        },
+      }));
+    }
+  },
+
   fetchPostComments: async postId => {
     if (get().commentsStatusByPostId[postId] === 'loading') return;
 
@@ -361,6 +496,10 @@ export const useCommunityStore = create<CommunityStore>((set, get) => ({
           ...prev.commentsByPostId,
           [postId]: mergedComments,
         },
+        latestCommentByPostId: {
+          ...prev.latestCommentByPostId,
+          [postId]: getLatestCommentPreview(mergedComments),
+        },
         topLevelCommentIdsByPostId: {
           ...prev.topLevelCommentIdsByPostId,
           [postId]: grouped.topLevelCommentIds,
@@ -369,11 +508,68 @@ export const useCommunityStore = create<CommunityStore>((set, get) => ({
           ...prev.commentsStatusByPostId,
           [postId]: 'ready',
         },
+        latestCommentStatusByPostId: {
+          ...prev.latestCommentStatusByPostId,
+          [postId]: 'ready',
+        },
       }));
     } catch {
       set(prev => ({
         commentsStatusByPostId: {
           ...prev.commentsStatusByPostId,
+          [postId]: 'error',
+        },
+      }));
+    }
+  },
+
+  fetchLatestCommentPreview: async postId => {
+    if (get().latestCommentStatusByPostId[postId] === 'loading') return;
+    const currentPost = get().postsById[postId] ?? null;
+    if (currentPost && currentPost.commentCount <= 0) {
+      set(prev => ({
+        latestCommentByPostId: {
+          ...prev.latestCommentByPostId,
+          [postId]: null,
+        },
+        latestCommentStatusByPostId: {
+          ...prev.latestCommentStatusByPostId,
+          [postId]: 'ready',
+        },
+      }));
+      return;
+    }
+
+    set(prev => ({
+      latestCommentStatusByPostId: {
+        ...prev.latestCommentStatusByPostId,
+        [postId]: 'loading',
+      },
+    }));
+
+    try {
+      const latestComment = await fetchLatestCommunityCommentPreview(postId);
+      const previousComment = get().latestCommentByPostId[postId] ?? null;
+      set(prev => ({
+        latestCommentByPostId: {
+          ...prev.latestCommentByPostId,
+          [postId]:
+            latestComment === null
+              ? null
+              : preserveCommentAuthorMetadata(
+                  latestComment,
+                  previousComment,
+                ),
+        },
+        latestCommentStatusByPostId: {
+          ...prev.latestCommentStatusByPostId,
+          [postId]: 'ready',
+        },
+      }));
+    } catch {
+      set(prev => ({
+        latestCommentStatusByPostId: {
+          ...prev.latestCommentStatusByPostId,
           [postId]: 'error',
         },
       }));
@@ -568,6 +764,10 @@ export const useCommunityStore = create<CommunityStore>((set, get) => ({
           );
         })(),
       },
+      latestCommentByPostId: {
+        ...prev.latestCommentByPostId,
+        [postId]: comment,
+      },
       commentEntitiesById: {
         ...prev.commentEntitiesById,
         ...(comment.parentCommentId && prev.commentEntitiesById[comment.parentCommentId]
@@ -598,6 +798,10 @@ export const useCommunityStore = create<CommunityStore>((set, get) => ({
         : prev.replyCommentIdsByParentId,
       commentsStatusByPostId: {
         ...prev.commentsStatusByPostId,
+        [postId]: 'ready',
+      },
+      latestCommentStatusByPostId: {
+        ...prev.latestCommentStatusByPostId,
         [postId]: 'ready',
       },
       postsById: prev.postsById[postId]
@@ -652,21 +856,25 @@ export const useCommunityStore = create<CommunityStore>((set, get) => ({
       const nextTopLevelCommentIds = (prev.topLevelCommentIdsByPostId[postId] ?? []).filter(
         id => !removedCommentIds.has(id),
       );
+      const nextCommentsForPost = target?.parentCommentId
+        ? filteredComments.map(comment =>
+            comment.id === target.parentCommentId
+              ? {
+                  ...comment,
+                  replyCount: Math.max(comment.replyCount - 1, 0),
+                }
+              : comment,
+          )
+        : filteredComments;
 
       return {
         commentsByPostId: {
           ...prev.commentsByPostId,
-          [postId]:
-            target?.parentCommentId
-              ? filteredComments.map(comment =>
-                  comment.id === target.parentCommentId
-                    ? {
-                        ...comment,
-                        replyCount: Math.max(comment.replyCount - 1, 0),
-                      }
-                    : comment,
-                )
-              : filteredComments,
+          [postId]: nextCommentsForPost,
+        },
+        latestCommentByPostId: {
+          ...prev.latestCommentByPostId,
+          [postId]: getLatestCommentPreview(nextCommentsForPost),
         },
         commentEntitiesById:
           target?.parentCommentId && prev.commentEntitiesById[target.parentCommentId]
@@ -686,6 +894,10 @@ export const useCommunityStore = create<CommunityStore>((set, get) => ({
           [postId]: nextTopLevelCommentIds,
         },
         replyCommentIdsByParentId: nextReplyCommentIdsByParentId,
+        latestCommentStatusByPostId: {
+          ...prev.latestCommentStatusByPostId,
+          [postId]: 'ready',
+        },
         postsById: prev.postsById[postId]
           ? {
               ...prev.postsById,
@@ -741,11 +953,14 @@ export const useCommunityStore = create<CommunityStore>((set, get) => ({
       posts: [],
       postsById: {},
       commentsByPostId: {},
+      latestCommentByPostId: {},
       commentEntitiesById: {},
       topLevelCommentIdsByPostId: {},
       replyCommentIdsByParentId: {},
       commentsStatusByPostId: {},
+      latestCommentStatusByPostId: {},
       detailStatusByPostId: {},
+      postViewRecordStatusByPostId: {},
       listStatus: 'idle',
       listErrorMessage: null,
       cursor: null,

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -14,27 +14,87 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { getBrandedErrorMeta } from '../../services/app/errors';
-import { clearLocalSessionState } from '../../services/auth/session';
+import { disposePasswordRecoverySession } from '../../services/auth/session';
 import { isValidPasswordFormat } from '../../services/supabase/account';
-import {
-  clearLocalAuthSession,
-  updatePasswordWithRecovery,
-} from '../../services/supabase/auth';
+import { updatePasswordWithRecovery } from '../../services/supabase/auth';
+import { showToast } from '../../store/uiStore';
 
 import { styles } from './PasswordResetFlow.styles';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PasswordResetForm'>;
+type ResetNotice = NonNullable<RootStackParamList['SignIn']>['notice'];
 
 export default function PasswordResetFormScreen({ navigation }: Props) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const cleanupInFlightRef = useRef(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const disabled = useMemo(() => {
     if (submitting) return true;
     if (!password.trim() || !confirmPassword.trim()) return true;
     return false;
   }, [confirmPassword, password, submitting]);
+
+  const resetToSignIn = useCallback(
+    (notice?: ResetNotice) => {
+      navigation.reset({
+        index: 0,
+        routes: notice
+          ? [{ name: 'SignIn', params: { notice } }]
+          : [{ name: 'SignIn' }],
+      });
+    },
+    [navigation],
+  );
+
+  const leaveRecoveryFlow = useCallback(
+    async (options?: {
+      notice?: ResetNotice;
+      toast?: {
+        tone: 'warning';
+        title: string;
+        message: string;
+      };
+    }) => {
+      if (cleanupInFlightRef.current) return;
+      cleanupInFlightRef.current = true;
+
+      try {
+        await disposePasswordRecoverySession();
+      } finally {
+        if (options?.toast) {
+          showToast({
+            tone: options.toast.tone,
+            title: options.toast.title,
+            message: options.toast.message,
+            durationMs: 3200,
+          });
+        }
+
+        resetToSignIn(options?.notice);
+      }
+    },
+    [resetToSignIn],
+  );
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', event => {
+      if (cleanupInFlightRef.current) return;
+
+      event.preventDefault();
+      leaveRecoveryFlow().catch(() => {});
+    });
+
+    return unsubscribe;
+  }, [leaveRecoveryFlow, navigation]);
 
   const onSubmit = useCallback(async () => {
     if (disabled) return;
@@ -61,12 +121,7 @@ export default function PasswordResetFormScreen({ navigation }: Props) {
     try {
       setSubmitting(true);
       await updatePasswordWithRecovery(nextPassword);
-      await clearLocalSessionState();
-      await clearLocalAuthSession();
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'SignIn', params: { notice: 'password-reset-success' } }],
-      });
+      await leaveRecoveryFlow({ notice: 'password-reset-success' });
     } catch (error) {
       const message =
         error instanceof Error &&
@@ -74,24 +129,24 @@ export default function PasswordResetFormScreen({ navigation }: Props) {
           ? '링크가 만료되었거나 유효하지 않습니다. 다시 요청해 주세요.'
           : getBrandedErrorMeta(error, 'password-change').message;
 
-      Alert.alert('비밀번호 재설정을 마치지 못했어요', message, [
-        {
-          text: '다시 요청하기',
-          onPress: () => navigation.replace('PasswordResetRequest', { reason: 'invalid' }),
+      await leaveRecoveryFlow({
+        toast: {
+          tone: 'warning',
+          title: '비밀번호 재설정을 이어가지 못했어요',
+          message,
         },
-        {
-          text: '닫기',
-          style: 'cancel',
-        },
-      ]);
+      });
     } finally {
-      setSubmitting(false);
+      if (mountedRef.current) {
+        setSubmitting(false);
+      }
     }
-  }, [confirmPassword, disabled, navigation, password]);
+  }, [confirmPassword, disabled, leaveRecoveryFlow, password]);
 
-  const onPressRequestAgain = useCallback(() => {
-    navigation.replace('PasswordResetRequest');
-  }, [navigation]);
+  const onPressCancelRecovery = useCallback(() => {
+    if (submitting) return;
+    leaveRecoveryFlow().catch(() => {});
+  }, [leaveRecoveryFlow, submitting]);
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -165,10 +220,10 @@ export default function PasswordResetFormScreen({ navigation }: Props) {
 
             <TouchableOpacity
               activeOpacity={0.85}
-              onPress={onPressRequestAgain}
+              onPress={onPressCancelRecovery}
               style={styles.secondaryButton}
             >
-              <Text style={styles.secondaryButtonText}>다시 요청하기</Text>
+              <Text style={styles.secondaryButtonText}>로그인으로 돌아가기</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

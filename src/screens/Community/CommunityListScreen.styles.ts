@@ -63,9 +63,13 @@ export const styles = StyleSheet.create({
   listWrap: {
     flex: 1,
   },
-  listHeader: {
+  postList: {
+    flex: 1,
+  },
+  stickyCategoryHeader: {
     paddingTop: 6,
-    paddingBottom: 16,
+    paddingBottom: 12,
+    zIndex: 2,
   },
   headline: {
     ...typography.role.bodySm,
@@ -78,13 +82,13 @@ export const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 12,
     paddingHorizontal: 20,
-    borderBottomWidth: 1,
   },
   categoryLoadingWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginTop: 12,
+    marginTop: 10,
+    paddingHorizontal: 20,
     minHeight: 20,
   },
   categoryLoadingText: {
@@ -113,6 +117,9 @@ export const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     height: 3,
+  },
+  listIntroHeader: {
+    paddingBottom: 16,
   },
   sectionHeader: {
     paddingHorizontal: 20,
