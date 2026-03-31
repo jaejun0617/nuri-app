@@ -103,8 +103,7 @@ export const styles = StyleSheet.create({
     height: 118,
   },
   heroBody: {
-    marginTop: 14,
-    maxWidth: 248,
+    marginTop: 24,
     ...typography.role.body,
     fontWeight: '600',
     color: '#000000',
