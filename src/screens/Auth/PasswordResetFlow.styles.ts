@@ -97,14 +97,15 @@ export const styles = StyleSheet.create({
   },
   successTitle: {
     color: '#31456A',
-    ...typography.role.bodySm,
-    fontWeight: '900',
+    ...typography.role.caption,
+    fontWeight: '800',
   },
   successBody: {
     marginTop: 8,
     color: '#51627F',
-    ...typography.role.helper,
+    ...typography.role.caption,
     fontWeight: '700',
+    lineHeight: 17,
   },
   primaryButton: {
     marginTop: 18,
@@ -141,6 +142,9 @@ export const styles = StyleSheet.create({
     color: '#5C6A7F',
     ...typography.role.button,
     fontWeight: '900',
+    includeFontPadding: false,
+    textAlign: 'center',
+    textAlignVertical: 'center',
   },
   processingCard: {
     marginTop: 40,

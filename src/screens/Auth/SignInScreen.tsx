@@ -32,6 +32,8 @@ import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useTheme } from 'styled-components/native';
 
 import { ASSETS } from '../../assets';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -120,9 +122,28 @@ const SocialButton = memo(function SocialButton({
   );
 });
 
+const KakaoBadgeMark = memo(function KakaoBadgeMark() {
+  return (
+    <View style={styles.kakaoBadge}>
+      <View style={styles.kakaoBubble}>
+        <View style={styles.kakaoBubbleTail} />
+      </View>
+    </View>
+  );
+});
+
+const GoogleBadgeMark = memo(function GoogleBadgeMark() {
+  return (
+    <View style={styles.googleBadge}>
+      <MaterialCommunityIcons name="google" size={15} color="#4285F4" />
+    </View>
+  );
+});
+
 export default function SignInScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<SignInRoute>();
+  const theme = useTheme();
 
   const setSession = useAuthStore(s => s.setSession);
   const clearPasswordRecovery = useAuthStore(s => s.clearPasswordRecovery);
@@ -226,8 +247,9 @@ export default function SignInScreen() {
                 style={styles.heroLogo}
               />
             </View>
-            <Text style={styles.heroTitle}>NURI</Text>
-            <Text style={styles.heroBody}>소중한 우리 아이와의 추억 기록</Text>
+            <Text style={styles.heroBody}>
+              함께한 모든 순간이, 오래도록 기억이 되도록
+            </Text>
           </View>
 
           <AuthField
@@ -295,7 +317,7 @@ export default function SignInScreen() {
 
           <SocialButton
             backgroundColor="#FFE100"
-            badge={<View style={styles.kakaoBadge} />}
+            badge={<KakaoBadgeMark />}
             borderColor="#FFE100"
             label="카카오로 시작하기"
             onPress={() => onSocialPress('kakao')}
@@ -304,11 +326,7 @@ export default function SignInScreen() {
 
           <SocialButton
             backgroundColor="#FFFFFF"
-            badge={
-              <View style={styles.googleBadge}>
-                <Text style={styles.googleBadgeText}>G</Text>
-              </View>
-            }
+            badge={<GoogleBadgeMark />}
             borderColor="#E2E8F2"
             label="Google로 시작하기"
             onPress={() => onSocialPress('google')}
@@ -324,19 +342,44 @@ export default function SignInScreen() {
         >
           <View style={styles.successBackdrop}>
             <Pressable
-              style={styles.successScrim}
+              style={[styles.successScrim, { backgroundColor: theme.colors.overlay }]}
               onPress={closePasswordResetSuccessModal}
             />
-            <View style={styles.successCard}>
-              <View style={styles.successHalo}>
-                <View style={styles.successIcon}>
+            <View
+              style={[
+                styles.successCard,
+                {
+                  backgroundColor: theme.colors.surfaceElevated,
+                  borderColor: theme.colors.border,
+                },
+              ]}
+            >
+              <View
+                style={[
+                  styles.successHalo,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.border,
+                  },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.successIcon,
+                    { backgroundColor: theme.colors.brand },
+                  ]}
+                >
                   <Feather name="check" size={28} color="#FFF8EE" />
                 </View>
               </View>
 
-              <Text style={styles.successEyebrow}>PASSWORD UPDATED</Text>
-              <Text style={styles.successTitle}>비밀번호가 변경되었습니다</Text>
-              <Text style={styles.successBody}>
+              <Text style={[styles.successEyebrow, { color: theme.colors.brand }]}>
+                PASSWORD UPDATED
+              </Text>
+              <Text style={[styles.successTitle, { color: theme.colors.textPrimary }]}>
+                비밀번호가 변경되었습니다
+              </Text>
+              <Text style={[styles.successBody, { color: theme.colors.textSecondary }]}>
                 보안을 위해 임시 세션을 종료했어요.{'\n'}새 비밀번호로 다시 로그인해
                 주세요.
               </Text>
@@ -344,7 +387,10 @@ export default function SignInScreen() {
               <TouchableOpacity
                 activeOpacity={0.92}
                 onPress={closePasswordResetSuccessModal}
-                style={styles.successButton}
+                style={[
+                  styles.successButton,
+                  { backgroundColor: theme.colors.brand },
+                ]}
               >
                 <Text style={styles.successButtonText}>확인</Text>
               </TouchableOpacity>

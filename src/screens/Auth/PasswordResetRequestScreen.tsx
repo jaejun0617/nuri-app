@@ -132,9 +132,6 @@ export default function PasswordResetRequestScreen({ navigation, route }: Props)
                   value={email}
                 />
               </View>
-              <Text style={styles.helperText}>
-                입력한 이메일로 계정이 있다면 비밀번호 재설정 안내를 보냈어요.
-              </Text>
             </View>
 
             {lastSentEmail ? (
@@ -171,13 +168,15 @@ export default function PasswordResetRequestScreen({ navigation, route }: Props)
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={onPressBack}
-              style={[styles.secondaryButton, styles.footerAction]}
-            >
-              <Text style={styles.secondaryButtonText}>로그인으로 돌아가기</Text>
-            </TouchableOpacity>
+            <View style={styles.footerAction}>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={onPressBack}
+                style={styles.secondaryButton}
+              >
+                <Text style={styles.secondaryButtonText}>로그인으로 돌아가기</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
