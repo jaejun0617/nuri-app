@@ -4,7 +4,7 @@
 // - 홈/상세/목록 등 다른 진입점에서 들어와도 일관된 기본값으로 생성 가능하게 처리
 // - 생성 성공 시 schedule store refresh와 완료 플로우 연결까지 수행
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   BackHandler,
@@ -14,7 +14,10 @@ import {
 } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import {
+  KeyboardAwareScrollView,
+  type KeyboardAwareScrollViewRef,
+} from 'react-native-keyboard-controller';
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -365,6 +368,14 @@ export default function ScheduleCreateScreen() {
     [notificationPermissionStatus, reminderMinutes],
   );
   const headerTopInset = Math.max(insets.top, 12);
+  const scrollRef = useRef<KeyboardAwareScrollViewRef | null>(null);
+  const scrollBottomInset = insets.bottom + 32;
+
+  const handleFocusNote = useCallback(() => {
+    requestAnimationFrame(() => {
+      scrollRef.current?.assureFocusedInputVisible();
+    });
+  }, []);
 
   return (
     <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
@@ -397,17 +408,15 @@ export default function ScheduleCreateScreen() {
       </View>
 
       <KeyboardAwareScrollView
+        ref={scrollRef}
         style={styles.scroll}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: Math.max(insets.bottom + 316, 376) },
+          { paddingBottom: scrollBottomInset },
         ]}
         keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="interactive"
+        keyboardDismissMode="none"
         showsVerticalScrollIndicator={false}
-        enableOnAndroid
-        extraScrollHeight={82}
-        extraHeight={228}
       >
         <View style={styles.card}>
           <AppText preset="caption" style={styles.label}>
@@ -730,6 +739,7 @@ export default function ScheduleCreateScreen() {
           <TextInput
             value={note}
             onChangeText={setNote}
+            onFocus={handleFocusNote}
             placeholder="홈 일정 카드에 보일 짧은 메모를 남겨보세요"
             placeholderTextColor="#8A94A6"
             style={[styles.input, styles.textarea]}
@@ -741,7 +751,7 @@ export default function ScheduleCreateScreen() {
           style={[
             styles.bottomSubmitBtn,
             { backgroundColor: petTheme.primary },
-            { marginBottom: Math.max(insets.bottom, 18) },
+            { marginBottom: 0 },
           ]}
           onPress={onSubmit}
           disabled={saving}

@@ -5,18 +5,19 @@
 // - 수정 완료 후 스토어와 후속 완료 화면으로 흐름을 연결해 홈 반영을 빠르게 유지
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   AppState,
-  KeyboardAvoidingView,
-  Platform,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import {
+  KeyboardAwareScrollView,
+  type KeyboardAwareScrollViewRef,
+} from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
@@ -175,6 +176,7 @@ export default function PetProfileEditScreen() {
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
   const petId = route.params?.petId?.trim() || '';
+  const scrollRef = useRef<KeyboardAwareScrollViewRef | null>(null);
 
   const pets = usePetStore(s => s.pets);
   const setPets = usePetStore(s => s.setPets);
@@ -587,6 +589,12 @@ export default function PetProfileEditScreen() {
     if (profileAgeLabel) parts.push(profileAgeLabel);
     return parts.length > 0 ? parts.join(' · ') : null;
   }, [profileAgeLabel, profileSpeciesLabel]);
+  const scrollBottomInset = insets.bottom + 32;
+  const handleFocusLowerField = useCallback(() => {
+    requestAnimationFrame(() => {
+      scrollRef.current?.assureFocusedInputVisible();
+    });
+  }, []);
 
   if (!pet) {
     return (
@@ -632,25 +640,15 @@ export default function PetProfileEditScreen() {
         <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
       </View>
 
-      <KeyboardAvoidingView
-        style={styles.keyboardArea}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
-      >
       <KeyboardAwareScrollView
+        ref={scrollRef}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: Math.max(156, insets.bottom + 132) },
+          { paddingBottom: scrollBottomInset },
         ]}
-        keyboardShouldPersistTaps="always"
-        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-        enableOnAndroid
-        enableAutomaticScroll
-        enableResetScrollToCoords={false}
-        keyboardOpeningTime={0}
-        extraScrollHeight={88}
-        extraHeight={140}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="none"
       >
         <View style={styles.avatarSection}>
           <PhotoAddCard
@@ -956,6 +954,7 @@ export default function PetProfileEditScreen() {
             <TextInput
               value={hobbiesText}
               onChangeText={setHobbiesText}
+              onFocus={handleFocusLowerField}
               placeholder="산책하기, 공놀이, 창밖 구경하기"
               placeholderTextColor="#A0A7B4"
               style={[styles.input, styles.multilineInput]}
@@ -974,6 +973,7 @@ export default function PetProfileEditScreen() {
             <TextInput
               value={likesText}
               onChangeText={setLikesText}
+              onFocus={handleFocusLowerField}
               placeholder="고구마 간식, 백색이 인형, 낮잠 자기"
               placeholderTextColor="#A0A7B4"
               style={[styles.input, styles.multilineInput]}
@@ -992,6 +992,7 @@ export default function PetProfileEditScreen() {
             <TextInput
               value={dislikesText}
               onChangeText={setDislikesText}
+              onFocus={handleFocusLowerField}
               placeholder="천둥 소리, 목욕하기, 낯선 사람"
               placeholderTextColor="#A0A7B4"
               style={[styles.input, styles.multilineInput]}
@@ -1031,6 +1032,7 @@ export default function PetProfileEditScreen() {
                 <TextInput
                   value={draftTag}
                   onChangeText={setDraftTag}
+                  onFocus={handleFocusLowerField}
                   placeholder="태그 입력"
                   placeholderTextColor="#A0A7B4"
                   style={styles.tagInput}
@@ -1096,12 +1098,10 @@ export default function PetProfileEditScreen() {
           </View>
         </View>
 
-      </KeyboardAwareScrollView>
-
         <View
           style={[
-            styles.footerActionBar,
-            { paddingBottom: Math.max(insets.bottom, 12) },
+            styles.footerActionSection,
+            { paddingBottom: 0 },
           ]}
         >
           <TouchableOpacity
@@ -1119,7 +1119,8 @@ export default function PetProfileEditScreen() {
             </AppText>
           </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
+
+      </KeyboardAwareScrollView>
 
       <DatePickerModal
         visible={dateModalTarget !== null}

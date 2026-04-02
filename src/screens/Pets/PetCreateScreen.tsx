@@ -24,17 +24,17 @@ import React, {
 import {
   Alert,
   BackHandler,
-  findNodeHandle,
   Image,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import {
+  KeyboardAwareScrollView,
+  type KeyboardAwareScrollViewRef,
+} from 'react-native-keyboard-controller';
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -185,6 +185,7 @@ type MultiInputSectionProps = {
   list: string[];
   draft: string;
   onDraftChange: (value: string) => void;
+  onFocusInput?: () => void;
   onAdd: () => void;
   onRemove: (value: string) => void;
   placeholder: string;
@@ -196,6 +197,7 @@ const MultiInputSection = memo(function MultiInputSection({
   list,
   draft,
   onDraftChange,
+  onFocusInput,
   onAdd,
   onRemove,
   placeholder,
@@ -214,6 +216,7 @@ const MultiInputSection = memo(function MultiInputSection({
         <TextInput
           value={draft}
           onChangeText={onDraftChange}
+          onFocus={onFocusInput}
           placeholder={placeholder}
           placeholderTextColor="#A0A7B4"
           style={[styles.input, styles.tagInput]}
@@ -572,6 +575,7 @@ const StepOneForm = memo(function StepOneForm({
 type StepTwoFormProps = {
   weightKg: string;
   onWeightChange: (value: string) => void;
+  onFieldFocus: () => void;
   likes: string[];
   draftLike: string;
   onDraftLikeChange: (value: string) => void;
@@ -597,6 +601,7 @@ type StepTwoFormProps = {
 const StepTwoForm = memo(function StepTwoForm({
   weightKg,
   onWeightChange,
+  onFieldFocus,
   likes,
   draftLike,
   onDraftLikeChange,
@@ -626,6 +631,7 @@ const StepTwoForm = memo(function StepTwoForm({
           <TextInput
             value={weightKg}
             onChangeText={onWeightChange}
+            onFocus={onFieldFocus}
             placeholder="0.0"
             placeholderTextColor="#A0A7B4"
             style={styles.iconInput}
@@ -640,6 +646,7 @@ const StepTwoForm = memo(function StepTwoForm({
         list={likes}
         draft={draftLike}
         onDraftChange={onDraftLikeChange}
+        onFocusInput={onFieldFocus}
         onAdd={onAddLike}
         onRemove={onRemoveLike}
         placeholder="좋아하는 간식, 장난감 등"
@@ -650,6 +657,7 @@ const StepTwoForm = memo(function StepTwoForm({
         list={dislikes}
         draft={draftDislike}
         onDraftChange={onDraftDislikeChange}
+        onFocusInput={onFieldFocus}
         onAdd={onAddDislike}
         onRemove={onRemoveDislike}
         placeholder="싫어하는 소리, 행동 등"
@@ -660,6 +668,7 @@ const StepTwoForm = memo(function StepTwoForm({
         list={hobbies}
         draft={draftHobby}
         onDraftChange={onDraftHobbyChange}
+        onFocusInput={onFieldFocus}
         onAdd={onAddHobby}
         onRemove={onRemoveHobby}
         placeholder="산책하기, 낮잠자기 등"
@@ -670,6 +679,7 @@ const StepTwoForm = memo(function StepTwoForm({
         list={tags}
         draft={draftTag}
         onDraftChange={onDraftTagChange}
+        onFocusInput={onFieldFocus}
         onAdd={onAddTag}
         onRemove={onRemoveTag}
         placeholder="우리 아이를 표현해 주세요"
@@ -725,7 +735,7 @@ export default function PetCreateScreen() {
   >(null);
   const [draftHydrated, setDraftHydrated] = useState(false);
   const draftLoadOnceRef = useRef(false);
-  const keyboardScrollRef = useRef<KeyboardAwareScrollView | null>(null);
+  const keyboardScrollRef = useRef<KeyboardAwareScrollViewRef | null>(null);
   const speciesDetailInputRef = useRef<TextInput | null>(null);
 
   const trimmedName = useMemo(() => name.trim(), [name]);
@@ -892,6 +902,7 @@ export default function PetCreateScreen() {
     () => buildPetThemePalette(selectedThemeColor),
     [selectedThemeColor],
   );
+  const scrollBottomInset = insets.bottom + 32;
 
   useEffect(() => {
     if (imageUri) return;
@@ -1300,13 +1311,9 @@ export default function PetCreateScreen() {
     () => openDateModal('death'),
     [openDateModal],
   );
-  const handleFocusSpeciesDetail = useCallback(() => {
-    const inputNode = findNodeHandle(speciesDetailInputRef.current);
-    if (!inputNode) return;
-
+  const handleFocusVisibleInput = useCallback(() => {
     requestAnimationFrame(() => {
-      keyboardScrollRef.current?.scrollToFocusedInput?.(inputNode);
-      keyboardScrollRef.current?.scrollToPosition?.(0, 280, true);
+      keyboardScrollRef.current?.assureFocusedInputVisible();
     });
   }, []);
 
@@ -1410,35 +1417,19 @@ export default function PetCreateScreen() {
         </View>
       </View>
 
-      <KeyboardAvoidingView
+      <KeyboardAwareScrollView
+        ref={keyboardScrollRef}
         style={styles.scroll}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingBottom: scrollBottomInset,
+          },
+        ]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="none"
       >
-        <KeyboardAwareScrollView
-          innerRef={ref => {
-            keyboardScrollRef.current = ref;
-          }}
-          style={styles.scroll}
-          contentContainerStyle={[
-            styles.scrollContent,
-            {
-              paddingBottom:
-                step === 2
-                  ? Math.max(220, insets.bottom + 196)
-                  : Math.max(220, insets.bottom + 196),
-            },
-          ]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="always"
-          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-          enableOnAndroid
-          enableAutomaticScroll
-          enableResetScrollToCoords={false}
-          keyboardOpeningTime={0}
-          extraScrollHeight={176}
-          extraHeight={228}
-        >
           <View style={styles.card}>
             {step === 1 ? (
               <StepOneForm
@@ -1466,7 +1457,7 @@ export default function PetCreateScreen() {
                 onRepresentativeSpeciesChange={handleRepresentativeSpeciesChange}
                 speciesDetailKey={speciesDetailKey}
                 onSpeciesDetailKeyChange={setSpeciesDetailKey}
-                onSpeciesDetailFocus={handleFocusSpeciesDetail}
+                onSpeciesDetailFocus={handleFocusVisibleInput}
                 speciesDetailInputRef={speciesDetailInputRef}
                 gender={gender}
                 onGenderChange={setGender}
@@ -1477,6 +1468,7 @@ export default function PetCreateScreen() {
               <StepTwoForm
                 weightKg={weightKg}
                 onWeightChange={setWeightKg}
+                onFieldFocus={handleFocusVisibleInput}
                 likes={likes}
                 draftLike={draftLike}
                 onDraftLikeChange={setDraftLike}
@@ -1501,7 +1493,12 @@ export default function PetCreateScreen() {
             )}
           </View>
 
-          <View style={styles.footerActions}>
+          <View
+            style={[
+              styles.footerActions,
+              { marginBottom: 0 },
+            ]}
+          >
             {step === 1 ? (
               <>
                 <TouchableOpacity
@@ -1572,8 +1569,7 @@ export default function PetCreateScreen() {
               </>
             )}
           </View>
-        </KeyboardAwareScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
 
       <Modal
         transparent
