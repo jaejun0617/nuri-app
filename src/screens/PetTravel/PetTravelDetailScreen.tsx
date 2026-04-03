@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   BackHandler,
@@ -10,19 +10,19 @@ import {
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
-import WebView from 'react-native-webview';
 
 import AppText from '../../app/ui/AppText';
 import ExpandableBodyText from '../../components/common/ExpandableBodyText';
 import Screen from '../../components/layout/Screen';
+import NativeLiteMapPreview from '../../components/maps/NativeLiteMapPreview';
 import { usePetTravelUserLayer } from '../../hooks/usePetTravelUserLayer';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
-import { buildInteractiveMapPreviewHtml } from '../../services/locationDiscovery/maps';
 import { getPetTravelPlaceTypeLabel } from '../../services/petTravel/catalog';
 import { fetchPetTravelDetail } from '../../services/petTravel/api';
 import type { PetTravelDetail, PetTravelItem } from '../../services/petTravel/types';
 import type { PublicTrustTone } from '../../services/trust/publicTrust';
 import { getPetTravelOwnReportLabel } from '../../services/trust/userLayerLabels';
+import { requestMapViewportRestore } from '../../store/mapViewportStore';
 import { styles } from './PetTravel.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -74,12 +74,12 @@ export default function PetTravelDetailScreen() {
   const item = params?.item;
   const [detail, setDetail] = useState<PetTravelDetail | null>(null);
   const [loading, setLoading] = useState(false);
-  const [isMapPreviewFailed, setIsMapPreviewFailed] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [reportSaving, setReportSaving] = useState(false);
   const travelUserLayer = usePetTravelUserLayer();
 
   const goBack = useCallback(() => {
+    requestMapViewportRestore('pet-travel');
     navigation.goBack();
   }, [navigation]);
 
@@ -100,17 +100,6 @@ export default function PetTravelDetailScreen() {
   );
 
   const targetItem = detail ?? item;
-
-  const mapPreviewHtml = useMemo(() => {
-    if (!targetItem) {
-      return null;
-    }
-
-    return buildInteractiveMapPreviewHtml({
-      latitude: targetItem.latitude,
-      longitude: targetItem.longitude,
-    });
-  }, [targetItem]);
 
   const loadDetail = useCallback(async () => {
     if (!item) {
@@ -137,11 +126,6 @@ export default function PetTravelDetailScreen() {
   useEffect(() => {
     loadDetail().catch(() => {});
   }, [loadDetail]);
-
-  useEffect(() => {
-    setIsMapPreviewFailed(false);
-  }, [targetItem?.id]);
-
   const onPressOpenExternalMap = useCallback(async () => {
     if (!targetItem) {
       return;
@@ -422,46 +406,17 @@ export default function PetTravelDetailScreen() {
             </View>
           </View>
 
-          {mapPreviewHtml ? (
+          {targetItem ? (
             <View style={styles.detailSectionCard}>
               <AppText preset="headline" style={styles.detailSectionTitle}>
                 위치 미리보기
               </AppText>
-              <View style={styles.mapCard}>
-                {isMapPreviewFailed ? (
-                  <View style={styles.mapFallbackCard}>
-                    <Feather name="map-pin" size={20} color="#2F8F48" />
-                    <AppText preset="body" style={styles.mapFallbackTitle}>
-                      지도 미리보기를 불러오지 못했어요
-                    </AppText>
-                    <AppText preset="caption" style={styles.mapFallbackBody}>
-                      아래 외부 지도 버튼으로 정확한 위치를 다시 확인할 수 있어요.
-                    </AppText>
-                  </View>
-                ) : (
-                  <WebView
-                    source={{ html: mapPreviewHtml }}
-                    originWhitelist={['*']}
-                    style={styles.mapWebView}
-                    scrollEnabled
-                    nestedScrollEnabled
-                    javaScriptEnabled
-                    domStorageEnabled
-                    setSupportMultipleWindows={false}
-                    onError={() => {
-                      setIsMapPreviewFailed(true);
-                    }}
-                    onHttpError={() => {
-                      setIsMapPreviewFailed(true);
-                    }}
-                  />
-                )}
-                <View pointerEvents="none" style={styles.mapOverlay}>
-                  <AppText preset="caption" style={styles.mapOverlayText}>
-                    한 손가락으로 이동하고 두 손가락으로 확대/축소할 수 있어요
-                  </AppText>
-                </View>
-              </View>
+              <NativeLiteMapPreview
+                latitude={targetItem.latitude}
+                longitude={targetItem.longitude}
+                title={`${targetItem.name} 위치 미리보기`}
+                overlayText="안드로이드 liteMode 네이티브 지도로 부드럽게 로드해요. 길찾기는 위 액션 버튼으로 열 수 있어요."
+              />
             </View>
           ) : null}
 

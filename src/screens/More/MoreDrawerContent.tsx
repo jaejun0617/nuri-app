@@ -13,11 +13,14 @@
 // - 이 파일은 실제 구현된 기능만 노출해야 하므로 placeholder 메뉴를 다시 넣을 때는 사용자 기대치와 실제 동작을 함께 검증해야 한다.
 // - 계정 액션과 일반 메뉴 이동이 섞여 있어, 모달 상태와 navigation 호출 순서를 함부로 바꾸면 드로어 닫힘/복귀 UX가 어긋날 수 있다.
 
-import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
+  findNodeHandle,
   Image,
+  Keyboard,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -26,6 +29,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { KeyboardAvoidingView as KeyboardControllerAvoidingView } from 'react-native-keyboard-controller';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -47,6 +52,12 @@ import {
   getBrandedErrorMeta,
 } from '../../services/app/errors';
 import {
+  getNicknameErrorMessageByCode,
+  NICKNAME_MAX_LENGTH,
+  validateNicknameInput,
+  type NicknamePolicyCode,
+} from '../../services/profileNicknamePolicy';
+import {
   performAccountDeletion,
   performLogout,
 } from '../../services/auth/session';
@@ -54,10 +65,6 @@ import {
   LEGAL_DOCUMENTS,
   openLegalDocument,
 } from '../../services/legal/documents';
-import {
-  changeMyPassword,
-  isValidPasswordFormat,
-} from '../../services/supabase/account';
 import { fetchMyPets, updatePet } from '../../services/supabase/pets';
 import {
   checkNicknameAvailabilityDetailed,
@@ -246,6 +253,8 @@ const PasswordField = memo(function PasswordField({
   onChangeText,
   onToggleSecure,
   helper,
+  inputRef,
+  onFocus,
 }: {
   label: string;
   value: string;
@@ -254,6 +263,8 @@ const PasswordField = memo(function PasswordField({
   onChangeText: (value: string) => void;
   onToggleSecure: () => void;
   helper?: string | null;
+  inputRef?: React.RefObject<TextInput | null>;
+  onFocus?: () => void;
 }) {
   const theme = useTheme();
   return (
@@ -269,6 +280,8 @@ const PasswordField = memo(function PasswordField({
           secureTextEntry={secureTextEntry}
           autoCapitalize="none"
           autoCorrect={false}
+          ref={inputRef}
+          onFocus={onFocus}
         />
         <TouchableOpacity
           activeOpacity={0.85}
@@ -312,6 +325,19 @@ const PasswordChangeModal = memo(function PasswordChangeModal({
   onSubmit,
 }: PasswordModalProps) {
   const theme = useTheme();
+  const scrollRef = useRef<KeyboardAwareScrollView | null>(null);
+  const currentPasswordRef = useRef<TextInput | null>(null);
+  const nextPasswordRef = useRef<TextInput | null>(null);
+  const confirmPasswordRef = useRef<TextInput | null>(null);
+
+  const scrollToInput = useCallback((ref: React.RefObject<TextInput | null>) => {
+    requestAnimationFrame(() => {
+      const node = findNodeHandle(ref.current);
+      if (!node) return;
+      scrollRef.current?.scrollToFocusedInput?.(node);
+    });
+  }, []);
+
   return (
     <Modal
       visible={visible}
@@ -319,74 +345,119 @@ const PasswordChangeModal = memo(function PasswordChangeModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={[styles.modalBackdrop, { backgroundColor: theme.colors.overlay }]}>
-        <Pressable style={styles.modalScrim} onPress={onClose} />
-        <View
-          style={[
-            styles.sheetCard,
-            {
-              backgroundColor: theme.colors.surfaceElevated,
-              paddingBottom: 26 + bottomInset,
-            },
-          ]}
-        >
-          <View style={styles.sheetHeader}>
-            <Text style={[styles.sheetTitle, { color: theme.colors.textPrimary }]}>
-              비밀번호 변경
-            </Text>
-            <TouchableOpacity
-              activeOpacity={0.88}
-              style={[styles.sheetClose, { backgroundColor: theme.colors.surface }]}
-              onPress={onClose}
-            >
-              <Feather name="x" size={20} color={theme.colors.textMuted} />
-            </TouchableOpacity>
-          </View>
-
-          <PasswordField
-            label="현재 비밀번호"
-            value={currentPassword}
-            placeholder="현재 비밀번호를 입력해 주세요"
-            secureTextEntry={!currentPasswordVisible}
-            onChangeText={onChangeCurrentPassword}
-            onToggleSecure={onToggleCurrentPasswordVisible}
-          />
-
-          <PasswordField
-            label="새 비밀번호"
-            value={nextPassword}
-            placeholder="새 비밀번호를 입력해 주세요"
-            secureTextEntry={!nextPasswordVisible}
-            onChangeText={onChangeNextPassword}
-            onToggleSecure={onToggleNextPasswordVisible}
-            helper="영문, 숫자, 특수문자 포함 8자 이상 입력해주세요"
-          />
-
-          <PasswordField
-            label="새 비밀번호 확인"
-            value={confirmPassword}
-            placeholder="새 비밀번호를 한 번 더 입력해 주세요"
-            secureTextEntry={!confirmPasswordVisible}
-            onChangeText={onChangeConfirmPassword}
-            onToggleSecure={onToggleConfirmPasswordVisible}
-          />
-
-          <TouchableOpacity
-            activeOpacity={0.92}
+      <KeyboardControllerAvoidingView
+        style={[
+          styles.modalBackdropCentered,
+          { backgroundColor: theme.colors.overlay },
+        ]}
+        behavior="padding"
+        enabled
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
+      >
+        <Pressable
+          style={styles.modalScrim}
+          onPress={() => {
+            Keyboard.dismiss();
+            onClose();
+          }}
+        />
+        <View style={styles.centeredModalWrap} pointerEvents="box-none">
+          <Pressable
             style={[
-              styles.primaryButton,
-              { backgroundColor: accentColor },
-              saving ? styles.disabledButton : null,
+              styles.centeredSheetCard,
+              {
+                backgroundColor: theme.colors.surfaceElevated,
+                paddingBottom: 18 + bottomInset,
+              },
             ]}
-            onPress={onSubmit}
-            disabled={saving}
+            onPress={Keyboard.dismiss}
           >
-            <Text style={styles.primaryButtonText}>
-              {saving ? '변경 중...' : '변경하기'}
-            </Text>
-          </TouchableOpacity>
+            <View style={styles.sheetHeader}>
+              <Text style={[styles.sheetTitle, { color: theme.colors.textPrimary }]}>
+                비밀번호 변경
+              </Text>
+              <TouchableOpacity
+                activeOpacity={0.88}
+                style={[styles.sheetClose, { backgroundColor: theme.colors.surface }]}
+                onPress={onClose}
+              >
+                <Feather name="x" size={20} color={theme.colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <KeyboardAwareScrollView
+              innerRef={ref => {
+                scrollRef.current = ref;
+              }}
+              style={styles.modalContentScroll}
+              contentContainerStyle={styles.modalContentContainer}
+              keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              enableOnAndroid
+              enableAutomaticScroll
+              enableResetScrollToCoords={false}
+              keyboardOpeningTime={0}
+              extraScrollHeight={32}
+              extraHeight={84}
+            >
+              <View style={styles.modalCardBody}>
+                <PasswordField
+                  label="현재 비밀번호"
+                  value={currentPassword}
+                  placeholder="현재 비밀번호를 입력해 주세요"
+                  secureTextEntry={!currentPasswordVisible}
+                  onChangeText={onChangeCurrentPassword}
+                  onToggleSecure={onToggleCurrentPasswordVisible}
+                  inputRef={currentPasswordRef}
+                  onFocus={() => scrollToInput(currentPasswordRef)}
+                />
+
+                <PasswordField
+                  label="새 비밀번호"
+                  value={nextPassword}
+                  placeholder="새 비밀번호를 입력해 주세요"
+                  secureTextEntry={!nextPasswordVisible}
+                  onChangeText={onChangeNextPassword}
+                  onToggleSecure={onToggleNextPasswordVisible}
+                  helper="영문, 숫자, 특수문자 포함 8자 이상 입력해주세요"
+                  inputRef={nextPasswordRef}
+                  onFocus={() => scrollToInput(nextPasswordRef)}
+                />
+
+                <PasswordField
+                  label="새 비밀번호 확인"
+                  value={confirmPassword}
+                  placeholder="새 비밀번호를 한 번 더 입력해 주세요"
+                  secureTextEntry={!confirmPasswordVisible}
+                  onChangeText={onChangeConfirmPassword}
+                  onToggleSecure={onToggleConfirmPasswordVisible}
+                  inputRef={confirmPasswordRef}
+                  onFocus={() => scrollToInput(confirmPasswordRef)}
+                />
+              </View>
+
+              <View style={styles.modalCardFooter}>
+                <TouchableOpacity
+                  activeOpacity={0.92}
+                  style={[
+                    styles.primaryButton,
+                    styles.modalPrimaryButton,
+                    { backgroundColor: accentColor },
+                    saving ? styles.disabledButton : null,
+                  ]}
+                  onPress={onSubmit}
+                  disabled={saving}
+                >
+                  <Text style={styles.primaryButtonText}>
+                    {saving ? '변경 중...' : '변경하기'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </KeyboardAwareScrollView>
+          </Pressable>
         </View>
-      </View>
+      </KeyboardControllerAvoidingView>
     </Modal>
   );
 });
@@ -534,85 +605,105 @@ const ProfileEditModal = memo(function ProfileEditModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={[styles.modalBackdrop, { backgroundColor: theme.colors.overlay }]}>
-        <Pressable style={styles.modalScrim} onPress={onClose} />
-        <View
-          style={[
-            styles.sheetCard,
-            {
-              backgroundColor: theme.colors.surfaceElevated,
-              paddingBottom: 26 + bottomInset,
-            },
-          ]}
-        >
-          <View style={styles.sheetHeader}>
-            <Text style={[styles.sheetTitle, { color: theme.colors.textPrimary }]}>
-              닉네임 수정
-            </Text>
-            <TouchableOpacity
-              activeOpacity={0.88}
-              style={[styles.sheetClose, { backgroundColor: theme.colors.surface }]}
-              onPress={onClose}
-            >
-              <Feather name="x" size={20} color={theme.colors.textMuted} />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.modalField}>
-            <Text style={[styles.modalLabel, { color: theme.colors.textPrimary }]}>
-              닉네임
-            </Text>
-            <TextInput
-              value={nickname}
-              onChangeText={onChangeNickname}
-              style={[
-                styles.nicknameInput,
-                {
-                  backgroundColor: theme.colors.surface,
-                  color: theme.colors.textPrimary,
-                },
-              ]}
-              placeholder="닉네임을 입력해 주세요"
-              placeholderTextColor={theme.colors.textMuted}
-              autoCapitalize="none"
-              autoCorrect={false}
-              maxLength={8}
-            />
-            <Text
-              style={[
-                styles.profileHelper,
-                helperTone === 'error'
-                  ? { color: theme.colors.danger }
-                  : helperTone === 'success'
-                  ? { color: accentColor }
-                  : { color: theme.colors.textMuted },
-                helperTone === 'error'
-                  ? styles.profileHelperError
-                  : helperTone === 'success'
-                  ? styles.profileHelperSuccess
-                  : null,
-              ]}
-            >
-              {helperText}
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            activeOpacity={0.92}
+      <KeyboardControllerAvoidingView
+        style={[
+          styles.modalBackdropCentered,
+          { backgroundColor: theme.colors.overlay },
+        ]}
+        behavior="padding"
+        enabled
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
+      >
+        <Pressable
+          style={styles.modalScrim}
+          onPress={() => {
+            Keyboard.dismiss();
+            onClose();
+          }}
+        />
+        <View style={styles.centeredModalWrap} pointerEvents="box-none">
+          <Pressable
             style={[
-              styles.primaryButton,
-              { backgroundColor: accentColor },
-              saving ? styles.disabledButton : null,
+              styles.centeredSheetCard,
+              {
+                backgroundColor: theme.colors.surfaceElevated,
+                paddingBottom: 18 + bottomInset,
+              },
             ]}
-            onPress={onSubmit}
-            disabled={saving}
+            onPress={Keyboard.dismiss}
           >
-            <Text style={styles.primaryButtonText}>
-              {saving ? '저장 중...' : '저장하기'}
-            </Text>
-          </TouchableOpacity>
+            <View style={styles.sheetHeader}>
+              <Text style={[styles.sheetTitle, { color: theme.colors.textPrimary }]}>
+                닉네임 수정
+              </Text>
+              <TouchableOpacity
+                activeOpacity={0.88}
+                style={[styles.sheetClose, { backgroundColor: theme.colors.surface }]}
+                onPress={onClose}
+              >
+                <Feather name="x" size={20} color={theme.colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalField}>
+              <Text style={[styles.modalLabel, { color: theme.colors.textPrimary }]}>
+                닉네임
+              </Text>
+              <TextInput
+                value={nickname}
+                onChangeText={onChangeNickname}
+                style={[
+                  styles.nicknameInput,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    color: theme.colors.textPrimary,
+                  },
+                ]}
+                placeholder="닉네임을 입력해 주세요"
+                placeholderTextColor={theme.colors.textMuted}
+                autoCapitalize="none"
+                autoCorrect={false}
+                maxLength={NICKNAME_MAX_LENGTH}
+              />
+              <Text
+                style={[
+                  styles.profileHelper,
+                  helperTone === 'error'
+                    ? { color: theme.colors.danger }
+                    : helperTone === 'success'
+                    ? { color: accentColor }
+                    : { color: theme.colors.textMuted },
+                  helperTone === 'error'
+                    ? styles.profileHelperError
+                    : helperTone === 'success'
+                    ? styles.profileHelperSuccess
+                    : null,
+                ]}
+              >
+                {helperText}
+              </Text>
+            </View>
+
+            <View style={styles.modalCardFooter}>
+              <TouchableOpacity
+                activeOpacity={0.92}
+                style={[
+                  styles.primaryButton,
+                  styles.modalPrimaryButton,
+                  { backgroundColor: accentColor },
+                  saving ? styles.disabledButton : null,
+                ]}
+                onPress={onSubmit}
+                disabled={saving}
+              >
+                <Text style={styles.primaryButtonText}>
+                  {saving ? '저장 중...' : '수정 완료'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
         </View>
-      </View>
+      </KeyboardControllerAvoidingView>
     </Modal>
   );
 });
@@ -632,25 +723,16 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [profileModalVisible, setProfileModalVisible] = useState(false);
-  const [passwordModalVisible, setPasswordModalVisible] = useState(false);
-  const [passwordDoneVisible, setPasswordDoneVisible] = useState(false);
   const [themeModalVisible, setThemeModalVisible] = useState(false);
   const [logoutConfirmVisible, setLogoutConfirmVisible] = useState(false);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
-  const [passwordSaving, setPasswordSaving] = useState(false);
   const [themeSaving, setThemeSaving] = useState(false);
   const [draftNickname, setDraftNickname] = useState('');
   const [draftThemeColor, setDraftThemeColor] = useState<string | null>(null);
   const [nicknameChangedAt, setNicknameChangedAt] = useState<string | null>(
     null,
   );
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [nextPassword, setNextPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [currentPasswordVisible, setCurrentPasswordVisible] = useState(false);
-  const [nextPasswordVisible, setNextPasswordVisible] = useState(false);
-  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
   const [openingDeletionGuide, setOpeningDeletionGuide] = useState(false);
 
   const nickname = useMemo(() => nicknameRaw?.trim() || null, [nicknameRaw]);
@@ -747,16 +829,13 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       };
     }
 
-    if (draftNickname.trim().length < 2) {
+    const validation = validateNicknameInput(draftNickname);
+    if (validation.code !== 'empty' && validation.code !== 'ok') {
       return {
-        text: '닉네임은 2자 이상 입력해 주세요.',
-        tone: 'error' as const,
-      };
-    }
-
-    if (draftNickname.trim().length > 8) {
-      return {
-        text: '닉네임은 8자 이내로 입력해 주세요.',
+        text:
+          validation.message ??
+          getNicknameErrorMessageByCode(validation.code) ??
+          '닉네임을 다시 확인해 주세요.',
         tone: 'error' as const,
       };
     }
@@ -854,10 +933,6 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     setDraftNickname(nickname ?? '');
   }, [nickname]);
 
-  const openPasswordModal = useCallback(() => {
-    setPasswordModalVisible(true);
-  }, []);
-
   const openThemeModal = useCallback(() => {
     if (!selectedPet) {
       showToast({
@@ -877,29 +952,6 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     setThemeModalVisible(false);
     setDraftThemeColor(null);
   }, [themeSaving]);
-
-  const closePasswordModal = useCallback(() => {
-    if (passwordSaving) return;
-    setPasswordModalVisible(false);
-    setCurrentPassword('');
-    setNextPassword('');
-    setConfirmPassword('');
-    setCurrentPasswordVisible(false);
-    setNextPasswordVisible(false);
-    setConfirmPasswordVisible(false);
-  }, [passwordSaving]);
-  const toggleCurrentPasswordVisibility = useCallback(() => {
-    setCurrentPasswordVisible(prev => !prev);
-  }, []);
-  const toggleNextPasswordVisibility = useCallback(() => {
-    setNextPasswordVisible(prev => !prev);
-  }, []);
-  const toggleConfirmPasswordVisibility = useCallback(() => {
-    setConfirmPasswordVisible(prev => !prev);
-  }, []);
-  const closePasswordDoneModal = useCallback(() => {
-    setPasswordDoneVisible(false);
-  }, []);
 
   const onSubmitProfile = useCallback(async () => {
     if (profileSaving) return;
@@ -936,15 +988,8 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       const availability = await checkNicknameAvailabilityDetailed(trimmed);
       if (!availability.available) {
         const codeMessage =
-          availability.code === 'taken'
-            ? '이미 사용중인 닉네임 입니다.'
-            : availability.code === 'too_short'
-            ? '닉네임은 2자 이상 입력해주세요'
-            : availability.code === 'too_long'
-            ? '닉네임은 8자 이내로 입력해주세요'
-            : availability.code === 'blocked'
-            ? '사용할 수 없는 닉네임입니다'
-            : '닉네임을 다시 확인해 주세요.';
+          getNicknameErrorMessageByCode(availability.code as NicknamePolicyCode) ??
+          '닉네임을 다시 확인해 주세요.';
         throw new Error(codeMessage);
       }
 
@@ -978,64 +1023,6 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     nickname,
     profileSaving,
   ]);
-
-  const onSubmitPasswordChange = useCallback(async () => {
-    if (passwordSaving) return;
-
-    const trimmedCurrent = currentPassword.trim();
-    const trimmedNext = nextPassword.trim();
-    const trimmedConfirm = confirmPassword.trim();
-
-    if (!trimmedCurrent) {
-      showToast({
-        tone: 'error',
-        title: '현재 비밀번호 필요',
-        message: '현재 비밀번호를 입력해 주세요.',
-      });
-      return;
-    }
-
-    if (!isValidPasswordFormat(trimmedNext)) {
-      showToast({
-        tone: 'error',
-        title: '비밀번호 형식 확인',
-        message: '영문, 숫자, 특수문자를 포함한 8자 이상으로 입력해 주세요.',
-      });
-      return;
-    }
-
-    if (trimmedNext !== trimmedConfirm) {
-      showToast({
-        tone: 'error',
-        title: '비밀번호 확인 필요',
-        message: '새 비밀번호와 확인 값이 일치하지 않습니다.',
-      });
-      return;
-    }
-
-    try {
-      setPasswordSaving(true);
-      await changeMyPassword({
-        currentPassword: trimmedCurrent,
-        nextPassword: trimmedNext,
-      });
-      setPasswordModalVisible(false);
-      setCurrentPassword('');
-      setNextPassword('');
-      setConfirmPassword('');
-      setPasswordDoneVisible(true);
-    } catch (error) {
-      const { title, message } = getBrandedErrorMeta(error, 'password-change');
-      showToast({
-        tone: 'error',
-        title,
-        message,
-        durationMs: 3200,
-      });
-    } finally {
-      setPasswordSaving(false);
-    }
-  }, [confirmPassword, currentPassword, nextPassword, passwordSaving]);
 
   const executeLogout = useCallback(async () => {
     if (loading) return;
@@ -1244,12 +1231,6 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     );
   }, [closeAndNavigate, navigation]);
 
-  const openPetFriendlyPlaces = useCallback(() => {
-    closeAndNavigate(() =>
-      navigation.navigate('PetFriendlyPlaceList', { entrySource: 'more' }),
-    );
-  }, [closeAndNavigate, navigation]);
-
   const openPetTravel = useCallback(() => {
     closeAndNavigate(() =>
       navigation.navigate('PetTravelList', { entrySource: 'more' }),
@@ -1330,13 +1311,6 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         onPress: openPetTravel,
       },
       {
-        key: 'pet-friendly-places',
-        label: '펫동반 카페 / 공간 찾기',
-        icon: 'coffee',
-        iconTone: 'muted',
-        onPress: openPetFriendlyPlaces,
-      },
-      {
         key: 'community',
         label: '커뮤니티',
         icon: 'message-circle',
@@ -1351,7 +1325,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         onPress: openGuideList,
       },
     ],
-    [openCommunity, openGuideList, openPetFriendlyPlaces, openPetTravel],
+    [openCommunity, openGuideList, openPetTravel],
   );
 
   const serviceItems = useMemo<MenuItemSpec[]>(() => {
@@ -1375,13 +1349,6 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         iconTone: 'accent',
         onPress: () => showPreparingToast('알림 설정'),
         badge: 'soon',
-      },
-      {
-        key: 'security',
-        label: '보안 및 개인정보',
-        icon: 'shield',
-        iconTone: 'accent',
-        onPress: openPasswordModal,
       },
       {
         key: 'theme',
@@ -1421,7 +1388,6 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     loading,
     onPressLogin,
     onPressLogout,
-    openPasswordModal,
     openProfileEditModal,
     openThemeModal,
     showPreparingToast,
@@ -1551,7 +1517,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
               <Text
                 style={[styles.accountMetaText, { color: theme.colors.textMuted }]}
               >
-                닉네임은 월 1회, 비밀번호는 필요할 때 바로 변경할 수 있어요.
+                닉네임은 월 1회 변경할 수 있어요.
               </Text>
             </View>
           ) : null}
@@ -1676,32 +1642,6 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         onSubmit={onSubmitProfile}
       />
 
-      <PasswordChangeModal
-        visible={passwordModalVisible}
-        bottomInset={Math.max(insets.bottom, 6)}
-        currentPassword={currentPassword}
-        nextPassword={nextPassword}
-        confirmPassword={confirmPassword}
-        currentPasswordVisible={currentPasswordVisible}
-        nextPasswordVisible={nextPasswordVisible}
-        confirmPasswordVisible={confirmPasswordVisible}
-        saving={passwordSaving}
-        accentColor={petTheme.primary}
-        onClose={closePasswordModal}
-        onChangeCurrentPassword={setCurrentPassword}
-        onChangeNextPassword={setNextPassword}
-        onChangeConfirmPassword={setConfirmPassword}
-        onToggleCurrentPasswordVisible={toggleCurrentPasswordVisibility}
-        onToggleNextPasswordVisible={toggleNextPasswordVisibility}
-        onToggleConfirmPasswordVisible={toggleConfirmPasswordVisibility}
-        onSubmit={onSubmitPasswordChange}
-      />
-
-      <PasswordChangeSuccessModal
-        visible={passwordDoneVisible}
-        accentColor={petTheme.primary}
-        onClose={closePasswordDoneModal}
-      />
       <ThemeSettingsModal
         visible={themeModalVisible}
         bottomInset={Math.max(insets.bottom, 6)}
@@ -2000,8 +1940,19 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(17, 24, 39, 0.34)',
     justifyContent: 'flex-end',
   },
-  modalScrim: {
+  modalBackdropCentered: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    backgroundColor: 'rgba(17, 24, 39, 0.34)',
+  },
+  modalScrim: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  centeredModalWrap: {
+    width: '100%',
+    maxWidth: 420,
   },
   sheetCard: {
     backgroundColor: '#FFFFFF',
@@ -2011,6 +1962,18 @@ const styles = StyleSheet.create({
     paddingTop: 22,
     paddingBottom: 26,
     gap: 18,
+  },
+  centeredSheetCard: {
+    width: '100%',
+    maxHeight: '88%',
+    minHeight: 312,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    paddingHorizontal: 22,
+    paddingTop: 22,
+    paddingBottom: 22,
+    gap: 16,
+    overflow: 'hidden',
   },
   sheetHeader: {
     flexDirection: 'row',
@@ -2111,6 +2074,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#FFFFFF',
     fontWeight: '700',
+  },
+  modalContentScroll: {
+    maxHeight: 360,
+  },
+  modalContentContainer: {
+    paddingBottom: 4,
+  },
+  modalCardBody: {
+    gap: 16,
+  },
+  modalCardFooter: {
+    paddingTop: 4,
+  },
+  modalPrimaryButton: {
+    marginTop: 0,
   },
   disabledButton: {
     opacity: 0.6,

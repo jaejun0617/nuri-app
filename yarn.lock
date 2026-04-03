@@ -2515,10 +2515,24 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@mj-studio/js-util@npm:1.1.3":
-  version: 1.1.3
-  resolution: "@mj-studio/js-util@npm:1.1.3"
-  checksum: 6f444aa83ebe2c4254ab2e87066ceb0bd40b412fb5b618126dfeb30032c2df1358cfee5229f42f9f3fc6822889d2cd46c5ebd3713723b236639650ae5516d4a4
+"@mapbox/geo-viewport@npm:^0.4.1":
+  version: 0.4.1
+  resolution: "@mapbox/geo-viewport@npm:0.4.1"
+  dependencies:
+    "@mapbox/sphericalmercator": ~1.1.0
+  checksum: 5e2482b3d513e266bf051dff9f525966ffc0152a89af12f95ae2d370832e5dbb21c8806102fefec3ac0a5037dad6c8e1757604722d2c05b41bda865a0f3ccdb0
+  languageName: node
+  linkType: hard
+
+"@mapbox/sphericalmercator@npm:~1.1.0":
+  version: 1.1.0
+  resolution: "@mapbox/sphericalmercator@npm:1.1.0"
+  bin:
+    bbox: bin/bbox.js
+    to4326: bin/to4326.js
+    to900913: bin/to900913.js
+    xyz: bin/xyz.js
+  checksum: d1bd2cdff0d70a6b093f100078575d8abbfb99bc3471482ba9071739a9143dc860a642040f440c5f715eaaa6ab34589e67f4cc5d3e57da86ca505ee9648572e7
   languageName: node
   linkType: hard
 
@@ -2881,37 +2895,6 @@ __metadata:
     expo:
       optional: true
   checksum: ade492b279aa49142f6576e75d85b6722797a9b66687a817ed3f9cb401fa7e8755fe06dc53e213e8a1558171e12ede365f05961f72911591ac3aa2cc149dae9a
-  languageName: node
-  linkType: hard
-
-"@react-native-kakao/core@npm:2.2.7":
-  version: 2.2.7
-  resolution: "@react-native-kakao/core@npm:2.2.7"
-  dependencies:
-    crypto-js: ^4.2.0
-    query-string: ^9.0.0
-    return-fetch: ^0.4.5
-  peerDependencies:
-    expo: ">=47.0.0"
-    react: "*"
-    react-native: "*"
-  peerDependenciesMeta:
-    expo:
-      optional: true
-  checksum: d0d08dd883453ef3a42666f2517862f17cb1a343d5c889bf8da9925e37e18c9a681452499a1b1f94a417a49e96c68b76f96eb89996b3c433921b784b6d7a53c5
-  languageName: node
-  linkType: hard
-
-"@react-native-kakao/map@npm:^2.2.7":
-  version: 2.2.7
-  resolution: "@react-native-kakao/map@npm:2.2.7"
-  dependencies:
-    "@mj-studio/js-util": 1.1.3
-  peerDependencies:
-    "@react-native-kakao/core": 2.2.7
-    react: "*"
-    react-native: "*"
-  checksum: 5fe3987fee1865de5d7c669b1f080e5efb7ee2390dbd0fb93835c9281e5765ce89997e2743b8a8ea06023e55bdca834e617447bdb31a76a3f7a4e3966ff5fa96
   languageName: node
   linkType: hard
 
@@ -3660,6 +3643,13 @@ __metadata:
   dependencies:
     "@babel/types": ^7.28.2
   checksum: e3124e6575b2f70de338eab8a9c704d315a86c46a8e395b6ec78a0157ab7b5fd877289556a57dcf28e4ff3543714e359cc1182d4afc4bcb4f3575a0bbafa0dad
+  languageName: node
+  linkType: hard
+
+"@types/geojson@npm:^7946.0.13":
+  version: 7946.0.16
+  resolution: "@types/geojson@npm:7946.0.16"
+  checksum: d66e5e023f43b3e7121448117af1930af7d06410a32a585a8bc9c6bb5d97e0d656cd93d99e31fa432976c32e98d4b780f82bf1fd1acd20ccf952eb6b8e39edf2
   languageName: node
   linkType: hard
 
@@ -5031,13 +5021,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"crypto-js@npm:^4.2.0":
-  version: 4.2.0
-  resolution: "crypto-js@npm:4.2.0"
-  checksum: f051666dbc077c8324777f44fbd3aaea2986f198fe85092535130d17026c7c2ccf2d23ee5b29b36f7a4a07312db2fae23c9094b644cc35f7858b1b4fcaf27774
-  languageName: node
-  linkType: hard
-
 "css-color-keywords@npm:^1.0.0":
   version: 1.0.0
   resolution: "css-color-keywords@npm:1.0.0"
@@ -5135,13 +5118,6 @@ __metadata:
   version: 0.2.2
   resolution: "decode-uri-component@npm:0.2.2"
   checksum: 95476a7d28f267292ce745eac3524a9079058bbb35767b76e3ee87d42e34cd0275d2eb19d9d08c3e167f97556e8a2872747f5e65cbebcac8b0c98d83e285f139
-  languageName: node
-  linkType: hard
-
-"decode-uri-component@npm:^0.4.1":
-  version: 0.4.1
-  resolution: "decode-uri-component@npm:0.4.1"
-  checksum: 0473924860986fb6ca19ee65a2af13e08801b4f3660475b058500ea8479ed715c919884a026b6bf4296dbb640d3cea74fadf45490b2439152fc548271d0201ec
   languageName: node
   linkType: hard
 
@@ -5984,13 +5960,6 @@ __metadata:
   version: 1.1.0
   resolution: "filter-obj@npm:1.1.0"
   checksum: cf2104a7c45ff48e7f505b78a3991c8f7f30f28bd8106ef582721f321f1c6277f7751aacd5d83026cb079d9d5091082f588d14a72e7c5d720ece79118fa61e10
-  languageName: node
-  linkType: hard
-
-"filter-obj@npm:^5.1.0":
-  version: 5.1.0
-  resolution: "filter-obj@npm:5.1.0"
-  checksum: ba7c24d9b2c0552ee87d268e07eca74483af61fb740545ffa809f7e9e5294de38cf163ecc55af0e8a40020af9a49512c32f4022de2a858b110420fc8bffa7c9c
   languageName: node
   linkType: hard
 
@@ -7657,6 +7626,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"kdbush@npm:^4.0.2":
+  version: 4.0.2
+  resolution: "kdbush@npm:4.0.2"
+  checksum: 6782ef2cdaec9322376b9955a16b0163beda0cefa2f87da76e8970ade2572d8b63bec915347aaeac609484b0c6e84d7b591f229ef353b68b460238095bacde2d
+  languageName: node
+  linkType: hard
+
 "keyv@npm:^4.5.3":
   version: 4.5.4
   resolution: "keyv@npm:4.5.4"
@@ -8477,8 +8453,6 @@ __metadata:
     "@react-native-community/geolocation": ^3.4.0
     "@react-native-firebase/app": ^23.8.6
     "@react-native-firebase/crashlytics": ^23.8.6
-    "@react-native-kakao/core": 2.2.7
-    "@react-native-kakao/map": ^2.2.7
     "@react-native-masked-view/masked-view": ^0.3.2
     "@react-native/babel-preset": 0.84.0
     "@react-native/eslint-config": 0.84.0
@@ -8512,6 +8486,8 @@ __metadata:
     react-native-keyboard-aware-scroll-view: ^0.9.5
     react-native-keyboard-controller: ^1.21.1
     react-native-linear-gradient: ^2.8.3
+    react-native-map-clustering: ^4.0.0
+    react-native-maps: ^1.27.2
     react-native-reanimated: 4.2.2
     react-native-safe-area-context: ^5.7.0
     react-native-screens: ^4.24.0
@@ -9031,17 +9007,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"query-string@npm:^9.0.0":
-  version: 9.3.1
-  resolution: "query-string@npm:9.3.1"
-  dependencies:
-    decode-uri-component: ^0.4.1
-    filter-obj: ^5.1.0
-    split-on-first: ^3.0.0
-  checksum: 4f2b600e0226e680956e08bd5f27ccb6c9b832aedca7eeab844da85aac6624b340e2cc5dd77129bc96a9fadbec0d847decadecd115eb43a6b9cdafa078c98f75
-  languageName: node
-  linkType: hard
-
 "queue-microtask@npm:^1.2.2":
   version: 1.2.3
   resolution: "queue-microtask@npm:1.2.3"
@@ -9236,6 +9201,35 @@ __metadata:
     react: "*"
     react-native: "*"
   checksum: f980d324e551bbc475c6406bdc5250a08242020cbe653412fa169bbdf51e28a502e225de105b4d696d6a1a1b733d44782469020f4936d8b3ce0e2c78e51cf58f
+  languageName: node
+  linkType: hard
+
+"react-native-map-clustering@npm:^4.0.0":
+  version: 4.0.0
+  resolution: "react-native-map-clustering@npm:4.0.0"
+  dependencies:
+    "@mapbox/geo-viewport": ^0.4.1
+    supercluster: ^8.0.0
+  peerDependencies:
+    react-native: "*"
+    react-native-maps: "*"
+  checksum: 4afd158958290c6c2de5207efe1873ddeb9e5e794dd59c9ef4e469e18082962c6f3261445b058e11f67d1b963dee39ba1fb1c5a1aa8bab5cb4a1690dfc894085
+  languageName: node
+  linkType: hard
+
+"react-native-maps@npm:^1.27.2":
+  version: 1.27.2
+  resolution: "react-native-maps@npm:1.27.2"
+  dependencies:
+    "@types/geojson": ^7946.0.13
+  peerDependencies:
+    react: ">= 18.3.1"
+    react-native: ">= 0.76.0"
+    react-native-web: ">= 0.11"
+  peerDependenciesMeta:
+    react-native-web:
+      optional: true
+  checksum: e6cf3faa7ce5d28ba66679781732ad429386773b1528b34c96c0a5bdd29d276af05a5058badbe03290b7eb89ded179b2768b9e8518946ff31741d2fc46ebd9e6
   languageName: node
   linkType: hard
 
@@ -9627,13 +9621,6 @@ __metadata:
   version: 0.12.0
   resolution: "retry@npm:0.12.0"
   checksum: 623bd7d2e5119467ba66202d733ec3c2e2e26568074923bc0585b6b99db14f357e79bdedb63cab56cec47491c4a0da7e6021a7465ca6dc4f481d3898fdd3158c
-  languageName: node
-  linkType: hard
-
-"return-fetch@npm:^0.4.5":
-  version: 0.4.8
-  resolution: "return-fetch@npm:0.4.8"
-  checksum: eb5ede77f24bdc1d5740267647e7731af5a1e958fb456d8760c3dc9d57130fd9d865bff414a75ad744f32ddef110e82dd3025ea2782dcd61e00456e015f72524
   languageName: node
   linkType: hard
 
@@ -10046,13 +10033,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"split-on-first@npm:^3.0.0":
-  version: 3.0.0
-  resolution: "split-on-first@npm:3.0.0"
-  checksum: 75dc27ecbac65cfbeab9a3b90cf046307220192d3d7a30e46aa0f19571cc9b4802aac813f3de2cc9b16f2e46aae72f275659b5d2614bb5369c77724d739e5f73
-  languageName: node
-  linkType: hard
-
 "sprintf-js@npm:~1.0.2":
   version: 1.0.3
   resolution: "sprintf-js@npm:1.0.3"
@@ -10334,6 +10314,15 @@ __metadata:
   version: 4.3.6
   resolution: "stylis@npm:4.3.6"
   checksum: 4f56a087caace85b34c3a163cf9d662f58f42dc865b2447af5c3ee3588eebaffe90875fe294578cce26f172ff527cad2b01433f6e1ae156400ec38c37c79fd61
+  languageName: node
+  linkType: hard
+
+"supercluster@npm:^8.0.0":
+  version: 8.0.1
+  resolution: "supercluster@npm:8.0.1"
+  dependencies:
+    kdbush: ^4.0.2
+  checksum: 39d141f768a511efa53260252f9dab9a2ce0228b334e55482c8d3019e151932f05e1a9a0252d681737651b13c741c665542a6ddb40ec27de96159ea7ad41f7f4
   languageName: node
   linkType: hard
 

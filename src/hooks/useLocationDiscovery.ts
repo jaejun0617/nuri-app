@@ -100,7 +100,7 @@ export function useLocationDiscovery(input: {
         scope,
         useNearbySearch: !hasSearchQuery,
       }),
-    enabled: hasSearchQuery || (Boolean(locationState.coordinates) && locationState.isFresh),
+    enabled: hasSearchQuery || Boolean(locationState.coordinates),
     staleTime: 2 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     placeholderData: previous => previous,
@@ -134,12 +134,12 @@ export function useLocationDiscovery(input: {
 
   return {
     loading:
-      (locationState.loading && !locationState.coordinates && !hasSearchQuery) ||
-      query.isLoading,
+      ((locationState.loading && !locationState.coordinates && !hasSearchQuery) ||
+        query.isLoading) &&
+      !query.data,
     refreshing: query.isRefetching && !hasSearchQuery,
     searching: query.isFetching && hasSearchQuery,
-    items:
-      !hasSearchQuery && !locationState.isFresh ? [] : query.data?.items ?? [],
+    items: query.data?.items ?? [],
     error:
       (query.error instanceof Error ? query.error.message : null) ??
       (!hasSearchQuery ? locationState.error : null),

@@ -43,6 +43,7 @@ type Props = {
   onChangeTitle: (title: string) => void;
   onChangeContent: (content: string) => void;
   onContentFocus?: () => void;
+  onPressPolicy: () => void;
   onPickImage: () => void;
   onRemoveImage: (index?: number) => void;
   onImageError?: () => void;
@@ -71,6 +72,7 @@ function CommunityPostEditorFormBase({
   onChangeTitle,
   onChangeContent,
   onContentFocus,
+  onPressPolicy,
   onPickImage,
   onRemoveImage,
   onImageError,
@@ -129,6 +131,45 @@ function CommunityPostEditorFormBase({
             );
           })}
         </View>
+      </View>
+
+      <View
+        style={[
+          styles.policyHelperBox,
+          {
+            backgroundColor: theme.colors.surfaceElevated,
+            borderColor: theme.colors.border,
+          },
+        ]}
+      >
+        <View style={styles.policyHelperContent}>
+          <AppText
+            preset="caption"
+            style={[styles.policyHelperTitle, { color: theme.colors.textPrimary }]}
+          >
+            작성 전 꼭 확인해 주세요
+          </AppText>
+          <AppText
+            preset="caption"
+            style={[styles.policyHelperBody, { color: theme.colors.textSecondary }]}
+          >
+            서로를 존중하는 따뜻한 이야기를 나눠주세요. 욕설, 혐오, 비방 등
+            타인에게 불쾌감을 주는 콘텐츠는 운영정책에 의해 숨김 및 제재될 수
+            있습니다.
+          </AppText>
+        </View>
+        <TouchableOpacity
+          activeOpacity={0.88}
+          style={styles.policyHelperAction}
+          onPress={onPressPolicy}
+        >
+          <AppText
+            preset="caption"
+            style={[styles.policyHelperActionText, { color: accentPalette.primary }]}
+          >
+            운영정책 보기
+          </AppText>
+        </TouchableOpacity>
       </View>
 
       {pets.length > 0 ? (
@@ -412,7 +453,7 @@ function CommunityPostEditorFormBase({
             value={content}
             onChangeText={onChangeContent}
             onFocus={onContentFocus}
-            placeholder="반려동물과 나누고 싶은 이야기를 적어 보세요."
+            placeholder="우리 아이의 소중한 일상과 고민을 자유롭게 나누어 보세요. (욕설, 비방 등 불쾌감을 주는 내용은 운영정책에 따라 숨김 처리될 수 있습니다.)"
             placeholderTextColor={theme.colors.textMuted}
             style={[styles.input, { color: theme.colors.textPrimary }]}
             maxLength={5000}

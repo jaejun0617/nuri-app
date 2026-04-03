@@ -363,12 +363,12 @@ export const styles = StyleSheet.create({
 
   tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   tagChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(109,106,248,0.14)',
-    backgroundColor: 'rgba(109,106,248,0.06)',
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    borderRadius: 0,
+    borderWidth: 0,
+    borderColor: 'transparent',
+    backgroundColor: 'transparent',
   },
   tagText: { fontSize: 12, fontWeight: '900', color: BRAND_DEEP },
 

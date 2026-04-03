@@ -119,7 +119,39 @@ export const styles = StyleSheet.create({
     height: 3,
   },
   listIntroHeader: {
+    paddingTop: 8,
     paddingBottom: 16,
+  },
+  noticeBanner: {
+    marginHorizontal: 20,
+    marginBottom: 10,
+    minHeight: 50,
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  noticeBannerTextBlock: {
+    flex: 1,
+    minWidth: 0,
+  },
+  noticeBannerLabel: {
+    ...typography.role.helper,
+    fontWeight: '700',
+    lineHeight: 18,
+  },
+  noticeBannerAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  noticeBannerActionText: {
+    ...typography.role.helper,
+    fontWeight: '800',
   },
   sectionHeader: {
     paddingHorizontal: 20,

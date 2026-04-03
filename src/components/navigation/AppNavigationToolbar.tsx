@@ -56,7 +56,10 @@ export default function AppNavigationToolbar({
     [selectedPet?.themeColor],
   );
   const bottomInset = useMemo(
-    () => Math.max(insets.bottom, Platform.OS === 'android' ? 16 : 10),
+    () =>
+      Platform.OS === 'android'
+        ? Math.min(Math.max(insets.bottom, 4), 8)
+        : Math.max(insets.bottom, 10),
     [insets.bottom],
   );
   const activeColor = isLoggedIn ? petTheme.primary : theme.colors.brand;

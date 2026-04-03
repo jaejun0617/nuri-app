@@ -16,9 +16,6 @@ import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from '
 import {
   Alert,
   Image,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
@@ -28,7 +25,8 @@ import { useNavigation } from '@react-navigation/native';
 import { useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import Feather from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from 'styled-components/native';
@@ -151,6 +149,7 @@ export default function SignInScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<SignInRoute>();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
 
   const setSession = useAuthStore(s => s.setSession);
   const clearPasswordRecovery = useAuthStore(s => s.clearPasswordRecovery);
@@ -304,112 +303,112 @@ export default function SignInScreen() {
 
   return (
     <SafeAreaView style={styles.screen}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      <KeyboardAwareScrollView
         style={styles.keyboardView}
+        bounces={false}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: insets.bottom + 32 },
+        ]}
+        keyboardDismissMode="none"
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView
-          bounces={false}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.hero}>
-            <View style={styles.heroLogoWrap}>
-              <Image
-                resizeMode="contain"
-                source={ASSETS.logo}
-                style={styles.heroLogo}
-              />
-            </View>
-            <Text style={styles.heroBody}>
-              함께한 모든 순간이, 오래도록 기억이 되도록
-            </Text>
+        <View style={styles.hero}>
+          <View style={styles.heroLogoWrap}>
+            <Image
+              resizeMode="contain"
+              source={ASSETS.logo}
+              style={styles.heroLogo}
+            />
           </View>
+          <Text style={styles.heroBody}>
+            함께한 모든 순간이, 오래도록 기억이 되도록
+          </Text>
+        </View>
 
-          <AuthField
-            autoCapitalize="none"
-            inputRef={emailInputRef}
-            keyboardType="email-address"
-            label=""
-            onChangeText={setEmail}
-            placeholder="이메일"
-            value={email}
-          />
+        <AuthField
+          autoCapitalize="none"
+          inputRef={emailInputRef}
+          keyboardType="email-address"
+          label=""
+          onChangeText={setEmail}
+          placeholder="이메일"
+          value={email}
+        />
 
-          <AuthField
-            autoCapitalize="none"
-            inputRef={passwordInputRef}
-            label=""
-            onChangeText={setPassword}
-            placeholder="비밀번호"
-            rightAccessory={
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={onToggleSecurePassword}
-              >
-                <Feather
-                  color="#9DA7BA"
-                  name={securePassword ? 'eye-off' : 'eye'}
-                  size={18}
-                />
-              </TouchableOpacity>
-            }
-            secureTextEntry={securePassword}
-            value={password}
-          />
-
-          <TouchableOpacity
-            activeOpacity={0.9}
-            disabled={disabled}
-            onPress={onSubmit}
-            style={[
-              styles.primaryButton,
-              disabled ? styles.primaryButtonDisabled : null,
-            ]}
-          >
-            <Text style={styles.primaryButtonText}>
-              {submitting ? '로그인 중...' : '로그인'}
-            </Text>
-          </TouchableOpacity>
-
-          <View style={styles.inlineLinks}>
+        <AuthField
+          autoCapitalize="none"
+          inputRef={passwordInputRef}
+          label=""
+          onChangeText={setPassword}
+          placeholder="비밀번호"
+          rightAccessory={
             <TouchableOpacity
-              activeOpacity={0.75}
-              onPress={onPressForgotPassword}
+              activeOpacity={0.8}
+              onPress={onToggleSecurePassword}
             >
-              <Text style={styles.inlineLinkText}>비밀번호 찾기</Text>
+              <Feather
+                color="#9DA7BA"
+                name={securePassword ? 'eye-off' : 'eye'}
+                size={18}
+              />
             </TouchableOpacity>
-            <Text style={styles.inlineDivider}>|</Text>
-            <TouchableOpacity activeOpacity={0.75} onPress={onPressSignUp}>
-              <Text style={styles.inlineLinkText}>회원가입</Text>
-            </TouchableOpacity>
-          </View>
+          }
+          secureTextEntry={securePassword}
+          value={password}
+        />
 
-          <View style={styles.socialSection}>
-            <View style={styles.socialDivider} />
-            <Text style={styles.socialSectionTitle}>SNS 계정으로 시작하기</Text>
-            <View style={styles.socialDivider} />
-          </View>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          disabled={disabled}
+          onPress={onSubmit}
+          style={[
+            styles.primaryButton,
+            disabled ? styles.primaryButtonDisabled : null,
+          ]}
+        >
+          <Text style={styles.primaryButtonText}>
+            {submitting ? '로그인 중...' : '로그인'}
+          </Text>
+        </TouchableOpacity>
 
-          <SocialButton
-            backgroundColor="#FFE100"
-            badge={<KakaoBadgeMark />}
-            borderColor="#FFE100"
-            label="카카오로 시작하기"
-            onPress={() => onSocialPress('kakao')}
-            textColor="#191600"
-          />
+        <View style={styles.inlineLinks}>
+          <TouchableOpacity
+            activeOpacity={0.75}
+            onPress={onPressForgotPassword}
+          >
+            <Text style={styles.inlineLinkText}>비밀번호 찾기</Text>
+          </TouchableOpacity>
+          <Text style={styles.inlineDivider}>|</Text>
+          <TouchableOpacity activeOpacity={0.75} onPress={onPressSignUp}>
+            <Text style={styles.inlineLinkText}>회원가입</Text>
+          </TouchableOpacity>
+        </View>
 
-          <SocialButton
-            backgroundColor="#FFFFFF"
-            badge={<GoogleBadgeMark />}
-            borderColor="#E2E8F2"
-            label="Google로 시작하기"
-            onPress={() => onSocialPress('google')}
-            textColor="#334155"
-          />
-        </ScrollView>
+        <View style={styles.socialSection}>
+          <View style={styles.socialDivider} />
+          <Text style={styles.socialSectionTitle}>SNS 계정으로 시작하기</Text>
+          <View style={styles.socialDivider} />
+        </View>
+
+        <SocialButton
+          backgroundColor="#FFE100"
+          badge={<KakaoBadgeMark />}
+          borderColor="#FFE100"
+          label="카카오로 시작하기"
+          onPress={() => onSocialPress('kakao')}
+          textColor="#191600"
+        />
+
+        <SocialButton
+          backgroundColor="#FFFFFF"
+          badge={<GoogleBadgeMark />}
+          borderColor="#E2E8F2"
+          label="Google로 시작하기"
+          onPress={() => onSocialPress('google')}
+          textColor="#334155"
+        />
 
         {noticeConfig ? (
           <PremiumNoticeModal
@@ -425,7 +424,7 @@ export default function SignInScreen() {
             onConfirm={handleNoticeConfirm}
           />
         ) : null}
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }

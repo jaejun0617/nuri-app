@@ -388,12 +388,9 @@ export const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '900',
   },
-  footerActionBar: {
-    paddingHorizontal: 18,
+  footerActionSection: {
+    paddingHorizontal: 2,
     paddingTop: 12,
-    backgroundColor: 'rgba(246,247,251,0.96)',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(11,18,32,0.06)',
   },
   centerFallback: {
     flex: 1,

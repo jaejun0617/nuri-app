@@ -2,7 +2,7 @@ import { Linking } from 'react-native';
 
 import { captureMonitoringException } from '../monitoring/sentry';
 
-export const CURRENT_LEGAL_POLICY_VERSION = '2026-03-25.task2_5-draft';
+export const CURRENT_LEGAL_POLICY_VERSION = '2026-04-02.notion-public-v1';
 
 export type LegalDocumentId =
   | 'terms'
@@ -42,29 +42,29 @@ const LEGAL_DOCUMENT_CONFIG: Record<LegalDocumentId, LegalDocumentConfig> = {
     id: 'terms',
     title: '이용약관',
     version: CURRENT_LEGAL_POLICY_VERSION,
-    status: 'draft',
-    url: null,
+    status: 'external',
+    url: 'https://amazing-quesadilla-9a8.notion.site/NURI-3364a8f4e2ee8077a3ffc1d5968ddac7',
     requiredInSignup: true,
     summary: '회원가입과 기본 서비스 이용에 필요한 필수 동의 항목',
     description:
-      '서비스 이용 기본 원칙, 사용자 콘텐츠, 금지 행위, 서비스 변경과 계정 삭제 원칙을 다루는 앱 연결용 초안입니다.',
-    draftPath: 'docs/policies/이용약관-초안.md',
+      '서비스 이용 기본 원칙, 사용자 콘텐츠, 금지 행위, 커뮤니티 운영 제한, 계정 삭제 원칙을 정리한 공식 공개 문서입니다.',
+    draftPath: 'docs/policies/이용약관.md',
     unavailableMessage:
-      '이용약관 초안 구조는 준비됐지만 앱에서 전체 문서를 여는 연결은 아직 확정되지 않았습니다. 현재는 핵심 요약과 동의 상태만 먼저 제공합니다.',
+      '이용약관 링크를 지금 열 수 없습니다. 잠시 후 다시 시도해 주세요.',
   },
   privacy: {
     id: 'privacy',
     title: '개인정보 처리방침',
     version: CURRENT_LEGAL_POLICY_VERSION,
-    status: 'draft',
-    url: null,
+    status: 'external',
+    url: 'https://amazing-quesadilla-9a8.notion.site/NURI-3364a8f4e2ee8045ba30d9ac3c0f3417',
     requiredInSignup: true,
     summary: '개인정보 수집, 이용, 보관 안내에 대한 필수 동의 항목',
     description:
-      '수집 항목, 이용 목적, 보관/삭제 원칙, 외부 서비스 가능성, 이용자 권리와 계정 삭제 시 처리 원칙을 다루는 앱 연결용 초안입니다.',
-    draftPath: 'docs/policies/개인정보처리방침-초안.md',
+      '수집 항목, 이용 목적, 외부 연동, 보관/삭제 원칙, 위치 정보와 계정 삭제 시 처리 원칙을 정리한 공식 공개 문서입니다.',
+    draftPath: 'docs/policies/개인정보처리방침.md',
     unavailableMessage:
-      '개인정보 처리방침 초안 구조는 준비됐지만 앱에서 전체 문서를 여는 연결은 아직 확정되지 않았습니다. 현재는 핵심 요약과 동의 상태만 먼저 제공합니다.',
+      '개인정보처리방침 링크를 지금 열 수 없습니다. 잠시 후 다시 시도해 주세요.',
   },
   marketing: {
     id: 'marketing',
@@ -75,24 +75,24 @@ const LEGAL_DOCUMENT_CONFIG: Record<LegalDocumentId, LegalDocumentConfig> = {
     requiredInSignup: false,
     summary: '혜택, 소식, 마케팅 알림 수신 여부를 다루는 선택 동의 항목',
     description:
-      '혜택, 소식, 프로모션 안내 수신 여부와 철회 원칙을 다루는 앱 연결용 초안입니다.',
+      '혜택, 소식, 프로모션 안내 수신 여부와 철회 원칙을 다루는 draft 문서입니다. 최종 공개 여부와 채널은 운영 확인이 필요합니다.',
     draftPath: 'docs/policies/마케팅-수신-안내-초안.md',
     unavailableMessage:
-      '마케팅 수신 안내 초안 구조는 준비됐지만 앱에서 전체 문서를 여는 연결은 아직 확정되지 않았습니다. 현재는 선택 동의 상태만 저장하며 세부 문구와 채널은 후속 운영 작업에서 확정됩니다.',
+      '마케팅 수신 안내 draft는 준비됐지만 앱에서 여는 외부 공개 링크는 아직 없습니다. 현재는 선택 동의 상태만 저장하며 세부 채널과 문구는 운영 확인이 필요합니다.',
   },
   accountDeletion: {
     id: 'accountDeletion',
     title: '계정 삭제 안내',
     version: CURRENT_LEGAL_POLICY_VERSION,
-    status: 'draft',
-    url: null,
+    status: 'external',
+    url: 'https://amazing-quesadilla-9a8.notion.site/NURI-3364a8f4e2ee8080abbaf670c1e24ae1',
     requiredInSignup: false,
     summary: '삭제 요청 의미, 처리 시점, 후속 정리 상태를 안내하는 문서',
     description:
-      '삭제 요청 접수, 즉시 완료와 비동기 정리의 차이, 익명화/비식별 보관, storage cleanup과 운영 확인 가능성을 다루는 앱 연결용 초안입니다.',
-    draftPath: 'docs/policies/계정-삭제-안내-초안.md',
+      '삭제 요청 접수, 상태머신, cleanup pending, 비식별 보관 원칙을 정리한 공식 공개 문서입니다.',
+    draftPath: 'docs/policies/계정-삭제-탈퇴-안내.md',
     unavailableMessage:
-      '계정 삭제 안내 초안 구조는 준비됐지만 앱에서 전체 문서를 여는 연결은 아직 확정되지 않았습니다. 현재는 핵심 요약과 삭제 경로만 먼저 제공합니다.',
+      '계정 삭제 안내 링크를 지금 열 수 없습니다. 잠시 후 다시 시도해 주세요.',
   },
 };
 

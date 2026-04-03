@@ -517,6 +517,27 @@ export const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
   },
+  reportScrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingVertical: 20,
+  },
+  reportSheetTouchGuard: {
+    width: '100%',
+  },
+  reportEyebrowWrap: {
+    alignSelf: 'flex-start',
+    minHeight: 28,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reportEyebrow: {
+    ...typography.role.caption,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
   reportTitle: {
     ...typography.role.titleSm,
     fontWeight: '700',

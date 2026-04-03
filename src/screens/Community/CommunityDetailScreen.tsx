@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
+  Keyboard,
   Modal,
   Platform,
   Pressable,
@@ -12,6 +13,7 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { KeyboardAvoidingView as KeyboardControllerAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -20,6 +22,7 @@ import { useTheme } from 'styled-components/native';
 import AppText from '../../app/ui/AppText';
 import PostImageSlider from '../../components/community/PostImageSlider';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import PremiumNoticeModal from '../../components/common/PremiumNoticeModal';
 import { useCommunityAuth } from '../../hooks/useCommunityAuth';
 import { useKeyboardInset } from '../../hooks/useKeyboardInset';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -46,6 +49,7 @@ const REPLY_PREVIEW_COUNT = 2;
 type Nav = NativeStackNavigationProp<RootStackParamList, 'CommunityDetail'>;
 type Route = RootScreenRoute<'CommunityDetail'>;
 const EMPTY_COMMENT_IDS: ReadonlyArray<string> = [];
+type ReportNotice = 'submitted' | 'duplicate';
 const REPORT_REASON_OPTIONS: Array<{
   key: CommunityReportReasonCategory;
   label: string;
@@ -185,6 +189,9 @@ export default function CommunityDetailScreen() {
     React.useState<CommunityReportReasonCategory>('spam');
   const [reportReason, setReportReason] = React.useState('');
   const [reportSubmitting, setReportSubmitting] = React.useState(false);
+  const [reportNotice, setReportNotice] = React.useState<ReportNotice | null>(
+    null,
+  );
   const replyTarget = useCommunityStore(
     useCallback(
       s =>
@@ -228,6 +235,7 @@ export default function CommunityDetailScreen() {
 
   const isMyPost = !!post && !!currentUserId && post.authorId === currentUserId;
   const detailBottomInset = insets.bottom + 156;
+  const reportBottomInset = Math.max(insets.bottom, 16) + 8;
   const canShowCommentComposer =
     !!post &&
     detailStatus !== 'deleted' &&
@@ -388,6 +396,12 @@ export default function CommunityDetailScreen() {
     setReportReasonCategory('spam');
   }, []);
 
+  const closeReportModal = useCallback(() => {
+    if (reportSubmitting) return;
+    Keyboard.dismiss();
+    setReportTarget(null);
+  }, [reportSubmitting]);
+
   const handleExpandReplies = useCallback((commentId: string) => {
     setExpandedRepliesByCommentId(prev => {
       if (prev[commentId] === true) return prev;
@@ -420,13 +434,8 @@ export default function CommunityDetailScreen() {
       )
         .then(result => {
           const submittedTarget = reportTarget;
-          showToast({
-            tone: result === 'duplicate' ? 'info' : 'success',
-            message:
-              result === 'duplicate'
-                ? '이미 신고한 내용이에요.'
-                : '신고가 접수되었어요.',
-          });
+          Keyboard.dismiss();
+          setReportNotice(result === 'duplicate' ? 'duplicate' : 'submitted');
 
           fetchPostDetail(postId).catch(() => {});
           if (submittedTarget.targetType === 'comment') {
@@ -857,10 +866,11 @@ export default function CommunityDetailScreen() {
         keyExtractor={item => item}
         style={styles.contentArea}
         contentContainerStyle={{ paddingBottom: detailBottomInset }}
-        keyboardShouldPersistTaps="always"
-        keyboardDismissMode="interactive"
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         automaticallyAdjustKeyboardInsets={true}
         showsVerticalScrollIndicator={false}
+        onScrollBeginDrag={Keyboard.dismiss}
         initialNumToRender={8}
         maxToRenderPerBatch={8}
         windowSize={7}
@@ -1112,133 +1122,182 @@ export default function CommunityDetailScreen() {
         visible={reportTarget !== null}
         transparent
         animationType="fade"
-        onRequestClose={() => {
-          if (reportSubmitting) return;
-          setReportTarget(null);
-        }}
+        onRequestClose={closeReportModal}
       >
-        <View
+        <KeyboardControllerAvoidingView
           style={[
             styles.menuBackdrop,
-            { backgroundColor: theme.colors.overlay },
+            {
+              backgroundColor: theme.colors.overlay,
+            },
           ]}
+          behavior="padding"
+          enabled
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : Math.max(insets.bottom, 8)}
         >
+          <Pressable style={styles.menuScrim} onPress={closeReportModal} />
           <Pressable
-            style={styles.menuScrim}
-            onPress={() => {
-              if (reportSubmitting) return;
-              setReportTarget(null);
-            }}
-          />
-          <View
-            style={[
-              styles.reportSheet,
-              {
-                backgroundColor: theme.colors.surfaceElevated,
-                borderColor: theme.colors.border,
-              },
-            ]}
+            style={styles.reportSheetTouchGuard}
+            onPress={Keyboard.dismiss}
           >
-            <AppText
-              preset="headline"
-              style={[styles.reportTitle, { color: theme.colors.textPrimary }]}
-            >
-              신고 사유를 선택해 주세요
-            </AppText>
-            <View style={styles.reportReasonList}>
-              {REPORT_REASON_OPTIONS.map(option => {
-                const active = option.key === reportReasonCategory;
-                return (
-                  <TouchableOpacity
-                    key={option.key}
-                    activeOpacity={0.88}
-                    style={[
-                      styles.reportReasonButton,
-                      active
-                        ? {
-                            backgroundColor: petTheme.tint,
-                            borderColor: petTheme.primary,
-                          }
-                        : {
-                            backgroundColor: theme.colors.surface,
-                            borderColor: theme.colors.border,
-                          },
-                    ]}
-                    onPress={() => setReportReasonCategory(option.key)}
-                  >
-                    <AppText
-                      preset="caption"
-                      style={[
-                        styles.reportReasonText,
-                        {
-                          color: active
-                            ? petTheme.deep
-                            : theme.colors.textPrimary,
-                        },
-                      ]}
-                    >
-                      {option.label}
-                    </AppText>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-            <TextInput
-              value={reportReason}
-              onChangeText={setReportReason}
-              placeholder="간단한 신고 사유를 적어 주세요"
-              placeholderTextColor={theme.colors.textMuted}
+            <View
               style={[
-                styles.reportInput,
+                styles.reportSheet,
                 {
-                  color: theme.colors.textPrimary,
-                  borderColor: theme.colors.border,
-                  backgroundColor: theme.colors.surface,
+                  backgroundColor: theme.colors.surfaceElevated,
+                  borderColor: theme.colors.brand,
+                  paddingBottom: reportBottomInset,
                 },
               ]}
-              multiline
-              maxLength={300}
-            />
-            <View style={styles.reportActions}>
-              <TouchableOpacity
-                activeOpacity={0.88}
+            >
+              <View
                 style={[
-                  styles.reportActionButton,
+                  styles.reportEyebrowWrap,
+                  { backgroundColor: '#EEF1FF' },
+                ]}
+              >
+                <AppText
+                  preset="caption"
+                  style={[styles.reportEyebrow, { color: theme.colors.brand }]}
+                >
+                  COMMUNITY CARE
+                </AppText>
+              </View>
+              <AppText
+                preset="headline"
+                style={[
+                  styles.reportTitle,
+                  { color: theme.colors.textPrimary },
+                ]}
+              >
+                신고 사유를 선택해 주세요
+              </AppText>
+              <View style={styles.reportReasonList}>
+                {REPORT_REASON_OPTIONS.map(option => {
+                  const active = option.key === reportReasonCategory;
+                  return (
+                    <TouchableOpacity
+                      key={option.key}
+                      activeOpacity={0.88}
+                      style={[
+                        styles.reportReasonButton,
+                        active
+                          ? {
+                              backgroundColor: '#EEF1FF',
+                              borderColor: theme.colors.brand,
+                            }
+                          : {
+                              backgroundColor: theme.colors.surface,
+                              borderColor: theme.colors.border,
+                            },
+                      ]}
+                      onPress={() => setReportReasonCategory(option.key)}
+                    >
+                      <AppText
+                        preset="caption"
+                        style={[
+                          styles.reportReasonText,
+                          {
+                            color: active
+                              ? theme.colors.brand
+                              : theme.colors.textPrimary,
+                          },
+                        ]}
+                      >
+                        {option.label}
+                      </AppText>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              <TextInput
+                value={reportReason}
+                onChangeText={setReportReason}
+                placeholder="간단한 신고 사유를 적어 주세요"
+                placeholderTextColor={theme.colors.textMuted}
+                style={[
+                  styles.reportInput,
                   {
-                    backgroundColor: theme.colors.surface,
+                    color: theme.colors.textPrimary,
                     borderColor: theme.colors.border,
+                    backgroundColor: theme.colors.surface,
                   },
                 ]}
-                onPress={() => setReportTarget(null)}
-                disabled={reportSubmitting}
-              >
-                <AppText
-                  preset="body"
-                  style={{ color: theme.colors.textPrimary, fontWeight: '700' }}
+                multiline
+                maxLength={300}
+                textAlignVertical="top"
+              />
+              <View style={styles.reportActions}>
+                <TouchableOpacity
+                  activeOpacity={0.88}
+                  style={[
+                    styles.reportActionButton,
+                    {
+                      backgroundColor: theme.colors.surface,
+                      borderColor: theme.colors.border,
+                    },
+                  ]}
+                  onPress={closeReportModal}
+                  disabled={reportSubmitting}
                 >
-                  취소
-                </AppText>
-              </TouchableOpacity>
-              <TouchableOpacity
-                activeOpacity={0.88}
-                style={[
-                  styles.reportActionButton,
-                  { backgroundColor: petTheme.primary },
-                ]}
-                onPress={handleSubmitReport}
-                disabled={reportSubmitting}
-              >
-                <AppText
-                  preset="body"
-                  style={{ color: petTheme.onPrimary, fontWeight: '700' }}
+                  <AppText
+                    preset="body"
+                    style={{
+                      color: theme.colors.textPrimary,
+                      fontWeight: '700',
+                    }}
+                  >
+                    취소
+                  </AppText>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  activeOpacity={0.88}
+                  style={[
+                    styles.reportActionButton,
+                    {
+                      backgroundColor: theme.colors.brand,
+                      borderColor: theme.colors.brand,
+                    },
+                  ]}
+                  onPress={handleSubmitReport}
+                  disabled={reportSubmitting}
                 >
-                  {reportSubmitting ? '접수 중...' : '신고 접수'}
-                </AppText>
-              </TouchableOpacity>
+                  <AppText
+                    preset="body"
+                    style={{ color: '#FFFFFF', fontWeight: '700' }}
+                  >
+                    {reportSubmitting ? '접수 중...' : '신고하기'}
+                  </AppText>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        </View>
+          </Pressable>
+        </KeyboardControllerAvoidingView>
       </Modal>
+
+      <PremiumNoticeModal
+        visible={reportNotice !== null}
+        eyebrow={reportNotice === 'duplicate' ? 'REPORT RECEIVED' : 'REPORT SUBMITTED'}
+        iconName="shield"
+        titleLines={
+          reportNotice === 'duplicate'
+            ? ['이미 접수된 신고입니다.']
+            : ['신고가 안전하게', '접수되었습니다.']
+        }
+        bodyLines={
+          reportNotice === 'duplicate'
+            ? [
+                '같은 내용은 이미 접수되어',
+                '운영 기준에 따라 검토를 이어갈게요.',
+              ]
+            : [
+                '운영 기준에 따라 내용을 확인한 뒤',
+                '필요하면 자동 숨김이 먼저 적용될 수 있어요.',
+              ]
+        }
+        confirmLabel="확인"
+        onClose={() => setReportNotice(null)}
+      />
     </View>
   );
 }

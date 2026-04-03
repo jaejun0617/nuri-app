@@ -8,29 +8,21 @@
 
 import { supabase } from './client';
 import type { AppRole, Profile } from '../../store/authStore';
-
-type NicknameAvailabilityCode =
-  | 'ok'
-  | 'not_authenticated'
-  | 'empty'
-  | 'too_short'
-  | 'too_long'
-  | 'invalid_chars'
-  | 'blocked'
-  | 'taken';
+import {
+  getNicknameErrorMessageByCode,
+  getNicknameLengthRangeMessage,
+  normalizeNicknameInput,
+  type NicknamePolicyCode,
+} from '../profileNicknamePolicy';
 
 type NicknameAvailabilityRow = {
   available: boolean;
-  code: NicknameAvailabilityCode;
+  code: NicknamePolicyCode;
   normalized: string;
 };
 
 function normalizeRole(value: unknown): AppRole {
   return value === 'admin' || value === 'super_admin' ? value : 'user';
-}
-
-function normalizeNickname(value: string): string {
-  return value.trim();
 }
 
 function mapNicknameError(error: unknown): Error {
@@ -40,17 +32,38 @@ function mapNicknameError(error: unknown): Error {
       message?: string;
       details?: string;
       hint?: string;
+      constraint?: string;
     };
     const code = String(anyErr.code ?? '');
     const msg = String(anyErr.message ?? '');
     const details = String(anyErr.details ?? '');
-    const joined = `${code} ${msg} ${details}`.toLowerCase();
+    const constraint = String(anyErr.constraint ?? '');
+    const joined = `${code} ${constraint} ${msg} ${details}`.toLowerCase();
+
+    if (code === '23514' || joined.includes('profiles_nickname_length_check')) {
+      return new Error(getNicknameLengthRangeMessage());
+    }
+    if (joined.includes('nickname_too_short')) {
+      return new Error(getNicknameErrorMessageByCode('too_short') ?? getNicknameLengthRangeMessage());
+    }
+    if (joined.includes('nickname_too_long')) {
+      return new Error(getNicknameErrorMessageByCode('too_long') ?? getNicknameLengthRangeMessage());
+    }
+    if (joined.includes('nickname_invalid_chars')) {
+      return new Error(
+        getNicknameErrorMessageByCode('invalid_chars') ?? '닉네임을 다시 확인해 주세요.',
+      );
+    }
+    if (joined.includes('nickname_blocked') || joined.includes('blocked') || joined.includes('금칙')) {
+      return new Error(
+        getNicknameErrorMessageByCode('blocked') ?? '사용할 수 없는 닉네임입니다.',
+      );
+    }
 
     if (code === '23505' || joined.includes('uq_profiles_nickname')) {
-      return new Error('이미 사용중인 닉네임 입니다.');
-    }
-    if (joined.includes('blocked') || joined.includes('금칙')) {
-      return new Error('사용할 수 없는 닉네임입니다.');
+      return new Error(
+        getNicknameErrorMessageByCode('taken') ?? '이미 사용중인 닉네임 입니다.',
+      );
     }
     return error;
   }
@@ -96,7 +109,7 @@ export async function saveMyNickname(nickname: string): Promise<void> {
   const userId = userRes.data.user?.id ?? null;
   if (!userId) throw new Error('로그인 정보가 없습니다.');
 
-  const trimmed = normalizeNickname(nickname);
+  const trimmed = normalizeNicknameInput(nickname);
   if (!trimmed) throw new Error('닉네임이 비어있습니다.');
 
   const { error } = await supabase
@@ -115,7 +128,7 @@ export async function saveMyNickname(nickname: string): Promise<void> {
 export async function checkNicknameAvailability(
   nickname: string,
 ): Promise<boolean> {
-  const trimmed = normalizeNickname(nickname);
+  const trimmed = normalizeNicknameInput(nickname);
   if (!trimmed) return false;
 
   const { data, error } = await supabase.rpc('check_nickname_availability', {
@@ -132,7 +145,7 @@ export async function checkNicknameAvailability(
 export async function checkNicknameAvailabilityDetailed(
   nickname: string,
 ): Promise<NicknameAvailabilityRow> {
-  const trimmed = normalizeNickname(nickname);
+  const trimmed = normalizeNicknameInput(nickname);
   if (!trimmed) {
     return { available: false, code: 'empty', normalized: '' };
   }

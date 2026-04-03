@@ -43,6 +43,7 @@ import { openMoreDrawer, showToast } from '../../store/uiStore';
 import type {
   CommunityPostCategory,
 } from '../../types/community';
+import { openCommunityPolicyDocument } from './communityPolicyLink';
 import { styles } from './CommunityListScreen.styles';
 import CommunityPostListItem from './components/CommunityPostListItem';
 
@@ -67,6 +68,11 @@ const FLOATING_BUTTON_SIZE = 48;
 const FLOATING_BUTTON_GAP = 14;
 const TOP_BUTTON_SHOW_SCROLL_Y = 260;
 const FLOATING_BUTTON_RAISE_STEP = 24;
+const FLOATING_BUTTON_BOTTOM_OFFSET = 100;
+const FLOATING_BUTTON_MIN_BOTTOM = 116;
+const TOP_BUTTON_MIN_BOTTOM = 12;
+const LIST_BOTTOM_PADDING_OFFSET = 16;
+const LIST_MIN_BOTTOM_PADDING = 148;
 
 const keyExtractor = (item: string) => item;
 
@@ -310,6 +316,16 @@ export default function CommunityListScreen() {
     fetchPosts(activeCategory).catch(() => {});
   }, [activeCategory, fetchPosts]);
 
+  const handlePressCommunityPolicy = useCallback(async () => {
+    const result = await openCommunityPolicyDocument();
+    if (result.ok) return;
+
+    showToast({
+      tone: 'error',
+      message: result.message,
+    });
+  }, []);
+
   const handlePressPost = useCallback(
     (postId: string) => {
       navigation.navigate('CommunityDetail', { postId });
@@ -415,6 +431,41 @@ export default function CommunityListScreen() {
   const listHeader = useMemo(
     () => (
       <View style={styles.listIntroHeader}>
+        <TouchableOpacity
+          activeOpacity={0.92}
+          style={[
+            styles.noticeBanner,
+            {
+              backgroundColor: `${petTheme.primary}14`,
+              borderColor: `${petTheme.primary}26`,
+            },
+          ]}
+          onPress={handlePressCommunityPolicy}
+        >
+          <View style={styles.noticeBannerTextBlock}>
+            <AppText
+              preset="caption"
+              style={[
+                styles.noticeBannerLabel,
+                { color: petTheme.deep },
+              ]}
+            >
+              안전하고 따뜻한 반려생활 커뮤니티를 위한 NURI 이용 가이드
+            </AppText>
+          </View>
+          <View style={styles.noticeBannerAction}>
+            <AppText
+              preset="caption"
+              style={[
+                styles.noticeBannerActionText,
+                { color: petTheme.primary },
+              ]}
+            >
+              운영정책 보기
+            </AppText>
+            <Feather name="chevron-right" size={15} color={petTheme.primary} />
+          </View>
+        </TouchableOpacity>
         <View style={styles.sectionHeader}>
           <View style={styles.sectionHeaderTextBlock}>
             <View style={styles.sectionHeaderTitleRow}>
@@ -442,6 +493,9 @@ export default function CommunityListScreen() {
       </View>
     ),
     [
+      handlePressCommunityPolicy,
+      petTheme.deep,
+      petTheme.primary,
       postIds.length,
       theme.colors.textMuted,
       theme.colors.textPrimary,
@@ -512,8 +566,8 @@ export default function CommunityListScreen() {
   const createFabBottom = useMemo(
     () =>
       Math.max(
-        insets.bottom + 126 + FLOATING_BUTTON_RAISE_STEP,
-        142 + FLOATING_BUTTON_RAISE_STEP,
+        insets.bottom + FLOATING_BUTTON_BOTTOM_OFFSET + FLOATING_BUTTON_RAISE_STEP,
+        FLOATING_BUTTON_MIN_BOTTOM + FLOATING_BUTTON_RAISE_STEP,
       ),
     [insets.bottom],
   );
@@ -521,15 +575,15 @@ export default function CommunityListScreen() {
     () =>
       Math.max(
         createFabBottom - FLOATING_BUTTON_SIZE - FLOATING_BUTTON_GAP,
-        insets.bottom + 34,
+        insets.bottom + TOP_BUTTON_MIN_BOTTOM,
       ),
     [createFabBottom, insets.bottom],
   );
   const listBottomInset = useMemo(
     () =>
       Math.max(
-        createFabBottom + FLOATING_BUTTON_SIZE + 28,
-        insets.bottom + 176,
+        createFabBottom + FLOATING_BUTTON_SIZE + LIST_BOTTOM_PADDING_OFFSET,
+        insets.bottom + LIST_MIN_BOTTOM_PADDING,
       ),
     [createFabBottom, insets.bottom],
   );

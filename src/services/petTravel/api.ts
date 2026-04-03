@@ -69,6 +69,12 @@ type FetchDetailInput = {
   item: PetTravelItem;
 };
 
+type TourApiPagedFetchInput = {
+  endpoint: TourApiEndpoint;
+  params: Record<string, string | number | null | undefined>;
+  pageSize: number;
+};
+
 const TOUR_API_PROVIDER_LABEL = '한국관광공사 반려동물 동반여행 서비스';
 const TOUR_API_BASE_URL = 'https://apis.data.go.kr/B551011';
 const TOUR_API_SERVICE_NAME = 'KorPetTourService2';
@@ -403,6 +409,34 @@ async function fetchTourApiJson(
       ),
     );
   }
+}
+
+async function fetchAllTourApiItems(
+  input: TourApiPagedFetchInput,
+): Promise<JsonRecord[]> {
+  const pageSize = Math.max(1, Math.min(200, Math.trunc(input.pageSize)));
+  const collected: JsonRecord[] = [];
+  let page = 1;
+  let totalCount = Number.POSITIVE_INFINITY;
+
+  while ((page - 1) * pageSize < totalCount) {
+    const json = await fetchTourApiJson(input.endpoint, {
+      ...input.params,
+      pageNo: page,
+      numOfRows: pageSize,
+    });
+    const parsed = readTourApiItems(json);
+    totalCount = parsed.totalCount;
+
+    if (!parsed.items.length) {
+      break;
+    }
+
+    collected.push(...parsed.items);
+    page += 1;
+  }
+
+  return collected;
 }
 
 function inferCategoryId(
@@ -1355,34 +1389,37 @@ async function fetchRegionIntentItems(params: {
   keyword: string;
   categoryId: PetTravelCategory['id'];
   region: PetTravelRegion;
-  size: number;
 }): Promise<PetTravelItem[]> {
-  const { categoryId, keyword, region, size } = params;
-  const areaJson = await fetchTourApiJson(TOUR_API_AREA_ENDPOINT, {
-    pageNo: 1,
-    numOfRows: Math.max(100, Math.min(200, size * 4)),
-    areaCode: region.areaCode,
-    sigunguCode: region.sigunguCode,
-    contentTypeId:
-      categoryId === 'all'
-        ? '12'
-        : getPetTravelCategoryById(categoryId)?.contentTypeId ?? null,
-  });
-
-  const areaItems = readTourApiItems(areaJson).items
+  const { categoryId, keyword, region } = params;
+  const areaItems = (
+    await fetchAllTourApiItems({
+      endpoint: TOUR_API_AREA_ENDPOINT,
+      pageSize: 200,
+      params: {
+        areaCode: region.areaCode,
+        sigunguCode: region.sigunguCode,
+        contentTypeId:
+          categoryId === 'all'
+            ? '12'
+            : getPetTravelCategoryById(categoryId)?.contentTypeId ?? null,
+      },
+    })
+  )
     .map(item => mapListItem(item, region.id))
     .filter((item): item is PetTravelItem => Boolean(item));
 
   let mergedItems = areaItems;
 
   if (region.scope === 'local') {
-    const keywordJson = await fetchTourApiJson(TOUR_API_SEARCH_ENDPOINT, {
-      pageNo: 1,
-      numOfRows: Math.max(60, Math.min(120, size * 3)),
-      keyword,
-    });
-
-    const keywordItems = readTourApiItems(keywordJson).items
+    const keywordItems = (
+      await fetchAllTourApiItems({
+        endpoint: TOUR_API_SEARCH_ENDPOINT,
+        pageSize: 100,
+        params: {
+          keyword,
+        },
+      })
+    )
       .map(item => mapListItem(item, region.id))
       .filter((item): item is PetTravelItem => Boolean(item));
 
@@ -1396,6 +1433,18 @@ async function fetchRegionIntentItems(params: {
       categoryId === 'all' ? isRegionIntentAllCandidate(item) : true,
     )
     .filter(isConfirmedPetFriendly);
+}
+
+function slicePetTravelItemsForPage(
+  items: ReadonlyArray<PetTravelItem>,
+  page: number,
+  size: number,
+): PetTravelItem[] {
+  const normalizedPage = Math.max(1, Math.trunc(page));
+  const normalizedSize = Math.max(1, Math.trunc(size));
+  const offset = (normalizedPage - 1) * normalizedSize;
+
+  return items.slice(offset, offset + normalizedSize);
 }
 
 function mapDetail(
@@ -1467,6 +1516,8 @@ export async function fetchPetTravelList(
 ): Promise<PetTravelListResult> {
   const trimmedKeyword = input.searchKeyword.trim();
   const category = getPetTravelCategoryById(input.categoryId);
+  const requestedPage = Math.max(1, Math.trunc(input.page ?? 1));
+  const requestedSize = Math.max(1, Math.trunc(input.size ?? 40));
   const resolvedRegionIntent = trimmedKeyword
     ? resolvePetTravelRegionIntent(trimmedKeyword)
     : null;
@@ -1484,7 +1535,6 @@ export async function fetchPetTravelList(
       keyword: trimmedKeyword,
       categoryId: input.categoryId,
       region: resolvedRegionIntent.region,
-      size: input.size ?? 30,
     });
     const rankedRegionItems = filterAndRankSearchResults(
       regionItems,
@@ -1497,19 +1547,24 @@ export async function fetchPetTravelList(
       hydratedRegionItems,
       getPetTravelQueryIntent(trimmedKeyword, resolvedRegionIntent),
     );
+    const pagedRegionItems = slicePetTravelItemsForPage(
+      exposedRegionItems,
+      requestedPage,
+      requestedSize,
+    );
 
     return {
-      items: exposedRegionItems,
-      totalCount: exposedRegionItems.length,
-      apiTotalCount: rankedRegionItems.length,
+      items: pagedRegionItems,
+      totalCount: pagedRegionItems.length,
+      apiTotalCount: exposedRegionItems.length,
     };
   }
 
   const commonParams = {
-    pageNo: Math.max(1, input.page ?? 1),
+    pageNo: requestedPage,
     numOfRows: trimmedKeyword
-      ? Math.min(100, Math.max(40, input.size ?? 60))
-      : Math.min(60, Math.max(30, input.size ?? 40)),
+      ? Math.min(100, Math.max(40, requestedSize))
+      : Math.min(60, Math.max(30, requestedSize)),
   };
   const json = trimmedKeyword
     ? await fetchTourApiJson(TOUR_API_SEARCH_ENDPOINT, {

@@ -84,7 +84,7 @@ export const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 28,
     paddingTop: 36,
-    paddingBottom: 28,
+    backgroundColor: '#FFFFFF',
   },
   hero: {
     alignItems: 'center',

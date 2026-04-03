@@ -8,7 +8,7 @@ import { styles } from './LocationDiscovery.styles';
 type Props = {
   value: string;
   placeholder: string;
-  helperText: string;
+  helperText?: string | null;
   loadingText?: string | null;
   accentColor?: string;
   loadingColor?: string;
@@ -59,9 +59,13 @@ export default function LocationDiscoverySearchBar({
         </Pressable>
       </View>
       <View style={styles.searchMetaRow}>
-        <AppText preset="caption" style={styles.searchHelperText}>
-          {helperText}
-        </AppText>
+        {helperText ? (
+          <AppText preset="caption" style={styles.searchHelperText}>
+            {helperText}
+          </AppText>
+        ) : (
+          <View />
+        )}
         {loadingText ? (
           <AppText
             preset="caption"

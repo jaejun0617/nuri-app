@@ -7,11 +7,14 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
 
 import AppText from '../../app/ui/AppText';
+import PetTravelMapPanel, {
+  buildPetTravelMapViewportFromItems,
+} from '../../components/maps/PetTravelMapPanel';
 import Screen from '../../components/layout/Screen';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import { usePetTravelUserLayer } from '../../hooks/usePetTravelUserLayer';
@@ -31,6 +34,12 @@ import type {
 } from '../../services/petTravel/types';
 import type { PublicTrustTone } from '../../services/trust/publicTrust';
 import { getPetTravelOwnReportLabel } from '../../services/trust/userLayerLabels';
+import {
+  consumeMapViewportRestore,
+  saveMapViewport,
+  useMapViewportStore,
+  type MapViewportSnapshot,
+} from '../../store/mapViewportStore';
 import { usePetStore } from '../../store/petStore';
 import { openMoreDrawer } from '../../store/uiStore';
 import { styles } from './PetTravel.styles';
@@ -133,9 +142,15 @@ export default function PetTravelListScreen() {
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [mapViewport, setMapViewport] = useState<MapViewportSnapshot | null>(null);
+  const [isRestoringViewport, setIsRestoringViewport] = useState(false);
   const recentSearches = useRecentPersonalSearches('pet-travel');
   const travelUserLayer = usePetTravelUserLayer();
   const lastLoggedSearchRef = useRef<string | null>(null);
+  const lastViewportSeedSignatureRef = useRef<string | null>(null);
+  const persistedViewport = useMapViewportStore(
+    s => s.byDomain['pet-travel'] ?? null,
+  );
 
   const selectedCategory = useMemo(
     () => categories.find(category => category.id === selectedCategoryId) ?? null,
@@ -169,10 +184,22 @@ export default function PetTravelListScreen() {
   });
 
   const onPressItem = useCallback(
-    (item: PetTravelItem) => {
+    (
+      item: PetTravelItem,
+      viewportOverride?: Omit<MapViewportSnapshot, 'updatedAt'> | null,
+    ) => {
+      const targetViewport = viewportOverride ?? mapViewport;
+      if (targetViewport) {
+        saveMapViewport('pet-travel', {
+          centerLatitude: targetViewport.centerLatitude,
+          centerLongitude: targetViewport.centerLongitude,
+          zoomLevel: targetViewport.zoomLevel,
+          selectedItemId: item.id,
+        });
+      }
       navigation.navigate('PetTravelDetail', { item });
     },
-    [navigation],
+    [mapViewport, navigation],
   );
 
   const loadList = useCallback(async () => {
@@ -242,6 +269,59 @@ export default function PetTravelListScreen() {
   useEffect(() => {
     loadList().catch(() => {});
   }, [loadList]);
+
+  useEffect(() => {
+    if (mapViewport || !persistedViewport) {
+      return;
+    }
+
+    setMapViewport(persistedViewport);
+  }, [mapViewport, persistedViewport]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const restoredViewport = consumeMapViewportRestore('pet-travel');
+      if (!restoredViewport) {
+        return undefined;
+      }
+
+      setIsRestoringViewport(true);
+      setMapViewport(restoredViewport);
+      const timer = setTimeout(() => {
+        setIsRestoringViewport(false);
+      }, 320);
+
+      return () => {
+        clearTimeout(timer);
+      };
+    }, []),
+  );
+
+  useEffect(() => {
+    if (!items.length) {
+      return;
+    }
+
+    const signature = `${appliedQuery}:${selectedCategoryId}:${items
+      .map(item => item.id)
+      .join(',')}`;
+    if (lastViewportSeedSignatureRef.current === signature) {
+      return;
+    }
+
+    lastViewportSeedSignatureRef.current = signature;
+    const seededViewport = buildPetTravelMapViewportFromItems(items);
+    if (!seededViewport) {
+      return;
+    }
+
+    const nextViewport: MapViewportSnapshot = {
+      ...seededViewport,
+      updatedAt: new Date().toISOString(),
+    };
+    setMapViewport(nextViewport);
+    saveMapViewport('pet-travel', seededViewport);
+  }, [appliedQuery, items, selectedCategoryId]);
 
   const submitSearch = useCallback(() => {
     const nextQuery = queryInput.trim();
@@ -613,6 +693,35 @@ export default function PetTravelListScreen() {
                   {publicLabelCounts.candidate}곳
                 </AppText>
               </View>
+
+              <PetTravelMapPanel
+                items={items}
+                viewport={mapViewport}
+                selectedItemId={mapViewport?.selectedItemId ?? null}
+                restoring={isRestoringViewport}
+                onViewportIdle={(nextViewport, reason) => {
+                  const nextSnapshot: MapViewportSnapshot = {
+                    ...nextViewport,
+                    updatedAt: new Date().toISOString(),
+                  };
+                  setMapViewport(nextSnapshot);
+                  saveMapViewport('pet-travel', nextViewport);
+                  if (__DEV__) {
+                    console.info('[PetTravelMap] viewport idle', {
+                      reason,
+                      nextViewport,
+                    });
+                  }
+                }}
+                onSelectItem={(item, viewportOverride) => {
+                  onPressItem(item, viewportOverride);
+                }}
+                onMapReady={() => {
+                  if (__DEV__) {
+                    console.info('[PetTravelMap] native map ready');
+                  }
+                }}
+              />
 
               {errorMessage ? (
                 <View style={styles.errorCard}>

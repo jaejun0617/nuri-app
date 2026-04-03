@@ -9,6 +9,14 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+  },
   topRightBadge: {
     position: 'absolute',
     top: 54,
@@ -106,7 +114,7 @@ export const styles = StyleSheet.create({
   },
   footer: {
     paddingHorizontal: 26,
-    paddingBottom: 34,
+    paddingTop: 24,
   },
   primaryButton: {
     minHeight: 56,

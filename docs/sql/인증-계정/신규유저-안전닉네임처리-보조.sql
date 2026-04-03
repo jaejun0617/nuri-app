@@ -52,8 +52,8 @@ begin
     base := base || '1';
   end if;
 
-  -- 최대 8자 제한
-  base := left(base, 8);
+  -- 최대 10자 제한
+  base := left(base, 10);
 
   -- 우선 base 그대로 시도, 충돌 시 짧은 suffix를 붙여 재시도
   candidate := base;
@@ -67,12 +67,12 @@ begin
     exception
       when unique_violation then
         -- nickname unique 충돌 시 2자리 suffix
-        candidate := left(base, 6) || lpad((i % 100)::text, 2, '0');
+        candidate := left(base, 8) || lpad((i % 100)::text, 2, '0');
     end;
   end loop;
 
-  -- 최후 fallback (uuid 기반, 길이 8)
-  candidate := 'u' || substr(replace(new.id::text, '-', ''), 1, 7);
+  -- 최후 fallback (uuid 기반, 길이 10)
+  candidate := 'u' || substr(replace(new.id::text, '-', ''), 1, 9);
   insert into public.profiles (user_id, email, nickname, avatar_url)
   values (new.id, raw_email, candidate::citext, new.raw_user_meta_data->>'avatar_url')
   on conflict (user_id) do nothing;

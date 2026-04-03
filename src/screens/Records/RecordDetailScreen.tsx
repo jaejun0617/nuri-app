@@ -24,7 +24,6 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from 'styled-components/native';
 
-import AppNavigationToolbar from '../../components/navigation/AppNavigationToolbar';
 import AppText from '../../app/ui/AppText';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
@@ -587,7 +586,6 @@ export default function RecordDetailScreen() {
           </AppText>
         </View>
 
-        <AppNavigationToolbar activeKey="timeline" />
       </View>
     );
   }
@@ -620,7 +618,6 @@ export default function RecordDetailScreen() {
             </TouchableOpacity>
           </View>
 
-          <AppNavigationToolbar activeKey="timeline" />
         </View>
       );
     }
@@ -642,7 +639,6 @@ export default function RecordDetailScreen() {
           </AppText>
         </View>
 
-        <AppNavigationToolbar activeKey="timeline" />
       </View>
     );
   }
@@ -672,8 +668,6 @@ export default function RecordDetailScreen() {
       >
         {renderFeedCard(record)}
       </ScrollView>
-
-      <AppNavigationToolbar activeKey="timeline" />
 
       <Modal
         visible={actionMenuVisible}

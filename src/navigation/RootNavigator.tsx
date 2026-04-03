@@ -47,8 +47,6 @@ import GuideAdminListScreen from '../screens/Guides/GuideAdminListScreen';
 import GuideAdminEditorScreen from '../screens/Guides/GuideAdminEditorScreen';
 import NearbyWalkListScreen from '../screens/LocationDiscovery/NearbyWalkListScreen';
 import NearbyWalkDetailScreen from '../screens/LocationDiscovery/NearbyWalkDetailScreen';
-import PetFriendlyPlaceListScreen from '../screens/LocationDiscovery/PetFriendlyPlaceListScreen';
-import PetFriendlyPlaceDetailScreen from '../screens/LocationDiscovery/PetFriendlyPlaceDetailScreen';
 import PetTravelListScreen from '../screens/PetTravel/PetTravelListScreen';
 import PetTravelDetailScreen from '../screens/PetTravel/PetTravelDetailScreen';
 import CommunityListScreen from '../screens/Community/CommunityListScreen';
@@ -150,11 +148,6 @@ export type RootStackParamList = {
   };
   WalkSpotList: { entrySource?: ScreenEntrySource } | undefined;
   WalkSpotDetail: {
-    item: LocationDiscoveryItem;
-    resultItems?: LocationDiscoveryItem[];
-  };
-  PetFriendlyPlaceList: { entrySource?: ScreenEntrySource } | undefined;
-  PetFriendlyPlaceDetail: {
     item: LocationDiscoveryItem;
     resultItems?: LocationDiscoveryItem[];
   };
@@ -339,16 +332,6 @@ export default function RootNavigator() {
       <Stack.Screen
         name="WalkSpotDetail"
         component={NearbyWalkDetailScreen}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="PetFriendlyPlaceList"
-        component={PetFriendlyPlaceListScreen}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="PetFriendlyPlaceDetail"
-        component={PetFriendlyPlaceDetailScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

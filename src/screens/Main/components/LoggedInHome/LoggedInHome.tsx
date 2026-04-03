@@ -119,6 +119,8 @@ type Nav = CompositeNavigationProp<
   HomeTabNav,
   NativeStackNavigationProp<RootStackParamList>
 >;
+
+const HOME_SCROLL_OFFSET_BY_KEY = new Map<string, number>();
 type TimelineMainCategory = NonNullable<
   TimelineStackParamList['TimelineMain']
 >['mainCategory'];
@@ -2004,6 +2006,9 @@ export default function LoggedInHome() {
   // ---------------------------------------------------------
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
+  const isScreenFocused = useIsFocused();
+  const homeScrollRef = useRef<ScrollView | null>(null);
+  const shouldRestoreHomeScrollRef = useRef(true);
 
   // ---------------------------------------------------------
   // 1) auth
@@ -2031,6 +2036,14 @@ export default function LoggedInHome() {
   const hasPets = pets.length > 0;
 
   const activePetId = selectedPet?.id ?? null;
+  const homeScrollStorageKey = useMemo(
+    () => activePetId ?? 'logged-in-home-default',
+    [activePetId],
+  );
+  const initialHomeScrollOffset = useMemo(
+    () => HOME_SCROLL_OFFSET_BY_KEY.get(homeScrollStorageKey) ?? 0,
+    [homeScrollStorageKey],
+  );
 
   // ---------------------------------------------------------
   // 3.5) pet switch transition (fade + lift)
@@ -2315,6 +2328,41 @@ export default function LoggedInHome() {
     [navigation, activePetId],
   );
 
+  const handleHomeScroll = useCallback(
+    (event: {
+      nativeEvent: {
+        contentOffset: { y: number };
+      };
+    }) => {
+      HOME_SCROLL_OFFSET_BY_KEY.set(
+        homeScrollStorageKey,
+        Math.max(0, event.nativeEvent.contentOffset.y),
+      );
+    },
+    [homeScrollStorageKey],
+  );
+
+  const restoreHomeScrollPosition = useCallback(() => {
+    if (!shouldRestoreHomeScrollRef.current) return;
+    const nextOffset = HOME_SCROLL_OFFSET_BY_KEY.get(homeScrollStorageKey) ?? 0;
+    homeScrollRef.current?.scrollTo({ x: 0, y: nextOffset, animated: false });
+    shouldRestoreHomeScrollRef.current = false;
+  }, [homeScrollStorageKey]);
+
+  useEffect(() => {
+    shouldRestoreHomeScrollRef.current = true;
+  }, [homeScrollStorageKey]);
+
+  useEffect(() => {
+    if (!isScreenFocused) return;
+
+    const frame = requestAnimationFrame(() => {
+      restoreHomeScrollPosition();
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [isScreenFocused, restoreHomeScrollPosition]);
+
   const onPressPetChip = useCallback(
     (petId: string) => {
       if (switching) return;
@@ -2539,11 +2587,16 @@ export default function LoggedInHome() {
   return (
     <Screen style={styles.screen}>
       <ScrollView
+        ref={homeScrollRef}
         style={styles.scroll}
         contentContainerStyle={[
           styles.scrollContent,
           { paddingBottom: Math.max(132, insets.bottom + 108) },
         ]}
+        contentOffset={{ x: 0, y: initialHomeScrollOffset }}
+        onContentSizeChange={restoreHomeScrollPosition}
+        onScroll={handleHomeScroll}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
         <HomeHeaderSection

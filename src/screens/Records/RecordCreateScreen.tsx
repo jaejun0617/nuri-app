@@ -201,6 +201,7 @@ export default function RecordCreateScreen() {
     if (keyboardInset > 0) return Math.max(insets.bottom, 18) + 12;
     return Math.max(insets.bottom, 18);
   }, [insets.bottom, keyboardInset]);
+  const headerTopInset = useMemo(() => Math.max(insets.top, 12), [insets.top]);
   const resetForm = useCallback(() => {
     setTitle('');
     setContent('');
@@ -648,7 +649,7 @@ export default function RecordCreateScreen() {
 
   return (
     <View style={styles.screen}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
         <View style={styles.headerSideSlot}>
           <TouchableOpacity
             activeOpacity={0.88}

@@ -12,7 +12,7 @@
 // - 탭 목록이나 param 타입을 바꾸면 하단 툴바, 기록 작성 복귀 흐름, More 드로어 동작이 함께 영향을 받는다.
 // - MoreTab은 실제 화면 이동이 아니라 오버레이를 여는 동작이므로 일반 탭처럼 취급하면 안 된다.
 
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -57,19 +57,6 @@ function MoreNull() {
 
 function CustomTabBar(props: BottomTabBarProps) {
   const { state } = props;
-  const shouldHideTabBar = useMemo(() => {
-    const current = state.routes[state.index];
-    if (!current) return false;
-
-    if (current.name === 'TimelineTab') {
-      return true;
-    }
-
-    return false;
-  }, [state]);
-
-  if (shouldHideTabBar) return null;
-
   const currentRouteName = state.routes[state.index]?.name;
   const activeKey =
     currentRouteName === 'TimelineTab'

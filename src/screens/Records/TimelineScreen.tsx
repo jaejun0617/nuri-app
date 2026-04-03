@@ -43,7 +43,6 @@ import { useTheme } from 'styled-components/native';
 import { MemoryCard } from '../../components/MemoryCard/MemoryCard';
 import { preloadOptimizedImages } from '../../components/images/OptimizedImage';
 import AppText from '../../app/ui/AppText';
-import AppNavigationToolbar from '../../components/navigation/AppNavigationToolbar';
 import HeaderIconActionButton from '../../components/navigation/HeaderIconActionButton';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { AppTabParamList } from '../../navigation/AppTabsNavigator';
@@ -970,7 +969,6 @@ export default function TimelineScreen() {
           </View>
         </View>
 
-        <AppNavigationToolbar activeKey="timeline" />
       </View>
     );
   }

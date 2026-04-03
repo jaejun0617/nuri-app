@@ -24,6 +24,30 @@ export const styles = StyleSheet.create({
   chipText: {
     fontWeight: '700',
   },
+  policyHelperBox: {
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 12,
+    gap: 10,
+  },
+  policyHelperContent: {
+    gap: 6,
+  },
+  policyHelperTitle: {
+    fontWeight: '800',
+  },
+  policyHelperBody: {
+    lineHeight: 20,
+  },
+  policyHelperAction: {
+    alignSelf: 'flex-end',
+  },
+  policyHelperActionText: {
+    fontWeight: '800',
+    textDecorationLine: 'underline',
+  },
   linkedPetPreview: {
     flex: 1,
     minHeight: 64,

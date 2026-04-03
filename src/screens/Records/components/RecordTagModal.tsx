@@ -4,7 +4,16 @@
 // - 직접 입력과 선택된 태그 제거 동선을 한 컴포넌트에서 관리
 
 import React from 'react';
-import { Modal, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  Keyboard,
+  Modal,
+  Platform,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from 'styled-components/native';
 
@@ -31,6 +40,7 @@ export default function RecordTagModal({
   onRemoveTag,
 }: Props) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
 
   return (
     <Modal
@@ -39,14 +49,29 @@ export default function RecordTagModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.modalBackdrop}>
+      <KeyboardAvoidingView
+        style={styles.modalBackdrop}
+        behavior="padding"
+        enabled
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
+      >
         <TouchableOpacity
           activeOpacity={1}
           style={styles.modalDismissZone}
-          onPress={onClose}
+          onPress={() => {
+            Keyboard.dismiss();
+            onClose();
+          }}
         />
 
-        <View style={styles.tagModalCard}>
+        <TouchableOpacity
+          activeOpacity={1}
+          style={[
+            styles.tagModalCard,
+            { paddingBottom: Math.max(insets.bottom, 18) + 6 },
+          ]}
+          onPress={Keyboard.dismiss}
+        >
           <View style={styles.tagModalHeader}>
             <AppText preset="headline" style={styles.tagModalTitle}>
               태그 추가
@@ -54,7 +79,10 @@ export default function RecordTagModal({
             <TouchableOpacity
               activeOpacity={0.85}
               style={styles.tagModalCloseBtn}
-              onPress={onClose}
+              onPress={() => {
+                Keyboard.dismiss();
+                onClose();
+              }}
             >
               <Feather
                 name="x"
@@ -103,8 +131,8 @@ export default function RecordTagModal({
               </View>
             </>
           ) : null}
-        </View>
-      </View>
+        </TouchableOpacity>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

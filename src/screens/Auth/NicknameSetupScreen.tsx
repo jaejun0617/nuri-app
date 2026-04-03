@@ -22,7 +22,11 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  KeyboardAwareScrollView,
+  type KeyboardAwareScrollViewRef,
+} from 'react-native-keyboard-controller';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
@@ -30,6 +34,12 @@ import type { RouteProp } from '@react-navigation/native';
 import { ASSETS } from '../../assets';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { getBrandedErrorMeta } from '../../services/app/errors';
+import {
+  getNicknameErrorMessageByCode,
+  NICKNAME_MAX_LENGTH,
+  validateNicknameInput,
+  type NicknamePolicyCode,
+} from '../../services/profileNicknamePolicy';
 import {
   checkNicknameAvailabilityDetailed,
   saveMyNickname,
@@ -67,55 +77,30 @@ type NicknameFooterProps = {
   onSubmit: () => void;
 };
 
-const MAX_NICKNAME_LENGTH = 8;
-const NICKNAME_REGEX = /^[A-Za-z0-9가-힣]+$/;
-
 function getNicknameValidationMessage(value: string): ValidationState {
-  const trimmed = value.trim();
-  if (!trimmed) return { tone: 'idle', message: null };
-  if (trimmed.length > MAX_NICKNAME_LENGTH) {
-    return {
-      tone: 'error',
-      message: '닉네임은 8자 이내로 입력해주세요',
-    };
+  const validation = validateNicknameInput(value);
+  if (validation.code === 'empty' || validation.code === 'ok') {
+    return { tone: 'idle', message: null };
   }
-  if (!NICKNAME_REGEX.test(trimmed)) {
-    return {
-      tone: 'error',
-      message: '특수문자는 사용할수 없습니다',
-    };
-  }
-  if (trimmed.length < 2) {
-    return {
-      tone: 'error',
-      message: '닉네임은 2자 이상 입력해주세요',
-    };
-  }
-  return { tone: 'idle', message: null };
+
+  return {
+    tone: 'error',
+    message:
+      validation.message ??
+      getNicknameErrorMessageByCode(validation.code) ??
+      '닉네임을 다시 확인해 주세요.',
+  };
 }
 
 function mapAvailabilityCodeToMessage(
-  code: string,
+  code: NicknamePolicyCode,
 ): ValidationState {
-  switch (code) {
-    case 'ok':
-      return { tone: 'success', message: '사용 가능한 닉네임입니다' };
-    case 'taken':
-      return { tone: 'error', message: '이미 사용중인 닉네임 입니다.' };
-    case 'blocked':
-      return { tone: 'error', message: '사용할 수 없는 닉네임입니다' };
-    case 'too_short':
-      return { tone: 'error', message: '닉네임은 2자 이상 입력해주세요' };
-    case 'too_long':
-      return { tone: 'error', message: '닉네임은 8자 이내로 입력해주세요' };
-    case 'invalid_chars':
-      return { tone: 'error', message: '특수문자는 사용할수 없습니다' };
-    case 'not_authenticated':
-      return { tone: 'error', message: '로그인 정보가 없습니다.' };
-    case 'empty':
-    default:
-      return { tone: 'idle', message: null };
-  }
+  const message = getNicknameErrorMessageByCode(code);
+  if (!message) return { tone: 'idle', message: null };
+
+  return code === 'ok'
+    ? { tone: 'success', message }
+    : { tone: 'error', message };
 }
 
 const NicknameInputSection = memo(function NicknameInputSection({
@@ -141,7 +126,7 @@ const NicknameInputSection = memo(function NicknameInputSection({
           autoCapitalize="none"
           autoCorrect={false}
           returnKeyType="done"
-          maxLength={MAX_NICKNAME_LENGTH}
+          maxLength={NICKNAME_MAX_LENGTH}
           onSubmitEditing={onBlurNickname}
         />
 
@@ -209,6 +194,8 @@ const NicknameFooter = memo(function NicknameFooter({
 export default function NicknameSetupScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<R>();
+  const insets = useSafeAreaInsets();
+  const scrollRef = useRef<KeyboardAwareScrollViewRef | null>(null);
   const after = route.params?.after ?? 'signup';
 
   const current = useAuthStore(s => s.profile.nickname) ?? '';
@@ -406,22 +393,39 @@ export default function NicknameSetupScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      <View style={styles.content}>
-        <Image source={ASSETS.logo} style={styles.logo} resizeMode="contain" />
+      <KeyboardAwareScrollView
+        ref={scrollRef}
+        style={styles.keyboardView}
+        bounces={false}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: insets.bottom + 32 },
+        ]}
+        keyboardDismissMode="none"
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.content}>
+          <Image source={ASSETS.logo} style={styles.logo} resizeMode="contain" />
 
-        <NicknameInputSection
-          nickname={nickname}
-          onChangeNickname={onChangeNickname}
-          canCheck={canCheck}
-          checking={checking}
-          onCheckDuplicate={onCheckDuplicate}
-          onBlurNickname={onBlurNickname}
-          hintText={hintText}
-          helperMessage={helperMessage}
+          <NicknameInputSection
+            nickname={nickname}
+            onChangeNickname={onChangeNickname}
+            canCheck={canCheck}
+            checking={checking}
+            onCheckDuplicate={onCheckDuplicate}
+            onBlurNickname={onBlurNickname}
+            hintText={hintText}
+            helperMessage={helperMessage}
+          />
+        </View>
+
+        <NicknameFooter
+          canSubmit={canSubmit}
+          saving={saving}
+          onSubmit={onSubmit}
         />
-      </View>
-
-      <NicknameFooter canSubmit={canSubmit} saving={saving} onSubmit={onSubmit} />
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }

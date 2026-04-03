@@ -6,15 +6,19 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
+  Keyboard,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
@@ -66,6 +70,7 @@ const EMOTION_MAP = {
 export default function WeatherActivityRecordScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
+  const insets = useSafeAreaInsets();
 
   const userId = useAuthStore(s => s.session?.user?.id ?? null);
   const pets = usePetStore(s => s.pets);
@@ -269,38 +274,55 @@ export default function WeatherActivityRecordScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <View style={styles.headerSideSlot}>
-          <TouchableOpacity
-            activeOpacity={0.88}
-            style={styles.headerSide}
-            onPress={onPressBack}
-          >
-            <Feather name="arrow-left" size={20} color="#102033" />
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.headerTitle}>기록하기</Text>
-        <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
-      </View>
-
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior="padding"
+        enabled
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
       >
-      <View style={styles.summaryCard}>
-        <View style={styles.summaryTextWrap}>
-          <Text style={styles.summaryTitle}>{guide.title} 완료!</Text>
-          <Text style={styles.summaryLink}>{district} 활동 기록</Text>
-        </View>
-          <View style={styles.summaryIcon}>
-            <MaterialCommunityIcons
-              name={guide.heroIcon as never}
-              size={24}
-              color={petTheme.primary}
-            />
-          </View>
-        </View>
+        <TouchableWithoutFeedback
+          accessible={false}
+          onPress={Keyboard.dismiss}
+        >
+          <View style={styles.keyboardContent}>
+            <View style={styles.header}>
+              <View style={styles.headerSideSlot}>
+                <TouchableOpacity
+                  activeOpacity={0.88}
+                  style={styles.headerSide}
+                  onPress={onPressBack}
+                >
+                  <Feather name="arrow-left" size={20} color="#102033" />
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.headerTitle}>기록하기</Text>
+              <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
+            </View>
+
+            <ScrollView
+              style={styles.scroll}
+              contentContainerStyle={[
+                styles.content,
+                { paddingBottom: Math.max(insets.bottom + 28, 40) },
+              ]}
+              keyboardDismissMode="on-drag"
+              keyboardShouldPersistTaps="handled"
+              onScrollBeginDrag={Keyboard.dismiss}
+              showsVerticalScrollIndicator={false}
+            >
+            <View style={styles.summaryCard}>
+              <View style={styles.summaryTextWrap}>
+                <Text style={styles.summaryTitle}>{guide.title} 완료!</Text>
+                <Text style={styles.summaryLink}>{district} 활동 기록</Text>
+              </View>
+                <View style={styles.summaryIcon}>
+                  <MaterialCommunityIcons
+                    name={guide.heroIcon as never}
+                    size={24}
+                    color={petTheme.primary}
+                  />
+                </View>
+              </View>
 
         <View style={styles.section}>
           <Text style={styles.label}>사진 업로드</Text>
@@ -422,22 +444,25 @@ export default function WeatherActivityRecordScreen() {
           </View>
         </View>
 
-        <TouchableOpacity
-          activeOpacity={0.92}
-          style={[
-            styles.primaryButton,
-            { backgroundColor: petTheme.primary },
-            saving ? styles.primaryButtonDisabled : null,
-          ]}
-          onPress={onSubmit}
-          disabled={saving}
-        >
-          <MaterialCommunityIcons name="content-save-outline" size={18} color="#FFFFFF" />
-          <Text style={styles.primaryButtonText}>
-            {saving ? '저장 중...' : '기록 저장하기'}
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
+              <TouchableOpacity
+                activeOpacity={0.92}
+                style={[
+                  styles.primaryButton,
+                  { backgroundColor: petTheme.primary },
+                  saving ? styles.primaryButtonDisabled : null,
+                ]}
+                onPress={onSubmit}
+                disabled={saving}
+              >
+                <MaterialCommunityIcons name="content-save-outline" size={18} color="#FFFFFF" />
+                <Text style={styles.primaryButtonText}>
+                  {saving ? '저장 중...' : '기록 저장하기'}
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
 
       <Modal
         visible={doneVisible}
@@ -486,6 +511,14 @@ export default function WeatherActivityRecordScreen() {
 
 const styles = StyleSheet.create({
   safe: {
+    flex: 1,
+    backgroundColor: '#FBFAFD',
+  },
+  keyboardView: {
+    flex: 1,
+    backgroundColor: '#FBFAFD',
+  },
+  keyboardContent: {
     flex: 1,
     backgroundColor: '#FBFAFD',
   },

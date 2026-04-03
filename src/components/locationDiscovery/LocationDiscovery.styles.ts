@@ -75,6 +75,8 @@ export const styles = StyleSheet.create({
   locationInfoCard: {
     borderRadius: 18,
     backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E7EDF5',
     padding: 14,
     marginBottom: 14,
     flexDirection: 'row',
@@ -206,18 +208,77 @@ export const styles = StyleSheet.create({
   card: {
     borderRadius: 22,
     backgroundColor: '#FFFFFF',
-    padding: 16,
-    gap: 10,
+    borderWidth: 1,
+    borderColor: '#E7EDF5',
+    padding: 14,
+    gap: 12,
     shadowColor: '#000000',
     shadowOpacity: 0.05,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 8 },
     elevation: 2,
   },
-  cardHeader: {
+  cardSelected: {
+    borderWidth: 1.5,
+    borderColor: '#2F8F48',
+    shadowOpacity: 0.08,
+  },
+  cardPressableArea: {
+    gap: 12,
+  },
+  cardPressableAreaCompact: {
+    gap: 10,
+  },
+  compactCardTop: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'flex-start',
+  },
+  cardThumbnailWrap: {
+    borderRadius: 18,
+    overflow: 'hidden',
+    backgroundColor: '#DDE5EE',
+    minHeight: 132,
+  },
+  cardThumbnailWrapCompact: {
+    width: 112,
+    minHeight: 112,
+    borderRadius: 16,
+    flexShrink: 0,
+  },
+  cardThumbnail: {
+    width: '100%',
+    height: 148,
+  },
+  cardThumbnailCompact: {
+    height: 112,
+  },
+  cardThumbnailOverlay: {
+    position: 'absolute',
+    inset: 0,
+    justifyContent: 'space-between',
+    padding: 12,
+    backgroundColor: 'rgba(16,32,51,0.12)',
+  },
+  cardThumbnailOverlayCompact: {
+    padding: 10,
+    justifyContent: 'flex-end',
+  },
+  cardThumbnailOverlayFallback: {
+    backgroundColor: '#DDE5EE',
+  },
+  cardThumbnailFooter: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     gap: 12,
+  },
+  cardHeaderCompact: {
+    flex: 1,
   },
   cardIconWrap: {
     width: 42,
@@ -229,7 +290,10 @@ export const styles = StyleSheet.create({
   },
   cardHeaderCopy: {
     flex: 1,
-    gap: 2,
+    gap: 4,
+  },
+  cardCompactMetaBlock: {
+    gap: 6,
   },
   cardCategory: {
     color: '#FA6B2D',
@@ -242,6 +306,15 @@ export const styles = StyleSheet.create({
   cardDistance: {
     color: '#2F8F48',
     fontWeight: '900',
+  },
+  cardDistanceBadge: {
+    color: '#FFFFFF',
+    fontWeight: '900',
+    backgroundColor: 'rgba(16,32,51,0.62)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    overflow: 'hidden',
   },
   cardBadgeRow: {
     flexDirection: 'row',
@@ -310,6 +383,43 @@ export const styles = StyleSheet.create({
   cardNotice: {
     color: '#FA6B2D',
     fontWeight: '800',
+  },
+  cardActionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 12,
+  },
+  cardPrimaryActionButton: {
+    flex: 1,
+    minHeight: 42,
+    borderRadius: 14,
+    backgroundColor: '#2F8F48',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+  },
+  cardPrimaryActionText: {
+    color: '#FFFFFF',
+    fontWeight: '900',
+  },
+  cardSecondaryActionButton: {
+    flex: 1,
+    minHeight: 42,
+    borderRadius: 14,
+    backgroundColor: '#EEF2F8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+  },
+  cardSecondaryActionButtonSelected: {
+    backgroundColor: 'rgba(47,143,72,0.12)',
+  },
+  cardSecondaryActionText: {
+    color: '#506074',
+    fontWeight: '900',
+  },
+  cardSecondaryActionTextSelected: {
+    color: '#23733A',
   },
   personalStateSection: {
     gap: 8,
@@ -581,7 +691,106 @@ export const styles = StyleSheet.create({
     color: '#7B8597',
     lineHeight: 18,
   },
+  discoveryExperienceShell: {
+    flex: 1,
+    minHeight: 0,
+  },
+  resultsPanel: {
+    flex: 1,
+    minHeight: 0,
+    paddingBottom: 12,
+  },
+  resultsPanelHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 10,
+    paddingHorizontal: 2,
+  },
+  resultsPanelTitleWrap: {
+    flex: 1,
+    gap: 4,
+  },
+  resultsPanelTitle: {
+    color: '#102033',
+    fontWeight: '900',
+  },
+  resultsPanelCaption: {
+    color: '#6B7688',
+    lineHeight: 18,
+  },
+  resultsPanelCount: {
+    color: '#2F8F48',
+    fontWeight: '900',
+    paddingTop: 2,
+  },
+  resultsList: {
+    flex: 1,
+  },
+  resultsListContent: {
+    paddingHorizontal: 2,
+    paddingBottom: 28,
+    gap: 14,
+  },
+  resultsListIntro: {
+    gap: 14,
+    marginBottom: 14,
+  },
+  resultsEmptyWrap: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingBottom: 16,
+  },
+  resultsLoadingWrap: {
+    gap: 12,
+    paddingBottom: 16,
+  },
+  resultsLoadingHeader: {
+    paddingHorizontal: 2,
+  },
+  resultsLoadingText: {
+    color: '#6B7688',
+    fontWeight: '800',
+  },
+  resultsLoadingCard: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
+    borderRadius: 18,
+    backgroundColor: '#F5F7FB',
+    borderWidth: 1,
+    borderColor: '#E7EDF5',
+    padding: 14,
+  },
+  resultsLoadingThumb: {
+    width: 108,
+    height: 96,
+    borderRadius: 14,
+    backgroundColor: '#DCE4EF',
+    flexShrink: 0,
+  },
+  resultsLoadingBody: {
+    flex: 1,
+    gap: 10,
+  },
+  resultsLoadingLine: {
+    height: 14,
+    borderRadius: 999,
+    backgroundColor: '#DCE4EF',
+    width: '100%',
+  },
+  resultsLoadingLineShort: {
+    width: '36%',
+  },
+  resultsLoadingLineMedium: {
+    width: '72%',
+  },
   actionRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  detailActionRow: {
     flexDirection: 'row',
     gap: 10,
   },

@@ -49,7 +49,7 @@ begin
   ) then
     alter table public.profiles
       add constraint profiles_nickname_length_check
-      check (char_length(btrim(nickname::text)) between 2 and 8);
+      check (char_length(btrim(nickname::text)) between 2 and 10);
   end if;
 end $$;
 
@@ -191,7 +191,7 @@ begin
     raise exception using errcode = '22023', message = 'nickname_too_short';
   end if;
 
-  if char_length(raw_v) > 8 then
+  if char_length(raw_v) > 10 then
     raise exception using errcode = '22023', message = 'nickname_too_long';
   end if;
 
@@ -267,7 +267,7 @@ begin
     return;
   end if;
 
-  if char_length(raw_v) > 8 then
+  if char_length(raw_v) > 10 then
     return query select false, 'too_long'::text, v;
     return;
   end if;
