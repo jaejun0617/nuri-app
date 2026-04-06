@@ -7,12 +7,14 @@ import { StyleSheet } from 'react-native';
 const BRAND = '#6D7CFF';
 const TEXT = '#0B1220';
 const BORDER = '#E6E8F0';
-const BG = '#F6F7FB';
+const BG = '#FFFFFF';
+const IMAGE_BORDER = '#D5DBE6';
 
 export const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: BG },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 28 },
+  scrollContentKeyboardVisible: { paddingBottom: 10 },
 
   header: {
     minHeight: 56,
@@ -49,30 +51,35 @@ export const styles = StyleSheet.create({
   },
 
   card: {
-    margin: 16,
+    marginHorizontal: 16,
+    marginBottom: 16,
     backgroundColor: '#FFFFFF',
-    padding: 16,
+    padding: 23,
     borderRadius: 18,
-    borderWidth: 1,
-    borderColor: BORDER,
+  },
+  cardKeyboardVisible: {
+    paddingBottom: 10,
+    marginBottom: 8,
   },
 
   // image
-  heroWrap: { marginBottom: 12 },
+  heroWrap: { marginBottom: 10 },
+  heroStage: {
+    minHeight: 220,
+    borderRadius: 18,
+    overflow: 'hidden',
+    borderWidth: 1.25,
+    borderColor: IMAGE_BORDER,
+    backgroundColor: '#FFFFFF',
+  },
   heroImg: {
     width: '100%',
     height: 220,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: BORDER,
     backgroundColor: '#FFFFFF',
   },
   heroPlaceholder: {
     width: '100%',
     height: 220,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: BORDER,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
@@ -124,18 +131,22 @@ export const styles = StyleSheet.create({
 
   // form
   label: {
-    marginTop: 10,
-    marginBottom: 6,
+    marginTop: 8,
+    marginBottom: 5,
     color: '#556070',
     fontWeight: '800',
+    fontSize: 11,
+    lineHeight: 16,
   },
   input: {
     borderWidth: 1,
     borderColor: BORDER,
     borderRadius: 12,
-    padding: 12,
+    padding: 11,
     color: TEXT,
     backgroundColor: '#FFFFFF',
+    fontSize: 14,
+    lineHeight: 20,
   },
   multiline: { minHeight: 100, textAlignVertical: 'top' },
   categoryGrid: {
@@ -161,6 +172,8 @@ export const styles = StyleSheet.create({
   categoryChipText: {
     color: '#7B879C',
     fontWeight: '800',
+    fontSize: 11,
+    lineHeight: 16,
   },
   categoryChipTextActive: {
     color: BRAND,
@@ -189,6 +202,8 @@ export const styles = StyleSheet.create({
   subCategoryChipText: {
     color: '#7B879C',
     fontWeight: '800',
+    fontSize: 11,
+    lineHeight: 16,
   },
   subCategoryChipTextActive: {
     color: BRAND,
@@ -202,9 +217,11 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   helperText: {
-    marginTop: 8,
+    marginTop: 6,
     color: '#7B879C',
     fontWeight: '700',
+    fontSize: 11,
+    lineHeight: 16,
   },
 
   emotionGrid: {
@@ -233,29 +250,50 @@ export const styles = StyleSheet.create({
   moodEmoji: {
     color: '#556070',
     fontWeight: '700',
+    fontSize: 13,
+    lineHeight: 16,
   },
   moodText: {
     color: '#7B879C',
     fontWeight: '800',
+    fontSize: 11,
+    lineHeight: 16,
   },
   moodTextActive: {
     color: BRAND,
   },
 
   primary: {
-    marginTop: 14,
+    marginTop: 12,
     backgroundColor: BRAND,
-    padding: 14,
+    paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
   },
   primaryDisabled: { opacity: 0.6 },
-  primaryText: { color: '#FFFFFF', fontWeight: '900' },
+  primaryText: {
+    color: '#FFFFFF',
+    fontWeight: '900',
+    fontSize: 15,
+    lineHeight: 20,
+  },
 
-  ghost: { marginTop: 10, paddingVertical: 8, alignItems: 'center' },
-  ghostText: { color: '#556070', fontWeight: '700' },
+  ghost: {
+    marginTop: 10,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: '#E5484D',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ghostText: {
+    color: '#FFFFFF',
+    fontWeight: '900',
+    fontSize: 15,
+    lineHeight: 20,
+  },
 
-  desc: { marginTop: 8, color: '#556070' },
+  desc: { marginTop: 8, color: '#556070', fontSize: 13, lineHeight: 19 },
 
   modalBackdrop: {
     flex: 1,
@@ -292,7 +330,8 @@ export const styles = StyleSheet.create({
     color: '#8A94A6',
     textAlign: 'center',
     fontWeight: '700',
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 19,
   },
   modalPrimaryBtn: {
     width: '100%',

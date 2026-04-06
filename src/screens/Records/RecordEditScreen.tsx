@@ -14,7 +14,7 @@
 // 4) UI 렌더는 imagePath → getMemoryImageSignedUrlCached() 규칙으로 고정.
 // 5) “이미지 제거” 의도는 removeRequested 플래그로 관리한다.
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -27,7 +27,10 @@ import {
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import {
+  KeyboardAwareScrollView,
+  type KeyboardAwareScrollViewRef,
+} from 'react-native-keyboard-controller';
 import Feather from 'react-native-vector-icons/Feather';
 
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
@@ -73,6 +76,7 @@ import {
 import {
   getMemoryImageSignedUrlCached,
 } from '../../services/supabase/storageMemories';
+import { useKeyboardInset } from '../../hooks/useKeyboardInset';
 import { useAuthStore } from '../../store/authStore';
 import { useRecordStore } from '../../store/recordStore';
 import { showToast } from '../../store/uiStore';
@@ -157,6 +161,9 @@ export default function RecordEditScreen() {
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const scrollRef = useRef<KeyboardAwareScrollViewRef | null>(null);
+  const keyboardInset = useKeyboardInset();
+  const keyboardVisible = keyboardInset > 0;
 
   useEffect(() => {
     if (!record) return;
@@ -373,6 +380,12 @@ export default function RecordEditScreen() {
 
   const closeDateModal = useCallback(() => {
     setDateModalVisible(false);
+  }, []);
+
+  const handleFocusField = useCallback(() => {
+    requestAnimationFrame(() => {
+      scrollRef.current?.assureFocusedInputVisible();
+    });
   }, []);
 
   const applyDateModal = useCallback((nextDate: Date) => {
@@ -644,22 +657,25 @@ export default function RecordEditScreen() {
       </View>
 
       <KeyboardAwareScrollView
+        ref={scrollRef}
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          keyboardVisible ? styles.scrollContentKeyboardVisible : null,
+        ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="interactive"
-        enableOnAndroid
-        extraScrollHeight={28}
-        extraHeight={120}
+        keyboardDismissMode="none"
+        extraKeyboardSpace={-10}
       >
-        <View style={styles.card}>
+        <View style={[styles.card, keyboardVisible ? styles.cardKeyboardVisible : null]}>
         {/* Image Preview */}
         <RecordImageGallery
           items={galleryItems}
           activeIndex={activeImageIndex}
           onChangeActiveIndex={setActiveImageIndex}
           containerStyle={styles.heroWrap}
+          stageStyle={styles.heroStage}
           emptyContent={
             <View style={styles.heroPlaceholder}>
               <AppText preset="caption" style={styles.heroPlaceholderText}>
@@ -728,6 +744,7 @@ export default function RecordEditScreen() {
             setDirty(true);
             setTitle(v);
           }}
+          onFocus={handleFocusField}
           placeholder="제목"
           placeholderTextColor="#8A94A6"
           editable={!saving}
@@ -743,6 +760,7 @@ export default function RecordEditScreen() {
             setDirty(true);
             setContent(v);
           }}
+          onFocus={handleFocusField}
           placeholder="내용"
           placeholderTextColor="#8A94A6"
           multiline
@@ -797,13 +815,6 @@ export default function RecordEditScreen() {
           })}
         </View>
 
-        {selectedMainCategory ? (
-          <AppText preset="caption" style={styles.helperText}>
-            분류: {selectedMainCategory.label}
-            {selectedOtherSubCategory ? ` · ${selectedOtherSubCategory.label}` : ''}
-          </AppText>
-        ) : null}
-
         {mainCategoryKey === 'other' ? (
           <View style={styles.subCategoryGrid}>
             {RECORD_OTHER_SUBCATEGORIES.map(sub => {
@@ -854,6 +865,7 @@ export default function RecordEditScreen() {
               style={styles.input}
               value={priceText}
               onChangeText={onChangePriceText}
+              onFocus={handleFocusField}
               placeholder="예: 25000"
               placeholderTextColor="#8A94A6"
               keyboardType="number-pad"
@@ -877,6 +889,7 @@ export default function RecordEditScreen() {
             setDirty(true);
             setTagsText(v);
           }}
+          onFocus={handleFocusField}
           placeholder="#산책 #간식 또는 산책,간식"
           placeholderTextColor="#8A94A6"
           editable={!saving}
@@ -945,7 +958,7 @@ export default function RecordEditScreen() {
           disabled={saving}
           activeOpacity={0.9}
         >
-          <AppText preset="caption" style={styles.ghostText}>
+          <AppText preset="body" style={styles.ghostText}>
             취소
           </AppText>
         </TouchableOpacity>
