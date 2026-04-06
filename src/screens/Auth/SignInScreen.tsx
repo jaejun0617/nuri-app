@@ -15,6 +15,7 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
+  InteractionManager,
   Image,
   Text,
   TextInput,
@@ -228,17 +229,23 @@ export default function SignInScreen() {
   }, [clearPasswordRecovery, passwordRecoveryStatus]);
 
   useEffect(() => {
-    if (route.params?.notice !== 'password-reset-success') {
-      if (
-        route.params?.notice !== 'logout-success' &&
-        route.params?.notice !== 'account-deletion-success'
-      ) {
-        return;
-      }
+    const nextNotice = route.params?.notice;
+    if (
+      nextNotice !== 'password-reset-success' &&
+      nextNotice !== 'logout-success' &&
+      nextNotice !== 'account-deletion-success'
+    ) {
+      return;
     }
 
-    setActiveNotice(route.params.notice);
-    navigation.setParams({ notice: undefined });
+    const task = InteractionManager.runAfterInteractions(() => {
+      setActiveNotice(nextNotice);
+      navigation.setParams({ notice: undefined });
+    });
+
+    return () => {
+      task.cancel();
+    };
   }, [navigation, route.params?.notice]);
 
   const focusCredentialField = useCallback(() => {

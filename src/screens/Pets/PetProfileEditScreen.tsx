@@ -23,6 +23,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
 
 import AppText from '../../app/ui/AppText';
+import WaveText from '../../components/common/WaveText';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import PhotoAddCard from '../../components/media/PhotoAddCard';
 import PetMemorialFields from '../../components/pets/PetMemorialFields';
@@ -605,6 +606,7 @@ export default function PetProfileEditScreen() {
           </AppText>
           <TouchableOpacity
             activeOpacity={0.92}
+            accessibilityLabel="뒤로 가기"
             style={[
               styles.primaryButton,
               { backgroundColor: petTheme.primary, shadowColor: petTheme.primary },
@@ -628,6 +630,7 @@ export default function PetProfileEditScreen() {
             activeOpacity={0.88}
             style={styles.backButton}
             onPress={onPressBack}
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           >
             <Feather name="arrow-left" size={20} color="#102033" />
           </TouchableOpacity>
@@ -1106,6 +1109,12 @@ export default function PetProfileEditScreen() {
         >
           <TouchableOpacity
             activeOpacity={0.92}
+            accessibilityLabel={saving ? '반려동물 프로필 수정 중' : '프로필 수정 완료'}
+            accessibilityHint={
+              saving
+                ? '프로필 수정을 완료할 때까지 잠시 기다려 주세요.'
+                : '두 번 탭하면 수정한 프로필을 저장합니다.'
+            }
             style={[
               styles.primaryButton,
               { backgroundColor: petTheme.primary, shadowColor: petTheme.primary },
@@ -1114,9 +1123,17 @@ export default function PetProfileEditScreen() {
             onPress={onSubmit}
             disabled={saving}
           >
-            <AppText preset="body" style={styles.primaryButtonText}>
-              {saving ? '수정 중...' : '수정 완료'}
-            </AppText>
+            {saving ? (
+              <WaveText
+                text="우리 아이 프로필을 단장하는 중 🎀"
+                color="#FFFFFF"
+                textStyle={styles.primaryButtonText}
+              />
+            ) : (
+              <AppText preset="body" style={styles.primaryButtonText}>
+                수정 완료
+              </AppText>
+            )}
           </TouchableOpacity>
         </View>
 

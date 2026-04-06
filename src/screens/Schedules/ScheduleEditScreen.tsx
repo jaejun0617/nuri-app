@@ -24,6 +24,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 
 import AppText from '../../app/ui/AppText';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import WaveText from '../../components/common/WaveText';
 import HeaderTextActionButton from '../../components/navigation/HeaderTextActionButton';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import TimePickerModal from '../../components/time-picker/TimePickerModal';
@@ -423,6 +424,7 @@ export default function ScheduleEditScreen() {
             activeOpacity={0.88}
             style={styles.headerBackButton}
             onPress={onPressBack}
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           >
             <Feather name="arrow-left" size={20} color="#102033" />
           </TouchableOpacity>
@@ -432,11 +434,11 @@ export default function ScheduleEditScreen() {
         </AppText>
         <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
           <HeaderTextActionButton
-            accessibilityLabel={saving ? '일정 저장 중' : '일정 수정 완료'}
+            accessibilityLabel={saving ? '일정 수정 중' : '일정 수정 완료'}
             backgroundColor={petTheme.tint}
             borderColor={petTheme.border}
             disabled={saving || loading}
-            label={saving ? '저장 중' : '완료'}
+            label={saving ? '다듬는 중 ✏️' : '완료'}
             onPress={onSubmit}
             textColor={petTheme.primary}
           />
@@ -798,6 +800,12 @@ export default function ScheduleEditScreen() {
         </View>
         <TouchableOpacity
           activeOpacity={0.9}
+          accessibilityLabel={saving ? '일정 수정 중' : '일정 수정 완료'}
+          accessibilityHint={
+            saving
+              ? '일정 수정을 완료할 때까지 잠시 기다려 주세요.'
+              : '두 번 탭하면 수정한 일정을 저장합니다.'
+          }
           style={[
             styles.bottomSubmitBtn,
             { backgroundColor: petTheme.primary },
@@ -807,9 +815,17 @@ export default function ScheduleEditScreen() {
           disabled={saving || loading}
         >
           <Feather name="save" size={16} color="#FFFFFF" />
-          <AppText preset="body" style={styles.primaryBtnText}>
-            {saving ? '일정 수정 중...' : '일정 수정하기'}
-          </AppText>
+          {saving ? (
+            <WaveText
+              text="일정을 조심조심 다듬는 중 ✏️"
+              color="#FFFFFF"
+              textStyle={styles.primaryBtnText}
+            />
+          ) : (
+            <AppText preset="body" style={styles.primaryBtnText}>
+              일정 수정하기
+            </AppText>
+          )}
         </TouchableOpacity>
       </KeyboardAwareScrollView>
 

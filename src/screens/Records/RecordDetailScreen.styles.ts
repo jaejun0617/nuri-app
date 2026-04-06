@@ -61,6 +61,49 @@ export const styles = StyleSheet.create({
     paddingBottom: 120,
     gap: 12,
   },
+  relatedSection: {
+    paddingHorizontal: 14,
+    paddingBottom: 8,
+    gap: 12,
+  },
+  relatedSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  relatedSectionTitle: {
+    color: '#111827',
+    fontWeight: '800',
+  },
+  relatedSectionCount: {
+    color: '#98A2B3',
+    fontWeight: '700',
+  },
+  relatedEmptyCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#E8EBF2',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 18,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+  },
+  relatedEmptyText: {
+    color: '#667085',
+    fontWeight: '700',
+  },
+  relatedMoreButton: {
+    minHeight: 46,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+  },
+  relatedMoreButtonText: {
+    fontWeight: '800',
+  },
 
   postCard: {
     backgroundColor: '#FFFFFF',

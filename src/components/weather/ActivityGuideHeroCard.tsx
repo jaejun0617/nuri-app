@@ -5,7 +5,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import type { IndoorActivityGuide } from '../../services/weather/guide';
 
@@ -20,16 +19,7 @@ export default React.memo(function ActivityGuideHeroCard({
 }: Props) {
   return (
     <View style={styles.wrap}>
-      <LinearGradient colors={guide.heroBackground} style={styles.heroPanel}>
-        <Text style={styles.heroEmoji}>{guide.heroEmoji}</Text>
-        <View style={styles.heroIconCircle}>
-          <MaterialCommunityIcons
-            name={guide.heroIcon as never}
-            size={36}
-            color={accentColor}
-          />
-        </View>
-      </LinearGradient>
+      <LinearGradient colors={guide.heroBackground} style={styles.heroPanel} />
 
       <View style={styles.contentCard}>
         <View style={styles.badgeRow}>
@@ -47,40 +37,22 @@ export default React.memo(function ActivityGuideHeroCard({
 
 const styles = StyleSheet.create({
   wrap: {
-    gap: 16,
+    gap: 14,
   },
   heroPanel: {
-    height: 230,
+    height: 172,
     borderRadius: 34,
     overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  heroEmoji: {
-    position: 'absolute',
-    top: 22,
-    left: 22,
-    fontSize: 28,
-  },
-  heroIconCircle: {
-    width: 112,
-    height: 112,
-    borderRadius: 56,
-    backgroundColor: 'rgba(255,255,255,0.78)',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   contentCard: {
-    marginTop: -44,
-    marginHorizontal: 12,
+    marginHorizontal: 2,
     borderRadius: 28,
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 22,
-    paddingVertical: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
     borderWidth: 1,
     borderColor: 'rgba(17,24,39,0.05)',
-    gap: 8,
+    gap: 7,
   },
   badgeRow: {
     flexDirection: 'row',
@@ -88,25 +60,25 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   badge: {
-    fontSize: 11,
-    lineHeight: 15,
+    fontSize: 10,
+    lineHeight: 14,
     color: '#8B5CF6',
     fontWeight: '700',
   },
   accent: {
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 11,
+    lineHeight: 15,
     fontWeight: '700',
   },
   title: {
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 15,
+    lineHeight: 20,
     color: '#182133',
     fontWeight: '700',
   },
   subtitle: {
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: 14,
+    lineHeight: 19,
     color: '#7A8598',
     fontWeight: '400',
   },

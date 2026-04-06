@@ -13,6 +13,7 @@ import {
   FlatList,
   Image,
   type ListRenderItem,
+  Pressable,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -344,6 +345,9 @@ const AnimatedFlatList = Animated.createAnimatedComponent(
 const AnimatedOptimizedImage = Animated.createAnimatedComponent(OptimizedImage);
 const TODAY_RECORDS_IMMEDIATE_PREFETCH_COUNT = 3;
 const TODAY_RECORDS_DEFERRED_PREFETCH_COUNT = 4;
+const HOME_TOP_BUTTON_SHOW_OFFSET = 96;
+const HOME_TOP_BUTTON_BOTTOM_OFFSET = 102;
+const HOME_TOP_BUTTON_MIN_BOTTOM = 116;
 
 /* ---------------------------------------------------------
  * 3) sub components (hooks-safe)
@@ -1735,6 +1739,7 @@ const ScheduleSection = React.memo(function ScheduleSection({
   accentColor,
   accentDeepColor,
   accentTint,
+  accentBorder,
 }: {
   scheduleItems: PetSchedule[];
   onPressScheduleList: () => void;
@@ -1742,6 +1747,7 @@ const ScheduleSection = React.memo(function ScheduleSection({
   accentColor: string;
   accentDeepColor: string;
   accentTint: string;
+  accentBorder: string;
 }) {
   const weekScheduleItems = useMemo<WeeklyScheduleItem[]>(() => {
     return scheduleItems.slice(0, 7).map(buildScheduleCard);
@@ -1789,13 +1795,16 @@ const ScheduleSection = React.memo(function ScheduleSection({
                 <View
                   style={[
                     styles.scheduleIconWrap,
-                    { backgroundColor: item.tint },
+                    {
+                      backgroundColor: accentColor,
+                      borderColor: accentBorder,
+                    },
                   ]}
                 >
                   <MaterialCommunityIcons
                     name={item.icon}
                     size={18}
-                    color={accentColor}
+                    color="#FFFFFF"
                   />
                 </View>
 
@@ -2009,6 +2018,8 @@ export default function LoggedInHome() {
   const isScreenFocused = useIsFocused();
   const homeScrollRef = useRef<ScrollView | null>(null);
   const shouldRestoreHomeScrollRef = useRef(true);
+  const scheduleSectionOffsetRef = useRef<number | null>(null);
+  const showTopButtonRef = useRef(false);
 
   // ---------------------------------------------------------
   // 1) auth
@@ -2062,6 +2073,19 @@ export default function LoggedInHome() {
       transform: [{ translateY: svTranslateY.value }],
     };
   }, []);
+  const topButtonVisibility = useSharedValue(0);
+  const [showTopButton, setShowTopButton] = useState(false);
+  const topButtonAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: topButtonVisibility.value,
+    transform: [
+      {
+        translateY: interpolate(topButtonVisibility.value, [0, 1], [10, 0]),
+      },
+      {
+        scale: interpolate(topButtonVisibility.value, [0, 1], [0.96, 1]),
+      },
+    ],
+  }));
 
   // ---------------------------------------------------------
   // 4) records
@@ -2334,10 +2358,20 @@ export default function LoggedInHome() {
         contentOffset: { y: number };
       };
     }) => {
+      const offsetY = Math.max(0, event.nativeEvent.contentOffset.y);
       HOME_SCROLL_OFFSET_BY_KEY.set(
         homeScrollStorageKey,
-        Math.max(0, event.nativeEvent.contentOffset.y),
+        offsetY,
       );
+
+      const scheduleSectionOffset = scheduleSectionOffsetRef.current;
+      if (scheduleSectionOffset === null) return;
+
+      const shouldShow = offsetY >= Math.max(0, scheduleSectionOffset - HOME_TOP_BUTTON_SHOW_OFFSET);
+      if (showTopButtonRef.current === shouldShow) return;
+
+      showTopButtonRef.current = shouldShow;
+      setShowTopButton(shouldShow);
     },
     [homeScrollStorageKey],
   );
@@ -2346,6 +2380,13 @@ export default function LoggedInHome() {
     if (!shouldRestoreHomeScrollRef.current) return;
     const nextOffset = HOME_SCROLL_OFFSET_BY_KEY.get(homeScrollStorageKey) ?? 0;
     homeScrollRef.current?.scrollTo({ x: 0, y: nextOffset, animated: false });
+    const scheduleSectionOffset = scheduleSectionOffsetRef.current;
+    if (scheduleSectionOffset !== null) {
+      const shouldShow =
+        nextOffset >= Math.max(0, scheduleSectionOffset - HOME_TOP_BUTTON_SHOW_OFFSET);
+      showTopButtonRef.current = shouldShow;
+      setShowTopButton(shouldShow);
+    }
     shouldRestoreHomeScrollRef.current = false;
   }, [homeScrollStorageKey]);
 
@@ -2480,6 +2521,30 @@ export default function LoggedInHome() {
     navigation.navigate('GuideList', { entrySource: 'home' });
   }, [navigation]);
 
+  const handleScheduleSectionLayout = useCallback(
+    (event: { nativeEvent: { layout: { y: number } } }) => {
+      scheduleSectionOffsetRef.current = event.nativeEvent.layout.y;
+      const restoredOffset = HOME_SCROLL_OFFSET_BY_KEY.get(homeScrollStorageKey) ?? 0;
+      const shouldShow =
+        restoredOffset >=
+        Math.max(0, event.nativeEvent.layout.y - HOME_TOP_BUTTON_SHOW_OFFSET);
+      showTopButtonRef.current = shouldShow;
+      setShowTopButton(shouldShow);
+    },
+    [homeScrollStorageKey],
+  );
+
+  const handlePressTop = useCallback(() => {
+    homeScrollRef.current?.scrollTo({ x: 0, y: 0, animated: true });
+  }, []);
+
+  useEffect(() => {
+    topButtonVisibility.value = withTiming(showTopButton ? 1 : 0, {
+      duration: showTopButton ? 220 : 180,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [showTopButton, topButtonVisibility]);
+
   const onPressGuideDetail = useCallback(
     (guideId: string) => {
       const selectedGuide =
@@ -2580,6 +2645,14 @@ export default function LoggedInHome() {
     selectedPet?.speciesDisplayName,
     sessionUserId,
   ]);
+  const topButtonBottom = useMemo(
+    () =>
+      Math.max(
+        insets.bottom + HOME_TOP_BUTTON_BOTTOM_OFFSET,
+        HOME_TOP_BUTTON_MIN_BOTTOM,
+      ),
+    [insets.bottom],
+  );
 
   // ---------------------------------------------------------
   // 10) render
@@ -2687,14 +2760,17 @@ export default function LoggedInHome() {
             onPressMore={onPressGuideList}
           />
 
-          <ScheduleSection
-            scheduleItems={scheduleItems}
-            onPressScheduleList={onPressScheduleList}
-            onPressScheduleCreate={onPressScheduleCreate}
-            accentColor={petTheme.primary}
-            accentDeepColor={petTheme.deep}
-            accentTint={petTheme.tint}
-          />
+          <View onLayout={handleScheduleSectionLayout}>
+            <ScheduleSection
+              scheduleItems={scheduleItems}
+              onPressScheduleList={onPressScheduleList}
+              onPressScheduleCreate={onPressScheduleCreate}
+              accentColor={petTheme.primary}
+              accentDeepColor={petTheme.deep}
+              accentTint={petTheme.tint}
+              accentBorder={petTheme.border}
+            />
+          </View>
 
           <RecentActivitiesSection
             recordItems={recordItems}
@@ -2717,6 +2793,31 @@ export default function LoggedInHome() {
           />
         </Animated.View>
       </ScrollView>
+
+      <Animated.View
+        pointerEvents={showTopButton ? 'auto' : 'none'}
+        style={[
+          styles.topButtonWrap,
+          {
+            bottom: topButtonBottom,
+          },
+          topButtonAnimatedStyle,
+        ]}
+      >
+        <Pressable
+          android_ripple={{ color: `${petTheme.onPrimary}18` }}
+          style={[
+            styles.topButton,
+            {
+              backgroundColor: '#FFFFFF',
+              borderColor: petTheme.border,
+            },
+          ]}
+          onPress={handlePressTop}
+        >
+          <Feather name="arrow-up" size={18} color={petTheme.primary} />
+        </Pressable>
+      </Animated.View>
     </Screen>
   );
 }

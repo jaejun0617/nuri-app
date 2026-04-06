@@ -1,5 +1,6 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo, useEffect, useMemo } from 'react';
 import {
+  AccessibilityInfo,
   Modal,
   Platform,
   Pressable,
@@ -11,6 +12,8 @@ import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
+import { buildPetThemePalette } from '../../services/pets/themePalette';
+import { usePetStore } from '../../store/petStore';
 
 type NoticeIconName = 'check' | 'shield' | 'user-plus';
 
@@ -25,12 +28,29 @@ type Props = {
   iconName: NoticeIconName;
   titleLines: readonly string[];
   bodyLines: readonly string[];
+  accessibilityTitleLines?: readonly string[];
+  accessibilityBodyLines?: readonly string[];
   confirmLabel?: string;
+  confirmAccessibilityLabel?: string;
+  confirmAccessibilityHint?: string;
   accentColor?: string;
   secondaryActions?: readonly SecondaryAction[];
   onClose: () => void;
   onConfirm?: () => void;
 };
+
+function toAccessibilityText(lines: readonly string[]) {
+  return lines
+    .map(line =>
+      line
+        .replace(/\p{Extended_Pictographic}/gu, '')
+        .replace(/\uFE0F/gu, '')
+        .replace(/\s{2,}/g, ' ')
+        .trim(),
+    )
+    .filter(Boolean)
+    .join(' ');
+}
 
 function PremiumNoticeModalBase({
   visible,
@@ -38,25 +58,56 @@ function PremiumNoticeModalBase({
   iconName,
   titleLines,
   bodyLines,
+  accessibilityTitleLines,
+  accessibilityBodyLines,
   confirmLabel = '확인',
+  confirmAccessibilityLabel,
+  confirmAccessibilityHint = '두 번 탭하면 안내를 닫습니다.',
   accentColor,
   secondaryActions,
   onClose,
   onConfirm,
 }: Props) {
   const theme = useTheme();
-  const primaryColor = accentColor ?? theme.colors.brand;
+  const pets = usePetStore(s => s.pets);
+  const selectedPetId = usePetStore(s => s.selectedPetId);
+  const selectedPet = useMemo(
+    () => pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
+    [pets, selectedPetId],
+  );
+  const petTheme = useMemo(
+    () => buildPetThemePalette(selectedPet?.themeColor ?? theme.colors.brand),
+    [selectedPet?.themeColor, theme.colors.brand],
+  );
+  const primaryColor = accentColor ?? petTheme.primary;
   const handleConfirm = onConfirm ?? onClose;
+  const announcementText = useMemo(() => {
+    const titleText = toAccessibilityText(accessibilityTitleLines ?? titleLines);
+    const bodyText = toAccessibilityText(accessibilityBodyLines ?? bodyLines);
+    return [titleText, bodyText].filter(Boolean).join('. ');
+  }, [accessibilityBodyLines, accessibilityTitleLines, bodyLines, titleLines]);
   const iconWrapStyle = useMemo(
     () => [
       styles.iconWrap,
       {
-        backgroundColor: theme.colors.surface,
-        borderColor: theme.colors.border,
+        backgroundColor: petTheme.soft,
+        borderColor: petTheme.border,
       },
     ],
-    [theme.colors.border, theme.colors.surface],
+    [petTheme.border, petTheme.soft],
   );
+
+  useEffect(() => {
+    if (!visible || !announcementText) return;
+
+    const timeout = setTimeout(() => {
+      AccessibilityInfo.announceForAccessibility(announcementText);
+    }, 220);
+
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [announcementText, visible]);
 
   return (
     <Modal
@@ -67,10 +118,14 @@ function PremiumNoticeModalBase({
     >
       <View style={styles.backdrop}>
         <Pressable
+          accessible={false}
           style={[styles.scrim, { backgroundColor: theme.colors.overlay }]}
           onPress={onClose}
         />
         <View
+          accessibilityViewIsModal
+          accessible
+          accessibilityRole="alert"
           style={[
             styles.card,
             {
@@ -126,6 +181,9 @@ function PremiumNoticeModalBase({
           <TouchableOpacity
             activeOpacity={0.92}
             onPress={handleConfirm}
+            accessibilityRole="button"
+            accessibilityLabel={confirmAccessibilityLabel ?? confirmLabel}
+            accessibilityHint={confirmAccessibilityHint}
             style={[styles.button, { backgroundColor: primaryColor }]}
           >
             <AppText preset="button" style={styles.buttonText}>
@@ -143,8 +201,8 @@ function PremiumNoticeModalBase({
                   style={[
                     styles.secondaryButton,
                     {
-                      borderColor: theme.colors.border,
-                      backgroundColor: theme.colors.surface,
+                      borderColor: petTheme.border,
+                      backgroundColor: petTheme.soft,
                     },
                   ]}
                 >

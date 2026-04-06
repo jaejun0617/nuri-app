@@ -39,7 +39,6 @@ import type {
 } from '../../services/supabase/schedules';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
 import {
-  getScheduleColorPalette,
   mapScheduleIconName,
 } from '../../services/schedules/presentation';
 import { resolveSelectedPetId, usePetStore } from '../../store/petStore';
@@ -155,6 +154,7 @@ export default function ScheduleListScreen() {
             activeOpacity={0.88}
             style={styles.headerBackButton}
             onPress={onPressBack}
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           >
             <Feather name="arrow-left" size={20} color="#102033" />
           </TouchableOpacity>
@@ -253,7 +253,6 @@ export default function ScheduleListScreen() {
         ) : (
           <View style={styles.list}>
             {schedules.map(schedule => {
-              const color = getScheduleColorPalette(schedule.colorKey);
               return (
                 <TouchableOpacity
                   key={schedule.id}
@@ -264,13 +263,16 @@ export default function ScheduleListScreen() {
                   <View
                     style={[
                       styles.cardIconWrap,
-                      { backgroundColor: color.bg },
+                      {
+                        backgroundColor: petTheme.tint,
+                        borderColor: petTheme.border,
+                      },
                     ]}
                   >
                     <MaterialCommunityIcons
                       name={mapScheduleIconName(schedule.iconKey)}
                       size={19}
-                      color={color.fg}
+                      color={petTheme.primary}
                     />
                   </View>
 

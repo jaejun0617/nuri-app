@@ -11,6 +11,8 @@ import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
+import { buildPetThemePalette } from '../../services/pets/themePalette';
+import { usePetStore } from '../../store/petStore';
 
 type ConfirmDialogTone = 'default' | 'warning' | 'danger';
 
@@ -26,12 +28,29 @@ type Props = {
   onCancel: () => void;
 };
 
-function resolveToneMeta(tone: ConfirmDialogTone, accentColor: string, danger: string) {
+function withHexAlpha(color: string, alpha: number, fallback: string) {
+  const normalized = color.trim();
+  const match = normalized.match(/^#([0-9a-fA-F]{6})$/);
+  if (!match) return fallback;
+
+  const hex = match[1];
+  const red = Number.parseInt(hex.slice(0, 2), 16);
+  const green = Number.parseInt(hex.slice(2, 4), 16);
+  const blue = Number.parseInt(hex.slice(4, 6), 16);
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
+
+function resolveToneMeta(
+  tone: ConfirmDialogTone,
+  accentColor: string,
+  accentSoftColor: string,
+  danger: string,
+) {
   if (tone === 'danger') {
     return {
       icon: 'alert-triangle' as const,
       iconColor: danger,
-      iconBackground: 'rgba(255, 77, 79, 0.12)',
+      iconBackground: withHexAlpha(danger, 0.12, 'rgba(255, 77, 79, 0.12)'),
       confirmBackground: danger,
       confirmText: '#FFFFFF',
       cancelBackground: '#F3F5FA',
@@ -43,7 +62,7 @@ function resolveToneMeta(tone: ConfirmDialogTone, accentColor: string, danger: s
     return {
       icon: 'bell' as const,
       iconColor: accentColor,
-      iconBackground: 'rgba(109, 124, 255, 0.12)',
+      iconBackground: accentSoftColor,
       confirmBackground: accentColor,
       confirmText: '#FFFFFF',
       cancelBackground: '#F3F5FA',
@@ -54,7 +73,7 @@ function resolveToneMeta(tone: ConfirmDialogTone, accentColor: string, danger: s
   return {
     icon: 'check-circle' as const,
     iconColor: accentColor,
-    iconBackground: 'rgba(109, 124, 255, 0.12)',
+    iconBackground: accentSoftColor,
     confirmBackground: accentColor,
     confirmText: '#FFFFFF',
     cancelBackground: '#F3F5FA',
@@ -74,11 +93,27 @@ function ConfirmDialogBase({
   onCancel,
 }: Props) {
   const theme = useTheme();
+  const pets = usePetStore(s => s.pets);
+  const selectedPetId = usePetStore(s => s.selectedPetId);
+  const selectedPet = useMemo(
+    () => pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
+    [pets, selectedPetId],
+  );
+  const petTheme = useMemo(
+    () => buildPetThemePalette(selectedPet?.themeColor ?? theme.colors.brand),
+    [selectedPet?.themeColor, theme.colors.brand],
+  );
+  const resolvedAccentColor = accentColor ?? petTheme.primary;
   const lines = useMemo(() => message.split('\n'), [message]);
   const toneMeta = useMemo(
     () =>
-      resolveToneMeta(tone, accentColor ?? theme.colors.brand, theme.colors.danger),
-    [accentColor, theme.colors.brand, theme.colors.danger, tone],
+      resolveToneMeta(
+        tone,
+        resolvedAccentColor,
+        petTheme.soft,
+        theme.colors.danger,
+      ),
+    [petTheme.soft, resolvedAccentColor, theme.colors.danger, tone],
   );
 
   return (

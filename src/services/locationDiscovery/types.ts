@@ -82,6 +82,7 @@ export type LocationDiscoveryItem = {
     summaryLabel: string | null;
     detail: string | null;
   };
+  thumbnailUrl: string | null;
   coordinateLabel: string;
   mapPreviewUrl: string;
 };

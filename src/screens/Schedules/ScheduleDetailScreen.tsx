@@ -34,7 +34,6 @@ import {
 } from '../../services/schedules/notifications';
 import {
   formatScheduleDetailDate,
-  getScheduleColorPalette,
   mapScheduleIconName,
 } from '../../services/schedules/presentation';
 import { usePetStore } from '../../store/petStore';
@@ -200,7 +199,6 @@ export default function ScheduleDetailScreen() {
     }
   }, [petId, refresh, schedule]);
 
-  const color = getScheduleColorPalette(schedule?.colorKey ?? 'brand');
   const headerTopInset = Math.max(insets.top, 12);
 
   return (
@@ -211,6 +209,7 @@ export default function ScheduleDetailScreen() {
             activeOpacity={0.88}
             style={styles.headerBackButton}
             onPress={() => navigation.goBack()}
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           >
             <Feather name="arrow-left" size={20} color="#102033" />
           </TouchableOpacity>
@@ -220,18 +219,7 @@ export default function ScheduleDetailScreen() {
           일정 상세
         </AppText>
 
-        <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={styles.headerActionBtn}
-            onPress={onPressEdit}
-            disabled={!schedule}
-          >
-            <AppText preset="caption" style={styles.headerActionText}>
-              수정
-            </AppText>
-          </TouchableOpacity>
-        </View>
+        <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
       </View>
 
       <ScrollView
@@ -247,11 +235,11 @@ export default function ScheduleDetailScreen() {
           </View>
         ) : (
           <View style={styles.card}>
-            <View style={[styles.iconWrap, { backgroundColor: color.bg }]}>
+            <View style={[styles.iconWrap, { backgroundColor: petTheme.soft }]}>
               <MaterialCommunityIcons
                 name={mapScheduleIconName(schedule.iconKey)}
                 size={24}
-                color={color.fg}
+                color={petTheme.primary}
               />
             </View>
 

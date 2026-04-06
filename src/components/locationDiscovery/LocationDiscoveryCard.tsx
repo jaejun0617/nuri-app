@@ -1,8 +1,10 @@
-import React, { memo, useEffect, useState } from 'react';
-import { Image, TouchableOpacity, View } from 'react-native';
+import React, { memo } from 'react';
+import { TouchableOpacity, View } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 
 import AppText from '../../app/ui/AppText';
+import OptimizedImage from '../images/OptimizedImage';
+import { useLocationDiscoveryThumbnail } from '../../hooks/useLocationDiscoveryThumbnail';
 import {
   formatDistanceLabel,
   formatDurationLabel,
@@ -30,12 +32,10 @@ function LocationDiscoveryCard({
   selected = false,
   layout = 'default',
 }: Props) {
-  const [imageFailed, setImageFailed] = useState(false);
   const compact = layout === 'compact';
-
-  useEffect(() => {
-    setImageFailed(false);
-  }, [item.mapPreviewUrl]);
+  const thumbnailQuery = useLocationDiscoveryThumbnail(item);
+  const thumbnailUri = thumbnailQuery.data ?? item.thumbnailUrl;
+  const hasThumbnail = Boolean(thumbnailUri);
 
   const durationLabel = formatDurationLabel(item.estimatedMinutes);
   const handleCardPress = () => {
@@ -64,24 +64,41 @@ function LocationDiscoveryCard({
               compact ? styles.cardThumbnailWrapCompact : null,
             ]}
           >
-            {!imageFailed ? (
-              <Image
-                source={{ uri: item.mapPreviewUrl }}
+            {hasThumbnail && thumbnailUri ? (
+              <OptimizedImage
+                uri={thumbnailUri}
                 style={[
                   styles.cardThumbnail,
                   compact ? styles.cardThumbnailCompact : null,
                 ]}
                 resizeMode="cover"
-                onError={() => {
-                  setImageFailed(true);
-                }}
+                priority={compact ? 'high' : 'normal'}
+                fallback={false}
               />
-            ) : null}
+            ) : (
+              <View
+                style={[
+                  styles.cardThumbnailPlaceholder,
+                  compact ? styles.cardThumbnailPlaceholderCompact : null,
+                ]}
+              >
+                <View style={styles.cardThumbnailPlaceholderIconWrap}>
+                  <Feather name="map-pin" size={20} color="#7A8699" />
+                </View>
+                <AppText
+                  preset="caption"
+                  style={styles.cardThumbnailPlaceholderText}
+                  numberOfLines={1}
+                >
+                  {item.categoryLabel}
+                </AppText>
+              </View>
+            )}
             <View
               style={[
                 styles.cardThumbnailOverlay,
                 compact ? styles.cardThumbnailOverlayCompact : null,
-                imageFailed ? styles.cardThumbnailOverlayFallback : null,
+                !hasThumbnail ? styles.cardThumbnailOverlayFallback : null,
               ]}
             >
               <View style={styles.cardThumbnailFooter}>

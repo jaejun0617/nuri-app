@@ -240,7 +240,7 @@ export default function CommunityListScreen() {
         activeOpacity={0.88}
         style={styles.backButton}
         onPress={handlePressBack}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
       >
         <Feather
           name="arrow-left"
@@ -680,18 +680,14 @@ export default function CommunityListScreen() {
               style={[
                 styles.topButton,
                 {
-                  backgroundColor: theme.colors.surfaceElevated,
+                  backgroundColor: '#FFFFFF',
                   bottom: topButtonBottom,
-                  borderColor: theme.colors.border,
+                  borderColor: petTheme.border,
                 },
               ]}
               onPress={handlePressTop}
             >
-              <Feather
-                name="arrow-up"
-                size={18}
-                color={theme.colors.textPrimary}
-              />
+              <Feather name="arrow-up" size={18} color={petTheme.primary} />
             </Pressable>
           ) : null}
         </View>

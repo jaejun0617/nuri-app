@@ -31,6 +31,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import Feather from 'react-native-vector-icons/Feather';
 
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
+import WaveText from '../../components/common/WaveText';
 import RecordImageGallery from '../../components/records/RecordImageGallery';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { TimelineStackParamList } from '../../navigation/TimelineStackNavigator';
@@ -629,6 +630,7 @@ export default function RecordEditScreen() {
             style={styles.backBtn}
             onPress={safeGoBack}
             disabled={saving}
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           >
             <Feather name="arrow-left" size={20} color="#102033" />
           </TouchableOpacity>
@@ -916,11 +918,25 @@ export default function RecordEditScreen() {
           style={[styles.primary, saving ? styles.primaryDisabled : null]}
           onPress={onSubmit}
           disabled={saving}
+          accessibilityLabel={saving ? '기록 수정 중' : '기록 수정 완료'}
+          accessibilityHint={
+            saving
+              ? '기록 수정을 완료할 때까지 잠시 기다려 주세요.'
+              : '두 번 탭하면 수정한 기록을 저장합니다.'
+          }
           activeOpacity={0.9}
         >
-          <AppText preset="body" style={styles.primaryText}>
-            {saving ? '저장 중...' : '저장'}
-          </AppText>
+          {saving ? (
+            <WaveText
+              text="추억을 예쁘게 다듬는 중 ✨"
+              color="#FFFFFF"
+              textStyle={styles.primaryText}
+            />
+          ) : (
+            <AppText preset="body" style={styles.primaryText}>
+              저장
+            </AppText>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity

@@ -569,6 +569,7 @@ export default function PetTravelListScreen() {
               activeOpacity={0.88}
               style={styles.backButton}
               onPress={onPressBack}
+              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
             >
               <Feather name="arrow-left" size={20} color="#102033" />
             </TouchableOpacity>

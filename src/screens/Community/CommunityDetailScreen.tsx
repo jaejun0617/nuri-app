@@ -254,6 +254,7 @@ export default function CommunityDetailScreen() {
         activeOpacity={0.88}
         style={styles.backButton}
         onPress={handleBack}
+        hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
       >
         <Feather
           name="arrow-left"

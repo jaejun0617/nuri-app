@@ -45,6 +45,25 @@ export const styles = StyleSheet.create({
     paddingBottom: 34,
     gap: 18,
   },
+  topButtonWrap: {
+    position: 'absolute',
+    right: 20,
+    zIndex: 8,
+    elevation: 8,
+  },
+  topButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    shadowColor: '#0B1220',
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
 
   // ---------------------------------------------------------
   // Header
@@ -859,6 +878,8 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(109,106,248,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(109,106,248,0.14)',
   },
   scheduleTextCol: {
     flex: 1,

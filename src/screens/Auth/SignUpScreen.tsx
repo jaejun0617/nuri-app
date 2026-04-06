@@ -497,6 +497,7 @@ export default function SignUpScreen() {
               activeOpacity={0.75}
               onPress={() => navigation.navigate('SignIn')}
               style={styles.headerBackButton}
+              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
             >
               <Feather color="#1B2435" name="arrow-left" size={20} />
             </TouchableOpacity>

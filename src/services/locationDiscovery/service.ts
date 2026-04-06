@@ -815,6 +815,7 @@ function toWalkItem(
       summaryLabel: null,
       detail: null,
     },
+    thumbnailUrl: null,
     coordinateLabel: formatCoordinateLabel(latitude, longitude),
     mapPreviewUrl: buildStaticMapPreviewUrl({ latitude, longitude }),
   };
@@ -924,6 +925,7 @@ function mergePetFriendlyCandidate(
       detail:
         serviceMeta?.petPolicyText ?? buildExternalPetPolicyNote(document),
     },
+    thumbnailUrl: null,
     coordinateLabel: candidate.coordinateLabel,
     mapPreviewUrl: buildStaticMapPreviewUrl({
       latitude: candidate.latitude,

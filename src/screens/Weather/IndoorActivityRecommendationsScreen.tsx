@@ -103,6 +103,7 @@ export default function IndoorActivityRecommendationsScreen() {
     },
     [weather.recommendedGuideKeys],
   );
+
   const onPressGuide = useCallback(
     (guideKey: IndoorActivityKey) => {
       try {
@@ -247,20 +248,20 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   heroTitle: {
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 15,
+    lineHeight: 20,
     color: '#1B2434',
     fontWeight: '700',
   },
   heroBody: {
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 13,
+    lineHeight: 19,
     color: '#7D879A',
     fontWeight: '400',
   },
   heroHint: {
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 11,
+    lineHeight: 16,
     color: '#8B5CF6',
     fontWeight: '600',
   },
@@ -268,8 +269,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   sectionTitle: {
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 19,
     color: '#1B2434',
     fontWeight: '700',
   },

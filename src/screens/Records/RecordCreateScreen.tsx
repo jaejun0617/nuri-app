@@ -30,6 +30,7 @@ import Feather from 'react-native-vector-icons/Feather';
 
 import AppText from '../../app/ui/AppText';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import WaveText from '../../components/common/WaveText';
 import HeaderTextActionButton from '../../components/navigation/HeaderTextActionButton';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import RecordImageGallery from '../../components/records/RecordImageGallery';
@@ -655,6 +656,7 @@ export default function RecordCreateScreen() {
             activeOpacity={0.88}
             style={styles.headerBackButton}
             onPress={onPressCancel}
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           >
             <Feather name="arrow-left" size={20} color="#102033" />
           </TouchableOpacity>
@@ -670,7 +672,7 @@ export default function RecordCreateScreen() {
             backgroundColor={petTheme.tint}
             borderColor={petTheme.border}
             disabled={disabled}
-            label={saving ? '저장중' : '완료'}
+            label={saving ? '담는 중 ☁️' : '완료'}
             onPress={onSubmit}
             textColor={petTheme.primary}
           />
@@ -1019,6 +1021,12 @@ export default function RecordCreateScreen() {
 
         <TouchableOpacity
           activeOpacity={0.9}
+          accessibilityLabel={saving ? '기록 저장 중' : '기록 저장 완료'}
+          accessibilityHint={
+            saving
+              ? '기록 저장이 완료될 때까지 잠시 기다려 주세요.'
+              : '두 번 탭하면 현재 기록을 저장합니다.'
+          }
           style={[
             styles.bottomSubmitBtn,
             { marginBottom: bottomSubmitMargin },
@@ -1033,9 +1041,17 @@ export default function RecordCreateScreen() {
           disabled={disabled}
           onPress={onSubmit}
         >
-          <AppText preset="body" style={styles.bottomSubmitText}>
-            {saving ? '기록 저장 중...' : '완료'}
-          </AppText>
+          {saving ? (
+            <WaveText
+              text="포근한 추억을 담는 중 ☁️"
+              color="#FFFFFF"
+              textStyle={styles.bottomSubmitText}
+            />
+          ) : (
+            <AppText preset="body" style={styles.bottomSubmitText}>
+              완료
+            </AppText>
+          )}
         </TouchableOpacity>
       </KeyboardAwareScrollView>
 

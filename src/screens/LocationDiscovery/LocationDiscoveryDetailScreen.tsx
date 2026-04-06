@@ -89,6 +89,7 @@ export default function LocationDiscoveryDetailScreen() {
                 activeOpacity={0.88}
                 style={styles.backButton}
                 onPress={goBack}
+                hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
               >
                 <Feather name="arrow-left" size={20} color="#102033" />
               </TouchableOpacity>
@@ -122,13 +123,14 @@ export default function LocationDiscoveryDetailScreen() {
       <View style={styles.container}>
         <View style={styles.header}>
           <View style={styles.headerSideSlot}>
-            <TouchableOpacity
-              activeOpacity={0.88}
-              style={styles.backButton}
-              onPress={goBack}
-            >
-              <Feather name="arrow-left" size={20} color="#102033" />
-            </TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={0.88}
+            style={styles.backButton}
+            onPress={goBack}
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+          >
+            <Feather name="arrow-left" size={20} color="#102033" />
+          </TouchableOpacity>
           </View>
           <AppText preset="headline" style={styles.headerTitle}>
             산책 장소 상세

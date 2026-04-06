@@ -10,6 +10,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import PremiumNoticeModal from '../../components/common/PremiumNoticeModal';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { getBrandedErrorMeta } from '../../services/app/errors';
 import {
@@ -58,6 +59,48 @@ export default function MoreScreen() {
   const [deleting, setDeleting] = useState(false);
   const [logoutConfirmVisible, setLogoutConfirmVisible] = useState(false);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [accountStatusNotice, setAccountStatusNotice] = useState<
+    'pending' | 'unknown' | null
+  >(null);
+  const accountStatusNoticeConfig = useMemo(() => {
+    if (accountStatusNotice === 'unknown') {
+      return {
+        eyebrow: 'ACCOUNT STATUS',
+        titleLines: ['상태를 조금 더 확인하고 있어요 🥺'],
+        bodyLines: [
+          '삭제가 잘 마무리되었는지 아직 확인 중이에요.',
+          '조금 뒤에 다시 확인해 주시면 더 정확한 상태를 안내해 드릴게요.',
+          '이후에도 상태가 같다면 운영 확인이 필요할 수 있어요.',
+        ] as const,
+        accessibilityTitleLines: ['상태를 조금 더 확인하고 있어요'],
+        accessibilityBodyLines: [
+          '삭제가 잘 마무리되었는지 아직 확인 중이에요.',
+          '조금 뒤에 다시 확인해 주시면 더 정확한 상태를 안내해 드릴게요.',
+          '이후에도 상태가 같다면 운영 확인이 필요할 수 있어요.',
+        ] as const,
+      };
+    }
+
+    if (accountStatusNotice === 'pending') {
+      return {
+        eyebrow: 'ACCOUNT STATUS',
+        titleLines: ['안전하게 정리하고 있어요 🧹'],
+        bodyLines: [
+          '계정 삭제 요청은 정상적으로 접수되었어요.',
+          '남아 있는 정보와 파일은 안전한 절차에 따라 순차적으로 정리되고 있어요.',
+          '최종 반영까지는 조금 더 시간이 필요할 수 있어요.',
+        ] as const,
+        accessibilityTitleLines: ['안전하게 정리하고 있어요'],
+        accessibilityBodyLines: [
+          '계정 삭제 요청은 정상적으로 접수되었어요.',
+          '남아 있는 정보와 파일은 안전한 절차에 따라 순차적으로 정리되고 있어요.',
+          '최종 반영까지는 조금 더 시간이 필요할 수 있어요.',
+        ] as const,
+      };
+    }
+
+    return null;
+  }, [accountStatusNotice]);
 
   // ---------------------------------------------------------
   // 4) actions
@@ -121,23 +164,11 @@ export default function MoreScreen() {
       }
 
       if (result.status === 'unknown_pending_confirmation') {
-        showToast({
-          tone: 'warning',
-          title: '삭제 상태 확인 중',
-          message:
-            '요청 완료 여부를 아직 확인하지 못했어요. 잠시 후 다시 확인해도 상태가 불명확하면 운영 확인이 필요해요.',
-          durationMs: 3600,
-        });
+        setAccountStatusNotice('unknown');
         return;
       }
 
-      showToast({
-        tone: 'warning',
-        title: '삭제 요청 진행 중',
-        message:
-          '계정 삭제 요청은 접수됐지만 아직 최종 상태가 확정되지 않았어요. 잠시 후 다시 확인해 주세요.',
-        durationMs: 3600,
-      });
+      setAccountStatusNotice('pending');
     } catch (error) {
       const { title: alertTitle, message } = getBrandedErrorMeta(
         error,
@@ -277,6 +308,18 @@ export default function MoreScreen() {
           setDeleteConfirmVisible(false);
           executeDeleteAccount().catch(() => {});
         }}
+      />
+      <PremiumNoticeModal
+        visible={accountStatusNoticeConfig !== null}
+        eyebrow={accountStatusNoticeConfig?.eyebrow ?? 'ACCOUNT STATUS'}
+        iconName="shield"
+        titleLines={accountStatusNoticeConfig?.titleLines ?? ['']}
+        bodyLines={accountStatusNoticeConfig?.bodyLines ?? ['']}
+        accessibilityTitleLines={accountStatusNoticeConfig?.accessibilityTitleLines}
+        accessibilityBodyLines={accountStatusNoticeConfig?.accessibilityBodyLines}
+        accentColor={petTheme.primary}
+        confirmAccessibilityLabel="계정 삭제 상태 안내 닫기"
+        onClose={() => setAccountStatusNotice(null)}
       />
     </View>
   );

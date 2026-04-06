@@ -50,6 +50,7 @@ import Feather from 'react-native-vector-icons/Feather';
 
 import { ASSETS } from '../../assets';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import WaveText from '../../components/common/WaveText';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import PhotoAddCard from '../../components/media/PhotoAddCard';
 import PetMemorialFields from '../../components/pets/PetMemorialFields';
@@ -1547,6 +1548,12 @@ export default function PetCreateScreen() {
                 <TouchableOpacity
                   activeOpacity={0.9}
                   disabled={!canSubmit}
+                  accessibilityLabel={saving ? '반려동물 등록 중' : '반려동물 등록 완료'}
+                  accessibilityHint={
+                    saving
+                      ? '반려동물 등록을 완료할 때까지 잠시 기다려 주세요.'
+                      : '두 번 탭하면 반려동물 등록을 완료합니다.'
+                  }
                   style={[
                     styles.primaryButton,
                     {
@@ -1557,14 +1564,22 @@ export default function PetCreateScreen() {
                   ]}
                   onPress={onSubmit}
                 >
-                  <Text
-                    style={[
-                      styles.primaryButtonText,
-                      { color: selectedTheme.onPrimary },
-                    ]}
-                  >
-                    {saving ? '등록 중...' : '등록 완료'}
-                  </Text>
+                  {saving ? (
+                    <WaveText
+                      text="소중한 가족을 맞이하는 중 💖"
+                      color={selectedTheme.onPrimary}
+                      textStyle={styles.primaryButtonText}
+                    />
+                  ) : (
+                    <Text
+                      style={[
+                        styles.primaryButtonText,
+                        { color: selectedTheme.onPrimary },
+                      ]}
+                    >
+                      등록 완료
+                    </Text>
+                  )}
                 </TouchableOpacity>
               </>
             )}

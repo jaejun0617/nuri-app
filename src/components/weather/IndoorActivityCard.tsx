@@ -29,7 +29,7 @@ export default React.memo(function IndoorActivityCard({
       <View style={[styles.iconWrap, { backgroundColor: accentTint }]}>
         <MaterialCommunityIcons
           name={item.heroIcon as never}
-          size={24}
+          size={22}
           color={accentColor}
         />
       </View>
@@ -57,8 +57,8 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   iconWrap: {
-    width: 52,
-    height: 52,
+    width: 56,
+    height: 56,
     borderRadius: 18,
     backgroundColor: '#F2EAFF',
     alignItems: 'center',
@@ -69,14 +69,14 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   title: {
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 19,
     color: '#1B2434',
     fontWeight: '700',
   },
   subtitle: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 18,
     color: '#8B96AA',
     fontWeight: '400',
   },

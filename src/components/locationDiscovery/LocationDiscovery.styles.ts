@@ -253,6 +253,32 @@ export const styles = StyleSheet.create({
   cardThumbnailCompact: {
     height: 112,
   },
+  cardThumbnailPlaceholder: {
+    flex: 1,
+    minHeight: 132,
+    backgroundColor: '#EEF2F5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+  },
+  cardThumbnailPlaceholderCompact: {
+    minHeight: 112,
+    paddingHorizontal: 10,
+  },
+  cardThumbnailPlaceholderIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(122,134,153,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardThumbnailPlaceholderText: {
+    color: '#7A8699',
+    fontWeight: '800',
+    textAlign: 'center',
+  },
   cardThumbnailOverlay: {
     position: 'absolute',
     inset: 0,

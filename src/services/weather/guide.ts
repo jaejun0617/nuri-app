@@ -72,6 +72,11 @@ export type IndoorActivityGuide = {
   title: string;
   subtitle: string;
   shortTip: string;
+  image: {
+    thumbnailUri: string | null;
+    sourceUri: string | null;
+    alt: string;
+  } | null;
   heroEmoji: string;
   heroBackground: [string, string];
   heroIcon: string;
@@ -109,6 +114,18 @@ export const WEATHER_RECORD_EMOTION_OPTIONS: ReadonlyArray<{
   { key: 'anxious', emoji: '😥', label: '조심스러워요' },
   { key: 'angry', emoji: '😤', label: '예민해요' },
 ];
+
+const WIKIMEDIA_FILE_PATH_PREFIX =
+  'https://commons.wikimedia.org/wiki/Special:FilePath/';
+
+function buildIndoorActivityImage(filename: string, alt: string) {
+  const uri = `${WIKIMEDIA_FILE_PATH_PREFIX}${encodeURIComponent(filename)}`;
+  return {
+    thumbnailUri: uri,
+    sourceUri: uri,
+    alt,
+  } as const;
+}
 
 export type WeatherGuideBundle = {
   district: string;
@@ -474,6 +491,10 @@ export const INDOOR_ACTIVITY_GUIDES: Record<IndoorActivityKey, IndoorActivityGui
     title: '노즈워크 놀이',
     subtitle: '후각을 자극하며 차분하게 에너지를 풀어주는 놀이예요.',
     shortTip: '간식을 너무 어렵지 않은 위치에서 시작해 주는 편이 좋아요.',
+    image: buildIndoorActivityImage(
+      'Dog Sniffing Wet Concrete (not what it looks like) (1603398757).jpg',
+      '냄새를 맡으며 집중하는 강아지',
+    ),
     heroEmoji: '🐶',
     heroBackground: ['#EAF2FF', '#F8FBFF'],
     heroIcon: 'food-drumstick-outline',
@@ -517,6 +538,10 @@ export const INDOOR_ACTIVITY_GUIDES: Record<IndoorActivityKey, IndoorActivityGui
     title: '터그 놀이',
     subtitle: '짧고 즐겁게 에너지를 풀며 교감을 깊게 만드는 놀이예요.',
     shortTip: '너무 높게 들지 말고, 좌우로 부드럽게 흔들어주는 방식이 좋아요.',
+    image: buildIndoorActivityImage(
+      'Dog with toys.jpg',
+      '장난감과 함께 노는 강아지',
+    ),
     heroEmoji: '🎾',
     heroBackground: ['#FFF3EA', '#FFF9F4'],
     heroIcon: 'tennis-ball',
@@ -560,6 +585,10 @@ export const INDOOR_ACTIVITY_GUIDES: Record<IndoorActivityKey, IndoorActivityGui
     title: '개인기 연습',
     subtitle: '짧은 훈련과 보상으로 두뇌를 자극하는 시간이에요.',
     shortTip: '짧고 자주, 그리고 성공 즉시 보상을 주는 편이 가장 효과적이에요.',
+    image: buildIndoorActivityImage(
+      'Dog Agility Class (3715915507).jpg',
+      '훈련에 집중하는 강아지',
+    ),
     heroEmoji: '🧠',
     heroBackground: ['#FFF4E8', '#FFFBF6'],
     heroIcon: 'school-outline',
@@ -603,6 +632,10 @@ export const INDOOR_ACTIVITY_GUIDES: Record<IndoorActivityKey, IndoorActivityGui
     title: '홈 마사지',
     subtitle: '부드러운 터치로 안정감과 정서적 유대감을 높여주는 시간이에요.',
     shortTip: '아이가 편안히 눕거나 기대는 자세에서 천천히 시작해 주세요.',
+    image: buildIndoorActivityImage(
+      'The sleeping dog.JPG',
+      '편안하게 쉬고 있는 강아지',
+    ),
     heroEmoji: '🌿',
     heroBackground: ['#F6F0E6', '#FBF8F2'],
     heroIcon: 'leaf',
@@ -646,6 +679,10 @@ export const INDOOR_ACTIVITY_GUIDES: Record<IndoorActivityKey, IndoorActivityGui
     title: '스니프 매트',
     subtitle: '매트 사이에 간식을 숨기며 천천히 몰입하는 놀이예요.',
     shortTip: '간식을 너무 깊게 숨기기보다 찾기 쉬운 곳부터 시작해 주세요.',
+    image: buildIndoorActivityImage(
+      'Dog Sniffing Wet Concrete (not what it looks like) (1603398757).jpg',
+      '후각 놀이에 몰입하는 강아지',
+    ),
     heroEmoji: '🧩',
     heroBackground: ['#F8F1FF', '#F3E8FF'],
     heroIcon: 'cards-outline',
@@ -689,6 +726,10 @@ export const INDOOR_ACTIVITY_GUIDES: Record<IndoorActivityKey, IndoorActivityGui
     title: '숨바꼭질',
     subtitle: '보호자를 찾으며 집중력과 교감을 함께 높이는 놀이예요.',
     shortTip: '짧게 숨어도 괜찮아요. 찾았을 때 크게 칭찬해 주세요.',
+    image: buildIndoorActivityImage(
+      'Marley, a Shetland sheepdog, lying on a bed - 20051210.jpg',
+      '침대 위에서 주변을 살피는 강아지',
+    ),
     heroEmoji: '🙈',
     heroBackground: ['#FFF7ED', '#FFEDD5'],
     heroIcon: 'account-search-outline',
@@ -732,6 +773,10 @@ export const INDOOR_ACTIVITY_GUIDES: Record<IndoorActivityKey, IndoorActivityGui
     title: '가벼운 스트레칭',
     subtitle: '실내에서도 몸을 부드럽게 풀어주는 짧은 움직임 루틴이에요.',
     shortTip: '억지로 자세를 만들기보다 자연스러운 움직임을 유도해 주세요.',
+    image: buildIndoorActivityImage(
+      'Marley, a Shetland sheepdog, lying on a bed - 20051210.jpg',
+      '몸을 편하게 풀고 쉬는 강아지',
+    ),
     heroEmoji: '🧘',
     heroBackground: ['#ECFDF5', '#D1FAE5'],
     heroIcon: 'meditation',
@@ -775,6 +820,10 @@ export const INDOOR_ACTIVITY_GUIDES: Record<IndoorActivityKey, IndoorActivityGui
     title: '실내 밸런스 워크',
     subtitle: '쿠션이나 매트를 이용해 천천히 중심을 잡는 놀이예요.',
     shortTip: '미끄러운 재질은 피하고, 짧은 구간으로 안전하게 시작해 주세요.',
+    image: buildIndoorActivityImage(
+      'Dog Agility Class (3715915507).jpg',
+      '균형 감각을 쓰며 이동하는 강아지',
+    ),
     heroEmoji: '🚶',
     heroBackground: ['#EEF2FF', '#E0E7FF'],
     heroIcon: 'map-marker-path',

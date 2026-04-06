@@ -21,6 +21,7 @@ import {
 import { styles } from '../../components/locationDiscovery/LocationDiscovery.styles';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import { useLocationDiscovery } from '../../hooks/useLocationDiscovery';
+import { usePrefetchLocationDiscoveryThumbnails } from '../../hooks/useLocationDiscoveryThumbnail';
 import { useRecentPersonalSearches } from '../../hooks/useRecentPersonalSearches';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
@@ -120,6 +121,7 @@ export default function LocationDiscoveryListScreen() {
     () => sortWalkItems(discoveryState.items, sortOrder),
     [discoveryState.items, sortOrder],
   );
+  usePrefetchLocationDiscoveryThumbnails(sortedItems);
 
   const locationTitle = useMemo(() => {
     return (
@@ -298,6 +300,7 @@ export default function LocationDiscoveryListScreen() {
               activeOpacity={0.88}
               style={styles.backButton}
               onPress={onPressBack}
+              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
             >
               <Feather name="arrow-left" size={20} color="#102033" />
             </TouchableOpacity>

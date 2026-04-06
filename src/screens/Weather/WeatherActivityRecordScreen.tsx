@@ -3,21 +3,20 @@
 // - 실내 활동 완료 후 빠르게 감정/메모/태그를 남기는 전용 기록 화면
 // - 저장 성공 시 완료 팝업을 보여주고 타임라인으로 이어짐
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Alert,
-  Keyboard,
   Modal,
-  Platform,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
 } from 'react-native';
-import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import {
+  KeyboardAwareScrollView,
+  type KeyboardAwareScrollViewRef,
+} from 'react-native-keyboard-controller';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -124,6 +123,7 @@ export default function WeatherActivityRecordScreen() {
   const [tagModalVisible, setTagModalVisible] = useState(false);
   const [saving, setSaving] = useState(false);
   const [doneVisible, setDoneVisible] = useState(false);
+  const scrollRef = useRef<KeyboardAwareScrollViewRef | null>(null);
 
   const toggleTag = useCallback((tag: string) => {
     setSelectedTags(prev =>
@@ -272,60 +272,67 @@ export default function WeatherActivityRecordScreen() {
     });
   }, [navigation]);
 
+  const handleFocusField = useCallback(() => {
+    requestAnimationFrame(() => {
+      scrollRef.current?.assureFocusedInputVisible();
+    });
+  }, []);
+
   return (
     <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView
-        style={styles.keyboardView}
-        behavior="padding"
-        enabled
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
-      >
-        <TouchableWithoutFeedback
-          accessible={false}
-          onPress={Keyboard.dismiss}
-        >
-          <View style={styles.keyboardContent}>
-            <View style={styles.header}>
-              <View style={styles.headerSideSlot}>
-                <TouchableOpacity
-                  activeOpacity={0.88}
-                  style={styles.headerSide}
-                  onPress={onPressBack}
-                >
-                  <Feather name="arrow-left" size={20} color="#102033" />
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.headerTitle}>기록하기</Text>
-              <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
-            </View>
-
-            <ScrollView
-              style={styles.scroll}
-              contentContainerStyle={[
-                styles.content,
-                { paddingBottom: Math.max(insets.bottom + 28, 40) },
-              ]}
-              keyboardDismissMode="on-drag"
-              keyboardShouldPersistTaps="handled"
-              onScrollBeginDrag={Keyboard.dismiss}
-              showsVerticalScrollIndicator={false}
+      <View style={styles.keyboardContent}>
+        <View style={styles.header}>
+          <View style={styles.headerSideSlot}>
+            <TouchableOpacity
+              activeOpacity={0.88}
+              style={styles.headerSide}
+              onPress={onPressBack}
+              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
             >
-            <View style={styles.summaryCard}>
-              <View style={styles.summaryTextWrap}>
-                <Text style={styles.summaryTitle}>{guide.title} 완료!</Text>
-                <Text style={styles.summaryLink}>{district} 활동 기록</Text>
-              </View>
-                <View style={styles.summaryIcon}>
-                  <MaterialCommunityIcons
-                    name={guide.heroIcon as never}
-                    size={24}
-                    color={petTheme.primary}
-                  />
-                </View>
-              </View>
+              <Feather name="arrow-left" size={20} color="#102033" />
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.headerTitle}>기록하기</Text>
+          <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
+        </View>
 
-        <View style={styles.section}>
-          <Text style={styles.label}>사진 업로드</Text>
+        <KeyboardAwareScrollView
+          ref={scrollRef}
+          style={styles.scroll}
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: Math.max(insets.bottom + 28, 40) },
+          ]}
+          keyboardDismissMode="none"
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.summaryCard}>
+            <View style={styles.summaryTextWrap}>
+              <Text style={styles.summaryTitle}>{guide.title} 완료!</Text>
+              <Text style={[styles.summaryLink, { color: petTheme.primary }]}>
+                {district} 활동 기록
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.summaryIcon,
+                {
+                  backgroundColor: petTheme.tint,
+                  borderColor: petTheme.border,
+                },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name={guide.heroIcon as never}
+                size={24}
+                color={petTheme.primary}
+              />
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.label}>사진 업로드</Text>
             <PhotoAddCard
               imageUri={imageUri}
               onPress={onPickImage}
@@ -343,126 +350,132 @@ export default function WeatherActivityRecordScreen() {
             ]}
             editIconSize={16}
           />
-        </View>
+          </View>
 
-        <View style={styles.section}>
-          <Text style={styles.label}>오늘 아이의 기분은?</Text>
-          <View style={styles.emotionRow}>
-            {WEATHER_RECORD_EMOTION_OPTIONS.map(option => {
-              const active = selectedEmotion === option.key;
-              return (
-                <TouchableOpacity
-                  key={option.key}
-                  activeOpacity={0.9}
-                  style={[
-                    styles.emotionChip,
-                    active ? styles.emotionChipActive : null,
-                    active
-                      ? {
-                          borderColor: petTheme.border,
-                          backgroundColor: petTheme.tint,
-                        }
-                      : null,
-                  ]}
-                  onPress={() => setSelectedEmotion(option.key)}
-                >
-                  <Text style={styles.emotionEmoji}>{option.emoji}</Text>
-                  <Text
+          <View style={styles.section}>
+            <Text style={styles.label}>오늘 아이의 기분은?</Text>
+            <View style={styles.emotionRow}>
+              {WEATHER_RECORD_EMOTION_OPTIONS.map(option => {
+                const active = selectedEmotion === option.key;
+                return (
+                  <TouchableOpacity
+                    key={option.key}
+                    activeOpacity={0.9}
                     style={[
-                      styles.emotionLabel,
-                      active ? styles.emotionLabelActive : null,
-                      active ? { color: petTheme.deep } : null,
+                      styles.emotionChip,
+                      active ? styles.emotionChipActive : null,
+                      active
+                        ? {
+                            borderColor: petTheme.border,
+                            backgroundColor: petTheme.tint,
+                          }
+                        : null,
                     ]}
+                    onPress={() => setSelectedEmotion(option.key)}
                   >
-                    {option.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+                    <Text style={styles.emotionEmoji}>{option.emoji}</Text>
+                    <Text
+                      style={[
+                        styles.emotionLabel,
+                        active ? styles.emotionLabelActive : null,
+                        active ? { color: petTheme.deep } : null,
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
-        </View>
 
-        <View style={styles.section}>
-          <Text style={styles.label}>제목</Text>
-          <TextInput
-            value={title}
-            onChangeText={setTitle}
-            style={styles.input}
-            placeholder={guide.recordDraft.title}
-            placeholderTextColor="#B8C0CF"
-          />
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.label}>메모</Text>
-          <TextInput
-            value={note}
-            onChangeText={setNote}
-            style={styles.textarea}
-            multiline
-            placeholder={guide.recordDraft.notePrompt}
-            placeholderTextColor="#B8C0CF"
-          />
-        </View>
-
-        <View style={styles.section}>
-          <View style={styles.tagHeader}>
-            <Text style={styles.label}>태그</Text>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={() => setTagModalVisible(true)}
-            >
-              <Text style={[styles.tagAdd, { color: petTheme.primary }]}>+ 추가</Text>
-            </TouchableOpacity>
+          <View style={styles.section}>
+            <Text style={styles.label}>제목</Text>
+            <TextInput
+              value={title}
+              onChangeText={setTitle}
+              onFocus={handleFocusField}
+              style={styles.input}
+              placeholder={guide.recordDraft.title}
+              placeholderTextColor="#B8C0CF"
+            />
           </View>
-          <View style={styles.tagRow}>
-            {guide.recordDraft.suggestedTags.map(tag => {
-              const active = selectedTags.includes(tag);
-              return (
-                <TouchableOpacity
-                  key={tag}
-                  activeOpacity={0.9}
-                  style={[
-                    styles.tagChip,
-                    active ? styles.tagChipActive : null,
-                    active ? { backgroundColor: petTheme.tint } : null,
-                  ]}
-                  onPress={() => toggleTag(tag)}
-                >
-                  <Text
-                    style={[
-                      styles.tagText,
-                      active ? styles.tagTextActive : null,
-                      active ? { color: petTheme.deep } : null,
-                    ]}
-                  >
-                    {tag}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
 
+          <View style={styles.section}>
+            <Text style={styles.label}>메모</Text>
+            <TextInput
+              value={note}
+              onChangeText={setNote}
+              onFocus={handleFocusField}
+              style={styles.textarea}
+              multiline
+              placeholder={guide.recordDraft.notePrompt}
+              placeholderTextColor="#B8C0CF"
+            />
+          </View>
+
+          <View style={styles.section}>
+            <View style={styles.tagHeader}>
+              <Text style={styles.label}>태그</Text>
               <TouchableOpacity
-                activeOpacity={0.92}
-                style={[
-                  styles.primaryButton,
-                  { backgroundColor: petTheme.primary },
-                  saving ? styles.primaryButtonDisabled : null,
-                ]}
-                onPress={onSubmit}
-                disabled={saving}
+                activeOpacity={0.85}
+                onPress={() => setTagModalVisible(true)}
               >
-                <MaterialCommunityIcons name="content-save-outline" size={18} color="#FFFFFF" />
-                <Text style={styles.primaryButtonText}>
-                  {saving ? '저장 중...' : '기록 저장하기'}
+                <Text style={[styles.tagAdd, { color: petTheme.primary }]}>
+                  + 추가
                 </Text>
               </TouchableOpacity>
-            </ScrollView>
+            </View>
+            <View style={styles.tagRow}>
+              {guide.recordDraft.suggestedTags.map(tag => {
+                const active = selectedTags.includes(tag);
+                return (
+                  <TouchableOpacity
+                    key={tag}
+                    activeOpacity={0.9}
+                    style={[
+                      styles.tagChip,
+                      active ? styles.tagChipActive : null,
+                      active ? { backgroundColor: petTheme.tint } : null,
+                    ]}
+                    onPress={() => toggleTag(tag)}
+                  >
+                    <Text
+                      style={[
+                        styles.tagText,
+                        active ? styles.tagTextActive : null,
+                        active ? { color: petTheme.deep } : null,
+                      ]}
+                    >
+                      {tag}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
+
+          <TouchableOpacity
+            activeOpacity={0.92}
+            style={[
+              styles.primaryButton,
+              { backgroundColor: petTheme.primary },
+              saving ? styles.primaryButtonDisabled : null,
+            ]}
+            onPress={onSubmit}
+            disabled={saving}
+          >
+            <MaterialCommunityIcons
+              name="content-save-outline"
+              size={18}
+              color="#FFFFFF"
+            />
+            <Text style={styles.primaryButtonText}>
+              {saving ? '저장 중...' : '기록 저장하기'}
+            </Text>
+          </TouchableOpacity>
+        </KeyboardAwareScrollView>
+      </View>
 
       <Modal
         visible={doneVisible}
@@ -593,6 +606,8 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 18,
     backgroundColor: '#F0E8FF',
+    borderWidth: 1,
+    borderColor: '#EFE6FB',
     alignItems: 'center',
     justifyContent: 'center',
   },

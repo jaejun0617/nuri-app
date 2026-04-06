@@ -28,6 +28,7 @@ import AppText from '../../app/ui/AppText';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import OptimizedImage from '../../components/images/OptimizedImage';
+import { MemoryCard } from '../../components/MemoryCard/MemoryCard';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { TimelineStackParamList } from '../../navigation/TimelineStackNavigator';
 import { getBrandedErrorMeta } from '../../services/app/errors';
@@ -58,6 +59,7 @@ type PreviewImageSource = {
 
 const RELATED_IMAGE_HYDRATION_DELAY_MS = 140;
 const DETAIL_EAGER_IMAGE_COUNT = 4;
+const RELATED_RECORDS_PAGE_SIZE = 5;
 function toPreviewImageSources(
   imagePaths: ReturnType<typeof getMemoryImageRefs>,
   urls: Array<string | null>,
@@ -402,9 +404,17 @@ export default function RecordDetailScreen() {
   const removeOneLocal = useRecordStore(s => s.removeOneLocal);
   const refresh = useRecordStore(s => s.refresh);
   const upsertOneLocal = useRecordStore(s => s.upsertOneLocal);
+  const bootstrapRecords = useRecordStore(s => s.bootstrap);
+  const loadMoreRecords = useRecordStore(s => s.loadMore);
   const pets = usePetStore(s => s.pets);
 
   const resolvedPetId = record?.petId?.trim() || petId;
+  const timelineIds = useRecordStore(s => s.selectTimelineIdsByPetId(resolvedPetId));
+  const timelineStatus = useRecordStore(s => s.selectTimelineStatusByPetId(resolvedPetId));
+  const timelineHasMore = useRecordStore(s => s.selectTimelineHasMoreByPetId(resolvedPetId));
+  const timelineEntityVersion = useRecordStore(
+    s => s.selectTimelineEntityVersionByPetId(resolvedPetId),
+  );
   const selectedPet = useMemo(
     () => pets.find(item => item.id === resolvedPetId) ?? null,
     [pets, resolvedPetId],
@@ -477,6 +487,7 @@ export default function RecordDetailScreen() {
   const [deleting, setDeleting] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [actionMenuVisible, setActionMenuVisible] = useState(false);
+  const [visibleRelatedCount, setVisibleRelatedCount] = useState(RELATED_RECORDS_PAGE_SIZE);
   const openActionMenu = useCallback(() => {
     setActionMenuVisible(true);
   }, []);
@@ -517,6 +528,31 @@ export default function RecordDetailScreen() {
     hideActionMenu();
     setDeleteModalVisible(true);
   }, [hideActionMenu, record, resolvedPetId]);
+
+  useEffect(() => {
+    if (!resolvedPetId) return;
+    if (timelineIds.length > 0 || timelineStatus !== 'idle') return;
+    bootstrapRecords(resolvedPetId).catch(() => {});
+  }, [bootstrapRecords, resolvedPetId, timelineIds.length, timelineStatus]);
+
+  useEffect(() => {
+    setVisibleRelatedCount(RELATED_RECORDS_PAGE_SIZE);
+  }, [record?.id]);
+
+  const relatedRecords = useMemo(() => {
+    if (!record) return [] as MemoryRecord[];
+    const recordsById = useRecordStore.getState().recordsById;
+    return timelineIds
+      .filter(id => id !== record.id)
+      .map(id => recordsById[id])
+      .filter((item): item is MemoryRecord => Boolean(item));
+  }, [record, timelineEntityVersion, timelineIds]);
+  const visibleRelatedRecords = useMemo(
+    () => relatedRecords.slice(0, visibleRelatedCount),
+    [relatedRecords, visibleRelatedCount],
+  );
+  const canShowMoreRelatedRecords = visibleRelatedCount < relatedRecords.length || timelineHasMore;
+
   const onConfirmDelete = useCallback(async () => {
     if (!resolvedPetId || !record || deleting) return;
 
@@ -562,6 +598,51 @@ export default function RecordDetailScreen() {
       />
     ),
     [openActionMenu, petAvatarUrl, petName],
+  );
+
+  const handlePressRelatedRecord = useCallback(
+    (item: MemoryRecord) => {
+      if (!resolvedPetId) return;
+      navigation.replace('RecordDetail', {
+        petId: resolvedPetId,
+        memoryId: item.id,
+        entrySource: route.params?.entrySource,
+      });
+    },
+    [navigation, resolvedPetId, route.params?.entrySource],
+  );
+
+  const handlePressMoreRelatedRecords = useCallback(() => {
+    if (!resolvedPetId) return;
+
+    const nextVisibleCount = visibleRelatedCount + RELATED_RECORDS_PAGE_SIZE;
+    if (
+      nextVisibleCount > relatedRecords.length &&
+      timelineHasMore &&
+      timelineStatus !== 'loadingMore'
+    ) {
+      loadMoreRecords(resolvedPetId).catch(() => {});
+    }
+    setVisibleRelatedCount(nextVisibleCount);
+  }, [
+    loadMoreRecords,
+    relatedRecords.length,
+    resolvedPetId,
+    timelineHasMore,
+    timelineStatus,
+    visibleRelatedCount,
+  ]);
+
+  const renderRelatedRecord = useCallback(
+    ({ item, index }: { item: MemoryRecord; index: number }) => (
+      <MemoryCard
+        item={item}
+        onPress={handlePressRelatedRecord}
+        deferImageLoad={index > 1}
+        imageVariant="timeline-thumb"
+      />
+    ),
+    [handlePressRelatedRecord],
   );
 
   const retryHydrateRecord = useCallback(() => {
@@ -651,6 +732,7 @@ export default function RecordDetailScreen() {
             activeOpacity={0.88}
             style={styles.backButton}
             onPress={onPressBack}
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           >
             <Feather name="arrow-left" size={20} color="#102033" />
           </TouchableOpacity>
@@ -667,6 +749,54 @@ export default function RecordDetailScreen() {
         showsVerticalScrollIndicator={false}
       >
         {renderFeedCard(record)}
+
+        <View style={styles.relatedSection}>
+          <View style={styles.relatedSectionHeader}>
+            <AppText preset="headline" style={styles.relatedSectionTitle}>
+              다른 추억도 이어서 볼래요
+            </AppText>
+            <AppText preset="caption" style={styles.relatedSectionCount}>
+              {relatedRecords.length}개
+            </AppText>
+          </View>
+
+          {visibleRelatedRecords.length > 0 ? (
+            <FlashList
+              data={visibleRelatedRecords}
+              keyExtractor={item => item.id}
+              renderItem={renderRelatedRecord}
+              scrollEnabled={false}
+              nestedScrollEnabled={false}
+              showsVerticalScrollIndicator={false}
+              removeClippedSubviews={false}
+            />
+          ) : (
+            <View style={styles.relatedEmptyCard}>
+              <AppText preset="body" style={styles.relatedEmptyText}>
+                이어서 볼 추억이 아직 없어요.
+              </AppText>
+            </View>
+          )}
+
+          {canShowMoreRelatedRecords ? (
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={[
+                styles.relatedMoreButton,
+                { backgroundColor: petTheme.soft, borderColor: petTheme.border },
+              ]}
+              onPress={handlePressMoreRelatedRecords}
+              disabled={timelineStatus === 'loadingMore'}
+            >
+              <AppText
+                preset="body"
+                style={[styles.relatedMoreButtonText, { color: petTheme.primary }]}
+              >
+                {timelineStatus === 'loadingMore' ? '더 불러오는 중...' : '더보기'}
+              </AppText>
+            </TouchableOpacity>
+          ) : null}
+        </View>
       </ScrollView>
 
       <Modal
