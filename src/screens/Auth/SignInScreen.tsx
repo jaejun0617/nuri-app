@@ -34,16 +34,23 @@ import { useTheme } from 'styled-components/native';
 
 import { ASSETS } from '../../assets';
 import PremiumNoticeModal from '../../components/common/PremiumNoticeModal';
+import WaveText from '../../components/common/WaveText';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { getBrandedErrorMeta } from '../../services/app/errors';
+import { performLogout } from '../../services/auth/session';
 import {
   isInvalidCredentialSignInError,
   resolveSignInNotice,
   type SignInNotice,
 } from '../../services/auth/notices';
-import { clearLocalAuthSession } from '../../services/supabase/auth';
+import {
+  cancelAccountDeletion,
+  clearLocalAuthSession,
+} from '../../services/supabase/auth';
 import { supabase } from '../../services/supabase/client';
 import { useAuthStore } from '../../store/authStore';
+import { showToast } from '../../store/uiStore';
+import { getKstDateParts } from '../../utils/date';
 
 import { styles } from './SignInScreen.styles';
 
@@ -146,6 +153,12 @@ const GoogleBadgeMark = memo(function GoogleBadgeMark() {
   );
 });
 
+function formatScheduledDeletionDate(value: string | null) {
+  const parts = getKstDateParts(value);
+  if (!parts) return '-';
+  return `${parts.year}.${String(parts.month).padStart(2, '0')}.${String(parts.day).padStart(2, '0')}`;
+}
+
 export default function SignInScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<SignInRoute>();
@@ -153,13 +166,18 @@ export default function SignInScreen() {
   const insets = useSafeAreaInsets();
 
   const setSession = useAuthStore(s => s.setSession);
+  const setAccountDeletionGate = useAuthStore(s => s.setAccountDeletionGate);
   const clearPasswordRecovery = useAuthStore(s => s.clearPasswordRecovery);
   const passwordRecoveryStatus = useAuthStore(s => s.passwordRecoveryFlow.status);
+  const accountDeletionGate = useAuthStore(s => s.accountDeletionGate);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [securePassword, setSecurePassword] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [recoverySubmitting, setRecoverySubmitting] = useState<
+    'restore' | 'logout' | null
+  >(null);
   const [activeNotice, setActiveNotice] = useState<SignInNotice | null>(null);
   const emailInputRef = useRef<TextInput>(null);
   const passwordInputRef = useRef<TextInput>(null);
@@ -308,6 +326,59 @@ export default function SignInScreen() {
     [handleNoticeSecondaryAction, noticeConfig?.secondaryActions],
   );
 
+  const scheduledDeletionLabel = useMemo(
+    () =>
+      formatScheduledDeletionDate(
+        accountDeletionGate?.scheduledDeletionAt ?? null,
+      ),
+    [accountDeletionGate?.scheduledDeletionAt],
+  );
+
+  const handleAccountRecovery = useCallback(async () => {
+    if (!accountDeletionGate || recoverySubmitting) return;
+
+    try {
+      setRecoverySubmitting('restore');
+      await cancelAccountDeletion(accountDeletionGate.requestId);
+      setAccountDeletionGate(null);
+      navigation.reset({ index: 0, routes: [{ name: 'Splash' }] });
+    } catch (error) {
+      const { title, message } = getBrandedErrorMeta(error, 'account-delete');
+      Alert.alert(title, message);
+    } finally {
+      setRecoverySubmitting(null);
+    }
+  }, [
+    accountDeletionGate,
+    navigation,
+    recoverySubmitting,
+    setAccountDeletionGate,
+  ]);
+
+  const handleGateLogout = useCallback(async () => {
+    if (recoverySubmitting) return;
+
+    try {
+      setRecoverySubmitting('logout');
+      const result = await performLogout(1200);
+      navigation.reset({ index: 0, routes: [{ name: 'SignIn' }] });
+
+      if (result.timedOut) {
+        showToast({
+          tone: 'info',
+          title: '세션 정리 진행 중',
+          message:
+            '이 기기에서는 바로 로그아웃되었고 서버 세션 정리는 잠시 이어질 수 있어요.',
+        });
+      }
+    } catch (error) {
+      const { title, message } = getBrandedErrorMeta(error, 'logout');
+      Alert.alert(title, message);
+    } finally {
+      setRecoverySubmitting(null);
+    }
+  }, [navigation, recoverySubmitting]);
+
   return (
     <SafeAreaView style={styles.screen}>
       <KeyboardAwareScrollView
@@ -370,14 +441,23 @@ export default function SignInScreen() {
           activeOpacity={0.9}
           disabled={disabled}
           onPress={onSubmit}
+          accessibilityLabel={submitting ? 'NURI와 연결하는 중' : '로그인'}
           style={[
             styles.primaryButton,
             disabled ? styles.primaryButtonDisabled : null,
           ]}
         >
-          <Text style={styles.primaryButtonText}>
-            {submitting ? '로그인 중...' : '로그인'}
-          </Text>
+          {submitting ? (
+            <WaveText
+              text="NURI와 연결하는 중 🐾"
+              color="#FFFFFF"
+              textStyle={styles.primaryButtonText}
+              amplitude={2.6}
+              staggerMs={55}
+            />
+          ) : (
+            <Text style={styles.primaryButtonText}>로그인</Text>
+          )}
         </TouchableOpacity>
 
         <View style={styles.inlineLinks}>
@@ -417,7 +497,7 @@ export default function SignInScreen() {
           textColor="#334155"
         />
 
-        {noticeConfig ? (
+        {noticeConfig && !accountDeletionGate ? (
           <PremiumNoticeModal
             visible
             eyebrow={noticeConfig.eyebrow}
@@ -429,6 +509,37 @@ export default function SignInScreen() {
             secondaryActions={secondaryActions}
             onClose={closeNoticeModal}
             onConfirm={handleNoticeConfirm}
+          />
+        ) : null}
+
+        {accountDeletionGate ? (
+          <PremiumNoticeModal
+            visible
+            eyebrow="ACCOUNT RECOVERY"
+            iconName="user-plus"
+            titleLines={['잠시만요! 계정 삭제가 진행 중이에요 🥺']}
+            bodyLines={[
+              `현재 계정은 삭제 대기 상태입니다. (삭제 예정일: ${scheduledDeletionLabel})`,
+              '다시 찾아주셔서 정말 반가워요! 계정을 복구하고 NURI와 계속 함께하시겠어요?',
+            ]}
+            accessibilityTitleLines={[
+              '잠시만요! 계정 삭제가 진행 중이에요',
+            ]}
+            accessibilityBodyLines={[
+              `현재 계정은 삭제 대기 상태입니다. 삭제 예정일: ${scheduledDeletionLabel}`,
+              '다시 찾아주셔서 정말 반가워요! 계정을 복구하고 NURI와 계속 함께하시겠어요?',
+            ]}
+            confirmLabel="계정 복구하기"
+            confirmAccessibilityHint="두 번 탭하면 계정 삭제를 취소하고 앱으로 돌아갑니다."
+            accentColor={theme.colors.brand}
+            secondaryActions={[
+              {
+                label: '로그아웃',
+                onPress: handleGateLogout,
+              },
+            ]}
+            onClose={() => {}}
+            onConfirm={handleAccountRecovery}
           />
         ) : null}
       </KeyboardAwareScrollView>

@@ -1702,12 +1702,12 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       />
       <ConfirmDialog
         visible={deleteConfirmVisible}
-        title="회원탈퇴를 진행할까요?"
+        title="정말 NURI를 떠나시겠어요? 🥺"
         message={
-          '회원탈퇴는 삭제 요청을 보내는 단계예요.\n개인 콘텐츠는 삭제되고 일부 운영 이력은 식별자를 제거한 뒤 보관될 수 있어요.\n파일 정리는 비동기로 이어질 수 있어요.'
+          '탈퇴를 요청하시면 고객님의 프로필과 작성하신 모든 기록은\n다른 사람들에게 즉시 [비노출 처리]되어 안전하게 보호됩니다.\n\n요청일로부터 7일의 유예기간이 지나면,\n복구할 수 없도록 모든 데이터가 영구적으로 완전 삭제됩니다.'
         }
-        cancelLabel="계속 유지하기"
-        confirmLabel={deleting ? '회원탈퇴 처리 중...' : '회원탈퇴'}
+        cancelLabel="취소"
+        confirmLabel={deleting ? '탈퇴 요청 중...' : '탈퇴 요청하기'}
         tone="danger"
         accentColor={petTheme.primary}
         onCancel={() => setDeleteConfirmVisible(false)}

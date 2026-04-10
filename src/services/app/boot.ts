@@ -1,5 +1,6 @@
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import type { PasswordRecoveryFlowState } from '../../store/authStore';
+import type { AccountDeletionGate } from '../supabase/auth';
 
 export type BootRouteName = 'AppTabs' | 'NicknameSetup' | 'PetCreate' | 'SignIn';
 
@@ -82,8 +83,13 @@ export function resolveBootRoute(input: {
   petsCount: number;
   petErrorMessage: string | null;
   passwordRecoveryFlow?: PasswordRecoveryFlowState | null;
+  accountDeletionGate?: AccountDeletionGate | null;
 }) {
   if (isPasswordRecoveryFlowActive(input.passwordRecoveryFlow)) {
+    return { name: 'SignIn' as const, params: undefined };
+  }
+
+  if (input.accountDeletionGate?.status === 'pending_grace_period') {
     return { name: 'SignIn' as const, params: undefined };
   }
 

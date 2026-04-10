@@ -27,6 +27,10 @@ import { supabase } from '../../services/supabase/client';
 import { fetchMyProfile } from '../../services/supabase/profile';
 import { fetchMyPets } from '../../services/supabase/pets';
 import {
+  fetchMyAccountDeletionGate,
+  type AccountDeletionGate,
+} from '../../services/supabase/auth';
+import {
   captureMonitoringException,
   setMonitoringUser,
 } from '../../services/monitoring/sentry';
@@ -67,6 +71,7 @@ const LOCAL_HYDRATION_TIMEOUT_MS = 3_000;
 const SESSION_READ_TIMEOUT_MS = 4_000;
 const SESSION_VALIDATE_TIMEOUT_MS = 5_000;
 const USER_SCOPED_FETCH_TIMEOUT_MS = 6_000;
+const ACCOUNT_DELETION_GATE_TIMEOUT_MS = 2_500;
 
 export default function AppProviders({ children }: Props) {
   // ---------------------------------------------------------
@@ -82,6 +87,7 @@ export default function AppProviders({ children }: Props) {
   const setSession = useAuthStore(s => s.setSession);
   const setProfile = useAuthStore(s => s.setProfile);
   const setProfileSyncState = useAuthStore(s => s.setProfileSyncState);
+  const setAccountDeletionGate = useAuthStore(s => s.setAccountDeletionGate);
   const setAuthBooted = useAuthStore(s => s.setBooted);
 
   const hydrateSelectedPetId = usePetStore(s => s.hydrateSelectedPetId);
@@ -271,6 +277,7 @@ export default function AppProviders({ children }: Props) {
     };
 
     const applyGuestState = async (seq: number) => {
+      setAccountDeletionGate(null);
       await setProfile({ nickname: null, role: 'user' });
       setProfileSyncState('ready');
       clearUserScopedStores();
@@ -284,6 +291,7 @@ export default function AppProviders({ children }: Props) {
     const applyPasswordRecoverySandboxState = async (seq: number) => {
       // Recovery session은 비밀번호 변경 전용 임시 세션이므로
       // 일반 로그인 bootstrap과 사용자 write path를 열지 않는다.
+      setAccountDeletionGate(null);
       await setProfile({ nickname: null, role: 'user' });
       setProfileSyncState('idle');
       clearUserScopedStores();
@@ -304,6 +312,8 @@ export default function AppProviders({ children }: Props) {
         await applyGuestState(seq);
         return;
       }
+
+      setAccountDeletionGate(null);
 
       const prevUserId = lastUserIdRef.current;
       const didUserChange = !!prevUserId && prevUserId !== userId;
@@ -366,6 +376,37 @@ export default function AppProviders({ children }: Props) {
       finishTransition(seq);
     };
 
+    const applyAccountDeletionGuardState = async (
+      seq: number,
+      gate: AccountDeletionGate,
+    ) => {
+      setAccountDeletionGate(gate);
+      await setProfile({ nickname: null, role: 'user' });
+      setProfileSyncState('idle');
+      clearUserScopedStores();
+      setPetErrorMessage(null);
+      setPetLoading(false);
+      lastUserIdRef.current = null;
+      finishTransition(seq);
+    };
+
+    const loadAccountDeletionGate = async (session: Session) => {
+      try {
+        return await withTimeout(
+          fetchMyAccountDeletionGate(),
+          ACCOUNT_DELETION_GATE_TIMEOUT_MS,
+          'fetchMyAccountDeletionGate',
+        );
+      } catch (error: unknown) {
+        captureMonitoringException(error);
+        const currentGate = useAuthStore.getState().accountDeletionGate;
+        if (currentGate?.userId === session.user.id) {
+          return currentGate;
+        }
+        return null;
+      }
+    };
+
     const applySessionTransition = async (
       event: AuthChangeEvent | 'boot',
       session: Session | null,
@@ -395,6 +436,12 @@ export default function AppProviders({ children }: Props) {
         id: session.user.id,
         email: session.user.email ?? null,
       });
+
+      const accountDeletionGate = await loadAccountDeletionGate(session);
+      if (accountDeletionGate) {
+        await applyAccountDeletionGuardState(seq, accountDeletionGate);
+        return;
+      }
 
       await applyLoggedInState(session, seq, {
         forceReload: shouldReloadUserScopedState({
@@ -438,6 +485,19 @@ export default function AppProviders({ children }: Props) {
 
     unsub = listener.subscription;
 
+    const unsubscribeGate = useAuthStore.subscribe((state, prevState) => {
+      const prevGate = prevState.accountDeletionGate;
+      const nextGate = state.accountDeletionGate;
+      if (!prevGate || nextGate) return;
+
+      const currentSession = useAuthStore.getState().session;
+      if (!currentSession) return;
+
+      applySessionTransition('boot', currentSession).catch(error => {
+        captureMonitoringException(error);
+      });
+    });
+
     boot().catch(error => {
       captureMonitoringException(error);
       const message =
@@ -453,6 +513,7 @@ export default function AppProviders({ children }: Props) {
 
     return () => {
       alive = false;
+      unsubscribeGate();
       if (unsub) unsub.unsubscribe();
     };
   }, [
@@ -460,6 +521,7 @@ export default function AppProviders({ children }: Props) {
     setSession,
     setProfile,
     setProfileSyncState,
+    setAccountDeletionGate,
     setAuthBooted,
 
     hydrateSelectedPetId,

@@ -1,0 +1,9 @@
+# Supabase CLI project configuration for NURI.
+# Cron source of truth is the database pg_cron registration helper created by
+# 20260410173000_task6_3_account_deletion_worker.sql.
+# account-deletion-worker schedule: */10 * * * *
+
+project_id = "grmekesqoydylqmyvfke"
+
+[functions.account-deletion-worker]
+verify_jwt = false

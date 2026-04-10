@@ -13,6 +13,8 @@ const EMAIL_RULE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type AccountDeletionStatus =
   | 'requested'
+  | 'pending_grace_period'
+  | 'cancelled'
   | 'in_progress'
   | 'db_deleted'
   | 'cleanup_pending'
@@ -21,14 +23,28 @@ export type AccountDeletionStatus =
   | 'failed'
   | 'unknown_pending_confirmation';
 
+export type AccountDeletionGate = {
+  requestId: string;
+  userId: string;
+  status: 'pending_grace_period';
+  requestedAt: string | null;
+  scheduledDeletionAt: string;
+  canRestore: boolean;
+};
+
 export type AccountDeletionResult = {
   requestId: string;
   status: AccountDeletionStatus;
+  actualStatus: AccountDeletionStatus | null;
   storageCleanupPending: boolean;
   cleanupItemCount: number;
   cleanupCompletedCount: number;
   requestedAt: string | null;
+  scheduledDeletionAt: string | null;
+  cancelledAt: string | null;
+  restoredAt: string | null;
   completedAt: string | null;
+  canRestore: boolean;
   lastErrorCode: string | null;
   lastErrorMessage: string | null;
 };
@@ -173,6 +189,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function isAccountDeletionStatus(value: unknown): value is AccountDeletionStatus {
   return (
     value === 'requested' ||
+    value === 'pending_grace_period' ||
+    value === 'cancelled' ||
     value === 'in_progress' ||
     value === 'db_deleted' ||
     value === 'cleanup_pending' ||
@@ -202,13 +220,25 @@ function parseAccountDeletionResult(data: unknown): AccountDeletionResult | null
   return {
     requestId,
     status,
+    actualStatus: isAccountDeletionStatus(data.actual_status)
+      ? data.actual_status
+      : status,
     storageCleanupPending: Boolean(data.storage_cleanup_pending),
     cleanupItemCount,
     cleanupCompletedCount,
     requestedAt:
       typeof data.requested_at === 'string' ? data.requested_at : null,
+    scheduledDeletionAt:
+      typeof data.scheduled_deletion_at === 'string'
+        ? data.scheduled_deletion_at
+        : null,
+    cancelledAt:
+      typeof data.cancelled_at === 'string' ? data.cancelled_at : null,
+    restoredAt:
+      typeof data.restored_at === 'string' ? data.restored_at : null,
     completedAt:
       typeof data.completed_at === 'string' ? data.completed_at : null,
+    canRestore: Boolean(data.can_restore),
     lastErrorCode:
       typeof data.last_error_code === 'string' ? data.last_error_code : null,
     lastErrorMessage:
@@ -237,6 +267,57 @@ async function markAccountDeletionUnknown(requestId: string): Promise<void> {
     p_request_id: requestId,
   });
   if (error) throw error;
+}
+
+export async function fetchMyAccountDeletionGate(): Promise<AccountDeletionGate | null> {
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+  if (sessionError) throw sessionError;
+
+  const userId = session?.user?.id ?? null;
+  if (!userId) return null;
+
+  const { data, error } = await supabase
+    .from('account_deletion_requests')
+    .select('id, status, requested_at, scheduled_deletion_at')
+    .eq('user_id', userId)
+    .eq('status', 'pending_grace_period')
+    .order('requested_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data || typeof data.scheduled_deletion_at !== 'string') {
+    return null;
+  }
+
+  const scheduledAt = Date.parse(data.scheduled_deletion_at);
+
+  return {
+    requestId: data.id,
+    userId,
+    status: 'pending_grace_period',
+    requestedAt: typeof data.requested_at === 'string' ? data.requested_at : null,
+    scheduledDeletionAt: data.scheduled_deletion_at,
+    canRestore: Number.isFinite(scheduledAt) && scheduledAt > Date.now(),
+  };
+}
+
+export async function cancelAccountDeletion(
+  requestId?: string | null,
+): Promise<AccountDeletionResult> {
+  const { data, error } = await supabase.rpc('cancel_account_deletion', {
+    p_request_id: requestId ?? null,
+  });
+  if (error) throw error;
+
+  const parsed = parseAccountDeletionResult(data);
+  if (!parsed) {
+    throw new Error('계정 복구 결과를 해석하지 못했어요.');
+  }
+
+  return parsed;
 }
 
 export async function deleteMyAccount(options?: {
@@ -274,11 +355,16 @@ export async function deleteMyAccount(options?: {
       resolve({
         requestId: request.requestId,
         status: 'unknown_pending_confirmation',
+        actualStatus: request.actualStatus,
         storageCleanupPending: request.storageCleanupPending,
         cleanupItemCount: request.cleanupItemCount,
         cleanupCompletedCount: request.cleanupCompletedCount,
         requestedAt: request.requestedAt,
+        scheduledDeletionAt: request.scheduledDeletionAt,
+        cancelledAt: request.cancelledAt,
+        restoredAt: request.restoredAt,
         completedAt: null,
+        canRestore: request.canRestore,
         lastErrorCode: null,
         lastErrorMessage: null,
       });

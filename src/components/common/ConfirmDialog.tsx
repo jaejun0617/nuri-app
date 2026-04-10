@@ -235,19 +235,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   copyBlock: {
-    gap: 8,
+    gap: 10,
   },
   title: {
     fontWeight: '900',
+    fontSize: 19,
+    lineHeight: 28,
+    letterSpacing: -0.2,
   },
   messageBlock: {
-    gap: 4,
+    gap: 6,
   },
   message: {
-    lineHeight: 21,
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: '600',
   },
   messageSpacer: {
-    height: 6,
+    height: 10,
   },
   buttonRow: {
     flexDirection: 'row',
@@ -265,9 +270,13 @@ const styles = StyleSheet.create({
   confirmButton: {},
   cancelButtonText: {
     fontWeight: '800',
+    fontSize: 15,
+    lineHeight: 20,
   },
   confirmButtonText: {
     fontWeight: '900',
+    fontSize: 15,
+    lineHeight: 20,
   },
 });
 

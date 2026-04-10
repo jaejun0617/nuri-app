@@ -15,6 +15,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Session } from '@supabase/supabase-js';
 import { create } from 'zustand';
+import type { AccountDeletionGate } from '../services/supabase/auth';
 
 const STORAGE_KEY = 'nuri.profile.v1';
 const PASSWORD_RECOVERY_STORAGE_KEY = 'nuri.auth.passwordRecovery.v1';
@@ -115,6 +116,7 @@ type AuthState = {
   profileSyncStatus: 'idle' | 'loading' | 'ready' | 'error';
   profileErrorMessage: string | null;
   passwordRecoveryFlow: PasswordRecoveryFlowState;
+  accountDeletionGate: AccountDeletionGate | null;
 
   // ✅ 부트 게이트 (Splash 고정용)
   booted: boolean;
@@ -135,6 +137,7 @@ type AuthState = {
     status: 'idle' | 'loading' | 'ready' | 'error',
     errorMessage?: string | null,
   ) => void;
+  setAccountDeletionGate: (gate: AccountDeletionGate | null) => void;
   activatePasswordRecovery: () => Promise<void>;
   clearPasswordRecovery: () => Promise<void>;
   setBooted: (v: boolean) => void;
@@ -188,6 +191,7 @@ export const useAuthStore = create<AuthState>(set => ({
   profileSyncStatus: 'idle',
   profileErrorMessage: null,
   passwordRecoveryFlow: createInactivePasswordRecoveryFlow(),
+  accountDeletionGate: null,
 
   booted: false,
 
@@ -219,6 +223,7 @@ export const useAuthStore = create<AuthState>(set => ({
         isLoggedIn: false,
         profileSyncStatus: 'idle',
         profileErrorMessage: null,
+        accountDeletionGate: null,
       });
       return;
     }
@@ -230,6 +235,7 @@ export const useAuthStore = create<AuthState>(set => ({
         isLoggedIn: false,
         profileSyncStatus: 'idle',
         profileErrorMessage: null,
+        accountDeletionGate: null,
       });
       return;
     }
@@ -270,6 +276,8 @@ export const useAuthStore = create<AuthState>(set => ({
         status === 'error' ? (errorMessage ?? '프로필 동기화 실패') : null,
     }),
 
+  setAccountDeletionGate: gate => set({ accountDeletionGate: gate }),
+
   activatePasswordRecovery: async () => {
     const next: PasswordRecoveryFlowState = {
       status: 'active',
@@ -301,6 +309,7 @@ export const useAuthStore = create<AuthState>(set => ({
       profileSyncStatus: 'idle',
       profileErrorMessage: null,
       passwordRecoveryFlow: createInactivePasswordRecoveryFlow(),
+      accountDeletionGate: null,
       isLoggedIn: false,
       // 수동 로그아웃에서는 부트 게이트를 닫지 않는다.
       // 세션 종료 후에도 Splash 브랜딩 대기까지 다시 타면 체감 지연이 커진다.

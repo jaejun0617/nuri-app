@@ -43,6 +43,7 @@ export default function HomeScreen() {
   const nickname = useAuthStore(s => s.profile.nickname);
   const profileSyncStatus = useAuthStore(s => s.profileSyncStatus);
   const passwordRecoveryFlow = useAuthStore(s => s.passwordRecoveryFlow);
+  const accountDeletionGate = useAuthStore(s => s.accountDeletionGate);
   const petBooted = usePetStore(s => s.booted);
   const pets = usePetStore(s => s.pets);
   const petErrorMessage = usePetStore(s => s.errorMessage);
@@ -83,8 +84,10 @@ export default function HomeScreen() {
       petsCount: pets.length,
       petErrorMessage,
       passwordRecoveryFlow,
+      accountDeletionGate,
     });
   }, [
+    accountDeletionGate,
     isLoggedIn,
     nickname,
     passwordRecoveryFlow,

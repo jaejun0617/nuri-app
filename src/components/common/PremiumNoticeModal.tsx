@@ -280,20 +280,20 @@ const styles = StyleSheet.create({
   copyBlock: {
     marginTop: 8,
     width: '100%',
-    gap: 2,
+    gap: 4,
   },
   title: {
     textAlign: 'center',
     fontWeight: '800',
-    fontSize: 18,
-    lineHeight: 25,
+    fontSize: 20,
+    lineHeight: 29,
     letterSpacing: -0.2,
   },
   body: {
     textAlign: 'center',
     fontWeight: '600',
-    fontSize: 13,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 22,
   },
   button: {
     width: '100%',
@@ -327,8 +327,8 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     fontWeight: '900',
     textAlign: 'center',
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 15,
+    lineHeight: 20,
   },
 });
 
