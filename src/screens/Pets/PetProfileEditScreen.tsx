@@ -25,6 +25,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import AppText from '../../app/ui/AppText';
 import WaveText from '../../components/common/WaveText';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
+import WeightLogEntrySheet from '../../components/health/WeightLogEntrySheet';
 import PhotoAddCard from '../../components/media/PhotoAddCard';
 import PetMemorialFields from '../../components/pets/PetMemorialFields';
 import PetThemePicker from '../../components/pets/PetThemePicker';
@@ -57,8 +58,10 @@ import {
 import { supabase } from '../../services/supabase/client';
 import { fetchMyPets, updatePet } from '../../services/supabase/pets';
 import { uploadPetAvatar } from '../../services/supabase/storagePets';
+import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
 import { openMoreDrawer, showToast } from '../../store/uiStore';
+import { getKstYmd } from '../../utils/date';
 import { styles } from './PetProfileEditScreen.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'PetProfileEdit'>;
@@ -181,7 +184,9 @@ export default function PetProfileEditScreen() {
 
   const pets = usePetStore(s => s.pets);
   const setPets = usePetStore(s => s.setPets);
+  const upsertPet = usePetStore(s => s.upsertPet);
   const invalidatePetAvatar = usePetStore(s => s.invalidatePetAvatar);
+  const sessionUserId = useAuthStore(s => s.session?.user?.id ?? null);
 
   const pet = useMemo(() => pets.find(item => item.id === petId) ?? null, [pets, petId]);
 
@@ -210,6 +215,7 @@ export default function PetProfileEditScreen() {
   const [dateModalTarget, setDateModalTarget] = useState<
     'birth' | 'adoption' | 'death' | null
   >(null);
+  const [weightSheetVisible, setWeightSheetVisible] = useState(false);
 
   useEffect(() => {
     if (petId || !isFocused) return;
@@ -932,19 +938,22 @@ export default function PetProfileEditScreen() {
               몸무게
             </AppText>
             <View style={styles.searchInputWrap}>
-              <TextInput
-                value={weightKg}
-                onChangeText={setWeightKg}
-                placeholder="0.0"
-                placeholderTextColor="#A0A7B4"
-                style={styles.searchInput}
-                keyboardType="decimal-pad"
-                returnKeyType="done"
-              />
+              <TouchableOpacity
+                activeOpacity={0.88}
+                style={[styles.searchInput, styles.segmentChip]}
+                onPress={() => setWeightSheetVisible(true)}
+              >
+                <AppText preset="body" color={weightKg ? undefined : '#A0A7B4'}>
+                  {weightKg ? `${weightKg} kg` : '체중 기록 남기기'}
+                </AppText>
+              </TouchableOpacity>
               <AppText preset="caption" style={styles.unitText}>
-                kg
+                최신값
               </AppText>
             </View>
+            <AppText preset="caption" style={styles.inputHint}>
+              건강 리포트와 홈 화면이 같은 체중 기준을 쓰도록 공통 시트에서 관리합니다.
+            </AppText>
           </View>
 
           <View style={styles.fieldBlock}>
@@ -1146,6 +1155,35 @@ export default function PetProfileEditScreen() {
         onCancel={closeDateModal}
         onConfirm={applyDateModal}
       />
+      {pet ? (
+        <WeightLogEntrySheet
+          visible={weightSheetVisible}
+          petId={pet.id}
+          petName={pet.name}
+          accentColor={petTheme.primary}
+          entrySource="pet_profile"
+          initialWeightKg={pet.weightKg ?? null}
+          initialMeasuredOn={getKstYmd()}
+          onClose={() => setWeightSheetVisible(false)}
+          onCommitted={result => {
+            const latestWeightKg = result.latestSnapshot?.latestWeightKg ?? null;
+            setWeightKg(
+              typeof latestWeightKg === 'number' && Number.isFinite(latestWeightKg)
+                ? String(latestWeightKg)
+                : '',
+            );
+            if (sessionUserId) {
+              upsertPet(
+                {
+                  ...pet,
+                  weightKg: latestWeightKg,
+                },
+                { userId: sessionUserId },
+              );
+            }
+          }}
+        />
+      ) : null}
     </View>
   );
 }

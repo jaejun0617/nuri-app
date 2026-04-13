@@ -305,7 +305,7 @@ const PasswordField = memo(function PasswordField({
   );
 });
 
-const PasswordChangeModal = memo(function PasswordChangeModal({
+export const PasswordChangeModal = memo(function PasswordChangeModal({
   visible,
   bottomInset,
   currentPassword,
@@ -543,7 +543,7 @@ const ThemeSettingsModal = memo(function ThemeSettingsModal({
   );
 });
 
-const PasswordChangeSuccessModal = memo(function PasswordChangeSuccessModal({
+export const PasswordChangeSuccessModal = memo(function PasswordChangeSuccessModal({
   visible,
   onClose,
   accentColor,
@@ -1268,6 +1268,16 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     );
   }, [closeAndNavigate, navigation]);
 
+  const openHealthReport = useCallback(() => {
+    closeAndNavigate(() =>
+      navigation.navigate('HealthReport', {
+        petId: selectedPet?.id ?? undefined,
+        initialTab: 'records',
+        entrySource: 'more',
+      }),
+    );
+  }, [closeAndNavigate, navigation, selectedPet?.id]);
+
   const petItems = useMemo<MenuItemSpec[]>(
     () => [
       {
@@ -1302,10 +1312,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         label: '건강 기록 리포트',
         icon: 'clipboard',
         iconTone: 'accent',
-        onPress: isLoggedIn
-          ? () => showPreparingToast('건강 기록 리포트')
-          : onPressLogin,
-        badge: 'soon',
+        onPress: isLoggedIn ? openHealthReport : onPressLogin,
       },
       {
         key: 'indoor-activities',
@@ -1324,11 +1331,11 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     ],
     [
       isLoggedIn,
+      openHealthReport,
       openIndoorActivities,
       onPressLogin,
       openTimeline,
       openWalkDiscovery,
-      showPreparingToast,
     ],
   );
 

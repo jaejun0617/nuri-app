@@ -171,6 +171,26 @@ function normalizeStringList(value: unknown) {
     .filter(Boolean);
 }
 
+export function normalizePersistedWeightKg(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+
+  if (typeof value === 'string' && value.trim().length === 0) {
+    return null;
+  }
+
+  const numeric =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string'
+        ? Number(value.trim())
+        : null;
+
+  if (numeric === null || !Number.isFinite(numeric)) return null;
+  if (numeric <= 0 || numeric > 999.99) return null;
+
+  return numeric;
+}
+
 function normalizePersistedPet(value: unknown): Pet | null {
   if (!isPersistedPet(value)) return null;
 
@@ -178,8 +198,6 @@ function normalizePersistedPet(value: unknown): Pet | null {
   const name = normalizeString(value.name);
   if (!id || !name) return null;
 
-  const weightCandidate =
-    typeof value.weightKg === 'number' ? value.weightKg : Number(value.weightKg);
   const gender =
     value.gender === 'male' || value.gender === 'female' || value.gender === 'unknown'
       ? value.gender
@@ -196,7 +214,7 @@ function normalizePersistedPet(value: unknown): Pet | null {
     avatarUrl: normalizeString(value.avatarUrl) || null,
     adoptionDate: normalizeString(value.adoptionDate) || null,
     birthDate: normalizeString(value.birthDate) || null,
-    weightKg: Number.isFinite(weightCandidate) ? weightCandidate : null,
+    weightKg: normalizePersistedWeightKg(value.weightKg),
     breed: normalizeString(value.breed) || null,
     gender,
     neutered: typeof value.neutered === 'boolean' ? value.neutered : null,

@@ -38,15 +38,16 @@
 
 ### 3. 모니터링/배포 필수 설정
 
-- [ ] Sentry 이벤트 수집을 확인한다.
-- [ ] Android `google-services.json` 배치 상태를 확인한다.
-- [ ] iOS `GoogleService-Info.plist` 배치 상태를 확인한다.
-- [ ] Crashlytics 사용 여부를 최종 판정한다.
+- [x] Sentry는 v1.0 Android 단독 출시에서 보류하고 앱 전송 경로를 비활성화한다.
+- [x] Android `google-services.json` 배치 상태를 확인한다.
+- [x] iOS `GoogleService-Info.plist`는 v1.1 iOS 출시 항목으로 이관한다.
+- [x] Firebase Crashlytics는 Android release crash 수집용으로 유지한다.
+- [x] Android release signing config를 upload key 기준으로 전환한다.
 
 ### 4. 스토어 제출 자산
 
-- [ ] 앱 아이콘 최종본을 확정한다.
-- [ ] 스플래시 화면 최종본을 확정한다.
+- [x] 앱 아이콘 최종본을 확정한다.
+- [x] 스플래시 화면 최종본을 확정한다.
 - [ ] 앱스토어/플레이스토어 스크린샷을 준비한다.
 - [ ] 스토어 설명문, 문의처, 정책 URL을 최종 점검한다.
 

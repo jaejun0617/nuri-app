@@ -50,6 +50,13 @@ android {
       keyAlias "androiddebugkey"
       keyPassword "android"
     }
+    release {
+      // v1.0 Play Store 제출용 upload key. CI/운영 빌드는 환경변수로 덮어쓸 수 있다.
+      storeFile file(System.getenv("NURI_UPLOAD_STORE_FILE") ?: "nuri-upload.keystore")
+      storePassword System.getenv("NURI_UPLOAD_STORE_PASSWORD") ?: "android"
+      keyAlias System.getenv("NURI_UPLOAD_KEY_ALIAS") ?: "my-key-alias"
+      keyPassword System.getenv("NURI_UPLOAD_KEY_PASSWORD") ?: "android"
+    }
   }
 
   buildTypes {
@@ -57,7 +64,7 @@ android {
       signingConfig signingConfigs.debug
     }
     release {
-      signingConfig signingConfigs.debug
+      signingConfig signingConfigs.release
       minifyEnabled enableProguardInReleaseBuilds
       proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
     }

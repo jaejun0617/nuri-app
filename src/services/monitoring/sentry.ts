@@ -12,13 +12,14 @@ import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
   CRASHLYTICS_ENABLE_IN_DEV,
   SENTRY_DSN,
-  SENTRY_ENABLE_IN_DEV,
   SENTRY_ENVIRONMENT,
   SENTRY_RELEASE,
   SENTRY_TRACES_SAMPLE_RATE,
 } from './config';
 
-const sentryEnabled = Boolean(SENTRY_DSN) && (!__DEV__ || SENTRY_ENABLE_IN_DEV);
+// v1.0 Android 단독 출시는 Firebase Crashlytics만 사용한다.
+// Sentry DSN이 주입되어도 초기화/전송 경로가 열리지 않도록 명시적으로 닫아 둔다.
+const sentryEnabled = false;
 const crashlyticsEnabled = !__DEV__ || CRASHLYTICS_ENABLE_IN_DEV;
 
 const navigationIntegration = Sentry.reactNavigationIntegration({

@@ -24,6 +24,7 @@ import {
   captureMonitoringMessage,
 } from '../monitoring/sentry';
 import { normalizeMemoryRecord } from '../records/imageSources';
+import { getRecordSortTimestamp } from '../records/date';
 
 export type EmotionTag =
   | 'happy'
@@ -606,6 +607,113 @@ export async function fetchMemoriesByPetPage(input: {
     : null;
 
   return { items, hasMore, nextCursor };
+}
+
+export async function fetchMemoriesByPetDateRange(input: {
+  petId: string;
+  startYmd: string;
+  endExclusiveYmd: string;
+  createdAtStartIso: string;
+  createdAtEndExclusiveIso: string;
+  prefetchTop?: number;
+}): Promise<MemoryRecord[]> {
+  const prefetchTop = input.prefetchTop ?? 12;
+
+  const [occurredResult, createdFallbackResult] = await Promise.all([
+    supabase
+      .from('memories')
+      .select('*')
+      .eq('pet_id', input.petId)
+      .gte('occurred_at', input.startYmd)
+      .lt('occurred_at', input.endExclusiveYmd)
+      .order('occurred_at', { ascending: false })
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false }),
+    supabase
+      .from('memories')
+      .select('*')
+      .eq('pet_id', input.petId)
+      .is('occurred_at', null)
+      .gte('created_at', input.createdAtStartIso)
+      .lt('created_at', input.createdAtEndExclusiveIso)
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false }),
+  ]);
+
+  if (occurredResult.error) throw occurredResult.error;
+  if (createdFallbackResult.error) throw createdFallbackResult.error;
+
+  const mergedRows = [
+    ...toMemoriesRows(occurredResult.data),
+    ...toMemoriesRows(createdFallbackResult.data),
+  ];
+  const uniqueRows = Array.from(
+    mergedRows.reduce<Map<string, MemoriesRow>>((acc, row) => {
+      acc.set(row.id, row);
+      return acc;
+    }, new Map<string, MemoriesRow>()),
+  ).map(([, row]) => row);
+
+  const memoryImagesResult = await fetchMemoryImagesByMemoryIds(
+    uniqueRows.map(row => row.id),
+  );
+  const mapped = uniqueRows.map(row =>
+    mapRowWithResolution(
+      row,
+      memoryImagesResult.grouped.get(row.id) ?? [],
+      memoryImagesResult.readFailureReason,
+    ),
+  );
+  const items = mapped
+    .map(entry => entry.record)
+    .sort((lhs, rhs) => getRecordSortTimestamp(rhs) - getRecordSortTimestamp(lhs));
+
+  const fallbackCounts = buildLegacyFallbackCounts(
+    mapped.map(entry => entry.fallbackReason),
+  );
+  if (Object.keys(fallbackCounts).length > 0) {
+    logLegacyReadFallbackUsage({
+      source: 'fetch_list',
+      petId: input.petId,
+      counts: fallbackCounts,
+    });
+  }
+
+  const timelineThumbPaths = items
+    .slice(0, prefetchTop)
+    .map(item => ({
+      path: normalizePathValue(item.timelineImagePath),
+      variant: item.timelineImageVariant ?? 'original',
+    }))
+    .filter((item): item is { path: string; variant: MemoryImageVariant } => Boolean(item.path));
+
+  if (timelineThumbPaths.length > 0) {
+    const pathsByVariant = timelineThumbPaths.reduce<
+      Record<MemoryImageVariant, string[]>
+    >(
+      (acc, item) => {
+        acc[item.variant].push(item.path);
+        return acc;
+      },
+      { original: [], 'timeline-thumb': [] },
+    );
+
+    scheduleAfterInteractions(() =>
+      Promise.all(
+        (Object.entries(pathsByVariant) as Array<[MemoryImageVariant, string[]]>)
+          .filter(([, imagePaths]) => imagePaths.length > 0)
+          .map(([variant, imagePaths]) =>
+            prefetchMemorySignedUrls({
+              imagePaths,
+              max: prefetchTop,
+              variant,
+            }),
+          ),
+      ).then(() => undefined),
+    );
+  }
+
+  return items;
 }
 
 /* ---------------------------------------------------------

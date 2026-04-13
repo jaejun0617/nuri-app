@@ -86,9 +86,11 @@ import {
   fetchMyPets,
   toPublicPetAvatarUrl,
 } from '../../services/supabase/pets';
+import { upsertPetWeightLog } from '../../services/supabase/petWeightLogs';
 import { uploadPetAvatar } from '../../services/supabase/storagePets';
 import { usePetStore } from '../../store/petStore';
 import { showToast } from '../../store/uiStore';
+import { getKstYmd } from '../../utils/date';
 import { styles } from './PetCreateScreen.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'PetCreate'>;
@@ -1181,6 +1183,25 @@ export default function PetCreateScreen() {
         tags,
         avatarPath: null,
       });
+
+      if (normalizedWeight !== null) {
+        try {
+          await upsertPetWeightLog({
+            petId: createdPet.id,
+            measuredOn: getKstYmd(),
+            weightKg: normalizedWeight,
+            source: 'pet_create',
+          });
+        } catch {
+          showToast({
+            tone: 'info',
+            title: '체중 히스토리 동기화가 조금 늦어요',
+            message:
+              '프로필 등록은 완료됐고, 체중 기록은 건강 리포트에서 다시 한 번 남길 수 있어요.',
+            durationMs: 2800,
+          });
+        }
+      }
 
       upsertPet(createdPet, { userId, select: true });
       setCreatedPetName(createdPet.name?.trim() || trimmedName);

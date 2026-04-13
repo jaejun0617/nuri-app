@@ -32,6 +32,7 @@ import PetCreateScreen from '../screens/Pets/PetCreateScreen';
 import PetManagementScreen from '../screens/Pets/PetManagementScreen';
 import PetProfileEditScreen from '../screens/Pets/PetProfileEditScreen';
 import PetProfileEditDoneScreen from '../screens/Pets/PetProfileEditDoneScreen';
+import HealthReportScreen from '../screens/HealthReport/HealthReportScreen';
 import ScheduleListScreen from '../screens/Schedules/ScheduleListScreen';
 import ScheduleCreateScreen from '../screens/Schedules/ScheduleCreateScreen';
 import ScheduleDetailScreen from '../screens/Schedules/ScheduleDetailScreen';
@@ -59,6 +60,7 @@ import type { DeviceCoordinates } from '../services/location/currentPosition';
 import type { LocationDiscoveryItem } from '../services/locationDiscovery/types';
 import type { PetTravelItem } from '../services/petTravel/types';
 import type { ScreenEntrySource } from './entry';
+import type { HealthReportTabKey } from '../services/health-report/viewModel';
 import type {
   IndoorActivityKey,
   WeatherGuideBundle,
@@ -101,6 +103,13 @@ export type RootStackParamList = {
   PetManagement: { entrySource?: ScreenEntrySource } | undefined;
   PetProfileEdit: { petId: string; entrySource?: ScreenEntrySource };
   PetProfileEditDone: { petId: string; petName: string };
+  HealthReport:
+    | {
+        petId?: string;
+        initialTab?: HealthReportTabKey;
+        entrySource?: ScreenEntrySource;
+      }
+    | undefined;
   ScheduleList:
     | { petId?: string; entrySource?: ScreenEntrySource }
     | undefined;
@@ -272,6 +281,11 @@ export default function RootNavigator() {
       <Stack.Screen
         name="PetProfileEditDone"
         component={PetProfileEditDoneScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="HealthReport"
+        component={HealthReportScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen
