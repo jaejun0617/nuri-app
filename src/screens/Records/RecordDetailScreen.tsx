@@ -36,9 +36,11 @@ import { buildPetThemePalette } from '../../services/pets/themePalette';
 import {
   formatRecordDisplayDate,
   formatRecordRelativeTime,
+  getRecordDisplayYmd,
 } from '../../services/records/date';
 import { getMemoryImageRefs } from '../../services/records/imageSources';
 import { formatRecordPriceLabel } from '../../services/records/form';
+import { isHealthMemoryRecord } from '../../services/health-report/viewModel';
 import type { MemoryRecord } from '../../services/supabase/memories';
 import { deleteMemoryWithFile, fetchMemoryById } from '../../services/supabase/memories';
 import { getMemoryImageSignedUrlsCached } from '../../services/supabase/storageMemories';
@@ -407,14 +409,12 @@ export default function RecordDetailScreen() {
   const bootstrapRecords = useRecordStore(s => s.bootstrap);
   const loadMoreRecords = useRecordStore(s => s.loadMore);
   const pets = usePetStore(s => s.pets);
+  const recordsById = useRecordStore(s => s.recordsById);
 
   const resolvedPetId = record?.petId?.trim() || petId;
   const timelineIds = useRecordStore(s => s.selectTimelineIdsByPetId(resolvedPetId));
   const timelineStatus = useRecordStore(s => s.selectTimelineStatusByPetId(resolvedPetId));
   const timelineHasMore = useRecordStore(s => s.selectTimelineHasMoreByPetId(resolvedPetId));
-  const timelineEntityVersion = useRecordStore(
-    s => s.selectTimelineEntityVersionByPetId(resolvedPetId),
-  );
   const selectedPet = useMemo(
     () => pets.find(item => item.id === resolvedPetId) ?? null,
     [pets, resolvedPetId],
@@ -502,14 +502,29 @@ export default function RecordDetailScreen() {
   const onPressEdit = useCallback(() => {
     if (!resolvedPetId || !record) return;
     closeActionMenu();
-    navigation.navigate('RecordEdit', { petId: resolvedPetId, memoryId: record.id });
-  }, [closeActionMenu, navigation, record, resolvedPetId]);
+    navigation.navigate('RecordEdit', {
+      petId: resolvedPetId,
+      memoryId: record.id,
+      entrySource: route.params?.entrySource,
+    });
+  }, [closeActionMenu, navigation, record, resolvedPetId, route.params?.entrySource]);
+
+  const navigateToHealthReport = useCallback(() => {
+    if (!resolvedPetId) return;
+    navigation.navigate('HealthReport', {
+      petId: resolvedPetId,
+      initialTab: 'records',
+      focusYmd: record ? getRecordDisplayYmd(record) ?? undefined : undefined,
+      entrySource: 'more',
+    });
+  }, [navigation, record, resolvedPetId]);
 
   const onPressBack = useEntryAwareBackAction({
     entrySource: route.params?.entrySource,
     onHome: () => {
       navigation.navigate('AppTabs', { screen: 'HomeTab' });
     },
+    onHealthReport: navigateToHealthReport,
     onMore: () => {
       navigation.navigate('AppTabs', { screen: 'HomeTab' });
       openMoreDrawer();
@@ -541,12 +556,11 @@ export default function RecordDetailScreen() {
 
   const relatedRecords = useMemo(() => {
     if (!record) return [] as MemoryRecord[];
-    const recordsById = useRecordStore.getState().recordsById;
     return timelineIds
       .filter(id => id !== record.id)
       .map(id => recordsById[id])
       .filter((item): item is MemoryRecord => Boolean(item));
-  }, [record, timelineEntityVersion, timelineIds]);
+  }, [record, recordsById, timelineIds]).filter(item => !isHealthMemoryRecord(item));
   const visibleRelatedRecords = useMemo(
     () => relatedRecords.slice(0, visibleRelatedCount),
     [relatedRecords, visibleRelatedCount],
@@ -567,10 +581,14 @@ export default function RecordDetailScreen() {
       removeOneLocal(resolvedPetId, record.id);
       setDeleteModalVisible(false);
 
-      navigation.navigate('TimelineMain', {
-        petId: resolvedPetId,
-        mainCategory: 'all',
-      });
+      if (route.params?.entrySource === 'health_report') {
+        navigateToHealthReport();
+      } else {
+        navigation.navigate('TimelineMain', {
+          petId: resolvedPetId,
+          mainCategory: 'all',
+        });
+      }
       refresh(resolvedPetId).catch(() => {});
     } catch (error: unknown) {
       const { title, message } = getBrandedErrorMeta(error, 'record-delete');
@@ -585,6 +603,8 @@ export default function RecordDetailScreen() {
     refresh,
     removeOneLocal,
     resolvedPetId,
+    route.params?.entrySource,
+    navigateToHealthReport,
   ]);
 
   const renderFeedCard = useCallback(
@@ -738,7 +758,9 @@ export default function RecordDetailScreen() {
           </TouchableOpacity>
         </View>
         <AppText preset="headline" style={styles.headerLinkText}>
-          추억상세보기
+          {route.params?.entrySource === 'health_report'
+            ? '건강 기록 상세'
+            : '추억상세보기'}
         </AppText>
         <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
       </View>
@@ -750,6 +772,7 @@ export default function RecordDetailScreen() {
       >
         {renderFeedCard(record)}
 
+        {route.params?.entrySource === 'health_report' ? null : (
         <View style={styles.relatedSection}>
           <View style={styles.relatedSectionHeader}>
             <AppText preset="headline" style={styles.relatedSectionTitle}>
@@ -797,6 +820,7 @@ export default function RecordDetailScreen() {
             </TouchableOpacity>
           ) : null}
         </View>
+        )}
       </ScrollView>
 
       <Modal

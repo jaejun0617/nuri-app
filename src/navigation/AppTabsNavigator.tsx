@@ -30,6 +30,7 @@ import GuestbookScreen from '../screens/Guestbook/GuestbookScreen';
 import MoreDrawer from '../components/MoreDrawer/MoreDrawer';
 import AppNavigationToolbar from '../components/navigation/AppNavigationToolbar';
 import { useUiStore } from '../store/uiStore';
+import type { HealthReportTabKey } from '../services/health-report/viewModel';
 
 export type RecordCreateReturnTo =
   | { tab: 'HomeTab' }
@@ -38,7 +39,13 @@ export type RecordCreateReturnTo =
       params?: NavigatorScreenParams<TimelineStackParamList>;
     }
   | { tab: 'GuestbookTab' }
-  | { tab: 'MoreTab' };
+  | { tab: 'MoreTab' }
+  | {
+      tab: 'HealthReport';
+      petId?: string;
+      initialTab?: HealthReportTabKey;
+      focusYmd?: string;
+    };
 
 export type AppTabParamList = {
   HomeTab: undefined;

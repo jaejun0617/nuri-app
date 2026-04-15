@@ -8,6 +8,27 @@ const pretendardFamily = Platform.select({
 });
 
 const semanticPreset = {
+  screenTitle: {
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: '700' as const,
+    letterSpacing: 0,
+    fontFamily: pretendardFamily,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: '600' as const,
+    letterSpacing: 0,
+    fontFamily: pretendardFamily,
+  },
+  cardTitle: {
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '600' as const,
+    letterSpacing: 0,
+    fontFamily: pretendardFamily,
+  },
   display: {
     fontSize: 28,
     lineHeight: 36,
@@ -46,6 +67,20 @@ const semanticPreset = {
   bodySm: {
     fontSize: 14,
     lineHeight: 22,
+    fontWeight: '400' as const,
+    letterSpacing: 0,
+    fontFamily: pretendardFamily,
+  },
+  bodyStrong: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '600' as const,
+    letterSpacing: 0,
+    fontFamily: pretendardFamily,
+  },
+  secondary: {
+    fontSize: 13,
+    lineHeight: 18,
     fontWeight: '400' as const,
     letterSpacing: 0,
     fontFamily: pretendardFamily,

@@ -4,10 +4,11 @@
 // - 서버 단건 조회 결과를 기준으로 상세 카드와 메타 정보를 렌더링
 // - 변경 후에는 schedule store를 갱신해 홈/목록과의 상태 일관성을 유지
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Alert, ScrollView, TouchableOpacity, View } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -32,24 +33,57 @@ import {
   clearScheduleNotification,
   upsertScheduleNotification,
 } from '../../services/schedules/notifications';
+import { formatReminderMinutesSummary } from '../../services/schedules/form';
 import {
+  formatScheduleCategoryLabel,
   formatScheduleDetailDate,
   mapScheduleIconName,
 } from '../../services/schedules/presentation';
 import { usePetStore } from '../../store/petStore';
 import { useScheduleStore } from '../../store/scheduleStore';
 import { styles } from './ScheduleDetailScreen.styles';
+import { getDateYmdInKst } from '../../utils/date';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'ScheduleDetail'>;
 type Route = RootScreenRoute<'ScheduleDetail'>;
+type HealthReportCacheActivity = {
+  source: 'memory' | 'schedule';
+  scheduleId?: string;
+  ymd: string;
+  completedAt?: string | null;
+};
+type HealthReportCache = {
+  activityItems: HealthReportCacheActivity[];
+  groupedActivities: Record<string, HealthReportCacheActivity[]>;
+  latestActivityYmd: string | null;
+};
 
 function formatReminder(reminderMinutes: number[]) {
-  if (!reminderMinutes.length) return '알림 없음';
-  const value = reminderMinutes[0];
-  if (value === 10) return '10분 전';
-  if (value === 60) return '1시간 전';
-  if (value === 1440) return '하루 전';
-  return `${value}분 전`;
+  return formatReminderMinutesSummary(reminderMinutes);
+}
+
+function buildScheduleCompletedAtForPersist(startsAt: string) {
+  const startsAtTime = new Date(startsAt).getTime();
+  const now = Date.now();
+  if (Number.isNaN(startsAtTime)) {
+    return new Date(now).toISOString();
+  }
+  return new Date(Math.max(now, startsAtTime)).toISOString();
+}
+
+function getScheduleStatusErrorMessage(error: unknown) {
+  const message = getErrorMessage(error);
+  if (message.includes('pet_schedules_completed_at_check')) {
+    return '아직 남아 있는 시간과 관계없이 이 일정을 먼저 마친 일정으로 정리할 수 있어요.\n잠시 후 다시 한 번만 시도해 주세요.';
+  }
+  return message;
+}
+
+function groupActivitiesByYmd(items: HealthReportCacheActivity[]) {
+  return items.reduce<Record<string, HealthReportCacheActivity[]>>((acc, item) => {
+    acc[item.ymd] = [...(acc[item.ymd] ?? []), item];
+    return acc;
+  }, {});
 }
 
 function formatRepeatRule(rule: PetSchedule['repeatRule']) {
@@ -72,6 +106,7 @@ export default function ScheduleDetailScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
   const { petId, scheduleId } = route.params;
 
   const refresh = useScheduleStore(s => s.refresh);
@@ -81,6 +116,11 @@ export default function ScheduleDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [completeConfirmVisible, setCompleteConfirmVisible] = useState(false);
+  const [feedbackDialog, setFeedbackDialog] = useState<{
+    title: string;
+    message: string;
+  } | null>(null);
   const selectedPet = useMemo(
     () => pets.find(candidate => candidate.id === petId) ?? pets[0] ?? null,
     [petId, pets],
@@ -90,39 +130,64 @@ export default function ScheduleDetailScreen() {
     [selectedPet?.themeColor],
   );
 
-  useEffect(() => {
-    const request = createLatestRequestController();
+  useFocusEffect(
+    useCallback(() => {
+      const request = createLatestRequestController();
 
-    async function run() {
-      const requestId = request.begin();
-      try {
-        const next = await fetchScheduleById(scheduleId);
-        if (request.isCurrent(requestId)) setSchedule(next);
-      } catch (error: unknown) {
-        if (request.isCurrent(requestId)) {
-          Alert.alert('일정 조회 실패', getErrorMessage(error));
-          navigation.goBack();
+      async function run() {
+        const requestId = request.begin();
+        try {
+          const next = await fetchScheduleById(scheduleId);
+          if (request.isCurrent(requestId)) setSchedule(next);
+        } catch (error: unknown) {
+          if (request.isCurrent(requestId)) {
+            Alert.alert('일정 조회 실패', getErrorMessage(error));
+            navigation.goBack();
+          }
+        } finally {
+          if (request.isCurrent(requestId)) setLoading(false);
         }
-      } finally {
-        if (request.isCurrent(requestId)) setLoading(false);
       }
-    }
 
-    run().catch(() => {
-      // handled inside run
-    });
-    return () => {
-      request.cancel();
-    };
-  }, [navigation, scheduleId]);
+      setLoading(true);
+      run().catch(() => {
+        // handled inside run
+      });
+
+      return () => {
+        request.cancel();
+      };
+    }, [navigation, scheduleId]),
+  );
 
   const onPressEdit = useCallback(() => {
     navigation.navigate('ScheduleEdit', {
       petId,
       scheduleId,
       entrySource: route.params?.entrySource,
+      returnTo:
+        route.params?.entrySource === 'more'
+          ? { screen: 'HealthReport', initialTab: 'records' }
+          : undefined,
     });
   }, [navigation, petId, route.params?.entrySource, scheduleId]);
+
+  const goBackToList = useCallback(
+    (focusYmd?: string | null) => {
+      if (route.params?.entrySource === 'more') {
+        navigation.replace('HealthReport', {
+          petId: petId ?? undefined,
+          initialTab: 'records',
+          focusYmd: focusYmd ?? undefined,
+          entrySource: 'more',
+        });
+        return;
+      }
+
+      navigation.replace('ScheduleList', { petId });
+    },
+    [navigation, petId, route.params?.entrySource],
+  );
 
   const onPressDelete = useCallback(() => {
     if (deleting) return;
@@ -133,24 +198,46 @@ export default function ScheduleDetailScreen() {
     try {
       setDeleting(true);
       setDeleteConfirmVisible(false);
+      const deletedFocusYmd = schedule ? getDateYmdInKst(schedule.startsAt) : null;
       await deleteSchedule(scheduleId);
       clearScheduleNotification(scheduleId);
-      if (petId) await refresh(petId);
-      navigation.replace('ScheduleList', { petId });
+      if (petId) {
+        await queryClient.setQueriesData<HealthReportCache>(
+          { queryKey: ['health-report', 'month', petId] },
+          current => {
+            if (!current) return current;
+            const activityItems = current.activityItems.filter(
+              item =>
+                !(item.source === 'schedule' && item.scheduleId === scheduleId),
+            );
+            return {
+              ...current,
+              activityItems,
+              groupedActivities: groupActivitiesByYmd(activityItems),
+              latestActivityYmd: activityItems[0]?.ymd ?? null,
+            };
+          },
+        );
+        refresh(petId).catch(() => {});
+      }
+      goBackToList(deletedFocusYmd);
     } catch (error: unknown) {
-      Alert.alert('삭제 실패', getErrorMessage(error));
+      setFeedbackDialog({
+        title: '삭제 실패',
+        message: getErrorMessage(error),
+      });
     } finally {
       setDeleting(false);
     }
-  }, [navigation, petId, refresh, scheduleId]);
+  }, [goBackToList, petId, queryClient, refresh, schedule, scheduleId]);
 
-  const onToggleComplete = useCallback(async () => {
+  const executeToggleComplete = useCallback(async () => {
     if (!schedule) return;
 
     try {
       const nextCompletedAt = schedule.completedAt
         ? null
-        : new Date().toISOString();
+        : buildScheduleCompletedAtForPersist(schedule.startsAt);
 
       await updateSchedule({
         scheduleId: schedule.id,
@@ -191,13 +278,47 @@ export default function ScheduleDetailScreen() {
         });
       }
 
-      const next = await fetchScheduleById(schedule.id);
-      setSchedule(next);
-      if (petId) await refresh(petId);
+      setSchedule({
+        ...schedule,
+        completedAt: nextCompletedAt,
+      });
+      if (petId) {
+        await queryClient.setQueriesData<HealthReportCache>(
+          { queryKey: ['health-report', 'month', petId] },
+          current => {
+            if (!current) return current;
+            const activityItems = current.activityItems.map(item =>
+              item.source === 'schedule' && item.scheduleId === schedule.id
+                ? { ...item, completedAt: nextCompletedAt }
+                : item,
+            );
+            return {
+              ...current,
+              activityItems,
+              groupedActivities: groupActivitiesByYmd(activityItems),
+            };
+          },
+        );
+        refresh(petId).catch(() => {});
+      }
+      goBackToList(getDateYmdInKst(schedule.startsAt));
     } catch (error: unknown) {
-      Alert.alert('상태 변경 실패', getErrorMessage(error));
+      setFeedbackDialog({
+        title: '상태 변경 실패',
+        message: getScheduleStatusErrorMessage(error),
+      });
     }
-  }, [petId, refresh, schedule]);
+  }, [goBackToList, petId, queryClient, refresh, schedule]);
+
+  const onToggleComplete = useCallback(() => {
+    if (!schedule) return;
+    if (!schedule.completedAt && new Date(schedule.startsAt).getTime() > Date.now()) {
+      setCompleteConfirmVisible(true);
+      return;
+    }
+    setCompleteConfirmVisible(false);
+    executeToggleComplete().catch(() => {});
+  }, [executeToggleComplete, schedule]);
 
   const headerTopInset = Math.max(insets.top, 12);
 
@@ -234,7 +355,8 @@ export default function ScheduleDetailScreen() {
             </AppText>
           </View>
         ) : (
-          <View style={styles.card}>
+          <>
+          <View style={[styles.hero, { backgroundColor: petTheme.tint, borderColor: petTheme.border }]}>
             <View style={[styles.iconWrap, { backgroundColor: petTheme.soft }]}>
               <MaterialCommunityIcons
                 name={mapScheduleIconName(schedule.iconKey)}
@@ -242,17 +364,42 @@ export default function ScheduleDetailScreen() {
                 color={petTheme.primary}
               />
             </View>
+            <View style={styles.heroTextWrap}>
+              <AppText preset="headline" style={styles.title}>
+                {schedule.title}
+              </AppText>
+              <View
+                style={[
+                  styles.statusBadge,
+                  {
+                    backgroundColor: schedule.completedAt
+                      ? 'rgba(34,197,94,0.12)'
+                      : `${petTheme.primary}12`,
+                  },
+                ]}
+              >
+                <AppText
+                  preset="caption"
+                  style={[
+                    styles.statusBadgeText,
+                    {
+                      color: schedule.completedAt ? '#15803D' : petTheme.primary,
+                    },
+                  ]}
+                >
+                  {schedule.completedAt ? '완료됨' : '진행 중'}
+                </AppText>
+              </View>
+            </View>
+          </View>
 
-            <AppText preset="headline" style={styles.title}>
-              {schedule.title}
-            </AppText>
-
+          <View style={styles.section}>
             <View style={styles.metaBlock}>
               <AppText preset="caption" style={styles.metaLabel}>
                 일정 시간
               </AppText>
               <AppText preset="body" style={styles.metaValue}>
-              {formatScheduleDetailDate(schedule)}
+                {formatScheduleDetailDate(schedule)}
               </AppText>
             </View>
 
@@ -261,8 +408,7 @@ export default function ScheduleDetailScreen() {
                 카테고리
               </AppText>
               <AppText preset="body" style={styles.metaValue}>
-                {schedule.category}
-                {schedule.subCategory ? ` · ${schedule.subCategory}` : ''}
+                {formatScheduleCategoryLabel(schedule)}
               </AppText>
             </View>
 
@@ -292,7 +438,9 @@ export default function ScheduleDetailScreen() {
                 {schedule.completedAt ? '완료됨' : '진행 중'}
               </AppText>
             </View>
+          </View>
 
+          <View style={styles.section}>
             <View style={styles.metaBlock}>
               <AppText preset="caption" style={styles.metaLabel}>
                 메모
@@ -301,10 +449,12 @@ export default function ScheduleDetailScreen() {
                 {schedule.note?.trim() || '남겨둔 메모가 없어요.'}
               </AppText>
             </View>
+          </View>
 
+          <View style={styles.actions}>
             <TouchableOpacity
               activeOpacity={0.9}
-              style={styles.primaryBtn}
+              style={[styles.primaryBtn, { backgroundColor: petTheme.primary }]}
               onPress={onPressEdit}
             >
               <Feather name="edit-2" size={16} color="#FFFFFF" />
@@ -315,10 +465,23 @@ export default function ScheduleDetailScreen() {
 
             <TouchableOpacity
               activeOpacity={0.9}
-              style={styles.secondaryBtn}
+              style={[
+                styles.secondaryBtn,
+                {
+                  backgroundColor: schedule.completedAt
+                    ? '#F3F4F6'
+                    : petTheme.tint,
+                },
+              ]}
               onPress={onToggleComplete}
             >
-              <AppText preset="body" style={styles.secondaryBtnText}>
+              <AppText
+                preset="body"
+                style={[
+                  styles.secondaryBtnText,
+                  { color: schedule.completedAt ? '#475569' : petTheme.primary },
+                ]}
+              >
                 {schedule.completedAt ? '완료 해제' : '일정 완료 처리'}
               </AppText>
             </TouchableOpacity>
@@ -333,8 +496,25 @@ export default function ScheduleDetailScreen() {
               </AppText>
             </TouchableOpacity>
           </View>
+          </>
         )}
       </ScrollView>
+      <ConfirmDialog
+        visible={completeConfirmVisible}
+        title="지금 일정 마침으로 정리할까요?"
+        message={
+          '아직 일정 시간이 남아 있어도 건강관리에서 먼저 마친 일정으로 정리할 수 있어요.\n확인을 누르면 바로 완료 상태로 바뀌고 리스트에서도 정리됩니다.'
+        }
+        confirmLabel="완료로 정리"
+        cancelLabel="계속 보기"
+        tone="warning"
+        accentColor={petTheme.primary}
+        onCancel={() => setCompleteConfirmVisible(false)}
+        onConfirm={() => {
+          setCompleteConfirmVisible(false);
+          executeToggleComplete().catch(() => {});
+        }}
+      />
       <ConfirmDialog
         visible={deleteConfirmVisible}
         title="일정을 삭제할까요?"
@@ -347,6 +527,17 @@ export default function ScheduleDetailScreen() {
         onConfirm={() => {
           executeDelete().catch(() => {});
         }}
+      />
+      <ConfirmDialog
+        visible={feedbackDialog !== null}
+        title={feedbackDialog?.title ?? '안내'}
+        message={feedbackDialog?.message ?? ''}
+        confirmLabel="확인"
+        cancelLabel="닫기"
+        tone="warning"
+        accentColor={petTheme.primary}
+        onCancel={() => setFeedbackDialog(null)}
+        onConfirm={() => setFeedbackDialog(null)}
       />
     </SafeAreaView>
   );

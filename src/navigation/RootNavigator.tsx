@@ -62,6 +62,17 @@ import type { PetTravelItem } from '../services/petTravel/types';
 import type { ScreenEntrySource } from './entry';
 import type { HealthReportTabKey } from '../services/health-report/viewModel';
 import type {
+  RecordMainCategoryKey,
+  RecordOtherSubCategoryKey,
+} from '../services/records/form';
+import type {
+  ScheduleCategory,
+  ScheduleColorKey,
+  ScheduleIconKey,
+  ScheduleSubCategory,
+} from '../services/supabase/schedules';
+import type { ScheduleOtherUiSubCategoryKey } from '../services/schedules/form';
+import type {
   IndoorActivityKey,
   WeatherGuideBundle,
 } from '../services/weather/guide';
@@ -107,6 +118,7 @@ export type RootStackParamList = {
     | {
         petId?: string;
         initialTab?: HealthReportTabKey;
+        focusYmd?: string;
         entrySource?: ScreenEntrySource;
       }
     | undefined;
@@ -114,7 +126,21 @@ export type RootStackParamList = {
     | { petId?: string; entrySource?: ScreenEntrySource }
     | undefined;
   ScheduleCreate:
-    | { petId?: string; startsAt?: string; entrySource?: ScreenEntrySource }
+    | {
+        petId?: string;
+        startsAt?: string;
+        entrySource?: ScreenEntrySource;
+        initialTitle?: string;
+        initialCategory?: ScheduleCategory;
+        initialOtherUiSubCategoryKey?: ScheduleOtherUiSubCategoryKey | null;
+        initialHealthSubCategory?: Extract<
+          ScheduleSubCategory,
+          'hospital' | 'medicine' | 'checkup' | 'vaccine'
+        >;
+        initialIconKey?: ScheduleIconKey;
+        initialColorKey?: ScheduleColorKey;
+        returnTo?: { screen: 'HealthReport'; initialTab?: HealthReportTabKey };
+      }
     | undefined;
   ScheduleDetail: {
     petId?: string;
@@ -125,6 +151,7 @@ export type RootStackParamList = {
     petId?: string;
     scheduleId: string;
     entrySource?: ScreenEntrySource;
+    returnTo?: { screen: 'HealthReport'; initialTab?: HealthReportTabKey };
   };
   WeatherInsight:
     | {
@@ -172,6 +199,8 @@ export type RootStackParamList = {
     | {
         petId?: string;
         returnTo?: RecordCreateReturnTo;
+        initialMainCategory?: RecordMainCategoryKey;
+        initialOtherSubCategory?: RecordOtherSubCategoryKey | null;
       }
     | undefined;
   GuideAdminList: { entrySource?: ScreenEntrySource } | undefined;

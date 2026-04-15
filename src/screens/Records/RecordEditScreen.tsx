@@ -59,8 +59,9 @@ import {
   parseRecordTags,
   parseRecordPrice,
   RECORD_MAIN_CATEGORIES,
-  RECORD_OTHER_SUBCATEGORIES,
+  RECORD_WRITE_OTHER_SUBCATEGORIES,
   RECORD_EMOTION_OPTIONS,
+  RECORD_WRITE_MAIN_CATEGORIES,
   type RecordMainCategoryKey,
   type RecordOtherSubCategoryKey,
   normalizeRecordPriceInput,
@@ -101,6 +102,7 @@ export default function RecordEditScreen() {
   const route = useRoute<Route>();
   const petId = route.params.petId;
   const memoryId = route.params.memoryId;
+  const isHealthEntry = route.params.entrySource === 'health_report';
 
   // ---------------------------------------------------------
   // 2) auth/store
@@ -190,18 +192,6 @@ export default function RecordEditScreen() {
     );
   }, [record, dirty]);
 
-  const selectedMainCategory = useMemo(
-    () =>
-      RECORD_MAIN_CATEGORIES.find(category => category.key === mainCategoryKey) ??
-      null,
-    [mainCategoryKey],
-  );
-  const selectedOtherSubCategory = useMemo(
-    () =>
-      RECORD_OTHER_SUBCATEGORIES.find(sub => sub.key === otherSubCategoryKey) ??
-      null,
-    [otherSubCategoryKey],
-  );
   const isShoppingCategory = useMemo(
     () => isShoppingRecordCategory(mainCategoryKey, otherSubCategoryKey),
     [mainCategoryKey, otherSubCategoryKey],
@@ -216,6 +206,13 @@ export default function RecordEditScreen() {
     if (!normalized) return '날짜를 선택해 주세요';
     return formatRecordKoreanDate(normalized);
   }, [occurredAt]);
+  const visibleMainCategories = useMemo(
+    () =>
+      isHealthEntry && mainCategoryKey === 'health'
+        ? RECORD_MAIN_CATEGORIES.filter(category => category.key === 'health')
+        : RECORD_WRITE_MAIN_CATEGORIES,
+    [isHealthEntry, mainCategoryKey],
+  );
 
   // ---------------------------------------------------------
   // 4) navigation helpers
@@ -226,8 +223,18 @@ export default function RecordEditScreen() {
       return;
     }
 
+    if (route.params.entrySource === 'health_report') {
+      navigation.navigate('HealthReport', {
+        petId,
+        initialTab: 'records',
+        focusYmd: record?.occurredAt ?? undefined,
+        entrySource: 'more',
+      });
+      return;
+    }
+
     navigation.navigate('TimelineMain', { petId });
-  }, [navigation, petId]);
+  }, [navigation, petId, record?.occurredAt, route.params.entrySource]);
 
   // ---------------------------------------------------------
   // 5) image state (preview + replace flow)
@@ -606,8 +613,12 @@ export default function RecordEditScreen() {
       navigation.goBack();
       return;
     }
-    navigation.navigate('RecordDetail', { petId, memoryId });
-  }, [memoryId, navigation, petId, setFocusedMemoryId]);
+    navigation.navigate('RecordDetail', {
+      petId,
+      memoryId,
+      entrySource: route.params.entrySource,
+    });
+  }, [memoryId, navigation, petId, route.params.entrySource, setFocusedMemoryId]);
 
   // ---------------------------------------------------------
   // 9) guard
@@ -650,7 +661,7 @@ export default function RecordEditScreen() {
         </View>
 
         <AppText preset="headline" style={styles.headerTitle}>
-          기록 수정
+          {isHealthEntry ? '건강 기록 수정' : '기록 수정'}
         </AppText>
 
         <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
@@ -788,7 +799,7 @@ export default function RecordEditScreen() {
           분류
         </AppText>
         <View style={styles.categoryGrid}>
-          {RECORD_MAIN_CATEGORIES.map(category => {
+          {visibleMainCategories.map(category => {
             const active = category.key === mainCategoryKey;
             return (
               <TouchableOpacity
@@ -817,7 +828,7 @@ export default function RecordEditScreen() {
 
         {mainCategoryKey === 'other' ? (
           <View style={styles.subCategoryGrid}>
-            {RECORD_OTHER_SUBCATEGORIES.map(sub => {
+            {RECORD_WRITE_OTHER_SUBCATEGORIES.map(sub => {
               const active = sub.key === otherSubCategoryKey;
               return (
                 <TouchableOpacity

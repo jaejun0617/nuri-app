@@ -6,7 +6,13 @@ import React, {
   useState,
 } from 'react';
 import {
+  Alert,
+  Animated,
+  Easing,
   FlatList,
+  LayoutAnimation,
+  Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -22,7 +28,7 @@ import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
 import WeightLogEntrySheet from '../../components/health/WeightLogEntrySheet';
-import { useHealthReportAccess } from '../../hooks/useHealthReportAccess';
+import AppNavigationToolbar from '../../components/navigation/AppNavigationToolbar';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import { useHealthReportMonth } from '../../hooks/useHealthReportMonth';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -34,14 +40,28 @@ import {
 import {
   buildWeightSummary,
   buildWeightTimelineItems,
+  groupHealthActivitiesByYmd,
   type HealthActivityItem,
   type HealthReportTabKey,
   type WeightDeltaDirection,
   type WeightTimelineItem,
 } from '../../services/health-report/viewModel';
+import {
+  buildQuickToggleReminderMinutes,
+  formatReminderMinutesSummary,
+} from '../../services/schedules/form';
+import {
+  clearScheduleNotification,
+  upsertScheduleNotification,
+} from '../../services/schedules/notifications';
 import type { PetWeightLog, PetWeightLogMutationResult } from '../../services/supabase/petWeightLogs';
+import {
+  fetchScheduleById,
+  updateSchedule,
+} from '../../services/supabase/schedules';
 import { useAuthStore } from '../../store/authStore';
 import { resolveSelectedPetId, usePetStore } from '../../store/petStore';
+import { useScheduleStore } from '../../store/scheduleStore';
 import { openMoreDrawer } from '../../store/uiStore';
 import { getKstYmd, humanizeMonthKey } from '../../utils/date';
 
@@ -51,16 +71,60 @@ type HealthReportRoute = RouteProp<RootStackParamList, 'HealthReport'>;
 const TAB_ITEMS: Array<{
   key: HealthReportTabKey;
   label: string;
-  locked?: boolean;
 }> = [
-  { key: 'records', label: '건강기록' },
-  { key: 'weight', label: '체중관리' },
-  { key: 'report', label: '리포트', locked: true },
+  { key: 'records', label: '기록' },
+  { key: 'weight', label: '체중' },
+  { key: 'report', label: '인사이트' },
 ];
 
 const DATE_ITEM_WIDTH = 56;
 
+type HealthWriteActionKey = 'hospital' | 'medicine' | 'symptom' | 'weight';
+
+const HEALTH_WRITE_ACTIONS: Array<{
+  key: HealthWriteActionKey;
+  title: string;
+  description: string;
+  icon: string;
+}> = [
+  {
+    key: 'hospital',
+    title: '병원/검진',
+    description: '진료, 검진, 접종처럼 날짜가 중요한 건강 일정을 남겨요',
+    icon: 'calendar',
+  },
+  {
+    key: 'medicine',
+    title: '투약/복약',
+    description: '챙겨야 할 약 시간을 건강관리 일정으로 남겨요',
+    icon: 'clock',
+  },
+  {
+    key: 'symptom',
+    title: '증상/컨디션',
+    description: '기침, 식욕, 컨디션처럼 오늘의 변화를 기록해요',
+    icon: 'activity',
+  },
+  {
+    key: 'weight',
+    title: '체중',
+    description: '몸무게와 메모를 같은 기준으로 저장해요',
+    icon: 'trending-up',
+  },
+];
+
 type HealthReportMonthData = NonNullable<ReturnType<typeof useHealthReportMonth>['data']>;
+type InsightDensityItem = {
+  id: string;
+  ymd: string;
+};
+type InsightMetricKey = 'activity' | 'activeDays' | 'weight' | 'topKind';
+type InsightDetailRow = {
+  id: string;
+  title: string;
+  subtitle: string;
+  meta?: string;
+};
 
 function formatWeightKg(value: number | null | undefined) {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
@@ -152,16 +216,69 @@ function applyCommittedWeightMutation(
   };
 }
 
+function applyCommittedScheduleMutation(
+  current: HealthReportMonthData,
+  input: {
+    scheduleId: string;
+    reminderMinutes?: number[];
+    completedAt?: string | null;
+    remove?: boolean;
+  },
+): HealthReportMonthData {
+  const activityItems = input.remove
+    ? current.activityItems.filter(
+        item => !(item.source === 'schedule' && item.scheduleId === input.scheduleId),
+      )
+    : current.activityItems.map(item =>
+        item.source === 'schedule' && item.scheduleId === input.scheduleId
+          ? {
+              ...item,
+              reminderMinutes: input.reminderMinutes ?? item.reminderMinutes,
+              completedAt:
+                input.completedAt !== undefined ? input.completedAt : item.completedAt,
+            }
+          : item,
+      );
+
+  return {
+    ...current,
+    activityItems,
+    groupedActivities: groupHealthActivitiesByYmd(activityItems),
+    latestActivityYmd: activityItems[0]?.ymd ?? null,
+  };
+}
+
 function ActivityCard({
   item,
   accentColor,
   onPress,
+  onToggleReminder,
+  reminderBusy,
 }: {
   item: HealthActivityItem;
   accentColor: string;
   onPress: () => void;
+  onToggleReminder?: (item: HealthActivityItem) => void;
+  reminderBusy?: boolean;
 }) {
   const theme = useTheme();
+  const reminderEnabled =
+    item.source === 'schedule' && (item.reminderMinutes?.length ?? 0) > 0;
+  const toggleAnimation = useRef(new Animated.Value(reminderEnabled ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.timing(toggleAnimation, {
+      toValue: reminderEnabled ? 1 : 0,
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [reminderEnabled, toggleAnimation]);
+
+  const translateX = toggleAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 26],
+  });
 
   return (
     <TouchableOpacity
@@ -190,6 +307,64 @@ function ActivityCard({
         <AppText preset="helper" color={theme.colors.textMuted} numberOfLines={1}>
           {item.subtitle}
         </AppText>
+        {item.source === 'schedule' ? (
+          <AppText preset="caption" color={theme.colors.textMuted} numberOfLines={1}>
+            {formatReminderMinutesSummary(item.reminderMinutes)}
+          </AppText>
+        ) : null}
+      </View>
+      <View style={styles.activityRightColumn}>
+        {item.source === 'schedule' && onToggleReminder ? (
+          <Pressable
+            accessibilityRole="switch"
+            accessibilityLabel={reminderEnabled ? '알림 끄기' : '알림 켜기'}
+            accessibilityState={{ checked: reminderEnabled, disabled: reminderBusy }}
+            disabled={reminderBusy}
+            onPress={event => {
+              event.stopPropagation();
+              onToggleReminder(item);
+            }}
+            style={[
+              styles.reminderToggleButton,
+              reminderEnabled
+                ? {
+                    backgroundColor: `${accentColor}18`,
+                    borderColor: `${accentColor}30`,
+                    opacity: reminderBusy ? 0.5 : 1,
+                  }
+                : {
+                    backgroundColor: theme.colors.surfaceElevated,
+                    borderColor: theme.colors.border,
+                    opacity: reminderBusy ? 0.5 : 1,
+                  },
+            ]}
+          >
+            <Animated.View
+              style={[
+                styles.reminderToggleThumb,
+                {
+                  backgroundColor: reminderEnabled
+                    ? accentColor
+                    : theme.colors.textMuted,
+                  transform: [{ translateX }],
+                },
+              ]}
+            >
+              <Feather
+                color="#FFFFFF"
+                name={reminderEnabled ? 'bell' : 'bell-off'}
+                size={12}
+              />
+            </Animated.View>
+          </Pressable>
+        ) : null}
+        {item.completedAt ? (
+          <View style={styles.activityStatusBadge}>
+            <AppText preset="caption" style={styles.activityStatusText}>
+              완료됨
+            </AppText>
+          </View>
+        ) : null}
       </View>
       <Feather color={theme.colors.textMuted} name="chevron-right" size={18} />
     </TouchableOpacity>
@@ -255,13 +430,217 @@ function WeightBarChart({
   );
 }
 
+function getKindLabel(kind: HealthActivityItem['kind']) {
+  switch (kind) {
+    case 'hospital':
+      return '병원';
+    case 'medicine':
+      return '약';
+    case 'checkup':
+      return '검진';
+    case 'vaccine':
+      return '접종';
+    case 'symptom':
+      return '증상';
+    case 'health':
+    default:
+      return '건강';
+  }
+}
+
+function buildTopKindLabel(items: HealthActivityItem[]) {
+  if (items.length === 0) return '아직 기록 없음';
+
+  const counts = items.reduce<Record<HealthActivityItem['kind'], number>>(
+    (acc, item) => ({
+      ...acc,
+      [item.kind]: (acc[item.kind] ?? 0) + 1,
+    }),
+    {
+      symptom: 0,
+      hospital: 0,
+      medicine: 0,
+      checkup: 0,
+      vaccine: 0,
+      health: 0,
+    },
+  );
+  const [topKind, topCount] = Object.entries(counts).sort(
+    ([, left], [, right]) => right - left,
+  )[0] as [HealthActivityItem['kind'], number];
+
+  return `${getKindLabel(topKind)} ${topCount}건`;
+}
+
+function getTopKind(items: HealthActivityItem[]) {
+  if (items.length === 0) return null;
+
+  const counts = items.reduce<Record<HealthActivityItem['kind'], number>>(
+    (acc, item) => {
+      acc[item.kind] = (acc[item.kind] ?? 0) + 1;
+      return acc;
+    },
+    {
+      symptom: 0,
+      hospital: 0,
+      medicine: 0,
+      checkup: 0,
+      vaccine: 0,
+      health: 0,
+    },
+  );
+  return Object.entries(counts).sort(
+    ([, left], [, right]) => right - left,
+  )[0]?.[0] as HealthActivityItem['kind'] | undefined;
+}
+
+function buildInsightDensityItems(
+  activityItems: HealthActivityItem[],
+  weightTimeline: WeightTimelineItem[],
+): InsightDensityItem[] {
+  return [
+    ...activityItems.map(item => ({
+      id: item.id,
+      ymd: item.ymd,
+    })),
+    ...weightTimeline.map(item => ({
+      id: `weight:${item.id}`,
+      ymd: item.measuredOn,
+    })),
+  ].filter(item => item.ymd.length > 0);
+}
+
+function InsightMetricCard({
+  label,
+  value,
+  helper,
+  accentColor,
+  onPress,
+}: {
+  label: string;
+  value: string;
+  helper: string;
+  accentColor: string;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.88}
+      accessibilityRole="button"
+      onPress={onPress}
+      style={[
+        styles.insightMetricCard,
+        {
+          backgroundColor: theme.colors.surfaceElevated,
+          borderColor: theme.colors.border,
+        },
+      ]}
+    >
+      <AppText preset="helper" color={theme.colors.textMuted}>
+        {label}
+      </AppText>
+      <AppText preset="titleMd" color={accentColor}>
+        {value}
+      </AppText>
+      <AppText preset="caption" color={theme.colors.textMuted}>
+        {helper}
+      </AppText>
+    </TouchableOpacity>
+  );
+}
+
+function ActivityDensityGraph({
+  dateItems,
+  densityItems,
+  accentColor,
+  focusYmd,
+}: {
+  dateItems: string[];
+  densityItems: InsightDensityItem[];
+  accentColor: string;
+  focusYmd: string;
+}) {
+  const theme = useTheme();
+  const scrollRef = useRef<ScrollView>(null);
+  const countsByYmd = useMemo(
+    () =>
+      densityItems.reduce<Record<string, number>>((acc, item) => {
+        acc[item.ymd] = (acc[item.ymd] ?? 0) + 1;
+        return acc;
+      }, {}),
+    [densityItems],
+  );
+  const maxCount = useMemo(
+    () =>
+      dateItems.reduce(
+        (acc, ymd) => Math.max(acc, countsByYmd[ymd] ?? 0),
+        0,
+      ),
+    [countsByYmd, dateItems],
+  );
+
+  useEffect(() => {
+    const focusIndex = dateItems.indexOf(focusYmd);
+    if (focusIndex < 0) return;
+
+    const timer = setTimeout(() => {
+      scrollRef.current?.scrollTo({
+        x: Math.max(0, focusIndex * 29 - 120),
+        animated: true,
+      });
+    }, 80);
+
+    return () => clearTimeout(timer);
+  }, [dateItems, focusYmd]);
+
+  return (
+    <ScrollView
+      ref={scrollRef}
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.insightGraphContent}
+    >
+      {dateItems.map(ymd => {
+        const count = countsByYmd[ymd] ?? 0;
+        const ratio = maxCount <= 0 ? 0 : count / maxCount;
+        const barHeight = count > 0 ? 18 + ratio * 58 : 8;
+        return (
+          <View
+            key={ymd}
+            style={styles.insightGraphItem}
+            accessibilityLabel={`${ymd.slice(8, 10)}일 건강관리 기록 ${count}건`}
+          >
+            <View style={styles.insightGraphTrack}>
+              <View
+                style={[
+                  styles.insightGraphBar,
+                  {
+                    height: barHeight,
+                    backgroundColor:
+                      count > 0 ? accentColor : theme.colors.border,
+                    opacity: count > 0 ? 1 : 0.62,
+                  },
+                ]}
+              />
+            </View>
+            <AppText preset="caption" color={theme.colors.textMuted}>
+              {ymd.slice(8, 10)}
+            </AppText>
+          </View>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
 export default function HealthReportScreen() {
   const navigation = useNavigation<Navigation>();
   const route = useRoute<HealthReportRoute>();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
-  const access = useHealthReportAccess();
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
   const upsertPet = usePetStore(s => s.upsertPet);
@@ -300,13 +679,22 @@ export default function HealthReportScreen() {
   });
   const todayYmd = getKstYmd();
   const currentMonthKey = normalizeHealthReportMonthKey(undefined);
+  const focusYmd = route.params?.focusYmd;
   const [activeTab, setActiveTab] = useState<HealthReportTabKey>(
     route.params?.initialTab ?? 'records',
   );
-  const [monthKey, setMonthKey] = useState(currentMonthKey);
-  const [selectedYmd, setSelectedYmd] = useState(todayYmd);
+  const [monthKey, setMonthKey] = useState(
+    focusYmd
+      ? normalizeHealthReportMonthKey(focusYmd.slice(0, 7))
+      : currentMonthKey,
+  );
+  const [selectedYmd, setSelectedYmd] = useState(focusYmd ?? todayYmd);
   const [sheetVisible, setSheetVisible] = useState(false);
   const [editingLog, setEditingLog] = useState<PetWeightLog | null>(null);
+  const [writeActionSheetVisible, setWriteActionSheetVisible] = useState(false);
+  const [selectedInsightMetric, setSelectedInsightMetric] =
+    useState<InsightMetricKey | null>(null);
+  const [togglingReminderIds, setTogglingReminderIds] = useState<string[]>([]);
 
   const monthQuery = useHealthReportMonth({
     petId: pet?.id ?? null,
@@ -321,17 +709,31 @@ export default function HealthReportScreen() {
   const selectedActivities = monthQuery.data?.groupedActivities[selectedYmd] ?? [];
 
   useEffect(() => {
-    if (!dateItems.length) return;
-
-    const nextSelected =
-      isCurrentMonth && dateItems.includes(todayYmd)
-        ? todayYmd
-        : monthQuery.data?.latestActivityYmd ?? dateItems[dateItems.length - 1];
-    setSelectedYmd(nextSelected);
-  }, [dateItems, isCurrentMonth, monthQuery.data?.latestActivityYmd, todayYmd]);
+    if (!focusYmd) return;
+    setMonthKey(normalizeHealthReportMonthKey(focusYmd.slice(0, 7)));
+    setSelectedYmd(focusYmd);
+  }, [focusYmd]);
 
   useEffect(() => {
     if (!dateItems.length) return;
+
+    const nextSelected =
+      focusYmd && dateItems.includes(focusYmd)
+        ? focusYmd
+        : isCurrentMonth && dateItems.includes(todayYmd)
+        ? todayYmd
+        : monthQuery.data?.latestActivityYmd ?? dateItems[dateItems.length - 1];
+    setSelectedYmd(nextSelected);
+  }, [
+    dateItems,
+    focusYmd,
+    isCurrentMonth,
+    monthQuery.data?.latestActivityYmd,
+    todayYmd,
+  ]);
+
+  useEffect(() => {
+    if (!dateItems.length || activeTab === 'report') return;
     const selectedIndex = Math.max(0, dateItems.indexOf(selectedYmd));
     const timer = setTimeout(() => {
       dateStripRef.current?.scrollToIndex({
@@ -342,12 +744,69 @@ export default function HealthReportScreen() {
     }, 60);
 
     return () => clearTimeout(timer);
-  }, [dateItems, selectedYmd]);
+  }, [activeTab, dateItems, selectedYmd]);
 
   const openWeightCreate = useCallback(() => {
     setEditingLog(null);
     setSheetVisible(true);
   }, []);
+
+  const openHealthWriteActions = useCallback(() => {
+    setWriteActionSheetVisible(true);
+  }, []);
+
+  const closeHealthWriteActions = useCallback(() => {
+    setWriteActionSheetVisible(false);
+  }, []);
+
+  const handleBottomNavigationStart = useCallback(() => {
+    setWriteActionSheetVisible(false);
+    setSheetVisible(false);
+    setEditingLog(null);
+  }, []);
+
+  const handleOpenMoreFromBottomNavigation = useCallback(() => {
+    navigation.navigate('AppTabs', { screen: 'HomeTab' });
+    requestAnimationFrame(() => {
+      openMoreDrawer();
+    });
+  }, [navigation]);
+
+  const handleHealthWriteAction = useCallback(
+    (action: HealthWriteActionKey) => {
+      if (!pet) return;
+      setWriteActionSheetVisible(false);
+
+      if (action === 'weight') {
+        requestAnimationFrame(openWeightCreate);
+        return;
+      }
+
+      if (action === 'symptom') {
+        navigation.navigate('RecordCreate', {
+          petId: pet.id,
+          initialMainCategory: 'health',
+          returnTo: {
+            tab: 'HealthReport',
+            petId: pet.id,
+            initialTab: 'records',
+          },
+        });
+        return;
+      }
+
+      const medicineAction = action === 'medicine';
+      navigation.navigate('ScheduleCreate', {
+        petId: pet.id,
+        initialTitle: medicineAction ? '투약/복약 기록' : '병원/검진 기록',
+        initialCategory: 'health',
+        initialHealthSubCategory: medicineAction ? 'medicine' : 'hospital',
+        initialIconKey: medicineAction ? 'pill' : 'medical-bag',
+        returnTo: { screen: 'HealthReport', initialTab: 'records' },
+      });
+    },
+    [navigation, openWeightCreate, pet],
+  );
 
   const handleWeightCommitted = useCallback(
     (result: PetWeightLogMutationResult) => {
@@ -397,7 +856,7 @@ export default function HealthReportScreen() {
             params: {
               petId: pet.id,
               memoryId: item.memoryId,
-              entrySource: 'more',
+              entrySource: 'health_report',
             },
           },
         });
@@ -414,6 +873,200 @@ export default function HealthReportScreen() {
     },
     [navigation, pet],
   );
+
+  const handleToggleScheduleReminder = useCallback(
+    async (item: HealthActivityItem) => {
+      if (!pet || item.source !== 'schedule' || !item.scheduleId) return;
+
+      const busyId = item.scheduleId;
+      setTogglingReminderIds(current => [...current, busyId]);
+
+      try {
+        const schedule = await fetchScheduleById(item.scheduleId);
+        const nextReminderMinutes =
+          (schedule.reminderMinutes?.length ?? 0) > 0
+            ? []
+            : buildQuickToggleReminderMinutes(schedule.startsAt);
+
+        if (
+          nextReminderMinutes.length === 0 &&
+          (schedule.reminderMinutes?.length ?? 0) === 0
+        ) {
+          Alert.alert(
+            '알림을 바로 켤 수 없어요',
+            '일정 시간이 너무 가까워 기본 알림 시점을 만들 수 없어요. 일정 상세에서 더 짧은 간격으로 다시 설정해 주세요.',
+          );
+          return;
+        }
+
+        await updateSchedule({
+          scheduleId: schedule.id,
+          petId: schedule.petId,
+          title: schedule.title,
+          note: schedule.note,
+          startsAt: schedule.startsAt,
+          endsAt: schedule.endsAt,
+          allDay: schedule.allDay,
+          category: schedule.category,
+          subCategory: schedule.subCategory,
+          iconKey: schedule.iconKey,
+          colorKey: schedule.colorKey,
+          reminderMinutes: nextReminderMinutes,
+          repeatRule: schedule.repeatRule,
+          repeatInterval: schedule.repeatInterval,
+          repeatUntil: schedule.repeatUntil,
+          linkedMemoryId: schedule.linkedMemoryId,
+          completedAt: schedule.completedAt,
+          source: schedule.source,
+          externalCalendarId: schedule.externalCalendarId,
+          externalEventId: schedule.externalEventId,
+          syncStatus: schedule.syncStatus,
+        });
+
+        if (nextReminderMinutes.length === 0) {
+          clearScheduleNotification(schedule.id);
+        } else {
+          await upsertScheduleNotification({
+            id: schedule.id,
+            petId: schedule.petId,
+            title: schedule.title,
+            note: schedule.note,
+            startsAt: schedule.startsAt,
+            repeatRule: schedule.repeatRule,
+            reminderMinutes: nextReminderMinutes,
+            completedAt: schedule.completedAt,
+          });
+        }
+
+        if (Platform.OS === 'android') {
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        }
+        queryClient.setQueryData<HealthReportMonthData>(
+          ['health-report', 'month', pet.id, monthQuery.monthKey],
+          current =>
+            current
+              ? applyCommittedScheduleMutation(current, {
+                  scheduleId: schedule.id,
+                  reminderMinutes: nextReminderMinutes,
+                })
+              : current,
+        );
+        useScheduleStore.getState().refresh(pet.id).catch(() => {});
+      } catch (error) {
+        Alert.alert(
+          '알림 설정 실패',
+          error instanceof Error
+            ? error.message
+            : '알림 설정을 바꾸지 못했어요. 잠시 후 다시 시도해 주세요.',
+        );
+      } finally {
+        setTogglingReminderIds(current =>
+          current.filter(candidate => candidate !== busyId),
+        );
+      }
+    },
+    [monthQuery.monthKey, pet, queryClient],
+  );
+
+  const insightActivityItems = useMemo(
+    () => monthQuery.data?.activityItems ?? [],
+    [monthQuery.data?.activityItems],
+  );
+  const insightWeightTimeline = useMemo(
+    () => monthQuery.data?.weightTimeline ?? [],
+    [monthQuery.data?.weightTimeline],
+  );
+  const insightDensityItems = useMemo(
+    () => buildInsightDensityItems(insightActivityItems, insightWeightTimeline),
+    [insightActivityItems, insightWeightTimeline],
+  );
+  const insightActiveDays = useMemo(
+    () => new Set(insightDensityItems.map(item => item.ymd)).size,
+    [insightDensityItems],
+  );
+  const topInsightKind = useMemo(
+    () => getTopKind(insightActivityItems),
+    [insightActivityItems],
+  );
+  const selectedInsightDetail = useMemo(() => {
+    if (!selectedInsightMetric) return null;
+
+    if (selectedInsightMetric === 'activity') {
+      return {
+        title: '건강 이벤트',
+        helper: '이번 달 병원, 약, 증상 기록',
+        rows: insightActivityItems.map<InsightDetailRow>(item => ({
+          id: item.id,
+          title: item.title,
+          subtitle: item.subtitle,
+          meta: item.completedAt
+            ? `완료됨 · ${item.ymd.replace(/-/g, '.')}`
+            : item.ymd.replace(/-/g, '.'),
+        })),
+      };
+    }
+
+    if (selectedInsightMetric === 'activeDays') {
+      const countsByYmd = insightDensityItems.reduce<Record<string, number>>(
+        (acc, item) => {
+          acc[item.ymd] = (acc[item.ymd] ?? 0) + 1;
+          return acc;
+        },
+        {},
+      );
+      return {
+        title: '기록한 날',
+        helper: '건강 이벤트와 체중 기록이 남은 날짜',
+        rows: Object.entries(countsByYmd)
+          .sort(([left], [right]) => right.localeCompare(left))
+          .map<InsightDetailRow>(([ymd, count]) => ({
+            id: ymd,
+            title: ymd.replace(/-/g, '.'),
+            subtitle: `${count}건의 건강관리 기록`,
+          })),
+      };
+    }
+
+    if (selectedInsightMetric === 'weight') {
+      return {
+        title: '체중 기록',
+        helper: '이번 달 체중 체크 내역',
+        rows: insightWeightTimeline
+          .slice()
+          .reverse()
+          .map<InsightDetailRow>(item => ({
+            id: item.id,
+            title: formatWeightKg(item.weightKg),
+            subtitle: item.note?.trim() || '메모 없이 저장된 체중 기록',
+            meta: item.measuredOn.replace(/-/g, '.'),
+          })),
+      };
+    }
+
+    const topKind = topInsightKind;
+    return {
+      title: '자주 남긴 기록',
+      helper: topKind
+        ? `${getKindLabel(topKind)} 기록 모아보기`
+        : '이번 달 중심 이벤트',
+      rows: topKind
+        ? insightActivityItems
+            .filter(item => item.kind === topKind)
+            .map<InsightDetailRow>(item => ({
+              id: item.id,
+              title: item.title,
+              subtitle: item.subtitle,
+              meta: item.ymd.replace(/-/g, '.'),
+            }))
+        : [],
+    };
+  }, [
+    insightActivityItems,
+    insightDensityItems,
+    insightWeightTimeline,
+    selectedInsightMetric,
+    topInsightKind,
+  ]);
 
   if (!pet) {
     return (
@@ -433,7 +1086,7 @@ export default function HealthReportScreen() {
             </TouchableOpacity>
           </View>
           <AppText preset="headline" style={styles.headerTitle}>
-            건강 리포트
+            건강관리
           </AppText>
           <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
         </View>
@@ -457,6 +1110,11 @@ export default function HealthReportScreen() {
             </AppText>
           </TouchableOpacity>
         </View>
+        <AppNavigationToolbar
+          activeKey="more"
+          onBeforeNavigate={handleBottomNavigationStart}
+          onPressMore={handleOpenMoreFromBottomNavigation}
+        />
       </SafeAreaView>
     );
   }
@@ -466,6 +1124,10 @@ export default function HealthReportScreen() {
     monthQuery.data?.weightSummary.deltaKg ?? null,
     monthQuery.data?.weightSummary.deltaRate ?? null,
   );
+  const insightHasAnyData =
+    insightActivityItems.length > 0 ||
+    insightWeightTimeline.length > 0 ||
+    monthQuery.data?.weightSummary.latestWeightKg !== null;
 
   return (
     <SafeAreaView
@@ -485,10 +1147,24 @@ export default function HealthReportScreen() {
         </View>
 
         <AppText preset="headline" style={styles.headerTitle}>
-          건강 리포트
+          건강관리
         </AppText>
 
-        <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
+        <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={openHealthWriteActions}
+            style={[
+              styles.headerActionButton,
+              { backgroundColor: petTheme.primary },
+            ]}
+          >
+            <Feather color="#FFFFFF" name="plus" size={15} />
+            <AppText preset="caption" color="#FFFFFF">
+              기록
+            </AppText>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.monthRow}>
@@ -545,13 +1221,6 @@ export default function HealthReportScreen() {
               >
                 {item.label}
               </AppText>
-              {item.locked ? (
-                <Feather
-                  color={active ? '#FFFFFF' : theme.colors.textMuted}
-                  name="lock"
-                  size={12}
-                />
-              ) : null}
             </TouchableOpacity>
           );
         })}
@@ -667,16 +1336,11 @@ export default function HealthReportScreen() {
               </AppText>
               <TouchableOpacity
                 activeOpacity={0.9}
-                onPress={() =>
-                  navigation.navigate('RecordCreate', {
-                    petId: pet.id,
-                    returnTo: { tab: 'TimelineTab' },
-                  })
-                }
+                onPress={openHealthWriteActions}
                 style={[styles.primaryCta, { backgroundColor: petTheme.primary }]}
               >
                 <AppText preset="button" color="#FFFFFF">
-                  건강 기록 남기기
+                  건강 기록하기
                 </AppText>
               </TouchableOpacity>
             </View>
@@ -687,6 +1351,11 @@ export default function HealthReportScreen() {
                 item={item}
                 accentColor={petTheme.primary}
                 onPress={() => handleActivityPress(item)}
+                onToggleReminder={handleToggleScheduleReminder}
+                reminderBusy={
+                  !!item.scheduleId &&
+                  togglingReminderIds.includes(item.scheduleId)
+                }
               />
             ))
           )}
@@ -776,6 +1445,10 @@ export default function HealthReportScreen() {
               .reverse()
               .map(log => {
                 const itemDelta = formatDeltaText(log.direction, log.deltaKg, log.deltaRate);
+                const itemDeltaColor =
+                  typeof itemDelta === 'string'
+                    ? theme.colors.textMuted
+                    : getDeltaColor(log.direction, theme);
                 return (
                   <TouchableOpacity
                     key={log.id}
@@ -794,7 +1467,7 @@ export default function HealthReportScreen() {
                   >
                     <View style={styles.cardTextWrap}>
                       <AppText preset="body">{log.measuredOn.replace(/-/g, '.')}</AppText>
-                      <AppText preset="helper" color={theme.colors.textMuted}>
+                      <AppText preset="helper" color={itemDeltaColor}>
                         {typeof itemDelta === 'string' ? itemDelta : itemDelta.text}
                       </AppText>
                       {log.note ? (
@@ -804,7 +1477,16 @@ export default function HealthReportScreen() {
                       ) : null}
                     </View>
                     <View style={styles.weightValueWrap}>
-                      <AppText preset="titleSm">{formatWeightKg(log.weightKg)}</AppText>
+                      <AppText
+                        preset="titleSm"
+                        color={
+                          log.direction === 'same'
+                            ? theme.colors.textPrimary
+                            : itemDeltaColor
+                        }
+                      >
+                        {formatWeightKg(log.weightKg)}
+                      </AppText>
                       <Feather color={theme.colors.textMuted} name="edit-2" size={15} />
                     </View>
                   </TouchableOpacity>
@@ -816,48 +1498,151 @@ export default function HealthReportScreen() {
         <ScrollView
           contentContainerStyle={[
             styles.contentContainer,
-            { paddingBottom: Math.max(insets.bottom, 24) + 72 },
+            { paddingBottom: Math.max(insets.bottom, 24) + 110 },
           ]}
           showsVerticalScrollIndicator={false}
         >
           <View
             style={[
-              styles.teaserCard,
+              styles.insightHeroCard,
+              {
+                backgroundColor: petTheme.soft,
+                borderColor: petTheme.border,
+              },
+            ]}
+          >
+            <AppText preset="helper" color={petTheme.primary}>
+              {humanizeMonthKey(monthKey)} 건강 인사이트
+            </AppText>
+            <AppText preset="titleMd">
+              {insightHasAnyData
+                ? `${pet.name}의 이번 달 흐름이 모이고 있어요`
+                : '첫 기록이 쌓이면 월간 흐름이 열려요'}
+            </AppText>
+            <AppText preset="body" color={theme.colors.textMuted}>
+              {insightHasAnyData
+                ? '기록한 날, 체중 변화, 자주 남긴 건강 이벤트를 한 화면에서 정리합니다.'
+                : '병원, 약, 증상, 체중을 남기면 이곳에서 변화의 방향을 바로 볼 수 있어요.'}
+            </AppText>
+          </View>
+
+          <View style={styles.insightMetricGrid}>
+            <InsightMetricCard
+              label="건강 이벤트"
+              value={`${insightActivityItems.length}건`}
+              helper="병원, 약, 증상 기록"
+              accentColor={petTheme.primary}
+              onPress={() => setSelectedInsightMetric('activity')}
+            />
+            <InsightMetricCard
+              label="기록한 날"
+              value={`${insightActiveDays}일`}
+              helper="건강 이벤트와 체중 기록 기준"
+              accentColor={petTheme.primary}
+              onPress={() => setSelectedInsightMetric('activeDays')}
+            />
+            <InsightMetricCard
+              label="체중 기록"
+              value={`${insightWeightTimeline.length}회`}
+              helper="월간 체중 체크"
+              accentColor={petTheme.primary}
+              onPress={() => setSelectedInsightMetric('weight')}
+            />
+            <InsightMetricCard
+              label="자주 남긴 기록"
+              value={buildTopKindLabel(insightActivityItems)}
+              helper="이번 달 중심 이벤트"
+              accentColor={petTheme.primary}
+              onPress={() => setSelectedInsightMetric('topKind')}
+            />
+          </View>
+
+          <View
+            style={[
+              styles.insightPanel,
               {
                 backgroundColor: theme.colors.surfaceElevated,
                 borderColor: theme.colors.border,
               },
             ]}
           >
-            <View style={styles.teaserBadge}>
-              <Feather color={petTheme.primary} name="lock" size={14} />
-              <AppText preset="caption" color={petTheme.primary}>
-                Premium Preview
-              </AppText>
+            <View style={styles.insightPanelHeader}>
+              <View>
+                <AppText preset="titleSm">기록 밀도</AppText>
+                <AppText preset="helper" color={theme.colors.textMuted}>
+                  날짜별 건강 이벤트와 체중 기록 수
+                </AppText>
+              </View>
+              <Feather color={petTheme.primary} name="bar-chart-2" size={18} />
             </View>
-            <AppText preset="titleMd">데이터가 쌓일수록 한층 깊어집니다</AppText>
-            <AppText preset="body" color={theme.colors.textMuted} style={styles.teaserText}>
-              월간 체중 리듬, 병원 방문 흐름, 기록 밀도를 한눈에 회고하는 프리미엄 분석이 이 자리에서 완성됩니다.
-            </AppText>
-            <View style={styles.teaserList}>
-              <AppText preset="bodySm" color={theme.colors.textPrimary}>
-                월간 변화 포인트를 정제한 요약
-              </AppText>
-              <AppText preset="bodySm" color={theme.colors.textPrimary}>
-                체중과 건강 이벤트의 연결 신호
-              </AppText>
-              <AppText preset="bodySm" color={theme.colors.textPrimary}>
-                다음 기록을 위한 차분한 리마인드 제안
-              </AppText>
-            </View>
-            {access.report === 'teaser' ? (
-              <AppText preset="helper" color={theme.colors.textMuted}>
-                지금은 티저만 열려 있고, 결제/잠금 로직은 다음 단계에서 연결됩니다.
-              </AppText>
-            ) : null}
+            <ActivityDensityGraph
+              dateItems={monthQuery.data?.dateItems ?? []}
+              densityItems={insightDensityItems}
+              accentColor={petTheme.primary}
+              focusYmd={todayYmd}
+            />
           </View>
+
+          <View
+            style={[
+              styles.insightPanel,
+              {
+                backgroundColor: theme.colors.surfaceElevated,
+                borderColor: theme.colors.border,
+              },
+            ]}
+          >
+            <View style={styles.insightPanelHeader}>
+              <View>
+                <AppText preset="titleSm">체중 흐름</AppText>
+                <AppText preset="helper" color={theme.colors.textMuted}>
+                  최신 {formatWeightKg(monthQuery.data?.weightSummary.latestWeightKg)}
+                </AppText>
+              </View>
+              <Feather
+                color={getDeltaColor(
+                  monthQuery.data?.weightSummary.direction ?? 'same',
+                  theme,
+                )}
+                name={
+                  monthQuery.data?.weightSummary.direction === 'up'
+                    ? 'arrow-up'
+                    : monthQuery.data?.weightSummary.direction === 'down'
+                    ? 'arrow-down'
+                    : 'minus'
+                }
+                size={18}
+              />
+            </View>
+            {insightWeightTimeline.length > 0 ? (
+              <WeightBarChart
+                logs={insightWeightTimeline}
+                accentColor={petTheme.primary}
+              />
+            ) : (
+              <AppText preset="bodySm" color={theme.colors.textMuted}>
+                체중 기록을 남기면 월간 변화 막대가 이곳에 쌓입니다.
+              </AppText>
+            )}
+          </View>
+
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={openHealthWriteActions}
+            style={[styles.primaryCta, { backgroundColor: petTheme.primary }]}
+          >
+            <AppText preset="button" color="#FFFFFF">
+              건강 기록 더하기
+            </AppText>
+          </TouchableOpacity>
         </ScrollView>
       )}
+
+      <AppNavigationToolbar
+        activeKey="more"
+        onBeforeNavigate={handleBottomNavigationStart}
+        onPressMore={handleOpenMoreFromBottomNavigation}
+      />
 
       <WeightLogEntrySheet
         visible={sheetVisible}
@@ -874,6 +1659,158 @@ export default function HealthReportScreen() {
         }}
         onCommitted={handleWeightCommitted}
       />
+
+      <Modal
+        visible={selectedInsightDetail !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedInsightMetric(null)}
+      >
+        <Pressable
+          style={styles.sheetBackdrop}
+          onPress={() => setSelectedInsightMetric(null)}
+        >
+          <Pressable
+            style={[
+              styles.insightDetailSheet,
+              {
+                paddingBottom: Math.max(insets.bottom, 18),
+                backgroundColor: theme.colors.surfaceElevated,
+              },
+            ]}
+          >
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeaderRow}>
+              <View style={styles.cardTextWrap}>
+                <AppText preset="titleSm">
+                  {selectedInsightDetail?.title ?? '인사이트'}
+                </AppText>
+                <AppText preset="helper" color={theme.colors.textMuted}>
+                  {selectedInsightDetail?.helper ?? '이번 달 건강관리 기록'}
+                </AppText>
+              </View>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => setSelectedInsightMetric(null)}
+                style={styles.sheetCloseButton}
+              >
+                <Feather color={theme.colors.textMuted} name="x" size={18} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              style={styles.insightDetailList}
+              contentContainerStyle={styles.insightDetailListContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {(selectedInsightDetail?.rows.length ?? 0) > 0 ? (
+                selectedInsightDetail?.rows.map(row => (
+                  <View
+                    key={row.id}
+                    style={[
+                      styles.insightDetailItem,
+                      { borderColor: theme.colors.border },
+                    ]}
+                  >
+                    <View style={styles.cardTextWrap}>
+                      <AppText preset="body">{row.title}</AppText>
+                      <AppText preset="helper" color={theme.colors.textMuted}>
+                        {row.subtitle}
+                      </AppText>
+                    </View>
+                    {row.meta ? (
+                      <AppText preset="caption" color={theme.colors.textMuted}>
+                        {row.meta}
+                      </AppText>
+                    ) : null}
+                  </View>
+                ))
+              ) : (
+                <View style={styles.insightDetailEmpty}>
+                  <AppText preset="body" color={theme.colors.textMuted}>
+                    이번 달에는 아직 표시할 기록이 없어요.
+                  </AppText>
+                </View>
+              )}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        visible={writeActionSheetVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeHealthWriteActions}
+      >
+        <Pressable style={styles.sheetBackdrop} onPress={closeHealthWriteActions}>
+          <Pressable
+            style={[
+              styles.writeActionSheet,
+              {
+                paddingBottom: Math.max(insets.bottom, 18),
+                backgroundColor: theme.colors.surfaceElevated,
+              },
+            ]}
+          >
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeaderRow}>
+              <View style={styles.sheetHeaderTextStack}>
+                <View
+                  style={[
+                    styles.writeActionBadge,
+                    { backgroundColor: `${petTheme.primary}12` },
+                  ]}
+                >
+                  <AppText
+                    preset="caption"
+                    color={petTheme.primary}
+                    style={styles.writeActionBadgeText}
+                  >
+                    HEALTH MANAGEMENT
+                  </AppText>
+                </View>
+                <AppText preset="titleSm">건강 기록하기</AppText>
+                <AppText preset="helper" color={theme.colors.textMuted}>
+                  병원, 약, 증상, 체중을 한 곳에서 남겨요.
+                </AppText>
+              </View>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={closeHealthWriteActions}
+                style={styles.sheetCloseButton}
+              >
+                <Feather color={theme.colors.textMuted} name="x" size={18} />
+              </TouchableOpacity>
+            </View>
+
+            {HEALTH_WRITE_ACTIONS.map(action => (
+              <TouchableOpacity
+                key={action.key}
+                activeOpacity={0.9}
+                onPress={() => handleHealthWriteAction(action.key)}
+                style={[styles.writeActionItem, { borderColor: theme.colors.border }]}
+              >
+                <View
+                  style={[
+                    styles.iconWrap,
+                    { backgroundColor: `${petTheme.primary}18` },
+                  ]}
+                >
+                  <Feather color={petTheme.primary} name={action.icon as never} size={16} />
+                </View>
+                <View style={styles.writeActionItemText}>
+                  <AppText preset="body">{action.title}</AppText>
+                  <AppText preset="helper" color={theme.colors.textMuted}>
+                    {action.description}
+                  </AppText>
+                </View>
+                <Feather color={theme.colors.textMuted} name="chevron-right" size={18} />
+              </TouchableOpacity>
+            ))}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -892,7 +1829,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   headerSideSlot: {
-    width: 40,
+    width: 74,
     minHeight: 40,
     justifyContent: 'center',
     alignItems: 'flex-start',
@@ -905,6 +1842,15 @@ const styles = StyleSheet.create({
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  headerActionButton: {
+    minHeight: 36,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
   },
   headerTitle: {
     flex: 1,
@@ -995,6 +1941,40 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 3,
   },
+  activityStatusBadge: {
+    flexShrink: 0,
+    borderRadius: 8,
+    backgroundColor: 'rgba(34,197,94,0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  activityStatusText: {
+    color: '#15803D',
+    fontWeight: '800',
+  },
+  activityRightColumn: {
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  reminderToggleButton: {
+    width: 54,
+    height: 30,
+    borderRadius: 16,
+    borderWidth: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+    position: 'relative',
+  },
+  reminderToggleThumb: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'absolute',
+    left: 3,
+    top: 3,
+  },
   centerEmpty: {
     flex: 1,
     alignItems: 'center',
@@ -1067,6 +2047,89 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     gap: 6,
   },
+  insightHeroCard: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    gap: 8,
+  },
+  insightMetricGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  insightMetricCard: {
+    width: '48%',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    gap: 6,
+  },
+  insightDetailSheet: {
+    maxHeight: '72%',
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    gap: 12,
+  },
+  insightDetailList: {
+    maxHeight: 360,
+  },
+  insightDetailListContent: {
+    gap: 10,
+    paddingBottom: 4,
+  },
+  insightDetailItem: {
+    minHeight: 64,
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  insightDetailEmpty: {
+    minHeight: 88,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+  insightPanel: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 12,
+  },
+  insightPanelHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  insightGraphContent: {
+    gap: 9,
+    paddingVertical: 6,
+    paddingRight: 6,
+  },
+  insightGraphItem: {
+    width: 20,
+    alignItems: 'center',
+    gap: 6,
+  },
+  insightGraphTrack: {
+    height: 82,
+    justifyContent: 'flex-end',
+  },
+  insightGraphBar: {
+    width: 10,
+    borderRadius: 8,
+  },
   teaserCard: {
     borderWidth: 1,
     borderRadius: 8,
@@ -1084,5 +2147,71 @@ const styles = StyleSheet.create({
   },
   teaserList: {
     gap: 8,
+  },
+  sheetBackdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(15,23,42,0.38)',
+  },
+  writeActionSheet: {
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    gap: 14,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: 'rgba(15,23,42,0.06)',
+  },
+  sheetHandle: {
+    alignSelf: 'center',
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#D6DEE8',
+    marginBottom: 4,
+  },
+  sheetHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  sheetHeaderTextStack: {
+    flex: 1,
+    gap: 6,
+  },
+  sheetCloseButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F2F5F8',
+  },
+  writeActionBadge: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  writeActionBadgeText: {
+    fontWeight: '900',
+    letterSpacing: 0,
+  },
+  writeActionItem: {
+    minHeight: 72,
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: 'rgba(247,248,252,0.86)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  writeActionItemText: {
+    flex: 1,
+    gap: 3,
   },
 });

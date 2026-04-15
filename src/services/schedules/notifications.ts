@@ -1,4 +1,6 @@
 import {
+  Linking,
+  NativeModules,
   PermissionsAndroid,
   Platform,
   PushNotificationIOS,
@@ -12,6 +14,35 @@ import type {
 const ANDROID_POST_NOTIFICATIONS = 'android.permission.POST_NOTIFICATIONS';
 const IOS_NOTIFICATION_USER_INFO_TYPE = 'schedule';
 
+type AndroidScheduleNotificationsModule = {
+  schedule: (payload: {
+    alarmId: string;
+    scheduleId: string;
+    petId: string;
+    title: string;
+    body: string;
+    fireAtMillis: number;
+    repeatRule: ScheduleRepeatRule;
+  }) => Promise<ScheduleNotificationSyncStatus>;
+  cancel: (scheduleId: string) => void;
+  cancelAll: () => void;
+  getSettings: () => Promise<{ enabled: boolean }>;
+  setEnabled: (enabled: boolean) => Promise<{ enabled: boolean }>;
+  openAppNotificationSettings: () => void;
+};
+
+const AndroidScheduleNotifications =
+  NativeModules.NuriScheduleNotifications as
+    | AndroidScheduleNotificationsModule
+    | undefined;
+
+function hasAndroidScheduleNotificationModule() {
+  return (
+    Platform.OS === 'android' &&
+    typeof AndroidScheduleNotifications?.schedule === 'function'
+  );
+}
+
 export type ScheduleNotificationPermissionStatus =
   | 'granted'
   | 'denied'
@@ -21,9 +52,16 @@ export type ScheduleNotificationPermissionStatus =
 export type ScheduleNotificationSyncStatus =
   | 'scheduled'
   | 'cleared'
+  | 'disabled'
   | 'missing-permission'
   | 'unsupported'
   | 'skipped-past';
+
+export type ScheduleNotificationSettings = {
+  enabled: boolean;
+  platform: typeof Platform.OS;
+  nativeSupported: boolean;
+};
 
 type SchedulableSchedule = Pick<
   PetSchedule,
@@ -46,10 +84,6 @@ function hasReminder(reminderMinutes: number[] | null | undefined) {
   return Array.isArray(reminderMinutes) && reminderMinutes.length > 0;
 }
 
-function getPrimaryReminderMinutes(reminderMinutes: number[]) {
-  return [...reminderMinutes].sort((left, right) => left - right)[0] ?? null;
-}
-
 function mapRepeatRuleToIosRepeatInterval(
   repeatRule: ScheduleRepeatRule,
 ): 'day' | 'week' | 'month' | 'year' | undefined {
@@ -68,23 +102,56 @@ function mapRepeatRuleToIosRepeatInterval(
   }
 }
 
-function buildScheduleNotificationBody(schedule: SchedulableSchedule) {
-  return schedule.note?.trim() || `${schedule.title} 일정 시간이 다가오고 있어요.`;
+function buildScheduleNotificationBody(
+  schedule: SchedulableSchedule,
+  reminderMinutes: number,
+) {
+  const baseBody =
+    schedule.note?.trim() || `${schedule.title} 일정 시간이 다가오고 있어요.`;
+  return reminderMinutes > 0
+    ? `${baseBody} (${reminderMinutes}분 전)`
+    : baseBody;
 }
 
-function buildNotificationFireDate(schedule: SchedulableSchedule) {
-  const primaryReminderMinutes = getPrimaryReminderMinutes(
-    schedule.reminderMinutes,
-  );
-  if (primaryReminderMinutes === null) return null;
-
+function buildNotificationFireDate(
+  schedule: SchedulableSchedule,
+  reminderMinutes: number,
+) {
   const startsAtTime = new Date(schedule.startsAt).getTime();
   if (Number.isNaN(startsAtTime)) return null;
 
-  const fireDate = startsAtTime - primaryReminderMinutes * 60 * 1000;
+  const fireDate = startsAtTime - reminderMinutes * 60 * 1000;
   if (fireDate <= Date.now()) return null;
 
   return fireDate;
+}
+
+function buildAlarmId(
+  scheduleId: string,
+  reminderMinutes: number,
+  index: number,
+) {
+  return `${scheduleId}::${reminderMinutes}::${index}`;
+}
+
+function buildNotificationFireEntries(schedule: SchedulableSchedule) {
+  return [...new Set(schedule.reminderMinutes)]
+    .filter(value => Number.isFinite(value) && value > 0)
+    .sort((left, right) => left - right)
+    .map((reminderMinutes, index) => ({
+      alarmId: buildAlarmId(schedule.id, reminderMinutes, index),
+      reminderMinutes,
+      fireDate: buildNotificationFireDate(schedule, reminderMinutes),
+    }))
+    .filter(
+      (
+        entry,
+      ): entry is {
+        alarmId: string;
+        reminderMinutes: number;
+        fireDate: number;
+      } => entry.fireDate !== null,
+    );
 }
 
 export function getScheduleNotificationAudit(schedule: SchedulableSchedule) {
@@ -93,7 +160,8 @@ export function getScheduleNotificationAudit(schedule: SchedulableSchedule) {
     persistsToScheduleRecord: true,
     canRequestPermission:
       Platform.OS === 'ios' || isAndroidNotificationRuntimePermissionRequired(),
-    deliversOsNotification: Platform.OS === 'ios',
+    deliversOsNotification:
+      Platform.OS === 'ios' || hasAndroidScheduleNotificationModule(),
     permissionFlowImplemented: true,
     expandableToHomeListDetail: true,
   };
@@ -120,7 +188,10 @@ export function getScheduleNotificationHelperText(
     if (permissionStatus === 'blocked' || permissionStatus === 'denied') {
       return '알림 권한이 꺼져 있어도 일정값은 저장되지만 실제 기기 알림은 오지 않아요.';
     }
-    return '현재 Android는 권한 확인만 연결돼 있고, 실제 OS 알림 예약은 아직 연결되지 않았어요.';
+    if (hasAndroidScheduleNotificationModule()) {
+      return '저장 시 기기 알림으로 예약됩니다. 전체메뉴의 알림 설정에서 언제든 끌 수 있어요.';
+    }
+    return '현재 Android 기기 알림 모듈을 확인하지 못했어요. 일정값은 저장됩니다.';
   }
 
   return '현재 기기에서는 알림 지원 상태를 확인할 수 없어요.';
@@ -190,34 +261,57 @@ export async function upsertScheduleNotification(
     return clearScheduleNotification(schedule.id);
   }
 
-  if (Platform.OS !== 'ios') {
-    return 'unsupported';
-  }
-
   const permissionStatus = await checkScheduleNotificationPermission();
   if (permissionStatus !== 'granted') {
     return 'missing-permission';
   }
 
-  const fireDate = buildNotificationFireDate(schedule);
   clearScheduleNotification(schedule.id);
+  const fireEntries = buildNotificationFireEntries(schedule);
 
-  if (!fireDate) {
+  if (fireEntries.length === 0) {
     return 'skipped-past';
   }
 
-  PushNotificationIOS.scheduleLocalNotification({
-    fireDate,
-    repeatInterval: mapRepeatRuleToIosRepeatInterval(schedule.repeatRule),
-    alertTitle: '일정 알림',
-    alertBody: buildScheduleNotificationBody(schedule),
-    alertAction: '보기',
-    soundName: 'default',
-    userInfo: {
-      type: IOS_NOTIFICATION_USER_INFO_TYPE,
-      scheduleId: schedule.id,
-      petId: schedule.petId,
-    },
+  if (Platform.OS === 'android') {
+    if (!hasAndroidScheduleNotificationModule() || !AndroidScheduleNotifications) {
+      return 'unsupported';
+    }
+
+    let latestStatus: ScheduleNotificationSyncStatus = 'scheduled';
+    for (const entry of fireEntries) {
+      latestStatus = await AndroidScheduleNotifications.schedule({
+        alarmId: entry.alarmId,
+        scheduleId: schedule.id,
+        petId: schedule.petId,
+        title: schedule.title,
+        body: buildScheduleNotificationBody(schedule, entry.reminderMinutes),
+        fireAtMillis: entry.fireDate,
+        repeatRule: schedule.repeatRule,
+      });
+    }
+    return latestStatus;
+  }
+
+  if (Platform.OS !== 'ios') {
+    return 'unsupported';
+  }
+
+  fireEntries.forEach(entry => {
+    PushNotificationIOS.scheduleLocalNotification({
+      fireDate: entry.fireDate,
+      repeatInterval: mapRepeatRuleToIosRepeatInterval(schedule.repeatRule),
+      alertTitle: '일정 알림',
+      alertBody: buildScheduleNotificationBody(schedule, entry.reminderMinutes),
+      alertAction: '보기',
+      soundName: 'default',
+      userInfo: {
+        type: IOS_NOTIFICATION_USER_INFO_TYPE,
+        scheduleId: schedule.id,
+        petId: schedule.petId,
+        alarmId: entry.alarmId,
+      },
+    });
   });
 
   return 'scheduled';
@@ -226,6 +320,11 @@ export async function upsertScheduleNotification(
 export function clearScheduleNotification(
   scheduleId: string,
 ): ScheduleNotificationSyncStatus {
+  if (Platform.OS === 'android') {
+    AndroidScheduleNotifications?.cancel(scheduleId);
+    return hasAndroidScheduleNotificationModule() ? 'cleared' : 'unsupported';
+  }
+
   if (Platform.OS !== 'ios') {
     return 'unsupported';
   }
@@ -235,4 +334,53 @@ export function clearScheduleNotification(
     scheduleId,
   });
   return 'cleared';
+}
+
+export async function getScheduleNotificationSettings(): Promise<ScheduleNotificationSettings> {
+  if (
+    Platform.OS === 'android' &&
+    hasAndroidScheduleNotificationModule() &&
+    AndroidScheduleNotifications
+  ) {
+    const settings = await AndroidScheduleNotifications.getSettings();
+    return {
+      enabled: settings.enabled,
+      platform: Platform.OS,
+      nativeSupported: true,
+    };
+  }
+
+  return {
+    enabled: true,
+    platform: Platform.OS,
+    nativeSupported: Platform.OS === 'ios',
+  };
+}
+
+export async function setScheduleNotificationEnabled(
+  enabled: boolean,
+): Promise<ScheduleNotificationSettings> {
+  if (
+    Platform.OS === 'android' &&
+    hasAndroidScheduleNotificationModule() &&
+    AndroidScheduleNotifications
+  ) {
+    const settings = await AndroidScheduleNotifications.setEnabled(enabled);
+    return {
+      enabled: settings.enabled,
+      platform: Platform.OS,
+      nativeSupported: true,
+    };
+  }
+
+  return getScheduleNotificationSettings();
+}
+
+export function openScheduleNotificationSystemSettings() {
+  if (Platform.OS === 'android' && hasAndroidScheduleNotificationModule()) {
+    AndroidScheduleNotifications?.openAppNotificationSettings();
+    return;
+  }
+
+  Linking.openSettings().catch(() => {});
 }

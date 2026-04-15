@@ -389,7 +389,9 @@ function normalizePositiveInteger(value, fallback, max) {
 }
 
 function buildWorkerId() {
-  return `account-deletion-worker:${crypto.randomUUID()}`;
+  return `account-deletion-worker:${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2)}`;
 }
 
 function isMissingObjectError(error) {

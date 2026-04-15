@@ -33,7 +33,6 @@ const QUICK_ACTIONS = [
     note: '기록하기',
     icon: 'silverware-fork-knife',
   },
-  { key: 'health', label: '건강', note: '기록하기', icon: 'medical-bag' },
   { key: 'grooming', label: '미용', note: '기록하기', icon: 'content-cut' },
 ] as const;
 
@@ -529,7 +528,7 @@ export default function GuestHome() {
               자주 쓰는 기록
             </Text>
             <Text style={styles.sectionSubText}>
-              산책 · 식사 · 건강 · 미용 기록을 바로 열어보세요
+              산책 · 식사 · 미용 기록을 바로 열어보세요
             </Text>
           </View>
 

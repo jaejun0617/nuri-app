@@ -21,6 +21,10 @@ export const RECORD_MAIN_CATEGORIES = [
   { key: 'other', label: '생활', icon: 'more-horizontal' as const, tag: '#생활' },
 ] as const;
 
+export const RECORD_WRITE_MAIN_CATEGORIES = RECORD_MAIN_CATEGORIES.filter(
+  category => category.key !== 'health',
+);
+
 export const RECORD_OTHER_SUBCATEGORIES = [
   { key: 'grooming', label: '미용', tag: '#미용' },
   { key: 'hospital', label: '병원/약', tag: '#병원약' },
@@ -31,6 +35,10 @@ export const RECORD_OTHER_SUBCATEGORIES = [
   { key: 'bathing', label: '목욕/위생', tag: '#목욕' },
   { key: 'etc', label: '기타', tag: '#기타세부' },
 ] as const;
+
+export const RECORD_WRITE_OTHER_SUBCATEGORIES = RECORD_OTHER_SUBCATEGORIES.filter(
+  category => category.key !== 'hospital',
+);
 
 export const RECORD_EMOTION_OPTIONS: ReadonlyArray<{
   value: EmotionTag;

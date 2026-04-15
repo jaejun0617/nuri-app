@@ -58,6 +58,14 @@ export const OTHER_SUBCATEGORY_OPTIONS: Array<{
   { key: 'etc', label: '기타' },
 ];
 
+export const TIMELINE_MAIN_CATEGORY_OPTIONS = MAIN_CATEGORY_OPTIONS.filter(
+  category => category.key !== 'health',
+);
+
+export const TIMELINE_OTHER_SUBCATEGORY_OPTIONS = OTHER_SUBCATEGORY_OPTIONS.filter(
+  category => category.key !== 'hospital',
+);
+
 function readRecordTagsRaw(record: MemoryRecord): string {
   if (!Array.isArray(record.tags) || record.tags.length === 0) return '';
   return record.tags.join(' ').trim();

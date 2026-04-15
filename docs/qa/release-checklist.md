@@ -18,8 +18,26 @@
   - 닉네임 `2..10`, Community header, Timeline 탭 유지, bottom gap 보정이 실기기 기준으로 닫혔다.
 - [x] 외부 지도 전환 기본 동선
   - 장소/여행 상세의 외부 지도 열기 동선은 PO 확인 기준 완료로 분류한다.
+- [x] 건강관리 리포트 Phase 1 MVP
+  - repo 구현, linked remote migration 적용, insert/update/delete/fallback row-level 검증, Android 실기기 핵심 동작이 완료됐다.
+  - 적용된 remote migration은 `task7_normalize_invalid_pet_weight_snapshots`, `task7_health_report_weight_logs`이며, `pet_weight_logs` table/function/trigger와 `pets.weight_kg` latest snapshot 계약이 확인됐다.
+  - 첫 insert 직후 즉시 반영, update, delete/fallback, 홈 `petStore` 최신 체중 반영, Android 키보드 back 처리가 실기기 기준으로 확인됐다.
 
 ## 출시 전 반드시 남은 항목
+
+### 0. 정적 검증 / 빌드 스냅샷
+
+- [x] `yarn tsc --noEmit` 통과
+- [x] `yarn lint` 통과
+  - error 0건, warning 5건
+- [x] `yarn test:qa` 통과
+  - 9 suites, 25 tests 통과
+- [x] Android release build 가능
+  - `./gradlew assembleRelease` 성공, `android/app/build/outputs/apk/release/app-release.apk` 생성
+- [x] Android 단독 실행 smoke
+  - adb 연결 기기 `R5CY613NMSY`에서 `com.nuri.app/com.nuri.MainActivity` foreground 확인
+- [x] Supabase env 연결 상태
+  - tracked config가 linked remote host를 가리키며 `auth/v1/health` 200 응답 확인
 
 ### 1. 장소/여행/산책 물리 실기기 최종 캡처
 
@@ -56,6 +74,7 @@
 - [ ] 가입, 로그인, 로그아웃을 출시 후보 빌드에서 다시 확인한다.
 - [ ] 비밀번호 재설정, 탈퇴, 커뮤니티 기본 동선을 출시 후보 빌드에서 다시 확인한다.
 - [ ] 홈, 타임라인, 기록, 장소/여행/산책 진입이 한 번씩 정상 동작하는지 확인한다.
+- [ ] 건강관리 리포트 진입, 건강기록 조회, 체중 insert/update/delete/fallback, 홈 최신 체중 반영을 출시 후보 빌드에서 다시 확인한다.
 
 ## v1.1 백로그
 
@@ -66,3 +85,8 @@
 - [ ] 운영자용 moderation/admin UI
 - [ ] auth/account baseline-history 정리
 - [ ] 외부 API 키 통제, 환경 분리, 운영 도구 정리
+- [ ] 건강관리 메뉴 전환
+- [ ] 타임라인 건강 입력 제거
+- [ ] 생활 병원/약 이관
+- [ ] 건강관리 전용 기록하기
+- [ ] premium 인사이트 연결

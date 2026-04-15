@@ -27,7 +27,11 @@ export type TimelineStackParamList = {
     memoryId: string;
     entrySource?: ScreenEntrySource;
   };
-  RecordEdit: { petId: string; memoryId: string };
+  RecordEdit: {
+    petId: string;
+    memoryId: string;
+    entrySource?: ScreenEntrySource;
+  };
 };
 
 const Stack = createNativeStackNavigator<TimelineStackParamList>();

@@ -39,6 +39,9 @@ import type {
 } from '../../services/supabase/schedules';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
 import {
+  isHealthSchedule,
+} from '../../services/health-report/viewModel';
+import {
   mapScheduleIconName,
 } from '../../services/schedules/presentation';
 import { resolveSelectedPetId, usePetStore } from '../../store/petStore';
@@ -48,6 +51,8 @@ import { styles } from './ScheduleListScreen.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'ScheduleList'>;
 type Route = RootScreenRoute<'ScheduleList'>;
+const EMPTY_SCHEDULE_ITEMS: PetSchedule[] = [];
+Object.freeze(EMPTY_SCHEDULE_ITEMS);
 
 function formatScheduleDate(schedule: PetSchedule) {
   const date = new Date(schedule.startsAt);
@@ -90,12 +95,16 @@ export default function ScheduleListScreen() {
   const petState = useScheduleStore(s =>
     petId ? s.byPetId[petId] ?? null : null,
   );
-  const schedules = petState?.items ?? [];
+  const schedules = petState?.items ?? EMPTY_SCHEDULE_ITEMS;
+  const visibleSchedules = useMemo(
+    () => schedules.filter(schedule => !isHealthSchedule(schedule)),
+    [schedules],
+  );
   const status = petState?.status ?? 'idle';
   const errorMessage = petState?.errorMessage ?? null;
   const refreshing = status === 'refreshing';
-  const isInitialLoading = status === 'loading' && schedules.length === 0;
-  const isError = status === 'error' && schedules.length === 0;
+  const isInitialLoading = status === 'loading' && visibleSchedules.length === 0;
+  const isError = status === 'error' && visibleSchedules.length === 0;
 
   useEffect(() => {
     if (!petId) return;
@@ -227,7 +236,7 @@ export default function ScheduleListScreen() {
               </AppText>
             </TouchableOpacity>
           </View>
-        ) : schedules.length === 0 ? (
+        ) : visibleSchedules.length === 0 ? (
           <View style={styles.emptyCard}>
             <MaterialCommunityIcons
               name="calendar-blank-outline"
@@ -238,7 +247,7 @@ export default function ScheduleListScreen() {
               등록된 일정이 아직 없어요
             </AppText>
             <AppText preset="body" style={styles.emptyDesc}>
-              병원, 미용, 산책 루틴을 먼저 저장해두면 홈에서 한 번에 볼 수 있어요.
+              산책, 식사, 미용처럼 오래 남겨둘 일정을 먼저 정리해 보세요.
             </AppText>
             <TouchableOpacity
               activeOpacity={0.9}
@@ -252,7 +261,7 @@ export default function ScheduleListScreen() {
           </View>
         ) : (
           <View style={styles.list}>
-            {schedules.map(schedule => {
+            {visibleSchedules.map(schedule => {
               return (
                 <TouchableOpacity
                   key={schedule.id}

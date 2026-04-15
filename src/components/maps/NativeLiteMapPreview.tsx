@@ -22,7 +22,18 @@ export default function NativeLiteMapPreview({
   title,
   overlayText = null,
 }: Props) {
-  if (!hasValidCoordinate({ latitude, longitude })) {
+  const region = useMemo(() => {
+    if (!hasValidCoordinate({ latitude, longitude })) {
+      return null;
+    }
+
+    return buildRegionFromPoint(
+      { latitude, longitude },
+      PRETTY_PREVIEW_DELTA,
+    );
+  }, [latitude, longitude]);
+
+  if (!region) {
     return (
       <View style={styles.card}>
         <View style={[styles.map, styles.emptyState]}>
@@ -33,15 +44,6 @@ export default function NativeLiteMapPreview({
       </View>
     );
   }
-
-  const region = useMemo(
-    () =>
-      buildRegionFromPoint(
-        { latitude, longitude },
-        PRETTY_PREVIEW_DELTA,
-      ),
-    [latitude, longitude],
-  );
 
   return (
     <View style={styles.card}>

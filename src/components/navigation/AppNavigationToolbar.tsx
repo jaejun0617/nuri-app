@@ -32,6 +32,7 @@ type ActiveTabKey = 'home' | 'timeline' | 'community' | 'guestbook' | 'more';
 type Props = {
   activeKey: ActiveTabKey;
   onBeforeNavigate?: () => void;
+  onPressMore?: () => void;
 };
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -39,6 +40,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export default function AppNavigationToolbar({
   activeKey,
   onBeforeNavigate,
+  onPressMore,
 }: Props) {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
@@ -71,6 +73,10 @@ export default function AppNavigationToolbar({
         activeKey === 'more' ? 'more' : 'home';
 
       if (target === 'more') {
+        if (onPressMore) {
+          onPressMore();
+          return;
+        }
         openMoreDrawer();
         return;
       }
@@ -104,7 +110,7 @@ export default function AppNavigationToolbar({
         screen: 'HomeTab',
       });
     },
-    [activeKey, navigation, onBeforeNavigate],
+    [activeKey, navigation, onBeforeNavigate, onPressMore],
   );
 
   const tabs = useMemo(

@@ -27,7 +27,10 @@ export type HealthActivityItem = {
   iconName: string;
   memoryId?: string;
   scheduleId?: string;
+  scheduleStartsAt?: string;
+  reminderMinutes?: number[];
   linkedMemoryId?: string | null;
+  completedAt?: string | null;
 };
 
 export type WeightTimelineItem = PetWeightLog & {
@@ -181,7 +184,10 @@ export function buildHealthActivityItems(
         kind,
         iconName: mapKindToIcon(kind),
         scheduleId: schedule.id,
+        scheduleStartsAt: schedule.startsAt,
+        reminderMinutes: schedule.reminderMinutes,
         linkedMemoryId: schedule.linkedMemoryId,
+        completedAt: schedule.completedAt,
         sortTimestamp: Number.isFinite(sortTimestamp) ? sortTimestamp : 0,
       });
     });
@@ -260,4 +266,3 @@ export function buildWeightSummary(input: {
     monthCount: 0,
   };
 }
-

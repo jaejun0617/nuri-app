@@ -19,6 +19,8 @@ import {
 
 type Props = {
   visible: boolean;
+  title?: string;
+  helperText?: string;
   value?: string | null;
   disabled?: boolean;
   confirmText?: string;
@@ -183,6 +185,8 @@ function TimeWheel({
 
 function TimePickerModalBase({
   visible,
+  title = '시간 설정',
+  helperText = '휠을 움직여 정확한 시간을 정해 주세요.',
   value,
   disabled = false,
   confirmText = '적용',
@@ -240,6 +244,33 @@ function TimePickerModalBase({
             end={{ x: 0.85, y: 1 }}
             style={styles.glassGlow}
           />
+
+          <View style={styles.headerBlock}>
+            <AppText
+              preset="body"
+              style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '800' }}
+            >
+              {title}
+            </AppText>
+            <AppText
+              preset="caption"
+              style={[
+                styles.helperText,
+                { color: 'rgba(255,255,255,0.62)', fontSize: 12 },
+              ]}
+            >
+              {helperText}
+            </AppText>
+            <AppText
+              preset="body"
+              style={[
+                styles.previewText,
+                { color: '#FFFFFF', fontSize: 22, fontWeight: '800' },
+              ]}
+            >
+              {selection.hour}:{selection.minute}
+            </AppText>
+          </View>
 
           <View style={styles.pickerRow}>
             <TimeWheel
@@ -302,7 +333,7 @@ function TimePickerModalBase({
                 end={{ x: 1, y: 1 }}
                 style={[
                   styles.primaryButton,
-                  { width: '100%', borderRadius: 16 },
+                  { width: '100%', borderRadius: 8 },
                 ]}
               >
                 <AppText

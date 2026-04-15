@@ -58,7 +58,7 @@ export const styles = StyleSheet.create({
   },
 
   card: {
-    borderRadius: 24,
+    borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 18,
     backgroundColor: SURFACE,
@@ -72,7 +72,7 @@ export const styles = StyleSheet.create({
   },
   input: {
     height: 48,
-    borderRadius: 14,
+    borderRadius: 8,
     paddingHorizontal: 14,
     color: TEXT,
     backgroundColor: '#F7F8FC',
@@ -81,7 +81,7 @@ export const styles = StyleSheet.create({
   },
   pickerField: {
     height: 48,
-    borderRadius: 14,
+    borderRadius: 8,
     paddingHorizontal: 14,
     backgroundColor: '#F7F8FC',
     borderWidth: 1,
@@ -95,6 +95,14 @@ export const styles = StyleSheet.create({
   },
   pickerFieldText: {
     color: TEXT,
+    fontWeight: '700',
+  },
+  pickerTextStack: {
+    flex: 1,
+    gap: 2,
+  },
+  pickerFieldSubText: {
+    color: MUTED,
     fontWeight: '700',
   },
   pickerFieldTextDisabled: {
@@ -116,7 +124,7 @@ export const styles = StyleSheet.create({
   allDayChip: {
     height: 48,
     paddingHorizontal: 16,
-    borderRadius: 14,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#F1F3F9',
@@ -143,7 +151,7 @@ export const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    borderRadius: 999,
+    borderRadius: 8,
     backgroundColor: '#F7F8FC',
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.04)',
@@ -164,20 +172,43 @@ export const styles = StyleSheet.create({
     color: MUTED,
     lineHeight: 18,
   },
+  inlineFieldCard: {
+    marginTop: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(109,106,248,0.08)',
+    backgroundColor: '#F7F8FC',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  inlineFieldLabel: {
+    color: MUTED,
+    fontWeight: '800',
+  },
+  inlineInput: {
+    height: 44,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    color: TEXT,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: 'rgba(109,106,248,0.08)',
+  },
 
   iconGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
-    justifyContent: 'center',
+    rowGap: 8,
+    justifyContent: 'space-between',
   },
   iconCard: {
-    width: 78,
-    minHeight: 72,
-    borderRadius: 18,
+    width: '18%',
+    minHeight: 60,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
     backgroundColor: '#F7F8FC',
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.04)',
@@ -189,7 +220,7 @@ export const styles = StyleSheet.create({
   iconLabel: {
     color: MUTED,
     fontWeight: '700',
-    fontSize: 11,
+    fontSize: 10,
   },
   iconLabelActive: {
     color: BRAND,
@@ -220,7 +251,7 @@ export const styles = StyleSheet.create({
 
   primaryBtn: {
     height: 52,
-    borderRadius: 16,
+    borderRadius: 8,
     backgroundColor: BRAND,
     flexDirection: 'row',
     alignItems: 'center',
@@ -234,7 +265,7 @@ export const styles = StyleSheet.create({
   bottomSubmitBtn: {
     marginTop: 18,
     height: 52,
-    borderRadius: 16,
+    borderRadius: 8,
     backgroundColor: BRAND,
     flexDirection: 'row',
     alignItems: 'center',
@@ -281,7 +312,7 @@ export const styles = StyleSheet.create({
   presetChip: {
     paddingHorizontal: 12,
     paddingVertical: 10,
-    borderRadius: 999,
+    borderRadius: 8,
     backgroundColor: '#F7F8FC',
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.04)',
@@ -292,7 +323,7 @@ export const styles = StyleSheet.create({
   },
   modalInput: {
     height: 48,
-    borderRadius: 14,
+    borderRadius: 8,
     paddingHorizontal: 14,
     color: TEXT,
     backgroundColor: '#F7F8FC',
@@ -301,7 +332,7 @@ export const styles = StyleSheet.create({
   },
   modalConfirmBtn: {
     height: 50,
-    borderRadius: 16,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: BRAND,

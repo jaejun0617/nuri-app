@@ -5,7 +5,13 @@
 //   - ✅ UX 고도화: snap 정밀화 + scale/active 강조 + parallax + momentum index 추적 + dot indicator
 //   - ✅ 최대 14개까지만 슬라이더 노출(그 이상은 전체보기 유도)
 
-import React, { useEffect, useMemo, useCallback, useRef, useState } from 'react';
+import React, {
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+  useState,
+} from 'react';
 import {
   AppState,
   Dimensions,
@@ -84,6 +90,12 @@ import {
   formatRecordRelativeTime,
   getRecordDisplayYmd,
 } from '../../../../services/records/date';
+import {
+  buildHealthActivityItems,
+  isHealthMemoryRecord,
+  isHealthSchedule,
+  type HealthActivityItem,
+} from '../../../../services/health-report/viewModel';
 import {
   formatScheduleDateLabel,
   getScheduleColorPalette,
@@ -214,10 +226,7 @@ function buildScheduleCard(schedule: PetSchedule): WeeklyScheduleItem {
   };
 }
 
-function scheduleIdleTask(
-  task: () => void,
-  timeout = 180,
-): DeferredTaskHandle {
+function scheduleIdleTask(task: () => void, timeout = 180): DeferredTaskHandle {
   const globalScope = globalThis as GlobalWithIdleCallback;
 
   if (typeof globalScope.requestIdleCallback === 'function') {
@@ -295,37 +304,36 @@ const TODAY_RECORDS_MAX = 14;
 const HOME_SHORTCUTS: Array<{
   key: string;
   label: string;
-  note: string;
   icon: string;
-  mainCategory: Exclude<TimelineMainCategory, undefined>;
+  action: 'timeline' | 'health';
+  mainCategory?: Exclude<TimelineMainCategory, undefined>;
   otherSubCategory?: Exclude<TimelineOtherSubCategory, undefined>;
 }> = [
   {
     key: 'walk',
-    label: '산책일지',
-    note: '산책',
+    label: '산책',
     icon: 'walk',
+    action: 'timeline',
     mainCategory: 'walk',
   },
   {
-    key: 'health',
-    label: '건강기록',
-    note: '건강',
-    icon: 'medical-bag',
-    mainCategory: 'health',
-  },
-  {
     key: 'meal',
-    label: '식사기록',
-    note: '식사',
+    label: '식사',
     icon: 'silverware-fork-knife',
+    action: 'timeline',
     mainCategory: 'meal',
   },
   {
+    key: 'health',
+    label: '건강',
+    icon: 'heart-pulse',
+    action: 'health',
+  },
+  {
     key: 'grooming',
-    label: '미용기록',
-    note: '미용',
+    label: '미용',
     icon: 'content-cut',
+    action: 'timeline',
     mainCategory: 'other',
     otherSubCategory: 'grooming',
   },
@@ -581,7 +589,13 @@ const TodayPhotoSection = React.memo(function TodayPhotoSection({
 }: {
   activePetId: string | null;
   recordItems: MemoryRecord[];
-  recordStatus: 'idle' | 'loading' | 'ready' | 'refreshing' | 'loadingMore' | 'error';
+  recordStatus:
+    | 'idle'
+    | 'loading'
+    | 'ready'
+    | 'refreshing'
+    | 'loadingMore'
+    | 'error';
   onPressRecordItem: (memoryId: string) => void;
   onPressRecord: () => void;
   accentColor: string;
@@ -851,7 +865,10 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
           </LinearGradient>
         </View>
 
-        <Text style={[styles.heroName, { color: petTheme.deep }]} numberOfLines={1}>
+        <Text
+          style={[styles.heroName, { color: petTheme.deep }]}
+          numberOfLines={1}
+        >
           {profilePetName}
         </Text>
 
@@ -879,19 +896,26 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
             ]}
           >
             <View style={styles.heroTogetherRow}>
-              <Text style={styles.heroTogetherHeart}>{petTheme.heartEmoji}</Text>
+              <Text style={styles.heroTogetherHeart}>
+                {petTheme.heartEmoji}
+              </Text>
               <Text
                 style={[styles.heroTogetherText, { color: petTheme.onDeep }]}
               >
                 함께한 시간{' '}
                 <Text
-                  style={[styles.heroTogetherStrong, { color: petTheme.onDeep }]}
+                  style={[
+                    styles.heroTogetherStrong,
+                    { color: petTheme.onDeep },
+                  ]}
                 >
                   {togetherDays}
                 </Text>{' '}
                 일
               </Text>
-              <Text style={styles.heroTogetherHeart}>{petTheme.heartEmoji}</Text>
+              <Text style={styles.heroTogetherHeart}>
+                {petTheme.heartEmoji}
+              </Text>
             </View>
           </View>
         ) : null}
@@ -948,7 +972,9 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
             <View style={[styles.accordionIconCircle, styles.iconCircleBlue]}>
               <Text style={styles.accordionIconText}>🐾</Text>
             </View>
-            <Text style={[styles.accordionTitle, styles.accTitleBlue]}>취미</Text>
+            <Text style={[styles.accordionTitle, styles.accTitleBlue]}>
+              취미
+            </Text>
           </View>
           <Feather
             name={acc.hobby ? 'chevron-up' : 'chevron-down'}
@@ -979,9 +1005,7 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
           onPress={() => onToggleOne('like')}
         >
           <View style={styles.accordionLeft}>
-            <View
-              style={[styles.accordionIconCircle, styles.iconCircleOrange]}
-            >
+            <View style={[styles.accordionIconCircle, styles.iconCircleOrange]}>
               <Text style={styles.accordionIconText}>💛</Text>
             </View>
             <Text style={[styles.accordionTitle, styles.accTitleOrange]}>
@@ -1053,9 +1077,7 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
           onPress={() => onToggleOne('tag')}
         >
           <View style={styles.accordionLeft}>
-            <View
-              style={[styles.accordionIconCircle, styles.iconCirclePurple]}
-            >
+            <View style={[styles.accordionIconCircle, styles.iconCirclePurple]}>
               <Feather name="hash" size={16} color={petTheme.primary} />
             </View>
             <Text style={[styles.accordionTitle, styles.accTitlePurple]}>
@@ -1104,13 +1126,13 @@ const HeroProfileMessage = React.memo(function HeroProfileMessage({
   todayMessage: string;
 }) {
   return (
-      <View style={styles.heroMessageBox}>
-        <View style={styles.heroMessageIcon}>
-          <Text style={styles.heroMessageIconText}>{todayMessageEmoji}</Text>
-        </View>
-        <Text style={styles.heroMessageText}>{todayMessage}</Text>
-        <View style={styles.heroMessageBottomShadow} />
+    <View style={styles.heroMessageBox}>
+      <View style={styles.heroMessageIcon}>
+        <Text style={styles.heroMessageIconText}>{todayMessageEmoji}</Text>
       </View>
+      <Text style={styles.heroMessageText}>{todayMessage}</Text>
+      <View style={styles.heroMessageBottomShadow} />
+    </View>
   );
 });
 
@@ -1184,23 +1206,17 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
 const QuickActionsSection = React.memo(function QuickActionsSection({
   petTheme,
   quickActionCards,
-  onPressTimelineCategory,
+  onPressQuickAction,
 }: {
   petTheme: ReturnType<typeof buildPetThemePalette>;
   quickActionCards: typeof HOME_SHORTCUTS;
-  onPressTimelineCategory: (
-    mainCategory: Exclude<TimelineMainCategory, undefined>,
-    otherSubCategory?: Exclude<TimelineOtherSubCategory, undefined>,
-  ) => void;
+  onPressQuickAction: (item: (typeof HOME_SHORTCUTS)[number]) => void;
 }) {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderCol}>
-        <Text style={[styles.sectionTitle, { color: petTheme.deep }]}>
+        <Text style={[styles.quickSectionTitle, { color: petTheme.deep }]}>
           자주 쓰는 기록
-        </Text>
-        <Text style={styles.sectionSubText}>
-          산책 · 식사 · 건강 · 미용 기록을 바로 열어보세요
         </Text>
       </View>
 
@@ -1211,9 +1227,7 @@ const QuickActionsSection = React.memo(function QuickActionsSection({
               key={item.key}
               activeOpacity={0.92}
               style={styles.quickCard}
-              onPress={() =>
-                onPressTimelineCategory(item.mainCategory, item.otherSubCategory)
-              }
+              onPress={() => onPressQuickAction(item)}
             >
               <View
                 style={[
@@ -1223,15 +1237,12 @@ const QuickActionsSection = React.memo(function QuickActionsSection({
               >
                 <MaterialCommunityIcons
                   name={item.icon}
-                  size={24}
+                  size={30}
                   color={petTheme.primary}
                   style={styles.quickIcon}
                 />
               </View>
               <Text style={styles.quickCardTitle}>{item.label}</Text>
-              <Text style={[styles.quickCardNote, { color: petTheme.primary }]}>
-                {item.note}
-              </Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -1250,117 +1261,127 @@ const MemorySectionLead = React.memo(function MemorySectionLead({
       <Text style={[styles.sectionLeadTitle, { color: accentDeepColor }]}>
         오늘의 추억 둘러보기
       </Text>
-      <Text style={styles.sectionLeadSub}>
-        사진과 기록을 천천히 살펴보세요
-      </Text>
+      <Text style={styles.sectionLeadSub}>사진과 기록을 천천히 살펴보세요</Text>
     </View>
   );
 });
 
-const RecommendationTipsSection = React.memo(function RecommendationTipsSection({
-  guides,
-  loading,
-  error,
-  isMemorial,
-  source,
-  sourceReason,
-  petTheme,
-  onPressGuide,
-  onPressMore,
-}: {
-  guides: PetCareGuide[];
-  loading: boolean;
-  error: string | null;
-  isMemorial: boolean;
-  source: 'remote' | 'local-seed' | 'remote-empty';
-  sourceReason: 'published' | 'empty-success' | 'remote-error';
-  petTheme: ReturnType<typeof buildPetThemePalette>;
-  onPressGuide: (guideId: string) => void;
-  onPressMore: () => void;
-}) {
-  const debugSourceLabel = getGuideDataSourceLabel(source);
+const RecommendationTipsSection = React.memo(
+  function RecommendationTipsSection({
+    guides,
+    loading,
+    error,
+    isMemorial,
+    source,
+    sourceReason,
+    petTheme,
+    onPressGuide,
+    onPressMore,
+  }: {
+    guides: PetCareGuide[];
+    loading: boolean;
+    error: string | null;
+    isMemorial: boolean;
+    source: 'remote' | 'local-seed' | 'remote-empty';
+    sourceReason: 'published' | 'empty-success' | 'remote-error';
+    petTheme: ReturnType<typeof buildPetThemePalette>;
+    onPressGuide: (guideId: string) => void;
+    onPressMore: () => void;
+  }) {
+    const debugSourceLabel = getGuideDataSourceLabel(source);
 
-  return (
-    <View style={styles.section}>
-      <View style={styles.sectionHeaderRow}>
-        <View style={styles.tipSectionHeading}>
-          <Text style={[styles.tipSectionTitle, { color: petTheme.deep }]}>
-            {isMemorial ? '함께한 시간을 돌아보는 홈' : '우리 아이를 위한 추천 팁'}
-          </Text>
-          {__DEV__ ? (
-            <View
-              style={[
-                styles.guideDebugBadge,
-                source === 'local-seed'
-                  ? styles.guideDebugBadgeSeed
-                  : source === 'remote'
+    return (
+      <View style={styles.section}>
+        <View style={styles.sectionHeaderRow}>
+          <View style={styles.tipSectionHeading}>
+            <Text style={[styles.tipSectionTitle, { color: petTheme.deep }]}>
+              {isMemorial
+                ? '함께한 시간을 돌아보는 홈'
+                : '우리 아이를 위한 추천 팁'}
+            </Text>
+            {__DEV__ ? (
+              <View
+                style={[
+                  styles.guideDebugBadge,
+                  source === 'local-seed'
+                    ? styles.guideDebugBadgeSeed
+                    : source === 'remote'
                     ? styles.guideDebugBadgeRemote
                     : styles.guideDebugBadgeEmpty,
-              ]}
-            >
-              <Text style={styles.guideDebugBadgeText}>{debugSourceLabel}</Text>
-            </View>
+                ]}
+              >
+                <Text style={styles.guideDebugBadgeText}>
+                  {debugSourceLabel}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+          {!isMemorial ? (
+            <TouchableOpacity activeOpacity={0.85} onPress={onPressMore}>
+              <Text style={[styles.sectionLink, { color: petTheme.deep }]}>
+                더보기
+              </Text>
+            </TouchableOpacity>
           ) : null}
         </View>
-        {!isMemorial ? (
-          <TouchableOpacity activeOpacity={0.85} onPress={onPressMore}>
-            <Text style={[styles.sectionLink, { color: petTheme.deep }]}>더보기</Text>
-          </TouchableOpacity>
-        ) : null}
-      </View>
 
-      {isMemorial ? (
-        <View style={styles.emptyBox}>
-          <Text style={styles.emptyTitle}>케어 추천은 잠시 쉬어둘게요</Text>
-          <Text style={styles.emptyDesc}>
-            함께한 시간을 조용히 돌아볼 수 있도록, 일반 케어 팁 대신 기록과 추억을 중심으로
-            홈을 보여드릴게요.
-          </Text>
-        </View>
-      ) : loading ? (
-        <View style={styles.emptyBox}>
-          <Text style={styles.emptyTitle}>추천 팁을 불러오는 중이에요</Text>
-          <Text style={styles.emptyDesc}>
-            우리 아이 기준으로 먼저 보여드릴 가이드를 정리하고 있어요.
-          </Text>
-        </View>
-      ) : error ? (
-        <View style={styles.emptyBox}>
-          <Text style={styles.emptyTitle}>추천 팁을 불러오지 못했어요</Text>
-          <Text style={styles.emptyDesc}>{error}</Text>
-        </View>
-      ) : guides.length === 0 ? (
-        <View style={styles.emptyBox}>
-          <Text style={styles.emptyTitle}>추천 가능한 공개 가이드가 아직 없어요</Text>
-          <Text style={styles.emptyDesc}>
-            {getGuideDataSourceDescription({
-              source,
-              reason: sourceReason,
-            })}
-          </Text>
-        </View>
-      ) : (
-        <View style={styles.tipList}>
-          {guides.map(guide => (
-            <GuideRecommendationCard
-              key={guide.id}
-              guide={guide}
-              accentColor={petTheme.primary}
-              accentDeepColor={petTheme.deep}
-              tintColor={petTheme.tint}
-              onPress={onPressGuide}
-              debugBadgeText={
-                __DEV__ && source === 'local-seed' && isLocalGuideSeedGuide(guide)
-                  ? '테스트 seed'
-                  : null
-              }
-            />
-          ))}
-        </View>
-      )}
-    </View>
-  );
-});
+        {isMemorial ? (
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyTitle}>케어 추천은 잠시 쉬어둘게요</Text>
+            <Text style={styles.emptyDesc}>
+              함께한 시간을 조용히 돌아볼 수 있도록, 일반 케어 팁 대신 기록과
+              추억을 중심으로 홈을 보여드릴게요.
+            </Text>
+          </View>
+        ) : loading ? (
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyTitle}>추천 팁을 불러오는 중이에요</Text>
+            <Text style={styles.emptyDesc}>
+              우리 아이 기준으로 먼저 보여드릴 가이드를 정리하고 있어요.
+            </Text>
+          </View>
+        ) : error ? (
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyTitle}>추천 팁을 불러오지 못했어요</Text>
+            <Text style={styles.emptyDesc}>{error}</Text>
+          </View>
+        ) : guides.length === 0 ? (
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyTitle}>
+              추천 가능한 공개 가이드가 아직 없어요
+            </Text>
+            <Text style={styles.emptyDesc}>
+              {getGuideDataSourceDescription({
+                source,
+                reason: sourceReason,
+              })}
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.tipList}>
+            {guides.map(guide => (
+              <GuideRecommendationCard
+                key={guide.id}
+                guide={guide}
+                accentColor={petTheme.primary}
+                accentDeepColor={petTheme.deep}
+                tintColor={petTheme.tint}
+                onPress={onPressGuide}
+                debugBadgeText={
+                  __DEV__ &&
+                  source === 'local-seed' &&
+                  isLocalGuideSeedGuide(guide)
+                    ? '테스트 seed'
+                    : null
+                }
+              />
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  },
+);
 
 const TodayHomeTipSection = React.memo(function TodayHomeTipSection({
   petTheme,
@@ -1395,7 +1416,13 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
 }: {
   activePetId: string | null;
   recordItems: MemoryRecord[];
-  recordStatus: 'idle' | 'loading' | 'ready' | 'refreshing' | 'loadingMore' | 'error';
+  recordStatus:
+    | 'idle'
+    | 'loading'
+    | 'ready'
+    | 'refreshing'
+    | 'loadingMore'
+    | 'error';
   onPressTimeline: () => void;
   onPressRecord: () => void;
   onPressRecordItem: (memoryId: string) => void;
@@ -1414,7 +1441,9 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
 
   const listRef = useRef<FlatList<MemoryRecord> | null>(null);
   const preloadSignatureRef = useRef('');
-  const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
+  const [appState, setAppState] = useState<AppStateStatus>(
+    AppState.currentState,
+  );
   const screenW = Dimensions.get('window').width;
   const slideGap = 14;
   const cardW = useMemo(() => {
@@ -1466,7 +1495,9 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
       .map(record => getPrimaryMemoryImageRef(record))
       .filter((value): value is string => Boolean(value));
 
-    const signature = `${immediateTargets.join('|')}__${deferredTargets.join('|')}`;
+    const signature = `${immediateTargets.join('|')}__${deferredTargets.join(
+      '|',
+    )}`;
     if (!signature || signature === preloadSignatureRef.current) return;
     preloadSignatureRef.current = signature;
 
@@ -1534,7 +1565,9 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
           snap={snap}
           scrollX={scrollX}
           onPress={onPressRecordItem}
-          eagerImage={index === activeSlideIndex || index === activeSlideIndex + 1}
+          eagerImage={
+            index === activeSlideIndex || index === activeSlideIndex + 1
+          }
         />
       );
     },
@@ -1680,7 +1713,7 @@ const WeeklySummarySection = React.memo(function WeeklySummarySection({
           이번 주 {petName}의 리듬을 한 장으로 정리했어요
         </Text>
         <Text style={styles.summaryDesc}>
-          산책, 식사, 건강기록, 작성일 수를 기준으로 이번 주 흐름을 빠르게 볼 수
+          산책, 식사, 생활기록, 작성일 수를 기준으로 이번 주 흐름을 빠르게 볼 수
           있어요.
         </Text>
 
@@ -1705,9 +1738,9 @@ const WeeklySummarySection = React.memo(function WeeklySummarySection({
             style={[styles.summaryItem, { borderColor: accentBorderColor }]}
           >
             <Text style={[styles.summaryValue, { color: accentDeepColor }]}>
-              {weeklySummary.healthCount}
+              {weeklySummary.lifeCount}
             </Text>
-            <Text style={styles.summaryLabel}>건강 기록</Text>
+            <Text style={styles.summaryLabel}>생활 기록</Text>
           </View>
           <View
             style={[styles.summaryItem, { borderColor: accentBorderColor }]}
@@ -1853,7 +1886,10 @@ const RecentActivitiesSection = React.memo(function RecentActivitiesSection({
   accentColor: string;
   accentDeepColor: string;
 }) {
-  const recentActivities = useMemo(() => recordItems.slice(0, 7), [recordItems]);
+  const recentActivities = useMemo(
+    () => recordItems.filter(item => !isHealthMemoryRecord(item)).slice(0, 7),
+    [recordItems],
+  );
 
   return (
     <View style={styles.section}>
@@ -1923,6 +1959,97 @@ const RecentActivitiesSection = React.memo(function RecentActivitiesSection({
   );
 });
 
+function getHealthActivityKindLabel(kind: HealthActivityItem['kind']) {
+  switch (kind) {
+    case 'hospital':
+      return '병원';
+    case 'medicine':
+      return '약';
+    case 'checkup':
+      return '검진';
+    case 'vaccine':
+      return '접종';
+    case 'symptom':
+      return '증상';
+    case 'health':
+    default:
+      return '건강';
+  }
+}
+
+const HealthRecentActivitiesSection = React.memo(function HealthRecentActivitiesSection({
+  activityItems,
+  onPressHealthReport,
+  onPressActivityItem,
+  accentColor,
+  accentDeepColor,
+}: {
+  activityItems: HealthActivityItem[];
+  onPressHealthReport: () => void;
+  onPressActivityItem: (ymd: string) => void;
+  accentColor: string;
+  accentDeepColor: string;
+}) {
+  const recentActivities = useMemo(() => activityItems.slice(0, 5), [activityItems]);
+
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeaderRow}>
+        <Text style={[styles.tipSectionTitle, { color: accentDeepColor }]}>
+          건강관리 최근 활동
+        </Text>
+        <TouchableOpacity activeOpacity={0.85} onPress={onPressHealthReport}>
+          <Text style={[styles.sectionLink, { color: accentColor }]}>
+            건강관리 열기
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {recentActivities.length === 0 ? (
+        <View style={styles.emptyBox}>
+          <Text style={styles.emptyTitle}>건강관리 기록이 아직 없어요</Text>
+          <Text style={styles.emptyDesc}>
+            병원, 약, 증상, 체중 기록은 건강관리에서 차분히 모아볼 수 있어요.
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.activityList}>
+          {recentActivities.map(item => (
+            <TouchableOpacity
+              key={item.id}
+              activeOpacity={0.92}
+              style={styles.activityRow}
+              onPress={() => onPressActivityItem(item.ymd)}
+            >
+              <View
+                style={[
+                  styles.activityIconWrap,
+                  { backgroundColor: `${accentColor}14` },
+                ]}
+              >
+                <Feather name={item.iconName as never} size={17} color={accentColor} />
+              </View>
+
+              <View style={styles.activityTextCol}>
+                <Text style={styles.activityTitle} numberOfLines={1}>
+                  {item.title?.trim() || getHealthActivityKindLabel(item.kind)}
+                </Text>
+                <Text style={styles.activitySub} numberOfLines={1}>
+                  {getHealthActivityKindLabel(item.kind)} · {item.subtitle}
+                </Text>
+              </View>
+
+              <Text style={styles.activityTime}>
+                {formatYmdToDots(item.ymd) ?? item.ymd}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+});
+
 const MonthlyDiarySection = React.memo(function MonthlyDiarySection({
   petName,
   recordItems,
@@ -1951,7 +2078,9 @@ const MonthlyDiarySection = React.memo(function MonthlyDiarySection({
         if (normalizeCategoryKey(readRecordCategoryRaw(item)) !== 'diary') {
           return false;
         }
-        return getMonthKeyFromYmd(getRecordDisplayYmd(item)) === currentMonthKey;
+        return (
+          getMonthKeyFromYmd(getRecordDisplayYmd(item)) === currentMonthKey
+        );
       })
       .slice(0, 7);
   }, [recordItems]);
@@ -2094,7 +2223,9 @@ export default function LoggedInHome() {
   const bootstrapSchedules = useScheduleStore(s => s.bootstrap);
 
   const recordItems = useRecordStore(s =>
-    activePetId ? s.byPetId[activePetId]?.items ?? EMPTY_RECORD_ITEMS : EMPTY_RECORD_ITEMS,
+    activePetId
+      ? s.byPetId[activePetId]?.items ?? EMPTY_RECORD_ITEMS
+      : EMPTY_RECORD_ITEMS,
   );
   const recordStatus = useRecordStore(s =>
     activePetId ? s.byPetId[activePetId]?.status ?? 'idle' : 'idle',
@@ -2103,6 +2234,14 @@ export default function LoggedInHome() {
     activePetId
       ? s.byPetId[activePetId]?.items ?? EMPTY_SCHEDULE_ITEMS
       : EMPTY_SCHEDULE_ITEMS,
+  );
+  const visibleScheduleItems = useMemo(
+    () => scheduleItems.filter(schedule => !isHealthSchedule(schedule)),
+    [scheduleItems],
+  );
+  const healthActivityItems = useMemo(
+    () => buildHealthActivityItems(recordItems, scheduleItems),
+    [recordItems, scheduleItems],
   );
 
   useEffect(() => {
@@ -2133,7 +2272,9 @@ export default function LoggedInHome() {
   // 5) HERO derived
   // ---------------------------------------------------------
   const plainPetName = useMemo(
-    () => selectedPet?.name?.trim() || (petLoading && !hasPets ? '반려동물' : '우리 아이'),
+    () =>
+      selectedPet?.name?.trim() ||
+      (petLoading && !hasPets ? '반려동물' : '우리 아이'),
     [hasPets, petLoading, selectedPet?.name],
   );
 
@@ -2252,16 +2393,11 @@ export default function LoggedInHome() {
       buildHomeWidgetSnapshot({
         petName: plainPetName,
         themeColor: petTheme.primary,
-        nextSchedule: scheduleItems[0] ?? null,
+        nextSchedule: visibleScheduleItems[0] ?? null,
         recentRecord: recordItems[0] ?? null,
         recordCount: recordItems.length,
       }),
-    [
-      plainPetName,
-      petTheme.primary,
-      recordItems,
-      scheduleItems,
-    ],
+    [plainPetName, petTheme.primary, recordItems, visibleScheduleItems],
   );
 
   useEffect(() => {
@@ -2285,6 +2421,18 @@ export default function LoggedInHome() {
       },
     });
   }, [navigation, activePetId]);
+
+  const onPressHealthReport = useCallback(
+    (focusYmd?: string) => {
+      navigation.navigate('HealthReport', {
+        petId: activePetId ?? undefined,
+        initialTab: 'records',
+        focusYmd,
+        entrySource: 'home',
+      });
+    },
+    [activePetId, navigation],
+  );
 
   const onPressScheduleList = useCallback(() => {
     navigation.navigate('ScheduleList', {
@@ -2330,6 +2478,18 @@ export default function LoggedInHome() {
     [navigation, activePetId],
   );
 
+  const onPressQuickAction = useCallback(
+    (item: (typeof HOME_SHORTCUTS)[number]) => {
+      if (item.action === 'health') {
+        onPressHealthReport();
+        return;
+      }
+      if (!item.mainCategory) return;
+      onPressTimelineCategory(item.mainCategory, item.otherSubCategory);
+    },
+    [onPressHealthReport, onPressTimelineCategory],
+  );
+
   const onPressRecord = useCallback(() => {
     navigation.navigate('RecordCreate', {
       petId: activePetId ?? undefined,
@@ -2359,15 +2519,14 @@ export default function LoggedInHome() {
       };
     }) => {
       const offsetY = Math.max(0, event.nativeEvent.contentOffset.y);
-      HOME_SCROLL_OFFSET_BY_KEY.set(
-        homeScrollStorageKey,
-        offsetY,
-      );
+      HOME_SCROLL_OFFSET_BY_KEY.set(homeScrollStorageKey, offsetY);
 
       const scheduleSectionOffset = scheduleSectionOffsetRef.current;
       if (scheduleSectionOffset === null) return;
 
-      const shouldShow = offsetY >= Math.max(0, scheduleSectionOffset - HOME_TOP_BUTTON_SHOW_OFFSET);
+      const shouldShow =
+        offsetY >=
+        Math.max(0, scheduleSectionOffset - HOME_TOP_BUTTON_SHOW_OFFSET);
       if (showTopButtonRef.current === shouldShow) return;
 
       showTopButtonRef.current = shouldShow;
@@ -2383,7 +2542,8 @@ export default function LoggedInHome() {
     const scheduleSectionOffset = scheduleSectionOffsetRef.current;
     if (scheduleSectionOffset !== null) {
       const shouldShow =
-        nextOffset >= Math.max(0, scheduleSectionOffset - HOME_TOP_BUTTON_SHOW_OFFSET);
+        nextOffset >=
+        Math.max(0, scheduleSectionOffset - HOME_TOP_BUTTON_SHOW_OFFSET);
       showTopButtonRef.current = shouldShow;
       setShowTopButton(shouldShow);
     }
@@ -2506,12 +2666,9 @@ export default function LoggedInHome() {
     });
   }, []);
 
-  const onToggleOne = useCallback(
-    (key: ProfileAccordionKey) => {
-      setAcc(prev => ({ ...prev, [key]: !prev[key] }));
-    },
-    [],
-  );
+  const onToggleOne = useCallback((key: ProfileAccordionKey) => {
+    setAcc(prev => ({ ...prev, [key]: !prev[key] }));
+  }, []);
 
   const noopHeaderAction = useCallback(() => {
     // 추후 검색/알림 연결 전까지 레이아웃만 유지한다.
@@ -2524,7 +2681,8 @@ export default function LoggedInHome() {
   const handleScheduleSectionLayout = useCallback(
     (event: { nativeEvent: { layout: { y: number } } }) => {
       scheduleSectionOffsetRef.current = event.nativeEvent.layout.y;
-      const restoredOffset = HOME_SCROLL_OFFSET_BY_KEY.get(homeScrollStorageKey) ?? 0;
+      const restoredOffset =
+        HOME_SCROLL_OFFSET_BY_KEY.get(homeScrollStorageKey) ?? 0;
       const shouldShow =
         restoredOffset >=
         Math.max(0, event.nativeEvent.layout.y - HOME_TOP_BUTTON_SHOW_OFFSET);
@@ -2714,7 +2872,7 @@ export default function LoggedInHome() {
           <QuickActionsSection
             petTheme={petTheme}
             quickActionCards={quickActionCards}
-            onPressTimelineCategory={onPressTimelineCategory}
+            onPressQuickAction={onPressQuickAction}
           />
 
           <MemorySectionLead accentDeepColor={petTheme.deep} />
@@ -2742,7 +2900,7 @@ export default function LoggedInHome() {
           <WeeklySummarySection
             petName={plainPetName}
             records={recordItems}
-            schedules={scheduleItems}
+            schedules={visibleScheduleItems}
             accentDeepColor={petTheme.deep}
             accentSoftColor={petTheme.soft}
             accentBorderColor={petTheme.border}
@@ -2762,7 +2920,7 @@ export default function LoggedInHome() {
 
           <View onLayout={handleScheduleSectionLayout}>
             <ScheduleSection
-              scheduleItems={scheduleItems}
+              scheduleItems={visibleScheduleItems}
               onPressScheduleList={onPressScheduleList}
               onPressScheduleCreate={onPressScheduleCreate}
               accentColor={petTheme.primary}
@@ -2771,6 +2929,14 @@ export default function LoggedInHome() {
               accentBorder={petTheme.border}
             />
           </View>
+
+          <HealthRecentActivitiesSection
+            activityItems={healthActivityItems}
+            onPressHealthReport={() => onPressHealthReport()}
+            onPressActivityItem={onPressHealthReport}
+            accentColor={petTheme.primary}
+            accentDeepColor={petTheme.deep}
+          />
 
           <RecentActivitiesSection
             recordItems={recordItems}

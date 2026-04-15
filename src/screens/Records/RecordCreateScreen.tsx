@@ -24,6 +24,7 @@ import { Alert, BackHandler, Image, TextInput, TouchableOpacity, View } from 're
 import type { RouteProp } from '@react-navigation/native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useQueryClient } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import Feather from 'react-native-vector-icons/Feather';
@@ -47,6 +48,8 @@ import {
   RECORD_EMOTION_OPTIONS,
   RECORD_MAIN_CATEGORIES,
   RECORD_OTHER_SUBCATEGORIES,
+  RECORD_WRITE_MAIN_CATEGORIES,
+  RECORD_WRITE_OTHER_SUBCATEGORIES,
   normalizeRecordPriceInput,
   toRecordYmd,
   type PickedRecordImage,
@@ -90,6 +93,7 @@ export default function RecordCreateScreen() {
   const route = useRoute<RecordCreateRoute>();
   const insets = useSafeAreaInsets();
   const keyboardInset = useKeyboardInset();
+  const queryClient = useQueryClient();
 
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
@@ -99,6 +103,9 @@ export default function RecordCreateScreen() {
 
   const petIdFromParams = route.params?.petId ?? null;
   const returnTo = route.params?.returnTo;
+  const initialMainCategoryKey = route.params?.initialMainCategory ?? 'walk';
+  const initialOtherSubCategoryKey = route.params?.initialOtherSubCategory ?? null;
+  const allowsHealthWrite = returnTo?.tab === 'HealthReport';
 
   const petId = useMemo(() => {
     return resolveSelectedPetId(pets, selectedPetId, petIdFromParams);
@@ -121,9 +128,9 @@ export default function RecordCreateScreen() {
   const [tagDraft, setTagDraft] = useState('');
   const [tagModalVisible, setTagModalVisible] = useState(false);
   const [mainCategoryKey, setMainCategoryKey] =
-    useState<RecordMainCategoryKey>('walk');
+    useState<RecordMainCategoryKey>(initialMainCategoryKey);
   const [otherSubCategoryKey, setOtherSubCategoryKey] =
-    useState<RecordOtherSubCategoryKey | null>(null);
+    useState<RecordOtherSubCategoryKey | null>(initialOtherSubCategoryKey);
   const [priceText, setPriceText] = useState('');
   const [dateModalVisible, setDateModalVisible] = useState(false);
   const [selectedEmotion, setSelectedEmotion] = useState<EmotionTag | null>(
@@ -179,12 +186,14 @@ export default function RecordCreateScreen() {
       priceText.trim().length > 0 ||
       selectedImages.length > 0 ||
       occurredAt !== todayYmd ||
-      mainCategoryKey !== 'walk' ||
-      otherSubCategoryKey !== null ||
+      mainCategoryKey !== initialMainCategoryKey ||
+      otherSubCategoryKey !== initialOtherSubCategoryKey ||
       selectedEmotion !== null
     );
   }, [
     content,
+    initialMainCategoryKey,
+    initialOtherSubCategoryKey,
     mainCategoryKey,
     occurredAt,
     otherSubCategoryKey,
@@ -210,8 +219,8 @@ export default function RecordCreateScreen() {
     setSelectedTags([]);
     setTagDraft('');
     setTagModalVisible(false);
-    setMainCategoryKey('walk');
-    setOtherSubCategoryKey(null);
+    setMainCategoryKey(initialMainCategoryKey);
+    setOtherSubCategoryKey(initialOtherSubCategoryKey);
     setPriceText('');
     setDateModalVisible(false);
     setSelectedEmotion(null);
@@ -219,7 +228,7 @@ export default function RecordCreateScreen() {
     setActiveImageIndex(0);
     setSaving(false);
     setDraftHydrated(true);
-  }, [todayYmd]);
+  }, [initialMainCategoryKey, initialOtherSubCategoryKey, todayYmd]);
 
   useEffect(() => {
     if (selectedImages.length === 0 && activeImageIndex !== 0) {
@@ -246,14 +255,22 @@ export default function RecordCreateScreen() {
         if (!mounted) return;
 
         if (draft) {
+          const draftMainCategoryKey =
+            draft.mainCategoryKey === 'health' && !allowsHealthWrite
+              ? initialMainCategoryKey
+              : draft.mainCategoryKey ?? initialMainCategoryKey;
           setTitle(draft.title ?? '');
           setContent(draft.content ?? '');
           setOccurredAt(draft.occurredAt || todayYmd);
           setSelectedTags(
             Array.isArray(draft.selectedTags) ? draft.selectedTags : [],
           );
-          setMainCategoryKey(draft.mainCategoryKey ?? 'walk');
-          setOtherSubCategoryKey(draft.otherSubCategoryKey ?? null);
+          setMainCategoryKey(draftMainCategoryKey);
+          setOtherSubCategoryKey(
+            draftMainCategoryKey === 'other'
+              ? draft.otherSubCategoryKey ?? initialOtherSubCategoryKey
+              : null,
+          );
           setPriceText(normalizeRecordPriceInput(draft.priceText ?? ''));
           setSelectedEmotion(draft.selectedEmotion ?? null);
           setSelectedImages(
@@ -273,7 +290,12 @@ export default function RecordCreateScreen() {
     return () => {
       mounted = false;
     };
-  }, [todayYmd]);
+  }, [
+    allowsHealthWrite,
+    initialMainCategoryKey,
+    initialOtherSubCategoryKey,
+    todayYmd,
+  ]);
 
   useEffect(() => {
     if (!draftHydrated || saving) return;
@@ -375,6 +397,21 @@ export default function RecordCreateScreen() {
       return;
     }
 
+    if (returnTo?.tab === 'HealthReport') {
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+        return;
+      }
+
+      navigation.navigate('HealthReport', {
+        petId: returnTo.petId ?? petId ?? undefined,
+        initialTab: returnTo.initialTab ?? 'records',
+        focusYmd: returnTo.focusYmd ?? undefined,
+        entrySource: 'more',
+      });
+      return;
+    }
+
     if (returnTo?.tab === 'GuestbookTab') {
       navigation.navigate('AppTabs', { screen: 'GuestbookTab' });
       return;
@@ -391,7 +428,7 @@ export default function RecordCreateScreen() {
     }
 
     navigation.navigate('AppTabs', { screen: 'HomeTab' });
-  }, [navigation, returnTo]);
+  }, [navigation, petId, returnTo]);
 
   const onPressCancel = useCallback(() => {
     if (saving) return;
@@ -598,6 +635,19 @@ export default function RecordCreateScreen() {
         title: '기록 저장 완료',
         message: '방금 기록을 먼저 반영했고, 상세에서 바로 확인할 수 있어요.',
       });
+      if (returnTo?.tab === 'HealthReport') {
+        await queryClient.invalidateQueries({
+          queryKey: ['health-report', 'month', petId],
+        });
+          navigation.navigate('HealthReport', {
+            petId: returnTo.petId ?? petId,
+            initialTab: returnTo.initialTab ?? 'records',
+            focusYmd: occurred ?? undefined,
+            entrySource: 'more',
+          });
+        return;
+      }
+
       const detailEntrySource =
         returnTo?.tab === 'HomeTab'
           ? 'home'
@@ -637,6 +687,7 @@ export default function RecordCreateScreen() {
     occurredAt,
     petId,
     priceText,
+    queryClient,
     refresh,
     resetForm,
     returnTo,
@@ -775,7 +826,7 @@ export default function RecordCreateScreen() {
         />
 
         <View style={styles.quickTagRow}>
-          {RECORD_MAIN_CATEGORIES.map(category => {
+          {RECORD_WRITE_MAIN_CATEGORIES.map(category => {
             const active = category.key === mainCategoryKey;
             return (
               <TouchableOpacity
@@ -835,7 +886,7 @@ export default function RecordCreateScreen() {
 
         {mainCategoryKey === 'other' ? (
           <View style={styles.otherSubRow}>
-            {RECORD_OTHER_SUBCATEGORIES.map(sub => {
+            {RECORD_WRITE_OTHER_SUBCATEGORIES.map(sub => {
               const active = sub.key === otherSubCategoryKey;
               return (
                 <TouchableOpacity

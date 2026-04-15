@@ -24,6 +24,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -72,6 +73,14 @@ import {
   saveMyNickname,
 } from '../../services/supabase/profile';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
+import {
+  checkScheduleNotificationPermission,
+  getScheduleNotificationSettings,
+  openScheduleNotificationSystemSettings,
+  requestScheduleNotificationPermission,
+  setScheduleNotificationEnabled,
+  type ScheduleNotificationPermissionStatus,
+} from '../../services/schedules/notifications';
 import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
 import { showToast } from '../../store/uiStore';
@@ -148,6 +157,19 @@ type ThemeSettingsModalProps = {
   onClose: () => void;
   onSelectColor: (color: string) => void;
   onSubmit: () => void;
+};
+
+type NotificationSettingsModalProps = {
+  visible: boolean;
+  bottomInset: number;
+  enabled: boolean;
+  permissionStatus: ScheduleNotificationPermissionStatus;
+  loading: boolean;
+  accentColor: string;
+  onClose: () => void;
+  onToggleEnabled: (enabled: boolean) => void;
+  onRequestPermission: () => void;
+  onOpenSystemSettings: () => void;
 };
 
 function formatDateLabel(value: Date | null): string {
@@ -543,6 +565,158 @@ const ThemeSettingsModal = memo(function ThemeSettingsModal({
   );
 });
 
+function getNotificationPermissionLabel(
+  status: ScheduleNotificationPermissionStatus,
+) {
+  switch (status) {
+    case 'granted':
+      return '허용됨';
+    case 'blocked':
+      return '시스템 설정에서 꺼짐';
+    case 'denied':
+      return '권한 필요';
+    case 'unsupported':
+    default:
+      return '지원 상태 확인 중';
+  }
+}
+
+const NotificationSettingsModal = memo(function NotificationSettingsModal({
+  visible,
+  bottomInset,
+  enabled,
+  permissionStatus,
+  loading,
+  accentColor,
+  onClose,
+  onToggleEnabled,
+  onRequestPermission,
+  onOpenSystemSettings,
+}: NotificationSettingsModalProps) {
+  const theme = useTheme();
+  const permissionGranted = permissionStatus === 'granted';
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <View style={[styles.modalBackdrop, { backgroundColor: theme.colors.overlay }]}>
+        <Pressable style={styles.modalScrim} onPress={onClose} />
+        <View
+          style={[
+            styles.sheetCard,
+            {
+              backgroundColor: theme.colors.surfaceElevated,
+              paddingBottom: Math.max(bottomInset + 18, 26),
+            },
+          ]}
+        >
+          <View style={styles.sheetHeader}>
+            <Text style={[styles.sheetTitle, { color: theme.colors.textPrimary }]}>
+              알림 설정
+            </Text>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={[styles.sheetClose, { backgroundColor: theme.colors.surface }]}
+              onPress={onClose}
+            >
+              <Feather name="x" size={20} color={theme.colors.textMuted} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.notificationInfoBlock}>
+            <Text style={[styles.themeInfoTitle, { color: theme.colors.textPrimary }]}>
+              중요한 병원, 약 시간을 놓치지 않게 도와드릴게요.
+            </Text>
+            <Text style={[styles.themeInfoBody, { color: theme.colors.textSecondary }]}>
+              일정 추가에서 알림을 선택하면 이 기기에 로컬 알림으로 예약됩니다.
+              완료 처리하거나 알림을 끄면 예약도 함께 정리됩니다.
+            </Text>
+          </View>
+
+          <View
+            style={[
+              styles.notificationSettingRow,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+              },
+            ]}
+          >
+            <View style={styles.notificationSettingText}>
+              <Text style={[styles.modalLabel, { color: theme.colors.textPrimary }]}>
+                일정 알림
+              </Text>
+              <Text style={[styles.notificationSettingHelper, { color: theme.colors.textMuted }]}>
+                병원, 약, 산책 등 일정 알림 예약 허용
+              </Text>
+            </View>
+            <Switch
+              value={enabled}
+              disabled={loading}
+              onValueChange={onToggleEnabled}
+              trackColor={{ false: '#D7DEE8', true: `${accentColor}66` }}
+              thumbColor={enabled ? accentColor : '#FFFFFF'}
+            />
+          </View>
+
+          <View
+            style={[
+              styles.notificationStatusBox,
+              {
+                backgroundColor: permissionGranted
+                  ? 'rgba(34,197,94,0.10)'
+                  : 'rgba(249,115,22,0.10)',
+                borderColor: permissionGranted
+                  ? 'rgba(34,197,94,0.22)'
+                  : 'rgba(249,115,22,0.22)',
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.notificationStatusTitle,
+                { color: permissionGranted ? '#15803D' : '#C2410C' },
+              ]}
+            >
+              기기 권한: {getNotificationPermissionLabel(permissionStatus)}
+            </Text>
+            <Text style={[styles.notificationSettingHelper, { color: theme.colors.textMuted }]}>
+              권한이 꺼져 있으면 일정에는 알림값이 저장되지만 실제 기기 알림은 오지 않아요.
+            </Text>
+          </View>
+
+          {permissionGranted ? (
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={[styles.secondaryButton, { borderColor: theme.colors.border }]}
+              onPress={onOpenSystemSettings}
+            >
+              <Text style={[styles.secondaryButtonText, { color: theme.colors.textPrimary }]}>
+                시스템 알림 설정 열기
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={[styles.primaryButton, { backgroundColor: accentColor }]}
+              onPress={onRequestPermission}
+              disabled={loading}
+            >
+              <Text style={styles.primaryButtonText}>
+                {loading ? '확인 중...' : '알림 권한 허용하기'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+});
+
 export const PasswordChangeSuccessModal = memo(function PasswordChangeSuccessModal({
   visible,
   onClose,
@@ -725,6 +899,12 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const [deleting, setDeleting] = useState(false);
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [themeModalVisible, setThemeModalVisible] = useState(false);
+  const [notificationModalVisible, setNotificationModalVisible] = useState(false);
+  const [notificationSettingsLoading, setNotificationSettingsLoading] =
+    useState(false);
+  const [notificationEnabled, setNotificationEnabled] = useState(true);
+  const [notificationPermissionStatus, setNotificationPermissionStatus] =
+    useState<ScheduleNotificationPermissionStatus>('unsupported');
   const [logoutConfirmVisible, setLogoutConfirmVisible] = useState(false);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [accountStatusNotice, setAccountStatusNotice] = useState<
@@ -913,14 +1093,6 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     [onRequestClose],
   );
 
-  const showPreparingToast = useCallback((label: string) => {
-    showToast({
-      tone: 'info',
-      title: '준비 중',
-      message: `${label} 메뉴는 다음 업데이트에서 열릴 예정이에요.`,
-    });
-  }, []);
-
   const openPetManagement = useCallback(() => {
     closeAndNavigate(() =>
       navigation.navigate('PetManagement', {
@@ -995,6 +1167,76 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     setThemeModalVisible(false);
     setDraftThemeColor(null);
   }, [themeSaving]);
+
+  const refreshNotificationSettings = useCallback(async () => {
+    setNotificationSettingsLoading(true);
+    try {
+      const [permissionStatus, settings] = await Promise.all([
+        checkScheduleNotificationPermission(),
+        getScheduleNotificationSettings(),
+      ]);
+      setNotificationPermissionStatus(permissionStatus);
+      setNotificationEnabled(settings.enabled);
+    } catch {
+      setNotificationPermissionStatus('unsupported');
+    } finally {
+      setNotificationSettingsLoading(false);
+    }
+  }, []);
+
+  const openNotificationModal = useCallback(() => {
+    setNotificationModalVisible(true);
+    refreshNotificationSettings().catch(() => {});
+  }, [refreshNotificationSettings]);
+
+  const closeNotificationModal = useCallback(() => {
+    if (notificationSettingsLoading) return;
+    setNotificationModalVisible(false);
+  }, [notificationSettingsLoading]);
+
+  const onToggleNotificationEnabled = useCallback(
+    async (enabled: boolean) => {
+      setNotificationSettingsLoading(true);
+      try {
+        const settings = await setScheduleNotificationEnabled(enabled);
+        setNotificationEnabled(settings.enabled);
+        showToast({
+          tone: settings.enabled ? 'success' : 'info',
+          title: settings.enabled ? '일정 알림 켜짐' : '일정 알림 꺼짐',
+          message: settings.enabled
+            ? '새로 저장하는 일정 알림이 기기에 예약됩니다.'
+            : '예약된 일정 알림을 정리하고 새 알림 예약을 멈췄어요.',
+        });
+      } catch (error) {
+        const { title, message } = getBrandedErrorMeta(error, 'generic');
+        showToast({ tone: 'error', title, message });
+      } finally {
+        setNotificationSettingsLoading(false);
+      }
+    },
+    [],
+  );
+
+  const onRequestNotificationPermission = useCallback(async () => {
+    setNotificationSettingsLoading(true);
+    try {
+      const permissionStatus = await requestScheduleNotificationPermission();
+      setNotificationPermissionStatus(permissionStatus);
+      showToast({
+        tone: permissionStatus === 'granted' ? 'success' : 'warning',
+        title: permissionStatus === 'granted' ? '알림 권한 허용됨' : '알림 권한 필요',
+        message:
+          permissionStatus === 'granted'
+            ? '이제 알림을 선택한 일정은 기기에 예약됩니다.'
+            : '권한이 꺼져 있으면 일정에는 저장되지만 실제 알림은 오지 않아요.',
+      });
+    } catch (error) {
+      const { title, message } = getBrandedErrorMeta(error, 'generic');
+      showToast({ tone: 'error', title, message });
+    } finally {
+      setNotificationSettingsLoading(false);
+    }
+  }, []);
 
   const onSubmitProfile = useCallback(async () => {
     if (profileSaving) return;
@@ -1309,7 +1551,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       },
       {
         key: 'health-report',
-        label: '건강 기록 리포트',
+        label: '건강관리',
         icon: 'clipboard',
         iconTone: 'accent',
         onPress: isLoggedIn ? openHealthReport : onPressLogin,
@@ -1385,8 +1627,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         label: '알림 설정',
         icon: 'bell',
         iconTone: 'accent',
-        onPress: () => showPreparingToast('알림 설정'),
-        badge: 'soon',
+        onPress: openNotificationModal,
       },
       {
         key: 'theme',
@@ -1426,9 +1667,9 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     loading,
     onPressLogin,
     onPressLogout,
+    openNotificationModal,
     openProfileEditModal,
     openThemeModal,
-    showPreparingToast,
   ]);
 
   const adminItems = useMemo<MenuItemSpec[]>(
@@ -1693,6 +1934,18 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         onSubmit={() => {
           onSubmitTheme().catch(() => {});
         }}
+      />
+      <NotificationSettingsModal
+        visible={notificationModalVisible}
+        bottomInset={Math.max(insets.bottom, 6)}
+        enabled={notificationEnabled}
+        permissionStatus={notificationPermissionStatus}
+        loading={notificationSettingsLoading}
+        accentColor={petTheme.primary}
+        onClose={closeNotificationModal}
+        onToggleEnabled={onToggleNotificationEnabled}
+        onRequestPermission={onRequestNotificationPermission}
+        onOpenSystemSettings={openScheduleNotificationSystemSettings}
       />
       <ConfirmDialog
         visible={logoutConfirmVisible}
@@ -2102,6 +2355,9 @@ const styles = StyleSheet.create({
   themeInfoBlock: {
     gap: 6,
   },
+  notificationInfoBlock: {
+    gap: 6,
+  },
   themeInfoTitle: {
     fontSize: 15,
     lineHeight: 22,
@@ -2124,6 +2380,49 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#FFFFFF',
     fontWeight: '700',
+  },
+  secondaryButton: {
+    minHeight: 52,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  secondaryButtonText: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  notificationSettingRow: {
+    minHeight: 74,
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  notificationSettingText: {
+    flex: 1,
+    gap: 4,
+  },
+  notificationSettingHelper: {
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '600',
+  },
+  notificationStatusBox: {
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 4,
+  },
+  notificationStatusTitle: {
+    fontSize: 14,
+    fontWeight: '800',
   },
   modalContentScroll: {
     maxHeight: 360,

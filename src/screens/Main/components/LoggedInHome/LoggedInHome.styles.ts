@@ -438,8 +438,18 @@ export const styles = StyleSheet.create({
     paddingTop: 20,
     paddingHorizontal: 14,
   },
-  sectionLeadTitle: { fontSize: 16, fontWeight: '600', color: BRAND_DEEP },
-  sectionLeadSub: { fontSize: 12, fontWeight: '500', color: MUTED },
+  sectionLeadTitle: {
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: '600',
+    color: BRAND_DEEP,
+  },
+  sectionLeadSub: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '400',
+    color: MUTED,
+  },
 
   // ---------------------------------------------------------
   // Sections
@@ -459,21 +469,37 @@ export const styles = StyleSheet.create({
   sectionHeaderCol: {
     gap: 4,
   },
-  sectionTitle: { fontSize: 14, fontWeight: '600', color: BRAND_DEEP },
-  sectionSubText: {
-    fontSize: 12,
+  quickSectionTitle: {
+    fontSize: 18,
+    lineHeight: 24,
     fontWeight: '600',
-    color: MUTED,
-    lineHeight: 17,
+    color: BRAND_DEEP,
   },
-  sectionLink: { fontSize: 12, fontWeight: '700', color: BRAND_DEEP },
+  sectionTitle: {
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: '600',
+    color: BRAND_DEEP,
+  },
+  sectionSubText: {
+    fontSize: 13,
+    fontWeight: '400',
+    color: MUTED,
+    lineHeight: 18,
+  },
+  sectionLink: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
+    color: BRAND_DEEP,
+  },
 
   // ---------------------------------------------------------
   // Today Photo Card
   // ---------------------------------------------------------
   photoCard: {
     height: 250,
-    borderRadius: 20,
+    borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: SURFACE_SOFT,
     borderWidth: 1,
@@ -492,11 +518,17 @@ export const styles = StyleSheet.create({
     padding: 14,
     backgroundColor: 'rgba(0,0,0,0.26)',
   },
-  photoOverlayTitle: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
+  photoOverlayTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '600',
+  },
   photoOverlaySub: {
     color: 'rgba(255,255,255,0.92)',
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '400',
     marginTop: 6,
   },
 
@@ -511,7 +543,7 @@ export const styles = StyleSheet.create({
   },
 
   todayRecordCard: {
-    borderRadius: 20,
+    borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: 'rgba(0,0,0,0.04)',
     borderWidth: 1,
@@ -576,18 +608,19 @@ export const styles = StyleSheet.create({
   },
 
   todayRecordTitle: {
-    fontSize: 13,
-    fontWeight: '900',
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '600',
     color: '#FFFFFF',
     textShadowColor: 'rgba(0,0,0,0.35)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
   },
   todayRecordContent: {
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '400',
     color: 'rgba(255,255,255,0.92)',
-    lineHeight: 15,
+    lineHeight: 18,
     textShadowColor: 'rgba(0,0,0,0.25)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
@@ -599,8 +632,9 @@ export const styles = StyleSheet.create({
     marginTop: 2,
   },
   todayRecordDate: {
-    fontSize: 10,
-    fontWeight: '900',
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '500',
     color: 'rgba(255,255,255,0.92)',
   },
   // ---------------------------------------------------------
@@ -629,8 +663,9 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   moreHintText: {
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '400',
     color: 'rgba(85,96,112,0.82)',
   },
 
@@ -638,7 +673,7 @@ export const styles = StyleSheet.create({
   // Weekly Summary
   // ---------------------------------------------------------
   summaryCard: {
-    borderRadius: 24,
+    borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 16,
     backgroundColor: 'rgba(109,106,248,0.08)',
@@ -648,14 +683,14 @@ export const styles = StyleSheet.create({
   },
   summaryTitle: {
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '600',
     color: TEXT,
     lineHeight: 22,
-    letterSpacing: -0.2,
+    letterSpacing: 0,
   },
   summaryDesc: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '400',
     color: MUTED,
     lineHeight: 18,
   },
@@ -666,7 +701,7 @@ export const styles = StyleSheet.create({
   },
   summaryItem: {
     width: '47%',
-    borderRadius: 18,
+    borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 14,
     backgroundColor: '#FFFFFF',
@@ -680,8 +715,9 @@ export const styles = StyleSheet.create({
     marginBottom: 4,
   },
   summaryLabel: {
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '400',
     color: MUTED,
   },
   summaryFooterRow: {
@@ -690,8 +726,9 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   summaryFooterText: {
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '400',
     color: 'rgba(85,96,112,0.88)',
   },
 
@@ -701,44 +738,50 @@ export const styles = StyleSheet.create({
   quickGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'stretch',
-    columnGap: 8,
+    alignItems: 'flex-start',
+    columnGap: 10,
   },
   quickGridFrame: {
-    borderRadius: 26,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
+    borderRadius: 16,
+    paddingHorizontal: 0,
+    paddingVertical: 6,
     borderWidth: 0,
-    backgroundColor: SURFACE,
+    backgroundColor: 'transparent',
   },
   quickCard: {
     width: '23%',
     minHeight: 126,
-    borderRadius: 20,
-    paddingHorizontal: 8,
-    paddingVertical: 14,
+    borderRadius: 0,
+    paddingHorizontal: 4,
+    paddingVertical: 6,
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: SURFACE,
+    justifyContent: 'flex-start',
+    backgroundColor: 'transparent',
     borderWidth: 0,
   },
   quickIconWrap: {
-    width: 48,
-    height: 48,
+    width: 72,
+    height: 72,
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(109,106,248,0.10)',
-    marginBottom: 10,
+    backgroundColor: 'rgba(255,127,58,0.12)',
+    marginBottom: 12,
+    shadowColor: '#FF8A4C',
+    shadowOpacity: 0.09,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 2,
   },
   quickIcon: {
     marginTop: 0,
   },
   quickCardTitle: {
-    fontSize: 13,
-    fontWeight: '900',
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: '600',
     color: TEXT,
-    letterSpacing: -0.4,
+    letterSpacing: 0,
     textAlign: 'center',
   },
   quickCardNote: {
@@ -753,10 +796,11 @@ export const styles = StyleSheet.create({
   // Recommendation Tips
   // ---------------------------------------------------------
   tipSectionTitle: {
-    fontSize: 16,
+    fontSize: 18,
+    lineHeight: 24,
     fontWeight: '600',
     color: BRAND_DEEP,
-    letterSpacing: -0.3,
+    letterSpacing: 0,
   },
   tipSectionHeading: {
     flexDirection: 'row',
@@ -781,8 +825,9 @@ export const styles = StyleSheet.create({
     backgroundColor: 'rgba(239,68,68,0.12)',
   },
   guideDebugBadgeText: {
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '500',
     color: TEXT,
   },
   tipList: {
@@ -792,7 +837,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    borderRadius: 22,
+    borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 14,
     backgroundColor: SURFACE,
@@ -821,22 +866,23 @@ export const styles = StyleSheet.create({
     gap: 3,
   },
   tipEyebrow: {
-    fontSize: 11,
-    fontWeight: '900',
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '500',
     color: BRAND,
   },
   tipTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
     color: TEXT,
     lineHeight: 21,
-    letterSpacing: -0.2,
+    letterSpacing: 0,
   },
   tipDescription: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '400',
     color: MUTED,
-    lineHeight: 17,
+    lineHeight: 20,
   },
 
   // ---------------------------------------------------------
@@ -846,7 +892,7 @@ export const styles = StyleSheet.create({
     gap: 10,
   },
   scheduleCard: {
-    borderRadius: 22,
+    borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 14,
     backgroundColor: SURFACE,
@@ -862,8 +908,9 @@ export const styles = StyleSheet.create({
     backgroundColor: 'rgba(109,106,248,0.08)',
   },
   scheduleDateText: {
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '500',
     color: MUTED,
   },
   scheduleBody: {
@@ -886,14 +933,15 @@ export const styles = StyleSheet.create({
     gap: 3,
   },
   scheduleTitle: {
-    fontSize: 15,
-    fontWeight: '800',
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '600',
     color: TEXT,
-    letterSpacing: -0.3,
+    letterSpacing: 0,
   },
   scheduleSub: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '400',
     color: MUTED,
     lineHeight: 18,
   },
@@ -908,7 +956,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    borderRadius: 20,
+    borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 12,
     backgroundColor: SURFACE,
@@ -927,20 +975,22 @@ export const styles = StyleSheet.create({
     gap: 2,
   },
   activityTitle: {
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '600',
     color: TEXT,
-    letterSpacing: -0.2,
+    letterSpacing: 0,
   },
   activitySub: {
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '400',
     color: MUTED,
-    lineHeight: 16,
+    lineHeight: 18,
   },
   activityTime: {
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '500',
     color: 'rgba(85,96,112,0.68)',
   },
 
@@ -948,7 +998,7 @@ export const styles = StyleSheet.create({
   // Home Tip
   // ---------------------------------------------------------
   todayTipCard: {
-    borderRadius: 24,
+    borderRadius: 16,
     paddingHorizontal: 18,
     paddingVertical: 18,
     backgroundColor: 'rgba(109,106,248,0.09)',
@@ -960,22 +1010,23 @@ export const styles = StyleSheet.create({
     gap: 6,
   },
   todayTipBadgeText: {
-    fontSize: 11,
-    fontWeight: '900',
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '500',
     color: BRAND,
   },
   todayTipTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: TEXT,
+    fontSize: 16,
     lineHeight: 22,
-    letterSpacing: -0.3,
+    fontWeight: '600',
+    color: TEXT,
+    letterSpacing: 0,
   },
   todayTipDesc: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '400',
     color: MUTED,
-    lineHeight: 18,
+    lineHeight: 20,
   },
 
   // ---------------------------------------------------------
@@ -992,7 +1043,7 @@ export const styles = StyleSheet.create({
   monthDiaryCover: {
     width: 112,
     height: 112,
-    borderRadius: 24,
+    borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: '#E6DED2',
   },
@@ -1007,14 +1058,15 @@ export const styles = StyleSheet.create({
     backgroundColor: '#ECE7DE',
   },
   monthDiaryTitle: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '600',
     color: TEXT,
-    lineHeight: 17,
   },
   monthDiaryMeta: {
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '400',
     color: 'rgba(85,96,112,0.68)',
   },
 
@@ -1023,7 +1075,7 @@ export const styles = StyleSheet.create({
   // ---------------------------------------------------------
   recordBtn: {
     height: 46,
-    borderRadius: 14,
+    borderRadius: 12,
     backgroundColor: BRAND_DEEP,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1034,21 +1086,31 @@ export const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     elevation: 2,
   },
-  recordBtnText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
+  recordBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '600',
+  },
 
   emptyBox: {
-    borderRadius: 18,
+    borderRadius: 16,
     padding: 14,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.06)',
     backgroundColor: SURFACE,
     gap: 6,
   },
-  emptyTitle: { fontSize: 13, fontWeight: '600', color: TEXT },
+  emptyTitle: {
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '600',
+    color: TEXT,
+  },
   emptyDesc: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '400',
     color: MUTED,
-    lineHeight: 15,
+    lineHeight: 18,
   },
 });

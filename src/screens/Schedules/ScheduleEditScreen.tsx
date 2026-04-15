@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
+import { useQueryClient } from '@tanstack/react-query';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import {
@@ -27,7 +28,6 @@ import ConfirmDialog from '../../components/common/ConfirmDialog';
 import WaveText from '../../components/common/WaveText';
 import HeaderTextActionButton from '../../components/navigation/HeaderTextActionButton';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
-import TimePickerModal from '../../components/time-picker/TimePickerModal';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
 import { createLatestRequestController } from '../../services/app/async';
@@ -45,23 +45,28 @@ import {
   type ScheduleRepeatRule,
 } from '../../services/supabase/schedules';
 import {
+  buildReminderMinutesFromSelection,
+  formatReminderMinutesSummary,
   formatScheduleDateSummary,
   getAutoScheduleIconKey,
-  getReminderKeyByMinutes,
-  getReminderMinutesByKey,
   inferScheduleSubCategory,
   mapScheduleSubCategoryToOtherUiKey,
   normalizeScheduleDateInput,
   normalizeScheduleTimeInput,
+  parseReminderSelection,
   SCHEDULE_CATEGORY_OPTIONS,
   SCHEDULE_COLOR_OPTIONS,
   SCHEDULE_ICON_OPTIONS,
   SCHEDULE_OTHER_UI_SUBCATEGORY_OPTIONS,
   SCHEDULE_REMINDER_OPTIONS,
+  SCHEDULE_REMINDER_REPEAT_OPTIONS,
   SCHEDULE_REPEAT_OPTIONS,
+  SCHEDULE_WRITE_CATEGORY_OPTIONS,
+  SCHEDULE_WRITE_OTHER_UI_SUBCATEGORY_OPTIONS,
   toScheduleDateInput,
   type ScheduleOtherUiSubCategoryKey,
   type ScheduleReminderOptionKey,
+  type ScheduleReminderRepeatKey,
 } from '../../services/schedules/form';
 import {
   checkScheduleNotificationPermission,
@@ -82,8 +87,10 @@ type Route = RootScreenRoute<'ScheduleEdit'>;
 export default function ScheduleEditScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
+  const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
   const { petId, scheduleId } = route.params;
+  const returnTo = route.params.returnTo;
   const pets = usePetStore(s => s.pets);
   const refresh = useScheduleStore(s => s.refresh);
   const selectedPet = useMemo(
@@ -110,13 +117,27 @@ export default function ScheduleEditScreen() {
   const [loading, setLoading] = useState(true);
   const [exitConfirmVisible, setExitConfirmVisible] = useState(false);
   const [dateModalVisible, setDateModalVisible] = useState(false);
-  const [timeModalVisible, setTimeModalVisible] = useState(false);
-  const [draftTimeText, setDraftTimeText] = useState('10:00');
   const [repeatRule, setRepeatRule] = useState<ScheduleRepeatRule>('none');
   const [reminderKey, setReminderKey] =
     useState<ScheduleReminderOptionKey>('none');
+  const [reminderRepeatKey, setReminderRepeatKey] =
+    useState<ScheduleReminderRepeatKey>('once');
+  const [customReminderMinutesText, setCustomReminderMinutesText] =
+    useState('');
   const [notificationPermissionStatus, setNotificationPermissionStatus] =
     useState<ScheduleNotificationPermissionStatus>('unsupported');
+  const categoryOptions = useMemo(
+    () =>
+      category === 'health' ? SCHEDULE_CATEGORY_OPTIONS : SCHEDULE_WRITE_CATEGORY_OPTIONS,
+    [category],
+  );
+  const otherSubCategoryOptions = useMemo(
+    () =>
+      otherUiSubCategoryKey === 'hospital'
+        ? SCHEDULE_OTHER_UI_SUBCATEGORY_OPTIONS
+        : SCHEDULE_WRITE_OTHER_UI_SUBCATEGORY_OPTIONS,
+    [otherUiSubCategoryKey],
+  );
   const hasUnsavedChanges = useMemo(() => {
     if (!schedule) return false;
 
@@ -137,7 +158,11 @@ export default function ScheduleEditScreen() {
       iconKey !== schedule.iconKey ||
       colorKey !== schedule.colorKey ||
       repeatRule !== schedule.repeatRule ||
-      reminderKey !== getReminderKeyByMinutes(schedule.reminderMinutes)
+      reminderKey !== parseReminderSelection(schedule.reminderMinutes).reminderKey ||
+      reminderRepeatKey !==
+        parseReminderSelection(schedule.reminderMinutes).reminderRepeatKey ||
+      customReminderMinutesText !==
+        parseReminderSelection(schedule.reminderMinutes).customReminderMinutesText
     );
   }, [
     allDay,
@@ -147,7 +172,9 @@ export default function ScheduleEditScreen() {
     iconKey,
     note,
     otherUiSubCategoryKey,
+    customReminderMinutesText,
     reminderKey,
+    reminderRepeatKey,
     repeatRule,
     schedule,
     timeText,
@@ -230,7 +257,12 @@ export default function ScheduleEditScreen() {
         setIconKey(next.iconKey);
         setColorKey(next.colorKey);
         setRepeatRule(next.repeatRule);
-        setReminderKey(getReminderKeyByMinutes(next.reminderMinutes));
+        const reminderSelection = parseReminderSelection(next.reminderMinutes);
+        setReminderKey(reminderSelection.reminderKey);
+        setReminderRepeatKey(reminderSelection.reminderRepeatKey);
+        setCustomReminderMinutesText(
+          reminderSelection.customReminderMinutesText,
+        );
       } catch (error) {
         if (request.isCurrent(requestId)) {
           const { title: alertTitle, message } = getBrandedErrorMeta(
@@ -257,15 +289,16 @@ export default function ScheduleEditScreen() {
     setDateModalVisible(false);
   }, []);
 
-  const onConfirmTime = useCallback(() => {
+  const onConfirmDateTime = useCallback((nextDate: Date, nextTimeText: string) => {
     try {
-      const normalized = normalizeScheduleTimeInput(draftTimeText);
+      const normalized = normalizeScheduleTimeInput(nextTimeText);
+      setDateText(toScheduleDateInput(nextDate).replace(/-/g, '.'));
       setTimeText(normalized);
-      setTimeModalVisible(false);
+      setDateModalVisible(false);
     } catch (error) {
       Alert.alert('시간 확인', getErrorMessage(error));
     }
-  }, [draftTimeText]);
+  }, []);
 
   const onSelectCategory = useCallback((nextCategory: ScheduleCategory) => {
     setCategory(nextCategory);
@@ -292,7 +325,11 @@ export default function ScheduleEditScreen() {
   const onSelectReminder = useCallback(
     async (nextKey: ScheduleReminderOptionKey) => {
       setReminderKey(nextKey);
-      if (nextKey === 'none') return;
+      if (nextKey === 'none') {
+        setReminderRepeatKey('once');
+        setCustomReminderMinutesText('');
+        return;
+      }
 
       const currentPermission = await checkScheduleNotificationPermission();
       if (currentPermission === 'granted') {
@@ -327,7 +364,19 @@ export default function ScheduleEditScreen() {
         ? `${normalizedDate}T00:00:00`
         : `${normalizedDate}T${normalizeScheduleTimeInput(timeText)}:00`;
       const startsAtIso = new Date(startsAt).toISOString();
-      const reminderMinutes = getReminderMinutesByKey(reminderKey);
+      const reminderMinutes = buildReminderMinutesFromSelection({
+        reminderKey,
+        reminderRepeatKey,
+        customReminderMinutesText,
+        startsAt: startsAtIso,
+      });
+      if (reminderKey !== 'none' && reminderMinutes.length === 0) {
+        Alert.alert(
+          '알림 시간 확인',
+          '선택한 알림 시점이 이미 지났어요. 더 짧은 간격으로 바꾸거나 직접 설정해 주세요.',
+        );
+        return;
+      }
 
       await updateSchedule({
         scheduleId: schedule.id,
@@ -365,6 +414,18 @@ export default function ScheduleEditScreen() {
 
       if (petId) {
         await refresh(petId);
+        await queryClient.invalidateQueries({
+          queryKey: ['health-report', 'month', petId],
+        });
+      }
+      if (returnTo?.screen === 'HealthReport') {
+        navigation.replace('HealthReport', {
+          petId: petId ?? undefined,
+          initialTab: returnTo.initialTab ?? 'records',
+          focusYmd: normalizedDate,
+          entrySource: 'more',
+        });
+        return;
       }
       navigation.replace('EditDone', {
         title: '일정 수정 완료!',
@@ -393,8 +454,12 @@ export default function ScheduleEditScreen() {
     navigation,
     note,
     otherUiSubCategoryKey,
+    customReminderMinutesText,
     petId,
+    queryClient,
+    returnTo,
     reminderKey,
+    reminderRepeatKey,
     refresh,
     repeatRule,
     schedule,
@@ -403,8 +468,31 @@ export default function ScheduleEditScreen() {
   ]);
 
   const reminderMinutes = useMemo(
-    () => getReminderMinutesByKey(reminderKey),
-    [reminderKey],
+    () => {
+      if (reminderKey === 'none') return [];
+      try {
+        const normalizedDate = normalizeScheduleDateInput(dateText);
+        const startsAt = allDay
+          ? `${normalizedDate}T00:00:00`
+          : `${normalizedDate}T${normalizeScheduleTimeInput(timeText)}:00`;
+        return buildReminderMinutesFromSelection({
+          reminderKey,
+          reminderRepeatKey,
+          customReminderMinutesText,
+          startsAt: new Date(startsAt).toISOString(),
+        });
+      } catch {
+        return [];
+      }
+    },
+    [
+      allDay,
+      customReminderMinutesText,
+      dateText,
+      reminderKey,
+      reminderRepeatKey,
+      timeText,
+    ],
   );
   const reminderHelperText = useMemo(
     () =>
@@ -413,6 +501,10 @@ export default function ScheduleEditScreen() {
         notificationPermissionStatus,
       ),
     [notificationPermissionStatus, reminderMinutes],
+  );
+  const reminderSummaryText = useMemo(
+    () => formatReminderMinutesSummary(reminderMinutes),
+    [reminderMinutes],
   );
   const headerTopInset = Math.max(insets.top, 12);
 
@@ -476,49 +568,33 @@ export default function ScheduleEditScreen() {
                 style={styles.input}
               />
 
-              <AppText preset="caption" style={styles.label}>
-                날짜
-              </AppText>
-              <TouchableOpacity
-                activeOpacity={0.9}
-                style={styles.pickerField}
-                onPress={() => {
-                  setDateModalVisible(true);
-                }}
-              >
-                <AppText preset="body" style={styles.pickerFieldText}>
-                  {formatScheduleDateSummary(dateText)}
-                </AppText>
-                <Feather name="chevron-right" size={18} color="#8A94A6" />
-              </TouchableOpacity>
-
               <View style={styles.timeRow}>
                 <View style={styles.timeCol}>
                   <AppText preset="caption" style={styles.label}>
-                    시간
+                    일시
                   </AppText>
                   <TouchableOpacity
                     activeOpacity={0.9}
-                    style={[
-                      styles.pickerField,
-                      allDay ? styles.pickerFieldDisabled : null,
-                    ]}
+                    style={styles.pickerField}
                     onPress={() => {
-                      setDraftTimeText(timeText);
-                      setTimeModalVisible(true);
+                      setDateModalVisible(true);
                     }}
-                    disabled={allDay}
                   >
-                    <AppText
-                      preset="body"
-                      style={[
-                        styles.pickerFieldText,
-                        allDay ? styles.pickerFieldTextDisabled : null,
-                      ]}
-                    >
-                      {allDay ? '하루 종일' : timeText}
-                    </AppText>
-                    <Feather name="clock" size={16} color="#8A94A6" />
+                    <View style={styles.pickerTextStack}>
+                      <AppText preset="body" style={styles.pickerFieldText}>
+                        {formatScheduleDateSummary(dateText)}
+                      </AppText>
+                      <AppText
+                        preset="caption"
+                        style={[
+                          styles.pickerFieldSubText,
+                          allDay ? styles.pickerFieldTextDisabled : null,
+                        ]}
+                      >
+                        {allDay ? '하루 종일' : timeText}
+                      </AppText>
+                    </View>
+                    <Feather name="calendar" size={16} color="#8A94A6" />
                   </TouchableOpacity>
                 </View>
 
@@ -553,7 +629,7 @@ export default function ScheduleEditScreen() {
                 카테고리
               </AppText>
               <View style={styles.optionRow}>
-                {SCHEDULE_CATEGORY_OPTIONS.map(option => {
+                {categoryOptions.map(option => {
                   const active = category === option.key;
                   return (
                     <TouchableOpacity
@@ -597,7 +673,7 @@ export default function ScheduleEditScreen() {
                     기타 분류
                   </AppText>
                   <View style={styles.optionRow}>
-                    {SCHEDULE_OTHER_UI_SUBCATEGORY_OPTIONS.map(option => {
+                  {otherSubCategoryOptions.map(option => {
                       const active = otherUiSubCategoryKey === option.key;
                       return (
                         <TouchableOpacity
@@ -654,11 +730,11 @@ export default function ScheduleEditScreen() {
                       ]}
                       onPress={() => setIconKey(option.key)}
                     >
-                      <MaterialCommunityIcons
-                        name={option.icon}
-                        size={18}
-                        color={active ? petTheme.primary : '#556070'}
-                      />
+                    <MaterialCommunityIcons
+                      name={option.icon}
+                      size={16}
+                      color={active ? petTheme.primary : '#556070'}
+                    />
                       <AppText
                         preset="caption"
                         style={[
@@ -780,6 +856,64 @@ export default function ScheduleEditScreen() {
                   );
                 })}
               </View>
+              {reminderKey !== 'none' ? (
+                <>
+                  <AppText preset="caption" style={styles.label}>
+                    알림 반복
+                  </AppText>
+                  <View style={styles.optionRow}>
+                    {SCHEDULE_REMINDER_REPEAT_OPTIONS.map(option => {
+                      const active = reminderRepeatKey === option.key;
+                      return (
+                        <TouchableOpacity
+                          key={option.key}
+                          activeOpacity={0.9}
+                          style={[
+                            styles.optionChip,
+                            active ? styles.optionChipActive : null,
+                            active
+                              ? {
+                                  backgroundColor: petTheme.tint,
+                                  borderColor: petTheme.border,
+                                }
+                              : null,
+                          ]}
+                          onPress={() => setReminderRepeatKey(option.key)}
+                        >
+                          <AppText
+                            preset="caption"
+                            style={[
+                              styles.optionChipText,
+                              active ? styles.optionChipTextActive : null,
+                              active ? { color: petTheme.primary } : null,
+                            ]}
+                          >
+                            {option.label}
+                          </AppText>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                  <AppText preset="caption" style={styles.helperText}>
+                    예약 예정: {reminderSummaryText}
+                  </AppText>
+                </>
+              ) : null}
+              {reminderKey === 'custom' ? (
+                <View style={styles.inlineFieldCard}>
+                  <AppText preset="caption" style={styles.inlineFieldLabel}>
+                    직접 설정(분)
+                  </AppText>
+                  <TextInput
+                    value={customReminderMinutesText}
+                    onChangeText={setCustomReminderMinutesText}
+                    keyboardType="number-pad"
+                    placeholder="예: 1"
+                    placeholderTextColor="#8A94A6"
+                    style={styles.inlineInput}
+                  />
+                </View>
+              ) : null}
               <AppText preset="caption" style={styles.helperText}>
                 {reminderHelperText}
               </AppText>
@@ -831,16 +965,13 @@ export default function ScheduleEditScreen() {
 
       <DatePickerModal
         visible={dateModalVisible}
+        title="일정 날짜와 시간"
         initialDate={dateText}
+        includeTime={!allDay}
+        timeValue={timeText}
         onCancel={() => setDateModalVisible(false)}
         onConfirm={onConfirmDate}
-      />
-
-      <TimePickerModal
-        visible={timeModalVisible}
-        value={draftTimeText}
-        onCancel={() => setTimeModalVisible(false)}
-        onConfirm={onConfirmTime}
+        onConfirmDateTime={onConfirmDateTime}
       />
       <ConfirmDialog
         visible={exitConfirmVisible}

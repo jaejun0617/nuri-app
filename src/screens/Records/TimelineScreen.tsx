@@ -49,8 +49,8 @@ import type { AppTabParamList } from '../../navigation/AppTabsNavigator';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { TimelineStackParamList } from '../../navigation/TimelineStackNavigator';
 import {
-  MAIN_CATEGORY_OPTIONS,
-  OTHER_SUBCATEGORY_OPTIONS,
+  TIMELINE_MAIN_CATEGORY_OPTIONS,
+  TIMELINE_OTHER_SUBCATEGORY_OPTIONS,
   type MemoryMainCategory,
   type MemoryOtherSubCategory,
 } from '../../services/memories/categoryMeta';
@@ -168,10 +168,10 @@ const TIMELINE_PRELOAD_VISIBLE_COUNT = 2;
 const TIMELINE_PRELOAD_DEFERRED_COUNT = 2;
 const TIMELINE_PRELOAD_DEFER_DELAY_MS = 180;
 const MAIN_CATEGORY_KEY_SET = new Set<MainCategory>(
-  MAIN_CATEGORY_OPTIONS.map(item => item.key),
+  TIMELINE_MAIN_CATEGORY_OPTIONS.map(item => item.key),
 );
 const OTHER_SUBCATEGORY_KEY_SET = new Set<OtherSubCategory>(
-  OTHER_SUBCATEGORY_OPTIONS.map(item => item.key),
+  TIMELINE_OTHER_SUBCATEGORY_OPTIONS.map(item => item.key),
 );
 
 const ControlsBar = memo(function ControlsBar({
@@ -235,7 +235,7 @@ const ControlsBar = memo(function ControlsBar({
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoryContent}
         >
-          {MAIN_CATEGORY_OPTIONS.map(item => {
+          {TIMELINE_MAIN_CATEGORY_OPTIONS.map(item => {
             const active =
               item.key === 'other'
                 ? mainCategory === 'other'
@@ -742,14 +742,14 @@ export default function TimelineScreen() {
   );
   const categoryLabel = useMemo(() => {
     if (mainCategory !== 'other') {
-      return MAIN_CATEGORY_OPTIONS.find(x => x.key === mainCategory)?.label ?? '전체';
+      return TIMELINE_MAIN_CATEGORY_OPTIONS.find(x => x.key === mainCategory)?.label ?? '전체';
     }
     if (!otherSubCategory) {
-      return MAIN_CATEGORY_OPTIONS.find(x => x.key === 'other')?.label ?? '생활';
+      return TIMELINE_MAIN_CATEGORY_OPTIONS.find(x => x.key === 'other')?.label ?? '생활';
     }
     return (
-      OTHER_SUBCATEGORY_OPTIONS.find(x => x.key === otherSubCategory)?.label ??
-      (MAIN_CATEGORY_OPTIONS.find(x => x.key === 'other')?.label ?? '생활')
+      TIMELINE_OTHER_SUBCATEGORY_OPTIONS.find(x => x.key === otherSubCategory)?.label ??
+      (TIMELINE_MAIN_CATEGORY_OPTIONS.find(x => x.key === 'other')?.label ?? '생활')
     );
   }, [mainCategory, otherSubCategory]);
 
@@ -1135,7 +1135,7 @@ export default function TimelineScreen() {
               </AppText>
             </TouchableOpacity>
 
-            {OTHER_SUBCATEGORY_OPTIONS.map(option => (
+            {TIMELINE_OTHER_SUBCATEGORY_OPTIONS.map(option => (
               <TouchableOpacity
                 key={option.key}
                 activeOpacity={0.9}

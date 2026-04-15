@@ -27,9 +27,7 @@ export function formatScheduleDateLabel(schedule: PetSchedule): string {
 
   if (schedule.allDay) return base;
 
-  const hour = `${parts.hour}`.padStart(2, '0');
-  const minute = `${parts.minute}`.padStart(2, '0');
-  return `${base} ${hour}:${minute}`;
+  return `${base} ${formatKoreanTime(parts.hour, parts.minute)}`;
 }
 
 export function formatScheduleDetailDate(schedule: PetSchedule): string {
@@ -43,7 +41,72 @@ export function formatScheduleDetailDate(schedule: PetSchedule): string {
 
   if (schedule.allDay) return `${base} · 하루 종일`;
 
-  return `${base} · ${`${parts.hour}`.padStart(2, '0')}:${`${parts.minute}`.padStart(2, '0')}`;
+  return `${base} · ${formatKoreanTime(parts.hour, parts.minute)}`;
+}
+
+function formatScheduleCategory(category: PetSchedule['category']): string {
+  switch (category) {
+    case 'walk':
+      return '산책';
+    case 'meal':
+      return '식사';
+    case 'health':
+      return '건강';
+    case 'grooming':
+      return '미용';
+    case 'diary':
+      return '일기';
+    case 'other':
+    default:
+      return '기타';
+  }
+}
+
+function formatScheduleSubCategory(
+  subCategory: PetSchedule['subCategory'],
+): string | null {
+  switch (subCategory) {
+    case 'hospital':
+      return '병원';
+    case 'medicine':
+      return '투약/복약';
+    case 'checkup':
+      return '검진';
+    case 'vaccine':
+      return '접종';
+    case 'bath':
+      return '목욕';
+    case 'haircut':
+      return '미용';
+    case 'nail':
+      return '발톱 관리';
+    case 'meal-plan':
+      return '식사 관리';
+    case 'walk-routine':
+      return '산책 루틴';
+    case 'journal':
+      return '일기';
+    case 'etc':
+      return '기타';
+    case null:
+    case undefined:
+    default:
+      return null;
+  }
+}
+
+export function formatScheduleCategoryLabel(
+  schedule: Pick<PetSchedule, 'category' | 'subCategory'>,
+): string {
+  const category = formatScheduleCategory(schedule.category);
+  const subCategory = formatScheduleSubCategory(schedule.subCategory);
+  return subCategory ? `${category} · ${subCategory}` : category;
+}
+
+function formatKoreanTime(hour: number, minute: number): string {
+  const period = hour < 12 ? '오전' : '오후';
+  const hour12 = hour % 12 === 0 ? 12 : hour % 12;
+  return `${period} ${hour12}:${`${minute}`.padStart(2, '0')}`;
 }
 
 export function mapScheduleIconName(iconKey: ScheduleIconKey): string {
@@ -53,10 +116,11 @@ export function mapScheduleIconName(iconKey: ScheduleIconKey): string {
       return 'silverware-fork-knife';
     case 'stethoscope':
       return 'stethoscope';
+    case 'syringe':
+      return 'needle';
     case 'notebook':
       return 'notebook-outline';
     case 'medical-bag':
-    case 'syringe':
     case 'pill':
     case 'content-cut':
     case 'shower':

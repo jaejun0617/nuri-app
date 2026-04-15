@@ -10,7 +10,7 @@ const BRAND = '#6D6AF8';
 export const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: BG },
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32 },
+  scrollContent: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 36, gap: 12 },
 
   header: {
     paddingHorizontal: 18,
@@ -41,7 +41,7 @@ export const styles = StyleSheet.create({
   headerActionText: { color: BRAND, fontWeight: '900' },
 
   emptyCard: {
-    borderRadius: 22,
+    borderRadius: 8,
     paddingVertical: 22,
     alignItems: 'center',
     backgroundColor: SURFACE,
@@ -50,30 +50,55 @@ export const styles = StyleSheet.create({
   },
   emptyText: { color: MUTED, fontWeight: '700' },
 
-  card: {
-    borderRadius: 24,
+  hero: {
+    borderRadius: 8,
     paddingHorizontal: 18,
-    paddingVertical: 20,
+    paddingVertical: 18,
     backgroundColor: SURFACE,
     borderWidth: 1,
     borderColor: BORDER,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
   },
   iconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 999,
+    width: 52,
+    height: 52,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
   },
-  title: { color: TEXT, fontWeight: '900', marginBottom: 18 },
-  metaBlock: { marginBottom: 16, gap: 6 },
+  heroTextWrap: {
+    flex: 1,
+    gap: 8,
+  },
+  title: { color: TEXT, fontWeight: '900' },
+  statusBadge: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  statusBadgeText: {
+    fontWeight: '900',
+  },
+  section: {
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: BORDER,
+    paddingVertical: 6,
+    gap: 4,
+  },
+  metaBlock: { paddingVertical: 10, gap: 6 },
   metaLabel: { color: MUTED, fontWeight: '800' },
   metaValue: { color: TEXT, fontWeight: '700', lineHeight: 22 },
+  actions: {
+    gap: 10,
+    paddingTop: 4,
+  },
   primaryBtn: {
-    marginTop: 6,
     height: 50,
-    borderRadius: 16,
+    borderRadius: 8,
     backgroundColor: BRAND,
     flexDirection: 'row',
     alignItems: 'center',
@@ -82,18 +107,18 @@ export const styles = StyleSheet.create({
   },
   primaryBtnText: { color: '#FFFFFF', fontWeight: '900' },
   secondaryBtn: {
-    marginTop: 10,
     height: 48,
-    borderRadius: 16,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#EEF2FF',
+    borderWidth: 1,
+    borderColor: BORDER,
   },
   secondaryBtnText: { color: '#4F46E5', fontWeight: '900' },
   deleteBtn: {
-    marginTop: 10,
     height: 48,
-    borderRadius: 16,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFF1F2',

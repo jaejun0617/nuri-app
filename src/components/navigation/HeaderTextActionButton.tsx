@@ -11,6 +11,7 @@ type Props = {
   backgroundColor: string;
   textColor: string;
   borderColor?: string;
+  borderRadius?: number;
 };
 
 export default function HeaderTextActionButton({
@@ -21,6 +22,7 @@ export default function HeaderTextActionButton({
   backgroundColor,
   textColor,
   borderColor,
+  borderRadius,
 }: Props) {
   return (
     <TouchableOpacity
@@ -34,6 +36,7 @@ export default function HeaderTextActionButton({
         {
           backgroundColor,
           borderColor: borderColor ?? 'transparent',
+          borderRadius: borderRadius ?? 999,
         },
         disabled ? styles.disabled : null,
       ]}
@@ -54,7 +57,6 @@ const styles = StyleSheet.create({
     minWidth: 58,
     minHeight: 44,
     paddingHorizontal: 12,
-    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,

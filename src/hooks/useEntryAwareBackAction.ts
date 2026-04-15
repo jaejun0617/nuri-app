@@ -8,6 +8,7 @@ type Params = {
   entrySource?: ScreenEntrySource;
   onHome: () => void;
   onMore: () => void;
+  onHealthReport?: () => void;
   onFallback: () => void;
 };
 
@@ -15,9 +16,15 @@ export function useEntryAwareBackAction({
   entrySource,
   onHome,
   onMore,
+  onHealthReport,
   onFallback,
 }: Params) {
   const onBack = useCallback(() => {
+    if (entrySource === 'health_report') {
+      onHealthReport?.();
+      return;
+    }
+
     if (entrySource === 'more') {
       onMore();
       return;
@@ -29,7 +36,7 @@ export function useEntryAwareBackAction({
     }
 
     onFallback();
-  }, [entrySource, onFallback, onHome, onMore]);
+  }, [entrySource, onFallback, onHealthReport, onHome, onMore]);
 
   useFocusEffect(
     useCallback(() => {

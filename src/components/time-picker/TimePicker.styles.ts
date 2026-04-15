@@ -17,11 +17,11 @@ export const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   modalCard: {
-    borderRadius: 30,
-    paddingHorizontal: 15,
-    paddingTop: 14,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
     paddingBottom: 14,
-    gap: 9,
+    gap: 12,
     borderWidth: 1,
     shadowColor: '#071329',
     shadowOpacity: 0.2,
@@ -34,7 +34,7 @@ export const styles = StyleSheet.create({
   },
   glassTint: {
     ...StyleSheet.absoluteFillObject,
-    borderRadius: 30,
+    borderRadius: 16,
   },
   glassGlow: {
     position: 'absolute',
@@ -42,8 +42,19 @@ export const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 88,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  headerBlock: {
+    gap: 5,
+    paddingHorizontal: 2,
+    paddingBottom: 2,
+  },
+  helperText: {
+    lineHeight: 18,
+  },
+  previewText: {
+    lineHeight: 26,
   },
   pickerRow: {
     flexDirection: 'row',
@@ -62,7 +73,7 @@ export const styles = StyleSheet.create({
   wheelFrame: {
     position: 'relative',
     overflow: 'hidden',
-    borderRadius: 22,
+    borderRadius: 12,
     borderWidth: 1,
   },
   wheelList: {
@@ -78,14 +89,14 @@ export const styles = StyleSheet.create({
     right: 8,
     top: (TIME_WHEEL_HEIGHT - TIME_WHEEL_ITEM_HEIGHT) / 2,
     height: TIME_WHEEL_ITEM_HEIGHT,
-    borderRadius: 20,
+    borderRadius: 8,
     borderWidth: 1,
   },
   wheelRow: {
     height: TIME_WHEEL_ITEM_HEIGHT,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 20,
+    borderRadius: 8,
     marginHorizontal: 8,
   },
   wheelText: {
@@ -103,7 +114,7 @@ export const styles = StyleSheet.create({
   secondaryButton: {
     flex: 1,
     minHeight: 46,
-    borderRadius: 16,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -111,7 +122,7 @@ export const styles = StyleSheet.create({
   primaryButton: {
     flex: 1,
     minHeight: 46,
-    borderRadius: 16,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },

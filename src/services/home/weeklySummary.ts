@@ -6,6 +6,12 @@
 import type { MemoryRecord } from '../supabase/memories';
 import type { PetSchedule } from '../supabase/schedules';
 import {
+  normalizeCategoryKey,
+  normalizeOtherSubKey,
+  readOtherSubCategoryRaw,
+  readRecordCategoryRaw,
+} from '../memories/categoryMeta';
+import {
   addDaysToYmd,
   diffCalendarDaysBetweenYmd,
   getDateYmdInKst,
@@ -17,7 +23,7 @@ import { getRecordDisplayYmd } from '../records/date';
 export type WeeklySummary = {
   walkCount: number;
   mealCount: number;
-  healthCount: number;
+  lifeCount: number;
   recordDays: number;
   totalRecords: number;
   upcomingSchedules: number;
@@ -51,7 +57,7 @@ export function buildWeeklySummary(
     return {
       walkCount: 0,
       mealCount: 0,
-      healthCount: 0,
+      lifeCount: 0,
       recordDays: 0,
       totalRecords: 0,
       upcomingSchedules: 0,
@@ -61,7 +67,7 @@ export function buildWeeklySummary(
 
   let walkCount = 0;
   let mealCount = 0;
-  let healthCount = 0;
+  let lifeCount = 0;
   let totalRecords = 0;
   let upcomingSchedules = 0;
 
@@ -74,7 +80,11 @@ export function buildWeeklySummary(
 
     if (hasTag(record, 'walk')) walkCount += 1;
     if (hasTag(record, 'meal')) mealCount += 1;
-    if (hasTag(record, 'health')) healthCount += 1;
+    const mainCategory = normalizeCategoryKey(readRecordCategoryRaw(record));
+    const otherSubCategory = normalizeOtherSubKey(readOtherSubCategoryRaw(record));
+    if (mainCategory === 'other' && otherSubCategory !== 'hospital') {
+      lifeCount += 1;
+    }
   }
 
   for (const schedule of schedules) {
@@ -86,7 +96,7 @@ export function buildWeeklySummary(
   return {
     walkCount,
     mealCount,
-    healthCount,
+    lifeCount,
     recordDays: seenDays.size,
     totalRecords,
     upcomingSchedules,

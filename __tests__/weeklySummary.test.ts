@@ -30,6 +30,17 @@ describe('buildWeeklySummary', () => {
           createdAt: '2026-03-02T23:30:00.000Z',
           imagePaths: [],
         },
+        {
+          id: 'm4',
+          petId: 'pet-1',
+          title: '미용',
+          category: 'other',
+          subCategory: 'grooming',
+          tags: ['grooming'],
+          occurredAt: '2026-03-04',
+          createdAt: '2026-03-04T10:00:00.000Z',
+          imagePaths: [],
+        },
       ],
       [
         {
@@ -64,9 +75,9 @@ describe('buildWeeklySummary', () => {
 
     expect(summary.walkCount).toBe(1);
     expect(summary.mealCount).toBe(1);
-    expect(summary.healthCount).toBe(1);
-    expect(summary.recordDays).toBe(2);
-    expect(summary.totalRecords).toBe(3);
+    expect(summary.lifeCount).toBe(1);
+    expect(summary.recordDays).toBe(3);
+    expect(summary.totalRecords).toBe(4);
     expect(summary.upcomingSchedules).toBe(1);
   });
 });

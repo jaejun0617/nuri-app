@@ -6,6 +6,7 @@ import {
   type MemoryMainCategory,
   type MemoryOtherSubCategory,
 } from '../memories/categoryMeta';
+import { isHealthMemoryRecord } from '../health-report/viewModel';
 import { humanizeMonthKey } from '../../utils/date';
 import { getRecordDisplayYmd, getRecordMonthKey } from '../records/date';
 import type { MemoryRecord } from '../supabase/memories';
@@ -185,6 +186,7 @@ export function buildTimelineView(input:
   for (const id of ids) {
     const record = recordsById[id];
     if (!record) continue;
+    if (isHealthMemoryRecord(record)) continue;
 
     const meta = getTimelineRecordMeta(record);
     if (meta.monthKey && !seenMonthKeys.has(meta.monthKey)) {
@@ -213,7 +215,8 @@ export function buildTimelineView(input:
 
   const baseItems = ids
     .map(id => recordsById[id])
-    .filter((item): item is MemoryRecord => Boolean(item));
+    .filter((item): item is MemoryRecord => Boolean(item))
+    .filter(item => !isHealthMemoryRecord(item));
   const filteredItems = filteredIds
     .map(id => recordsById[id])
     .filter((item): item is MemoryRecord => Boolean(item));
