@@ -433,10 +433,10 @@ export const styles = StyleSheet.create({
   // Section Lead
   // ---------------------------------------------------------
   sectionLead: {
-    gap: 6,
-    marginTop: 16,
-    paddingTop: 20,
-    paddingHorizontal: 14,
+    height: 0,
+    marginTop: 0,
+    paddingTop: 0,
+    paddingHorizontal: 0,
   },
   sectionLeadTitle: {
     fontSize: 18,
@@ -470,8 +470,8 @@ export const styles = StyleSheet.create({
     gap: 4,
   },
   quickSectionTitle: {
-    fontSize: 18,
-    lineHeight: 24,
+    fontSize: 16,
+    lineHeight: 22,
     fontWeight: '600',
     color: BRAND_DEEP,
   },
@@ -510,13 +510,18 @@ export const styles = StyleSheet.create({
 
   photoOverlayTint: {
     ...ABS_FILL,
-    backgroundColor: 'rgba(0,0,0,0.18)',
+    backgroundColor: 'rgba(0,0,0,0.14)',
   },
   photoOverlay: {
-    flex: 1,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 14,
+    paddingTop: 24,
+    paddingBottom: 12,
     justifyContent: 'flex-end',
-    padding: 14,
-    backgroundColor: 'rgba(0,0,0,0.26)',
+    backgroundColor: 'rgba(0,0,0,0.14)',
   },
   photoOverlayTitle: {
     color: '#FFFFFF',
@@ -531,142 +536,211 @@ export const styles = StyleSheet.create({
     fontWeight: '400',
     marginTop: 6,
   },
-
-  // ---------------------------------------------------------
-  // ✅ Today Records (Slider) - FINAL (PhotoCard 톤과 동일하게 "전체 오버레이 + 하단 강화")
-  // ---------------------------------------------------------
-  todayRecordsWrap: {
-    marginTop: -6,
-  },
-  todayRecordsContent: {
-    paddingLeft: 0,
-  },
-
-  todayRecordCard: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(0,0,0,0.04)',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
-
-    shadowColor: '#000000',
-    shadowOpacity: 0.1,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 14 },
-    elevation: 3,
-  },
-
-  todayRecordMedia: {
-    flex: 1,
-    backgroundColor: SURFACE_SOFT,
-  },
-  todayRecordImg: {
-    ...ABS_FILL,
-    width: '100%',
-    height: '100%',
-  },
-  todayRecordImgPlaceholder: {
-    ...ABS_FILL,
-    backgroundColor: 'rgba(0,0,0,0.10)',
-  },
-
-  // ✅ 1) 전체 오버레이(오늘의 사진과 동일한 "전체 틴트")
-  todayRecordOverlayTint: {
-    ...ABS_FILL,
-    backgroundColor: 'rgba(0,0,0,0.18)',
-  },
-
-  // ✅ 2) 하단 강화(텍스트 가독성)
-  // - RN 기본만으로 그라데이션 느낌: 레이어 2개로 처리
-  todayRecordBottomTint: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: '100%',
-    // backgroundColor: 'rgba(0,0,0,0.26)',
-  },
-  todayRecordBottomTintDeep: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: '100%',
-    backgroundColor: 'rgba(0,0,0,0.26)',
-  },
-
-  // ✅ 3) 텍스트 위치/간격
-  todayRecordOverlay: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: 14,
-    paddingTop: 10,
-    paddingBottom: 12,
-    gap: 6,
-  },
-
-  todayRecordTitle: {
-    fontSize: 16,
-    lineHeight: 22,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    textShadowColor: 'rgba(0,0,0,0.35)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
-  todayRecordContent: {
-    fontSize: 13,
-    fontWeight: '400',
-    color: 'rgba(255,255,255,0.92)',
-    lineHeight: 18,
-    textShadowColor: 'rgba(0,0,0,0.25)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
-  },
-
-  todayRecordMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  todayRecordDate: {
+  photoOverlayDate: {
+    color: 'rgba(255,255,255,0.96)',
     fontSize: 12,
     lineHeight: 18,
     fontWeight: '500',
-    color: 'rgba(255,255,255,0.92)',
-  },
-  // ---------------------------------------------------------
-  // ✅ Indicator Dots (Brand)
-  // ---------------------------------------------------------
-  indicatorRow: {
-    marginTop: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  indicatorDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 999,
-    backgroundColor: BRAND,
   },
 
   // ---------------------------------------------------------
-  // ✅ More Hint
+  // Recent Records Preview
   // ---------------------------------------------------------
-  moreHintRow: {
-    marginTop: 8,
+  recentPreviewWrap: {
+    marginTop: -4,
+    paddingLeft: 4,
+    position: 'relative',
+  },
+  recentPreviewRail: {
+    position: 'absolute',
+    left: 8,
+    top: 10,
+    bottom: 18,
+    width: 1,
+    borderRadius: 999,
+  },
+  recentPreviewList: {
+    gap: 20,
+  },
+  recentGroupBlock: {
+    gap: 12,
+  },
+  recentGroupHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  recentGroupDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 999,
+    marginTop: 6,
+    marginLeft: -1,
+  },
+  recentGroupHeaderText: {
+    gap: 2,
+  },
+  recentGroupLabel: {
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: '700',
+    color: TEXT,
+    letterSpacing: -0.2,
+  },
+  recentGroupDateLabel: {
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '600',
+    color: MUTED2,
+  },
+  recentGroupItems: {
+    marginLeft: 22,
+    gap: 10,
+  },
+  recentImageCard: {
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: SURFACE_SOFT,
+    borderWidth: 0,
+    shadowColor: '#0B1220',
+    shadowOpacity: 0.016,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 1,
+  },
+  recentImageMedia: {
+    height: 186,
+    position: 'relative',
+    justifyContent: 'space-between',
+    backgroundColor: SURFACE_SOFT,
+    overflow: 'hidden',
+  },
+  recentImageMediaImage: {
+    ...ABS_FILL,
+    width: '100%',
+    height: '100%',
+    transform: [{ scale: 1.04 }],
+  },
+  recentImageFallback: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 10,
   },
-  moreHintText: {
-    fontSize: 13,
+  recentImageGradient: {
+    ...ABS_FILL,
+  },
+  recentImageTopRow: {
+    position: 'absolute',
+    top: 14,
+    left: 14,
+    right: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  recentImageDayPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#F69A41',
+  },
+  recentImageDayPillText: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  recentImageTypePill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  recentImageTypePillText: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  recentImageTextWrap: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 16,
+    gap: 6,
+  },
+  recentImageSummary: {
+    fontSize: 23,
+    lineHeight: 29,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+    textShadowColor: 'rgba(0,0,0,0.22)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
+  },
+  recentImageDate: {
+    fontSize: 12,
     lineHeight: 18,
-    fontWeight: '400',
-    color: 'rgba(85,96,112,0.82)',
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.92)',
+  },
+  recentTextCard: {
+    minHeight: 68,
+    borderRadius: 10,
+    backgroundColor: SURFACE,
+    borderWidth: 0,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    shadowColor: '#0B1220',
+    shadowOpacity: 0.006,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 0,
+  },
+  recentTextRailDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 999,
+    marginTop: 5,
+    marginLeft: -38,
+  },
+  recentTextBody: {
+    flex: 1,
+    gap: 3,
+  },
+  recentTextTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  recentTextBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  recentTextBadgeText: {
+    fontSize: 10,
+    lineHeight: 13,
+    fontWeight: '800',
+  },
+  recentTextSummary: {
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: '600',
+    color: TEXT,
+    letterSpacing: -0.1,
+  },
+  recentTextDate: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '600',
+    color: MUTED2,
   },
 
   // ---------------------------------------------------------
@@ -739,48 +813,49 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    columnGap: 10,
+    columnGap: 8,
   },
   quickGridFrame: {
-    borderRadius: 16,
+    borderRadius: 0,
     paddingHorizontal: 0,
-    paddingVertical: 6,
+    paddingVertical: 2,
     borderWidth: 0,
     backgroundColor: 'transparent',
   },
   quickCard: {
     width: '23%',
-    minHeight: 126,
+    minHeight: 84,
     borderRadius: 0,
     paddingHorizontal: 4,
-    paddingVertical: 6,
+    paddingVertical: 4,
     alignItems: 'center',
     justifyContent: 'flex-start',
+    gap: 8,
     backgroundColor: 'transparent',
     borderWidth: 0,
   },
   quickIconWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: 999,
+    width: 40,
+    height: 40,
+    borderRadius: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,127,58,0.12)',
-    marginBottom: 12,
-    shadowColor: '#FF8A4C',
-    shadowOpacity: 0.09,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 2,
+    backgroundColor: 'transparent',
+    marginBottom: 2,
+    shadowColor: 'transparent',
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 0,
   },
   quickIcon: {
     marginTop: 0,
   },
   quickCardTitle: {
-    fontSize: 15,
-    lineHeight: 22,
-    fontWeight: '600',
-    color: TEXT,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '500',
+    color: MUTED,
     letterSpacing: 0,
     textAlign: 'center',
   },

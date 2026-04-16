@@ -32,6 +32,15 @@ export type MemoryCategoryMeta = {
   otherSubCategory?: MemoryOtherSubCategory;
 };
 
+export type MemoryCategoryChipTone = {
+  backgroundColor: string;
+  borderColor: string;
+  textColor: string;
+  dotColor: string;
+  lineColor: string;
+  placeholderColor: string;
+};
+
 export const MAIN_CATEGORY_OPTIONS: Array<{
   key: MemoryMainCategory;
   label: string;
@@ -282,4 +291,95 @@ export function getRecordCategoryMeta(
     mainCategory: 'other',
     otherSubCategory: 'etc',
   };
+}
+
+export function getMemoryCategoryChipLabel(record: MemoryRecord): string {
+  const meta = getRecordCategoryMeta(record);
+
+  switch (meta.mainCategory) {
+    case 'walk':
+      return '산책';
+    case 'meal':
+      return '식사';
+    case 'health':
+      return '건강';
+    case 'diary':
+      return '일상';
+    case 'other':
+    default:
+      switch (meta.otherSubCategory) {
+        case 'grooming':
+          return '미용';
+        case 'hospital':
+          return '병원/약';
+        case 'indoor':
+          return '실내놀이';
+        case 'training':
+          return '훈련';
+        case 'outing':
+          return '외출';
+        case 'shopping':
+          return '쇼핑';
+        case 'bathing':
+          return '위생';
+        case 'etc':
+        default:
+          return '생활';
+      }
+  }
+}
+
+export function getMemoryCategoryChipTone(
+  record: MemoryRecord,
+): MemoryCategoryChipTone {
+  const meta = getRecordCategoryMeta(record);
+
+  switch (meta.mainCategory) {
+    case 'walk':
+      return {
+        backgroundColor: '#F0EDFF',
+        borderColor: '#D9D2FF',
+        textColor: '#5F52D7',
+        dotColor: '#7B6CF6',
+        lineColor: '#E7E2FF',
+        placeholderColor: '#F6F3FF',
+      };
+    case 'meal':
+      return {
+        backgroundColor: '#FFF2E8',
+        borderColor: '#FFD6B8',
+        textColor: '#C66A1D',
+        dotColor: '#F08A3C',
+        lineColor: '#FCE4D2',
+        placeholderColor: '#FFF7F1',
+      };
+    case 'health':
+      return {
+        backgroundColor: '#E8F8EE',
+        borderColor: '#B9E9CA',
+        textColor: '#1F8A4D',
+        dotColor: '#36B36A',
+        lineColor: '#D8F2E2',
+        placeholderColor: '#F3FBF6',
+      };
+    case 'diary':
+      return {
+        backgroundColor: '#E9F6FF',
+        borderColor: '#B9E0FF',
+        textColor: '#2176C7',
+        dotColor: '#4A93E8',
+        lineColor: '#D8EEFF',
+        placeholderColor: '#F4FAFF',
+      };
+    case 'other':
+    default:
+      return {
+        backgroundColor: '#F2F3F5',
+        borderColor: '#D8DCE1',
+        textColor: '#5B6470',
+        dotColor: '#9AA3AF',
+        lineColor: '#E7EAEE',
+        placeholderColor: '#F7F8FA',
+      };
+  }
 }

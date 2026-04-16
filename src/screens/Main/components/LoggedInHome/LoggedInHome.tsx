@@ -1,9 +1,9 @@
 // 파일: src/screens/Main/components/LoggedInHome/LoggedInHome.tsx
 // 목적:
 // - 로그인 홈 (LoggedInHome)
-// - ✅ "오늘날의 기록(전체보기)" : 가로 슬라이드(정사각 5:5, 옆 카드 살짝 보임)
-//   - ✅ UX 고도화: snap 정밀화 + scale/active 강조 + parallax + momentum index 추적 + dot indicator
-//   - ✅ 최대 14개까지만 슬라이더 노출(그 이상은 전체보기 유도)
+// - 홈 허브에서 프로필/날씨/최근 기록/건강관리/일정/가이드를 한 번에 소비한다.
+// - 최근 기록은 홈 전용 세로 프리뷰 섹션으로, 이미지 기록을 우선 포함하되
+//   화면 높이가 과도하게 길어지지 않도록 최대 7개까지만 압축 노출한다.
 
 import React, {
   useEffect,
@@ -13,18 +13,13 @@ import React, {
   useState,
 } from 'react';
 import {
-  AppState,
-  Dimensions,
-  type AppStateStatus,
-  FlatList,
   Image,
-  type ListRenderItem,
   Pressable,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
-  ActivityIndicator, // ✅ 로딩 스피너 추가
+  ActivityIndicator,
 } from 'react-native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { CompositeNavigationProp } from '@react-navigation/native';
@@ -36,19 +31,14 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import LinearGradient from 'react-native-linear-gradient';
 import Animated, {
   Easing,
-  Extrapolate,
   interpolate,
   runOnJS,
-  useAnimatedScrollHandler,
   useAnimatedStyle,
-  useDerivedValue,
   useSharedValue,
   withTiming,
-  type SharedValue,
 } from 'react-native-reanimated';
 
 import Screen from '../../../../components/layout/Screen';
-import { preloadOptimizedImages } from '../../../../components/images/OptimizedImage';
 import OptimizedImage from '../../../../components/images/OptimizedImage';
 import GuideRecommendationCard from '../../../../components/guides/GuideRecommendationCard';
 import { useWeatherGuide } from '../../../../hooks/useWeatherGuide';
@@ -66,6 +56,7 @@ import {
   type MemoryOtherSubCategory,
 } from '../../../../services/memories/categoryMeta';
 import {
+  getTimelinePrimaryMemoryImageSource,
   getPrimaryMemoryImageRef,
   hasMemoryImage,
 } from '../../../../services/records/imageSources';
@@ -87,7 +78,6 @@ import { syncHomeWidgetSnapshot } from '../../../../services/home/widgetBridge';
 import { buildWeeklySummary } from '../../../../services/home/weeklySummary';
 import {
   formatRecordDisplayDate,
-  formatRecordRelativeTime,
   getRecordDisplayYmd,
 } from '../../../../services/records/date';
 import {
@@ -118,8 +108,11 @@ import { isLocalGuideSeedGuide } from '../../../../services/guides/seed';
 import { getGuideRotationWindowKey } from '../../../../services/guides/rotation';
 import { recordPetCareGuideEvents } from '../../../../services/guides/service';
 import {
+  diffCalendarDaysBetweenYmd,
   diffDaysFromKst,
   formatYmdToDots,
+  formatYmdWithWeekday,
+  getKstYmd,
   getMonthKeyFromYmd,
   getMonthKeyInKst,
 } from '../../../../utils/date';
@@ -155,16 +148,18 @@ type WeeklyScheduleItem = {
   otherSubCategory?: HomeOtherSubCategory;
 };
 
-type GlobalWithIdleCallback = typeof globalThis & {
-  requestIdleCallback?: (
-    callback: () => void,
-    options?: { timeout?: number },
-  ) => number;
-  cancelIdleCallback?: (handle: number) => void;
-};
-
-type DeferredTaskHandle = {
-  cancel: () => void;
+type HomeRecentPreviewMode = 'image' | 'text';
+type HomeRecentPreviewItem = {
+  record: MemoryRecord;
+  mode: HomeRecentPreviewMode;
+  groupKey: string;
+  groupLabel: string;
+  groupDateText: string;
+  typeLabel: string;
+  summary: string;
+  displayDate: string;
+  imageSource: ReturnType<typeof getTimelinePrimaryMemoryImageSource>;
+  hasImage: boolean;
 };
 
 /* ---------------------------------------------------------
@@ -178,7 +173,11 @@ function toSnippet(text: string | null | undefined, max = 46) {
 }
 
 function getRecordYmdDots(item: MemoryRecord): string {
-  return formatRecordDisplayDate(item);
+  return (
+    formatYmdWithWeekday(getRecordDisplayYmd(item), {
+      separator: '.',
+    }) ?? formatRecordDisplayDate(item)
+  );
 }
 
 function formatGender(
@@ -203,8 +202,164 @@ function clampList(list: string[] | null | undefined, max = 2) {
     .slice(0, max);
 }
 
-function formatRelativeRecordTime(item: MemoryRecord): string {
-  return formatRecordRelativeTime(item);
+function normalizeInlineText(text: string | null | undefined): string {
+  return `${text ?? ''}`.replace(/\s+/g, ' ').trim();
+}
+
+function getHomeRecentTypeLabel(record: MemoryRecord): string {
+  const meta = getRecordCategoryMeta(record);
+
+  switch (meta.mainCategory) {
+    case 'walk':
+      return '산책';
+    case 'meal':
+      return '식사';
+    case 'health':
+      return '건강';
+    case 'diary':
+      return '일기';
+    case 'other':
+    default:
+      switch (meta.otherSubCategory) {
+        case 'grooming':
+          return '미용';
+        case 'hospital':
+          return '병원/약';
+        case 'indoor':
+          return '실내 놀이';
+        case 'training':
+          return '훈련';
+        case 'outing':
+          return '외출';
+        case 'shopping':
+          return '쇼핑';
+        case 'bathing':
+          return '목욕';
+        case 'etc':
+        default:
+          return '생활';
+      }
+  }
+}
+
+function buildHomeRecentSummary(record: MemoryRecord): string {
+  const title = normalizeInlineText(record.title);
+  const content = normalizeInlineText(record.content);
+  const raw = title || content;
+
+  if (!raw) return '기록을 남겼어요';
+  return toSnippet(raw, 34);
+}
+
+function getHomeRecentBadgeTone(record: MemoryRecord) {
+  const meta = getRecordCategoryMeta(record);
+
+  switch (meta.mainCategory) {
+    case 'walk':
+      return {
+        badgeBackground: '#E6E3FF',
+        badgeText: '#5B51D8',
+        dot: '#7A6EF6',
+      };
+    case 'meal':
+      return {
+        badgeBackground: '#FFE7D6',
+        badgeText: '#C76118',
+        dot: '#F08A3C',
+      };
+    case 'health':
+      return {
+        badgeBackground: '#DCFCE8',
+        badgeText: '#1E8A52',
+        dot: '#2DBE6C',
+      };
+    case 'diary':
+      return {
+        badgeBackground: '#DBEAFE',
+        badgeText: '#2563EB',
+        dot: '#4D8CFF',
+      };
+    case 'other':
+    default:
+      return {
+        badgeBackground: '#ECE8E1',
+        badgeText: '#7B6351',
+        dot: '#B08968',
+      };
+  }
+}
+
+function formatHomeRecentGroupLabel(ymd: string | null): string {
+  if (!ymd) return '최근';
+
+  const diffDays = diffCalendarDaysBetweenYmd(ymd, getKstYmd());
+  if (diffDays === 0) return '오늘';
+  if (diffDays === 1) return '어제';
+
+  const [year, month, day] = ymd.split('-').map(Number);
+  if (!year || !month || !day) return '최근';
+  return `${month}월 ${day}일`;
+}
+
+function buildHomeRecentPreviewItems(
+  records: MemoryRecord[],
+): HomeRecentPreviewItem[] {
+  const selectedIds = new Set<string>();
+  const imageRecords = records.filter(record => hasMemoryImage(record));
+
+  for (const record of imageRecords) {
+    if (selectedIds.size >= HOME_RECENT_RECORDS_MAX) break;
+    selectedIds.add(record.id);
+  }
+  for (const record of records) {
+    if (selectedIds.size >= HOME_RECENT_RECORDS_MAX) break;
+    selectedIds.add(record.id);
+  }
+
+  const selectedRecords = records.filter(record => selectedIds.has(record.id));
+
+  return selectedRecords.map(record => {
+    const displayYmd = getRecordDisplayYmd(record);
+    const hasImage = hasMemoryImage(record);
+    return {
+      record,
+      mode: hasImage ? 'image' : 'text',
+      groupKey: displayYmd ?? record.id,
+      groupLabel: formatHomeRecentGroupLabel(displayYmd),
+      groupDateText: formatRecordDisplayDate(record),
+      typeLabel: getHomeRecentTypeLabel(record),
+      summary: buildHomeRecentSummary(record),
+      displayDate: getRecordYmdDots(record),
+      imageSource: getTimelinePrimaryMemoryImageSource(record),
+      hasImage,
+    };
+  });
+}
+
+function groupHomeRecentPreviewItems(items: HomeRecentPreviewItem[]) {
+  const groups: Array<{
+    key: string;
+    label: string;
+    dateText: string;
+    items: HomeRecentPreviewItem[];
+  }> = [];
+
+  for (const item of items) {
+    const prev = groups[groups.length - 1];
+    if (prev && prev.key === item.groupKey) {
+      prev.items.push(item);
+      continue;
+    }
+
+    groups.push({
+      key: item.groupKey,
+      label: item.groupLabel,
+      dateText: item.groupDateText,
+      items: [item],
+    });
+  }
+
+  return groups;
 }
 
 function buildScheduleCard(schedule: PetSchedule): WeeklyScheduleItem {
@@ -226,80 +381,12 @@ function buildScheduleCard(schedule: PetSchedule): WeeklyScheduleItem {
   };
 }
 
-function scheduleIdleTask(task: () => void, timeout = 180): DeferredTaskHandle {
-  const globalScope = globalThis as GlobalWithIdleCallback;
-
-  if (typeof globalScope.requestIdleCallback === 'function') {
-    const handle = globalScope.requestIdleCallback(
-      () => {
-        task();
-      },
-      { timeout },
-    );
-
-    return {
-      cancel: () => {
-        if (typeof globalScope.cancelIdleCallback === 'function') {
-          globalScope.cancelIdleCallback(handle);
-        }
-      },
-    };
-  }
-
-  const timer = setTimeout(task, 48);
-  return {
-    cancel: () => clearTimeout(timer),
-  };
-}
-
-function scheduleDeferredImagePreload(
-  targets: string[],
-  options?: {
-    batchSize?: number;
-    onUrls: (urls: string[]) => void;
-  },
-): DeferredTaskHandle {
-  const batchSize = Math.max(1, options?.batchSize ?? 2);
-  let cancelled = false;
-  let currentTask: DeferredTaskHandle | null = null;
-  let currentIndex = 0;
-
-  const runBatch = () => {
-    if (cancelled || currentIndex >= targets.length) return;
-
-    const batch = targets.slice(currentIndex, currentIndex + batchSize);
-    currentIndex += batch.length;
-
-    getMemoryImageSignedUrlsCached(batch)
-      .then(urls => {
-        if (cancelled) return;
-        options?.onUrls(urls.filter((url): url is string => Boolean(url)));
-        if (currentIndex >= targets.length || cancelled) return;
-        currentTask = scheduleIdleTask(runBatch);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        if (currentIndex >= targets.length) return;
-        currentTask = scheduleIdleTask(runBatch);
-      });
-  };
-
-  currentTask = scheduleIdleTask(runBatch);
-
-  return {
-    cancel: () => {
-      cancelled = true;
-      currentTask?.cancel();
-    },
-  };
-}
-
 const EMPTY_RECORD_ITEMS: MemoryRecord[] = [];
 Object.freeze(EMPTY_RECORD_ITEMS);
 const EMPTY_SCHEDULE_ITEMS: PetSchedule[] = [];
 Object.freeze(EMPTY_SCHEDULE_ITEMS);
 
-const TODAY_RECORDS_MAX = 14;
+const HOME_RECENT_RECORDS_MAX = 7;
 
 const HOME_SHORTCUTS: Array<{
   key: string;
@@ -347,12 +434,6 @@ const TODAY_HOME_TIP = {
     '산책 후 숨소리, 잠든 뒤 호흡, 식사 직후의 반응처럼 평소의 기준을 남겨두면 컨디션 변화를 더 빨리 알아차릴 수 있어요.',
 };
 
-const AnimatedFlatList = Animated.createAnimatedComponent(
-  FlatList<MemoryRecord>,
-);
-const AnimatedOptimizedImage = Animated.createAnimatedComponent(OptimizedImage);
-const TODAY_RECORDS_IMMEDIATE_PREFETCH_COUNT = 3;
-const TODAY_RECORDS_DEFERRED_PREFETCH_COUNT = 4;
 const HOME_TOP_BUTTON_SHOW_OFFSET = 96;
 const HOME_TOP_BUTTON_BOTTOM_OFFSET = 102;
 const HOME_TOP_BUTTON_MIN_BOTTOM = 116;
@@ -360,113 +441,128 @@ const HOME_TOP_BUTTON_MIN_BOTTOM = 116;
 /* ---------------------------------------------------------
  * 3) sub components (hooks-safe)
  * -------------------------------------------------------- */
-const TodayRecordCard = React.memo(function TodayRecordCard({
+const HomeRecentImageCard = React.memo(function HomeRecentImageCard({
   item,
-  index,
-  cardW,
-  snap,
-  scrollX,
+  prefetchedImageUrl,
   onPress,
-  eagerImage,
 }: {
-  item: MemoryRecord;
-  index: number;
-  cardW: number;
-  snap: number;
-  scrollX: SharedValue<number>;
+  item: HomeRecentPreviewItem;
+  prefetchedImageUrl: string | null;
   onPress: (memoryId: string) => void;
-  eagerImage: boolean;
 }) {
-  const ymd = useMemo(() => getRecordYmdDots(item), [item]);
-  const title = useMemo(
-    () => (item.title?.trim() ? item.title : '제목 없음'),
-    [item.title],
-  );
-  const content = useMemo(() => toSnippet(item.content, 44), [item.content]);
-
-  const imageRef = getPrimaryMemoryImageRef(item);
-  const { signedUrl, loading: isLoading } = useSignedMemoryImage(imageRef, {
-    defer: !eagerImage,
-    delayMs: eagerImage ? 0 : 80,
-    trackLoading: eagerImage,
+  const meta = useMemo(() => getRecordCategoryMeta(item.record), [item.record]);
+  const { signedUrl, loading } = useSignedMemoryImage(item.imageSource.value, {
+    defer: false,
+    delayMs: 0,
+    trackLoading: true,
+    variant: item.imageSource.variant,
   });
-
-  const cardAnimStyle = useAnimatedStyle(() => {
-    const x = scrollX.value;
-    const centerX = index * snap;
-    const dist = Math.abs(x - centerX);
-
-    const s = interpolate(dist, [0, snap], [1.0, 0.92], Extrapolate.CLAMP);
-    const o = interpolate(dist, [0, snap], [1.0, 0.86], Extrapolate.CLAMP);
-
-    return { transform: [{ scale: s }], opacity: o };
-  }, [index, snap]);
-
-  const imageAnimStyle = useAnimatedStyle(() => {
-    const x = scrollX.value;
-    const centerX = index * snap;
-
-    const PARA = 18;
-    const tx = interpolate(
-      x - centerX,
-      [-snap, 0, snap],
-      [PARA, 0, -PARA],
-      Extrapolate.CLAMP,
-    );
-
-    return { transform: [{ translateX: tx }] };
-  }, [index, snap]);
+  const displayImageUrl = prefetchedImageUrl ?? signedUrl;
 
   return (
-    <Animated.View style={cardAnimStyle}>
-      <TouchableOpacity
-        activeOpacity={0.92}
-        style={[styles.todayRecordCard, { width: cardW, height: cardW }]}
-        onPress={() => onPress(item.id)}
-      >
-        <View style={styles.todayRecordMedia}>
-          {/* ✅ 로딩 처리 추가 완료 */}
-          {!hasMemoryImage(item) ? (
-            <View style={styles.todayRecordImgPlaceholder} />
-          ) : isLoading ? (
-            <View
-              style={[
-                styles.todayRecordImgPlaceholder,
-                { justifyContent: 'center', alignItems: 'center' },
-              ]}
-            >
-              <ActivityIndicator size="small" color="#fff" />
-            </View>
-          ) : signedUrl ? (
-            <AnimatedOptimizedImage
-              uri={signedUrl}
-              style={[styles.todayRecordImg, imageAnimStyle]}
-              resizeMode="cover"
-              priority={eagerImage ? 'high' : 'normal'}
-            />
-          ) : (
-            <View style={styles.todayRecordImgPlaceholder} />
-          )}
+    <TouchableOpacity
+      activeOpacity={0.94}
+      style={styles.recentImageCard}
+      onPress={() => onPress(item.record.id)}
+    >
+      <View style={styles.recentImageMedia}>
+        {displayImageUrl ? (
+          <OptimizedImage
+            uri={displayImageUrl}
+            style={styles.recentImageMediaImage}
+            resizeMode="cover"
+            priority="high"
+          />
+        ) : (
+          <View
+            style={[
+              styles.recentImageFallback,
+              { backgroundColor: meta.tint },
+            ]}
+          >
+            <MaterialCommunityIcons name={meta.icon} size={26} color="#FFFFFF" />
+            {loading ? <ActivityIndicator size="small" color="#FFFFFF" /> : null}
+          </View>
+        )}
 
-          <View style={styles.todayRecordOverlayTint} />
-          <View style={styles.todayRecordBottomTint} />
-          <View style={styles.todayRecordBottomTintDeep} />
+        <LinearGradient
+          colors={['rgba(8,12,20,0.00)', 'rgba(8,12,20,0.18)', 'rgba(8,12,20,0.62)']}
+          locations={[0, 0.48, 1]}
+          style={styles.recentImageGradient}
+        />
 
-          <View style={styles.todayRecordOverlay}>
-            <Text style={styles.todayRecordTitle} numberOfLines={1}>
-              {title}
-            </Text>
-            <Text style={styles.todayRecordContent} numberOfLines={2}>
-              {content}
-            </Text>
-            <View style={styles.todayRecordMetaRow}>
-              <View style={{ flex: 1 }} />
-              <Text style={styles.todayRecordDate}>{ymd}</Text>
-            </View>
+        <View style={styles.recentImageTopRow}>
+          <View style={styles.recentImageDayPill}>
+            <Text style={styles.recentImageDayPillText}>{item.groupLabel}</Text>
+          </View>
+          <View style={styles.recentImageTypePill}>
+            <Text style={styles.recentImageTypePillText}>{item.typeLabel}</Text>
           </View>
         </View>
-      </TouchableOpacity>
-    </Animated.View>
+
+        <View style={styles.recentImageTextWrap}>
+          <Text style={styles.recentImageSummary} numberOfLines={2}>
+            {item.summary}
+          </Text>
+          <Text style={styles.recentImageDate} numberOfLines={1}>
+            {item.displayDate}
+          </Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+});
+
+const HomeRecentTextCard = React.memo(function HomeRecentTextCard({
+  item,
+  onPress,
+}: {
+  item: HomeRecentPreviewItem;
+  onPress: (memoryId: string) => void;
+}) {
+  const badgeTone = useMemo(() => getHomeRecentBadgeTone(item.record), [item.record]);
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.9}
+      style={styles.recentTextCard}
+      onPress={() => onPress(item.record.id)}
+    >
+      <View
+        style={[
+          styles.recentTextRailDot,
+          { backgroundColor: badgeTone.dot },
+        ]}
+      />
+
+      <View style={styles.recentTextBody}>
+        <View style={styles.recentTextTopRow}>
+          <View
+            style={[
+              styles.recentTextBadge,
+              { backgroundColor: badgeTone.badgeBackground },
+            ]}
+          >
+            <Text
+              style={[
+                styles.recentTextBadgeText,
+                { color: badgeTone.badgeText },
+              ]}
+            >
+              {item.typeLabel}
+            </Text>
+          </View>
+        </View>
+
+        <Text style={styles.recentTextSummary} numberOfLines={1}>
+          {item.summary}
+        </Text>
+
+        <Text style={styles.recentTextDate} numberOfLines={1}>
+          {item.displayDate}
+        </Text>
+      </View>
+    </TouchableOpacity>
   );
 });
 
@@ -512,37 +608,6 @@ const PetChipButton = React.memo(function PetChipButton({
     </TouchableOpacity>
   );
 });
-
-function IndicatorDot({
-  i,
-  progress,
-  color,
-}: {
-  i: number;
-  progress: SharedValue<number>;
-  color: string;
-}) {
-  const dotStyle = useAnimatedStyle(() => {
-    const p = progress.value;
-    const dist = Math.abs(p - i);
-
-    const s = interpolate(dist, [0, 1, 2], [1.35, 1.0, 0.9], Extrapolate.CLAMP);
-    const o = interpolate(
-      dist,
-      [0, 1, 2],
-      [1.0, 0.55, 0.35],
-      Extrapolate.CLAMP,
-    );
-
-    return { opacity: o, transform: [{ scale: s }] };
-  }, [i]);
-
-  return (
-    <Animated.View
-      style={[styles.indicatorDot, { backgroundColor: color }, dotStyle]}
-    />
-  );
-}
 
 const MonthlyDiaryCard = React.memo(function MonthlyDiaryCard({
   item,
@@ -637,21 +702,23 @@ const TodayPhotoSection = React.memo(function TodayPhotoSection({
       todayPhoto.record ? getPrimaryMemoryImageRef(todayPhoto.record) : null,
     );
 
-  const todayPhotoOverlayTitle = useMemo(() => {
-    if (todayPhoto.mode === 'anniversary') return '작년 오늘의 기억';
-    if (todayPhoto.mode === 'random') return '오늘 꺼내보는 한 장';
-    return '오늘의 사진';
-  }, [todayPhoto.mode]);
   const isRecordBootstrapPending =
     (recordStatus === 'idle' || recordStatus === 'loading') &&
     recordItems.length === 0 &&
     !todayPhoto.record;
+  const photoDateLabel = useMemo(() => {
+    if (!todayPhoto.record) return '';
+    return formatYmdWithWeekday(getRecordDisplayYmd(todayPhoto.record), {
+      separator: '.',
+      suffix: true,
+    }) ?? formatRecordDisplayDate(todayPhoto.record);
+  }, [todayPhoto.record]);
 
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
         <Text style={[styles.sectionTitle, { color: accentColor }]}>
-          오늘날의 사진
+          오늘 한장
         </Text>
       </View>
 
@@ -694,14 +761,9 @@ const TodayPhotoSection = React.memo(function TodayPhotoSection({
           <View style={styles.photoPlaceholder} />
         )}
 
-        <View style={styles.photoOverlayTint} />
-
         <View style={styles.photoOverlay}>
-          <Text style={styles.photoOverlayTitle}>{todayPhotoOverlayTitle}</Text>
-          <Text style={styles.photoOverlaySub} numberOfLines={1}>
-            {todayPhoto.record?.title?.trim()
-              ? todayPhoto.record.title
-              : '추억을 눌러 확인해요'}
+          <Text style={styles.photoOverlayDate} numberOfLines={1}>
+            {photoDateLabel}
           </Text>
         </View>
       </TouchableOpacity>
@@ -1237,7 +1299,7 @@ const QuickActionsSection = React.memo(function QuickActionsSection({
               >
                 <MaterialCommunityIcons
                   name={item.icon}
-                  size={30}
+                  size={28}
                   color={petTheme.primary}
                   style={styles.quickIcon}
                 />
@@ -1251,19 +1313,10 @@ const QuickActionsSection = React.memo(function QuickActionsSection({
   );
 });
 
-const MemorySectionLead = React.memo(function MemorySectionLead({
-  accentDeepColor,
-}: {
+const MemorySectionLead = React.memo(function MemorySectionLead(_props: {
   accentDeepColor: string;
 }) {
-  return (
-    <View style={styles.sectionLead}>
-      <Text style={[styles.sectionLeadTitle, { color: accentDeepColor }]}>
-        오늘의 추억 둘러보기
-      </Text>
-      <Text style={styles.sectionLeadSub}>사진과 기록을 천천히 살펴보세요</Text>
-    </View>
-  );
+  return <View style={styles.sectionLead} />;
 });
 
 const RecommendationTipsSection = React.memo(
@@ -1429,162 +1482,73 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
   accentColor: string;
   accentDeepColor: string;
 }) {
-  const isFocused = useIsFocused();
   const todayRecords = useMemo(
-    () => recordItems.slice(0, TODAY_RECORDS_MAX),
+    () => recordItems.filter(item => !isHealthMemoryRecord(item)),
     [recordItems],
   );
-  const hasMoreThanSlider = recordItems.length > TODAY_RECORDS_MAX;
+  const previewItems = useMemo(
+    () => buildHomeRecentPreviewItems(todayRecords),
+    [todayRecords],
+  );
+  const groupedPreviewItems = useMemo(
+    () => groupHomeRecentPreviewItems(previewItems),
+    [previewItems],
+  );
   const isRecordBootstrapPending =
     (recordStatus === 'idle' || recordStatus === 'loading') &&
     recordItems.length === 0;
-
-  const listRef = useRef<FlatList<MemoryRecord> | null>(null);
-  const preloadSignatureRef = useRef('');
-  const [appState, setAppState] = useState<AppStateStatus>(
-    AppState.currentState,
-  );
-  const screenW = Dimensions.get('window').width;
-  const slideGap = 14;
-  const cardW = useMemo(() => {
-    const usable = screenW - 16 * 2;
-    const width = Math.floor(usable * 0.72);
-    return Math.max(260, Math.min(width, 340));
-  }, [screenW]);
-  const snap = cardW + slideGap;
-
-  const scrollX = useSharedValue(0);
-  const [activeSlideIndex, setActiveSlideIndex] = useState(0);
+  const [prefetchedImageUrls, setPrefetchedImageUrls] = useState<
+    Record<string, string>
+  >({});
 
   useEffect(() => {
-    setActiveSlideIndex(0);
-    preloadSignatureRef.current = '';
-    scrollX.value = 0;
-  }, [activePetId, scrollX]);
+    setPrefetchedImageUrls({});
+  }, [activePetId, previewItems]);
 
   useEffect(() => {
-    const sub = AppState.addEventListener('change', nextState => {
-      setAppState(nextState);
-    });
-    return () => {
-      sub.remove();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!isFocused || appState !== 'active') return;
-
-    const immediateTargets = todayRecords
-      .slice(
-        activeSlideIndex,
-        Math.min(
-          todayRecords.length,
-          activeSlideIndex + TODAY_RECORDS_IMMEDIATE_PREFETCH_COUNT,
-        ),
-      )
-      .map(record => getPrimaryMemoryImageRef(record))
-      .filter((value): value is string => Boolean(value));
-    const deferredTargets = todayRecords
-      .slice(
-        activeSlideIndex + TODAY_RECORDS_IMMEDIATE_PREFETCH_COUNT,
-        Math.min(
-          todayRecords.length,
-          activeSlideIndex + TODAY_RECORDS_DEFERRED_PREFETCH_COUNT,
-        ),
-      )
-      .map(record => getPrimaryMemoryImageRef(record))
-      .filter((value): value is string => Boolean(value));
-
-    const signature = `${immediateTargets.join('|')}__${deferredTargets.join(
-      '|',
-    )}`;
-    if (!signature || signature === preloadSignatureRef.current) return;
-    preloadSignatureRef.current = signature;
-
     let cancelled = false;
-    const preloadImmediate = async () => {
-      const urls = await getMemoryImageSignedUrlsCached(immediateTargets);
+    const imagePreviewItems = previewItems.filter(
+      item => item.mode === 'image' && Boolean(item.imageSource.value),
+    );
+    if (imagePreviewItems.length === 0) return;
+
+    (async () => {
+      const urlEntries = await Promise.all(
+        imagePreviewItems.map(async item => {
+          const [url] = await getMemoryImageSignedUrlsCached(
+            [item.imageSource.value],
+            { variant: item.imageSource.variant },
+          );
+          return [item.record.id, url] as const;
+        }),
+      );
       if (cancelled) return;
-      preloadOptimizedImages(urls.filter((url): url is string => Boolean(url)));
-    };
 
-    preloadImmediate().catch(() => {});
+      const nextEntries = urlEntries.reduce<Record<string, string>>((acc, entry) => {
+        const [recordId, url] = entry;
+        if (url) {
+          acc[recordId] = url;
+        }
+        return acc;
+      }, {});
 
-    if (deferredTargets.length === 0) {
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    const deferredTask = scheduleDeferredImagePreload(deferredTargets, {
-      batchSize: 2,
-      onUrls: urls => {
-        if (cancelled || urls.length === 0) return;
-        preloadOptimizedImages(urls);
-      },
+      setPrefetchedImageUrls(nextEntries);
+    })().catch(() => {
+      if (!cancelled) {
+        setPrefetchedImageUrls({});
+      }
     });
 
     return () => {
       cancelled = true;
-      deferredTask.cancel();
     };
-  }, [activeSlideIndex, appState, isFocused, todayRecords]);
-
-  const progress = useDerivedValue(() => {
-    if (snap <= 0) return 0;
-    return scrollX.value / snap;
-  }, [snap]);
-
-  const onSlideMomentumEnd = useCallback(
-    (offsetX: number) => {
-      if (snap <= 0) return;
-      const idx = Math.round(offsetX / snap);
-      const clamped = Math.max(
-        0,
-        Math.min(idx, Math.max(0, todayRecords.length - 1)),
-      );
-      setActiveSlideIndex(clamped);
-    },
-    [snap, todayRecords.length],
-  );
-
-  const slideScrollHandler = useAnimatedScrollHandler({
-    onScroll: e => {
-      scrollX.value = e.contentOffset.x;
-    },
-  });
-
-  const renderTodayRecord = useCallback<ListRenderItem<MemoryRecord>>(
-    ({ item, index }) => {
-      if (index === undefined) return null;
-      return (
-        <TodayRecordCard
-          item={item}
-          index={index}
-          cardW={cardW}
-          snap={snap}
-          scrollX={scrollX}
-          onPress={onPressRecordItem}
-          eagerImage={
-            index === activeSlideIndex || index === activeSlideIndex + 1
-          }
-        />
-      );
-    },
-    [activeSlideIndex, cardW, onPressRecordItem, scrollX, snap],
-  );
-
-  const keyExtractor = useCallback((it: MemoryRecord) => it.id, []);
-  const renderTodayRecordSeparator = useCallback(
-    () => <View style={{ width: slideGap }} />,
-    [slideGap],
-  );
+  }, [previewItems]);
 
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
         <Text style={[styles.sectionTitle, { color: accentDeepColor }]}>
-          오늘날의 기록
+          최근 기록
         </Text>
         <TouchableOpacity activeOpacity={0.85} onPress={onPressTimeline}>
           <Text style={[styles.sectionLink, { color: accentColor }]}>
@@ -1598,7 +1562,7 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
           <ActivityIndicator size="small" color={accentDeepColor} />
           <Text style={styles.emptyDesc}>기록을 불러오는 중이에요.</Text>
         </View>
-      ) : todayRecords.length === 0 ? (
+      ) : previewItems.length === 0 ? (
         <View style={styles.emptyBox}>
           <Text style={styles.emptyTitle}>아직 기록이 없어요</Text>
           <Text style={styles.emptyDesc}>첫 번째 추억을 남겨보세요.</Text>
@@ -1618,56 +1582,52 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
           </TouchableOpacity>
         </View>
       ) : (
-        <View style={styles.todayRecordsWrap}>
-          <AnimatedFlatList
-            ref={listRef}
-            data={todayRecords}
-            keyExtractor={keyExtractor}
-            renderItem={renderTodayRecord}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            bounces={false}
-            decelerationRate="fast"
-            snapToInterval={snap}
-            snapToAlignment="start"
-            disableIntervalMomentum={false}
-            onScroll={slideScrollHandler}
-            onMomentumScrollEnd={event => {
-              onSlideMomentumEnd(event.nativeEvent.contentOffset.x);
-            }}
-            scrollEventThrottle={16}
-            initialNumToRender={3}
-            maxToRenderPerBatch={3}
-            windowSize={3}
-            removeClippedSubviews
-            contentContainerStyle={[
-              styles.todayRecordsContent,
-              { paddingRight: 16 },
+        <View style={styles.recentPreviewWrap}>
+          <View
+            style={[
+              styles.recentPreviewRail,
+              { backgroundColor: `${accentColor}36` },
             ]}
-            ItemSeparatorComponent={renderTodayRecordSeparator}
-            getItemLayout={(_, index) => ({
-              length: snap,
-              offset: snap * index,
-              index,
-            })}
           />
 
-          <View style={styles.indicatorRow}>
-            {todayRecords.map((_, i) => (
-              <IndicatorDot
-                key={`dot-${i}`}
-                i={i}
-                progress={progress}
-                color={accentColor}
-              />
-            ))}
-          </View>
+          <View style={styles.recentPreviewList}>
+            {groupedPreviewItems.map(group => (
+              <View key={group.key} style={styles.recentGroupBlock}>
+                <View style={styles.recentGroupHeader}>
+                  <View
+                    style={[
+                      styles.recentGroupDot,
+                      { backgroundColor: accentColor },
+                    ]}
+                  />
+                  <View style={styles.recentGroupHeaderText}>
+                    <Text style={styles.recentGroupLabel}>{group.label}</Text>
+                    <Text style={styles.recentGroupDateLabel}>
+                      {group.dateText}
+                    </Text>
+                  </View>
+                </View>
 
-          <View style={styles.moreHintRow}>
-            <Text style={styles.moreHintText}>
-              {activeSlideIndex + 1} / {todayRecords.length}
-              {hasMoreThanSlider ? ' · 더 많은 기록은 ‘전체보기’' : ''}
-            </Text>
+                <View style={styles.recentGroupItems}>
+                  {group.items.map(item =>
+                    item.mode === 'image' ? (
+                      <HomeRecentImageCard
+                        key={item.record.id}
+                        item={item}
+                        prefetchedImageUrl={prefetchedImageUrls[item.record.id] ?? null}
+                        onPress={onPressRecordItem}
+                      />
+                    ) : (
+                      <HomeRecentTextCard
+                        key={item.record.id}
+                        item={item}
+                        onPress={onPressRecordItem}
+                      />
+                    ),
+                  )}
+                </View>
+              </View>
+            ))}
           </View>
         </View>
       )}
@@ -1869,92 +1829,6 @@ const ScheduleSection = React.memo(function ScheduleSection({
       >
         <Text style={styles.recordBtnText}>일정 추가하기</Text>
       </TouchableOpacity>
-    </View>
-  );
-});
-
-const RecentActivitiesSection = React.memo(function RecentActivitiesSection({
-  recordItems,
-  onPressTimeline,
-  onPressRecordItem,
-  accentColor,
-  accentDeepColor,
-}: {
-  recordItems: MemoryRecord[];
-  onPressTimeline: () => void;
-  onPressRecordItem: (memoryId: string) => void;
-  accentColor: string;
-  accentDeepColor: string;
-}) {
-  const recentActivities = useMemo(
-    () => recordItems.filter(item => !isHealthMemoryRecord(item)).slice(0, 7),
-    [recordItems],
-  );
-
-  return (
-    <View style={styles.section}>
-      <View style={styles.sectionHeaderRow}>
-        <Text style={[styles.tipSectionTitle, { color: accentDeepColor }]}>
-          최근 활동
-        </Text>
-        <TouchableOpacity activeOpacity={0.85} onPress={onPressTimeline}>
-          <Text style={[styles.sectionLink, { color: accentColor }]}>
-            전체보기
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {recentActivities.length === 0 ? (
-        <View style={styles.emptyBox}>
-          <Text style={styles.emptyTitle}>최근 활동이 아직 없어요</Text>
-          <Text style={styles.emptyDesc}>
-            기록을 남기면 홈에서 최근 움직임을 바로 볼 수 있어요.
-          </Text>
-        </View>
-      ) : (
-        <View style={styles.activityList}>
-          {recentActivities.map(item => {
-            const meta = getRecordCategoryMeta(item);
-            return (
-              <TouchableOpacity
-                key={item.id}
-                activeOpacity={0.92}
-                style={styles.activityRow}
-                onPress={() => onPressRecordItem(item.id)}
-              >
-                <View
-                  style={[
-                    styles.activityIconWrap,
-                    { backgroundColor: meta.tint },
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name={meta.icon}
-                    size={17}
-                    color={accentColor}
-                  />
-                </View>
-
-                <View style={styles.activityTextCol}>
-                  <Text style={styles.activityTitle} numberOfLines={1}>
-                    {item.title?.trim() || meta.label}
-                  </Text>
-                  <Text style={styles.activitySub} numberOfLines={1}>
-                    {meta.label}
-                    {item.content?.trim()
-                      ? ` · ${toSnippet(item.content, 26)}`
-                      : ''}
-                  </Text>
-                </View>
-
-                <Text style={styles.activityTime}>
-                  {formatRelativeRecordTime(item)}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      )}
     </View>
   );
 });
@@ -2934,14 +2808,6 @@ export default function LoggedInHome() {
             activityItems={healthActivityItems}
             onPressHealthReport={() => onPressHealthReport()}
             onPressActivityItem={onPressHealthReport}
-            accentColor={petTheme.primary}
-            accentDeepColor={petTheme.deep}
-          />
-
-          <RecentActivitiesSection
-            recordItems={recordItems}
-            onPressTimeline={onPressTimeline}
-            onPressRecordItem={onPressRecordItem}
             accentColor={petTheme.primary}
             accentDeepColor={petTheme.deep}
           />

@@ -61,6 +61,7 @@ import {
   humanizeTimelineMonthKey,
   type TimelineSortMode,
 } from '../../services/timeline/query';
+import { getRecordDisplayYmd } from '../../services/records/date';
 import { getTimelinePrimaryMemoryImageSource } from '../../services/records/imageSources';
 import {
   getMemoryImageSignedUrlsCached,
@@ -70,6 +71,11 @@ import { usePetStore, resolveSelectedPetId } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
 import { useAuthStore } from '../../store/authStore';
 import { openMoreDrawer } from '../../store/uiStore';
+import {
+  diffCalendarDaysBetweenYmd,
+  formatYmdWithWeekday,
+  getKstYmd,
+} from '../../utils/date';
 import { styles } from './TimelineScreen.styles';
 
 type TimelineMainRoute = RouteProp<TimelineStackParamList, 'TimelineMain'>;
@@ -163,7 +169,7 @@ const TIMELINE_INITIAL_IMAGE_WINDOW = {
 };
 const TIMELINE_IMAGE_BUFFER_BEHIND = 2;
 const TIMELINE_IMAGE_BUFFER_AHEAD = 4;
-const TIMELINE_ITEM_HEIGHT = 96;
+const TIMELINE_ITEM_HEIGHT = 128;
 const TIMELINE_PRELOAD_VISIBLE_COUNT = 2;
 const TIMELINE_PRELOAD_DEFERRED_COUNT = 2;
 const TIMELINE_PRELOAD_DEFER_DELAY_MS = 180;
@@ -173,10 +179,50 @@ const MAIN_CATEGORY_KEY_SET = new Set<MainCategory>(
 const OTHER_SUBCATEGORY_KEY_SET = new Set<OtherSubCategory>(
   TIMELINE_OTHER_SUBCATEGORY_OPTIONS.map(item => item.key),
 );
+const WEEKDAY_FULL_KO = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'] as const;
+
+function formatTimelineAbsoluteHeader(ymd: string | null): string {
+  if (!ymd) return '최근';
+
+  const [year, month, day] = ymd.split('-').map(Number);
+  if (!year || !month || !day) return '최근';
+  const weekday = new Date(Date.UTC(year, month - 1, day, 0, 0, 0)).getUTCDay();
+  return `${year}년 ${month}월 ${day}일 ${WEEKDAY_FULL_KO[weekday]}`;
+}
+
+function buildTimelineGroupHeader(ymd: string | null): {
+  title: string;
+  subtitle: string | null;
+} {
+  if (!ymd) {
+    return {
+      title: '최근',
+      subtitle: null,
+    };
+  }
+
+  const diffDays = diffCalendarDaysBetweenYmd(ymd, getKstYmd());
+  if (diffDays === 0) {
+    return {
+      title: '오늘',
+      subtitle:
+        formatYmdWithWeekday(ymd, {
+          separator: '.',
+          suffix: false,
+        }) ?? null,
+    };
+  }
+
+  return {
+    title: formatTimelineAbsoluteHeader(ymd),
+    subtitle: null,
+  };
+}
 
 const ControlsBar = memo(function ControlsBar({
   sortLabel,
   monthLabel,
+  isMonthFiltered,
   mainCategory,
   categoryLabel,
   onToggleSort,
@@ -186,6 +232,7 @@ const ControlsBar = memo(function ControlsBar({
 }: {
   sortLabel: string;
   monthLabel: string;
+  isMonthFiltered: boolean;
   mainCategory: MainCategory;
   categoryLabel: string;
   onToggleSort: () => void;
@@ -198,10 +245,7 @@ const ControlsBar = memo(function ControlsBar({
       <View style={styles.controlsRow}>
         <TouchableOpacity
           activeOpacity={0.9}
-          style={[
-            styles.controlChip,
-            { borderColor: theme.border, backgroundColor: theme.tint },
-          ]}
+          style={styles.controlChip}
           onPress={onToggleSort}
         >
           <AppText
@@ -210,22 +254,39 @@ const ControlsBar = memo(function ControlsBar({
           >
             {sortLabel}
           </AppText>
+          <View
+            pointerEvents="none"
+            style={[
+              styles.controlChipUnderline,
+              { backgroundColor: theme.primary },
+            ]}
+          />
         </TouchableOpacity>
 
         <TouchableOpacity
           activeOpacity={0.9}
-          style={[
-            styles.controlChip,
-            { borderColor: theme.border, backgroundColor: theme.tint },
-          ]}
+          style={styles.controlChip}
           onPress={onOpenMonthModal}
         >
           <AppText
             preset="caption"
-            style={[styles.controlChipText, { color: theme.primary }]}
+            style={[
+              styles.controlChipText,
+              !isMonthFiltered ? styles.controlChipTextInactive : null,
+              isMonthFiltered ? { color: theme.primary } : null,
+            ]}
           >
             {monthLabel}
           </AppText>
+          {isMonthFiltered ? (
+            <View
+              pointerEvents="none"
+              style={[
+                styles.controlChipUnderline,
+                { backgroundColor: theme.primary },
+              ]}
+            />
+          ) : null}
         </TouchableOpacity>
       </View>
 
@@ -249,29 +310,30 @@ const ControlsBar = memo(function ControlsBar({
               <TouchableOpacity
                 key={item.key}
                 activeOpacity={0.9}
-                style={[
-                  styles.categoryChip,
-                  active ? styles.categoryChipActive : null,
-                  active
-                    ? {
-                        borderColor: theme.border,
-                        backgroundColor: theme.tint,
-                      }
-                    : null,
-                ]}
+                style={styles.categoryChip}
                 onPress={() => onPressMainCategory(item.key)}
               >
                 <AppText
                   preset="caption"
                   style={[
                     styles.categoryChipText,
-                    active ? styles.categoryChipTextActive : null,
-                    active ? { color: theme.primary } : null,
+                    active
+                      ? [styles.categoryChipTextActive, { color: theme.primary }]
+                      : null,
                   ]}
                   numberOfLines={1}
                 >
                   {label}
                 </AppText>
+                {active ? (
+                  <View
+                    pointerEvents="none"
+                    style={[
+                      styles.categoryChipUnderline,
+                      { backgroundColor: theme.primary },
+                    ]}
+                  />
+                ) : null}
               </TouchableOpacity>
             );
           })}
@@ -713,13 +775,14 @@ export default function TimelineScreen() {
   }, []);
 
   const onPressMainCategory = useCallback((key: MainCategory) => {
-    if (key === 'other') {
-      setMainCategory('other');
-      setOtherModalOpen(true);
+    setMainCategory(key);
+    if (key !== 'other') {
+      setOtherSubCategory(null);
+      setOtherModalOpen(false);
       return;
     }
-    setMainCategory(key);
     setOtherSubCategory(null);
+    setOtherModalOpen(false);
   }, []);
 
   const applyOtherSub = useCallback((sub: OtherSubCategory) => {
@@ -757,6 +820,14 @@ export default function TimelineScreen() {
     ({ item, index }) => {
       const record = recordsById[item];
       if (!record) return null;
+      const previousRecord =
+        index > 0 ? recordsById[filteredIds[index - 1] ?? ''] : null;
+      const currentYmd = getRecordDisplayYmd(record);
+      const previousYmd = previousRecord ? getRecordDisplayYmd(previousRecord) : null;
+      const showDateHeader = index === 0 || currentYmd !== previousYmd;
+      const dateHeader = showDateHeader
+        ? buildTimelineGroupHeader(currentYmd)
+        : null;
 
       const enableImageLoad =
         index >= imageWindow.start && index <= imageWindow.end;
@@ -771,10 +842,15 @@ export default function TimelineScreen() {
           deferImageLoad={shouldDeferImage}
           isFocused={focusedMemoryId === item}
           onFocusedLayout={onFocusedItemLayout}
+          thumbnailPreset="timeline"
+          showDateHeader={showDateHeader}
+          dateHeaderTitle={dateHeader?.title ?? null}
+          dateHeaderSubtitle={dateHeader?.subtitle ?? null}
         />
       );
     },
     [
+      filteredIds,
       focusedMemoryId,
       imageWindow,
       onFocusedItemLayout,
@@ -930,6 +1006,7 @@ export default function TimelineScreen() {
         <ControlsBar
           sortLabel={sortLabel}
           monthLabel={monthLabel}
+          isMonthFiltered={Boolean(ymFilter)}
           mainCategory={mainCategory}
           categoryLabel={categoryLabel}
           onToggleSort={goSignIn}
@@ -1001,6 +1078,7 @@ export default function TimelineScreen() {
       <ControlsBar
         sortLabel={sortLabel}
         monthLabel={monthLabel}
+        isMonthFiltered={Boolean(ymFilter)}
         mainCategory={mainCategory}
         categoryLabel={categoryLabel}
         onToggleSort={() =>

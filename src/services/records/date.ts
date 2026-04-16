@@ -3,6 +3,7 @@ import {
   diffCalendarDaysBetweenYmd,
   formatYmdToDots,
   getDateYmdInKst,
+  getKstDateParts,
   getKstYmd,
   getMonthKeyFromYmd,
   safeYmd,
@@ -33,6 +34,15 @@ export function getRecordMonthKey(record: RecordDateSource): string | null {
 export function formatRecordDisplayDate(record: RecordDateSource): string {
   const ymd = getRecordDisplayYmd(record);
   return formatYmdToDots(ymd) ?? '';
+}
+
+export function formatRecordCreatedTime(record: Pick<MemoryRecord, 'createdAt'>): string {
+  const parts = getKstDateParts(record.createdAt);
+  if (!parts) return '';
+
+  const period = parts.hour < 12 ? '오전' : '오후';
+  const hour12 = parts.hour % 12 === 0 ? 12 : parts.hour % 12;
+  return `${period} ${hour12}:${`${parts.minute}`.padStart(2, '0')}`;
 }
 
 export function formatRecordRelativeTime(record: RecordDateSource, now = new Date()): string {
