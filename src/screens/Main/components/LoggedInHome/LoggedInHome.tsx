@@ -39,7 +39,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import Screen from '../../../../components/layout/Screen';
-import OptimizedImage from '../../../../components/images/OptimizedImage';
+import { MemoryCard } from '../../../../components/MemoryCard/MemoryCard';
 import GuideRecommendationCard from '../../../../components/guides/GuideRecommendationCard';
 import { useWeatherGuide } from '../../../../hooks/useWeatherGuide';
 import { useHomePetCareGuides } from '../../../../hooks/useHomePetCareGuides';
@@ -49,14 +49,12 @@ import type { TimelineStackParamList } from '../../../../navigation/TimelineStac
 import type { RootStackParamList } from '../../../../navigation/RootNavigator';
 import { createLatestRequestController } from '../../../../services/app/async';
 import {
-  getRecordCategoryMeta,
   normalizeCategoryKey,
   readRecordCategoryRaw,
   type MemoryMainCategory,
   type MemoryOtherSubCategory,
 } from '../../../../services/memories/categoryMeta';
 import {
-  getTimelinePrimaryMemoryImageSource,
   getPrimaryMemoryImageRef,
   hasMemoryImage,
 } from '../../../../services/records/imageSources';
@@ -67,7 +65,6 @@ import { useScheduleStore } from '../../../../store/scheduleStore';
 
 import type { MemoryRecord } from '../../../../services/supabase/memories';
 import type { PetSchedule } from '../../../../services/supabase/schedules';
-import { getMemoryImageSignedUrlsCached } from '../../../../services/supabase/storageMemories';
 import {
   pickTodayPhoto,
   generateTimeMessage,
@@ -77,8 +74,10 @@ import { buildHomeWidgetSnapshot } from '../../../../services/home/widgetSnapsho
 import { syncHomeWidgetSnapshot } from '../../../../services/home/widgetBridge';
 import { buildWeeklySummary } from '../../../../services/home/weeklySummary';
 import {
+  formatRecordCreatedTime,
   formatRecordDisplayDate,
   getRecordDisplayYmd,
+  getRecordSortTimestamp,
 } from '../../../../services/records/date';
 import {
   buildHealthActivityItems,
@@ -108,11 +107,10 @@ import { isLocalGuideSeedGuide } from '../../../../services/guides/seed';
 import { getGuideRotationWindowKey } from '../../../../services/guides/rotation';
 import { recordPetCareGuideEvents } from '../../../../services/guides/service';
 import {
-  diffCalendarDaysBetweenYmd,
   diffDaysFromKst,
+  formatKstDateWithWeekday,
   formatYmdToDots,
   formatYmdWithWeekday,
-  getKstYmd,
   getMonthKeyFromYmd,
   getMonthKeyInKst,
 } from '../../../../utils/date';
@@ -148,30 +146,16 @@ type WeeklyScheduleItem = {
   otherSubCategory?: HomeOtherSubCategory;
 };
 
-type HomeRecentPreviewMode = 'image' | 'text';
 type HomeRecentPreviewItem = {
   record: MemoryRecord;
-  mode: HomeRecentPreviewMode;
   groupKey: string;
   groupLabel: string;
-  groupDateText: string;
-  typeLabel: string;
-  summary: string;
-  displayDate: string;
-  imageSource: ReturnType<typeof getTimelinePrimaryMemoryImageSource>;
-  hasImage: boolean;
+  groupDateText: string | null;
 };
 
 /* ---------------------------------------------------------
  * 1) helpers
  * -------------------------------------------------------- */
-function toSnippet(text: string | null | undefined, max = 46) {
-  const v = (text ?? '').trim();
-  if (!v) return '내용이 없습니다.';
-  if (v.length <= max) return v;
-  return `${v.slice(0, max)}…`;
-}
-
 function getRecordYmdDots(item: MemoryRecord): string {
   return (
     formatYmdWithWeekday(getRecordDisplayYmd(item), {
@@ -202,136 +186,25 @@ function clampList(list: string[] | null | undefined, max = 2) {
     .slice(0, max);
 }
 
-function normalizeInlineText(text: string | null | undefined): string {
-  return `${text ?? ''}`.replace(/\s+/g, ' ').trim();
-}
-
-function getHomeRecentTypeLabel(record: MemoryRecord): string {
-  const meta = getRecordCategoryMeta(record);
-
-  switch (meta.mainCategory) {
-    case 'walk':
-      return '산책';
-    case 'meal':
-      return '식사';
-    case 'health':
-      return '건강';
-    case 'diary':
-      return '일기';
-    case 'other':
-    default:
-      switch (meta.otherSubCategory) {
-        case 'grooming':
-          return '미용';
-        case 'hospital':
-          return '병원/약';
-        case 'indoor':
-          return '실내 놀이';
-        case 'training':
-          return '훈련';
-        case 'outing':
-          return '외출';
-        case 'shopping':
-          return '쇼핑';
-        case 'bathing':
-          return '목욕';
-        case 'etc':
-        default:
-          return '생활';
-      }
-  }
-}
-
-function buildHomeRecentSummary(record: MemoryRecord): string {
-  const title = normalizeInlineText(record.title);
-  const content = normalizeInlineText(record.content);
-  const raw = title || content;
-
-  if (!raw) return '기록을 남겼어요';
-  return toSnippet(raw, 34);
-}
-
-function getHomeRecentBadgeTone(record: MemoryRecord) {
-  const meta = getRecordCategoryMeta(record);
-
-  switch (meta.mainCategory) {
-    case 'walk':
-      return {
-        badgeBackground: '#E6E3FF',
-        badgeText: '#5B51D8',
-        dot: '#7A6EF6',
-      };
-    case 'meal':
-      return {
-        badgeBackground: '#FFE7D6',
-        badgeText: '#C76118',
-        dot: '#F08A3C',
-      };
-    case 'health':
-      return {
-        badgeBackground: '#DCFCE8',
-        badgeText: '#1E8A52',
-        dot: '#2DBE6C',
-      };
-    case 'diary':
-      return {
-        badgeBackground: '#DBEAFE',
-        badgeText: '#2563EB',
-        dot: '#4D8CFF',
-      };
-    case 'other':
-    default:
-      return {
-        badgeBackground: '#ECE8E1',
-        badgeText: '#7B6351',
-        dot: '#B08968',
-      };
-  }
-}
-
 function formatHomeRecentGroupLabel(ymd: string | null): string {
   if (!ymd) return '최근';
-
-  const diffDays = diffCalendarDaysBetweenYmd(ymd, getKstYmd());
-  if (diffDays === 0) return '오늘';
-  if (diffDays === 1) return '어제';
-
-  const [year, month, day] = ymd.split('-').map(Number);
-  if (!year || !month || !day) return '최근';
-  return `${month}월 ${day}일`;
+  return formatKstDateWithWeekday(ymd) || '최근';
 }
 
 function buildHomeRecentPreviewItems(
   records: MemoryRecord[],
 ): HomeRecentPreviewItem[] {
-  const selectedIds = new Set<string>();
-  const imageRecords = records.filter(record => hasMemoryImage(record));
-
-  for (const record of imageRecords) {
-    if (selectedIds.size >= HOME_RECENT_RECORDS_MAX) break;
-    selectedIds.add(record.id);
-  }
-  for (const record of records) {
-    if (selectedIds.size >= HOME_RECENT_RECORDS_MAX) break;
-    selectedIds.add(record.id);
-  }
-
-  const selectedRecords = records.filter(record => selectedIds.has(record.id));
+  const selectedRecords = [...records]
+    .sort((lhs, rhs) => getRecordSortTimestamp(rhs) - getRecordSortTimestamp(lhs))
+    .slice(0, HOME_RECENT_RECORDS_MAX);
 
   return selectedRecords.map(record => {
     const displayYmd = getRecordDisplayYmd(record);
-    const hasImage = hasMemoryImage(record);
     return {
       record,
-      mode: hasImage ? 'image' : 'text',
       groupKey: displayYmd ?? record.id,
       groupLabel: formatHomeRecentGroupLabel(displayYmd),
-      groupDateText: formatRecordDisplayDate(record),
-      typeLabel: getHomeRecentTypeLabel(record),
-      summary: buildHomeRecentSummary(record),
-      displayDate: getRecordYmdDots(record),
-      imageSource: getTimelinePrimaryMemoryImageSource(record),
-      hasImage,
+      groupDateText: null,
     };
   });
 }
@@ -340,7 +213,7 @@ function groupHomeRecentPreviewItems(items: HomeRecentPreviewItem[]) {
   const groups: Array<{
     key: string;
     label: string;
-    dateText: string;
+    dateText: string | null;
     items: HomeRecentPreviewItem[];
   }> = [];
 
@@ -441,131 +314,6 @@ const HOME_TOP_BUTTON_MIN_BOTTOM = 116;
 /* ---------------------------------------------------------
  * 3) sub components (hooks-safe)
  * -------------------------------------------------------- */
-const HomeRecentImageCard = React.memo(function HomeRecentImageCard({
-  item,
-  prefetchedImageUrl,
-  onPress,
-}: {
-  item: HomeRecentPreviewItem;
-  prefetchedImageUrl: string | null;
-  onPress: (memoryId: string) => void;
-}) {
-  const meta = useMemo(() => getRecordCategoryMeta(item.record), [item.record]);
-  const { signedUrl, loading } = useSignedMemoryImage(item.imageSource.value, {
-    defer: false,
-    delayMs: 0,
-    trackLoading: true,
-    variant: item.imageSource.variant,
-  });
-  const displayImageUrl = prefetchedImageUrl ?? signedUrl;
-
-  return (
-    <TouchableOpacity
-      activeOpacity={0.94}
-      style={styles.recentImageCard}
-      onPress={() => onPress(item.record.id)}
-    >
-      <View style={styles.recentImageMedia}>
-        {displayImageUrl ? (
-          <OptimizedImage
-            uri={displayImageUrl}
-            style={styles.recentImageMediaImage}
-            resizeMode="cover"
-            priority="high"
-          />
-        ) : (
-          <View
-            style={[
-              styles.recentImageFallback,
-              { backgroundColor: meta.tint },
-            ]}
-          >
-            <MaterialCommunityIcons name={meta.icon} size={26} color="#FFFFFF" />
-            {loading ? <ActivityIndicator size="small" color="#FFFFFF" /> : null}
-          </View>
-        )}
-
-        <LinearGradient
-          colors={['rgba(8,12,20,0.00)', 'rgba(8,12,20,0.18)', 'rgba(8,12,20,0.62)']}
-          locations={[0, 0.48, 1]}
-          style={styles.recentImageGradient}
-        />
-
-        <View style={styles.recentImageTopRow}>
-          <View style={styles.recentImageDayPill}>
-            <Text style={styles.recentImageDayPillText}>{item.groupLabel}</Text>
-          </View>
-          <View style={styles.recentImageTypePill}>
-            <Text style={styles.recentImageTypePillText}>{item.typeLabel}</Text>
-          </View>
-        </View>
-
-        <View style={styles.recentImageTextWrap}>
-          <Text style={styles.recentImageSummary} numberOfLines={2}>
-            {item.summary}
-          </Text>
-          <Text style={styles.recentImageDate} numberOfLines={1}>
-            {item.displayDate}
-          </Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-});
-
-const HomeRecentTextCard = React.memo(function HomeRecentTextCard({
-  item,
-  onPress,
-}: {
-  item: HomeRecentPreviewItem;
-  onPress: (memoryId: string) => void;
-}) {
-  const badgeTone = useMemo(() => getHomeRecentBadgeTone(item.record), [item.record]);
-
-  return (
-    <TouchableOpacity
-      activeOpacity={0.9}
-      style={styles.recentTextCard}
-      onPress={() => onPress(item.record.id)}
-    >
-      <View
-        style={[
-          styles.recentTextRailDot,
-          { backgroundColor: badgeTone.dot },
-        ]}
-      />
-
-      <View style={styles.recentTextBody}>
-        <View style={styles.recentTextTopRow}>
-          <View
-            style={[
-              styles.recentTextBadge,
-              { backgroundColor: badgeTone.badgeBackground },
-            ]}
-          >
-            <Text
-              style={[
-                styles.recentTextBadgeText,
-                { color: badgeTone.badgeText },
-              ]}
-            >
-              {item.typeLabel}
-            </Text>
-          </View>
-        </View>
-
-        <Text style={styles.recentTextSummary} numberOfLines={1}>
-          {item.summary}
-        </Text>
-
-        <Text style={styles.recentTextDate} numberOfLines={1}>
-          {item.displayDate}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
-});
-
 const PetChipButton = React.memo(function PetChipButton({
   petId,
   isActive,
@@ -1458,7 +1206,6 @@ const TodayHomeTipSection = React.memo(function TodayHomeTipSection({
 });
 
 const TodayRecordsSection = React.memo(function TodayRecordsSection({
-  activePetId,
   recordItems,
   recordStatus,
   onPressTimeline,
@@ -1467,7 +1214,6 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
   accentColor,
   accentDeepColor,
 }: {
-  activePetId: string | null;
   recordItems: MemoryRecord[];
   recordStatus:
     | 'idle'
@@ -1494,58 +1240,22 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
     () => groupHomeRecentPreviewItems(previewItems),
     [previewItems],
   );
+  const homeRecentDotColorById = useMemo(() => {
+    const alphaSteps = ['FF', 'A8', '78', '5C', '46', '34', '26'] as const;
+    return previewItems.reduce<Record<string, string>>((acc, item, index) => {
+      acc[item.record.id] =
+        `${accentColor}${alphaSteps[Math.min(index, alphaSteps.length - 1)]}`;
+      return acc;
+    }, {});
+  }, [accentColor, previewItems]);
   const isRecordBootstrapPending =
     (recordStatus === 'idle' || recordStatus === 'loading') &&
     recordItems.length === 0;
-  const [prefetchedImageUrls, setPrefetchedImageUrls] = useState<
-    Record<string, string>
-  >({});
-
-  useEffect(() => {
-    setPrefetchedImageUrls({});
-  }, [activePetId, previewItems]);
-
-  useEffect(() => {
-    let cancelled = false;
-    const imagePreviewItems = previewItems.filter(
-      item => item.mode === 'image' && Boolean(item.imageSource.value),
-    );
-    if (imagePreviewItems.length === 0) return;
-
-    (async () => {
-      const urlEntries = await Promise.all(
-        imagePreviewItems.map(async item => {
-          const [url] = await getMemoryImageSignedUrlsCached(
-            [item.imageSource.value],
-            { variant: item.imageSource.variant },
-          );
-          return [item.record.id, url] as const;
-        }),
-      );
-      if (cancelled) return;
-
-      const nextEntries = urlEntries.reduce<Record<string, string>>((acc, entry) => {
-        const [recordId, url] = entry;
-        if (url) {
-          acc[recordId] = url;
-        }
-        return acc;
-      }, {});
-
-      setPrefetchedImageUrls(nextEntries);
-    })().catch(() => {
-      if (!cancelled) {
-        setPrefetchedImageUrls({});
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [previewItems]);
+  const homeRecentRailColor = useMemo(() => `${accentColor}20`, [accentColor]);
+  const homeRecentTitleColor = '#6B7280';
 
   return (
-    <View style={styles.section}>
+    <View style={[styles.section, styles.recentSection]}>
       <View style={styles.sectionHeaderRow}>
         <Text style={[styles.sectionTitle, { color: accentDeepColor }]}>
           최근 기록
@@ -1583,51 +1293,41 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
         </View>
       ) : (
         <View style={styles.recentPreviewWrap}>
-          <View
-            style={[
-              styles.recentPreviewRail,
-              { backgroundColor: `${accentColor}36` },
-            ]}
-          />
-
           <View style={styles.recentPreviewList}>
-            {groupedPreviewItems.map(group => (
-              <View key={group.key} style={styles.recentGroupBlock}>
-                <View style={styles.recentGroupHeader}>
-                  <View
-                    style={[
-                      styles.recentGroupDot,
-                      { backgroundColor: accentColor },
-                    ]}
-                  />
-                  <View style={styles.recentGroupHeaderText}>
-                    <Text style={styles.recentGroupLabel}>{group.label}</Text>
-                    <Text style={styles.recentGroupDateLabel}>
-                      {group.dateText}
-                    </Text>
-                  </View>
-                </View>
+            {groupedPreviewItems.map((group, groupIndex) =>
+              group.items.map((previewItem, itemIndex) => {
+                const isLastVisibleItem =
+                  groupIndex === groupedPreviewItems.length - 1 &&
+                  itemIndex === group.items.length - 1;
+                const itemDotColor =
+                  homeRecentDotColorById[previewItem.record.id] ?? accentColor;
+                const headerDotColor =
+                  homeRecentDotColorById[group.items[0]?.record.id ?? ''] ?? accentColor;
 
-                <View style={styles.recentGroupItems}>
-                  {group.items.map(item =>
-                    item.mode === 'image' ? (
-                      <HomeRecentImageCard
-                        key={item.record.id}
-                        item={item}
-                        prefetchedImageUrl={prefetchedImageUrls[item.record.id] ?? null}
-                        onPress={onPressRecordItem}
-                      />
-                    ) : (
-                      <HomeRecentTextCard
-                        key={item.record.id}
-                        item={item}
-                        onPress={onPressRecordItem}
-                      />
-                    ),
-                  )}
-                </View>
-              </View>
-            ))}
+                return (
+                  <MemoryCard
+                    key={previewItem.record.id}
+                    item={previewItem.record}
+                    onPress={record => onPressRecordItem(record.id)}
+                    thumbnailPreset="timeline"
+                    showDateHeader={itemIndex === 0}
+                    isFirstGroup={groupIndex === 0}
+                    dateHeaderTitle={itemIndex === 0 ? group.label : null}
+                    dateHeaderSubtitle={itemIndex === 0 ? group.dateText : null}
+                    dateHeaderTitleVariant="month"
+                    dateHeaderTitleColor={homeRecentTitleColor}
+                    timelineRailColor={homeRecentRailColor}
+                    dateHeaderDotColor={headerDotColor}
+                    timelineDotColor={itemDotColor}
+                    itemDotColor={itemDotColor}
+                    metaTextOverride={formatRecordCreatedTime(previewItem.record)}
+                    itemTitleStyle={styles.recentItemTitleBalanced}
+                    metaTextStyle={styles.recentItemMetaBalanced}
+                    hideBottomRail={isLastVisibleItem}
+                  />
+                );
+              }),
+            )}
           </View>
         </View>
       )}
@@ -2761,7 +2461,6 @@ export default function LoggedInHome() {
           />
 
           <TodayRecordsSection
-            activePetId={activePetId}
             recordItems={recordItems}
             recordStatus={recordStatus}
             onPressTimeline={onPressTimeline}

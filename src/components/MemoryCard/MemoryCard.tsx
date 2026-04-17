@@ -6,7 +6,7 @@
 
 import React, { memo, useCallback, useMemo } from 'react';
 import { TouchableOpacity, View } from 'react-native';
-import type { LayoutChangeEvent } from 'react-native';
+import type { LayoutChangeEvent, StyleProp, TextStyle } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import OptimizedImage from '../images/OptimizedImage';
@@ -16,11 +16,10 @@ import {
   hasMemoryImage,
 } from '../../services/records/imageSources';
 import {
-  getMemoryCategoryChipLabel,
   getMemoryCategoryChipTone,
   getRecordCategoryMeta,
 } from '../../services/memories/categoryMeta';
-import { formatRecordCreatedTime } from '../../services/records/date';
+import { formatRecordTimelineMeta } from '../../services/records/date';
 import type { MemoryRecord } from '../../services/supabase/memories';
 import type { MemoryImageVariant } from '../../services/supabase/storageMemories';
 import AppText from '../../app/ui/AppText';
@@ -47,8 +46,22 @@ interface MemoryCardProps {
   imageVariant?: MemoryImageVariant;
   thumbnailPreset?: 'default' | 'timeline';
   showDateHeader?: boolean;
+  isFirstGroup?: boolean;
   dateHeaderTitle?: string | null;
   dateHeaderSubtitle?: string | null;
+  dateHeaderTitleVariant?: 'today' | 'year' | 'month';
+  dateHeaderTitleColor?: string;
+  dateHeaderSubtitleColor?: string;
+  timelineRailColor?: string;
+  dateHeaderDotColor?: string;
+  timelineDotColor?: string;
+  itemRailColor?: string;
+  itemDotColor?: string;
+  metaTextOverride?: string | null;
+  metaTextColor?: string;
+  itemTitleStyle?: StyleProp<TextStyle>;
+  metaTextStyle?: StyleProp<TextStyle>;
+  hideBottomRail?: boolean;
 }
 
 function MemoryCardComponent({
@@ -61,8 +74,22 @@ function MemoryCardComponent({
   imageVariant,
   thumbnailPreset = 'default',
   showDateHeader = false,
+  isFirstGroup = false,
   dateHeaderTitle = null,
   dateHeaderSubtitle = null,
+  dateHeaderTitleVariant = 'month',
+  dateHeaderTitleColor,
+  dateHeaderSubtitleColor,
+  timelineRailColor,
+  dateHeaderDotColor,
+  timelineDotColor,
+  itemRailColor,
+  itemDotColor,
+  metaTextOverride,
+  metaTextColor,
+  itemTitleStyle,
+  metaTextStyle,
+  hideBottomRail = false,
 }: MemoryCardProps) {
   const timelineImage = getTimelinePrimaryMemoryImageSource(item);
   const effectiveVariant = imageVariant ?? timelineImage.variant;
@@ -75,7 +102,6 @@ function MemoryCardComponent({
   });
   const hasImage = Boolean(timelineImage.value) || hasMemoryImage(item);
   const categoryMeta = useMemo(() => getRecordCategoryMeta(item), [item]);
-  const categoryLabel = useMemo(() => getMemoryCategoryChipLabel(item), [item]);
   const categoryTone = useMemo(() => getMemoryCategoryChipTone(item), [item]);
   const thumbnailStyle = thumbnailPreset === 'timeline' ? styles.thumbTimeline : styles.thumb;
   const thumbnailImageStyle =
@@ -95,7 +121,10 @@ function MemoryCardComponent({
 
     return '기록을 남겼어요';
   }, [item.content, item.title]);
-  const timeText = useMemo(() => formatRecordCreatedTime(item), [item]);
+  const metaText = useMemo(
+    () => metaTextOverride ?? formatRecordTimelineMeta(item),
+    [item, metaTextOverride],
+  );
   const handlePress = useMemo(() => () => onPress(item), [item, onPress]);
   const handleLayout = useCallback(
     (event: LayoutChangeEvent) => {
@@ -112,19 +141,74 @@ function MemoryCardComponent({
       onPress={handlePress}
       onLayout={isFocused ? handleLayout : undefined}
     >
-      {showDateHeader ? (
+      {showDateHeader && dateHeaderTitleVariant === 'year' ? (
+        <View style={styles.dateGroupHeaderYearBlock}>
+          {dateHeaderTitle ? (
+            <View style={styles.dateGroupHeaderYearTitleWrap}>
+              <AppText
+                preset="headline"
+                style={[
+                  styles.dateGroupHeaderTitleYear,
+                  dateHeaderTitleColor ? { color: dateHeaderTitleColor } : null,
+                ]}
+              >
+                {dateHeaderTitle}
+              </AppText>
+            </View>
+          ) : null}
+
+          <View style={styles.dateGroupHeaderMonthRow}>
+            <View style={[styles.dateGroupHeaderRail, styles.dateGroupHeaderRailMonth]}>
+              <View
+                style={[
+                  styles.dateGroupHeaderLine,
+                  isFirstGroup ? styles.dateGroupHeaderLineYearFirst : null,
+                  styles.dateGroupHeaderLineYearConnect,
+                  { backgroundColor: timelineRailColor ?? categoryTone.lineColor },
+                ]}
+              />
+              <View
+                style={[
+                  styles.dateGroupHeaderDot,
+                  { backgroundColor: dateHeaderDotColor ?? categoryTone.dotColor },
+                ]}
+              />
+            </View>
+
+            <View style={styles.dateGroupHeaderText}>
+              {dateHeaderSubtitle ? (
+                <AppText
+                  preset="caption"
+                  style={[
+                    styles.dateGroupHeaderSubtitle,
+                    dateHeaderSubtitleColor ? { color: dateHeaderSubtitleColor } : null,
+                  ]}
+                >
+                  {dateHeaderSubtitle}
+                </AppText>
+              ) : null}
+            </View>
+          </View>
+        </View>
+      ) : showDateHeader ? (
         <View style={styles.dateGroupHeader}>
-          <View style={styles.dateGroupHeaderRail}>
+          <View
+            style={[
+              styles.dateGroupHeaderRail,
+              dateHeaderTitleVariant === 'month' ? styles.dateGroupHeaderRailMonth : null,
+            ]}
+          >
             <View
               style={[
                 styles.dateGroupHeaderLine,
-                { backgroundColor: categoryTone.lineColor },
+                isFirstGroup ? styles.dateGroupHeaderLineFirst : null,
+                { backgroundColor: timelineRailColor ?? categoryTone.lineColor },
               ]}
             />
             <View
               style={[
                 styles.dateGroupHeaderDot,
-                { backgroundColor: categoryTone.dotColor },
+                { backgroundColor: dateHeaderDotColor ?? categoryTone.dotColor },
               ]}
             />
           </View>
@@ -133,17 +217,24 @@ function MemoryCardComponent({
             {dateHeaderTitle ? (
               <AppText
                 preset="headline"
-                style={
-                  dateHeaderSubtitle
+                style={[
+                  dateHeaderTitleVariant === 'today'
                     ? styles.dateGroupHeaderTitleToday
-                    : styles.dateGroupHeaderTitlePast
-                }
+                    : styles.dateGroupHeaderTitleMonth,
+                  dateHeaderTitleColor ? { color: dateHeaderTitleColor } : null,
+                ]}
               >
                 {dateHeaderTitle}
               </AppText>
             ) : null}
             {dateHeaderSubtitle ? (
-              <AppText preset="caption" style={styles.dateGroupHeaderSubtitle}>
+              <AppText
+                preset="caption"
+                style={[
+                  styles.dateGroupHeaderSubtitle,
+                  dateHeaderSubtitleColor ? { color: dateHeaderSubtitleColor } : null,
+                ]}
+              >
                 {dateHeaderSubtitle}
               </AppText>
             ) : null}
@@ -156,13 +247,20 @@ function MemoryCardComponent({
           <View
             style={[
               styles.itemRailLine,
-              { backgroundColor: categoryTone.lineColor },
+              hideBottomRail ? styles.itemRailLineLast : null,
+              {
+                backgroundColor:
+                  itemRailColor ?? timelineRailColor ?? categoryTone.lineColor,
+              },
             ]}
           />
           <View
             style={[
               styles.itemRailDot,
-              { backgroundColor: categoryTone.dotColor },
+              {
+                backgroundColor:
+                  itemDotColor ?? timelineDotColor ?? categoryTone.dotColor,
+              },
             ]}
           />
         </View>
@@ -192,37 +290,26 @@ function MemoryCardComponent({
         </View>
 
         <View style={styles.itemBody}>
-          <View style={styles.itemHeaderRow}>
-            <View
-              style={[
-                styles.itemCategoryChip,
-                {
-                  backgroundColor: categoryTone.backgroundColor,
-                  borderColor: categoryTone.borderColor,
-                },
-              ]}
-            >
+          <AppText
+            preset="body"
+            numberOfLines={1}
+            style={[styles.itemTitle, itemTitleStyle]}
+          >
+            {titleText}
+          </AppText>
+
+          {metaText ? (
+            <View style={styles.metaRow}>
               <AppText
                 preset="caption"
                 numberOfLines={1}
                 style={[
-                  styles.itemCategoryChipText,
-                  { color: categoryTone.textColor },
+                  styles.metaText,
+                  metaTextColor ? { color: metaTextColor } : null,
+                  metaTextStyle,
                 ]}
               >
-                {categoryLabel}
-              </AppText>
-            </View>
-          </View>
-
-          <AppText preset="body" numberOfLines={1} style={styles.itemTitle}>
-            {titleText}
-          </AppText>
-
-          {timeText ? (
-            <View style={styles.metaRow}>
-              <AppText preset="caption" numberOfLines={1} style={styles.metaText}>
-                {timeText}
+                {metaText}
               </AppText>
             </View>
           ) : null}
@@ -244,6 +331,20 @@ export const MemoryCard = memo(
     prev.imageVariant === next.imageVariant &&
     prev.thumbnailPreset === next.thumbnailPreset &&
     prev.showDateHeader === next.showDateHeader &&
+    prev.isFirstGroup === next.isFirstGroup &&
     prev.dateHeaderTitle === next.dateHeaderTitle &&
-    prev.dateHeaderSubtitle === next.dateHeaderSubtitle,
+    prev.dateHeaderSubtitle === next.dateHeaderSubtitle &&
+    prev.dateHeaderTitleVariant === next.dateHeaderTitleVariant &&
+    prev.dateHeaderTitleColor === next.dateHeaderTitleColor &&
+    prev.dateHeaderSubtitleColor === next.dateHeaderSubtitleColor &&
+    prev.timelineRailColor === next.timelineRailColor &&
+    prev.dateHeaderDotColor === next.dateHeaderDotColor &&
+    prev.timelineDotColor === next.timelineDotColor &&
+    prev.itemRailColor === next.itemRailColor &&
+    prev.itemDotColor === next.itemDotColor &&
+    prev.metaTextOverride === next.metaTextOverride &&
+    prev.metaTextColor === next.metaTextColor &&
+    prev.itemTitleStyle === next.itemTitleStyle &&
+    prev.metaTextStyle === next.metaTextStyle &&
+    prev.hideBottomRail === next.hideBottomRail,
 );

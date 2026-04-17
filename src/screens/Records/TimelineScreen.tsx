@@ -38,12 +38,12 @@ import type {
 } from '@react-navigation/native';
 import { useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
 
 import { MemoryCard } from '../../components/MemoryCard/MemoryCard';
 import { preloadOptimizedImages } from '../../components/images/OptimizedImage';
 import AppText from '../../app/ui/AppText';
-import HeaderIconActionButton from '../../components/navigation/HeaderIconActionButton';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { AppTabParamList } from '../../navigation/AppTabsNavigator';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -73,8 +73,8 @@ import { useAuthStore } from '../../store/authStore';
 import { openMoreDrawer } from '../../store/uiStore';
 import {
   diffCalendarDaysBetweenYmd,
-  formatYmdWithWeekday,
   getKstYmd,
+  getMonthKeyFromYmd,
 } from '../../utils/date';
 import { styles } from './TimelineScreen.styles';
 
@@ -179,44 +179,70 @@ const MAIN_CATEGORY_KEY_SET = new Set<MainCategory>(
 const OTHER_SUBCATEGORY_KEY_SET = new Set<OtherSubCategory>(
   TIMELINE_OTHER_SUBCATEGORY_OPTIONS.map(item => item.key),
 );
-const WEEKDAY_FULL_KO = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'] as const;
+const TIMELINE_PAST_GROUP_COLORS = {
+  title: '#6B7280',
+  subtitle: '#9CA3AF',
+  rail: '#E7EBF0',
+  headerDot: '#C5CCD5',
+  itemDot: '#D6DCE4',
+} as const;
 
-function formatTimelineAbsoluteHeader(ymd: string | null): string {
-  if (!ymd) return '최근';
-
-  const [year, month, day] = ymd.split('-').map(Number);
-  if (!year || !month || !day) return '최근';
-  const weekday = new Date(Date.UTC(year, month - 1, day, 0, 0, 0)).getUTCDay();
-  return `${year}년 ${month}월 ${day}일 ${WEEKDAY_FULL_KO[weekday]}`;
-}
-
-function buildTimelineGroupHeader(ymd: string | null): {
+type TimelineGroupHeader = {
   title: string;
   subtitle: string | null;
-} {
-  if (!ymd) {
+  titleVariant: 'year' | 'month';
+};
+
+function isTodayTimelineGroup(ymd: string | null): boolean {
+  if (!ymd) return false;
+  return diffCalendarDaysBetweenYmd(ymd, getKstYmd()) === 0;
+}
+
+function isCurrentYearTimelineGroup(ymd: string | null): boolean {
+  if (!ymd) return false;
+  return ymd.slice(0, 4) === getKstYmd().slice(0, 4);
+}
+
+function isCurrentMonthTimelineGroup(ymd: string | null): boolean {
+  if (!ymd) return false;
+  return getMonthKeyFromYmd(ymd) === getMonthKeyFromYmd(getKstYmd());
+}
+
+function buildTimelineGroupHeader(
+  ymd: string | null,
+  previousYmd: string | null,
+): TimelineGroupHeader | null {
+  if (!ymd) return null;
+
+  const [yearRaw, monthRaw] = ymd.split('-');
+  const year = Number(yearRaw);
+  const month = Number(monthRaw);
+  if (!year || !month) return null;
+
+  const previousMonthKey = getMonthKeyFromYmd(previousYmd);
+  const currentMonthKey = getMonthKeyFromYmd(ymd);
+  const previousYear = previousYmd?.slice(0, 4) ?? null;
+
+  if (
+    !previousYmd ||
+    previousYear !== `${year}`
+  ) {
     return {
-      title: '최근',
+      title: `${year}`,
+      subtitle: `${month}월`,
+      titleVariant: 'year',
+    };
+  }
+
+  if (previousMonthKey !== currentMonthKey) {
+    return {
+      title: `${month}월`,
       subtitle: null,
+      titleVariant: 'month',
     };
   }
 
-  const diffDays = diffCalendarDaysBetweenYmd(ymd, getKstYmd());
-  if (diffDays === 0) {
-    return {
-      title: '오늘',
-      subtitle:
-        formatYmdWithWeekday(ymd, {
-          separator: '.',
-          suffix: false,
-        }) ?? null,
-    };
-  }
-
-  return {
-    title: formatTimelineAbsoluteHeader(ymd),
-    subtitle: null,
-  };
+  return null;
 }
 
 const ControlsBar = memo(function ControlsBar({
@@ -254,13 +280,6 @@ const ControlsBar = memo(function ControlsBar({
           >
             {sortLabel}
           </AppText>
-          <View
-            pointerEvents="none"
-            style={[
-              styles.controlChipUnderline,
-              { backgroundColor: theme.primary },
-            ]}
-          />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -345,6 +364,7 @@ const ControlsBar = memo(function ControlsBar({
 
 export default function TimelineScreen() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const route = useRoute<TimelineMainRoute>();
   const isFocused = useIsFocused();
@@ -775,14 +795,14 @@ export default function TimelineScreen() {
   }, []);
 
   const onPressMainCategory = useCallback((key: MainCategory) => {
-    setMainCategory(key);
     if (key !== 'other') {
+      setMainCategory(key);
       setOtherSubCategory(null);
       setOtherModalOpen(false);
       return;
     }
-    setOtherSubCategory(null);
-    setOtherModalOpen(false);
+    setMainCategory('other');
+    setOtherModalOpen(true);
   }, []);
 
   const applyOtherSub = useCallback((sub: OtherSubCategory) => {
@@ -815,7 +835,16 @@ export default function TimelineScreen() {
       (TIMELINE_MAIN_CATEGORY_OPTIONS.find(x => x.key === 'other')?.label ?? '생활')
     );
   }, [mainCategory, otherSubCategory]);
-
+  const currentYearHeaderTitleColor = useMemo(() => petTheme.primary, [petTheme.primary]);
+  const currentYearHeaderSubtitleColor = useMemo(() => petTheme.muted, [petTheme.muted]);
+  const currentYearHeaderDotColor = useMemo(() => petTheme.primary, [petTheme.primary]);
+  const currentMonthItemDotColor = useMemo(() => petTheme.glow, [petTheme.glow]);
+  const todayItemDotColor = useMemo(() => petTheme.primary, [petTheme.primary]);
+  const todayItemMetaColor = useMemo(() => petTheme.primary, [petTheme.primary]);
+  const floatingCreateButtonBottom = useMemo(
+    () => Math.max(insets.bottom + 74, 82),
+    [insets.bottom],
+  );
   const renderItem = useCallback<ListRenderItem<string>>(
     ({ item, index }) => {
       const record = recordsById[item];
@@ -824,10 +853,12 @@ export default function TimelineScreen() {
         index > 0 ? recordsById[filteredIds[index - 1] ?? ''] : null;
       const currentYmd = getRecordDisplayYmd(record);
       const previousYmd = previousRecord ? getRecordDisplayYmd(previousRecord) : null;
-      const showDateHeader = index === 0 || currentYmd !== previousYmd;
-      const dateHeader = showDateHeader
-        ? buildTimelineGroupHeader(currentYmd)
-        : null;
+      const dateHeader = buildTimelineGroupHeader(currentYmd, previousYmd);
+      const isCurrentYearGroup =
+        dateHeader?.titleVariant === 'year' && isCurrentYearTimelineGroup(currentYmd);
+      const isCurrentMonthRecord = isCurrentMonthTimelineGroup(currentYmd);
+      const isTodayRecord = isTodayTimelineGroup(currentYmd);
+      const isLastVisibleItem = index === filteredIds.length - 1;
 
       const enableImageLoad =
         index >= imageWindow.start && index <= imageWindow.end;
@@ -843,9 +874,37 @@ export default function TimelineScreen() {
           isFocused={focusedMemoryId === item}
           onFocusedLayout={onFocusedItemLayout}
           thumbnailPreset="timeline"
-          showDateHeader={showDateHeader}
+          showDateHeader={Boolean(dateHeader)}
+          isFirstGroup={index === 0}
           dateHeaderTitle={dateHeader?.title ?? null}
           dateHeaderSubtitle={dateHeader?.subtitle ?? null}
+          dateHeaderTitleVariant={dateHeader?.titleVariant ?? 'month'}
+          dateHeaderTitleColor={
+            isCurrentYearGroup
+              ? currentYearHeaderTitleColor
+              : TIMELINE_PAST_GROUP_COLORS.title
+          }
+          dateHeaderSubtitleColor={
+            isCurrentYearGroup
+              ? currentYearHeaderSubtitleColor
+              : TIMELINE_PAST_GROUP_COLORS.subtitle
+          }
+          dateHeaderDotColor={
+            isCurrentYearGroup
+              ? currentYearHeaderDotColor
+              : TIMELINE_PAST_GROUP_COLORS.headerDot
+          }
+          timelineDotColor={TIMELINE_PAST_GROUP_COLORS.itemDot}
+          timelineRailColor={TIMELINE_PAST_GROUP_COLORS.rail}
+          itemDotColor={
+            isTodayRecord
+              ? todayItemDotColor
+              : isCurrentMonthRecord
+                ? currentMonthItemDotColor
+                : undefined
+          }
+          metaTextColor={isTodayRecord ? todayItemMetaColor : undefined}
+          hideBottomRail={sortMode === 'recent' && isLastVisibleItem}
         />
       );
     },
@@ -853,9 +912,16 @@ export default function TimelineScreen() {
       filteredIds,
       focusedMemoryId,
       imageWindow,
+      currentYearHeaderDotColor,
+      currentYearHeaderSubtitleColor,
+      currentYearHeaderTitleColor,
+      currentMonthItemDotColor,
       onFocusedItemLayout,
       onPressItem,
       recordsById,
+      sortMode,
+      todayItemDotColor,
+      todayItemMetaColor,
     ],
   );
 
@@ -1067,13 +1133,7 @@ export default function TimelineScreen() {
         <AppText preset="headline" style={styles.headerTitle}>
           타임라인
         </AppText>
-        <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
-          <HeaderIconActionButton
-            accessibilityLabel="기록하기"
-            backgroundColor={petTheme.primary}
-            onPress={onPressCreate}
-          />
-        </View>
+        <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
       </View>
       <ControlsBar
         sortLabel={sortLabel}
@@ -1113,6 +1173,22 @@ export default function TimelineScreen() {
         }}
         keyboardShouldPersistTaps="handled"
       />
+
+      <TouchableOpacity
+        activeOpacity={0.92}
+        accessibilityRole="button"
+        accessibilityLabel="기록하기"
+        style={[
+          styles.floatingCreateButton,
+          {
+            backgroundColor: petTheme.primary,
+            bottom: floatingCreateButtonBottom,
+          },
+        ]}
+        onPress={onPressCreate}
+      >
+        <Feather name="plus" size={16} color="#FFFFFF" />
+      </TouchableOpacity>
 
       <Modal
         visible={ymModalOpen}

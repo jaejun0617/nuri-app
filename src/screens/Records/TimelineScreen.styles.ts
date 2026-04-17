@@ -65,7 +65,7 @@ export const styles = StyleSheet.create({
   controlsWrap: {
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 0,
-    paddingHorizontal: 14,
+    paddingHorizontal: 18,
     paddingTop: SCREEN_TOP_SPACING,
     paddingBottom: 8,
     gap: 8,
@@ -74,7 +74,7 @@ export const styles = StyleSheet.create({
 
   controlChip: {
     minHeight: 36,
-    paddingHorizontal: 6,
+    paddingHorizontal: 16,
     paddingBottom: 4,
     alignItems: 'center',
     justifyContent: 'center',
@@ -84,8 +84,8 @@ export const styles = StyleSheet.create({
   controlChipTextInactive: { color: '#9AA0A9', fontWeight: '700' },
   controlChipUnderline: {
     position: 'absolute',
-    left: 6,
-    right: 6,
+    left: 4,
+    right: 4,
     bottom: 0,
     height: 3,
     borderRadius: 999,
@@ -108,14 +108,14 @@ export const styles = StyleSheet.create({
     marginTop: 2,
   },
   categoryContent: {
-    paddingRight: 18,
-    gap: 2,
+    paddingHorizontal: 0,
+    gap: 12,
     alignItems: 'center',
   },
   categoryChip: {
     minHeight: 40,
-    paddingHorizontal: 6,
-    paddingBottom: 4,
+    paddingHorizontal: 16,
+    paddingBottom: 2,
     borderRadius: 0,
     alignItems: 'center',
     justifyContent: 'center',
@@ -128,7 +128,7 @@ export const styles = StyleSheet.create({
     position: 'absolute',
     left: 4,
     right: 4,
-    bottom: 0,
+    bottom: 2,
     height: 3,
     borderRadius: 999,
   },
@@ -265,8 +265,8 @@ export const styles = StyleSheet.create({
     fontWeight: '800',
   },
 
-  list: { paddingHorizontal: 18, paddingTop: 4, paddingBottom: 18 },
-  listEmpty: { flexGrow: 1, padding: 18 },
+  list: { paddingHorizontal: 18, paddingTop: 4, paddingBottom: 120 },
+  listEmpty: { flexGrow: 1, padding: 18, paddingBottom: 120 },
 
   item: {
     backgroundColor: '#FFFFFF',
@@ -279,11 +279,27 @@ export const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 8,
   },
+  dateGroupHeaderYearBlock: {
+    gap: 4,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  dateGroupHeaderYearTitleWrap: {
+    paddingLeft: 24,
+  },
+  dateGroupHeaderMonthRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
   dateGroupHeaderRail: {
     width: 14,
     alignItems: 'center',
     position: 'relative',
     paddingTop: 8,
+  },
+  dateGroupHeaderRailMonth: {
+    paddingTop: 4,
   },
   dateGroupHeaderLine: {
     position: 'absolute',
@@ -291,6 +307,15 @@ export const styles = StyleSheet.create({
     bottom: -8,
     width: 1.5,
     borderRadius: 999,
+  },
+  dateGroupHeaderLineFirst: {
+    top: 8,
+  },
+  dateGroupHeaderLineYearFirst: {
+    top: 4,
+  },
+  dateGroupHeaderLineYearConnect: {
+    bottom: -18,
   },
   dateGroupHeaderDot: {
     width: 10,
@@ -302,23 +327,30 @@ export const styles = StyleSheet.create({
   },
   dateGroupHeaderTitleToday: {
     color: TEXT,
-    fontWeight: '800',
-    fontSize: 18,
-    lineHeight: 24,
+    fontWeight: '700',
+    fontSize: 16,
+    lineHeight: 22,
     letterSpacing: -0.2,
   },
-  dateGroupHeaderTitlePast: {
+  dateGroupHeaderTitleYear: {
     color: TEXT,
-    fontWeight: '700',
-    fontSize: 15,
-    lineHeight: 21,
-    letterSpacing: -0.1,
+    fontWeight: '800',
+    fontSize: 30,
+    lineHeight: 34,
+    letterSpacing: -0.6,
+  },
+  dateGroupHeaderTitleMonth: {
+    color: TEXT,
+    fontWeight: '600',
+    fontSize: 12,
+    lineHeight: 18,
+    letterSpacing: -0.2,
   },
   dateGroupHeaderSubtitle: {
     color: '#8A94A3',
     fontWeight: '600',
-    fontSize: 11,
-    lineHeight: 16,
+    fontSize: 12,
+    lineHeight: 18,
   },
   itemRow: {
     flexDirection: 'row',
@@ -342,6 +374,9 @@ export const styles = StyleSheet.create({
     bottom: -6,
     width: 1.5,
     borderRadius: 999,
+  },
+  itemRailLineLast: {
+    bottom: 0,
   },
   itemRailDot: {
     width: 10,
@@ -382,37 +417,21 @@ export const styles = StyleSheet.create({
     flex: 1,
     minHeight: 60,
     justifyContent: 'center',
-    gap: 4,
-    paddingBottom: 10,
-  },
-  itemHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  itemCategoryChip: {
-    minHeight: 24,
-    borderRadius: 7,
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    maxWidth: 88,
-  },
-  itemCategoryChipText: {
-    fontWeight: '700',
+    gap: 6,
+    paddingBottom: 8,
   },
   itemTitle: {
     color: TEXT,
-    fontWeight: '700',
+    fontWeight: '600',
     fontSize: 14,
     lineHeight: 19,
-    letterSpacing: -0.1,
+    letterSpacing: -0.2,
   },
   itemContent: { marginTop: 4, color: '#374151' },
   metaRow: { flexDirection: 'row', alignItems: 'center' },
   metaText: {
     color: '#7A8594',
-    fontWeight: '700',
+    fontWeight: '500',
     fontSize: 12,
     lineHeight: 17,
   },
@@ -495,6 +514,21 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   manualMoreText: { color: TEXT, fontWeight: '900' },
+
+  floatingCreateButton: {
+    position: 'absolute',
+    right: 18,
+    width: 50,
+    height: 50,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0B1220',
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
+  },
 
   // modal
   modalBackdrop: {

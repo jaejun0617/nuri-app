@@ -1,6 +1,7 @@
 import type { MemoryRecord } from '../supabase/memories';
 import {
   diffCalendarDaysBetweenYmd,
+  formatKstDateWithWeekday,
   formatYmdToDots,
   getDateYmdInKst,
   getKstDateParts,
@@ -43,6 +44,30 @@ export function formatRecordCreatedTime(record: Pick<MemoryRecord, 'createdAt'>)
   const period = parts.hour < 12 ? '오전' : '오후';
   const hour12 = parts.hour % 12 === 0 ? 12 : parts.hour % 12;
   return `${period} ${hour12}:${`${parts.minute}`.padStart(2, '0')}`;
+}
+
+export function formatRecordMonthDay(record: RecordDateSource): string {
+  const ymd = getRecordDisplayYmd(record);
+  if (!ymd) return '';
+
+  const month = Number(ymd.slice(5, 7));
+  const day = Number(ymd.slice(8, 10));
+  if (!month || !day) return '';
+  return `${month}월 ${day}일`;
+}
+
+export function formatRecordMonthDayWithWeekday(record: RecordDateSource): string {
+  const ymd = getRecordDisplayYmd(record);
+  if (!ymd) return '';
+  return formatKstDateWithWeekday(ymd);
+}
+
+export function formatRecordTimelineMeta(record: RecordDateSource): string {
+  const monthDay = formatRecordMonthDayWithWeekday(record);
+  const createdTime = formatRecordCreatedTime(record);
+
+  if (monthDay && createdTime) return `${monthDay} · ${createdTime}`;
+  return monthDay || createdTime;
 }
 
 export function formatRecordRelativeTime(record: RecordDateSource, now = new Date()): string {
