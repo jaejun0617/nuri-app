@@ -48,6 +48,8 @@ import GuideAdminListScreen from '../screens/Guides/GuideAdminListScreen';
 import GuideAdminEditorScreen from '../screens/Guides/GuideAdminEditorScreen';
 import NearbyWalkListScreen from '../screens/LocationDiscovery/NearbyWalkListScreen';
 import NearbyWalkDetailScreen from '../screens/LocationDiscovery/NearbyWalkDetailScreen';
+import AnimalHospitalListScreen from '../screens/AnimalHospital/AnimalHospitalListScreen';
+import AnimalHospitalDetailScreen from '../screens/AnimalHospital/AnimalHospitalDetailScreen';
 import PetTravelListScreen from '../screens/PetTravel/PetTravelListScreen';
 import PetTravelDetailScreen from '../screens/PetTravel/PetTravelDetailScreen';
 import CommunityListScreen from '../screens/Community/CommunityListScreen';
@@ -59,6 +61,7 @@ import CommunityStackHeader from './CommunityStackHeader';
 import type { DeviceCoordinates } from '../services/location/currentPosition';
 import type { LocationDiscoveryItem } from '../services/locationDiscovery/types';
 import type { PetTravelItem } from '../services/petTravel/types';
+import type { AnimalHospitalPublicHospital } from '../domains/animalHospital/types';
 import type { ScreenEntrySource } from './entry';
 import type { HealthReportTabKey } from '../services/health-report/viewModel';
 import type {
@@ -186,6 +189,10 @@ export type RootStackParamList = {
   WalkSpotDetail: {
     item: LocationDiscoveryItem;
     resultItems?: LocationDiscoveryItem[];
+  };
+  AnimalHospitalList: { entrySource?: ScreenEntrySource } | undefined;
+  AnimalHospitalDetail: {
+    item: AnimalHospitalPublicHospital;
   };
   PetTravelList: { entrySource?: ScreenEntrySource } | undefined;
   PetTravelDetail: {
@@ -375,6 +382,16 @@ export default function RootNavigator() {
       <Stack.Screen
         name="WalkSpotDetail"
         component={NearbyWalkDetailScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="AnimalHospitalList"
+        component={AnimalHospitalListScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="AnimalHospitalDetail"
+        component={AnimalHospitalDetailScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

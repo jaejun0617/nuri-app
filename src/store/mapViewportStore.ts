@@ -10,7 +10,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-export type MapViewportDomain = 'pet-travel' | 'location-discovery' | 'walk';
+export type MapViewportDomain =
+  | 'animal-hospital'
+  | 'pet-travel'
+  | 'location-discovery'
+  | 'walk';
 
 export type MapViewportSnapshot = {
   centerLatitude: number;
@@ -96,7 +100,7 @@ function normalizePersistedState(value: unknown): MapViewportPersistedState {
       : {};
 
   const byDomain = Object.fromEntries(
-    (['pet-travel', 'location-discovery', 'walk'] as const)
+    (['animal-hospital', 'pet-travel', 'location-discovery', 'walk'] as const)
       .map(domain => {
         const normalized = normalizeViewportSnapshot(byDomainRecord[domain]);
         return normalized ? [domain, normalized] : null;

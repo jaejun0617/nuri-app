@@ -16,7 +16,6 @@ import MapsView, {
 } from 'react-native-maps';
 
 import AppText from '../../app/ui/AppText';
-import type { LocationDiscoveryItem } from '../../services/locationDiscovery/types';
 import type { MapViewportSnapshot } from '../../store/mapViewportStore';
 import {
   areRegionsEquivalent,
@@ -31,10 +30,18 @@ import {
   type MutableViewport,
 } from './mapViewportUtils';
 
+export type LocationDiscoveryMapItem = {
+  id: string;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+};
+
 type Props = {
   title?: string;
   caption?: string;
-  items: ReadonlyArray<LocationDiscoveryItem>;
+  items: ReadonlyArray<LocationDiscoveryMapItem>;
   viewport: MapViewportSnapshot | null;
   selectedItemId?: string | null;
   restoring: boolean;
@@ -45,7 +52,10 @@ type Props = {
     region: Region,
     reason: 'gesture' | 'marker' | 'restore' | 'results',
   ) => void;
-  onSelectItem: (item: LocationDiscoveryItem, viewport: MutableViewport) => void;
+  onSelectItem: (
+    item: LocationDiscoveryMapItem,
+    viewport: MutableViewport,
+  ) => void;
   onMapReady?: () => void;
 };
 
@@ -53,7 +63,7 @@ const MAP_HEIGHT = 300;
 const MAP_WIDTH_FALLBACK = 340;
 
 export function buildLocationDiscoveryMapViewport(params: {
-  items: ReadonlyArray<LocationDiscoveryItem>;
+  items: ReadonlyArray<LocationDiscoveryMapItem>;
   fallbackCoordinates?: {
     latitude: number;
     longitude: number;
@@ -151,7 +161,7 @@ export default function LocationDiscoveryMapPanel({
   );
 
   const handleMarkerPress = useCallback(
-    (item: LocationDiscoveryItem) => (_event: MarkerPressEvent) => {
+    (item: LocationDiscoveryMapItem) => (_event: MarkerPressEvent) => {
       const nextViewport = regionToViewport(currentRegion, item.id);
       onSelectItem(item, nextViewport);
     },

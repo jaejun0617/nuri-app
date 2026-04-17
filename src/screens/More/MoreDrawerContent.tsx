@@ -1504,6 +1504,12 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     );
   }, [closeAndNavigate, navigation]);
 
+  const openAnimalHospital = useCallback(() => {
+    closeAndNavigate(() =>
+      navigation.navigate('AnimalHospitalList', { entrySource: 'more' }),
+    );
+  }, [closeAndNavigate, navigation]);
+
   const openPetTravel = useCallback(() => {
     closeAndNavigate(() =>
       navigation.navigate('PetTravelList', { entrySource: 'more' }),
@@ -1570,9 +1576,17 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         iconTone: 'accent',
         onPress: isLoggedIn ? openWalkDiscovery : onPressLogin,
       },
+      {
+        key: 'animal-hospital',
+        label: '우리동네 동물병원',
+        icon: 'plus-square',
+        iconTone: 'accent',
+        onPress: isLoggedIn ? openAnimalHospital : onPressLogin,
+      },
     ],
     [
       isLoggedIn,
+      openAnimalHospital,
       openHealthReport,
       openIndoorActivities,
       onPressLogin,

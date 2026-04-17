@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type PersonalSearchNamespace =
+  | 'animal-hospital'
   | 'walk'
   | 'pet-friendly-place'
   | 'pet-travel';
@@ -12,6 +13,7 @@ export type RecentPersonalSearchEntry = {
 
 const RECENT_PERSONAL_SEARCH_LIMIT = 6;
 const STORAGE_KEY_BY_NAMESPACE: Record<PersonalSearchNamespace, string> = {
+  'animal-hospital': 'nuri.animalHospital.recentSearches.v1',
   walk: 'nuri.locationDiscovery.walk.recentSearches.v1',
   'pet-friendly-place': 'nuri.locationDiscovery.petFriendly.recentSearches.v1',
   'pet-travel': 'nuri.petTravel.recentSearches.v1',
