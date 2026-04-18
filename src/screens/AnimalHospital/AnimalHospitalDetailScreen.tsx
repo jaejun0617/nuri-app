@@ -54,6 +54,9 @@ export default function AnimalHospitalDetailScreen() {
     );
   }
 
+  const callUri = item.links.callUri;
+  const mapLink = item.links.externalMapUrl ?? item.links.providerPlaceUrl;
+
   return (
     <Screen style={styles.screen}>
       <View style={styles.container}>
@@ -135,12 +138,12 @@ export default function AnimalHospitalDetailScreen() {
             </View>
 
             <View style={styles.ctaRow}>
-              {item.links.callUri ? (
+              {callUri ? (
                 <TouchableOpacity
                   activeOpacity={0.92}
                   style={styles.primaryCta}
                   onPress={() => {
-                    Linking.openURL(item.links.callUri!).catch(() => {});
+                    Linking.openURL(callUri).catch(() => {});
                   }}
                 >
                   <AppText preset="body" style={styles.primaryCtaText}>
@@ -149,37 +152,23 @@ export default function AnimalHospitalDetailScreen() {
                 </TouchableOpacity>
               ) : null}
 
-              {item.links.externalMapUrl ? (
+              {mapLink ? (
                 <TouchableOpacity
                   activeOpacity={0.92}
-                  style={item.links.callUri ? styles.secondaryCta : styles.primaryCta}
+                  style={callUri ? styles.secondaryCta : styles.primaryCta}
                   onPress={() => {
-                    Linking.openURL(item.links.externalMapUrl!).catch(() => {});
+                    Linking.openURL(mapLink).catch(() => {});
                   }}
                 >
                   <AppText
                     preset="body"
                     style={
-                      item.links.callUri
+                      callUri
                         ? styles.secondaryCtaText
                         : styles.primaryCtaText
                     }
                   >
-                    길찾기
-                  </AppText>
-                </TouchableOpacity>
-              ) : null}
-
-              {item.links.providerPlaceUrl ? (
-                <TouchableOpacity
-                  activeOpacity={0.92}
-                  style={styles.secondaryCta}
-                  onPress={() => {
-                    Linking.openURL(item.links.providerPlaceUrl!).catch(() => {});
-                  }}
-                >
-                  <AppText preset="body" style={styles.secondaryCtaText}>
-                    장소 링크
+                    {item.links.externalMapUrl ? '길찾기' : '지도에서 보기'}
                   </AppText>
                 </TouchableOpacity>
               ) : null}

@@ -49,13 +49,6 @@ function AnimalHospitalCard({ item, onOpenDetail }: Props) {
                 <View style={styles.cardThumbnailPlaceholderIconWrap}>
                   <Feather name="shield" size={20} color="#7A8699" />
                 </View>
-                <AppText
-                  preset="caption"
-                  style={styles.cardThumbnailPlaceholderText}
-                  numberOfLines={1}
-                >
-                  동물병원
-                </AppText>
               </View>
             )}
           </View>
