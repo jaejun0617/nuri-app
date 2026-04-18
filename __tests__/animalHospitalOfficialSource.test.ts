@@ -38,4 +38,54 @@ describe('animalHospital official source normalization', () => {
       '서울특별시 강남구 테헤란로 10',
     );
   });
+
+  it('공식 CSV의 EPSG:5174 좌표는 위경도로 확정하지 않고 변환 필요 상태로 남긴다', () => {
+    const normalized = normalizeLocaldataAnimalHospitalRow({
+      row: {
+        개방자치단체코드: '3000000',
+        관리번호: '300000001020130001',
+        사업장명: '효자동물병원',
+        도로명주소: '서울특별시 종로구 자하문로 66-2 (효자동)',
+        지번주소: '서울특별시 종로구 효자동 31',
+        영업상태명: '휴업',
+        상세영업상태명: '휴업',
+        전화번호: '',
+        '좌표정보(X)': '197364.614476836',
+        '좌표정보(Y)': '453303.293915738',
+        데이터갱신시점: '2025-12-15 16:15:28',
+      },
+      snapshot: {
+        provider: 'official-localdata',
+        fetchedAt: '2026-04-18T08:00:00.000Z',
+        snapshotId: 'official-localdata:2026-04-18',
+        ingestMode: 'snapshot',
+        defaultSourceUpdatedAt: null,
+      },
+    });
+
+    expect(normalized).not.toBeNull();
+    expect(normalized?.input.providerRecordId).toBe(
+      '3000000:300000001020130001',
+    );
+    expect(normalized?.input.coordinates).toMatchObject({
+      latitude: null,
+      longitude: null,
+      x5174: 197364.614476836,
+      y5174: 453303.293915738,
+      crs: 'EPSG:5174',
+    });
+
+    const mapped = mapOfficialAnimalHospitalSourceToCanonical(normalized!.input);
+
+    expect(mapped.canonicalHospital.coordinates.latitude).toBeNull();
+    expect(mapped.canonicalHospital.coordinates.longitude).toBeNull();
+    expect(mapped.canonicalHospital.coordinates.source).toBe(
+      'epsg5174-pending',
+    );
+    expect(mapped.canonicalHospital.coordinates.normalizationStatus).toBe(
+      'conversion-required',
+    );
+    expect(mapped.canonicalHospital.trust.hasSourceConflict).toBe(true);
+    expect(mapped.canonicalHospital.lifecycle.isActive).toBe(false);
+  });
 });

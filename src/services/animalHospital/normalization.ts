@@ -22,6 +22,14 @@ export function normalizeWhitespace(value: string | null | undefined): string | 
 export function parseNullableNumber(
   value: number | string | null | undefined,
 ): number | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (typeof value === 'string' && normalizeWhitespace(value) === null) {
+    return null;
+  }
+
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : null;
 }

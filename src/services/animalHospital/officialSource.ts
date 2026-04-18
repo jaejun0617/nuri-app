@@ -97,15 +97,22 @@ export function normalizeLocaldataAnimalHospitalRow(params: {
     Pick<AnimalHospitalOfficialSourceSnapshotInput, 'defaultSourceUpdatedAt'>;
 }): AnimalHospitalOfficialSourceNormalizedRow | null {
   const { row, snapshot } = params;
+  const openLocalGovernmentCode = pickString(row, [
+    '개방자치단체코드',
+    '개방자치단체코드명',
+    'openLocalGovernmentCode',
+  ]);
+  const managementNumber = pickString(row, ['관리번호', 'managementNo']);
   const providerRecordId =
-    pickString(row, [
-      '개방서비스아이디',
-      '개방서비스ID',
-      '개방서비스id',
-      '관리번호',
-      'managementNo',
-    ]) ??
-    pickString(row, ['인허가번호', '허가번호', 'licenseNo']);
+    managementNumber && openLocalGovernmentCode
+      ? `${openLocalGovernmentCode}:${managementNumber}`
+      : (pickString(row, [
+          '개방서비스아이디',
+          '개방서비스ID',
+          '개방서비스id',
+        ]) ??
+        managementNumber ??
+        pickString(row, ['인허가번호', '허가번호', 'licenseNo']));
   const name = pickString(row, ['사업장명', '사업장명칭', '업소명', 'name']);
 
   if (!providerRecordId || !name) {
@@ -126,6 +133,8 @@ export function normalizeLocaldataAnimalHospitalRow(params: {
     pickDate(
       pickString(row, [
         '데이터기준일자',
+        '데이터갱신시점',
+        '최종수정시점',
         '인허가일자',
         '수정일자',
         'lastUpdatedAt',
@@ -150,16 +159,26 @@ export function normalizeLocaldataAnimalHospitalRow(params: {
     'phone',
   ]);
   const latitude = parseNullableNumber(
-    pickNumberLike(row, ['좌표정보(Y)', '좌표정보Y', '위도', 'latitude']),
+    pickNumberLike(row, ['위도', 'latitude']),
   );
   const longitude = parseNullableNumber(
-    pickNumberLike(row, ['좌표정보(X)', '좌표정보X', '경도', 'longitude']),
+    pickNumberLike(row, ['경도', 'longitude']),
   );
   const x5174 = parseNullableNumber(
-    pickNumberLike(row, ['좌표정보X(EPSG5174)', 'x5174']),
+    pickNumberLike(row, [
+      '좌표정보(X)',
+      '좌표정보X',
+      '좌표정보X(EPSG5174)',
+      'x5174',
+    ]),
   );
   const y5174 = parseNullableNumber(
-    pickNumberLike(row, ['좌표정보Y(EPSG5174)', 'y5174']),
+    pickNumberLike(row, [
+      '좌표정보(Y)',
+      '좌표정보Y',
+      '좌표정보Y(EPSG5174)',
+      'y5174',
+    ]),
   );
   const warnings = buildWarnings({
     providerRecordId,
