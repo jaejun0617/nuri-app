@@ -28,6 +28,8 @@ export default function LocationDiscoverySearchBar({
   onSubmit,
   onOpenFilters,
 }: Props) {
+  const showMetaRow = Boolean(helperText || loadingText);
+
   return (
     <View style={styles.searchWrap}>
       <View style={styles.searchInputWrap}>
@@ -58,23 +60,25 @@ export default function LocationDiscoverySearchBar({
           <Feather name="arrow-right-circle" size={18} color={accentColor} />
         </Pressable>
       </View>
-      <View style={styles.searchMetaRow}>
-        {helperText ? (
-          <AppText preset="caption" style={styles.searchHelperText}>
-            {helperText}
-          </AppText>
-        ) : (
-          <View />
-        )}
-        {loadingText ? (
-          <AppText
-            preset="caption"
-            style={[styles.searchLoadingText, { color: loadingColor }]}
-          >
-            {loadingText}
-          </AppText>
-        ) : null}
-      </View>
+      {showMetaRow ? (
+        <View style={styles.searchMetaRow}>
+          {helperText ? (
+            <AppText preset="caption" style={styles.searchHelperText}>
+              {helperText}
+            </AppText>
+          ) : (
+            <View />
+          )}
+          {loadingText ? (
+            <AppText
+              preset="caption"
+              style={[styles.searchLoadingText, { color: loadingColor }]}
+            >
+              {loadingText}
+            </AppText>
+          ) : null}
+        </View>
+      ) : null}
     </View>
   );
 }

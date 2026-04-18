@@ -29,10 +29,19 @@ type GooglePlacePhotoResponse = {
   photoUri?: string;
 };
 
-type LocationDiscoveryThumbnailInput = Pick<
-  LocationDiscoveryItem,
-  'id' | 'domain' | 'name' | 'address' | 'latitude' | 'longitude' | 'thumbnailUrl'
->;
+type LocationDiscoveryThumbnailDomain =
+  | LocationDiscoveryItem['domain']
+  | 'animalHospital';
+
+export type LocationDiscoveryThumbnailInput = {
+  id: string;
+  domain: LocationDiscoveryThumbnailDomain;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  thumbnailUrl: string | null;
+};
 
 type ThumbnailCacheEntry = {
   expiresAt: number;
@@ -187,7 +196,7 @@ async function resolveLocationDiscoveryThumbnailInternal(
     return input.thumbnailUrl;
   }
 
-  if (input.domain !== 'walk') {
+  if (input.domain !== 'walk' && input.domain !== 'animalHospital') {
     return null;
   }
 

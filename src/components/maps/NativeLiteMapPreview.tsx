@@ -14,6 +14,7 @@ type Props = {
   longitude: number;
   title: string;
   overlayText?: string | null;
+  interactive?: boolean;
 };
 
 export default function NativeLiteMapPreview({
@@ -21,6 +22,7 @@ export default function NativeLiteMapPreview({
   longitude,
   title,
   overlayText = null,
+  interactive = false,
 }: Props) {
   const region = useMemo(() => {
     if (!hasValidCoordinate({ latitude, longitude })) {
@@ -29,9 +31,9 @@ export default function NativeLiteMapPreview({
 
     return buildRegionFromPoint(
       { latitude, longitude },
-      PRETTY_PREVIEW_DELTA,
+      interactive ? PRETTY_PREVIEW_DELTA / 2 : PRETTY_PREVIEW_DELTA,
     );
-  }, [latitude, longitude]);
+  }, [interactive, latitude, longitude]);
 
   if (!region) {
     return (
@@ -50,15 +52,15 @@ export default function NativeLiteMapPreview({
       <MapView
         style={styles.map}
         provider={PROVIDER_GOOGLE}
-        liteMode={Platform.OS === 'android'}
+        liteMode={Platform.OS === 'android' && !interactive}
         initialRegion={region}
         moveOnMarkerPress={false}
         pitchEnabled={false}
         rotateEnabled={false}
-        scrollEnabled={false}
-        zoomEnabled={false}
-        toolbarEnabled={false}
-        showsCompass={false}
+        scrollEnabled={interactive}
+        zoomEnabled={interactive}
+        toolbarEnabled={interactive}
+        showsCompass={interactive}
         showsMyLocationButton={false}
         loadingEnabled
       >

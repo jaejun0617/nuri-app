@@ -1,17 +1,19 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Linking, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
+import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
-import ExpandableBodyText from '../../components/common/ExpandableBodyText';
 import Screen from '../../components/layout/Screen';
 import NativeLiteMapPreview from '../../components/maps/NativeLiteMapPreview';
-import { styles } from '../../components/locationDiscovery/LocationDiscovery.styles';
+import {
+  buildAnimalHospitalDetailViewModel,
+} from '../../domains/animalHospital/presentation';
+import { createAnimalHospitalDetailStyles } from '../../components/animalHospital/styles';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
-import { StyleSheet } from 'react-native';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RootScreenRoute<'AnimalHospitalDetail'>;
@@ -19,18 +21,31 @@ type Route = RootScreenRoute<'AnimalHospitalDetail'>;
 export default function AnimalHospitalDetailScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
+  const theme = useTheme();
   const item = route.params?.item;
+  const viewModel = useMemo(
+    () => (item ? buildAnimalHospitalDetailViewModel(item) : null),
+    [item],
+  );
+  const styles = useMemo(
+    () =>
+      createAnimalHospitalDetailStyles(
+        theme,
+        viewModel?.trustTone ?? 'neutral',
+      ),
+    [theme, viewModel?.trustTone],
+  );
 
   const goBack = useCallback(() => {
     navigation.goBack();
   }, [navigation]);
 
-  if (!item) {
+  if (!item || !viewModel) {
     return (
       <Screen style={styles.screen}>
         <View style={styles.container}>
-          <View style={styles.emptyCard}>
-            <AppText preset="headline" style={styles.emptyTitle}>
+          <View style={styles.sectionCard}>
+            <AppText preset="headline" style={styles.sectionTitle}>
               병원 정보를 찾을 수 없어요
             </AppText>
           </View>
@@ -42,120 +57,128 @@ export default function AnimalHospitalDetailScreen() {
   return (
     <Screen style={styles.screen}>
       <View style={styles.container}>
-        <View style={styles.header}>
-          <View style={styles.headerSideSlot}>
-            <TouchableOpacity
-              activeOpacity={0.88}
-              style={styles.backButton}
-              onPress={goBack}
-              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-            >
-              <Feather name="arrow-left" size={20} color="#102033" />
-            </TouchableOpacity>
-          </View>
-          <AppText preset="headline" style={styles.headerTitle}>
-            동물병원 상세
-          </AppText>
-          <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
+        <View style={styles.heroHeader}>
+          <TouchableOpacity
+            activeOpacity={0.88}
+            onPress={goBack}
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+          >
+            <Feather name="arrow-left" size={20} color={theme.colors.textPrimary} />
+          </TouchableOpacity>
         </View>
 
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.detailScrollContent}
+          contentContainerStyle={{ paddingBottom: 32, gap: 18 }}
         >
-          <View style={styles.detailHero}>
-            <AppText preset="caption" style={styles.detailCategory}>
-              동물병원
-            </AppText>
-            <AppText preset="headline" style={styles.detailTitle}>
-              {item.name}
-            </AppText>
+          <View style={styles.hero}>
+            <View style={styles.heroHeader}>
+              <AppText preset="caption" style={styles.eyebrow}>
+                우리동네 동물병원
+              </AppText>
+              <AppText preset="titleSm" style={styles.title}>
+                {viewModel.title}
+              </AppText>
+            </View>
 
-            <View style={styles.detailMetaGrid}>
-              <View style={styles.detailMetaRow}>
-                <Feather name="shield" size={15} color="#7B8597" />
-                <AppText preset="body" style={styles.detailMetaText}>
-                  공개 라벨: {item.publicTrust.label}
+            <View style={styles.trustRow}>
+              <View style={styles.trustBadge}>
+                <AppText preset="caption" style={styles.trustBadgeText}>
+                  {viewModel.trustLabel}
                 </AppText>
               </View>
-              <View style={styles.detailMetaRow}>
-                <Feather name="map-pin" size={15} color="#7B8597" />
-                <AppText preset="body" style={styles.detailMetaText}>
-                  {item.address}
+              <AppText preset="bodySm" style={styles.statusText}>
+                {viewModel.statusSummary}
+              </AppText>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.infoBlock}>
+              <View style={styles.infoRow}>
+                <Feather name="map-pin" size={16} color={theme.colors.textMuted} />
+                <AppText preset="body" style={styles.infoText}>
+                  {viewModel.address}
                 </AppText>
               </View>
-              <View style={styles.detailMetaRow}>
-                <Feather name="navigation" size={15} color="#7B8597" />
-                <AppText preset="body" style={styles.detailMetaText}>
-                  {item.distanceLabel}
+
+              <View style={styles.infoRow}>
+                <Feather
+                  name="navigation"
+                  size={16}
+                  color={theme.colors.textMuted}
+                />
+                <AppText preset="body" style={styles.infoText}>
+                  {viewModel.distanceLabel}
                 </AppText>
               </View>
-              <View style={styles.detailMetaRow}>
-                <Feather name="phone" size={15} color="#7B8597" />
-                <AppText preset="body" style={styles.detailMetaText}>
-                  {item.officialPhone ?? '공식 전화 확인 중'}
+
+              <View style={styles.infoRow}>
+                <Feather name="phone" size={16} color={theme.colors.textMuted} />
+                <AppText preset="body" style={styles.infoText}>
+                  {viewModel.phoneLabel}
                 </AppText>
               </View>
-              <View style={styles.detailMetaRow}>
-                <Feather name="flag" size={15} color="#7B8597" />
-                <AppText preset="body" style={styles.detailMetaText}>
-                  {item.statusSummary}
-                </AppText>
-              </View>
-              {item.publicTrust.basisDateLabel ? (
-                <View style={styles.detailMetaRow}>
-                  <Feather name="calendar" size={15} color="#7B8597" />
-                  <AppText preset="body" style={styles.detailMetaText}>
-                    {item.publicTrust.basisDateLabel}
+
+              {viewModel.basisDateLabel ? (
+                <View style={styles.infoRow}>
+                  <Feather
+                    name="calendar"
+                    size={16}
+                    color={theme.colors.textMuted}
+                  />
+                  <AppText preset="bodySm" style={styles.subtleText}>
+                    {viewModel.basisDateLabel}
                   </AppText>
                 </View>
               ) : null}
             </View>
 
-            <ExpandableBodyText
-              text={`${item.publicTrust.description}\n\n운영시간, 24시간, 야간, 주말, 특수동물, 응급, 주차, 장비, 홈페이지/SNS는 이번 MVP public 화면에서 숨겨 두고 있어요.`}
-              textStyle={styles.detailDescription}
-            />
-
-            <View style={styles.detailActionRow}>
+            <View style={styles.ctaRow}>
               {item.links.callUri ? (
                 <TouchableOpacity
                   activeOpacity={0.92}
-                  style={styles.primaryActionButton}
+                  style={styles.primaryCta}
                   onPress={() => {
                     Linking.openURL(item.links.callUri!).catch(() => {});
                   }}
                 >
-                  <AppText preset="body" style={styles.primaryActionButtonText}>
+                  <AppText preset="body" style={styles.primaryCtaText}>
                     전화하기
                   </AppText>
                 </TouchableOpacity>
               ) : null}
+
               {item.links.externalMapUrl ? (
                 <TouchableOpacity
                   activeOpacity={0.92}
-                  style={item.links.callUri ? styles.secondaryActionButton : styles.primaryActionButton}
+                  style={item.links.callUri ? styles.secondaryCta : styles.primaryCta}
                   onPress={() => {
                     Linking.openURL(item.links.externalMapUrl!).catch(() => {});
                   }}
                 >
                   <AppText
                     preset="body"
-                    style={item.links.callUri ? styles.secondaryActionButtonText : styles.primaryActionButtonText}
+                    style={
+                      item.links.callUri
+                        ? styles.secondaryCtaText
+                        : styles.primaryCtaText
+                    }
                   >
                     길찾기
                   </AppText>
                 </TouchableOpacity>
               ) : null}
+
               {item.links.providerPlaceUrl ? (
                 <TouchableOpacity
                   activeOpacity={0.92}
-                  style={styles.secondaryActionButton}
+                  style={styles.secondaryCta}
                   onPress={() => {
                     Linking.openURL(item.links.providerPlaceUrl!).catch(() => {});
                   }}
                 >
-                  <AppText preset="body" style={styles.secondaryActionButtonText}>
+                  <AppText preset="body" style={styles.secondaryCtaText}>
                     장소 링크
                   </AppText>
                 </TouchableOpacity>
@@ -168,36 +191,11 @@ export default function AnimalHospitalDetailScreen() {
               latitude={item.latitude}
               longitude={item.longitude}
               title={`${item.name} 위치 미리보기`}
-              overlayText="기본 좌표와 길찾기 CTA만 먼저 공개해요."
+              interactive
             />
           ) : null}
-
-          <View style={localStyles.detailSectionCard}>
-            <AppText preset="headline" style={localStyles.detailSectionTitle}>
-              공개 신뢰도 안내
-            </AppText>
-            <ExpandableBodyText
-              text={`${item.publicTrust.shortReason}\n\n${item.publicTrust.guidance}`}
-              textStyle={styles.detailDescription}
-            />
-          </View>
         </ScrollView>
       </View>
     </Screen>
   );
 }
-
-const localStyles = StyleSheet.create({
-  detailSectionCard: {
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E7EDF5',
-    backgroundColor: '#FFFFFF',
-    padding: 18,
-    gap: 10,
-  },
-  detailSectionTitle: {
-    color: '#102033',
-    fontWeight: '900',
-  },
-});

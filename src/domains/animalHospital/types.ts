@@ -14,6 +14,26 @@ export type AnimalHospitalSourceKind =
   | 'runtime-linkage'
   | 'review';
 
+export type AnimalHospitalIngestMode = 'snapshot' | 'delta';
+
+export type AnimalHospitalLifecycleStatus =
+  | 'active'
+  | 'inactive'
+  | 'hidden';
+
+export type AnimalHospitalConflictStatus = 'none' | 'unresolved';
+
+export type AnimalHospitalCanonicalUpsertAction =
+  | 'inserted'
+  | 'updated'
+  | 'unchanged';
+
+export type AnimalHospitalCandidateMatchRule =
+  | 'official-source-key'
+  | 'name-address-exact'
+  | 'name-phone-exact'
+  | 'name-coordinate-near';
+
 export type AnimalHospitalCoordinateCrs = 'WGS84' | 'EPSG:5174' | 'UNKNOWN';
 
 export type AnimalHospitalCoordinateNormalizationStatus =
@@ -66,29 +86,47 @@ export type AnimalHospitalNormalizedCoordinates = {
 
 export type AnimalHospitalSourceProvenance = {
   sourceId: string;
+  sourceKey: string;
+  officialSourceKey: string | null;
   provider: AnimalHospitalSourceProvider;
   sourceKind: AnimalHospitalSourceKind;
   providerRecordId: string;
   sourceUpdatedAt: string | null;
   ingestedAt: string;
+  snapshotId: string | null;
+  snapshotFetchedAt: string | null;
+  ingestMode: AnimalHospitalIngestMode;
+  rowChecksum: string | null;
+  metadata: Record<string, unknown> | null;
   rawPayload: Record<string, unknown> | null;
 };
 
 export type AnimalHospitalSourceRecord = {
   sourceId: string;
+  sourceKey: string;
+  officialSourceKey: string | null;
   provider: AnimalHospitalSourceProvider;
   sourceKind: AnimalHospitalSourceKind;
   providerRecordId: string;
   name: string | null;
+  normalizedName: string | null;
   lotAddress: string | null;
   roadAddress: string | null;
+  normalizedPrimaryAddress: string | null;
   licenseStatusText: string | null;
   operationStatusText: string | null;
   officialPhone: string | null;
+  normalizedPhone: string | null;
   rawCoordinates: AnimalHospitalRawCoordinates;
   normalizedCoordinates: AnimalHospitalNormalizedCoordinates;
   sourceUpdatedAt: string | null;
   ingestedAt: string;
+  snapshotId: string | null;
+  snapshotFetchedAt: string | null;
+  ingestMode: AnimalHospitalIngestMode;
+  rowChecksum: string | null;
+  metadata: Record<string, unknown> | null;
+  canonicalHospitalId: string | null;
   rawPayload: Record<string, unknown> | null;
 };
 
@@ -112,12 +150,21 @@ export type AnimalHospitalCanonicalHospital = {
   id: string;
   domain: 'animalHospital';
   canonicalName: string;
+  normalizedName: string;
   address: {
     primary: string;
     roadAddress: string | null;
     lotAddress: string | null;
+    normalizedPrimary: string | null;
   };
   coordinates: AnimalHospitalNormalizedCoordinates;
+  primarySource: {
+    sourceId: string | null;
+    sourceKey: string | null;
+    officialSourceKey: string | null;
+    provider: AnimalHospitalSourceProvider | null;
+    providerRecordId: string | null;
+  };
   status: {
     code: AnimalHospitalStatusCode;
     summary: string;
@@ -142,6 +189,18 @@ export type AnimalHospitalCanonicalHospital = {
     sourceUpdatedAt: string | null;
     canonicalUpdatedAt: string;
     reviewedAt: string | null;
+  };
+  lifecycle: {
+    status: AnimalHospitalLifecycleStatus;
+    isActive: boolean;
+    isHidden: boolean;
+    conflictStatus: AnimalHospitalConflictStatus;
+    statusReason: string | null;
+  };
+  searchTokens: {
+    normalizedName: string;
+    normalizedAddress: string | null;
+    normalizedPhone: string | null;
   };
   sensitiveDetails: {
     operatingHours: AnimalHospitalSensitiveField<string>;
@@ -173,6 +232,9 @@ export type AnimalHospitalOfficialSourceIngestInput = {
   providerRecordId: string;
   sourceUpdatedAt: string | null;
   ingestedAt?: string;
+  snapshotId?: string | null;
+  snapshotFetchedAt?: string | null;
+  ingestMode?: AnimalHospitalIngestMode;
   name: string;
   lotAddress?: string | null;
   roadAddress?: string | null;
@@ -188,15 +250,82 @@ export type AnimalHospitalOfficialSourceIngestInput = {
     fallbackLatitude?: number | null;
     fallbackLongitude?: number | null;
   };
+  metadata?: Record<string, unknown> | null;
+  rowChecksum?: string | null;
   rawPayload?: Record<string, unknown> | null;
 };
 
 export type AnimalHospitalCanonicalUpsertContract = {
   canonicalId: string;
+  officialSourceKey: string;
+  sourceKey: string;
+  rowChecksum: string | null;
   canonicalHospital: AnimalHospitalCanonicalHospital;
   sourceRecord: AnimalHospitalSourceRecord;
   sourceUpdatedAt: string | null;
   canonicalUpdatedAt: string;
+};
+
+export type AnimalHospitalCanonicalUpsertResult = {
+  canonicalId: string;
+  sourceId: string;
+  officialSourceKey: string;
+  action: AnimalHospitalCanonicalUpsertAction;
+  sourceUpdatedAt: string | null;
+  canonicalUpdatedAt: string;
+  warnings: string[];
+};
+
+export type AnimalHospitalIngestIssue = {
+  providerRecordId: string | null;
+  code:
+    | 'invalid-row'
+    | 'missing-required-field'
+    | 'coordinate-fallback'
+    | 'upsert-failed';
+  message: string;
+};
+
+export type AnimalHospitalIngestSummary = {
+  provider: Extract<
+    AnimalHospitalSourceProvider,
+    'official-localdata' | 'municipal-open-data'
+  >;
+  snapshotId: string;
+  fetchedAt: string;
+  ingestMode: AnimalHospitalIngestMode;
+  totalRows: number;
+  inserted: number;
+  updated: number;
+  unchanged: number;
+  failed: number;
+  issues: AnimalHospitalIngestIssue[];
+  results: AnimalHospitalCanonicalUpsertResult[];
+};
+
+export type AnimalHospitalOfficialSourceSnapshotInput = {
+  provider: Extract<
+    AnimalHospitalSourceProvider,
+    'official-localdata' | 'municipal-open-data'
+  >;
+  rows: ReadonlyArray<Record<string, unknown>>;
+  fetchedAt?: string;
+  snapshotId?: string;
+  ingestMode?: AnimalHospitalIngestMode;
+  defaultSourceUpdatedAt?: string | null;
+};
+
+export type AnimalHospitalOfficialSourceNormalizedRow = {
+  providerRecordId: string;
+  input: AnimalHospitalOfficialSourceIngestInput;
+  warnings: AnimalHospitalIngestIssue[];
+};
+
+export type AnimalHospitalCandidateMatch = {
+  canonicalId: string;
+  candidateId: string;
+  rule: AnimalHospitalCandidateMatchRule;
+  score: number;
 };
 
 export type AnimalHospitalPublicHospital = {
@@ -224,8 +353,10 @@ export type AnimalHospitalInternalHospital = {
   address: AnimalHospitalCanonicalHospital['address'];
   coordinates: AnimalHospitalNormalizedCoordinates;
   distanceMeters: number | null;
+  primarySource: AnimalHospitalCanonicalHospital['primarySource'];
   status: AnimalHospitalCanonicalHospital['status'];
   trust: AnimalHospitalCanonicalHospital['trust'];
+  lifecycle: AnimalHospitalCanonicalHospital['lifecycle'];
   contact: AnimalHospitalCanonicalHospital['contact'];
   links: AnimalHospitalCanonicalHospital['links'];
   sensitiveDetails: AnimalHospitalCanonicalHospital['sensitiveDetails'];

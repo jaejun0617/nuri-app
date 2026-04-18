@@ -1,4 +1,7 @@
-import { searchAnimalHospitals } from '../src/services/animalHospital/service';
+import {
+  emptyAnimalHospitalRepository,
+  searchAnimalHospitals,
+} from '../src/services/animalHospital/service';
 import type { LocationSearchProvider } from '../src/services/locationDiscovery/provider';
 
 describe('animalHospital runtime query service', () => {
@@ -34,6 +37,7 @@ describe('animalHospital runtime query service', () => {
         distanceLabel: '현재 위치 기준',
       },
       useNearbySearch: true,
+      repository: emptyAnimalHospitalRepository,
       provider,
     });
 

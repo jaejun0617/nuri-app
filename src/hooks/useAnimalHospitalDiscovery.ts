@@ -55,10 +55,14 @@ export function useAnimalHospitalDiscovery(input: {
     ? `${locationState.coordinates.latitude.toFixed(3)}:${locationState.coordinates.longitude.toFixed(3)}`
     : 'no-coordinates';
   const district = districtState.district?.trim() || null;
+  const hasCoordinates = Boolean(locationState.coordinates);
+  const shouldRunQuery = hasSearchQuery || hasCoordinates || !locationState.loading;
   const scope = useMemo<AnimalHospitalSearchScope>(
     () => ({
       displayLabel:
-        !locationState.isFresh && locationState.loading
+        !locationState.coordinates && !hasSearchQuery
+          ? '기본 검색'
+          : !locationState.isFresh && locationState.loading
           ? '새 위치 확인 중'
           : district ?? (locationState.isFresh ? '현재 위치' : '최근 확인 위치'),
       queryLabel:
@@ -67,7 +71,9 @@ export function useAnimalHospitalDiscovery(input: {
           : district,
       anchorCoordinates: locationState.coordinates,
       distanceLabel:
-        !locationState.isFresh && locationState.loading
+        !locationState.coordinates && !hasSearchQuery
+          ? '기본 검색 기준'
+          : !locationState.isFresh && locationState.loading
           ? '새 위치 확인 중'
           : locationState.isFresh
             ? '현재 위치 기준'
@@ -79,6 +85,7 @@ export function useAnimalHospitalDiscovery(input: {
       locationState.coordinates,
       locationState.isFresh,
       locationState.loading,
+      hasSearchQuery,
     ],
   );
 
@@ -94,11 +101,14 @@ export function useAnimalHospitalDiscovery(input: {
         scope,
         useNearbySearch: !hasSearchQuery,
       }),
-    enabled: hasSearchQuery || Boolean(locationState.coordinates),
+    enabled: shouldRunQuery,
     staleTime: 2 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
+    retry: false,
+    refetchOnReconnect: false,
     placeholderData: previous => previous,
   });
+  const refetchAnimalHospitals = query.refetch;
 
   const shouldRefreshLocation = useCallback(() => {
     if (!locationState.coordinates) return true;
@@ -119,18 +129,16 @@ export function useAnimalHospitalDiscovery(input: {
         if (hasSearchQuery || !isFreshLocationCoordinates(nextCoordinates)) {
           return;
         }
-        await query.refetch();
+        await refetchAnimalHospitals();
       })().catch(() => {});
 
       return undefined;
-    }, [hasSearchQuery, query, refreshLocation, shouldRefreshLocation]),
+    }, [hasSearchQuery, refetchAnimalHospitals, refreshLocation, shouldRefreshLocation]),
   );
 
   return {
     loading:
-      ((locationState.loading && !locationState.coordinates && !hasSearchQuery) ||
-        query.isLoading) &&
-      !query.data,
+      query.isLoading && !query.data,
     refreshing: query.isRefetching && !hasSearchQuery,
     searching: query.isFetching && hasSearchQuery,
     items: query.data?.items ?? [],
@@ -154,7 +162,7 @@ export function useAnimalHospitalDiscovery(input: {
         return;
       }
 
-      await query.refetch();
+      await refetchAnimalHospitals();
     },
   };
 }
