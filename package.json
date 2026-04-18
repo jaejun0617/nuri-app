@@ -5,6 +5,7 @@
   "scripts": {
     "android": "react-native run-android",
     "ios": "react-native run-ios",
+    "ingest:animal-hospitals": "node scripts/ingest-animal-hospitals.js",
     "lint": "eslint .",
     "postinstall": "node scripts/ensure-geolocation-codegen.js && node scripts/ensure-debugger-frontend-locales.js",
     "start": "react-native start",

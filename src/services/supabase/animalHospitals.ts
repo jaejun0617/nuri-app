@@ -1,6 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-import { supabase } from './client';
 import { createAnimalHospitalRepository } from '../animalHospital/repository';
 import type {
   AnimalHospitalCanonicalHospital,
@@ -18,6 +17,8 @@ import {
   normalizeWhitespace,
   parseNullableNumber,
 } from '../animalHospital/normalization';
+
+declare const require: (path: string) => { supabase: SupabaseClient };
 
 type AnimalHospitalRow = {
   id: string;
@@ -401,7 +402,7 @@ function buildSourceRecordRow(contract: AnimalHospitalCanonicalUpsertContract) {
 }
 
 export function createAnimalHospitalSupabasePersistence(
-  client: SupabaseClient = supabase,
+  client: SupabaseClient,
 ) {
   return {
     search: async (input: {
@@ -536,6 +537,29 @@ export function createAnimalHospitalSupabasePersistence(
   };
 }
 
-export const animalHospitalSupabaseRepository = createAnimalHospitalRepository(
-  createAnimalHospitalSupabasePersistence(),
-);
+type AnimalHospitalSupabaseRepository = ReturnType<
+  typeof createAnimalHospitalRepository
+>;
+
+let defaultAnimalHospitalSupabaseRepository: AnimalHospitalSupabaseRepository | null =
+  null;
+
+function getDefaultAnimalHospitalSupabaseRepository(): AnimalHospitalSupabaseRepository {
+  if (!defaultAnimalHospitalSupabaseRepository) {
+    const { supabase } = require('./client');
+    defaultAnimalHospitalSupabaseRepository = createAnimalHospitalRepository(
+      createAnimalHospitalSupabasePersistence(supabase),
+    );
+  }
+
+  return defaultAnimalHospitalSupabaseRepository;
+}
+
+export const animalHospitalSupabaseRepository: AnimalHospitalSupabaseRepository =
+  {
+    search: input => getDefaultAnimalHospitalSupabaseRepository().search(input),
+    upsertCanonical: contract =>
+      getDefaultAnimalHospitalSupabaseRepository().upsertCanonical(contract),
+    ingestOfficialSnapshot: input =>
+      getDefaultAnimalHospitalSupabaseRepository().ingestOfficialSnapshot(input),
+  };
