@@ -1,7 +1,9 @@
 import {
   emptyAnimalHospitalRepository,
+  mapOfficialAnimalHospitalSourceToCanonical,
   searchAnimalHospitals,
 } from '../src/services/animalHospital/service';
+import type { AnimalHospitalCanonicalRepository } from '../src/services/animalHospital/service';
 import type { LocationSearchProvider } from '../src/services/locationDiscovery/provider';
 
 describe('animalHospital runtime query service', () => {
@@ -52,5 +54,95 @@ describe('animalHospital runtime query service', () => {
     expect(result.items[0]?.statusSummary).toBe('인허가·운영상태 확인이 필요한 병원이에요.');
     expect(result.internalItems[0]?.withheldFields).toContain('operatingHours');
     expect(result.internalItems[0]?.withheldFields).toContain('homepageUrl');
+  });
+
+  it('provider 후보명으로 canonical을 보수 조회해 확실한 name/address match만 연결한다', async () => {
+    const canonical = mapOfficialAnimalHospitalSourceToCanonical({
+      provider: 'official-localdata',
+      providerRecordId: '4110000:411000001020240001',
+      sourceUpdatedAt: '2026-04-18T00:00:00.000Z',
+      ingestedAt: '2026-04-18T08:00:00.000Z',
+      snapshotId: 'localdata-smoke',
+      snapshotFetchedAt: '2026-04-18T08:00:00.000Z',
+      ingestMode: 'snapshot',
+      name: '누리동물병원',
+      roadAddress: '경기 고양시 일산서구 일산로 539',
+      lotAddress: '경기 고양시 일산서구 일산동 539',
+      operationStatusText: '영업/정상',
+      licenseStatusText: '정상',
+      officialPhone: '031-000-0000',
+      coordinates: {
+        latitude: null,
+        longitude: null,
+        x5174: 190000,
+        y5174: 460000,
+        crs: 'EPSG:5174',
+      },
+      metadata: {},
+      rowChecksum: 'ah_test',
+      rawPayload: {},
+    }).canonicalHospital;
+    const searchCalls: Array<{
+      query: string | null;
+      coordinates: unknown | null;
+    }> = [];
+    const repository: AnimalHospitalCanonicalRepository = {
+      search: async input => {
+        searchCalls.push(input);
+        if (input.query === '누리동물병원' && input.coordinates === null) {
+          return [canonical];
+        }
+
+        return [];
+      },
+    };
+    const provider: LocationSearchProvider = {
+      searchKeyword: async () => [
+        {
+          id: 'kakao-linked',
+          place_name: '누리동물병원',
+          address_name: '경기 고양시 일산서구 일산동 539',
+          road_address_name: '경기 고양시 일산서구 일산로 539',
+          phone: '031-000-0000',
+          x: '126.7700',
+          y: '37.6800',
+          place_url: 'https://place.map.kakao.com/linked',
+        },
+      ],
+      searchAddress: async () => [],
+    };
+
+    const result = await searchAnimalHospitals({
+      query: null,
+      scope: {
+        displayLabel: '일산동',
+        queryLabel: '경기 고양시 일산서구 일산동',
+        anchorCoordinates: {
+          latitude: 37.68,
+          longitude: 126.77,
+          accuracy: 30,
+          capturedAt: Date.now(),
+          source: 'gps',
+        },
+        distanceLabel: '현재 위치 기준',
+      },
+      useNearbySearch: true,
+      repository,
+      provider,
+    });
+
+    expect(searchCalls).toHaveLength(2);
+    expect(searchCalls[0]?.coordinates).not.toBeNull();
+    expect(searchCalls[1]).toMatchObject({
+      query: '누리동물병원',
+      coordinates: null,
+    });
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]?.id).toBe(canonical.id);
+    expect(result.items[0]?.officialPhone).toBe('031-000-0000');
+    expect(result.items[0]?.links.callUri).toBe('tel:0310000000');
+    expect(result.items[0]?.links.providerPlaceUrl).toBe(
+      'https://place.map.kakao.com/linked',
+    );
   });
 });

@@ -19,6 +19,7 @@ import type {
 import { linkAnimalHospitalRuntimeCandidates } from './matching';
 import {
   buildAnimalHospitalCanonicalId,
+  normalizeAnimalHospitalName,
   normalizeWhitespace,
   parseNullableNumber,
 } from './normalization';
@@ -32,6 +33,8 @@ import { animalHospitalSupabaseRepository } from '../supabase/animalHospitals';
 
 const CANONICAL_SEARCH_TIMEOUT_MS = 2500;
 const RUNTIME_PROVIDER_SEARCH_TIMEOUT_MS = 7000;
+const RUNTIME_CANDIDATE_CANONICAL_LOOKUP_TIMEOUT_MS = 3000;
+const RUNTIME_CANDIDATE_CANONICAL_LOOKUP_LIMIT = 8;
 
 class AnimalHospitalSearchTimeoutError extends Error {
   constructor(message: string) {
@@ -265,6 +268,49 @@ function sortCanonicalPriority(item: AnimalHospitalCanonicalHospital): number {
   return 1;
 }
 
+async function searchCandidateNameCanonicals(params: {
+  repository: AnimalHospitalCanonicalRepository;
+  candidates: ReadonlyArray<AnimalHospitalCanonicalHospital>;
+  radiusMeters: number;
+}): Promise<AnimalHospitalCanonicalHospital[]> {
+  const seenNames = new Set<string>();
+  const lookupNames = params.candidates
+    .map(candidate => ({
+      displayName: candidate.canonicalName,
+      normalizedName: normalizeAnimalHospitalName(candidate.canonicalName),
+    }))
+    .filter(candidate => {
+      if (!candidate.normalizedName || seenNames.has(candidate.normalizedName)) {
+        return false;
+      }
+
+      seenNames.add(candidate.normalizedName);
+      return true;
+    })
+    .slice(0, RUNTIME_CANDIDATE_CANONICAL_LOOKUP_LIMIT);
+
+  if (lookupNames.length === 0) {
+    return [];
+  }
+
+  const lookupResults = await Promise.all(
+    lookupNames.map(candidate =>
+      withTimeout({
+        task: params.repository.search({
+          query: candidate.displayName,
+          coordinates: null,
+          radiusMeters: params.radiusMeters,
+        }),
+        timeoutMs: RUNTIME_CANDIDATE_CANONICAL_LOOKUP_TIMEOUT_MS,
+      }).catch(() => []),
+    ),
+  );
+
+  return dedupeCanonicals(lookupResults.flat()).filter(
+    item => item.lifecycle.isActive && !item.lifecycle.isHidden,
+  );
+}
+
 export async function searchAnimalHospitals(input: {
   query: string | null;
   scope: AnimalHospitalSearchScope;
@@ -310,10 +356,19 @@ export async function searchAnimalHospitals(input: {
       }),
     )
     .filter((item): item is AnimalHospitalCanonicalHospital => item !== null);
+  const candidateNameCanonicals = await searchCandidateNameCanonicals({
+    repository,
+    candidates: runtimeCandidates,
+    radiusMeters,
+  });
+  const matchableCanonicals = dedupeCanonicals([
+    ...officialCanonicals,
+    ...candidateNameCanonicals,
+  ]);
 
   const { linkedCanonicals, providerOnlyCandidates } =
     linkAnimalHospitalRuntimeCandidates({
-      canonicals: officialCanonicals,
+      canonicals: matchableCanonicals,
       candidates: runtimeCandidates,
     });
   const merged = dedupeCanonicals([
