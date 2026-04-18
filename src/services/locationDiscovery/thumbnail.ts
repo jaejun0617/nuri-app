@@ -196,7 +196,9 @@ async function resolveLocationDiscoveryThumbnailInternal(
     return input.thumbnailUrl;
   }
 
-  if (input.domain !== 'walk' && input.domain !== 'animalHospital') {
+  // 동물병원 MVP는 사진이 병원 신뢰 정보처럼 오해될 수 있어,
+  // verified thumbnailUrl이 없는 자동 외부 사진 검색을 열지 않는다.
+  if (input.domain !== 'walk') {
     return null;
   }
 
