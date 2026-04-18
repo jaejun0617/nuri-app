@@ -145,4 +145,83 @@ describe('animalHospital runtime query service', () => {
       'https://place.map.kakao.com/linked',
     );
   });
+
+  it('후보명 조회로 가져온 canonical도 확정 조건이 없으면 public에 섞지 않는다', async () => {
+    const unresolvedCanonical = mapOfficialAnimalHospitalSourceToCanonical({
+      provider: 'official-localdata',
+      providerRecordId: '4110000:411000001020240099',
+      sourceUpdatedAt: '2026-04-18T00:00:00.000Z',
+      ingestedAt: '2026-04-18T08:00:00.000Z',
+      snapshotId: 'localdata-smoke',
+      snapshotFetchedAt: '2026-04-18T08:00:00.000Z',
+      ingestMode: 'snapshot',
+      name: '초원동물병원',
+      roadAddress: '경기 고양시 일산서구 중앙로 1',
+      lotAddress: '경기 고양시 일산서구 대화동 1',
+      operationStatusText: '영업/정상',
+      licenseStatusText: '정상',
+      officialPhone: null,
+      coordinates: {
+        latitude: null,
+        longitude: null,
+        x5174: 190000,
+        y5174: 460000,
+        crs: 'EPSG:5174',
+      },
+      metadata: {},
+      rowChecksum: 'ah_test_unresolved',
+      rawPayload: {},
+    }).canonicalHospital;
+    const repository: AnimalHospitalCanonicalRepository = {
+      search: async input => {
+        if (input.query === '초원동물병원' && input.coordinates === null) {
+          return [unresolvedCanonical];
+        }
+
+        return [];
+      },
+    };
+    const provider: LocationSearchProvider = {
+      searchKeyword: async () => [
+        {
+          id: 'kakao-unresolved',
+          place_name: '초원동물병원',
+          address_name: '경기 고양시 일산서구 일산동 100',
+          road_address_name: '경기 고양시 일산서구 일산로 100',
+          phone: '',
+          x: '126.7700',
+          y: '37.6800',
+          place_url: 'https://place.map.kakao.com/unresolved',
+        },
+      ],
+      searchAddress: async () => [],
+    };
+
+    const result = await searchAnimalHospitals({
+      query: null,
+      scope: {
+        displayLabel: '일산동',
+        queryLabel: '경기 고양시 일산서구 일산동',
+        anchorCoordinates: {
+          latitude: 37.68,
+          longitude: 126.77,
+          accuracy: 30,
+          capturedAt: Date.now(),
+          source: 'gps',
+        },
+        distanceLabel: '현재 위치 기준',
+      },
+      useNearbySearch: true,
+      repository,
+      provider,
+    });
+
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]?.id).not.toBe(unresolvedCanonical.id);
+    expect(result.items[0]?.name).toBe('초원동물병원');
+    expect(result.items[0]?.publicTrust.publicLabel).toBe('candidate');
+    expect(result.items[0]?.links.providerPlaceUrl).toBe(
+      'https://place.map.kakao.com/unresolved',
+    );
+  });
 });

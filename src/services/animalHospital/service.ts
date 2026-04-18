@@ -373,6 +373,7 @@ export async function searchAnimalHospitals(input: {
     });
   const merged = dedupeCanonicals([
     ...linkedCanonicals,
+    ...officialCanonicals,
     ...providerOnlyCandidates,
   ]);
   const publicItems = merged

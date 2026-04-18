@@ -140,6 +140,7 @@ export function linkAnimalHospitalRuntimeCandidates(params: {
   const canonicalById = new Map(
     params.canonicals.map(canonical => [canonical.id, canonical]),
   );
+  const linkedCanonicalById = new Map<string, AnimalHospitalCanonicalHospital>();
   const matches: AnimalHospitalCandidateMatch[] = [];
   const consumedCandidateIds = new Set<string>();
 
@@ -161,32 +162,34 @@ export function linkAnimalHospitalRuntimeCandidates(params: {
 
     consumedCandidateIds.add(candidate.id);
     matches.push(match);
-    canonicalById.set(canonical.id, {
-      ...canonical,
+    const currentCanonical = linkedCanonicalById.get(canonical.id) ?? canonical;
+    linkedCanonicalById.set(canonical.id, {
+      ...currentCanonical,
       coordinates:
-        canonical.coordinates.latitude !== null &&
-        canonical.coordinates.longitude !== null
-          ? canonical.coordinates
+        currentCanonical.coordinates.latitude !== null &&
+        currentCanonical.coordinates.longitude !== null
+          ? currentCanonical.coordinates
           : candidate.coordinates,
       contact:
-        canonical.contact.publicPhone || !candidate.contact.candidatePhones.length
-          ? canonical.contact
+        currentCanonical.contact.publicPhone ||
+        !candidate.contact.candidatePhones.length
+          ? currentCanonical.contact
           : {
-              ...canonical.contact,
+              ...currentCanonical.contact,
               candidatePhones: candidate.contact.candidatePhones,
             },
       links: {
         providerPlaceId:
-          canonical.links.providerPlaceId ?? candidate.links.providerPlaceId,
+          currentCanonical.links.providerPlaceId ?? candidate.links.providerPlaceId,
         providerPlaceUrl:
-          canonical.links.providerPlaceUrl ?? candidate.links.providerPlaceUrl,
-        externalMapLabel: canonical.links.externalMapLabel,
+          currentCanonical.links.providerPlaceUrl ?? candidate.links.providerPlaceUrl,
+        externalMapLabel: currentCanonical.links.externalMapLabel,
       },
       sourceProvenance: [
-        ...canonical.sourceProvenance,
+        ...currentCanonical.sourceProvenance,
         ...candidate.sourceProvenance.filter(
           provenance =>
-            !canonical.sourceProvenance.some(
+            !currentCanonical.sourceProvenance.some(
               existing => existing.sourceId === provenance.sourceId,
             ),
         ),
@@ -195,7 +198,7 @@ export function linkAnimalHospitalRuntimeCandidates(params: {
   });
 
   return {
-    linkedCanonicals: [...canonicalById.values()],
+    linkedCanonicals: [...linkedCanonicalById.values()],
     providerOnlyCandidates: params.candidates.filter(
       candidate => !consumedCandidateIds.has(candidate.id),
     ),
