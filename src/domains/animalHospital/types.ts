@@ -1,5 +1,8 @@
 import type { DeviceCoordinates } from '../../services/location/currentPosition';
-import type { PublicTrustInfo, PublicTrustLabel } from '../../services/trust/publicTrust';
+import type {
+  PublicTrustInfo,
+  PublicTrustLabel,
+} from '../../services/trust/publicTrust';
 
 export type AnimalHospitalSourceProvider =
   | 'official-localdata'
@@ -16,10 +19,7 @@ export type AnimalHospitalSourceKind =
 
 export type AnimalHospitalIngestMode = 'snapshot' | 'delta';
 
-export type AnimalHospitalLifecycleStatus =
-  | 'active'
-  | 'inactive'
-  | 'hidden';
+export type AnimalHospitalLifecycleStatus = 'active' | 'inactive' | 'hidden';
 
 export type AnimalHospitalConflictStatus = 'none' | 'unresolved';
 
@@ -44,6 +44,7 @@ export type AnimalHospitalCoordinateNormalizationStatus =
 
 export type AnimalHospitalCoordinateSource =
   | 'official-wgs84'
+  | 'reviewed'
   | 'epsg5174-pending'
   | 'external-fallback'
   | 'unknown';
@@ -321,6 +322,95 @@ export type AnimalHospitalOfficialSourceNormalizedRow = {
   warnings: AnimalHospitalIngestIssue[];
 };
 
+export type AnimalHospitalVerificationField =
+  | 'phone'
+  | 'coordinates'
+  | 'operatingHours'
+  | 'open24Hours'
+  | 'nightService'
+  | 'weekendService'
+  | 'exoticAnimalCare'
+  | 'emergencyCare'
+  | 'parking'
+  | 'equipmentSummary'
+  | 'homepageUrl'
+  | 'socialUrl'
+  | 'thumbnail';
+
+export type AnimalHospitalVerificationStatus =
+  | 'pending'
+  | 'approved'
+  | 'rejected'
+  | 'expired';
+
+export type AnimalHospitalVerificationSource =
+  | 'official-source'
+  | 'operator-call'
+  | 'operator-visit'
+  | 'provider-crosscheck'
+  | 'user-report'
+  | 'system';
+
+export type AnimalHospitalVerificationRecord = {
+  id: string;
+  animalHospitalId: string;
+  fieldKey: AnimalHospitalVerificationField;
+  status: AnimalHospitalVerificationStatus;
+  verifiedValue: Record<string, unknown>;
+  verificationSource: AnimalHospitalVerificationSource;
+  reviewerId: string | null;
+  reviewedAt: string | null;
+  expiresAt: string | null;
+  note: string | null;
+  evidence: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AnimalHospitalUserReportType =
+  | 'wrong_phone'
+  | 'wrong_address'
+  | 'closed'
+  | 'duplicate'
+  | 'wrong_location'
+  | 'unsafe_sensitive_info'
+  | 'other';
+
+export type AnimalHospitalUserReportStatus =
+  | 'pending'
+  | 'triaged'
+  | 'dismissed'
+  | 'linked_to_verification';
+
+export type AnimalHospitalUserReportInput = {
+  animalHospitalId: string | null;
+  reportType: AnimalHospitalUserReportType;
+  message: string | null;
+  evidence?: Record<string, unknown> | null;
+};
+
+export type AnimalHospitalUserReportRecord = {
+  id: string;
+  animalHospitalId: string | null;
+  reporterId: string | null;
+  reportType: AnimalHospitalUserReportType;
+  status: AnimalHospitalUserReportStatus;
+  message: string | null;
+  evidence: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AnimalHospitalAdminReviewQueueItem = {
+  animalHospitalId: string;
+  name: string;
+  address: string;
+  hasSourceConflict: boolean;
+  pendingReportCount: number;
+  pendingVerificationCount: number;
+  latestUpdatedAt: string | null;
+};
+
 export type AnimalHospitalCandidateMatch = {
   canonicalId: string;
   candidateId: string;
@@ -361,7 +451,9 @@ export type AnimalHospitalInternalHospital = {
   links: AnimalHospitalCanonicalHospital['links'];
   sensitiveDetails: AnimalHospitalCanonicalHospital['sensitiveDetails'];
   sourceProvenance: ReadonlyArray<AnimalHospitalSourceProvenance>;
-  withheldFields: ReadonlyArray<keyof AnimalHospitalCanonicalHospital['sensitiveDetails']>;
+  withheldFields: ReadonlyArray<
+    keyof AnimalHospitalCanonicalHospital['sensitiveDetails']
+  >;
 };
 
 export type AnimalHospitalSearchResult = {

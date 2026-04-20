@@ -74,12 +74,13 @@ function buildWarnings(input: {
   if (
     input.latitude === null &&
     input.longitude === null &&
-    (input.x5174 !== null || input.y5174 !== null)
+    ((input.x5174 === null && input.y5174 !== null) ||
+      (input.x5174 !== null && input.y5174 === null))
   ) {
     warnings.push({
       providerRecordId: input.providerRecordId,
       code: 'coordinate-fallback',
-      message: 'WGS84 좌표가 없어 EPSG:5174 좌표를 후속 변환 대상으로 남겼어요.',
+      message: '좌표 축이 하나만 있어 canonical 좌표 변환을 보류했어요.',
     });
   }
 
@@ -106,13 +107,9 @@ export function normalizeLocaldataAnimalHospitalRow(params: {
   const providerRecordId =
     managementNumber && openLocalGovernmentCode
       ? `${openLocalGovernmentCode}:${managementNumber}`
-      : (pickString(row, [
-          '개방서비스아이디',
-          '개방서비스ID',
-          '개방서비스id',
-        ]) ??
+      : pickString(row, ['개방서비스아이디', '개방서비스ID', '개방서비스id']) ??
         managementNumber ??
-        pickString(row, ['인허가번호', '허가번호', 'licenseNo']));
+        pickString(row, ['인허가번호', '허가번호', 'licenseNo']);
   const name = pickString(row, ['사업장명', '사업장명칭', '업소명', 'name']);
 
   if (!providerRecordId || !name) {
@@ -124,11 +121,7 @@ export function normalizeLocaldataAnimalHospitalRow(params: {
     '도로명주소',
     'roadAddress',
   ]);
-  const lotAddress = pickString(row, [
-    '소재지전체주소',
-    '지번주소',
-    'address',
-  ]);
+  const lotAddress = pickString(row, ['소재지전체주소', '지번주소', 'address']);
   const sourceUpdatedAt =
     pickDate(
       pickString(row, [
@@ -139,7 +132,9 @@ export function normalizeLocaldataAnimalHospitalRow(params: {
         '수정일자',
         'lastUpdatedAt',
       ]),
-    ) ?? snapshot.defaultSourceUpdatedAt ?? null;
+    ) ??
+    snapshot.defaultSourceUpdatedAt ??
+    null;
   const operationStatusText = pickString(row, [
     '영업상태명',
     '상세영업상태명',
@@ -226,8 +221,8 @@ export function normalizeLocaldataAnimalHospitalRow(params: {
           latitude !== null && longitude !== null
             ? 'WGS84'
             : x5174 !== null || y5174 !== null
-              ? 'EPSG:5174'
-              : 'UNKNOWN',
+            ? 'EPSG:5174'
+            : 'UNKNOWN',
       },
       metadata,
       rowChecksum: createStableChecksum({

@@ -2,9 +2,13 @@ import type {
   AnimalHospitalCanonicalHospital,
   AnimalHospitalCanonicalUpsertContract,
   AnimalHospitalCanonicalUpsertResult,
+  AnimalHospitalAdminReviewQueueItem,
   AnimalHospitalIngestSummary,
   AnimalHospitalOfficialSourceSnapshotInput,
   AnimalHospitalSourceRecord,
+  AnimalHospitalUserReportInput,
+  AnimalHospitalUserReportRecord,
+  AnimalHospitalVerificationRecord,
 } from '../../domains/animalHospital/types';
 import {
   createOfficialAnimalHospitalSnapshot,
@@ -27,7 +31,9 @@ export type AnimalHospitalPersistenceAdapter = {
     coordinates: { latitude: number; longitude: number } | null;
     radiusMeters: number;
   }) => Promise<ReadonlyArray<AnimalHospitalCanonicalHospital>>;
-  getSourceRecordByKey: (sourceKey: string) => Promise<AnimalHospitalSourceRecord | null>;
+  getSourceRecordByKey: (
+    sourceKey: string,
+  ) => Promise<AnimalHospitalSourceRecord | null>;
   upsertCanonical: (
     contract: AnimalHospitalCanonicalUpsertContract,
   ) => Promise<AnimalHospitalCanonicalHospital>;
@@ -35,16 +41,35 @@ export type AnimalHospitalPersistenceAdapter = {
     contract: AnimalHospitalCanonicalUpsertContract,
   ) => Promise<AnimalHospitalSourceRecord>;
   appendChangeLog: (input: AnimalHospitalChangeLogInput) => Promise<void>;
+  getApprovedVerifications?: (
+    hospitalIds: ReadonlyArray<string>,
+  ) => Promise<ReadonlyArray<AnimalHospitalVerificationRecord>>;
+  createUserReport?: (
+    input: AnimalHospitalUserReportInput,
+  ) => Promise<AnimalHospitalUserReportRecord>;
+  listAdminReviewQueue?: (
+    limit: number,
+  ) => Promise<ReadonlyArray<AnimalHospitalAdminReviewQueueItem>>;
 };
 
-export type AnimalHospitalWriteRepository = AnimalHospitalCanonicalRepository & {
-  upsertCanonical: (
-    contract: AnimalHospitalCanonicalUpsertContract,
-  ) => Promise<AnimalHospitalCanonicalUpsertResult>;
-  ingestOfficialSnapshot: (
-    input: AnimalHospitalOfficialSourceSnapshotInput,
-  ) => Promise<AnimalHospitalIngestSummary>;
-};
+export type AnimalHospitalWriteRepository =
+  AnimalHospitalCanonicalRepository & {
+    upsertCanonical: (
+      contract: AnimalHospitalCanonicalUpsertContract,
+    ) => Promise<AnimalHospitalCanonicalUpsertResult>;
+    ingestOfficialSnapshot: (
+      input: AnimalHospitalOfficialSourceSnapshotInput,
+    ) => Promise<AnimalHospitalIngestSummary>;
+    getApprovedVerifications?: (
+      hospitalIds: ReadonlyArray<string>,
+    ) => Promise<ReadonlyArray<AnimalHospitalVerificationRecord>>;
+    createUserReport?: (
+      input: AnimalHospitalUserReportInput,
+    ) => Promise<AnimalHospitalUserReportRecord>;
+    listAdminReviewQueue?: (
+      limit: number,
+    ) => Promise<ReadonlyArray<AnimalHospitalAdminReviewQueueItem>>;
+  };
 
 export function createAnimalHospitalRepository(
   adapter: AnimalHospitalPersistenceAdapter,
@@ -59,8 +84,8 @@ export function createAnimalHospitalRepository(
       existingSourceRecord?.rowChecksum === contract.rowChecksum
         ? 'unchanged'
         : existingSourceRecord
-          ? 'updated'
-          : 'inserted';
+        ? 'updated'
+        : 'inserted';
 
     const canonicalHospital = await adapter.upsertCanonical(contract);
     const sourceRecord = await adapter.upsertSourceRecord({
@@ -80,8 +105,8 @@ export function createAnimalHospitalRepository(
         nextAction === 'inserted'
           ? '공식 source 기준 canonical 병원을 최초 생성했어요.'
           : nextAction === 'updated'
-            ? '공식 source 최신 스냅샷으로 canonical 병원을 갱신했어요.'
-            : '공식 source 스냅샷 메타데이터만 새로 반영했어요.',
+          ? '공식 source 최신 스냅샷으로 canonical 병원을 갱신했어요.'
+          : '공식 source 스냅샷 메타데이터만 새로 반영했어요.',
       payload: {
         officialSourceKey: contract.officialSourceKey,
         rowChecksum: contract.rowChecksum,
@@ -102,6 +127,9 @@ export function createAnimalHospitalRepository(
 
   return {
     search: adapter.search,
+    getApprovedVerifications: adapter.getApprovedVerifications,
+    createUserReport: adapter.createUserReport,
+    listAdminReviewQueue: adapter.listAdminReviewQueue,
     upsertCanonical,
     ingestOfficialSnapshot: async input => {
       const snapshot = createOfficialAnimalHospitalSnapshot(input);
@@ -130,7 +158,8 @@ export function createAnimalHospitalRepository(
           summary.issues.push({
             providerRecordId: null,
             code: 'invalid-row',
-            message: '필수 식별자 또는 병원명이 없어 공식 source row를 건너뛰었어요.',
+            message:
+              '필수 식별자 또는 병원명이 없어 공식 source row를 건너뛰었어요.',
           });
           continue;
         }

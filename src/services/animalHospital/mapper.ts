@@ -18,8 +18,11 @@ import {
   normalizeWhitespace,
   parseNullableNumber,
 } from './normalization';
+import { convertEpsg5174ToWgs84, isValidWgs84Coordinate } from './coordinates';
 
-export function inferAnimalHospitalStatusCode(value: string | null | undefined) {
+export function inferAnimalHospitalStatusCode(
+  value: string | null | undefined,
+) {
   const normalized = normalizeWhitespace(value);
   if (!normalized) {
     return 'verification-required' as const;
@@ -75,7 +78,8 @@ export function buildAnimalHospitalSourceProvenance(input: {
     officialSourceKey:
       input.sourceKind === 'official-registry'
         ? buildAnimalHospitalOfficialSourceKey({
-            provider: input.provider as AnimalHospitalOfficialSourceIngestInput['provider'],
+            provider:
+              input.provider as AnimalHospitalOfficialSourceIngestInput['provider'],
             providerRecordId: input.providerRecordId,
           })
         : null,
@@ -98,27 +102,43 @@ export function normalizeAnimalHospitalOfficialCoordinates(
 ) {
   const latitude = parseNullableNumber(input.coordinates.latitude);
   const longitude = parseNullableNumber(input.coordinates.longitude);
-  const fallbackLatitude = parseNullableNumber(input.coordinates.fallbackLatitude);
-  const fallbackLongitude = parseNullableNumber(input.coordinates.fallbackLongitude);
+  const fallbackLatitude = parseNullableNumber(
+    input.coordinates.fallbackLatitude,
+  );
+  const fallbackLongitude = parseNullableNumber(
+    input.coordinates.fallbackLongitude,
+  );
+  const convertedCoordinates =
+    input.coordinates.crs === 'EPSG:5174'
+      ? convertEpsg5174ToWgs84({
+          x: parseNullableNumber(input.coordinates.x5174),
+          y: parseNullableNumber(input.coordinates.y5174),
+        })
+      : null;
+  const parsedOfficialCoordinates =
+    latitude !== null && longitude !== null ? { latitude, longitude } : null;
+  const officialCoordinates = isValidWgs84Coordinate(parsedOfficialCoordinates)
+    ? parsedOfficialCoordinates
+    : convertedCoordinates;
   const source =
-    latitude !== null && longitude !== null
+    officialCoordinates !== null
       ? 'official-wgs84'
       : input.coordinates.crs === 'EPSG:5174'
-        ? 'epsg5174-pending'
-        : fallbackLatitude !== null && fallbackLongitude !== null
-          ? 'external-fallback'
-          : 'unknown';
+      ? 'epsg5174-pending'
+      : fallbackLatitude !== null && fallbackLongitude !== null
+      ? 'external-fallback'
+      : 'unknown';
   const normalizationStatus = resolveCoordinateNormalizationStatus({
-    latitude,
-    longitude,
+    latitude: officialCoordinates?.latitude ?? null,
+    longitude: officialCoordinates?.longitude ?? null,
     fallbackLatitude,
     fallbackLongitude,
     crs: source,
   });
 
   return {
-    latitude: latitude ?? fallbackLatitude,
-    longitude: longitude ?? fallbackLongitude,
+    latitude: officialCoordinates?.latitude ?? fallbackLatitude,
+    longitude: officialCoordinates?.longitude ?? fallbackLongitude,
     source,
     normalizationStatus,
   } as const;
@@ -158,7 +178,8 @@ export function mapOfficialAnimalHospitalSourceToCanonical(
   input: AnimalHospitalOfficialSourceIngestInput,
 ): AnimalHospitalCanonicalUpsertContract {
   const ingestedAt = input.ingestedAt ?? new Date().toISOString();
-  const normalizedCoordinates = normalizeAnimalHospitalOfficialCoordinates(input);
+  const normalizedCoordinates =
+    normalizeAnimalHospitalOfficialCoordinates(input);
   const provenance = buildAnimalHospitalSourceProvenance({
     provider: input.provider,
     sourceKind: 'official-registry',
@@ -311,12 +332,14 @@ export function mapOfficialAnimalHospitalSourceToCanonical(
       emergencyCare: createHiddenAnimalHospitalDetail<boolean>(
         '응급 대응 가능 여부는 바로 전화 확인해 주세요.',
       ),
-      parking: createHiddenAnimalHospitalDetail<boolean>(
-        '주차 정보는 확인이 필요해요.',
-      ),
-      equipmentSummary: createHiddenAnimalHospitalDetail<string>(
-        '진료과목은 병원에 확인해 주세요.',
-      ),
+      parking:
+        createHiddenAnimalHospitalDetail<boolean>(
+          '주차 정보는 확인이 필요해요.',
+        ),
+      equipmentSummary:
+        createHiddenAnimalHospitalDetail<string>(
+          '진료과목은 병원에 확인해 주세요.',
+        ),
       homepageUrl: createHiddenAnimalHospitalDetail<string>(
         '홈페이지 정보는 아직 공개하지 않아요.',
       ),

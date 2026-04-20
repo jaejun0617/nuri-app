@@ -14,7 +14,29 @@ const GENERIC_MEDICAL_SUFFIXES = [
   '클리닉',
 ] as const;
 
-export function normalizeWhitespace(value: string | null | undefined): string | null {
+const ADDRESS_PREFIX_ALIASES: ReadonlyArray<readonly [RegExp, string]> = [
+  [/^서울시\s+/, '서울특별시 '],
+  [/^부산시\s+/, '부산광역시 '],
+  [/^대구시\s+/, '대구광역시 '],
+  [/^인천시\s+/, '인천광역시 '],
+  [/^광주시\s+/, '광주광역시 '],
+  [/^대전시\s+/, '대전광역시 '],
+  [/^울산시\s+/, '울산광역시 '],
+  [/^세종시\s+/, '세종특별자치시 '],
+  [/^경기\s+/, '경기도 '],
+  [/^강원\s+/, '강원특별자치도 '],
+  [/^충북\s+/, '충청북도 '],
+  [/^충남\s+/, '충청남도 '],
+  [/^전북\s+/, '전북특별자치도 '],
+  [/^전남\s+/, '전라남도 '],
+  [/^경북\s+/, '경상북도 '],
+  [/^경남\s+/, '경상남도 '],
+  [/^제주\s+/, '제주특별자치도 '],
+];
+
+export function normalizeWhitespace(
+  value: string | null | undefined,
+): string | null {
   const normalized = (value ?? '').trim().replace(/\s+/g, ' ');
   return normalized || null;
 }
@@ -68,11 +90,17 @@ export function normalizeAnimalHospitalAddress(
     return null;
   }
 
-  return normalized
+  const withoutBuildingHints = normalized
     .toLowerCase()
-    .replace(/[()]/g, ' ')
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/（[^）]*）/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+
+  return ADDRESS_PREFIX_ALIASES.reduce(
+    (address, [pattern, replacement]) => address.replace(pattern, replacement),
+    withoutBuildingHints,
+  );
 }
 
 export function normalizeAnimalHospitalPhone(

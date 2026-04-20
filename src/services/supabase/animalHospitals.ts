@@ -2,9 +2,13 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { createAnimalHospitalRepository } from '../animalHospital/repository';
 import type {
+  AnimalHospitalAdminReviewQueueItem,
   AnimalHospitalCanonicalHospital,
   AnimalHospitalCanonicalUpsertContract,
   AnimalHospitalSourceRecord,
+  AnimalHospitalUserReportInput,
+  AnimalHospitalUserReportRecord,
+  AnimalHospitalVerificationRecord,
 } from '../../domains/animalHospital/types';
 import {
   buildAnimalHospitalSearchTokens,
@@ -89,6 +93,44 @@ type AnimalHospitalSourceRecordRow = {
   raw_payload: Record<string, unknown> | null;
 };
 
+type AnimalHospitalVerificationRow = {
+  id: string;
+  animal_hospital_id: string;
+  field_key: string;
+  status: string;
+  verified_value: Record<string, unknown> | null;
+  verification_source: string;
+  reviewer_id: string | null;
+  reviewed_at: string | null;
+  expires_at: string | null;
+  note: string | null;
+  evidence: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type AnimalHospitalUserReportRow = {
+  id: string;
+  animal_hospital_id: string | null;
+  reporter_id: string | null;
+  report_type: string;
+  status: string;
+  message: string | null;
+  evidence: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type AnimalHospitalAdminReviewQueueRow = {
+  animal_hospital_id: string;
+  name: string;
+  address: string;
+  has_source_conflict: boolean | null;
+  pending_report_count: number | string | null;
+  pending_verification_count: number | string | null;
+  latest_updated_at: string | null;
+};
+
 const HOSPITAL_SELECT = [
   'id',
   'official_source_key',
@@ -124,6 +166,18 @@ const HOSPITAL_SELECT = [
   'provider_place_url',
 ].join(', ');
 
+const USER_REPORT_SELECT = [
+  'id',
+  'animal_hospital_id',
+  'reporter_id',
+  'report_type',
+  'status',
+  'message',
+  'evidence',
+  'created_at',
+  'updated_at',
+].join(', ');
+
 function isMissingRelationError(error: unknown): boolean {
   return (
     typeof error === 'object' &&
@@ -134,7 +188,9 @@ function isMissingRelationError(error: unknown): boolean {
   );
 }
 
-function mapHospitalRowToCanonical(row: AnimalHospitalRow): AnimalHospitalCanonicalHospital {
+function mapHospitalRowToCanonical(
+  row: AnimalHospitalRow,
+): AnimalHospitalCanonicalHospital {
   const primaryAddress =
     normalizeWhitespace(row.primary_address) ?? '주소 확인 필요';
   const sourceProvider = normalizeWhitespace(row.primary_source_provider);
@@ -169,7 +225,9 @@ function mapHospitalRowToCanonical(row: AnimalHospitalRow): AnimalHospitalCanoni
       latitude: parseNullableNumber(row.latitude),
       longitude: parseNullableNumber(row.longitude),
       source:
-        (normalizeWhitespace(row.coordinate_source) as AnimalHospitalCanonicalHospital['coordinates']['source']) ??
+        (normalizeWhitespace(
+          row.coordinate_source,
+        ) as AnimalHospitalCanonicalHospital['coordinates']['source']) ??
         'unknown',
       normalizationStatus:
         (normalizeWhitespace(
@@ -223,7 +281,8 @@ function mapHospitalRowToCanonical(row: AnimalHospitalRow): AnimalHospitalCanoni
       freshness:
         (normalizeWhitespace(
           row.freshness_status,
-        ) as AnimalHospitalCanonicalHospital['trust']['freshness']) ?? 'unknown',
+        ) as AnimalHospitalCanonicalHospital['trust']['freshness']) ??
+        'unknown',
       requiresVerification: row.requires_verification ?? true,
       hasSourceConflict: row.has_source_conflict ?? false,
       sourceUpdatedAt: row.source_updated_at,
@@ -231,12 +290,11 @@ function mapHospitalRowToCanonical(row: AnimalHospitalRow): AnimalHospitalCanoni
       reviewedAt: row.reviewed_at,
     },
     lifecycle: {
-      status:
-        row.is_hidden
-          ? 'hidden'
-          : row.is_active === false
-            ? 'inactive'
-            : 'active',
+      status: row.is_hidden
+        ? 'hidden'
+        : row.is_active === false
+        ? 'inactive'
+        : 'active',
       isActive: row.is_active ?? true,
       isHidden: row.is_hidden ?? false,
       conflictStatus: row.has_source_conflict ? 'unresolved' : 'none',
@@ -266,12 +324,14 @@ function mapHospitalRowToCanonical(row: AnimalHospitalRow): AnimalHospitalCanoni
       emergencyCare: createHiddenAnimalHospitalDetail<boolean>(
         '응급 대응 가능 여부는 바로 전화 확인해 주세요.',
       ),
-      parking: createHiddenAnimalHospitalDetail<boolean>(
-        '주차 정보는 확인이 필요해요.',
-      ),
-      equipmentSummary: createHiddenAnimalHospitalDetail<string>(
-        '진료과목은 병원에 확인해 주세요.',
-      ),
+      parking:
+        createHiddenAnimalHospitalDetail<boolean>(
+          '주차 정보는 확인이 필요해요.',
+        ),
+      equipmentSummary:
+        createHiddenAnimalHospitalDetail<string>(
+          '진료과목은 병원에 확인해 주세요.',
+        ),
       homepageUrl: createHiddenAnimalHospitalDetail<string>(
         '홈페이지 정보는 아직 공개하지 않아요.',
       ),
@@ -283,7 +343,9 @@ function mapHospitalRowToCanonical(row: AnimalHospitalRow): AnimalHospitalCanoni
   };
 }
 
-function mapSourceRecordRow(row: AnimalHospitalSourceRecordRow): AnimalHospitalSourceRecord {
+function mapSourceRecordRow(
+  row: AnimalHospitalSourceRecordRow,
+): AnimalHospitalSourceRecord {
   return {
     sourceId: row.id,
     sourceKey: row.source_key,
@@ -295,7 +357,9 @@ function mapSourceRecordRow(row: AnimalHospitalSourceRecordRow): AnimalHospitalS
     normalizedName: normalizeWhitespace(row.normalized_name),
     lotAddress: normalizeWhitespace(row.lot_address),
     roadAddress: normalizeWhitespace(row.road_address),
-    normalizedPrimaryAddress: normalizeWhitespace(row.normalized_primary_address),
+    normalizedPrimaryAddress: normalizeWhitespace(
+      row.normalized_primary_address,
+    ),
     licenseStatusText: normalizeWhitespace(row.license_status_text),
     operationStatusText: normalizeWhitespace(row.operation_status_text),
     officialPhone: normalizeWhitespace(row.official_phone),
@@ -310,7 +374,8 @@ function mapSourceRecordRow(row: AnimalHospitalSourceRecordRow): AnimalHospitalS
     normalizedCoordinates: {
       latitude: parseNullableNumber(row.latitude),
       longitude: parseNullableNumber(row.longitude),
-      source: row.coordinate_source as AnimalHospitalSourceRecord['normalizedCoordinates']['source'],
+      source:
+        row.coordinate_source as AnimalHospitalSourceRecord['normalizedCoordinates']['source'],
       normalizationStatus:
         row.coordinate_normalization_status as AnimalHospitalSourceRecord['normalizedCoordinates']['normalizationStatus'],
     },
@@ -326,18 +391,71 @@ function mapSourceRecordRow(row: AnimalHospitalSourceRecordRow): AnimalHospitalS
   };
 }
 
+function mapVerificationRow(
+  row: AnimalHospitalVerificationRow,
+): AnimalHospitalVerificationRecord {
+  return {
+    id: row.id,
+    animalHospitalId: row.animal_hospital_id,
+    fieldKey: row.field_key as AnimalHospitalVerificationRecord['fieldKey'],
+    status: row.status as AnimalHospitalVerificationRecord['status'],
+    verifiedValue: row.verified_value ?? {},
+    verificationSource:
+      row.verification_source as AnimalHospitalVerificationRecord['verificationSource'],
+    reviewerId: row.reviewer_id,
+    reviewedAt: row.reviewed_at,
+    expiresAt: row.expires_at,
+    note: normalizeWhitespace(row.note),
+    evidence: row.evidence ?? {},
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function mapUserReportRow(
+  row: AnimalHospitalUserReportRow,
+): AnimalHospitalUserReportRecord {
+  return {
+    id: row.id,
+    animalHospitalId: normalizeWhitespace(row.animal_hospital_id),
+    reporterId: row.reporter_id,
+    reportType: row.report_type as AnimalHospitalUserReportRecord['reportType'],
+    status: row.status as AnimalHospitalUserReportRecord['status'],
+    message: normalizeWhitespace(row.message),
+    evidence: row.evidence ?? {},
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function mapAdminReviewQueueRow(
+  row: AnimalHospitalAdminReviewQueueRow,
+): AnimalHospitalAdminReviewQueueItem {
+  return {
+    animalHospitalId: row.animal_hospital_id,
+    name: row.name,
+    address: row.address,
+    hasSourceConflict: row.has_source_conflict ?? false,
+    pendingReportCount: Number(row.pending_report_count ?? 0),
+    pendingVerificationCount: Number(row.pending_verification_count ?? 0),
+    latestUpdatedAt: row.latest_updated_at,
+  };
+}
+
 function buildHospitalRow(contract: AnimalHospitalCanonicalUpsertContract) {
   return {
     id: contract.canonicalHospital.id,
     official_source_key: contract.officialSourceKey,
     primary_source_provider: contract.canonicalHospital.primarySource.provider,
-    primary_source_record_id: contract.canonicalHospital.primarySource.providerRecordId,
+    primary_source_record_id:
+      contract.canonicalHospital.primarySource.providerRecordId,
     canonical_name: contract.canonicalHospital.canonicalName,
     normalized_name: contract.canonicalHospital.normalizedName,
     primary_address: contract.canonicalHospital.address.primary,
     road_address: contract.canonicalHospital.address.roadAddress,
     lot_address: contract.canonicalHospital.address.lotAddress,
-    normalized_primary_address: contract.canonicalHospital.address.normalizedPrimary,
+    normalized_primary_address:
+      contract.canonicalHospital.address.normalizedPrimary,
     latitude: contract.canonicalHospital.coordinates.latitude,
     longitude: contract.canonicalHospital.coordinates.longitude,
     coordinate_source: contract.canonicalHospital.coordinates.source,
@@ -346,12 +464,15 @@ function buildHospitalRow(contract: AnimalHospitalCanonicalUpsertContract) {
     status_code: contract.canonicalHospital.status.code,
     status_summary: contract.canonicalHospital.status.summary,
     license_status_text: contract.canonicalHospital.status.licenseStatusText,
-    operation_status_text: contract.canonicalHospital.status.operationStatusText,
-    official_phone: contract.canonicalHospital.contact.publicPhone?.value ?? null,
+    operation_status_text:
+      contract.canonicalHospital.status.operationStatusText,
+    official_phone:
+      contract.canonicalHospital.contact.publicPhone?.value ?? null,
     normalized_phone: contract.canonicalHospital.searchTokens.normalizedPhone,
     public_trust_status: contract.canonicalHospital.trust.publicStatus,
     freshness_status: contract.canonicalHospital.trust.freshness,
-    requires_verification: contract.canonicalHospital.trust.requiresVerification,
+    requires_verification:
+      contract.canonicalHospital.trust.requiresVerification,
     has_source_conflict: contract.canonicalHospital.trust.hasSourceConflict,
     source_updated_at: contract.canonicalHospital.trust.sourceUpdatedAt,
     canonical_updated_at: contract.canonicalUpdatedAt,
@@ -381,8 +502,8 @@ function buildSourceRecordRow(contract: AnimalHospitalCanonicalUpsertContract) {
     operation_status_text: contract.sourceRecord.operationStatusText,
     official_phone: contract.sourceRecord.officialPhone,
     normalized_phone: contract.sourceRecord.normalizedPhone,
-    latitude: contract.sourceRecord.rawCoordinates.latitude,
-    longitude: contract.sourceRecord.rawCoordinates.longitude,
+    latitude: contract.sourceRecord.normalizedCoordinates.latitude,
+    longitude: contract.sourceRecord.normalizedCoordinates.longitude,
     x5174: contract.sourceRecord.rawCoordinates.x5174,
     y5174: contract.sourceRecord.rawCoordinates.y5174,
     coordinate_crs: contract.sourceRecord.rawCoordinates.crs,
@@ -462,6 +583,84 @@ export function createAnimalHospitalSupabasePersistence(
         return [];
       }
     },
+    getApprovedVerifications: async (hospitalIds: ReadonlyArray<string>) => {
+      if (hospitalIds.length === 0) {
+        return [];
+      }
+
+      try {
+        const { data, error } = await client.rpc(
+          'animal_hospital_approved_verifications',
+          {
+            hospital_ids: hospitalIds,
+          },
+        );
+
+        if (error) {
+          throw error;
+        }
+
+        return ((data ?? []) as AnimalHospitalVerificationRow[]).map(
+          mapVerificationRow,
+        );
+      } catch (error) {
+        if (!isMissingRelationError(error)) {
+          console.warn(
+            '[supabase/animalHospitals] Failed to load approved verifications',
+            error,
+          );
+        }
+        return [];
+      }
+    },
+    createUserReport: async (input: AnimalHospitalUserReportInput) => {
+      const { data: rawReportId, error: rpcError } = await client.rpc(
+        'animal_hospital_create_user_report',
+        {
+          p_animal_hospital_id: input.animalHospitalId,
+          p_report_type: input.reportType,
+          p_message: input.message,
+          p_evidence: input.evidence ?? {},
+        },
+      );
+
+      if (rpcError) {
+        throw rpcError;
+      }
+
+      const reportId = typeof rawReportId === 'string' ? rawReportId : null;
+      if (!reportId) {
+        throw new Error('animal hospital report id was not returned');
+      }
+
+      const { data, error } = await client
+        .from('animal_hospital_user_reports')
+        .select(USER_REPORT_SELECT)
+        .eq('id', reportId)
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      return mapUserReportRow(data as unknown as AnimalHospitalUserReportRow);
+    },
+    listAdminReviewQueue: async (limit: number) => {
+      const { data, error } = await client.rpc(
+        'animal_hospital_admin_review_queue',
+        {
+          p_limit: limit,
+        },
+      );
+
+      if (error) {
+        throw error;
+      }
+
+      return ((data ?? []) as AnimalHospitalAdminReviewQueueRow[]).map(
+        mapAdminReviewQueueRow,
+      );
+    },
     getSourceRecordByKey: async (sourceKey: string) => {
       try {
         const { data, error } = await client
@@ -474,7 +673,9 @@ export function createAnimalHospitalSupabasePersistence(
           throw error;
         }
 
-        return data ? mapSourceRecordRow(data as AnimalHospitalSourceRecordRow) : null;
+        return data
+          ? mapSourceRecordRow(data as AnimalHospitalSourceRecordRow)
+          : null;
       } catch (error) {
         if (!isMissingRelationError(error)) {
           console.warn(
@@ -485,7 +686,9 @@ export function createAnimalHospitalSupabasePersistence(
         return null;
       }
     },
-    upsertCanonical: async (contract: AnimalHospitalCanonicalUpsertContract) => {
+    upsertCanonical: async (
+      contract: AnimalHospitalCanonicalUpsertContract,
+    ) => {
       const { data, error } = await client
         .from('animal_hospitals')
         .upsert(buildHospitalRow(contract), {
@@ -500,7 +703,9 @@ export function createAnimalHospitalSupabasePersistence(
 
       return mapHospitalRowToCanonical(data as unknown as AnimalHospitalRow);
     },
-    upsertSourceRecord: async (contract: AnimalHospitalCanonicalUpsertContract) => {
+    upsertSourceRecord: async (
+      contract: AnimalHospitalCanonicalUpsertContract,
+    ) => {
       const { data, error } = await client
         .from('animal_hospital_source_records')
         .upsert(buildSourceRecordRow(contract), {
@@ -558,8 +763,23 @@ function getDefaultAnimalHospitalSupabaseRepository(): AnimalHospitalSupabaseRep
 export const animalHospitalSupabaseRepository: AnimalHospitalSupabaseRepository =
   {
     search: input => getDefaultAnimalHospitalSupabaseRepository().search(input),
+    getApprovedVerifications: hospitalIds =>
+      getDefaultAnimalHospitalSupabaseRepository().getApprovedVerifications?.(
+        hospitalIds,
+      ) ?? Promise.resolve([]),
+    createUserReport: input =>
+      getDefaultAnimalHospitalSupabaseRepository().createUserReport?.(input) ??
+      Promise.reject(
+        new Error('animal hospital user report repository unavailable'),
+      ),
+    listAdminReviewQueue: limit =>
+      getDefaultAnimalHospitalSupabaseRepository().listAdminReviewQueue?.(
+        limit,
+      ) ?? Promise.resolve([]),
     upsertCanonical: contract =>
       getDefaultAnimalHospitalSupabaseRepository().upsertCanonical(contract),
     ingestOfficialSnapshot: input =>
-      getDefaultAnimalHospitalSupabaseRepository().ingestOfficialSnapshot(input),
+      getDefaultAnimalHospitalSupabaseRepository().ingestOfficialSnapshot(
+        input,
+      ),
   };

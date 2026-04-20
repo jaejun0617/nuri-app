@@ -28,7 +28,9 @@ describe('animalHospital official source normalization', () => {
     expect(normalized?.input.providerRecordId).toBe('LD-001');
     expect(normalized?.input.rowChecksum).toMatch(/^ah_/);
 
-    const mapped = mapOfficialAnimalHospitalSourceToCanonical(normalized!.input);
+    const mapped = mapOfficialAnimalHospitalSourceToCanonical(
+      normalized!.input,
+    );
 
     expect(mapped.officialSourceKey).toBe('official-localdata:ld-001');
     expect(mapped.sourceRecord.normalizedName).toBe('누리동물병원');
@@ -39,7 +41,7 @@ describe('animalHospital official source normalization', () => {
     );
   });
 
-  it('공식 CSV의 EPSG:5174 좌표는 위경도로 확정하지 않고 변환 필요 상태로 남긴다', () => {
+  it('공식 CSV의 EPSG:5174 좌표를 canonical WGS84 좌표로 변환한다', () => {
     const normalized = normalizeLocaldataAnimalHospitalRow({
       row: {
         개방자치단체코드: '3000000',
@@ -75,17 +77,23 @@ describe('animalHospital official source normalization', () => {
       crs: 'EPSG:5174',
     });
 
-    const mapped = mapOfficialAnimalHospitalSourceToCanonical(normalized!.input);
+    const mapped = mapOfficialAnimalHospitalSourceToCanonical(
+      normalized!.input,
+    );
 
-    expect(mapped.canonicalHospital.coordinates.latitude).toBeNull();
-    expect(mapped.canonicalHospital.coordinates.longitude).toBeNull();
-    expect(mapped.canonicalHospital.coordinates.source).toBe(
-      'epsg5174-pending',
+    expect(mapped.canonicalHospital.coordinates.latitude).toBeCloseTo(
+      37.582141,
+      5,
     );
+    expect(mapped.canonicalHospital.coordinates.longitude).toBeCloseTo(
+      126.970828,
+      5,
+    );
+    expect(mapped.canonicalHospital.coordinates.source).toBe('official-wgs84');
     expect(mapped.canonicalHospital.coordinates.normalizationStatus).toBe(
-      'conversion-required',
+      'exact',
     );
-    expect(mapped.canonicalHospital.trust.hasSourceConflict).toBe(true);
+    expect(mapped.canonicalHospital.trust.hasSourceConflict).toBe(false);
     expect(mapped.canonicalHospital.lifecycle.isActive).toBe(false);
   });
 });

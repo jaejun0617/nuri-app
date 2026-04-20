@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 
@@ -14,6 +14,8 @@ import {
   isFreshLocationCoordinates,
   LOCATION_AUTO_REFRESH_INTERVAL_MS,
 } from '../services/location/currentPosition';
+
+const ANIMAL_HOSPITAL_LOCATION_BOOTSTRAP_TIMEOUT_MS = 2500;
 
 export type AnimalHospitalDiscoveryState = {
   loading: boolean;
@@ -35,6 +37,8 @@ export type AnimalHospitalDiscoveryState = {
 export function useAnimalHospitalDiscovery(input: {
   query: string;
 }): AnimalHospitalDiscoveryState {
+  const [locationBootstrapTimedOut, setLocationBootstrapTimedOut] =
+    useState(false);
   const locationState = useCurrentLocation({
     autoRefreshOnMount: true,
     autoRefreshOnActive: true,
@@ -52,11 +56,32 @@ export function useAnimalHospitalDiscovery(input: {
   const refreshLocation = locationState.refresh;
   const hasSearchQuery = normalizedQuery.length >= 2;
   const coordinatesKey = locationState.coordinates
-    ? `${locationState.coordinates.latitude.toFixed(3)}:${locationState.coordinates.longitude.toFixed(3)}`
+    ? `${locationState.coordinates.latitude.toFixed(
+        3,
+      )}:${locationState.coordinates.longitude.toFixed(3)}`
     : 'no-coordinates';
   const district = districtState.district?.trim() || null;
   const hasCoordinates = Boolean(locationState.coordinates);
-  const shouldRunQuery = hasSearchQuery || hasCoordinates || !locationState.loading;
+  const shouldRunQuery =
+    hasSearchQuery ||
+    hasCoordinates ||
+    !locationState.loading ||
+    locationBootstrapTimedOut;
+
+  useEffect(() => {
+    if (hasCoordinates || !locationState.loading) {
+      setLocationBootstrapTimedOut(false);
+      return undefined;
+    }
+
+    const timer = setTimeout(() => {
+      setLocationBootstrapTimedOut(true);
+    }, ANIMAL_HOSPITAL_LOCATION_BOOTSTRAP_TIMEOUT_MS);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [hasCoordinates, locationState.loading]);
   const scope = useMemo<AnimalHospitalSearchScope>(
     () => ({
       displayLabel:
@@ -64,7 +89,8 @@ export function useAnimalHospitalDiscovery(input: {
           ? '기본 검색'
           : !locationState.isFresh && locationState.loading
           ? '새 위치 확인 중'
-          : district ?? (locationState.isFresh ? '현재 위치' : '최근 확인 위치'),
+          : district ??
+            (locationState.isFresh ? '현재 위치' : '최근 확인 위치'),
       queryLabel:
         districtState.city && district
           ? `${districtState.city} ${district}`.trim()
@@ -76,8 +102,8 @@ export function useAnimalHospitalDiscovery(input: {
           : !locationState.isFresh && locationState.loading
           ? '새 위치 확인 중'
           : locationState.isFresh
-            ? '현재 위치 기준'
-            : '최근 확인 위치 기준',
+          ? '현재 위치 기준'
+          : '최근 확인 위치 기준',
     }),
     [
       district,
@@ -133,12 +159,16 @@ export function useAnimalHospitalDiscovery(input: {
       })().catch(() => {});
 
       return undefined;
-    }, [hasSearchQuery, refetchAnimalHospitals, refreshLocation, shouldRefreshLocation]),
+    }, [
+      hasSearchQuery,
+      refetchAnimalHospitals,
+      refreshLocation,
+      shouldRefreshLocation,
+    ]),
   );
 
   return {
-    loading:
-      query.isLoading && !query.data,
+    loading: query.isLoading && !query.data,
     refreshing: query.isRefetching && !hasSearchQuery,
     searching: query.isFetching && hasSearchQuery,
     items: query.data?.items ?? [],

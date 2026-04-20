@@ -75,7 +75,9 @@ function getUtcWeekdayFromYmd(ymd: string): number | null {
   return date.getUTCDay();
 }
 
-export function getKstDateParts(input: DateInput = new Date()): KstDateParts | null {
+export function getKstDateParts(
+  input: DateInput = new Date(),
+): KstDateParts | null {
   const date = parseDateInput(input);
   if (!date) return null;
 
@@ -110,7 +112,7 @@ export function getKstMonthDay(now = new Date()): string {
   return `${pad2(parts.month)}-${pad2(parts.day)}`;
 }
 
-export function formatKstDateWithWeekday(now = new Date()): string {
+export function formatKstDateWithWeekday(now: DateInput = new Date()): string {
   const parts = getKstDateParts(now);
   if (!parts) return '';
   return `${parts.month}월 ${parts.day}일 (${WEEKDAY_KO[parts.weekday]})`;
@@ -150,7 +152,9 @@ export function formatMonthDayFromYmd(
 ): string | null {
   const normalized = safeYmd(ymd);
   if (!normalized) return null;
-  return `${Number(normalized.slice(5, 7))}${separator}${Number(normalized.slice(8, 10))}`;
+  return `${Number(normalized.slice(5, 7))}${separator}${Number(
+    normalized.slice(8, 10),
+  )}`;
 }
 
 export function addDaysToYmd(
@@ -185,7 +189,10 @@ export function diffDaysFromKst(dateYmd: string, now = new Date()) {
   return diff + 1;
 }
 
-export function daysAgoFromKstToday(ymd: string, now = new Date()): number | null {
+export function daysAgoFromKstToday(
+  ymd: string,
+  now = new Date(),
+): number | null {
   return diffCalendarDaysBetweenYmd(ymd, getKstYmd(now));
 }
 
@@ -220,7 +227,9 @@ export function calcAgeFromBirthYmd(
   return Math.max(0, age);
 }
 
-export function getMonthKeyFromYmd(ymd: string | null | undefined): string | null {
+export function getMonthKeyFromYmd(
+  ymd: string | null | undefined,
+): string | null {
   const normalized = safeYmd(ymd);
   return normalized ? normalized.slice(0, 7) : null;
 }

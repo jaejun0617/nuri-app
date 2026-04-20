@@ -4,6 +4,7 @@ import {
   searchAnimalHospitals,
 } from '../src/services/animalHospital/service';
 import type { AnimalHospitalCanonicalRepository } from '../src/services/animalHospital/service';
+import type { AnimalHospitalVerificationRecord } from '../src/domains/animalHospital/types';
 import type { LocationSearchProvider } from '../src/services/locationDiscovery/provider';
 
 describe('animalHospital runtime query service', () => {
@@ -51,7 +52,9 @@ describe('animalHospital runtime query service', () => {
       'https://place.map.kakao.com/1',
     );
     expect(result.items[0]?.publicTrust.publicLabel).toBe('candidate');
-    expect(result.items[0]?.statusSummary).toBe('인허가·운영상태 확인이 필요한 병원이에요.');
+    expect(result.items[0]?.statusSummary).toBe(
+      '인허가·운영상태 확인이 필요한 병원이에요.',
+    );
     expect(result.internalItems[0]?.withheldFields).toContain('operatingHours');
     expect(result.internalItems[0]?.withheldFields).toContain('homepageUrl');
   });
@@ -223,5 +226,97 @@ describe('animalHospital runtime query service', () => {
     expect(result.items[0]?.links.providerPlaceUrl).toBe(
       'https://place.map.kakao.com/unresolved',
     );
+  });
+
+  it('approved phone verification은 public phone으로 쓰지만 민감 필드는 노출하지 않는다', async () => {
+    const canonical = mapOfficialAnimalHospitalSourceToCanonical({
+      provider: 'official-localdata',
+      providerRecordId: '4110000:411000001020240777',
+      sourceUpdatedAt: new Date().toISOString(),
+      ingestedAt: new Date().toISOString(),
+      snapshotId: 'verification-smoke',
+      snapshotFetchedAt: new Date().toISOString(),
+      ingestMode: 'snapshot',
+      name: '검수동물병원',
+      roadAddress: '경기 고양시 일산서구 중앙로 777',
+      lotAddress: '경기 고양시 일산서구 대화동 777',
+      operationStatusText: '영업/정상',
+      licenseStatusText: '정상',
+      officialPhone: null,
+      coordinates: {
+        latitude: 37.68,
+        longitude: 126.77,
+        crs: 'WGS84',
+      },
+      metadata: {},
+      rowChecksum: 'ah_test_verified',
+      rawPayload: {},
+    }).canonicalHospital;
+    const now = new Date().toISOString();
+    const verifications: AnimalHospitalVerificationRecord[] = [
+      {
+        id: 'verification-phone-1',
+        animalHospitalId: canonical.id,
+        fieldKey: 'phone',
+        status: 'approved',
+        verifiedValue: { phone: '031-777-0000' },
+        verificationSource: 'operator-call',
+        reviewerId: 'reviewer-1',
+        reviewedAt: now,
+        expiresAt: null,
+        note: null,
+        evidence: {},
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: 'verification-homepage-1',
+        animalHospitalId: canonical.id,
+        fieldKey: 'homepageUrl',
+        status: 'approved',
+        verifiedValue: { url: 'https://example.com' },
+        verificationSource: 'operator-call',
+        reviewerId: 'reviewer-1',
+        reviewedAt: now,
+        expiresAt: null,
+        note: null,
+        evidence: {},
+        createdAt: now,
+        updatedAt: now,
+      },
+    ];
+    const repository: AnimalHospitalCanonicalRepository = {
+      search: async () => [canonical],
+      getApprovedVerifications: async () => verifications,
+    };
+    const provider: LocationSearchProvider = {
+      searchKeyword: async () => [],
+      searchAddress: async () => [],
+    };
+
+    const result = await searchAnimalHospitals({
+      query: null,
+      scope: {
+        displayLabel: '일산서구',
+        queryLabel: '경기 고양시 일산서구',
+        anchorCoordinates: {
+          latitude: 37.68,
+          longitude: 126.77,
+          accuracy: 30,
+          capturedAt: Date.now(),
+          source: 'gps',
+        },
+        distanceLabel: '현재 위치 기준',
+      },
+      useNearbySearch: true,
+      repository,
+      provider,
+    });
+
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]?.officialPhone).toBe('031-777-0000');
+    expect(result.items[0]?.links.callUri).toBe('tel:0317770000');
+    expect(result.items[0]).not.toHaveProperty('homepageUrl');
+    expect(result.internalItems[0]?.withheldFields).toContain('homepageUrl');
   });
 });

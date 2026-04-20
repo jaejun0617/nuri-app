@@ -99,7 +99,7 @@ describe('animalHospital matching and query priority', () => {
           providerRecordId: 'official-202',
           name: '누리동물의료센터',
           roadAddress: '서울특별시 강남구 테헤란로 11',
-          latitude: 37.5000,
+          latitude: 37.5,
           longitude: 127.0334,
         }),
       ],
@@ -131,7 +131,8 @@ describe('animalHospital matching and query priority', () => {
     expect(result.items).toHaveLength(3);
     expect(
       result.items.some(
-        item => item.links.providerPlaceUrl === 'https://place.map.kakao.com/201',
+        item =>
+          item.links.providerPlaceUrl === 'https://place.map.kakao.com/201',
       ),
     ).toBe(true);
   });
@@ -176,5 +177,51 @@ describe('animalHospital matching and query priority', () => {
     expect(result.items[0]?.name).toBe('가까운동물병원');
     expect(result.items[0]?.publicTrust.publicLabel).toBe('needs_verification');
     expect(result.items[1]?.publicTrust.publicLabel).toBe('candidate');
+  });
+
+  it('주소 괄호 보조 설명 차이는 보수 exact address match로 허용한다', async () => {
+    const repository = {
+      search: async () => [
+        createOfficialCanonical({
+          providerRecordId: 'official-401',
+          name: '효자동물병원',
+          roadAddress: '서울특별시 종로구 자하문로 66-2 (효자동)',
+          latitude: 37.582141,
+          longitude: 126.970828,
+          phone: '02-4000-4000',
+        }),
+      ],
+    };
+    const provider: LocationSearchProvider = {
+      searchKeyword: async () => [
+        {
+          id: 'kakao-401',
+          place_name: '효자동물병원',
+          address_name: '서울특별시 종로구 효자동 31',
+          road_address_name: '서울특별시 종로구 자하문로 66-2',
+          phone: '',
+          x: '126.970828',
+          y: '37.582141',
+          place_url: 'https://place.map.kakao.com/401',
+        },
+      ],
+      searchAddress: async () => [],
+    };
+
+    const result = await searchAnimalHospitals({
+      query: null,
+      scope,
+      useNearbySearch: true,
+      repository,
+      provider,
+    });
+
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]?.id).toBe(
+      'animal-hospital:official-localdata:official-401',
+    );
+    expect(result.items[0]?.links.providerPlaceUrl).toBe(
+      'https://place.map.kakao.com/401',
+    );
   });
 });

@@ -60,6 +60,8 @@ Options:
   --sql-output-dir <path>      Write one SQL file per batch for Supabase API limits
   --sql-batch-size <number>    SQL values per batch. Default: 500
   --snapshot-id <id>          Explicit snapshot id
+  --ingest-mode <snapshot|delta>
+                              Ingestion mode metadata. Default: snapshot
   --source-updated-at <iso>   Fallback source_updated_at for rows without a source date
 `);
 }
@@ -140,6 +142,15 @@ function parseArgs(argv) {
       continue;
     }
 
+    if (token === '--ingest-mode') {
+      if (!['snapshot', 'delta'].includes(next)) {
+        throw new Error('--ingest-mode must be snapshot or delta');
+      }
+      args.ingestMode = next;
+      index += 1;
+      continue;
+    }
+
     if (token === '--sql-output') {
       args.sqlOutput = next;
       index += 1;
@@ -175,12 +186,18 @@ function parseArgs(argv) {
     throw new Error(`Unknown argument: ${token}`);
   }
 
-  if (!args.input && !args.url && process.env.ANIMAL_HOSPITAL_OFFICIAL_SOURCE_URL) {
+  if (
+    !args.input &&
+    !args.url &&
+    process.env.ANIMAL_HOSPITAL_OFFICIAL_SOURCE_URL
+  ) {
     args.url = process.env.ANIMAL_HOSPITAL_OFFICIAL_SOURCE_URL;
   }
 
   if (!args.input && !args.url && !args.help) {
-    throw new Error('Provide --input, --url, or ANIMAL_HOSPITAL_OFFICIAL_SOURCE_URL');
+    throw new Error(
+      'Provide --input, --url, or ANIMAL_HOSPITAL_OFFICIAL_SOURCE_URL',
+    );
   }
 
   return args;
@@ -241,7 +258,10 @@ function findJsonRows(payload) {
     payload && payload.rows,
     payload && payload.records,
     payload && payload.items,
-    payload && payload.response && payload.response.body && payload.response.body.items,
+    payload &&
+      payload.response &&
+      payload.response.body &&
+      payload.response.body.items,
     payload &&
       payload.response &&
       payload.response.body &&
@@ -307,7 +327,8 @@ function parseDelimitedRows(text) {
 
   const headerLine = lines[0];
   const delimiter =
-    (headerLine.match(/\t/g) || []).length > (headerLine.match(/,/g) || []).length
+    (headerLine.match(/\t/g) || []).length >
+    (headerLine.match(/,/g) || []).length
       ? '\t'
       : ',';
   const headers = parseDelimitedLine(headerLine, delimiter).map(header =>
@@ -364,14 +385,16 @@ function buildHospitalPersistenceRow(contract) {
     status_code: contract.canonicalHospital.status.code,
     status_summary: contract.canonicalHospital.status.summary,
     license_status_text: contract.canonicalHospital.status.licenseStatusText,
-    operation_status_text: contract.canonicalHospital.status.operationStatusText,
+    operation_status_text:
+      contract.canonicalHospital.status.operationStatusText,
     official_phone: contract.canonicalHospital.contact.publicPhone
       ? contract.canonicalHospital.contact.publicPhone.value
       : null,
     normalized_phone: contract.canonicalHospital.searchTokens.normalizedPhone,
     public_trust_status: contract.canonicalHospital.trust.publicStatus,
     freshness_status: contract.canonicalHospital.trust.freshness,
-    requires_verification: contract.canonicalHospital.trust.requiresVerification,
+    requires_verification:
+      contract.canonicalHospital.trust.requiresVerification,
     has_source_conflict: contract.canonicalHospital.trust.hasSourceConflict,
     source_updated_at: contract.canonicalHospital.trust.sourceUpdatedAt,
     canonical_updated_at: contract.canonicalUpdatedAt,
@@ -396,14 +419,13 @@ function buildSourcePersistenceRow(contract) {
     normalized_name: contract.sourceRecord.normalizedName,
     lot_address: contract.sourceRecord.lotAddress,
     road_address: contract.sourceRecord.roadAddress,
-    normalized_primary_address:
-      contract.sourceRecord.normalizedPrimaryAddress,
+    normalized_primary_address: contract.sourceRecord.normalizedPrimaryAddress,
     license_status_text: contract.sourceRecord.licenseStatusText,
     operation_status_text: contract.sourceRecord.operationStatusText,
     official_phone: contract.sourceRecord.officialPhone,
     normalized_phone: contract.sourceRecord.normalizedPhone,
-    latitude: contract.sourceRecord.rawCoordinates.latitude,
-    longitude: contract.sourceRecord.rawCoordinates.longitude,
+    latitude: contract.sourceRecord.normalizedCoordinates.latitude,
+    longitude: contract.sourceRecord.normalizedCoordinates.longitude,
     x5174: contract.sourceRecord.rawCoordinates.x5174,
     y5174: contract.sourceRecord.rawCoordinates.y5174,
     coordinate_crs: contract.sourceRecord.rawCoordinates.crs,
@@ -772,7 +794,9 @@ async function writeSqlOutput(args, snapshotInput) {
     }
 
     summary.issueCount += normalized.warnings.length;
-    const contract = mapOfficialAnimalHospitalSourceToCanonical(normalized.input);
+    const contract = mapOfficialAnimalHospitalSourceToCanonical(
+      normalized.input,
+    );
 
     if (seenCanonicalIds.has(contract.canonicalId)) {
       summary.failedRows += 1;
@@ -800,7 +824,10 @@ async function writeSqlOutput(args, snapshotInput) {
     await fs.mkdir(sqlOutputDir, { recursive: true });
 
     for (const [index, batch] of batches.entries()) {
-      const fileName = `${String(index + 1).padStart(4, '0')}-animal-hospitals.sql`;
+      const fileName = `${String(index + 1).padStart(
+        4,
+        '0',
+      )}-animal-hospitals.sql`;
       const filePath = path.join(sqlOutputDir, fileName);
       const sql = [
         'begin;',
@@ -857,13 +884,16 @@ function runDryRun(snapshotInput) {
       summary.issues.push({
         providerRecordId: null,
         code: 'invalid-row',
-        message: '필수 식별자 또는 병원명이 없어 공식 source row를 건너뛰었어요.',
+        message:
+          '필수 식별자 또는 병원명이 없어 공식 source row를 건너뛰었어요.',
       });
       continue;
     }
 
     summary.issues.push(...normalized.warnings);
-    const contract = mapOfficialAnimalHospitalSourceToCanonical(normalized.input);
+    const contract = mapOfficialAnimalHospitalSourceToCanonical(
+      normalized.input,
+    );
     summary.mappedRows += 1;
 
     if (summary.sampleCanonicalIds.length < 5) {
@@ -932,9 +962,10 @@ async function main() {
   const rows = parseRows(source, format);
   const limitedRows = args.limit ? rows.slice(0, args.limit) : rows;
   const snapshotInput = buildSnapshotInput(args, limitedRows);
-  const summary = args.sqlOutput || args.sqlOutputDir
-    ? await writeSqlOutput(args, snapshotInput)
-    : args.dryRun
+  const summary =
+    args.sqlOutput || args.sqlOutputDir
+      ? await writeSqlOutput(args, snapshotInput)
+      : args.dryRun
       ? runDryRun(snapshotInput)
       : await runRemoteIngest(snapshotInput);
 

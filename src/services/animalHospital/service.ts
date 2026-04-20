@@ -11,8 +11,10 @@ import {
   projectAnimalHospitalInternal,
   projectAnimalHospitalPublic,
 } from '../../domains/animalHospital/projections';
+import { applyAnimalHospitalApprovedVerifications } from '../../domains/animalHospital/verification';
 import type {
   AnimalHospitalCanonicalHospital,
+  AnimalHospitalVerificationRecord,
   AnimalHospitalSearchResult,
   AnimalHospitalSearchScope,
 } from '../../domains/animalHospital/types';
@@ -49,6 +51,9 @@ export type AnimalHospitalCanonicalRepository = {
     coordinates: DeviceCoordinates | null;
     radiusMeters: number;
   }) => Promise<ReadonlyArray<AnimalHospitalCanonicalHospital>>;
+  getApprovedVerifications?: (
+    hospitalIds: ReadonlyArray<string>,
+  ) => Promise<ReadonlyArray<AnimalHospitalVerificationRecord>>;
 };
 
 const emptyAnimalHospitalRepository: AnimalHospitalCanonicalRepository = {
@@ -61,7 +66,9 @@ function withTimeout<T>(params: {
 }): Promise<T> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
-      reject(new AnimalHospitalSearchTimeoutError('animal hospital search timeout'));
+      reject(
+        new AnimalHospitalSearchTimeoutError('animal hospital search timeout'),
+      );
     }, params.timeoutMs);
 
     params.task
@@ -136,7 +143,9 @@ function buildRuntimeCandidateCanonical(params: {
       latitude,
       longitude,
       source:
-        latitude !== null && longitude !== null ? 'external-fallback' : 'unknown',
+        latitude !== null && longitude !== null
+          ? 'external-fallback'
+          : 'unknown',
       normalizationStatus:
         latitude !== null && longitude !== null ? 'fallback' : 'missing',
     },
@@ -208,12 +217,14 @@ function buildRuntimeCandidateCanonical(params: {
       emergencyCare: createHiddenAnimalHospitalDetail<boolean>(
         '응급 대응 가능 여부는 바로 전화 확인해 주세요.',
       ),
-      parking: createHiddenAnimalHospitalDetail<boolean>(
-        '주차 정보는 확인이 필요해요.',
-      ),
-      equipmentSummary: createHiddenAnimalHospitalDetail<string>(
-        '진료과목은 병원에 확인해 주세요.',
-      ),
+      parking:
+        createHiddenAnimalHospitalDetail<boolean>(
+          '주차 정보는 확인이 필요해요.',
+        ),
+      equipmentSummary:
+        createHiddenAnimalHospitalDetail<string>(
+          '진료과목은 병원에 확인해 주세요.',
+        ),
       homepageUrl: createHiddenAnimalHospitalDetail<string>(
         '홈페이지 정보는 아직 공개하지 않아요.',
       ),
@@ -231,7 +242,9 @@ function buildRuntimeKeyword(query: string | null) {
     return ANIMAL_HOSPITAL_DEFAULT_NEARBY_QUERY;
   }
 
-  return normalized.includes('동물병원') ? normalized : `${normalized} 동물병원`;
+  return normalized.includes('동물병원')
+    ? normalized
+    : `${normalized} 동물병원`;
 }
 
 function dedupeCanonicals(
@@ -268,6 +281,40 @@ function sortCanonicalPriority(item: AnimalHospitalCanonicalHospital): number {
   return 1;
 }
 
+async function applyRepositoryVerifications(params: {
+  repository: AnimalHospitalCanonicalRepository;
+  canonicals: ReadonlyArray<AnimalHospitalCanonicalHospital>;
+}): Promise<AnimalHospitalCanonicalHospital[]> {
+  if (
+    !params.repository.getApprovedVerifications ||
+    params.canonicals.length === 0
+  ) {
+    return [...params.canonicals];
+  }
+
+  const hospitalIds = [
+    ...new Set(params.canonicals.map(canonical => canonical.id)),
+  ];
+  const verifications = await withTimeout({
+    task: params.repository.getApprovedVerifications(hospitalIds),
+    timeoutMs: CANONICAL_SEARCH_TIMEOUT_MS,
+  }).catch(() => []);
+  const byHospitalId = new Map<string, AnimalHospitalVerificationRecord[]>();
+
+  verifications.forEach(verification => {
+    const list = byHospitalId.get(verification.animalHospitalId) ?? [];
+    list.push(verification);
+    byHospitalId.set(verification.animalHospitalId, list);
+  });
+
+  return params.canonicals.map(canonical =>
+    applyAnimalHospitalApprovedVerifications({
+      canonical,
+      verifications: byHospitalId.get(canonical.id) ?? [],
+    }),
+  );
+}
+
 async function searchCandidateNameCanonicals(params: {
   repository: AnimalHospitalCanonicalRepository;
   candidates: ReadonlyArray<AnimalHospitalCanonicalHospital>;
@@ -280,7 +327,10 @@ async function searchCandidateNameCanonicals(params: {
       normalizedName: normalizeAnimalHospitalName(candidate.canonicalName),
     }))
     .filter(candidate => {
-      if (!candidate.normalizedName || seenNames.has(candidate.normalizedName)) {
+      if (
+        !candidate.normalizedName ||
+        seenNames.has(candidate.normalizedName)
+      ) {
         return false;
       }
 
@@ -324,14 +374,16 @@ export async function searchAnimalHospitals(input: {
   const radiusMeters = input.useNearbySearch
     ? ANIMAL_HOSPITAL_DEFAULT_RADIUS_METERS
     : ANIMAL_HOSPITAL_DEFAULT_RADIUS_METERS * 2;
-  const officialCanonicals = (await withTimeout({
-    task: repository.search({
-      query: normalizedQuery,
-      coordinates: input.scope.anchorCoordinates,
-      radiusMeters,
-    }),
-    timeoutMs: CANONICAL_SEARCH_TIMEOUT_MS,
-  }).catch(() => [])).filter(item => item.lifecycle.isActive && !item.lifecycle.isHidden);
+  const officialCanonicals = (
+    await withTimeout({
+      task: repository.search({
+        query: normalizedQuery,
+        coordinates: input.scope.anchorCoordinates,
+        radiusMeters,
+      }),
+      timeoutMs: CANONICAL_SEARCH_TIMEOUT_MS,
+    }).catch(() => [])
+  ).filter(item => item.lifecycle.isActive && !item.lifecycle.isHidden);
   const ingestedAt = new Date().toISOString();
   const documents = await withTimeout({
     task: provider.searchKeyword({
@@ -342,11 +394,14 @@ export async function searchAnimalHospitals(input: {
     }),
     timeoutMs: RUNTIME_PROVIDER_SEARCH_TIMEOUT_MS,
   }).catch(error => {
-    if (isAnimalHospitalSearchTimeout(error)) {
-      return [];
+    if (!isAnimalHospitalSearchTimeout(error)) {
+      console.warn(
+        '[animalHospital/service] Runtime provider search failed; canonical results will be used first.',
+        error,
+      );
     }
 
-    throw error;
+    return [];
   });
   const runtimeCandidates = documents
     .map(document =>
@@ -371,11 +426,14 @@ export async function searchAnimalHospitals(input: {
       canonicals: matchableCanonicals,
       candidates: runtimeCandidates,
     });
-  const merged = dedupeCanonicals([
-    ...linkedCanonicals,
-    ...officialCanonicals,
-    ...providerOnlyCandidates,
-  ]);
+  const merged = await applyRepositoryVerifications({
+    repository,
+    canonicals: dedupeCanonicals([
+      ...linkedCanonicals,
+      ...officialCanonicals,
+      ...providerOnlyCandidates,
+    ]),
+  });
   const publicItems = merged
     .map(canonical =>
       projectAnimalHospitalPublic({
@@ -391,8 +449,12 @@ export async function searchAnimalHospitals(input: {
     .sort((left, right) => {
       const leftCanonical = merged.find(item => item.id === left.id) ?? null;
       const rightCanonical = merged.find(item => item.id === right.id) ?? null;
-      const priorityLeft = leftCanonical ? sortCanonicalPriority(leftCanonical) : 1;
-      const priorityRight = rightCanonical ? sortCanonicalPriority(rightCanonical) : 1;
+      const priorityLeft = leftCanonical
+        ? sortCanonicalPriority(leftCanonical)
+        : 1;
+      const priorityRight = rightCanonical
+        ? sortCanonicalPriority(rightCanonical)
+        : 1;
       if (priorityLeft !== priorityRight) {
         return priorityLeft - priorityRight;
       }
