@@ -294,6 +294,11 @@ export function mapOfficialAnimalHospitalSourceToCanonical(
       providerPlaceId: null,
       externalMapLabel: normalizeWhitespace(input.name) ?? input.name,
     },
+    media: {
+      thumbnailUrl: null,
+      sourceId: null,
+      verifiedAt: null,
+    },
     trust: {
       publicStatus:
         normalizeWhitespace(input.officialPhone) && trustFreshness === 'fresh'

@@ -31,6 +31,7 @@ export const ANIMAL_HOSPITAL_PUBLIC_MVP_FIELDS = [
   'distance',
   'statusSummary',
   'officialPhone',
+  'thumbnailUrl',
   'publicTrust',
   'links',
 ] as const;

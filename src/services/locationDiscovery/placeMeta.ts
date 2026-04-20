@@ -18,8 +18,7 @@ export type PetPlaceExternalSignalKey =
   | 'allows-dogs'
   | 'outdoor-seating'
   | 'good-for-children'
-  | 'official-pet-policy'
-  | 'pet-travel-listing';
+  | 'official-pet-policy';
 
 export type PetFriendlyPlaceSourceLink = {
   id: string;
@@ -159,7 +158,6 @@ const VALID_SIGNAL_KEYS = new Set<PetPlaceExternalSignalKey>([
   'outdoor-seating',
   'good-for-children',
   'official-pet-policy',
-  'pet-travel-listing',
 ]);
 
 function normalizeString(value: string | null | undefined): string | null {
@@ -167,7 +165,9 @@ function normalizeString(value: string | null | undefined): string | null {
   return trimmed ? trimmed : null;
 }
 
-function toFiniteNumber(value: number | string | null | undefined): number | null {
+function toFiniteNumber(
+  value: number | string | null | undefined,
+): number | null {
   if (typeof value === 'number') {
     return Number.isFinite(value) ? value : null;
   }
@@ -306,7 +306,9 @@ export function buildPetPlaceSourceLookupKey(
 export async function loadPetFriendlyPlaceServiceMeta(
   input: PetFriendlyPlaceMetaLookupInput,
 ): Promise<Map<string, PetFriendlyPlaceServiceMeta>> {
-  const providerPlaceIds = [...new Set(input.providerPlaceIds.map(normalizeString).filter(Boolean))];
+  const providerPlaceIds = [
+    ...new Set(input.providerPlaceIds.map(normalizeString).filter(Boolean)),
+  ];
   if (!providerPlaceIds.length) {
     return new Map();
   }
@@ -398,7 +400,10 @@ export async function loadPetFriendlyPlaceServiceMeta(
       }
 
       lookupMap.set(
-        buildPetPlaceSourceLookupKey(sourceLink.provider, sourceLink.providerPlaceId),
+        buildPetPlaceSourceLookupKey(
+          sourceLink.provider,
+          sourceLink.providerPlaceId,
+        ),
         meta,
       );
     });

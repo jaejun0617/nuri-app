@@ -30,7 +30,9 @@ export type AnimalHospitalDetailViewModel = {
   hasProviderLink: boolean;
 };
 
-function resolveTrustTone(publicLabel: AnimalHospitalPublicHospital['publicTrust']['publicLabel']): AnimalHospitalTrustTone {
+function resolveTrustTone(
+  publicLabel: AnimalHospitalPublicHospital['publicTrust']['publicLabel'],
+): AnimalHospitalTrustTone {
   if (publicLabel === 'trust_reviewed') {
     return 'calm';
   }
@@ -52,7 +54,7 @@ export function buildAnimalHospitalCardViewModel(
     distanceLabel: item.distanceLabel,
     address: item.address,
     statusSummary: item.statusSummary,
-    phoneLabel: item.officialPhone ?? '공식 전화 확인 중',
+    phoneLabel: item.officialPhone ?? '전화번호 확인 중',
     hasCallAction: Boolean(item.links.callUri),
     hasDirectionsAction: Boolean(item.links.externalMapUrl),
   };
@@ -68,7 +70,7 @@ export function buildAnimalHospitalDetailViewModel(
     statusSummary: item.statusSummary,
     distanceLabel: item.distanceLabel,
     address: item.address,
-    phoneLabel: item.officialPhone ?? '공식 전화 확인 중',
+    phoneLabel: item.officialPhone ?? '전화번호 확인 중',
     trustDescription: item.publicTrust.description,
     trustGuidance: item.publicTrust.guidance,
     basisDateLabel: item.publicTrust.basisDateLabel,

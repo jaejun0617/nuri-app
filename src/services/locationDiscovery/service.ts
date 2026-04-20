@@ -158,7 +158,6 @@ const PET_NEGATIVE_KEYWORDS = [
 const PLACE_CONFLICT_SIGNAL_KEYS = new Set([
   'allows-dogs',
   'official-pet-policy',
-  'pet-travel-listing',
 ]);
 const PLACE_BROAD_QUERY_KEYWORDS = [
   '애견',
@@ -360,7 +359,11 @@ function filterWalkDocument(document: KakaoPlaceDocument): boolean {
 function getWalkPriority(item: LocationDiscoveryItem): number {
   const haystack = `${item.name} ${item.categoryLabel}`;
 
-  for (let index = 0; index < WALK_STRONG_PRIORITY_KEYWORDS.length; index += 1) {
+  for (
+    let index = 0;
+    index < WALK_STRONG_PRIORITY_KEYWORDS.length;
+    index += 1
+  ) {
     if (haystack.includes(WALK_STRONG_PRIORITY_KEYWORDS[index])) {
       return index;
     }
@@ -432,7 +435,8 @@ function dedupeItems(
 
   items.forEach(item => {
     const key =
-      item.id || `${item.name}:${item.latitude.toFixed(5)}:${item.longitude.toFixed(5)}`;
+      item.id ||
+      `${item.name}:${item.latitude.toFixed(5)}:${item.longitude.toFixed(5)}`;
     const existing = map.get(key);
     if (!existing) {
       map.set(key, item);
@@ -466,8 +470,7 @@ function buildWalkPublicTrust(): PublicTrustInfo {
     publicLabel: 'candidate',
     label: getPublicTrustLabelText('candidate'),
     shortReason: '거리와 키워드를 기준으로 정리한 산책 후보예요.',
-    description:
-      '현재 위치 기반 편의 추천이며 공적 검수 정보와는 별도예요.',
+    description: '현재 위치 기반 편의 추천이며 공적 검수 정보와는 별도예요.',
     guidance: '실제 운영 상태와 이용 가능 여부는 현장에서 다시 확인해 주세요.',
     tone: 'neutral',
     sourceLabel: '현재 위치 기반 추천',
@@ -506,7 +509,8 @@ function buildPetFriendlyVerification(
       return {
         status,
         label: '동반 불가 제보',
-        description: '동반 불가 제보가 있어 방문 전 반드시 매장에 확인해 주세요.',
+        description:
+          '동반 불가 제보가 있어 방문 전 반드시 매장에 확인해 주세요.',
         tone: 'critical' as const,
         sourceLabel: '서비스 메타',
         requiresConfirmation: true,
@@ -521,7 +525,9 @@ function buildPetFriendlyVerification(
             : '외부 검색 키워드 기반 후보예요. 현장 확인이 필요해요.',
         tone: 'caution' as const,
         sourceLabel:
-          sourceType === 'service-meta' ? '서비스 메타 + 외부 후보' : 'Kakao Local 후보',
+          sourceType === 'service-meta'
+            ? '서비스 메타 + 외부 후보'
+            : 'Kakao Local 후보',
         requiresConfirmation: true,
       };
     case 'unknown':
@@ -535,7 +541,9 @@ function buildPetFriendlyVerification(
             : '외부 장소 후보만 확보된 상태예요. 실제 반려동물 동반 가능 여부는 현장 확인이 필요해요.',
         tone: 'caution' as const,
         sourceLabel:
-          sourceType === 'service-meta' ? '서비스 메타 미확정' : 'Kakao Local 후보',
+          sourceType === 'service-meta'
+            ? '서비스 메타 미확정'
+            : 'Kakao Local 후보',
         requiresConfirmation: true,
       };
   }
@@ -626,7 +634,10 @@ function buildPetFriendlyPublicTrust(params: {
     hasEvidence,
   });
 
-  if (canPublishTrustReviewed && serviceMeta?.verificationStatus === 'admin-verified') {
+  if (
+    canPublishTrustReviewed &&
+    serviceMeta?.verificationStatus === 'admin-verified'
+  ) {
     return {
       publicLabel: 'trust_reviewed',
       label: getPublicTrustLabelText('trust_reviewed'),
@@ -699,12 +710,12 @@ function buildPetFriendlyPublicTrust(params: {
       shortReason: hasConflict
         ? '검수 메타와 외부 신호가 엇갈려 재확인이 필요해요.'
         : isStale
-          ? '검수 기준일이 오래돼 다시 확인이 필요해요.'
-          : !hasFreshnessBasis
-            ? '검수 기준일이 없어 공적 라벨을 더 올리지 않았어요.'
-          : !hasEvidence
-            ? '검수 메타는 있지만 공개 라벨을 올릴 근거가 아직 부족해요.'
-            : '서비스 메타는 있지만 확정 검수 단계는 아니에요.',
+        ? '검수 기준일이 오래돼 다시 확인이 필요해요.'
+        : !hasFreshnessBasis
+        ? '검수 기준일이 없어 공적 라벨을 더 올리지 않았어요.'
+        : !hasEvidence
+        ? '검수 메타는 있지만 공개 라벨을 올릴 근거가 아직 부족해요.'
+        : '서비스 메타는 있지만 확정 검수 단계는 아니에요.',
       description:
         '서비스 메타가 있어도 기준일, 근거, 외부 신호가 충분히 맞지 않으면 더 보수적인 라벨을 유지해요.',
       guidance: '실제 방문 전 반려동물 동반 조건을 다시 확인해 주세요.',
@@ -726,8 +737,7 @@ function buildPetFriendlyPublicTrust(params: {
       publicLabel: 'needs_verification',
       label: getPublicTrustLabelText('needs_verification'),
       shortReason: '펫 관련 키워드가 잡힌 외부 후보예요.',
-      description:
-        '외부 원본만으로는 실제 동반 가능 여부를 확정할 수 없어요.',
+      description: '외부 원본만으로는 실제 동반 가능 여부를 확정할 수 없어요.',
       guidance: '실제 방문 전 반려동물 동반 조건을 다시 확인해 주세요.',
       tone: 'caution',
       sourceLabel: 'Kakao Local 후보',
@@ -868,7 +878,10 @@ function toNormalizedPetFriendlyCandidate(
     phone: document.phone?.trim() || null,
     coordinateLabel: formatCoordinateLabel(latitude, longitude),
     externalPlaceId: document.id?.trim() || null,
-    hasKeywordEvidence: matchesPositiveKeyword(keywordHaystack, PET_POSITIVE_KEYWORDS),
+    hasKeywordEvidence: matchesPositiveKeyword(
+      keywordHaystack,
+      PET_POSITIVE_KEYWORDS,
+    ),
   };
 }
 
@@ -909,7 +922,9 @@ function mergePetFriendlyCandidate(
     operatingStatusLabel: serviceMeta?.operatingStatusLabel ?? null,
     source: {
       provider: serviceMeta ? 'supabase' : 'kakao',
-      providerLabel: serviceMeta ? 'NURI 메타 + Kakao Local' : 'Kakao Local 후보',
+      providerLabel: serviceMeta
+        ? 'NURI 메타 + Kakao Local'
+        : 'Kakao Local 후보',
       type: serviceMeta ? 'service-meta' : 'external-api',
       externalPlaceId: candidate.externalPlaceId,
     },
@@ -944,7 +959,9 @@ function buildWalkQueries(input: LocationDiscoverySearchInput): string[] {
   return [...WALK_BASE_KEYWORDS];
 }
 
-function buildPetFriendlyQueries(input: LocationDiscoverySearchInput): string[] {
+function buildPetFriendlyQueries(
+  input: LocationDiscoverySearchInput,
+): string[] {
   const normalizedQuery = normalizeQuery(input.query);
   if (normalizedQuery) {
     if (/(애견|반려|펫)/.test(normalizedQuery)) {
@@ -986,7 +1003,9 @@ async function searchDocumentsByQueries(
   return responses.flat();
 }
 
-function sortItems(items: ReadonlyArray<LocationDiscoveryItem>): LocationDiscoveryItem[] {
+function sortItems(
+  items: ReadonlyArray<LocationDiscoveryItem>,
+): LocationDiscoveryItem[] {
   return [...items].sort((left, right) => {
     const trustPriorityDiff =
       getPublicTrustPriority(left.publicTrust.publicLabel) -
@@ -1041,7 +1060,10 @@ function applyWalkExposureGuard(
       return true;
     }
 
-    if (item.distanceMeters === null || item.distanceMeters <= distanceCapMeters) {
+    if (
+      item.distanceMeters === null ||
+      item.distanceMeters <= distanceCapMeters
+    ) {
       return true;
     }
 
@@ -1055,7 +1077,10 @@ function applyPetFriendlyExposureGuard(
   items: ReadonlyArray<LocationDiscoveryItem>,
   query: string | null | undefined,
 ): LocationDiscoveryItem[] {
-  const queryIntent = getDiscoveryQueryIntent(query, PLACE_BROAD_QUERY_KEYWORDS);
+  const queryIntent = getDiscoveryQueryIntent(
+    query,
+    PLACE_BROAD_QUERY_KEYWORDS,
+  );
   const trustReviewed = items.filter(
     item => item.publicTrust.publicLabel === 'trust_reviewed',
   );
@@ -1075,12 +1100,12 @@ function applyPetFriendlyExposureGuard(
         ? 1
         : 2
       : queryIntent === 'broad'
-        ? strongerCount > 0
-          ? 1
-          : 2
-        : strongerCount > 0
-          ? 2
-          : 3;
+      ? strongerCount > 0
+        ? 1
+        : 2
+      : strongerCount > 0
+      ? 2
+      : 3;
 
   return [
     ...trustReviewed,
@@ -1108,7 +1133,11 @@ async function searchWalkLocations(
         documents
           .filter(filterWalkDocument)
           .map(document =>
-            toWalkItem(document, input.scope.anchorCoordinates, input.scope.distanceLabel),
+            toWalkItem(
+              document,
+              input.scope.anchorCoordinates,
+              input.scope.distanceLabel,
+            ),
           )
           .filter((item): item is LocationDiscoveryItem => Boolean(item)),
       ),
@@ -1190,7 +1219,10 @@ async function searchPetFriendlyPlaces(
           .filter(({ candidate }) => {
             const serviceMeta = candidate.externalPlaceId
               ? serviceMetaMap.get(
-                  buildPetPlaceSourceLookupKey('kakao', candidate.externalPlaceId),
+                  buildPetPlaceSourceLookupKey(
+                    'kakao',
+                    candidate.externalPlaceId,
+                  ),
                 )
               : undefined;
 
@@ -1206,7 +1238,10 @@ async function searchPetFriendlyPlaces(
               document,
               candidate.externalPlaceId
                 ? serviceMetaMap.get(
-                    buildPetPlaceSourceLookupKey('kakao', candidate.externalPlaceId),
+                    buildPetPlaceSourceLookupKey(
+                      'kakao',
+                      candidate.externalPlaceId,
+                    ),
                   )
                 : undefined,
             ),

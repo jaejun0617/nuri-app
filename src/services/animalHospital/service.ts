@@ -181,6 +181,11 @@ function buildRuntimeCandidateCanonical(params: {
       providerPlaceId: normalizeWhitespace(document.id),
       externalMapLabel: name,
     },
+    media: {
+      thumbnailUrl: null,
+      sourceId: null,
+      verifiedAt: null,
+    },
     trust: {
       publicStatus: 'candidate',
       freshness: 'fresh',

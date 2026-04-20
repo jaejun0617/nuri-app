@@ -1,5 +1,10 @@
 # Final Release Gate
 
+운영 메모:
+
+- 이 문서는 gate open/close만 본다.
+- task18 상세 실행 순서, 캡처 파일명, 보관 규칙은 `docs/출시-준비도-회복/11-release-blocker-evidence-pack.md`를 따른다.
+
 ## 이미 닫힌 항목
 
 - [x] 정책 문서 public 연결
@@ -17,7 +22,7 @@
 - [x] 닉네임 정책과 Android 기본 레이아웃
   - 닉네임 `2..10`, Community header, Timeline 탭 유지, bottom gap 보정이 실기기 기준으로 닫혔다.
 - [x] 외부 지도 전환 기본 동선
-  - 장소/여행 상세의 외부 지도 열기 동선은 PO 확인 기준 완료로 분류한다.
+  - 장소 상세의 외부 지도 열기 동선은 PO 확인 기준 완료로 분류한다.
 - [x] 건강관리 리포트 Phase 1 MVP
   - repo 구현, linked remote migration 적용, insert/update/delete/fallback row-level 검증, Android 실기기 핵심 동작이 완료됐다.
   - 적용된 remote migration은 `task7_normalize_invalid_pet_weight_snapshots`, `task7_health_report_weight_logs`이며, `pet_weight_logs` table/function/trigger와 `pets.weight_kg` latest snapshot 계약이 확인됐다.
@@ -39,9 +44,9 @@
 - [x] Supabase env 연결 상태
   - tracked config가 linked remote host를 가리키며 `auth/v1/health` 200 응답 확인
 
-### 1. 장소/여행/산책 물리 실기기 최종 캡처
+### 1. 장소/산책/동물병원 물리 실기기 최종 캡처
 
-- [ ] 산책, 장소, 여행 리스트/상세를 실제 기기에서 다시 확인한다.
+- [ ] 산책, 장소, 동물병원의 리스트와 상세를 Android 실기기에서 다시 열고 캡처를 남긴다.
 - [ ] 공개 라벨과 `내 상태`가 섞여 보이지 않는지 확인한다.
 - [ ] stale/conflict 문구가 과한 확신처럼 읽히지 않는지 확인한다.
 - [ ] 지도 미리보기와 외부 지도 버튼 역할이 충돌하지 않는지 확인한다.
@@ -71,17 +76,16 @@
 
 ### 5. 출시 후보 빌드 smoke
 
-- [ ] 가입, 로그인, 로그아웃을 출시 후보 빌드에서 다시 확인한다.
-- [ ] 비밀번호 재설정, 탈퇴, 커뮤니티 기본 동선을 출시 후보 빌드에서 다시 확인한다.
-- [ ] 홈, 타임라인, 기록, 장소/여행/산책 진입이 한 번씩 정상 동작하는지 확인한다.
-- [ ] 건강관리 리포트 진입, 건강기록 조회, 체중 insert/update/delete/fallback, 홈 최신 체중 반영을 출시 후보 빌드에서 다시 확인한다.
+- [ ] 가입, 로그인, 로그아웃을 출시 후보 빌드에서 다시 확인하고 캡처를 남긴다.
+- [ ] 비밀번호 재설정, 탈퇴, 커뮤니티 기본 동선을 출시 후보 빌드에서 다시 확인하고 캡처를 남긴다.
+- [ ] 홈, 타임라인, 기록, 장소/산책/동물병원 진입이 한 번씩 정상 동작하는지 확인하고 캡처를 남긴다.
+- [ ] 건강관리 리포트 진입, 건강기록 조회, 체중 insert/update/delete/fallback, 홈 최신 체중 반영을 출시 후보 빌드에서 다시 확인하고 캡처를 남긴다.
 
 ## v1.1 백로그
 
-- [ ] 장소/여행 `confirmed` 개방 검토
-- [ ] 장소/여행 admin review write path
+- [ ] 장소/동물병원 `confirmed` 개방 검토
+- [ ] 장소/동물병원 admin review write path
 - [ ] 커뮤니티 preview batch 최적화
-- [ ] broad/specific 여행 검색 추가 보정
 - [ ] 운영자용 moderation/admin UI
 - [ ] auth/account baseline-history 정리
 - [ ] 외부 API 키 통제, 환경 분리, 운영 도구 정리

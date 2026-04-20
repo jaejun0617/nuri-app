@@ -32,23 +32,27 @@ describe('animalHospital public projection', () => {
       },
     });
 
-    expect(Object.keys(projected).sort()).toEqual([
-      'address',
-      'distanceLabel',
-      'distanceMeters',
-      'id',
-      'latitude',
-      'links',
-      'name',
-      'officialPhone',
-      'publicTrust',
-      'roadAddress',
-      'statusSummary',
-      'longitude',
-    ].sort());
+    expect(Object.keys(projected).sort()).toEqual(
+      [
+        'address',
+        'distanceLabel',
+        'distanceMeters',
+        'id',
+        'latitude',
+        'links',
+        'name',
+        'officialPhone',
+        'publicTrust',
+        'roadAddress',
+        'statusSummary',
+        'thumbnailUrl',
+        'longitude',
+      ].sort(),
+    );
     expect(projected.name).toBe('누리동물병원');
     expect(projected.officialPhone).toBe('02-555-0101');
     expect(projected.links.callUri).toBe('tel:025550101');
+    expect(projected.thumbnailUrl).toBeNull();
     expect(projected.statusSummary).toContain('인허가 기준 운영 병원');
     expect(projected.publicTrust.publicLabel).toBe('needs_verification');
     expect('operatingHours' in projected).toBe(false);

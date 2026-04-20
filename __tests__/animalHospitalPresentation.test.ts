@@ -15,11 +15,13 @@ const publicHospital: AnimalHospitalPublicHospital = {
   distanceLabel: '도보 3분',
   statusSummary: '인허가 기준 운영 병원으로 확인됐어요.',
   officialPhone: '02-555-0101',
+  thumbnailUrl: 'https://cdn.example.com/animal-hospital/nuri.jpg',
   publicTrust: {
     publicLabel: 'needs_verification',
     label: '확인 필요',
     shortReason: '기본 정보는 있지만 최신 확인이 더 필요해요.',
-    description: '공개 가능한 기본 정보만 보여주고, 민감한 운영 정보는 숨겨 둬요.',
+    description:
+      '공개 가능한 기본 정보만 보여주고, 민감한 운영 정보는 숨겨 둬요.',
     guidance: '민감한 운영 정보는 아직 public에 열지 않았어요.',
     tone: 'caution',
     sourceLabel: 'official-localdata',
@@ -42,9 +44,9 @@ describe('animalHospital presentation models', () => {
 
     expect(card.title).toBe('누리동물병원');
     expect(card.phoneLabel).toBe('02-555-0101');
-    expect('operatingHours' in (card as unknown as Record<string, unknown>)).toBe(
-      false,
-    );
+    expect(
+      'operatingHours' in (card as unknown as Record<string, unknown>),
+    ).toBe(false);
   });
 
   it('상세 view model은 public whitelist 내 정보만 정리한다', () => {
@@ -52,8 +54,8 @@ describe('animalHospital presentation models', () => {
 
     expect(detail.trustLabel).toBe('확인 필요');
     expect(detail.hasProviderLink).toBe(true);
-    expect('homepageUrl' in (detail as unknown as Record<string, unknown>)).toBe(
-      false,
-    );
+    expect(
+      'homepageUrl' in (detail as unknown as Record<string, unknown>),
+    ).toBe(false);
   });
 });

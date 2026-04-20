@@ -19,10 +19,13 @@ describe('auth notices', () => {
 
   it('account deletion success는 두 줄 제목으로 반환한다', () => {
     expect(resolveSignInNotice('account-deletion-success')).toEqual({
-      eyebrow: 'ACCOUNT REMOVED',
+      eyebrow: 'ACCOUNT DELETION',
       iconName: 'shield',
-      titleLines: ['계정 삭제가 안전하게', '처리되었습니다.'],
-      bodyLines: ['그동안 NURI와 함께해주셔서', '감사합니다.'],
+      titleLines: ['탈퇴 요청이 접수되었어요.'],
+      bodyLines: [
+        '모든 정보가 안전하게 숨김 처리되었어요 🔒',
+        '(7일 후 영구 삭제되며, 그 전까지 언제든 복구할 수 있습니다)',
+      ],
       confirmLabel: '확인',
     });
   });

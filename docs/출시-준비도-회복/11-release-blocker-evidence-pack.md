@@ -1,7 +1,7 @@
 # 액션 1. Release blocker evidence pack
 
 상태: 진행 중
-최종 갱신: 2026-04-03
+최종 갱신: 2026-04-21
 우선순위: P0
 
 ## 배경
@@ -10,14 +10,64 @@
 
 ## 현재 문제
 
-- physical-device QA가 없다.
-- 비밀번호 재설정 메일 복귀, 계정 삭제 end-to-end, 커뮤니티 row-level moderation/cleanup, 장소/여행/산책 공개 신뢰도 캡처가 미완료다.
+- 실기기 검증이 전혀 없는 상태는 아니다.
+- 비밀번호 재설정 복귀, 정책 문서 앱 링크, 계정 삭제/커뮤니티 일부 실기기·row-level 증적은 이미 확보됐다.
+- 지금 남은 것은 `장소/산책/동물병원 최종 캡처`, `계정 탈퇴 cron 자동 tick 증적`, `커뮤니티 moderation/action/image cleanup 보관본`, `RC smoke 보관본`이다.
 - 자동 확인 가능한 항목과 외부 조건이 필요한 항목이 한 묶음으로 남아 있다.
 
 ## 목표
 
 - 자동으로 확보 가능한 증적은 이번 턴에 바로 확보한다.
 - 외부 의존 증적은 비어 있는 항목, 못 닫는 이유, 닫는 방법을 명확히 고정한다.
+
+## task18 closure 기준선
+
+### 코드상 이미 닫힘
+
+- `tsc`, `yarn lint`, `yarn test:qa`, Android release build, Android 단독 실행 smoke
+- 비밀번호 재설정 앱 복귀
+- 계정 탈퇴 7일 유예와 자동 파기 worker baseline
+- 커뮤니티 신고/auto-hide baseline
+- 정책 문서 앱 링크
+- 건강관리 리포트 Phase 1 baseline
+
+### 문서 정리로 닫을 수 있음
+
+- `docs/qa/release-checklist.md`와 이 문서의 남은 항목 wording 정렬
+- 남은 physical-device 항목을 사람 실행 순서로 고정
+- 캡처 파일명 규칙과 기록 위치 고정
+
+### 증적 정리로 닫을 수 있음
+
+- 계정 탈퇴 worker `실제 cron 자동 tick` 1회 캡처
+- 계정 탈퇴 최종 상태 row-level 보관본
+- `community_moderation_queue`, `community_moderation_actions`, `community_image_assets` 보관본
+- `qa-task4-*` 테스트 데이터 정리 또는 격리 근거
+
+### 실기기/사람 수행 필요
+
+- 장소/산책/동물병원 리스트/상세 최종 캡처
+- 공개 라벨, `내 상태`, stale/conflict 문구, 지도 미리보기, 외부 지도 전환, 긴 설명 `더보기/접기` 확인
+- RC 빌드 기준 가입, 로그인, 로그아웃, 비밀번호 재설정, 탈퇴, 커뮤니티, 홈/타임라인/기록/건강관리 smoke
+
+### 현재 막힘
+
+- 없음
+- 필요한 것은 Android 실기기, linked remote/콘솔 접근, release candidate 빌드뿐이다.
+
+## 증적 파일명 / 기록 규칙
+
+- 실기기 캡처: `YYYYMMDD-task18-device-stepN-topic.png`
+- 콘솔/row-level 캡처: `YYYYMMDD-task18-remote-stepN-topic.png`
+- 로그/텍스트 보관: `YYYYMMDD-task18-stepN-topic.md`
+- 각 증적은 수집 직후 이 문서 해당 섹션에 `파일명 / 캡처 시각 / 확인자 / 판정` 4가지를 바로 적는다.
+- 캡처 원본은 개인 임시 폴더에만 두지 말고, release 보관본 기준 위치에 함께 보존한다.
+
+## 사람 실행 순서
+
+1. Android 실기기에서 장소, 산책, 동물병원 리스트와 상세를 열고 필요한 화면을 캡처한 뒤 이 문서에 파일명과 판정을 적는다.
+2. linked remote/콘솔에서 계정 탈퇴 worker cron 자동 tick, 계정 탈퇴 최종 상태, 커뮤니티 moderation/action/image cleanup row-level 화면을 캡처하고 이 문서에 파일명과 판정을 적는다.
+3. release candidate 빌드에서 가입, 로그인, 로그아웃, 비밀번호 재설정, 탈퇴, 커뮤니티, 홈, 타임라인, 기록, 건강관리 smoke를 수행하고 성공/실패를 이 문서와 `release-checklist.md`에 동시에 반영한다.
 
 ## 작업 목록
 
@@ -28,19 +78,20 @@
 - [x] 커뮤니티 moderation row-level 현재 상태 스냅샷
 - [x] 비밀번호 재설정 deep link local 전제조건 재확인
 - [x] Step 1 recovery session 오분기 repo-side blocker fix
-- [ ] physical-device QA 캡처
+- [ ] 장소/산책/동물병원 리스트/상세 physical-device 최종 캡처
 - [x] 비밀번호 재설정 메일 복귀 실기기 재검증
 - [x] 계정 삭제 row-level 실행 증적
 - [x] 커뮤니티 신고 row-level 1차 증적
 - [x] 정책 문서 앱 링크 Android 실기기 열림 / 복귀 검증
 - [ ] 커뮤니티 moderation / cleanup row-level 실행 증적
-- [ ] 장소/여행/산책 공개 신뢰도 실기기 캡처
+- [ ] 계정 탈퇴 worker cron 자동 tick 보관본
+- [ ] RC smoke 보관본
 
 ## 이번 턴 실행 결과
 
 - 자동 수집 스크립트를 추가해 아래 항목을 한 번에 다시 확인할 수 있게 만들었다.
   - `yarn test:qa`
-  - `petTravel / consents / legalDocuments / guideCatalogSource` 타겟 테스트
+  - `animalHospital / consents / legalDocuments / guideCatalogSource` 타겟 테스트
   - linked Supabase migration list / dry-run
   - Android/iOS Firebase 파일 존재 여부
   - local-only runtime config 파일 존재 여부
@@ -376,7 +427,7 @@
 
 | 항목 | 현재 상태 | 이번 턴 가능 여부 | 못 닫는 이유 | 닫는 방법 |
 | --- | --- | --- | --- | --- |
-| physical-device QA | 미완료 | 불가 | 물리 실기기 캡처와 조작이 필요 | 최소 1대 기기에서 장소/여행/산책, reset, 커뮤니티 캡처 확보 |
+| physical-device QA | 미완료 | 불가 | 물리 실기기 캡처와 조작이 필요 | 최소 1대 기기에서 장소/산책/동물병원, reset, 커뮤니티 캡처 확보 |
 | 비밀번호 재설정 메일 복귀 | local 계약만 확인 | 부분 가능 | 실제 메일 앱/딥링크 복귀와 allowlist 콘솔은 외부 장치/콘솔 접근 필요 | Supabase redirect allowlist 캡처 후 실기기 메일 복귀 캡처 |
 | 계정 삭제 row-level 증적 | Step 2 hard delete + storage cleanup 완료 | 확보 | `claim_account_deletion_cleanup_items()` ambiguous `request_id` 버그가 있어 수동 worker 절차로 닫음 | Step 3 이후 cleanup worker RPC 자체 수정 여부 판단 |
 | 커뮤니티 moderation / cleanup row-level | 신고 row 1건 + queue row 1건 추가, auto-hide 미발동 | 부분 가능 | 현재 `unique_reporter_count = 1`이라 auto-hide threshold에 못 미침 | 같은 target에 다른 reporter를 추가해 `community_moderation_actions`, status 전환, cleanup trace까지 캡처 |

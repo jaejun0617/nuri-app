@@ -13,7 +13,14 @@
 // - 이 파일은 실제 구현된 기능만 노출해야 하므로 placeholder 메뉴를 다시 넣을 때는 사용자 기대치와 실제 동작을 함께 검증해야 한다.
 // - 계정 액션과 일반 메뉴 이동이 섞여 있어, 모달 상태와 navigation 호출 순서를 함부로 바꾸면 드로어 닫힘/복귀 UX가 어긋날 수 있다.
 
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   Alert,
   findNodeHandle,
@@ -32,7 +39,10 @@ import {
 } from 'react-native';
 import { KeyboardAvoidingView as KeyboardControllerAvoidingView } from 'react-native-keyboard-controller';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from 'styled-components/native';
@@ -50,9 +60,7 @@ import {
   saveNicknameChangedAt,
 } from '../../services/local/accountPreferences';
 import { formatDateLabelFromDate } from '../../utils/date';
-import {
-  getBrandedErrorMeta,
-} from '../../services/app/errors';
+import { getBrandedErrorMeta } from '../../services/app/errors';
 import {
   getNicknameErrorMessageByCode,
   NICKNAME_MAX_LENGTH,
@@ -293,7 +301,9 @@ const PasswordField = memo(function PasswordField({
   return (
     <View style={styles.modalField}>
       <Text style={styles.modalLabel}>{label}</Text>
-      <View style={[styles.inputShell, { backgroundColor: theme.colors.surface }]}>
+      <View
+        style={[styles.inputShell, { backgroundColor: theme.colors.surface }]}
+      >
         <TextInput
           value={value}
           onChangeText={onChangeText}
@@ -353,13 +363,16 @@ export const PasswordChangeModal = memo(function PasswordChangeModal({
   const nextPasswordRef = useRef<TextInput | null>(null);
   const confirmPasswordRef = useRef<TextInput | null>(null);
 
-  const scrollToInput = useCallback((ref: React.RefObject<TextInput | null>) => {
-    requestAnimationFrame(() => {
-      const node = findNodeHandle(ref.current);
-      if (!node) return;
-      scrollRef.current?.scrollToFocusedInput?.(node);
-    });
-  }, []);
+  const scrollToInput = useCallback(
+    (ref: React.RefObject<TextInput | null>) => {
+      requestAnimationFrame(() => {
+        const node = findNodeHandle(ref.current);
+        if (!node) return;
+        scrollRef.current?.scrollToFocusedInput?.(node);
+      });
+    },
+    [],
+  );
 
   return (
     <Modal
@@ -396,12 +409,17 @@ export const PasswordChangeModal = memo(function PasswordChangeModal({
             onPress={Keyboard.dismiss}
           >
             <View style={styles.sheetHeader}>
-              <Text style={[styles.sheetTitle, { color: theme.colors.textPrimary }]}>
+              <Text
+                style={[styles.sheetTitle, { color: theme.colors.textPrimary }]}
+              >
                 비밀번호 변경
               </Text>
               <TouchableOpacity
                 activeOpacity={0.88}
-                style={[styles.sheetClose, { backgroundColor: theme.colors.surface }]}
+                style={[
+                  styles.sheetClose,
+                  { backgroundColor: theme.colors.surface },
+                ]}
                 onPress={onClose}
               >
                 <Feather name="x" size={20} color={theme.colors.textMuted} />
@@ -414,7 +432,9 @@ export const PasswordChangeModal = memo(function PasswordChangeModal({
               }}
               style={styles.modalContentScroll}
               contentContainerStyle={styles.modalContentContainer}
-              keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+              keyboardDismissMode={
+                Platform.OS === 'ios' ? 'interactive' : 'on-drag'
+              }
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
               enableOnAndroid
@@ -506,7 +526,12 @@ const ThemeSettingsModal = memo(function ThemeSettingsModal({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={[styles.modalBackdrop, { backgroundColor: theme.colors.overlay }]}>
+      <View
+        style={[
+          styles.modalBackdrop,
+          { backgroundColor: theme.colors.overlay },
+        ]}
+      >
         <Pressable style={styles.modalScrim} onPress={onClose} />
         <View
           style={[
@@ -518,12 +543,17 @@ const ThemeSettingsModal = memo(function ThemeSettingsModal({
           ]}
         >
           <View style={styles.sheetHeader}>
-            <Text style={[styles.sheetTitle, { color: theme.colors.textPrimary }]}>
+            <Text
+              style={[styles.sheetTitle, { color: theme.colors.textPrimary }]}
+            >
               테마 설정
             </Text>
             <TouchableOpacity
               activeOpacity={0.85}
-              style={[styles.sheetClose, { backgroundColor: theme.colors.surface }]}
+              style={[
+                styles.sheetClose,
+                { backgroundColor: theme.colors.surface },
+              ]}
               onPress={onClose}
             >
               <Feather name="x" size={20} color={theme.colors.textMuted} />
@@ -531,10 +561,22 @@ const ThemeSettingsModal = memo(function ThemeSettingsModal({
           </View>
 
           <View style={styles.themeInfoBlock}>
-            <Text style={[styles.themeInfoTitle, { color: theme.colors.textPrimary }]}>
-              {petName ? `${petName}의 테마를 바꿔볼까요?` : '현재 아이의 테마를 바꿔볼까요?'}
+            <Text
+              style={[
+                styles.themeInfoTitle,
+                { color: theme.colors.textPrimary },
+              ]}
+            >
+              {petName
+                ? `${petName}의 테마를 바꿔볼까요?`
+                : '현재 아이의 테마를 바꿔볼까요?'}
             </Text>
-            <Text style={[styles.themeInfoBody, { color: theme.colors.textSecondary }]}>
+            <Text
+              style={[
+                styles.themeInfoBody,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
               {helperText}
             </Text>
           </View>
@@ -603,7 +645,12 @@ const NotificationSettingsModal = memo(function NotificationSettingsModal({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={[styles.modalBackdrop, { backgroundColor: theme.colors.overlay }]}>
+      <View
+        style={[
+          styles.modalBackdrop,
+          { backgroundColor: theme.colors.overlay },
+        ]}
+      >
         <Pressable style={styles.modalScrim} onPress={onClose} />
         <View
           style={[
@@ -615,12 +662,17 @@ const NotificationSettingsModal = memo(function NotificationSettingsModal({
           ]}
         >
           <View style={styles.sheetHeader}>
-            <Text style={[styles.sheetTitle, { color: theme.colors.textPrimary }]}>
+            <Text
+              style={[styles.sheetTitle, { color: theme.colors.textPrimary }]}
+            >
               알림 설정
             </Text>
             <TouchableOpacity
               activeOpacity={0.85}
-              style={[styles.sheetClose, { backgroundColor: theme.colors.surface }]}
+              style={[
+                styles.sheetClose,
+                { backgroundColor: theme.colors.surface },
+              ]}
               onPress={onClose}
             >
               <Feather name="x" size={20} color={theme.colors.textMuted} />
@@ -628,10 +680,20 @@ const NotificationSettingsModal = memo(function NotificationSettingsModal({
           </View>
 
           <View style={styles.notificationInfoBlock}>
-            <Text style={[styles.themeInfoTitle, { color: theme.colors.textPrimary }]}>
+            <Text
+              style={[
+                styles.themeInfoTitle,
+                { color: theme.colors.textPrimary },
+              ]}
+            >
               중요한 병원, 약 시간을 놓치지 않게 도와드릴게요.
             </Text>
-            <Text style={[styles.themeInfoBody, { color: theme.colors.textSecondary }]}>
+            <Text
+              style={[
+                styles.themeInfoBody,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
               일정 추가에서 알림을 선택하면 이 기기에 로컬 알림으로 예약됩니다.
               완료 처리하거나 알림을 끄면 예약도 함께 정리됩니다.
             </Text>
@@ -647,10 +709,17 @@ const NotificationSettingsModal = memo(function NotificationSettingsModal({
             ]}
           >
             <View style={styles.notificationSettingText}>
-              <Text style={[styles.modalLabel, { color: theme.colors.textPrimary }]}>
+              <Text
+                style={[styles.modalLabel, { color: theme.colors.textPrimary }]}
+              >
                 일정 알림
               </Text>
-              <Text style={[styles.notificationSettingHelper, { color: theme.colors.textMuted }]}>
+              <Text
+                style={[
+                  styles.notificationSettingHelper,
+                  { color: theme.colors.textMuted },
+                ]}
+              >
                 병원, 약, 산책 등 일정 알림 예약 허용
               </Text>
             </View>
@@ -684,18 +753,32 @@ const NotificationSettingsModal = memo(function NotificationSettingsModal({
             >
               기기 권한: {getNotificationPermissionLabel(permissionStatus)}
             </Text>
-            <Text style={[styles.notificationSettingHelper, { color: theme.colors.textMuted }]}>
-              권한이 꺼져 있으면 일정에는 알림값이 저장되지만 실제 기기 알림은 오지 않아요.
+            <Text
+              style={[
+                styles.notificationSettingHelper,
+                { color: theme.colors.textMuted },
+              ]}
+            >
+              권한이 꺼져 있으면 일정에는 알림값이 저장되지만 실제 기기 알림은
+              오지 않아요.
             </Text>
           </View>
 
           {permissionGranted ? (
             <TouchableOpacity
               activeOpacity={0.9}
-              style={[styles.secondaryButton, { borderColor: theme.colors.border }]}
+              style={[
+                styles.secondaryButton,
+                { borderColor: theme.colors.border },
+              ]}
               onPress={onOpenSystemSettings}
             >
-              <Text style={[styles.secondaryButtonText, { color: theme.colors.textPrimary }]}>
+              <Text
+                style={[
+                  styles.secondaryButtonText,
+                  { color: theme.colors.textPrimary },
+                ]}
+              >
                 시스템 알림 설정 열기
               </Text>
             </TouchableOpacity>
@@ -717,48 +800,77 @@ const NotificationSettingsModal = memo(function NotificationSettingsModal({
   );
 });
 
-export const PasswordChangeSuccessModal = memo(function PasswordChangeSuccessModal({
-  visible,
-  onClose,
-  accentColor,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  accentColor: string;
-}) {
-  const theme = useTheme();
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <View style={[styles.successBackdrop, { backgroundColor: theme.colors.overlay }]}>
-        <View style={[styles.successCard, { backgroundColor: theme.colors.surfaceElevated }]}>
-          <View style={[styles.successHalo, { backgroundColor: theme.colors.surface }]}>
-            <View style={[styles.successIcon, { backgroundColor: theme.colors.success }]}>
-              <Feather name="check" size={26} color="#FFFFFF" />
-            </View>
-          </View>
-          <Text style={[styles.successTitle, { color: theme.colors.textPrimary }]}>
-            비밀번호 변경 완료
-          </Text>
-          <Text style={[styles.successBody, { color: theme.colors.textSecondary }]}>
-            비밀번호가 성공적으로{'\n'}변경되었습니다.
-          </Text>
-          <TouchableOpacity
-            activeOpacity={0.92}
-            style={[styles.primaryButton, { backgroundColor: accentColor }]}
-            onPress={onClose}
+export const PasswordChangeSuccessModal = memo(
+  function PasswordChangeSuccessModal({
+    visible,
+    onClose,
+    accentColor,
+  }: {
+    visible: boolean;
+    onClose: () => void;
+    accentColor: string;
+  }) {
+    const theme = useTheme();
+    return (
+      <Modal
+        visible={visible}
+        transparent
+        animationType="fade"
+        onRequestClose={onClose}
+      >
+        <View
+          style={[
+            styles.successBackdrop,
+            { backgroundColor: theme.colors.overlay },
+          ]}
+        >
+          <View
+            style={[
+              styles.successCard,
+              { backgroundColor: theme.colors.surfaceElevated },
+            ]}
           >
-            <Text style={styles.primaryButtonText}>확인</Text>
-          </TouchableOpacity>
+            <View
+              style={[
+                styles.successHalo,
+                { backgroundColor: theme.colors.surface },
+              ]}
+            >
+              <View
+                style={[
+                  styles.successIcon,
+                  { backgroundColor: theme.colors.success },
+                ]}
+              >
+                <Feather name="check" size={26} color="#FFFFFF" />
+              </View>
+            </View>
+            <Text
+              style={[styles.successTitle, { color: theme.colors.textPrimary }]}
+            >
+              비밀번호 변경 완료
+            </Text>
+            <Text
+              style={[
+                styles.successBody,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
+              비밀번호가 성공적으로{'\n'}변경되었습니다.
+            </Text>
+            <TouchableOpacity
+              activeOpacity={0.92}
+              style={[styles.primaryButton, { backgroundColor: accentColor }]}
+              onPress={onClose}
+            >
+              <Text style={styles.primaryButtonText}>확인</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    </Modal>
-  );
-});
+      </Modal>
+    );
+  },
+);
 
 const ProfileEditModal = memo(function ProfileEditModal({
   visible,
@@ -808,12 +920,17 @@ const ProfileEditModal = memo(function ProfileEditModal({
             onPress={Keyboard.dismiss}
           >
             <View style={styles.sheetHeader}>
-              <Text style={[styles.sheetTitle, { color: theme.colors.textPrimary }]}>
+              <Text
+                style={[styles.sheetTitle, { color: theme.colors.textPrimary }]}
+              >
                 닉네임 수정
               </Text>
               <TouchableOpacity
                 activeOpacity={0.88}
-                style={[styles.sheetClose, { backgroundColor: theme.colors.surface }]}
+                style={[
+                  styles.sheetClose,
+                  { backgroundColor: theme.colors.surface },
+                ]}
                 onPress={onClose}
               >
                 <Feather name="x" size={20} color={theme.colors.textMuted} />
@@ -821,7 +938,9 @@ const ProfileEditModal = memo(function ProfileEditModal({
             </View>
 
             <View style={styles.modalField}>
-              <Text style={[styles.modalLabel, { color: theme.colors.textPrimary }]}>
+              <Text
+                style={[styles.modalLabel, { color: theme.colors.textPrimary }]}
+              >
                 닉네임
               </Text>
               <TextInput
@@ -899,7 +1018,8 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const [deleting, setDeleting] = useState(false);
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [themeModalVisible, setThemeModalVisible] = useState(false);
-  const [notificationModalVisible, setNotificationModalVisible] = useState(false);
+  const [notificationModalVisible, setNotificationModalVisible] =
+    useState(false);
   const [notificationSettingsLoading, setNotificationSettingsLoading] =
     useState(false);
   const [notificationEnabled, setNotificationEnabled] = useState(true);
@@ -1003,7 +1123,9 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const canShowLogout = Boolean(session?.user?.id) && isLoggedIn;
   const headerTitle = useMemo(
     () =>
-      isLoggedIn ? `안녕하세요, ${greetingName}` : 'NURI에 오신 것을\n환영합니다.',
+      isLoggedIn
+        ? `안녕하세요, ${greetingName}`
+        : 'NURI에 오신 것을\n환영합니다.',
     [greetingName, isLoggedIn],
   );
   const headerSubtitle = useMemo(
@@ -1123,7 +1245,9 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   }, [closeAndNavigate, navigation]);
 
   const openGuideList = useCallback(() => {
-    closeAndNavigate(() => navigation.navigate('GuideList', { entrySource: 'more' }));
+    closeAndNavigate(() =>
+      navigation.navigate('GuideList', { entrySource: 'more' }),
+    );
   }, [closeAndNavigate, navigation]);
 
   const openCommunity = useCallback(() => {
@@ -1194,28 +1318,25 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     setNotificationModalVisible(false);
   }, [notificationSettingsLoading]);
 
-  const onToggleNotificationEnabled = useCallback(
-    async (enabled: boolean) => {
-      setNotificationSettingsLoading(true);
-      try {
-        const settings = await setScheduleNotificationEnabled(enabled);
-        setNotificationEnabled(settings.enabled);
-        showToast({
-          tone: settings.enabled ? 'success' : 'info',
-          title: settings.enabled ? '일정 알림 켜짐' : '일정 알림 꺼짐',
-          message: settings.enabled
-            ? '새로 저장하는 일정 알림이 기기에 예약됩니다.'
-            : '예약된 일정 알림을 정리하고 새 알림 예약을 멈췄어요.',
-        });
-      } catch (error) {
-        const { title, message } = getBrandedErrorMeta(error, 'generic');
-        showToast({ tone: 'error', title, message });
-      } finally {
-        setNotificationSettingsLoading(false);
-      }
-    },
-    [],
-  );
+  const onToggleNotificationEnabled = useCallback(async (enabled: boolean) => {
+    setNotificationSettingsLoading(true);
+    try {
+      const settings = await setScheduleNotificationEnabled(enabled);
+      setNotificationEnabled(settings.enabled);
+      showToast({
+        tone: settings.enabled ? 'success' : 'info',
+        title: settings.enabled ? '일정 알림 켜짐' : '일정 알림 꺼짐',
+        message: settings.enabled
+          ? '새로 저장하는 일정 알림이 기기에 예약됩니다.'
+          : '예약된 일정 알림을 정리하고 새 알림 예약을 멈췄어요.',
+      });
+    } catch (error) {
+      const { title, message } = getBrandedErrorMeta(error, 'generic');
+      showToast({ tone: 'error', title, message });
+    } finally {
+      setNotificationSettingsLoading(false);
+    }
+  }, []);
 
   const onRequestNotificationPermission = useCallback(async () => {
     setNotificationSettingsLoading(true);
@@ -1224,7 +1345,10 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       setNotificationPermissionStatus(permissionStatus);
       showToast({
         tone: permissionStatus === 'granted' ? 'success' : 'warning',
-        title: permissionStatus === 'granted' ? '알림 권한 허용됨' : '알림 권한 필요',
+        title:
+          permissionStatus === 'granted'
+            ? '알림 권한 허용됨'
+            : '알림 권한 필요',
         message:
           permissionStatus === 'granted'
             ? '이제 알림을 선택한 일정은 기기에 예약됩니다.'
@@ -1273,8 +1397,9 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       const availability = await checkNicknameAvailabilityDetailed(trimmed);
       if (!availability.available) {
         const codeMessage =
-          getNicknameErrorMessageByCode(availability.code as NicknamePolicyCode) ??
-          '닉네임을 다시 확인해 주세요.';
+          getNicknameErrorMessageByCode(
+            availability.code as NicknamePolicyCode,
+          ) ?? '닉네임을 다시 확인해 주세요.';
         throw new Error(codeMessage);
       }
 
@@ -1377,10 +1502,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
 
       setAccountStatusNotice('pending');
     } catch (error) {
-      const { title, message } = getBrandedErrorMeta(
-        error,
-        'account-delete',
-      );
+      const { title, message } = getBrandedErrorMeta(error, 'account-delete');
       Alert.alert(title, message);
       showToast({
         tone: 'error',
@@ -1429,7 +1551,8 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const onSubmitTheme = useCallback(async () => {
     if (!selectedPet || themeSaving) return;
 
-    const nextThemeColor = draftThemeColor ?? selectedPet.themeColor ?? petTheme.primary;
+    const nextThemeColor =
+      draftThemeColor ?? selectedPet.themeColor ?? petTheme.primary;
     if (nextThemeColor === (selectedPet.themeColor ?? null)) {
       setThemeModalVisible(false);
       return;
@@ -1507,12 +1630,6 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const openAnimalHospital = useCallback(() => {
     closeAndNavigate(() =>
       navigation.navigate('AnimalHospitalList', { entrySource: 'more' }),
-    );
-  }, [closeAndNavigate, navigation]);
-
-  const openPetTravel = useCallback(() => {
-    closeAndNavigate(() =>
-      navigation.navigate('PetTravelList', { entrySource: 'more' }),
     );
   }, [closeAndNavigate, navigation]);
 
@@ -1598,13 +1715,6 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const infoItems = useMemo<MenuItemSpec[]>(
     () => [
       {
-        key: 'pet-travel',
-        label: '반려동물과 여행',
-        icon: 'compass',
-        iconTone: 'muted',
-        onPress: openPetTravel,
-      },
-      {
         key: 'community',
         label: '커뮤니티',
         icon: 'message-circle',
@@ -1619,7 +1729,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         onPress: openGuideList,
       },
     ],
-    [openCommunity, openGuideList, openPetTravel],
+    [openCommunity, openGuideList],
   );
 
   const serviceItems = useMemo<MenuItemSpec[]>(() => {
@@ -1657,7 +1767,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         icon: 'log-out',
         iconTone: 'accent',
         onPress: onPressLogout,
-      }
+      },
     ];
 
     if (isLoggedIn) {
@@ -1706,14 +1816,20 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       style={[styles.safe, { backgroundColor: theme.colors.background }]}
       edges={['top']}
     >
-      <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
+      <View
+        style={[styles.screen, { backgroundColor: theme.colors.background }]}
+      >
         <View style={styles.headerRow}>
           <View style={styles.headerTextWrap}>
             <Text
               style={[
                 styles.headerTitle,
                 !isLoggedIn ? styles.guestHeaderTitle : null,
-                { color: isLoggedIn ? theme.colors.textPrimary : theme.colors.brand },
+                {
+                  color: isLoggedIn
+                    ? theme.colors.textPrimary
+                    : theme.colors.brand,
+                },
               ]}
             >
               {headerTitle}
@@ -1803,12 +1919,18 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
           {session?.user?.email ? (
             <View style={styles.accountMeta}>
               <Text
-                style={[styles.accountMetaEmail, { color: theme.colors.textSecondary }]}
+                style={[
+                  styles.accountMetaEmail,
+                  { color: theme.colors.textSecondary },
+                ]}
               >
                 {session.user.email}
               </Text>
               <Text
-                style={[styles.accountMetaText, { color: theme.colors.textMuted }]}
+                style={[
+                  styles.accountMetaText,
+                  { color: theme.colors.textMuted },
+                ]}
               >
                 닉네임은 월 1회 변경할 수 있어요.
               </Text>
@@ -1849,8 +1971,8 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
                     { color: theme.colors.textMuted },
                   ]}
                 >
-                  개인 콘텐츠는 삭제되고, 일부 동의/신고 이력은 식별자를 제거한 뒤
-                  보관될 수 있어요.
+                  개인 콘텐츠는 삭제되고, 일부 동의/신고 이력은 식별자를 제거한
+                  뒤 보관될 수 있어요.
                 </Text>
                 <TouchableOpacity
                   activeOpacity={0.88}
@@ -1872,7 +1994,9 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
                       { color: theme.colors.textPrimary },
                     ]}
                   >
-                    {openingDeletionGuide ? '안내 상태 확인 중...' : '삭제 안내 상태 확인'}
+                    {openingDeletionGuide
+                      ? '안내 상태 확인 중...'
+                      : '삭제 안내 상태 확인'}
                   </Text>
                   <Text
                     style={[
@@ -1919,7 +2043,10 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
           )}
         </ScrollView>
 
-        <AppNavigationToolbar activeKey="more" onBeforeNavigate={onRequestClose} />
+        <AppNavigationToolbar
+          activeKey="more"
+          onBeforeNavigate={onRequestClose}
+        />
       </View>
 
       <ProfileEditModal
@@ -1940,7 +2067,9 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         bottomInset={Math.max(insets.bottom, 6)}
         petName={selectedPet?.name ?? null}
         helperText="현재 선택한 아이의 강조색을 바꾸는 설정이에요. 홈과 주요 버튼의 포인트 컬러에 함께 반영돼요."
-        selectedColor={draftThemeColor ?? selectedPet?.themeColor ?? petTheme.primary}
+        selectedColor={
+          draftThemeColor ?? selectedPet?.themeColor ?? petTheme.primary
+        }
         accentColor={draftThemePalette.primary}
         saving={themeSaving}
         onClose={closeThemeModal}
@@ -1964,7 +2093,9 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       <ConfirmDialog
         visible={logoutConfirmVisible}
         title="로그아웃할까요?"
-        message={'현재 기기에서만 로그아웃되며,\n다시 로그인하면 이어서 사용할 수 있어요.'}
+        message={
+          '현재 기기에서만 로그아웃되며,\n다시 로그인하면 이어서 사용할 수 있어요.'
+        }
         cancelLabel="계속 머무르기"
         confirmLabel={loading ? '로그아웃 중...' : '로그아웃'}
         tone="warning"
@@ -1995,8 +2126,12 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         iconName="shield"
         titleLines={accountStatusNoticeConfig?.titleLines ?? ['']}
         bodyLines={accountStatusNoticeConfig?.bodyLines ?? ['']}
-        accessibilityTitleLines={accountStatusNoticeConfig?.accessibilityTitleLines}
-        accessibilityBodyLines={accountStatusNoticeConfig?.accessibilityBodyLines}
+        accessibilityTitleLines={
+          accountStatusNoticeConfig?.accessibilityTitleLines
+        }
+        accessibilityBodyLines={
+          accountStatusNoticeConfig?.accessibilityBodyLines
+        }
         accentColor={petTheme.primary}
         confirmAccessibilityLabel="계정 삭제 상태 안내 닫기"
         onClose={() => setAccountStatusNotice(null)}

@@ -8,7 +8,11 @@ import {
 } from '../../services/animalHospital/normalization';
 import { isValidWgs84Coordinate } from '../../services/animalHospital/coordinates';
 
-const PUBLIC_VERIFICATION_FIELDS = new Set(['phone', 'coordinates']);
+const PUBLIC_VERIFICATION_FIELDS = new Set([
+  'phone',
+  'coordinates',
+  'thumbnail',
+]);
 
 export function isPublicAnimalHospitalVerification(
   verification: AnimalHospitalVerificationRecord,
@@ -59,6 +63,10 @@ function applyPublicVerification(
 
   if (verification.fieldKey === 'coordinates') {
     return applyCoordinateVerification(canonical, verification);
+  }
+
+  if (verification.fieldKey === 'thumbnail') {
+    return applyThumbnailVerification(canonical, verification);
   }
 
   return canonical;
@@ -133,6 +141,31 @@ function applyCoordinateVerification(
   };
 }
 
+function applyThumbnailVerification(
+  canonical: AnimalHospitalCanonicalHospital,
+  verification: AnimalHospitalVerificationRecord,
+): AnimalHospitalCanonicalHospital {
+  const thumbnailUrl =
+    readHttpUrlValue(verification.verifiedValue.thumbnailUrl) ??
+    readHttpUrlValue(verification.verifiedValue.url);
+  if (!thumbnailUrl) {
+    return canonical;
+  }
+
+  return {
+    ...canonical,
+    media: {
+      thumbnailUrl,
+      sourceId: `verification:${verification.id}`,
+      verifiedAt: verification.reviewedAt ?? verification.updatedAt,
+    },
+    trust: {
+      ...canonical.trust,
+      reviewedAt: verification.reviewedAt ?? canonical.trust.reviewedAt,
+    },
+  };
+}
+
 function compareVerificationRecency(
   left: AnimalHospitalVerificationRecord,
   right: AnimalHospitalVerificationRecord,
@@ -167,4 +200,9 @@ function readNumberValue(value: unknown): number | null {
 
 function readStringValue(value: unknown): string | null {
   return typeof value === 'string' ? normalizeWhitespace(value) : null;
+}
+
+function readHttpUrlValue(value: unknown): string | null {
+  const normalized = readStringValue(value);
+  return normalized && /^https?:\/\//i.test(normalized) ? normalized : null;
 }

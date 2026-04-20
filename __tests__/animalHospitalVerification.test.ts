@@ -51,7 +51,7 @@ function createVerification(
 }
 
 describe('animalHospital approved verification projection gate', () => {
-  it('approved phone/coordinates만 canonical public-safe field에 반영한다', () => {
+  it('approved phone/coordinates/thumbnail만 canonical public-safe field에 반영한다', () => {
     const canonical = createCanonical();
     const projected = applyAnimalHospitalApprovedVerifications({
       canonical,
@@ -70,6 +70,15 @@ describe('animalHospital approved verification projection gate', () => {
           verifiedValue: { latitude: 37.68, longitude: 126.77 },
         }),
         createVerification({
+          id: 'thumbnail-1',
+          animalHospitalId: canonical.id,
+          fieldKey: 'thumbnail',
+          verifiedValue: {
+            thumbnailUrl:
+              'https://cdn.example.com/animal-hospital/verified.jpg',
+          },
+        }),
+        createVerification({
           id: 'homepage-1',
           animalHospitalId: canonical.id,
           fieldKey: 'homepageUrl',
@@ -86,8 +95,28 @@ describe('animalHospital approved verification projection gate', () => {
       source: 'reviewed',
       normalizationStatus: 'exact',
     });
+    expect(projected.media.thumbnailUrl).toBe(
+      'https://cdn.example.com/animal-hospital/verified.jpg',
+    );
     expect(projected.sensitiveDetails.homepageUrl.visibility).toBe('hidden');
     expect(projected.sensitiveDetails.homepageUrl.value).toBeNull();
+  });
+
+  it('thumbnail verification은 http URL만 public media에 반영한다', () => {
+    const canonical = createCanonical();
+    const projected = applyAnimalHospitalApprovedVerifications({
+      canonical,
+      now: Date.parse('2026-04-20T03:00:00.000Z'),
+      verifications: [
+        createVerification({
+          animalHospitalId: canonical.id,
+          fieldKey: 'thumbnail',
+          verifiedValue: { thumbnailUrl: 'file://local-thumbnail.jpg' },
+        }),
+      ],
+    });
+
+    expect(projected.media.thumbnailUrl).toBeNull();
   });
 
   it('만료되거나 rejected verification은 반영하지 않는다', () => {

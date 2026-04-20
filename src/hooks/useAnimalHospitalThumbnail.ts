@@ -2,9 +2,7 @@ import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { AnimalHospitalPublicHospital } from '../domains/animalHospital/types';
-import {
-  buildLocationDiscoveryThumbnailQueryKey,
-} from './useLocationDiscoveryThumbnail';
+import { buildLocationDiscoveryThumbnailQueryKey } from './useLocationDiscoveryThumbnail';
 import {
   resolveLocationDiscoveryThumbnail,
   type LocationDiscoveryThumbnailInput,
@@ -14,9 +12,9 @@ const ANIMAL_HOSPITAL_THUMBNAIL_STALE_MS = 30 * 60 * 1000;
 const ANIMAL_HOSPITAL_THUMBNAIL_GC_MS = 6 * 60 * 60 * 1000;
 
 function toAnimalHospitalThumbnailInput(
-  item: AnimalHospitalPublicHospital,
+  item: AnimalHospitalPublicHospital | null,
 ): LocationDiscoveryThumbnailInput | null {
-  if (item.latitude === null || item.longitude === null) {
+  if (!item || item.latitude === null || item.longitude === null) {
     return null;
   }
 
@@ -27,21 +25,21 @@ function toAnimalHospitalThumbnailInput(
     address: item.address,
     latitude: item.latitude,
     longitude: item.longitude,
-    thumbnailUrl: null,
+    thumbnailUrl: item.thumbnailUrl,
   };
 }
 
-export function useAnimalHospitalThumbnail(item: AnimalHospitalPublicHospital) {
+export function useAnimalHospitalThumbnail(
+  item: AnimalHospitalPublicHospital | null,
+) {
   const thumbnailInput = toAnimalHospitalThumbnailInput(item);
 
   return useQuery({
     queryKey: thumbnailInput
       ? buildLocationDiscoveryThumbnailQueryKey(thumbnailInput)
-      : ['animal-hospital-thumbnail', item.id, 'no-coordinate'],
+      : ['animal-hospital-thumbnail', item?.id ?? 'empty', 'no-coordinate'],
     queryFn: async () =>
-      thumbnailInput
-        ? resolveLocationDiscoveryThumbnail(thumbnailInput)
-        : null,
+      thumbnailInput ? resolveLocationDiscoveryThumbnail(thumbnailInput) : null,
     staleTime: ANIMAL_HOSPITAL_THUMBNAIL_STALE_MS,
     gcTime: ANIMAL_HOSPITAL_THUMBNAIL_GC_MS,
     enabled: Boolean(thumbnailInput),
@@ -64,7 +62,8 @@ export function usePrefetchAnimalHospitalThumbnails(
       queryClient
         .prefetchQuery({
           queryKey: buildLocationDiscoveryThumbnailQueryKey(thumbnailInput),
-          queryFn: async () => resolveLocationDiscoveryThumbnail(thumbnailInput),
+          queryFn: async () =>
+            resolveLocationDiscoveryThumbnail(thumbnailInput),
           staleTime: ANIMAL_HOSPITAL_THUMBNAIL_STALE_MS,
           gcTime: ANIMAL_HOSPITAL_THUMBNAIL_GC_MS,
         })

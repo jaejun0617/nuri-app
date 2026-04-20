@@ -4,7 +4,7 @@
 // 어디서 쓰이는지:
 // - App.tsx의 NavigationContainer 아래에서 최상위 스택 네비게이터로 사용된다.
 // 핵심 역할:
-// - Splash에서 시작해 AppTabs, Auth, Pets, Schedules, Weather, Guides, LocationDiscovery, PetTravel 등 도메인 라우트를 연결한다.
+// - Splash에서 시작해 AppTabs, Auth, Pets, Schedules, Weather, Guides, LocationDiscovery 등 도메인 라우트를 연결한다.
 // - 앱 첫 진입과 탭 바깥 화면 전환에 필요한 스택 구조를 유지한다.
 // 데이터·상태 흐름:
 // - 실제 진입 분기는 Splash와 AppProviders가 결정하고, 이 파일은 그 결과를 받아 화면 간 이동 경로를 제공한다.
@@ -50,8 +50,6 @@ import NearbyWalkListScreen from '../screens/LocationDiscovery/NearbyWalkListScr
 import NearbyWalkDetailScreen from '../screens/LocationDiscovery/NearbyWalkDetailScreen';
 import AnimalHospitalListScreen from '../screens/AnimalHospital/AnimalHospitalListScreen';
 import AnimalHospitalDetailScreen from '../screens/AnimalHospital/AnimalHospitalDetailScreen';
-import PetTravelListScreen from '../screens/PetTravel/PetTravelListScreen';
-import PetTravelDetailScreen from '../screens/PetTravel/PetTravelDetailScreen';
 import CommunityListScreen from '../screens/Community/CommunityListScreen';
 import CommunityDetailScreen from '../screens/Community/CommunityDetailScreen';
 import CommunityCreateScreen from '../screens/Community/CommunityCreateScreen';
@@ -60,7 +58,6 @@ import RecordCreateScreen from '../screens/Records/RecordCreateScreen';
 import CommunityStackHeader from './CommunityStackHeader';
 import type { DeviceCoordinates } from '../services/location/currentPosition';
 import type { LocationDiscoveryItem } from '../services/locationDiscovery/types';
-import type { PetTravelItem } from '../services/petTravel/types';
 import type { AnimalHospitalPublicHospital } from '../domains/animalHospital/types';
 import type { ScreenEntrySource } from './entry';
 import type { HealthReportTabKey } from '../services/health-report/viewModel';
@@ -125,9 +122,7 @@ export type RootStackParamList = {
         entrySource?: ScreenEntrySource;
       }
     | undefined;
-  ScheduleList:
-    | { petId?: string; entrySource?: ScreenEntrySource }
-    | undefined;
+  ScheduleList: { petId?: string; entrySource?: ScreenEntrySource } | undefined;
   ScheduleCreate:
     | {
         petId?: string;
@@ -194,10 +189,6 @@ export type RootStackParamList = {
   AnimalHospitalDetail: {
     item: AnimalHospitalPublicHospital;
   };
-  PetTravelList: { entrySource?: ScreenEntrySource } | undefined;
-  PetTravelDetail: {
-    item: PetTravelItem;
-  };
   CommunityList: { entrySource?: ScreenEntrySource } | undefined;
   CommunityDetail: { postId: string };
   CommunityCreate: undefined;
@@ -211,9 +202,7 @@ export type RootStackParamList = {
       }
     | undefined;
   GuideAdminList: { entrySource?: ScreenEntrySource } | undefined;
-  GuideAdminEditor:
-    | { mode: 'create' }
-    | { mode: 'edit'; guideId: string };
+  GuideAdminEditor: { mode: 'create' } | { mode: 'edit'; guideId: string };
   EditDone: {
     title: string;
     bodyLines: [string, string?];
@@ -392,16 +381,6 @@ export default function RootNavigator() {
       <Stack.Screen
         name="AnimalHospitalDetail"
         component={AnimalHospitalDetailScreen}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="PetTravelList"
-        component={PetTravelListScreen}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="PetTravelDetail"
-        component={PetTravelDetailScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

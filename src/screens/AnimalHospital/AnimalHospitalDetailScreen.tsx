@@ -8,10 +8,10 @@ import { useTheme } from 'styled-components/native';
 import AppText from '../../app/ui/AppText';
 import Screen from '../../components/layout/Screen';
 import NativeLiteMapPreview from '../../components/maps/NativeLiteMapPreview';
-import {
-  buildAnimalHospitalDetailViewModel,
-} from '../../domains/animalHospital/presentation';
+import OptimizedImage from '../../components/images/OptimizedImage';
+import { buildAnimalHospitalDetailViewModel } from '../../domains/animalHospital/presentation';
 import { createAnimalHospitalDetailStyles } from '../../components/animalHospital/styles';
+import { useAnimalHospitalThumbnail } from '../../hooks/useAnimalHospitalThumbnail';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
 
@@ -27,6 +27,8 @@ export default function AnimalHospitalDetailScreen() {
     () => (item ? buildAnimalHospitalDetailViewModel(item) : null),
     [item],
   );
+  const thumbnailQuery = useAnimalHospitalThumbnail(item ?? null);
+  const thumbnailUri = thumbnailQuery.data ?? null;
   const styles = useMemo(
     () =>
       createAnimalHospitalDetailStyles(
@@ -66,7 +68,11 @@ export default function AnimalHospitalDetailScreen() {
             onPress={goBack}
             hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           >
-            <Feather name="arrow-left" size={20} color={theme.colors.textPrimary} />
+            <Feather
+              name="arrow-left"
+              size={20}
+              color={theme.colors.textPrimary}
+            />
           </TouchableOpacity>
         </View>
 
@@ -75,6 +81,26 @@ export default function AnimalHospitalDetailScreen() {
           contentContainerStyle={{ paddingBottom: 32, gap: 18 }}
         >
           <View style={styles.hero}>
+            <View style={styles.detailThumbnailWrap}>
+              {thumbnailUri ? (
+                <OptimizedImage
+                  uri={thumbnailUri}
+                  style={styles.detailThumbnail}
+                  resizeMode="cover"
+                  priority="normal"
+                  fallback={false}
+                />
+              ) : (
+                <View style={styles.detailThumbnailPlaceholder}>
+                  <Feather
+                    name="shield"
+                    size={24}
+                    color={theme.colors.textMuted}
+                  />
+                </View>
+              )}
+            </View>
+
             <View style={styles.heroHeader}>
               <AppText preset="caption" style={styles.eyebrow}>
                 우리동네 동물병원
@@ -99,7 +125,11 @@ export default function AnimalHospitalDetailScreen() {
 
             <View style={styles.infoBlock}>
               <View style={styles.infoRow}>
-                <Feather name="map-pin" size={16} color={theme.colors.textMuted} />
+                <Feather
+                  name="map-pin"
+                  size={16}
+                  color={theme.colors.textMuted}
+                />
                 <AppText preset="body" style={styles.infoText}>
                   {viewModel.address}
                 </AppText>
@@ -117,7 +147,11 @@ export default function AnimalHospitalDetailScreen() {
               </View>
 
               <View style={styles.infoRow}>
-                <Feather name="phone" size={16} color={theme.colors.textMuted} />
+                <Feather
+                  name="phone"
+                  size={16}
+                  color={theme.colors.textMuted}
+                />
                 <AppText preset="body" style={styles.infoText}>
                   {viewModel.phoneLabel}
                 </AppText>
@@ -163,9 +197,7 @@ export default function AnimalHospitalDetailScreen() {
                   <AppText
                     preset="body"
                     style={
-                      callUri
-                        ? styles.secondaryCtaText
-                        : styles.primaryCtaText
+                      callUri ? styles.secondaryCtaText : styles.primaryCtaText
                     }
                   >
                     {item.links.externalMapUrl ? '길찾기' : '지도에서 보기'}

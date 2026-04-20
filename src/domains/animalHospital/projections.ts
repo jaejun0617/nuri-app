@@ -77,6 +77,7 @@ export function projectAnimalHospitalPublic(params: {
     distanceLabel: formatDistanceLabel(distanceMeters),
     statusSummary: buildAnimalHospitalStatusSummary(canonical),
     officialPhone: publicPhone,
+    thumbnailUrl: canonical.media.thumbnailUrl,
     publicTrust: buildAnimalHospitalTrustInfo(canonical),
     links: {
       externalMapUrl:

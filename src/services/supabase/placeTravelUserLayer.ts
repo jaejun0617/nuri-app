@@ -1,5 +1,4 @@
 import { supabase } from './client';
-import type { PetTravelUserReportType } from '../petTravel/types';
 
 export type PetPlaceOwnReportStatus =
   | 'pet-friendly'
@@ -17,15 +16,7 @@ export type PetPlaceUserLayerRecord = {
   ownReportUpdatedAt: string | null;
 };
 
-export type PetTravelUserLayerRecord = {
-  targetId: string;
-  ownReportId: string | null;
-  ownReportType: PetTravelUserReportType | null;
-  ownReportStatus: 'submitted' | 'reviewed' | 'dismissed' | null;
-  ownReportUpdatedAt: string | null;
-};
-
-export type SearchLogDomain = 'pet-friendly-place' | 'pet-travel';
+export type SearchLogDomain = 'pet-friendly-place';
 
 type PetPlaceBookmarkRow = {
   id: string;
@@ -41,29 +32,12 @@ type PetPlaceUserReportRow = {
   created_at: string;
 };
 
-type PetTravelUserReportRow = {
-  id: string;
-  place_id: string;
-  report_type: string;
-  report_status: string;
-  updated_at: string;
-  created_at: string;
-};
-
 const VALID_PET_PLACE_REPORT_STATUSES = new Set<PetPlaceOwnReportStatus>([
   'pet-friendly',
   'not-pet-friendly',
   'policy-changed',
   'unknown',
 ]);
-const VALID_PET_TRAVEL_REPORT_TYPES = new Set<PetTravelUserReportType>([
-  'pet_allowed',
-  'pet_restricted',
-  'info_outdated',
-]);
-const VALID_PET_TRAVEL_REPORT_STATUSES = new Set<
-  'submitted' | 'reviewed' | 'dismissed'
->(['submitted', 'reviewed', 'dismissed']);
 
 function normalizeString(value: string | null | undefined): string | null {
   const trimmed = value?.trim();
@@ -90,18 +64,20 @@ export async function loadCurrentPetPlaceUserLayerRecords(): Promise<
     return new Map();
   }
 
-  const [{ data: bookmarkRows, error: bookmarkError }, { data: reportRows, error: reportError }] =
-    await Promise.all([
-      supabase
-        .from('pet_place_bookmarks')
-        .select('id, pet_place_meta_id, created_at')
-        .eq('user_id', userId),
-      supabase
-        .from('pet_place_user_reports')
-        .select('id, pet_place_meta_id, report_status, updated_at, created_at')
-        .eq('user_id', userId)
-        .order('updated_at', { ascending: false }),
-    ]);
+  const [
+    { data: bookmarkRows, error: bookmarkError },
+    { data: reportRows, error: reportError },
+  ] = await Promise.all([
+    supabase
+      .from('pet_place_bookmarks')
+      .select('id, pet_place_meta_id, created_at')
+      .eq('user_id', userId),
+    supabase
+      .from('pet_place_user_reports')
+      .select('id, pet_place_meta_id, report_status, updated_at, created_at')
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false }),
+  ]);
 
   if (bookmarkError) {
     throw bookmarkError;
@@ -137,7 +113,9 @@ export async function loadCurrentPetPlaceUserLayerRecords(): Promise<
     if (
       !targetId ||
       !reportStatus ||
-      !VALID_PET_PLACE_REPORT_STATUSES.has(reportStatus as PetPlaceOwnReportStatus)
+      !VALID_PET_PLACE_REPORT_STATUSES.has(
+        reportStatus as PetPlaceOwnReportStatus,
+      )
     ) {
       return;
     }
@@ -228,7 +206,9 @@ export async function upsertPetPlaceUserReport(input: {
     throw existingError;
   }
 
-  const existingId = normalizeString(existingRows?.[0]?.id as string | undefined);
+  const existingId = normalizeString(
+    existingRows?.[0]?.id as string | undefined,
+  );
   if (existingId) {
     const { error } = await supabase
       .from('pet_place_user_reports')
@@ -249,87 +229,6 @@ export async function upsertPetPlaceUserReport(input: {
     pet_place_meta_id: input.targetId,
     report_status: input.reportStatus,
   });
-
-  if (error) {
-    throw error;
-  }
-}
-
-export async function loadCurrentPetTravelUserLayerRecords(): Promise<
-  Map<string, PetTravelUserLayerRecord>
-> {
-  const userId = await getCurrentUserId();
-  if (!userId) {
-    return new Map();
-  }
-
-  const { data: reportRows, error } = await supabase
-    .from('pet_travel_user_reports')
-    .select('id, place_id, report_type, report_status, updated_at, created_at')
-    .eq('user_id', userId)
-    .order('updated_at', { ascending: false });
-
-  if (error) {
-    throw error;
-  }
-
-  const records = new Map<string, PetTravelUserLayerRecord>();
-
-  (reportRows ?? []).forEach(rawRow => {
-    const row = rawRow as PetTravelUserReportRow;
-    const targetId = normalizeString(row.place_id);
-    const reportType = normalizeString(row.report_type);
-    const reportStatus = normalizeString(row.report_status);
-    if (
-      !targetId ||
-      !reportType ||
-      !reportStatus ||
-      !VALID_PET_TRAVEL_REPORT_TYPES.has(reportType as PetTravelUserReportType) ||
-      !VALID_PET_TRAVEL_REPORT_STATUSES.has(
-        reportStatus as 'submitted' | 'reviewed' | 'dismissed',
-      )
-    ) {
-      return;
-    }
-
-    if (records.has(targetId)) {
-      return;
-    }
-
-    records.set(targetId, {
-      targetId,
-      ownReportId: row.id,
-      ownReportType: reportType as PetTravelUserReportType,
-      ownReportStatus: reportStatus as 'submitted' | 'reviewed' | 'dismissed',
-      ownReportUpdatedAt: row.updated_at ?? row.created_at,
-    });
-  });
-
-  return records;
-}
-
-export async function upsertPetTravelUserReport(input: {
-  targetId: string;
-  reportType: PetTravelUserReportType;
-}): Promise<void> {
-  const userId = await getCurrentUserId();
-  if (!userId) {
-    throw new Error('로그인 후 제보를 남길 수 있어요.');
-  }
-
-  const { error } = await supabase.from('pet_travel_user_reports').upsert(
-    {
-      place_id: input.targetId,
-      user_id: userId,
-      report_type: input.reportType,
-      report_status: 'submitted',
-      evidence_payload: {},
-    },
-    {
-      onConflict: 'place_id,user_id,report_type',
-      ignoreDuplicates: false,
-    },
-  );
 
   if (error) {
     throw error;

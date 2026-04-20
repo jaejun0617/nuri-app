@@ -12,7 +12,6 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 export type MapViewportDomain =
   | 'animal-hospital'
-  | 'pet-travel'
   | 'location-discovery'
   | 'walk';
 
@@ -42,7 +41,9 @@ type MapViewportStoreState = MapViewportPersistedState & {
     selectedItemId: string | null,
   ) => void;
   requestRestore: (domain: MapViewportDomain) => void;
-  consumeRestoreViewport: (domain: MapViewportDomain) => MapViewportSnapshot | null;
+  consumeRestoreViewport: (
+    domain: MapViewportDomain,
+  ) => MapViewportSnapshot | null;
   clearViewport: (domain: MapViewportDomain) => void;
 };
 
@@ -100,15 +101,13 @@ function normalizePersistedState(value: unknown): MapViewportPersistedState {
       : {};
 
   const byDomain = Object.fromEntries(
-    (['animal-hospital', 'pet-travel', 'location-discovery', 'walk'] as const)
+    (['animal-hospital', 'location-discovery', 'walk'] as const)
       .map(domain => {
         const normalized = normalizeViewportSnapshot(byDomainRecord[domain]);
         return normalized ? [domain, normalized] : null;
       })
-      .filter(
-        (
-          entry,
-        ): entry is [MapViewportDomain, MapViewportSnapshot] => Boolean(entry),
+      .filter((entry): entry is [MapViewportDomain, MapViewportSnapshot] =>
+        Boolean(entry),
       ),
   );
 

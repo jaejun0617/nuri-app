@@ -182,6 +182,11 @@ export type AnimalHospitalCanonicalHospital = {
     providerPlaceId: string | null;
     externalMapLabel: string;
   };
+  media: {
+    thumbnailUrl: string | null;
+    sourceId: string | null;
+    verifiedAt: string | null;
+  };
   trust: {
     publicStatus: AnimalHospitalTrustStatus;
     freshness: AnimalHospitalFreshnessStatus;
@@ -429,6 +434,7 @@ export type AnimalHospitalPublicHospital = {
   distanceLabel: string;
   statusSummary: string;
   officialPhone: string | null;
+  thumbnailUrl: string | null;
   publicTrust: PublicTrustInfo;
   links: {
     externalMapUrl: string | null;

@@ -8,7 +8,10 @@ import {
 } from '../src/services/timeline/query';
 import type { MemoryRecord } from '../src/services/supabase/memories';
 
-function buildRecord(input: Partial<MemoryRecord> & Pick<MemoryRecord, 'id' | 'petId' | 'title' | 'createdAt'>): MemoryRecord {
+function buildRecord(
+  input: Partial<MemoryRecord> &
+    Pick<MemoryRecord, 'id' | 'petId' | 'title' | 'createdAt'>,
+): MemoryRecord {
   return {
     tags: [],
     imagePaths: [],
@@ -62,10 +65,10 @@ describe('timeline query', () => {
       buildRecord({
         id: '2',
         petId: 'pet-1',
-        title: '병원 방문',
-        tags: ['#병원약'],
+        title: '미용 예약',
+        tags: ['#미용'],
         category: 'other',
-        subCategory: 'hospital',
+        subCategory: 'grooming',
         occurredAt: '2026-02-10',
         createdAt: '2026-02-10T10:00:00.000Z',
       }),

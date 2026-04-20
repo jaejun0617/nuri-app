@@ -27,7 +27,28 @@ jest.mock('react-native-reanimated', () => {
 });
 
 jest.mock('react-native-vector-icons/Feather', () => 'Feather');
-jest.mock('react-native-vector-icons/MaterialCommunityIcons', () => 'MaterialCommunityIcons');
+jest.mock(
+  'react-native-vector-icons/MaterialCommunityIcons',
+  () => 'MaterialCommunityIcons',
+);
+jest.mock('react-native-keyboard-controller', () => {
+  const React = jest.requireActual('react');
+  return {
+    KeyboardProvider: ({ children }) =>
+      React.createElement(React.Fragment, null, children),
+    KeyboardAvoidingView: ({ children }) =>
+      React.createElement(React.Fragment, null, children),
+    KeyboardAwareScrollView: ({ children }) =>
+      React.createElement(React.Fragment, null, children),
+  };
+});
+jest.mock('react-native-keyboard-aware-scroll-view', () => {
+  const React = jest.requireActual('react');
+  return {
+    KeyboardAwareScrollView: ({ children }) =>
+      React.createElement(React.Fragment, null, children),
+  };
+});
 jest.mock('react-native-url-polyfill/auto', () => ({}));
 jest.mock('@sentry/react-native', () => ({
   init: jest.fn(),
@@ -56,6 +77,17 @@ jest.mock('@react-native-firebase/app', () => ({
   __esModule: true,
   default: jest.fn(() => ({})),
 }));
+jest.mock('@react-native-community/geolocation', () => ({
+  __esModule: true,
+  default: {
+    getCurrentPosition: jest.fn(),
+    watchPosition: jest.fn(() => 1),
+    clearWatch: jest.fn(),
+    stopObserving: jest.fn(),
+    requestAuthorization: jest.fn(),
+    setRNConfiguration: jest.fn(),
+  },
+}));
 jest.mock('react-native-blob-util', () => ({
   fs: {
     readFile: jest.fn(() => Promise.resolve('')),
@@ -65,22 +97,34 @@ jest.mock('react-native-blob-util', () => ({
   fetch: jest.fn(),
 }));
 jest.mock('react-native-linear-gradient', () => 'LinearGradient');
+jest.mock('react-native-maps', () => ({
+  __esModule: true,
+  default: 'MapView',
+  Marker: 'Marker',
+  PROVIDER_GOOGLE: 'google',
+}));
+jest.mock('@shopify/flash-list', () => {
+  const React = jest.requireActual('react');
+  const { FlatList } = jest.requireActual('react-native');
+  return {
+    FlashList: React.forwardRef((props, ref) =>
+      React.createElement(FlatList, { ...props, ref }),
+    ),
+  };
+});
 jest.mock('react-native-image-picker', () => ({
   launchImageLibrary: jest.fn(() => Promise.resolve({ didCancel: true })),
 }));
-jest.mock(
-  '@react-native-async-storage/async-storage',
-  () => ({
-    setItem: jest.fn(() => Promise.resolve(null)),
-    getItem: jest.fn(() => Promise.resolve(null)),
-    removeItem: jest.fn(() => Promise.resolve(null)),
-    clear: jest.fn(() => Promise.resolve(null)),
-    getAllKeys: jest.fn(() => Promise.resolve([])),
-    multiGet: jest.fn(() => Promise.resolve([])),
-    multiSet: jest.fn(() => Promise.resolve(null)),
-    multiRemove: jest.fn(() => Promise.resolve(null)),
-  }),
-);
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(() => Promise.resolve(null)),
+  getItem: jest.fn(() => Promise.resolve(null)),
+  removeItem: jest.fn(() => Promise.resolve(null)),
+  clear: jest.fn(() => Promise.resolve(null)),
+  getAllKeys: jest.fn(() => Promise.resolve([])),
+  multiGet: jest.fn(() => Promise.resolve([])),
+  multiSet: jest.fn(() => Promise.resolve(null)),
+  multiRemove: jest.fn(() => Promise.resolve(null)),
+}));
 
 jest.mock('@react-navigation/native', () => {
   const actual = jest.requireActual('@react-navigation/native');

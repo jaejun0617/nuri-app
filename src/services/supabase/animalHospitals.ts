@@ -272,6 +272,11 @@ function mapHospitalRowToCanonical(
       providerPlaceUrl: normalizeWhitespace(row.provider_place_url),
       externalMapLabel: row.canonical_name,
     },
+    media: {
+      thumbnailUrl: null,
+      sourceId: null,
+      verifiedAt: null,
+    },
     trust: {
       publicStatus:
         (normalizeWhitespace(
