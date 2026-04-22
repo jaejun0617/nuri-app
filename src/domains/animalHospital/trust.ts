@@ -103,10 +103,7 @@ export function canExposeAnimalHospitalPhone(
     return false;
   }
 
-  if (
-    phone.verificationStatus !== 'official' &&
-    phone.verificationStatus !== 'reviewed'
-  ) {
+  if (phone.verificationStatus !== 'reviewed') {
     return false;
   }
 

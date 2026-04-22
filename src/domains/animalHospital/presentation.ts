@@ -1,13 +1,13 @@
 import type { AnimalHospitalPublicHospital } from './types';
 
 export type AnimalHospitalTrustTone = 'calm' | 'caution' | 'neutral';
+export type AnimalHospitalListMode = 'all' | 'nearby' | 'open24';
 
 export type AnimalHospitalCardViewModel = {
   title: string;
   trustLabel: string;
   trustTone: AnimalHospitalTrustTone;
   distanceLabel: string;
-  address: string;
   statusSummary: string;
   phoneLabel: string;
   hasCallAction: boolean;
@@ -29,6 +29,76 @@ export type AnimalHospitalDetailViewModel = {
   hasDirectionsAction: boolean;
   hasProviderLink: boolean;
 };
+
+function normalizePhoneDigits(phone: string): string {
+  const digits = phone.replace(/\D/g, '');
+
+  if (digits.startsWith('82') && digits.length >= 10) {
+    return `0${digits.slice(2)}`;
+  }
+
+  return digits;
+}
+
+export function formatAnimalHospitalPhoneLabel(
+  phone: string | null,
+): string | null {
+  if (!phone) {
+    return null;
+  }
+
+  const trimmed = phone.trim();
+  const digits = normalizePhoneDigits(trimmed);
+
+  if (digits.length === 8) {
+    return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+  }
+
+  if (digits.startsWith('02')) {
+    if (digits.length === 9) {
+      return `${digits.slice(0, 2)}-${digits.slice(2, 5)}-${digits.slice(5)}`;
+    }
+
+    if (digits.length === 10) {
+      return `${digits.slice(0, 2)}-${digits.slice(2, 6)}-${digits.slice(6)}`;
+    }
+  }
+
+  if (digits.length === 10) {
+    return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+
+  if (digits.length === 11) {
+    return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+  }
+
+  return trimmed || null;
+}
+
+function sortByNearbyAndName(
+  left: AnimalHospitalPublicHospital,
+  right: AnimalHospitalPublicHospital,
+): number {
+  const leftDistance = left.distanceMeters ?? Number.MAX_SAFE_INTEGER;
+  const rightDistance = right.distanceMeters ?? Number.MAX_SAFE_INTEGER;
+
+  if (leftDistance !== rightDistance) {
+    return leftDistance - rightDistance;
+  }
+
+  return left.name.localeCompare(right.name, 'ko');
+}
+
+export function selectAnimalHospitalListItems(
+  items: ReadonlyArray<AnimalHospitalPublicHospital>,
+  mode: AnimalHospitalListMode,
+): AnimalHospitalPublicHospital[] {
+  if (mode === 'nearby' || mode === 'open24') {
+    return [...items].sort(sortByNearbyAndName);
+  }
+
+  return [...items];
+}
 
 function resolveTrustTone(
   publicLabel: AnimalHospitalPublicHospital['publicTrust']['publicLabel'],
@@ -52,9 +122,9 @@ export function buildAnimalHospitalCardViewModel(
     trustLabel: item.publicTrust.label,
     trustTone: resolveTrustTone(item.publicTrust.publicLabel),
     distanceLabel: item.distanceLabel,
-    address: item.address,
     statusSummary: item.statusSummary,
-    phoneLabel: item.officialPhone ?? '전화번호 확인 중',
+    phoneLabel:
+      formatAnimalHospitalPhoneLabel(item.officialPhone) ?? '전화번호 확인 중',
     hasCallAction: Boolean(item.links.callUri),
     hasDirectionsAction: Boolean(item.links.externalMapUrl),
   };
@@ -70,7 +140,8 @@ export function buildAnimalHospitalDetailViewModel(
     statusSummary: item.statusSummary,
     distanceLabel: item.distanceLabel,
     address: item.address,
-    phoneLabel: item.officialPhone ?? '전화번호 확인 중',
+    phoneLabel:
+      formatAnimalHospitalPhoneLabel(item.officialPhone) ?? '전화번호 확인 중',
     trustDescription: item.publicTrust.description,
     trustGuidance: item.publicTrust.guidance,
     basisDateLabel: item.publicTrust.basisDateLabel,

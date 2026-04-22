@@ -5,6 +5,12 @@ import type {
   AnimalHospitalAdminReviewQueueItem,
   AnimalHospitalCanonicalHospital,
   AnimalHospitalCanonicalUpsertContract,
+  AnimalHospitalOpsDetail,
+  AnimalHospitalOpsFieldFilter,
+  AnimalHospitalOpsReviewItem,
+  AnimalHospitalOpsStatusFilter,
+  AnimalHospitalOpsSummary,
+  AnimalHospitalRuntimeMatchSummary,
   AnimalHospitalSourceRecord,
   AnimalHospitalUserReportInput,
   AnimalHospitalUserReportRecord,
@@ -129,6 +135,58 @@ type AnimalHospitalAdminReviewQueueRow = {
   pending_report_count: number | string | null;
   pending_verification_count: number | string | null;
   latest_updated_at: string | null;
+};
+
+type AnimalHospitalOpsSummaryRow = {
+  total_canonical: number | string | null;
+  source_rows: number | string | null;
+  public_visible: number | string | null;
+  active_not_hidden: number | string | null;
+  source_unlinked_rows: number | string | null;
+  canonical_drift_suspected: number | string | null;
+  pending_phone: number | string | null;
+  pending_coordinates: number | string | null;
+  pending_thumbnail: number | string | null;
+  pending_open24_hours: number | string | null;
+  provider_only_candidates: number | string | null;
+  canonical_linked: number | string | null;
+  hidden_count: number | string | null;
+  inactive_count: number | string | null;
+  approved_phone_coverage: number | string | null;
+  approved_coordinates_coverage: number | string | null;
+  approved_thumbnail_coverage: number | string | null;
+  approved_open24_hours_coverage: number | string | null;
+  latest_runtime_snapshot_at: string | null;
+};
+
+type AnimalHospitalOpsReviewRow = {
+  animal_hospital_id: string;
+  name: string;
+  address: string;
+  is_active: boolean | null;
+  is_hidden: boolean | null;
+  lifecycle_note: string | null;
+  source_type: string | null;
+  source_record_key: string | null;
+  verification_id: string | null;
+  field_key: string | null;
+  verification_status: string | null;
+  current_public_value: Record<string, unknown> | null;
+  candidate_value: Record<string, unknown> | null;
+  verification_source: string | null;
+  reviewer_id: string | null;
+  reviewed_at: string | null;
+  note: string | null;
+  evidence: Record<string, unknown> | null;
+  updated_at: string;
+};
+
+type AnimalHospitalOpsDetailRow = {
+  hospital: Record<string, unknown> | null;
+  source_records: unknown;
+  verifications: unknown;
+  action_logs: unknown;
+  public_projection: Record<string, unknown> | null;
 };
 
 const HOSPITAL_SELECT = [
@@ -444,6 +502,81 @@ function mapAdminReviewQueueRow(
     pendingReportCount: Number(row.pending_report_count ?? 0),
     pendingVerificationCount: Number(row.pending_verification_count ?? 0),
     latestUpdatedAt: row.latest_updated_at,
+  };
+}
+
+function toCount(value: number | string | null | undefined): number {
+  const parsed = typeof value === 'number' ? value : Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function mapOpsSummaryRow(row: AnimalHospitalOpsSummaryRow): AnimalHospitalOpsSummary {
+  return {
+    totalCanonical: toCount(row.total_canonical),
+    sourceRows: toCount(row.source_rows),
+    publicVisible: toCount(row.public_visible),
+    activeNotHidden: toCount(row.active_not_hidden),
+    sourceUnlinkedRows: toCount(row.source_unlinked_rows),
+    canonicalDriftSuspected: toCount(row.canonical_drift_suspected),
+    pendingPhone: toCount(row.pending_phone),
+    pendingCoordinates: toCount(row.pending_coordinates),
+    pendingThumbnail: toCount(row.pending_thumbnail),
+    pendingOpen24Hours: toCount(row.pending_open24_hours),
+    providerOnlyCandidates: toCount(row.provider_only_candidates),
+    canonicalLinked: toCount(row.canonical_linked),
+    hiddenCount: toCount(row.hidden_count),
+    inactiveCount: toCount(row.inactive_count),
+    approvedPhoneCoverage: toCount(row.approved_phone_coverage),
+    approvedCoordinatesCoverage: toCount(row.approved_coordinates_coverage),
+    approvedThumbnailCoverage: toCount(row.approved_thumbnail_coverage),
+    approvedOpen24HoursCoverage: toCount(
+      row.approved_open24_hours_coverage,
+    ),
+    latestRuntimeSnapshotAt: row.latest_runtime_snapshot_at,
+  };
+}
+
+function mapOpsReviewRow(row: AnimalHospitalOpsReviewRow): AnimalHospitalOpsReviewItem {
+  return {
+    animalHospitalId: row.animal_hospital_id,
+    name: row.name,
+    address: row.address,
+    isActive: row.is_active ?? false,
+    isHidden: row.is_hidden ?? false,
+    lifecycleNote: normalizeWhitespace(row.lifecycle_note),
+    sourceType: row.source_type ?? 'unknown',
+    sourceRecordKey: normalizeWhitespace(row.source_record_key),
+    verificationId: normalizeWhitespace(row.verification_id),
+    fieldKey: row.field_key as AnimalHospitalOpsReviewItem['fieldKey'],
+    verificationStatus:
+      row.verification_status as AnimalHospitalOpsReviewItem['verificationStatus'],
+    currentPublicValue: row.current_public_value ?? {},
+    candidateValue: row.candidate_value ?? {},
+    verificationSource:
+      row.verification_source as AnimalHospitalOpsReviewItem['verificationSource'],
+    reviewerId: row.reviewer_id,
+    reviewedAt: row.reviewed_at,
+    note: normalizeWhitespace(row.note),
+    evidence: row.evidence ?? {},
+    updatedAt: row.updated_at,
+  };
+}
+
+function readJsonArray(value: unknown): ReadonlyArray<Record<string, unknown>> {
+  return Array.isArray(value)
+    ? value.filter((item): item is Record<string, unknown> => {
+        return typeof item === 'object' && item !== null && !Array.isArray(item);
+      })
+    : [];
+}
+
+function mapOpsDetailRow(row: AnimalHospitalOpsDetailRow): AnimalHospitalOpsDetail {
+  return {
+    hospital: row.hospital ?? {},
+    sourceRecords: readJsonArray(row.source_records),
+    verifications: readJsonArray(row.verifications),
+    actionLogs: readJsonArray(row.action_logs),
+    publicProjection: row.public_projection ?? {},
   };
 }
 
@@ -763,6 +896,135 @@ function getDefaultAnimalHospitalSupabaseRepository(): AnimalHospitalSupabaseRep
   }
 
   return defaultAnimalHospitalSupabaseRepository;
+}
+
+function getDefaultAnimalHospitalSupabaseClient(): SupabaseClient {
+  const { supabase } = require('./client');
+  return supabase;
+}
+
+export async function fetchAnimalHospitalOpsSummary(): Promise<AnimalHospitalOpsSummary> {
+  const { data, error } = await getDefaultAnimalHospitalSupabaseClient().rpc(
+    'animal_hospital_ops_summary',
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  const row = Array.isArray(data) ? data[0] : null;
+  if (!row) {
+    throw new Error('animal hospital ops summary was not returned');
+  }
+
+  return mapOpsSummaryRow(row as AnimalHospitalOpsSummaryRow);
+}
+
+export async function listAnimalHospitalOpsReviewItems(input: {
+  statusFilter: AnimalHospitalOpsStatusFilter;
+  fieldFilter: AnimalHospitalOpsFieldFilter;
+  sourceType: string | null;
+  search: string;
+  limit?: number;
+}): Promise<AnimalHospitalOpsReviewItem[]> {
+  const fieldFilter =
+    input.fieldFilter === 'all' ? null : input.fieldFilter;
+  const sourceType = normalizeWhitespace(input.sourceType);
+  const search = normalizeWhitespace(input.search);
+  const { data, error } = await getDefaultAnimalHospitalSupabaseClient().rpc(
+    'animal_hospital_ops_review_items',
+    {
+      p_status_filter: input.statusFilter,
+      p_field_filter: fieldFilter,
+      p_source_type: sourceType,
+      p_search: search,
+      p_limit: input.limit ?? 80,
+    },
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  return ((data ?? []) as AnimalHospitalOpsReviewRow[]).map(mapOpsReviewRow);
+}
+
+export async function fetchAnimalHospitalOpsDetail(
+  animalHospitalId: string,
+): Promise<AnimalHospitalOpsDetail> {
+  const { data, error } = await getDefaultAnimalHospitalSupabaseClient().rpc(
+    'animal_hospital_ops_detail',
+    {
+      p_animal_hospital_id: animalHospitalId,
+    },
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  const row = Array.isArray(data) ? data[0] : null;
+  if (!row) {
+    throw new Error('animal hospital ops detail was not returned');
+  }
+
+  return mapOpsDetailRow(row as AnimalHospitalOpsDetailRow);
+}
+
+export async function reviewAnimalHospitalVerification(input: {
+  verificationId: string;
+  nextStatus: Exclude<AnimalHospitalVerificationRecord['status'], 'expired'>;
+  note: string | null;
+}): Promise<AnimalHospitalVerificationRecord> {
+  const { data, error } = await getDefaultAnimalHospitalSupabaseClient().rpc(
+    'animal_hospital_review_verification',
+    {
+      p_verification_id: input.verificationId,
+      p_next_status: input.nextStatus,
+      p_note: input.note,
+    },
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  const row = Array.isArray(data) ? data[0] : null;
+  if (!row) {
+    throw new Error(
+      'animal hospital verification review result was not returned',
+    );
+  }
+
+  return mapVerificationRow(row as AnimalHospitalVerificationRow);
+}
+
+export async function recordAnimalHospitalRuntimeMatchSnapshot(
+  summary: AnimalHospitalRuntimeMatchSummary,
+): Promise<void> {
+  const { error } = await getDefaultAnimalHospitalSupabaseClient()
+    .from('animal_hospital_runtime_match_snapshots')
+    .insert({
+      snapshot_key: summary.snapshotKey,
+      query: summary.query,
+      runtime_candidate_count: summary.runtimeCandidateCount,
+      canonical_result_count: summary.canonicalResultCount,
+      canonical_linked_count: summary.canonicalLinkedCount,
+      provider_only_count: summary.providerOnlyCount,
+      deferred_count: summary.deferredCount,
+      match_count: summary.matchCount,
+      provider_only_ratio: summary.providerOnlyRatio,
+      canonical_linked_ratio: summary.canonicalLinkedRatio,
+      summary: {
+        providerOnlyRatio: summary.providerOnlyRatio,
+        canonicalLinkedRatio: summary.canonicalLinkedRatio,
+      },
+      created_at: summary.createdAt,
+    });
+
+  if (error) {
+    throw error;
+  }
 }
 
 export const animalHospitalSupabaseRepository: AnimalHospitalSupabaseRepository =

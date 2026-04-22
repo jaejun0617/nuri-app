@@ -39,6 +39,9 @@ const {
 const {
   createAnimalHospitalSupabasePersistence,
 } = require('../src/services/supabase/animalHospitals');
+const {
+  summarizeAnimalHospitalDelta,
+} = require('../src/services/animalHospital/opsSummary');
 
 const DEFAULT_PROVIDER = 'official-localdata';
 
@@ -47,6 +50,7 @@ function printHelp() {
   node scripts/ingest-animal-hospitals.js --input ./localdata.csv --dry-run
   node scripts/ingest-animal-hospitals.js --url "$ANIMAL_HOSPITAL_OFFICIAL_SOURCE_URL" --dry-run
   node scripts/ingest-animal-hospitals.js --input ./localdata.csv --sql-output /tmp/animal-hospitals.sql
+  node scripts/ingest-animal-hospitals.js --input ./localdata.csv --dry-run --compare-remote --report-output ./docs/qa/animal-hospital-delta-report.md
   SUPABASE_SERVICE_ROLE_KEY=... node scripts/ingest-animal-hospitals.js --input ./localdata.csv
 
 Options:
@@ -63,6 +67,8 @@ Options:
   --ingest-mode <snapshot|delta>
                               Ingestion mode metadata. Default: snapshot
   --source-updated-at <iso>   Fallback source_updated_at for rows without a source date
+  --compare-remote            Compare source_key/checksum against linked Supabase data in dry-run
+  --report-output <path>      Write md/json execution report
 `);
 }
 
@@ -74,6 +80,8 @@ function parseArgs(argv) {
     ingestMode: 'snapshot',
     input: null,
     limit: null,
+    compareRemote: false,
+    reportOutput: null,
     sqlBatchSize: 500,
     sqlOutput: null,
     sqlOutputDir: null,
@@ -93,6 +101,11 @@ function parseArgs(argv) {
 
     if (token === '--dry-run') {
       args.dryRun = true;
+      continue;
+    }
+
+    if (token === '--compare-remote') {
+      args.compareRemote = true;
       continue;
     }
 
@@ -153,6 +166,12 @@ function parseArgs(argv) {
 
     if (token === '--sql-output') {
       args.sqlOutput = next;
+      index += 1;
+      continue;
+    }
+
+    if (token === '--report-output') {
+      args.reportOutput = next;
       index += 1;
       continue;
     }
@@ -463,6 +482,25 @@ function splitBatches(items, batchSize) {
   }
 
   return batches;
+}
+
+function createSupabaseServiceClient() {
+  const serviceRoleKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.NURI_SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!serviceRoleKey) {
+    throw new Error(
+      'SUPABASE_SERVICE_ROLE_KEY or NURI_SUPABASE_SERVICE_ROLE_KEY is required',
+    );
+  }
+
+  return createClient(SUPABASE_URL, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
 }
 
 function buildSqlBatch(contracts, batchIndex) {
@@ -863,7 +901,7 @@ async function writeSqlOutput(args, snapshotInput) {
   return summary;
 }
 
-function runDryRun(snapshotInput) {
+function runDryRun(snapshotInput, remoteSources = []) {
   const snapshot = createOfficialAnimalHospitalSnapshot(snapshotInput);
   const summary = {
     mode: 'dry-run',
@@ -874,8 +912,10 @@ function runDryRun(snapshotInput) {
     mappedRows: 0,
     failedRows: 0,
     issues: [],
+    delta: null,
     sampleCanonicalIds: [],
   };
+  const contracts = [];
 
   for (const row of snapshot.rows) {
     const normalized = normalizeLocaldataAnimalHospitalRow({ row, snapshot });
@@ -895,37 +935,150 @@ function runDryRun(snapshotInput) {
       normalized.input,
     );
     summary.mappedRows += 1;
+    contracts.push({
+      sourceKey: contract.sourceKey,
+      canonicalId: contract.canonicalId,
+      rowChecksum: contract.rowChecksum,
+      isActive: contract.canonicalHospital.lifecycle.isActive,
+      coordinateNormalizationStatus:
+        contract.canonicalHospital.coordinates.normalizationStatus,
+    });
 
     if (summary.sampleCanonicalIds.length < 5) {
       summary.sampleCanonicalIds.push(contract.canonicalId);
     }
   }
 
+  summary.delta = summarizeAnimalHospitalDelta({
+    contracts,
+    failedRows: summary.failedRows,
+    issues: summary.issues,
+    remoteSources,
+  });
+
   return summary;
 }
 
-async function runRemoteIngest(snapshotInput) {
-  const serviceRoleKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.NURI_SUPABASE_SERVICE_ROLE_KEY;
+async function fetchRemoteSourceSnapshots() {
+  const client = createSupabaseServiceClient();
+  const rows = [];
+  const pageSize = 1000;
 
-  if (!serviceRoleKey) {
-    throw new Error(
-      'Remote ingest requires SUPABASE_SERVICE_ROLE_KEY or NURI_SUPABASE_SERVICE_ROLE_KEY',
+  for (let from = 0; ; from += pageSize) {
+    const to = from + pageSize - 1;
+    const { data, error } = await client
+      .from('animal_hospital_source_records')
+      .select('source_key,row_checksum,canonical_hospital_id')
+      .range(from, to);
+
+    if (error) {
+      throw new Error(`Failed to fetch remote source snapshot: ${error.message}`);
+    }
+
+    rows.push(
+      ...(data || []).map(row => ({
+        sourceKey: row.source_key,
+        rowChecksum: row.row_checksum,
+        canonicalHospitalId: row.canonical_hospital_id,
+      })),
     );
+
+    if (!data || data.length < pageSize) {
+      break;
+    }
   }
 
-  const client = createClient(SUPABASE_URL, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
+  return rows;
+}
+
+async function runRemoteIngest(snapshotInput) {
+  const client = createSupabaseServiceClient();
   const repository = createAnimalHospitalRepository(
     createAnimalHospitalSupabasePersistence(client),
   );
 
   return repository.ingestOfficialSnapshot(snapshotInput);
+}
+
+function formatNumber(value) {
+  return new Intl.NumberFormat('ko-KR').format(value);
+}
+
+async function writeReportOutput(filePath, summary, context) {
+  if (!filePath) {
+    return;
+  }
+
+  const absolutePath = path.resolve(filePath);
+  await fs.mkdir(path.dirname(absolutePath), { recursive: true });
+
+  if (path.extname(absolutePath).toLowerCase() === '.json') {
+    await fs.writeFile(
+      absolutePath,
+      JSON.stringify({ ...summary, context }, null, 2),
+      'utf8',
+    );
+    return;
+  }
+
+  const delta = summary.delta || {};
+  const mappedRows =
+    typeof summary.mappedRows === 'number'
+      ? summary.mappedRows
+      : (summary.inserted ?? 0) + (summary.updated ?? 0) + (summary.unchanged ?? 0);
+  const failedRows =
+    typeof summary.failedRows === 'number' ? summary.failedRows : summary.failed ?? 0;
+  const issueCount = Array.isArray(summary.issues)
+    ? summary.issues.length
+    : summary.issueCount ?? 0;
+  const lines = [
+    '# AnimalHospital Official Source Delta Report',
+    '',
+    `- generated_at: ${new Date().toISOString()}`,
+    `- source: ${context.sourceLabel}`,
+    `- mode: ${summary.mode || summary.ingestMode || 'unknown'}`,
+    `- provider: ${summary.provider}`,
+    `- snapshot_id: ${summary.snapshotId}`,
+    `- fetched_at: ${summary.fetchedAt}`,
+    '',
+    '## Summary',
+    '',
+    `- total_rows: ${formatNumber(summary.totalRows ?? 0)}`,
+    `- mapped_rows: ${formatNumber(mappedRows)}`,
+    `- failed_rows: ${formatNumber(failedRows)}`,
+    `- issue_count: ${formatNumber(issueCount)}`,
+    '',
+    '## Delta',
+    '',
+    `- new_rows: ${formatNumber(delta.newRows ?? 0)}`,
+    `- changed_rows: ${formatNumber(delta.changedRows ?? summary.updated ?? 0)}`,
+    `- unchanged_rows: ${formatNumber(delta.unchangedRows ?? summary.unchanged ?? 0)}`,
+    `- inactive_rows: ${formatNumber(delta.inactiveRows ?? 0)}`,
+    `- missing_suspected_rows: ${formatNumber(delta.missingSuspectedRows ?? 0)}`,
+    `- parse_failed_rows: ${formatNumber(delta.parseFailedRows ?? 0)}`,
+    `- coordinate_conversion_failed_rows: ${formatNumber(delta.coordinateConversionFailedRows ?? 0)}`,
+    `- matching_failed_rows: ${formatNumber(delta.matchingFailedRows ?? 0)}`,
+    `- canonical_upsert_target_rows: ${formatNumber(delta.canonicalUpsertTargetRows ?? summary.totalRows ?? 0)}`,
+    `- change_log_expected_rows: ${formatNumber(delta.changeLogExpectedRows ?? summary.totalRows ?? 0)}`,
+    '',
+    '## Sample Canonical IDs',
+    '',
+    ...(summary.sampleCanonicalIds || []).map(id => `- ${id}`),
+    '',
+    '## First Issues',
+    '',
+    ...(Array.isArray(summary.issues) && summary.issues.length > 0
+      ? summary.issues
+          .slice(0, 20)
+          .map(
+            issue =>
+              `- ${issue.code}: ${issue.providerRecordId || 'unknown'} - ${issue.message}`,
+          )
+      : ['- none']),
+    '',
+  ];
+
+  await fs.writeFile(absolutePath, lines.join('\n'), 'utf8');
 }
 
 function printSummary(summary) {
@@ -962,14 +1115,20 @@ async function main() {
   const rows = parseRows(source, format);
   const limitedRows = args.limit ? rows.slice(0, args.limit) : rows;
   const snapshotInput = buildSnapshotInput(args, limitedRows);
+  const remoteSources =
+    args.dryRun && args.compareRemote ? await fetchRemoteSourceSnapshots() : [];
   const summary =
     args.sqlOutput || args.sqlOutputDir
       ? await writeSqlOutput(args, snapshotInput)
       : args.dryRun
-      ? runDryRun(snapshotInput)
+      ? runDryRun(snapshotInput, remoteSources)
       : await runRemoteIngest(snapshotInput);
 
   printSummary(summary);
+  await writeReportOutput(args.reportOutput, summary, {
+    sourceLabel: source.label,
+    comparedRemote: remoteSources.length > 0,
+  });
 
   if ('failed' in summary && summary.failed > 0) {
     process.exitCode = 2;

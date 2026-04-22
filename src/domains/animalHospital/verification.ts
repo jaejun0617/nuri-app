@@ -12,6 +12,7 @@ const PUBLIC_VERIFICATION_FIELDS = new Set([
   'phone',
   'coordinates',
   'thumbnail',
+  'open24Hours',
 ]);
 
 export function isPublicAnimalHospitalVerification(
@@ -67,6 +68,10 @@ function applyPublicVerification(
 
   if (verification.fieldKey === 'thumbnail') {
     return applyThumbnailVerification(canonical, verification);
+  }
+
+  if (verification.fieldKey === 'open24Hours') {
+    return applyOpen24HoursVerification(canonical, verification);
   }
 
   return canonical;
@@ -166,6 +171,39 @@ function applyThumbnailVerification(
   };
 }
 
+function applyOpen24HoursVerification(
+  canonical: AnimalHospitalCanonicalHospital,
+  verification: AnimalHospitalVerificationRecord,
+): AnimalHospitalCanonicalHospital {
+  const open24Hours =
+    readBooleanValue(verification.verifiedValue.open24Hours) ??
+    readBooleanValue(verification.verifiedValue.value) ??
+    readBooleanValue(verification.verifiedValue.isOpen24Hours);
+
+  if (open24Hours === null) {
+    return canonical;
+  }
+
+  return {
+    ...canonical,
+    sensitiveDetails: {
+      ...canonical.sensitiveDetails,
+      open24Hours: {
+        value: open24Hours,
+        visibility: 'visible',
+        verificationStatus: 'reviewed',
+        sourceId: `verification:${verification.id}`,
+        verifiedAt: verification.reviewedAt ?? verification.updatedAt,
+        fallbackText: canonical.sensitiveDetails.open24Hours.fallbackText,
+      },
+    },
+    trust: {
+      ...canonical.trust,
+      reviewedAt: verification.reviewedAt ?? canonical.trust.reviewedAt,
+    },
+  };
+}
+
 function compareVerificationRecency(
   left: AnimalHospitalVerificationRecord,
   right: AnimalHospitalVerificationRecord,
@@ -200,6 +238,24 @@ function readNumberValue(value: unknown): number | null {
 
 function readStringValue(value: unknown): string | null {
   return typeof value === 'string' ? normalizeWhitespace(value) : null;
+}
+
+function readBooleanValue(value: unknown): boolean | null {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (['true', '1', 'yes', 'y'].includes(normalized)) {
+      return true;
+    }
+    if (['false', '0', 'no', 'n'].includes(normalized)) {
+      return false;
+    }
+  }
+
+  return null;
 }
 
 function readHttpUrlValue(value: unknown): string | null {

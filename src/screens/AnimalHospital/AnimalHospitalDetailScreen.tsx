@@ -207,14 +207,51 @@ export default function AnimalHospitalDetailScreen() {
             </View>
           </View>
 
-          {item.latitude !== null && item.longitude !== null ? (
-            <NativeLiteMapPreview
-              latitude={item.latitude}
-              longitude={item.longitude}
-              title={`${item.name} 위치 미리보기`}
-              interactive
-            />
-          ) : null}
+          <View style={styles.mapSection}>
+            <View style={styles.mapSectionHeader}>
+              <View style={styles.mapSectionCopy}>
+                <AppText preset="headline" style={styles.sectionTitle}>
+                  위치
+                </AppText>
+                <AppText preset="bodySm" style={styles.subtleText}>
+                  지도 미리보기에서 위치를 확인하고 길찾기로 이어갈 수 있어요.
+                </AppText>
+              </View>
+              {mapLink ? (
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  style={styles.mapOpenButton}
+                  onPress={() => {
+                    Linking.openURL(mapLink).catch(() => {});
+                  }}
+                >
+                  <AppText preset="caption" style={styles.mapOpenButtonText}>
+                    열기
+                  </AppText>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+
+            {item.latitude !== null && item.longitude !== null ? (
+              <NativeLiteMapPreview
+                latitude={item.latitude}
+                longitude={item.longitude}
+                title={`${item.name} 위치 미리보기`}
+                interactive
+              />
+            ) : (
+              <View style={styles.mapFallbackCard}>
+                <Feather
+                  name="map-pin"
+                  size={20}
+                  color={theme.colors.textMuted}
+                />
+                <AppText preset="bodySm" style={styles.subtleText}>
+                  검수된 좌표가 아직 없어 주소 기준으로 확인해 주세요.
+                </AppText>
+              </View>
+            )}
+          </View>
         </ScrollView>
       </View>
     </Screen>

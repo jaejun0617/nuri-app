@@ -11,45 +11,85 @@ export type LocationPermissionStatus =
   | 'blocked'
   | 'unavailable';
 
-export async function getLocationPermissionStatus(): Promise<LocationPermissionStatus> {
-  if (Platform.OS === 'ios') {
-    return 'granted';
+export type LocationPermissionAccuracy =
+  | 'precise'
+  | 'approximate'
+  | 'unknown';
+
+export type LocationPermissionGrant = {
+  status: LocationPermissionStatus;
+  accuracy: LocationPermissionAccuracy;
+};
+
+const FINE_LOCATION = PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION;
+const COARSE_LOCATION = PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION;
+
+async function checkAndroidLocationPermission(): Promise<LocationPermissionGrant> {
+  const [fineGranted, coarseGranted] = await Promise.all([
+    PermissionsAndroid.check(FINE_LOCATION),
+    PermissionsAndroid.check(COARSE_LOCATION),
+  ]);
+
+  if (fineGranted) {
+    return { status: 'granted', accuracy: 'precise' };
   }
 
-  const granted = await PermissionsAndroid.check(
-    PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-  );
+  if (coarseGranted) {
+    return { status: 'granted', accuracy: 'approximate' };
+  }
 
-  return granted ? 'granted' : 'denied';
+  return { status: 'denied', accuracy: 'unknown' };
+}
+
+export async function getLocationPermissionStatus(): Promise<LocationPermissionStatus> {
+  const grant = await getLocationPermissionGrant();
+  return grant.status;
+}
+
+export async function getLocationPermissionGrant(): Promise<LocationPermissionGrant> {
+  if (Platform.OS === 'ios') {
+    return { status: 'granted', accuracy: 'precise' };
+  }
+
+  return checkAndroidLocationPermission();
 }
 
 export async function requestLocationPermission(): Promise<LocationPermissionStatus> {
+  const grant = await requestLocationPermissionGrant();
+  return grant.status;
+}
+
+export async function requestLocationPermissionGrant(): Promise<LocationPermissionGrant> {
   if (Platform.OS === 'ios') {
-    return 'granted';
+    return { status: 'granted', accuracy: 'precise' };
   }
 
-  const result = await PermissionsAndroid.request(
-    PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-    {
-      title: '위치 권한이 필요해요',
-      message: '현재 위치를 기준으로 날씨와 산책 가이드를 보여드릴게요.',
-      buttonPositive: '허용',
-      buttonNegative: '나중에',
-      buttonNeutral: '닫기',
-    },
-  );
+  const result = await PermissionsAndroid.requestMultiple([
+    FINE_LOCATION,
+    COARSE_LOCATION,
+  ]);
 
-  if (result === PermissionsAndroid.RESULTS.GRANTED) {
-    return 'granted';
+  if (result[FINE_LOCATION] === PermissionsAndroid.RESULTS.GRANTED) {
+    return { status: 'granted', accuracy: 'precise' };
   }
 
-  if (result === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
-    return 'blocked';
+  if (result[COARSE_LOCATION] === PermissionsAndroid.RESULTS.GRANTED) {
+    return { status: 'granted', accuracy: 'approximate' };
   }
 
-  if (result === PermissionsAndroid.RESULTS.DENIED) {
-    return 'denied';
+  if (
+    result[FINE_LOCATION] === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN ||
+    result[COARSE_LOCATION] === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN
+  ) {
+    return { status: 'blocked', accuracy: 'unknown' };
   }
 
-  return 'unavailable';
+  if (
+    result[FINE_LOCATION] === PermissionsAndroid.RESULTS.DENIED ||
+    result[COARSE_LOCATION] === PermissionsAndroid.RESULTS.DENIED
+  ) {
+    return { status: 'denied', accuracy: 'unknown' };
+  }
+
+  return { status: 'unavailable', accuracy: 'unknown' };
 }

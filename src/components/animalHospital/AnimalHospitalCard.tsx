@@ -57,7 +57,7 @@ function AnimalHospitalCard({ item, onOpenDetail }: Props) {
           </View>
 
           <View style={[styles.cardHeader, styles.cardHeaderCompact]}>
-            <View style={styles.cardHeaderCopy}>
+            <View style={[styles.cardHeaderCopy, styles.cardHeaderCopyCentered]}>
               <AppText
                 preset="caption"
                 style={styles.cardCategory}
@@ -71,13 +71,6 @@ function AnimalHospitalCard({ item, onOpenDetail }: Props) {
                 numberOfLines={2}
               >
                 {viewModel.title}
-              </AppText>
-              <AppText
-                preset="caption"
-                style={styles.cardMetaText}
-                numberOfLines={2}
-              >
-                {viewModel.address}
               </AppText>
               <AppText
                 preset="caption"

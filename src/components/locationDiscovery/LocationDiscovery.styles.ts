@@ -232,7 +232,8 @@ export const styles = StyleSheet.create({
   compactCardTop: {
     flexDirection: 'row',
     gap: 12,
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    minHeight: 112,
   },
   cardThumbnailWrap: {
     borderRadius: 18,
@@ -305,6 +306,8 @@ export const styles = StyleSheet.create({
   },
   cardHeaderCompact: {
     flex: 1,
+    alignSelf: 'stretch',
+    justifyContent: 'center',
   },
   cardIconWrap: {
     width: 42,
@@ -317,6 +320,10 @@ export const styles = StyleSheet.create({
   cardHeaderCopy: {
     flex: 1,
     gap: 4,
+  },
+  cardHeaderCopyCentered: {
+    justifyContent: 'center',
+    alignItems: 'flex-start',
   },
   cardCompactMetaBlock: {
     gap: 6,

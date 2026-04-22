@@ -1,6 +1,8 @@
 import {
   buildAnimalHospitalCardViewModel,
   buildAnimalHospitalDetailViewModel,
+  formatAnimalHospitalPhoneLabel,
+  selectAnimalHospitalListItems,
 } from '../src/domains/animalHospital/presentation';
 import type { AnimalHospitalPublicHospital } from '../src/domains/animalHospital/types';
 
@@ -44,6 +46,9 @@ describe('animalHospital presentation models', () => {
 
     expect(card.title).toBe('누리동물병원');
     expect(card.phoneLabel).toBe('02-555-0101');
+    expect('address' in (card as unknown as Record<string, unknown>)).toBe(
+      false,
+    );
     expect(
       'operatingHours' in (card as unknown as Record<string, unknown>),
     ).toBe(false);
@@ -57,5 +62,44 @@ describe('animalHospital presentation models', () => {
     expect(
       'homepageUrl' in (detail as unknown as Record<string, unknown>),
     ).toBe(false);
+  });
+
+  it('전화번호는 읽기 좋은 하이픈 표기로 정리한다', () => {
+    expect(formatAnimalHospitalPhoneLabel('0319455000')).toBe('031-945-5000');
+    expect(formatAnimalHospitalPhoneLabel('0212345678')).toBe('02-1234-5678');
+    expect(formatAnimalHospitalPhoneLabel('+82 10 1234 5678')).toBe(
+      '010-1234-5678',
+    );
+    expect(formatAnimalHospitalPhoneLabel(null)).toBeNull();
+  });
+
+  it('리스트 모드는 주소 없이 가까운순을 정리한다', () => {
+    const items: AnimalHospitalPublicHospital[] = [
+      {
+        ...publicHospital,
+        id: 'animal-hospital:b',
+        name: '평온동물병원',
+        distanceMeters: 300,
+      },
+      {
+        ...publicHospital,
+        id: 'animal-hospital:a',
+        name: '24시 누리동물의료센터',
+        distanceMeters: 1200,
+      },
+      {
+        ...publicHospital,
+        id: 'animal-hospital:c',
+        name: '가까운동물병원',
+        distanceMeters: 100,
+      },
+    ];
+
+    expect(
+      selectAnimalHospitalListItems(items, 'nearby').map(item => item.id),
+    ).toEqual(['animal-hospital:c', 'animal-hospital:b', 'animal-hospital:a']);
+    expect(
+      selectAnimalHospitalListItems(items, 'open24').map(item => item.id),
+    ).toEqual(['animal-hospital:c', 'animal-hospital:b', 'animal-hospital:a']);
   });
 });

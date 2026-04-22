@@ -19,6 +19,7 @@ export type DeviceCoordinates = {
 const LAST_COORDINATES_KEY = '@nuri/location/lastCoordinates';
 export const LOCATION_STALE_AFTER_MS = 2 * 60 * 1000;
 export const LOCATION_AUTO_REFRESH_INTERVAL_MS = 15 * 1000;
+export const LOCATION_WEAK_SIGNAL_ACCURACY_METERS = 1000;
 const FAST_LOCATION_TIMEOUT_MS = 3500;
 const FAST_LOCATION_MAX_AGE_MS = 15000;
 const PRECISE_LOCATION_TIMEOUT_MS = 10000;
@@ -68,12 +69,49 @@ export function isFreshLocationCoordinates(
   return ageMs <= LOCATION_STALE_AFTER_MS;
 }
 
+export function isWeakLocationSignal(
+  coords: DeviceCoordinates | null,
+): boolean {
+  if (!coords) {
+    return false;
+  }
+
+  return (
+    typeof coords.accuracy === 'number' &&
+    coords.accuracy >= LOCATION_WEAK_SIGNAL_ACCURACY_METERS
+  );
+}
+
+export function isPreciseLocationCoordinates(
+  coords: DeviceCoordinates | null,
+): boolean {
+  if (!isFreshLocationCoordinates(coords)) {
+    return false;
+  }
+
+  if (!coords) {
+    return false;
+  }
+
+  return (
+    coords.source === 'gps' &&
+    typeof coords.accuracy === 'number' &&
+    coords.accuracy < LOCATION_WEAK_SIGNAL_ACCURACY_METERS
+  );
+}
+
 export function shouldPromoteLocationCoordinates(
   current: DeviceCoordinates | null,
   next: DeviceCoordinates,
 ): boolean {
   if (!current) return true;
   if ((current.source ?? 'cached') === 'cached') return true;
+  if (
+    !isFreshLocationCoordinates(current) &&
+    (next.source ?? 'cached') !== 'cached'
+  ) {
+    return true;
+  }
   if (getCoordinatesKey(current) !== getCoordinatesKey(next)) return true;
 
   const currentAccuracy = current.accuracy ?? Number.MAX_SAFE_INTEGER;

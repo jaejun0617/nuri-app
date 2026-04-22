@@ -1,0 +1,33 @@
+{
+  "generated_at": "2026-04-22T19:26:00+09:00",
+  "policy": "official hospital-owned homepage images only; unverified candidates stay out of public projection",
+  "candidates": [
+    {
+      "canonical_id": "animal-hospital:official-localdata:3220000:322000001020210002",
+      "hospital_source_key": "official-localdata:3220000:322000001020210002",
+      "hospital_name": "VIP동물의료센터 청담점",
+      "external_image_url": "https://www.vipah.co.kr/images/content/location_tit_img_cd.jpg",
+      "original_source_page_url": "https://www.vipah.co.kr/kr/medical/store.php",
+      "source_type": "official-homepage",
+      "note": "VIP동물의료센터 공식 지점 안내 페이지의 청담점 건물 이미지 후보. 운영자 승인 전 public 미노출."
+    },
+    {
+      "canonical_id": "animal-hospital:official-localdata:3200000:320000001020080002",
+      "hospital_source_key": "official-localdata:3200000:320000001020080002",
+      "hospital_name": "서울대학교 수의과대학 동물병원",
+      "external_image_url": "https://vmth.snu.ac.kr/images/front/hospital_greeting.png",
+      "original_source_page_url": "https://vmth.snu.ac.kr/info/greeting.do",
+      "source_type": "official-introduction",
+      "note": "서울대학교 동물병원 공식 병원소개 페이지의 인사말 대표 이미지 후보. 운영자 승인 전 public 미노출."
+    },
+    {
+      "canonical_id": "animal-hospital:official-localdata:4060000:406000001020250003",
+      "hospital_source_key": "official-localdata:4060000:406000001020250003",
+      "hospital_name": "24시 마이동물의료센터",
+      "external_image_url": "https://24myamc.com/images/main-img101.png",
+      "original_source_page_url": "https://24myamc.com/",
+      "source_type": "official-homepage",
+      "note": "24시 마이동물의료센터 공식 홈페이지 메인 섹션의 병원 진료 공간 이미지 후보. 운영자 승인 전 public 미노출."
+    }
+  ]
+}

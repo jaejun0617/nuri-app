@@ -14,6 +14,7 @@ import {
 import { applyAnimalHospitalApprovedVerifications } from '../../domains/animalHospital/verification';
 import type {
   AnimalHospitalCanonicalHospital,
+  AnimalHospitalRuntimeMatchSummary,
   AnimalHospitalVerificationRecord,
   AnimalHospitalSearchResult,
   AnimalHospitalSearchScope,
@@ -286,6 +287,49 @@ function sortCanonicalPriority(item: AnimalHospitalCanonicalHospital): number {
   return 1;
 }
 
+function hasReviewedOpen24Hours(
+  item: AnimalHospitalCanonicalHospital,
+): boolean {
+  const detail = item.sensitiveDetails.open24Hours;
+  return (
+    detail.value === true &&
+    detail.visibility === 'visible' &&
+    detail.verificationStatus === 'reviewed'
+  );
+}
+
+function buildRuntimeSummary(params: {
+  query: string | null;
+  runtimeCandidateCount: number;
+  canonicalResultCount: number;
+  canonicalLinkedCount: number;
+  providerOnlyCount: number;
+  matchCount: number;
+  createdAt: string;
+}): AnimalHospitalRuntimeMatchSummary {
+  const deferredCount = Math.max(
+    0,
+    params.runtimeCandidateCount -
+      params.providerOnlyCount -
+      params.canonicalLinkedCount,
+  );
+  const denominator = Math.max(1, params.runtimeCandidateCount);
+
+  return {
+    snapshotKey: `animal-hospital-runtime:${params.createdAt}`,
+    query: params.query,
+    createdAt: params.createdAt,
+    runtimeCandidateCount: params.runtimeCandidateCount,
+    canonicalResultCount: params.canonicalResultCount,
+    canonicalLinkedCount: params.canonicalLinkedCount,
+    providerOnlyCount: params.providerOnlyCount,
+    deferredCount,
+    matchCount: params.matchCount,
+    providerOnlyRatio: params.providerOnlyCount / denominator,
+    canonicalLinkedRatio: params.canonicalLinkedCount / denominator,
+  };
+}
+
 async function applyRepositoryVerifications(params: {
   repository: AnimalHospitalCanonicalRepository;
   canonicals: ReadonlyArray<AnimalHospitalCanonicalHospital>;
@@ -370,12 +414,17 @@ export async function searchAnimalHospitals(input: {
   query: string | null;
   scope: AnimalHospitalSearchScope;
   useNearbySearch?: boolean;
+  open24HoursOnly?: boolean;
   repository?: AnimalHospitalCanonicalRepository;
   provider?: LocationSearchProvider;
 }): Promise<AnimalHospitalSearchResult> {
   const repository = input.repository ?? animalHospitalSupabaseRepository;
   const provider = input.provider ?? kakaoLocalSearchProvider;
   const normalizedQuery = normalizeWhitespace(input.query);
+  const hasExplicitQuery = Boolean(normalizedQuery);
+  const searchCoordinates = hasExplicitQuery
+    ? null
+    : input.scope.anchorCoordinates;
   const radiusMeters = input.useNearbySearch
     ? ANIMAL_HOSPITAL_DEFAULT_RADIUS_METERS
     : ANIMAL_HOSPITAL_DEFAULT_RADIUS_METERS * 2;
@@ -383,7 +432,7 @@ export async function searchAnimalHospitals(input: {
     await withTimeout({
       task: repository.search({
         query: normalizedQuery,
-        coordinates: input.scope.anchorCoordinates,
+        coordinates: searchCoordinates,
         radiusMeters,
       }),
       timeoutMs: CANONICAL_SEARCH_TIMEOUT_MS,
@@ -393,7 +442,7 @@ export async function searchAnimalHospitals(input: {
   const documents = await withTimeout({
     task: provider.searchKeyword({
       query: buildRuntimeKeyword(normalizedQuery),
-      coordinates: input.scope.anchorCoordinates,
+      coordinates: searchCoordinates,
       radiusMeters,
       size: ANIMAL_HOSPITAL_DEFAULT_PAGE_SIZE,
     }),
@@ -426,19 +475,21 @@ export async function searchAnimalHospitals(input: {
     ...candidateNameCanonicals,
   ]);
 
-  const { linkedCanonicals, providerOnlyCandidates } =
+  const { linkedCanonicals, providerOnlyCandidates, matches } =
     linkAnimalHospitalRuntimeCandidates({
       canonicals: matchableCanonicals,
       candidates: runtimeCandidates,
     });
-  const merged = await applyRepositoryVerifications({
-    repository,
-    canonicals: dedupeCanonicals([
-      ...linkedCanonicals,
-      ...officialCanonicals,
-      ...providerOnlyCandidates,
-    ]),
-  });
+  const merged = (
+    await applyRepositoryVerifications({
+      repository,
+      canonicals: dedupeCanonicals([
+        ...linkedCanonicals,
+        ...officialCanonicals,
+        ...providerOnlyCandidates,
+      ]),
+    })
+  ).filter(item => !input.open24HoursOnly || hasReviewedOpen24Hours(item));
   const publicItems = merged
     .map(canonical =>
       projectAnimalHospitalPublic({
@@ -489,6 +540,15 @@ export async function searchAnimalHospitals(input: {
     internalItems,
     query: normalizedQuery,
     scope: input.scope,
+    runtimeSummary: buildRuntimeSummary({
+      query: normalizedQuery,
+      runtimeCandidateCount: runtimeCandidates.length,
+      canonicalResultCount: officialCanonicals.length,
+      canonicalLinkedCount: linkedCanonicals.length,
+      providerOnlyCount: providerOnlyCandidates.length,
+      matchCount: matches.length,
+      createdAt: ingestedAt,
+    }),
   };
 }
 

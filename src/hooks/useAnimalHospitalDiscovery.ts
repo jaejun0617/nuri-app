@@ -24,18 +24,22 @@ export type AnimalHospitalDiscoveryState = {
   items: AnimalHospitalPublicHospital[];
   error: string | null;
   permission: ReturnType<typeof useCurrentLocation>['permission'];
+  permissionAccuracy: ReturnType<typeof useCurrentLocation>['permissionAccuracy'];
   coordinates: ReturnType<typeof useCurrentLocation>['coordinates'];
   district: string | null;
   normalizedDistrict: string | null;
   city: string | null;
   hasFreshLocation: boolean;
   usingStaleLocation: boolean;
+  hasPreciseLocation: boolean;
+  hasWeakLocationSignal: boolean;
   scope: AnimalHospitalSearchScope;
   refresh: () => Promise<void>;
 };
 
 export function useAnimalHospitalDiscovery(input: {
   query: string;
+  open24HoursOnly?: boolean;
 }): AnimalHospitalDiscoveryState {
   const [locationBootstrapTimedOut, setLocationBootstrapTimedOut] =
     useState(false);
@@ -57,11 +61,14 @@ export function useAnimalHospitalDiscovery(input: {
   const hasSearchQuery = normalizedQuery.length >= 2;
   const coordinatesKey = locationState.coordinates
     ? `${locationState.coordinates.latitude.toFixed(
-        3,
-      )}:${locationState.coordinates.longitude.toFixed(3)}`
+        4,
+      )}:${locationState.coordinates.longitude.toFixed(4)}`
     : 'no-coordinates';
   const district = districtState.district?.trim() || null;
   const hasCoordinates = Boolean(locationState.coordinates);
+  const usesApproximatePermission =
+    locationState.permission === 'granted' &&
+    locationState.permissionAccuracy === 'approximate';
   const shouldRunQuery =
     hasSearchQuery ||
     hasCoordinates ||
@@ -82,43 +89,56 @@ export function useAnimalHospitalDiscovery(input: {
       clearTimeout(timer);
     };
   }, [hasCoordinates, locationState.loading]);
-  const scope = useMemo<AnimalHospitalSearchScope>(
-    () => ({
-      displayLabel:
-        !locationState.coordinates && !hasSearchQuery
-          ? '기본 검색'
-          : !locationState.isFresh && locationState.loading
-          ? '새 위치 확인 중'
-          : district ??
-            (locationState.isFresh ? '현재 위치' : '최근 확인 위치'),
+  const scope = useMemo<AnimalHospitalSearchScope>(() => {
+    const coordinates = locationState.coordinates;
+    const locationIsApproximate =
+      usesApproximatePermission || locationState.isWeakSignal;
+    const locationIsStale = Boolean(coordinates) && locationState.isStale;
+    const displayLabel = hasSearchQuery
+      ? '전국 검색'
+      : !coordinates
+      ? '기본 검색'
+      : district ?? '현재 위치';
+    const distanceLabel = hasSearchQuery
+      ? !coordinates
+        ? '검색어 기준'
+        : locationIsStale
+          ? '거리는 최근 위치 기준'
+          : locationIsApproximate
+            ? '거리는 대략 위치 기준'
+            : '거리는 현재 위치 기준'
+      : !coordinates
+      ? '기본 검색 기준'
+      : locationIsStale
+        ? '최근 위치 기준'
+        : locationIsApproximate
+          ? '대략 위치 기준'
+          : '현재 위치 기준';
+
+    return {
+      displayLabel,
       queryLabel:
         districtState.city && district
           ? `${districtState.city} ${district}`.trim()
           : district,
-      anchorCoordinates: locationState.coordinates,
-      distanceLabel:
-        !locationState.coordinates && !hasSearchQuery
-          ? '기본 검색 기준'
-          : !locationState.isFresh && locationState.loading
-          ? '새 위치 확인 중'
-          : locationState.isFresh
-          ? '현재 위치 기준'
-          : '최근 확인 위치 기준',
-    }),
-    [
-      district,
-      districtState.city,
-      locationState.coordinates,
-      locationState.isFresh,
-      locationState.loading,
-      hasSearchQuery,
-    ],
-  );
+      anchorCoordinates: coordinates,
+      distanceLabel,
+    };
+  }, [
+    district,
+    districtState.city,
+    hasSearchQuery,
+    locationState.coordinates,
+    locationState.isStale,
+    locationState.isWeakSignal,
+    usesApproximatePermission,
+  ]);
 
   const query = useQuery({
     queryKey: [
       'animal-hospital-discovery',
       hasSearchQuery ? normalizedQuery : 'nearby',
+      input.open24HoursOnly ? 'open24' : 'all',
       coordinatesKey,
     ],
     queryFn: async () =>
@@ -126,6 +146,7 @@ export function useAnimalHospitalDiscovery(input: {
         query: hasSearchQuery ? normalizedQuery : null,
         scope,
         useNearbySearch: !hasSearchQuery,
+        open24HoursOnly: Boolean(input.open24HoursOnly),
       }),
     enabled: shouldRunQuery,
     staleTime: 2 * 60 * 1000,
@@ -152,7 +173,7 @@ export function useAnimalHospitalDiscovery(input: {
 
       (async () => {
         const nextCoordinates = await refreshLocation();
-        if (hasSearchQuery || !isFreshLocationCoordinates(nextCoordinates)) {
+        if (!hasSearchQuery && !isFreshLocationCoordinates(nextCoordinates)) {
           return;
         }
         await refetchAnimalHospitals();
@@ -176,17 +197,18 @@ export function useAnimalHospitalDiscovery(input: {
       (query.error instanceof Error ? query.error.message : null) ??
       (!hasSearchQuery ? locationState.error : null),
     permission: locationState.permission,
+    permissionAccuracy: locationState.permissionAccuracy,
     coordinates: locationState.coordinates,
     district,
     normalizedDistrict: districtState.normalizedDistrict?.trim() || district,
     city: districtState.city,
     hasFreshLocation: locationState.isFresh,
     usingStaleLocation: locationState.isStale,
+    hasPreciseLocation: locationState.isPrecise,
+    hasWeakLocationSignal: locationState.isWeakSignal,
     scope: query.data?.scope ?? scope,
     refresh: async () => {
-      const nextCoordinates = hasSearchQuery
-        ? locationState.coordinates
-        : await refreshLocation();
+      const nextCoordinates = await refreshLocation();
 
       if (!hasSearchQuery && !isFreshLocationCoordinates(nextCoordinates)) {
         return;

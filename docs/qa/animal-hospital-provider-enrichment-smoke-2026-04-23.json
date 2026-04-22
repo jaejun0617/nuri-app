@@ -1,0 +1,76 @@
+{
+  "hospitals": [
+    {
+      "id": "animal-hospital:official-localdata:4060000:406000001020250003",
+      "name": "24시 마이동물의료센터",
+      "address": "경기도 파주시 청석로 122, 3층 313~320호 (동패동)",
+      "latitude": 37.713595,
+      "longitude": 126.720972,
+      "normalized_phone": "0319455000",
+      "providerFixture": {
+        "provider": "fixture-official-crosscheck",
+        "id": "fixture-24myamc",
+        "displayName": {
+          "text": "24시 마이동물의료센터"
+        },
+        "formattedAddress": "경기 파주시 청석로 122",
+        "nationalPhoneNumber": "031-945-5000",
+        "location": {
+          "latitude": 37.713595,
+          "longitude": 126.720972
+        },
+        "googleMapsUri": "https://maps.google.com/?q=24%EC%8B%9C%20%EB%A7%88%EC%9D%B4%EB%8F%99%EB%AC%BC%EC%9D%98%EB%A3%8C%EC%84%BC%ED%84%B0",
+        "websiteUri": "https://24myamc.com/",
+        "regularOpeningHours": {
+          "weekdayDescriptions": [
+            "월요일: 24시간",
+            "화요일: 24시간",
+            "수요일: 24시간",
+            "목요일: 24시간",
+            "금요일: 24시간",
+            "토요일: 24시간",
+            "일요일: 24시간"
+          ]
+        },
+        "photos": [
+          {
+            "name": "places/fixture-24myamc/photos/main",
+            "widthPx": 1200,
+            "heightPx": 800,
+            "photoUri": "https://24myamc.com/images/main-img101.png"
+          }
+        ]
+      }
+    },
+    {
+      "id": "animal-hospital:official-localdata:3220000:322000001020210002",
+      "name": "VIP동물의료센터 청담점",
+      "address": "서울특별시 강남구 삼성로133길 7",
+      "latitude": 37.522301,
+      "longitude": 127.046908,
+      "normalized_phone": "025117522",
+      "providerFixture": {
+        "provider": "fixture-provider-crosscheck",
+        "id": "fixture-vip-cheongdam",
+        "displayName": {
+          "text": "VIP동물의료센터 청담점"
+        },
+        "formattedAddress": "서울 강남구 삼성로133길 7",
+        "nationalPhoneNumber": "02-511-7522",
+        "location": {
+          "latitude": 37.522301,
+          "longitude": 127.046908
+        },
+        "googleMapsUri": "https://maps.google.com/?q=VIP%EB%8F%99%EB%AC%BC%EC%9D%98%EB%A3%8C%EC%84%BC%ED%84%B0%20%EC%B2%AD%EB%8B%B4%EC%A0%90",
+        "photos": [
+          {
+            "name": "places/fixture-vip-cheongdam/photos/main",
+            "widthPx": 1000,
+            "heightPx": 640,
+            "photoUri": "https://www.vipah.co.kr/images/content/location_tit_img_cd.jpg"
+          }
+        ]
+      }
+    }
+  ]
+}

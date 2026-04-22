@@ -13,24 +13,30 @@ import {
   getPreciseCurrentCoordinates,
   getQuickCurrentCoordinates,
   isFreshLocationCoordinates,
+  isPreciseLocationCoordinates,
+  isWeakLocationSignal,
   LOCATION_AUTO_REFRESH_INTERVAL_MS,
   shouldPromoteLocationCoordinates,
   type DeviceCoordinates,
   type LocationCoordinateSource,
 } from '../services/location/currentPosition';
 import {
-  getLocationPermissionStatus,
-  requestLocationPermission,
+  getLocationPermissionGrant,
+  requestLocationPermissionGrant,
+  type LocationPermissionAccuracy,
   type LocationPermissionStatus,
 } from '../services/location/permission';
 
 export type CurrentLocationState = {
   loading: boolean;
   permission: LocationPermissionStatus;
+  permissionAccuracy: LocationPermissionAccuracy;
   coordinates: DeviceCoordinates | null;
   source: LocationCoordinateSource | null;
   isFresh: boolean;
   isStale: boolean;
+  isPrecise: boolean;
+  isWeakSignal: boolean;
   lastUpdatedAt: number | null;
   isRefreshing: boolean;
   isRefining: boolean;
@@ -72,6 +78,10 @@ export function useCurrentLocation(
   const [permission, setPermission] = useState<LocationPermissionStatus>(
     initialCoordinates ? 'granted' : 'unavailable',
   );
+  const [permissionAccuracy, setPermissionAccuracy] =
+    useState<LocationPermissionAccuracy>(
+      initialCoordinates ? 'unknown' : 'unknown',
+    );
   const [coordinates, setCoordinates] = useState<DeviceCoordinates | null>(
     initialCoordinates,
   );
@@ -182,23 +192,25 @@ export function useCurrentLocation(
       setError(null);
 
       try {
-        const status = await getLocationPermissionStatus();
-        const resolvedPermission =
-          status === 'granted'
-            ? status
-            : status === 'unavailable'
-              ? await requestLocationPermission()
-              : status;
+        const currentGrant = await getLocationPermissionGrant();
+        const resolvedGrant =
+          currentGrant.status === 'granted'
+            ? currentGrant
+            : currentGrant.status === 'unavailable' ||
+                currentGrant.status === 'denied'
+              ? await requestLocationPermissionGrant()
+              : currentGrant;
 
-        setPermission(resolvedPermission);
-        permissionRef.current = resolvedPermission;
+        setPermission(resolvedGrant.status);
+        setPermissionAccuracy(resolvedGrant.accuracy);
+        permissionRef.current = resolvedGrant.status;
 
-        if (resolvedPermission !== 'granted') {
+        if (resolvedGrant.status !== 'granted') {
           refineRequestIdRef.current += 1;
           if (!coordinatesRef.current) {
             setCoordinates(null);
           }
-          setError(toLocationErrorMessage(resolvedPermission, null));
+          setError(toLocationErrorMessage(resolvedGrant.status, null));
           return coordinatesRef.current;
         }
 
@@ -207,7 +219,10 @@ export function useCurrentLocation(
         setError(null);
         lastRefreshAtRef.current = Date.now();
 
-        if (nextCoordinates.source !== 'gps') {
+        if (
+          resolvedGrant.accuracy === 'precise' &&
+          nextCoordinates.source !== 'gps'
+        ) {
           refineWithPreciseCoordinates().catch(() => {});
         }
 
@@ -258,10 +273,13 @@ export function useCurrentLocation(
   return {
     loading,
     permission,
+    permissionAccuracy,
     coordinates,
     source: coordinates?.source ?? null,
     isFresh: isFreshLocationCoordinates(coordinates),
     isStale: Boolean(coordinates) && !isFreshLocationCoordinates(coordinates),
+    isPrecise: isPreciseLocationCoordinates(coordinates),
+    isWeakSignal: isWeakLocationSignal(coordinates),
     lastUpdatedAt: getLocationCapturedAt(coordinates),
     isRefreshing,
     isRefining,

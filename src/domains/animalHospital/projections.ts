@@ -55,8 +55,15 @@ export function projectAnimalHospitalPublic(params: {
   } | null;
 }): AnimalHospitalPublicHospital {
   const { canonical, anchorCoordinates } = params;
-  const latitude = canonical.coordinates.latitude;
-  const longitude = canonical.coordinates.longitude;
+  const hasReviewedCoordinates =
+    canonical.coordinates.source === 'reviewed' &&
+    canonical.coordinates.normalizationStatus === 'exact';
+  const latitude = hasReviewedCoordinates
+    ? canonical.coordinates.latitude
+    : null;
+  const longitude = hasReviewedCoordinates
+    ? canonical.coordinates.longitude
+    : null;
   const distanceMeters = getAnimalHospitalDistanceMeters({
     coordinates: anchorCoordinates,
     latitude,

@@ -50,6 +50,7 @@ import NearbyWalkListScreen from '../screens/LocationDiscovery/NearbyWalkListScr
 import NearbyWalkDetailScreen from '../screens/LocationDiscovery/NearbyWalkDetailScreen';
 import AnimalHospitalListScreen from '../screens/AnimalHospital/AnimalHospitalListScreen';
 import AnimalHospitalDetailScreen from '../screens/AnimalHospital/AnimalHospitalDetailScreen';
+import AnimalHospitalAdminScreen from '../screens/AnimalHospital/AnimalHospitalAdminScreen';
 import CommunityListScreen from '../screens/Community/CommunityListScreen';
 import CommunityDetailScreen from '../screens/Community/CommunityDetailScreen';
 import CommunityCreateScreen from '../screens/Community/CommunityCreateScreen';
@@ -189,6 +190,7 @@ export type RootStackParamList = {
   AnimalHospitalDetail: {
     item: AnimalHospitalPublicHospital;
   };
+  AnimalHospitalAdmin: { entrySource?: ScreenEntrySource } | undefined;
   CommunityList: { entrySource?: ScreenEntrySource } | undefined;
   CommunityDetail: { postId: string };
   CommunityCreate: undefined;
@@ -427,6 +429,11 @@ export default function RootNavigator() {
       <Stack.Screen
         name="GuideAdminList"
         component={GuideAdminListScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="AnimalHospitalAdmin"
+        component={AnimalHospitalAdminScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

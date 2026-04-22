@@ -1,7 +1,7 @@
 # 액션 1. Release blocker evidence pack
 
 상태: 진행 중
-최종 갱신: 2026-04-21
+최종 갱신: 2026-04-23
 우선순위: P0
 
 ## 배경
@@ -12,7 +12,8 @@
 
 - 실기기 검증이 전혀 없는 상태는 아니다.
 - 비밀번호 재설정 복귀, 정책 문서 앱 링크, 계정 삭제/커뮤니티 일부 실기기·row-level 증적은 이미 확보됐다.
-- 지금 남은 것은 `장소/산책/동물병원 최종 캡처`, `계정 탈퇴 cron 자동 tick 증적`, `커뮤니티 moderation/action/image cleanup 보관본`, `RC smoke 보관본`이다.
+- 지금 남은 것은 `장소/산책 최종 캡처`, `계정 탈퇴 cron 자동 tick 증적`, `커뮤니티 moderation/action/image cleanup 보관본`, `RC smoke 보관본`이다.
+- 동물병원 Android approved CTA/thumbnail smoke는 2026-04-22에 확보했고, provider/admin/location 보강 후 2026-04-23에 리스트/상세/전화/지도 재캡처를 추가 확보했다.
 - 자동 확인 가능한 항목과 외부 조건이 필요한 항목이 한 묶음으로 남아 있다.
 
 ## 목표
@@ -52,8 +53,10 @@
 
 ### 현재 막힘
 
-- 없음
-- 필요한 것은 Android 실기기, linked remote/콘솔 접근, release candidate 빌드뿐이다.
+- 동물병원 phone/coordinates/thumbnail approval evidence는 linked SQL seed와 Android 실기기 smoke로 확보했다.
+- 현재 shell에는 `SUPABASE_SERVICE_ROLE_KEY`와 `NURI_SUPABASE_SERVICE_ROLE_KEY`가 없어 운영 스크립트 apply mode는 아직 실행하지 못했다.
+- 앱 admin 계정으로 운영자 UI 조작은 직접 시각 검증하지 못했고, linked SQL service_role claim으로 summary/detail/review item RPC 응답을 확인했다.
+- 2026-04-23 local migration은 open24Hours/action log admin contract를 확장했지만, `SUPABASE_ACCESS_TOKEN` 부재로 linked remote 적용 전이다.
 
 ## 증적 파일명 / 기록 규칙
 
@@ -78,7 +81,11 @@
 - [x] 커뮤니티 moderation row-level 현재 상태 스냅샷
 - [x] 비밀번호 재설정 deep link local 전제조건 재확인
 - [x] Step 1 recovery session 오분기 repo-side blocker fix
-- [ ] 장소/산책/동물병원 리스트/상세 physical-device 최종 캡처
+- [ ] 장소/산책 리스트/상세 physical-device 최종 캡처
+- [x] 동물병원 Android debug build/install/start, 리스트/상세/fallback smoke 증적 추가
+- [x] 동물병원 approved phone `tel:` CTA, approved coordinates 길찾기 CTA, approved thumbnail public 노출 증적 추가
+- [x] 동물병원 P0-P2 후속 리스트/검색/전화번호/CTA 실기기 증적 추가
+- [x] 동물병원 2026-04-23 provider/admin/location 보강 후 리스트/상세/전화/지도 실기기 증적 추가
 - [x] 비밀번호 재설정 메일 복귀 실기기 재검증
 - [x] 계정 삭제 row-level 실행 증적
 - [x] 커뮤니티 신고 row-level 1차 증적
@@ -88,6 +95,30 @@
 - [ ] RC smoke 보관본
 
 ## 이번 턴 실행 결과
+
+- 2026-04-23 animalHospital provider/admin/location 보강 증적은 아래 파일에 남겼다.
+  - `docs/qa/animal-hospital-provider-location-admin-closeout-2026-04-23.md`
+  - `docs/qa/animal-hospital-provider-enrichment-2026-04-23.md`
+  - `docs/qa/animal-hospital-provider-enrichment-google-smoke-2026-04-23.md`
+  - `docs/qa/animal-hospital-provider-enrichment-kakao-smoke-2026-04-23.md`
+  - `docs/qa/animal-hospital-delta-dry-run-2026-04-23.md`
+  - `docs/qa/animal-hospital-thumbnail-import-2026-04-23.md`
+- Android 실기기 `SM_S937N`에서 2026-04-23 기준 동물병원 리스트 주소 미노출, left align/vertical center, `031-945-5000` 하이픈 표시, 상세 전화/길찾기/지도 preview, dialer intent, 지도 resolver, 지도 열기 resolver를 확인했다.
+- Google provider enrichment dry-run은 2개 병원에서 candidates 10건을 생성했고, provider photo는 모두 `held`로 남겨 public projection에 직접 반영하지 않았다.
+- `20260423090000_animal_hospital_ops_open24_action_logs.sql`은 repo에 추가됐지만 `SUPABASE_ACCESS_TOKEN` 부재로 remote 반영 전이다.
+
+- 2026-04-22 animalHospital 추가 증적은 아래 파일에 남겼다.
+  - `docs/qa/animal-hospital-android-smoke-2026-04-22.md`
+  - `docs/qa/animal-hospital-p0-p2-closeout-2026-04-22.md`
+  - `docs/qa/animal-hospital-ops-summary-2026-04-22.md`
+  - `docs/qa/animal-hospital-thumbnail-import-2026-04-22.md`
+  - `docs/qa/animal-hospital-delta-dry-run-2026-04-22.md`
+- Android 실기기 `SM_S937N`에서 debug build/install/start, More -> 우리동네 동물병원, 리스트 -> 상세, 리스트 주소 미노출, 좌측 정렬, 좌표 미승인 fallback은 확인했다.
+- linked SQL seed 후 `24시 마이동물의료센터` approved sample로 official thumbnail 리스트/상세 노출, `tel:` dialer intent, 길찾기 외부 지도 resolver, approved coordinate map preview를 확인했다.
+- P0-P2 후속으로 같은 물리 기기 `R5CY613NMSY`에서 최근검색어 미노출, `전체/가까운순/24시 운영` 칩, verified 24시 필터, `VIP` 전국 검색, `02-511-7522` 하이픈 표시, `031-945-5000` dialer intent, 길찾기 resolver, 지도 preview `열기` CTA, fatal logcat 미검출을 다시 확인했다.
+- linked remote에는 `20260422103000_animal_hospital_ops_review_console.sql` migration을 적용했다.
+- service role key 부재로 script apply mode는 실행하지 못했지만, linked SQL로 thumbnail candidate 3건과 approved phone/coordinates/thumbnail coverage 2건을 반영했다.
+- linked SQL service_role claim 기준 `animal_hospital_ops_summary()`, `animal_hospital_ops_detail()`, `animal_hospital_ops_review_items()` 응답을 확인했다.
 
 - 자동 수집 스크립트를 추가해 아래 항목을 한 번에 다시 확인할 수 있게 만들었다.
   - `yarn test:qa`
@@ -104,7 +135,7 @@
   - iOS `GoogleService-Info.plist`: 없음
   - `src/services/supabase/config.ts`, `src/config/runtime.ts`: local-only 확인
   - `src/services/monitoring/config.ts`: tracked DSN 기본값 제거 확인
-- `adb devices -l` 기준 현재 연결은 `emulator-5554` 1대뿐이며 물리 Android 기기는 미탐지 상태다.
+- 이전 자동 snapshot 실행 시점에는 `emulator-5554` 1대만 감지됐지만, 2026-04-22 동물병원 P0-P2 재검증 시점에는 물리 Android `R5CY613NMSY`가 연결됐고 해당 기기에서 smoke를 수행했다.
 - 계정 삭제 row-level snapshot 결과는 아래와 같다.
   - `account_deletion_requests`: 0건
   - `account_deletion_cleanup_items`: 0건

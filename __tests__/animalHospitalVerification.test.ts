@@ -119,6 +119,47 @@ describe('animalHospital approved verification projection gate', () => {
     expect(projected.media.thumbnailUrl).toBeNull();
   });
 
+  it('approved open24Hours verification은 내부 검수 값으로만 반영한다', () => {
+    const canonical = createCanonical();
+    const projected = applyAnimalHospitalApprovedVerifications({
+      canonical,
+      now: Date.parse('2026-04-20T03:00:00.000Z'),
+      verifications: [
+        createVerification({
+          animalHospitalId: canonical.id,
+          fieldKey: 'open24Hours',
+          verificationSource: 'official-source',
+          verifiedValue: { open24Hours: true },
+        }),
+      ],
+    });
+
+    expect(projected.sensitiveDetails.open24Hours).toMatchObject({
+      value: true,
+      visibility: 'visible',
+      verificationStatus: 'reviewed',
+    });
+  });
+
+  it('rejected open24Hours verification은 내부 검수 값으로도 반영하지 않는다', () => {
+    const canonical = createCanonical();
+    const projected = applyAnimalHospitalApprovedVerifications({
+      canonical,
+      now: Date.parse('2026-04-20T03:00:00.000Z'),
+      verifications: [
+        createVerification({
+          animalHospitalId: canonical.id,
+          fieldKey: 'open24Hours',
+          status: 'rejected',
+          verifiedValue: { open24Hours: true },
+        }),
+      ],
+    });
+
+    expect(projected.sensitiveDetails.open24Hours.value).toBeNull();
+    expect(projected.sensitiveDetails.open24Hours.visibility).toBe('hidden');
+  });
+
   it('만료되거나 rejected verification은 반영하지 않는다', () => {
     const canonical = createCanonical();
     const projected = applyAnimalHospitalApprovedVerifications({

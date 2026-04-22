@@ -1,0 +1,194 @@
+{
+  "generatedAt": "2026-04-22T16:31:00.145Z",
+  "mode": "dry-run",
+  "provider": "fixture",
+  "summary": {
+    "hospitalsProcessed": 2,
+    "providerMatched": 2,
+    "failedHospitals": 0,
+    "totalCandidates": 5,
+    "byField": {
+      "coordinates": 2,
+      "open24Hours": 1,
+      "thumbnail": 2
+    },
+    "byStatus": {
+      "pending": 3,
+      "held": 2
+    }
+  },
+  "results": [
+    {
+      "hospitalId": "animal-hospital:official-localdata:4060000:406000001020250003",
+      "hospitalName": "24시 마이동물의료센터",
+      "providerMatched": true,
+      "match": {
+        "score": 123,
+        "exactName": true,
+        "exactAddress": true,
+        "near": true,
+        "distance": 0
+      },
+      "candidates": [
+        {
+          "fieldKey": "coordinates",
+          "status": "pending",
+          "verifiedValue": {
+            "latitude": 37.713595,
+            "longitude": 126.720972
+          },
+          "reason": "provider detail coordinates candidate",
+          "offsetMeters": 0,
+          "animalHospitalId": "animal-hospital:official-localdata:4060000:406000001020250003",
+          "verificationSource": "provider-crosscheck",
+          "evidence": {
+            "provider": "fixture-official-crosscheck",
+            "providerPlaceId": "fixture-24myamc",
+            "providerPlaceUrl": "https://maps.google.com/?q=24%EC%8B%9C%20%EB%A7%88%EC%9D%B4%EB%8F%99%EB%AC%BC%EC%9D%98%EB%A3%8C%EC%84%BC%ED%84%B0",
+            "providerWebsiteUri": "https://24myamc.com/",
+            "match": {
+              "score": 123,
+              "exactName": true,
+              "exactAddress": true,
+              "near": true,
+              "distance": 0
+            },
+            "reason": "provider detail coordinates candidate",
+            "sourceHash": "ee054f5509a54afc659e5a515834b65d603395f71591c41b56dad003e50328e7",
+            "fetchedAt": "2026-04-22T16:31:00.143Z"
+          }
+        },
+        {
+          "fieldKey": "open24Hours",
+          "status": "pending",
+          "verifiedValue": {
+            "open24Hours": true
+          },
+          "reason": "provider detail explicitly reports 24 hour opening across all days",
+          "animalHospitalId": "animal-hospital:official-localdata:4060000:406000001020250003",
+          "verificationSource": "provider-crosscheck",
+          "evidence": {
+            "provider": "fixture-official-crosscheck",
+            "providerPlaceId": "fixture-24myamc",
+            "providerPlaceUrl": "https://maps.google.com/?q=24%EC%8B%9C%20%EB%A7%88%EC%9D%B4%EB%8F%99%EB%AC%BC%EC%9D%98%EB%A3%8C%EC%84%BC%ED%84%B0",
+            "providerWebsiteUri": "https://24myamc.com/",
+            "match": {
+              "score": 123,
+              "exactName": true,
+              "exactAddress": true,
+              "near": true,
+              "distance": 0
+            },
+            "reason": "provider detail explicitly reports 24 hour opening across all days",
+            "sourceHash": "ee054f5509a54afc659e5a515834b65d603395f71591c41b56dad003e50328e7",
+            "fetchedAt": "2026-04-22T16:31:00.145Z"
+          }
+        },
+        {
+          "fieldKey": "thumbnail",
+          "status": "held",
+          "verifiedValue": {
+            "thumbnailUrl": "https://24myamc.com/images/main-img101.png",
+            "providerPhotoName": "places/fixture-24myamc/photos/main"
+          },
+          "reason": "provider photo requires ownership and representativeness review before public use",
+          "photoName": "places/fixture-24myamc/photos/main",
+          "widthPx": 1200,
+          "heightPx": 800,
+          "animalHospitalId": "animal-hospital:official-localdata:4060000:406000001020250003",
+          "verificationSource": "provider-crosscheck",
+          "evidence": {
+            "provider": "fixture-official-crosscheck",
+            "providerPlaceId": "fixture-24myamc",
+            "providerPlaceUrl": "https://maps.google.com/?q=24%EC%8B%9C%20%EB%A7%88%EC%9D%B4%EB%8F%99%EB%AC%BC%EC%9D%98%EB%A3%8C%EC%84%BC%ED%84%B0",
+            "providerWebsiteUri": "https://24myamc.com/",
+            "match": {
+              "score": 123,
+              "exactName": true,
+              "exactAddress": true,
+              "near": true,
+              "distance": 0
+            },
+            "reason": "provider photo requires ownership and representativeness review before public use",
+            "sourceHash": "ee054f5509a54afc659e5a515834b65d603395f71591c41b56dad003e50328e7",
+            "fetchedAt": "2026-04-22T16:31:00.145Z"
+          }
+        }
+      ],
+      "error": null
+    },
+    {
+      "hospitalId": "animal-hospital:official-localdata:3220000:322000001020210002",
+      "hospitalName": "VIP동물의료센터 청담점",
+      "providerMatched": true,
+      "match": {
+        "score": 123,
+        "exactName": true,
+        "exactAddress": true,
+        "near": true,
+        "distance": 0
+      },
+      "candidates": [
+        {
+          "fieldKey": "coordinates",
+          "status": "pending",
+          "verifiedValue": {
+            "latitude": 37.522301,
+            "longitude": 127.046908
+          },
+          "reason": "provider detail coordinates candidate",
+          "offsetMeters": 0,
+          "animalHospitalId": "animal-hospital:official-localdata:3220000:322000001020210002",
+          "verificationSource": "provider-crosscheck",
+          "evidence": {
+            "provider": "fixture-provider-crosscheck",
+            "providerPlaceId": "fixture-vip-cheongdam",
+            "providerPlaceUrl": "https://maps.google.com/?q=VIP%EB%8F%99%EB%AC%BC%EC%9D%98%EB%A3%8C%EC%84%BC%ED%84%B0%20%EC%B2%AD%EB%8B%B4%EC%A0%90",
+            "providerWebsiteUri": null,
+            "match": {
+              "score": 123,
+              "exactName": true,
+              "exactAddress": true,
+              "near": true,
+              "distance": 0
+            },
+            "reason": "provider detail coordinates candidate",
+            "sourceHash": "33dc7e7b94c8df2837a0e9df743945531712fb64000ac5c1841e7c03cc89fbf7",
+            "fetchedAt": "2026-04-22T16:31:00.145Z"
+          }
+        },
+        {
+          "fieldKey": "thumbnail",
+          "status": "held",
+          "verifiedValue": {
+            "thumbnailUrl": "https://www.vipah.co.kr/images/content/location_tit_img_cd.jpg",
+            "providerPhotoName": "places/fixture-vip-cheongdam/photos/main"
+          },
+          "reason": "provider photo requires ownership and representativeness review before public use",
+          "photoName": "places/fixture-vip-cheongdam/photos/main",
+          "widthPx": 1000,
+          "heightPx": 640,
+          "animalHospitalId": "animal-hospital:official-localdata:3220000:322000001020210002",
+          "verificationSource": "provider-crosscheck",
+          "evidence": {
+            "provider": "fixture-provider-crosscheck",
+            "providerPlaceId": "fixture-vip-cheongdam",
+            "providerPlaceUrl": "https://maps.google.com/?q=VIP%EB%8F%99%EB%AC%BC%EC%9D%98%EB%A3%8C%EC%84%BC%ED%84%B0%20%EC%B2%AD%EB%8B%B4%EC%A0%90",
+            "providerWebsiteUri": null,
+            "match": {
+              "score": 123,
+              "exactName": true,
+              "exactAddress": true,
+              "near": true,
+              "distance": 0
+            },
+            "reason": "provider photo requires ownership and representativeness review before public use",
+            "sourceHash": "33dc7e7b94c8df2837a0e9df743945531712fb64000ac5c1841e7c03cc89fbf7",
+            "fetchedAt": "2026-04-22T16:31:00.145Z"
+          }
+        }
+      ],
+      "error": null
+    }
+  ]
+}

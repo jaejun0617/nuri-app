@@ -272,5 +272,41 @@ export function createAnimalHospitalDetailStyles(
     bodyText: {
       color: theme.colors.textSecondary,
     },
+    mapSection: {
+      gap: 12,
+    },
+    mapSectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingHorizontal: 2,
+    },
+    mapSectionCopy: {
+      flex: 1,
+      gap: 4,
+    },
+    mapOpenButton: {
+      minHeight: 38,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      backgroundColor: theme.colors.textPrimary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    mapOpenButtonText: {
+      color: theme.colors.surfaceElevated,
+      fontWeight: '700',
+    },
+    mapFallbackCard: {
+      minHeight: 96,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.surfaceElevated,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      padding: 16,
+    },
   });
 }

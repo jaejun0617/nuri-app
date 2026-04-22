@@ -6,8 +6,8 @@ describe('animalHospital public projection', () => {
     const canonical = mapOfficialAnimalHospitalSourceToCanonical({
       provider: 'official-localdata',
       providerRecordId: 'official-001',
-      sourceUpdatedAt: '2026-04-15T00:00:00.000Z',
-      ingestedAt: '2026-04-15T08:00:00.000Z',
+      sourceUpdatedAt: '2026-04-22T00:00:00.000Z',
+      ingestedAt: '2026-04-22T08:00:00.000Z',
       name: '누리동물병원',
       roadAddress: '서울특별시 강남구 테헤란로 10',
       lotAddress: '서울특별시 강남구 역삼동 10-1',
@@ -50,8 +50,11 @@ describe('animalHospital public projection', () => {
       ].sort(),
     );
     expect(projected.name).toBe('누리동물병원');
-    expect(projected.officialPhone).toBe('02-555-0101');
-    expect(projected.links.callUri).toBe('tel:025550101');
+    expect(projected.officialPhone).toBeNull();
+    expect(projected.latitude).toBeNull();
+    expect(projected.longitude).toBeNull();
+    expect(projected.links.callUri).toBeNull();
+    expect(projected.links.externalMapUrl).toBeNull();
     expect(projected.thumbnailUrl).toBeNull();
     expect(projected.statusSummary).toContain('인허가 기준 운영 병원');
     expect(projected.publicTrust.publicLabel).toBe('needs_verification');

@@ -1262,6 +1262,12 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     );
   }, [closeAndNavigate, navigation]);
 
+  const openAnimalHospitalAdmin = useCallback(() => {
+    closeAndNavigate(() =>
+      navigation.navigate('AnimalHospitalAdmin', { entrySource: 'more' }),
+    );
+  }, [closeAndNavigate, navigation]);
+
   const openProfileEditModal = useCallback(() => {
     setDraftNickname(nickname ?? '');
     setProfileModalVisible(true);
@@ -1805,8 +1811,15 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         iconTone: 'soft',
         onPress: openGuideAdmin,
       },
+      {
+        key: 'animal-hospital-admin',
+        label: '동물병원 운영',
+        icon: 'shield',
+        iconTone: 'soft',
+        onPress: openAnimalHospitalAdmin,
+      },
     ],
-    [openGuideAdmin],
+    [openAnimalHospitalAdmin, openGuideAdmin],
   );
 
   const isGuideAdmin = role === 'admin' || role === 'super_admin';

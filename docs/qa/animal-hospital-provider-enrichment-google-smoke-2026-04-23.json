@@ -1,0 +1,340 @@
+{
+  "generatedAt": "2026-04-22T16:33:06.253Z",
+  "mode": "dry-run",
+  "provider": "google",
+  "summary": {
+    "hospitalsProcessed": 2,
+    "providerMatched": 2,
+    "failedHospitals": 0,
+    "totalCandidates": 10,
+    "byField": {
+      "coordinates": 2,
+      "open24Hours": 2,
+      "thumbnail": 6
+    },
+    "byStatus": {
+      "pending": 3,
+      "held": 7
+    }
+  },
+  "results": [
+    {
+      "hospitalId": "animal-hospital:official-localdata:4060000:406000001020250003",
+      "hospitalName": "24시 마이동물의료센터",
+      "providerMatched": true,
+      "match": {
+        "score": 88,
+        "exactName": true,
+        "exactAddress": false,
+        "near": true,
+        "distance": 31.500681125225686
+      },
+      "candidates": [
+        {
+          "fieldKey": "coordinates",
+          "status": "pending",
+          "verifiedValue": {
+            "latitude": 37.713473,
+            "longitude": 126.72129520000001
+          },
+          "reason": "provider detail coordinates candidate",
+          "offsetMeters": 31.500681125225686,
+          "animalHospitalId": "animal-hospital:official-localdata:4060000:406000001020250003",
+          "verificationSource": "provider-crosscheck",
+          "evidence": {
+            "provider": "google-place",
+            "providerPlaceId": "ChIJ79qbaf2PfDURSgUyKpqQybQ",
+            "providerPlaceUrl": "https://maps.google.com/?cid=13027102388953154890&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA",
+            "providerWebsiteUri": "https://24myamc.com/",
+            "match": {
+              "score": 88,
+              "exactName": true,
+              "exactAddress": false,
+              "near": true,
+              "distance": 31.500681125225686
+            },
+            "reason": "provider detail coordinates candidate",
+            "sourceHash": "f66680897b2c32f41f97add656b6032dac8867d8a9960567140fc14686460de5",
+            "fetchedAt": "2026-04-22T16:33:05.681Z"
+          }
+        },
+        {
+          "fieldKey": "open24Hours",
+          "status": "pending",
+          "verifiedValue": {
+            "open24Hours": true
+          },
+          "reason": "provider detail explicitly reports 24 hour opening across all days",
+          "animalHospitalId": "animal-hospital:official-localdata:4060000:406000001020250003",
+          "verificationSource": "provider-crosscheck",
+          "evidence": {
+            "provider": "google-place",
+            "providerPlaceId": "ChIJ79qbaf2PfDURSgUyKpqQybQ",
+            "providerPlaceUrl": "https://maps.google.com/?cid=13027102388953154890&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA",
+            "providerWebsiteUri": "https://24myamc.com/",
+            "match": {
+              "score": 88,
+              "exactName": true,
+              "exactAddress": false,
+              "near": true,
+              "distance": 31.500681125225686
+            },
+            "reason": "provider detail explicitly reports 24 hour opening across all days",
+            "sourceHash": "f66680897b2c32f41f97add656b6032dac8867d8a9960567140fc14686460de5",
+            "fetchedAt": "2026-04-22T16:33:05.681Z"
+          }
+        },
+        {
+          "fieldKey": "thumbnail",
+          "status": "held",
+          "verifiedValue": {
+            "thumbnailUrl": "https://lh3.googleusercontent.com/places/ANXAkqH5mkvVmvt7DuCLbnDT_j2LmJn4v5ZOKALN14QSBAuF1I34jZ-J8sej9IAdEW0dMBgVDwhSeJIri-qkmuBIFxS7EHV6SZwv0aA=s4800-w640",
+            "providerPhotoName": "places/ChIJ79qbaf2PfDURSgUyKpqQybQ/photos/AU_ZVEENPOsjEiYpzuATwgmbVWajPXHd9ilIIpgOQDoOKcP_gBbHlbrwm6x61pzV_t-YsMiQjofyqeFHjxk-uuCJMPxVMnbqG_46nPocZHa744l7G8RICJAphvLMLlcHTxII5BvhXeg5adMZKbLPVT2Uyvr6DRUSxhFKa1lHC_OOkHEK9LpQiBpaDHUYRDNBUjopDO1DpRkY4cgIeL5qjucy8u6bUS4ZoiLtZkyxxSJo7_sPl5Q7PnNeU3RzMsZwa2rm7FITB-kYMEo6SNPYI9zGCgu3YYkK_RwMFql_iis9V0CYnQ"
+          },
+          "reason": "provider photo requires ownership and representativeness review before public use",
+          "photoName": "places/ChIJ79qbaf2PfDURSgUyKpqQybQ/photos/AU_ZVEENPOsjEiYpzuATwgmbVWajPXHd9ilIIpgOQDoOKcP_gBbHlbrwm6x61pzV_t-YsMiQjofyqeFHjxk-uuCJMPxVMnbqG_46nPocZHa744l7G8RICJAphvLMLlcHTxII5BvhXeg5adMZKbLPVT2Uyvr6DRUSxhFKa1lHC_OOkHEK9LpQiBpaDHUYRDNBUjopDO1DpRkY4cgIeL5qjucy8u6bUS4ZoiLtZkyxxSJo7_sPl5Q7PnNeU3RzMsZwa2rm7FITB-kYMEo6SNPYI9zGCgu3YYkK_RwMFql_iis9V0CYnQ",
+          "widthPx": 4800,
+          "heightPx": 3612,
+          "animalHospitalId": "animal-hospital:official-localdata:4060000:406000001020250003",
+          "verificationSource": "provider-crosscheck",
+          "evidence": {
+            "provider": "google-place",
+            "providerPlaceId": "ChIJ79qbaf2PfDURSgUyKpqQybQ",
+            "providerPlaceUrl": "https://maps.google.com/?cid=13027102388953154890&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA",
+            "providerWebsiteUri": "https://24myamc.com/",
+            "match": {
+              "score": 88,
+              "exactName": true,
+              "exactAddress": false,
+              "near": true,
+              "distance": 31.500681125225686
+            },
+            "reason": "provider photo requires ownership and representativeness review before public use",
+            "sourceHash": "f66680897b2c32f41f97add656b6032dac8867d8a9960567140fc14686460de5",
+            "fetchedAt": "2026-04-22T16:33:05.681Z"
+          }
+        },
+        {
+          "fieldKey": "thumbnail",
+          "status": "held",
+          "verifiedValue": {
+            "thumbnailUrl": "https://lh3.googleusercontent.com/places/ANXAkqHmCaK46H9y-3v47nE2MtYUQdK_ukRdmwEdIGsiIMMmCJkAqLMYUkCBEkY_C23ufJsrKVKG4MStkYyYKONr7XSFpycKjRXbEpE=s4800-w640",
+            "providerPhotoName": "places/ChIJ79qbaf2PfDURSgUyKpqQybQ/photos/AU_ZVEFREwqpnSHCmcGAKKJ57pQLpfNa_KQzSCDqgXbUKnv7PJBZruvArmmIcIUjI3dTZymY8bl3KFztC4KlO6tyeBh25KzWHnixO8K4V3lTLrbPxSlucmaUmGOXJ6lXZJXk2Rc-SmGfqWZi9t079xpOculIxLy89_dM5yvVNSeL36jAVcYnYzooAEeBbBLnndCjTIGy2qaGfcwzjGWw-9NKj_NCE89ddZOjuwUe7yi_WjTZ1eIHvidUABh_qKmsvFTqmmP8pnwQLnw-enrut-doLBSXjIkv5HonjrbqffxqqgggVg"
+          },
+          "reason": "provider photo requires ownership and representativeness review before public use",
+          "photoName": "places/ChIJ79qbaf2PfDURSgUyKpqQybQ/photos/AU_ZVEFREwqpnSHCmcGAKKJ57pQLpfNa_KQzSCDqgXbUKnv7PJBZruvArmmIcIUjI3dTZymY8bl3KFztC4KlO6tyeBh25KzWHnixO8K4V3lTLrbPxSlucmaUmGOXJ6lXZJXk2Rc-SmGfqWZi9t079xpOculIxLy89_dM5yvVNSeL36jAVcYnYzooAEeBbBLnndCjTIGy2qaGfcwzjGWw-9NKj_NCE89ddZOjuwUe7yi_WjTZ1eIHvidUABh_qKmsvFTqmmP8pnwQLnw-enrut-doLBSXjIkv5HonjrbqffxqqgggVg",
+          "widthPx": 4800,
+          "heightPx": 3612,
+          "animalHospitalId": "animal-hospital:official-localdata:4060000:406000001020250003",
+          "verificationSource": "provider-crosscheck",
+          "evidence": {
+            "provider": "google-place",
+            "providerPlaceId": "ChIJ79qbaf2PfDURSgUyKpqQybQ",
+            "providerPlaceUrl": "https://maps.google.com/?cid=13027102388953154890&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA",
+            "providerWebsiteUri": "https://24myamc.com/",
+            "match": {
+              "score": 88,
+              "exactName": true,
+              "exactAddress": false,
+              "near": true,
+              "distance": 31.500681125225686
+            },
+            "reason": "provider photo requires ownership and representativeness review before public use",
+            "sourceHash": "f66680897b2c32f41f97add656b6032dac8867d8a9960567140fc14686460de5",
+            "fetchedAt": "2026-04-22T16:33:05.681Z"
+          }
+        },
+        {
+          "fieldKey": "thumbnail",
+          "status": "held",
+          "verifiedValue": {
+            "thumbnailUrl": "https://lh3.googleusercontent.com/places/ANXAkqG9w1yogot8qIWZzfrruynLYSLMAbuwxyevv0D9a3Ix44OQqlY2RPwgPSSegWM23njy2ZUXkvT7yyRbBfNzlsJpYRCugmMF0Jc=s4800-w640",
+            "providerPhotoName": "places/ChIJ79qbaf2PfDURSgUyKpqQybQ/photos/AU_ZVEErpQlatwVKCvlTY4-L37R9BMJW7xPse5PGl5qJx53B0G9R7T3AoyC_qyYGAbHilbjJla7nNH_OjPr9dh1SYUIcVBtlCz6lVZlsTfltWyNNdfrNoI8UeKq5GJkK5yGzS40DNIs_7Eyy6iwKFqfHib16j2XGq_oXOj6QmYQoqpRT6pEI5X_x0KMc3oRanBJoKzT6bLr2eog39hXlvdvG925073ne8KxMpICLFAKx114df1uUxeBPVFtHnNIK3qzpKWoQxjUCCOfdMIju3loUvGhzYmp1NEEturrNON4ml0UkJw"
+          },
+          "reason": "provider photo requires ownership and representativeness review before public use",
+          "photoName": "places/ChIJ79qbaf2PfDURSgUyKpqQybQ/photos/AU_ZVEErpQlatwVKCvlTY4-L37R9BMJW7xPse5PGl5qJx53B0G9R7T3AoyC_qyYGAbHilbjJla7nNH_OjPr9dh1SYUIcVBtlCz6lVZlsTfltWyNNdfrNoI8UeKq5GJkK5yGzS40DNIs_7Eyy6iwKFqfHib16j2XGq_oXOj6QmYQoqpRT6pEI5X_x0KMc3oRanBJoKzT6bLr2eog39hXlvdvG925073ne8KxMpICLFAKx114df1uUxeBPVFtHnNIK3qzpKWoQxjUCCOfdMIju3loUvGhzYmp1NEEturrNON4ml0UkJw",
+          "widthPx": 4800,
+          "heightPx": 3612,
+          "animalHospitalId": "animal-hospital:official-localdata:4060000:406000001020250003",
+          "verificationSource": "provider-crosscheck",
+          "evidence": {
+            "provider": "google-place",
+            "providerPlaceId": "ChIJ79qbaf2PfDURSgUyKpqQybQ",
+            "providerPlaceUrl": "https://maps.google.com/?cid=13027102388953154890&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA",
+            "providerWebsiteUri": "https://24myamc.com/",
+            "match": {
+              "score": 88,
+              "exactName": true,
+              "exactAddress": false,
+              "near": true,
+              "distance": 31.500681125225686
+            },
+            "reason": "provider photo requires ownership and representativeness review before public use",
+            "sourceHash": "f66680897b2c32f41f97add656b6032dac8867d8a9960567140fc14686460de5",
+            "fetchedAt": "2026-04-22T16:33:05.681Z"
+          }
+        }
+      ],
+      "error": null
+    },
+    {
+      "hospitalId": "animal-hospital:official-localdata:3220000:322000001020210002",
+      "hospitalName": "VIP동물의료센터 청담점",
+      "providerMatched": true,
+      "match": {
+        "score": 103,
+        "exactName": true,
+        "exactAddress": true,
+        "near": false,
+        "distance": 366.26127126036283
+      },
+      "candidates": [
+        {
+          "fieldKey": "coordinates",
+          "status": "held",
+          "verifiedValue": {
+            "latitude": 37.5194683,
+            "longitude": 127.0490273
+          },
+          "reason": "coordinate offset needs manual confirmation",
+          "offsetMeters": 366.26127126036283,
+          "animalHospitalId": "animal-hospital:official-localdata:3220000:322000001020210002",
+          "verificationSource": "provider-crosscheck",
+          "evidence": {
+            "provider": "google-place",
+            "providerPlaceId": "ChIJnb4UsXGkfDURJMMwYMfnfLU",
+            "providerPlaceUrl": "https://maps.google.com/?cid=13077582261475394340&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA",
+            "providerWebsiteUri": "https://www.vipah.co.kr/",
+            "match": {
+              "score": 103,
+              "exactName": true,
+              "exactAddress": true,
+              "near": false,
+              "distance": 366.26127126036283
+            },
+            "reason": "coordinate offset needs manual confirmation",
+            "sourceHash": "4277c488cbd287d183d61ae3c8c066f7c18ad85862d4c63fa89a4f076eac9657",
+            "fetchedAt": "2026-04-22T16:33:06.253Z"
+          }
+        },
+        {
+          "fieldKey": "open24Hours",
+          "status": "pending",
+          "verifiedValue": {
+            "open24Hours": true
+          },
+          "reason": "provider detail explicitly reports 24 hour opening across all days",
+          "animalHospitalId": "animal-hospital:official-localdata:3220000:322000001020210002",
+          "verificationSource": "provider-crosscheck",
+          "evidence": {
+            "provider": "google-place",
+            "providerPlaceId": "ChIJnb4UsXGkfDURJMMwYMfnfLU",
+            "providerPlaceUrl": "https://maps.google.com/?cid=13077582261475394340&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA",
+            "providerWebsiteUri": "https://www.vipah.co.kr/",
+            "match": {
+              "score": 103,
+              "exactName": true,
+              "exactAddress": true,
+              "near": false,
+              "distance": 366.26127126036283
+            },
+            "reason": "provider detail explicitly reports 24 hour opening across all days",
+            "sourceHash": "4277c488cbd287d183d61ae3c8c066f7c18ad85862d4c63fa89a4f076eac9657",
+            "fetchedAt": "2026-04-22T16:33:06.253Z"
+          }
+        },
+        {
+          "fieldKey": "thumbnail",
+          "status": "held",
+          "verifiedValue": {
+            "thumbnailUrl": "https://lh3.googleusercontent.com/places/ANXAkqEXrGOJFcFYZhdRQk1D4vsgzWoXnYzGhgaUPZHEPBWgSWfCo1fFWf3dBRO7Vm9YwGzY2uebR_mU4352XDrw4o9I3HKMOiIMXRE=s4800-w640",
+            "providerPhotoName": "places/ChIJnb4UsXGkfDURJMMwYMfnfLU/photos/AU_ZVEEjqEUcH0NavwG8chAKDhf7AbFN8PrjxVzDfunSBjDpNsXaaR9nnVem6qL6Of2QpuNJxXqVWktHzAi7rnQT5c0UQMIhFsJUGXMdnq0uA0RV2qryPEciPaKH0ZH6Nr3YdILCihhR2MS8RGuaeejAjG4vUCyLPShZS1D_bYcFCPSzjtQyCzzMd1Dl-mlo3dW4ph8pIcQAc3aB7cX3hdu8i0B9an4okbGYSthgFyh26d7VgF8cBwq1st8MHjuGJqBeUtLHtvLz5BmEqcCi04IdN5dexU_9QNbqF7OxTgU8kZVIiA"
+          },
+          "reason": "provider photo requires ownership and representativeness review before public use",
+          "photoName": "places/ChIJnb4UsXGkfDURJMMwYMfnfLU/photos/AU_ZVEEjqEUcH0NavwG8chAKDhf7AbFN8PrjxVzDfunSBjDpNsXaaR9nnVem6qL6Of2QpuNJxXqVWktHzAi7rnQT5c0UQMIhFsJUGXMdnq0uA0RV2qryPEciPaKH0ZH6Nr3YdILCihhR2MS8RGuaeejAjG4vUCyLPShZS1D_bYcFCPSzjtQyCzzMd1Dl-mlo3dW4ph8pIcQAc3aB7cX3hdu8i0B9an4okbGYSthgFyh26d7VgF8cBwq1st8MHjuGJqBeUtLHtvLz5BmEqcCi04IdN5dexU_9QNbqF7OxTgU8kZVIiA",
+          "widthPx": 4800,
+          "heightPx": 3200,
+          "animalHospitalId": "animal-hospital:official-localdata:3220000:322000001020210002",
+          "verificationSource": "provider-crosscheck",
+          "evidence": {
+            "provider": "google-place",
+            "providerPlaceId": "ChIJnb4UsXGkfDURJMMwYMfnfLU",
+            "providerPlaceUrl": "https://maps.google.com/?cid=13077582261475394340&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA",
+            "providerWebsiteUri": "https://www.vipah.co.kr/",
+            "match": {
+              "score": 103,
+              "exactName": true,
+              "exactAddress": true,
+              "near": false,
+              "distance": 366.26127126036283
+            },
+            "reason": "provider photo requires ownership and representativeness review before public use",
+            "sourceHash": "4277c488cbd287d183d61ae3c8c066f7c18ad85862d4c63fa89a4f076eac9657",
+            "fetchedAt": "2026-04-22T16:33:06.253Z"
+          }
+        },
+        {
+          "fieldKey": "thumbnail",
+          "status": "held",
+          "verifiedValue": {
+            "thumbnailUrl": "https://lh3.googleusercontent.com/place-photos/AJRVUZNUHY8prTIOKRRIgWzJLUBhdvWOxCLBCG9xujuduJ5e1PWO6G6VNZZ7Ugu6c3QWQSLvwTWzFVifqis9VEUNtftiXgAc8H-rV6euF2kQA9KaHbk_RDCuZRQQZkvEHuMBuvKDnbe8-NmsOYawpOw=s4800-w640",
+            "providerPhotoName": "places/ChIJnb4UsXGkfDURJMMwYMfnfLU/photos/AU_ZVEH3AnCwTRShHgJNDUg0pih8JVK9pzbtvqF3eEOh_VIa12cqG5z2nh01QCsCf_LVLTffl9XxbCe91oWjWbLZzUGHCswu-rNpzNPkUOA_mX5Bj10Gvq0VnHJT-5JYRUWBmXRiSHAO6Ja63AJ5pkf1SKwDce6WKqkWapiRstEqRL5RpHZ_l0hKVuxVsAZRAtprzMySs_uTYicu9UcAlRAuDSSf85NdZKsghVAVxRV_TBhzmwZyy6TR0a041s1Pag267m-kpH46AYpxvM3AO4R6fnPks3S8MTIgWzqud_lBwAfzn1WzCiRyZItY5dqKwA5i4A3gvPwdc-oJ1ofDnZttAxFj1AohgMp6YS_QdTt20PZVa4IPdOfQgdWizUM6cBEZ8pXnpZJS-4shU5jaKpdsdUD-lNCNKORuwpQ8edjLS03aaDnZ"
+          },
+          "reason": "provider photo requires ownership and representativeness review before public use",
+          "photoName": "places/ChIJnb4UsXGkfDURJMMwYMfnfLU/photos/AU_ZVEH3AnCwTRShHgJNDUg0pih8JVK9pzbtvqF3eEOh_VIa12cqG5z2nh01QCsCf_LVLTffl9XxbCe91oWjWbLZzUGHCswu-rNpzNPkUOA_mX5Bj10Gvq0VnHJT-5JYRUWBmXRiSHAO6Ja63AJ5pkf1SKwDce6WKqkWapiRstEqRL5RpHZ_l0hKVuxVsAZRAtprzMySs_uTYicu9UcAlRAuDSSf85NdZKsghVAVxRV_TBhzmwZyy6TR0a041s1Pag267m-kpH46AYpxvM3AO4R6fnPks3S8MTIgWzqud_lBwAfzn1WzCiRyZItY5dqKwA5i4A3gvPwdc-oJ1ofDnZttAxFj1AohgMp6YS_QdTt20PZVa4IPdOfQgdWizUM6cBEZ8pXnpZJS-4shU5jaKpdsdUD-lNCNKORuwpQ8edjLS03aaDnZ",
+          "widthPx": 3000,
+          "heightPx": 2000,
+          "animalHospitalId": "animal-hospital:official-localdata:3220000:322000001020210002",
+          "verificationSource": "provider-crosscheck",
+          "evidence": {
+            "provider": "google-place",
+            "providerPlaceId": "ChIJnb4UsXGkfDURJMMwYMfnfLU",
+            "providerPlaceUrl": "https://maps.google.com/?cid=13077582261475394340&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA",
+            "providerWebsiteUri": "https://www.vipah.co.kr/",
+            "match": {
+              "score": 103,
+              "exactName": true,
+              "exactAddress": true,
+              "near": false,
+              "distance": 366.26127126036283
+            },
+            "reason": "provider photo requires ownership and representativeness review before public use",
+            "sourceHash": "4277c488cbd287d183d61ae3c8c066f7c18ad85862d4c63fa89a4f076eac9657",
+            "fetchedAt": "2026-04-22T16:33:06.253Z"
+          }
+        },
+        {
+          "fieldKey": "thumbnail",
+          "status": "held",
+          "verifiedValue": {
+            "thumbnailUrl": "https://lh3.googleusercontent.com/places/ANXAkqETI4CwzO8j5xXqh2DHReuTv4e4k27vVGZKoNP-boWKyU8lHktbv56klr3EU2yssX6KUXPquW6zab6de6whVR_QqGqWe6zvr_I=s4800-w640",
+            "providerPhotoName": "places/ChIJnb4UsXGkfDURJMMwYMfnfLU/photos/AU_ZVEGmSn7xuN-T3oagHu3Ya_4r1MVI-TRmz4VQem53b9E8eWj_2uYPPuRvZWd_zJp6nPpoFMb4MlCP-kj0AlarxYw3ixC52f3I8skkFa6vSgt_pWycGCE4nNri0d3EFORa-eS9x5E9F4HyD7l77jjuxQk_l2i5D2bo_Zo5VoGUDC1t4dwWMnhw6lgGoDrE0tUG_YJtMMAidvHaKWFgbgsqw613kHeMqHFVpFgXSqRwehLl66AqIecnKY-IrqOV0oKMak3KS8dU_hJlrs4F02d_3NaO1tGCrDPggT3SHtl-PjEBYg"
+          },
+          "reason": "provider photo requires ownership and representativeness review before public use",
+          "photoName": "places/ChIJnb4UsXGkfDURJMMwYMfnfLU/photos/AU_ZVEGmSn7xuN-T3oagHu3Ya_4r1MVI-TRmz4VQem53b9E8eWj_2uYPPuRvZWd_zJp6nPpoFMb4MlCP-kj0AlarxYw3ixC52f3I8skkFa6vSgt_pWycGCE4nNri0d3EFORa-eS9x5E9F4HyD7l77jjuxQk_l2i5D2bo_Zo5VoGUDC1t4dwWMnhw6lgGoDrE0tUG_YJtMMAidvHaKWFgbgsqw613kHeMqHFVpFgXSqRwehLl66AqIecnKY-IrqOV0oKMak3KS8dU_hJlrs4F02d_3NaO1tGCrDPggT3SHtl-PjEBYg",
+          "widthPx": 2000,
+          "heightPx": 1333,
+          "animalHospitalId": "animal-hospital:official-localdata:3220000:322000001020210002",
+          "verificationSource": "provider-crosscheck",
+          "evidence": {
+            "provider": "google-place",
+            "providerPlaceId": "ChIJnb4UsXGkfDURJMMwYMfnfLU",
+            "providerPlaceUrl": "https://maps.google.com/?cid=13077582261475394340&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA",
+            "providerWebsiteUri": "https://www.vipah.co.kr/",
+            "match": {
+              "score": 103,
+              "exactName": true,
+              "exactAddress": true,
+              "near": false,
+              "distance": 366.26127126036283
+            },
+            "reason": "provider photo requires ownership and representativeness review before public use",
+            "sourceHash": "4277c488cbd287d183d61ae3c8c066f7c18ad85862d4c63fa89a4f076eac9657",
+            "fetchedAt": "2026-04-22T16:33:06.253Z"
+          }
+        }
+      ],
+      "error": null
+    }
+  ]
+}

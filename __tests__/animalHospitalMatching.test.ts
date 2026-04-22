@@ -224,4 +224,48 @@ describe('animalHospital matching and query priority', () => {
       'https://place.map.kakao.com/401',
     );
   });
+
+  it('서울 약칭과 상세 층/호수 차이는 이름+주소 보수 매칭으로 허용한다', async () => {
+    const repository = {
+      search: async () => [
+        createOfficialCanonical({
+          providerRecordId: 'official-501',
+          name: 'VIP동물의료센터 청담점',
+          roadAddress: '서울특별시 강남구 삼성로133길 7, 2층 (청담동)',
+          latitude: 37.522301,
+          longitude: 127.046908,
+          phone: '02-511-7522',
+        }),
+      ],
+    };
+    const provider: LocationSearchProvider = {
+      searchKeyword: async () => [
+        {
+          id: 'kakao-501',
+          place_name: 'VIP동물의료센터 청담점',
+          address_name: '서울 강남구 청담동 47',
+          road_address_name: '서울 강남구 삼성로133길 7',
+          phone: '02-511-7522',
+          x: '127.046908',
+          y: '37.522301',
+          place_url: 'https://place.map.kakao.com/501',
+        },
+      ],
+      searchAddress: async () => [],
+    };
+
+    const result = await searchAnimalHospitals({
+      query: null,
+      scope,
+      useNearbySearch: true,
+      repository,
+      provider,
+    });
+
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]?.id).toBe(
+      'animal-hospital:official-localdata:official-501',
+    );
+    expect(result.runtimeSummary.canonicalLinkedCount).toBe(1);
+  });
 });

@@ -15,14 +15,22 @@ const GENERIC_MEDICAL_SUFFIXES = [
 ] as const;
 
 const ADDRESS_PREFIX_ALIASES: ReadonlyArray<readonly [RegExp, string]> = [
+  [/^서울\s+/, '서울특별시 '],
   [/^서울시\s+/, '서울특별시 '],
+  [/^부산\s+/, '부산광역시 '],
   [/^부산시\s+/, '부산광역시 '],
+  [/^대구\s+/, '대구광역시 '],
   [/^대구시\s+/, '대구광역시 '],
+  [/^인천\s+/, '인천광역시 '],
   [/^인천시\s+/, '인천광역시 '],
+  [/^광주\s+/, '광주광역시 '],
   [/^광주시\s+/, '광주광역시 '],
+  [/^대전\s+/, '대전광역시 '],
   [/^대전시\s+/, '대전광역시 '],
+  [/^울산\s+/, '울산광역시 '],
   [/^울산시\s+/, '울산광역시 '],
   [/^세종시\s+/, '세종특별자치시 '],
+  [/^세종\s+/, '세종특별자치시 '],
   [/^경기\s+/, '경기도 '],
   [/^강원\s+/, '강원특별자치도 '],
   [/^충북\s+/, '충청북도 '],
@@ -94,6 +102,9 @@ export function normalizeAnimalHospitalAddress(
     .toLowerCase()
     .replace(/\([^)]*\)/g, ' ')
     .replace(/（[^）]*）/g, ' ')
+    .replace(/,\s*.*/g, ' ')
+    .replace(/\s+\d+층(?:\s|$).*/g, ' ')
+    .replace(/\s+[a-z]?\d{1,4}(?:호|호실)(?:\s|$).*/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 

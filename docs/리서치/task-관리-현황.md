@@ -1,6 +1,6 @@
 # NURI Task 관리 현황
 
-업데이트: 2026-04-21
+업데이트: 2026-04-23
 
 ## 1. 배경
 
@@ -470,13 +470,30 @@
   - `supabase/migrations/20260417101500_task10_animal_hospital_canonical_master.sql`
   - `supabase/migrations/20260420093000_animal_hospital_verification_reporting.sql`
   - `supabase/migrations/20260421110000_animal_hospital_public_thumbnail_verification.sql`
+  - `supabase/migrations/20260422103000_animal_hospital_ops_review_console.sql`
+  - `scripts/import-animal-hospital-thumbnails.js`
+  - `scripts/report-animal-hospital-ops.js`
 - 현재까지 확인된 사실:
   - 병원 도메인은 기존 `pet-friendly-place`와 분리된 전용 타입, source/canonical/public/internal projection으로 구현됐다.
   - Localdata 공식 source snapshot, canonical upsert, source provenance, change log schema가 repo와 remote 기준으로 열렸다.
   - EPSG:5174 좌표는 WGS84 변환 경로가 연결됐고, public query는 active/not hidden canonical을 우선한다.
-  - public 기본 노출은 병원명, 주소, 좌표, 거리, 인허가/운영상태 요약, 공식/검수 전화, trust label, 길찾기/전화 CTA, 검수 썸네일 URL로 제한한다.
+  - public 기본 노출은 병원명, 주소, 거리, 인허가/운영상태 요약, trust label 중심으로 제한한다.
+  - phone/coordinates/thumbnail은 approved verification이 적용된 값만 public projection에 반영한다.
   - 운영시간, 24시간, 야간, 주말, 특수동물, 응급, 주차, 장비, 홈페이지/SNS는 public projection에서 계속 닫혀 있다.
-  - 리스트는 썸네일, 동물병원, 병원명, 주소, 전화번호 중심으로 정리됐다.
+  - 리스트는 썸네일, 동물병원 label, 병원명, 전화번호 중심으로 정리됐고 주소는 리스트에서 제거됐다.
+  - 최근검색어 UI는 동물병원 화면에서 제거됐다.
+  - 명시 검색어가 있으면 검색은 현재 위치 반경이 아니라 전국 기준으로 수행하고, 현재 위치는 거리 표시 기준으로만 사용한다.
+  - 전화번호는 approved verification을 통과한 public 값만 노출하되, 표시 단계에서 하이픈을 붙여 가독성을 보강했다.
+  - 리스트 칩은 `전체`, `가까운순`, `24시 운영`으로 제공한다. `24시 운영`은 병원명 신호가 아니라 approved `open24Hours` verification 기준 필터다.
+  - 운영자 검수 UI, summary/review/detail/review RPC, thumbnail import dry-run, delta dry-run, drift/provider summary script가 repo 기준 구현됐다.
+  - 2026-04-23 repo 기준 운영자 검수 UI와 local RPC contract는 `open24Hours`, reviewer note, action log 표시까지 확장됐다.
+  - 2026-04-23 provider enrichment pipeline은 Google/Kakao/fixture dry-run, cache, batch, delay, report/json output을 지원한다.
+  - Android 위치 정확도는 precise/approximate permission, stale coordinate, weak GPS 상태를 분리하도록 보강됐다.
+  - linked SQL로 thumbnail candidate 3건, approved phone 2건, approved coordinates 2건, approved thumbnail 2건을 remote에 반영했다.
+  - Android 실기기에서 리스트 진입, 상세 진입, 주소 미노출, 좌측 정렬, 좌표 미승인 fallback을 확인했다.
+  - Android 실기기 `SM_S937N`에서 `24시 마이동물의료센터` approved sample의 리스트/상세 official thumbnail, `tel:` dialer intent, 길찾기 외부 지도 resolver, approved coordinate map preview를 확인했다.
+  - P0-P2 후속 실기기 확인에서 `VIP` 검색의 `전국 검색` 표시, `VIP동물의료센터 청담점` 결과, `02-511-7522` 하이픈 표시, 최근검색어 미노출, verified `24시 운영` 필터, 지도 preview `열기` CTA를 추가 확인했다.
+  - 2026-04-23 Android 실기기에서 `24시 마이동물의료센터` 리스트/상세/전화/길찾기/지도 preview/지도 열기 동선을 다시 캡처했다.
 - 구현 완료로 볼 수 있는 범위:
   - 도메인 타입/projection/public whitelist
   - 공식 source normalize/ingest contract
@@ -487,22 +504,28 @@
   - 전화/길찾기 CTA
   - approved phone/coordinates/thumbnail verification gate
 - 아직 안 된 범위:
-  - 운영자 검수 UI
   - 사용자 신고 UI
   - 운영시간/응급/특수동물 등 민감 필드 public 개방
+  - service role 기반 script apply mode 실행 증적
+  - `20260423090000_animal_hospital_ops_open24_action_logs.sql` linked remote 적용
+  - Kakao REST key가 있는 환경에서 runtime provider live snapshot 재실행 증적
+  - 앱 admin 계정에서 운영자 UI approve/reject/held 직접 조작 증적
   - release evidence pack 최종 보관본
 - 추가 작업이 필요한 이유:
-  - verification/reporting은 schema/RPC 기반이 먼저 열렸고, 실제 운영자 화면과 SOP는 아직 별도 구현이 필요하다.
+  - 운영 검수 UI와 스크립트는 생겼고 linked SQL seed/Android 증적도 확보됐지만, service role key 부재로 운영 스크립트 apply mode를 그대로 재현하지 못했다.
 - 검증이 남은 이유:
-  - Android 실기기에서 리스트 진입, 상세 진입/복귀, 전화 CTA, 지도 CTA, 로딩 종료를 최종 확인해야 한다.
+  - 실제 admin 계정에서 운영자 UI 조작을 직접 시각 검증해야 한다.
 - 선행 조건 / 의존성:
   - 위치/지도 재사용
   - Localdata canonical data
   - field-level verification policy
+  - service role key / Kakao REST key
 - 리스크:
   - 병원 운영시간, 24시간, 특수동물 진료를 raw 후보 데이터만으로 확정 문구처럼 노출하면 위험하다.
+- 보류 결정:
+  - 운영시간 문자열 전체 public 노출은 별도 schema와 approved verification policy 전까지 열지 않는다.
 - 다음 액션:
-  - Android 실기기 smoke를 닫고, 다음 턴에서 운영자 검수 UI와 사용자 신고 UI 중 하나를 먼저 연다.
+  - service role key를 주입한 뒤 thumbnail import/report script apply mode를 재실행하고, 실제 admin 계정으로 운영자 UI approve/reject/held 조작을 검증한다.
 
 ## task11 [반려동물과 여행 제거]
 

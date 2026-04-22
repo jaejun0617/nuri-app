@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   FlatList,
+  Linking,
   Platform,
   RefreshControl,
   TouchableOpacity,
@@ -23,10 +24,11 @@ import { styles } from '../../components/locationDiscovery/LocationDiscovery.sty
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import { useAnimalHospitalDiscovery } from '../../hooks/useAnimalHospitalDiscovery';
 import { usePrefetchAnimalHospitalThumbnails } from '../../hooks/useAnimalHospitalThumbnail';
-import { useRecentPersonalSearches } from '../../hooks/useRecentPersonalSearches';
-import type {
-  AnimalHospitalPublicHospital,
-} from '../../domains/animalHospital/types';
+import {
+  selectAnimalHospitalListItems,
+  type AnimalHospitalListMode,
+} from '../../domains/animalHospital/presentation';
+import type { AnimalHospitalPublicHospital } from '../../domains/animalHospital/types';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
@@ -36,22 +38,37 @@ import { openMoreDrawer } from '../../store/uiStore';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RootScreenRoute<'AnimalHospitalList'>;
 
+const LIST_MODE_OPTIONS: ReadonlyArray<{
+  key: AnimalHospitalListMode;
+  label: string;
+}> = [
+  { key: 'all', label: '전체' },
+  { key: 'nearby', label: '가까운순' },
+  { key: 'open24', label: '24시 운영' },
+];
+
 export default function AnimalHospitalListScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const theme = useTheme();
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
-  const recentSearches = useRecentPersonalSearches('animal-hospital');
   const [searchInput, setSearchInput] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
+  const [listMode, setListMode] = useState<AnimalHospitalListMode>('all');
 
   const discoveryState = useAnimalHospitalDiscovery({
     query: submittedQuery,
+    open24HoursOnly: listMode === 'open24',
   });
+  const visibleItems = useMemo(
+    () => selectAnimalHospitalListItems(discoveryState.items, listMode),
+    [discoveryState.items, listMode],
+  );
   usePrefetchAnimalHospitalThumbnails(discoveryState.items);
   const selectedPet = useMemo(
-    () => pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
+    () =>
+      pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
     [pets, selectedPetId],
   );
   const petTheme = useMemo(
@@ -89,11 +106,8 @@ export default function AnimalHospitalListScreen() {
 
   const handleSubmitSearch = useCallback(() => {
     const normalized = searchInput.trim().replace(/\s+/g, ' ');
-    if (normalized.length >= 2) {
-      recentSearches.save(normalized).catch(() => {});
-    }
     setSubmittedQuery(normalized);
-  }, [recentSearches, searchInput]);
+  }, [searchInput]);
 
   const handleChangeSearchInput = useCallback((value: string) => {
     setSearchInput(value);
@@ -105,10 +119,7 @@ export default function AnimalHospitalListScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: AnimalHospitalPublicHospital }) => (
-      <AnimalHospitalCard
-        item={item}
-        onOpenDetail={openDetail}
-      />
+      <AnimalHospitalCard item={item} onOpenDetail={openDetail} />
     ),
     [openDetail],
   );
@@ -146,13 +157,48 @@ export default function AnimalHospitalListScreen() {
         >
           <AppText
             preset="caption"
-            style={[styles.locationRefreshButtonText, { color: petTheme.primary }]}
+            style={[
+              styles.locationRefreshButtonText,
+              { color: petTheme.primary },
+            ]}
           >
             새로고침
           </AppText>
         </TouchableOpacity>
       </View>
-
+      {discoveryState.permission === 'granted' &&
+      discoveryState.permissionAccuracy === 'approximate' ? (
+        <LocationDiscoveryStatusCard
+          icon="crosshair"
+          title="정확한 위치 권한이 필요해요"
+          body="현재 Android가 대략 위치만 허용하고 있어요. 설정에서 정확한 위치를 켜면 가까운순이 실제 위치 기준으로 더 정확해져요."
+          actionLabel="설정 열기"
+          onPressAction={() => {
+            Linking.openSettings().catch(() => {});
+          }}
+        />
+      ) : discoveryState.permission === 'granted' &&
+        discoveryState.hasWeakLocationSignal ? (
+        <LocationDiscoveryStatusCard
+          icon="navigation"
+          title="GPS 신호가 약해요"
+          body="최근 좌표로 먼저 병원을 보여주고 있어요. 실외나 창가에서 새로고침하면 가까운순 정확도가 올라가요."
+          actionLabel="새로고침"
+          onPressAction={() => {
+            discoveryState.refresh().catch(() => {});
+          }}
+        />
+      ) : discoveryState.usingStaleLocation ? (
+        <LocationDiscoveryStatusCard
+          icon="clock"
+          title="최근 위치로 먼저 보여주고 있어요"
+          body="새 위치를 확인하는 동안 이전 좌표 기준으로 병원 목록을 유지하고 있어요."
+          actionLabel="새로고침"
+          onPressAction={() => {
+            discoveryState.refresh().catch(() => {});
+          }}
+        />
+      ) : null}
     </View>
   );
 
@@ -190,47 +236,37 @@ export default function AnimalHospitalListScreen() {
           loadingText={null}
         />
 
-        {recentSearches.searches.length ? (
-          <View style={styles.recentSearchSection}>
-            <View style={styles.recentSearchHeader}>
-              <AppText preset="headline" style={styles.recentSearchTitle}>
-                최근 검색
-              </AppText>
+        <View
+          style={[styles.sortRow, { paddingHorizontal: 20, marginTop: 12 }]}
+        >
+          {LIST_MODE_OPTIONS.map(option => {
+            const selected = listMode === option.key;
+
+            return (
               <TouchableOpacity
-                activeOpacity={0.88}
-                style={styles.recentSearchClearButton}
+                key={`animal-hospital:list-mode:${option.key}`}
+                activeOpacity={0.9}
+                style={[
+                  styles.sortChip,
+                  selected ? styles.sortChipSelected : null,
+                ]}
                 onPress={() => {
-                  recentSearches.clear().catch(() => {});
+                  setListMode(option.key);
                 }}
               >
                 <AppText
                   preset="caption"
-                  style={styles.recentSearchClearButtonText}
+                  style={[
+                    styles.sortChipText,
+                    selected ? styles.sortChipTextSelected : null,
+                  ]}
                 >
-                  지우기
+                  {option.label}
                 </AppText>
               </TouchableOpacity>
-            </View>
-            <View style={styles.recentSearchChipRow}>
-              {recentSearches.searches.map(entry => (
-                <TouchableOpacity
-                  key={`animal-hospital:recent:${entry.query}`}
-                  activeOpacity={0.9}
-                  style={styles.recentSearchChip}
-                  onPress={() => {
-                    setSearchInput(entry.query);
-                    setSubmittedQuery(entry.query);
-                    recentSearches.save(entry.query).catch(() => {});
-                  }}
-                >
-                  <AppText preset="caption" style={styles.recentSearchChipText}>
-                    {entry.query}
-                  </AppText>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        ) : null}
+            );
+          })}
+        </View>
 
         <View style={styles.discoveryExperienceShell}>
           <View style={styles.resultsPanel}>
@@ -263,9 +299,21 @@ export default function AnimalHospitalListScreen() {
                   />
                 )}
               </View>
+            ) : visibleItems.length === 0 ? (
+              <View style={styles.resultsEmptyWrap}>
+                <LocationDiscoveryStatusCard
+                  icon="search"
+                  title="조건에 맞는 병원이 없어요"
+                  body={
+                    listMode === 'open24'
+                      ? '검수된 24시 운영 병원이 아직 없어요.'
+                      : '전체 목록으로 돌아가 다시 확인해 보세요.'
+                  }
+                />
+              </View>
             ) : (
               <FlatList
-                data={discoveryState.items}
+                data={visibleItems}
                 ListHeaderComponent={listHeader}
                 keyExtractor={keyExtractor}
                 renderItem={renderItem}
@@ -273,7 +321,9 @@ export default function AnimalHospitalListScreen() {
                 contentContainerStyle={styles.resultsListContent}
                 showsVerticalScrollIndicator
                 keyboardShouldPersistTaps="handled"
-                keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+                keyboardDismissMode={
+                  Platform.OS === 'ios' ? 'interactive' : 'on-drag'
+                }
                 removeClippedSubviews={Platform.OS === 'android'}
                 initialNumToRender={6}
                 maxToRenderPerBatch={6}

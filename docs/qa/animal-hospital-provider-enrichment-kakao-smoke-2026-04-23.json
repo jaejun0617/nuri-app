@@ -1,0 +1,31 @@
+{
+  "generatedAt": "2026-04-22T16:33:17.347Z",
+  "mode": "dry-run",
+  "provider": "kakao",
+  "summary": {
+    "hospitalsProcessed": 2,
+    "providerMatched": 0,
+    "failedHospitals": 0,
+    "totalCandidates": 0,
+    "byField": {},
+    "byStatus": {}
+  },
+  "results": [
+    {
+      "hospitalId": "animal-hospital:official-localdata:4060000:406000001020250003",
+      "hospitalName": "24시 마이동물의료센터",
+      "providerMatched": false,
+      "match": null,
+      "candidates": [],
+      "error": null
+    },
+    {
+      "hospitalId": "animal-hospital:official-localdata:3220000:322000001020210002",
+      "hospitalName": "VIP동물의료센터 청담점",
+      "providerMatched": false,
+      "match": null,
+      "candidates": [],
+      "error": null
+    }
+  ]
+}

@@ -346,6 +346,7 @@ export type AnimalHospitalVerificationStatus =
   | 'pending'
   | 'approved'
   | 'rejected'
+  | 'held'
   | 'expired';
 
 export type AnimalHospitalVerificationSource =
@@ -416,6 +417,88 @@ export type AnimalHospitalAdminReviewQueueItem = {
   latestUpdatedAt: string | null;
 };
 
+export type AnimalHospitalOpsStatusFilter =
+  | 'all'
+  | 'pending'
+  | 'approved'
+  | 'rejected'
+  | 'held'
+  | 'hidden'
+  | 'inactive';
+
+export type AnimalHospitalOpsFieldFilter =
+  | 'all'
+  | 'phone'
+  | 'coordinates'
+  | 'thumbnail'
+  | 'open24Hours';
+
+export type AnimalHospitalOpsSummary = {
+  totalCanonical: number;
+  sourceRows: number;
+  publicVisible: number;
+  activeNotHidden: number;
+  sourceUnlinkedRows: number;
+  canonicalDriftSuspected: number;
+  pendingPhone: number;
+  pendingCoordinates: number;
+  pendingThumbnail: number;
+  pendingOpen24Hours: number;
+  providerOnlyCandidates: number;
+  canonicalLinked: number;
+  hiddenCount: number;
+  inactiveCount: number;
+  approvedPhoneCoverage: number;
+  approvedCoordinatesCoverage: number;
+  approvedThumbnailCoverage: number;
+  approvedOpen24HoursCoverage: number;
+  latestRuntimeSnapshotAt: string | null;
+};
+
+export type AnimalHospitalOpsReviewItem = {
+  animalHospitalId: string;
+  name: string;
+  address: string;
+  isActive: boolean;
+  isHidden: boolean;
+  lifecycleNote: string | null;
+  sourceType: AnimalHospitalSourceProvider | string;
+  sourceRecordKey: string | null;
+  verificationId: string | null;
+  fieldKey: AnimalHospitalVerificationField | null;
+  verificationStatus: AnimalHospitalVerificationStatus | null;
+  currentPublicValue: Record<string, unknown>;
+  candidateValue: Record<string, unknown>;
+  verificationSource: AnimalHospitalVerificationSource | null;
+  reviewerId: string | null;
+  reviewedAt: string | null;
+  note: string | null;
+  evidence: Record<string, unknown>;
+  updatedAt: string;
+};
+
+export type AnimalHospitalOpsDetail = {
+  hospital: Record<string, unknown>;
+  sourceRecords: ReadonlyArray<Record<string, unknown>>;
+  verifications: ReadonlyArray<Record<string, unknown>>;
+  actionLogs: ReadonlyArray<Record<string, unknown>>;
+  publicProjection: Record<string, unknown>;
+};
+
+export type AnimalHospitalRuntimeMatchSummary = {
+  snapshotKey: string;
+  query: string | null;
+  createdAt: string;
+  runtimeCandidateCount: number;
+  canonicalResultCount: number;
+  canonicalLinkedCount: number;
+  providerOnlyCount: number;
+  deferredCount: number;
+  matchCount: number;
+  providerOnlyRatio: number;
+  canonicalLinkedRatio: number;
+};
+
 export type AnimalHospitalCandidateMatch = {
   canonicalId: string;
   candidateId: string;
@@ -467,4 +550,5 @@ export type AnimalHospitalSearchResult = {
   internalItems: AnimalHospitalInternalHospital[];
   query: string | null;
   scope: AnimalHospitalSearchScope;
+  runtimeSummary: AnimalHospitalRuntimeMatchSummary;
 };
