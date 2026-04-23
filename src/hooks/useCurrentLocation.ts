@@ -22,6 +22,7 @@ import {
 } from '../services/location/currentPosition';
 import {
   getLocationPermissionGrant,
+  type LocationPermissionGrant,
   requestLocationPermissionGrant,
   type LocationPermissionAccuracy,
   type LocationPermissionStatus,
@@ -42,12 +43,29 @@ export type CurrentLocationState = {
   isRefining: boolean;
   error: string | null;
   refresh: () => Promise<DeviceCoordinates | null>;
+  requestPreciseRefresh: () => Promise<{
+    coordinates: DeviceCoordinates | null;
+    permission: LocationPermissionStatus;
+    permissionAccuracy: LocationPermissionAccuracy;
+    grantedPrecise: boolean;
+  }>;
 };
 
 type UseCurrentLocationOptions = {
   initialCoordinates?: DeviceCoordinates | null;
   autoRefreshOnMount?: boolean;
   autoRefreshOnActive?: boolean;
+};
+
+type LocationRefreshOptions = {
+  ignoreThrottle?: boolean;
+  requestPreciseUpgrade?: boolean;
+};
+
+type LocationRefreshResult = {
+  coordinates: DeviceCoordinates | null;
+  permission: LocationPermissionStatus;
+  permissionAccuracy: LocationPermissionAccuracy;
 };
 
 function toLocationErrorMessage(
@@ -91,8 +109,9 @@ export function useCurrentLocation(
   const permissionRef = useRef<LocationPermissionStatus>(
     initialCoordinates ? 'granted' : 'unavailable',
   );
+  const permissionAccuracyRef = useRef<LocationPermissionAccuracy>('unknown');
   const coordinatesRef = useRef<DeviceCoordinates | null>(initialCoordinates);
-  const refreshInFlightRef = useRef<Promise<DeviceCoordinates | null> | null>(
+  const refreshInFlightRef = useRef<Promise<LocationRefreshResult> | null>(
     null,
   );
   const refineRequestIdRef = useRef(0);
@@ -105,6 +124,10 @@ export function useCurrentLocation(
     setPermission(current => (current === 'unavailable' ? 'granted' : current));
     permissionRef.current =
       permissionRef.current === 'unavailable' ? 'granted' : permissionRef.current;
+    permissionAccuracyRef.current =
+      permissionAccuracyRef.current === 'unknown'
+        ? 'unknown'
+        : permissionAccuracyRef.current;
     setLoading(false);
   }, [initialCoordinates]);
 
@@ -130,6 +153,10 @@ export function useCurrentLocation(
   useEffect(() => {
     coordinatesRef.current = coordinates;
   }, [coordinates]);
+
+  useEffect(() => {
+    permissionAccuracyRef.current = permissionAccuracy;
+  }, [permissionAccuracy]);
 
   const applyCoordinates = useCallback((nextCoordinates: DeviceCoordinates) => {
     setCoordinates(current => {
@@ -174,36 +201,83 @@ export function useCurrentLocation(
     }
   }, [applyCoordinates]);
 
-  const refresh = useCallback(async () => {
+  const resolvePermissionGrant = useCallback(
+    async (
+      refreshOptions: LocationRefreshOptions,
+    ): Promise<LocationPermissionGrant> => {
+      const currentGrant = await getLocationPermissionGrant();
+
+      if (refreshOptions.requestPreciseUpgrade) {
+        if (
+          currentGrant.status === 'granted' &&
+          currentGrant.accuracy === 'precise'
+        ) {
+          return currentGrant;
+        }
+
+        return requestLocationPermissionGrant();
+      }
+
+      if (currentGrant.status === 'granted') {
+        return currentGrant;
+      }
+
+      if (
+        currentGrant.status === 'unavailable' ||
+        currentGrant.status === 'denied'
+      ) {
+        return requestLocationPermissionGrant();
+      }
+
+      return currentGrant;
+    },
+    [],
+  );
+
+  const runRefresh = useCallback(async (
+    refreshOptions: LocationRefreshOptions = {},
+  ): Promise<LocationRefreshResult> => {
     if (refreshInFlightRef.current) {
-      return refreshInFlightRef.current;
+      if (!refreshOptions.requestPreciseUpgrade) {
+        return refreshInFlightRef.current;
+      }
+
+      const inFlightResult = await refreshInFlightRef.current;
+      if (
+        inFlightResult.permission === 'granted' &&
+        inFlightResult.permissionAccuracy === 'precise'
+      ) {
+        return inFlightResult;
+      }
     }
 
     const now = Date.now();
-    if (coordinatesRef.current && now - lastRefreshAtRef.current < 1500) {
-      return coordinatesRef.current;
+    if (
+      !refreshOptions.ignoreThrottle &&
+      coordinatesRef.current &&
+      now - lastRefreshAtRef.current < 1500
+    ) {
+      return {
+        coordinates: coordinatesRef.current,
+        permission: permissionRef.current,
+        permissionAccuracy: permissionAccuracyRef.current,
+      };
     }
 
-    const task = (async (): Promise<DeviceCoordinates | null> => {
+    const task = (async (): Promise<LocationRefreshResult> => {
       refineRequestIdRef.current += 1;
       setIsRefining(false);
-      setLoading(current => current || !isFreshLocationCoordinates(coordinatesRef.current));
+      setLoading(current => current || !coordinatesRef.current);
       setIsRefreshing(true);
       setError(null);
 
       try {
-        const currentGrant = await getLocationPermissionGrant();
-        const resolvedGrant =
-          currentGrant.status === 'granted'
-            ? currentGrant
-            : currentGrant.status === 'unavailable' ||
-                currentGrant.status === 'denied'
-              ? await requestLocationPermissionGrant()
-              : currentGrant;
+        const resolvedGrant = await resolvePermissionGrant(refreshOptions);
 
         setPermission(resolvedGrant.status);
         setPermissionAccuracy(resolvedGrant.accuracy);
         permissionRef.current = resolvedGrant.status;
+        permissionAccuracyRef.current = resolvedGrant.accuracy;
 
         if (resolvedGrant.status !== 'granted') {
           refineRequestIdRef.current += 1;
@@ -211,7 +285,11 @@ export function useCurrentLocation(
             setCoordinates(null);
           }
           setError(toLocationErrorMessage(resolvedGrant.status, null));
-          return coordinatesRef.current;
+          return {
+            coordinates: coordinatesRef.current,
+            permission: resolvedGrant.status,
+            permissionAccuracy: resolvedGrant.accuracy,
+          };
         }
 
         const nextCoordinates = await getQuickCurrentCoordinates();
@@ -226,12 +304,20 @@ export function useCurrentLocation(
           refineWithPreciseCoordinates().catch(() => {});
         }
 
-        return nextCoordinates;
+        return {
+          coordinates: nextCoordinates,
+          permission: resolvedGrant.status,
+          permissionAccuracy: resolvedGrant.accuracy,
+        };
       } catch (nextError) {
         refineRequestIdRef.current += 1;
         setIsRefining(false);
         setError(toLocationErrorMessage(permissionRef.current, nextError));
-        return coordinatesRef.current;
+        return {
+          coordinates: coordinatesRef.current,
+          permission: permissionRef.current,
+          permissionAccuracy: permissionAccuracyRef.current,
+        };
       } finally {
         setIsRefreshing(false);
         setLoading(false);
@@ -244,7 +330,29 @@ export function useCurrentLocation(
     } finally {
       refreshInFlightRef.current = null;
     }
-  }, [applyCoordinates, refineWithPreciseCoordinates]);
+  }, [applyCoordinates, refineWithPreciseCoordinates, resolvePermissionGrant]);
+
+  const refresh = useCallback(async () => {
+    const result = await runRefresh();
+    return result.coordinates;
+  }, [runRefresh]);
+
+  const requestPreciseRefresh = useCallback(async () => {
+    const result = await runRefresh({
+      ignoreThrottle: true,
+      requestPreciseUpgrade: true,
+    });
+
+    return {
+      coordinates: result.coordinates,
+      permission: result.permission,
+      permissionAccuracy: result.permissionAccuracy,
+      grantedPrecise:
+        result.permission === 'granted' &&
+        (result.permissionAccuracy === 'precise' ||
+          isPreciseLocationCoordinates(result.coordinates)),
+    };
+  }, [runRefresh]);
 
   useEffect(() => {
     if (!autoRefreshOnMount) {
@@ -285,5 +393,6 @@ export function useCurrentLocation(
     isRefining,
     error,
     refresh,
+    requestPreciseRefresh,
   };
 }

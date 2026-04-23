@@ -35,11 +35,13 @@ export type AnimalHospitalDiscoveryState = {
   hasWeakLocationSignal: boolean;
   scope: AnimalHospitalSearchScope;
   refresh: () => Promise<void>;
+  requestPreciseRefresh: () => Promise<boolean>;
 };
 
 export function useAnimalHospitalDiscovery(input: {
   query: string;
   open24HoursOnly?: boolean;
+  exoticAnimalCareOnly?: boolean;
 }): AnimalHospitalDiscoveryState {
   const [locationBootstrapTimedOut, setLocationBootstrapTimedOut] =
     useState(false);
@@ -138,7 +140,11 @@ export function useAnimalHospitalDiscovery(input: {
     queryKey: [
       'animal-hospital-discovery',
       hasSearchQuery ? normalizedQuery : 'nearby',
-      input.open24HoursOnly ? 'open24' : 'all',
+      input.open24HoursOnly
+        ? 'open24'
+        : input.exoticAnimalCareOnly
+          ? 'exotic'
+          : 'nearby',
       coordinatesKey,
     ],
     queryFn: async () =>
@@ -147,6 +153,7 @@ export function useAnimalHospitalDiscovery(input: {
         scope,
         useNearbySearch: !hasSearchQuery,
         open24HoursOnly: Boolean(input.open24HoursOnly),
+        exoticAnimalCareOnly: Boolean(input.exoticAnimalCareOnly),
       }),
     enabled: shouldRunQuery,
     staleTime: 2 * 60 * 1000,
@@ -215,6 +222,15 @@ export function useAnimalHospitalDiscovery(input: {
       }
 
       await refetchAnimalHospitals();
+    },
+    requestPreciseRefresh: async () => {
+      const result = await locationState.requestPreciseRefresh();
+
+      if (result.coordinates) {
+        await refetchAnimalHospitals();
+      }
+
+      return result.grantedPrecise;
     },
   };
 }

@@ -42,10 +42,31 @@ const LIST_MODE_OPTIONS: ReadonlyArray<{
   key: AnimalHospitalListMode;
   label: string;
 }> = [
-  { key: 'all', label: '전체' },
   { key: 'nearby', label: '가까운순' },
   { key: 'open24', label: '24시 운영' },
+  { key: 'exotic', label: '특수동물병원' },
 ];
+
+function getModeEmptyCopy(mode: AnimalHospitalListMode): {
+  title: string;
+  body: string;
+} | null {
+  if (mode === 'open24') {
+    return {
+      title: '검수된 24시 운영 병원이 아직 없어요',
+      body: '병원명에 24시가 있어도 공식 근거가 승인된 병원만 보여줘요.',
+    };
+  }
+
+  if (mode === 'exotic') {
+    return {
+      title: '검수된 특수동물 진료 병원이 아직 없어요',
+      body: '공식 근거와 운영 검수를 통과한 병원만 이 필터에 보여줘요.',
+    };
+  }
+
+  return null;
+}
 
 export default function AnimalHospitalListScreen() {
   const navigation = useNavigation<Nav>();
@@ -55,16 +76,18 @@ export default function AnimalHospitalListScreen() {
   const selectedPetId = usePetStore(s => s.selectedPetId);
   const [searchInput, setSearchInput] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
-  const [listMode, setListMode] = useState<AnimalHospitalListMode>('all');
+  const [listMode, setListMode] = useState<AnimalHospitalListMode>('nearby');
 
   const discoveryState = useAnimalHospitalDiscovery({
     query: submittedQuery,
     open24HoursOnly: listMode === 'open24',
+    exoticAnimalCareOnly: listMode === 'exotic',
   });
   const visibleItems = useMemo(
     () => selectAnimalHospitalListItems(discoveryState.items, listMode),
     [discoveryState.items, listMode],
   );
+  const modeEmptyCopy = useMemo(() => getModeEmptyCopy(listMode), [listMode]);
   usePrefetchAnimalHospitalThumbnails(discoveryState.items);
   const selectedPet = useMemo(
     () =>
@@ -171,10 +194,19 @@ export default function AnimalHospitalListScreen() {
         <LocationDiscoveryStatusCard
           icon="crosshair"
           title="정확한 위치 권한이 필요해요"
-          body="현재 Android가 대략 위치만 허용하고 있어요. 설정에서 정확한 위치를 켜면 가까운순이 실제 위치 기준으로 더 정확해져요."
-          actionLabel="설정 열기"
+          body="현재 Android가 대략 위치만 허용하고 있어요. 앱에서 정확한 위치를 다시 요청할게요. 계속 대략 위치면 설정에서 정확한 위치를 켜 주세요."
+          actionLabel="정확한 위치 요청"
           onPressAction={() => {
-            Linking.openSettings().catch(() => {});
+            discoveryState
+              .requestPreciseRefresh()
+              .then(grantedPrecise => {
+                if (!grantedPrecise) {
+                  Linking.openSettings().catch(() => {});
+                }
+              })
+              .catch(() => {
+                Linking.openSettings().catch(() => {});
+              });
           }}
         />
       ) : discoveryState.permission === 'granted' &&
@@ -280,7 +312,13 @@ export default function AnimalHospitalListScreen() {
               </View>
             ) : discoveryState.items.length === 0 ? (
               <View style={styles.resultsEmptyWrap}>
-                {submittedQuery.trim().length >= 2 ? (
+                {modeEmptyCopy ? (
+                  <LocationDiscoveryStatusCard
+                    icon="search"
+                    title={modeEmptyCopy.title}
+                    body={modeEmptyCopy.body}
+                  />
+                ) : submittedQuery.trim().length >= 2 ? (
                   <LocationDiscoveryStatusCard
                     icon="search"
                     title="검색 결과가 없어요"
@@ -305,9 +343,8 @@ export default function AnimalHospitalListScreen() {
                   icon="search"
                   title="조건에 맞는 병원이 없어요"
                   body={
-                    listMode === 'open24'
-                      ? '검수된 24시 운영 병원이 아직 없어요.'
-                      : '전체 목록으로 돌아가 다시 확인해 보세요.'
+                    modeEmptyCopy?.body ??
+                    '현재 위치 기준 가까운 병원을 다시 확인해 보세요.'
                   }
                 />
               </View>
