@@ -53,6 +53,7 @@ const GOOGLE_PHOTO_WIDTH = 640;
 const DEFAULT_LIMIT = 50;
 const DEFAULT_BATCH_SIZE = 10;
 const DEFAULT_DELAY_MS = 150;
+const VERIFICATION_STATUS_DEDUPE = ['pending', 'approved', 'held'];
 
 function printHelp() {
   console.log(`Usage:
@@ -368,6 +369,42 @@ async function fetchRemoteHospitals(client, args) {
     normalizedPhone: normalizeKrPhone(row.normalized_phone),
     providerFixture: null,
   }));
+}
+
+async function fetchExistingVerifications(client, hospitalIds) {
+  if (!client || hospitalIds.length === 0) {
+    return new Map();
+  }
+
+  const dedupeMap = new Map();
+  const chunkSize = 200;
+
+  for (let index = 0; index < hospitalIds.length; index += chunkSize) {
+    const chunk = hospitalIds.slice(index, index + chunkSize);
+    const { data, error } = await client
+      .from('animal_hospital_verifications')
+      .select('animal_hospital_id, field_key, status')
+      .in('animal_hospital_id', chunk)
+      .in('status', VERIFICATION_STATUS_DEDUPE);
+
+    if (error) {
+      throw new Error(`existing verification fetch failed: ${error.message}`);
+    }
+
+    for (const row of data || []) {
+      const hospitalId = normalizeString(row.animal_hospital_id);
+      const fieldKey = normalizeString(row.field_key);
+      if (!hospitalId || !fieldKey) {
+        continue;
+      }
+
+      const fieldSet = dedupeMap.get(hospitalId) || new Set();
+      fieldSet.add(fieldKey);
+      dedupeMap.set(hospitalId, fieldSet);
+    }
+  }
+
+  return dedupeMap;
 }
 
 function buildGoogleSearchBody(hospital) {
@@ -754,48 +791,63 @@ async function getOperatorId(client) {
   return data && typeof data.user_id === 'string' ? data.user_id : null;
 }
 
-async function applyCandidate(client, operatorId, candidate) {
+async function applyCandidates(client, operatorId, candidates) {
+  if (candidates.length === 0) {
+    return [];
+  }
+
+  const rows = candidates.map(candidate => ({
+    animal_hospital_id: candidate.animalHospitalId,
+    field_key: candidate.fieldKey,
+    status: candidate.status,
+    verified_value: candidate.verifiedValue,
+    verification_source: candidate.verificationSource,
+    reviewer_id: null,
+    reviewed_at: null,
+    note: candidate.reason,
+    evidence: candidate.evidence,
+  }));
   const { data, error } = await client
     .from('animal_hospital_verifications')
-    .insert({
-      animal_hospital_id: candidate.animalHospitalId,
-      field_key: candidate.fieldKey,
-      status: candidate.status,
-      verified_value: candidate.verifiedValue,
-      verification_source: candidate.verificationSource,
-      reviewer_id: null,
-      reviewed_at: null,
-      note: candidate.reason,
-      evidence: candidate.evidence,
-    })
-    .select('id')
-    .single();
+    .insert(rows)
+    .select('id');
 
   if (error) {
     throw error;
   }
 
-  const verificationId = data && typeof data.id === 'string' ? data.id : null;
-  if (!verificationId) {
-    throw new Error('verification id was not returned');
+  const insertedRows = Array.isArray(data) ? data : [];
+  if (insertedRows.length !== candidates.length) {
+    throw new Error('verification insert count mismatch');
   }
 
-  await client.from('animal_hospital_operator_action_log').insert({
-    animal_hospital_id: candidate.animalHospitalId,
+  const actionRows = insertedRows.map((row, index) => ({
+    animal_hospital_id: candidates[index].animalHospitalId,
     actor_id: operatorId,
-    action_type: 'provider_enrichment_candidate_created',
+    action_type: 'verification_created',
     target_table: 'animal_hospital_verifications',
-    target_id: verificationId,
+    target_id: row.id,
     summary: 'Provider enrichment 후보를 검수 queue에 적재했어요.',
     payload: {
-      fieldKey: candidate.fieldKey,
-      status: candidate.status,
-      reason: candidate.reason,
-      provider: candidate.evidence.provider,
+      fieldKey: candidates[index].fieldKey,
+      status: candidates[index].status,
+      reason: candidates[index].reason,
+      provider: candidates[index].evidence.provider,
     },
-  });
+  }));
 
-  return verificationId;
+  const { error: logError } = await client
+    .from('animal_hospital_operator_action_log')
+    .insert(actionRows);
+
+  if (logError) {
+    throw logError;
+  }
+
+  return insertedRows.map((row, index) => ({
+    ...candidates[index],
+    verificationId: row.id,
+  }));
 }
 
 function summarizeResults(results) {
@@ -874,6 +926,12 @@ async function main() {
   const hospitals = args.input
     ? await loadInputHospitals(args.input)
     : await fetchRemoteHospitals(client, args);
+  const existingVerificationFields = client
+    ? await fetchExistingVerifications(
+        client,
+        hospitals.map(hospital => hospital.id),
+      )
+    : new Map();
   const results = [];
 
   for (const [index, hospital] of hospitals.entries()) {
@@ -887,17 +945,20 @@ async function main() {
         hospital,
         providerPayload,
       );
+      const existingFields =
+        existingVerificationFields.get(hospital.id) || new Set();
+      const dedupedCandidates = candidates.filter(
+        candidate => !existingFields.has(candidate.fieldKey),
+      );
       const appliedCandidates = [];
 
       if (applyClient) {
-        for (const candidate of candidates) {
-          const verificationId = await applyCandidate(
-            applyClient,
-            operatorId,
-            candidate,
-          );
-          appliedCandidates.push({ ...candidate, verificationId });
-        }
+        const insertedCandidates = await applyCandidates(
+          applyClient,
+          operatorId,
+          dedupedCandidates,
+        );
+        appliedCandidates.push(...insertedCandidates);
       }
 
       results.push({
@@ -905,7 +966,7 @@ async function main() {
         hospitalName: hospital.name,
         providerMatched: Boolean(providerPayload.bestPlace),
         match: providerPayload.match,
-        candidates: applyClient ? appliedCandidates : candidates,
+        candidates: applyClient ? appliedCandidates : dedupedCandidates,
         error: null,
       });
     } catch (error) {

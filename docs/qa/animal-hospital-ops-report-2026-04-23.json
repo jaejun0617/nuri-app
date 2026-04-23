@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-23T09:58:24.095Z",
+  "generatedAt": "2026-04-23T10:14:20.651Z",
   "runtimeQuery": "동물병원",
   "coordinates": {
     "latitude": 37.5172363,
@@ -12,10 +12,10 @@
     "activeNotHidden": 5427,
     "sourceUnlinkedRows": 0,
     "canonicalDriftSuspected": 0,
-    "pendingPhone": 0,
-    "pendingCoordinates": 26,
+    "pendingPhone": 5,
+    "pendingCoordinates": 327,
     "pendingThumbnail": 4,
-    "pendingOpen24Hours": 2,
+    "pendingOpen24Hours": 43,
     "pendingExoticAnimalCare": 0,
     "providerOnlyCandidates": 2,
     "canonicalLinked": 13,
@@ -26,12 +26,12 @@
     "approvedThumbnailCoverage": 2,
     "approvedOpen24HoursCoverage": 1,
     "approvedExoticAnimalCareCoverage": 0,
-    "latestRuntimeSnapshotAt": "2026-04-23T09:58:22.251529+00:00"
+    "latestRuntimeSnapshotAt": "2026-04-23T10:14:18.736925+00:00"
   },
   "runtimeSummary": {
-    "snapshotKey": "animal-hospital-runtime:2026-04-23T09:58:22.038Z",
+    "snapshotKey": "animal-hospital-runtime:2026-04-23T10:14:18.635Z",
     "query": "동물병원",
-    "createdAt": "2026-04-23T09:58:22.038Z",
+    "createdAt": "2026-04-23T10:14:18.635Z",
     "runtimeCandidateCount": 15,
     "canonicalResultCount": 80,
     "canonicalLinkedCount": 13,
