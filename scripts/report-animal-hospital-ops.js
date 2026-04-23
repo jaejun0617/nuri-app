@@ -183,6 +183,7 @@ async function fetchOpsSummary(client) {
     pendingCoordinates: Number(row.pending_coordinates ?? 0),
     pendingThumbnail: Number(row.pending_thumbnail ?? 0),
     pendingOpen24Hours: Number(row.pending_open24_hours ?? 0),
+    pendingExoticAnimalCare: Number(row.pending_exotic_animal_care ?? 0),
     providerOnlyCandidates: Number(row.provider_only_candidates ?? 0),
     canonicalLinked: Number(row.canonical_linked ?? 0),
     hiddenCount: Number(row.hidden_count ?? 0),
@@ -194,6 +195,9 @@ async function fetchOpsSummary(client) {
     approvedThumbnailCoverage: Number(row.approved_thumbnail_coverage ?? 0),
     approvedOpen24HoursCoverage: Number(
       row.approved_open24_hours_coverage ?? 0,
+    ),
+    approvedExoticAnimalCareCoverage: Number(
+      row.approved_exotic_animal_care_coverage ?? 0,
     ),
     latestRuntimeSnapshotAt: row.latest_runtime_snapshot_at ?? null,
   };
@@ -353,10 +357,12 @@ function buildMarkdownReport(report) {
     `- pending_coordinates: ${formatNumber(report.opsSummary.pendingCoordinates)}`,
     `- pending_thumbnail: ${formatNumber(report.opsSummary.pendingThumbnail)}`,
     `- pending_open24_hours: ${formatNumber(report.opsSummary.pendingOpen24Hours)}`,
+    `- pending_exotic_animal_care: ${formatNumber(report.opsSummary.pendingExoticAnimalCare)}`,
     `- approved_phone_coverage: ${formatNumber(report.opsSummary.approvedPhoneCoverage)}`,
     `- approved_coordinates_coverage: ${formatNumber(report.opsSummary.approvedCoordinatesCoverage)}`,
     `- approved_thumbnail_coverage: ${formatNumber(report.opsSummary.approvedThumbnailCoverage)}`,
     `- approved_open24_hours_coverage: ${formatNumber(report.opsSummary.approvedOpen24HoursCoverage)}`,
+    `- approved_exotic_animal_care_coverage: ${formatNumber(report.opsSummary.approvedExoticAnimalCareCoverage)}`,
     '',
     '## Runtime Provider Snapshot',
     '',
