@@ -1,0 +1,70 @@
+{
+  "generatedAt": "2026-04-23T10:18:54.920Z",
+  "mode": "dry-run",
+  "manifestPath": "/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/docs/qa/animal-hospital-sensitive-verifications-2026-04-23.json",
+  "total": 6,
+  "candidates": [
+    {
+      "animalHospitalId": "animal-hospital:official-localdata:5530000:577000001020180003",
+      "fieldKey": "open24Hours",
+      "status": "approved",
+      "sourceType": "official-homepage",
+      "sourcePageUrl": "https://dtctamc.com/",
+      "evidenceSummary": "공식 홈페이지 진료안내에 365일 24시간 연중무휴 운영과 주간/야간 시간대가 명시됨",
+      "note": "official homepage curated open24Hours approval",
+      "value": true
+    },
+    {
+      "animalHospitalId": "animal-hospital:official-localdata:6510000:651000001020200004",
+      "fieldKey": "open24Hours",
+      "status": "approved",
+      "sourceType": "official-homepage",
+      "sourcePageUrl": "https://vamc.co.kr/",
+      "evidenceSummary": "공식 홈페이지 응급중환자센터 섹션에 365일 24시간 운영과 야간 응급진료, 24시간 입원 관리가 명시됨",
+      "note": "official homepage curated open24Hours approval",
+      "value": true
+    },
+    {
+      "animalHospitalId": "animal-hospital:official-localdata:3660000:366000001020190002",
+      "fieldKey": "open24Hours",
+      "status": "approved",
+      "sourceType": "official-homepage",
+      "sourcePageUrl": "https://www.timeamc.com/lounge/faq",
+      "evidenceSummary": "공식 FAQ와 운영시간 섹션에 24시간 응급진료 가능, 24시간 운영 연중무휴가 명시됨",
+      "note": "official homepage curated open24Hours approval",
+      "value": true
+    },
+    {
+      "animalHospitalId": "animal-hospital:official-localdata:3780000:378000001020160003",
+      "fieldKey": "open24Hours",
+      "status": "approved",
+      "sourceType": "official-homepage",
+      "sourcePageUrl": "https://paulah.co.kr/",
+      "evidenceSummary": "공식 홈페이지 메인에 분당 정자동 24시간 365일, 야간 수의사 상주, 365일 24시간 운영이 명시됨",
+      "note": "official homepage curated open24Hours approval",
+      "value": true
+    },
+    {
+      "animalHospitalId": "animal-hospital:official-localdata:3660000:366000001020190002",
+      "fieldKey": "exoticAnimalCare",
+      "status": "approved",
+      "sourceType": "official-homepage",
+      "sourcePageUrl": "https://www.timeamc.com/lounge/faq",
+      "evidenceSummary": "공식 FAQ에 특수동물(파충류, 조류 등) 진료 가능과 전문 의료진 상주가 명시됨",
+      "note": "official homepage curated exoticAnimalCare approval",
+      "value": true
+    },
+    {
+      "animalHospitalId": "animal-hospital:official-localdata:3780000:378000001020160003",
+      "fieldKey": "exoticAnimalCare",
+      "status": "approved",
+      "sourceType": "official-homepage",
+      "sourcePageUrl": "https://paulah.co.kr/",
+      "evidenceSummary": "공식 홈페이지 진료과목과 의료진 소개에 특수동물 진료, 토끼·고슴도치·기니피그·햄스터 진료가 명시됨",
+      "note": "official homepage curated exoticAnimalCare approval",
+      "value": true
+    }
+  ],
+  "applied": [],
+  "failed": []
+}

@@ -1,6 +1,6 @@
 # AnimalHospital Ops Summary
 
-- generated_at: 2026-04-23T10:14:20.651Z
+- generated_at: 2026-04-23T10:19:19.599Z
 - query: 동물병원
 - coordinates: 37.5172363, 127.0473248
 
@@ -25,8 +25,8 @@
 - approved_phone_coverage: 3,024
 - approved_coordinates_coverage: 2
 - approved_thumbnail_coverage: 2
-- approved_open24_hours_coverage: 1
-- approved_exotic_animal_care_coverage: 0
+- approved_open24_hours_coverage: 5
+- approved_exotic_animal_care_coverage: 2
 
 ## Runtime Provider Snapshot
 
