@@ -54,9 +54,9 @@
 ### 현재 막힘
 
 - 동물병원 phone/coordinates/thumbnail approval evidence는 linked SQL seed와 Android 실기기 smoke로 확보했다.
-- 현재 shell에는 `SUPABASE_SERVICE_ROLE_KEY`와 `NURI_SUPABASE_SERVICE_ROLE_KEY`가 없어 운영 스크립트 apply mode는 아직 실행하지 못했다.
+- official phone promotion, provider enrichment apply, sensitive verification import까지는 수행했다.
 - 앱 admin 계정으로 운영자 UI 조작은 직접 시각 검증하지 못했고, linked SQL service_role claim으로 summary/detail/review item RPC 응답을 확인했다.
-- 2026-04-23 local migration은 open24Hours/action log admin contract를 확장했지만, `SUPABASE_ACCESS_TOKEN` 부재로 linked remote 적용 전이다.
+- 남은 병목은 held/pending queue 처리량과 admin visual QA다.
 
 ## 증적 파일명 / 기록 규칙
 
@@ -86,6 +86,7 @@
 - [x] 동물병원 approved phone `tel:` CTA, approved coordinates 길찾기 CTA, approved thumbnail public 노출 증적 추가
 - [x] 동물병원 P0-P2 후속 리스트/검색/전화번호/CTA 실기기 증적 추가
 - [x] 동물병원 2026-04-23 provider/admin/location 보강 후 리스트/상세/전화/지도 실기기 증적 추가
+- [x] 동물병원 official phone promotion / sensitive verification import / latest ops report 반영
 - [x] 비밀번호 재설정 메일 복귀 실기기 재검증
 - [x] 계정 삭제 row-level 실행 증적
 - [x] 커뮤니티 신고 row-level 1차 증적
@@ -103,9 +104,12 @@
   - `docs/qa/animal-hospital-provider-enrichment-kakao-smoke-2026-04-23.md`
   - `docs/qa/animal-hospital-delta-dry-run-2026-04-23.md`
   - `docs/qa/animal-hospital-thumbnail-import-2026-04-23.md`
+  - `docs/qa/animal-hospital-official-phone-promotion-2026-04-23.md`
+  - `docs/qa/animal-hospital-sensitive-verifications-apply-2026-04-23.md`
+  - `docs/qa/animal-hospital-android-smoke-2026-04-23.md`
 - Android 실기기 `SM_S937N`에서 2026-04-23 기준 동물병원 리스트 주소 미노출, left align/vertical center, `031-945-5000` 하이픈 표시, 상세 전화/길찾기/지도 preview, dialer intent, 지도 resolver, 지도 열기 resolver를 확인했다.
 - Google provider enrichment dry-run은 2개 병원에서 candidates 10건을 생성했고, provider photo는 모두 `held`로 남겨 public projection에 직접 반영하지 않았다.
-- `20260423090000_animal_hospital_ops_open24_action_logs.sql`은 repo에 추가됐지만 `SUPABASE_ACCESS_TOKEN` 부재로 remote 반영 전이다.
+- linked remote에는 `20260423090000_animal_hospital_ops_open24_action_logs.sql`, `20260423113000_animal_hospital_exotic_filter_and_distance_priority.sql`까지 반영했다.
 
 - 2026-04-22 animalHospital 추가 증적은 아래 파일에 남겼다.
   - `docs/qa/animal-hospital-android-smoke-2026-04-22.md`
@@ -115,10 +119,13 @@
   - `docs/qa/animal-hospital-delta-dry-run-2026-04-22.md`
 - Android 실기기 `SM_S937N`에서 debug build/install/start, More -> 우리동네 동물병원, 리스트 -> 상세, 리스트 주소 미노출, 좌측 정렬, 좌표 미승인 fallback은 확인했다.
 - linked SQL seed 후 `24시 마이동물의료센터` approved sample로 official thumbnail 리스트/상세 노출, `tel:` dialer intent, 길찾기 외부 지도 resolver, approved coordinate map preview를 확인했다.
-- P0-P2 후속으로 같은 물리 기기 `R5CY613NMSY`에서 최근검색어 미노출, `전체/가까운순/24시 운영` 칩, verified 24시 필터, `VIP` 전국 검색, `02-511-7522` 하이픈 표시, `031-945-5000` dialer intent, 길찾기 resolver, 지도 preview `열기` CTA, fatal logcat 미검출을 다시 확인했다.
+- P0-P2 후속으로 같은 물리 기기 `R5CY613NMSY`에서 최근검색어 미노출, 당시 `전체/가까운순/24시 운영` 칩, verified 24시 필터, `VIP` 전국 검색, `02-511-7522` 하이픈 표시, `031-945-5000` dialer intent, 길찾기 resolver, 지도 preview `열기` CTA, fatal logcat 미검출을 다시 확인했다.
+- 2026-04-23 후속 코드 기준 리스트 칩은 `전체` 제거 후 `가까운순/24시 운영/특수동물병원`으로 바뀌었다. 가까운순은 public 좌표 노출 없이 canonical 좌표 기준 내부 정렬을 우선한다.
+- 2026-04-23 Android 실기기 `R5CY613NMSY`에서 후속 칩 구조, `현재 위치 기준/현재 위치` 문구, `특수동물병원` empty state를 확인했다. Hot refresh 중 hook count red screen은 force-stop 후 재진입에서 재현되지 않았고 logcat clear 후 치명 로그는 없었다.
 - linked remote에는 `20260422103000_animal_hospital_ops_review_console.sql` migration을 적용했다.
-- service role key 부재로 script apply mode는 실행하지 못했지만, linked SQL로 thumbnail candidate 3건과 approved phone/coordinates/thumbnail coverage 2건을 반영했다.
+- service-role apply 결과 latest linked ops report 기준 approved phone 3,024건, approved coordinates 2건, approved thumbnail 2건, approved open24Hours 5건, approved exoticAnimalCare 2건을 반영했다.
 - linked SQL service_role claim 기준 `animal_hospital_ops_summary()`, `animal_hospital_ops_detail()`, `animal_hospital_ops_review_items()` 응답을 확인했다.
+- 다음 운영 과제는 admin 계정 visual QA와 held/pending queue 처리량 확대다.
 
 - 자동 수집 스크립트를 추가해 아래 항목을 한 번에 다시 확인할 수 있게 만들었다.
   - `yarn test:qa`

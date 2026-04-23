@@ -471,7 +471,9 @@
   - `supabase/migrations/20260420093000_animal_hospital_verification_reporting.sql`
   - `supabase/migrations/20260421110000_animal_hospital_public_thumbnail_verification.sql`
   - `supabase/migrations/20260422103000_animal_hospital_ops_review_console.sql`
+  - `supabase/migrations/20260423113000_animal_hospital_exotic_filter_and_distance_priority.sql`
   - `scripts/import-animal-hospital-thumbnails.js`
+  - `scripts/seed-animal-hospital-official-phone-verifications.js`
   - `scripts/report-animal-hospital-ops.js`
 - 현재까지 확인된 사실:
   - 병원 도메인은 기존 `pet-friendly-place`와 분리된 전용 타입, source/canonical/public/internal projection으로 구현됐다.
@@ -484,10 +486,12 @@
   - 최근검색어 UI는 동물병원 화면에서 제거됐다.
   - 명시 검색어가 있으면 검색은 현재 위치 반경이 아니라 전국 기준으로 수행하고, 현재 위치는 거리 표시 기준으로만 사용한다.
   - 전화번호는 approved verification을 통과한 public 값만 노출하되, 표시 단계에서 하이픈을 붙여 가독성을 보강했다.
-  - 리스트 칩은 `전체`, `가까운순`, `24시 운영`으로 제공한다. `24시 운영`은 병원명 신호가 아니라 approved `open24Hours` verification 기준 필터다.
+  - 리스트 칩은 `전체`을 제거하고 `가까운순`, `24시 운영`, `특수동물병원`으로 제공한다. `24시 운영`은 병원명 신호가 아니라 approved `open24Hours` verification 기준 필터이고, `특수동물병원`은 approved `exoticAnimalCare` verification 기준 필터다.
+  - 가까운순은 public 좌표 노출 없이 canonical 좌표 기준 내부 정렬을 우선한다. approved coordinates가 없는 병원은 좌표/지도 CTA를 계속 숨긴다.
   - 운영자 검수 UI, summary/review/detail/review RPC, thumbnail import dry-run, delta dry-run, drift/provider summary script가 repo 기준 구현됐다.
   - 2026-04-23 repo 기준 운영자 검수 UI와 local RPC contract는 `open24Hours`, reviewer note, action log 표시까지 확장됐다.
   - 2026-04-23 provider enrichment pipeline은 Google/Kakao/fixture dry-run, cache, batch, delay, report/json output을 지원한다.
+  - 2026-04-23 official phone seed script를 추가해 Localdata 전화번호를 pending review queue 또는 명시적 ops 결정 아래 approved verification으로 대량 적재할 수 있게 했다.
   - Android 위치 정확도는 precise/approximate permission, stale coordinate, weak GPS 상태를 분리하도록 보강됐다.
   - linked SQL로 thumbnail candidate 3건, approved phone 2건, approved coordinates 2건, approved thumbnail 2건을 remote에 반영했다.
   - Android 실기기에서 리스트 진입, 상세 진입, 주소 미노출, 좌측 정렬, 좌표 미승인 fallback을 확인했다.
@@ -506,20 +510,17 @@
 - 아직 안 된 범위:
   - 사용자 신고 UI
   - 운영시간/응급/특수동물 등 민감 필드 public 개방
-  - service role 기반 script apply mode 실행 증적
-  - `20260423090000_animal_hospital_ops_open24_action_logs.sql` linked remote 적용
-  - Kakao REST key가 있는 환경에서 runtime provider live snapshot 재실행 증적
   - 앱 admin 계정에서 운영자 UI approve/reject/held 직접 조작 증적
   - release evidence pack 최종 보관본
 - 추가 작업이 필요한 이유:
-  - 운영 검수 UI와 스크립트는 생겼고 linked SQL seed/Android 증적도 확보됐지만, service role key 부재로 운영 스크립트 apply mode를 그대로 재현하지 못했다.
+  - 운영 검수 UI와 스크립트는 생겼고 service-role apply와 Android 증적도 확보됐지만, held/pending queue를 운영 처리량으로 계속 소화해야 public CTA coverage가 올라간다.
 - 검증이 남은 이유:
   - 실제 admin 계정에서 운영자 UI 조작을 직접 시각 검증해야 한다.
 - 선행 조건 / 의존성:
   - 위치/지도 재사용
   - Localdata canonical data
   - field-level verification policy
-  - service role key / Kakao REST key
+  - admin 계정 visual QA
 - 리스크:
   - 병원 운영시간, 24시간, 특수동물 진료를 raw 후보 데이터만으로 확정 문구처럼 노출하면 위험하다.
 - 보류 결정:
@@ -611,8 +612,9 @@
 
 - 분류: IA 전환 / 신규 도메인 기반
 - 현재 상태:
-  - 아직 안 됨
+  - 구현됨
   - 추가 작업 필요
+  - 검증 남음
 - 우선순위:
   - P1
 - 관련 도메인/화면:
@@ -625,20 +627,28 @@
   - `docs/프로젝트-현황-최종기획/5차-최종-기획서.md`
   - `docs/sql/공용/누리-전체초기구성-부트스트랩.sql`
 - 현재까지 확인된 사실:
-  - 코드 기준 GuestbookTab은 실제 탭에 남아 있지만 화면은 placeholder다.
+  - 코드 기준 GuestbookTab route는 기존 복귀 흐름을 위해 남아 있지만, 사용자 표시명은 `편지함`으로 바뀌었다.
+  - 2026-04-23 repo 기준 GuestbookScreen은 선택 펫 기준 private letters 작성/조회 화면으로 1차 전환됐다.
   - 기획 문서 기준 Guestbook 공개형 확장은 금지 방향이다.
-  - SQL 기준 `letters`, `ai_messages` 테이블은 존재하지만 앱 코드에서는 사용 흔적이 없다.
+  - SQL 기준 `letters`, `ai_messages` 테이블은 존재한다.
+  - 앱 코드는 `letters`를 user-authored private letter 목록/작성 경로로만 사용하고, `ai_messages`는 아직 사용하지 않는다.
   - 이번 v1.1 방향 기준 Guestbook은 `펫별 private letters`로 재정의하는 것이 사실상 확정 방향이다.
 - 구현 완료로 볼 수 있는 범위:
-  - 없음
+  - 탭 표시명 `편지함` 전환
+  - 선택 펫 기준 private letters 목록 조회
+  - 선택 펫 기준 편지 작성
+  - 게스트 로그인 유도와 펫 없음 fallback
+  - 입력 정규화/검증 helper와 unit test
 - 아직 안 된 범위:
-  - 편지함 정보 구조
-  - 펫별 편지 목록/상세/작성
-  - 탭 명칭과 IA 전환
+  - 편지 상세
+  - 편지 수정/삭제
+  - AI 답장
+  - entitlement/consent/generation log
+  - Android 실기기 작성 smoke
 - 추가 작업이 필요한 이유:
   - 현재 탭은 제품 구조를 흐리는 placeholder이며, future premium AI reply의 진입점 역할도 해야 한다.
 - 검증이 남은 이유:
-  - 미구현이라 검증 단계 전이다.
+  - repo 구현은 통과했지만 Android 실기기에서 작성/목록 반영과 remote `letters` RLS catalog를 아직 확인하지 않았다.
 - 선행 조건 / 의존성:
   - selected pet context
   - letters schema 방향 확정
@@ -646,7 +656,7 @@
 - 리스크:
   - legacy `letters` 테이블이 있다고 해서 현재 제품 기능이 있는 것으로 오판하면 안 된다.
 - 다음 액션:
-  - GuestbookTab을 `private letters` 전용 IA로 바꾸는 화면/데이터 계약을 먼저 고정한다.
+  - Android 실기기에서 편지함 탭 진입, 편지 작성, 목록 반영, 앱 복귀 흐름을 확인한다.
 
 ## task14 [프리미엄 AI 답장]
 

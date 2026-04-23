@@ -61,18 +61,13 @@
   - evidence: `docs/qa/android-animal-hospital-approved-tel-2026-04-22.png`
   - evidence: `docs/qa/android-animal-hospital-approved-map-2026-04-22.png`
 - [x] 동물병원 P0-P2 후속 UI/검색/CTA smoke를 `SM_S937N`에서 다시 확인했다.
-  - 확인: 최근검색어 미노출, 리스트 주소 미노출, `전체/가까운순/24시 운영` 칩, verified 24시 필터, `VIP` 전국 검색, 하이픈 전화번호, `tel:` dialer intent, 길찾기 resolver, 지도 preview
+  - 확인: 최근검색어 미노출, 리스트 주소 미노출, `가까운순/24시 운영/특수동물병원` 칩, verified 24시 필터, `VIP` 전국 검색, 하이픈 전화번호, `tel:` dialer intent, 길찾기 resolver, 지도 preview
   - evidence: `docs/qa/animal-hospital-android-smoke-2026-04-22.md`
   - evidence: `docs/qa/animal-hospital-p0-p2-closeout-2026-04-22.md`
 - [x] 동물병원 provider/admin/location 보강 후 Android 실기기 재캡처를 `SM_S937N`에서 확인했다.
   - 확인: 리스트 주소 미노출, 좌측 정렬/세로 중앙, `031-945-5000` 하이픈 표시, 상세 hero/전화/길찾기/지도 preview, `tel:` dialer, 지도 resolver, 지도 열기 resolver
   - evidence: `docs/qa/animal-hospital-provider-location-admin-closeout-2026-04-23.md`
-  - evidence: `docs/qa/android-animal-hospital-2026-04-23-list.png`
-  - evidence: `docs/qa/android-animal-hospital-2026-04-23-detail.png`
-  - evidence: `docs/qa/android-animal-hospital-2026-04-23-tel.png`
-  - evidence: `docs/qa/android-animal-hospital-2026-04-23-directions.png`
-  - evidence: `docs/qa/android-animal-hospital-2026-04-23-map-preview.png`
-  - evidence: `docs/qa/android-animal-hospital-2026-04-23-map-open.png`
+  - evidence: `docs/qa/animal-hospital-android-smoke-2026-04-23.md`
 
 ### 2. 운영 증적 패키지 마감
 
@@ -106,7 +101,7 @@
 ## v1.1 백로그
 
 - [ ] 장소/동물병원 `confirmed` 개방 검토
-- [ ] 동물병원 admin review remote migration 적용과 admin 계정 조작 증적
+- [ ] 동물병원 admin 계정 조작 증적
 - [ ] 커뮤니티 preview batch 최적화
 - [ ] 운영자용 moderation/admin UI
 - [ ] auth/account baseline-history 정리
