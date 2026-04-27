@@ -5,7 +5,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import AppText from '../../app/ui/AppText';
 import { buildAnimalHospitalCardViewModel } from '../../domains/animalHospital/presentation';
 import type { AnimalHospitalPublicHospital } from '../../domains/animalHospital/types';
-import { useAnimalHospitalThumbnail } from '../../hooks/useAnimalHospitalThumbnail';
+import { useAnimalHospitalEnrichedItem } from '../../hooks/useAnimalHospitalThumbnail';
 import OptimizedImage from '../images/OptimizedImage';
 import { styles } from '../locationDiscovery/LocationDiscovery.styles';
 
@@ -15,20 +15,36 @@ type Props = {
 };
 
 function AnimalHospitalCard({ item, onOpenDetail }: Props) {
+  const enrichedItemQuery = useAnimalHospitalEnrichedItem(item);
+  const displayItem = enrichedItemQuery.data ?? item;
+  const photoAttributionLabel =
+    enrichedItemQuery.overlay?.photoAttributionLabel ?? null;
   const viewModel = useMemo(
-    () => buildAnimalHospitalCardViewModel(item),
-    [item],
+    () => buildAnimalHospitalCardViewModel(displayItem),
+    [displayItem],
   );
-  const thumbnailQuery = useAnimalHospitalThumbnail(item);
-  const thumbnailUri = thumbnailQuery.data ?? null;
+  const thumbnailUri = displayItem.thumbnailUrl;
   const hasThumbnail = Boolean(thumbnailUri);
+  const operatingBadge = displayItem.operatingBadge;
+  const operatingBadgeStyle =
+    operatingBadge?.kind === 'open24'
+      ? styles.animalHospitalOperatingBadgeOpen24
+      : operatingBadge?.kind === 'open'
+        ? styles.animalHospitalOperatingBadgeOpen
+        : styles.animalHospitalOperatingBadgeClosed;
+  const operatingBadgeTextStyle =
+    operatingBadge?.kind === 'open24'
+      ? styles.animalHospitalOperatingBadgeTextOpen24
+      : operatingBadge?.kind === 'open'
+        ? styles.animalHospitalOperatingBadgeTextOpen
+        : styles.animalHospitalOperatingBadgeTextClosed;
 
   return (
     <View style={styles.card}>
       <TouchableOpacity
         activeOpacity={0.92}
         style={styles.cardPressableAreaCompact}
-        onPress={() => onOpenDetail(item)}
+        onPress={() => onOpenDetail(displayItem)}
       >
         <View style={styles.compactCardTop}>
           <View
@@ -54,6 +70,24 @@ function AnimalHospitalCard({ item, onOpenDetail }: Props) {
                 </View>
               </View>
             )}
+            {hasThumbnail && photoAttributionLabel ? (
+              <View
+                style={[
+                  styles.cardThumbnailOverlay,
+                  styles.cardThumbnailOverlayCompact,
+                ]}
+              >
+                <View style={styles.cardPhotoAttributionWrap}>
+                  <AppText
+                    preset="caption"
+                    style={styles.cardPhotoAttributionText}
+                    numberOfLines={1}
+                  >
+                    사진 출처 · {photoAttributionLabel}
+                  </AppText>
+                </View>
+              </View>
+            ) : null}
           </View>
 
           <View style={[styles.cardHeader, styles.cardHeaderCompact]}>
@@ -65,6 +99,27 @@ function AnimalHospitalCard({ item, onOpenDetail }: Props) {
               >
                 동물병원
               </AppText>
+              {operatingBadge ? (
+                <View style={styles.animalHospitalBadgeRow}>
+                  <View
+                    style={[
+                      styles.animalHospitalOperatingBadge,
+                      operatingBadgeStyle,
+                    ]}
+                  >
+                    <AppText
+                      preset="caption"
+                      style={[
+                        styles.animalHospitalOperatingBadgeText,
+                        operatingBadgeTextStyle,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {operatingBadge.label}
+                    </AppText>
+                  </View>
+                </View>
+              ) : null}
               <AppText
                 preset="headline"
                 style={styles.cardTitle}

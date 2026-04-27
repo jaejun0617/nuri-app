@@ -14,7 +14,7 @@ function createOfficialCanonical(input: {
   return mapOfficialAnimalHospitalSourceToCanonical({
     provider: 'official-localdata',
     providerRecordId: input.providerRecordId,
-    sourceUpdatedAt: '2026-04-16T00:00:00.000Z',
+    sourceUpdatedAt: new Date().toISOString(),
     ingestedAt: '2026-04-17T00:00:00.000Z',
     name: input.name,
     roadAddress: input.roadAddress,

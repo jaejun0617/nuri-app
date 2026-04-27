@@ -71,17 +71,26 @@
 
 ### 2. 운영 증적 패키지 마감
 
+- [x] `place-enrichment-worker` background cron lane을 remote에 배포하고 수동 trigger 1회를 성공시킨다.
+  - linked remote에 `place-enrichment-worker` Edge Function을 배포했고, `register_place_enrichment_worker_schedule()`로 `*/10 * * * *` pg_cron job을 등록했다. 등록 job id는 `2`다.
+  - 2026-04-24 수동 trigger 결과 `limit=3`, `maxUnits=6`, `processed=3`, `enriched=3`, `errors=0`, `chargedUnits=6`을 확인했다.
+  - cron budget row는 `track=cron`, `budget_month=2026-04-01`, `request_count=3`, `budget_units=6`으로 증가했다.
 - [ ] 계정 탈퇴 worker의 실제 cron 자동 tick 1회 증적을 남긴다.
 - [ ] 계정 탈퇴 최종 상태 캡처를 release 보관본으로 정리한다.
 - [ ] `community_moderation_queue`, `community_moderation_actions`, `community_image_assets` row-level 캡처를 남긴다.
-- [ ] `qa-task4-*` 테스트 데이터 정리 또는 격리 근거를 남긴다.
+- [x] `qa-task4-*` 테스트 데이터 정리 또는 격리 근거를 남긴다.
+  - `cleanup_v1_release_garbage_data()`와 storage remove를 통해 QA post 18건, report 12건, moderation queue 8건, moderation action 2건, image asset 2건, historical garbage pet 1건을 hard delete 했다.
+  - 후검증 기준 target post/report/queue/action/asset/pet 잔존 row는 모두 `0`이다.
 
 ### 3. 모니터링/배포 필수 설정
 
 - [x] Sentry는 v1.0 Android 단독 출시에서 보류하고 앱 전송 경로를 비활성화한다.
+  - `src/services/monitoring/sentry.ts`는 `sentryEnabled = false`로 잠겨 있고, 이번 턴에도 그대로 유지했다.
 - [x] Android `google-services.json` 배치 상태를 확인한다.
 - [x] iOS `GoogleService-Info.plist`는 v1.1 iOS 출시 항목으로 이관한다.
 - [x] Firebase Crashlytics는 Android release crash 수집용으로 유지한다.
+  - `firebase.json` 기본 auto collection을 `false`로 내리고, 런타임에서 release 환경일 때만 `setCrashlyticsCollectionEnabled(true)`를 호출한다.
+  - `android/app/build.gradle`의 `firebaseCrashlytics` 설정은 debug에서 upload 비활성화, release에서만 mapping upload 활성화로 고정했다.
 - [x] Android release signing config를 upload key 기준으로 전환한다.
 
 ### 4. 스토어 제출 자산

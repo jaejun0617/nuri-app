@@ -54,6 +54,7 @@ const DEFAULT_LIMIT = 50;
 const DEFAULT_BATCH_SIZE = 10;
 const DEFAULT_DELAY_MS = 150;
 const VERIFICATION_STATUS_DEDUPE = ['pending', 'approved', 'held'];
+const OPEN_PUBLIC_PROVIDER_MATCH_SCORE = 85;
 
 function printHelp() {
   console.log(`Usage:
@@ -398,9 +399,11 @@ async function fetchExistingVerifications(client, hospitalIds) {
         continue;
       }
 
-      const fieldSet = dedupeMap.get(hospitalId) || new Set();
-      fieldSet.add(fieldKey);
-      dedupeMap.set(hospitalId, fieldSet);
+      const fieldStatuses = dedupeMap.get(hospitalId) || new Map();
+      const statuses = fieldStatuses.get(fieldKey) || new Set();
+      statuses.add(normalizeString(row.status));
+      fieldStatuses.set(fieldKey, statuses);
+      dedupeMap.set(hospitalId, fieldStatuses);
     }
   }
 
@@ -653,12 +656,15 @@ function buildPhoneCandidate(hospital, providerPayload) {
     return null;
   }
 
+  const isStrongMatch =
+    (providerPayload.match?.score ?? 0) >= OPEN_PUBLIC_PROVIDER_MATCH_SCORE;
+
   return {
     fieldKey: 'phone',
-    status: providerPayload.match?.score >= 90 ? 'pending' : 'held',
+    status: isStrongMatch ? 'pending' : 'held',
     verifiedValue: { phone },
     reason:
-      providerPayload.match?.score >= 90
+      isStrongMatch
         ? 'provider detail phone candidate'
         : 'provider match needs manual confirmation',
   };
@@ -700,6 +706,8 @@ async function buildThumbnailCandidates(hospital, providerPayload) {
     return [];
   }
 
+  const isStrongMatch =
+    (providerPayload.match?.score ?? 0) >= OPEN_PUBLIC_PROVIDER_MATCH_SCORE;
   const candidates = [];
   for (const photo of place.photos.slice(0, 3)) {
     const photoName = normalizeString(photo.name);
@@ -710,13 +718,15 @@ async function buildThumbnailCandidates(hospital, providerPayload) {
         : await fetchGooglePhotoUri(photoName);
     candidates.push({
       fieldKey: 'thumbnail',
-      status: 'held',
+      status: isStrongMatch ? 'pending' : 'held',
       verifiedValue: {
         thumbnailUrl: photoUri,
         providerPhotoName: photoName,
       },
       reason:
-        'provider photo requires ownership and representativeness review before public use',
+        isStrongMatch
+          ? 'provider photo candidate opened for public fallback'
+          : 'provider photo requires ownership and representativeness review before public use',
       photoName,
       widthPx: readNumber(photo.widthPx),
       heightPx: readNumber(photo.heightPx),
@@ -869,6 +879,25 @@ function summarizeResults(results) {
   };
 }
 
+function shouldInsertCandidate(existingFieldStatuses, candidate) {
+  const statuses = existingFieldStatuses.get(candidate.fieldKey);
+  if (!statuses || statuses.size === 0) {
+    return true;
+  }
+
+  // Open-by-default thumbnail policy needs a chance to upgrade prior held-only
+  // photos into pending public fallback candidates after a stronger provider match.
+  if (
+    candidate.fieldKey === 'thumbnail' &&
+    !statuses.has('pending') &&
+    !statuses.has('approved')
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 function buildMarkdownReport(report) {
   const summary = report.summary;
   const lines = [
@@ -946,9 +975,9 @@ async function main() {
         providerPayload,
       );
       const existingFields =
-        existingVerificationFields.get(hospital.id) || new Set();
+        existingVerificationFields.get(hospital.id) || new Map();
       const dedupedCandidates = candidates.filter(
-        candidate => !existingFields.has(candidate.fieldKey),
+        candidate => shouldInsertCandidate(existingFields, candidate),
       );
       const appliedCandidates = [];
 

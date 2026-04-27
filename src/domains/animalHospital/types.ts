@@ -431,7 +431,8 @@ export type AnimalHospitalOpsFieldFilter =
   | 'phone'
   | 'coordinates'
   | 'thumbnail'
-  | 'open24Hours';
+  | 'open24Hours'
+  | 'exoticAnimalCare';
 
 export type AnimalHospitalOpsSummary = {
   totalCanonical: number;
@@ -444,6 +445,7 @@ export type AnimalHospitalOpsSummary = {
   pendingCoordinates: number;
   pendingThumbnail: number;
   pendingOpen24Hours: number;
+  pendingExoticAnimalCare: number;
   providerOnlyCandidates: number;
   canonicalLinked: number;
   hiddenCount: number;
@@ -452,6 +454,7 @@ export type AnimalHospitalOpsSummary = {
   approvedCoordinatesCoverage: number;
   approvedThumbnailCoverage: number;
   approvedOpen24HoursCoverage: number;
+  approvedExoticAnimalCareCoverage: number;
   latestRuntimeSnapshotAt: string | null;
 };
 
@@ -506,6 +509,13 @@ export type AnimalHospitalCandidateMatch = {
   score: number;
 };
 
+export type AnimalHospitalOperatingBadge = {
+  kind: 'open24' | 'open' | 'closed';
+  label: string;
+  source: 'nuri-approved' | 'provider';
+  expiresAt: string | null;
+};
+
 export type AnimalHospitalPublicHospital = {
   id: string;
   name: string;
@@ -516,6 +526,7 @@ export type AnimalHospitalPublicHospital = {
   distanceMeters: number | null;
   distanceLabel: string;
   statusSummary: string;
+  operatingBadge: AnimalHospitalOperatingBadge | null;
   officialPhone: string | null;
   thumbnailUrl: string | null;
   publicTrust: PublicTrustInfo;

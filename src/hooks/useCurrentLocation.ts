@@ -10,6 +10,7 @@ import {
   getLocationCapturedAt,
   getLocationAgeMs,
   getLastCoordinates,
+  getDefensiveFallbackCoordinates,
   getPreciseCurrentCoordinates,
   getQuickCurrentCoordinates,
   isFreshLocationCoordinates,
@@ -282,7 +283,8 @@ export function useCurrentLocation(
         if (resolvedGrant.status !== 'granted') {
           refineRequestIdRef.current += 1;
           if (!coordinatesRef.current) {
-            setCoordinates(null);
+            const fallbackCoordinates = await getDefensiveFallbackCoordinates();
+            applyCoordinates(fallbackCoordinates);
           }
           setError(toLocationErrorMessage(resolvedGrant.status, null));
           return {

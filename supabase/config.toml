@@ -7,3 +7,12 @@ project_id = "grmekesqoydylqmyvfke"
 
 [functions.account-deletion-worker]
 verify_jwt = false
+
+[functions.place-enrichment-demand]
+verify_jwt = true
+
+[functions.place-enrichment-worker]
+verify_jwt = false
+
+[functions.location-discovery-seed]
+verify_jwt = true

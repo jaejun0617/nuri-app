@@ -4,7 +4,7 @@
 // 어디서 쓰이는지:
 // - AppTabsNavigator의 커스텀 탭바와 More 드로어/일부 상세 화면 하단 툴바에서 사용된다.
 // 핵심 역할:
-// - 홈, 타임라인, 커뮤니티, 방명록, 전체메뉴 이동을 제공한다.
+// - 홈, 타임라인, 커뮤니티, 편지함, 전체메뉴 이동을 제공한다.
 // - 현재 선택 펫 테마를 읽어 아이콘과 강조색을 맞춘다.
 // 데이터·상태 흐름:
 // - selectedPetId와 pets는 petStore에서 읽고, More 오픈 상태는 uiStore를 사용한다.
@@ -118,7 +118,7 @@ export default function AppNavigationToolbar({
       { key: 'home' as const, label: '홈', icon: 'home' },
       { key: 'timeline' as const, label: '타임라인', icon: 'activity' },
       { key: 'community' as const, label: '커뮤니티', icon: 'message-circle' },
-      { key: 'guestbook' as const, label: '방명록', icon: 'book-open' },
+      { key: 'guestbook' as const, label: '편지함', icon: 'mail' },
       { key: 'more' as const, label: '전체메뉴', icon: 'menu' },
     ],
     [],

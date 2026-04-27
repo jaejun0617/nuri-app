@@ -50,7 +50,7 @@ function createVerification(
   };
 }
 
-describe('animalHospital approved verification projection gate', () => {
+describe('animalHospital public verification projection gate', () => {
   it('approved phone/coordinates/thumbnail만 canonical public-safe field에 반영한다', () => {
     const canonical = createCanonical();
     const projected = applyAnimalHospitalApprovedVerifications({
@@ -119,6 +119,61 @@ describe('animalHospital approved verification projection gate', () => {
     expect(projected.media.thumbnailUrl).toBeNull();
   });
 
+  it('pending phone/coordinates/thumbnail도 UX 우선 공개 정책에 따라 반영한다', () => {
+    const canonical = createCanonical();
+    const projected = applyAnimalHospitalApprovedVerifications({
+      canonical,
+      now: Date.parse('2026-04-20T03:00:00.000Z'),
+      verifications: [
+        createVerification({
+          id: 'phone-pending-1',
+          animalHospitalId: canonical.id,
+          fieldKey: 'phone',
+          status: 'pending',
+          verificationSource: 'provider-crosscheck',
+          verifiedValue: { phone: '031-888-0000' },
+          reviewerId: null,
+          reviewedAt: null,
+        }),
+        createVerification({
+          id: 'coordinates-pending-1',
+          animalHospitalId: canonical.id,
+          fieldKey: 'coordinates',
+          status: 'pending',
+          verificationSource: 'official-source',
+          verifiedValue: { latitude: 37.681, longitude: 126.771 },
+          reviewerId: null,
+          reviewedAt: null,
+        }),
+        createVerification({
+          id: 'thumbnail-pending-1',
+          animalHospitalId: canonical.id,
+          fieldKey: 'thumbnail',
+          status: 'pending',
+          verificationSource: 'provider-crosscheck',
+          verifiedValue: {
+            thumbnailUrl:
+              'https://cdn.example.com/animal-hospital/pending.jpg',
+          },
+          reviewerId: null,
+          reviewedAt: null,
+        }),
+      ],
+    });
+
+    expect(projected.contact.publicPhone?.value).toBe('031-888-0000');
+    expect(projected.contact.publicPhone?.verificationStatus).toBe('candidate');
+    expect(projected.coordinates).toMatchObject({
+      latitude: 37.681,
+      longitude: 126.771,
+      source: 'official-wgs84',
+      normalizationStatus: 'exact',
+    });
+    expect(projected.media.thumbnailUrl).toBe(
+      'https://cdn.example.com/animal-hospital/pending.jpg',
+    );
+  });
+
   it('approved open24Hours verification은 내부 검수 값으로만 반영한다', () => {
     const canonical = createCanonical();
     const projected = applyAnimalHospitalApprovedVerifications({
@@ -158,6 +213,28 @@ describe('animalHospital approved verification projection gate', () => {
 
     expect(projected.sensitiveDetails.open24Hours.value).toBeNull();
     expect(projected.sensitiveDetails.open24Hours.visibility).toBe('hidden');
+  });
+
+  it('approved exoticAnimalCare verification은 내부 검수 값으로만 반영한다', () => {
+    const canonical = createCanonical();
+    const projected = applyAnimalHospitalApprovedVerifications({
+      canonical,
+      now: Date.parse('2026-04-20T03:00:00.000Z'),
+      verifications: [
+        createVerification({
+          animalHospitalId: canonical.id,
+          fieldKey: 'exoticAnimalCare',
+          verificationSource: 'operator-call',
+          verifiedValue: { exoticAnimalCare: true },
+        }),
+      ],
+    });
+
+    expect(projected.sensitiveDetails.exoticAnimalCare).toMatchObject({
+      value: true,
+      visibility: 'visible',
+      verificationStatus: 'reviewed',
+    });
   });
 
   it('만료되거나 rejected verification은 반영하지 않는다', () => {

@@ -103,6 +103,15 @@ jest.mock('react-native-maps', () => ({
   Marker: 'Marker',
   PROVIDER_GOOGLE: 'google',
 }));
+jest.mock('react-native-map-clustering', () => {
+  const React = jest.requireActual('react');
+  return {
+    __esModule: true,
+    default: React.forwardRef(({ children, mapRef: _mapRef, ...props }, ref) =>
+      React.createElement('ClusteredMapView', { ...props, ref }, children),
+    ),
+  };
+});
 jest.mock('@shopify/flash-list', () => {
   const React = jest.requireActual('react');
   const { FlatList } = jest.requireActual('react-native');

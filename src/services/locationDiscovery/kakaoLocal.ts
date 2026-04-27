@@ -1,80 +1,93 @@
-import { KAKAO_REST_API_KEY } from '../../config/runtime';
 import type { KakaoAddressDocument, KakaoPlaceDocument } from './types';
-import type {
-  LocationSearchProvider,
-  LocationSearchProviderInput,
-} from './provider';
+import type { LocationSearchProvider } from './provider';
+import { supabase } from '../supabase/client';
+import { LOCATION_DEFENSIVE_FALLBACK_TIMEOUT_MS } from '../location/currentPosition';
 
-type KakaoKeywordSearchResponse = {
-  documents?: KakaoPlaceDocument[];
+type LocationDiscoverySeedResponse = {
+  ok?: boolean;
+  documents?: unknown;
+  error?: string;
 };
 
-type KakaoAddressSearchResponse = {
-  documents?: KakaoAddressDocument[];
-};
-
-function buildKeywordSearchUrl(input: LocationSearchProviderInput): string {
-  const params = new URLSearchParams();
-  params.set('query', input.query);
-  params.set('size', String(Math.min(15, Math.max(1, input.size ?? 10))));
-  params.set('page', String(Math.min(45, Math.max(1, input.page ?? 1))));
-
-  if (input.coordinates) {
-    params.set('x', String(input.coordinates.longitude));
-    params.set('y', String(input.coordinates.latitude));
-    params.set(
-      'radius',
-      String(Math.min(20000, Math.max(500, input.radiusMeters ?? 3000))),
-    );
-    params.set('sort', 'distance');
+function readSeedDocuments<TDocument>(
+  response: LocationDiscoverySeedResponse,
+): TDocument[] {
+  if (!response.ok) {
+    throw new Error(response.error || '주변 장소를 불러오지 못했어요.');
   }
 
-  return `https://dapi.kakao.com/v2/local/search/keyword.json?${params.toString()}`;
+  return Array.isArray(response.documents)
+    ? (response.documents as TDocument[])
+    : [];
 }
 
-function buildAddressSearchUrl(query: string): string {
-  const params = new URLSearchParams();
-  params.set('query', query);
-  params.set('size', '10');
-  params.set('analyze_type', 'exact');
-  return `https://dapi.kakao.com/v2/local/search/address.json?${params.toString()}`;
+async function invokeLocationSeed<TDocument>(
+  body: Record<string, unknown>,
+): Promise<TDocument[]> {
+  console.info(
+    '[NURI-DEBUG] location-discovery-seed called',
+    JSON.stringify({
+      action: body.action,
+    }),
+  );
+
+  try {
+    const { data, error } = await Promise.race([
+      supabase.functions.invoke('location-discovery-seed', {
+        body,
+      }),
+      new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('location discovery seed timeout'));
+        }, LOCATION_DEFENSIVE_FALLBACK_TIMEOUT_MS);
+      }),
+    ]);
+
+    console.info(
+      '[NURI-DEBUG] location-discovery-seed completed',
+      JSON.stringify({
+        action: body.action,
+        ok: !error,
+      }),
+    );
+
+    if (error) {
+      throw new Error(error.message || '주변 장소를 불러오지 못했어요.');
+    }
+
+    return readSeedDocuments<TDocument>(data as LocationDiscoverySeedResponse);
+  } catch (error: unknown) {
+    console.info(
+      '[NURI-DEBUG] location-discovery-seed failed',
+      JSON.stringify({
+        action: body.action,
+        message:
+          error instanceof Error && error.message.trim()
+            ? error.message
+            : 'unknown',
+      }),
+    );
+    throw error;
+  }
 }
 
 export const kakaoLocalSearchProvider: LocationSearchProvider = {
   async searchKeyword(input) {
-    if (!KAKAO_REST_API_KEY) {
-      throw new Error('Kakao REST API 키가 없어 위치 기반 검색을 진행할 수 없어요.');
-    }
-
-    const response = await fetch(buildKeywordSearchUrl(input), {
-      headers: {
-        Authorization: `KakaoAK ${KAKAO_REST_API_KEY}`,
+    return invokeLocationSeed<KakaoPlaceDocument>({
+      action: 'keyword',
+      input: {
+        coordinates: input.coordinates,
+        page: input.page,
+        query: input.query,
+        radiusMeters: input.radiusMeters,
+        size: input.size,
       },
     });
-
-    if (!response.ok) {
-      throw new Error('주변 장소를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
-    }
-
-    const json = (await response.json()) as KakaoKeywordSearchResponse;
-    return Array.isArray(json.documents) ? json.documents : [];
   },
   async searchAddress(query) {
-    if (!KAKAO_REST_API_KEY) {
-      throw new Error('Kakao REST API 키가 없어 위치 기반 검색을 진행할 수 없어요.');
-    }
-
-    const response = await fetch(buildAddressSearchUrl(query), {
-      headers: {
-        Authorization: `KakaoAK ${KAKAO_REST_API_KEY}`,
-      },
+    return invokeLocationSeed<KakaoAddressDocument>({
+      action: 'address',
+      query,
     });
-
-    if (!response.ok) {
-      throw new Error('선택한 지역 기준 좌표를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
-    }
-
-    const json = (await response.json()) as KakaoAddressSearchResponse;
-    return Array.isArray(json.documents) ? json.documents : [];
   },
 };

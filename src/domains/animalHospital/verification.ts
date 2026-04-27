@@ -13,6 +13,7 @@ const PUBLIC_VERIFICATION_FIELDS = new Set([
   'coordinates',
   'thumbnail',
   'open24Hours',
+  'exoticAnimalCare',
 ]);
 
 export function isPublicAnimalHospitalVerification(
@@ -23,7 +24,15 @@ export function isPublicAnimalHospitalVerification(
     return false;
   }
 
-  if (verification.status !== 'approved') {
+  const isOpenByDefaultField =
+    verification.fieldKey === 'phone' ||
+    verification.fieldKey === 'coordinates' ||
+    verification.fieldKey === 'thumbnail';
+  const allowedStatuses = isOpenByDefaultField
+    ? ['approved', 'pending']
+    : ['approved'];
+
+  if (!allowedStatuses.includes(verification.status)) {
     return false;
   }
 
@@ -74,6 +83,10 @@ function applyPublicVerification(
     return applyOpen24HoursVerification(canonical, verification);
   }
 
+  if (verification.fieldKey === 'exoticAnimalCare') {
+    return applyExoticAnimalCareVerification(canonical, verification);
+  }
+
   return canonical;
 }
 
@@ -92,7 +105,12 @@ function applyPhoneVerification(
       ...canonical.contact,
       publicPhone: {
         value: phone,
-        verificationStatus: 'reviewed',
+        verificationStatus:
+          verification.status === 'approved'
+            ? 'reviewed'
+            : verification.verificationSource === 'official-source'
+              ? 'official'
+              : 'candidate',
         sourceId: `verification:${verification.id}`,
         verifiedAt: verification.reviewedAt ?? verification.updatedAt,
       },
@@ -128,7 +146,12 @@ function applyCoordinateVerification(
     coordinates: {
       latitude: coordinates.latitude,
       longitude: coordinates.longitude,
-      source: 'reviewed',
+      source:
+        verification.status === 'approved'
+          ? 'reviewed'
+          : verification.verificationSource === 'official-source'
+            ? 'official-wgs84'
+            : 'external-fallback',
       normalizationStatus: 'exact',
     },
     trust: {
@@ -195,6 +218,39 @@ function applyOpen24HoursVerification(
         sourceId: `verification:${verification.id}`,
         verifiedAt: verification.reviewedAt ?? verification.updatedAt,
         fallbackText: canonical.sensitiveDetails.open24Hours.fallbackText,
+      },
+    },
+    trust: {
+      ...canonical.trust,
+      reviewedAt: verification.reviewedAt ?? canonical.trust.reviewedAt,
+    },
+  };
+}
+
+function applyExoticAnimalCareVerification(
+  canonical: AnimalHospitalCanonicalHospital,
+  verification: AnimalHospitalVerificationRecord,
+): AnimalHospitalCanonicalHospital {
+  const exoticAnimalCare =
+    readBooleanValue(verification.verifiedValue.exoticAnimalCare) ??
+    readBooleanValue(verification.verifiedValue.value) ??
+    readBooleanValue(verification.verifiedValue.supportsExoticAnimalCare);
+
+  if (exoticAnimalCare === null) {
+    return canonical;
+  }
+
+  return {
+    ...canonical,
+    sensitiveDetails: {
+      ...canonical.sensitiveDetails,
+      exoticAnimalCare: {
+        value: exoticAnimalCare,
+        visibility: 'visible',
+        verificationStatus: 'reviewed',
+        sourceId: `verification:${verification.id}`,
+        verifiedAt: verification.reviewedAt ?? verification.updatedAt,
+        fallbackText: canonical.sensitiveDetails.exoticAnimalCare.fallbackText,
       },
     },
     trust: {

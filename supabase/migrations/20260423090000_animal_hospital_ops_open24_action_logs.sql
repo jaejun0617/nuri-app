@@ -1,6 +1,8 @@
 begin;
 
-create or replace function public.animal_hospital_ops_summary()
+drop function if exists public.animal_hospital_ops_summary();
+
+create function public.animal_hospital_ops_summary()
 returns table (
   total_canonical bigint,
   source_rows bigint,
@@ -262,7 +264,9 @@ $$;
 
 grant execute on function public.animal_hospital_ops_review_items(text, text, text, text, integer) to authenticated;
 
-create or replace function public.animal_hospital_ops_detail(p_animal_hospital_id text)
+drop function if exists public.animal_hospital_ops_detail(text);
+
+create function public.animal_hospital_ops_detail(p_animal_hospital_id text)
 returns table (
   hospital jsonb,
   source_records jsonb,

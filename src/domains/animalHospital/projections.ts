@@ -9,12 +9,15 @@ import {
   buildAnimalHospitalStatusSummary,
   buildAnimalHospitalTrustInfo,
   canExposeAnimalHospitalPhone,
+  hasAnimalHospitalPublicCoordinates,
   getAnimalHospitalDistanceMeters,
+  resolveAnimalHospitalPublicPhone,
   sanitizeAnimalHospitalDialUri,
 } from './trust';
 import type {
   AnimalHospitalCanonicalHospital,
   AnimalHospitalInternalHospital,
+  AnimalHospitalOperatingBadge,
   AnimalHospitalPublicHospital,
   AnimalHospitalSensitiveFieldVisibility,
 } from './types';
@@ -47,6 +50,22 @@ function resolveSensitiveVisibility(
     : 'visible';
 }
 
+function resolveApprovedOperatingBadge(
+  canonical: AnimalHospitalCanonicalHospital,
+): AnimalHospitalOperatingBadge | null {
+  const open24 = canonical.sensitiveDetails.open24Hours;
+  if (open24.value === true && open24.visibility === 'visible') {
+    return {
+      expiresAt: null,
+      kind: 'open24',
+      label: '24시간 진료',
+      source: 'nuri-approved',
+    };
+  }
+
+  return null;
+}
+
 export function projectAnimalHospitalPublic(params: {
   canonical: AnimalHospitalCanonicalHospital;
   anchorCoordinates: {
@@ -55,22 +74,20 @@ export function projectAnimalHospitalPublic(params: {
   } | null;
 }): AnimalHospitalPublicHospital {
   const { canonical, anchorCoordinates } = params;
-  const hasReviewedCoordinates =
-    canonical.coordinates.source === 'reviewed' &&
-    canonical.coordinates.normalizationStatus === 'exact';
-  const latitude = hasReviewedCoordinates
+  const hasPublicCoordinates = hasAnimalHospitalPublicCoordinates(canonical);
+  const latitude = hasPublicCoordinates
     ? canonical.coordinates.latitude
     : null;
-  const longitude = hasReviewedCoordinates
+  const longitude = hasPublicCoordinates
     ? canonical.coordinates.longitude
     : null;
   const distanceMeters = getAnimalHospitalDistanceMeters({
     coordinates: anchorCoordinates,
-    latitude,
-    longitude,
+    latitude: canonical.coordinates.latitude,
+    longitude: canonical.coordinates.longitude,
   });
   const publicPhone = canExposeAnimalHospitalPhone(canonical)
-    ? canonical.contact.publicPhone?.value ?? null
+    ? resolveAnimalHospitalPublicPhone(canonical)
     : null;
 
   return {
@@ -83,6 +100,7 @@ export function projectAnimalHospitalPublic(params: {
     distanceMeters,
     distanceLabel: formatDistanceLabel(distanceMeters),
     statusSummary: buildAnimalHospitalStatusSummary(canonical),
+    operatingBadge: resolveApprovedOperatingBadge(canonical),
     officialPhone: publicPhone,
     thumbnailUrl: canonical.media.thumbnailUrl,
     publicTrust: buildAnimalHospitalTrustInfo(canonical),
@@ -146,6 +164,14 @@ export function projectAnimalHospitalInternal(params: {
       visibility: resolveSensitiveVisibility(
         canonical.sensitiveDetails.weekendService.visibility,
         canonical.sensitiveDetails.weekendService.verifiedAt,
+        ANIMAL_HOSPITAL_BOOLEAN_SIGNAL_STALE_DAYS,
+      ),
+    },
+    exoticAnimalCare: {
+      ...canonical.sensitiveDetails.exoticAnimalCare,
+      visibility: resolveSensitiveVisibility(
+        canonical.sensitiveDetails.exoticAnimalCare.visibility,
+        canonical.sensitiveDetails.exoticAnimalCare.verifiedAt,
         ANIMAL_HOSPITAL_BOOLEAN_SIGNAL_STALE_DAYS,
       ),
     },

@@ -32,6 +32,7 @@ import {
   createHiddenAnimalHospitalDetail,
   mapOfficialAnimalHospitalSourceToCanonical,
 } from './mapper';
+import { getAnimalHospitalDistanceMeters } from '../../domains/animalHospital/trust';
 import { animalHospitalSupabaseRepository } from '../supabase/animalHospitals';
 
 const CANONICAL_SEARCH_TIMEOUT_MS = 2500;
@@ -287,10 +288,40 @@ function sortCanonicalPriority(item: AnimalHospitalCanonicalHospital): number {
   return 1;
 }
 
+function getCanonicalDistanceMeters(params: {
+  item: AnimalHospitalCanonicalHospital;
+  anchorCoordinates: DeviceCoordinates | null;
+}): number | null {
+  const { item, anchorCoordinates } = params;
+  if (!anchorCoordinates) {
+    return null;
+  }
+
+  return getAnimalHospitalDistanceMeters({
+    coordinates: {
+      latitude: anchorCoordinates.latitude,
+      longitude: anchorCoordinates.longitude,
+    },
+    latitude: item.coordinates.latitude,
+    longitude: item.coordinates.longitude,
+  });
+}
+
 function hasReviewedOpen24Hours(
   item: AnimalHospitalCanonicalHospital,
 ): boolean {
   const detail = item.sensitiveDetails.open24Hours;
+  return (
+    detail.value === true &&
+    detail.visibility === 'visible' &&
+    detail.verificationStatus === 'reviewed'
+  );
+}
+
+function hasReviewedExoticAnimalCare(
+  item: AnimalHospitalCanonicalHospital,
+): boolean {
+  const detail = item.sensitiveDetails.exoticAnimalCare;
   return (
     detail.value === true &&
     detail.visibility === 'visible' &&
@@ -415,6 +446,7 @@ export async function searchAnimalHospitals(input: {
   scope: AnimalHospitalSearchScope;
   useNearbySearch?: boolean;
   open24HoursOnly?: boolean;
+  exoticAnimalCareOnly?: boolean;
   repository?: AnimalHospitalCanonicalRepository;
   provider?: LocationSearchProvider;
 }): Promise<AnimalHospitalSearchResult> {
@@ -449,8 +481,8 @@ export async function searchAnimalHospitals(input: {
     timeoutMs: RUNTIME_PROVIDER_SEARCH_TIMEOUT_MS,
   }).catch(error => {
     if (!isAnimalHospitalSearchTimeout(error)) {
-      console.warn(
-        '[animalHospital/service] Runtime provider search failed; canonical results will be used first.',
+      console.info(
+        '[NURI-DEBUG] animalHospital runtime provider search failed silently',
         error,
       );
     }
@@ -489,7 +521,20 @@ export async function searchAnimalHospitals(input: {
         ...providerOnlyCandidates,
       ]),
     })
-  ).filter(item => !input.open24HoursOnly || hasReviewedOpen24Hours(item));
+  ).filter(item => {
+    if (input.open24HoursOnly && !hasReviewedOpen24Hours(item)) {
+      return false;
+    }
+
+    if (
+      input.exoticAnimalCareOnly &&
+      !hasReviewedExoticAnimalCare(item)
+    ) {
+      return false;
+    }
+
+    return true;
+  });
   const publicItems = merged
     .map(canonical =>
       projectAnimalHospitalPublic({
@@ -503,8 +548,32 @@ export async function searchAnimalHospitals(input: {
       }),
     )
     .sort((left, right) => {
+      const hasAnchorCoordinates = Boolean(input.scope.anchorCoordinates);
       const leftCanonical = merged.find(item => item.id === left.id) ?? null;
       const rightCanonical = merged.find(item => item.id === right.id) ?? null;
+      const canonicalDistanceLeft = leftCanonical
+        ? getCanonicalDistanceMeters({
+            item: leftCanonical,
+            anchorCoordinates: input.scope.anchorCoordinates,
+          })
+        : null;
+      const canonicalDistanceRight = rightCanonical
+        ? getCanonicalDistanceMeters({
+            item: rightCanonical,
+            anchorCoordinates: input.scope.anchorCoordinates,
+          })
+        : null;
+      const distanceLeft =
+        canonicalDistanceLeft ?? left.distanceMeters ?? Number.MAX_SAFE_INTEGER;
+      const distanceRight =
+        canonicalDistanceRight ??
+        right.distanceMeters ??
+        Number.MAX_SAFE_INTEGER;
+
+      if (hasAnchorCoordinates && distanceLeft !== distanceRight) {
+        return distanceLeft - distanceRight;
+      }
+
       const priorityLeft = leftCanonical
         ? sortCanonicalPriority(leftCanonical)
         : 1;
@@ -515,8 +584,6 @@ export async function searchAnimalHospitals(input: {
         return priorityLeft - priorityRight;
       }
 
-      const distanceLeft = left.distanceMeters ?? Number.MAX_SAFE_INTEGER;
-      const distanceRight = right.distanceMeters ?? Number.MAX_SAFE_INTEGER;
       if (distanceLeft !== distanceRight) {
         return distanceLeft - distanceRight;
       }

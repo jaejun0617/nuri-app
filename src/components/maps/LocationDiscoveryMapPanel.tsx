@@ -42,7 +42,7 @@ type Props = {
   title?: string;
   caption?: string;
   items: ReadonlyArray<LocationDiscoveryMapItem>;
-  viewport: MapViewportSnapshot | null;
+  viewport: MapViewportSnapshot | MutableViewport | null;
   selectedItemId?: string | null;
   restoring: boolean;
   mapHeight?: number;

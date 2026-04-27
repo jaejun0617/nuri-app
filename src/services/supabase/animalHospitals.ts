@@ -148,6 +148,7 @@ type AnimalHospitalOpsSummaryRow = {
   pending_coordinates: number | string | null;
   pending_thumbnail: number | string | null;
   pending_open24_hours: number | string | null;
+  pending_exotic_animal_care: number | string | null;
   provider_only_candidates: number | string | null;
   canonical_linked: number | string | null;
   hidden_count: number | string | null;
@@ -156,6 +157,7 @@ type AnimalHospitalOpsSummaryRow = {
   approved_coordinates_coverage: number | string | null;
   approved_thumbnail_coverage: number | string | null;
   approved_open24_hours_coverage: number | string | null;
+  approved_exotic_animal_care_coverage: number | string | null;
   latest_runtime_snapshot_at: string | null;
 };
 
@@ -522,6 +524,7 @@ function mapOpsSummaryRow(row: AnimalHospitalOpsSummaryRow): AnimalHospitalOpsSu
     pendingCoordinates: toCount(row.pending_coordinates),
     pendingThumbnail: toCount(row.pending_thumbnail),
     pendingOpen24Hours: toCount(row.pending_open24_hours),
+    pendingExoticAnimalCare: toCount(row.pending_exotic_animal_care),
     providerOnlyCandidates: toCount(row.provider_only_candidates),
     canonicalLinked: toCount(row.canonical_linked),
     hiddenCount: toCount(row.hidden_count),
@@ -531,6 +534,9 @@ function mapOpsSummaryRow(row: AnimalHospitalOpsSummaryRow): AnimalHospitalOpsSu
     approvedThumbnailCoverage: toCount(row.approved_thumbnail_coverage),
     approvedOpen24HoursCoverage: toCount(
       row.approved_open24_hours_coverage,
+    ),
+    approvedExoticAnimalCareCoverage: toCount(
+      row.approved_exotic_animal_care_coverage,
     ),
     latestRuntimeSnapshotAt: row.latest_runtime_snapshot_at,
   };

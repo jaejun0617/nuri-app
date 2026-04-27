@@ -16,6 +16,7 @@ const publicHospital: AnimalHospitalPublicHospital = {
   distanceMeters: 230,
   distanceLabel: '도보 3분',
   statusSummary: '인허가 기준 운영 병원으로 확인됐어요.',
+  operatingBadge: null,
   officialPhone: '02-555-0101',
   thumbnailUrl: 'https://cdn.example.com/animal-hospital/nuri.jpg',
   publicTrust: {
@@ -100,6 +101,9 @@ describe('animalHospital presentation models', () => {
     ).toEqual(['animal-hospital:c', 'animal-hospital:b', 'animal-hospital:a']);
     expect(
       selectAnimalHospitalListItems(items, 'open24').map(item => item.id),
+    ).toEqual(['animal-hospital:c', 'animal-hospital:b', 'animal-hospital:a']);
+    expect(
+      selectAnimalHospitalListItems(items, 'exotic').map(item => item.id),
     ).toEqual(['animal-hospital:c', 'animal-hospital:b', 'animal-hospital:a']);
   });
 });

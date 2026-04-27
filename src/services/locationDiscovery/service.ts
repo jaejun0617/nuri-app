@@ -999,8 +999,10 @@ async function searchDocumentsByQueries(
     ),
   );
 
-  const responses = await Promise.all(tasks);
-  return responses.flat();
+  const responses = await Promise.allSettled(tasks);
+  return responses.flatMap(response =>
+    response.status === 'fulfilled' ? response.value : [],
+  );
 }
 
 function sortItems(

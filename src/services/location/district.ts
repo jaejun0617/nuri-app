@@ -1,11 +1,11 @@
 // 파일: src/services/location/district.ts
 // 역할:
 // - 좌표를 한국 행정동 이름으로 변환하는 역지오코딩 계층
-// - Kakao Local API 연결 전에도 인터페이스를 먼저 고정해 재사용 가능하게 유지
+// - Kakao Local API 키는 앱에 노출하지 않고 Edge Function을 통해 서버에서만 사용한다.
 
-import { KAKAO_REST_API_KEY } from '../../config/runtime';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { DeviceCoordinates } from './currentPosition';
+import { supabase } from '../supabase/client';
 
 export type DistrictResolveResult = {
   province: string | null;
@@ -37,6 +37,19 @@ const GOYANG_ILSAN_WALK_DISTRICTS = [
 const DISTRICT_CACHE_PREFIX = '@nuri/location/district:';
 const districtMemoryCache = new Map<string, string>();
 const districtInFlight = new Map<string, Promise<DistrictResolveResult>>();
+
+type KakaoRegionDocument = {
+  region_type?: string;
+  region_1depth_name?: string;
+  region_2depth_name?: string;
+  region_3depth_name?: string;
+  address_name?: string;
+};
+
+type LocationDiscoverySeedResponse = {
+  ok?: boolean;
+  documents?: unknown;
+};
 
 function toDistrictCacheKey(coords: DeviceCoordinates) {
   return `${DISTRICT_CACHE_PREFIX}${coords.latitude.toFixed(3)},${coords.longitude.toFixed(3)}`;
@@ -146,30 +159,52 @@ export async function resolveDistrictFromCoordinates(
   }
 
   const task = (async (): Promise<DistrictResolveResult> => {
-  const cachedDistrict = await loadCachedDistrict(coords);
+    const cachedDistrict = await loadCachedDistrict(coords);
 
-  if (!KAKAO_REST_API_KEY) {
-    return {
-      province: null,
-      city: null,
-      district: cachedDistrict ?? getFallbackDistrictLabel(coords),
-      source: 'fallback',
-    };
-  }
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        'location-discovery-seed',
+        {
+          body: {
+            action: 'coord2region',
+            coordinates: {
+              latitude: coords.latitude,
+              longitude: coords.longitude,
+            },
+          },
+        },
+      );
 
-  const url =
-    `https://dapi.kakao.com/v2/local/geo/coord2regioncode.json` +
-    `?x=${coords.longitude}` +
-    `&y=${coords.latitude}`;
+      if (error) {
+        throw error;
+      }
 
-  try {
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `KakaoAK ${KAKAO_REST_API_KEY}`,
-      },
-    });
+      const response = data as LocationDiscoverySeedResponse;
+      const docs = Array.isArray(response.documents)
+        ? (response.documents as KakaoRegionDocument[])
+        : [];
+      const legalDong =
+        docs.find(item => item.region_type === 'H') ??
+        docs.find(item => !!item.region_3depth_name) ??
+        null;
 
-    if (!response.ok) {
+      const district =
+        legalDong?.region_3depth_name?.trim() ||
+        legalDong?.address_name?.trim() ||
+        cachedDistrict ||
+        getFallbackDistrictLabel(coords);
+
+      if (legalDong && district) {
+        await saveCachedDistrict(coords, district);
+      }
+
+      return {
+        province: legalDong?.region_1depth_name?.trim() || null,
+        city: legalDong?.region_2depth_name?.trim() || null,
+        district,
+        source: legalDong ? 'kakao' : 'fallback',
+      };
+    } catch {
       return {
         province: null,
         city: null,
@@ -177,47 +212,6 @@ export async function resolveDistrictFromCoordinates(
         source: 'fallback',
       };
     }
-
-    const json = (await response.json()) as {
-      documents?: Array<{
-        region_type?: string;
-        region_1depth_name?: string;
-        region_2depth_name?: string;
-        region_3depth_name?: string;
-        address_name?: string;
-      }>;
-    };
-
-    const docs = Array.isArray(json.documents) ? json.documents : [];
-    const legalDong =
-      docs.find(item => item.region_type === 'H') ??
-      docs.find(item => !!item.region_3depth_name) ??
-      null;
-
-    const district =
-      legalDong?.region_3depth_name?.trim() ||
-      legalDong?.address_name?.trim() ||
-      cachedDistrict ||
-      getFallbackDistrictLabel(coords);
-
-    if (legalDong && district) {
-      await saveCachedDistrict(coords, district);
-    }
-
-    return {
-      province: legalDong?.region_1depth_name?.trim() || null,
-      city: legalDong?.region_2depth_name?.trim() || null,
-      district,
-      source: legalDong ? 'kakao' : 'fallback',
-    };
-  } catch {
-    return {
-      province: null,
-      city: null,
-      district: cachedDistrict ?? getFallbackDistrictLabel(coords),
-      source: 'fallback',
-    };
-  }
   })();
 
   districtInFlight.set(cacheKey, task);

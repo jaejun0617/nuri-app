@@ -173,11 +173,17 @@ export function createAnimalHospitalDetailStyles(
       width: '100%',
       height: '100%',
     },
+    detailThumbnailMeta: {
+      gap: 8,
+    },
     detailThumbnailPlaceholder: {
       flex: 1,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: theme.colors.surface,
+    },
+    photoAttributionText: {
+      color: theme.colors.textMuted,
     },
     heroHeader: {
       gap: 8,
@@ -207,6 +213,36 @@ export function createAnimalHospitalDetailStyles(
     trustBadgeText: {
       color: trust.text,
       fontWeight: '700',
+    },
+    operatingBadge: {
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      borderRadius: 999,
+      borderWidth: 1,
+    },
+    operatingBadgeOpen24: {
+      backgroundColor: 'rgba(181,125,41,0.12)',
+      borderColor: 'rgba(181,125,41,0.24)',
+    },
+    operatingBadgeOpen: {
+      backgroundColor: 'rgba(47,143,72,0.10)',
+      borderColor: 'rgba(47,143,72,0.18)',
+    },
+    operatingBadgeClosed: {
+      backgroundColor: 'rgba(122,111,101,0.10)',
+      borderColor: 'rgba(122,111,101,0.18)',
+    },
+    operatingBadgeText: {
+      fontWeight: '800',
+    },
+    operatingBadgeTextOpen24: {
+      color: '#A5671F',
+    },
+    operatingBadgeTextOpen: {
+      color: '#2F7D47',
+    },
+    operatingBadgeTextClosed: {
+      color: '#6D6259',
     },
     statusText: {
       color: theme.colors.textSecondary,

@@ -308,8 +308,19 @@ const TODAY_HOME_TIP = {
 };
 
 const HOME_TOP_BUTTON_SHOW_OFFSET = 96;
+const HOME_TOP_BUTTON_FALLBACK_SHOW_OFFSET = 300;
 const HOME_TOP_BUTTON_BOTTOM_OFFSET = 102;
 const HOME_TOP_BUTTON_MIN_BOTTOM = 116;
+
+function resolveHomeTopButtonThreshold(
+  scheduleSectionOffset: number | null,
+): number {
+  if (scheduleSectionOffset === null) {
+    return HOME_TOP_BUTTON_FALLBACK_SHOW_OFFSET;
+  }
+
+  return Math.max(0, scheduleSectionOffset - HOME_TOP_BUTTON_SHOW_OFFSET);
+}
 
 /* ---------------------------------------------------------
  * 3) sub components (hooks-safe)
@@ -2095,12 +2106,9 @@ export default function LoggedInHome() {
       const offsetY = Math.max(0, event.nativeEvent.contentOffset.y);
       HOME_SCROLL_OFFSET_BY_KEY.set(homeScrollStorageKey, offsetY);
 
-      const scheduleSectionOffset = scheduleSectionOffsetRef.current;
-      if (scheduleSectionOffset === null) return;
-
       const shouldShow =
         offsetY >=
-        Math.max(0, scheduleSectionOffset - HOME_TOP_BUTTON_SHOW_OFFSET);
+        resolveHomeTopButtonThreshold(scheduleSectionOffsetRef.current);
       if (showTopButtonRef.current === shouldShow) return;
 
       showTopButtonRef.current = shouldShow;
@@ -2113,14 +2121,11 @@ export default function LoggedInHome() {
     if (!shouldRestoreHomeScrollRef.current) return;
     const nextOffset = HOME_SCROLL_OFFSET_BY_KEY.get(homeScrollStorageKey) ?? 0;
     homeScrollRef.current?.scrollTo({ x: 0, y: nextOffset, animated: false });
-    const scheduleSectionOffset = scheduleSectionOffsetRef.current;
-    if (scheduleSectionOffset !== null) {
-      const shouldShow =
-        nextOffset >=
-        Math.max(0, scheduleSectionOffset - HOME_TOP_BUTTON_SHOW_OFFSET);
-      showTopButtonRef.current = shouldShow;
-      setShowTopButton(shouldShow);
-    }
+    const shouldShow =
+      nextOffset >=
+      resolveHomeTopButtonThreshold(scheduleSectionOffsetRef.current);
+    showTopButtonRef.current = shouldShow;
+    setShowTopButton(shouldShow);
     shouldRestoreHomeScrollRef.current = false;
   }, [homeScrollStorageKey]);
 
@@ -2259,7 +2264,7 @@ export default function LoggedInHome() {
         HOME_SCROLL_OFFSET_BY_KEY.get(homeScrollStorageKey) ?? 0;
       const shouldShow =
         restoredOffset >=
-        Math.max(0, event.nativeEvent.layout.y - HOME_TOP_BUTTON_SHOW_OFFSET);
+        resolveHomeTopButtonThreshold(event.nativeEvent.layout.y);
       showTopButtonRef.current = shouldShow;
       setShowTopButton(shouldShow);
     },
@@ -2267,8 +2272,11 @@ export default function LoggedInHome() {
   );
 
   const handlePressTop = useCallback(() => {
+    HOME_SCROLL_OFFSET_BY_KEY.set(homeScrollStorageKey, 0);
+    showTopButtonRef.current = false;
+    setShowTopButton(false);
     homeScrollRef.current?.scrollTo({ x: 0, y: 0, animated: true });
-  }, []);
+  }, [homeScrollStorageKey]);
 
   useEffect(() => {
     topButtonVisibility.value = withTiming(showTopButton ? 1 : 0, {
@@ -2545,6 +2553,8 @@ export default function LoggedInHome() {
             },
           ]}
           onPress={handlePressTop}
+          accessibilityLabel="맨 위로"
+          accessibilityRole="button"
         >
           <Feather name="arrow-up" size={18} color={petTheme.primary} />
         </Pressable>

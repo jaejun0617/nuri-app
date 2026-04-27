@@ -1,7 +1,7 @@
 import type { AnimalHospitalPublicHospital } from './types';
 
 export type AnimalHospitalTrustTone = 'calm' | 'caution' | 'neutral';
-export type AnimalHospitalListMode = 'all' | 'nearby' | 'open24';
+export type AnimalHospitalListMode = 'nearby' | 'open24' | 'exotic';
 
 export type AnimalHospitalCardViewModel = {
   title: string;
@@ -79,6 +79,10 @@ function sortByNearbyAndName(
   left: AnimalHospitalPublicHospital,
   right: AnimalHospitalPublicHospital,
 ): number {
+  if (left.distanceMeters === null && right.distanceMeters === null) {
+    return 0;
+  }
+
   const leftDistance = left.distanceMeters ?? Number.MAX_SAFE_INTEGER;
   const rightDistance = right.distanceMeters ?? Number.MAX_SAFE_INTEGER;
 
@@ -91,13 +95,9 @@ function sortByNearbyAndName(
 
 export function selectAnimalHospitalListItems(
   items: ReadonlyArray<AnimalHospitalPublicHospital>,
-  mode: AnimalHospitalListMode,
+  _mode: AnimalHospitalListMode,
 ): AnimalHospitalPublicHospital[] {
-  if (mode === 'nearby' || mode === 'open24') {
-    return [...items].sort(sortByNearbyAndName);
-  }
-
-  return [...items];
+  return [...items].sort(sortByNearbyAndName);
 }
 
 function resolveTrustTone(

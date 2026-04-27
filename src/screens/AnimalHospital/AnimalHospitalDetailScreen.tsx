@@ -11,7 +11,7 @@ import NativeLiteMapPreview from '../../components/maps/NativeLiteMapPreview';
 import OptimizedImage from '../../components/images/OptimizedImage';
 import { buildAnimalHospitalDetailViewModel } from '../../domains/animalHospital/presentation';
 import { createAnimalHospitalDetailStyles } from '../../components/animalHospital/styles';
-import { useAnimalHospitalThumbnail } from '../../hooks/useAnimalHospitalThumbnail';
+import { useAnimalHospitalEnrichedItem } from '../../hooks/useAnimalHospitalThumbnail';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
 
@@ -23,12 +23,17 @@ export default function AnimalHospitalDetailScreen() {
   const route = useRoute<Route>();
   const theme = useTheme();
   const item = route.params?.item;
+  const enrichedItemQuery = useAnimalHospitalEnrichedItem(item ?? null, {
+    includeDetails: true,
+  });
+  const displayItem = enrichedItemQuery.data ?? item ?? null;
+  const photoAttributionLabel =
+    enrichedItemQuery.overlay?.photoAttributionLabel ?? null;
   const viewModel = useMemo(
-    () => (item ? buildAnimalHospitalDetailViewModel(item) : null),
-    [item],
+    () => (displayItem ? buildAnimalHospitalDetailViewModel(displayItem) : null),
+    [displayItem],
   );
-  const thumbnailQuery = useAnimalHospitalThumbnail(item ?? null);
-  const thumbnailUri = thumbnailQuery.data ?? null;
+  const thumbnailUri = displayItem?.thumbnailUrl ?? null;
   const styles = useMemo(
     () =>
       createAnimalHospitalDetailStyles(
@@ -42,7 +47,7 @@ export default function AnimalHospitalDetailScreen() {
     navigation.goBack();
   }, [navigation]);
 
-  if (!item || !viewModel) {
+  if (!displayItem || !viewModel) {
     return (
       <Screen style={styles.screen}>
         <View style={styles.container}>
@@ -56,8 +61,22 @@ export default function AnimalHospitalDetailScreen() {
     );
   }
 
-  const callUri = item.links.callUri;
-  const mapLink = item.links.externalMapUrl ?? item.links.providerPlaceUrl;
+  const callUri = displayItem.links.callUri;
+  const mapLink =
+    displayItem.links.externalMapUrl ?? displayItem.links.providerPlaceUrl;
+  const operatingBadge = displayItem.operatingBadge;
+  const operatingBadgeStyle =
+    operatingBadge?.kind === 'open24'
+      ? styles.operatingBadgeOpen24
+      : operatingBadge?.kind === 'open'
+        ? styles.operatingBadgeOpen
+        : styles.operatingBadgeClosed;
+  const operatingBadgeTextStyle =
+    operatingBadge?.kind === 'open24'
+      ? styles.operatingBadgeTextOpen24
+      : operatingBadge?.kind === 'open'
+        ? styles.operatingBadgeTextOpen
+        : styles.operatingBadgeTextClosed;
 
   return (
     <Screen style={styles.screen}>
@@ -81,24 +100,31 @@ export default function AnimalHospitalDetailScreen() {
           contentContainerStyle={{ paddingBottom: 32, gap: 18 }}
         >
           <View style={styles.hero}>
-            <View style={styles.detailThumbnailWrap}>
-              {thumbnailUri ? (
-                <OptimizedImage
-                  uri={thumbnailUri}
-                  style={styles.detailThumbnail}
-                  resizeMode="cover"
-                  priority="normal"
-                  fallback={false}
-                />
-              ) : (
-                <View style={styles.detailThumbnailPlaceholder}>
-                  <Feather
-                    name="shield"
-                    size={24}
-                    color={theme.colors.textMuted}
+            <View style={styles.detailThumbnailMeta}>
+              <View style={styles.detailThumbnailWrap}>
+                {thumbnailUri ? (
+                  <OptimizedImage
+                    uri={thumbnailUri}
+                    style={styles.detailThumbnail}
+                    resizeMode="cover"
+                    priority="normal"
+                    fallback={false}
                   />
-                </View>
-              )}
+                ) : (
+                  <View style={styles.detailThumbnailPlaceholder}>
+                    <Feather
+                      name="shield"
+                      size={24}
+                      color={theme.colors.textMuted}
+                    />
+                  </View>
+                )}
+              </View>
+              {thumbnailUri && photoAttributionLabel ? (
+                <AppText preset="caption" style={styles.photoAttributionText}>
+                  사진 출처 · {photoAttributionLabel}
+                </AppText>
+              ) : null}
             </View>
 
             <View style={styles.heroHeader}>
@@ -111,6 +137,16 @@ export default function AnimalHospitalDetailScreen() {
             </View>
 
             <View style={styles.trustRow}>
+              {operatingBadge ? (
+                <View style={[styles.operatingBadge, operatingBadgeStyle]}>
+                  <AppText
+                    preset="caption"
+                    style={[styles.operatingBadgeText, operatingBadgeTextStyle]}
+                  >
+                    {operatingBadge.label}
+                  </AppText>
+                </View>
+              ) : null}
               <View style={styles.trustBadge}>
                 <AppText preset="caption" style={styles.trustBadgeText}>
                   {viewModel.trustLabel}
@@ -200,7 +236,7 @@ export default function AnimalHospitalDetailScreen() {
                       callUri ? styles.secondaryCtaText : styles.primaryCtaText
                     }
                   >
-                    {item.links.externalMapUrl ? '길찾기' : '지도에서 보기'}
+                    {displayItem.links.externalMapUrl ? '길찾기' : '지도에서 보기'}
                   </AppText>
                 </TouchableOpacity>
               ) : null}
@@ -232,11 +268,11 @@ export default function AnimalHospitalDetailScreen() {
               ) : null}
             </View>
 
-            {item.latitude !== null && item.longitude !== null ? (
+            {displayItem.latitude !== null && displayItem.longitude !== null ? (
               <NativeLiteMapPreview
-                latitude={item.latitude}
-                longitude={item.longitude}
-                title={`${item.name} 위치 미리보기`}
+                latitude={displayItem.latitude}
+                longitude={displayItem.longitude}
+                title={`${displayItem.name} 위치 미리보기`}
                 interactive
               />
             ) : (
@@ -247,7 +283,7 @@ export default function AnimalHospitalDetailScreen() {
                   color={theme.colors.textMuted}
                 />
                 <AppText preset="bodySm" style={styles.subtleText}>
-                  검수된 좌표가 아직 없어 주소 기준으로 확인해 주세요.
+                  아직 좌표를 가져오지 못해 주소 기준으로 확인해 주세요.
                 </AppText>
               </View>
             )}

@@ -6,7 +6,6 @@ import {
 import {
   ANIMAL_HOSPITAL_ADDRESS_STALE_DAYS,
   ANIMAL_HOSPITAL_COORDINATES_STALE_DAYS,
-  ANIMAL_HOSPITAL_PUBLIC_PHONE_STALE_DAYS,
   ANIMAL_HOSPITAL_STATUS_STALE_DAYS,
 } from './constants';
 import type {
@@ -98,19 +97,22 @@ export function buildAnimalHospitalTrustInfo(
 export function canExposeAnimalHospitalPhone(
   canonical: AnimalHospitalCanonicalHospital,
 ): boolean {
-  const phone = canonical.contact.publicPhone;
-  if (!phone) {
-    return false;
+  return Boolean(resolveAnimalHospitalPublicPhone(canonical));
+}
+
+export function resolveAnimalHospitalPublicPhone(
+  canonical: AnimalHospitalCanonicalHospital,
+): string | null {
+  const primaryPhone = canonical.contact.publicPhone;
+  if (primaryPhone?.value) {
+    return primaryPhone.value;
   }
 
-  if (phone.verificationStatus !== 'reviewed') {
-    return false;
-  }
-
-  return !isDateStale(
-    phone.verifiedAt ?? canonical.trust.sourceUpdatedAt,
-    ANIMAL_HOSPITAL_PUBLIC_PHONE_STALE_DAYS,
+  const fallbackCandidate = canonical.contact.candidatePhones.find(
+    candidate => typeof candidate.value === 'string' && candidate.value.trim(),
   );
+
+  return fallbackCandidate?.value ?? null;
 }
 
 export function sanitizeAnimalHospitalDialUri(phone: string | null): string | null {

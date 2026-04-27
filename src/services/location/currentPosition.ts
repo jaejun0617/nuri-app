@@ -6,7 +6,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Geolocation from '@react-native-community/geolocation';
 
-export type LocationCoordinateSource = 'gps' | 'network' | 'cached';
+export type LocationCoordinateSource = 'gps' | 'network' | 'cached' | 'default';
 
 export type DeviceCoordinates = {
   latitude: number;
@@ -20,7 +20,15 @@ const LAST_COORDINATES_KEY = '@nuri/location/lastCoordinates';
 export const LOCATION_STALE_AFTER_MS = 2 * 60 * 1000;
 export const LOCATION_AUTO_REFRESH_INTERVAL_MS = 15 * 1000;
 export const LOCATION_WEAK_SIGNAL_ACCURACY_METERS = 1000;
-const FAST_LOCATION_TIMEOUT_MS = 3500;
+export const LOCATION_DEFENSIVE_FALLBACK_TIMEOUT_MS = 3000;
+export const DEFAULT_LOCATION_FALLBACK_COORDINATES: DeviceCoordinates = {
+  latitude: 37.5665,
+  longitude: 126.978,
+  accuracy: null,
+  capturedAt: 0,
+  source: 'default',
+};
+const FAST_LOCATION_TIMEOUT_MS = LOCATION_DEFENSIVE_FALLBACK_TIMEOUT_MS;
 const FAST_LOCATION_MAX_AGE_MS = 15000;
 const PRECISE_LOCATION_TIMEOUT_MS = 10000;
 
@@ -64,6 +72,7 @@ export function isFreshLocationCoordinates(
 ): boolean {
   if (!coords) return false;
   if ((coords.source ?? 'cached') === 'cached') return false;
+  if (coords.source === 'default') return false;
   const ageMs = getLocationAgeMs(coords, now);
   if (ageMs === null) return false;
   return ageMs <= LOCATION_STALE_AFTER_MS;
@@ -106,9 +115,11 @@ export function shouldPromoteLocationCoordinates(
 ): boolean {
   if (!current) return true;
   if ((current.source ?? 'cached') === 'cached') return true;
+  if (current.source === 'default' && next.source !== 'default') return true;
   if (
     !isFreshLocationCoordinates(current) &&
-    (next.source ?? 'cached') !== 'cached'
+    (next.source ?? 'cached') !== 'cached' &&
+    next.source !== 'default'
   ) {
     return true;
   }
@@ -176,7 +187,8 @@ export async function getLastCoordinates(): Promise<DeviceCoordinates | null> {
       source:
         parsed.source === 'gps' ||
         parsed.source === 'network' ||
-        parsed.source === 'cached'
+        parsed.source === 'cached' ||
+        parsed.source === 'default'
           ? parsed.source
           : 'cached',
     };
@@ -186,6 +198,10 @@ export async function getLastCoordinates(): Promise<DeviceCoordinates | null> {
 }
 
 async function saveLastCoordinates(coords: DeviceCoordinates) {
+  if (coords.source === 'default') {
+    return;
+  }
+
   try {
     await AsyncStorage.setItem(LAST_COORDINATES_KEY, JSON.stringify(coords));
   } catch {
@@ -223,6 +239,18 @@ export async function getCurrentCoordinates(): Promise<DeviceCoordinates> {
   }
 }
 
+export async function getDefensiveFallbackCoordinates(): Promise<DeviceCoordinates> {
+  const cached = await getLastCoordinates();
+  if (cached) {
+    return toCachedCoordinates(cached);
+  }
+
+  return {
+    ...DEFAULT_LOCATION_FALLBACK_COORDINATES,
+    capturedAt: Date.now(),
+  };
+}
+
 export async function getQuickCurrentCoordinates(): Promise<DeviceCoordinates> {
   try {
     const quick = await requestCoordinates({
@@ -234,7 +262,7 @@ export async function getQuickCurrentCoordinates(): Promise<DeviceCoordinates> {
     await saveLastCoordinates(quick);
     return quick;
   } catch {
-    return getCurrentCoordinates();
+    return getDefensiveFallbackCoordinates();
   }
 }
 

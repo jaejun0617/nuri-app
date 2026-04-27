@@ -55,6 +55,7 @@ const FIELD_FILTERS: ReadonlyArray<{
   { key: 'coordinates', label: '좌표' },
   { key: 'thumbnail', label: '썸네일' },
   { key: 'open24Hours', label: '24시 운영' },
+  { key: 'exoticAnimalCare', label: '특수동물' },
 ];
 
 const SOURCE_FILTERS: ReadonlyArray<{ key: string | null; label: string }> = [
@@ -96,6 +97,7 @@ function formatFieldLabel(fieldKey: AnimalHospitalOpsReviewItem['fieldKey']) {
   if (fieldKey === 'coordinates') return '좌표';
   if (fieldKey === 'thumbnail') return '썸네일';
   if (fieldKey === 'open24Hours') return '24시 운영';
+  if (fieldKey === 'exoticAnimalCare') return '특수동물';
   return '병원 상태';
 }
 
@@ -470,6 +472,10 @@ export default function AnimalHospitalAdminScreen() {
               value={summaryQuery.data.pendingOpen24Hours}
             />
             <SummaryCard
+              label="pending exotic"
+              value={summaryQuery.data.pendingExoticAnimalCare}
+            />
+            <SummaryCard
               label="provider-only"
               value={summaryQuery.data.providerOnlyCandidates}
             />
@@ -485,6 +491,10 @@ export default function AnimalHospitalAdminScreen() {
             <SummaryCard
               label="approved open24"
               value={summaryQuery.data.approvedOpen24HoursCoverage}
+            />
+            <SummaryCard
+              label="approved exotic"
+              value={summaryQuery.data.approvedExoticAnimalCareCoverage}
             />
           </View>
         ) : null}

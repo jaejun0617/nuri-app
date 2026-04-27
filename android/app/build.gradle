@@ -62,11 +62,19 @@ android {
   buildTypes {
     debug {
       signingConfig signingConfigs.debug
+      firebaseCrashlytics {
+        mappingFileUploadEnabled false
+        nativeSymbolUploadEnabled false
+      }
     }
     release {
       signingConfig signingConfigs.release
       minifyEnabled enableProguardInReleaseBuilds
       proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+      firebaseCrashlytics {
+        mappingFileUploadEnabled true
+        nativeSymbolUploadEnabled false
+      }
     }
   }
 }

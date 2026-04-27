@@ -35,6 +35,7 @@ function LocationDiscoveryCard({
   const compact = layout === 'compact';
   const thumbnailQuery = useLocationDiscoveryThumbnail(item);
   const thumbnailUri = thumbnailQuery.data ?? item.thumbnailUrl;
+  const photoAttributionLabel = thumbnailQuery.photoAttributionLabel ?? null;
   const hasThumbnail = Boolean(thumbnailUri);
 
   const durationLabel = formatDurationLabel(item.estimatedMinutes);
@@ -101,6 +102,17 @@ function LocationDiscoveryCard({
                 !hasThumbnail ? styles.cardThumbnailOverlayFallback : null,
               ]}
             >
+              {hasThumbnail && photoAttributionLabel ? (
+                <View style={styles.cardPhotoAttributionWrap}>
+                  <AppText
+                    preset="caption"
+                    style={styles.cardPhotoAttributionText}
+                    numberOfLines={1}
+                  >
+                    사진 출처 · {photoAttributionLabel}
+                  </AppText>
+                </View>
+              ) : null}
               <View style={styles.cardThumbnailFooter}>
                 {!compact ? (
                   <View style={styles.cardIconWrap}>

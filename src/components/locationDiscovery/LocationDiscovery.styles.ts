@@ -299,6 +299,18 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  cardPhotoAttributionWrap: {
+    alignSelf: 'flex-start',
+    maxWidth: '100%',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(11,18,32,0.62)',
+  },
+  cardPhotoAttributionText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -331,6 +343,43 @@ export const styles = StyleSheet.create({
   cardCategory: {
     color: '#FA6B2D',
     fontWeight: '900',
+  },
+  animalHospitalBadgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 2,
+  },
+  animalHospitalOperatingBadge: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+  },
+  animalHospitalOperatingBadgeOpen24: {
+    backgroundColor: 'rgba(181,125,41,0.12)',
+    borderColor: 'rgba(181,125,41,0.24)',
+  },
+  animalHospitalOperatingBadgeOpen: {
+    backgroundColor: 'rgba(47,143,72,0.10)',
+    borderColor: 'rgba(47,143,72,0.18)',
+  },
+  animalHospitalOperatingBadgeClosed: {
+    backgroundColor: 'rgba(122,111,101,0.10)',
+    borderColor: 'rgba(122,111,101,0.18)',
+  },
+  animalHospitalOperatingBadgeText: {
+    fontWeight: '900',
+  },
+  animalHospitalOperatingBadgeTextOpen24: {
+    color: '#A5671F',
+  },
+  animalHospitalOperatingBadgeTextOpen: {
+    color: '#2F7D47',
+  },
+  animalHospitalOperatingBadgeTextClosed: {
+    color: '#6D6259',
   },
   cardTitle: {
     color: '#0B1220',

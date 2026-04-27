@@ -1,73 +1,53 @@
-import { useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
 
 import type { AnimalHospitalPublicHospital } from '../domains/animalHospital/types';
-import { buildLocationDiscoveryThumbnailQueryKey } from './useLocationDiscoveryThumbnail';
 import {
-  resolveLocationDiscoveryThumbnail,
-  type LocationDiscoveryThumbnailInput,
-} from '../services/locationDiscovery/thumbnail';
+  buildAnimalHospitalPlaceEnrichmentTarget,
+  mergeAnimalHospitalPlaceEnrichment,
+} from '../services/placeEnrichment/service';
+import { usePlaceEnrichment, usePrefetchPlaceEnrichment } from './usePlaceEnrichment';
 
-const ANIMAL_HOSPITAL_THUMBNAIL_STALE_MS = 30 * 60 * 1000;
-const ANIMAL_HOSPITAL_THUMBNAIL_GC_MS = 6 * 60 * 60 * 1000;
-
-function toAnimalHospitalThumbnailInput(
+export function useAnimalHospitalEnrichedItem(
   item: AnimalHospitalPublicHospital | null,
-): LocationDiscoveryThumbnailInput | null {
-  if (!item || item.latitude === null || item.longitude === null) {
-    return null;
-  }
+  options?: {
+    includeDetails?: boolean;
+  },
+) {
+  const target = item
+    ? buildAnimalHospitalPlaceEnrichmentTarget(item, {
+        includeDetails: Boolean(options?.includeDetails),
+      })
+    : null;
+  const enrichmentQuery = usePlaceEnrichment(target);
+
+  const enrichedItem = useMemo(
+    () =>
+      item ? mergeAnimalHospitalPlaceEnrichment(item, enrichmentQuery.data) : null,
+    [enrichmentQuery.data, item],
+  );
 
   return {
-    id: item.id,
-    domain: 'animalHospital',
-    name: item.name,
-    address: item.address,
-    latitude: item.latitude,
-    longitude: item.longitude,
-    thumbnailUrl: item.thumbnailUrl,
+    ...enrichmentQuery,
+    data: enrichedItem,
+    overlay: enrichmentQuery.data,
   };
 }
 
 export function useAnimalHospitalThumbnail(
   item: AnimalHospitalPublicHospital | null,
 ) {
-  const thumbnailInput = toAnimalHospitalThumbnailInput(item);
+  const enrichedItemQuery = useAnimalHospitalEnrichedItem(item);
 
-  return useQuery({
-    queryKey: thumbnailInput
-      ? buildLocationDiscoveryThumbnailQueryKey(thumbnailInput)
-      : ['animal-hospital-thumbnail', item?.id ?? 'empty', 'no-coordinate'],
-    queryFn: async () =>
-      thumbnailInput ? resolveLocationDiscoveryThumbnail(thumbnailInput) : null,
-    staleTime: ANIMAL_HOSPITAL_THUMBNAIL_STALE_MS,
-    gcTime: ANIMAL_HOSPITAL_THUMBNAIL_GC_MS,
-    enabled: Boolean(thumbnailInput),
-    placeholderData: previous => previous,
-  });
+  return {
+    ...enrichedItemQuery,
+    data: enrichedItemQuery.data?.thumbnailUrl ?? item?.thumbnailUrl ?? null,
+  };
 }
 
 export function usePrefetchAnimalHospitalThumbnails(
   items: ReadonlyArray<AnimalHospitalPublicHospital>,
 ) {
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    items.slice(0, 6).forEach(item => {
-      const thumbnailInput = toAnimalHospitalThumbnailInput(item);
-      if (!thumbnailInput) {
-        return;
-      }
-
-      queryClient
-        .prefetchQuery({
-          queryKey: buildLocationDiscoveryThumbnailQueryKey(thumbnailInput),
-          queryFn: async () =>
-            resolveLocationDiscoveryThumbnail(thumbnailInput),
-          staleTime: ANIMAL_HOSPITAL_THUMBNAIL_STALE_MS,
-          gcTime: ANIMAL_HOSPITAL_THUMBNAIL_GC_MS,
-        })
-        .catch(() => {});
-    });
-  }, [items, queryClient]);
+  usePrefetchPlaceEnrichment(
+    items.slice(0, 6).map(item => buildAnimalHospitalPlaceEnrichmentTarget(item)),
+  );
 }

@@ -35,9 +35,16 @@ export type LocationDiscoveryState = {
   refresh: () => Promise<void>;
 };
 
+export type LocationDiscoveryCoordinateOverride = {
+  latitude: number;
+  longitude: number;
+  label: string;
+} | null;
+
 export function useLocationDiscovery(input: {
   domain: LocationDiscoveryDomain;
   query: string;
+  coordinateOverride?: LocationDiscoveryCoordinateOverride;
 }): LocationDiscoveryState {
   const locationState = useCurrentLocation({
     autoRefreshOnMount: true,
@@ -55,35 +62,55 @@ export function useLocationDiscovery(input: {
   );
   const refreshLocation = locationState.refresh;
   const hasSearchQuery = normalizedQuery.length >= 2;
-  const coordinatesKey = locationState.coordinates
-    ? `${locationState.coordinates.latitude.toFixed(3)}:${locationState.coordinates.longitude.toFixed(3)}`
+  const overrideCoordinates = input.coordinateOverride
+    ? {
+        accuracy: null,
+        capturedAt: Date.now(),
+        latitude: input.coordinateOverride.latitude,
+        longitude: input.coordinateOverride.longitude,
+        source: 'cached' as const,
+      }
+    : null;
+  const effectiveCoordinates = overrideCoordinates ?? locationState.coordinates;
+  const usingDefaultFallback = locationState.coordinates?.source === 'default';
+  const coordinatesKey = effectiveCoordinates
+    ? `${effectiveCoordinates.latitude.toFixed(3)}:${effectiveCoordinates.longitude.toFixed(3)}`
     : 'no-coordinates';
   const district = districtState.district?.trim() || null;
   const normalizedDistrict = districtState.normalizedDistrict?.trim() || district;
   const scope = useMemo<LocationDiscoverySearchScope>(
     () => ({
       displayLabel:
-        !locationState.isFresh && locationState.loading
+        input.coordinateOverride?.label ??
+        (usingDefaultFallback
+          ? '서울 시청'
+          : !locationState.isFresh && locationState.loading
           ? '새 위치 확인 중'
-          : district ?? (locationState.isFresh ? '현재 위치' : '최근 확인 위치'),
+          : district ?? (locationState.isFresh ? '현재 위치' : '최근 확인 위치')),
       queryLabel:
-        districtState.city && district
+        input.coordinateOverride ? null : districtState.city && district
           ? `${districtState.city} ${district}`.trim()
           : district,
-      anchorCoordinates: locationState.coordinates,
+      anchorCoordinates: effectiveCoordinates,
       distanceLabel:
-        !locationState.isFresh && locationState.loading
-          ? '새 위치 확인 중'
-          : locationState.isFresh
-            ? '현재 위치 기준'
-            : '최근 확인 위치 기준',
+        input.coordinateOverride
+          ? `${input.coordinateOverride.label} 기준`
+          : usingDefaultFallback
+            ? '기본 위치 기준'
+            : !locationState.isFresh && locationState.loading
+              ? '새 위치 확인 중'
+              : locationState.isFresh
+                ? '현재 위치 기준'
+                : '최근 확인 위치 기준',
     }),
     [
       district,
       districtState.city,
-      locationState.coordinates,
+      effectiveCoordinates,
+      input.coordinateOverride,
       locationState.isFresh,
       locationState.loading,
+      usingDefaultFallback,
     ],
   );
 
@@ -93,6 +120,7 @@ export function useLocationDiscovery(input: {
       input.domain,
       hasSearchQuery ? normalizedQuery : 'nearby',
       coordinatesKey,
+      input.coordinateOverride ? 'map-center' : 'device',
     ],
     queryFn: async () =>
       searchLocationDiscovery(input.domain, {
@@ -100,7 +128,7 @@ export function useLocationDiscovery(input: {
         scope,
         useNearbySearch: !hasSearchQuery,
       }),
-    enabled: hasSearchQuery || Boolean(locationState.coordinates),
+    enabled: hasSearchQuery || Boolean(effectiveCoordinates),
     staleTime: 2 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     placeholderData: previous => previous,
@@ -116,6 +144,10 @@ export function useLocationDiscovery(input: {
 
   useFocusEffect(
     useCallback(() => {
+      if (input.coordinateOverride) {
+        return undefined;
+      }
+
       if (!shouldRefreshLocation()) {
         return undefined;
       }
@@ -129,12 +161,18 @@ export function useLocationDiscovery(input: {
       })().catch(() => {});
 
       return undefined;
-    }, [hasSearchQuery, query, refreshLocation, shouldRefreshLocation]),
+    }, [
+      hasSearchQuery,
+      input.coordinateOverride,
+      query,
+      refreshLocation,
+      shouldRefreshLocation,
+    ]),
   );
 
   return {
     loading:
-      ((locationState.loading && !locationState.coordinates && !hasSearchQuery) ||
+      ((locationState.loading && !effectiveCoordinates && !hasSearchQuery) ||
         query.isLoading) &&
       !query.data,
     refreshing: query.isRefetching && !hasSearchQuery,
@@ -145,7 +183,7 @@ export function useLocationDiscovery(input: {
       (!hasSearchQuery ? locationState.error : null),
     verificationStatus: query.data?.verificationStatus ?? 'unknown',
     permission: locationState.permission,
-    coordinates: locationState.coordinates,
+    coordinates: effectiveCoordinates,
     district,
     normalizedDistrict,
     city: districtState.city,
@@ -153,11 +191,15 @@ export function useLocationDiscovery(input: {
     usingStaleLocation: locationState.isStale,
     scope: query.data?.scope ?? scope,
     refresh: async () => {
-      const nextCoordinates = hasSearchQuery
-        ? locationState.coordinates
+      const nextCoordinates = hasSearchQuery || input.coordinateOverride
+        ? effectiveCoordinates
         : await refreshLocation();
 
-      if (!hasSearchQuery && !isFreshLocationCoordinates(nextCoordinates)) {
+      if (
+        !hasSearchQuery &&
+        !input.coordinateOverride &&
+        !isFreshLocationCoordinates(nextCoordinates)
+      ) {
         return;
       }
 

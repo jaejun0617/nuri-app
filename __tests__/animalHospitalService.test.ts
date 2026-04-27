@@ -8,7 +8,7 @@ import type { AnimalHospitalVerificationRecord } from '../src/domains/animalHosp
 import type { LocationSearchProvider } from '../src/services/locationDiscovery/provider';
 
 describe('animalHospital runtime query service', () => {
-  it('provider-only runtime candidate는 전화번호와 민감 필드를 public으로 올리지 않는다', async () => {
+  it('provider-only runtime candidate도 provider 전화번호와 좌표를 public으로 노출한다', async () => {
     const provider: LocationSearchProvider = {
       searchKeyword: async () => [
         {
@@ -46,8 +46,11 @@ describe('animalHospital runtime query service', () => {
 
     expect(result.items).toHaveLength(1);
     expect(result.items[0]?.name).toBe('근처동물병원');
-    expect(result.items[0]?.officialPhone).toBeNull();
-    expect(result.items[0]?.links.callUri).toBeNull();
+    expect(result.items[0]?.officialPhone).toBe('02-9999-0000');
+    expect(result.items[0]?.latitude).toBe(37.5012);
+    expect(result.items[0]?.longitude).toBe(127.0123);
+    expect(result.items[0]?.links.callUri).toBe('tel:0299990000');
+    expect(result.items[0]?.links.externalMapUrl).toContain('37.5012');
     expect(result.items[0]?.links.providerPlaceUrl).toBe(
       'https://place.map.kakao.com/1',
     );
@@ -133,6 +136,89 @@ describe('animalHospital runtime query service', () => {
     expect(result.items[0]?.id).toBe(canonical.id);
   });
 
+  it('가까운순은 public 좌표 노출 없이도 canonical 좌표 기준 정렬을 유지한다', async () => {
+    const farCanonical = mapOfficialAnimalHospitalSourceToCanonical({
+      provider: 'official-localdata',
+      providerRecordId: '4110000:411000001020240201',
+      sourceUpdatedAt: '2026-04-18T00:00:00.000Z',
+      ingestedAt: '2026-04-18T08:00:00.000Z',
+      snapshotId: 'localdata-distance-sort',
+      snapshotFetchedAt: '2026-04-18T08:00:00.000Z',
+      ingestMode: 'snapshot',
+      name: '먼동물병원',
+      roadAddress: '경기 고양시 일산서구 중앙로 201',
+      lotAddress: '경기 고양시 일산서구 대화동 201',
+      operationStatusText: '영업/정상',
+      licenseStatusText: '정상',
+      officialPhone: null,
+      coordinates: {
+        latitude: 37.72,
+        longitude: 126.8,
+        crs: 'WGS84',
+      },
+      metadata: {},
+      rowChecksum: 'ah_test_far',
+      rawPayload: {},
+    }).canonicalHospital;
+    const nearCanonical = mapOfficialAnimalHospitalSourceToCanonical({
+      provider: 'official-localdata',
+      providerRecordId: '4110000:411000001020240202',
+      sourceUpdatedAt: '2026-04-18T00:00:00.000Z',
+      ingestedAt: '2026-04-18T08:00:00.000Z',
+      snapshotId: 'localdata-distance-sort',
+      snapshotFetchedAt: '2026-04-18T08:00:00.000Z',
+      ingestMode: 'snapshot',
+      name: '가까운동물병원',
+      roadAddress: '경기 고양시 일산서구 중앙로 202',
+      lotAddress: '경기 고양시 일산서구 대화동 202',
+      operationStatusText: '영업/정상',
+      licenseStatusText: '정상',
+      officialPhone: null,
+      coordinates: {
+        latitude: 37.6801,
+        longitude: 126.7701,
+        crs: 'WGS84',
+      },
+      metadata: {},
+      rowChecksum: 'ah_test_near',
+      rawPayload: {},
+    }).canonicalHospital;
+    const repository: AnimalHospitalCanonicalRepository = {
+      search: async () => [farCanonical, nearCanonical],
+    };
+    const provider: LocationSearchProvider = {
+      searchKeyword: async () => [],
+      searchAddress: async () => [],
+    };
+
+    const result = await searchAnimalHospitals({
+      query: null,
+      scope: {
+        displayLabel: '현재 위치',
+        queryLabel: '경기 고양시',
+        anchorCoordinates: {
+          latitude: 37.68,
+          longitude: 126.77,
+          accuracy: 20,
+          capturedAt: Date.now(),
+          source: 'gps',
+        },
+        distanceLabel: '현재 위치 기준',
+      },
+      useNearbySearch: true,
+      repository,
+      provider,
+    });
+
+    expect(result.items.map(item => item.id)).toEqual([
+      nearCanonical.id,
+      farCanonical.id,
+    ]);
+    expect(result.items[0]?.latitude).toBe(37.6801);
+    expect(result.items[0]?.longitude).toBe(126.7701);
+    expect(result.items[0]?.distanceMeters).not.toBeNull();
+  });
+
   it('provider 후보명으로 canonical을 보수 조회해 확실한 name/address match만 연결한다', async () => {
     const canonical = mapOfficialAnimalHospitalSourceToCanonical({
       provider: 'official-localdata',
@@ -216,8 +302,8 @@ describe('animalHospital runtime query service', () => {
     });
     expect(result.items).toHaveLength(1);
     expect(result.items[0]?.id).toBe(canonical.id);
-    expect(result.items[0]?.officialPhone).toBeNull();
-    expect(result.items[0]?.links.callUri).toBeNull();
+    expect(result.items[0]?.officialPhone).toBe('031-000-0000');
+    expect(result.items[0]?.links.callUri).toBe('tel:0310000000');
     expect(result.items[0]?.links.providerPlaceUrl).toBe(
       'https://place.map.kakao.com/linked',
     );
@@ -516,7 +602,111 @@ describe('animalHospital runtime query service', () => {
     );
   });
 
-  it('approved thumbnail verification만 public thumbnail로 반영한다', async () => {
+  it('특수동물병원 필터는 approved exoticAnimalCare verification이 있는 병원만 남긴다', async () => {
+    const exoticCanonical = mapOfficialAnimalHospitalSourceToCanonical({
+      provider: 'official-localdata',
+      providerRecordId: '4110000:411000001020240801',
+      sourceUpdatedAt: new Date().toISOString(),
+      ingestedAt: new Date().toISOString(),
+      snapshotId: 'exotic-filter-smoke',
+      snapshotFetchedAt: new Date().toISOString(),
+      ingestMode: 'snapshot',
+      name: '특수동물진료병원',
+      roadAddress: '경기 고양시 일산서구 중앙로 801',
+      lotAddress: '경기 고양시 일산서구 대화동 801',
+      operationStatusText: '영업/정상',
+      licenseStatusText: '정상',
+      officialPhone: null,
+      coordinates: {
+        latitude: 37.681,
+        longitude: 126.771,
+        crs: 'WGS84',
+      },
+      metadata: {},
+      rowChecksum: 'ah_test_exotic',
+      rawPayload: {},
+    }).canonicalHospital;
+    const normalCanonical = mapOfficialAnimalHospitalSourceToCanonical({
+      provider: 'official-localdata',
+      providerRecordId: '4110000:411000001020240802',
+      sourceUpdatedAt: new Date().toISOString(),
+      ingestedAt: new Date().toISOString(),
+      snapshotId: 'exotic-filter-smoke',
+      snapshotFetchedAt: new Date().toISOString(),
+      ingestMode: 'snapshot',
+      name: '일반진료병원',
+      roadAddress: '경기 고양시 일산서구 중앙로 802',
+      lotAddress: '경기 고양시 일산서구 대화동 802',
+      operationStatusText: '영업/정상',
+      licenseStatusText: '정상',
+      officialPhone: null,
+      coordinates: {
+        latitude: 37.682,
+        longitude: 126.772,
+        crs: 'WGS84',
+      },
+      metadata: {},
+      rowChecksum: 'ah_test_normal_exotic',
+      rawPayload: {},
+    }).canonicalHospital;
+    const now = new Date().toISOString();
+    const repository: AnimalHospitalCanonicalRepository = {
+      search: async () => [normalCanonical, exoticCanonical],
+      getApprovedVerifications: async hospitalIds =>
+        hospitalIds.includes(exoticCanonical.id)
+          ? [
+              {
+                id: 'verification-exotic-1',
+                animalHospitalId: exoticCanonical.id,
+                fieldKey: 'exoticAnimalCare',
+                status: 'approved',
+                verifiedValue: { exoticAnimalCare: true },
+                verificationSource: 'operator-call',
+                reviewerId: 'reviewer-1',
+                reviewedAt: now,
+                expiresAt: null,
+                note: 'operator confirmed',
+                evidence: { source: 'operator-call' },
+                createdAt: now,
+                updatedAt: now,
+              },
+            ]
+          : [],
+    };
+    const provider: LocationSearchProvider = {
+      searchKeyword: async () => [],
+      searchAddress: async () => [],
+    };
+
+    const result = await searchAnimalHospitals({
+      query: null,
+      scope: {
+        displayLabel: '현재 위치',
+        queryLabel: '경기 고양시',
+        anchorCoordinates: {
+          latitude: 37.68,
+          longitude: 126.77,
+          accuracy: 30,
+          capturedAt: Date.now(),
+          source: 'gps',
+        },
+        distanceLabel: '현재 위치 기준',
+      },
+      useNearbySearch: true,
+      exoticAnimalCareOnly: true,
+      repository,
+      provider,
+    });
+
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]?.id).toBe(exoticCanonical.id);
+    expect(result.items[0]).not.toHaveProperty('exoticAnimalCare');
+    expect(
+      result.internalItems[0]?.sensitiveDetails.exoticAnimalCare.value,
+    ).toBe(true);
+  });
+
+  it('thumbnail은 pending/approved verification 중 최신 public 값을 우선 반영한다', async () => {
     const canonical = mapOfficialAnimalHospitalSourceToCanonical({
       provider: 'official-localdata',
       providerRecordId: '4110000:411000001020240778',
