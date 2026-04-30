@@ -30,6 +30,10 @@ export default React.memo(function WeatherGuideHomeCard({
   const textSecondary = isNightCard ? 'rgba(226,236,248,0.74)' : '#8B96AA';
   const locationColor = isNightCard ? 'rgba(208,220,238,0.72)' : '#9BA5B6';
   const chevronColor = isNightCard ? '#F8FBFF' : '#98A1B2';
+  const attributionColor = isNightCard
+    ? 'rgba(226,236,248,0.56)'
+    : '#A6B0C0';
+  const attributionLabel = weather.attribution?.label?.trim() || 'Open-Meteo';
   const iconWrapBackground = isNightCard
     ? 'rgba(255,255,255,0.12)'
     : 'rgba(255,255,255,0.72)';
@@ -75,6 +79,11 @@ export default React.memo(function WeatherGuideHomeCard({
               ? '최근 확인한 날씨를 잠시 보여주고 있어요. 연결되면 실시간 정보로 바뀝니다.'
               : weather.homeCaption}
           </Text>
+          {weather.dataSource !== 'unavailable' ? (
+            <Text style={[styles.attribution, { color: attributionColor }]}>
+              날씨 데이터: {attributionLabel}
+            </Text>
+          ) : null}
         </View>
       </View>
       <Feather name="chevron-right" size={18} color={chevronColor} />
@@ -142,5 +151,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
     fontWeight: '400',
+  },
+  attribution: {
+    fontSize: 10,
+    lineHeight: 14,
+    fontWeight: '500',
   },
 });

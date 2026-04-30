@@ -322,6 +322,7 @@ export default function WeatherInsightScreen() {
     : hasPreviewWeather
       ? '최근 확인 기준'
       : '연결 필요';
+  const attributionLabel = weather.attribution?.label?.trim() || 'Open-Meteo';
 
   const routeDistrict = route.params?.district?.trim() || null;
   const displayDistrict =
@@ -1091,6 +1092,14 @@ export default function WeatherInsightScreen() {
               </Text>
             </TouchableOpacity>
           </WeatherGlassCard>
+
+          {hasRenderableWeather ? (
+            <Text
+              style={[styles.attributionText, { color: palette.textSecondary }]}
+            >
+              날씨 데이터: {attributionLabel}
+            </Text>
+          ) : null}
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -1402,5 +1411,11 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: '#102240',
     fontWeight: '700',
+  },
+  attributionText: {
+    textAlign: 'center',
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: '500',
   },
 });

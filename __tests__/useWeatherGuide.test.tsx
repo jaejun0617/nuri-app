@@ -29,8 +29,7 @@ jest.mock('../src/hooks/useDistrict', () => ({
 }));
 
 jest.mock('../src/services/weather/api', () => ({
-  fetchOpenMeteoForecast: jest.fn(),
-  fetchOpenMeteoAirQuality: jest.fn(),
+  fetchWeatherCacheBundle: jest.fn(),
 }));
 
 jest.mock('../src/services/weather/cache', () => ({
@@ -44,12 +43,10 @@ const { useCurrentLocation } = jest.requireMock('../src/hooks/useCurrentLocation
 const { useDistrict } = jest.requireMock('../src/hooks/useDistrict') as {
   useDistrict: jest.Mock;
 };
-const {
-  fetchOpenMeteoForecast,
-  fetchOpenMeteoAirQuality,
-} = jest.requireMock('../src/services/weather/api') as {
-  fetchOpenMeteoForecast: jest.Mock;
-  fetchOpenMeteoAirQuality: jest.Mock;
+const { fetchWeatherCacheBundle } = jest.requireMock(
+  '../src/services/weather/api',
+) as {
+  fetchWeatherCacheBundle: jest.Mock;
 };
 
 type HarnessProps = {
@@ -99,6 +96,28 @@ async function cleanup(
   client.clear();
 }
 
+function mockWeatherCacheResponse(input: {
+  forecast: Record<string, unknown>;
+  airQuality: Record<string, unknown> | null;
+  source?: 'fresh_cache' | 'provider' | 'stale_cache';
+}) {
+  fetchWeatherCacheBundle.mockResolvedValue({
+    airQuality: input.airQuality,
+    attribution: {
+      label: 'Open-Meteo',
+      url: 'https://open-meteo.com/',
+    },
+    coordBucket: 'v1:37.68:126.76:d0.02',
+    expiresAt: '2026-04-29T04:00:00.000Z',
+    fallbackReason: null,
+    fetchedAt: '2026-04-29T03:00:00.000Z',
+    forecast: input.forecast,
+    source: input.source ?? 'provider',
+    staleUntil: '2026-04-29T09:00:00.000Z',
+    warning: null,
+  });
+}
+
 describe('useWeatherGuide', () => {
   const coords = { latitude: 37.674, longitude: 126.769, accuracy: 10 };
 
@@ -126,31 +145,33 @@ describe('useWeatherGuide', () => {
       source: 'kakao',
       error: null,
     });
-    fetchOpenMeteoForecast.mockResolvedValue({
-      current: {
-        temperature_2m: -2.1,
-        apparent_temperature: -5.2,
-        weather_code: 3,
-        relative_humidity_2m: 61,
-        wind_speed_10m: 3.4,
-        cloud_cover: 68,
+    mockWeatherCacheResponse({
+      forecast: {
+        current: {
+          temperature_2m: -2.1,
+          apparent_temperature: -5.2,
+          weather_code: 3,
+          relative_humidity_2m: 61,
+          wind_speed_10m: 3.4,
+          cloud_cover: 68,
+        },
+        daily: {
+          time: ['2026-03-09'],
+          weather_code: [3],
+          temperature_2m_max: [7],
+          temperature_2m_min: [-2],
+          sunrise: ['2026-03-09T06:43:00+09:00'],
+          sunset: ['2026-03-09T18:27:00+09:00'],
+          uv_index_max: [3.2],
+          precipitation_probability_max: [8],
+        },
       },
-      daily: {
-        time: ['2026-03-09'],
-        weather_code: [3],
-        temperature_2m_max: [7],
-        temperature_2m_min: [-2],
-        sunrise: ['2026-03-09T06:43:00+09:00'],
-        sunset: ['2026-03-09T18:27:00+09:00'],
-        uv_index_max: [3.2],
-        precipitation_probability_max: [8],
-      },
-    });
-    fetchOpenMeteoAirQuality.mockResolvedValue({
-      current: {
-        pm10: 93,
-        pm2_5: 24,
-        ozone: 0.02,
+      airQuality: {
+        current: {
+          pm10: 93,
+          pm2_5: 24,
+          ozone: 0.02,
+        },
       },
     });
 
@@ -216,7 +237,7 @@ describe('useWeatherGuide', () => {
     await cleanup(renderer!, client);
   });
 
-  it('초기 live 번들이 있어도 API 실패가 확정되면 unavailable 상태로 내려간다', async () => {
+  it('초기 live 번들이 있고 API가 실패하면 기존 번들을 preview로 유지한다', async () => {
     const initialBundle = buildWeatherGuideBundleForScenario('dusty', '일산3동');
 
     useCurrentLocation.mockReturnValue({
@@ -236,14 +257,9 @@ describe('useWeatherGuide', () => {
       source: 'kakao',
       error: null,
     });
-    fetchOpenMeteoForecast.mockRejectedValue(new Error('날씨 정보를 불러오지 못했어요.'));
-    fetchOpenMeteoAirQuality.mockResolvedValue({
-      current: {
-        pm10: 10,
-        pm2_5: 5,
-        ozone: 0.01,
-      },
-    });
+    fetchWeatherCacheBundle.mockRejectedValue(
+      new Error('날씨 정보를 불러오지 못했어요.'),
+    );
 
     const client = createClient();
     let renderer: ReactTestRenderer.ReactTestRenderer;
@@ -256,10 +272,10 @@ describe('useWeatherGuide', () => {
       );
     });
 
-    await waitFor(() => latestState?.bundle.dataSource === 'unavailable');
+    await waitFor(() => latestState?.error === '날씨 정보를 불러오지 못했어요.');
 
-    expect(latestState?.bundle.dataSource).toBe('unavailable');
-    expect(latestState?.bundle.currentTemperature).toBe(0);
+    expect(latestState?.bundle.dataSource).toBe('preview');
+    expect(latestState?.bundle.currentTemperature).toBe(initialBundle.currentTemperature);
     expect(latestState?.error).toBe('날씨 정보를 불러오지 못했어요.');
 
     await cleanup(renderer!, client);
@@ -285,31 +301,33 @@ describe('useWeatherGuide', () => {
       source: 'kakao',
       error: null,
     });
-    fetchOpenMeteoForecast.mockResolvedValue({
-      current: {
-        temperature_2m: 21.1,
-        apparent_temperature: 22.4,
-        weather_code: 1,
-        relative_humidity_2m: 41,
-        wind_speed_10m: 1.6,
-        cloud_cover: 8,
+    mockWeatherCacheResponse({
+      forecast: {
+        current: {
+          temperature_2m: 21.1,
+          apparent_temperature: 22.4,
+          weather_code: 1,
+          relative_humidity_2m: 41,
+          wind_speed_10m: 1.6,
+          cloud_cover: 8,
+        },
+        daily: {
+          time: ['2026-03-09'],
+          weather_code: [1],
+          temperature_2m_max: [24],
+          temperature_2m_min: [14],
+          sunrise: ['2026-03-09T06:43:00+09:00'],
+          sunset: ['2026-03-09T18:27:00+09:00'],
+          uv_index_max: [4.1],
+          precipitation_probability_max: [4],
+        },
       },
-      daily: {
-        time: ['2026-03-09'],
-        weather_code: [1],
-        temperature_2m_max: [24],
-        temperature_2m_min: [14],
-        sunrise: ['2026-03-09T06:43:00+09:00'],
-        sunset: ['2026-03-09T18:27:00+09:00'],
-        uv_index_max: [4.1],
-        precipitation_probability_max: [4],
-      },
-    });
-    fetchOpenMeteoAirQuality.mockResolvedValue({
-      current: {
-        pm10: 12,
-        pm2_5: 5,
-        ozone: 0.02,
+      airQuality: {
+        current: {
+          pm10: 12,
+          pm2_5: 5,
+          ozone: 0.02,
+        },
       },
     });
 
@@ -356,29 +374,35 @@ describe('useWeatherGuide', () => {
       source: 'kakao',
       error: null,
     });
-    fetchOpenMeteoForecast.mockResolvedValue({
-      current: {
-        temperature_2m: 19.2,
-        apparent_temperature: 20.1,
-        weather_code: 1,
-        relative_humidity_2m: 44,
-        wind_speed_10m: 2.1,
-        cloud_cover: 10,
+    mockWeatherCacheResponse({
+      forecast: {
+        current: {
+          temperature_2m: 19.2,
+          apparent_temperature: 20.1,
+          weather_code: 1,
+          relative_humidity_2m: 44,
+          wind_speed_10m: 2.1,
+          cloud_cover: 10,
+        },
+        daily: {
+          time: ['2026-03-09', '2026-03-10'],
+          weather_code: [1, 2],
+          temperature_2m_max: [21, 22],
+          temperature_2m_min: [12, 13],
+          sunrise: [
+            '2026-03-09T06:43:00+09:00',
+            '2026-03-10T06:41:00+09:00',
+          ],
+          sunset: [
+            '2026-03-09T18:27:00+09:00',
+            '2026-03-10T18:28:00+09:00',
+          ],
+          uv_index_max: [4.1, 4.4],
+          precipitation_probability_max: [4, 8],
+        },
       },
-      daily: {
-        time: ['2026-03-09', '2026-03-10'],
-        weather_code: [1, 2],
-        temperature_2m_max: [21, 22],
-        temperature_2m_min: [12, 13],
-        sunrise: ['2026-03-09T06:43:00+09:00', '2026-03-10T06:41:00+09:00'],
-        sunset: ['2026-03-09T18:27:00+09:00', '2026-03-10T18:28:00+09:00'],
-        uv_index_max: [4.1, 4.4],
-        precipitation_probability_max: [4, 8],
-      },
+      airQuality: null,
     });
-    fetchOpenMeteoAirQuality.mockRejectedValue(
-      new Error('대기질 정보를 불러오지 못했어요.'),
-    );
 
     const client = createClient();
     let renderer: ReactTestRenderer.ReactTestRenderer;

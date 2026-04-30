@@ -1,15 +1,16 @@
 // 파일: src/services/weather/cache.ts
 // 역할:
-// - 좌표별 날씨 번들을 AsyncStorage에 짧게 캐시
+// - 좌표 bucket별 날씨 번들을 AsyncStorage에 캐시
 // - 홈/상세 날씨 화면이 같은 캐시 정책을 재사용하도록 중앙화
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { DeviceCoordinates } from '../location/currentPosition';
+import { getWeatherCoordBucketKey } from './coordBucket';
 import type { WeatherGuideBundle } from './guide';
 import { WEATHER_PREVIEW_MAX_AGE_MS } from './policy';
 
-const WEATHER_GUIDE_CACHE_KEY = '@nuri/weather-guide-cache/v5';
+const WEATHER_GUIDE_CACHE_KEY = '@nuri/weather-guide-cache/v6';
 
 type WeatherGuideCacheEntry = {
   savedAt: number;
@@ -19,7 +20,7 @@ type WeatherGuideCacheEntry = {
 type WeatherGuideCacheStore = Record<string, WeatherGuideCacheEntry>;
 
 function getCoordsKey(coords: DeviceCoordinates) {
-  return `${coords.latitude.toFixed(3)}:${coords.longitude.toFixed(3)}`;
+  return getWeatherCoordBucketKey(coords);
 }
 
 async function readWeatherGuideCacheStore(): Promise<WeatherGuideCacheStore> {

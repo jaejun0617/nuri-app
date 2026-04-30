@@ -7,6 +7,10 @@ import { getCurrentWeatherIsDaytime } from './dayPhase';
 
 export type WeatherScenario = 'rain' | 'snow' | 'dusty' | 'fresh';
 export type WeatherDataSource = 'live' | 'preview' | 'unavailable';
+export type WeatherDataAttribution = {
+  label: string;
+  url?: string;
+};
 export type WeatherIconKey =
   | 'weather-pouring'
   | 'weather-cloudy'
@@ -131,6 +135,7 @@ export type WeatherGuideBundle = {
   district: string;
   scenario: WeatherScenario;
   dataSource: WeatherDataSource;
+  attribution?: WeatherDataAttribution;
   airQualityConcern: boolean;
   weatherIcon: WeatherIconKey;
   isDaytime: boolean;

@@ -1,11 +1,12 @@
 // 파일: src/store/weatherStore.ts
 // 역할:
-// - 좌표별 날씨 번들을 메모리에 짧게 유지하는 zustand store
-// - 홈 <-> 상세 이동처럼 짧은 왕복에서 API 재호출을 줄이기 위한 TTL 캐시
+// - 좌표 bucket별 날씨 번들을 메모리에 유지하는 zustand store
+// - 홈 <-> 상세 이동과 미세 위치 변화에서 weather-cache 재호출을 줄이기 위한 TTL 캐시
 
 import { create } from 'zustand';
 
 import type { DeviceCoordinates } from '../services/location/currentPosition';
+import { getWeatherCoordBucketKey } from '../services/weather/coordBucket';
 import type { WeatherGuideBundle } from '../services/weather/guide';
 import { WEATHER_PREVIEW_MAX_AGE_MS } from '../services/weather/policy';
 
@@ -31,7 +32,7 @@ type WeatherStoreState = {
 };
 
 export function getWeatherStoreCoordsKey(coords: DeviceCoordinates) {
-  return `${coords.latitude.toFixed(3)}:${coords.longitude.toFixed(3)}`;
+  return getWeatherCoordBucketKey(coords);
 }
 
 export const useWeatherStore = create<WeatherStoreState>((set, get) => ({

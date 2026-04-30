@@ -1,12 +1,13 @@
 // 파일: src/services/weather/mapper.ts
 // 역할:
-// - Open-Meteo 응답을 현재 앱의 WeatherGuideBundle 모델로 변환
+// - weather-cache provider 응답을 현재 앱의 WeatherGuideBundle 모델로 변환
 // - 화면 공통 번들 구조에 실제 API 데이터를 일관되게 매핑하는 계층
 
 import type { DeviceCoordinates } from '../location/currentPosition';
 import type {
-  OpenMeteoAirQualityResponse,
-  OpenMeteoForecastResponse,
+  WeatherAirQualityResponse,
+  WeatherDataAttribution,
+  WeatherForecastResponse,
 } from './api';
 import { safeYmd } from '../../utils/date';
 import { getCurrentWeatherIsDaytime } from './dayPhase';
@@ -14,6 +15,7 @@ import {
   buildWeatherGuideBundleForScenario,
   type AirQualityMetric,
   type AirQualityTone,
+  type WeatherDataSource,
   type WeatherGuideBundle,
   type WeatherIconKey,
   type WeatherScenario,
@@ -68,7 +70,7 @@ function mapScenarioFromData(input: {
 }
 
 function buildWeeklyItems(
-  daily: OpenMeteoForecastResponse['daily'],
+  daily: WeatherForecastResponse['daily'],
   isDay: boolean,
 ): WeeklyWeatherItem[] {
   const weekdayLabels = ['일', '월', '화', '수', '목', '금', '토'];
@@ -116,7 +118,7 @@ function formatKoreanTime(iso: string | undefined): string | null {
 }
 
 function buildAirQualityMetrics(
-  air: OpenMeteoAirQualityResponse['current'],
+  air: WeatherAirQualityResponse['current'],
 ): AirQualityMetric[] {
   const pm10 = Math.max(0, air?.pm10 ?? 0);
   const pm25 = Math.max(0, air?.pm2_5 ?? 0);
@@ -160,8 +162,10 @@ function buildAirQualityMetrics(
 export function buildWeatherGuideBundleFromApi(input: {
   district: string;
   coords: DeviceCoordinates;
-  forecast: OpenMeteoForecastResponse;
-  airQuality?: OpenMeteoAirQualityResponse | null;
+  forecast: WeatherForecastResponse;
+  airQuality?: WeatherAirQualityResponse | null;
+  dataSource?: Extract<WeatherDataSource, 'live' | 'preview'>;
+  attribution?: WeatherDataAttribution;
   fallbackAirQualityMetrics?: AirQualityMetric[];
   fallbackAirQualityConcern?: boolean;
 }): WeatherGuideBundle {
@@ -192,7 +196,8 @@ export function buildWeatherGuideBundleFromApi(input: {
     ...base,
     district: input.district,
     scenario,
-    dataSource: 'live',
+    dataSource: input.dataSource ?? 'live',
+    attribution: input.attribution,
     airQualityConcern,
     weatherIcon: mapWeatherCodeToIcon(weatherCode, isDaytime),
     isDaytime,

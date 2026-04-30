@@ -4,7 +4,7 @@
 // 어디서 쓰이는지:
 // - 홈 로그인 화면, WeatherInsightScreen, 실내 활동 추천 화면 등 날씨 기반 화면에서 공통으로 사용된다.
 // 핵심 역할:
-// - 위치 권한 확인, 좌표 확보, district 조회, Open-Meteo fetch, preview/unavailable fallback 구성을 담당한다.
+// - 위치 권한 확인, 좌표 확보, district 조회, weather-cache 호출, preview/unavailable fallback 구성을 담당한다.
 // - 메모리 캐시와 디스크 캐시를 사용해 화면 왕복 시 재요청을 줄인다.
 // 데이터·상태 흐름:
 // - `useCurrentLocation`과 `useDistrict` 결과를 바탕으로 Query key를 만들고, 최종적으로 `WeatherGuideBundle`을 반환한다.
@@ -27,7 +27,7 @@ import {
   LOCATION_AUTO_REFRESH_INTERVAL_MS,
   type DeviceCoordinates,
 } from '../services/location/currentPosition';
-import { fetchOpenMeteoAirQuality, fetchOpenMeteoForecast } from '../services/weather/api';
+import { fetchWeatherCacheBundle } from '../services/weather/api';
 import {
   loadCachedWeatherGuideBundle,
   saveCachedWeatherGuideBundle,
@@ -179,21 +179,16 @@ export function useWeatherGuide(
 
       const previewCandidate =
         initialBundle ?? memoryEntry?.bundle ?? diskPreviewBundle ?? null;
-      const [forecastResult, airQualityResult] = await Promise.allSettled([
-        fetchOpenMeteoForecast(location.coordinates),
-        fetchOpenMeteoAirQuality(location.coordinates),
-      ]);
-
-      if (forecastResult.status !== 'fulfilled') {
-        throw forecastResult.reason;
-      }
+      const weatherCacheResult = await fetchWeatherCacheBundle(location.coordinates);
 
       return buildWeatherGuideBundleFromApi({
         district: resolvedDistrict,
         coords: location.coordinates,
-        forecast: forecastResult.value,
-        airQuality:
-          airQualityResult.status === 'fulfilled' ? airQualityResult.value : null,
+        forecast: weatherCacheResult.forecast,
+        airQuality: weatherCacheResult.airQuality,
+        dataSource:
+          weatherCacheResult.source === 'stale_cache' ? 'preview' : 'live',
+        attribution: weatherCacheResult.attribution,
         fallbackAirQualityMetrics: previewCandidate?.airQualityMetrics,
         fallbackAirQualityConcern: previewCandidate?.airQualityConcern,
       });
@@ -208,7 +203,7 @@ export function useWeatherGuide(
   }, [location.coordinates, weatherQuery.data]);
 
   const previewBundle = useMemo(() => {
-    if (weatherQuery.data || weatherQuery.error) return null;
+    if (weatherQuery.data) return null;
     const candidate = initialBundle ?? memoryEntry?.bundle ?? diskPreviewBundle;
     if (!candidate) return null;
     return createPreviewWeatherGuideBundle(candidate, resolvedDistrict);
@@ -218,7 +213,6 @@ export function useWeatherGuide(
     memoryEntry,
     resolvedDistrict,
     weatherQuery.data,
-    weatherQuery.error,
   ]);
 
   const bundle = useMemo(() => {
@@ -297,7 +291,12 @@ export function useWeatherGuide(
     if (weatherQuery.isFetching) return false;
 
     if (previewBundle || !weatherQuery.data) {
-      return true;
+      const lastResolvedAt = Math.max(
+        weatherQuery.dataUpdatedAt,
+        weatherQuery.errorUpdatedAt,
+      );
+      if (lastResolvedAt <= 0) return true;
+      return Date.now() - lastResolvedAt >= WEATHER_FOCUS_REFRESH_MS;
     }
 
     return Date.now() - weatherQuery.dataUpdatedAt >= WEATHER_FOCUS_REFRESH_MS;
@@ -308,6 +307,7 @@ export function useWeatherGuide(
     previewBundle,
     weatherQuery.data,
     weatherQuery.dataUpdatedAt,
+    weatherQuery.errorUpdatedAt,
     weatherQuery.isFetching,
   ]);
 
