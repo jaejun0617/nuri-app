@@ -52,6 +52,9 @@ const WALK_BASE_KEYWORDS = [
   '둘레길',
   '숲길',
 ] as const;
+const WALK_NEARBY_MAX_PROVIDER_REQUESTS = 12;
+const WALK_NEARBY_INITIAL_PAGE_LIMIT = 1;
+const WALK_NEARBY_TARGET_ITEM_COUNT = 8;
 const PLACE_DEFAULT_QUERIES = [
   '애견동반 카페',
   '애견동반 식당',
@@ -210,6 +213,11 @@ type NormalizedPlaceBase = {
 };
 
 type DiscoveryQueryIntent = 'none' | 'broad' | 'specific';
+
+type LocationDiscoveryProviderSearchRequest = {
+  query: string;
+  page: number;
+};
 
 type NormalizedPetFriendlyCandidate = NormalizedPlaceBase & {
   domain: 'pet-friendly-place';
@@ -987,22 +995,64 @@ async function searchDocumentsByQueries(
     maxPages: number;
   },
 ): Promise<KakaoPlaceDocument[]> {
-  const tasks = queries.flatMap(query =>
-    Array.from({ length: options.maxPages }, (_, index) =>
-      kakaoLocalSearchProvider.searchKeyword({
-        query,
-        coordinates,
-        radiusMeters: options.radiusMeters,
-        size: options.size,
-        page: index + 1,
-      }),
-    ),
+  const requests = queries.flatMap(query =>
+    Array.from({ length: options.maxPages }, (_, index) => ({
+      query,
+      page: index + 1,
+    })),
+  );
+
+  return searchDocumentsByRequests(requests, coordinates, {
+    radiusMeters: options.radiusMeters,
+    size: options.size,
+  });
+}
+
+async function searchDocumentsByRequests(
+  requests: ReadonlyArray<LocationDiscoveryProviderSearchRequest>,
+  coordinates: DeviceCoordinates | null,
+  options: {
+    radiusMeters: number;
+    size: number;
+  },
+): Promise<KakaoPlaceDocument[]> {
+  const tasks = requests.map(request =>
+    kakaoLocalSearchProvider.searchKeyword({
+      query: request.query,
+      coordinates,
+      radiusMeters: options.radiusMeters,
+      size: options.size,
+      page: request.page,
+    }),
   );
 
   const responses = await Promise.allSettled(tasks);
   return responses.flatMap(response =>
     response.status === 'fulfilled' ? response.value : [],
   );
+}
+
+function buildCappedWalkNearbySearchPlan(
+  queries: ReadonlyArray<string>,
+): LocationDiscoveryProviderSearchRequest[][] {
+  const initialStage = queries
+    .slice(0, WALK_NEARBY_MAX_PROVIDER_REQUESTS)
+    .map(query => ({
+      query,
+      page: WALK_NEARBY_INITIAL_PAGE_LIMIT,
+    }));
+  const remainingRequestCount = Math.max(
+    WALK_NEARBY_MAX_PROVIDER_REQUESTS - initialStage.length,
+    0,
+  );
+  const additionalStage = queries
+    .slice(0, remainingRequestCount)
+    .map(query => ({
+      query,
+      page: WALK_NEARBY_INITIAL_PAGE_LIMIT + 1,
+    }));
+
+  return [initialStage, additionalStage].filter(stage => stage.length > 0);
 }
 
 function sortItems(
@@ -1075,6 +1125,58 @@ function applyWalkExposureGuard(
   return distanceFiltered.slice(0, itemCap);
 }
 
+function buildWalkLocationItems(
+  documents: ReadonlyArray<KakaoPlaceDocument>,
+  input: LocationDiscoverySearchInput,
+): LocationDiscoveryItem[] {
+  return applyWalkExposureGuard(
+    sortItems(
+      dedupeItems(
+        documents
+          .filter(filterWalkDocument)
+          .map(document =>
+            toWalkItem(
+              document,
+              input.scope.anchorCoordinates,
+              input.scope.distanceLabel,
+            ),
+          )
+          .filter((item): item is LocationDiscoveryItem => Boolean(item)),
+      ),
+    ),
+    input.query,
+  );
+}
+
+async function searchCappedWalkNearbyDocuments(
+  input: LocationDiscoverySearchInput,
+  options: {
+    radiusMeters: number;
+    size: number;
+  },
+): Promise<KakaoPlaceDocument[]> {
+  const documents: KakaoPlaceDocument[] = [];
+  const searchPlan = buildCappedWalkNearbySearchPlan(buildWalkQueries(input));
+
+  for (const stage of searchPlan) {
+    const stageDocuments = await searchDocumentsByRequests(
+      stage,
+      input.scope.anchorCoordinates,
+      options,
+    );
+    documents.push(...stageDocuments);
+
+    if (
+      buildWalkLocationItems(documents, input).length >=
+      WALK_NEARBY_TARGET_ITEM_COUNT
+    ) {
+      break;
+    }
+  }
+
+  return documents;
+}
+
 function applyPetFriendlyExposureGuard(
   items: ReadonlyArray<LocationDiscoveryItem>,
   query: string | null | undefined,
@@ -1119,37 +1221,26 @@ function applyPetFriendlyExposureGuard(
 async function searchWalkLocations(
   input: LocationDiscoverySearchInput,
 ): Promise<LocationDiscoveryResponse> {
-  const documents = await searchDocumentsByQueries(
-    buildWalkQueries(input),
-    input.scope.anchorCoordinates,
-    {
-      radiusMeters: input.scope.anchorCoordinates ? 5500 : 20000,
-      size: DEFAULT_QUERY_PAGE_SIZE,
-      maxPages: input.scope.anchorCoordinates ? 3 : 2,
-    },
-  );
-
-  const items = applyWalkExposureGuard(
-    sortItems(
-      dedupeItems(
-        documents
-          .filter(filterWalkDocument)
-          .map(document =>
-            toWalkItem(
-              document,
-              input.scope.anchorCoordinates,
-              input.scope.distanceLabel,
-            ),
-          )
-          .filter((item): item is LocationDiscoveryItem => Boolean(item)),
-      ),
-    ),
-    input.query,
-  );
+  const normalizedQuery = normalizeQuery(input.query);
+  const searchOptions = {
+    radiusMeters: input.scope.anchorCoordinates ? 5500 : 20000,
+    size: DEFAULT_QUERY_PAGE_SIZE,
+  };
+  const documents = normalizedQuery
+    ? await searchDocumentsByQueries(
+        buildWalkQueries(input),
+        input.scope.anchorCoordinates,
+        {
+          ...searchOptions,
+          maxPages: input.scope.anchorCoordinates ? 3 : 2,
+        },
+      )
+    : await searchCappedWalkNearbyDocuments(input, searchOptions);
+  const items = buildWalkLocationItems(documents, input);
 
   return {
     items,
-    query: normalizeQuery(input.query),
+    query: normalizedQuery,
     source: 'kakao',
     verificationStatus: 'service-ranked',
     scope: input.scope,
