@@ -3,13 +3,51 @@
 // - Supabase Auth 래퍼 (signIn/signUp/signOut)
 // - 성공 시 session 반환 (store 반영은 화면/AppProviders에서 수행)
 
+import { Linking } from 'react-native';
+
 import { supabase } from './client';
 import { isValidPasswordFormat } from './account';
 
 export const APP_URL_SCHEME = 'nuri';
 export const PASSWORD_RESET_REDIRECT_URL = `${APP_URL_SCHEME}://auth/reset`;
+export const OAUTH_CALLBACK_REDIRECT_URL = `${APP_URL_SCHEME}://auth/callback`;
 
 const EMAIL_RULE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export type SocialOAuthProvider = 'google' | 'kakao';
+
+type OAuthErrorCode =
+  | 'provider_setup_required'
+  | 'oauth_url_missing'
+  | 'browser_open_failed'
+  | 'callback_session_missing'
+  | 'session_exchange_failed';
+
+export class OAuthSignInError extends Error {
+  readonly code: OAuthErrorCode;
+  readonly provider: SocialOAuthProvider | null;
+  readonly sourceError: unknown;
+
+  constructor(input: {
+    code: OAuthErrorCode;
+    message: string;
+    provider?: SocialOAuthProvider | null;
+    sourceError?: unknown;
+  }) {
+    super(input.message);
+    this.name = 'OAuthSignInError';
+    this.code = input.code;
+    this.provider = input.provider ?? null;
+    this.sourceError = input.sourceError;
+  }
+}
+
+export type OAuthCallbackSessionInput = {
+  accessToken?: string | null;
+  refreshToken?: string | null;
+  code?: string | null;
+  provider?: SocialOAuthProvider | null;
+};
 
 export type AccountDeletionStatus =
   | 'requested'
@@ -48,6 +86,127 @@ export type AccountDeletionResult = {
   lastErrorCode: string | null;
   lastErrorMessage: string | null;
 };
+
+export function getOAuthProviderLabel(provider: SocialOAuthProvider): string {
+  return provider === 'kakao' ? '카카오' : 'Google';
+}
+
+export function getOAuthSignInUserMessage(error: unknown): string {
+  if (error instanceof OAuthSignInError) {
+    if (
+      error.code === 'provider_setup_required' ||
+      error.code === 'oauth_url_missing'
+    ) {
+      return '소셜 로그인 연결을 준비하고 있어요. 이메일 로그인을 이용해 주세요.';
+    }
+  }
+
+  return '소셜 로그인 연결에 실패했어요. 잠시 후 다시 시도하거나 이메일 로그인을 이용해 주세요.';
+}
+
+export async function signInWithOAuthProvider(
+  provider: SocialOAuthProvider,
+): Promise<void> {
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo: OAUTH_CALLBACK_REDIRECT_URL,
+      skipBrowserRedirect: true,
+    },
+  });
+
+  if (error) {
+    logOAuthError({ provider, stage: 'start', error });
+    throw new OAuthSignInError({
+      code: 'provider_setup_required',
+      message: getOAuthSignInUserMessage(error),
+      provider,
+      sourceError: error,
+    });
+  }
+
+  if (!data.url) {
+    logOAuthError({ provider, stage: 'start', error: 'missing_url' });
+    throw new OAuthSignInError({
+      code: 'oauth_url_missing',
+      message: getOAuthSignInUserMessage(null),
+      provider,
+    });
+  }
+
+  try {
+    await Linking.openURL(data.url);
+  } catch (error: unknown) {
+    logOAuthError({ provider, stage: 'open_browser', error });
+    throw new OAuthSignInError({
+      code: 'browser_open_failed',
+      message:
+        '브라우저를 열지 못했어요. 잠시 후 다시 시도하거나 이메일 로그인을 이용해 주세요.',
+      provider,
+      sourceError: error,
+    });
+  }
+}
+
+export function signInWithGoogle(): Promise<void> {
+  return signInWithOAuthProvider('google');
+}
+
+export function signInWithKakao(): Promise<void> {
+  return signInWithOAuthProvider('kakao');
+}
+
+export async function completeOAuthCallbackSession(
+  input: OAuthCallbackSessionInput,
+): Promise<void> {
+  const code = normalizeOptionalToken(input.code);
+  const accessToken = normalizeOptionalToken(input.accessToken);
+  const refreshToken = normalizeOptionalToken(input.refreshToken);
+
+  if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) {
+      logOAuthError({
+        provider: input.provider ?? null,
+        stage: 'exchange_code',
+        error,
+      });
+      throw new OAuthSignInError({
+        code: 'session_exchange_failed',
+        message: getOAuthSignInUserMessage(error),
+        provider: input.provider ?? null,
+        sourceError: error,
+      });
+    }
+    return;
+  }
+
+  if (!accessToken || !refreshToken) {
+    throw new OAuthSignInError({
+      code: 'callback_session_missing',
+      message: '소셜 로그인 응답을 확인하지 못했어요.',
+      provider: input.provider ?? null,
+    });
+  }
+
+  const { error } = await supabase.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+  });
+  if (error) {
+    logOAuthError({
+      provider: input.provider ?? null,
+      stage: 'set_session',
+      error,
+    });
+    throw new OAuthSignInError({
+      code: 'session_exchange_failed',
+      message: getOAuthSignInUserMessage(error),
+      provider: input.provider ?? null,
+      sourceError: error,
+    });
+  }
+}
 
 export async function signInWithEmail(email: string, password: string) {
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -180,6 +339,38 @@ function isMissingDeleteRpcError(error: unknown): boolean {
       joined.includes('schema cache') ||
       joined.includes('function'))
   );
+}
+
+function normalizeOptionalToken(value: string | null | undefined): string {
+  return value?.trim() ?? '';
+}
+
+function getStableErrorCode(error: unknown): string {
+  if (error instanceof OAuthSignInError) return error.code;
+  if (error instanceof Error) return error.name || 'error';
+  if (isRecord(error)) {
+    const code = error.code;
+    if (typeof code === 'string' && code.trim()) return code.trim();
+    const status = error.status;
+    if (typeof status === 'number') return `status_${status}`;
+    if (typeof status === 'string' && status.trim()) return status.trim();
+  }
+  if (typeof error === 'string' && error.trim()) return error.trim();
+  return 'unknown';
+}
+
+function logOAuthError(input: {
+  provider: SocialOAuthProvider | null;
+  stage: string;
+  error: unknown;
+}): void {
+  if (!__DEV__) return;
+
+  console.warn('[NURI-AUTH-OAUTH]', {
+    provider: input.provider ?? 'unknown',
+    stage: input.stage,
+    code: getStableErrorCode(input.error),
+  });
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

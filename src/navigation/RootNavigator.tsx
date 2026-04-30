@@ -27,6 +27,7 @@ import WelcomeTransitionScreen from '../screens/Auth/WelcomeTransitionScreen';
 import PasswordResetRequestScreen from '../screens/Auth/PasswordResetRequestScreen';
 import PasswordResetRecoveryScreen from '../screens/Auth/PasswordResetRecoveryScreen';
 import PasswordResetFormScreen from '../screens/Auth/PasswordResetFormScreen';
+import OAuthCallbackScreen from '../screens/Auth/OAuthCallbackScreen';
 
 import PetCreateScreen from '../screens/Pets/PetCreateScreen';
 import PetManagementScreen from '../screens/Pets/PetManagementScreen';
@@ -109,6 +110,17 @@ export type RootStackParamList = {
       }
     | undefined;
   PasswordResetForm: undefined;
+  OAuthCallback:
+    | {
+        access_token?: string | string[];
+        refresh_token?: string | string[];
+        code?: string | string[];
+        provider?: string | string[];
+        error?: string | string[];
+        error_code?: string | string[];
+        error_description?: string | string[];
+      }
+    | undefined;
 
   // Pet
   PetCreate: { from?: 'auto' | 'cta' | 'header_plus' } | undefined;
@@ -276,6 +288,11 @@ export default function RootNavigator() {
       <Stack.Screen
         name="PasswordResetForm"
         component={PasswordResetFormScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="OAuthCallback"
+        component={OAuthCallbackScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

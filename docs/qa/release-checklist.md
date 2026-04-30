@@ -33,6 +33,12 @@
   - notice, helper box, 정책 팝업, 앱 복귀까지 실기기 확인이 끝났다.
 - [x] 닉네임 정책과 Android 기본 레이아웃
   - 닉네임 `2..10`, Community header, Timeline 탭 유지, bottom gap 보정이 실기기 기준으로 닫혔다.
+- [x] Google/Kakao OAuth 앱 코드 연결
+  - SignIn/SignUp의 Kakao/Google 버튼은 placeholder Alert가 아니라 Supabase `signInWithOAuth` web flow를 시작한다.
+  - OAuth callback은 `nuri://auth/callback`으로 분리했고, password reset의 `nuri://auth/reset`과 라우트를 섞지 않는다.
+  - OAuth 성공 후 session 복구는 기존 Splash/AppProviders boot contract를 사용하므로 nickname/pet onboarding 분기를 새로 만들지 않는다.
+  - email/password login, email signup, password reset, policy link UI는 유지한다.
+  - Naver와 Apple은 v1.0 범위에서 제외한다.
 - [x] 외부 지도 전환 기본 동선
   - 장소 상세의 외부 지도 열기 동선은 PO 확인 기준 완료로 분류한다.
 - [x] 건강관리 리포트 Phase 1 MVP
@@ -60,6 +66,17 @@
 - [ ] clean RC artifact 기준 evidence를 최종 release candidate build에서 고정한다.
   - 현재 RC smoke는 dirty working tree 기준이다.
   - 이 항목만 P1 release blocker로 유지하고, 이미 close된 도메인은 다시 열지 않는다.
+
+### 0-2. Google/Kakao OAuth provider setup gate
+
+- [ ] PO가 Google/Kakao provider console, API key/secret, redirect allow-list를 실제 운영 값으로 준비한다.
+  - Google: Google Cloud Project, OAuth consent screen, Web OAuth Client ID/Secret, Android OAuth Client ID, `com.nuri.app`, SHA-1/SHA-256, Privacy Policy/Terms URL.
+  - Kakao: Kakao Developers 앱, Kakao Login 활성화, REST API Key, Client Secret, Supabase callback URL Redirect URI 등록, 동의항목 설정, 필요 시 Biz App/앱 정보 검토.
+  - Supabase Auth: Google/Kakao provider enable, provider별 client id/secret 등록, Redirect URLs allow list에 `nuri://auth/callback` 등록.
+  - 실제 key/secret 값은 repository와 release evidence에 기록하지 않는다.
+- [ ] provider 설정 완료 후 OAuth 성공 smoke를 별도 evidence로 남긴다.
+  - 버튼 탭, provider web flow 진입, 앱 복귀, Supabase session 복구, nickname/pet onboarding 분기를 확인한다.
+  - provider 설정 전 실패는 앱 코드 blocker가 아니라 PO 설정 대기 상태로 분리한다.
 
 ### 0. 정적 검증 / 빌드 스냅샷
 
@@ -187,3 +204,6 @@
   - v1.0 blocker는 아니나 운영 고도화 항목이다.
 - [ ] `weather-cache` public endpoint abuse throttle/rate limit
   - v1.0 blocker는 아니나 운영 고도화 항목이다.
+- [ ] Naver/Apple social login backlog
+  - Naver는 v1.1 이후 후순위다. Supabase custom OAuth/OIDC 또는 별도 callback 구성이 필요할 수 있다.
+  - Apple은 Android-first v1.0 범위에서 제외하며 iOS 출시 및 Apple 정책 검토 시점에 별도 판단한다.

@@ -5,12 +5,12 @@
 // - RootNavigator의 `SignIn` 라우트에서 사용되며, 게스트 홈과 회원가입 화면에서 진입한다.
 // 핵심 역할:
 // - 로그인 입력값 검증, Supabase 로그인 호출, 세션 store 반영, Splash reset 이동을 담당한다.
-// - 현재는 소셜 로그인과 비밀번호 찾기 진입 라벨도 함께 노출한다.
+// - Google/Kakao OAuth 시작, 비밀번호 찾기, 회원가입 진입 라벨도 함께 노출한다.
 // 데이터·상태 흐름:
 // - 성공 시 authStore에 session을 넣고, 실제 프로필/펫 동기화는 AppProviders 부트스트랩이 이어받는다.
 // 수정 시 주의:
 // - 로그인 성공 직후 바로 홈으로 보내지 않고 Splash를 다시 거쳐야 닉네임/펫 가드가 맞게 작동한다.
-// - 소셜 로그인/비밀번호 재설정은 아직 placeholder이므로 실제 구현 전까지 과장된 주석을 넣으면 안 된다.
+// - OAuth 성공 후에도 Splash를 다시 거쳐야 닉네임/펫 가드가 이메일 로그인과 동일하게 작동한다.
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -46,6 +46,11 @@ import {
 import {
   cancelAccountDeletion,
   clearLocalAuthSession,
+  getOAuthProviderLabel,
+  getOAuthSignInUserMessage,
+  signInWithGoogle,
+  signInWithKakao,
+  type SocialOAuthProvider,
 } from '../../services/supabase/auth';
 import { supabase } from '../../services/supabase/client';
 import { useAuthStore } from '../../store/authStore';
@@ -109,6 +114,7 @@ type SocialButtonProps = {
   borderColor: string;
   textColor: string;
   badge: React.ReactNode;
+  disabled: boolean;
   onPress: () => void;
 };
 
@@ -118,15 +124,18 @@ const SocialButton = memo(function SocialButton({
   borderColor,
   textColor,
   badge,
+  disabled,
   onPress,
 }: SocialButtonProps) {
   return (
     <TouchableOpacity
+      accessibilityRole="button"
       activeOpacity={0.88}
+      disabled={disabled}
       onPress={onPress}
       style={[
         styles.socialButton,
-        { backgroundColor, borderColor },
+        { backgroundColor, borderColor, opacity: disabled ? 0.55 : 1 },
       ]}
     >
       <View style={styles.socialBadge}>{badge}</View>
@@ -175,6 +184,8 @@ export default function SignInScreen() {
   const [password, setPassword] = useState('');
   const [securePassword, setSecurePassword] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [oauthSubmitting, setOauthSubmitting] =
+    useState<SocialOAuthProvider | null>(null);
   const [recoverySubmitting, setRecoverySubmitting] = useState<
     'restore' | 'logout' | null
   >(null);
@@ -183,9 +194,11 @@ export default function SignInScreen() {
   const passwordInputRef = useRef<TextInput>(null);
 
   const disabled = useMemo(
-    () => submitting || !email.trim() || password.length < 8,
-    [email, password, submitting],
+    () => submitting || !!oauthSubmitting || !email.trim() || password.length < 8,
+    [email, oauthSubmitting, password, submitting],
   );
+
+  const socialDisabled = submitting || !!oauthSubmitting;
 
   const onSubmit = useCallback(async () => {
     if (disabled) return;
@@ -217,10 +230,32 @@ export default function SignInScreen() {
     }
   }, [clearPasswordRecovery, disabled, email, navigation, password, setSession]);
 
-  const onSocialPress = useCallback((provider: 'kakao' | 'google') => {
-    const label = provider === 'kakao' ? '카카오' : 'Google';
-    Alert.alert(`${label} 로그인 준비 중`, '소셜 로그인 연동은 다음 단계에서 연결됩니다.');
-  }, []);
+  const onSocialPress = useCallback(
+    async (provider: SocialOAuthProvider) => {
+      if (socialDisabled) return;
+
+      try {
+        setOauthSubmitting(provider);
+        setActiveNotice(null);
+        await clearPasswordRecovery();
+        await clearLocalAuthSession();
+
+        if (provider === 'google') {
+          await signInWithGoogle();
+        } else {
+          await signInWithKakao();
+        }
+      } catch (error: unknown) {
+        Alert.alert(
+          `${getOAuthProviderLabel(provider)} 로그인`,
+          getOAuthSignInUserMessage(error),
+        );
+      } finally {
+        setOauthSubmitting(null);
+      }
+    },
+    [clearPasswordRecovery, socialDisabled],
+  );
 
   const onToggleSecurePassword = useCallback(() => {
     setSecurePassword(prev => !prev);
@@ -483,8 +518,15 @@ export default function SignInScreen() {
           backgroundColor="#FFE100"
           badge={<KakaoBadgeMark />}
           borderColor="#FFE100"
-          label="카카오로 시작하기"
-          onPress={() => onSocialPress('kakao')}
+          disabled={socialDisabled}
+          label={
+            oauthSubmitting === 'kakao'
+              ? '카카오로 연결 중...'
+              : '카카오로 시작하기'
+          }
+          onPress={() => {
+            onSocialPress('kakao').catch(() => {});
+          }}
           textColor="#191600"
         />
 
@@ -492,8 +534,15 @@ export default function SignInScreen() {
           backgroundColor="#FFFFFF"
           badge={<GoogleBadgeMark />}
           borderColor="#E2E8F2"
-          label="Google로 시작하기"
-          onPress={() => onSocialPress('google')}
+          disabled={socialDisabled}
+          label={
+            oauthSubmitting === 'google'
+              ? 'Google로 연결 중...'
+              : 'Google로 시작하기'
+          }
+          onPress={() => {
+            onSocialPress('google').catch(() => {});
+          }}
           textColor="#334155"
         />
 
