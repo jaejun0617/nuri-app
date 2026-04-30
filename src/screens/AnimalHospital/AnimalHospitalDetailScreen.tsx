@@ -1,5 +1,11 @@
 import React, { useCallback, useMemo } from 'react';
-import { Linking, ScrollView, TouchableOpacity, View } from 'react-native';
+import {
+  Linking,
+  Platform,
+  ScrollView,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
@@ -18,6 +24,29 @@ import type { RootScreenRoute } from '../../navigation/types';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RootScreenRoute<'AnimalHospitalDetail'>;
 
+function hasValidMapPreviewCoordinate(
+  latitude: number | null,
+  longitude: number | null,
+): boolean {
+  if (latitude === null || longitude === null) {
+    return false;
+  }
+
+  const numericLatitude = Number(latitude);
+  const numericLongitude = Number(longitude);
+
+  return (
+    !Number.isNaN(numericLatitude) &&
+    !Number.isNaN(numericLongitude) &&
+    Number.isFinite(numericLatitude) &&
+    Number.isFinite(numericLongitude) &&
+    numericLatitude >= -90 &&
+    numericLatitude <= 90 &&
+    numericLongitude >= -180 &&
+    numericLongitude <= 180
+  );
+}
+
 export default function AnimalHospitalDetailScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
@@ -27,6 +56,11 @@ export default function AnimalHospitalDetailScreen() {
     includeDetails: true,
   });
   const displayItem = enrichedItemQuery.data ?? item ?? null;
+  const hasMapPreviewCoordinate = displayItem
+    ? hasValidMapPreviewCoordinate(displayItem.latitude, displayItem.longitude)
+    : false;
+  const canRenderNativeMapPreview =
+    hasMapPreviewCoordinate && Platform.OS !== 'android';
   const photoAttributionLabel =
     enrichedItemQuery.overlay?.photoAttributionLabel ?? null;
   const viewModel = useMemo(
@@ -268,7 +302,7 @@ export default function AnimalHospitalDetailScreen() {
               ) : null}
             </View>
 
-            {displayItem.latitude !== null && displayItem.longitude !== null ? (
+            {canRenderNativeMapPreview ? (
               <NativeLiteMapPreview
                 latitude={displayItem.latitude}
                 longitude={displayItem.longitude}
@@ -283,7 +317,9 @@ export default function AnimalHospitalDetailScreen() {
                   color={theme.colors.textMuted}
                 />
                 <AppText preset="bodySm" style={styles.subtleText}>
-                  아직 좌표를 가져오지 못해 주소 기준으로 확인해 주세요.
+                  {hasMapPreviewCoordinate
+                    ? '위치 정보 준비 중이에요. 길찾기로 외부 지도에서 확인해 주세요.'
+                    : '아직 좌표를 가져오지 못해 주소 기준으로 확인해 주세요.'}
                 </AppText>
               </View>
             )}

@@ -30,6 +30,10 @@ export type AnimalHospitalPersistenceAdapter = {
     query: string | null;
     coordinates: { latitude: number; longitude: number } | null;
     radiusMeters: number;
+    useNearbySearch?: boolean;
+    open24HoursOnly?: boolean;
+    exoticAnimalCareOnly?: boolean;
+    limit?: number;
   }) => Promise<ReadonlyArray<AnimalHospitalCanonicalHospital>>;
   getSourceRecordByKey: (
     sourceKey: string,

@@ -62,10 +62,20 @@ describe('animalHospital public projection', () => {
     expect(projected.statusSummary).toContain('인허가 기준 운영 병원');
     expect(projected.operatingBadge).toBeNull();
     expect(projected.publicTrust.publicLabel).toBe('needs_verification');
-    expect('operatingHours' in projected).toBe(false);
-    expect('open24Hours' in projected).toBe(false);
-    expect('exoticAnimalCare' in projected).toBe(false);
-    expect('homepageUrl' in projected).toBe(false);
+    [
+      'operatingHours',
+      'open24Hours',
+      'nightService',
+      'weekendService',
+      'exoticAnimalCare',
+      'emergencyCare',
+      'parking',
+      'equipmentSummary',
+      'homepageUrl',
+      'socialUrl',
+    ].forEach(hiddenField => {
+      expect(hiddenField in projected).toBe(false);
+    });
   });
 
   it('official source 전화번호와 좌표는 최신 승인 없이도 public projection에 노출한다', () => {

@@ -39,6 +39,8 @@ const CANONICAL_SEARCH_TIMEOUT_MS = 2500;
 const RUNTIME_PROVIDER_SEARCH_TIMEOUT_MS = 7000;
 const RUNTIME_CANDIDATE_CANONICAL_LOOKUP_TIMEOUT_MS = 3000;
 const RUNTIME_CANDIDATE_CANONICAL_LOOKUP_LIMIT = 8;
+const RUNTIME_PROVIDER_CANONICAL_RESULT_THRESHOLD =
+  ANIMAL_HOSPITAL_DEFAULT_PAGE_SIZE;
 
 class AnimalHospitalSearchTimeoutError extends Error {
   constructor(message: string) {
@@ -52,6 +54,10 @@ export type AnimalHospitalCanonicalRepository = {
     query: string | null;
     coordinates: DeviceCoordinates | null;
     radiusMeters: number;
+    useNearbySearch?: boolean;
+    open24HoursOnly?: boolean;
+    exoticAnimalCareOnly?: boolean;
+    limit?: number;
   }) => Promise<ReadonlyArray<AnimalHospitalCanonicalHospital>>;
   getApprovedVerifications?: (
     hospitalIds: ReadonlyArray<string>,
@@ -254,6 +260,20 @@ function buildRuntimeKeyword(query: string | null) {
     : `${normalized} 동물병원`;
 }
 
+function shouldSearchRuntimeProvider(params: {
+  canonicalResultCount: number;
+  open24HoursOnly: boolean;
+  exoticAnimalCareOnly: boolean;
+}): boolean {
+  if (params.open24HoursOnly || params.exoticAnimalCareOnly) {
+    return false;
+  }
+
+  return (
+    params.canonicalResultCount < RUNTIME_PROVIDER_CANONICAL_RESULT_THRESHOLD
+  );
+}
+
 function dedupeCanonicals(
   items: ReadonlyArray<AnimalHospitalCanonicalHospital>,
 ): AnimalHospitalCanonicalHospital[] {
@@ -454,7 +474,8 @@ export async function searchAnimalHospitals(input: {
   const provider = input.provider ?? kakaoLocalSearchProvider;
   const normalizedQuery = normalizeWhitespace(input.query);
   const hasExplicitQuery = Boolean(normalizedQuery);
-  const searchCoordinates = hasExplicitQuery
+  const repositoryCoordinates = input.scope.anchorCoordinates;
+  const providerCoordinates = hasExplicitQuery
     ? null
     : input.scope.anchorCoordinates;
   const radiusMeters = input.useNearbySearch
@@ -464,31 +485,40 @@ export async function searchAnimalHospitals(input: {
     await withTimeout({
       task: repository.search({
         query: normalizedQuery,
-        coordinates: searchCoordinates,
+        coordinates: repositoryCoordinates,
         radiusMeters,
+        useNearbySearch: Boolean(input.useNearbySearch),
+        open24HoursOnly: Boolean(input.open24HoursOnly),
+        exoticAnimalCareOnly: Boolean(input.exoticAnimalCareOnly),
       }),
       timeoutMs: CANONICAL_SEARCH_TIMEOUT_MS,
     }).catch(() => [])
   ).filter(item => item.lifecycle.isActive && !item.lifecycle.isHidden);
   const ingestedAt = new Date().toISOString();
-  const documents = await withTimeout({
-    task: provider.searchKeyword({
-      query: buildRuntimeKeyword(normalizedQuery),
-      coordinates: searchCoordinates,
-      radiusMeters,
-      size: ANIMAL_HOSPITAL_DEFAULT_PAGE_SIZE,
-    }),
-    timeoutMs: RUNTIME_PROVIDER_SEARCH_TIMEOUT_MS,
-  }).catch(error => {
-    if (!isAnimalHospitalSearchTimeout(error)) {
-      console.info(
-        '[NURI-DEBUG] animalHospital runtime provider search failed silently',
-        error,
-      );
-    }
+  const documents = shouldSearchRuntimeProvider({
+    canonicalResultCount: officialCanonicals.length,
+    open24HoursOnly: Boolean(input.open24HoursOnly),
+    exoticAnimalCareOnly: Boolean(input.exoticAnimalCareOnly),
+  })
+    ? await withTimeout({
+        task: provider.searchKeyword({
+          query: buildRuntimeKeyword(normalizedQuery),
+          coordinates: providerCoordinates,
+          radiusMeters,
+          size: ANIMAL_HOSPITAL_DEFAULT_PAGE_SIZE,
+        }),
+        timeoutMs: RUNTIME_PROVIDER_SEARCH_TIMEOUT_MS,
+      }).catch(error => {
+        if (!isAnimalHospitalSearchTimeout(error)) {
+          console.info(
+            '[NURI-DEBUG] animalHospital runtime provider search failed silently',
+            error,
+          );
+        }
 
-    return [];
-  });
+        return [];
+      })
+    : [];
   const runtimeCandidates = documents
     .map(document =>
       buildRuntimeCandidateCanonical({

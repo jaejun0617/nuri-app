@@ -4,8 +4,44 @@ import {
   searchAnimalHospitals,
 } from '../src/services/animalHospital/service';
 import type { AnimalHospitalCanonicalRepository } from '../src/services/animalHospital/service';
-import type { AnimalHospitalVerificationRecord } from '../src/domains/animalHospital/types';
+import type {
+  AnimalHospitalCanonicalHospital,
+  AnimalHospitalVerificationRecord,
+} from '../src/domains/animalHospital/types';
 import type { LocationSearchProvider } from '../src/services/locationDiscovery/provider';
+
+function createCanonicalHospital(input: {
+  providerRecordId: string;
+  name: string;
+  roadAddress?: string;
+  latitude: number;
+  longitude: number;
+}): AnimalHospitalCanonicalHospital {
+  return mapOfficialAnimalHospitalSourceToCanonical({
+    provider: 'official-localdata',
+    providerRecordId: input.providerRecordId,
+    sourceUpdatedAt: '2026-04-18T00:00:00.000Z',
+    ingestedAt: '2026-04-18T08:00:00.000Z',
+    snapshotId: 'localdata-service-test',
+    snapshotFetchedAt: '2026-04-18T08:00:00.000Z',
+    ingestMode: 'snapshot',
+    name: input.name,
+    roadAddress:
+      input.roadAddress ?? `경기 고양시 일산서구 중앙로 ${input.providerRecordId}`,
+    lotAddress: `경기 고양시 일산서구 대화동 ${input.providerRecordId}`,
+    operationStatusText: '영업/정상',
+    licenseStatusText: '정상',
+    officialPhone: null,
+    coordinates: {
+      latitude: input.latitude,
+      longitude: input.longitude,
+      crs: 'WGS84',
+    },
+    metadata: {},
+    rowChecksum: `ah_test_${input.providerRecordId}`,
+    rawPayload: {},
+  }).canonicalHospital;
+}
 
 describe('animalHospital runtime query service', () => {
   it('provider-only runtime candidate도 provider 전화번호와 좌표를 public으로 노출한다', async () => {
@@ -86,10 +122,9 @@ describe('animalHospital runtime query service', () => {
       rowChecksum: 'ah_test_nationwide',
       rawPayload: {},
     }).canonicalHospital;
-    const searchCalls: Array<{
-      query: string | null;
-      coordinates: unknown | null;
-    }> = [];
+    const searchCalls: Array<
+      Parameters<AnimalHospitalCanonicalRepository['search']>[0]
+    > = [];
     const providerCalls: Array<
       Parameters<LocationSearchProvider['searchKeyword']>[0]
     > = [];
@@ -128,12 +163,128 @@ describe('animalHospital runtime query service', () => {
 
     expect(searchCalls[0]).toMatchObject({
       query: '부산누리동물병원',
-      coordinates: null,
+      useNearbySearch: false,
     });
+    expect(searchCalls[0]?.coordinates).not.toBeNull();
+    expect(searchCalls[0]?.radiusMeters).toBe(10000);
     expect(providerCalls[0]).toMatchObject({
       coordinates: null,
     });
     expect(result.items[0]?.id).toBe(canonical.id);
+  });
+
+  it('canonical 결과가 충분하면 Kakao runtime candidate 호출을 생략한다', async () => {
+    const canonicalResults = Array.from({ length: 15 }, (_, index) =>
+      createCanonicalHospital({
+        providerRecordId: `canonical-enough-${index}`,
+        name: `충분동물병원${index}`,
+        latitude: 37.68 + index / 10000,
+        longitude: 126.77 + index / 10000,
+      }),
+    );
+    const repository: AnimalHospitalCanonicalRepository = {
+      search: async () => canonicalResults,
+    };
+    const providerCalls: Array<
+      Parameters<LocationSearchProvider['searchKeyword']>[0]
+    > = [];
+    const provider: LocationSearchProvider = {
+      searchKeyword: async input => {
+        providerCalls.push(input);
+        return [];
+      },
+      searchAddress: async () => [],
+    };
+
+    const result = await searchAnimalHospitals({
+      query: null,
+      scope: {
+        displayLabel: '현재 위치',
+        queryLabel: '경기 고양시',
+        anchorCoordinates: {
+          latitude: 37.68,
+          longitude: 126.77,
+          accuracy: 20,
+          capturedAt: Date.now(),
+          source: 'gps',
+        },
+        distanceLabel: '현재 위치 기준',
+      },
+      useNearbySearch: true,
+      repository,
+      provider,
+    });
+
+    expect(result.items).toHaveLength(15);
+    expect(providerCalls).toHaveLength(0);
+    expect(result.runtimeSummary.runtimeCandidateCount).toBe(0);
+  });
+
+  it('canonical 결과가 부족하면 Kakao runtime candidate fallback을 유지한다', async () => {
+    const repository: AnimalHospitalCanonicalRepository = {
+      search: async () => [
+        createCanonicalHospital({
+          providerRecordId: 'canonical-short-1',
+          name: '부족동물병원',
+          latitude: 37.68,
+          longitude: 126.77,
+        }),
+      ],
+    };
+    const providerCalls: Array<
+      Parameters<LocationSearchProvider['searchKeyword']>[0]
+    > = [];
+    const provider: LocationSearchProvider = {
+      searchKeyword: async input => {
+        providerCalls.push(input);
+        return [
+          {
+            id: 'kakao-short-fallback',
+            place_name: '후보동물병원',
+            address_name: '경기 고양시 일산서구 대화동 10',
+            road_address_name: '경기 고양시 일산서구 중앙로 10',
+            phone: '031-000-1111',
+            x: '126.771',
+            y: '37.681',
+            place_url: 'https://place.map.kakao.com/short-fallback',
+          },
+        ];
+      },
+      searchAddress: async () => [],
+    };
+
+    const result = await searchAnimalHospitals({
+      query: null,
+      scope: {
+        displayLabel: '현재 위치',
+        queryLabel: '경기 고양시',
+        anchorCoordinates: {
+          latitude: 37.68,
+          longitude: 126.77,
+          accuracy: 20,
+          capturedAt: Date.now(),
+          source: 'gps',
+        },
+        distanceLabel: '현재 위치 기준',
+      },
+      useNearbySearch: true,
+      repository,
+      provider,
+    });
+
+    expect(providerCalls).toHaveLength(1);
+    expect(providerCalls[0]).toMatchObject({
+      query: '동물병원',
+      coordinates: {
+        latitude: 37.68,
+        longitude: 126.77,
+      },
+    });
+    expect(result.items.some(item => item.name === '후보동물병원')).toBe(true);
+    expect(
+      result.items.find(item => item.name === '후보동물병원')?.publicTrust
+        .publicLabel,
+    ).toBe('candidate');
   });
 
   it('가까운순은 public 좌표 노출 없이도 canonical 좌표 기준 정렬을 유지한다', async () => {
@@ -245,10 +396,9 @@ describe('animalHospital runtime query service', () => {
       rowChecksum: 'ah_test',
       rawPayload: {},
     }).canonicalHospital;
-    const searchCalls: Array<{
-      query: string | null;
-      coordinates: unknown | null;
-    }> = [];
+    const searchCalls: Array<
+      Parameters<AnimalHospitalCanonicalRepository['search']>[0]
+    > = [];
     const repository: AnimalHospitalCanonicalRepository = {
       search: async input => {
         searchCalls.push(input);
@@ -569,8 +719,14 @@ describe('animalHospital runtime query service', () => {
             ]
           : [],
     };
+    const providerCalls: Array<
+      Parameters<LocationSearchProvider['searchKeyword']>[0]
+    > = [];
     const provider: LocationSearchProvider = {
-      searchKeyword: async () => [],
+      searchKeyword: async input => {
+        providerCalls.push(input);
+        return [];
+      },
       searchAddress: async () => [],
     };
 
@@ -600,6 +756,7 @@ describe('animalHospital runtime query service', () => {
     expect(result.internalItems[0]?.sensitiveDetails.open24Hours.value).toBe(
       true,
     );
+    expect(providerCalls).toHaveLength(0);
   });
 
   it('특수동물병원 필터는 approved exoticAnimalCare verification이 있는 병원만 남긴다', async () => {
@@ -673,8 +830,14 @@ describe('animalHospital runtime query service', () => {
             ]
           : [],
     };
+    const providerCalls: Array<
+      Parameters<LocationSearchProvider['searchKeyword']>[0]
+    > = [];
     const provider: LocationSearchProvider = {
-      searchKeyword: async () => [],
+      searchKeyword: async input => {
+        providerCalls.push(input);
+        return [];
+      },
       searchAddress: async () => [],
     };
 
@@ -704,6 +867,7 @@ describe('animalHospital runtime query service', () => {
     expect(
       result.internalItems[0]?.sensitiveDetails.exoticAnimalCare.value,
     ).toBe(true);
+    expect(providerCalls).toHaveLength(0);
   });
 
   it('thumbnail은 pending/approved verification 중 최신 public 값을 우선 반영한다', async () => {

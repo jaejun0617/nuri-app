@@ -10,12 +10,41 @@ import {
 } from './mapViewportUtils';
 
 type Props = {
-  latitude: number;
-  longitude: number;
+  latitude: number | string | null | undefined;
+  longitude: number | string | null | undefined;
   title: string;
   overlayText?: string | null;
   interactive?: boolean;
 };
+
+function normalizePreviewCoordinate(input: {
+  latitude: number | string | null | undefined;
+  longitude: number | string | null | undefined;
+}): { latitude: number; longitude: number } | null {
+  if (input.latitude === null || input.latitude === undefined) {
+    return null;
+  }
+
+  if (input.longitude === null || input.longitude === undefined) {
+    return null;
+  }
+
+  const latitude = Number(input.latitude);
+  const longitude = Number(input.longitude);
+
+  if (
+    Number.isNaN(latitude) ||
+    Number.isNaN(longitude) ||
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude)
+  ) {
+    return null;
+  }
+
+  const coordinate = { latitude, longitude };
+
+  return hasValidCoordinate(coordinate) ? coordinate : null;
+}
 
 export default function NativeLiteMapPreview({
   latitude,
@@ -24,23 +53,28 @@ export default function NativeLiteMapPreview({
   overlayText = null,
   interactive = false,
 }: Props) {
+  const previewCoordinate = useMemo(
+    () => normalizePreviewCoordinate({ latitude, longitude }),
+    [latitude, longitude],
+  );
+
   const region = useMemo(() => {
-    if (!hasValidCoordinate({ latitude, longitude })) {
+    if (!previewCoordinate) {
       return null;
     }
 
     return buildRegionFromPoint(
-      { latitude, longitude },
+      previewCoordinate,
       interactive ? PRETTY_PREVIEW_DELTA / 2 : PRETTY_PREVIEW_DELTA,
     );
-  }, [interactive, latitude, longitude]);
+  }, [interactive, previewCoordinate]);
 
-  if (!region) {
+  if (!region || !previewCoordinate) {
     return (
       <View style={styles.card}>
         <View style={[styles.map, styles.emptyState]}>
           <AppText preset="caption" style={styles.emptyStateText}>
-            위치 좌표를 아직 확인하지 못해 지도를 표시할 수 없어요.
+            위치 정보 준비 중이에요.
           </AppText>
         </View>
       </View>
@@ -65,7 +99,7 @@ export default function NativeLiteMapPreview({
         loadingEnabled
       >
         <Marker
-          coordinate={{ latitude, longitude }}
+          coordinate={previewCoordinate}
           title={title}
           pinColor="#C86F31"
         />

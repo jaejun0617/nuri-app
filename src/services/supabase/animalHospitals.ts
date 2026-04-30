@@ -63,6 +63,17 @@ type AnimalHospitalRow = {
   lifecycle_note: string | null;
   provider_place_id: string | null;
   provider_place_url: string | null;
+  distance_meters?: number | string | null;
+};
+
+type AnimalHospitalSearchRepositoryInput = {
+  query: string | null;
+  coordinates: { latitude: number; longitude: number } | null;
+  radiusMeters: number;
+  useNearbySearch?: boolean;
+  open24HoursOnly?: boolean;
+  exoticAnimalCareOnly?: boolean;
+  limit?: number;
 };
 
 type AnimalHospitalSourceRecordRow = {
@@ -225,6 +236,9 @@ const HOSPITAL_SELECT = [
   'provider_place_id',
   'provider_place_url',
 ].join(', ');
+const ANIMAL_HOSPITAL_PUBLIC_SEARCH_RPC =
+  'animal_hospital_public_search_v1';
+const ANIMAL_HOSPITAL_SEARCH_LIMIT = 40;
 
 const USER_REPORT_SELECT = [
   'id',
@@ -246,6 +260,159 @@ function isMissingRelationError(error: unknown): boolean {
     ((error as { code?: string }).code === '42P01' ||
       (error as { code?: string }).code === 'PGRST205')
   );
+}
+
+function isMissingRpcError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    ((error as { code?: string }).code === '42883' ||
+      (error as { code?: string }).code === 'PGRST202')
+  );
+}
+
+function getAnimalHospitalPublicSearchMode(
+  input: AnimalHospitalSearchRepositoryInput,
+): 'nearby' | 'search' {
+  if (input.query || input.useNearbySearch === false) {
+    return 'search';
+  }
+
+  return 'nearby';
+}
+
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function readRequiredString(
+  row: Record<string, unknown>,
+  key: keyof AnimalHospitalRow,
+): string {
+  const value = row[key];
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  throw new Error(`animal_hospitals row is missing string field: ${key}`);
+}
+
+function readNullableString(
+  row: Record<string, unknown>,
+  key: keyof AnimalHospitalRow,
+): string | null {
+  const value = row[key];
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (value == null) {
+    return null;
+  }
+
+  throw new Error(`animal_hospitals row has invalid nullable string: ${key}`);
+}
+
+function readNullableBoolean(
+  row: Record<string, unknown>,
+  key: keyof AnimalHospitalRow,
+): boolean | null {
+  const value = row[key];
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (value == null) {
+    return null;
+  }
+
+  throw new Error(`animal_hospitals row has invalid nullable boolean: ${key}`);
+}
+
+function readNullableNumberLike(
+  row: Record<string, unknown>,
+  key: keyof AnimalHospitalRow,
+): number | string | null {
+  const value = row[key];
+  if (typeof value === 'number' || typeof value === 'string') {
+    return value;
+  }
+
+  if (value == null) {
+    return null;
+  }
+
+  throw new Error(`animal_hospitals row has invalid nullable number: ${key}`);
+}
+
+function mapHospitalQueryRow(value: unknown): AnimalHospitalRow {
+  if (!isObjectRecord(value)) {
+    throw new Error('animal_hospitals query returned a non-object row');
+  }
+
+  return {
+    id: readRequiredString(value, 'id'),
+    official_source_key: readRequiredString(value, 'official_source_key'),
+    primary_source_provider: readRequiredString(
+      value,
+      'primary_source_provider',
+    ),
+    primary_source_record_id: readRequiredString(
+      value,
+      'primary_source_record_id',
+    ),
+    canonical_name: readRequiredString(value, 'canonical_name'),
+    normalized_name: readRequiredString(value, 'normalized_name'),
+    primary_address: readRequiredString(value, 'primary_address'),
+    road_address: readNullableString(value, 'road_address'),
+    lot_address: readNullableString(value, 'lot_address'),
+    normalized_primary_address: readNullableString(
+      value,
+      'normalized_primary_address',
+    ),
+    latitude: readNullableNumberLike(value, 'latitude'),
+    longitude: readNullableNumberLike(value, 'longitude'),
+    coordinate_source: readRequiredString(value, 'coordinate_source'),
+    coordinate_normalization_status: readRequiredString(
+      value,
+      'coordinate_normalization_status',
+    ),
+    status_code: readRequiredString(value, 'status_code'),
+    status_summary: readRequiredString(value, 'status_summary'),
+    license_status_text: readNullableString(value, 'license_status_text'),
+    operation_status_text: readNullableString(
+      value,
+      'operation_status_text',
+    ),
+    official_phone: readNullableString(value, 'official_phone'),
+    normalized_phone: readNullableString(value, 'normalized_phone'),
+    public_trust_status: readRequiredString(value, 'public_trust_status'),
+    freshness_status: readRequiredString(value, 'freshness_status'),
+    requires_verification: readNullableBoolean(value, 'requires_verification'),
+    has_source_conflict: readNullableBoolean(value, 'has_source_conflict'),
+    source_updated_at: readNullableString(value, 'source_updated_at'),
+    canonical_updated_at: readRequiredString(value, 'canonical_updated_at'),
+    reviewed_at: readNullableString(value, 'reviewed_at'),
+    is_active: readNullableBoolean(value, 'is_active'),
+    is_hidden: readNullableBoolean(value, 'is_hidden'),
+    lifecycle_note: readNullableString(value, 'lifecycle_note'),
+    provider_place_id: readNullableString(value, 'provider_place_id'),
+    provider_place_url: readNullableString(value, 'provider_place_url'),
+    distance_meters: readNullableNumberLike(value, 'distance_meters'),
+  };
+}
+
+function mapHospitalQueryRows(data: unknown): AnimalHospitalRow[] {
+  if (data == null) {
+    return [];
+  }
+
+  if (!Array.isArray(data)) {
+    throw new Error('animal_hospitals query returned a non-array payload');
+  }
+
+  return data.map(mapHospitalQueryRow);
 }
 
 function mapHospitalRowToCanonical(
@@ -666,57 +833,102 @@ function buildSourceRecordRow(contract: AnimalHospitalCanonicalUpsertContract) {
   };
 }
 
+async function searchHospitalRowsViaRpc(
+  client: SupabaseClient,
+  input: AnimalHospitalSearchRepositoryInput,
+): Promise<AnimalHospitalRow[]> {
+  const { data, error } = await client.rpc(ANIMAL_HOSPITAL_PUBLIC_SEARCH_RPC, {
+    p_query: input.query,
+    p_anchor_lat: input.coordinates?.latitude ?? null,
+    p_anchor_lng: input.coordinates?.longitude ?? null,
+    p_use_nearby: input.useNearbySearch ?? !input.query,
+    p_radius_meters: input.radiusMeters,
+    p_limit: input.limit ?? ANIMAL_HOSPITAL_SEARCH_LIMIT,
+    p_open24_hours_only: Boolean(input.open24HoursOnly),
+    p_exotic_animal_care_only: Boolean(input.exoticAnimalCareOnly),
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return mapHospitalQueryRows(data);
+}
+
+async function searchHospitalRowsWithLegacyQuery(
+  client: SupabaseClient,
+  input: AnimalHospitalSearchRepositoryInput,
+): Promise<AnimalHospitalRow[]> {
+  let query = client
+    .from('animal_hospitals')
+    .select(HOSPITAL_SELECT)
+    .eq('is_active', true)
+    .eq('is_hidden', false);
+
+  if (input.useNearbySearch !== false && input.coordinates) {
+    const latDelta = input.radiusMeters / 111000;
+    const lngDelta =
+      input.radiusMeters /
+      (111000 *
+        Math.max(
+          Math.cos((input.coordinates.latitude * Math.PI) / 180),
+          0.2,
+        ));
+
+    query = query
+      .gte('latitude', input.coordinates.latitude - latDelta)
+      .lte('latitude', input.coordinates.latitude + latDelta)
+      .gte('longitude', input.coordinates.longitude - lngDelta)
+      .lte('longitude', input.coordinates.longitude + lngDelta);
+  }
+
+  if (input.query) {
+    const escaped = escapeIlikeQuery(input.query);
+    query = query.or(
+      `canonical_name.ilike.%${escaped}%,primary_address.ilike.%${escaped}%`,
+    );
+  }
+
+  const { data, error } = await query
+    .order('canonical_updated_at', { ascending: false })
+    .limit(input.limit ?? ANIMAL_HOSPITAL_SEARCH_LIMIT);
+
+  if (error) {
+    throw error;
+  }
+
+  return mapHospitalQueryRows(data);
+}
+
 export function createAnimalHospitalSupabasePersistence(
   client: SupabaseClient,
 ) {
   return {
-    search: async (input: {
-      query: string | null;
-      coordinates: { latitude: number; longitude: number } | null;
-      radiusMeters: number;
-    }) => {
+    search: async (input: AnimalHospitalSearchRepositoryInput) => {
       try {
-        let query = client
-          .from('animal_hospitals')
-          .select(HOSPITAL_SELECT)
-          .eq('is_active', true)
-          .eq('is_hidden', false);
+        const rows = await searchHospitalRowsViaRpc(client, input)
+          .then(rpcRows => {
+            console.info(
+              '[NURI-RPC-SUCCESS] public search RPC called successfully',
+              {
+                mode: getAnimalHospitalPublicSearchMode(input),
+                resultCount: rpcRows.length,
+              },
+            );
+            return rpcRows;
+          })
+          .catch(async error => {
+            if (!isMissingRpcError(error)) {
+              console.warn(
+                '[supabase/animalHospitals] Public search RPC failed, falling back to legacy query',
+                error,
+              );
+            }
 
-        if (input.coordinates) {
-          const latDelta = input.radiusMeters / 111000;
-          const lngDelta =
-            input.radiusMeters /
-            (111000 *
-              Math.max(
-                Math.cos((input.coordinates.latitude * Math.PI) / 180),
-                0.2,
-              ));
+            return searchHospitalRowsWithLegacyQuery(client, input);
+          });
 
-          query = query
-            .gte('latitude', input.coordinates.latitude - latDelta)
-            .lte('latitude', input.coordinates.latitude + latDelta)
-            .gte('longitude', input.coordinates.longitude - lngDelta)
-            .lte('longitude', input.coordinates.longitude + lngDelta);
-        }
-
-        if (input.query) {
-          const escaped = escapeIlikeQuery(input.query);
-          query = query.or(
-            `canonical_name.ilike.%${escaped}%,primary_address.ilike.%${escaped}%`,
-          );
-        }
-
-        const { data, error } = await query
-          .order('canonical_updated_at', { ascending: false })
-          .limit(40);
-
-        if (error) {
-          throw error;
-        }
-
-        return (data ?? []).map(row =>
-          mapHospitalRowToCanonical(row as unknown as AnimalHospitalRow),
-        );
+        return rows.map(row => mapHospitalRowToCanonical(row));
       } catch (error) {
         if (!isMissingRelationError(error)) {
           console.warn(
