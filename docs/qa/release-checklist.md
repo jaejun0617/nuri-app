@@ -33,18 +33,17 @@
   - notice, helper box, 정책 팝업, 앱 복귀까지 실기기 확인이 끝났다.
 - [x] 닉네임 정책과 Android 기본 레이아웃
   - 닉네임 `2..10`, Community header, Timeline 탭 유지, bottom gap 보정이 실기기 기준으로 닫혔다.
-- [x] Google/Kakao OAuth 앱 코드 연결 및 Naver v1.0 판정
-  - SignIn/SignUp의 Kakao/Google 버튼은 placeholder Alert가 아니라 Supabase `signInWithOAuth` web flow를 시작한다.
+- [x] Google/Kakao/Naver OAuth 앱 코드 연결
+  - SignIn/SignUp의 Kakao/Google/Naver 버튼은 placeholder Alert가 아니라 Supabase `signInWithOAuth` web flow를 시작한다.
   - OAuth callback은 `nuri://auth/callback`으로 분리했고, password reset의 `nuri://auth/reset`과 라우트를 섞지 않는다.
   - OAuth 성공 후 session 복구는 기존 Splash/AppProviders boot contract를 사용하므로 nickname/pet onboarding 분기를 새로 만들지 않는다.
   - email/password login, email signup, password reset, policy link UI는 유지한다.
-  - Naver는 Supabase custom OAuth/OIDC provider 후보지만 현재 SDK provider 타입이 `custom:naver`를 assertion 없이 허용하지 않아 버튼을 노출하지 않는다.
+  - Naver는 Supabase custom OAuth/OIDC provider id `custom:naver`를 사용한다.
   - Apple은 Android-first v1.0 범위에서 제외한다.
-- [x] Social login provider release gate 적용
+- [x] Social login provider release gate 갱신
   - Supabase public auth settings 기준 Google provider disabled, Kakao provider disabled 상태를 확인했다.
-  - provider disabled 상태에서 Google/Kakao 버튼을 노출하면 v1.0 P1이므로 `isSocialOAuthProviderReleaseReady()` gate 뒤로 숨겼다.
-  - 현재 Google/Kakao readiness 값은 모두 `false`이며, provider console 설정과 Android OAuth smoke가 끝날 때만 켠다.
-  - Naver는 타입 안전 구현 경로가 없어 v1.0 화면에 노출하지 않는다.
+  - PO 정책 변경으로 Google/Kakao/Naver readiness는 앱 코드 기준 `true`로 전환했다.
+  - provider disabled 상태에서는 안전한 오류 문구로 수렴하며, OAuth 성공 smoke는 provider 설정 후 별도 수행한다.
 - [x] 외부 지도 전환 기본 동선
   - 장소 상세의 외부 지도 열기 동선은 PO 확인 기준 완료로 분류한다.
 - [x] 건강관리 리포트 Phase 1 MVP
@@ -76,9 +75,9 @@
 ### 0-2. Google/Kakao/Naver OAuth provider setup gate
 
 - 판정
-  - Google: `CONFIG_WAITING`, 사용자 화면 숨김
-  - Kakao: `CONFIG_WAITING`, 사용자 화면 숨김
-  - Naver: `BLOCKED_BY_UNSAFE_IMPLEMENTATION`, 사용자 화면 숨김
+  - Google: `CONFIG_WAITING`, 사용자 화면 노출
+  - Kakao: `CONFIG_WAITING`, 사용자 화면 노출
+  - Naver: `CONFIG_WAITING`, 사용자 화면 노출
   - Apple: `HIDE_FOR_V1`
 - [ ] PO가 Google/Kakao provider console, API key/secret, redirect allow-list를 실제 운영 값으로 준비한다.
   - Google: Google Cloud Project, OAuth consent screen, Web OAuth Client ID/Secret, Android OAuth Client ID, `com.nuri.app`, SHA-1/SHA-256, Privacy Policy/Terms URL.
@@ -88,12 +87,10 @@
 - [ ] PO가 Naver provider 준비물을 확정한다.
   - Naver Developers 애플리케이션, Client ID, Client Secret, Callback URL, API 권한, 프로필/email 동의, 개인정보처리방침 URL을 준비한다.
   - Supabase custom OAuth/OIDC provider id 후보는 `custom:naver`다.
-  - 현재 앱 SDK 타입은 `custom:naver`를 타입 안전하게 받지 않으므로 Naver 버튼은 노출하지 않는다.
-  - Naver를 실제 노출하려면 SDK 타입 지원 또는 별도 typed authorize helper 설계가 먼저 필요하다.
+  - Naver app-side entrypoint는 구현됐으며 실제 성공은 Supabase custom provider 설정 후 확인한다.
 - [ ] provider 설정 완료 후 OAuth 성공 smoke를 별도 evidence로 남긴다.
   - 버튼 탭, provider web flow 진입, 앱 복귀, Supabase session 복구, nickname/pet onboarding 분기를 확인한다.
-  - provider 설정 전에는 Google/Kakao 버튼도 사용자 화면에 노출하지 않는다.
-  - smoke 성공 후 readiness gate를 켜고 버튼 노출을 release evidence로 고정한다.
+  - provider 설정 전 실패는 앱 코드 blocker가 아니라 provider setup 대기 상태로 분리한다.
 
 ### 0. 정적 검증 / 빌드 스냅샷
 
@@ -221,8 +218,8 @@
   - v1.0 blocker는 아니나 운영 고도화 항목이다.
 - [ ] `weather-cache` public endpoint abuse throttle/rate limit
   - v1.0 blocker는 아니나 운영 고도화 항목이다.
-- [ ] Naver custom OAuth entrypoint
-  - Naver는 provider 준비물은 v1.0에서 확정하지만, 현재 앱 UI에는 노출하지 않는다.
-  - SDK 타입이 `custom:naver`를 공식 지원하거나 별도 typed authorize helper 설계가 승인되면 구현한다.
+- [x] Naver custom OAuth app-side entrypoint
+  - Naver는 v1.0 app-side provider에 포함했고, Supabase custom OAuth provider id `custom:naver`를 사용한다.
+  - 남은 항목은 provider console/Supabase 설정과 OAuth 성공 smoke다.
 - [ ] Apple social login backlog
   - Apple은 Android-first v1.0 범위에서 제외하며 iOS 출시 및 Apple 정책 검토 시점에 별도 판단한다.

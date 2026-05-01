@@ -13,16 +13,36 @@ export const PASSWORD_RESET_REDIRECT_URL = `${APP_URL_SCHEME}://auth/reset`;
 export const OAUTH_CALLBACK_REDIRECT_URL = `${APP_URL_SCHEME}://auth/callback`;
 
 const EMAIL_RULE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const NAVER_OAUTH_PROVIDER_ID = 'custom:naver';
 
-export type SocialOAuthProvider = 'google' | 'kakao';
+type BuiltInOAuthProvider = Parameters<
+  typeof supabase.auth.signInWithOAuth
+>[0]['provider'];
+type CustomOAuthProvider = `custom:${string}`;
+type SupabaseOAuthProvider = BuiltInOAuthProvider | CustomOAuthProvider;
+type SupabaseOAuthCredentials = Omit<
+  Parameters<typeof supabase.auth.signInWithOAuth>[0],
+  'provider'
+> & {
+  provider: SupabaseOAuthProvider;
+};
 
-// Provider console, Supabase redirect allow-list, and Android smoke must all pass
-// before a provider is allowed onto the v1.0 user surface.
+export type SocialOAuthProvider = 'google' | 'kakao' | 'naver';
+
 const SOCIAL_OAUTH_PROVIDER_READINESS: Readonly<
   Record<SocialOAuthProvider, boolean>
 > = {
-  google: false,
-  kakao: false,
+  google: true,
+  kakao: true,
+  naver: true,
+};
+
+const SUPABASE_PROVIDER_BY_SOCIAL_PROVIDER: Readonly<
+  Record<SocialOAuthProvider, SupabaseOAuthProvider>
+> = {
+  google: 'google',
+  kakao: 'kakao',
+  naver: NAVER_OAUTH_PROVIDER_ID,
 };
 
 type OAuthErrorCode =
@@ -97,7 +117,14 @@ export type AccountDeletionResult = {
 };
 
 export function getOAuthProviderLabel(provider: SocialOAuthProvider): string {
-  return provider === 'kakao' ? '카카오' : 'Google';
+  switch (provider) {
+    case 'google':
+      return 'Google';
+    case 'kakao':
+      return '카카오';
+    case 'naver':
+      return '네이버';
+  }
 }
 
 export function isSocialOAuthProviderReleaseReady(
@@ -132,8 +159,8 @@ export async function signInWithOAuthProvider(
     throw readinessError;
   }
 
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider,
+  const { data, error } = await signInWithSupabaseOAuth({
+    provider: SUPABASE_PROVIDER_BY_SOCIAL_PROVIDER[provider],
     options: {
       redirectTo: OAUTH_CALLBACK_REDIRECT_URL,
       skipBrowserRedirect: true,
@@ -179,6 +206,10 @@ export function signInWithGoogle(): Promise<void> {
 
 export function signInWithKakao(): Promise<void> {
   return signInWithOAuthProvider('kakao');
+}
+
+export function signInWithNaver(): Promise<void> {
+  return signInWithOAuthProvider('naver');
 }
 
 export async function completeOAuthCallbackSession(
@@ -400,6 +431,19 @@ function logOAuthError(input: {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
+}
+
+function signInWithSupabaseOAuth(credentials: SupabaseOAuthCredentials) {
+  // Supabase 공식 custom OAuth 문서는 `custom:` provider id를 client SDK에서
+  // 사용하도록 안내하지만, 현재 설치된 auth-js 타입은 built-in provider union에
+  // 머물러 있어 이 경계에서만 실제 런타임 계약으로 좁혀 호출한다.
+  const signInWithOAuth = supabase.auth.signInWithOAuth.bind(
+    supabase.auth,
+  ) as unknown as (
+    input: SupabaseOAuthCredentials,
+  ) => ReturnType<typeof supabase.auth.signInWithOAuth>;
+
+  return signInWithOAuth(credentials);
 }
 
 function isAccountDeletionStatus(value: unknown): value is AccountDeletionStatus {
