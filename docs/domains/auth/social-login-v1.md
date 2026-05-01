@@ -5,9 +5,19 @@
 - v1.0 app-side provider: Google, Kakao
 - v1.0 provider 준비물 확정 대상: Google, Kakao, Naver
 - v1.0 app-side excluded provider: Naver, Apple
+- v1.0 user-surface policy: provider 설정과 Android smoke가 끝날 때까지 Google/Kakao 버튼도 숨긴다.
 - implementation path: Supabase Auth OAuth web flow
 - native SDK path: v1.0 범위 아님
 - secret policy: 실제 API key, client secret, private key 값은 repository와 문서에 기록하지 않는다.
+
+## Provider Gate Decision
+
+| Provider | Gate | User surface | Reason |
+| --- | --- | --- | --- |
+| Google | CONFIG_WAITING | 숨김 | Supabase Google provider가 disabled이고 OAuth 성공 smoke가 없다. |
+| Kakao | CONFIG_WAITING | 숨김 | Supabase Kakao provider가 disabled이고 OAuth 성공 smoke가 없다. |
+| Naver | BLOCKED_BY_UNSAFE_IMPLEMENTATION | 숨김 | 현재 SDK provider 타입이 `custom:naver`를 타입 안전하게 허용하지 않는다. |
+| Apple | HIDE_FOR_V1 | 숨김 | Android-first v1.0 범위에서 제외한다. |
 
 ## Naver Decision
 
@@ -89,6 +99,9 @@
 
 - Google/Kakao app-side 구현 완료는 provider console 설정 완료와 같은 의미가 아니다.
 - provider 설정 전 OAuth 실패는 앱 코드 blocker가 아니라 PO 설정 대기 상태로 분리한다.
+- Google/Kakao provider가 disabled인 동안 사용자 화면 버튼을 노출하면 v1.0 P1이다.
+- 앱 코드는 `isSocialOAuthProviderReleaseReady()` gate 뒤에서 Google/Kakao 버튼을 렌더링한다.
+- 현재 readiness 값은 Google/Kakao 모두 `false`다. PO 설정과 Android OAuth smoke 완료 후에만 `true`로 전환한다.
 - provider 설정 완료 후 별도 OAuth 성공 smoke에서 버튼 탭, provider web flow, 앱 복귀, Supabase session 복구, nickname/pet onboarding 분기를 확인한다.
 - Naver는 provider 준비물과 blocker가 확정됐지만 버튼을 노출하지 않았으므로, v1.0 사용자 화면 blocker가 아니다.
 - Naver를 v1.0에 실제 노출하려면 SDK/type-safe custom provider entrypoint 또는 별도 typed authorize helper 설계가 먼저 닫혀야 한다.

@@ -48,6 +48,7 @@ import {
   clearLocalAuthSession,
   getOAuthProviderLabel,
   getOAuthSignInUserMessage,
+  isSocialOAuthProviderReleaseReady,
   signInWithGoogle,
   signInWithKakao,
   type SocialOAuthProvider,
@@ -268,6 +269,10 @@ const SocialButton = memo(function SocialButton({
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
+
+const SHOW_KAKAO_OAUTH = isSocialOAuthProviderReleaseReady('kakao');
+const SHOW_GOOGLE_OAUTH = isSocialOAuthProviderReleaseReady('google');
+const SHOW_SOCIAL_OAUTH_SECTION = SHOW_KAKAO_OAUTH || SHOW_GOOGLE_OAUTH;
 
 async function signUpWithTimeout(email: string, password: string, timeoutMs = 12000) {
   const signUpPromise = supabase.auth.signUp({
@@ -707,43 +712,51 @@ export default function SignUpScreen() {
             </Text>
           </TouchableOpacity>
 
-          <Text style={styles.socialLead}>또는 소셜 계정으로 시작하기</Text>
+          {SHOW_SOCIAL_OAUTH_SECTION ? (
+            <>
+              <Text style={styles.socialLead}>또는 소셜 계정으로 시작하기</Text>
 
-          <SocialButton
-            backgroundColor="#FFE100"
-            badge={<View style={styles.kakaoBadge} />}
-            borderColor="#FFE100"
-            disabled={socialDisabled}
-            label={
-              oauthSubmitting === 'kakao'
-                ? '카카오로 연결 중...'
-                : '카카오로 시작하기'
-            }
-            onPress={() => {
-              onSocialPress('kakao').catch(() => {});
-            }}
-            textColor="#191600"
-          />
+              {SHOW_KAKAO_OAUTH ? (
+                <SocialButton
+                  backgroundColor="#FFE100"
+                  badge={<View style={styles.kakaoBadge} />}
+                  borderColor="#FFE100"
+                  disabled={socialDisabled}
+                  label={
+                    oauthSubmitting === 'kakao'
+                      ? '카카오로 연결 중...'
+                      : '카카오로 시작하기'
+                  }
+                  onPress={() => {
+                    onSocialPress('kakao').catch(() => {});
+                  }}
+                  textColor="#191600"
+                />
+              ) : null}
 
-          <SocialButton
-            backgroundColor="#FFFFFF"
-            badge={
-              <View style={styles.googleBadge}>
-                <Text style={styles.googleBadgeText}>G</Text>
-              </View>
-            }
-            borderColor="#E2E8F2"
-            disabled={socialDisabled}
-            label={
-              oauthSubmitting === 'google'
-                ? 'Google로 연결 중...'
-                : 'Google로 시작하기'
-            }
-            onPress={() => {
-              onSocialPress('google').catch(() => {});
-            }}
-            textColor="#334155"
-          />
+              {SHOW_GOOGLE_OAUTH ? (
+                <SocialButton
+                  backgroundColor="#FFFFFF"
+                  badge={
+                    <View style={styles.googleBadge}>
+                      <Text style={styles.googleBadgeText}>G</Text>
+                    </View>
+                  }
+                  borderColor="#E2E8F2"
+                  disabled={socialDisabled}
+                  label={
+                    oauthSubmitting === 'google'
+                      ? 'Google로 연결 중...'
+                      : 'Google로 시작하기'
+                  }
+                  onPress={() => {
+                    onSocialPress('google').catch(() => {});
+                  }}
+                  textColor="#334155"
+                />
+              ) : null}
+            </>
+          ) : null}
 
           <View style={styles.signInRow}>
             <Text style={styles.signInHint}>이미 계정이 있으신가요?</Text>

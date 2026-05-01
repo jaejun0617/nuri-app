@@ -16,6 +16,15 @@ const EMAIL_RULE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type SocialOAuthProvider = 'google' | 'kakao';
 
+// Provider console, Supabase redirect allow-list, and Android smoke must all pass
+// before a provider is allowed onto the v1.0 user surface.
+const SOCIAL_OAUTH_PROVIDER_READINESS: Readonly<
+  Record<SocialOAuthProvider, boolean>
+> = {
+  google: false,
+  kakao: false,
+};
+
 type OAuthErrorCode =
   | 'provider_setup_required'
   | 'oauth_url_missing'
@@ -91,6 +100,12 @@ export function getOAuthProviderLabel(provider: SocialOAuthProvider): string {
   return provider === 'kakao' ? '카카오' : 'Google';
 }
 
+export function isSocialOAuthProviderReleaseReady(
+  provider: SocialOAuthProvider,
+): boolean {
+  return SOCIAL_OAUTH_PROVIDER_READINESS[provider];
+}
+
 export function getOAuthSignInUserMessage(error: unknown): string {
   if (error instanceof OAuthSignInError) {
     if (
@@ -107,6 +122,16 @@ export function getOAuthSignInUserMessage(error: unknown): string {
 export async function signInWithOAuthProvider(
   provider: SocialOAuthProvider,
 ): Promise<void> {
+  if (!isSocialOAuthProviderReleaseReady(provider)) {
+    const readinessError = new OAuthSignInError({
+      code: 'provider_setup_required',
+      message: getOAuthSignInUserMessage(null),
+      provider,
+    });
+    logOAuthError({ provider, stage: 'readiness_gate', error: readinessError });
+    throw readinessError;
+  }
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
     options: {

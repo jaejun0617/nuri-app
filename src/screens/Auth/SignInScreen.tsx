@@ -48,6 +48,7 @@ import {
   clearLocalAuthSession,
   getOAuthProviderLabel,
   getOAuthSignInUserMessage,
+  isSocialOAuthProviderReleaseReady,
   signInWithGoogle,
   signInWithKakao,
   type SocialOAuthProvider,
@@ -161,6 +162,10 @@ const GoogleBadgeMark = memo(function GoogleBadgeMark() {
     </View>
   );
 });
+
+const SHOW_KAKAO_OAUTH = isSocialOAuthProviderReleaseReady('kakao');
+const SHOW_GOOGLE_OAUTH = isSocialOAuthProviderReleaseReady('google');
+const SHOW_SOCIAL_OAUTH_SECTION = SHOW_KAKAO_OAUTH || SHOW_GOOGLE_OAUTH;
 
 function formatScheduledDeletionDate(value: string | null) {
   const parts = getKstDateParts(value);
@@ -508,43 +513,53 @@ export default function SignInScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.socialSection}>
-          <View style={styles.socialDivider} />
-          <Text style={styles.socialSectionTitle}>SNS 계정으로 시작하기</Text>
-          <View style={styles.socialDivider} />
-        </View>
+        {SHOW_SOCIAL_OAUTH_SECTION ? (
+          <>
+            <View style={styles.socialSection}>
+              <View style={styles.socialDivider} />
+              <Text style={styles.socialSectionTitle}>
+                SNS 계정으로 시작하기
+              </Text>
+              <View style={styles.socialDivider} />
+            </View>
 
-        <SocialButton
-          backgroundColor="#FFE100"
-          badge={<KakaoBadgeMark />}
-          borderColor="#FFE100"
-          disabled={socialDisabled}
-          label={
-            oauthSubmitting === 'kakao'
-              ? '카카오로 연결 중...'
-              : '카카오로 시작하기'
-          }
-          onPress={() => {
-            onSocialPress('kakao').catch(() => {});
-          }}
-          textColor="#191600"
-        />
+            {SHOW_KAKAO_OAUTH ? (
+              <SocialButton
+                backgroundColor="#FFE100"
+                badge={<KakaoBadgeMark />}
+                borderColor="#FFE100"
+                disabled={socialDisabled}
+                label={
+                  oauthSubmitting === 'kakao'
+                    ? '카카오로 연결 중...'
+                    : '카카오로 시작하기'
+                }
+                onPress={() => {
+                  onSocialPress('kakao').catch(() => {});
+                }}
+                textColor="#191600"
+              />
+            ) : null}
 
-        <SocialButton
-          backgroundColor="#FFFFFF"
-          badge={<GoogleBadgeMark />}
-          borderColor="#E2E8F2"
-          disabled={socialDisabled}
-          label={
-            oauthSubmitting === 'google'
-              ? 'Google로 연결 중...'
-              : 'Google로 시작하기'
-          }
-          onPress={() => {
-            onSocialPress('google').catch(() => {});
-          }}
-          textColor="#334155"
-        />
+            {SHOW_GOOGLE_OAUTH ? (
+              <SocialButton
+                backgroundColor="#FFFFFF"
+                badge={<GoogleBadgeMark />}
+                borderColor="#E2E8F2"
+                disabled={socialDisabled}
+                label={
+                  oauthSubmitting === 'google'
+                    ? 'Google로 연결 중...'
+                    : 'Google로 시작하기'
+                }
+                onPress={() => {
+                  onSocialPress('google').catch(() => {});
+                }}
+                textColor="#334155"
+              />
+            ) : null}
+          </>
+        ) : null}
 
         {noticeConfig && !accountDeletionGate ? (
           <PremiumNoticeModal

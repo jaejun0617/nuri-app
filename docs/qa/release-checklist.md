@@ -40,6 +40,11 @@
   - email/password login, email signup, password reset, policy link UI는 유지한다.
   - Naver는 Supabase custom OAuth/OIDC provider 후보지만 현재 SDK provider 타입이 `custom:naver`를 assertion 없이 허용하지 않아 버튼을 노출하지 않는다.
   - Apple은 Android-first v1.0 범위에서 제외한다.
+- [x] Social login provider release gate 적용
+  - Supabase public auth settings 기준 Google provider disabled, Kakao provider disabled 상태를 확인했다.
+  - provider disabled 상태에서 Google/Kakao 버튼을 노출하면 v1.0 P1이므로 `isSocialOAuthProviderReleaseReady()` gate 뒤로 숨겼다.
+  - 현재 Google/Kakao readiness 값은 모두 `false`이며, provider console 설정과 Android OAuth smoke가 끝날 때만 켠다.
+  - Naver는 타입 안전 구현 경로가 없어 v1.0 화면에 노출하지 않는다.
 - [x] 외부 지도 전환 기본 동선
   - 장소 상세의 외부 지도 열기 동선은 PO 확인 기준 완료로 분류한다.
 - [x] 건강관리 리포트 Phase 1 MVP
@@ -70,6 +75,11 @@
 
 ### 0-2. Google/Kakao/Naver OAuth provider setup gate
 
+- 판정
+  - Google: `CONFIG_WAITING`, 사용자 화면 숨김
+  - Kakao: `CONFIG_WAITING`, 사용자 화면 숨김
+  - Naver: `BLOCKED_BY_UNSAFE_IMPLEMENTATION`, 사용자 화면 숨김
+  - Apple: `HIDE_FOR_V1`
 - [ ] PO가 Google/Kakao provider console, API key/secret, redirect allow-list를 실제 운영 값으로 준비한다.
   - Google: Google Cloud Project, OAuth consent screen, Web OAuth Client ID/Secret, Android OAuth Client ID, `com.nuri.app`, SHA-1/SHA-256, Privacy Policy/Terms URL.
   - Kakao: Kakao Developers 앱, Kakao Login 활성화, REST API Key, Client Secret, Supabase callback URL Redirect URI 등록, 동의항목 설정, 필요 시 Biz App/앱 정보 검토.
@@ -82,7 +92,8 @@
   - Naver를 실제 노출하려면 SDK 타입 지원 또는 별도 typed authorize helper 설계가 먼저 필요하다.
 - [ ] provider 설정 완료 후 OAuth 성공 smoke를 별도 evidence로 남긴다.
   - 버튼 탭, provider web flow 진입, 앱 복귀, Supabase session 복구, nickname/pet onboarding 분기를 확인한다.
-  - provider 설정 전 실패는 앱 코드 blocker가 아니라 PO 설정 대기 상태로 분리한다.
+  - provider 설정 전에는 Google/Kakao 버튼도 사용자 화면에 노출하지 않는다.
+  - smoke 성공 후 readiness gate를 켜고 버튼 노출을 release evidence로 고정한다.
 
 ### 0. 정적 검증 / 빌드 스냅샷
 
