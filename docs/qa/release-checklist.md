@@ -1,9 +1,22 @@
-# Final Release Gate
+# V1.0 Final Release Gate
 
 운영 메모:
 
 - 이 문서는 gate open/close만 본다.
 - task18 상세 실행 순서, 캡처 파일명, 보관 규칙은 `docs/출시-준비도-회복/11-release-blocker-evidence-pack.md`를 따른다.
+- 현재 unchecked 항목은 모두 v1.0 마감 트랙이다.
+- v1.0 gate가 닫히기 전에는 v1.1 작업으로 넘어가지 않는다.
+- v1.1 후보는 이 문서의 v1.0 unchecked 항목이 완료되거나 PO가 명시적으로 v1.0 제외/보류 승인한 뒤 착수한다.
+- 이번 Auth 마감 이후 v1.0 기능 개발은 Code Freeze로 간다.
+- 과금, Premium AI reply, Guestbook private letters 확장, Typography foundation rollout은 v1.1 신규 업데이트 후보로 관리한다.
+
+## V1.0 Code Freeze 이후 남은 운영/출시 게이트
+
+- [ ] Supabase DB Migration Dry-run / 원격 Apply
+- [ ] 운영자 QA / 실기기 최종 스모크
+- [ ] 앱 스토어 출시 자산 셋업
+- [ ] RC 빌드 확정
+- [ ] clean artifact evidence 고정
 
 ## Supabase Migration Apply Gate
 
@@ -55,7 +68,7 @@
   - 수동 smoke 기준 1차 `source=provider`, 2차 `source=fresh_cache`로 bucket당 60분 서버 캐시가 동작했다.
   - Android `SM_S937N` logcat 기준 앱 클라이언트의 Open-Meteo 직접 호출은 0건이고, `weather-cache completed source=fresh_cache`만 확인됐다.
 
-## 출시 전 반드시 남은 항목
+## v1.0 출시 전 반드시 남은 항목
 
 ### 0-1. Release Evidence Pack hard-close
 
@@ -91,6 +104,10 @@
 - [ ] provider 설정 완료 후 OAuth 성공 smoke를 별도 evidence로 남긴다.
   - 버튼 탭, provider web flow 진입, 앱 복귀, Supabase session 복구, nickname/pet onboarding 분기를 확인한다.
   - provider 설정 전 실패는 앱 코드 blocker가 아니라 provider setup 대기 상태로 분리한다.
+- [x] social OAuth V1.0 약관/개인정보처리방침 고지 UI를 추가한다.
+  - Google/Kakao/Naver social login 버튼 하단에 이용약관/개인정보처리방침 확인 및 동의 간주 문구를 표시한다.
+  - 기존 정책 링크 source를 재사용한다.
+  - v1.0에서는 별도 social consent DB snapshot, 신규 migration, 신규 RPC를 열지 않는다.
 
 ### 0. 정적 검증 / 빌드 스냅샷
 
@@ -108,7 +125,7 @@
 - [x] Supabase env 연결 상태
   - tracked config가 linked remote host를 가리키며 `auth/v1/health` 200 응답 확인
 
-### 1. 장소/산책/동물병원 물리 실기기 최종 캡처
+### 1. 운영자 QA / 실기기 최종 스모크 세부 체크
 
 - [ ] 산책, 장소, 동물병원의 리스트와 상세를 Android 실기기에서 다시 열고 캡처를 남긴다.
 - [ ] 공개 라벨과 `내 상태`가 섞여 보이지 않는지 확인한다.
@@ -157,7 +174,7 @@
   - `NURI-RPC-SUCCESS` logcat 확인
 - 결과는 정상이나, 다음 DB migration부터는 pending migration 목록이 의도와 다르면 remote apply를 중단한다.
 
-### 2. 운영 증적 패키지 마감
+### 2. 운영 증적 패키지 마감 세부 체크
 
 - [x] `place-enrichment-worker` background cron lane을 remote에 배포하고 수동 trigger 1회를 성공시킨다.
   - linked remote에 `place-enrichment-worker` Edge Function을 배포했고, `register_place_enrichment_worker_schedule()`로 `*/10 * * * *` pg_cron job을 등록했다. 등록 job id는 `2`다.
@@ -181,10 +198,10 @@
   - `android/app/build.gradle`의 `firebaseCrashlytics` 설정은 debug에서 upload 비활성화, release에서만 mapping upload 활성화로 고정했다.
 - [x] Android release signing config를 upload key 기준으로 전환한다.
 
-### 4. 스토어 제출 자산
+### 4. v1.0 스토어 제출 자산
 
-- 스토어 출시 자산 세팅은 최종 제출 직전 task로 이동한다. 현재 단계에서는 기능/QA/evidence closeout이 우선이다.
-- 이 섹션은 release checklist 후행 캡처, RC smoke, 남은 release blocker 정리, Guestbook/private letters 확인, 전역 운영자 QA final gate 수행 또는 보류 승인, 최종 evidence pack 정리 이후 final packaging 단계에서 닫는다.
+- 스토어 출시 자산 세팅은 v1.0 제출 직전 task다.
+- 이 섹션은 release checklist 후행 캡처, RC smoke, 남은 release blocker 정리, 기존 방명록 동선 확인, 전역 운영자 QA final gate 수행 또는 보류 승인, 최종 evidence pack 정리 이후 v1.0 final packaging 단계에서 닫는다.
 - [x] 앱 아이콘 최종본을 확정한다.
 - [x] 스플래시 화면 최종본을 확정한다.
 - [ ] 앱스토어/플레이스토어 스크린샷을 준비한다.
@@ -201,8 +218,19 @@
 - [x] 건강관리 진입은 Android RC smoke에서 확인했다.
   - 건강기록/체중 CRUD/fallback은 기존 Phase 1 evidence를 인정하며, 이번 hard-close 턴에서 재수행하지 않는다.
 
-## v1.1 백로그
+## v1.0 완료 후 v1.1 백로그
 
+- 아래 항목은 v1.0 gate가 모두 닫힌 뒤 착수한다.
+- v1.0 release blocker로 승격하는 경우에는 위 v1.0 섹션으로 이동한다.
+
+- [ ] Entitlement / billing foundation
+  - 실제 결제/과금 구조는 v1.0에서 열지 않고 v1.1 신규 업데이트 후보로 관리한다.
+- [ ] Premium AI reply 선행조건
+  - AI reply는 v1.0에서 열지 않고 notice/consent/generation log/provider policy를 v1.1에서 별도 설계한다.
+- [ ] Guestbook private letters 확장 아키텍처
+  - v1.0에서는 기존 단순 방명록 상태로 출시하고 상세/수정/삭제/AI reply 확장은 v1.1 후보로 둔다.
+- [ ] Typography foundation rollout
+  - v1.0에서는 폰트/타이포 전면 리디자인을 진행하지 않고 v1.1 시각 정비 트랙으로 둔다.
 - [ ] 장소/동물병원 `confirmed` 개방 검토
 - [ ] 동물병원 admin 계정 조작 증적
 - [ ] 커뮤니티 preview batch 최적화
@@ -218,8 +246,5 @@
   - v1.0 blocker는 아니나 운영 고도화 항목이다.
 - [ ] `weather-cache` public endpoint abuse throttle/rate limit
   - v1.0 blocker는 아니나 운영 고도화 항목이다.
-- [x] Naver custom OAuth app-side entrypoint
-  - Naver는 v1.0 app-side provider에 포함했고, Supabase custom OAuth provider id `custom:naver`를 사용한다.
-  - 남은 항목은 provider console/Supabase 설정과 OAuth 성공 smoke다.
 - [ ] Apple social login backlog
   - Apple은 Android-first v1.0 범위에서 제외하며 iOS 출시 및 Apple 정책 검토 시점에 별도 판단한다.
