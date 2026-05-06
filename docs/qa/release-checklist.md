@@ -12,7 +12,7 @@
 
 ## V1.0 Code Freeze 이후 남은 운영/출시 게이트
 
-- [ ] Supabase DB Migration Dry-run / 원격 Apply
+- [x] Supabase DB Migration Dry-run / 원격 Apply
 - [ ] 운영자 QA / 실기기 최종 스모크
 - [ ] 앱 스토어 출시 자산 셋업
 - [ ] RC 빌드 확정
@@ -20,15 +20,50 @@
 
 ## Supabase Migration Apply Gate
 
-- [ ] `supabase db push --linked --dry-run`으로 pending migration 목록을 먼저 확인한다.
-- [ ] pending 목록에 이번 배포에서 승인된 migration만 포함되어 있는지 확인한다.
-- [ ] 의도하지 않은 pending migration이 1개라도 있으면 remote apply를 중단한다.
-- [ ] migration 간 적용 순서가 중요한 경우 corrective/feature migration을 분리 적용할지 PO/엔지니어링 승인 후 결정한다.
-- [ ] remote apply 후 `supabase migration list --linked`로 remote 반영 여부를 확인한다.
-- [ ] `supabase db lint --linked --schema public --fail-on error`를 실행한다.
-- [ ] 신규/수정 RPC는 직접 호출 결과와 EXPLAIN ANALYZE evidence를 남긴다.
-- [ ] 앱에서 해당 RPC success log 또는 화면 evidence를 확보한다.
-- [ ] release note에 적용 migration, rollback 여부, 사후 검증 결과를 기록한다.
+- [x] `npx supabase db push --dry-run`으로 pending migration 목록을 먼저 확인한다.
+  - 결과: `Remote database is up to date.`
+- [x] pending 목록에 이번 배포에서 승인된 migration만 포함되어 있는지 확인한다.
+  - 결과: local migration 30개와 remote migration이 `20260429130000`까지 일치하며 local-only/remote-only migration은 없다.
+- [x] 의도하지 않은 pending migration이 1개라도 있으면 remote apply를 중단한다.
+  - 결과: pending migration 0개라 apply는 no-op이다.
+- [x] migration 간 적용 순서가 중요한 경우 corrective/feature migration을 분리 적용할지 PO/엔지니어링 승인 후 결정한다.
+  - 결과: 신규 apply 대상이 없어 no-op이다.
+- [x] remote apply 후 `npx supabase migration list`로 remote 반영 여부를 확인한다.
+  - 결과: post-apply migration list도 local/remote가 `20260429130000`까지 일치한다.
+- [x] `npx supabase db lint --linked --schema public --fail-on error`를 실행한다.
+  - 결과: error 0건, 기존 `public.delete_my_account` unused parameter warning 1건만 유지된다.
+- [x] 신규/수정 RPC는 직접 호출 결과와 EXPLAIN ANALYZE evidence를 남긴다.
+  - 결과: 이번 gate에서 신규/수정 RPC는 없으므로 직접 호출/EXPLAIN은 no-op이다. Supabase generated types로 public/auth catalog를 읽어 핵심 table/function signature 존재를 확인했다.
+- [x] 앱에서 해당 RPC success log 또는 화면 evidence를 확보한다.
+  - 결과: 신규 앱 RPC 호출 경로가 없으므로 no-op이다. 기존 animal hospital/weather/account/community evidence는 유지한다.
+- [x] release note에 적용 migration, rollback 여부, 사후 검증 결과를 기록한다.
+  - 결과: remote apply no-op, rollback 없음, DB release blocker 없음.
+
+### 2026-05-06 DB release gate evidence
+
+| 항목 | 상태 | evidence |
+|---|---|---|
+| local migration 목록 | closed | 30개 SQL migration, 중복 timestamp 없음, 최신 `20260429130000_weather_cache_proxy.sql` |
+| remote migration list | closed | local/remote `20260329024024`부터 `20260429130000`까지 일치 |
+| pre-apply db diff --linked | blocked | Supabase CLI diff가 shadow DB/temp role 경로에서 실패했다. pending migration 0개, `db push --dry-run` no-op, generated types catalog 확인으로 destructive apply risk는 no-op으로 판정한다. |
+| pre-apply db lint | blocked | `npx supabase db lint`는 local Postgres `127.0.0.1:54322` 미기동으로 실패했고, linked lint 1차는 temp role auth 실패였다. remote apply가 no-op이므로 post-apply linked lint를 최종 lint evidence로 사용한다. |
+| remote apply | no-op | `npx supabase db push`: `Remote database is up to date.` |
+| post-apply migration list | closed | local/remote `20260429130000`까지 일치 |
+| post-apply db lint | closed | `npx supabase db lint --linked --schema public --fail-on error`: error 0건, 기존 warning 1건 |
+| post-apply db diff --linked | blocked | `SUPABASE_DB_PASSWORD` 미설정/temp role SASL auth 실패. remote apply가 no-op이고 migration list가 일치하므로 DB release blocker로 보지 않는다. |
+| generated public/auth catalog | closed | `npx supabase gen types typescript --linked --schema public/auth` 성공 |
+
+### 2026-05-06 RPC / DB catalog evidence
+
+| 항목 | 확인 방식 | 결과 | release 판정 |
+|---|---|---|---|
+| account deletion | generated public types + applied migrations | `account_deletion_requests`, `account_deletion_cleanup_items`, `request_account_deletion`, `delete_my_account`, `claim_due_account_deletion_requests`, `execute_account_deletion_request` signature 존재 | closed |
+| community moderation / reports / image cleanup | generated public types + applied migrations | `community_moderation_queue`, `community_moderation_actions`, `community_image_assets`, moderation functions signature 존재 | closed |
+| animal hospital public search RPC | generated public types + applied migrations | `animal_hospital_public_search_v1` signature 존재, latest migration applied | closed |
+| weather-cache DB contract | generated public types + applied migrations + functions list | `nuri_weather_cache` table 존재, `weather-cache` Edge Function ACTIVE v2 | closed |
+| health report weight log / summary contract | generated public types + applied migrations | `pet_weight_logs` table, latest-weight trigger/function migration 적용 상태 | closed |
+| auth/profile trigger/RLS contract | generated public/auth types + applied migrations | `profiles`, auth `users`, `handle_new_user`/`on_auth_user_created` migration contract 적용 상태 | closed |
+| Guestbook 기본 방명록/letters 노출 위험 | generated public types + applied migrations | `letters` table은 user/pet 소유 모델로 남아 있고 v1.0 확장 migration 없음 | closed |
 
 ## 이미 닫힌 항목
 
