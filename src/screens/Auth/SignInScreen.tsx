@@ -54,6 +54,10 @@ import {
   signInWithNaver,
   type SocialOAuthProvider,
 } from '../../services/supabase/auth';
+import {
+  openLegalDocument,
+  type LegalDocumentId,
+} from '../../services/legal/documents';
 import { supabase } from '../../services/supabase/client';
 import { useAuthStore } from '../../store/authStore';
 import { showToast } from '../../store/uiStore';
@@ -179,6 +183,66 @@ const NaverBadgeMark = memo(function NaverBadgeMark() {
   );
 });
 
+type SocialConsentNoticeProps = {
+  linkColor: string;
+  onPressDocument: (documentId: LegalDocumentId) => void;
+  textColor: string;
+};
+
+const SocialConsentNotice = memo(function SocialConsentNotice({
+  linkColor,
+  onPressDocument,
+  textColor,
+}: SocialConsentNoticeProps) {
+  const textStyle = {
+    color: textColor,
+    fontSize: 12,
+    lineHeight: 19,
+    fontWeight: '700' as const,
+  };
+  const linkStyle = {
+    ...textStyle,
+    color: linkColor,
+    fontWeight: '900' as const,
+  };
+
+  return (
+    <View
+      accessibilityLabel="소셜 계정으로 계속 진행 시 NURI의 이용약관 및 개인정보처리방침을 확인하고 동의한 것으로 간주합니다."
+      accessible
+      style={{
+        alignItems: 'center',
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        marginTop: 2,
+        paddingHorizontal: 8,
+        rowGap: 2,
+      }}
+    >
+      <Text style={textStyle}>소셜 계정으로 계속 진행 시 NURI의 </Text>
+      <TouchableOpacity
+        accessibilityRole="link"
+        activeOpacity={0.72}
+        hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+        onPress={() => onPressDocument('terms')}
+      >
+        <Text style={linkStyle}>[이용약관]</Text>
+      </TouchableOpacity>
+      <Text style={textStyle}> 및 </Text>
+      <TouchableOpacity
+        accessibilityRole="link"
+        activeOpacity={0.72}
+        hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+        onPress={() => onPressDocument('privacy')}
+      >
+        <Text style={linkStyle}>[개인정보처리방침]</Text>
+      </TouchableOpacity>
+      <Text style={textStyle}>을 확인하고 동의한 것으로 간주합니다.</Text>
+    </View>
+  );
+});
+
 const SHOW_KAKAO_OAUTH = isSocialOAuthProviderReleaseReady('kakao');
 const SHOW_GOOGLE_OAUTH = isSocialOAuthProviderReleaseReady('google');
 const SHOW_NAVER_OAUTH = isSocialOAuthProviderReleaseReady('naver');
@@ -299,6 +363,23 @@ export default function SignInScreen() {
   const onPressSignUp = useCallback(() => {
     navigation.navigate('SignUp');
   }, [navigation]);
+
+  const onPressLegalDocument = useCallback(async (documentId: LegalDocumentId) => {
+    const result = await openLegalDocument(documentId);
+
+    if (result.ok) return;
+
+    if (result.reason === 'failed') {
+      Alert.alert(result.document.title, result.message);
+    }
+
+    showToast({
+      tone: result.reason === 'failed' ? 'error' : 'info',
+      title: result.document.title,
+      message: result.message,
+      durationMs: 3200,
+    });
+  }, []);
 
   useEffect(() => {
     if (passwordRecoveryStatus !== 'active') {
@@ -600,6 +681,14 @@ export default function SignInScreen() {
                 textColor="#FFFFFF"
               />
             ) : null}
+
+            <SocialConsentNotice
+              linkColor={theme.colors.brand}
+              onPressDocument={documentId => {
+                onPressLegalDocument(documentId).catch(() => {});
+              }}
+              textColor={theme.colors.textMuted}
+            />
           </>
         ) : null}
 

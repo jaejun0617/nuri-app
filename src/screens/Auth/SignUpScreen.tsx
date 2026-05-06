@@ -28,6 +28,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
+import { useTheme } from 'styled-components/native';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { getBrandedErrorMeta } from '../../services/app/errors';
@@ -267,6 +268,66 @@ const SocialButton = memo(function SocialButton({
   );
 });
 
+type SocialConsentNoticeProps = {
+  linkColor: string;
+  onPressDocument: (documentId: LegalDocumentId) => void;
+  textColor: string;
+};
+
+const SocialConsentNotice = memo(function SocialConsentNotice({
+  linkColor,
+  onPressDocument,
+  textColor,
+}: SocialConsentNoticeProps) {
+  const textStyle = {
+    color: textColor,
+    fontSize: 12,
+    lineHeight: 19,
+    fontWeight: '700' as const,
+  };
+  const linkStyle = {
+    ...textStyle,
+    color: linkColor,
+    fontWeight: '900' as const,
+  };
+
+  return (
+    <View
+      accessibilityLabel="소셜 계정으로 계속 진행 시 NURI의 이용약관 및 개인정보처리방침을 확인하고 동의한 것으로 간주합니다."
+      accessible
+      style={{
+        alignItems: 'center',
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        marginTop: 2,
+        paddingHorizontal: 8,
+        rowGap: 2,
+      }}
+    >
+      <Text style={textStyle}>소셜 계정으로 계속 진행 시 NURI의 </Text>
+      <TouchableOpacity
+        accessibilityRole="link"
+        activeOpacity={0.72}
+        hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+        onPress={() => onPressDocument('terms')}
+      >
+        <Text style={linkStyle}>[이용약관]</Text>
+      </TouchableOpacity>
+      <Text style={textStyle}> 및 </Text>
+      <TouchableOpacity
+        accessibilityRole="link"
+        activeOpacity={0.72}
+        hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+        onPress={() => onPressDocument('privacy')}
+      >
+        <Text style={linkStyle}>[개인정보처리방침]</Text>
+      </TouchableOpacity>
+      <Text style={textStyle}>을 확인하고 동의한 것으로 간주합니다.</Text>
+    </View>
+  );
+});
+
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
@@ -298,6 +359,7 @@ async function signUpWithTimeout(email: string, password: string, timeoutMs = 12
 
 export default function SignUpScreen() {
   const navigation = useNavigation<Nav>();
+  const theme = useTheme();
   const setSession = useAuthStore(s => s.setSession);
 
   const [email, setEmail] = useState('');
@@ -796,6 +858,14 @@ export default function SignUpScreen() {
                   textColor="#FFFFFF"
                 />
               ) : null}
+
+              <SocialConsentNotice
+                linkColor={theme.colors.brand}
+                onPressDocument={documentId => {
+                  onPressLegalDocument(documentId).catch(() => {});
+                }}
+                textColor={theme.colors.textMuted}
+              />
             </>
           ) : null}
 
