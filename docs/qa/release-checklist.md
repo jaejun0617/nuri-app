@@ -1,24 +1,26 @@
-# Pre-Store Submission Gate / V1.0 Baseline Evidence
+# V1.0 Remaining Task/Risk Closeout
 
 운영 메모:
 
-- 이 문서는 v1.0 기능 기준선 evidence와 최종 스토어 제출 전 Gate를 함께 관리한다.
+- 이 문서는 v1.0 기능 기준선 evidence와 v1.1 착수 전 닫아야 하는 잔여 task/risk를 함께 관리한다.
 - task18 상세 실행 순서, 캡처 파일명, 보관 규칙은 `docs/출시-준비도-회복/11-release-blocker-evidence-pack.md`를 따른다.
 - v1.0은 기능 개발 Code Freeze 기준선이며 스토어 제출 완료 버전이 아니다.
-- 현재 unchecked 운영/제출 항목은 v1.0 기능 blocker가 아니며, v1.1 완료 후 최종 스토어 제출 직전에 수행한다.
+- 현재 unchecked 운영/제출 항목은 신규 기능 개발이 아니며, v1.1로 넘어가기 전에 v1.0 마감 lane에서 닫는다.
 - v1.1은 v1.0 미완성 이월이 아니라 신규 업데이트 트랙이다.
 - 과금, Premium AI reply, Guestbook private letters 확장, Typography foundation rollout은 v1.1 신규 업데이트 후보로 관리한다.
 
-## V1.0 기능 기준선과 Pre-Store Submission Gate
+## V1.0 기능 기준선과 잔여 task/risk closeout
 
 - [x] V1.0 기능 개발 Code Freeze
 - [x] Supabase DB Migration Dry-run / 원격 Apply
-- [ ] Pre-Store Submission Gate: 운영자 QA / 실기기 최종 스모크
-- [ ] Pre-Store Submission Gate: 앱 스토어 출시 자산 셋업
-- [ ] Pre-Store Submission Gate: 최종 제출용 RC 빌드 확정
-- [ ] Pre-Store Submission Gate: clean artifact evidence 고정
+- [ ] Google/Kakao/Naver provider console 설정 확인과 OAuth 성공 smoke
+- [ ] 운영자 QA / 실기기 최종 스모크
+- [ ] 앱 스토어 출시 자산 셋업
+- [ ] 최종 제출용 RC 빌드 확정
+- [ ] clean artifact evidence 고정
+- [ ] release risk ledger 전수 정리와 남은 P0/P1/P2 재분류
 
-이 항목들은 v1.0 기능 개발 blocker가 아니며, v1.1 완료 후 최종 스토어 제출 직전에 수행하는 운영/제출 gate다.
+이 항목들은 신규 기능 개발이 아니며, v1.1로 넘어가기 전에 v1.0 마감 lane에서 닫는 운영/제출 gate다.
 
 ## Supabase Migration Apply Gate
 
@@ -105,7 +107,7 @@
   - 수동 smoke 기준 1차 `source=provider`, 2차 `source=fresh_cache`로 bucket당 60분 서버 캐시가 동작했다.
   - Android `SM_S937N` logcat 기준 앱 클라이언트의 Open-Meteo 직접 호출은 0건이고, `weather-cache completed source=fresh_cache`만 확인됐다.
 
-## 최종 스토어 제출 전 확인 항목
+## v1.0 잔여 task/risk 확인 항목
 
 ### 0-1. Release Evidence Pack hard-close
 
@@ -118,9 +120,9 @@
   - `supabase migration list --linked`: local/remote `20260429130000`까지 일치
   - `supabase db lint --linked --schema public --fail-on error`: error 없음, 기존 `delete_my_account` unused parameter warning만 확인
   - `supabase functions list`: `weather-cache` ACTIVE v2 확인
-- [ ] Pre-Store Submission Gate에서 clean RC artifact 기준 evidence를 최종 release candidate build로 고정한다.
+- [ ] v1.0 잔여 task/risk closeout에서 clean RC artifact 기준 evidence를 최종 release candidate build로 고정한다.
   - 현재 RC smoke는 dirty working tree 기준이다.
-  - 이 항목은 v1.0 기능 blocker가 아니라 최종 스토어 제출 전 evidence gate다.
+  - 이 항목은 신규 기능 개발이 아니라 v1.0 마감 evidence gate다.
 
 ### 0-2. Google/Kakao/Naver OAuth provider setup gate
 
@@ -162,7 +164,7 @@
 - [x] Supabase env 연결 상태
   - tracked config가 linked remote host를 가리키며 `auth/v1/health` 200 응답 확인
 
-### 1. Pre-Store Submission Gate: 운영자 QA / 실기기 최종 스모크 세부 체크
+### 1. v1.0 잔여 task: 운영자 QA / 실기기 최종 스모크 세부 체크
 
 - [ ] 산책, 장소, 동물병원의 리스트와 상세를 Android 실기기에서 다시 열고 캡처를 남긴다.
 - [ ] 공개 라벨과 `내 상태`가 섞여 보이지 않는지 확인한다.
@@ -235,10 +237,10 @@
   - `android/app/build.gradle`의 `firebaseCrashlytics` 설정은 debug에서 upload 비활성화, release에서만 mapping upload 활성화로 고정했다.
 - [x] Android release signing config를 upload key 기준으로 전환한다.
 
-### 4. Pre-Store Submission Gate: 스토어 제출 자산
+### 4. v1.0 잔여 task: 스토어 제출 자산
 
-- 스토어 출시 자산 세팅은 v1.1 완료 후 최종 스토어 제출 직전 task다.
-- 이 섹션은 최종 QA/실기기 smoke, 최종 RC build, clean artifact evidence가 준비되는 Pre-Store Submission Gate에서 닫는다.
+- 스토어 출시 자산 세팅은 v1.1 착수 전 v1.0 마감 lane에서 닫는 task다.
+- 이 섹션은 최종 QA/실기기 smoke, 최종 RC build, clean artifact evidence가 준비되는 v1.0 잔여 task/risk closeout에서 닫는다.
 - [x] 앱 아이콘 최종본을 확정한다.
 - [x] 스플래시 화면 최종본을 확정한다.
 - [ ] 앱스토어/플레이스토어 스크린샷을 준비한다.
