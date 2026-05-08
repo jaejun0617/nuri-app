@@ -18,7 +18,8 @@
 - [ ] 앱 스토어 출시 자산 셋업
 - [ ] 최종 제출용 RC 빌드 확정
 - [ ] clean artifact evidence 고정
-- [ ] release risk ledger 전수 정리와 남은 P0/P1/P2 재분류
+- [x] release risk ledger 전수 정리와 남은 P0/P1/P2 재분류
+  - evidence: `docs/qa/v1.0-remaining-task-risk-ledger.md`
 
 이 항목들은 신규 기능 개발이 아니며, v1.1로 넘어가기 전에 v1.0 마감 lane에서 닫는 운영/제출 gate다.
 
@@ -108,6 +109,18 @@
   - Android `SM_S937N` logcat 기준 앱 클라이언트의 Open-Meteo 직접 호출은 0건이고, `weather-cache completed source=fresh_cache`만 확인됐다.
 
 ## v1.0 잔여 task/risk 확인 항목
+
+### 0-0. V1.0 Remaining Task/Risk Ledger
+
+- [x] v1.0 잔여 task/risk를 단일 ledger로 고정한다.
+  - P0: 0건
+  - P1: 4건
+  - P2: 4건
+  - evidence: `docs/qa/v1.0-remaining-task-risk-ledger.md`
+- [x] 반복 방지 기준을 문서화한다.
+  - 이미 close된 도메인은 새 blocker 증거 없이 재오픈하지 않는다.
+  - social login app-side 구현은 다시 열지 않고 provider 설정과 smoke만 본다.
+  - clean RC artifact 전에는 RC smoke를 반복하지 않는다.
 
 ### 0-1. Release Evidence Pack hard-close
 
