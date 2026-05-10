@@ -9,6 +9,7 @@
 - implementation path: Supabase Auth OAuth web flow
 - native SDK path: v1.0 범위 아님
 - secret policy: 실제 API key, client secret, private key 값은 repository와 문서에 기록하지 않는다.
+- provider console setup source: `docs/auth/social-provider-console-setup-guide.md`
 
 ## Provider Gate Decision
 
@@ -18,6 +19,13 @@
 | Kakao | CONFIG_WAITING | 노출 | 앱 진입점은 구현됐고 Supabase provider 설정과 smoke가 남았다. |
 | Naver | CONFIG_WAITING | 노출 | Supabase custom OAuth provider id `custom:naver`로 앱 진입점을 구현했고 provider 설정과 smoke가 남았다. |
 | Apple | HIDE_FOR_V1 | 숨김 | Android-first v1.0 범위에서 제외한다. |
+
+2026-05-10 기준 provider console 판정:
+
+- Google: app-side entrypoint는 `closed`, Supabase provider credential 입력은 `ready-for-PO-action`.
+- Kakao: app-side entrypoint는 `closed`, Supabase provider credential 입력은 `ready-for-PO-action`.
+- Naver: app-side entrypoint와 Supabase `custom:naver` authorize 진입은 `closed`, OAuth success smoke는 `ready-for-PO-action`.
+- Apple: v1.0 `no-op`.
 
 ## Naver Decision
 

@@ -13,7 +13,7 @@
 
 - [x] V1.0 기능 개발 Code Freeze
 - [x] Supabase DB Migration Dry-run / 원격 Apply
-- [ ] Google/Kakao/Naver provider console 설정 확인과 OAuth 성공 smoke
+- [ ] Google/Kakao/Naver provider credential 입력과 OAuth 성공 smoke
 - [ ] 운영자 QA / 실기기 최종 스모크
 - [ ] 앱 스토어 출시 자산 셋업
 - [ ] 최종 제출용 RC 빌드 확정
@@ -140,10 +140,14 @@
 ### 0-2. Google/Kakao/Naver OAuth provider setup gate
 
 - 판정
-  - Google: `CONFIG_WAITING`, 사용자 화면 노출
-  - Kakao: `CONFIG_WAITING`, 사용자 화면 노출
-  - Naver: `CONFIG_WAITING`, 사용자 화면 노출
+  - Google: `ready-for-PO-action`, 사용자 화면 노출. App-side entrypoint는 닫혔고 Supabase Google provider는 현재 disabled다.
+  - Kakao: `ready-for-PO-action`, 사용자 화면 노출. App-side entrypoint는 닫혔고 Supabase Kakao provider는 현재 disabled다.
+  - Naver: `ready-for-PO-action`, 사용자 화면 노출. Supabase `custom:naver` authorize는 Naver authorize endpoint로 redirect된다.
   - Apple: `HIDE_FOR_V1`
+- [x] Google/Kakao/Naver provider console setup guide와 보안/API 방어 기준을 고정한다.
+  - evidence: `docs/auth/social-provider-console-setup-guide.md`
+  - Google/Kakao/Naver credential 발급 절차, Supabase provider 입력 위치, callback/redirect 정합성, secret 미노출 원칙을 한 문서로 묶었다.
+  - Social login app-side 구현은 재오픈하지 않는다.
 - [ ] PO가 Google/Kakao provider console, API key/secret, redirect allow-list를 실제 운영 값으로 준비한다.
   - Google: Google Cloud Project, OAuth consent screen, Web OAuth Client ID/Secret, Android OAuth Client ID, `com.nuri.app`, SHA-1/SHA-256, Privacy Policy/Terms URL.
   - Kakao: Kakao Developers 앱, Kakao Login 활성화, REST API Key, Client Secret, Supabase callback URL Redirect URI 등록, 동의항목 설정, 필요 시 Biz App/앱 정보 검토.
@@ -151,8 +155,8 @@
   - 실제 key/secret 값은 repository와 release evidence에 기록하지 않는다.
 - [ ] PO가 Naver provider 준비물을 확정한다.
   - Naver Developers 애플리케이션, Client ID, Client Secret, Callback URL, API 권한, 프로필/email 동의, 개인정보처리방침 URL을 준비한다.
-  - Supabase custom OAuth/OIDC provider id 후보는 `custom:naver`다.
-  - Naver app-side entrypoint는 구현됐으며 실제 성공은 Supabase custom provider 설정 후 확인한다.
+  - Supabase custom OAuth/OIDC provider id는 `custom:naver`다.
+  - Naver app-side entrypoint는 구현됐으며 Supabase authorize endpoint는 Naver authorize flow까지 진입한다.
 - [ ] provider 설정 완료 후 OAuth 성공 smoke를 별도 evidence로 남긴다.
   - 버튼 탭, provider web flow 진입, 앱 복귀, Supabase session 복구, nickname/pet onboarding 분기를 확인한다.
   - provider 설정 전 실패는 앱 코드 blocker가 아니라 provider setup 대기 상태로 분리한다.
