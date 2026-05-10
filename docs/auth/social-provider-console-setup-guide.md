@@ -12,9 +12,9 @@
 
 | Provider | App-side entrypoint | Supabase provider | Provider console | Callback/redirect | Secret 노출 | Smoke 준비 | 최종 판정 |
 |---|---|---|---|---|---|---|---|
-| Google | closed | ready-for-PO-action | ready-for-PO-action | ready-for-PO-action | closed | ready-for-PO-action | ready-for-PO-action |
-| Kakao | closed | ready-for-PO-action | ready-for-PO-action | ready-for-PO-action | closed | ready-for-PO-action | ready-for-PO-action |
-| Naver | closed | closed | ready-for-PO-action | closed | closed | ready-for-PO-action | ready-for-PO-action |
+| Google | closed | disabled | ready-for-PO-action | ready-for-PO-action | closed | activation-ready | activation-ready |
+| Kakao | closed | disabled | ready-for-PO-action | ready-for-PO-action | closed | activation-ready | activation-ready |
+| Naver | closed | `custom:naver` | ready-for-PO-action | closed | closed | activation-ready | activation-ready |
 
 현재 repo/remote 공개 Auth endpoint 기준 증거:
 
@@ -26,6 +26,7 @@
 - Naver Supabase custom provider: `/auth/v1/authorize?provider=custom:naver` returns HTTP 302 to the Naver authorize endpoint.
 - App callback: `nuri://auth/callback`.
 - Password reset callback: `nuri://auth/reset`.
+- App readiness flags default to `false` for Google/Kakao/Naver, so release build does not expose disabled-provider buttons.
 - Apple: v1.0 no-op.
 
 ## 3. 공통 구조
@@ -38,6 +39,28 @@
 - Supabase Additional Redirect URLs에는 `nuri://auth/callback`을 등록한다.
 - OAuth 성공 후 session 복구는 기존 `OAuthCallbackScreen -> completeOAuthCallbackSession -> Splash/AppProviders` 흐름을 사용한다.
 - 신규 social user의 profile/nickname/pet onboarding 분기는 기존 email/password auth boot contract를 재사용한다.
+- Provider activation readiness는 public boolean flag로 제어한다. 이 flag는 secret이 아니며, provider credential 입력 후 release build config에서만 true로 전환한다.
+
+## 3-1. Provider activation-ready 점검표
+
+| Provider | Credential 현재 상태 | Supabase provider 상태 | App-side readiness flag | 버튼 노출 조건 | Direct-call guard | 활성화 후 추가 개발 필요 여부 | 최종 판정 |
+|---|---|---|---|---|---|---|---|
+| Google | PO 발급 필요 | disabled/미입력 | `EXPO_PUBLIC_ENABLE_GOOGLE_OAUTH=false` | flag true일 때만 노출 | closed | 없음 | activation-ready |
+| Kakao | PO 발급 필요 | disabled/미입력 | `EXPO_PUBLIC_ENABLE_KAKAO_OAUTH=false` | flag true일 때만 노출 | closed | 없음 | activation-ready |
+| Naver | 기존 설정 유지 | `custom:naver` | `EXPO_PUBLIC_ENABLE_NAVER_OAUTH=false` | flag true일 때만 노출 | closed | 없음 | activation-ready |
+
+Readiness flag source:
+
+- `.env.example`
+- release build environment variables
+- `src/services/supabase/socialOAuthConfig.ts`
+
+Readiness contract:
+
+- flag false: SignIn/SignUp 화면에서 버튼을 렌더링하지 않는다.
+- flag false: provider 함수가 직접 호출되어도 `provider_setup_required`로 안전하게 중단한다.
+- flag true: 기존 `signInWithOAuth` web flow를 그대로 실행한다.
+- client secret은 flag나 app env에 넣지 않는다.
 
 ## 4. Google credential 발급 절차
 
@@ -218,7 +241,7 @@
 - `logOAuthError()`는 dev 환경에서 provider, stage, stable code만 기록한다.
 - `OAuthCallbackScreen`은 callback token/code 값을 화면이나 로그에 출력하지 않는다.
 - `supabase.auth.exchangeCodeForSession()` 또는 `supabase.auth.setSession()` 후 기존 session storage 계약을 사용한다.
-- `.env.example` 파일은 현재 repo root에 없고, `src/services/supabase/config.example.ts`에는 social provider secret placeholder가 없다.
+- `.env.example`에는 public boolean readiness flag만 있고, social provider client secret placeholder는 없다.
 - Google/Kakao provider는 현재 external provider disabled 상태라 PO credential 입력 전 OAuth success smoke 대상이 아니다.
 - Naver `custom:naver`는 Supabase authorize가 Naver authorize endpoint로 redirect되는 상태다. Client secret은 앱 코드와 문서에 기록하지 않는다.
 
@@ -284,9 +307,9 @@ PO는 secret 값을 Codex 채팅이나 repository에 붙여넣지 않고 Supabas
 
 | Provider | Smoke 진입 조건 |
 |---|---|
-| Google | Supabase Google provider enabled, client id/secret 입력, Google Authorized redirect URI 등록, `nuri://auth/callback` redirect allow list 등록 |
-| Kakao | Supabase Kakao provider enabled, REST API Key/Client Secret 입력, Kakao Login ON, Kakao Redirect URI 등록, 동의항목 설정 |
-| Naver | Supabase `custom:naver` enabled, Naver Client ID/Secret 입력, Naver Callback URL 등록, profile/email 제공 항목 설정 |
+| Google | Supabase Google provider enabled, client id/secret 입력, Google Authorized redirect URI 등록, `nuri://auth/callback` redirect allow list 등록, `EXPO_PUBLIC_ENABLE_GOOGLE_OAUTH=true` |
+| Kakao | Supabase Kakao provider enabled, REST API Key/Client Secret 입력, Kakao Login ON, Kakao Redirect URI 등록, 동의항목 설정, `EXPO_PUBLIC_ENABLE_KAKAO_OAUTH=true` |
+| Naver | Supabase `custom:naver` enabled, Naver Client ID/Secret 입력, Naver Callback URL 등록, profile/email 제공 항목 설정, `EXPO_PUBLIC_ENABLE_NAVER_OAUTH=true` |
 
 Smoke 성공 기준:
 
@@ -299,7 +322,48 @@ Smoke 성공 기준:
 - crash/ANR 없음.
 - token/client secret 로그 없음.
 
-## 13. 다음 액션
+## 13. API credential 발급 후 바로 활성화하는 절차
+
+### Google 활성화 절차
+
+1. Google Cloud Console에서 Web OAuth Client ID/Secret을 발급한다.
+2. Authorized redirect URI에 Supabase Auth callback URL을 등록한다.
+3. Supabase Dashboard > Authentication > Providers > Google에 Client ID/Secret을 입력한다.
+4. Google provider를 enable한다.
+5. `EXPO_PUBLIC_ENABLE_GOOGLE_OAUTH=true`로 Google readiness flag를 전환한다.
+6. 앱 재빌드 또는 release 설정 반영 방식에 따라 앱을 재시작한다.
+7. Android smoke를 수행한다.
+
+### Kakao 활성화 절차
+
+1. Kakao Developers에서 REST API Key를 확인한다.
+2. Kakao Login Client Secret을 활성화하고 값을 확인한다.
+3. Kakao Login Redirect URI에 Supabase Auth callback URL을 등록한다.
+4. Supabase Dashboard > Authentication > Providers > Kakao에 REST API Key/Client Secret을 입력한다.
+5. Kakao provider를 enable한다.
+6. `EXPO_PUBLIC_ENABLE_KAKAO_OAUTH=true`로 Kakao readiness flag를 전환한다.
+7. Android smoke를 수행한다.
+
+### Naver 활성화 절차
+
+1. Naver Developers에서 Client ID/Secret을 확인한다.
+2. Naver Callback URL이 Supabase Auth callback URL인지 맞춘다.
+3. Supabase Dashboard > Authentication > Providers > Custom OAuth `custom:naver` 설정을 유지한다.
+4. `custom:naver` provider를 enable한다.
+5. `EXPO_PUBLIC_ENABLE_NAVER_OAUTH=true`로 Naver readiness flag를 전환한다.
+6. Android smoke를 수행한다.
+
+주의:
+
+- secret 값은 Codex 채팅에 붙여넣지 않는다.
+- secret 값은 앱 코드에 넣지 않는다.
+- secret 값은 문서에 기록하지 않는다.
+- secret 값은 `.env.example`에 넣지 않는다.
+- Supabase Dashboard에 직접 입력한다.
+- Codex에는 입력 완료 여부와 readiness flag 반영 여부만 전달한다.
+- 입력 완료 후 Codex는 smoke evidence 문서화 턴으로 이동한다.
+
+## 14. 다음 액션
 
 Google/Kakao/Naver provider credential 발급 및 Supabase Dashboard 입력은 PO action으로 진행한다. Codex는 PO가 입력 완료를 알려준 뒤 OAuth 성공 smoke evidence 문서화 턴으로 이동한다.
 

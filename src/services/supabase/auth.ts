@@ -7,6 +7,11 @@ import { Linking } from 'react-native';
 
 import { supabase } from './client';
 import { isValidPasswordFormat } from './account';
+import {
+  ENABLE_GOOGLE_OAUTH,
+  ENABLE_KAKAO_OAUTH,
+  ENABLE_NAVER_OAUTH,
+} from './socialOAuthConfig';
 
 export const APP_URL_SCHEME = 'nuri';
 export const PASSWORD_RESET_REDIRECT_URL = `${APP_URL_SCHEME}://auth/reset`;
@@ -32,9 +37,9 @@ export type SocialOAuthProvider = 'google' | 'kakao' | 'naver';
 const SOCIAL_OAUTH_PROVIDER_READINESS: Readonly<
   Record<SocialOAuthProvider, boolean>
 > = {
-  google: true,
-  kakao: true,
-  naver: true,
+  google: ENABLE_GOOGLE_OAUTH,
+  kakao: ENABLE_KAKAO_OAUTH,
+  naver: ENABLE_NAVER_OAUTH,
 };
 
 const SUPABASE_PROVIDER_BY_SOCIAL_PROVIDER: Readonly<

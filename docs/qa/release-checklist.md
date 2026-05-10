@@ -93,10 +93,16 @@
   - email/password login, email signup, password reset, policy link UI는 유지한다.
   - Naver는 Supabase custom OAuth/OIDC provider id `custom:naver`를 사용한다.
   - Apple은 Android-first v1.0 범위에서 제외한다.
+- [x] Social login activation-ready 코드 계약 고정
+  - Google/Kakao/Naver provider mapping은 앱 코드에서 각각 `google`, `kakao`, `custom:naver`로 고정한다.
+  - Google/Kakao/Naver readiness flag 기본값은 `false`라 credential 미입력 release build에서 깨진 버튼이 노출되지 않는다.
+  - readiness false provider는 SignIn/SignUp 화면에서 숨기고, 직접 함수 호출도 `provider_setup_required`로 안전하게 중단한다.
+  - readiness true 전환 후에는 기존 Supabase OAuth web flow와 `nuri://auth/callback`을 그대로 사용한다.
+  - public readiness flag는 `.env.example`에 boolean으로만 기록하며 secret 값은 기록하지 않는다.
 - [x] Social login provider release gate 갱신
   - Supabase public auth settings 기준 Google provider disabled, Kakao provider disabled 상태를 확인했다.
-  - PO 정책 변경으로 Google/Kakao/Naver readiness는 앱 코드 기준 `true`로 전환했다.
-  - provider disabled 상태에서는 안전한 오류 문구로 수렴하며, OAuth 성공 smoke는 provider 설정 후 별도 수행한다.
+  - PO credential 입력 전 release build에서는 readiness false provider를 숨긴다.
+  - OAuth 성공 smoke는 provider credential 입력과 readiness flag true 전환 후 별도 수행한다.
 - [x] 외부 지도 전환 기본 동선
   - 장소 상세의 외부 지도 열기 동선은 PO 확인 기준 완료로 분류한다.
 - [x] 건강관리 리포트 Phase 1 MVP
@@ -140,9 +146,9 @@
 ### 0-2. Google/Kakao/Naver OAuth provider setup gate
 
 - 판정
-  - Google: `ready-for-PO-action`, 사용자 화면 노출. App-side entrypoint는 닫혔고 Supabase Google provider는 현재 disabled다.
-  - Kakao: `ready-for-PO-action`, 사용자 화면 노출. App-side entrypoint는 닫혔고 Supabase Kakao provider는 현재 disabled다.
-  - Naver: `ready-for-PO-action`, 사용자 화면 노출. Supabase `custom:naver` authorize는 Naver authorize endpoint로 redirect된다.
+  - Google: `activation-ready`, readiness false 기본값. App-side entrypoint는 닫혔고 Supabase Google provider는 현재 disabled다.
+  - Kakao: `activation-ready`, readiness false 기본값. App-side entrypoint는 닫혔고 Supabase Kakao provider는 현재 disabled다.
+  - Naver: `activation-ready`, readiness false 기본값. Supabase `custom:naver` authorize는 Naver authorize endpoint로 redirect된다.
   - Apple: `HIDE_FOR_V1`
 - [x] Google/Kakao/Naver provider console setup guide와 보안/API 방어 기준을 고정한다.
   - evidence: `docs/auth/social-provider-console-setup-guide.md`
@@ -159,7 +165,7 @@
   - Naver app-side entrypoint는 구현됐으며 Supabase authorize endpoint는 Naver authorize flow까지 진입한다.
 - [ ] provider 설정 완료 후 OAuth 성공 smoke를 별도 evidence로 남긴다.
   - 버튼 탭, provider web flow 진입, 앱 복귀, Supabase session 복구, nickname/pet onboarding 분기를 확인한다.
-  - provider 설정 전 실패는 앱 코드 blocker가 아니라 provider setup 대기 상태로 분리한다.
+  - provider credential 입력 후 readiness flag를 true로 전환하고 smoke를 수행한다.
 - [x] social OAuth V1.0 약관/개인정보처리방침 고지 UI를 추가한다.
   - Google/Kakao/Naver social login 버튼 하단에 이용약관/개인정보처리방침 확인 및 동의 간주 문구를 표시한다.
   - 기존 정책 링크 source를 재사용한다.

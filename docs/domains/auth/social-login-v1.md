@@ -5,7 +5,7 @@
 - v1.0 app-side provider: Google, Kakao, Naver
 - v1.0 provider 준비물 확정 대상: Google, Kakao, Naver
 - v1.0 app-side excluded provider: Apple
-- v1.0 user-surface policy: Google/Kakao/Naver 버튼을 노출하고 provider 설정 오류는 안전한 오류 문구로 수렴시킨다.
+- v1.0 user-surface policy: Google/Kakao/Naver 버튼은 public readiness flag가 true인 provider만 노출한다.
 - implementation path: Supabase Auth OAuth web flow
 - native SDK path: v1.0 범위 아님
 - secret policy: 실제 API key, client secret, private key 값은 repository와 문서에 기록하지 않는다.
@@ -15,16 +15,16 @@
 
 | Provider | Gate | User surface | Reason |
 | --- | --- | --- | --- |
-| Google | CONFIG_WAITING | 노출 | 앱 진입점은 구현됐고 Supabase provider 설정과 smoke가 남았다. |
-| Kakao | CONFIG_WAITING | 노출 | 앱 진입점은 구현됐고 Supabase provider 설정과 smoke가 남았다. |
-| Naver | CONFIG_WAITING | 노출 | Supabase custom OAuth provider id `custom:naver`로 앱 진입점을 구현했고 provider 설정과 smoke가 남았다. |
+| Google | activation-ready | flag-controlled | 앱 진입점은 구현됐고 Supabase provider credential 입력과 readiness flag 전환만 남았다. |
+| Kakao | activation-ready | flag-controlled | 앱 진입점은 구현됐고 Supabase provider credential 입력과 readiness flag 전환만 남았다. |
+| Naver | activation-ready | flag-controlled | Supabase custom OAuth provider id `custom:naver`로 앱 진입점이 구현됐고 readiness flag 전환 후 smoke만 남았다. |
 | Apple | HIDE_FOR_V1 | 숨김 | Android-first v1.0 범위에서 제외한다. |
 
 2026-05-10 기준 provider console 판정:
 
-- Google: app-side entrypoint는 `closed`, Supabase provider credential 입력은 `ready-for-PO-action`.
-- Kakao: app-side entrypoint는 `closed`, Supabase provider credential 입력은 `ready-for-PO-action`.
-- Naver: app-side entrypoint와 Supabase `custom:naver` authorize 진입은 `closed`, OAuth success smoke는 `ready-for-PO-action`.
+- Google: app-side entrypoint는 `closed`, 기본 readiness flag는 `false`, Supabase provider credential 입력 후 flag true 전환으로 activation-ready.
+- Kakao: app-side entrypoint는 `closed`, 기본 readiness flag는 `false`, Supabase provider credential 입력 후 flag true 전환으로 activation-ready.
+- Naver: app-side entrypoint와 Supabase `custom:naver` authorize 진입은 `closed`, 기본 readiness flag는 `false`, flag true 전환 후 smoke로 activation-ready.
 - Apple: v1.0 `no-op`.
 
 ## Naver Decision
@@ -103,8 +103,10 @@
 ## Release Gate
 
 - Google/Kakao/Naver app-side 구현 완료는 provider console 설정 완료와 같은 의미가 아니다.
-- provider 설정 전 OAuth 실패는 앱 코드 blocker가 아니라 PO 설정 대기 상태로 분리한다.
+- provider credential 입력 전에는 readiness flag false로 버튼을 숨기며, direct-call 실패는 앱 코드 blocker가 아니라 PO 설정 대기 상태로 분리한다.
 - 앱 코드는 `isSocialOAuthProviderReleaseReady()` gate 뒤에서 Google/Kakao/Naver 버튼을 렌더링한다.
-- 현재 readiness 값은 Google/Kakao/Naver 모두 `true`다.
+- 현재 release-safe 기본 readiness 값은 Google/Kakao/Naver 모두 `false`다.
+- readiness flag가 false이면 버튼은 SignIn/SignUp 화면에 렌더링되지 않고, 함수가 직접 호출되어도 `provider_setup_required`로 중단한다.
+- readiness flag가 true이면 기존 `signInWithOAuth` web flow를 그대로 실행한다.
 - provider 설정 완료 후 별도 OAuth 성공 smoke에서 버튼 탭, provider web flow, 앱 복귀, Supabase session 복구, nickname/pet onboarding 분기를 확인한다.
 - Naver는 Supabase custom OAuth/OIDC provider 설정이 완료되어야 실제 성공한다.
