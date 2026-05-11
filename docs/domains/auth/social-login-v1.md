@@ -20,11 +20,11 @@
 | Naver | activation-ready | flag-controlled | Supabase custom OAuth provider id `custom:naver`로 앱 진입점이 구현됐고 readiness flag 전환 후 smoke만 남았다. |
 | Apple | HIDE_FOR_V1 | 숨김 | Android-first v1.0 범위에서 제외한다. |
 
-2026-05-10 기준 provider console 판정:
+2026-05-11 기준 provider console 판정:
 
-- Google: app-side entrypoint는 `closed`, 기본 readiness flag는 `false`, Supabase provider credential 입력 후 flag true 전환으로 activation-ready.
-- Kakao: app-side entrypoint는 `closed`, 기본 readiness flag는 `false`, Supabase provider credential 입력 후 flag true 전환으로 activation-ready.
-- Naver: app-side entrypoint와 Supabase `custom:naver` authorize 진입은 `closed`, 기본 readiness flag는 `false`, flag true 전환 후 smoke로 activation-ready.
+- Google: app-side entrypoint는 `closed`, 기본 readiness flag는 `false`, Supabase provider는 disabled다. Google Cloud Console은 현재 선택된 project의 결제 계정 문제로 credential 생성 화면에 진입하지 못해 PO action required다.
+- Kakao: app-side entrypoint는 `closed`, 기본 readiness flag는 `false`, Supabase provider는 disabled다. Kakao Developers `Nuri-app`은 존재하지만 Kakao Login과 동의항목이 `설정 안 함`이라 PO action required다.
+- Naver: app-side entrypoint와 Supabase `custom:naver` provider는 `closed`이며 Supabase Dashboard에서 Enabled 상태다. Naver Developers `nuri_app`은 존재하고 Android package `com.nuri.app`과 이메일 필수 제공 항목이 확인됐지만, Supabase OAuth용 PC/모바일 웹 Callback URL 보강이 남아 PO action required다.
 - Apple: v1.0 `no-op`.
 
 ## Naver Decision
@@ -110,3 +110,14 @@
 - readiness flag가 true이면 기존 `signInWithOAuth` web flow를 그대로 실행한다.
 - provider 설정 완료 후 별도 OAuth 성공 smoke에서 버튼 탭, provider web flow, 앱 복귀, Supabase session 복구, nickname/pet onboarding 분기를 확인한다.
 - Naver는 Supabase custom OAuth/OIDC provider 설정이 완료되어야 실제 성공한다.
+
+## 2026-05-11 Console Evidence
+
+| Provider | 확인 화면 | 결과 | release 판정 |
+| --- | --- | --- | --- |
+| Google | Google Cloud Console | 현재 project가 결제 계정 문제로 `재검토 요청` 화면에 막혀 OAuth credential 발급을 진행하지 못한다. | PO action required |
+| Kakao | Kakao Developers `Nuri-app` | 앱은 존재하지만 Kakao Login, consent items, simple signup, unlink/webhook 설정이 모두 미설정이다. | PO action required |
+| Naver | Naver Developers `nuri_app` | 네이버 로그인 API와 이메일 필수 항목, Android package는 확인됐다. Supabase OAuth용 web callback 환경은 보강해야 한다. | PO action required |
+| Supabase | Authentication Providers / URL Configuration | Google/Kakao disabled, `custom:naver` enabled, `nuri://auth/reset`과 `nuri://auth/callback` redirect allow list 등록 확인. | smoke pending |
+
+이 상태에서는 release build의 readiness flag를 false로 유지한다. Provider credential과 callback 설정이 닫히기 전에는 Google/Kakao/Naver 버튼을 노출하지 않는다.

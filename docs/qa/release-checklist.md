@@ -103,6 +103,11 @@
   - Supabase public auth settings 기준 Google provider disabled, Kakao provider disabled 상태를 확인했다.
   - PO credential 입력 전 release build에서는 readiness false provider를 숨긴다.
   - OAuth 성공 smoke는 provider credential 입력과 readiness flag true 전환 후 별도 수행한다.
+- [x] Social provider console 직접 확인 결과를 release gate에 반영한다.
+  - 2026-05-11 Chrome 기준 Google Cloud Console은 현재 선택 project의 결제 계정 문제로 `재검토 요청` 화면에 막혀 OAuth credential 생성이 불가하다.
+  - Kakao Developers `Nuri-app`은 존재하지만 Kakao Login, 동의항목, 간편가입, 연결 해제 설정이 모두 `설정 안 함`이다.
+  - Naver Developers `nuri_app`은 존재하고 네이버 로그인 API, 연락처 이메일 필수 항목, Android package `com.nuri.app`이 확인됐다. Supabase OAuth용 PC/모바일 웹 Callback URL 보강은 PO action required다.
+  - Supabase Dashboard 기준 Google/Kakao provider는 disabled, Custom provider `custom:naver`는 Enabled, Redirect URLs에는 `nuri://auth/reset`과 `nuri://auth/callback`이 등록되어 있다.
 - [x] 외부 지도 전환 기본 동선
   - 장소 상세의 외부 지도 열기 동선은 PO 확인 기준 완료로 분류한다.
 - [x] 건강관리 리포트 Phase 1 MVP
@@ -146,23 +151,23 @@
 ### 0-2. Google/Kakao/Naver OAuth provider setup gate
 
 - 판정
-  - Google: `activation-ready`, readiness false 기본값. App-side entrypoint는 닫혔고 Supabase Google provider는 현재 disabled다.
-  - Kakao: `activation-ready`, readiness false 기본값. App-side entrypoint는 닫혔고 Supabase Kakao provider는 현재 disabled다.
-  - Naver: `activation-ready`, readiness false 기본값. Supabase `custom:naver` authorize는 Naver authorize endpoint로 redirect된다.
+  - Google: `activation-ready`, readiness false 기본값. App-side entrypoint는 닫혔고 Supabase Google provider는 현재 disabled다. Google Cloud project 결제 계정 문제로 credential 발급은 PO action required다.
+  - Kakao: `activation-ready`, readiness false 기본값. App-side entrypoint는 닫혔고 Supabase Kakao provider는 현재 disabled다. Kakao app은 존재하지만 Kakao Login/동의항목은 미설정이다.
+  - Naver: `activation-ready`, readiness false 기본값. Supabase `custom:naver` provider는 Enabled다. Naver app은 존재하지만 Supabase OAuth용 web callback 보강 후 smoke가 필요하다.
   - Apple: `HIDE_FOR_V1`
 - [x] Google/Kakao/Naver provider console setup guide와 보안/API 방어 기준을 고정한다.
   - evidence: `docs/auth/social-provider-console-setup-guide.md`
   - Google/Kakao/Naver credential 발급 절차, Supabase provider 입력 위치, callback/redirect 정합성, secret 미노출 원칙을 한 문서로 묶었다.
   - Social login app-side 구현은 재오픈하지 않는다.
 - [ ] PO가 Google/Kakao provider console, API key/secret, redirect allow-list를 실제 운영 값으로 준비한다.
-  - Google: Google Cloud Project, OAuth consent screen, Web OAuth Client ID/Secret, Android OAuth Client ID, `com.nuri.app`, SHA-1/SHA-256, Privacy Policy/Terms URL.
-  - Kakao: Kakao Developers 앱, Kakao Login 활성화, REST API Key, Client Secret, Supabase callback URL Redirect URI 등록, 동의항목 설정, 필요 시 Biz App/앱 정보 검토.
-  - Supabase Auth: Google/Kakao provider enable, provider별 client id/secret 등록, Redirect URLs allow list에 `nuri://auth/callback` 등록.
+  - Google: 현재 Google Cloud project 결제 계정 문제를 해소하고, NURI용 project/consent screen/Web OAuth Client ID/Secret/Android OAuth Client ID, `com.nuri.app`, SHA-1/SHA-256, Privacy Policy/Terms URL을 준비한다.
+  - Kakao: 기존 Kakao Developers `Nuri-app`에서 Kakao Login 활성화, REST API Key 확인, Client Secret 활성화, Supabase callback URL Redirect URI 등록, 동의항목 설정, 필요 시 Biz App/앱 정보 검토를 완료한다.
+  - Supabase Auth: Google/Kakao provider enable, provider별 client id/secret 등록을 완료한다. Redirect URLs allow list의 `nuri://auth/callback`은 2026-05-11 기준 등록 완료다.
   - 실제 key/secret 값은 repository와 release evidence에 기록하지 않는다.
 - [ ] PO가 Naver provider 준비물을 확정한다.
-  - Naver Developers 애플리케이션, Client ID, Client Secret, Callback URL, API 권한, 프로필/email 동의, 개인정보처리방침 URL을 준비한다.
-  - Supabase custom OAuth/OIDC provider id는 `custom:naver`다.
-  - Naver app-side entrypoint는 구현됐으며 Supabase authorize endpoint는 Naver authorize flow까지 진입한다.
+  - Naver Developers `nuri_app`은 존재하며 네이버 로그인 API, 연락처 이메일 필수 제공, Android package `com.nuri.app`은 확인됐다.
+  - Supabase custom OAuth/OIDC provider id는 `custom:naver`이며 2026-05-11 기준 Enabled다.
+  - 남은 작업은 Supabase Auth callback URL을 Naver PC/모바일 웹 Callback URL에 등록하고, 개인정보처리방침 URL/개발 중 테스트 계정/검수 범위를 확정하는 것이다.
 - [ ] provider 설정 완료 후 OAuth 성공 smoke를 별도 evidence로 남긴다.
   - 버튼 탭, provider web flow 진입, 앱 복귀, Supabase session 복구, nickname/pet onboarding 분기를 확인한다.
   - provider credential 입력 후 readiness flag를 true로 전환하고 smoke를 수행한다.

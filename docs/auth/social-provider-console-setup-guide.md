@@ -1,6 +1,7 @@
 # Social Provider Console Setup Guide
 
 작성일: 2026-05-10
+최신 콘솔 확인: 2026-05-11
 
 ## 1. 문서 목적
 
@@ -12,9 +13,9 @@
 
 | Provider | App-side entrypoint | Supabase provider | Provider console | Callback/redirect | Secret 노출 | Smoke 준비 | 최종 판정 |
 |---|---|---|---|---|---|---|---|
-| Google | closed | disabled | ready-for-PO-action | ready-for-PO-action | closed | activation-ready | activation-ready |
-| Kakao | closed | disabled | ready-for-PO-action | ready-for-PO-action | closed | activation-ready | activation-ready |
-| Naver | closed | `custom:naver` | ready-for-PO-action | closed | closed | activation-ready | activation-ready |
+| Google | closed | disabled | PO action required | ready-for-PO-action | closed | activation-ready | activation-ready |
+| Kakao | closed | disabled | PO action required | ready-for-PO-action | closed | activation-ready | activation-ready |
+| Naver | closed | `custom:naver` enabled | PO action required | partial | closed | activation-ready | activation-ready |
 
 현재 repo/remote 공개 Auth endpoint 기준 증거:
 
@@ -28,6 +29,15 @@
 - Password reset callback: `nuri://auth/reset`.
 - App readiness flags default to `false` for Google/Kakao/Naver, so release build does not expose disabled-provider buttons.
 - Apple: v1.0 no-op.
+
+### 2026-05-11 직접 콘솔 확인 결과
+
+| Provider | 직접 확인한 화면 | 결과 | 남은 PO action | Smoke 판정 |
+|---|---|---|---|---|
+| Google | Google Cloud Console | 현재 선택된 Google Cloud project가 결제 계정 문제로 `재검토 요청` 화면에 막혀 OAuth credential 생성 화면까지 진행되지 않는다. | 결제 계정 문제를 해소한 뒤 NURI용 project/consent screen/Web OAuth client를 생성하고 Supabase callback URL을 등록한다. | blocked until PO action |
+| Kakao | Kakao Developers app `Nuri-app` dashboard | 앱은 존재하지만 `카카오 로그인`, `동의항목`, `간편가입`, `연결 해제`가 모두 `설정 안 함`이다. 앱은 비즈 앱이 아니다. | Kakao Login ON, Redirect URI 등록, Client Secret 활성화, 동의항목과 email/Biz App 정책을 확정한다. | blocked until PO action |
+| Naver | Naver Developers app `nuri_app` API 설정 | 앱은 존재하고 네이버 로그인 API가 선택되어 있으며 연락처 이메일 주소가 필수로 체크되어 있다. Android 환경에는 다운로드 URL과 package `com.nuri.app`이 등록되어 있다. | Supabase OAuth용 PC/모바일 웹 Callback URL을 Supabase Auth callback URL로 맞추고, 개발 중 상태의 테스트 계정/검수 범위를 확정한다. | blocked until PO action |
+| Supabase | Authentication > Providers / URL Configuration | Google/Kakao provider는 disabled다. Custom provider `custom:naver`는 Enabled다. Additional Redirect URLs에는 `nuri://auth/reset`, `nuri://auth/callback` 2개가 등록되어 있다. | Google/Kakao credential 입력과 enable, Naver provider 설정 유지, readiness flag true 전환은 credential 입력 완료 후 수행한다. | smoke pending |
 
 ## 3. 공통 구조
 
@@ -47,7 +57,7 @@
 |---|---|---|---|---|---|---|---|
 | Google | PO 발급 필요 | disabled/미입력 | `EXPO_PUBLIC_ENABLE_GOOGLE_OAUTH=false` | flag true일 때만 노출 | closed | 없음 | activation-ready |
 | Kakao | PO 발급 필요 | disabled/미입력 | `EXPO_PUBLIC_ENABLE_KAKAO_OAUTH=false` | flag true일 때만 노출 | closed | 없음 | activation-ready |
-| Naver | 기존 설정 유지 | `custom:naver` | `EXPO_PUBLIC_ENABLE_NAVER_OAUTH=false` | flag true일 때만 노출 | closed | 없음 | activation-ready |
+| Naver | console app 존재, web callback 보강 필요 | `custom:naver` enabled | `EXPO_PUBLIC_ENABLE_NAVER_OAUTH=false` | flag true일 때만 노출 | closed | 없음 | activation-ready |
 
 Readiness flag source:
 
@@ -214,8 +224,9 @@ Readiness contract:
 | Android intent-filter reset | scheme `nuri`, host `auth`, pathPrefix `/reset` | closed |
 | React Navigation OAuth route | `OAuthCallback: auth/callback` | closed |
 | React Navigation reset route | `PasswordResetRecovery: auth/reset` | closed |
-| Supabase Additional Redirect URLs | `nuri://auth/callback` | ready-for-PO-action |
-| Provider console callback | `https://<PROJECT_REF>.supabase.co/auth/v1/callback` | ready-for-PO-action |
+| Supabase Additional Redirect URLs | `nuri://auth/callback` | closed |
+| Supabase Additional Redirect URLs | `nuri://auth/reset` | closed |
+| Provider console callback | `https://<PROJECT_REF>.supabase.co/auth/v1/callback` | PO action required |
 
 중요: Provider console에는 `nuri://auth/callback`을 넣지 않는다. Provider console에는 Supabase Auth callback URL을 넣고, 앱 deep link는 Supabase redirect allow list에 넣는다.
 
@@ -228,7 +239,7 @@ Readiness contract:
 | provider token 로그 없음 | closed | closed | closed | closed |
 | access/refresh token 로그 없음 | closed | closed | closed | closed |
 | OAuth error 로그 민감정보 마스킹 | closed | closed | closed | closed |
-| redirect URI allowlist 명확 | ready-for-PO-action | ready-for-PO-action | closed | ready-for-PO-action |
+| redirect URI allowlist 명확 | ready-for-PO-action | ready-for-PO-action | PO action required | ready-for-PO-action |
 | 앱 deep link callback 정합 | closed | closed | closed | closed |
 | password reset callback과 분리 | closed | closed | closed | closed |
 | social login 약관/개인정보 고지 UI 존재 | closed | closed | closed | closed |
@@ -243,13 +254,15 @@ Readiness contract:
 - `supabase.auth.exchangeCodeForSession()` 또는 `supabase.auth.setSession()` 후 기존 session storage 계약을 사용한다.
 - `.env.example`에는 public boolean readiness flag만 있고, social provider client secret placeholder는 없다.
 - Google/Kakao provider는 현재 external provider disabled 상태라 PO credential 입력 전 OAuth success smoke 대상이 아니다.
-- Naver `custom:naver`는 Supabase authorize가 Naver authorize endpoint로 redirect되는 상태다. Client secret은 앱 코드와 문서에 기록하지 않는다.
+- Naver `custom:naver`는 Supabase Dashboard에서 Enabled 상태다. 단, Naver Developers에는 Android 환경만 확인되었으므로 Supabase OAuth용 web callback 등록을 PO action으로 남긴다.
+- Client secret은 앱 코드와 문서에 기록하지 않는다.
 
 ## 10. Provider별 체크리스트
 
 ### Google
 
 - [ ] Google Cloud Project 준비
+- [ ] 현재 Google Cloud project 결제 계정 문제 해소
 - [ ] OAuth consent screen 구성
 - [ ] Web OAuth Client ID 생성
 - [ ] Web OAuth Client Secret 생성
@@ -265,7 +278,7 @@ Readiness contract:
 
 ### Kakao
 
-- [ ] Kakao Developers 앱 준비
+- [x] Kakao Developers 앱 준비
 - [ ] Kakao Login 활성화
 - [ ] REST API Key 확인
 - [ ] Client Secret 활성화
@@ -278,14 +291,14 @@ Readiness contract:
 
 ### Naver
 
-- [ ] Naver Developers 앱 준비
-- [ ] Client ID 확인
-- [ ] Client Secret 확인
-- [ ] Service URL 설정
-- [ ] Callback URL에 Supabase Auth callback URL 등록
-- [ ] profile/email 제공 항목 설정
+- [x] Naver Developers 앱 준비
+- [x] Client ID 존재 확인
+- [ ] Client Secret은 Supabase Dashboard 입력 상태만 유지하고 문서에는 기록하지 않음
+- [ ] Supabase OAuth용 Service URL 설정
+- [ ] PC/모바일 웹 Callback URL에 Supabase Auth callback URL 등록
+- [x] 연락처 이메일 주소 필수 제공 항목 설정
 - [ ] 개인정보처리방침 URL 등록
-- [ ] Supabase `custom:naver` provider enable 상태 유지
+- [x] Supabase `custom:naver` provider enable 상태 유지
 - [ ] UserInfo response mapping이 Supabase custom provider 설정과 맞는지 운영 smoke에서 확인
 
 ## 11. PO가 준비해야 하는 값
@@ -365,7 +378,7 @@ Smoke 성공 기준:
 
 ## 14. 다음 액션
 
-Google/Kakao/Naver provider credential 발급 및 Supabase Dashboard 입력은 PO action으로 진행한다. Codex는 PO가 입력 완료를 알려준 뒤 OAuth 성공 smoke evidence 문서화 턴으로 이동한다.
+Google/Kakao/Naver provider credential 발급 및 Supabase Dashboard 입력은 PO action으로 진행한다. 2026-05-11 기준 Codex는 Chrome에서 콘솔 화면을 직접 열어 상태를 고정했지만 Google 결제 계정 문제, Kakao Login 미설정, Naver web callback 보강이 남아 있어 OAuth smoke는 아직 수행하지 않는다. Codex는 PO action 완료 후 OAuth 성공 smoke evidence 문서화 턴으로 이동한다.
 
 ## 공식 문서 기준
 
