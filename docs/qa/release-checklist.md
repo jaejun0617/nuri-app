@@ -104,7 +104,7 @@
   - PO credential 입력 전 release build에서는 readiness false provider를 숨긴다.
   - OAuth 성공 smoke는 provider credential 입력과 readiness flag true 전환 후 별도 수행한다.
 - [x] Social provider console 직접 확인 결과를 release gate에 반영한다.
-  - 2026-05-11 Chrome 기준 Google Cloud Console은 현재 선택 project의 결제 계정 문제로 `재검토 요청` 화면에 막혀 OAuth credential 생성이 불가하다.
+  - 2026-05-11 Chrome 기준 Google Cloud Console은 당시 선택 project의 결제 계정 문제로 `재검토 요청` 화면에 막혀 OAuth credential 생성이 불가했다. 이후 PO 결정에 따라 해당 테스트 계정/project는 NURI OAuth 경로에서 격리한다.
   - Kakao Developers `Nuri-app`은 존재하지만 Kakao Login, 동의항목, 간편가입, 연결 해제 설정이 모두 `설정 안 함`이다.
   - Naver Developers `nuri_app`은 존재하고 네이버 로그인 API, 연락처 이메일 필수 항목, Android package `com.nuri.app`이 확인됐다. Supabase OAuth용 PC/모바일 웹 Callback URL 보강은 PO action required다.
   - Supabase Dashboard 기준 Google/Kakao provider는 disabled, Custom provider `custom:naver`는 Enabled, Redirect URLs에는 `nuri://auth/reset`과 `nuri://auth/callback`이 등록되어 있다.
@@ -151,16 +151,21 @@
 ### 0-2. Google/Kakao/Naver OAuth provider setup gate
 
 - 판정
-  - Google: `activation-ready`, readiness false 기본값. App-side entrypoint는 닫혔고 Supabase Google provider는 현재 disabled다. Google Cloud project 결제 계정 문제로 credential 발급은 PO action required다.
+  - Google: `activation-ready`, readiness false 기본값. App-side entrypoint는 닫혔고 Supabase Google provider는 현재 disabled다. 기존 테스트 Google 계정과 `My First Project`는 NURI OAuth용으로 재사용하지 않으며, 새 NURI Google 계정의 OAuth-only project에서 credential을 발급한다.
   - Kakao: `activation-ready`, readiness false 기본값. App-side entrypoint는 닫혔고 Supabase Kakao provider는 현재 disabled다. Kakao app은 존재하지만 Kakao Login/동의항목은 미설정이다.
   - Naver: `activation-ready`, readiness false 기본값. Supabase `custom:naver` provider는 Enabled다. Naver app은 존재하지만 Supabase OAuth용 web callback 보강 후 smoke가 필요하다.
   - Apple: `HIDE_FOR_V1`
+- [x] Google 테스트 계정과 `My First Project` 비용 리스크를 NURI 운영 OAuth 경로에서 분리한다.
+  - 현재 Chrome Google 계정은 테스트 계정이며 NURI 운영 계정으로 사용하지 않는다.
+  - `My First Project`는 2026년 4월 Places API (New) 과금 `₩112,214` 이력이 있어 OAuth용으로 재사용하지 않는다.
+  - 비용 원인은 Google social login이 아니라 Places API Text Search Enterprise, Place Details Photos, VAT다.
+  - 새 NURI Google 계정의 OAuth-only project에서는 Google Maps/Places API를 활성화하지 않는다.
 - [x] Google/Kakao/Naver provider console setup guide와 보안/API 방어 기준을 고정한다.
   - evidence: `docs/auth/social-provider-console-setup-guide.md`
   - Google/Kakao/Naver credential 발급 절차, Supabase provider 입력 위치, callback/redirect 정합성, secret 미노출 원칙을 한 문서로 묶었다.
   - Social login app-side 구현은 재오픈하지 않는다.
 - [ ] PO가 Google/Kakao provider console, API key/secret, redirect allow-list를 실제 운영 값으로 준비한다.
-  - Google: 현재 Google Cloud project 결제 계정 문제를 해소하고, NURI용 project/consent screen/Web OAuth Client ID/Secret/Android OAuth Client ID, `com.nuri.app`, SHA-1/SHA-256, Privacy Policy/Terms URL을 준비한다.
+  - Google: NURI 전용 신규 Google 계정을 만들고, `NURI Auth` 또는 `NURI OAuth` project에서 OAuth consent screen/Web OAuth Client ID/Secret/Android OAuth Client ID, `com.nuri.app`, SHA-1/SHA-256, Privacy Policy/Terms URL을 준비한다. Authorized redirect URI는 `https://grmekesqoydylqmyvfke.supabase.co/auth/v1/callback`이다.
   - Kakao: 기존 Kakao Developers `Nuri-app`에서 Kakao Login 활성화, REST API Key 확인, Client Secret 활성화, Supabase callback URL Redirect URI 등록, 동의항목 설정, 필요 시 Biz App/앱 정보 검토를 완료한다.
   - Supabase Auth: Google/Kakao provider enable, provider별 client id/secret 등록을 완료한다. Redirect URLs allow list의 `nuri://auth/callback`은 2026-05-11 기준 등록 완료다.
   - 실제 key/secret 값은 repository와 release evidence에 기록하지 않는다.

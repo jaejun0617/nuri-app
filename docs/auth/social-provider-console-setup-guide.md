@@ -34,7 +34,7 @@
 
 | Provider | 직접 확인한 화면 | 결과 | 남은 PO action | Smoke 판정 |
 |---|---|---|---|---|
-| Google | Google Cloud Console | 현재 선택된 Google Cloud project가 결제 계정 문제로 `재검토 요청` 화면에 막혀 OAuth credential 생성 화면까지 진행되지 않는다. | 결제 계정 문제를 해소한 뒤 NURI용 project/consent screen/Web OAuth client를 생성하고 Supabase callback URL을 등록한다. | blocked until PO action |
+| Google | Google Cloud Console / Billing | 현재 Chrome Google 계정은 테스트 계정이며 NURI 운영 OAuth 계정으로 사용하지 않는다. `My First Project`는 Places API 과금 이력이 있으므로 NURI OAuth용으로 재사용하지 않는다. | PO가 NURI 전용 신규 Google 계정을 만들고, 새 계정에서 OAuth-only project를 생성해 Supabase callback URL을 등록한다. | blocked until PO action |
 | Kakao | Kakao Developers app `Nuri-app` dashboard | 앱은 존재하지만 `카카오 로그인`, `동의항목`, `간편가입`, `연결 해제`가 모두 `설정 안 함`이다. 앱은 비즈 앱이 아니다. | Kakao Login ON, Redirect URI 등록, Client Secret 활성화, 동의항목과 email/Biz App 정책을 확정한다. | blocked until PO action |
 | Naver | Naver Developers app `nuri_app` API 설정 | 앱은 존재하고 네이버 로그인 API가 선택되어 있으며 연락처 이메일 주소가 필수로 체크되어 있다. Android 환경에는 다운로드 URL과 package `com.nuri.app`이 등록되어 있다. | Supabase OAuth용 PC/모바일 웹 Callback URL을 Supabase Auth callback URL로 맞추고, 개발 중 상태의 테스트 계정/검수 범위를 확정한다. | blocked until PO action |
 | Supabase | Authentication > Providers / URL Configuration | Google/Kakao provider는 disabled다. Custom provider `custom:naver`는 Enabled다. Additional Redirect URLs에는 `nuri://auth/reset`, `nuri://auth/callback` 2개가 등록되어 있다. | Google/Kakao credential 입력과 enable, Naver provider 설정 유지, readiness flag true 전환은 credential 입력 완료 후 수행한다. | smoke pending |
@@ -72,7 +72,61 @@ Readiness contract:
 - flag true: 기존 `signInWithOAuth` web flow를 그대로 실행한다.
 - client secret은 flag나 app env에 넣지 않는다.
 
+## 3-2. Google 테스트 계정 / My First Project 격리 결정
+
+### 기존 Google 계정 분류
+
+- 현재 Chrome에 로그인된 Google 계정은 테스트 계정이다.
+- 이 계정은 NURI 운영 계정으로 사용하지 않는다.
+- 이 계정으로 Google OAuth credential을 발급하지 않는다.
+- 이 계정은 Google Play Console 등록, 공식 문의/지원 이메일, 앱 정책 연락처로 사용하지 않는다.
+
+### 기존 `My First Project` 처리
+
+- `My First Project`는 NURI OAuth용으로 재사용하지 않는다.
+- 이 프로젝트는 Places API 과금 이력이 있는 비용 리스크 프로젝트로 격리한다.
+- 현재 결제 계정은 정지 상태로 기록하며, 2026-05-01부터 2026-05-11까지 현재 비용은 `$0.00`이다.
+- 2026년 4월 인보이스는 남아 있는 비용 이력으로 보관한다.
+- 결제 계정 복구/재검토는 NURI OAuth 작업의 필수 경로가 아니다.
+
+### Google 비용 원인
+
+2026년 4월 청구 `₩112,214`는 Google social login 비용이 아니라 `My First Project`의 Google Maps Platform Places API (New) 사용료다.
+
+| 항목 | 사용량 | 금액 |
+|---|---:|---:|
+| Places API Text Search Enterprise | 2,152회 | ₩60,884 |
+| Places API Place Details Photos | 4,891회 | ₩41,129 |
+| Places API Text Search Pro | 606회 | ₩0 |
+| VAT | - | ₩10,201 |
+| 합계 | - | ₩112,214 |
+
+repo 기준 Google Places 호출 경로:
+
+- `supabase/functions/_shared/place-enrichment.js`
+- `places.googleapis.com/v1/places:searchText`
+- `places.googleapis.com/v1/{photoName}/media`
+- env key 후보: `GOOGLE_PLACES_API_KEY`, `GOOGLE_MAPS_API_KEY`
+
+판정:
+
+- 비용 원인은 NURI의 장소/동물병원 enrichment 계열 Google Places 호출과 일치한다.
+- Google OAuth/social login 설정과는 별개다.
+- 새 NURI Google 계정의 OAuth project에서는 Maps/Places API를 활성화하지 않는다.
+
+### Places API 비활성화 원칙
+
+PO가 아래 문장으로 명시 승인하기 전에는 Codex가 Places API 최종 비활성화를 클릭하지 않는다.
+
+```text
+승인: My First Project의 Places API 비활성화 진행
+```
+
+승인이 있으면 별도 턴에서 오직 Places API / Places API (New) 비활성화만 진행한다. 프로젝트 삭제, 결제 연결 해제, 결제 계정 복구, 다른 API 비활성화는 하지 않는다.
+
 ## 4. Google credential 발급 절차
+
+이 절차는 NURI 전용 신규 Google 계정에서만 진행한다. 기존 테스트 Google 계정과 `My First Project`는 사용하지 않는다.
 
 ### Google 발급 대상
 
@@ -83,21 +137,82 @@ Readiness contract:
 - release signing SHA-1 / SHA-256
 - Supabase Google provider에 입력할 client id / client secret
 
+### NURI 전용 신규 Google 계정 준비
+
+새 계정의 목적:
+
+- NURI 공식 문의 수신
+- Google Cloud OAuth 관리
+- 추후 Google Play Console 관리
+- 앱 정책 연락처
+- 운영 알림 수신
+- Supabase/Auth provider 관리 보조 연락처
+- 출시 후 고객 문의 대응
+
+이메일 후보 예시:
+
+```text
+nuri.app.official@gmail.com
+nuri.pet.official@gmail.com
+nuri.support.app@gmail.com
+nuri.app.help@gmail.com
+```
+
+PO가 직접 처리해야 하는 항목:
+
+- 새 Google 계정 생성
+- 비밀번호 생성
+- 복구 이메일 입력
+- 복구 전화번호 입력 여부 결정
+- 생년월일 입력
+- 본인확인
+- 2FA/passkey 설정
+- Google 약관 동의
+- 결제 정보 입력 여부 결정
+- Play Console 개발자 등록 결제 여부 결정
+- 공식 문의 이메일 최종 확정
+
+보안 기준:
+
+- 개인 Google 계정과 분리한다.
+- 강한 비밀번호를 사용한다.
+- 2FA를 활성화한다.
+- 복구 이메일을 등록한다.
+- 비밀번호, 2FA 코드, 복구 코드는 Codex에게 공유하지 않는다.
+- 앱 운영용 계정 접근 권한은 최소 인원만 보유한다.
+- 운영 계정은 소셜 로그인 테스트용 개인 계정과 분리한다.
+
 ### Google Console에서 해야 할 일
 
-1. Google Cloud Console에 접속한다.
-2. NURI용 Google Cloud Project를 생성하거나 기존 프로젝트를 선택한다.
-3. OAuth consent screen을 구성한다.
-4. 앱 이름, 지원 이메일, 개발자 연락처를 설정한다.
-5. scope는 인증 목적 최소 범위로 제한한다.
-6. Credentials 메뉴에서 OAuth Client ID를 생성한다.
-7. Supabase social login 기준 Application type은 Web application을 우선 생성한다.
-8. Authorized redirect URIs에 Supabase Auth callback URL을 등록한다.
-9. 필요 시 Android client를 별도로 생성한다.
-10. Android client 생성 시 package name은 `com.nuri.app`으로 등록한다.
-11. Android release signing SHA-1/SHA-256 fingerprint를 등록한다.
-12. Web client ID / secret을 Supabase Auth Google provider에 입력한다.
-13. 앱 코드에는 Google client secret을 넣지 않는다.
+1. 새 NURI Google 계정으로 Chrome에 로그인한다.
+2. Google Cloud Console에 접속한다.
+3. 새 프로젝트를 생성한다.
+4. 프로젝트 이름은 `NURI Auth` 또는 `NURI OAuth`를 권장한다.
+5. 이 프로젝트에서는 Google Maps/Places API를 활성화하지 않는다.
+6. APIs & Services > OAuth consent screen으로 이동한다.
+7. 앱 이름은 `NURI`로 입력한다.
+8. 지원 이메일은 새 NURI Google 계정으로 설정한다.
+9. 개발자 연락처는 새 NURI Google 계정 또는 공식 문의 이메일로 설정한다.
+10. scope는 `openid`, `email`, `profile` 중심의 인증 목적 최소 범위로 제한한다.
+11. Credentials > Create Credentials > OAuth Client ID로 이동한다.
+12. Application type은 Web application을 선택한다.
+13. Authorized redirect URIs에 아래 Supabase Auth callback URL을 등록한다.
+
+```text
+https://grmekesqoydylqmyvfke.supabase.co/auth/v1/callback
+```
+
+14. Web OAuth Client ID/Secret을 생성한다.
+15. Client ID/Secret은 Supabase Dashboard > Authentication > Providers > Google에 직접 입력한다.
+16. Google provider를 enable한다.
+17. 앱 코드에는 Google client secret을 넣지 않는다.
+18. 완료 후 Codex에는 아래 문장만 전달한다.
+
+```text
+새 NURI Google 계정에서 Google provider 입력/enable 완료
+```
+
+Android OAuth Client ID가 필요한 경우 package name은 `com.nuri.app`으로 등록하고 release signing SHA-1/SHA-256 fingerprint를 사용한다. debug key와 release key를 혼동하지 않는다.
 
 ### Google 보안/API 방어 기준
 
@@ -261,8 +376,10 @@ Readiness contract:
 
 ### Google
 
-- [ ] Google Cloud Project 준비
-- [ ] 현재 Google Cloud project 결제 계정 문제 해소
+- [ ] NURI 전용 신규 Google 계정 준비
+- [ ] 새 Google 계정에서 OAuth-only Google Cloud Project 준비
+- [ ] 프로젝트 이름 `NURI Auth` 또는 `NURI OAuth` 사용
+- [ ] 새 OAuth project에서 Google Maps/Places API 미활성화
 - [ ] OAuth consent screen 구성
 - [ ] Web OAuth Client ID 생성
 - [ ] Web OAuth Client Secret 생성
@@ -378,7 +495,7 @@ Smoke 성공 기준:
 
 ## 14. 다음 액션
 
-Google/Kakao/Naver provider credential 발급 및 Supabase Dashboard 입력은 PO action으로 진행한다. 2026-05-11 기준 Codex는 Chrome에서 콘솔 화면을 직접 열어 상태를 고정했지만 Google 결제 계정 문제, Kakao Login 미설정, Naver web callback 보강이 남아 있어 OAuth smoke는 아직 수행하지 않는다. Codex는 PO action 완료 후 OAuth 성공 smoke evidence 문서화 턴으로 이동한다.
+Google OAuth는 기존 테스트 Google 계정과 `My First Project`를 사용하지 않고 NURI 전용 신규 Google 계정과 OAuth-only project 기준으로 진행한다. Kakao/Naver provider credential 발급 및 Supabase Dashboard 입력은 기존 계획대로 PO action으로 유지한다. 2026-05-11 기준 Codex는 Chrome에서 콘솔 화면을 직접 열어 상태를 고정했지만 Google은 새 계정 생성, Kakao Login 설정, Naver web callback 보강이 남아 있어 OAuth smoke는 아직 수행하지 않는다. Codex는 PO action 완료 후 OAuth 성공 smoke evidence 문서화 턴으로 이동한다.
 
 ## 공식 문서 기준
 

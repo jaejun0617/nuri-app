@@ -22,10 +22,23 @@
 
 2026-05-11 기준 provider console 판정:
 
-- Google: app-side entrypoint는 `closed`, 기본 readiness flag는 `false`, Supabase provider는 disabled다. Google Cloud Console은 현재 선택된 project의 결제 계정 문제로 credential 생성 화면에 진입하지 못해 PO action required다.
+- Google: app-side entrypoint는 `closed`, 기본 readiness flag는 `false`, Supabase provider는 disabled다. 현재 Chrome Google 계정은 테스트 계정이며 NURI 운영 계정으로 사용하지 않는다. `My First Project`는 Places API 과금 이력이 있어 NURI OAuth용으로 재사용하지 않고, PO가 NURI 전용 신규 Google 계정에서 OAuth-only project를 생성해야 한다.
 - Kakao: app-side entrypoint는 `closed`, 기본 readiness flag는 `false`, Supabase provider는 disabled다. Kakao Developers `Nuri-app`은 존재하지만 Kakao Login과 동의항목이 `설정 안 함`이라 PO action required다.
 - Naver: app-side entrypoint와 Supabase `custom:naver` provider는 `closed`이며 Supabase Dashboard에서 Enabled 상태다. Naver Developers `nuri_app`은 존재하고 Android package `com.nuri.app`과 이메일 필수 제공 항목이 확인됐지만, Supabase OAuth용 PC/모바일 웹 Callback URL 보강이 남아 PO action required다.
 - Apple: v1.0 `no-op`.
+
+## Google Account / Cost Isolation Decision
+
+- 현재 Chrome에 로그인된 Google 계정은 테스트 계정이다.
+- 테스트 계정은 NURI 운영 OAuth, Google Play Console, 공식 문의/지원 이메일, 정책 연락처로 사용하지 않는다.
+- 기존 `My First Project`는 NURI OAuth용으로 재사용하지 않는다.
+- `My First Project`의 2026년 4월 청구 `₩112,214`는 Google social login 비용이 아니라 Google Maps Platform Places API (New) 비용이다.
+- 청구 세부 항목은 Places API Text Search Enterprise 2,152회 `₩60,884`, Places API Place Details Photos 4,891회 `₩41,129`, Places API Text Search Pro 606회 `₩0`, VAT `₩10,201`이다.
+- repo 기준 Google Places 호출 경로는 `supabase/functions/_shared/place-enrichment.js`의 `places.googleapis.com/v1/places:searchText`, `places.googleapis.com/v1/{photoName}/media` 호출과 일치한다.
+- 2026-05-11 화면 기준 2026-05-01부터 2026-05-11까지 추가 비용은 `$0.00`이며, 현재 추가 과금이 진행 중인 상태로 보지 않는다.
+- PO가 `승인: My First Project의 Places API 비활성화 진행`이라고 명시 승인하기 전에는 Places API 최종 비활성화 클릭을 진행하지 않는다.
+- 새 NURI Google 계정에서는 `NURI Auth` 또는 `NURI OAuth` project를 만들고 Google OAuth만 설정한다.
+- 새 OAuth project에서는 Google Maps/Places API를 활성화하지 않는다.
 
 ## Naver Decision
 
@@ -53,13 +66,17 @@
 
 ### Google
 
-- Google Cloud Project를 준비한다.
+- NURI 전용 신규 Google 계정을 준비한다.
+- 새 Google 계정에서 Google OAuth-only project를 준비한다.
+- project 이름은 `NURI Auth` 또는 `NURI OAuth`를 권장한다.
+- 새 OAuth project에서 Google Maps/Places API를 활성화하지 않는다.
 - OAuth consent screen을 설정한다.
 - Web OAuth Client ID와 Client Secret을 발급한다.
 - Android OAuth Client ID를 발급한다.
 - Android package name은 `com.nuri.app`으로 등록한다.
 - Android signing SHA-1/SHA-256을 등록한다.
 - 개인정보처리방침 URL과 서비스 약관 URL을 준비한다.
+- Authorized redirect URI에는 `https://grmekesqoydylqmyvfke.supabase.co/auth/v1/callback`을 등록한다.
 - Supabase Auth Google provider를 enable하고 client id/secret을 등록한다.
 - Supabase Redirect URLs allow list에 `nuri://auth/callback`을 등록한다.
 
@@ -115,7 +132,7 @@
 
 | Provider | 확인 화면 | 결과 | release 판정 |
 | --- | --- | --- | --- |
-| Google | Google Cloud Console | 현재 project가 결제 계정 문제로 `재검토 요청` 화면에 막혀 OAuth credential 발급을 진행하지 못한다. | PO action required |
+| Google | Google Cloud Console / Billing | 현재 Google 계정은 테스트 계정이며 NURI 운영 OAuth에 사용하지 않는다. `My First Project`는 Places API 과금 이력이 있어 격리하고, 새 NURI Google 계정에서 OAuth-only project를 만든다. | PO action required |
 | Kakao | Kakao Developers `Nuri-app` | 앱은 존재하지만 Kakao Login, consent items, simple signup, unlink/webhook 설정이 모두 미설정이다. | PO action required |
 | Naver | Naver Developers `nuri_app` | 네이버 로그인 API와 이메일 필수 항목, Android package는 확인됐다. Supabase OAuth용 web callback 환경은 보강해야 한다. | PO action required |
 | Supabase | Authentication Providers / URL Configuration | Google/Kakao disabled, `custom:naver` enabled, `nuri://auth/reset`과 `nuri://auth/callback` redirect allow list 등록 확인. | smoke pending |
