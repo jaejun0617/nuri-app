@@ -3,6 +3,10 @@
 const KAKAO_KEYWORD_SEARCH_URL = 'https://dapi.kakao.com/v2/local/search/keyword.json';
 const KAKAO_ADDRESS_SEARCH_URL = 'https://dapi.kakao.com/v2/local/search/address.json';
 const KAKAO_COORD_TO_REGION_URL = 'https://dapi.kakao.com/v2/local/geo/coord2regioncode.json';
+const KAKAO_PROVIDER_CACHE_TTL_MS = 10 * 60 * 1000;
+const KAKAO_PROVIDER_CACHE_MAX_ENTRIES = 200;
+
+const kakaoProviderCache = new Map();
 
 function jsonResponse(body, status = 200) {
   return new globalThis.Response(JSON.stringify(body, null, 2), {
@@ -114,6 +118,11 @@ function buildCoordToRegionUrl(rawCoordinates) {
 }
 
 async function fetchKakao(url, apiKey) {
+  const cached = readKakaoProviderCache(url);
+  if (cached) {
+    return cached;
+  }
+
   const response = await fetch(url, {
     headers: {
       Authorization: `KakaoAK ${apiKey}`,
@@ -125,7 +134,37 @@ async function fetchKakao(url, apiKey) {
   }
 
   const json = await response.json();
-  return Array.isArray(json.documents) ? json.documents : [];
+  const documents = Array.isArray(json.documents) ? json.documents : [];
+  writeKakaoProviderCache(url, documents);
+  return documents;
+}
+
+function readKakaoProviderCache(url) {
+  const cached = kakaoProviderCache.get(url);
+  if (!cached) {
+    return null;
+  }
+
+  if (cached.expiresAt <= Date.now()) {
+    kakaoProviderCache.delete(url);
+    return null;
+  }
+
+  return cached.documents;
+}
+
+function writeKakaoProviderCache(url, documents) {
+  if (kakaoProviderCache.size >= KAKAO_PROVIDER_CACHE_MAX_ENTRIES) {
+    const oldestKey = kakaoProviderCache.keys().next().value;
+    if (oldestKey) {
+      kakaoProviderCache.delete(oldestKey);
+    }
+  }
+
+  kakaoProviderCache.set(url, {
+    documents,
+    expiresAt: Date.now() + KAKAO_PROVIDER_CACHE_TTL_MS,
+  });
 }
 
 Deno.serve(async request => {

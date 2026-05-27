@@ -13,6 +13,7 @@
 
 - [x] V1.0 기능 개발 Code Freeze
 - [x] Supabase DB Migration Dry-run / 원격 Apply
+- [x] 지도/API 비용 방어 V1.0 provider runtime 차단 repo contract 반영
 - [ ] Google/Kakao/Naver provider credential 입력과 OAuth 성공 smoke
 - [ ] 운영자 QA / 실기기 최종 스모크
 - [ ] 앱 스토어 출시 자산 셋업
@@ -22,6 +23,38 @@
   - evidence: `docs/qa/v1.0-remaining-task-risk-ledger.md`
 
 이 항목들은 신규 기능 개발이 아니며, v1.1로 넘어가기 전에 v1.0 마감 lane에서 닫는 운영/제출 gate다.
+
+## 지도/API 비용 방어 Release Gate
+
+- [x] production Google Places runtime 호출 차단 repo contract를 반영한다.
+  - `NURI_PLACE_ENRICHMENT_HARD_CAP` 미설정 또는 `0`이면 `place-enrichment-demand`가 Google Places/Text Search/Photo fetch를 수행하지 않고 existing/canonical 값으로 safe skip한다.
+  - 명시적으로 양수 hard cap을 설정한 환경에서만 provider runtime이 열린다.
+- [x] `place-enrichment-worker` cron이 hard cap 0에서 외부 provider 호출 없이 no-op으로 종료되는 repo contract를 반영한다.
+  - worker는 hard cap 0이면 background target claim 전에 `processed=0`, `requested=0`, `providerRuntimeDisabled=true` summary로 종료한다.
+  - production cron 자체 pause는 remote 운영 설정이므로 DB migration으로 처리하지 않는다.
+- [x] Google Place Photos 기반 썸네일 runtime 보강 중단 contract를 반영한다.
+  - hard cap 0에서는 cached/provider photo overlay도 반환하지 않고, 화면은 기존 canonical/approved thumbnail 또는 placeholder만 사용한다.
+- [x] 동물병원 Localdata canonical/approved 데이터 fallback을 유지한다.
+  - 리스트 UX는 `썸네일`, `동물병원` label, 병원명, 전화번호, 주소 미노출, 텍스트 좌측 정렬, 카드 내부 세로 중앙 정렬 결정을 유지한다.
+  - 상세 UX는 주소, 전화 CTA, 길찾기 CTA를 유지하고 provider 미검수 운영정보를 열지 않는다.
+- [x] 길찾기 외부 앱 deep link 위임 결정을 유지한다.
+  - 앱 내부 route API를 새로 열지 않고 기존 외부 지도 앱 resolver 동선을 사용한다.
+- [x] 산책/location discovery runtime fan-out 방어를 보강한다.
+  - 앱 클라이언트는 Kakao REST key를 직접 쓰지 않고 `location-discovery-seed`만 호출한다.
+  - 클라이언트 요청 캐시와 Edge Function URL 캐시를 추가해 동일 keyword/address/coord2region 요청 반복 호출을 줄인다.
+- [x] linked production Edge Function 배포 상태를 확인한다.
+  - 2026-05-27 KST remote 기준 `place-enrichment-demand` ACTIVE v12, `place-enrichment-worker` ACTIVE v9, `location-discovery-seed` ACTIVE v10으로 재배포했다.
+  - `place-enrichment-demand` 직접 POST smoke는 function JWT 요구와 현재 shell의 사용자 JWT 부재로 `UNAUTHORIZED_INVALID_JWT_FORMAT`까지 확인했다. 앱 로그인 사용자 세션 기준 Android smoke는 별도 실기기 gate에 포함한다.
+- [x] production secret 상태를 확인한다.
+  - `NURI_PLACE_ENRICHMENT_HARD_CAP=0`으로 설정했다. `secrets list` digest가 `0`의 SHA-256과 일치한다.
+  - `GOOGLE_PLACES_API_KEY`는 production secret에서 제거했다. `GOOGLE_MAPS_API_KEY`는 production secret 목록에 없다.
+- [x] provider key 누락 또는 hard cap 0 상태에서 앱 crash 없음 확인을 Android smoke에 포함한다.
+  - 2026-05-27 KST Android 실기기 `R5CY613NMSY` / `SM_S937N`, `com.nuri.app` `versionName=1.0`, `versionCode=1`, 로그인 사용자 `test님` 세션 기준으로 확인했다.
+  - 동물병원: More -> `우리동네 동물병원` -> 리스트 -> 상세 -> `전화하기` -> `길찾기`를 직접 조작했다. 리스트는 `동물병원` label, 병원명, 전화번호 또는 `전화번호 확인 중`만 표시하고 주소는 노출하지 않았다. 상세는 주소, 전화 CTA, 길찾기 CTA를 표시했다.
+  - 전화 CTA는 `com.skt.prod.dialer` dialer intent로 위임됐고, 길찾기 CTA는 Android resolver에 네이버지도, 지도, 카카오맵, TMAP 선택지를 표시했다.
+  - 산책/location discovery: More -> `우리동네 산책 장소 찾기` -> `우리동네 산책 리스트` -> `산책 장소 상세`를 직접 조작했다. 결과 카드, 상세, 지도 미리보기, 주변 산책 장소 영역은 crash 없이 표시됐다.
+  - logcat `/tmp/nuri-smoke-logcat.txt`: `fatal=0`, `promise=0`, `places=0`, `direct_google_api=0`, `place-enrichment-demand called=1`, `place-enrichment-demand skipped=1`, `location-discovery-seed called=10`, `location-discovery-seed completed=10`.
+  - 관찰된 `Unhandled SoftException` 10건은 `react-native-fast-image`의 React Native New Architecture interop warning이며 fatal crash, promise rejection, Places/Photos provider 호출은 아니다. V1.0 지도/API 비용 방어 gate blocker로 분류하지 않는다.
 
 ## Supabase Migration Apply Gate
 

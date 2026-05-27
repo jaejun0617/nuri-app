@@ -1,8 +1,12 @@
 /* global Deno, globalThis */
 import { createClient } from 'npm:@supabase/supabase-js@2.97.0';
+import {
+  isPlaceEnrichmentProviderRuntimeDisabled,
+  normalizeHardCap,
+  PLACE_ENRICHMENT_PROVIDER_DISABLED_ERROR_CODE,
+} from './place-enrichment-runtime-policy.js';
 
 const CACHE_TTL_DAYS = 30;
-const DEFAULT_HARD_CAP = 6000;
 const DEFAULT_LOCK_TTL_SECONDS = 45;
 const MAX_TARGETS = 12;
 const MAX_INLINE_WAIT_ATTEMPTS = 3;
@@ -74,15 +78,6 @@ export function jsonResponse(body, status = 200) {
       'content-type': 'application/json; charset=utf-8',
     },
   });
-}
-
-export function normalizeHardCap(value) {
-  const parsed = Number(value);
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    return DEFAULT_HARD_CAP;
-  }
-
-  return parsed;
 }
 
 function normalizePositiveInteger(value, fallback, max) {
@@ -223,6 +218,9 @@ export async function processDemandTargets(context, targets) {
   }
 
   return {
+    providerRuntimeDisabled: isPlaceEnrichmentProviderRuntimeDisabled(
+      context.hardCap,
+    ),
     requested: targets.length,
     results,
   };
@@ -231,12 +229,6 @@ export async function processDemandTargets(context, targets) {
 export async function processBackgroundBatch(context, options = {}) {
   const limit = normalizeBackgroundLimit(options.limit);
   const maxUnits = normalizeBackgroundMaxUnits(options.maxUnits);
-  const targets = await fetchBackgroundTargets(
-    context.supabase,
-    context.provider,
-    limit,
-  );
-
   const summary = {
     budgetBlocked: 0,
     cached: 0,
@@ -246,12 +238,27 @@ export async function processBackgroundBatch(context, options = {}) {
     limit,
     maxUnits,
     processed: 0,
+    providerRuntimeDisabled: isPlaceEnrichmentProviderRuntimeDisabled(
+      context.hardCap,
+    ),
     queued: 0,
     remainingUnits: maxUnits,
-    requested: targets.length,
+    requested: 0,
     results: [],
     skipped: 0,
   };
+
+  if (summary.providerRuntimeDisabled) {
+    summary.remainingUnits = maxUnits;
+    return summary;
+  }
+
+  const targets = await fetchBackgroundTargets(
+    context.supabase,
+    context.provider,
+    limit,
+  );
+  summary.requested = targets.length;
 
   for (const target of targets) {
     const estimatedUnits = estimateBudgetUnits(target.requestedFields);
@@ -310,6 +317,16 @@ async function processTarget(context, target, budgetTrack) {
     return {
       ...baseResult,
       chargedUnits: 0,
+      source: 'existing',
+      status: 'skipped',
+    };
+  }
+
+  if (isPlaceEnrichmentProviderRuntimeDisabled(context.hardCap)) {
+    return {
+      ...baseResult,
+      chargedUnits: 0,
+      errorCode: PLACE_ENRICHMENT_PROVIDER_DISABLED_ERROR_CODE,
       source: 'existing',
       status: 'skipped',
     };
