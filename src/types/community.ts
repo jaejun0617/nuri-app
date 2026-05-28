@@ -108,6 +108,7 @@ export type CommunityCommentRow = {
 export type CommunityProfileRow = {
   user_id: string;
   nickname: string | null;
+  nickname_confirmed: boolean;
   avatar_url: string | null;
 };
 

@@ -195,7 +195,9 @@ function buildHomeRecentPreviewItems(
   records: MemoryRecord[],
 ): HomeRecentPreviewItem[] {
   const selectedRecords = [...records]
-    .sort((lhs, rhs) => getRecordSortTimestamp(rhs) - getRecordSortTimestamp(lhs))
+    .sort(
+      (lhs, rhs) => getRecordSortTimestamp(rhs) - getRecordSortTimestamp(lhs),
+    )
     .slice(0, HOME_RECENT_RECORDS_MAX);
 
   return selectedRecords.map(record => {
@@ -467,10 +469,12 @@ const TodayPhotoSection = React.memo(function TodayPhotoSection({
     !todayPhoto.record;
   const photoDateLabel = useMemo(() => {
     if (!todayPhoto.record) return '';
-    return formatYmdWithWeekday(getRecordDisplayYmd(todayPhoto.record), {
-      separator: '.',
-      suffix: true,
-    }) ?? formatRecordDisplayDate(todayPhoto.record);
+    return (
+      formatYmdWithWeekday(getRecordDisplayYmd(todayPhoto.record), {
+        separator: '.',
+        suffix: true,
+      }) ?? formatRecordDisplayDate(todayPhoto.record)
+    );
   }, [todayPhoto.record]);
 
   return (
@@ -1254,8 +1258,9 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
   const homeRecentDotColorById = useMemo(() => {
     const alphaSteps = ['FF', 'A8', '78', '5C', '46', '34', '26'] as const;
     return previewItems.reduce<Record<string, string>>((acc, item, index) => {
-      acc[item.record.id] =
-        `${accentColor}${alphaSteps[Math.min(index, alphaSteps.length - 1)]}`;
+      acc[item.record.id] = `${accentColor}${
+        alphaSteps[Math.min(index, alphaSteps.length - 1)]
+      }`;
       return acc;
     }, {});
   }, [accentColor, previewItems]);
@@ -1313,7 +1318,8 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
                 const itemDotColor =
                   homeRecentDotColorById[previewItem.record.id] ?? accentColor;
                 const headerDotColor =
-                  homeRecentDotColorById[group.items[0]?.record.id ?? ''] ?? accentColor;
+                  homeRecentDotColorById[group.items[0]?.record.id ?? ''] ??
+                  accentColor;
 
                 return (
                   <MemoryCard
@@ -1331,7 +1337,9 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
                     dateHeaderDotColor={headerDotColor}
                     timelineDotColor={itemDotColor}
                     itemDotColor={itemDotColor}
-                    metaTextOverride={formatRecordCreatedTime(previewItem.record)}
+                    metaTextOverride={formatRecordCreatedTime(
+                      previewItem.record,
+                    )}
                     itemTitleStyle={styles.recentItemTitleBalanced}
                     metaTextStyle={styles.recentItemMetaBalanced}
                     hideBottomRail={isLastVisibleItem}
@@ -1562,78 +1570,88 @@ function getHealthActivityKindLabel(kind: HealthActivityItem['kind']) {
   }
 }
 
-const HealthRecentActivitiesSection = React.memo(function HealthRecentActivitiesSection({
-  activityItems,
-  onPressHealthReport,
-  onPressActivityItem,
-  accentColor,
-  accentDeepColor,
-}: {
-  activityItems: HealthActivityItem[];
-  onPressHealthReport: () => void;
-  onPressActivityItem: (ymd: string) => void;
-  accentColor: string;
-  accentDeepColor: string;
-}) {
-  const recentActivities = useMemo(() => activityItems.slice(0, 5), [activityItems]);
+const HealthRecentActivitiesSection = React.memo(
+  function HealthRecentActivitiesSection({
+    activityItems,
+    onPressHealthReport,
+    onPressActivityItem,
+    accentColor,
+    accentDeepColor,
+  }: {
+    activityItems: HealthActivityItem[];
+    onPressHealthReport: () => void;
+    onPressActivityItem: (ymd: string) => void;
+    accentColor: string;
+    accentDeepColor: string;
+  }) {
+    const recentActivities = useMemo(
+      () => activityItems.slice(0, 5),
+      [activityItems],
+    );
 
-  return (
-    <View style={styles.section}>
-      <View style={styles.sectionHeaderRow}>
-        <Text style={[styles.tipSectionTitle, { color: accentDeepColor }]}>
-          건강관리 최근 활동
-        </Text>
-        <TouchableOpacity activeOpacity={0.85} onPress={onPressHealthReport}>
-          <Text style={[styles.sectionLink, { color: accentColor }]}>
-            건강관리 열기
+    return (
+      <View style={styles.section}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.tipSectionTitle, { color: accentDeepColor }]}>
+            건강관리 최근 활동
           </Text>
-        </TouchableOpacity>
-      </View>
-
-      {recentActivities.length === 0 ? (
-        <View style={styles.emptyBox}>
-          <Text style={styles.emptyTitle}>건강관리 기록이 아직 없어요</Text>
-          <Text style={styles.emptyDesc}>
-            병원, 약, 증상, 체중 기록은 건강관리에서 차분히 모아볼 수 있어요.
-          </Text>
+          <TouchableOpacity activeOpacity={0.85} onPress={onPressHealthReport}>
+            <Text style={[styles.sectionLink, { color: accentColor }]}>
+              건강관리 열기
+            </Text>
+          </TouchableOpacity>
         </View>
-      ) : (
-        <View style={styles.activityList}>
-          {recentActivities.map(item => (
-            <TouchableOpacity
-              key={item.id}
-              activeOpacity={0.92}
-              style={styles.activityRow}
-              onPress={() => onPressActivityItem(item.ymd)}
-            >
-              <View
-                style={[
-                  styles.activityIconWrap,
-                  { backgroundColor: `${accentColor}14` },
-                ]}
+
+        {recentActivities.length === 0 ? (
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyTitle}>건강관리 기록이 아직 없어요</Text>
+            <Text style={styles.emptyDesc}>
+              병원, 약, 증상, 체중 기록은 건강관리에서 차분히 모아볼 수 있어요.
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.activityList}>
+            {recentActivities.map(item => (
+              <TouchableOpacity
+                key={item.id}
+                activeOpacity={0.92}
+                style={styles.activityRow}
+                onPress={() => onPressActivityItem(item.ymd)}
               >
-                <Feather name={item.iconName as never} size={17} color={accentColor} />
-              </View>
+                <View
+                  style={[
+                    styles.activityIconWrap,
+                    { backgroundColor: `${accentColor}14` },
+                  ]}
+                >
+                  <Feather
+                    name={item.iconName as never}
+                    size={17}
+                    color={accentColor}
+                  />
+                </View>
 
-              <View style={styles.activityTextCol}>
-                <Text style={styles.activityTitle} numberOfLines={1}>
-                  {item.title?.trim() || getHealthActivityKindLabel(item.kind)}
-                </Text>
-                <Text style={styles.activitySub} numberOfLines={1}>
-                  {getHealthActivityKindLabel(item.kind)} · {item.subtitle}
-                </Text>
-              </View>
+                <View style={styles.activityTextCol}>
+                  <Text style={styles.activityTitle} numberOfLines={1}>
+                    {item.title?.trim() ||
+                      getHealthActivityKindLabel(item.kind)}
+                  </Text>
+                  <Text style={styles.activitySub} numberOfLines={1}>
+                    {getHealthActivityKindLabel(item.kind)} · {item.subtitle}
+                  </Text>
+                </View>
 
-              <Text style={styles.activityTime}>
-                {formatYmdToDots(item.ymd) ?? item.ymd}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-    </View>
-  );
-});
+                <Text style={styles.activityTime}>
+                  {formatYmdToDots(item.ymd) ?? item.ymd}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  },
+);
 
 const MonthlyDiarySection = React.memo(function MonthlyDiarySection({
   petName,

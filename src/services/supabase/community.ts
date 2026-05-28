@@ -125,6 +125,7 @@ function isCommunityProfileRow(value: unknown): value is CommunityProfileRow {
     isRecord(value) &&
     typeof value.user_id === 'string' &&
     (typeof value.nickname === 'string' || value.nickname === null) &&
+    typeof value.nickname_confirmed === 'boolean' &&
     (typeof value.avatar_url === 'string' || value.avatar_url === null)
   );
 }
@@ -252,6 +253,15 @@ function looksLikeRemoteUrl(value: string | null | undefined) {
   return raw.startsWith('https://') || raw.startsWith('http://');
 }
 
+function getConfirmedProfileNickname(
+  profile: CommunityProfileRow | null,
+): string | null {
+  // OAuth provider metadata may seed profiles.nickname, but public community
+  // identity must use only the nickname that the user confirmed in NURI.
+  if (!profile?.nickname_confirmed) return null;
+  return profile.nickname?.trim() || null;
+}
+
 function normalizeImagePaths(row: CommunityPostRow): string[] {
   const rawPaths = Array.isArray(row.image_urls)
     ? row.image_urls
@@ -285,8 +295,6 @@ function normalizePost(
   const inlineRemoteImageUrl = inlineRemoteImageUrls[0] ?? null;
   const snapshotAuthorNickname =
     `${row.author_snapshot_nickname ?? ''}`.trim() || null;
-  const snapshotAuthorAvatarUrl =
-    `${row.author_snapshot_avatar_url ?? ''}`.trim() || null;
   const snapshotName = `${row.pet_snapshot_name ?? ''}`.trim() || null;
   const snapshotSpecies = `${row.pet_snapshot_species ?? ''}`.trim() || null;
   const snapshotBreed = `${row.pet_snapshot_breed ?? ''}`.trim() || null;
@@ -304,9 +312,11 @@ function normalizePost(
     authorId: row.user_id,
     authorNickname:
       snapshotAuthorNickname ??
-      profile?.nickname?.trim() ??
+      getConfirmedProfileNickname(profile) ??
       '알 수 없는 사용자',
-    authorAvatarUrl: snapshotAuthorAvatarUrl ?? profile?.avatar_url ?? null,
+    // NURI does not yet expose user avatar editing, so provider avatar_url is
+    // intentionally not surfaced on public community cards in V1.0.
+    authorAvatarUrl: null,
     petId: row.pet_id ?? null,
     petName: snapshotName ?? pet?.name?.trim() ?? null,
     petBreed: snapshotBreed ?? pet?.breed?.trim() ?? null,
@@ -359,11 +369,7 @@ function normalizeComment(
 ): CommunityComment {
   const profile = profilesByUserId.get(row.user_id) ?? null;
   const authorSnapshot = authorSnapshotsByUserId.get(row.user_id) ?? null;
-  const profileNickname = profile?.nickname?.trim() || null;
-  const profileAvatarUrl =
-    typeof profile?.avatar_url === 'string'
-      ? profile.avatar_url.trim() || null
-      : null;
+  const profileNickname = getConfirmedProfileNickname(profile);
   return {
     id: row.id,
     postId: row.post_id,
@@ -372,7 +378,9 @@ function normalizeComment(
       profileNickname ??
       authorSnapshot?.nickname ??
       UNKNOWN_COMMUNITY_AUTHOR_NICKNAME,
-    authorAvatarUrl: profileAvatarUrl ?? authorSnapshot?.avatarUrl ?? null,
+    // Keep provider avatar_url out of comment identity until user-owned avatar
+    // editing becomes a first-class profile feature.
+    authorAvatarUrl: null,
     parentCommentId: row.parent_comment_id ?? null,
     depth: toCommentDepth(row.depth),
     replyCount:
@@ -395,7 +403,7 @@ async function fetchProfilesByUserIds(userIds: string[]) {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('user_id, nickname, avatar_url')
+    .select('user_id, nickname, nickname_confirmed, avatar_url')
     .in('user_id', ids);
 
   if (error) throw error;
@@ -433,10 +441,7 @@ async function fetchPublicPostAuthorSnapshotsByUserIds(userIds: string[]) {
       typeof item.author_snapshot_nickname === 'string'
         ? item.author_snapshot_nickname.trim() || null
         : null;
-    const avatarUrl =
-      typeof item.author_snapshot_avatar_url === 'string'
-        ? item.author_snapshot_avatar_url.trim() || null
-        : null;
+    const avatarUrl = null;
 
     if (!nickname && !avatarUrl) return;
     snapshotsByUserId.set(item.user_id, { nickname, avatarUrl });
@@ -649,7 +654,7 @@ function normalizeLegacyCommentRow(data: unknown): CommunityCommentRow | null {
 async function fetchCurrentAuthorSnapshot(userId: string) {
   const { data, error } = await supabase
     .from('profiles')
-    .select('nickname, avatar_url')
+    .select('nickname, nickname_confirmed')
     .eq('user_id', userId)
     .maybeSingle();
 
@@ -658,11 +663,10 @@ async function fetchCurrentAuthorSnapshot(userId: string) {
   }
 
   const nickname =
-    typeof data?.nickname === 'string' ? data.nickname.trim() || null : null;
-  const avatarUrl =
-    typeof data?.avatar_url === 'string'
-      ? data.avatar_url.trim() || null
+    data?.nickname_confirmed === true && typeof data.nickname === 'string'
+      ? data.nickname.trim() || null
       : null;
+  const avatarUrl = null;
 
   return { nickname, avatarUrl };
 }
@@ -931,8 +935,7 @@ export async function fetchLatestCommunityCommentPreview(postId: string) {
 
   const profilesByUserId = await fetchProfilesByUserIds([row.user_id]);
   const profile = profilesByUserId.get(row.user_id) ?? null;
-  const needsAuthorSnapshot =
-    !profile?.nickname?.trim() && !profile?.avatar_url?.trim();
+  const needsAuthorSnapshot = !getConfirmedProfileNickname(profile);
   const authorSnapshotsByUserId = needsAuthorSnapshot
     ? await fetchPublicPostAuthorSnapshotsByUserIds([row.user_id])
     : new Map<string, CommunityAuthorSnapshot>();

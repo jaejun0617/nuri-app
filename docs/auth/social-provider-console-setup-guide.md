@@ -1,34 +1,47 @@
 # Social Provider Console Setup Guide
 
 작성일: 2026-05-10
-최신 콘솔 확인: 2026-05-11
+최신 콘솔 확인: 2026-05-27 PO 완료 전제
+최신 Android/runtime readiness 확인: 2026-05-28
 
 ## 1. 문서 목적
 
-이 문서는 NURI v1.0 Code Freeze 이후 Google/Kakao/Naver social login의 provider console credential 발급, Supabase Auth provider 입력, redirect/callback 정합성, 보안/API 방어 기준을 PO 실행 단위로 고정한다.
+이 문서는 NURI v1.0 Code Freeze 이후 social login의 provider console credential 발급, Supabase Auth provider 입력, redirect/callback 정합성, 보안/API 방어 기준을 PO 실행 단위로 고정한다.
 
 이 문서는 앱 코드 구현 문서가 아니다. social login app-side 구현은 재오픈하지 않는다.
+
+2026-05-28 PO 최종 결정 기준 V1.0 public social login provider는 Google + Kakao만 사용한다. Naver OAuth는 V1.0 public surface에서 soft disable한다. Supabase `custom:naver` provider와 관련 코드는 릴리즈 직전 안정성을 위해 hard delete하지 않으며, 완전 삭제는 V1.1 또는 출시 후 cleanup 작업으로 분리한다.
 
 ## 2. 현재 social login 상태
 
 | Provider | App-side entrypoint | Supabase provider | Provider console | Callback/redirect | Secret 노출 | Smoke 준비 | 최종 판정 |
 |---|---|---|---|---|---|---|---|
-| Google | closed | disabled | PO action required | ready-for-PO-action | closed | activation-ready | activation-ready |
-| Kakao | closed | disabled | PO action required | ready-for-PO-action | closed | activation-ready | activation-ready |
-| Naver | closed | `custom:naver` enabled | PO action required | partial | closed | activation-ready | activation-ready |
+| Google | closed | enabled | PO completed | closed | closed | completed | closed |
+| Kakao | closed | enabled | PO completed | closed | closed | completed | closed |
+| Naver | implemented but hidden | `custom:naver` 유지 | V1.0 제외 | partial-success | closed | smoke 중단 | V1.1 또는 출시 후 재검토 |
 
 현재 repo/remote 공개 Auth endpoint 기준 증거:
 
 - Google app-side: `signInWithGoogle()` exists and uses Supabase OAuth.
 - Kakao app-side: `signInWithKakao()` exists and uses Supabase OAuth.
-- Naver app-side: `signInWithNaver()` exists and maps app provider `naver` to Supabase provider id `custom:naver`.
-- Google Supabase provider: `/auth/v1/authorize?provider=google` returns provider-not-enabled.
-- Kakao Supabase provider: `/auth/v1/authorize?provider=kakao` returns provider-not-enabled.
+- Naver app-side: `signInWithNaver()` exists and maps app provider `naver` to Supabase provider id `custom:naver`, but the V1.0 public entrypoint is force-closed by the readiness flag.
+- Google Supabase provider: `/auth/v1/authorize?provider=google` returns HTTP 302 to Google authorize.
+- Kakao Supabase provider: `/auth/v1/authorize?provider=kakao` returns HTTP 302 to Kakao authorize.
 - Naver Supabase custom provider: `/auth/v1/authorize?provider=custom:naver` returns HTTP 302 to the Naver authorize endpoint.
 - App callback: `nuri://auth/callback`.
 - Password reset callback: `nuri://auth/reset`.
-- App readiness flags default to `false` for Google/Kakao/Naver, so release build does not expose disabled-provider buttons.
+- App readiness flags default to `true` for Google/Kakao and `false` for Naver. Naver is soft disabled for V1.0 even if the implementation remains in the codebase.
 - Apple: v1.0 no-op.
+
+### 2026-05-27 Android/runtime readiness closeout
+
+| Provider | Supabase runtime authorize | Android SignIn 버튼 | Callback 실패/취소 fallback | 현재 V1.0 분류 |
+|---|---|---|---|---|
+| Google | HTTP 302 to Google authorize | 버튼 노출 | 성공 session 후 앱 복귀, crash 없음 | V1.0에서 닫음 |
+| Kakao | HTTP 302 to Kakao authorize | 버튼 노출 | 성공 session 후 앱 복귀, crash 없음 | V1.0에서 닫음 |
+| Naver | `custom:naver` HTTP 302 to Naver authorize | V1.0 미노출 | Naver 성공 smoke 중단 | V1.0 제외 / V1.1 재검토 |
+
+Android 실기기 `R5CY613NMSY` / `SM_S937N`, `com.nuri.app` 기준으로 Google/Kakao는 web flow, 앱 복귀, session 생성까지 성공했다. Naver는 2026-05-27 web flow 진입 후 Naver 페이지의 `pet_nuri 서비스 설정 오류`로 session 생성 전 차단됐고, 2026-05-28 PO 결정에 따라 V1.0 public surface에서 soft disable한다.
 
 ### 2026-05-11 직접 콘솔 확인 결과
 
@@ -55,9 +68,9 @@
 
 | Provider | Credential 현재 상태 | Supabase provider 상태 | App-side readiness flag | 버튼 노출 조건 | Direct-call guard | 활성화 후 추가 개발 필요 여부 | 최종 판정 |
 |---|---|---|---|---|---|---|---|
-| Google | PO 발급 필요 | disabled/미입력 | `EXPO_PUBLIC_ENABLE_GOOGLE_OAUTH=false` | flag true일 때만 노출 | closed | 없음 | activation-ready |
-| Kakao | PO 발급 필요 | disabled/미입력 | `EXPO_PUBLIC_ENABLE_KAKAO_OAUTH=false` | flag true일 때만 노출 | closed | 없음 | activation-ready |
-| Naver | console app 존재, web callback 보강 필요 | `custom:naver` enabled | `EXPO_PUBLIC_ENABLE_NAVER_OAUTH=false` | flag true일 때만 노출 | closed | 없음 | activation-ready |
+| Google | 입력 완료 전제 | enabled | `EXPO_PUBLIC_ENABLE_GOOGLE_OAUTH=true` | 노출 | closed | 없음 | closed |
+| Kakao | 입력 완료 전제 | enabled | `EXPO_PUBLIC_ENABLE_KAKAO_OAUTH=true` | 노출 | closed | 없음 | closed |
+| Naver | 입력 완료 전제, 서비스 설정 오류 관찰 | `custom:naver` 유지 | `EXPO_PUBLIC_ENABLE_NAVER_OAUTH=false` | 미노출 | closed | V1.1 또는 출시 후 재검토 | V1.0 제외 |
 
 Readiness flag source:
 
@@ -71,6 +84,7 @@ Readiness contract:
 - flag false: provider 함수가 직접 호출되어도 `provider_setup_required`로 안전하게 중단한다.
 - flag true: 기존 `signInWithOAuth` web flow를 그대로 실행한다.
 - client secret은 flag나 app env에 넣지 않는다.
+- Naver는 V1.0에서 `flag false`와 별도 public-surface guard로 닫는다. `signInWithNaver()`와 `custom:naver` provider는 삭제하지 않는다.
 
 ## 3-2. Google 테스트 계정 / My First Project 격리 결정
 
@@ -439,7 +453,7 @@ PO는 secret 값을 Codex 채팅이나 repository에 붙여넣지 않고 Supabas
 |---|---|
 | Google | Supabase Google provider enabled, client id/secret 입력, Google Authorized redirect URI 등록, `nuri://auth/callback` redirect allow list 등록, `EXPO_PUBLIC_ENABLE_GOOGLE_OAUTH=true` |
 | Kakao | Supabase Kakao provider enabled, REST API Key/Client Secret 입력, Kakao Login ON, Kakao Redirect URI 등록, 동의항목 설정, `EXPO_PUBLIC_ENABLE_KAKAO_OAUTH=true` |
-| Naver | Supabase `custom:naver` enabled, Naver Client ID/Secret 입력, Naver Callback URL 등록, profile/email 제공 항목 설정, `EXPO_PUBLIC_ENABLE_NAVER_OAUTH=true` |
+| Naver | V1.0 smoke 대상 아님. V1.1 또는 출시 후 재검토 시 Supabase `custom:naver` 유지, Naver Client ID/Secret, Callback URL, profile/email 제공 항목을 다시 확인하고 public-surface guard 해제까지 함께 검토한다. |
 
 Smoke 성공 기준:
 
@@ -476,11 +490,13 @@ Smoke 성공 기준:
 
 ### Naver 활성화 절차
 
+Naver OAuth는 V1.0 public surface에서 soft disable한다. 아래 절차는 V1.1 또는 출시 후 운영 설정 안정화 시점에만 다시 사용한다.
+
 1. Naver Developers에서 Client ID/Secret을 확인한다.
 2. Naver Callback URL이 Supabase Auth callback URL인지 맞춘다.
 3. Supabase Dashboard > Authentication > Providers > Custom OAuth `custom:naver` 설정을 유지한다.
 4. `custom:naver` provider를 enable한다.
-5. `EXPO_PUBLIC_ENABLE_NAVER_OAUTH=true`로 Naver readiness flag를 전환한다.
+5. V1.1 재검토 시점에만 `EXPO_PUBLIC_ENABLE_NAVER_OAUTH=true`와 public-surface guard 해제를 함께 검토한다.
 6. Android smoke를 수행한다.
 
 주의:
@@ -495,7 +511,7 @@ Smoke 성공 기준:
 
 ## 14. 다음 액션
 
-Google OAuth는 기존 테스트 Google 계정과 `My First Project`를 사용하지 않고 NURI 전용 신규 Google 계정과 OAuth-only project 기준으로 진행한다. Kakao/Naver provider credential 발급 및 Supabase Dashboard 입력은 기존 계획대로 PO action으로 유지한다. 2026-05-11 기준 Codex는 Chrome에서 콘솔 화면을 직접 열어 상태를 고정했지만 Google은 새 계정 생성, Kakao Login 설정, Naver web callback 보강이 남아 있어 OAuth smoke는 아직 수행하지 않는다. Codex는 PO action 완료 후 OAuth 성공 smoke evidence 문서화 턴으로 이동한다.
+Google/Kakao OAuth는 2026-05-27 Android 실기기 성공 smoke로 닫았다. Naver는 `custom:naver` Supabase authorize와 Android web flow 진입은 닫혔지만 Naver Developers `pet_nuri 서비스 설정 오류`로 session 생성 전 차단됐다. 2026-05-28 PO 결정에 따라 V1.0에서는 Naver를 public surface에서 soft disable하고 Google + Kakao만 사용한다. Naver hard delete와 운영 설정 재검토는 V1.1 또는 출시 후 cleanup 작업으로 분리한다. Secret/client secret/token 전체값은 계속 문서와 채팅에 기록하지 않는다.
 
 ## 공식 문서 기준
 

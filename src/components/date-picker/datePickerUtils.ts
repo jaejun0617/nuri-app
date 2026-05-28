@@ -83,6 +83,16 @@ function parseStringDate(value: string): DateParts | null {
   return toDatePartsFromDate(date);
 }
 
+export function parseDateInputParts(value: string): DateParts | null {
+  return parseStringDate(value);
+}
+
+export function compareDateParts(left: DateParts, right: DateParts) {
+  if (left.year !== right.year) return left.year - right.year;
+  if (left.month !== right.month) return left.month - right.month;
+  return left.day - right.day;
+}
+
 export function parseInitialDate(
   value: Date | string | null | undefined,
   minYear = DEFAULT_MIN_YEAR,

@@ -77,18 +77,26 @@ export default function MainScreen() {
       if (!isLoggedIn) {
         return undefined;
       }
-      if (profileSyncStatus !== 'ready' || petLoading || petErrorMessage) {
+      if (profileSyncStatus === 'idle' || profileSyncStatus === 'loading') {
         return undefined;
       }
 
       const trimmedNickname = nickname?.trim() ?? '';
       if (!trimmedNickname) {
-        navigation.navigate('NicknameSetup');
+        const rootNavigation =
+          navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
+        (rootNavigation ?? navigation).navigate('NicknameSetup');
+        return undefined;
+      }
+
+      if (petLoading || petErrorMessage) {
         return undefined;
       }
 
       if (petsCount === 0) {
-        navigation.navigate('PetCreate', { from: 'auto' });
+        const rootNavigation =
+          navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
+        (rootNavigation ?? navigation).navigate('PetCreate', { from: 'auto' });
       }
 
       return undefined;

@@ -16,15 +16,19 @@ function parsePublicBooleanFlag(
   return fallback;
 }
 
+// V1.0 provider scope is Google + Kakao. Naver remains implemented for
+// post-release cleanup/revisit, but the public entrypoint is force-closed.
+const ENABLE_NAVER_V1_PUBLIC_SURFACE = false;
+
 export const ENABLE_GOOGLE_OAUTH = parsePublicBooleanFlag(
   process.env.EXPO_PUBLIC_ENABLE_GOOGLE_OAUTH,
-  false,
+  true,
 );
 export const ENABLE_KAKAO_OAUTH = parsePublicBooleanFlag(
   process.env.EXPO_PUBLIC_ENABLE_KAKAO_OAUTH,
-  false,
+  true,
 );
 export const ENABLE_NAVER_OAUTH = parsePublicBooleanFlag(
   process.env.EXPO_PUBLIC_ENABLE_NAVER_OAUTH,
   false,
-);
+) && ENABLE_NAVER_V1_PUBLIC_SURFACE;

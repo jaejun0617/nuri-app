@@ -14,7 +14,7 @@
 - [x] V1.0 기능 개발 Code Freeze
 - [x] Supabase DB Migration Dry-run / 원격 Apply
 - [x] 지도/API 비용 방어 V1.0 provider runtime 차단 repo contract 반영
-- [ ] Google/Kakao/Naver provider credential 입력과 OAuth 성공 smoke
+- [x] Naver OAuth V1.0 public surface soft disable
 - [ ] 운영자 QA / 실기기 최종 스모크
 - [ ] 앱 스토어 출시 자산 셋업
 - [ ] 최종 제출용 RC 빌드 확정
@@ -120,7 +120,8 @@
 - [x] 닉네임 정책과 Android 기본 레이아웃
   - 닉네임 `2..10`, Community header, Timeline 탭 유지, bottom gap 보정이 실기기 기준으로 닫혔다.
 - [x] Google/Kakao/Naver OAuth 앱 코드 연결
-  - SignIn/SignUp의 Kakao/Google/Naver 버튼은 placeholder Alert가 아니라 Supabase `signInWithOAuth` web flow를 시작한다.
+  - SignIn/SignUp의 Kakao/Google 버튼은 placeholder Alert가 아니라 Supabase `signInWithOAuth` web flow를 시작한다.
+  - Naver는 `signInWithNaver()`와 provider mapping code를 유지하지만 V1.0 public surface에서는 버튼을 숨긴다.
   - OAuth callback은 `nuri://auth/callback`으로 분리했고, password reset의 `nuri://auth/reset`과 라우트를 섞지 않는다.
   - OAuth 성공 후 session 복구는 기존 Splash/AppProviders boot contract를 사용하므로 nickname/pet onboarding 분기를 새로 만들지 않는다.
   - email/password login, email signup, password reset, policy link UI는 유지한다.
@@ -128,14 +129,15 @@
   - Apple은 Android-first v1.0 범위에서 제외한다.
 - [x] Social login activation-ready 코드 계약 고정
   - Google/Kakao/Naver provider mapping은 앱 코드에서 각각 `google`, `kakao`, `custom:naver`로 고정한다.
-  - Google/Kakao/Naver readiness flag 기본값은 `false`라 credential 미입력 release build에서 깨진 버튼이 노출되지 않는다.
+  - Google/Kakao readiness flag 기본값은 `true`, Naver readiness flag 기본값은 `false`다.
+  - Naver는 env가 실수로 켜져도 V1.0 public-surface guard에서 닫힌다.
   - readiness false provider는 SignIn/SignUp 화면에서 숨기고, 직접 함수 호출도 `provider_setup_required`로 안전하게 중단한다.
   - readiness true 전환 후에는 기존 Supabase OAuth web flow와 `nuri://auth/callback`을 그대로 사용한다.
   - public readiness flag는 `.env.example`에 boolean으로만 기록하며 secret 값은 기록하지 않는다.
 - [x] Social login provider release gate 갱신
-  - Supabase public auth settings 기준 Google provider disabled, Kakao provider disabled 상태를 확인했다.
-  - PO credential 입력 전 release build에서는 readiness false provider를 숨긴다.
-  - OAuth 성공 smoke는 provider credential 입력과 readiness flag true 전환 후 별도 수행한다.
+  - PO credential 입력 후 Google/Kakao는 V1.0 public provider로 고정한다.
+  - Naver는 V1.0 public surface에서 soft disable하고, 성공 session smoke 미완료를 V1.0 blocker로 보지 않는다.
+  - OAuth 성공 smoke는 Google/Kakao만 V1.0 release gate로 본다.
 - [x] Social provider console 직접 확인 결과를 release gate에 반영한다.
   - 2026-05-11 Chrome 기준 Google Cloud Console은 당시 선택 project의 결제 계정 문제로 `재검토 요청` 화면에 막혀 OAuth credential 생성이 불가했다. 이후 PO 결정에 따라 해당 테스트 계정/project는 NURI OAuth 경로에서 격리한다.
   - Kakao Developers `Nuri-app`은 존재하지만 Kakao Login, 동의항목, 간편가입, 연결 해제 설정이 모두 `설정 안 함`이다.
@@ -181,12 +183,39 @@
   - 현재 RC smoke는 dirty working tree 기준이다.
   - 이 항목은 신규 기능 개발이 아니라 v1.0 마감 evidence gate다.
 
-### 0-2. Google/Kakao/Naver OAuth provider setup gate
+### 0-2. Google/Kakao OAuth provider setup gate + Naver soft disable
+
+- [x] 2026-05-28 PO 최종 결정 기준 V1.0 public social provider를 Google + Kakao로 확정한다.
+  - `.env.example`과 `src/services/supabase/socialOAuthConfig.ts` 기준 Google/Kakao readiness flag 기본값은 `true`, Naver는 `false`다.
+  - Naver는 env 오입력 방지용 public-surface guard에서도 닫는다.
+  - SignIn/SignUp 화면에서 `카카오로 시작하기`, `Google로 시작하기`만 V1.0 public entrypoint로 노출한다.
+  - Supabase authorize endpoint smoke history: Google은 `accounts.google.com`, Naver는 `nid.naver.com`, Kakao는 `kauth.kakao.com`으로 HTTP 302 이동한 이력이 있다. V1.0 public provider scope는 Google/Kakao만 유지한다.
+- [x] Google Android 실기기 성공 smoke를 수행한다.
+  - Android 실기기 `R5CY613NMSY` / `SM_S937N`에서 Google 버튼 탭, provider web flow, 앱 복귀, session 생성, 기존 사용자 홈 진입을 확인했다.
+  - 2026-05-28 같은 실기기에서 Google 버튼 노출과 account chooser web flow 진입, back/cancel 복귀 crash 없음도 재확인했다.
+  - secret/client id/client secret/token 전체값은 문서와 로그에 기록하지 않는다.
+- [x] Kakao Android 실기기 성공 smoke와 닉네임/프로필 UX를 확인한다.
+  - Android 실기기에서 Kakao 버튼 탭, provider web flow, 앱 복귀, session 생성을 확인했다.
+  - Kakao 신규 사용자 계정은 nickname/provider profile image 선택 동의값이 없어도 `NicknameSetup`으로 진입했고, `nuri0527` 닉네임 중복확인/저장 후 `PetCreate` 온보딩으로 이동했다.
+  - 2026-05-28 같은 실기기에서 Kakao 신규 사용자 `kakao0528` 닉네임 중복확인/저장, `PetCreate`, `KakaoPet` 테스트 펫 등록, 홈 진입까지 확인했다.
+  - V1.0 NURI 사용자 표시 source of truth는 provider metadata가 아니라 앱 내부 confirmed profile이다. public community author surface는 confirmed nickname만 사용하고 provider avatar는 자동 노출하지 않는다.
+- [x] Naver Android 실기기 성공 smoke를 V1.0 범위에서 제거하고 public entrypoint를 soft disable한다.
+  - Android 실기기에서 Naver 버튼 노출, `custom:naver` authorize 302, Naver web flow 진입, 앱 복귀 crash 없음은 확인했다.
+  - Naver 페이지에서 `pet_nuri 서비스 설정 오류`가 표시되어 session 생성 전 차단됐다.
+  - 2026-05-28 PO 결정에 따라 Naver는 V1.0 제외/soft disable로 분류한다. Supabase `custom:naver` provider와 관련 코드는 hard delete하지 않는다.
+  - 2026-05-28 Android SignIn 화면에서 Naver 버튼 미노출을 확인했다.
+
+- [x] PetCreate/PetProfileEdit 날짜 직접 입력 UX를 V1.0에 반영한다.
+  - 공통 DatePicker modal은 `YYYY-MM-DD` 직접 입력, calendar/input state sync, invalid date validation, maximum date guard를 제공한다.
+  - PetCreate와 PetProfileEdit 날짜 모달에는 `날짜 직접 입력`, `과거 날짜는 YYYY-MM-DD로 입력` 안내가 표시된다.
+  - Android 실기기에서 `2010-99-99` 입력 시 `월은 1~12 사이에서 입력해 주세요.` 오류가 표시되어 저장이 막혔다.
+  - Android 실기기에서 `2010-05-12` 입력 후 적용했고, PetCreate 저장 후 홈 카드에 `생년월일 2010.05.12`가 표시됐다.
+  - DatePicker 라이브러리 교체, DB migration, 펫 등록 전체 재설계는 수행하지 않았다.
 
 - 판정
-  - Google: `activation-ready`, readiness false 기본값. App-side entrypoint는 닫혔고 Supabase Google provider는 현재 disabled다. 기존 테스트 Google 계정과 `My First Project`는 NURI OAuth용으로 재사용하지 않으며, 새 NURI Google 계정의 OAuth-only project에서 credential을 발급한다.
-  - Kakao: `activation-ready`, readiness false 기본값. App-side entrypoint는 닫혔고 Supabase Kakao provider는 현재 disabled다. Kakao app은 존재하지만 Kakao Login/동의항목은 미설정이다.
-  - Naver: `activation-ready`, readiness false 기본값. Supabase `custom:naver` provider는 Enabled다. Naver app은 존재하지만 Supabase OAuth용 web callback 보강 후 smoke가 필요하다.
+  - Google: `closed`. App-side entrypoint, Supabase authorize, Android success session smoke까지 닫혔다.
+  - Kakao: `closed`. App-side entrypoint, Supabase authorize, Android success session smoke, 닉네임 미확정 온보딩 분기까지 닫혔다.
+  - Naver: `soft-disabled-for-v1`. App-side entrypoint와 Supabase authorize 302는 운영 히스토리로 남기고, V1.0 public surface에서는 버튼을 숨긴다.
   - Apple: `HIDE_FOR_V1`
 - [x] Google 테스트 계정과 `My First Project` 비용 리스크를 NURI 운영 OAuth 경로에서 분리한다.
   - 현재 Chrome Google 계정은 테스트 계정이며 NURI 운영 계정으로 사용하지 않는다.
@@ -197,18 +226,20 @@
   - evidence: `docs/auth/social-provider-console-setup-guide.md`
   - Google/Kakao/Naver credential 발급 절차, Supabase provider 입력 위치, callback/redirect 정합성, secret 미노출 원칙을 한 문서로 묶었다.
   - Social login app-side 구현은 재오픈하지 않는다.
-- [ ] PO가 Google/Kakao provider console, API key/secret, redirect allow-list를 실제 운영 값으로 준비한다.
+- [x] PO가 Google/Kakao provider console, API key/secret, redirect allow-list를 실제 운영 값으로 준비한다.
   - Google: NURI 전용 신규 Google 계정을 만들고, `NURI Auth` 또는 `NURI OAuth` project에서 OAuth consent screen/Web OAuth Client ID/Secret/Android OAuth Client ID, `com.nuri.app`, SHA-1/SHA-256, Privacy Policy/Terms URL을 준비한다. Authorized redirect URI는 `https://grmekesqoydylqmyvfke.supabase.co/auth/v1/callback`이다.
   - Kakao: 기존 Kakao Developers `Nuri-app`에서 Kakao Login 활성화, REST API Key 확인, Client Secret 활성화, Supabase callback URL Redirect URI 등록, 동의항목 설정, 필요 시 Biz App/앱 정보 검토를 완료한다.
   - Supabase Auth: Google/Kakao provider enable, provider별 client id/secret 등록을 완료한다. Redirect URLs allow list의 `nuri://auth/callback`은 2026-05-11 기준 등록 완료다.
   - 실제 key/secret 값은 repository와 release evidence에 기록하지 않는다.
-- [ ] PO가 Naver provider 준비물을 확정한다.
-  - Naver Developers `nuri_app`은 존재하며 네이버 로그인 API, 연락처 이메일 필수 제공, Android package `com.nuri.app`은 확인됐다.
-  - Supabase custom OAuth/OIDC provider id는 `custom:naver`이며 2026-05-11 기준 Enabled다.
-  - 남은 작업은 Supabase Auth callback URL을 Naver PC/모바일 웹 Callback URL에 등록하고, 개인정보처리방침 URL/개발 중 테스트 계정/검수 범위를 확정하는 것이다.
-- [ ] provider 설정 완료 후 OAuth 성공 smoke를 별도 evidence로 남긴다.
-  - 버튼 탭, provider web flow 진입, 앱 복귀, Supabase session 복구, nickname/pet onboarding 분기를 확인한다.
-  - provider credential 입력 후 readiness flag를 true로 전환하고 smoke를 수행한다.
+- [x] Naver provider 준비물 성공 session 확정은 V1.0 범위에서 제거한다.
+  - Naver Developers `pet_nuri` 서비스 설정 오류 해소는 V1.1 또는 출시 후 운영 설정 안정화/cleanup 작업으로 이동한다.
+  - Supabase custom OAuth/OIDC provider id `custom:naver`는 유지하지만, 앱 public surface에서는 버튼을 숨긴다.
+- [x] Naver provider 설정 완료 후 OAuth 성공 smoke는 V1.1 또는 출시 후 evidence로 분리한다.
+  - V1.0에서는 Naver 버튼 탭 성공 session을 요구하지 않는다.
+  - Google/Kakao 성공 smoke와 Kakao 신규 사용자 온보딩/pet registration smoke는 Android evidence로 닫혔다.
+- [x] 2026-05-27 pre-credential Android OAuth readiness closeout 기록을 유지한다.
+  - credential 입력 전 상태에서는 readiness false로 깨진 provider 버튼을 숨기고, callback failure route가 Alert 후 SignIn으로 안전하게 복귀하는 것을 확인했다.
+  - 이 기록은 credential 완료 전 release-safe evidence이며, 현재 V1.0 판정은 위 2026-05-27 success smoke 항목을 우선한다.
 - [x] social OAuth V1.0 약관/개인정보처리방침 고지 UI를 추가한다.
   - Google/Kakao/Naver social login 버튼 하단에 이용약관/개인정보처리방침 확인 및 동의 간주 문구를 표시한다.
   - 기존 정책 링크 source를 재사용한다.

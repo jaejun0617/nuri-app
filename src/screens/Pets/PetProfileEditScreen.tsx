@@ -1152,6 +1152,9 @@ export default function PetProfileEditScreen() {
         visible={dateModalTarget !== null}
         title="날짜 선택"
         initialDate={dateModalInitialValue}
+        maximumDate={new Date()}
+        directInputLabel="날짜 직접 입력"
+        directInputHelper="과거 날짜는 YYYY-MM-DD로 입력"
         onCancel={closeDateModal}
         onConfirm={applyDateModal}
       />

@@ -20,14 +20,17 @@ import { useTheme } from 'styled-components/native';
 import AppText from '../../app/ui/AppText';
 import {
   clampDateParts,
+  compareDateParts,
   DEFAULT_MAX_YEAR,
   DEFAULT_MIN_YEAR,
   formatDatePart,
   formatDateParts,
   getDaysInMonth,
+  parseDateInputParts,
   parseInitialDate,
   partsToDate,
   type DateParts,
+  validateDateParts,
 } from './datePickerUtils';
 import { styles } from './DatePicker.styles';
 
@@ -42,6 +45,10 @@ type Props = {
   cancelText?: string;
   includeTime?: boolean;
   timeValue?: string | null;
+  minimumDate?: Date | string | null;
+  maximumDate?: Date | string | null;
+  directInputLabel?: string;
+  directInputHelper?: string;
   onChange?: (next: Date) => void;
   onConfirm: (next: Date) => void;
   onConfirmDateTime?: (next: Date, time: string) => void;
@@ -179,6 +186,108 @@ function formatSelectedSummary(value: DateParts) {
   return `${formatDatePart(value.day)}. ${WEEKDAYS[date.getDay()]}`;
 }
 
+function toDatePartsFromDate(date: Date): DateParts | null {
+  if (Number.isNaN(date.getTime())) return null;
+  return {
+    year: date.getFullYear(),
+    month: date.getMonth() + 1,
+    day: date.getDate(),
+  };
+}
+
+function toConstraintParts(value: Date | string | null | undefined) {
+  if (value instanceof Date) return toDatePartsFromDate(value);
+  if (typeof value === 'string') return parseDateInputParts(value);
+  return null;
+}
+
+function formatDirectDateInput(raw: string) {
+  const normalized = raw.trim().replace(/[./]/g, '-');
+  if (normalized.includes('-')) {
+    const [yearRaw = '', monthRaw = '', dayRaw = ''] = normalized.split('-');
+    const year = yearRaw.replace(/\D/g, '').slice(0, 4);
+    const month = monthRaw.replace(/\D/g, '').slice(0, 2);
+    const day = dayRaw.replace(/\D/g, '').slice(0, 2);
+
+    let result = year;
+    if (normalized.includes('-') || month) result += `-${month}`;
+    if (normalized.split('-').length >= 3 || day) result += `-${day}`;
+    return result.slice(0, 10);
+  }
+
+  const digits = normalized.replace(/\D/g, '').slice(0, 8);
+  if (digits.length <= 4) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
+}
+
+function clampToConstraints(
+  value: DateParts,
+  minYear: number,
+  maxYear: number,
+  minimumParts: DateParts | null,
+  maximumParts: DateParts | null,
+) {
+  const clamped = clampDateParts(value, minYear, maxYear);
+  if (minimumParts && compareDateParts(clamped, minimumParts) < 0) {
+    return minimumParts;
+  }
+  if (maximumParts && compareDateParts(clamped, maximumParts) > 0) {
+    return maximumParts;
+  }
+  return clamped;
+}
+
+function validateDirectDateInput(params: {
+  rawValue: string;
+  minYear: number;
+  maxYear: number;
+  minimumParts: DateParts | null;
+  maximumParts: DateParts | null;
+}) {
+  const rawValue = params.rawValue.trim();
+  if (!rawValue) {
+    return { error: '날짜를 YYYY-MM-DD 형식으로 입력해 주세요.', parts: null };
+  }
+
+  const parts = parseDateInputParts(rawValue);
+  if (!parts) {
+    return { error: '날짜를 YYYY-MM-DD 형식으로 입력해 주세요.', parts: null };
+  }
+
+  const partError = validateDateParts(parts);
+  if (partError) return { error: partError, parts: null };
+
+  if (parts.year < params.minYear || parts.year > params.maxYear) {
+    return {
+      error: `연도는 ${params.minYear}~${params.maxYear} 사이에서 입력해 주세요.`,
+      parts: null,
+    };
+  }
+
+  if (
+    params.minimumParts &&
+    compareDateParts(parts, params.minimumParts) < 0
+  ) {
+    return {
+      error: `선택 가능한 가장 이른 날짜는 ${formatDateParts(params.minimumParts)}입니다.`,
+      parts: null,
+    };
+  }
+
+  if (
+    params.maximumParts &&
+    compareDateParts(parts, params.maximumParts) > 0
+  ) {
+    return {
+      error: `선택 가능한 가장 늦은 날짜는 ${formatDateParts(params.maximumParts)}입니다.`,
+      parts: null,
+    };
+  }
+
+  return { error: null, parts };
+}
+
 function DatePickerModalBase({
   visible,
   title = '날짜 선택',
@@ -190,6 +299,10 @@ function DatePickerModalBase({
   cancelText = '취소',
   includeTime = false,
   timeValue,
+  minimumDate,
+  maximumDate,
+  directInputLabel = '직접 입력',
+  directInputHelper = '예: 2010-05-12',
   onChange,
   onConfirm,
   onConfirmDateTime,
@@ -198,52 +311,191 @@ function DatePickerModalBase({
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const todayParts = useMemo(toTodayParts, []);
+  const minimumParts = useMemo(
+    () => toConstraintParts(minimumDate),
+    [minimumDate],
+  );
+  const maximumParts = useMemo(
+    () => toConstraintParts(maximumDate),
+    [maximumDate],
+  );
+  const effectiveMinYear = minimumParts
+    ? Math.max(minYear, minimumParts.year)
+    : minYear;
+  const effectiveMaxYear = maximumParts
+    ? Math.min(maxYear, maximumParts.year)
+    : maxYear;
   const initialParts = useMemo(
-    () => parseInitialDate(initialDate, minYear, maxYear),
-    [initialDate, maxYear, minYear],
+    () =>
+      clampToConstraints(
+        parseInitialDate(initialDate, effectiveMinYear, effectiveMaxYear),
+        effectiveMinYear,
+        effectiveMaxYear,
+        minimumParts,
+        maximumParts,
+      ),
+    [
+      effectiveMaxYear,
+      effectiveMinYear,
+      initialDate,
+      maximumParts,
+      minimumParts,
+    ],
   );
 
   const [value, setValue] = useState<DateParts>(initialParts);
+  const [directInputValue, setDirectInputValue] = useState(() =>
+    formatDateParts(initialParts),
+  );
+  const [directInputError, setDirectInputError] = useState<string | null>(null);
   const [timeSelection, setTimeSelection] = useState(() =>
     parseTimeValue(timeValue),
   );
 
   useEffect(() => {
     if (!visible) return;
-    setValue(parseInitialDate(initialDate, minYear, maxYear));
+    const nextInitialParts = clampToConstraints(
+      parseInitialDate(initialDate, effectiveMinYear, effectiveMaxYear),
+      effectiveMinYear,
+      effectiveMaxYear,
+      minimumParts,
+      maximumParts,
+    );
+    setValue(nextInitialParts);
+    setDirectInputValue(formatDateParts(nextInitialParts));
+    setDirectInputError(null);
     setTimeSelection(parseTimeValue(timeValue));
-  }, [initialDate, maxYear, minYear, timeValue, visible]);
+  }, [
+    effectiveMaxYear,
+    effectiveMinYear,
+    initialDate,
+    maximumParts,
+    minimumParts,
+    timeValue,
+    visible,
+  ]);
 
   useEffect(() => {
     if (!visible || !onChange) return;
     onChange(partsToDate(value));
   }, [onChange, value, visible]);
 
+  useEffect(() => {
+    if (!visible) return;
+    setDirectInputValue(formatDateParts(value));
+    setDirectInputError(null);
+  }, [value, visible]);
+
   const calendarCells = useMemo(() => buildCalendarCells(value), [value]);
   const selectedSummary = useMemo(() => formatSelectedSummary(value), [value]);
   const previewText = useMemo(() => formatDateParts(value), [value]);
   const monthTitle = `${value.year}.${value.month}`;
 
-  const canMovePrevious = value.year > minYear || value.month > 1;
-  const canMoveNext = value.year < maxYear || value.month < 12;
+  const canMovePrevious = value.year > effectiveMinYear || value.month > 1;
+  const canMoveNext = value.year < effectiveMaxYear || value.month < 12;
+
+  const isDateSelectable = useCallback(
+    (next: DateParts) => {
+      if (next.year < effectiveMinYear || next.year > effectiveMaxYear) {
+        return false;
+      }
+      if (minimumParts && compareDateParts(next, minimumParts) < 0) {
+        return false;
+      }
+      if (maximumParts && compareDateParts(next, maximumParts) > 0) {
+        return false;
+      }
+      return true;
+    },
+    [effectiveMaxYear, effectiveMinYear, maximumParts, minimumParts],
+  );
 
   const moveMonth = useCallback(
     (delta: number) => {
-      setValue(prev => clampDateParts(addMonths(prev, delta), minYear, maxYear));
+      setValue(prev =>
+        clampToConstraints(
+          addMonths(prev, delta),
+          effectiveMinYear,
+          effectiveMaxYear,
+          minimumParts,
+          maximumParts,
+        ),
+      );
     },
-    [maxYear, minYear],
+    [effectiveMaxYear, effectiveMinYear, maximumParts, minimumParts],
   );
 
   const handleSelectDate = useCallback(
     (next: DateParts) => {
       if (disabled) return;
-      setValue(clampDateParts(next, minYear, maxYear));
+      if (!isDateSelectable(next)) return;
+      setValue(
+        clampToConstraints(
+          next,
+          effectiveMinYear,
+          effectiveMaxYear,
+          minimumParts,
+          maximumParts,
+        ),
+      );
     },
-    [disabled, maxYear, minYear],
+    [
+      disabled,
+      effectiveMaxYear,
+      effectiveMinYear,
+      isDateSelectable,
+      maximumParts,
+      minimumParts,
+    ],
   );
 
+  const applyDirectInput = useCallback(
+    (rawValue: string) => {
+      const result = validateDirectDateInput({
+        rawValue,
+        minYear: effectiveMinYear,
+        maxYear: effectiveMaxYear,
+        minimumParts,
+        maximumParts,
+      });
+      if (result.error || !result.parts) {
+        setDirectInputError(result.error);
+        return null;
+      }
+
+      setDirectInputError(null);
+      setValue(result.parts);
+      return result.parts;
+    },
+    [effectiveMaxYear, effectiveMinYear, maximumParts, minimumParts],
+  );
+
+  const handleDirectInputChange = useCallback(
+    (text: string) => {
+      const nextValue = formatDirectDateInput(text);
+      setDirectInputValue(nextValue);
+      if (nextValue.length === 10) {
+        applyDirectInput(nextValue);
+        return;
+      }
+      setDirectInputError(null);
+    },
+    [applyDirectInput],
+  );
+
+  const handleDirectInputBlur = useCallback(() => {
+    if (directInputValue.length === 10) {
+      applyDirectInput(directInputValue);
+      return;
+    }
+    setDirectInputError('날짜를 YYYY-MM-DD 형식으로 입력해 주세요.');
+  }, [applyDirectInput, directInputValue]);
+
   const handleConfirm = useCallback(() => {
-    const nextDate = partsToDate(value);
+    const directParts = applyDirectInput(directInputValue);
+    if (!directParts) return;
+
+    const nextDate = partsToDate(directParts);
     if (includeTime && onConfirmDateTime) {
       onConfirmDateTime(nextDate, formatTimeSelection(timeSelection));
       return;
@@ -251,10 +503,11 @@ function DatePickerModalBase({
     onConfirm(nextDate);
   }, [
     includeTime,
+    directInputValue,
+    applyDirectInput,
     onConfirm,
     onConfirmDateTime,
     timeSelection,
-    value,
   ]);
 
   return (
@@ -266,7 +519,7 @@ function DatePickerModalBase({
     >
       <KeyboardControllerAvoidingView
         behavior="padding"
-        enabled={includeTime}
+        enabled
         keyboardVerticalOffset={0}
         style={styles.backdrop}
       >
@@ -342,12 +595,13 @@ function DatePickerModalBase({
               {calendarCells.map(cell => {
                 const selected = isSameDate(cell.parts, value);
                 const today = isSameDate(cell.parts, todayParts);
+                const dateDisabled = disabled || !isDateSelectable(cell.parts);
                 return (
                   <TouchableOpacity
                     key={cell.key}
                     activeOpacity={0.86}
-                    disabled={disabled}
-                    style={styles.dayCell}
+                    disabled={dateDisabled}
+                    style={[styles.dayCell, dateDisabled ? styles.disabled : null]}
                     onPress={() => handleSelectDate(cell.parts)}
                   >
                     <View
@@ -504,6 +758,43 @@ function DatePickerModalBase({
                   </View>
                 </View>
               ) : null}
+
+              <View style={styles.directInputBlock}>
+                <View style={styles.directInputHeader}>
+                  <AppText preset="caption" color={theme.colors.textMuted}>
+                    {directInputLabel}
+                  </AppText>
+                  <AppText preset="caption" color={theme.colors.textMuted}>
+                    {directInputHelper}
+                  </AppText>
+                </View>
+                <TextInput
+                  value={directInputValue}
+                  editable={!disabled}
+                  keyboardType="number-pad"
+                  inputMode="numeric"
+                  maxLength={10}
+                  placeholder="YYYY-MM-DD"
+                  placeholderTextColor="#A0A7B4"
+                  returnKeyType="done"
+                  selectTextOnFocus
+                  style={[
+                    styles.directInputField,
+                    {
+                      borderColor: directInputError
+                        ? theme.colors.danger
+                        : theme.colors.border,
+                    },
+                  ]}
+                  onBlur={handleDirectInputBlur}
+                  onChangeText={handleDirectInputChange}
+                />
+                {directInputError ? (
+                  <AppText preset="caption" style={styles.directInputError}>
+                    {directInputError}
+                  </AppText>
+                ) : null}
+              </View>
             </View>
           </ScrollView>
 
