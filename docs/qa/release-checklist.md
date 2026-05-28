@@ -18,7 +18,9 @@
 - [ ] 운영자 QA / 실기기 최종 스모크
 - [ ] 앱 스토어 출시 자산 셋업
 - [ ] 최종 제출용 RC 빌드 확정
-- [ ] clean artifact evidence 고정
+- [x] final RC evidence baseline 고정
+  - evidence: `docs/qa/final-rc-evidence-2026-05-29.md`
+  - 최종 제출용 release build artifact/provenance는 위 `최종 제출용 RC 빌드 확정`에서 별도로 닫는다.
 - [x] release risk ledger 전수 정리와 남은 P0/P1/P2 재분류
   - evidence: `docs/qa/v1.0-remaining-task-risk-ledger.md`
 
@@ -160,7 +162,7 @@
 
 - [x] v1.0 잔여 task/risk를 단일 ledger로 고정한다.
   - P0: 0건
-  - P1: 4건
+  - P1: 3건
   - P2: 4건
   - evidence: `docs/qa/v1.0-remaining-task-risk-ledger.md`
 - [x] 반복 방지 기준을 문서화한다.
@@ -179,9 +181,11 @@
   - `supabase migration list --linked`: local/remote `20260429130000`까지 일치
   - `supabase db lint --linked --schema public --fail-on error`: error 없음, 기존 `delete_my_account` unused parameter warning만 확인
   - `supabase functions list`: `weather-cache` ACTIVE v2 확인
-- [ ] v1.0 잔여 task/risk closeout에서 clean RC artifact 기준 evidence를 최종 release candidate build로 고정한다.
-  - 현재 RC smoke는 dirty working tree 기준이다.
-  - 이 항목은 신규 기능 개발이 아니라 v1.0 마감 evidence gate다.
+- [x] v1.0 final RC evidence baseline을 고정한다.
+  - 기준: 2026-05-29 KST, branch `codex/task6-community-content-policy`, HEAD `ef5e431`
+  - 포함: worktree 시작 상태, 수정 파일 목록, 최소 검증 명령, Android 기기 정보, V1.0 provider 최종 상태, Naver soft disable, pet date UX, V1.1 이동 항목
+  - evidence: `docs/qa/final-rc-evidence-2026-05-29.md`
+  - 최종 제출용 release build artifact와 설치 앱 version/signing provenance는 `최종 제출용 RC 빌드 확정`에서 별도로 닫는다.
 
 ### 0-2. Google/Kakao OAuth provider setup gate + Naver soft disable
 
