@@ -16,10 +16,17 @@
 - [x] 지도/API 비용 방어 V1.0 provider runtime 차단 repo contract 반영
 - [x] Naver OAuth V1.0 public surface soft disable
 - [ ] 운영자 QA / 실기기 최종 스모크
+  - 2026-05-29 일반 사용자 설치본 최종 smoke는 홈, 타임라인, 커뮤니티, 편지함, 전체메뉴, 건강관리, 산책 리스트/상세, 동물병원 리스트/상세에서 crash 없이 통과했다.
+  - admin 계정 기반 동물병원 운영자 approve/reject/held 조작 QA는 현재 로그인 세션에 admin 메뉴가 노출되지 않아 V1.0 필수 잔여로 유지한다.
 - [ ] 앱 스토어 출시 자산 셋업
 - [ ] 최종 제출용 RC 빌드 확정
+  - 2026-05-29 `./gradlew assembleRelease`는 성공했고 `android/app/build/outputs/apk/release/app-release.apk`를 생성했다.
+  - APK SHA-256: `1eb37508359fec609266e7a17205f0b7516861e2333100ca74af80b92e60694c`
+  - 현재 실기기 설치본은 Android Debug 서명이고 새 release APK는 NURI Upload 서명이라 `adb install -r`가 `INSTALL_FAILED_UPDATE_INCOMPATIBLE`로 차단됐다.
+  - exact release APK 설치 smoke는 clean test device 또는 승인된 uninstall 후 별도로 닫는다.
 - [x] final RC evidence baseline 고정
   - evidence: `docs/qa/final-rc-evidence-2026-05-29.md`
+  - project report: `docs/qa/nuri-project-report-2026-05-29.md`
   - 최종 제출용 release build artifact/provenance는 위 `최종 제출용 RC 빌드 확정`에서 별도로 닫는다.
 - [x] release risk ledger 전수 정리와 남은 P0/P1/P2 재분류
   - evidence: `docs/qa/v1.0-remaining-task-risk-ledger.md`
@@ -182,7 +189,7 @@
   - `supabase db lint --linked --schema public --fail-on error`: error 없음, 기존 `delete_my_account` unused parameter warning만 확인
   - `supabase functions list`: `weather-cache` ACTIVE v2 확인
 - [x] v1.0 final RC evidence baseline을 고정한다.
-  - 기준: 2026-05-29 KST, branch `codex/task6-community-content-policy`, HEAD `ef5e431`
+  - 기준: 2026-05-29 KST, branch `codex/task6-community-content-policy`, HEAD `c03edd0`
   - 포함: worktree 시작 상태, 수정 파일 목록, 최소 검증 명령, Android 기기 정보, V1.0 provider 최종 상태, Naver soft disable, pet date UX, V1.1 이동 항목
   - evidence: `docs/qa/final-rc-evidence-2026-05-29.md`
   - 최종 제출용 release build artifact와 설치 앱 version/signing provenance는 `최종 제출용 RC 빌드 확정`에서 별도로 닫는다.
