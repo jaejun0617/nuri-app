@@ -3,6 +3,9 @@
 운영 메모:
 
 - 이 문서는 v1.0 기능 기준선 evidence와 v1.1 착수 전 닫아야 하는 잔여 task/risk를 함께 관리한다.
+- 2026-06-02 KST 기준 exact release APK 설치 smoke와 일반 사용자 최종 smoke, 동물병원 admin/super_admin 운영자 서버 조작 QA는 수행됐다.
+- 2026-06-02 KST 기준 새로 확인된 `profiles.role` self-escalation은 V1.0 출시 전 반드시 수정해야 하는 P0 보안 blocker다.
+- Play Store 제출 자산은 이번 QA closeout 범위에서 제외하며, 기능/QA blocker가 아니라 final submission prep으로 분류한다.
 - task18 상세 실행 순서, 캡처 파일명, 보관 규칙은 `docs/출시-준비도-회복/11-release-blocker-evidence-pack.md`를 따른다.
 - v1.0은 기능 개발 Code Freeze 기준선이며 스토어 제출 완료 버전이 아니다.
 - 현재 unchecked 운영/제출 항목은 신규 기능 개발이 아니며, v1.1로 넘어가기 전에 v1.0 마감 lane에서 닫는다.
@@ -15,15 +18,20 @@
 - [x] Supabase DB Migration Dry-run / 원격 Apply
 - [x] 지도/API 비용 방어 V1.0 provider runtime 차단 repo contract 반영
 - [x] Naver OAuth V1.0 public surface soft disable
-- [ ] 운영자 QA / 실기기 최종 스모크
-  - 2026-05-29 일반 사용자 설치본 최종 smoke는 홈, 타임라인, 커뮤니티, 편지함, 전체메뉴, 건강관리, 산책 리스트/상세, 동물병원 리스트/상세에서 crash 없이 통과했다.
-  - admin 계정 기반 동물병원 운영자 approve/reject/held 조작 QA는 현재 로그인 세션에 admin 메뉴가 노출되지 않아 V1.0 필수 잔여로 유지한다.
+- [x] 운영자 QA / 실기기 최종 스모크
+  - 2026-06-02 release APK를 기존 debug 설치본 uninstall 후 설치했고, release 앱에서 홈, 타임라인, 커뮤니티, 편지함, 전체메뉴, 건강관리, 산책 리스트/상세, 동물병원 리스트/상세/전화/길찾기를 crash 없이 확인했다.
+  - admin/super_admin QA 세션에서 `동물병원 운영` 메뉴, 운영 화면 summary, review queue 표시를 확인했다.
+  - approve/reject/held/action log/public projection은 동일 admin 세션의 Supabase RPC로 확인했다. UI 버튼 직접 탭 3회 증적은 ADB 입력/필터 불안정으로 P2 evidence gap으로 분류한다.
+- [ ] V1.0 P0 보안 blocker 수정
+  - 2026-06-02 QA admin 세션 확보 중 authenticated 사용자가 public client로 자기 `profiles.role`을 `super_admin`으로 갱신할 수 있음을 확인했다.
+  - 이 경로는 admin RPC gate까지 상승시킬 수 있으므로, 승인된 RLS/DB corrective migration으로 role column 업데이트를 service/admin 전용으로 잠근 뒤 회귀 검증해야 한다.
 - [ ] 앱 스토어 출시 자산 셋업
-- [ ] 최종 제출용 RC 빌드 확정
+  - 이번 QA closeout 범위에서는 제외한다. 기능/QA blocker가 아니라 final submission prep이다.
+- [x] 최종 제출용 RC 빌드 확정
   - 2026-05-29 `./gradlew assembleRelease`는 성공했고 `android/app/build/outputs/apk/release/app-release.apk`를 생성했다.
   - APK SHA-256: `1eb37508359fec609266e7a17205f0b7516861e2333100ca74af80b92e60694c`
-  - 현재 실기기 설치본은 Android Debug 서명이고 새 release APK는 NURI Upload 서명이라 `adb install -r`가 `INSTALL_FAILED_UPDATE_INCOMPATIBLE`로 차단됐다.
-  - exact release APK 설치 smoke는 clean test device 또는 승인된 uninstall 후 별도로 닫는다.
+  - 2026-06-02 기존 debug 서명 설치본을 uninstall한 뒤 동일 release APK를 설치했다.
+  - 설치된 base APK SHA-256은 release artifact와 동일하고, signer는 NURI Upload certificate이며, installed package flags에서 `DEBUGGABLE`이 제거된 것을 확인했다.
 - [x] final RC evidence baseline 고정
   - evidence: `docs/qa/final-rc-evidence-2026-05-29.md`
   - project report: `docs/qa/nuri-project-report-2026-05-29.md`
@@ -168,9 +176,9 @@
 ### 0-0. V1.0 Remaining Task/Risk Ledger
 
 - [x] v1.0 잔여 task/risk를 단일 ledger로 고정한다.
-  - P0: 0건
-  - P1: 3건
-  - P2: 4건
+  - 2026-06-02 기준 P0: 1건
+  - 2026-06-02 기준 P1: 0건
+  - 2026-06-02 기준 P2: 5건
   - evidence: `docs/qa/v1.0-remaining-task-risk-ledger.md`
 - [x] 반복 방지 기준을 문서화한다.
   - 이미 close된 도메인은 새 blocker 증거 없이 재오픈하지 않는다.

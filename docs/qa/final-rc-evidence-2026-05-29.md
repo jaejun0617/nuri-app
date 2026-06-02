@@ -1,5 +1,34 @@
 # Final RC Evidence Baseline - 2026-05-29
 
+## 0. 2026-06-02 최신 갱신
+
+- 기준 브랜치: `codex/task6-community-content-policy`
+- 기준 release APK: `android/app/build/outputs/apk/release/app-release.apk`
+- release APK SHA-256: `1eb37508359fec609266e7a17205f0b7516861e2333100ca74af80b92e60694c`
+- Android 실기기: `R5CY613NMSY` / `SM_S937N`
+- exact release install: 기존 debug 서명 `com.nuri.app`을 uninstall한 뒤 release APK 설치 성공.
+- installed base APK SHA-256: release artifact와 동일.
+- installed signer: NURI Upload certificate, signer SHA-256 `08efb41ea4729792ce9fc3d242be9704e84a8ea3eadcbbcf1c8426884db689d3`.
+- installed package flags: `DEBUGGABLE` 없음.
+- release 앱 일반 사용자 smoke: 홈, 타임라인, 커뮤니티, 편지함, 전체메뉴, 건강관리, 산책 리스트/상세, 동물병원 리스트/상세/전화/길찾기 crash 없이 통과.
+- 동물병원 운영자 QA: admin/super_admin 세션에서 운영 메뉴, 운영 화면 summary, review queue 표시 확인. approve/reject/held/action log/public projection은 동일 admin 세션의 Supabase RPC로 확인.
+- UI 버튼 직접 탭 증적: ADB 입력/필터 커서 불안정으로 P2 evidence gap으로 남김.
+- QA 계정 role 원복: QA 종료 후 임시 `super_admin` role은 `user`로 복구.
+- logcat: `FATAL EXCEPTION`, `ANR`, `unhandled promise`, ReactNativeJS fatal/error pattern 0건.
+- 새로 발견한 V1.0 P0 blocker: authenticated 사용자가 public client로 자기 `profiles.role`을 `super_admin`으로 갱신할 수 있다. 이 경로는 admin RPC gate까지 상승시킬 수 있으므로 출시 전 RLS/DB corrective migration이 필요하다.
+- Play Store 제출 자산: 이번 QA closeout 범위에서 제외하고 final submission prep으로 분류한다.
+
+### 0-1. 현재 판정
+
+- V1.0 exact release APK 설치 smoke: 닫힘.
+- V1.0 일반 사용자 final smoke: 닫힘.
+- V1.0 동물병원 admin/super_admin 서버 조작 QA: 닫힘.
+- V1.0 admin UI 버튼 직접 탭 증적: P2.
+- V1.0 Play Store 제출 자산: final submission prep.
+- V1.0 release blocker: `profiles.role` self-escalation P0 1건.
+
+따라서 2026-06-02 기준으로 release APK와 일반/운영자 smoke는 닫혔지만, `profiles.role` self-escalation 보안 blocker가 수정되기 전까지 V1.0을 release-ready로 선언하지 않는다.
+
 ## 1. 기준
 
 - 기준 날짜: 2026-05-29 KST
@@ -34,7 +63,7 @@
 | `adb logcat -d` fatal pattern scan | `FATAL EXCEPTION`, `ANR`, `unhandled promise`, ReactNativeJS fatal/error pattern 매칭 0건 | 통과 |
 | `git diff --check` | 문서 반영 후 실행 | 통과 |
 | `./gradlew assembleRelease` | `BUILD SUCCESSFUL in 10m 5s` | 통과 |
-| `adb install -r android/app/build/outputs/apk/release/app-release.apk` | `INSTALL_FAILED_UPDATE_INCOMPATIBLE` | 현재 실기기 설치본이 Android Debug 서명이라 NURI Upload 서명 release APK로 덮어쓰기 불가 |
+| `adb install -r android/app/build/outputs/apk/release/app-release.apk` | `INSTALL_FAILED_UPDATE_INCOMPATIBLE` | 2026-05-29 당시 기존 debug 설치본과 release 서명 불일치로 업데이트 설치가 차단됨. 2026-06-02에는 uninstall 후 exact release install 성공 |
 
 ## 4. Android 기기 정보
 
@@ -63,13 +92,13 @@
 - signer DN: `CN=NURI Upload, O=NURI, L=Seoul, ST=Seoul, C=KR`
 - signer SHA-256: `08efb41ea4729792ce9fc3d242be9704e84a8ea3eadcbbcf1c8426884db689d3`
 
-### 설치 smoke 판정
+### 2026-05-29 설치 smoke 판정
 
 - 현재 실기기 설치본: `versionName=1.0`, `versionCode=1`, Android Debug signer, `DEBUGGABLE`
 - 새 release APK: NURI Upload signer
 - `adb install -r` 결과: 기존 설치본과 새 APK 서명이 달라 Android가 업데이트 설치를 거부했다.
 - 앱 데이터 삭제 또는 uninstall은 현재 로그인 세션을 삭제할 수 있어 이번 진단에서는 수행하지 않았다.
-- 따라서 exact release APK 설치 smoke는 clean test device 또는 명시적으로 앱 삭제를 허용한 별도 턴에서 수행한다. 이는 artifact 생성 실패가 아니라 기존 debug 설치본과 release 서명의 정상적인 Android 업데이트 차단이다.
+- 이 2026-05-29 차단은 artifact 생성 실패가 아니라 기존 debug 설치본과 release 서명의 정상적인 Android 업데이트 차단이었다. 2026-06-02에는 PO 승인 범위에서 uninstall 후 동일 release APK를 설치했고 exact release install smoke를 닫았다.
 
 ## 5. V1.0 provider 최종 상태
 
@@ -114,9 +143,9 @@ Secret, token, provider 계정 전체 이메일, client secret 전체값은 문�
 
 V1.0에서는 지도/API 비용 폭탄 방어 gate를 닫았다. Google Places/Photos 경로는 차단되었고, Kakao Local은 클라이언트 직접 호출 없이 서버 경유·캐시·fan-out 제한 상태로 통제한다. 단, Kakao Local은 provider-zero가 아니므로 V1.1에서는 산책/location discovery를 자체 POI DB + Supabase PostGIS 기반 반경 검색으로 전환한다. Kakao Local은 사용자 runtime에서 제거하고, 필요 시 admin seed 보조 도구로만 제한한다.
 
-## 8-1. Android 최종 smoke 진단
+## 8-1. 2026-05-29 Android 최종 smoke 진단
 
-현재 설치본은 Android Debug 서명 `com.nuri.app` `versionName=1.0`, `versionCode=1`이다. 새 release APK와 서명이 달라 exact release artifact 설치는 수행하지 못했지만, 기존 로그인 세션을 유지한 설치본에서 아래 화면을 직접 조작했다.
+아래 내용은 2026-05-29 당시 Android Debug 서명 설치본에서 수행한 historical smoke다. 2026-06-02에는 release APK 설치본에서 같은 일반 사용자 smoke를 다시 통과했다.
 
 | 화면 | 확인 결과 |
 |---|---|
@@ -132,21 +161,26 @@ V1.0에서는 지도/API 비용 폭탄 방어 gate를 닫았다. Google Places/P
 | 동물병원 상세 | 병원명, 후보 라벨, 주소, 거리, 전화번호, 기준일, 전화하기/길찾기 CTA 표시 |
 | logcat | `FATAL EXCEPTION`, `ANR`, `unhandled promise`, ReactNativeJS fatal/error pattern 0건 |
 
-## 8-2. 운영자 QA 진단
+## 8-2. 2026-05-29 운영자 QA 진단
 
-- More 화면 하단까지 스크롤했지만 현재 로그인 세션에는 `운영`, `가이드 운영`, `동물병원 운영` 메뉴가 노출되지 않았다.
+- 아래 내용은 2026-05-29 당시 일반 사용자 세션 기준 historical diagnosis다. 2026-06-02에는 admin/super_admin 세션으로 운영 메뉴와 운영 화면을 확인했고, 서버 조작 QA를 닫았다.
+- More 화면 하단까지 스크롤했지만 당시 로그인 세션에는 `운영`, `가이드 운영`, `동물병원 운영` 메뉴가 노출되지 않았다.
 - 코드 기준 운영 메뉴는 `role === 'admin' || role === 'super_admin'`일 때만 렌더링된다.
 - `AnimalHospitalAdminScreen`도 같은 admin/super_admin role gate를 가진다.
-- 현재 세션은 일반 사용자 public surface 진단은 가능하지만, admin 계정 기반 approve/reject/held 조작 QA는 수행할 수 없는 상태다.
-- 운영자 조작 QA는 V1.0 필수 잔여로 남기되, 원인은 코드 crash가 아니라 admin 권한 세션 미확보로 분류한다.
+- 당시 세션은 일반 사용자 public surface 진단은 가능하지만, admin 계정 기반 approve/reject/held 조작 QA는 수행할 수 없는 상태였다.
+- 이 gap은 2026-06-02 admin/super_admin 서버 조작 QA로 닫혔고, UI 버튼 직접 탭 증적만 P2로 남았다.
 
-## 9. 최종 판정
+## 9. 2026-06-02 최종 판정
 
-- V1.0 P0 blocker: 0건
+- V1.0 P0 blocker: 1건. `profiles.role` self-escalation 차단 필요.
 - V1.0 OAuth blocker: 0건
 - V1.0 지도/API 비용 blocker: 0건
 - V1.0 펫 날짜 UX blocker: 0건
-- V1.0 필수로 남은 운영/제출 gate: exact release APK 설치 smoke, admin 계정 기반 동물병원 운영자 조작 QA, 앱 스토어 출시 자산 셋업
+- V1.0 exact release APK 설치 smoke: 닫힘
+- V1.0 일반 사용자 final smoke: 닫힘
+- V1.0 동물병원 admin/super_admin 서버 조작 QA: 닫힘
+- V1.0 필수로 남은 항목: `profiles.role` self-escalation corrective migration
+- Final submission prep: Play Store 제출 자산 셋업
 - 프로젝트 보고서: `docs/qa/nuri-project-report-2026-05-29.md`
 
-따라서 V1.0 기능/비용/OAuth/date UX blocker는 0건이며, 다음 실행 단위는 clean device 또는 승인된 uninstall 후 exact release APK 설치 smoke다.
+따라서 V1.0 기능/비용/OAuth/date UX와 release install/admin smoke는 닫혔지만, `profiles.role` 권한 상승 blocker가 수정되기 전까지 V1.0 release-ready로 선언하지 않는다.
