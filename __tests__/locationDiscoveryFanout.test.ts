@@ -12,6 +12,12 @@ jest.mock('../src/services/locationDiscovery/kakaoLocal', () => ({
   },
 }));
 
+jest.mock('../src/services/locationDiscovery/walkPoiRpc', () => ({
+  ENABLE_WALK_POI_RPC: false,
+  searchWalkPoiLocations: jest.fn(),
+  fetchWalkPoiDetailItem: jest.fn(),
+}));
+
 import { searchLocationDiscovery } from '../src/services/locationDiscovery/service';
 
 const { kakaoLocalSearchProvider } = jest.requireMock(

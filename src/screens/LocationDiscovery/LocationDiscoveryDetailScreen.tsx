@@ -27,6 +27,7 @@ import {
   formatDurationLabel,
 } from '../../services/locationDiscovery/service';
 import { openExternalMap } from '../../services/locationDiscovery/maps';
+import { fetchWalkPoiDetailItem } from '../../services/locationDiscovery/walkPoiRpc';
 import type { LocationDiscoveryItem } from '../../services/locationDiscovery/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -35,12 +36,16 @@ type DetailRoute = RootScreenRoute<'WalkSpotDetail'>;
 export default function LocationDiscoveryDetailScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<DetailRoute>();
-  const item = route.params?.item;
+  const routeItem = route.params?.item;
   const resultItems = useMemo(
     () => route.params?.resultItems ?? [],
     [route.params?.resultItems],
   );
+  const [resolvedItem, setResolvedItem] = useState<LocationDiscoveryItem | null>(
+    routeItem ?? null,
+  );
   const [visibleRelatedCount, setVisibleRelatedCount] = useState(6);
+  const item = resolvedItem ?? routeItem;
 
   const goBack = useCallback(() => {
     navigation.goBack();
@@ -72,12 +77,39 @@ export default function LocationDiscoveryDetailScreen() {
   );
 
   useEffect(() => {
-    if (!item) {
+    if (!routeItem) {
+      setResolvedItem(null);
       return;
     }
 
+    let isActive = true;
+    setResolvedItem(routeItem);
     setVisibleRelatedCount(6);
-  }, [item]);
+
+    if (routeItem.source.provider !== 'walk_poi') {
+      return () => {
+        isActive = false;
+      };
+    }
+
+    fetchWalkPoiDetailItem(routeItem)
+      .then(nextItem => {
+        if (isActive && nextItem) {
+          setResolvedItem(nextItem);
+        }
+      })
+      .catch(error => {
+        const message = error instanceof Error ? error.message : 'unknown';
+        console.info(
+          '[NURI-DEBUG] walk-poi-detail fallback',
+          JSON.stringify({ reason: 'error', message }),
+        );
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [routeItem]);
 
   if (!item) {
     return (

@@ -2,7 +2,7 @@ import type { DeviceCoordinates } from '../location/currentPosition';
 import type { PublicTrustInfo } from '../trust/publicTrust';
 
 export type LocationDiscoveryDomain = 'walk' | 'pet-friendly-place';
-export type LocationDiscoverySource = 'kakao' | 'supabase';
+export type LocationDiscoverySource = 'kakao' | 'supabase' | 'walk_poi';
 export type LocationDiscoveryVerificationStatus =
   | 'service-ranked'
   | 'unknown'
@@ -26,7 +26,10 @@ export type LocationDiscoveryItemKind =
   | 'indoor-space'
   | 'outdoor-space'
   | 'pet-friendly-place';
-export type LocationDiscoverySourceType = 'external-api' | 'service-meta';
+export type LocationDiscoverySourceType =
+  | 'external-api'
+  | 'service-meta'
+  | 'canonical-poi';
 
 export type LocationDiscoverySearchScope = {
   displayLabel: string;
@@ -85,6 +88,7 @@ export type LocationDiscoveryItem = {
   thumbnailUrl: string | null;
   coordinateLabel: string;
   mapPreviewUrl: string;
+  qualityScore?: number | null;
 };
 
 export type LocationDiscoveryResponse = {

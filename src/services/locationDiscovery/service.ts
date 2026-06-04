@@ -39,6 +39,10 @@ import type {
   LocationDiscoverySearchInput,
   LocationDiscoveryVerificationStatus,
 } from './types';
+import {
+  ENABLE_WALK_POI_RPC,
+  searchWalkPoiLocations,
+} from './walkPoiRpc';
 
 const WALK_BASE_KEYWORDS = [
   '공원',
@@ -1218,7 +1222,7 @@ function applyPetFriendlyExposureGuard(
   ];
 }
 
-async function searchWalkLocations(
+async function searchKakaoWalkLocations(
   input: LocationDiscoverySearchInput,
 ): Promise<LocationDiscoveryResponse> {
   const normalizedQuery = normalizeQuery(input.query);
@@ -1245,6 +1249,47 @@ async function searchWalkLocations(
     verificationStatus: 'service-ranked',
     scope: input.scope,
   };
+}
+
+async function searchWalkLocations(
+  input: LocationDiscoverySearchInput,
+): Promise<LocationDiscoveryResponse> {
+  const normalizedQuery = normalizeQuery(input.query);
+
+  if (ENABLE_WALK_POI_RPC) {
+    try {
+      const poiItems = await searchWalkPoiLocations(input);
+      if (poiItems.length > 0) {
+        return {
+          items: poiItems,
+          query: normalizedQuery,
+          source: 'walk_poi',
+          verificationStatus: 'admin-verified',
+          scope: input.scope,
+        };
+      }
+
+      console.info(
+        '[NURI-DEBUG] walk-poi-rpc fallback',
+        JSON.stringify({
+          reason: 'empty',
+          mode: normalizedQuery ? 'search' : 'nearby',
+        }),
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'unknown';
+      console.info(
+        '[NURI-DEBUG] walk-poi-rpc fallback',
+        JSON.stringify({
+          reason: 'error',
+          message,
+          mode: normalizedQuery ? 'search' : 'nearby',
+        }),
+      );
+    }
+  }
+
+  return searchKakaoWalkLocations(input);
 }
 
 function getResponseVerificationStatus(

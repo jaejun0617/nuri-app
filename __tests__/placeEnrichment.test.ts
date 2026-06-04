@@ -133,6 +133,38 @@ describe('place enrichment service', () => {
     expect(target.requestedFields).toEqual(['thumbnail']);
   });
 
+  it('walk_poi target은 provider thumbnail 보강을 요청하지 않는다', () => {
+    const item: LocationDiscoveryItem = {
+      ...createWalkItem(),
+      id: 'walk-poi:1',
+      source: {
+        provider: 'walk_poi',
+        providerLabel: 'NURI 자체 POI',
+        type: 'canonical-poi',
+        externalPlaceId: null,
+      },
+      verification: {
+        status: 'admin-verified',
+        label: '운영 검수 반영',
+        description: 'NURI 자체 POI예요.',
+        tone: 'positive',
+        sourceLabel: 'NURI 운영 검수',
+        requiresConfirmation: false,
+      },
+      publicTrust: {
+        ...createWalkItem().publicTrust,
+        publicLabel: 'trust_reviewed',
+        label: '검수 반영',
+        layers: ['trust'],
+      },
+    };
+    const target = buildLocationDiscoveryPlaceEnrichmentTarget(item);
+
+    expect(target.requestedFields).toEqual([]);
+    expect(target.externalPlaceId).toBeNull();
+    expect(target.providerPlaceUrl).toBeNull();
+  });
+
   it('animalHospital enrichment overlay는 전화와 좌표와 썸네일을 병합한다', () => {
     const item = createAnimalHospital();
     const enrichment: PlaceEnrichmentResult = {

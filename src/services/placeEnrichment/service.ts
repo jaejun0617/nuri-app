@@ -191,25 +191,29 @@ export function buildAnimalHospitalPlaceEnrichmentTarget(
 export function buildLocationDiscoveryPlaceEnrichmentTarget(
   item: LocationDiscoveryItem,
 ): PlaceEnrichmentTarget {
+  const isCanonicalWalkPoi = item.source.provider === 'walk_poi';
+
   return {
     address: item.address,
     domain: 'walk',
-    externalMapUrl: item.placeUrl,
-    externalPlaceId: item.source.externalPlaceId,
+    externalMapUrl: isCanonicalWalkPoi ? null : item.placeUrl,
+    externalPlaceId: isCanonicalWalkPoi ? null : item.source.externalPlaceId,
     latitude: item.latitude,
     longitude: item.longitude,
     name: item.name,
     phone: item.phone,
     placeId: item.id,
-    providerPlaceUrl: item.placeUrl,
-    requestedFields: normalizeRequestedFields(
-      toRequestedFieldsFromSnapshot({
-        latitude: item.latitude,
-        longitude: item.longitude,
-        phone: item.phone,
-        thumbnailUrl: item.thumbnailUrl,
-      }).filter(field => field === 'thumbnail'),
-    ),
+    providerPlaceUrl: isCanonicalWalkPoi ? null : item.placeUrl,
+    requestedFields: isCanonicalWalkPoi
+      ? []
+      : normalizeRequestedFields(
+          toRequestedFieldsFromSnapshot({
+            latitude: item.latitude,
+            longitude: item.longitude,
+            phone: item.phone,
+            thumbnailUrl: item.thumbnailUrl,
+          }).filter(field => field === 'thumbnail'),
+        ),
     thumbnailUrl: item.thumbnailUrl,
   };
 }
