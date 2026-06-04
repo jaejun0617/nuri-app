@@ -14,6 +14,16 @@
 - Android release 앱 회귀: `SM_S937N`에서 앱 실행, 일반 홈 진입, 운영 메뉴/동물병원 운영 화면 회귀 확인, logcat fatal/ANR/unhandled promise pattern 0건.
 - V1.0 release blocker: P0 0건.
 
+## 0-0. 2026-06-04 V1.0 closeout / V1.1 transition memo
+
+- V1.0 P0: 0건.
+- V1.0 P1: 0건.
+- V1.0 필수로 남음: 없음.
+- V1.0 Code Freeze: 유지.
+- Play Store 제출 자산은 V1.0 기능/QA blocker가 아니며, NURI 앱 개발과 QA가 완전히 끝난 뒤 최종 제출 직전 준비 단계에서 진행한다.
+- V1.1 전체 작업 리스트와 첫 마일스톤 추천은 `docs/project-memory/v1.1-roadmap-briefing-2026-06-04.md`에 고정했다.
+- V1.1 1순위 추천: 산책/location discovery 자체 POI DB + Supabase PostGIS 전환 설계 PR.
+
 ## 0. 2026-06-02 최신 갱신
 
 - 기준 브랜치: `codex/task6-community-content-policy`
@@ -30,7 +40,7 @@
 - QA 계정 role 원복: QA 종료 후 임시 `super_admin` role은 `user`로 복구.
 - logcat: `FATAL EXCEPTION`, `ANR`, `unhandled promise`, ReactNativeJS fatal/error pattern 0건.
 - 새로 발견한 V1.0 P0 blocker: authenticated 사용자가 public client로 자기 `profiles.role`을 `super_admin`으로 갱신할 수 있다. 이 경로는 admin RPC gate까지 상승시킬 수 있어 2026-06-04 corrective migration으로 차단했다.
-- Play Store 제출 자산: 이번 QA closeout 범위에서 제외하고 final submission prep으로 분류한다.
+- Play Store 제출 자산: V1.0 기능/QA blocker가 아니며, 전체 개발/QA 종료 후 final submission prep으로 진행한다.
 
 ### 0-1. 현재 판정
 
@@ -38,10 +48,10 @@
 - V1.0 일반 사용자 final smoke: 닫힘.
 - V1.0 동물병원 admin/super_admin 서버 조작 QA: 닫힘.
 - V1.0 admin UI 버튼 직접 탭 증적: P2.
-- V1.0 Play Store 제출 자산: final submission prep.
+- V1.0 Play Store 제출 자산: 기능/QA blocker가 아니며 V1.1 작업도 아니다. 전체 개발/QA 종료 후 final submission prep.
 - V1.0 release blocker: 2026-06-04 기준 P0 0건.
 
-따라서 2026-06-04 기준 release APK, 일반/운영자 smoke, `profiles.role` 보안 blocker는 닫혔다. Play Store 제출 자산은 final submission prep이다.
+따라서 2026-06-04 기준 release APK, 일반/운영자 smoke, `profiles.role` 보안 blocker는 닫혔다. Play Store 제출 자산은 기능/QA blocker나 V1.1 작업이 아니라 final submission prep이다.
 
 ## 1. 기준
 
@@ -194,7 +204,7 @@ V1.0에서는 지도/API 비용 폭탄 방어 gate를 닫았다. Google Places/P
 - V1.0 일반 사용자 final smoke: 닫힘
 - V1.0 동물병원 admin/super_admin 서버 조작 QA: 닫힘
 - V1.0 필수로 남은 항목: 없음
-- Final submission prep: Play Store 제출 자산 셋업
+- Final submission prep: Play Store 제출 자산 셋업. 전체 개발/QA 종료 후 최종 제출 직전 준비 단계에서 진행한다.
 - 프로젝트 보고서: `docs/qa/nuri-project-report-2026-05-29.md`
 
-따라서 V1.0 기능/비용/OAuth/date UX, release install/admin smoke, `profiles.role` 권한 상승 blocker는 닫혔다. 남은 항목은 Play Store final submission prep과 P2 evidence gap이다.
+따라서 V1.0 기능/비용/OAuth/date UX, release install/admin smoke, `profiles.role` 권한 상승 blocker는 닫혔다. V1.0 필수 잔여는 없고, Play Store 제출 자산은 전체 개발/QA 종료 후 최종 제출 직전 준비로 분리한다.

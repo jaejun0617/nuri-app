@@ -6,12 +6,13 @@
 - V1.0 기능 개발 상태: Code Freeze 유지
 - V1.0 P0 blocker: 0건
 - V1.0 P1 운영/QA gate: 0건
-- V1.0 P2 보강 evidence/final submission prep/운영 부채: 5건
+- V1.0 P2 보강 evidence/운영 부채: 4건
 - 전체 진행률: V1.0 기능 기준 약 98%, 스토어 제출 기준 약 94%
 
 진행률은 release gate 기준이다. exact release APK 설치 smoke, 일반 사용자 final smoke, 동물병원 admin/super_admin 서버 조작 QA는 2026-06-02에 닫혔다. 2026-06-04에는 `profiles.role` self-escalation P0를 corrective migration으로 차단했고, remote 보안 회귀와 release 앱 회귀 smoke까지 통과했다.
 
-Play Store 제출 자산은 이번 QA closeout 범위에서 제외하며, 기능/QA blocker가 아니라 final submission prep으로 분류한다.
+Play Store 제출 자산은 V1.0 기능/QA blocker가 아니며, NURI 앱 개발과 QA가 완전히 끝난 뒤 최종 제출 직전 준비 단계에서 진행한다.
+V1.1 전체 작업 리스트와 첫 마일스톤 추천은 `docs/project-memory/v1.1-roadmap-briefing-2026-06-04.md`에 고정했다. 1순위는 산책/location discovery 자체 POI DB + Supabase PostGIS 전환 설계 PR이다.
 
 ## 1. 현재 판정
 
@@ -20,10 +21,10 @@ Play Store 제출 자산은 이번 QA closeout 범위에서 제외하며, 기능
 - V1.0 기능 개발 상태: Code Freeze
 - V1.0 P0 blocker: 0건
 - V1.0 P1 운영/제출 gate: 0건
-- V1.0 P2 보강 evidence/final submission prep/운영 부채: 5건
+- V1.0 P2 보강 evidence/운영 부채: 4건
 - 전체 진행률: V1.0 기능 기준 약 98%, 스토어 제출 기준 약 94%
 
-진행률은 코드 구현량이 아니라 release gate 기준이다. 인증, 커뮤니티 방어선, 계정 탈퇴, 건강관리, 동물병원, 날씨, 지도/API 비용 방어, Google/Kakao 소셜 로그인, 펫 날짜 UX, exact release APK 설치 smoke, 일반 사용자 final smoke, admin/super_admin 서버 조작 QA, `profiles.role` self-escalation 차단은 닫혔다. V1.0 필수 잔여는 없다. Play Store 제출 자산은 final submission prep이다.
+진행률은 코드 구현량이 아니라 release gate 기준이다. 인증, 커뮤니티 방어선, 계정 탈퇴, 건강관리, 동물병원, 날씨, 지도/API 비용 방어, Google/Kakao 소셜 로그인, 펫 날짜 UX, exact release APK 설치 smoke, 일반 사용자 final smoke, admin/super_admin 서버 조작 QA, `profiles.role` self-escalation 차단은 닫혔다. V1.0 필수 잔여는 없다. Play Store 제출 자산은 기능/QA blocker가 아니며 V1.1 작업도 아니다.
 
 ## 2. 이번 실행 결과
 
@@ -116,7 +117,7 @@ Play Store 제출 자산은 이번 QA closeout 범위에서 제외하며, 기능
 ### Final submission prep
 
 1. Play Store 제출 자산 최종 셋업
-   - 해결 방식: 스크린샷, 앱 설명, 문의처, 정책 URL, package/version metadata 일치를 제출 전 체크한다.
+   - 해결 방식: NURI 앱 개발과 QA가 완전히 끝난 뒤 최종 제출 직전 준비 단계에서 스크린샷, 앱 설명, 문의처, 정책 URL, package/version metadata 일치를 체크한다.
 
 ### V1.1 이동
 
@@ -140,5 +141,5 @@ Play Store 제출 자산은 이번 QA closeout 범위에서 제외하며, 기능
 
 ## 8. 다음 액션
 
-1. Play Store 제출 자산 final submission prep.
-2. V1.1 마일스톤 착수.
+1. V1.1 1순위 마일스톤 착수: 산책/location discovery 자체 POI DB + Supabase PostGIS 전환 설계 PR.
+2. 전체 개발/QA 종료 후 Play Store 제출 자산 final submission prep.

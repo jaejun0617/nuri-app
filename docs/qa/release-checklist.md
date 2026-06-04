@@ -5,10 +5,10 @@
 - 이 문서는 v1.0 기능 기준선 evidence와 v1.1 착수 전 닫아야 하는 잔여 task/risk를 함께 관리한다.
 - 2026-06-02 KST 기준 exact release APK 설치 smoke와 일반 사용자 최종 smoke, 동물병원 admin/super_admin 운영자 서버 조작 QA는 수행됐다.
 - 2026-06-04 KST 기준 `profiles.role` self-escalation은 corrective migration과 remote 회귀 테스트로 차단했다.
-- Play Store 제출 자산은 이번 QA closeout 범위에서 제외하며, 기능/QA blocker가 아니라 final submission prep으로 분류한다.
+- Play Store 제출 자산은 V1.0 기능/QA blocker가 아니며, NURI 앱 개발과 QA가 완전히 끝난 뒤 최종 제출 직전 준비 단계에서 진행한다.
 - task18 상세 실행 순서, 캡처 파일명, 보관 규칙은 `docs/출시-준비도-회복/11-release-blocker-evidence-pack.md`를 따른다.
 - v1.0은 기능 개발 Code Freeze 기준선이며 스토어 제출 완료 버전이 아니다.
-- 현재 unchecked 운영/제출 항목은 신규 기능 개발이 아니며, v1.1로 넘어가기 전에 v1.0 마감 lane에서 닫는다.
+- 현재 unchecked 운영 evidence 항목은 신규 기능 개발이 아니며, V1.1 또는 운영 보강 트랙에서 다룬다. Play Store 제출 자산은 V1.1 작업이 아니라 최종 제출 직전 준비로 분리한다.
 - v1.1은 v1.0 미완성 이월이 아니라 신규 업데이트 트랙이다.
 - 과금, Premium AI reply, Guestbook private letters 확장, Typography foundation rollout은 v1.1 신규 업데이트 후보로 관리한다.
 
@@ -27,7 +27,7 @@
   - 2026-06-04 `20260604090000_block_profile_role_self_escalation.sql`을 remote에 적용해 public client의 role insert/update를 DB trigger에서 차단했다.
   - 일반 authenticated role update는 `PROFILE_ROLE_UPDATE_FORBIDDEN`으로 거부됐고, 일반 profile update는 유지됐으며, 악성 role update 후 admin RPC는 `ANIMAL_HOSPITAL_ADMIN_REQUIRED`로 거부됐다.
 - [ ] 앱 스토어 출시 자산 셋업
-  - 이번 QA closeout 범위에서는 제외한다. 기능/QA blocker가 아니라 final submission prep이다.
+  - V1.0 기능/QA blocker가 아니며 V1.1 작업도 아니다. NURI 앱 개발과 QA가 완전히 끝난 뒤 최종 제출 직전 준비 단계에서 진행한다.
 - [x] 최종 제출용 RC 빌드 확정
   - 2026-05-29 `./gradlew assembleRelease`는 성공했고 `android/app/build/outputs/apk/release/app-release.apk`를 생성했다.
   - APK SHA-256: `1eb37508359fec609266e7a17205f0b7516861e2333100ca74af80b92e60694c`
@@ -40,7 +40,7 @@
 - [x] release risk ledger 전수 정리와 남은 P0/P1/P2 재분류
   - evidence: `docs/qa/v1.0-remaining-task-risk-ledger.md`
 
-이 항목들은 신규 기능 개발이 아니며, v1.1로 넘어가기 전에 v1.0 마감 lane에서 닫는 운영/제출 gate다.
+이 항목들은 신규 기능 개발이 아니며, 2026-06-04 기준 P0/P1 closeout은 닫힌 상태다. Play Store 제출 자산은 별도 final submission prep으로 분리한다.
 
 ## 지도/API 비용 방어 Release Gate
 
@@ -179,7 +179,7 @@
 - [x] v1.0 잔여 task/risk를 단일 ledger로 고정한다.
   - 2026-06-04 기준 P0: 0건
   - 2026-06-02 기준 P1: 0건
-  - 2026-06-02 기준 P2: 5건
+  - 2026-06-04 기준 P2: 4건
   - evidence: `docs/qa/v1.0-remaining-task-risk-ledger.md`
 - [x] 반복 방지 기준을 문서화한다.
   - 이미 close된 도메인은 새 blocker 증거 없이 재오픈하지 않는다.
@@ -354,10 +354,10 @@
   - `android/app/build.gradle`의 `firebaseCrashlytics` 설정은 debug에서 upload 비활성화, release에서만 mapping upload 활성화로 고정했다.
 - [x] Android release signing config를 upload key 기준으로 전환한다.
 
-### 4. v1.0 잔여 task: 스토어 제출 자산
+### 4. 최종 제출 직전 준비: 스토어 제출 자산
 
-- 스토어 출시 자산 세팅은 v1.1 착수 전 v1.0 마감 lane에서 닫는 task다.
-- 이 섹션은 최종 QA/실기기 smoke, 최종 RC build, clean artifact evidence가 준비되는 v1.0 잔여 task/risk closeout에서 닫는다.
+- 스토어 출시 자산 세팅은 V1.0 기능/QA blocker가 아니며 V1.1 작업도 아니다.
+- 이 섹션은 NURI 앱 개발과 QA가 완전히 끝난 뒤 최종 제출 직전 준비 단계에서 닫는다.
 - [x] 앱 아이콘 최종본을 확정한다.
 - [x] 스플래시 화면 최종본을 확정한다.
 - [ ] 앱스토어/플레이스토어 스크린샷을 준비한다.
