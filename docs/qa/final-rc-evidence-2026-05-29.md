@@ -1,5 +1,19 @@
 # Final RC Evidence Baseline - 2026-05-29
 
+## 0. 2026-06-04 P0 corrective closeout
+
+- corrective migration: `20260604090000_block_profile_role_self_escalation.sql`
+- remote apply: 완료. local/remote migration list에 `20260604090000` 반영.
+- DB guard: `public.prevent_profile_role_self_escalation()` + `trg_prevent_profile_role_self_escalation`
+- 일반 authenticated role update: `PROFILE_ROLE_UPDATE_FORBIDDEN` / `42501`로 거부.
+- role 오염 여부: 악성 시도 후 role은 `user` 유지.
+- 일반 profile update: nickname/nickname_confirmed update 성공, role은 `user` 유지.
+- 악성 role update 후 admin RPC: `ANIMAL_HOSPITAL_ADMIN_REQUIRED` / `42501`로 거부.
+- 정상 admin/super_admin 회귀: SQL admin 경로로 임시 `super_admin` 승격한 세션의 `animal_hospital_ops_summary` 성공, release 앱 `동물병원 운영` 화면 summary 표시 확인.
+- 오염 데이터 복구: 임시 승격한 QA 계정 role은 `user`로 원복.
+- Android release 앱 회귀: `SM_S937N`에서 앱 실행, 일반 홈 진입, 운영 메뉴/동물병원 운영 화면 회귀 확인, logcat fatal/ANR/unhandled promise pattern 0건.
+- V1.0 release blocker: P0 0건.
+
 ## 0. 2026-06-02 최신 갱신
 
 - 기준 브랜치: `codex/task6-community-content-policy`
@@ -15,7 +29,7 @@
 - UI 버튼 직접 탭 증적: ADB 입력/필터 커서 불안정으로 P2 evidence gap으로 남김.
 - QA 계정 role 원복: QA 종료 후 임시 `super_admin` role은 `user`로 복구.
 - logcat: `FATAL EXCEPTION`, `ANR`, `unhandled promise`, ReactNativeJS fatal/error pattern 0건.
-- 새로 발견한 V1.0 P0 blocker: authenticated 사용자가 public client로 자기 `profiles.role`을 `super_admin`으로 갱신할 수 있다. 이 경로는 admin RPC gate까지 상승시킬 수 있으므로 출시 전 RLS/DB corrective migration이 필요하다.
+- 새로 발견한 V1.0 P0 blocker: authenticated 사용자가 public client로 자기 `profiles.role`을 `super_admin`으로 갱신할 수 있다. 이 경로는 admin RPC gate까지 상승시킬 수 있어 2026-06-04 corrective migration으로 차단했다.
 - Play Store 제출 자산: 이번 QA closeout 범위에서 제외하고 final submission prep으로 분류한다.
 
 ### 0-1. 현재 판정
@@ -25,9 +39,9 @@
 - V1.0 동물병원 admin/super_admin 서버 조작 QA: 닫힘.
 - V1.0 admin UI 버튼 직접 탭 증적: P2.
 - V1.0 Play Store 제출 자산: final submission prep.
-- V1.0 release blocker: `profiles.role` self-escalation P0 1건.
+- V1.0 release blocker: 2026-06-04 기준 P0 0건.
 
-따라서 2026-06-02 기준으로 release APK와 일반/운영자 smoke는 닫혔지만, `profiles.role` self-escalation 보안 blocker가 수정되기 전까지 V1.0을 release-ready로 선언하지 않는다.
+따라서 2026-06-04 기준 release APK, 일반/운영자 smoke, `profiles.role` 보안 blocker는 닫혔다. Play Store 제출 자산은 final submission prep이다.
 
 ## 1. 기준
 
@@ -172,15 +186,15 @@ V1.0에서는 지도/API 비용 폭탄 방어 gate를 닫았다. Google Places/P
 
 ## 9. 2026-06-02 최종 판정
 
-- V1.0 P0 blocker: 1건. `profiles.role` self-escalation 차단 필요.
+- V1.0 P0 blocker: 0건.
 - V1.0 OAuth blocker: 0건
 - V1.0 지도/API 비용 blocker: 0건
 - V1.0 펫 날짜 UX blocker: 0건
 - V1.0 exact release APK 설치 smoke: 닫힘
 - V1.0 일반 사용자 final smoke: 닫힘
 - V1.0 동물병원 admin/super_admin 서버 조작 QA: 닫힘
-- V1.0 필수로 남은 항목: `profiles.role` self-escalation corrective migration
+- V1.0 필수로 남은 항목: 없음
 - Final submission prep: Play Store 제출 자산 셋업
 - 프로젝트 보고서: `docs/qa/nuri-project-report-2026-05-29.md`
 
-따라서 V1.0 기능/비용/OAuth/date UX와 release install/admin smoke는 닫혔지만, `profiles.role` 권한 상승 blocker가 수정되기 전까지 V1.0 release-ready로 선언하지 않는다.
+따라서 V1.0 기능/비용/OAuth/date UX, release install/admin smoke, `profiles.role` 권한 상승 blocker는 닫혔다. 남은 항목은 Play Store final submission prep과 P2 evidence gap이다.

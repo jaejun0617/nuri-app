@@ -4,7 +4,7 @@
 
 - 이 문서는 v1.0 기능 기준선 evidence와 v1.1 착수 전 닫아야 하는 잔여 task/risk를 함께 관리한다.
 - 2026-06-02 KST 기준 exact release APK 설치 smoke와 일반 사용자 최종 smoke, 동물병원 admin/super_admin 운영자 서버 조작 QA는 수행됐다.
-- 2026-06-02 KST 기준 새로 확인된 `profiles.role` self-escalation은 V1.0 출시 전 반드시 수정해야 하는 P0 보안 blocker다.
+- 2026-06-04 KST 기준 `profiles.role` self-escalation은 corrective migration과 remote 회귀 테스트로 차단했다.
 - Play Store 제출 자산은 이번 QA closeout 범위에서 제외하며, 기능/QA blocker가 아니라 final submission prep으로 분류한다.
 - task18 상세 실행 순서, 캡처 파일명, 보관 규칙은 `docs/출시-준비도-회복/11-release-blocker-evidence-pack.md`를 따른다.
 - v1.0은 기능 개발 Code Freeze 기준선이며 스토어 제출 완료 버전이 아니다.
@@ -22,9 +22,10 @@
   - 2026-06-02 release APK를 기존 debug 설치본 uninstall 후 설치했고, release 앱에서 홈, 타임라인, 커뮤니티, 편지함, 전체메뉴, 건강관리, 산책 리스트/상세, 동물병원 리스트/상세/전화/길찾기를 crash 없이 확인했다.
   - admin/super_admin QA 세션에서 `동물병원 운영` 메뉴, 운영 화면 summary, review queue 표시를 확인했다.
   - approve/reject/held/action log/public projection은 동일 admin 세션의 Supabase RPC로 확인했다. UI 버튼 직접 탭 3회 증적은 ADB 입력/필터 불안정으로 P2 evidence gap으로 분류한다.
-- [ ] V1.0 P0 보안 blocker 수정
+- [x] V1.0 P0 보안 blocker 수정
   - 2026-06-02 QA admin 세션 확보 중 authenticated 사용자가 public client로 자기 `profiles.role`을 `super_admin`으로 갱신할 수 있음을 확인했다.
-  - 이 경로는 admin RPC gate까지 상승시킬 수 있으므로, 승인된 RLS/DB corrective migration으로 role column 업데이트를 service/admin 전용으로 잠근 뒤 회귀 검증해야 한다.
+  - 2026-06-04 `20260604090000_block_profile_role_self_escalation.sql`을 remote에 적용해 public client의 role insert/update를 DB trigger에서 차단했다.
+  - 일반 authenticated role update는 `PROFILE_ROLE_UPDATE_FORBIDDEN`으로 거부됐고, 일반 profile update는 유지됐으며, 악성 role update 후 admin RPC는 `ANIMAL_HOSPITAL_ADMIN_REQUIRED`로 거부됐다.
 - [ ] 앱 스토어 출시 자산 셋업
   - 이번 QA closeout 범위에서는 제외한다. 기능/QA blocker가 아니라 final submission prep이다.
 - [x] 최종 제출용 RC 빌드 확정
@@ -176,7 +177,7 @@
 ### 0-0. V1.0 Remaining Task/Risk Ledger
 
 - [x] v1.0 잔여 task/risk를 단일 ledger로 고정한다.
-  - 2026-06-02 기준 P0: 1건
+  - 2026-06-04 기준 P0: 0건
   - 2026-06-02 기준 P1: 0건
   - 2026-06-02 기준 P2: 5건
   - evidence: `docs/qa/v1.0-remaining-task-risk-ledger.md`

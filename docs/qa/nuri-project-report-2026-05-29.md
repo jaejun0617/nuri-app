@@ -1,29 +1,29 @@
 # NURI Project Report - 2026-05-29
 
-## 0. 2026-06-02 최신 프로젝트 판정
+## 0. 2026-06-04 최신 프로젝트 판정
 
 - 기준 브랜치: `codex/task6-community-content-policy`
 - V1.0 기능 개발 상태: Code Freeze 유지
-- V1.0 P0 blocker: 1건
+- V1.0 P0 blocker: 0건
 - V1.0 P1 운영/QA gate: 0건
 - V1.0 P2 보강 evidence/final submission prep/운영 부채: 5건
-- 전체 진행률: V1.0 기능 기준 약 96%, 스토어 제출 기준 약 92%
+- 전체 진행률: V1.0 기능 기준 약 98%, 스토어 제출 기준 약 94%
 
-진행률은 release gate 기준이다. exact release APK 설치 smoke, 일반 사용자 final smoke, 동물병원 admin/super_admin 서버 조작 QA는 2026-06-02에 닫혔다. 다만 QA admin 세션 확보 중 authenticated 사용자가 public client로 자기 `profiles.role`을 `super_admin`으로 갱신할 수 있는 기존 서버 권한 blocker가 확인됐다. 이 문제는 admin RPC gate까지 상승시킬 수 있으므로 V1.0 출시 전 P0로 수정해야 한다.
+진행률은 release gate 기준이다. exact release APK 설치 smoke, 일반 사용자 final smoke, 동물병원 admin/super_admin 서버 조작 QA는 2026-06-02에 닫혔다. 2026-06-04에는 `profiles.role` self-escalation P0를 corrective migration으로 차단했고, remote 보안 회귀와 release 앱 회귀 smoke까지 통과했다.
 
 Play Store 제출 자산은 이번 QA closeout 범위에서 제외하며, 기능/QA blocker가 아니라 final submission prep으로 분류한다.
 
 ## 1. 현재 판정
 
 - 기준 브랜치: `codex/task6-community-content-policy`
-- 기준 HEAD: 2026-06-02 현재 branch HEAD
+- 기준 HEAD: 2026-06-04 현재 branch HEAD
 - V1.0 기능 개발 상태: Code Freeze
-- V1.0 P0 blocker: 1건
+- V1.0 P0 blocker: 0건
 - V1.0 P1 운영/제출 gate: 0건
 - V1.0 P2 보강 evidence/final submission prep/운영 부채: 5건
-- 전체 진행률: V1.0 기능 기준 약 96%, 스토어 제출 기준 약 92%
+- 전체 진행률: V1.0 기능 기준 약 98%, 스토어 제출 기준 약 94%
 
-진행률은 코드 구현량이 아니라 release gate 기준이다. 인증, 커뮤니티 방어선, 계정 탈퇴, 건강관리, 동물병원, 날씨, 지도/API 비용 방어, Google/Kakao 소셜 로그인, 펫 날짜 UX, exact release APK 설치 smoke, 일반 사용자 final smoke, admin/super_admin 서버 조작 QA는 닫혔다. 남은 V1.0 필수는 `profiles.role` self-escalation 차단이다. Play Store 제출 자산은 final submission prep이다.
+진행률은 코드 구현량이 아니라 release gate 기준이다. 인증, 커뮤니티 방어선, 계정 탈퇴, 건강관리, 동물병원, 날씨, 지도/API 비용 방어, Google/Kakao 소셜 로그인, 펫 날짜 UX, exact release APK 설치 smoke, 일반 사용자 final smoke, admin/super_admin 서버 조작 QA, `profiles.role` self-escalation 차단은 닫혔다. V1.0 필수 잔여는 없다. Play Store 제출 자산은 final submission prep이다.
 
 ## 2. 이번 실행 결과
 
@@ -111,8 +111,7 @@ Play Store 제출 자산은 이번 QA closeout 범위에서 제외하며, 기능
 
 ### V1.0 필수
 
-1. `profiles.role` self-escalation 차단
-   - 해결 방식: 승인된 RLS/DB corrective migration으로 일반 authenticated 사용자의 role column self-update를 차단하고, 일반 프로필 수정은 유지한다. 악성 role update 시도 후 admin RPC가 `ANIMAL_HOSPITAL_ADMIN_REQUIRED`로 거부되는지 확인한다.
+- 없음.
 
 ### Final submission prep
 
@@ -136,10 +135,10 @@ Play Store 제출 자산은 이번 QA closeout 범위에서 제외하며, 기능
 
 - release APK exact install은 2026-06-02에 닫혔다.
 - 동물병원 운영자 서버 조작 QA는 2026-06-02에 닫혔다. UI 버튼 직접 탭 증적은 P2 evidence gap이다.
-- authenticated 사용자 role self-escalation은 출시 중단급 보안 blocker다.
+- authenticated 사용자 role self-escalation은 2026-06-04 corrective migration으로 차단했다.
 - secret, token, provider 계정 전체 이메일은 문서에 기록하지 않았다.
 
 ## 8. 다음 액션
 
-1. 승인된 RLS/DB corrective migration으로 `profiles.role` self-escalation을 차단한다.
-2. corrective migration 이후 release APK와 admin RPC/UI 회귀 smoke를 1회 수행한다.
+1. Play Store 제출 자산 final submission prep.
+2. V1.1 마일스톤 착수.
