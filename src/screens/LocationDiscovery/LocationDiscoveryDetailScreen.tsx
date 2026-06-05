@@ -96,13 +96,21 @@ export default function LocationDiscoveryDetailScreen() {
       .then(nextItem => {
         if (isActive && nextItem) {
           setResolvedItem(nextItem);
+          return;
+        }
+
+        if (isActive) {
+          console.info(
+            '[NURI-DEBUG] walk-poi-detail fallback',
+            JSON.stringify({ reason: 'detail_not_found' }),
+          );
         }
       })
       .catch(error => {
         const message = error instanceof Error ? error.message : 'unknown';
         console.info(
           '[NURI-DEBUG] walk-poi-detail fallback',
-          JSON.stringify({ reason: 'error', message }),
+          JSON.stringify({ reason: 'poi_rpc_error', message }),
         );
       });
 

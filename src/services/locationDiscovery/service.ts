@@ -1256,6 +1256,30 @@ async function searchWalkLocations(
 ): Promise<LocationDiscoveryResponse> {
   const normalizedQuery = normalizeQuery(input.query);
 
+  if (!ENABLE_WALK_POI_RPC) {
+    console.info(
+      '[NURI-DEBUG] walk-poi-rpc fallback',
+      JSON.stringify({
+        reason: 'poi_disabled',
+        mode: normalizedQuery ? 'search' : 'nearby',
+      }),
+    );
+
+    return searchKakaoWalkLocations(input);
+  }
+
+  if (!normalizedQuery && !input.scope.anchorCoordinates) {
+    console.info(
+      '[NURI-DEBUG] walk-poi-rpc fallback',
+      JSON.stringify({
+        reason: 'coordinate_missing',
+        mode: 'nearby',
+      }),
+    );
+
+    return searchKakaoWalkLocations(input);
+  }
+
   if (ENABLE_WALK_POI_RPC) {
     try {
       const poiItems = await searchWalkPoiLocations(input);
@@ -1272,7 +1296,7 @@ async function searchWalkLocations(
       console.info(
         '[NURI-DEBUG] walk-poi-rpc fallback',
         JSON.stringify({
-          reason: 'empty',
+          reason: 'poi_empty',
           mode: normalizedQuery ? 'search' : 'nearby',
         }),
       );
@@ -1281,7 +1305,7 @@ async function searchWalkLocations(
       console.info(
         '[NURI-DEBUG] walk-poi-rpc fallback',
         JSON.stringify({
-          reason: 'error',
+          reason: 'poi_rpc_error',
           message,
           mode: normalizedQuery ? 'search' : 'nearby',
         }),
