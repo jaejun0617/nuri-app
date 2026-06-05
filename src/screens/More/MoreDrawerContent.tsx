@@ -1008,6 +1008,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const theme = useTheme();
   const nicknameRaw = useAuthStore(s => s.profile.nickname);
   const role = useAuthStore(s => s.profile.role ?? 'user');
+  const profileSyncStatus = useAuthStore(s => s.profileSyncStatus);
   const isLoggedIn = useAuthStore(s => s.isLoggedIn);
   const session = useAuthStore(s => s.session);
   const pets = usePetStore(s => s.pets);
@@ -1265,6 +1266,12 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const openAnimalHospitalAdmin = useCallback(() => {
     closeAndNavigate(() =>
       navigation.navigate('AnimalHospitalAdmin', { entrySource: 'more' }),
+    );
+  }, [closeAndNavigate, navigation]);
+
+  const openWalkPoiAdmin = useCallback(() => {
+    closeAndNavigate(() =>
+      navigation.navigate('WalkPoiAdminReadOnly', { entrySource: 'more' }),
     );
   }, [closeAndNavigate, navigation]);
 
@@ -1812,6 +1819,13 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         onPress: openGuideAdmin,
       },
       {
+        key: 'walk-poi-admin',
+        label: '산책 POI 운영',
+        icon: 'map-pin',
+        iconTone: 'soft',
+        onPress: openWalkPoiAdmin,
+      },
+      {
         key: 'animal-hospital-admin',
         label: '동물병원 운영',
         icon: 'shield',
@@ -1819,10 +1833,12 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         onPress: openAnimalHospitalAdmin,
       },
     ],
-    [openAnimalHospitalAdmin, openGuideAdmin],
+    [openAnimalHospitalAdmin, openGuideAdmin, openWalkPoiAdmin],
   );
 
-  const isGuideAdmin = role === 'admin' || role === 'super_admin';
+  const isGuideAdmin =
+    profileSyncStatus === 'ready' &&
+    (role === 'admin' || role === 'super_admin');
 
   return (
     <SafeAreaView

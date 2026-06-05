@@ -13,8 +13,8 @@ jest.mock('../src/services/locationDiscovery/kakaoLocal', () => ({
 }));
 
 jest.mock('../src/services/locationDiscovery/walkPoiRpc', () => ({
-  ENABLE_WALK_POI_RPC: false,
-  searchWalkPoiLocations: jest.fn(),
+  ENABLE_WALK_POI_RPC: true,
+  searchWalkPoiLocations: jest.fn(async () => []),
   fetchWalkPoiDetailItem: jest.fn(),
 }));
 
@@ -34,6 +34,14 @@ const { kakaoLocalSearchProvider } = jest.requireMock(
     >;
   };
 };
+const { searchWalkPoiLocations } = jest.requireMock(
+  '../src/services/locationDiscovery/walkPoiRpc',
+) as {
+  searchWalkPoiLocations: jest.Mock<
+    Promise<ReadonlyArray<never>>,
+    [LocationDiscoverySearchInput]
+  >;
+};
 
 const WALK_BASE_KEYWORDS = [
   '공원',
@@ -51,6 +59,13 @@ const WALK_BASE_KEYWORDS = [
 const ANCHOR_COORDINATES = {
   latitude: 37.5,
   longitude: 127.03,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const ILSAN_COVERAGE_COORDINATES = {
+  latitude: 37.676492,
+  longitude: 126.767888,
   accuracy: 20,
   capturedAt: 1_776_000_000_000,
   source: 'gps' as const,
@@ -102,6 +117,7 @@ function getKeywordCalls(): LocationSearchProviderInput[] {
 describe('location discovery walk Kakao fan-out guard', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    searchWalkPoiLocations.mockResolvedValue([]);
   });
 
   it('nearby 기본 진입은 1차 결과가 충분하면 10개 keyword page 1만 호출한다', async () => {
@@ -178,5 +194,17 @@ describe('location discovery walk Kakao fan-out guard', () => {
       '한강공원',
       '한강공원',
     ]);
+  });
+
+  it('coverage region 안에서 POI 0건이면 Kakao fallback을 제한한다', async () => {
+    const result = await searchLocationDiscovery(
+      'walk',
+      createSearchInput('zzzwalkpoi', ILSAN_COVERAGE_COORDINATES),
+    );
+
+    expect(result.items).toHaveLength(0);
+    expect(result.source).toBe('walk_poi');
+    expect(searchWalkPoiLocations).toHaveBeenCalledTimes(1);
+    expect(kakaoLocalSearchProvider.searchKeyword).not.toHaveBeenCalled();
   });
 });

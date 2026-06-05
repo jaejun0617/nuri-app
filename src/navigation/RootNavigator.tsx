@@ -49,6 +49,7 @@ import GuideAdminListScreen from '../screens/Guides/GuideAdminListScreen';
 import GuideAdminEditorScreen from '../screens/Guides/GuideAdminEditorScreen';
 import NearbyWalkListScreen from '../screens/LocationDiscovery/NearbyWalkListScreen';
 import NearbyWalkDetailScreen from '../screens/LocationDiscovery/NearbyWalkDetailScreen';
+import WalkPoiAdminReadOnlyScreen from '../screens/LocationDiscovery/WalkPoiAdminReadOnlyScreen';
 import AnimalHospitalListScreen from '../screens/AnimalHospital/AnimalHospitalListScreen';
 import AnimalHospitalDetailScreen from '../screens/AnimalHospital/AnimalHospitalDetailScreen';
 import AnimalHospitalAdminScreen from '../screens/AnimalHospital/AnimalHospitalAdminScreen';
@@ -198,6 +199,7 @@ export type RootStackParamList = {
     item: LocationDiscoveryItem;
     resultItems?: LocationDiscoveryItem[];
   };
+  WalkPoiAdminReadOnly: { entrySource?: ScreenEntrySource } | undefined;
   AnimalHospitalList: { entrySource?: ScreenEntrySource } | undefined;
   AnimalHospitalDetail: {
     item: AnimalHospitalPublicHospital;
@@ -390,6 +392,11 @@ export default function RootNavigator() {
       <Stack.Screen
         name="WalkSpotDetail"
         component={NearbyWalkDetailScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="WalkPoiAdminReadOnly"
+        component={WalkPoiAdminReadOnlyScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

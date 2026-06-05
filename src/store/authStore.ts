@@ -55,11 +55,12 @@ function normalizePersistedProfile(value: unknown): Profile {
 
   const profile = isRecord(value.profile) ? value.profile : null;
   const nickname = profile?.nickname;
-  const role = profile?.role;
 
   return {
     nickname: typeof nickname === 'string' ? nickname : null,
-    role: normalizeRole(role),
+    // Persisted role is only a startup cache and can be stale after server-side
+    // admin QA changes. Re-open elevated roles only after fetchMyProfile succeeds.
+    role: 'user',
   };
 }
 

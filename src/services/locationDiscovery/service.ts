@@ -39,10 +39,7 @@ import type {
   LocationDiscoverySearchInput,
   LocationDiscoveryVerificationStatus,
 } from './types';
-import {
-  ENABLE_WALK_POI_RPC,
-  searchWalkPoiLocations,
-} from './walkPoiRpc';
+import { ENABLE_WALK_POI_RPC, searchWalkPoiLocations } from './walkPoiRpc';
 
 const WALK_BASE_KEYWORDS = [
   '공원',
@@ -59,6 +56,11 @@ const WALK_BASE_KEYWORDS = [
 const WALK_NEARBY_MAX_PROVIDER_REQUESTS = 12;
 const WALK_NEARBY_INITIAL_PAGE_LIMIT = 1;
 const WALK_NEARBY_TARGET_ITEM_COUNT = 8;
+const ILSAN_WALK_POI_GATE_CENTER = {
+  latitude: 37.676492,
+  longitude: 126.767888,
+};
+const ILSAN_WALK_POI_GATE_RADIUS_METERS = 5000;
 const PLACE_DEFAULT_QUERIES = [
   '애견동반 카페',
   '애견동반 식당',
@@ -133,6 +135,30 @@ const WALK_STRONG_PRIORITY_KEYWORDS = [
   '숲길',
 ] as const;
 const DEFAULT_QUERY_PAGE_SIZE = 15;
+
+function parseBooleanFlag(
+  value: string | undefined,
+  defaultValue: boolean,
+): boolean {
+  if (value === undefined) {
+    return defaultValue;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) {
+    return true;
+  }
+  if (['0', 'false', 'no', 'off'].includes(normalized)) {
+    return false;
+  }
+
+  return defaultValue;
+}
+
+const ENABLE_WALK_POI_FALLBACK_GATE = parseBooleanFlag(
+  process.env.EXPO_PUBLIC_ENABLE_WALK_POI_FALLBACK_GATE,
+  true,
+);
 const PET_POSITIVE_KEYWORDS = [
   '애견',
   '반려',
@@ -293,6 +319,46 @@ function parseDistanceMeters(
     Math.cos(originLat) * Math.cos(targetLat) * Math.sin(lngDiff / 2) ** 2;
   const distance = 2 * earthRadius * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return Math.round(distance);
+}
+
+function calculateDistanceMeters(
+  origin: Pick<DeviceCoordinates, 'latitude' | 'longitude'>,
+  target: { latitude: number; longitude: number },
+): number {
+  const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
+  const earthRadius = 6371000;
+  const latDiff = toRadians(target.latitude - origin.latitude);
+  const lngDiff = toRadians(target.longitude - origin.longitude);
+  const originLat = toRadians(origin.latitude);
+  const targetLat = toRadians(target.latitude);
+  const a =
+    Math.sin(latDiff / 2) ** 2 +
+    Math.cos(originLat) * Math.cos(targetLat) * Math.sin(lngDiff / 2) ** 2;
+  return Math.round(
+    2 * earthRadius * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)),
+  );
+}
+
+function isInIlsanWalkPoiFallbackGateRegion(
+  coordinates: DeviceCoordinates | null,
+): boolean {
+  if (!coordinates) {
+    return false;
+  }
+
+  return (
+    calculateDistanceMeters(coordinates, ILSAN_WALK_POI_GATE_CENTER) <=
+    ILSAN_WALK_POI_GATE_RADIUS_METERS
+  );
+}
+
+function shouldLimitEmptyWalkPoiFallback(
+  input: LocationDiscoverySearchInput,
+): boolean {
+  return (
+    ENABLE_WALK_POI_FALLBACK_GATE &&
+    isInIlsanWalkPoiFallbackGateRegion(input.scope.anchorCoordinates)
+  );
 }
 
 function estimateWalkMinutes(distanceMeters: number | null): number | null {
@@ -1298,8 +1364,19 @@ async function searchWalkLocations(
         JSON.stringify({
           reason: 'poi_empty',
           mode: normalizedQuery ? 'search' : 'nearby',
+          gateLimited: shouldLimitEmptyWalkPoiFallback(input),
         }),
       );
+
+      if (shouldLimitEmptyWalkPoiFallback(input)) {
+        return {
+          items: [],
+          query: normalizedQuery,
+          source: 'walk_poi',
+          verificationStatus: 'admin-verified',
+          scope: input.scope,
+        };
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'unknown';
       console.info(
