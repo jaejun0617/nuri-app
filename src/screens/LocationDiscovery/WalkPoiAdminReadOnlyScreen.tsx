@@ -1,21 +1,25 @@
 // 파일: src/screens/LocationDiscovery/WalkPoiAdminReadOnlyScreen.tsx
 // 파일 목적:
-// - V1.1 산책 POI import/review/coverage 상태를 운영자가 읽기 전용으로 확인한다.
+// - V1.1 산책 POI import/review/coverage 상태를 운영자가 확인하고 pending 후보를 검수한다.
 // 어디서 쓰이는지:
 // - More 운영 메뉴의 "산책 POI 운영" 진입점에서 열린다.
 // 핵심 역할:
 // - admin/super_admin에게만 batch, review queue, audit, fallback gate 요약을 보여준다.
-// - approve/reject/held 같은 write action은 의도적으로 제공하지 않는다.
-import React, { useCallback } from 'react';
+// - write action은 pending 후보의 approve/reject/held로 제한하고 import commit UI와 raw payload는 제공하지 않는다.
+import React, { useCallback, useState } from 'react';
 import {
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Feather from 'react-native-vector-icons/Feather';
 import {
@@ -31,9 +35,11 @@ import type {
 } from '../../navigation/types';
 import {
   fetchWalkPoiAdminReadSummary,
+  reviewWalkPoiAdminItem,
   type WalkPoiAdminAuditLogItem,
   type WalkPoiAdminImportBatch,
   type WalkPoiAdminReadSummary,
+  type WalkPoiAdminReviewAction,
   type WalkPoiAdminReviewQueueItem,
 } from '../../services/locationDiscovery/walkPoiAdmin';
 import { useAuthStore } from '../../store/authStore';
@@ -41,6 +47,22 @@ import { openMoreDrawer } from '../../store/uiStore';
 
 type Route = RootScreenRoute<'WalkPoiAdminReadOnly'>;
 type Nav = RootScreenNavigation<'WalkPoiAdminReadOnly'>;
+type ReviewActionDraft = {
+  item: WalkPoiAdminReviewQueueItem;
+  action: WalkPoiAdminReviewAction;
+};
+
+const REVIEW_ACTION_LABEL: Record<WalkPoiAdminReviewAction, string> = {
+  approve: '승인',
+  reject: '반려',
+  held: '보류',
+};
+
+const REVIEW_ACTION_ICON: Record<WalkPoiAdminReviewAction, string> = {
+  approve: 'check',
+  reject: 'x',
+  held: 'pause',
+};
 
 function formatCount(value: number): string {
   return value.toLocaleString('ko-KR');
@@ -77,6 +99,16 @@ function statusTone(status: WalkPoiAdminReviewQueueItem['reviewStatus']) {
   if (status === 'rejected') return styles.statusRejected;
   if (status === 'held') return styles.statusHeld;
   return styles.statusPending;
+}
+
+function reviewActionTone(action: WalkPoiAdminReviewAction) {
+  if (action === 'approve') return styles.reviewActionApprove;
+  if (action === 'reject') return styles.reviewActionReject;
+  return styles.reviewActionHeld;
+}
+
+function isReviewReasonRequired(action: WalkPoiAdminReviewAction): boolean {
+  return action === 'reject' || action === 'held';
 }
 
 function MetricCard({
@@ -161,7 +193,20 @@ function BatchRow({ batch }: { batch: WalkPoiAdminImportBatch }) {
   );
 }
 
-function ReviewRow({ item }: { item: WalkPoiAdminReviewQueueItem }) {
+function ReviewRow({
+  item,
+  onAction,
+  actionPending,
+}: {
+  item: WalkPoiAdminReviewQueueItem;
+  onAction?: (
+    item: WalkPoiAdminReviewQueueItem,
+    action: WalkPoiAdminReviewAction,
+  ) => void;
+  actionPending?: boolean;
+}) {
+  const canReview = item.reviewStatus === 'pending' && onAction !== undefined;
+
   return (
     <View style={styles.rowCard}>
       <View style={styles.rowHeader}>
@@ -192,6 +237,31 @@ function ReviewRow({ item }: { item: WalkPoiAdminReviewQueueItem }) {
         <AppText preset="caption" style={styles.rowNote} numberOfLines={2}>
           {item.reviewNote}
         </AppText>
+      ) : null}
+      {canReview ? (
+        <View style={styles.reviewActionBar}>
+          {(['approve', 'reject', 'held'] as const).map(action => (
+            <Pressable
+              key={action}
+              disabled={actionPending}
+              style={[
+                styles.reviewActionButton,
+                reviewActionTone(action),
+                actionPending ? styles.reviewActionDisabled : null,
+              ]}
+              onPress={() => onAction(item, action)}
+            >
+              <Feather
+                name={REVIEW_ACTION_ICON[action]}
+                size={14}
+                color="#102033"
+              />
+              <AppText preset="caption" style={styles.reviewActionButtonText}>
+                {REVIEW_ACTION_LABEL[action]}
+              </AppText>
+            </Pressable>
+          ))}
+        </View>
       ) : null}
     </View>
   );
@@ -288,6 +358,11 @@ export default function WalkPoiAdminReadOnlyScreen() {
   const insets = useSafeAreaInsets();
   const role = useAuthStore(state => state.profile.role ?? 'user');
   const profileSyncStatus = useAuthStore(state => state.profileSyncStatus);
+  const [actionDraft, setActionDraft] = useState<ReviewActionDraft | null>(
+    null,
+  );
+  const [actionReason, setActionReason] = useState('');
+  const [actionError, setActionError] = useState<string | null>(null);
   const isProfileReady = profileSyncStatus === 'ready';
   const isAdmin =
     isProfileReady && (role === 'admin' || role === 'super_admin');
@@ -321,6 +396,61 @@ export default function WalkPoiAdminReadOnlyScreen() {
   const refresh = useCallback(() => {
     summaryQuery.refetch().catch(() => {});
   }, [summaryQuery]);
+
+  const reviewMutation = useMutation({
+    mutationFn: reviewWalkPoiAdminItem,
+    onSuccess: () => {
+      setActionDraft(null);
+      setActionReason('');
+      setActionError(null);
+      summaryQuery.refetch().catch(() => {});
+    },
+    onError: error => {
+      const message =
+        error instanceof Error ? error.message : 'walk_poi_review_failed';
+      setActionError(message);
+    },
+  });
+
+  const openReviewAction = useCallback(
+    (item: WalkPoiAdminReviewQueueItem, action: WalkPoiAdminReviewAction) => {
+      setActionDraft({ item, action });
+      setActionReason('');
+      setActionError(null);
+      reviewMutation.reset();
+    },
+    [reviewMutation],
+  );
+
+  const closeReviewAction = useCallback(() => {
+    if (reviewMutation.isPending) {
+      return;
+    }
+    setActionDraft(null);
+    setActionReason('');
+    setActionError(null);
+  }, [reviewMutation.isPending]);
+
+  const submitReviewAction = useCallback(() => {
+    if (!actionDraft) {
+      return;
+    }
+
+    const normalizedReason = actionReason.trim();
+    if (isReviewReasonRequired(actionDraft.action) && !normalizedReason) {
+      setActionError('반려/보류는 운영 사유를 입력해야 합니다.');
+      return;
+    }
+
+    setActionError(null);
+    reviewMutation.mutate({
+      walkPoiId: actionDraft.item.walkPoiId,
+      action: actionDraft.action,
+      reason:
+        normalizedReason ||
+        `NURI 운영자 ${REVIEW_ACTION_LABEL[actionDraft.action]}`,
+    });
+  }, [actionDraft, actionReason, reviewMutation]);
 
   if (!isProfileReady) {
     return (
@@ -400,10 +530,10 @@ export default function WalkPoiAdminReadOnlyScreen() {
         }
       >
         <View style={styles.readOnlyNotice}>
-          <Feather name="eye" size={17} color="#2F6F4E" />
+          <Feather name="shield" size={17} color="#2F6F4E" />
           <AppText preset="bodySm" style={styles.readOnlyNoticeText}>
-            이 화면은 read-only입니다. 승인/반려/보류 버튼과 raw payload는
-            표시하지 않습니다.
+            pending 후보만 승인/반려/보류할 수 있습니다. import commit UI와
+            raw payload는 표시하지 않습니다.
           </AppText>
         </View>
 
@@ -487,7 +617,15 @@ export default function WalkPoiAdminReadOnlyScreen() {
               ) : (
                 <View style={styles.list}>
                   {summary.recentReviewQueue.map(item => (
-                    <ReviewRow key={item.walkPoiId} item={item} />
+                    <ReviewRow
+                      key={item.walkPoiId}
+                      item={item}
+                      onAction={openReviewAction}
+                      actionPending={
+                        reviewMutation.isPending &&
+                        actionDraft?.item.walkPoiId === item.walkPoiId
+                      }
+                    />
                   ))}
                 </View>
               )}
@@ -528,6 +666,86 @@ export default function WalkPoiAdminReadOnlyScreen() {
           </>
         ) : null}
       </ScrollView>
+      <Modal
+        transparent
+        visible={actionDraft !== null}
+        animationType="fade"
+        onRequestClose={closeReviewAction}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalBackdrop}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalIcon}>
+                <Feather name="shield" size={18} color="#2F6F4E" />
+              </View>
+              <View style={styles.modalTitleBlock}>
+                <AppText preset="headline" style={styles.modalTitle}>
+                  {actionDraft
+                    ? `${REVIEW_ACTION_LABEL[actionDraft.action]} 처리`
+                    : '검수 처리'}
+                </AppText>
+                <AppText preset="caption" style={styles.modalSubtitle}>
+                  {actionDraft?.item.name ?? ''}
+                </AppText>
+              </View>
+            </View>
+
+            <TextInput
+              value={actionReason}
+              onChangeText={text => {
+                setActionReason(text);
+                if (actionError) {
+                  setActionError(null);
+                }
+              }}
+              editable={!reviewMutation.isPending}
+              placeholder={
+                actionDraft && isReviewReasonRequired(actionDraft.action)
+                  ? '운영 사유를 입력하세요'
+                  : '사유 선택 입력'
+              }
+              placeholderTextColor="#8A94A6"
+              multiline
+              maxLength={160}
+              style={styles.reasonInput}
+              textAlignVertical="top"
+            />
+            {actionError ? (
+              <AppText preset="caption" style={styles.actionErrorText}>
+                {actionError}
+              </AppText>
+            ) : null}
+
+            <View style={styles.modalActions}>
+              <Pressable
+                disabled={reviewMutation.isPending}
+                style={[styles.modalButton, styles.modalCancelButton]}
+                onPress={closeReviewAction}
+              >
+                <AppText preset="caption" style={styles.modalCancelText}>
+                  취소
+                </AppText>
+              </Pressable>
+              <Pressable
+                disabled={reviewMutation.isPending}
+                style={[
+                  styles.modalButton,
+                  styles.modalConfirmButton,
+                  reviewMutation.isPending ? styles.reviewActionDisabled : null,
+                ]}
+                onPress={submitReviewAction}
+              >
+                <AppText preset="caption" style={styles.modalConfirmText}>
+                  {reviewMutation.isPending ? '처리 중' : '확인'}
+                </AppText>
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -765,6 +983,36 @@ const styles = StyleSheet.create({
     color: '#102033',
     lineHeight: 18,
   },
+  reviewActionBar: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingTop: 4,
+  },
+  reviewActionButton: {
+    minHeight: 34,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  reviewActionApprove: {
+    backgroundColor: '#EAF6EF',
+  },
+  reviewActionReject: {
+    backgroundColor: '#FFECEC',
+  },
+  reviewActionHeld: {
+    backgroundColor: '#EEF2F8',
+  },
+  reviewActionDisabled: {
+    opacity: 0.55,
+  },
+  reviewActionButtonText: {
+    color: '#102033',
+    fontWeight: '900',
+  },
   readOnlyBadge: {
     borderRadius: 999,
     backgroundColor: '#EEF2F8',
@@ -845,5 +1093,83 @@ const styles = StyleSheet.create({
   nextStepMeta: {
     color: '#AFC0D4',
     fontWeight: '800',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(16, 32, 51, 0.42)',
+    justifyContent: 'center',
+    padding: 18,
+  },
+  modalCard: {
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    gap: 12,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'center',
+  },
+  modalIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#EAF6EF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalTitleBlock: {
+    flex: 1,
+    gap: 3,
+  },
+  modalTitle: {
+    color: '#102033',
+    fontWeight: '900',
+  },
+  modalSubtitle: {
+    color: '#6B7688',
+  },
+  reasonInput: {
+    minHeight: 96,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#DDE6F2',
+    backgroundColor: '#F7F9FC',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: '#102033',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  actionErrorText: {
+    color: '#D75B23',
+    fontWeight: '800',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+  },
+  modalButton: {
+    minHeight: 40,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancelButton: {
+    backgroundColor: '#EEF2F8',
+  },
+  modalConfirmButton: {
+    backgroundColor: '#102033',
+  },
+  modalCancelText: {
+    color: '#506074',
+    fontWeight: '900',
+  },
+  modalConfirmText: {
+    color: '#FFFFFF',
+    fontWeight: '900',
   },
 });

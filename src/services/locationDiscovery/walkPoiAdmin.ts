@@ -86,6 +86,17 @@ export type WalkPoiAdminReviewQueueItem = {
   reviewNote: string | null;
 };
 
+export type WalkPoiAdminReviewAction = 'approve' | 'reject' | 'held';
+
+export type WalkPoiAdminReviewResult = {
+  walkPoiId: string;
+  reviewStatus: WalkPoiAdminReviewQueueItem['reviewStatus'];
+  visibilityStatus: string;
+  lifecycleStatus: string;
+  sourceRecordId: string | null;
+  auditLogId: number;
+};
+
 export type WalkPoiAdminAuditLogItem = {
   id: number;
   walkPoiId: string | null;
@@ -360,6 +371,30 @@ function mapAuditLogItem(value: unknown): WalkPoiAdminAuditLogItem | null {
   };
 }
 
+function mapReviewResult(value: unknown): WalkPoiAdminReviewResult {
+  const row = Array.isArray(value) ? value[0] : value;
+  if (!isRecord(row)) {
+    throw new Error('walk_poi_admin_review_invalid_response');
+  }
+
+  const walkPoiId = readString(row, 'walk_poi_id');
+  const reviewStatus = normalizeReviewStatus(readString(row, 'review_status'));
+  const visibilityStatus = readString(row, 'visibility_status');
+  const lifecycleStatus = readString(row, 'lifecycle_status');
+  if (!walkPoiId || !visibilityStatus || !lifecycleStatus) {
+    throw new Error('walk_poi_admin_review_invalid_response');
+  }
+
+  return {
+    walkPoiId,
+    reviewStatus,
+    visibilityStatus,
+    lifecycleStatus,
+    sourceRecordId: readString(row, 'source_record_id'),
+    auditLogId: readNumber(row, 'audit_log_id'),
+  };
+}
+
 function mapFallbackGate(value: unknown): WalkPoiAdminFallbackGate {
   const record = isRecord(value) ? value : {};
   return {
@@ -415,4 +450,24 @@ export async function fetchWalkPoiAdminReadSummary(): Promise<WalkPoiAdminReadSu
   }
 
   return mapWalkPoiAdminReadSummary(data);
+}
+
+export async function reviewWalkPoiAdminItem(input: {
+  walkPoiId: string;
+  action: WalkPoiAdminReviewAction;
+  reason: string | null;
+}): Promise<WalkPoiAdminReviewResult> {
+  const reason = input.reason?.trim() || null;
+  const { data, error } = await supabase.rpc('walk_poi_admin_review_v1', {
+    p_walk_poi_id: input.walkPoiId,
+    p_action: input.action,
+    p_reason: reason,
+    p_patch: {},
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return mapReviewResult(data);
 }

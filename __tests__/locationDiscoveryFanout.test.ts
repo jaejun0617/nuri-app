@@ -70,6 +70,13 @@ const ILSAN_COVERAGE_COORDINATES = {
   capturedAt: 1_776_000_000_000,
   source: 'gps' as const,
 };
+const BAEKSEOK_COVERAGE_COORDINATES = {
+  latitude: 37.622,
+  longitude: 126.801,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
 
 function createSearchInput(
   query: string | null,
@@ -200,6 +207,18 @@ describe('location discovery walk Kakao fan-out guard', () => {
     const result = await searchLocationDiscovery(
       'walk',
       createSearchInput('zzzwalkpoi', ILSAN_COVERAGE_COORDINATES),
+    );
+
+    expect(result.items).toHaveLength(0);
+    expect(result.source).toBe('walk_poi');
+    expect(searchWalkPoiLocations).toHaveBeenCalledTimes(1);
+    expect(kakaoLocalSearchProvider.searchKeyword).not.toHaveBeenCalled();
+  });
+
+  it('백석/마두/정발산 coverage region 안에서도 POI 0건 fallback을 제한한다', async () => {
+    const result = await searchLocationDiscovery(
+      'walk',
+      createSearchInput('zzzwalkpoi', BAEKSEOK_COVERAGE_COORDINATES),
     );
 
     expect(result.items).toHaveLength(0);

@@ -56,11 +56,26 @@ const WALK_BASE_KEYWORDS = [
 const WALK_NEARBY_MAX_PROVIDER_REQUESTS = 12;
 const WALK_NEARBY_INITIAL_PAGE_LIMIT = 1;
 const WALK_NEARBY_TARGET_ITEM_COUNT = 8;
-const ILSAN_WALK_POI_GATE_CENTER = {
-  latitude: 37.676492,
-  longitude: 126.767888,
-};
-const ILSAN_WALK_POI_GATE_RADIUS_METERS = 5000;
+const WALK_POI_FALLBACK_GATE_REGIONS = [
+  {
+    id: 'ilsan_juyeop_lakepark',
+    label: '일산/주엽/호수공원 생활권',
+    center: {
+      latitude: 37.676492,
+      longitude: 126.767888,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'baekseok_madu_jeongbalsan',
+    label: '백석/마두/정발산 생활권',
+    center: {
+      latitude: 37.6433,
+      longitude: 126.7882,
+    },
+    radiusMeters: 5000,
+  },
+] as const;
 const PLACE_DEFAULT_QUERIES = [
   '애견동반 카페',
   '애견동반 식당',
@@ -339,26 +354,26 @@ function calculateDistanceMeters(
   );
 }
 
-function isInIlsanWalkPoiFallbackGateRegion(
+function getWalkPoiFallbackGateRegion(
   coordinates: DeviceCoordinates | null,
-): boolean {
+): (typeof WALK_POI_FALLBACK_GATE_REGIONS)[number] | null {
   if (!coordinates) {
-    return false;
+    return null;
   }
 
-  return (
-    calculateDistanceMeters(coordinates, ILSAN_WALK_POI_GATE_CENTER) <=
-    ILSAN_WALK_POI_GATE_RADIUS_METERS
-  );
-}
+  let nearestRegion: (typeof WALK_POI_FALLBACK_GATE_REGIONS)[number] | null =
+    null;
+  let nearestDistance = Number.POSITIVE_INFINITY;
 
-function shouldLimitEmptyWalkPoiFallback(
-  input: LocationDiscoverySearchInput,
-): boolean {
-  return (
-    ENABLE_WALK_POI_FALLBACK_GATE &&
-    isInIlsanWalkPoiFallbackGateRegion(input.scope.anchorCoordinates)
-  );
+  WALK_POI_FALLBACK_GATE_REGIONS.forEach(region => {
+    const distance = calculateDistanceMeters(coordinates, region.center);
+    if (distance <= region.radiusMeters && distance < nearestDistance) {
+      nearestRegion = region;
+      nearestDistance = distance;
+    }
+  });
+
+  return nearestRegion;
 }
 
 function estimateWalkMinutes(distanceMeters: number | null): number | null {
@@ -1359,16 +1374,23 @@ async function searchWalkLocations(
         };
       }
 
+      const emptyFallbackGateRegion = getWalkPoiFallbackGateRegion(
+        input.scope.anchorCoordinates,
+      );
+      const shouldLimitEmptyFallback =
+        ENABLE_WALK_POI_FALLBACK_GATE && emptyFallbackGateRegion !== null;
+
       console.info(
         '[NURI-DEBUG] walk-poi-rpc fallback',
         JSON.stringify({
           reason: 'poi_empty',
           mode: normalizedQuery ? 'search' : 'nearby',
-          gateLimited: shouldLimitEmptyWalkPoiFallback(input),
+          gateLimited: shouldLimitEmptyFallback,
+          gateRegionId: emptyFallbackGateRegion?.id ?? null,
         }),
       );
 
-      if (shouldLimitEmptyWalkPoiFallback(input)) {
+      if (shouldLimitEmptyFallback) {
         return {
           items: [],
           query: normalizedQuery,
