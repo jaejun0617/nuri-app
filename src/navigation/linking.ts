@@ -30,6 +30,7 @@ export const appLinking: LinkingOptions<RootStackParamList> = {
       PasswordResetRecovery: 'auth/reset',
       PasswordResetForm: 'auth/reset/form',
       OAuthCallback: 'auth/callback',
+      WalkSpotList: 'walk-spots',
     },
   },
   async getInitialURL() {

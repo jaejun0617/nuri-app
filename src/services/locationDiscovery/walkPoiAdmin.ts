@@ -106,6 +106,19 @@ export type WalkPoiAdminAuditLogItem = {
   createdAt: string | null;
 };
 
+export type WalkPoiAdminAuditStateSnapshot = {
+  reviewStatus: string | null;
+  visibilityStatus: string | null;
+  lifecycleStatus: string | null;
+};
+
+export type WalkPoiAdminAuditLogDetail = WalkPoiAdminAuditLogItem & {
+  actorId: string | null;
+  sourceRecordId: string | null;
+  beforeState: WalkPoiAdminAuditStateSnapshot | null;
+  afterState: WalkPoiAdminAuditStateSnapshot | null;
+};
+
 export type WalkPoiAdminFallbackGate = {
   enabled: boolean;
   limitedRegionId: string;
@@ -371,6 +384,45 @@ function mapAuditLogItem(value: unknown): WalkPoiAdminAuditLogItem | null {
   };
 }
 
+function mapAuditStateSnapshot(
+  value: unknown,
+): WalkPoiAdminAuditStateSnapshot | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  return {
+    reviewStatus: readString(value, 'reviewStatus'),
+    visibilityStatus: readString(value, 'visibilityStatus'),
+    lifecycleStatus: readString(value, 'lifecycleStatus'),
+  };
+}
+
+function mapAuditLogDetail(value: unknown): WalkPoiAdminAuditLogDetail {
+  if (!isRecord(value)) {
+    throw new Error('walk_poi_admin_audit_detail_invalid_response');
+  }
+
+  const id = readNumber(value, 'id');
+  const actionType = readString(value, 'actionType');
+  if (!id || !actionType) {
+    throw new Error('walk_poi_admin_audit_detail_invalid_response');
+  }
+
+  return {
+    id,
+    walkPoiId: readString(value, 'walkPoiId'),
+    name: readString(value, 'name'),
+    actionType,
+    note: readString(value, 'note'),
+    createdAt: readString(value, 'createdAt'),
+    actorId: readString(value, 'actorId'),
+    sourceRecordId: readString(value, 'sourceRecordId'),
+    beforeState: mapAuditStateSnapshot(value.beforeState),
+    afterState: mapAuditStateSnapshot(value.afterState),
+  };
+}
+
 function mapReviewResult(value: unknown): WalkPoiAdminReviewResult {
   const row = Array.isArray(value) ? value[0] : value;
   if (!isRecord(row)) {
@@ -450,6 +502,23 @@ export async function fetchWalkPoiAdminReadSummary(): Promise<WalkPoiAdminReadSu
   }
 
   return mapWalkPoiAdminReadSummary(data);
+}
+
+export async function fetchWalkPoiAdminAuditLogDetail(
+  auditLogId: number,
+): Promise<WalkPoiAdminAuditLogDetail> {
+  const { data, error } = await supabase.rpc(
+    'walk_poi_admin_audit_detail_v1',
+    {
+      p_audit_log_id: auditLogId,
+    },
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  return mapAuditLogDetail(data);
 }
 
 export async function reviewWalkPoiAdminItem(input: {

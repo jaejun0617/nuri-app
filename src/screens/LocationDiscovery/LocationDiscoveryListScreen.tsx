@@ -36,6 +36,37 @@ import { openMoreDrawer } from '../../store/uiStore';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type WalkRoute = RootScreenRoute<'WalkSpotList'>;
 
+function parseInitialCoordinate(
+  value: number | string | undefined,
+): number | null {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null;
+  }
+
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const parsed = Number(value.trim());
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function buildCoordinateOverride(
+  params: WalkRoute['params'],
+): Parameters<typeof useLocationDiscovery>[0]['coordinateOverride'] {
+  const latitude = parseInitialCoordinate(params?.initialLatitude);
+  const longitude = parseInitialCoordinate(params?.initialLongitude);
+  if (latitude === null || longitude === null) {
+    return null;
+  }
+  if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+    return null;
+  }
+
+  const label = params?.initialLocationLabel?.trim() || '선택 위치';
+  return { latitude, longitude, label };
+}
+
 function sortWalkItems(
   items: ReadonlyArray<LocationDiscoveryItem>,
   sortOrder: LocationDiscoverySortOption,
@@ -104,10 +135,15 @@ export default function LocationDiscoveryListScreen() {
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [sortOrder, setSortOrder] =
     useState<LocationDiscoverySortOption>('recommended');
+  const coordinateOverride = useMemo(
+    () => buildCoordinateOverride(route.params),
+    [route.params],
+  );
 
   const discoveryState = useLocationDiscovery({
     domain: 'walk',
     query: submittedQuery,
+    coordinateOverride,
   });
   const selectedPet = useMemo(
     () => pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,

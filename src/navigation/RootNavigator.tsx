@@ -194,7 +194,14 @@ export type RootStackParamList = {
   GuideDetail: {
     guideId: string;
   };
-  WalkSpotList: { entrySource?: ScreenEntrySource } | undefined;
+  WalkSpotList:
+    | {
+        entrySource?: ScreenEntrySource;
+        initialLatitude?: number | string;
+        initialLongitude?: number | string;
+        initialLocationLabel?: string;
+      }
+    | undefined;
   WalkSpotDetail: {
     item: LocationDiscoveryItem;
     resultItems?: LocationDiscoveryItem[];

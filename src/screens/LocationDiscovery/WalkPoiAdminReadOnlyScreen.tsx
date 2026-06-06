@@ -34,8 +34,10 @@ import type {
   RootScreenRoute,
 } from '../../navigation/types';
 import {
+  fetchWalkPoiAdminAuditLogDetail,
   fetchWalkPoiAdminReadSummary,
   reviewWalkPoiAdminItem,
+  type WalkPoiAdminAuditLogDetail,
   type WalkPoiAdminAuditLogItem,
   type WalkPoiAdminImportBatch,
   type WalkPoiAdminReadSummary,
@@ -267,9 +269,29 @@ function ReviewRow({
   );
 }
 
-function AuditRow({ item }: { item: WalkPoiAdminAuditLogItem }) {
+function formatAuditSnapshot(
+  snapshot: WalkPoiAdminAuditLogDetail['beforeState'],
+): string {
+  if (!snapshot) {
+    return '상태 기록 없음';
+  }
+
+  return [
+    snapshot.reviewStatus ?? 'unknown',
+    snapshot.visibilityStatus ?? 'unknown',
+    snapshot.lifecycleStatus ?? 'unknown',
+  ].join(' / ');
+}
+
+function AuditRow({
+  item,
+  onPress,
+}: {
+  item: WalkPoiAdminAuditLogItem;
+  onPress: (item: WalkPoiAdminAuditLogItem) => void;
+}) {
   return (
-    <View style={styles.auditRow}>
+    <Pressable style={styles.auditRow} onPress={() => onPress(item)}>
       <View style={styles.auditIcon}>
         <Feather name="activity" size={14} color="#2F6F4E" />
       </View>
@@ -283,7 +305,8 @@ function AuditRow({ item }: { item: WalkPoiAdminAuditLogItem }) {
           {item.note ? ` · ${item.note}` : ''}
         </AppText>
       </View>
-    </View>
+      <Feather name="chevron-right" size={15} color="#8A94A6" />
+    </Pressable>
   );
 }
 
@@ -363,6 +386,9 @@ export default function WalkPoiAdminReadOnlyScreen() {
   );
   const [actionReason, setActionReason] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
+  const [selectedAuditLogId, setSelectedAuditLogId] = useState<number | null>(
+    null,
+  );
   const isProfileReady = profileSyncStatus === 'ready';
   const isAdmin =
     isProfileReady && (role === 'admin' || role === 'super_admin');
@@ -412,6 +438,13 @@ export default function WalkPoiAdminReadOnlyScreen() {
     },
   });
 
+  const auditDetailQuery = useQuery({
+    queryKey: ['walk-poi-admin-audit-detail', selectedAuditLogId],
+    queryFn: () => fetchWalkPoiAdminAuditLogDetail(selectedAuditLogId ?? 0),
+    enabled: isAdmin && selectedAuditLogId !== null,
+    retry: false,
+  });
+
   const openReviewAction = useCallback(
     (item: WalkPoiAdminReviewQueueItem, action: WalkPoiAdminReviewAction) => {
       setActionDraft({ item, action });
@@ -451,6 +484,14 @@ export default function WalkPoiAdminReadOnlyScreen() {
         `NURI 운영자 ${REVIEW_ACTION_LABEL[actionDraft.action]}`,
     });
   }, [actionDraft, actionReason, reviewMutation]);
+
+  const openAuditDetail = useCallback((item: WalkPoiAdminAuditLogItem) => {
+    setSelectedAuditLogId(item.id);
+  }, []);
+
+  const closeAuditDetail = useCallback(() => {
+    setSelectedAuditLogId(null);
+  }, []);
 
   if (!isProfileReady) {
     return (
@@ -640,6 +681,7 @@ export default function WalkPoiAdminReadOnlyScreen() {
                     <AuditRow
                       key={`${item.id}:${item.actionType}`}
                       item={item}
+                      onPress={openAuditDetail}
                     />
                   ))}
                 </View>
@@ -666,6 +708,110 @@ export default function WalkPoiAdminReadOnlyScreen() {
           </>
         ) : null}
       </ScrollView>
+      <Modal
+        transparent
+        visible={selectedAuditLogId !== null}
+        animationType="fade"
+        onRequestClose={closeAuditDetail}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalIcon}>
+                <Feather name="activity" size={18} color="#2F6F4E" />
+              </View>
+              <View style={styles.modalTitleBlock}>
+                <AppText preset="headline" style={styles.modalTitle}>
+                  Audit detail
+                </AppText>
+                <AppText preset="caption" style={styles.modalSubtitle}>
+                  raw payload 없이 운영 action만 확인합니다.
+                </AppText>
+              </View>
+            </View>
+
+            {auditDetailQuery.isLoading ? (
+              <AppText preset="body" style={styles.auditDetailBody}>
+                audit log를 불러오는 중이에요.
+              </AppText>
+            ) : auditDetailQuery.error ? (
+              <AppText preset="body" style={styles.actionErrorText}>
+                audit log를 불러오지 못했어요.
+              </AppText>
+            ) : auditDetailQuery.data ? (
+              <View style={styles.auditDetailList}>
+                <View style={styles.auditDetailRow}>
+                  <AppText preset="caption" style={styles.auditDetailLabel}>
+                    action
+                  </AppText>
+                  <AppText preset="bodySm" style={styles.auditDetailValue}>
+                    {auditDetailQuery.data.actionType}
+                  </AppText>
+                </View>
+                <View style={styles.auditDetailRow}>
+                  <AppText preset="caption" style={styles.auditDetailLabel}>
+                    target
+                  </AppText>
+                  <AppText preset="bodySm" style={styles.auditDetailValue}>
+                    {auditDetailQuery.data.name ?? '미기록'}
+                  </AppText>
+                </View>
+                <View style={styles.auditDetailRow}>
+                  <AppText preset="caption" style={styles.auditDetailLabel}>
+                    reviewer
+                  </AppText>
+                  <AppText preset="bodySm" style={styles.auditDetailValue}>
+                    {auditDetailQuery.data.actorId ?? '미기록'}
+                  </AppText>
+                </View>
+                <View style={styles.auditDetailRow}>
+                  <AppText preset="caption" style={styles.auditDetailLabel}>
+                    reviewed_at
+                  </AppText>
+                  <AppText preset="bodySm" style={styles.auditDetailValue}>
+                    {formatDateTime(auditDetailQuery.data.createdAt)}
+                  </AppText>
+                </View>
+                <View style={styles.auditDetailRow}>
+                  <AppText preset="caption" style={styles.auditDetailLabel}>
+                    reason
+                  </AppText>
+                  <AppText preset="bodySm" style={styles.auditDetailValue}>
+                    {auditDetailQuery.data.note ?? '미기록'}
+                  </AppText>
+                </View>
+                <View style={styles.auditDetailRow}>
+                  <AppText preset="caption" style={styles.auditDetailLabel}>
+                    before
+                  </AppText>
+                  <AppText preset="bodySm" style={styles.auditDetailValue}>
+                    {formatAuditSnapshot(auditDetailQuery.data.beforeState)}
+                  </AppText>
+                </View>
+                <View style={styles.auditDetailRow}>
+                  <AppText preset="caption" style={styles.auditDetailLabel}>
+                    after
+                  </AppText>
+                  <AppText preset="bodySm" style={styles.auditDetailValue}>
+                    {formatAuditSnapshot(auditDetailQuery.data.afterState)}
+                  </AppText>
+                </View>
+              </View>
+            ) : null}
+
+            <View style={styles.modalActions}>
+              <Pressable
+                style={[styles.modalButton, styles.modalConfirmButton]}
+                onPress={closeAuditDetail}
+              >
+                <AppText preset="caption" style={styles.modalConfirmText}>
+                  확인
+                </AppText>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
       <Modal
         transparent
         visible={actionDraft !== null}
@@ -1054,7 +1200,10 @@ const styles = StyleSheet.create({
   },
   auditRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 10,
+    borderRadius: 12,
+    padding: 6,
   },
   auditIcon: {
     width: 26,
@@ -1075,6 +1224,33 @@ const styles = StyleSheet.create({
   auditMeta: {
     color: '#6B7688',
     lineHeight: 18,
+  },
+  auditDetailBody: {
+    color: '#6B7688',
+    lineHeight: 21,
+  },
+  auditDetailList: {
+    borderRadius: 14,
+    backgroundColor: '#F7F9FC',
+    borderWidth: 1,
+    borderColor: '#E7EDF5',
+    overflow: 'hidden',
+  },
+  auditDetailRow: {
+    minHeight: 42,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#DDE6F2',
+    gap: 3,
+  },
+  auditDetailLabel: {
+    color: '#6B7688',
+    fontWeight: '900',
+  },
+  auditDetailValue: {
+    color: '#102033',
+    lineHeight: 20,
   },
   nextStepBox: {
     borderRadius: 18,

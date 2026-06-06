@@ -43,7 +43,7 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from 'styled-components/native';
 import Feather from 'react-native-vector-icons/Feather';
@@ -78,6 +78,7 @@ import {
 import { fetchMyPets, updatePet } from '../../services/supabase/pets';
 import {
   checkNicknameAvailabilityDetailed,
+  fetchMyProfile,
   saveMyNickname,
 } from '../../services/supabase/profile';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
@@ -1011,6 +1012,8 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const profileSyncStatus = useAuthStore(s => s.profileSyncStatus);
   const isLoggedIn = useAuthStore(s => s.isLoggedIn);
   const session = useAuthStore(s => s.session);
+  const setProfile = useAuthStore(s => s.setProfile);
+  const setProfileSyncState = useAuthStore(s => s.setProfileSyncState);
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
   const setPets = usePetStore(s => s.setPets);
@@ -1031,6 +1034,47 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const [accountStatusNotice, setAccountStatusNotice] = useState<
     'pending' | 'unknown' | null
   >(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      const userId = session?.user?.id ?? null;
+      if (!isLoggedIn || !userId) {
+        return undefined;
+      }
+
+      let cancelled = false;
+      setProfileSyncState('loading');
+
+      async function syncLatestProfile() {
+        try {
+          const profile = await fetchMyProfile(userId);
+          if (cancelled) return;
+
+          await setProfile(profile);
+          if (cancelled) return;
+
+          setProfileSyncState('ready');
+        } catch (error) {
+          if (cancelled) return;
+
+          const message =
+            error instanceof Error ? error.message : '프로필 동기화 실패';
+          setProfileSyncState('error', message);
+        }
+      }
+
+      syncLatestProfile();
+
+      return () => {
+        cancelled = true;
+      };
+    }, [
+      isLoggedIn,
+      session?.user?.id,
+      setProfile,
+      setProfileSyncState,
+    ]),
+  );
   const accountStatusNoticeConfig = useMemo(() => {
     if (accountStatusNotice === 'unknown') {
       return {
