@@ -1,6 +1,6 @@
 # NURI 전체 프로젝트 현황 보고서
 
-기준일: 2026-06-11  
+기준일: 2026-06-11
 문서 목적: ChatGPT, Codex, 운영자, 후속 개발 세션이 현재 NURI 앱의 전체 맥락을 한 번에 파악하기 위한 source of truth 문서
 
 ## 1. 문서 목적
@@ -283,4 +283,3 @@ Play Store 제출 자산은 V1.0 기능/QA blocker가 아니며, NURI 앱 개발
 3. coverage 충족 권역 fallback gate 추가 적용
 4. 수도권 주요 산책 권역 확장 계획 수립
 5. Play Store 제출 자산은 전체 개발/QA 종료 후 최종 제출 직전 준비
-
