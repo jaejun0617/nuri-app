@@ -57,8 +57,8 @@ const WALK_BASE_KEYWORDS = [
 ] as const;
 
 const ANCHOR_COORDINATES = {
-  latitude: 37.5,
-  longitude: 127.03,
+  latitude: 37.421,
+  longitude: 127.108,
   accuracy: 20,
   capturedAt: 1_776_000_000_000,
   source: 'gps' as const,
@@ -73,6 +73,27 @@ const ILSAN_COVERAGE_COORDINATES = {
 const BAEKSEOK_COVERAGE_COORDINATES = {
   latitude: 37.622,
   longitude: 126.801,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const SEOUL_WORLDCUP_COVERAGE_COORDINATES = {
+  latitude: 37.5647,
+  longitude: 126.8872,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const SEOUL_BANPO_COVERAGE_COORDINATES = {
+  latitude: 37.5146,
+  longitude: 126.9919,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const SEOUL_TTUKSEOM_COVERAGE_COORDINATES = {
+  latitude: 37.5392,
+  longitude: 127.0479,
   accuracy: 20,
   capturedAt: 1_776_000_000_000,
   source: 'gps' as const,
@@ -225,5 +246,28 @@ describe('location discovery walk Kakao fan-out guard', () => {
     expect(result.source).toBe('walk_poi');
     expect(searchWalkPoiLocations).toHaveBeenCalledTimes(1);
     expect(kakaoLocalSearchProvider.searchKeyword).not.toHaveBeenCalled();
+  });
+
+  it('서울 2차 coverage region 안에서는 POI 0건 fallback을 권역별로 제한한다', async () => {
+    const coverageCoordinates = [
+      SEOUL_WORLDCUP_COVERAGE_COORDINATES,
+      SEOUL_BANPO_COVERAGE_COORDINATES,
+      SEOUL_TTUKSEOM_COVERAGE_COORDINATES,
+    ] as const;
+
+    for (const coordinates of coverageCoordinates) {
+      jest.clearAllMocks();
+      searchWalkPoiLocations.mockResolvedValue([]);
+
+      const result = await searchLocationDiscovery(
+        'walk',
+        createSearchInput('zzzwalkpoi', coordinates),
+      );
+
+      expect(result.items).toHaveLength(0);
+      expect(result.source).toBe('walk_poi');
+      expect(searchWalkPoiLocations).toHaveBeenCalledTimes(1);
+      expect(kakaoLocalSearchProvider.searchKeyword).not.toHaveBeenCalled();
+    }
   });
 });

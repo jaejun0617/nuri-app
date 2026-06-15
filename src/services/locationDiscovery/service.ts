@@ -75,6 +75,33 @@ const WALK_POI_FALLBACK_GATE_REGIONS = [
     },
     radiusMeters: 5000,
   },
+  {
+    id: 'seoul_worldcup_nanji_mangwon',
+    label: '서울 월드컵공원/난지/망원 생활권',
+    center: {
+      latitude: 37.5647,
+      longitude: 126.8872,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'seoul_banpo_jamwon_ichon',
+    label: '서울 반포/잠원/이촌 한강 생활권',
+    center: {
+      latitude: 37.5146,
+      longitude: 126.9919,
+    },
+    radiusMeters: 4500,
+  },
+  {
+    id: 'seoul_ttukseom_seoulforest',
+    label: '서울 뚝섬/서울숲 생활권',
+    center: {
+      latitude: 37.5392,
+      longitude: 127.0479,
+    },
+    radiusMeters: 4500,
+  },
 ] as const;
 const PLACE_DEFAULT_QUERIES = [
   '애견동반 카페',
