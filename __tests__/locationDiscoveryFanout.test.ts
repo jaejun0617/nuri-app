@@ -98,6 +98,41 @@ const SEOUL_TTUKSEOM_COVERAGE_COORDINATES = {
   capturedAt: 1_776_000_000_000,
   source: 'gps' as const,
 };
+const SEOUL_SONGPA_COVERAGE_COORDINATES = {
+  latitude: 37.5165,
+  longitude: 127.116,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const SEOUL_YANGJAE_COVERAGE_COORDINATES = {
+  latitude: 37.4805,
+  longitude: 127.0405,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const SEOUL_JUNGNANG_COVERAGE_COORDINATES = {
+  latitude: 37.608,
+  longitude: 127.067,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const SEOUL_ANYANGCHEON_COVERAGE_COORDINATES = {
+  latitude: 37.5185,
+  longitude: 126.881,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const SEOUL_BORAMAE_COVERAGE_COORDINATES = {
+  latitude: 37.492,
+  longitude: 126.919,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
 
 function createSearchInput(
   query: string | null,
@@ -253,6 +288,31 @@ describe('location discovery walk Kakao fan-out guard', () => {
       SEOUL_WORLDCUP_COVERAGE_COORDINATES,
       SEOUL_BANPO_COVERAGE_COORDINATES,
       SEOUL_TTUKSEOM_COVERAGE_COORDINATES,
+    ] as const;
+
+    for (const coordinates of coverageCoordinates) {
+      jest.clearAllMocks();
+      searchWalkPoiLocations.mockResolvedValue([]);
+
+      const result = await searchLocationDiscovery(
+        'walk',
+        createSearchInput('zzzwalkpoi', coordinates),
+      );
+
+      expect(result.items).toHaveLength(0);
+      expect(result.source).toBe('walk_poi');
+      expect(searchWalkPoiLocations).toHaveBeenCalledTimes(1);
+      expect(kakaoLocalSearchProvider.searchKeyword).not.toHaveBeenCalled();
+    }
+  });
+
+  it('서울 보류 권역 보강 후 gate 기준 충족 region은 POI 0건 fallback을 제한한다', async () => {
+    const coverageCoordinates = [
+      SEOUL_SONGPA_COVERAGE_COORDINATES,
+      SEOUL_YANGJAE_COVERAGE_COORDINATES,
+      SEOUL_JUNGNANG_COVERAGE_COORDINATES,
+      SEOUL_ANYANGCHEON_COVERAGE_COORDINATES,
+      SEOUL_BORAMAE_COVERAGE_COORDINATES,
     ] as const;
 
     for (const coordinates of coverageCoordinates) {
