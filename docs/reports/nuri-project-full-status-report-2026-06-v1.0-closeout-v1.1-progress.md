@@ -1,6 +1,7 @@
 # NURI 전체 프로젝트 현황 보고서
 
-기준일: 2026-06-11
+기준일: 2026-06-15
+최종 정합성 검수일: 2026-06-15
 문서 목적: ChatGPT, Codex, 운영자, 후속 개발 세션이 현재 NURI 앱의 전체 맥락을 한 번에 파악하기 위한 source of truth 문서
 
 ## 1. 문서 목적
@@ -36,9 +37,10 @@
 | --- | ---: | --- |
 | V1.0 기능 개발 | 100% | P0/P1 0건, 필수 기능 closeout, Code Freeze 유지 |
 | V1.0 QA/출시 준비 | 약 96% | release APK exact install smoke, 일반 사용자 smoke, admin/super_admin 서버 계약 확인, P0 corrective 회귀 완료. Play Store 제출 자산만 최종 제출 직전 준비로 남음 |
-| V1.1 산책 POI 전환 트랙 | 약 65% | PostGIS foundation, 앱 POI RPC read path, admin import/review, admin read/write UI, 고양시/서울 1차 seed 완료. 서울 2차, 수도권/전국 coverage, fallback 축소, Kakao runtime 제거가 남음 |
+| V1.1 산책 POI 전환 트랙 | 약 65% | remote DB 기준 approved/public/active POI 86건, PostGIS foundation, 앱 POI RPC read path, admin import/review, admin read/write UI, 고양시/서울 1차 seed 완료. 서울 2차, 수도권/전국 coverage, fallback 축소, Kakao runtime 제거가 남음 |
 | V1.1 전체 | 약 30% | 산책 POI 트랙은 진행 중이나 결제, AI, 편지함, Typography, Apple, Naver cleanup, Weather 운영 고도화 등 별도 V1.1 후보가 남음 |
 | 전체 제품 로드맵 | 약 72% | V1.0 release-ready 기준선은 닫혔고 V1.1 핵심 location foundation은 진행 중. 장기 유료화/AI/전국 데이터 운영은 아직 남음 |
+| 최종 제출 준비 | 약 20% | release artifact/provenance와 정책 URL 기준은 정리됐지만 Play Store 스크린샷, 설명문, Console 입력, store listing package는 아직 최종 제출 직전 준비로 남음 |
 
 남은 작업의 성격:
 
@@ -219,6 +221,31 @@ Android 실기기 smoke:
 - pending/rejected/held 앱 미노출 확인
 - logcat fatal / ANR / unhandled promise 0건 확인
 
+### 2026-06-15 정합성 검수 근거
+
+이번 보고서의 서울 1차 seed와 admin e2e 항목은 2026-06-15 linked remote read-only query와 실제 코드 기준으로 재확인했다.
+
+- approved/public/active POI count: 86건
+- 고양시 1차 seed batch: `1d6bf293-c51d-4c6b-bdb8-74eec00989d6`, source provider `osm`, createdCount 33, reviewCount 33
+- 서울 1차 seed batch: `eff5b9af-3fba-447b-8c93-1d48dedc923c`, source provider `osm`, createdCount 33, reviewCount 33
+- public search evidence:
+  - `seoul0606`: 33건
+  - `hangang0606`: 9건
+  - `worldcup0606`: 4건
+  - `goyang0606`: 32건
+- `walk_poi_admin_audit_detail_v1`: remote function 존재 확인
+- admin e2e QA source: `v1.1_admin_ui_e2e_2026_06_06` 3건 확인
+- admin QA audit action count:
+  - `review_approve`: 1건
+  - `review_reject`: 1건
+  - `review_held`: 2건
+- public projection safety: non-approved public active count 0건
+- app code evidence:
+  - `src/services/locationDiscovery/walkPoiAdmin.ts`에서 `walk_poi_admin_audit_detail_v1` 호출
+  - `src/screens/LocationDiscovery/WalkPoiAdminReadOnlyScreen.tsx`에 approve/reject/held action area와 audit detail modal 존재
+
+따라서 보고서의 “서울 1차 coverage 완료”, “총 approved/public/active POI 86건”, “admin write UI e2e/action log drill-down 완료”, “다음 액션 서울 2차 coverage” 표기는 유지한다.
+
 ## 6. 현재 남은 작업
 
 ### V1.0
@@ -247,7 +274,7 @@ Play Store 제출 자산은 V1.0 기능/QA blocker가 아니며, NURI 앱 개발
 ### V1.1
 
 - 서울 주요 산책 권역 seed coverage 2차 확장
-- admin write UI e2e/action log drill-down 유지 증적 고도화
+- admin write UI queue filtering / batch drill-down 고도화
 - fallback gate 추가 적용
 - 수도권 주요 산책 권역 확장
 - 광역시/전국 seed coverage 확장
@@ -279,7 +306,7 @@ Play Store 제출 자산은 V1.0 기능/QA blocker가 아니며, NURI 앱 개발
 ## 8. 다음 액션
 
 1. 서울 주요 산책 권역 seed coverage 2차 확장
-2. admin write UI e2e/action log drill-down 운영 증적 보강
+2. admin write UI queue filtering / batch drill-down 고도화
 3. coverage 충족 권역 fallback gate 추가 적용
 4. 수도권 주요 산책 권역 확장 계획 수립
 5. Play Store 제출 자산은 전체 개발/QA 종료 후 최종 제출 직전 준비
