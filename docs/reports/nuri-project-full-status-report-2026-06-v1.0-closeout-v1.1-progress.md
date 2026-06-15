@@ -37,16 +37,16 @@
 | --- | ---: | --- |
 | V1.0 기능 개발 | 100% | P0/P1 0건, 필수 기능 closeout, Code Freeze 유지 |
 | V1.0 QA/출시 준비 | 약 96% | release APK exact install smoke, 일반 사용자 smoke, admin/super_admin 서버 계약 확인, P0 corrective 회귀 완료. Play Store 제출 자산만 최종 제출 직전 준비로 남음 |
-| V1.1 산책 POI 전환 트랙 | 약 78% | remote DB 기준 approved/public/active POI 197건, PostGIS foundation, 앱 POI RPC read path, admin import/review, admin read/write UI, 고양시/서울 1차/서울 2차/서울 보류 권역 보강 완료. 수도권/전국 coverage, 북서울꿈의숲 보강, Kakao runtime 제거가 남음 |
-| V1.1 전체 | 약 34% | 산책 POI 트랙은 진행 중이나 결제, AI, 편지함, Typography, Apple, Naver cleanup, Weather 운영 고도화 등 별도 V1.1 후보가 남음 |
-| 전체 제품 로드맵 | 약 76% | V1.0 release-ready 기준선은 닫혔고 V1.1 location foundation과 서울 보류 권역 보강까지 진행됐다. 장기 유료화/AI/전국 데이터 운영은 아직 남음 |
+| V1.1 산책 POI 전환 트랙 | 약 82% | remote DB 기준 approved/public/active POI 245건, PostGIS foundation, 앱 POI RPC read path, admin import/review, admin read/write UI, 고양시/서울/북서울꿈의숲/성남·분당·판교·탄천 1차 coverage, 한글 alias 정규화 완료. 수도권 2차/전국 coverage와 Kakao runtime 제거가 남음 |
+| V1.1 전체 | 약 36% | 산책 POI 트랙은 진척됐지만 결제, AI, 편지함, Typography, Apple, Naver cleanup, Weather 운영 고도화 등 별도 V1.1 후보가 남음 |
+| 전체 제품 로드맵 | 약 78% | V1.0 release-ready 기준선은 닫혔고 V1.1 location foundation과 수도권 1차 착수까지 진행됐다. 장기 유료화/AI/전국 데이터 운영은 아직 남음 |
 | 최종 제출 준비 | 약 20% | release artifact/provenance와 정책 URL 기준은 정리됐지만 Play Store 스크린샷, 설명문, Console 입력, store listing package는 아직 최종 제출 직전 준비로 남음 |
 
 남은 작업의 성격:
 
 - 기능 개발: V1.1 admin UI 고도화, 결제/AI/편지함/Apple 등 신규 업데이트
 - 운영 QA: 지역별 Android smoke, admin action evidence, public projection safety 반복 확인
-- 데이터 확장: 서울 보류 권역, 수도권, 광역시, 전국 POI seed coverage
+- 데이터 확장: 수도권 2차, 광역시, 전국 POI seed coverage
 - 스토어 제출 준비: Play Store 스크린샷, 설명문, 정책 URL, 문의처, store listing package
 - 장기 고도화: 자체 지도 스택, Premium AI, subscription entitlement, moderation/admin 운영 고도화
 
@@ -203,7 +203,8 @@ Admin RPC:
 - 서울 주요 산책 권역 1차 batch: 신규 33건 승인
 - 서울 주요 산책 권역 2차 batch: 신규 44건 승인
 - 서울 보류 권역 보강 batch: 신규 67건 승인
-- 현재 총 approved/public/active POI: 197건
+- seed 한글화 정규화 + 북서울꿈의숲/수도권 1차 batch: 신규 48건 승인
+- 현재 총 approved/public/active POI: 245건
 
 Coverage/fallback gate:
 
@@ -221,10 +222,10 @@ Coverage/fallback gate:
 - 보류 지역:
   - 화정 / 행신 / 삼송 / 원당
   - 서울 전체
-  - 북서울꿈의숲
   - 수도권 전체
+  - 전국 전체
 - 보류 사유:
-  - 3km approved 10건, 5km approved 20건 기준을 아직 충족하지 못한 권역이 있음
+  - 수도권 전체와 전국 전체는 아직 단일 gate를 적용할 coverage 단위가 아니다.
 
 Android 실기기 smoke:
 
@@ -279,7 +280,7 @@ Android 실기기 smoke:
   - `seoul_ttukseom_seoulforest`
 - Android 실기기 evidence:
   - `SM_S937N` / Galaxy 멀티윈도우 보존
-  - `SeoulWorldcupNanji` route에서 `하늘공원` 리스트 카드와 상세 진입 확인
+  - `서울 월드컵공원·난지·망원 권역` route에서 `하늘공원` 리스트 카드와 상세 진입 확인
   - `9999` 검색 empty state와 `poi_empty`, `gateLimited: true`, `gateRegionId: seoul_worldcup_nanji_mangwon` logcat 확인
   - fatal / ANR / unhandled promise / ReactNativeJS fatal pattern 0건
 
@@ -313,10 +314,42 @@ Android 실기기 smoke:
   - 수도권 전체: 다음 별도 batch에서 착수
 - Android 실기기 evidence:
   - `SM_S937N` / Galaxy 멀티윈도우 보존
-  - `SeoulSongpaOlympic` route에서 `몽촌호 산책로` 리스트 카드와 상세 진입 확인
+  - `서울 송파·올림픽공원·석촌호수 권역` route에서 `몽촌호 산책로` 리스트 카드와 상세 진입 확인
   - `poi_empty`, `gateLimited: true`, `gateRegionId: seoul_songpa_olympic_lake` logcat 확인
   - POI RPC timeout 조건에서 기존 `location-discovery-seed` fallback 호출 유지 확인
   - fatal / ANR / unhandled promise / ReactNativeJS fatal pattern 0건
+
+### 2026-06-15 seed 한글화 정규화 / 북서울꿈의숲 / 수도권 1차 근거
+
+- seed/alias normalization SQL: `docs/sql/산책-위치기반-기능/v1.1-walk-poi-korean-normalization-bukseoul-metro-seed-coverage-2026-06-15.sql`
+- rollback SQL: `docs/sql/산책-위치기반-기능/v1.1-walk-poi-korean-normalization-bukseoul-metro-seed-rollback-2026-06-15.sql`
+- import batch: `b6764de4-6a8c-4fb6-a1dd-998e6195379b`
+- 신규 approved seed: 48건
+- 총 approved/public/active POI: 245건
+- public 표시 필드 영어 노출: 0건
+- alias normalization audit: `alias_localization` 173건
+- public RPC smoke:
+  - 북서울꿈의숲 nearby 5km: 27건
+  - `북서울꿈의숲 산책` search: 18건
+  - 성남·분당·판교·탄천 nearby 5km: 40건
+  - `성남·분당·판교·탄천 권역` search: 40건
+  - `수도권 1차 0615` search: 40건
+  - detail sample `구미동 탄천 산책로`: 1건
+- public projection safety:
+  - pending/rejected/held public active leak: 0건
+  - anon direct table SELECT: permission denied
+  - 비관리자 admin import RPC: `WALK_POI_ADMIN_REQUIRED`
+- Android smoke:
+  - release APK update install 후 `서울 북서울꿈의숲 권역` 신규 seed 리스트, `석계역문화공원` 상세, `성남·분당·판교·탄천 권역` 리스트를 확인했다.
+  - Galaxy 멀티윈도우를 보존했고 NURI 외 앱을 종료하지 않았다.
+  - NURI PID 한정 logcat fatal / ANR / unhandled promise / ReactNativeJS fatal pattern은 0건이다.
+- fallback gate 추가 적용:
+  - 북서울꿈의숲: 3km 20건, 5km 27건
+  - 성남·분당·판교·탄천: 3km 29건, 5km 40건
+- fallback gate 보류:
+  - 서울 전체
+  - 수도권 전체
+  - 전국 전체
 
 ## 6. 현재 남은 작업
 
@@ -345,8 +378,8 @@ Play Store 제출 자산은 V1.0 기능/QA blocker가 아니며, NURI 앱 개발
 
 ### V1.1
 
-- 수도권 주요 산책 권역 seed coverage 확장
-- 북서울꿈의숲 5km coverage 보강
+- 수도권 주요 산책 권역 2차 seed coverage 확장
+- gate 적용 권역의 fallback 비율/empty UX 추가 검증
 - admin write UI queue filtering / batch drill-down 고도화
 - coverage 충족 권역 fallback gate 추가 적용
 - 수도권 주요 산책 권역 확장
@@ -378,8 +411,8 @@ Play Store 제출 자산은 V1.0 기능/QA blocker가 아니며, NURI 앱 개발
 
 ## 8. 다음 액션
 
-1. 수도권 주요 산책 권역 seed coverage 1차 batch 착수
-2. 북서울꿈의숲 5km coverage 보강 및 fallback gate 재판정
+1. 수도권 주요 산책 권역 2차 seed coverage 착수
+2. gate 적용 권역의 fallback 비율/empty UX 추가 검증
 3. admin write UI queue filtering / batch drill-down 고도화
-4. 고양시 보류 생활권 또는 북서울꿈의숲 보강 계획 수립
+4. 광역시 주요 산책 권역 seed coverage 준비
 5. Play Store 제출 자산은 전체 개발/QA 종료 후 최종 제출 직전 준비

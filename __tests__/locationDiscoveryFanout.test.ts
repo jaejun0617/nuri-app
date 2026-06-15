@@ -57,7 +57,7 @@ const WALK_BASE_KEYWORDS = [
 ] as const;
 
 const ANCHOR_COORDINATES = {
-  latitude: 37.421,
+  latitude: 36.421,
   longitude: 127.108,
   accuracy: 20,
   capturedAt: 1_776_000_000_000,
@@ -129,6 +129,20 @@ const SEOUL_ANYANGCHEON_COVERAGE_COORDINATES = {
 const SEOUL_BORAMAE_COVERAGE_COORDINATES = {
   latitude: 37.492,
   longitude: 126.919,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const SEOUL_DREAMFOREST_COVERAGE_COORDINATES = {
+  latitude: 37.6226,
+  longitude: 127.0427,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const METRO_BUNDANG_PANGYO_TANCHEON_COVERAGE_COORDINATES = {
+  latitude: 37.382,
+  longitude: 127.118,
   accuracy: 20,
   capturedAt: 1_776_000_000_000,
   source: 'gps' as const,
@@ -313,6 +327,28 @@ describe('location discovery walk Kakao fan-out guard', () => {
       SEOUL_JUNGNANG_COVERAGE_COORDINATES,
       SEOUL_ANYANGCHEON_COVERAGE_COORDINATES,
       SEOUL_BORAMAE_COVERAGE_COORDINATES,
+    ] as const;
+
+    for (const coordinates of coverageCoordinates) {
+      jest.clearAllMocks();
+      searchWalkPoiLocations.mockResolvedValue([]);
+
+      const result = await searchLocationDiscovery(
+        'walk',
+        createSearchInput('zzzwalkpoi', coordinates),
+      );
+
+      expect(result.items).toHaveLength(0);
+      expect(result.source).toBe('walk_poi');
+      expect(searchWalkPoiLocations).toHaveBeenCalledTimes(1);
+      expect(kakaoLocalSearchProvider.searchKeyword).not.toHaveBeenCalled();
+    }
+  });
+
+  it('북서울꿈의숲과 수도권 1차 coverage region은 POI 0건 fallback을 제한한다', async () => {
+    const coverageCoordinates = [
+      SEOUL_DREAMFOREST_COVERAGE_COORDINATES,
+      METRO_BUNDANG_PANGYO_TANCHEON_COVERAGE_COORDINATES,
     ] as const;
 
     for (const coordinates of coverageCoordinates) {

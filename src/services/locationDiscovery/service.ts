@@ -59,7 +59,7 @@ const WALK_NEARBY_TARGET_ITEM_COUNT = 8;
 const WALK_POI_FALLBACK_GATE_REGIONS = [
   {
     id: 'ilsan_juyeop_lakepark',
-    label: '일산/주엽/호수공원 생활권',
+    label: '일산·주엽·호수공원 생활권',
     center: {
       latitude: 37.676492,
       longitude: 126.767888,
@@ -68,7 +68,7 @@ const WALK_POI_FALLBACK_GATE_REGIONS = [
   },
   {
     id: 'baekseok_madu_jeongbalsan',
-    label: '백석/마두/정발산 생활권',
+    label: '백석·마두·정발산 생활권',
     center: {
       latitude: 37.6433,
       longitude: 126.7882,
@@ -77,7 +77,7 @@ const WALK_POI_FALLBACK_GATE_REGIONS = [
   },
   {
     id: 'seoul_worldcup_nanji_mangwon',
-    label: '서울 월드컵공원/난지/망원 생활권',
+    label: '서울 월드컵공원·난지·망원 권역',
     center: {
       latitude: 37.5647,
       longitude: 126.8872,
@@ -86,7 +86,7 @@ const WALK_POI_FALLBACK_GATE_REGIONS = [
   },
   {
     id: 'seoul_banpo_jamwon_ichon',
-    label: '서울 반포/잠원/이촌 한강 생활권',
+    label: '서울 반포·잠원·이촌 한강 권역',
     center: {
       latitude: 37.5146,
       longitude: 126.9919,
@@ -95,7 +95,7 @@ const WALK_POI_FALLBACK_GATE_REGIONS = [
   },
   {
     id: 'seoul_ttukseom_seoulforest',
-    label: '서울 뚝섬/서울숲 생활권',
+    label: '서울 뚝섬·서울숲 권역',
     center: {
       latitude: 37.5392,
       longitude: 127.0479,
@@ -104,7 +104,7 @@ const WALK_POI_FALLBACK_GATE_REGIONS = [
   },
   {
     id: 'seoul_songpa_olympic_lake',
-    label: '서울 송파/올림픽공원/석촌호수 생활권',
+    label: '서울 송파·올림픽공원·석촌호수 권역',
     center: {
       latitude: 37.5165,
       longitude: 127.116,
@@ -113,7 +113,7 @@ const WALK_POI_FALLBACK_GATE_REGIONS = [
   },
   {
     id: 'seoul_yangjae_tancheon',
-    label: '서울 양재천/탄천 생활권',
+    label: '서울 양재천·탄천 권역',
     center: {
       latitude: 37.4805,
       longitude: 127.0405,
@@ -122,7 +122,7 @@ const WALK_POI_FALLBACK_GATE_REGIONS = [
   },
   {
     id: 'seoul_jungnangcheon',
-    label: '서울 중랑천 생활권',
+    label: '서울 중랑천 권역',
     center: {
       latitude: 37.608,
       longitude: 127.067,
@@ -131,7 +131,7 @@ const WALK_POI_FALLBACK_GATE_REGIONS = [
   },
   {
     id: 'seoul_anyangcheon',
-    label: '서울 안양천 생활권',
+    label: '서울 안양천 권역',
     center: {
       latitude: 37.5185,
       longitude: 126.881,
@@ -140,10 +140,28 @@ const WALK_POI_FALLBACK_GATE_REGIONS = [
   },
   {
     id: 'seoul_boramae_dorimcheon',
-    label: '서울 보라매/도림천 생활권',
+    label: '서울 보라매·도림천 권역',
     center: {
       latitude: 37.492,
       longitude: 126.919,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'seoul_dreamforest',
+    label: '서울 북서울꿈의숲 권역',
+    center: {
+      latitude: 37.6226,
+      longitude: 127.0427,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'metro_bundang_pangyo_tancheon',
+    label: '성남·분당·판교·탄천 권역',
+    center: {
+      latitude: 37.382,
+      longitude: 127.118,
     },
     radiusMeters: 5000,
   },
