@@ -147,6 +147,27 @@ const METRO_BUNDANG_PANGYO_TANCHEON_COVERAGE_COORDINATES = {
   capturedAt: 1_776_000_000_000,
   source: 'gps' as const,
 };
+const METRO_HANAM_MISA_HANGANG_COVERAGE_COORDINATES = {
+  latitude: 37.5665,
+  longitude: 127.19,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const METRO_SUWON_GWANGGYO_LAKE_COVERAGE_COORDINATES = {
+  latitude: 37.285,
+  longitude: 127.066,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const METRO_GWACHEON_SEOUL_GRAND_PARK_COVERAGE_COORDINATES = {
+  latitude: 37.435,
+  longitude: 127.014,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
 
 function createSearchInput(
   query: string | null,
@@ -193,7 +214,9 @@ function getKeywordCalls(): LocationSearchProviderInput[] {
 
 describe('location discovery walk Kakao fan-out guard', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    kakaoLocalSearchProvider.searchKeyword.mockReset();
+    kakaoLocalSearchProvider.searchAddress.mockReset();
+    searchWalkPoiLocations.mockReset();
     searchWalkPoiLocations.mockResolvedValue([]);
   });
 
@@ -285,6 +308,26 @@ describe('location discovery walk Kakao fan-out guard', () => {
     expect(kakaoLocalSearchProvider.searchKeyword).not.toHaveBeenCalled();
   });
 
+  it('coverage region 밖에서는 POI 0건이어도 Kakao fallback을 유지한다', async () => {
+    kakaoLocalSearchProvider.searchKeyword.mockResolvedValue([
+      createWalkDocument({
+        id: 'fallback:outside-gate',
+        name: 'coverage 밖 fallback 산책공원',
+        distanceMeters: 520,
+      }),
+    ]);
+
+    const result = await searchLocationDiscovery(
+      'walk',
+      createSearchInput('zzzwalkpoi', ANCHOR_COORDINATES),
+    );
+
+    expect(result.source).toBe('kakao');
+    expect(result.items).toHaveLength(1);
+    expect(searchWalkPoiLocations).toHaveBeenCalledTimes(1);
+    expect(kakaoLocalSearchProvider.searchKeyword).toHaveBeenCalled();
+  });
+
   it('백석/마두/정발산 coverage region 안에서도 POI 0건 fallback을 제한한다', async () => {
     const result = await searchLocationDiscovery(
       'walk',
@@ -365,5 +408,52 @@ describe('location discovery walk Kakao fan-out guard', () => {
       expect(searchWalkPoiLocations).toHaveBeenCalledTimes(1);
       expect(kakaoLocalSearchProvider.searchKeyword).not.toHaveBeenCalled();
     }
+  });
+
+  it('수도권 2차 coverage region은 POI 0건 fallback을 제한한다', async () => {
+    const coverageCoordinates = [
+      METRO_HANAM_MISA_HANGANG_COVERAGE_COORDINATES,
+      METRO_SUWON_GWANGGYO_LAKE_COVERAGE_COORDINATES,
+      METRO_GWACHEON_SEOUL_GRAND_PARK_COVERAGE_COORDINATES,
+    ] as const;
+
+    for (const coordinates of coverageCoordinates) {
+      jest.clearAllMocks();
+      searchWalkPoiLocations.mockResolvedValue([]);
+
+      const result = await searchLocationDiscovery(
+        'walk',
+        createSearchInput('zzzwalkpoi', coordinates),
+      );
+
+      expect(result.items).toHaveLength(0);
+      expect(result.source).toBe('walk_poi');
+      expect(searchWalkPoiLocations).toHaveBeenCalledTimes(1);
+      expect(kakaoLocalSearchProvider.searchKeyword).not.toHaveBeenCalled();
+    }
+  });
+
+  it('coverage region 안에서도 POI RPC error는 Kakao fallback을 유지한다', async () => {
+    searchWalkPoiLocations.mockRejectedValueOnce(new Error('rpc timeout'));
+    kakaoLocalSearchProvider.searchKeyword.mockResolvedValue([
+      createWalkDocument({
+        id: 'fallback:hanam',
+        name: '하남 fallback 산책공원',
+        distanceMeters: 420,
+      }),
+    ]);
+
+    const result = await searchLocationDiscovery(
+      'walk',
+      createSearchInput(
+        '하남 산책',
+        METRO_HANAM_MISA_HANGANG_COVERAGE_COORDINATES,
+      ),
+    );
+
+    expect(result.source).toBe('kakao');
+    expect(result.items).toHaveLength(1);
+    expect(searchWalkPoiLocations).toHaveBeenCalledTimes(1);
+    expect(kakaoLocalSearchProvider.searchKeyword).toHaveBeenCalled();
   });
 });

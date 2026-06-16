@@ -165,6 +165,33 @@ const WALK_POI_FALLBACK_GATE_REGIONS = [
     },
     radiusMeters: 5000,
   },
+  {
+    id: 'metro_hanam_misa_hangang',
+    label: '하남·미사한강공원 권역',
+    center: {
+      latitude: 37.5665,
+      longitude: 127.19,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'metro_suwon_gwanggyo_lake',
+    label: '수원·광교호수공원 권역',
+    center: {
+      latitude: 37.285,
+      longitude: 127.066,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'metro_gwacheon_seoul_grand_park',
+    label: '과천·서울대공원 권역',
+    center: {
+      latitude: 37.435,
+      longitude: 127.014,
+    },
+    radiusMeters: 5000,
+  },
 ] as const;
 const PLACE_DEFAULT_QUERIES = [
   '애견동반 카페',

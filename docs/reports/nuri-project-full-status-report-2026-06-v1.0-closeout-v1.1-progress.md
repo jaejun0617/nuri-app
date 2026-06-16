@@ -1,8 +1,10 @@
 # NURI 전체 프로젝트 현황 보고서
 
-기준일: 2026-06-15
-최종 정합성 검수일: 2026-06-15
+기준일: 2026-06-16
+최종 정합성 검수일: 2026-06-16
 문서 목적: ChatGPT, Codex, 운영자, 후속 개발 세션이 현재 NURI 앱의 전체 맥락을 한 번에 파악하기 위한 source of truth 문서
+
+최신 갱신: 2026-06-16 수도권 2차 seed coverage에서 하남·미사한강공원, 수원·광교호수공원, 과천·서울대공원 권역 60건을 `operator-seed` admin import/review workflow로 승인했다. 총 approved/public/active POI는 305건이고, 3개 권역은 3km 10건/5km 20건 기준을 충족해 fallback gate 추가 적용 대상으로 전환됐다. Kakao Local runtime은 삭제하지 않는다.
 
 ## 1. 문서 목적
 
@@ -37,16 +39,16 @@
 | --- | ---: | --- |
 | V1.0 기능 개발 | 100% | P0/P1 0건, 필수 기능 closeout, Code Freeze 유지 |
 | V1.0 QA/출시 준비 | 약 96% | release APK exact install smoke, 일반 사용자 smoke, admin/super_admin 서버 계약 확인, P0 corrective 회귀 완료. Play Store 제출 자산만 최종 제출 직전 준비로 남음 |
-| V1.1 산책 POI 전환 트랙 | 약 82% | remote DB 기준 approved/public/active POI 245건, PostGIS foundation, 앱 POI RPC read path, admin import/review, admin read/write UI, 고양시/서울/북서울꿈의숲/성남·분당·판교·탄천 1차 coverage, 한글 alias 정규화 완료. 수도권 2차/전국 coverage와 Kakao runtime 제거가 남음 |
-| V1.1 전체 | 약 36% | 산책 POI 트랙은 진척됐지만 결제, AI, 편지함, Typography, Apple, Naver cleanup, Weather 운영 고도화 등 별도 V1.1 후보가 남음 |
-| 전체 제품 로드맵 | 약 78% | V1.0 release-ready 기준선은 닫혔고 V1.1 location foundation과 수도권 1차 착수까지 진행됐다. 장기 유료화/AI/전국 데이터 운영은 아직 남음 |
+| V1.1 산책 POI 전환 트랙 | 약 85% | remote DB 기준 approved/public/active POI 305건, PostGIS foundation, 앱 POI RPC read path, admin import/review, admin read/write UI, 고양시/서울/북서울꿈의숲/성남·분당·판교·탄천/수도권 2차 coverage, 한글 표시값 기준 유지, gate 적용 권역 empty/RPC error fallback 회귀 test 완료. 수도권 3차/광역시/전국 coverage와 Kakao runtime 제거가 남음 |
+| V1.1 전체 | 약 38% | 산책 POI 트랙은 진척됐지만 결제, AI, 편지함, Typography, Apple, Naver cleanup, Weather 운영 고도화 등 별도 V1.1 후보가 남음 |
+| 전체 제품 로드맵 | 약 80% | V1.0 release-ready 기준선은 닫혔고 V1.1 location foundation과 수도권 2차 coverage까지 진행됐다. 장기 유료화/AI/전국 데이터 운영은 아직 남음 |
 | 최종 제출 준비 | 약 20% | release artifact/provenance와 정책 URL 기준은 정리됐지만 Play Store 스크린샷, 설명문, Console 입력, store listing package는 아직 최종 제출 직전 준비로 남음 |
 
 남은 작업의 성격:
 
 - 기능 개발: V1.1 admin UI 고도화, 결제/AI/편지함/Apple 등 신규 업데이트
 - 운영 QA: 지역별 Android smoke, admin action evidence, public projection safety 반복 확인
-- 데이터 확장: 수도권 2차, 광역시, 전국 POI seed coverage
+- 데이터 확장: 수도권 3차, 광역시, 전국 POI seed coverage
 - 스토어 제출 준비: Play Store 스크린샷, 설명문, 정책 URL, 문의처, store listing package
 - 장기 고도화: 자체 지도 스택, Premium AI, subscription entitlement, moderation/admin 운영 고도화
 
@@ -351,6 +353,48 @@ Android 실기기 smoke:
   - 수도권 전체
   - 전국 전체
 
+### 2026-06-16 수도권 2차 coverage / gate 적용 권역 empty UX 검증 근거
+
+- 추가 seed: 60건
+- 대상 권역:
+  - 하남·미사한강공원
+  - 수원·광교호수공원
+  - 과천·서울대공원
+- import batch: `d03e7cef-fb93-4b45-9e61-ec0c926952da`
+- source provider: `operator-seed`
+- source/attribution: `누리 운영자 검수 자료 · 수도권 2차 산책 권역 · 2026-06-16`
+- 총 approved/public/active POI: 305건
+- import summary: requested 60, created 60, review 60, duplicate 0, conflict 0, skipped 0
+- rollback SQL: `docs/sql/산책-위치기반-기능/v1.1-walk-poi-metro-2nd-seed-rollback-2026-06-16.sql`
+
+coverage 측정:
+
+| 권역 | 3km | 5km | search | 판정 |
+| --- | ---: | ---: | ---: | --- |
+| 하남·미사한강공원 | 17건 | 21건 | 20건 | gate 적용 |
+| 수원·광교호수공원 | 20건 | 20건 | 20건 | gate 적용 |
+| 과천·서울대공원 | 20건 | 23건 | 20건 | gate 적용 |
+
+검증:
+
+- focused Jest `__tests__/locationDiscoveryFanout.test.ts`: 11개 통과
+- gate 내부 POI 0건: Kakao fallback 제한
+- gate 밖 POI 0건: 기존 Kakao fallback 유지
+- POI RPC error: 기존 Kakao fallback 유지
+- Android 실기기 smoke:
+  - 하남·미사한강공원 권역 deep link 리스트 표시 확인
+  - `0616` 검색 결과 확인
+  - `9999` 검색 empty state와 `poi_empty`, `gateLimited: true`, `gateRegionId: metro_hanam_misa_hangang` logcat 확인
+  - `미사한강공원 중앙 산책로` 상세 진입 확인
+  - 수원·광교호수공원 권역 리스트 표시 확인
+  - 과천·서울대공원 권역 리스트 표시 확인
+  - NURI PID 기준 fatal / ANR / unhandled promise / ReactNativeJS fatal pattern 0건
+- 신규 seed public 표시 필드 영문 노출: 0건
+- pending/rejected/held public active leak: 0건
+- anon direct table SELECT: `42501 permission denied`
+- 비관리자 admin RPC: `WALK_POI_ADMIN_REQUIRED`
+- Kakao Local runtime: 삭제하지 않음
+
 ## 6. 현재 남은 작업
 
 ### V1.0
@@ -378,8 +422,8 @@ Play Store 제출 자산은 V1.0 기능/QA blocker가 아니며, NURI 앱 개발
 
 ### V1.1
 
-- 수도권 주요 산책 권역 2차 seed coverage 확장
-- gate 적용 권역의 fallback 비율/empty UX 추가 검증
+- 수도권 주요 산책 권역 3차 seed coverage 확장
+- gate 적용 권역의 fallback 비율/empty UX 지속 검증
 - admin write UI queue filtering / batch drill-down 고도화
 - coverage 충족 권역 fallback gate 추가 적용
 - 수도권 주요 산책 권역 확장
@@ -411,8 +455,8 @@ Play Store 제출 자산은 V1.0 기능/QA blocker가 아니며, NURI 앱 개발
 
 ## 8. 다음 액션
 
-1. 수도권 주요 산책 권역 2차 seed coverage 착수
-2. gate 적용 권역의 fallback 비율/empty UX 추가 검증
+1. 수도권 주요 산책 권역 3차 seed coverage 착수
+2. gate 적용 권역의 fallback 비율/empty UX 지속 검증
 3. admin write UI queue filtering / batch drill-down 고도화
 4. 광역시 주요 산책 권역 seed coverage 준비
 5. Play Store 제출 자산은 전체 개발/QA 종료 후 최종 제출 직전 준비
