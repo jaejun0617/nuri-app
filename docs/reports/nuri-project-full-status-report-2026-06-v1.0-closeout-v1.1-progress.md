@@ -395,6 +395,35 @@ coverage 측정:
 - 비관리자 admin RPC: `WALK_POI_ADMIN_REQUIRED`
 - Kakao Local runtime: 삭제하지 않음
 
+## 2026-06-17 V1.1 수도권 3차 / 전국 주요 도시 1차 업데이트
+
+- 수도권 3차 seed: 80건 승인
+- 수도권 3차 import batch: `ee62c190-595e-4e42-a50c-56301b8dcfb2`
+- 수도권 3차 대상: 인천 송도 센트럴파크, 부천 상동호수공원, 안양·학의천·안양천, 남양주·다산·왕숙천
+- 전국 주요 도시 1차 seed: 80건 승인
+- 전국 주요 도시 1차 import batch: `88910305-736c-4e9c-bb09-3d0d735e4be9`
+- 전국 주요 도시 1차 대상: 부산 해운대·동백섬, 대구 수성못, 대전 갑천·엑스포, 울산 태화강 국가정원
+- 총 approved/public/active POI: 465건
+- admin workflow: `walk_poi_admin_import_commit_v1` -> `walk_poi_admin_review_v1(approve)`
+- public projection safety: pending/rejected/held leak 0건, raw/source/review/audit public RPC 미노출
+- 권한 safety: anon direct table SELECT `42501 permission denied`, 비관리자 admin RPC `WALK_POI_ADMIN_REQUIRED`
+- fallback gate 신규 적용: 인천 송도, 부천 상동, 안양·학의천·안양천, 남양주·다산·왕숙천, 부산 해운대·동백섬, 대구 수성못, 대전 갑천·엑스포, 울산 태화강 국가정원
+- fallback gate 보류: 서울 전체, 수도권 전체, 전국 전체, 미처리 광역 권역
+- Android smoke: `SM_S937N`에서 Galaxy 멀티윈도우를 보존한 채 송도 리스트/상세, 부산 리스트, `9999` empty UX와 `gateLimited: true` logcat을 확인했다.
+- logcat: fatal / ANR / unhandled promise / ReactNativeJS fatal pattern 0건
+- Kakao Local runtime: 삭제하지 않음
+
+현재 진행률 요약:
+
+| 구분 | 진행률 | 근거 |
+| --- | ---: | --- |
+| V1.0 기능 개발 | 100% | P0/P1 0건, 기능 Code Freeze 유지 |
+| V1.0 QA/출시 준비 | 약 96% | release/Android smoke와 주요 서버 gate 완료, Play Store 제출 자산은 최종 제출 직전 준비 |
+| V1.1 산책 POI 트랙 | 약 89% | PostGIS/RPC/admin workflow/admin UI/read path/fallback gate, POI 465건까지 진행. 전국 coverage와 runtime 제거 gate는 남음 |
+| V1.1 전체 | 약 41% | 산책 POI 트랙은 상당히 진행됐지만 결제/AI/편지함/타이포/지도 스택 등 장기 후보가 남음 |
+| 전체 제품 로드맵 | 약 82% | V1.0 closeout + V1.1 핵심 POI 운영 확장 진행 기준 |
+| 최종 제출 준비 | 약 20% | Play Store 스크린샷, 설명문, Console 입력은 아직 별도 단계 |
+
 ## 6. 현재 남은 작업
 
 ### V1.0
@@ -422,7 +451,8 @@ Play Store 제출 자산은 V1.0 기능/QA blocker가 아니며, NURI 앱 개발
 
 ### V1.1
 
-- 수도권 주요 산책 권역 3차 seed coverage 확장
+- 전국 seed 2차 확대
+- Kakao Local runtime 제거 조건 검토
 - gate 적용 권역의 fallback 비율/empty UX 지속 검증
 - admin write UI queue filtering / batch drill-down 고도화
 - coverage 충족 권역 fallback gate 추가 적용
@@ -455,8 +485,8 @@ Play Store 제출 자산은 V1.0 기능/QA blocker가 아니며, NURI 앱 개발
 
 ## 8. 다음 액션
 
-1. 수도권 주요 산책 권역 3차 seed coverage 착수
-2. gate 적용 권역의 fallback 비율/empty UX 지속 검증
-3. admin write UI queue filtering / batch drill-down 고도화
-4. 광역시 주요 산책 권역 seed coverage 준비
+1. 전국 seed 2차 확대
+2. Kakao Local runtime 제거 조건 검토
+3. gate 적용 권역의 fallback 비율/empty UX 지속 검증
+4. admin write UI queue filtering / batch drill-down 고도화
 5. Play Store 제출 자산은 전체 개발/QA 종료 후 최종 제출 직전 준비

@@ -192,6 +192,78 @@ const WALK_POI_FALLBACK_GATE_REGIONS = [
     },
     radiusMeters: 5000,
   },
+  {
+    id: 'metro_incheon_songdo_central_park',
+    label: '인천 송도 센트럴파크 권역',
+    center: {
+      latitude: 37.3925,
+      longitude: 126.6375,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'metro_bucheon_sangdong_lake',
+    label: '부천 상동호수공원 권역',
+    center: {
+      latitude: 37.5037,
+      longitude: 126.7446,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'metro_anyang_hagui_anyangcheon',
+    label: '안양·학의천·안양천 권역',
+    center: {
+      latitude: 37.394,
+      longitude: 126.955,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'metro_namyangju_dasan_wangsukcheon',
+    label: '남양주·다산·왕숙천 권역',
+    center: {
+      latitude: 37.612,
+      longitude: 127.159,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'national_busan_haeundae_dongbaek',
+    label: '부산 해운대·동백섬 권역',
+    center: {
+      latitude: 35.1587,
+      longitude: 129.158,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'national_daegu_suseong_lake',
+    label: '대구 수성못 권역',
+    center: {
+      latitude: 35.828,
+      longitude: 128.614,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'national_daejeon_gapcheon_expo',
+    label: '대전 갑천·엑스포 권역',
+    center: {
+      latitude: 36.374,
+      longitude: 127.387,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'national_ulsan_taehwagang_garden',
+    label: '울산 태화강 국가정원 권역',
+    center: {
+      latitude: 35.548,
+      longitude: 129.298,
+    },
+    radiusMeters: 5000,
+  },
 ] as const;
 const PLACE_DEFAULT_QUERIES = [
   '애견동반 카페',

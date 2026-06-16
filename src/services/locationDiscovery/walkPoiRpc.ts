@@ -18,8 +18,8 @@ import type {
   LocationDiscoverySearchInput,
 } from './types';
 
-const WALK_POI_RPC_TIMEOUT_MS = 7000;
-const WALK_POI_DEFAULT_LIMIT = 12;
+const WALK_POI_RPC_TIMEOUT_MS = 12000;
+const WALK_POI_DEFAULT_LIMIT = 8;
 const WALK_POI_NEARBY_RADIUS_METERS = 5500;
 const WALK_POI_SEARCH_RADIUS_METERS = 20000;
 

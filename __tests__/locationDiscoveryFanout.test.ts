@@ -168,6 +168,62 @@ const METRO_GWACHEON_SEOUL_GRAND_PARK_COVERAGE_COORDINATES = {
   capturedAt: 1_776_000_000_000,
   source: 'gps' as const,
 };
+const METRO_INCHEON_SONGDO_CENTRAL_PARK_COVERAGE_COORDINATES = {
+  latitude: 37.3925,
+  longitude: 126.6375,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const METRO_BUCHEON_SANGDONG_LAKE_COVERAGE_COORDINATES = {
+  latitude: 37.5037,
+  longitude: 126.7446,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const METRO_ANYANG_HAGUI_ANYANGCHEON_COVERAGE_COORDINATES = {
+  latitude: 37.394,
+  longitude: 126.955,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const METRO_NAMYANGJU_DASAN_WANGSUKCHEON_COVERAGE_COORDINATES = {
+  latitude: 37.612,
+  longitude: 127.159,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const NATIONAL_BUSAN_HAEUNDAE_DONGBAEK_COVERAGE_COORDINATES = {
+  latitude: 35.1587,
+  longitude: 129.158,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const NATIONAL_DAEGU_SUSEONG_LAKE_COVERAGE_COORDINATES = {
+  latitude: 35.828,
+  longitude: 128.614,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const NATIONAL_DAEJEON_GAPCHEON_EXPO_COVERAGE_COORDINATES = {
+  latitude: 36.374,
+  longitude: 127.387,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const NATIONAL_ULSAN_TAEHWAGANG_GARDEN_COVERAGE_COORDINATES = {
+  latitude: 35.548,
+  longitude: 129.298,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
 
 function createSearchInput(
   query: string | null,
@@ -415,6 +471,34 @@ describe('location discovery walk Kakao fan-out guard', () => {
       METRO_HANAM_MISA_HANGANG_COVERAGE_COORDINATES,
       METRO_SUWON_GWANGGYO_LAKE_COVERAGE_COORDINATES,
       METRO_GWACHEON_SEOUL_GRAND_PARK_COVERAGE_COORDINATES,
+    ] as const;
+
+    for (const coordinates of coverageCoordinates) {
+      jest.clearAllMocks();
+      searchWalkPoiLocations.mockResolvedValue([]);
+
+      const result = await searchLocationDiscovery(
+        'walk',
+        createSearchInput('zzzwalkpoi', coordinates),
+      );
+
+      expect(result.items).toHaveLength(0);
+      expect(result.source).toBe('walk_poi');
+      expect(searchWalkPoiLocations).toHaveBeenCalledTimes(1);
+      expect(kakaoLocalSearchProvider.searchKeyword).not.toHaveBeenCalled();
+    }
+  });
+
+  it('수도권 3차와 전국 1차 coverage region은 POI 0건 fallback을 제한한다', async () => {
+    const coverageCoordinates = [
+      METRO_INCHEON_SONGDO_CENTRAL_PARK_COVERAGE_COORDINATES,
+      METRO_BUCHEON_SANGDONG_LAKE_COVERAGE_COORDINATES,
+      METRO_ANYANG_HAGUI_ANYANGCHEON_COVERAGE_COORDINATES,
+      METRO_NAMYANGJU_DASAN_WANGSUKCHEON_COVERAGE_COORDINATES,
+      NATIONAL_BUSAN_HAEUNDAE_DONGBAEK_COVERAGE_COORDINATES,
+      NATIONAL_DAEGU_SUSEONG_LAKE_COVERAGE_COORDINATES,
+      NATIONAL_DAEJEON_GAPCHEON_EXPO_COVERAGE_COORDINATES,
+      NATIONAL_ULSAN_TAEHWAGANG_GARDEN_COVERAGE_COORDINATES,
     ] as const;
 
     for (const coordinates of coverageCoordinates) {
