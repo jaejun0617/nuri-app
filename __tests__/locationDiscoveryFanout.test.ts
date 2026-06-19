@@ -1,6 +1,7 @@
 import type {
   KakaoAddressDocument,
   KakaoPlaceDocument,
+  LocationDiscoveryItem,
   LocationDiscoverySearchInput,
 } from '../src/services/locationDiscovery/types';
 import type { LocationSearchProviderInput } from '../src/services/locationDiscovery/provider';
@@ -38,7 +39,7 @@ const { searchWalkPoiLocations } = jest.requireMock(
   '../src/services/locationDiscovery/walkPoiRpc',
 ) as {
   searchWalkPoiLocations: jest.Mock<
-    Promise<ReadonlyArray<never>>,
+    Promise<ReadonlyArray<LocationDiscoveryItem>>,
     [LocationDiscoverySearchInput]
   >;
 };
@@ -339,6 +340,76 @@ function createWalkDocument(input: {
   };
 }
 
+function createWalkPoiItem(input: {
+  id: string;
+  name: string;
+  distanceMeters: number;
+}): LocationDiscoveryItem {
+  return {
+    id: input.id,
+    domain: 'walk',
+    kind: 'walk-spot',
+    name: input.name,
+    description: `${input.name} 운영 검수 산책 장소`,
+    categoryLabel: '산책 장소',
+    address: '광주광역시 서구 치평동',
+    roadAddress: '광주광역시 서구 상무대로',
+    distanceMeters: input.distanceMeters,
+    distanceLabel: `${input.distanceMeters}m`,
+    estimatedMinutes: 15,
+    latitude: NATIONAL_GWANGJU_STREAM_YEONGSAN_COVERAGE_COORDINATES.latitude,
+    longitude: NATIONAL_GWANGJU_STREAM_YEONGSAN_COVERAGE_COORDINATES.longitude,
+    placeUrl: null,
+    phone: null,
+    operatingStatusLabel: null,
+    source: {
+      provider: 'walk_poi',
+      providerLabel: 'NURI 자체 POI',
+      type: 'canonical-poi',
+      externalPlaceId: null,
+    },
+    verification: {
+      status: 'admin-verified',
+      label: '운영 검수 반영',
+      description: 'NURI 자체 POI 기준으로 공개된 산책 장소예요.',
+      tone: 'positive',
+      sourceLabel: 'NURI 운영 검수',
+      requiresConfirmation: false,
+    },
+    publicTrust: {
+      publicLabel: 'trust_reviewed',
+      label: '검수 반영',
+      shortReason: '운영 검수로 공개 중인 자체 산책 POI예요.',
+      description: '앱 공개용 projection에서 승인된 산책 장소만 표시해요.',
+      guidance: '현장 상황은 바뀔 수 있으니 방문 전 주변 환경을 확인해 주세요.',
+      tone: 'positive',
+      sourceLabel: 'NURI 운영 검수',
+      basisDate: null,
+      basisDateLabel: null,
+      isStale: false,
+      hasConflict: false,
+      layers: ['trust'],
+    },
+    userLayer: {
+      targetId: input.id,
+      supportsBookmark: false,
+      supportsReport: false,
+    },
+    petPolicy: {
+      summaryLabel: null,
+      detail: null,
+    },
+    thumbnailUrl: null,
+    coordinateLabel: `${NATIONAL_GWANGJU_STREAM_YEONGSAN_COVERAGE_COORDINATES.latitude.toFixed(
+      5,
+    )}, ${NATIONAL_GWANGJU_STREAM_YEONGSAN_COVERAGE_COORDINATES.longitude.toFixed(
+      5,
+    )}`,
+    mapPreviewUrl: `https://static-maps.example.test/?lat=${NATIONAL_GWANGJU_STREAM_YEONGSAN_COVERAGE_COORDINATES.latitude}&lng=${NATIONAL_GWANGJU_STREAM_YEONGSAN_COVERAGE_COORDINATES.longitude}`,
+    qualityScore: 0.95,
+  };
+}
+
 function getKeywordCalls(): LocationSearchProviderInput[] {
   return kakaoLocalSearchProvider.searchKeyword.mock.calls.map(
     ([input]) => input,
@@ -437,6 +508,28 @@ describe('location discovery walk Kakao fan-out guard', () => {
 
     expect(result.items).toHaveLength(0);
     expect(result.source).toBe('walk_poi');
+    expect(searchWalkPoiLocations).toHaveBeenCalledTimes(1);
+    expect(kakaoLocalSearchProvider.searchKeyword).not.toHaveBeenCalled();
+  });
+
+  it('Ready 권역에서 POI 결과가 있으면 Kakao runtime을 호출하지 않는다', async () => {
+    const poiItem = createWalkPoiItem({
+      id: 'walk-poi:gwangju-ready',
+      name: '광주천 산책로',
+      distanceMeters: 180,
+    });
+    searchWalkPoiLocations.mockResolvedValueOnce([poiItem]);
+
+    const result = await searchLocationDiscovery(
+      'walk',
+      createSearchInput(
+        '광주 산책',
+        NATIONAL_GWANGJU_STREAM_YEONGSAN_COVERAGE_COORDINATES,
+      ),
+    );
+
+    expect(result.source).toBe('walk_poi');
+    expect(result.items).toEqual([poiItem]);
     expect(searchWalkPoiLocations).toHaveBeenCalledTimes(1);
     expect(kakaoLocalSearchProvider.searchKeyword).not.toHaveBeenCalled();
   });
@@ -647,5 +740,86 @@ describe('location discovery walk Kakao fan-out guard', () => {
     expect(result.items).toHaveLength(1);
     expect(searchWalkPoiLocations).toHaveBeenCalledTimes(1);
     expect(kakaoLocalSearchProvider.searchKeyword).toHaveBeenCalled();
+  });
+
+  it('좌표 없는 nearby 진입은 coordinate_missing fallback을 유지한다', async () => {
+    const result = await searchLocationDiscovery(
+      'walk',
+      createSearchInput(null, null),
+    );
+
+    expect(result.source).toBe('kakao');
+    expect(result.items).toHaveLength(0);
+    expect(searchWalkPoiLocations).not.toHaveBeenCalled();
+    expect(kakaoLocalSearchProvider.searchKeyword).not.toHaveBeenCalled();
+  });
+});
+
+describe('location discovery walk POI feature flag kill-switch', () => {
+  it('POI RPC feature flag가 off이면 기존 Kakao fallback을 유지한다', async () => {
+    jest.resetModules();
+    jest.doMock('../src/services/locationDiscovery/kakaoLocal', () => ({
+      kakaoLocalSearchProvider: {
+        searchKeyword: jest.fn(async () => [
+          createWalkDocument({
+            id: 'fallback:poi-disabled',
+            name: 'feature flag off fallback 산책공원',
+            distanceMeters: 640,
+          }),
+        ]),
+        searchAddress: jest.fn(),
+      },
+    }));
+    jest.doMock('../src/services/locationDiscovery/walkPoiRpc', () => ({
+      ENABLE_WALK_POI_RPC: false,
+      searchWalkPoiLocations: jest.fn(async () => []),
+      fetchWalkPoiDetailItem: jest.fn(),
+    }));
+
+    let isolatedService:
+      | typeof import('../src/services/locationDiscovery/service')
+      | undefined;
+    let isolatedKakao:
+      | {
+          kakaoLocalSearchProvider: {
+            searchKeyword: jest.Mock<
+              Promise<ReadonlyArray<KakaoPlaceDocument>>,
+              [LocationSearchProviderInput]
+            >;
+          };
+        }
+      | undefined;
+    let isolatedWalkPoiRpc:
+      | {
+          searchWalkPoiLocations: jest.Mock<
+            Promise<ReadonlyArray<LocationDiscoveryItem>>,
+            [LocationDiscoverySearchInput]
+          >;
+        }
+      | undefined;
+    jest.isolateModules(() => {
+      isolatedService = require('../src/services/locationDiscovery/service');
+      isolatedKakao = require('../src/services/locationDiscovery/kakaoLocal');
+      isolatedWalkPoiRpc = require('../src/services/locationDiscovery/walkPoiRpc');
+    });
+
+    if (!isolatedService || !isolatedKakao || !isolatedWalkPoiRpc) {
+      throw new Error('isolated modules were not loaded');
+    }
+
+    const result = await isolatedService.searchLocationDiscovery(
+      'walk',
+      createSearchInput(
+        '광주 산책',
+        NATIONAL_GWANGJU_STREAM_YEONGSAN_COVERAGE_COORDINATES,
+      ),
+    );
+
+    expect(result.source).toBe('kakao');
+    expect(result.items).toHaveLength(1);
+    expect(isolatedWalkPoiRpc.searchWalkPoiLocations).not.toHaveBeenCalled();
+    expect(
+      isolatedKakao.kakaoLocalSearchProvider.searchKeyword,
+    ).toHaveBeenCalled();
   });
 });

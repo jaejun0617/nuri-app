@@ -4,7 +4,7 @@
 최종 정합성 검수일: 2026-06-19
 문서 목적: ChatGPT, Codex, 운영자, 후속 개발 세션이 현재 NURI 앱의 전체 맥락을 한 번에 파악하기 위한 source of truth 문서
 
-최신 갱신: 2026-06-19 전국 seed 2차 140건과 수도권 잔여 80건을 `operator-seed` admin import/review workflow로 승인했다. 총 approved/public/active POI는 685건이고, 신규 11개 권역은 3km 10건/5km 20건 기준을 충족해 fallback gate 추가 적용 대상으로 전환됐다. Kakao Local runtime은 삭제하지 않고, 제거 조건표와 권역별 readiness matrix를 별도 closeout 기준으로 정리했다.
+최신 갱신: 2026-06-20 Kakao Local runtime closeout 1단계로 Ready 권역에서 POI RPC 정상 응답 시 Kakao fallback 호출을 차단했다. 총 approved/public/active POI는 685건으로 유지하며, Kakao Local fallback path hard delete는 하지 않았다. gate 밖, feature flag off, RPC error, 좌표 없음, detail missing은 Keep Fallback 조건으로 유지한다.
 
 ## 1. 문서 목적
 
@@ -39,9 +39,9 @@
 | --- | ---: | --- |
 | V1.0 기능 개발 | 100% | P0/P1 0건, 필수 기능 closeout, Code Freeze 유지 |
 | V1.0 QA/출시 준비 | 약 96% | release APK exact install smoke, 일반 사용자 smoke, admin/super_admin 서버 계약 확인, P0 corrective 회귀 완료. Play Store 제출 자산만 최종 제출 직전 준비로 남음 |
-| V1.1 산책 POI 전환 트랙 | 약 92% | remote DB 기준 approved/public/active POI 685건, PostGIS foundation, 앱 POI RPC read path, admin import/review, admin read/write UI, 고양/서울/수도권/전국 주요 도시 coverage, 한글 표시값 기준 유지, gate 적용 권역 empty/RPC error fallback 회귀 test 완료. Kakao runtime 제거 closeout과 전국 3차 coverage가 남음 |
-| V1.1 전체 | 약 44% | 산책 POI 트랙은 상당히 진행됐지만 결제, AI, 편지함, Typography, Apple, Naver cleanup, Weather 운영 고도화 등 별도 V1.1 후보가 남음 |
-| 전체 제품 로드맵 | 약 84% | V1.0 release-ready 기준선은 닫혔고 V1.1 location foundation, 수도권 잔여, 전국 seed 2차 coverage까지 진행됐다. 장기 유료화/AI/전국 데이터 운영은 아직 남음 |
+| V1.1 산책 POI 전환 트랙 | 약 94% | remote DB 기준 approved/public/active POI 685건, PostGIS foundation, 앱 POI RPC read path, admin import/review, admin read/write UI, 고양/서울/수도권/전국 주요 도시 coverage, 한글 표시값 기준 유지, Ready 권역 Kakao 호출 차단 focused test와 Android smoke 완료. Kakao hard delete와 전국 3차 coverage가 남음 |
+| V1.1 전체 | 약 45% | 산책 POI 트랙은 closeout 단계에 접근했지만 결제, AI, 편지함, Typography, Apple, Naver cleanup, Weather 운영 고도화 등 별도 V1.1 후보가 남음 |
+| 전체 제품 로드맵 | 약 85% | V1.0 release-ready 기준선은 닫혔고 V1.1 location foundation, 전국 seed 2차 coverage, Ready 권역 Kakao 호출 차단까지 진행됐다. 장기 유료화/AI/전국 데이터 운영은 아직 남음 |
 | 최종 제출 준비 | 약 20% | release artifact/provenance와 정책 URL 기준은 정리됐지만 Play Store 스크린샷, 설명문, Console 입력, store listing package는 아직 최종 제출 직전 준비로 남음 |
 
 남은 작업의 성격:
@@ -439,9 +439,9 @@ coverage 측정:
 | --- | ---: | --- |
 | V1.0 기능 개발 | 100% | P0/P1 0건, 기능 Code Freeze 유지 |
 | V1.0 QA/출시 준비 | 약 96% | release/Android smoke와 주요 서버 gate 완료, Play Store 제출 자산은 최종 제출 직전 준비 |
-| V1.1 산책 POI 트랙 | 약 92% | PostGIS/RPC/admin workflow/admin UI/read path/fallback gate, POI 685건까지 진행. Kakao runtime 제거 closeout과 전국 3차 coverage가 남음 |
-| V1.1 전체 | 약 44% | 산책 POI 트랙은 상당히 진행됐지만 결제/AI/편지함/타이포/지도 스택 등 장기 후보가 남음 |
-| 전체 제품 로드맵 | 약 84% | V1.0 closeout + V1.1 핵심 POI 운영 확장 진행 기준 |
+| V1.1 산책 POI 트랙 | 약 94% | PostGIS/RPC/admin workflow/admin UI/read path/fallback gate, POI 685건, Ready 권역 Kakao 호출 차단까지 진행. Kakao hard delete와 전국 3차 coverage가 남음 |
+| V1.1 전체 | 약 45% | 산책 POI 트랙은 closeout 단계에 접근했지만 결제/AI/편지함/타이포/지도 스택 등 장기 후보가 남음 |
+| 전체 제품 로드맵 | 약 85% | V1.0 closeout + V1.1 핵심 POI 운영 확장 + Ready 권역 Kakao 호출 차단 진행 기준 |
 | 최종 제출 준비 | 약 20% | Play Store 스크린샷, 설명문, Console 입력은 아직 별도 단계 |
 
 ## 6. 현재 남은 작업
@@ -471,7 +471,7 @@ Play Store 제출 자산은 V1.0 기능/QA blocker가 아니며, NURI 앱 개발
 
 ### V1.1
 
-- Kakao Local runtime 제거 closeout
+- Kakao Local hard delete 가능 여부 판단
 - 전국 seed 3차 확대
 - gate 적용 권역의 fallback 비율/empty UX 지속 검증
 - admin write UI queue filtering / batch drill-down 고도화
@@ -505,8 +505,20 @@ Play Store 제출 자산은 V1.0 기능/QA blocker가 아니며, NURI 앱 개발
 
 ## 8. 다음 액션
 
-1. Kakao Local runtime 제거 closeout
+1. Kakao Local hard delete 가능 여부 판단
 2. 전국 seed 3차 확대
 3. gate 적용 권역의 fallback 비율/empty UX 지속 검증
 4. admin write UI queue filtering / batch drill-down 고도화
 5. Play Store 제출 자산은 전체 개발/QA 종료 후 최종 제출 직전 준비
+
+## 2026-06-20 V1.1 Kakao Local runtime closeout 1단계 업데이트
+
+- 코드 변경: Ready 권역에서 POI RPC 정상 응답 + 결과 있음이면 `poi_ready`, `kakaoBlocked: true` 로그를 남기고 Kakao fallback을 호출하지 않는다.
+- 기존 gate 내부 + POI RPC 정상 + 결과 0건은 `poi_empty`, `gateLimited: true`로 empty UX를 표시하고 Kakao fallback을 호출하지 않는다.
+- Keep Fallback 유지: feature flag off, POI RPC disabled, gate 밖 좌표, POI RPC error, 좌표 없음, detail missing.
+- Kakao Local fallback path hard delete: 하지 않음.
+- focused test: `__tests__/locationDiscoveryFanout.test.ts` 16개 통과. Ready result 있음 Kakao 호출 0, Ready empty Kakao 호출 0, gate 밖 fallback 유지, RPC error fallback 유지, 좌표 없음 fallback 유지, feature flag off fallback 유지를 포함한다.
+- public RPC smoke: approved/public/active 685건, non-approved public active leak 0건, public detail RPC internal key leak 0건.
+- Android smoke: `SM_S937N`에서 Galaxy 멀티윈도우를 유지하고 광주/시흥/고양 Ready 리스트, Ready empty UX, gate 밖 Keep Fallback을 확인했다. logcat fatal / ANR / unhandled promise / ReactNativeJS fatal pattern은 0건이다.
+- 상세 화면: 멀티윈도우 좌표 입력 제약으로 카드 tap 캡처는 미확보. public detail RPC 1건과 앱 detail read path 코드로 보완 증적을 남긴다.
+- 전국 seed 3차: 이번 턴은 runtime closeout 우선으로 문서화만 진행. 신규 seed import 없음.

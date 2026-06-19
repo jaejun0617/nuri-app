@@ -1653,6 +1653,23 @@ async function searchWalkLocations(
     try {
       const poiItems = await searchWalkPoiLocations(input);
       if (poiItems.length > 0) {
+        const readyGateRegion = getWalkPoiFallbackGateRegion(
+          input.scope.anchorCoordinates,
+        );
+        if (ENABLE_WALK_POI_FALLBACK_GATE && readyGateRegion) {
+          console.info(
+            '[NURI-DEBUG] walk-poi-rpc fallback',
+            JSON.stringify({
+              reason: 'poi_ready',
+              mode: normalizedQuery ? 'search' : 'nearby',
+              gateLimited: true,
+              gateRegionId: readyGateRegion.id,
+              kakaoBlocked: true,
+              resultCount: poiItems.length,
+            }),
+          );
+        }
+
         return {
           items: poiItems,
           query: normalizedQuery,
