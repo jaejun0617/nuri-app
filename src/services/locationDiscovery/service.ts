@@ -264,6 +264,105 @@ const WALK_POI_FALLBACK_GATE_REGIONS = [
     },
     radiusMeters: 5000,
   },
+  {
+    id: 'national_gwangju_stream_yeongsan',
+    label: '광주 광주천·영산강 권역',
+    center: {
+      latitude: 35.154,
+      longitude: 126.852,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'national_sejong_lake_geumgang',
+    label: '세종호수공원·금강 권역',
+    center: {
+      latitude: 36.4975,
+      longitude: 127.2597,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'national_cheongju_musimcheon',
+    label: '청주 무심천·문암생태공원 권역',
+    center: {
+      latitude: 36.642,
+      longitude: 127.489,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'national_cheonan_cheonhoji_buldang',
+    label: '천안 천호지·불당천 권역',
+    center: {
+      latitude: 36.815,
+      longitude: 127.154,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'national_chuncheon_gongjicheon_uiam',
+    label: '춘천 공지천·의암호 권역',
+    center: {
+      latitude: 37.873,
+      longitude: 127.713,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'national_gangneung_gyeongpo_namdaecheon',
+    label: '강릉 경포호·남대천 권역',
+    center: {
+      latitude: 37.797,
+      longitude: 128.896,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'national_jeju_ihoteu_tapdong',
+    label: '제주 이호테우·탑동해안 권역',
+    center: {
+      latitude: 33.512,
+      longitude: 126.522,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'metro_yongin_giheung_lake',
+    label: '용인·기흥호수공원 권역',
+    center: {
+      latitude: 37.235,
+      longitude: 127.105,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'metro_gunpo_chomakgol',
+    label: '군포 초막골생태공원 권역',
+    center: {
+      latitude: 37.344,
+      longitude: 126.928,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'metro_siheung_gaetgol',
+    label: '시흥 갯골생태공원 권역',
+    center: {
+      latitude: 37.389,
+      longitude: 126.779,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'metro_gimpo_hangang_lake',
+    label: '김포 한강신도시 호수공원 권역',
+    center: {
+      latitude: 37.644,
+      longitude: 126.68,
+    },
+    radiusMeters: 5000,
+  },
 ] as const;
 const PLACE_DEFAULT_QUERIES = [
   '애견동반 카페',

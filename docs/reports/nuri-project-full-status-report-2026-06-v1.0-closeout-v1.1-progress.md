@@ -1,10 +1,10 @@
 # NURI 전체 프로젝트 현황 보고서
 
-기준일: 2026-06-16
-최종 정합성 검수일: 2026-06-16
+기준일: 2026-06-19
+최종 정합성 검수일: 2026-06-19
 문서 목적: ChatGPT, Codex, 운영자, 후속 개발 세션이 현재 NURI 앱의 전체 맥락을 한 번에 파악하기 위한 source of truth 문서
 
-최신 갱신: 2026-06-16 수도권 2차 seed coverage에서 하남·미사한강공원, 수원·광교호수공원, 과천·서울대공원 권역 60건을 `operator-seed` admin import/review workflow로 승인했다. 총 approved/public/active POI는 305건이고, 3개 권역은 3km 10건/5km 20건 기준을 충족해 fallback gate 추가 적용 대상으로 전환됐다. Kakao Local runtime은 삭제하지 않는다.
+최신 갱신: 2026-06-19 전국 seed 2차 140건과 수도권 잔여 80건을 `operator-seed` admin import/review workflow로 승인했다. 총 approved/public/active POI는 685건이고, 신규 11개 권역은 3km 10건/5km 20건 기준을 충족해 fallback gate 추가 적용 대상으로 전환됐다. Kakao Local runtime은 삭제하지 않고, 제거 조건표와 권역별 readiness matrix를 별도 closeout 기준으로 정리했다.
 
 ## 1. 문서 목적
 
@@ -39,9 +39,9 @@
 | --- | ---: | --- |
 | V1.0 기능 개발 | 100% | P0/P1 0건, 필수 기능 closeout, Code Freeze 유지 |
 | V1.0 QA/출시 준비 | 약 96% | release APK exact install smoke, 일반 사용자 smoke, admin/super_admin 서버 계약 확인, P0 corrective 회귀 완료. Play Store 제출 자산만 최종 제출 직전 준비로 남음 |
-| V1.1 산책 POI 전환 트랙 | 약 85% | remote DB 기준 approved/public/active POI 305건, PostGIS foundation, 앱 POI RPC read path, admin import/review, admin read/write UI, 고양시/서울/북서울꿈의숲/성남·분당·판교·탄천/수도권 2차 coverage, 한글 표시값 기준 유지, gate 적용 권역 empty/RPC error fallback 회귀 test 완료. 수도권 3차/광역시/전국 coverage와 Kakao runtime 제거가 남음 |
-| V1.1 전체 | 약 38% | 산책 POI 트랙은 진척됐지만 결제, AI, 편지함, Typography, Apple, Naver cleanup, Weather 운영 고도화 등 별도 V1.1 후보가 남음 |
-| 전체 제품 로드맵 | 약 80% | V1.0 release-ready 기준선은 닫혔고 V1.1 location foundation과 수도권 2차 coverage까지 진행됐다. 장기 유료화/AI/전국 데이터 운영은 아직 남음 |
+| V1.1 산책 POI 전환 트랙 | 약 92% | remote DB 기준 approved/public/active POI 685건, PostGIS foundation, 앱 POI RPC read path, admin import/review, admin read/write UI, 고양/서울/수도권/전국 주요 도시 coverage, 한글 표시값 기준 유지, gate 적용 권역 empty/RPC error fallback 회귀 test 완료. Kakao runtime 제거 closeout과 전국 3차 coverage가 남음 |
+| V1.1 전체 | 약 44% | 산책 POI 트랙은 상당히 진행됐지만 결제, AI, 편지함, Typography, Apple, Naver cleanup, Weather 운영 고도화 등 별도 V1.1 후보가 남음 |
+| 전체 제품 로드맵 | 약 84% | V1.0 release-ready 기준선은 닫혔고 V1.1 location foundation, 수도권 잔여, 전국 seed 2차 coverage까지 진행됐다. 장기 유료화/AI/전국 데이터 운영은 아직 남음 |
 | 최종 제출 준비 | 약 20% | release artifact/provenance와 정책 URL 기준은 정리됐지만 Play Store 스크린샷, 설명문, Console 입력, store listing package는 아직 최종 제출 직전 준비로 남음 |
 
 남은 작업의 성격:
@@ -413,15 +413,35 @@ coverage 측정:
 - logcat: fatal / ANR / unhandled promise / ReactNativeJS fatal pattern 0건
 - Kakao Local runtime: 삭제하지 않음
 
+## 2026-06-19 V1.1 전국 seed 2차 / 수도권 잔여 / Kakao runtime readiness 업데이트
+
+- 전국 seed 2차: 140건 승인
+- 전국 seed 2차 import batch: `77bd70bd-58b7-45e7-a068-b13afac1628e`
+- 전국 seed 2차 대상: 광주 광주천·영산강, 세종호수공원·금강, 청주 무심천·문암생태공원, 천안 천호지·불당천, 춘천 공지천·의암호, 강릉 경포호·남대천, 제주 이호테우·탑동해안
+- 수도권 잔여 seed: 80건 승인
+- 수도권 잔여 import batch: `4ed823a2-4a4c-48eb-8174-76a52ed4a203`
+- 수도권 잔여 대상: 용인·기흥호수공원, 군포 초막골생태공원, 시흥 갯골생태공원, 김포 한강신도시 호수공원
+- 총 approved/public/active POI: 685건
+- admin workflow: `walk_poi_admin_import_commit_v1` -> `walk_poi_admin_review_v1(approve)`
+- public projection safety: pending/rejected/held leak 0건, raw/source/review/audit public RPC 미노출
+- 권한 safety: anon direct table SELECT `42501 permission denied`, 비관리자 admin RPC `WALK_POI_ADMIN_REQUIRED`
+- 한글화 safety: 신규 220건 기준 한글 alias 누락 0건, public 영어 지역명 노출 0건
+- fallback gate 신규 적용: 광주, 세종, 청주, 천안, 춘천, 강릉, 제주, 용인·기흥, 군포 초막골, 시흥 갯골, 김포 한강신도시
+- fallback gate 보류: 서울 전체, 수도권 전체, 전국 전체, 도시 전체 broad gate, 미처리 광역 권역
+- Kakao runtime readiness: gate 적용 권역은 Ready 후보로 분류하되 code delete 대상은 아니며, gate 밖/좌표 없음/RPC error/detail missing/feature flag off 조건에서는 fallback을 유지한다.
+- Android smoke: `SM_S937N`에서 Galaxy 멀티윈도우를 보존한 채 광주 리스트/상세, 시흥 리스트/empty UX, `gateLimited: true` logcat을 확인했다.
+- logcat: fatal / ANR / unhandled promise / ReactNativeJS fatal pattern 0건
+- Kakao Local runtime: 삭제하지 않음
+
 현재 진행률 요약:
 
 | 구분 | 진행률 | 근거 |
 | --- | ---: | --- |
 | V1.0 기능 개발 | 100% | P0/P1 0건, 기능 Code Freeze 유지 |
 | V1.0 QA/출시 준비 | 약 96% | release/Android smoke와 주요 서버 gate 완료, Play Store 제출 자산은 최종 제출 직전 준비 |
-| V1.1 산책 POI 트랙 | 약 89% | PostGIS/RPC/admin workflow/admin UI/read path/fallback gate, POI 465건까지 진행. 전국 coverage와 runtime 제거 gate는 남음 |
-| V1.1 전체 | 약 41% | 산책 POI 트랙은 상당히 진행됐지만 결제/AI/편지함/타이포/지도 스택 등 장기 후보가 남음 |
-| 전체 제품 로드맵 | 약 82% | V1.0 closeout + V1.1 핵심 POI 운영 확장 진행 기준 |
+| V1.1 산책 POI 트랙 | 약 92% | PostGIS/RPC/admin workflow/admin UI/read path/fallback gate, POI 685건까지 진행. Kakao runtime 제거 closeout과 전국 3차 coverage가 남음 |
+| V1.1 전체 | 약 44% | 산책 POI 트랙은 상당히 진행됐지만 결제/AI/편지함/타이포/지도 스택 등 장기 후보가 남음 |
+| 전체 제품 로드맵 | 약 84% | V1.0 closeout + V1.1 핵심 POI 운영 확장 진행 기준 |
 | 최종 제출 준비 | 약 20% | Play Store 스크린샷, 설명문, Console 입력은 아직 별도 단계 |
 
 ## 6. 현재 남은 작업
@@ -451,8 +471,8 @@ Play Store 제출 자산은 V1.0 기능/QA blocker가 아니며, NURI 앱 개발
 
 ### V1.1
 
-- 전국 seed 2차 확대
-- Kakao Local runtime 제거 조건 검토
+- Kakao Local runtime 제거 closeout
+- 전국 seed 3차 확대
 - gate 적용 권역의 fallback 비율/empty UX 지속 검증
 - admin write UI queue filtering / batch drill-down 고도화
 - coverage 충족 권역 fallback gate 추가 적용
@@ -485,8 +505,8 @@ Play Store 제출 자산은 V1.0 기능/QA blocker가 아니며, NURI 앱 개발
 
 ## 8. 다음 액션
 
-1. 전국 seed 2차 확대
-2. Kakao Local runtime 제거 조건 검토
+1. Kakao Local runtime 제거 closeout
+2. 전국 seed 3차 확대
 3. gate 적용 권역의 fallback 비율/empty UX 지속 검증
 4. admin write UI queue filtering / batch drill-down 고도화
 5. Play Store 제출 자산은 전체 개발/QA 종료 후 최종 제출 직전 준비
