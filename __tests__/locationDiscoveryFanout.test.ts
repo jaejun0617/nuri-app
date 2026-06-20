@@ -407,6 +407,62 @@ const NATIONAL_GUNSAN_EUNPA_GEUMGANG_COVERAGE_COORDINATES = {
   capturedAt: 1_776_000_000_000,
   source: 'gps' as const,
 };
+const NATIONAL_MASAN_JINHAE_WATERFRONT_COVERAGE_COORDINATES = {
+  latitude: 35.183,
+  longitude: 128.565,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const NATIONAL_TONGYEONG_GANGGUAN_MIREUK_COVERAGE_COORDINATES = {
+  latitude: 34.842,
+  longitude: 128.423,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const NATIONAL_GEOJE_GOHYEON_JANGSEUNGPO_COVERAGE_COORDINATES = {
+  latitude: 34.88,
+  longitude: 128.623,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const NATIONAL_ANDONG_NAKDONG_WORYEONG_COVERAGE_COORDINATES = {
+  latitude: 36.568,
+  longitude: 128.731,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const NATIONAL_IKSAN_BAESAN_SEODONG_COVERAGE_COORDINATES = {
+  latitude: 35.951,
+  longitude: 126.975,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const NATIONAL_NAJU_YEONGSAN_RIVERSIDE_COVERAGE_COORDINATES = {
+  latitude: 35.015,
+  longitude: 126.71,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const NATIONAL_SACHEON_SAMCHEONPO_SEASIDE_COVERAGE_COORDINATES = {
+  latitude: 34.932,
+  longitude: 128.077,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const NATIONAL_YANGSAN_YANGSANCHEON_HWANGSAN_COVERAGE_COORDINATES = {
+  latitude: 35.338,
+  longitude: 129.037,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
 
 function createSearchInput(
   query: string | null,
@@ -840,6 +896,34 @@ describe('location discovery walk Kakao fan-out guard', () => {
       NATIONAL_ULSAN_SEONAM_GRANDPARK_COVERAGE_COORDINATES,
       NATIONAL_GYEONGJU_BOMUN_LAKE_COVERAGE_COORDINATES,
       NATIONAL_GUNSAN_EUNPA_GEUMGANG_COVERAGE_COORDINATES,
+    ] as const;
+
+    for (const coordinates of coverageCoordinates) {
+      jest.clearAllMocks();
+      searchWalkPoiLocations.mockResolvedValue([]);
+
+      const result = await searchLocationDiscovery(
+        'walk',
+        createSearchInput('zzzwalkpoi', coordinates),
+      );
+
+      expect(result.items).toHaveLength(0);
+      expect(result.source).toBe('walk_poi');
+      expect(searchWalkPoiLocations).toHaveBeenCalledTimes(1);
+      expect(kakaoLocalSearchProvider.searchKeyword).not.toHaveBeenCalled();
+    }
+  });
+
+  it('전국 5차 coverage region은 POI 0건 fallback을 제한한다', async () => {
+    const coverageCoordinates = [
+      NATIONAL_MASAN_JINHAE_WATERFRONT_COVERAGE_COORDINATES,
+      NATIONAL_TONGYEONG_GANGGUAN_MIREUK_COVERAGE_COORDINATES,
+      NATIONAL_GEOJE_GOHYEON_JANGSEUNGPO_COVERAGE_COORDINATES,
+      NATIONAL_ANDONG_NAKDONG_WORYEONG_COVERAGE_COORDINATES,
+      NATIONAL_IKSAN_BAESAN_SEODONG_COVERAGE_COORDINATES,
+      NATIONAL_NAJU_YEONGSAN_RIVERSIDE_COVERAGE_COORDINATES,
+      NATIONAL_SACHEON_SAMCHEONPO_SEASIDE_COVERAGE_COORDINATES,
+      NATIONAL_YANGSAN_YANGSANCHEON_HWANGSAN_COVERAGE_COORDINATES,
     ] as const;
 
     for (const coordinates of coverageCoordinates) {

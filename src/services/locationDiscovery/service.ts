@@ -498,6 +498,78 @@ const WALK_POI_FALLBACK_GATE_REGIONS = [
     },
     radiusMeters: 5000,
   },
+  {
+    id: 'national_masan_jinhae_waterfront',
+    label: '마산·진해 해안 산책 권역',
+    center: {
+      latitude: 35.183,
+      longitude: 128.565,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'national_tongyeong_gangguan_mireuk',
+    label: '통영 강구안·미륵도 권역',
+    center: {
+      latitude: 34.842,
+      longitude: 128.423,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'national_geoje_gohyeon_jangseungpo',
+    label: '거제 고현천·장승포 권역',
+    center: {
+      latitude: 34.88,
+      longitude: 128.623,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'national_andong_nakdong_woryeong',
+    label: '안동 낙동강·월영교 권역',
+    center: {
+      latitude: 36.568,
+      longitude: 128.731,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'national_iksan_baesan_seodong',
+    label: '익산 배산공원·서동공원 권역',
+    center: {
+      latitude: 35.951,
+      longitude: 126.975,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'national_naju_yeongsan_riverside',
+    label: '나주 영산강·금성산 권역',
+    center: {
+      latitude: 35.015,
+      longitude: 126.71,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'national_sacheon_samcheonpo_seaside',
+    label: '사천 삼천포·노산공원 권역',
+    center: {
+      latitude: 34.932,
+      longitude: 128.077,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'national_yangsan_yangsancheon_hwangsan',
+    label: '양산 양산천·황산공원 권역',
+    center: {
+      latitude: 35.338,
+      longitude: 129.037,
+    },
+    radiusMeters: 5000,
+  },
 ] as const;
 const PLACE_DEFAULT_QUERIES = [
   '애견동반 카페',
