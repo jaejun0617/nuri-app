@@ -1,10 +1,10 @@
 # NURI 전체 프로젝트 현황 보고서
 
-기준일: 2026-06-19
-최종 정합성 검수일: 2026-06-19
+기준일: 2026-06-21
+최종 정합성 검수일: 2026-06-21
 문서 목적: ChatGPT, Codex, 운영자, 후속 개발 세션이 현재 NURI 앱의 전체 맥락을 한 번에 파악하기 위한 source of truth 문서
 
-최신 갱신: 2026-06-20 Kakao Local runtime closeout 1단계로 Ready 권역에서 POI RPC 정상 응답 시 Kakao fallback 호출을 차단했다. 총 approved/public/active POI는 685건으로 유지하며, Kakao Local fallback path hard delete는 하지 않았다. gate 밖, feature flag off, RPC error, 좌표 없음, detail missing은 Keep Fallback 조건으로 유지한다.
+최신 갱신: 2026-06-21 전국 seed 3차와 4차를 admin import/review workflow로 승인해 총 approved/public/active POI를 985건으로 확대했다. 신규 15개 권역은 3km/5km coverage와 public nearby/search/detail smoke를 통과해 권역별 fallback gate를 추가 적용했다. Kakao Local hard delete는 여전히 보류하고 Ready 권역 Kakao 호출 차단과 Keep Fallback 조건을 유지한다.
 
 ## 1. 문서 목적
 
@@ -39,9 +39,9 @@
 | --- | ---: | --- |
 | V1.0 기능 개발 | 100% | P0/P1 0건, 필수 기능 closeout, Code Freeze 유지 |
 | V1.0 QA/출시 준비 | 약 96% | release APK exact install smoke, 일반 사용자 smoke, admin/super_admin 서버 계약 확인, P0 corrective 회귀 완료. Play Store 제출 자산만 최종 제출 직전 준비로 남음 |
-| V1.1 산책 POI 전환 트랙 | 약 94% | remote DB 기준 approved/public/active POI 685건, PostGIS foundation, 앱 POI RPC read path, admin import/review, admin read/write UI, 고양/서울/수도권/전국 주요 도시 coverage, 한글 표시값 기준 유지, Ready 권역 Kakao 호출 차단 focused test와 Android smoke 완료. Kakao hard delete와 전국 3차 coverage가 남음 |
-| V1.1 전체 | 약 45% | 산책 POI 트랙은 closeout 단계에 접근했지만 결제, AI, 편지함, Typography, Apple, Naver cleanup, Weather 운영 고도화 등 별도 V1.1 후보가 남음 |
-| 전체 제품 로드맵 | 약 85% | V1.0 release-ready 기준선은 닫혔고 V1.1 location foundation, 전국 seed 2차 coverage, Ready 권역 Kakao 호출 차단까지 진행됐다. 장기 유료화/AI/전국 데이터 운영은 아직 남음 |
+| V1.1 산책 POI 전환 트랙 | 약 96% | remote DB 기준 approved/public/active POI 985건, PostGIS foundation, 앱 POI RPC read path, admin import/review, admin read/write UI, 고양/서울/수도권/전국 주요 도시 coverage, 한글 표시값 기준 유지, Ready 권역 Kakao 호출 차단, 전국 seed 3차/4차 coverage 및 Android detail tap smoke 완료. Kakao hard delete는 shared provider 의존성 때문에 보류 |
+| V1.1 전체 | 약 47% | 산책 POI 트랙은 운영 closeout에 가까워졌지만 결제, AI, 편지함, Typography, Apple, Naver cleanup, Weather 운영 고도화 등 별도 V1.1 후보가 남음 |
+| 전체 제품 로드맵 | 약 87% | V1.0 release-ready 기준선은 닫혔고 V1.1 location foundation, 전국 seed 4차 coverage, Ready 권역 Kakao 호출 차단까지 진행됐다. 장기 유료화/AI/전국 데이터 운영은 아직 남음 |
 | 최종 제출 준비 | 약 20% | release artifact/provenance와 정책 URL 기준은 정리됐지만 Play Store 스크린샷, 설명문, Console 입력, store listing package는 아직 최종 제출 직전 준비로 남음 |
 
 남은 작업의 성격:
@@ -556,3 +556,57 @@ Android detail tap 증적:
 
 1. Kakao Local hard delete 최종 잔여 정리: pet-friendly, 동물병원, 행정동 조회와 산책 fallback의 provider 분리 설계
 2. 전국 seed 3차/4차 확대: 전주, 창원, 포항, 김해, 여수 우선
+
+## 2026-06-21 V1.1 전국 seed 3차/4차 확대 결과
+
+전국 seed 3차와 4차는 직접 canonical table insert 없이 `walk_poi_admin_import_commit_v1` -> `walk_poi_admin_review_v1(approve)` workflow로 처리했다. 신규 seed는 모두 한글 표시값과 한글 alias를 포함하고, public projection은 approved/public/active row만 반환한다.
+
+전국 seed 3차:
+
+- import batch: `badb210c-3cb3-4643-a812-032222d415b4`
+- 추가 seed: 180건
+- 대상 도시: 전주, 창원, 포항, 김해, 여수, 순천, 목포, 구미, 진주
+- 도시별 approved/public/active: 각 20건
+- duplicate/conflict/skipped: duplicate 0건, conflict 2건, skipped 0건
+- rollback SQL: `docs/sql/산책-위치기반-기능/v1.1-walk-poi-national-3rd-seed-rollback-2026-06-21.sql`
+
+전국 seed 4차:
+
+- import batch: `b8fc90fa-7680-48ba-9cdf-d7638b4a2c7e`
+- 추가 seed: 120건
+- 대상 도시/권역: 부산 온천천·수영강, 대구 신천·금호강, 대전 유림공원·한밭수목원, 울산 선암호수공원·울산대공원, 경주 보문호·황성공원, 군산 은파호수공원·금강
+- 권역별 approved/public/active: 각 20건
+- duplicate/conflict/skipped: duplicate 0건, conflict 1건, skipped 0건
+- rollback SQL: `docs/sql/산책-위치기반-기능/v1.1-walk-poi-national-4th-seed-rollback-2026-06-21.sql`
+
+검증:
+
+- 총 approved/public/active POI: 985건
+- public nearby/search/detail RPC: 신규 15개 권역 모두 3km 20건 이상, 5km 20건 이상, 대표 검색어 20건 이상 반환
+- public projection safety: non-approved public active leak 0건
+- 비관리자 admin RPC: `WALK_POI_ADMIN_REQUIRED`
+- anon direct `walk_pois` SELECT: `42501 permission denied`
+- focused fallback gate tests: `__tests__/locationDiscoveryFanout.test.ts` 17/17 통과
+- Android 실기기: `SM_S937N`에서 전주 3차 seed 리스트/상세, 부산 4차 seed 리스트/상세, `zzzwalkpoi` empty UX, `gateLimited: true`, `kakaoBlocked: true` logcat 확인
+- logcat fatal / ANR / unhandled JS exception pattern: 0건
+
+fallback gate:
+
+- 신규 적용: 전주 전주천·한옥마을, 창원 용지호수·창원천, 포항 영일대·형산강, 김해 연지공원·해반천, 여수 웅천해변·이순신공원, 순천 동천·순천만국가정원, 목포 평화광장·갓바위, 구미 동락공원·낙동강, 진주 남강·진주성, 부산 온천천·수영강, 대구 신천·금호강, 대전 유림공원·한밭수목원, 울산 선암호수공원·울산대공원, 경주 보문호·황성공원, 군산 은파호수공원·금강
+- 보류: 서울 전체, 수도권 전체, 전국 전체, 도시 전체 broad gate, 미처리 광역 권역
+- Kakao Local hard delete: 하지 않음. Ready 권역 Kakao 호출 차단과 Keep Fallback 조건은 유지한다.
+
+현재 진행률:
+
+| 구분 | 진행률 | 근거 |
+| --- | ---: | --- |
+| V1.0 기능 개발 | 100% | P0/P1 0건, 필수 기능 closeout |
+| V1.0 QA/출시 준비 | 약 96% | release smoke 완료, Play Store 자산은 최종 제출 직전 준비 |
+| V1.1 산책 POI 트랙 | 약 96% | POI 985건, 전국 4차 coverage, fallback gate 추가, public projection safety, Android detail tap/empty UX smoke 완료 |
+| V1.1 전체 | 약 47% | 산책 POI 외 billing/AI/letters/typography/admin 고도화 잔여 |
+| 전체 제품 로드맵 | 약 87% | V1.0 완료 + V1.1 주요 비용 방어/POI 전국 확장 진척 기준 |
+
+다음 액션:
+
+1. 전국 seed 5차 확대: 마산/진해, 통영, 거제, 안동, 익산, 나주, 사천, 양산 등 source/attribution이 명확한 후보부터 처리한다.
+2. Kakao Local hard delete 최종 잔여 정리: shared provider 분리 설계와 Keep Fallback의 safe UX 대체 조건을 먼저 고정한다.

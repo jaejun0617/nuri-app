@@ -302,6 +302,111 @@ const METRO_GIMPO_HANGANG_LAKE_COVERAGE_COORDINATES = {
   capturedAt: 1_776_000_000_000,
   source: 'gps' as const,
 };
+const NATIONAL_JEONJU_CHEON_HANOK_COVERAGE_COORDINATES = {
+  latitude: 35.816,
+  longitude: 127.153,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const NATIONAL_CHANGWON_YONGJI_CHANGWONCHEON_COVERAGE_COORDINATES = {
+  latitude: 35.228,
+  longitude: 128.681,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const NATIONAL_POHANG_YEONGILDAE_HYEONGSAN_COVERAGE_COORDINATES = {
+  latitude: 36.055,
+  longitude: 129.378,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const NATIONAL_GIMHAE_YEONJI_HAEBANCHEON_COVERAGE_COORDINATES = {
+  latitude: 35.236,
+  longitude: 128.889,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const NATIONAL_YEOSU_UNGCHEON_SEASIDE_COVERAGE_COORDINATES = {
+  latitude: 34.744,
+  longitude: 127.676,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const NATIONAL_SUNCHEON_DONGCHEON_GARDEN_COVERAGE_COORDINATES = {
+  latitude: 34.95,
+  longitude: 127.487,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const NATIONAL_MOKPO_PEACE_GATBAWI_COVERAGE_COORDINATES = {
+  latitude: 34.8,
+  longitude: 126.433,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const NATIONAL_GUMI_DONGNAK_NAKDONG_COVERAGE_COORDINATES = {
+  latitude: 36.107,
+  longitude: 128.419,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const NATIONAL_JINJU_NAMGANG_JINJUSEONG_COVERAGE_COORDINATES = {
+  latitude: 35.19,
+  longitude: 128.083,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const NATIONAL_BUSAN_ONCHEON_SUYEONG_COVERAGE_COORDINATES = {
+  latitude: 35.185,
+  longitude: 129.105,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const NATIONAL_DAEGU_SINCHEON_GEUMHOGANG_COVERAGE_COORDINATES = {
+  latitude: 35.872,
+  longitude: 128.603,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const NATIONAL_DAEJEON_YURIM_ARBORETUM_COVERAGE_COORDINATES = {
+  latitude: 36.365,
+  longitude: 127.382,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const NATIONAL_ULSAN_SEONAM_GRANDPARK_COVERAGE_COORDINATES = {
+  latitude: 35.528,
+  longitude: 129.315,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const NATIONAL_GYEONGJU_BOMUN_LAKE_COVERAGE_COORDINATES = {
+  latitude: 35.845,
+  longitude: 129.289,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
+const NATIONAL_GUNSAN_EUNPA_GEUMGANG_COVERAGE_COORDINATES = {
+  latitude: 35.964,
+  longitude: 126.708,
+  accuracy: 20,
+  capturedAt: 1_776_000_000_000,
+  source: 'gps' as const,
+};
 
 function createSearchInput(
   query: string | null,
@@ -700,6 +805,41 @@ describe('location discovery walk Kakao fan-out guard', () => {
       METRO_GUNPO_CHOMAKGOL_COVERAGE_COORDINATES,
       METRO_SIHEUNG_GAETGOL_COVERAGE_COORDINATES,
       METRO_GIMPO_HANGANG_LAKE_COVERAGE_COORDINATES,
+    ] as const;
+
+    for (const coordinates of coverageCoordinates) {
+      jest.clearAllMocks();
+      searchWalkPoiLocations.mockResolvedValue([]);
+
+      const result = await searchLocationDiscovery(
+        'walk',
+        createSearchInput('zzzwalkpoi', coordinates),
+      );
+
+      expect(result.items).toHaveLength(0);
+      expect(result.source).toBe('walk_poi');
+      expect(searchWalkPoiLocations).toHaveBeenCalledTimes(1);
+      expect(kakaoLocalSearchProvider.searchKeyword).not.toHaveBeenCalled();
+    }
+  });
+
+  it('전국 3차와 4차 coverage region은 POI 0건 fallback을 제한한다', async () => {
+    const coverageCoordinates = [
+      NATIONAL_JEONJU_CHEON_HANOK_COVERAGE_COORDINATES,
+      NATIONAL_CHANGWON_YONGJI_CHANGWONCHEON_COVERAGE_COORDINATES,
+      NATIONAL_POHANG_YEONGILDAE_HYEONGSAN_COVERAGE_COORDINATES,
+      NATIONAL_GIMHAE_YEONJI_HAEBANCHEON_COVERAGE_COORDINATES,
+      NATIONAL_YEOSU_UNGCHEON_SEASIDE_COVERAGE_COORDINATES,
+      NATIONAL_SUNCHEON_DONGCHEON_GARDEN_COVERAGE_COORDINATES,
+      NATIONAL_MOKPO_PEACE_GATBAWI_COVERAGE_COORDINATES,
+      NATIONAL_GUMI_DONGNAK_NAKDONG_COVERAGE_COORDINATES,
+      NATIONAL_JINJU_NAMGANG_JINJUSEONG_COVERAGE_COORDINATES,
+      NATIONAL_BUSAN_ONCHEON_SUYEONG_COVERAGE_COORDINATES,
+      NATIONAL_DAEGU_SINCHEON_GEUMHOGANG_COVERAGE_COORDINATES,
+      NATIONAL_DAEJEON_YURIM_ARBORETUM_COVERAGE_COORDINATES,
+      NATIONAL_ULSAN_SEONAM_GRANDPARK_COVERAGE_COORDINATES,
+      NATIONAL_GYEONGJU_BOMUN_LAKE_COVERAGE_COORDINATES,
+      NATIONAL_GUNSAN_EUNPA_GEUMGANG_COVERAGE_COORDINATES,
     ] as const;
 
     for (const coordinates of coverageCoordinates) {

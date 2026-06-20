@@ -363,6 +363,141 @@ const WALK_POI_FALLBACK_GATE_REGIONS = [
     },
     radiusMeters: 5000,
   },
+  {
+    id: 'national_jeonju_cheon_hanok',
+    label: '전주 전주천·한옥마을 권역',
+    center: {
+      latitude: 35.816,
+      longitude: 127.153,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'national_changwon_yongji_changwoncheon',
+    label: '창원 용지호수·창원천 권역',
+    center: {
+      latitude: 35.228,
+      longitude: 128.681,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'national_pohang_yeongildae_hyeongsan',
+    label: '포항 영일대·형산강 권역',
+    center: {
+      latitude: 36.055,
+      longitude: 129.378,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'national_gimhae_yeonji_haebancheon',
+    label: '김해 연지공원·해반천 권역',
+    center: {
+      latitude: 35.236,
+      longitude: 128.889,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'national_yeosu_ungcheon_seaside',
+    label: '여수 웅천해변·이순신공원 권역',
+    center: {
+      latitude: 34.744,
+      longitude: 127.676,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'national_suncheon_dongcheon_garden',
+    label: '순천 동천·순천만국가정원 권역',
+    center: {
+      latitude: 34.95,
+      longitude: 127.487,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'national_mokpo_peace_gatbawi',
+    label: '목포 평화광장·갓바위 권역',
+    center: {
+      latitude: 34.8,
+      longitude: 126.433,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'national_gumi_dongnak_nakdong',
+    label: '구미 동락공원·낙동강 권역',
+    center: {
+      latitude: 36.107,
+      longitude: 128.419,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'national_jinju_namgang_jinjuseong',
+    label: '진주 남강·진주성 권역',
+    center: {
+      latitude: 35.19,
+      longitude: 128.083,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'national_busan_oncheon_suyeong',
+    label: '부산 온천천·수영강 권역',
+    center: {
+      latitude: 35.185,
+      longitude: 129.105,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'national_daegu_sincheon_geumhogang',
+    label: '대구 신천·금호강 권역',
+    center: {
+      latitude: 35.872,
+      longitude: 128.603,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'national_daejeon_yurim_arboretum',
+    label: '대전 유림공원·한밭수목원 권역',
+    center: {
+      latitude: 36.365,
+      longitude: 127.382,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'national_ulsan_seonam_grandpark',
+    label: '울산 선암호수공원·울산대공원 권역',
+    center: {
+      latitude: 35.528,
+      longitude: 129.315,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'national_gyeongju_bomun_lake',
+    label: '경주 보문호·황성공원 권역',
+    center: {
+      latitude: 35.845,
+      longitude: 129.289,
+    },
+    radiusMeters: 5000,
+  },
+  {
+    id: 'national_gunsan_eunpa_geumgang',
+    label: '군산 은파호수공원·금강 권역',
+    center: {
+      latitude: 35.964,
+      longitude: 126.708,
+    },
+    radiusMeters: 5000,
+  },
 ] as const;
 const PLACE_DEFAULT_QUERIES = [
   '애견동반 카페',
