@@ -520,5 +520,39 @@ Play Store 제출 자산은 V1.0 기능/QA blocker가 아니며, NURI 앱 개발
 - focused test: `__tests__/locationDiscoveryFanout.test.ts` 16개 통과. Ready result 있음 Kakao 호출 0, Ready empty Kakao 호출 0, gate 밖 fallback 유지, RPC error fallback 유지, 좌표 없음 fallback 유지, feature flag off fallback 유지를 포함한다.
 - public RPC smoke: approved/public/active 685건, non-approved public active leak 0건, public detail RPC internal key leak 0건.
 - Android smoke: `SM_S937N`에서 Galaxy 멀티윈도우를 유지하고 광주/시흥/고양 Ready 리스트, Ready empty UX, gate 밖 Keep Fallback을 확인했다. logcat fatal / ANR / unhandled promise / ReactNativeJS fatal pattern은 0건이다.
-- 상세 화면: 멀티윈도우 좌표 입력 제약으로 카드 tap 캡처는 미확보. public detail RPC 1건과 앱 detail read path 코드로 보완 증적을 남긴다.
+- 상세 화면: Android 실기기에서 고양 `문화공원 오거리공원`, 수도권 `미사한강공원 중앙 산책로`, 전국 `치평동 공원 산책지점` 카드 tap 후 `산책 장소 상세` 진입을 확인했다.
 - 전국 seed 3차: 이번 턴은 runtime closeout 우선으로 문서화만 진행. 신규 seed import 없음.
+
+## 2026-06-20 V1.1 Kakao Local hard delete closeout 판정
+
+Kakao Local hard delete는 이번 턴에서 보류한다.
+
+근거:
+
+- 산책 Ready 권역에서는 이미 Kakao 호출이 차단됐다. focused test 16개 통과, Android logcat `kakaoBlocked: true`로 확인했다.
+- 그러나 Kakao Local provider와 `location-discovery-seed`는 산책 fallback 전용이 아니다. pet-friendly 장소 검색, 동물병원 provider matching, 행정동 조회에도 연결되어 있다.
+- Keep Fallback 조건인 feature flag off, gate 밖 좌표, POI RPC error, 좌표 없음, detail missing은 아직 Kakao fallback 또는 safe fallback 설계가 필요하다.
+- Kakao Login/OAuth와 Kakao Local은 분리 확인했으며 Kakao Login은 수정하지 않았다.
+
+Android detail tap 증적:
+
+- 고양 Ready 권역: `문화공원 오거리공원` 카드 tap -> `산책 장소 상세`
+- 수도권 Ready 권역: `미사한강공원 중앙 산책로` 카드 tap -> `산책 장소 상세`
+- 전국 Ready 권역: `치평동 공원 산책지점` 카드 tap -> `산책 장소 상세`
+- empty UX: `검색 결과가 없어요`
+- NURI PID 기준 fatal / ANR / unhandled promise / ReactNativeJS fatal pattern: 0건
+
+현재 진행률:
+
+| 구분 | 진행률 | 근거 |
+| --- | ---: | --- |
+| V1.0 기능 개발 | 100% | P0/P1 0건, 필수 기능 closeout |
+| V1.0 QA/출시 준비 | 약 96% | release smoke 완료, Play Store 자산은 최종 제출 직전 준비 |
+| V1.1 산책 POI 트랙 | 약 94% | POI 685건, Ready 권역 Kakao 호출 차단과 detail tap 증적 보강 완료. hard delete는 shared dependency 때문에 보류 |
+| V1.1 전체 | 약 45% | 산책 POI 외 billing/AI/letters/typography/admin 고도화 잔여 |
+| 전체 제품 로드맵 | 약 85% | V1.0 완료 + V1.1 주요 비용 방어/POI 전환 진척 기준 |
+
+다음 액션:
+
+1. Kakao Local hard delete 최종 잔여 정리: pet-friendly, 동물병원, 행정동 조회와 산책 fallback의 provider 분리 설계
+2. 전국 seed 3차/4차 확대: 전주, 창원, 포항, 김해, 여수 우선
