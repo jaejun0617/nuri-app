@@ -664,3 +664,55 @@ Kakao Local shared provider:
 
 1. Kakao Local shared provider 분리 closeout
 2. 광역시/전국 seed 운영 품질 점검
+
+## 2026-06-22 V1.1 Kakao Local provider split closeout / 전국 POI 품질 재점검
+
+이번 단계에서는 신규 seed import 없이 산책/location discovery의 Kakao Local shared provider 직접 의존을 분리하고, 1,145건 approved/public/active POI 품질을 재점검했다.
+
+구현 결과:
+
+- 산책/location discovery 직접 의존 제거: `service.ts`에서 shared `kakaoLocalSearchProvider` 직접 import 제거
+- 산책 fallback adapter: `walkKakaoFallbackProvider`
+- 펫동반 검색 adapter: `petFriendlyKakaoSearchProvider`
+- 동물병원 provider matching: 기존 경로 유지, focused test 통과
+- coord2region Edge Function: 기존 `location-discovery-seed` 경로 유지
+- Kakao Login / Google Login / social provider 설정: 변경 없음
+- Kakao Local hard delete: 보류. 다른 도메인 유지 경로가 남아 있으므로 provider 파일 삭제는 하지 않는다.
+
+품질/보안 검증:
+
+- 총 approved/public/active POI: 1,145건
+- 한글 alias 누락: 0건
+- 영어 지역명 public 노출: 0건
+- source/attribution 누락: 0건
+- coordinate out-of-Korea bounds: 0건
+- duplicate name cluster: 5개. 서로 다른 도시/주소의 일반 명칭 중복으로 즉시 hidden 후보는 아니다.
+- coordinate over-density cluster: 1개. 같은 공원 내 paired POI로 즉시 hidden 후보는 아니다.
+- pending/rejected/held public active leak: 0건
+- public detail internal key leak: 0건
+- anon direct `walk_pois` SELECT: `42501 permission denied`
+- 비관리자 admin RPC: `WALK_POI_ADMIN_REQUIRED`
+
+Android 실기기:
+
+- 기기: `SM_S937N`
+- release APK 재설치 후 통영 강구안 deep link로 전국 5차 seed 리스트 확인
+- `미수해안로 산책로` 카드 tap 상세 진입 확인
+- 상세 설명은 앱 public mapper에서 `통영 강구안·미륵도 권역의 운영자 검수 산책 자료입니다.`로 표시된다.
+- `zzzwalkpoi` empty UX: `검색 결과가 없어요` 표시
+- logcat fatal / ANR / unhandled promise / ReactNativeJS fatal pattern: 0건
+
+현재 진행률:
+
+| 구분 | 진행률 | 근거 |
+| --- | ---: | --- |
+| V1.0 기능 개발 | 100% | P0/P1 0건, 필수 기능 closeout |
+| V1.0 QA/출시 준비 | 약 96% | release smoke 완료, Play Store 자산은 최종 제출 직전 준비 |
+| V1.1 산책 POI 트랙 | 약 98% | POI 1,145건, provider split closeout, 품질 재점검, gate 과적용 점검, Android detail/empty UX smoke 완료 |
+| V1.1 전체 | 약 49% | 산책 POI 외 billing/AI/letters/typography/admin 고도화 잔여 |
+| 전체 제품 로드맵 | 약 89% | V1.0 완료 + V1.1 주요 비용 방어/POI 전국 운영 품질 closeout 진척 기준 |
+
+다음 액션:
+
+1. Kakao Local hard delete 최종 closeout
+2. admin UI queue filtering/batch drill-down 고도화

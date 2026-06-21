@@ -4,10 +4,11 @@
 // 어디서 쓰이는지:
 // - `useLocationDiscovery` 훅과 주변 산책/펫동반 장소 리스트·상세 화면에서 사용된다.
 // 핵심 역할:
-// - Kakao Local 후보를 수집하고, 도메인별 키워드/정렬/검증 상태 규칙으로 `LocationDiscoveryItem` 목록을 만든다.
+// - 산책 POI RPC 결과와 도메인별 외부 후보를 정규화해 `LocationDiscoveryItem` 목록을 만든다.
 // - 펫동반 장소의 경우 Supabase 메타와 외부 후보를 병합해 서비스 표시 모델로 정규화한다.
 // 데이터·상태 흐름:
-// - 외부 검색 원본은 Kakao Local이고, 필요 시 `placeMeta.ts`가 canonical 메타/보조 신호를 덧씌운다.
+// - 산책은 자체 POI RPC를 우선 사용하고, Keep Fallback 조건에서만 산책 전용 adapter를 통해 외부 후보를 사용한다.
+// - 펫동반 장소는 별도 adapter로 외부 후보를 수집하고, 필요 시 `placeMeta.ts`가 canonical 메타/보조 신호를 덧씌운다.
 // - 화면은 이 파일이 만든 normalized item만 소비하고, source/provider 차이는 내부에서 숨긴다.
 // 수정 시 주의:
 // - 현재 source of truth는 외부 후보 + 선택적 메타 merge이므로, 검증 상태를 과하게 확정하는 방향으로 바꾸면 안 된다.
@@ -29,7 +30,11 @@ import {
   loadPetFriendlyPlaceServiceMeta,
 } from './placeMeta';
 import { buildStaticMapPreviewUrl } from './maps';
-import { kakaoLocalSearchProvider } from './kakaoLocal';
+import {
+  petFriendlyKakaoSearchProvider,
+  walkKakaoFallbackProvider,
+} from './kakaoProviderAdapters';
+import type { LocationSearchProvider } from './provider';
 import type {
   KakaoPlaceDocument,
   LocationDiscoveryDomain,
@@ -1567,6 +1572,7 @@ function buildPetFriendlyQueries(
 }
 
 async function searchDocumentsByQueries(
+  provider: LocationSearchProvider,
   queries: ReadonlyArray<string>,
   coordinates: DeviceCoordinates | null,
   options: {
@@ -1582,13 +1588,14 @@ async function searchDocumentsByQueries(
     })),
   );
 
-  return searchDocumentsByRequests(requests, coordinates, {
+  return searchDocumentsByRequests(provider, requests, coordinates, {
     radiusMeters: options.radiusMeters,
     size: options.size,
   });
 }
 
 async function searchDocumentsByRequests(
+  provider: LocationSearchProvider,
   requests: ReadonlyArray<LocationDiscoveryProviderSearchRequest>,
   coordinates: DeviceCoordinates | null,
   options: {
@@ -1597,7 +1604,7 @@ async function searchDocumentsByRequests(
   },
 ): Promise<KakaoPlaceDocument[]> {
   const tasks = requests.map(request =>
-    kakaoLocalSearchProvider.searchKeyword({
+    provider.searchKeyword({
       query: request.query,
       coordinates,
       radiusMeters: options.radiusMeters,
@@ -1740,6 +1747,7 @@ async function searchCappedWalkNearbyDocuments(
 
   for (const stage of searchPlan) {
     const stageDocuments = await searchDocumentsByRequests(
+      walkKakaoFallbackProvider,
       stage,
       input.scope.anchorCoordinates,
       options,
@@ -1808,6 +1816,7 @@ async function searchKakaoWalkLocations(
   };
   const documents = normalizedQuery
     ? await searchDocumentsByQueries(
+        walkKakaoFallbackProvider,
         buildWalkQueries(input),
         input.scope.anchorCoordinates,
         {
@@ -1949,6 +1958,7 @@ async function searchPetFriendlyPlaces(
   input: LocationDiscoverySearchInput,
 ): Promise<LocationDiscoveryResponse> {
   const documents = await searchDocumentsByQueries(
+    petFriendlyKakaoSearchProvider,
     buildPetFriendlyQueries(input),
     input.scope.anchorCoordinates,
     {

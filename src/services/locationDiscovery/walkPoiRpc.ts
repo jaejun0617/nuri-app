@@ -225,7 +225,7 @@ function formatCoordinateLabel(latitude: number, longitude: number): string {
 function buildDescription(row: WalkPoiPublicRpcRow): string {
   const description = row.description?.trim();
   if (description) {
-    return description;
+    return normalizePublicDescription(description);
   }
 
   const categoryLabel = row.category_label ?? '산책 장소';
@@ -235,6 +235,13 @@ function buildDescription(row: WalkPoiPublicRpcRow): string {
   }
 
   return `${categoryLabel}로 운영 검수된 산책 장소예요.`;
+}
+
+function normalizePublicDescription(value: string): string {
+  return value
+    .replace(/\bseed\b/gi, '자료')
+    .replace(/\bPOI\b/g, '장소 데이터')
+    .replace(/\bV1\.1\b/gi, '운영 검수');
 }
 
 function buildWalkPoiItem(
