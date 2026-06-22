@@ -715,7 +715,7 @@ Android 실기기:
 다음 액션:
 
 1. Kakao Local hard delete 최종 closeout
-2. admin UI queue filtering/batch drill-down 고도화
+2. archive/reference: admin UI queue filtering/batch drill-down 고도화는 구현 완료, 운영자 QA는 홈페이지/관리 페이지 트랙으로 Parking
 
 ## 2026-06-22 V1.1 Walk-domain Kakao fallback closeout / admin UI 고도화
 
@@ -770,5 +770,43 @@ admin UI:
 
 다음 액션:
 
-1. admin UI 운영자 QA closeout
-2. 광역시/전국 seed 운영 품질 최종 점검
+- Parking/reference: admin UI 운영자 QA closeout은 앱 출시 blocker가 아니며 별도 홈페이지/관리 페이지 트랙에서 재개
+- archive/reference: 광역시/전국 seed 운영 품질 최종 점검은 2026-06-22 final audit에서 read-only로 수행
+
+## 2026-06-22 최종 closeout audit / 문서 정리 기준
+
+이번 기준에서는 admin UI 운영자 QA closeout을 앱 출시 blocker에서 제외하고 Parking한다. 앱 안의 운영자 도메인은 Play Store 사용자-facing 출시 흐름에서 사용하지 않으며, 운영자 관리는 앱 작업 완료 후 별도 홈페이지/관리 페이지 트랙에서 다룬다.
+
+산책 POI 트랙 판정:
+
+- 판정: `산책 POI 트랙 closeout 가능`
+- approved/public/active POI: 1,145건
+- public nearby/search/detail RPC: 정상
+- pending/rejected/held public leak: 0건
+- public RPC internal key leak: 0건
+- anon direct table SELECT: `42501 permission denied`
+- 한글 alias 누락: 0건
+- source/attribution 누락: 0건
+- duplicate name cluster: 5개. 서로 다른 도시/주소의 일반 명칭 중복으로 즉시 hidden 후보 아님
+- 영어 표시 후보: `APEC`, `MBC` 정식 약어 3건으로 영어 region key 노출 아님
+- broad gate 오적용: 서울 전체/수도권 전체/전국 전체/도시 전체 gate 없음
+- walk-domain Kakao Local fallback: 제거 완료
+- Kakao Local global provider hard delete: 보류
+- Kakao Login / Google Login 영향: 없음
+- Android `SM_S937N`: 일산 Ready 리스트/상세, 부산 전국 권역 리스트/상세, gate 밖 safe empty UX 통과
+- logcat fatal / ANR / unhandled promise / ReactNativeJS fatal pattern: 0건
+
+진행률:
+
+| 구분 | 진행률 | 근거 |
+| --- | ---: | --- |
+| V1.0 기능 개발 | 100% | P0/P1 0건, 기능 Code Freeze 유지 |
+| V1.0 QA/출시 준비 | 약 96% | release smoke와 주요 서버 gate 완료, Play Store 자산은 최종 제출 직전 준비 |
+| V1.1 산책 POI 트랙 | 약 99% | 1,145건 POI, walk-domain Kakao fallback 제거, public projection safety, Android smoke 통과 |
+| V1.1 전체 | 약 50% | 산책 POI 트랙은 closeout 가능이나 billing/AI/letters/typography 등 V1.1 잔여 존재 |
+| 전체 제품 로드맵 | 약 90% | V1.0 closeout 유지와 V1.1 핵심 비용/POI 리스크 축소 기준 |
+
+다음 액션:
+
+1. V1.1 잔여: release candidate smoke
+2. 예산/운영 확인: Supabase/Codex 운영비 점검
