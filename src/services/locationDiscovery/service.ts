@@ -7,11 +7,11 @@
 // - 산책 POI RPC 결과와 도메인별 외부 후보를 정규화해 `LocationDiscoveryItem` 목록을 만든다.
 // - 펫동반 장소의 경우 Supabase 메타와 외부 후보를 병합해 서비스 표시 모델로 정규화한다.
 // 데이터·상태 흐름:
-// - 산책은 자체 POI RPC를 우선 사용하고, Keep Fallback 조건에서만 산책 전용 adapter를 통해 외부 후보를 사용한다.
+// - 산책은 자체 POI RPC만 사용자 runtime source로 사용하고, Keep Fallback 조건은 빈 결과 UX로 안전하게 닫는다.
 // - 펫동반 장소는 별도 adapter로 외부 후보를 수집하고, 필요 시 `placeMeta.ts`가 canonical 메타/보조 신호를 덧씌운다.
 // - 화면은 이 파일이 만든 normalized item만 소비하고, source/provider 차이는 내부에서 숨긴다.
 // 수정 시 주의:
-// - 현재 source of truth는 외부 후보 + 선택적 메타 merge이므로, 검증 상태를 과하게 확정하는 방향으로 바꾸면 안 된다.
+// - 펫동반 장소는 외부 후보 + 선택적 메타 merge이므로, 검증 상태를 과하게 확정하는 방향으로 바꾸면 안 된다.
 // - 정렬/필터 패턴 하나만 바꿔도 산책과 펫동반 장소 양쪽 체감 품질이 동시에 달라지므로 실기기 검색 QA가 필요하다.
 import type { DeviceCoordinates } from '../location/currentPosition';
 import type { PublicTrustInfo } from '../trust/publicTrust';
@@ -30,10 +30,7 @@ import {
   loadPetFriendlyPlaceServiceMeta,
 } from './placeMeta';
 import { buildStaticMapPreviewUrl } from './maps';
-import {
-  petFriendlyKakaoSearchProvider,
-  walkKakaoFallbackProvider,
-} from './kakaoProviderAdapters';
+import { petFriendlyKakaoSearchProvider } from './kakaoProviderAdapters';
 import type { LocationSearchProvider } from './provider';
 import type {
   KakaoPlaceDocument,
@@ -46,21 +43,6 @@ import type {
 } from './types';
 import { ENABLE_WALK_POI_RPC, searchWalkPoiLocations } from './walkPoiRpc';
 
-const WALK_BASE_KEYWORDS = [
-  '공원',
-  '문화공원',
-  '호수공원',
-  '근린공원',
-  '생태공원',
-  '수변공원',
-  '어린이공원',
-  '산책로',
-  '둘레길',
-  '숲길',
-] as const;
-const WALK_NEARBY_MAX_PROVIDER_REQUESTS = 12;
-const WALK_NEARBY_INITIAL_PAGE_LIMIT = 1;
-const WALK_NEARBY_TARGET_ITEM_COUNT = 8;
 const WALK_POI_FALLBACK_GATE_REGIONS = [
   {
     id: 'ilsan_juyeop_lakepark',
@@ -583,74 +565,6 @@ const PLACE_DEFAULT_QUERIES = [
   '애견카페',
   '반려견 운동장',
 ] as const;
-const WALK_POSITIVE_KEYWORDS = [
-  '공원',
-  '도시근린공원',
-  '호수공원',
-  '수변공원',
-  '근린공원',
-  '생태공원',
-  '문화공원',
-  '어린이공원',
-  '산책로',
-  '둘레길',
-  '숲길',
-] as const;
-const WALK_NEGATIVE_KEYWORDS = [
-  '화장실',
-  '출입구',
-  '입구',
-  '정문',
-  '후문',
-  '게이트',
-  '주차장',
-  '공영주차장',
-  '버스정류장',
-  '편의점',
-  '은행',
-  '주유소',
-  '병원',
-  '약국',
-  '아파트',
-  '공중전화',
-  '카페',
-  '커피',
-  '음식점',
-  '식당',
-  '레스토랑',
-  '반려동물용품',
-  '애견용품',
-  '펫샵',
-  '용품',
-  '호텔',
-  '미용',
-  '유치원',
-  '애견카페',
-  '반려동물',
-  '학원',
-  '체험학습장',
-  '공원시설물',
-  '생태보존',
-  '서식지',
-  '교육장',
-  '전시장',
-  '박물관',
-] as const;
-const WALK_STRONG_PRIORITY_KEYWORDS = [
-  '문화공원',
-  '호수공원',
-  '수변공원',
-  '생태공원',
-  '근린공원',
-  '도시근린공원',
-  '어린이공원',
-  '공원',
-  '산책로',
-  '둘레길',
-  '숲길',
-] as const;
-const DEFAULT_QUERY_PAGE_SIZE = 15;
-
 function parseBooleanFlag(
   value: string | undefined,
   defaultValue: boolean,
@@ -723,21 +637,6 @@ const PLACE_BROAD_QUERY_KEYWORDS = [
   '브런치',
   '펍',
 ] as const;
-const WALK_BROAD_QUERY_KEYWORDS = [
-  '공원',
-  '산책',
-  '산책로',
-  '둘레길',
-  '숲길',
-  '호수',
-  '해변',
-  '강변',
-  '수변',
-  '트레킹',
-  '러닝',
-  '코스',
-] as const;
-
 type NormalizedPlaceBase = {
   id: string;
   kind: LocationDiscoveryItemKind;
@@ -876,25 +775,6 @@ function getWalkPoiFallbackGateRegion(
   return nearestRegion;
 }
 
-function estimateWalkMinutes(distanceMeters: number | null): number | null {
-  if (distanceMeters === null) return null;
-  const routeDistance = distanceMeters * 1.6;
-  return Math.max(15, Math.min(90, Math.round(routeDistance / 70)));
-}
-
-function buildWalkDescription(document: KakaoPlaceDocument): string {
-  const category =
-    document.category_group_name?.trim() ||
-    document.category_name?.split('>').pop()?.trim() ||
-    '산책 장소';
-  const area =
-    document.road_address_name?.trim() || document.address_name?.trim() || '';
-  if (!area) {
-    return `${category} 주변을 가볍게 둘러보기 좋아요.`;
-  }
-  return `${area} 근처에서 ${category} 분위기를 느끼며 걷기 좋아요.`;
-}
-
 function buildPetFriendlyDescription(
   document: KakaoPlaceDocument,
   kind: LocationDiscoveryItemKind,
@@ -922,47 +802,6 @@ function matchesPositiveKeyword(
   keywords: ReadonlyArray<string>,
 ): boolean {
   return keywords.some(keyword => value.includes(keyword));
-}
-
-function filterWalkDocument(document: KakaoPlaceDocument): boolean {
-  const name = document.place_name?.trim() || '';
-  const category = document.category_name?.trim() || '';
-  const groupName = document.category_group_name?.trim() || '';
-  const haystack = `${name} ${category}`;
-  const categoryHaystack = `${category} ${groupName}`;
-
-  if (!name) return false;
-  if (/(출입구|입구|정문|후문|게이트)\s*\d*/.test(name)) {
-    return false;
-  }
-  if (matchesPositiveKeyword(haystack, WALK_NEGATIVE_KEYWORDS)) {
-    return false;
-  }
-  if (
-    /(카페|커피|음식점|식당|레스토랑|반려동물용품|애견용품|펫샵|호텔|미용|유치원|학원|체험학습장|공원시설물|생태보존|서식지|교육장|전시장|박물관)/.test(
-      categoryHaystack,
-    )
-  ) {
-    return false;
-  }
-
-  return matchesPositiveKeyword(haystack, WALK_POSITIVE_KEYWORDS);
-}
-
-function getWalkPriority(item: LocationDiscoveryItem): number {
-  const haystack = `${item.name} ${item.categoryLabel}`;
-
-  for (
-    let index = 0;
-    index < WALK_STRONG_PRIORITY_KEYWORDS.length;
-    index += 1
-  ) {
-    if (haystack.includes(WALK_STRONG_PRIORITY_KEYWORDS[index])) {
-      return index;
-    }
-  }
-
-  return WALK_STRONG_PRIORITY_KEYWORDS.length;
 }
 
 function inferPetFriendlyPlaceKind(
@@ -1044,35 +883,6 @@ function dedupeItems(
   });
 
   return [...map.values()];
-}
-
-function buildWalkVerification() {
-  return {
-    status: 'service-ranked' as const,
-    label: '현재 위치 기반 후보',
-    description:
-      '현재 위치와 산책 키워드를 기준으로 정리한 후보예요. 실제 이용 가능 여부는 다시 확인해 주세요.',
-    tone: 'neutral' as const,
-    sourceLabel: 'NURI 추천 정렬',
-    requiresConfirmation: true,
-  };
-}
-
-function buildWalkPublicTrust(): PublicTrustInfo {
-  return {
-    publicLabel: 'candidate',
-    label: getPublicTrustLabelText('candidate'),
-    shortReason: '거리와 키워드를 기준으로 정리한 산책 후보예요.',
-    description: '현재 위치 기반 편의 추천이며 공적 검수 정보와는 별도예요.',
-    guidance: '실제 운영 상태와 이용 가능 여부는 현장에서 다시 확인해 주세요.',
-    tone: 'neutral',
-    sourceLabel: '현재 위치 기반 추천',
-    basisDate: null,
-    basisDateLabel: null,
-    isStale: false,
-    hasConflict: false,
-    layers: ['candidate'],
-  };
 }
 
 function buildPetFriendlyVerification(
@@ -1359,71 +1169,6 @@ function buildPetFriendlyPublicTrust(params: {
   };
 }
 
-function toWalkItem(
-  document: KakaoPlaceDocument,
-  distanceReferenceCoordinates: DeviceCoordinates | null,
-  distanceLabel: string,
-): LocationDiscoveryItem | null {
-  const latitude = parseCoordinate(document.y);
-  const longitude = parseCoordinate(document.x);
-  const name = document.place_name?.trim() || '';
-  const address =
-    document.road_address_name?.trim() || document.address_name?.trim() || '';
-
-  if (!latitude || !longitude || !name || !address) {
-    return null;
-  }
-
-  const distanceMeters = parseDistanceMeters(
-    document.distance,
-    distanceReferenceCoordinates,
-    latitude,
-    longitude,
-  );
-
-  return {
-    id: document.id?.trim() || `${name}:${latitude}:${longitude}`,
-    domain: 'walk',
-    kind: 'walk-spot',
-    name,
-    description: buildWalkDescription(document),
-    categoryLabel:
-      document.category_group_name?.trim() ||
-      document.category_name?.split('>').pop()?.trim() ||
-      '산책 장소',
-    address,
-    roadAddress: document.road_address_name?.trim() || null,
-    distanceMeters,
-    distanceLabel,
-    estimatedMinutes: estimateWalkMinutes(distanceMeters),
-    latitude,
-    longitude,
-    placeUrl: document.place_url?.trim() || null,
-    phone: document.phone?.trim() || null,
-    operatingStatusLabel: null,
-    source: {
-      provider: 'kakao',
-      providerLabel: 'Kakao Local',
-      type: 'external-api',
-      externalPlaceId: document.id?.trim() || null,
-    },
-    verification: buildWalkVerification(),
-    publicTrust: buildWalkPublicTrust(),
-    userLayer: {
-      targetId: null,
-      supportsBookmark: false,
-      supportsReport: false,
-    },
-    petPolicy: {
-      summaryLabel: null,
-      detail: null,
-    },
-    thumbnailUrl: null,
-    coordinateLabel: formatCoordinateLabel(latitude, longitude),
-    mapPreviewUrl: buildStaticMapPreviewUrl({ latitude, longitude }),
-  };
-}
-
 function toNormalizedPetFriendlyCandidate(
   document: KakaoPlaceDocument,
   distanceReferenceCoordinates: DeviceCoordinates | null,
@@ -1542,16 +1287,6 @@ function mergePetFriendlyCandidate(
   };
 }
 
-function buildWalkQueries(input: LocationDiscoverySearchInput): string[] {
-  const normalizedQuery = normalizeQuery(input.query);
-
-  if (normalizedQuery) {
-    return [normalizedQuery];
-  }
-
-  return [...WALK_BASE_KEYWORDS];
-}
-
 function buildPetFriendlyQueries(
   input: LocationDiscoverySearchInput,
 ): string[] {
@@ -1619,29 +1354,6 @@ async function searchDocumentsByRequests(
   );
 }
 
-function buildCappedWalkNearbySearchPlan(
-  queries: ReadonlyArray<string>,
-): LocationDiscoveryProviderSearchRequest[][] {
-  const initialStage = queries
-    .slice(0, WALK_NEARBY_MAX_PROVIDER_REQUESTS)
-    .map(query => ({
-      query,
-      page: WALK_NEARBY_INITIAL_PAGE_LIMIT,
-    }));
-  const remainingRequestCount = Math.max(
-    WALK_NEARBY_MAX_PROVIDER_REQUESTS - initialStage.length,
-    0,
-  );
-  const additionalStage = queries
-    .slice(0, remainingRequestCount)
-    .map(query => ({
-      query,
-      page: WALK_NEARBY_INITIAL_PAGE_LIMIT + 1,
-    }));
-
-  return [initialStage, additionalStage].filter(stage => stage.length > 0);
-}
-
 function sortItems(
   items: ReadonlyArray<LocationDiscoveryItem>,
 ): LocationDiscoveryItem[] {
@@ -1651,15 +1363,6 @@ function sortItems(
       getPublicTrustPriority(right.publicTrust.publicLabel);
     if (trustPriorityDiff !== 0) {
       return trustPriorityDiff;
-    }
-
-    if (left.domain === 'walk' && right.domain === 'walk') {
-      const leftPriority = getWalkPriority(left);
-      const rightPriority = getWalkPriority(right);
-
-      if (leftPriority !== rightPriority) {
-        return leftPriority - rightPriority;
-      }
     }
 
     if (
@@ -1682,87 +1385,6 @@ function sortItems(
 
     return left.name.localeCompare(right.name, 'ko');
   });
-}
-
-function applyWalkExposureGuard(
-  items: ReadonlyArray<LocationDiscoveryItem>,
-  query: string | null | undefined,
-): LocationDiscoveryItem[] {
-  const queryIntent = getDiscoveryQueryIntent(query, WALK_BROAD_QUERY_KEYWORDS);
-  const distanceCapMeters =
-    queryIntent === 'none' ? 3200 : queryIntent === 'broad' ? 4500 : null;
-  const itemCap =
-    queryIntent === 'none' ? 8 : queryIntent === 'broad' ? 10 : 12;
-
-  const distanceFiltered = items.filter((item, index) => {
-    if (distanceCapMeters === null) {
-      return true;
-    }
-
-    if (
-      item.distanceMeters === null ||
-      item.distanceMeters <= distanceCapMeters
-    ) {
-      return true;
-    }
-
-    return index < 3;
-  });
-
-  return distanceFiltered.slice(0, itemCap);
-}
-
-function buildWalkLocationItems(
-  documents: ReadonlyArray<KakaoPlaceDocument>,
-  input: LocationDiscoverySearchInput,
-): LocationDiscoveryItem[] {
-  return applyWalkExposureGuard(
-    sortItems(
-      dedupeItems(
-        documents
-          .filter(filterWalkDocument)
-          .map(document =>
-            toWalkItem(
-              document,
-              input.scope.anchorCoordinates,
-              input.scope.distanceLabel,
-            ),
-          )
-          .filter((item): item is LocationDiscoveryItem => Boolean(item)),
-      ),
-    ),
-    input.query,
-  );
-}
-
-async function searchCappedWalkNearbyDocuments(
-  input: LocationDiscoverySearchInput,
-  options: {
-    radiusMeters: number;
-    size: number;
-  },
-): Promise<KakaoPlaceDocument[]> {
-  const documents: KakaoPlaceDocument[] = [];
-  const searchPlan = buildCappedWalkNearbySearchPlan(buildWalkQueries(input));
-
-  for (const stage of searchPlan) {
-    const stageDocuments = await searchDocumentsByRequests(
-      walkKakaoFallbackProvider,
-      stage,
-      input.scope.anchorCoordinates,
-      options,
-    );
-    documents.push(...stageDocuments);
-
-    if (
-      buildWalkLocationItems(documents, input).length >=
-      WALK_NEARBY_TARGET_ITEM_COUNT
-    ) {
-      break;
-    }
-  }
-
-  return documents;
 }
 
 function applyPetFriendlyExposureGuard(
@@ -1806,32 +1428,41 @@ function applyPetFriendlyExposureGuard(
   ];
 }
 
-async function searchKakaoWalkLocations(
+type WalkPoiSafeFallbackReason =
+  | 'poi_disabled'
+  | 'coordinate_missing'
+  | 'poi_empty'
+  | 'poi_rpc_error';
+
+function buildWalkPoiSafeFallbackResponse(
   input: LocationDiscoverySearchInput,
-): Promise<LocationDiscoveryResponse> {
-  const normalizedQuery = normalizeQuery(input.query);
-  const searchOptions = {
-    radiusMeters: input.scope.anchorCoordinates ? 5500 : 20000,
-    size: DEFAULT_QUERY_PAGE_SIZE,
-  };
-  const documents = normalizedQuery
-    ? await searchDocumentsByQueries(
-        walkKakaoFallbackProvider,
-        buildWalkQueries(input),
-        input.scope.anchorCoordinates,
-        {
-          ...searchOptions,
-          maxPages: input.scope.anchorCoordinates ? 3 : 2,
-        },
-      )
-    : await searchCappedWalkNearbyDocuments(input, searchOptions);
-  const items = buildWalkLocationItems(documents, input);
+  normalizedQuery: string | null,
+  options: {
+    reason: WalkPoiSafeFallbackReason;
+    mode: 'search' | 'nearby';
+    gateLimited?: boolean;
+    gateRegionId?: string | null;
+    message?: string;
+  },
+): LocationDiscoveryResponse {
+  console.info(
+    '[NURI-DEBUG] walk-poi-rpc safe-fallback',
+    JSON.stringify({
+      reason: options.reason,
+      mode: options.mode,
+      gateLimited: options.gateLimited ?? false,
+      gateRegionId: options.gateRegionId ?? null,
+      kakaoBlocked: true,
+      message: options.message,
+    }),
+  );
 
   return {
-    items,
+    items: [],
     query: normalizedQuery,
-    source: 'kakao',
-    verificationStatus: 'service-ranked',
+    source: 'walk_poi',
+    verificationStatus:
+      options.reason === 'poi_empty' ? 'admin-verified' : 'unknown',
     scope: input.scope,
   };
 }
@@ -1842,98 +1473,68 @@ async function searchWalkLocations(
   const normalizedQuery = normalizeQuery(input.query);
 
   if (!ENABLE_WALK_POI_RPC) {
-    console.info(
-      '[NURI-DEBUG] walk-poi-rpc fallback',
-      JSON.stringify({
-        reason: 'poi_disabled',
-        mode: normalizedQuery ? 'search' : 'nearby',
-      }),
-    );
-
-    return searchKakaoWalkLocations(input);
+    return buildWalkPoiSafeFallbackResponse(input, normalizedQuery, {
+      reason: 'poi_disabled',
+      mode: normalizedQuery ? 'search' : 'nearby',
+    });
   }
 
   if (!normalizedQuery && !input.scope.anchorCoordinates) {
-    console.info(
-      '[NURI-DEBUG] walk-poi-rpc fallback',
-      JSON.stringify({
-        reason: 'coordinate_missing',
-        mode: 'nearby',
-      }),
-    );
-
-    return searchKakaoWalkLocations(input);
+    return buildWalkPoiSafeFallbackResponse(input, normalizedQuery, {
+      reason: 'coordinate_missing',
+      mode: 'nearby',
+    });
   }
 
-  if (ENABLE_WALK_POI_RPC) {
-    try {
-      const poiItems = await searchWalkPoiLocations(input);
-      if (poiItems.length > 0) {
-        const readyGateRegion = getWalkPoiFallbackGateRegion(
-          input.scope.anchorCoordinates,
-        );
-        if (ENABLE_WALK_POI_FALLBACK_GATE && readyGateRegion) {
-          console.info(
-            '[NURI-DEBUG] walk-poi-rpc fallback',
-            JSON.stringify({
-              reason: 'poi_ready',
-              mode: normalizedQuery ? 'search' : 'nearby',
-              gateLimited: true,
-              gateRegionId: readyGateRegion.id,
-              kakaoBlocked: true,
-              resultCount: poiItems.length,
-            }),
-          );
-        }
-
-        return {
-          items: poiItems,
-          query: normalizedQuery,
-          source: 'walk_poi',
-          verificationStatus: 'admin-verified',
-          scope: input.scope,
-        };
-      }
-
-      const emptyFallbackGateRegion = getWalkPoiFallbackGateRegion(
+  try {
+    const poiItems = await searchWalkPoiLocations(input);
+    if (poiItems.length > 0) {
+      const readyGateRegion = getWalkPoiFallbackGateRegion(
         input.scope.anchorCoordinates,
       );
-      const shouldLimitEmptyFallback =
-        ENABLE_WALK_POI_FALLBACK_GATE && emptyFallbackGateRegion !== null;
-
-      console.info(
-        '[NURI-DEBUG] walk-poi-rpc fallback',
-        JSON.stringify({
-          reason: 'poi_empty',
-          mode: normalizedQuery ? 'search' : 'nearby',
-          gateLimited: shouldLimitEmptyFallback,
-          gateRegionId: emptyFallbackGateRegion?.id ?? null,
-        }),
-      );
-
-      if (shouldLimitEmptyFallback) {
-        return {
-          items: [],
-          query: normalizedQuery,
-          source: 'walk_poi',
-          verificationStatus: 'admin-verified',
-          scope: input.scope,
-        };
+      if (ENABLE_WALK_POI_FALLBACK_GATE && readyGateRegion) {
+        console.info(
+          '[NURI-DEBUG] walk-poi-rpc fallback',
+          JSON.stringify({
+            reason: 'poi_ready',
+            mode: normalizedQuery ? 'search' : 'nearby',
+            gateLimited: true,
+            gateRegionId: readyGateRegion.id,
+            kakaoBlocked: true,
+            resultCount: poiItems.length,
+          }),
+        );
       }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'unknown';
-      console.info(
-        '[NURI-DEBUG] walk-poi-rpc fallback',
-        JSON.stringify({
-          reason: 'poi_rpc_error',
-          message,
-          mode: normalizedQuery ? 'search' : 'nearby',
-        }),
-      );
-    }
-  }
 
-  return searchKakaoWalkLocations(input);
+      return {
+        items: poiItems,
+        query: normalizedQuery,
+        source: 'walk_poi',
+        verificationStatus: 'admin-verified',
+        scope: input.scope,
+      };
+    }
+
+    const emptyFallbackGateRegion = getWalkPoiFallbackGateRegion(
+      input.scope.anchorCoordinates,
+    );
+    const shouldLimitEmptyFallback =
+      ENABLE_WALK_POI_FALLBACK_GATE && emptyFallbackGateRegion !== null;
+
+    return buildWalkPoiSafeFallbackResponse(input, normalizedQuery, {
+      reason: 'poi_empty',
+      mode: normalizedQuery ? 'search' : 'nearby',
+      gateLimited: shouldLimitEmptyFallback,
+      gateRegionId: emptyFallbackGateRegion?.id ?? null,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'unknown';
+    return buildWalkPoiSafeFallbackResponse(input, normalizedQuery, {
+      reason: 'poi_rpc_error',
+      mode: normalizedQuery ? 'search' : 'nearby',
+      message,
+    });
+  }
 }
 
 function getResponseVerificationStatus(
@@ -2047,12 +1648,21 @@ export async function searchLocationDiscovery(
   domain: LocationDiscoveryDomain,
   input: LocationDiscoverySearchInput,
 ): Promise<LocationDiscoveryResponse> {
-  if (!normalizeQuery(input.query) && !input.scope.anchorCoordinates) {
+  const normalizedQuery = normalizeQuery(input.query);
+
+  if (!normalizedQuery && !input.scope.anchorCoordinates) {
+    if (domain === 'walk') {
+      return buildWalkPoiSafeFallbackResponse(input, null, {
+        reason: 'coordinate_missing',
+        mode: 'nearby',
+      });
+    }
+
     return {
       items: [],
       query: null,
       source: 'kakao',
-      verificationStatus: domain === 'walk' ? 'service-ranked' : 'unknown',
+      verificationStatus: 'unknown',
       scope: input.scope,
     };
   }

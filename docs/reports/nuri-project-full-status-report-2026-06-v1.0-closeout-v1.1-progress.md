@@ -716,3 +716,59 @@ Android 실기기:
 
 1. Kakao Local hard delete 최종 closeout
 2. admin UI queue filtering/batch drill-down 고도화
+
+## 2026-06-22 V1.1 Walk-domain Kakao fallback closeout / admin UI 고도화
+
+이번 단계에서는 신규 seed import 없이 산책/location discovery runtime에서 Kakao Local fallback 호출 경로를 제거하고, POI admin read UI에 queue filtering과 batch drill-down을 추가했다.
+
+구현 결과:
+
+- 판정: `walk-domain hard delete 완료`
+- 산책/location discovery: `walkKakaoFallbackProvider` export와 호출 제거
+- safe fallback UX: POI RPC disabled/error, gate 밖, 좌표 없음, feature flag off, result 0 모두 `walk_poi` empty 응답으로 처리
+- Ready 권역 Kakao 호출 0: focused test에서 유지
+- pet-friendly adapter: `petFriendlyKakaoSearchProvider` 유지
+- 동물병원 provider matching: 기존 Kakao provider 경로 유지, focused test 통과
+- coord2region Edge Function: 변경 없음
+- Kakao Login / Google Login / social provider 설정: 변경 없음
+
+admin UI:
+
+- review queue status filter 추가: 전체/대기/승인/반려/보류
+- import batch selector 추가
+- batch drill-down summary 추가: requested/created/duplicate/conflict/review
+- batch id/source provider/import mode/status 표시 강화
+- audit detail modal과 approve/reject/held workflow 유지
+- 일반 사용자 admin UI 미노출 유지
+
+검증:
+
+- 총 approved/public/active POI: 1,145건
+- public RPC smoke: nearby 20건, `호수공원` search 6건, detail 1건
+- pending/rejected/held public active leak: 0건
+- 비관리자 admin RPC: `WALK_POI_ADMIN_REQUIRED`
+- focused walk-domain closeout tests: 17/17 통과
+- admin queue helper tests: 2/2 통과
+- pet-friendly adapter test: 통과
+- animal hospital provider matching impact test: 통과
+- typecheck: 통과
+- lint: 에러 0건, 기존 warning 6건
+- Android release build/install: `SM_S937N`에 `app-release.apk` update install 성공
+- Android smoke: 일산 Ready 권역 리스트/`문화공원 오거리공원` 상세, 부산 Ready 권역 리스트/`해운대해수욕장 산책로` 상세를 카드 tap으로 확인
+- Android empty/safe fallback: `hanam`/`songdo` ASCII 검색은 `검색 결과가 없어요`, gate 밖 `0.0,0.0` 좌표는 `현재 위치 주변 산책 장소를 아직 찾지 못했어요`로 표시
+- logcat: `kakaoBlocked: true`, gate 밖 `poi_empty` safe-fallback 확인, `location-discovery-seed`/Kakao Local 호출 흔적 0건, fatal / ANR / unhandled promise pattern 0건
+
+현재 진행률:
+
+| 구분 | 진행률 | 근거 |
+| --- | ---: | --- |
+| V1.0 기능 개발 | 100% | P0/P1 0건, 필수 기능 closeout |
+| V1.0 QA/출시 준비 | 약 96% | release smoke 완료, Play Store 자산은 최종 제출 직전 준비 |
+| V1.1 산책 POI 트랙 | 약 99% | 1,145건 POI, walk-domain Kakao fallback 제거, admin queue/batch 운영 UX 고도화, public projection safety 유지 |
+| V1.1 전체 | 약 50% | 산책 POI closeout 임박, billing/AI/letters/typography 잔여 |
+| 전체 제품 로드맵 | 약 90% | V1.0 완료 + V1.1 비용 방어/POI 운영 closeout 진척 기준 |
+
+다음 액션:
+
+1. admin UI 운영자 QA closeout
+2. 광역시/전국 seed 운영 품질 최종 점검

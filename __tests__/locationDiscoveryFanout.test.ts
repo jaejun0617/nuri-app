@@ -44,19 +44,6 @@ const { searchWalkPoiLocations } = jest.requireMock(
   >;
 };
 
-const WALK_BASE_KEYWORDS = [
-  '공원',
-  '문화공원',
-  '호수공원',
-  '근린공원',
-  '생태공원',
-  '수변공원',
-  '어린이공원',
-  '산책로',
-  '둘레길',
-  '숲길',
-] as const;
-
 const ANCHOR_COORDINATES = {
   latitude: 36.421,
   longitude: 127.108,
@@ -480,27 +467,6 @@ function createSearchInput(
   };
 }
 
-function createWalkDocument(input: {
-  id: string;
-  name: string;
-  distanceMeters: number;
-}): KakaoPlaceDocument {
-  const coordinateOffset = input.distanceMeters / 1_000_000;
-
-  return {
-    id: input.id,
-    place_name: input.name,
-    category_name: '여행 > 관광,명소 > 공원',
-    category_group_name: '공원',
-    address_name: '서울특별시 강남구 역삼동',
-    road_address_name: '서울특별시 강남구 테헤란로 1',
-    x: (127.03 + coordinateOffset).toFixed(6),
-    y: (37.5 + coordinateOffset).toFixed(6),
-    place_url: `https://place.map.kakao.com/${input.id}`,
-    distance: String(input.distanceMeters),
-  };
-}
-
 function createWalkPoiItem(input: {
   id: string;
   name: string;
@@ -577,7 +543,7 @@ function getKeywordCalls(): LocationSearchProviderInput[] {
   );
 }
 
-describe('location discovery walk Kakao fan-out guard', () => {
+describe('location discovery walk safe fallback guard', () => {
   beforeEach(() => {
     kakaoLocalSearchProvider.searchKeyword.mockReset();
     kakaoLocalSearchProvider.searchAddress.mockReset();
@@ -585,80 +551,28 @@ describe('location discovery walk Kakao fan-out guard', () => {
     searchWalkPoiLocations.mockResolvedValue([]);
   });
 
-  it('nearby 기본 진입은 1차 결과가 충분하면 10개 keyword page 1만 호출한다', async () => {
-    kakaoLocalSearchProvider.searchKeyword.mockImplementation(async input => [
-      createWalkDocument({
-        id: `walk:${input.query}:${input.page ?? 1}`,
-        name: `${input.query} 산책공원`,
-        distanceMeters: 120 + (input.page ?? 1),
-      }),
-    ]);
-
+  it('nearby 기본 진입은 자체 POI가 없으면 Kakao fan-out 없이 safe fallback을 반환한다', async () => {
     const result = await searchLocationDiscovery(
       'walk',
       createSearchInput(null, ANCHOR_COORDINATES),
     );
-    const calls = getKeywordCalls();
 
-    expect(result.items).toHaveLength(8);
-    expect(calls).toHaveLength(10);
-    expect(calls.map(call => call.query)).toEqual([...WALK_BASE_KEYWORDS]);
-    expect(calls.every(call => call.page === 1)).toBe(true);
-    expect(calls.some(call => call.page === 2)).toBe(false);
-    expect(calls.some(call => call.page === 3)).toBe(false);
+    expect(result.items).toHaveLength(0);
+    expect(result.source).toBe('walk_poi');
+    expect(searchWalkPoiLocations).toHaveBeenCalledTimes(1);
+    expect(getKeywordCalls()).toHaveLength(0);
   });
 
-  it('nearby 기본 진입은 1차 결과가 부족할 때만 상위 2개 keyword page 2를 추가 호출한다', async () => {
-    kakaoLocalSearchProvider.searchKeyword.mockImplementation(async input => {
-      if (input.query === '공원' && input.page === 1) {
-        return [
-          createWalkDocument({
-            id: 'walk:only-result',
-            name: '공원 산책공원',
-            distanceMeters: 140,
-          }),
-        ];
-      }
-
-      return [];
-    });
-
+  it('명시 검색어도 자체 POI가 없으면 Kakao keyword page 호출 없이 safe fallback을 반환한다', async () => {
     const result = await searchLocationDiscovery(
-      'walk',
-      createSearchInput(null, ANCHOR_COORDINATES),
-    );
-    const calls = getKeywordCalls();
-    const pageTwoCalls = calls.filter(call => call.page === 2);
-
-    expect(result.items).toHaveLength(1);
-    expect(calls).toHaveLength(12);
-    expect(calls.filter(call => call.page === 1)).toHaveLength(10);
-    expect(pageTwoCalls.map(call => call.query)).toEqual(['공원', '문화공원']);
-    expect(calls.some(call => call.page === 3)).toBe(false);
-  });
-
-  it('명시 검색어는 기존 좌표 유무별 maxPages 정책을 유지한다', async () => {
-    kakaoLocalSearchProvider.searchKeyword.mockResolvedValue([]);
-
-    await searchLocationDiscovery(
       'walk',
       createSearchInput('한강공원', ANCHOR_COORDINATES),
     );
-    expect(getKeywordCalls().map(call => call.page)).toEqual([1, 2, 3]);
-    expect(getKeywordCalls().map(call => call.query)).toEqual([
-      '한강공원',
-      '한강공원',
-      '한강공원',
-    ]);
 
-    kakaoLocalSearchProvider.searchKeyword.mockClear();
-
-    await searchLocationDiscovery('walk', createSearchInput('한강공원', null));
-    expect(getKeywordCalls().map(call => call.page)).toEqual([1, 2]);
-    expect(getKeywordCalls().map(call => call.query)).toEqual([
-      '한강공원',
-      '한강공원',
-    ]);
+    expect(result.items).toHaveLength(0);
+    expect(result.source).toBe('walk_poi');
+    expect(searchWalkPoiLocations).toHaveBeenCalledTimes(1);
+    expect(getKeywordCalls()).toHaveLength(0);
   });
 
   it('coverage region 안에서 POI 0건이면 Kakao fallback을 제한한다', async () => {
@@ -695,24 +609,16 @@ describe('location discovery walk Kakao fan-out guard', () => {
     expect(kakaoLocalSearchProvider.searchKeyword).not.toHaveBeenCalled();
   });
 
-  it('coverage region 밖에서는 POI 0건이어도 Kakao fallback을 유지한다', async () => {
-    kakaoLocalSearchProvider.searchKeyword.mockResolvedValue([
-      createWalkDocument({
-        id: 'fallback:outside-gate',
-        name: 'coverage 밖 fallback 산책공원',
-        distanceMeters: 520,
-      }),
-    ]);
-
+  it('coverage region 밖에서도 POI 0건이면 Kakao 호출 없이 safe fallback을 유지한다', async () => {
     const result = await searchLocationDiscovery(
       'walk',
       createSearchInput('zzzwalkpoi', ANCHOR_COORDINATES),
     );
 
-    expect(result.source).toBe('kakao');
-    expect(result.items).toHaveLength(1);
+    expect(result.source).toBe('walk_poi');
+    expect(result.items).toHaveLength(0);
     expect(searchWalkPoiLocations).toHaveBeenCalledTimes(1);
-    expect(kakaoLocalSearchProvider.searchKeyword).toHaveBeenCalled();
+    expect(kakaoLocalSearchProvider.searchKeyword).not.toHaveBeenCalled();
   });
 
   it('백석/마두/정발산 coverage region 안에서도 POI 0건 fallback을 제한한다', async () => {
@@ -942,15 +848,8 @@ describe('location discovery walk Kakao fan-out guard', () => {
     }
   });
 
-  it('coverage region 안에서도 POI RPC error는 Kakao fallback을 유지한다', async () => {
+  it('coverage region 안에서도 POI RPC error는 Kakao 호출 없이 safe fallback을 유지한다', async () => {
     searchWalkPoiLocations.mockRejectedValueOnce(new Error('rpc timeout'));
-    kakaoLocalSearchProvider.searchKeyword.mockResolvedValue([
-      createWalkDocument({
-        id: 'fallback:hanam',
-        name: '하남 fallback 산책공원',
-        distanceMeters: 420,
-      }),
-    ]);
 
     const result = await searchLocationDiscovery(
       'walk',
@@ -960,19 +859,19 @@ describe('location discovery walk Kakao fan-out guard', () => {
       ),
     );
 
-    expect(result.source).toBe('kakao');
-    expect(result.items).toHaveLength(1);
+    expect(result.source).toBe('walk_poi');
+    expect(result.items).toHaveLength(0);
     expect(searchWalkPoiLocations).toHaveBeenCalledTimes(1);
-    expect(kakaoLocalSearchProvider.searchKeyword).toHaveBeenCalled();
+    expect(kakaoLocalSearchProvider.searchKeyword).not.toHaveBeenCalled();
   });
 
-  it('좌표 없는 nearby 진입은 coordinate_missing fallback을 유지한다', async () => {
+  it('좌표 없는 nearby 진입은 Kakao 호출 없이 coordinate_missing safe fallback을 유지한다', async () => {
     const result = await searchLocationDiscovery(
       'walk',
       createSearchInput(null, null),
     );
 
-    expect(result.source).toBe('kakao');
+    expect(result.source).toBe('walk_poi');
     expect(result.items).toHaveLength(0);
     expect(searchWalkPoiLocations).not.toHaveBeenCalled();
     expect(kakaoLocalSearchProvider.searchKeyword).not.toHaveBeenCalled();
@@ -980,17 +879,11 @@ describe('location discovery walk Kakao fan-out guard', () => {
 });
 
 describe('location discovery walk POI feature flag kill-switch', () => {
-  it('POI RPC feature flag가 off이면 기존 Kakao fallback을 유지한다', async () => {
+  it('POI RPC feature flag가 off이면 Kakao 호출 없이 safe fallback을 유지한다', async () => {
     jest.resetModules();
     jest.doMock('../src/services/locationDiscovery/kakaoLocal', () => ({
       kakaoLocalSearchProvider: {
-        searchKeyword: jest.fn(async () => [
-          createWalkDocument({
-            id: 'fallback:poi-disabled',
-            name: 'feature flag off fallback 산책공원',
-            distanceMeters: 640,
-          }),
-        ]),
+        searchKeyword: jest.fn(async () => []),
         searchAddress: jest.fn(),
       },
     }));
@@ -1039,11 +932,11 @@ describe('location discovery walk POI feature flag kill-switch', () => {
       ),
     );
 
-    expect(result.source).toBe('kakao');
-    expect(result.items).toHaveLength(1);
+    expect(result.source).toBe('walk_poi');
+    expect(result.items).toHaveLength(0);
     expect(isolatedWalkPoiRpc.searchWalkPoiLocations).not.toHaveBeenCalled();
     expect(
       isolatedKakao.kakaoLocalSearchProvider.searchKeyword,
-    ).toHaveBeenCalled();
+    ).not.toHaveBeenCalled();
   });
 });

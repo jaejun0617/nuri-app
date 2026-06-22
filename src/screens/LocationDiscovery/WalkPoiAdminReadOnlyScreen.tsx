@@ -6,7 +6,7 @@
 // 핵심 역할:
 // - admin/super_admin에게만 batch, review queue, audit, fallback gate 요약을 보여준다.
 // - write action은 pending 후보의 approve/reject/held로 제한하고 import commit UI와 raw payload는 제공하지 않는다.
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Modal,
@@ -44,6 +44,14 @@ import {
   type WalkPoiAdminReviewAction,
   type WalkPoiAdminReviewQueueItem,
 } from '../../services/locationDiscovery/walkPoiAdmin';
+import {
+  filterWalkPoiAdminImportBatches,
+  filterWalkPoiAdminReviewQueue,
+  getWalkPoiAdminBatchFilterOptions,
+  getWalkPoiAdminQueueStatusCounts,
+  summarizeWalkPoiAdminBatches,
+  type WalkPoiAdminQueueStatusFilter,
+} from '../../services/locationDiscovery/walkPoiAdminQueue';
 import { useAuthStore } from '../../store/authStore';
 import { openMoreDrawer } from '../../store/uiStore';
 
@@ -65,6 +73,20 @@ const REVIEW_ACTION_ICON: Record<WalkPoiAdminReviewAction, string> = {
   reject: 'x',
   held: 'pause',
 };
+
+const REVIEW_STATUS_FILTERS: Array<{
+  id: WalkPoiAdminQueueStatusFilter;
+  label: string;
+}> = [
+  { id: 'all', label: '전체' },
+  { id: 'pending', label: '대기' },
+  { id: 'approved', label: '승인' },
+  { id: 'rejected', label: '반려' },
+  { id: 'held', label: '보류' },
+];
+
+const EMPTY_IMPORT_BATCHES: WalkPoiAdminImportBatch[] = [];
+const EMPTY_REVIEW_QUEUE: WalkPoiAdminReviewQueueItem[] = [];
 
 function formatCount(value: number): string {
   return value.toLocaleString('ko-KR');
@@ -88,6 +110,7 @@ function formatDateTime(value: string | null | undefined): string {
 
 function formatBatchSummary(batch: WalkPoiAdminImportBatch): string {
   return [
+    `requested ${formatCount(batch.summary.requestedCount)}`,
     `created ${formatCount(batch.summary.createdCount)}`,
     `duplicate ${formatCount(batch.summary.duplicateCount)}`,
     `conflict ${formatCount(batch.summary.conflictCount)}`,
@@ -166,6 +189,129 @@ function EmptyState({ message }: { message: string }) {
   );
 }
 
+function FilterChip({
+  label,
+  helper,
+  selected,
+  onPress,
+}: {
+  label: string;
+  helper?: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      style={[styles.filterChip, selected ? styles.filterChipSelected : null]}
+      onPress={onPress}
+    >
+      <AppText
+        preset="caption"
+        style={[
+          styles.filterChipText,
+          selected ? styles.filterChipTextSelected : null,
+        ]}
+      >
+        {label}
+      </AppText>
+      {helper ? (
+        <AppText
+          preset="caption"
+          style={[
+            styles.filterChipHelper,
+            selected ? styles.filterChipTextSelected : null,
+          ]}
+        >
+          {helper}
+        </AppText>
+      ) : null}
+    </Pressable>
+  );
+}
+
+function BatchDrillDown({
+  batches,
+  selectedBatchId,
+  onSelectBatch,
+}: {
+  batches: ReadonlyArray<WalkPoiAdminImportBatch>;
+  selectedBatchId: string | null;
+  onSelectBatch: (batchId: string | null) => void;
+}) {
+  const filteredBatches = useMemo(
+    () => filterWalkPoiAdminImportBatches(batches, selectedBatchId),
+    [batches, selectedBatchId],
+  );
+  const batchOptions = useMemo(
+    () => getWalkPoiAdminBatchFilterOptions(batches),
+    [batches],
+  );
+  const drillDownSummary = useMemo(
+    () => summarizeWalkPoiAdminBatches(filteredBatches),
+    [filteredBatches],
+  );
+  const selectedBatch = selectedBatchId
+    ? filteredBatches.find(batch => batch.id === selectedBatchId) ?? null
+    : null;
+
+  return (
+    <View style={styles.drillDownCard}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filterBar}
+      >
+        {batchOptions.map(option => (
+          <FilterChip
+            key={option.id ?? 'all'}
+            label={option.label}
+            helper={option.helper}
+            selected={selectedBatchId === option.id}
+            onPress={() => onSelectBatch(option.id)}
+          />
+        ))}
+      </ScrollView>
+
+      <View style={styles.metricGrid}>
+        <MetricCard
+          label="batch"
+          value={drillDownSummary.batchCount}
+          helper="selected"
+        />
+        <MetricCard
+          label="requested"
+          value={drillDownSummary.requestedCount}
+        />
+        <MetricCard label="created" value={drillDownSummary.createdCount} />
+        <MetricCard
+          label="duplicate"
+          value={drillDownSummary.duplicateCount}
+        />
+        <MetricCard label="conflict" value={drillDownSummary.conflictCount} />
+        <MetricCard label="review" value={drillDownSummary.reviewCount} />
+      </View>
+
+      {selectedBatch ? (
+        <View style={styles.batchDetailBox}>
+          <AppText preset="caption" style={styles.rowEyebrow}>
+            선택 batch
+          </AppText>
+          <AppText preset="body" style={styles.rowTitle}>
+            {selectedBatch.sourceName ?? selectedBatch.id}
+          </AppText>
+          <AppText preset="caption" style={styles.rowMeta}>
+            {selectedBatch.id}
+          </AppText>
+          <AppText preset="caption" style={styles.rowMeta}>
+            {selectedBatch.sourceProvider} · {selectedBatch.importMode} ·{' '}
+            {selectedBatch.importStatus}
+          </AppText>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 function BatchRow({ batch }: { batch: WalkPoiAdminImportBatch }) {
   return (
     <View style={styles.rowCard}>
@@ -184,6 +330,9 @@ function BatchRow({ batch }: { batch: WalkPoiAdminImportBatch }) {
           </AppText>
         </View>
       </View>
+      <AppText preset="caption" style={styles.rowMeta}>
+        batch {batch.id}
+      </AppText>
       <AppText preset="caption" style={styles.rowMeta}>
         {formatBatchSummary(batch)}
       </AppText>
@@ -324,8 +473,9 @@ function CoverageSummary({ summary }: { summary: WalkPoiAdminReadSummary }) {
             {summary.coverageRegion.label}
           </AppText>
           <AppText preset="bodySm" style={styles.bannerBody}>
-            POI 0건 fallback 제한은 이 region 안에서만 적용돼요. RPC 오류, 좌표
-            없음, region 밖은 기존 Kakao fallback을 유지합니다.
+            POI 0건 fallback 제한은 이 region 안에서 적용돼요. RPC 오류,
+            좌표 없음, region 밖도 산책 도메인에서는 안전한 빈 결과 UX로
+            처리합니다.
           </AppText>
         </View>
         <View
@@ -389,6 +539,9 @@ export default function WalkPoiAdminReadOnlyScreen() {
   const [selectedAuditLogId, setSelectedAuditLogId] = useState<number | null>(
     null,
   );
+  const [reviewStatusFilter, setReviewStatusFilter] =
+    useState<WalkPoiAdminQueueStatusFilter>('all');
+  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
   const isProfileReady = profileSyncStatus === 'ready';
   const isAdmin =
     isProfileReady && (role === 'admin' || role === 'super_admin');
@@ -493,6 +646,24 @@ export default function WalkPoiAdminReadOnlyScreen() {
     setSelectedAuditLogId(null);
   }, []);
 
+  const summary = summaryQuery.data ?? null;
+  const recentImportBatches =
+    summary?.recentImportBatches ?? EMPTY_IMPORT_BATCHES;
+  const recentReviewQueue = summary?.recentReviewQueue ?? EMPTY_REVIEW_QUEUE;
+  const filteredImportBatches = useMemo(
+    () => filterWalkPoiAdminImportBatches(recentImportBatches, selectedBatchId),
+    [recentImportBatches, selectedBatchId],
+  );
+  const filteredReviewQueue = useMemo(
+    () =>
+      filterWalkPoiAdminReviewQueue(recentReviewQueue, reviewStatusFilter),
+    [recentReviewQueue, reviewStatusFilter],
+  );
+  const reviewStatusCounts = useMemo(
+    () => getWalkPoiAdminQueueStatusCounts(recentReviewQueue),
+    [recentReviewQueue],
+  );
+
   if (!isProfileReady) {
     return (
       <SafeAreaView style={styles.screen}>
@@ -543,8 +714,6 @@ export default function WalkPoiAdminReadOnlyScreen() {
       </SafeAreaView>
     );
   }
-
-  const summary = summaryQuery.data ?? null;
 
   return (
     <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
@@ -640,24 +809,49 @@ export default function WalkPoiAdminReadOnlyScreen() {
               )}
             </Section>
 
-            <Section title="Recent Import Batches">
-              {summary.recentImportBatches.length === 0 ? (
+            <Section title="Import Batch Drill-down">
+              {recentImportBatches.length === 0 ? (
                 <EmptyState message="최근 import batch가 없어요." />
               ) : (
-                <View style={styles.list}>
-                  {summary.recentImportBatches.map(batch => (
-                    <BatchRow key={batch.id} batch={batch} />
-                  ))}
-                </View>
+                <>
+                  <BatchDrillDown
+                    batches={recentImportBatches}
+                    selectedBatchId={selectedBatchId}
+                    onSelectBatch={setSelectedBatchId}
+                  />
+                  <View style={styles.list}>
+                    {filteredImportBatches.map(batch => (
+                      <BatchRow key={batch.id} batch={batch} />
+                    ))}
+                  </View>
+                </>
               )}
             </Section>
 
             <Section title="Review Queue">
-              {summary.recentReviewQueue.length === 0 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.filterBar}
+              >
+                {REVIEW_STATUS_FILTERS.map(filter => (
+                  <FilterChip
+                    key={filter.id}
+                    label={filter.label}
+                    helper={formatCount(reviewStatusCounts[filter.id])}
+                    selected={reviewStatusFilter === filter.id}
+                    onPress={() => setReviewStatusFilter(filter.id)}
+                  />
+                ))}
+              </ScrollView>
+
+              {recentReviewQueue.length === 0 ? (
                 <EmptyState message="최근 review queue가 없어요." />
+              ) : filteredReviewQueue.length === 0 ? (
+                <EmptyState message="선택한 상태의 review queue가 없어요." />
               ) : (
                 <View style={styles.list}>
-                  {summary.recentReviewQueue.map(item => (
+                  {filteredReviewQueue.map(item => (
                     <ReviewRow
                       key={item.walkPoiId}
                       item={item}
@@ -698,10 +892,8 @@ export default function WalkPoiAdminReadOnlyScreen() {
                   광역시, 전국 공공데이터/OSM batch 순서로 진행합니다.
                 </AppText>
                 <AppText preset="caption" style={styles.nextStepMeta}>
-                  Kakao Local 사용자 runtime 제거 여부:{' '}
-                  {summary.fallbackGate.kakaoLocalRuntimeDeleted
-                    ? '제거됨'
-                    : '유지'}
+                  Walk-domain Kakao Local runtime: safe fallback 전환 완료 ·
+                  shared provider는 타 도메인 유지
                 </AppText>
               </View>
             </Section>
@@ -1044,6 +1236,53 @@ const styles = StyleSheet.create({
   },
   metricHelper: {
     color: '#7B8597',
+  },
+  filterBar: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingRight: 4,
+  },
+  filterChip: {
+    minHeight: 38,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#DDE6F2',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    justifyContent: 'center',
+    gap: 2,
+  },
+  filterChipSelected: {
+    borderColor: '#2F6F4E',
+    backgroundColor: '#EAF6EF',
+  },
+  filterChipText: {
+    color: '#506074',
+    fontWeight: '900',
+  },
+  filterChipTextSelected: {
+    color: '#2F6F4E',
+  },
+  filterChipHelper: {
+    color: '#7B8597',
+    fontWeight: '800',
+  },
+  drillDownCard: {
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E7EDF5',
+    padding: 12,
+    gap: 12,
+  },
+  batchDetailBox: {
+    borderRadius: 14,
+    backgroundColor: '#F7F9FC',
+    borderWidth: 1,
+    borderColor: '#E7EDF5',
+    padding: 12,
+    gap: 4,
   },
   stateCard: {
     borderRadius: 18,
