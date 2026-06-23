@@ -1,4 +1,4 @@
-# NURI 앱 전체 프로젝트 최종 현황 보고서 - 2026-06-22
+# NURI 앱 전체 프로젝트 최종 현황 보고서 - 2026-06-23
 
 ## 1. 프로젝트 전체 요약
 
@@ -6,20 +6,20 @@ NURI는 반려동물의 기억을 기록하고 추억하는 디지털 메모리�
 
 ## 2. 현재 기준일
 
-- 기준일: 2026-06-22
+- 기준일: 2026-06-23
 - 기준 브랜치: `codex/task6-community-content-policy`
 - 기준 remote POI: approved/public/active 1,145건
-- 이번 보고서 성격: 문서 정리 + 검증 결과 정리. 신규 seed, DB write, migration 없음
+- 이번 보고서 성격: release candidate smoke + 운영비 readiness 점검. 신규 seed, DB write, migration 없음
 
 ## 3. 진행률
 
 | 구분 | 진행률 | 판단 |
 | --- | ---: | --- |
 | V1.0 기능 개발 | 100% | P0/P1 0건, 기능 Code Freeze 유지 |
-| V1.0 QA/출시 준비 | 약 96% | release smoke, OAuth smoke, 주요 서버 gate 완료. Play Store 자산은 최종 제출 직전 준비 |
+| V1.0 QA/출시 준비 | 약 97% | release APK update install, 사용자-facing RC smoke, OAuth 버튼 상태, crash-free logcat 재확인. Play Store 자산은 최종 제출 직전 준비 |
 | V1.1 산책 POI 트랙 | 약 99% | 1,145건 POI, walk-domain Kakao fallback 제거, public projection safety, Android smoke 통과 |
-| V1.1 전체 | 약 50% | 산책 POI는 closeout 가능. billing/AI/letters/typography 등 V1.1 잔여 존재 |
-| 전체 제품 로드맵 | 약 90% | V1.0 closeout 유지와 V1.1 핵심 비용/POI 리스크 축소 기준 |
+| V1.1 전체 | 약 51% | 산책 POI closeout 유지와 RC smoke/cost readiness 확인. billing/AI/letters/typography 등 V1.1 잔여 존재 |
+| 전체 제품 로드맵 | 약 91% | V1.0 closeout 유지, V1.1 핵심 비용/POI 리스크 축소, release candidate smoke 통과 기준 |
 
 ## 4. 완료된 주요 도메인
 
@@ -80,20 +80,35 @@ NURI는 반려동물의 기억을 기록하고 추억하는 디지털 메모리�
 
 ## 9. Play Store 출시 전 남은 작업
 
-- V1.1 release candidate smoke
-- 전체 사용자-facing smoke와 crash-free logcat 재확인
+- release candidate smoke 마감 판정
 - privacy/policy 링크 최종 확인
-- Supabase/Codex 운영비 확인
+- Supabase/Codex 운영비 실제 결제 계정 확인
 - Play Store 자산 패키지: V1.0/V1.1 전체 완료 후 최종 제출 직전 진행
 - Play Console 실제 입력: 최종 제출 직전 단계에서만 수행
 
 ## 10. 리스크 현황
 
-- 출시 전 blocker: 현재 확인된 산책 POI blocker 없음
+- 출시 전 blocker: 현재 확인된 사용자-facing release blocker 없음
 - Kakao Local global hard delete: 보류. 다른 도메인 유지 경로 때문에 release blocker 아님
 - admin 운영자 QA: Parking. 앱 출시 blocker 아님
 - Play Store 자산: 아직 미진행. V1.0/V1.1 전체 완료 후 진행해야 함
-- 운영비: Supabase/Codex 비용 확인 필요
+- 운영비: Supabase 프로젝트 플랜/사용량과 Codex 실제 플랜은 dashboard/account owner 확인 필요
+
+## 10-1. 2026-06-23 release candidate smoke / 운영비 readiness
+
+- release APK update install: `SM_S937N`에 `versionName=1.0`, `versionCode=1` 업데이트 설치 성공
+- Android 사용자-facing smoke: 홈, 로그인 세션 복귀, Profile/Pet 카드, Weather, 전체메뉴, Health read/write entrypoint, Animal Hospital 리스트/상세/전화·길찾기 CTA, Walk 리스트/검색 empty/detail/gate 밖 safe UX, Community/Policy, Timeline, 로그아웃/로그인 홈 복귀 확인
+- Google/Kakao 로그인 버튼: 로그아웃 후 로그인 홈에서 `카카오로 시작하기`, `Google로 시작하기` 노출 확인. provider 설정 변경 없음
+- Health write smoke: 실기기에서는 기록 유형 선택 화면 진입까지 확인하고 운영 DB에 테스트 기록은 남기지 않음. `recordsForm` focused test로 write form 회귀 보완
+- Walk POI regression: approved/public/active 1,145건, public nearby 20건/search 6건/detail 1건, public internal key leak 0건, anon direct table select `42501`, anon admin RPC `WALK_POI_ADMIN_REQUIRED`
+- Ready Kakao 차단: 일산 Ready 권역 logcat `kakaoBlocked: true`, `gateLimited: true`, `resultCount: 8`
+- gate 밖 safe UX: 좌표 `0,0` deep link에서 `gateLimited: false`, `kakaoBlocked: true`, `현재 위치 주변 산책 장소를 아직 찾지 못했어요` 표시
+- crash-free: logcat `FATAL EXCEPTION`, `ANR in`, `Unhandled promise`, `ReactNativeJS fatal` pattern 0건
+- Supabase remote 상태: project `NURI` active healthy, DB size 약 177MB, Edge Functions 6개 ACTIVE. CLI에서 실제 plan/청구 사용량은 노출되지 않아 Supabase dashboard 확인 필요
+- 비용 판단: POI RPC는 현재 DB 규모가 작고 public RPC 중심이라 급격한 비용 blocker는 없지만, 출시 후 호출량/egress/Edge Function invocations를 월 단위로 추적해야 함
+- Kakao Local 비용: 산책 runtime Kakao Local fallback 제거로 산책 도메인 외부 provider 호출 비용 리스크는 낮아짐. pet-friendly, 동물병원 provider matching, coord2region 경로는 유지
+- Google Places/Maps 재발 위험: Google Places/Photos provider runtime은 기존 hard cap 0/no-op 기준 유지. 산책 상세 지도 미리보기는 Google Maps API가 아니라 OSM/static map 경로
+- Codex 비용: 실제 플랜/워크스페이스 사용량은 OpenAI 계정에서 확인 필요. 개발 지속 예산은 별도 운영 확인 항목으로 유지
 
 ## 11. 구현완료 작업 리스트
 
@@ -103,29 +118,29 @@ NURI는 반려동물의 기억을 기록하고 추억하는 디지털 메모리�
 | Profile / Pet | 등록/수정/날짜 입력 완료 | Android smoke 완료 | V1.0 | 없음 |
 | Health Report | Phase 1 완료 | 타입/lint/QA 문서 완료 | V1.0 | 고도화는 후속 |
 | Animal Hospital | 사용자 서비스 완료 | admin 서버 계약/일반 smoke 완료 | V1.0 | 운영자 홈페이지 QA로 이동 |
-| Walk / Location Discovery / POI | 자체 POI 전환 closeout 가능 | RPC/Android/focused test 통과 | V1.1 | release candidate smoke |
+| Walk / Location Discovery / POI | 자체 POI 전환 closeout 가능 | RPC/Android/focused test/RC smoke 통과 | V1.1 | 운영 모니터링 |
 | Community / Policy / Moderation | 최소 운영 방어선 완료 | row-level/정책 링크 검증 | V1.0 | 운영 UI 고도화 후속 |
 | Weather | 비용 방어 완료 | Android/remote 검증 완료 | V1.0 | 운영비 확인 |
 | Timeline | read/write 경계 정리 완료 | QA 완료 | V1.0 | 없음 |
-| Release QA | release APK exact smoke 완료 | evidence 문서화 | V1.0 | 최종 RC smoke |
+| Release QA | release APK exact smoke와 2026-06-23 RC smoke 완료 | evidence 문서화 | V1.0/V1.1 공통 | RC 마감 판정 |
 | Docs / Project Memory | 최신 기준 갱신 | 이번 턴 정리 완료 | 공통 | 지속 관리 |
 
 ## 12. 구현예정 작업 리스트
 
 | 분류 | 작업 | 기준 |
 | --- | --- | --- |
-| V1.1 잔여 | release candidate smoke | 다음 1순위 |
+| V1.1 잔여 | release candidate smoke 마감 판정 | 다음 1순위 |
 | 홈페이지/관리 페이지로 이동 | 운영자 관리 페이지 설계와 admin QA | 앱 내부 admin QA Parking |
 | 최종 제출 직전 준비 | Play Store 자산 패키지 | V1.0/V1.1 전체 완료 후 |
-| 예산/운영 확인 | Supabase/Codex 운영비 점검 | 다음 2순위 |
+| 예산/운영 확인 | Supabase/Codex 실제 플랜·월 사용량 확정 | 다음 2순위 |
 | 출시 후 고도화 | Apple 로그인, billing, AI reply, private letters, typography | 별도 트랙 |
 | Parking / 보류 | Kakao Local global hard delete | 다른 도메인 유지 경로 해소 후 |
 
 ## 13. 최종 판단
 
-산책/location discovery POI 트랙은 사용자-facing release blocker 없이 closeout 가능하다. 단, V1.1 전체는 아직 50% 기준이므로 Play Store 자산 패키지는 다음 액션이 아니다. 다음 단계는 release candidate smoke와 운영비 점검이다.
+산책/location discovery POI 트랙은 사용자-facing release blocker 없이 closeout 가능하고, 2026-06-23 release candidate smoke에서도 crash-free 상태를 유지했다. 단, V1.1 전체는 아직 51% 기준이므로 Play Store 자산 패키지는 다음 액션이 아니다. 다음 단계는 RC smoke 마감 판정과 Supabase/Codex 실제 결제 계정 확인이다.
 
 ## 14. 다음 액션
 
-1. V1.1 잔여: release candidate smoke
-2. 예산/운영 확인: Supabase/Codex 운영비 점검
+1. V1.1 잔여: release candidate smoke 마감
+2. 예산/운영 확인: Supabase/Codex 운영비 확정

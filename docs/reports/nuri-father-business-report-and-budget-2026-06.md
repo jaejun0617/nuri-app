@@ -288,3 +288,44 @@ NURI는 이미 핵심 기능 개발이 상당히 진행된 상태다. 하지만 
 - admin 운영자 QA: 앱 출시 blocker가 아니며 별도 홈페이지/관리 페이지 트랙으로 이동
 - Play Store 자산: V1.0/V1.1 전체 완료 후 최종 제출 직전 준비
 - 다음 확인: release candidate smoke, Supabase/Codex 운영비
+
+## 15. 2026년 6월 23일 release candidate smoke와 운영비 점검 추가 보고
+
+앱 출시 후보 APK를 실제 Android 기기에 다시 설치해 사용자 화면 기준으로 깨지는 부분이 없는지 확인했다. 이번 확인은 새 기능 개발이 아니라 출시 전 안정성 점검이다.
+
+- Android 기기: `SM_S937N`
+- release APK update install: 성공
+- 홈, 반려동물 카드, 날씨, 전체메뉴: 정상
+- 건강관리: 화면 진입과 기록 작성 진입 정상. 실제 테스트 기록은 남기지 않음
+- 동물병원: 리스트, 상세, 전화하기/길찾기 버튼 표시 정상
+- 산책 장소: 리스트, 검색 결과 없음 화면, 상세 진입, 서비스 범위 밖 안전 안내 정상
+- 커뮤니티/정책, 타임라인: 정상
+- 로그아웃 후 로그인 홈 복귀: 정상
+- Kakao/Google 로그인 버튼: 노출 정상
+- 앱 강제 종료, 멈춤, 치명 오류: logcat 기준 0건
+
+산책 장소 데이터는 승인되어 사용자에게 노출 가능한 1,145건이 유지된다. 승인되지 않은 데이터가 사용자 화면에 노출된 사례는 없었고, 산책 기능에서는 Kakao Local fallback을 다시 호출하지 않는 상태가 유지됐다.
+
+운영비는 결제 변경 없이 확인 가능한 범위만 점검했다.
+
+- Supabase 프로젝트 상태: CLI 기준 active healthy
+- Supabase DB 크기: 약 177MB
+- Supabase Edge Function: 6개 active
+- Supabase 실제 요금제와 월 사용량: Dashboard에서 계정 소유자 확인 필요
+- Codex 실제 플랜과 갱신 금액: OpenAI/Codex 계정에서 확인 필요
+- 산책 Kakao Local 비용 리스크: 산책 runtime 제거로 낮아짐
+- Google Places/Maps 비용 재발 위험: 기존 hard cap 0/no-op 기준 유지. 산책 지도 미리보기는 Google Maps API가 아니라 OSM/static map 경로
+
+현재 예산 관련 결론은 “즉시 결제 변경이 필요한 blocker는 확인되지 않았지만, 실제 출시 전에는 Supabase 실제 plan/사용량과 Codex 실제 플랜을 계정 소유자가 확정해야 한다”이다.
+
+## 2026-06-23 최종 현황 요약
+
+- V1.0 기능 개발: 100%
+- V1.0 QA/출시 준비: 약 97%
+- V1.1 산책 POI 트랙: 약 99%
+- V1.1 전체: 약 51%
+- 전체 제품 로드맵: 약 91%
+- 현재 승인되어 사용자에게 노출 가능한 산책 장소: 1,145건
+- release candidate smoke: 사용자-facing blocker 없음
+- 운영비: Supabase/Codex 실제 계정 기준 확정 필요
+- Play Store 자산: V1.0/V1.1 전체 완료 후 최종 제출 직전 준비

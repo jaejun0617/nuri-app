@@ -11,6 +11,7 @@
 - 현재 unchecked 운영 evidence 항목은 신규 기능 개발이 아니며, V1.1 또는 운영 보강 트랙에서 다룬다. Play Store 제출 자산은 V1.1 작업이 아니라 최종 제출 직전 준비로 분리한다.
 - v1.1은 v1.0 미완성 이월이 아니라 신규 업데이트 트랙이다.
 - 과금, Premium AI reply, Guestbook private letters 확장, Typography foundation rollout은 v1.1 신규 업데이트 후보로 관리한다.
+- 2026-06-23 release candidate smoke는 release APK update install 기준으로 사용자-facing 핵심 경로를 재확인했다. Play Store 자산은 여전히 V1.0/V1.1 전체 완료 후 최종 제출 직전 단계다.
 
 ## V1.0 기능 기준선과 잔여 task/risk closeout
 
@@ -202,6 +203,37 @@
   - 포함: worktree 시작 상태, 수정 파일 목록, 최소 검증 명령, Android 기기 정보, V1.0 provider 최종 상태, Naver soft disable, pet date UX, V1.1 이동 항목
   - evidence: `docs/qa/final-rc-evidence-2026-05-29.md`
   - 최종 제출용 release build artifact와 설치 앱 version/signing provenance는 `최종 제출용 RC 빌드 확정`에서 별도로 닫는다.
+
+### 0-1-1. 2026-06-23 Release Candidate Smoke
+
+- [x] release APK update install
+  - Android `SM_S937N` / `R5CY613NMSY`에 `android/app/build/outputs/apk/release/app-release.apk` update install 성공
+  - installed package: `versionName=1.0`, `versionCode=1`, `lastUpdateTime=2026-06-23 08:49:08`
+- [x] 사용자-facing 핵심 플로우 smoke
+  - 홈, 로그인 세션 복귀, Profile/Pet 카드, Weather, 전체메뉴, Community/Policy, Timeline read path 확인
+  - Health Report read path와 `건강 기록하기` write entrypoint 진입 확인. 운영 DB에 테스트 기록은 남기지 않음
+  - Animal Hospital 리스트/상세/전화하기/길찾기 CTA 표시 확인
+  - Walk/POI 리스트, empty UX, detail tap, gate 밖 safe UX 확인
+  - 로그아웃 확인 모달, 로그아웃 완료, 로그인 홈 복귀, `카카오로 시작하기`/`Google로 시작하기` 버튼 노출 확인
+- [x] 산책 POI 회귀
+  - approved/public/active POI 1,145건 유지
+  - public nearby 20건, `호수공원` search 6건, detail 1건
+  - pending/rejected/held public active leak 0건
+  - public RPC internal key leak 0건
+  - anon direct `walk_pois` select: `42501 permission denied`
+  - anon admin RPC: `WALK_POI_ADMIN_REQUIRED`
+  - Ready 권역: `kakaoBlocked: true`, `gateLimited: true`, `resultCount: 8`
+  - gate 밖 좌표: `gateLimited: false`, `kakaoBlocked: true`, safe empty UX 표시
+- [x] crash-free logcat
+  - `FATAL EXCEPTION`: 0건
+  - `ANR in`: 0건
+  - `Unhandled promise` / `Possible Unhandled Promise Rejection`: 0건
+  - `ReactNativeJS fatal`: 0건
+- [x] 운영비 readiness
+  - Supabase project `NURI`: CLI 기준 `ACTIVE_HEALTHY`
+  - DB size: 약 177MB
+  - Edge Functions: 6개 ACTIVE
+  - 실제 Supabase plan/청구 사용량과 Codex 실제 플랜은 dashboard/account owner 확인 필요
 
 ### 0-2. Google/Kakao OAuth provider setup gate + Naver soft disable
 

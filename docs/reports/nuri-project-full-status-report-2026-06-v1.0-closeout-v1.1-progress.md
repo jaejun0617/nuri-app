@@ -1,10 +1,10 @@
 # NURI 전체 프로젝트 현황 보고서
 
-기준일: 2026-06-21
-최종 정합성 검수일: 2026-06-21
+기준일: 2026-06-23
+최종 정합성 검수일: 2026-06-23
 문서 목적: ChatGPT, Codex, 운영자, 후속 개발 세션이 현재 NURI 앱의 전체 맥락을 한 번에 파악하기 위한 source of truth 문서
 
-최신 갱신: 2026-06-21 전국 seed 5차를 admin import/review workflow로 승인해 총 approved/public/active POI를 1,145건으로 확대했다. 신규 8개 권역은 3km/5km coverage와 public nearby/search/detail smoke를 통과해 권역별 fallback gate를 추가 적용했다. 대량 seed 품질 점검 기준 source/attribution, categoryLabel, address, 한글 alias 누락은 0건이다. Kakao Local hard delete는 여전히 보류하고 shared provider는 `provider 분리 가능`으로 판정한다.
+최신 갱신: 2026-06-23 release candidate smoke와 Supabase/Codex 운영비 readiness 점검을 수행했다. release APK update install 후 사용자-facing 핵심 경로, 산책 POI public RPC/projection, Ready Kakao 차단, gate 밖 safe UX, 로그아웃/로그인 홈 복귀를 확인했고 logcat fatal/ANR/unhandled pattern은 0건이다. Supabase project는 active healthy, DB size는 약 177MB, Edge Functions는 6개 ACTIVE이며 실제 plan/청구 사용량은 dashboard owner 확인이 필요하다.
 
 ## 1. 문서 목적
 
@@ -38,10 +38,10 @@
 | 구분 | 진행률 | 근거 |
 | --- | ---: | --- |
 | V1.0 기능 개발 | 100% | P0/P1 0건, 필수 기능 closeout, Code Freeze 유지 |
-| V1.0 QA/출시 준비 | 약 96% | release APK exact install smoke, 일반 사용자 smoke, admin/super_admin 서버 계약 확인, P0 corrective 회귀 완료. Play Store 제출 자산만 최종 제출 직전 준비로 남음 |
-| V1.1 산책 POI 전환 트랙 | 약 97% | remote DB 기준 approved/public/active POI 1,145건, PostGIS foundation, 앱 POI RPC read path, admin import/review, admin read/write UI, 고양/서울/수도권/전국 주요 도시 coverage, 한글 표시값 기준 유지, Ready 권역 Kakao 호출 차단, 전국 seed 5차 coverage, 대량 seed 품질 점검 완료. Kakao hard delete는 shared provider 분리 전까지 보류 |
-| V1.1 전체 | 약 48% | 산책 POI 트랙은 운영 closeout에 가까워졌지만 결제, AI, 편지함, Typography, Apple, Naver cleanup, Weather 운영 고도화 등 별도 V1.1 후보가 남음 |
-| 전체 제품 로드맵 | 약 88% | V1.0 release-ready 기준선은 닫혔고 V1.1 location foundation, 전국 seed 5차 coverage, Ready 권역 Kakao 호출 차단, 대량 seed 품질 점검까지 진행됐다. 장기 유료화/AI/전국 데이터 운영은 아직 남음 |
+| V1.0 QA/출시 준비 | 약 97% | release APK exact install smoke, 2026-06-23 사용자-facing RC smoke, admin/super_admin 서버 계약 확인, P0 corrective 회귀 완료. Play Store 제출 자산만 최종 제출 직전 준비로 남음 |
+| V1.1 산책 POI 전환 트랙 | 약 99% | remote DB 기준 approved/public/active POI 1,145건, PostGIS foundation, 앱 POI RPC read path, admin import/review, 전국 주요 coverage, 한글 표시값 기준 유지, walk-domain Kakao fallback 제거, public projection safety, RC smoke 통과 |
+| V1.1 전체 | 약 51% | 산책 POI 트랙은 closeout 가능이고 RC smoke/cost readiness를 통과했지만 결제, AI, 편지함, Typography, Apple, Naver cleanup, Weather 운영 고도화 등 별도 V1.1 후보가 남음 |
+| 전체 제품 로드맵 | 약 91% | V1.0 release-ready 기준선은 닫혔고 V1.1 location foundation, 전국 seed 5차 coverage, Ready 권역 Kakao 호출 차단, 대량 seed 품질 점검, RC smoke까지 진행됐다. 장기 유료화/AI/전국 데이터 운영은 아직 남음 |
 | 최종 제출 준비 | 약 20% | release artifact/provenance와 정책 URL 기준은 정리됐지만 Play Store 스크린샷, 설명문, Console 입력, store listing package는 아직 최종 제출 직전 준비로 남음 |
 
 남은 작업의 성격:
