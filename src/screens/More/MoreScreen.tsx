@@ -5,7 +5,14 @@
 // - 로그아웃 시: Supabase signOut → store clear → Splash reset
 
 import React, { useMemo, useState } from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  Alert,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
@@ -13,6 +20,10 @@ import ConfirmDialog from '../../components/common/ConfirmDialog';
 import PremiumNoticeModal from '../../components/common/PremiumNoticeModal';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { getBrandedErrorMeta } from '../../services/app/errors';
+import {
+  ACCOUNT_DELETION_CONFIRMATION_TEXT,
+  isAccountDeletionConfirmationValid,
+} from '../../services/auth/accountDeletionConfirmation';
 import {
   performAccountDeletion,
   performLogout,
@@ -59,6 +70,7 @@ export default function MoreScreen() {
   const [deleting, setDeleting] = useState(false);
   const [logoutConfirmVisible, setLogoutConfirmVisible] = useState(false);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
   const [accountStatusNotice, setAccountStatusNotice] = useState<
     'pending' | 'unknown' | null
   >(null);
@@ -142,9 +154,16 @@ export default function MoreScreen() {
   };
 
   const executeDeleteAccount = async () => {
-    if (!isLoggedIn || deleting) return;
+    if (
+      !isLoggedIn ||
+      deleting ||
+      !isAccountDeletionConfirmationValid(deleteConfirmationText)
+    ) {
+      return;
+    }
     try {
       setDeleting(true);
+      setDeleteConfirmationText('');
       const result = await performAccountDeletion();
 
       if (
@@ -187,6 +206,7 @@ export default function MoreScreen() {
   };
   const onPressDeleteAccount = () => {
     if (!isLoggedIn || deleting) return;
+    setDeleteConfirmationText('');
     setDeleteConfirmVisible(true);
   };
 
@@ -301,14 +321,35 @@ export default function MoreScreen() {
         }
         cancelLabel="취소"
         confirmLabel={deleting ? '탈퇴 요청 중...' : '탈퇴 요청하기'}
+        confirmDisabled={
+          deleting || !isAccountDeletionConfirmationValid(deleteConfirmationText)
+        }
         tone="danger"
         accentColor={petTheme.primary}
-        onCancel={() => setDeleteConfirmVisible(false)}
+        onCancel={() => {
+          setDeleteConfirmVisible(false);
+          setDeleteConfirmationText('');
+        }}
         onConfirm={() => {
           setDeleteConfirmVisible(false);
           executeDeleteAccount().catch(() => {});
         }}
-      />
+      >
+        <View style={styles.deleteConfirmField}>
+          <Text style={styles.deleteConfirmLabel}>
+            계속하려면 아래에 {ACCOUNT_DELETION_CONFIRMATION_TEXT}를 입력해 주세요.
+          </Text>
+          <TextInput
+            autoCapitalize="none"
+            autoCorrect={false}
+            onChangeText={setDeleteConfirmationText}
+            placeholder={ACCOUNT_DELETION_CONFIRMATION_TEXT}
+            placeholderTextColor="#B6AEB0"
+            style={styles.deleteConfirmInput}
+            value={deleteConfirmationText}
+          />
+        </View>
+      </ConfirmDialog>
       <PremiumNoticeModal
         visible={accountStatusNoticeConfig !== null}
         eyebrow={accountStatusNoticeConfig?.eyebrow ?? 'ACCOUNT STATUS'}
@@ -413,4 +454,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dangerButtonText: { color: '#B42318', fontSize: 14, fontWeight: '900' },
+  deleteConfirmField: {
+    gap: 8,
+  },
+  deleteConfirmLabel: {
+    color: '#746C66',
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 19,
+  },
+  deleteConfirmInput: {
+    minHeight: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#F1C7CC',
+    backgroundColor: '#FFF8F8',
+    paddingHorizontal: 14,
+    color: '#1D1B19',
+    fontSize: 15,
+    fontWeight: '800',
+  },
 });

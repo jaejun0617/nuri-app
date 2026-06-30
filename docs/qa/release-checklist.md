@@ -13,6 +13,7 @@
 - 과금, Premium AI reply, Guestbook private letters 확장, Typography foundation rollout은 v1.1 신규 업데이트 후보로 관리한다.
 - 2026-06-23 release candidate smoke는 release APK update install 기준으로 사용자-facing 핵심 경로를 재확인했다. Play Store 자산은 여전히 V1.0/V1.1 전체 완료 후 최종 제출 직전 단계다.
 - 2026-06-30 신규 QA 계정 full E2E/navigation audit에서 로그아웃 후 email/password 재로그인 stale onboarding blocker를 발견해 최소 수정했다. 재빌드한 release APK에서 cold start와 logout -> email login home 복귀를 확인했고, 주요 화면 17개 back audit과 병원 전국 coverage read-only audit을 통과했다.
+- 2026-06-30 V1.1 추가 업데이트 1차 MVP로 회원탈퇴 입력 확인, 최근 로그인 표시, 타임라인 카테고리 count를 구현했다. 신규 DB/migration/seed/design 변경은 없고 focused tests와 Android 부분 smoke를 통과했다.
 - 디자인 수정은 이번 release QA 턴에서 하지 않았다. 스토어 출시 전 디자인 조정 후보는 별도 트랙으로 유지하며, Play Store 자산 패키지는 디자인 조정과 V1.0/V1.1 전체 완료 후 진행한다.
 
 ## 2026-06-30 Full App E2E / Navigation / Hospital Coverage RC QA
@@ -60,12 +61,31 @@
 - [x] V1.1 추가 업데이트 공식 작업서 생성
   - 문서: `docs/planning/v1.1-additional-update-plan-and-checklist.md`
   - 대상 기능: 타임라인 카테고리 count, 최근 로그인 방식, 무지개다리 서비스 제안, 연속 출석/데일리판, 홈 위젯, 회원탈퇴 입력 확인, 알림 수신 검증, XP/레벨/칭호
-  - 실제 기능 구현은 미착수이며 PO 승인 후 1차 MVP부터 진행한다.
+  - 1차 MVP는 구현 완료 상태이며, 2차 MVP와 V1.1.1 후보는 정책 확정 전까지 구현하지 않는다.
 - [x] 운영/출시 기준 갱신
   - Supabase/Codex 운영비: PO 확정 완료
   - 디자인 조정: 스토어 출시 전 별도 예정, 이번 턴 수정 금지
   - Play Store 자산 패키지: V1.0/V1.1 전체 완료와 디자인 조정 완료 후 최종 제출 직전 진행
   - admin 운영자 QA: 별도 홈페이지/관리 페이지 트랙으로 이동
+
+## 2026-06-30 V1.1 추가 업데이트 1차 MVP 구현
+
+- [x] 회원탈퇴 입력 확인
+  - `회원탈퇴` 직접 입력 전 `탈퇴 요청하기` disabled 확인
+  - 7일 유예 탈퇴 flow와 복구/차단 계약 유지
+  - 실제 탈퇴 예약 실행은 QA 계정 보호를 위해 미수행, closeout edge로 유지
+- [x] 최근 로그인 방식 표시
+  - 저장 provider는 `email`, `google`, `kakao`만 허용
+  - 이메일 주소와 소셜 계정 식별자는 저장하지 않음
+  - 로그아웃 후 로그인 화면 email 영역 `최근 로그인` 표시 확인
+- [x] 타임라인 카테고리 count
+  - 전체/산책/식사/일기장 count badge 표시
+  - 현재 선택 반려동물 기준 minimal metadata aggregation 사용
+  - 신규 RPC/migration 없음
+- [x] 검증
+  - focused tests: account deletion confirmation, recent login provider, timeline category count, auth boot/onboarding regression 통과
+  - Android: 타임라인 count/empty UX, 회원탈퇴 모달 disabled, 로그아웃 후 최근 로그인 pill 확인
+  - 금지 범위 준수: 디자인, Play Store 자산, admin UI, seed, DB, migration 변경 없음
 
 ## V1.0 기능 기준선과 잔여 task/risk closeout
 

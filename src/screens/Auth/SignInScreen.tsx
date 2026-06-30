@@ -22,8 +22,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { useRoute } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -43,6 +42,10 @@ import {
   resolveSignInNotice,
   type SignInNotice,
 } from '../../services/auth/notices';
+import {
+  getRecentLoginProvider,
+  type RecentLoginProvider,
+} from '../../services/auth/recentLoginProvider';
 import {
   cancelAccountDeletion,
   clearLocalAuthSession,
@@ -121,6 +124,7 @@ type SocialButtonProps = {
   textColor: string;
   badge: React.ReactNode;
   disabled: boolean;
+  isRecentLogin?: boolean;
   onPress: () => void;
 };
 
@@ -131,6 +135,7 @@ const SocialButton = memo(function SocialButton({
   textColor,
   badge,
   disabled,
+  isRecentLogin = false,
   onPress,
 }: SocialButtonProps) {
   return (
@@ -146,7 +151,16 @@ const SocialButton = memo(function SocialButton({
     >
       <View style={styles.socialBadge}>{badge}</View>
       <Text style={[styles.socialButtonText, { color: textColor }]}>{label}</Text>
+      {isRecentLogin ? <RecentLoginPill /> : null}
     </TouchableOpacity>
+  );
+});
+
+const RecentLoginPill = memo(function RecentLoginPill() {
+  return (
+    <View style={styles.recentLoginPill}>
+      <Text style={styles.recentLoginPillText}>최근 로그인</Text>
+    </View>
   );
 });
 
@@ -277,6 +291,8 @@ export default function SignInScreen() {
     'restore' | 'logout' | null
   >(null);
   const [activeNotice, setActiveNotice] = useState<SignInNotice | null>(null);
+  const [recentLoginProvider, setRecentLoginProviderState] =
+    useState<RecentLoginProvider | null>(null);
   const emailInputRef = useRef<TextInput>(null);
   const passwordInputRef = useRef<TextInput>(null);
 
@@ -286,6 +302,28 @@ export default function SignInScreen() {
   );
 
   const socialDisabled = submitting || !!oauthSubmitting;
+
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true;
+
+      getRecentLoginProvider()
+        .then(provider => {
+          if (alive) {
+            setRecentLoginProviderState(provider);
+          }
+        })
+        .catch(() => {
+          if (alive) {
+            setRecentLoginProviderState(null);
+          }
+        });
+
+      return () => {
+        alive = false;
+      };
+    }, []),
+  );
 
   const onSubmit = useCallback(async () => {
     if (disabled) return;
@@ -603,6 +641,7 @@ export default function SignInScreen() {
           ) : (
             <Text style={styles.primaryButtonText}>로그인</Text>
           )}
+          {recentLoginProvider === 'email' ? <RecentLoginPill /> : null}
         </TouchableOpacity>
 
         <View style={styles.inlineLinks}>
@@ -634,6 +673,7 @@ export default function SignInScreen() {
                 badge={<KakaoBadgeMark />}
                 borderColor="#FFE100"
                 disabled={socialDisabled}
+                isRecentLogin={recentLoginProvider === 'kakao'}
                 label={
                   oauthSubmitting === 'kakao'
                     ? '카카오로 연결 중...'
@@ -652,6 +692,7 @@ export default function SignInScreen() {
                 badge={<GoogleBadgeMark />}
                 borderColor="#E2E8F2"
                 disabled={socialDisabled}
+                isRecentLogin={recentLoginProvider === 'google'}
                 label={
                   oauthSubmitting === 'google'
                     ? 'Google로 연결 중...'

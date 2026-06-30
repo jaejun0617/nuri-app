@@ -16,6 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Session } from '@supabase/supabase-js';
 import { create } from 'zustand';
 import type { AccountDeletionGate } from '../services/supabase/auth';
+import { rememberRecentLoginProviderFromSession } from '../services/auth/recentLoginProvider';
 
 const STORAGE_KEY = 'nuri.profile.v1';
 const PASSWORD_RECOVERY_STORAGE_KEY = 'nuri.auth.passwordRecovery.v1';
@@ -239,6 +240,12 @@ export const useAuthStore = create<AuthState>(set => ({
         accountDeletionGate: null,
       });
       return;
+    }
+
+    try {
+      await rememberRecentLoginProviderFromSession(session);
+    } catch {
+      // 최근 로그인 표시는 보조 UX다. 저장 실패가 로그인 세션 반영을 막으면 안 된다.
     }
 
     set({

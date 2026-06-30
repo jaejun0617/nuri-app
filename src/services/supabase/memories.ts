@@ -25,6 +25,11 @@ import {
 } from '../monitoring/sentry';
 import { normalizeMemoryRecord } from '../records/imageSources';
 import { getRecordSortTimestamp } from '../records/date';
+import {
+  buildTimelineCategoryCounts,
+  createEmptyTimelineCategoryCounts,
+  type TimelineCategoryCounts,
+} from '../timeline/query';
 
 export type EmotionTag =
   | 'happy'
@@ -80,6 +85,16 @@ type MemoriesRow = {
   sub_category?: string | null;
   price?: number | null;
   occurred_at: string | null;
+  created_at: string;
+};
+
+type TimelineCategoryCountRow = {
+  id: string;
+  pet_id: string;
+  title?: string | null;
+  tags?: string[] | null;
+  category?: string | null;
+  sub_category?: string | null;
   created_at: string;
 };
 
@@ -155,6 +170,39 @@ function toMemoryImageRows(data: unknown): MemoryImageRow[] {
 function toMemoriesRows(data: unknown): MemoriesRow[] {
   if (!Array.isArray(data)) return [];
   return data.filter(isMemoriesRow);
+}
+
+function isTimelineCategoryCountRow(
+  value: unknown,
+): value is TimelineCategoryCountRow {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.pet_id === 'string' &&
+    typeof value.created_at === 'string'
+  );
+}
+
+function toTimelineCategoryCountRows(
+  data: unknown,
+): TimelineCategoryCountRow[] {
+  if (!Array.isArray(data)) return [];
+  return data.filter(isTimelineCategoryCountRow);
+}
+
+function mapTimelineCountRowToMemoryRecord(
+  row: TimelineCategoryCountRow,
+): MemoryRecord {
+  return {
+    id: row.id,
+    petId: row.pet_id,
+    title: row.title ?? '',
+    tags: Array.isArray(row.tags) ? row.tags.filter(tag => typeof tag === 'string') : [],
+    category: row.category ?? null,
+    subCategory: row.sub_category ?? null,
+    createdAt: row.created_at,
+    imagePaths: [],
+  };
 }
 
 function normalizePathValue(value: string | null | undefined) {
@@ -607,6 +655,24 @@ export async function fetchMemoriesByPetPage(input: {
     : null;
 
   return { items, hasMore, nextCursor };
+}
+
+export async function fetchTimelineCategoryCountsByPet(
+  petId: string,
+): Promise<TimelineCategoryCounts> {
+  if (!petId.trim()) return createEmptyTimelineCategoryCounts();
+
+  const { data, error } = await supabase
+    .from('memories')
+    .select('id, pet_id, title, tags, category, sub_category, created_at')
+    .eq('pet_id', petId);
+
+  if (error) throw error;
+
+  const records = toTimelineCategoryCountRows(data).map(
+    mapTimelineCountRowToMemoryRecord,
+  );
+  return buildTimelineCategoryCounts(records);
 }
 
 export async function fetchMemoriesByPetDateRange(input: {

@@ -12,6 +12,7 @@ import { getRecordDisplayYmd, getRecordMonthKey } from '../records/date';
 import type { MemoryRecord } from '../supabase/memories';
 
 export type TimelineSortMode = 'recent' | 'oldest';
+export type TimelineCategoryCounts = Record<MemoryMainCategory, number>;
 
 export type TimelineFilterInput = {
   ymFilter: string | null;
@@ -30,6 +31,17 @@ type TimelineRecordMeta = {
 };
 
 const timelineRecordMetaCache = new Map<string, TimelineRecordMeta>();
+
+export function createEmptyTimelineCategoryCounts(): TimelineCategoryCounts {
+  return {
+    all: 0,
+    walk: 0,
+    meal: 0,
+    health: 0,
+    diary: 0,
+    other: 0,
+  };
+}
 
 function isYmd(value: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
@@ -121,6 +133,26 @@ export function dedupeTimelineRecords(items: ReadonlyArray<MemoryRecord>) {
   }
 
   return next;
+}
+
+export function buildTimelineCategoryCounts(
+  items: ReadonlyArray<MemoryRecord>,
+): TimelineCategoryCounts {
+  const counts = createEmptyTimelineCategoryCounts();
+  const uniqueItems = dedupeTimelineRecords(items);
+
+  for (const item of uniqueItems) {
+    if (isHealthMemoryRecord(item)) continue;
+
+    const mainCategory = getTimelineRecordMeta(item).mainCategory;
+    counts.all += 1;
+
+    if (mainCategory !== 'all' && mainCategory !== 'health') {
+      counts[mainCategory] += 1;
+    }
+  }
+
+  return counts;
 }
 
 export function timelineRecordMatchesQuery(record: MemoryRecord, query: string) {
@@ -217,6 +249,7 @@ export function buildTimelineView(input:
     .map(id => recordsById[id])
     .filter((item): item is MemoryRecord => Boolean(item))
     .filter(item => !isHealthMemoryRecord(item));
+  const categoryCounts = buildTimelineCategoryCounts(baseItems);
   const filteredItems = filteredIds
     .map(id => recordsById[id])
     .filter((item): item is MemoryRecord => Boolean(item));
@@ -224,6 +257,7 @@ export function buildTimelineView(input:
   return {
     baseItems,
     availableMonthKeys,
+    categoryCounts,
     filteredItems,
     filteredIds,
     firstIndexByMonth,

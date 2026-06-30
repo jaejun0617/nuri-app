@@ -109,10 +109,12 @@ export const styles = StyleSheet.create({
   },
   categoryContent: {
     paddingHorizontal: 0,
+    paddingRight: 8,
     gap: 12,
     alignItems: 'center',
   },
   categoryChip: {
+    flexShrink: 0,
     minHeight: 40,
     paddingHorizontal: 16,
     paddingBottom: 2,
@@ -122,8 +124,28 @@ export const styles = StyleSheet.create({
     position: 'relative',
   },
   categoryChipActive: {},
+  categoryChipLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   categoryChipText: { color: '#8A8A8A', fontWeight: '700' },
   categoryChipTextActive: { fontWeight: '800' },
+  categoryCountBadge: {
+    minWidth: 22,
+    minHeight: 20,
+    borderRadius: 999,
+    backgroundColor: '#F1F3F7',
+    paddingHorizontal: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryCountBadgeText: {
+    color: '#7D8798',
+    fontWeight: '900',
+    fontSize: 11,
+    lineHeight: 14,
+  },
   categoryChipUnderline: {
     position: 'absolute',
     left: 4,

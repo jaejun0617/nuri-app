@@ -9,7 +9,7 @@ NURI는 반려동물의 기억을 기록하고 추억하는 디지털 메모리�
 - 기준일: 2026-06-30
 - 기준 브랜치: `codex/task6-community-content-policy`
 - 기준 remote POI: approved/public/active 1,145건
-- 이번 보고서 성격: 신규 QA 계정 full E2E/navigation audit + Animal Hospital coordinate missing 122건 read-only audit + V1.1 추가 업데이트 공식 planning. 신규 seed, DB schema 변경, migration, 디자인 수정 없음
+- 이번 보고서 성격: 신규 QA 계정 full E2E/navigation audit + Animal Hospital coordinate missing 122건 read-only audit + V1.1 추가 업데이트 공식 planning + 1차 MVP 구현 상태 반영. 신규 seed, DB schema 변경, migration, 디자인 수정 없음
 
 ## 3. 진행률
 
@@ -19,9 +19,10 @@ NURI는 반려동물의 기억을 기록하고 추억하는 디지털 메모리�
 | V1.0 QA/출시 준비 | 약 98% | release APK update install, 신규 QA 계정 full E2E/navigation audit, onboarding blocker 최소 수정/재검증, OAuth 버튼 상태, crash-free logcat 재확인. Play Store 자산은 디자인 조정과 전체 closeout 후 최종 제출 직전 준비 |
 | V1.1 산책 POI 트랙 | 약 99% | 1,145건 POI, walk-domain Kakao fallback 제거, public projection safety, Android smoke 통과 |
 | V1.1 추가 업데이트 기획 | 100% | PO 제안 8개 기능의 공식 작업서, 단계별 구현 계획, 체크리스트, 진행률 산정표 작성 완료 |
-| V1.1 추가 기능 구현 | 약 2.5% | 회원탈퇴 7일 유예 flow는 기존 구현 완료이나 추가 기능 자체는 아직 구현 미착수 |
-| V1.1 전체 | 약 53% | 산책 POI closeout 유지, full E2E/navigation audit 통과, 병원 coordinate audit 판정, V1.1 추가 업데이트 planning 완료 |
-| 전체 제품 로드맵 | 약 93% | V1.0 closeout 유지, V1.1 핵심 비용/POI 리스크 축소, 신규 계정 E2E/navigation audit 통과, 운영비 PO 확정 기준 |
+| V1.1 추가 업데이트 1차 MVP | 약 90% | 회원탈퇴 입력 guard, 최근 로그인 provider 표시, 타임라인 카테고리 count 구현/focused test/Android 부분 smoke 완료 |
+| V1.1 추가 기능 구현 | 약 35% | 8개 추가 기능 중 1차 MVP 3개 구현 완료에 근접. 2차 MVP와 V1.1.1 후보는 정책 확정 전 미구현 |
+| V1.1 전체 | 약 56% | 산책 POI closeout 유지, full E2E/navigation audit 통과, 병원 coordinate audit 판정, V1.1 추가 업데이트 1차 MVP 구현 완료 |
+| 전체 제품 로드맵 | 약 94% | V1.0 closeout 유지, V1.1 핵심 비용/POI 리스크 축소, 신규 계정 E2E/navigation audit 통과, 1차 MVP 구현, 운영비 PO 확정 기준 |
 
 ## 4. 완료된 주요 도메인
 
@@ -33,6 +34,7 @@ NURI는 반려동물의 기억을 기록하고 추억하는 디지털 메모리�
 - Community / Policy / Moderation: rate limit, blocked-term, 신고/auto-hide, policy link, cleanup contract 완료
 - Weather: Open-Meteo cache/cost defense 완료
 - Timeline: 건강 신규 작성 진입 정리, 기존 health read path 유지 완료
+- V1.1 1차 MVP: 회원탈퇴 `회원탈퇴` 입력 확인, 최근 로그인 방식 표시, 타임라인 카테고리 count 구현 완료
 - Release QA: release APK exact install smoke, OAuth smoke, 일반 사용자 smoke, 서버 권한 corrective closeout 완료
 - Docs / Project Memory: project-memory, domain docs, reports, SQL archive index 갱신
 
@@ -62,6 +64,14 @@ NURI는 반려동물의 기억을 기록하고 추억하는 디지털 메모리�
 - Animal Hospital 판정: `우리동네 병원 찾기 전국 확장 완료, coordinate missing 122건은 release blocker 아님`. public active 5,427건, 서울/경기/인천/부산/대구/대전/광주/울산/세종/제주/강원/충청/전라/경상 대표 좌표 모두 10km/20건 반환.
 - coordinate missing 122건: public active에 포함되지만 nearby 좌표 기반 리스트에서는 제외된다. text search/detail에서는 주소와 전화번호가 있으면 정보형으로 안전 표시하고, 좌표 기반 지도/길찾기 CTA는 숨기거나 주소 기준 안내로 처리한다.
 - 디자인: 수정하지 않음. 스토어 출시 전 디자인 조정 후보는 별도 트랙으로 유지.
+
+## 5-2. 2026-06-30 V1.1 추가 업데이트 1차 MVP 구현 결과
+
+- 회원탈퇴 입력 확인: `회원탈퇴` 직접 입력 전에는 탈퇴 요청 버튼이 비활성이다. 기존 7일 유예, 복구/차단, 자동 삭제 worker 계약은 변경하지 않았다.
+- 최근 로그인 방식 표시: 마지막 로그인 provider key만 local storage에 저장한다. 저장값은 `email`, `google`, `kakao`만 허용하고 이메일 주소/소셜 계정 식별자는 저장하지 않는다. 로그아웃 후 로그인 화면에서 email 영역 `최근 로그인` pill을 확인했다.
+- 타임라인 카테고리 count: 카테고리 필터에 전체/산책/식사/일기장 count badge를 표시한다. 현재 선택 반려동물 기준 minimal metadata와 RLS/user-scoped read path만 사용하며 신규 RPC/migration은 없다.
+- Android smoke: 타임라인 count/empty UX, 회원탈퇴 확인 모달 입력 전 disabled, Android back dismiss, 로그아웃 후 최근 로그인 pill을 확인했다. 실제 탈퇴 예약 실행은 QA 계정 보호를 위해 수행하지 않았다.
+- 검증: typecheck, lint, focused tests, diff check 통과. 디자인, Play Store 자산, admin UI, seed, DB, migration 변경 없음.
 
 ## 6. Kakao Local / 소셜 로그인 상태
 

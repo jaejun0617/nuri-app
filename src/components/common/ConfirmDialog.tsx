@@ -24,6 +24,8 @@ type Props = {
   cancelLabel?: string;
   tone?: ConfirmDialogTone;
   accentColor?: string;
+  children?: React.ReactNode;
+  confirmDisabled?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -89,6 +91,8 @@ function ConfirmDialogBase({
   cancelLabel = '취소',
   tone = 'default',
   accentColor,
+  children,
+  confirmDisabled = false,
   onConfirm,
   onCancel,
 }: Props) {
@@ -165,6 +169,8 @@ function ConfirmDialogBase({
             </View>
           </View>
 
+          {children ? <View style={styles.extraContent}>{children}</View> : null}
+
           <View style={styles.buttonRow}>
             <TouchableOpacity
               activeOpacity={0.9}
@@ -182,10 +188,14 @@ function ConfirmDialogBase({
 
             <TouchableOpacity
               activeOpacity={0.9}
+              disabled={confirmDisabled}
               style={[
                 styles.button,
                 styles.confirmButton,
-                { backgroundColor: toneMeta.confirmBackground },
+                {
+                  backgroundColor: toneMeta.confirmBackground,
+                  opacity: confirmDisabled ? 0.45 : 1,
+                },
               ]}
               onPress={onConfirm}
             >
@@ -253,6 +263,9 @@ const styles = StyleSheet.create({
   },
   messageSpacer: {
     height: 10,
+  },
+  extraContent: {
+    gap: 8,
   },
   buttonRow: {
     flexDirection: 'row',

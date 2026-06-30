@@ -55,10 +55,15 @@ import {
   type MemoryOtherSubCategory,
 } from '../../services/memories/categoryMeta';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
-import type { MemoryRecord } from '../../services/supabase/memories';
+import {
+  fetchTimelineCategoryCountsByPet,
+  type MemoryRecord,
+} from '../../services/supabase/memories';
 import {
   buildTimelineView,
+  createEmptyTimelineCategoryCounts,
   humanizeTimelineMonthKey,
+  type TimelineCategoryCounts,
   type TimelineSortMode,
 } from '../../services/timeline/query';
 import { getRecordDisplayYmd } from '../../services/records/date';
@@ -251,6 +256,7 @@ const ControlsBar = memo(function ControlsBar({
   isMonthFiltered,
   mainCategory,
   categoryLabel,
+  categoryCounts,
   onToggleSort,
   onOpenMonthModal,
   onPressMainCategory,
@@ -261,6 +267,7 @@ const ControlsBar = memo(function ControlsBar({
   isMonthFiltered: boolean;
   mainCategory: MainCategory;
   categoryLabel: string;
+  categoryCounts: TimelineCategoryCounts;
   onToggleSort: () => void;
   onOpenMonthModal: () => void;
   onPressMainCategory: (key: MainCategory) => void;
@@ -324,6 +331,7 @@ const ControlsBar = memo(function ControlsBar({
               item.key === 'other' && mainCategory === 'other'
                 ? categoryLabel
                 : item.label;
+            const count = categoryCounts[item.key] ?? 0;
 
             return (
               <TouchableOpacity
@@ -332,18 +340,39 @@ const ControlsBar = memo(function ControlsBar({
                 style={styles.categoryChip}
                 onPress={() => onPressMainCategory(item.key)}
               >
-                <AppText
-                  preset="caption"
-                  style={[
-                    styles.categoryChipText,
-                    active
-                      ? [styles.categoryChipTextActive, { color: theme.primary }]
-                      : null,
-                  ]}
-                  numberOfLines={1}
-                >
-                  {label}
-                </AppText>
+                <View style={styles.categoryChipLabelRow}>
+                  <AppText
+                    preset="caption"
+                    style={[
+                      styles.categoryChipText,
+                      active
+                        ? [
+                            styles.categoryChipTextActive,
+                            { color: theme.primary },
+                          ]
+                        : null,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {label}
+                  </AppText>
+                  <View
+                    style={[
+                      styles.categoryCountBadge,
+                      active ? { backgroundColor: theme.soft } : null,
+                    ]}
+                  >
+                    <AppText
+                      preset="caption"
+                      style={[
+                        styles.categoryCountBadgeText,
+                        active ? { color: theme.primary } : null,
+                      ]}
+                    >
+                      {count}
+                    </AppText>
+                  </View>
+                </View>
                 {active ? (
                   <View
                     pointerEvents="none"
@@ -432,6 +461,10 @@ export default function TimelineScreen() {
   const [otherModalOpen, setOtherModalOpen] = useState(false);
   const [pendingJumpYm, setPendingJumpYm] = useState<string | null>(null);
   const [imageWindow, setImageWindow] = useState(TIMELINE_INITIAL_IMAGE_WINDOW);
+  const [timelineCategoryCounts, setTimelineCategoryCounts] =
+    useState<TimelineCategoryCounts>(() => createEmptyTimelineCategoryCounts());
+  const [timelineCategoryCountsReady, setTimelineCategoryCountsReady] =
+    useState(false);
   const imageWindowRef = useRef(TIMELINE_INITIAL_IMAGE_WINDOW);
 
   useEffect(() => {
@@ -487,7 +520,37 @@ export default function TimelineScreen() {
   );
   const availableYmList = timelineView.availableMonthKeys;
   const filteredIds = timelineView.filteredIds;
+  const categoryCounts = timelineCategoryCountsReady
+    ? timelineCategoryCounts
+    : timelineView.categoryCounts;
   const preloadSignatureRef = useRef<string>('');
+
+  useEffect(() => {
+    if (!isLoggedIn || !petId) {
+      setTimelineCategoryCounts(createEmptyTimelineCategoryCounts());
+      setTimelineCategoryCountsReady(false);
+      return;
+    }
+
+    let cancelled = false;
+    setTimelineCategoryCountsReady(false);
+
+    fetchTimelineCategoryCountsByPet(petId)
+      .then(counts => {
+        if (cancelled) return;
+        setTimelineCategoryCounts(counts);
+        setTimelineCategoryCountsReady(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setTimelineCategoryCounts(timelineView.categoryCounts);
+        setTimelineCategoryCountsReady(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoggedIn, petId, timelineEntityVersion, timelineView.categoryCounts]);
 
   const listRef = useRef<FlashListRef<string>>(null);
   const targetLayoutOffsetRef = useRef<number | null>(null);
@@ -1075,6 +1138,7 @@ export default function TimelineScreen() {
           isMonthFiltered={Boolean(ymFilter)}
           mainCategory={mainCategory}
           categoryLabel={categoryLabel}
+          categoryCounts={categoryCounts}
           onToggleSort={goSignIn}
           onOpenMonthModal={goSignIn}
           onPressMainCategory={() => {
@@ -1141,6 +1205,7 @@ export default function TimelineScreen() {
         isMonthFiltered={Boolean(ymFilter)}
         mainCategory={mainCategory}
         categoryLabel={categoryLabel}
+        categoryCounts={categoryCounts}
         onToggleSort={() =>
           setSortMode(prev => (prev === 'recent' ? 'oldest' : 'recent'))
         }

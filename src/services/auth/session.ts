@@ -15,6 +15,7 @@ import {
   captureMonitoringException,
   setMonitoringUser,
 } from '../monitoring/sentry';
+import { clearRecentLoginProvider } from './recentLoginProvider';
 import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
@@ -54,6 +55,11 @@ export async function performLogout(timeoutMs = 1200) {
 
 export async function performAccountDeletion(): Promise<AccountDeletionResult> {
   const result = await deleteMyAccount();
+  try {
+    await clearRecentLoginProvider();
+  } catch (error: unknown) {
+    captureMonitoringException(error);
+  }
 
   if (
     result.status === 'completed' ||

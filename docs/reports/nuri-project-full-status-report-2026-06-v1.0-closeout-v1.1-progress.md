@@ -4,7 +4,7 @@
 최종 정합성 검수일: 2026-06-30
 문서 목적: ChatGPT, Codex, 운영자, 후속 개발 세션이 현재 NURI 앱의 전체 맥락을 한 번에 파악하기 위한 source of truth 문서
 
-최신 갱신: 2026-06-30 신규 QA 계정 full E2E/navigation audit와 Animal Hospital 전국 coverage read-only audit을 수행했다. 로그아웃 후 email/password 재로그인에서 stale onboarding으로 `NicknameSetup`에 잘못 진입하는 release blocker를 발견해 최소 수정했고, release APK rebuild/install 후 cold start와 logout -> email login home 복귀를 재검증했다. 주요 사용자-facing 화면 17개 back audit, Walk/POI 회귀, Animal Hospital 대표 권역 coverage smoke를 통과했고 logcat fatal/ANR/unhandled pattern은 0건이다.
+최신 갱신: 2026-06-30 V1.1 추가 업데이트 1차 MVP 3개를 구현했다. 회원탈퇴 `회원탈퇴` 직접 입력 guard, 로그인 화면 최근 로그인 provider pill, 타임라인 카테고리별 count badge를 추가했고 신규 DB/migration/seed/design 변경은 없다. typecheck, lint, focused tests, Android 부분 smoke를 통과했으며 실제 탈퇴 예약 실행과 OAuth별 최근 로그인 pill, timeline write/delete count 갱신은 1차 MVP closeout edge로 남긴다.
 
 ## 1. 문서 목적
 
@@ -40,8 +40,10 @@
 | V1.0 기능 개발 | 100% | P0/P1 0건, 필수 기능 closeout, Code Freeze 유지 |
 | V1.0 QA/출시 준비 | 약 98% | release APK exact install smoke, 2026-06-30 신규 QA 계정 full E2E/navigation audit, stale onboarding blocker 최소 수정/재검증, admin/super_admin 서버 계약 확인, P0 corrective 회귀 완료. Play Store 제출 자산은 디자인 조정과 전체 closeout 뒤 최종 제출 직전 준비 |
 | V1.1 산책 POI 전환 트랙 | 약 99% | remote DB 기준 approved/public/active POI 1,145건, PostGIS foundation, 앱 POI RPC read path, admin import/review, 전국 주요 coverage, 한글 표시값 기준 유지, walk-domain Kakao fallback 제거, public projection safety, RC smoke 통과 |
-| V1.1 전체 | 약 52% | 산책 POI 트랙은 closeout 가능이고 full E2E/navigation audit까지 통과했지만 결제, AI, 편지함, Typography, Apple, Naver cleanup, Weather 운영 고도화 등 별도 V1.1 후보가 남음 |
-| 전체 제품 로드맵 | 약 92% | V1.0 release-ready 기준선은 닫혔고 V1.1 location foundation, 전국 seed 5차 coverage, Ready 권역 Kakao 호출 차단, 대량 seed 품질 점검, full E2E/navigation audit까지 진행됐다. 장기 유료화/AI/전국 데이터 운영은 아직 남음 |
+| V1.1 추가 업데이트 1차 MVP | 약 90% | 회원탈퇴 입력 guard, 최근 로그인 provider 표시, 타임라인 카테고리 count 구현/focused test/Android 부분 smoke 완료. 실제 탈퇴 예약, OAuth별 provider 표시, write/delete count 갱신 edge smoke는 closeout 잔여 |
+| V1.1 추가 기능 구현 | 약 35% | 8개 추가 기능 중 1차 MVP 3개가 구현 완료에 근접했고, 2차 MVP와 V1.1.1 후보는 정책 확정 전 미구현 |
+| V1.1 전체 | 약 56% | 산책 POI 트랙 closeout 가능, full E2E/navigation audit 통과, 병원 coverage 판정 완료, V1.1 추가 업데이트 1차 MVP 구현 완료 |
+| 전체 제품 로드맵 | 약 94% | V1.0 release-ready 기준선은 닫혔고 V1.1 location foundation, 전국 seed 5차 coverage, Ready 권역 Kakao 호출 차단, 대량 seed 품질 점검, full E2E/navigation audit, 1차 MVP 구현까지 진행됐다. 장기 유료화/AI/전국 데이터 운영은 아직 남음 |
 | 최종 제출 준비 | 약 20% | release artifact/provenance와 정책 URL 기준은 정리됐지만 Play Store 스크린샷, 설명문, Console 입력, store listing package는 아직 최종 제출 직전 준비로 남음 |
 
 남은 작업의 성격:
@@ -68,6 +70,14 @@
 - Walk/POI 회귀: approved/public/active 1,145건, nearby/search/detail 정상, direct anon table select `42501`, Ready Kakao 차단 유지
 - 디자인: 수정하지 않음. 스토어 출시 전 디자인 조정 후보는 별도 트랙으로 유지
 - Play Store 자산: V1.0/V1.1 전체 완료와 디자인 조정 완료 후 진행
+
+## 3-2. 2026-06-30 V1.1 추가 업데이트 1차 MVP 구현
+
+- 회원탈퇴 입력 확인: 기존 7일 유예 탈퇴 flow는 유지하고, 확인 모달에서 `회원탈퇴`를 trim 후 정확히 입력해야 `탈퇴 요청하기`가 활성화된다. Android smoke에서 입력 전 disabled 상태와 back dismiss를 확인했고 실제 탈퇴 실행은 하지 않았다.
+- 최근 로그인 방식 표시: Supabase session provider metadata에서 `email`, `google`, `kakao` provider key만 AsyncStorage에 저장한다. 이메일 주소와 provider 계정 정보는 저장하지 않는다. 로그아웃 후 로그인 화면 email 영역에 `최근 로그인` pill 노출을 확인했다.
+- 타임라인 카테고리 count: 현재 선택된 반려동물 기준으로 minimal metadata read와 client aggregation을 사용해 전체/산책/식사/일기장 count badge를 표시한다. 신규 RPC/migration은 만들지 않았다.
+- 검증: `accountDeletionConfirmation`, `recentLoginProvider`, `timelineQuery`, `authStoreRecovery`, `appBoot` focused tests 통과. `tsc`, `lint`, `git diff --check` 통과.
+- 범위 제외: streak, XP/칭호, 알림 시스템, 무지개다리 서비스, 홈 위젯, 디자인 조정, Play Store 자산, admin UI, seed/DB/migration 변경은 수행하지 않았다.
 
 ## 4. V1.0 완료 내역
 

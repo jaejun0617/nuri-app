@@ -206,6 +206,21 @@ export const styles = StyleSheet.create({
     ...typography.role.button,
     fontWeight: '900',
   },
+  recentLoginPill: {
+    position: 'absolute',
+    right: 14,
+    minHeight: 24,
+    borderRadius: 999,
+    backgroundColor: '#EEF0FF',
+    paddingHorizontal: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recentLoginPillText: {
+    color: BRAND,
+    ...typography.role.caption,
+    fontWeight: '900',
+  },
   kakaoBadge: {
     width: 20,
     height: 20,

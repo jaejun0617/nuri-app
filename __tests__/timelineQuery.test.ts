@@ -1,4 +1,5 @@
 import {
+  buildTimelineCategoryCounts,
   buildTimelineView,
   compareTimelineRecords,
   getTimelineMonthKey,
@@ -86,9 +87,68 @@ describe('timeline query', () => {
     });
 
     expect(view.baseItems).toHaveLength(2);
+    expect(view.categoryCounts).toEqual({
+      all: 2,
+      walk: 1,
+      meal: 0,
+      health: 0,
+      diary: 0,
+      other: 1,
+    });
     expect(view.filteredItems.map(item => item.id)).toEqual(['1']);
     expect(view.availableMonthKeys).toEqual(['2026-03', '2026-02']);
     expect(view.firstIndexByMonth.get('2026-03')).toBe(0);
+  });
+
+  it('타임라인 카테고리 count는 선택 펫 record 기준으로 건강/병원 record를 제외한다', () => {
+    const items = [
+      buildRecord({
+        id: 'walk-1',
+        petId: 'pet-1',
+        title: '산책',
+        category: 'walk',
+        createdAt: '2026-03-02T10:00:00.000Z',
+      }),
+      buildRecord({
+        id: 'meal-1',
+        petId: 'pet-1',
+        title: '식사',
+        category: 'meal',
+        createdAt: '2026-03-02T11:00:00.000Z',
+      }),
+      buildRecord({
+        id: 'other-1',
+        petId: 'pet-1',
+        title: '미용',
+        category: 'other',
+        subCategory: 'grooming',
+        createdAt: '2026-03-02T12:00:00.000Z',
+      }),
+      buildRecord({
+        id: 'health-1',
+        petId: 'pet-1',
+        title: '건강',
+        category: 'health',
+        createdAt: '2026-03-02T13:00:00.000Z',
+      }),
+      buildRecord({
+        id: 'hospital-1',
+        petId: 'pet-1',
+        title: '병원',
+        category: 'other',
+        subCategory: 'hospital',
+        createdAt: '2026-03-02T14:00:00.000Z',
+      }),
+    ];
+
+    expect(buildTimelineCategoryCounts(items)).toEqual({
+      all: 3,
+      walk: 1,
+      meal: 1,
+      health: 0,
+      diary: 0,
+      other: 1,
+    });
   });
 
   it('month key와 ymd를 timezone 영향 없이 계산한다', () => {

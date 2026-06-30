@@ -62,6 +62,10 @@ import {
 import { formatDateLabelFromDate } from '../../utils/date';
 import { getBrandedErrorMeta } from '../../services/app/errors';
 import {
+  ACCOUNT_DELETION_CONFIRMATION_TEXT,
+  isAccountDeletionConfirmationValid,
+} from '../../services/auth/accountDeletionConfirmation';
+import {
   getNicknameErrorMessageByCode,
   NICKNAME_MAX_LENGTH,
   validateNicknameInput,
@@ -1031,6 +1035,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     useState<ScheduleNotificationPermissionStatus>('unsupported');
   const [logoutConfirmVisible, setLogoutConfirmVisible] = useState(false);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
   const [accountStatusNotice, setAccountStatusNotice] = useState<
     'pending' | 'unknown' | null
   >(null);
@@ -1528,11 +1533,18 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   }, [loading]);
 
   const executeDeleteAccount = useCallback(async () => {
-    if (!isLoggedIn || deleting) return;
+    if (
+      !isLoggedIn ||
+      deleting ||
+      !isAccountDeletionConfirmationValid(deleteConfirmationText)
+    ) {
+      return;
+    }
 
     try {
       setDeleting(true);
       setDeleteConfirmVisible(false);
+      setDeleteConfirmationText('');
       const result = await performAccountDeletion();
 
       if (
@@ -1570,10 +1582,17 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     } finally {
       setDeleting(false);
     }
-  }, [deleting, isLoggedIn, navigation, onRequestClose]);
+  }, [
+    deleteConfirmationText,
+    deleting,
+    isLoggedIn,
+    navigation,
+    onRequestClose,
+  ]);
 
   const onPressDeleteAccount = useCallback(() => {
     if (!isLoggedIn || deleting) return;
+    setDeleteConfirmationText('');
     setDeleteConfirmVisible(true);
   }, [deleting, isLoggedIn]);
 
@@ -2186,13 +2205,46 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         }
         cancelLabel="취소"
         confirmLabel={deleting ? '탈퇴 요청 중...' : '탈퇴 요청하기'}
+        confirmDisabled={
+          deleting || !isAccountDeletionConfirmationValid(deleteConfirmationText)
+        }
         tone="danger"
         accentColor={petTheme.primary}
-        onCancel={() => setDeleteConfirmVisible(false)}
+        onCancel={() => {
+          setDeleteConfirmVisible(false);
+          setDeleteConfirmationText('');
+        }}
         onConfirm={() => {
           executeDeleteAccount().catch(() => {});
         }}
-      />
+      >
+        <View style={styles.deleteConfirmField}>
+          <Text
+            style={[
+              styles.deleteConfirmLabel,
+              { color: theme.colors.textMuted },
+            ]}
+          >
+            계속하려면 아래에 {ACCOUNT_DELETION_CONFIRMATION_TEXT}를 입력해 주세요.
+          </Text>
+          <TextInput
+            autoCapitalize="none"
+            autoCorrect={false}
+            onChangeText={setDeleteConfirmationText}
+            placeholder={ACCOUNT_DELETION_CONFIRMATION_TEXT}
+            placeholderTextColor={theme.colors.textMuted}
+            style={[
+              styles.deleteConfirmInput,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+                color: theme.colors.textPrimary,
+              },
+            ]}
+            value={deleteConfirmationText}
+          />
+        </View>
+      </ConfirmDialog>
       <PremiumNoticeModal
         visible={accountStatusNoticeConfig !== null}
         eyebrow={accountStatusNoticeConfig?.eyebrow ?? 'ACCOUNT STATUS'}
@@ -2552,6 +2604,22 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: '#A0A9B8',
     fontWeight: '500',
+  },
+  deleteConfirmField: {
+    gap: 8,
+  },
+  deleteConfirmLabel: {
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '700',
+  },
+  deleteConfirmInput: {
+    minHeight: 50,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    fontSize: 15,
+    fontWeight: '800',
   },
   nicknameInput: {
     minHeight: 52,
