@@ -60,6 +60,24 @@ describe('app boot helpers', () => {
     ).toBe(true);
   });
 
+  it('same-user sign-in은 로그아웃 직후 stale onboarding state를 피하기 위해 리로드한다', () => {
+    expect(
+      shouldReloadUserScopedState({
+        event: 'SIGNED_IN',
+        prevUserId: 'user-1',
+        nextUserId: 'user-1',
+      }),
+    ).toBe(true);
+
+    expect(
+      shouldReloadUserScopedState({
+        event: 'INITIAL_SESSION',
+        prevUserId: 'user-1',
+        nextUserId: 'user-1',
+      }),
+    ).toBe(true);
+  });
+
   it('닉네임/펫 fetch 실패 상태를 온보딩 미완료와 구분해 route를 계산한다', () => {
     expect(
       resolveBootRoute({

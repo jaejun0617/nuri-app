@@ -12,6 +12,34 @@
 - v1.1은 v1.0 미완성 이월이 아니라 신규 업데이트 트랙이다.
 - 과금, Premium AI reply, Guestbook private letters 확장, Typography foundation rollout은 v1.1 신규 업데이트 후보로 관리한다.
 - 2026-06-23 release candidate smoke는 release APK update install 기준으로 사용자-facing 핵심 경로를 재확인했다. Play Store 자산은 여전히 V1.0/V1.1 전체 완료 후 최종 제출 직전 단계다.
+- 2026-06-30 신규 QA 계정 full E2E/navigation audit에서 로그아웃 후 email/password 재로그인 stale onboarding blocker를 발견해 최소 수정했다. 재빌드한 release APK에서 cold start와 logout -> email login home 복귀를 확인했고, 주요 화면 17개 back audit과 병원 전국 coverage read-only audit을 통과했다.
+- 디자인 수정은 이번 release QA 턴에서 하지 않았다. 스토어 출시 전 디자인 조정 후보는 별도 트랙으로 유지하며, Play Store 자산 패키지는 디자인 조정과 V1.0/V1.1 전체 완료 후 진행한다.
+
+## 2026-06-30 Full App E2E / Navigation / Hospital Coverage RC QA
+
+- [x] 신규 QA 계정 생성 및 신규 사용자 플로우 검증
+  - 테스트 계정: `qa0623145019@example.com`
+  - 비밀번호: 문서화하지 않음
+  - Splash, Login/Signup, Google/Kakao 버튼, Nickname, Pet Create, Home 진입 확인
+- [x] 신규 계정 release blocker 수정
+  - 로그아웃 후 email/password 재로그인에서 profile/pet이 있는데도 `NicknameSetup`으로 잘못 진입하는 문제를 수정했다.
+  - `authStore.setSession` 로그인 세션 boot gate와 `shouldReloadUserScopedState` same-user reload 기준을 보강했다.
+  - focused auth/app boot tests 13/13 통과, release APK rebuild/install 후 cold start와 재로그인 home 복귀 확인.
+- [x] 전체 기능 E2E smoke
+  - Home, Profile/Pet, Pet Edit/Create guard, Health, Timeline, Animal Hospital, Walk/POI, Community/Policy, Weather, 전체메뉴/설정, Logout/session restore 확인.
+- [x] navigation/back audit
+  - 주요 사용자-facing 화면 17개에서 상단 뒤로가기와 Android system back을 확인했다.
+  - Animal Hospital 전화/길찾기 CTA와 Community policy 외부 문서에서 앱 복귀 확인.
+- [x] Animal Hospital 전국 커버리지 read-only audit
+  - public active count 5,427건
+  - 일산/서울/부산/대구/대전/광주/울산/세종/제주 대표 좌표 모두 10km/20건 반환
+  - 판정: `우리동네 병원 찾기 전국 기반 완료, 일부 권역 품질 점검 필요`
+  - coordinate missing 122건은 후속 품질 점검 후보, release blocker 아님
+- [x] Walk/POI 회귀
+  - approved/public/active POI 1,145건 유지
+  - nearby/search/detail RPC 정상, direct anon table select `42501`, Ready 권역 Kakao 차단 유지
+- [x] crash-free
+  - Android `SM_S937N` logcat fatal / ANR / unhandled promise / ReactNativeJS fatal pattern 0건
 
 ## V1.0 기능 기준선과 잔여 task/risk closeout
 

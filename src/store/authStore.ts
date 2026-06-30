@@ -245,6 +245,12 @@ export const useAuthStore = create<AuthState>(set => ({
       status: 'logged_in',
       session,
       isLoggedIn: true,
+      profileSyncStatus: 'loading',
+      profileErrorMessage: null,
+      // Manual email/social sign-in can navigate to Splash before the provider's
+      // auth listener finishes reloading profile and pet state. Close the boot
+      // gate here so onboarding guards cannot race ahead with stale guest state.
+      booted: false,
     });
   },
 

@@ -93,6 +93,20 @@ describe('authStore password recovery guard', () => {
     expect(useAuthStore.getState().session).toBeNull();
   });
 
+  it('수동 로그인 세션 반영 시 프로필 재동기화가 끝날 때까지 boot gate를 닫는다', async () => {
+    useAuthStore.setState({
+      booted: true,
+      profile: { nickname: null, role: 'user' },
+      profileSyncStatus: 'ready',
+    });
+
+    await useAuthStore.getState().setSession(createSession());
+
+    expect(useAuthStore.getState().isLoggedIn).toBe(true);
+    expect(useAuthStore.getState().profileSyncStatus).toBe('loading');
+    expect(useAuthStore.getState().booted).toBe(false);
+  });
+
   it('local sign out은 recovery flag까지 함께 정리한다', async () => {
     await useAuthStore.getState().activatePasswordRecovery();
     await useAuthStore.getState().signOutLocal();

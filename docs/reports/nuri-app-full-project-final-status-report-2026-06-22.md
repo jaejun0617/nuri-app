@@ -1,4 +1,4 @@
-# NURI 앱 전체 프로젝트 최종 현황 보고서 - 2026-06-23
+# NURI 앱 전체 프로젝트 최종 현황 보고서 - 2026-06-30
 
 ## 1. 프로젝트 전체 요약
 
@@ -6,20 +6,20 @@ NURI는 반려동물의 기억을 기록하고 추억하는 디지털 메모리�
 
 ## 2. 현재 기준일
 
-- 기준일: 2026-06-23
+- 기준일: 2026-06-30
 - 기준 브랜치: `codex/task6-community-content-policy`
 - 기준 remote POI: approved/public/active 1,145건
-- 이번 보고서 성격: release candidate smoke + 운영비 readiness 점검. 신규 seed, DB write, migration 없음
+- 이번 보고서 성격: 신규 QA 계정 full E2E/navigation audit + Animal Hospital 전국 coverage read-only audit + release blocker 최소 수정. 신규 seed, DB schema 변경, migration 없음
 
 ## 3. 진행률
 
 | 구분 | 진행률 | 판단 |
 | --- | ---: | --- |
 | V1.0 기능 개발 | 100% | P0/P1 0건, 기능 Code Freeze 유지 |
-| V1.0 QA/출시 준비 | 약 97% | release APK update install, 사용자-facing RC smoke, OAuth 버튼 상태, crash-free logcat 재확인. Play Store 자산은 최종 제출 직전 준비 |
+| V1.0 QA/출시 준비 | 약 98% | release APK update install, 신규 QA 계정 full E2E/navigation audit, onboarding blocker 최소 수정/재검증, OAuth 버튼 상태, crash-free logcat 재확인. Play Store 자산은 디자인 조정과 전체 closeout 후 최종 제출 직전 준비 |
 | V1.1 산책 POI 트랙 | 약 99% | 1,145건 POI, walk-domain Kakao fallback 제거, public projection safety, Android smoke 통과 |
-| V1.1 전체 | 약 51% | 산책 POI closeout 유지와 RC smoke/cost readiness 확인. billing/AI/letters/typography 등 V1.1 잔여 존재 |
-| 전체 제품 로드맵 | 약 91% | V1.0 closeout 유지, V1.1 핵심 비용/POI 리스크 축소, release candidate smoke 통과 기준 |
+| V1.1 전체 | 약 52% | 산책 POI closeout 유지와 full E2E/navigation audit 확인. billing/AI/letters/typography 등 V1.1 잔여 존재 |
+| 전체 제품 로드맵 | 약 92% | V1.0 closeout 유지, V1.1 핵심 비용/POI 리스크 축소, 신규 계정 E2E/navigation audit 통과 기준 |
 
 ## 4. 완료된 주요 도메인
 
@@ -48,6 +48,17 @@ NURI는 반려동물의 기억을 기록하고 추억하는 디지털 메모리�
 - empty UX: 정상
 - Android smoke/detail tap: `SM_S937N`에서 일산/부산 리스트와 카드 상세, gate 밖 empty UX 통과
 - logcat fatal / ANR / unhandled promise / ReactNativeJS fatal pattern: 0건
+
+## 5-1. 2026-06-30 full E2E / navigation / hospital coverage 결과
+
+- 신규 QA 계정 `qa0623145019@example.com` 기준으로 Splash -> Signup/Login -> Nickname -> Pet Create -> Home -> Logout -> Email Login -> Home 복귀를 검증했다. 비밀번호는 문서화하지 않는다.
+- release blocker: 로그아웃 후 email/password 재로그인 시 profile/pet이 존재해도 `NicknameSetup`으로 잘못 진입하는 stale onboarding 문제를 발견했고 최소 수정했다.
+- 수정: 로그인 세션 반영 시 profile 재동기화 완료 전 boot gate를 닫고, 같은 사용자 `SIGNED_IN`/`INITIAL_SESSION`도 user-scoped state reload 대상으로 포함했다.
+- 재검증: focused auth/app boot tests 13/13 통과, release APK rebuild/install, cold start와 logout -> email login home 복귀 통과.
+- 전체 E2E: Home, Profile/Pet, Pet Edit/Create guard, Health, Timeline, Animal Hospital, Walk/POI, Community/Policy, Weather, 전체메뉴/설정, Logout/session restore 확인.
+- navigation/back audit: 주요 사용자-facing 화면 17개 상단 뒤로가기와 Android system back 통과.
+- Animal Hospital 판정: `우리동네 병원 찾기 전국 기반 완료, 일부 권역 품질 점검 필요`. public active 5,427건, 일산/서울/부산/대구/대전/광주/울산/세종/제주 대표 좌표 모두 20건 반환.
+- 디자인: 수정하지 않음. 스토어 출시 전 디자인 조정 후보는 별도 트랙으로 유지.
 
 ## 6. Kakao Local / 소셜 로그인 상태
 
@@ -80,7 +91,7 @@ NURI는 반려동물의 기억을 기록하고 추억하는 디지털 메모리�
 
 ## 9. Play Store 출시 전 남은 작업
 
-- release candidate smoke 마감 판정
+- 신규 QA 계정 E2E/navigation audit 결과를 release blocker ledger에 유지
 - privacy/policy 링크 최종 확인
 - Supabase/Codex 운영비 실제 결제 계정 확인
 - Play Store 자산 패키지: V1.0/V1.1 전체 완료 후 최종 제출 직전 진행
@@ -91,7 +102,7 @@ NURI는 반려동물의 기억을 기록하고 추억하는 디지털 메모리�
 - 출시 전 blocker: 현재 확인된 사용자-facing release blocker 없음
 - Kakao Local global hard delete: 보류. 다른 도메인 유지 경로 때문에 release blocker 아님
 - admin 운영자 QA: Parking. 앱 출시 blocker 아님
-- Play Store 자산: 아직 미진행. V1.0/V1.1 전체 완료 후 진행해야 함
+- Play Store 자산: 아직 미진행. V1.0/V1.1 전체 완료와 스토어 출시 전 디자인 조정 후 진행해야 함
 - 운영비: Supabase 프로젝트 플랜/사용량과 Codex 실제 플랜은 dashboard/account owner 확인 필요
 
 ## 10-1. 2026-06-23 release candidate smoke / 운영비 readiness
@@ -122,25 +133,25 @@ NURI는 반려동물의 기억을 기록하고 추억하는 디지털 메모리�
 | Community / Policy / Moderation | 최소 운영 방어선 완료 | row-level/정책 링크 검증 | V1.0 | 운영 UI 고도화 후속 |
 | Weather | 비용 방어 완료 | Android/remote 검증 완료 | V1.0 | 운영비 확인 |
 | Timeline | read/write 경계 정리 완료 | QA 완료 | V1.0 | 없음 |
-| Release QA | release APK exact smoke와 2026-06-23 RC smoke 완료 | evidence 문서화 | V1.0/V1.1 공통 | RC 마감 판정 |
+| Release QA | release APK exact smoke와 2026-06-30 신규 계정 E2E/navigation audit 완료 | evidence 문서화 | V1.0/V1.1 공통 | 디자인 조정과 운영비 확정 |
 | Docs / Project Memory | 최신 기준 갱신 | 이번 턴 정리 완료 | 공통 | 지속 관리 |
 
 ## 12. 구현예정 작업 리스트
 
 | 분류 | 작업 | 기준 |
 | --- | --- | --- |
-| V1.1 잔여 | release candidate smoke 마감 판정 | 다음 1순위 |
+| 디자인 조정 예정 | 스토어 출시 전 앱 내부 디자인 조정 후보 검토 | 다음 1순위 |
 | 홈페이지/관리 페이지로 이동 | 운영자 관리 페이지 설계와 admin QA | 앱 내부 admin QA Parking |
-| 최종 제출 직전 준비 | Play Store 자산 패키지 | V1.0/V1.1 전체 완료 후 |
+| 최종 제출 직전 준비 | Play Store 자산 패키지 | V1.0/V1.1 전체 완료와 디자인 조정 완료 후 |
 | 예산/운영 확인 | Supabase/Codex 실제 플랜·월 사용량 확정 | 다음 2순위 |
 | 출시 후 고도화 | Apple 로그인, billing, AI reply, private letters, typography | 별도 트랙 |
 | Parking / 보류 | Kakao Local global hard delete | 다른 도메인 유지 경로 해소 후 |
 
 ## 13. 최종 판단
 
-산책/location discovery POI 트랙은 사용자-facing release blocker 없이 closeout 가능하고, 2026-06-23 release candidate smoke에서도 crash-free 상태를 유지했다. 단, V1.1 전체는 아직 51% 기준이므로 Play Store 자산 패키지는 다음 액션이 아니다. 다음 단계는 RC smoke 마감 판정과 Supabase/Codex 실제 결제 계정 확인이다.
+산책/location discovery POI 트랙은 사용자-facing release blocker 없이 closeout 가능하고, 2026-06-30 신규 QA 계정 full E2E/navigation audit에서도 crash-free 상태를 유지했다. 발견된 stale onboarding blocker는 최소 수정 후 재검증했다. 단, V1.1 전체는 아직 52% 기준이고 PO 지시에 따른 스토어 출시 전 디자인 조정이 남아 있으므로 Play Store 자산 패키지는 다음 액션이 아니다.
 
 ## 14. 다음 액션
 
-1. V1.1 잔여: release candidate smoke 마감
+1. 디자인 조정 예정: 스토어 출시 전 앱 내부 디자인 조정 후보 검토
 2. 예산/운영 확인: Supabase/Codex 운영비 확정

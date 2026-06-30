@@ -1,10 +1,10 @@
 # NURI 전체 프로젝트 현황 보고서
 
-기준일: 2026-06-23
-최종 정합성 검수일: 2026-06-23
+기준일: 2026-06-30
+최종 정합성 검수일: 2026-06-30
 문서 목적: ChatGPT, Codex, 운영자, 후속 개발 세션이 현재 NURI 앱의 전체 맥락을 한 번에 파악하기 위한 source of truth 문서
 
-최신 갱신: 2026-06-23 release candidate smoke와 Supabase/Codex 운영비 readiness 점검을 수행했다. release APK update install 후 사용자-facing 핵심 경로, 산책 POI public RPC/projection, Ready Kakao 차단, gate 밖 safe UX, 로그아웃/로그인 홈 복귀를 확인했고 logcat fatal/ANR/unhandled pattern은 0건이다. Supabase project는 active healthy, DB size는 약 177MB, Edge Functions는 6개 ACTIVE이며 실제 plan/청구 사용량은 dashboard owner 확인이 필요하다.
+최신 갱신: 2026-06-30 신규 QA 계정 full E2E/navigation audit와 Animal Hospital 전국 coverage read-only audit을 수행했다. 로그아웃 후 email/password 재로그인에서 stale onboarding으로 `NicknameSetup`에 잘못 진입하는 release blocker를 발견해 최소 수정했고, release APK rebuild/install 후 cold start와 logout -> email login home 복귀를 재검증했다. 주요 사용자-facing 화면 17개 back audit, Walk/POI 회귀, Animal Hospital 대표 권역 coverage smoke를 통과했고 logcat fatal/ANR/unhandled pattern은 0건이다.
 
 ## 1. 문서 목적
 
@@ -38,19 +38,36 @@
 | 구분 | 진행률 | 근거 |
 | --- | ---: | --- |
 | V1.0 기능 개발 | 100% | P0/P1 0건, 필수 기능 closeout, Code Freeze 유지 |
-| V1.0 QA/출시 준비 | 약 97% | release APK exact install smoke, 2026-06-23 사용자-facing RC smoke, admin/super_admin 서버 계약 확인, P0 corrective 회귀 완료. Play Store 제출 자산만 최종 제출 직전 준비로 남음 |
+| V1.0 QA/출시 준비 | 약 98% | release APK exact install smoke, 2026-06-30 신규 QA 계정 full E2E/navigation audit, stale onboarding blocker 최소 수정/재검증, admin/super_admin 서버 계약 확인, P0 corrective 회귀 완료. Play Store 제출 자산은 디자인 조정과 전체 closeout 뒤 최종 제출 직전 준비 |
 | V1.1 산책 POI 전환 트랙 | 약 99% | remote DB 기준 approved/public/active POI 1,145건, PostGIS foundation, 앱 POI RPC read path, admin import/review, 전국 주요 coverage, 한글 표시값 기준 유지, walk-domain Kakao fallback 제거, public projection safety, RC smoke 통과 |
-| V1.1 전체 | 약 51% | 산책 POI 트랙은 closeout 가능이고 RC smoke/cost readiness를 통과했지만 결제, AI, 편지함, Typography, Apple, Naver cleanup, Weather 운영 고도화 등 별도 V1.1 후보가 남음 |
-| 전체 제품 로드맵 | 약 91% | V1.0 release-ready 기준선은 닫혔고 V1.1 location foundation, 전국 seed 5차 coverage, Ready 권역 Kakao 호출 차단, 대량 seed 품질 점검, RC smoke까지 진행됐다. 장기 유료화/AI/전국 데이터 운영은 아직 남음 |
+| V1.1 전체 | 약 52% | 산책 POI 트랙은 closeout 가능이고 full E2E/navigation audit까지 통과했지만 결제, AI, 편지함, Typography, Apple, Naver cleanup, Weather 운영 고도화 등 별도 V1.1 후보가 남음 |
+| 전체 제품 로드맵 | 약 92% | V1.0 release-ready 기준선은 닫혔고 V1.1 location foundation, 전국 seed 5차 coverage, Ready 권역 Kakao 호출 차단, 대량 seed 품질 점검, full E2E/navigation audit까지 진행됐다. 장기 유료화/AI/전국 데이터 운영은 아직 남음 |
 | 최종 제출 준비 | 약 20% | release artifact/provenance와 정책 URL 기준은 정리됐지만 Play Store 스크린샷, 설명문, Console 입력, store listing package는 아직 최종 제출 직전 준비로 남음 |
 
 남은 작업의 성격:
 
-- 기능 개발: V1.1 admin UI 고도화, 결제/AI/편지함/Apple 등 신규 업데이트
-- 운영 QA: 지역별 Android smoke, admin action evidence, public projection safety 반복 확인
-- 데이터 확장: 수도권 3차, 광역시, 전국 POI seed coverage
-- 스토어 제출 준비: Play Store 스크린샷, 설명문, 정책 URL, 문의처, store listing package
+- 기능 개발: 결제/AI/편지함/Apple 등 신규 업데이트. 앱 내부 admin UI 운영자 QA는 홈페이지/관리 페이지 트랙으로 Parking
+- 운영 QA: release candidate 반복 smoke, public projection safety 반복 확인, 병원 coordinate 품질 점검
+- 데이터 확장: 산책 POI 전국 coverage는 1,145건 기준 closeout 가능. 추가 seed는 V1.1 품질/운영 후보
+- 스토어 제출 준비: 앱 내부 디자인 조정 완료 후 Play Store 스크린샷, 설명문, 정책 URL, 문의처, store listing package
 - 장기 고도화: 자체 지도 스택, Premium AI, subscription entitlement, moderation/admin 운영 고도화
+
+## 3-1. 2026-06-30 신규 QA 계정 full E2E / navigation audit / 병원 전국 coverage
+
+- 신규 QA 계정: `qa0623145019@example.com`. 비밀번호는 문서화하지 않음
+- 신규 사용자 플로우: Splash, 로그인/회원가입, Google/Kakao 버튼, 닉네임 `qa5019`, 펫 `QAPet`, 홈 진입 확인
+- release blocker 수정: 로그아웃 후 email/password 재로그인 시 profile/pet이 존재해도 `NicknameSetup`으로 잘못 진입하는 stale onboarding 문제를 수정
+- 수정 범위: `src/store/authStore.ts`, `src/services/app/boot.ts`, focused auth/app boot tests
+- 재검증: release APK rebuild/install, cold start home 복귀, logout -> email login home 복귀
+- 전체 E2E: Home, Profile/Pet, Pet Edit/Create guard, Health, Timeline, Animal Hospital, Walk/POI, Community/Policy, Weather, 전체메뉴/설정, Logout/session restore 확인
+- 뒤로가기 audit: 주요 사용자-facing 화면 17개에서 상단 뒤로가기와 Android system back 확인
+- Animal Hospital 판정: `우리동네 병원 찾기 전국 기반 완료, 일부 권역 품질 점검 필요`
+  - public active count 5,427건
+  - 일산/서울/부산/대구/대전/광주/울산/세종/제주 대표 좌표 모두 10km/20건 반환
+  - coordinate missing 122건은 후속 품질 점검 후보, release blocker 아님
+- Walk/POI 회귀: approved/public/active 1,145건, nearby/search/detail 정상, direct anon table select `42501`, Ready Kakao 차단 유지
+- 디자인: 수정하지 않음. 스토어 출시 전 디자인 조정 후보는 별도 트랙으로 유지
+- Play Store 자산: V1.0/V1.1 전체 완료와 디자인 조정 완료 후 진행
 
 ## 4. V1.0 완료 내역
 

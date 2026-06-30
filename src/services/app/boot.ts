@@ -67,7 +67,7 @@ export function shouldReloadUserScopedState(input: {
       return true;
     case 'SIGNED_IN':
     case 'INITIAL_SESSION':
-      return !input.prevUserId && !!input.nextUserId;
+      return !!input.nextUserId;
     case 'TOKEN_REFRESHED':
     case 'USER_UPDATED':
     case 'PASSWORD_RECOVERY':
