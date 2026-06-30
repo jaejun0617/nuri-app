@@ -4,7 +4,7 @@
 최종 정합성 검수일: 2026-06-30
 문서 목적: ChatGPT, Codex, 운영자, 후속 개발 세션이 현재 NURI 앱의 전체 맥락을 한 번에 파악하기 위한 source of truth 문서
 
-최신 갱신: 2026-06-30 V1.1 추가 업데이트 1차 MVP 3개를 구현했다. 회원탈퇴 `회원탈퇴` 직접 입력 guard, 로그인 화면 최근 로그인 provider pill, 타임라인 카테고리별 count badge를 추가했고 신규 DB/migration/seed/design 변경은 없다. typecheck, lint, focused tests, Android 부분 smoke를 통과했으며 실제 탈퇴 예약 실행과 OAuth별 최근 로그인 pill, timeline write/delete count 갱신은 1차 MVP closeout edge로 남긴다.
+최신 갱신: 2026-06-30 V1.1 추가 업데이트 1차 MVP edge QA를 완료했다. 회원탈퇴 `회원탈퇴` 직접 입력 guard, 로그인 화면 최근 로그인 provider pill, 타임라인 카테고리별 count badge는 신규 DB/migration/seed/design 변경 없이 유지된다. typecheck, lint, focused tests, Android smoke를 통과했고, 타임라인 작성/카테고리 수정/삭제 count 갱신은 실제 QA 계정에서 닫았다. 실제 탈퇴 예약과 social 최종 pill은 QA 계정 보호와 외부 OAuth/입력 자동화 제약 때문에 조건부 evidence로 둔다.
 
 ## 1. 문서 목적
 
@@ -40,9 +40,9 @@
 | V1.0 기능 개발 | 100% | P0/P1 0건, 필수 기능 closeout, Code Freeze 유지 |
 | V1.0 QA/출시 준비 | 약 98% | release APK exact install smoke, 2026-06-30 신규 QA 계정 full E2E/navigation audit, stale onboarding blocker 최소 수정/재검증, admin/super_admin 서버 계약 확인, P0 corrective 회귀 완료. Play Store 제출 자산은 디자인 조정과 전체 closeout 뒤 최종 제출 직전 준비 |
 | V1.1 산책 POI 전환 트랙 | 약 99% | remote DB 기준 approved/public/active POI 1,145건, PostGIS foundation, 앱 POI RPC read path, admin import/review, 전국 주요 coverage, 한글 표시값 기준 유지, walk-domain Kakao fallback 제거, public projection safety, RC smoke 통과 |
-| V1.1 추가 업데이트 1차 MVP | 약 90% | 회원탈퇴 입력 guard, 최근 로그인 provider 표시, 타임라인 카테고리 count 구현/focused test/Android 부분 smoke 완료. 실제 탈퇴 예약, OAuth별 provider 표시, write/delete count 갱신 edge smoke는 closeout 잔여 |
-| V1.1 추가 기능 구현 | 약 35% | 8개 추가 기능 중 1차 MVP 3개가 구현 완료에 근접했고, 2차 MVP와 V1.1.1 후보는 정책 확정 전 미구현 |
-| V1.1 전체 | 약 56% | 산책 POI 트랙 closeout 가능, full E2E/navigation audit 통과, 병원 coverage 판정 완료, V1.1 추가 업데이트 1차 MVP 구현 완료 |
+| V1.1 추가 업데이트 1차 MVP | 약 98% | 타임라인 count write/edit/delete edge closeout 완료. 회원탈퇴 모달/back/7일 유예와 email 최근 로그인 cold start 확인. 실제 탈퇴 예약과 social 최종 pill은 조건부 evidence |
+| V1.1 추가 기능 구현 | 약 37% | 8개 추가 기능 중 1차 MVP 3개가 edge QA까지 진행됐고, 2차 MVP와 V1.1.1 후보는 정책 확정 전 미구현 |
+| V1.1 전체 | 약 57% | 산책 POI 트랙 closeout 가능, full E2E/navigation audit 통과, 병원 coverage 판정 완료, V1.1 추가 업데이트 1차 MVP edge QA 조건부 closeout |
 | 전체 제품 로드맵 | 약 94% | V1.0 release-ready 기준선은 닫혔고 V1.1 location foundation, 전국 seed 5차 coverage, Ready 권역 Kakao 호출 차단, 대량 seed 품질 점검, full E2E/navigation audit, 1차 MVP 구현까지 진행됐다. 장기 유료화/AI/전국 데이터 운영은 아직 남음 |
 | 최종 제출 준비 | 약 20% | release artifact/provenance와 정책 URL 기준은 정리됐지만 Play Store 스크린샷, 설명문, Console 입력, store listing package는 아직 최종 제출 직전 준비로 남음 |
 
@@ -73,9 +73,9 @@
 
 ## 3-2. 2026-06-30 V1.1 추가 업데이트 1차 MVP 구현
 
-- 회원탈퇴 입력 확인: 기존 7일 유예 탈퇴 flow는 유지하고, 확인 모달에서 `회원탈퇴`를 trim 후 정확히 입력해야 `탈퇴 요청하기`가 활성화된다. Android smoke에서 입력 전 disabled 상태와 back dismiss를 확인했고 실제 탈퇴 실행은 하지 않았다.
-- 최근 로그인 방식 표시: Supabase session provider metadata에서 `email`, `google`, `kakao` provider key만 AsyncStorage에 저장한다. 이메일 주소와 provider 계정 정보는 저장하지 않는다. 로그아웃 후 로그인 화면 email 영역에 `최근 로그인` pill 노출을 확인했다.
-- 타임라인 카테고리 count: 현재 선택된 반려동물 기준으로 minimal metadata read와 client aggregation을 사용해 전체/산책/식사/일기장 count badge를 표시한다. 신규 RPC/migration은 만들지 않았다.
+- 회원탈퇴 입력 확인: 기존 7일 유예 탈퇴 flow는 유지하고, 확인 모달에서 `회원탈퇴`를 trim 후 정확히 입력해야 `탈퇴 요청하기`가 활성화된다. Android smoke에서 모달 진입, 입력 전 disabled, 취소, back dismiss, 7일 유예 안내를 확인했고 실제 탈퇴 예약은 QA 계정 보호와 실기기 한글 입력 자동화 제약 때문에 실행하지 않았다.
+- 최근 로그인 방식 표시: Supabase session provider metadata에서 `email`, `google`, `kakao` provider key만 AsyncStorage에 저장한다. 이메일 주소와 provider 계정 정보는 저장하지 않는다. 로그아웃 후 로그인 화면 email 영역 `최근 로그인`과 cold start 유지, Kakao callback, Google chooser/redirect 진입을 확인했다.
+- 타임라인 카테고리 count: 현재 선택된 반려동물 기준으로 minimal metadata read와 client aggregation을 사용해 전체/산책/식사/일기장 count badge를 표시한다. QA 계정에서 작성 -> 카테고리 수정 -> 삭제 count 갱신을 확인했고 신규 RPC/migration은 만들지 않았다.
 - 검증: `accountDeletionConfirmation`, `recentLoginProvider`, `timelineQuery`, `authStoreRecovery`, `appBoot` focused tests 통과. `tsc`, `lint`, `git diff --check` 통과.
 - 범위 제외: streak, XP/칭호, 알림 시스템, 무지개다리 서비스, 홈 위젯, 디자인 조정, Play Store 자산, admin UI, seed/DB/migration 변경은 수행하지 않았다.
 
@@ -871,7 +871,7 @@ V1.1 추가 업데이트 planning:
 
 - 공식 문서: `docs/planning/v1.1-additional-update-plan-and-checklist.md`
 - 대상 기능 8개: 타임라인 카테고리 count, 최근 로그인 방식, 무지개다리 서비스 제안, 연속 출석/데일리판, 홈 위젯, 회원탈퇴 입력 확인, 알림 수신 검증, XP/레벨/칭호
-- 1차 MVP: 회원탈퇴 입력 확인, 최근 로그인 표시, 타임라인 카테고리 count
+- 1차 MVP: 회원탈퇴 입력 확인, 최근 로그인 표시, 타임라인 카테고리 count. 2026-06-30 edge QA 기준 타임라인 write/edit/delete count 갱신은 완료했고, 회원탈퇴 실제 예약과 social 최종 pill은 조건부 evidence로 관리한다.
 - 2차 MVP: 연속 출석/데일리판, 로그인 후 홈 알림 badge/read path, XP/칭호 최소 MVP 설계
 - V1.1.1 후보: 무지개다리 추억 서비스 제안, Android 홈 위젯 1차, XP/레벨/칭호 전체 시스템, 운영자 알림 발송 관리 페이지, push notification
 
@@ -883,11 +883,12 @@ V1.1 추가 업데이트 planning:
 | V1.0 QA/출시 준비 | 약 98% | 신규 QA 계정 E2E/navigation audit와 blocker 재검증 완료 |
 | V1.1 산책 POI 트랙 | 약 99% | 1,145건 POI, public projection safety, Android smoke 통과 |
 | V1.1 추가 업데이트 기획 | 100% | 8개 기능 공식 작업서/체크리스트/진행률표 작성 완료 |
-| V1.1 추가 기능 구현 | 약 2.5% | 기존 계정 탈퇴 7일 유예 flow만 선행 기반으로 반영 |
-| V1.1 전체 | 약 53% | RC 상태 갱신, 병원 품질 판정, 추가 업데이트 planning 완료 |
-| 전체 제품 로드맵 | 약 93% | 운영비 PO 확정과 V1.1 다음 구현 단위 확정 기준 |
+| V1.1 추가 업데이트 1차 MVP | 약 98% | 구현/focused test/Android edge QA 완료. 실제 탈퇴 예약과 social 최종 pill은 조건부 evidence |
+| V1.1 추가 기능 구현 | 약 37% | 8개 기능 중 1차 MVP 3개가 edge QA까지 진행됨 |
+| V1.1 전체 | 약 57% | RC 상태 갱신, 병원 품질 판정, 추가 업데이트 1차 MVP edge QA 조건부 closeout |
+| 전체 제품 로드맵 | 약 94% | 운영비 PO 확정과 V1.1 1차 MVP edge QA 반영 기준 |
 
 다음 액션:
 
-1. V1.1 추가 업데이트 1차 MVP: 회원탈퇴 입력 확인 + 최근 로그인 표시 + 타임라인 카테고리 count
-2. V1.1 추가 업데이트 정책 확정: 데일리 streak / XP·칭호 정책표 확정
+1. V1.1 추가 업데이트 정책 확정: 데일리 streak / XP·칭호 정책표 확정
+2. V1.1 추가 업데이트 2차 MVP: streak/deaily board + 알림 read path 범위 확정

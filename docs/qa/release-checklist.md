@@ -13,7 +13,7 @@
 - 과금, Premium AI reply, Guestbook private letters 확장, Typography foundation rollout은 v1.1 신규 업데이트 후보로 관리한다.
 - 2026-06-23 release candidate smoke는 release APK update install 기준으로 사용자-facing 핵심 경로를 재확인했다. Play Store 자산은 여전히 V1.0/V1.1 전체 완료 후 최종 제출 직전 단계다.
 - 2026-06-30 신규 QA 계정 full E2E/navigation audit에서 로그아웃 후 email/password 재로그인 stale onboarding blocker를 발견해 최소 수정했다. 재빌드한 release APK에서 cold start와 logout -> email login home 복귀를 확인했고, 주요 화면 17개 back audit과 병원 전국 coverage read-only audit을 통과했다.
-- 2026-06-30 V1.1 추가 업데이트 1차 MVP로 회원탈퇴 입력 확인, 최근 로그인 표시, 타임라인 카테고리 count를 구현했다. 신규 DB/migration/seed/design 변경은 없고 focused tests와 Android 부분 smoke를 통과했다.
+- 2026-06-30 V1.1 추가 업데이트 1차 MVP로 회원탈퇴 입력 확인, 최근 로그인 표시, 타임라인 카테고리 count를 구현했고 edge QA를 수행했다. 신규 DB/migration/seed/design 변경은 없고 focused tests, Android 회원탈퇴 모달, 최근 로그인 email cold start, Kakao/Google OAuth 진입, 타임라인 작성/수정/삭제 count 갱신 smoke를 통과했다.
 - 디자인 수정은 이번 release QA 턴에서 하지 않았다. 스토어 출시 전 디자인 조정 후보는 별도 트랙으로 유지하며, Play Store 자산 패키지는 디자인 조정과 V1.0/V1.1 전체 완료 후 진행한다.
 
 ## 2026-06-30 Full App E2E / Navigation / Hospital Coverage RC QA
@@ -73,18 +73,26 @@
 - [x] 회원탈퇴 입력 확인
   - `회원탈퇴` 직접 입력 전 `탈퇴 요청하기` disabled 확인
   - 7일 유예 탈퇴 flow와 복구/차단 계약 유지
-  - 실제 탈퇴 예약 실행은 QA 계정 보호를 위해 미수행, closeout edge로 유지
+  - 취소와 Android back dismiss 확인
+  - `회원탈퇴` 정확 입력, 오타/공백 trim, 탈퇴 요청 성공 시 최근 로그인 기록 삭제는 focused test로 고정
+  - 실제 탈퇴 예약 실행은 QA 계정 보호와 실기기 한글 입력 자동화 제약 때문에 미수행. release blocker 아님
 - [x] 최근 로그인 방식 표시
   - 저장 provider는 `email`, `google`, `kakao`만 허용
   - 이메일 주소와 소셜 계정 식별자는 저장하지 않음
-  - 로그아웃 후 로그인 화면 email 영역 `최근 로그인` 표시 확인
+  - 로그아웃 후 로그인 화면 email 영역 `최근 로그인` 표시와 cold start 유지 확인
+  - Kakao는 실제 OAuth callback 후 신규 온보딩 진입 확인
+  - Google은 account chooser와 `nuri://auth/callback` redirect 진입 확인
+  - social 최종 pill은 외부 계정 consent/신규 온보딩 완료 조건 때문에 focused provider persistence test로 보완
 - [x] 타임라인 카테고리 count
   - 전체/산책/식사/일기장 count badge 표시
   - 현재 선택 반려동물 기준 minimal metadata aggregation 사용
   - 신규 RPC/migration 없음
+  - QA 계정에서 `QA_COUNT_TEST_WALK` 작성 후 전체 1/산책 1 확인
+  - 작성 글을 식사로 수정 후 산책 0/식사 1 확인
+  - 작성 글 삭제 후 전체 0/식사 0과 empty UX 원복 확인
 - [x] 검증
   - focused tests: account deletion confirmation, recent login provider, timeline category count, auth boot/onboarding regression 통과
-  - Android: 타임라인 count/empty UX, 회원탈퇴 모달 disabled, 로그아웃 후 최근 로그인 pill 확인
+  - Android: 타임라인 count write/edit/delete, 회원탈퇴 모달 disabled/cancel/back, 로그아웃 후 최근 로그인 pill, Kakao/Google OAuth 진입 확인
   - 금지 범위 준수: 디자인, Play Store 자산, admin UI, seed, DB, migration 변경 없음
 
 ## V1.0 기능 기준선과 잔여 task/risk closeout
