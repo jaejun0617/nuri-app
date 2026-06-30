@@ -32,14 +32,40 @@
   - Animal Hospital 전화/길찾기 CTA와 Community policy 외부 문서에서 앱 복귀 확인.
 - [x] Animal Hospital 전국 커버리지 read-only audit
   - public active count 5,427건
-  - 일산/서울/부산/대구/대전/광주/울산/세종/제주 대표 좌표 모두 10km/20건 반환
-  - 판정: `우리동네 병원 찾기 전국 기반 완료, 일부 권역 품질 점검 필요`
-  - coordinate missing 122건은 후속 품질 점검 후보, release blocker 아님
+  - 서울/경기/인천/부산/대구/대전/광주/울산/세종/제주/강원/충청/전라/경상 대표 좌표 모두 10km/20건 반환
+  - 판정: `우리동네 병원 찾기 전국 확장 완료, coordinate missing 122건은 release blocker 아님`
+  - coordinate missing 122건은 V1.1 데이터 품질 보강 후보
 - [x] Walk/POI 회귀
   - approved/public/active POI 1,145건 유지
   - nearby/search/detail RPC 정상, direct anon table select `42501`, Ready 권역 Kakao 차단 유지
 - [x] crash-free
   - Android `SM_S937N` logcat fatal / ANR / unhandled promise / ReactNativeJS fatal pattern 0건
+
+## 2026-06-30 Animal Hospital Coordinate Missing / V1.1 Planning Update
+
+- [x] Animal Hospital coordinate missing 122건 read-only audit
+  - public active count: 5,427건
+  - coordinate missing public active: 122건
+  - primary address 보유: 122건
+  - road address 보유: 110건
+  - lot address 보유: 121건
+  - official phone 보유: 82건
+  - providerPlaceUrl 보유: 0건
+  - 판정: `우리동네 병원 찾기 전국 확장 완료, coordinate missing 122건은 release blocker 아님`
+- [x] coordinate missing UX 판정
+  - nearby 좌표 기반 리스트는 좌표가 있는 병원만 반환한다.
+  - text search/detail은 주소/전화가 있으면 정보형으로 표시한다.
+  - 좌표가 없으면 지도 preview와 좌표 기반 길찾기 URL은 열지 않고 주소 기준 안내로 안전 처리한다.
+  - 병원 좌표 보정은 V1.1 데이터 품질 보강 후보이며 이번 턴에서 DB write/seed 수정은 하지 않았다.
+- [x] V1.1 추가 업데이트 공식 작업서 생성
+  - 문서: `docs/planning/v1.1-additional-update-plan-and-checklist.md`
+  - 대상 기능: 타임라인 카테고리 count, 최근 로그인 방식, 무지개다리 서비스 제안, 연속 출석/데일리판, 홈 위젯, 회원탈퇴 입력 확인, 알림 수신 검증, XP/레벨/칭호
+  - 실제 기능 구현은 미착수이며 PO 승인 후 1차 MVP부터 진행한다.
+- [x] 운영/출시 기준 갱신
+  - Supabase/Codex 운영비: PO 확정 완료
+  - 디자인 조정: 스토어 출시 전 별도 예정, 이번 턴 수정 금지
+  - Play Store 자산 패키지: V1.0/V1.1 전체 완료와 디자인 조정 완료 후 최종 제출 직전 진행
+  - admin 운영자 QA: 별도 홈페이지/관리 페이지 트랙으로 이동
 
 ## V1.0 기능 기준선과 잔여 task/risk closeout
 

@@ -61,10 +61,10 @@
 - 재검증: release APK rebuild/install, cold start home 복귀, logout -> email login home 복귀
 - 전체 E2E: Home, Profile/Pet, Pet Edit/Create guard, Health, Timeline, Animal Hospital, Walk/POI, Community/Policy, Weather, 전체메뉴/설정, Logout/session restore 확인
 - 뒤로가기 audit: 주요 사용자-facing 화면 17개에서 상단 뒤로가기와 Android system back 확인
-- Animal Hospital 판정: `우리동네 병원 찾기 전국 기반 완료, 일부 권역 품질 점검 필요`
+- Animal Hospital 판정: `우리동네 병원 찾기 전국 확장 완료, coordinate missing 122건은 release blocker 아님`
   - public active count 5,427건
-  - 일산/서울/부산/대구/대전/광주/울산/세종/제주 대표 좌표 모두 10km/20건 반환
-  - coordinate missing 122건은 후속 품질 점검 후보, release blocker 아님
+  - 서울/경기/인천/부산/대구/대전/광주/울산/세종/제주/강원/충청/전라/경상 대표 좌표 모두 10km/20건 반환
+  - coordinate missing 122건은 V1.1 데이터 품질 보강 후보
 - Walk/POI 회귀: approved/public/active 1,145건, nearby/search/detail 정상, direct anon table select `42501`, Ready Kakao 차단 유지
 - 디자인: 수정하지 않음. 스토어 출시 전 디자인 조정 후보는 별도 트랙으로 유지
 - Play Store 자산: V1.0/V1.1 전체 완료와 디자인 조정 완료 후 진행
@@ -825,5 +825,59 @@ admin UI:
 
 다음 액션:
 
-1. V1.1 잔여: release candidate smoke
-2. 예산/운영 확인: Supabase/Codex 운영비 점검
+1. archive/reference: release candidate smoke와 비용 점검은 2026-06-30 기준 닫힘
+2. 최신 다음 액션은 아래 `2026-06-30 RC closeout / Animal Hospital coordinate audit / V1.1 추가 업데이트 planning` 섹션을 따른다.
+
+## 2026-06-30 RC closeout / Animal Hospital coordinate audit / V1.1 추가 업데이트 planning
+
+이번 기준에서는 신규 기능 구현이나 seed/DB 변경 없이, release candidate 상태와 Animal Hospital coordinate missing 품질을 read-only로 확인하고 V1.1 추가 업데이트 8개를 공식 planning 문서로 정리했다.
+
+RC 상태:
+
+- 신규 QA 계정 full E2E: 통과
+- onboarding stale blocker: `authStore.ts`, `boot.ts` 최소 수정 후 focused test 13/13과 release APK 재검증 통과
+- navigation/back audit: 주요 사용자-facing 화면 17개 통과
+- 산책 POI: approved/public/active 1,145건 유지, closeout 가능 상태 유지
+- logcat: fatal / ANR / unhandled promise / ReactNativeJS fatal pattern 0건
+- 디자인 조정: 스토어 출시 전 별도 예정, 이번 기준 디자인 수정 없음
+- Play Store 자산: V1.0/V1.1 전체 완료와 디자인 조정 완료 후 최종 제출 직전 진행
+- admin 운영자 QA: 앱 내부가 아니라 별도 홈페이지/관리 페이지 트랙으로 이동
+- Supabase/Codex 운영비: PO 확정 완료
+
+Animal Hospital coordinate audit:
+
+- public active count: 5,427건
+- coordinate missing public active: 122건
+- primary address 보유: 122건
+- road address 보유: 110건
+- lot address 보유: 121건
+- official phone 보유: 82건
+- providerPlaceUrl 보유: 0건
+- 대표 권역 coverage: 서울, 경기, 인천, 부산, 대구, 대전, 광주, 울산, 세종, 제주, 강원, 충청, 전라, 경상 10km/20건 반환
+- 판정: `우리동네 병원 찾기 전국 확장 완료, coordinate missing 122건은 release blocker 아님`
+- 후속: coordinate missing 122건은 V1.1 데이터 품질 보강 후보로 관리한다. 이번 기준 DB write/seed 수정은 하지 않는다.
+
+V1.1 추가 업데이트 planning:
+
+- 공식 문서: `docs/planning/v1.1-additional-update-plan-and-checklist.md`
+- 대상 기능 8개: 타임라인 카테고리 count, 최근 로그인 방식, 무지개다리 서비스 제안, 연속 출석/데일리판, 홈 위젯, 회원탈퇴 입력 확인, 알림 수신 검증, XP/레벨/칭호
+- 1차 MVP: 회원탈퇴 입력 확인, 최근 로그인 표시, 타임라인 카테고리 count
+- 2차 MVP: 연속 출석/데일리판, 로그인 후 홈 알림 badge/read path, XP/칭호 최소 MVP 설계
+- V1.1.1 후보: 무지개다리 추억 서비스 제안, Android 홈 위젯 1차, XP/레벨/칭호 전체 시스템, 운영자 알림 발송 관리 페이지, push notification
+
+진행률:
+
+| 구분 | 진행률 | 근거 |
+| --- | ---: | --- |
+| V1.0 기능 개발 | 100% | P0/P1 0건, 기능 Code Freeze 유지 |
+| V1.0 QA/출시 준비 | 약 98% | 신규 QA 계정 E2E/navigation audit와 blocker 재검증 완료 |
+| V1.1 산책 POI 트랙 | 약 99% | 1,145건 POI, public projection safety, Android smoke 통과 |
+| V1.1 추가 업데이트 기획 | 100% | 8개 기능 공식 작업서/체크리스트/진행률표 작성 완료 |
+| V1.1 추가 기능 구현 | 약 2.5% | 기존 계정 탈퇴 7일 유예 flow만 선행 기반으로 반영 |
+| V1.1 전체 | 약 53% | RC 상태 갱신, 병원 품질 판정, 추가 업데이트 planning 완료 |
+| 전체 제품 로드맵 | 약 93% | 운영비 PO 확정과 V1.1 다음 구현 단위 확정 기준 |
+
+다음 액션:
+
+1. V1.1 추가 업데이트 1차 MVP: 회원탈퇴 입력 확인 + 최근 로그인 표시 + 타임라인 카테고리 count
+2. V1.1 추가 업데이트 정책 확정: 데일리 streak / XP·칭호 정책표 확정

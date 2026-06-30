@@ -71,7 +71,7 @@
 
 ## Animal Hospital National Coverage Audit
 
-판정: `우리동네 병원 찾기 전국 기반 완료, 일부 권역 품질 점검 필요`
+판정: `우리동네 병원 찾기 전국 확장 완료, coordinate missing 122건은 release blocker 아님`
 
 - public active count: 5,427건
 - 과거 ingest/canonical 기준: 약 10,507건. 이번 턴에서는 로컬 `psql` 부재로 SQL catalog 직접 재확인은 하지 못했고, public projection과 기존 evidence를 우선한다.
@@ -95,7 +95,9 @@
   - 세종 35
 - public active address missing: 0건
 - public active coordinate missing: 122건
-- 대표 좌표 search smoke: 일산, 서울, 부산, 대구, 대전, 광주, 울산, 세종, 제주 모두 10km/20건 반환
+- coordinate missing 세부: primary address 122건, road address 110건, lot address 121건, official phone 82건, providerPlaceUrl 0건
+- UX 판정: nearby 좌표 기반 리스트는 좌표가 있는 병원만 반환하고, 좌표 없는 병원은 text search/detail에서 주소/전화 정보형 표시로 안전 처리한다.
+- 대표 좌표 search smoke: 일산, 서울, 경기, 인천, 부산, 대구, 대전, 광주, 울산, 세종, 제주, 강원, 충청, 전라, 경상 모두 10km/20건 반환
 - source/raw table anon read: RLS로 row 0건
 - Google Places/Photos runtime 재발: 없음
 - seed/DB write: 없음
@@ -103,7 +105,7 @@
 후속:
 
 - 병원은 산책 POI처럼 수동 seed 확장 구조가 아니다.
-- 전국 기반은 완료로 보되, coordinate missing 122건은 V1.1 품질 점검 후보로 둔다.
+- 전국 확장은 완료로 보며, coordinate missing 122건은 release blocker가 아닌 V1.1 데이터 품질 보강 후보로 둔다.
 
 ## Walk / POI Regression
 

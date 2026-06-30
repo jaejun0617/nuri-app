@@ -9,7 +9,7 @@ NURI는 반려동물의 기억을 기록하고 추억하는 디지털 메모리�
 - 기준일: 2026-06-30
 - 기준 브랜치: `codex/task6-community-content-policy`
 - 기준 remote POI: approved/public/active 1,145건
-- 이번 보고서 성격: 신규 QA 계정 full E2E/navigation audit + Animal Hospital 전국 coverage read-only audit + release blocker 최소 수정. 신규 seed, DB schema 변경, migration 없음
+- 이번 보고서 성격: 신규 QA 계정 full E2E/navigation audit + Animal Hospital coordinate missing 122건 read-only audit + V1.1 추가 업데이트 공식 planning. 신규 seed, DB schema 변경, migration, 디자인 수정 없음
 
 ## 3. 진행률
 
@@ -18,8 +18,10 @@ NURI는 반려동물의 기억을 기록하고 추억하는 디지털 메모리�
 | V1.0 기능 개발 | 100% | P0/P1 0건, 기능 Code Freeze 유지 |
 | V1.0 QA/출시 준비 | 약 98% | release APK update install, 신규 QA 계정 full E2E/navigation audit, onboarding blocker 최소 수정/재검증, OAuth 버튼 상태, crash-free logcat 재확인. Play Store 자산은 디자인 조정과 전체 closeout 후 최종 제출 직전 준비 |
 | V1.1 산책 POI 트랙 | 약 99% | 1,145건 POI, walk-domain Kakao fallback 제거, public projection safety, Android smoke 통과 |
-| V1.1 전체 | 약 52% | 산책 POI closeout 유지와 full E2E/navigation audit 확인. billing/AI/letters/typography 등 V1.1 잔여 존재 |
-| 전체 제품 로드맵 | 약 92% | V1.0 closeout 유지, V1.1 핵심 비용/POI 리스크 축소, 신규 계정 E2E/navigation audit 통과 기준 |
+| V1.1 추가 업데이트 기획 | 100% | PO 제안 8개 기능의 공식 작업서, 단계별 구현 계획, 체크리스트, 진행률 산정표 작성 완료 |
+| V1.1 추가 기능 구현 | 약 2.5% | 회원탈퇴 7일 유예 flow는 기존 구현 완료이나 추가 기능 자체는 아직 구현 미착수 |
+| V1.1 전체 | 약 53% | 산책 POI closeout 유지, full E2E/navigation audit 통과, 병원 coordinate audit 판정, V1.1 추가 업데이트 planning 완료 |
+| 전체 제품 로드맵 | 약 93% | V1.0 closeout 유지, V1.1 핵심 비용/POI 리스크 축소, 신규 계정 E2E/navigation audit 통과, 운영비 PO 확정 기준 |
 
 ## 4. 완료된 주요 도메인
 
@@ -57,7 +59,8 @@ NURI는 반려동물의 기억을 기록하고 추억하는 디지털 메모리�
 - 재검증: focused auth/app boot tests 13/13 통과, release APK rebuild/install, cold start와 logout -> email login home 복귀 통과.
 - 전체 E2E: Home, Profile/Pet, Pet Edit/Create guard, Health, Timeline, Animal Hospital, Walk/POI, Community/Policy, Weather, 전체메뉴/설정, Logout/session restore 확인.
 - navigation/back audit: 주요 사용자-facing 화면 17개 상단 뒤로가기와 Android system back 통과.
-- Animal Hospital 판정: `우리동네 병원 찾기 전국 기반 완료, 일부 권역 품질 점검 필요`. public active 5,427건, 일산/서울/부산/대구/대전/광주/울산/세종/제주 대표 좌표 모두 20건 반환.
+- Animal Hospital 판정: `우리동네 병원 찾기 전국 확장 완료, coordinate missing 122건은 release blocker 아님`. public active 5,427건, 서울/경기/인천/부산/대구/대전/광주/울산/세종/제주/강원/충청/전라/경상 대표 좌표 모두 10km/20건 반환.
+- coordinate missing 122건: public active에 포함되지만 nearby 좌표 기반 리스트에서는 제외된다. text search/detail에서는 주소와 전화번호가 있으면 정보형으로 안전 표시하고, 좌표 기반 지도/길찾기 CTA는 숨기거나 주소 기준 안내로 처리한다.
 - 디자인: 수정하지 않음. 스토어 출시 전 디자인 조정 후보는 별도 트랙으로 유지.
 
 ## 6. Kakao Local / 소셜 로그인 상태
@@ -93,7 +96,7 @@ NURI는 반려동물의 기억을 기록하고 추억하는 디지털 메모리�
 
 - 신규 QA 계정 E2E/navigation audit 결과를 release blocker ledger에 유지
 - privacy/policy 링크 최종 확인
-- Supabase/Codex 운영비 실제 결제 계정 확인
+- Supabase/Codex 운영비: PO 확정 완료
 - Play Store 자산 패키지: V1.0/V1.1 전체 완료 후 최종 제출 직전 진행
 - Play Console 실제 입력: 최종 제출 직전 단계에서만 수행
 
@@ -103,7 +106,7 @@ NURI는 반려동물의 기억을 기록하고 추억하는 디지털 메모리�
 - Kakao Local global hard delete: 보류. 다른 도메인 유지 경로 때문에 release blocker 아님
 - admin 운영자 QA: Parking. 앱 출시 blocker 아님
 - Play Store 자산: 아직 미진행. V1.0/V1.1 전체 완료와 스토어 출시 전 디자인 조정 후 진행해야 함
-- 운영비: Supabase 프로젝트 플랜/사용량과 Codex 실제 플랜은 dashboard/account owner 확인 필요
+- 운영비: PO 확정 완료. 추가 비용 점검은 다음 액션에서 제외
 
 ## 10-1. 2026-06-23 release candidate smoke / 운영비 readiness
 
@@ -121,6 +124,21 @@ NURI는 반려동물의 기억을 기록하고 추억하는 디지털 메모리�
 - Google Places/Maps 재발 위험: Google Places/Photos provider runtime은 기존 hard cap 0/no-op 기준 유지. 산책 상세 지도 미리보기는 Google Maps API가 아니라 OSM/static map 경로
 - Codex 비용: 실제 플랜/워크스페이스 사용량은 OpenAI 계정에서 확인 필요. 개발 지속 예산은 별도 운영 확인 항목으로 유지
 
+## 10-2. 2026-06-30 Animal Hospital coordinate audit / V1.1 추가 업데이트 planning
+
+- Animal Hospital coordinate missing public active: 122건
+- 주소 보유: primary address 122건, road address 110건, lot address 121건
+- 전화번호 보유: official phone 82건
+- providerPlaceUrl 보유: 0건
+- UX 판정: nearby 리스트는 좌표가 있는 병원만 반환하고, text search/detail은 주소/전화 정보형 표시로 안전 처리한다. 좌표가 없으면 지도 preview와 좌표 기반 길찾기 URL을 열지 않는다.
+- release blocker: 없음
+- 후속 조치: coordinate missing 122건은 DB write 없이 V1.1 데이터 품질 보강 후보로 관리한다.
+- V1.1 추가 업데이트 공식 작업서: `docs/planning/v1.1-additional-update-plan-and-checklist.md`
+- 1차 MVP: 회원탈퇴 입력 확인, 최근 로그인 표시, 타임라인 카테고리 count
+- 2차 MVP: 연속 출석/데일리판, 로그인 후 홈 알림 badge/read path, XP/칭호 최소 MVP 설계
+- V1.1.1 후보: 무지개다리 추억 서비스 제안, Android 홈 위젯 1차, XP/레벨/칭호 전체 시스템, 운영자 알림 발송 관리 페이지, push notification
+- Supabase/Codex 운영비: PO 확정 완료
+
 ## 11. 구현완료 작업 리스트
 
 | 도메인 | 구현 상태 | 검증 상태 | 버전 | 남은 리스크 |
@@ -131,27 +149,28 @@ NURI는 반려동물의 기억을 기록하고 추억하는 디지털 메모리�
 | Animal Hospital | 사용자 서비스 완료 | admin 서버 계약/일반 smoke 완료 | V1.0 | 운영자 홈페이지 QA로 이동 |
 | Walk / Location Discovery / POI | 자체 POI 전환 closeout 가능 | RPC/Android/focused test/RC smoke 통과 | V1.1 | 운영 모니터링 |
 | Community / Policy / Moderation | 최소 운영 방어선 완료 | row-level/정책 링크 검증 | V1.0 | 운영 UI 고도화 후속 |
-| Weather | 비용 방어 완료 | Android/remote 검증 완료 | V1.0 | 운영비 확인 |
+| Weather | 비용 방어 완료 | Android/remote 검증 완료 | V1.0 | 출시 후 사용량 모니터링 |
 | Timeline | read/write 경계 정리 완료 | QA 완료 | V1.0 | 없음 |
-| Release QA | release APK exact smoke와 2026-06-30 신규 계정 E2E/navigation audit 완료 | evidence 문서화 | V1.0/V1.1 공통 | 디자인 조정과 운영비 확정 |
+| Release QA | release APK exact smoke와 2026-06-30 신규 계정 E2E/navigation audit 완료 | evidence 문서화 | V1.0/V1.1 공통 | 디자인 조정 |
 | Docs / Project Memory | 최신 기준 갱신 | 이번 턴 정리 완료 | 공통 | 지속 관리 |
 
 ## 12. 구현예정 작업 리스트
 
 | 분류 | 작업 | 기준 |
 | --- | --- | --- |
-| 디자인 조정 예정 | 스토어 출시 전 앱 내부 디자인 조정 후보 검토 | 다음 1순위 |
+| V1.1 추가 업데이트 1차 MVP | 회원탈퇴 입력 확인, 최근 로그인 표시, 타임라인 카테고리 count | 다음 1순위 |
+| V1.1 추가 업데이트 정책 확정 | 데일리 streak, XP/칭호, 홈 위젯 날짜 기준, 알림 범위 | 다음 2순위 |
+| 디자인 조정 예정 | 스토어 출시 전 앱 내부 디자인 조정 후보 검토 | Play Store 자산 전 별도 판단 |
 | 홈페이지/관리 페이지로 이동 | 운영자 관리 페이지 설계와 admin QA | 앱 내부 admin QA Parking |
 | 최종 제출 직전 준비 | Play Store 자산 패키지 | V1.0/V1.1 전체 완료와 디자인 조정 완료 후 |
-| 예산/운영 확인 | Supabase/Codex 실제 플랜·월 사용량 확정 | 다음 2순위 |
 | 출시 후 고도화 | Apple 로그인, billing, AI reply, private letters, typography | 별도 트랙 |
 | Parking / 보류 | Kakao Local global hard delete | 다른 도메인 유지 경로 해소 후 |
 
 ## 13. 최종 판단
 
-산책/location discovery POI 트랙은 사용자-facing release blocker 없이 closeout 가능하고, 2026-06-30 신규 QA 계정 full E2E/navigation audit에서도 crash-free 상태를 유지했다. 발견된 stale onboarding blocker는 최소 수정 후 재검증했다. 단, V1.1 전체는 아직 52% 기준이고 PO 지시에 따른 스토어 출시 전 디자인 조정이 남아 있으므로 Play Store 자산 패키지는 다음 액션이 아니다.
+산책/location discovery POI 트랙은 사용자-facing release blocker 없이 closeout 가능하고, 2026-06-30 신규 QA 계정 full E2E/navigation audit에서도 crash-free 상태를 유지했다. 발견된 stale onboarding blocker는 최소 수정 후 재검증했다. 우리동네 병원 찾기는 전국 확장 완료로 판정하고 coordinate missing 122건은 release blocker가 아닌 데이터 품질 보강 후보로 둔다. V1.1 추가 업데이트는 공식 planning과 체크리스트까지 완료됐지만 실제 기능 구현은 아직 시작하지 않았으므로 Play Store 자산 패키지는 다음 액션이 아니다.
 
 ## 14. 다음 액션
 
-1. 디자인 조정 예정: 스토어 출시 전 앱 내부 디자인 조정 후보 검토
-2. 예산/운영 확인: Supabase/Codex 운영비 확정
+1. V1.1 추가 업데이트 1차 MVP: 회원탈퇴 입력 확인 + 최근 로그인 표시 + 타임라인 카테고리 count
+2. V1.1 추가 업데이트 정책 확정: 데일리 streak / XP·칭호 정책표 확정
