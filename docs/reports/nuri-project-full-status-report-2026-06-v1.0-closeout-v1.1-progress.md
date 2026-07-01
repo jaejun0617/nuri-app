@@ -1,10 +1,10 @@
 # NURI 전체 프로젝트 현황 보고서
 
-기준일: 2026-06-30
-최종 정합성 검수일: 2026-06-30
+기준일: 2026-07-01
+최종 정합성 검수일: 2026-07-01
 문서 목적: ChatGPT, Codex, 운영자, 후속 개발 세션이 현재 NURI 앱의 전체 맥락을 한 번에 파악하기 위한 source of truth 문서
 
-최신 갱신: 2026-06-30 V1.1 추가 업데이트 1차 MVP edge QA를 완료했다. 회원탈퇴 `회원탈퇴` 직접 입력 guard, 로그인 화면 최근 로그인 provider pill, 타임라인 카테고리별 count badge는 신규 DB/migration/seed/design 변경 없이 유지된다. typecheck, lint, focused tests, Android smoke를 통과했고, 타임라인 작성/카테고리 수정/삭제 count 갱신은 실제 QA 계정에서 닫았다. 실제 탈퇴 예약과 social 최종 pill은 QA 계정 보호와 외부 OAuth/입력 자동화 제약 때문에 조건부 evidence로 둔다.
+최신 갱신: 2026-07-01 V1.1 추가 업데이트 1차 MVP 조건부 잔여를 재판정했다. 타임라인 count는 closeout 완료, 회원탈퇴 실제 예약과 Kakao/Google social 최종 pill은 조건부 evidence 유지이며 release blocker는 없다. 모든 실기기 QA에 키보드바/입력창 가림/primary action 접근성/Android back keyboard dismiss 기준을 추가했고, 데일리 streak, XP/칭호, 알림 read path 2차 MVP 정책표를 작성했다. 실제 2차 MVP 구현, DB/migration/seed/design/Play Store/admin 작업은 하지 않았다.
 
 ## 1. 문서 목적
 
@@ -41,8 +41,8 @@
 | V1.0 QA/출시 준비 | 약 98% | release APK exact install smoke, 2026-06-30 신규 QA 계정 full E2E/navigation audit, stale onboarding blocker 최소 수정/재검증, admin/super_admin 서버 계약 확인, P0 corrective 회귀 완료. Play Store 제출 자산은 디자인 조정과 전체 closeout 뒤 최종 제출 직전 준비 |
 | V1.1 산책 POI 전환 트랙 | 약 99% | remote DB 기준 approved/public/active POI 1,145건, PostGIS foundation, 앱 POI RPC read path, admin import/review, 전국 주요 coverage, 한글 표시값 기준 유지, walk-domain Kakao fallback 제거, public projection safety, RC smoke 통과 |
 | V1.1 추가 업데이트 1차 MVP | 약 98% | 타임라인 count write/edit/delete edge closeout 완료. 회원탈퇴 모달/back/7일 유예와 email 최근 로그인 cold start 확인. 실제 탈퇴 예약과 social 최종 pill은 조건부 evidence |
-| V1.1 추가 기능 구현 | 약 37% | 8개 추가 기능 중 1차 MVP 3개가 edge QA까지 진행됐고, 2차 MVP와 V1.1.1 후보는 정책 확정 전 미구현 |
-| V1.1 전체 | 약 57% | 산책 POI 트랙 closeout 가능, full E2E/navigation audit 통과, 병원 coverage 판정 완료, V1.1 추가 업데이트 1차 MVP edge QA 조건부 closeout |
+| V1.1 추가 기능 구현 | 약 39% | 8개 추가 기능 중 1차 MVP 3개가 edge QA까지 진행됐고, 데일리 streak/XP·칭호/알림 read path 정책표 초안을 작성했다. 2차 MVP와 V1.1.1 후보 구현은 정책 확정 전 미착수 |
+| V1.1 전체 | 약 58% | 산책 POI 트랙 closeout 가능, full E2E/navigation audit 통과, 병원 coverage 판정 완료, V1.1 추가 업데이트 1차 MVP 조건부 closeout 유지, 2차 MVP 정책표 작성 |
 | 전체 제품 로드맵 | 약 94% | V1.0 release-ready 기준선은 닫혔고 V1.1 location foundation, 전국 seed 5차 coverage, Ready 권역 Kakao 호출 차단, 대량 seed 품질 점검, full E2E/navigation audit, 1차 MVP 구현까지 진행됐다. 장기 유료화/AI/전국 데이터 운영은 아직 남음 |
 | 최종 제출 준비 | 약 20% | release artifact/provenance와 정책 URL 기준은 정리됐지만 Play Store 스크린샷, 설명문, Console 입력, store listing package는 아직 최종 제출 직전 준비로 남음 |
 
@@ -78,6 +78,16 @@
 - 타임라인 카테고리 count: 현재 선택된 반려동물 기준으로 minimal metadata read와 client aggregation을 사용해 전체/산책/식사/일기장 count badge를 표시한다. QA 계정에서 작성 -> 카테고리 수정 -> 삭제 count 갱신을 확인했고 신규 RPC/migration은 만들지 않았다.
 - 검증: `accountDeletionConfirmation`, `recentLoginProvider`, `timelineQuery`, `authStoreRecovery`, `appBoot` focused tests 통과. `tsc`, `lint`, `git diff --check` 통과.
 - 범위 제외: streak, XP/칭호, 알림 시스템, 무지개다리 서비스, 홈 위젯, 디자인 조정, Play Store 자산, admin UI, seed/DB/migration 변경은 수행하지 않았다.
+
+## 3-3. 2026-07-01 1차 MVP 조건부 closeout / 키보드 QA / 2차 MVP 정책표
+
+- 1차 MVP 판정: `조건부 closeout 유지`. 타임라인 count는 closeout 완료이고, 회원탈퇴 실제 예약과 Kakao/Google social 최종 pill은 QA 계정 보호와 외부 OAuth consent 조건 때문에 조건부 evidence로 유지한다. release blocker와 V1.1 blocker는 없다.
+- 키보드바 QA 기준: 앞으로 모든 실기기 QA에는 키보드바/키보드 회피/입력창 가림/primary action 접근성/모달 크기/Android back keyboard dismiss/dismiss 후 layout 유지 확인을 포함한다.
+- Android evidence: `SM_S937N / R5CY613NMSY` 로그인 이메일 입력에서 IME top `y=1395`, height `945` 상태를 확인했다. 이메일/비밀번호 입력창과 로그인 primary button은 키보드 위에 남았고, Android back 후 keyboard가 dismiss되며 layout이 유지됐다.
+- 데일리 streak 정책표: KST 00:00 기준, user+pet 하루 1회 인정, 산책 카테고리 타임라인 또는 산책 장소 기록 완료를 기본 인정 조건으로 둔다. missed day는 MVP에서 reset하고, 서버 activity summary/RPC가 필요하다.
+- XP/칭호 정책표: 산책 기록 20 XP, 산책 타임라인 30 XP, 일반 타임라인 15 XP, 커뮤니티 글 10 XP, 댓글 3 XP, 건강 기록 10 XP를 초안으로 두고 daily cap과 server ledger/idempotency를 필수 조건으로 둔다.
+- 알림 read path 정책표: 홈 badge, 앱 내부 알림 목록, 읽음 처리, 특정 사용자 알림 수신을 MVP로 둔다. 운영자 발송은 별도 홈페이지/관리 페이지, push는 후속으로 분리한다.
+- 진행률: V1.1 추가 기능 구현 약 39%, V1.1 전체 약 58%. 정책표 초안만 반영했으며 2차 MVP 구현은 아직 착수하지 않았다.
 
 ## 4. V1.0 완료 내역
 
@@ -884,11 +894,11 @@ V1.1 추가 업데이트 planning:
 | V1.1 산책 POI 트랙 | 약 99% | 1,145건 POI, public projection safety, Android smoke 통과 |
 | V1.1 추가 업데이트 기획 | 100% | 8개 기능 공식 작업서/체크리스트/진행률표 작성 완료 |
 | V1.1 추가 업데이트 1차 MVP | 약 98% | 구현/focused test/Android edge QA 완료. 실제 탈퇴 예약과 social 최종 pill은 조건부 evidence |
-| V1.1 추가 기능 구현 | 약 37% | 8개 기능 중 1차 MVP 3개가 edge QA까지 진행됨 |
-| V1.1 전체 | 약 57% | RC 상태 갱신, 병원 품질 판정, 추가 업데이트 1차 MVP edge QA 조건부 closeout |
+| V1.1 추가 기능 구현 | 약 39% | 8개 기능 중 1차 MVP 3개가 edge QA까지 진행됐고 2차 MVP 정책표 초안 작성 |
+| V1.1 전체 | 약 58% | RC 상태 갱신, 병원 품질 판정, 1차 MVP 조건부 closeout 유지, 2차 MVP 정책표 작성 |
 | 전체 제품 로드맵 | 약 94% | 운영비 PO 확정과 V1.1 1차 MVP edge QA 반영 기준 |
 
 다음 액션:
 
-1. V1.1 추가 업데이트 정책 확정: 데일리 streak / XP·칭호 정책표 확정
-2. V1.1 추가 업데이트 2차 MVP: streak/deaily board + 알림 read path 범위 확정
+1. V1.1 추가 업데이트 정책 확정: 데일리 streak / XP·칭호 / 알림 read path PO 확정
+2. V1.1 추가 업데이트 2차 MVP: streak/deaily board + 알림 read path 구현 착수

@@ -1,4 +1,4 @@
-# NURI 앱 전체 프로젝트 최종 현황 보고서 - 2026-06-30
+# NURI 앱 전체 프로젝트 최종 현황 보고서 - 2026-07-01
 
 ## 1. 프로젝트 전체 요약
 
@@ -6,10 +6,10 @@ NURI는 반려동물의 기억을 기록하고 추억하는 디지털 메모리�
 
 ## 2. 현재 기준일
 
-- 기준일: 2026-06-30
+- 기준일: 2026-07-01
 - 기준 브랜치: `codex/task6-community-content-policy`
 - 기준 remote POI: approved/public/active 1,145건
-- 이번 보고서 성격: 신규 QA 계정 full E2E/navigation audit + Animal Hospital coordinate missing 122건 read-only audit + V1.1 추가 업데이트 공식 planning + 1차 MVP edge QA closeout 상태 반영. 신규 seed, DB schema 변경, migration, 디자인 수정 없음
+- 이번 보고서 성격: 신규 QA 계정 full E2E/navigation audit + Animal Hospital coordinate missing 122건 read-only audit + V1.1 추가 업데이트 공식 planning + 1차 MVP 조건부 closeout 재판정 + 키보드바 QA 기준 + 2차 MVP 정책표 반영. 신규 seed, DB schema 변경, migration, 디자인 수정 없음
 
 ## 3. 진행률
 
@@ -20,8 +20,8 @@ NURI는 반려동물의 기억을 기록하고 추억하는 디지털 메모리�
 | V1.1 산책 POI 트랙 | 약 99% | 1,145건 POI, walk-domain Kakao fallback 제거, public projection safety, Android smoke 통과 |
 | V1.1 추가 업데이트 기획 | 100% | PO 제안 8개 기능의 공식 작업서, 단계별 구현 계획, 체크리스트, 진행률 산정표 작성 완료 |
 | V1.1 추가 업데이트 1차 MVP | 약 98% | 타임라인 count write/edit/delete edge closeout 완료. 회원탈퇴 모달/back/7일 유예와 email 최근 로그인 cold start 확인. 실제 탈퇴 예약과 social 최종 pill은 조건부 evidence |
-| V1.1 추가 기능 구현 | 약 37% | 8개 추가 기능 중 1차 MVP 3개가 edge QA까지 진행됨. 2차 MVP와 V1.1.1 후보는 정책 확정 전 미구현 |
-| V1.1 전체 | 약 57% | 산책 POI closeout 유지, full E2E/navigation audit 통과, 병원 coordinate audit 판정, V1.1 추가 업데이트 1차 MVP edge QA 조건부 closeout |
+| V1.1 추가 기능 구현 | 약 39% | 8개 추가 기능 중 1차 MVP 3개가 edge QA까지 진행됐고, 2차 MVP 정책표를 작성함. 구현은 정책 확정 전 미착수 |
+| V1.1 전체 | 약 58% | 산책 POI closeout 유지, full E2E/navigation audit 통과, 병원 coordinate audit 판정, V1.1 추가 업데이트 1차 MVP 조건부 closeout 유지, 2차 MVP 정책표 반영 |
 | 전체 제품 로드맵 | 약 94% | V1.0 closeout 유지, V1.1 핵심 비용/POI 리스크 축소, 신규 계정 E2E/navigation audit 통과, 1차 MVP 구현, 운영비 PO 확정 기준 |
 
 ## 4. 완료된 주요 도메인
@@ -72,6 +72,15 @@ NURI는 반려동물의 기억을 기록하고 추억하는 디지털 메모리�
 - 타임라인 카테고리 count: 카테고리 필터에 전체/산책/식사/일기장 count badge를 표시한다. 현재 선택 반려동물 기준 minimal metadata와 RLS/user-scoped read path만 사용하며 신규 RPC/migration은 없다. QA 계정에서 작성 -> 카테고리 수정 -> 삭제 count 갱신을 확인했다.
 - Android smoke: 타임라인 count write/edit/delete, 회원탈퇴 확인 모달 disabled/cancel/back, 로그아웃 후 최근 로그인 pill, Kakao/Google OAuth 진입을 확인했다.
 - 검증: typecheck, lint, focused tests, diff check 통과. 디자인, Play Store 자산, admin UI, seed, DB, migration 변경 없음.
+
+## 5-3. 2026-07-01 1차 MVP 조건부 재판정과 2차 MVP 정책표
+
+- 1차 MVP 판정: `조건부 closeout 유지`. 타임라인 count는 closeout 완료, 회원탈퇴 실제 예약과 Kakao/Google social 최종 pill은 조건부 evidence 유지다. release blocker는 없다.
+- 키보드바 QA: 앞으로 모든 실기기 QA에 키보드바/키보드 회피/입력창 가림/primary action 접근성/모달 크기/Android back keyboard dismiss를 포함한다. Android `SM_S937N` 로그인 입력 smoke에서 이메일/비밀번호 입력과 로그인 버튼이 keyboard 위에 유지되는 것을 확인했다.
+- 데일리 streak 정책표: KST 00:00, user+pet 하루 1회, 산책 타임라인 또는 산책 장소 기록 완료 인정, missed day reset을 기본안으로 둔다.
+- XP/칭호 정책표: 활동별 XP, daily cap, server ledger/idempotency, 칭호 네이밍 톤을 초안화했다.
+- 알림 read path 정책표: 홈 badge, 알림 목록, 읽음 처리, 특정 사용자 알림 수신을 MVP로 두고 운영자 발송/푸시는 후속으로 분리한다.
+- 진행률: V1.1 추가 기능 구현 약 39%, V1.1 전체 약 58%. 2차 MVP 실제 구현은 미착수다.
 
 ## 6. Kakao Local / 소셜 로그인 상태
 
@@ -169,7 +178,7 @@ NURI는 반려동물의 기억을 기록하고 추억하는 디지털 메모리�
 | 분류 | 작업 | 기준 |
 | --- | --- | --- |
 | V1.1 추가 업데이트 정책 확정 | 데일리 streak, XP/칭호, 홈 위젯 날짜 기준, 알림 범위 | 다음 1순위 |
-| V1.1 추가 업데이트 2차 MVP | streak/deaily board, 알림 read path 범위 확정 | 다음 2순위 |
+| V1.1 추가 업데이트 2차 MVP | streak/deaily board, 알림 read path 구현 착수 | 다음 2순위 |
 | 디자인 조정 예정 | 스토어 출시 전 앱 내부 디자인 조정 후보 검토 | Play Store 자산 전 별도 판단 |
 | 홈페이지/관리 페이지로 이동 | 운영자 관리 페이지 설계와 admin QA | 앱 내부 admin QA Parking |
 | 최종 제출 직전 준비 | Play Store 자산 패키지 | V1.0/V1.1 전체 완료와 디자인 조정 완료 후 |
@@ -182,5 +191,5 @@ NURI는 반려동물의 기억을 기록하고 추억하는 디지털 메모리�
 
 ## 14. 다음 액션
 
-1. V1.1 추가 업데이트 정책 확정: 데일리 streak / XP·칭호 정책표 확정
-2. V1.1 추가 업데이트 2차 MVP: streak/deaily board + 알림 read path 범위 확정
+1. V1.1 추가 업데이트 정책 확정: 데일리 streak / XP·칭호 / 알림 read path PO 확정
+2. V1.1 추가 업데이트 2차 MVP: streak/deaily board + 알림 read path 구현 착수

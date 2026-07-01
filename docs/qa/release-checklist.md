@@ -14,6 +14,7 @@
 - 2026-06-23 release candidate smoke는 release APK update install 기준으로 사용자-facing 핵심 경로를 재확인했다. Play Store 자산은 여전히 V1.0/V1.1 전체 완료 후 최종 제출 직전 단계다.
 - 2026-06-30 신규 QA 계정 full E2E/navigation audit에서 로그아웃 후 email/password 재로그인 stale onboarding blocker를 발견해 최소 수정했다. 재빌드한 release APK에서 cold start와 logout -> email login home 복귀를 확인했고, 주요 화면 17개 back audit과 병원 전국 coverage read-only audit을 통과했다.
 - 2026-06-30 V1.1 추가 업데이트 1차 MVP로 회원탈퇴 입력 확인, 최근 로그인 표시, 타임라인 카테고리 count를 구현했고 edge QA를 수행했다. 신규 DB/migration/seed/design 변경은 없고 focused tests, Android 회원탈퇴 모달, 최근 로그인 email cold start, Kakao/Google OAuth 진입, 타임라인 작성/수정/삭제 count 갱신 smoke를 통과했다.
+- 2026-07-01 이후 모든 실기기 QA에는 키보드바/키보드 회피/입력창 가림/primary action 접근성/모달 크기/문구 잘림/Android back dismiss 확인을 포함한다. 이 기준은 디자인 리뉴얼이 아니라 release blocker 방지용 QA gate다.
 - 디자인 수정은 이번 release QA 턴에서 하지 않았다. 스토어 출시 전 디자인 조정 후보는 별도 트랙으로 유지하며, Play Store 자산 패키지는 디자인 조정과 V1.0/V1.1 전체 완료 후 진행한다.
 
 ## 2026-06-30 Full App E2E / Navigation / Hospital Coverage RC QA
@@ -94,6 +95,23 @@
   - focused tests: account deletion confirmation, recent login provider, timeline category count, auth boot/onboarding regression 통과
   - Android: 타임라인 count write/edit/delete, 회원탈퇴 모달 disabled/cancel/back, 로그아웃 후 최근 로그인 pill, Kakao/Google OAuth 진입 확인
   - 금지 범위 준수: 디자인, Play Store 자산, admin UI, seed, DB, migration 변경 없음
+
+## 2026-07-01 실기기 키보드바 QA 기준
+
+- [x] 키보드바 QA 기준을 release checklist에 추가
+  - 대상: 로그인 이메일/비밀번호, 닉네임, 펫 이름, 날짜 직접 입력, 회원탈퇴 입력 모달, 타임라인 작성/수정, 커뮤니티 작성/댓글, 병원 검색, 산책 검색, 앱 내 모든 TextInput.
+  - 기준: 키보드가 떠도 입력창과 해당 화면의 primary action이 가려지지 않는다.
+  - 기준: 완료/취소/저장/로그인 버튼이 접근 가능하다.
+  - 기준: Android system back으로 keyboard가 먼저 dismiss되고, dismiss 후 layout이 깨지지 않는다.
+  - 기준: 모달 높이/너비가 답답하지 않고 문구가 잘리지 않는다.
+  - 기준: NURI의 귀여움, 따뜻함, 고급스러운 정돈감을 해치지 않는다.
+- [x] Android 로그인 입력 keyboard smoke
+  - 기기: `SM_S937N / R5CY613NMSY`
+  - 로그인 화면 이메일 입력 focus 시 IME top `y=1395`, IME height `945` 확인.
+  - 이메일/비밀번호 입력과 로그인 primary button은 키보드 위에 남아 접근 가능.
+  - Android back으로 keyboard dismiss 후 로그인 화면 layout 유지.
+  - 입력 중 소셜 버튼은 키보드 아래 위치하지만 입력 상태의 primary action은 로그인 버튼이므로 blocker 아님.
+- [ ] 다음 실기기 QA에서 회원탈퇴 모달, 닉네임, 펫 날짜, 타임라인 작성/수정, 커뮤니티 댓글, 병원/산책 검색의 keyboard evidence를 화면별로 누적한다.
 
 ## V1.0 기능 기준선과 잔여 task/risk closeout
 
