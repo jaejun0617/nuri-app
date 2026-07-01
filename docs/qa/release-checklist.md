@@ -15,6 +15,7 @@
 - 2026-06-30 신규 QA 계정 full E2E/navigation audit에서 로그아웃 후 email/password 재로그인 stale onboarding blocker를 발견해 최소 수정했다. 재빌드한 release APK에서 cold start와 logout -> email login home 복귀를 확인했고, 주요 화면 17개 back audit과 병원 전국 coverage read-only audit을 통과했다.
 - 2026-06-30 V1.1 추가 업데이트 1차 MVP로 회원탈퇴 입력 확인, 최근 로그인 표시, 타임라인 카테고리 count를 구현했고 edge QA를 수행했다. 신규 DB/migration/seed/design 변경은 없고 focused tests, Android 회원탈퇴 모달, 최근 로그인 email cold start, Kakao/Google OAuth 진입, 타임라인 작성/수정/삭제 count 갱신 smoke를 통과했다.
 - 2026-07-01 이후 모든 실기기 QA에는 키보드바/키보드 회피/입력창 가림/primary action 접근성/모달 크기/문구 잘림/Android back dismiss 확인을 포함한다. 이 기준은 디자인 리뉴얼이 아니라 release blocker 방지용 QA gate다.
+- 2026-07-01 V1.1 추가 업데이트 2차 MVP로 데일리 streak/데일리판, 앱 내부 알림 read path, XP/레벨/칭호 최소 MVP를 구현했다. additive migration/RPC/RLS를 적용했고, `adminQA` 일반 사용자 계정 기준 타임라인 데일리판/XP 카드, 알림함 read/mark read, keyboard bar smoke를 확인했다. 운영자 발송 UI, push, 홈 위젯, 무지개다리 서비스, 디자인 전체 조정, Play Store 자산은 열지 않았다.
 - 디자인 수정은 이번 release QA 턴에서 하지 않았다. 스토어 출시 전 디자인 조정 후보는 별도 트랙으로 유지하며, Play Store 자산 패키지는 디자인 조정과 V1.0/V1.1 전체 완료 후 진행한다.
 
 ## 2026-06-30 Full App E2E / Navigation / Hospital Coverage RC QA
@@ -62,7 +63,7 @@
 - [x] V1.1 추가 업데이트 공식 작업서 생성
   - 문서: `docs/planning/v1.1-additional-update-plan-and-checklist.md`
   - 대상 기능: 타임라인 카테고리 count, 최근 로그인 방식, 무지개다리 서비스 제안, 연속 출석/데일리판, 홈 위젯, 회원탈퇴 입력 확인, 알림 수신 검증, XP/레벨/칭호
-  - 1차 MVP는 구현 완료 상태이며, 2차 MVP와 V1.1.1 후보는 정책 확정 전까지 구현하지 않는다.
+  - 1차 MVP는 구현 완료 상태이며, 2차 MVP는 2026-07-01 기준 정책 v1 확정과 최소 구현까지 진행했다. V1.1.1 후보는 별도 트랙으로 유지한다.
 - [x] 운영/출시 기준 갱신
   - Supabase/Codex 운영비: PO 확정 완료
   - 디자인 조정: 스토어 출시 전 별도 예정, 이번 턴 수정 금지
@@ -112,6 +113,40 @@
   - Android back으로 keyboard dismiss 후 로그인 화면 layout 유지.
   - 입력 중 소셜 버튼은 키보드 아래 위치하지만 입력 상태의 primary action은 로그인 버튼이므로 blocker 아님.
 - [ ] 다음 실기기 QA에서 회원탈퇴 모달, 닉네임, 펫 날짜, 타임라인 작성/수정, 커뮤니티 댓글, 병원/산책 검색의 keyboard evidence를 화면별로 누적한다.
+
+## 2026-07-01 V1.1 추가 업데이트 2차 MVP 구현 / adminQA smoke
+
+- [x] 고정 테스트 계정 정책 반영
+  - 테스트 계정 표시명: `adminQA`
+  - 권한: 일반 사용자
+  - admin/super_admin 권한 부여 없음
+  - 테스트 pet: `AdminQAPet`
+  - 비밀번호, token, provider 계정 전체값, 이메일 전체값 문서화 없음
+- [x] additive DB/RPC/RLS 구현
+  - migration: `20260701090000_v11_second_mvp_activity_notifications_xp.sql`
+  - corrective migration: `20260701093000_fix_v11_xp_award_ambiguous_columns.sql`
+  - tables: daily activity, streak summary, announcement/user notification/read receipt, XP ledger, level summary, title
+  - RPC: daily status/record/remove, notification unread/list/mark read, XP award/level/title
+  - RLS: authenticated user-owned select, anon direct select row 0, unauthenticated RPC permission denied
+- [x] 데일리 streak / 데일리판
+  - 타임라인 산책 카테고리 작성 성공 시 KST user+pet+date 기준 하루 1회 인정
+  - 같은 날 중복 작성은 streak 중복 증가 없음
+  - 타임라인 화면에 오늘 완료, current/best streak, 하루 1회 안내 표시
+  - 삭제/카테고리 변경 시 당일 source 제거와 summary 재계산 경로 구현
+- [x] 알림 read path
+  - 전체메뉴 `알림함` entry와 unread dot/count 추가
+  - `UserNotifications` 화면에서 목록, empty state, mark read 제공
+  - 운영자 발송 UI와 push는 제외
+- [x] XP / 레벨 / 칭호 MVP
+  - source idempotency, daily cap, Lv.1~10 level curve, 최소 칭호 지급 구현
+  - 타임라인 작성과 산책 카테고리 작성에 XP 연결
+  - 타임라인 활동 성장 카드에 total XP, level, 최신 칭호, 다음 레벨 progress 표시
+- [x] Android `adminQA` smoke
+  - release APK rebuild/install/cold start
+  - 로그인 후 홈 진입, 타임라인 데일리판/XP 카드 표시
+  - 전체메뉴 알림함 진입, unread count, 목록, mark read 확인
+  - 타임라인 작성 입력과 keyboard bar smoke 확인
+  - logcat fatal / ANR / unhandled promise / ReactNativeJS fatal pattern 0건
 
 ## V1.0 기능 기준선과 잔여 task/risk closeout
 

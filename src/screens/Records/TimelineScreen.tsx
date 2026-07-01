@@ -66,6 +66,17 @@ import {
   type TimelineCategoryCounts,
   type TimelineSortMode,
 } from '../../services/timeline/query';
+import {
+  getPetDailyStatus,
+  type DailyStreakStatus,
+} from '../../services/activity/dailyStreak';
+import {
+  getUserLevelSummary,
+  getUserTitles,
+  type UserLevelSummary,
+  type UserTitle,
+} from '../../services/activity/xpProgress';
+import { getProgressWithinLevel } from '../../services/activity/progressPolicy';
 import { getRecordDisplayYmd } from '../../services/records/date';
 import { getTimelinePrimaryMemoryImageSource } from '../../services/records/imageSources';
 import {
@@ -391,6 +402,93 @@ const ControlsBar = memo(function ControlsBar({
   );
 });
 
+const EMPTY_LEVEL_SUMMARY: UserLevelSummary = {
+  totalXp: 0,
+  level: 1,
+  currentLevelXp: 0,
+  nextLevelXp: 100,
+  updatedAt: null,
+};
+
+const TimelineActivitySummaryHeader = memo(function TimelineActivitySummaryHeader({
+  dailyStatus,
+  levelSummary,
+  titles,
+  petName,
+  theme,
+}: {
+  dailyStatus: DailyStreakStatus | null;
+  levelSummary: UserLevelSummary | null;
+  titles: UserTitle[];
+  petName: string | null;
+  theme: ReturnType<typeof buildPetThemePalette>;
+}) {
+  const effectiveLevel = levelSummary ?? EMPTY_LEVEL_SUMMARY;
+  const progress = getProgressWithinLevel(effectiveLevel);
+  const latestTitle = titles[0]?.titleName ?? '첫 추억 기록 준비 중';
+  const streakText = dailyStatus?.todayCompleted
+    ? `오늘 산책 완료 · ${dailyStatus.currentStreak}일 연속`
+    : '오늘 산책 기록을 기다리고 있어요';
+  const bestStreak = dailyStatus?.bestStreak ?? 0;
+  const petLabel = petName?.trim() || '우리 아이';
+
+  return (
+    <View style={styles.activityHeaderWrap}>
+      <View style={[styles.dailyCard, { borderColor: theme.soft }]}>
+        <View style={styles.dailyCardTopRow}>
+          <View style={[styles.dailyIcon, { backgroundColor: theme.soft }]}>
+            <AppText preset="caption" style={[styles.dailyIconText, { color: theme.primary }]}>
+              산책
+            </AppText>
+          </View>
+          <AppText preset="caption" style={styles.dailyMetaText}>
+            KST 기준 하루 1회
+          </AppText>
+        </View>
+        <AppText preset="headline" style={styles.dailyTitle}>
+          {dailyStatus?.todayCompleted ? '오늘도 산책 완료!' : `${petLabel}의 데일리판`}
+        </AppText>
+        <AppText preset="body" style={styles.dailyBody}>
+          {streakText}
+        </AppText>
+        <AppText preset="caption" style={styles.dailySubText}>
+          최고 기록 {bestStreak}일 · 같은 날 여러 번 기록해도 1회만 인정돼요
+        </AppText>
+      </View>
+
+      <View style={[styles.progressCard, { borderColor: theme.soft }]}>
+        <View style={styles.progressTopRow}>
+          <View>
+            <AppText preset="caption" style={styles.progressEyebrow}>
+              활동 성장
+            </AppText>
+            <AppText preset="headline" style={styles.progressTitle}>
+              Lv.{effectiveLevel.level} · {latestTitle}
+            </AppText>
+          </View>
+          <AppText preset="caption" style={[styles.progressXp, { color: theme.primary }]}>
+            {effectiveLevel.totalXp} XP
+          </AppText>
+        </View>
+        <View style={styles.progressTrack}>
+          <View
+            style={[
+              styles.progressFill,
+              {
+                width: `${Math.round(progress * 100)}%`,
+                backgroundColor: theme.primary,
+              },
+            ]}
+          />
+        </View>
+        <AppText preset="caption" style={styles.progressHint}>
+          다음 레벨 {effectiveLevel.nextLevelXp} XP까지 차분히 쌓아가요
+        </AppText>
+      </View>
+    </View>
+  );
+});
+
 export default function TimelineScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -465,6 +563,9 @@ export default function TimelineScreen() {
     useState<TimelineCategoryCounts>(() => createEmptyTimelineCategoryCounts());
   const [timelineCategoryCountsReady, setTimelineCategoryCountsReady] =
     useState(false);
+  const [dailyStatus, setDailyStatus] = useState<DailyStreakStatus | null>(null);
+  const [levelSummary, setLevelSummary] = useState<UserLevelSummary | null>(null);
+  const [earnedTitles, setEarnedTitles] = useState<UserTitle[]>([]);
   const imageWindowRef = useRef(TIMELINE_INITIAL_IMAGE_WINDOW);
 
   useEffect(() => {
@@ -551,6 +652,39 @@ export default function TimelineScreen() {
       cancelled = true;
     };
   }, [isLoggedIn, petId, timelineEntityVersion, timelineView.categoryCounts]);
+
+  useEffect(() => {
+    if (!isLoggedIn || !petId) {
+      setDailyStatus(null);
+      setLevelSummary(null);
+      setEarnedTitles([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    Promise.all([
+      getPetDailyStatus(petId),
+      getUserLevelSummary(),
+      getUserTitles(),
+    ])
+      .then(([nextDailyStatus, nextLevelSummary, nextTitles]) => {
+        if (cancelled) return;
+        setDailyStatus(nextDailyStatus);
+        setLevelSummary(nextLevelSummary);
+        setEarnedTitles(nextTitles);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setDailyStatus(null);
+        setLevelSummary(null);
+        setEarnedTitles([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoggedIn, petId, timelineEntityVersion]);
 
   const listRef = useRef<FlashListRef<string>>(null);
   const targetLayoutOffsetRef = useRef<number | null>(null);
@@ -1091,9 +1225,40 @@ export default function TimelineScreen() {
       imageWindow,
       focusedMemoryId,
       timelineEntityVersion,
+      dailyStatus,
+      levelSummary,
+      earnedTitles,
     }),
-    [focusedMemoryId, imageWindow, timelineEntityVersion],
+    [
+      dailyStatus,
+      earnedTitles,
+      focusedMemoryId,
+      imageWindow,
+      levelSummary,
+      timelineEntityVersion,
+    ],
   );
+
+  const listHeaderComponent = useMemo(() => {
+    if (!isLoggedIn || !petId) return null;
+    return (
+      <TimelineActivitySummaryHeader
+        dailyStatus={dailyStatus}
+        levelSummary={levelSummary}
+        titles={earnedTitles}
+        petName={selectedPet?.name ?? null}
+        theme={petTheme}
+      />
+    );
+  }, [
+    dailyStatus,
+    earnedTitles,
+    isLoggedIn,
+    levelSummary,
+    petId,
+    petTheme,
+    selectedPet?.name,
+  ]);
 
   const onPressBack = useEntryAwareBackAction({
     entrySource: route.params?.entrySource,
@@ -1230,6 +1395,7 @@ export default function TimelineScreen() {
         onEndReached={onEndReached}
         onEndReachedThreshold={0.6}
         onViewableItemsChanged={onViewableItemsChanged}
+        ListHeaderComponent={listHeaderComponent}
         ListFooterComponent={listFooterComponent}
         ListEmptyComponent={listEmptyComponent}
         removeClippedSubviews

@@ -94,6 +94,7 @@ import {
   setScheduleNotificationEnabled,
   type ScheduleNotificationPermissionStatus,
 } from '../../services/schedules/notifications';
+import { fetchUserNotificationUnreadCount } from '../../services/notifications/userNotifications';
 import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
 import { showToast } from '../../store/uiStore';
@@ -1033,6 +1034,8 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const [notificationEnabled, setNotificationEnabled] = useState(true);
   const [notificationPermissionStatus, setNotificationPermissionStatus] =
     useState<ScheduleNotificationPermissionStatus>('unsupported');
+  const [userNotificationUnreadCount, setUserNotificationUnreadCount] =
+    useState(0);
   const [logoutConfirmVisible, setLogoutConfirmVisible] = useState(false);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
@@ -1306,6 +1309,12 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     );
   }, [closeAndNavigate, navigation]);
 
+  const openUserNotifications = useCallback(() => {
+    closeAndNavigate(() =>
+      navigation.navigate('UserNotifications', { entrySource: 'more' }),
+    );
+  }, [closeAndNavigate, navigation]);
+
   const openGuideAdmin = useCallback(() => {
     closeAndNavigate(() =>
       navigation.navigate('GuideAdminList', { entrySource: 'more' }),
@@ -1374,6 +1383,28 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     setNotificationModalVisible(true);
     refreshNotificationSettings().catch(() => {});
   }, [refreshNotificationSettings]);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setUserNotificationUnreadCount(0);
+      return;
+    }
+
+    let cancelled = false;
+    fetchUserNotificationUnreadCount()
+      .then(count => {
+        if (cancelled) return;
+        setUserNotificationUnreadCount(count);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setUserNotificationUnreadCount(0);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoggedIn]);
 
   const closeNotificationModal = useCallback(() => {
     if (notificationSettingsLoading) return;
@@ -1823,6 +1854,14 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
 
     const items: MenuItemSpec[] = [
       {
+        key: 'user-notifications',
+        label: '알림함',
+        icon: 'bell',
+        iconTone: 'accent',
+        badge: userNotificationUnreadCount > 0 ? 'dot' : null,
+        onPress: openUserNotifications,
+      },
+      {
         key: 'notification',
         label: '알림 설정',
         icon: 'bell',
@@ -1870,6 +1909,8 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     openNotificationModal,
     openProfileEditModal,
     openThemeModal,
+    openUserNotifications,
+    userNotificationUnreadCount,
   ]);
 
   const adminItems = useMemo<MenuItemSpec[]>(

@@ -9,7 +9,7 @@ NURI는 반려동물의 기억을 기록하고 추억하는 디지털 메모리�
 - 기준일: 2026-07-01
 - 기준 브랜치: `codex/task6-community-content-policy`
 - 기준 remote POI: approved/public/active 1,145건
-- 이번 보고서 성격: 신규 QA 계정 full E2E/navigation audit + Animal Hospital coordinate missing 122건 read-only audit + V1.1 추가 업데이트 공식 planning + 1차 MVP 조건부 closeout 재판정 + 키보드바 QA 기준 + 2차 MVP 정책표 반영. 신규 seed, DB schema 변경, migration, 디자인 수정 없음
+- 이번 보고서 성격: 신규 QA 계정 full E2E/navigation audit + Animal Hospital coordinate missing 122건 read-only audit + V1.1 추가 업데이트 공식 planning + 1차 MVP 조건부 closeout 재판정 + 키보드바 QA 기준 + 2차 MVP 정책 v1/구현 반영. 신규 seed와 디자인 수정 없음
 
 ## 3. 진행률
 
@@ -20,8 +20,9 @@ NURI는 반려동물의 기억을 기록하고 추억하는 디지털 메모리�
 | V1.1 산책 POI 트랙 | 약 99% | 1,145건 POI, walk-domain Kakao fallback 제거, public projection safety, Android smoke 통과 |
 | V1.1 추가 업데이트 기획 | 100% | PO 제안 8개 기능의 공식 작업서, 단계별 구현 계획, 체크리스트, 진행률 산정표 작성 완료 |
 | V1.1 추가 업데이트 1차 MVP | 약 98% | 타임라인 count write/edit/delete edge closeout 완료. 회원탈퇴 모달/back/7일 유예와 email 최근 로그인 cold start 확인. 실제 탈퇴 예약과 social 최종 pill은 조건부 evidence |
-| V1.1 추가 기능 구현 | 약 39% | 8개 추가 기능 중 1차 MVP 3개가 edge QA까지 진행됐고, 2차 MVP 정책표를 작성함. 구현은 정책 확정 전 미착수 |
-| V1.1 전체 | 약 58% | 산책 POI closeout 유지, full E2E/navigation audit 통과, 병원 coordinate audit 판정, V1.1 추가 업데이트 1차 MVP 조건부 closeout 유지, 2차 MVP 정책표 반영 |
+| V1.1 추가 업데이트 2차 MVP | 약 90% | 데일리 streak/데일리판, 알림 read path, XP/레벨/칭호 최소 MVP 구현 및 `adminQA` Android smoke 완료 |
+| V1.1 추가 기능 구현 | 약 68% | 1차 MVP 3개 edge QA와 2차 MVP 서버/앱 구현까지 진행함. V1.1.1 후보는 후속 |
+| V1.1 전체 | 약 64% | 산책 POI closeout 유지, full E2E/navigation audit 통과, 병원 coordinate audit 판정, V1.1 추가 업데이트 1차 MVP 조건부 closeout 유지, 2차 MVP 구현 반영 |
 | 전체 제품 로드맵 | 약 94% | V1.0 closeout 유지, V1.1 핵심 비용/POI 리스크 축소, 신규 계정 E2E/navigation audit 통과, 1차 MVP 구현, 운영비 PO 확정 기준 |
 
 ## 4. 완료된 주요 도메인
@@ -80,7 +81,17 @@ NURI는 반려동물의 기억을 기록하고 추억하는 디지털 메모리�
 - 데일리 streak 정책표: KST 00:00, user+pet 하루 1회, 산책 타임라인 또는 산책 장소 기록 완료 인정, missed day reset을 기본안으로 둔다.
 - XP/칭호 정책표: 활동별 XP, daily cap, server ledger/idempotency, 칭호 네이밍 톤을 초안화했다.
 - 알림 read path 정책표: 홈 badge, 알림 목록, 읽음 처리, 특정 사용자 알림 수신을 MVP로 두고 운영자 발송/푸시는 후속으로 분리한다.
-- 진행률: V1.1 추가 기능 구현 약 39%, V1.1 전체 약 58%. 2차 MVP 실제 구현은 미착수다.
+- 진행률: 이 섹션은 2차 MVP 구현 전 archive/reference다. 최신 기준은 2차 MVP 구현 후 V1.1 추가 기능 구현 약 68%, V1.1 전체 약 64%다.
+
+## 5-4. 2026-07-01 V1.1 추가 업데이트 2차 MVP 구현
+
+- 정책 spec: `docs/planning/v1.1-second-mvp-policy-spec.md`
+- migration: `20260701090000_v11_second_mvp_activity_notifications_xp.sql`, `20260701093000_fix_v11_xp_award_ambiguous_columns.sql`
+- 구현 범위: 데일리 streak/데일리판, 앱 내부 알림 read path, XP/레벨/칭호 최소 MVP
+- 제외 범위: push notification, 운영자 발송 UI, 홈 위젯, 무지개다리 서비스, 디자인 전체 조정, Play Store 자산
+- QA 계정: `adminQA` 일반 사용자, `AdminQAPet`, admin 권한 없음
+- Android evidence: release APK rebuild/install 후 타임라인 데일리판/XP 카드, 알림함 목록/읽음, 타임라인 작성 입력과 keyboard bar smoke 확인
+- 진행률: V1.1 추가 업데이트 2차 MVP 약 90%, V1.1 추가 기능 구현 약 68%, V1.1 전체 약 64%
 
 ## 6. Kakao Local / 소셜 로그인 상태
 
@@ -177,8 +188,8 @@ NURI는 반려동물의 기억을 기록하고 추억하는 디지털 메모리�
 
 | 분류 | 작업 | 기준 |
 | --- | --- | --- |
-| V1.1 추가 업데이트 정책 확정 | 데일리 streak, XP/칭호, 홈 위젯 날짜 기준, 알림 범위 | 다음 1순위 |
-| V1.1 추가 업데이트 2차 MVP | streak/deaily board, 알림 read path 구현 착수 | 다음 2순위 |
+| V1.1 추가 업데이트 2차 MVP closeout | streak/알림/XP `adminQA` 실사용 edge QA | 다음 1순위 |
+| 디자인 조정 예정 | 스토어 출시 전 앱 내부 디자인 polish 후보 확정 | 다음 2순위 |
 | 디자인 조정 예정 | 스토어 출시 전 앱 내부 디자인 조정 후보 검토 | Play Store 자산 전 별도 판단 |
 | 홈페이지/관리 페이지로 이동 | 운영자 관리 페이지 설계와 admin QA | 앱 내부 admin QA Parking |
 | 최종 제출 직전 준비 | Play Store 자산 패키지 | V1.0/V1.1 전체 완료와 디자인 조정 완료 후 |
@@ -187,9 +198,9 @@ NURI는 반려동물의 기억을 기록하고 추억하는 디지털 메모리�
 
 ## 13. 최종 판단
 
-산책/location discovery POI 트랙은 사용자-facing release blocker 없이 closeout 가능하고, 2026-06-30 신규 QA 계정 full E2E/navigation audit에서도 crash-free 상태를 유지했다. 발견된 stale onboarding blocker는 최소 수정 후 재검증했다. 우리동네 병원 찾기는 전국 확장 완료로 판정하고 coordinate missing 122건은 release blocker가 아닌 데이터 품질 보강 후보로 둔다. V1.1 추가 업데이트 1차 MVP는 구현과 edge QA까지 진행됐지만 실제 탈퇴 예약과 social 최종 pill은 조건부 evidence로 남아 있으므로 Play Store 자산 패키지는 다음 액션이 아니다.
+산책/location discovery POI 트랙은 사용자-facing release blocker 없이 closeout 가능하고, 2026-06-30 신규 QA 계정 full E2E/navigation audit에서도 crash-free 상태를 유지했다. 발견된 stale onboarding blocker는 최소 수정 후 재검증했다. 우리동네 병원 찾기는 전국 확장 완료로 판정하고 coordinate missing 122건은 release blocker가 아닌 데이터 품질 보강 후보로 둔다. V1.1 추가 업데이트 1차 MVP는 조건부 closeout을 유지하고, 2차 MVP는 서버/앱 최소 구현과 `adminQA` smoke까지 완료했다. Play Store 자산 패키지는 디자인 조정과 전체 closeout 전까지 다음 액션이 아니다.
 
 ## 14. 다음 액션
 
-1. V1.1 추가 업데이트 정책 확정: 데일리 streak / XP·칭호 / 알림 read path PO 확정
-2. V1.1 추가 업데이트 2차 MVP: streak/deaily board + 알림 read path 구현 착수
+1. V1.1 추가 업데이트 2차 MVP closeout: streak/알림/XP `adminQA` 실사용 edge QA
+2. 디자인 조정 예정: 스토어 출시 전 앱 내부 디자인 polish 후보 확정

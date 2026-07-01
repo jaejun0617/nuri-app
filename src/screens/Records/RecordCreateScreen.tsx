@@ -82,6 +82,7 @@ import { useRecordStore } from '../../store/recordStore';
 import { showToast } from '../../store/uiStore';
 import { openMoreDrawer } from '../../store/uiStore';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
+import { recordTimelineCreateActivity } from '../../services/activity/timelineActivity';
 import RecordTagModal from './components/RecordTagModal';
 import { styles } from './RecordCreateScreen.styles';
 
@@ -556,6 +557,11 @@ export default function RecordCreateScreen() {
         occurredAt: occurred,
         imagePath: null,
       });
+      const activityResult = await recordTimelineCreateActivity({
+        petId,
+        memoryId,
+        category: mainCategoryKey,
+      });
 
       const optimisticRecord: MemoryRecord = normalizeMemoryRecord({
         id: memoryId,
@@ -632,9 +638,18 @@ export default function RecordCreateScreen() {
       await clearRecordCreateDraft();
       showToast({
         tone: 'success',
-        title: '기록 저장 완료',
+        title:
+          activityResult.xp?.awarded && activityResult.xp.xpAwarded > 0
+            ? `기록 저장 완료 · ${activityResult.xp.xpAwarded} XP`
+            : '기록 저장 완료',
         message: '방금 기록을 먼저 반영했고, 상세에서 바로 확인할 수 있어요.',
       });
+      if (activityResult.streak?.showCelebration) {
+        Alert.alert(
+          '오늘도 산책 완료!',
+          `우리 아이와 ${activityResult.streak.currentStreak}일 연속 산책 중이에요. 산책 루틴이 예쁘게 자라고 있어요.`,
+        );
+      }
       if (returnTo?.tab === 'HealthReport') {
         await queryClient.invalidateQueries({
           queryKey: ['health-report', 'month', petId],

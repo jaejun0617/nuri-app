@@ -4,7 +4,7 @@
 최종 정합성 검수일: 2026-07-01
 문서 목적: ChatGPT, Codex, 운영자, 후속 개발 세션이 현재 NURI 앱의 전체 맥락을 한 번에 파악하기 위한 source of truth 문서
 
-최신 갱신: 2026-07-01 V1.1 추가 업데이트 1차 MVP 조건부 잔여를 재판정했다. 타임라인 count는 closeout 완료, 회원탈퇴 실제 예약과 Kakao/Google social 최종 pill은 조건부 evidence 유지이며 release blocker는 없다. 모든 실기기 QA에 키보드바/입력창 가림/primary action 접근성/Android back keyboard dismiss 기준을 추가했고, 데일리 streak, XP/칭호, 알림 read path 2차 MVP 정책표를 작성했다. 실제 2차 MVP 구현, DB/migration/seed/design/Play Store/admin 작업은 하지 않았다.
+최신 갱신: 2026-07-01 V1.1 추가 업데이트 2차 MVP를 정책 v1 확정 후 구현했다. 데일리 streak/데일리판, 앱 내부 알림 read path, XP/레벨/칭호 최소 MVP는 additive DB/RPC/RLS와 앱 read path로 반영됐다. `adminQA` 일반 사용자 계정 기준 Android smoke와 keyboard bar smoke를 수행했고, 운영자 발송 UI, push, 홈 위젯, 무지개다리 서비스, 디자인 전체 조정, Play Store 자산은 열지 않았다.
 
 ## 1. 문서 목적
 
@@ -41,9 +41,10 @@
 | V1.0 QA/출시 준비 | 약 98% | release APK exact install smoke, 2026-06-30 신규 QA 계정 full E2E/navigation audit, stale onboarding blocker 최소 수정/재검증, admin/super_admin 서버 계약 확인, P0 corrective 회귀 완료. Play Store 제출 자산은 디자인 조정과 전체 closeout 뒤 최종 제출 직전 준비 |
 | V1.1 산책 POI 전환 트랙 | 약 99% | remote DB 기준 approved/public/active POI 1,145건, PostGIS foundation, 앱 POI RPC read path, admin import/review, 전국 주요 coverage, 한글 표시값 기준 유지, walk-domain Kakao fallback 제거, public projection safety, RC smoke 통과 |
 | V1.1 추가 업데이트 1차 MVP | 약 98% | 타임라인 count write/edit/delete edge closeout 완료. 회원탈퇴 모달/back/7일 유예와 email 최근 로그인 cold start 확인. 실제 탈퇴 예약과 social 최종 pill은 조건부 evidence |
-| V1.1 추가 기능 구현 | 약 39% | 8개 추가 기능 중 1차 MVP 3개가 edge QA까지 진행됐고, 데일리 streak/XP·칭호/알림 read path 정책표 초안을 작성했다. 2차 MVP와 V1.1.1 후보 구현은 정책 확정 전 미착수 |
-| V1.1 전체 | 약 58% | 산책 POI 트랙 closeout 가능, full E2E/navigation audit 통과, 병원 coverage 판정 완료, V1.1 추가 업데이트 1차 MVP 조건부 closeout 유지, 2차 MVP 정책표 작성 |
-| 전체 제품 로드맵 | 약 94% | V1.0 release-ready 기준선은 닫혔고 V1.1 location foundation, 전국 seed 5차 coverage, Ready 권역 Kakao 호출 차단, 대량 seed 품질 점검, full E2E/navigation audit, 1차 MVP 구현까지 진행됐다. 장기 유료화/AI/전국 데이터 운영은 아직 남음 |
+| V1.1 추가 업데이트 2차 MVP | 약 90% | 데일리 streak/데일리판, 알림 read path, XP/레벨/칭호 최소 MVP 구현 및 `adminQA` Android smoke 완료. 다음날 KST/missed day/daily cap edge closeout은 남음 |
+| V1.1 추가 기능 구현 | 약 68% | 1차 MVP 3개 edge QA와 2차 MVP 서버/앱 구현까지 진행됐다. V1.1.1 후보인 무지개다리 서비스, 홈 위젯, push, 고급 XP/랭킹은 남음 |
+| V1.1 전체 | 약 64% | 산책 POI 트랙 closeout 가능, full E2E/navigation audit 통과, 병원 coverage 판정 완료, V1.1 추가 업데이트 1차 MVP 조건부 closeout 유지, 2차 MVP 구현/Android smoke 완료 |
+| 전체 제품 로드맵 | 약 95% | V1.0 release-ready 기준선은 닫혔고 V1.1 location foundation, 전국 seed 5차 coverage, Ready 권역 Kakao 호출 차단, 대량 seed 품질 점검, full E2E/navigation audit, 1차/2차 MVP 구현까지 진행됐다. 장기 유료화/AI/전국 데이터 운영은 아직 남음 |
 | 최종 제출 준비 | 약 20% | release artifact/provenance와 정책 URL 기준은 정리됐지만 Play Store 스크린샷, 설명문, Console 입력, store listing package는 아직 최종 제출 직전 준비로 남음 |
 
 남은 작업의 성격:
@@ -87,7 +88,21 @@
 - 데일리 streak 정책표: KST 00:00 기준, user+pet 하루 1회 인정, 산책 카테고리 타임라인 또는 산책 장소 기록 완료를 기본 인정 조건으로 둔다. missed day는 MVP에서 reset하고, 서버 activity summary/RPC가 필요하다.
 - XP/칭호 정책표: 산책 기록 20 XP, 산책 타임라인 30 XP, 일반 타임라인 15 XP, 커뮤니티 글 10 XP, 댓글 3 XP, 건강 기록 10 XP를 초안으로 두고 daily cap과 server ledger/idempotency를 필수 조건으로 둔다.
 - 알림 read path 정책표: 홈 badge, 앱 내부 알림 목록, 읽음 처리, 특정 사용자 알림 수신을 MVP로 둔다. 운영자 발송은 별도 홈페이지/관리 페이지, push는 후속으로 분리한다.
-- 진행률: V1.1 추가 기능 구현 약 39%, V1.1 전체 약 58%. 정책표 초안만 반영했으며 2차 MVP 구현은 아직 착수하지 않았다.
+- 진행률: 이 섹션은 2차 MVP 구현 전 기준의 archive/reference다. 최신 기준은 아래 3-4 섹션을 따른다.
+
+## 3-4. 2026-07-01 V1.1 추가 업데이트 2차 MVP 구현
+
+- 고정 QA 계정: `adminQA`를 일반 사용자 권한으로 고정했다. profile과 `AdminQAPet`이 있으며 admin 권한은 부여하지 않았다. 민감정보는 문서화하지 않는다.
+- untracked closeout: `docs/## GitHub Copilot Chat.md`는 Copilot 임시 문서이고 민감정보가 없어 삭제했다.
+- 정책 spec: `docs/planning/v1.1-second-mvp-policy-spec.md`
+- migration: `20260701090000_v11_second_mvp_activity_notifications_xp.sql`, `20260701093000_fix_v11_xp_award_ambiguous_columns.sql`
+- DB/RPC/RLS: daily activity/streak summary, notification/read receipt, XP ledger/level/title 테이블과 user-scoped RPC/RLS를 추가했다. anon direct select와 unauthenticated RPC는 차단된다.
+- 데일리판: 타임라인 산책 카테고리 작성 성공 시 KST user+pet+date 기준 하루 1회 인정한다. 타임라인 화면에 오늘 완료, current/best streak, 하루 1회 안내를 표시한다.
+- 알림 read path: 전체메뉴 `알림함` entry와 `UserNotifications` 화면을 추가했다. unread count, 목록, empty state, mark read를 제공한다. push와 운영자 발송 UI는 제외했다.
+- XP/레벨/칭호: source idempotency, daily cap, Lv.1~10, 최소 칭호 지급을 서버 기준으로 처리한다. 타임라인 화면에 total XP, level, 최신 칭호, 다음 레벨 progress를 표시한다.
+- Android evidence: `SM_S937N / R5CY613NMSY`에서 release APK rebuild/install, `adminQA` 로그인, 타임라인 데일리판/XP 카드, 알림함 목록/읽음, 타임라인 작성 입력과 keyboard bar smoke를 확인했다.
+- logcat: fatal / ANR / unhandled promise / ReactNativeJS fatal pattern 0건. Firebase namespaced API deprecation warning은 fatal crash로 보지 않는다.
+- 진행률: V1.1 추가 업데이트 2차 MVP 약 90%, V1.1 추가 기능 구현 약 68%, V1.1 전체 약 64%.
 
 ## 4. V1.0 완료 내역
 
@@ -882,7 +897,7 @@ V1.1 추가 업데이트 planning:
 - 공식 문서: `docs/planning/v1.1-additional-update-plan-and-checklist.md`
 - 대상 기능 8개: 타임라인 카테고리 count, 최근 로그인 방식, 무지개다리 서비스 제안, 연속 출석/데일리판, 홈 위젯, 회원탈퇴 입력 확인, 알림 수신 검증, XP/레벨/칭호
 - 1차 MVP: 회원탈퇴 입력 확인, 최근 로그인 표시, 타임라인 카테고리 count. 2026-06-30 edge QA 기준 타임라인 write/edit/delete count 갱신은 완료했고, 회원탈퇴 실제 예약과 social 최종 pill은 조건부 evidence로 관리한다.
-- 2차 MVP: 연속 출석/데일리판, 로그인 후 홈 알림 badge/read path, XP/칭호 최소 MVP 설계
+- 2차 MVP: 연속 출석/데일리판, 로그인 후 알림 read path, XP/칭호 최소 MVP 구현 완료. 홈 상단 badge 직접 통합은 홈 구조 정리 트랙 후보
 - V1.1.1 후보: 무지개다리 추억 서비스 제안, Android 홈 위젯 1차, XP/레벨/칭호 전체 시스템, 운영자 알림 발송 관리 페이지, push notification
 
 진행률:
@@ -894,11 +909,12 @@ V1.1 추가 업데이트 planning:
 | V1.1 산책 POI 트랙 | 약 99% | 1,145건 POI, public projection safety, Android smoke 통과 |
 | V1.1 추가 업데이트 기획 | 100% | 8개 기능 공식 작업서/체크리스트/진행률표 작성 완료 |
 | V1.1 추가 업데이트 1차 MVP | 약 98% | 구현/focused test/Android edge QA 완료. 실제 탈퇴 예약과 social 최종 pill은 조건부 evidence |
-| V1.1 추가 기능 구현 | 약 39% | 8개 기능 중 1차 MVP 3개가 edge QA까지 진행됐고 2차 MVP 정책표 초안 작성 |
-| V1.1 전체 | 약 58% | RC 상태 갱신, 병원 품질 판정, 1차 MVP 조건부 closeout 유지, 2차 MVP 정책표 작성 |
-| 전체 제품 로드맵 | 약 94% | 운영비 PO 확정과 V1.1 1차 MVP edge QA 반영 기준 |
+| V1.1 추가 업데이트 2차 MVP | 약 90% | 데일리 streak/데일리판, 알림 read path, XP/레벨/칭호 최소 MVP 구현과 adminQA Android smoke 완료 |
+| V1.1 추가 기능 구현 | 약 68% | 1차 MVP 3개 edge QA와 2차 MVP 서버/앱 구현 완료. V1.1.1 후보는 후속 |
+| V1.1 전체 | 약 64% | RC 상태 갱신, 병원 품질 판정, 1차 MVP 조건부 closeout 유지, 2차 MVP 구현 반영 |
+| 전체 제품 로드맵 | 약 95% | 운영비 PO 확정과 V1.1 1차/2차 MVP 구현 반영 기준 |
 
 다음 액션:
 
-1. V1.1 추가 업데이트 정책 확정: 데일리 streak / XP·칭호 / 알림 read path PO 확정
+1. V1.1 추가 업데이트 2차 MVP closeout: streak/알림/XP `adminQA` 실사용 edge QA
 2. V1.1 추가 업데이트 2차 MVP: streak/deaily board + 알림 read path 구현 착수

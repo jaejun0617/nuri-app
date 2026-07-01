@@ -41,6 +41,7 @@ import type { TimelineStackParamList } from '../../navigation/TimelineStackNavig
 import type { TimelineScreenRoute } from '../../navigation/types';
 import { createLatestRequestController } from '../../services/app/async';
 import { getBrandedErrorMeta } from '../../services/app/errors';
+import { recordTimelineCategoryChangeActivity } from '../../services/activity/timelineActivity';
 import {
   enqueuePendingMemoryUpload,
   processPendingMemoryUploads,
@@ -489,6 +490,12 @@ export default function RecordEditScreen() {
         price: nextPrice,
         occurredAt: occurred,
       });
+      const activityResult = await recordTimelineCategoryChangeActivity({
+        petId,
+        memoryId,
+        previousCategory: record.category,
+        nextCategory: mainCategoryKey,
+      });
 
       // ✅ 즉시 반영(텍스트)
       updateOneLocal(petId, memoryId, {
@@ -519,6 +526,13 @@ export default function RecordEditScreen() {
 
       if (!imagePlanChanged) {
         setSuccessModalVisible(true);
+        if (activityResult.xp?.awarded && activityResult.xp.xpAwarded > 0) {
+          showToast({
+            tone: 'success',
+            title: `활동 경험치 ${activityResult.xp.xpAwarded} XP`,
+            message: '카테고리 변경을 반영했어요.',
+          });
+        }
 
         (async () => {
           try {

@@ -44,6 +44,7 @@ import { isHealthMemoryRecord } from '../../services/health-report/viewModel';
 import type { MemoryRecord } from '../../services/supabase/memories';
 import { deleteMemoryWithFile, fetchMemoryById } from '../../services/supabase/memories';
 import { getMemoryImageSignedUrlsCached } from '../../services/supabase/storageMemories';
+import { removeTimelineWalkActivity } from '../../services/activity/timelineActivity';
 import { usePetStore } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
 import { openMoreDrawer } from '../../store/uiStore';
@@ -576,6 +577,11 @@ export default function RecordDetailScreen() {
         memoryId: record.id,
         imagePath: record.imagePath,
         imagePaths: record.imagePaths,
+      });
+      await removeTimelineWalkActivity({
+        petId: resolvedPetId,
+        memoryId: record.id,
+        category: record.category,
       });
 
       removeOneLocal(resolvedPetId, record.id);

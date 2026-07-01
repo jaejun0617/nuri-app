@@ -155,6 +155,92 @@ export const styles = StyleSheet.create({
     borderRadius: 999,
   },
 
+  // V1.1 2차 MVP activity summary
+  activityHeaderWrap: {
+    paddingHorizontal: 18,
+    paddingTop: 14,
+    paddingBottom: 8,
+    gap: 10,
+  },
+  dailyCard: {
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    padding: 14,
+    gap: 7,
+  },
+  dailyCardTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  dailyIcon: {
+    minHeight: 26,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dailyIconText: {
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  dailyMetaText: {
+    color: '#8D96A5',
+    fontWeight: '700',
+  },
+  dailyTitle: {
+    color: TEXT,
+    fontWeight: '900',
+  },
+  dailyBody: {
+    color: '#4B5563',
+    fontWeight: '700',
+  },
+  dailySubText: {
+    color: '#8D96A5',
+    lineHeight: 18,
+  },
+  progressCard: {
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    padding: 14,
+    gap: 9,
+  },
+  progressTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  progressEyebrow: {
+    color: '#8D96A5',
+    fontWeight: '800',
+  },
+  progressTitle: {
+    color: TEXT,
+    fontWeight: '900',
+  },
+  progressXp: {
+    fontWeight: '900',
+  },
+  progressTrack: {
+    height: 8,
+    borderRadius: 999,
+    overflow: 'hidden',
+    backgroundColor: '#EEF1F6',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 999,
+  },
+  progressHint: {
+    color: '#8D96A5',
+    lineHeight: 18,
+  },
+
   // search
   searchBox: {
     flexDirection: 'row',
