@@ -112,7 +112,9 @@
   - 이메일/비밀번호 입력과 로그인 primary button은 키보드 위에 남아 접근 가능.
   - Android back으로 keyboard dismiss 후 로그인 화면 layout 유지.
   - 입력 중 소셜 버튼은 키보드 아래 위치하지만 입력 상태의 primary action은 로그인 버튼이므로 blocker 아님.
-- [ ] 다음 실기기 QA에서 회원탈퇴 모달, 닉네임, 펫 날짜, 타임라인 작성/수정, 커뮤니티 댓글, 병원/산책 검색의 keyboard evidence를 화면별로 누적한다.
+- [ ] 다음 실기기 QA에서 회원탈퇴 모달, 닉네임, 펫 날짜, 커뮤니티 댓글, 병원/산책 검색의 keyboard evidence를 화면별로 누적한다.
+- [x] 타임라인 작성 keyboard evidence 누적
+  - 2026-07-01 Android `SM_S937N / R5CY613NMSY`에서 타임라인 기록 작성 화면의 제목/내용 입력 focus, IME 표시, 상단/하단 완료 버튼 접근 가능, Android back keyboard dismiss, dismiss 후 draft 보존 모달을 확인했다.
 
 ## 2026-07-01 V1.1 추가 업데이트 2차 MVP 구현 / adminQA smoke
 
@@ -136,6 +138,7 @@
 - [x] 알림 read path
   - 전체메뉴 `알림함` entry와 unread dot/count 추가
   - `UserNotifications` 화면에서 목록, empty state, mark read 제공
+  - 홈 상단 알림 아이콘에서 `오늘의 메시지로 하루를 시작해요` 문구 아래 알림 목록 패널 제공
   - 운영자 발송 UI와 push는 제외
 - [x] XP / 레벨 / 칭호 MVP
   - source idempotency, daily cap, Lv.1~10 level curve, 최소 칭호 지급 구현
@@ -146,6 +149,48 @@
   - 로그인 후 홈 진입, 타임라인 데일리판/XP 카드 표시
   - 전체메뉴 알림함 진입, unread count, 목록, mark read 확인
   - 타임라인 작성 입력과 keyboard bar smoke 확인
+  - logcat fatal / ANR / unhandled promise / ReactNativeJS fatal pattern 0건
+
+## 2026-07-01 V1.1 추가 업데이트 2차 MVP edge QA closeout
+
+- [x] `adminQA` 고정 계정 상태 확인
+  - 권한: 일반 사용자
+  - profile, nickname, `AdminQAPet`, onboarding 정상
+  - pending deletion 없음
+  - admin/super_admin 권한 부여 없음
+  - 무작위 신규 QA 계정 생성 없음
+- [x] 데일리 streak edge
+  - transaction rollback smoke로 KST 다음날 current streak 증가 확인
+  - missed day reset 확인
+  - best streak 유지 확인
+  - 같은 날 중복 작성 시 streak 중복 증가 없음
+  - 삭제/카테고리 변경 후 당일 상태 재계산 확인
+  - user/pet isolation 확인
+- [x] 알림 read path edge
+  - unread count, 목록, mark read, mark read idempotency 확인
+  - 사용자 알림과 활성 공지 read path 확인
+  - cross-user notification hidden 확인
+  - 전체메뉴 badge/dot과 알림함 진입점 유지
+  - 홈 상단 알림 아이콘 탭 -> 홈 헤더 문구 아래 알림 목록 패널 -> X 닫기와 Android back 닫기 확인
+- [x] XP / 레벨 / 칭호 edge
+  - source idempotency 확인
+  - 150 XP/day cap 확인
+  - Lv.1~10 level curve 확인
+  - title 1회 지급과 중복 방지 확인
+  - cross-user XP/title hidden 확인
+  - 삭제/신고/차단 콘텐츠 XP clawback은 V1.1.1 정책 후보이며, 같은 source_id 반복 지급 방지는 동작함
+- [x] RLS/RPC 보안 재검증
+  - anon direct table select row 0
+  - anon RPC `42501` 계열 거부
+  - authenticated own-data only
+  - cross-user/cross-pet hidden
+  - raw/internal/admin field와 secret/token 노출 없음
+- [x] Android `adminQA` edge smoke
+  - release APK rebuild/install
+  - 타임라인 데일리판과 활동 성장 카드 확인
+  - 전체메뉴 알림함과 알림 목록/읽음 확인
+  - 홈 상단 알림 아이콘, 홈 헤더 문구 아래 알림 목록 패널, `ADMIN_QA_NOTICE` 항목, X 닫기 확인
+  - 타임라인 작성 keyboard bar smoke 확인
   - logcat fatal / ANR / unhandled promise / ReactNativeJS fatal pattern 0건
 
 ## V1.0 기능 기준선과 잔여 task/risk closeout

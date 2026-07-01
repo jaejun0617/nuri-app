@@ -13,6 +13,7 @@ import React, {
   useState,
 } from 'react';
 import {
+  BackHandler,
   Image,
   Pressable,
   ScrollView,
@@ -97,6 +98,12 @@ import {
   formatMemorialPetName,
   isMemorialPet,
 } from '../../../../services/pets/memorial';
+import { getBrandedErrorMeta } from '../../../../services/app/errors';
+import {
+  fetchUserNotifications,
+  markUserNotificationRead,
+  type UserNotificationItem,
+} from '../../../../services/notifications/userNotifications';
 import { getAgeInMonthsFromBirthDate } from '../../../../services/guides/agePolicy';
 import { buildGuideEventMetadata } from '../../../../services/guides/analytics';
 import {
@@ -153,6 +160,16 @@ type HomeRecentPreviewItem = {
   groupDateText: string | null;
 };
 
+type HomeNotificationPanelProps = {
+  visible: boolean;
+  items: UserNotificationItem[];
+  loading: boolean;
+  errorMessage: string | null;
+  onClose: () => void;
+  onRefresh: () => void;
+  onPressItem: (item: UserNotificationItem) => void;
+};
+
 /* ---------------------------------------------------------
  * 1) helpers
  * -------------------------------------------------------- */
@@ -162,6 +179,17 @@ function getRecordYmdDots(item: MemoryRecord): string {
       separator: '.',
     }) ?? formatRecordDisplayDate(item)
   );
+}
+
+function formatHomeNotificationDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat('ko-KR', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
 }
 
 function formatGender(
@@ -554,6 +582,148 @@ const HomeWeatherSection = React.memo(function HomeWeatherSection({
   );
 });
 
+const HomeNotificationPanel = React.memo(function HomeNotificationPanel({
+  visible,
+  items,
+  loading,
+  errorMessage,
+  onClose,
+  onRefresh,
+  onPressItem,
+}: HomeNotificationPanelProps) {
+  const unreadCount = useMemo(
+    () => items.filter(item => !item.readAt).length,
+    [items],
+  );
+  const sheetProgress = useSharedValue(0);
+  const sheetAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: sheetProgress.value,
+    transform: [
+      {
+        translateY: interpolate(sheetProgress.value, [0, 1], [-28, 0]),
+      },
+    ],
+  }));
+
+  useEffect(() => {
+    if (!visible) {
+      sheetProgress.value = 0;
+      return;
+    }
+
+    sheetProgress.value = 0;
+    sheetProgress.value = withTiming(1, {
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [sheetProgress, visible]);
+
+  if (!visible) return null;
+
+  return (
+    <Animated.View
+      style={[styles.notificationModalCard, sheetAnimatedStyle]}
+    >
+      <View style={styles.notificationModalHeader}>
+        <View style={styles.notificationModalTitleWrap}>
+          <Text style={styles.notificationModalTitle}>알림 목록</Text>
+          <Text style={styles.notificationModalSubtitle}>
+            읽지 않은 알림 {unreadCount}개
+          </Text>
+        </View>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          accessibilityLabel="알림 목록 닫기"
+          accessibilityRole="button"
+          style={styles.notificationModalCloseButton}
+          onPress={onClose}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Feather name="x" size={20} color="rgba(11,18,32,0.82)" />
+        </TouchableOpacity>
+      </View>
+
+      {loading ? (
+        <View style={styles.notificationModalState}>
+          <ActivityIndicator />
+          <Text style={styles.notificationModalStateText}>
+            알림을 불러오는 중이에요.
+          </Text>
+        </View>
+      ) : errorMessage ? (
+        <View style={styles.notificationModalState}>
+          <Text style={styles.notificationModalStateTitle}>
+            알림을 불러오지 못했어요
+          </Text>
+          <Text style={styles.notificationModalStateText}>{errorMessage}</Text>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={styles.notificationModalRetryButton}
+            onPress={onRefresh}
+          >
+            <Text style={styles.notificationModalRetryText}>
+              다시 불러오기
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : items.length === 0 ? (
+        <View style={styles.notificationModalState}>
+          <View style={styles.notificationModalEmptyIcon}>
+            <Feather name="bell" size={22} color="rgba(85,96,112,0.72)" />
+          </View>
+          <Text style={styles.notificationModalStateTitle}>
+            아직 새 알림이 없어요
+          </Text>
+          <Text style={styles.notificationModalStateText}>
+            중요한 안내가 생기면 이곳에 차분히 모아둘게요.
+          </Text>
+        </View>
+      ) : (
+        <ScrollView
+          style={styles.notificationModalList}
+          contentContainerStyle={styles.notificationModalListContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {items.map(item => {
+            const unread = !item.readAt;
+            return (
+              <TouchableOpacity
+                key={`${item.source}:${item.id}`}
+                activeOpacity={0.9}
+                style={[
+                  styles.notificationModalItem,
+                  unread ? styles.notificationModalItemUnread : null,
+                ]}
+                onPress={() => onPressItem(item)}
+              >
+                <View style={styles.notificationModalItemTopRow}>
+                  <View style={styles.notificationModalItemTitleWrap}>
+                    <Text
+                      style={styles.notificationModalItemTitle}
+                      numberOfLines={2}
+                    >
+                      {item.title}
+                    </Text>
+                    {unread ? (
+                      <View style={styles.notificationModalUnreadDot} />
+                    ) : null}
+                  </View>
+                  <Text style={styles.notificationModalItemDate}>
+                    {formatHomeNotificationDate(item.createdAt)}
+                  </Text>
+                </View>
+                <Text style={styles.notificationModalItemBody}>
+                  {item.body}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      )}
+    </Animated.View>
+  );
+});
+
 const HomeHeaderSection = React.memo(function HomeHeaderSection({
   greetingTitle,
   greetingSubTitle,
@@ -562,7 +732,9 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
   petThemePrimary,
   onPressPetChip,
   onPressAddPet,
-  onPressHeaderAction,
+  onPressSearch,
+  onPressNotifications,
+  notificationPanel,
 }: {
   greetingTitle: string;
   greetingSubTitle: string;
@@ -571,7 +743,9 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
   petThemePrimary: string;
   onPressPetChip: (petId: string) => void;
   onPressAddPet: () => void;
-  onPressHeaderAction: () => void;
+  onPressSearch: () => void;
+  onPressNotifications: () => void;
+  notificationPanel?: React.ReactNode;
 }) {
   return (
     <View style={styles.header}>
@@ -587,7 +761,9 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
           <TouchableOpacity
             activeOpacity={0.85}
             style={styles.headerIconBtn}
-            onPress={onPressHeaderAction}
+            onPress={onPressSearch}
+            accessibilityLabel="홈 검색"
+            accessibilityRole="button"
           >
             <Feather name="search" size={18} color="rgba(11,18,32,0.75)" />
           </TouchableOpacity>
@@ -595,12 +771,16 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
           <TouchableOpacity
             activeOpacity={0.85}
             style={styles.headerIconBtn}
-            onPress={onPressHeaderAction}
+            onPress={onPressNotifications}
+            accessibilityLabel="알림 목록 열기"
+            accessibilityRole="button"
           >
             <Feather name="bell" size={18} color="rgba(11,18,32,0.75)" />
           </TouchableOpacity>
         </View>
       </View>
+
+      {notificationPanel}
 
       <View style={styles.petSwitcherRow}>
         {visiblePets.map(p => (
@@ -1759,6 +1939,87 @@ export default function LoggedInHome() {
   const nicknameRaw = useAuthStore(s => s.profile.nickname);
 
   // ---------------------------------------------------------
+  // 1.5) notifications
+  // ---------------------------------------------------------
+  const [notificationModalVisible, setNotificationModalVisible] =
+    useState(false);
+  const [homeNotificationItems, setHomeNotificationItems] = useState<
+    UserNotificationItem[]
+  >([]);
+  const [homeNotificationLoading, setHomeNotificationLoading] = useState(false);
+  const [homeNotificationError, setHomeNotificationError] = useState<
+    string | null
+  >(null);
+
+  const loadHomeNotifications = useCallback(async () => {
+    setHomeNotificationLoading(true);
+    setHomeNotificationError(null);
+    try {
+      const items = await fetchUserNotifications(30);
+      setHomeNotificationItems(items);
+    } catch (error) {
+      const meta = getBrandedErrorMeta(error, 'generic');
+      setHomeNotificationError(meta.message);
+    } finally {
+      setHomeNotificationLoading(false);
+    }
+  }, []);
+
+  const openHomeNotifications = useCallback(() => {
+    setNotificationModalVisible(true);
+    loadHomeNotifications().catch(() => {});
+  }, [loadHomeNotifications]);
+
+  const closeHomeNotifications = useCallback(() => {
+    setNotificationModalVisible(false);
+  }, []);
+
+  useEffect(() => {
+    if (!notificationModalVisible) return undefined;
+
+    const subscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      () => {
+        closeHomeNotifications();
+        return true;
+      },
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [closeHomeNotifications, notificationModalVisible]);
+
+  const onPressHomeNotificationItem = useCallback(
+    async (item: UserNotificationItem) => {
+      if (item.readAt) return;
+      const optimisticReadAt = new Date().toISOString();
+      setHomeNotificationItems(prev =>
+        prev.map(current =>
+          current.id === item.id && current.source === item.source
+            ? { ...current, readAt: optimisticReadAt }
+            : current,
+        ),
+      );
+
+      try {
+        await markUserNotificationRead({ id: item.id, source: item.source });
+      } catch (error) {
+        const meta = getBrandedErrorMeta(error, 'generic');
+        setHomeNotificationError(meta.message);
+        setHomeNotificationItems(prev =>
+          prev.map(current =>
+            current.id === item.id && current.source === item.source
+              ? { ...current, readAt: null }
+              : current,
+          ),
+        );
+      }
+    },
+    [],
+  );
+
+  // ---------------------------------------------------------
   // 2) pets
   // ---------------------------------------------------------
   const pets = usePetStore(s => s.pets);
@@ -2267,8 +2528,8 @@ export default function LoggedInHome() {
     setAcc(prev => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
-  const noopHeaderAction = useCallback(() => {
-    // 추후 검색/알림 연결 전까지 레이아웃만 유지한다.
+  const noopSearchHeaderAction = useCallback(() => {
+    // 검색 헤더는 아직 홈 구조 정리 트랙에서 연결할 기능이므로 layout만 유지한다.
   }, []);
 
   const onPressGuideList = useCallback(() => {
@@ -2438,7 +2699,19 @@ export default function LoggedInHome() {
           petThemePrimary={petTheme.primary}
           onPressPetChip={onPressPetChip}
           onPressAddPet={onPressAddPet}
-          onPressHeaderAction={noopHeaderAction}
+          onPressSearch={noopSearchHeaderAction}
+          onPressNotifications={openHomeNotifications}
+          notificationPanel={
+            <HomeNotificationPanel
+              visible={notificationModalVisible}
+              items={homeNotificationItems}
+              loading={homeNotificationLoading}
+              errorMessage={homeNotificationError}
+              onClose={closeHomeNotifications}
+              onRefresh={loadHomeNotifications}
+              onPressItem={onPressHomeNotificationItem}
+            />
+          }
         />
 
         {/* Fade container */}
