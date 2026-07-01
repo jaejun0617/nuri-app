@@ -15,12 +15,14 @@ import React, {
 import {
   BackHandler,
   Image,
+  Modal,
   Pressable,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
   ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { CompositeNavigationProp } from '@react-navigation/native';
@@ -160,11 +162,13 @@ type HomeRecentPreviewItem = {
   groupDateText: string | null;
 };
 
-type HomeNotificationPanelProps = {
+type HomeNotificationOverlayProps = {
   visible: boolean;
   items: UserNotificationItem[];
   loading: boolean;
   errorMessage: string | null;
+  topInset: number;
+  maxHeight: number;
   onClose: () => void;
   onRefresh: () => void;
   onPressItem: (item: UserNotificationItem) => void;
@@ -582,145 +586,201 @@ const HomeWeatherSection = React.memo(function HomeWeatherSection({
   );
 });
 
-const HomeNotificationPanel = React.memo(function HomeNotificationPanel({
+const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
   visible,
   items,
   loading,
   errorMessage,
+  topInset,
+  maxHeight,
   onClose,
   onRefresh,
   onPressItem,
-}: HomeNotificationPanelProps) {
+}: HomeNotificationOverlayProps) {
   const unreadCount = useMemo(
     () => items.filter(item => !item.readAt).length,
     [items],
   );
-  const sheetProgress = useSharedValue(0);
+  const [rendered, setRendered] = useState(visible);
+  const overlayProgress = useSharedValue(0);
+  const finishClose = useCallback(() => {
+    setRendered(false);
+  }, []);
+  const backdropAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(overlayProgress.value, [0, 1], [0, 1]),
+  }));
   const sheetAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: sheetProgress.value,
+    opacity: overlayProgress.value,
     transform: [
       {
-        translateY: interpolate(sheetProgress.value, [0, 1], [-28, 0]),
+        translateY: interpolate(overlayProgress.value, [0, 1], [-32, 0]),
+      },
+      {
+        scale: interpolate(overlayProgress.value, [0, 1], [0.98, 1]),
       },
     ],
   }));
+  const panelTopOffset = Math.max(topInset + 78, 92);
 
   useEffect(() => {
-    if (!visible) {
-      sheetProgress.value = 0;
+    if (visible) {
+      setRendered(true);
+      overlayProgress.value = 0;
+      overlayProgress.value = withTiming(1, {
+        duration: 220,
+        easing: Easing.out(Easing.cubic),
+      });
       return;
     }
 
-    sheetProgress.value = 0;
-    sheetProgress.value = withTiming(1, {
-      duration: 220,
-      easing: Easing.out(Easing.cubic),
-    });
-  }, [sheetProgress, visible]);
+    overlayProgress.value = withTiming(
+      0,
+      {
+        duration: 160,
+        easing: Easing.in(Easing.cubic),
+      },
+      finished => {
+        if (finished) {
+          runOnJS(finishClose)();
+        }
+      },
+    );
+  }, [finishClose, overlayProgress, visible]);
 
-  if (!visible) return null;
+  if (!rendered) return null;
 
   return (
-    <Animated.View
-      style={[styles.notificationModalCard, sheetAnimatedStyle]}
+    <Modal
+      visible={rendered}
+      transparent
+      statusBarTranslucent
+      animationType="none"
+      onRequestClose={onClose}
     >
-      <View style={styles.notificationModalHeader}>
-        <View style={styles.notificationModalTitleWrap}>
-          <Text style={styles.notificationModalTitle}>알림 목록</Text>
-          <Text style={styles.notificationModalSubtitle}>
-            읽지 않은 알림 {unreadCount}개
-          </Text>
-        </View>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          accessibilityLabel="알림 목록 닫기"
+      <View style={styles.notificationOverlayRoot}>
+        <Pressable
+          accessibilityLabel="알림 목록 바깥 영역 닫기"
           accessibilityRole="button"
-          style={styles.notificationModalCloseButton}
+          style={styles.notificationOverlayBackdropPressable}
           onPress={onClose}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Feather name="x" size={20} color="rgba(11,18,32,0.82)" />
-        </TouchableOpacity>
-      </View>
+          <Animated.View
+            style={[
+              styles.notificationOverlayBackdrop,
+              backdropAnimatedStyle,
+            ]}
+          />
+        </Pressable>
 
-      {loading ? (
-        <View style={styles.notificationModalState}>
-          <ActivityIndicator />
-          <Text style={styles.notificationModalStateText}>
-            알림을 불러오는 중이에요.
-          </Text>
-        </View>
-      ) : errorMessage ? (
-        <View style={styles.notificationModalState}>
-          <Text style={styles.notificationModalStateTitle}>
-            알림을 불러오지 못했어요
-          </Text>
-          <Text style={styles.notificationModalStateText}>{errorMessage}</Text>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={styles.notificationModalRetryButton}
-            onPress={onRefresh}
-          >
-            <Text style={styles.notificationModalRetryText}>
-              다시 불러오기
-            </Text>
-          </TouchableOpacity>
-        </View>
-      ) : items.length === 0 ? (
-        <View style={styles.notificationModalState}>
-          <View style={styles.notificationModalEmptyIcon}>
-            <Feather name="bell" size={22} color="rgba(85,96,112,0.72)" />
-          </View>
-          <Text style={styles.notificationModalStateTitle}>
-            아직 새 알림이 없어요
-          </Text>
-          <Text style={styles.notificationModalStateText}>
-            중요한 안내가 생기면 이곳에 차분히 모아둘게요.
-          </Text>
-        </View>
-      ) : (
-        <ScrollView
-          style={styles.notificationModalList}
-          contentContainerStyle={styles.notificationModalListContent}
-          showsVerticalScrollIndicator={false}
+        <Animated.View
+          accessibilityViewIsModal
+          style={[
+            styles.notificationOverlayPanel,
+            { marginTop: panelTopOffset, maxHeight },
+            sheetAnimatedStyle,
+          ]}
         >
-          {items.map(item => {
-            const unread = !item.readAt;
-            return (
+          <View style={styles.notificationModalHeader}>
+            <View style={styles.notificationModalTitleWrap}>
+              <Text style={styles.notificationModalTitle}>알림</Text>
+              <Text style={styles.notificationModalSubtitle}>
+                읽지 않은 알림 {unreadCount}개
+              </Text>
+            </View>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              accessibilityLabel="알림 목록 닫기"
+              accessibilityRole="button"
+              style={styles.notificationModalCloseButton}
+              onPress={onClose}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Feather name="x" size={18} color="rgba(11,18,32,0.82)" />
+            </TouchableOpacity>
+          </View>
+
+          {loading ? (
+            <View style={styles.notificationModalState}>
+              <ActivityIndicator />
+              <Text style={styles.notificationModalStateText}>
+                알림을 불러오는 중이에요.
+              </Text>
+            </View>
+          ) : errorMessage ? (
+            <View style={styles.notificationModalState}>
+              <Text style={styles.notificationModalStateTitle}>
+                알림을 불러오지 못했어요
+              </Text>
+              <Text style={styles.notificationModalStateText}>
+                {errorMessage}
+              </Text>
               <TouchableOpacity
-                key={`${item.source}:${item.id}`}
                 activeOpacity={0.9}
-                style={[
-                  styles.notificationModalItem,
-                  unread ? styles.notificationModalItemUnread : null,
-                ]}
-                onPress={() => onPressItem(item)}
+                style={styles.notificationModalRetryButton}
+                onPress={onRefresh}
               >
-                <View style={styles.notificationModalItemTopRow}>
-                  <View style={styles.notificationModalItemTitleWrap}>
-                    <Text
-                      style={styles.notificationModalItemTitle}
-                      numberOfLines={2}
-                    >
-                      {item.title}
-                    </Text>
-                    {unread ? (
-                      <View style={styles.notificationModalUnreadDot} />
-                    ) : null}
-                  </View>
-                  <Text style={styles.notificationModalItemDate}>
-                    {formatHomeNotificationDate(item.createdAt)}
-                  </Text>
-                </View>
-                <Text style={styles.notificationModalItemBody}>
-                  {item.body}
+                <Text style={styles.notificationModalRetryText}>
+                  다시 불러오기
                 </Text>
               </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      )}
-    </Animated.View>
+            </View>
+          ) : items.length === 0 ? (
+            <View style={styles.notificationModalState}>
+              <View style={styles.notificationModalEmptyIcon}>
+                <Feather name="bell" size={22} color="rgba(85,96,112,0.72)" />
+              </View>
+              <Text style={styles.notificationModalStateTitle}>
+                아직 새 알림이 없어요
+              </Text>
+              <Text style={styles.notificationModalStateText}>
+                우리 아이 소식이 도착하면 여기에 알려드릴게요.
+              </Text>
+            </View>
+          ) : (
+            <ScrollView
+              style={styles.notificationModalList}
+              contentContainerStyle={styles.notificationModalListContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {items.map(item => {
+                const unread = !item.readAt;
+                return (
+                  <TouchableOpacity
+                    key={`${item.source}:${item.id}`}
+                    activeOpacity={0.9}
+                    style={[
+                      styles.notificationModalItem,
+                      unread ? styles.notificationModalItemUnread : null,
+                    ]}
+                    onPress={() => onPressItem(item)}
+                  >
+                    <View style={styles.notificationModalItemTopRow}>
+                      <View style={styles.notificationModalItemTitleWrap}>
+                        <Text
+                          style={styles.notificationModalItemTitle}
+                          numberOfLines={2}
+                        >
+                          {item.title}
+                        </Text>
+                        {unread ? (
+                          <View style={styles.notificationModalUnreadDot} />
+                        ) : null}
+                      </View>
+                      <Text style={styles.notificationModalItemDate}>
+                        {formatHomeNotificationDate(item.createdAt)}
+                      </Text>
+                    </View>
+                    <Text style={styles.notificationModalItemBody}>
+                      {item.body}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          )}
+        </Animated.View>
+      </View>
+    </Modal>
   );
 });
 
@@ -734,7 +794,6 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
   onPressAddPet,
   onPressSearch,
   onPressNotifications,
-  notificationPanel,
 }: {
   greetingTitle: string;
   greetingSubTitle: string;
@@ -745,7 +804,6 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
   onPressAddPet: () => void;
   onPressSearch: () => void;
   onPressNotifications: () => void;
-  notificationPanel?: React.ReactNode;
 }) {
   return (
     <View style={styles.header}>
@@ -779,8 +837,6 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
           </TouchableOpacity>
         </View>
       </View>
-
-      {notificationPanel}
 
       <View style={styles.petSwitcherRow}>
         {visiblePets.map(p => (
@@ -1926,6 +1982,7 @@ export default function LoggedInHome() {
   // 0) navigation
   // ---------------------------------------------------------
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const navigation = useNavigation<Nav>();
   const isScreenFocused = useIsFocused();
   const homeScrollRef = useRef<ScrollView | null>(null);
@@ -2672,6 +2729,10 @@ export default function LoggedInHome() {
       ),
     [insets.bottom],
   );
+  const notificationOverlayMaxHeight = useMemo(
+    () => Math.round(windowHeight * 0.58),
+    [windowHeight],
+  );
 
   // ---------------------------------------------------------
   // 10) render
@@ -2701,17 +2762,6 @@ export default function LoggedInHome() {
           onPressAddPet={onPressAddPet}
           onPressSearch={noopSearchHeaderAction}
           onPressNotifications={openHomeNotifications}
-          notificationPanel={
-            <HomeNotificationPanel
-              visible={notificationModalVisible}
-              items={homeNotificationItems}
-              loading={homeNotificationLoading}
-              errorMessage={homeNotificationError}
-              onClose={closeHomeNotifications}
-              onRefresh={loadHomeNotifications}
-              onPressItem={onPressHomeNotificationItem}
-            />
-          }
         />
 
         {/* Fade container */}
@@ -2850,6 +2900,18 @@ export default function LoggedInHome() {
           <Feather name="arrow-up" size={18} color={petTheme.primary} />
         </Pressable>
       </Animated.View>
+
+      <HomeNotificationOverlay
+        visible={notificationModalVisible}
+        items={homeNotificationItems}
+        loading={homeNotificationLoading}
+        errorMessage={homeNotificationError}
+        topInset={insets.top}
+        maxHeight={notificationOverlayMaxHeight}
+        onClose={closeHomeNotifications}
+        onRefresh={loadHomeNotifications}
+        onPressItem={onPressHomeNotificationItem}
+      />
     </Screen>
   );
 }

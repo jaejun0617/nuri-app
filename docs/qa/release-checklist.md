@@ -15,7 +15,7 @@
 - 2026-06-30 신규 QA 계정 full E2E/navigation audit에서 로그아웃 후 email/password 재로그인 stale onboarding blocker를 발견해 최소 수정했다. 재빌드한 release APK에서 cold start와 logout -> email login home 복귀를 확인했고, 주요 화면 17개 back audit과 병원 전국 coverage read-only audit을 통과했다.
 - 2026-06-30 V1.1 추가 업데이트 1차 MVP로 회원탈퇴 입력 확인, 최근 로그인 표시, 타임라인 카테고리 count를 구현했고 edge QA를 수행했다. 신규 DB/migration/seed/design 변경은 없고 focused tests, Android 회원탈퇴 모달, 최근 로그인 email cold start, Kakao/Google OAuth 진입, 타임라인 작성/수정/삭제 count 갱신 smoke를 통과했다.
 - 2026-07-01 이후 모든 실기기 QA에는 키보드바/키보드 회피/입력창 가림/primary action 접근성/모달 크기/문구 잘림/Android back dismiss 확인을 포함한다. 이 기준은 디자인 리뉴얼이 아니라 release blocker 방지용 QA gate다.
-- 2026-07-01 V1.1 추가 업데이트 2차 MVP로 데일리 streak/데일리판, 앱 내부 알림 read path, XP/레벨/칭호 최소 MVP를 구현했다. additive migration/RPC/RLS를 적용했고, `adminQA` 일반 사용자 계정 기준 타임라인 데일리판/XP 카드, 알림함 read/mark read, keyboard bar smoke를 확인했다. 운영자 발송 UI, push, 홈 위젯, 무지개다리 서비스, 디자인 전체 조정, Play Store 자산은 열지 않았다.
+- 2026-07-01 V1.1 추가 업데이트 2차 MVP로 데일리 streak/데일리판, 앱 내부 알림 read path, XP/레벨/칭호 최소 MVP를 구현했다. additive migration/RPC/RLS를 적용했고, `adminQA` 일반 사용자 계정 기준 타임라인 데일리판/XP 카드, 알림함 read/mark read, keyboard bar smoke를 확인했다. 2026-07-02에는 홈 알림 UX를 inline panel에서 상단 floating notification shade로 수정해 홈 콘텐츠가 밀리지 않도록 닫았다. 운영자 발송 UI, push, 홈 위젯, 무지개다리 서비스, 디자인 전체 조정, Play Store 자산은 열지 않았다.
 - 디자인 수정은 이번 release QA 턴에서 하지 않았다. 스토어 출시 전 디자인 조정 후보는 별도 트랙으로 유지하며, Play Store 자산 패키지는 디자인 조정과 V1.0/V1.1 전체 완료 후 진행한다.
 
 ## 2026-06-30 Full App E2E / Navigation / Hospital Coverage RC QA
@@ -138,7 +138,7 @@
 - [x] 알림 read path
   - 전체메뉴 `알림함` entry와 unread dot/count 추가
   - `UserNotifications` 화면에서 목록, empty state, mark read 제공
-  - 홈 상단 알림 아이콘에서 `오늘의 메시지로 하루를 시작해요` 문구 아래 알림 목록 패널 제공
+  - 홈 상단 알림 아이콘에서 `오늘의 메시지로 하루를 시작해요` 문구 아래 위치에 floating notification shade overlay 제공
   - 운영자 발송 UI와 push는 제외
 - [x] XP / 레벨 / 칭호 MVP
   - source idempotency, daily cap, Lv.1~10 level curve, 최소 칭호 지급 구현
@@ -171,7 +171,9 @@
   - 사용자 알림과 활성 공지 read path 확인
   - cross-user notification hidden 확인
   - 전체메뉴 badge/dot과 알림함 진입점 유지
-  - 홈 상단 알림 아이콘 탭 -> 홈 헤더 문구 아래 알림 목록 패널 -> X 닫기와 Android back 닫기 확인
+  - 홈 상단 알림 아이콘 탭 -> floating notification shade overlay -> X/backdrop/Android back 닫기 확인
+  - 2026-07-02 코드 기준 inline panel 제거와 overlay shade 구현, typecheck/lint/focused test/release build 통과
+  - 2026-07-02 현재 ADB 연결 기기 없음. overlay screenshot/uiautomator bounds, open 전후 홈 콘텐츠 y좌표, adminQA mark read 실기기 증적은 다음 기기 연결 시 재확인
 - [x] XP / 레벨 / 칭호 edge
   - source idempotency 확인
   - 150 XP/day cap 확인
@@ -189,7 +191,8 @@
   - release APK rebuild/install
   - 타임라인 데일리판과 활동 성장 카드 확인
   - 전체메뉴 알림함과 알림 목록/읽음 확인
-  - 홈 상단 알림 아이콘, 홈 헤더 문구 아래 알림 목록 패널, `ADMIN_QA_NOTICE` 항목, X 닫기 확인
+  - 홈 상단 알림 아이콘, 상단 floating notification shade, `ADMIN_QA_NOTICE` 항목, X/backdrop/Android back 닫기 확인
+  - overlay open 전후 홈 콘텐츠와 하단 네비게이션 layout이 밀리지 않는지 확인
   - 타임라인 작성 keyboard bar smoke 확인
   - logcat fatal / ANR / unhandled promise / ReactNativeJS fatal pattern 0건
 
