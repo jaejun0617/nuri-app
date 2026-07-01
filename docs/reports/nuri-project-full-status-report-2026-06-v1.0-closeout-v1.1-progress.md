@@ -4,7 +4,7 @@
 최종 정합성 검수일: 2026-07-02
 문서 목적: ChatGPT, Codex, 운영자, 후속 개발 세션이 현재 NURI 앱의 전체 맥락을 한 번에 파악하기 위한 source of truth 문서
 
-최신 갱신: 2026-07-02 홈 알림 UX closeout에서 기존 인라인 알림 패널을 제거하고, 홈 콘텐츠를 밀지 않는 상단 floating notification shade overlay로 수정했다. 알림 unread/list/mark read 경로와 adminQA read path는 유지한다. typecheck/lint/focused test/release build는 통과했다. 현재 ADB 연결 기기가 없어 overlay screenshot/uiautomator 증적은 다음 실기기 연결 시 재확인한다. 운영자 발송 UI, push, 홈 위젯, 무지개다리 서비스, 디자인 전체 조정, Play Store 자산은 열지 않았다.
+최신 갱신: 2026-07-02 홈 알림 UX closeout에서 기존 인라인 알림 패널을 제거하고, 홈 콘텐츠를 밀지 않는 상단 floating notification shade overlay로 수정했다. 알림 unread/list/mark read 경로와 adminQA read path는 유지한다. 같은 날 다중 알림 누적, 내부 스크롤, 얇은 native scroll indicator, 개별 X 삭제, 수평 스와이프 즉시 삭제, 전체삭제를 user-scoped dismiss 계약으로 추가했다. `SM_S937N / R5CY613NMSY` release APK 실기기 증적과 typecheck/lint/focused test/release build를 통과했다. 운영자 발송 UI, push, 홈 위젯, 무지개다리 서비스, 디자인 전체 조정, Play Store 자산은 열지 않았다.
 
 ## 1. 문서 목적
 
@@ -112,7 +112,7 @@
 - XP/레벨/칭호: source idempotency, daily cap, Lv.1~10 curve, title 1회 지급과 중복 방지, cross-user hidden을 확인했다.
 - RLS/RPC: anon direct select row 0, anon RPC `42501` 계열 거부, authenticated own-data only, cross-user/cross-pet hidden을 확인했다. public projection이나 raw/internal/secret 노출은 없다.
 - Android evidence: `SM_S937N / R5CY613NMSY`에서 release APK rebuild/install 후 `adminQA` 세션으로 타임라인 데일리판/활동 성장 카드, 전체메뉴 알림함, 알림 목록/읽음, 타임라인 작성 keyboard bar smoke를 확인했다.
-- 홈 상단 알림 아이콘은 2026-07-02 UX closeout에서 floating notification shade overlay로 수정했다. overlay는 `오늘의 메시지로 하루를 시작해요` 문구 아래 위치에 뜨지만 홈 레이아웃 flow에 들어가지 않아 날씨/펫/하단 네비게이션을 밀지 않는다. X/backdrop/Android back 닫기 경로를 코드로 제공한다. 현재 ADB 연결 기기가 없어 screenshot/uiautomator 증적은 다음 실기기 연결 시 재확인한다. push와 운영자 발송 UI는 후속 트랙이다.
+- 홈 상단 알림 아이콘은 2026-07-02 UX closeout에서 floating notification shade overlay로 수정했다. overlay는 `오늘의 메시지로 하루를 시작해요` 문구 아래 위치에 뜨지만 홈 레이아웃 flow에 들어가지 않아 날씨/펫/하단 네비게이션을 밀지 않는다. X/backdrop/Android back 닫기 경로를 제공하고, 다중 알림에서는 내부 스크롤과 native scroll indicator를 사용한다. 알림 개별 X 삭제, 수평 스와이프 즉시 삭제, 전체삭제는 user-scoped dismiss RPC/RLS로 처리한다. 실기기 screenshot/uiautomator 증적과 logcat no-crash를 확보했다. push와 운영자 발송 UI는 후속 트랙이다.
 - 진행률: V1.1 추가 업데이트 2차 MVP 100%, V1.1 추가 기능 구현 약 74%, V1.1 전체 약 67%, 전체 제품 로드맵 약 96%.
 
 ## 4. V1.0 완료 내역

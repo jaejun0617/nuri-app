@@ -9,6 +9,8 @@ import {
 } from '../src/services/activity/xpProgress';
 import { recordTimelineCreateActivity } from '../src/services/activity/timelineActivity';
 import {
+  dismissAllUserNotifications,
+  dismissUserNotification,
   fetchUserNotificationUnreadCount,
   fetchUserNotifications,
   markUserNotificationRead,
@@ -222,6 +224,8 @@ describe('V1.1 second MVP RPC mappers', () => {
         error: null,
       })
       .mockResolvedValueOnce({ data: 1, error: null })
+      .mockResolvedValueOnce({ data: 0, error: null })
+      .mockResolvedValueOnce({ data: 0, error: null })
       .mockResolvedValueOnce({ data: 0, error: null });
 
     await expect(fetchUserNotifications()).resolves.toEqual([
@@ -242,6 +246,17 @@ describe('V1.1 second MVP RPC mappers', () => {
         source: 'announcement',
       }),
     ).resolves.toBe(0);
+    await expect(
+      dismissUserNotification({
+        id: '11111111-1111-1111-1111-111111111111',
+        source: 'announcement',
+      }),
+    ).resolves.toBe(0);
+    await expect(dismissAllUserNotifications()).resolves.toBe(0);
+
+    expect(supabase.rpc).toHaveBeenLastCalledWith(
+      'dismiss_all_user_notifications_v1',
+    );
   });
 
   it('daily activity 직접 기록 mapper는 하루 1회 결과를 보존한다', async () => {

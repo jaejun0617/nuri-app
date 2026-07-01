@@ -23,6 +23,7 @@ import {
   View,
   ActivityIndicator,
   useWindowDimensions,
+  PanResponder,
 } from 'react-native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { CompositeNavigationProp } from '@react-navigation/native';
@@ -102,10 +103,13 @@ import {
 } from '../../../../services/pets/memorial';
 import { getBrandedErrorMeta } from '../../../../services/app/errors';
 import {
+  dismissAllUserNotifications,
+  dismissUserNotification,
   fetchUserNotifications,
   markUserNotificationRead,
   type UserNotificationItem,
 } from '../../../../services/notifications/userNotifications';
+import { showToast } from '../../../../store/uiStore';
 import { getAgeInMonthsFromBirthDate } from '../../../../services/guides/agePolicy';
 import { buildGuideEventMetadata } from '../../../../services/guides/analytics';
 import {
@@ -172,6 +176,14 @@ type HomeNotificationOverlayProps = {
   onClose: () => void;
   onRefresh: () => void;
   onPressItem: (item: UserNotificationItem) => void;
+  onDismissItem: (item: UserNotificationItem) => void;
+  onDismissAll: () => void;
+};
+
+type HomeNotificationSwipeItemProps = {
+  item: UserNotificationItem;
+  onPressItem: (item: UserNotificationItem) => void;
+  onDismissItem: (item: UserNotificationItem) => void;
 };
 
 /* ---------------------------------------------------------
@@ -586,6 +598,72 @@ const HomeWeatherSection = React.memo(function HomeWeatherSection({
   );
 });
 
+const HomeNotificationSwipeItem = React.memo(function HomeNotificationSwipeItem({
+  item,
+  onPressItem,
+  onDismissItem,
+}: HomeNotificationSwipeItemProps) {
+  const unread = !item.readAt;
+  const dismissItem = useCallback(() => {
+    onDismissItem(item);
+  }, [item, onDismissItem]);
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_event, gestureState) =>
+          Math.abs(gestureState.dx) > 14 &&
+          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.35,
+        onPanResponderRelease: (_event, gestureState) => {
+          if (Math.abs(gestureState.dx) > 72) {
+            dismissItem();
+            return;
+          }
+        },
+      }),
+    [dismissItem],
+  );
+
+  return (
+    <View style={styles.notificationModalSwipeRow} {...panResponder.panHandlers}>
+      <View style={styles.notificationModalSwipeCard}>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={[
+            styles.notificationModalItem,
+            unread ? styles.notificationModalItemUnread : null,
+          ]}
+          onPress={() => onPressItem(item)}
+        >
+          <View style={styles.notificationModalItemTopRow}>
+            <View style={styles.notificationModalItemTitleWrap}>
+              <Text style={styles.notificationModalItemTitle} numberOfLines={2}>
+                {item.title}
+              </Text>
+              {unread ? <View style={styles.notificationModalUnreadDot} /> : null}
+            </View>
+            <View style={styles.notificationModalItemMeta}>
+              <Text style={styles.notificationModalItemDate}>
+                {formatHomeNotificationDate(item.createdAt)}
+              </Text>
+              <TouchableOpacity
+                activeOpacity={0.82}
+                accessibilityLabel="알림 삭제"
+                accessibilityRole="button"
+                style={styles.notificationModalItemDeleteButton}
+                onPress={dismissItem}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Feather name="x" size={13} color="rgba(85,96,112,0.82)" />
+              </TouchableOpacity>
+            </View>
+          </View>
+          <Text style={styles.notificationModalItemBody}>{item.body}</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+});
+
 const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
   visible,
   items,
@@ -596,11 +674,14 @@ const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
   onClose,
   onRefresh,
   onPressItem,
+  onDismissItem,
+  onDismissAll,
 }: HomeNotificationOverlayProps) {
   const unreadCount = useMemo(
     () => items.filter(item => !item.readAt).length,
     [items],
   );
+  const shouldShowScrollHint = items.length >= 4;
   const [rendered, setRendered] = useState(visible);
   const overlayProgress = useSharedValue(0);
   const finishClose = useCallback(() => {
@@ -687,6 +768,20 @@ const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
                 읽지 않은 알림 {unreadCount}개
               </Text>
             </View>
+            {items.length > 0 && !loading && !errorMessage ? (
+              <TouchableOpacity
+                activeOpacity={0.86}
+                accessibilityLabel="알림 전체삭제"
+                accessibilityRole="button"
+                style={styles.notificationModalClearAllButton}
+                onPress={onDismissAll}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={styles.notificationModalClearAllText}>
+                  전체삭제
+                </Text>
+              </TouchableOpacity>
+            ) : null}
             <TouchableOpacity
               activeOpacity={0.85}
               accessibilityLabel="알림 목록 닫기"
@@ -740,42 +835,17 @@ const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
             <ScrollView
               style={styles.notificationModalList}
               contentContainerStyle={styles.notificationModalListContent}
-              showsVerticalScrollIndicator={false}
+              showsVerticalScrollIndicator={shouldShowScrollHint}
+              persistentScrollbar={shouldShowScrollHint}
             >
-              {items.map(item => {
-                const unread = !item.readAt;
-                return (
-                  <TouchableOpacity
-                    key={`${item.source}:${item.id}`}
-                    activeOpacity={0.9}
-                    style={[
-                      styles.notificationModalItem,
-                      unread ? styles.notificationModalItemUnread : null,
-                    ]}
-                    onPress={() => onPressItem(item)}
-                  >
-                    <View style={styles.notificationModalItemTopRow}>
-                      <View style={styles.notificationModalItemTitleWrap}>
-                        <Text
-                          style={styles.notificationModalItemTitle}
-                          numberOfLines={2}
-                        >
-                          {item.title}
-                        </Text>
-                        {unread ? (
-                          <View style={styles.notificationModalUnreadDot} />
-                        ) : null}
-                      </View>
-                      <Text style={styles.notificationModalItemDate}>
-                        {formatHomeNotificationDate(item.createdAt)}
-                      </Text>
-                    </View>
-                    <Text style={styles.notificationModalItemBody}>
-                      {item.body}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+              {items.map(item => (
+                <HomeNotificationSwipeItem
+                  key={`${item.source}:${item.id}`}
+                  item={item}
+                  onPressItem={onPressItem}
+                  onDismissItem={onDismissItem}
+                />
+              ))}
             </ScrollView>
           )}
         </Animated.View>
@@ -2076,6 +2146,49 @@ export default function LoggedInHome() {
     [],
   );
 
+  const onDismissHomeNotificationItem = useCallback(
+    async (item: UserNotificationItem) => {
+      setHomeNotificationItems(prev =>
+        prev.filter(
+          current =>
+            !(current.id === item.id && current.source === item.source),
+        ),
+      );
+
+      try {
+        await dismissUserNotification({ id: item.id, source: item.source });
+      } catch (error) {
+        const meta = getBrandedErrorMeta(error, 'generic');
+        setHomeNotificationError(meta.message);
+        setHomeNotificationItems(prev => {
+          const exists = prev.some(
+            current =>
+              current.id === item.id && current.source === item.source,
+          );
+          return exists ? prev : [item, ...prev];
+        });
+        showToast({ tone: 'error', title: meta.title, message: meta.message });
+      }
+    },
+    [],
+  );
+
+  const onDismissAllHomeNotifications = useCallback(async () => {
+    if (homeNotificationItems.length === 0) return;
+    const previousItems = homeNotificationItems;
+    setHomeNotificationItems([]);
+    setHomeNotificationError(null);
+
+    try {
+      await dismissAllUserNotifications();
+    } catch (error) {
+      const meta = getBrandedErrorMeta(error, 'generic');
+      setHomeNotificationError(meta.message);
+      setHomeNotificationItems(previousItems);
+      showToast({ tone: 'error', title: meta.title, message: meta.message });
+    }
+  }, [homeNotificationItems]);
+
   // ---------------------------------------------------------
   // 2) pets
   // ---------------------------------------------------------
@@ -2730,7 +2843,7 @@ export default function LoggedInHome() {
     [insets.bottom],
   );
   const notificationOverlayMaxHeight = useMemo(
-    () => Math.round(windowHeight * 0.58),
+    () => Math.round(windowHeight * 0.66),
     [windowHeight],
   );
 
@@ -2911,6 +3024,8 @@ export default function LoggedInHome() {
         onClose={closeHomeNotifications}
         onRefresh={loadHomeNotifications}
         onPressItem={onPressHomeNotificationItem}
+        onDismissItem={onDismissHomeNotificationItem}
+        onDismissAll={onDismissAllHomeNotifications}
       />
     </Screen>
   );

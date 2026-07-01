@@ -155,6 +155,22 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
     color: MUTED,
   },
+  notificationModalClearAllButton: {
+    minHeight: 32,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(239,68,68,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.14)',
+  },
+  notificationModalClearAllText: {
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '900',
+    color: '#D84C4C',
+  },
   notificationModalCloseButton: {
     width: 36,
     height: 36,
@@ -219,6 +235,14 @@ export const styles = StyleSheet.create({
     gap: 11,
     paddingBottom: 3,
   },
+  notificationModalSwipeRow: {
+    position: 'relative',
+    overflow: 'hidden',
+    borderRadius: 18,
+  },
+  notificationModalSwipeCard: {
+    transform: [{ translateX: 0 }],
+  },
   notificationModalItem: {
     borderRadius: 18,
     paddingHorizontal: 14,
@@ -229,7 +253,7 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   notificationModalItemUnread: {
-    backgroundColor: 'rgba(109,106,248,0.08)',
+    backgroundColor: '#F2F1FF',
     borderColor: 'rgba(109,106,248,0.20)',
   },
   notificationModalItemTopRow: {
@@ -265,6 +289,20 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
     color: MUTED2,
     textAlign: 'right',
+  },
+  notificationModalItemMeta: {
+    alignItems: 'flex-end',
+    gap: 7,
+  },
+  notificationModalItemDeleteButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(11,18,32,0.045)',
+    borderWidth: 1,
+    borderColor: 'rgba(11,18,32,0.055)',
   },
   notificationModalItemBody: {
     fontSize: 13,

@@ -92,3 +92,21 @@ export async function markUserNotificationRead(input: {
   if (error) throw error;
   return typeof data === 'number' && Number.isFinite(data) ? data : 0;
 }
+
+export async function dismissUserNotification(input: {
+  id: string;
+  source: UserNotificationSource;
+}): Promise<number> {
+  const { data, error } = await supabase.rpc('dismiss_user_notification_v1', {
+    p_notification_id: input.id,
+    p_notification_source: input.source,
+  });
+  if (error) throw error;
+  return typeof data === 'number' && Number.isFinite(data) ? data : 0;
+}
+
+export async function dismissAllUserNotifications(): Promise<number> {
+  const { data, error } = await supabase.rpc('dismiss_all_user_notifications_v1');
+  if (error) throw error;
+  return typeof data === 'number' && Number.isFinite(data) ? data : 0;
+}

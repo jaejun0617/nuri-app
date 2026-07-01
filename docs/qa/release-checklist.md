@@ -15,7 +15,7 @@
 - 2026-06-30 신규 QA 계정 full E2E/navigation audit에서 로그아웃 후 email/password 재로그인 stale onboarding blocker를 발견해 최소 수정했다. 재빌드한 release APK에서 cold start와 logout -> email login home 복귀를 확인했고, 주요 화면 17개 back audit과 병원 전국 coverage read-only audit을 통과했다.
 - 2026-06-30 V1.1 추가 업데이트 1차 MVP로 회원탈퇴 입력 확인, 최근 로그인 표시, 타임라인 카테고리 count를 구현했고 edge QA를 수행했다. 신규 DB/migration/seed/design 변경은 없고 focused tests, Android 회원탈퇴 모달, 최근 로그인 email cold start, Kakao/Google OAuth 진입, 타임라인 작성/수정/삭제 count 갱신 smoke를 통과했다.
 - 2026-07-01 이후 모든 실기기 QA에는 키보드바/키보드 회피/입력창 가림/primary action 접근성/모달 크기/문구 잘림/Android back dismiss 확인을 포함한다. 이 기준은 디자인 리뉴얼이 아니라 release blocker 방지용 QA gate다.
-- 2026-07-01 V1.1 추가 업데이트 2차 MVP로 데일리 streak/데일리판, 앱 내부 알림 read path, XP/레벨/칭호 최소 MVP를 구현했다. additive migration/RPC/RLS를 적용했고, `adminQA` 일반 사용자 계정 기준 타임라인 데일리판/XP 카드, 알림함 read/mark read, keyboard bar smoke를 확인했다. 2026-07-02에는 홈 알림 UX를 inline panel에서 상단 floating notification shade로 수정해 홈 콘텐츠가 밀리지 않도록 닫았다. 운영자 발송 UI, push, 홈 위젯, 무지개다리 서비스, 디자인 전체 조정, Play Store 자산은 열지 않았다.
+- 2026-07-01 V1.1 추가 업데이트 2차 MVP로 데일리 streak/데일리판, 앱 내부 알림 read path, XP/레벨/칭호 최소 MVP를 구현했다. additive migration/RPC/RLS를 적용했고, `adminQA` 일반 사용자 계정 기준 타임라인 데일리판/XP 카드, 알림함 read/mark read, keyboard bar smoke를 확인했다. 2026-07-02에는 홈 알림 UX를 inline panel에서 상단 floating notification shade로 수정해 홈 콘텐츠가 밀리지 않도록 닫았다. 같은 날 알림 개별 X 삭제, 수평 스와이프 즉시 삭제, 전체삭제를 user-scoped dismiss로 추가했고, release APK에서 `ADMIN_QA_NOTICE` 다중 알림 누적/스크롤/삭제/빈 상태를 확인했다. 운영자 발송 UI, push, 홈 위젯, 무지개다리 서비스, 디자인 전체 조정, Play Store 자산은 열지 않았다.
 - 디자인 수정은 이번 release QA 턴에서 하지 않았다. 스토어 출시 전 디자인 조정 후보는 별도 트랙으로 유지하며, Play Store 자산 패키지는 디자인 조정과 V1.0/V1.1 전체 완료 후 진행한다.
 
 ## 2026-06-30 Full App E2E / Navigation / Hospital Coverage RC QA
@@ -168,6 +168,8 @@
   - user/pet isolation 확인
 - [x] 알림 read path edge
   - unread count, 목록, mark read, mark read idempotency 확인
+  - 개별 X 삭제, 수평 스와이프 즉시 삭제, 전체삭제 확인
+  - 삭제는 원본 데이터 hard delete가 아니라 user-scoped dismiss로 처리
   - 사용자 알림과 활성 공지 read path 확인
   - cross-user notification hidden 확인
   - 전체메뉴 badge/dot과 알림함 진입점 유지
@@ -192,6 +194,7 @@
   - 타임라인 데일리판과 활동 성장 카드 확인
   - 전체메뉴 알림함과 알림 목록/읽음 확인
   - 홈 상단 알림 아이콘, 상단 floating notification shade, `ADMIN_QA_NOTICE` 항목, X/backdrop/Android back 닫기 확인
+  - `ADMIN_QA_NOTICE` 다중 알림 상태에서 내부 스크롤, 얇은 native scroll indicator, 수평 스와이프 즉시 삭제, 각 항목 X 삭제, 전체삭제 후 empty state 확인
   - overlay open 전후 홈 콘텐츠와 하단 네비게이션 layout이 밀리지 않는지 확인
   - 타임라인 작성 keyboard bar smoke 확인
   - logcat fatal / ANR / unhandled promise / ReactNativeJS fatal pattern 0건

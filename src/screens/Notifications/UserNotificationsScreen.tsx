@@ -7,6 +7,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  PanResponder,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -20,6 +21,8 @@ import { useTheme } from 'styled-components/native';
 import AppText from '../../app/ui/AppText';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
+  dismissAllUserNotifications,
+  dismissUserNotification,
   fetchUserNotifications,
   markUserNotificationRead,
   type UserNotificationItem,
@@ -28,6 +31,12 @@ import { getBrandedErrorMeta } from '../../services/app/errors';
 import { showToast } from '../../store/uiStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'UserNotifications'>;
+
+type NotificationSwipeItemProps = {
+  item: UserNotificationItem;
+  onPress: (item: UserNotificationItem) => void;
+  onDismiss: (item: UserNotificationItem) => void;
+};
 
 function formatNotificationDate(value: string) {
   const date = new Date(value);
@@ -39,6 +48,71 @@ function formatNotificationDate(value: string) {
     minute: '2-digit',
   }).format(date);
 }
+
+const NotificationSwipeItem = React.memo(function NotificationSwipeItem({
+  item,
+  onPress,
+  onDismiss,
+}: NotificationSwipeItemProps) {
+  const unread = !item.readAt;
+  const dismiss = useCallback(() => {
+    onDismiss(item);
+  }, [item, onDismiss]);
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_event, gestureState) =>
+          Math.abs(gestureState.dx) > 14 &&
+          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.35,
+        onPanResponderRelease: (_event, gestureState) => {
+          if (Math.abs(gestureState.dx) > 72) {
+            dismiss();
+            return;
+          }
+        },
+      }),
+    [dismiss],
+  );
+
+  return (
+    <View style={styles.swipeRow} {...panResponder.panHandlers}>
+      <View style={styles.swipeCard}>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={[styles.itemCard, unread ? styles.itemCardUnread : null]}
+          onPress={() => onPress(item)}
+        >
+          <View style={styles.itemTopRow}>
+            <View style={styles.itemTitleWrap}>
+              <AppText preset="body" style={styles.itemTitle} numberOfLines={2}>
+                {item.title}
+              </AppText>
+              {unread ? <View style={styles.unreadDot} /> : null}
+            </View>
+            <View style={styles.itemMeta}>
+              <AppText preset="caption" style={styles.itemDate}>
+                {formatNotificationDate(item.createdAt)}
+              </AppText>
+              <TouchableOpacity
+                activeOpacity={0.82}
+                accessibilityLabel="알림 삭제"
+                accessibilityRole="button"
+                style={styles.itemDeleteButton}
+                onPress={dismiss}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Feather name="x" size={13} color="#667085" />
+              </TouchableOpacity>
+            </View>
+          </View>
+          <AppText preset="body" style={styles.itemBody}>
+            {item.body}
+          </AppText>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+});
 
 export default function UserNotificationsScreen() {
   const navigation = useNavigation<Nav>();
@@ -108,33 +182,55 @@ export default function UserNotificationsScreen() {
     }
   }, []);
 
-  const renderItem = useCallback(
-    ({ item }: { item: UserNotificationItem }) => {
-      const unread = !item.readAt;
-      return (
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={[styles.itemCard, unread ? styles.itemCardUnread : null]}
-          onPress={() => onPressNotification(item)}
-        >
-          <View style={styles.itemTopRow}>
-            <View style={styles.itemTitleWrap}>
-              <AppText preset="body" style={styles.itemTitle} numberOfLines={2}>
-                {item.title}
-              </AppText>
-              {unread ? <View style={styles.unreadDot} /> : null}
-            </View>
-            <AppText preset="caption" style={styles.itemDate}>
-              {formatNotificationDate(item.createdAt)}
-            </AppText>
-          </View>
-          <AppText preset="body" style={styles.itemBody}>
-            {item.body}
-          </AppText>
-        </TouchableOpacity>
+  const onDismissNotification = useCallback(
+    async (item: UserNotificationItem) => {
+      setItems(prev =>
+        prev.filter(
+          current =>
+            !(current.id === item.id && current.source === item.source),
+        ),
       );
+
+      try {
+        await dismissUserNotification({ id: item.id, source: item.source });
+      } catch (error) {
+        setItems(prev => {
+          const exists = prev.some(
+            current =>
+              current.id === item.id && current.source === item.source,
+          );
+          return exists ? prev : [item, ...prev];
+        });
+        const meta = getBrandedErrorMeta(error, 'generic');
+        showToast({ tone: 'error', title: meta.title, message: meta.message });
+      }
     },
-    [onPressNotification],
+    [],
+  );
+
+  const onDismissAllNotifications = useCallback(async () => {
+    if (items.length === 0) return;
+    const previousItems = items;
+    setItems([]);
+
+    try {
+      await dismissAllUserNotifications();
+    } catch (error) {
+      setItems(previousItems);
+      const meta = getBrandedErrorMeta(error, 'generic');
+      showToast({ tone: 'error', title: meta.title, message: meta.message });
+    }
+  }, [items]);
+
+  const renderItem = useCallback(
+    ({ item }: { item: UserNotificationItem }) => (
+      <NotificationSwipeItem
+        item={item}
+        onPress={onPressNotification}
+        onDismiss={onDismissNotification}
+      />
+    ),
+    [onDismissNotification, onPressNotification],
   );
 
   return (
@@ -156,6 +252,19 @@ export default function UserNotificationsScreen() {
             읽지 않은 알림 {unreadCount}개
           </AppText>
         </View>
+        {items.length > 0 && !loading ? (
+          <TouchableOpacity
+            activeOpacity={0.86}
+            accessibilityLabel="알림 전체삭제"
+            accessibilityRole="button"
+            style={styles.headerClearButton}
+            onPress={onDismissAllNotifications}
+          >
+            <AppText preset="caption" style={styles.headerClearText}>
+              전체삭제
+            </AppText>
+          </TouchableOpacity>
+        ) : null}
         <View style={[styles.headerBadge, { backgroundColor: theme.colors.brand }]}>
           <AppText preset="caption" style={styles.headerBadgeText}>
             {unreadCount}
@@ -262,6 +371,20 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '900',
   },
+  headerClearButton: {
+    minHeight: 32,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    backgroundColor: 'rgba(239,68,68,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.14)',
+  },
+  headerClearText: {
+    color: '#D84C4C',
+    fontWeight: '900',
+  },
   listContent: {
     paddingHorizontal: 18,
     paddingTop: 8,
@@ -269,6 +392,14 @@ const styles = StyleSheet.create({
   },
   listContentEmpty: {
     flexGrow: 1,
+  },
+  swipeRow: {
+    position: 'relative',
+    overflow: 'hidden',
+    borderRadius: 8,
+  },
+  swipeCard: {
+    transform: [{ translateX: 0 }],
   },
   itemCard: {
     borderRadius: 8,
@@ -308,6 +439,21 @@ const styles = StyleSheet.create({
   itemDate: {
     color: '#9AA3AF',
     fontWeight: '700',
+    textAlign: 'right',
+  },
+  itemMeta: {
+    alignItems: 'flex-end',
+    gap: 7,
+  },
+  itemDeleteButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(16,32,51,0.045)',
+    borderWidth: 1,
+    borderColor: 'rgba(16,32,51,0.06)',
   },
   itemBody: {
     color: '#4B5563',
