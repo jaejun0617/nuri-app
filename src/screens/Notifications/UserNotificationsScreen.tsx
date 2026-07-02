@@ -3,13 +3,17 @@
 // - V1.1 알림 read path MVP 화면이다.
 // - push/운영자 발송 UI 없이, 로그인 사용자 자신의 앱 내부 알림과 공지만 읽고 읽음 처리한다.
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated as RNAnimated,
   FlatList,
+  LayoutAnimation,
   PanResponder,
+  Platform,
   StyleSheet,
   TouchableOpacity,
+  UIManager,
   View,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -27,6 +31,10 @@ import {
   markUserNotificationRead,
   type UserNotificationItem,
 } from '../../services/notifications/userNotifications';
+import {
+  getNotificationCardGestureIntent,
+  shouldCaptureNotificationCardGesture,
+} from '../../services/notifications/gesturePolicy';
 import { getBrandedErrorMeta } from '../../services/app/errors';
 import { showToast } from '../../store/uiStore';
 
@@ -36,7 +44,37 @@ type NotificationSwipeItemProps = {
   item: UserNotificationItem;
   onPress: (item: UserNotificationItem) => void;
   onDismiss: (item: UserNotificationItem) => void;
+  expanded: boolean;
+  onToggleExpanded: (item: UserNotificationItem) => void;
+  onSetExpanded: (item: UserNotificationItem, expanded: boolean) => void;
 };
+
+if (Platform.OS === 'android') {
+  UIManager.setLayoutAnimationEnabledExperimental?.(true);
+}
+
+const NOTIFICATION_CARD_LAYOUT_ANIMATION = {
+  duration: 190,
+  create: {
+    type: LayoutAnimation.Types.easeInEaseOut,
+    property: LayoutAnimation.Properties.opacity,
+  },
+  update: {
+    type: LayoutAnimation.Types.easeInEaseOut,
+  },
+  delete: {
+    type: LayoutAnimation.Types.easeInEaseOut,
+    property: LayoutAnimation.Properties.opacity,
+  },
+};
+
+function getNotificationKey(item: UserNotificationItem): string {
+  return `${item.source}:${item.id}`;
+}
+
+function animateNotificationCardLayout() {
+  LayoutAnimation.configureNext(NOTIFICATION_CARD_LAYOUT_ANIMATION);
+}
 
 function formatNotificationDate(value: string) {
   const date = new Date(value);
@@ -53,63 +91,158 @@ const NotificationSwipeItem = React.memo(function NotificationSwipeItem({
   item,
   onPress,
   onDismiss,
+  expanded,
+  onToggleExpanded,
+  onSetExpanded,
 }: NotificationSwipeItemProps) {
   const unread = !item.readAt;
   const dismiss = useCallback(() => {
     onDismiss(item);
   }, [item, onDismiss]);
+  const toggleExpanded = useCallback(() => {
+    onToggleExpanded(item);
+  }, [item, onToggleExpanded]);
+  const setExpanded = useCallback(
+    (nextExpanded: boolean) => {
+      onSetExpanded(item, nextExpanded);
+    },
+    [item, onSetExpanded],
+  );
+  const swipeTranslateX = useRef(new RNAnimated.Value(0)).current;
+  const resetSwipePosition = useCallback(() => {
+    RNAnimated.spring(swipeTranslateX, {
+      toValue: 0,
+      useNativeDriver: true,
+      speed: 18,
+      bounciness: 0,
+    }).start();
+  }, [swipeTranslateX]);
+  const dismissWithSwipeAnimation = useCallback(
+    (dx: number) => {
+      const exitX = dx < 0 ? -460 : 460;
+      RNAnimated.timing(swipeTranslateX, {
+        toValue: exitX,
+        duration: 150,
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        swipeTranslateX.setValue(0);
+        if (finished) {
+          dismiss();
+          return;
+        }
+        resetSwipePosition();
+      });
+    },
+    [dismiss, resetSwipePosition, swipeTranslateX],
+  );
   const panResponder = useMemo(
     () =>
       PanResponder.create({
+        onMoveShouldSetPanResponderCapture: (_event, gestureState) =>
+          shouldCaptureNotificationCardGesture({
+            dx: gestureState.dx,
+            dy: gestureState.dy,
+          }),
         onMoveShouldSetPanResponder: (_event, gestureState) =>
-          Math.abs(gestureState.dx) > 14 &&
-          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.35,
-        onPanResponderRelease: (_event, gestureState) => {
-          if (Math.abs(gestureState.dx) > 72) {
-            dismiss();
-            return;
+          shouldCaptureNotificationCardGesture({
+            dx: gestureState.dx,
+            dy: gestureState.dy,
+          }),
+        onPanResponderTerminationRequest: () => false,
+        onPanResponderMove: (_event, gestureState) => {
+          const absDx = Math.abs(gestureState.dx);
+          const absDy = Math.abs(gestureState.dy);
+          if (absDx > 8 && absDx > absDy * 1.15) {
+            swipeTranslateX.setValue(gestureState.dx);
           }
         },
+        onPanResponderRelease: (_event, gestureState) => {
+          const intent = getNotificationCardGestureIntent({
+            dx: gestureState.dx,
+            dy: gestureState.dy,
+            expanded,
+          });
+
+          if (intent === 'dismiss') {
+            dismissWithSwipeAnimation(gestureState.dx);
+            return;
+          }
+          resetSwipePosition();
+          if (intent === 'expand') {
+            setExpanded(true);
+            return;
+          }
+          if (intent === 'collapse') {
+            setExpanded(false);
+          }
+        },
+        onPanResponderTerminate: resetSwipePosition,
       }),
-    [dismiss],
+    [
+      dismissWithSwipeAnimation,
+      expanded,
+      resetSwipePosition,
+      setExpanded,
+      swipeTranslateX,
+    ],
   );
 
   return (
     <View style={styles.swipeRow} {...panResponder.panHandlers}>
-      <View style={styles.swipeCard}>
+      <RNAnimated.View
+        style={[
+          styles.swipeCard,
+          { transform: [{ translateX: swipeTranslateX }] },
+        ]}
+      >
         <TouchableOpacity
           activeOpacity={0.9}
-          style={[styles.itemCard, unread ? styles.itemCardUnread : null]}
+          style={[
+            styles.itemCard,
+            unread ? styles.itemCardUnread : null,
+            expanded ? styles.itemCardExpanded : null,
+          ]}
           onPress={() => onPress(item)}
         >
           <View style={styles.itemTopRow}>
             <View style={styles.itemTitleWrap}>
-              <AppText preset="body" style={styles.itemTitle} numberOfLines={2}>
+              <AppText preset="body" style={styles.itemTitle} numberOfLines={1}>
                 {item.title}
               </AppText>
               {unread ? <View style={styles.unreadDot} /> : null}
             </View>
-            <View style={styles.itemMeta}>
-              <AppText preset="caption" style={styles.itemDate}>
-                {formatNotificationDate(item.createdAt)}
-              </AppText>
-              <TouchableOpacity
-                activeOpacity={0.82}
-                accessibilityLabel="알림 삭제"
-                accessibilityRole="button"
-                style={styles.itemDeleteButton}
-                onPress={dismiss}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Feather name="x" size={13} color="#667085" />
-              </TouchableOpacity>
-            </View>
           </View>
-          <AppText preset="body" style={styles.itemBody}>
+          <AppText
+            preset="body"
+            style={[
+              styles.itemBody,
+              expanded ? styles.itemBodyExpanded : styles.itemBodyCollapsed,
+            ]}
+            numberOfLines={expanded ? undefined : 2}
+          >
             {item.body}
           </AppText>
+          <View style={styles.itemFooterRow}>
+            <AppText preset="caption" style={styles.itemDate}>
+              {formatNotificationDate(item.createdAt)}
+            </AppText>
+            <TouchableOpacity
+              activeOpacity={0.84}
+              accessibilityLabel={expanded ? '알림 접기' : '알림 펼치기'}
+              accessibilityRole="button"
+              style={styles.itemExpandButton}
+              onPress={toggleExpanded}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Feather
+                name={expanded ? 'chevron-up' : 'chevron-down'}
+                size={20}
+                color="#667085"
+              />
+            </TouchableOpacity>
+          </View>
         </TouchableOpacity>
-      </View>
+      </RNAnimated.View>
     </View>
   );
 });
@@ -119,6 +252,9 @@ export default function UserNotificationsScreen() {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const [items, setItems] = useState<UserNotificationItem[]>([]);
+  const [expandedItemKeys, setExpandedItemKeys] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -184,6 +320,11 @@ export default function UserNotificationsScreen() {
 
   const onDismissNotification = useCallback(
     async (item: UserNotificationItem) => {
+      setExpandedItemKeys(prev => {
+        const next = new Set(prev);
+        next.delete(getNotificationKey(item));
+        return next;
+      });
       setItems(prev =>
         prev.filter(
           current =>
@@ -211,6 +352,7 @@ export default function UserNotificationsScreen() {
   const onDismissAllNotifications = useCallback(async () => {
     if (items.length === 0) return;
     const previousItems = items;
+    setExpandedItemKeys(new Set());
     setItems([]);
 
     try {
@@ -222,15 +364,58 @@ export default function UserNotificationsScreen() {
     }
   }, [items]);
 
+  const onToggleExpandedNotification = useCallback(
+    (item: UserNotificationItem) => {
+      animateNotificationCardLayout();
+      setExpandedItemKeys(prev => {
+        const key = getNotificationKey(item);
+        const next = new Set(prev);
+        if (next.has(key)) {
+          next.delete(key);
+        } else {
+          next.add(key);
+        }
+        return next;
+      });
+    },
+    [],
+  );
+
+  const onSetExpandedNotification = useCallback(
+    (item: UserNotificationItem, expanded: boolean) => {
+      animateNotificationCardLayout();
+      setExpandedItemKeys(prev => {
+        const key = getNotificationKey(item);
+        const next = new Set(prev);
+        if (expanded) {
+          next.add(key);
+        } else {
+          next.delete(key);
+        }
+        return next;
+      });
+    },
+    [],
+  );
+
   const renderItem = useCallback(
     ({ item }: { item: UserNotificationItem }) => (
       <NotificationSwipeItem
         item={item}
         onPress={onPressNotification}
         onDismiss={onDismissNotification}
+        expanded={expandedItemKeys.has(getNotificationKey(item))}
+        onToggleExpanded={onToggleExpandedNotification}
+        onSetExpanded={onSetExpandedNotification}
       />
     ),
-    [onDismissNotification, onPressNotification],
+    [
+      expandedItemKeys,
+      onDismissNotification,
+      onPressNotification,
+      onSetExpandedNotification,
+      onToggleExpandedNotification,
+    ],
   );
 
   return (
@@ -396,26 +581,31 @@ const styles = StyleSheet.create({
   swipeRow: {
     position: 'relative',
     overflow: 'hidden',
-    borderRadius: 8,
+    borderRadius: 28,
   },
   swipeCard: {
     transform: [{ translateX: 0 }],
   },
   itemCard: {
-    borderRadius: 8,
+    minHeight: 126,
+    borderRadius: 28,
     borderWidth: 1,
-    borderColor: '#EEF1F6',
+    borderColor: 'rgba(16,32,51,0.08)',
     backgroundColor: '#FFFFFF',
-    padding: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 17,
     gap: 8,
   },
   itemCardUnread: {
     borderColor: '#DDE5FF',
     backgroundColor: '#FAFBFF',
   },
+  itemCardExpanded: {
+    minHeight: 184,
+  },
   itemTopRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
     gap: 10,
   },
@@ -437,9 +627,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#6D6AF8',
   },
   itemDate: {
+    flex: 1,
     color: '#9AA3AF',
     fontWeight: '700',
-    textAlign: 'right',
+    textAlign: 'left',
   },
   itemMeta: {
     alignItems: 'flex-end',
@@ -458,6 +649,28 @@ const styles = StyleSheet.create({
   itemBody: {
     color: '#4B5563',
     lineHeight: 21,
+  },
+  itemBodyCollapsed: {
+    minHeight: 42,
+  },
+  itemBodyExpanded: {
+    color: '#364053',
+  },
+  itemFooterRow: {
+    minHeight: 32,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  itemExpandButton: {
+    width: 38,
+    height: 32,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 999,
+    backgroundColor: '#F7F8FB',
   },
   centerState: {
     flex: 1,

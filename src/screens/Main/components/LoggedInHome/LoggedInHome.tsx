@@ -13,17 +13,21 @@ import React, {
   useState,
 } from 'react';
 import {
+  ActivityIndicator,
+  Animated as RNAnimated,
   BackHandler,
   Image,
+  LayoutAnimation,
   Modal,
+  PanResponder,
+  Platform,
   Pressable,
   ScrollView,
   Text,
   TouchableOpacity,
+  UIManager,
   View,
-  ActivityIndicator,
   useWindowDimensions,
-  PanResponder,
 } from 'react-native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { CompositeNavigationProp } from '@react-navigation/native';
@@ -109,6 +113,10 @@ import {
   markUserNotificationRead,
   type UserNotificationItem,
 } from '../../../../services/notifications/userNotifications';
+import {
+  getNotificationCardGestureIntent,
+  shouldCaptureNotificationCardGesture,
+} from '../../../../services/notifications/gesturePolicy';
 import { showToast } from '../../../../store/uiStore';
 import { getAgeInMonthsFromBirthDate } from '../../../../services/guides/agePolicy';
 import { buildGuideEventMetadata } from '../../../../services/guides/analytics';
@@ -138,6 +146,26 @@ type Nav = CompositeNavigationProp<
 >;
 
 const HOME_SCROLL_OFFSET_BY_KEY = new Map<string, number>();
+
+if (Platform.OS === 'android') {
+  UIManager.setLayoutAnimationEnabledExperimental?.(true);
+}
+
+const NOTIFICATION_CARD_LAYOUT_ANIMATION = {
+  duration: 190,
+  create: {
+    type: LayoutAnimation.Types.easeInEaseOut,
+    property: LayoutAnimation.Properties.opacity,
+  },
+  update: {
+    type: LayoutAnimation.Types.easeInEaseOut,
+  },
+  delete: {
+    type: LayoutAnimation.Types.easeInEaseOut,
+    property: LayoutAnimation.Properties.opacity,
+  },
+};
+
 type TimelineMainCategory = NonNullable<
   TimelineStackParamList['TimelineMain']
 >['mainCategory'];
@@ -178,12 +206,18 @@ type HomeNotificationOverlayProps = {
   onPressItem: (item: UserNotificationItem) => void;
   onDismissItem: (item: UserNotificationItem) => void;
   onDismissAll: () => void;
+  expandedItemKeys: ReadonlySet<string>;
+  onToggleExpandedItem: (item: UserNotificationItem) => void;
+  onSetExpandedItem: (item: UserNotificationItem, expanded: boolean) => void;
 };
 
 type HomeNotificationSwipeItemProps = {
   item: UserNotificationItem;
   onPressItem: (item: UserNotificationItem) => void;
   onDismissItem: (item: UserNotificationItem) => void;
+  expanded: boolean;
+  onToggleExpanded: (item: UserNotificationItem) => void;
+  onSetExpanded: (item: UserNotificationItem, expanded: boolean) => void;
 };
 
 /* ---------------------------------------------------------
@@ -206,6 +240,14 @@ function formatHomeNotificationDate(value: string) {
     hour: '2-digit',
     minute: '2-digit',
   }).format(date);
+}
+
+function getHomeNotificationKey(item: UserNotificationItem): string {
+  return `${item.source}:${item.id}`;
+}
+
+function animateNotificationCardLayout() {
+  LayoutAnimation.configureNext(NOTIFICATION_CARD_LAYOUT_ANIMATION);
 }
 
 function formatGender(
@@ -602,64 +644,159 @@ const HomeNotificationSwipeItem = React.memo(function HomeNotificationSwipeItem(
   item,
   onPressItem,
   onDismissItem,
+  expanded,
+  onToggleExpanded,
+  onSetExpanded,
 }: HomeNotificationSwipeItemProps) {
   const unread = !item.readAt;
   const dismissItem = useCallback(() => {
     onDismissItem(item);
   }, [item, onDismissItem]);
+  const toggleExpanded = useCallback(() => {
+    onToggleExpanded(item);
+  }, [item, onToggleExpanded]);
+  const setExpanded = useCallback(
+    (nextExpanded: boolean) => {
+      onSetExpanded(item, nextExpanded);
+    },
+    [item, onSetExpanded],
+  );
+  const swipeTranslateX = useRef(new RNAnimated.Value(0)).current;
+  const resetSwipePosition = useCallback(() => {
+    RNAnimated.spring(swipeTranslateX, {
+      toValue: 0,
+      useNativeDriver: true,
+      speed: 18,
+      bounciness: 0,
+    }).start();
+  }, [swipeTranslateX]);
+  const dismissWithSwipeAnimation = useCallback(
+    (dx: number) => {
+      const exitX = dx < 0 ? -460 : 460;
+      RNAnimated.timing(swipeTranslateX, {
+        toValue: exitX,
+        duration: 150,
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        swipeTranslateX.setValue(0);
+        if (finished) {
+          dismissItem();
+          return;
+        }
+        resetSwipePosition();
+      });
+    },
+    [dismissItem, resetSwipePosition, swipeTranslateX],
+  );
   const panResponder = useMemo(
     () =>
       PanResponder.create({
+        onMoveShouldSetPanResponderCapture: (_event, gestureState) =>
+          shouldCaptureNotificationCardGesture({
+            dx: gestureState.dx,
+            dy: gestureState.dy,
+          }),
         onMoveShouldSetPanResponder: (_event, gestureState) =>
-          Math.abs(gestureState.dx) > 14 &&
-          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.35,
-        onPanResponderRelease: (_event, gestureState) => {
-          if (Math.abs(gestureState.dx) > 72) {
-            dismissItem();
-            return;
+          shouldCaptureNotificationCardGesture({
+            dx: gestureState.dx,
+            dy: gestureState.dy,
+          }),
+        onPanResponderTerminationRequest: () => false,
+        onPanResponderMove: (_event, gestureState) => {
+          const absDx = Math.abs(gestureState.dx);
+          const absDy = Math.abs(gestureState.dy);
+          if (absDx > 8 && absDx > absDy * 1.15) {
+            swipeTranslateX.setValue(gestureState.dx);
           }
         },
+        onPanResponderRelease: (_event, gestureState) => {
+          const intent = getNotificationCardGestureIntent({
+            dx: gestureState.dx,
+            dy: gestureState.dy,
+            expanded,
+          });
+
+          if (intent === 'dismiss') {
+            dismissWithSwipeAnimation(gestureState.dx);
+            return;
+          }
+          resetSwipePosition();
+          if (intent === 'expand') {
+            setExpanded(true);
+            return;
+          }
+          if (intent === 'collapse') {
+            setExpanded(false);
+          }
+        },
+        onPanResponderTerminate: resetSwipePosition,
       }),
-    [dismissItem],
+    [
+      dismissWithSwipeAnimation,
+      expanded,
+      resetSwipePosition,
+      setExpanded,
+      swipeTranslateX,
+    ],
   );
 
   return (
     <View style={styles.notificationModalSwipeRow} {...panResponder.panHandlers}>
-      <View style={styles.notificationModalSwipeCard}>
+      <RNAnimated.View
+        style={[
+          styles.notificationModalSwipeCard,
+          { transform: [{ translateX: swipeTranslateX }] },
+        ]}
+      >
         <TouchableOpacity
           activeOpacity={0.9}
           style={[
             styles.notificationModalItem,
             unread ? styles.notificationModalItemUnread : null,
+            expanded ? styles.notificationModalItemExpanded : null,
           ]}
           onPress={() => onPressItem(item)}
         >
           <View style={styles.notificationModalItemTopRow}>
             <View style={styles.notificationModalItemTitleWrap}>
-              <Text style={styles.notificationModalItemTitle} numberOfLines={2}>
+              <Text style={styles.notificationModalItemTitle} numberOfLines={1}>
                 {item.title}
               </Text>
               {unread ? <View style={styles.notificationModalUnreadDot} /> : null}
             </View>
-            <View style={styles.notificationModalItemMeta}>
-              <Text style={styles.notificationModalItemDate}>
-                {formatHomeNotificationDate(item.createdAt)}
-              </Text>
-              <TouchableOpacity
-                activeOpacity={0.82}
-                accessibilityLabel="알림 삭제"
-                accessibilityRole="button"
-                style={styles.notificationModalItemDeleteButton}
-                onPress={dismissItem}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Feather name="x" size={13} color="rgba(85,96,112,0.82)" />
-              </TouchableOpacity>
-            </View>
           </View>
-          <Text style={styles.notificationModalItemBody}>{item.body}</Text>
+          <Text
+            style={[
+              styles.notificationModalItemBody,
+              expanded
+                ? styles.notificationModalItemBodyExpanded
+                : styles.notificationModalItemBodyCollapsed,
+            ]}
+            numberOfLines={expanded ? undefined : 2}
+          >
+            {item.body}
+          </Text>
+          <View style={styles.notificationModalItemFooterRow}>
+            <Text style={styles.notificationModalItemDate}>
+              {formatHomeNotificationDate(item.createdAt)}
+            </Text>
+            <TouchableOpacity
+              activeOpacity={0.84}
+              accessibilityLabel={expanded ? '알림 접기' : '알림 펼치기'}
+              accessibilityRole="button"
+              style={styles.notificationModalExpandButton}
+              onPress={toggleExpanded}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Feather
+                name={expanded ? 'chevron-up' : 'chevron-down'}
+                size={22}
+                color="rgba(255,255,255,0.70)"
+              />
+            </TouchableOpacity>
+          </View>
         </TouchableOpacity>
-      </View>
+      </RNAnimated.View>
     </View>
   );
 });
@@ -676,6 +813,9 @@ const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
   onPressItem,
   onDismissItem,
   onDismissAll,
+  expandedItemKeys,
+  onToggleExpandedItem,
+  onSetExpandedItem,
 }: HomeNotificationOverlayProps) {
   const unreadCount = useMemo(
     () => items.filter(item => !item.readAt).length,
@@ -840,10 +980,13 @@ const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
             >
               {items.map(item => (
                 <HomeNotificationSwipeItem
-                  key={`${item.source}:${item.id}`}
+                  key={getHomeNotificationKey(item)}
                   item={item}
+                  expanded={expandedItemKeys.has(getHomeNotificationKey(item))}
                   onPressItem={onPressItem}
                   onDismissItem={onDismissItem}
+                  onToggleExpanded={onToggleExpandedItem}
+                  onSetExpanded={onSetExpandedItem}
                 />
               ))}
             </ScrollView>
@@ -2073,6 +2216,8 @@ export default function LoggedInHome() {
   const [homeNotificationItems, setHomeNotificationItems] = useState<
     UserNotificationItem[]
   >([]);
+  const [expandedHomeNotificationKeys, setExpandedHomeNotificationKeys] =
+    useState<ReadonlySet<string>>(() => new Set());
   const [homeNotificationLoading, setHomeNotificationLoading] = useState(false);
   const [homeNotificationError, setHomeNotificationError] = useState<
     string | null
@@ -2093,11 +2238,13 @@ export default function LoggedInHome() {
   }, []);
 
   const openHomeNotifications = useCallback(() => {
+    setExpandedHomeNotificationKeys(new Set());
     setNotificationModalVisible(true);
     loadHomeNotifications().catch(() => {});
   }, [loadHomeNotifications]);
 
   const closeHomeNotifications = useCallback(() => {
+    setExpandedHomeNotificationKeys(new Set());
     setNotificationModalVisible(false);
   }, []);
 
@@ -2148,6 +2295,11 @@ export default function LoggedInHome() {
 
   const onDismissHomeNotificationItem = useCallback(
     async (item: UserNotificationItem) => {
+      setExpandedHomeNotificationKeys(prev => {
+        const next = new Set(prev);
+        next.delete(getHomeNotificationKey(item));
+        return next;
+      });
       setHomeNotificationItems(prev =>
         prev.filter(
           current =>
@@ -2176,6 +2328,7 @@ export default function LoggedInHome() {
   const onDismissAllHomeNotifications = useCallback(async () => {
     if (homeNotificationItems.length === 0) return;
     const previousItems = homeNotificationItems;
+    setExpandedHomeNotificationKeys(new Set());
     setHomeNotificationItems([]);
     setHomeNotificationError(null);
 
@@ -2188,6 +2341,40 @@ export default function LoggedInHome() {
       showToast({ tone: 'error', title: meta.title, message: meta.message });
     }
   }, [homeNotificationItems]);
+
+  const onToggleHomeNotificationExpanded = useCallback(
+    (item: UserNotificationItem) => {
+      animateNotificationCardLayout();
+      setExpandedHomeNotificationKeys(prev => {
+        const key = getHomeNotificationKey(item);
+        const next = new Set(prev);
+        if (next.has(key)) {
+          next.delete(key);
+        } else {
+          next.add(key);
+        }
+        return next;
+      });
+    },
+    [],
+  );
+
+  const onSetHomeNotificationExpanded = useCallback(
+    (item: UserNotificationItem, expanded: boolean) => {
+      animateNotificationCardLayout();
+      setExpandedHomeNotificationKeys(prev => {
+        const key = getHomeNotificationKey(item);
+        const next = new Set(prev);
+        if (expanded) {
+          next.add(key);
+        } else {
+          next.delete(key);
+        }
+        return next;
+      });
+    },
+    [],
+  );
 
   // ---------------------------------------------------------
   // 2) pets
@@ -2843,7 +3030,7 @@ export default function LoggedInHome() {
     [insets.bottom],
   );
   const notificationOverlayMaxHeight = useMemo(
-    () => Math.round(windowHeight * 0.66),
+    () => Math.round(windowHeight * 0.74),
     [windowHeight],
   );
 
@@ -3026,6 +3213,9 @@ export default function LoggedInHome() {
         onPressItem={onPressHomeNotificationItem}
         onDismissItem={onDismissHomeNotificationItem}
         onDismissAll={onDismissAllHomeNotifications}
+        expandedItemKeys={expandedHomeNotificationKeys}
+        onToggleExpandedItem={onToggleHomeNotificationExpanded}
+        onSetExpandedItem={onSetHomeNotificationExpanded}
       />
     </Screen>
   );

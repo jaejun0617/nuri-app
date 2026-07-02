@@ -4,7 +4,7 @@
 최종 정합성 검수일: 2026-07-02
 문서 목적: ChatGPT, Codex, 운영자, 후속 개발 세션이 현재 NURI 앱의 전체 맥락을 한 번에 파악하기 위한 source of truth 문서
 
-최신 갱신: 2026-07-02 홈 알림 UX closeout에서 기존 인라인 알림 패널을 제거하고, 홈 콘텐츠를 밀지 않는 상단 floating notification shade overlay로 수정했다. 알림 unread/list/mark read 경로와 adminQA read path는 유지한다. 같은 날 다중 알림 누적, 내부 스크롤, 얇은 native scroll indicator, 개별 X 삭제, 수평 스와이프 즉시 삭제, 전체삭제를 user-scoped dismiss 계약으로 추가했다. `SM_S937N / R5CY613NMSY` release APK 실기기 증적과 typecheck/lint/focused test/release build를 통과했다. 운영자 발송 UI, push, 홈 위젯, 무지개다리 서비스, 디자인 전체 조정, Play Store 자산은 열지 않았다.
+최신 갱신: 2026-07-02 홈 알림 UX closeout에서 기존 인라인 알림 패널을 제거하고, 홈 콘텐츠를 밀지 않는 상단 floating notification shade overlay로 수정했다. 알림 unread/list/mark read 경로와 adminQA read path는 유지한다. 같은 날 다중 알림 누적, 내부 스크롤, 높아진 overlay panel, 카드 이동형 좌우 스와이프 dismiss, 알림별 X 제거, 화살표-only 펼침/접힘, 전체삭제를 user-scoped dismiss 계약과 client UI 상태로 추가했다. `SM_S937N / R5CY613NMSY` release APK 실기기 증적과 typecheck/lint/focused test/release build를 통과했다. 운영자 발송 UI, push, 홈 위젯, 무지개다리 서비스, 디자인 전체 조정, Play Store 자산은 열지 않았다.
 
 ## 1. 문서 목적
 
@@ -42,8 +42,8 @@
 | V1.1 산책 POI 전환 트랙 | 약 99% | remote DB 기준 approved/public/active POI 1,145건, PostGIS foundation, 앱 POI RPC read path, admin import/review, 전국 주요 coverage, 한글 표시값 기준 유지, walk-domain Kakao fallback 제거, public projection safety, RC smoke 통과 |
 | V1.1 추가 업데이트 1차 MVP | 약 98% | 타임라인 count write/edit/delete edge closeout 완료. 회원탈퇴 모달/back/7일 유예와 email 최근 로그인 cold start 확인. 실제 탈퇴 예약과 social 최종 pill은 조건부 evidence |
 | V1.1 추가 업데이트 2차 MVP | 100% | 데일리 streak/데일리판, 알림 read path, XP/레벨/칭호 최소 MVP 구현 후 `adminQA` edge QA, KST 날짜 edge, RLS/RPC negative smoke, Android keyboard bar smoke 통과. 홈 상단 알림 아이콘은 floating notification shade overlay로 closeout |
-| V1.1 추가 기능 구현 | 약 74% | 1차 MVP 3개 edge QA와 2차 MVP 서버/앱 구현 및 edge QA, 홈 알림 overlay UX closeout까지 진행됐다. V1.1.1 후보인 무지개다리 서비스, 홈 위젯, push, 고급 XP/랭킹은 남음 |
-| V1.1 전체 | 약 67% | 산책 POI 트랙 closeout 가능, full E2E/navigation audit 통과, 병원 coverage 판정 완료, V1.1 추가 업데이트 1차 MVP 조건부 closeout 유지, 2차 MVP edge QA/RLS 재검증과 홈 알림 overlay UX closeout 완료 |
+| V1.1 추가 기능 구현 | 약 76% | 1차 MVP 3개 edge QA와 2차 MVP 서버/앱 구현 및 edge QA, 홈 알림 overlay/dismiss/expand UX closeout까지 진행됐다. V1.1.1 후보인 무지개다리 서비스, 홈 위젯, push, 고급 XP/랭킹은 남음 |
+| V1.1 전체 | 약 68% | 산책 POI 트랙 closeout 가능, full E2E/navigation audit 통과, 병원 coverage 판정 완료, V1.1 추가 업데이트 1차 MVP 조건부 closeout 유지, 2차 MVP edge QA/RLS 재검증과 홈 알림 overlay/dismiss/expand UX closeout 완료 |
 | 전체 제품 로드맵 | 약 96% | V1.0 release-ready 기준선은 닫혔고 V1.1 location foundation, 전국 seed 5차 coverage, Ready 권역 Kakao 호출 차단, 대량 seed 품질 점검, full E2E/navigation audit, 1차/2차 MVP edge QA까지 진행됐다. 장기 유료화/AI/전국 데이터 운영은 아직 남음 |
 | 최종 제출 준비 | 약 20% | release artifact/provenance와 정책 URL 기준은 정리됐지만 Play Store 스크린샷, 설명문, Console 입력, store listing package는 아직 최종 제출 직전 준비로 남음 |
 
@@ -112,8 +112,8 @@
 - XP/레벨/칭호: source idempotency, daily cap, Lv.1~10 curve, title 1회 지급과 중복 방지, cross-user hidden을 확인했다.
 - RLS/RPC: anon direct select row 0, anon RPC `42501` 계열 거부, authenticated own-data only, cross-user/cross-pet hidden을 확인했다. public projection이나 raw/internal/secret 노출은 없다.
 - Android evidence: `SM_S937N / R5CY613NMSY`에서 release APK rebuild/install 후 `adminQA` 세션으로 타임라인 데일리판/활동 성장 카드, 전체메뉴 알림함, 알림 목록/읽음, 타임라인 작성 keyboard bar smoke를 확인했다.
-- 홈 상단 알림 아이콘은 2026-07-02 UX closeout에서 floating notification shade overlay로 수정했다. overlay는 `오늘의 메시지로 하루를 시작해요` 문구 아래 위치에 뜨지만 홈 레이아웃 flow에 들어가지 않아 날씨/펫/하단 네비게이션을 밀지 않는다. X/backdrop/Android back 닫기 경로를 제공하고, 다중 알림에서는 내부 스크롤과 native scroll indicator를 사용한다. 알림 개별 X 삭제, 수평 스와이프 즉시 삭제, 전체삭제는 user-scoped dismiss RPC/RLS로 처리한다. 실기기 screenshot/uiautomator 증적과 logcat no-crash를 확보했다. push와 운영자 발송 UI는 후속 트랙이다.
-- 진행률: V1.1 추가 업데이트 2차 MVP 100%, V1.1 추가 기능 구현 약 74%, V1.1 전체 약 67%, 전체 제품 로드맵 약 96%.
+- 홈 상단 알림 아이콘은 2026-07-02 UX closeout에서 floating notification shade overlay로 수정했다. overlay는 `오늘의 메시지로 하루를 시작해요` 문구 아래 위치에 뜨지만 홈 레이아웃 flow에 들어가지 않아 날씨/펫/하단 네비게이션을 밀지 않는다. X/backdrop/Android back 닫기 경로를 제공하고, 다중 알림에서는 높아진 panel과 내부 스크롤을 사용한다. 알림별 작은 X는 제거했고, 카드가 이동하며 사라지는 좌우 스와이프 dismiss, 화살표-only 펼침/접힘, 전체삭제는 user-scoped dismiss RPC/RLS와 client UI 상태로 처리한다. 실기기 screenshot/uiautomator 증적과 logcat no-crash를 확보했다. push와 운영자 발송 UI는 후속 트랙이다.
+- 진행률: V1.1 추가 업데이트 2차 MVP 100%, V1.1 추가 기능 구현 약 76%, V1.1 전체 약 68%, 전체 제품 로드맵 약 96%.
 
 ## 4. V1.0 완료 내역
 
@@ -921,11 +921,11 @@ V1.1 추가 업데이트 planning:
 | V1.1 추가 업데이트 기획 | 100% | 8개 기능 공식 작업서/체크리스트/진행률표 작성 완료 |
 | V1.1 추가 업데이트 1차 MVP | 약 98% | 구현/focused test/Android edge QA 완료. 실제 탈퇴 예약과 social 최종 pill은 조건부 evidence |
 | V1.1 추가 업데이트 2차 MVP | 100% | 데일리 streak/데일리판, 알림 read path, XP/레벨/칭호 최소 MVP 구현 후 edge QA/RLS 재검증/adminQA Android smoke와 홈 알림 overlay UX closeout 완료 |
-| V1.1 추가 기능 구현 | 약 74% | 1차 MVP 3개 edge QA와 2차 MVP 서버/앱 구현 및 edge QA, 홈 알림 overlay UX closeout 완료. V1.1.1 후보는 후속 |
-| V1.1 전체 | 약 67% | RC 상태 갱신, 병원 품질 판정, 1차 MVP 조건부 closeout 유지, 2차 MVP edge closeout과 홈 알림 overlay UX closeout 반영 |
+| V1.1 추가 기능 구현 | 약 76% | 1차 MVP 3개 edge QA와 2차 MVP 서버/앱 구현 및 edge QA, 홈 알림 overlay/dismiss/expand UX closeout 완료. V1.1.1 후보는 후속 |
+| V1.1 전체 | 약 68% | RC 상태 갱신, 병원 품질 판정, 1차 MVP 조건부 closeout 유지, 2차 MVP edge closeout과 홈 알림 overlay/dismiss/expand UX closeout 반영 |
 | 전체 제품 로드맵 | 약 96% | 운영비 PO 확정과 V1.1 1차/2차 MVP edge QA 반영 기준 |
 
 다음 액션:
 
-1. V1.1 추가 업데이트 2차 MVP closeout: final sign-off와 장시간 사용 관찰
+1. V1.1 final sign-off: 전체 V1.1 회귀 QA 및 release readiness 갱신
 2. 디자인 조정 예정: 스토어 출시 전 앱 내부 디자인 polish 후보 확정
