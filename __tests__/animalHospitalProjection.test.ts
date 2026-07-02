@@ -3,11 +3,12 @@ import { mapOfficialAnimalHospitalSourceToCanonical } from '../src/services/anim
 
 describe('animalHospital public projection', () => {
   it('official source 기반 canonical은 safe public subset만 노출한다', () => {
+    const freshSourceUpdatedAt = new Date().toISOString();
     const canonical = mapOfficialAnimalHospitalSourceToCanonical({
       provider: 'official-localdata',
       providerRecordId: 'official-001',
-      sourceUpdatedAt: '2026-04-22T00:00:00.000Z',
-      ingestedAt: '2026-04-22T08:00:00.000Z',
+      sourceUpdatedAt: freshSourceUpdatedAt,
+      ingestedAt: freshSourceUpdatedAt,
       name: '누리동물병원',
       roadAddress: '서울특별시 강남구 테헤란로 10',
       lotAddress: '서울특별시 강남구 역삼동 10-1',

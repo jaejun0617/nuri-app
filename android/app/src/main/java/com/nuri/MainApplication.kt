@@ -7,7 +7,6 @@ import com.facebook.react.ReactHost
 import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.nuri.notifications.ScheduleNotificationPackage
-import com.nuri.widget.HomeWidgetPackage
 
 class MainApplication : Application(), ReactApplication {
 
@@ -16,7 +15,6 @@ class MainApplication : Application(), ReactApplication {
       context = applicationContext,
       packageList =
         PackageList(this).packages.apply {
-          add(HomeWidgetPackage())
           add(ScheduleNotificationPackage())
         },
     )

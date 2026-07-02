@@ -16,6 +16,7 @@
 - 2026-06-30 V1.1 추가 업데이트 1차 MVP로 회원탈퇴 입력 확인, 최근 로그인 표시, 타임라인 카테고리 count를 구현했고 edge QA를 수행했다. 신규 DB/migration/seed/design 변경은 없고 focused tests, Android 회원탈퇴 모달, 최근 로그인 email cold start, Kakao/Google OAuth 진입, 타임라인 작성/수정/삭제 count 갱신 smoke를 통과했다.
 - 2026-07-01 이후 모든 실기기 QA에는 키보드바/키보드 회피/입력창 가림/primary action 접근성/모달 크기/문구 잘림/Android back dismiss 확인을 포함한다. 이 기준은 디자인 리뉴얼이 아니라 release blocker 방지용 QA gate다.
 - 2026-07-01 V1.1 추가 업데이트 2차 MVP로 데일리 streak/데일리판, 앱 내부 알림 read path, XP/레벨/칭호 최소 MVP를 구현했다. additive migration/RPC/RLS를 적용했고, `adminQA` 일반 사용자 계정 기준 타임라인 데일리판/XP 카드, 알림함 read/mark read, keyboard bar smoke를 확인했다. 2026-07-02에는 홈 알림 UX를 inline panel에서 상단 floating notification shade로 수정해 홈 콘텐츠가 밀리지 않도록 닫았다. 같은 날 알림별 X는 제거하고, 카드가 이동하며 사라지는 좌우 스와이프 dismiss, 전체삭제, 화살표-only 펼침/접힘을 user-scoped dismiss와 client UI 상태로 추가했다. release APK에서 `ADMIN_QA_NOTICE` 다중 알림 누적/스크롤/삭제/빈 상태/펼침·접힘을 확인했다. 운영자 발송 UI, push, 홈 위젯, 무지개다리 서비스, 디자인 전체 조정, Play Store 자산은 열지 않았다.
+- 2026-07-02 V1.1 final sign-off 기준, V1.0 회귀와 V1.1 산책 POI/1차 MVP/2차 MVP/notification 최신 UX/RLS/RPC/Android `adminQA` smoke를 재검증했고 `V1.1 final sign-off 가능`으로 판정한다. V1.1.1 scope audit에서 Android 홈 위젯 native/JS 일부 코드가 release scope에 남아 있음을 확인해 receiver를 disabled/exported false로 막고 native package 등록을 제거했다. push remote notification, 운영자 발송 UI, 무지개다리 서비스, 고급 XP/랭킹은 release build에 의도치 않게 노출되지 않는다.
 - 디자인 수정은 이번 release QA 턴에서 하지 않았다. 스토어 출시 전 디자인 조정 후보는 별도 트랙으로 유지하며, Play Store 자산 패키지는 디자인 조정과 V1.0/V1.1 전체 완료 후 진행한다.
 
 ## 2026-06-30 Full App E2E / Navigation / Hospital Coverage RC QA
@@ -178,7 +179,7 @@
   - 전체메뉴 badge/dot과 알림함 진입점 유지
   - 홈 상단 알림 아이콘 탭 -> floating notification shade overlay -> X/backdrop/Android back 닫기 확인
   - 2026-07-02 코드 기준 inline panel 제거와 overlay shade 구현, typecheck/lint/focused test/release build 통과
-  - 2026-07-02 현재 ADB 연결 기기 없음. overlay screenshot/uiautomator bounds, open 전후 홈 콘텐츠 y좌표, adminQA mark read 실기기 증적은 다음 기기 연결 시 재확인
+  - 2026-07-02 `SM_S937N / R5CY613NMSY`에서 overlay screenshot/uiautomator bounds, open 전후 홈 콘텐츠 y좌표 유지, adminQA empty/list/read path 가능 범위를 재확인했다. 최신 final sign-off smoke에서는 adminQA inbox가 이전 전체삭제 후 empty 상태였으므로 live item gesture는 focused test와 직전 다중 알림 실기기 evidence로 보완한다.
 - [x] XP / 레벨 / 칭호 edge
   - source idempotency 확인
   - 150 XP/day cap 확인
@@ -201,6 +202,32 @@
   - overlay open 전후 홈 콘텐츠와 하단 네비게이션 layout이 밀리지 않는지 확인
   - 타임라인 작성 keyboard bar smoke 확인
   - logcat fatal / ANR / unhandled promise / ReactNativeJS fatal pattern 0건
+
+## 2026-07-02 V1.1 final sign-off / V1.1.1 scope audit
+
+- [x] V1.1 final sign-off 판정
+  - 판정: `V1.1 final sign-off 가능`
+  - V1.0 회귀 blocker 없음.
+  - V1.1 산책 POI closeout 가능 상태 유지.
+  - V1.1 1차 MVP는 release blocker 없이 조건부 closeout 유지.
+  - V1.1 2차 MVP는 notification/daily streak/XP final sign-off 가능.
+- [x] notification 최신 UX 기준
+  - 알림별 작은 X 제거는 최신 UX 정리 결과이며 release blocker가 아니다.
+  - 주요 삭제 UX는 좌우 swipe dismiss와 `전체삭제`로 유지한다.
+  - collapsed/expanded는 화살표-only indicator와 위/아래 스와이프를 사용한다.
+  - 삭제는 user-scoped dismiss이며 공지 원본 hard delete가 아니다.
+- [x] V1.1.1 후보 scope audit
+  - push remote notification: 미구현/후속. local schedule notification infra는 별도 기존 범위.
+  - 운영자 발송 UI: 앱 내부 미구현/후속. 일반 사용자와 `adminQA`에 노출되지 않음.
+  - 홈 위젯: Android native/JS 일부 코드 존재. V1.1 release scope leak을 막기 위해 receiver disabled/exported false와 native package 미등록으로 차단.
+  - 무지개다리 서비스: pet memorial profile state는 있으나 상품/문의/결제 flow는 미구현/후속.
+  - 고급 XP/랭킹: MVP XP/level/title만 구현. leaderboard/ranking public exposure 없음.
+- [x] 보안 smoke
+  - private tables anon direct select row 0.
+  - user RPC anon 호출 `42501` 계열 거부.
+  - notification dismiss는 user-scoped hide.
+  - XP/streak는 user/pet isolation 유지.
+  - walk/hospital public projection은 기존 public-safe 계약 유지.
 
 ## V1.0 기능 기준선과 잔여 task/risk closeout
 

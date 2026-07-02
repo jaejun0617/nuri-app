@@ -42,9 +42,11 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyCVY0fAsbYZcTVNjNRynDQG24MKEHu2bPA" />
 
+        <!-- V1.1.1 후보인 Android 홈 위젯은 V1.1 release build에서 사용자 노출을 막는다. -->
         <receiver
             android:name=".widget.HomeWidgetProvider"
-            android:exported="true">
+            android:enabled="false"
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
