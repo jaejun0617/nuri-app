@@ -1276,6 +1276,14 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     );
   }, [closeAndNavigate, navigation]);
 
+  const openPetActivityAchievements = useCallback(() => {
+    closeAndNavigate(() =>
+      navigation.navigate('PetActivityAchievements', {
+        entrySource: 'more',
+      }),
+    );
+  }, [closeAndNavigate, navigation]);
+
   const openScheduleList = useCallback(() => {
     closeAndNavigate(() =>
       navigation.navigate('ScheduleList', {
@@ -1766,8 +1774,21 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         iconTone: 'accent',
         onPress: isLoggedIn ? openScheduleList : onPressLogin,
       },
+      {
+        key: 'pet-activity-achievements',
+        label: '활동·칭호',
+        icon: 'award',
+        iconTone: 'accent',
+        onPress: isLoggedIn ? openPetActivityAchievements : onPressLogin,
+      },
     ],
-    [isLoggedIn, onPressLogin, openPetManagement, openScheduleList],
+    [
+      isLoggedIn,
+      onPressLogin,
+      openPetActivityAchievements,
+      openPetManagement,
+      openScheduleList,
+    ],
   );
 
   const activityItems = useMemo<MenuItemSpec[]>(

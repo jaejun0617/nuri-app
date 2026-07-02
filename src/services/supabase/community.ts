@@ -29,6 +29,7 @@ import type {
   FetchCommunityPostsParams,
   UpdateCommunityPostParams,
 } from '../../types/community';
+import { awardUserActivityXp } from '../activity/xpProgress';
 import { getCommunityGuestSessionId } from '../community/guestSession';
 import { formatPetAgeLabelFromBirthDate } from '../pets/age';
 import { supabase } from './client';
@@ -1019,6 +1020,14 @@ export async function createCommunityPost(
     throw new Error('게시글 저장 결과를 읽지 못했어요.');
   }
 
+  // 커뮤니티 활동은 특정 펫에 귀속하지 않는 user-level 공통 XP로만 기록한다.
+  awardUserActivityXp({
+    petId: null,
+    eventType: 'community_post',
+    sourceType: 'community_post',
+    sourceId: data.id,
+  }).catch(() => undefined);
+
   const [profilesByUserId, petsById] = await Promise.all([
     fetchProfilesByUserIds([data.user_id]),
     fetchPetsByIds([data.pet_id ?? ''].filter(Boolean)),
@@ -1161,6 +1170,14 @@ export async function createCommunityComment(
   if (!data) {
     throw new Error('댓글 저장 결과를 읽지 못했어요.');
   }
+
+  // 댓글 역시 pet별 카드에 중복 합산하지 않는 user-level 공통 XP다.
+  awardUserActivityXp({
+    petId: null,
+    eventType: 'comment',
+    sourceType: 'community_comment',
+    sourceId: data.id,
+  }).catch(() => undefined);
 
   const profilesByUserId = await fetchProfilesByUserIds([data.user_id]);
   return normalizeComment(

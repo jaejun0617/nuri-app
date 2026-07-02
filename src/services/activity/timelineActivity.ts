@@ -21,6 +21,7 @@ function isWalkCategory(category: string | null | undefined): boolean {
 }
 
 function resolveTimelineXpEventType(category: RecordMainCategoryKey) {
+  if (category === 'health') return 'health_record';
   return isWalkCategory(category) ? 'walk_timeline_post' : 'timeline_post';
 }
 

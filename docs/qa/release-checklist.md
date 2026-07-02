@@ -17,6 +17,7 @@
 - 2026-07-01 이후 모든 실기기 QA에는 키보드바/키보드 회피/입력창 가림/primary action 접근성/모달 크기/문구 잘림/Android back dismiss 확인을 포함한다. 이 기준은 디자인 리뉴얼이 아니라 release blocker 방지용 QA gate다.
 - 2026-07-01 V1.1 추가 업데이트 2차 MVP로 데일리 streak/데일리판, 앱 내부 알림 read path, XP/레벨/칭호 최소 MVP를 구현했다. additive migration/RPC/RLS를 적용했고, `adminQA` 일반 사용자 계정 기준 타임라인 데일리판/XP 카드, 알림함 read/mark read, keyboard bar smoke를 확인했다. 2026-07-02에는 홈 알림 UX를 inline panel에서 상단 floating notification shade로 수정해 홈 콘텐츠가 밀리지 않도록 닫았다. 같은 날 알림별 X는 제거하고, 카드가 이동하며 사라지는 좌우 스와이프 dismiss, 전체삭제, 화살표-only 펼침/접힘을 user-scoped dismiss와 client UI 상태로 추가했다. release APK에서 `ADMIN_QA_NOTICE` 다중 알림 누적/스크롤/삭제/빈 상태/펼침·접힘을 확인했다. 운영자 발송 UI, push, 홈 위젯, 무지개다리 서비스, 디자인 전체 조정, Play Store 자산은 열지 않았다.
 - 2026-07-02 V1.1 final sign-off 기준, V1.0 회귀와 V1.1 산책 POI/1차 MVP/2차 MVP/notification 최신 UX/RLS/RPC/Android `adminQA` smoke를 재검증했고 `V1.1 final sign-off 가능`으로 판정한다. V1.1.1 scope audit에서 Android 홈 위젯 native/JS 일부 코드가 release scope에 남아 있음을 확인해 receiver를 disabled/exported false로 막고 native package 등록을 제거했다. push remote notification, 운영자 발송 UI, 무지개다리 서비스, 고급 XP/랭킹은 release build에 의도치 않게 노출되지 않는다.
+- 2026-07-02 V1.1.1 1차로 `전체메뉴 > 나의 반려동물 > 활동·칭호` 대시보드를 추가했다. 기존 XP ledger/RLS/RPC를 재사용하고 신규 migration/RPC 없이 현재 성장, 펫별 활동, 산책/타임라인/건강관리, 공통 커뮤니티/댓글, 칭호·훈장 보관함을 표시한다. 커뮤니티/댓글은 user-level 공통 활동으로만 표시해 멀티펫 카드에 중복 합산하지 않는다. Lv.11~30과 고급 랭킹/리더보드는 후속으로 유지한다.
 - 디자인 수정은 이번 release QA 턴에서 하지 않았다. 스토어 출시 전 디자인 조정 후보는 별도 트랙으로 유지하며, Play Store 자산 패키지는 디자인 조정과 V1.0/V1.1 전체 완료 후 진행한다.
 
 ## 2026-06-30 Full App E2E / Navigation / Hospital Coverage RC QA
@@ -147,6 +148,8 @@
   - source idempotency, daily cap, Lv.1~10 level curve, 최소 칭호 지급 구현
   - 타임라인 작성과 산책 카테고리 작성에 XP 연결
   - 타임라인 활동 성장 카드에 total XP, level, 최신 칭호, 다음 레벨 progress 표시
+  - V1.1.1 1차: 전체메뉴 `활동·칭호` 화면에서 pet-scoped 활동과 user-scoped 공통 활동을 분리 표시
+  - Lv.11~30 확장은 서버 제약/RPC 검증이 필요하므로 후속으로 유지
 - [x] Android `adminQA` smoke
   - release APK rebuild/install/cold start
   - 로그인 후 홈 진입, 타임라인 데일리판/XP 카드 표시

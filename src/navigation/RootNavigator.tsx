@@ -30,6 +30,7 @@ import PasswordResetFormScreen from '../screens/Auth/PasswordResetFormScreen';
 import OAuthCallbackScreen from '../screens/Auth/OAuthCallbackScreen';
 
 import PetCreateScreen from '../screens/Pets/PetCreateScreen';
+import PetActivityAchievementsScreen from '../screens/Pets/PetActivityAchievementsScreen';
 import PetManagementScreen from '../screens/Pets/PetManagementScreen';
 import PetProfileEditScreen from '../screens/Pets/PetProfileEditScreen';
 import PetProfileEditDoneScreen from '../screens/Pets/PetProfileEditDoneScreen';
@@ -127,6 +128,7 @@ export type RootStackParamList = {
   // Pet
   PetCreate: { from?: 'auto' | 'cta' | 'header_plus' } | undefined;
   PetManagement: { entrySource?: ScreenEntrySource } | undefined;
+  PetActivityAchievements: { entrySource?: ScreenEntrySource } | undefined;
   PetProfileEdit: { petId: string; entrySource?: ScreenEntrySource };
   PetProfileEditDone: { petId: string; petName: string };
   HealthReport:
@@ -326,6 +328,11 @@ export default function RootNavigator() {
       <Stack.Screen
         name="PetManagement"
         component={PetManagementScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="PetActivityAchievements"
+        component={PetActivityAchievementsScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen
