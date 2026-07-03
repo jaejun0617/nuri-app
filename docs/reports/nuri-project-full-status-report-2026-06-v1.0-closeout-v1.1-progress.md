@@ -1,10 +1,10 @@
 # NURI 전체 프로젝트 현황 보고서
 
-기준일: 2026-07-02
-최종 정합성 검수일: 2026-07-02
+기준일: 2026-07-03
+최종 정합성 검수일: 2026-07-03
 문서 목적: ChatGPT, Codex, 운영자, 후속 개발 세션이 현재 NURI 앱의 전체 맥락을 한 번에 파악하기 위한 source of truth 문서
 
-최신 갱신: 2026-07-02 V1.1 final sign-off에서 V1.0 회귀, 산책 POI, V1.1 1차 MVP, V1.1 2차 MVP, notification 최신 UX, RLS/RPC negative smoke, Android `adminQA` smoke를 재검증했고 `V1.1 final sign-off 가능`으로 판정했다. 홈 알림은 상단 floating notification shade, 좌우 swipe dismiss, 전체삭제, 화살표-only 펼침/접힘 구조로 유지하며 알림별 작은 X는 최신 UX 정리 결과 제거된 상태다. V1.1.1 scope audit에서 Android 홈 위젯 native/JS 일부 코드가 release scope에 남아 있음을 확인해 receiver disabled/exported false와 native package 미등록으로 release 노출을 차단했다. 이후 V1.1.1 1순위로 `고급 XP/칭호/훈장/활동내역 대시보드`를 확정하고 `전체메뉴 > 나의 반려동물 > 활동·칭호` 1차 MVP를 구현했다. 운영자 발송 UI, remote push, 무지개다리 서비스, 고급 랭킹/리더보드, 디자인 전체 조정, Play Store 자산은 열지 않았다.
+최신 갱신: 2026-07-03 V1.1.1 1차 closeout에서 홈 간편 알림창 swipe dismiss와 `모두 치우기`를 전체보기 삭제가 아닌 home-only local/user-scoped hide로 분리했다. 전체보기/알림함 개별 삭제와 전체삭제는 기존 서버 RPC의 user-scoped hide를 유지하고, read/home dismiss/inbox delete는 분리 상태다. `adminQA`로 산책 카테고리 타임라인 글 `ADMIN_QA_TEST`를 실제 저장해 데일리 streak 축하 모달과 활동·칭호 대시보드 반영을 확인했다. 활동·칭호는 총 `75 XP`, AdminQAPet `60 XP · 훈장 2개`, 산책 `2회`, 타임라인 `1개`, 카테고리 `전체 1 / 산책 1 / 식사 0 / 일기장 0 / 생활 0`, 공통 커뮤니티/댓글 `0개`, 획득/잠금 칭호 분리를 표시했다. 글/댓글/카테고리별 게시물 등록 반영은 focused test로 추가 고정했다. 운영자 발송 UI, remote push, 무지개다리 서비스, 고급 랭킹/리더보드, 디자인 전체 조정, Play Store 자산은 열지 않았다.
 
 ## 1. 문서 목적
 
@@ -42,10 +42,10 @@
 | V1.1 산책 POI 전환 트랙 | 약 99% | remote DB 기준 approved/public/active POI 1,145건, PostGIS foundation, 앱 POI RPC read path, admin import/review, 전국 주요 coverage, 한글 표시값 기준 유지, walk-domain Kakao fallback 제거, public projection safety, RC smoke 통과 |
 | V1.1 추가 업데이트 1차 MVP | 약 98% | 타임라인 count write/edit/delete edge closeout 완료. 회원탈퇴 모달/back/7일 유예와 email 최근 로그인 cold start 확인. 실제 탈퇴 예약과 social 최종 pill은 조건부 evidence |
 | V1.1 추가 업데이트 2차 MVP | 100% | 데일리 streak/데일리판, 알림 read path, XP/레벨/칭호 최소 MVP 구현 후 `adminQA` edge QA, KST 날짜 edge, RLS/RPC negative smoke, Android keyboard bar smoke 통과. 홈 상단 알림 아이콘은 floating notification shade overlay로 closeout |
-| V1.1 추가 기능 구현 | 약 82% | 1차 MVP 3개 edge QA와 2차 MVP 서버/앱 구현 및 edge QA, 홈 알림 overlay/dismiss/expand UX closeout, V1.1.1 후보 scope audit과 홈 위젯 release 노출 차단, `활동·칭호` 대시보드 1차 구현까지 완료. push/운영자 발송 UI/무지개다리/고급 랭킹은 후속 |
-| V1.1 전체 | 약 72% | 산책 POI 트랙 closeout 가능, full E2E/navigation audit 통과, 병원 coverage 판정 완료, V1.1 추가 업데이트 1차 MVP 조건부 closeout 유지, 2차 MVP edge QA/RLS 재검증과 홈 알림 overlay/dismiss/expand UX closeout, V1.1.1 scope audit과 1차 대시보드 구현 반영 |
-| V1.1.1 1차 기능 | 약 85% | V1.1.1 우선순위와 활동·칭호 정책 v1 문서화, `활동·칭호` route/entry/card UI 구현, user/pet 분리와 focused test 완료. adminQA 장시간 edge QA와 멀티펫 실제 증적은 closeout에서 누적 |
-| 전체 제품 로드맵 | 약 97.5% | V1.0 release-ready 기준선은 닫혔고 V1.1 location foundation, 전국 seed 5차 coverage, Ready 권역 Kakao 호출 차단, 대량 seed 품질 점검, full E2E/navigation audit, 1차/2차 MVP edge QA, V1.1 final sign-off, V1.1.1 1차 대시보드 구현까지 진행됐다. 장기 유료화/AI/전국 데이터 운영은 아직 남음 |
+| V1.1 추가 기능 구현 | 약 84% | 1차 MVP 3개 edge QA와 2차 MVP 서버/앱 구현 및 edge QA, 홈 알림 overlay/dismiss/expand UX closeout, V1.1.1 후보 scope audit과 홈 위젯 release 노출 차단, `활동·칭호` 대시보드 1차 구현과 실제 XP write smoke, 알림 보존 정책 분리 완료. push/운영자 발송 UI/무지개다리/고급 랭킹은 후속 |
+| V1.1 전체 | 약 73% | 산책 POI 트랙 closeout 가능, full E2E/navigation audit 통과, 병원 coverage 판정 완료, V1.1 추가 업데이트 1차 MVP 조건부 closeout 유지, 2차 MVP edge QA/RLS 재검증과 홈 알림 overlay/dismiss/expand UX closeout, V1.1.1 scope audit과 1차 대시보드 closeout smoke 반영 |
+| V1.1.1 1차 기능 | 약 92% | V1.1.1 우선순위와 활동·칭호 정책 v1 문서화, `활동·칭호` route/entry/card UI 구현, user/pet 분리, 실제 adminQA 산책 글 XP write smoke, 카테고리별/글/댓글 focused test, 알림 home dismiss와 inbox delete 분리 완료. live 알림 row retention smoke는 service role key 부재로 focused test 보완 |
+| 전체 제품 로드맵 | 약 97.8% | V1.0 release-ready 기준선은 닫혔고 V1.1 location foundation, 전국 seed 5차 coverage, Ready 권역 Kakao 호출 차단, 대량 seed 품질 점검, full E2E/navigation audit, 1차/2차 MVP edge QA, V1.1 final sign-off, V1.1.1 1차 대시보드 closeout smoke까지 진행됐다. 장기 유료화/AI/전국 데이터 운영은 아직 남음 |
 | 최종 제출 준비 | 약 20% | release artifact/provenance와 정책 URL 기준은 정리됐지만 Play Store 스크린샷, 설명문, Console 입력, store listing package는 아직 최종 제출 직전 준비로 남음 |
 
 남은 작업의 성격:
@@ -137,7 +137,7 @@
 | 무지개다리 서비스 | pet memorial profile state는 존재, 상품/문의/결제 flow 없음 | profile/memorial field code 일부 | 서비스 제안/상품 flow 미노출 | 기존 pet profile field 범위 | 민감 UX 문구는 후속 확정 필요 | 서비스 제외 | 한 번만 노출되는 조심스러운 문의 UX, 결제/상품 정책 | 문서 후보/부분 기반 |
 | 고급 XP/랭킹 | MVP XP/level/title만 구현. leaderboard 없음 | MVP XP code 존재 | ranking UI 미노출 | MVP ledger/RPC만 존재 | cross-user ranking 노출 없음 | 고급 랭킹 제외 | privacy/RLS 기반 leaderboard, badge, abuse 정책 | 미구현/후속 |
 
-진행률: V1.0 기능 개발 100%, V1.0 QA/출시 준비 약 99%, V1.1 산책 POI 트랙 약 99%, V1.1 추가 업데이트 1차 MVP 약 98%, V1.1 추가 업데이트 2차 MVP 100%, V1.1 추가 기능 구현 약 82%, V1.1 전체 약 72%, V1.1.1 1차 기능 약 85%, 전체 제품 로드맵 약 97.5%.
+진행률: V1.0 기능 개발 100%, V1.0 QA/출시 준비 약 99%, V1.1 산책 POI 트랙 약 99%, V1.1 추가 업데이트 1차 MVP 약 98%, V1.1 추가 업데이트 2차 MVP 100%, V1.1 추가 기능 구현 약 84%, V1.1 전체 약 73%, V1.1.1 1차 기능 약 92%, 전체 제품 로드맵 약 97.8%.
 
 ## 3-7. 2026-07-02 V1.1.1 우선순위 / 활동·칭호 대시보드 1차 구현
 
@@ -151,7 +151,19 @@
 - UI 카드: 현재 성장 카드, 아이별 성장 기록, 산책/타임라인/건강관리 카드, 공통 커뮤니티/댓글 카드, 칭호·훈장 보관함을 추가했다.
 - 제외: push, 운영자 발송 UI, 홈 위젯, 무지개다리, 고급 랭킹/리더보드, Play Store 자산, 디자인 전체 리뉴얼은 구현하지 않았다.
 
-진행률: V1.1 추가 기능 구현 약 82%, V1.1 전체 약 72%, V1.1.1 1차 기능 약 85%, 전체 제품 로드맵 약 97.5%.
+진행률: V1.1 추가 기능 구현 약 84%, V1.1 전체 약 73%, V1.1.1 1차 기능 약 92%, 전체 제품 로드맵 약 97.8%.
+
+## 3-8. 2026-07-03 V1.1.1 1차 closeout / 알림 보존 정책 분리
+
+- 알림 보존 정책: 홈 간편 알림창 swipe dismiss와 `모두 치우기`는 전체보기 삭제가 아니라 home-only local/user-scoped hide로 분리했다. 전체보기/알림함 개별 삭제와 전체삭제는 기존 서버 RPC의 user-scoped hide를 유지한다.
+- 상태 분리: read, home quick dismiss, inbox delete를 별도 상태로 유지한다. close/backdrop/Android back close는 삭제도 home dismiss도 아니다.
+- live 알림 row: 현재 셸에는 service role key가 없어 adminQA 새 알림 row 생성 smoke를 수행하지 못했다. policy는 focused test와 기존 read path evidence로 고정하고, 관리 도구가 준비된 뒤 실제 row evidence를 보강한다.
+- XP write smoke: adminQA 산책 카테고리 타임라인 글 `ADMIN_QA_TEST` 저장 후 데일리 streak 축하 모달과 활동·칭호 반영을 확인했다.
+- 활동·칭호 반영: 총 `75 XP`, AdminQAPet `60 XP · 훈장 2개`, 산책 `2회`, 타임라인 `1개`, 카테고리 `전체 1 / 산책 1 / 식사 0 / 일기장 0 / 생활 0`, 공통 커뮤니티/댓글 `0개`, `첫 산책 친구`/`첫 추억 기록` 획득과 건강/커뮤니티 잠금 칭호를 확인했다.
+- focused test: notification home dismiss vs inbox delete, broken local storage safety, 타임라인 카테고리별 XP event mapping, 글/댓글/카테고리별 게시물 등록 결과의 활동·칭호 카드 반영을 추가했다.
+- RLS: anon direct select는 row 0 또는 42501, anon RPC는 notification/streak/XP/title 계열 모두 42501로 차단됐다.
+
+진행률: V1.1 추가 기능 구현 약 84%, V1.1 전체 약 73%, V1.1.1 1차 기능 약 92%, 전체 제품 로드맵 약 97.8%.
 
 ## 4. V1.0 완료 내역
 
@@ -959,12 +971,12 @@ V1.1 추가 업데이트 planning:
 | V1.1 추가 업데이트 기획 | 100% | 8개 기능 공식 작업서/체크리스트/진행률표 작성 완료 |
 | V1.1 추가 업데이트 1차 MVP | 약 98% | 구현/focused test/Android edge QA 완료. 실제 탈퇴 예약과 social 최종 pill은 조건부 evidence |
 | V1.1 추가 업데이트 2차 MVP | 100% | 데일리 streak/데일리판, 알림 read path, XP/레벨/칭호 최소 MVP 구현 후 edge QA/RLS 재검증/adminQA Android smoke와 홈 알림 overlay UX closeout 완료 |
-| V1.1 추가 기능 구현 | 약 82% | 1차 MVP 3개 edge QA와 2차 MVP 서버/앱 구현 및 edge QA, 홈 알림 overlay/dismiss/expand UX closeout, V1.1.1 scope audit과 홈 위젯 release 노출 차단, `활동·칭호` 대시보드 1차 구현 완료 |
-| V1.1 전체 | 약 72% | RC 상태 갱신, 병원 품질 판정, 1차 MVP 조건부 closeout 유지, 2차 MVP edge closeout과 홈 알림 overlay/dismiss/expand UX closeout, V1.1.1 후보 scope audit과 1차 대시보드 구현 반영 |
-| V1.1.1 1차 기능 | 약 85% | 우선순위/정책 문서화, `활동·칭호` route/entry/card UI 구현, user/pet 분리와 focused test 완료. adminQA 장시간 edge QA와 멀티펫 실제 증적은 closeout에서 누적 |
-| 전체 제품 로드맵 | 약 97.5% | 운영비 PO 확정, V1.1 1차/2차 MVP edge QA, V1.1 final sign-off, V1.1.1 1차 대시보드 구현 반영 기준 |
+| V1.1 추가 기능 구현 | 약 84% | 1차 MVP 3개 edge QA와 2차 MVP 서버/앱 구현 및 edge QA, 홈 알림 overlay/dismiss/expand UX closeout, V1.1.1 scope audit과 홈 위젯 release 노출 차단, `활동·칭호` 대시보드 1차 구현, 실제 XP write smoke, 알림 보존 정책 분리 완료 |
+| V1.1 전체 | 약 73% | RC 상태 갱신, 병원 품질 판정, 1차 MVP 조건부 closeout 유지, 2차 MVP edge closeout과 홈 알림 overlay/dismiss/expand UX closeout, V1.1.1 후보 scope audit과 1차 대시보드 closeout smoke 반영 |
+| V1.1.1 1차 기능 | 약 92% | 우선순위/정책 문서화, `활동·칭호` route/entry/card UI 구현, user/pet 분리 focused test, adminQA 실제 산책 글 XP write smoke, 카테고리별/글/댓글 test, 알림 home dismiss와 inbox delete 분리 완료 |
+| 전체 제품 로드맵 | 약 97.8% | 운영비 PO 확정, V1.1 1차/2차 MVP edge QA, V1.1 final sign-off, V1.1.1 1차 대시보드 closeout smoke 반영 기준 |
 
 다음 액션:
 
-1. V1.1.1 1차 closeout: `활동·칭호` 대시보드 edge QA
-2. V1.1.1 후보: push/운영자 발송 UI/홈 위젯/무지개다리 중 다음 우선순위 확정
+1. V1.1.1 후보: push/운영자 발송 UI/홈 위젯/무지개다리 중 다음 우선순위 확정
+2. 디자인 조정 예정: 스토어 출시 전 앱 내부 디자인 polish 후보 확정

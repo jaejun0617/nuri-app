@@ -107,12 +107,16 @@ import {
 } from '../../../../services/pets/memorial';
 import { getBrandedErrorMeta } from '../../../../services/app/errors';
 import {
-  dismissAllUserNotifications,
-  dismissUserNotification,
   fetchUserNotifications,
   markUserNotificationRead,
   type UserNotificationItem,
 } from '../../../../services/notifications/userNotifications';
+import {
+  dismissHomeNotification,
+  dismissHomeNotifications,
+  filterHomeVisibleNotifications,
+  loadHomeNotificationDismissedKeys,
+} from '../../../../services/notifications/homeQuickDismiss';
 import {
   getNotificationCardGestureIntent,
   shouldCaptureNotificationCardGesture,
@@ -911,14 +915,14 @@ const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
             {items.length > 0 && !loading && !errorMessage ? (
               <TouchableOpacity
                 activeOpacity={0.86}
-                accessibilityLabel="알림 전체삭제"
+                accessibilityLabel="홈 알림 모두 치우기"
                 accessibilityRole="button"
                 style={styles.notificationModalClearAllButton}
                 onPress={onDismissAll}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Text style={styles.notificationModalClearAllText}>
-                  전체삭제
+                  모두 치우기
                 </Text>
               </TouchableOpacity>
             ) : null}
@@ -2207,6 +2211,7 @@ export default function LoggedInHome() {
   // 1) auth
   // ---------------------------------------------------------
   const nicknameRaw = useAuthStore(s => s.profile.nickname);
+  const sessionUserId = useAuthStore(s => s.session?.user.id ?? null);
 
   // ---------------------------------------------------------
   // 1.5) notifications
@@ -2227,15 +2232,20 @@ export default function LoggedInHome() {
     setHomeNotificationLoading(true);
     setHomeNotificationError(null);
     try {
+      if (!sessionUserId) {
+        setHomeNotificationItems([]);
+        return;
+      }
       const items = await fetchUserNotifications(30);
-      setHomeNotificationItems(items);
+      const dismissedKeys = await loadHomeNotificationDismissedKeys(sessionUserId);
+      setHomeNotificationItems(filterHomeVisibleNotifications(items, dismissedKeys));
     } catch (error) {
       const meta = getBrandedErrorMeta(error, 'generic');
       setHomeNotificationError(meta.message);
     } finally {
       setHomeNotificationLoading(false);
     }
-  }, []);
+  }, [sessionUserId]);
 
   const openHomeNotifications = useCallback(() => {
     setExpandedHomeNotificationKeys(new Set());
@@ -2295,6 +2305,7 @@ export default function LoggedInHome() {
 
   const onDismissHomeNotificationItem = useCallback(
     async (item: UserNotificationItem) => {
+      if (!sessionUserId) return;
       setExpandedHomeNotificationKeys(prev => {
         const next = new Set(prev);
         next.delete(getHomeNotificationKey(item));
@@ -2308,7 +2319,10 @@ export default function LoggedInHome() {
       );
 
       try {
-        await dismissUserNotification({ id: item.id, source: item.source });
+        await dismissHomeNotification({
+          userId: sessionUserId,
+          notification: { id: item.id, source: item.source },
+        });
       } catch (error) {
         const meta = getBrandedErrorMeta(error, 'generic');
         setHomeNotificationError(meta.message);
@@ -2322,10 +2336,11 @@ export default function LoggedInHome() {
         showToast({ tone: 'error', title: meta.title, message: meta.message });
       }
     },
-    [],
+    [sessionUserId],
   );
 
   const onDismissAllHomeNotifications = useCallback(async () => {
+    if (!sessionUserId) return;
     if (homeNotificationItems.length === 0) return;
     const previousItems = homeNotificationItems;
     setExpandedHomeNotificationKeys(new Set());
@@ -2333,14 +2348,20 @@ export default function LoggedInHome() {
     setHomeNotificationError(null);
 
     try {
-      await dismissAllUserNotifications();
+      await dismissHomeNotifications({
+        userId: sessionUserId,
+        notifications: homeNotificationItems.map(item => ({
+          id: item.id,
+          source: item.source,
+        })),
+      });
     } catch (error) {
       const meta = getBrandedErrorMeta(error, 'generic');
       setHomeNotificationError(meta.message);
       setHomeNotificationItems(previousItems);
       showToast({ tone: 'error', title: meta.title, message: meta.message });
     }
-  }, [homeNotificationItems]);
+  }, [homeNotificationItems, sessionUserId]);
 
   const onToggleHomeNotificationExpanded = useCallback(
     (item: UserNotificationItem) => {
@@ -2831,7 +2852,6 @@ export default function LoggedInHome() {
   );
 
   const quickActionCards = HOME_SHORTCUTS;
-  const sessionUserId = useAuthStore(s => s.session?.user.id ?? null);
   const homeGuideContext = useMemo(
     () => ({
       userId: sessionUserId,

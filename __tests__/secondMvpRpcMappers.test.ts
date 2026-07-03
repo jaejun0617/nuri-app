@@ -146,6 +146,104 @@ describe('V1.1 second MVP RPC mappers', () => {
     });
   });
 
+  it('타임라인 작성 카테고리별 XP 이벤트를 실제 enum 기준으로 분리한다', async () => {
+    supabase.rpc
+      .mockResolvedValueOnce({
+        data: [
+          {
+            awarded: true,
+            xp_awarded: 15,
+            total_xp: 15,
+            level: 1,
+            leveled_up: false,
+          },
+        ],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            awarded: true,
+            xp_awarded: 15,
+            total_xp: 30,
+            level: 1,
+            leveled_up: false,
+          },
+        ],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            awarded: true,
+            xp_awarded: 15,
+            total_xp: 45,
+            level: 1,
+            leveled_up: false,
+          },
+        ],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            awarded: true,
+            xp_awarded: 10,
+            total_xp: 55,
+            level: 1,
+            leveled_up: false,
+          },
+        ],
+        error: null,
+      });
+
+    await recordTimelineCreateActivity({
+      petId: 'pet-1',
+      memoryId: 'meal-memory',
+      category: 'meal',
+    });
+    await recordTimelineCreateActivity({
+      petId: 'pet-1',
+      memoryId: 'diary-memory',
+      category: 'diary',
+    });
+    await recordTimelineCreateActivity({
+      petId: 'pet-1',
+      memoryId: 'other-memory',
+      category: 'other',
+    });
+    await recordTimelineCreateActivity({
+      petId: 'pet-1',
+      memoryId: 'health-memory',
+      category: 'health',
+    });
+
+    expect(supabase.rpc).toHaveBeenNthCalledWith(1, 'award_user_activity_xp_v1', {
+      p_pet_id: 'pet-1',
+      p_event_type: 'timeline_post',
+      p_source_type: 'timeline_memory',
+      p_source_id: 'meal-memory',
+    });
+    expect(supabase.rpc).toHaveBeenNthCalledWith(2, 'award_user_activity_xp_v1', {
+      p_pet_id: 'pet-1',
+      p_event_type: 'timeline_post',
+      p_source_type: 'timeline_memory',
+      p_source_id: 'diary-memory',
+    });
+    expect(supabase.rpc).toHaveBeenNthCalledWith(3, 'award_user_activity_xp_v1', {
+      p_pet_id: 'pet-1',
+      p_event_type: 'timeline_post',
+      p_source_type: 'timeline_memory',
+      p_source_id: 'other-memory',
+    });
+    expect(supabase.rpc).toHaveBeenNthCalledWith(4, 'award_user_activity_xp_v1', {
+      p_pet_id: 'pet-1',
+      p_event_type: 'health_record',
+      p_source_type: 'timeline_memory',
+      p_source_id: 'health-memory',
+    });
+  });
+
   it('XP, level, title mapper는 민감 정보 없이 표시 모델만 반환한다', async () => {
     supabase.rpc
       .mockResolvedValueOnce({
