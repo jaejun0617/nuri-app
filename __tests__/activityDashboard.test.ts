@@ -124,7 +124,7 @@ describe('activity dashboard summary', () => {
     expect(dashboard.representativeTitle).toBe('첫 산책 친구');
     expect(
       dashboard.allAchievements.find(item => item.key === 'pet_first_walk_friend'),
-    ).toMatchObject({ achieved: true });
+    ).toMatchObject({ achieved: true, ownerId: 'pet-1', ownerLabel: '첫째' });
     expect(
       dashboard.allAchievements.find(item => item.key === 'pet_walk_sprout'),
     ).toMatchObject({ achieved: false, threshold: 7 });
@@ -225,8 +225,14 @@ describe('activity dashboard summary', () => {
       dashboard.commonSummary.achievements.find(item => item.key === 'common_kind_commenter'),
     ).toMatchObject({
       achieved: false,
+      ownerId: 'common',
+      ownerLabel: '공통 활동',
       currentValue: 3,
       threshold: 10,
     });
+    const scopedAchievementKeys = dashboard.allAchievements.map(
+      item => `${item.scope}:${item.ownerId}:${item.key}`,
+    );
+    expect(new Set(scopedAchievementKeys).size).toBe(scopedAchievementKeys.length);
   });
 });

@@ -63,6 +63,8 @@ export type ActivityAchievement = {
   name: string;
   domain: AchievementDomain;
   scope: AchievementScope;
+  ownerId: string;
+  ownerLabel: string;
   conditionLabel: string;
   currentValue: number;
   threshold: number;
@@ -217,6 +219,8 @@ function buildAchievement(input: {
   name: string;
   domain: AchievementDomain;
   scope: AchievementScope;
+  ownerId: string;
+  ownerLabel: string;
   conditionLabel: string;
   currentValue: number;
   threshold: number;
@@ -229,6 +233,8 @@ function buildAchievement(input: {
 }
 
 function buildPetAchievements(input: {
+  petId: string;
+  petName: string;
   walkCount: number;
   bestStreak: number;
   timelineCount: number;
@@ -247,6 +253,8 @@ function buildPetAchievements(input: {
       name: '첫 산책 친구',
       domain: 'walk',
       scope: 'pet',
+      ownerId: input.petId,
+      ownerLabel: input.petName,
       conditionLabel: '산책 기록 1회',
       currentValue: input.walkCount,
       threshold: 1,
@@ -256,6 +264,8 @@ function buildPetAchievements(input: {
       name: '산책 새싹',
       domain: 'walk',
       scope: 'pet',
+      ownerId: input.petId,
+      ownerLabel: input.petName,
       conditionLabel: '산책 기록 7회',
       currentValue: input.walkCount,
       threshold: 7,
@@ -265,6 +275,8 @@ function buildPetAchievements(input: {
       name: '루틴 새싹',
       domain: 'streak',
       scope: 'pet',
+      ownerId: input.petId,
+      ownerLabel: input.petName,
       conditionLabel: '3일 연속 산책',
       currentValue: input.bestStreak,
       threshold: 3,
@@ -274,6 +286,8 @@ function buildPetAchievements(input: {
       name: '꾸준한 산책러',
       domain: 'streak',
       scope: 'pet',
+      ownerId: input.petId,
+      ownerLabel: input.petName,
       conditionLabel: '7일 연속 산책',
       currentValue: input.bestStreak,
       threshold: 7,
@@ -283,6 +297,8 @@ function buildPetAchievements(input: {
       name: '첫 추억 기록',
       domain: 'timeline',
       scope: 'pet',
+      ownerId: input.petId,
+      ownerLabel: input.petName,
       conditionLabel: '타임라인 1개',
       currentValue: input.timelineCount,
       threshold: 1,
@@ -292,6 +308,8 @@ function buildPetAchievements(input: {
       name: '추억 수집가',
       domain: 'timeline',
       scope: 'pet',
+      ownerId: input.petId,
+      ownerLabel: input.petName,
       conditionLabel: '타임라인 10개',
       currentValue: input.timelineCount,
       threshold: 10,
@@ -301,6 +319,8 @@ function buildPetAchievements(input: {
       name: '하루 기록러',
       domain: 'timeline_category',
       scope: 'pet',
+      ownerId: input.petId,
+      ownerLabel: input.petName,
       conditionLabel: '카테고리 기록 10개',
       currentValue: timelineCategoryTotal,
       threshold: 10,
@@ -310,6 +330,8 @@ function buildPetAchievements(input: {
       name: '첫 건강 기록',
       domain: 'health',
       scope: 'pet',
+      ownerId: input.petId,
+      ownerLabel: input.petName,
       conditionLabel: '건강 기록 1개',
       currentValue: input.healthCount,
       threshold: 1,
@@ -319,6 +341,8 @@ function buildPetAchievements(input: {
       name: '건강 습관러',
       domain: 'health',
       scope: 'pet',
+      ownerId: input.petId,
+      ownerLabel: input.petName,
       conditionLabel: '건강 기록 10개',
       currentValue: input.healthCount,
       threshold: 10,
@@ -336,6 +360,8 @@ function buildCommonAchievements(input: {
       name: '첫 인사 완료',
       domain: 'community',
       scope: 'common',
+      ownerId: 'common',
+      ownerLabel: '공통 활동',
       conditionLabel: '커뮤니티 글 1개',
       currentValue: input.communityPostCount,
       threshold: 1,
@@ -345,6 +371,8 @@ function buildCommonAchievements(input: {
       name: '동네 소식통',
       domain: 'community',
       scope: 'common',
+      ownerId: 'common',
+      ownerLabel: '공통 활동',
       conditionLabel: '커뮤니티 글 10개',
       currentValue: input.communityPostCount,
       threshold: 10,
@@ -354,6 +382,8 @@ function buildCommonAchievements(input: {
       name: '이야기꾼',
       domain: 'community',
       scope: 'common',
+      ownerId: 'common',
+      ownerLabel: '공통 활동',
       conditionLabel: '커뮤니티 글 50개',
       currentValue: input.communityPostCount,
       threshold: 50,
@@ -363,6 +393,8 @@ function buildCommonAchievements(input: {
       name: '다정한 댓글러',
       domain: 'comment',
       scope: 'common',
+      ownerId: 'common',
+      ownerLabel: '공통 활동',
       conditionLabel: '댓글 10개',
       currentValue: input.commentCount,
       threshold: 10,
@@ -372,6 +404,8 @@ function buildCommonAchievements(input: {
       name: '댓글 요정',
       domain: 'comment',
       scope: 'common',
+      ownerId: 'common',
+      ownerLabel: '공통 활동',
       conditionLabel: '댓글 30개',
       currentValue: input.commentCount,
       threshold: 30,
@@ -381,6 +415,8 @@ function buildCommonAchievements(input: {
       name: '따뜻한 참견러',
       domain: 'comment',
       scope: 'common',
+      ownerId: 'common',
+      ownerLabel: '공통 활동',
       conditionLabel: '댓글 100개',
       currentValue: input.commentCount,
       threshold: 100,
@@ -411,6 +447,8 @@ export function buildActivityDashboard(
       input.timelineCountsByPetId[pet.id] ?? createEmptyTimelineCategoryCounts();
     const healthRecordCount = input.healthRecordCountsByPetId[pet.id] ?? health.eventCount;
     const achievements = buildPetAchievements({
+      petId: pet.id,
+      petName: pet.name,
       walkCount: countRowsByEvent(petRows, ['walk_record', 'walk_timeline_post']).length,
       bestStreak: streak?.bestStreak ?? 0,
       timelineCount: timelineCategoryCounts.all ?? timeline.eventCount,

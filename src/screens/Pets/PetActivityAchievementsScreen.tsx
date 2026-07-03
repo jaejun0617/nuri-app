@@ -336,7 +336,7 @@ function AchievementVault({
           const tint = getAchievementTone(item);
           return (
             <View
-              key={`${item.scope}:${item.key}`}
+              key={`${item.scope}:${item.ownerId}:${item.key}`}
               style={[
                 styles.achievementCard,
                 item.achieved
@@ -356,7 +356,7 @@ function AchievementVault({
                   {item.name}
                 </AppText>
                 <AppText preset="caption" style={styles.achievementCondition} numberOfLines={2}>
-                  {item.conditionLabel} · {item.currentValue}/{item.threshold}
+                  {item.ownerLabel} · {item.conditionLabel} · {item.currentValue}/{item.threshold}
                 </AppText>
               </View>
             </View>
