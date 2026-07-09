@@ -632,6 +632,39 @@
 
 - 아래 항목은 v1.0 미완성 이월이 아니라 신규 업데이트 후보로 관리한다.
 
+## 2026-07-09 V1.1.1 프리미엄 보상 모달 release 체크
+
+- [x] `PremiumRewardModal` 구현 검토
+  - XP 획득량, 누적 XP, 현재 레벨, 레벨업 여부, streak 표시 확인
+  - NURI premium pet-app tone 확인
+  - 서버 XP/RPC/RLS 계약 변경 없음
+- [x] `오늘 하루 안 보기` 정책 검토
+  - KST 기준 user-scoped AsyncStorage key
+  - 같은 날 재노출 suppress
+  - 다음 날 다시 표시 가능한 구조
+  - 다른 사용자/서버 데이터 영향 없음
+- [x] Android visual QA
+  - 기기: `SM_S937N / R5CY613NMSY`
+  - XP 지급 모달: `/tmp/nuri-qa/v111-premium-reward-modal-walk-xp.png`
+  - 오늘 하루 안 보기: `/tmp/nuri-qa/v111-premium-reward-modal-hide-today.png`
+  - cold start persistence: `/tmp/nuri-qa/v111-premium-reward-modal-cold-start-persistence.png`
+  - 후속 같은 날 기록 suppress: `/tmp/nuri-qa/v111-premium-reward-modal-suppressed-after-hide.png`
+- [x] 회귀 범위
+  - 기록 작성 후 상세 이동 유지
+  - 기록 수정 완료 premium completion/reward path 확인
+  - 날씨 활동 완료 모달 premium tone 적용
+  - 활동·칭호 대시보드 반영 유지
+  - 알림 home quick dismiss / inbox delete 분리 유지
+- [x] 최종 검증 명령
+  - typecheck
+  - lint
+  - focused tests
+  - diff check
+  - release APK rebuild/install
+  - logcat fatal/ANR/unhandled/ReactNativeJS fatal 0건
+
+판정: release blocker 없음. 최종 검증 명령 통과 후 V1.1.1 프리미엄 보상 모달 closeout 가능.
+
 - [ ] Entitlement / billing foundation
   - 실제 결제/과금 구조는 v1.0에서 열지 않고 v1.1 신규 업데이트 후보로 관리한다.
 - [ ] Premium AI reply 선행조건

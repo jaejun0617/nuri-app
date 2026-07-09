@@ -980,3 +980,54 @@ V1.1 추가 업데이트 planning:
 
 1. V1.1.1 후보: 홈페이지/관리 페이지 트랙의 운영자 알림 발송 관리 체계 정책 확정
 2. 디자인 조정 예정: 스토어 출시 전 앱 내부 디자인 polish 후보 확정
+
+## 2026-07-09 V1.1.1 프리미엄 보상 모달 closeout / master roadmap 문서화
+
+이번 단계에서는 이미 구현된 프리미엄 보상 모달을 실기기 visual evidence로 닫고, 전체 프로젝트 진행률과 남은 작업을 master status 문서로 통합했다.
+
+구현/정책 결과:
+
+- `PremiumRewardModal` 추가: XP 획득량, 누적 XP, 현재 레벨, 레벨업 여부, 산책 streak 표시
+- `rewardNoticePreference` 추가: KST 기준 user-scoped `오늘 하루 안 보기`
+- `RecordCreateScreen`: XP/streak 보상 발생 시 보상 모달 표시 후 기존 성공 이동 유지
+- `RecordEditScreen`: XP 지급 시 보상 모달, 일반 완료 시 `PremiumNoticeModal`
+- `WeatherActivityRecordScreen`: 일반 완료 모달을 `PremiumNoticeModal`로 교체
+- DB/RPC/RLS/seed/migration 변경 없음
+- push/운영자 UI/홈 위젯/무지개다리/랭킹 구현 없음
+
+Android 실기기 QA:
+
+- 기기: `SM_S937N / R5CY613NMSY`
+- `adminQA` 세션 유지
+- 산책 타임라인 작성 후 `+30 XP`, `누적 XP 150`, `현재 레벨 Lv.2`, `1일 연속 산책` 표시 확인
+- `오늘 하루 안 보기` tap 후 닫힘 확인
+- 앱 cold start 후 같은 날 자동 재노출 없음 확인
+- 같은 날 후속 기록 작성 후에도 보상 모달 suppress 확인
+- evidence:
+  - `/tmp/nuri-qa/v111-premium-reward-modal-walk-xp.png`
+  - `/tmp/nuri-qa/v111-premium-reward-modal-hide-today.png`
+  - `/tmp/nuri-qa/v111-premium-reward-modal-cold-start-persistence.png`
+  - `/tmp/nuri-qa/v111-premium-reward-modal-suppressed-after-hide.png`
+
+통합 문서:
+
+- `docs/reports/nuri-project-master-status-and-roadmap-2026-07.md` 생성
+- `docs/reports/nuri-father-development-progress-budget-2026-07-04.md`는 아버지 보고용 예산 문서로 보존하고 master status 문서에서 참조한다.
+
+진행률:
+
+| 구분 | 진행률 | 근거 |
+| --- | ---: | --- |
+| V1.0 기능 개발 | 100% | 기능 Code Freeze 유지 |
+| V1.0 QA/출시 준비 | 약 99% | Android QA와 주요 회귀 기준 완료. Play Store 자산은 최종 제출 직전 |
+| V1.1 산책 POI 트랙 | 약 99% | 1,145건 POI, public projection safety, Android smoke |
+| V1.1 추가 업데이트 1차 MVP | 약 98% | 구현/QA 완료, 일부 destructive/social evidence 조건부 |
+| V1.1 추가 업데이트 2차 MVP | 100% | streak/notification/XP MVP와 알림 UX final sign-off |
+| V1.1 전체 | 약 74% | V1.1 기능 closeout 가능, 디자인/스토어/후속 운영 기능 별도 |
+| V1.1.1 1차 기능 | 약 98% | 활동·칭호 대시보드, 알림 보존 정책, 프리미엄 보상 모달 visual QA 완료 |
+| 전체 제품 로드맵 | 약 98.2% | 사용자-facing core 대부분 닫힘, 운영자 발송/push/디자인/스토어 준비 잔여 |
+
+다음 액션:
+
+1. 홈페이지/관리 페이지 이동: 운영자 알림 발송 관리 체계 정책/관리 페이지 트랙 착수
+2. 디자인 조정 예정: 스토어 출시 전 앱 내부 디자인 polish 후보 확정

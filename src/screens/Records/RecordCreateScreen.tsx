@@ -31,6 +31,7 @@ import Feather from 'react-native-vector-icons/Feather';
 
 import AppText from '../../app/ui/AppText';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import PremiumRewardModal from '../../components/common/PremiumRewardModal';
 import WaveText from '../../components/common/WaveText';
 import HeaderTextActionButton from '../../components/navigation/HeaderTextActionButton';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
@@ -64,6 +65,10 @@ import {
   saveRecordCreateDraft,
 } from '../../services/local/recordDraft';
 import {
+  dismissRewardNoticeForToday,
+  isRewardNoticeDismissedToday,
+} from '../../services/local/rewardNoticePreference';
+import {
   enqueuePendingMemoryUpload,
   processPendingMemoryUploads,
   type PendingMemoryUploadEntry,
@@ -78,6 +83,7 @@ import {
   type MemoryRecord,
 } from '../../services/supabase/memories';
 import { resolveSelectedPetId, usePetStore } from '../../store/petStore';
+import { useAuthStore } from '../../store/authStore';
 import { useRecordStore } from '../../store/recordStore';
 import { showToast } from '../../store/uiStore';
 import { openMoreDrawer } from '../../store/uiStore';
@@ -88,6 +94,15 @@ import { styles } from './RecordCreateScreen.styles';
 
 type RecordCreateRoute = RouteProp<RootStackParamList, 'RecordCreate'>;
 type Nav = NativeStackNavigationProp<RootStackParamList, 'RecordCreate'>;
+type RewardNoticeState = {
+  xpAwarded: number;
+  totalXp: number;
+  level: number;
+  leveledUp: boolean;
+  streakDays: number | null;
+  title: string;
+  message: string;
+};
 
 export default function RecordCreateScreen() {
   const navigation = useNavigation<Nav>();
@@ -96,6 +111,7 @@ export default function RecordCreateScreen() {
   const keyboardInset = useKeyboardInset();
   const queryClient = useQueryClient();
 
+  const userId = useAuthStore(s => s.session?.user?.id ?? null);
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
   const refresh = useRecordStore(s => s.refresh);
@@ -141,8 +157,12 @@ export default function RecordCreateScreen() {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [saving, setSaving] = useState(false);
   const [exitConfirmVisible, setExitConfirmVisible] = useState(false);
+  const [rewardNotice, setRewardNotice] = useState<RewardNoticeState | null>(
+    null,
+  );
   const [draftHydrated, setDraftHydrated] = useState(false);
   const draftLoadedRef = useRef(false);
+  const pendingSuccessNavigationRef = useRef<(() => Promise<void>) | null>(null);
 
   const trimmedTitle = useMemo(() => title.trim(), [title]);
   const disabled = saving || trimmedTitle.length === 0 || !petId;
@@ -431,6 +451,57 @@ export default function RecordCreateScreen() {
     navigation.navigate('AppTabs', { screen: 'HomeTab' });
   }, [navigation, petId, returnTo]);
 
+  const navigateAfterCreateSuccess = useCallback(
+    async (input: { petId: string; memoryId: string; occurred: string | null }) => {
+      if (returnTo?.tab === 'HealthReport') {
+        await queryClient.invalidateQueries({
+          queryKey: ['health-report', 'month', input.petId],
+        });
+        navigation.navigate('HealthReport', {
+          petId: returnTo.petId ?? input.petId,
+          initialTab: returnTo.initialTab ?? 'records',
+          focusYmd: input.occurred ?? undefined,
+          entrySource: 'more',
+        });
+        return;
+      }
+
+      const detailEntrySource =
+        returnTo?.tab === 'HomeTab'
+          ? 'home'
+          : returnTo?.tab === 'MoreTab'
+            ? 'more'
+            : undefined;
+      navigation.navigate('AppTabs', {
+        screen: 'TimelineTab',
+        params: {
+          screen: 'RecordDetail',
+          params: {
+            petId: input.petId,
+            memoryId: input.memoryId,
+            entrySource: detailEntrySource,
+          },
+        },
+      });
+    },
+    [navigation, queryClient, returnTo],
+  );
+
+  const closeRewardNotice = useCallback(() => {
+    setRewardNotice(null);
+    const pendingNavigation = pendingSuccessNavigationRef.current;
+    pendingSuccessNavigationRef.current = null;
+    if (pendingNavigation) {
+      pendingNavigation().catch(() => {});
+    }
+  }, []);
+
+  const dismissRewardNoticeToday = useCallback(() => {
+    dismissRewardNoticeForToday(userId)
+      .catch(() => {})
+      .finally(closeRewardNotice);
+  }, [closeRewardNotice, userId]);
+
   const onPressCancel = useCallback(() => {
     if (saving) return;
     if (hasDraftContent) {
@@ -590,8 +661,8 @@ export default function RecordCreateScreen() {
         try {
           if (selectedImages.length > 0) {
             const userRes = await supabase.auth.getUser();
-            const userId = userRes.data.user?.id ?? null;
-            if (!userId) throw new Error('로그인 정보가 없습니다.');
+            const uploadUserId = userRes.data.user?.id ?? null;
+            if (!uploadUserId) throw new Error('로그인 정보가 없습니다.');
 
             const finalEntries: PendingMemoryUploadEntry[] = selectedImages.map(
               image => ({
@@ -602,13 +673,15 @@ export default function RecordCreateScreen() {
               }),
             );
             const queuedTask = await enqueuePendingMemoryUpload({
-              userId,
+              userId: uploadUserId,
               petId,
               memoryId,
               mode: 'create',
               finalEntries,
             });
-            const queueResult = await processPendingMemoryUploads({ userId });
+            const queueResult = await processPendingMemoryUploads({
+              userId: uploadUserId,
+            });
 
             if (!queueResult.succeededTaskIds.includes(queuedTask.taskId)) {
               shouldHydrateFromServer = false;
@@ -644,38 +717,37 @@ export default function RecordCreateScreen() {
             : '기록 저장 완료',
         message: '방금 기록을 먼저 반영했고, 상세에서 바로 확인할 수 있어요.',
       });
-      if (activityResult.streak?.showCelebration) {
-        Alert.alert(
-          '오늘도 산책 완료!',
-          `우리 아이와 ${activityResult.streak.currentStreak}일 연속 산책 중이에요. 산책 루틴이 예쁘게 자라고 있어요.`,
-        );
-      }
-      if (returnTo?.tab === 'HealthReport') {
-        await queryClient.invalidateQueries({
-          queryKey: ['health-report', 'month', petId],
+      const xpReward = activityResult.xp;
+      const streakDays = activityResult.streak?.showCelebration
+        ? activityResult.streak.currentStreak
+        : null;
+      const hasRewardNotice =
+        Boolean(xpReward?.awarded && xpReward.xpAwarded > 0) ||
+        Boolean(streakDays && streakDays > 0);
+      const dismissedToday = await isRewardNoticeDismissedToday(userId).catch(
+        () => false,
+      );
+
+      if (hasRewardNotice && !dismissedToday) {
+        pendingSuccessNavigationRef.current = () =>
+          navigateAfterCreateSuccess({ petId, memoryId, occurred });
+        setRewardNotice({
+          xpAwarded: xpReward?.xpAwarded ?? 0,
+          totalXp: xpReward?.totalXp ?? 0,
+          level: xpReward?.level ?? 1,
+          leveledUp: xpReward?.leveledUp ?? false,
+          streakDays,
+          title: xpReward?.leveledUp
+            ? '레벨이 한 단계 올랐어요'
+            : '경험치가 예쁘게 쌓였어요',
+          message: streakDays
+            ? '산책 루틴과 성장 기록을 함께 반영했어요.'
+            : '방금 남긴 기록이 활동·칭호에 반영됐어요.',
         });
-          navigation.navigate('HealthReport', {
-            petId: returnTo.petId ?? petId,
-            initialTab: returnTo.initialTab ?? 'records',
-            focusYmd: occurred ?? undefined,
-            entrySource: 'more',
-          });
         return;
       }
 
-      const detailEntrySource =
-        returnTo?.tab === 'HomeTab'
-          ? 'home'
-          : returnTo?.tab === 'MoreTab'
-            ? 'more'
-            : undefined;
-      navigation.navigate('AppTabs', {
-        screen: 'TimelineTab',
-        params: {
-          screen: 'RecordDetail',
-          params: { petId, memoryId, entrySource: detailEntrySource },
-        },
-      });
+      await navigateAfterCreateSuccess({ petId, memoryId, occurred });
     } catch (error) {
       const { title: alertTitle, message } = getBrandedErrorMeta(
         error,
@@ -696,22 +768,21 @@ export default function RecordCreateScreen() {
     content,
     disabled,
     isShoppingCategory,
-    navigation,
     mainCategoryKey,
     otherSubCategoryKey,
     occurredAt,
     petId,
     priceText,
-    queryClient,
     refresh,
     resetForm,
-    returnTo,
     selectedEmotion,
     selectedImages,
     selectedTags,
     setFocusedMemoryId,
     trimmedTitle,
     upsertOneLocal,
+    userId,
+    navigateAfterCreateSuccess,
   ]);
 
   return (
@@ -1126,6 +1197,20 @@ export default function RecordCreateScreen() {
         initialDate={occurredAt || todayYmd}
         onCancel={onCloseDateModal}
         onConfirm={onConfirmDate}
+      />
+
+      <PremiumRewardModal
+        visible={rewardNotice !== null}
+        xpAwarded={rewardNotice?.xpAwarded ?? 0}
+        totalXp={rewardNotice?.totalXp ?? 0}
+        level={rewardNotice?.level ?? 1}
+        leveledUp={rewardNotice?.leveledUp ?? false}
+        streakDays={rewardNotice?.streakDays ?? null}
+        title={rewardNotice?.title}
+        message={rewardNotice?.message}
+        accentColor={petTheme.primary}
+        onClose={closeRewardNotice}
+        onDismissToday={dismissRewardNoticeToday}
       />
 
       <RecordTagModal

@@ -19,7 +19,6 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  Modal,
   TextInput,
   TouchableOpacity,
   View,
@@ -34,6 +33,8 @@ import {
 import Feather from 'react-native-vector-icons/Feather';
 
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
+import PremiumNoticeModal from '../../components/common/PremiumNoticeModal';
+import PremiumRewardModal from '../../components/common/PremiumRewardModal';
 import WaveText from '../../components/common/WaveText';
 import RecordImageGallery from '../../components/records/RecordImageGallery';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -47,6 +48,10 @@ import {
   processPendingMemoryUploads,
   type PendingMemoryUploadEntry,
 } from '../../services/local/uploadQueue';
+import {
+  dismissRewardNoticeForToday,
+  isRewardNoticeDismissedToday,
+} from '../../services/local/rewardNoticePreference';
 import { pickPhotoAssets } from '../../services/media/photoPicker';
 import {
   normalizeCategoryKey,
@@ -91,6 +96,12 @@ type Nav = CompositeNavigationProp<TimelineNav, RootNav>;
 type Route = TimelineScreenRoute<'RecordEdit'>;
 
 type AddedImage = PickedRecordImage;
+type RewardNoticeState = {
+  xpAwarded: number;
+  totalXp: number;
+  level: number;
+  leveledUp: boolean;
+};
 type PreviewItem =
   | { kind: 'existing'; key: string; path: string; uri: string | null }
   | { kind: 'added'; key: string; uri: string };
@@ -164,6 +175,9 @@ export default function RecordEditScreen() {
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [rewardNotice, setRewardNotice] = useState<RewardNoticeState | null>(
+    null,
+  );
   const scrollRef = useRef<KeyboardAwareScrollViewRef | null>(null);
   const keyboardInset = useKeyboardInset();
   const keyboardVisible = keyboardInset > 0;
@@ -496,6 +510,31 @@ export default function RecordEditScreen() {
         previousCategory: record.category,
         nextCategory: mainCategoryKey,
       });
+      const presentCompletionModal = async () => {
+        const xpReward = activityResult.xp;
+        const canShowReward =
+          Boolean(xpReward?.awarded && xpReward.xpAwarded > 0) &&
+          !(await isRewardNoticeDismissedToday(userId).catch(() => false));
+
+        if (canShowReward && xpReward) {
+          setRewardNotice({
+            xpAwarded: xpReward.xpAwarded,
+            totalXp: xpReward.totalXp,
+            level: xpReward.level,
+            leveledUp: xpReward.leveledUp,
+          });
+          return;
+        }
+
+        setSuccessModalVisible(true);
+        if (xpReward?.awarded && xpReward.xpAwarded > 0) {
+          showToast({
+            tone: 'success',
+            title: `활동 경험치 ${xpReward.xpAwarded} XP`,
+            message: '카테고리 변경을 반영했어요.',
+          });
+        }
+      };
 
       // ✅ 즉시 반영(텍스트)
       updateOneLocal(petId, memoryId, {
@@ -525,14 +564,7 @@ export default function RecordEditScreen() {
       ];
 
       if (!imagePlanChanged) {
-        setSuccessModalVisible(true);
-        if (activityResult.xp?.awarded && activityResult.xp.xpAwarded > 0) {
-          showToast({
-            tone: 'success',
-            title: `활동 경험치 ${activityResult.xp.xpAwarded} XP`,
-            message: '카테고리 변경을 반영했어요.',
-          });
-        }
+        await presentCompletionModal();
 
         (async () => {
           try {
@@ -585,7 +617,7 @@ export default function RecordEditScreen() {
       const latest = await fetchMemoryById(memoryId);
       upsertOneLocal(petId, latest);
       setFocusedMemoryId(petId, memoryId);
-      setSuccessModalVisible(true);
+      await presentCompletionModal();
       refresh(petId).catch(() => {});
     } catch (err) {
       const { title: alertTitle, message } = getBrandedErrorMeta(
@@ -622,6 +654,7 @@ export default function RecordEditScreen() {
 
   const onConfirmSuccess = useCallback(() => {
     setSuccessModalVisible(false);
+    setRewardNotice(null);
     setFocusedMemoryId(petId, memoryId);
     if (navigation.canGoBack()) {
       navigation.goBack();
@@ -633,6 +666,12 @@ export default function RecordEditScreen() {
       entrySource: route.params.entrySource,
     });
   }, [memoryId, navigation, petId, route.params.entrySource, setFocusedMemoryId]);
+
+  const dismissRewardNoticeToday = useCallback(() => {
+    dismissRewardNoticeForToday(userId)
+      .catch(() => {})
+      .finally(onConfirmSuccess);
+  }, [onConfirmSuccess, userId]);
 
   // ---------------------------------------------------------
   // 9) guard
@@ -990,40 +1029,33 @@ export default function RecordEditScreen() {
         </View>
       </KeyboardAwareScrollView>
 
-      <Modal
+      <PremiumNoticeModal
         visible={successModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={onConfirmSuccess}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalIconCircle}>
-              <Feather name="check" size={22} color="#6D6AF8" />
-            </View>
+        eyebrow="NURI MEMORY"
+        iconName="check"
+        titleLines={['수정이 완료되었어요']}
+        bodyLines={['소중한 추억을 안전하게 업데이트했어요.']}
+        confirmLabel="확인"
+        accentColor="#6D6AF8"
+        onClose={onConfirmSuccess}
+      />
 
-            <AppText preset="title2" style={styles.modalTitle}>
-              수정이 완료되었어요!
-            </AppText>
-            <AppText preset="body" style={styles.modalDesc}>
-              소중한 추억이 안전하게
-            </AppText>
-            <AppText preset="body" style={styles.modalDesc}>
-              업데이트되었습니다.
-            </AppText>
-
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={styles.modalPrimaryBtn}
-              onPress={onConfirmSuccess}
-            >
-              <AppText preset="body" style={styles.modalPrimaryBtnText}>
-                확인
-              </AppText>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      <PremiumRewardModal
+        visible={rewardNotice !== null}
+        xpAwarded={rewardNotice?.xpAwarded ?? 0}
+        totalXp={rewardNotice?.totalXp ?? 0}
+        level={rewardNotice?.level ?? 1}
+        leveledUp={rewardNotice?.leveledUp ?? false}
+        title={
+          rewardNotice?.leveledUp
+            ? '레벨이 한 단계 올랐어요'
+            : '활동 경험치가 쌓였어요'
+        }
+        message="수정한 기록이 활동·칭호 성장에 반영됐어요."
+        accentColor="#6D6AF8"
+        onClose={onConfirmSuccess}
+        onDismissToday={dismissRewardNoticeToday}
+      />
 
       <DatePickerModal
         visible={dateModalVisible}

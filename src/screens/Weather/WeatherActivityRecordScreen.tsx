@@ -6,7 +6,6 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Alert,
-  Modal,
   StyleSheet,
   Text,
   TextInput,
@@ -23,6 +22,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
+import PremiumNoticeModal from '../../components/common/PremiumNoticeModal';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import PhotoAddCard from '../../components/media/PhotoAddCard';
 import RecordTagModal from '../Records/components/RecordTagModal';
@@ -477,34 +477,16 @@ export default function WeatherActivityRecordScreen() {
         </KeyboardAwareScrollView>
       </View>
 
-      <Modal
+      <PremiumNoticeModal
         visible={doneVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={onPressDone}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalIconCircle}>
-              <MaterialCommunityIcons
-                name="check-circle-outline"
-                size={48}
-                color={petTheme.primary}
-              />
-            </View>
-            <Text style={styles.modalTitle}>{guide.recordDraft.completionTitle}</Text>
-            <Text style={styles.modalBody}>{guide.recordDraft.completionBody}</Text>
-            <TouchableOpacity
-              activeOpacity={0.92}
-              style={[styles.modalButton, { backgroundColor: petTheme.primary }]}
-              onPress={onPressDone}
-            >
-              <Text style={styles.modalButtonText}>확인</Text>
-              <Feather name="arrow-right" size={16} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+        eyebrow="NURI MEMORY"
+        iconName="check"
+        titleLines={[guide.recordDraft.completionTitle]}
+        bodyLines={[guide.recordDraft.completionBody]}
+        confirmLabel="확인"
+        accentColor={petTheme.primary}
+        onClose={onPressDone}
+      />
 
       <RecordTagModal
         visible={tagModalVisible}

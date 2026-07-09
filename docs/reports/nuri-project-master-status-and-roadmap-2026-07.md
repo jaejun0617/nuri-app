@@ -1,0 +1,189 @@
+# NURI 프로젝트 통합 현황 및 로드맵
+
+기준일: 2026-07-09
+기준 브랜치: `codex/task6-community-content-policy`
+기준 커밋: 프리미엄 보상 모달 closeout 커밋 기준으로 갱신
+연관 참조 문서: `docs/reports/nuri-father-development-progress-budget-2026-07-04.md`
+
+## 1. 프로젝트 전체 요약
+
+NURI는 반려동물의 기억, 일상, 건강, 산책, 커뮤니티 활동을 기록하고 추억하는 감성 기반 디지털 메모리얼 앱이다. 구현 기준은 Android-first React Native 앱, Supabase RLS 기반 user/pet isolation, styled-components 테마, 실기기 QA, release-ready 운영 방어선이다.
+
+현재 V1.0 핵심 기능은 닫혔고, V1.1 산책 POI와 1차/2차 MVP도 release blocker 없이 closeout 가능 상태다. V1.1.1 1차 기능인 `활동·칭호` 대시보드와 프리미엄 보상 모달은 repo 기준 구현 및 Android 실기기 visual QA까지 완료했다.
+
+고정 운영 원칙:
+
+- QA 계정은 `adminQA`를 재사용한다. 이름만 adminQA이며 권한은 일반 사용자다.
+- 무작위 신규 QA 계정 생성, admin 권한 부여, 민감정보 보고서 노출은 금지한다.
+- Android 실기기 QA 기준 장비는 `SM_S937N / R5CY613NMSY`다.
+- Play Store 자산, 디자인 polish, 운영자 관리 페이지, push notification, 홈 위젯, 무지개다리, 고급 랭킹은 아직 후속이다.
+
+## 2. 전체 진행률
+
+| 구분 | 최신 진행률 | 근거 |
+| --- | ---: | --- |
+| V1.0 기능 개발 | 100% | 인증, 온보딩, 홈, 타임라인, 건강, 병원, 산책, 커뮤니티, 전체메뉴, 회원탈퇴 계약 완료 |
+| V1.0 QA/출시 준비 | 약 99% | 신규/고정 QA 계정 Android smoke, navigation/back, keyboard/nav bar, crash-free 기준 완료. Play Store 자산은 최종 제출 직전 |
+| V1.1 산책 POI 트랙 | 약 99% | approved/public/active 1,145건, public projection safety, Kakao walk fallback 제거, Android smoke 완료 |
+| V1.1 추가 업데이트 1차 MVP | 약 98% | 회원탈퇴 입력 확인, 최근 로그인 표시, timeline category count 구현/QA 완료. 실제 탈퇴 예약과 일부 social 최종 pill은 조건부 evidence |
+| V1.1 추가 업데이트 2차 MVP | 100% | daily streak, notification read path, XP/level/title MVP, 홈 알림 overlay/dismiss/expand UX final sign-off |
+| V1.1 전체 | 약 74% | V1.1 기능 closeout은 가능하나 디자인 polish, Play Store 제출 자산, 후속 운영 기능은 별도 |
+| V1.1.1 1차 기능 | 약 98% | 활동·칭호 대시보드, 알림 보존 정책, XP 다중 write smoke, 프리미엄 보상 모달 visual QA 완료. live notification row smoke는 안전 fixture 후 보강 |
+| 전체 제품 로드맵 | 약 98.2% | 제품 core와 V1.1/V1.1.1 1차 사용자 기능 대부분 완료. 운영자 발송/push/디자인/스토어 제출 준비 잔여 |
+
+## 3. V1.0 구현 완료 내용
+
+- Auth/onboarding: email login, Google/Kakao login, Naver/Apple 제외 상태, NicknameSetup, PetCreate
+- 계정: 회원탈퇴 7일 유예, `회원탈퇴` 입력 확인, 최근 로그인 provider 표시
+- Timeline: write/edit/delete, category count, 기록 상세/수정 흐름
+- Health: 건강 기록 작성/조회/삭제, 체중 관리, 날짜 직접 입력, keyboard 대응
+- Animal Hospital: 전국 기반 public read path, public safe projection, 전화/길찾기 CTA
+- Walk: 산책 리스트와 V1.1 자체 POI read path 연결
+- Community: 기본 진입, 정책/신고/닉네임 방어선, moderation 없는 무리한 확장 금지
+- Android: keyboard/nav bar QA 기준, cold start, back/navigation smoke, crash-free logcat 기준
+
+## 4. Animal Hospital 상태
+
+- Localdata ingest, canonical table, public projection 기반 read path가 유지된다.
+- public safe whitelist만 앱에 노출하고 sensitive/internal field는 차단한다.
+- public active 병원 수는 5,427건 기준으로 관리한다.
+- coordinate missing 122건은 주소/전화 정보형 표시로 안전 처리하며 release blocker가 아니다.
+- Google Places/Photos runtime 재활성화는 하지 않았다.
+- Kakao provider matching은 병원 도메인 유지 경로로 남아 있고, 산책 POI hard delete와 섞지 않는다.
+- admin 운영자 QA는 앱 출시 blocker가 아니며 홈페이지/관리 페이지 트랙으로 parking한다.
+
+## 5. Walk / POI 상태
+
+- V1.1 자체 POI track은 approved/public/active 1,145건을 source of truth로 둔다.
+- pending/rejected/held POI는 public surface에 노출하지 않는다.
+- 산책 도메인의 Kakao Local runtime fallback은 제거됐고 자체 POI + safe empty UX로 닫는다.
+- Kakao Local global hard delete는 pet-friendly, 병원 matching, coord2region 유지 경로 때문에 보류다.
+- public leak, internal key leak, anon direct table access는 release QA에서 차단 상태를 확인했다.
+
+## 6. Health 상태
+
+- 건강 기록 작성/조회/삭제, 체중 관리, 날짜 직접 입력, keyboard 대응은 V1.0 기능 범위에서 닫혔다.
+- 건강 카테고리 기록은 활동·칭호 대시보드의 건강관리 카드에 반영된다.
+- 건강관리 XP는 기존 안정 write path 기준으로 표시하며, 의료적으로 과장된 문구는 사용하지 않는다.
+- 장기 고도화는 건강 인사이트, 월간 요약, 장기 summary RPC 후보로 분리한다.
+
+## 7. Timeline 상태
+
+- timeline write/edit/delete와 카테고리별 count는 Android smoke와 focused test로 닫혔다.
+- 실제 카테고리 enum 기준으로 산책, 식사, 일기장, 생활, 건강 등 카운트와 활동·칭호 대시보드 반영을 관리한다.
+- 산책 타임라인은 XP와 streak에 연결된다.
+- 일반 타임라인은 XP daily cap과 source idempotency를 유지한다.
+
+## 8. Notification 상태
+
+- notification read path, unread count, mark read, 전체메뉴 badge/dot을 구현했다.
+- 홈 상단 알림은 inline card가 아니라 floating top notification shade overlay다.
+- 알림 UX는 좌우 swipe dismiss, 전체삭제, 내부 scroll, collapsed/expanded 카드, 화살표 tap/상하 swipe를 지원한다.
+- 알림별 작은 X는 최신 UX 정리 결과 제거했다. 주요 삭제 UX는 좌우 swipe dismiss와 전체삭제다.
+- home quick dismiss와 inbox delete는 분리되어 있다. 홈에서 치운 알림은 전체보기/알림함에 남고, 알림함 삭제만 user-scoped server hide다.
+- read/delete/home-dismiss는 서로 다른 상태다.
+- 새 live notification row smoke는 안전한 생성 경로가 없어 조건부 evidence로 남겼다. service role key는 요구하거나 노출하지 않았다.
+- 운영자 발송 UI와 push notification은 미구현이며 후속이다.
+
+## 9. XP / Level / Title / Activity 상태
+
+- XP ledger, daily cap, source idempotency, level summary, title MVP가 구현되어 있다.
+- 서버 레벨 범위는 Lv.1~10이다. Lv.11~30은 constraint/function/RPC/test가 필요한 Phase 2로 보류한다.
+- `전체메뉴 > 나의 반려동물 > 활동·칭호` 대시보드는 현재 성장 카드, 아이별 성장 기록, 산책/타임라인/건강관리 카드, 커뮤니티/댓글 공통 카드, 칭호·훈장 보관함을 표시한다.
+- pet-scoped 활동은 pet 단위로 분리하고, community/comment는 user-scoped 공통 활동으로만 표시한다.
+- ownerLabel을 통해 `AdminQAPet`, `AdminQAPet2`, `공통 활동` 범위를 구분한다.
+- `PremiumRewardModal`은 XP 획득량, 누적 XP, 현재 레벨, 레벨업 여부, 산책 streak를 NURI 프리미엄 톤으로 표시한다.
+- `오늘 하루 안 보기`는 KST 기준 user-scoped AsyncStorage preference이며 서버 XP/RPC/RLS에는 영향을 주지 않는다.
+
+## 10. V1.1.1 후보 상태
+
+| 후보 | 현재 상태 | 구현 여부 | 위험도 | 선행 조건 | 다음 액션 |
+| --- | --- | --- | --- | --- | --- |
+| 운영자 알림 발송 관리 체계 | 앱 내부 미구현. 홈페이지/관리 페이지 트랙으로 확정 | 미구현 | 중간 | 관리자 인증, 알림 템플릿, 대상 범위, 취소, audit log, QA fixture | 정책/관리 페이지 IA 설계 |
+| push notification | remote push 미구현 | 미구현 | 높음 | 운영자 발송 정책, opt-out, token 저장, permission UX, delivery log | 발송 관리 체계 이후 FCM 설계 |
+| 휴대폰 실기기 홈 위젯 | Android native/JS 일부 흔적은 release 노출 차단 | 후속 | 중간-높음 | AppWidget privacy, snapshot contract, update interval, battery policy | native widget 재설계 |
+| 무지개다리 서비스 | profile state 일부만 존재, 상품/문의 flow 없음 | 후속 | 높음 | 감정 민감 문구, one-time suggestion, 문의/상품/결제 정책 | UX copy/정책 먼저 확정 |
+| Lv.11~30 / 장기 summary RPC | 현재 Lv.1~10 유지 | 후속 | 중간 | DB constraint, calculation function, summary RPC, RLS/focused test | Phase 2 설계 |
+| 고급 랭킹/리더보드 | privacy/RLS 이유로 미구현 | 후속 | 높음 | cross-user data 익명화, opt-in, abuse 방어, RLS 설계 | 가장 뒤로 둠 |
+
+## 11. 남은 작업 리스트
+
+Release blocker:
+
+- 현재 보고 기준 없음.
+
+Conditional evidence:
+
+- 안전한 QA fixture 또는 운영자 발송 관리 체계가 생긴 뒤 새 notification row 기반 live retention smoke.
+
+V1.1.1 후보:
+
+- 운영자 알림 발송 관리 체계 정책/관리 페이지 트랙
+- push notification
+- Android 홈 위젯
+- 무지개다리 서비스
+- Lv.11~30 / 장기 summary RPC
+- 고급 랭킹/리더보드
+
+디자인 조정 예정:
+
+- 스토어 출시 전 앱 내부 density, 카드 hierarchy, modal polish, keyboard/nav bar visual polish 후보 확정.
+
+최종 제출 직전 준비:
+
+- Play Store screenshot, 설명문, 문의처, 정책 URL, 스토어 메타데이터, 최종 제출용 캡처 패키지.
+- 이 항목은 V1.0/V1.1/V1.1.1 1차와 디자인 조정 완료 뒤에만 다음 액션으로 올린다.
+
+Parking / 보류:
+
+- admin 운영자 QA
+- Kakao Local global hard delete
+- Lv.11~30
+- 장기 summary RPC
+- 고급 랭킹/리더보드
+
+## 12. 고도화 작업 제안
+
+1. 운영자 알림 발송 관리 체계
+   - 목표: 안전한 알림 row 생성, 검수, 취소, audit log를 갖춘 관리 체계
+   - 분류: 홈페이지/관리 페이지 이동
+   - QA 기준: admin 권한, user targeting, hard delete 없음, row-level audit
+2. push notification
+   - 목표: 앱 내부 알림을 push로 확장
+   - 분류: V1.1.1 후보
+   - QA 기준: opt-out, permission UX, token RLS, delivery log
+3. 디자인 polish
+   - 목표: 스토어 출시 전 앱 내부 시각 밀도와 premium tone 정리
+   - 분류: 디자인 조정 예정
+   - QA 기준: Android 실기기 screenshot, nav/keyboard overlap 없음
+4. Play Store 자산 패키지
+   - 목표: 최종 제출 자료 준비
+   - 분류: 최종 제출 직전 준비
+   - QA 기준: 정책 URL, screenshot, 설명문, version/build provenance
+5. Lv.11~30 / 장기 summary RPC
+   - 목표: 장기 성장 루프 강화
+   - 분류: V1.1.1 Phase 2
+   - QA 기준: migration/RPC/RLS/focused test, rollback note
+6. 홈 위젯
+   - 목표: 실기기 홈 화면에서 최소 개인정보 노출로 NURI 상태 표시
+   - 분류: native 후속 트랙
+   - QA 기준: Android AppWidget receiver, update interval, privacy review
+7. 무지개다리 서비스
+   - 목표: 민감한 순간을 조심스럽게 지원하는 문의/추모 flow
+   - 분류: V1.2 또는 Parking
+   - QA 기준: 문구 검수, one-time suggestion, 결제/문의 정책
+8. 고급 랭킹/리더보드
+   - 목표: 경쟁형 기능이 아니라 선택적/익명화된 장기 참여 기능으로 재검토
+   - 분류: Parking
+   - QA 기준: privacy, RLS, abuse 방어, opt-in
+
+## 13. 최신 Android Evidence
+
+- 프리미엄 보상 모달 산책 XP: `/tmp/nuri-qa/v111-premium-reward-modal-walk-xp.png`
+- 오늘 하루 안 보기 tap 후 닫힘: `/tmp/nuri-qa/v111-premium-reward-modal-hide-today.png`
+- cold start persistence: `/tmp/nuri-qa/v111-premium-reward-modal-cold-start-persistence.png`
+- 같은 날 후속 작성 후 suppress: `/tmp/nuri-qa/v111-premium-reward-modal-suppressed-after-hide.png`
+
+## 14. 최종 판정
+
+V1.1.1 1차 기능은 프리미엄 보상 모달 visual closeout 기준으로 release blocker 없이 closeout 가능하다. 남은 조건부 항목은 새 알림 row 기반 live retention smoke이며, 이는 안전한 운영자 발송/QA fixture가 없는 상태에서 service role key를 요구하지 않기 위한 의도적 보류다.
