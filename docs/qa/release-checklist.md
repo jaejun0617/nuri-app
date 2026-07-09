@@ -17,10 +17,11 @@
 - 2026-07-01 이후 모든 실기기 QA에는 키보드바/키보드 회피/입력창 가림/primary action 접근성/모달 크기/문구 잘림/Android back dismiss 확인을 포함한다. 이 기준은 디자인 리뉴얼이 아니라 release blocker 방지용 QA gate다.
 - 2026-07-01 V1.1 추가 업데이트 2차 MVP로 데일리 streak/데일리판, 앱 내부 알림 read path, XP/레벨/칭호 최소 MVP를 구현했다. additive migration/RPC/RLS를 적용했고, `adminQA` 일반 사용자 계정 기준 타임라인 데일리판/XP 카드, 알림함 read/mark read, keyboard bar smoke를 확인했다. 2026-07-02에는 홈 알림 UX를 inline panel에서 상단 floating notification shade로 수정해 홈 콘텐츠가 밀리지 않도록 닫았다. 같은 날 알림별 X는 제거하고, 카드가 이동하며 사라지는 좌우 스와이프 dismiss, 전체삭제, 화살표-only 펼침/접힘을 user-scoped dismiss와 client UI 상태로 추가했다. release APK에서 `ADMIN_QA_NOTICE` 다중 알림 누적/스크롤/삭제/빈 상태/펼침·접힘을 확인했다. 운영자 발송 UI, push, 홈 위젯, 무지개다리 서비스, 디자인 전체 조정, Play Store 자산은 열지 않았다.
 - 2026-07-02 V1.1 final sign-off 기준, V1.0 회귀와 V1.1 산책 POI/1차 MVP/2차 MVP/notification 최신 UX/RLS/RPC/Android `adminQA` smoke를 재검증했고 `V1.1 final sign-off 가능`으로 판정한다. V1.1.1 scope audit에서 Android 홈 위젯 native/JS 일부 코드가 release scope에 남아 있음을 확인해 receiver를 disabled/exported false로 막고 native package 등록을 제거했다. push remote notification, 운영자 발송 UI, 무지개다리 서비스, 고급 XP/랭킹은 release build에 의도치 않게 노출되지 않는다.
-- 2026-07-02 V1.1.1 1차로 `전체메뉴 > 나의 반려동물 > 활동·칭호` 대시보드를 추가했다. 기존 XP ledger/RLS/RPC를 재사용하고 신규 migration/RPC 없이 현재 성장, 펫별 활동, 산책/타임라인/건강관리, 공통 커뮤니티/댓글, 칭호·훈장 보관함을 표시한다. 커뮤니티/댓글은 user-level 공통 활동으로만 표시해 멀티펫 카드에 중복 합산하지 않는다. Lv.11~30과 고급 랭킹/리더보드는 후속으로 유지한다.
+- 2026-07-02 V1.1.1 1차로 `전체메뉴 > 나의 반려동물 > 활동·칭호` 대시보드를 추가했다. 기존 XP ledger/RLS/RPC를 재사용해 현재 성장, 펫별 활동, 산책/타임라인/건강관리, 공통 커뮤니티/댓글, 칭호·훈장 보관함을 표시한다. 커뮤니티/댓글은 user-level 공통 활동으로만 표시해 멀티펫 카드에 중복 합산하지 않는다. 2026-07-09 고도화에서 Lv.1~30과 privacy-limited `누리 랭킹` MVP를 추가했으며, 공개 경쟁형 리더보드는 후속으로 유지한다.
 - 2026-07-03 V1.1.1 closeout 갱신: 홈 간편 알림창 swipe dismiss와 `모두 치우기`는 전체보기 삭제가 아니라 home-only local/user-scoped hide로 분리했다. 전체보기/알림함 개별 삭제와 전체삭제는 기존 서버 RPC의 user-scoped hide를 유지하며, read/home dismiss/inbox delete는 분리 상태다. service role key가 현재 셸에 없어 adminQA 새 알림 row 생성 smoke는 미수행했고, focused test와 기존 read path evidence로 보완한다.
 - 2026-07-03 활동·칭호 조건부 closeout 해소: `adminQA`에 QA 전용 `AdminQAPet2`를 추가해 실제 멀티펫 edge를 확인했다. `AdminQAPet2` 기준 산책 2건, 식사 1건, 일기장 1건, 생활 1건을 저장했고, 활동·칭호는 총 `120 XP`, AdminQAPet `60 XP · 훈장 2개`, AdminQAPet2 `45 XP · 훈장 1개`, AdminQAPet2 카테고리 `전체 5 / 산책 2 / 식사 1 / 일기장 1 / 생활 1`을 표시했다. 같은 날 산책 2건은 streak/timeline에는 반영되지만 XP daily cap으로 추가 산책 XP가 중복 지급되지 않았다. pet/common owner label을 칭호·훈장 조건에 표시하도록 보강했다.
 - 2026-07-03 알림 live row 조건부: authenticated 안전 생성 RPC나 QA fixture가 없고 `user_notifications`는 select-only RLS라 새 알림 row 기반 live retention smoke는 수행하지 않았다. service role key는 요구하거나 노출하지 않았고, home quick dismiss와 inbox delete 분리는 focused test와 기존 read path evidence로 보완한다. release blocker는 아니다.
+- 2026-07-09 V1.1.1 고도화 1차: additive remote migration으로 운영자 알림 campaign/audit table, admin-only 발송 RPC, QA-only self notification RPC, Lv.1~30 curve, 장기 activity summary RPC, privacy-limited ranking RPC를 적용했다. 전체메뉴에는 `누리 랭킹` 사용자 read-only 화면만 추가했고, 운영자 발송 UI는 앱 내부에 노출하지 않았다. push notification은 실제 발송/permission prompt/token 저장을 열지 않고 정책 문서로만 정리했다. 랭킹 RPC는 email/phone/user_id/pet_id/raw id를 반환하지 않고 pending deletion 사용자를 제외한다. Android 실기기 ranking smoke와 notification live retention evidence는 이번 고도화 closeout evidence로 별도 캡처한다.
 - 디자인 수정은 이번 release QA 턴에서 하지 않았다. 스토어 출시 전 디자인 조정 후보는 별도 트랙으로 유지하며, Play Store 자산 패키지는 디자인 조정과 V1.0/V1.1 전체 완료 후 진행한다.
 
 ## 2026-06-30 Full App E2E / Navigation / Hospital Coverage RC QA
@@ -152,7 +153,7 @@
   - 타임라인 작성과 산책 카테고리 작성에 XP 연결
   - 타임라인 활동 성장 카드에 total XP, level, 최신 칭호, 다음 레벨 progress 표시
   - V1.1.1 1차: 전체메뉴 `활동·칭호` 화면에서 pet-scoped 활동과 user-scoped 공통 활동을 분리 표시
-  - Lv.11~30 확장은 서버 제약/RPC 검증이 필요하므로 후속으로 유지
+  - Lv.1~30 확장은 2026-07-09 서버/app curve와 focused test로 반영
 - [x] Android `adminQA` smoke
   - release APK rebuild/install/cold start
   - 로그인 후 홈 진입, 타임라인 데일리판/XP 카드 표시
@@ -227,7 +228,7 @@
   - 운영자 발송 UI: 앱 내부 미구현/후속. 일반 사용자와 `adminQA`에 노출되지 않음.
   - 홈 위젯: Android native/JS 일부 코드 존재. V1.1 release scope leak을 막기 위해 receiver disabled/exported false와 native package 미등록으로 차단.
   - 무지개다리 서비스: pet memorial profile state는 있으나 상품/문의/결제 flow는 미구현/후속.
-  - 고급 XP/랭킹: MVP XP/level/title만 구현. leaderboard/ranking public exposure 없음.
+  - 고급 XP/랭킹: privacy-limited `누리 랭킹` MVP 구현. leaderboard/ranking public exposure는 제한 필드와 마스킹 정책으로만 허용.
 - [x] 보안 smoke
   - private tables anon direct select row 0.
   - user RPC anon 호출 `42501` 계열 거부.

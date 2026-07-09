@@ -1,10 +1,10 @@
 # NURI 전체 프로젝트 현황 보고서
 
-기준일: 2026-07-03
-최종 정합성 검수일: 2026-07-03
+기준일: 2026-07-09
+최종 정합성 검수일: 2026-07-09
 문서 목적: ChatGPT, Codex, 운영자, 후속 개발 세션이 현재 NURI 앱의 전체 맥락을 한 번에 파악하기 위한 source of truth 문서
 
-최신 갱신: 2026-07-03 V1.1.1 조건부 closeout 해소 턴에서 `adminQA`에 QA 전용 `AdminQAPet2`를 추가해 실제 멀티펫 edge QA를 수행했다. `AdminQAPet2` 기준 산책 2건, 식사 1건, 일기장 1건, 생활 1건을 저장했고, 활동·칭호는 총 `120 XP`, AdminQAPet `60 XP · 훈장 2개`, AdminQAPet2 `45 XP · 훈장 1개`, AdminQAPet2 카테고리 `전체 5 / 산책 2 / 식사 1 / 일기장 1 / 생활 1`을 표시했다. 같은 날 산책 2건은 streak/timeline에는 반영되지만 XP daily cap으로 산책 XP가 중복 지급되지 않았다. 칭호·훈장 보관함은 pet/common owner label을 표시하도록 보강했다. 홈 quick dismiss와 inbox delete는 분리 상태를 유지하며, 새 알림 row 기반 live retention smoke는 안전 생성 경로와 service role key 부재로 조건부 evidence로 남긴다. service role key는 요구하거나 노출하지 않았다. 다음 V1.1.1 후보는 앱 내부 admin UI가 아니라 홈페이지/관리 페이지 트랙의 운영자 알림 발송 관리 체계를 먼저 설계하는 것으로 둔다.
+최신 갱신: 2026-07-09 V1.1.1 고도화 1차로 운영자 알림 발송 관리 체계의 DB/RPC/RLS/audit 기반, service role key 없는 QA-only self notification RPC, Lv.1~30 curve, 장기 activity summary RPC, 전체메뉴 `누리 랭킹` MVP를 추가했다. 랭킹 RPC는 email, phone, user_id, pet_id, raw id를 반환하지 않고 pending deletion 사용자를 제외한다. QA ranking fixture 6개는 `adminQA` 계열 QA fixture caller가 명시 요청할 때만 포함한다. push notification은 token/permission/opt-out/secret storage 정책만 문서화했고 실제 remote push 발송은 하지 않았다. 앱 내부 일반 사용자에게 운영자 발송 UI는 열지 않으며, 홈 위젯/무지개다리/Kakao Local global hard delete는 Parking 유지다.
 
 ## 1. 문서 목적
 
@@ -42,10 +42,11 @@
 | V1.1 산책 POI 전환 트랙 | 약 99% | remote DB 기준 approved/public/active POI 1,145건, PostGIS foundation, 앱 POI RPC read path, admin import/review, 전국 주요 coverage, 한글 표시값 기준 유지, walk-domain Kakao fallback 제거, public projection safety, RC smoke 통과 |
 | V1.1 추가 업데이트 1차 MVP | 약 98% | 타임라인 count write/edit/delete edge closeout 완료. 회원탈퇴 모달/back/7일 유예와 email 최근 로그인 cold start 확인. 실제 탈퇴 예약과 social 최종 pill은 조건부 evidence |
 | V1.1 추가 업데이트 2차 MVP | 100% | 데일리 streak/데일리판, 알림 read path, XP/레벨/칭호 최소 MVP 구현 후 `adminQA` edge QA, KST 날짜 edge, RLS/RPC negative smoke, Android keyboard bar smoke 통과. 홈 상단 알림 아이콘은 floating notification shade overlay로 closeout |
-| V1.1 추가 기능 구현 | 약 85% | 1차 MVP 3개 edge QA와 2차 MVP 서버/앱 구현 및 edge QA, 홈 알림 overlay/dismiss/expand UX closeout, V1.1.1 후보 scope audit과 홈 위젯 release 노출 차단, `활동·칭호` 대시보드 1차 구현, 실제 멀티펫/다중 XP write smoke, 알림 보존 정책 분리 완료. push/운영자 발송 UI/무지개다리/고급 랭킹은 후속 |
-| V1.1 전체 | 약 74% | 산책 POI 트랙 closeout 가능, full E2E/navigation audit 통과, 병원 coverage 판정 완료, V1.1 추가 업데이트 1차 MVP 조건부 closeout 유지, 2차 MVP edge QA/RLS 재검증과 홈 알림 overlay/dismiss/expand UX closeout, V1.1.1 scope audit과 1차 대시보드 조건부 closeout 해소 smoke 반영 |
-| V1.1.1 1차 기능 | 약 96% | V1.1.1 우선순위와 활동·칭호 정책 v1 문서화, `활동·칭호` route/entry/card UI 구현, 실제 adminQA 멀티펫 분리, 다중 타임라인 XP write smoke, daily cap/idempotency 확인, 카테고리별/글/댓글 focused test, 알림 home dismiss와 inbox delete 분리 완료. live 알림 row retention smoke는 안전 생성 경로 부재로 조건부 evidence |
-| 전체 제품 로드맵 | 약 98% | V1.0 release-ready 기준선은 닫혔고 V1.1 location foundation, 전국 seed 5차 coverage, Ready 권역 Kakao 호출 차단, 대량 seed 품질 점검, full E2E/navigation audit, 1차/2차 MVP edge QA, V1.1 final sign-off, V1.1.1 1차 대시보드 조건부 closeout 해소까지 진행됐다. 장기 유료화/AI/전국 데이터 운영은 아직 남음 |
+| V1.1 추가 기능 구현 | 약 88% | 1차 MVP 3개 edge QA와 2차 MVP 서버/앱 구현 및 edge QA, 홈 알림 overlay/dismiss/expand UX closeout, V1.1.1 후보 scope audit과 홈 위젯 release 노출 차단, `활동·칭호` 대시보드, 프리미엄 보상 모달, 알림 보존 정책, 운영자 알림 기반, Lv.30, 장기 summary RPC, `누리 랭킹` MVP 완료. push 실제 발송/운영자 관리 UI/무지개다리/공개 리더보드는 후속 |
+| V1.1 전체 | 약 77% | 산책 POI 트랙 closeout 가능, full E2E/navigation audit 통과, 병원 coverage 판정 완료, V1.1 추가 업데이트 1차/2차 MVP, 홈 알림 final UX, V1.1.1 활동·칭호/보상 모달/Lv.30/랭킹/운영자 알림 기반 반영 |
+| V1.1.1 1차 기능 | 100% | V1.1.1 우선순위와 활동·칭호 정책 v1 문서화, `활동·칭호` route/entry/card UI 구현, 실제 adminQA 멀티펫 분리, 다중 타임라인 XP write smoke, daily cap/idempotency 확인, 카테고리별/글/댓글 focused test, 알림 home dismiss와 inbox delete 분리, 프리미엄 보상 모달 visual QA 완료 |
+| V1.1.1 고도화 1차 | 약 86% | 운영자 알림 DB/RPC/RLS/audit 기반, QA 알림 생성 RPC, Lv.1~30, 장기 summary RPC, privacy-limited 랭킹 MVP 구현. Android 최종 캡처와 운영자 관리 페이지 UI는 후속 |
+| 전체 제품 로드맵 | 약 98.4% | V1.0 release-ready 기준선은 닫혔고 V1.1/V1.1.1 주요 사용자 기능과 운영 기반 대부분 완료. Play Store 자산, 디자인 polish, 운영자 관리 페이지 UI, push 실제 발송, 홈 위젯, 무지개다리, 공개 리더보드는 남음 |
 | 최종 제출 준비 | 약 20% | release artifact/provenance와 정책 URL 기준은 정리됐지만 Play Store 스크린샷, 설명문, Console 입력, store listing package는 아직 최종 제출 직전 준비로 남음 |
 
 남은 작업의 성격:
@@ -135,21 +136,21 @@
 | 운영자 발송 UI | 앱 내부 발송 UI 미구현 | 일반 admin route는 role-gated로 존재 | 일반 사용자/adminQA 미노출 | read/dismiss 계약만 사용 | 일반 사용자 노출 없음 | 제외 | 별도 홈페이지/관리 페이지 발송 UI와 audit log | 미구현/후속 |
 | 홈 위젯 | Android native/JS 일부 코드 존재. release 노출 차단 완료 | receiver/provider/bridge code 일부 존재 | `enabled=false`, `exported=false`, native package 미등록 | 별도 DB/RPC 없음 | release scope leak은 최소 수정으로 차단 | 제외 | Android AppWidget 정책, snapshot 계약, 권한/QA 재설계 | 부분 구현/비노출/후속 |
 | 무지개다리 서비스 | pet memorial profile state는 존재, 상품/문의/결제 flow 없음 | profile/memorial field code 일부 | 서비스 제안/상품 flow 미노출 | 기존 pet profile field 범위 | 민감 UX 문구는 후속 확정 필요 | 서비스 제외 | 한 번만 노출되는 조심스러운 문의 UX, 결제/상품 정책 | 문서 후보/부분 기반 |
-| 고급 XP/랭킹 | MVP XP/level/title만 구현. leaderboard 없음 | MVP XP code 존재 | ranking UI 미노출 | MVP ledger/RPC만 존재 | cross-user ranking 노출 없음 | 고급 랭킹 제외 | privacy/RLS 기반 leaderboard, badge, abuse 정책 | 미구현/후속 |
+| 고급 XP/랭킹 | privacy-limited `누리 랭킹` MVP 구현. 공개 경쟁형 leaderboard 없음 | ranking screen/service/RPC 존재 | 전체메뉴 `누리 랭킹` 노출 | 제한 필드 ranking RPC 존재 | email/user_id/raw id 미반환, pending deletion 제외 | 제한 포함 | opt-in 공개 리더보드, abuse 정책, 운영 모니터링 | 부분 구현/안전 제한 |
 
 진행률: V1.0 기능 개발 100%, V1.0 QA/출시 준비 약 99%, V1.1 산책 POI 트랙 약 99%, V1.1 추가 업데이트 1차 MVP 약 98%, V1.1 추가 업데이트 2차 MVP 100%, V1.1 추가 기능 구현 약 85%, V1.1 전체 약 74%, V1.1.1 1차 기능 약 96%, 전체 제품 로드맵 약 98%.
 
 ## 3-7. 2026-07-02 V1.1.1 우선순위 / 활동·칭호 대시보드 1차 구현
 
-- 우선순위: 1순위 `고급 XP/칭호/훈장/활동내역`, 2순위 push 알림, 3순위 운영자 발송 UI, 4순위 휴대폰 실기기 홈 위젯, 5순위 무지개다리 서비스, 6순위 고급 랭킹/리더보드로 확정했다.
+- 우선순위: 1순위 `고급 XP/칭호/훈장/활동내역`, 2순위 운영자 알림 발송 관리 체계, 3순위 push 알림, 4순위 휴대폰 실기기 홈 위젯, 5순위 무지개다리 서비스, 6순위 공개 경쟁형 리더보드로 재정리했다.
 - 구현 위치: `전체메뉴 > 나의 반려동물 > 활동·칭호`
 - 명칭 사유: `활동·칭호`는 XP, 레벨, 칭호, 훈장을 포괄하면서 `나의 활동내역`보다 덜 딱딱하고 반려동물 앱 톤에 맞다.
 - 데이터 계약: 신규 migration/RPC 없이 기존 `user_xp_ledger`, `user_level_summaries`, `user_titles`, streak/timeline count read path와 RLS를 재사용한다.
-- 레벨: 현재 서버 check/RPC 계약은 Lv.1~10이다. Lv.11~30은 table constraint, level calculation function, focused RLS/RPC test가 함께 필요한 Phase 2로 둔다.
+- 레벨: 현재 서버/app 계약은 Lv.1~30이다. 기존 Lv.1~10 threshold는 유지하고, Lv.11부터 요구 XP가 크게 증가한다. Lv.30 이후는 `최고 레벨 달성`으로 표시한다.
 - 실제 XP 연결: 산책/일반 타임라인은 기존 연결을 유지하고, 건강 카테고리 타임라인은 `health_record`, 커뮤니티 글은 `community_post`, 댓글은 `comment` XP 후처리로 연결했다. XP 실패는 원본 작성 flow를 막지 않는다.
 - 멀티펫 분리: pet_id가 있는 산책/streak/timeline/health/XP/title은 pet별로 표시한다. 커뮤니티 글과 댓글은 `pet_id=null` user-level 공통 활동으로 표시하고 각 pet 카드에 중복 합산하지 않는다.
 - UI 카드: 현재 성장 카드, 아이별 성장 기록, 산책/타임라인/건강관리 카드, 공통 커뮤니티/댓글 카드, 칭호·훈장 보관함을 추가했다.
-- 제외: push, 운영자 발송 UI, 홈 위젯, 무지개다리, 고급 랭킹/리더보드, Play Store 자산, 디자인 전체 리뉴얼은 구현하지 않았다.
+- 제외: push 실제 발송, 운영자 관리 페이지 UI, 홈 위젯, 무지개다리, 공개 경쟁형 리더보드, Play Store 자산, 디자인 전체 리뉴얼은 구현하지 않았다.
 
 진행률: V1.1 추가 기능 구현 약 85%, V1.1 전체 약 74%, V1.1.1 1차 기능 약 96%, 전체 제품 로드맵 약 98%.
 

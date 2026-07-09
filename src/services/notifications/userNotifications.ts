@@ -110,3 +110,17 @@ export async function dismissAllUserNotifications(): Promise<number> {
   if (error) throw error;
   return typeof data === 'number' && Number.isFinite(data) ? data : 0;
 }
+
+export async function createQaUserNotification(input?: {
+  title?: string;
+  body?: string;
+}): Promise<string> {
+  const { data, error } = await supabase.rpc('create_qa_user_notification_v1', {
+    p_title: input?.title ?? 'QA_RETENTION_NOTICE',
+    p_body:
+      input?.body ??
+      'home quick dismiss와 inbox delete 분리 live smoke용 알림입니다.',
+  });
+  if (error) throw error;
+  return typeof data === 'string' ? data : '';
+}

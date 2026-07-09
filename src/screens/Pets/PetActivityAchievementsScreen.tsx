@@ -163,8 +163,8 @@ function GrowthCard({
         </AppText>
       </View>
       <AppText preset="caption" style={styles.levelPolicyNote}>
-        현재 서버 계약은 Lv.1~{LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1]?.level ?? 10}
-        까지예요. Lv.11~30은 다음 서버 정책 확장 때 열어요.
+        Lv.1~{LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1]?.level ?? 30}
+        까지 열려 있어요. 높은 레벨일수록 더 오래 쌓아야 해요.
       </AppText>
     </View>
   );

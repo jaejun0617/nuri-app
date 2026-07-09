@@ -9,14 +9,14 @@
 
 NURI는 반려동물의 기억, 일상, 건강, 산책, 커뮤니티 활동을 기록하고 추억하는 감성 기반 디지털 메모리얼 앱이다. 구현 기준은 Android-first React Native 앱, Supabase RLS 기반 user/pet isolation, styled-components 테마, 실기기 QA, release-ready 운영 방어선이다.
 
-현재 V1.0 핵심 기능은 닫혔고, V1.1 산책 POI와 1차/2차 MVP도 release blocker 없이 closeout 가능 상태다. V1.1.1 1차 기능인 `활동·칭호` 대시보드와 프리미엄 보상 모달은 repo 기준 구현 및 Android 실기기 visual QA까지 완료했다.
+현재 V1.0 핵심 기능은 닫혔고, V1.1 산책 POI와 1차/2차 MVP도 release blocker 없이 closeout 가능 상태다. V1.1.1 1차 기능인 `활동·칭호` 대시보드와 프리미엄 보상 모달은 repo 기준 구현 및 Android 실기기 visual QA까지 완료했다. 2026-07-09에는 운영자 알림 발송 기반, QA 알림 생성 RPC, Lv.1~30, 장기 summary RPC, privacy-limited `누리 랭킹` MVP를 추가했다.
 
 고정 운영 원칙:
 
 - QA 계정은 `adminQA`를 재사용한다. 이름만 adminQA이며 권한은 일반 사용자다.
 - 무작위 신규 QA 계정 생성, admin 권한 부여, 민감정보 보고서 노출은 금지한다.
 - Android 실기기 QA 기준 장비는 `SM_S937N / R5CY613NMSY`다.
-- Play Store 자산, 디자인 polish, 운영자 관리 페이지, push notification, 홈 위젯, 무지개다리, 고급 랭킹은 아직 후속이다.
+- Play Store 자산, 디자인 polish, 운영자 관리 페이지 UI, 실제 push notification 발송, 홈 위젯, 무지개다리, 공개 경쟁형 리더보드는 아직 후속이다.
 
 ## 2. 전체 진행률
 
@@ -27,9 +27,10 @@ NURI는 반려동물의 기억, 일상, 건강, 산책, 커뮤니티 활동을 �
 | V1.1 산책 POI 트랙 | 약 99% | approved/public/active 1,145건, public projection safety, Kakao walk fallback 제거, Android smoke 완료 |
 | V1.1 추가 업데이트 1차 MVP | 약 98% | 회원탈퇴 입력 확인, 최근 로그인 표시, timeline category count 구현/QA 완료. 실제 탈퇴 예약과 일부 social 최종 pill은 조건부 evidence |
 | V1.1 추가 업데이트 2차 MVP | 100% | daily streak, notification read path, XP/level/title MVP, 홈 알림 overlay/dismiss/expand UX final sign-off |
-| V1.1 전체 | 약 74% | V1.1 기능 closeout은 가능하나 디자인 polish, Play Store 제출 자산, 후속 운영 기능은 별도 |
-| V1.1.1 1차 기능 | 약 98% | 활동·칭호 대시보드, 알림 보존 정책, XP 다중 write smoke, 프리미엄 보상 모달 visual QA 완료. live notification row smoke는 안전 fixture 후 보강 |
-| 전체 제품 로드맵 | 약 98.2% | 제품 core와 V1.1/V1.1.1 1차 사용자 기능 대부분 완료. 운영자 발송/push/디자인/스토어 제출 준비 잔여 |
+| V1.1 전체 | 약 77% | V1.1 기능 closeout 가능 상태에 V1.1.1 Lv.30/랭킹/운영자 알림 기반을 반영. 디자인 polish, Play Store 제출 자산, 후속 운영 UI는 별도 |
+| V1.1.1 1차 기능 | 100% | 활동·칭호 대시보드, 알림 보존 정책, XP 다중 write smoke, 프리미엄 보상 모달 visual QA 완료 |
+| V1.1.1 고도화 1차 | 약 86% | 운영자 알림 DB/RPC/RLS/audit 기반, QA 알림 생성 RPC, Lv.1~30, 장기 summary RPC, privacy-limited 랭킹 MVP 구현. Android 최종 캡처와 운영자 관리 페이지 UI는 후속 |
+| 전체 제품 로드맵 | 약 98.4% | 제품 core와 V1.1/V1.1.1 주요 사용자 기능 대부분 완료. 운영자 관리 페이지 UI/push/디자인/스토어 제출 준비 잔여 |
 
 ## 3. V1.0 구현 완료 내용
 
@@ -88,7 +89,7 @@ NURI는 반려동물의 기억, 일상, 건강, 산책, 커뮤니티 활동을 �
 ## 9. XP / Level / Title / Activity 상태
 
 - XP ledger, daily cap, source idempotency, level summary, title MVP가 구현되어 있다.
-- 서버 레벨 범위는 Lv.1~10이다. Lv.11~30은 constraint/function/RPC/test가 필요한 Phase 2로 보류한다.
+- 서버/app 레벨 범위는 Lv.1~30이다. 기존 Lv.1~10 threshold는 유지하고, Lv.11부터 요구 XP가 크게 증가한다. Lv.30 이후는 `최고 레벨 달성`으로 표시한다.
 - `전체메뉴 > 나의 반려동물 > 활동·칭호` 대시보드는 현재 성장 카드, 아이별 성장 기록, 산책/타임라인/건강관리 카드, 커뮤니티/댓글 공통 카드, 칭호·훈장 보관함을 표시한다.
 - pet-scoped 활동은 pet 단위로 분리하고, community/comment는 user-scoped 공통 활동으로만 표시한다.
 - ownerLabel을 통해 `AdminQAPet`, `AdminQAPet2`, `공통 활동` 범위를 구분한다.
@@ -99,12 +100,12 @@ NURI는 반려동물의 기억, 일상, 건강, 산책, 커뮤니티 활동을 �
 
 | 후보 | 현재 상태 | 구현 여부 | 위험도 | 선행 조건 | 다음 액션 |
 | --- | --- | --- | --- | --- | --- |
-| 운영자 알림 발송 관리 체계 | 앱 내부 미구현. 홈페이지/관리 페이지 트랙으로 확정 | 미구현 | 중간 | 관리자 인증, 알림 템플릿, 대상 범위, 취소, audit log, QA fixture | 정책/관리 페이지 IA 설계 |
-| push notification | remote push 미구현 | 미구현 | 높음 | 운영자 발송 정책, opt-out, token 저장, permission UX, delivery log | 발송 관리 체계 이후 FCM 설계 |
+| 운영자 알림 발송 관리 체계 | DB/RPC/RLS/audit 기반 구현. 앱 내부 일반 사용자 UI 미노출 | 기반 구현 | 중간 | 관리자 인증 UI, 알림 템플릿, 대상 범위, 취소, audit log review | 홈페이지/관리 페이지 UI 구현 |
+| push notification | remote push 미구현. token/permission/opt-out/secret 정책 문서화 | 미구현 | 높음 | 운영자 발송 UI, opt-out, token 저장, permission UX, delivery log | 발송 관리 체계 이후 FCM 설계 |
 | 휴대폰 실기기 홈 위젯 | Android native/JS 일부 흔적은 release 노출 차단 | 후속 | 중간-높음 | AppWidget privacy, snapshot contract, update interval, battery policy | native widget 재설계 |
 | 무지개다리 서비스 | profile state 일부만 존재, 상품/문의 flow 없음 | 후속 | 높음 | 감정 민감 문구, one-time suggestion, 문의/상품/결제 정책 | UX copy/정책 먼저 확정 |
-| Lv.11~30 / 장기 summary RPC | 현재 Lv.1~10 유지 | 후속 | 중간 | DB constraint, calculation function, summary RPC, RLS/focused test | Phase 2 설계 |
-| 고급 랭킹/리더보드 | privacy/RLS 이유로 미구현 | 후속 | 높음 | cross-user data 익명화, opt-in, abuse 방어, RLS 설계 | 가장 뒤로 둠 |
+| Lv.11~30 / 장기 summary RPC | Lv.1~30 curve와 read-only summary RPC 구현 | 구현 | 중간 | Android 최종 smoke, 장기 운영 모니터링 | 유지/고도화 |
+| 고급 랭킹/리더보드 | privacy-limited `누리 랭킹` MVP 구현. 공개 경쟁형 리더보드는 후속 | 부분 구현 | 높음 | opt-in, abuse 방어, 공개 노출 정책 | 안전 제한 유지 |
 
 ## 11. 남은 작업 리스트
 
@@ -118,12 +119,11 @@ Conditional evidence:
 
 V1.1.1 후보:
 
-- 운영자 알림 발송 관리 체계 정책/관리 페이지 트랙
+- 운영자 알림 발송 관리 페이지 UI
 - push notification
 - Android 홈 위젯
 - 무지개다리 서비스
-- Lv.11~30 / 장기 summary RPC
-- 고급 랭킹/리더보드
+- 공개 경쟁형 랭킹/리더보드
 
 디자인 조정 예정:
 
@@ -138,14 +138,13 @@ Parking / 보류:
 
 - admin 운영자 QA
 - Kakao Local global hard delete
-- Lv.11~30
-- 장기 summary RPC
-- 고급 랭킹/리더보드
+- 공개 경쟁형 랭킹/리더보드
+- 운영자 알림 관리 페이지 UI
 
 ## 12. 고도화 작업 제안
 
-1. 운영자 알림 발송 관리 체계
-   - 목표: 안전한 알림 row 생성, 검수, 취소, audit log를 갖춘 관리 체계
+1. 운영자 알림 발송 관리 페이지 UI
+   - 목표: 이번에 추가된 admin notification DB/RPC/audit 기반을 실제 운영자가 안전하게 사용할 수 있게 한다.
    - 분류: 홈페이지/관리 페이지 이동
    - QA 기준: admin 권한, user targeting, hard delete 없음, row-level audit
 2. push notification
@@ -160,10 +159,10 @@ Parking / 보류:
    - 목표: 최종 제출 자료 준비
    - 분류: 최종 제출 직전 준비
    - QA 기준: 정책 URL, screenshot, 설명문, version/build provenance
-5. Lv.11~30 / 장기 summary RPC
-   - 목표: 장기 성장 루프 강화
-   - 분류: V1.1.1 Phase 2
-   - QA 기준: migration/RPC/RLS/focused test, rollback note
+5. 공개 경쟁형 랭킹/리더보드
+   - 목표: opt-in 기반 장기 리텐션용 비교 기능
+   - 분류: Parking
+   - QA 기준: privacy, RLS, abuse 방어, opt-in
 6. 홈 위젯
    - 목표: 실기기 홈 화면에서 최소 개인정보 노출로 NURI 상태 표시
    - 분류: native 후속 트랙
@@ -172,10 +171,10 @@ Parking / 보류:
    - 목표: 민감한 순간을 조심스럽게 지원하는 문의/추모 flow
    - 분류: V1.2 또는 Parking
    - QA 기준: 문구 검수, one-time suggestion, 결제/문의 정책
-8. 고급 랭킹/리더보드
-   - 목표: 경쟁형 기능이 아니라 선택적/익명화된 장기 참여 기능으로 재검토
-   - 분류: Parking
-   - QA 기준: privacy, RLS, abuse 방어, opt-in
+8. Lv.30 이후 장기 성장 확장
+   - 목표: 최고 레벨 이후 칭호/훈장 중심의 장기 동기 설계
+   - 분류: V1.2 후보
+   - QA 기준: XP inflation, abuse 방어, 기존 레벨 하락 없음
 
 ## 13. 최신 Android Evidence
 

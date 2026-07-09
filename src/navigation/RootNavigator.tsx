@@ -60,6 +60,7 @@ import CommunityCreateScreen from '../screens/Community/CommunityCreateScreen';
 import CommunityEditScreen from '../screens/Community/CommunityEditScreen';
 import RecordCreateScreen from '../screens/Records/RecordCreateScreen';
 import UserNotificationsScreen from '../screens/Notifications/UserNotificationsScreen';
+import NuriRankingScreen from '../screens/Ranking/NuriRankingScreen';
 import CommunityStackHeader from './CommunityStackHeader';
 import type { DeviceCoordinates } from '../services/location/currentPosition';
 import type { LocationDiscoveryItem } from '../services/locationDiscovery/types';
@@ -220,6 +221,7 @@ export type RootStackParamList = {
   CommunityCreate: undefined;
   CommunityEdit: { postId: string };
   UserNotifications: { entrySource?: ScreenEntrySource } | undefined;
+  NuriRanking: { entrySource?: ScreenEntrySource } | undefined;
   RecordCreate:
     | {
         petId?: string;
@@ -469,6 +471,11 @@ export default function RootNavigator() {
       <Stack.Screen
         name="UserNotifications"
         component={UserNotificationsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="NuriRanking"
+        component={NuriRankingScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

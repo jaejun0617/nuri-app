@@ -1323,6 +1323,12 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     );
   }, [closeAndNavigate, navigation]);
 
+  const openNuriRanking = useCallback(() => {
+    closeAndNavigate(() =>
+      navigation.navigate('NuriRanking', { entrySource: 'more' }),
+    );
+  }, [closeAndNavigate, navigation]);
+
   const openGuideAdmin = useCallback(() => {
     closeAndNavigate(() =>
       navigation.navigate('GuideAdminList', { entrySource: 'more' }),
@@ -1828,12 +1834,20 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         iconTone: 'accent',
         onPress: isLoggedIn ? openAnimalHospital : onPressLogin,
       },
+      {
+        key: 'nuri-ranking',
+        label: '누리 랭킹',
+        icon: 'bar-chart-2',
+        iconTone: 'accent',
+        onPress: isLoggedIn ? openNuriRanking : onPressLogin,
+      },
     ],
     [
       isLoggedIn,
       openAnimalHospital,
       openHealthReport,
       openIndoorActivities,
+      openNuriRanking,
       onPressLogin,
       openTimeline,
       openWalkDiscovery,
