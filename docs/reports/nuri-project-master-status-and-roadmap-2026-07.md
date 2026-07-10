@@ -1,22 +1,22 @@
 # NURI 프로젝트 통합 현황 및 로드맵
 
-기준일: 2026-07-09
+기준일: 2026-07-10
 기준 브랜치: `codex/task6-community-content-policy`
-기준 커밋: 프리미엄 보상 모달 closeout 커밋 기준으로 갱신
+기준 커밋: 운영자 알림 콘솔/live retention closeout 커밋 기준으로 갱신
 연관 참조 문서: `docs/reports/nuri-father-development-progress-budget-2026-07-04.md`
 
 ## 1. 프로젝트 전체 요약
 
 NURI는 반려동물의 기억, 일상, 건강, 산책, 커뮤니티 활동을 기록하고 추억하는 감성 기반 디지털 메모리얼 앱이다. 구현 기준은 Android-first React Native 앱, Supabase RLS 기반 user/pet isolation, styled-components 테마, 실기기 QA, release-ready 운영 방어선이다.
 
-현재 V1.0 핵심 기능은 닫혔고, V1.1 산책 POI와 1차/2차 MVP도 release blocker 없이 closeout 가능 상태다. V1.1.1 1차 기능인 `활동·칭호` 대시보드와 프리미엄 보상 모달은 repo 기준 구현 및 Android 실기기 visual QA까지 완료했다. 2026-07-09에는 운영자 알림 발송 기반, QA 알림 생성 RPC, Lv.1~30, 장기 summary RPC, privacy-limited `누리 랭킹` MVP를 추가했다.
+현재 V1.0 핵심 기능은 닫혔고, V1.1 산책 POI와 1차/2차 MVP도 release blocker 없이 closeout 가능 상태다. V1.1.1 1차 기능인 `활동·칭호` 대시보드와 프리미엄 보상 모달은 repo 기준 구현 및 Android 실기기 visual QA까지 완료했다. 2026-07-09에는 운영자 알림 발송 기반, QA 알림 생성 RPC, Lv.1~30, 장기 summary RPC, privacy-limited `누리 랭킹` MVP를 추가했다. 2026-07-10에는 앱 내부가 아닌 별도 `admin-console` 운영자 알림 관리 UI와 live retention visual smoke, 랭킹/Lv.30 final visual QA를 닫았다.
 
 고정 운영 원칙:
 
 - QA 계정은 `adminQA`를 재사용한다. 이름만 adminQA이며 권한은 일반 사용자다.
 - 무작위 신규 QA 계정 생성, admin 권한 부여, 민감정보 보고서 노출은 금지한다.
 - Android 실기기 QA 기준 장비는 `SM_S937N / R5CY613NMSY`다.
-- Play Store 자산, 디자인 polish, 운영자 관리 페이지 UI, 실제 push notification 발송, 홈 위젯, 무지개다리, 공개 경쟁형 리더보드는 아직 후속이다.
+- Play Store 자산, 디자인 polish, 운영자 관리 페이지 고도화, 실제 push notification 발송, 홈 위젯, 무지개다리, 공개 경쟁형 리더보드는 아직 후속이다.
 
 ## 2. 전체 진행률
 
@@ -27,10 +27,10 @@ NURI는 반려동물의 기억, 일상, 건강, 산책, 커뮤니티 활동을 �
 | V1.1 산책 POI 트랙 | 약 99% | approved/public/active 1,145건, public projection safety, Kakao walk fallback 제거, Android smoke 완료 |
 | V1.1 추가 업데이트 1차 MVP | 약 98% | 회원탈퇴 입력 확인, 최근 로그인 표시, timeline category count 구현/QA 완료. 실제 탈퇴 예약과 일부 social 최종 pill은 조건부 evidence |
 | V1.1 추가 업데이트 2차 MVP | 100% | daily streak, notification read path, XP/level/title MVP, 홈 알림 overlay/dismiss/expand UX final sign-off |
-| V1.1 전체 | 약 77% | V1.1 기능 closeout 가능 상태에 V1.1.1 Lv.30/랭킹/운영자 알림 기반을 반영. 디자인 polish, Play Store 제출 자산, 후속 운영 UI는 별도 |
+| V1.1 전체 | 약 78% | V1.1 기능 closeout 가능 상태에 V1.1.1 Lv.30/랭킹/운영자 알림 관리 콘솔/live retention visual closeout을 반영. 디자인 polish, Play Store 제출 자산, 후속 운영 UI는 별도 |
 | V1.1.1 1차 기능 | 100% | 활동·칭호 대시보드, 알림 보존 정책, XP 다중 write smoke, 프리미엄 보상 모달 visual QA 완료 |
-| V1.1.1 고도화 1차 | 약 86% | 운영자 알림 DB/RPC/RLS/audit 기반, QA 알림 생성 RPC, Lv.1~30, 장기 summary RPC, privacy-limited 랭킹 MVP 구현. Android 최종 캡처와 운영자 관리 페이지 UI는 후속 |
-| 전체 제품 로드맵 | 약 98.4% | 제품 core와 V1.1/V1.1.1 주요 사용자 기능 대부분 완료. 운영자 관리 페이지 UI/push/디자인/스토어 제출 준비 잔여 |
+| V1.1.1 고도화 1차 | 약 94% | 운영자 알림 관리 콘솔 1차, QA 알림 생성/발송 wrapper, live retention visual smoke, Lv.1~30, 장기 summary RPC, privacy-limited 랭킹 MVP final visual QA 완료. 운영자 관리 페이지 고도화와 push 실제 발송은 후속 |
+| 전체 제품 로드맵 | 약 98.6% | 제품 core와 V1.1/V1.1.1 주요 사용자 기능 대부분 완료. 운영자 관리 페이지 고도화/push/디자인/스토어 제출 준비 잔여 |
 
 ## 3. V1.0 구현 완료 내용
 
@@ -83,8 +83,8 @@ NURI는 반려동물의 기억, 일상, 건강, 산책, 커뮤니티 활동을 �
 - 알림별 작은 X는 최신 UX 정리 결과 제거했다. 주요 삭제 UX는 좌우 swipe dismiss와 전체삭제다.
 - home quick dismiss와 inbox delete는 분리되어 있다. 홈에서 치운 알림은 전체보기/알림함에 남고, 알림함 삭제만 user-scoped server hide다.
 - read/delete/home-dismiss는 서로 다른 상태다.
-- 새 live notification row smoke는 안전한 생성 경로가 없어 조건부 evidence로 남겼다. service role key는 요구하거나 노출하지 않았다.
-- 운영자 발송 UI와 push notification은 미구현이며 후속이다.
+- 새 live notification row smoke는 2026-07-10 `adminQA` 단일 대상 실제 row로 visual closeout 완료했다. 홈 quick dismiss와 알림함 delete 분리를 Android screenshot/uiautomator로 확인했다.
+- 운영자 발송 UI는 앱 내부가 아니라 `admin-console/notification-console.html` 별도 관리 콘솔 1차로 구현했다. push notification 실제 발송은 여전히 미구현이며 후속이다.
 
 ## 9. XP / Level / Title / Activity 상태
 
@@ -100,7 +100,7 @@ NURI는 반려동물의 기억, 일상, 건강, 산책, 커뮤니티 활동을 �
 
 | 후보 | 현재 상태 | 구현 여부 | 위험도 | 선행 조건 | 다음 액션 |
 | --- | --- | --- | --- | --- | --- |
-| 운영자 알림 발송 관리 체계 | DB/RPC/RLS/audit 기반 구현. 앱 내부 일반 사용자 UI 미노출 | 기반 구현 | 중간 | 관리자 인증 UI, 알림 템플릿, 대상 범위, 취소, audit log review | 홈페이지/관리 페이지 UI 구현 |
+| 운영자 알림 발송 관리 체계 | DB/RPC/RLS/audit 기반 + 별도 `admin-console` 1차 UI 구현. 앱 내부 일반 사용자 UI 미노출 | 1차 구현 | 중간 | 템플릿, 승인/취소, opt-out, push 연동 | 관리 페이지 고도화 |
 | push notification | remote push 미구현. token/permission/opt-out/secret 정책 문서화 | 미구현 | 높음 | 운영자 발송 UI, opt-out, token 저장, permission UX, delivery log | 발송 관리 체계 이후 FCM 설계 |
 | 휴대폰 실기기 홈 위젯 | Android native/JS 일부 흔적은 release 노출 차단 | 후속 | 중간-높음 | AppWidget privacy, snapshot contract, update interval, battery policy | native widget 재설계 |
 | 무지개다리 서비스 | profile state 일부만 존재, 상품/문의 flow 없음 | 후속 | 높음 | 감정 민감 문구, one-time suggestion, 문의/상품/결제 정책 | UX copy/정책 먼저 확정 |
@@ -115,11 +115,11 @@ Release blocker:
 
 Conditional evidence:
 
-- 안전한 QA fixture 또는 운영자 발송 관리 체계가 생긴 뒤 새 notification row 기반 live retention smoke.
+- PremiumRewardModal Lv.30 fixture 로그인 기반 modal visual은 fixture auth 세션이 없어 직접 수행하지 못했다. Lv.30 progress policy/focused test/ranking visual로 보완하며 release blocker는 아니다.
 
 V1.1.1 후보:
 
-- 운영자 알림 발송 관리 페이지 UI
+- 운영자 알림 발송 관리 페이지 고도화
 - push notification
 - Android 홈 위젯
 - 무지개다리 서비스
@@ -139,12 +139,12 @@ Parking / 보류:
 - admin 운영자 QA
 - Kakao Local global hard delete
 - 공개 경쟁형 랭킹/리더보드
-- 운영자 알림 관리 페이지 UI
+- 운영자 알림 관리 콘솔 인증/배포/운영 고도화
 
 ## 12. 고도화 작업 제안
 
-1. 운영자 알림 발송 관리 페이지 UI
-   - 목표: 이번에 추가된 admin notification DB/RPC/audit 기반을 실제 운영자가 안전하게 사용할 수 있게 한다.
+1. 운영자 알림 관리 콘솔 고도화
+   - 목표: 이번에 추가된 `admin-console/notification-console.html`, admin notification DB/RPC/audit 기반을 실제 운영자가 안전하게 사용할 수 있도록 인증, 배포, 운영 로그, push opt-in 정책과 연결한다.
    - 분류: 홈페이지/관리 페이지 이동
    - QA 기준: admin 권한, user targeting, hard delete 없음, row-level audit
 2. push notification
@@ -185,4 +185,4 @@ Parking / 보류:
 
 ## 14. 최종 판정
 
-V1.1.1 1차 기능은 프리미엄 보상 모달 visual closeout 기준으로 release blocker 없이 closeout 가능하다. 남은 조건부 항목은 새 알림 row 기반 live retention smoke이며, 이는 안전한 운영자 발송/QA fixture가 없는 상태에서 service role key를 요구하지 않기 위한 의도적 보류다.
+V1.1.1 1차 기능과 고도화 1차는 release blocker 없이 closeout 가능하다. 새 알림 row 기반 live retention smoke는 2026-07-10 별도 admin-console 관리 UI, admin-only QA wrapper RPC, audit feed, Android `SM_S937N / R5CY613NMSY` visual evidence로 완료했다. service role key와 push secret은 요구하거나 노출하지 않았다.
