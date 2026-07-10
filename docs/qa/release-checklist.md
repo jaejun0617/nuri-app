@@ -23,7 +23,7 @@
 - 2026-07-03 알림 live row 조건부: authenticated 안전 생성 RPC나 QA fixture가 없고 `user_notifications`는 select-only RLS라 새 알림 row 기반 live retention smoke는 수행하지 않았다. service role key는 요구하거나 노출하지 않았고, home quick dismiss와 inbox delete 분리는 focused test와 기존 read path evidence로 보완한다. release blocker는 아니다.
 - 2026-07-09 V1.1.1 고도화 1차: additive remote migration으로 운영자 알림 campaign/audit table, admin-only 발송 RPC, QA-only self notification RPC, Lv.1~30 curve, 장기 activity summary RPC, privacy-limited ranking RPC를 적용했다. 전체메뉴에는 `누리 랭킹` 사용자 read-only 화면만 추가했고, 운영자 발송 UI는 앱 내부에 노출하지 않았다. push notification은 실제 발송/permission prompt/token 저장을 열지 않고 정책 문서로만 정리했다. 랭킹 RPC는 email/phone/user_id/pet_id/raw id를 반환하지 않고 pending deletion 사용자를 제외한다. Android 실기기 ranking smoke와 notification live retention evidence는 이번 고도화 closeout evidence로 별도 캡처한다.
 - 2026-07-10 운영자 알림 관리 콘솔/live retention closeout: 앱 내부 일반 사용자 UI가 아닌 `admin-console/notification-console.html` 별도 정적 콘솔을 추가했다. `admin_send_qa_user_notification_v1`와 `admin_notification_audit_feed_v1`를 remote에 적용했고, `profiles.deleted_at` 가정을 제거하는 corrective migration도 적용했다. anon admin RPC는 401/42501, non-admin admin send는 42501로 차단된다. 실제 admin wrapper 경로로 `adminQA` 단일 대상 새 알림 row를 만들고 Android에서 홈 표시, home swipe dismiss, 알림함 유지, 알림함 개별 삭제, 전체삭제, 홈 재노출 없음까지 확인했다. service role key/push secret/전체 broadcast는 사용하지 않았다.
-- 2026-07-10 랭킹/Lv.30 visual closeout: Android `SM_S937N / R5CY613NMSY`에서 `누리 랭킹` 종합/산책/글/댓글/건강/생활/미용 탭, 기둥그래프, `adminQA3` Lv.30 / `170,400 XP`, raw id/email/phone/pet_id 미노출을 확인했다. PremiumRewardModal Lv.30 fixture 로그인 기반 visual은 fixture auth 세션 부재로 직접 수행하지 않았고, Lv.30 progress policy/focused test/ranking visual로 보완한다.
+- 2026-07-11 V1.1.1 고도화 final closeout: Android `SM_S937N / R5CY613NMSY`에서 `누리 랭킹` 종합/산책/글/댓글/건강/생활/미용 탭, 기둥그래프, `adminQA3` Lv.30 / `170,400 XP`, raw id/email/phone/pet_id 미노출 상태를 유지한다. PremiumRewardModal은 fixture auth 세션 부재로 직접 fixture 로그인 visual은 불가했지만, Lv.30/max 상태에서 progress bar와 `최고 레벨 달성` 문구를 표시하도록 보강했고 focused max state test로 over-max crash 없음까지 고정했다.
 - 디자인 수정은 이번 release QA 턴에서 하지 않았다. 스토어 출시 전 디자인 조정 후보는 별도 트랙으로 유지하며, Play Store 자산 패키지는 디자인 조정과 V1.0/V1.1 전체 완료 후 진행한다.
 
 ## 2026-06-30 Full App E2E / Navigation / Hospital Coverage RC QA
@@ -567,7 +567,7 @@
   - native Google Maps preview 정식 복원은 API key/package/SHA 정리 후 v1.1 P2 backlog로 넘긴다.
   - evidence: `docs/qa/animal-hospital-v1-evidence-pack-2026-04-28.md`
 - [x] 날씨 홈/상세 Android 실기기 smoke와 API 비용 방어 검증을 `SM_S937N`에서 완료했다.
-  - 확인: 홈 날씨 카드 데이터 렌더링, 상세 `오늘의 날씨` 진입, 미세먼지/주간 예보/대기 질 정보 렌더링, 홈/상세 `날씨 데이터: Open-Meteo` attribution 노출.
+  - 확인: 홈 날씨 카드 데이터 렌더링, 상세 `오늘의 날씨` 진입, 미세먼지/주간 예보/대기 질 정보 렌더링, 날씨 상세 `날씨 데이터: Open-Meteo` attribution 노출. 2026-07-11 PO 요청 기준 로그인 홈 compact 카드의 attribution 문구는 숨김 처리했다.
   - logcat 확인: `weather-cache completed`, `source=fresh_cache`, `hasAirQuality=true`, Open-Meteo direct URL 0건.
   - evidence source of truth: `docs/domains/weather-api-cost-defense.md`
 

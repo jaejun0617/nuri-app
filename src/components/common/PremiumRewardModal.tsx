@@ -16,6 +16,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
+import { buildPremiumRewardLevelStatus } from '../../services/activity/rewardNoticePresentation';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { usePetStore } from '../../store/petStore';
 
@@ -62,8 +63,11 @@ function PremiumRewardModalBase({
     [selectedPet?.themeColor, theme.colors.brand],
   );
   const primaryColor = accentColor ?? petTheme.primary;
-  const safeLevel = Math.max(1, level);
   const safeAwarded = Math.max(0, xpAwarded);
+  const levelStatus = useMemo(
+    () => buildPremiumRewardLevelStatus({ totalXp, level }),
+    [level, totalXp],
+  );
   const hasXpAward = safeAwarded > 0;
   const rewardTitle = hasXpAward
     ? `+${formatXp(safeAwarded)} XP`
@@ -157,9 +161,36 @@ function PremiumRewardModalBase({
                   현재 레벨
                 </AppText>
                 <AppText preset="headline" style={[styles.metricValue, { color: theme.colors.textPrimary }]}>
-                  Lv.{safeLevel}
+                  Lv.{levelStatus.level}
                 </AppText>
               </View>
+            </View>
+
+            <View style={styles.levelProgressBlock}>
+              <View style={[styles.levelProgressTrack, { backgroundColor: petTheme.border }]}>
+                <View
+                  style={[
+                    styles.levelProgressFill,
+                    {
+                      width: `${Math.round(levelStatus.progress * 100)}%`,
+                      backgroundColor: primaryColor,
+                    },
+                  ]}
+                />
+              </View>
+              <AppText
+                preset="caption"
+                style={[
+                  styles.levelStatusText,
+                  {
+                    color: levelStatus.isMaxLevel
+                      ? primaryColor
+                      : theme.colors.textSecondary,
+                  },
+                ]}
+              >
+                {levelStatus.statusLabel}
+              </AppText>
             </View>
           </View>
 
@@ -346,6 +377,26 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     fontSize: 20,
     lineHeight: 25,
+    letterSpacing: 0,
+  },
+  levelProgressBlock: {
+    marginTop: 14,
+    gap: 8,
+  },
+  levelProgressTrack: {
+    height: 8,
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  levelProgressFill: {
+    height: '100%',
+    borderRadius: 999,
+  },
+  levelStatusText: {
+    textAlign: 'center',
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '900',
     letterSpacing: 0,
   },
   streakStrip: {

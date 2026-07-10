@@ -1162,7 +1162,7 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
 
         {birthText ? (
           <Text style={styles.heroBirthText} numberOfLines={1}>
-            생년월일 {birthText}
+            태어난 날 {birthText}
           </Text>
         ) : null}
 
