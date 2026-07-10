@@ -4,7 +4,12 @@
 // - 중복 지급과 daily cap은 서버 RPC가 결정하고, 앱은 결과 표시와 회귀 방어만 담당한다.
 
 import { supabase } from '../supabase/client';
-import type { ActivityXpEventType } from './progressPolicy';
+import {
+  calculateLevel,
+  getLevelFloorXp,
+  getNextLevelXp,
+  type ActivityXpEventType,
+} from './progressPolicy';
 
 export type AwardXpResult = {
   awarded: boolean;
@@ -64,12 +69,14 @@ function mapAwardXpResult(row: unknown): AwardXpResult {
       leveledUp: false,
     };
   }
+  const totalXp = toNumber(row.total_xp);
+  const policyLevel = calculateLevel(totalXp);
 
   return {
     awarded: toBoolean(row.awarded),
     xpAwarded: toNumber(row.xp_awarded),
-    totalXp: toNumber(row.total_xp),
-    level: Math.max(1, toNumber(row.level)),
+    totalXp,
+    level: policyLevel,
     leveledUp: toBoolean(row.leveled_up),
   };
 }
@@ -80,16 +87,18 @@ function mapLevelSummary(row: unknown): UserLevelSummary {
       totalXp: 0,
       level: 1,
       currentLevelXp: 0,
-      nextLevelXp: 100,
+      nextLevelXp: getNextLevelXp(1),
       updatedAt: null,
     };
   }
+  const totalXp = toNumber(row.total_xp);
+  const level = calculateLevel(totalXp);
 
   return {
-    totalXp: toNumber(row.total_xp),
-    level: Math.max(1, toNumber(row.level)),
-    currentLevelXp: toNumber(row.current_level_xp),
-    nextLevelXp: toNumber(row.next_level_xp),
+    totalXp,
+    level,
+    currentLevelXp: getLevelFloorXp(level),
+    nextLevelXp: getNextLevelXp(level),
     updatedAt: toNullableString(row.updated_at),
   };
 }

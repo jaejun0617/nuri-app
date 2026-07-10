@@ -4,6 +4,7 @@
 // - email/user_id/raw id는 서버에서 받지 않고, 앱도 노출하지 않는다.
 
 import { supabase } from '../supabase/client';
+import { calculateLevel } from '../activity/progressPolicy';
 
 export type ActivityRankingCategoryKey =
   | 'overall'
@@ -114,13 +115,14 @@ export function mapActivityRankingRow(value: unknown): ActivityRankingRow | null
   const displayName = toString(value.display_name);
   const rankNo = Math.max(0, Math.floor(toNumber(value.rank_no)));
   if (!displayName || rankNo <= 0) return null;
+  const totalXp = Math.max(0, Math.floor(toNumber(value.total_xp)));
 
   return {
     rankNo,
     displayName,
     score: Math.max(0, Math.floor(toNumber(value.score))),
-    level: Math.max(1, Math.floor(toNumber(value.level))),
-    totalXp: Math.max(0, Math.floor(toNumber(value.total_xp))),
+    level: calculateLevel(totalXp),
+    totalXp,
     category: normalizeCategory(value.category),
     isCurrentUser: toBoolean(value.is_current_user),
     rowSource: normalizeRowSource(value.row_source),

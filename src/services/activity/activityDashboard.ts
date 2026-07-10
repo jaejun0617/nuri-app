@@ -13,6 +13,9 @@ import {
   ACTIVITY_XP_POLICIES,
   LEVEL_THRESHOLDS,
   TITLE_POLICIES,
+  calculateLevel,
+  getLevelFloorXp,
+  getNextLevelXp,
   getProgressWithinLevel,
   type ActivityXpEventType,
 } from './progressPolicy';
@@ -498,10 +501,17 @@ export function buildActivityDashboard(
     input.titles.find(title => policyTitleNames.has(title.titleName))?.titleName ??
     input.titles[0]?.titleName ??
     '첫 추억 기록 준비 중';
+  const normalizedLevel = calculateLevel(input.levelSummary.totalXp);
+  const normalizedLevelSummary: UserLevelSummary = {
+    ...input.levelSummary,
+    level: normalizedLevel,
+    currentLevelXp: getLevelFloorXp(normalizedLevel),
+    nextLevelXp: getNextLevelXp(normalizedLevel),
+  };
 
   return {
-    levelSummary: input.levelSummary,
-    levelProgress: getProgressWithinLevel(input.levelSummary),
+    levelSummary: normalizedLevelSummary,
+    levelProgress: getProgressWithinLevel(normalizedLevelSummary),
     maxLevel: LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1]?.level ?? 10,
     representativeTitle,
     earnedTitles: input.titles,

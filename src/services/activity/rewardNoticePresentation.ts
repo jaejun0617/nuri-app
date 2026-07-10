@@ -1,7 +1,7 @@
 // 파일: src/services/activity/rewardNoticePresentation.ts
 // 역할:
 // - PremiumRewardModal의 레벨/XP 표시 문구를 레벨 정책과 동일하게 계산한다.
-// - Lv.30 이상 max 상태에서 음수/NaN/Infinity progress가 노출되지 않도록 고정한다.
+// - Lv.100 이상 max 상태에서 음수/NaN/Infinity progress가 노출되지 않도록 고정한다.
 
 import {
   LEVEL_THRESHOLDS,

@@ -468,11 +468,32 @@ export const styles = StyleSheet.create({
   heroAvatarPlaceholder: { flex: 1, backgroundColor: 'rgba(109,106,248,0.12)' },
 
   heroName: {
+    maxWidth: '88%',
     fontSize: 28,
     fontWeight: '900',
     color: BRAND_DEEP,
     letterSpacing: -0.4,
     marginTop: 2,
+    textAlign: 'center',
+  },
+  heroTitleBadge: {
+    maxWidth: '82%',
+    minHeight: 28,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 11,
+    paddingVertical: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+  },
+  heroTitleBadgeText: {
+    flexShrink: 1,
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '900',
+    letterSpacing: 0,
   },
   heroMetaLine: {
     fontSize: 13,

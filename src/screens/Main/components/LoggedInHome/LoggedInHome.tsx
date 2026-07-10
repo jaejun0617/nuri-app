@@ -105,6 +105,7 @@ import {
   formatMemorialPetName,
   isMemorialPet,
 } from '../../../../services/pets/memorial';
+import { fetchHomePetTitleBadge } from '../../../../services/activity/homeTitleBadge';
 import { getBrandedErrorMeta } from '../../../../services/app/errors';
 import {
   fetchUserNotifications,
@@ -1083,6 +1084,7 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
   petTheme,
   selectedAvatarUri,
   profilePetName,
+  titleBadge,
   topMetaLine,
   birthText,
   togetherDays,
@@ -1091,6 +1093,7 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
   petTheme: ReturnType<typeof buildPetThemePalette>;
   selectedAvatarUri: string | null;
   profilePetName: string;
+  titleBadge: string | null;
   topMetaLine: string | null;
   birthText: string | null;
   togetherDays: number | null;
@@ -1143,9 +1146,35 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
           </LinearGradient>
         </View>
 
+        {titleBadge ? (
+          <View
+            style={[
+              styles.heroTitleBadge,
+              {
+                backgroundColor: petTheme.soft,
+                borderColor: petTheme.border,
+              },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="medal-outline"
+              size={14}
+              color={petTheme.deep}
+            />
+            <Text
+              style={[styles.heroTitleBadgeText, { color: petTheme.deep }]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {titleBadge}
+            </Text>
+          </View>
+        ) : null}
+
         <Text
           style={[styles.heroName, { color: petTheme.deep }]}
           numberOfLines={1}
+          ellipsizeMode="tail"
         >
           {profilePetName}
         </Text>
@@ -1418,6 +1447,7 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
   petTheme,
   selectedAvatarUri,
   profilePetName,
+  titleBadge,
   topMetaLine,
   birthText,
   togetherDays,
@@ -1436,6 +1466,7 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
   petTheme: ReturnType<typeof buildPetThemePalette>;
   selectedAvatarUri: string | null;
   profilePetName: string;
+  titleBadge: string | null;
   topMetaLine: string | null;
   birthText: string | null;
   togetherDays: number | null;
@@ -1457,6 +1488,7 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
         petTheme={petTheme}
         selectedAvatarUri={selectedAvatarUri}
         profilePetName={profilePetName}
+        titleBadge={titleBadge}
         topMetaLine={topMetaLine}
         birthText={birthText}
         togetherDays={togetherDays}
@@ -2418,6 +2450,7 @@ export default function LoggedInHome() {
   const hasPets = pets.length > 0;
 
   const activePetId = selectedPet?.id ?? null;
+  const [homeTitleBadge, setHomeTitleBadge] = useState<string | null>(null);
   const homeScrollStorageKey = useMemo(
     () => activePetId ?? 'logged-in-home-default',
     [activePetId],
@@ -2495,6 +2528,29 @@ export default function LoggedInHome() {
     if (!activePetId) return;
     bootstrapSchedules(activePetId);
   }, [activePetId, bootstrapSchedules]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!isScreenFocused || !activePetId) {
+      setHomeTitleBadge(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    fetchHomePetTitleBadge(activePetId)
+      .then(title => {
+        if (!cancelled) setHomeTitleBadge(title);
+      })
+      .catch(() => {
+        if (!cancelled) setHomeTitleBadge(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activePetId, isScreenFocused, sessionUserId]);
 
   // ---------------------------------------------------------
   // 4.3) today message
@@ -3096,6 +3152,7 @@ export default function LoggedInHome() {
             petTheme={petTheme}
             selectedAvatarUri={selectedAvatarUri}
             profilePetName={profilePetName}
+            titleBadge={homeTitleBadge}
             topMetaLine={topMetaLine}
             birthText={birthText}
             togetherDays={togetherDays}

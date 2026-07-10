@@ -1,9 +1,9 @@
 import { buildPremiumRewardLevelStatus } from '../src/services/activity/rewardNoticePresentation';
 
 describe('PremiumRewardModal max level presentation', () => {
-  it('Lv.30 이상 max XP는 최고 레벨 달성 상태로 고정한다', () => {
-    expect(buildPremiumRewardLevelStatus({ totalXp: 170400, level: 30 })).toEqual({
-      level: 30,
+  it('Lv.100 이상 max XP는 최고 레벨 달성 상태로 고정한다', () => {
+    expect(buildPremiumRewardLevelStatus({ totalXp: 1250000, level: 100 })).toEqual({
+      level: 100,
       isMaxLevel: true,
       progress: 1,
       statusLabel: '최고 레벨 달성',
@@ -12,12 +12,12 @@ describe('PremiumRewardModal max level presentation', () => {
 
   it('over max XP에서도 다음 레벨 음수/NaN/Infinity 문구를 만들지 않는다', () => {
     const status = buildPremiumRewardLevelStatus({
-      totalXp: 220000,
-      level: 31,
+      totalXp: 2000000,
+      level: 101,
     });
 
     expect(status).toMatchObject({
-      level: 30,
+      level: 100,
       isMaxLevel: true,
       progress: 1,
       statusLabel: '최고 레벨 달성',

@@ -9,7 +9,7 @@
 
 NURI는 반려동물의 기억, 일상, 건강, 산책, 커뮤니티 활동을 기록하고 추억하는 감성 기반 디지털 메모리얼 앱이다. 구현 기준은 Android-first React Native 앱, Supabase RLS 기반 user/pet isolation, styled-components 테마, 실기기 QA, release-ready 운영 방어선이다.
 
-현재 V1.0 핵심 기능은 닫혔고, V1.1 산책 POI와 1차/2차 MVP도 release blocker 없이 closeout 가능 상태다. V1.1.1 1차 기능인 `활동·칭호` 대시보드와 프리미엄 보상 모달은 repo 기준 구현 및 Android 실기기 visual QA까지 완료했다. 2026-07-09에는 운영자 알림 발송 기반, QA 알림 생성 RPC, Lv.1~30, 장기 summary RPC, privacy-limited `누리 랭킹` MVP를 추가했다. 2026-07-10에는 앱 내부가 아닌 별도 `admin-console` 운영자 알림 관리 UI와 live retention visual smoke, 랭킹/Lv.30 final visual QA를 닫았다. 2026-07-11에는 PremiumRewardModal Lv.30/max 상태에 progress bar와 `최고 레벨 달성` 문구를 보강하고, 디자인 polish 후보와 push token/opt-in 다음 트랙을 문서화했다.
+현재 V1.0 핵심 기능은 닫혔고, V1.1 산책 POI와 1차/2차 MVP도 release blocker 없이 closeout 가능 상태다. V1.1.1 1차 기능인 `활동·칭호` 대시보드와 프리미엄 보상 모달은 repo 기준 구현 및 Android 실기기 visual QA까지 완료했다. 2026-07-09에는 운영자 알림 발송 기반, QA 알림 생성 RPC, Lv.1~30, 장기 summary RPC, privacy-limited `누리 랭킹` MVP를 추가했다. 2026-07-10에는 앱 내부가 아닌 별도 `admin-console` 운영자 알림 관리 UI와 live retention visual smoke, 랭킹/Lv.30 final visual QA를 닫았다. 2026-07-11 pre-store polish에서는 PremiumRewardModal max 상태를 보강한 뒤, 성장 시스템을 Lv.100 / max `1,250,000 XP`로 확장하고 level-band XP reward 감쇠와 홈 대표 칭호 badge를 추가했다. push token/opt-in은 다음 트랙 문서로만 유지한다.
 
 고정 운영 원칙:
 
@@ -27,10 +27,10 @@ NURI는 반려동물의 기억, 일상, 건강, 산책, 커뮤니티 활동을 �
 | V1.1 산책 POI 트랙 | 약 99% | approved/public/active 1,145건, public projection safety, Kakao walk fallback 제거, Android smoke 완료 |
 | V1.1 추가 업데이트 1차 MVP | 약 98% | 회원탈퇴 입력 확인, 최근 로그인 표시, timeline category count 구현/QA 완료. 실제 탈퇴 예약과 일부 social 최종 pill은 조건부 evidence |
 | V1.1 추가 업데이트 2차 MVP | 100% | daily streak, notification read path, XP/level/title MVP, 홈 알림 overlay/dismiss/expand UX final sign-off |
-| V1.1 전체 | 약 79% | V1.1 기능 closeout 가능 상태에 V1.1.1 Lv.30/랭킹/운영자 알림 관리 콘솔/live retention visual closeout과 PremiumRewardModal max 상태 보강을 반영. 디자인 polish 실행, Play Store 제출 자산, 후속 운영 UI는 별도 |
+| V1.1 전체 | 약 80% | V1.1 기능 closeout 가능 상태에 V1.1.1 Lv.100/랭킹/운영자 알림 관리 콘솔/live retention visual closeout, 홈 대표 칭호 badge, pre-store 필수 polish 일부 적용을 반영. Play Store 제출 자산과 push 실제 발송은 별도 |
 | V1.1.1 1차 기능 | 100% | 활동·칭호 대시보드, 알림 보존 정책, XP 다중 write smoke, 프리미엄 보상 모달 visual QA 완료 |
-| V1.1.1 고도화 1차 | 100% | 운영자 알림 관리 콘솔 1차, QA 알림 생성/발송 wrapper, live retention visual smoke, Lv.1~30, 장기 summary RPC, privacy-limited 랭킹 MVP final visual QA, PremiumRewardModal max 상태 보강 완료. 운영자 관리 페이지 고도화와 push 실제 발송은 후속 |
-| 전체 제품 로드맵 | 약 98.8% | 제품 core와 V1.1/V1.1.1 주요 사용자 기능 대부분 완료. 운영자 관리 페이지 고도화/push/디자인/스토어 제출 준비 잔여 |
+| V1.1.1 고도화 1차 | 100% | 운영자 알림 관리 콘솔 1차, QA 알림 생성/발송 wrapper, live retention visual smoke, Lv.1~100, XP reward 감쇠, 장기 summary RPC, privacy-limited 랭킹 MVP, 홈 대표 칭호 badge 완료. 운영자 관리 페이지 고도화와 push 실제 발송은 후속 |
+| 전체 제품 로드맵 | 약 98.9% | 제품 core와 V1.1/V1.1.1 주요 사용자 기능 대부분 완료. push token/opt-in, Play Store 제출 자산, 출시 전 최종 visual polish 잔여 |
 
 ## 3. V1.0 구현 완료 내용
 
@@ -89,12 +89,14 @@ NURI는 반려동물의 기억, 일상, 건강, 산책, 커뮤니티 활동을 �
 ## 9. XP / Level / Title / Activity 상태
 
 - XP ledger, daily cap, source idempotency, level summary, title MVP가 구현되어 있다.
-- 서버/app 레벨 범위는 Lv.1~30이다. 기존 Lv.1~10 threshold는 유지하고, Lv.11부터 요구 XP가 크게 증가한다. Lv.30 이후는 `최고 레벨 달성`으로 표시한다.
+- 서버/app 레벨 범위는 Lv.1~100이다. 기존 Lv.1~30 threshold는 유지하고, Lv.31부터 요구 XP가 점진적으로 커진다. Lv.100 max는 `1,250,000 XP`이며 이후는 `최고 레벨 달성`으로 표시한다.
+- 앞으로 지급되는 XP는 기존 base 대비 약 1.3배로 상향하되, 현재 레벨 구간별 multiplier를 적용한다. Lv.1~10은 100%, Lv.11~30은 90%, Lv.31~50은 80%, Lv.51~70은 70%, Lv.71~90은 60%, Lv.91~100은 50%다.
 - `전체메뉴 > 나의 반려동물 > 활동·칭호` 대시보드는 현재 성장 카드, 아이별 성장 기록, 산책/타임라인/건강관리 카드, 커뮤니티/댓글 공통 카드, 칭호·훈장 보관함을 표시한다.
 - pet-scoped 활동은 pet 단위로 분리하고, community/comment는 user-scoped 공통 활동으로만 표시한다.
 - ownerLabel을 통해 `AdminQAPet`, `AdminQAPet2`, `공통 활동` 범위를 구분한다.
 - `PremiumRewardModal`은 XP 획득량, 누적 XP, 현재 레벨, 레벨업 여부, 산책 streak를 NURI 프리미엄 톤으로 표시한다.
 - `오늘 하루 안 보기`는 KST 기준 user-scoped AsyncStorage preference이며 서버 XP/RPC/RLS에는 영향을 주지 않는다.
+- 메인 홈은 현재 선택/대표 펫의 pet-level 대표 칭호를 작은 badge로 표시한다. user-level 공통 칭호를 pet 칭호처럼 오표시하지 않는다.
 
 ## 10. V1.1.1 후보 상태
 
@@ -104,7 +106,7 @@ NURI는 반려동물의 기억, 일상, 건강, 산책, 커뮤니티 활동을 �
 | push notification | remote push 미구현. token/permission/opt-out/secret 정책 문서화 | 미구현 | 높음 | 운영자 발송 UI, opt-out, token 저장, permission UX, delivery log | 발송 관리 체계 이후 FCM 설계 |
 | 휴대폰 실기기 홈 위젯 | Android native/JS 일부 흔적은 release 노출 차단 | 후속 | 중간-높음 | AppWidget privacy, snapshot contract, update interval, battery policy | native widget 재설계 |
 | 무지개다리 서비스 | profile state 일부만 존재, 상품/문의 flow 없음 | 후속 | 높음 | 감정 민감 문구, one-time suggestion, 문의/상품/결제 정책 | UX copy/정책 먼저 확정 |
-| Lv.11~30 / 장기 summary RPC | Lv.1~30 curve와 read-only summary RPC 구현 | 구현 | 중간 | Android 최종 smoke, 장기 운영 모니터링 | 유지/고도화 |
+| Lv.100 / 장기 summary RPC | Lv.1~100 curve, XP reward 감쇠, read-only summary RPC 구현 | 구현 | 중간 | Android 최종 smoke, 장기 운영 모니터링 | 유지/고도화 |
 | 고급 랭킹/리더보드 | privacy-limited `누리 랭킹` MVP 구현. 공개 경쟁형 리더보드는 후속 | 부분 구현 | 높음 | opt-in, abuse 방어, 공개 노출 정책 | 안전 제한 유지 |
 
 ## 11. 남은 작업 리스트
@@ -115,7 +117,7 @@ Release blocker:
 
 Conditional evidence:
 
-- PremiumRewardModal Lv.30 fixture 로그인 기반 modal visual은 fixture auth 세션이 없어 직접 수행하지 못했다. 2026-07-11 모달 자체에 Lv.30/max progress bar와 `최고 레벨 달성` 문구를 보강했고 focused max state test/ranking visual로 보완해 release blocker는 없다.
+- PremiumRewardModal Lv.100 max fixture 로그인 기반 modal visual은 fixture auth 세션이 없으면 focused max state test/ranking visual로 보완한다. Lv.100/max/over-max 상태는 component presentation과 policy tests로 NaN/Infinity/음수 미노출을 고정해 release blocker는 없다.
 
 V1.1.1 후보:
 
@@ -171,8 +173,8 @@ Parking / 보류:
    - 목표: 민감한 순간을 조심스럽게 지원하는 문의/추모 flow
    - 분류: V1.2 또는 Parking
    - QA 기준: 문구 검수, one-time suggestion, 결제/문의 정책
-8. Lv.30 이후 장기 성장 확장
-   - 목표: 최고 레벨 이후 칭호/훈장 중심의 장기 동기 설계
+8. Lv.100 이후 장기 성장 확장
+   - 목표: 최고 레벨 이후 칭호/훈장/시즌형 성장 중심의 장기 동기 설계
    - 분류: V1.2 후보
    - QA 기준: XP inflation, abuse 방어, 기존 레벨 하락 없음
 
