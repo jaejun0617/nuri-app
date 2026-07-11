@@ -12,6 +12,7 @@ import {
   Animated,
   Easing,
   FlatList,
+  InteractionManager,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
@@ -194,7 +195,12 @@ export default function CommunityListScreen() {
 
   useEffect(() => {
     if (listStatus !== 'idle' || posts.length > 0) return;
-    fetchPosts(null).catch(() => {});
+    const task = InteractionManager.runAfterInteractions(() => {
+      fetchPosts(null).catch(() => {});
+    });
+    return () => {
+      task.cancel();
+    };
   }, [fetchPosts, listStatus, posts.length]);
 
   useFocusEffect(

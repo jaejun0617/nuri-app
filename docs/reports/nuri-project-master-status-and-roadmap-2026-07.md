@@ -2,14 +2,14 @@
 
 기준일: 2026-07-11
 기준 브랜치: `codex/task6-community-content-policy`
-기준 커밋: 운영자 알림 콘솔/live retention closeout 커밋 기준으로 갱신
+기준 커밋: `79865ce` 이후 실서비스급 최적화/안정화 턴 기준으로 갱신
 연관 참조 문서: `docs/reports/nuri-father-development-progress-budget-2026-07-04.md`
 
 ## 1. 프로젝트 전체 요약
 
 NURI는 반려동물의 기억, 일상, 건강, 산책, 커뮤니티 활동을 기록하고 추억하는 감성 기반 디지털 메모리얼 앱이다. 구현 기준은 Android-first React Native 앱, Supabase RLS 기반 user/pet isolation, styled-components 테마, 실기기 QA, release-ready 운영 방어선이다.
 
-현재 V1.0 핵심 기능은 닫혔고, V1.1 산책 POI와 1차/2차 MVP도 release blocker 없이 closeout 가능 상태다. V1.1.1 1차 기능인 `활동·칭호` 대시보드와 프리미엄 보상 모달은 repo 기준 구현 및 Android 실기기 visual QA까지 완료했다. 2026-07-09에는 운영자 알림 발송 기반, QA 알림 생성 RPC, Lv.1~30, 장기 summary RPC, privacy-limited `누리 랭킹` MVP를 추가했다. 2026-07-10에는 앱 내부가 아닌 별도 `admin-console` 운영자 알림 관리 UI와 live retention visual smoke, 랭킹/Lv.30 final visual QA를 닫았다. 2026-07-11 pre-store polish에서는 PremiumRewardModal max 상태를 보강한 뒤, 성장 시스템을 Lv.100 / max `1,250,000 XP`로 확장하고 level-band XP reward 감쇠와 홈 대표 칭호 badge를 추가했다. 같은 날 성능 polish로 Home shell 즉시 표시, 카드별 progressive loading, `활동·칭호` skeleton, `누리 랭킹` 탭별 cache/skeleton을 적용했다. push token/opt-in은 다음 트랙 문서로만 유지한다.
+현재 V1.0 핵심 기능은 닫혔고, V1.1 산책 POI와 1차/2차 MVP도 release blocker 없이 closeout 가능 상태다. V1.1.1 1차 기능인 `활동·칭호` 대시보드와 프리미엄 보상 모달은 repo 기준 구현 및 Android 실기기 visual QA까지 완료했다. 2026-07-09에는 운영자 알림 발송 기반, QA 알림 생성 RPC, Lv.1~30, 장기 summary RPC, privacy-limited `누리 랭킹` MVP를 추가했다. 2026-07-10에는 앱 내부가 아닌 별도 `admin-console` 운영자 알림 관리 UI와 live retention visual smoke, 랭킹/Lv.30 final visual QA를 닫았다. 2026-07-11 pre-store polish에서는 PremiumRewardModal max 상태를 보강한 뒤, 성장 시스템을 Lv.100 / max `1,250,000 XP`로 확장하고 level-band XP reward 감쇠와 홈 대표 칭호 badge를 추가했다. 같은 날 성능 polish로 Home shell 즉시 표시, 카드별 progressive loading, `활동·칭호` skeleton, `누리 랭킹` 탭별 cache/skeleton을 적용했다. 이어서 실서비스급 안정화 턴에서 기록/일정 user/pet scoped disk cache, `get_user_activity_long_summary_v1` 기반 활동 요약 재사용, `누리 랭킹` React Query 탭별 cache, 타임라인/커뮤니티 첫 fetch 지연 로딩을 추가했다. push token/opt-in은 다음 트랙 문서로만 유지한다.
 
 고정 운영 원칙:
 
@@ -27,10 +27,10 @@ NURI는 반려동물의 기억, 일상, 건강, 산책, 커뮤니티 활동을 �
 | V1.1 산책 POI 트랙 | 약 99% | approved/public/active 1,145건, public projection safety, Kakao walk fallback 제거, Android smoke 완료 |
 | V1.1 추가 업데이트 1차 MVP | 약 98% | 회원탈퇴 입력 확인, 최근 로그인 표시, timeline category count 구현/QA 완료. 실제 탈퇴 예약과 일부 social 최종 pill은 조건부 evidence |
 | V1.1 추가 업데이트 2차 MVP | 100% | daily streak, notification read path, XP/level/title MVP, 홈 알림 overlay/dismiss/expand UX final sign-off |
-| V1.1 전체 | 약 81% | V1.1 기능 closeout 가능 상태에 V1.1.1 Lv.100/랭킹/운영자 알림 관리 콘솔/live retention visual closeout, 홈 대표 칭호 badge, pre-store 필수 polish, Home/domain loading polish를 반영. Play Store 제출 자산과 push 실제 발송은 별도 |
+| V1.1 전체 | 약 82% | V1.1 기능 closeout 가능 상태에 V1.1.1 Lv.100/랭킹/운영자 알림 관리 콘솔/live retention visual closeout, 홈 대표 칭호 badge, pre-store 필수 polish, Home/domain loading polish, 기록/일정 disk cache, ranking React Query, 타임라인/커뮤니티 지연 로딩 안정화를 반영. Play Store 제출 자산과 push 실제 발송은 별도 |
 | V1.1.1 1차 기능 | 100% | 활동·칭호 대시보드, 알림 보존 정책, XP 다중 write smoke, 프리미엄 보상 모달 visual QA 완료 |
 | V1.1.1 고도화 1차 | 100% | 운영자 알림 관리 콘솔 1차, QA 알림 생성/발송 wrapper, live retention visual smoke, Lv.1~100, XP reward 감쇠, 장기 summary RPC, privacy-limited 랭킹 MVP, 홈 대표 칭호 badge 완료. 운영자 관리 페이지 고도화와 push 실제 발송은 후속 |
-| 전체 제품 로드맵 | 약 99.0% | 제품 core와 V1.1/V1.1.1 주요 사용자 기능 대부분 완료. Home/domain loading readiness까지 보강했고, push token/opt-in, Play Store 제출 자산, 출시 전 최종 visual polish 잔여 |
+| 전체 제품 로드맵 | 약 99.1% | 제품 core와 V1.1/V1.1.1 주요 사용자 기능 대부분 완료. Home/domain loading readiness와 cache/query 안정화까지 보강했고, push token/opt-in, Play Store 제출 자산, 앱 폰트/디자인 전체 리뉴얼, 관리자 홈페이지 본구현 잔여 |
 
 ## 3. V1.0 구현 완료 내용
 

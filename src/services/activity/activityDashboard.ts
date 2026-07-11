@@ -121,6 +121,12 @@ type ActivityDashboardBuildInput = {
   ledgerLimitReached?: boolean;
 };
 
+type UserActivityLongSummary = {
+  levelSummary: UserLevelSummary;
+  communityPostCount: number;
+  commentCount: number;
+};
+
 const MAX_LEDGER_ROWS = 1000;
 
 const EVENT_TYPES = new Set<ActivityXpEventType>(
@@ -191,6 +197,22 @@ function mapTitleRow(value: unknown): ActivityDashboardTitle | null {
     earnedAt,
     sourceType: toString(value.source_type) || 'xp_ledger',
     petId: toNullableString(value.pet_id),
+  };
+}
+
+function mapUserActivityLongSummary(value: unknown): UserActivityLongSummary | null {
+  if (!isRecord(value)) return null;
+  const community = isRecord(value.community) ? value.community : {};
+  return {
+    levelSummary: {
+      totalXp: toCount(value.totalXp),
+      level: Math.max(1, toCount(value.level) || 1),
+      currentLevelXp: toCount(value.currentLevelXp),
+      nextLevelXp: toCount(value.nextLevelXp),
+      updatedAt: null,
+    },
+    communityPostCount: toCount(community.post_count),
+    commentCount: toCount(community.comment_count),
   };
 }
 
@@ -558,6 +580,12 @@ async function fetchCurrentUserId(): Promise<string | null> {
   return data.user?.id ?? null;
 }
 
+async function fetchUserActivityLongSummary(): Promise<UserActivityLongSummary | null> {
+  const { data, error } = await supabase.rpc('get_user_activity_long_summary_v1');
+  if (error) throw error;
+  return mapUserActivityLongSummary(data);
+}
+
 async function fetchCommunityPostCount(userId: string): Promise<number> {
   const { count, error } = await supabase
     .from('posts')
@@ -616,16 +644,14 @@ export async function loadActivityDashboard(
   }
 
   const [
-    levelSummary,
+    longSummary,
     titles,
     ledgerRows,
     petStreakPairs,
     petTimelineCountPairs,
     petHealthCountPairs,
-    communityPostCount,
-    commentCount,
   ] = await Promise.all([
-    getUserLevelSummary(),
+    fetchUserActivityLongSummary().catch(() => null),
     fetchUserActivityTitles(),
     fetchUserActivityLedger(),
     Promise.all(
@@ -637,20 +663,24 @@ export async function loadActivityDashboard(
     Promise.all(
       pets.map(async pet => [pet.id, await fetchHealthRecordCountByPet(pet.id)] as const),
     ),
-    fetchCommunityPostCount(userId),
-    fetchCommentCount(userId),
   ]);
+
+  const fallbackSummary = longSummary ?? {
+    levelSummary: await getUserLevelSummary(),
+    communityPostCount: await fetchCommunityPostCount(userId),
+    commentCount: await fetchCommentCount(userId),
+  };
 
   return buildActivityDashboard({
     pets,
-    levelSummary,
+    levelSummary: fallbackSummary.levelSummary,
     titles,
     ledgerRows,
     streakByPetId: Object.fromEntries(petStreakPairs),
     timelineCountsByPetId: Object.fromEntries(petTimelineCountPairs),
     healthRecordCountsByPetId: Object.fromEntries(petHealthCountPairs),
-    communityPostCount,
-    commentCount,
+    communityPostCount: fallbackSummary.communityPostCount,
+    commentCount: fallbackSummary.commentCount,
     ledgerLimitReached: ledgerRows.length >= MAX_LEDGER_ROWS,
   });
 }

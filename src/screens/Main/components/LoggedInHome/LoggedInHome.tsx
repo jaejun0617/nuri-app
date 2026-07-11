@@ -111,6 +111,10 @@ import {
   loadCachedHomePetTitleBadge,
   saveCachedHomePetTitleBadge,
 } from '../../../../services/activity/homeTitleBadge';
+import {
+  loadHomeRecordScheduleCache,
+  saveHomeRecordScheduleCache,
+} from '../../../../services/local/homeRecordScheduleCache';
 import { getBrandedErrorMeta } from '../../../../services/app/errors';
 import {
   fetchUserNotifications,
@@ -2501,7 +2505,9 @@ export default function LoggedInHome() {
   // 4) records
   // ---------------------------------------------------------
   const bootstrapRecords = useRecordStore(s => s.bootstrap);
+  const replaceAllRecords = useRecordStore(s => s.replaceAll);
   const bootstrapSchedules = useScheduleStore(s => s.bootstrap);
+  const replaceAllSchedules = useScheduleStore(s => s.replaceAll);
 
   const recordItems = useRecordStore(s =>
     activePetId
@@ -2515,6 +2521,9 @@ export default function LoggedInHome() {
     activePetId
       ? s.byPetId[activePetId]?.items ?? EMPTY_SCHEDULE_ITEMS
       : EMPTY_SCHEDULE_ITEMS,
+  );
+  const scheduleStatus = useScheduleStore(s =>
+    activePetId ? s.byPetId[activePetId]?.status ?? 'idle' : 'idle',
   );
   const visibleScheduleItems = useMemo(
     () => scheduleItems.filter(schedule => !isHealthSchedule(schedule)),
@@ -2544,6 +2553,54 @@ export default function LoggedInHome() {
       task.cancel();
     };
   }, [activePetId, bootstrapSchedules]);
+
+  useEffect(() => {
+    if (!activePetId || !sessionUserId) return;
+    let cancelled = false;
+
+    loadHomeRecordScheduleCache({
+      userId: sessionUserId,
+      petId: activePetId,
+    })
+      .then(cache => {
+        if (cancelled || !cache) return;
+
+        const recordState = useRecordStore.getState().getPetState(activePetId);
+        if (cache.records.length > 0 && recordState.items.length === 0) {
+          replaceAllRecords(activePetId, cache.records);
+        }
+
+        const scheduleState = useScheduleStore.getState().getPetState(activePetId);
+        if (cache.schedules.length > 0 && scheduleState.items.length === 0) {
+          replaceAllSchedules(activePetId, cache.schedules);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activePetId, replaceAllRecords, replaceAllSchedules, sessionUserId]);
+
+  useEffect(() => {
+    if (!activePetId || !sessionUserId) return;
+    if (recordStatus !== 'ready' || scheduleStatus !== 'ready') return;
+    if (recordItems.length === 0 && scheduleItems.length === 0) return;
+
+    saveHomeRecordScheduleCache({
+      userId: sessionUserId,
+      petId: activePetId,
+      records: recordItems,
+      schedules: scheduleItems,
+    }).catch(() => {});
+  }, [
+    activePetId,
+    recordItems,
+    recordStatus,
+    scheduleItems,
+    scheduleStatus,
+    sessionUserId,
+  ]);
 
   useEffect(() => {
     if (!isScreenFocused) {

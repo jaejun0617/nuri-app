@@ -17,6 +17,7 @@ import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from '
 import {
   ActivityIndicator,
   Image,
+  InteractionManager,
   type LayoutChangeEvent,
   Modal,
   Pressable,
@@ -636,20 +637,23 @@ export default function TimelineScreen() {
     let cancelled = false;
     setTimelineCategoryCountsReady(false);
 
-    fetchTimelineCategoryCountsByPet(petId)
-      .then(counts => {
-        if (cancelled) return;
-        setTimelineCategoryCounts(counts);
-        setTimelineCategoryCountsReady(true);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setTimelineCategoryCounts(timelineView.categoryCounts);
-        setTimelineCategoryCountsReady(false);
-      });
+    const task = InteractionManager.runAfterInteractions(() => {
+      fetchTimelineCategoryCountsByPet(petId)
+        .then(counts => {
+          if (cancelled) return;
+          setTimelineCategoryCounts(counts);
+          setTimelineCategoryCountsReady(true);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setTimelineCategoryCounts(timelineView.categoryCounts);
+          setTimelineCategoryCountsReady(false);
+        });
+    });
 
     return () => {
       cancelled = true;
+      task.cancel();
     };
   }, [isLoggedIn, petId, timelineEntityVersion, timelineView.categoryCounts]);
 
@@ -663,26 +667,29 @@ export default function TimelineScreen() {
 
     let cancelled = false;
 
-    Promise.all([
-      getPetDailyStatus(petId),
-      getUserLevelSummary(),
-      getUserTitles(),
-    ])
-      .then(([nextDailyStatus, nextLevelSummary, nextTitles]) => {
-        if (cancelled) return;
-        setDailyStatus(nextDailyStatus);
-        setLevelSummary(nextLevelSummary);
-        setEarnedTitles(nextTitles);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setDailyStatus(null);
-        setLevelSummary(null);
-        setEarnedTitles([]);
-      });
+    const task = InteractionManager.runAfterInteractions(() => {
+      Promise.all([
+        getPetDailyStatus(petId),
+        getUserLevelSummary(),
+        getUserTitles(),
+      ])
+        .then(([nextDailyStatus, nextLevelSummary, nextTitles]) => {
+          if (cancelled) return;
+          setDailyStatus(nextDailyStatus);
+          setLevelSummary(nextLevelSummary);
+          setEarnedTitles(nextTitles);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setDailyStatus(null);
+          setLevelSummary(null);
+          setEarnedTitles([]);
+        });
+    });
 
     return () => {
       cancelled = true;
+      task.cancel();
     };
   }, [isLoggedIn, petId, timelineEntityVersion]);
 

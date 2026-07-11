@@ -38,6 +38,7 @@ import { flushPendingConsentSnapshot } from '../../services/legal/consents';
 import { processPendingMemoryUploads } from '../../services/local/uploadQueue';
 import { clearMemorySignedUrlCache } from '../../services/supabase/storageMemories';
 import { flushPendingCommunityImageCleanup } from '../../services/supabase/storageCommunity';
+import { clearAllHomeRecordScheduleCaches } from '../../services/local/homeRecordScheduleCache';
 import {
   getSessionUserId,
   shouldKeepGuestSandboxForRecovery,
@@ -202,6 +203,7 @@ export default function AppProviders({ children }: Props) {
 
     const clearUserScopedStores = () => {
       clearMemorySignedUrlCache();
+      clearAllHomeRecordScheduleCaches().catch(captureMonitoringException);
       setPets([], { userId: null });
       clearRecords();
       clearSchedules();

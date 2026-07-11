@@ -3,7 +3,7 @@
 // - 전체메뉴에서 진입하는 V1.1.1 NURI 랭킹 1차 MVP 화면.
 // - 서버 RPC가 마스킹한 제한 필드만 렌더링해 cross-user privacy를 지킨다.
 
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   RefreshControl,
   ScrollView,
@@ -14,6 +14,7 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from 'styled-components/native';
 
@@ -28,27 +29,17 @@ import {
   type ActivityRankingBar,
   type ActivityRankingCategoryKey,
 } from '../../services/ranking/activityRanking';
+import {
+  ACTIVITY_RANKING_QUERY_GC_TIME_MS,
+  ACTIVITY_RANKING_QUERY_STALE_TIME_MS,
+  buildActivityRankingQueryKey,
+} from '../../services/ranking/activityRankingQuery';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { openMoreDrawer, showToast } from '../../store/uiStore';
 import { usePetStore } from '../../store/petStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'NuriRanking'>;
 type Route = RootScreenRoute<'NuriRanking'>;
-
-type RankingState =
-  | { status: 'loading'; rows: ActivityRankingBar[]; error: string | null }
-  | { status: 'ready'; rows: ActivityRankingBar[]; error: string | null }
-  | { status: 'error'; rows: ActivityRankingBar[]; error: string };
-
-const INITIAL_STATE: RankingState = {
-  status: 'loading',
-  rows: [],
-  error: null,
-};
-
-type RankingRowsByCategory = Partial<
-  Record<ActivityRankingCategoryKey, ActivityRankingBar[]>
->;
 
 function formatTotalXp(value: number) {
   return `${Math.max(0, value).toLocaleString('ko-KR')} XP`;
@@ -155,6 +146,7 @@ export default function NuriRankingScreen() {
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+  const queryClient = useQueryClient();
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
   const selectedPet = useMemo(
@@ -166,14 +158,34 @@ export default function NuriRankingScreen() {
     [selectedPet?.themeColor, theme.colors.brand],
   );
   const [selectedCategory, setSelectedCategory] = useState<ActivityRankingCategoryKey>('overall');
-  const [state, setState] = useState<RankingState>(INITIAL_STATE);
-  const [refreshing, setRefreshing] = useState(false);
-  const rowsByCategoryRef = useRef<RankingRowsByCategory>({});
-  const selectedCategoryRef = useRef<ActivityRankingCategoryKey>(selectedCategory);
-
-  useEffect(() => {
-    selectedCategoryRef.current = selectedCategory;
-  }, [selectedCategory]);
+  const rankingQueryKey = useMemo(
+    () =>
+      buildActivityRankingQueryKey({
+        category: selectedCategory,
+        includeQaFixture: true,
+      }),
+    [selectedCategory],
+  );
+  const cachedRows = queryClient.getQueryData<ActivityRankingBar[]>(rankingQueryKey) ?? [];
+  const rankingQuery = useQuery<ActivityRankingBar[], Error>({
+    queryKey: rankingQueryKey,
+    queryFn: async () => {
+      const rows = await fetchActivityRanking({
+        category: selectedCategory,
+        limit: 20,
+        includeQaFixture: true,
+      });
+      return buildRankingBars(rows);
+    },
+    staleTime: ACTIVITY_RANKING_QUERY_STALE_TIME_MS,
+    gcTime: ACTIVITY_RANKING_QUERY_GC_TIME_MS,
+    retry: 1,
+    placeholderData: () => (cachedRows.length > 0 ? cachedRows : undefined),
+  });
+  const rows = rankingQuery.data ?? cachedRows;
+  const isInitialLoading = rankingQuery.isPending && rows.length === 0;
+  const rankingErrorMessage =
+    rankingQuery.error?.message ?? '랭킹을 불러오지 못했어요.';
 
   const backAction = useEntryAwareBackAction({
     entrySource: route.params?.entrySource,
@@ -196,70 +208,19 @@ export default function NuriRankingScreen() {
     ACTIVITY_RANKING_CATEGORIES.find(item => item.key === selectedCategory) ??
     ACTIVITY_RANKING_CATEGORIES[0];
 
-  const loadRanking = useCallback(
-    async (
-      category: ActivityRankingCategoryKey,
-      mode: 'initial' | 'refresh' = 'initial',
-    ) => {
-      const cachedRows = rowsByCategoryRef.current[category] ?? [];
-      if (mode === 'initial') {
-        setState({
-          status: cachedRows.length > 0 ? 'ready' : 'loading',
-          rows: cachedRows,
-          error: null,
-        });
-      } else {
-        setRefreshing(true);
-      }
-
-      try {
-        const rows = await fetchActivityRanking({
-          category,
-          limit: 20,
-          includeQaFixture: true,
-        });
-        const nextRows = buildRankingBars(rows);
-        rowsByCategoryRef.current = {
-          ...rowsByCategoryRef.current,
-          [category]: nextRows,
-        };
-        if (selectedCategoryRef.current === category) {
-          setState({
-            status: 'ready',
-            rows: nextRows,
-            error: null,
-          });
-        }
-      } catch (error) {
-        const message =
-          error instanceof Error ? error.message : '랭킹을 불러오지 못했어요.';
-        if (selectedCategoryRef.current === category) {
-          setState({
-            status: 'error',
-            rows: cachedRows,
-            error: message,
-          });
-        }
-        showToast({
-          tone: 'error',
-          title: '랭킹 확인 실패',
-          message: '잠시 뒤 다시 확인해 주세요.',
-          durationMs: 2600,
-        });
-      } finally {
-        setRefreshing(false);
-      }
-    },
-    [],
-  );
-
   useEffect(() => {
-    loadRanking(selectedCategory, 'initial').catch(() => undefined);
-  }, [loadRanking, selectedCategory]);
+    if (!rankingQuery.isError) return;
+    showToast({
+      tone: 'error',
+      title: '랭킹 확인 실패',
+      message: '잠시 뒤 다시 확인해 주세요.',
+      durationMs: 2600,
+    });
+  }, [rankingQuery.errorUpdatedAt, rankingQuery.isError]);
 
   const onRefresh = useCallback(() => {
-    loadRanking(selectedCategory, 'refresh').catch(() => undefined);
-  }, [loadRanking, selectedCategory]);
+    rankingQuery.refetch().catch(() => undefined);
+  }, [rankingQuery]);
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
@@ -298,7 +259,7 @@ export default function NuriRankingScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
+            refreshing={rankingQuery.isRefetching && !rankingQuery.isPending}
             onRefresh={onRefresh}
             tintColor={petTheme.primary}
             colors={[petTheme.primary]}
@@ -369,23 +330,23 @@ export default function NuriRankingScreen() {
           </View>
         </View>
 
-        {state.status === 'loading' ? (
+        {isInitialLoading ? (
           <RankingSkeletonRows accentColor={petTheme.primary} />
         ) : null}
 
-        {state.status === 'error' && state.rows.length === 0 ? (
+        {rankingQuery.isError && rows.length === 0 ? (
           <View style={styles.stateCard}>
             <Feather name="alert-circle" size={24} color={theme.colors.textMuted} />
             <AppText preset="headline" style={styles.stateTitle}>
               랭킹을 준비 중이에요
             </AppText>
             <AppText preset="body" style={styles.stateText}>
-              {state.error}
+              {rankingErrorMessage}
             </AppText>
           </View>
         ) : null}
 
-        {state.status === 'ready' && state.rows.length === 0 ? (
+        {!isInitialLoading && !rankingQuery.isError && rows.length === 0 ? (
           <View style={styles.stateCard}>
             <Feather name="bar-chart" size={24} color={theme.colors.textMuted} />
             <AppText preset="headline" style={styles.stateTitle}>
@@ -397,7 +358,7 @@ export default function NuriRankingScreen() {
           </View>
         ) : null}
 
-        {state.rows.map(row => (
+        {rows.map(row => (
           <RankingRow key={`${row.rowSource}-${row.rankNo}-${row.displayName}`} row={row} accentColor={petTheme.primary} />
         ))}
       </ScrollView>

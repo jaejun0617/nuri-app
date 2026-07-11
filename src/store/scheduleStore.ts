@@ -33,6 +33,7 @@ type ScheduleStore = {
   getPetState: (petId: string) => PetSchedulesState;
   bootstrap: (petId: string) => Promise<void>;
   refresh: (petId: string) => Promise<void>;
+  replaceAll: (petId: string, items: PetSchedule[]) => void;
   clearPet: (petId: string) => void;
   clearAll: () => void;
 };
@@ -184,6 +185,26 @@ export const useScheduleStore = create<ScheduleStore>((set, get) => ({
         };
       });
     }
+  },
+
+  replaceAll: (petId, items) => {
+    if (!petId) return;
+    get().ensurePetState(petId);
+
+    set(state => {
+      const current = state.byPetId[petId] ?? createInitialPetState();
+      return {
+        byPetId: {
+          ...state.byPetId,
+          [petId]: {
+            ...current,
+            items,
+            status: 'ready',
+            errorMessage: null,
+          },
+        },
+      };
+    });
   },
 
   clearPet: petId => {
