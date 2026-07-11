@@ -1,10 +1,10 @@
 # NURI 전체 프로젝트 현황 보고서
 
-기준일: 2026-07-11
-최종 정합성 검수일: 2026-07-11
+기준일: 2026-07-12
+최종 정합성 검수일: 2026-07-12
 문서 목적: ChatGPT, Codex, 운영자, 후속 개발 세션이 현재 NURI 앱의 전체 맥락을 한 번에 파악하기 위한 source of truth 문서
 
-최신 갱신: 2026-07-11 운영자 알림 발송 관리 UI와 live retention visual smoke, `누리 랭킹` final visual QA는 유지된다. PremiumRewardModal은 max 상태에서 progress bar와 `최고 레벨 달성` 문구를 표시하도록 보강했고 focused max state test로 over-max crash 없음까지 고정했다. Pre-store polish로 성장 시스템을 Lv.100 / max `1,250,000 XP`까지 확장하고, level-band XP reward 감쇠와 메인 홈 대표 칭호 badge를 추가했다. 이어서 Home shell 즉시 표시, 카드별 progressive loading, `활동·칭호` skeleton, `누리 랭킹` 탭별 cache/skeleton을 적용해 초기 로딩 체감을 보강했다. 실서비스급 안정화 턴에서는 기록/일정 user/pet scoped disk cache, activity long summary RPC 재사용, ranking React Query 탭별 cache, 타임라인/커뮤니티 첫 fetch 지연 로딩을 추가해 blank 체감과 중복 fetch를 줄였다. 이번 closeout에서는 병원/산책 direct visual smoke 조건부 항목을 Android release build에서 닫고, `admin-console/index.html` 별도 관리자 홈페이지 1차 responsive dashboard shell을 구축했다. push notification 실제 remote 발송, Play Store 자산, 홈 위젯, 무지개다리, Kakao Local global hard delete는 여전히 후속/Parking이다.
+최신 갱신: 2026-07-11 운영자 알림 발송 관리 UI와 live retention visual smoke, `누리 랭킹` final visual QA는 유지된다. PremiumRewardModal은 max 상태에서 progress bar와 `최고 레벨 달성` 문구를 표시하도록 보강했고 focused max state test로 over-max crash 없음까지 고정했다. Pre-store polish로 성장 시스템을 Lv.100 / max `1,250,000 XP`까지 확장하고, level-band XP reward 감쇠와 메인 홈 대표 칭호 badge를 추가했다. 이어서 Home shell 즉시 표시, 카드별 progressive loading, `활동·칭호` skeleton, `누리 랭킹` 탭별 cache/skeleton을 적용해 초기 로딩 체감을 보강했다. 실서비스급 안정화 턴에서는 기록/일정 user/pet scoped disk cache, activity long summary RPC 재사용, ranking React Query 탭별 cache, 타임라인/커뮤니티 첫 fetch 지연 로딩을 추가해 blank 체감과 중복 fetch를 줄였다. 병원/산책 direct visual smoke 조건부 항목은 Android release build에서 닫았다. 2026-07-12에는 PO 정정에 따라 앱 repo의 `admin-console` 정적 shell을 실제 관리자 홈페이지로 보지 않고, 별도 `nuri-web` 프로젝트의 `/admin`을 source of truth로 갱신했다. `nuri-web` 관리자 홈은 reference형 sidebar/main/right insight layout으로 리디자인했고 NURI 운영 도메인 전체 IA를 담았다. push notification 실제 remote 발송, Play Store 자산, 홈 위젯, 무지개다리, Kakao Local global hard delete는 여전히 후속/Parking이다.
 
 ## 1. 문서 목적
 
@@ -46,8 +46,8 @@
 | V1.1 전체 | 약 83% | 산책 POI 트랙 closeout 가능, full E2E/navigation audit 통과, 병원 coverage 판정 완료, 병원/산책 direct visual smoke closeout, V1.1 추가 업데이트 1차/2차 MVP, 홈 알림 final UX, V1.1.1 활동·칭호/보상 모달/Lv.100/랭킹/운영자 알림 콘솔/홈 대표 칭호 badge, Home/domain progressive loading, cache/query 안정화 반영 |
 | V1.1.1 1차 기능 | 100% | V1.1.1 우선순위와 활동·칭호 정책 v1 문서화, `활동·칭호` route/entry/card UI 구현, 실제 adminQA 멀티펫 분리, 다중 타임라인 XP write smoke, daily cap/idempotency 확인, 카테고리별/글/댓글 focused test, 알림 home dismiss와 inbox delete 분리, 프리미엄 보상 모달 visual QA 완료 |
 | V1.1.1 고도화 1차 | 100% | 운영자 알림 관리 콘솔 1차, QA 알림 생성/발송 wrapper, live retention visual smoke, Lv.1~100, XP reward 감쇠, 장기 summary RPC, privacy-limited 랭킹 MVP final visual QA, PremiumRewardModal max 상태 보강, 홈 대표 칭호 badge 완료. 운영자 관리 페이지 고도화와 push 실제 발송은 후속 |
-| 관리자 홈페이지 | 약 30% | 별도 `admin-console/index.html` responsive dashboard shell, 운영 도메인 IA, notification console 연결, README/QA 문서 완료. 인증/권한/배포/실데이터 운영 기능은 본구현 잔여 |
-| 전체 제품 로드맵 | 약 99.2% | V1.0 release-ready 기준선은 닫혔고 V1.1/V1.1.1 주요 사용자 기능과 운영 기반 대부분 완료. Home/domain loading readiness와 cache/query 안정화, 병원/산책 direct visual closeout, 관리자 홈페이지 1차 shell을 보강했고 Play Store 자산, 앱 폰트/디자인 전체 리뉴얼, 관리자 홈페이지 본구현, push 실제 발송, 홈 위젯, 무지개다리, 공개 리더보드는 남음 |
+| 관리자 홈페이지 | 약 35% | 실제 source of truth를 `nuri-web /admin`으로 정정. reference형 sidebar/main/right insight layout, 운영 도메인 IA, Guides CMS 실구현 연결, 위험 write disabled 정책 반영. 인증/권한/배포/실데이터 운영 기능은 본구현 잔여 |
+| 전체 제품 로드맵 | 약 99.2% | V1.0 release-ready 기준선은 닫혔고 V1.1/V1.1.1 주요 사용자 기능과 운영 기반 대부분 완료. Home/domain loading readiness와 cache/query 안정화, 병원/산책 direct visual closeout, `nuri-web` 관리자 홈페이지 IA/레이아웃 보강을 반영했고 Play Store 자산, 앱 폰트/디자인 전체 리뉴얼, 관리자 홈페이지 본구현, push 실제 발송, 홈 위젯, 무지개다리, 공개 리더보드는 남음 |
 | 최종 제출 준비 | 약 20% | release artifact/provenance와 정책 URL 기준은 정리됐지만 Play Store 스크린샷, 설명문, Console 입력, store listing package는 아직 최종 제출 직전 준비로 남음 |
 
 남은 작업의 성격:

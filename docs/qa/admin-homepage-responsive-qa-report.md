@@ -1,8 +1,18 @@
 # Admin Homepage Responsive QA Report
 
-기준일: 2026-07-11
+기준일: 2026-07-12
 
 ## 대상
+
+현재 source of truth:
+
+- `../nuri-web/src/app/admin/page.tsx`
+- `../nuri-web/src/components/layout/admin-shell.tsx`
+- `../nuri-web/src/components/layout/admin-sidebar-nav.tsx`
+- `../nuri-web/src/app/globals.css`
+- `../nuri-web/README.md`
+
+이전 정적 참고 자산:
 
 - `admin-console/index.html`
 - `admin-console/styles.css`
@@ -11,7 +21,7 @@
 
 ## QA 방법
 
-로컬 Chrome headless screenshot으로 정적 responsive layout을 확인했다. Playwright는 현재 workspace에 설치되어 있지 않아 사용하지 않았다.
+2026-07-11에는 로컬 Chrome headless screenshot으로 앱 repo 정적 responsive layout을 확인했다. 2026-07-12 PO 정정 이후 실제 관리자 홈페이지는 `nuri-web /admin`으로 이동했다. `/admin`은 auth guard가 걸린 실제 운영 route이므로 무인 screenshot은 로그인 세션 없이는 제한되며, 이번 정정은 `nuri-web` lint/build/static responsive CSS review로 보완한다.
 
 ## Screenshot Evidence
 
@@ -29,7 +39,7 @@
 | sidebar/main/right panel | desktop에서 정상 |
 | tablet stack | 정상 |
 | mobile stack | 정상 |
-| domain IA | Dashboard, Users, Pets, Timeline / Records, Health, Walk, Animal Hospitals, Community, Notifications, Rankings, Activity / XP / Titles, Reports / Evidence, QA / Release, Settings / Policy, Audit Logs 포함 |
+| domain IA | Dashboard, Users, Pets, Timeline / Records, Health, Walk, Animal Hospitals, Community, Notifications, Rankings, Activity / XP / Titles, Reports / Evidence, QA / Release, Settings / Policy, Audit Logs, Guides CMS 포함 |
 | notification console 링크 | `notification-console.html` 존재 확인 |
 | README 경로 | `admin-console/README.md` 갱신 완료 |
 | HTML/JS syntax | HTML parser check와 `node --check` 통과 |
@@ -38,7 +48,7 @@
 
 ## 보안/운영 판정
 
-이번 1차는 local/admin-only static dashboard shell이다. production 배포 전에는 아래가 필요하다.
+앱 repo의 정적 shell은 local/admin-only 참고 자산이다. 실제 관리자 홈페이지는 `nuri-web`에서 auth-gated route로 진행한다. production 배포 전에는 아래가 필요하다.
 
 - 인증/권한 gate
 - HTTPS hosting
@@ -49,4 +59,4 @@
 
 ## 판정
 
-관리자 홈페이지 1차 responsive layout은 완료로 판정한다. 실운영 console 본구현은 다음 트랙으로 유지한다.
+관리자 홈페이지 1차 responsive layout 기준은 `nuri-web`으로 source of truth를 정정한다. `nuri-web` lint/build는 통과했고, 실제 관리자 계정 기반 visual QA는 다음 본구현 턴에서 수행한다. 실운영 console 본구현은 다음 트랙으로 유지한다.

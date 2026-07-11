@@ -1,15 +1,17 @@
 # NURI Admin Console
 
-This folder is a separated admin web track, not a React Native in-app route.
+This folder is a static QA/reference console, not the production admin homepage.
+The real NURI admin homepage source of truth is the separate `nuri-web` project
+under its `/admin` route. Keep this folder out of React Native in-app navigation.
 
 ## Pages
 
-- `index.html`: responsive NURI operations dashboard shell.
+- `index.html`: static responsive NURI operations dashboard reference shell.
 - `notification-console.html`: QA-scoped app-internal notification send console.
 
 ## Scope
 
-- The dashboard provides the information architecture for NURI operations:
+- The dashboard reference provides the information architecture for NURI operations:
   users, pets, timeline/records, health, walk, animal hospitals,
   community, notifications, rankings, activity/XP/titles, reports/evidence,
   QA/release, policy, and audit logs.
@@ -32,7 +34,8 @@ This folder is a separated admin web track, not a React Native in-app route.
 
 ## Local Use
 
-Open `index.html` in a browser to review the operations dashboard layout.
+Open `index.html` in a browser to review the reference operations dashboard layout.
+For actual admin homepage work, edit `../nuri-web/src/app/admin`.
 
 Open `notification-console.html` in a browser, enter the Supabase URL and
 publishable key, then log in with an admin or super_admin account. For

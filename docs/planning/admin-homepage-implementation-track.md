@@ -1,20 +1,23 @@
 # Admin Homepage Implementation Track
 
-기준일: 2026-07-11
+기준일: 2026-07-12
 
 ## 목적
 
-NURI 관리자 홈페이지는 앱 내부 일반 사용자 화면이 아니라 별도 admin web/admin-console 트랙이다. 이번 1차는 운영자가 매일 사용할 수 있는 정보구조와 반응형 dashboard shell을 먼저 고정하고, 실제 운영 데이터 연결과 인증/권한 gate는 본구현 단계로 분리한다.
+NURI 관리자 홈페이지는 앱 내부 일반 사용자 화면이 아니라 별도 web 프로젝트 `nuri-web`의 `/admin` 트랙에서 본구현한다. 앱 repo의 `admin-console` 정적 파일은 QA/임시 콘솔 및 레이아웃 참고 자산이며, 실서비스 관리자 홈페이지 source of truth가 아니다.
+
+이번 정정 기준은 PO 피드백에 따른다. 실제 관리자 홈페이지는 레퍼런스 이미지처럼 좌측 sidebar, 중앙 workspace, 우측 insight panel을 갖는 반응형 dashboard로 재설계하며, NURI 앱의 모든 운영 도메인(유저, 펫, 게시글, 삭제/숨김, 공지 발송, 병원 검수, 산책 장소, 알림, 랭킹, XP/칭호, QA 증적)을 담는 전용 콘솔로 확장한다.
 
 ## 1차 구현 범위
 
-- 위치: `admin-console/index.html`
-- 스타일: `admin-console/styles.css`
-- 동작: `admin-console/admin-console.js`
-- 기존 알림 콘솔 연결: `admin-console/notification-console.html`
-- 문서: `admin-console/README.md`
+- 실제 관리자 웹 위치: `../nuri-web/src/app/admin/page.tsx`
+- 실제 관리자 shell: `../nuri-web/src/components/layout/admin-shell.tsx`
+- 실제 관리자 navigation: `../nuri-web/src/components/layout/admin-sidebar-nav.tsx`
+- 실제 관리자 스타일: `../nuri-web/src/app/globals.css`
+- 실제 관리자 문서: `../nuri-web/README.md`
+- 앱 repo 정적 참고 자산: `admin-console/index.html`, `admin-console/notification-console.html`
 
-1차 shell은 아래 운영 도메인을 담는다.
+`nuri-web` 관리자 홈은 아래 운영 도메인을 담는다.
 
 - Dashboard
 - Users
@@ -31,6 +34,7 @@ NURI 관리자 홈페이지는 앱 내부 일반 사용자 화면이 아니라 �
 - QA / Release
 - Settings / Policy
 - Audit Logs
+- Guides CMS
 
 ## 레이아웃 기준
 
@@ -49,6 +53,7 @@ NURI 관리자 홈페이지는 앱 내부 일반 사용자 화면이 아니라 �
 - 일반 앱 내부 navigation에 노출하지 않는다.
 - production 전체 broadcast는 opt-out, 승인, audit, rollback 정책 전까지 disabled 상태를 유지한다.
 - 실제 운영 전 HTTPS hosting, role-based access, audit log 검토, secret management를 별도 구현한다.
+- 현재 `nuri-web`에서 실제 write 기능이 연결된 도메인은 가이드 CMS이며, 유저 조치/게시글 삭제/공지 전체 발송은 본구현 전까지 비활성으로 둔다.
 
 ## 본구현 단계
 
@@ -71,7 +76,8 @@ NURI 관리자 홈페이지는 앱 내부 일반 사용자 화면이 아니라 �
 - service role key 또는 push secret 사용
 - 실운영 broadcast 활성화
 - DB/RPC/RLS/seed 변경
+- 유저/펫/게시글 삭제/공지 발송의 실제 운영 write 기능 활성화
 
 ## 다음 액션
 
-관리자 홈페이지 본구현은 `Auth/Role Gate -> Read-only Ops Data -> Notification Ops` 순서로 진행한다. 앱 폰트/디자인 전체 리뉴얼과 Play Store 자산 패키지는 별도 PO 승인 후 진행한다.
+관리자 홈페이지 본구현은 `nuri-web Auth/Role Gate -> Read-only Ops Data -> Notification Ops -> Moderation/Delete Workflow` 순서로 진행한다. 앱 폰트/디자인 전체 리뉴얼과 Play Store 자산 패키지는 별도 PO 승인 후 진행한다.
