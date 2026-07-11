@@ -38,36 +38,6 @@ import { openMoreDrawer } from '../../store/uiStore';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RootScreenRoute<'AnimalHospitalList'>;
 
-const LIST_MODE_OPTIONS: ReadonlyArray<{
-  key: AnimalHospitalListMode;
-  label: string;
-}> = [
-  { key: 'nearby', label: '가까운순' },
-  { key: 'open24', label: '24시 운영' },
-  { key: 'exotic', label: '특수동물병원' },
-];
-
-function getModeEmptyCopy(mode: AnimalHospitalListMode): {
-  title: string;
-  body: string;
-} | null {
-  if (mode === 'open24') {
-    return {
-      title: '검수된 24시 운영 병원이 아직 없어요',
-      body: '병원명에 24시가 있어도 공식 근거가 승인된 병원만 보여줘요.',
-    };
-  }
-
-  if (mode === 'exotic') {
-    return {
-      title: '검수된 특수동물 진료 병원이 아직 없어요',
-      body: '공식 근거와 운영 검수를 통과한 병원만 이 필터에 보여줘요.',
-    };
-  }
-
-  return null;
-}
-
 export default function AnimalHospitalListScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
@@ -76,18 +46,17 @@ export default function AnimalHospitalListScreen() {
   const selectedPetId = usePetStore(s => s.selectedPetId);
   const [searchInput, setSearchInput] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
-  const [listMode, setListMode] = useState<AnimalHospitalListMode>('nearby');
+  const listMode: AnimalHospitalListMode = 'nearby';
 
   const discoveryState = useAnimalHospitalDiscovery({
     query: submittedQuery,
-    open24HoursOnly: listMode === 'open24',
-    exoticAnimalCareOnly: listMode === 'exotic',
+    open24HoursOnly: false,
+    exoticAnimalCareOnly: false,
   });
   const visibleItems = useMemo(
     () => selectAnimalHospitalListItems(discoveryState.items, listMode),
     [discoveryState.items, listMode],
   );
-  const modeEmptyCopy = useMemo(() => getModeEmptyCopy(listMode), [listMode]);
   usePrefetchAnimalHospitalThumbnails(discoveryState.items);
   const selectedPet = useMemo(
     () =>
@@ -268,38 +237,6 @@ export default function AnimalHospitalListScreen() {
           loadingText={null}
         />
 
-        <View
-          style={[styles.sortRow, { paddingHorizontal: 20, marginTop: 12 }]}
-        >
-          {LIST_MODE_OPTIONS.map(option => {
-            const selected = listMode === option.key;
-
-            return (
-              <TouchableOpacity
-                key={`animal-hospital:list-mode:${option.key}`}
-                activeOpacity={0.9}
-                style={[
-                  styles.sortChip,
-                  selected ? styles.sortChipSelected : null,
-                ]}
-                onPress={() => {
-                  setListMode(option.key);
-                }}
-              >
-                <AppText
-                  preset="caption"
-                  style={[
-                    styles.sortChipText,
-                    selected ? styles.sortChipTextSelected : null,
-                  ]}
-                >
-                  {option.label}
-                </AppText>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
         <View style={styles.discoveryExperienceShell}>
           <View style={styles.resultsPanel}>
             {discoveryState.error && discoveryState.items.length === 0 ? (
@@ -312,13 +249,7 @@ export default function AnimalHospitalListScreen() {
               </View>
             ) : discoveryState.items.length === 0 ? (
               <View style={styles.resultsEmptyWrap}>
-                {modeEmptyCopy ? (
-                  <LocationDiscoveryStatusCard
-                    icon="search"
-                    title={modeEmptyCopy.title}
-                    body={modeEmptyCopy.body}
-                  />
-                ) : submittedQuery.trim().length >= 2 ? (
+                {submittedQuery.trim().length >= 2 ? (
                   <LocationDiscoveryStatusCard
                     icon="search"
                     title="검색 결과가 없어요"
@@ -342,10 +273,7 @@ export default function AnimalHospitalListScreen() {
                 <LocationDiscoveryStatusCard
                   icon="search"
                   title="조건에 맞는 병원이 없어요"
-                  body={
-                    modeEmptyCopy?.body ??
-                    '현재 위치 기준 가까운 병원을 다시 확인해 보세요.'
-                  }
+                  body="현재 위치 기준 가까운 병원을 다시 확인해 보세요."
                 />
               </View>
             ) : (

@@ -31,6 +31,17 @@
 - ranking, activity, community, detail 화면은 entrySource 기반 fallback을 유지한다.
 - admin console은 앱 내부 일반 사용자 route에 노출하지 않는다.
 
+## 2026-07-11 Direct Back QA 증적
+
+| 화면 | 경로 | Android back 결과 | 증적 |
+| --- | --- | --- | --- |
+| 우리동네 동물병원 리스트/상세 | `Home -> 전체메뉴 -> 우리동네 동물병원 -> 병원 상세` | 상세에서 리스트로 복귀, 리스트에서 이전 화면 복귀 가능. nav bar overlap 없음 | `/tmp/nuri-qa/conditional-closeout-hospital-detail.png`, `/tmp/nuri-qa/conditional-closeout-hospital-back.png` |
+| 산책 리스트/상세 | `nuri://walk-spots -> 산책 장소 상세` | 상세에서 리스트로 복귀 가능. 위치/API 준비 전 crash 없음 | `/tmp/nuri-qa/conditional-closeout-walk-loaded.png`, `/tmp/nuri-qa/conditional-closeout-walk-back.png` |
+
+logcat 증적: `/tmp/nuri-qa/conditional-closeout-hospital-walk-logcat.txt`
+
+fatal / ANR / unhandled promise / ReactNativeJS fatal pattern 0건으로 확인했다.
+
 ## Keyboard / Nav Bar 기준
 
 - 입력창과 primary CTA가 Android keyboard 또는 nav bar에 가리면 blocker다.
@@ -39,5 +50,4 @@
 
 ## 최종 판정
 
-최종 release APK smoke 결과를 완료 보고에 연결한다. 현재 코드 변경은 keyboard layout을 직접 바꾸지 않고, 기존 keyboard-aware 구조와 Android smoke 기준을 유지한다.
-
+최종 release APK smoke 결과를 완료 보고에 연결한다. 병원/산책 direct back QA는 2026-07-11 증적으로 닫혔고, 현재 코드 변경은 keyboard layout을 직접 바꾸지 않고 기존 keyboard-aware 구조와 Android smoke 기준을 유지한다.

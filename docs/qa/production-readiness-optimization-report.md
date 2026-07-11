@@ -27,7 +27,7 @@
 
 ## Android QA 범위
 
-최종 Android release smoke에서 아래를 확인한다.
+Android release smoke에서 아래를 확인했다.
 
 - cold start -> Home shell
 - Home record/schedule cache card 표시
@@ -36,9 +36,35 @@
 - 타임라인 initial list
 - 커뮤니티 initial list
 - 기록 작성/수정 keyboard
-- 건강/산책/병원 진입
+- 건강 진입
+- 산책 direct visual smoke
+- 병원 direct visual smoke
 - Android back
 - logcat fatal / ANR / unhandled promise / ReactNativeJS fatal 0건
+
+## 2026-07-11 병원/산책 Direct Visual Smoke Closeout
+
+직전 실서비스급 최적화 턴의 조건부 항목이었던 병원/산책 직접 화면 증적을 Android `SM_S937N / R5CY613NMSY` release build에서 닫았다.
+
+| 항목 | 결과 |
+| --- | --- |
+| 병원 진입 | `Home -> 전체메뉴 -> 우리동네 동물병원` 경로로 리스트 표시 확인 |
+| 병원 상세 | `최지영 재활한방 동물병원` 상세 진입, 전화하기/길찾기 CTA, Android back으로 리스트 복귀 확인 |
+| 병원 public safety | public text 기준 운영시간/24시/야간/주말/응급/특수동물/주차/장비/홈페이지/SNS/raw/internal/source 노출 0건 |
+| 산책 진입 | `nuri://walk-spots` deep link로 산책 리스트 표시 확인 |
+| 산책 상세 | `문화공원 오거리공원` 상세 진입, 위치/API 준비 전 crash 없음, Android back으로 리스트 복귀 확인 |
+| logcat | `/tmp/nuri-qa/conditional-closeout-hospital-walk-logcat.txt`, fatal/ANR/unhandled/RN fatal pattern 0건 |
+
+증적:
+
+- `/tmp/nuri-qa/conditional-closeout-hospital-list.png`
+- `/tmp/nuri-qa/conditional-closeout-hospital-detail.png`
+- `/tmp/nuri-qa/conditional-closeout-hospital-back.png`
+- `/tmp/nuri-qa/conditional-closeout-walk-home.png`
+- `/tmp/nuri-qa/conditional-closeout-walk-loaded.png`
+- `/tmp/nuri-qa/conditional-closeout-walk-back.png`
+
+병원 public 필터 chip의 `24시 운영`, `특수동물병원` 문구는 이번 PO 기준에서 public 차단 표현으로 오해될 수 있어 사용자-facing 리스트에서는 제거했다. backend/admin 검수 데이터와 approved verification 계약은 변경하지 않았다.
 
 ## 남은 성능 고도화 후보
 
@@ -50,5 +76,4 @@
 
 ## 판정
 
-실서비스급 전체 최적화/안정화는 코드 기준 완료로 판정한다. Android release smoke, typecheck, lint, focused tests, RLS/security smoke 결과를 최종 완료 보고에 연결한다.
-
+실서비스급 전체 최적화/안정화는 병원/산책 direct visual smoke까지 확보해 완료로 판정한다. Android release smoke, typecheck, lint, focused tests, RLS/security smoke 결과를 최종 완료 보고에 연결한다.

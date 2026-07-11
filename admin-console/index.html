@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NURI 운영 관리자 홈</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="admin-shell">
+      <aside class="sidebar" aria-label="NURI 운영 도메인">
+        <div class="brand-lockup" aria-label="NURI Admin Console">
+          <span class="brand-mark" aria-hidden="true">N</span>
+          <div>
+            <strong>NURI Admin</strong>
+            <span>Operations Console</span>
+          </div>
+        </div>
+
+        <nav class="side-nav" aria-label="관리 메뉴">
+          <a class="side-link active" href="#dashboard">Dashboard</a>
+          <a class="side-link" href="#users">Users</a>
+          <a class="side-link" href="#pets">Pets</a>
+          <a class="side-link" href="#records">Timeline / Records</a>
+          <a class="side-link" href="#health">Health</a>
+          <a class="side-link" href="#walk">Walk</a>
+          <a class="side-link" href="#hospitals">Animal Hospitals</a>
+          <a class="side-link" href="#community">Community</a>
+          <a class="side-link" href="./notification-console.html">Notifications</a>
+          <a class="side-link" href="#rankings">Rankings</a>
+          <a class="side-link" href="#activity">Activity / XP / Titles</a>
+          <a class="side-link" href="#evidence">Reports / Evidence</a>
+          <a class="side-link" href="#qa">QA / Release</a>
+          <a class="side-link" href="#settings">Settings / Policy</a>
+          <a class="side-link" href="#audit">Audit Logs</a>
+        </nav>
+
+        <section class="sidebar-card" aria-label="운영 안전 원칙">
+          <p class="eyebrow">Admin-only surface</p>
+          <h2>앱 내부 화면이 아닙니다</h2>
+          <p>
+            이 페이지는 별도 관리자 홈페이지 트랙입니다. 실제 운영 배포 전 인증,
+            권한, 감사 로그, 비공개 호스팅이 먼저 필요합니다.
+          </p>
+        </section>
+      </aside>
+
+      <main class="workspace" id="dashboard">
+        <header class="topbar">
+          <div>
+            <p class="breadcrumb">Admin Console / Dashboard</p>
+            <h1>NURI 운영 현황</h1>
+          </div>
+          <div class="topbar-actions" aria-label="빠른 작업">
+            <a class="ghost-action" href="./notification-console.html">알림 발송 콘솔</a>
+            <button class="primary-action" type="button" disabled>전체 발송 비활성</button>
+          </div>
+        </header>
+
+        <section class="notice-strip" aria-label="운영 주의">
+          <div>
+            <strong>운영 전 게이트</strong>
+            <span>service role key, FCM/Expo secret, 사용자 원본 식별자는 이 페이지에 입력하거나 저장하지 않습니다.</span>
+          </div>
+          <span class="status-pill">Local / admin-only</span>
+        </section>
+
+        <section class="metric-grid" aria-label="운영 요약">
+          <article class="metric-card">
+            <span class="metric-label">Release readiness</span>
+            <strong>조건부 QA 해소 중</strong>
+            <p>병원/산책 direct visual smoke를 이번 턴에서 닫습니다.</p>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">Security posture</span>
+            <strong>RLS guard 유지</strong>
+            <p>관리 RPC는 anon/non-admin 차단 기준을 유지합니다.</p>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">Notification ops</span>
+            <strong>QA 단일 발송</strong>
+            <p>전체 broadcast는 opt-out/push 정책 완료 전 비활성입니다.</p>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">Product scope</span>
+            <strong>앱 리뉴얼 제외</strong>
+            <p>이번 페이지는 앱 사용자 화면과 분리된 운영 웹입니다.</p>
+          </article>
+        </section>
+
+        <section class="section-heading">
+          <div>
+            <p class="eyebrow">Daily operations</p>
+            <h2>오늘 확인할 항목</h2>
+          </div>
+          <span id="todayLabel" class="muted-label">KST 기준</span>
+        </section>
+
+        <section class="domain-grid" aria-label="운영 도메인 카드">
+          <article class="domain-card" id="users">
+            <div class="domain-icon">US</div>
+            <div>
+              <h3>사용자/펫 상태</h3>
+              <p>가입, 온보딩, pending deletion, 대표 펫/멀티펫 상태를 분리해 확인합니다.</p>
+              <span class="domain-state">Read-only overview</span>
+            </div>
+          </article>
+          <article class="domain-card" id="pets">
+            <div class="domain-icon">PT</div>
+            <div>
+              <h3>펫 프로필 운영</h3>
+              <p>생일/태어난 날, 체중, 성별, 품종, 대표 칭호 표시 상태를 점검합니다.</p>
+              <span class="domain-state">Profile integrity</span>
+            </div>
+          </article>
+          <article class="domain-card" id="records">
+            <div class="domain-icon">RC</div>
+            <div>
+              <h3>타임라인 / 기록</h3>
+              <p>작성, 수정, 삭제, 카테고리 count, XP source idempotency를 운영 기준으로 봅니다.</p>
+              <span class="domain-state">Progressive loading</span>
+            </div>
+          </article>
+          <article class="domain-card" id="health">
+            <div class="domain-icon">HL</div>
+            <div>
+              <h3>건강관리</h3>
+              <p>건강 기록, 체중 로그, 일정/기념일, 의료 과장 문구 방지 상태를 확인합니다.</p>
+              <span class="domain-state">User-scoped data</span>
+            </div>
+          </article>
+          <article class="domain-card" id="walk">
+            <div class="domain-icon">WK</div>
+            <div>
+              <h3>산책/장소 데이터</h3>
+              <p>자체 POI, 위치 fallback, Kakao Local hard delete 보류, Android visual smoke를 추적합니다.</p>
+              <span class="domain-state">Provider-safe</span>
+            </div>
+          </article>
+          <article class="domain-card" id="hospitals">
+            <div class="domain-icon">AH</div>
+            <div>
+              <h3>동물병원 검수 상태</h3>
+              <p>public safe projection, 검수된 전화/좌표/썸네일, 차단 필드 노출 여부를 봅니다.</p>
+              <span class="domain-state">Trust gate</span>
+            </div>
+          </article>
+          <article class="domain-card" id="community">
+            <div class="domain-icon">CM</div>
+            <div>
+              <h3>커뮤니티/신고</h3>
+              <p>신고, moderation, blocked-term, draft 유실 방지, 댓글 write path를 함께 점검합니다.</p>
+              <span class="domain-state">Moderation first</span>
+            </div>
+          </article>
+          <article class="domain-card action-card" id="notifications">
+            <div class="domain-icon">NT</div>
+            <div>
+              <h3>알림 발송 관리</h3>
+              <p>QA 대상 단일 발송, audit feed, home dismiss와 inbox delete 분리 smoke를 관리합니다.</p>
+              <a href="./notification-console.html" class="inline-action">알림 콘솔 열기</a>
+            </div>
+          </article>
+          <article class="domain-card" id="rankings">
+            <div class="domain-icon">RK</div>
+            <div>
+              <h3>랭킹 / XP</h3>
+              <p>Lv.100 curve, ranking privacy, QA fixture 포함 여부, raw id 비노출을 확인합니다.</p>
+              <span class="domain-state">Privacy-limited</span>
+            </div>
+          </article>
+          <article class="domain-card" id="activity">
+            <div class="domain-icon">XP</div>
+            <div>
+              <h3>활동·칭호</h3>
+              <p>펫별 활동, user-level 공통 활동, 대표 칭호, 훈장 보관함 계산을 분리합니다.</p>
+              <span class="domain-state">Pet/user scope</span>
+            </div>
+          </article>
+          <article class="domain-card" id="evidence">
+            <div class="domain-icon">EV</div>
+            <div>
+              <h3>QA Evidence</h3>
+              <p>Android screenshot, uiautomator XML, release APK provenance, logcat 결과를 묶습니다.</p>
+              <span class="domain-state">Evidence-led</span>
+            </div>
+          </article>
+          <article class="domain-card" id="qa">
+            <div class="domain-icon">QA</div>
+            <div>
+              <h3>Release readiness</h3>
+              <p>release blocker, Android blocker, keyboard/back smoke, cache/security 결과를 한 곳에 둡니다.</p>
+              <span class="domain-state">Closeout board</span>
+            </div>
+          </article>
+        </section>
+
+        <section class="section-heading">
+          <div>
+            <p class="eyebrow">Operating notes</p>
+            <h2>운영 정책과 설정</h2>
+          </div>
+        </section>
+
+        <section class="policy-grid" aria-label="설정과 감사 영역">
+          <article class="policy-card" id="settings">
+            <h3>Settings / Policy</h3>
+            <p>정책 문서, 개인정보 처리 기준, push opt-in 선행 조건, public hosting 금지를 관리합니다.</p>
+          </article>
+          <article class="policy-card" id="audit">
+            <h3>Audit Logs</h3>
+            <p>운영자 작업은 감사 로그와 함께 추적해야 하며, raw payload/secret 노출은 금지합니다.</p>
+          </article>
+        </section>
+      </main>
+
+      <aside class="insight-panel" aria-label="운영 인사이트">
+        <header class="panel-header">
+          <p class="eyebrow">Info</p>
+          <h2>Closeout board</h2>
+        </header>
+
+        <section class="insight-card">
+          <h3>Release status</h3>
+          <dl>
+            <div>
+              <dt>V1.0 기능</dt>
+              <dd>100%</dd>
+            </div>
+            <div>
+              <dt>V1.1 전체</dt>
+              <dd>약 82%</dd>
+            </div>
+            <div>
+              <dt>V1.1.1</dt>
+              <dd>100%</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="insight-card">
+          <h3>Security checklist</h3>
+          <ul class="check-list">
+            <li>service role key 입력/저장 금지</li>
+            <li>FCM/Expo secret 노출 금지</li>
+            <li>production 배포 전 auth gate 필요</li>
+            <li>일반 앱 내부 노출 금지</li>
+          </ul>
+        </section>
+
+        <section class="insight-card">
+          <h3>Recent audit</h3>
+          <p>
+            알림 live retention smoke와 ranking privacy smoke는 완료 상태입니다.
+            이번 closeout은 병원/산책 direct visual evidence를 추가합니다.
+          </p>
+        </section>
+
+        <section class="insight-card">
+          <h3>Pending actions</h3>
+          <ol class="action-list">
+            <li>병원 direct visual smoke evidence 고정</li>
+            <li>산책 direct visual smoke evidence 고정</li>
+            <li>운영자 홈페이지 auth/권한 gate 설계</li>
+          </ol>
+        </section>
+
+        <section class="quick-links">
+          <h3>Quick links</h3>
+          <a href="./notification-console.html">Notification console</a>
+          <a href="../docs/qa/release-checklist.md">Release checklist</a>
+          <a href="../docs/reports/nuri-project-master-status-and-roadmap-2026-07.md">Master status</a>
+        </section>
+      </aside>
+    </div>
+
+    <script src="./admin-console.js"></script>
+  </body>
+</html>

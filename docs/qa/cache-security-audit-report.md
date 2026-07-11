@@ -20,10 +20,12 @@
 | logout/account transition | home record/schedule cache 제거 | 신규 적용 |
 | ranking cache | React Query key는 category + fixture mode로 분리 | 신규 적용 |
 | notification dismiss | home-only local user-scoped state, inbox delete와 분리 | 기존 정책 유지 |
+| admin homepage | 정적 admin web shell, 앱 내부 cache/session 미사용 | 신규 적용 |
 
 ## 금지 항목 준수
 
 - token, password, service role key, FCM/Expo secret 저장 없음
+- `admin-console/index.html`은 secret 입력/저장 UI를 제공하지 않음
 - email/phone/raw user id를 ranking UI에 표시하지 않음
 - 다른 사용자 cache를 fallback으로 표시하지 않음
 - corrupt cache는 remove 후 null fallback
@@ -39,5 +41,4 @@
 
 ## 판정
 
-cache security는 release blocker 없음으로 판정한다. 오래된 home record/schedule cache는 3일 TTL로 제거되고, 계정 전환/로그아웃 시 home record/schedule cache는 전부 제거된다.
-
+cache security는 release blocker 없음으로 판정한다. 오래된 home record/schedule cache는 3일 TTL로 제거되고, 계정 전환/로그아웃 시 home record/schedule cache는 전부 제거된다. 관리자 홈페이지 1차 shell은 별도 정적 admin web 트랙이며 앱 user/pet cache나 secret storage와 연결하지 않았다.
