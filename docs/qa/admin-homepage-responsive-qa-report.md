@@ -2,6 +2,41 @@
 
 기준일: 2026-07-12
 
+## 2026-07-12 본구현 1차 QA 갱신
+
+실제 source of truth는 계속 `../nuri-web /admin`이다. 이번 본구현 1차에서는 기존 responsive shell을 유지한 상태로 아래 신규 운영 route를 추가했다.
+
+- `/admin/reports`
+- `/admin/community`
+- `/admin/hospitals`
+- `/admin/users`
+- `/admin/users/[id]`
+- `/admin/pets`
+- `/admin/pets/[id]`
+- `/admin/audit-logs`
+
+확인 기준:
+
+| 항목 | 결과 |
+| --- | --- |
+| 세션 보호 | 신규 route 전부 `(protected)` route group 아래에 있음 |
+| Dashboard 연결 | 운영 도메인 카드와 sidebar가 1차 route로 연결됨 |
+| Table responsive | 신규 `ops-data-table-wrap`으로 route별 표가 페이지 전체 horizontal overflow를 만들지 않도록 처리 |
+| 위험 write | 신고 처리, 게시글/댓글 삭제, 사용자 조치, 동물병원 approve/reject/hold, broadcast 모두 disabled |
+| secret 노출 | password/token/service role key/raw payload는 UI에 표시하지 않음 |
+| raw id 노출 | 사용자/pet 상세 route는 보호된 route id를 사용하고 화면에는 마스킹 label 사용 |
+
+권장 신규 screenshot:
+
+| 화면 | 증적 |
+| --- | --- |
+| 본구현 dashboard | `/tmp/nuri-qa/admin-phase1-dashboard-1920.png` |
+| 신고/콘텐츠 | `/tmp/nuri-qa/admin-phase1-reports-1920.png` |
+| 동물병원 검수 | `/tmp/nuri-qa/admin-phase1-hospitals-1920.png` |
+| 사용자 목록 | `/tmp/nuri-qa/admin-phase1-users-1920.png` |
+| 감사 로그 | `/tmp/nuri-qa/admin-phase1-audit-1920.png` |
+| 모바일 | `/tmp/nuri-qa/admin-phase1-mobile.png` |
+
 ## 대상
 
 현재 source of truth:

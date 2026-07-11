@@ -638,6 +638,26 @@
 - [x] 건강관리 진입은 Android RC smoke에서 확인했다.
   - 건강기록/체중 CRUD/fallback은 기존 Phase 1 evidence를 인정하며, 이번 hard-close 턴에서 재수행하지 않는다.
 
+## 2026-07-12 관리자 홈페이지 본구현 1차 체크
+
+- [x] 실제 관리자 홈페이지 source of truth를 `nuri-web /admin`으로 유지
+- [x] React Native 앱 내부 일반 사용자 화면에 관리자 UI 미노출
+- [x] 신규 관리자 route를 protected route group에 추가
+  - `/admin/reports`
+  - `/admin/community`
+  - `/admin/hospitals`
+  - `/admin/users`
+  - `/admin/users/[id]`
+  - `/admin/pets`
+  - `/admin/pets/[id]`
+  - `/admin/audit-logs`
+- [x] Dashboard/sidebar를 실제 1차 route로 연결
+- [x] 신고/콘텐츠, 커뮤니티, 동물병원, 사용자, 반려동물, audit log read-only 구현
+- [x] 사용자 hard delete, 게시글/댓글 hard delete, 사용자 권한 상승, 동물병원 approve/reject/hold, 전체 broadcast 비활성 유지
+- [x] raw UUID/email/phone/password/token/secret UI 노출 방지
+- [x] DB/RPC/RLS/seed 변경 없음
+- [x] Play Store 자산 없음
+
 ## v1.1 업데이트 백로그
 
 - 아래 항목은 v1.0 미완성 이월이 아니라 신규 업데이트 후보로 관리한다.

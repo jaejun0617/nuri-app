@@ -2,6 +2,39 @@
 
 기준일: 2026-07-12
 
+## 2026-07-12 본구현 1차 갱신
+
+`nuri-web /admin`은 인증/세션 보호와 한글화 이후, 운영 콘솔 본구현 1차로 read-only 운영 도메인 route를 확장했다.
+
+- 구현 위치: `../nuri-web`
+- 신규/갱신 route:
+  - `/admin`
+  - `/admin/reports`
+  - `/admin/community`
+  - `/admin/hospitals`
+  - `/admin/users`
+  - `/admin/users/[id]`
+  - `/admin/pets`
+  - `/admin/pets/[id]`
+  - `/admin/audit-logs`
+  - 기존 `/admin/guides`, `/admin/security` 유지
+- 구현 성격:
+  - 신고/콘텐츠 관리 read-only
+  - 커뮤니티 게시글/댓글 read-only
+  - 동물병원 public-safe 필드와 검수 상태 확인
+  - 사용자/반려동물 목록과 상세 조회
+  - 알림/병원 변경 감사 로그 요약
+  - Dashboard 카드와 sidebar를 실제 1차 route로 연결
+- 보안 정책:
+  - 모든 신규 route는 `(protected)` route group 안에 있어 관리자 세션 없이는 접근할 수 없다.
+  - service role key는 서버 런타임 전용으로만 사용한다.
+  - raw UUID/email/phone/password/token/secret은 화면에 직접 노출하지 않는다.
+  - 사용자 hard delete, 게시글/댓글 hard delete, 전체 broadcast, 사용자 권한 상승, 동물병원 approve/reject/hold는 비활성으로 유지한다.
+- DB/RPC/RLS/seed 변경:
+  - 없음. 이번 턴은 `nuri-web` 서버 runtime에서 기존 table을 제한 projection으로 읽는 1차 운영 화면이다.
+
+본구현 2차에서는 실제 운영 action을 열기 전에 admin-only RPC, role model, confirmation modal, audit write 계약을 먼저 확정해야 한다.
+
 ## 2026-07-12 인증/세션 보호 갱신
 
 `nuri-web /admin`은 1차 리디자인 이후 관리자 로그인과 세션 보호를 갖춘 실제 운영자 route로 전환됐다.
@@ -79,10 +112,10 @@ NURI 관리자 홈페이지는 앱 내부 일반 사용자 화면이 아니라 �
 | 단계 | 목표 | 완료 기준 |
 | --- | --- | --- |
 | 1. Auth/Role Gate | 관리자 로그인과 session guard | `/admin` 비로그인 차단과 비밀번호 변경 완료, 역할 모델과 감사 추적은 후속 |
-| 2. Read-only Ops Data | 사용자/펫/커뮤니티/병원/산책/랭킹 상태 카드 연결 | raw id/email/phone/secret 미노출 |
+| 2. Read-only Ops Data | 사용자/펫/커뮤니티/신고/병원/audit 상태 route 연결 | 1차 완료, raw id/email/phone/secret 미노출 |
 | 3. Notification Ops | 기존 알림 콘솔을 homepage 안의 운영 섹션으로 정리 | QA 대상 발송, audit feed, broadcast disabled 유지 |
-| 4. Moderation/Reports | 신고/커뮤니티 moderation 상태 표시 | 정책 위반 trace, action log |
-| 5. Hospital Review | 동물병원 검수 상태와 pending queue 표시 | Candidate/Trust/User Layer 분리 유지 |
+| 4. Moderation/Reports | 신고/커뮤니티 moderation 상태 표시 | 1차 read-only 완료, soft action/audit write 후속 |
+| 5. Hospital Review | 동물병원 검수 상태와 pending queue 표시 | 1차 read-only 완료, Candidate/Trust/User Layer 분리 유지 |
 | 6. QA Evidence | release evidence와 Android smoke 결과를 모아보기 | screenshot/log 경로와 blocker status |
 | 7. Deployment | HTTPS, auth, environment, rollback 문서화 | public hosting 전 security review 완료 |
 
