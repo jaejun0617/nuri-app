@@ -21,10 +21,12 @@ const EMPTY_GUIDES: PetCareGuide[] = [];
 
 export function useHomePetCareGuides(
   context: GuidePersonalizationContext,
+  options: { enabled?: boolean } = {},
 ): UseHomePetCareGuidesState {
+  const enabled = options.enabled ?? true;
   const { birthDate, deathDate, petId, species, speciesDetailKey, speciesDisplayName, userId } =
     context;
-  const catalogState = usePetCareGuideCatalog();
+  const catalogState = usePetCareGuideCatalog({ enabled });
   const [state, setState] = useState<UseHomePetCareGuidesState>({
     loading: true,
     guides: EMPTY_GUIDES,
@@ -46,6 +48,22 @@ export function useHomePetCareGuides(
   }, [catalogSignature, catalogState.guides]);
 
   useEffect(() => {
+    if (!enabled) {
+      setState(prev => {
+        if (prev.loading && prev.guides.length === 0 && prev.error === null) {
+          return prev;
+        }
+        return {
+          loading: true,
+          guides: EMPTY_GUIDES,
+          error: null,
+          source: catalogState.source,
+          sourceReason: catalogState.sourceReason,
+        };
+      });
+      return;
+    }
+
     if (catalogState.loading) {
       setState(prev => {
         if (prev.loading && prev.error === null) return prev;
@@ -97,6 +115,7 @@ export function useHomePetCareGuides(
   }, [
     birthDate,
     deathDate,
+    enabled,
     catalogSignature,
     catalogState.error,
     catalogState.loading,

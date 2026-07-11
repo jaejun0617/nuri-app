@@ -1,6 +1,5 @@
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -117,6 +116,61 @@ function getNextLevelLabel(input: ActivityDashboardData) {
   const remaining = Math.max(0, levelSummary.nextLevelXp - levelSummary.totalXp);
   return `다음 레벨까지 ${remaining.toLocaleString('ko-KR')} XP`;
 }
+
+const DashboardSkeleton = memo(function DashboardSkeleton({
+  accentColor,
+}: {
+  accentColor: string;
+}) {
+  return (
+    <>
+      <View style={[styles.growthCard, { borderColor: `${accentColor}25` }]}>
+        <View style={styles.skeletonLineShort} />
+        <View style={styles.skeletonLineLarge} />
+        <View style={styles.skeletonProgressTrack}>
+          <View style={[styles.skeletonProgressFill, { backgroundColor: `${accentColor}35` }]} />
+        </View>
+        <View style={styles.skeletonMetaRow}>
+          <View style={styles.skeletonLineTiny} />
+          <View style={styles.skeletonLineTiny} />
+        </View>
+      </View>
+
+      <SectionCard title="아이별 성장 기록" eyebrow="멀티펫 분리">
+        <View style={styles.skeletonPetRow}>
+          <View style={styles.skeletonPetCard} />
+          <View style={styles.skeletonPetCard} />
+        </View>
+      </SectionCard>
+
+      <SectionCard title="활동 요약" eyebrow="카드별 정리 중">
+        <View style={styles.metricGrid}>
+          {[0, 1, 2, 3].map(index => (
+            <View key={index} style={styles.metricCard}>
+              <View style={styles.skeletonIcon} />
+              <View style={styles.skeletonLineShort} />
+              <View style={styles.skeletonLineTiny} />
+            </View>
+          ))}
+        </View>
+      </SectionCard>
+
+      <SectionCard title="칭호·훈장 보관함" eyebrow="달성/잠금">
+        <View style={styles.achievementGrid}>
+          {[0, 1, 2].map(index => (
+            <View key={index} style={styles.achievementCard}>
+              <View style={styles.skeletonIcon} />
+              <View style={styles.achievementTextWrap}>
+                <View style={styles.skeletonLineShort} />
+                <View style={styles.skeletonLineWide} />
+              </View>
+            </View>
+          ))}
+        </View>
+      </SectionCard>
+    </>
+  );
+});
 
 function GrowthCard({
   dashboard,
@@ -428,9 +482,9 @@ export default function PetActivityAchievementsScreen() {
           })),
         );
         setDashboard(nextDashboard);
-        if (!selectedDashboardPetId && nextDashboard.petSummaries[0]) {
-          setSelectedDashboardPetId(selectedPetId ?? nextDashboard.petSummaries[0].petId);
-        }
+        setSelectedDashboardPetId(current =>
+          current ?? selectedPetId ?? nextDashboard.petSummaries[0]?.petId ?? null,
+        );
       } catch {
         showToast({
           tone: 'error',
@@ -443,7 +497,7 @@ export default function PetActivityAchievementsScreen() {
         setRefreshing(false);
       }
     },
-    [pets, selectedDashboardPetId, selectedPetId],
+    [pets, selectedPetId],
   );
 
   useEffect(() => {
@@ -484,68 +538,61 @@ export default function PetActivityAchievementsScreen() {
         </View>
       </View>
 
-      {loading ? (
-        <View style={styles.loadingWrap}>
-          <ActivityIndicator color={accentPalette.primary} />
-          <AppText preset="caption" style={styles.loadingText}>
-            활동 기록을 정리하고 있어요
-          </AppText>
-        </View>
-      ) : (
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={[
-            styles.content,
-            { paddingBottom: Math.max(insets.bottom + 104, 132) },
-          ]}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={accentPalette.primary}
-            />
-          }
-        >
-          {dashboard ? (
-            <>
-              <GrowthCard dashboard={dashboard} accentColor={accentPalette.primary} />
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: Math.max(insets.bottom + 104, 132) },
+        ]}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={accentPalette.primary}
+          />
+        }
+      >
+        {loading && !dashboard ? (
+          <DashboardSkeleton accentColor={accentPalette.primary} />
+        ) : dashboard ? (
+          <>
+            <GrowthCard dashboard={dashboard} accentColor={accentPalette.primary} />
 
-              <SectionCard title="아이별 성장 기록" eyebrow="멀티펫 분리">
-                <PetSelector
-                  pets={dashboard.petSummaries}
-                  selectedPetId={activePetId}
-                  onSelect={setSelectedDashboardPetId}
-                  accentColor={accentPalette.primary}
-                />
-              </SectionCard>
-
-              <PetActivityCards
-                pet={selectedPetSummary}
+            <SectionCard title="아이별 성장 기록" eyebrow="멀티펫 분리">
+              <PetSelector
+                pets={dashboard.petSummaries}
+                selectedPetId={activePetId}
+                onSelect={setSelectedDashboardPetId}
                 accentColor={accentPalette.primary}
               />
-              <CommonActivityCard summary={dashboard.commonSummary} />
-              <AchievementVault achievements={dashboard.allAchievements} />
+            </SectionCard>
 
-              {dashboard.ledgerLimitReached ? (
-                <AppText preset="caption" style={styles.limitNotice}>
-                  최근 1,000개 XP ledger 기준으로 표시 중이에요. 장기 통계는 후속 summary RPC에서
-                  확장합니다.
-                </AppText>
-              ) : null}
-            </>
-          ) : (
-            <View style={styles.emptyPetsCard}>
-              <AppText preset="headline" style={styles.emptyTitle}>
-                활동 기록을 불러오지 못했어요
+            <PetActivityCards
+              pet={selectedPetSummary}
+              accentColor={accentPalette.primary}
+            />
+            <CommonActivityCard summary={dashboard.commonSummary} />
+            <AchievementVault achievements={dashboard.allAchievements} />
+
+            {dashboard.ledgerLimitReached ? (
+              <AppText preset="caption" style={styles.limitNotice}>
+                최근 1,000개 XP ledger 기준으로 표시 중이에요. 장기 통계는 후속 summary RPC에서
+                확장합니다.
               </AppText>
-              <AppText preset="body" style={styles.emptyBody}>
-                네트워크 상태를 확인한 뒤 다시 시도해 주세요.
-              </AppText>
-            </View>
-          )}
-        </ScrollView>
-      )}
+            ) : null}
+          </>
+        ) : (
+          <View style={styles.emptyPetsCard}>
+            <AppText preset="headline" style={styles.emptyTitle}>
+              활동 기록을 불러오지 못했어요
+            </AppText>
+            <AppText preset="body" style={styles.emptyBody}>
+              네트워크 상태를 확인한 뒤 다시 시도해 주세요.
+            </AppText>
+          </View>
+        )}
+      </ScrollView>
     </View>
   );
 }
@@ -817,5 +864,66 @@ const styles = StyleSheet.create({
     color: '#8A95A6',
     lineHeight: 18,
     paddingHorizontal: 4,
+  },
+  skeletonLineLarge: {
+    width: '62%',
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#EEF2F7',
+    marginTop: 8,
+  },
+  skeletonLineWide: {
+    width: '86%',
+    height: 13,
+    borderRadius: 7,
+    backgroundColor: '#EEF2F7',
+    marginTop: 8,
+  },
+  skeletonLineShort: {
+    width: '48%',
+    height: 15,
+    borderRadius: 8,
+    backgroundColor: '#EEF2F7',
+  },
+  skeletonLineTiny: {
+    width: 82,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#EEF2F7',
+  },
+  skeletonProgressTrack: {
+    height: 12,
+    borderRadius: 999,
+    backgroundColor: '#EEF2F7',
+    overflow: 'hidden',
+    marginTop: 20,
+  },
+  skeletonProgressFill: {
+    width: '46%',
+    height: '100%',
+    borderRadius: 999,
+  },
+  skeletonMetaRow: {
+    marginTop: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  skeletonPetRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  skeletonPetCard: {
+    width: 172,
+    height: 72,
+    borderRadius: 20,
+    backgroundColor: '#F2F5F9',
+  },
+  skeletonIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#EEF2F7',
+    marginBottom: 10,
   },
 });

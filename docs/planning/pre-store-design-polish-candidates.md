@@ -4,7 +4,7 @@
 
 ## 목적
 
-이 문서는 V1.0/V1.1/V1.1.1 기능 구현을 무리하게 늘리지 않고, 스토어 제출 전 앱 내부 화면 신뢰도를 높이기 위한 디자인 polish 후보를 화면 단위로 분류한다. 2026-07-11 PO 지시에 따라 Lv.100 성장 정책과 Home 대표 칭호 badge는 필수 polish와 함께 예외적으로 반영했다. Play Store 자산, push, 홈 위젯, 무지개다리는 변경하지 않는다.
+이 문서는 V1.0/V1.1/V1.1.1 기능 구현을 무리하게 늘리지 않고, 스토어 제출 전 앱 내부 화면 신뢰도를 높이기 위한 디자인 polish 후보를 화면 단위로 분류한다. 2026-07-11 PO 지시에 따라 Lv.100 성장 정책과 Home 대표 칭호 badge는 필수 polish와 함께 예외적으로 반영했다. 같은 날 release readiness 성능 polish로 Home shell 즉시 표시, 카드별 progressive loading, 주요 도메인 skeleton/cache를 최소 적용했다. Play Store 자산, push, 홈 위젯, 무지개다리는 변경하지 않는다.
 
 ## 원칙
 
@@ -18,13 +18,13 @@
 | 로그인/회원가입 | 소셜 버튼/최근 로그인 pill spacing, 정책 안내 문구 밀도, 작은 Android 화면 keyboard 상태 재확인 | 1 | 낮음 | 아니오 | 출시 전 필수 polish 후보 |
 | NicknameSetup | 입력 카드와 primary button 간격, 에러 문구 line-height, 긴 닉네임 preview | 2 | 낮음 | 아니오 | 가능하면 polish |
 | PetCreate | 생일/입양일 문구를 `태어난 날`/`가족이 된 날` 톤으로 정리, 긴 펫 이름 줄바꿈 | 1 | 낮음 | 아니오 | 출시 전 필수 polish 후보 |
-| Home | 펫 프로필 optional 정보 empty copy, `태어난 날` 문구, 대표 칭호 badge, 함께한 시간 pill, 날씨 compact card 출처 문구 제거 후 여백 확인 | 1 | 낮음 | 적용 | release 전 홈 screenshot 후보 |
+| Home | 펫 프로필 optional 정보 empty copy, `태어난 날` 문구, 대표 칭호 badge, 함께한 시간 pill, 날씨 compact card 출처 문구 제거 후 여백 확인, 첫 화면 shell과 카드별 progressive loading | 1 | 낮음 | 적용 | release 전 홈 screenshot 후보 |
 | 홈 알림 overlay | dim 강도, 카드 간격, expanded 상태 긴 본문 line-height, empty state premium tone | 2 | 중간 | 아니오 | 가능하면 polish |
 | PremiumRewardModal | Lv.100 `최고 레벨 달성` 문구, progress bar, 오늘 하루 안 보기 touch target, 긴 XP 숫자 줄바꿈 | 1 | 낮음 | 적용 | 출시 전 필수 polish 후보 |
 | 전체메뉴 | `활동 및 기록` 그룹 내 `누리 랭킹`/`활동·칭호` hierarchy, icon tone 통일 | 2 | 낮음 | 아니오 | 가능하면 polish |
 | 나의 반려동물 | 프로필 관리/중요일정/활동·칭호 탭 밀도, 카드 radius/heading hierarchy | 2 | 낮음 | 아니오 | 가능하면 polish |
 | 활동·칭호 | Lv.100 progress/max 문구, 펫별 카드가 많을 때 section divider, 획득/잠금 칭호 contrast, ownerLabel pill 색상 | 2 | 중간 | 일부 적용 | 가능하면 polish |
-| 누리 랭킹 | Lv.100 표시, 기둥그래프 색상 대비, 1~3위 강조 강도, empty-safe 미용 탭 문구, 작은 화면 bar height | 1 | 중간 | 일부 적용 | 출시 전 필수 polish 후보 |
+| 누리 랭킹 | Lv.100 표시, 기둥그래프 색상 대비, 1~3위 강조 강도, empty-safe 미용 탭 문구, 작은 화면 bar height, 탭 전환 skeleton/cache | 1 | 중간 | 일부 적용 | 출시 전 필수 polish 후보 |
 | 타임라인 | category count badge 밀도, write CTA와 keyboard 상태, 기록 없는 날 empty copy | 2 | 중간 | 아니오 | 가능하면 polish |
 | 기록 작성/수정 | PremiumRewardModal 이후 복귀 flow, 입력 field spacing, 날짜/카테고리 선택 상태 contrast | 1 | 중간 | 아니오 | 출시 전 필수 polish 후보 |
 | 건강관리 | 건강 표현 과장 방지, 차트/기록 카드 spacing, 체중 입력 sheet keyboard overlap 재확인 | 2 | 중간 | 아니오 | 가능하면 polish |
@@ -42,6 +42,7 @@
 - Home representative title badge: 현재 선택 펫의 `user_titles.pet_id`와 일치하는 칭호만 작은 badge/pill로 표시한다. user-level 공통 칭호는 펫 칭호처럼 오표시하지 않는다.
 - Lv.100 progression: Lv.1~30 threshold는 유지하고, Lv.31~100은 1,250,000 XP max까지 장기 curve로 확장했다. 앞으로 지급되는 XP는 base 1.3배 후 level band별 감쇠를 적용한다.
 - PremiumRewardModal: Lv.100/max 상태에서 progress bar와 `최고 레벨 달성` 문구 표시.
+- Home/domain loading polish: Home의 기록/일정 bootstrap, 날씨 refresh, 추천 가이드 fetch, 대표 칭호 RPC를 첫 paint 이후로 분리했다. 대표 칭호는 user/pet scoped cache를 우선 표시하고, `활동·칭호`와 `누리 랭킹`은 full-screen blank 대신 skeleton/cache 기반 progressive rendering을 사용한다.
 
 ## 건드리지 말 것
 

@@ -3,9 +3,8 @@
 // - 전체메뉴에서 진입하는 V1.1.1 NURI 랭킹 1차 MVP 화면.
 // - 서버 RPC가 마스킹한 제한 필드만 렌더링해 cross-user privacy를 지킨다.
 
-import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -46,6 +45,10 @@ const INITIAL_STATE: RankingState = {
   rows: [],
   error: null,
 };
+
+type RankingRowsByCategory = Partial<
+  Record<ActivityRankingCategoryKey, ActivityRankingBar[]>
+>;
 
 function formatTotalXp(value: number) {
   return `${Math.max(0, value).toLocaleString('ko-KR')} XP`;
@@ -110,6 +113,43 @@ const RankingRow = memo(function RankingRow({
   );
 });
 
+const RankingSkeletonRows = memo(function RankingSkeletonRows({
+  accentColor,
+}: {
+  accentColor: string;
+}) {
+  return (
+    <>
+      {[0, 1, 2].map(index => (
+        <View key={index} style={styles.rankCard}>
+          <View style={[styles.rankBadge, { backgroundColor: `${accentColor}14` }]} />
+          <View style={styles.rankBody}>
+            <View style={styles.rankTopRow}>
+              <View style={styles.skeletonNameLine} />
+              <View style={styles.skeletonLevelPill} />
+            </View>
+            <View style={styles.skeletonBarTrack}>
+              <View
+                style={[
+                  styles.skeletonBarFill,
+                  {
+                    width: `${64 - index * 14}%`,
+                    backgroundColor: `${accentColor}30`,
+                  },
+                ]}
+              />
+            </View>
+            <View style={styles.rankBottomRow}>
+              <View style={styles.skeletonScoreLine} />
+              <View style={styles.skeletonTotalLine} />
+            </View>
+          </View>
+        </View>
+      ))}
+    </>
+  );
+});
+
 export default function NuriRankingScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
@@ -128,11 +168,27 @@ export default function NuriRankingScreen() {
   const [selectedCategory, setSelectedCategory] = useState<ActivityRankingCategoryKey>('overall');
   const [state, setState] = useState<RankingState>(INITIAL_STATE);
   const [refreshing, setRefreshing] = useState(false);
+  const rowsByCategoryRef = useRef<RankingRowsByCategory>({});
+  const selectedCategoryRef = useRef<ActivityRankingCategoryKey>(selectedCategory);
+
+  useEffect(() => {
+    selectedCategoryRef.current = selectedCategory;
+  }, [selectedCategory]);
 
   const backAction = useEntryAwareBackAction({
     entrySource: route.params?.entrySource,
-    onHome: () => navigation.navigate('AppTabs', { screen: 'HomeTab' }),
-    onMore: openMoreDrawer,
+    onHome: () => {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'AppTabs', params: { screen: 'HomeTab' } }],
+      });
+    },
+    onMore: () => {
+      navigation.goBack();
+      requestAnimationFrame(() => {
+        openMoreDrawer();
+      });
+    },
     onFallback: () => navigation.goBack(),
   });
 
@@ -141,36 +197,49 @@ export default function NuriRankingScreen() {
     ACTIVITY_RANKING_CATEGORIES[0];
 
   const loadRanking = useCallback(
-    async (mode: 'initial' | 'refresh' = 'initial') => {
+    async (
+      category: ActivityRankingCategoryKey,
+      mode: 'initial' | 'refresh' = 'initial',
+    ) => {
+      const cachedRows = rowsByCategoryRef.current[category] ?? [];
       if (mode === 'initial') {
-        setState(previous => ({
-          status: previous.rows.length > 0 ? 'ready' : 'loading',
-          rows: previous.rows,
+        setState({
+          status: cachedRows.length > 0 ? 'ready' : 'loading',
+          rows: cachedRows,
           error: null,
-        }));
+        });
       } else {
         setRefreshing(true);
       }
 
       try {
         const rows = await fetchActivityRanking({
-          category: selectedCategory,
+          category,
           limit: 20,
           includeQaFixture: true,
         });
-        setState({
-          status: 'ready',
-          rows: buildRankingBars(rows),
-          error: null,
-        });
+        const nextRows = buildRankingBars(rows);
+        rowsByCategoryRef.current = {
+          ...rowsByCategoryRef.current,
+          [category]: nextRows,
+        };
+        if (selectedCategoryRef.current === category) {
+          setState({
+            status: 'ready',
+            rows: nextRows,
+            error: null,
+          });
+        }
       } catch (error) {
         const message =
           error instanceof Error ? error.message : '랭킹을 불러오지 못했어요.';
-        setState(previous => ({
-          status: 'error',
-          rows: previous.rows,
-          error: message,
-        }));
+        if (selectedCategoryRef.current === category) {
+          setState({
+            status: 'error',
+            rows: cachedRows,
+            error: message,
+          });
+        }
         showToast({
           tone: 'error',
           title: '랭킹 확인 실패',
@@ -181,16 +250,16 @@ export default function NuriRankingScreen() {
         setRefreshing(false);
       }
     },
-    [selectedCategory],
+    [],
   );
 
   useEffect(() => {
-    loadRanking('initial').catch(() => undefined);
-  }, [loadRanking]);
+    loadRanking(selectedCategory, 'initial').catch(() => undefined);
+  }, [loadRanking, selectedCategory]);
 
   const onRefresh = useCallback(() => {
-    loadRanking('refresh').catch(() => undefined);
-  }, [loadRanking]);
+    loadRanking(selectedCategory, 'refresh').catch(() => undefined);
+  }, [loadRanking, selectedCategory]);
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
@@ -301,12 +370,7 @@ export default function NuriRankingScreen() {
         </View>
 
         {state.status === 'loading' ? (
-          <View style={styles.stateCard}>
-            <ActivityIndicator color={petTheme.primary} />
-            <AppText preset="body" style={styles.stateText}>
-              랭킹을 불러오고 있어요.
-            </AppText>
-          </View>
+          <RankingSkeletonRows accentColor={petTheme.primary} />
         ) : null}
 
         {state.status === 'error' && state.rows.length === 0 ? (
@@ -566,5 +630,40 @@ const styles = StyleSheet.create({
     lineHeight: 15,
     fontWeight: '700',
     letterSpacing: 0,
+  },
+  skeletonNameLine: {
+    flex: 1,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#EEF2F7',
+  },
+  skeletonLevelPill: {
+    width: 44,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#EEF2F7',
+  },
+  skeletonBarTrack: {
+    marginTop: 11,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#EEF2F7',
+    overflow: 'hidden',
+  },
+  skeletonBarFill: {
+    height: '100%',
+    borderRadius: 6,
+  },
+  skeletonScoreLine: {
+    width: 74,
+    height: 13,
+    borderRadius: 7,
+    backgroundColor: '#EEF2F7',
+  },
+  skeletonTotalLine: {
+    width: 96,
+    height: 13,
+    borderRadius: 7,
+    backgroundColor: '#EEF2F7',
   },
 });

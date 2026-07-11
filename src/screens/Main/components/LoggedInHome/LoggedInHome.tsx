@@ -17,6 +17,7 @@ import {
   Animated as RNAnimated,
   BackHandler,
   Image,
+  InteractionManager,
   LayoutAnimation,
   Modal,
   PanResponder,
@@ -105,7 +106,11 @@ import {
   formatMemorialPetName,
   isMemorialPet,
 } from '../../../../services/pets/memorial';
-import { fetchHomePetTitleBadge } from '../../../../services/activity/homeTitleBadge';
+import {
+  fetchHomePetTitleBadge,
+  loadCachedHomePetTitleBadge,
+  saveCachedHomePetTitleBadge,
+} from '../../../../services/activity/homeTitleBadge';
 import { getBrandedErrorMeta } from '../../../../services/app/errors';
 import {
   fetchUserNotifications,
@@ -2479,6 +2484,7 @@ export default function LoggedInHome() {
   }, []);
   const topButtonVisibility = useSharedValue(0);
   const [showTopButton, setShowTopButton] = useState(false);
+  const [deferredHomeDataReady, setDeferredHomeDataReady] = useState(false);
   const topButtonAnimatedStyle = useAnimatedStyle(() => ({
     opacity: topButtonVisibility.value,
     transform: [
@@ -2521,34 +2527,76 @@ export default function LoggedInHome() {
 
   useEffect(() => {
     if (!activePetId) return;
-    bootstrapRecords(activePetId);
+    const task = InteractionManager.runAfterInteractions(() => {
+      bootstrapRecords(activePetId).catch(() => {});
+    });
+    return () => {
+      task.cancel();
+    };
   }, [bootstrapRecords, activePetId]);
 
   useEffect(() => {
     if (!activePetId) return;
-    bootstrapSchedules(activePetId);
+    const task = InteractionManager.runAfterInteractions(() => {
+      bootstrapSchedules(activePetId).catch(() => {});
+    });
+    return () => {
+      task.cancel();
+    };
   }, [activePetId, bootstrapSchedules]);
+
+  useEffect(() => {
+    if (!isScreenFocused) {
+      setDeferredHomeDataReady(false);
+      return undefined;
+    }
+
+    const task = InteractionManager.runAfterInteractions(() => {
+      setDeferredHomeDataReady(true);
+    });
+
+    return () => {
+      task.cancel();
+    };
+  }, [isScreenFocused]);
 
   useEffect(() => {
     let cancelled = false;
 
-    if (!isScreenFocused || !activePetId) {
+    if (!isScreenFocused || !activePetId || !sessionUserId) {
       setHomeTitleBadge(null);
       return () => {
         cancelled = true;
       };
     }
 
-    fetchHomePetTitleBadge(activePetId)
+    loadCachedHomePetTitleBadge({ userId: sessionUserId, petId: activePetId })
+      .then(cachedTitle => {
+        if (!cancelled && cachedTitle) {
+          setHomeTitleBadge(cachedTitle);
+        }
+      })
+      .catch(() => {});
+
+    const task = InteractionManager.runAfterInteractions(() => {
+      fetchHomePetTitleBadge(activePetId)
       .then(title => {
-        if (!cancelled) setHomeTitleBadge(title);
+        if (cancelled) return;
+        setHomeTitleBadge(title);
+        saveCachedHomePetTitleBadge({
+          userId: sessionUserId,
+          petId: activePetId,
+          title,
+        }).catch(() => {});
       })
       .catch(() => {
         if (!cancelled) setHomeTitleBadge(null);
       });
+    });
 
     return () => {
       cancelled = true;
+      task.cancel();
     };
   }, [activePetId, isScreenFocused, sessionUserId]);
 
@@ -2659,7 +2707,11 @@ export default function LoggedInHome() {
     () => buildPetThemePalette(selectedPet?.themeColor),
     [selectedPet?.themeColor],
   );
-  const weatherGuideState = useWeatherGuide('현재 위치');
+  const weatherGuideState = useWeatherGuide('현재 위치', undefined, {
+    autoRefreshOnMount: deferredHomeDataReady,
+    autoRefreshOnFocus: deferredHomeDataReady,
+    autoRefreshOnActive: deferredHomeDataReady,
+  });
   const weatherGuide = weatherGuideState.bundle;
   const weatherInsightParams = useMemo(
     () => ({
@@ -2928,7 +2980,9 @@ export default function LoggedInHome() {
       sessionUserId,
     ],
   );
-  const homeGuideState = useHomePetCareGuides(homeGuideContext);
+  const homeGuideState = useHomePetCareGuides(homeGuideContext, {
+    enabled: deferredHomeDataReady,
+  });
   const homeGuideExposureSignatureRef = useRef('');
 
   // ---------------------------------------------------------

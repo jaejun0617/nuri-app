@@ -4,7 +4,7 @@
 최종 정합성 검수일: 2026-07-11
 문서 목적: ChatGPT, Codex, 운영자, 후속 개발 세션이 현재 NURI 앱의 전체 맥락을 한 번에 파악하기 위한 source of truth 문서
 
-최신 갱신: 2026-07-11 운영자 알림 발송 관리 UI와 live retention visual smoke, `누리 랭킹` final visual QA는 유지된다. PremiumRewardModal은 max 상태에서 progress bar와 `최고 레벨 달성` 문구를 표시하도록 보강했고 focused max state test로 over-max crash 없음까지 고정했다. Pre-store polish로 성장 시스템을 Lv.100 / max `1,250,000 XP`까지 확장하고, level-band XP reward 감쇠와 메인 홈 대표 칭호 badge를 추가했다. push notification 실제 remote 발송, Play Store 자산, 홈 위젯, 무지개다리, Kakao Local global hard delete는 여전히 후속/Parking이다.
+최신 갱신: 2026-07-11 운영자 알림 발송 관리 UI와 live retention visual smoke, `누리 랭킹` final visual QA는 유지된다. PremiumRewardModal은 max 상태에서 progress bar와 `최고 레벨 달성` 문구를 표시하도록 보강했고 focused max state test로 over-max crash 없음까지 고정했다. Pre-store polish로 성장 시스템을 Lv.100 / max `1,250,000 XP`까지 확장하고, level-band XP reward 감쇠와 메인 홈 대표 칭호 badge를 추가했다. 이어서 Home shell 즉시 표시, 카드별 progressive loading, `활동·칭호` skeleton, `누리 랭킹` 탭별 cache/skeleton을 적용해 초기 로딩 체감을 보강했다. push notification 실제 remote 발송, Play Store 자산, 홈 위젯, 무지개다리, Kakao Local global hard delete는 여전히 후속/Parking이다.
 
 ## 1. 문서 목적
 
@@ -42,11 +42,11 @@
 | V1.1 산책 POI 전환 트랙 | 약 99% | remote DB 기준 approved/public/active POI 1,145건, PostGIS foundation, 앱 POI RPC read path, admin import/review, 전국 주요 coverage, 한글 표시값 기준 유지, walk-domain Kakao fallback 제거, public projection safety, RC smoke 통과 |
 | V1.1 추가 업데이트 1차 MVP | 약 98% | 타임라인 count write/edit/delete edge closeout 완료. 회원탈퇴 모달/back/7일 유예와 email 최근 로그인 cold start 확인. 실제 탈퇴 예약과 social 최종 pill은 조건부 evidence |
 | V1.1 추가 업데이트 2차 MVP | 100% | 데일리 streak/데일리판, 알림 read path, XP/레벨/칭호 최소 MVP 구현 후 `adminQA` edge QA, KST 날짜 edge, RLS/RPC negative smoke, Android keyboard bar smoke 통과. 홈 상단 알림 아이콘은 floating notification shade overlay로 closeout |
-| V1.1 추가 기능 구현 | 약 92% | 1차 MVP 3개 edge QA와 2차 MVP 서버/앱 구현 및 edge QA, 홈 알림 overlay/dismiss/expand UX closeout, V1.1.1 후보 scope audit과 홈 위젯 release 노출 차단, `활동·칭호` 대시보드, 프리미엄 보상 모달, 알림 보존 정책, 운영자 알림 관리 콘솔 1차, Lv.100, XP reward 감쇠, 장기 summary RPC, `누리 랭킹` MVP final visual QA, 홈 대표 칭호 badge, 디자인 polish/push opt-in 다음 트랙 문서화 완료. push 실제 발송/운영자 관리 페이지 고도화/무지개다리/공개 리더보드는 후속 |
-| V1.1 전체 | 약 80% | 산책 POI 트랙 closeout 가능, full E2E/navigation audit 통과, 병원 coverage 판정 완료, V1.1 추가 업데이트 1차/2차 MVP, 홈 알림 final UX, V1.1.1 활동·칭호/보상 모달/Lv.100/랭킹/운영자 알림 콘솔/홈 대표 칭호 badge 반영 |
+| V1.1 추가 기능 구현 | 약 93% | 1차 MVP 3개 edge QA와 2차 MVP 서버/앱 구현 및 edge QA, 홈 알림 overlay/dismiss/expand UX closeout, V1.1.1 후보 scope audit과 홈 위젯 release 노출 차단, `활동·칭호` 대시보드, 프리미엄 보상 모달, 알림 보존 정책, 운영자 알림 관리 콘솔 1차, Lv.100, XP reward 감쇠, 장기 summary RPC, `누리 랭킹` MVP final visual QA, 홈 대표 칭호 badge, Home/domain loading polish, 디자인 polish/push opt-in 다음 트랙 문서화 완료. push 실제 발송/운영자 관리 페이지 고도화/무지개다리/공개 리더보드는 후속 |
+| V1.1 전체 | 약 81% | 산책 POI 트랙 closeout 가능, full E2E/navigation audit 통과, 병원 coverage 판정 완료, V1.1 추가 업데이트 1차/2차 MVP, 홈 알림 final UX, V1.1.1 활동·칭호/보상 모달/Lv.100/랭킹/운영자 알림 콘솔/홈 대표 칭호 badge, Home/domain progressive loading 반영 |
 | V1.1.1 1차 기능 | 100% | V1.1.1 우선순위와 활동·칭호 정책 v1 문서화, `활동·칭호` route/entry/card UI 구현, 실제 adminQA 멀티펫 분리, 다중 타임라인 XP write smoke, daily cap/idempotency 확인, 카테고리별/글/댓글 focused test, 알림 home dismiss와 inbox delete 분리, 프리미엄 보상 모달 visual QA 완료 |
 | V1.1.1 고도화 1차 | 100% | 운영자 알림 관리 콘솔 1차, QA 알림 생성/발송 wrapper, live retention visual smoke, Lv.1~100, XP reward 감쇠, 장기 summary RPC, privacy-limited 랭킹 MVP final visual QA, PremiumRewardModal max 상태 보강, 홈 대표 칭호 badge 완료. 운영자 관리 페이지 고도화와 push 실제 발송은 후속 |
-| 전체 제품 로드맵 | 약 98.9% | V1.0 release-ready 기준선은 닫혔고 V1.1/V1.1.1 주요 사용자 기능과 운영 기반 대부분 완료. Play Store 자산, push 실제 발송, 홈 위젯, 무지개다리, 공개 리더보드는 남음 |
+| 전체 제품 로드맵 | 약 99.0% | V1.0 release-ready 기준선은 닫혔고 V1.1/V1.1.1 주요 사용자 기능과 운영 기반 대부분 완료. Home/domain loading readiness를 보강했고 Play Store 자산, push 실제 발송, 홈 위젯, 무지개다리, 공개 리더보드는 남음 |
 | 최종 제출 준비 | 약 20% | release artifact/provenance와 정책 URL 기준은 정리됐지만 Play Store 스크린샷, 설명문, Console 입력, store listing package는 아직 최종 제출 직전 준비로 남음 |
 
 남은 작업의 성격:
@@ -972,10 +972,10 @@ V1.1 추가 업데이트 planning:
 | V1.1 추가 업데이트 기획 | 100% | 8개 기능 공식 작업서/체크리스트/진행률표 작성 완료 |
 | V1.1 추가 업데이트 1차 MVP | 약 98% | 구현/focused test/Android edge QA 완료. 실제 탈퇴 예약과 social 최종 pill은 조건부 evidence |
 | V1.1 추가 업데이트 2차 MVP | 100% | 데일리 streak/데일리판, 알림 read path, XP/레벨/칭호 최소 MVP 구현 후 edge QA/RLS 재검증/adminQA Android smoke와 홈 알림 overlay UX closeout 완료 |
-| V1.1 추가 기능 구현 | 약 92% | 1차 MVP 3개 edge QA와 2차 MVP 서버/앱 구현 및 edge QA, 홈 알림 overlay/dismiss/expand UX closeout, V1.1.1 scope audit과 홈 위젯 release 노출 차단, `활동·칭호` 대시보드 1차 구현, 실제 멀티펫/다중 XP write smoke, 알림 보존 정책 분리, 프리미엄 보상 모달, Lv.100/XP reward 감쇠/장기 summary/랭킹 MVP, 홈 대표 칭호 badge, admin-console live retention visual closeout 반영 |
-| V1.1 전체 | 약 80% | RC 상태 갱신, 병원 품질 판정, 1차 MVP 조건부 closeout 유지, 2차 MVP edge closeout과 홈 알림 overlay/dismiss/expand UX closeout, V1.1.1 후보 scope audit과 1차 대시보드 조건부 closeout 해소 smoke, Lv.100/랭킹/admin-console visual closeout, 홈 대표 칭호 badge 반영 |
+| V1.1 추가 기능 구현 | 약 93% | 1차 MVP 3개 edge QA와 2차 MVP 서버/앱 구현 및 edge QA, 홈 알림 overlay/dismiss/expand UX closeout, V1.1.1 scope audit과 홈 위젯 release 노출 차단, `활동·칭호` 대시보드 1차 구현, 실제 멀티펫/다중 XP write smoke, 알림 보존 정책 분리, 프리미엄 보상 모달, Lv.100/XP reward 감쇠/장기 summary/랭킹 MVP, 홈 대표 칭호 badge, admin-console live retention visual closeout, Home/domain loading polish 반영 |
+| V1.1 전체 | 약 81% | RC 상태 갱신, 병원 품질 판정, 1차 MVP 조건부 closeout 유지, 2차 MVP edge closeout과 홈 알림 overlay/dismiss/expand UX closeout, V1.1.1 후보 scope audit과 1차 대시보드 조건부 closeout 해소 smoke, Lv.100/랭킹/admin-console visual closeout, 홈 대표 칭호 badge, Home/domain progressive loading polish 반영 |
 | V1.1.1 1차 기능 | 100% | 우선순위/정책 문서화, `활동·칭호` route/entry/card UI 구현, 실제 adminQA 멀티펫 분리, 다중 타임라인 XP write smoke, daily cap/idempotency 확인, 카테고리별/글/댓글 test, 알림 home dismiss와 inbox delete 분리 완료 |
-| 전체 제품 로드맵 | 약 98.9% | 운영비 PO 확정, V1.1 1차/2차 MVP edge QA, V1.1 final sign-off, V1.1.1 1차 대시보드 closeout, 프리미엄 보상 모달, Lv.100/랭킹/admin-console live retention visual closeout, 홈 대표 칭호 badge와 push 다음 트랙 문서화 반영 기준 |
+| 전체 제품 로드맵 | 약 99.0% | 운영비 PO 확정, V1.1 1차/2차 MVP edge QA, V1.1 final sign-off, V1.1.1 1차 대시보드 closeout, 프리미엄 보상 모달, Lv.100/랭킹/admin-console live retention visual closeout, 홈 대표 칭호 badge, Home/domain loading readiness와 push 다음 트랙 문서화 반영 기준 |
 
 다음 액션:
 
