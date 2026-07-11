@@ -30,6 +30,7 @@
 - 2026-07-11 병원/산책 조건부 closeout: Android `SM_S937N / R5CY613NMSY` release build에서 `우리동네 동물병원` 리스트/상세/back, `산책` 리스트/상세/back direct visual smoke를 확보했다. 병원 public text 기준 운영시간/24시/야간/주말/응급/특수동물/주차/장비/홈페이지/SNS/raw/internal/source 노출 0건, 산책 위치/API 준비 전 crash 0건, logcat fatal/ANR/unhandled/RN fatal 0건으로 확인했다.
 - 2026-07-11 관리자 홈페이지 1차: 앱 내부 일반 사용자 화면이 아닌 `admin-console/index.html` 별도 정적 admin web shell을 추가했다. 1920px/1440px/tablet/mobile responsive QA를 수행했고, 기존 `notification-console.html` 진입 링크를 유지한다. 인증/권한 gate, public hosting, 실운영 데이터 write 기능은 본구현 트랙으로 분리한다.
 - 2026-07-12 관리자 홈페이지 source of truth 정정: 앱 repo의 `admin-console`은 QA/임시 콘솔 및 참고 자산으로만 보고, 실제 관리자 홈페이지 본구현은 별도 `nuri-web` 프로젝트의 `/admin` 트랙에서 진행한다. `nuri-web` 관리자 홈은 NURI Ops dashboard로 리디자인했고, Users/Pets/Timeline/Health/Walk/Hospitals/Community/Notifications/Rankings/Activity/Reports/QA/Settings/Audit Logs/Guides CMS IA를 담는다. 현재 실제 write 기능은 가이드 CMS만 유지하고, 유저 조치/게시글 삭제/공지 발송/전체 broadcast는 권한/RLS/audit 본구현 전까지 disabled 상태로 둔다.
+- 2026-07-12 관리자 홈페이지 인증/한글화 closeout: `nuri-web /admin`은 관리자 로그인, HttpOnly cookie 세션, 비밀번호 변경 화면, 로그아웃을 갖췄다. 관리자 ID는 `pet_nuri`이고 초기 비밀번호 값은 코드/문서/로그에 남기지 않는다. `/admin` 비로그인 접근은 `/admin/login`으로 redirect되고, 관리자 세션 기반 1920/1440/tablet/mobile visual QA를 완료했다. 위험 write/broadcast는 계속 비활성이다.
 - 디자인 수정은 이번 release QA 턴에서 하지 않았다. 앱 폰트/디자인 전체 리뉴얼은 별도 트랙으로 유지하며, Play Store 자산 패키지는 모든 기능 안정화, 관리자 홈페이지, 앱 전체 디자인 재정비, 최종 QA 이후 최종 제출 직전 단계에서만 진행한다.
 
 ## 2026-06-30 Full App E2E / Navigation / Hospital Coverage RC QA
