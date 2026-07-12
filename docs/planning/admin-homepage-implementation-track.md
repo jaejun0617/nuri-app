@@ -2,6 +2,44 @@
 
 기준일: 2026-07-12
 
+## 2026-07-12 본구현 3차 + 4차 운영 고도화 갱신
+
+`nuri-web /admin`은 본구현 3차/4차에서 role/capability, undo/rollback, notification
+console 통합, 운영 통계 dashboard, audit diff/history를 갖춘 운영 콘솔로 확장했다.
+앱 내부 일반 사용자 화면에는 관리자 UI를 추가하지 않았다.
+
+- 구현 위치: `../nuri-web`
+- 앱 repo DB 계약: `supabase/migrations/20260712143000_admin_operations_phase3_undo_stats.sql`
+- nuri-web 신규 문서:
+  - `../nuri-web/docs/admin-implementation-phase3-report.md`
+  - `../nuri-web/docs/admin-role-capability-model.md`
+  - `../nuri-web/docs/admin-undo-rollback-contract.md`
+  - `../nuri-web/docs/admin-operations-dashboard-report.md`
+- role/capability:
+  - local admin session에 role/capability를 포함한다.
+  - UI disabled reason과 server action guard가 같은 capability 계약을 사용한다.
+  - 전체 broadcast와 hard delete는 capability와 무관하게 비활성이다.
+- undo/rollback:
+  - `admin_operation_undo_links`와 `admin_undo_operation_action_v1`를 추가했다.
+  - v2 action RPC는 복구 가능한 before/after overlay 상태를 audit에 남긴다.
+  - 현재 상태가 audited after_state와 다르면 conflict로 차단하고 강제 덮어쓰지 않는다.
+- notification:
+  - `/admin/notifications` route를 추가했다.
+  - QA 닉네임 단일 대상 앱 내부 알림만 허용한다.
+  - 전체 발송, segment 발송, push 실제 발송은 계속 disabled다.
+- 운영 통계:
+  - `admin_get_operations_dashboard_summary_v1` read-only RPC로 사용자/펫/신고/병원/알림/audit 요약을 표시한다.
+  - raw UUID/email/phone/password/token/service role key는 UI와 audit metadata에 노출하지 않는다.
+- remote 상태:
+  - additive migration dry-run 통과
+  - remote apply 완료
+  - remote up-to-date 확인
+  - service-role summary/history smoke 통과
+  - anon summary/undo negative smoke 차단 확인
+
+본구현 5차 후보는 production role/claim hardening, undo coverage 확대, 운영 통계 chart,
+2인 승인/rollback 정책이다.
+
 ## 2026-07-12 본구현 2차 + 운영 고도화 1차 갱신
 
 `nuri-web /admin`은 본구현 2차에서 read-only 운영 화면을 soft action 가능한 운영 콘솔로 확장했다.

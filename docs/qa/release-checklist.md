@@ -32,6 +32,7 @@
 - 2026-07-12 관리자 홈페이지 source of truth 정정: 앱 repo의 `admin-console`은 QA/임시 콘솔 및 참고 자산으로만 보고, 실제 관리자 홈페이지 본구현은 별도 `nuri-web` 프로젝트의 `/admin` 트랙에서 진행한다. `nuri-web` 관리자 홈은 NURI Ops dashboard로 리디자인했고, Users/Pets/Timeline/Health/Walk/Hospitals/Community/Notifications/Rankings/Activity/Reports/QA/Settings/Audit Logs/Guides CMS IA를 담는다. 현재 실제 write 기능은 가이드 CMS만 유지하고, 유저 조치/게시글 삭제/공지 발송/전체 broadcast는 권한/RLS/audit 본구현 전까지 disabled 상태로 둔다.
 - 2026-07-12 관리자 홈페이지 인증/한글화 closeout: `nuri-web /admin`은 관리자 로그인, HttpOnly cookie 세션, 비밀번호 변경 화면, 로그아웃을 갖췄다. 관리자 ID는 `pet_nuri`이고 초기 비밀번호 값은 코드/문서/로그에 남기지 않는다. `/admin` 비로그인 접근은 `/admin/login`으로 redirect되고, 관리자 세션 기반 1920/1440/tablet/mobile visual QA를 완료했다. 위험 write/broadcast는 계속 비활성이다.
 - 2026-07-12 관리자 홈페이지 본구현 2차: `nuri-web /admin`에 신고/콘텐츠 soft action, 동물병원 검수 action, 사용자 검토 flag, 공통 확인 모달, 운영 action audit log를 추가했다. 앱 repo에는 additive migration `20260712130000_admin_operations_phase2_actions.sql`로 overlay 상태 table과 admin-only RPC를 추가/remote 반영했다. hard delete, 사용자 권한 상승, 전체 broadcast, 앱 내부 admin UI 노출은 계속 금지 상태다. nuri-web lint/build/diff와 responsive screenshot QA, Supabase anon 차단/service-role smoke를 통과했다.
+- 2026-07-12 관리자 홈페이지 본구현 3차/4차: `nuri-web /admin`에 role/capability model, action disabled reason, server action capability guard, `/admin/notifications`, 운영 통계 dashboard, audit before/after diff, action history, conflict-safe undo UI를 추가했다. 앱 repo에는 additive migration `20260712143000_admin_operations_phase3_undo_stats.sql`로 undo link table, v2 action RPC, undo/history/dashboard summary RPC, nuri-web 서버 전용 QA 알림 wrapper를 추가/remote 반영했다. hard delete, 권한 상승, 전체 broadcast, push 실제 발송, 앱 내부 admin UI 노출은 계속 금지 상태다. nuri-web lint/build/diff, responsive screenshot QA, Supabase anon negative smoke/service-role read smoke를 통과했다.
 - 디자인 수정은 이번 release QA 턴에서 하지 않았다. 앱 폰트/디자인 전체 리뉴얼은 별도 트랙으로 유지하며, Play Store 자산 패키지는 모든 기능 안정화, 관리자 홈페이지, 앱 전체 디자인 재정비, 최종 QA 이후 최종 제출 직전 단계에서만 진행한다.
 
 ## 2026-06-30 Full App E2E / Navigation / Hospital Coverage RC QA
@@ -658,6 +659,22 @@
 - [x] raw UUID/email/phone/password/token/secret UI 노출 방지
 - [x] DB/RPC/RLS/seed 변경 없음
 - [x] Play Store 자산 없음
+
+## 2026-07-12 관리자 홈페이지 본구현 3차/4차 체크
+
+- [x] `nuri-web /admin` role/capability model 구현
+- [x] action별 capability disabled reason 표시
+- [x] server action capability guard 유지
+- [x] `/admin/notifications` 통합 route 추가
+- [x] QA 닉네임 단일 대상 알림 발송 wrapper 추가
+- [x] 전체 broadcast, segment 발송, push 실제 발송 disabled 유지
+- [x] 운영 통계 dashboard read-only RPC 연결
+- [x] action history와 audit before/after diff 표시
+- [x] conflict-safe undo UI와 undo RPC 추가
+- [x] hard delete, 사용자 권한 상승, 게시글/댓글/병원 원본 삭제 없음
+- [x] raw UUID/email/phone/password/token/service role key UI 노출 방지
+- [x] additive migration remote 반영 및 anon negative smoke 확인
+- [x] `nuri-web` lint/build/diff 통과
 
 ## v1.1 업데이트 백로그
 

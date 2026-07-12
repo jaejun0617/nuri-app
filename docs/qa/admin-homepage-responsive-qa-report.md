@@ -2,6 +2,46 @@
 
 기준일: 2026-07-12
 
+## 2026-07-12 본구현 3차/4차 QA 갱신
+
+실제 source of truth는 계속 `../nuri-web /admin`이다. 이번 본구현 3차/4차에서는 role/capability,
+notification console 통합, 운영 통계 dashboard, audit diff/history, conflict-safe undo UI를 추가했다.
+
+확인 기준:
+
+| 항목 | 결과 |
+| --- | --- |
+| 세션 보호 | 신규 `/admin/notifications` route와 기존 route는 모두 `(protected)` route group 유지 |
+| Capability guard | UI disabled reason과 server action guard가 같은 capability 계약 사용 |
+| Undo | undoable action만 되돌리기 버튼 표시, 현재 상태 conflict 시 강제 덮어쓰기 차단 |
+| Audit | write/undo action은 `admin_operation_audit_logs`와 `admin_operation_undo_links` 계약 사용 |
+| Notification | QA 단일 대상만 허용, 전체 broadcast/segment/push는 disabled 유지 |
+| 통계 dashboard | read-only summary RPC로 운영 상태를 표시하고 raw PII를 노출하지 않음 |
+| secret 노출 | password/token/service role key/raw metadata 원문 표시 없음 |
+
+신규 screenshot:
+
+| 화면 | 증적 | 결과 |
+| --- | --- | --- |
+| dashboard 1920px | `/tmp/nuri-qa/admin-phase3-dashboard-1920.png` | overflow 없음 |
+| notification console | `/tmp/nuri-qa/admin-phase3-notifications.png` | overflow 없음 |
+| 신고 history/undo | `/tmp/nuri-qa/admin-phase3-reports-history-undo.png` | overflow 없음 |
+| 병원 검수 undo | `/tmp/nuri-qa/admin-phase3-hospital-review-undo.png` | overflow 없음 |
+| 사용자 상세 action | `/tmp/nuri-qa/admin-phase3-user-detail-actions.png` | overflow 없음 |
+| 반려동물 상세 summary | `/tmp/nuri-qa/admin-phase3-pet-detail-summary.png` | overflow 없음 |
+| audit detail | `/tmp/nuri-qa/admin-phase3-audit-detail.png` | overflow 없음 |
+| mobile 390px | `/tmp/nuri-qa/admin-phase3-mobile.png` | horizontal overflow 없음 |
+
+검증:
+
+- `nuri-web npm run lint` 통과
+- `nuri-web npm run build` 통과
+- `nuri-web git diff --check` 통과
+- 앱 repo `git diff --check` 통과
+- Supabase additive migration dry-run/remote apply/up-to-date 확인
+- service-role dashboard/history smoke 통과
+- anon dashboard/undo negative smoke 차단 확인
+
 ## 2026-07-12 본구현 2차 QA 갱신
 
 실제 source of truth는 계속 `../nuri-web /admin`이다. 이번 본구현 2차에서는 신고/콘텐츠,
