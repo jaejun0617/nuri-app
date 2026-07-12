@@ -2,6 +2,52 @@
 
 기준일: 2026-07-12
 
+## 2026-07-12 본구현 2차 + 운영 고도화 1차 갱신
+
+`nuri-web /admin`은 본구현 2차에서 read-only 운영 화면을 soft action 가능한 운영 콘솔로 확장했다.
+앱 내부 일반 사용자 화면에는 관리자 UI를 추가하지 않았다.
+
+- 구현 위치: `../nuri-web`
+- 앱 repo DB 계약: `supabase/migrations/20260712130000_admin_operations_phase2_actions.sql`
+- nuri-web 신규 문서:
+  - `../nuri-web/docs/admin-implementation-phase2-report.md`
+  - `../nuri-web/docs/admin-action-audit-contract.md`
+- 구현 action:
+  - 신고 상태 변경: `대기`, `검토 중`, `처리 완료`, `보류`
+  - 콘텐츠 검토 상태: `정상`, `검토 필요`, `숨김 권고`, `숨김`
+  - 동물병원 검수 상태: `승인`, `반려`, `보류`, `검토 중`
+  - 사용자 검토 flag: `정상`, `검토 필요`, `제한 권고`
+- 공통 운영 계약:
+  - 모든 write action은 확인 모달을 거친다.
+  - 모든 성공 action은 `admin_operation_audit_logs`에 기록한다.
+  - 모든 action은 원본 삭제 없이 overlay 상태 table에 저장한다.
+  - hard delete, 권한 상승, 전체 broadcast는 계속 비활성이다.
+- 추가 table:
+  - `admin_operation_audit_logs`
+  - `admin_report_review_states`
+  - `admin_content_review_states`
+  - `admin_hospital_review_states`
+  - `admin_user_review_states`
+- 추가 RPC:
+  - `is_nuri_ops_admin_v1`
+  - `admin_write_operation_audit_v1`
+  - `admin_update_report_review_v1`
+  - `admin_update_content_review_v1`
+  - `admin_review_hospital_v1`
+  - `admin_update_user_review_v1`
+- RLS/security:
+  - anon/public direct access 차단
+  - non-admin action 차단
+  - service role key는 nuri-web 서버 runtime 전용
+  - password/session token/service role key/raw metadata 전체를 UI/audit에 저장하지 않음
+- remote 상태:
+  - additive migration dry-run 통과
+  - remote apply 완료
+  - anon RPC smoke 차단 확인
+  - service-role RPC smoke와 audit write smoke 확인
+
+본구현 3차에서는 DB claim 기반 role model 정식화, rollback/undo, 운영 통계 dashboard, notification console 통합을 진행한다.
+
 ## 2026-07-12 본구현 1차 갱신
 
 `nuri-web /admin`은 인증/세션 보호와 한글화 이후, 운영 콘솔 본구현 1차로 read-only 운영 도메인 route를 확장했다.
@@ -114,8 +160,8 @@ NURI 관리자 홈페이지는 앱 내부 일반 사용자 화면이 아니라 �
 | 1. Auth/Role Gate | 관리자 로그인과 session guard | `/admin` 비로그인 차단과 비밀번호 변경 완료, 역할 모델과 감사 추적은 후속 |
 | 2. Read-only Ops Data | 사용자/펫/커뮤니티/신고/병원/audit 상태 route 연결 | 1차 완료, raw id/email/phone/secret 미노출 |
 | 3. Notification Ops | 기존 알림 콘솔을 homepage 안의 운영 섹션으로 정리 | QA 대상 발송, audit feed, broadcast disabled 유지 |
-| 4. Moderation/Reports | 신고/커뮤니티 moderation 상태 표시 | 1차 read-only 완료, soft action/audit write 후속 |
-| 5. Hospital Review | 동물병원 검수 상태와 pending queue 표시 | 1차 read-only 완료, Candidate/Trust/User Layer 분리 유지 |
+| 4. Moderation/Reports | 신고/커뮤니티 moderation 상태 표시 | 2차 soft action/audit write 완료, hard delete 금지 유지 |
+| 5. Hospital Review | 동물병원 검수 상태와 pending queue 표시 | 2차 approve/reject/hold overlay 완료, Candidate/Trust/User Layer 분리 유지 |
 | 6. QA Evidence | release evidence와 Android smoke 결과를 모아보기 | screenshot/log 경로와 blocker status |
 | 7. Deployment | HTTPS, auth, environment, rollback 문서화 | public hosting 전 security review 완료 |
 

@@ -2,6 +2,48 @@
 
 기준일: 2026-07-12
 
+## 2026-07-12 본구현 2차 QA 갱신
+
+실제 source of truth는 계속 `../nuri-web /admin`이다. 이번 본구현 2차에서는 신고/콘텐츠,
+동물병원, 사용자 상세의 soft action과 공통 확인 모달, 운영 action audit log를 추가했다.
+
+확인 기준:
+
+| 항목 | 결과 |
+| --- | --- |
+| 세션 보호 | 신규 action route와 server action은 기존 `(protected)` route group과 관리자 세션 helper를 사용 |
+| 확인 모달 | 모든 write action은 대상 요약, 위험도, 운영 메모, 확인 체크박스를 요구 |
+| Audit write | 성공 action은 `admin_operation_audit_logs`에 기록 |
+| 위험 write | hard delete, 사용자 권한 상승, 전체 broadcast는 계속 비활성 |
+| 병원 public-safe | public 차단 필드 계약 유지, 앱 public projection 변경 없음 |
+| secret 노출 | password/token/service role key/raw metadata 원문 표시 없음 |
+| raw id 노출 | actor/target/user/pet 식별자는 마스킹 label 또는 opaque route id로 표시 |
+
+신규 screenshot:
+
+| 화면 | 증적 | 결과 |
+| --- | --- | --- |
+| 본구현 2차 dashboard | `/tmp/nuri-qa/admin-phase2-dashboard-1920.png` | overflow 없음 |
+| 신고/콘텐츠 action | `/tmp/nuri-qa/admin-phase2-reports-actions.png` | overflow 없음 |
+| 병원 검수 action | `/tmp/nuri-qa/admin-phase2-hospital-review.png` | overflow 없음 |
+| 사용자 목록 tablet | `/tmp/nuri-qa/admin-phase2-users-1024.png` | overflow 없음 |
+| 감사 로그 | `/tmp/nuri-qa/admin-phase2-audit-log.png` | overflow 없음 |
+| 확인 모달 | `/tmp/nuri-qa/admin-phase2-confirm-modal.png` | responsive 확인 |
+| 사용자 상세 | `/tmp/nuri-qa/admin-phase2-user-detail.png` | overflow 없음 |
+| 반려동물 상세 | `/tmp/nuri-qa/admin-phase2-pet-detail.png` | overflow 없음 |
+| mobile 390px | `/tmp/nuri-qa/admin-phase2-mobile.png` | page overflow 없음, 표는 내부 scroll |
+
+검증:
+
+- `nuri-web npm run lint` 통과
+- `nuri-web npm run build` 통과
+- `nuri-web git diff --check` 통과
+- `nuri-web npm test`는 test script 부재로 실행 불가
+- 앱 repo `git diff --check` 통과
+- Supabase additive migration dry-run/remote apply 완료
+- anon RPC 차단 smoke 확인
+- service-role RPC/audit write smoke 확인
+
 ## 2026-07-12 본구현 1차 QA 갱신
 
 실제 source of truth는 계속 `../nuri-web /admin`이다. 이번 본구현 1차에서는 기존 responsive shell을 유지한 상태로 아래 신규 운영 route를 추가했다.
