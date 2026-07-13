@@ -705,6 +705,37 @@
 - [x] additive migration remote 반영 및 anon negative smoke 확인
 - [x] `nuri-web` lint/build/diff 통과
 
+## 2026-07-14 관리자 Android Evidence Closeout 체크
+
+- [x] Android release APK 최신 빌드/설치
+  - 기기: `SM-S937N / R5CY613NMSY`
+  - APK SHA-256: `66fc6c761cd862e8943c87c234f45aa180db8dcfcfe6e2fcfa105d8ed8e38c45`
+  - package: `com.nuri.app`, versionName/versionCode: `1.0` / `1`
+  - lastUpdateTime: `2026-07-14 00:29:23`
+- [x] 관리자 soft-hide 앱 read-path 반영
+  - QA 게시글: production admin approval flow로 `active -> hidden`, 앱 feed 제거, count `6개 -> 5개`, cold start 후 숨김 유지
+  - undo 후 `active` 복구, 앱 feed count `6개` 복원
+  - direct detail hidden/null 정책은 `communityReadPathPolicy.test.ts`로 고정
+- [x] 댓글 soft-hide 앱 read-path 반영
+  - QA 댓글: `active -> hidden`, feed preview `5 -> 4`
+  - undo 후 `active` 복구, feed preview `5` 복원
+- [x] Android 알림 lifecycle 대표 경로
+  - 시스템 알림 권한 허용
+  - 운영 알림 opt-in 후 `push_opt_in=true`, provider `disabled`, token status `provider_unavailable`
+  - opt-out 후 `push_opt_in=false`, token status `revoked`
+  - 실제 push 발송 없음
+- [x] Keyboard/nav/back 대표 입력 경로
+  - 커뮤니티 댓글 입력 focus 시 keyboard bar가 TextInput/CTA를 가리지 않음
+  - Android back으로 keyboard dismiss와 리스트 복귀 정상
+- [x] latest logcat
+  - `/tmp/nuri-qa/final-android-logcat-20260714.txt`
+  - `FATAL EXCEPTION`, `ANR`, `Unhandled promise`, `ReactNativeJS fatal`, `Fatal signal` pattern 0건
+- [ ] 남은 외부/운영 조건
+  - MFA/recovery 실제 등록/사용 QA
+  - 검색 전용 UI hidden 제거 캡처
+  - logout/account switch token isolation 실기기 증적
+  - custom domain / 외부 runtime monitoring
+
 ## v1.1 업데이트 백로그
 
 - 아래 항목은 v1.0 미완성 이월이 아니라 신규 업데이트 후보로 관리한다.
