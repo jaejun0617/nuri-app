@@ -791,6 +791,13 @@ export async function fetchCommunityPosts(
 export async function fetchCommunityPostById(postId: string) {
   const data = await selectCommunityPostByIdWithFallback(postId);
   if (!data || !isCommunityPostRow(data)) return null;
+  if (
+    data.visibility !== 'public' ||
+    data.status !== 'active' ||
+    data.deleted_at !== null
+  ) {
+    return null;
+  }
   const canExposeImages = data.deleted_at === null && data.status === 'active';
   const imagePaths = normalizeImagePaths(data);
 

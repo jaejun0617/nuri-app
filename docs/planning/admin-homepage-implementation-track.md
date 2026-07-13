@@ -1,6 +1,48 @@
 # Admin Homepage Implementation Track
 
-기준일: 2026-07-12
+기준일: 2026-07-13
+
+## 2026-07-13 Final Production Completion / Handoff
+
+실제 관리자 홈페이지 source of truth는 계속 `../nuri-web /admin`이다. 이번 final completion으로
+관리자 홈페이지 단계별 본구현은 계획된 코드 범위에서 종료한다.
+
+- production URL: `https://nuri-web-beryl.vercel.app`
+- nuri-web remote: 미설정. GitHub CLI 미로그인으로 private remote 생성/푸시는 미수행
+- 신규 final export:
+  - 감사 로그 CSV/PDF
+  - 운영 통계 CSV/PDF
+  - 신고/커뮤니티/동물병원/사용자/반려동물/승인/롤백 export
+- export security:
+  - capability guard
+  - no-store/noindex attachment response
+  - export audit write
+  - CSV formula injection 방어
+  - PII 마스킹 projection 재사용
+- 앱 read-path:
+  - `fetchCommunityPostById`가 hidden/private/deleted 상태를 직접 상세에서도 `null` 처리한다.
+  - focused tests로 hidden visibility, private visibility, hidden status, deleted row direct detail 차단을 확인했다.
+- Android 현재 세션 smoke:
+  - 기기 `SM_S937N / R5CY613NMSY`
+  - `com.nuri.app` cold start 성공
+  - refined logcat fatal/ANR/unhandled/RN fatal/Fatal signal 0건
+- 계속 닫힌 범위:
+  - hard delete
+  - 사용자 권한 임의 상승
+  - 전체/segment broadcast
+  - 실제 push 발송
+  - 앱 내부 admin UI
+  - 앱 디자인 리뉴얼
+  - Play Store 자산
+
+외부 조건:
+
+- custom domain/DNS는 NURI 소유 domain과 DNS 권한 확인 전까지 연결하지 않는다.
+- Cloudflare Access/IP allowlist/유료 Vercel Deployment Protection은 계정/플랜 권한 확인 전까지 적용하지 않는다.
+- 외부 monitoring은 인증된 Sentry/Better Stack/UptimeRobot 등 계정이 필요하다.
+- 실제 2인 운영자 session, MFA/recovery code, approval/rollback 실증은 PO와 reviewer의 직접 입력이 필요하다.
+
+관리자 홈페이지 이후 작업은 운영 모니터링, 보안 패치, 장애 수정으로 제한한다. 다음 우선순위는 NURI 앱 본 프로젝트의 현재 source of truth를 기준으로 복귀한다.
 
 ## 2026-07-13 Final Operations Platform Completion
 

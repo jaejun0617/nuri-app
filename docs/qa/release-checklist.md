@@ -2,6 +2,14 @@
 
 운영 메모:
 
+- 2026-07-13 NURI Admin Final Production Completion & Project Handoff Closeout: `nuri-web /admin`
+  단계별 본구현은 계획된 코드 범위에서 종료한다. audit/operations/domain CSV/PDF export,
+  export security test, 앱 hidden/private/deleted direct detail read-path 차단, Android
+  현재 세션 cold start/logcat smoke를 완료했다. custom domain/DNS, 외부 access layer,
+  external monitoring, 실제 2인 운영자/MFA/recovery QA는 외부 소유권/계정/비밀 입력 조건이다.
+  앱 내부 admin UI, hard delete, 전체/segment broadcast, 실제 push 발송, Play Store 자산,
+  앱 디자인 리뉴얼은 열지 않았다.
+
 - 2026-07-13 NURI Admin Final Operations Platform Completion: `nuri-web /admin`은 role/capability,
   MFA factor 로그인 guard, 2인 승인 실행, conflict-safe rollback batch 실행, operator/MFA/recovery
   route, notification opt-in/token lifecycle, monitoring summary까지 보강됐다. 앱 repo additive

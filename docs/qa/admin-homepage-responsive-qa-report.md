@@ -1,6 +1,33 @@
 # Admin Homepage Responsive QA Report
 
-기준일: 2026-07-12
+기준일: 2026-07-13
+
+## 2026-07-13 Final Production Completion QA 갱신
+
+실제 source of truth는 `../nuri-web /admin`이다. 이번 final completion으로 관리자 홈페이지
+단계별 본구현은 종료하고, 이후 작업은 운영 모니터링/보안 패치/장애 수정으로 제한한다.
+
+| 항목 | 결과 |
+| --- | --- |
+| production URL | `https://nuri-web-beryl.vercel.app` |
+| `/admin/login` | 200 HTTPS |
+| `/admin` 비로그인 | 307 `/admin/login?next=/admin` |
+| `/api/health` | 200, `Cache-Control: no-store` |
+| 보안 헤더 | CSP/HSTS/nosniff/frame deny/noindex 확인 |
+| export route | `/api/admin/exports/audit`, `/api/admin/exports/operations`, `/api/admin/exports/[domain]` build 포함 |
+| nuri-web 검증 | lint/build/test 14개/diff check 통과 |
+| 앱 검증 | typecheck/lint/focused tests 2 suites/9 tests/diff check 통과 |
+| Android | `SM_S937N / R5CY613NMSY`, cold start screenshot/logcat current 수집 |
+
+증적:
+
+- `/tmp/nuri-qa/admin-final-android-cold-start.png`
+- `/tmp/nuri-qa/admin-final-closeout-logcat-current.txt`
+
+외부 조건:
+
+- 1920/1440/1024/768/390px production 관리자 세션 visual QA는 운영자 로그인/MFA 입력이 필요하다.
+- custom domain/Cloudflare/IP allowlist/external monitoring은 계정/소유권 확인 후 적용한다.
 
 ## 2026-07-13 Final Operations Platform QA 갱신
 
