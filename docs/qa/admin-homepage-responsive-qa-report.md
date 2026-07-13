@@ -5,24 +5,25 @@
 ## 2026-07-13 Final Production Completion QA 갱신
 
 실제 source of truth는 `../nuri-web /admin`이다. 이번 final completion으로 관리자 홈페이지
-단계별 본구현은 종료하고, 이후 작업은 운영 모니터링/보안 패치/장애 수정으로 제한한다.
+production 최신 배포는 복구됐지만, 운영자 세션 기반 최종 visual/function QA는 직접 입력 조건으로 남아 있다.
 
 | 항목 | 결과 |
 | --- | --- |
 | production URL | `https://nuri-web-beryl.vercel.app` |
 | `/admin/login` | 200 HTTPS |
 | `/admin` 비로그인 | 307 `/admin/login?next=/admin` |
-| `/api/health` | 200, `Cache-Control: no-store` |
+| `/api/health` | 200, `database=connected`, `version=52edfec`, `Cache-Control: no-store` |
 | 보안 헤더 | CSP/HSTS/nosniff/frame deny/noindex 확인 |
 | export route | `/api/admin/exports/audit`, `/api/admin/exports/operations`, `/api/admin/exports/[domain]` build 포함 |
 | nuri-web 검증 | lint/build/test 14개/diff check 통과 |
-| 앱 검증 | typecheck/lint/focused tests 2 suites/9 tests/diff check 통과 |
-| Android | `SM_S937N / R5CY613NMSY`, cold start screenshot/logcat current 수집 |
+| 앱 검증 | typecheck/lint/focused tests 8 suites/30 tests/diff check 통과 |
+| Android | `SM_S937N / R5CY613NMSY`, latest release APK install, Home/Community/logcat current 수집 |
 
 증적:
 
-- `/tmp/nuri-qa/admin-final-android-cold-start.png`
-- `/tmp/nuri-qa/admin-final-closeout-logcat-current.txt`
+- `/tmp/nuri-qa/final-gap-android-cold-start.png`
+- `/tmp/nuri-qa/final-gap-android-community.png`
+- `/tmp/nuri-qa/final-gap-android-logcat.txt`
 
 외부 조건:
 
@@ -60,14 +61,14 @@ monitoring route와 승인 실행/rollback batch 실행 UI가 추가됐다.
 
 | 항목 | 결과 |
 | --- | --- |
-| production deployment | Vercel `dpl_5kL8kuMBndJBZSXZytRHB1fhUS9t` |
+| production deployment | Vercel `dpl_92Nkp25kyAoYhqLQk2KChddH7u1Z` |
 | HTTPS | 적용 |
 | `/admin/login` | 200 |
 | `/admin` 비로그인 | `/admin/login?next=/admin` redirect |
 | `/admin/approvals` 비로그인 | redirect |
 | `/admin/rollback` 비로그인 | redirect |
 | `/api/health` | database connected |
-| health version | `d8be4cc` |
+| health version | `52edfec` |
 | security headers | CSP/HSTS/nosniff/frame deny/noindex/no-store 확인 |
 | Supabase smoke | anon 차단, service-role dashboard summary 허용 |
 | client/static secret scan | service role key/session secret/password pepper 노출 없음 |
