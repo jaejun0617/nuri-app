@@ -8,7 +8,11 @@
 관리자 홈페이지 단계별 본구현은 계획된 코드 범위에서 종료한다.
 
 - production URL: `https://nuri-web-beryl.vercel.app`
-- nuri-web remote: 미설정. GitHub CLI 미로그인으로 private remote 생성/푸시는 미수행
+- nuri-web remote: `git@github.com:jaejun0617/nuri-web.git`, private repository, `main` push 완료
+- latest source: `bb840f8`
+- latest production deployment: `dpl_D5xyVzS65SA3Cz69Wn5FrKoxoHUA`
+- latest health: `database=connected`, `version=bb840f857574`
+- production monitor: GitHub Actions 정상 run과 강제 실패 test alert issue 생성/종료 확인
 - 신규 final export:
   - 감사 로그 CSV/PDF
   - 운영 통계 CSV/PDF
@@ -39,8 +43,9 @@
 
 - custom domain/DNS는 NURI 소유 domain과 DNS 권한 확인 전까지 연결하지 않는다.
 - Cloudflare Access/IP allowlist/유료 Vercel Deployment Protection은 계정/플랜 권한 확인 전까지 적용하지 않는다.
-- 외부 monitoring은 인증된 Sentry/Better Stack/UptimeRobot 등 계정이 필요하다.
-- 실제 2인 운영자 session, MFA/recovery code, approval/rollback 실증은 PO와 reviewer의 직접 입력이 필요하다.
+- Sentry/Better Stack/UptimeRobot 같은 runtime error monitoring은 인증된 외부 계정이 필요하다. 현재는 GitHub Actions 기반 uptime/security-header monitor가 연결됐다.
+- 2인 운영자 서버 smoke는 `pet_nuri` 요청, `pet_nuri_reviewer` 승인/실행, 자기 승인 차단, undo 원상복구까지 완료됐다.
+- MFA/recovery code와 Android 앱 read-path e2e는 PO와 reviewer의 직접 입력/실기기 연결이 필요하다.
 
 관리자 홈페이지 이후 작업은 운영 모니터링, 보안 패치, 장애 수정으로 제한한다. 다음 우선순위는 NURI 앱 본 프로젝트의 현재 source of truth를 기준으로 복귀한다.
 
@@ -80,8 +85,8 @@
   - 앱 디자인 리뉴얼
   - Play Store 자산
 
-외부 활성화 항목은 custom domain/IP allowlist/external monitoring, Android 실기기 직접 증적,
-실제 2인 운영자 계정으로 승인/실행 smoke다.
+외부 활성화 항목은 custom domain/IP allowlist/runtime monitoring, Android 실기기 직접 증적,
+MFA/recovery code 실증이다.
 
 ## 2026-07-13 Production Deployment & Operations Cutover
 
@@ -91,8 +96,8 @@
 - production provider: Vercel
 - production project: `pet-nuri/nuri-web`
 - production URL: `https://nuri-web-beryl.vercel.app`
-- production deployment ID: `dpl_92Nkp25kyAoYhqLQk2KChddH7u1Z`
-- source commit: `52edfec`
+- production deployment ID: `dpl_D5xyVzS65SA3Cz69Wn5FrKoxoHUA`
+- source commit: `bb840f8`
 - 앱 repo DB 계약: `supabase/migrations/20260713123000_admin_production_auth_store.sql`
 - production auth:
   - local file credential fallback 금지
@@ -109,8 +114,9 @@
   - service-role dashboard summary 허용
 - 조건부:
   - custom domain은 NURI 소유 domain/DNS가 확정되지 않아 미연결
-  - 운영자 직접 비밀번호 변경/세션 기반 visual QA는 입력 완료 후 closeout
-  - 외부 monitoring/IP allowlist는 provider plan/account 확인 후 후속 적용
+  - 운영자 직접 비밀번호 변경과 2인 승인 서버 smoke는 완료
+  - MFA/recovery와 Android 앱 read-path e2e는 별도 증적 필요
+  - runtime monitoring/IP allowlist는 provider plan/account 확인 후 후속 적용
 
 Play Store 자산, 앱 디자인 리뉴얼, push actual, hard delete, 전체/segment broadcast는 열지 않았다.
 

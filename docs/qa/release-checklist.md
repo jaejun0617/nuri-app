@@ -4,17 +4,19 @@
 
 - 2026-07-13 NURI Admin Final Gap Closure & Evidence Closeout 재판정:
   nuri-web private GitHub remote `git@github.com:jaejun0617/nuri-web.git` 생성과 `main` push는 완료했다.
-  최신 nuri-web source commit은 `52edfec`이고 production URL `https://nuri-web-beryl.vercel.app`은 `/api/health`에서 `database=connected`, `version=52edfec`를 반환한다.
-  최신 deployment ID는 `dpl_92Nkp25kyAoYhqLQk2KChddH7u1Z`이며, 직전 Vercel `UNKNOWN` source deploy 문제는 env 재등록과 prebuilt artifact deploy로 복구했다.
+  최신 nuri-web source commit은 `bb840f8`이고 production URL `https://nuri-web-beryl.vercel.app`은 `/api/health`에서 `database=connected`, `version=bb840f857574`를 반환한다.
+  최신 deployment ID는 `dpl_D5xyVzS65SA3Cz69Wn5FrKoxoHUA`이며, 직전 Vercel `UNKNOWN` source deploy 문제는 env 재등록과 prebuilt artifact deploy로 복구했다.
+  GitHub Actions production monitor 정상 run과 강제 실패 test alert issue 생성/종료를 확인했다.
   Android `SM_S937N / R5CY613NMSY`에서는 latest release APK install, cold start, Home, 커뮤니티 리스트, logcat fatal/ANR/unhandled/RN fatal/Fatal signal 0건까지 확보했다.
-  실제 production soft-hide/unhide 앱 e2e, 댓글 hide, token lifecycle, 전체 keyboard sweep, 2인 운영자 QA, MFA/recovery, external monitoring, custom domain은 완료로 기록하지 않는다.
+  2인 운영자 서버 smoke는 `pet_nuri` 요청, `pet_nuri_reviewer` 승인/실행, 자기 승인 차단, undo 원상복구까지 통과했다.
+  실제 production soft-hide/unhide 앱 e2e, 댓글 hide, token lifecycle, 전체 keyboard sweep, MFA/recovery, Sentry/Better Stack류 runtime monitoring, custom domain은 완료로 기록하지 않는다.
   현재 판정은 `외부 운영자 입력·외부 계정 활성화 조건부 완료`이다.
 
 - 2026-07-13 NURI Admin Final Production Completion & Project Handoff Closeout: `nuri-web /admin`
   당시 코드 범위 completion으로 기록했으나 Final Gap Closure 재판정 기준 운영 종료 선언은 보류한다. audit/operations/domain CSV/PDF export,
   export security test, 앱 hidden/private/deleted direct detail read-path 차단, Android
   현재 세션 cold start/logcat smoke를 완료했다. custom domain/DNS, 외부 access layer,
-  external monitoring, 실제 2인 운영자/MFA/recovery QA는 외부 소유권/계정/비밀 입력 조건이다.
+  MFA/recovery QA와 runtime error monitoring은 외부 소유권/계정/비밀 입력 조건이다.
   앱 내부 admin UI, hard delete, 전체/segment broadcast, 실제 push 발송, Play Store 자산,
   앱 디자인 리뉴얼은 열지 않았다.
 
@@ -26,7 +28,7 @@
   관리자 UI, hard delete, 전체/segment broadcast, 실제 push 발송, Play Store 자산, 앱 디자인
   리뉴얼은 열지 않았다. Android 실기기 직접 증적은 현재 device 미연결이면 완료로 보지 않는다.
 
-- 2026-07-13 NURI Admin Production Deployment & Operations Cutover: `nuri-web /admin`은 Vercel production HTTPS 환경에 배포됐다. production URL은 `https://nuri-web-beryl.vercel.app`, 최신 deployment ID는 `dpl_92Nkp25kyAoYhqLQk2KChddH7u1Z`이다. production auth는 Supabase `admin_operator_accounts` credential store를 사용하고 local file credential fallback은 차단했다. `/admin`/`approvals`/`rollback` 비로그인 redirect, `/api/health` database connected, anon dashboard/action history RPC 차단, service-role dashboard summary smoke를 통과했다. custom domain은 NURI 소유 domain/DNS 확인 전까지 조건부다. 운영자 직접 비밀번호 변경/세션 기반 visual QA는 입력 완료 후 closeout한다. Play Store 자산, 앱 디자인 리뉴얼, push actual, hard delete, broadcast는 열지 않았다.
+- 2026-07-13 NURI Admin Production Deployment & Operations Cutover: `nuri-web /admin`은 Vercel production HTTPS 환경에 배포됐다. production URL은 `https://nuri-web-beryl.vercel.app`, 최신 deployment ID는 `dpl_D5xyVzS65SA3Cz69Wn5FrKoxoHUA`이다. production auth는 Supabase `admin_operator_accounts` credential store를 사용하고 local file credential fallback은 차단했다. `/admin`/`approvals`/`rollback` 비로그인 redirect, `/api/health` database connected, anon dashboard/action history RPC 차단, service-role dashboard summary smoke를 통과했다. `pet_nuri`/`pet_nuri_reviewer` 비밀번호 변경과 2인 승인 서버 smoke는 완료했다. custom domain은 NURI 소유 domain/DNS 확인 전까지 조건부다. MFA/recovery와 Android app read-path e2e는 별도 증적이 필요하다. Play Store 자산, 앱 디자인 리뉴얼, push actual, hard delete, broadcast는 열지 않았다.
 
 - 2026-07-13 관리자 홈페이지 본구현 5차/Admin Ops Production Transition Closeout: `nuri-web /admin`에 2인 승인 queue, rollback request, production-safe notification policy, action policy dashboard, 최소 `npm test`를 추가했다. 앱 repo additive migration `20260713093000_admin_operations_phase5_production_transition.sql`은 remote 반영과 dry-run up-to-date를 확인했다. anon negative smoke와 service-role approval/self-review/rollback smoke를 통과했다. 실제 hosting/DNS/public URL은 PO 승인 전까지 보류한다. Play Store 자산, 앱 디자인 리뉴얼, push actual, hard delete, broadcast는 열지 않았다.
 - 이 문서는 v1.0 기능 기준선 evidence와 v1.1 착수 전 닫아야 하는 잔여 task/risk를 함께 관리한다.

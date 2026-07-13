@@ -5,19 +5,21 @@
 ## 2026-07-13 Final Production Completion QA 갱신
 
 실제 source of truth는 `../nuri-web /admin`이다. 이번 final completion으로 관리자 홈페이지
-production 최신 배포는 복구됐지만, 운영자 세션 기반 최종 visual/function QA는 직접 입력 조건으로 남아 있다.
+production 최신 배포와 2인 운영자 서버 smoke는 복구/검증됐지만, Android 앱 read-path와 MFA/recovery visual/function QA는 직접 증적 조건으로 남아 있다.
 
 | 항목 | 결과 |
 | --- | --- |
 | production URL | `https://nuri-web-beryl.vercel.app` |
 | `/admin/login` | 200 HTTPS |
 | `/admin` 비로그인 | 307 `/admin/login?next=/admin` |
-| `/api/health` | 200, `database=connected`, `version=52edfec`, `Cache-Control: no-store` |
+| `/api/health` | 200, `database=connected`, `version=bb840f857574`, `Cache-Control: no-store` |
 | 보안 헤더 | CSP/HSTS/nosniff/frame deny/noindex 확인 |
 | export route | `/api/admin/exports/audit`, `/api/admin/exports/operations`, `/api/admin/exports/[domain]` build 포함 |
 | nuri-web 검증 | lint/build/test 14개/diff check 통과 |
 | 앱 검증 | typecheck/lint/focused tests 8 suites/30 tests/diff check 통과 |
 | Android | `SM_S937N / R5CY613NMSY`, latest release APK install, Home/Community/logcat current 수집 |
+| 2인 승인 서버 smoke | `pet_nuri` 요청, `pet_nuri_reviewer` 승인/실행, 자기 승인 차단, undo 원상복구 통과 |
+| production monitor | GitHub Actions 정상 run과 강제 실패 test alert issue 생성/종료 확인 |
 
 증적:
 
@@ -27,8 +29,9 @@ production 최신 배포는 복구됐지만, 운영자 세션 기반 최종 visu
 
 외부 조건:
 
-- 1920/1440/1024/768/390px production 관리자 세션 visual QA는 운영자 로그인/MFA 입력이 필요하다.
-- custom domain/Cloudflare/IP allowlist/external monitoring은 계정/소유권 확인 후 적용한다.
+- MFA/recovery와 1920/1440/1024/768/390px production 관리자 세션 visual QA는 운영자 입력이 필요하다.
+- Android 앱 soft-hide/unhide e2e는 ADB device 연결 후 재검증한다.
+- custom domain/Cloudflare/IP allowlist/Sentry류 runtime monitoring은 계정/소유권 확인 후 적용한다.
 
 ## 2026-07-13 Final Operations Platform QA 갱신
 
@@ -61,14 +64,14 @@ monitoring route와 승인 실행/rollback batch 실행 UI가 추가됐다.
 
 | 항목 | 결과 |
 | --- | --- |
-| production deployment | Vercel `dpl_92Nkp25kyAoYhqLQk2KChddH7u1Z` |
+| production deployment | Vercel `dpl_D5xyVzS65SA3Cz69Wn5FrKoxoHUA` |
 | HTTPS | 적용 |
 | `/admin/login` | 200 |
 | `/admin` 비로그인 | `/admin/login?next=/admin` redirect |
 | `/admin/approvals` 비로그인 | redirect |
 | `/admin/rollback` 비로그인 | redirect |
 | `/api/health` | database connected |
-| health version | `52edfec` |
+| health version | `bb840f857574` |
 | security headers | CSP/HSTS/nosniff/frame deny/noindex/no-store 확인 |
 | Supabase smoke | anon 차단, service-role dashboard summary 허용 |
 | client/static secret scan | service role key/session secret/password pepper 노출 없음 |
