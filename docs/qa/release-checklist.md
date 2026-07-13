@@ -718,6 +718,29 @@
 - [x] additive migration remote 반영 및 anon negative smoke 확인
 - [x] `nuri-web` lint/build/diff 통과
 
+## 2026-07-14 최종 Release QA Gate 재판정
+
+- [x] 최신 release APK 새 빌드/설치
+  - APK SHA-256: `57c660393d4de35e1a00c8d19e4b29e85422fcddd60c86cb6048ac621ac6cbeb`
+  - 기기: `SM_S937N / R5CY613NMSY`
+  - package: `com.nuri.app`, versionName/versionCode: `1.0` / `1`
+- [x] Google OAuth 실기기 smoke
+  - Google 버튼 노출, Naver/Apple 미노출
+  - provider flow 취소 후 앱 로그인 화면 복귀
+  - controlled Google identity 실제 성공, `NicknameSetup -> PetCreate -> Home`, session restore 확인
+- [ ] Kakao OAuth 취소/복귀 완전 closeout
+  - controlled Kakao identity 실제 성공, `NicknameSetup -> PetCreate -> Home`, session restore 확인
+  - Kakao SSO/외부 앱 전환 특성 때문에 순수 취소 후 로그인 화면 복귀는 이번 턴에서 깨끗하게 닫지 못했다.
+- [ ] 전체 TextInput keyboard/navigation sweep
+  - 로그인, NicknameSetup, PetCreate 일부 입력/validation/back은 확인
+  - 게시글 작성/수정, 댓글, 신고, 검색, 건강/체중/날짜, 펫 수정, 닉네임 변경, 탈퇴 확인 등 전체 노출 route sweep은 완료하지 못했다.
+- [ ] notification token isolation E2E
+  - `adminQA` 재로그인 사용자 입력이 완료되지 않아 opt-in/out, logout revoke, account switch ownership을 최신 APK 실기기에서 닫지 못했다.
+  - actual push는 계속 비활성이다.
+- [ ] 최종 release regression gate
+  - typecheck/lint/Jest/Supabase dry-run/logcat short gate는 통과
+  - `adminQA` 세션 기반 Home/Community/Hospital/Walk/Notification/Settings 전체 물리 회귀는 완료하지 못했다.
+
 ## 2026-07-14 관리자 Android Evidence Closeout 체크
 
 - [x] Android release APK 최신 빌드/설치

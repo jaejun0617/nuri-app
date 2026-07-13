@@ -2,6 +2,18 @@
 
 기준일: 2026-07-14
 
+## 최종 Release Gate 최신 시도
+
+- APK: `android/app/build/outputs/apk/release/app-release.apk`
+- APK SHA-256: `57c660393d4de35e1a00c8d19e4b29e85422fcddd60c86cb6048ac621ac6cbeb`
+- install/update: 성공
+- 기기: `SM_S937N / R5CY613NMSY`
+- 증적 디렉터리: `/tmp/nuri-qa/final-release-gate-20260714/`
+
+이번 최신 시도에서 Google OAuth 취소/성공, Google 신규 온보딩, Kakao OAuth 성공, Kakao 신규 온보딩, 소셜 session restore, 로그인 화면 Google/Kakao only 상태는 확인했다. Kakao 순수 취소 복귀, 전체 입력 화면 keyboard sweep, `adminQA` 재로그인 후 notification token isolation/account switch, 전체 핵심 도메인 회귀는 완료 판정하지 않는다.
+
+local verification은 typecheck 통과, lint 0 error/기존 warning 6건, Jest 62 suites / 244 tests 통과, Supabase dry-run remote up to date, clean short logcat 앱 fatal/ANR/RN fatal 0건이다.
+
 ## Baseline
 
 - 기기: `SM_S937N / R5CY613NMSY`
@@ -36,4 +48,3 @@
 ## 조건부/반복 QA
 
 이번 smoke는 최신 코드 변경 영향 경로와 대표 keyboard/navigation 경로를 직접 확인했다. 로그인/소셜 취소, 전체 입력 화면 sweep, logout/account switch token isolation은 기존 evidence와 테스트를 유지하되, 최종 제출 직전 release QA에서 반복 수행한다.
-

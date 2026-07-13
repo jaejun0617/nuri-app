@@ -27,6 +27,8 @@
 
 ## 앱 프로젝트로 복귀한 우선순위
 
+2026-07-14 최종 release gate 재판정 기준, 관리자 홈페이지는 계속 종료 상태이고 앱 blocker가 아니다. 다만 앱 본체 QA·보안 criterion 4건은 아직 완료 판정하지 않는다. 다음 앱 작업은 관리자 추가 구현이 아니라 `adminQA` 재로그인 후 남은 OAuth 취소, keyboard/navigation, token isolation, 전체 regression evidence를 닫는 release gate다.
+
 1. release/운영 준비
    - 최신 release APK evidence 유지
    - keyboard/navigation/logcat gate 반복
@@ -49,4 +51,3 @@
 - Apple login 추가
 - 앱 내부 admin UI 노출
 - destructive migration
-

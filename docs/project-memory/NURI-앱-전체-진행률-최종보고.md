@@ -2,6 +2,12 @@
 
 기준일: 2026-07-14
 
+## 최종 Release Gate 보정
+
+2026-07-14 최신 release APK SHA-256 `57c660393d4de35e1a00c8d19e4b29e85422fcddd60c86cb6048ac621ac6cbeb` 기준으로 조건부 QA 4건을 재검증했다. Google OAuth 성공/취소/복귀와 Kakao OAuth 성공/온보딩은 실기기에서 확인했지만, Kakao 순수 취소 복귀, 전체 TextInput keyboard sweep, `adminQA` 재로그인 이후 notification token isolation/account switch, 전체 핵심 도메인 회귀는 완료 증적이 부족하다.
+
+따라서 이번 문서 기준 진행률은 100%로 승격하지 않는다. 기능 구현은 `74/74`, QA·보안은 `50/54`, 문서·release는 `21/21`로 유지하며, 앱 본체 가중 진행률은 `97.4%`다. 남은 항목은 신규 기능이 아니라 release gate evidence 잔여 항목이다.
+
 ## Source of Truth
 
 1. 실제 실행 코드
@@ -56,4 +62,3 @@
 ## 이번 closeout 수정
 
 `deleteCommunityComment`의 hard delete fallback을 제거했다. legacy schema error가 발생해도 `comments.delete()`로 내려가지 않고 error를 throw한다. 이로써 커뮤니티 댓글 삭제는 soft update only 정책을 따른다.
-
