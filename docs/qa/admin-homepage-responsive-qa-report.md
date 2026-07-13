@@ -2,6 +2,37 @@
 
 기준일: 2026-07-12
 
+## 2026-07-13 본구현 5차 / Production Transition QA 갱신
+
+실제 source of truth는 계속 `../nuri-web /admin`이다. 이번 본구현 5차에서는
+`/admin/approvals`, `/admin/rollback`, notification production-safe policy, action policy
+table, `npm test`를 추가했다.
+
+확인 기준:
+
+| 항목 | 결과 |
+| --- | --- |
+| 세션 보호 | 신규 `/admin/approvals`, `/admin/rollback` route는 `(protected)` route group 유지 |
+| 2인 승인 | approval request 생성, 승인/반려 server action, 자기 승인 RPC 차단 |
+| rollback | rollback request 생성만 허용, 실제 rollback 실행 disabled |
+| notification | QA 단일 대상 발송만 유지, segment/broadcast/push disabled |
+| action policy | UI/server/RPC 정책 문서화와 table 표시 |
+| 테스트 | `nuri-web npm test` 추가 및 통과 |
+| secret 노출 | password/token/service role key/raw metadata 원문 표시 없음 |
+
+검증:
+
+- `nuri-web npm run lint` 통과
+- `nuri-web npm run build` 통과
+- `nuri-web npm test` 통과
+- `nuri-web git diff --check` 통과
+- 앱 repo `git diff --check` 통과
+- Supabase remote dry-run up-to-date
+- anon policy/read/write negative smoke 차단 확인
+- service-role policy/approval/self-review/rollback request smoke 통과
+
+실제 responsive screenshot은 production 배포 전 operator QA checklist에서 재수행한다.
+
 ## 2026-07-12 본구현 3차/4차 QA 갱신
 
 실제 source of truth는 계속 `../nuri-web /admin`이다. 이번 본구현 3차/4차에서는 role/capability,

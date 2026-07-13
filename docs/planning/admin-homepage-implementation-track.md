@@ -2,6 +2,44 @@
 
 기준일: 2026-07-12
 
+## 2026-07-13 본구현 5차 + Admin Ops Production Transition Closeout
+
+`nuri-web /admin`은 본구현 5차에서 production transition 직전 운영 방어선을 추가했다.
+앱 내부 일반 사용자 화면에는 관리자 UI를 추가하지 않았다.
+
+- 구현 위치: `../nuri-web`
+- 앱 repo DB 계약: `supabase/migrations/20260713093000_admin_operations_phase5_production_transition.sql`
+- nuri-web 신규 문서:
+  - `../nuri-web/docs/admin-implementation-phase5-report.md`
+  - `../nuri-web/docs/admin-production-hosting-checklist.md`
+  - `../nuri-web/docs/admin-production-auth-checklist.md`
+  - `../nuri-web/docs/admin-final-security-checklist.md`
+  - `../nuri-web/docs/admin-operator-qa-checklist.md`
+  - `../nuri-web/docs/admin-incident-response-runbook.md`
+  - `../nuri-web/docs/admin-production-transition-closeout-report.md`
+- production role/claim:
+  - local capability 모델을 production claim 전환 가능한 action policy와 연결했다.
+  - `approvals.*`, `rollback.*` capability를 추가했다.
+  - UI disabled reason, server action guard, RPC policy summary가 같은 계약을 사용한다.
+- 2인 승인:
+  - `/admin/approvals` route를 추가했다.
+  - `admin_action_approval_requests`와 approval RPC를 추가했다.
+  - 자기 승인 차단은 RPC에서 강제한다.
+- rollback:
+  - `/admin/rollback` route를 추가했다.
+  - `admin_rollback_requests`와 rollback request RPC를 추가했다.
+  - 실제 rollback 실행은 disabled이며 request/audit/runbook 단계만 구현했다.
+- notification:
+  - QA 단일 대상 발송만 유지한다.
+  - segment/broadcast/push actual은 계속 disabled다.
+- remote 상태:
+  - additive migration remote apply 완료
+  - dry-run up-to-date 확인
+  - anon policy/read/write negative smoke 차단 확인
+  - service-role policy/approval/self-review/rollback request smoke 통과
+
+실제 HTTPS hosting, DNS, production auth provider, public URL 공유는 PO 승인 전까지 보류한다.
+
 ## 2026-07-12 본구현 3차 + 4차 운영 고도화 갱신
 
 `nuri-web /admin`은 본구현 3차/4차에서 role/capability, undo/rollback, notification

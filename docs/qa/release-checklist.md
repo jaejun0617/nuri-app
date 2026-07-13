@@ -2,6 +2,7 @@
 
 운영 메모:
 
+- 2026-07-13 관리자 홈페이지 본구현 5차/Admin Ops Production Transition Closeout: `nuri-web /admin`에 2인 승인 queue, rollback request, production-safe notification policy, action policy dashboard, 최소 `npm test`를 추가했다. 앱 repo additive migration `20260713093000_admin_operations_phase5_production_transition.sql`은 remote 반영과 dry-run up-to-date를 확인했다. anon negative smoke와 service-role approval/self-review/rollback smoke를 통과했다. 실제 hosting/DNS/public URL은 PO 승인 전까지 보류한다. Play Store 자산, 앱 디자인 리뉴얼, push actual, hard delete, broadcast는 열지 않았다.
 - 이 문서는 v1.0 기능 기준선 evidence와 v1.1 착수 전 닫아야 하는 잔여 task/risk를 함께 관리한다.
 - 2026-06-02 KST 기준 exact release APK 설치 smoke와 일반 사용자 최종 smoke, 동물병원 admin/super_admin 운영자 서버 조작 QA는 수행됐다.
 - 2026-06-04 KST 기준 `profiles.role` self-escalation은 corrective migration과 remote 회귀 테스트로 차단했다.
