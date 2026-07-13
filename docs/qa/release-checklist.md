@@ -2,8 +2,17 @@
 
 운영 메모:
 
+- 2026-07-13 NURI Admin Final Gap Closure & Evidence Closeout 재판정:
+  nuri-web private GitHub remote `git@github.com:jaejun0617/nuri-web.git` 생성과 `main` push는 완료했다.
+  최신 nuri-web source commit은 `9b691c9`이고 export route는 최근 MFA session guard를 포함한다.
+  production URL `https://nuri-web-beryl.vercel.app`은 HTTPS/security header/redirect/health가 정상이나 health version은 아직 `9c0ed1b`다.
+  최신 source 재배포 시도 2건은 Vercel `UNKNOWN` 상태라 alias 전환하지 않았다.
+  Android `SM_S937N / R5CY613NMSY`에서는 latest release APK install, cold start, Home, 커뮤니티 리스트, 게시글 상세, logcat fatal/ANR/unhandled/RN fatal/Fatal signal 0건까지 확보했다.
+  실제 production soft-hide/unhide 앱 e2e, 댓글 hide, token lifecycle, 전체 keyboard sweep, 2인 운영자 QA, MFA/recovery, external monitoring, custom domain은 완료로 기록하지 않는다.
+  현재 판정은 `blocker 있음`이다.
+
 - 2026-07-13 NURI Admin Final Production Completion & Project Handoff Closeout: `nuri-web /admin`
-  단계별 본구현은 계획된 코드 범위에서 종료한다. audit/operations/domain CSV/PDF export,
+  당시 코드 범위 completion으로 기록했으나 Final Gap Closure 재판정 기준 운영 종료 선언은 보류한다. audit/operations/domain CSV/PDF export,
   export security test, 앱 hidden/private/deleted direct detail read-path 차단, Android
   현재 세션 cold start/logcat smoke를 완료했다. custom domain/DNS, 외부 access layer,
   external monitoring, 실제 2인 운영자/MFA/recovery QA는 외부 소유권/계정/비밀 입력 조건이다.
