@@ -20,6 +20,7 @@ import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
 import { useScheduleStore } from '../../store/scheduleStore';
+import { revokeCurrentDevicePushToken } from '../notifications/pushTokenLifecycle';
 
 export async function clearLocalSessionState(): Promise<void> {
   setMonitoringUser({ id: null, email: null });
@@ -49,6 +50,12 @@ export async function disposePasswordRecoverySession(): Promise<void> {
 }
 
 export async function performLogout(timeoutMs = 1200) {
+  try {
+    await revokeCurrentDevicePushToken('user_logout');
+  } catch (error: unknown) {
+    captureMonitoringException(error);
+  }
+
   await clearLocalSessionState();
   return signOutBestEffort(timeoutMs);
 }
@@ -65,6 +72,11 @@ export async function performAccountDeletion(): Promise<AccountDeletionResult> {
     result.status === 'completed' ||
     result.status === 'completed_with_cleanup_pending'
   ) {
+    try {
+      await revokeCurrentDevicePushToken('account_deleted');
+    } catch (error: unknown) {
+      captureMonitoringException(error);
+    }
     await clearLocalSessionState();
   }
 

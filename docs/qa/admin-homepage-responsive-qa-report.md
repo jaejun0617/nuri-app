@@ -2,6 +2,30 @@
 
 기준일: 2026-07-12
 
+## 2026-07-13 Final Operations Platform QA 갱신
+
+실제 source of truth는 `../nuri-web /admin`이다. 이번 갱신으로 operator, MFA/recovery,
+monitoring route와 승인 실행/rollback batch 실행 UI가 추가됐다.
+
+| 항목 | 결과 |
+| --- | --- |
+| 신규 route 보호 | `/admin/operators`, `/admin/operators/new`, `/admin/operators/requests`, `/admin/operators/recovery`, `/admin/monitoring` 모두 protected route group |
+| MFA 로그인 guard | 등록된 TOTP factor가 있으면 `/admin/login`에서 6자리 인증 코드 필요 |
+| approval execution | 승인 완료 action 실행 버튼/확인 모달/감사 로그 계약 추가 |
+| rollback execution | 승인 완료 batch만 conflict-safe all-or-nothing 실행 |
+| notification lifecycle | opt-in/token/provider unavailable summary 표시 |
+| monitoring | critical event, 실패 action, approval 대기, rollback 실패 summary 표시 |
+| Android 실기기 | 현재 연결 상태 확인 전까지 직접 증적 미완료로 분리 |
+
+검증:
+
+- `nuri-web npm run lint` 통과
+- `nuri-web npm run build` 통과
+- `nuri-web npm test` 12 tests 통과
+- 앱 repo `corepack yarn tsc --noEmit --pretty false` 통과
+- 앱 repo `corepack yarn lint` 통과, 기존 warning 6개 유지
+- Supabase remote migration 반영 완료
+
 ## 2026-07-13 Production Deployment QA 갱신
 
 실제 source of truth는 `../nuri-web /admin`이며, production URL은

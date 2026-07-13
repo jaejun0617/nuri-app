@@ -2,6 +2,45 @@
 
 기준일: 2026-07-12
 
+## 2026-07-13 Final Operations Platform Completion
+
+`nuri-web /admin`은 관리자 홈페이지 단계별 본구현을 종료할 수 있는 최종 운영 플랫폼
+기준으로 보강됐다. 앱 내부 일반 사용자 화면에는 관리자 UI를 추가하지 않았다.
+
+- 구현 위치: `../nuri-web`
+- 앱 repo DB 계약:
+  - `supabase/migrations/20260713190000_admin_final_operations_platform.sql`
+  - `supabase/migrations/20260713193000_admin_final_operator_capability_backfill.sql`
+- Supabase remote: additive migration 반영 완료
+- nuri-web 신규/갱신 route:
+  - `/admin/operators`
+  - `/admin/operators/new`
+  - `/admin/operators/requests`
+  - `/admin/operators/recovery`
+  - `/admin/monitoring`
+  - 기존 `/admin/approvals`, `/admin/rollback`, `/admin/notifications` 실행/감사 계약 고도화
+- production security:
+  - 등록된 운영자 MFA factor가 있으면 로그인 시 TOTP 코드가 필요하다.
+  - 승인 완료 action은 별도 실행 단계에서 idempotency와 audit를 남긴다.
+  - rollback batch는 승인 완료 후 conflict-safe all-or-nothing으로 실행한다.
+  - 요청자 자기 승인과 자기 실행은 차단한다.
+- 앱 read-path:
+  - 승인된 콘텐츠 soft hide는 post/comment source status를 `hidden`으로 바꿔 public read-path에서 제외한다.
+  - undo는 감사 로그의 after_state와 현재 source status가 일치할 때만 허용한다.
+- 알림 수명주기:
+  - 앱 전체메뉴 알림 설정에 운영 알림 opt-in/out을 연결했다.
+  - logout/account deletion 시 현재 device token을 best-effort revoke한다.
+  - 실제 push provider token이 없으면 `provider_unavailable`으로 기록하며 가짜 token을 만들지 않는다.
+- 계속 닫힌 범위:
+  - hard delete
+  - 전체/segment broadcast
+  - 실제 push 발송
+  - 앱 디자인 리뉴얼
+  - Play Store 자산
+
+외부 활성화 항목은 custom domain/IP allowlist/external monitoring, Android 실기기 직접 증적,
+실제 2인 운영자 계정으로 승인/실행 smoke다.
+
 ## 2026-07-13 Production Deployment & Operations Cutover
 
 `nuri-web /admin`은 PO 승인 기준으로 Vercel production HTTPS 환경에 배포됐다. 앱 내부
@@ -59,7 +98,7 @@ Play Store 자산, 앱 디자인 리뉴얼, push actual, hard delete, 전체/seg
 - rollback:
   - `/admin/rollback` route를 추가했다.
   - `admin_rollback_requests`와 rollback request RPC를 추가했다.
-  - 실제 rollback 실행은 disabled이며 request/audit/runbook 단계만 구현했다.
+  - 당시에는 rollback 실행을 disabled로 두고 request/audit/runbook 단계만 구현했다. 현재 final completion에서는 승인 완료 batch 실행까지 구현됐다.
 - notification:
   - QA 단일 대상 발송만 유지한다.
   - segment/broadcast/push actual은 계속 disabled다.

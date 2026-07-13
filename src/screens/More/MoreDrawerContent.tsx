@@ -95,6 +95,11 @@ import {
   type ScheduleNotificationPermissionStatus,
 } from '../../services/schedules/notifications';
 import { fetchUserNotificationUnreadCount } from '../../services/notifications/userNotifications';
+import {
+  fetchPushNotificationLifecycleState,
+  setPushNotificationOptIn,
+  type PushTokenLifecycleState,
+} from '../../services/notifications/pushTokenLifecycle';
 import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
 import { showToast } from '../../store/uiStore';
@@ -177,11 +182,14 @@ type NotificationSettingsModalProps = {
   visible: boolean;
   bottomInset: number;
   enabled: boolean;
+  pushOptIn: boolean;
+  pushProviderStatus: PushTokenLifecycleState['providerStatus'];
   permissionStatus: ScheduleNotificationPermissionStatus;
   loading: boolean;
   accentColor: string;
   onClose: () => void;
   onToggleEnabled: (enabled: boolean) => void;
+  onTogglePushOptIn: (enabled: boolean) => void;
   onRequestPermission: () => void;
   onOpenSystemSettings: () => void;
 };
@@ -633,11 +641,14 @@ const NotificationSettingsModal = memo(function NotificationSettingsModal({
   visible,
   bottomInset,
   enabled,
+  pushOptIn,
+  pushProviderStatus,
   permissionStatus,
   loading,
   accentColor,
   onClose,
   onToggleEnabled,
+  onTogglePushOptIn,
   onRequestPermission,
   onOpenSystemSettings,
 }: NotificationSettingsModalProps) {
@@ -736,6 +747,70 @@ const NotificationSettingsModal = memo(function NotificationSettingsModal({
               trackColor={{ false: '#D7DEE8', true: `${accentColor}66` }}
               thumbColor={enabled ? accentColor : '#FFFFFF'}
             />
+          </View>
+
+          <View
+            style={[
+              styles.notificationSettingRow,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+              },
+            ]}
+          >
+            <View style={styles.notificationSettingText}>
+              <Text
+                style={[styles.modalLabel, { color: theme.colors.textPrimary }]}
+              >
+                운영 알림 수신 동의
+              </Text>
+              <Text
+                style={[
+                  styles.notificationSettingHelper,
+                  { color: theme.colors.textMuted },
+                ]}
+              >
+                공지, 계정, 서비스 안내 수신 동의 저장
+              </Text>
+            </View>
+            <Switch
+              value={pushOptIn}
+              disabled={loading}
+              onValueChange={onTogglePushOptIn}
+              trackColor={{ false: '#D7DEE8', true: `${accentColor}66` }}
+              thumbColor={pushOptIn ? accentColor : '#FFFFFF'}
+            />
+          </View>
+
+          <View
+            style={[
+              styles.notificationStatusBox,
+              {
+                backgroundColor: 'rgba(59,130,246,0.08)',
+                borderColor: 'rgba(59,130,246,0.18)',
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.notificationStatusTitle,
+                { color: theme.colors.textPrimary },
+              ]}
+            >
+              운영 알림 상태: {pushOptIn ? '수신 동의 저장됨' : '수신 동의 꺼짐'}
+            </Text>
+            <Text
+              style={[
+                styles.notificationSettingHelper,
+                { color: theme.colors.textMuted },
+              ]}
+            >
+              {pushProviderStatus === 'provider_unavailable'
+                ? '현재 앱은 실제 push provider를 열지 않아 서버에는 provider 미연결 상태로 기록됩니다.'
+                : pushProviderStatus === 'registered'
+                  ? '이 기기의 알림 token lifecycle이 서버에 기록되어 있어요.'
+                  : '로그아웃 또는 수신 거부 시 이 기기 token은 폐기 상태로 정리됩니다.'}
+            </Text>
           </View>
 
           <View
@@ -1032,6 +1107,10 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const [notificationSettingsLoading, setNotificationSettingsLoading] =
     useState(false);
   const [notificationEnabled, setNotificationEnabled] = useState(true);
+  const [pushNotificationOptIn, setPushNotificationOptInState] =
+    useState(false);
+  const [pushNotificationProviderStatus, setPushNotificationProviderStatus] =
+    useState<PushTokenLifecycleState['providerStatus']>('unknown');
   const [notificationPermissionStatus, setNotificationPermissionStatus] =
     useState<ScheduleNotificationPermissionStatus>('unsupported');
   const [userNotificationUnreadCount, setUserNotificationUnreadCount] =
@@ -1380,12 +1459,19 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const refreshNotificationSettings = useCallback(async () => {
     setNotificationSettingsLoading(true);
     try {
-      const [permissionStatus, settings] = await Promise.all([
+      const [permissionStatus, settings, pushLifecycleState] = await Promise.all([
         checkScheduleNotificationPermission(),
         getScheduleNotificationSettings(),
+        fetchPushNotificationLifecycleState().catch(() => null),
       ]);
       setNotificationPermissionStatus(permissionStatus);
       setNotificationEnabled(settings.enabled);
+      if (pushLifecycleState) {
+        setPushNotificationOptInState(pushLifecycleState.pushOptIn);
+        setPushNotificationProviderStatus(pushLifecycleState.providerStatus);
+      } else {
+        setPushNotificationProviderStatus('unknown');
+      }
     } catch {
       setNotificationPermissionStatus('unsupported');
     } finally {
@@ -1436,6 +1522,27 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         message: settings.enabled
           ? '새로 저장하는 일정 알림이 기기에 예약됩니다.'
           : '예약된 일정 알림을 정리하고 새 알림 예약을 멈췄어요.',
+      });
+    } catch (error) {
+      const { title, message } = getBrandedErrorMeta(error, 'generic');
+      showToast({ tone: 'error', title, message });
+    } finally {
+      setNotificationSettingsLoading(false);
+    }
+  }, []);
+
+  const onTogglePushNotificationOptIn = useCallback(async (enabled: boolean) => {
+    setNotificationSettingsLoading(true);
+    try {
+      const state = await setPushNotificationOptIn(enabled);
+      setPushNotificationOptInState(state.pushOptIn);
+      setPushNotificationProviderStatus(state.providerStatus);
+      showToast({
+        tone: state.pushOptIn ? 'success' : 'info',
+        title: state.pushOptIn ? '운영 알림 수신 동의 저장됨' : '운영 알림 꺼짐',
+        message: state.pushOptIn
+          ? '실제 push 발송은 아직 열지 않았고 수신 동의만 안전하게 저장했어요.'
+          : '현재 기기의 운영 알림 token lifecycle을 폐기 상태로 정리했어요.',
       });
     } catch (error) {
       const { title, message } = getBrandedErrorMeta(error, 'generic');
@@ -2250,11 +2357,14 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         visible={notificationModalVisible}
         bottomInset={Math.max(insets.bottom, 6)}
         enabled={notificationEnabled}
+        pushOptIn={pushNotificationOptIn}
+        pushProviderStatus={pushNotificationProviderStatus}
         permissionStatus={notificationPermissionStatus}
         loading={notificationSettingsLoading}
         accentColor={petTheme.primary}
         onClose={closeNotificationModal}
         onToggleEnabled={onToggleNotificationEnabled}
+        onTogglePushOptIn={onTogglePushNotificationOptIn}
         onRequestPermission={onRequestNotificationPermission}
         onOpenSystemSettings={openScheduleNotificationSystemSettings}
       />
