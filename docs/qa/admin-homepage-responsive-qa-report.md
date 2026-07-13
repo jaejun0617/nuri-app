@@ -33,14 +33,14 @@ monitoring route와 승인 실행/rollback batch 실행 UI가 추가됐다.
 
 | 항목 | 결과 |
 | --- | --- |
-| production deployment | Vercel `dpl_Dqcb9DjqtzKPEo1ztTtGTD3GniEN` |
+| production deployment | Vercel `dpl_H3RpagG5Qn2boNWXg4kDPu5DJz2o` |
 | HTTPS | 적용 |
 | `/admin/login` | 200 |
 | `/admin` 비로그인 | `/admin/login?next=/admin` redirect |
 | `/admin/approvals` 비로그인 | redirect |
 | `/admin/rollback` 비로그인 | redirect |
 | `/api/health` | database connected |
-| health version | `1cb2e8cfcd71` |
+| health version | `fe880d5` |
 | security headers | CSP/HSTS/nosniff/frame deny/noindex/no-store 확인 |
 | Supabase smoke | anon 차단, service-role dashboard summary 허용 |
 | client/static secret scan | service role key/session secret/password pepper 노출 없음 |
