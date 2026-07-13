@@ -1,7 +1,21 @@
 # Android Navigation / Keyboard / Back QA Report
 
-기준일: 2026-07-11
+기준일: 2026-07-14
 기준 기기: `SM_S937N / R5CY613NMSY`
+
+## 2026-07-14 최신 release smoke
+
+- APK SHA-256: `59a152f3fe0d95bfc0579b8eb8942e16053047bd7d9f31dcaa346404493612b9`
+- install/update: 성공
+- cold start Home: `/tmp/nuri-qa/app-reconcile-cold-start-home-20260714.png`
+- Community list/detail/back: `/tmp/nuri-qa/app-reconcile-community-20260714.png`, `/tmp/nuri-qa/app-reconcile-community-detail-20260714.png`, `/tmp/nuri-qa/app-reconcile-community-back-20260714.png`
+- Comment keyboard/back: `/tmp/nuri-qa/app-reconcile-keyboard-comment-20260714.png`, `/tmp/nuri-qa/app-reconcile-keyboard-back-20260714.png`
+- Hospital list/detail/back: `/tmp/nuri-qa/app-reconcile-hospital-20260714.png`, `/tmp/nuri-qa/app-reconcile-hospital-detail-20260714.png`, `/tmp/nuri-qa/app-reconcile-hospital-back-20260714.png`
+- Walk list/search keyboard/back: `/tmp/nuri-qa/app-reconcile-walk-20260714.png`, `/tmp/nuri-qa/app-reconcile-walk-keyboard-20260714.png`
+- logcat: `/tmp/nuri-qa/app-reconcile-logcat-20260714.txt`
+- refined fatal/ANR/unhandled/RN fatal/Fatal signal: 0건
+
+이번 smoke는 전체 입력 화면 전수 대신 최신 코드 변경 영향 경로와 대표 keyboard/navigation 경로를 확인했다. 전체 입력 화면 sweep 기준은 계속 유지한다.
 
 ## QA 목적
 

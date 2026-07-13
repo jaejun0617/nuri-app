@@ -16,7 +16,10 @@ const { supabase } = jest.requireMock('../src/services/supabase/client') as {
   };
 };
 
-import { fetchCommunityPostById } from '../src/services/supabase/community';
+import {
+  deleteCommunityComment,
+  fetchCommunityPostById,
+} from '../src/services/supabase/community';
 
 function postDetailQuery(data: unknown) {
   const maybeSingle = jest.fn(() => Promise.resolve({ data, error: null }));
@@ -69,5 +72,40 @@ describe('community public read path policy', () => {
     expect(supabase.from).toHaveBeenCalledTimes(1);
     expect(supabase.from).toHaveBeenCalledWith('posts');
     expect(postsQuery.eq).toHaveBeenCalledWith('id', 'post-1');
+  });
+
+  it('댓글 삭제는 legacy schema error에서도 hard delete fallback을 호출하지 않는다', async () => {
+    const hardDelete = jest.fn();
+    const eq = jest.fn(() =>
+      Promise.resolve({
+        data: null,
+        error: {
+          code: 'PGRST204',
+          message: 'deleted_at column missing',
+        },
+      }),
+    );
+    const update = jest.fn(() => ({ eq }));
+
+    supabase.from.mockImplementation((table: string) => {
+      if (table === 'comments') {
+        return {
+          update,
+          delete: hardDelete,
+        };
+      }
+      throw new Error(`Unexpected table write: ${table}`);
+    });
+
+    await expect(deleteCommunityComment('comment-1')).rejects.toMatchObject({
+      code: 'PGRST204',
+    });
+
+    expect(update).toHaveBeenCalledWith({
+      status: 'deleted',
+      deleted_at: expect.any(String),
+    });
+    expect(eq).toHaveBeenCalledWith('id', 'comment-1');
+    expect(hardDelete).not.toHaveBeenCalled();
   });
 });

@@ -1198,21 +1198,12 @@ export async function createCommunityComment(
 
 export async function deleteCommunityComment(commentId: string) {
   const deletedAt = new Date().toISOString();
-  const primary = await supabase
+  const { error } = await supabase
     .from('comments')
     .update({ status: 'deleted', deleted_at: deletedAt })
     .eq('id', commentId);
 
-  if (!primary.error) {
-    return deletedAt;
-  }
-
-  if (!isMissingCommentColumnsError(primary.error)) {
-    throw primary.error;
-  }
-
-  const fallback = await supabase.from('comments').delete().eq('id', commentId);
-  if (fallback.error) throw fallback.error;
+  if (error) throw error;
   return deletedAt;
 }
 

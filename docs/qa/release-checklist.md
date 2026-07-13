@@ -1,5 +1,18 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-07-14 앱 본 프로젝트 closeout 기준
+
+- 관리자 홈페이지 단계별 본구현은 종료한다. 이후 허용 작업은 운영 장애, 보안 패치, 실제 회귀 수정뿐이다.
+- custom domain/DNS/SSL, Cloudflare Access 또는 유료 Vercel 보호 계층, 외부 runtime monitoring, 실제 MFA/recovery material, 상시 2인 운영 체계는 외부 운영 조건이며 앱 release blocker가 아니다.
+- 이번 점검에서 승인 범위 내 P1 코드 gap으로 확인된 `deleteCommunityComment` hard delete fallback을 제거했다. 댓글 삭제는 soft update only다.
+- release APK build/install: 성공.
+- APK SHA-256: `59a152f3fe0d95bfc0579b8eb8942e16053047bd7d9f31dcaa346404493612b9`.
+- Android 기기: `SM_S937N / R5CY613NMSY`.
+- 최신 smoke: Home, Community list/detail, 댓글 keyboard/back, Hospital list/detail/back, Walk list/search keyboard/back.
+- refined logcat: `FATAL EXCEPTION`, `ANR`, `Unhandled promise`, `ReactNativeJS fatal`, `Fatal signal` 0건.
+- 검증: typecheck 통과, lint 0 error/기존 warning 6건, Jest 62 suites / 244 tests 통과, Supabase dry-run remote up to date.
+- 계속 비활성: hard delete, 전체/segment broadcast, actual push, 앱 내부 admin UI, Naver public surface, Apple login, Play Store 자산, 앱 전체 디자인/폰트 리뉴얼.
+
 운영 메모:
 
 - 2026-07-13 NURI Admin Final Gap Closure & Evidence Closeout 재판정:
@@ -9,11 +22,11 @@
   GitHub Actions production monitor 정상 run과 강제 실패 test alert issue 생성/종료를 확인했다.
   Android `SM_S937N / R5CY613NMSY`에서는 latest release APK install, cold start, Home, 커뮤니티 리스트, logcat fatal/ANR/unhandled/RN fatal/Fatal signal 0건까지 확보했다.
   2인 운영자 서버 smoke는 `pet_nuri` 요청, `pet_nuri_reviewer` 승인/실행, 자기 승인 차단, undo 원상복구까지 통과했다.
-  실제 production soft-hide/unhide 앱 e2e, 댓글 hide, token lifecycle, 전체 keyboard sweep, MFA/recovery, Sentry/Better Stack류 runtime monitoring, custom domain은 완료로 기록하지 않는다.
-  현재 판정은 `외부 운영자 입력·외부 계정 활성화 조건부 완료`이다.
+  2026-07-14 기준 Android moderation integration evidence와 앱 source-of-truth 재정렬을 반영해 관리자 홈페이지 단계별 본구현은 종료한다.
+  MFA/recovery material, Sentry/Better Stack류 runtime monitoring, custom domain, 상시 2인 운영 체계는 앱 release blocker가 아닌 외부 운영 조건으로 기록한다.
 
 - 2026-07-13 NURI Admin Final Production Completion & Project Handoff Closeout: `nuri-web /admin`
-  당시 코드 범위 completion으로 기록했으나 Final Gap Closure 재판정 기준 운영 종료 선언은 보류한다. audit/operations/domain CSV/PDF export,
+  당시 코드 범위 completion으로 기록했고, 2026-07-14 앱 source-of-truth 재정렬에서 단계별 본구현 종료로 확정한다. audit/operations/domain CSV/PDF export,
   export security test, 앱 hidden/private/deleted direct detail read-path 차단, Android
   현재 세션 cold start/logcat smoke를 완료했다. custom domain/DNS, 외부 access layer,
   MFA/recovery QA와 runtime error monitoring은 외부 소유권/계정/비밀 입력 조건이다.

@@ -1,6 +1,29 @@
 # Admin Homepage Implementation Track
 
-기준일: 2026-07-13
+기준일: 2026-07-14
+
+## 2026-07-14 최종 handoff 판정
+
+실제 관리자 홈페이지 source of truth는 계속 `../nuri-web /admin`이다. 계획된 단계별 본구현은 종료한다. 이후 관리자 홈페이지 작업은 운영 중 발견된 장애, 보안 패치, 실제 회귀 수정으로 제한한다. 신규 본구현 차수나 추가 고도화 phase는 제안하지 않는다.
+
+앱 본 프로젝트 진행을 막지 않는 외부 운영 조건:
+
+- NURI 소유 custom domain 연결, DNS/SSL 전환
+- Cloudflare Access 또는 유료 Vercel 보호 계층
+- Sentry/Better Stack 등 별도 외부 runtime monitoring
+- 실제 운영자 MFA/recovery material 실사용 절차
+- 실제 두 명의 상시 운영자 체계
+
+완료로 유지하는 항목:
+
+- nuri-web private remote `git@github.com:jaejun0617/nuri-web.git`
+- production URL `https://nuri-web-beryl.vercel.app`
+- production health version `bb840f857574`
+- Android moderation integration evidence
+- 2인 운영자 서버 smoke
+- hard delete 없음, broadcast/segment/actual push 비활성, 앱 내부 admin UI 미노출
+
+NURI 앱 본 프로젝트의 다음 작업 우선순위는 `docs/project-memory/다음-작업-우선순위.md`를 따른다.
 
 ## 2026-07-13 Final Production Completion / Handoff
 
