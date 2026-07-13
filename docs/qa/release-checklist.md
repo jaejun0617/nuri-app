@@ -4,7 +4,7 @@
 
 - 2026-07-13 NURI Admin Final Gap Closure & Evidence Closeout 재판정:
   nuri-web private GitHub remote `git@github.com:jaejun0617/nuri-web.git` 생성과 `main` push는 완료했다.
-  최신 nuri-web source commit은 `bb840f8`이고 production URL `https://nuri-web-beryl.vercel.app`은 `/api/health`에서 `database=connected`, `version=bb840f857574`를 반환한다.
+  최신 nuri-web production runtime 검증 commit은 `bb840f8`이고 production URL `https://nuri-web-beryl.vercel.app`은 `/api/health`에서 `database=connected`, `version=bb840f857574`를 반환한다.
   최신 deployment ID는 `dpl_D5xyVzS65SA3Cz69Wn5FrKoxoHUA`이며, 직전 Vercel `UNKNOWN` source deploy 문제는 env 재등록과 prebuilt artifact deploy로 복구했다.
   GitHub Actions production monitor 정상 run과 강제 실패 test alert issue 생성/종료를 확인했다.
   Android `SM_S937N / R5CY613NMSY`에서는 latest release APK install, cold start, Home, 커뮤니티 리스트, logcat fatal/ANR/unhandled/RN fatal/Fatal signal 0건까지 확보했다.

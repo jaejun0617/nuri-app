@@ -9,7 +9,7 @@
 
 - production URL: `https://nuri-web-beryl.vercel.app`
 - nuri-web remote: `git@github.com:jaejun0617/nuri-web.git`, private repository, `main` push 완료
-- latest source: `bb840f8`
+- production runtime 검증 commit: `bb840f8`
 - latest production deployment: `dpl_D5xyVzS65SA3Cz69Wn5FrKoxoHUA`
 - latest health: `database=connected`, `version=bb840f857574`
 - production monitor: GitHub Actions 정상 run과 강제 실패 test alert issue 생성/종료 확인
@@ -97,7 +97,7 @@ MFA/recovery code 실증이다.
 - production project: `pet-nuri/nuri-web`
 - production URL: `https://nuri-web-beryl.vercel.app`
 - production deployment ID: `dpl_D5xyVzS65SA3Cz69Wn5FrKoxoHUA`
-- source commit: `bb840f8`
+- production runtime source commit: `bb840f8`
 - 앱 repo DB 계약: `supabase/migrations/20260713123000_admin_production_auth_store.sql`
 - production auth:
   - local file credential fallback 금지
