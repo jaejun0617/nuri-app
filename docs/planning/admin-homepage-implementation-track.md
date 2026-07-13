@@ -49,8 +49,8 @@
 - production provider: Vercel
 - production project: `pet-nuri/nuri-web`
 - production URL: `https://nuri-web-beryl.vercel.app`
-- production deployment ID: `dpl_H3RpagG5Qn2boNWXg4kDPu5DJz2o`
-- source commit: `fe880d5`
+- production deployment ID: `dpl_5kL8kuMBndJBZSXZytRHB1fhUS9t`
+- source commit: `d8be4cc`
 - 앱 repo DB 계약: `supabase/migrations/20260713123000_admin_production_auth_store.sql`
 - production auth:
   - local file credential fallback 금지
