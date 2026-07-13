@@ -2,6 +2,28 @@
 
 기준일: 2026-07-12
 
+## 2026-07-13 Production Deployment QA 갱신
+
+실제 source of truth는 `../nuri-web /admin`이며, production URL은
+`https://nuri-web-beryl.vercel.app`이다.
+
+| 항목 | 결과 |
+| --- | --- |
+| production deployment | Vercel `dpl_Dqcb9DjqtzKPEo1ztTtGTD3GniEN` |
+| HTTPS | 적용 |
+| `/admin/login` | 200 |
+| `/admin` 비로그인 | `/admin/login?next=/admin` redirect |
+| `/admin/approvals` 비로그인 | redirect |
+| `/admin/rollback` 비로그인 | redirect |
+| `/api/health` | database connected |
+| health version | `1cb2e8cfcd71` |
+| security headers | CSP/HSTS/nosniff/frame deny/noindex/no-store 확인 |
+| Supabase smoke | anon 차단, service-role dashboard summary 허용 |
+| client/static secret scan | service role key/session secret/password pepper 노출 없음 |
+
+운영자 세션 기반 1920/1440/1024/768/390px visual QA는 첫 production 비밀번호 변경 완료 후
+진행한다. 현재 자동 smoke는 통과했으며, 앱 내부 일반 사용자 화면에는 관리자 UI를 노출하지 않는다.
+
 ## 2026-07-13 본구현 5차 / Production Transition QA 갱신
 
 실제 source of truth는 계속 `../nuri-web /admin`이다. 이번 본구현 5차에서는

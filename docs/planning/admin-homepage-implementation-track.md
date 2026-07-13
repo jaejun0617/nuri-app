@@ -2,6 +2,37 @@
 
 기준일: 2026-07-12
 
+## 2026-07-13 Production Deployment & Operations Cutover
+
+`nuri-web /admin`은 PO 승인 기준으로 Vercel production HTTPS 환경에 배포됐다. 앱 내부
+일반 사용자 화면에는 관리자 UI를 추가하지 않았다.
+
+- production provider: Vercel
+- production project: `pet-nuri/nuri-web`
+- production URL: `https://nuri-web-beryl.vercel.app`
+- production deployment ID: `dpl_Dqcb9DjqtzKPEo1ztTtGTD3GniEN`
+- source commit: `1cb2e8cfcd71`
+- 앱 repo DB 계약: `supabase/migrations/20260713123000_admin_production_auth_store.sql`
+- production auth:
+  - local file credential fallback 금지
+  - `admin_operator_accounts` 기반 persistent credential store
+  - scrypt hash + server-only pepper
+  - 첫 로그인 비밀번호 변경 강제
+  - auth version 기반 session invalidation
+- production smoke:
+  - `/admin/login` 200 HTTPS
+  - `/admin`, `/admin/approvals`, `/admin/rollback` 비로그인 redirect
+  - `/api/health` database connected
+  - Origin 없는 login POST 403
+  - anon credential table/direct dashboard RPC 차단
+  - service-role dashboard summary 허용
+- 조건부:
+  - custom domain은 NURI 소유 domain/DNS가 확정되지 않아 미연결
+  - 운영자 직접 비밀번호 변경/세션 기반 visual QA는 입력 완료 후 closeout
+  - 외부 monitoring/IP allowlist는 provider plan/account 확인 후 후속 적용
+
+Play Store 자산, 앱 디자인 리뉴얼, push actual, hard delete, 전체/segment broadcast는 열지 않았다.
+
 ## 2026-07-13 본구현 5차 + Admin Ops Production Transition Closeout
 
 `nuri-web /admin`은 본구현 5차에서 production transition 직전 운영 방어선을 추가했다.
