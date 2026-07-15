@@ -2,6 +2,32 @@
 
 기준일: 2026-07-15
 
+## 2026-07-15 OAuth 재시도 / adminQA 복구
+
+- APK: `android/app/build/outputs/apk/release/app-release.apk`
+- APK SHA-256: `8bbc30195880ba02688b846551654486a695a94b0cdc84f15d01cb95e7d92d1e`
+- install/update: 성공
+- 기기: `SM_S937N / R5CY613NMSY`
+- 증적 디렉터리: `/tmp/nuri-qa/final-oauth-20260715/`
+
+확인한 최신 경로:
+
+| 항목 | 결과 | 증적 |
+| --- | --- | --- |
+| cold start | 기존 adminQA 세션 Home 진입 | `cold-start.png` |
+| 로그인 화면 | Google/Kakao 노출, Naver/Apple 미노출 | `login-provider-after-clear.png` |
+| Google provider | account chooser 진입, callback/session 후 NicknameSetup 분기 | `google-entry.png`, `google-onboarding-back.png` |
+| Kakao provider | web flow 진입, callback/onboarding 분기 | `kakao-entry.png`, `kakao-cancel-return.png` |
+| adminQA 복구 | one-time `token_hash` callback으로 Home 진입 | `adminqa-tokenhash-login.png` |
+| TextInput inventory | `TextInput`/keyboard 관련 코드 매칭 188개 | `textinput-inventory.txt` |
+| logcat | NURI 앱 fatal/ANR/unhandled/RN fatal/Fatal signal 0건 | `logcat.txt` |
+
+판정:
+
+- Google/Kakao provider 진입과 실제 callback/session/onboarding 분기는 확인했다.
+- 현재 Chrome/provider 쿠키 상태에서는 Android back이 순수 취소 후 로그인 화면 복귀가 아니라 NicknameSetup 분기로 이어져, OAuth 취소 복귀 criterion은 아직 완료로 쓰지 않는다.
+- provider 계정 식별 정보가 포함된 원본 화면은 Git과 문서에 포함하지 않는다.
+
 ## 2026-07-15 최신 실기기 보강
 
 - APK: `android/app/build/outputs/apk/release/app-release.apk`

@@ -2,6 +2,26 @@
 
 기준일: 2026-07-15
 
+## 2026-07-15 OAuth 보강 결과
+
+- 기준 HEAD: `1576396`에서 시작, 이번 문서 갱신 후 새 commit으로 마감.
+- 최신 APK SHA-256: `8bbc30195880ba02688b846551654486a695a94b0cdc84f15d01cb95e7d92d1e`
+- 증적 디렉터리: `/tmp/nuri-qa/final-oauth-20260715/`
+- Android 기기: `SM_S937N / R5CY613NMSY`
+- provider surface: Google/Kakao 버튼 노출, Naver/Apple 미노출.
+- Google: account chooser 진입, 실제 callback/session 생성 후 `NicknameSetup` 도달. 신규 소셜 사용자 온보딩 분기 동작 확인.
+- Kakao: web flow 진입, provider/browser 상태에서 callback/onboarding 분기 확인.
+- 취소 복귀: 현재 Chrome/provider 쿠키 상태에서는 Android back이 로그인 화면 복귀가 아니라 `NicknameSetup` 분기로 이어져 순수 취소 증적을 분리하지 못했다. 이 항목은 100% 승격 조건으로 남긴다.
+- adminQA 복구: server-only Supabase admin 환경에서 `adminQA` 일반 사용자 profile을 확인하고 one-time magiclink `token_hash` callback으로 Home 진입. 비밀번호, token, provider email은 출력/문서화하지 않음.
+- 검증: typecheck 통과, lint 0 error/기존 warning 4건, Jest `63 suites / 247 tests` 통과, Supabase dry-run remote up to date, release build/install 성공, 앱 fatal/ANR/unhandled/RN fatal/Fatal signal 0건.
+
+| Criterion | 2026-07-15 OAuth 보강 결과 | 판정 |
+| --- | --- | --- |
+| Google/Kakao OAuth 성공·취소·복귀 | Google/Kakao provider 진입과 callback/session/onboarding 분기는 확인. 순수 취소 후 로그인 화면 복귀는 분리 실패. | 조건부 잔존 |
+| 전체 입력 화면 keyboard/navigation sweep | TextInput inventory 188개 매칭 확인. 이번 턴 전수 실기기 sweep은 수행하지 않음. | 운영 반복 gate |
+| logout/account switch notification token isolation | 직전 최신 APK에서 closeout. 이번 턴 adminQA는 token_hash로 Home 복구. | closeout 유지 |
+| 최종 release regression gate | 최신 APK build/install, adminQA Home 복구, typecheck/lint/Jest/Supabase/logcat gate 통과. | 조건부 유지 |
+
 ## 2026-07-15 보강 결과
 
 - 기준 HEAD: `49a70de`에서 시작, 이번 수정 후 새 commit으로 마감.

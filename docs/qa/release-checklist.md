@@ -1,5 +1,19 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-07-15 OAuth 보강 기준
+
+- release APK build/install: 성공.
+- APK SHA-256: `8bbc30195880ba02688b846551654486a695a94b0cdc84f15d01cb95e7d92d1e`.
+- Android 기기: `SM_S937N / R5CY613NMSY`.
+- provider surface: Google/Kakao 버튼 노출, Naver/Apple 미노출.
+- Google smoke: account chooser 진입과 callback/session/onboarding 분기 확인.
+- Kakao smoke: web flow 진입과 callback/onboarding 분기 확인.
+- 취소 복귀: Chrome/provider session 상태 때문에 Android back이 순수 로그인 화면 복귀로 분리되지 않았으므로 100% closeout으로 쓰지 않는다.
+- adminQA 고정 계정: one-time `token_hash` callback으로 Home 복구. 비밀번호, token, provider email은 문서화하지 않음.
+- 검증: typecheck 통과, lint 0 error/기존 warning 4건, Jest `63 suites / 247 tests` 통과, Supabase dry-run remote up to date, release build/install 성공, 앱 fatal/ANR/unhandled/RN fatal/Fatal signal 0건.
+- 계속 비활성: hard delete, 전체/segment broadcast, actual push, 앱 내부 admin UI, Naver public surface, Apple login, Play Store 자산, 앱 전체 디자인/폰트 리뉴얼.
+- 조건부 잔여: controlled Google/Kakao provider identity와 정리된 browser session으로 순수 취소 후 로그인 화면 복귀 smoke. 이 항목 없이 QA·보안 100%로 쓰지 않는다.
+
 ## 2026-07-15 최종 Release Gate 보강 기준
 
 - release APK build/install: 성공.

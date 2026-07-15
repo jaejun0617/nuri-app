@@ -4,6 +4,8 @@
 
 ## 2026-07-15 Release Gate 보강 후 진행률
 
+2026-07-15 OAuth 재시도 기준 최신 release APK SHA-256은 `8bbc30195880ba02688b846551654486a695a94b0cdc84f15d01cb95e7d92d1e`이다. Google/Kakao provider 진입과 callback/session/onboarding 분기는 추가 확인했지만, provider/browser session 상태 때문에 순수 취소 후 로그인 화면 복귀가 분리되지 않았다. 따라서 아래 진행률은 계속 100%로 승격하지 않는다.
+
 최신 release APK SHA-256 `bfb9ac5ca79e61e8d91b2e738529f945dd6dcc77f12e7a597afca31b81a57524` 기준으로 조건부 QA 4건 중 token isolation 1건을 closeout했고, 2건은 대표 경로를 보강했다. adminQA 직접 로그인 callback, 전체 대표 keyboard/navigation, notification token isolation/account switch, 핵심 도메인 대표 회귀, 병원 public-safe 상세 주소 차단은 코드/테스트/실기기 증적으로 닫았다.
 
 아직 100%로 승격하지 않는다. 남은 조건부는 controlled Google/Kakao provider identity를 사용한 실제 외부 OAuth 성공·취소·복귀 smoke 1건이다.
