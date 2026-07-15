@@ -11,14 +11,14 @@
 - Android QA: adminQA 직접 로그인, Home, Timeline, Community list/detail/comment keyboard/back, Hospital list/detail public-safe, Walk list/detail/search/back, Notification opt-in/OS permission/opt-out, logout, secondary QA account switch, adminQA 복구.
 - 서버 token 확인: adminQA `push_opt_in=false`, active token 0건, revoked token만 존재. secondary QA active token 0건.
 - 검증: typecheck 통과, lint 0 error/기존 warning 4건, Jest `63 suites / 247 tests` 통과, Supabase dry-run remote up to date, release build/install 성공, 앱 fatal/ANR/unhandled/RN fatal/Fatal signal 0건.
-- 판정: 조건부 QA 4건 중 3건 closeout. Google/Kakao 실제 외부 OAuth 성공·취소 smoke는 이번 턴에서 새로 직접 완료하지 못해 100% 판정 보류.
+- 판정: 조건부 QA 4건 중 token isolation 1건 closeout. keyboard/navigation과 최종 regression은 대표 경로 보강, Google/Kakao 실제 외부 OAuth 성공·취소 smoke는 이번 턴에서 새로 직접 완료하지 못해 100% 판정 보류.
 
 | Criterion | 2026-07-15 결과 | 판정 |
 | --- | --- | --- |
 | Google/Kakao OAuth 성공·취소·복귀 | token_hash callback gap은 수정/검증. controlled provider 실제 성공·취소는 이번 턴 새 증적 없음. | 조건부 잔존 |
-| 전체 입력 화면 keyboard/navigation sweep | Community 댓글, Walk 검색, Notification modal, Hospital/Walk back, Home/Menu navigation 확인. | closeout |
+| 전체 입력 화면 keyboard/navigation sweep | Community 댓글, Walk 검색, Notification modal, Hospital/Walk back, Home/Menu navigation 확인. 전체 TextInput route 전수는 미완료. | 조건부 잔존 |
 | logout/account switch notification token isolation | adminQA opt-in/permission/opt-out/logout, secondary QA switch, server active token 0 확인. | closeout |
-| 최종 release regression gate | 최신 APK build/install, 핵심 도메인 대표 회귀, public-safe hospital, tests/Supabase/logcat 통과. | closeout |
+| 최종 release regression gate | 최신 APK build/install, 핵심 도메인 대표 회귀, public-safe hospital, tests/Supabase/logcat 통과. 전체 도메인 전수 회귀는 미완료. | 조건부 잔존 |
 
 ## Baseline
 

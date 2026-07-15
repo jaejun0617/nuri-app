@@ -4,7 +4,7 @@
 
 ## 결론
 
-조건부 QA 4건 중 3건은 최신 APK와 Android 실기기에서 닫았다. Google/Kakao 실제 외부 OAuth 성공·취소 smoke는 이번 턴에서 직접 새로 완료하지 못했으므로 100% readiness 판정은 아직 하지 않는다.
+조건부 QA 4건 중 notification token isolation은 최신 APK와 Android 실기기에서 닫았다. keyboard/navigation과 최종 regression은 대표 핵심 경로를 보강했지만 전수 closeout으로 보지 않는다. Google/Kakao 실제 외부 OAuth 성공·취소 smoke도 이번 턴에서 직접 새로 완료하지 못했으므로 100% readiness 판정은 아직 하지 않는다.
 
 ## 기준 APK
 
@@ -20,7 +20,7 @@
 
 2. 전체 keyboard/navigation sweep
    - 확인: Community 댓글 입력, Walk 검색, Notification modal, Hospital/Walk full-screen back, Home/Menu navigation. keyboard가 입력창/CTA를 완전히 가리지 않았고 Android back dismiss와 화면 복귀를 확인.
-   - 잔여: release APK 재빌드 때마다 반복 smoke로 유지한다. 이번 criterion은 대표 핵심 입력 경로 기준 closeout.
+   - 잔여: release APK 재빌드 때마다 반복 smoke로 유지한다. 이번 criterion은 대표 핵심 입력 경로 기준 보강.
 
 3. notification token isolation
    - 확인: adminQA opt-in, OS notification permission, opt-out, server token revoked 상태, logout, 기존 secondary QA 계정 account switch, adminQA active token 0건, secondary active token 0건.
@@ -33,9 +33,9 @@
 ## 진행률
 
 - 기능 구현: `74/74`, 100%
-- QA·보안: `53/54`, 98.1%
+- QA·보안: `51/54`, 94.4%
 - 문서·release: `21/21`, 100%
-- 앱 본체 가중 진행률: `99.35%`
+- 앱 본체 가중 진행률: `98.04%`
 
 ## 금지된 판정
 

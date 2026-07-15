@@ -4,17 +4,17 @@
 
 ## 2026-07-15 Release Gate 보강 후 진행률
 
-최신 release APK SHA-256 `bfb9ac5ca79e61e8d91b2e738529f945dd6dcc77f12e7a597afca31b81a57524` 기준으로 조건부 QA 4건 중 3건을 보강 closeout했다. adminQA 직접 로그인 callback, 전체 대표 keyboard/navigation, notification token isolation/account switch, 핵심 도메인 대표 회귀, 병원 public-safe 상세 주소 차단은 코드/테스트/실기기 증적으로 닫았다.
+최신 release APK SHA-256 `bfb9ac5ca79e61e8d91b2e738529f945dd6dcc77f12e7a597afca31b81a57524` 기준으로 조건부 QA 4건 중 token isolation 1건을 closeout했고, 2건은 대표 경로를 보강했다. adminQA 직접 로그인 callback, 전체 대표 keyboard/navigation, notification token isolation/account switch, 핵심 도메인 대표 회귀, 병원 public-safe 상세 주소 차단은 코드/테스트/실기기 증적으로 닫았다.
 
 아직 100%로 승격하지 않는다. 남은 조건부는 controlled Google/Kakao provider identity를 사용한 실제 외부 OAuth 성공·취소·복귀 smoke 1건이다.
 
 | 분류 | 적용 criterion | 완료 | 조건부 | 미완료 | 제외 | 진행률 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | 기능 구현 | 74 | 74 | 0 | 0 | 11 | 100% |
-| QA·보안 | 54 | 53 | 1 | 0 | 7 | 98.1% |
+| QA·보안 | 54 | 51 | 3 | 0 | 7 | 94.4% |
 | 문서·release | 21 | 21 | 0 | 0 | 3 | 100% |
 
-앱 본체 가중 진행률 = `100*0.55 + 98.1*0.35 + 100*0.10 = 99.35%`.
+앱 본체 가중 진행률 = `100*0.55 + 94.4*0.35 + 100*0.10 = 98.04%`.
 
 P0/P1 구현 blocker는 없다. Play Store 자산, 앱 디자인/폰트 리뉴얼, actual push provider, 자체 POI runtime 전환은 별도 PO 승인 트랙으로 계속 제외한다.
 
