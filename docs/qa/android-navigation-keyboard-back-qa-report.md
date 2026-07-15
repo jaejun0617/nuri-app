@@ -1,7 +1,21 @@
 # Android Navigation / Keyboard / Back QA Report
 
-기준일: 2026-07-14
+기준일: 2026-07-15
 기준 기기: `SM_S937N / R5CY613NMSY`
+
+## 2026-07-15 최신 release smoke
+
+- APK SHA-256: `bfb9ac5ca79e61e8d91b2e738529f945dd6dcc77f12e7a597afca31b81a57524`
+- install/update: 성공
+- adminQA token_hash callback login: `/tmp/nuri-qa/final-100-20260715/adminqa-tokenhash-callback-after-fix.png`
+- Community comment keyboard/back: `/tmp/nuri-qa/final-100-20260715/final-community-comment-keyboard.png`, `/tmp/nuri-qa/final-100-20260715/final-community-comment-keyboard-back.png`
+- Walk search keyboard/back: `/tmp/nuri-qa/final-100-20260715/final-walk-search-keyboard.png`, `/tmp/nuri-qa/final-100-20260715/final-walk-search-keyboard-back.png`
+- Hospital detail/back public-safe: `/tmp/nuri-qa/final-100-20260715/final-hospital-detail.png`
+- Notification modal opt-in/permission/opt-out: `/tmp/nuri-qa/final-100-20260715/final-notification-optin.png`, `/tmp/nuri-qa/final-100-20260715/final-notification-optout.png`
+- Account switch/Home restore: `/tmp/nuri-qa/final-100-20260715/final-secondary-qa-login.png`, `/tmp/nuri-qa/final-100-20260715/final-adminqa-restored.png`
+- refined fatal/ANR/unhandled/RN fatal/Fatal signal: 0건
+
+이번 smoke는 최신 코드 변경 영향 경로와 release blocker 가능성이 큰 입력/모달/전체화면 back 경로를 확인했다. 전체 입력 화면 sweep은 release APK 재빌드 때 반복 운영 gate로 유지한다.
 
 ## 2026-07-14 최신 release smoke
 

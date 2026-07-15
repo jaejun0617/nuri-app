@@ -80,6 +80,8 @@ export type OAuthCallbackSessionInput = {
   accessToken?: string | null;
   refreshToken?: string | null;
   code?: string | null;
+  tokenHash?: string | null;
+  verificationType?: string | null;
   provider?: SocialOAuthProvider | null;
 };
 
@@ -193,14 +195,14 @@ export async function signInWithOAuthProvider(
 
   try {
     await Linking.openURL(data.url);
-  } catch (error: unknown) {
-    logOAuthError({ provider, stage: 'open_browser', error });
+  } catch (openError: unknown) {
+    logOAuthError({ provider, stage: 'open_browser', error: openError });
     throw new OAuthSignInError({
       code: 'browser_open_failed',
       message:
         '브라우저를 열지 못했어요. 잠시 후 다시 시도하거나 이메일 로그인을 이용해 주세요.',
       provider,
-      sourceError: error,
+      sourceError: openError,
     });
   }
 }
@@ -221,6 +223,8 @@ export async function completeOAuthCallbackSession(
   input: OAuthCallbackSessionInput,
 ): Promise<void> {
   const code = normalizeOptionalToken(input.code);
+  const tokenHash = normalizeOptionalToken(input.tokenHash);
+  const verificationType = normalizeOptionalToken(input.verificationType);
   const accessToken = normalizeOptionalToken(input.accessToken);
   const refreshToken = normalizeOptionalToken(input.refreshToken);
 
@@ -230,6 +234,27 @@ export async function completeOAuthCallbackSession(
       logOAuthError({
         provider: input.provider ?? null,
         stage: 'exchange_code',
+        error,
+      });
+      throw new OAuthSignInError({
+        code: 'session_exchange_failed',
+        message: getOAuthSignInUserMessage(error),
+        provider: input.provider ?? null,
+        sourceError: error,
+      });
+    }
+    return;
+  }
+
+  if (tokenHash) {
+    const { error } = await supabase.auth.verifyOtp({
+      type: normalizeOAuthVerificationType(verificationType),
+      token_hash: tokenHash,
+    });
+    if (error) {
+      logOAuthError({
+        provider: input.provider ?? null,
+        stage: 'verify_token_hash',
         error,
       });
       throw new OAuthSignInError({
@@ -267,6 +292,13 @@ export async function completeOAuthCallbackSession(
       sourceError: error,
     });
   }
+}
+
+function normalizeOAuthVerificationType(
+  value: string | null,
+): 'magiclink' | 'signup' | 'email_change' {
+  if (value === 'signup' || value === 'email_change') return value;
+  return 'magiclink';
 }
 
 export async function signInWithEmail(email: string, password: string) {

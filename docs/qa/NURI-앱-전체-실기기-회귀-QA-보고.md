@@ -1,6 +1,38 @@
 # NURI 앱 전체 실기기 회귀 QA 보고
 
-기준일: 2026-07-14
+기준일: 2026-07-15
+
+## 2026-07-15 최신 실기기 보강
+
+- APK: `android/app/build/outputs/apk/release/app-release.apk`
+- APK SHA-256: `bfb9ac5ca79e61e8d91b2e738529f945dd6dcc77f12e7a597afca31b81a57524`
+- install/update: 성공
+- 기기: `SM_S937N / R5CY613NMSY`
+- 증적 디렉터리: `/tmp/nuri-qa/final-100-20260715/`
+
+확인한 최신 경로:
+
+| 항목 | 결과 | 증적 |
+| --- | --- | --- |
+| adminQA 직접 로그인 | Supabase token_hash callback으로 Home 진입 | `adminqa-tokenhash-callback-after-fix.png` |
+| Home | adminQA Home, weather, pet card, menu overlay | `final-adminqa-restored.png` |
+| Community | list 6개, detail, comment input keyboard/back | `final-community-list.png`, `final-community-detail.png`, `final-community-comment-keyboard.png` |
+| Hospital | list/detail, raw address 미노출, CTA 유지 | `final-hospital-list.png`, `final-hospital-detail.png` |
+| Walk | list/detail/search/back, crash 없음 | `final-walk-list.png`, `final-walk-search-keyboard-back.png` |
+| Notification | opt-in, OS permission, opt-out, token revoke 문구 | `final-notification-optin.png`, `final-notification-permission-allowed.png`, `final-notification-optout.png` |
+| Account switch | secondary QA Home 진입, adminQA 데이터 잔존 없음 | `final-secondary-qa-login.png` |
+| logcat | 앱 fatal/ANR/unhandled/RN fatal/Fatal signal 0건 | `final-logcat-fatal-only.txt` |
+
+보안 확인:
+
+- 병원 상세에 원시 도로명 주소와 운영 민감 필드가 public text로 노출되지 않는다.
+- adminQA opt-out 후 서버 token 상태는 active 0건, revoked only다.
+- secondary QA account switch 후 cross-user active token 혼합은 없다.
+- 실제 push, broadcast, segment broadcast, hard delete는 수행하지 않았다.
+
+조건부:
+
+- Google/Kakao 실제 외부 OAuth 성공·취소 smoke는 이번 최신 APK에서 새로 닫지 못했다.
 
 ## 최종 Release Gate 최신 시도
 

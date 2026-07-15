@@ -1,5 +1,17 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-07-15 최종 Release Gate 보강 기준
+
+- release APK build/install: 성공.
+- APK SHA-256: `bfb9ac5ca79e61e8d91b2e738529f945dd6dcc77f12e7a597afca31b81a57524`.
+- Android 기기: `SM_S937N / R5CY613NMSY`.
+- 코드 수정: Supabase `token_hash` callback 처리, 병원 상세 public raw address 차단.
+- 최신 smoke: adminQA 직접 로그인/Home, Timeline, Community list/detail/comment keyboard/back, Hospital list/detail public-safe, Walk list/detail/search/back, Notification opt-in/permission/opt-out, logout, secondary QA account switch, adminQA 복구.
+- refined logcat: 앱 `FATAL EXCEPTION`, `ANR`, `Unhandled promise`, `ReactNativeJS fatal`, `Fatal signal` 0건.
+- 검증: typecheck 통과, lint 0 error/기존 warning 4건, Jest `63 suites / 247 tests` 통과, Supabase dry-run remote up to date, diff check 통과.
+- 계속 비활성: hard delete, 전체/segment broadcast, actual push, 앱 내부 admin UI, Naver public surface, Apple login, Play Store 자산, 앱 전체 디자인/폰트 리뉴얼.
+- 조건부 잔여: controlled Google/Kakao provider identity 기반 실제 외부 OAuth 성공·취소·복귀 smoke 1건. 이 항목 없이 QA·보안 100%로 쓰지 않는다.
+
 ## 2026-07-14 앱 본 프로젝트 closeout 기준
 
 - 관리자 홈페이지 단계별 본구현은 종료한다. 이후 허용 작업은 운영 장애, 보안 패치, 실제 회귀 수정뿐이다.

@@ -60,6 +60,8 @@ describe('animalHospital presentation models', () => {
 
     expect(detail.trustLabel).toBe('확인 필요');
     expect(detail.hasProviderLink).toBe(true);
+    expect(detail.address).toBe('정확한 주소는 길찾기에서 확인해 주세요.');
+    expect(detail.address).not.toContain(publicHospital.address);
     expect(
       'homepageUrl' in (detail as unknown as Record<string, unknown>),
     ).toBe(false);

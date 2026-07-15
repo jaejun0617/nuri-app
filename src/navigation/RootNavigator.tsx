@@ -119,6 +119,8 @@ export type RootStackParamList = {
         access_token?: string | string[];
         refresh_token?: string | string[];
         code?: string | string[];
+        token_hash?: string | string[];
+        type?: string | string[];
         provider?: string | string[];
         error?: string | string[];
         error_code?: string | string[];

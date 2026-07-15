@@ -114,6 +114,16 @@ function resolveTrustTone(
   return 'neutral';
 }
 
+function buildPublicLocationDisclosureLabel(
+  item: AnimalHospitalPublicHospital,
+): string {
+  if (item.links.externalMapUrl || item.links.providerPlaceUrl) {
+    return '정확한 주소는 길찾기에서 확인해 주세요.';
+  }
+
+  return '정확한 위치 정보는 확인 중이에요.';
+}
+
 export function buildAnimalHospitalCardViewModel(
   item: AnimalHospitalPublicHospital,
 ): AnimalHospitalCardViewModel {
@@ -139,7 +149,7 @@ export function buildAnimalHospitalDetailViewModel(
     trustTone: resolveTrustTone(item.publicTrust.publicLabel),
     statusSummary: item.statusSummary,
     distanceLabel: item.distanceLabel,
-    address: item.address,
+    address: buildPublicLocationDisclosureLabel(item),
     phoneLabel:
       formatAnimalHospitalPhoneLabel(item.officialPhone) ?? '전화번호 확인 중',
     trustDescription: item.publicTrust.description,

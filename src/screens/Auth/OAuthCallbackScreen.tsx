@@ -68,6 +68,8 @@ export default function OAuthCallbackScreen({ navigation, route }: Props) {
           accessToken: readParam(route.params?.access_token),
           refreshToken: readParam(route.params?.refresh_token),
           code: readParam(route.params?.code),
+          tokenHash: readParam(route.params?.token_hash),
+          verificationType: readParam(route.params?.type),
           provider,
         });
         if (!active) return;
