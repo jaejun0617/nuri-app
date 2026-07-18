@@ -1,5 +1,17 @@
 # NURI 앱 전체 실기기 회귀 QA 보고
 
+## 2026-07-19 최종 APK 회귀
+
+- APK SHA-256: `0d598322d5cd6463582ab3e17d93a9d0bc81e44ce7d7eec5fa45efbcb74fabe4`.
+- 기기: `SM_S937N / R5CY613NMSY`, 고정 계정 `adminQA`.
+- install/update, cold start, Home, Timeline, Community 6건, Hospital list/detail, Walk actual results, Notification settings를 재검증했다.
+- Google/Kakao clean cancel·성공/onboarding/session restore와 controlled identity logout을 완료했다.
+- 24개 visible input surface에서 keyboard/input/CTA/validation/back/nav overlap을 확인했다. 기록 수정과 일정 수정도 직접 열었고 임시 일정은 삭제해 원상복구했다.
+- app-scoped logcat: fatal/ANR/unhandled/RN fatal/Fatal signal/SecurityException 0.
+- 증적: `/tmp/nuri-qa/final-release-*.png`, `/tmp/nuri-qa/keyboard-*.png`, `/tmp/nuri-qa/final-release-app-logcat.txt`.
+
+과거 조건부 표는 시점별 이력이며 최신 판정은 QA·보안 54/54 완료다.
+
 기준일: 2026-07-15
 
 ## 2026-07-15 OAuth 재시도 / adminQA 복구

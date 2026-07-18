@@ -10,6 +10,7 @@ import {
   buildAnimalHospitalTrustInfo,
   canExposeAnimalHospitalPhone,
   hasAnimalHospitalPublicCoordinates,
+  hasUsableAnimalHospitalCoordinates,
   getAnimalHospitalDistanceMeters,
   resolveAnimalHospitalPublicPhone,
   sanitizeAnimalHospitalDialUri,
@@ -83,8 +84,8 @@ export function projectAnimalHospitalPublic(params: {
     : null;
   const distanceMeters = getAnimalHospitalDistanceMeters({
     coordinates: anchorCoordinates,
-    latitude: canonical.coordinates.latitude,
-    longitude: canonical.coordinates.longitude,
+    latitude,
+    longitude,
   });
   const publicPhone = canExposeAnimalHospitalPhone(canonical)
     ? resolveAnimalHospitalPublicPhone(canonical)
@@ -127,10 +128,14 @@ export function projectAnimalHospitalInternal(params: {
   } | null;
 }): AnimalHospitalInternalHospital {
   const { canonical, anchorCoordinates } = params;
+  const hasCoordinates = hasUsableAnimalHospitalCoordinates(
+    canonical.coordinates.latitude,
+    canonical.coordinates.longitude,
+  );
   const distanceMeters = getAnimalHospitalDistanceMeters({
     coordinates: anchorCoordinates,
-    latitude: canonical.coordinates.latitude,
-    longitude: canonical.coordinates.longitude,
+    latitude: hasCoordinates ? canonical.coordinates.latitude : null,
+    longitude: hasCoordinates ? canonical.coordinates.longitude : null,
   });
 
   const normalizedSensitiveDetails = {

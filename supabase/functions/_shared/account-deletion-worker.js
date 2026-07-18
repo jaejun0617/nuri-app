@@ -88,7 +88,18 @@ export async function processAccountDeletionBatch(input) {
     JSON.stringify({
       scope: 'account-deletion-worker',
       event: 'batch_complete',
-      summary,
+      workerId,
+      durationMs: summary.durationMs,
+      finalizer: {
+        claimed: finalizer.claimed,
+        succeeded: finalizer.succeeded,
+        failed: finalizer.failed,
+      },
+      cleanup: {
+        claimed: cleanup.claimed,
+        succeeded: cleanup.succeeded,
+        failed: cleanup.failed,
+      },
     }),
   );
 
@@ -126,7 +137,8 @@ async function runFinalizerPhase(input) {
           scope: 'account-deletion-worker',
           phase: 'finalizer',
           event: 'request_completed',
-          ...result,
+          requestId: row.request_id,
+          status: result.status,
         }),
       );
     } catch (error) {
@@ -146,9 +158,7 @@ async function runFinalizerPhase(input) {
           phase: 'finalizer',
           event: 'request_failed',
           requestId: row.request_id,
-          userId: row.user_id,
           errorCode: normalized.code,
-          errorMessage: normalized.message,
         }),
       );
     }
@@ -261,7 +271,7 @@ async function removeCleanupChunk(supabase, bucketName, items) {
         phase: 'cleanup',
         event: 'missing_objects_treated_as_success',
         bucketName,
-        paths,
+        pathCount: paths.length,
       }),
     );
 
@@ -306,8 +316,8 @@ async function removeCleanupChunk(supabase, bucketName, items) {
         errorCode: normalized.code,
         errorMessage: normalized.message,
       });
-    } catch (error) {
-      const normalized = normalizeStorageError(error);
+    } catch (cleanupError) {
+      const normalized = normalizeStorageError(cleanupError);
       outcomes.push({
         cleanupItemId: item.cleanup_item_id,
         requestId: item.request_id,
@@ -344,7 +354,6 @@ async function completeCleanupItem(supabase, outcome) {
         cleanupItemId: outcome.cleanupItemId,
         requestId: outcome.requestId,
         errorCode: normalized.code,
-        errorMessage: normalized.message,
       }),
     );
     throw error;

@@ -107,4 +107,36 @@ describe('animalHospital public projection', () => {
     expect(projected.links.callUri).toBe('tel:0212345678');
     expect(projected.links.externalMapUrl).toContain('37.55');
   });
+
+  it('0,0 좌표는 public 지도와 거리 계산에서 좌표 없음으로 처리한다', () => {
+    const canonical = mapOfficialAnimalHospitalSourceToCanonical({
+      provider: 'official-localdata',
+      providerRecordId: 'official-zero-coordinate',
+      sourceUpdatedAt: '2026-07-19T00:00:00.000Z',
+      ingestedAt: '2026-07-19T00:00:00.000Z',
+      name: '좌표확인필요동물병원',
+      roadAddress: '서울특별시 중구 세종대로 1',
+      operationStatusText: '영업/정상',
+      officialPhone: '02-1234-0000',
+      coordinates: {
+        latitude: 0,
+        longitude: 0,
+        crs: 'WGS84',
+      },
+    }).canonicalHospital;
+
+    const projected = projectAnimalHospitalPublic({
+      canonical,
+      anchorCoordinates: {
+        latitude: 37.5665,
+        longitude: 126.978,
+      },
+    });
+
+    expect(projected.latitude).toBeNull();
+    expect(projected.longitude).toBeNull();
+    expect(projected.distanceMeters).toBeNull();
+    expect(projected.distanceLabel).toBe('거리 확인 중');
+    expect(projected.links.externalMapUrl).toBeNull();
+  });
 });

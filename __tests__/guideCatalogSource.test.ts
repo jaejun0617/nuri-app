@@ -41,7 +41,6 @@ describe('guide catalog source of truth', () => {
       upsertManagedPetCareGuide: jest.fn(),
     }));
 
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const service = require('../src/services/guides/service') as typeof import('../src/services/guides/service');
     return {
       service,

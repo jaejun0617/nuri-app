@@ -1,5 +1,16 @@
 # NURI 앱 최종 Release Gate QA 보고
 
+## 2026-07-19 최종 Closeout
+
+- APK SHA-256: `0d598322d5cd6463582ab3e17d93a9d0bc81e44ce7d7eec5fa45efbcb74fabe4`.
+- Google/Kakao clean cancel 및 실제 성공/onboarding/session restore 완료. Naver/Apple 미노출.
+- 일반 사용자 `TextInput` 구현 23개와 24개 visible screen/sheet/modal surface를 inventory·실기기 검증했다. admin/dev 입력 4개는 앱 내부 일반 사용자 범위에서 제외했다.
+- `adminQA`와 controlled Google/Kakao identities의 opt-in/out, logout revoke, account switch 후 최종 non-revoked 0, cross-user active binding 0.
+- Home/Timeline/Community/Hospital/Walk/Weather/Growth/Notification/Settings 최종 회귀 완료.
+- TypeScript, lint, 64 suites/249 tests, release build, Supabase dry-run/security smoke 통과. app-scoped fatal/ANR/unhandled/RN fatal/Fatal signal 0.
+
+아래의 이전 조건부 판정은 과거 시도 이력이다. 현재 criterion은 기능 74/74, QA·보안 54/54, 문서 21/21이다.
+
 기준일: 2026-07-15
 
 ## 2026-07-15 OAuth 보강 결과

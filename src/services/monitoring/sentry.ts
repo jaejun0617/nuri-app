@@ -66,17 +66,13 @@ export function registerSentryNavigation(
   navigationIntegration.registerNavigationContainer(navigationRef);
 }
 
-export function setMonitoringUser(params: {
-  id: string | null;
-  email?: string | null;
-}): void {
+export function setMonitoringUser(params: { id: string | null }): void {
   if (sentryEnabled && sentryInitialized) {
     if (!params.id) {
       Sentry.setUser(null);
     } else {
       Sentry.setUser({
         id: params.id,
-        email: params.email ?? undefined,
       });
     }
   }
@@ -85,7 +81,6 @@ export function setMonitoringUser(params: {
     crashlytics().setUserId(params.id ?? '');
     crashlytics().setAttributes({
       userId: params.id ?? '',
-      email: params.email ?? '',
     });
   }
 }
@@ -158,9 +153,9 @@ export function isMonitoringEnabled(): boolean {
   );
 }
 
-export function wrapWithSentry<T extends React.ComponentType<any>>(
-  component: T,
-): T {
+export function wrapWithSentry(
+  component: React.ComponentType<Record<string, unknown>>,
+): React.ComponentType<Record<string, unknown>> {
   if (!sentryEnabled) return component;
-  return Sentry.wrap(component) as T;
+  return Sentry.wrap(component);
 }

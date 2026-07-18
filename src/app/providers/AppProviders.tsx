@@ -17,7 +17,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { AppState } from 'react-native';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'styled-components/native';
 
 import { createTheme } from '../theme/theme';
@@ -46,6 +46,10 @@ import {
   withTimeout,
 } from '../../services/app/boot';
 import { showToast } from '../../store/uiStore';
+import {
+  appQueryClient,
+  clearAppQueryCache,
+} from '../../services/query/appQueryClient';
 
 import { useAuthStore } from '../../store/authStore';
 import { resolveSelectedPetId, usePetStore, type Pet } from '../../store/petStore';
@@ -56,17 +60,6 @@ import { useScheduleStore } from '../../store/scheduleStore';
 type Props = {
   children: React.ReactNode;
 };
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: true,
-      refetchOnMount: false,
-    },
-  },
-});
 
 const LOCAL_HYDRATION_TIMEOUT_MS = 3_000;
 const SESSION_READ_TIMEOUT_MS = 4_000;
@@ -202,6 +195,7 @@ export default function AppProviders({ children }: Props) {
     };
 
     const clearUserScopedStores = () => {
+      clearAppQueryCache();
       clearMemorySignedUrlCache();
       clearAllHomeRecordScheduleCaches().catch(captureMonitoringException);
       setPets([], { userId: null });
@@ -283,7 +277,7 @@ export default function AppProviders({ children }: Props) {
       await setProfile({ nickname: null, role: 'user' });
       setProfileSyncState('ready');
       clearUserScopedStores();
-      setMonitoringUser({ id: null, email: null });
+      setMonitoringUser({ id: null });
       setPetErrorMessage(null);
       setPetLoading(false);
       lastUserIdRef.current = null;
@@ -297,7 +291,7 @@ export default function AppProviders({ children }: Props) {
       await setProfile({ nickname: null, role: 'user' });
       setProfileSyncState('idle');
       clearUserScopedStores();
-      setMonitoringUser({ id: null, email: null });
+      setMonitoringUser({ id: null });
       setPetErrorMessage(null);
       setPetLoading(false);
       lastUserIdRef.current = null;
@@ -436,7 +430,6 @@ export default function AppProviders({ children }: Props) {
 
       setMonitoringUser({
         id: session.user.id,
-        email: session.user.email ?? null,
       });
 
       const accountDeletionGate = await loadAccountDeletionGate(session);
@@ -539,7 +532,7 @@ export default function AppProviders({ children }: Props) {
   ]);
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={appQueryClient}>
       <ThemeProvider theme={theme}>{children}</ThemeProvider>
     </QueryClientProvider>
   );

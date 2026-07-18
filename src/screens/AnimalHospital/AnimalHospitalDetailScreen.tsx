@@ -16,6 +16,7 @@ import Screen from '../../components/layout/Screen';
 import NativeLiteMapPreview from '../../components/maps/NativeLiteMapPreview';
 import OptimizedImage from '../../components/images/OptimizedImage';
 import { buildAnimalHospitalDetailViewModel } from '../../domains/animalHospital/presentation';
+import { hasUsableAnimalHospitalCoordinates } from '../../domains/animalHospital/trust';
 import { createAnimalHospitalDetailStyles } from '../../components/animalHospital/styles';
 import { useAnimalHospitalEnrichedItem } from '../../hooks/useAnimalHospitalThumbnail';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -23,29 +24,6 @@ import type { RootScreenRoute } from '../../navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RootScreenRoute<'AnimalHospitalDetail'>;
-
-function hasValidMapPreviewCoordinate(
-  latitude: number | null,
-  longitude: number | null,
-): boolean {
-  if (latitude === null || longitude === null) {
-    return false;
-  }
-
-  const numericLatitude = Number(latitude);
-  const numericLongitude = Number(longitude);
-
-  return (
-    !Number.isNaN(numericLatitude) &&
-    !Number.isNaN(numericLongitude) &&
-    Number.isFinite(numericLatitude) &&
-    Number.isFinite(numericLongitude) &&
-    numericLatitude >= -90 &&
-    numericLatitude <= 90 &&
-    numericLongitude >= -180 &&
-    numericLongitude <= 180
-  );
-}
 
 export default function AnimalHospitalDetailScreen() {
   const navigation = useNavigation<Nav>();
@@ -57,7 +35,10 @@ export default function AnimalHospitalDetailScreen() {
   });
   const displayItem = enrichedItemQuery.data ?? item ?? null;
   const hasMapPreviewCoordinate = displayItem
-    ? hasValidMapPreviewCoordinate(displayItem.latitude, displayItem.longitude)
+    ? hasUsableAnimalHospitalCoordinates(
+        displayItem.latitude,
+        displayItem.longitude,
+      )
     : false;
   const canRenderNativeMapPreview =
     hasMapPreviewCoordinate && Platform.OS !== 'android';

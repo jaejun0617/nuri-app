@@ -1,5 +1,18 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-07-19 Final Release Gate
+
+- [x] Google/Kakao 실제 성공, clean cancel, callback, onboarding, session restore.
+- [x] Google/Kakao만 public 노출, Naver/Apple 미노출.
+- [x] 일반 사용자 입력 구현 inventory와 24개 visible surface keyboard/back/nav sweep.
+- [x] `adminQA` opt-in/out, permission, register, logout revoke 및 controlled account switch isolation.
+- [x] 최신 release APK 핵심 도메인 회귀, app-scoped fatal/ANR 0.
+- [x] 병원 public-safe projection과 `(0,0)` coordinate fallback.
+- [x] typecheck, lint 0 warning/error, 64 suites/249 tests, release build/install.
+- [x] Supabase remote up to date, destructive diff 0, anon admin/write smoke 차단.
+
+Artifact SHA-256: `0d598322d5cd6463582ab3e17d93a9d0bc81e44ce7d7eec5fa45efbcb74fabe4`. 현재 승인 범위의 release criterion은 모두 완료다. actual push, broadcast/segment, hard delete, 디자인·폰트, Play Store는 정책 비활성 또는 별도 승인 범위다.
+
 ## 2026-07-15 OAuth 보강 기준
 
 - release APK build/install: 성공.
@@ -760,7 +773,7 @@
 - [ ] 전체 TextInput keyboard/navigation sweep
   - 로그인, NicknameSetup, PetCreate 일부 입력/validation/back은 확인
   - 게시글 작성/수정, 댓글, 신고, 검색, 건강/체중/날짜, 펫 수정, 닉네임 변경, 탈퇴 확인 등 전체 노출 route sweep은 완료하지 못했다.
-- [ ] notification token isolation E2E
+- [x] notification token isolation E2E (2026-07-19: logout revoke, controlled account switch, cross-user active binding 0)
   - `adminQA` 재로그인 사용자 입력이 완료되지 않아 opt-in/out, logout revoke, account switch ownership을 최신 APK 실기기에서 닫지 못했다.
   - actual push는 계속 비활성이다.
 - [ ] 최종 release regression gate

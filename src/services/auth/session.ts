@@ -21,9 +21,11 @@ import { usePetStore } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
 import { useScheduleStore } from '../../store/scheduleStore';
 import { revokeCurrentDevicePushToken } from '../notifications/pushTokenLifecycle';
+import { clearAppQueryCache } from '../query/appQueryClient';
 
 export async function clearLocalSessionState(): Promise<void> {
-  setMonitoringUser({ id: null, email: null });
+  setMonitoringUser({ id: null });
+  clearAppQueryCache();
   await clearAllRecentPersonalSearches();
   await useAuthStore.getState().signOutLocal();
   usePetStore.getState().clear();

@@ -1,5 +1,13 @@
 # Animal Hospital V1.0 Evidence Pack
 
+## 2026-07-19 Public-safe 보강
+
+- latest release APK에서 list/detail/전화/길찾기/back을 확인했다.
+- public detail은 원시 주소 대신 길찾기 확인 문구를 표시하고 운영시간·야간·응급·특수동물·주차·장비·홈페이지·SNS·raw metadata를 노출하지 않는다.
+- public active 후보 564건 중 `(0,0)` 12건은 데이터 품질 항목으로 확인했다. 앱은 이를 좌표 없음으로 처리해 거리, 지도 링크, 지도 미리보기에 사용하지 않는다.
+- 검증되지 않은 좌표를 생성하거나 전국 bulk correction을 수행하지 않았다.
+- `animalHospitalProjection` zero-coordinate test를 추가했고 전체 64 suites/249 tests를 통과했다.
+
 작성일: 2026-04-28
 
 ## Closeout 판정

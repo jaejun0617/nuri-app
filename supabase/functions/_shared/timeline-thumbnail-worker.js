@@ -209,7 +209,13 @@ export async function processThumbnailBatch(input) {
     JSON.stringify({
       scope: 'timeline-thumbnail-worker',
       event: 'batch_complete',
-      ...summary,
+      requestedLimit: summary.requestedLimit,
+      claimed: summary.claimed,
+      success: summary.success,
+      recovered: summary.recovered,
+      skipped: summary.skipped,
+      failed: summary.failed,
+      durationMs: summary.durationMs,
     }),
   );
 
@@ -226,9 +232,7 @@ async function processSingleRow(input) {
         JSON.stringify({
           scope: 'timeline-thumbnail-worker',
           event: 'row_skipped',
-          id: row.id,
           reason: 'already_ready',
-          thumbnailPath: row.timeline_thumb_path,
         }),
       );
 
@@ -248,8 +252,6 @@ async function processSingleRow(input) {
       JSON.stringify({
         scope: 'timeline-thumbnail-worker',
         event: 'row_ready',
-        id: row.id,
-        thumbnailPath,
       }),
     );
 
@@ -266,9 +268,7 @@ async function processSingleRow(input) {
       JSON.stringify({
         scope: 'timeline-thumbnail-worker',
         event: 'row_failed',
-        id: row.id,
         code: normalized.code,
-        message: normalized.message,
       }),
     );
 

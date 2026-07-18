@@ -79,18 +79,21 @@ Deno.serve(async request => {
       summary,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'unknown worker error';
+    const errorCode =
+      error && typeof error === 'object' && 'code' in error
+        ? String(error.code ?? 'worker_failed')
+        : 'worker_failed';
     console.error(
       JSON.stringify({
         scope: 'timeline-thumbnail-worker',
         event: 'batch_crash',
-        message,
+        errorCode,
       }),
     );
     return jsonResponse(
       {
         ok: false,
-        error: message,
+        error: 'timeline_thumbnail_worker_failed',
       },
       500,
     );

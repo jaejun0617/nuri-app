@@ -90,11 +90,6 @@ std::shared_ptr<TurboModule> ${specName}_ModuleProvider(
 `;
 }
 
-function pathExists(targetPath) {
-  return fs.existsSync(targetPath);
-}
-
-
 for (const spec of specs) {
   const jniDir = path.join(projectRoot, ...spec.packagePath);
   const cmakeFile = path.join(jniDir, 'CMakeLists.txt');

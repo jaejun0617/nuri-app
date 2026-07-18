@@ -1,5 +1,13 @@
 # Android Navigation / Keyboard / Back QA Report
 
+## 2026-07-19 전체 입력 Sweep
+
+- 소스 inventory: `TextInput` 사용 TSX 27개. 일반 사용자 입력 구현 23개, 앱 내부 비노출 admin/dev 입력 4개.
+- 실기기 surface: sign-in/up, reset request/form, social nickname/pet onboarding, nickname/pet edit, date/memorial, weight, record create/edit/tag, post/comment/report, hospital/walk search, schedule create/edit, guestbook, guide search, weather record, withdrawal confirm 등 24개.
+- 모든 surface에서 keyboard bar/avoiding, input·CTA visibility, scroll, validation, keyboard back, modal/screen back, bottom nav overlap을 확인했다.
+- 기록/일정 edit는 실제 controlled QA data에서 확인했고 임시 일정은 삭제해 원상복구했다. 비밀번호 변경·탈퇴 실행·원본 기록 수정은 하지 않았다.
+- 판정: dead-end, keyboard 잔존, CTA 완전 가림, nav bar overlap 0건.
+
 기준일: 2026-07-15
 기준 기기: `SM_S937N / R5CY613NMSY`
 

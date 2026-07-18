@@ -177,14 +177,32 @@ export function buildAnimalHospitalStatusSummary(
 export function hasAnimalHospitalPublicCoordinates(
   canonical: AnimalHospitalCanonicalHospital,
 ): boolean {
-  if (
-    canonical.coordinates.latitude === null ||
-    canonical.coordinates.longitude === null
-  ) {
+  return (
+    canonical.coordinates.normalizationStatus !== 'missing' &&
+    hasUsableAnimalHospitalCoordinates(
+      canonical.coordinates.latitude,
+      canonical.coordinates.longitude,
+    )
+  );
+}
+
+export function hasUsableAnimalHospitalCoordinates(
+  latitude: number | null,
+  longitude: number | null,
+): boolean {
+  if (latitude === null || longitude === null) {
     return false;
   }
 
-  return canonical.coordinates.normalizationStatus !== 'missing';
+  return (
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude) &&
+    latitude >= -90 &&
+    latitude <= 90 &&
+    longitude >= -180 &&
+    longitude <= 180 &&
+    !(latitude === 0 && longitude === 0)
+  );
 }
 
 export function getAnimalHospitalDistanceMeters(params: {
@@ -198,7 +216,16 @@ export function getAnimalHospitalDistanceMeters(params: {
   longitude: number | null;
 }): number | null {
   const { coordinates, latitude, longitude } = params;
-  if (!coordinates || latitude === null || longitude === null) {
+  if (
+    !coordinates ||
+    latitude === null ||
+    longitude === null ||
+    !hasUsableAnimalHospitalCoordinates(latitude, longitude) ||
+    !hasUsableAnimalHospitalCoordinates(
+      coordinates.latitude,
+      coordinates.longitude,
+    )
+  ) {
     return null;
   }
 
@@ -236,11 +263,18 @@ export function resolveCoordinateNormalizationStatus(params: {
   fallbackLongitude: number | null;
   crs: AnimalHospitalCanonicalHospital['coordinates']['source'] | 'official-wgs84' | 'epsg5174-pending' | 'unknown';
 }): AnimalHospitalCoordinateNormalizationStatus {
-  if (params.latitude !== null && params.longitude !== null) {
+  if (
+    hasUsableAnimalHospitalCoordinates(params.latitude, params.longitude)
+  ) {
     return 'exact';
   }
 
-  if (params.fallbackLatitude !== null && params.fallbackLongitude !== null) {
+  if (
+    hasUsableAnimalHospitalCoordinates(
+      params.fallbackLatitude,
+      params.fallbackLongitude,
+    )
+  ) {
     return 'fallback';
   }
 

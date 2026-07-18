@@ -1,5 +1,12 @@
 # 날씨 API 비용 방어 구조
 
+## 2026-07-19 Release Gate 상태
+
+- Android Home에서 실제 날씨, stale preview, focus refresh 및 활동 추천 진입을 확인했다.
+- provider 오류 시 cache/fallback으로 화면이 유지되고 반복 network loop가 없음을 코드·tests·logcat으로 확인했다.
+- 날씨 활동 기록 title/note 입력의 keyboard/back을 실기기에서 확인했다.
+- Edge Function cache 확장은 별도 성능 고도화이며 현재 release 완료율 분모에 포함하지 않는다.
+
 문서 상태: v1.0 close, remote 적용/Android QA 완료
 최종 업데이트: 2026-04-30
 적용 범위: 날씨 홈 카드, 날씨 상세, 실내 활동 추천의 날씨 bundle 조회

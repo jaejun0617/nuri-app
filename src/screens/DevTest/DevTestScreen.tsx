@@ -40,14 +40,20 @@ type PickedImage = {
   base64: string;
 };
 
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message.trim()
+    ? error.message
+    : fallback;
+}
+
 export default function DevTestScreen() {
   const navigation = useNavigation<Nav>();
 
   // ---------------------------------------------------------
   // 0) 입력 상태
   // ---------------------------------------------------------
-  const [email, setEmail] = useState('test@nuri.dev');
-  const [password, setPassword] = useState('password1234');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [nickname, setNickname] = useState('nurilove');
   const [petName, setPetName] = useState('누리');
 
@@ -89,31 +95,31 @@ export default function DevTestScreen() {
       });
       if (error) throw error;
 
-      pushLog(`회원가입 결과: user=${data.user?.id ?? 'null'}`);
+      pushLog(`회원가입 결과: ${data.user ? '계정 생성됨' : '인증 대기'}`);
       pushLog('※ 이메일 인증 ON이면 인증 후 로그인 가능');
       Alert.alert('OK', '회원가입 요청 완료. 로그 확인');
-    } catch (e: any) {
-      pushLog(`❌ 회원가입 실패: ${e?.message ?? String(e)}`);
-      Alert.alert('에러', e?.message ?? '회원가입 실패');
+    } catch (error: unknown) {
+      const message = getErrorMessage(error, '회원가입 실패');
+      pushLog(`❌ 회원가입 실패: ${message}`);
+      Alert.alert('에러', message);
     }
   }, [email, password, nickname, pushLog]);
 
   const onSignIn = useCallback(async () => {
     try {
       pushLog('로그인 시도...');
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-      console.log('LOGIN DATA:', data);
-      console.log('LOGIN ERROR:', error);
       if (error) throw error;
 
-      pushLog(`✅ 로그인 성공: user=${data.user?.id}`);
+      pushLog('✅ 로그인 성공');
       Alert.alert('OK', '로그인 성공');
-    } catch (e: any) {
-      pushLog(`❌ 로그인 실패: ${e?.message ?? String(e)}`);
-      Alert.alert('에러', e?.message ?? '로그인 실패');
+    } catch (error: unknown) {
+      const message = getErrorMessage(error, '로그인 실패');
+      pushLog(`❌ 로그인 실패: ${message}`);
+      Alert.alert('에러', message);
     }
   }, [email, password, pushLog]);
 
@@ -124,9 +130,10 @@ export default function DevTestScreen() {
       if (error) throw error;
       pushLog('✅ 로그아웃 완료');
       Alert.alert('OK', '로그아웃 완료');
-    } catch (e: any) {
-      pushLog(`❌ 로그아웃 실패: ${e?.message ?? String(e)}`);
-      Alert.alert('에러', e?.message ?? '로그아웃 실패');
+    } catch (error: unknown) {
+      const message = getErrorMessage(error, '로그아웃 실패');
+      pushLog(`❌ 로그아웃 실패: ${message}`);
+      Alert.alert('에러', message);
     }
   }, [pushLog]);
 
@@ -136,23 +143,22 @@ export default function DevTestScreen() {
   const onFetchProfile = useCallback(async () => {
     try {
       const user = await requireUser();
-      pushLog(`profiles 조회: user=${user.id}`);
+      pushLog('profiles 조회 시작');
 
       const { data, error } = await supabase
         .from('profiles')
-        .select('user_id,email,nickname,avatar_url,created_at')
+        .select('user_id,nickname,avatar_url,created_at')
         .eq('user_id', user.id)
         .single();
 
       if (error) throw error;
 
-      pushLog(
-        `✅ profiles: nickname=${data.nickname} email=${data.email ?? ''}`,
-      );
+      pushLog('✅ profiles 조회 성공');
       Alert.alert('OK', `반가워요! ${data.nickname}님`);
-    } catch (e: any) {
-      pushLog(`❌ profiles 조회 실패: ${e?.message ?? String(e)}`);
-      Alert.alert('에러', e?.message ?? 'profiles 조회 실패');
+    } catch (error: unknown) {
+      const message = getErrorMessage(error, 'profiles 조회 실패');
+      pushLog(`❌ profiles 조회 실패: ${message}`);
+      Alert.alert('에러', message);
     }
   }, [pushLog, requireUser]);
 
@@ -169,11 +175,12 @@ export default function DevTestScreen() {
 
       if (error) throw error;
 
-      pushLog(`✅ pets insert OK: petId=${data.id}`);
+      pushLog('✅ pets insert 성공');
       Alert.alert('OK', `펫 생성 완료: ${data.name}`);
-    } catch (e: any) {
-      pushLog(`❌ pets insert 실패: ${e?.message ?? String(e)}`);
-      Alert.alert('에러', e?.message ?? 'pets insert 실패');
+    } catch (error: unknown) {
+      const message = getErrorMessage(error, 'pets insert 실패');
+      pushLog(`❌ pets insert 실패: ${message}`);
+      Alert.alert('에러', message);
     }
   }, [petName, pushLog, requireUser]);
 
@@ -191,11 +198,11 @@ export default function DevTestScreen() {
       if (error) throw error;
 
       pushLog(`✅ pets count=${data.length}`);
-      if (data[0]) pushLog(`최근 펫: ${data[0].name} (${data[0].id})`);
       Alert.alert('OK', `pets=${data.length}개`);
-    } catch (e: any) {
-      pushLog(`❌ pets select 실패: ${e?.message ?? String(e)}`);
-      Alert.alert('에러', e?.message ?? 'pets select 실패');
+    } catch (error: unknown) {
+      const message = getErrorMessage(error, 'pets select 실패');
+      pushLog(`❌ pets select 실패: ${message}`);
+      Alert.alert('에러', message);
     }
   }, [pushLog, requireUser]);
 
@@ -220,9 +227,10 @@ export default function DevTestScreen() {
       });
 
       Alert.alert('OK', `동의 이력 ${rows.length}건을 불러왔어요.`);
-    } catch (e: any) {
-      pushLog(`❌ 동의 이력 조회 실패: ${e?.message ?? String(e)}`);
-      Alert.alert('에러', e?.message ?? '동의 이력 조회 실패');
+    } catch (error: unknown) {
+      const message = getErrorMessage(error, '동의 이력 조회 실패');
+      pushLog(`❌ 동의 이력 조회 실패: ${message}`);
+      Alert.alert('에러', message);
     }
   }, [pushLog]);
 
@@ -312,7 +320,7 @@ export default function DevTestScreen() {
 
       // 3) 업로드
       const path = `${user.id}/${pet.id}/${Date.now()}_${picked.name}`;
-      pushLog(`업로드 시작: bucket=${BUCKET_PET} path=${path}`);
+      pushLog(`업로드 시작: bucket=${BUCKET_PET}`);
 
       const arrayBuffer = base64ToArrayBuffer(picked.base64);
 
@@ -333,25 +341,25 @@ export default function DevTestScreen() {
         .eq('id', pet.id);
 
       if (updErr) throw updErr;
-      pushLog(`✅ pets.profile_image_url 업데이트 OK (petId=${pet.id})`);
+      pushLog('✅ pets.profile_image_url 업데이트 성공');
 
       // 5) Signed URL 생성
-      const { data: signed, error: signErr } = await supabase.storage
+      const { error: signErr } = await supabase.storage
         .from(BUCKET_PET)
         .createSignedUrl(path, 60 * 60);
 
       if (signErr) throw signErr;
 
       pushLog('✅ Signed URL 생성 OK');
-      pushLog(`signedUrl=${signed.signedUrl}`);
 
       Alert.alert(
         'OK',
-        `업로드 완료!\npet=${pet.name}\n(로그에서 Signed URL 확인)`,
+        `업로드 완료!\npet=${pet.name}`,
       );
-    } catch (e: any) {
-      pushLog(`❌ 업로드 실패: ${e?.message ?? String(e)}`);
-      Alert.alert('에러', e?.message ?? '업로드 실패');
+    } catch (error: unknown) {
+      const message = getErrorMessage(error, '업로드 실패');
+      pushLog(`❌ 업로드 실패: ${message}`);
+      Alert.alert('에러', message);
     }
   }, [base64ToArrayBuffer, pickImageBase64, pushLog, requireUser]);
 

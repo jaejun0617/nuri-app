@@ -1,5 +1,13 @@
 # Social Login v1.0
 
+## 2026-07-19 Release QA 확정
+
+- public provider는 Google/Kakao만 사용한다. Naver/Apple은 노출하지 않는다.
+- Google/Kakao 모두 provider 진입, clean Android back cancel return, spinner 종료, 실제 callback/session 성공을 실기기에서 확인했다.
+- controlled 신규 identity는 `NicknameSetup -> PetCreate -> Home`을 통과했고 force-stop 후 session restore를 확인했다.
+- provider email/token/account 식별 정보는 로그·문서·Git 증적에서 제외한다.
+- OAuth callback loop, 중복 session, crash는 발견되지 않았다.
+
 ## Scope
 
 - v1.0 app-side provider: Google, Kakao, Naver

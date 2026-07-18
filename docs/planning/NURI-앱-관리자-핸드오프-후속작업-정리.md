@@ -1,5 +1,9 @@
 # NURI 앱 관리자 핸드오프 후속작업 정리
 
+## 2026-07-19 동결 상태
+
+관리자 홈페이지 단계별 본구현과 Android moderation integration은 종료했다. 관리자 외부 custom domain, 유료 access/monitoring, 상시 2인 운영은 앱 release blocker가 아니다. 이후 관리자 작업은 운영 장애, 보안 패치, 실제 회귀 수정만 허용하며 신규 구현 phase를 제안하지 않는다.
+
 기준일: 2026-07-14
 
 ## 관리자 홈페이지 판정
