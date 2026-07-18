@@ -93,6 +93,16 @@ describe('app boot helpers', () => {
       resolveBootRoute({
         isLoggedIn: true,
         nickname: null,
+        profileSyncStatus: 'error',
+        petsCount: 0,
+        petErrorMessage: null,
+      }),
+    ).toEqual({ name: 'AppTabs', params: undefined });
+
+    expect(
+      resolveBootRoute({
+        isLoggedIn: true,
+        nickname: null,
         profileSyncStatus: 'ready',
         petsCount: 0,
         petErrorMessage: null,

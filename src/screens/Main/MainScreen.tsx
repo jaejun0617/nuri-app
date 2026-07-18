@@ -77,7 +77,9 @@ export default function MainScreen() {
       if (!isLoggedIn) {
         return undefined;
       }
-      if (profileSyncStatus === 'idle' || profileSyncStatus === 'loading') {
+      // A failed profile fetch must never be interpreted as a new account.
+      // Only a confirmed server snapshot may open onboarding routes.
+      if (profileSyncStatus !== 'ready') {
         return undefined;
       }
 

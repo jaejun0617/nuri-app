@@ -1,5 +1,17 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-07-19 Existing Google Account Re-login Regression
+
+- [x] controlled Google QA 계정이 remote auth/profile/pet에 유지되고 삭제·비활성 상태가 아님을 server-side로 확인.
+- [x] Supabase auth callback의 profile/pet read를 auth lock 밖으로 지연.
+- [x] profile `idle/loading/error` 상태를 신규 onboarding 근거로 사용하지 않음.
+- [x] 실제 Android logout -> Google chooser -> callback -> 기존 Home/pet 복구.
+- [x] force-stop 후 Google session 및 기존 pet 복원.
+- [x] controlled Google QA pet 생일 `2016-10-21` 앱 UI 저장 및 Home/remote 확인.
+- [x] typecheck, lint, Jest `64 suites / 249 tests`, Supabase dry-run, release build/install, fatal/ANR 0.
+
+Artifact SHA-256: `ca28a6f2f1289c3aa5240de8930eabbbc946cb6df64d692bdda76a584d705207`. Google QA 생일은 테스트 입력 규칙이며 제품 기본값이 아니다.
+
 ## 2026-07-19 Final Release Gate
 
 - [x] Google/Kakao 실제 성공, clean cancel, callback, onboarding, session restore.

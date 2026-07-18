@@ -1,5 +1,14 @@
 # Social Login v1.0
 
+## 2026-07-19 기존 Google 계정 재로그인 회귀 Closeout
+
+- controlled Google QA 계정은 remote auth/profile/pet에 그대로 존재했고 삭제·비활성 상태가 아니었다.
+- OAuth `SIGNED_IN` callback에서 Supabase auth lock이 유지된 채 profile/pet read를 기다려 timeout되던 문제를 수정했다. auth listener는 callback을 즉시 반환하고 사용자 scoped bootstrap을 다음 event loop에서 수행한다.
+- profile read `error`는 신규 계정 증거가 아니다. 온보딩은 서버 profile snapshot이 `ready`이고 nickname이 비어 있을 때만 시작한다.
+- Android 실기기에서 실제 logout, Google chooser, callback, 기존 Home/pet 복구, force-stop 후 session restore를 통과했다. `NicknameSetup` 재진입은 발생하지 않았다.
+- controlled Google QA 신규 가입/반려동물 입력의 생일은 `2016-10-21`을 사용한다. 일반 사용자 기본값으로 자동 주입하지 않는다.
+- provider 식별 정보와 token은 증적에 기록하지 않는다.
+
 ## 2026-07-19 Release QA 확정
 
 - public provider는 Google/Kakao만 사용한다. Naver/Apple은 노출하지 않는다.

@@ -4,15 +4,25 @@
 
 ## Artifact
 
-- 기준 HEAD: `388d9c7`, 최종 HEAD는 closeout commit.
+- 기준 HEAD: `02ea2ad`, 최종 HEAD는 closeout commit.
 - package: `com.nuri.app`.
 - versionName/versionCode: `1.0` / `1`.
 - APK: `android/app/build/outputs/apk/release/app-release.apk`.
-- 크기: 114,810,904 bytes.
-- SHA-256: `0d598322d5cd6463582ab3e17d93a9d0bc81e44ce7d7eec5fa45efbcb74fabe4`.
+- 크기: 114,819,272 bytes.
+- SHA-256: `ca28a6f2f1289c3aa5240de8930eabbbc946cb6df64d692bdda76a584d705207`.
 - 기기: `SM_S937N / R5CY613NMSY`.
 - 계정: 고정 `adminQA`; controlled Google/Kakao identities는 OAuth·account-switch QA에만 사용하고 모두 logout/revoke했다.
 - 증적: `/tmp/nuri-qa/`이며 Git에 포함하지 않는다.
+
+## 기존 Google 계정 재로그인 회귀
+
+- remote 확인 결과 controlled Google QA 계정, profile, 반려동물 2건은 삭제되지 않고 유지돼 있었다.
+- 원인은 Supabase auth callback 내부에서 사용자 scoped read를 기다려 auth lock timeout이 발생한 것이며, profile `error`가 신규 계정 onboarding으로 오인됐다.
+- auth callback을 동기적으로 반환하고 bootstrap read를 auth lock 밖으로 지연했다. profile fetch는 유효 session 확인 후 1회 재시도한다.
+- onboarding route는 `profileSyncStatus='ready'` snapshot에서 nickname이 비어 있을 때만 허용한다.
+- 최신 APK에서 실제 Google 재로그인 후 기존 Home/pet이 복구됐고 force-stop/session restore도 통과했다. profile/pet timeout, fatal, ANR, unhandled promise는 0건이다.
+- controlled Google QA 반려동물 1건에 생일 `2016-10-21`을 앱 UI로 저장하고 Home/remote 반영을 확인했다. 이는 QA 입력값이며 제품 default가 아니다.
+- QA 종료 후 controlled Google 계정은 로그아웃했고 앱을 고정 일반 사용자 계정 `adminQA` Home으로 복구했다. 계정 전환 뒤 Google pet 데이터 잔존은 0건이다.
 
 ## 조건부 QA 4건 Closeout
 
@@ -65,7 +75,7 @@
 | --- | --- |
 | typecheck | 통과 |
 | lint | error 0 / warning 0 |
-| tests | 64 suites / 249 tests / failure 0 |
+| tests | 64 suites / 249 tests / failure 0, app boot regression 추가 |
 | release build | 성공, 949 tasks |
 | install/cold start | 성공 |
 | app-scoped logcat | Fatal/ANR/unhandled/RN fatal/Fatal signal/SecurityException 0 |

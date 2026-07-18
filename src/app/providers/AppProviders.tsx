@@ -150,6 +150,7 @@ export default function AppProviders({ children }: Props) {
   useEffect(() => {
     let unsub: { unsubscribe: () => void } | null = null;
     let alive = true;
+    const pendingAuthTransitionTimers = new Set<ReturnType<typeof setTimeout>>();
 
     const resolveValidSession = async () => {
       const { data } = await withTimeout(
@@ -233,6 +234,31 @@ export default function AppProviders({ children }: Props) {
       setProfileSyncState('loading');
       setPetLoading(true);
 
+      const fetchProfileSafely = async () => {
+        try {
+          return await withTimeout(
+            fetchMyProfile(userId),
+            USER_SCOPED_FETCH_TIMEOUT_MS,
+            'fetchMyProfile',
+          );
+        } catch (firstError: unknown) {
+          const { data: validatedUser } = await withTimeout(
+            supabase.auth.getUser(),
+            SESSION_VALIDATE_TIMEOUT_MS,
+            'auth.getUser(profile retry)',
+          );
+          if (validatedUser.user?.id !== userId) {
+            throw firstError;
+          }
+
+          return withTimeout(
+            fetchMyProfile(userId),
+            USER_SCOPED_FETCH_TIMEOUT_MS,
+            'fetchMyProfile(retry)',
+          );
+        }
+      };
+
       const fetchPetsSafely = async () => {
         const first = await withTimeout(
           fetchMyPets(userId),
@@ -261,11 +287,7 @@ export default function AppProviders({ children }: Props) {
       };
 
       const [profileResult, petsResult] = await Promise.allSettled([
-        withTimeout(
-          fetchMyProfile(userId),
-          USER_SCOPED_FETCH_TIMEOUT_MS,
-          'fetchMyProfile',
-        ),
+        fetchProfileSafely(),
         fetchPetsSafely(),
       ]);
 
@@ -462,19 +484,30 @@ export default function AppProviders({ children }: Props) {
     };
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      async (event, nextSession) => {
-        try {
-          await localHydrationPromiseRef.current;
-          const resolvedSession = nextSession?.user
-            ? nextSession
-            : await resolveValidSession();
-          await applySessionTransition(event, resolvedSession);
-        } catch (error: unknown) {
-          captureMonitoringException(error);
-          setAuthBooted(true);
-          setPetBooted(true);
-          setPetLoading(false);
-        }
+      (event, nextSession) => {
+        // Supabase holds its auth lock while this callback runs. Defer every
+        // Supabase read so OAuth SIGNED_IN cannot deadlock profile/pet bootstrap.
+        beginTransition();
+        const timer = setTimeout(() => {
+          pendingAuthTransitionTimers.delete(timer);
+          if (!alive) return;
+
+          const runTransition = async () => {
+            await localHydrationPromiseRef.current;
+            const resolvedSession = nextSession?.user
+              ? nextSession
+              : await resolveValidSession();
+            await applySessionTransition(event, resolvedSession);
+          };
+
+          runTransition().catch((error: unknown) => {
+            captureMonitoringException(error);
+            setAuthBooted(true);
+            setPetBooted(true);
+            setPetLoading(false);
+          });
+        }, 0);
+        pendingAuthTransitionTimers.add(timer);
       },
     );
 
@@ -508,6 +541,8 @@ export default function AppProviders({ children }: Props) {
 
     return () => {
       alive = false;
+      pendingAuthTransitionTimers.forEach(timer => clearTimeout(timer));
+      pendingAuthTransitionTimers.clear();
       unsubscribeGate();
       if (unsub) unsub.unsubscribe();
     };

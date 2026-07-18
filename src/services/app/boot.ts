@@ -97,8 +97,14 @@ export function resolveBootRoute(input: {
     return { name: 'AppTabs' as const, params: undefined };
   }
 
+  // Profile read failures are not proof that onboarding is incomplete.
+  // Keep the user in the app shell until a confirmed profile snapshot exists.
+  if (input.profileSyncStatus !== 'ready') {
+    return { name: 'AppTabs' as const, params: undefined };
+  }
+
   const trimmedNickname = input.nickname?.trim() ?? '';
-  if (input.profileSyncStatus === 'ready' && !trimmedNickname) {
+  if (!trimmedNickname) {
     return { name: 'NicknameSetup' as const, params: undefined };
   }
 
