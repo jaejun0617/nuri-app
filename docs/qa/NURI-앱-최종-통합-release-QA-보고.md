@@ -24,6 +24,16 @@
 - controlled Google QA 반려동물 1건에 생일 `2016-10-21`을 앱 UI로 저장하고 Home/remote 반영을 확인했다. 이는 QA 입력값이며 제품 default가 아니다.
 - QA 종료 후 controlled Google 계정은 로그아웃했고 앱을 고정 일반 사용자 계정 `adminQA` Home으로 복구했다. 계정 전환 뒤 Google pet 데이터 잔존은 0건이다.
 
+## Kakao 기존 계정 OAuth 재검증
+
+- remote에서 controlled Kakao 계정 1개, 완료 profile, 연결 pet 4건을 확인했다.
+- 최신 APK에서 `adminQA` 로그아웃 후 Kakao OAuth 실제 callback을 완료했고 기존 `kakaoQA` Home과 pet profile이 복원됐다.
+- force-stop 후 session restore를 통과했고 `NicknameSetup` 오진은 발생하지 않았다.
+- 별도 로그아웃 상태에서 Kakao OAuth 시작 직후 Android back으로 취소해 로그인 화면 복귀와 spinner 종료를 확인했다.
+- 성공·취소 logcat에서 fatal, ANR, unhandled promise, RN fatal, profile/pet timeout, OAuth loop는 모두 0건이다.
+- QA 종료 후 앱은 고정 `adminQA` Home으로 복구했으며 Kakao account data 잔존은 0건이다.
+- 증적: `/tmp/nuri-qa/kakao-existing-account-closeout/`.
+
 ## 조건부 QA 4건 Closeout
 
 ### 1. OAuth

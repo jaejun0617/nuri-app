@@ -1,5 +1,15 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-07-19 Kakao Existing Account OAuth Re-verification
+
+- [x] remote Kakao controlled 계정/profile/pet 유지 확인.
+- [x] 실제 Kakao OAuth callback 성공 후 기존 Home/pet 복원.
+- [x] `NicknameSetup` 잘못된 재진입 없음.
+- [x] force-stop 후 Kakao session restore.
+- [x] Kakao OAuth Android back cancel 후 로그인 화면 복귀와 spinner 종료.
+- [x] profile/pet timeout, callback loop, fatal/ANR 0.
+- [x] QA 종료 후 `adminQA` Home 복구 및 cross-account data 혼입 0.
+
 ## 2026-07-19 Existing Google Account Re-login Regression
 
 - [x] controlled Google QA 계정이 remote auth/profile/pet에 유지되고 삭제·비활성 상태가 아님을 server-side로 확인.

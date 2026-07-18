@@ -1,5 +1,14 @@
 # Social Login v1.0
 
+## 2026-07-19 Kakao 기존 계정 회귀 재검증
+
+- remote에 기존 Kakao auth identity, 완료 profile, 연결 pet 데이터가 유지됨을 확인했다.
+- 최신 release APK에서 `카카오로 시작하기` 실제 callback 후 기존 사용자 Home/pet이 복원됐고 `NicknameSetup`으로 이동하지 않았다.
+- force-stop 후 session restore를 통과했다.
+- 별도 로그인 화면에서 Kakao OAuth 시작 직후 Android back cancel을 수행했고 로그인 화면 복귀와 spinner 종료를 확인했다.
+- 성공·취소 session의 profile/pet timeout, callback loop, fatal/ANR은 0건이다.
+- 종료 시 controlled Kakao identity를 로그아웃하고 고정 `adminQA`로 복구했다. provider 식별정보와 token은 증적에 기록하지 않는다.
+
 ## 2026-07-19 기존 Google 계정 재로그인 회귀 Closeout
 
 - controlled Google QA 계정은 remote auth/profile/pet에 그대로 존재했고 삭제·비활성 상태가 아니었다.
