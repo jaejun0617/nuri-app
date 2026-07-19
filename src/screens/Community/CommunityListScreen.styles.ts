@@ -78,9 +78,7 @@ export const styles = StyleSheet.create({
   categoryRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    flexWrap: 'wrap',
-    gap: 12,
+    gap: 6,
     paddingHorizontal: 20,
   },
   categoryLoadingWrap: {
@@ -95,9 +93,9 @@ export const styles = StyleSheet.create({
     lineHeight: 18,
   },
   categoryChip: {
-    minHeight: 40,
+    minHeight: 44,
     borderRadius: 0,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingBottom: 3,
     alignItems: 'center',
     justifyContent: 'center',
@@ -109,7 +107,7 @@ export const styles = StyleSheet.create({
   },
   categoryChipTextActive: {
     fontWeight: '800',
-    letterSpacing: -0.2,
+    letterSpacing: 0,
   },
   categoryChipUnderline: {
     position: 'absolute',

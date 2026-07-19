@@ -1,5 +1,23 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-07-19 Community List/Detail/Comment Redesign
+
+- [x] compact editorial post row와 우측 댓글 수 rail
+- [x] 가로 카테고리 tab과 44px touch target
+- [x] 목록 row별 최신 댓글 N+1 request 제거
+- [x] 상세 flat comment thread와 1-depth reply hierarchy
+- [x] 글쓴이 댓글·답글 NURI accent 및 `글쓴이` badge
+- [x] 게시글 100건, top-level 댓글 200건, 답글 100건 controlled fixture
+- [x] fixture authenticated session/RLS/content policy 통과
+- [x] fixture exact-prefix audit/soft-hide/restore guard
+- [x] 기존 과거 QA 게시글 6건 approval/audit soft-hide, hard delete 0
+- [x] cursor pagination 100건 Android scroll smoke
+- [x] 댓글 input keyboard/CTA/back/nav overlap smoke
+- [x] typecheck, lint, Jest `65 suites / 252 tests`
+- [x] NURI app fatal/ANR/unhandled/RN fatal/Fatal signal 0
+
+DB/RPC/RLS migration, 앱 전체 디자인, 폰트, Play Store 자산, actual push는 변경하지 않았다.
+
 ## 2026-07-19 Kakao Existing Account OAuth Re-verification
 
 - [x] remote Kakao controlled 계정/profile/pet 유지 확인.

@@ -7,9 +7,9 @@ import { useTheme } from 'styled-components/native';
 import AppText from '../../../app/ui/AppText';
 import { useCommunityStore } from '../../../store/communityStore';
 import { formatRelativeTimeFromNow } from '../../../utils/date';
+import { isCommentByPostAuthor } from '../utils/commentHelpers';
 import {
   DETAIL_DIVIDER_COLOR,
-  REPLY_BUBBLE_BEIGE,
   styles,
 } from '../CommunityDetailScreen.styles';
 import CommentActionRow from './CommentActionRow';
@@ -19,6 +19,8 @@ const EMPTY_REPLY = null;
 type Props = {
   replyId: string;
   currentUserId: string | null;
+  postAuthorId: string;
+  authorAccentColor: string;
   onPressReply: (commentId: string) => void;
   onToggleLike: (commentId: string) => void;
   onPressDelete: (commentId: string) => void;
@@ -28,6 +30,8 @@ type Props = {
 function ReplyCommentItemBase({
   replyId,
   currentUserId,
+  postAuthorId,
+  authorAccentColor,
   onPressReply,
   onToggleLike,
   onPressDelete,
@@ -36,10 +40,10 @@ function ReplyCommentItemBase({
   const theme = useTheme();
   const reply = useCommunityStore(s => s.commentEntitiesById[replyId] ?? EMPTY_REPLY);
 
-  const replyMeta = useMemo(() => {
-    if (!reply) return '';
-    return `${reply.authorNickname} · ${formatRelativeTimeFromNow(reply.createdAt)}`;
-  }, [reply]);
+  const createdAtLabel = useMemo(
+    () => (reply ? formatRelativeTimeFromNow(reply.createdAt) : ''),
+    [reply],
+  );
   const avatarSource = useMemo(() => {
     if (!reply?.authorAvatarUrl) return null;
     return {
@@ -49,6 +53,7 @@ function ReplyCommentItemBase({
   }, [reply?.authorAvatarUrl]);
 
   if (!reply) return null;
+  const isPostAuthor = isCommentByPostAuthor(reply.authorId, postAuthorId);
 
   return (
     <View style={styles.replyRow}>
@@ -89,12 +94,45 @@ function ReplyCommentItemBase({
         <View style={styles.replyMetaRow}>
           <AppText
             preset="caption"
+            style={[styles.replyAuthorText, { color: theme.colors.textPrimary }]}
+          >
+            {reply.authorNickname}
+          </AppText>
+          {isPostAuthor ? (
+            <View
+              style={[
+                styles.authorBadge,
+                { backgroundColor: authorAccentColor },
+              ]}
+            >
+              <AppText
+                preset="caption"
+                style={[styles.authorBadgeText, { color: '#FFFFFF' }]}
+              >
+                글쓴이
+              </AppText>
+            </View>
+          ) : null}
+          <AppText
+            preset="caption"
             style={[styles.replyMetaText, { color: theme.colors.textMuted }]}
           >
-            {replyMeta}
+            {createdAtLabel}
           </AppText>
         </View>
-        <View style={[styles.replyBubble, { backgroundColor: REPLY_BUBBLE_BEIGE }]}>
+        <View
+          style={[
+            styles.replyBubble,
+            {
+              backgroundColor: isPostAuthor
+                ? `${authorAccentColor}10`
+                : theme.colors.surface,
+              borderColor: isPostAuthor
+                ? `${authorAccentColor}2E`
+                : theme.colors.border,
+            },
+          ]}
+        >
           <AppText
             preset="body"
             style={[styles.replyContent, { color: theme.colors.textPrimary }]}

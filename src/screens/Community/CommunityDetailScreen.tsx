@@ -664,18 +664,29 @@ export default function CommunityDetailScreen() {
 
         <View style={styles.commentsSection}>
           <View style={styles.commentsHeader}>
-            <AppText
-              preset="headline"
-              style={[styles.commentsTitle, { color: theme.colors.textPrimary }]}
-            >
-              댓글
-            </AppText>
-            <AppText
-              preset="caption"
-              style={[styles.commentsCount, { color: theme.colors.textMuted }]}
-            >
-              {post.commentCount.toLocaleString()}개
-            </AppText>
+            <View style={styles.commentsTitleRow}>
+              <AppText
+                preset="headline"
+                style={[styles.commentsTitle, { color: theme.colors.textPrimary }]}
+              >
+                댓글
+              </AppText>
+              <AppText
+                preset="headline"
+                style={[styles.commentsCount, { color: petTheme.primary }]}
+              >
+                {post.commentCount.toLocaleString()}
+              </AppText>
+            </View>
+            <View style={styles.commentSortLabel}>
+              <AppText
+                preset="caption"
+                style={{ color: theme.colors.textMuted }}
+              >
+                등록순
+              </AppText>
+              <Feather name="chevron-down" size={15} color={theme.colors.textMuted} />
+            </View>
           </View>
           {commentsStatus === 'loading' ? (
             <View style={styles.commentsLoading}>
@@ -762,6 +773,8 @@ export default function CommunityDetailScreen() {
         repliesExpanded={expandedRepliesByCommentId[commentId] === true}
         previewCount={REPLY_PREVIEW_COUNT}
         currentUserId={currentUserId}
+        postAuthorId={post?.authorId ?? ''}
+        authorAccentColor={petTheme.primary}
         bestBadgeColor={petTheme.primary}
         onPressReply={handlePressReply}
         onToggleLike={handleToggleCommentLike}
@@ -779,6 +792,7 @@ export default function CommunityDetailScreen() {
       handleRequestReportComment,
       handleToggleCommentLike,
       petTheme.primary,
+      post?.authorId,
     ],
   );
 

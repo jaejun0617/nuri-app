@@ -5,28 +5,26 @@ import PostCard from './PostCard';
 
 type Props = {
   postId: string;
+  accentColor: string;
   onPressPost: (postId: string) => void;
   onPressLike: (postId: string) => void;
 };
 
 function CommunityPostListItemBase({
   postId,
+  accentColor,
   onPressPost,
   onPressLike,
 }: Props) {
   const post = useCommunityStore(
     useCallback(s => s.postsById[postId] ?? null, [postId]),
   );
-  const latestComment = useCommunityStore(
-    useCallback(s => s.latestCommentByPostId[postId] ?? null, [postId]),
-  );
-
   if (!post) return null;
 
   return (
     <PostCard
       post={post}
-      latestComment={post.commentCount > 0 ? latestComment : null}
+      accentColor={accentColor}
       onPressPost={onPressPost}
       onPressLike={onPressLike}
     />

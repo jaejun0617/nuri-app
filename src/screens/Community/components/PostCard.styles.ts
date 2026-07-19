@@ -1,149 +1,75 @@
 import { StyleSheet } from 'react-native';
+
 import { typography } from '../../../app/theme/tokens/typography';
 
 export const styles = StyleSheet.create({
-  rowCard: {
-    marginHorizontal: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 18,
-    borderBottomWidth: 1,
-  },
-  headerRow: {
-    marginBottom: 14,
-  },
-  headerMeta: {
+  row: {
+    minHeight: 92,
+    paddingLeft: 18,
+    paddingRight: 0,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    alignItems: 'stretch',
   },
-  avatar: {
+  typeIcon: {
     width: 36,
     height: 36,
     borderRadius: 18,
     borderWidth: 1,
-  },
-  avatarFallback: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
+    marginTop: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTextBlock: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  metaTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
-    minHeight: 24,
-  },
-  authorMeta: {
-    flex: 1,
-    ...typography.role.helper,
-    fontWeight: '600',
-  },
-  petMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 6,
+  content: {
     flex: 1,
     minWidth: 0,
-  },
-  petNameText: {
-    ...typography.role.helper,
-    fontWeight: '600',
-  },
-  petSubMetaText: {
-    ...typography.role.helper,
-  },
-  categoryChip: {
-    minHeight: 24,
-    borderRadius: 7,
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 15,
     justifyContent: 'center',
+    gap: 7,
   },
-  categoryChipText: {
-    ...typography.role.caption,
-    fontWeight: '700',
-  },
-  bodySection: {
-    gap: 6,
-    marginBottom: 12,
-  },
-  titleText: {
+  title: {
     ...typography.role.body,
     fontWeight: '700',
+    lineHeight: 22,
   },
-  previewText: {
-    ...typography.role.helper,
-  },
-  commentPreviewRow: {
+  metaRow: {
+    minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    minHeight: 22,
-    marginBottom: 12,
   },
-  commentPreviewConnector: {
-    width: 12,
-    height: 12,
-    borderLeftWidth: 1.5,
-    borderBottomWidth: 1.5,
-    marginLeft: 2,
-    marginRight: 2,
-    marginBottom: 6,
-  },
-  commentPreviewAvatar: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 1,
-  },
-  commentPreviewAvatarFallback: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  commentPreviewText: {
+  metaText: {
     flex: 1,
+    minWidth: 0,
     ...typography.role.helper,
+    lineHeight: 18,
   },
-  footerRow: {
+  likeButton: {
+    minWidth: 44,
+    minHeight: 44,
+    paddingHorizontal: 4,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  footerActionGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
-  footerMetaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    justifyContent: 'flex-end',
     gap: 4,
   },
-  footerMetaText: {
+  likeText: {
     ...typography.role.helper,
+    fontWeight: '600',
   },
-  likeAction: {
-    flexDirection: 'row',
+  commentRail: {
+    width: 54,
+    borderLeftWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
-    gap: 5,
-    minHeight: 24,
+    justifyContent: 'center',
+    gap: 2,
   },
-  likeActionText: {
-    ...typography.role.helper,
+  commentCount: {
+    ...typography.role.body,
+    fontWeight: '800',
+  },
+  commentLabel: {
+    ...typography.role.caption,
   },
 });

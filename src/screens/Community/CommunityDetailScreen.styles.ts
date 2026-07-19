@@ -2,8 +2,6 @@ import { StyleSheet } from 'react-native';
 import { typography } from '../../app/theme/tokens/typography';
 
 export const DETAIL_DIVIDER_COLOR = '#00000008';
-export const COMMENT_BUBBLE_BEIGE = '#F7F1E8';
-export const REPLY_BUBBLE_BEIGE = '#FBF6EF';
 
 export const styles = StyleSheet.create({
   screen: {
@@ -238,10 +236,22 @@ export const styles = StyleSheet.create({
   },
   commentsTitle: {
     ...typography.role.titleSm,
-    fontWeight: '700',
+    fontWeight: '800',
+  },
+  commentsTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   commentsCount: {
-    ...typography.role.helper,
+    ...typography.role.titleSm,
+    fontWeight: '800',
+  },
+  commentSortLabel: {
+    minHeight: 36,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
   },
   commentsLoading: {
     paddingVertical: 10,
@@ -255,8 +265,8 @@ export const styles = StyleSheet.create({
   },
   commentThreadWrap: {
     paddingHorizontal: 20,
-    paddingVertical: 14,
-    marginBottom: 8,
+    paddingVertical: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   commentRow: {
     flexDirection: 'row',
@@ -293,6 +303,21 @@ export const styles = StyleSheet.create({
   commentMetaText: {
     ...typography.role.helper,
   },
+  commentAuthorText: {
+    ...typography.role.helper,
+    fontWeight: '800',
+  },
+  authorBadge: {
+    minHeight: 20,
+    borderRadius: 5,
+    paddingHorizontal: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  authorBadgeText: {
+    ...typography.role.caption,
+    fontWeight: '800',
+  },
   bestBadge: {
     minHeight: 20,
     borderRadius: 10,
@@ -305,7 +330,8 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
   },
   commentBubble: {
-    borderRadius: 16,
+    borderRadius: 10,
+    borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 12,
     alignSelf: 'flex-start',
@@ -326,9 +352,11 @@ export const styles = StyleSheet.create({
     ...typography.role.bodySm,
   },
   replyListWrap: {
-    marginTop: 10,
-    marginLeft: 2,
-    paddingLeft: 4,
+    marginTop: 12,
+    marginLeft: 4,
+    paddingLeft: 12,
+    borderLeftWidth: 2,
+    borderLeftColor: DETAIL_DIVIDER_COLOR,
     gap: 12,
   },
   replyRow: {
@@ -348,7 +376,7 @@ export const styles = StyleSheet.create({
   },
   replyLeadDot: {
     position: 'absolute',
-    left: -18,
+    left: -20,
     top: 12,
     width: 6,
     height: 6,
@@ -373,13 +401,22 @@ export const styles = StyleSheet.create({
     minWidth: 0,
   },
   replyMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
     marginBottom: 5,
+  },
+  replyAuthorText: {
+    ...typography.role.helper,
+    fontWeight: '800',
   },
   replyMetaText: {
     ...typography.role.helper,
   },
   replyBubble: {
-    borderRadius: 14,
+    borderRadius: 10,
+    borderWidth: 1,
     paddingHorizontal: 12,
     paddingVertical: 10,
     alignSelf: 'flex-start',
@@ -536,7 +573,7 @@ export const styles = StyleSheet.create({
   reportEyebrow: {
     ...typography.role.caption,
     fontWeight: '800',
-    letterSpacing: 0.8,
+    letterSpacing: 0,
   },
   reportTitle: {
     ...typography.role.titleSm,

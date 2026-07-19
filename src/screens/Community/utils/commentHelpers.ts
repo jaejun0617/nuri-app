@@ -6,6 +6,13 @@ export type GroupedCommentThreads = {
   replyCommentIdsByParentId: Record<string, string[]>;
 };
 
+export function isCommentByPostAuthor(
+  commentAuthorId: string,
+  postAuthorId: string,
+) {
+  return commentAuthorId.length > 0 && commentAuthorId === postAuthorId;
+}
+
 export function groupCommentsIntoThreads(
   comments: ReadonlyArray<CommunityComment>,
 ): GroupedCommentThreads {

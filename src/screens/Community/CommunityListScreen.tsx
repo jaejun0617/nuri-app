@@ -18,6 +18,7 @@ import {
   Platform,
   Pressable,
   RefreshControl,
+  ScrollView,
   TouchableOpacity,
   View,
   type ListRenderItem,
@@ -185,9 +186,6 @@ export default function CommunityListScreen() {
   const fetchPosts = useCommunityStore(s => s.fetchPosts);
   const refreshPosts = useCommunityStore(s => s.refreshPosts);
   const loadMorePosts = useCommunityStore(s => s.loadMorePosts);
-  const fetchLatestCommentPreview = useCommunityStore(
-    s => s.fetchLatestCommentPreview,
-  );
   const togglePostLike = useCommunityStore(s => s.togglePostLike);
 
   const [showTopButton, setShowTopButton] = useState(false);
@@ -360,25 +358,16 @@ export default function CommunityListScreen() {
 
   const postIds = useMemo(() => posts.map(post => post.id), [posts]);
 
-  useEffect(() => {
-    const { latestCommentStatusByPostId } = useCommunityStore.getState();
-    posts.forEach(post => {
-      if (post.commentCount <= 0) return;
-      const latestCommentStatus = latestCommentStatusByPostId[post.id] ?? 'idle';
-      if (latestCommentStatus !== 'idle') return;
-      fetchLatestCommentPreview(post.id).catch(() => {});
-    });
-  }, [fetchLatestCommentPreview, posts]);
-
   const renderItem = useCallback<ListRenderItem<string>>(
     ({ item: postId }) => (
       <CommunityPostListItem
         postId={postId}
+        accentColor={petTheme.primary}
         onPressPost={handlePressPost}
         onPressLike={handlePressLike}
       />
     ),
-    [handlePressLike, handlePressPost],
+    [handlePressLike, handlePressPost, petTheme.primary],
   );
 
   const isCategoryTransitioning =
@@ -395,7 +384,11 @@ export default function CommunityListScreen() {
           },
         ]}
       >
-        <View style={styles.categoryRow}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoryRow}
+        >
           {CATEGORY_CHIPS.map(chip => {
             return (
               <CategoryChipButton
@@ -407,7 +400,7 @@ export default function CommunityListScreen() {
               />
             );
           })}
-        </View>
+        </ScrollView>
         {isCategoryTransitioning ? (
           <View style={styles.categoryLoadingWrap}>
             <ActivityIndicator size="small" color={petTheme.primary} />
@@ -485,12 +478,12 @@ export default function CommunityListScreen() {
                 preset="caption"
                 style={[styles.sectionHeaderCount, { color: theme.colors.textMuted }]}
               >
-                {postIds.length}개
+                {hasMore ? `${postIds.length}개 이상` : `${postIds.length}개`}
               </AppText>
             </View>
             <AppText
               preset="caption"
-              style={[styles.headline, { color: '#000000' }]}
+              style={[styles.headline, { color: theme.colors.textPrimary }]}
             >
               반려생활 이야기를 나눠보세요 :)
             </AppText>
@@ -503,6 +496,7 @@ export default function CommunityListScreen() {
       petTheme.deep,
       petTheme.primary,
       postIds.length,
+      hasMore,
       theme.colors.textMuted,
       theme.colors.textPrimary,
     ],

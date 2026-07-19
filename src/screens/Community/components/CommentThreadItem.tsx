@@ -7,11 +7,11 @@ import { useTheme } from 'styled-components/native';
 import AppText from '../../../app/ui/AppText';
 import { useCommunityStore } from '../../../store/communityStore';
 import { formatRelativeTimeFromNow } from '../../../utils/date';
-import { getVisibleReplies } from '../utils/commentHelpers';
 import {
-  COMMENT_BUBBLE_BEIGE,
-  styles,
-} from '../CommunityDetailScreen.styles';
+  getVisibleReplies,
+  isCommentByPostAuthor,
+} from '../utils/commentHelpers';
+import { styles } from '../CommunityDetailScreen.styles';
 import CommentActionRow from './CommentActionRow';
 import ReplyCommentItem from './ReplyCommentItem';
 
@@ -23,6 +23,8 @@ type Props = {
   repliesExpanded: boolean;
   previewCount: number;
   currentUserId: string | null;
+  postAuthorId: string;
+  authorAccentColor: string;
   bestBadgeColor: string;
   onPressReply: (commentId: string) => void;
   onToggleLike: (commentId: string) => void;
@@ -40,6 +42,8 @@ function CommentThreadItemBase({
   repliesExpanded,
   previewCount,
   currentUserId,
+  postAuthorId,
+  authorAccentColor,
   bestBadgeColor,
   onPressReply,
   onToggleLike,
@@ -53,10 +57,10 @@ function CommentThreadItemBase({
     s => s.replyCommentIdsByParentId[commentId] ?? EMPTY_REPLY_IDS,
   );
 
-  const metaText = useMemo(() => {
-    if (!comment) return '';
-    return `${comment.authorNickname} · ${formatRelativeTimeFromNow(comment.createdAt)}`;
-  }, [comment]);
+  const createdAtLabel = useMemo(
+    () => (comment ? formatRelativeTimeFromNow(comment.createdAt) : ''),
+    [comment],
+  );
   const avatarSource = useMemo(() => {
     if (!comment?.authorAvatarUrl) return null;
     return {
@@ -75,9 +79,20 @@ function CommentThreadItemBase({
   }, [commentId, onExpandReplies]);
 
   if (!comment) return null;
+  const isPostAuthor = isCommentByPostAuthor(comment.authorId, postAuthorId);
 
   return (
-    <View style={styles.commentThreadWrap}>
+    <View
+      style={[
+        styles.commentThreadWrap,
+        {
+          backgroundColor: isPostAuthor
+            ? `${authorAccentColor}0D`
+            : theme.colors.background,
+          borderBottomColor: theme.colors.border,
+        },
+      ]}
+    >
       <View style={styles.commentRow}>
         {avatarSource ? (
           <FastImage
@@ -104,10 +119,25 @@ function CommentThreadItemBase({
             <View style={styles.commentMetaInline}>
               <AppText
                 preset="caption"
-                style={[styles.commentMetaText, { color: theme.colors.textMuted }]}
+                style={[styles.commentAuthorText, { color: theme.colors.textPrimary }]}
               >
-                {metaText}
+                {comment.authorNickname}
               </AppText>
+              {isPostAuthor ? (
+                <View
+                  style={[
+                    styles.authorBadge,
+                    { backgroundColor: authorAccentColor },
+                  ]}
+                >
+                  <AppText
+                    preset="caption"
+                    style={[styles.authorBadgeText, { color: '#FFFFFF' }]}
+                  >
+                    글쓴이
+                  </AppText>
+                </View>
+              ) : null}
               {isBestCommentLikeEligible(
                 comment.likeCount,
                 comment.status,
@@ -123,14 +153,32 @@ function CommentThreadItemBase({
                     preset="caption"
                     style={[styles.bestBadgeText, { color: bestBadgeColor }]}
                   >
-                    Best
+                    인기
                   </AppText>
                 </View>
               ) : null}
+              <AppText
+                preset="caption"
+                style={[styles.commentMetaText, { color: theme.colors.textMuted }]}
+              >
+                {createdAtLabel}
+              </AppText>
             </View>
           </View>
 
-          <View style={[styles.commentBubble, { backgroundColor: COMMENT_BUBBLE_BEIGE }]}>
+          <View
+            style={[
+              styles.commentBubble,
+              {
+                backgroundColor: isPostAuthor
+                  ? `${authorAccentColor}10`
+                  : theme.colors.surface,
+                borderColor: isPostAuthor
+                  ? `${authorAccentColor}2E`
+                  : theme.colors.border,
+              },
+            ]}
+          >
             <AppText
               preset="body"
               style={[styles.commentContent, { color: theme.colors.textPrimary }]}
@@ -158,6 +206,8 @@ function CommentThreadItemBase({
                   key={replyId}
                   replyId={replyId}
                   currentUserId={currentUserId}
+                  postAuthorId={postAuthorId}
+                  authorAccentColor={authorAccentColor}
                   onPressReply={onPressReply}
                   onToggleLike={onToggleLike}
                   onPressDelete={onPressDelete}
