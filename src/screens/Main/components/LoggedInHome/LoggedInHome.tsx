@@ -639,11 +639,13 @@ const HomeWeatherSection = React.memo(function HomeWeatherSection({
   weather,
   locationLabel,
   petName,
+  accentColor,
   onPress,
 }: {
   weather: ReturnType<typeof useWeatherGuide>['bundle'];
   locationLabel: ReturnType<typeof useWeatherGuide>['locationLabel'];
   petName?: string | null;
+  accentColor: string;
   onPress: () => void;
 }) {
   return (
@@ -652,6 +654,7 @@ const HomeWeatherSection = React.memo(function HomeWeatherSection({
         weather={weather}
         locationLabel={locationLabel}
         petName={petName}
+        accentColor={accentColor}
         onPress={onPress}
       />
     </View>
@@ -3327,6 +3330,7 @@ export default function LoggedInHome() {
             weather={weatherGuide}
             locationLabel={weatherGuideState.locationLabel}
             petName={selectedPet?.name}
+            accentColor={petTheme.primary}
             onPress={onPressWeatherInsight}
           />
 
