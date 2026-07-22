@@ -70,16 +70,15 @@ function getWeatherDateLabel() {
     month: '2-digit',
     day: '2-digit',
     weekday: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
     timeZone: 'Asia/Seoul',
   }).formatToParts(new Date());
 
   const getPart = (type: Intl.DateTimeFormatPartTypes) =>
     parts.find(part => part.type === type)?.value ?? '';
+  const month = getPart('month').replace(/^0/, '');
+  const day = getPart('day').replace(/^0/, '');
 
-  return `오늘 ${getPart('month')}.${getPart('day')} (${getPart('weekday')}) ${getPart('hour')}:${getPart('minute')}`;
+  return `${month}월 ${day}일 (${getPart('weekday')})`;
 }
 
 function renderAccentText(text: string, accentColor: string) {
@@ -224,7 +223,7 @@ export default React.memo(function WeatherGuideHomeCard({
               </Text>
             </View>
             <View style={styles.dateWrap}>
-              <Text style={[styles.dateText, { color: muted }]} numberOfLines={1}>
+              <Text style={[styles.dateText, { color: textPrimary }]} numberOfLines={1}>
                 {getWeatherDateLabel()}
               </Text>
               <Feather
@@ -252,9 +251,10 @@ export default React.memo(function WeatherGuideHomeCard({
                 <Text style={[styles.temperatureValue, { color: textPrimary }]} numberOfLines={1}>
                   {temperatureValue}
                 </Text>
-                <Text style={[styles.temperatureUnit, { color: textPrimary }]} numberOfLines={1}>
-                  °C
-                </Text>
+                <View style={styles.temperatureUnit}>
+                  <Text style={[styles.temperatureDegree, { color: textPrimary }]}>°</Text>
+                  <Text style={[styles.temperatureCelsius, { color: textPrimary }]}>C</Text>
+                </View>
               </View>
               <Text style={[styles.headline, isCompact ? styles.headlineCompact : null, { color: textPrimary }]} numberOfLines={2}>
                 {renderAccentText(formatWeatherPetText(weather.homeMessage, petName), accentColor)}
@@ -310,16 +310,16 @@ const styles = StyleSheet.create({
     elevation: 7,
   },
   outerBorder: {
-    minHeight: 218,
+    minHeight: 204,
     borderRadius: 27,
     padding: 1.25,
   },
   cardSurface: {
     flex: 1,
-    minHeight: 215,
+    minHeight: 201,
     borderRadius: 26,
     paddingHorizontal: 18,
-    paddingVertical: 15,
+    paddingVertical: 13,
     overflow: 'hidden',
   },
   highlightStroke: {
@@ -331,14 +331,14 @@ const styles = StyleSheet.create({
     borderRadius: 25,
   },
   metaRow: {
-    minHeight: 30,
+    minHeight: 27,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 8,
   },
   locationPill: {
-    minHeight: 30,
+    minHeight: 28,
     maxWidth: '44%',
     paddingHorizontal: 12,
     borderRadius: 16,
@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     fontSize: 13,
     lineHeight: 17,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   dateWrap: {
     flex: 1,
@@ -362,16 +362,16 @@ const styles = StyleSheet.create({
   },
   dateText: {
     flexShrink: 1,
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 13,
+    lineHeight: 17,
     fontWeight: '600',
     textAlign: 'right',
   },
   mainRow: {
-    minHeight: 108,
-    marginTop: 7,
+    minHeight: 94,
+    marginTop: 4,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 8,
   },
   mainRowCompact: {
@@ -380,17 +380,18 @@ const styles = StyleSheet.create({
   weatherArt: {
     width: '22%',
     minWidth: 58,
+    paddingTop: 9,
     alignItems: 'center',
     justifyContent: 'center',
   },
   weatherEmoji: {
-    fontSize: 54,
-    lineHeight: 66,
+    fontSize: 50,
+    lineHeight: 60,
     textAlign: 'center',
   },
   weatherEmojiCompact: {
-    fontSize: 45,
-    lineHeight: 56,
+    fontSize: 42,
+    lineHeight: 51,
   },
   copyColumn: {
     minWidth: 0,
@@ -398,45 +399,58 @@ const styles = StyleSheet.create({
     gap: 1,
   },
   temperatureRow: {
-    minHeight: 43,
+    minHeight: 40,
     flexDirection: 'row',
     alignItems: 'baseline',
   },
   temperatureCompact: {
-    minHeight: 37,
+    minHeight: 34,
   },
   temperatureValue: {
-    fontSize: 40,
-    lineHeight: 43,
+    fontSize: 38,
+    lineHeight: 40,
     fontWeight: '800',
   },
   temperatureUnit: {
-    marginLeft: 2,
+    marginLeft: 3,
+    marginTop: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  temperatureDegree: {
+    fontSize: 13,
+    lineHeight: 16,
+    fontWeight: '700',
+  },
+  temperatureCelsius: {
+    marginLeft: -1,
     fontSize: 21,
     lineHeight: 25,
     fontWeight: '700',
   },
   headline: {
-    fontSize: 13,
-    lineHeight: 17,
-    fontWeight: '700',
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '600',
   },
   headlineCompact: {
-    fontSize: 12,
-    lineHeight: 15,
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '600',
   },
   caption: {
-    fontSize: 10,
-    lineHeight: 14,
+    fontSize: 9,
+    lineHeight: 13,
     fontWeight: '500',
   },
   captionCompact: {
-    fontSize: 9,
-    lineHeight: 12,
+    fontSize: 8,
+    lineHeight: 11,
   },
   noticePanel: {
     width: '34%',
-    minHeight: 92,
+    minHeight: 84,
+    marginTop: 6,
     borderRadius: 20,
     borderWidth: 1,
     paddingHorizontal: 12,
@@ -446,7 +460,8 @@ const styles = StyleSheet.create({
   },
   noticePanelCompact: {
     width: '33%',
-    minHeight: 88,
+    minHeight: 82,
+    marginTop: 4,
     paddingHorizontal: 8,
     paddingVertical: 9,
   },
@@ -477,8 +492,8 @@ const styles = StyleSheet.create({
     bottom: 8,
   },
   metricsBar: {
-    minHeight: 49,
-    marginTop: 7,
+    minHeight: 43,
+    marginTop: 5,
     borderTopWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',

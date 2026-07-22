@@ -1,5 +1,19 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-07-23 날씨카드 날짜·지역·온도 표기 최종 release gate
+
+- [x] 상단에서 `오늘`과 시간을 제거하고 월·일·요일만 표시한다.
+- [x] 지역과 날짜를 양끝 정렬하고 같은 `textPrimary` 색상·13px로 맞췄다. 하단 체감·습도·바람·자외선 값보다 2px 크다.
+- [x] 카드 높이와 본문 밀도를 축소했다.
+- [x] 온도 숫자와 작은 `°`, `C`를 분리해 레퍼런스처럼 표시한다.
+- [x] 산책 안내에서 불필요한 `딱`을 제거했다.
+- [x] Android `SM_S937N / R5CY613NMSY`에 최신 APK 재설치·cold start·Home 카드 확인.
+- [x] 최신 APK SHA-256 `e74f771a6e0ca7ddc46e501833eaa21daf68607fa1bbf161f6c79d68022f0747`.
+- [x] Jest `67 suites / 269 tests`, typecheck, lint, release build/install, Supabase dry-run 통과.
+- [x] 최종 app-scoped fatal scan 0건.
+
+증적: `/tmp/nuri-qa/weather-card-final-closeout.png`, `/tmp/nuri-qa/weather-card-final-closeout-logcat.txt`, `/tmp/nuri-qa/weather-card-day-refinement.png`.
+
 ## 2026-07-23 날씨카드 세부 비율 조정 release gate
 
 - [x] 본문·주의 패널 타이포 축소 및 주의 패널 폭 확대.
@@ -7,9 +21,7 @@
 - [x] 야간 날씨 영역의 달 중복 제거, 날짜/시간 meta 행 달 아이콘 유지.
 - [x] 온도 숫자와 `°C` 단위 분리 및 단위 크기 축소.
 - [x] Android `SM_S937N / R5CY613NMSY`에 최종 APK 재설치·cold start·Home 카드 확인.
-- [x] 최종 APK SHA-256 `5c9d8b1cd0735409151286a089bcf88437fb8abd1f9a85dc828022e2d61cd52`.
-- [x] Jest `67 suites / 268 tests`, typecheck, lint, release build/install, Supabase dry-run 통과.
-- [x] 최종 app-scoped fatal scan 0건, 실제 시간 분기 원복 확인.
+- [x] 최종 표기 조정 전 중간 artifact 기록. 최신 최종 artifact는 위 closeout 항목을 사용한다.
 
 증적: `/tmp/nuri-qa/weather-card-day-refinement.png`, `/tmp/nuri-qa/weather-card-night-refinement-final.png`, `/tmp/nuri-qa/weather-card-refinement-final-logcat.txt`.
 
@@ -20,7 +32,7 @@
 - [x] 좁은 화면 compact layout과 긴 한글 카피 overflow 방지 확인.
 - [x] Android `SM_S937N / R5CY613NMSY`에 최종 APK 설치·cold start·Home 날씨카드 확인.
 - [x] 최초 리디자인 APK SHA-256은 세부 조정 전 artifact로 보관하며, 최신 최종 APK는 위 세부 비율 조정 closeout 항목을 기준으로 한다.
-- [x] Jest `67 suites / 268 tests`, typecheck, lint, release build/install, Supabase dry-run 통과.
+- [x] 최초 리디자인 단계의 Jest `67 suites / 268 tests`와 release gate 통과 기록을 보존한다. 최신 결과는 위 closeout 항목을 사용한다.
 - [x] 최종 app-scoped fatal scan 0건. 임시 day phase override는 QA 캡처 후 제거했으며 최종 코드에는 남아 있지 않음.
 
 이전 증적: `/tmp/nuri-qa/weather-card-day.png`, `/tmp/nuri-qa/weather-card-night-final.png`, `/tmp/nuri-qa/weather-card-final-logcat.txt`.

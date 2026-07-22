@@ -80,6 +80,15 @@ describe('buildWeatherTemperatureSafety', () => {
     expect(bundle.homeCaption).not.toContain('누리와');
   });
 
+  it('keeps weather walking copy concise without the filler word 딱', () => {
+    expect(buildWeatherGuideBundleForScenario('rain', '일산3동').homeMessage).toBe(
+      '산책하기 좋은 날씨는 아니에요',
+    );
+    expect(buildWeatherGuideBundleForScenario('fresh', '일산3동').homeMessage).toBe(
+      '산책하기 좋은 날씨예요',
+    );
+  });
+
   it('personalizes pet-facing copy with the selected pet name', () => {
     expect(
       formatWeatherPetText('오늘은 아이와 집 안에서 더 깊은 시간을 보내요', '초코'),

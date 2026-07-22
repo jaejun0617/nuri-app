@@ -4,7 +4,7 @@
 
 - 홈 날씨카드만 리디자인했다.
 - 낮과 밤을 `weather.isDaytime`으로 분기했다.
-- 위치, KST 날짜/시간, 해/달 상태, 현재 온도, 메인 카피, 행동 주의 패널, 체감온도·습도·바람·자외선 지표를 카드에 배치했다.
+- 위치, KST 월·일·요일, 해/달 상태, 현재 온도, 메인 카피, 행동 주의 패널, 체감온도·습도·바람·자외선 지표를 카드에 배치했다.
 - 앱 전체 정보 구조, 폰트, 다른 화면 디자인, Play Store 자산, 관리자 홈페이지, DB/RPC/RLS/seed는 변경하지 않았다.
 
 ## 후속 세부 조정
@@ -14,6 +14,13 @@
 - 하단 지표 바는 전체 radius/border 대신 상단선과 체감·습도·바람 우측 구분선만 표시한다.
 - 야간 날씨 영역의 달을 제거하고 시간 meta 행의 달 아이콘을 유지한다.
 - 온도 숫자와 `°C`를 분리해 단위 크기를 낮췄다.
+
+## 최종 표기·밀도 조정
+
+- 상단 시간과 `오늘`을 제거하고 `월 일 (요일)`만 표시한다.
+- 지역과 날짜를 `space-between`으로 양끝에 배치하고 동일한 `textPrimary` 색상·13px를 적용한다. 하단 지표 값보다 2px 크게 유지한다.
+- 카드 높이와 본문 타이포를 낮추고, 온도 숫자 상단에 작은 `°`, `C`를 분리 배치한다.
+- 메인 카피는 `산책하기 좋은 날씨예요` 또는 `산책하기 좋은 날씨는 아니에요`를 사용한다.
 
 ## 구현 파일
 
@@ -53,7 +60,7 @@
 - QA 계정: 기존 `adminQA`
 - 최종 APK: `/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/android/app/build/outputs/apk/release/app-release.apk`
 - version: `1.0 (1)`
-- 최종 APK SHA-256: `5c9d8b1cd0735409151286a089bcf88437fb8abd1f9a85dc828022e2d61cd52`
+- 최종 APK SHA-256: `e74f771a6e0ca7ddc46e501833eaa21daf68607fa1bbf161f6c79d68022f0747`
 - install/update: 통과
 - cold start/Home: 통과
 - 실제 시간 기준 night variant: 통과
@@ -65,14 +72,14 @@
 ## 증적
 
 - 낮 카드: `/tmp/nuri-qa/weather-card-day-refinement.png`
-- 최종 밤 카드: `/tmp/nuri-qa/weather-card-night-refinement-final.png`
-- 최종 logcat: `/tmp/nuri-qa/weather-card-refinement-final-logcat.txt`
+- 최종 밤 카드: `/tmp/nuri-qa/weather-card-final-closeout.png`
+- 최종 logcat: `/tmp/nuri-qa/weather-card-final-closeout-logcat.txt`
 
 ## 자동 검증
 
 - typecheck: 통과
 - lint: 통과
-- Jest: `67 suites / 268 tests`, 실패 0
+- Jest: `67 suites / 269 tests`, 실패 0
 - release build: 통과
 - APK install/update: 통과
 - `supabase db push --dry-run`: remote up to date
