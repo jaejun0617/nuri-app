@@ -29,6 +29,10 @@
 - 체감·습도·바람 지표의 아이콘·라벨·값을 `#FFFFFF`로 통일했다. 자외선 지표는 기존 의미색을 유지한다.
 - 날씨 이모티콘은 좌측 날씨 영역 중앙에 정렬했다.
 
+## 상단 meta 폰트 최종 조정
+
+- 지역명과 월·일·요일을 날씨 서브 카피와 같은 `9px / lineHeight 13px`로 적용했다.
+
 ## 구현 파일
 
 - `src/components/weather/WeatherGuideHomeCard.tsx`
@@ -67,7 +71,7 @@
 - QA 계정: 기존 `adminQA`
 - 최종 APK: `/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/android/app/build/outputs/apk/release/app-release.apk`
 - version: `1.0 (1)`
-- 최종 APK SHA-256: `a7b254b4ec6de20de3368ce4567a3a1e479fa1186c2750f8554d93fb236db497`
+- 최종 APK SHA-256: `019f3b12ece2837303c137bdbdc8346836e18c6ba947022f0d1e5e3822aa8dbb`
 - install/update: 통과
 - cold start/Home: 통과
 - 실제 시간 기준 night variant: 통과
@@ -79,8 +83,8 @@
 ## 증적
 
 - 낮 카드: `/tmp/nuri-qa/weather-card-day-refinement.png`
-- 최종 카드: `/tmp/nuri-qa/weather-card-user-adjustment.png`
-- 최종 logcat: `/tmp/nuri-qa/weather-card-user-adjustment-logcat.txt`
+- 최종 카드: `/tmp/nuri-qa/weather-card-font-match.png`
+- 최종 logcat: `/tmp/nuri-qa/weather-card-font-match-logcat.txt`
 
 ## 자동 검증
 

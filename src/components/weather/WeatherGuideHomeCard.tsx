@@ -344,8 +344,8 @@ const styles = StyleSheet.create({
   },
   locationText: {
     flexShrink: 1,
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 9,
+    lineHeight: 13,
     fontWeight: '600',
   },
   dateWrap: {
@@ -357,8 +357,8 @@ const styles = StyleSheet.create({
   },
   dateText: {
     flexShrink: 1,
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 9,
+    lineHeight: 13,
     fontWeight: '600',
     textAlign: 'right',
   },

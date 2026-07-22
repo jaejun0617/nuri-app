@@ -1,5 +1,15 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-07-23 날씨카드 상단 meta 폰트 최종 release gate
+
+- [x] 지역명과 월·일·요일을 날씨 서브 카피와 같은 `9px / lineHeight 13px`로 적용.
+- [x] Android `SM_S937N / R5CY613NMSY` 최신 APK 설치·cold start·Home 카드 확인.
+- [x] 최신 APK SHA-256 `019f3b12ece2837303c137bdbdc8346836e18c6ba947022f0d1e5e3822aa8dbb`.
+- [x] Jest `67 suites / 269 tests`, typecheck, lint, release build/install 통과.
+- [x] app-scoped fatal scan 0건.
+
+증적: `/tmp/nuri-qa/weather-card-font-match.png`, `/tmp/nuri-qa/weather-card-font-match-logcat.txt`.
+
 ## 2026-07-23 날씨카드 메타·지표·아이콘 최종 release gate
 
 - [x] 지역·날짜 폰트를 12px로 조정.
