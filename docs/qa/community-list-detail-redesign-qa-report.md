@@ -9,8 +9,8 @@
 - 댓글별 가로 row divider와 parent border는 유지했다.
 - Android에서 일반 댓글, 글쓴이 댓글, 대댓글 2개를 확인했고 세로선 없이 정렬·author accent가 정상이다.
 - composer keyboard, CTA, Android back을 확인했다.
-- 최신 APK SHA-256 `373c1aa2771acabaa3599a4237c517af79b56313ce8706d2bf2727607f3f2d51`, Jest `66 suites / 257 tests`, app-fatal scan 0.
-- 증적: `/tmp/nuri-qa/community-reply-alignment-comments.png`, `/tmp/nuri-qa/community-reply-alignment-keyboard.png`.
+- 최신 APK SHA-256 `6b5e22a3e9dcde258570fd27061222731f2651ce57c389b17fa12f066e2be255`, Jest `66 suites / 257 tests`, app-fatal scan 0.
+- 증적: `/tmp/nuri-qa/community-final-release-list.png`, `/tmp/nuri-qa/community-final-release-comments.png`, `/tmp/nuri-qa/community-final-release-keyboard.png`, `/tmp/nuri-qa/community-final-release-logcat-final-app-fatal-scan.txt`.
 
 ## 2026-07-22 답글 알림·댓글 thread visual closeout
 

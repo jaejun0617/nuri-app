@@ -2,7 +2,7 @@
 
 ## 2026-07-22 대댓글 정렬 수정 및 남은 리스크 재판정
 
-기존 criterion denominator는 변경하지 않았다. 기능 `78/78`, QA·보안 `59/59`, 문서·release `21/21`이며 최신 APK SHA-256은 `373c1aa2771acabaa3599a4237c517af79b56313ce8706d2bf2727607f3f2d51`이다. Jest `66 suites / 257 tests`, typecheck/lint/release build/install, Supabase dry-run, Android app-fatal scan 0을 확인했다. Hospital public active `5,427건`, coordinate missing `122건`, `(0,0)` `0건`은 품질 추적 리스크로만 남겼고 actual push는 정책상 비활성 범위에서 제외했다.
+기존 criterion denominator는 변경하지 않았다. 기능 `78/78`, QA·보안 `59/59`, 문서·release `21/21`이며 최신 APK SHA-256은 `6b5e22a3e9dcde258570fd27061222731f2651ce57c389b17fa12f066e2be255`이다. Jest `66 suites / 257 tests`, typecheck/lint/release build/install, Supabase dry-run, Android app-fatal scan 0을 확인했다. Hospital public active `5,427건`, coordinate missing `122건`, `(0,0)` `0건`은 품질 추적 리스크로만 남겼고 actual push는 정책상 비활성 범위에서 제외했다.
 
 ## 2026-07-22 답글 target·댓글/알림 visual evidence 보강
 

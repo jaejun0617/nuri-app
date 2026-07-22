@@ -7,13 +7,14 @@
 - [x] 댓글별 가로 divider와 parent thread 외곽 border 유지.
 - [x] 일반 댓글, 글쓴이 댓글, 대댓글 2개와 author accent를 Android에서 확인.
 - [x] keyboard, CTA, Android back 확인.
-- [x] 최신 APK SHA-256 `373c1aa2771acabaa3599a4237c517af79b56313ce8706d2bf2727607f3f2d51`.
+- [x] 최신 APK SHA-256 `6b5e22a3e9dcde258570fd27061222731f2651ce57c389b17fa12f066e2be255`.
 - [x] Jest `66 suites / 257 tests`, typecheck, lint, release build/install 통과.
 - [x] public active hospital `5,427건`, coordinate missing `122건`, `(0,0)` `0건` read-only audit.
+- [x] push token remote audit: `5건` 모두 `revoked`, active token `0건`; actual push dispatcher 비활성.
 - [x] Supabase dry-run remote up to date, destructive migration 없음.
 - [x] app-fatal scan `0 matching app-fatal patterns`.
 
-증적: `/tmp/nuri-qa/community-reply-alignment-list.png`, `/tmp/nuri-qa/community-reply-alignment-detail-top.png`, `/tmp/nuri-qa/community-reply-alignment-comments.png`, `/tmp/nuri-qa/community-reply-alignment-keyboard.png`, `/tmp/nuri-qa/community-reply-alignment-logcat-app-fatal-scan.txt`.
+증적: `/tmp/nuri-qa/community-final-release-cold-start.png`, `/tmp/nuri-qa/community-final-release-list.png`, `/tmp/nuri-qa/community-final-release-detail.png`, `/tmp/nuri-qa/community-final-release-comments.png`, `/tmp/nuri-qa/community-final-release-keyboard.png`, `/tmp/nuri-qa/community-final-release-logcat-final-app-fatal-scan.txt`.
 
 ## 2026-07-22 답글 알림·댓글 스레드 visual release gate
 
@@ -30,7 +31,7 @@
 - [x] Jest `66 suites / 257 tests`, typecheck, lint, diff check, release build/install 통과.
 - [x] app-fatal scan `0 matching app-fatal patterns`, Supabase dry-run remote up to date.
 
-증적: `/tmp/nuri-qa/community-reply-notification-home.png`, `/tmp/nuri-qa/community-reply-notification-sheet.png`, `/tmp/nuri-qa/community-reply-notification-comment.png`, `/tmp/nuri-qa/community-reply-notification-comment.xml`, `/tmp/nuri-qa/community-reply-notification-logcat-full.txt`, `/tmp/nuri-qa/community-reply-notification-logcat-app-fatal-scan.txt`.
+최신 artifact 증적: `/tmp/nuri-qa/community-final-release-cold-start.png`, `/tmp/nuri-qa/community-final-release-list.png`, `/tmp/nuri-qa/community-final-release-detail.png`, `/tmp/nuri-qa/community-final-release-comments.png`, `/tmp/nuri-qa/community-final-release-logcat-final-app-fatal-scan.txt`.
 
 ## 2026-07-22 Community Comment Notification Deep Link Closeout
 
