@@ -7,6 +7,14 @@
 - 위치, KST 날짜/시간, 해/달 상태, 현재 온도, 메인 카피, 행동 주의 패널, 체감온도·습도·바람·자외선 지표를 카드에 배치했다.
 - 앱 전체 정보 구조, 폰트, 다른 화면 디자인, Play Store 자산, 관리자 홈페이지, DB/RPC/RLS/seed는 변경하지 않았다.
 
+## 후속 세부 조정
+
+- 위치·날짜/시간·하단 지표를 제외한 본문 타이포를 축소했다.
+- 주의 패널 폭을 확대했다.
+- 하단 지표 바는 전체 radius/border 대신 상단선과 체감·습도·바람 우측 구분선만 표시한다.
+- 야간 날씨 영역의 달을 제거하고 시간 meta 행의 달 아이콘을 유지한다.
+- 온도 숫자와 `°C`를 분리해 단위 크기를 낮췄다.
+
 ## 구현 파일
 
 - `src/components/weather/WeatherGuideHomeCard.tsx`
@@ -45,20 +53,20 @@
 - QA 계정: 기존 `adminQA`
 - 최종 APK: `/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/android/app/build/outputs/apk/release/app-release.apk`
 - version: `1.0 (1)`
-- 최종 APK SHA-256: `b5fd040acd186557a320b0735aff2c6e34c2cb2c76a2419a689a44a93f2d73db`
+- 최종 APK SHA-256: `5c9d8b1cd0735409151286a089bcf88437fb8abd1f9a85dc828022e2d61cd52`
 - install/update: 통과
 - cold start/Home: 통과
 - 실제 시간 기준 night variant: 통과
-- day variant: 실기기 시각을 변경할 권한이 없어 일시적인 QA phase override 빌드로 캡처했다. 캡처 후 `dayPhase.ts`는 실제 시간 로직으로 원복했고 최종 APK에는 override가 없다.
+- day variant: 실기기 시각을 변경할 권한이 없어 일시적인 QA phase override 빌드로 캡처했다. 캡처 후 `dayPhase.ts`는 실제 시간 로직으로 원복하고 최종 APK를 다시 빌드했다.
 - theme accent: 기존 `adminQA` 테마 primary가 강조 카피와 주의 패널 제목에 반영되는 것을 확인했다.
 - narrow layout: 카드의 compact 분기와 텍스트 overflow 방지 코드를 정적·실기기 문맥에서 확인했다.
 - keyboard/navigation: 이번 변경은 입력 경로를 건드리지 않았고 기존 앱 gate를 회귀시키지 않았다.
 
 ## 증적
 
-- 낮 카드: `/tmp/nuri-qa/weather-card-day.png`
-- 최종 밤 카드: `/tmp/nuri-qa/weather-card-night-final.png`
-- 최종 logcat: `/tmp/nuri-qa/weather-card-final-logcat.txt`
+- 낮 카드: `/tmp/nuri-qa/weather-card-day-refinement.png`
+- 최종 밤 카드: `/tmp/nuri-qa/weather-card-night-refinement-final.png`
+- 최종 logcat: `/tmp/nuri-qa/weather-card-refinement-final-logcat.txt`
 
 ## 자동 검증
 

@@ -99,13 +99,7 @@ function renderAccentText(text: string, accentColor: string) {
 }
 
 function getNightWeatherEmoji(weather: WeatherGuideBundle) {
-  if (weather.isDaytime) return getWeatherEmoji(weather.weatherIcon);
-
-  if (weather.weatherIcon === 'weather-pouring') return '🌙🌧️';
-  if (weather.weatherIcon === 'weather-lightning') return '🌙🌩️';
-  if (weather.weatherIcon === 'weather-snowy') return '🌙❄️';
-  if (weather.weatherIcon === 'weather-cloudy') return '🌙☁️';
-  return '🌙⛅';
+  return getWeatherEmoji(weather.weatherIcon);
 }
 
 function getUvLabel(uvIndex: number) {
@@ -121,16 +115,23 @@ const Metric = React.memo(function Metric({
   label,
   value,
   color,
-  borderColor,
+  borderRightColor,
 }: {
   icon: string;
   label: string;
   value: string;
   color: string;
-  borderColor?: string;
+  borderRightColor?: string;
 }) {
   return (
-    <View style={[styles.metric, borderColor ? { borderLeftColor: borderColor } : null]}>
+    <View
+      style={[
+        styles.metric,
+        borderRightColor
+          ? { borderRightColor, borderRightWidth: StyleSheet.hairlineWidth }
+          : null,
+      ]}
+    >
       <Feather name={icon} size={16} color={color} />
       <View style={styles.metricCopy}>
         <Text style={[styles.metricLabel, { color }]} numberOfLines={1}>
@@ -174,9 +175,9 @@ export default React.memo(function WeatherGuideHomeCard({
   const gradientColors = isNightCard
     ? [...NIGHT_BORDER_COLORS]
     : [...DAY_BORDER_COLORS];
-  const temperature = hasLiveData || isPreview
-    ? `${weather.currentTemperature}°C`
-    : '--°C';
+  const temperatureValue = hasLiveData || isPreview
+    ? `${weather.currentTemperature}`
+    : '--';
 
   return (
     <TouchableOpacity
@@ -242,16 +243,19 @@ export default React.memo(function WeatherGuideHomeCard({
             </View>
 
             <View style={styles.copyColumn}>
-              <Text
+              <View
                 style={[
-                  styles.temperature,
+                  styles.temperatureRow,
                   isCompact ? styles.temperatureCompact : null,
-                  { color: textPrimary },
                 ]}
-                numberOfLines={1}
               >
-                {temperature}
-              </Text>
+                <Text style={[styles.temperatureValue, { color: textPrimary }]} numberOfLines={1}>
+                  {temperatureValue}
+                </Text>
+                <Text style={[styles.temperatureUnit, { color: textPrimary }]} numberOfLines={1}>
+                  °C
+                </Text>
+              </View>
               <Text style={[styles.headline, isCompact ? styles.headlineCompact : null, { color: textPrimary }]} numberOfLines={2}>
                 {renderAccentText(formatWeatherPetText(weather.homeMessage, petName), accentColor)}
               </Text>
@@ -284,11 +288,11 @@ export default React.memo(function WeatherGuideHomeCard({
             </View>
           </View>
 
-          <View style={[styles.metricsBar, { backgroundColor: isNightCard ? 'rgba(7,11,30,0.24)' : 'rgba(255,255,255,0.56)', borderColor: separator }]}>
-            <Metric icon="thermometer" label="체감" value={`${weather.apparentTemperature}°`} color={textSecondary} />
-            <Metric icon="droplet" label="습도" value={`${weather.humidity}%`} color={textSecondary} borderColor={separator} />
-            <Metric icon="wind" label="바람" value={`${weather.windSpeed}m/s`} color={textSecondary} borderColor={separator} />
-            <Metric icon="sun" label="자외선" value={getUvLabel(weather.uvIndex)} color={isNightCard ? 'rgba(246,221,113,0.94)' : '#7A6871'} borderColor={separator} />
+          <View style={[styles.metricsBar, { backgroundColor: isNightCard ? 'rgba(7,11,30,0.24)' : 'rgba(255,255,255,0.56)', borderTopColor: separator }]}>
+            <Metric icon="thermometer" label="체감" value={`${weather.apparentTemperature}°`} color={textSecondary} borderRightColor={separator} />
+            <Metric icon="droplet" label="습도" value={`${weather.humidity}%`} color={textSecondary} borderRightColor={separator} />
+            <Metric icon="wind" label="바람" value={`${weather.windSpeed}m/s`} color={textSecondary} borderRightColor={separator} />
+            <Metric icon="sun" label="자외선" value={getUvLabel(weather.uvIndex)} color={isNightCard ? 'rgba(246,221,113,0.94)' : '#7A6871'} />
           </View>
         </LinearGradient>
       </LinearGradient>
@@ -393,35 +397,45 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 1,
   },
-  temperature: {
-    fontSize: 45,
-    lineHeight: 50,
-    fontWeight: '800',
+  temperatureRow: {
+    minHeight: 43,
+    flexDirection: 'row',
+    alignItems: 'baseline',
   },
   temperatureCompact: {
-    fontSize: 38,
+    minHeight: 37,
+  },
+  temperatureValue: {
+    fontSize: 40,
     lineHeight: 43,
+    fontWeight: '800',
+  },
+  temperatureUnit: {
+    marginLeft: 2,
+    fontSize: 21,
+    lineHeight: 25,
+    fontWeight: '700',
   },
   headline: {
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 17,
     fontWeight: '700',
   },
   headlineCompact: {
-    fontSize: 13,
-    lineHeight: 17,
+    fontSize: 12,
+    lineHeight: 15,
   },
   caption: {
-    fontSize: 12,
-    lineHeight: 17,
+    fontSize: 10,
+    lineHeight: 14,
     fontWeight: '500',
   },
   captionCompact: {
-    fontSize: 11,
-    lineHeight: 15,
+    fontSize: 9,
+    lineHeight: 12,
   },
   noticePanel: {
-    width: '31%',
+    width: '34%',
     minHeight: 92,
     borderRadius: 20,
     borderWidth: 1,
@@ -431,31 +445,31 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   noticePanelCompact: {
-    width: '30%',
+    width: '33%',
     minHeight: 88,
     paddingHorizontal: 8,
     paddingVertical: 9,
   },
   noticeLabel: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 12,
+    lineHeight: 16,
     fontWeight: '800',
   },
   noticeLabelCompact: {
-    fontSize: 11,
-    lineHeight: 15,
+    fontSize: 10,
+    lineHeight: 14,
   },
   noticeMessage: {
     marginTop: 6,
     paddingRight: 5,
-    fontSize: 11,
-    lineHeight: 17,
+    fontSize: 10,
+    lineHeight: 15,
     fontWeight: '600',
   },
   noticeMessageCompact: {
     marginTop: 4,
-    fontSize: 10,
-    lineHeight: 14,
+    fontSize: 9,
+    lineHeight: 13,
   },
   noticeArrow: {
     position: 'absolute',
@@ -465,8 +479,7 @@ const styles = StyleSheet.create({
   metricsBar: {
     minHeight: 49,
     marginTop: 7,
-    borderRadius: 18,
-    borderWidth: 1,
+    borderTopWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
     overflow: 'hidden',

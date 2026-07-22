@@ -1,16 +1,29 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-07-23 날씨카드 세부 비율 조정 release gate
+
+- [x] 본문·주의 패널 타이포 축소 및 주의 패널 폭 확대.
+- [x] 하단 지표의 외곽 radius/border 제거, 상단선과 체감·습도·바람 우측 구분선 적용.
+- [x] 야간 날씨 영역의 달 중복 제거, 날짜/시간 meta 행 달 아이콘 유지.
+- [x] 온도 숫자와 `°C` 단위 분리 및 단위 크기 축소.
+- [x] Android `SM_S937N / R5CY613NMSY`에 최종 APK 재설치·cold start·Home 카드 확인.
+- [x] 최종 APK SHA-256 `5c9d8b1cd0735409151286a089bcf88437fb8abd1f9a85dc828022e2d61cd52`.
+- [x] Jest `67 suites / 268 tests`, typecheck, lint, release build/install, Supabase dry-run 통과.
+- [x] 최종 app-scoped fatal scan 0건, 실제 시간 분기 원복 확인.
+
+증적: `/tmp/nuri-qa/weather-card-day-refinement.png`, `/tmp/nuri-qa/weather-card-night-refinement-final.png`, `/tmp/nuri-qa/weather-card-refinement-final-logcat.txt`.
+
 ## 2026-07-23 홈 날씨카드 리디자인 release gate
 
 - [x] 낮/밤 날씨카드 variant, 글래스 surface, 외곽선, 위치/시간 meta, 주의 패널, 4개 지표 bar 구현.
 - [x] 선택 펫 테마 primary 색상을 강조 카피·주의 패널 제목에 연결하고 날씨 일러스트의 시맨틱 색상은 유지.
 - [x] 좁은 화면 compact layout과 긴 한글 카피 overflow 방지 확인.
 - [x] Android `SM_S937N / R5CY613NMSY`에 최종 APK 설치·cold start·Home 날씨카드 확인.
-- [x] 최종 APK SHA-256 `b5fd040acd186557a320b0735aff2c6e34c2cb2c76a2419a689a44a93f2d73db`.
+- [x] 최초 리디자인 APK SHA-256은 세부 조정 전 artifact로 보관하며, 최신 최종 APK는 위 세부 비율 조정 closeout 항목을 기준으로 한다.
 - [x] Jest `67 suites / 268 tests`, typecheck, lint, release build/install, Supabase dry-run 통과.
 - [x] 최종 app-scoped fatal scan 0건. 임시 day phase override는 QA 캡처 후 제거했으며 최종 코드에는 남아 있지 않음.
 
-증적: `/tmp/nuri-qa/weather-card-day.png`, `/tmp/nuri-qa/weather-card-night-final.png`, `/tmp/nuri-qa/weather-card-final-logcat.txt`.
+이전 증적: `/tmp/nuri-qa/weather-card-day.png`, `/tmp/nuri-qa/weather-card-night-final.png`, `/tmp/nuri-qa/weather-card-final-logcat.txt`.
 
 ## 2026-07-22 날씨 안전 안내·펫 이름 하드코딩 버그 release gate
 
