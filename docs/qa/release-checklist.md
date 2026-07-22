@@ -1,5 +1,22 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-07-22 답글 알림·댓글 스레드 visual release gate
+
+- [x] Home 알림 overlay를 낮은 elevation·중립 icon·작은 카드 밀도로 확인.
+- [x] 댓글 thread 외곽 border와 row 간격 확인.
+- [x] `답글쓰기` 아래에 1-depth 답글이 정렬되고 parent thread 내부 divider/guide line으로 구분됨을 확인.
+- [x] controlled top-level 댓글 알림과 답글 알림을 각각 생성.
+- [x] 댓글 알림 unread `+1`, 답글 알림 unread `+1` 확인.
+- [x] 두 알림 모두 작성자·게시글 문구·`postId/commentId` target 일치 확인.
+- [x] 답글 알림 탭 후 부모 댓글 자동 확장 및 실제 답글 위치 이동 확인.
+- [x] 답글 target 화면에서 `답글쓰기`, nested reply, 댓글 입력창과 Android navigation bar overlap 없음 확인.
+- [x] QA prefix 댓글·답글 5건 soft cleanup, active QA row `0건` 확인.
+- [x] 최신 APK SHA-256 `c61972c0e1c170f310701894c83dd18cf334cf424603de09eb5f3be13db5623d`.
+- [x] Jest `66 suites / 257 tests`, typecheck, lint, diff check, release build/install 통과.
+- [x] app-fatal scan `0 matching app-fatal patterns`, Supabase dry-run remote up to date.
+
+증적: `/tmp/nuri-qa/community-reply-notification-home.png`, `/tmp/nuri-qa/community-reply-notification-sheet.png`, `/tmp/nuri-qa/community-reply-notification-comment.png`, `/tmp/nuri-qa/community-reply-notification-comment.xml`, `/tmp/nuri-qa/community-reply-notification-logcat-full.txt`, `/tmp/nuri-qa/community-reply-notification-logcat-app-fatal-scan.txt`.
+
 ## 2026-07-22 Community Comment Notification Deep Link Closeout
 
 - [x] 댓글 알림 read model에 안전한 `postId/commentId` action target 추가.

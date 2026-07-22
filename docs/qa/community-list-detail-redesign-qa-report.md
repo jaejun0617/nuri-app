@@ -2,6 +2,32 @@
 
 기준일: 2026-07-22
 
+## 2026-07-22 답글 알림·댓글 thread visual closeout
+
+- 댓글 thread를 외곽 border와 `marginBottom` 간격이 있는 그룹으로 바꾸고, 일반 댓글도 border 색을 갖도록 정리했다.
+- `답글쓰기` action row 다음에 답글 목록을 배치하고, 답글 목록에는 상단 divider·좌측 guide line·row별 하단 divider를 적용했다.
+- Home 알림 panel은 제목 17, 항목 13, 본문 11, 날짜 10 수준의 차분한 밀도와 중립 icon/background로 조정했다.
+- controlled QA script가 top-level 댓글과 1-depth 답글을 각각 생성해 별도 인앱 알림을 만들고, 두 target 모두 서버 `postId/commentId`와 일치하는지 확인했다.
+- Android에서 답글 알림을 탭한 뒤 부모 댓글 thread가 자동 확장되고 `[QA 답글 알림 E2E] 부모 댓글 아래 좌표 이동을 확인합니다.` 답글이 viewport에 바로 표시됐다.
+- QA 종료 후 댓글·답글 5건은 soft-delete되었고 active QA row는 0건이다. actual push와 hard delete는 수행하지 않았다.
+
+검증 결과:
+
+- `viewCount`: first different viewer `delta 1`, repeated viewer `delta 0`.
+- `commentNotification`: unread `1`, actor/post copy `true`, app inbox `true`, target `true`, push `false`.
+- `replyNotification`: unread `1`, actor/reply copy `true`, app inbox `true`, target `true`, push `false`.
+- 최신 APK SHA-256: `c61972c0e1c170f310701894c83dd18cf334cf424603de09eb5f3be13db5623d`.
+- Jest `66 suites / 257 tests`, typecheck/lint/build/install 통과, app-fatal scan 0건.
+
+최신 증적:
+
+- `/tmp/nuri-qa/community-reply-notification-home.png`
+- `/tmp/nuri-qa/community-reply-notification-sheet.png`
+- `/tmp/nuri-qa/community-reply-notification-comment.png`
+- `/tmp/nuri-qa/community-reply-notification-comment.xml`
+- `/tmp/nuri-qa/community-reply-notification-logcat-full.txt`
+- `/tmp/nuri-qa/community-reply-notification-logcat-app-fatal-scan.txt`
+
 ## 2026-07-22 댓글 알림 target deep link 추가 검증
 
 - 댓글 알림 row가 서버에서 검증된 `postId/commentId`를 보유하도록 `get_user_notifications_v2`를 additive migration으로 추가했다.

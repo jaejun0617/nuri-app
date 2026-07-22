@@ -1,5 +1,19 @@
 # NURI 앱 전체 진행률 최종보고
 
+## 2026-07-22 답글 target·댓글/알림 visual evidence 보강
+
+이번 작업은 신규 기능 criterion을 늘리는 작업이 아니라 기존 댓글 알림 계약의 답글 target과 최신 UI evidence를 보강한 closeout이다. Home 알림 overlay의 차분한 밀도, 댓글 thread 외곽 border, `답글쓰기` 아래 nested reply 배치를 최신 release APK에서 확인했다. controlled top-level 댓글과 1-depth 답글 알림 모두 `unreadDelta 1`, 작성자·게시글 문구, `postId/commentId` target, 인앱 노출을 통과했다.
+
+| 분류 | 적용 | 완료 | 조건부 | 미완료 | 제외 | 진행률 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 기능 구현 | 78 | 78 | 0 | 0 | 11 | 100% |
+| QA·보안 | 59 | 59 | 0 | 0 | 7 | 100% |
+| 문서·release | 21 | 21 | 0 | 0 | 3 | 100% |
+
+가중 진행률은 `100*0.55 + 100*0.35 + 100*0.10 = 100%`다. 최신 APK SHA-256은 `c61972c0e1c170f310701894c83dd18cf334cf424603de09eb5f3be13db5623d`, Jest는 `66 suites / 257 tests`다. QA 종료 후 active QA comment row `0건`, Supabase remote up to date, app-fatal scan 0건을 확인했다.
+
+관리자 홈페이지 단계별 본구현은 종료 상태다. 이후 관리자 작업은 운영 장애·보안 패치·실제 회귀 수정으로 제한하며, 앱 본 프로젝트는 운영 반복 release gate와 별도 PO 승인 트랙만 남긴다.
+
 ## 2026-07-22 댓글 알림 target deep link 반영
 
 댓글 알림을 누르면 대상 게시글의 본문 시작이 아니라 해당 댓글 또는 답글 위치로 바로 이동하도록 구현·검증했다. `get_user_notifications_v2`가 안전한 target ID를 제공하고, 앱은 부모 thread를 확장한 뒤 대상 row를 강조한다. target이 없거나 숨겨진 경우에는 게시글 상세 fallback을 사용한다.

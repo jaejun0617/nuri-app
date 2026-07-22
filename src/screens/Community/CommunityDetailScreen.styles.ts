@@ -265,8 +265,10 @@ export const styles = StyleSheet.create({
   },
   commentThreadWrap: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingVertical: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderRadius: 14,
   },
   targetCommentThread: {
     borderLeftWidth: 3,
@@ -357,15 +359,22 @@ export const styles = StyleSheet.create({
   replyListWrap: {
     marginTop: 12,
     marginLeft: 4,
+    marginRight: 2,
+    paddingTop: 10,
     paddingLeft: 12,
     borderLeftWidth: 2,
     borderLeftColor: DETAIL_DIVIDER_COLOR,
-    gap: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: DETAIL_DIVIDER_COLOR,
+    gap: 0,
   },
   replyRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: DETAIL_DIVIDER_COLOR,
   },
   targetReplyRow: {
     borderWidth: 1,

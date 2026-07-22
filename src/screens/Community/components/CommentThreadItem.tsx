@@ -98,8 +98,10 @@ function CommentThreadItemBase({
             : isPostAuthor
             ? `${authorAccentColor}0D`
             : theme.colors.background,
-          borderBottomColor: theme.colors.border,
-          borderLeftColor: isHighlighted ? authorAccentColor : 'transparent',
+          borderColor: theme.colors.border,
+          borderLeftColor: isHighlighted
+            ? authorAccentColor
+            : theme.colors.border,
         },
       ]}
     >

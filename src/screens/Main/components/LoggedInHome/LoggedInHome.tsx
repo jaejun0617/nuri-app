@@ -776,8 +776,8 @@ const HomeNotificationSwipeItem = React.memo(function HomeNotificationSwipeItem(
             <View style={styles.notificationModalItemIconWrap}>
               <Feather
                 name={item.actionTarget ? 'message-circle' : 'bell'}
-                size={16}
-                color="rgba(79,70,229,0.88)"
+                size={14}
+                color="rgba(85,96,112,0.72)"
               />
             </View>
             <View style={styles.notificationModalItemContent}>

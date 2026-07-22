@@ -5,6 +5,7 @@ const { createClient } = require('@supabase/supabase-js');
 const PRIMARY_NICKNAME = 'adminQA';
 const FIXTURE_PREFIX = '[QA 커뮤니티 리디자인';
 const QA_COMMENT_PREFIX = '[QA 댓글 알림 E2E]';
+const QA_REPLY_PREFIX = '[QA 답글 알림 E2E]';
 const STATE_PATH = '/tmp/nuri-qa/community-view-notification-state.json';
 
 function requireEnvironment() {
@@ -190,6 +191,42 @@ async function verifyFlow(service, url, anonKey) {
     throw new Error('controlled secondary 댓글 생성에 실패했습니다.');
   }
 
+  const { data: replyParent, error: replyParentError } = await primaryClient
+    .from('comments')
+    .insert({
+      post_id: countable.post.id,
+      user_id: context.primary.user_id,
+      parent_comment_id: null,
+      depth: 0,
+      content: `${QA_COMMENT_PREFIX} 답글 알림의 부모 댓글입니다.`,
+      status: 'active',
+      created_at: createdAt,
+      updated_at: createdAt,
+    })
+    .select('id')
+    .single();
+  if (replyParentError || !replyParent) {
+    throw new Error('답글 알림 부모 댓글 생성에 실패했습니다.');
+  }
+
+  const { data: reply, error: replyError } = await secondaryClient
+    .from('comments')
+    .insert({
+      post_id: countable.post.id,
+      user_id: context.secondaryUserId,
+      parent_comment_id: replyParent.id,
+      depth: 1,
+      content: `${QA_REPLY_PREFIX} 부모 댓글 아래 좌표 이동을 확인합니다.`,
+      status: 'active',
+      created_at: new Date(Date.now() + 1000).toISOString(),
+      updated_at: new Date(Date.now() + 1000).toISOString(),
+    })
+    .select('id')
+    .single();
+  if (replyError || !reply) {
+    throw new Error('controlled secondary 답글 생성에 실패했습니다.');
+  }
+
   const { data: notification, error: notificationError } = await service
     .from('user_notifications')
     .select('id, title, body, read_at, metadata')
@@ -198,6 +235,17 @@ async function verifyFlow(service, url, anonKey) {
     .maybeSingle();
   if (notificationError || !notification) {
     throw new Error('댓글 인앱 알림 row가 생성되지 않았습니다.');
+  }
+
+  const { data: replyNotification, error: replyNotificationError } =
+    await service
+      .from('user_notifications')
+      .select('id, title, body, read_at, metadata')
+      .eq('user_id', context.primary.user_id)
+      .contains('metadata', { comment_id: reply.id })
+      .maybeSingle();
+  if (replyNotificationError || !replyNotification) {
+    throw new Error('답글 인앱 알림 row가 생성되지 않았습니다.');
   }
 
   const { data: secondaryProfile, error: secondaryProfileError } =
@@ -233,20 +281,35 @@ async function verifyFlow(service, url, anonKey) {
       row.target_post_id === countable.post.id &&
       row.target_comment_id === comment.id,
   );
+  const replyNavigationTargetMatched = inboxRows.some(
+    row =>
+      row.notification_id === replyNotification.id &&
+      row.target_post_id === countable.post.id &&
+      row.target_comment_id === reply.id,
+  );
   const actorCopyMatched = notification.title.startsWith(
     `${secondaryProfile.nickname}님이 댓글을`,
   );
   const postCopyMatched = notification.body.includes('게시글에 새 댓글이 달렸어요');
+  const replyActorCopyMatched = replyNotification.title.startsWith(
+    `${secondaryProfile.nickname}님이 답글을`,
+  );
+  const replyPostCopyMatched = replyNotification.body.includes(
+    '댓글에 새 답글이 달렸어요',
+  );
   if (
     !inboxVisible ||
     !navigationTargetMatched ||
     !actorCopyMatched ||
-    !postCopyMatched
+    !postCopyMatched ||
+    !replyNavigationTargetMatched ||
+    !replyActorCopyMatched ||
+    !replyPostCopyMatched
   ) {
     throw new Error('댓글 알림 문구 또는 앱 read-path 계약이 일치하지 않습니다.');
   }
-  if (unreadAfter !== unreadBefore + 1) {
-    throw new Error('댓글 알림 unread count가 정확히 1 증가하지 않았습니다.');
+  if (unreadAfter !== unreadBefore + 2) {
+    throw new Error('댓글·답글 알림 unread count가 정확히 2 증가하지 않았습니다.');
   }
 
   fs.mkdirSync(path.dirname(STATE_PATH), { recursive: true });
@@ -255,7 +318,10 @@ async function verifyFlow(service, url, anonKey) {
     JSON.stringify({
       postId: countable.post.id,
       commentId: comment.id,
+      replyParentId: replyParent.id,
+      replyId: reply.id,
       notificationId: notification.id,
+      replyNotificationId: replyNotification.id,
       secondaryUserId: context.secondaryUserId,
     }),
     { mode: 0o600 },
@@ -271,11 +337,23 @@ async function verifyFlow(service, url, anonKey) {
           repeatedDelta: Number(secondView.view_count || 0) - firstCount,
         },
         commentNotification: {
-          unreadDelta: unreadAfter - unreadBefore,
+          unreadDelta: 1,
           actorCopyMatched,
           postCopyMatched,
           appInboxVisible: inboxVisible,
           navigationTargetMatched,
+          pushDispatched: false,
+        },
+        replyNotification: {
+          unreadDelta: unreadAfter - unreadBefore - 1,
+          actorCopyMatched: replyActorCopyMatched,
+          postCopyMatched: replyPostCopyMatched,
+          appInboxVisible: inboxRows.some(
+            row =>
+              row.notification_id === replyNotification.id &&
+              row.notification_source === 'user',
+          ),
+          navigationTargetMatched: replyNavigationTargetMatched,
           pushDispatched: false,
         },
         stateFile: STATE_PATH,
@@ -310,6 +388,22 @@ async function cleanupFlow(service, url, anonKey) {
     ),
   ]);
   const deletedAt = new Date().toISOString();
+  const { error: replyError } = await secondaryClient
+    .from('comments')
+    .update({ status: 'deleted', deleted_at: deletedAt })
+    .eq('id', state.replyId)
+    .eq('user_id', context.secondaryUserId);
+  if (replyError) {
+    throw new Error('QA 답글 soft cleanup에 실패했습니다.');
+  }
+  const { error: replyParentError } = await primaryClient
+    .from('comments')
+    .update({ status: 'deleted', deleted_at: deletedAt })
+    .eq('id', state.replyParentId)
+    .eq('user_id', context.primary.user_id);
+  if (replyParentError) {
+    throw new Error('QA 답글 부모 댓글 soft cleanup에 실패했습니다.');
+  }
   const { error: commentError } = await secondaryClient
     .from('comments')
     .update({ status: 'deleted', deleted_at: deletedAt })
@@ -322,8 +416,12 @@ async function cleanupFlow(service, url, anonKey) {
     'mark_user_notification_read_v1',
     { p_notification_id: state.notificationId, p_notification_source: 'user' },
   );
-  if (readError) {
-    throw new Error('QA 알림 읽음 정리에 실패했습니다.');
+  const { error: replyReadError } = await primaryClient.rpc(
+    'mark_user_notification_read_v1',
+    { p_notification_id: state.replyNotificationId, p_notification_source: 'user' },
+  );
+  if (readError || replyReadError) {
+    throw new Error('QA 댓글·답글 알림 읽음 정리에 실패했습니다.');
   }
   fs.rmSync(STATE_PATH);
   console.log(
