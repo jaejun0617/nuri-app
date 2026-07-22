@@ -1,5 +1,9 @@
 # NURI 앱 전체 진행률 최종보고
 
+## 2026-07-22 대댓글 정렬 수정 및 남은 리스크 재판정
+
+기존 criterion denominator는 변경하지 않았다. 기능 `78/78`, QA·보안 `59/59`, 문서·release `21/21`이며 최신 APK SHA-256은 `373c1aa2771acabaa3599a4237c517af79b56313ce8706d2bf2727607f3f2d51`이다. Jest `66 suites / 257 tests`, typecheck/lint/release build/install, Supabase dry-run, Android app-fatal scan 0을 확인했다. Hospital public active `5,427건`, coordinate missing `122건`, `(0,0)` `0건`은 품질 추적 리스크로만 남겼고 actual push는 정책상 비활성 범위에서 제외했다.
+
 ## 2026-07-22 답글 target·댓글/알림 visual evidence 보강
 
 이번 작업은 신규 기능 criterion을 늘리는 작업이 아니라 기존 댓글 알림 계약의 답글 target과 최신 UI evidence를 보강한 closeout이다. Home 알림 overlay의 차분한 밀도, 댓글 thread 외곽 border, `답글쓰기` 아래 nested reply 배치를 최신 release APK에서 확인했다. controlled top-level 댓글과 1-depth 답글 알림 모두 `unreadDelta 1`, 작성자·게시글 문구, `postId/commentId` target, 인앱 노출을 통과했다.

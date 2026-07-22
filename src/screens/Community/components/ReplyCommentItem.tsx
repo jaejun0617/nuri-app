@@ -8,10 +8,7 @@ import AppText from '../../../app/ui/AppText';
 import { useCommunityStore } from '../../../store/communityStore';
 import { formatRelativeTimeFromNow } from '../../../utils/date';
 import { isCommentByPostAuthor } from '../utils/commentHelpers';
-import {
-  DETAIL_DIVIDER_COLOR,
-  styles,
-} from '../CommunityDetailScreen.styles';
+import { styles } from '../CommunityDetailScreen.styles';
 import CommentActionRow from './CommentActionRow';
 
 const EMPTY_REPLY = null;
@@ -73,20 +70,6 @@ function ReplyCommentItemBase({
           : null,
       ]}
     >
-      <View style={styles.replyLead}>
-        <View
-          style={[
-            styles.replyLeadLine,
-            { backgroundColor: DETAIL_DIVIDER_COLOR },
-          ]}
-        />
-        <View
-          style={[
-            styles.replyLeadDot,
-            { backgroundColor: theme.colors.background },
-          ]}
-        />
-      </View>
       {avatarSource ? (
         <FastImage
           source={avatarSource}

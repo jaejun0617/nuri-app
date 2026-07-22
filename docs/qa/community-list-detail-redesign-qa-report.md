@@ -2,6 +2,16 @@
 
 기준일: 2026-07-22
 
+## 2026-07-22 대댓글 세로선 제거·profile 정렬 QA
+
+- 대댓글의 vertical hierarchy line과 lead marker를 제거했다.
+- 대댓글 avatar/name을 부모 댓글 `답글쓰기` action 시작선에 정렬했다.
+- 댓글별 가로 row divider와 parent border는 유지했다.
+- Android에서 일반 댓글, 글쓴이 댓글, 대댓글 2개를 확인했고 세로선 없이 정렬·author accent가 정상이다.
+- composer keyboard, CTA, Android back을 확인했다.
+- 최신 APK SHA-256 `373c1aa2771acabaa3599a4237c517af79b56313ce8706d2bf2727607f3f2d51`, Jest `66 suites / 257 tests`, app-fatal scan 0.
+- 증적: `/tmp/nuri-qa/community-reply-alignment-comments.png`, `/tmp/nuri-qa/community-reply-alignment-keyboard.png`.
+
 ## 2026-07-22 답글 알림·댓글 thread visual closeout
 
 - 댓글 thread를 외곽 border와 `marginBottom` 간격이 있는 그룹으로 바꾸고, 일반 댓글도 border 색을 갖도록 정리했다.

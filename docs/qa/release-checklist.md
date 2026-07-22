@@ -1,5 +1,20 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-07-22 대댓글 정렬·세로선 제거 release gate
+
+- [x] reply vertical guide/lead marker 제거.
+- [x] reply avatar/name을 부모 댓글 `답글쓰기` action 시작선에 정렬.
+- [x] 댓글별 가로 divider와 parent thread 외곽 border 유지.
+- [x] 일반 댓글, 글쓴이 댓글, 대댓글 2개와 author accent를 Android에서 확인.
+- [x] keyboard, CTA, Android back 확인.
+- [x] 최신 APK SHA-256 `373c1aa2771acabaa3599a4237c517af79b56313ce8706d2bf2727607f3f2d51`.
+- [x] Jest `66 suites / 257 tests`, typecheck, lint, release build/install 통과.
+- [x] public active hospital `5,427건`, coordinate missing `122건`, `(0,0)` `0건` read-only audit.
+- [x] Supabase dry-run remote up to date, destructive migration 없음.
+- [x] app-fatal scan `0 matching app-fatal patterns`.
+
+증적: `/tmp/nuri-qa/community-reply-alignment-list.png`, `/tmp/nuri-qa/community-reply-alignment-detail-top.png`, `/tmp/nuri-qa/community-reply-alignment-comments.png`, `/tmp/nuri-qa/community-reply-alignment-keyboard.png`, `/tmp/nuri-qa/community-reply-alignment-logcat-app-fatal-scan.txt`.
+
 ## 2026-07-22 답글 알림·댓글 스레드 visual release gate
 
 - [x] Home 알림 overlay를 낮은 elevation·중립 icon·작은 카드 밀도로 확인.
