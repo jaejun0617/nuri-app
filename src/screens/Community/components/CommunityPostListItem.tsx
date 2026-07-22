@@ -7,14 +7,12 @@ type Props = {
   postId: string;
   accentColor: string;
   onPressPost: (postId: string) => void;
-  onPressLike: (postId: string) => void;
 };
 
 function CommunityPostListItemBase({
   postId,
   accentColor,
   onPressPost,
-  onPressLike,
 }: Props) {
   const post = useCommunityStore(
     useCallback(s => s.postsById[postId] ?? null, [postId]),
@@ -26,7 +24,6 @@ function CommunityPostListItemBase({
       post={post}
       accentColor={accentColor}
       onPressPost={onPressPost}
-      onPressLike={onPressLike}
     />
   );
 }

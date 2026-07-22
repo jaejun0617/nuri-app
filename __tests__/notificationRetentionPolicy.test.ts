@@ -24,6 +24,7 @@ function notification(
     type: 'notice',
     readAt: null,
     createdAt: '2026-07-03T00:00:00.000Z',
+    actionTarget: null,
   };
 }
 

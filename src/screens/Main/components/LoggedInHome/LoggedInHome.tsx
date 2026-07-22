@@ -117,6 +117,7 @@ import {
 } from '../../../../services/local/homeRecordScheduleCache';
 import { getBrandedErrorMeta } from '../../../../services/app/errors';
 import {
+  fetchUserNotificationUnreadCount,
   fetchUserNotifications,
   markUserNotificationRead,
   type UserNotificationItem,
@@ -771,43 +772,54 @@ const HomeNotificationSwipeItem = React.memo(function HomeNotificationSwipeItem(
           ]}
           onPress={() => onPressItem(item)}
         >
-          <View style={styles.notificationModalItemTopRow}>
-            <View style={styles.notificationModalItemTitleWrap}>
-              <Text style={styles.notificationModalItemTitle} numberOfLines={1}>
-                {item.title}
-              </Text>
-              {unread ? <View style={styles.notificationModalUnreadDot} /> : null}
-            </View>
-          </View>
-          <Text
-            style={[
-              styles.notificationModalItemBody,
-              expanded
-                ? styles.notificationModalItemBodyExpanded
-                : styles.notificationModalItemBodyCollapsed,
-            ]}
-            numberOfLines={expanded ? undefined : 2}
-          >
-            {item.body}
-          </Text>
-          <View style={styles.notificationModalItemFooterRow}>
-            <Text style={styles.notificationModalItemDate}>
-              {formatHomeNotificationDate(item.createdAt)}
-            </Text>
-            <TouchableOpacity
-              activeOpacity={0.84}
-              accessibilityLabel={expanded ? '알림 접기' : '알림 펼치기'}
-              accessibilityRole="button"
-              style={styles.notificationModalExpandButton}
-              onPress={toggleExpanded}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
+          <View style={styles.notificationModalItemMainRow}>
+            <View style={styles.notificationModalItemIconWrap}>
               <Feather
-                name={expanded ? 'chevron-up' : 'chevron-down'}
-                size={22}
-                color="rgba(255,255,255,0.70)"
+                name={item.actionTarget ? 'message-circle' : 'bell'}
+                size={16}
+                color="rgba(79,70,229,0.88)"
               />
-            </TouchableOpacity>
+            </View>
+            <View style={styles.notificationModalItemContent}>
+              <View style={styles.notificationModalItemTopRow}>
+                <View style={styles.notificationModalItemTitleWrap}>
+                  {unread ? <View style={styles.notificationModalUnreadDot} /> : null}
+                  <Text style={styles.notificationModalItemTitle} numberOfLines={1}>
+                    {item.title}
+                  </Text>
+                </View>
+              </View>
+              <Text
+                style={[
+                  styles.notificationModalItemBody,
+                  expanded
+                    ? styles.notificationModalItemBodyExpanded
+                    : styles.notificationModalItemBodyCollapsed,
+                ]}
+                numberOfLines={expanded ? undefined : 1}
+              >
+                {item.body}
+              </Text>
+              <View style={styles.notificationModalItemFooterRow}>
+                <Text style={styles.notificationModalItemDate}>
+                  {formatHomeNotificationDate(item.createdAt)}
+                </Text>
+                <TouchableOpacity
+                  activeOpacity={0.84}
+                  accessibilityLabel={expanded ? '알림 접기' : '알림 펼치기'}
+                  accessibilityRole="button"
+                  style={styles.notificationModalExpandButton}
+                  onPress={toggleExpanded}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Feather
+                    name={expanded ? 'chevron-up' : 'chevron-down'}
+                    size={18}
+                    color="rgba(85,96,112,0.72)"
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         </TouchableOpacity>
       </RNAnimated.View>
@@ -1021,6 +1033,7 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
   onPressAddPet,
   onPressSearch,
   onPressNotifications,
+  notificationUnreadCount,
 }: {
   greetingTitle: string;
   greetingSubTitle: string;
@@ -1031,7 +1044,13 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
   onPressAddPet: () => void;
   onPressSearch: () => void;
   onPressNotifications: () => void;
+  notificationUnreadCount: number;
 }) {
+  const notificationAccessibilityLabel =
+    notificationUnreadCount > 0
+      ? `알림 목록 열기, 읽지 않은 알림 ${notificationUnreadCount}개`
+      : '알림 목록 열기';
+
   return (
     <View style={styles.header}>
       <View style={styles.headerTopRow}>
@@ -1057,10 +1076,19 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
             activeOpacity={0.85}
             style={styles.headerIconBtn}
             onPress={onPressNotifications}
-            accessibilityLabel="알림 목록 열기"
+            accessibilityLabel={notificationAccessibilityLabel}
             accessibilityRole="button"
           >
             <Feather name="bell" size={18} color="rgba(11,18,32,0.75)" />
+            {notificationUnreadCount > 0 ? (
+              <View style={styles.headerNotificationBadge}>
+                <Text style={styles.headerNotificationBadgeText}>
+                  {notificationUnreadCount > 99
+                    ? '99+'
+                    : notificationUnreadCount}
+                </Text>
+              </View>
+            ) : null}
           </TouchableOpacity>
         </View>
       </View>
@@ -2262,6 +2290,8 @@ export default function LoggedInHome() {
   const [homeNotificationItems, setHomeNotificationItems] = useState<
     UserNotificationItem[]
   >([]);
+  const [homeNotificationUnreadCount, setHomeNotificationUnreadCount] =
+    useState(0);
   const [expandedHomeNotificationKeys, setExpandedHomeNotificationKeys] =
     useState<ReadonlySet<string>>(() => new Set());
   const [homeNotificationLoading, setHomeNotificationLoading] = useState(false);
@@ -2269,17 +2299,36 @@ export default function LoggedInHome() {
     string | null
   >(null);
 
+  const refreshHomeNotificationUnreadCount = useCallback(async () => {
+    if (!sessionUserId) {
+      setHomeNotificationUnreadCount(0);
+      return;
+    }
+
+    try {
+      const unreadCount = await fetchUserNotificationUnreadCount();
+      setHomeNotificationUnreadCount(unreadCount);
+    } catch {
+      // 알림 배지는 보조 정보다. Home 본문 렌더를 실패시키지 않는다.
+    }
+  }, [sessionUserId]);
+
   const loadHomeNotifications = useCallback(async () => {
     setHomeNotificationLoading(true);
     setHomeNotificationError(null);
     try {
       if (!sessionUserId) {
         setHomeNotificationItems([]);
+        setHomeNotificationUnreadCount(0);
         return;
       }
-      const items = await fetchUserNotifications(30);
+      const [items, unreadCount] = await Promise.all([
+        fetchUserNotifications(30),
+        fetchUserNotificationUnreadCount(),
+      ]);
       const dismissedKeys = await loadHomeNotificationDismissedKeys(sessionUserId);
       setHomeNotificationItems(filterHomeVisibleNotifications(items, dismissedKeys));
+      setHomeNotificationUnreadCount(unreadCount);
     } catch (error) {
       const meta = getBrandedErrorMeta(error, 'generic');
       setHomeNotificationError(meta.message);
@@ -2287,6 +2336,11 @@ export default function LoggedInHome() {
       setHomeNotificationLoading(false);
     }
   }, [sessionUserId]);
+
+  useEffect(() => {
+    if (!isScreenFocused) return;
+    refreshHomeNotificationUnreadCount().catch(() => {});
+  }, [isScreenFocused, refreshHomeNotificationUnreadCount]);
 
   const openHomeNotifications = useCallback(() => {
     setExpandedHomeNotificationKeys(new Set());
@@ -2317,6 +2371,14 @@ export default function LoggedInHome() {
 
   const onPressHomeNotificationItem = useCallback(
     async (item: UserNotificationItem) => {
+      if (item.actionTarget?.kind === 'community_comment') {
+        closeHomeNotifications();
+        navigation.navigate('CommunityDetail', {
+          postId: item.actionTarget.postId,
+          commentId: item.actionTarget.commentId,
+        });
+      }
+
       if (item.readAt) return;
       const optimisticReadAt = new Date().toISOString();
       setHomeNotificationItems(prev =>
@@ -2328,7 +2390,11 @@ export default function LoggedInHome() {
       );
 
       try {
-        await markUserNotificationRead({ id: item.id, source: item.source });
+        const unreadCount = await markUserNotificationRead({
+          id: item.id,
+          source: item.source,
+        });
+        setHomeNotificationUnreadCount(unreadCount);
       } catch (error) {
         const meta = getBrandedErrorMeta(error, 'generic');
         setHomeNotificationError(meta.message);
@@ -2341,7 +2407,7 @@ export default function LoggedInHome() {
         );
       }
     },
-    [],
+    [closeHomeNotifications, navigation],
   );
 
   const onDismissHomeNotificationItem = useCallback(
@@ -3249,6 +3315,7 @@ export default function LoggedInHome() {
           onPressAddPet={onPressAddPet}
           onPressSearch={noopSearchHeaderAction}
           onPressNotifications={openHomeNotifications}
+          notificationUnreadCount={homeNotificationUnreadCount}
         />
 
         {/* Fade container */}

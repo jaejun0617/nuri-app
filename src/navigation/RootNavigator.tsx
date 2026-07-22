@@ -219,7 +219,7 @@ export type RootStackParamList = {
   };
   AnimalHospitalAdmin: { entrySource?: ScreenEntrySource } | undefined;
   CommunityList: { entrySource?: ScreenEntrySource } | undefined;
-  CommunityDetail: { postId: string };
+  CommunityDetail: { postId: string; commentId?: string };
   CommunityCreate: undefined;
   CommunityEdit: { postId: string };
   UserNotifications: { entrySource?: ScreenEntrySource } | undefined;

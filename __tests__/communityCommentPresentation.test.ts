@@ -2,6 +2,7 @@ import {
   getVisibleReplies,
   groupCommentsIntoThreads,
   isCommentByPostAuthor,
+  resolveCommunityCommentNavigationTarget,
 } from '../src/screens/Community/utils/commentHelpers';
 import type { CommunityComment } from '../src/types/community';
 
@@ -58,5 +59,34 @@ describe('community comment presentation', () => {
       visibleReplyIds: ['1', '2', '3'],
       remainingReplyCount: 0,
     });
+  });
+
+  it('resolves a notification target to the containing comment thread', () => {
+    const comments = [
+      buildComment('parent-1', 'reader-1', null),
+      buildComment('reply-1', 'author-1', 'parent-1'),
+      buildComment('parent-2', 'author-1', null),
+    ];
+    const grouped = groupCommentsIntoThreads(comments);
+
+    expect(
+      resolveCommunityCommentNavigationTarget(
+        'reply-1',
+        grouped.commentEntitiesById,
+        grouped.topLevelCommentIds,
+      ),
+    ).toEqual({
+      targetCommentId: 'reply-1',
+      threadCommentId: 'parent-1',
+      threadIndex: 0,
+      isReply: true,
+    });
+    expect(
+      resolveCommunityCommentNavigationTarget(
+        'missing-comment',
+        grouped.commentEntitiesById,
+        grouped.topLevelCommentIds,
+      ),
+    ).toBeNull();
   });
 });

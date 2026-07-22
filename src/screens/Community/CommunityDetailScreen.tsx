@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
+  InteractionManager,
   Keyboard,
   Modal,
   Platform,
@@ -39,12 +40,14 @@ import type {
 } from '../../types/community';
 import { getKstDateParts } from '../../utils/date';
 import CommentThreadItem from './components/CommentThreadItem';
+import { resolveCommunityCommentNavigationTarget } from './utils/commentHelpers';
 import {
   DETAIL_DIVIDER_COLOR,
   styles,
 } from './CommunityDetailScreen.styles';
 const COMMENT_PAGE_SIZE = 10;
 const REPLY_PREVIEW_COUNT = 2;
+const TARGET_COMMENT_HIGHLIGHT_MS = 2600;
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'CommunityDetail'>;
 type Route = RootScreenRoute<'CommunityDetail'>;
@@ -131,6 +134,14 @@ export default function CommunityDetailScreen() {
   const theme = useTheme();
   const flatListRef = useRef<FlatList<string> | null>(null);
   const commentInputRef = useRef<TextInput | null>(null);
+  const currentScrollOffsetRef = useRef(0);
+  const preparedNavigationTargetKeyRef = useRef<string | null>(null);
+  const measuredNavigationTargetKeyRef = useRef<string | null>(null);
+  const missingNavigationTargetKeyRef = useRef<string | null>(null);
+  const targetScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const targetHighlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const keyboardInset = useKeyboardInset();
   const viewRecordAttemptedPostIdsRef = useRef<Record<string, boolean>>({});
   const commentLikeDebounceTimersRef = useRef<
@@ -150,6 +161,7 @@ export default function CommunityDetailScreen() {
   );
 
   const postId = route.params.postId;
+  const notificationCommentId = route.params.commentId ?? null;
   const post = useCommunityStore(s => s.postsById[postId] ?? null);
   const topLevelCommentIds = useCommunityStore(
     s => s.topLevelCommentIdsByPostId[postId] ?? EMPTY_COMMENT_IDS,
@@ -159,6 +171,15 @@ export default function CommunityDetailScreen() {
   );
   const commentsStatus = useCommunityStore(
     s => s.commentsStatusByPostId[postId] ?? 'idle',
+  );
+  const notificationTargetComment = useCommunityStore(
+    useCallback(
+      state =>
+        notificationCommentId
+          ? state.commentEntitiesById[notificationCommentId] ?? null
+          : null,
+      [notificationCommentId],
+    ),
   );
   const fetchPostDetail = useCommunityStore(s => s.fetchPostDetail);
   const recordPostView = useCommunityStore(s => s.recordPostView);
@@ -176,6 +197,9 @@ export default function CommunityDetailScreen() {
   const [commentSubmitting, setCommentSubmitting] = React.useState(false);
   const [visibleCommentCount, setVisibleCommentCount] =
     React.useState(COMMENT_PAGE_SIZE);
+  const [highlightedCommentId, setHighlightedCommentId] = React.useState<
+    string | null
+  >(null);
   const [replyTargetId, setReplyTargetId] = React.useState<string | null>(null);
   const [expandedRepliesByCommentId, setExpandedRepliesByCommentId] =
     React.useState<Record<string, boolean>>({});
@@ -217,13 +241,113 @@ export default function CommunityDetailScreen() {
     setVisibleCommentCount(COMMENT_PAGE_SIZE);
     setExpandedRepliesByCommentId({});
     setReplyTargetId(null);
-  }, [postId]);
+    setHighlightedCommentId(null);
+    preparedNavigationTargetKeyRef.current = null;
+    measuredNavigationTargetKeyRef.current = null;
+    missingNavigationTargetKeyRef.current = null;
+  }, [notificationCommentId, postId]);
+
+  const commentNavigationTarget = useMemo(() => {
+    if (!notificationCommentId || !notificationTargetComment) return null;
+    return resolveCommunityCommentNavigationTarget(
+      notificationCommentId,
+      { [notificationCommentId]: notificationTargetComment },
+      topLevelCommentIds,
+    );
+  }, [notificationCommentId, notificationTargetComment, topLevelCommentIds]);
+
+  useEffect(() => {
+    if (!notificationCommentId || commentsStatus !== 'ready') return undefined;
+
+    const targetKey = `${postId}:${notificationCommentId}`;
+    if (!commentNavigationTarget) {
+      if (missingNavigationTargetKeyRef.current !== targetKey) {
+        missingNavigationTargetKeyRef.current = targetKey;
+        showToast({
+          tone: 'warning',
+          message: '댓글이 삭제되었거나 숨겨져 있어 게시글만 열었어요.',
+        });
+      }
+      return undefined;
+    }
+    if (preparedNavigationTargetKeyRef.current === targetKey) return undefined;
+    preparedNavigationTargetKeyRef.current = targetKey;
+
+    setVisibleCommentCount(previousCount =>
+      Math.max(previousCount, commentNavigationTarget.threadIndex + 1),
+    );
+    if (commentNavigationTarget.isReply) {
+      setExpandedRepliesByCommentId(previous => ({
+        ...previous,
+        [commentNavigationTarget.threadCommentId]: true,
+      }));
+    }
+    setHighlightedCommentId(notificationCommentId);
+
+    const task = InteractionManager.runAfterInteractions(() => {
+      targetScrollTimerRef.current = setTimeout(() => {
+        flatListRef.current?.scrollToIndex({
+          index: commentNavigationTarget.threadIndex,
+          animated: true,
+          viewPosition: 0.2,
+        });
+      }, 120);
+    });
+
+    return () => {
+      task.cancel();
+    };
+  }, [
+    commentNavigationTarget,
+    commentsStatus,
+    notificationCommentId,
+    postId,
+  ]);
+
+  const handleTargetCommentReady = useCallback(
+    (target: React.ElementRef<typeof View> | null) => {
+      if (!target || !notificationCommentId || !commentNavigationTarget) return;
+
+      const targetKey = `${postId}:${notificationCommentId}`;
+      if (measuredNavigationTargetKeyRef.current === targetKey) return;
+      measuredNavigationTargetKeyRef.current = targetKey;
+
+      targetScrollTimerRef.current = setTimeout(() => {
+        target.measureInWindow((_x, y) => {
+          const desiredTop = Math.max(insets.top + 88, 96);
+          const delta = y - desiredTop;
+          if (Number.isFinite(delta) && Math.abs(delta) > 8) {
+            flatListRef.current?.scrollToOffset({
+              offset: Math.max(currentScrollOffsetRef.current + delta, 0),
+              animated: true,
+            });
+          }
+
+          if (targetHighlightTimerRef.current) {
+            clearTimeout(targetHighlightTimerRef.current);
+          }
+          targetHighlightTimerRef.current = setTimeout(() => {
+            setHighlightedCommentId(current =>
+              current === notificationCommentId ? null : current,
+            );
+          }, TARGET_COMMENT_HIGHLIGHT_MS);
+        });
+      }, 420);
+    },
+    [commentNavigationTarget, insets.top, notificationCommentId, postId],
+  );
 
   useEffect(
     () => () => {
       Object.values(commentLikeDebounceTimersRef.current).forEach(timer => {
         clearTimeout(timer);
       });
+      if (targetScrollTimerRef.current) {
+        clearTimeout(targetScrollTimerRef.current);
+      }
+      if (targetHighlightTimerRef.current) {
+        clearTimeout(targetHighlightTimerRef.current);
+      }
       commentLikeDebounceTimersRef.current = {};
     },
     [],
@@ -776,6 +900,8 @@ export default function CommunityDetailScreen() {
         postAuthorId={post?.authorId ?? ''}
         authorAccentColor={petTheme.primary}
         bestBadgeColor={petTheme.primary}
+        highlightedCommentId={highlightedCommentId}
+        onTargetReady={handleTargetCommentReady}
         onPressReply={handlePressReply}
         onToggleLike={handleToggleCommentLike}
         onPressDelete={handleRequestDeleteComment}
@@ -791,6 +917,8 @@ export default function CommunityDetailScreen() {
       handleRequestDeleteComment,
       handleRequestReportComment,
       handleToggleCommentLike,
+      handleTargetCommentReady,
+      highlightedCommentId,
       petTheme.primary,
       post?.authorId,
     ],
@@ -886,6 +1014,26 @@ export default function CommunityDetailScreen() {
         automaticallyAdjustKeyboardInsets={true}
         showsVerticalScrollIndicator={false}
         onScrollBeginDrag={Keyboard.dismiss}
+        onScroll={event => {
+          currentScrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+        }}
+        scrollEventThrottle={16}
+        onScrollToIndexFailed={({ averageItemLength, index }) => {
+          flatListRef.current?.scrollToOffset({
+            offset: Math.max(averageItemLength * index, 0),
+            animated: false,
+          });
+          if (targetScrollTimerRef.current) {
+            clearTimeout(targetScrollTimerRef.current);
+          }
+          targetScrollTimerRef.current = setTimeout(() => {
+            flatListRef.current?.scrollToIndex({
+              index,
+              animated: true,
+              viewPosition: 0.2,
+            });
+          }, 180);
+        }}
         initialNumToRender={8}
         maxToRenderPerBatch={8}
         windowSize={7}

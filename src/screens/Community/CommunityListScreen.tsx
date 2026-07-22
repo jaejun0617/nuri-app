@@ -41,11 +41,10 @@ import type { RootScreenRoute } from '../../navigation/types';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { useCommunityStore } from '../../store/communityStore';
 import { usePetStore } from '../../store/petStore';
-import { openMoreDrawer, showToast } from '../../store/uiStore';
+import { openMoreDrawer } from '../../store/uiStore';
 import type {
   CommunityPostCategory,
 } from '../../types/community';
-import { openCommunityPolicyDocument } from './communityPolicyLink';
 import { styles } from './CommunityListScreen.styles';
 import CommunityPostListItem from './components/CommunityPostListItem';
 
@@ -66,15 +65,9 @@ const CATEGORY_CHIPS: CategoryChip[] = [
   { key: 'free', label: '정보', value: 'free' },
 ];
 
-const FLOATING_BUTTON_SIZE = 48;
-const FLOATING_BUTTON_GAP = 14;
 const TOP_BUTTON_SHOW_SCROLL_Y = 260;
-const FLOATING_BUTTON_RAISE_STEP = 24;
-const FLOATING_BUTTON_BOTTOM_OFFSET = 100;
-const FLOATING_BUTTON_MIN_BOTTOM = 116;
-const TOP_BUTTON_MIN_BOTTOM = 12;
-const LIST_BOTTOM_PADDING_OFFSET = 16;
-const LIST_MIN_BOTTOM_PADDING = 148;
+const TOP_BUTTON_BOTTOM_OFFSET = 82;
+const LIST_BOTTOM_PADDING_OFFSET = 98;
 
 const keyExtractor = (item: string) => item;
 
@@ -162,9 +155,6 @@ export default function CommunityListScreen() {
   const pendingCategoryTransitionRef = useRef<
     CommunityPostCategory | null | 'all'
   >(null);
-  const postLikeDebounceTimersRef = useRef<
-    Record<string, ReturnType<typeof setTimeout>>
-  >({});
 
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
@@ -186,10 +176,9 @@ export default function CommunityListScreen() {
   const fetchPosts = useCommunityStore(s => s.fetchPosts);
   const refreshPosts = useCommunityStore(s => s.refreshPosts);
   const loadMorePosts = useCommunityStore(s => s.loadMorePosts);
-  const togglePostLike = useCommunityStore(s => s.togglePostLike);
 
   const [showTopButton, setShowTopButton] = useState(false);
-  const { currentUserId, requireLogin } = useCommunityAuth();
+  const { requireLogin } = useCommunityAuth();
 
   useEffect(() => {
     if (listStatus !== 'idle' || posts.length > 0) return;
@@ -238,6 +227,11 @@ export default function CommunityListScreen() {
       navigation.goBack();
     },
   });
+  const handlePressCreate = useCallback(() => {
+    requireLogin(() => {
+      navigation.navigate('CommunityCreate');
+    });
+  }, [navigation, requireLogin]);
   const renderHeaderLeft = useCallback(
     () => (
       <TouchableOpacity
@@ -255,7 +249,20 @@ export default function CommunityListScreen() {
     ),
     [handlePressBack, theme.colors.textPrimary],
   );
-  const renderHeaderRight = useCallback(() => null, []);
+  const renderHeaderRight = useCallback(
+    () => (
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel="게시글 작성"
+        activeOpacity={0.82}
+        style={styles.headerActionButton}
+        onPress={handlePressCreate}
+      >
+        <Feather name="edit-3" size={19} color={theme.colors.textPrimary} />
+      </TouchableOpacity>
+    ),
+    [handlePressCreate, theme.colors.textPrimary],
+  );
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -264,22 +271,6 @@ export default function CommunityListScreen() {
       headerRight: renderHeaderRight,
     });
   }, [navigation, renderHeaderLeft, renderHeaderRight]);
-
-  useEffect(
-    () => () => {
-      Object.values(postLikeDebounceTimersRef.current).forEach(timer => {
-        clearTimeout(timer);
-      });
-      postLikeDebounceTimersRef.current = {};
-    },
-    [],
-  );
-
-  const handlePressCreate = useCallback(() => {
-    requireLogin(() => {
-      navigation.navigate('CommunityCreate');
-    });
-  }, [navigation, requireLogin]);
 
   const handlePressCategory = useCallback(
     (category: CommunityPostCategory | null) => {
@@ -320,40 +311,11 @@ export default function CommunityListScreen() {
     fetchPosts(activeCategory).catch(() => {});
   }, [activeCategory, fetchPosts]);
 
-  const handlePressCommunityPolicy = useCallback(async () => {
-    const result = await openCommunityPolicyDocument();
-    if (result.ok) return;
-
-    showToast({
-      tone: 'error',
-      message: result.message,
-    });
-  }, []);
-
   const handlePressPost = useCallback(
     (postId: string) => {
       navigation.navigate('CommunityDetail', { postId });
     },
     [navigation],
-  );
-
-  const handlePressLike = useCallback(
-    (postId: string) => {
-      requireLogin(() => {
-        if (!currentUserId) return;
-        if (postLikeDebounceTimersRef.current[postId]) return;
-        togglePostLike(postId, currentUserId).catch(() => {
-          showToast({
-            tone: 'error',
-            message: '좋아요 처리에 실패했어요.',
-          });
-        });
-        postLikeDebounceTimersRef.current[postId] = setTimeout(() => {
-          delete postLikeDebounceTimersRef.current[postId];
-        }, 300);
-      });
-    },
-    [currentUserId, requireLogin, togglePostLike],
   );
 
   const postIds = useMemo(() => posts.map(post => post.id), [posts]);
@@ -364,10 +326,9 @@ export default function CommunityListScreen() {
         postId={postId}
         accentColor={petTheme.primary}
         onPressPost={handlePressPost}
-        onPressLike={handlePressLike}
       />
     ),
-    [handlePressLike, handlePressPost, petTheme.primary],
+    [handlePressPost, petTheme.primary],
   );
 
   const isCategoryTransitioning =
@@ -424,81 +385,6 @@ export default function CommunityListScreen() {
       petTheme.primary,
       theme.colors.background,
       theme.colors.textMuted,
-    ],
-  );
-
-  const listHeader = useMemo(
-    () => (
-      <View style={styles.listIntroHeader}>
-        <TouchableOpacity
-          activeOpacity={0.92}
-          style={[
-            styles.noticeBanner,
-            {
-              backgroundColor: `${petTheme.primary}14`,
-              borderColor: `${petTheme.primary}26`,
-            },
-          ]}
-          onPress={handlePressCommunityPolicy}
-        >
-          <View style={styles.noticeBannerTextBlock}>
-            <AppText
-              preset="caption"
-              style={[
-                styles.noticeBannerLabel,
-                { color: petTheme.deep },
-              ]}
-            >
-              안전하고 따뜻한 반려생활 커뮤니티를 위한 NURI 이용 가이드
-            </AppText>
-          </View>
-          <View style={styles.noticeBannerAction}>
-            <AppText
-              preset="caption"
-              style={[
-                styles.noticeBannerActionText,
-                { color: petTheme.primary },
-              ]}
-            >
-              운영정책 보기
-            </AppText>
-            <Feather name="chevron-right" size={15} color={petTheme.primary} />
-          </View>
-        </TouchableOpacity>
-        <View style={styles.sectionHeader}>
-          <View style={styles.sectionHeaderTextBlock}>
-            <View style={styles.sectionHeaderTitleRow}>
-              <AppText
-                preset="caption"
-                style={[styles.sectionHeaderLabel, { color: theme.colors.textPrimary }]}
-              >
-                최근 글
-              </AppText>
-              <AppText
-                preset="caption"
-                style={[styles.sectionHeaderCount, { color: theme.colors.textMuted }]}
-              >
-                {hasMore ? `${postIds.length}개 이상` : `${postIds.length}개`}
-              </AppText>
-            </View>
-            <AppText
-              preset="caption"
-              style={[styles.headline, { color: theme.colors.textPrimary }]}
-            >
-              반려생활 이야기를 나눠보세요 :)
-            </AppText>
-          </View>
-        </View>
-      </View>
-    ),
-    [
-      handlePressCommunityPolicy,
-      petTheme.deep,
-      petTheme.primary,
-      postIds.length,
-      hasMore,
-      theme.colors.textMuted,
-      theme.colors.textPrimary,
     ],
   );
 
@@ -563,29 +449,13 @@ export default function CommunityListScreen() {
     pendingCategoryTransitionRef.current = null;
   }, [listStatus]);
 
-  const createFabBottom = useMemo(
-    () =>
-      Math.max(
-        insets.bottom + FLOATING_BUTTON_BOTTOM_OFFSET + FLOATING_BUTTON_RAISE_STEP,
-        FLOATING_BUTTON_MIN_BOTTOM + FLOATING_BUTTON_RAISE_STEP,
-      ),
+  const topButtonBottom = useMemo(
+    () => Math.max(insets.bottom + TOP_BUTTON_BOTTOM_OFFSET, 88),
     [insets.bottom],
   );
-  const topButtonBottom = useMemo(
-    () =>
-      Math.max(
-        createFabBottom - FLOATING_BUTTON_SIZE - FLOATING_BUTTON_GAP,
-        insets.bottom + TOP_BUTTON_MIN_BOTTOM,
-      ),
-    [createFabBottom, insets.bottom],
-  );
   const listBottomInset = useMemo(
-    () =>
-      Math.max(
-        createFabBottom + FLOATING_BUTTON_SIZE + LIST_BOTTOM_PADDING_OFFSET,
-        insets.bottom + LIST_MIN_BOTTOM_PADDING,
-      ),
-    [createFabBottom, insets.bottom],
+    () => Math.max(insets.bottom + LIST_BOTTOM_PADDING_OFFSET, 112),
+    [insets.bottom],
   );
 
   return (
@@ -631,9 +501,9 @@ export default function CommunityListScreen() {
             overScrollMode="always"
             keyExtractor={keyExtractor}
             renderItem={renderItem}
-            initialNumToRender={6}
-            maxToRenderPerBatch={6}
-            windowSize={7}
+            initialNumToRender={12}
+            maxToRenderPerBatch={10}
+            windowSize={9}
             updateCellsBatchingPeriod={50}
             removeClippedSubviews={Platform.OS === 'android'}
             onEndReached={handleLoadMore}
@@ -641,7 +511,6 @@ export default function CommunityListScreen() {
             onScroll={handleScroll}
             scrollEventThrottle={16}
             showsVerticalScrollIndicator={false}
-            ListHeaderComponent={listHeader}
             ListEmptyComponent={emptyComponent}
             ListFooterComponent={footerComponent}
             refreshControl={
@@ -659,20 +528,6 @@ export default function CommunityListScreen() {
               },
             ]}
           />
-
-          <Pressable
-            android_ripple={{ color: `${petTheme.onPrimary}18` }}
-            style={[
-              styles.createFab,
-              {
-                backgroundColor: petTheme.primary,
-                bottom: createFabBottom,
-              },
-            ]}
-            onPress={handlePressCreate}
-          >
-            <Feather name="edit-3" size={18} color={petTheme.onPrimary} />
-          </Pressable>
 
           {showTopButton ? (
             <Pressable

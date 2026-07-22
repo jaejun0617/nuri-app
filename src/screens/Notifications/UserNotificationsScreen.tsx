@@ -204,42 +204,53 @@ const NotificationSwipeItem = React.memo(function NotificationSwipeItem({
           ]}
           onPress={() => onPress(item)}
         >
-          <View style={styles.itemTopRow}>
-            <View style={styles.itemTitleWrap}>
-              <AppText preset="body" style={styles.itemTitle} numberOfLines={1}>
-                {item.title}
-              </AppText>
-              {unread ? <View style={styles.unreadDot} /> : null}
-            </View>
-          </View>
-          <AppText
-            preset="body"
-            style={[
-              styles.itemBody,
-              expanded ? styles.itemBodyExpanded : styles.itemBodyCollapsed,
-            ]}
-            numberOfLines={expanded ? undefined : 2}
-          >
-            {item.body}
-          </AppText>
-          <View style={styles.itemFooterRow}>
-            <AppText preset="caption" style={styles.itemDate}>
-              {formatNotificationDate(item.createdAt)}
-            </AppText>
-            <TouchableOpacity
-              activeOpacity={0.84}
-              accessibilityLabel={expanded ? '알림 접기' : '알림 펼치기'}
-              accessibilityRole="button"
-              style={styles.itemExpandButton}
-              onPress={toggleExpanded}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
+          <View style={styles.itemMainRow}>
+            <View style={styles.itemIconWrap}>
               <Feather
-                name={expanded ? 'chevron-up' : 'chevron-down'}
-                size={20}
-                color="#667085"
+                name={item.actionTarget ? 'message-circle' : 'bell'}
+                size={16}
+                color="#4F46E5"
               />
-            </TouchableOpacity>
+            </View>
+            <View style={styles.itemContent}>
+              <View style={styles.itemTopRow}>
+                <View style={styles.itemTitleWrap}>
+                  {unread ? <View style={styles.unreadDot} /> : null}
+                  <AppText preset="body" style={styles.itemTitle} numberOfLines={1}>
+                    {item.title}
+                  </AppText>
+                </View>
+              </View>
+              <AppText
+                preset="body"
+                style={[
+                  styles.itemBody,
+                  expanded ? styles.itemBodyExpanded : styles.itemBodyCollapsed,
+                ]}
+                numberOfLines={expanded ? undefined : 1}
+              >
+                {item.body}
+              </AppText>
+              <View style={styles.itemFooterRow}>
+                <AppText preset="caption" style={styles.itemDate}>
+                  {formatNotificationDate(item.createdAt)}
+                </AppText>
+                <TouchableOpacity
+                  activeOpacity={0.84}
+                  accessibilityLabel={expanded ? '알림 접기' : '알림 펼치기'}
+                  accessibilityRole="button"
+                  style={styles.itemExpandButton}
+                  onPress={toggleExpanded}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Feather
+                    name={expanded ? 'chevron-up' : 'chevron-down'}
+                    size={18}
+                    color="#667085"
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         </TouchableOpacity>
       </RNAnimated.View>
@@ -293,6 +304,13 @@ export default function UserNotificationsScreen() {
   }, [navigation]);
 
   const onPressNotification = useCallback(async (item: UserNotificationItem) => {
+    if (item.actionTarget?.kind === 'community_comment') {
+      navigation.navigate('CommunityDetail', {
+        postId: item.actionTarget.postId,
+        commentId: item.actionTarget.commentId,
+      });
+    }
+
     if (item.readAt) return;
     const optimisticReadAt = new Date().toISOString();
     setItems(prev =>
@@ -316,7 +334,7 @@ export default function UserNotificationsScreen() {
       const meta = getBrandedErrorMeta(error, 'generic');
       showToast({ tone: 'error', title: meta.title, message: meta.message });
     }
-  }, []);
+  }, [navigation]);
 
   const onDismissNotification = useCallback(
     async (item: UserNotificationItem) => {
@@ -573,7 +591,7 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: 18,
     paddingTop: 8,
-    gap: 10,
+    gap: 7,
   },
   listContentEmpty: {
     flexGrow: 1,
@@ -581,27 +599,44 @@ const styles = StyleSheet.create({
   swipeRow: {
     position: 'relative',
     overflow: 'hidden',
-    borderRadius: 28,
+    borderRadius: 14,
   },
   swipeCard: {
     transform: [{ translateX: 0 }],
   },
   itemCard: {
-    minHeight: 126,
-    borderRadius: 28,
+    minHeight: 88,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: 'rgba(16,32,51,0.08)',
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
-    paddingVertical: 17,
-    gap: 8,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
   },
   itemCardUnread: {
     borderColor: '#DDE5FF',
     backgroundColor: '#FAFBFF',
   },
   itemCardExpanded: {
-    minHeight: 184,
+    minHeight: 108,
+  },
+  itemMainRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 11,
+  },
+  itemIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(79,70,229,0.08)',
+  },
+  itemContent: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
   },
   itemTopRow: {
     flexDirection: 'row',
@@ -618,7 +653,9 @@ const styles = StyleSheet.create({
   itemTitle: {
     flexShrink: 1,
     color: '#0B1220',
-    fontWeight: '900',
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: '800',
   },
   unreadDot: {
     width: 7,
@@ -629,7 +666,9 @@ const styles = StyleSheet.create({
   itemDate: {
     flex: 1,
     color: '#9AA3AF',
-    fontWeight: '700',
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '600',
     textAlign: 'left',
   },
   itemMeta: {
@@ -648,24 +687,25 @@ const styles = StyleSheet.create({
   },
   itemBody: {
     color: '#4B5563',
-    lineHeight: 21,
+    fontSize: 12,
+    lineHeight: 17,
   },
   itemBodyCollapsed: {
-    minHeight: 42,
+    minHeight: 17,
   },
   itemBodyExpanded: {
     color: '#364053',
   },
   itemFooterRow: {
-    minHeight: 32,
+    minHeight: 22,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
   },
   itemExpandButton: {
-    width: 38,
-    height: 32,
+    width: 30,
+    height: 22,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

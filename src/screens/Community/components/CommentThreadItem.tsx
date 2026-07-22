@@ -26,6 +26,8 @@ type Props = {
   postAuthorId: string;
   authorAccentColor: string;
   bestBadgeColor: string;
+  highlightedCommentId: string | null;
+  onTargetReady: (target: React.ElementRef<typeof View> | null) => void;
   onPressReply: (commentId: string) => void;
   onToggleLike: (commentId: string) => void;
   onPressDelete: (commentId: string) => void;
@@ -45,6 +47,8 @@ function CommentThreadItemBase({
   postAuthorId,
   authorAccentColor,
   bestBadgeColor,
+  highlightedCommentId,
+  onTargetReady,
   onPressReply,
   onToggleLike,
   onPressDelete,
@@ -80,16 +84,22 @@ function CommentThreadItemBase({
 
   if (!comment) return null;
   const isPostAuthor = isCommentByPostAuthor(comment.authorId, postAuthorId);
+  const isHighlighted = highlightedCommentId === comment.id;
 
   return (
     <View
+      ref={isHighlighted ? onTargetReady : undefined}
       style={[
         styles.commentThreadWrap,
+        isHighlighted ? styles.targetCommentThread : null,
         {
-          backgroundColor: isPostAuthor
+          backgroundColor: isHighlighted
+            ? `${authorAccentColor}1A`
+            : isPostAuthor
             ? `${authorAccentColor}0D`
             : theme.colors.background,
           borderBottomColor: theme.colors.border,
+          borderLeftColor: isHighlighted ? authorAccentColor : 'transparent',
         },
       ]}
     >
@@ -208,6 +218,8 @@ function CommentThreadItemBase({
                   currentUserId={currentUserId}
                   postAuthorId={postAuthorId}
                   authorAccentColor={authorAccentColor}
+                  highlighted={highlightedCommentId === replyId}
+                  onTargetReady={onTargetReady}
                   onPressReply={onPressReply}
                   onToggleLike={onToggleLike}
                   onPressDelete={onPressDelete}

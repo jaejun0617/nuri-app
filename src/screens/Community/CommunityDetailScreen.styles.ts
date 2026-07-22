@@ -268,6 +268,9 @@ export const styles = StyleSheet.create({
     paddingVertical: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  targetCommentThread: {
+    borderLeftWidth: 3,
+  },
   commentRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -363,6 +366,12 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
+  },
+  targetReplyRow: {
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 7,
+    marginHorizontal: -7,
   },
   replyLead: {
     width: 16,

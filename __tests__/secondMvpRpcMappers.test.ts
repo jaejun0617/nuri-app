@@ -311,12 +311,14 @@ describe('V1.1 second MVP RPC mappers', () => {
         data: [
           {
             notification_id: '11111111-1111-1111-1111-111111111111',
-            notification_source: 'announcement',
-            title: '공지',
-            body: '새 소식이 있어요.',
-            type: 'notice',
+            notification_source: 'user',
+            title: '댓글 알림',
+            body: '게시글에 새 댓글이 달렸어요.',
+            type: 'event',
             read_at: null,
             created_at: '2026-07-01T00:00:00.000Z',
+            target_post_id: '22222222-2222-4222-8222-222222222222',
+            target_comment_id: '33333333-3333-4333-8333-333333333333',
           },
         ],
         error: null,
@@ -329,14 +331,22 @@ describe('V1.1 second MVP RPC mappers', () => {
     await expect(fetchUserNotifications()).resolves.toEqual([
       {
         id: '11111111-1111-1111-1111-111111111111',
-        source: 'announcement',
-        title: '공지',
-        body: '새 소식이 있어요.',
-        type: 'notice',
+        source: 'user',
+        title: '댓글 알림',
+        body: '게시글에 새 댓글이 달렸어요.',
+        type: 'event',
         readAt: null,
         createdAt: '2026-07-01T00:00:00.000Z',
+        actionTarget: {
+          kind: 'community_comment',
+          postId: '22222222-2222-4222-8222-222222222222',
+          commentId: '33333333-3333-4333-8333-333333333333',
+        },
       },
     ]);
+    expect(supabase.rpc).toHaveBeenNthCalledWith(1, 'get_user_notifications_v2', {
+      p_limit: 50,
+    });
     await expect(fetchUserNotificationUnreadCount()).resolves.toBe(1);
     await expect(
       markUserNotificationRead({

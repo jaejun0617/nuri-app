@@ -1,19 +1,17 @@
 import React, { memo, useCallback, useMemo } from 'react';
 import { Pressable, View } from 'react-native';
-import Feather from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../../app/ui/AppText';
 import type { CommunityPost } from '../../../types/community';
-import { formatRelativeTimeFromNow } from '../../../utils/date';
+import { formatCommunityListTimestamp } from '../communityListPresentation';
 import { styles } from './PostCard.styles';
 
 type Props = {
   post: CommunityPost;
   accentColor: string;
   onPressPost: (postId: string) => void;
-  onPressLike: (postId: string) => void;
 };
 
 function getCategoryLabel(category: CommunityPost['category']) {
@@ -52,26 +50,18 @@ function PostCardBase({
   post,
   accentColor,
   onPressPost,
-  onPressLike,
 }: Props) {
   const theme = useTheme();
   const title = useMemo(() => resolvePostTitle(post), [post]);
   const categoryLabel = getCategoryLabel(post.category);
   const createdAtLabel = useMemo(
-    () => formatRelativeTimeFromNow(post.createdAt),
+    () => formatCommunityListTimestamp(post.createdAt),
     [post.createdAt],
   );
-  const petLabel = [post.petName, post.petBreed || post.petSpecies]
-    .map(trimText)
-    .filter(Boolean)
-    .join(' · ');
 
   const handlePress = useCallback(() => {
     onPressPost(post.id);
   }, [onPressPost, post.id]);
-  const handlePressLike = useCallback(() => {
-    onPressLike(post.id);
-  }, [onPressLike, post.id]);
 
   return (
     <Pressable
@@ -84,35 +74,33 @@ function PostCardBase({
           backgroundColor: pressed
             ? `${accentColor}08`
             : theme.colors.background,
-          borderBottomColor: theme.colors.border,
+          borderBottomColor: `${theme.colors.textMuted}55`,
         },
       ]}
       onPress={handlePress}
     >
-      <View
-        style={[
-          styles.typeIcon,
-          {
-            backgroundColor: post.hasImage ? `${accentColor}14` : theme.colors.surface,
-            borderColor: post.hasImage ? `${accentColor}26` : theme.colors.border,
-          },
-        ]}
-      >
-        <MaterialCommunityIcons
-          name={post.hasImage ? 'image-outline' : 'message-text-outline'}
-          size={18}
-          color={post.hasImage ? accentColor : theme.colors.textMuted}
-        />
-      </View>
-
       <View style={styles.content}>
-        <AppText
-          preset="body"
-          numberOfLines={2}
-          style={[styles.title, { color: theme.colors.textPrimary }]}
-        >
-          {title}
-        </AppText>
+        <View style={styles.titleRow}>
+          {post.hasImage ? (
+            <View style={styles.imageTypeIcon}>
+              <MaterialCommunityIcons name="image" size={13} color="#FFFFFF" />
+            </View>
+          ) : (
+            <MaterialCommunityIcons
+              name="message-processing"
+              size={18}
+              color="#C7CBD2"
+              style={styles.textTypeIcon}
+            />
+          )}
+          <AppText
+            preset="body"
+            numberOfLines={1}
+            style={[styles.title, { color: theme.colors.textPrimary }]}
+          >
+            {title}
+          </AppText>
+        </View>
 
         <View style={styles.metaRow}>
           <AppText
@@ -120,60 +108,25 @@ function PostCardBase({
             numberOfLines={1}
             style={[styles.metaText, { color: theme.colors.textMuted }]}
           >
-            {`${categoryLabel} · ${post.authorNickname}${
-              petLabel ? ` · ${petLabel}` : ''
-            } · ${createdAtLabel} · 조회 ${post.viewCount.toLocaleString()}`}
+            {`${categoryLabel}  |  ${post.authorNickname}  |  ${createdAtLabel}  |  조회 ${post.viewCount.toLocaleString()}  |  추천 ${post.likeCount.toLocaleString()}`}
           </AppText>
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`좋아요 ${post.likeCount}개`}
-            hitSlop={8}
-            style={styles.likeButton}
-            onPress={event => {
-              event.stopPropagation();
-              handlePressLike();
-            }}
-          >
-            <Feather
-              name="heart"
-              size={13}
-              color={post.isLikedByMe ? theme.colors.danger : theme.colors.textMuted}
-            />
-            <AppText
-              preset="caption"
-              style={[
-                styles.likeText,
-                {
-                  color: post.isLikedByMe
-                    ? theme.colors.danger
-                    : theme.colors.textMuted,
-                },
-              ]}
-            >
-              {post.likeCount.toLocaleString()}
-            </AppText>
-          </Pressable>
         </View>
       </View>
 
       <View
         style={[
           styles.commentRail,
-          { borderLeftColor: theme.colors.border },
+          {
+            backgroundColor: theme.colors.surface,
+            borderLeftColor: `${theme.colors.textMuted}35`,
+          },
         ]}
       >
         <AppText
           preset="body"
-          style={[styles.commentCount, { color: accentColor }]}
+          style={[styles.commentCount, { color: theme.colors.danger }]}
         >
           {post.commentCount.toLocaleString()}
-        </AppText>
-        <AppText
-          preset="caption"
-          style={[styles.commentLabel, { color: theme.colors.textMuted }]}
-        >
-          댓글
         </AppText>
       </View>
     </Pressable>
@@ -183,20 +136,15 @@ function PostCardBase({
 const areEqual = (prev: Props, next: Props) =>
   prev.post.id === next.post.id &&
   prev.post.authorNickname === next.post.authorNickname &&
-  prev.post.petName === next.post.petName &&
-  prev.post.petBreed === next.post.petBreed &&
-  prev.post.petSpecies === next.post.petSpecies &&
   prev.post.category === next.post.category &&
   prev.post.title === next.post.title &&
   prev.post.content === next.post.content &&
   prev.post.hasImage === next.post.hasImage &&
   prev.post.viewCount === next.post.viewCount &&
   prev.post.likeCount === next.post.likeCount &&
-  prev.post.isLikedByMe === next.post.isLikedByMe &&
   prev.post.commentCount === next.post.commentCount &&
   prev.post.createdAt === next.post.createdAt &&
   prev.accentColor === next.accentColor &&
-  prev.onPressPost === next.onPressPost &&
-  prev.onPressLike === next.onPressLike;
+  prev.onPressPost === next.onPressPost;
 
 export default memo(PostCardBase, areEqual);

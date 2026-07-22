@@ -1,5 +1,31 @@
 # NURI 앱 전체 진행률 최종보고
 
+## 2026-07-22 댓글 알림 target deep link 반영
+
+댓글 알림을 누르면 대상 게시글의 본문 시작이 아니라 해당 댓글 또는 답글 위치로 바로 이동하도록 구현·검증했다. `get_user_notifications_v2`가 안전한 target ID를 제공하고, 앱은 부모 thread를 확장한 뒤 대상 row를 강조한다. target이 없거나 숨겨진 경우에는 게시글 상세 fallback을 사용한다.
+
+| 분류 | 적용 | 완료 | 조건부 | 미완료 | 제외 | 진행률 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 기능 구현 | 78 | 78 | 0 | 0 | 11 | 100% |
+| QA·보안 | 59 | 59 | 0 | 0 | 7 | 100% |
+| 문서·release | 21 | 21 | 0 | 0 | 3 | 100% |
+
+가중 진행률은 `100*0.55 + 100*0.35 + 100*0.10 = 100%`다. 최신 release APK SHA-256은 `11aa59e2f75e792b280437cab052c306c165d1d252fa3fe9abb6762473a64d0f`, Jest는 `66 suites / 257 tests`다. Supabase navigation target migration은 additive로 remote 적용했고 dry-run은 up to date다.
+
+Android `SM_S937N / R5CY613NMSY`에서 실제 댓글 알림을 눌러 대상 댓글이 viewport에 노출·강조되는 것을 확인했다. actual push, broadcast, hard delete는 계속 비활성이다. 관리자 홈페이지 단계별 본구현은 종료 상태이며 앱 본 프로젝트 blocker가 아니다.
+
+## 2026-07-22 커뮤니티 추가 승인 범위 반영
+
+커뮤니티 밀도형 목록, 타인 댓글 인앱 알림, 댓글 수 파생 집계 동기화를 기능 criterion 3건으로 추가해 완료했다. 목록 visual, 타인 조회수 증가/dedupe, 타인 댓글 Home 알림, QA soft cleanup/count 복원을 QA criterion 4건으로 추가해 실기기와 remote에서 완료했다.
+
+| 분류 | 적용 | 완료 | 조건부 | 미완료 | 제외 | 진행률 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 기능 구현 | 77 | 77 | 0 | 0 | 11 | 100% |
+| QA·보안 | 58 | 58 | 0 | 0 | 7 | 100% |
+| 문서·release | 21 | 21 | 0 | 0 | 3 | 100% |
+
+가중 진행률은 `100*0.55 + 100*0.35 + 100*0.10 = 100%`다. 현재 승인 범위의 P0/P1은 0건이다. 상세 현황과 비차단 리스크는 `docs/reports/NURI-앱-전체-작업현황-및-잔여리스크-2026-07-22.md`를 따른다.
+
 ## 2026-07-19 최종 승격
 
 최신 release APK `0d598322d5cd6463582ab3e17d93a9d0bc81e44ce7d7eec5fa45efbcb74fabe4` 기준으로 Google/Kakao clean cancel·성공, 전체 일반 사용자 입력 surface, notification account isolation 및 전체 release regression을 완료했다.

@@ -7,6 +7,12 @@ import { supabase } from '../supabase/client';
 
 export type UserNotificationSource = 'user' | 'announcement';
 
+export type UserNotificationActionTarget = {
+  kind: 'community_comment';
+  postId: string;
+  commentId: string;
+};
+
 export type UserNotificationItem = {
   id: string;
   source: UserNotificationSource;
@@ -15,7 +21,11 @@ export type UserNotificationItem = {
   type: 'notice' | 'account' | 'service' | 'event';
   readAt: string | null;
   createdAt: string;
+  actionTarget: UserNotificationActionTarget | null;
 };
+
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -45,12 +55,19 @@ function toNullableString(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value : null;
 }
 
+function toNullableUuid(value: unknown): string | null {
+  const normalized = toNullableString(value)?.trim() ?? null;
+  return normalized && UUID_PATTERN.test(normalized) ? normalized : null;
+}
+
 function mapNotification(row: unknown): UserNotificationItem | null {
   if (!isRecord(row)) return null;
   const id = toString(row.notification_id).trim();
   const title = toString(row.title).trim();
   const body = toString(row.body).trim();
   const createdAt = toString(row.created_at).trim();
+  const targetPostId = toNullableUuid(row.target_post_id);
+  const targetCommentId = toNullableUuid(row.target_comment_id);
   if (!id || !title || !createdAt) return null;
 
   return {
@@ -61,11 +78,19 @@ function mapNotification(row: unknown): UserNotificationItem | null {
     type: normalizeType(row.type),
     readAt: toNullableString(row.read_at),
     createdAt,
+    actionTarget:
+      targetPostId && targetCommentId
+        ? {
+            kind: 'community_comment',
+            postId: targetPostId,
+            commentId: targetCommentId,
+          }
+        : null,
   };
 }
 
 export async function fetchUserNotifications(limit = 50): Promise<UserNotificationItem[]> {
-  const { data, error } = await supabase.rpc('get_user_notifications_v1', {
+  const { data, error } = await supabase.rpc('get_user_notifications_v2', {
     p_limit: limit,
   });
   if (error) throw error;

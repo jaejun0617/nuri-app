@@ -1,5 +1,39 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-07-22 Community Comment Notification Deep Link Closeout
+
+- [x] 댓글 알림 read model에 안전한 `postId/commentId` action target 추가.
+- [x] Home 알림 overlay에서 댓글 알림을 누르면 대상 게시글 상세로 이동.
+- [x] 알림함에서도 댓글 알림을 누르면 동일한 게시글·댓글 target으로 이동.
+- [x] 부모 댓글 thread와 1-depth 답글 자동 확장.
+- [x] 대상 댓글·답글 위치 보정 스크롤과 시각적 강조.
+- [x] 유효하지 않은 댓글 target의 게시글 상세 fallback.
+- [x] `get_user_notifications_v2` anon read 차단 확인.
+- [x] controlled secondary 댓글 알림의 작성자·게시글 문구와 target 일치 확인.
+- [x] Android `SM_S937N / R5CY613NMSY` 실기기 증적 확보.
+- [x] 최신 APK SHA-256 `11aa59e2f75e792b280437cab052c306c165d1d252fa3fe9abb6762473a64d0f`.
+- [x] Jest `66 suites / 257 tests`, typecheck, lint, release build/install 통과.
+- [x] QA 댓글 soft cleanup, notification read 처리, fixture `100 posts / 300 comments` 복구.
+- [x] actual push/broadcast와 hard delete 미사용.
+
+증적: `/tmp/nuri-qa/community-notification-deeplink-home.png`, `/tmp/nuri-qa/community-notification-deeplink-sheet-3.png`, `/tmp/nuri-qa/community-notification-deeplink-comment.png`, `/tmp/nuri-qa/community-notification-deeplink-comment.xml`, `/tmp/nuri-qa/community-notification-deeplink-logcat-full.txt`.
+
+## 2026-07-22 Community List/View/Comment Notification Closeout
+
+- [x] 제목과 말풍선 20dp row 중앙 정렬, 한 줄 ellipsis.
+- [x] 62dp row, 세로 padding 8dp, 1px divider, 우측 댓글 rail.
+- [x] 기존 `질문`, `팁 공유`, `일상`, `정보` category 유지.
+- [x] controlled secondary 첫 조회 `+1`, 동일 viewer 재조회 `deduped/+0`.
+- [x] Android 목록에 첫 fixture `조회 1` 반영.
+- [x] controlled secondary 댓글 -> `adminQA` unread `+1` 및 Home bell badge.
+- [x] 알림 overlay에 작성자와 대상 게시글 문구 표시.
+- [x] actual push/broadcast/segment 호출 0.
+- [x] `comment_count` drift corrective trigger와 active source count 복구.
+- [x] QA 댓글 soft-delete, 알림 read, fixture active `100 posts / 300 comments` 복구.
+- [x] typecheck, lint, Jest `66 suites / 256 tests`, release build/install.
+- [x] APK SHA-256 `c5c54e667cbb8def21fb7fa63c45478d7ef1de3978b9edd7e20a97d2dd568a0a`.
+- [x] app-scoped Fatal/ANR/unhandled/RN fatal/Fatal signal 0.
+
 ## 2026-07-19 Community List/Detail/Comment Redesign
 
 - [x] compact editorial post row와 우측 댓글 수 rail

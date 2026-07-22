@@ -21,6 +21,8 @@ type Props = {
   currentUserId: string | null;
   postAuthorId: string;
   authorAccentColor: string;
+  highlighted: boolean;
+  onTargetReady: (target: React.ElementRef<typeof View> | null) => void;
   onPressReply: (commentId: string) => void;
   onToggleLike: (commentId: string) => void;
   onPressDelete: (commentId: string) => void;
@@ -32,6 +34,8 @@ function ReplyCommentItemBase({
   currentUserId,
   postAuthorId,
   authorAccentColor,
+  highlighted,
+  onTargetReady,
   onPressReply,
   onToggleLike,
   onPressDelete,
@@ -56,7 +60,19 @@ function ReplyCommentItemBase({
   const isPostAuthor = isCommentByPostAuthor(reply.authorId, postAuthorId);
 
   return (
-    <View style={styles.replyRow}>
+    <View
+      ref={highlighted ? onTargetReady : undefined}
+      style={[
+        styles.replyRow,
+        highlighted ? styles.targetReplyRow : null,
+        highlighted
+          ? {
+              backgroundColor: `${authorAccentColor}1A`,
+              borderColor: authorAccentColor,
+            }
+          : null,
+      ]}
+    >
       <View style={styles.replyLead}>
         <View
           style={[

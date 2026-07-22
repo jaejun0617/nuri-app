@@ -1,21 +1,71 @@
 # 커뮤니티 목록·상세·댓글 리디자인 QA 보고
 
-기준일: 2026-07-19
+기준일: 2026-07-22
+
+## 2026-07-22 댓글 알림 target deep link 추가 검증
+
+- 댓글 알림 row가 서버에서 검증된 `postId/commentId`를 보유하도록 `get_user_notifications_v2`를 additive migration으로 추가했다.
+- Home 알림 overlay와 알림함의 댓글 알림을 누르면 게시글 상세로 이동하고, 대상 top-level 댓글 또는 답글의 부모 thread를 자동 확장한다.
+- 대상 row는 accent surface와 왼쪽 강조선으로 표시하고, target 위치까지 보정 스크롤한다. target이 유효하지 않으면 게시글 상세만 여는 fallback이다.
+- 실제 controlled secondary 댓글 INSERT 후 `adminQA` Home unread badge와 알림 문구를 확인했고, 알림을 눌러 대상 댓글이 게시글 상세 viewport에 바로 노출·강조되는 것을 확인했다.
+- QA script 결과: `viewCount firstDifferentUserView counted delta 1`, `repeatedView deduped repeatedDelta 0`, `commentNotification unreadDelta 1 actorCopyMatched true postCopyMatched true appInboxVisible true navigationTargetMatched true pushDispatched false`.
+- QA 종료 후 댓글은 soft-delete, 알림은 read 처리, fixture는 active 게시글 100건과 댓글·답글 300건으로 복구했다.
+- 최신 APK SHA-256: `11aa59e2f75e792b280437cab052c306c165d1d252fa3fe9abb6762473a64d0f`; Jest `66 suites / 257 tests`; typecheck/lint/build/install 통과.
+
+딥링크 증적:
+
+- `/tmp/nuri-qa/community-notification-deeplink-home.png`
+- `/tmp/nuri-qa/community-notification-deeplink-sheet-3.png`
+- `/tmp/nuri-qa/community-notification-deeplink-comment.png`
+- `/tmp/nuri-qa/community-notification-deeplink-comment.xml`
+- `/tmp/nuri-qa/community-notification-deeplink-logcat-full.txt`
+
+판정: 댓글 알림의 게시글·댓글 좌표 이동과 target 강조는 완료했다. actual push는 정책상 비활성이고, 인앱 알림 lifecycle과 navigation contract를 검증했다.
+
+## 2026-07-22 목록 정렬·조회수·댓글 알림 closeout
+
+- 제목 옆 말풍선을 18dp 고정 크기와 20dp title row에 배치해 제목과 수직 중앙 정렬했다.
+- row 최소 높이 62dp, 세로 padding 8dp, 1px divider와 우측 rail divider로 게시글 경계를 강화했다.
+- metadata는 `카테고리 | 작성자 | 시각/날짜 | 조회 | 추천` 한 줄이며 카테고리는 `질문`, `팁 공유`, `일상`, `정보`를 유지한다.
+- 기존 분리 QA 사용자의 첫 조회에서 첫 fixture 조회수가 `0 -> 1`, 즉시 반복 조회는 `deduped`, 추가 증가 0으로 확인됐다.
+- 분리 QA 사용자의 실제 댓글 INSERT 후 `adminQA` unread가 1 증가했고 Home badge와 알림 overlay에 `작성자님이 댓글을 남겼어요`, 대상 게시글 제목이 표시됐다.
+- 댓글 QA row는 증적 후 soft-delete, 알림은 읽음 처리했다. fixture는 active 게시글 100건, active 댓글/답글 300건으로 복구됐다.
+- `posts.comment_count` 파생 집계 drift를 발견해 active 댓글/답글 기준 corrective trigger와 counter repair를 additive migration으로 반영했다.
+- actual push, broadcast, hard delete는 사용하지 않았다.
+
+최종 artifact:
+
+- APK: `android/app/build/outputs/apk/release/app-release.apk`
+- bytes: `114807572`
+- SHA-256: `c5c54e667cbb8def21fb7fa63c45478d7ef1de3978b9edd7e20a97d2dd568a0a`
+- build/install: `assembleRelease` / `adb install -r` 성공
+- Jest: `66 suites / 256 tests`, 실패 0
+- logcat: Fatal/ANR/unhandled/RN fatal/Fatal signal 0
+
+최신 증적:
+
+- `/tmp/nuri-qa/community-list-final-clean.png`
+- `/tmp/nuri-qa/community-list-alignment-divider-final.png`
+- `/tmp/nuri-qa/community-interaction-home-badge.png`
+- `/tmp/nuri-qa/community-comment-notification-inbox.png`
+- `/tmp/nuri-qa/community-secondary-comment-visible.png`
+- `/tmp/nuri-qa/community-list-notification-logcat.txt`
 
 ## 1. 범위
 
 - 구현 위치: React Native 앱 `CommunityList`, `CommunityDetail`, comment/reply presentation.
 - 디자인 방향: 첨부 게시판 레퍼런스의 빠른 scan 구조를 NURI color/token에 맞게 재해석.
 - 범위 제외: 앱 전체 디자인, 폰트, Play Store, actual push, 관리자 신규 기능.
-- DB/RPC/RLS migration: 없음.
+- DB/RPC/RLS migration: 댓글 인앱 알림 trigger와 댓글 수 파생 집계 corrective trigger 2건, additive only.
 
 ## 2. 구현 결과
 
 ### 목록
 
-- compact editorial row, 유형 icon, 최대 2줄 제목, dense metadata, 우측 댓글 수 rail.
+- compact editorial row, 제목과 중앙 정렬한 유형 icon, 한 줄 제목, dense metadata, 우측 댓글 수 rail.
 - 가로 스크롤 category tab과 선택 반려동물 accent.
-- 좋아요, 카테고리 tab, 주요 navigation의 44px touch target.
+- 추천 수는 목록에서 read-only로 표시하고 실제 좋아요 action은 상세에 유지한다.
+- 카테고리 tab과 주요 navigation의 44px touch target.
 - row별 최신 댓글 request/subscription 제거. 100건에서 별도 comment N+1 fetch 없음.
 - cursor pagination과 scroll 위치 유지.
 
