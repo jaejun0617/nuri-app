@@ -7,7 +7,9 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 
+import WeatherTemperatureNotice from './WeatherTemperatureNotice';
 import {
+  formatWeatherPetText,
   getWeatherEmoji,
   type WeatherGuideBundle,
 } from '../../services/weather/guide';
@@ -15,12 +17,14 @@ import {
 type Props = {
   weather: WeatherGuideBundle;
   locationLabel?: string;
+  petName?: string | null;
   onPress: () => void;
 };
 
 export default React.memo(function WeatherGuideHomeCard({
   weather,
   locationLabel,
+  petName,
   onPress,
 }: Props) {
   const hasLiveData = weather.dataSource === 'live';
@@ -73,8 +77,15 @@ export default React.memo(function WeatherGuideHomeCard({
           <Text style={[styles.caption, { color: textSecondary }]}>
             {isPreview
               ? '최근 확인한 날씨를 잠시 보여주고 있어요. 연결되면 실시간 정보로 바뀝니다.'
-              : weather.homeCaption}
+              : formatWeatherPetText(weather.homeCaption, petName)}
           </Text>
+          <WeatherTemperatureNotice
+            safety={weather.temperatureSafety}
+            precipitationSafety={weather.precipitationSafety}
+            compact
+            textColor={textPrimary}
+            petName={petName}
+          />
         </View>
       </View>
       <Feather name="chevron-right" size={18} color={chevronColor} />

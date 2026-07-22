@@ -638,10 +638,12 @@ const TodayPhotoSection = React.memo(function TodayPhotoSection({
 const HomeWeatherSection = React.memo(function HomeWeatherSection({
   weather,
   locationLabel,
+  petName,
   onPress,
 }: {
   weather: ReturnType<typeof useWeatherGuide>['bundle'];
   locationLabel: ReturnType<typeof useWeatherGuide>['locationLabel'];
+  petName?: string | null;
   onPress: () => void;
 }) {
   return (
@@ -649,6 +651,7 @@ const HomeWeatherSection = React.memo(function HomeWeatherSection({
       <WeatherGuideHomeCard
         weather={weather}
         locationLabel={locationLabel}
+        petName={petName}
         onPress={onPress}
       />
     </View>
@@ -3323,6 +3326,7 @@ export default function LoggedInHome() {
           <HomeWeatherSection
             weather={weatherGuide}
             locationLabel={weatherGuideState.locationLabel}
+            petName={selectedPet?.name}
             onPress={onPressWeatherInsight}
           />
 

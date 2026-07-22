@@ -11,6 +11,39 @@ export type WeatherDataAttribution = {
   label: string;
   url?: string;
 };
+export type WeatherTemperatureSafetyTone =
+  | 'normal'
+  | 'caution'
+  | 'hot'
+  | 'cold'
+  | 'unknown';
+export type WeatherTemperatureSafety = {
+  tone: WeatherTemperatureSafetyTone;
+  label: string;
+  message: string;
+  detail: string;
+};
+export type WeatherPrecipitationSafetyKind = 'rain' | 'snow' | 'storm';
+export type WeatherPrecipitationSafety = {
+  kind: WeatherPrecipitationSafetyKind;
+  label: string;
+  message: string;
+  detail: string;
+};
+
+/**
+ * 날씨 문구의 일반 펫 표현을 현재 선택된 펫 이름으로 바꾼다.
+ * 날씨 계산 번들은 펫 상태와 분리하고, 화면 표시 시점에만 개인화한다.
+ */
+export function formatWeatherPetText(
+  text: string,
+  petName?: string | null,
+): string {
+  const normalizedPetName = petName?.trim();
+  if (!normalizedPetName) return text;
+
+  return text.replace(/아이(?=와|의|가|는|를|도|에게|\s|$)/g, normalizedPetName);
+}
 export type WeatherIconKey =
   | 'weather-pouring'
   | 'weather-cloudy'
@@ -147,6 +180,8 @@ export type WeatherGuideBundle = {
   windSpeed: number;
   cloudCover: number;
   uvIndex: number;
+  temperatureSafety?: WeatherTemperatureSafety;
+  precipitationSafety?: WeatherPrecipitationSafety | null;
   sunriseTime: string | null;
   sunsetTime: string | null;
   homeMessage: string;
@@ -168,6 +203,122 @@ export type WeatherGuideBundle = {
   recommendedGuideKeys: IndoorActivityKey[];
 };
 
+export function buildWeatherTemperatureSafety(
+  currentTemperature: number | null | undefined,
+  apparentTemperature: number | null | undefined,
+): WeatherTemperatureSafety {
+  const temperatures = [currentTemperature, apparentTemperature].filter(
+    (temperature): temperature is number =>
+      typeof temperature === 'number' && Number.isFinite(temperature),
+  );
+
+  if (temperatures.length === 0) {
+    return {
+      tone: 'unknown',
+      label: '기온 확인 필요',
+      message: '실시간 기온을 확인한 뒤 산책을 계획해 주세요',
+      detail: '날씨 연결이 완료되면 아이의 컨디션에 맞춘 기온 안내를 보여드려요.',
+    };
+  }
+
+  const warmest = Math.max(...temperatures);
+  const coldest = Math.min(...temperatures);
+
+  if (warmest >= 33) {
+    return {
+      tone: 'hot',
+      label: '폭염 주의',
+      message: '한낮 산책은 피하고 실내 활동을 우선해 주세요',
+      detail:
+        '외출이 필요하다면 그늘과 물을 준비하고, 아스팔트 온도와 아이의 호흡을 먼저 살펴주세요.',
+    };
+  }
+
+  if (warmest >= 30) {
+    return {
+      tone: 'hot',
+      label: '더위 주의',
+      message: '산책은 짧고 시원하게 계획해 주세요',
+      detail:
+        '한낮을 피하고 물과 그늘을 챙겨주세요. 아이가 힘들어하면 바로 쉬어야 해요.',
+    };
+  }
+
+  if (warmest >= 27) {
+    return {
+      tone: 'caution',
+      label: '더위에 대비해요',
+      message: '물과 그늘을 먼저 챙겨주세요',
+      detail:
+        '아이의 호흡과 발바닥 상태를 살피며 평소보다 산책 시간을 줄여주세요.',
+    };
+  }
+
+  if (coldest <= -5) {
+    return {
+      tone: 'cold',
+      label: '추위 주의',
+      message: '산책은 짧게 하고 보온을 챙겨주세요',
+      detail:
+        '방한용품을 준비하고 발바닥이 차갑거나 젖지 않았는지 외출 후 확인해 주세요.',
+    };
+  }
+
+  if (coldest <= 0) {
+    return {
+      tone: 'caution',
+      label: '추운 날씨예요',
+      message: '짧은 산책과 보온을 함께 챙겨주세요',
+      detail:
+        '아이의 떨림과 발바닥 상태를 살피며 무리하지 않는 시간으로 조절해 주세요.',
+    };
+  }
+
+  return {
+    tone: 'normal',
+    label: '기온이 무난해요',
+    message: '아이 컨디션에 맞춰 산책해 주세요',
+    detail: '비·미세먼지·자외선 상태도 함께 확인하면 더 안전해요.',
+  };
+}
+
+export function buildWeatherPrecipitationSafety(
+  scenario: WeatherScenario,
+  weatherIcon?: WeatherIconKey,
+): WeatherPrecipitationSafety | null {
+  if (weatherIcon === 'weather-lightning') {
+    return {
+      kind: 'storm',
+      label: '천둥·번개 주의',
+      message: '천둥이 들리면 산책을 미루고 실내에서 기다려 주세요',
+      detail:
+        '비가 잠시 그쳐도 천둥·번개가 남아 있으면 외출하지 말고, 창문과 전기 코드를 안전하게 확인해 주세요.',
+    };
+  }
+
+  if (scenario === 'snow' || weatherIcon === 'weather-snowy') {
+    return {
+      kind: 'snow',
+      label: '눈길 주의',
+      message: '미끄러운 길은 피하고 발바닥을 따뜻하게 살펴주세요',
+      detail:
+        '짧게 외출한 뒤 눈과 염화칼슘이 묻었는지 닦아 주세요. 아이가 떨면 바로 실내로 들어와야 해요.',
+    };
+  }
+
+  if (scenario === 'rain' || weatherIcon === 'weather-pouring') {
+    return {
+      kind: 'rain',
+      label: '비 오는 날 주의',
+      message: '미끄러운 길과 젖은 발을 살피며 짧게 산책해 주세요',
+      detail:
+        '우산과 수건을 준비하고 물웅덩이·빗물 고인 곳은 피해주세요. 산책 후 발가락 사이까지 말려 주세요.',
+    };
+  }
+
+  return null;
+}
+
 const WEATHER_SCENARIOS: Record<
   WeatherScenario,
   Omit<
@@ -179,6 +330,8 @@ const WEATHER_SCENARIOS: Record<
     | 'weekly'
     | 'airQualityMetrics'
     | 'recommendedGuideKeys'
+    | 'temperatureSafety'
+    | 'precipitationSafety'
   >
 > = {
   rain: {
@@ -195,7 +348,7 @@ const WEATHER_SCENARIOS: Record<
     sunriseTime: '오전 6:58',
     sunsetTime: '오후 6:28',
     homeMessage: '산책하기 딱 좋은 날씨는 아니에요',
-    homeCaption: '오늘은 누리와 집 안에서 더 깊은 시간을 보내요',
+    homeCaption: '오늘은 아이와 집 안에서 더 깊은 시간을 보내요',
     detailStatus: '비가 오고 있어요',
     detailHeadline: '산책보다 실내 놀이가 더 잘 어울리는 날이에요',
     detailBadge: 'RAINY DAY',
@@ -909,6 +1062,14 @@ export function buildWeatherGuideBundleForScenario(
     ...base,
     isDaytime,
     airQualityConcern: scenario === 'dusty',
+    temperatureSafety: buildWeatherTemperatureSafety(
+      base.currentTemperature,
+      base.apparentTemperature,
+    ),
+    precipitationSafety: buildWeatherPrecipitationSafety(
+      scenario,
+      base.weatherIcon,
+    ),
     background: getWeatherBackgroundByPhase(scenario, isDaytime),
     weekly: SCENARIO_WEEKLY[scenario],
     airQualityMetrics: SCENARIO_AIR[scenario],
@@ -939,6 +1100,8 @@ export function createUnavailableWeatherGuideBundle(
     windSpeed: 0,
     cloudCover: 0,
     uvIndex: 0,
+    temperatureSafety: buildWeatherTemperatureSafety(null, null),
+    precipitationSafety: null,
     sunriseTime: null,
     sunsetTime: null,
     homeMessage: '실제 날씨 정보를 아직 확인하지 못했어요',
@@ -972,6 +1135,15 @@ export function createPreviewWeatherGuideBundle(
     ...bundle,
     district: nextDistrict,
     dataSource: 'preview',
+    temperatureSafety:
+      bundle.temperatureSafety ??
+      buildWeatherTemperatureSafety(
+        bundle.currentTemperature,
+        bundle.apparentTemperature,
+      ),
+    precipitationSafety:
+      bundle.precipitationSafety ??
+      buildWeatherPrecipitationSafety(bundle.scenario, bundle.weatherIcon),
   };
 }
 

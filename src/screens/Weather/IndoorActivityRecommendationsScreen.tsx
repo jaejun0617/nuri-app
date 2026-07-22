@@ -18,6 +18,7 @@ import { buildPetThemePalette } from '../../services/pets/themePalette';
 import type { DeviceCoordinates } from '../../services/location/currentPosition';
 import {
   ALL_INDOOR_ACTIVITY_KEYS,
+  formatWeatherPetText,
   getIndoorActivityGuide,
   type IndoorActivityKey,
   type WeatherGuideBundle,
@@ -89,7 +90,10 @@ export default function IndoorActivityRecommendationsScreen() {
     ? '위치 권한과 네트워크가 확인되면 실제 날씨 기준으로 추천이 다시 맞춰집니다.'
     : weatherState.isPreview
       ? `${weather.detailStatus} 기준의 최근 추천을 잠시 보여주고 있어요. 연결되면 실시간 정보로 갱신됩니다.`
-      : `${weather.detailStatus}인 날엔 산책보다 아이와 함께하는 실내 활동이 더 편안할 수 있어요.`;
+      : formatWeatherPetText(
+          `${weather.detailStatus}인 날엔 산책보다 아이와 함께하는 실내 활동이 더 편안할 수 있어요.`,
+          selectedPet?.name,
+        );
   const guides = useMemo(
     () => {
       const orderedKeys = [

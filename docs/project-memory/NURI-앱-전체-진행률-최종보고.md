@@ -1,5 +1,15 @@
 # NURI 앱 전체 진행률 최종보고
 
+## 2026-07-22 날씨 안전 안내·펫 이름 하드코딩 버그 최종 closeout
+
+이번 작업은 기존 closeout criterion을 다시 열어 기능 분모를 늘린 작업이 아니라, 날씨 사용성에 대한 additive 개선과 실제 문구 버그 수정이다. 홈 카드와 상세 화면에서 현재 기온·체감온도를 사용해 27℃/30℃/33℃ 이상 더위와 0℃/-5℃ 이하 추위를 단계 안내하며, 비·눈·천둥 상황도 행동 가이드로 안내한다.
+
+`adminQA` 펫 이름은 `AdminQAPet`인데 비 시나리오 문구가 `누리와`로 나타난 원인은 시나리오 문자열의 브랜드명 하드코딩이었다. 앱은 다른 펫 이름을 자동으로 `누리`로 바꾸는 구조가 아니며, 해당 하드코딩을 일반 문구 `아이와`로 제거하고 회귀 테스트를 추가했다.
+
+최종 release APK SHA-256은 `00fece6b5300524e58142ab6908e486418162954d898c1180de69e0ee7cc4d92`다. 실기기 홈에서 `AdminQAPet`, `오늘은 AdminQAPet와...`, `비 오는 날 주의`, 상세 펫 이름·비·더위 안내와 Android back을 확인했고, Jest `67 suites / 268 tests`, typecheck/lint/build/install이 통과했다. Supabase remote schema/RPC/RLS/seed는 변경하지 않았다.
+
+기능 `78/78`, QA·보안 `59/59`, 문서·release `21/21`의 기존 분모와 100% closeout 판정은 유지한다. 수익화 구독·광고는 구현하지 않았으며, 무료 핵심 기능과 반복 가치 검증 후 별도 PO 승인으로 진행할 의사결정 트랙이다.
+
 ## 2026-07-22 대댓글 정렬 수정 및 남은 리스크 재판정
 
 기존 criterion denominator는 변경하지 않았다. 기능 `78/78`, QA·보안 `59/59`, 문서·release `21/21`이며 최신 APK SHA-256은 `6b5e22a3e9dcde258570fd27061222731f2651ce57c389b17fa12f066e2be255`이다. Jest `66 suites / 257 tests`, typecheck/lint/release build/install, Supabase dry-run, Android app-fatal scan 0을 확인했다. Hospital public active `5,427건`, coordinate missing `122건`, `(0,0)` `0건`은 품질 추적 리스크로만 남겼고 actual push는 정책상 비활성 범위에서 제외했다.

@@ -34,14 +34,17 @@ import Feather from 'react-native-vector-icons/Feather';
 import AirQualityInsightCard from '../../components/weather/AirQualityInsightCard';
 import WeatherForecastStrip from '../../components/weather/WeatherForecastStrip';
 import WeatherGlassCard from '../../components/weather/WeatherGlassCard';
+import WeatherTemperatureNotice from '../../components/weather/WeatherTemperatureNotice';
 import { useWeatherGuide } from '../../hooks/useWeatherGuide';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { DeviceCoordinates } from '../../services/location/currentPosition';
 import {
+  formatWeatherPetText,
   getWeatherEmoji,
   type WeatherGuideBundle,
   type WeatherScenario,
 } from '../../services/weather/guide';
+import { usePetStore } from '../../store/petStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'WeatherInsight'>;
 
@@ -284,6 +287,13 @@ export default function WeatherInsightScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const route = useRoute<WeatherInsightRoute>();
+  const pets = usePetStore(s => s.pets);
+  const selectedPetId = usePetStore(s => s.selectedPetId);
+  const selectedPet = useMemo(
+    () => pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
+    [pets, selectedPetId],
+  );
+  const selectedPetName = selectedPet?.name ?? null;
 
   const weatherState = useWeatherGuide(
     route.params?.district ?? '현재 위치',
@@ -855,15 +865,24 @@ export default function WeatherInsightScreen() {
             )}
 
             <Text style={[styles.heroHeadline, { color: palette.textPrimary }]}>
-              {displayWeather.detailHeadline}
+              {formatWeatherPetText(displayWeather.detailHeadline, selectedPetName)}
             </Text>
             <Text
               style={[styles.heroMoodCopy, { color: palette.textSecondary }]}
             >
-              {hasLiveWeather
-                ? getBackgroundMoodCopy(displayWeather)
-                : '현재는 실시간 날씨 연결 전 상태라 활동 전 다시 확인해 주세요.'}
+              {formatWeatherPetText(
+                hasLiveWeather
+                  ? getBackgroundMoodCopy(displayWeather)
+                  : '현재는 실시간 날씨 연결 전 상태라 활동 전 다시 확인해 주세요.',
+                selectedPetName,
+              )}
             </Text>
+            <WeatherTemperatureNotice
+              safety={displayWeather.temperatureSafety}
+              precipitationSafety={displayWeather.precipitationSafety}
+              textColor={palette.textPrimary}
+              petName={selectedPetName}
+            />
             {weatherState.error ? (
               <Text
                 style={[styles.heroError, { color: palette.textSecondary }]}

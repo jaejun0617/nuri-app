@@ -1,5 +1,19 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-07-22 날씨 안전 안내·펫 이름 하드코딩 버그 release gate
+
+- [x] 현재 기온·체감온도 기반 27℃/30℃/33℃ 더위 및 0℃/-5℃ 추위 안내.
+- [x] 비·눈·천둥 행동 안내 및 안내 내부 아이콘 제거.
+- [x] 비 시나리오의 펫 이름 `누리와` 하드코딩 제거, `아이와` 일반 문구로 교체.
+- [x] `adminQA`의 실제 펫 이름 `AdminQAPet`을 홈·상세 날씨 문구에 동적으로 표시하고 `누리와` 미노출 확인.
+- [x] 최종 APK 새 빌드·설치, 홈 `비 오는 날 주의`, 상세 비·더위 안내, Android back 확인.
+- [x] Jest `67 suites / 268 tests`, typecheck, lint, release build/install 통과.
+- [x] app-scoped fatal 패턴 0건; 별도 Android 시스템 AppOps 로그는 앱 fatal이 아님을 분류.
+- [x] Supabase schema/RPC/RLS/seed 변경 없음, dry-run remote up to date.
+
+최종 APK SHA-256: `00fece6b5300524e58142ab6908e486418162954d898c1180de69e0ee7cc4d92`.
+증적: `/tmp/nuri-qa/weather-personalized-home.png`, `/tmp/nuri-qa/weather-personalized-detail.png`, `/tmp/nuri-qa/weather-personalized-back.png`, `/tmp/nuri-qa/weather-personalized-home.xml`, `/tmp/nuri-qa/weather-personalized-detail.xml`, `/tmp/nuri-qa/weather-personalized-logcat.txt`.
+
 ## 2026-07-22 대댓글 정렬·세로선 제거 release gate
 
 - [x] reply vertical guide/lead marker 제거.

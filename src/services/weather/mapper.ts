@@ -13,6 +13,8 @@ import { safeYmd } from '../../utils/date';
 import { getCurrentWeatherIsDaytime } from './dayPhase';
 import {
   buildWeatherGuideBundleForScenario,
+  buildWeatherPrecipitationSafety,
+  buildWeatherTemperatureSafety,
   type AirQualityMetric,
   type AirQualityTone,
   type WeatherDataSource,
@@ -191,6 +193,13 @@ export function buildWeatherGuideBundleFromApi(input: {
           isDaytime,
         })
       : null;
+  const currentTemperature = Math.round(
+    current.temperature_2m ?? base.currentTemperature,
+  );
+  const apparentTemperature = Math.round(
+    current.apparent_temperature ?? base.apparentTemperature,
+  );
+  const weatherIcon = mapWeatherCodeToIcon(weatherCode, isDaytime);
 
   return {
     ...base,
@@ -199,11 +208,17 @@ export function buildWeatherGuideBundleFromApi(input: {
     dataSource: input.dataSource ?? 'live',
     attribution: input.attribution,
     airQualityConcern,
-    weatherIcon: mapWeatherCodeToIcon(weatherCode, isDaytime),
+    weatherIcon,
     isDaytime,
-    currentTemperature: Math.round(current.temperature_2m ?? base.currentTemperature),
-    apparentTemperature: Math.round(
-      current.apparent_temperature ?? base.apparentTemperature,
+    currentTemperature,
+    apparentTemperature,
+    temperatureSafety: buildWeatherTemperatureSafety(
+      currentTemperature,
+      apparentTemperature,
+    ),
+    precipitationSafety: buildWeatherPrecipitationSafety(
+      scenario,
+      weatherIcon,
     ),
     highTemperature: Math.round(daily.temperature_2m_max?.[0] ?? base.highTemperature),
     lowTemperature: Math.round(daily.temperature_2m_min?.[0] ?? base.lowTemperature),
