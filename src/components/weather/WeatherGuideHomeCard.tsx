@@ -404,8 +404,8 @@ const styles = StyleSheet.create({
     minHeight: 34,
   },
   temperatureValue: {
-    fontSize: 38,
-    lineHeight: 40,
+    fontSize: 24,
+    lineHeight: 28,
     fontWeight: '800',
   },
   temperatureUnit: {
@@ -426,13 +426,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   headline: {
-    fontSize: 14,
-    lineHeight: 18,
+    fontSize: 10,
+    lineHeight: 14,
     fontWeight: '600',
   },
   headlineCompact: {
-    fontSize: 13,
-    lineHeight: 16,
+    fontSize: 10,
+    lineHeight: 13,
     fontWeight: '600',
   },
   caption: {

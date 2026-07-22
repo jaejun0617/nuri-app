@@ -33,6 +33,10 @@
 
 - 지역명과 월·일·요일을 날씨 서브 카피와 같은 `9px / lineHeight 13px`로 적용했다.
 
+## 온도 본체 최종 조정
+
+- 온도 숫자 본체를 `24px / lineHeight 28px`로 낮추고 작은 `°`, `C` 단위의 상단 정렬을 유지했다.
+
 ## 구현 파일
 
 - `src/components/weather/WeatherGuideHomeCard.tsx`
@@ -71,7 +75,7 @@
 - QA 계정: 기존 `adminQA`
 - 최종 APK: `/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/android/app/build/outputs/apk/release/app-release.apk`
 - version: `1.0 (1)`
-- 최종 APK SHA-256: `019f3b12ece2837303c137bdbdc8346836e18c6ba947022f0d1e5e3822aa8dbb`
+- 최종 APK SHA-256: `d160914657d6cc290f30a378db5810f171617cc5e3e7be980c49fce7f391c61a`
 - install/update: 통과
 - cold start/Home: 통과
 - 실제 시간 기준 night variant: 통과
@@ -83,8 +87,8 @@
 ## 증적
 
 - 낮 카드: `/tmp/nuri-qa/weather-card-day-refinement.png`
-- 최종 카드: `/tmp/nuri-qa/weather-card-font-match.png`
-- 최종 logcat: `/tmp/nuri-qa/weather-card-font-match-logcat.txt`
+- 최종 카드: `/tmp/nuri-qa/weather-card-temperature-24px.png`
+- 최종 logcat: `/tmp/nuri-qa/weather-card-temperature-24px-logcat.txt`
 
 ## 자동 검증
 

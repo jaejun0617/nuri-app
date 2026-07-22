@@ -1,5 +1,16 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-07-23 날씨카드 온도 본체 최종 release gate
+
+- [x] 온도 숫자 본체 `24px / lineHeight 28px` 적용.
+- [x] 작은 `°`, `C` 단위의 상단 정렬 유지.
+- [x] Android `SM_S937N / R5CY613NMSY` 최신 APK 설치·cold start·Home 카드 확인.
+- [x] 최신 APK SHA-256 `d160914657d6cc290f30a378db5810f171617cc5e3e7be980c49fce7f391c61a`.
+- [x] Jest `67 suites / 269 tests`, typecheck, lint, release build/install 통과.
+- [x] app-scoped fatal scan 0건.
+
+증적: `/tmp/nuri-qa/weather-card-temperature-24px.png`, `/tmp/nuri-qa/weather-card-temperature-24px-logcat.txt`.
+
 ## 2026-07-23 날씨카드 상단 meta 폰트 최종 release gate
 
 - [x] 지역명과 월·일·요일을 날씨 서브 카피와 같은 `9px / lineHeight 13px`로 적용.
