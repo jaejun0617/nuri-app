@@ -1,5 +1,16 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-07-23 날씨 상세 지표 낮/밤 색상 release gate
+
+- [x] 체감·습도·바람·자외선 지표의 낮 색상 `#111827` 적용.
+- [x] 체감·습도·바람·자외선 지표의 밤 색상 `#FFFFFF` 분기 적용.
+- [x] Android `SM_S937N / R5CY613NMSY` 최신 APK 설치·cold start·Home 카드 확인.
+- [x] 최신 APK SHA-256 `4593f7f875486a1312528f722a7bc25caa310dcb346fe1c0ad0be1ad628676e2`.
+- [x] Jest `67 suites / 269 tests`, typecheck, lint, release build/install 통과.
+- [x] app-scoped fatal scan 0건.
+
+증적: `/tmp/nuri-qa/weather-detail-metrics-daynight-20260723.png`, `/tmp/nuri-qa/weather-detail-metrics-daynight-20260723-logcat.txt`.
+
 ## 2026-07-23 날씨카드 38px·카드 여유 공간 최종 release gate
 
 - [x] 온도 숫자 본체 `38px / lineHeight 40px / weight 800` 적용.

@@ -158,6 +158,7 @@ export default React.memo(function WeatherGuideHomeCard({
   const isPreview = weather.dataSource === 'preview';
   const notice = getNotice(weather, petName);
   const textPrimary = isNightCard ? '#FFFFFF' : '#1F2940';
+  const detailMetricColor = isNightCard ? '#FFFFFF' : '#111827';
   const textSecondary = isNightCard
     ? 'rgba(241,245,255,0.76)'
     : '#5B647A';
@@ -284,10 +285,10 @@ export default React.memo(function WeatherGuideHomeCard({
           </View>
 
           <View style={[styles.metricsBar, { backgroundColor: isNightCard ? 'rgba(7,11,30,0.24)' : 'rgba(255,255,255,0.56)', borderTopColor: separator }]}>
-            <Metric icon="thermometer" label="체감" value={`${weather.apparentTemperature}°`} color="#FFFFFF" borderRightColor={separator} />
-            <Metric icon="droplet" label="습도" value={`${weather.humidity}%`} color="#FFFFFF" borderRightColor={separator} />
-            <Metric icon="wind" label="바람" value={`${weather.windSpeed}m/s`} color="#FFFFFF" borderRightColor={separator} />
-            <Metric icon="sun" label="자외선" value={getUvLabel(weather.uvIndex)} color={isNightCard ? 'rgba(246,221,113,0.94)' : '#7A6871'} />
+            <Metric icon="thermometer" label="체감" value={`${weather.apparentTemperature}°`} color={detailMetricColor} borderRightColor={separator} />
+            <Metric icon="droplet" label="습도" value={`${weather.humidity}%`} color={detailMetricColor} borderRightColor={separator} />
+            <Metric icon="wind" label="바람" value={`${weather.windSpeed}m/s`} color={detailMetricColor} borderRightColor={separator} />
+            <Metric icon="sun" label="자외선" value={getUvLabel(weather.uvIndex)} color={detailMetricColor} />
           </View>
         </LinearGradient>
       </LinearGradient>

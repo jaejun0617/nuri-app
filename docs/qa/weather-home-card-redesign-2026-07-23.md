@@ -1,5 +1,14 @@
 # 홈 날씨카드 낮/밤 리디자인 QA 보고서
 
+## 2026-07-23 날씨 상세 지표 낮/밤 색상 closeout
+
+- `체감`, `습도`, `바람`, `자외선`으로 구성된 날씨 상세 지표 전체를 variant 색상에 연결했다.
+- 낮 카드: 아이콘·라벨·값 모두 검정 계열 `#111827`.
+- 밤 카드: 아이콘·라벨·값 모두 `#FFFFFF`.
+- 최신 release APK SHA-256은 `4593f7f875486a1312528f722a7bc25caa310dcb346fe1c0ad0be1ad628676e2`이다.
+- 최신 낮 카드 증적은 `/tmp/nuri-qa/weather-detail-metrics-daynight-20260723.png`, 로그는 `/tmp/nuri-qa/weather-detail-metrics-daynight-20260723-logcat.txt`다.
+- `67 suites / 269 tests`, typecheck, lint, release build/install, app-scoped fatal scan 0건을 통과했다.
+
 ## 2026-07-23 온도 본체·카드 여유 공간 최종 closeout
 
 - 온도 숫자 본체를 `38px / lineHeight 40px / weight 800`으로 복원했다. `°=13px`, `C=21px`의 상단 정렬 구조는 유지한다.
