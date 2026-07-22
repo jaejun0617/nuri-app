@@ -305,16 +305,16 @@ const styles = StyleSheet.create({
     elevation: 7,
   },
   outerBorder: {
-    minHeight: 204,
+    minHeight: 216,
     borderRadius: 27,
     padding: 1.25,
   },
   cardSurface: {
     flex: 1,
-    minHeight: 201,
+    minHeight: 213,
     borderRadius: 26,
     paddingHorizontal: 18,
-    paddingVertical: 13,
+    paddingVertical: 14,
     overflow: 'hidden',
   },
   highlightStroke: {
@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   mainRow: {
-    minHeight: 94,
+    minHeight: 100,
     marginTop: 4,
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -404,8 +404,8 @@ const styles = StyleSheet.create({
     minHeight: 34,
   },
   temperatureValue: {
-    fontSize: 24,
-    lineHeight: 28,
+    fontSize: 38,
+    lineHeight: 40,
     fontWeight: '800',
   },
   temperatureUnit: {
@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
   },
   metricsBar: {
     minHeight: 43,
-    marginTop: 5,
+    marginTop: 10,
     borderTopWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
