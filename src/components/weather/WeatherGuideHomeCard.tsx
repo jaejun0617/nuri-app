@@ -226,11 +226,6 @@ export default React.memo(function WeatherGuideHomeCard({
               <Text style={[styles.dateText, { color: textPrimary }]} numberOfLines={1}>
                 {getWeatherDateLabel()}
               </Text>
-              <Feather
-                name={isNightCard ? 'moon' : 'sun'}
-                size={15}
-                color={isNightCard ? '#F8DD72' : '#F4B52E'}
-              />
             </View>
           </View>
 
@@ -289,9 +284,9 @@ export default React.memo(function WeatherGuideHomeCard({
           </View>
 
           <View style={[styles.metricsBar, { backgroundColor: isNightCard ? 'rgba(7,11,30,0.24)' : 'rgba(255,255,255,0.56)', borderTopColor: separator }]}>
-            <Metric icon="thermometer" label="체감" value={`${weather.apparentTemperature}°`} color={textSecondary} borderRightColor={separator} />
-            <Metric icon="droplet" label="습도" value={`${weather.humidity}%`} color={textSecondary} borderRightColor={separator} />
-            <Metric icon="wind" label="바람" value={`${weather.windSpeed}m/s`} color={textSecondary} borderRightColor={separator} />
+            <Metric icon="thermometer" label="체감" value={`${weather.apparentTemperature}°`} color="#FFFFFF" borderRightColor={separator} />
+            <Metric icon="droplet" label="습도" value={`${weather.humidity}%`} color="#FFFFFF" borderRightColor={separator} />
+            <Metric icon="wind" label="바람" value={`${weather.windSpeed}m/s`} color="#FFFFFF" borderRightColor={separator} />
             <Metric icon="sun" label="자외선" value={getUvLabel(weather.uvIndex)} color={isNightCard ? 'rgba(246,221,113,0.94)' : '#7A6871'} />
           </View>
         </LinearGradient>
@@ -349,8 +344,8 @@ const styles = StyleSheet.create({
   },
   locationText: {
     flexShrink: 1,
-    fontSize: 13,
-    lineHeight: 17,
+    fontSize: 12,
+    lineHeight: 16,
     fontWeight: '600',
   },
   dateWrap: {
@@ -362,8 +357,8 @@ const styles = StyleSheet.create({
   },
   dateText: {
     flexShrink: 1,
-    fontSize: 13,
-    lineHeight: 17,
+    fontSize: 12,
+    lineHeight: 16,
     fontWeight: '600',
     textAlign: 'right',
   },
@@ -387,11 +382,13 @@ const styles = StyleSheet.create({
   weatherEmoji: {
     fontSize: 50,
     lineHeight: 60,
+    alignSelf: 'center',
     textAlign: 'center',
   },
   weatherEmojiCompact: {
     fontSize: 42,
     lineHeight: 51,
+    alignSelf: 'center',
   },
   copyColumn: {
     minWidth: 0,
@@ -401,7 +398,7 @@ const styles = StyleSheet.create({
   temperatureRow: {
     minHeight: 40,
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'flex-start',
   },
   temperatureCompact: {
     minHeight: 34,
@@ -413,7 +410,7 @@ const styles = StyleSheet.create({
   },
   temperatureUnit: {
     marginLeft: 3,
-    marginTop: 1,
+    marginTop: 0,
     flexDirection: 'row',
     alignItems: 'flex-start',
   },
@@ -429,13 +426,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   headline: {
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 14,
+    lineHeight: 18,
     fontWeight: '600',
   },
   headlineCompact: {
-    fontSize: 11,
-    lineHeight: 14,
+    fontSize: 13,
+    lineHeight: 16,
     fontWeight: '600',
   },
   caption: {
@@ -466,13 +463,13 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   noticeLabel: {
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 11,
+    lineHeight: 15,
     fontWeight: '800',
   },
   noticeLabelCompact: {
-    fontSize: 10,
-    lineHeight: 14,
+    fontSize: 9,
+    lineHeight: 13,
   },
   noticeMessage: {
     marginTop: 6,

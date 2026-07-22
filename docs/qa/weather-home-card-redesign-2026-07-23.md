@@ -22,6 +22,13 @@
 - 카드 높이와 본문 타이포를 낮추고, 온도 숫자 상단에 작은 `°`, `C`를 분리 배치한다.
 - 메인 카피는 `산책하기 좋은 날씨예요` 또는 `산책하기 좋은 날씨는 아니에요`를 사용한다.
 
+## 메타·지표·아이콘 최종 조정
+
+- 지역·날짜 폰트를 12px로 낮추고 날짜 옆 해·달 아이콘을 제거했다.
+- 온도 단위를 숫자 상단에 맞추고 메인 산책 안내를 14px, 주의 제목을 기존보다 1px 낮췄다.
+- 체감·습도·바람 지표의 아이콘·라벨·값을 `#FFFFFF`로 통일했다. 자외선 지표는 기존 의미색을 유지한다.
+- 날씨 이모티콘은 좌측 날씨 영역 중앙에 정렬했다.
+
 ## 구현 파일
 
 - `src/components/weather/WeatherGuideHomeCard.tsx`
@@ -60,7 +67,7 @@
 - QA 계정: 기존 `adminQA`
 - 최종 APK: `/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/android/app/build/outputs/apk/release/app-release.apk`
 - version: `1.0 (1)`
-- 최종 APK SHA-256: `e74f771a6e0ca7ddc46e501833eaa21daf68607fa1bbf161f6c79d68022f0747`
+- 최종 APK SHA-256: `a7b254b4ec6de20de3368ce4567a3a1e479fa1186c2750f8554d93fb236db497`
 - install/update: 통과
 - cold start/Home: 통과
 - 실제 시간 기준 night variant: 통과
@@ -72,8 +79,8 @@
 ## 증적
 
 - 낮 카드: `/tmp/nuri-qa/weather-card-day-refinement.png`
-- 최종 밤 카드: `/tmp/nuri-qa/weather-card-final-closeout.png`
-- 최종 logcat: `/tmp/nuri-qa/weather-card-final-closeout-logcat.txt`
+- 최종 카드: `/tmp/nuri-qa/weather-card-user-adjustment.png`
+- 최종 logcat: `/tmp/nuri-qa/weather-card-user-adjustment-logcat.txt`
 
 ## 자동 검증
 

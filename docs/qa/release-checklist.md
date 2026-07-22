@@ -1,5 +1,20 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-07-23 날씨카드 메타·지표·아이콘 최종 release gate
+
+- [x] 지역·날짜 폰트를 12px로 조정.
+- [x] 날짜 옆 해·달 아이콘 제거.
+- [x] 온도 `°C` 단위를 숫자 상단에 정렬.
+- [x] 메인 산책 안내 14px, 주의 제목 1px 축소.
+- [x] 체감·습도·바람 아이콘·라벨·값을 `#FFFFFF`로 적용.
+- [x] 날씨 이모티콘을 좌측 날씨 영역 중앙 정렬.
+- [x] Android `SM_S937N / R5CY613NMSY` 최신 APK 설치·cold start·Home 카드 확인.
+- [x] 최신 APK SHA-256 `a7b254b4ec6de20de3368ce4567a3a1e479fa1186c2750f8554d93fb236db497`.
+- [x] Jest `67 suites / 269 tests`, typecheck, lint, release build/install 통과.
+- [x] Supabase 변경 없음, app-scoped fatal scan 0건.
+
+증적: `/tmp/nuri-qa/weather-card-user-adjustment.png`, `/tmp/nuri-qa/weather-card-user-adjustment-logcat.txt`.
+
 ## 2026-07-23 날씨카드 날짜·지역·온도 표기 최종 release gate
 
 - [x] 상단에서 `오늘`과 시간을 제거하고 월·일·요일만 표시한다.
