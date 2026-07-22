@@ -1,5 +1,17 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-07-23 날씨카드 38px·카드 여유 공간 최종 release gate
+
+- [x] 온도 숫자 본체 `38px / lineHeight 40px / weight 800` 적용.
+- [x] 카드 최소 높이 `216dp outer / 213dp surface`, 중앙 영역 `100dp` 적용.
+- [x] 산책 문구와 하단 metrics bar 사이 여백 `10dp` 적용.
+- [x] Android `SM_S937N / R5CY613NMSY` 최신 APK 설치·cold start·Home 카드 확인.
+- [x] 최신 APK SHA-256 `df16452225cae4be55bccd9c780008c2fa2ea84724c31ae2e93b7e7df769cb21`.
+- [x] Jest `67 suites / 269 tests`, typecheck, lint, release build/install 통과.
+- [x] app-scoped fatal scan 0건.
+
+증적: `/tmp/nuri-qa/weather-card-temperature-38px-spacing.png`, `/tmp/nuri-qa/weather-card-temperature-38px-spacing-logcat.txt`.
+
 ## 2026-07-23 날씨카드 온도 본체 최종 release gate
 
 - [x] 온도 숫자 본체 `24px / lineHeight 28px` 적용.

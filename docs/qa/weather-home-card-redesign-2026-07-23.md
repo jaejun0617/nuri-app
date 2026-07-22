@@ -1,5 +1,14 @@
 # 홈 날씨카드 낮/밤 리디자인 QA 보고서
 
+## 2026-07-23 온도 본체·카드 여유 공간 최종 closeout
+
+- 온도 숫자 본체를 `38px / lineHeight 40px / weight 800`으로 복원했다. `°=13px`, `C=21px`의 상단 정렬 구조는 유지한다.
+- 카드 최소 높이를 `216dp` outer / `213dp` surface로 늘리고 중앙 영역을 `100dp`로 확장했다.
+- 산책 문구와 하단 체감·습도·바람·자외선 지표 사이의 상단 여백을 `10dp`로 늘려 정보가 붙어 보이지 않도록 했다.
+- 최신 release APK SHA-256은 `df16452225cae4be55bccd9c780008c2fa2ea84724c31ae2e93b7e7df769cb21`이다.
+- 최신 증적은 `/tmp/nuri-qa/weather-card-temperature-38px-spacing.png`, `/tmp/nuri-qa/weather-card-temperature-38px-spacing-logcat.txt`다.
+- `67 suites / 269 tests`, typecheck, lint, release build/install, app-scoped fatal scan 0건을 통과했다.
+
 ## 범위
 
 - 홈 날씨카드만 리디자인했다.
