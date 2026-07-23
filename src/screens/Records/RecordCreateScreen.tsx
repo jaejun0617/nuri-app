@@ -122,7 +122,8 @@ export default function RecordCreateScreen() {
   const returnTo = route.params?.returnTo;
   const initialMainCategoryKey = route.params?.initialMainCategory ?? 'walk';
   const initialOtherSubCategoryKey = route.params?.initialOtherSubCategory ?? null;
-  const allowsHealthWrite = returnTo?.tab === 'HealthReport';
+  const allowsHealthWrite =
+    returnTo?.tab === 'HealthReport' || initialMainCategoryKey === 'health';
 
   const petId = useMemo(() => {
     return resolveSelectedPetId(pets, selectedPetId, petIdFromParams);
@@ -466,6 +467,12 @@ export default function RecordCreateScreen() {
         return;
       }
 
+      if (returnTo?.tab === 'HomeTab' && returnTo.afterCreate === 'home') {
+        await refresh(input.petId);
+        navigation.navigate('AppTabs', { screen: 'HomeTab' });
+        return;
+      }
+
       const detailEntrySource =
         returnTo?.tab === 'HomeTab'
           ? 'home'
@@ -484,7 +491,7 @@ export default function RecordCreateScreen() {
         },
       });
     },
-    [navigation, queryClient, returnTo],
+    [navigation, queryClient, refresh, returnTo],
   );
 
   const closeRewardNotice = useCallback(() => {

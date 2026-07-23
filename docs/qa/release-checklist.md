@@ -1090,3 +1090,18 @@ Artifact SHA-256: `0d598322d5cd6463582ab3e17d93a9d0bc81e44ce7d7eec5fa45efbcb74fa
   - v1.0 blocker는 아니나 운영 고도화 항목이다.
 - [ ] Apple social login backlog
   - Apple은 Android-first v1.0 범위에서 제외하며 iOS 출시 및 Apple 정책 검토 시점에 별도 판단한다.
+
+## 2026-07-23 자주 쓰는 기록 E2E release evidence
+
+- [x] 홈 `자주 쓰는 기록` 프리미엄 UI
+  - 스파클 헤더, 9px 설명 문구, 전체 보기, 산책·식사·건강·미용 카드
+  - 좁은 Android 화면 2x2, 넓은 화면 4열
+- [x] 실제 최신 기록 연동
+  - 선택된 반려동물 기준 `MemoryRecord` 최신 1건
+  - 상대시간·요약·기록 없음·로딩·오류 상태
+- [x] 실기기 기록 저장 및 영속성
+  - `adminQA`에서 산책·식사·건강·미용 각 1건 저장
+  - 저장 직후 홈 반영 및 강제 종료 후 재실행 유지
+  - evidence: `/tmp/nuri-qa/frequent-records-four-qa.png`, `/tmp/nuri-qa/frequent-records-after-restart.png`
+- [x] 코드 게이트
+  - typecheck, lint, 68 suites / 272 tests, release APK build 통과

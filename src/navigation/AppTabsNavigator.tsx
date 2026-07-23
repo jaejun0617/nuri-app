@@ -33,7 +33,7 @@ import { useUiStore } from '../store/uiStore';
 import type { HealthReportTabKey } from '../services/health-report/viewModel';
 
 export type RecordCreateReturnTo =
-  | { tab: 'HomeTab' }
+  | { tab: 'HomeTab'; afterCreate?: 'detail' | 'home' }
   | {
       tab: 'TimelineTab';
       params?: NavigatorScreenParams<TimelineStackParamList>;

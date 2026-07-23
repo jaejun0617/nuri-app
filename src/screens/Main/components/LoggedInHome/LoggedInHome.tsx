@@ -49,6 +49,7 @@ import Animated, {
 
 import Screen from '../../../../components/layout/Screen';
 import { MemoryCard } from '../../../../components/MemoryCard/MemoryCard';
+import { FrequentRecordsSection } from '../../../../components/records/FrequentRecordsSection';
 import GuideRecommendationCard from '../../../../components/guides/GuideRecommendationCard';
 import { useWeatherGuide } from '../../../../hooks/useWeatherGuide';
 import { useHomePetCareGuides } from '../../../../hooks/useHomePetCareGuides';
@@ -101,6 +102,7 @@ import {
   mapScheduleToMemoryCategory,
 } from '../../../../services/schedules/presentation';
 import { buildPetThemePalette } from '../../../../services/pets/themePalette';
+import type { FrequentRecordCategory } from '../../../../services/home/frequentRecords';
 import { formatPetAgeLabelFromBirthDate } from '../../../../services/pets/age';
 import {
   formatMemorialPetName,
@@ -363,44 +365,6 @@ const EMPTY_SCHEDULE_ITEMS: PetSchedule[] = [];
 Object.freeze(EMPTY_SCHEDULE_ITEMS);
 
 const HOME_RECENT_RECORDS_MAX = 7;
-
-const HOME_SHORTCUTS: Array<{
-  key: string;
-  label: string;
-  icon: string;
-  action: 'timeline' | 'health';
-  mainCategory?: Exclude<TimelineMainCategory, undefined>;
-  otherSubCategory?: Exclude<TimelineOtherSubCategory, undefined>;
-}> = [
-  {
-    key: 'walk',
-    label: '산책',
-    icon: 'walk',
-    action: 'timeline',
-    mainCategory: 'walk',
-  },
-  {
-    key: 'meal',
-    label: '식사',
-    icon: 'silverware-fork-knife',
-    action: 'timeline',
-    mainCategory: 'meal',
-  },
-  {
-    key: 'health',
-    label: '건강',
-    icon: 'heart-pulse',
-    action: 'health',
-  },
-  {
-    key: 'grooming',
-    label: '미용',
-    icon: 'content-cut',
-    action: 'timeline',
-    mainCategory: 'other',
-    otherSubCategory: 'grooming',
-  },
-];
 
 const TODAY_HOME_TIP = {
   badge: '오늘의 팁',
@@ -1556,54 +1520,6 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
   );
 });
 
-const QuickActionsSection = React.memo(function QuickActionsSection({
-  petTheme,
-  quickActionCards,
-  onPressQuickAction,
-}: {
-  petTheme: ReturnType<typeof buildPetThemePalette>;
-  quickActionCards: typeof HOME_SHORTCUTS;
-  onPressQuickAction: (item: (typeof HOME_SHORTCUTS)[number]) => void;
-}) {
-  return (
-    <View style={styles.section}>
-      <View style={styles.sectionHeaderCol}>
-        <Text style={[styles.quickSectionTitle, { color: petTheme.deep }]}>
-          자주 쓰는 기록
-        </Text>
-      </View>
-
-      <View style={styles.quickGridFrame}>
-        <View style={styles.quickGrid}>
-          {quickActionCards.map(item => (
-            <TouchableOpacity
-              key={item.key}
-              activeOpacity={0.92}
-              style={styles.quickCard}
-              onPress={() => onPressQuickAction(item)}
-            >
-              <View
-                style={[
-                  styles.quickIconWrap,
-                  { backgroundColor: petTheme.tint },
-                ]}
-              >
-                <MaterialCommunityIcons
-                  name={item.icon}
-                  size={28}
-                  color={petTheme.primary}
-                  style={styles.quickIcon}
-                />
-              </View>
-              <Text style={styles.quickCardTitle}>{item.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-    </View>
-  );
-});
-
 const MemorySectionLead = React.memo(function MemorySectionLead(_props: {
   accentDeepColor: string;
 }) {
@@ -2577,6 +2493,7 @@ export default function LoggedInHome() {
   // 4) records
   // ---------------------------------------------------------
   const bootstrapRecords = useRecordStore(s => s.bootstrap);
+  const refreshRecords = useRecordStore(s => s.refresh);
   const replaceAllRecords = useRecordStore(s => s.replaceAll);
   const bootstrapSchedules = useScheduleStore(s => s.bootstrap);
   const replaceAllSchedules = useScheduleStore(s => s.replaceAll);
@@ -2589,6 +2506,8 @@ export default function LoggedInHome() {
   const recordStatus = useRecordStore(s =>
     activePetId ? s.byPetId[activePetId]?.status ?? 'idle' : 'idle',
   );
+  const recordStatusRef = useRef(recordStatus);
+  recordStatusRef.current = recordStatus;
   const scheduleItems = useScheduleStore(s =>
     activePetId
       ? s.byPetId[activePetId]?.items ?? EMPTY_SCHEDULE_ITEMS
@@ -2615,6 +2534,19 @@ export default function LoggedInHome() {
       task.cancel();
     };
   }, [bootstrapRecords, activePetId]);
+
+  useEffect(() => {
+    if (!isScreenFocused || !activePetId) return;
+    if (recordStatusRef.current !== 'ready') return;
+
+    const task = InteractionManager.runAfterInteractions(() => {
+      refreshRecords(activePetId).catch(() => {});
+    });
+
+    return () => {
+      task.cancel();
+    };
+  }, [activePetId, isScreenFocused, refreshRecords]);
 
   useEffect(() => {
     if (!activePetId) return;
@@ -2957,16 +2889,19 @@ export default function LoggedInHome() {
     [navigation, activePetId],
   );
 
-  const onPressQuickAction = useCallback(
-    (item: (typeof HOME_SHORTCUTS)[number]) => {
-      if (item.action === 'health') {
-        onPressHealthReport();
-        return;
-      }
-      if (!item.mainCategory) return;
-      onPressTimelineCategory(item.mainCategory, item.otherSubCategory);
+  const onPressFrequentRecord = useCallback(
+    (category: FrequentRecordCategory) => {
+      const initialMainCategory =
+        category === 'grooming' ? 'other' : category;
+      navigation.navigate('RecordCreate', {
+        petId: activePetId ?? undefined,
+        initialMainCategory,
+        initialOtherSubCategory:
+          category === 'grooming' ? 'grooming' : null,
+        returnTo: { tab: 'HomeTab', afterCreate: 'home' },
+      });
     },
-    [onPressHealthReport, onPressTimelineCategory],
+    [activePetId, navigation],
   );
 
   const onPressRecord = useCallback(() => {
@@ -3088,7 +3023,6 @@ export default function LoggedInHome() {
     ],
   );
 
-  const quickActionCards = HOME_SHORTCUTS;
   const homeGuideContext = useMemo(
     () => ({
       userId: sessionUserId,
@@ -3355,10 +3289,12 @@ export default function LoggedInHome() {
             onToggleOne={onToggleOne}
           />
 
-          <QuickActionsSection
+          <FrequentRecordsSection
             petTheme={petTheme}
-            quickActionCards={quickActionCards}
-            onPressQuickAction={onPressQuickAction}
+            records={recordItems}
+            recordStatus={recordStatus}
+            onPressCategory={onPressFrequentRecord}
+            onPressAll={onPressTimeline}
           />
 
           <MemorySectionLead accentDeepColor={petTheme.deep} />

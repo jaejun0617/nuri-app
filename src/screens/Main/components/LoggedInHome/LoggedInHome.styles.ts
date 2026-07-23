@@ -922,9 +922,7 @@ export const styles = StyleSheet.create({
     color: 'rgba(85,96,112,0.88)',
   },
 
-  // ---------------------------------------------------------
-  // Quick Actions
-  // ---------------------------------------------------------
+  // GuestHome also consumes these shared legacy quick-action tokens.
   quickGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
