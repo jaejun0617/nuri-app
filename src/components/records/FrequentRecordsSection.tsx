@@ -1,18 +1,20 @@
 // 파일: src/components/records/FrequentRecordsSection.tsx
 // 목적:
 // - 홈에서 빠른 기록 진입과 선택된 반려동물의 최신 기록 요약을 함께 제공한다.
-// - 그라디언트 보더, 테마 포인트, 작은 화면 2x2 대응을 이 섹션 안에서만 관리한다.
+// - 그라디언트 보더, 테마 포인트, 1:1:1:1 기록 카드를 이 섹션 안에서만 관리한다.
 
 import React, { memo, useMemo } from 'react';
 import {
+  AppState,
   Pressable,
   Text,
   View,
-  useWindowDimensions,
+  type AppStateStatus,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
+import { useIsFocused } from '@react-navigation/native';
 
 import type { MemoryRecord } from '../../services/supabase/memories';
 import {
@@ -41,6 +43,8 @@ type FrequentRecordsSectionProps = {
   onPressAll: () => void;
 };
 
+const RELATIVE_TIME_REFRESH_MS = 60_000;
+
 const CATEGORY_META: Record<
   FrequentRecordCategory,
   { label: string; icon: string }
@@ -55,13 +59,11 @@ function RecordSummaryCard({
   item,
   accentColor,
   accentTint,
-  compact,
   onPress,
 }: {
   item: FrequentRecordSummary;
   accentColor: string;
   accentTint: string;
-  compact: boolean;
   onPress: () => void;
 }) {
   const meta = CATEGORY_META[item.category];
@@ -76,7 +78,6 @@ function RecordSummaryCard({
       onPress={onPress}
       style={({ pressed }) => [
         styles.recordCard,
-        compact ? styles.recordCardCompact : null,
         { borderColor: `${accentColor}20` },
         pressed ? styles.recordCardPressed : null,
       ]}
@@ -112,15 +113,41 @@ function FrequentRecordsSectionBase({
   petTheme,
   records,
   recordStatus,
-  now = new Date(),
+  now,
   onPressCategory,
   onPressAll,
 }: FrequentRecordsSectionProps) {
-  const { width } = useWindowDimensions();
-  const compactLayout = width < 460;
+  const isScreenFocused = useIsFocused();
+  const [currentTime, setCurrentTime] = React.useState(() => now ?? new Date());
+
+  React.useEffect(() => {
+    if (now) {
+      setCurrentTime(now);
+      return;
+    }
+
+    if (!isScreenFocused || AppState.currentState !== 'active') return;
+
+    const syncCurrentTime = () => setCurrentTime(new Date());
+    syncCurrentTime();
+
+    const timer = setInterval(syncCurrentTime, RELATIVE_TIME_REFRESH_MS);
+    const appStateSubscription = AppState.addEventListener(
+      'change',
+      (nextState: AppStateStatus) => {
+        if (nextState === 'active') syncCurrentTime();
+      },
+    );
+
+    return () => {
+      clearInterval(timer);
+      appStateSubscription.remove();
+    };
+  }, [isScreenFocused, now]);
+
   const summaries = useMemo(
-    () => buildFrequentRecordSummaries(records, now),
-    [now, records],
+    () => buildFrequentRecordSummaries(records, currentTime),
+    [currentTime, records],
   );
   const isLoading =
     (recordStatus === 'idle' || recordStatus === 'loading') &&
@@ -193,14 +220,13 @@ function FrequentRecordsSectionBase({
             <Text style={styles.statusText}>기록을 확인할 수 없어요.</Text>
           </View>
         ) : (
-          <View style={[styles.grid, compactLayout ? styles.gridCompact : null]}>
+          <View style={styles.grid}>
             {summaries.map(item => (
               <RecordSummaryCard
                 key={item.category}
                 item={item}
                 accentColor={petTheme.primary}
                 accentTint={petTheme.tint}
-                compact={compactLayout}
                 onPress={() => onPressCategory(item.category)}
               />
             ))}
