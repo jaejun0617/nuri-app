@@ -44,8 +44,19 @@ describe('frequent records home view model', () => {
           createdAt: '2026-07-23T04:00:00.000Z',
         }),
         record({
+          id: 'meal',
+          title: 'QA meal food 180g',
+          category: 'meal',
+        }),
+        record({
+          id: 'health',
+          title: 'QA health condition',
+          category: 'health',
+          emotion: 'sad',
+        }),
+        record({
           id: 'grooming',
-          title: '목욕 & 털 정리',
+          title: 'QA grooming bath fur',
           category: 'other',
           subCategory: 'grooming',
         }),
@@ -62,17 +73,22 @@ describe('frequent records home view model', () => {
     expect(summaries.find(item => item.category === 'walk')).toMatchObject({
       record: { id: 'new-walk' },
       relativeTimeLabel: '1시간 전',
-      summaryLabel: '저녁 산책 32분',
+      summaryLabel: '32분 산책 완료',
+    });
+    expect(summaries.find(item => item.category === 'meal')).toMatchObject({
+      summaryLabel: '사료 180g',
+    });
+    expect(summaries.find(item => item.category === 'health')).toMatchObject({
+      summaryLabel: '컨디션 나빠요',
     });
     expect(summaries.find(item => item.category === 'grooming')).toMatchObject({
       record: { id: 'grooming' },
       summaryLabel: '목욕 & 털 정리',
     });
     expect(summaries.find(item => item.category === 'meal')).toMatchObject({
-      record: null,
-      hasRecentRecord: false,
-      relativeTimeLabel: null,
-      summaryLabel: '첫 식사 기록을 남겨보세요',
+      record: { id: 'meal' },
+      hasRecentRecord: true,
+      summaryLabel: '사료 180g',
     });
   });
 
@@ -106,7 +122,7 @@ describe('frequent records home view model', () => {
     ).toBe('7월 10일');
   });
 
-  it('does not fabricate a recent summary and compacts long source text', () => {
+  it('uses a safe Korean fallback and compacts derived summaries', () => {
     expect(buildFrequentRecordSummary('health', record({ title: '   ' }))).toBe(
       '건강 기록 완료',
     );
@@ -115,9 +131,21 @@ describe('frequent records home view model', () => {
         'meal',
         record({
           category: 'meal',
-          title: '아주 긴 식사 기록 제목이 홈 카드에서 잘리지 않도록 정리됩니다',
+          title: '아주 긴 식사 기록 제목 180g',
         }),
       ),
-    ).toBe('아주 긴 식사 기록 제목이 홈 카드에서 잘…');
+    ).toBe('사료 180g');
+  });
+
+  it('derives the morning walk label from the stored creation time', () => {
+    expect(
+      buildFrequentRecordSummary(
+        'walk',
+        record({
+          title: 'QA walk morning',
+          createdAt: '2026-07-23T00:30:00.000Z',
+        }),
+      ),
+    ).toBe('오전 산책 완료');
   });
 });

@@ -10,7 +10,11 @@ import {
   readOtherSubCategoryRaw,
   readRecordCategoryRaw,
 } from '../memories/categoryMeta';
-import { formatRecordMonthDay, getRecordSortTimestamp } from '../records/date';
+import {
+  formatRecordCreatedTime,
+  formatRecordMonthDay,
+  getRecordSortTimestamp,
+} from '../records/date';
 import type { MemoryRecord } from '../supabase/memories';
 
 export type FrequentRecordCategory = 'walk' | 'meal' | 'health' | 'grooming';
@@ -86,6 +90,88 @@ function getSummarySource(record: MemoryRecord): string {
   return normalizeSummaryText(record.title) || normalizeSummaryText(record.content);
 }
 
+function getSummarySearchText(record: MemoryRecord): string {
+  return normalizeSummaryText(
+    [record.title, record.content, ...record.tags].filter(Boolean).join(' '),
+  ).toLocaleLowerCase();
+}
+
+function formatAmount(value: string, unit: string): string {
+  return `${value}${unit.toLocaleLowerCase()}`;
+}
+
+function buildWalkSummary(record: MemoryRecord, source: string): string {
+  const searchText = getSummarySearchText(record);
+  const distanceMatch = searchText.match(/(\d+(?:\.\d+)?)\s*(km|킬로미터)/i);
+  const durationMatch = searchText.match(/(\d+)\s*(분|min(?:ute)?s?)/i);
+  const distance = distanceMatch?.[1] ?? null;
+  const duration = durationMatch?.[1] ?? null;
+
+  if (distance && duration) return `${distance}km · ${duration}분`;
+  if (duration) return `${duration}분 산책 완료`;
+
+  const period = formatRecordCreatedTime(record).split(' ')[0];
+  if (period === '오전' || period === '오후') return `${period} 산책 완료`;
+  if (source.includes('산책')) return '산책 기록 완료';
+  return CATEGORY_COMPLETE_LABEL.walk;
+}
+
+function buildMealSummary(record: MemoryRecord): string {
+  const searchText = getSummarySearchText(record);
+  const amountMatch = searchText.match(
+    /(\d+(?:\.\d+)?)\s*(g|kg|ml|개|캔|팩)/i,
+  );
+  if (!amountMatch) return CATEGORY_COMPLETE_LABEL.meal;
+
+  const foodLabel =
+    /간식|snack|treat/.test(searchText)
+      ? '간식'
+      : /물|water/.test(searchText)
+        ? '물'
+        : '사료';
+  return `${foodLabel} ${formatAmount(amountMatch[1], amountMatch[2])}`;
+}
+
+function buildHealthSummary(record: MemoryRecord, source: string): string {
+  if (
+    record.emotion === 'sad' ||
+    record.emotion === 'anxious' ||
+    record.emotion === 'angry' ||
+    record.emotion === 'tired'
+  ) {
+    return '컨디션 나빠요';
+  }
+  if (
+    record.emotion === 'happy' ||
+    record.emotion === 'calm' ||
+    record.emotion === 'excited'
+  ) {
+    return '컨디션 좋아요';
+  }
+  if (record.emotion === 'neutral') return '컨디션 무난해요';
+
+  const weightMatch = getSummarySearchText(record).match(
+    /(\d+(?:\.\d+)?)\s*kg/i,
+  );
+  if (weightMatch || /체중|weight/i.test(source)) {
+    return weightMatch ? `체중 ${weightMatch[1]}kg` : '체중 기록 완료';
+  }
+  if (/약|medication|medicine/i.test(source)) return '약 복용 완료';
+  return CATEGORY_COMPLETE_LABEL.health;
+}
+
+function buildGroomingSummary(record: MemoryRecord): string {
+  const searchText = getSummarySearchText(record);
+  const hasBath = /목욕|bath|샤워|shower/.test(searchText);
+  const hasFur = /털|fur|groom|미용/.test(searchText);
+
+  if (hasBath && hasFur) return '목욕 & 털 정리';
+  if (hasBath) return '목욕 완료';
+  if (hasFur) return '털 정리 완료';
+  if (/발톱|nail/.test(searchText)) return '발톱 정리 완료';
+  return CATEGORY_COMPLETE_LABEL.grooming;
+}
+
 export function buildFrequentRecordSummary(
   category: FrequentRecordCategory,
   record: MemoryRecord | null,
@@ -93,8 +179,16 @@ export function buildFrequentRecordSummary(
   if (!record) return CATEGORY_FALLBACK_LABEL[category];
 
   const source = getSummarySource(record);
-  if (source) return compactSummary(source);
-  return CATEGORY_COMPLETE_LABEL[category];
+  switch (category) {
+    case 'walk':
+      return compactSummary(buildWalkSummary(record, source));
+    case 'meal':
+      return compactSummary(buildMealSummary(record));
+    case 'health':
+      return compactSummary(buildHealthSummary(record, source));
+    case 'grooming':
+      return compactSummary(buildGroomingSummary(record));
+  }
 }
 
 export function formatFrequentRecordRelativeTime(
@@ -146,4 +240,3 @@ export function buildFrequentRecordSummaries(
     };
   });
 }
-

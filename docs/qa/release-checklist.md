@@ -1111,3 +1111,49 @@ Artifact SHA-256: `0d598322d5cd6463582ab3e17d93a9d0bc81e44ce7d7eec5fa45efbcb74fa
   - focus·active 상태에서 60초 interval 및 foreground 즉시 sync
   - 실기기 60초 이상 대기 후 네 카드 상대시간 증가 확인
   - evidence: `/tmp/nuri-qa/frequent-records-1x4-window-scrolled.xml`, `/tmp/nuri-qa/frequent-records-1x4-window-after-60s.xml`
+
+## 2026-07-23 자주 쓰는 기록 한국어 요약·타이포그래피 보정 release evidence
+
+- [x] 홈 `자주 쓰는 기록` 최종 타이포그래피와 간격 보정
+  - 섹션 제목: `18px / 600` 유지
+  - 설명 문구: `10px / 400`
+  - 전체 보기: `11px / 500`, 투명 배경, 최소 높이 34dp
+  - 카테고리명: `12px / 500`
+  - 기록 시간: `9px / 500`, 좌우 padding 10dp
+  - 기록 요약: `9px / 500`
+  - 로딩·오류 문구: `13px / 500`
+  - 스파클 래퍼 26dp, 카테고리 아이콘 24dp, 카드 아이콘 래퍼 36dp
+  - `오늘의 말`과 `오늘 한장` 사이 간격을 `todayPhotoSection`으로 확대
+- [x] 실제 데이터 기반 한국어 요약 규칙
+  - 산책: 기록 시각의 오전/오후 및 저장된 시간·거리 데이터에서 `오전 산책 완료`, `32분 산책 완료`, `1.8km · 32분` 형태를 생성
+  - 식사: 저장된 수량·단위에서 `사료 180g` 형태를 생성하며 임의의 `0g`을 만들지 않음
+  - 건강: 저장된 감정 태그에서 `컨디션 나빠요`, `컨디션 좋아요`, `컨디션 무난해요`를 생성
+  - 미용: 저장된 목욕·털·발톱 관련 metadata에서 `목욕 & 털 정리`, `목욕 완료`, `털 정리 완료`, `발톱 정리 완료`를 생성
+- [x] 최신 실기기 재검증
+  - `adminQA`의 QA 펫에 아래 새 기록 4건을 저장하고 삭제하지 않음:
+    - `QA_walk_morning_20260723`
+    - `QA_meal_food_180g_20260723`
+    - `QA_health_condition_bad_20260723`
+    - `QA_grooming_bath_fur_20260723`
+  - 홈 카드 출력: `오전 산책 완료`, `사료 180g`, `컨디션 나빠요`, `목욕 & 털 정리`
+  - 앱 강제 종료·재실행 후 동일 출력 및 QA 기록 유지 확인
+  - 60초 갱신 전후 산책 `2분 전 → 3분 전`, 식사 `1분 전 → 2분 전` 등 상대시간 진행 확인
+  - evidence:
+    - `/tmp/nuri-qa/frequent-records-korean-final-before-60s.png`
+    - `/tmp/nuri-qa/frequent-records-korean-final-after-60s.png`
+    - `/tmp/nuri-qa/frequent-records-korean-final-before-60s.xml`
+    - `/tmp/nuri-qa/frequent-records-korean-final-after-60s.xml`
+    - `/tmp/nuri-qa/frequent-records-korean-relaunch-scrolled.xml`
+    - `/tmp/nuri-qa/frequent-records-korean-final-logcat-20260723.txt`
+  - 최종 APK 재설치 evidence:
+    - `/tmp/nuri-qa/frequent-records-korean-final-release.png`
+    - `/tmp/nuri-qa/frequent-records-korean-final-release.xml`
+    - `/tmp/nuri-qa/frequent-records-korean-final-release-logcat.txt`
+- [x] 최종 코드 게이트
+  - typecheck 통과
+  - lint 통과, 신규 error 없음
+  - Jest `68 suites / 273 tests` 통과
+  - release APK build/install 통과
+  - APK SHA-256: `5a9d19e5021fdb0553d3cc10caa6fb628ec0a96ac9ce6fe2e658f64c8adc53dd`
+  - logcat `FATAL EXCEPTION`, `ANR in`, `Fatal signal`, `ReactNativeJS fatal`, `Unhandled promise` 0건
+  - Supabase dry-run: remote up to date, migration 없음

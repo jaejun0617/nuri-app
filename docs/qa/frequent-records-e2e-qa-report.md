@@ -79,3 +79,43 @@
 - 상대시간은 초 단위가 아니라 60초 단위로 갱신한다. 분 경계가 지난 뒤 최대 60초 이내 화면에 반영되는 제품 계약이다.
 - 기록 요약은 실제 제목 우선, 내용 fallback이며 원문은 24자에서 축약한다.
 - 신규 APK에서는 기존 release gate와 동일하게 community·notification·keyboard/back·Supabase·logcat 반복 확인이 필요하다.
+
+## 2026-07-23 한국어 요약·최종 타이포그래피 재검증
+
+이 절이 기존 1:1:1:1 검증 기록을 대체하는 최신 UI·데이터 증적이다.
+
+- 최종 폰트 계약:
+  - 섹션 제목 `18px / 600`
+  - 설명 문구 `10px / 400`
+  - 전체 보기 `11px / 500`, 투명 배경
+  - 카테고리명 `12px / 500`
+  - 기록 시간 `9px / 500`
+  - 기록 요약 `9px / 500`
+  - 로딩·오류 문구 `13px / 500`
+- 최종 UI 보정:
+  - 왼쪽 스파클 래퍼 `26dp`, 아이콘 `19dp`
+  - 카테고리 아이콘 `24dp`, 아이콘 래퍼 `36dp`
+  - 기록 시간 pill 좌우 padding `10dp`
+  - 카드 배경·강한 그림자 제거 유지
+  - `오늘의 말`과 `오늘 한장` 사이 여백 확대
+- 최신 QA 기록 입력:
+  - 산책: `QA_walk_morning_20260723` → `오전 산책 완료`
+  - 식사: `QA_meal_food_180g_20260723` → `사료 180g`
+  - 건강: `QA_health_condition_bad_20260723` + 나쁜 상태 감정 → `컨디션 나빠요`
+  - 미용: `QA_grooming_bath_fur_20260723` → `목욕 & 털 정리`
+- 모든 기록은 `adminQA`의 기존 QA 펫에 실제 저장했으며, 삭제·rollback하지 않았다.
+- 상대시간 재검증:
+  - 60초 전후 산책 `2분 전 → 3분 전`, 식사 `1분 전 → 2분 전` 등 실제 갱신 확인
+  - 앱 강제 종료·재실행 후 네 카드 요약과 기록 유지 확인
+- 최신 evidence:
+  - `/tmp/nuri-qa/frequent-records-korean-final-before-60s.png`
+  - `/tmp/nuri-qa/frequent-records-korean-final-after-60s.png`
+  - `/tmp/nuri-qa/frequent-records-korean-final-before-60s.xml`
+  - `/tmp/nuri-qa/frequent-records-korean-final-after-60s.xml`
+  - `/tmp/nuri-qa/frequent-records-korean-relaunch-scrolled.xml`
+  - `/tmp/nuri-qa/frequent-records-korean-final-logcat-20260723.txt`
+  - `/tmp/nuri-qa/frequent-records-korean-final-release.png`
+  - `/tmp/nuri-qa/frequent-records-korean-final-release.xml`
+  - `/tmp/nuri-qa/frequent-records-korean-final-release-logcat.txt`
+- 최신 APK SHA-256: `5a9d19e5021fdb0553d3cc10caa6fb628ec0a96ac9ce6fe2e658f64c8adc53dd`
+- 최신 검증: typecheck, lint, Jest `68 suites / 273 tests`, release build/install, Supabase dry-run 통과.

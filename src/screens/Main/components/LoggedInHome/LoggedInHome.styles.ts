@@ -753,6 +753,10 @@ export const styles = StyleSheet.create({
     paddingBottom: 14,
     paddingHorizontal: 14,
   },
+  todayPhotoSection: {
+    marginTop: 18,
+    paddingTop: 28,
+  },
   recentSection: {
     gap: 16,
     paddingHorizontal: 10,

@@ -85,7 +85,7 @@ function RecordSummaryCard({
       <View style={[styles.recordIconWrap, { backgroundColor: accentTint }]}>
         <MaterialCommunityIcons
           name={meta.icon}
-          size={32}
+          size={24}
           color={accentColor}
         />
       </View>
@@ -170,7 +170,9 @@ function FrequentRecordsSectionBase({
       <View style={styles.innerCard}>
         <View style={styles.headerRow}>
           <View style={styles.headerLead}>
-            <View style={[styles.sparkleWrap, { backgroundColor: petTheme.tint }]}>
+            <View
+              style={[styles.sparkleWrap, { backgroundColor: petTheme.tint }]}
+            >
               <MaterialCommunityIcons
                 name="creation"
                 size={19}
@@ -198,7 +200,6 @@ function FrequentRecordsSectionBase({
             style={({ pressed }) => [
               styles.allButton,
               {
-                backgroundColor: petTheme.tint,
                 borderColor: `${petTheme.primary}26`,
               },
               pressed ? styles.allButtonPressed : null,
@@ -207,7 +208,7 @@ function FrequentRecordsSectionBase({
             <Text style={[styles.allButtonText, { color: petTheme.primary }]}>
               전체 보기
             </Text>
-            <Feather name="chevron-right" size={17} color={petTheme.primary} />
+            <Feather name="chevron-right" size={14} color={petTheme.primary} />
           </Pressable>
         </View>
 

@@ -543,7 +543,7 @@ const TodayPhotoSection = React.memo(function TodayPhotoSection({
   }, [todayPhoto.record]);
 
   return (
-    <View style={styles.section}>
+    <View style={[styles.section, styles.todayPhotoSection]}>
       <View style={styles.sectionHeaderRow}>
         <Text style={[styles.sectionTitle, { color: accentColor }]}>
           오늘 한장
