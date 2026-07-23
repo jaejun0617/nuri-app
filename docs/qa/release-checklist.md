@@ -1185,3 +1185,19 @@ Artifact SHA-256: `0d598322d5cd6463582ab3e17d93a9d0bc81e44ce7d7eec5fa45efbcb74fa
   - app fatal/ANR/ReactNativeJS fatal/unhandled promise 0건
 - [x] 코드 게이트
   - typecheck, lint, focused 8 tests, 전체 69 suites / 277 tests, release build/install, Supabase dry-run
+
+## 2026-07-23 최근 기록 리스트 리디자인 release evidence
+
+- [x] 홈 최근 기록 전용 행 UI
+  - 공용 타임라인 카드의 100dp 썸네일·세로 rail을 홈에서 제거하고, 날짜 그룹과 88dp 최소 높이의 둥근 행으로 교체
+  - 카테고리 아이콘, 카테고리명, 실제 metadata 기반 한국어 요약, 기록 시각과 chevron의 수평 정렬 표시
+  - 섹션 제목 `18/600`, 전체보기 `11/500`, 카테고리명 `14/500`, 기록 시간·요약 `11/500`, 상태 문구 `13/500`
+- [x] Android 실기기
+  - `SM_S937N / R5CY613NMSY`, 최신 release APK 설치
+  - 고정된 건강 행 탭 후 해당 `추억상세보기` 이동 및 Android back 복귀 확인
+  - evidence: `/tmp/nuri-qa/recent-records-redesign-list-v2.png`, `/tmp/nuri-qa/recent-records-row-navigation-health-v2.png`, `/tmp/nuri-qa/recent-records-redesign-list-v2.xml`
+- [x] 최종 코드 게이트
+  - typecheck, lint, diff check, release build/install 통과
+  - 앱 프로세스 logcat `FATAL EXCEPTION`, `ANR in`, `Fatal signal`, `ReactNativeJS fatal`, `Unhandled promise` 0건
+  - APK SHA-256: `c066fe5f5e41a9f8bf68cecca031e11ce6bcd0d5655264efdaa56398fb3d0334`
+  - 앱 프로세스 logcat: `/tmp/nuri-qa/recent-records-redesign-logcat-app-v2.txt`

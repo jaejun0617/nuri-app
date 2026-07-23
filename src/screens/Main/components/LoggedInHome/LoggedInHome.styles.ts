@@ -758,8 +758,16 @@ export const styles = StyleSheet.create({
     paddingTop: 28,
   },
   recentSection: {
-    gap: 16,
+    gap: 14,
     paddingHorizontal: 10,
+  },
+  recentSectionHeaderRow: {
+    alignItems: 'center',
+  },
+  recentSectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
@@ -792,6 +800,11 @@ export const styles = StyleSheet.create({
     lineHeight: 18,
     fontWeight: '600',
     color: BRAND_DEEP,
+  },
+  recentSectionLink: {
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: '500',
   },
 
   // ---------------------------------------------------------
@@ -847,20 +860,89 @@ export const styles = StyleSheet.create({
   // Recent Records Preview
   // ---------------------------------------------------------
   recentPreviewWrap: {
-    marginTop: -6,
+    marginTop: -2,
   },
   recentPreviewList: {
-    gap: 0,
+    gap: 14,
   },
-  recentItemTitleBalanced: {
-    fontSize: 14,
-    lineHeight: 19,
-    fontWeight: '600',
+  recentDateGroup: {
+    gap: 8,
   },
-  recentItemMetaBalanced: {
+  recentDateHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingHorizontal: 4,
+  },
+  recentDateText: {
     fontSize: 13,
     lineHeight: 18,
-    fontWeight: '600',
+    fontWeight: '500',
+    color: MUTED,
+  },
+  recentDateItems: {
+    gap: 9,
+  },
+  recentRecordCard: {
+    minHeight: 88,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 18,
+    backgroundColor: SURFACE,
+    borderWidth: 1,
+    borderColor: 'rgba(15,23,42,0.045)',
+    shadowColor: '#64748B',
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 1,
+  },
+  recentRecordIconBox: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recentRecordBody: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: 'center',
+    gap: 3,
+  },
+  recentRecordCategory: {
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '500',
+    color: TEXT,
+  },
+  recentRecordSummary: {
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '500',
+    color: MUTED,
+  },
+  recentRecordMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    minWidth: 76,
+  },
+  recentRecordTime: {
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '500',
+    color: MUTED,
+    textAlign: 'right',
+  },
+  recentEmptyDesc: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '500',
   },
 
   // ---------------------------------------------------------

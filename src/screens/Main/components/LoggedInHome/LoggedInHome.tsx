@@ -48,7 +48,6 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import Screen from '../../../../components/layout/Screen';
-import { MemoryCard } from '../../../../components/MemoryCard/MemoryCard';
 import { FrequentRecordsSection } from '../../../../components/records/FrequentRecordsSection';
 import GuideRecommendationCard from '../../../../components/guides/GuideRecommendationCard';
 import { useWeatherGuide } from '../../../../hooks/useWeatherGuide';
@@ -60,6 +59,9 @@ import type { RootStackParamList } from '../../../../navigation/RootNavigator';
 import { createLatestRequestController } from '../../../../services/app/async';
 import {
   normalizeCategoryKey,
+  getMemoryCategoryChipLabel,
+  getRecordCategoryMeta,
+  getMemoryCategoryChipTone,
   readRecordCategoryRaw,
   type MemoryMainCategory,
   type MemoryOtherSubCategory,
@@ -91,7 +93,6 @@ import {
 } from '../../../../services/records/date';
 import {
   buildHealthActivityItems,
-  isHealthMemoryRecord,
   isHealthSchedule,
   type HealthActivityItem,
 } from '../../../../services/health-report/viewModel';
@@ -102,7 +103,10 @@ import {
   mapScheduleToMemoryCategory,
 } from '../../../../services/schedules/presentation';
 import { buildPetThemePalette } from '../../../../services/pets/themePalette';
-import type { FrequentRecordCategory } from '../../../../services/home/frequentRecords';
+import {
+  buildFrequentRecordSummary,
+  type FrequentRecordCategory,
+} from '../../../../services/home/frequentRecords';
 import { formatPetAgeLabelFromBirthDate } from '../../../../services/pets/age';
 import {
   formatMemorialPetName,
@@ -339,6 +343,101 @@ function groupHomeRecentPreviewItems(items: HomeRecentPreviewItem[]) {
 
   return groups;
 }
+
+function getHomeRecentSummary(record: MemoryRecord): string {
+  const categoryLabel = getMemoryCategoryChipLabel(record);
+  const summaryCategory: FrequentRecordCategory | null =
+    categoryLabel === '산책'
+      ? 'walk'
+      : categoryLabel === '식사'
+        ? 'meal'
+        : categoryLabel === '건강'
+          ? 'health'
+          : categoryLabel === '미용'
+            ? 'grooming'
+            : null;
+
+  if (summaryCategory) {
+    return buildFrequentRecordSummary(summaryCategory, record);
+  }
+
+  const source = `${record.title ?? ''} ${record.content ?? ''}`
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (source.length <= 42) return source || '기록을 남겼어요';
+  return `${source.slice(0, 41).trimEnd()}…`;
+}
+
+function getHomeRecentIcon(record: MemoryRecord): string {
+  switch (getMemoryCategoryChipLabel(record)) {
+    case '산책':
+      return 'walk';
+    case '식사':
+      return 'silverware-fork-knife';
+    case '건강':
+      return 'heart-pulse';
+    case '미용':
+      return 'content-cut';
+    default:
+      return getRecordCategoryMeta(record).icon;
+  }
+}
+
+const HomeRecentRecordRow = React.memo(function HomeRecentRecordRow({
+  item,
+  onPress,
+}: {
+  item: MemoryRecord;
+  onPress: (item: MemoryRecord) => void;
+}) {
+  const categoryLabel = getMemoryCategoryChipLabel(item);
+  const categoryTone = getMemoryCategoryChipTone(item);
+  const isGrooming = categoryLabel === '미용';
+  const summary = getHomeRecentSummary(item);
+  const createdTime = formatRecordCreatedTime(item);
+  const iconColor = isGrooming ? '#684CD3' : categoryTone.textColor;
+  const iconBackground = isGrooming ? '#F3EEFF' : categoryTone.placeholderColor;
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.88}
+      style={styles.recentRecordCard}
+      onPress={() => onPress(item)}
+      accessibilityRole="button"
+      accessibilityLabel={`${categoryLabel} 기록, ${summary}${
+        createdTime ? `, ${createdTime}` : ''
+      }`}
+    >
+      <View style={[styles.recentRecordIconBox, { backgroundColor: iconBackground }]}>
+        <MaterialCommunityIcons
+          name={getHomeRecentIcon(item)}
+          size={25}
+          color={iconColor}
+        />
+      </View>
+
+      <View style={styles.recentRecordBody}>
+        <Text style={styles.recentRecordCategory} numberOfLines={1}>
+          {categoryLabel}
+        </Text>
+        <Text style={styles.recentRecordSummary} numberOfLines={1}>
+          {summary}
+        </Text>
+      </View>
+
+      <View style={styles.recentRecordMeta}>
+        <Text style={styles.recentRecordTime} numberOfLines={1}>
+          {createdTime || '기록 시각 없음'}
+        </Text>
+        <MaterialCommunityIcons
+          name="chevron-right"
+          size={18}
+          color="#7D8798"
+        />
+      </View>
+    </TouchableOpacity>
+  );
+});
 
 function buildScheduleCard(schedule: PetSchedule): WeeklyScheduleItem {
   const category = mapScheduleToMemoryCategory(schedule);
@@ -1687,10 +1786,7 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
   accentColor: string;
   accentDeepColor: string;
 }) {
-  const todayRecords = useMemo(
-    () => recordItems.filter(item => !isHealthMemoryRecord(item)),
-    [recordItems],
-  );
+  const todayRecords = useMemo(() => recordItems, [recordItems]);
   const previewItems = useMemo(
     () => buildHomeRecentPreviewItems(todayRecords),
     [todayRecords],
@@ -1699,29 +1795,27 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
     () => groupHomeRecentPreviewItems(previewItems),
     [previewItems],
   );
-  const homeRecentDotColorById = useMemo(() => {
-    const alphaSteps = ['FF', 'A8', '78', '5C', '46', '34', '26'] as const;
-    return previewItems.reduce<Record<string, string>>((acc, item, index) => {
-      acc[item.record.id] = `${accentColor}${
-        alphaSteps[Math.min(index, alphaSteps.length - 1)]
-      }`;
-      return acc;
-    }, {});
-  }, [accentColor, previewItems]);
   const isRecordBootstrapPending =
     (recordStatus === 'idle' || recordStatus === 'loading') &&
     recordItems.length === 0;
-  const homeRecentRailColor = useMemo(() => `${accentColor}20`, [accentColor]);
-  const homeRecentTitleColor = '#6B7280';
 
   return (
     <View style={[styles.section, styles.recentSection]}>
-      <View style={styles.sectionHeaderRow}>
-        <Text style={[styles.sectionTitle, { color: accentDeepColor }]}>
-          최근 기록
-        </Text>
+      <View style={[styles.sectionHeaderRow, styles.recentSectionHeaderRow]}>
+        <View style={styles.recentSectionTitleRow}>
+          <MaterialCommunityIcons
+            name="history"
+            size={22}
+            color={accentDeepColor}
+          />
+          <Text style={[styles.sectionTitle, { color: accentDeepColor }]}>
+            최근 기록
+          </Text>
+        </View>
         <TouchableOpacity activeOpacity={0.85} onPress={onPressTimeline}>
-          <Text style={[styles.sectionLink, { color: accentColor }]}>
+          <Text
+            style={[styles.sectionLink, styles.recentSectionLink, { color: accentColor }]}
+          >
             전체보기
           </Text>
         </TouchableOpacity>
@@ -1730,12 +1824,16 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
       {isRecordBootstrapPending ? (
         <View style={styles.emptyBox}>
           <ActivityIndicator size="small" color={accentDeepColor} />
-          <Text style={styles.emptyDesc}>기록을 불러오는 중이에요.</Text>
+          <Text style={[styles.emptyDesc, styles.recentEmptyDesc]}>
+            기록을 불러오는 중이에요.
+          </Text>
         </View>
       ) : previewItems.length === 0 ? (
         <View style={styles.emptyBox}>
           <Text style={styles.emptyTitle}>아직 기록이 없어요</Text>
-          <Text style={styles.emptyDesc}>첫 번째 추억을 남겨보세요.</Text>
+          <Text style={[styles.emptyDesc, styles.recentEmptyDesc]}>
+            첫 번째 추억을 남겨보세요.
+          </Text>
 
           <TouchableOpacity
             activeOpacity={0.9}
@@ -1754,43 +1852,28 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
       ) : (
         <View style={styles.recentPreviewWrap}>
           <View style={styles.recentPreviewList}>
-            {groupedPreviewItems.map((group, groupIndex) =>
-              group.items.map((previewItem, itemIndex) => {
-                const isLastVisibleItem =
-                  groupIndex === groupedPreviewItems.length - 1 &&
-                  itemIndex === group.items.length - 1;
-                const itemDotColor =
-                  homeRecentDotColorById[previewItem.record.id] ?? accentColor;
-                const headerDotColor =
-                  homeRecentDotColorById[group.items[0]?.record.id ?? ''] ??
-                  accentColor;
-
-                return (
-                  <MemoryCard
-                    key={previewItem.record.id}
-                    item={previewItem.record}
-                    onPress={record => onPressRecordItem(record.id)}
-                    thumbnailPreset="timeline"
-                    showDateHeader={itemIndex === 0}
-                    isFirstGroup={groupIndex === 0}
-                    dateHeaderTitle={itemIndex === 0 ? group.label : null}
-                    dateHeaderSubtitle={itemIndex === 0 ? group.dateText : null}
-                    dateHeaderTitleVariant="month"
-                    dateHeaderTitleColor={homeRecentTitleColor}
-                    timelineRailColor={homeRecentRailColor}
-                    dateHeaderDotColor={headerDotColor}
-                    timelineDotColor={itemDotColor}
-                    itemDotColor={itemDotColor}
-                    metaTextOverride={formatRecordCreatedTime(
-                      previewItem.record,
-                    )}
-                    itemTitleStyle={styles.recentItemTitleBalanced}
-                    metaTextStyle={styles.recentItemMetaBalanced}
-                    hideBottomRail={isLastVisibleItem}
+            {groupedPreviewItems.map(group => (
+              <View key={group.key} style={styles.recentDateGroup}>
+                <View style={styles.recentDateHeader}>
+                  <MaterialCommunityIcons
+                    name="calendar-blank-outline"
+                    size={18}
+                    color="#7A8594"
                   />
-                );
-              }),
-            )}
+                  <Text style={styles.recentDateText}>{group.label}</Text>
+                </View>
+
+                <View style={styles.recentDateItems}>
+                  {group.items.map(previewItem => (
+                    <HomeRecentRecordRow
+                      key={previewItem.record.id}
+                      item={previewItem.record}
+                      onPress={record => onPressRecordItem(record.id)}
+                    />
+                  ))}
+                </View>
+              </View>
+            ))}
           </View>
         </View>
       )}
