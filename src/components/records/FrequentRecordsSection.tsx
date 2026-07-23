@@ -82,29 +82,39 @@ function RecordSummaryCard({
         pressed ? styles.recordCardPressed : null,
       ]}
     >
-      <View style={[styles.recordIconWrap, { backgroundColor: accentTint }]}>
-        <MaterialCommunityIcons
-          name={meta.icon}
-          size={24}
-          color={accentColor}
-        />
-      </View>
-      <Text style={styles.recordLabel} numberOfLines={1}>
-        {meta.label}
-      </Text>
-      {item.relativeTimeLabel ? (
-        <View style={[styles.relativeTimePill, { backgroundColor: accentTint }]}>
-          <Feather name="clock" size={14} color={accentColor} />
-          <Text style={[styles.relativeTimeText, { color: accentColor }]}>
-            {item.relativeTimeLabel}
+      <View style={styles.recordContentStack}>
+        <View style={styles.recordIconSlot}>
+          <View style={[styles.recordIconWrap, { backgroundColor: accentTint }]}>
+            <MaterialCommunityIcons
+              name={meta.icon}
+              size={22}
+              color={accentColor}
+            />
+          </View>
+        </View>
+        <View style={styles.recordTitleSlot}>
+          <Text style={styles.recordLabel} numberOfLines={1}>
+            {meta.label}
           </Text>
         </View>
-      ) : (
-        <View style={styles.relativeTimePlaceholder} />
-      )}
-      <Text style={styles.recordSummary} numberOfLines={2}>
-        {item.summaryLabel}
-      </Text>
+        <View style={styles.recordTimeSlot}>
+          {item.relativeTimeLabel ? (
+            <View style={[styles.relativeTimePill, { backgroundColor: accentTint }]}>
+              <Feather name="clock" size={13} color={accentColor} />
+              <Text style={[styles.relativeTimeText, { color: accentColor }]}>
+                {item.relativeTimeLabel}
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.relativeTimePlaceholder} />
+          )}
+        </View>
+        <View style={styles.recordSummarySlot}>
+          <Text style={styles.recordSummary} numberOfLines={2}>
+            {item.summaryLabel}
+          </Text>
+        </View>
+      </View>
     </Pressable>
   );
 }

@@ -42,8 +42,12 @@ import {
   buildPickedRecordImages,
   formatRecordKoreanDate,
   formatRecordPriceLabel,
+  hasPositiveRecordNumber,
   isShoppingRecordCategory,
   mergeRecordTags,
+  normalizePositiveDecimalInput,
+  normalizePositiveIntegerInput,
+  parsePositiveRecordNumber,
   parseRecordTags,
   parseRecordPrice,
   RECORD_EMOTION_OPTIONS,
@@ -58,6 +62,15 @@ import {
   type RecordOtherSubCategoryKey,
   validateRecordOccurredAt,
 } from '../../services/records/form';
+import {
+  buildGroomingRecordMetadata,
+  buildHealthRecordMetadata,
+  buildMealRecordMetadata,
+  GROOMING_CARE_OPTIONS,
+  HEALTH_CONDITION_OPTIONS,
+  type GroomingCareType,
+  type HealthCondition,
+} from '../../services/records/metadata';
 import { normalizeMemoryRecord } from '../../services/records/imageSources';
 import {
   clearRecordCreateDraft,
@@ -82,6 +95,7 @@ import {
   fetchMemoryById,
   type MemoryRecord,
 } from '../../services/supabase/memories';
+import { updatePetDefaultMealAmount } from '../../services/supabase/pets';
 import { resolveSelectedPetId, usePetStore } from '../../store/petStore';
 import { useAuthStore } from '../../store/authStore';
 import { useRecordStore } from '../../store/recordStore';
@@ -114,6 +128,7 @@ export default function RecordCreateScreen() {
   const userId = useAuthStore(s => s.session?.user?.id ?? null);
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
+  const upsertPet = usePetStore(s => s.upsertPet);
   const refresh = useRecordStore(s => s.refresh);
   const setFocusedMemoryId = useRecordStore(s => s.setFocusedMemoryId);
   const upsertOneLocal = useRecordStore(s => s.upsertOneLocal);
@@ -150,6 +165,12 @@ export default function RecordCreateScreen() {
   const [otherSubCategoryKey, setOtherSubCategoryKey] =
     useState<RecordOtherSubCategoryKey | null>(initialOtherSubCategoryKey);
   const [priceText, setPriceText] = useState('');
+  const [mealAmountText, setMealAmountText] = useState('');
+  const [useDefaultMealAmount, setUseDefaultMealAmount] = useState(false);
+  const [saveMealAmountAsDefault, setSaveMealAmountAsDefault] = useState(false);
+  const [healthCondition, setHealthCondition] = useState<HealthCondition | null>(null);
+  const [healthWeightText, setHealthWeightText] = useState('');
+  const [groomingCareTypes, setGroomingCareTypes] = useState<GroomingCareType[]>([]);
   const [dateModalVisible, setDateModalVisible] = useState(false);
   const [selectedEmotion, setSelectedEmotion] = useState<EmotionTag | null>(
     null,
@@ -166,7 +187,16 @@ export default function RecordCreateScreen() {
   const pendingSuccessNavigationRef = useRef<(() => Promise<void>) | null>(null);
 
   const trimmedTitle = useMemo(() => title.trim(), [title]);
-  const disabled = saving || trimmedTitle.length === 0 || !petId;
+  const isMealCategory = mainCategoryKey === 'meal';
+  const isHealthCategory = mainCategoryKey === 'health';
+  const isGroomingCategory =
+    mainCategoryKey === 'other' && otherSubCategoryKey === 'grooming';
+  const hasValidCategoryFields =
+    (!isMealCategory || hasPositiveRecordNumber(mealAmountText)) &&
+    (!isHealthCategory || healthCondition !== null) &&
+    (!isGroomingCategory || groomingCareTypes.length > 0);
+  const disabled =
+    saving || trimmedTitle.length === 0 || !petId || !hasValidCategoryFields;
   const selectedMainCategory = useMemo(
     () =>
       RECORD_MAIN_CATEGORIES.find(
@@ -211,6 +241,10 @@ export default function RecordCreateScreen() {
       mainCategoryKey !== initialMainCategoryKey ||
       otherSubCategoryKey !== initialOtherSubCategoryKey ||
       selectedEmotion !== null
+      || mealAmountText.trim().length > 0
+      || healthCondition !== null
+      || healthWeightText.trim().length > 0
+      || groomingCareTypes.length > 0
     );
   }, [
     content,
@@ -223,6 +257,10 @@ export default function RecordCreateScreen() {
     selectedEmotion,
     selectedImages.length,
     selectedTags.length,
+    mealAmountText,
+    healthCondition,
+    healthWeightText,
+    groomingCareTypes.length,
     title,
     todayYmd,
   ]);
@@ -244,6 +282,12 @@ export default function RecordCreateScreen() {
     setMainCategoryKey(initialMainCategoryKey);
     setOtherSubCategoryKey(initialOtherSubCategoryKey);
     setPriceText('');
+    setMealAmountText('');
+    setUseDefaultMealAmount(false);
+    setSaveMealAmountAsDefault(false);
+    setHealthCondition(null);
+    setHealthWeightText('');
+    setGroomingCareTypes([]);
     setDateModalVisible(false);
     setSelectedEmotion(null);
     setSelectedImages([]);
@@ -264,6 +308,17 @@ export default function RecordCreateScreen() {
       setActiveImageIndex(selectedImages.length - 1);
     }
   }, [activeImageIndex, selectedImages.length]);
+
+  useEffect(() => {
+    if (!isMealCategory || draftHydrated === false) return;
+    const defaultAmount = selectedPet?.defaultMealAmountGrams;
+    if (typeof defaultAmount === 'number' && defaultAmount > 0) {
+      setMealAmountText(`${defaultAmount}`);
+      setUseDefaultMealAmount(true);
+      return;
+    }
+    setUseDefaultMealAmount(false);
+  }, [draftHydrated, isMealCategory, selectedPet?.defaultMealAmountGrams]);
 
   useEffect(() => {
     let mounted = true;
@@ -294,6 +349,14 @@ export default function RecordCreateScreen() {
               : null,
           );
           setPriceText(normalizeRecordPriceInput(draft.priceText ?? ''));
+          setMealAmountText(draft.mealAmountText ?? '');
+          setUseDefaultMealAmount(draft.useDefaultMealAmount ?? false);
+          setSaveMealAmountAsDefault(draft.saveMealAmountAsDefault ?? false);
+          setHealthCondition(draft.healthCondition ?? null);
+          setHealthWeightText(draft.healthWeightText ?? '');
+          setGroomingCareTypes(
+            Array.isArray(draft.groomingCareTypes) ? draft.groomingCareTypes : [],
+          );
           setSelectedEmotion(draft.selectedEmotion ?? null);
           setSelectedImages(
             Array.isArray(draft.selectedImages) ? draft.selectedImages : [],
@@ -327,6 +390,10 @@ export default function RecordCreateScreen() {
       content.trim().length > 0 ||
       selectedTags.length > 0 ||
       priceText.trim().length > 0 ||
+      mealAmountText.trim().length > 0 ||
+      healthCondition !== null ||
+      healthWeightText.trim().length > 0 ||
+      groomingCareTypes.length > 0 ||
       selectedImages.length > 0;
 
     if (!hasContent) {
@@ -343,6 +410,12 @@ export default function RecordCreateScreen() {
       mainCategoryKey,
       otherSubCategoryKey,
       priceText,
+      mealAmountText,
+      useDefaultMealAmount,
+      saveMealAmountAsDefault,
+      healthCondition,
+      healthWeightText,
+      groomingCareTypes,
       selectedEmotion,
       selectedImages,
       updatedAt: new Date().toISOString(),
@@ -353,6 +426,9 @@ export default function RecordCreateScreen() {
     mainCategoryKey,
     occurredAt,
     otherSubCategoryKey,
+    mealAmountText,
+    useDefaultMealAmount,
+    saveMealAmountAsDefault,
     petId,
     priceText,
     saving,
@@ -360,6 +436,9 @@ export default function RecordCreateScreen() {
     selectedImages,
     selectedTags,
     title,
+    healthCondition,
+    healthWeightText,
+    groomingCareTypes,
   ]);
 
   const pickImage = useCallback(async () => {
@@ -542,6 +621,16 @@ export default function RecordCreateScreen() {
       setOtherSubCategoryKey(null);
       setPriceText('');
     }
+    if (nextKey !== 'meal') {
+      setMealAmountText('');
+      setUseDefaultMealAmount(false);
+      setSaveMealAmountAsDefault(false);
+    }
+    if (nextKey !== 'health') {
+      setHealthCondition(null);
+      setHealthWeightText('');
+    }
+    if (nextKey !== 'other') setGroomingCareTypes([]);
   }, []);
 
   const onSelectOtherSubCategory = useCallback(
@@ -551,6 +640,7 @@ export default function RecordCreateScreen() {
       if (nextKey !== 'shopping') {
         setPriceText('');
       }
+      if (nextKey !== 'grooming') setGroomingCareTypes([]);
     },
     [],
   );
@@ -562,6 +652,24 @@ export default function RecordCreateScreen() {
 
   const onChangePriceText = useCallback((value: string) => {
     setPriceText(normalizeRecordPriceInput(value));
+  }, []);
+
+  const onChangeMealAmountText = useCallback((value: string) => {
+    setMealAmountText(normalizePositiveIntegerInput(value));
+  }, []);
+
+  const onChangeHealthWeightText = useCallback((value: string) => {
+    setHealthWeightText(normalizePositiveDecimalInput(value));
+  }, []);
+
+  const onToggleGroomingCareType = useCallback((value: GroomingCareType) => {
+    setGroomingCareTypes(previous => {
+      if (value === 'full_grooming') return ['full_grooming'];
+      const withoutFull = previous.filter(item => item !== 'full_grooming');
+      return withoutFull.includes(value)
+        ? withoutFull.filter(item => item !== value)
+        : [...withoutFull, value];
+    });
   }, []);
 
   const onOpenDateModal = useCallback(() => {
@@ -622,6 +730,22 @@ export default function RecordCreateScreen() {
         otherSubCategoryKey,
       );
       const price = isShoppingCategory ? parseRecordPrice(priceText) : null;
+      const mealAmount = isMealCategory
+        ? parsePositiveRecordNumber(mealAmountText, '급여량')
+        : null;
+      const healthWeight = isHealthCategory
+        ? parsePositiveRecordNumber(healthWeightText, '체중', 999.99)
+        : null;
+      const metadata = isMealCategory && mealAmount
+        ? buildMealRecordMetadata({ amountGrams: mealAmount })
+        : isHealthCategory && healthCondition
+          ? buildHealthRecordMetadata({
+              condition: healthCondition,
+              weightKg: healthWeight,
+            })
+          : isGroomingCategory
+            ? buildGroomingRecordMetadata(groomingCareTypes)
+            : null;
 
       const memoryId = await createMemory({
         petId,
@@ -634,7 +758,36 @@ export default function RecordCreateScreen() {
         price,
         occurredAt: occurred,
         imagePath: null,
+        metadata,
       });
+
+      if (
+        isMealCategory &&
+        mealAmount !== null &&
+        saveMealAmountAsDefault &&
+        selectedPet
+      ) {
+        try {
+          await updatePetDefaultMealAmount({
+            petId,
+            amountGrams: mealAmount,
+          });
+          upsertPet(
+            {
+              ...selectedPet,
+              defaultMealAmountGrams: mealAmount,
+            },
+            { persist: true },
+          );
+        } catch {
+          showToast({
+            tone: 'warning',
+            title: '기록은 저장됐어요',
+            message: '기본 급여량 저장에 실패해 다음 기록에는 다시 입력해 주세요.',
+            durationMs: 3600,
+          });
+        }
+      }
       const activityResult = await recordTimelineCreateActivity({
         petId,
         memoryId,
@@ -653,6 +806,7 @@ export default function RecordCreateScreen() {
         price,
         occurredAt: occurred,
         createdAt,
+        metadata,
         imagePath: null,
         imagePaths: [],
         imageUrl: selectedImages[0]?.uri ?? null,
@@ -774,7 +928,14 @@ export default function RecordCreateScreen() {
   }, [
     content,
     disabled,
+    groomingCareTypes,
+    healthCondition,
+    healthWeightText,
     isShoppingCategory,
+    isMealCategory,
+    isHealthCategory,
+    isGroomingCategory,
+    mealAmountText,
     mainCategoryKey,
     otherSubCategoryKey,
     occurredAt,
@@ -785,9 +946,12 @@ export default function RecordCreateScreen() {
     selectedEmotion,
     selectedImages,
     selectedTags,
+    saveMealAmountAsDefault,
+    selectedPet,
     setFocusedMemoryId,
     trimmedTitle,
     upsertOneLocal,
+    upsertPet,
     userId,
     navigateAfterCreateSuccess,
   ]);
@@ -1049,7 +1213,149 @@ export default function RecordCreateScreen() {
           </View>
         ) : null}
 
-        <View style={styles.field}>
+        {isMealCategory ? (
+          <View style={styles.field}>
+            <AppText preset="body" style={styles.fieldLabel}>
+              급여량
+            </AppText>
+            {typeof selectedPet?.defaultMealAmountGrams === 'number' &&
+            selectedPet.defaultMealAmountGrams > 0 ? (
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={styles.checkRow}
+                onPress={() => setUseDefaultMealAmount(previous => !previous)}
+              >
+                <Feather
+                  name={useDefaultMealAmount ? 'check-square' : 'square'}
+                  size={20}
+                  color={useDefaultMealAmount ? petTheme.primary : '#9AA4B6'}
+                />
+                <AppText preset="body" style={styles.checkLabel}>
+                  기본 급여량 사용 ({selectedPet.defaultMealAmountGrams}g)
+                </AppText>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={styles.checkRow}
+                onPress={() => setSaveMealAmountAsDefault(previous => !previous)}
+              >
+                <Feather
+                  name={saveMealAmountAsDefault ? 'check-square' : 'square'}
+                  size={20}
+                  color={saveMealAmountAsDefault ? petTheme.primary : '#9AA4B6'}
+                />
+                <AppText preset="body" style={styles.checkLabel}>
+                  이 급여량을 기본값으로 저장
+                </AppText>
+              </TouchableOpacity>
+            )}
+            <View style={styles.unitInputRow}>
+              <TextInput
+                style={[styles.input, styles.unitInput, useDefaultMealAmount ? styles.inputDisabled : null]}
+                value={mealAmountText}
+                onChangeText={onChangeMealAmountText}
+                placeholder="예: 180"
+                placeholderTextColor="#8A94A6"
+                keyboardType="number-pad"
+                editable={!saving && !useDefaultMealAmount}
+              />
+              <AppText preset="body" style={styles.unitLabel}>
+                g
+              </AppText>
+            </View>
+            <AppText preset="caption" style={styles.helperText}>
+              음식 종류는 사료로 저장돼요.
+            </AppText>
+          </View>
+        ) : null}
+
+        {isHealthCategory ? (
+          <View style={styles.field}>
+            <AppText preset="body" style={styles.fieldLabel}>
+              오늘 컨디션
+            </AppText>
+            <View style={styles.optionGrid}>
+              {HEALTH_CONDITION_OPTIONS.map(option => {
+                const active = healthCondition === option.value;
+                return (
+                  <TouchableOpacity
+                    key={option.value}
+                    activeOpacity={0.88}
+                    style={[
+                      styles.optionChip,
+                      active ? styles.optionChipActive : null,
+                      active
+                        ? { backgroundColor: petTheme.tint, borderColor: petTheme.border }
+                        : null,
+                    ]}
+                    onPress={() => setHealthCondition(option.value)}
+                  >
+                    <AppText
+                      preset="caption"
+                      style={[styles.optionChipText, active ? { color: petTheme.deep } : null]}
+                    >
+                      {option.label}
+                    </AppText>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <AppText preset="body" style={styles.fieldLabel}>
+              체중 (선택)
+            </AppText>
+            <View style={styles.unitInputRow}>
+              <TextInput
+                style={[styles.input, styles.unitInput]}
+                value={healthWeightText}
+                onChangeText={onChangeHealthWeightText}
+                placeholder="예: 4.8"
+                placeholderTextColor="#8A94A6"
+                keyboardType="decimal-pad"
+                editable={!saving}
+              />
+              <AppText preset="body" style={styles.unitLabel}>
+                kg
+              </AppText>
+            </View>
+          </View>
+        ) : null}
+
+        {isGroomingCategory ? (
+          <View style={styles.field}>
+            <AppText preset="body" style={styles.fieldLabel}>
+              관리 항목 (1개 이상)
+            </AppText>
+            <View style={styles.optionGrid}>
+              {GROOMING_CARE_OPTIONS.map(option => {
+                const active = groomingCareTypes.includes(option.value);
+                return (
+                  <TouchableOpacity
+                    key={option.value}
+                    activeOpacity={0.88}
+                    style={[
+                      styles.optionChip,
+                      active ? styles.optionChipActive : null,
+                      active
+                        ? { backgroundColor: petTheme.tint, borderColor: petTheme.border }
+                        : null,
+                    ]}
+                    onPress={() => onToggleGroomingCareType(option.value)}
+                  >
+                    <AppText
+                      preset="caption"
+                      style={[styles.optionChipText, active ? { color: petTheme.deep } : null]}
+                    >
+                      {option.label}
+                    </AppText>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        ) : null}
+
+        {!isHealthCategory ? <View style={styles.field}>
           <AppText preset="body" style={styles.fieldLabel}>
             오늘의 기분
           </AppText>
@@ -1093,7 +1399,7 @@ export default function RecordCreateScreen() {
               );
             })}
           </View>
-        </View>
+        </View> : null}
 
         <View style={styles.field}>
           <AppText preset="body" style={styles.fieldLabel}>

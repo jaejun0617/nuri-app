@@ -11,10 +11,14 @@ import {
   readRecordCategoryRaw,
 } from '../memories/categoryMeta';
 import {
-  formatRecordCreatedTime,
   formatRecordMonthDay,
   getRecordSortTimestamp,
 } from '../records/date';
+import {
+  GROOMING_CARE_OPTIONS,
+  HEALTH_CONDITION_OPTIONS,
+  type HealthCondition,
+} from '../records/metadata';
 import type { MemoryRecord } from '../supabase/memories';
 
 export type FrequentRecordCategory = 'walk' | 'meal' | 'health' | 'grooming';
@@ -96,43 +100,86 @@ function getSummarySearchText(record: MemoryRecord): string {
   ).toLocaleLowerCase();
 }
 
-function formatAmount(value: string, unit: string): string {
-  return `${value}${unit.toLocaleLowerCase()}`;
+export function getWalkDayPeriod(recordedAt: string | null | undefined): string | null {
+  const timestamp = Date.parse(`${recordedAt ?? ''}`);
+  if (!Number.isFinite(timestamp)) return null;
+
+  const hour = new Date(timestamp).getHours();
+  if (hour >= 5 && hour < 11) return '오전';
+  if (hour >= 11 && hour < 14) return '점심';
+  if (hour >= 14 && hour < 18) return '오후';
+  if (hour >= 18 && hour < 22) return '저녁';
+  return '밤';
 }
 
-function buildWalkSummary(record: MemoryRecord, source: string): string {
-  const searchText = getSummarySearchText(record);
-  const distanceMatch = searchText.match(/(\d+(?:\.\d+)?)\s*(km|킬로미터)/i);
-  const durationMatch = searchText.match(/(\d+)\s*(분|min(?:ute)?s?)/i);
-  const distance = distanceMatch?.[1] ?? null;
-  const duration = durationMatch?.[1] ?? null;
+export function buildWalkSummaryFromRecordedAt(
+  recordedAt: string | null | undefined,
+): string {
+  const period = getWalkDayPeriod(recordedAt);
+  return period ? `${period} 산책 완료` : CATEGORY_COMPLETE_LABEL.walk;
+}
 
-  if (distance && duration) return `${distance}km · ${duration}분`;
-  if (duration) return `${duration}분 산책 완료`;
+function buildWalkSummary(record: MemoryRecord): string {
+  return buildWalkSummaryFromRecordedAt(record.createdAt);
+}
 
-  const period = formatRecordCreatedTime(record).split(' ')[0];
-  if (period === '오전' || period === '오후') return `${period} 산책 완료`;
-  if (source.includes('산책')) return '산책 기록 완료';
-  return CATEGORY_COMPLETE_LABEL.walk;
+function getMealLabel(foodType: string): string {
+  switch (foodType) {
+    case 'wet_food':
+      return '습식 사료';
+    case 'treat':
+      return '간식';
+    case 'water':
+      return '물';
+    case 'other':
+      return '식사';
+    default:
+      return '사료';
+  }
 }
 
 function buildMealSummary(record: MemoryRecord): string {
+  const meal = record.metadata?.meal;
+  if (meal) {
+    const foodLabel = getMealLabel(meal.foodType);
+    if (typeof meal.amountGrams === 'number' && meal.amountGrams > 0) {
+      return `${foodLabel} ${meal.amountGrams}g`;
+    }
+    return foodLabel;
+  }
+
   const searchText = getSummarySearchText(record);
-  const amountMatch = searchText.match(
-    /(\d+(?:\.\d+)?)\s*(g|kg|ml|개|캔|팩)/i,
-  );
+  const amountMatch = searchText.match(/(\d+(?:\.\d+)?)\s*(g|kg|ml|개|캔|팩)/i);
   if (!amountMatch) return CATEGORY_COMPLETE_LABEL.meal;
 
-  const foodLabel =
-    /간식|snack|treat/.test(searchText)
-      ? '간식'
-      : /물|water/.test(searchText)
-        ? '물'
-        : '사료';
-  return `${foodLabel} ${formatAmount(amountMatch[1], amountMatch[2])}`;
+  const foodLabel = /간식|snack|treat/.test(searchText)
+    ? '간식'
+    : /물|water/.test(searchText)
+      ? '물'
+      : '사료';
+  return `${foodLabel} ${amountMatch[1]}${amountMatch[2].toLocaleLowerCase()}`;
+}
+
+function getHealthConditionLabel(condition: HealthCondition): string {
+  return HEALTH_CONDITION_OPTIONS.find(option => option.value === condition)
+    ?.label ?? '기록 완료';
 }
 
 function buildHealthSummary(record: MemoryRecord, source: string): string {
+  const health = record.metadata?.health;
+  if (health) {
+    const condition = health.condition
+      ? getHealthConditionLabel(health.condition)
+      : null;
+    const weight =
+      typeof health.weightKg === 'number' && health.weightKg > 0
+        ? `${health.weightKg}kg`
+        : null;
+    if (condition && weight) return `${condition} · ${weight}`;
+    if (condition) return `컨디션 ${condition}`;
+    if (weight) return `체중 ${weight}`;
+  }
+
   if (
     record.emotion === 'sad' ||
     record.emotion === 'anxious' ||
@@ -161,6 +208,17 @@ function buildHealthSummary(record: MemoryRecord, source: string): string {
 }
 
 function buildGroomingSummary(record: MemoryRecord): string {
+  const careTypes = record.metadata?.grooming?.careTypes;
+  if (careTypes?.length) {
+    const labels = careTypes
+      .map(type => GROOMING_CARE_OPTIONS.find(option => option.value === type)?.label)
+      .filter((label): label is string => Boolean(label));
+    if (careTypes.includes('full_grooming')) return '전체 미용';
+    if (labels.length === 1) return labels[0];
+    if (labels.length === 2) return `${labels[0]} & ${labels[1]}`;
+    if (labels.length > 2) return `${labels[0]} 외 ${labels.length - 1}개`;
+  }
+
   const searchText = getSummarySearchText(record);
   const hasBath = /목욕|bath|샤워|shower/.test(searchText);
   const hasFur = /털|fur|groom|미용/.test(searchText);
@@ -181,7 +239,7 @@ export function buildFrequentRecordSummary(
   const source = getSummarySource(record);
   switch (category) {
     case 'walk':
-      return compactSummary(buildWalkSummary(record, source));
+      return compactSummary(buildWalkSummary(record));
     case 'meal':
       return compactSummary(buildMealSummary(record));
     case 'health':

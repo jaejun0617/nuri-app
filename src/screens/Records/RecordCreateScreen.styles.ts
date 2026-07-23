@@ -311,6 +311,57 @@ export const styles = StyleSheet.create({
   moodTextActive: {
     color: BRAND_DARK,
   },
+  optionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  optionChip: {
+    minHeight: 44,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    backgroundColor: '#F1F4F9',
+    borderWidth: 1,
+    borderColor: 'rgba(148,163,184,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  optionChipActive: {
+    backgroundColor: 'rgba(109,106,248,0.10)',
+    borderColor: 'rgba(109,106,248,0.24)',
+  },
+  optionChipText: {
+    color: '#7B879C',
+    fontWeight: '800',
+  },
+  checkRow: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  checkLabel: {
+    color: '#5C6677',
+    fontWeight: '800',
+  },
+  unitInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  unitInput: {
+    flex: 1,
+  },
+  inputDisabled: {
+    color: '#7C8495',
+    backgroundColor: '#E9EDF4',
+  },
+  unitLabel: {
+    width: 32,
+    color: TEXT,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
   input: {
     minHeight: 42,
     borderRadius: 18,

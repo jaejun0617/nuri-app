@@ -77,6 +77,40 @@ export function normalizeRecordPriceInput(value: string) {
   return value.replace(/[^\d]/g, '').slice(0, 9);
 }
 
+export function normalizePositiveDecimalInput(value: string) {
+  const normalized = value.replace(/[^\d.]/g, '');
+  const [integerPart = '', ...decimalParts] = normalized.split('.');
+  const decimalPart = decimalParts.join('').slice(0, 2);
+  if (decimalParts.length === 0) return integerPart.slice(0, 7);
+  return `${integerPart.slice(0, 7)}.${decimalPart}`;
+}
+
+export function normalizePositiveIntegerInput(value: string) {
+  return value.replace(/[^\d]/g, '').slice(0, 5);
+}
+
+export function parsePositiveRecordNumber(
+  value: string,
+  label: string,
+  maximum = 99999.99,
+): number | null {
+  const normalized = value.trim();
+  if (!normalized) return null;
+
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed) || parsed <= 0 || parsed > maximum) {
+    throw new Error(`${label}을(를) 0보다 크게 입력해 주세요.`);
+  }
+  return parsed;
+}
+
+export function hasPositiveRecordNumber(value: string): boolean {
+  const normalized = value.trim();
+  if (!normalized) return false;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) && parsed > 0;
+}
+
 export function parseRecordPrice(value: string) {
   const normalized = normalizeRecordPriceInput(value);
   if (!normalized) return null;

@@ -24,6 +24,10 @@ import {
   captureMonitoringMessage,
 } from '../monitoring/sentry';
 import { normalizeMemoryRecord } from '../records/imageSources';
+import {
+  normalizeMemoryRecordMetadata,
+  type MemoryRecordMetadata,
+} from '../records/metadata';
 import { getRecordSortTimestamp } from '../records/date';
 import {
   buildTimelineCategoryCounts,
@@ -53,6 +57,7 @@ export type MemoryRecord = {
   price?: number | null;
   occurredAt?: string | null;
   createdAt: string;
+  metadata?: MemoryRecordMetadata | null;
 
   /**
    * ✅ signed url(캐싱 적용)
@@ -86,6 +91,7 @@ type MemoriesRow = {
   price?: number | null;
   occurred_at: string | null;
   created_at: string;
+  metadata?: unknown;
 };
 
 type TimelineCategoryCountRow = {
@@ -423,6 +429,7 @@ function mapRowWithResolution(
       price: typeof row.price === 'number' ? row.price : null,
       occurredAt: row.occurred_at,
       createdAt: row.created_at,
+      metadata: normalizeMemoryRecordMetadata(row.metadata),
 
       // ✅ 리스트 fetch 단계에서는 signed url을 넣지 않는다.
       imageUrl: null,
@@ -796,6 +803,7 @@ export async function createMemory(input: {
   price?: number | null;
   occurredAt?: string | null;
   imagePath?: string | null;
+  metadata?: MemoryRecordMetadata | null;
 }): Promise<string> {
   const { data, error } = await supabase
     .from('memories')
@@ -810,6 +818,7 @@ export async function createMemory(input: {
       price: input.price ?? null,
       occurred_at: input.occurredAt ?? null,
       image_url: input.imagePath ?? null,
+      metadata: input.metadata ?? {},
     })
     .select('id')
     .single();

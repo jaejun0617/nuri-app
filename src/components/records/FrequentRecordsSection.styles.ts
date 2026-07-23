@@ -89,10 +89,10 @@ export const styles = StyleSheet.create({
     minWidth: 0,
     minHeight: 132,
     paddingHorizontal: 3,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderRadius: 16,
     alignItems: 'center',
-    justifyContent: 'flex-start',
+    justifyContent: 'center',
     backgroundColor: 'transparent',
     borderWidth: 1,
     shadowOpacity: 0,
@@ -102,13 +102,28 @@ export const styles = StyleSheet.create({
     opacity: 0.93,
     transform: [{ scale: 0.985 }],
   },
+  recordContentStack: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recordIconSlot: {
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   recordIconWrap: {
     width: 36,
     height: 36,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 6,
+  },
+  recordTitleSlot: {
+    minHeight: 16,
+    marginTop: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   recordLabel: {
     maxWidth: '100%',
@@ -121,7 +136,6 @@ export const styles = StyleSheet.create({
   relativeTimePill: {
     minHeight: 24,
     maxWidth: '100%',
-    marginTop: 7,
     paddingHorizontal: 10,
     borderRadius: 12,
     flexDirection: 'row',
@@ -131,7 +145,12 @@ export const styles = StyleSheet.create({
   },
   relativeTimePlaceholder: {
     height: 24,
-    marginTop: 7,
+  },
+  recordTimeSlot: {
+    minHeight: 24,
+    marginTop: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   relativeTimeText: {
     fontSize: 9,
@@ -141,13 +160,19 @@ export const styles = StyleSheet.create({
   },
   recordSummary: {
     width: '100%',
-    minHeight: 28,
-    marginTop: 6,
+    minHeight: 24,
     fontSize: 9,
     lineHeight: 12,
     fontWeight: '500',
     color: '#5C6677',
     textAlign: 'center',
+  },
+  recordSummarySlot: {
+    width: '100%',
+    minHeight: 24,
+    marginTop: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   statusBox: {
     minHeight: 132,

@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { MemoryRecord } from '../supabase/memories';
 import type { PetSchedule } from '../supabase/schedules';
+import { normalizeMemoryRecordMetadata } from '../records/metadata';
 
 export type HomeRecordScheduleCache = {
   savedAt: number;
@@ -83,6 +84,7 @@ function parseCachedMemoryRecord(value: unknown, petId: string): MemoryRecord | 
     price: toNumberOrNull(value.price),
     occurredAt: toNullableString(value.occurredAt),
     createdAt,
+    metadata: normalizeMemoryRecordMetadata(value.metadata),
     imageUrl: toNullableString(value.imageUrl),
     imagePath: toNullableString(value.imagePath),
     imagePaths: toStringArray(value.imagePaths),

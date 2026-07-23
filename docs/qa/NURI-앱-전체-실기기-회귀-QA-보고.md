@@ -108,6 +108,21 @@ local verification은 typecheck 통과, lint 0 error/기존 warning 6건, Jest 6
 | Walk search keyboard | search input keyboard visible/back dismiss | `/tmp/nuri-qa/app-reconcile-walk-keyboard-20260714.png` |
 | logcat | fatal/ANR/unhandled/RN fatal/Fatal signal 0건 | `/tmp/nuri-qa/app-reconcile-logcat-20260714.txt` |
 
+## 2026-07-23 자주 쓰는 기록 구조화 입력 최신 증적
+
+- 기기: `SM_S937N`, serial `R5CY613NMSY`, package `com.nuri.app`
+- QA: 기존 `adminQA` 계정과 기존 QA 펫만 사용
+- APK: release APK, SHA-256 `1ef8949f46732814fe35162d4fc93e0352d09e59d3781062679ac06d1beeb578`
+- 중앙 정렬: 4개 카드의 아이콘·제목·시간·요약을 고정 slot stack으로 확인
+- 실제 저장:
+  - 산책 → `오전 산책 완료`
+  - 식사 기본값 180g 저장·자동 입력 → 수동 150g 저장 → `사료 150g`
+  - 건강 컨디션 `지켜봐야 해요`·체중 4.8kg → `지켜봐야 해요 · 4.8kg`
+  - 미용 `목욕`·`털 정리` → `목욕 & 털 정리`
+- 저장 직후 홈 카드 반영, 강제 종료·재실행 후 동일 요약 유지
+- 증적: `/tmp/nuri-qa/frequent-records-structured-final-release.png`, `/tmp/nuri-qa/frequent-records-structured-final-release.xml`, `/tmp/nuri-qa/frequent-records-structured-final-release-logcat.txt`
+- final gate: 앱 fatal/ANR/ReactNativeJS fatal/unhandled promise 0건. 전체 logcat에 있던 별도 Android `com.android.phone` SecurityException은 NURI 앱 프로세스 로그가 아니므로 앱 결과에 포함하지 않았다.
+
 ## 보안·정책 확인
 
 - 병원 public XML에는 운영시간, 야간, 응급, 특수동물, 주차, 장비, 홈페이지, SNS, raw/internal/source field가 노출되지 않았다.

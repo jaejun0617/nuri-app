@@ -26,6 +26,7 @@ type PetsRow = {
   birth_date: string | null;
   adoption_date: string | null;
   weight_kg: number | string | null;
+  default_meal_amount_grams: number | string | null;
 
   gender: 'male' | 'female' | 'unknown';
   neutered: boolean | null;
@@ -100,6 +101,7 @@ function mapRowToPet(row: PetsRow): Pet {
     adoptionDate: row.adoption_date,
     birthDate: row.birth_date,
     weightKg: toNumberOrNull(row.weight_kg),
+    defaultMealAmountGrams: toNumberOrNull(row.default_meal_amount_grams),
 
     // ✅ 확장 필드
     breed: row.breed ?? null,
@@ -135,6 +137,7 @@ export async function fetchMyPets(userIdInput?: string | null): Promise<Pet[]> {
     'birth_date',
     'adoption_date',
     'weight_kg',
+    'default_meal_amount_grams',
     'gender',
     'neutered',
     'breed',
@@ -177,6 +180,7 @@ export async function createPet(input: {
   birthDate?: string | null;
   deathDate?: string | null;
   weightKg?: number | null;
+  defaultMealAmountGrams?: number | null;
 
   gender?: 'male' | 'female' | 'unknown';
   neutered?: boolean | null;
@@ -205,6 +209,7 @@ export async function createPet(input: {
     birth_date: input.birthDate ?? null,
     death_date: input.deathDate ?? null,
     weight_kg: input.weightKg ?? null,
+    default_meal_amount_grams: input.defaultMealAmountGrams ?? null,
 
     gender: input.gender ?? 'unknown',
     neutered: input.neutered ?? null,
@@ -228,6 +233,7 @@ export async function createPet(input: {
     'birth_date',
     'adoption_date',
     'weight_kg',
+    'default_meal_amount_grams',
     'gender',
     'neutered',
     'breed',
@@ -270,6 +276,7 @@ export async function updatePet(input: {
   birthDate?: string | null;
   deathDate?: string | null;
   weightKg?: number | null;
+  defaultMealAmountGrams?: number | null;
   gender?: 'male' | 'female' | 'unknown';
   neutered?: boolean | null;
   breed?: string | null;
@@ -301,11 +308,32 @@ export async function updatePet(input: {
     hobbies: input.hobbies ?? [],
     personality_tags: input.tags ?? [],
     profile_image_url: input.avatarPath ?? null,
+    ...(input.defaultMealAmountGrams !== undefined
+      ? {
+          default_meal_amount_grams: input.defaultMealAmountGrams,
+        }
+      : {}),
   };
 
   const { error } = await supabase
     .from('pets')
     .update(payload)
+    .eq('id', input.petId)
+    .eq('user_id', userId);
+
+  if (error) throw error;
+}
+
+export async function updatePetDefaultMealAmount(input: {
+  petId: string;
+  amountGrams: number | null;
+}): Promise<void> {
+  const userId = (await supabase.auth.getUser()).data.user?.id ?? null;
+  if (!userId) throw new Error('로그인 정보가 없습니다.');
+
+  const { error } = await supabase
+    .from('pets')
+    .update({ default_meal_amount_grams: input.amountGrams })
     .eq('id', input.petId)
     .eq('user_id', userId);
 

@@ -39,6 +39,7 @@ export type Pet = {
   adoptionDate?: string | null;
   birthDate?: string | null;
   weightKg?: number | null;
+  defaultMealAmountGrams?: number | null;
 
   // ✅ 확장 필드(향후 사용)
   breed?: string | null;

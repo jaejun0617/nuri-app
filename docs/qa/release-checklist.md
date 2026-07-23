@@ -1156,4 +1156,32 @@ Artifact SHA-256: `0d598322d5cd6463582ab3e17d93a9d0bc81e44ce7d7eec5fa45efbcb74fa
   - release APK build/install 통과
   - APK SHA-256: `5a9d19e5021fdb0553d3cc10caa6fb628ec0a96ac9ce6fe2e658f64c8adc53dd`
   - logcat `FATAL EXCEPTION`, `ANR in`, `Fatal signal`, `ReactNativeJS fatal`, `Unhandled promise` 0건
-  - Supabase dry-run: remote up to date, migration 없음
+  - Supabase dry-run: remote up to date. 이 항목은 구조화 입력 migration 적용 전의 이전 typography-only evidence다.
+
+## 2026-07-23 자주 쓰는 기록 구조화 입력·중앙 정렬 최종 release evidence
+
+- [x] 카드 콘텐츠 중앙 정렬
+  - 아이콘·카테고리·상대시간·요약을 하나의 중앙 stack과 고정 slot으로 배치
+  - 1:1:1:1 동일 폭, 투명 카드, 강한 그림자 없음
+- [x] 실제 입력 필드와 홈 요약 계약
+  - 산책: `createdAt` 로컬 시간대 기반 오전/점심/오후/저녁/밤
+  - 식사: 급여량 숫자 입력, 0 이하 차단, 선택 펫 기본 급여량 자동 입력
+  - 건강: 컨디션 선택, 선택 체중 kg
+  - 미용: 다중 care type, 전체 미용과 세부 항목 상호 배타
+- [x] Supabase additive migration
+  - `20260723110000_record_structured_fields.sql` 적용
+  - `memories.metadata`, `pets.default_meal_amount_grams`
+  - `supabase db push --dry-run`: remote up to date
+- [x] Android 실기기 E2E
+  - `SM_S937N / R5CY613NMSY`, `adminQA`와 기존 QA 펫
+  - 산책 저장, 식사 180g 기본값 저장/자동 입력, 식사 150g 수동 변경, 건강 `지켜봐야 해요`+4.8kg, 미용 `목욕 & 털 정리`
+  - 홈 즉시 반영 및 강제 종료·재실행 후 유지
+  - 최종 기록은 QA 계정에 유지하고 cleanup하지 않음
+- [x] 최종 evidence
+  - APK SHA-256: `1ef8949f46732814fe35162d4fc93e0352d09e59d3781062679ac06d1beeb578`
+  - `/tmp/nuri-qa/frequent-records-structured-final-release.png`
+  - `/tmp/nuri-qa/frequent-records-structured-final-release.xml`
+  - `/tmp/nuri-qa/frequent-records-structured-final-release-logcat.txt`
+  - app fatal/ANR/ReactNativeJS fatal/unhandled promise 0건
+- [x] 코드 게이트
+  - typecheck, lint, focused 8 tests, 전체 69 suites / 277 tests, release build/install, Supabase dry-run
