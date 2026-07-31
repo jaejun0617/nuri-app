@@ -99,8 +99,9 @@ function RecordSummaryCard({
         </View>
         <View style={styles.recordTimeSlot}>
           {item.relativeTimeLabel ? (
-            <View style={[styles.relativeTimePill, { backgroundColor: accentTint }]}>
-              <Feather name="clock" size={13} color={accentColor} />
+            <View
+              style={[styles.relativeTimePill, { backgroundColor: accentTint }]}
+            >
               <Text style={[styles.relativeTimeText, { color: accentColor }]}>
                 {item.relativeTimeLabel}
               </Text>

@@ -862,8 +862,21 @@ export const styles = StyleSheet.create({
   recentPreviewWrap: {
     marginTop: -2,
   },
+  recentPreviewCard: {
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    backgroundColor: SURFACE,
+    borderWidth: 1,
+    borderColor: 'rgba(15,23,42,0.06)',
+    shadowColor: '#64748B',
+    shadowOpacity: 0.045,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 1,
+  },
   recentPreviewList: {
-    gap: 14,
+    gap: 8,
   },
   recentDateGroup: {
     gap: 8,
@@ -880,25 +893,21 @@ export const styles = StyleSheet.create({
     fontWeight: '500',
     color: MUTED,
   },
-  recentDateItems: {
-    gap: 9,
-  },
-  recentRecordCard: {
+  recentRecordRow: {
     minHeight: 88,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    borderRadius: 18,
-    backgroundColor: SURFACE,
-    borderWidth: 1,
-    borderColor: 'rgba(15,23,42,0.045)',
-    shadowColor: '#64748B',
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 1,
+  },
+  recentRecordDivider: {
+    position: 'absolute',
+    left: 68,
+    right: 0,
+    bottom: 0,
+    height: 1,
+    backgroundColor: 'rgba(15,23,42,0.08)',
   },
   recentRecordIconBox: {
     width: 56,
@@ -943,6 +952,14 @@ export const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '500',
+  },
+  recentEmptyState: {
+    minHeight: 132,
+    paddingHorizontal: 12,
+    paddingVertical: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
 
   // ---------------------------------------------------------

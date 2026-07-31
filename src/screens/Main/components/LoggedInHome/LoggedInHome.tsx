@@ -82,8 +82,6 @@ import {
 import type { PetSchedule } from '../../../../services/supabase/schedules';
 import {
   pickTodayPhoto,
-  generateTimeMessage,
-  getTimeMessageEmoji,
 } from '../../../../services/home/homeRecall';
 import { buildHomeWidgetSnapshot } from '../../../../services/home/widgetSnapshot';
 import { syncHomeWidgetSnapshot } from '../../../../services/home/widgetBridge';
@@ -393,9 +391,11 @@ function getHomeRecentIcon(record: MemoryRecord): string {
 const HomeRecentRecordRow = React.memo(function HomeRecentRecordRow({
   item,
   onPress,
+  showDivider,
 }: {
   item: MemoryRecord;
   onPress: (item: MemoryRecord) => void;
+  showDivider: boolean;
 }) {
   const categoryLabel = getMemoryCategoryChipLabel(item);
   const categoryTone = getMemoryCategoryChipTone(item);
@@ -408,7 +408,7 @@ const HomeRecentRecordRow = React.memo(function HomeRecentRecordRow({
   return (
     <TouchableOpacity
       activeOpacity={0.88}
-      style={styles.recentRecordCard}
+      style={styles.recentRecordRow}
       onPress={() => onPress(item)}
       accessibilityRole="button"
       accessibilityLabel={`${categoryLabel} 기록, ${summary}${
@@ -442,6 +442,7 @@ const HomeRecentRecordRow = React.memo(function HomeRecentRecordRow({
           color="#7D8798"
         />
       </View>
+      {showDivider ? <View style={styles.recentRecordDivider} /> : null}
     </TouchableOpacity>
   );
 });
@@ -1538,24 +1539,6 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
   );
 });
 
-const HeroProfileMessage = React.memo(function HeroProfileMessage({
-  todayMessageEmoji,
-  todayMessage,
-}: {
-  todayMessageEmoji: string;
-  todayMessage: string;
-}) {
-  return (
-    <View style={styles.heroMessageBox}>
-      <View style={styles.heroMessageIcon}>
-        <Text style={styles.heroMessageIconText}>{todayMessageEmoji}</Text>
-      </View>
-      <Text style={styles.heroMessageText}>{todayMessage}</Text>
-      <View style={styles.heroMessageBottomShadow} />
-    </View>
-  );
-});
-
 const HeroProfileSection = React.memo(function HeroProfileSection({
   petTheme,
   selectedAvatarUri,
@@ -1570,8 +1553,6 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
   tags,
   allExpanded,
   acc,
-  todayMessageEmoji,
-  todayMessage,
   onPressPetProfileEdit,
   onToggleAll,
   onToggleOne,
@@ -1589,8 +1570,6 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
   tags: string[];
   allExpanded: boolean;
   acc: Record<ProfileAccordionKey, boolean>;
-  todayMessageEmoji: string;
-  todayMessage: string;
   onPressPetProfileEdit: () => void;
   onToggleAll: () => void;
   onToggleOne: (key: ProfileAccordionKey) => void;
@@ -1618,18 +1597,8 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
         onToggleAll={onToggleAll}
         onToggleOne={onToggleOne}
       />
-      <HeroProfileMessage
-        todayMessageEmoji={todayMessageEmoji}
-        todayMessage={todayMessage}
-      />
     </View>
   );
-});
-
-const MemorySectionLead = React.memo(function MemorySectionLead(_props: {
-  accentDeepColor: string;
-}) {
-  return <View style={styles.sectionLead} />;
 });
 
 const RecommendationTipsSection = React.memo(
@@ -1828,62 +1797,66 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
         </TouchableOpacity>
       </View>
 
-      {isRecordBootstrapPending ? (
-        <View style={styles.emptyBox}>
-          <ActivityIndicator size="small" color={accentDeepColor} />
-          <Text style={[styles.emptyDesc, styles.recentEmptyDesc]}>
-            기록을 불러오는 중이에요.
-          </Text>
-        </View>
-      ) : previewItems.length === 0 ? (
-        <View style={styles.emptyBox}>
-          <Text style={styles.emptyTitle}>아직 기록이 없어요</Text>
-          <Text style={[styles.emptyDesc, styles.recentEmptyDesc]}>
-            첫 번째 추억을 남겨보세요.
-          </Text>
+      <View style={styles.recentPreviewCard}>
+        {isRecordBootstrapPending ? (
+          <View style={styles.recentEmptyState}>
+            <ActivityIndicator size="small" color={accentDeepColor} />
+            <Text style={[styles.emptyDesc, styles.recentEmptyDesc]}>
+              기록을 불러오는 중이에요.
+            </Text>
+          </View>
+        ) : previewItems.length === 0 ? (
+          <View style={styles.recentEmptyState}>
+            <Text style={styles.emptyTitle}>아직 기록이 없어요</Text>
+            <Text style={[styles.emptyDesc, styles.recentEmptyDesc]}>
+              첫 번째 추억을 남겨보세요.
+            </Text>
 
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={[
-              styles.recordBtn,
-              {
-                backgroundColor: accentDeepColor,
-                shadowColor: accentDeepColor,
-              },
-            ]}
-            onPress={onPressRecord}
-          >
-            <Text style={styles.recordBtnText}>기록하기</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <View style={styles.recentPreviewWrap}>
-          <View style={styles.recentPreviewList}>
-            {groupedPreviewItems.map(group => (
-              <View key={group.key} style={styles.recentDateGroup}>
-                <View style={styles.recentDateHeader}>
-                  <MaterialCommunityIcons
-                    name="calendar-blank-outline"
-                    size={18}
-                    color="#7A8594"
-                  />
-                  <Text style={styles.recentDateText}>{group.label}</Text>
-                </View>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={[
+                styles.recordBtn,
+                {
+                  backgroundColor: accentDeepColor,
+                  shadowColor: accentDeepColor,
+                },
+              ]}
+              onPress={onPressRecord}
+            >
+              <Text style={styles.recordBtnText}>기록하기</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.recentPreviewWrap}>
+            <View style={styles.recentPreviewList}>
+              {groupedPreviewItems.map(group => (
+                <View key={group.key} style={styles.recentDateGroup}>
+                  <View style={styles.recentDateHeader}>
+                    <MaterialCommunityIcons
+                      name="calendar-blank-outline"
+                      size={18}
+                      color="#7A8594"
+                    />
+                    <Text style={styles.recentDateText}>{group.label}</Text>
+                  </View>
 
-                <View style={styles.recentDateItems}>
                   {group.items.map(previewItem => (
                     <HomeRecentRecordRow
                       key={previewItem.record.id}
                       item={previewItem.record}
+                      showDivider={
+                        previewItem.record.id !==
+                        previewItems[previewItems.length - 1]?.record.id
+                      }
                       onPress={record => onPressRecordItem(record.id)}
                     />
                   ))}
                 </View>
-              </View>
-            ))}
+              ))}
+            </View>
           </View>
-        </View>
-      )}
+        )}
+      </View>
     </View>
   );
 });
@@ -2918,20 +2891,6 @@ export default function LoggedInHome() {
   }, [activePetId, isScreenFocused, sessionUserId]);
 
   // ---------------------------------------------------------
-  // 4.3) today message
-  // ---------------------------------------------------------
-  const todayMessage = useMemo(() => {
-    return generateTimeMessage({
-      petName: selectedPet?.name ?? null,
-      deathDate: selectedPet?.deathDate ?? null,
-    });
-  }, [selectedPet?.deathDate, selectedPet?.name]);
-  const todayMessageEmoji = useMemo(
-    () => getTimeMessageEmoji(selectedPet?.deathDate ?? null),
-    [selectedPet?.deathDate],
-  );
-
-  // ---------------------------------------------------------
   // 5) HERO derived
   // ---------------------------------------------------------
   const plainPetName = useMemo(
@@ -3538,8 +3497,6 @@ export default function LoggedInHome() {
             tags={tags}
             allExpanded={allExpanded}
             acc={acc}
-            todayMessageEmoji={todayMessageEmoji}
-            todayMessage={todayMessage}
             onPressPetProfileEdit={onPressPetProfileEdit}
             onToggleAll={onToggleAll}
             onToggleOne={onToggleOne}
@@ -3552,8 +3509,6 @@ export default function LoggedInHome() {
             onPressCategory={onPressFrequentRecord}
             onPressAll={onPressTimeline}
           />
-
-          <MemorySectionLead accentDeepColor={petTheme.deep} />
 
           <TodayPhotoSection
             activePetId={activePetId}

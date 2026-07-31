@@ -1232,3 +1232,32 @@ Artifact SHA-256: `0d598322d5cd6463582ab3e17d93a9d0bc81e44ce7d7eec5fa45efbcb74fa
   - Supabase dry-run: remote up to date
   - 최종 logcat fatal/ANR/ReactNativeJS fatal 표식 0건
   - evidence: `/tmp/nuri-qa/weekly-summary-final-release-verified.png`, `/tmp/nuri-qa/final-release-weekly-full.xml`, `/tmp/nuri-qa/weekly-summary-qa-10plus-full.png`, `/tmp/nuri-qa/weekly-summary-qa-relaunch-final.png`, `/tmp/nuri-qa/final-release-logcat.txt`
+
+## 2026-07-31 홈 전체 기준선 조사·최근 기록 단일 카드 release evidence
+
+- [x] 홈 범위 변경
+  - 로그인 홈 동적 오늘 메시지 영역 제거
+  - 자주 쓰는 기록 clock icon 제거, 상대시간 텍스트·진입 동작 유지
+  - 최근 기록을 외부 카드 1개와 row/inset divider로 정리
+  - loading/empty 상태도 동일 외부 카드 안에 유지
+  - 커뮤니티 파일 0개 변경
+  - 앱 navigation 파일 0개 변경
+- [x] 정적 기준선 조사
+  - 비커뮤니티·비네비게이션 source 303개
+  - 고유 route 52개, 비커뮤니티 화면 파일 74개
+  - fontSize 27개, fontWeight 14개, lineHeight 29개, letterSpacing 13개
+  - paddingHorizontal 25개, paddingVertical 23개, gap 20개, borderRadius 40개
+  - PretendardVariable.ttf 단일 자산 및 shared GuestHome hero style 확인
+- [x] Android physical device
+  - `SM-S937N / R5CY613NMSY`, Android 16, 1080x2340, density 450
+  - release APK install/cold start/home scroll 확인
+  - 오늘 메시지 미노출, 자주 쓰는 기록 clock icon 미노출, 최근 기록 단일 card/inset divider 확인
+  - evidence: `/tmp/nuri-qa/home-after-recent-card.png`, `/tmp/nuri-qa/home-recent-single-card.png`
+- [x] 최종 코드 게이트
+  - typecheck 통과
+  - lint 통과, 신규 error 없음
+  - Jest `69 suites / 279 tests` 통과
+  - release build/install 통과
+  - app-PID filtered logcat fatal/ANR/ReactNativeJS fatal 0건
+  - APK SHA-256: `c8c3b9aab670b2b3827ab65b0604eb00279755bc7dcbb01593d93b3266a275b6`
+  - logcat: `/tmp/nuri-qa/home-logcat-app.txt`
