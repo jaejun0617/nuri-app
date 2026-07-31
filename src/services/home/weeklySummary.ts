@@ -29,6 +29,32 @@ export type WeeklySummary = {
   upcomingSchedules: number;
 };
 
+export type WeeklySummaryBounds = {
+  startYmd: string;
+  endExclusiveYmd: string;
+  startIso: string;
+  endExclusiveIso: string;
+};
+
+type WeeklyRecordKind = 'walk' | 'meal' | 'life' | null;
+
+function toKstMidnightIso(ymd: string): string {
+  return new Date(`${ymd}T00:00:00+09:00`).toISOString();
+}
+
+export function getWeeklySummaryBounds(now = new Date()): WeeklySummaryBounds {
+  const todayYmd = getKstYmd(now);
+  const startYmd = getStartOfWeekYmd(todayYmd, { weekStartsOn: 1 }) ?? todayYmd;
+  const endExclusiveYmd = addDaysToYmd(startYmd, 7) ?? startYmd;
+
+  return {
+    startYmd,
+    endExclusiveYmd,
+    startIso: toKstMidnightIso(startYmd),
+    endExclusiveIso: toKstMidnightIso(endExclusiveYmd),
+  };
+}
+
 function isWithinWeekYmd(
   ymd: string | null,
   weekStartYmd: string,
@@ -41,8 +67,53 @@ function isWithinWeekYmd(
   return fromStart >= 0 && toEnd > 0;
 }
 
-function hasTag(record: MemoryRecord, keyword: string): boolean {
-  return (record.tags ?? []).some(tag => tag === keyword);
+function hasExplicitCategory(record: MemoryRecord): boolean {
+  const source = record as Record<string, unknown>;
+  return [
+    'category',
+    'type',
+    'kind',
+    'recordType',
+    'mainCategory',
+    'categoryKey',
+  ].some(key => {
+    const value = source[key];
+    return typeof value === 'string' && value.trim().length > 0;
+  });
+}
+
+function getWeeklyRecordKind(record: MemoryRecord): WeeklyRecordKind {
+  const explicitCategory = hasExplicitCategory(record);
+  const rawCategory = readRecordCategoryRaw(record).trim().toLowerCase();
+  const mainCategory = normalizeCategoryKey(readRecordCategoryRaw(record));
+  const otherSubCategory = normalizeOtherSubKey(
+    readOtherSubCategoryRaw(record),
+  );
+
+  // New records persist category/subCategory. Legacy records without an
+  // explicit category still resolve through readRecordCategoryRaw(tags).
+  // Explicit but unknown categories must not be guessed as life records.
+  if (mainCategory === 'walk') return 'walk';
+  if (mainCategory === 'meal') return 'meal';
+  const isKnownLifeCategory =
+    !explicitCategory ||
+    rawCategory === 'other' ||
+    rawCategory === 'etc' ||
+    rawCategory === 'life' ||
+    rawCategory === 'grooming' ||
+    rawCategory === 'bathing' ||
+    rawCategory.includes('생활') ||
+    rawCategory.includes('미용') ||
+    rawCategory.includes('목욕') ||
+    rawCategory.includes('위생');
+  if (
+    mainCategory === 'other' &&
+    otherSubCategory !== 'hospital' &&
+    isKnownLifeCategory
+  ) {
+    return 'life';
+  }
+  return null;
 }
 
 export function buildWeeklySummary(
@@ -50,9 +121,9 @@ export function buildWeeklySummary(
   schedules: PetSchedule[],
   now = new Date(),
 ): WeeklySummary {
-  const todayYmd = getKstYmd(now);
-  const weekStartYmd = getStartOfWeekYmd(todayYmd, { weekStartsOn: 1 });
-  const weekEndYmd = addDaysToYmd(weekStartYmd, 7);
+  const bounds = getWeeklySummaryBounds(now);
+  const weekStartYmd = bounds.startYmd;
+  const weekEndYmd = bounds.endExclusiveYmd;
   if (!weekStartYmd || !weekEndYmd) {
     return {
       walkCount: 0,
@@ -75,16 +146,15 @@ export function buildWeeklySummary(
     const ymd = getRecordDisplayYmd(record);
     if (!isWithinWeekYmd(ymd, weekStartYmd, weekEndYmd)) continue;
 
+    const recordKind = getWeeklyRecordKind(record);
+    if (!recordKind) continue;
+
     totalRecords += 1;
     seenDays.add(ymd as string);
 
-    if (hasTag(record, 'walk')) walkCount += 1;
-    if (hasTag(record, 'meal')) mealCount += 1;
-    const mainCategory = normalizeCategoryKey(readRecordCategoryRaw(record));
-    const otherSubCategory = normalizeOtherSubKey(readOtherSubCategoryRaw(record));
-    if (mainCategory === 'other' && otherSubCategory !== 'hospital') {
-      lifeCount += 1;
-    }
+    if (recordKind === 'walk') walkCount += 1;
+    if (recordKind === 'meal') mealCount += 1;
+    if (recordKind === 'life') lifeCount += 1;
   }
 
   for (const schedule of schedules) {
@@ -101,4 +171,15 @@ export function buildWeeklySummary(
     totalRecords,
     upcomingSchedules,
   };
+}
+
+export function buildWeeklySummaryLine(summary: WeeklySummary): string {
+  if (summary.totalRecords === 0) return '이번 주 첫 기록을 남겨보세요.';
+  if (summary.walkCount > 0 && summary.mealCount > 0) {
+    return '규칙적인 산책과 식사로 건강한 한 주를 보냈어요!';
+  }
+  if (summary.walkCount > 0) return '산책으로 활기찬 한 주를 보냈어요!';
+  if (summary.mealCount > 0) return '꾸준한 식사 기록으로 건강한 한 주를 만들었어요!';
+  if (summary.lifeCount > 0) return '소중한 생활 기록으로 한 주를 남겼어요.';
+  return '이번 주의 기록을 차곡차곡 남겨보세요.';
 }

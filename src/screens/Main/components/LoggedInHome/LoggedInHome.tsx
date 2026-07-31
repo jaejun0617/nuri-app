@@ -75,7 +75,10 @@ import { usePetStore, type Pet } from '../../../../store/petStore';
 import { useRecordStore } from '../../../../store/recordStore';
 import { useScheduleStore } from '../../../../store/scheduleStore';
 
-import type { MemoryRecord } from '../../../../services/supabase/memories';
+import {
+  fetchMemoriesByPetDateRange,
+  type MemoryRecord,
+} from '../../../../services/supabase/memories';
 import type { PetSchedule } from '../../../../services/supabase/schedules';
 import {
   pickTodayPhoto,
@@ -84,7 +87,11 @@ import {
 } from '../../../../services/home/homeRecall';
 import { buildHomeWidgetSnapshot } from '../../../../services/home/widgetSnapshot';
 import { syncHomeWidgetSnapshot } from '../../../../services/home/widgetBridge';
-import { buildWeeklySummary } from '../../../../services/home/weeklySummary';
+import {
+  buildWeeklySummary,
+  buildWeeklySummaryLine,
+  getWeeklySummaryBounds,
+} from '../../../../services/home/weeklySummary';
 import {
   formatRecordCreatedTime,
   formatRecordDisplayDate,
@@ -1881,90 +1888,224 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
   );
 });
 
+type WeeklySummaryIconName = React.ComponentProps<
+  typeof MaterialCommunityIcons
+>['name'];
+
+const WeeklySummaryMetricCard = React.memo(function WeeklySummaryMetricCard({
+  label,
+  value,
+  unit,
+  icon,
+  accentColor,
+  iconBackground,
+  onPress,
+}: {
+  label: string;
+  value: number;
+  unit: string;
+  icon: WeeklySummaryIconName;
+  accentColor: string;
+  iconBackground: string;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      activeOpacity={0.9}
+      style={styles.weeklySummaryMetricCard}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${label} ${value}${unit}`}
+    >
+      <View style={styles.weeklySummaryMetricTopRow}>
+        <View
+          style={[
+            styles.weeklySummaryMetricIcon,
+            { backgroundColor: iconBackground },
+          ]}
+        >
+          <MaterialCommunityIcons name={icon} size={22} color={accentColor} />
+        </View>
+        <View style={styles.weeklySummaryChevron}>
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={18}
+            color="#9A92AE"
+          />
+        </View>
+      </View>
+
+      <Text style={styles.weeklySummaryMetricLabel} numberOfLines={1}>
+        {label}
+      </Text>
+      <View style={styles.weeklySummaryMetricValueRow}>
+        <Text style={[styles.weeklySummaryMetricValue, { color: accentColor }]}>
+          {value}
+        </Text>
+        <Text style={[styles.weeklySummaryMetricUnit, { color: accentColor }]}>
+          {unit}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+});
+
 const WeeklySummarySection = React.memo(function WeeklySummarySection({
-  petName,
   records,
   schedules,
   accentDeepColor,
-  accentSoftColor,
-  accentBorderColor,
+  onPressTimeline,
 }: {
-  petName: string;
   records: MemoryRecord[];
   schedules: PetSchedule[];
   accentDeepColor: string;
-  accentSoftColor: string;
-  accentBorderColor: string;
+  onPressTimeline: () => void;
 }) {
   const weeklySummary = useMemo(
     () => buildWeeklySummary(records, schedules),
     [records, schedules],
   );
+  const summaryLine = useMemo(
+    () => buildWeeklySummaryLine(weeklySummary),
+    [weeklySummary],
+  );
 
   return (
-    <View style={styles.section}>
-      <View style={styles.sectionHeaderRow}>
-        <Text style={[styles.tipSectionTitle, { color: accentDeepColor }]}>
-          이번 주 요약
-        </Text>
-      </View>
-
+    <View style={[styles.section, styles.weeklySummarySection]}>
       <View
-        style={[
-          styles.summaryCard,
-          { backgroundColor: accentSoftColor, borderColor: accentBorderColor },
-        ]}
+        style={[styles.weeklySummaryCard, { shadowColor: accentDeepColor }]}
       >
-        <Text style={styles.summaryTitle}>
-          이번 주 {petName}의 리듬을 한 장으로 정리했어요
-        </Text>
-        <Text style={styles.summaryDesc}>
-          산책, 식사, 생활기록, 작성일 수를 기준으로 이번 주 흐름을 빠르게 볼 수
-          있어요.
-        </Text>
-
-        <View style={styles.summaryGrid}>
-          <View
-            style={[styles.summaryItem, { borderColor: accentBorderColor }]}
-          >
-            <Text style={[styles.summaryValue, { color: accentDeepColor }]}>
-              {weeklySummary.walkCount}
-            </Text>
-            <Text style={styles.summaryLabel}>산책 기록</Text>
+        <View style={styles.weeklySummaryHeader}>
+          <View style={styles.weeklySummaryHeaderIcon}>
+            <MaterialCommunityIcons
+              name="chart-bar"
+              size={22}
+              color={accentDeepColor}
+            />
           </View>
-          <View
-            style={[styles.summaryItem, { borderColor: accentBorderColor }]}
-          >
-            <Text style={[styles.summaryValue, { color: accentDeepColor }]}>
-              {weeklySummary.mealCount}
+          <View style={styles.weeklySummaryHeaderText}>
+            <Text style={[styles.weeklySummaryTitle, { color: accentDeepColor }]}>
+              이번 주 요약
             </Text>
-            <Text style={styles.summaryLabel}>식사 기록</Text>
-          </View>
-          <View
-            style={[styles.summaryItem, { borderColor: accentBorderColor }]}
-          >
-            <Text style={[styles.summaryValue, { color: accentDeepColor }]}>
-              {weeklySummary.lifeCount}
+            <Text style={styles.weeklySummarySubtitle}>
+              이번 주 리듬을 한눈에 확인해요.
             </Text>
-            <Text style={styles.summaryLabel}>생활 기록</Text>
-          </View>
-          <View
-            style={[styles.summaryItem, { borderColor: accentBorderColor }]}
-          >
-            <Text style={[styles.summaryValue, { color: accentDeepColor }]}>
-              {weeklySummary.recordDays}
-            </Text>
-            <Text style={styles.summaryLabel}>기록한 날</Text>
           </View>
         </View>
 
-        <View style={styles.summaryFooterRow}>
-          <Text style={styles.summaryFooterText}>
-            이번 주 기록 {weeklySummary.totalRecords}개
-          </Text>
-          <Text style={styles.summaryFooterText}>
-            남은 일정 {weeklySummary.upcomingSchedules}개
-          </Text>
+        <View style={styles.weeklySummaryGrid}>
+          <View style={styles.weeklySummaryRow}>
+            <WeeklySummaryMetricCard
+              label="산책 기록"
+              value={weeklySummary.walkCount}
+              unit="기록"
+              icon="paw"
+              accentColor={accentDeepColor}
+              iconBackground="#F4EEFF"
+              onPress={onPressTimeline}
+            />
+            <WeeklySummaryMetricCard
+              label="식사 기록"
+              value={weeklySummary.mealCount}
+              unit="기록"
+              icon="silverware-fork-knife"
+              accentColor="#FF4FA3"
+              iconBackground="#FFEAF3"
+              onPress={onPressTimeline}
+            />
+          </View>
+          <View style={styles.weeklySummaryRow}>
+            <WeeklySummaryMetricCard
+              label="생활 기록"
+              value={weeklySummary.lifeCount}
+              unit="기록"
+              icon="notebook-outline"
+              accentColor="#18BFA7"
+              iconBackground="#EAF9F6"
+              onPress={onPressTimeline}
+            />
+            <WeeklySummaryMetricCard
+              label="기록한 날"
+              value={weeklySummary.recordDays}
+              unit="일"
+              icon="calendar-month-outline"
+              accentColor="#FF8A24"
+              iconBackground="#FFF3E8"
+              onPress={onPressTimeline}
+            />
+          </View>
+        </View>
+
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={styles.weeklySummaryInsight}
+          onPress={onPressTimeline}
+          accessibilityRole="button"
+          accessibilityLabel={`이번 주 한 줄 요약, ${summaryLine}`}
+        >
+          <View style={styles.weeklySummaryInsightIcon}>
+            <MaterialCommunityIcons
+              name="creation"
+              size={20}
+              color="#9B6BFF"
+            />
+          </View>
+          <View style={styles.weeklySummaryInsightText}>
+            <Text style={styles.weeklySummaryInsightTitle}>
+              이번 주 한 줄 요약
+            </Text>
+            <Text style={styles.weeklySummaryInsightBody} numberOfLines={2}>
+              {summaryLine}
+            </Text>
+          </View>
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={20}
+            color="#B1A8C8"
+          />
+        </TouchableOpacity>
+
+        <View style={styles.weeklySummaryFooterDivider} />
+        <View style={styles.weeklySummaryFooter}>
+          <View style={styles.weeklySummaryFooterItem}>
+            <MaterialCommunityIcons
+              name="calendar-check-outline"
+              size={17}
+              color={accentDeepColor}
+            />
+            <Text style={styles.weeklySummaryFooterText} numberOfLines={1}>
+              이번 주 총 기록{' '}
+              <Text
+                style={[
+                  styles.weeklySummaryFooterValue,
+                  { color: accentDeepColor },
+                ]}
+              >
+                {weeklySummary.totalRecords}
+              </Text>
+              개
+            </Text>
+          </View>
+          <View style={styles.weeklySummaryFooterDividerVertical} />
+          <View style={styles.weeklySummaryFooterItem}>
+            <MaterialCommunityIcons
+              name="clock-outline"
+              size={17}
+              color={accentDeepColor}
+            />
+            <Text style={styles.weeklySummaryFooterText} numberOfLines={1}>
+              남은 일정{' '}
+              <Text
+                style={[
+                  styles.weeklySummaryFooterValue,
+                  { color: accentDeepColor },
+                ]}
+              >
+                {weeklySummary.upcomingSchedules}
+              </Text>
+              개
+            </Text>
+          </View>
         </View>
       </View>
     </View>
@@ -2589,6 +2730,9 @@ export default function LoggedInHome() {
   const recordStatus = useRecordStore(s =>
     activePetId ? s.byPetId[activePetId]?.status ?? 'idle' : 'idle',
   );
+  const [weeklySummaryRecords, setWeeklySummaryRecords] = useState<
+    MemoryRecord[] | null
+  >(null);
   const recordStatusRef = useRef(recordStatus);
   recordStatusRef.current = recordStatus;
   const scheduleItems = useScheduleStore(s =>
@@ -2603,6 +2747,35 @@ export default function LoggedInHome() {
     () => scheduleItems.filter(schedule => !isHealthSchedule(schedule)),
     [scheduleItems],
   );
+
+  useEffect(() => {
+    if (!activePetId || !isScreenFocused) {
+      if (!activePetId) setWeeklySummaryRecords(null);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setWeeklySummaryRecords(null);
+    const bounds = getWeeklySummaryBounds();
+
+    fetchMemoriesByPetDateRange({
+      petId: activePetId,
+      startYmd: bounds.startYmd,
+      endExclusiveYmd: bounds.endExclusiveYmd,
+      createdAtStartIso: bounds.startIso,
+      createdAtEndExclusiveIso: bounds.endExclusiveIso,
+    })
+      .then(records => {
+        if (!cancelled) setWeeklySummaryRecords(records);
+      })
+      .catch(() => {
+        if (!cancelled) setWeeklySummaryRecords(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activePetId, isScreenFocused, recordItems]);
   const healthActivityItems = useMemo(
     () => buildHealthActivityItems(recordItems, scheduleItems),
     [recordItems, scheduleItems],
@@ -3402,12 +3575,10 @@ export default function LoggedInHome() {
           />
 
           <WeeklySummarySection
-            petName={plainPetName}
-            records={recordItems}
+            records={weeklySummaryRecords ?? recordItems}
             schedules={visibleScheduleItems}
             accentDeepColor={petTheme.deep}
-            accentSoftColor={petTheme.soft}
-            accentBorderColor={petTheme.border}
+            onPressTimeline={onPressTimeline}
           />
 
           <RecommendationTipsSection

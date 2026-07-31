@@ -1201,3 +1201,34 @@ Artifact SHA-256: `0d598322d5cd6463582ab3e17d93a9d0bc81e44ce7d7eec5fa45efbcb74fa
   - 앱 프로세스 logcat `FATAL EXCEPTION`, `ANR in`, `Fatal signal`, `ReactNativeJS fatal`, `Unhandled promise` 0건
   - APK SHA-256: `c066fe5f5e41a9f8bf68cecca031e11ce6bcd0d5655264efdaa56398fb3d0334`
   - 앱 프로세스 logcat: `/tmp/nuri-qa/recent-records-redesign-logcat-app-v2.txt`
+
+## 2026-07-31 이번 주 요약 리디자인·주간 집계 release evidence
+
+- [x] 레퍼런스 기반 주간 요약 UI
+  - 헤더, 2x2 통계 카드, 한 줄 요약, footer 정보 바 구현
+  - metric card 높이 144dp, icon 42dp로 압축
+  - 최근 기록 섹션과 맞춘 폰트: 제목 18/600, 설명 11/500, 라벨 14/500, 숫자 28/800, 단위 11/500, 요약 제목 14/600, 요약 본문 11/500, footer 11/500/12/700
+- [x] 주간 집계 계약 보정
+  - KST 월요일 시작·다음 월요일 미만 범위
+  - 선택된 펫의 category-first 분류
+  - 산책·식사·생활 count, distinct 기록일, 총 기록 계산
+  - 건강·일기·병원 명시 category의 잘못된 생활 합산 방지
+- [x] 10건 이상 한글 실기기 QA
+  - `SM-S937N / R5CY613NMSY`, 고정 QA 계정과 기존 QA 펫 사용
+  - 산책 4건, 식사 3건, 생활 3건을 새로 저장하고 기존 산책 1건을 포함한 실제 결과 확인
+  - 최종 표시: 산책 5, 식사 3, 생활 3, 기록한 날 1, 총 기록 11개
+  - 앱 강제 종료·재실행 후 동일 수치 유지
+  - QA 기록은 삭제하지 않고 유지
+- [x] 최종 release artifact
+  - APK: `android/app/build/outputs/apk/release/app-release.apk`
+  - versionName `1.0`, versionCode `1`
+  - SHA-256: `876c31e131d261ce78f86024b83acc85d690187389fb7c9e96002b4928f060b7`
+  - 임시 `ClipboardActivity`는 최종 빌드 전에 제거
+- [x] 검증
+  - typecheck 통과
+  - lint 통과, 신규 error 없음
+  - Jest `69 suites / 279 tests` 통과
+  - release build/install 통과
+  - Supabase dry-run: remote up to date
+  - 최종 logcat fatal/ANR/ReactNativeJS fatal 표식 0건
+  - evidence: `/tmp/nuri-qa/weekly-summary-final-release-verified.png`, `/tmp/nuri-qa/final-release-weekly-full.xml`, `/tmp/nuri-qa/weekly-summary-qa-10plus-full.png`, `/tmp/nuri-qa/weekly-summary-qa-relaunch-final.png`, `/tmp/nuri-qa/final-release-logcat.txt`
