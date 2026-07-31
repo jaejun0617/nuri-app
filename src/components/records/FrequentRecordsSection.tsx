@@ -1,7 +1,7 @@
 // 파일: src/components/records/FrequentRecordsSection.tsx
 // 목적:
 // - 홈에서 빠른 기록 진입과 선택된 반려동물의 최신 기록 요약을 함께 제공한다.
-// - 그라디언트 보더, 테마 포인트, 1:1:1:1 기록 카드를 이 섹션 안에서만 관리한다.
+// - 평면 섹션 안에서 빠른 기록 진입과 최신 기록 요약을 함께 제공한다.
 
 import AppText from '../../app/ui/AppText';
 import React, { memo, useMemo } from 'react';
@@ -77,9 +77,6 @@ function RecordSummaryCard({
       onPress={onPress}
       style={({ pressed }) => [
         styles.recordCard,
-        item.category !== 'grooming'
-          ? { borderRightColor: `${accentColor}20` }
-          : null,
         pressed ? styles.recordCardPressed : null,
       ]}
     >
@@ -93,15 +90,27 @@ function RecordSummaryCard({
             />
           </View>
         </View>
-        <View style={styles.recordTitleSlot}>
-          <AppText preset="unifiedLabel" style={styles.recordLabel} numberOfLines={1}>
-            {meta.label}
-          </AppText>
+        <View style={styles.recordTextGroup}>
+          <View style={styles.recordTitleSlot}>
+            <AppText preset="unifiedLabel" style={styles.recordLabel} numberOfLines={1}>
+              {meta.label}
+            </AppText>
+          </View>
+          <View style={styles.recordSummarySlot}>
+            <AppText
+              preset="unifiedBody"
+              style={styles.recordSummary}
+              numberOfLines={2}
+              ellipsizeMode="tail"
+            >
+              {item.summaryLabel}
+            </AppText>
+          </View>
         </View>
         <View style={styles.recordTimeSlot}>
           {item.relativeTimeLabel ? (
             <View
-              style={[styles.relativeTimeMarker, { backgroundColor: accentTint }]}
+              style={[styles.relativeTimeMarker, { backgroundColor: `${accentColor}18` }]}
             >
               <AppText preset="unifiedBody" style={[styles.relativeTimeText, { color: accentColor }]}>
                 {item.relativeTimeLabel}
@@ -110,11 +119,6 @@ function RecordSummaryCard({
           ) : (
             <View style={styles.relativeTimePlaceholder} />
           )}
-        </View>
-        <View style={styles.recordSummarySlot}>
-          <AppText preset="unifiedBody" style={styles.recordSummary} numberOfLines={2}>
-            {item.summaryLabel}
-          </AppText>
         </View>
       </View>
     </Pressable>
@@ -167,8 +171,7 @@ function FrequentRecordsSectionBase({
   const hasError = recordStatus === 'error' && records.length === 0;
 
   return (
-    <View style={styles.outerCard}>
-      <View style={styles.innerCard}>
+    <View style={styles.section}>
         <View style={styles.headerRow}>
           <View style={styles.headerLead}>
             <View
@@ -198,6 +201,8 @@ function FrequentRecordsSectionBase({
             color={petTheme.primary}
             onPress={onPressAll}
             accessibilityLabel="전체 기록 보기"
+            textPreset="unifiedMicro"
+            size="compact"
           />
         </View>
 
@@ -222,7 +227,6 @@ function FrequentRecordsSectionBase({
             ))}
           </View>
         )}
-      </View>
     </View>
   );
 }

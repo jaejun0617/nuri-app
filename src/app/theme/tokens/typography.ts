@@ -139,6 +139,13 @@ const unifiedPreset = {
     letterSpacing: 0,
     fontFamily: pretendardFamily,
   },
+  micro: {
+    fontSize: 10,
+    lineHeight: 14,
+    fontWeight: '500' as const,
+    letterSpacing: 0,
+    fontFamily: pretendardFamily,
+  },
   date: {
     fontSize: 13,
     lineHeight: 18,
@@ -183,6 +190,7 @@ export const typography = {
     unifiedTitle: unifiedPreset.title,
     unifiedLabel: unifiedPreset.label,
     unifiedBody: unifiedPreset.body,
+    unifiedMicro: unifiedPreset.micro,
     unifiedDate: unifiedPreset.date,
     unifiedMeta: unifiedPreset.body,
     title1: semanticPreset.display,

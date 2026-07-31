@@ -3,6 +3,7 @@ import React, { memo } from 'react';
 import { Pressable, View } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 
+import type { TypographyPresetName } from '../theme/tokens/typography';
 import { styles } from './SectionHeaderAction.styles';
 
 type Props = {
@@ -10,6 +11,8 @@ type Props = {
   color: string;
   onPress: () => void;
   accessibilityLabel: string;
+  textPreset?: TypographyPresetName;
+  size?: 'default' | 'compact';
 };
 
 function SectionHeaderActionBase({
@@ -17,6 +20,8 @@ function SectionHeaderActionBase({
   color,
   onPress,
   accessibilityLabel,
+  textPreset = 'unifiedLabel',
+  size = 'default',
 }: Props) {
   return (
     <Pressable
@@ -24,14 +29,14 @@ function SectionHeaderActionBase({
       accessibilityLabel={accessibilityLabel}
       onPress={onPress}
       style={({ pressed }) => [
-        styles.button,
+        size === 'compact' ? styles.compactButton : styles.button,
         { borderColor: `${color}26` },
         pressed ? styles.pressed : null,
       ]}
     >
-      <AppText preset="unifiedLabel" style={[styles.text, { color }]}>{label}</AppText>
-      <View style={styles.iconSlot}>
-        <Feather name="chevron-right" size={14} color={color} />
+      <AppText preset={textPreset} style={[styles.text, { color }]}>{label}</AppText>
+      <View style={size === 'compact' ? styles.compactIconSlot : styles.iconSlot}>
+        <Feather name="chevron-right" size={size === 'compact' ? 12 : 14} color={color} />
       </View>
     </Pressable>
   );
