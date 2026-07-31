@@ -88,14 +88,14 @@ export default function EditDoneScreen() {
           </View>
         </View>
 
-        <AppText preset="title2" style={styles.title}>
+        <AppText preset="unifiedTitle" style={styles.title}>
           {title}
         </AppText>
-        <AppText preset="body" style={styles.body}>
+        <AppText preset="unifiedBody" style={styles.body}>
           {bodyLines[0]}
         </AppText>
         {bodyLines[1] ? (
-          <AppText preset="body" style={styles.body}>
+          <AppText preset="unifiedBody" style={styles.body}>
             {bodyLines[1]}
           </AppText>
         ) : null}
@@ -109,7 +109,7 @@ export default function EditDoneScreen() {
         ]}
         onPress={onPressPrimary}
       >
-        <AppText preset="body" style={styles.primaryButtonText}>
+        <AppText preset="unifiedBody" style={styles.primaryButtonText}>
           {buttonLabel ?? '홈으로 가기'}
         </AppText>
       </TouchableOpacity>

@@ -67,7 +67,7 @@ function Field({
 }) {
   return (
     <View style={styles.fieldBlock}>
-      <AppText preset="caption" style={styles.fieldLabel}>
+      <AppText preset="unifiedMeta" style={styles.fieldLabel}>
         {label}
       </AppText>
       <TextInput
@@ -95,7 +95,7 @@ function Section({
 }) {
   return (
     <View style={styles.sectionCard}>
-      <AppText preset="headline" style={styles.sectionTitle}>
+      <AppText preset="unifiedTitle" style={styles.sectionTitle}>
         {title}
       </AppText>
       {children}
@@ -215,7 +215,7 @@ export default function GuideAdminEditorScreen() {
       <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
         <View style={styles.emptyCard}>
           <Feather name="shield-off" size={28} color={petTheme.primary} />
-          <AppText preset="headline" style={styles.emptyTitle}>
+          <AppText preset="unifiedTitle" style={styles.emptyTitle}>
             운영 권한이 필요해요
           </AppText>
         </View>
@@ -228,7 +228,7 @@ export default function GuideAdminEditorScreen() {
       <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
         <View style={styles.emptyCard}>
           <Feather name="loader" size={28} color={petTheme.primary} />
-          <AppText preset="headline" style={styles.emptyTitle}>
+          <AppText preset="unifiedTitle" style={styles.emptyTitle}>
             가이드 편집 정보를 불러오는 중이에요
           </AppText>
         </View>
@@ -241,10 +241,10 @@ export default function GuideAdminEditorScreen() {
       <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
         <View style={styles.emptyCard}>
           <Feather name="alert-circle" size={28} color={petTheme.primary} />
-          <AppText preset="headline" style={styles.emptyTitle}>
+          <AppText preset="unifiedTitle" style={styles.emptyTitle}>
             편집할 가이드를 찾지 못했어요
           </AppText>
-          <AppText preset="body" style={styles.emptyDesc}>
+          <AppText preset="unifiedBody" style={styles.emptyDesc}>
             {detailState.error ?? '삭제되었거나 접근 권한이 없을 수 있어요.'}
           </AppText>
         </View>
@@ -277,7 +277,7 @@ export default function GuideAdminEditorScreen() {
             </TouchableOpacity>
           </View>
 
-          <AppText preset="headline" style={styles.headerTitle}>
+          <AppText preset="unifiedTitle" style={styles.headerTitle}>
             {route.params.mode === 'create' ? '가이드 등록' : '가이드 편집'}
           </AppText>
 
@@ -285,10 +285,10 @@ export default function GuideAdminEditorScreen() {
         </View>
 
         <View style={styles.heroCard}>
-          <AppText preset="title2" style={styles.heroTitle}>
+          <AppText preset="unifiedTitle" style={styles.heroTitle}>
             {formValues.title.trim() || '새 가이드 초안'}
           </AppText>
-          <AppText preset="body" style={styles.heroSub}>
+          <AppText preset="unifiedBody" style={styles.heroSub}>
             {statusSummary}
           </AppText>
 
@@ -300,7 +300,7 @@ export default function GuideAdminEditorScreen() {
               disabled={saving}
             >
               <AppText
-                preset="caption"
+                preset="unifiedMeta"
                 style={[styles.actionButtonText, { color: petTheme.deep }]}
               >
                 초안 저장
@@ -316,7 +316,7 @@ export default function GuideAdminEditorScreen() {
               onPress={() => saveGuide('published')}
               disabled={saving}
             >
-              <AppText preset="caption" style={styles.actionButtonPrimaryText}>
+              <AppText preset="unifiedMeta" style={styles.actionButtonPrimaryText}>
                 발행
               </AppText>
             </TouchableOpacity>
@@ -327,7 +327,7 @@ export default function GuideAdminEditorScreen() {
               disabled={saving}
             >
               <AppText
-                preset="caption"
+                preset="unifiedMeta"
                 style={[styles.actionButtonText, { color: petTheme.deep }]}
               >
                 보관
@@ -395,7 +395,7 @@ export default function GuideAdminEditorScreen() {
                   onPress={() => updateField('category', category)}
                 >
                   <AppText
-                    preset="caption"
+                    preset="unifiedMeta"
                     style={[
                       styles.choiceChipText,
                       active ? styles.choiceChipTextActive : null,
@@ -444,7 +444,7 @@ export default function GuideAdminEditorScreen() {
                   onPress={() => toggleTargetSpecies(species)}
                 >
                   <AppText
-                    preset="caption"
+                    preset="unifiedMeta"
                     style={[
                       styles.choiceChipText,
                       active ? styles.choiceChipTextActive : null,
@@ -472,7 +472,7 @@ export default function GuideAdminEditorScreen() {
                   onPress={() => updateField('agePolicyType', type)}
                 >
                   <AppText
-                    preset="caption"
+                    preset="unifiedMeta"
                     style={[
                       styles.choiceChipText,
                       active ? styles.choiceChipTextActive : null,
@@ -507,7 +507,7 @@ export default function GuideAdminEditorScreen() {
                     }
                   >
                     <AppText
-                      preset="caption"
+                      preset="unifiedMeta"
                       style={[
                         styles.choiceChipText,
                         active ? styles.choiceChipTextActive : null,
@@ -586,7 +586,7 @@ export default function GuideAdminEditorScreen() {
                   onPress={() => updateField('status', status)}
                 >
                   <AppText
-                    preset="caption"
+                    preset="unifiedMeta"
                     style={[
                       styles.choiceChipText,
                       active ? styles.choiceChipTextActive : null,
@@ -602,10 +602,10 @@ export default function GuideAdminEditorScreen() {
 
           <View style={styles.switchRow}>
             <View style={styles.switchTextWrap}>
-              <AppText preset="body" style={styles.switchTitle}>
+              <AppText preset="unifiedBody" style={styles.switchTitle}>
                 활성 상태
               </AppText>
-              <AppText preset="caption" style={styles.switchDesc}>
+              <AppText preset="unifiedMeta" style={styles.switchDesc}>
                 발행 상태와 별개로 운영 비활성화할 수 있어요.
               </AppText>
             </View>

@@ -120,7 +120,7 @@ const WheelColumn = memo(function WheelColumn({
   return (
     <View style={[styles.pickerColumn, compact ? styles.pickerMiniColumn : null]}>
       <AppText
-        preset="caption"
+        preset="unifiedMeta"
         style={[
           styles.pickerLabel,
           {

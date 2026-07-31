@@ -508,7 +508,7 @@ export default function ScheduleCreateScreen() {
           </TouchableOpacity>
         </View>
 
-        <AppText preset="headline" style={styles.headerTitle}>
+        <AppText preset="unifiedTitle" style={styles.headerTitle}>
           일정 추가
         </AppText>
 
@@ -538,7 +538,7 @@ export default function ScheduleCreateScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.card}>
-          <AppText preset="caption" style={styles.label}>
+          <AppText preset="unifiedMeta" style={styles.label}>
             일정 이름
           </AppText>
           <TextInput
@@ -551,7 +551,7 @@ export default function ScheduleCreateScreen() {
 
           <View style={styles.timeRow}>
             <View style={styles.timeCol}>
-              <AppText preset="caption" style={styles.label}>
+              <AppText preset="unifiedMeta" style={styles.label}>
                 일시
               </AppText>
               <TouchableOpacity
@@ -560,11 +560,11 @@ export default function ScheduleCreateScreen() {
                 onPress={onOpenDateModal}
               >
                 <View style={styles.pickerTextStack}>
-                  <AppText preset="body" style={styles.pickerFieldText}>
+                  <AppText preset="unifiedBody" style={styles.pickerFieldText}>
                     {formatScheduleDateSummary(dateText)}
                   </AppText>
                   <AppText
-                    preset="caption"
+                    preset="unifiedMeta"
                     style={[
                       styles.pickerFieldSubText,
                       allDay ? styles.pickerFieldTextDisabled : null,
@@ -591,7 +591,7 @@ export default function ScheduleCreateScreen() {
               onPress={() => setAllDay(prev => !prev)}
             >
               <AppText
-                preset="caption"
+                preset="unifiedMeta"
                 style={[
                   styles.allDayChipText,
                   allDay ? styles.allDayChipTextActive : null,
@@ -603,7 +603,7 @@ export default function ScheduleCreateScreen() {
             </TouchableOpacity>
           </View>
 
-          <AppText preset="caption" style={styles.label}>
+          <AppText preset="unifiedMeta" style={styles.label}>
             카테고리
           </AppText>
           <View style={styles.optionRow}>
@@ -631,7 +631,7 @@ export default function ScheduleCreateScreen() {
                     color={active ? petTheme.primary : '#556070'}
                   />
                   <AppText
-                    preset="caption"
+                    preset="unifiedMeta"
                     style={[
                       styles.optionChipText,
                       active ? styles.optionChipTextActive : null,
@@ -647,7 +647,7 @@ export default function ScheduleCreateScreen() {
 
           {category === 'other' ? (
             <>
-              <AppText preset="caption" style={styles.label}>
+              <AppText preset="unifiedMeta" style={styles.label}>
                 기타 분류
               </AppText>
               <View style={styles.optionRow}>
@@ -670,7 +670,7 @@ export default function ScheduleCreateScreen() {
                       onPress={() => onSelectOtherSubCategory(option.key)}
                     >
                       <AppText
-                        preset="caption"
+                        preset="unifiedMeta"
                         style={[
                           styles.optionChipText,
                           active ? styles.optionChipTextActive : null,
@@ -686,7 +686,7 @@ export default function ScheduleCreateScreen() {
             </>
           ) : null}
 
-          <AppText preset="caption" style={styles.label}>
+          <AppText preset="unifiedMeta" style={styles.label}>
             아이콘
           </AppText>
           <View style={styles.iconGrid}>
@@ -714,7 +714,7 @@ export default function ScheduleCreateScreen() {
                     color={active ? petTheme.primary : '#556070'}
                   />
                   <AppText
-                    preset="caption"
+                    preset="unifiedMeta"
                     style={[
                       styles.iconLabel,
                       active ? styles.iconLabelActive : null,
@@ -728,7 +728,7 @@ export default function ScheduleCreateScreen() {
             })}
           </View>
 
-          <AppText preset="caption" style={styles.label}>
+          <AppText preset="unifiedMeta" style={styles.label}>
             색상
           </AppText>
           <View style={styles.colorRow}>
@@ -749,7 +749,7 @@ export default function ScheduleCreateScreen() {
                       active ? { borderColor: petTheme.border } : null,
                     ]}
                   />
-                  <AppText preset="caption" style={styles.colorLabel}>
+                  <AppText preset="unifiedMeta" style={styles.colorLabel}>
                     {option.label}
                   </AppText>
                 </TouchableOpacity>
@@ -757,7 +757,7 @@ export default function ScheduleCreateScreen() {
             })}
           </View>
 
-          <AppText preset="caption" style={styles.label}>
+          <AppText preset="unifiedMeta" style={styles.label}>
             반복
           </AppText>
           <View style={styles.optionRow}>
@@ -780,7 +780,7 @@ export default function ScheduleCreateScreen() {
                   onPress={() => setRepeatRule(option.key)}
                 >
                   <AppText
-                    preset="caption"
+                    preset="unifiedMeta"
                     style={[
                       styles.optionChipText,
                       active ? styles.optionChipTextActive : null,
@@ -794,7 +794,7 @@ export default function ScheduleCreateScreen() {
             })}
           </View>
 
-          <AppText preset="caption" style={styles.label}>
+          <AppText preset="unifiedMeta" style={styles.label}>
             알림
           </AppText>
           <View style={styles.optionRow}>
@@ -821,7 +821,7 @@ export default function ScheduleCreateScreen() {
                   }}
                 >
                   <AppText
-                    preset="caption"
+                    preset="unifiedMeta"
                     style={[
                       styles.optionChipText,
                       active ? styles.optionChipTextActive : null,
@@ -836,7 +836,7 @@ export default function ScheduleCreateScreen() {
           </View>
           {reminderKey !== 'none' ? (
             <>
-              <AppText preset="caption" style={styles.label}>
+              <AppText preset="unifiedMeta" style={styles.label}>
                 알림 반복
               </AppText>
               <View style={styles.optionRow}>
@@ -859,7 +859,7 @@ export default function ScheduleCreateScreen() {
                       onPress={() => setReminderRepeatKey(option.key)}
                     >
                       <AppText
-                        preset="caption"
+                        preset="unifiedMeta"
                         style={[
                           styles.optionChipText,
                           active ? styles.optionChipTextActive : null,
@@ -872,14 +872,14 @@ export default function ScheduleCreateScreen() {
                   );
                 })}
               </View>
-              <AppText preset="caption" style={styles.helperText}>
+              <AppText preset="unifiedMeta" style={styles.helperText}>
                 예약 예정: {reminderSummaryText}
               </AppText>
             </>
           ) : null}
           {reminderKey === 'custom' ? (
             <View style={styles.inlineFieldCard}>
-              <AppText preset="caption" style={styles.inlineFieldLabel}>
+              <AppText preset="unifiedMeta" style={styles.inlineFieldLabel}>
                 직접 설정(분)
               </AppText>
               <TextInput
@@ -892,11 +892,11 @@ export default function ScheduleCreateScreen() {
               />
             </View>
           ) : null}
-          <AppText preset="caption" style={styles.helperText}>
+          <AppText preset="unifiedMeta" style={styles.helperText}>
             {reminderHelperText}
           </AppText>
 
-          <AppText preset="caption" style={styles.label}>
+          <AppText preset="unifiedMeta" style={styles.label}>
             메모
           </AppText>
           <TextInput
@@ -933,7 +933,7 @@ export default function ScheduleCreateScreen() {
               textStyle={styles.primaryBtnText}
             />
           ) : (
-            <AppText preset="body" style={styles.primaryBtnText}>
+            <AppText preset="unifiedBody" style={styles.primaryBtnText}>
               일정 저장하기
             </AppText>
           )}

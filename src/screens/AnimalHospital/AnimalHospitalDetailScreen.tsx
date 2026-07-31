@@ -67,7 +67,7 @@ export default function AnimalHospitalDetailScreen() {
       <Screen style={styles.screen}>
         <View style={styles.container}>
           <View style={styles.sectionCard}>
-            <AppText preset="headline" style={styles.sectionTitle}>
+            <AppText preset="unifiedTitle" style={styles.sectionTitle}>
               병원 정보를 찾을 수 없어요
             </AppText>
           </View>
@@ -136,17 +136,17 @@ export default function AnimalHospitalDetailScreen() {
                 )}
               </View>
               {thumbnailUri && photoAttributionLabel ? (
-                <AppText preset="caption" style={styles.photoAttributionText}>
+                <AppText preset="unifiedMeta" style={styles.photoAttributionText}>
                   사진 출처 · {photoAttributionLabel}
                 </AppText>
               ) : null}
             </View>
 
             <View style={styles.heroHeader}>
-              <AppText preset="caption" style={styles.eyebrow}>
+              <AppText preset="unifiedMeta" style={styles.eyebrow}>
                 우리동네 동물병원
               </AppText>
-              <AppText preset="titleSm" style={styles.title}>
+              <AppText preset="unifiedTitle" style={styles.title}>
                 {viewModel.title}
               </AppText>
             </View>
@@ -155,7 +155,7 @@ export default function AnimalHospitalDetailScreen() {
               {operatingBadge ? (
                 <View style={[styles.operatingBadge, operatingBadgeStyle]}>
                   <AppText
-                    preset="caption"
+                    preset="unifiedMeta"
                     style={[styles.operatingBadgeText, operatingBadgeTextStyle]}
                   >
                     {operatingBadge.label}
@@ -163,11 +163,11 @@ export default function AnimalHospitalDetailScreen() {
                 </View>
               ) : null}
               <View style={styles.trustBadge}>
-                <AppText preset="caption" style={styles.trustBadgeText}>
+                <AppText preset="unifiedMeta" style={styles.trustBadgeText}>
                   {viewModel.trustLabel}
                 </AppText>
               </View>
-              <AppText preset="bodySm" style={styles.statusText}>
+              <AppText preset="unifiedMeta" style={styles.statusText}>
                 {viewModel.statusSummary}
               </AppText>
             </View>
@@ -181,7 +181,7 @@ export default function AnimalHospitalDetailScreen() {
                   size={16}
                   color={theme.colors.textMuted}
                 />
-                <AppText preset="body" style={styles.infoText}>
+                <AppText preset="unifiedBody" style={styles.infoText}>
                   {viewModel.address}
                 </AppText>
               </View>
@@ -192,7 +192,7 @@ export default function AnimalHospitalDetailScreen() {
                   size={16}
                   color={theme.colors.textMuted}
                 />
-                <AppText preset="body" style={styles.infoText}>
+                <AppText preset="unifiedBody" style={styles.infoText}>
                   {viewModel.distanceLabel}
                 </AppText>
               </View>
@@ -203,7 +203,7 @@ export default function AnimalHospitalDetailScreen() {
                   size={16}
                   color={theme.colors.textMuted}
                 />
-                <AppText preset="body" style={styles.infoText}>
+                <AppText preset="unifiedBody" style={styles.infoText}>
                   {viewModel.phoneLabel}
                 </AppText>
               </View>
@@ -215,7 +215,7 @@ export default function AnimalHospitalDetailScreen() {
                     size={16}
                     color={theme.colors.textMuted}
                   />
-                  <AppText preset="bodySm" style={styles.subtleText}>
+                  <AppText preset="unifiedMeta" style={styles.subtleText}>
                     {viewModel.basisDateLabel}
                   </AppText>
                 </View>
@@ -231,7 +231,7 @@ export default function AnimalHospitalDetailScreen() {
                     Linking.openURL(callUri).catch(() => {});
                   }}
                 >
-                  <AppText preset="body" style={styles.primaryCtaText}>
+                  <AppText preset="unifiedBody" style={styles.primaryCtaText}>
                     전화하기
                   </AppText>
                 </TouchableOpacity>
@@ -246,7 +246,7 @@ export default function AnimalHospitalDetailScreen() {
                   }}
                 >
                   <AppText
-                    preset="body"
+                    preset="unifiedBody"
                     style={
                       callUri ? styles.secondaryCtaText : styles.primaryCtaText
                     }
@@ -261,10 +261,10 @@ export default function AnimalHospitalDetailScreen() {
           <View style={styles.mapSection}>
             <View style={styles.mapSectionHeader}>
               <View style={styles.mapSectionCopy}>
-                <AppText preset="headline" style={styles.sectionTitle}>
+                <AppText preset="unifiedTitle" style={styles.sectionTitle}>
                   위치
                 </AppText>
-                <AppText preset="bodySm" style={styles.subtleText}>
+                <AppText preset="unifiedMeta" style={styles.subtleText}>
                   지도 미리보기에서 위치를 확인하고 길찾기로 이어갈 수 있어요.
                 </AppText>
               </View>
@@ -276,7 +276,7 @@ export default function AnimalHospitalDetailScreen() {
                     Linking.openURL(mapLink).catch(() => {});
                   }}
                 >
-                  <AppText preset="caption" style={styles.mapOpenButtonText}>
+                  <AppText preset="unifiedMeta" style={styles.mapOpenButtonText}>
                     열기
                   </AppText>
                 </TouchableOpacity>
@@ -297,7 +297,7 @@ export default function AnimalHospitalDetailScreen() {
                   size={20}
                   color={theme.colors.textMuted}
                 />
-                <AppText preset="bodySm" style={styles.subtleText}>
+                <AppText preset="unifiedMeta" style={styles.subtleText}>
                   {hasMapPreviewCoordinate
                     ? '위치 정보 준비 중이에요. 길찾기로 외부 지도에서 확인해 주세요.'
                     : '아직 좌표를 가져오지 못해 주소 기준으로 확인해 주세요.'}

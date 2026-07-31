@@ -73,7 +73,7 @@ export default function RecordTagModal({
           onPress={Keyboard.dismiss}
         >
           <View style={styles.tagModalHeader}>
-            <AppText preset="headline" style={styles.tagModalTitle}>
+            <AppText preset="unifiedTitle" style={styles.tagModalTitle}>
               태그 추가
             </AppText>
             <TouchableOpacity
@@ -108,7 +108,7 @@ export default function RecordTagModal({
 
           {selectedTags.length ? (
             <>
-              <AppText preset="caption" style={styles.tagSectionTitle}>
+              <AppText preset="unifiedMeta" style={styles.tagSectionTitle}>
                 선택된 태그
               </AppText>
               <View style={styles.tagChipGrid}>
@@ -120,7 +120,7 @@ export default function RecordTagModal({
                     onPress={() => onRemoveTag(tag)}
                   >
                     <AppText
-                      preset="caption"
+                      preset="unifiedMeta"
                       style={styles.selectedModalChipText}
                     >
                       {tag}

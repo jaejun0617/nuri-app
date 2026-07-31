@@ -336,7 +336,7 @@ export default function ScheduleDetailScreen() {
           </TouchableOpacity>
         </View>
 
-        <AppText preset="headline" style={styles.headerTitle}>
+        <AppText preset="unifiedTitle" style={styles.headerTitle}>
           일정 상세
         </AppText>
 
@@ -350,7 +350,7 @@ export default function ScheduleDetailScreen() {
       >
         {!schedule || loading ? (
           <View style={styles.emptyCard}>
-            <AppText preset="body" style={styles.emptyText}>
+            <AppText preset="unifiedBody" style={styles.emptyText}>
               일정을 불러오는 중이에요.
             </AppText>
           </View>
@@ -365,7 +365,7 @@ export default function ScheduleDetailScreen() {
               />
             </View>
             <View style={styles.heroTextWrap}>
-              <AppText preset="headline" style={styles.title}>
+              <AppText preset="unifiedTitle" style={styles.title}>
                 {schedule.title}
               </AppText>
               <View
@@ -379,7 +379,7 @@ export default function ScheduleDetailScreen() {
                 ]}
               >
                 <AppText
-                  preset="caption"
+                  preset="unifiedMeta"
                   style={[
                     styles.statusBadgeText,
                     {
@@ -395,46 +395,46 @@ export default function ScheduleDetailScreen() {
 
           <View style={styles.section}>
             <View style={styles.metaBlock}>
-              <AppText preset="caption" style={styles.metaLabel}>
+              <AppText preset="unifiedMeta" style={styles.metaLabel}>
                 일정 시간
               </AppText>
-              <AppText preset="body" style={styles.metaValue}>
+              <AppText preset="unifiedBody" style={styles.metaValue}>
                 {formatScheduleDetailDate(schedule)}
               </AppText>
             </View>
 
             <View style={styles.metaBlock}>
-              <AppText preset="caption" style={styles.metaLabel}>
+              <AppText preset="unifiedMeta" style={styles.metaLabel}>
                 카테고리
               </AppText>
-              <AppText preset="body" style={styles.metaValue}>
+              <AppText preset="unifiedBody" style={styles.metaValue}>
                 {formatScheduleCategoryLabel(schedule)}
               </AppText>
             </View>
 
             <View style={styles.metaBlock}>
-              <AppText preset="caption" style={styles.metaLabel}>
+              <AppText preset="unifiedMeta" style={styles.metaLabel}>
                 반복
               </AppText>
-              <AppText preset="body" style={styles.metaValue}>
+              <AppText preset="unifiedBody" style={styles.metaValue}>
                 {formatRepeatRule(schedule.repeatRule)}
               </AppText>
             </View>
 
             <View style={styles.metaBlock}>
-              <AppText preset="caption" style={styles.metaLabel}>
+              <AppText preset="unifiedMeta" style={styles.metaLabel}>
                 알림
               </AppText>
-              <AppText preset="body" style={styles.metaValue}>
+              <AppText preset="unifiedBody" style={styles.metaValue}>
                 {formatReminder(schedule.reminderMinutes)}
               </AppText>
             </View>
 
             <View style={styles.metaBlock}>
-              <AppText preset="caption" style={styles.metaLabel}>
+              <AppText preset="unifiedMeta" style={styles.metaLabel}>
                 완료 상태
               </AppText>
-              <AppText preset="body" style={styles.metaValue}>
+              <AppText preset="unifiedBody" style={styles.metaValue}>
                 {schedule.completedAt ? '완료됨' : '진행 중'}
               </AppText>
             </View>
@@ -442,10 +442,10 @@ export default function ScheduleDetailScreen() {
 
           <View style={styles.section}>
             <View style={styles.metaBlock}>
-              <AppText preset="caption" style={styles.metaLabel}>
+              <AppText preset="unifiedMeta" style={styles.metaLabel}>
                 메모
               </AppText>
-              <AppText preset="body" style={styles.metaValue}>
+              <AppText preset="unifiedBody" style={styles.metaValue}>
                 {schedule.note?.trim() || '남겨둔 메모가 없어요.'}
               </AppText>
             </View>
@@ -458,7 +458,7 @@ export default function ScheduleDetailScreen() {
               onPress={onPressEdit}
             >
               <Feather name="edit-2" size={16} color="#FFFFFF" />
-              <AppText preset="body" style={styles.primaryBtnText}>
+              <AppText preset="unifiedBody" style={styles.primaryBtnText}>
                 일정 수정하기
               </AppText>
             </TouchableOpacity>
@@ -476,7 +476,7 @@ export default function ScheduleDetailScreen() {
               onPress={onToggleComplete}
             >
               <AppText
-                preset="body"
+                preset="unifiedBody"
                 style={[
                   styles.secondaryBtnText,
                   { color: schedule.completedAt ? '#475569' : petTheme.primary },
@@ -491,7 +491,7 @@ export default function ScheduleDetailScreen() {
               style={styles.deleteBtn}
               onPress={onPressDelete}
             >
-              <AppText preset="body" style={styles.deleteBtnText}>
+              <AppText preset="unifiedBody" style={styles.deleteBtnText}>
                 {deleting ? '삭제 중...' : '일정 삭제'}
               </AppText>
             </TouchableOpacity>

@@ -87,7 +87,7 @@ function LocationDiscoveryCard({
                   <Feather name="map-pin" size={20} color="#7A8699" />
                 </View>
                 <AppText
-                  preset="caption"
+                  preset="unifiedMeta"
                   style={styles.cardThumbnailPlaceholderText}
                   numberOfLines={1}
                 >
@@ -105,7 +105,7 @@ function LocationDiscoveryCard({
               {hasThumbnail && photoAttributionLabel ? (
                 <View style={styles.cardPhotoAttributionWrap}>
                   <AppText
-                    preset="caption"
+                    preset="unifiedMeta"
                     style={styles.cardPhotoAttributionText}
                     numberOfLines={1}
                   >
@@ -119,7 +119,7 @@ function LocationDiscoveryCard({
                     <Feather name="map" size={18} color="#2F8F48" />
                   </View>
                 ) : <View />}
-                <AppText preset="caption" style={styles.cardDistanceBadge}>
+                <AppText preset="unifiedMeta" style={styles.cardDistanceBadge}>
                   {formatDistanceLabel(item.distanceMeters)}
                 </AppText>
               </View>
@@ -128,16 +128,16 @@ function LocationDiscoveryCard({
 
           <View style={[styles.cardHeader, compact ? styles.cardHeaderCompact : null]}>
             <View style={styles.cardHeaderCopy}>
-              <AppText preset="caption" style={styles.cardCategory} numberOfLines={1}>
+              <AppText preset="unifiedMeta" style={styles.cardCategory} numberOfLines={1}>
                 {item.categoryLabel}
               </AppText>
-              <AppText preset="headline" style={styles.cardTitle} numberOfLines={2}>
+              <AppText preset="unifiedTitle" style={styles.cardTitle} numberOfLines={2}>
                 {item.name}
               </AppText>
               {compact ? (
                 <View style={styles.cardCompactMetaBlock}>
                   <AppText
-                    preset="caption"
+                    preset="unifiedMeta"
                     style={styles.cardMetaText}
                     numberOfLines={2}
                   >
@@ -146,7 +146,7 @@ function LocationDiscoveryCard({
                   {durationLabel ? (
                     <View style={styles.cardMetaPill}>
                       <Feather name="clock" size={12} color="#7B8597" />
-                      <AppText preset="caption" style={styles.cardMetaText}>
+                      <AppText preset="unifiedMeta" style={styles.cardMetaText}>
                         {durationLabel}
                       </AppText>
                     </View>
@@ -161,7 +161,7 @@ function LocationDiscoveryCard({
           {!compact ? (
             <View style={styles.cardMetaPill}>
               <Feather name="map-pin" size={12} color="#7B8597" />
-              <AppText preset="caption" style={styles.cardMetaText}>
+              <AppText preset="unifiedMeta" style={styles.cardMetaText}>
                 {item.address}
               </AppText>
             </View>
@@ -169,7 +169,7 @@ function LocationDiscoveryCard({
           {!compact && durationLabel ? (
             <View style={styles.cardMetaPill}>
               <Feather name="clock" size={12} color="#7B8597" />
-              <AppText preset="caption" style={styles.cardMetaText}>
+              <AppText preset="unifiedMeta" style={styles.cardMetaText}>
                 {durationLabel}
               </AppText>
             </View>
@@ -178,20 +178,20 @@ function LocationDiscoveryCard({
 
         {!compact && personalState?.badges.length ? (
           <View style={styles.personalStateSection}>
-            <AppText preset="caption" style={styles.personalStateLabel}>
+            <AppText preset="unifiedMeta" style={styles.personalStateLabel}>
               내 상태
             </AppText>
             <View style={styles.personalBadgeRow}>
               {personalState.badges.map(badge => (
                 <View key={`${item.id}:${badge}`} style={styles.personalBadge}>
-                  <AppText preset="caption" style={styles.personalBadgeText}>
+                  <AppText preset="unifiedMeta" style={styles.personalBadgeText}>
                     {badge}
                   </AppText>
                 </View>
               ))}
             </View>
             {personalState.note ? (
-              <AppText preset="caption" style={styles.personalStateNote}>
+              <AppText preset="unifiedMeta" style={styles.personalStateNote}>
                 {personalState.note}
               </AppText>
             ) : null}
@@ -210,7 +210,7 @@ function LocationDiscoveryCard({
             onPress={() => onPress(item)}
           >
             <AppText
-              preset="caption"
+              preset="unifiedMeta"
               style={[
                 styles.cardSecondaryActionText,
                 selected ? styles.cardSecondaryActionTextSelected : null,
@@ -224,7 +224,7 @@ function LocationDiscoveryCard({
             style={styles.cardPrimaryActionButton}
             onPress={() => onPressDetail(item)}
           >
-            <AppText preset="caption" style={styles.cardPrimaryActionText}>
+            <AppText preset="unifiedMeta" style={styles.cardPrimaryActionText}>
               상세 보기
             </AppText>
           </TouchableOpacity>

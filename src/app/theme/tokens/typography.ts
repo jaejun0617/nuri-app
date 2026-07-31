@@ -115,6 +115,39 @@ const semanticPreset = {
   },
 } as const;
 
+// Recent-records 기준을 커뮤니티·네비게이션·날씨와 분리해 적용하기 위한
+// 비제외 영역 전용 preset이다. 기존 preset은 외부 화면과 공유되므로 유지한다.
+const unifiedPreset = {
+  title: {
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: '600' as const,
+    letterSpacing: 0,
+    fontFamily: pretendardFamily,
+  },
+  label: {
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '500' as const,
+    letterSpacing: 0,
+    fontFamily: pretendardFamily,
+  },
+  body: {
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '500' as const,
+    letterSpacing: 0,
+    fontFamily: pretendardFamily,
+  },
+  date: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '500' as const,
+    letterSpacing: 0,
+    fontFamily: pretendardFamily,
+  },
+} as const;
+
 export const typography = {
   family: {
     sans: pretendardFamily,
@@ -147,12 +180,18 @@ export const typography = {
   role: semanticPreset,
   preset: {
     ...semanticPreset,
+    unifiedTitle: unifiedPreset.title,
+    unifiedLabel: unifiedPreset.label,
+    unifiedBody: unifiedPreset.body,
+    unifiedDate: unifiedPreset.date,
+    unifiedMeta: unifiedPreset.body,
     title1: semanticPreset.display,
     title2: semanticPreset.titleLg,
     headline: semanticPreset.titleSm,
     body: semanticPreset.body,
     caption: semanticPreset.helper,
   },
+  unified: unifiedPreset,
 } as const;
 
 export type TypographyRoleName = keyof typeof semanticPreset;

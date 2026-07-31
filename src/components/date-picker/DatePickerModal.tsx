@@ -553,8 +553,8 @@ function DatePickerModalBase({
               <Feather name="chevron-left" size={20} color={theme.colors.textPrimary} />
             </TouchableOpacity>
             <View style={styles.monthTitleWrap}>
-              <AppText preset="titleMd">{monthTitle}</AppText>
-              <AppText preset="caption" color={theme.colors.textMuted}>
+              <AppText preset="unifiedTitle">{monthTitle}</AppText>
+              <AppText preset="unifiedMeta" color={theme.colors.textMuted}>
                 {title}
               </AppText>
             </View>
@@ -580,7 +580,7 @@ function DatePickerModalBase({
               {WEEKDAYS.map((weekday, index) => (
                 <AppText
                   key={weekday}
-                  preset="caption"
+                  preset="unifiedMeta"
                   style={[
                     styles.weekdayText,
                     index === 0 ? styles.sundayText : null,
@@ -614,7 +614,7 @@ function DatePickerModalBase({
                       ]}
                     >
                       <AppText
-                        preset="caption"
+                        preset="unifiedMeta"
                         style={[
                           styles.dayText,
                           !cell.currentMonth ? styles.outMonthText : null,
@@ -642,8 +642,8 @@ function DatePickerModalBase({
             <View style={styles.selectedPanel}>
               <View style={styles.selectedDateLine}>
                 <View style={styles.selectedDateLeft}>
-                  <AppText preset="titleMd">{selectedSummary}</AppText>
-                  <AppText preset="caption" color={theme.colors.textMuted}>
+                  <AppText preset="unifiedTitle">{selectedSummary}</AppText>
+                  <AppText preset="unifiedMeta" color={theme.colors.textMuted}>
                     {includeTime
                       ? `${previewText} ${formatTimeSelection(timeSelection)}`
                       : previewText}
@@ -655,10 +655,10 @@ function DatePickerModalBase({
               {includeTime ? (
                 <View style={styles.timePickerBlock}>
                   <View style={styles.timePickerHeader}>
-                    <AppText preset="caption" color={theme.colors.textMuted}>
+                    <AppText preset="unifiedMeta" color={theme.colors.textMuted}>
                       시간
                     </AppText>
-                    <AppText preset="body" style={styles.timePreviewText}>
+                    <AppText preset="unifiedBody" style={styles.timePreviewText}>
                       {timeSelection.period === 'am' ? '오전' : '오후'}{' '}
                       {timeSelection.hour}:{timeSelection.minute}
                     </AppText>
@@ -685,7 +685,7 @@ function DatePickerModalBase({
                           }}
                         >
                           <AppText
-                            preset="caption"
+                            preset="unifiedMeta"
                             style={[
                               styles.periodButtonText,
                               selected ? styles.periodButtonTextActive : null,
@@ -699,7 +699,7 @@ function DatePickerModalBase({
                   </View>
                   <View style={styles.timeInputRow}>
                     <View style={styles.timeInputGroup}>
-                      <AppText preset="caption" style={styles.timeColumnLabel}>
+                      <AppText preset="unifiedMeta" style={styles.timeColumnLabel}>
                         시
                       </AppText>
                       <TextInput
@@ -725,11 +725,11 @@ function DatePickerModalBase({
                         }}
                       />
                     </View>
-                    <AppText preset="titleMd" style={styles.timeColonText}>
+                    <AppText preset="unifiedTitle" style={styles.timeColonText}>
                       :
                     </AppText>
                     <View style={styles.timeInputGroup}>
-                      <AppText preset="caption" style={styles.timeColumnLabel}>
+                      <AppText preset="unifiedMeta" style={styles.timeColumnLabel}>
                         분
                       </AppText>
                       <TextInput
@@ -761,10 +761,10 @@ function DatePickerModalBase({
 
               <View style={styles.directInputBlock}>
                 <View style={styles.directInputHeader}>
-                  <AppText preset="caption" color={theme.colors.textMuted}>
+                  <AppText preset="unifiedMeta" color={theme.colors.textMuted}>
                     {directInputLabel}
                   </AppText>
-                  <AppText preset="caption" color={theme.colors.textMuted}>
+                  <AppText preset="unifiedMeta" color={theme.colors.textMuted}>
                     {directInputHelper}
                   </AppText>
                 </View>
@@ -790,7 +790,7 @@ function DatePickerModalBase({
                   onChangeText={handleDirectInputChange}
                 />
                 {directInputError ? (
-                  <AppText preset="caption" style={styles.directInputError}>
+                  <AppText preset="unifiedMeta" style={styles.directInputError}>
                     {directInputError}
                   </AppText>
                 ) : null}
@@ -810,7 +810,7 @@ function DatePickerModalBase({
               ]}
               onPress={onCancel}
             >
-              <AppText preset="caption" style={styles.secondaryButtonText}>
+              <AppText preset="unifiedMeta" style={styles.secondaryButtonText}>
                 {cancelText}
               </AppText>
             </TouchableOpacity>
@@ -825,7 +825,7 @@ function DatePickerModalBase({
               ]}
               onPress={handleConfirm}
             >
-              <AppText preset="caption" style={styles.primaryButtonText}>
+              <AppText preset="unifiedMeta" style={styles.primaryButtonText}>
                 {confirmText}
               </AppText>
             </TouchableOpacity>

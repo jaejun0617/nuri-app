@@ -297,7 +297,7 @@ export default function GuideListScreen() {
           </TouchableOpacity>
         </View>
 
-        <AppText preset="headline" style={styles.headerTitle}>
+        <AppText preset="unifiedTitle" style={styles.headerTitle}>
           집사 꿀팁 가이드
         </AppText>
 
@@ -353,7 +353,7 @@ export default function GuideListScreen() {
             ) : null}
           </View>
           <View style={styles.searchMetaRow}>
-            <AppText preset="caption" style={styles.searchMetaText}>
+            <AppText preset="unifiedMeta" style={styles.searchMetaText}>
               {hasSearchQuery
                 ? '검색어와 가장 가까운 가이드를 우선 보여드려요.'
                 : '최근 검색어는 이 기기에 저장되고, 인기 검색어는 서버 기준으로 불러와요.'}
@@ -369,14 +369,14 @@ export default function GuideListScreen() {
                       : styles.debugBadgeEmpty,
                 ]}
               >
-                <AppText preset="caption" style={styles.debugBadgeText}>
+                <AppText preset="unifiedMeta" style={styles.debugBadgeText}>
                   {catalogSourceLabel}
                 </AppText>
               </View>
             ) : null}
             {hasSearchQuery && searchState.loading ? (
               <AppText
-                preset="caption"
+                preset="unifiedMeta"
                 style={[styles.searchMetaLoadingText, { color: petTheme.primary }]}
               >
                 검색 중
@@ -398,10 +398,10 @@ export default function GuideListScreen() {
               }}
             >
               <View style={styles.suggestionToggleCopy}>
-                <AppText preset="body" style={styles.suggestionTitle}>
+                <AppText preset="unifiedBody" style={styles.suggestionTitle}>
                   최근 검색어
                 </AppText>
-                <AppText preset="caption" style={styles.suggestionToggleMeta}>
+                <AppText preset="unifiedMeta" style={styles.suggestionToggleMeta}>
                   {recentKeywords.length > 0
                     ? `${recentKeywords.length}개 저장됨`
                     : '아직 저장된 검색어가 없어요'}
@@ -415,13 +415,13 @@ export default function GuideListScreen() {
             </Pressable>
             {recentSearchesExpanded ? (
               recentKeywords.length === 0 ? (
-                <AppText preset="caption" style={styles.suggestionEmptyText}>
+                <AppText preset="unifiedMeta" style={styles.suggestionEmptyText}>
                   원하는 키워드를 검색하면 여기에 쌓여요.
                 </AppText>
               ) : (
                 <>
                   <View style={styles.suggestionActionRow}>
-                    <AppText preset="caption" style={styles.suggestionHelperText}>
+                    <AppText preset="unifiedMeta" style={styles.suggestionHelperText}>
                       최근에 찾았던 키워드를 빠르게 다시 열 수 있어요.
                     </AppText>
                     <Pressable
@@ -429,7 +429,7 @@ export default function GuideListScreen() {
                         recentSearchState.clear().catch(() => {});
                       }}
                     >
-                      <AppText preset="caption" style={styles.suggestionActionText}>
+                      <AppText preset="unifiedMeta" style={styles.suggestionActionText}>
                         모두 지우기
                       </AppText>
                     </Pressable>
@@ -451,7 +451,7 @@ export default function GuideListScreen() {
                         }}
                       >
                         <AppText
-                          preset="caption"
+                          preset="unifiedMeta"
                           style={[
                             styles.chipButtonText,
                             styles.chipButtonTextActive,
@@ -478,10 +478,10 @@ export default function GuideListScreen() {
               }}
             >
               <View style={styles.suggestionToggleCopy}>
-                <AppText preset="body" style={styles.suggestionTitle}>
+                <AppText preset="unifiedBody" style={styles.suggestionTitle}>
                   인기 검색어
                 </AppText>
-                <AppText preset="caption" style={styles.suggestionToggleMeta}>
+                <AppText preset="unifiedMeta" style={styles.suggestionToggleMeta}>
                   {popularSearchState.loading
                     ? '불러오는 중'
                     : popularKeywords.length > 0
@@ -497,14 +497,14 @@ export default function GuideListScreen() {
             </Pressable>
             {popularSearchesExpanded ? (
               popularKeywords.length === 0 ? (
-                <AppText preset="caption" style={styles.suggestionEmptyText}>
+                <AppText preset="unifiedMeta" style={styles.suggestionEmptyText}>
                   {popularSearchState.loading
                     ? '검색어 흐름을 정리하고 있어요.'
                     : '추천 검색어를 아직 준비하지 못했어요.'}
                 </AppText>
               ) : (
                 <>
-                  <AppText preset="caption" style={styles.suggestionHelperText}>
+                  <AppText preset="unifiedMeta" style={styles.suggestionHelperText}>
                     많이 찾는 주제를 바로 열어서 탐색할 수 있어요.
                   </AppText>
                   <View style={styles.chipWrap}>
@@ -520,7 +520,7 @@ export default function GuideListScreen() {
                         }}
                       >
                         <AppText
-                          preset="caption"
+                          preset="unifiedMeta"
                           style={[styles.chipButtonText, { color: petTheme.primary }]}
                         >
                           {keyword}
@@ -538,20 +538,20 @@ export default function GuideListScreen() {
       {catalogState.loading ? (
         <View style={styles.emptyCard}>
           <Feather name="loader" size={28} color={petTheme.primary} />
-          <AppText preset="headline" style={styles.emptyTitle}>
+          <AppText preset="unifiedTitle" style={styles.emptyTitle}>
             가이드를 불러오는 중이에요
           </AppText>
-          <AppText preset="body" style={styles.emptyDesc}>
+          <AppText preset="unifiedBody" style={styles.emptyDesc}>
             공개된 콘텐츠를 정리해서 보여드리고 있어요.
           </AppText>
         </View>
       ) : catalogState.error && rankedGuides.length === 0 ? (
         <View style={styles.emptyCard}>
           <Feather name="alert-circle" size={28} color={petTheme.primary} />
-          <AppText preset="headline" style={styles.emptyTitle}>
+          <AppText preset="unifiedTitle" style={styles.emptyTitle}>
             가이드를 불러오지 못했어요
           </AppText>
-          <AppText preset="body" style={styles.emptyDesc}>
+          <AppText preset="unifiedBody" style={styles.emptyDesc}>
             {catalogState.error}
           </AppText>
         </View>
@@ -562,14 +562,14 @@ export default function GuideListScreen() {
             size={28}
             color={petTheme.primary}
           />
-          <AppText preset="headline" style={styles.emptyTitle}>
+          <AppText preset="unifiedTitle" style={styles.emptyTitle}>
             {hasSearchQuery
               ? '검색 결과가 없어요'
               : catalogState.guides.length > 0
                 ? `${audienceLabel}에게 맞는 가이드가 아직 없어요`
                 : '공개된 가이드가 아직 없어요'}
           </AppText>
-          <AppText preset="body" style={styles.emptyDesc}>
+          <AppText preset="unifiedBody" style={styles.emptyDesc}>
             {hasSearchQuery
               ? '검색어를 조금 다르게 입력하거나 태그·종 이름으로 다시 찾아보세요.'
               : catalogState.guides.length > 0
@@ -595,7 +595,7 @@ export default function GuideListScreen() {
               }}
             >
               <AppText
-                preset="caption"
+                preset="unifiedMeta"
                 style={[styles.resetSearchButtonText, { color: petTheme.primary }]}
               >
                 검색어 지우기

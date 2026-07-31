@@ -49,6 +49,7 @@ import Animated, {
 
 import Screen from '../../../../components/layout/Screen';
 import { FrequentRecordsSection } from '../../../../components/records/FrequentRecordsSection';
+import { SectionHeaderAction } from '../../../../app/ui/SectionHeaderAction';
 import GuideRecommendationCard from '../../../../components/guides/GuideRecommendationCard';
 import { useWeatherGuide } from '../../../../hooks/useWeatherGuide';
 import { useHomePetCareGuides } from '../../../../hooks/useHomePetCareGuides';
@@ -1774,27 +1775,24 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
 
   return (
     <View style={[styles.section, styles.recentSection]}>
-      <View style={[styles.sectionHeaderRow, styles.recentSectionHeaderRow]}>
-        <View style={styles.recentSectionTitleRow}>
-          <MaterialCommunityIcons
-            name="history"
-            size={22}
-            color={accentDeepColor}
-          />
-          <Text style={[styles.sectionTitle, { color: accentDeepColor }]}>
-            최근 기록
-          </Text>
-        </View>
-        <TouchableOpacity activeOpacity={0.85} onPress={onPressTimeline}>
-          <Text
-            style={[styles.sectionLink, styles.recentSectionLink, { color: accentColor }]}
-          >
-            전체보기
-          </Text>
-        </TouchableOpacity>
-      </View>
-
       <View style={styles.recentPreviewCard}>
+        <View style={[styles.sectionHeaderRow, styles.recentSectionHeaderRow]}>
+          <View style={styles.recentSectionTitleRow}>
+            <MaterialCommunityIcons
+              name="history"
+              size={20}
+              color={accentDeepColor}
+            />
+            <Text style={[styles.sectionTitle, { color: accentDeepColor }]}>
+              최근 기록
+            </Text>
+          </View>
+          <SectionHeaderAction
+            color={accentColor}
+            onPress={onPressTimeline}
+            accessibilityLabel="전체 기록 보기"
+          />
+        </View>
         {isRecordBootstrapPending ? (
           <View style={styles.recentEmptyState}>
             <ActivityIndicator size="small" color={accentDeepColor} />

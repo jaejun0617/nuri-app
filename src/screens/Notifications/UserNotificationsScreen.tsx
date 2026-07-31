@@ -216,13 +216,13 @@ const NotificationSwipeItem = React.memo(function NotificationSwipeItem({
               <View style={styles.itemTopRow}>
                 <View style={styles.itemTitleWrap}>
                   {unread ? <View style={styles.unreadDot} /> : null}
-                  <AppText preset="body" style={styles.itemTitle} numberOfLines={1}>
+                  <AppText preset="unifiedBody" style={styles.itemTitle} numberOfLines={1}>
                     {item.title}
                   </AppText>
                 </View>
               </View>
               <AppText
-                preset="body"
+                preset="unifiedBody"
                 style={[
                   styles.itemBody,
                   expanded ? styles.itemBodyExpanded : styles.itemBodyCollapsed,
@@ -232,7 +232,7 @@ const NotificationSwipeItem = React.memo(function NotificationSwipeItem({
                 {item.body}
               </AppText>
               <View style={styles.itemFooterRow}>
-                <AppText preset="caption" style={styles.itemDate}>
+                <AppText preset="unifiedMeta" style={styles.itemDate}>
                   {formatNotificationDate(item.createdAt)}
                 </AppText>
                 <TouchableOpacity
@@ -448,10 +448,10 @@ export default function UserNotificationsScreen() {
           <Feather name="arrow-left" size={20} color="#102033" />
         </TouchableOpacity>
         <View style={styles.headerTextWrap}>
-          <AppText preset="headline" style={styles.headerTitle}>
+          <AppText preset="unifiedTitle" style={styles.headerTitle}>
             알림함
           </AppText>
-          <AppText preset="caption" style={styles.headerSubText}>
+          <AppText preset="unifiedMeta" style={styles.headerSubText}>
             읽지 않은 알림 {unreadCount}개
           </AppText>
         </View>
@@ -463,13 +463,13 @@ export default function UserNotificationsScreen() {
             style={styles.headerClearButton}
             onPress={onDismissAllNotifications}
           >
-            <AppText preset="caption" style={styles.headerClearText}>
+            <AppText preset="unifiedMeta" style={styles.headerClearText}>
               전체삭제
             </AppText>
           </TouchableOpacity>
         ) : null}
         <View style={[styles.headerBadge, { backgroundColor: theme.colors.brand }]}>
-          <AppText preset="caption" style={styles.headerBadgeText}>
+          <AppText preset="unifiedMeta" style={styles.headerBadgeText}>
             {unreadCount}
           </AppText>
         </View>
@@ -478,16 +478,16 @@ export default function UserNotificationsScreen() {
       {loading ? (
         <View style={styles.centerState}>
           <ActivityIndicator />
-          <AppText preset="body" style={styles.centerText}>
+          <AppText preset="unifiedBody" style={styles.centerText}>
             알림을 불러오는 중이에요.
           </AppText>
         </View>
       ) : errorMessage ? (
         <View style={styles.centerState}>
-          <AppText preset="headline" style={styles.centerTitle}>
+          <AppText preset="unifiedTitle" style={styles.centerTitle}>
             알림을 불러오지 못했어요
           </AppText>
-          <AppText preset="body" style={styles.centerText}>
+          <AppText preset="unifiedBody" style={styles.centerText}>
             {errorMessage}
           </AppText>
           <TouchableOpacity
@@ -495,7 +495,7 @@ export default function UserNotificationsScreen() {
             style={[styles.retryButton, { backgroundColor: theme.colors.brand }]}
             onPress={() => load().catch(() => {})}
           >
-            <AppText preset="body" style={styles.retryButtonText}>
+            <AppText preset="unifiedBody" style={styles.retryButtonText}>
               다시 불러오기
             </AppText>
           </TouchableOpacity>
@@ -517,10 +517,10 @@ export default function UserNotificationsScreen() {
               <View style={styles.emptyIcon}>
                 <Feather name="bell" size={24} color="#7D8798" />
               </View>
-              <AppText preset="headline" style={styles.centerTitle}>
+              <AppText preset="unifiedTitle" style={styles.centerTitle}>
                 아직 새 알림이 없어요
               </AppText>
-              <AppText preset="body" style={styles.centerText}>
+              <AppText preset="unifiedBody" style={styles.centerText}>
                 중요한 안내가 생기면 이곳에 차분히 모아둘게요.
               </AppText>
             </View>

@@ -60,13 +60,13 @@ const MetricCard = memo(function MetricCard({
       <View style={[styles.metricIcon, { backgroundColor: `${tint}18` }]}>
         <Feather name={icon} size={16} color={tint} />
       </View>
-      <AppText preset="caption" style={styles.metricLabel}>
+      <AppText preset="unifiedMeta" style={styles.metricLabel}>
         {label}
       </AppText>
-      <AppText preset="headline" style={styles.metricValue}>
+      <AppText preset="unifiedTitle" style={styles.metricValue}>
         {value}
       </AppText>
-      <AppText preset="caption" style={styles.metricHelper} numberOfLines={2}>
+      <AppText preset="unifiedMeta" style={styles.metricHelper} numberOfLines={2}>
         {helper}
       </AppText>
     </View>
@@ -85,11 +85,11 @@ const SectionCard = memo(function SectionCard({
   return (
     <View style={styles.sectionCard}>
       {eyebrow ? (
-        <AppText preset="caption" style={styles.sectionEyebrow}>
+        <AppText preset="unifiedMeta" style={styles.sectionEyebrow}>
           {eyebrow}
         </AppText>
       ) : null}
-      <AppText preset="headline" style={styles.sectionTitle}>
+      <AppText preset="unifiedTitle" style={styles.sectionTitle}>
         {title}
       </AppText>
       {children}
@@ -186,7 +186,7 @@ function GrowthCard({
     <View style={[styles.growthCard, { borderColor: `${accentColor}28` }]}>
       <View style={styles.growthTopRow}>
         <View>
-          <AppText preset="caption" style={styles.growthEyebrow}>
+          <AppText preset="unifiedMeta" style={styles.growthEyebrow}>
             나의 활동 성장
           </AppText>
           <AppText preset="display" style={styles.growthTitle}>
@@ -194,7 +194,7 @@ function GrowthCard({
           </AppText>
         </View>
         <View style={[styles.titlePill, { backgroundColor: `${accentColor}16` }]}>
-          <AppText preset="caption" style={[styles.titlePillText, { color: accentColor }]}>
+          <AppText preset="unifiedMeta" style={[styles.titlePillText, { color: accentColor }]}>
             {dashboard.representativeTitle}
           </AppText>
         </View>
@@ -209,14 +209,14 @@ function GrowthCard({
         />
       </View>
       <View style={styles.growthBottomRow}>
-        <AppText preset="caption" style={styles.growthMeta}>
+        <AppText preset="unifiedMeta" style={styles.growthMeta}>
           {formatXp(levelSummary.totalXp)}
         </AppText>
-        <AppText preset="caption" style={styles.growthMeta}>
+        <AppText preset="unifiedMeta" style={styles.growthMeta}>
           {getNextLevelLabel(dashboard)}
         </AppText>
       </View>
-      <AppText preset="caption" style={styles.levelPolicyNote}>
+      <AppText preset="unifiedMeta" style={styles.levelPolicyNote}>
         Lv.1~{LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1]?.level ?? 30}
         까지 열려 있어요. 높은 레벨일수록 더 오래 쌓아야 해요.
       </AppText>
@@ -238,10 +238,10 @@ function PetSelector({
   if (pets.length === 0) {
     return (
       <View style={styles.emptyPetsCard}>
-        <AppText preset="headline" style={styles.emptyTitle}>
+        <AppText preset="unifiedTitle" style={styles.emptyTitle}>
           아직 연결된 아이가 없어요
         </AppText>
-        <AppText preset="body" style={styles.emptyBody}>
+        <AppText preset="unifiedBody" style={styles.emptyBody}>
           아이를 등록하면 펫별 산책, 타임라인, 건강 기록을 따로 볼 수 있어요.
         </AppText>
       </View>
@@ -266,13 +266,13 @@ function PetSelector({
             ]}
             onPress={() => onSelect(pet.petId)}
           >
-            <AppText preset="headline" style={styles.petSelectorName} numberOfLines={1}>
+            <AppText preset="unifiedTitle" style={styles.petSelectorName} numberOfLines={1}>
               {pet.petName}
             </AppText>
-            <AppText preset="caption" style={styles.petSelectorMeta}>
+            <AppText preset="unifiedMeta" style={styles.petSelectorMeta}>
               {formatXp(pet.xp)} · 훈장 {pet.achievements.filter(item => item.achieved).length}개
             </AppText>
-            <AppText preset="caption" style={styles.petSelectorMeta}>
+            <AppText preset="unifiedMeta" style={styles.petSelectorMeta}>
               최고 산책 {pet.streak?.bestStreak ?? 0}일
             </AppText>
           </TouchableOpacity>
@@ -329,10 +329,10 @@ function PetActivityCards({
         <View style={styles.categoryGrid}>
           {categoryLabels.map(item => (
             <View key={item.key} style={styles.categoryPill}>
-              <AppText preset="caption" style={styles.categoryLabel}>
+              <AppText preset="unifiedMeta" style={styles.categoryLabel}>
                 {item.label}
               </AppText>
-              <AppText preset="headline" style={styles.categoryCount}>
+              <AppText preset="unifiedTitle" style={styles.categoryCount}>
                 {item.count}
               </AppText>
             </View>
@@ -350,7 +350,7 @@ function CommonActivityCard({
 }) {
   return (
     <SectionCard title="공통 활동" eyebrow="사용자 전체 기준">
-      <AppText preset="body" style={styles.commonDescription}>
+      <AppText preset="unifiedBody" style={styles.commonDescription}>
         커뮤니티 글과 댓글은 특정 아이에게 중복 합산하지 않고 내 활동으로만 보여줘요.
       </AppText>
       <View style={styles.metricGrid}>
@@ -406,10 +406,10 @@ function AchievementVault({
                 />
               </View>
               <View style={styles.achievementTextWrap}>
-                <AppText preset="body" style={styles.achievementName} numberOfLines={1}>
+                <AppText preset="unifiedBody" style={styles.achievementName} numberOfLines={1}>
                   {item.name}
                 </AppText>
-                <AppText preset="caption" style={styles.achievementCondition} numberOfLines={2}>
+                <AppText preset="unifiedMeta" style={styles.achievementCondition} numberOfLines={2}>
                   {item.ownerLabel} · {item.conditionLabel} · {item.currentValue}/{item.threshold}
                 </AppText>
               </View>
@@ -529,10 +529,10 @@ export default function PetActivityAchievementsScreen() {
           <Feather name="arrow-left" size={20} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <View style={styles.headerTextWrap}>
-          <AppText preset="headline" style={[styles.title, { color: theme.colors.textPrimary }]}>
+          <AppText preset="unifiedTitle" style={[styles.title, { color: theme.colors.textPrimary }]}>
             활동·칭호
           </AppText>
-          <AppText preset="caption" style={[styles.subtitle, { color: theme.colors.textMuted }]}>
+          <AppText preset="unifiedMeta" style={[styles.subtitle, { color: theme.colors.textMuted }]}>
             아이별 활동과 내 공통 활동을 분리해서 보여줘요.
           </AppText>
         </View>
@@ -576,7 +576,7 @@ export default function PetActivityAchievementsScreen() {
             <AchievementVault achievements={dashboard.allAchievements} />
 
             {dashboard.ledgerLimitReached ? (
-              <AppText preset="caption" style={styles.limitNotice}>
+              <AppText preset="unifiedMeta" style={styles.limitNotice}>
                 최근 1,000개 XP ledger 기준으로 표시 중이에요. 장기 통계는 후속 summary RPC에서
                 확장합니다.
               </AppText>
@@ -584,10 +584,10 @@ export default function PetActivityAchievementsScreen() {
           </>
         ) : (
           <View style={styles.emptyPetsCard}>
-            <AppText preset="headline" style={styles.emptyTitle}>
+            <AppText preset="unifiedTitle" style={styles.emptyTitle}>
               활동 기록을 불러오지 못했어요
             </AppText>
-            <AppText preset="body" style={styles.emptyBody}>
+            <AppText preset="unifiedBody" style={styles.emptyBody}>
               네트워크 상태를 확인한 뒤 다시 시도해 주세요.
             </AppText>
           </View>

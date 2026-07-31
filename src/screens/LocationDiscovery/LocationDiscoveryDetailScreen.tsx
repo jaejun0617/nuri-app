@@ -134,13 +134,13 @@ export default function LocationDiscoveryDetailScreen() {
                 <Feather name="arrow-left" size={20} color="#102033" />
               </TouchableOpacity>
             </View>
-            <AppText preset="headline" style={styles.headerTitle}>
+            <AppText preset="unifiedTitle" style={styles.headerTitle}>
               산책 장소 상세
             </AppText>
             <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
           </View>
           <View style={styles.emptyCard}>
-            <AppText preset="headline" style={styles.emptyTitle}>
+            <AppText preset="unifiedTitle" style={styles.emptyTitle}>
               장소 정보를 찾을 수 없어요
             </AppText>
           </View>
@@ -172,7 +172,7 @@ export default function LocationDiscoveryDetailScreen() {
             <Feather name="arrow-left" size={20} color="#102033" />
           </TouchableOpacity>
           </View>
-          <AppText preset="headline" style={styles.headerTitle}>
+          <AppText preset="unifiedTitle" style={styles.headerTitle}>
             산책 장소 상세
           </AppText>
           <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
@@ -183,30 +183,30 @@ export default function LocationDiscoveryDetailScreen() {
           contentContainerStyle={styles.detailScrollContent}
         >
           <View style={styles.detailHero}>
-            <AppText preset="caption" style={styles.detailCategory}>
+            <AppText preset="unifiedMeta" style={styles.detailCategory}>
               {item.categoryLabel}
             </AppText>
-            <AppText preset="headline" style={styles.detailTitle}>
+            <AppText preset="unifiedTitle" style={styles.detailTitle}>
               {item.name}
             </AppText>
 
             <View style={styles.detailMetaGrid}>
               <View style={styles.detailMetaRow}>
                 <Feather name="map-pin" size={15} color="#7B8597" />
-                <AppText preset="body" style={styles.detailMetaText}>
+                <AppText preset="unifiedBody" style={styles.detailMetaText}>
                   {item.address}
                 </AppText>
               </View>
               <View style={styles.detailMetaRow}>
                 <Feather name="navigation" size={15} color="#7B8597" />
-                <AppText preset="body" style={styles.detailMetaText}>
+                <AppText preset="unifiedBody" style={styles.detailMetaText}>
                   {formatDistanceLabel(item.distanceMeters)}
                 </AppText>
               </View>
               {durationLabel ? (
                 <View style={styles.detailMetaRow}>
                   <Feather name="clock" size={15} color="#7B8597" />
-                  <AppText preset="body" style={styles.detailMetaText}>
+                  <AppText preset="unifiedBody" style={styles.detailMetaText}>
                     {durationLabel}
                   </AppText>
                 </View>
@@ -230,7 +230,7 @@ export default function LocationDiscoveryDetailScreen() {
                   }).catch(() => {});
                 }}
               >
-                <AppText preset="body" style={styles.primaryActionButtonText}>
+                <AppText preset="unifiedBody" style={styles.primaryActionButtonText}>
                   지도 보기
                 </AppText>
               </TouchableOpacity>
@@ -242,7 +242,7 @@ export default function LocationDiscoveryDetailScreen() {
                     Linking.openURL(item.placeUrl!).catch(() => {});
                   }}
                 >
-                  <AppText preset="body" style={styles.secondaryActionButtonText}>
+                  <AppText preset="unifiedBody" style={styles.secondaryActionButtonText}>
                     장소 링크
                   </AppText>
                 </TouchableOpacity>
@@ -260,7 +260,7 @@ export default function LocationDiscoveryDetailScreen() {
           {visibleRelatedItems.length > 0 ? (
             <View style={styles.relatedSection}>
               <View style={styles.relatedSectionHeader}>
-                <AppText preset="headline" style={styles.relatedSectionTitle}>
+                <AppText preset="unifiedTitle" style={styles.relatedSectionTitle}>
                   주변 산책 장소
                 </AppText>
               </View>
@@ -282,7 +282,7 @@ export default function LocationDiscoveryDetailScreen() {
                     setVisibleRelatedCount(current => current + 6);
                   }}
                 >
-                  <AppText preset="body" style={styles.secondaryActionButtonText}>
+                  <AppText preset="unifiedBody" style={styles.secondaryActionButtonText}>
                     더보기
                   </AppText>
                 </TouchableOpacity>

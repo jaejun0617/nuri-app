@@ -680,13 +680,13 @@ export default function RecordEditScreen() {
     return (
       <View style={styles.screen}>
         <View style={styles.card}>
-          <AppText preset="headline">기록을 찾을 수 없어요</AppText>
-          <AppText preset="body" style={styles.desc}>
+          <AppText preset="unifiedTitle">기록을 찾을 수 없어요</AppText>
+          <AppText preset="unifiedBody" style={styles.desc}>
             목록으로 돌아가서 새로고침 해주세요.
           </AppText>
 
           <TouchableOpacity style={styles.ghost} onPress={safeGoBack}>
-            <AppText preset="caption" style={styles.ghostText}>
+            <AppText preset="unifiedMeta" style={styles.ghostText}>
               뒤로
             </AppText>
           </TouchableOpacity>
@@ -713,7 +713,7 @@ export default function RecordEditScreen() {
           </TouchableOpacity>
         </View>
 
-        <AppText preset="headline" style={styles.headerTitle}>
+        <AppText preset="unifiedTitle" style={styles.headerTitle}>
           {isHealthEntry ? '건강 기록 수정' : '기록 수정'}
         </AppText>
 
@@ -742,7 +742,7 @@ export default function RecordEditScreen() {
           stageStyle={styles.heroStage}
           emptyContent={
             <View style={styles.heroPlaceholder}>
-              <AppText preset="caption" style={styles.heroPlaceholderText}>
+              <AppText preset="unifiedMeta" style={styles.heroPlaceholderText}>
                 NO IMAGE
               </AppText>
             </View>
@@ -754,7 +754,7 @@ export default function RecordEditScreen() {
               </View>
             ) : !activeImageUri ? (
               <View style={styles.heroPlaceholder}>
-                <AppText preset="caption" style={styles.heroPlaceholderText}>
+                <AppText preset="unifiedMeta" style={styles.heroPlaceholderText}>
                   NO IMAGE
                 </AppText>
               </View>
@@ -779,7 +779,7 @@ export default function RecordEditScreen() {
                 onPress={onPickImage}
                 disabled={saving}
               >
-                <AppText preset="caption" style={styles.imgBtnText}>
+                <AppText preset="unifiedMeta" style={styles.imgBtnText}>
                   사진 추가
                 </AppText>
               </TouchableOpacity>
@@ -790,7 +790,7 @@ export default function RecordEditScreen() {
                 onPress={onRemoveActiveImage}
                 disabled={saving || previewItems.length === 0}
               >
-                <AppText preset="caption" style={styles.imgBtnDangerText}>
+                <AppText preset="unifiedMeta" style={styles.imgBtnDangerText}>
                   현재 사진 제거
                 </AppText>
               </TouchableOpacity>
@@ -798,7 +798,7 @@ export default function RecordEditScreen() {
           }
         />
 
-        <AppText preset="caption" style={styles.label}>
+        <AppText preset="unifiedMeta" style={styles.label}>
           제목
         </AppText>
         <TextInput
@@ -814,7 +814,7 @@ export default function RecordEditScreen() {
           editable={!saving}
         />
 
-        <AppText preset="caption" style={styles.label}>
+        <AppText preset="unifiedMeta" style={styles.label}>
           내용(선택)
         </AppText>
         <TextInput
@@ -831,7 +831,7 @@ export default function RecordEditScreen() {
           editable={!saving}
         />
 
-        <AppText preset="caption" style={styles.label}>
+        <AppText preset="unifiedMeta" style={styles.label}>
           날짜(선택)
         </AppText>
         <TouchableOpacity
@@ -841,14 +841,14 @@ export default function RecordEditScreen() {
           disabled={saving}
         >
           <AppText
-            preset="body"
+            preset="unifiedBody"
             style={{ color: occurredAt ? '#0B1220' : '#8A94A6' }}
           >
             {occurredAt ? occurredAtLabel : '날짜를 선택해 주세요'}
           </AppText>
         </TouchableOpacity>
 
-        <AppText preset="caption" style={styles.label}>
+        <AppText preset="unifiedMeta" style={styles.label}>
           분류
         </AppText>
         <View style={styles.categoryGrid}>
@@ -866,7 +866,7 @@ export default function RecordEditScreen() {
                 activeOpacity={0.9}
               >
                 <AppText
-                  preset="caption"
+                  preset="unifiedMeta"
                   style={[
                     styles.categoryChipText,
                     active ? styles.categoryChipTextActive : null,
@@ -895,7 +895,7 @@ export default function RecordEditScreen() {
                   activeOpacity={0.9}
                 >
                   <AppText
-                    preset="caption"
+                    preset="unifiedMeta"
                     style={[
                       styles.subCategoryChipText,
                       active ? styles.subCategoryChipTextActive : null,
@@ -922,7 +922,7 @@ export default function RecordEditScreen() {
 
         {isShoppingCategory ? (
           <>
-            <AppText preset="caption" style={styles.label}>
+            <AppText preset="unifiedMeta" style={styles.label}>
               구매 가격
             </AppText>
             <TextInput
@@ -935,7 +935,7 @@ export default function RecordEditScreen() {
               keyboardType="number-pad"
               editable={!saving}
             />
-            <AppText preset="caption" style={styles.helperText}>
+            <AppText preset="unifiedMeta" style={styles.helperText}>
               {priceLabel
                 ? `저장 예정 금액: ${priceLabel}`
                 : '숫자만 입력하면 자동으로 원 단위로 저장돼요.'}
@@ -943,7 +943,7 @@ export default function RecordEditScreen() {
           </>
         ) : null}
 
-        <AppText preset="caption" style={styles.label}>
+        <AppText preset="unifiedMeta" style={styles.label}>
           태그(선택)
         </AppText>
         <TextInput
@@ -959,7 +959,7 @@ export default function RecordEditScreen() {
           editable={!saving}
         />
 
-        <AppText preset="caption" style={styles.label}>
+        <AppText preset="unifiedMeta" style={styles.label}>
           감정(선택)
         </AppText>
 
@@ -977,11 +977,11 @@ export default function RecordEditScreen() {
                 disabled={saving}
                 activeOpacity={0.9}
               >
-                <AppText preset="caption" style={styles.moodEmoji}>
+                <AppText preset="unifiedMeta" style={styles.moodEmoji}>
                   {em.emoji}
                 </AppText>
                 <AppText
-                  preset="caption"
+                  preset="unifiedMeta"
                   style={[styles.moodText, active ? styles.moodTextActive : null]}
                 >
                   {em.label}
@@ -1010,7 +1010,7 @@ export default function RecordEditScreen() {
               textStyle={styles.primaryText}
             />
           ) : (
-            <AppText preset="body" style={styles.primaryText}>
+            <AppText preset="unifiedBody" style={styles.primaryText}>
               저장
             </AppText>
           )}
@@ -1022,7 +1022,7 @@ export default function RecordEditScreen() {
           disabled={saving}
           activeOpacity={0.9}
         >
-          <AppText preset="body" style={styles.ghostText}>
+          <AppText preset="unifiedBody" style={styles.ghostText}>
             취소
           </AppText>
         </TouchableOpacity>

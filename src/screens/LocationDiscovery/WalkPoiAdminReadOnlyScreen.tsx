@@ -147,14 +147,14 @@ function MetricCard({
 }) {
   return (
     <View style={styles.metricCard}>
-      <AppText preset="caption" style={styles.metricLabel}>
+      <AppText preset="unifiedMeta" style={styles.metricLabel}>
         {label}
       </AppText>
-      <AppText preset="headline" style={styles.metricValue}>
+      <AppText preset="unifiedTitle" style={styles.metricValue}>
         {typeof value === 'number' ? formatCount(value) : value}
       </AppText>
       {helper ? (
-        <AppText preset="caption" style={styles.metricHelper}>
+        <AppText preset="unifiedMeta" style={styles.metricHelper}>
           {helper}
         </AppText>
       ) : null}
@@ -171,7 +171,7 @@ function Section({
 }) {
   return (
     <View style={styles.section}>
-      <AppText preset="titleSm" style={styles.sectionTitle}>
+      <AppText preset="unifiedTitle" style={styles.sectionTitle}>
         {title}
       </AppText>
       {children}
@@ -182,7 +182,7 @@ function Section({
 function EmptyState({ message }: { message: string }) {
   return (
     <View style={styles.stateCard}>
-      <AppText preset="body" style={styles.stateText}>
+      <AppText preset="unifiedBody" style={styles.stateText}>
         {message}
       </AppText>
     </View>
@@ -206,7 +206,7 @@ function FilterChip({
       onPress={onPress}
     >
       <AppText
-        preset="caption"
+        preset="unifiedMeta"
         style={[
           styles.filterChipText,
           selected ? styles.filterChipTextSelected : null,
@@ -216,7 +216,7 @@ function FilterChip({
       </AppText>
       {helper ? (
         <AppText
-          preset="caption"
+          preset="unifiedMeta"
           style={[
             styles.filterChipHelper,
             selected ? styles.filterChipTextSelected : null,
@@ -293,16 +293,16 @@ function BatchDrillDown({
 
       {selectedBatch ? (
         <View style={styles.batchDetailBox}>
-          <AppText preset="caption" style={styles.rowEyebrow}>
+          <AppText preset="unifiedMeta" style={styles.rowEyebrow}>
             선택 batch
           </AppText>
-          <AppText preset="body" style={styles.rowTitle}>
+          <AppText preset="unifiedBody" style={styles.rowTitle}>
             {selectedBatch.sourceName ?? selectedBatch.id}
           </AppText>
-          <AppText preset="caption" style={styles.rowMeta}>
+          <AppText preset="unifiedMeta" style={styles.rowMeta}>
             {selectedBatch.id}
           </AppText>
-          <AppText preset="caption" style={styles.rowMeta}>
+          <AppText preset="unifiedMeta" style={styles.rowMeta}>
             {selectedBatch.sourceProvider} · {selectedBatch.importMode} ·{' '}
             {selectedBatch.importStatus}
           </AppText>
@@ -317,26 +317,26 @@ function BatchRow({ batch }: { batch: WalkPoiAdminImportBatch }) {
     <View style={styles.rowCard}>
       <View style={styles.rowHeader}>
         <View style={styles.rowTitleBlock}>
-          <AppText preset="caption" style={styles.rowEyebrow}>
+          <AppText preset="unifiedMeta" style={styles.rowEyebrow}>
             {batch.sourceProvider} · {batch.importMode}
           </AppText>
-          <AppText preset="body" style={styles.rowTitle} numberOfLines={2}>
+          <AppText preset="unifiedBody" style={styles.rowTitle} numberOfLines={2}>
             {batch.sourceName ?? batch.id}
           </AppText>
         </View>
         <View style={styles.readOnlyBadge}>
-          <AppText preset="caption" style={styles.readOnlyBadgeText}>
+          <AppText preset="unifiedMeta" style={styles.readOnlyBadgeText}>
             {batch.importStatus}
           </AppText>
         </View>
       </View>
-      <AppText preset="caption" style={styles.rowMeta}>
+      <AppText preset="unifiedMeta" style={styles.rowMeta}>
         batch {batch.id}
       </AppText>
-      <AppText preset="caption" style={styles.rowMeta}>
+      <AppText preset="unifiedMeta" style={styles.rowMeta}>
         {formatBatchSummary(batch)}
       </AppText>
-      <AppText preset="caption" style={styles.rowMeta}>
+      <AppText preset="unifiedMeta" style={styles.rowMeta}>
         생성 {formatDateTime(batch.createdAt)}
         {batch.finishedAt ? ` · 완료 ${formatDateTime(batch.finishedAt)}` : ''}
       </AppText>
@@ -362,30 +362,30 @@ function ReviewRow({
     <View style={styles.rowCard}>
       <View style={styles.rowHeader}>
         <View style={styles.rowTitleBlock}>
-          <AppText preset="caption" style={styles.rowEyebrow}>
+          <AppText preset="unifiedMeta" style={styles.rowEyebrow}>
             {item.sourceProvider}
             {item.externalSourceId ? ` · ${item.externalSourceId}` : ''}
           </AppText>
-          <AppText preset="body" style={styles.rowTitle} numberOfLines={2}>
+          <AppText preset="unifiedBody" style={styles.rowTitle} numberOfLines={2}>
             {item.name}
           </AppText>
         </View>
         <View style={[styles.statusBadge, statusTone(item.reviewStatus)]}>
-          <AppText preset="caption" style={styles.statusBadgeText}>
+          <AppText preset="unifiedMeta" style={styles.statusBadgeText}>
             {item.reviewStatus}
           </AppText>
         </View>
       </View>
-      <AppText preset="caption" style={styles.rowMeta} numberOfLines={2}>
+      <AppText preset="unifiedMeta" style={styles.rowMeta} numberOfLines={2}>
         {item.categoryLabel}
         {item.address ? ` · ${item.address}` : ''}
       </AppText>
-      <AppText preset="caption" style={styles.rowMeta}>
+      <AppText preset="unifiedMeta" style={styles.rowMeta}>
         {item.visibilityStatus}/{item.lifecycleStatus} · 검수{' '}
         {formatDateTime(item.reviewedAt)}
       </AppText>
       {item.reviewNote ? (
-        <AppText preset="caption" style={styles.rowNote} numberOfLines={2}>
+        <AppText preset="unifiedMeta" style={styles.rowNote} numberOfLines={2}>
           {item.reviewNote}
         </AppText>
       ) : null}
@@ -407,7 +407,7 @@ function ReviewRow({
                 size={14}
                 color="#102033"
               />
-              <AppText preset="caption" style={styles.reviewActionButtonText}>
+              <AppText preset="unifiedMeta" style={styles.reviewActionButtonText}>
                 {REVIEW_ACTION_LABEL[action]}
               </AppText>
             </Pressable>
@@ -445,11 +445,11 @@ function AuditRow({
         <Feather name="activity" size={14} color="#2F6F4E" />
       </View>
       <View style={styles.auditBody}>
-        <AppText preset="caption" style={styles.auditTitle}>
+        <AppText preset="unifiedMeta" style={styles.auditTitle}>
           {item.actionType}
           {item.name ? ` · ${item.name}` : ''}
         </AppText>
-        <AppText preset="caption" style={styles.auditMeta}>
+        <AppText preset="unifiedMeta" style={styles.auditMeta}>
           {formatDateTime(item.createdAt)}
           {item.note ? ` · ${item.note}` : ''}
         </AppText>
@@ -466,13 +466,13 @@ function CoverageSummary({ summary }: { summary: WalkPoiAdminReadSummary }) {
     <>
       <View style={styles.summaryBanner}>
         <View style={styles.summaryBannerText}>
-          <AppText preset="caption" style={styles.bannerEyebrow}>
+          <AppText preset="unifiedMeta" style={styles.bannerEyebrow}>
             FALLBACK GATE
           </AppText>
-          <AppText preset="headline" style={styles.bannerTitle}>
+          <AppText preset="unifiedTitle" style={styles.bannerTitle}>
             {summary.coverageRegion.label}
           </AppText>
-          <AppText preset="bodySm" style={styles.bannerBody}>
+          <AppText preset="unifiedMeta" style={styles.bannerBody}>
             POI 0건 fallback 제한은 이 region 안에서 적용돼요. RPC 오류,
             좌표 없음, region 밖도 산책 도메인에서는 안전한 빈 결과 UX로
             처리합니다.
@@ -484,7 +484,7 @@ function CoverageSummary({ summary }: { summary: WalkPoiAdminReadSummary }) {
             coverage.gateReady ? styles.gateBadgeReady : styles.gateBadgeHold,
           ]}
         >
-          <AppText preset="caption" style={styles.gateBadgeText}>
+          <AppText preset="unifiedMeta" style={styles.gateBadgeText}>
             {coverage.gateReady ? 'gate ready' : 'observe'}
           </AppText>
         </View>
@@ -671,17 +671,17 @@ export default function WalkPoiAdminReadOnlyScreen() {
           <TouchableOpacity style={styles.backButton} onPress={onPressBack}>
             <Feather name="arrow-left" size={20} color="#102033" />
           </TouchableOpacity>
-          <AppText preset="headline" style={styles.headerTitle}>
+          <AppText preset="unifiedTitle" style={styles.headerTitle}>
             산책 POI 운영
           </AppText>
           <View style={styles.headerSide} />
         </View>
         <View style={styles.permissionCard}>
           <Feather name="loader" size={28} color="#2F6F4E" />
-          <AppText preset="headline" style={styles.permissionTitle}>
+          <AppText preset="unifiedTitle" style={styles.permissionTitle}>
             운영 권한을 확인하고 있어요
           </AppText>
-          <AppText preset="body" style={styles.permissionBody}>
+          <AppText preset="unifiedBody" style={styles.permissionBody}>
             서버 프로필 동기화가 끝난 뒤 산책 POI 운영 화면을 열어요.
           </AppText>
         </View>
@@ -696,17 +696,17 @@ export default function WalkPoiAdminReadOnlyScreen() {
           <TouchableOpacity style={styles.backButton} onPress={onPressBack}>
             <Feather name="arrow-left" size={20} color="#102033" />
           </TouchableOpacity>
-          <AppText preset="headline" style={styles.headerTitle}>
+          <AppText preset="unifiedTitle" style={styles.headerTitle}>
             산책 POI 운영
           </AppText>
           <View style={styles.headerSide} />
         </View>
         <View style={styles.permissionCard}>
           <Feather name="shield-off" size={28} color="#D75B23" />
-          <AppText preset="headline" style={styles.permissionTitle}>
+          <AppText preset="unifiedTitle" style={styles.permissionTitle}>
             운영 권한이 필요해요
           </AppText>
-          <AppText preset="body" style={styles.permissionBody}>
+          <AppText preset="unifiedBody" style={styles.permissionBody}>
             관리자 또는 최고관리자 계정에서만 산책 POI import/review 현황을 볼
             수 있어요.
           </AppText>
@@ -721,7 +721,7 @@ export default function WalkPoiAdminReadOnlyScreen() {
         <TouchableOpacity style={styles.backButton} onPress={onPressBack}>
           <Feather name="arrow-left" size={20} color="#102033" />
         </TouchableOpacity>
-        <AppText preset="headline" style={styles.headerTitle}>
+        <AppText preset="unifiedTitle" style={styles.headerTitle}>
           산책 POI 운영
         </AppText>
         <TouchableOpacity style={styles.refreshButton} onPress={refresh}>
@@ -741,7 +741,7 @@ export default function WalkPoiAdminReadOnlyScreen() {
       >
         <View style={styles.readOnlyNotice}>
           <Feather name="shield" size={17} color="#2F6F4E" />
-          <AppText preset="bodySm" style={styles.readOnlyNoticeText}>
+          <AppText preset="unifiedMeta" style={styles.readOnlyNoticeText}>
             pending 후보만 승인/반려/보류할 수 있습니다. import commit UI와
             raw payload는 표시하지 않습니다.
           </AppText>
@@ -751,14 +751,14 @@ export default function WalkPoiAdminReadOnlyScreen() {
           <EmptyState message="산책 POI 운영 현황을 불러오는 중이에요." />
         ) : summaryQuery.error ? (
           <View style={styles.stateCard}>
-            <AppText preset="headline" style={styles.stateTitle}>
+            <AppText preset="unifiedTitle" style={styles.stateTitle}>
               운영 현황을 불러오지 못했어요
             </AppText>
-            <AppText preset="body" style={styles.stateText}>
+            <AppText preset="unifiedBody" style={styles.stateText}>
               권한 또는 네트워크 상태를 확인한 뒤 다시 시도해 주세요.
             </AppText>
             <Pressable style={styles.retryButton} onPress={refresh}>
-              <AppText preset="caption" style={styles.retryButtonText}>
+              <AppText preset="unifiedMeta" style={styles.retryButtonText}>
                 다시 시도
               </AppText>
             </Pressable>
@@ -797,10 +797,10 @@ export default function WalkPoiAdminReadOnlyScreen() {
                 <View style={styles.sourceList}>
                   {summary.sourceProviderCounts.map(item => (
                     <View key={item.sourceProvider} style={styles.sourceRow}>
-                      <AppText preset="bodySm" style={styles.sourceName}>
+                      <AppText preset="unifiedMeta" style={styles.sourceName}>
                         {item.sourceProvider}
                       </AppText>
-                      <AppText preset="bodySm" style={styles.sourceCount}>
+                      <AppText preset="unifiedMeta" style={styles.sourceCount}>
                         {formatCount(item.approvedCount)}
                       </AppText>
                     </View>
@@ -884,14 +884,14 @@ export default function WalkPoiAdminReadOnlyScreen() {
 
             <Section title="전국 확장 준비">
               <View style={styles.nextStepBox}>
-                <AppText preset="headline" style={styles.nextStepTitle}>
+                <AppText preset="unifiedTitle" style={styles.nextStepTitle}>
                   다음 batch: {summary.coverageSummary.nextBatchRegion}
                 </AppText>
-                <AppText preset="bodySm" style={styles.nextStepBody}>
+                <AppText preset="unifiedMeta" style={styles.nextStepBody}>
                   전국 확장은 고양시 전체 확장 이후 서울 주요 산책 권역, 수도권,
                   광역시, 전국 공공데이터/OSM batch 순서로 진행합니다.
                 </AppText>
-                <AppText preset="caption" style={styles.nextStepMeta}>
+                <AppText preset="unifiedMeta" style={styles.nextStepMeta}>
                   Walk-domain Kakao Local runtime: safe fallback 전환 완료 ·
                   shared provider는 타 도메인 유지
                 </AppText>
@@ -913,78 +913,78 @@ export default function WalkPoiAdminReadOnlyScreen() {
                 <Feather name="activity" size={18} color="#2F6F4E" />
               </View>
               <View style={styles.modalTitleBlock}>
-                <AppText preset="headline" style={styles.modalTitle}>
+                <AppText preset="unifiedTitle" style={styles.modalTitle}>
                   Audit detail
                 </AppText>
-                <AppText preset="caption" style={styles.modalSubtitle}>
+                <AppText preset="unifiedMeta" style={styles.modalSubtitle}>
                   raw payload 없이 운영 action만 확인합니다.
                 </AppText>
               </View>
             </View>
 
             {auditDetailQuery.isLoading ? (
-              <AppText preset="body" style={styles.auditDetailBody}>
+              <AppText preset="unifiedBody" style={styles.auditDetailBody}>
                 audit log를 불러오는 중이에요.
               </AppText>
             ) : auditDetailQuery.error ? (
-              <AppText preset="body" style={styles.actionErrorText}>
+              <AppText preset="unifiedBody" style={styles.actionErrorText}>
                 audit log를 불러오지 못했어요.
               </AppText>
             ) : auditDetailQuery.data ? (
               <View style={styles.auditDetailList}>
                 <View style={styles.auditDetailRow}>
-                  <AppText preset="caption" style={styles.auditDetailLabel}>
+                  <AppText preset="unifiedMeta" style={styles.auditDetailLabel}>
                     action
                   </AppText>
-                  <AppText preset="bodySm" style={styles.auditDetailValue}>
+                  <AppText preset="unifiedMeta" style={styles.auditDetailValue}>
                     {auditDetailQuery.data.actionType}
                   </AppText>
                 </View>
                 <View style={styles.auditDetailRow}>
-                  <AppText preset="caption" style={styles.auditDetailLabel}>
+                  <AppText preset="unifiedMeta" style={styles.auditDetailLabel}>
                     target
                   </AppText>
-                  <AppText preset="bodySm" style={styles.auditDetailValue}>
+                  <AppText preset="unifiedMeta" style={styles.auditDetailValue}>
                     {auditDetailQuery.data.name ?? '미기록'}
                   </AppText>
                 </View>
                 <View style={styles.auditDetailRow}>
-                  <AppText preset="caption" style={styles.auditDetailLabel}>
+                  <AppText preset="unifiedMeta" style={styles.auditDetailLabel}>
                     reviewer
                   </AppText>
-                  <AppText preset="bodySm" style={styles.auditDetailValue}>
+                  <AppText preset="unifiedMeta" style={styles.auditDetailValue}>
                     {auditDetailQuery.data.actorId ?? '미기록'}
                   </AppText>
                 </View>
                 <View style={styles.auditDetailRow}>
-                  <AppText preset="caption" style={styles.auditDetailLabel}>
+                  <AppText preset="unifiedMeta" style={styles.auditDetailLabel}>
                     reviewed_at
                   </AppText>
-                  <AppText preset="bodySm" style={styles.auditDetailValue}>
+                  <AppText preset="unifiedMeta" style={styles.auditDetailValue}>
                     {formatDateTime(auditDetailQuery.data.createdAt)}
                   </AppText>
                 </View>
                 <View style={styles.auditDetailRow}>
-                  <AppText preset="caption" style={styles.auditDetailLabel}>
+                  <AppText preset="unifiedMeta" style={styles.auditDetailLabel}>
                     reason
                   </AppText>
-                  <AppText preset="bodySm" style={styles.auditDetailValue}>
+                  <AppText preset="unifiedMeta" style={styles.auditDetailValue}>
                     {auditDetailQuery.data.note ?? '미기록'}
                   </AppText>
                 </View>
                 <View style={styles.auditDetailRow}>
-                  <AppText preset="caption" style={styles.auditDetailLabel}>
+                  <AppText preset="unifiedMeta" style={styles.auditDetailLabel}>
                     before
                   </AppText>
-                  <AppText preset="bodySm" style={styles.auditDetailValue}>
+                  <AppText preset="unifiedMeta" style={styles.auditDetailValue}>
                     {formatAuditSnapshot(auditDetailQuery.data.beforeState)}
                   </AppText>
                 </View>
                 <View style={styles.auditDetailRow}>
-                  <AppText preset="caption" style={styles.auditDetailLabel}>
+                  <AppText preset="unifiedMeta" style={styles.auditDetailLabel}>
                     after
                   </AppText>
-                  <AppText preset="bodySm" style={styles.auditDetailValue}>
+                  <AppText preset="unifiedMeta" style={styles.auditDetailValue}>
                     {formatAuditSnapshot(auditDetailQuery.data.afterState)}
                   </AppText>
                 </View>
@@ -996,7 +996,7 @@ export default function WalkPoiAdminReadOnlyScreen() {
                 style={[styles.modalButton, styles.modalConfirmButton]}
                 onPress={closeAuditDetail}
               >
-                <AppText preset="caption" style={styles.modalConfirmText}>
+                <AppText preset="unifiedMeta" style={styles.modalConfirmText}>
                   확인
                 </AppText>
               </Pressable>
@@ -1020,12 +1020,12 @@ export default function WalkPoiAdminReadOnlyScreen() {
                 <Feather name="shield" size={18} color="#2F6F4E" />
               </View>
               <View style={styles.modalTitleBlock}>
-                <AppText preset="headline" style={styles.modalTitle}>
+                <AppText preset="unifiedTitle" style={styles.modalTitle}>
                   {actionDraft
                     ? `${REVIEW_ACTION_LABEL[actionDraft.action]} 처리`
                     : '검수 처리'}
                 </AppText>
-                <AppText preset="caption" style={styles.modalSubtitle}>
+                <AppText preset="unifiedMeta" style={styles.modalSubtitle}>
                   {actionDraft?.item.name ?? ''}
                 </AppText>
               </View>
@@ -1052,7 +1052,7 @@ export default function WalkPoiAdminReadOnlyScreen() {
               textAlignVertical="top"
             />
             {actionError ? (
-              <AppText preset="caption" style={styles.actionErrorText}>
+              <AppText preset="unifiedMeta" style={styles.actionErrorText}>
                 {actionError}
               </AppText>
             ) : null}
@@ -1063,7 +1063,7 @@ export default function WalkPoiAdminReadOnlyScreen() {
                 style={[styles.modalButton, styles.modalCancelButton]}
                 onPress={closeReviewAction}
               >
-                <AppText preset="caption" style={styles.modalCancelText}>
+                <AppText preset="unifiedMeta" style={styles.modalCancelText}>
                   취소
                 </AppText>
               </Pressable>
@@ -1076,7 +1076,7 @@ export default function WalkPoiAdminReadOnlyScreen() {
                 ]}
                 onPress={submitReviewAction}
               >
-                <AppText preset="caption" style={styles.modalConfirmText}>
+                <AppText preset="unifiedMeta" style={styles.modalConfirmText}>
                   {reviewMutation.isPending ? '처리 중' : '확인'}
                 </AppText>
               </Pressable>

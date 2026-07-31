@@ -38,16 +38,19 @@ function AppTextBase({
 
   // theme.typography.preset[preset]은 디자인 토큰에 따라 일관된 텍스트 스타일 제공
   const presetStyle = theme.typography.preset[preset];
+  const isUnifiedPreset = preset.startsWith('unified');
 
   // 스타일 합성은 매 렌더마다 비용이 발생할 수 있어 useMemo로 캐싱
   const composedStyle = useMemo(
     () =>
       StyleSheet.flatten([
-        presetStyle,
-        weight ? ({ fontWeight: weight } as TextStyle) : null,
-        style,
+        // 비제외 전역 기준은 화면별 기존 fontSize override보다 우선한다.
+        // 기존 preset은 공유 화면의 회귀 방지를 위해 기존 순서를 유지한다.
+        isUnifiedPreset ? style : presetStyle,
+        isUnifiedPreset ? presetStyle : weight ? ({ fontWeight: weight } as TextStyle) : null,
+        isUnifiedPreset ? (weight ? ({ fontWeight: weight } as TextStyle) : null) : style,
       ]),
-    [presetStyle, weight, style],
+    [isUnifiedPreset, presetStyle, weight, style],
   );
 
   return (

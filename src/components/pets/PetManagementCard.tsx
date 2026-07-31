@@ -70,15 +70,15 @@ function PetManagementCardComponent({
       </View>
 
       <View style={styles.info}>
-        <AppText preset="body" style={styles.name}>
+        <AppText preset="unifiedBody" style={styles.name}>
           {pet.name}
         </AppText>
-        <AppText preset="caption" style={styles.meta}>
+        <AppText preset="unifiedMeta" style={styles.meta}>
           {summary}
         </AppText>
         {pet.deathDate ? (
           <View style={styles.memorialBadge}>
-            <AppText preset="caption" style={styles.memorialBadgeText}>
+            <AppText preset="unifiedMeta" style={styles.memorialBadgeText}>
               추모
             </AppText>
           </View>
@@ -110,7 +110,7 @@ function PetManagementCardComponent({
               style={styles.selectButtonIcon}
             />
             <AppText
-              preset="caption"
+              preset="unifiedMeta"
               style={[styles.selectButtonText, { color: petTheme.onPrimary }]}
             >
               선택
@@ -130,7 +130,7 @@ function PetManagementCardComponent({
           onPress={handleEdit}
         >
           <AppText
-            preset="caption"
+            preset="unifiedMeta"
             style={[styles.editButtonText, { color: petTheme.deep }]}
           >
             프로필 수정

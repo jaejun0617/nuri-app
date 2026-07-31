@@ -164,13 +164,13 @@ export default function GuestbookScreen() {
           />
           <View style={styles.emptyCard}>
             <AppText
-              preset="headline"
+              preset="unifiedTitle"
               style={[styles.emptyTitle, { color: theme.colors.textPrimary }]}
             >
               아직 선택된 아이가 없어요
             </AppText>
             <AppText
-              preset="body"
+              preset="unifiedBody"
               style={[styles.emptyBody, { color: theme.colors.textSecondary }]}
             >
               아이를 등록하면 편지함이 펫별로 분리되어 보관됩니다.
@@ -226,7 +226,7 @@ export default function GuestbookScreen() {
           <View style={styles.composerHeader}>
             <View style={styles.petMark}>
               <AppText
-                preset="caption"
+                preset="unifiedMeta"
                 style={[styles.petMarkText, { color: petTheme.primary }]}
               >
                 {selectedPet.name.slice(0, 1)}
@@ -234,13 +234,13 @@ export default function GuestbookScreen() {
             </View>
             <View style={styles.composerTitleWrap}>
               <AppText
-                preset="body"
+                preset="unifiedBody"
                 style={[styles.composerTitle, { color: theme.colors.textPrimary }]}
               >
                 {selectedPet.name}에게 편지 쓰기
               </AppText>
               <AppText
-                preset="caption"
+                preset="unifiedMeta"
                 style={[
                   styles.composerMeta,
                   { color: theme.colors.textSecondary },
@@ -272,7 +272,7 @@ export default function GuestbookScreen() {
 
           {localError || lettersState.createError ? (
             <AppText
-              preset="caption"
+              preset="unifiedMeta"
               style={[styles.errorText, { color: theme.colors.danger }]}
             >
               {localError ?? lettersState.createError}
@@ -290,13 +290,13 @@ export default function GuestbookScreen() {
 
         <View style={styles.sectionHeader}>
           <AppText
-            preset="headline"
+            preset="unifiedTitle"
             style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}
           >
             남긴 편지
           </AppText>
           <AppText
-            preset="caption"
+            preset="unifiedMeta"
             style={[styles.sectionMeta, { color: theme.colors.textSecondary }]}
           >
             {lettersState.letters.length.toLocaleString('ko-KR')}개
@@ -307,7 +307,7 @@ export default function GuestbookScreen() {
           <View style={styles.loadingCard}>
             <ActivityIndicator color={petTheme.primary} />
             <AppText
-              preset="body"
+              preset="unifiedBody"
               style={[styles.loadingText, { color: theme.colors.textSecondary }]}
             >
               편지를 불러오는 중이에요
@@ -316,13 +316,13 @@ export default function GuestbookScreen() {
         ) : lettersState.error ? (
           <View style={styles.emptyCard}>
             <AppText
-              preset="headline"
+              preset="unifiedTitle"
               style={[styles.emptyTitle, { color: theme.colors.textPrimary }]}
             >
               편지를 불러오지 못했어요
             </AppText>
             <AppText
-              preset="body"
+              preset="unifiedBody"
               style={[styles.emptyBody, { color: theme.colors.textSecondary }]}
             >
               {lettersState.error}
@@ -340,13 +340,13 @@ export default function GuestbookScreen() {
         ) : lettersState.letters.length === 0 ? (
           <View style={styles.emptyCard}>
             <AppText
-              preset="headline"
+              preset="unifiedTitle"
               style={[styles.emptyTitle, { color: theme.colors.textPrimary }]}
             >
               아직 남긴 편지가 없어요
             </AppText>
             <AppText
-              preset="body"
+              preset="unifiedBody"
               style={[styles.emptyBody, { color: theme.colors.textSecondary }]}
             >
               첫 편지를 남기면 이곳에 최신순으로 쌓입니다.
@@ -366,13 +366,13 @@ export default function GuestbookScreen() {
                 ]}
               >
                 <AppText
-                  preset="caption"
+                  preset="unifiedMeta"
                   style={[styles.letterDate, { color: theme.colors.textMuted }]}
                 >
                   {formatPrivateLetterDate(letter.createdAt)}
                 </AppText>
                 <AppText
-                  preset="body"
+                  preset="unifiedBody"
                   style={[
                     styles.letterContent,
                     { color: theme.colors.textPrimary },
@@ -403,19 +403,19 @@ function PrivateLettersHeader({
   return (
     <View style={styles.header}>
       <AppText
-        preset="caption"
+        preset="unifiedMeta"
         style={[styles.eyebrow, { color: theme.colors.brand }]}
       >
         {eyebrow}
       </AppText>
       <AppText
-        preset="headline"
+        preset="unifiedTitle"
         style={[styles.title, { color: theme.colors.textPrimary }]}
       >
         {title}
       </AppText>
       <AppText
-        preset="body"
+        preset="unifiedBody"
         style={[styles.subtitle, { color: theme.colors.textSecondary }]}
       >
         {subtitle}
@@ -451,7 +451,7 @@ function PrimaryButton({
       {loading ? (
         <ActivityIndicator color="#FFFFFF" size="small" />
       ) : (
-        <AppText preset="button" style={styles.primaryButtonText}>
+        <AppText preset="unifiedLabel" style={styles.primaryButtonText}>
           {label}
         </AppText>
       )}

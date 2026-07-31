@@ -607,7 +607,7 @@ export default function PetProfileEditScreen() {
     return (
       <View style={styles.screen}>
         <View style={styles.centerFallback}>
-          <AppText preset="headline" style={styles.fallbackTitle}>
+          <AppText preset="unifiedTitle" style={styles.fallbackTitle}>
             수정할 프로필을 찾을 수 없어요
           </AppText>
           <TouchableOpacity
@@ -619,7 +619,7 @@ export default function PetProfileEditScreen() {
             ]}
             onPress={onPressBack}
           >
-            <AppText preset="body" style={styles.primaryButtonText}>
+            <AppText preset="unifiedBody" style={styles.primaryButtonText}>
               돌아가기
             </AppText>
           </TouchableOpacity>
@@ -642,7 +642,7 @@ export default function PetProfileEditScreen() {
           </TouchableOpacity>
         </View>
 
-        <AppText preset="headline" style={styles.headerTitle}>
+        <AppText preset="unifiedTitle" style={styles.headerTitle}>
           프로필 수정
         </AppText>
 
@@ -676,15 +676,15 @@ export default function PetProfileEditScreen() {
             editIconName="camera"
             editIconSize={16}
           />
-          <AppText preset="title2" style={[styles.profileName, { color: petTheme.deep }]}>
+          <AppText preset="unifiedTitle" style={[styles.profileName, { color: petTheme.deep }]}>
             {trimmedName || pet.name || '우리 아이'}
           </AppText>
           {profileSummaryLine ? (
-            <AppText preset="body" style={styles.profileMeta}>
+            <AppText preset="unifiedBody" style={styles.profileMeta}>
               {profileSummaryLine}
             </AppText>
           ) : (
-            <AppText preset="caption" style={styles.profileMetaMuted}>
+            <AppText preset="unifiedMeta" style={styles.profileMetaMuted}>
               품종과 생일을 입력하면 나이를 함께 보여드려요
             </AppText>
           )}
@@ -708,7 +708,7 @@ export default function PetProfileEditScreen() {
 
         <View style={styles.formSection}>
           <View style={styles.fieldBlock}>
-            <AppText preset="caption" style={styles.label}>
+            <AppText preset="unifiedMeta" style={styles.label}>
               반려동물 이름
             </AppText>
               <TextInput
@@ -720,14 +720,14 @@ export default function PetProfileEditScreen() {
                 style={[styles.input, !canEditName ? styles.inputDisabled : null]}
                 returnKeyType="next"
               />
-            <AppText preset="caption" style={styles.inputHint}>
+            <AppText preset="unifiedMeta" style={styles.inputHint}>
               이름 변경은 최대 3회까지 가능해요. 남은 횟수 {remainingNameChanges}회
             </AppText>
           </View>
 
           <View style={styles.row}>
             <View style={styles.col}>
-              <AppText preset="caption" style={styles.label}>
+              <AppText preset="unifiedMeta" style={styles.label}>
                 생일
               </AppText>
               <TouchableOpacity
@@ -748,7 +748,7 @@ export default function PetProfileEditScreen() {
             </View>
 
             <View style={styles.col}>
-              <AppText preset="caption" style={styles.label}>
+              <AppText preset="unifiedMeta" style={styles.label}>
                 입양일
               </AppText>
               <TouchableOpacity
@@ -770,7 +770,7 @@ export default function PetProfileEditScreen() {
           </View>
 
           <View style={styles.fieldBlock}>
-            <AppText preset="caption" style={styles.label}>
+            <AppText preset="unifiedMeta" style={styles.label}>
               대표 종
             </AppText>
             <View style={styles.segmentWrap}>
@@ -791,7 +791,7 @@ export default function PetProfileEditScreen() {
                     onPress={() => handleRepresentativeSpeciesChange(option.key)}
                   >
                     <AppText
-                      preset="caption"
+                      preset="unifiedMeta"
                       style={[
                         styles.segmentChipText,
                         active ? styles.segmentChipTextActive : null,
@@ -804,13 +804,13 @@ export default function PetProfileEditScreen() {
                 );
               })}
             </View>
-            <AppText preset="caption" style={styles.inputHint}>
+            <AppText preset="unifiedMeta" style={styles.inputHint}>
               {representativeOption.description}
             </AppText>
           </View>
 
           <View style={styles.fieldBlock}>
-            <AppText preset="caption" style={styles.label}>
+            <AppText preset="unifiedMeta" style={styles.label}>
               {representativeOption.showBreedField ? '품종/세부 종' : '세부 종'}
             </AppText>
             {quickDetailOptions.length > 0 ? (
@@ -829,7 +829,7 @@ export default function PetProfileEditScreen() {
                       onPress={() => setSpeciesDetailKey(option.label)}
                     >
                       <AppText
-                        preset="caption"
+                        preset="unifiedMeta"
                         style={[
                           styles.quickChipText,
                           active ? styles.quickChipTextActive : null,
@@ -859,7 +859,7 @@ export default function PetProfileEditScreen() {
 
           <View style={styles.row}>
             <View style={styles.col}>
-              <AppText preset="caption" style={styles.label}>
+              <AppText preset="unifiedMeta" style={styles.label}>
                 성별
               </AppText>
               <View style={styles.segmentRow}>
@@ -880,7 +880,7 @@ export default function PetProfileEditScreen() {
                       onPress={() => setGender(item.value)}
                     >
                       <AppText
-                        preset="caption"
+                        preset="unifiedMeta"
                         style={[
                           styles.segmentChipText,
                           active ? styles.segmentChipTextActive : null,
@@ -896,7 +896,7 @@ export default function PetProfileEditScreen() {
             </View>
 
             <View style={styles.col}>
-              <AppText preset="caption" style={styles.label}>
+              <AppText preset="unifiedMeta" style={styles.label}>
                 중성화 여부
               </AppText>
               <View style={styles.segmentRow}>
@@ -917,7 +917,7 @@ export default function PetProfileEditScreen() {
                       onPress={() => setNeutered(item.value)}
                     >
                       <AppText
-                        preset="caption"
+                        preset="unifiedMeta"
                         style={[
                           styles.segmentChipText,
                           active ? styles.segmentChipTextActive : null,
@@ -934,7 +934,7 @@ export default function PetProfileEditScreen() {
           </View>
 
           <View style={styles.fieldBlock}>
-            <AppText preset="caption" style={styles.label}>
+            <AppText preset="unifiedMeta" style={styles.label}>
               몸무게
             </AppText>
             <View style={styles.searchInputWrap}>
@@ -943,15 +943,15 @@ export default function PetProfileEditScreen() {
                 style={[styles.searchInput, styles.segmentChip]}
                 onPress={() => setWeightSheetVisible(true)}
               >
-                <AppText preset="body" color={weightKg ? undefined : '#A0A7B4'}>
+                <AppText preset="unifiedBody" color={weightKg ? undefined : '#A0A7B4'}>
                   {weightKg ? `${weightKg} kg` : '체중 기록 남기기'}
                 </AppText>
               </TouchableOpacity>
-              <AppText preset="caption" style={styles.unitText}>
+              <AppText preset="unifiedMeta" style={styles.unitText}>
                 최신값
               </AppText>
             </View>
-            <AppText preset="caption" style={styles.inputHint}>
+            <AppText preset="unifiedMeta" style={styles.inputHint}>
               건강 리포트와 홈 화면이 같은 체중 기준을 쓰도록 공통 시트에서 관리합니다.
             </AppText>
           </View>
@@ -959,7 +959,7 @@ export default function PetProfileEditScreen() {
           <View style={styles.fieldBlock}>
             <View style={styles.inlineLabel}>
               <Feather name="home" size={13} color={petTheme.primary} />
-              <AppText preset="caption" style={styles.labelInlineText}>
+              <AppText preset="unifiedMeta" style={styles.labelInlineText}>
                 취미
               </AppText>
             </View>
@@ -978,7 +978,7 @@ export default function PetProfileEditScreen() {
           <View style={styles.fieldBlock}>
             <View style={styles.inlineLabel}>
               <Feather name="heart" size={13} color="#FF8B3D" />
-              <AppText preset="caption" style={styles.labelInlineText}>
+              <AppText preset="unifiedMeta" style={styles.labelInlineText}>
                 좋아하는 것
               </AppText>
             </View>
@@ -997,7 +997,7 @@ export default function PetProfileEditScreen() {
           <View style={styles.fieldBlock}>
             <View style={styles.inlineLabel}>
               <Feather name="heart" size={13} color="#FF5FA0" />
-              <AppText preset="caption" style={styles.labelInlineText}>
+              <AppText preset="unifiedMeta" style={styles.labelInlineText}>
                 싫어하는 것
               </AppText>
             </View>
@@ -1016,7 +1016,7 @@ export default function PetProfileEditScreen() {
           <View style={styles.fieldBlock}>
             <View style={styles.inlineLabel}>
               <Feather name="hash" size={13} color={petTheme.primary} />
-              <AppText preset="caption" style={styles.labelInlineText}>
+              <AppText preset="unifiedMeta" style={styles.labelInlineText}>
                 태그
               </AppText>
             </View>
@@ -1025,14 +1025,14 @@ export default function PetProfileEditScreen() {
               <View style={styles.tagRow}>
                 {tags.map(tag => (
                   <View key={tag} style={styles.tagChip}>
-                    <AppText preset="caption" style={styles.tagChipText}>
+                    <AppText preset="unifiedMeta" style={styles.tagChipText}>
                       {tag}
                     </AppText>
                     <TouchableOpacity
                       activeOpacity={0.9}
                       onPress={() => removeTag(tag)}
                     >
-                      <AppText preset="caption" style={styles.tagChipX}>
+                      <AppText preset="unifiedMeta" style={styles.tagChipX}>
                         ×
                       </AppText>
                     </TouchableOpacity>
@@ -1058,21 +1058,21 @@ export default function PetProfileEditScreen() {
                   onPress={() => addTag(draftTag)}
                 >
                   <AppText
-                    preset="caption"
+                    preset="unifiedMeta"
                     style={[styles.tagAddButtonText, { color: petTheme.deep }]}
                   >
                     추가
                   </AppText>
                 </TouchableOpacity>
 
-                <AppText preset="caption" style={styles.tagCount}>
+                <AppText preset="unifiedMeta" style={styles.tagCount}>
                   {tags.length}/{MAX_TAGS}
                 </AppText>
               </View>
 
               <View style={styles.recommendWrap}>
                 <View style={styles.recommendHeaderRow}>
-                  <AppText preset="caption" style={styles.recommendLabel}>
+                  <AppText preset="unifiedMeta" style={styles.recommendLabel}>
                     추천 태그
                   </AppText>
                 </View>
@@ -1092,7 +1092,7 @@ export default function PetProfileEditScreen() {
                       onPress={() => addTag(tag)}
                     >
                       <AppText
-                        preset="caption"
+                        preset="unifiedMeta"
                         style={[
                           styles.recommendChipText,
                           index === RECOMMENDED_TAGS.length - 1
@@ -1139,7 +1139,7 @@ export default function PetProfileEditScreen() {
                 textStyle={styles.primaryButtonText}
               />
             ) : (
-              <AppText preset="body" style={styles.primaryButtonText}>
+              <AppText preset="unifiedBody" style={styles.primaryButtonText}>
                 수정 완료
               </AppText>
             )}

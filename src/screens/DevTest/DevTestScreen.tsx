@@ -409,7 +409,7 @@ export default function DevTestScreen() {
         showsVerticalScrollIndicator={false}
       >
       <S.TitleRow>
-        <AppText preset="title2" color="#ffffff">
+        <AppText preset="unifiedTitle" color="#ffffff">
           DevTest (Supabase)
         </AppText>
 
@@ -418,19 +418,19 @@ export default function DevTestScreen() {
             navigation.reset({ index: 0, routes: [{ name: 'AppTabs' }] })
           }
         >
-          <AppText preset="body" color="#fff" weight="700">
+          <AppText preset="unifiedBody" color="#fff" weight="700">
             메인으로
           </AppText>
         </S.BtnGhost>
       </S.TitleRow>
 
       <S.Box>
-        <AppText preset="headline" color="#ffffff">
+        <AppText preset="unifiedTitle" color="#ffffff">
           1) Auth
         </AppText>
 
         <S.Label>
-          <AppText preset="caption" color="rgba(255,255,255,0.7)">
+          <AppText preset="unifiedMeta" color="rgba(255,255,255,0.7)">
             Email
           </AppText>
         </S.Label>
@@ -442,7 +442,7 @@ export default function DevTestScreen() {
         />
 
         <S.Label>
-          <AppText preset="caption" color="rgba(255,255,255,0.7)">
+          <AppText preset="unifiedMeta" color="rgba(255,255,255,0.7)">
             Password
           </AppText>
         </S.Label>
@@ -454,7 +454,7 @@ export default function DevTestScreen() {
         />
 
         <S.Label>
-          <AppText preset="caption" color="rgba(255,255,255,0.7)">
+          <AppText preset="unifiedMeta" color="rgba(255,255,255,0.7)">
             Nickname (signup meta)
           </AppText>
         </S.Label>
@@ -466,22 +466,22 @@ export default function DevTestScreen() {
 
         <S.Row>
           <S.Btn onPress={onSignUp}>
-            <AppText preset="body" color="#fff" weight="700">
+            <AppText preset="unifiedBody" color="#fff" weight="700">
               회원가입
             </AppText>
           </S.Btn>
           <S.Btn onPress={onSignIn}>
-            <AppText preset="body" color="#fff" weight="700">
+            <AppText preset="unifiedBody" color="#fff" weight="700">
               로그인
             </AppText>
           </S.Btn>
           <S.BtnGhost onPress={onSignOut}>
-            <AppText preset="body" color="#fff" weight="700">
+            <AppText preset="unifiedBody" color="#fff" weight="700">
               로그아웃
             </AppText>
           </S.BtnGhost>
           <S.BtnGhost onPress={onFetchProfile}>
-            <AppText preset="body" color="#fff" weight="700">
+            <AppText preset="unifiedBody" color="#fff" weight="700">
               프로필 조회
             </AppText>
           </S.BtnGhost>
@@ -489,12 +489,12 @@ export default function DevTestScreen() {
       </S.Box>
 
       <S.Box>
-        <AppText preset="headline" color="#ffffff">
+        <AppText preset="unifiedTitle" color="#ffffff">
           2) DB / RLS (pets)
         </AppText>
 
         <S.Label>
-          <AppText preset="caption" color="rgba(255,255,255,0.7)">
+          <AppText preset="unifiedMeta" color="rgba(255,255,255,0.7)">
             Pet Name
           </AppText>
         </S.Label>
@@ -502,12 +502,12 @@ export default function DevTestScreen() {
 
         <S.Row>
           <S.Btn onPress={onInsertPet}>
-            <AppText preset="body" color="#fff" weight="700">
+            <AppText preset="unifiedBody" color="#fff" weight="700">
               펫 생성
             </AppText>
           </S.Btn>
           <S.BtnGhost onPress={onFetchPets}>
-            <AppText preset="body" color="#fff" weight="700">
+            <AppText preset="unifiedBody" color="#fff" weight="700">
               펫 조회
             </AppText>
           </S.BtnGhost>
@@ -515,20 +515,20 @@ export default function DevTestScreen() {
       </S.Box>
 
       <S.Box>
-        <AppText preset="headline" color="#ffffff">
+        <AppText preset="unifiedTitle" color="#ffffff">
           2-1) Legal / Consent History
         </AppText>
 
         <S.Row>
           <S.BtnGhost onPress={onFetchConsentHistory}>
-            <AppText preset="body" color="#fff" weight="700">
+            <AppText preset="unifiedBody" color="#fff" weight="700">
               동의 이력 조회
             </AppText>
           </S.BtnGhost>
         </S.Row>
 
         <AppText
-          preset="caption"
+          preset="unifiedMeta"
           color="rgba(255,255,255,0.7)"
           style={{ marginTop: 10 }}
         >
@@ -538,20 +538,20 @@ export default function DevTestScreen() {
       </S.Box>
 
       <S.Box>
-        <AppText preset="headline" color="#ffffff">
+        <AppText preset="unifiedTitle" color="#ffffff">
           3) Storage (pet-profiles)
         </AppText>
 
         <S.Row>
           <S.Btn onPress={onUploadPetProfile}>
-            <AppText preset="body" color="#fff" weight="700">
+            <AppText preset="unifiedBody" color="#fff" weight="700">
               프로필 이미지 업로드
             </AppText>
           </S.Btn>
         </S.Row>
 
         <AppText
-          preset="caption"
+          preset="unifiedMeta"
           color="rgba(255,255,255,0.7)"
           style={{ marginTop: 10 }}
         >
@@ -562,11 +562,11 @@ export default function DevTestScreen() {
       </S.Box>
 
       <S.Box>
-        <AppText preset="headline" color="#ffffff">
+        <AppText preset="unifiedTitle" color="#ffffff">
           4) Monitoring (Sentry + Crashlytics)
         </AppText>
         <AppText
-          preset="caption"
+          preset="unifiedMeta"
           color="rgba(255,255,255,0.7)"
           style={{ marginTop: 8 }}
         >
@@ -574,12 +574,12 @@ export default function DevTestScreen() {
         </AppText>
         <S.Row>
           <S.Btn onPress={onSentryTestEvent}>
-            <AppText preset="body" color="#fff" weight="700">
+            <AppText preset="unifiedBody" color="#fff" weight="700">
               테스트 이벤트
             </AppText>
           </S.Btn>
           <S.BtnGhost onPress={onSentryNativeCrash}>
-            <AppText preset="body" color="#fff" weight="700">
+            <AppText preset="unifiedBody" color="#fff" weight="700">
               네이티브 크래시
             </AppText>
           </S.BtnGhost>
@@ -589,14 +589,14 @@ export default function DevTestScreen() {
       <S.Box>
         <S.Row>
           <S.BtnGhost onPress={clearLogs}>
-            <AppText preset="body" color="#fff" weight="700">
+            <AppText preset="unifiedBody" color="#fff" weight="700">
               로그 지우기
             </AppText>
           </S.BtnGhost>
         </S.Row>
 
         <S.LogWrap>
-          <AppText preset="caption" color="#ffffff">
+          <AppText preset="unifiedMeta" color="#ffffff">
             {logText || '(로그 없음)'}
           </AppText>
         </S.LogWrap>

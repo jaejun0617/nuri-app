@@ -26,13 +26,13 @@ function GuideAdminListCardBase({ guide, onPress }: Props) {
       <View style={styles.headerRow}>
         <View style={styles.badgesRow}>
           <View style={styles.statusChip}>
-            <AppText preset="caption" style={styles.statusChipText}>
+            <AppText preset="unifiedMeta" style={styles.statusChipText}>
               {formatGuideStatusLabel(guide.status)}
             </AppText>
           </View>
           {!guide.isActive ? (
             <View style={styles.inactiveChip}>
-              <AppText preset="caption" style={styles.inactiveChipText}>
+              <AppText preset="unifiedMeta" style={styles.inactiveChipText}>
                 비활성
               </AppText>
             </View>
@@ -41,36 +41,36 @@ function GuideAdminListCardBase({ guide, onPress }: Props) {
         <Feather name="chevron-right" size={18} color="#98A1B2" />
       </View>
 
-      <AppText preset="headline" style={styles.title}>
+      <AppText preset="unifiedTitle" style={styles.title}>
         {guide.title}
       </AppText>
-      <AppText preset="body" style={styles.summary}>
+      <AppText preset="unifiedBody" style={styles.summary}>
         {guide.summary}
       </AppText>
 
       <View style={styles.metaRow}>
         <View style={styles.metaChip}>
-          <AppText preset="caption" style={styles.metaChipText}>
+          <AppText preset="unifiedMeta" style={styles.metaChipText}>
             {getGuideCategoryLabel(guide.category)}
           </AppText>
         </View>
         <View style={styles.metaChip}>
-          <AppText preset="caption" style={styles.metaChipText}>
+          <AppText preset="unifiedMeta" style={styles.metaChipText}>
             {formatGuideTargetSpeciesLabel(guide.targetSpecies)}
           </AppText>
         </View>
         <View style={styles.metaChip}>
-          <AppText preset="caption" style={styles.metaChipText}>
+          <AppText preset="unifiedMeta" style={styles.metaChipText}>
             {formatGuideAgePolicyLabel(guide.agePolicy)}
           </AppText>
         </View>
       </View>
 
       <View style={styles.footerRow}>
-        <AppText preset="caption" style={styles.footerText}>
+        <AppText preset="unifiedMeta" style={styles.footerText}>
           priority {guide.priority} · sort {guide.sortOrder}
         </AppText>
-        <AppText preset="caption" style={styles.footerText}>
+        <AppText preset="unifiedMeta" style={styles.footerText}>
           {guide.updatedAt.slice(0, 10)}
         </AppText>
       </View>

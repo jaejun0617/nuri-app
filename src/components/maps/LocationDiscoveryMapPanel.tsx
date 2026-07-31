@@ -172,11 +172,11 @@ export default function LocationDiscoveryMapPanel({
     <View style={compact ? styles.compactCard : styles.card}>
       {!compact && title ? (
         <View style={styles.headerRow}>
-          <AppText preset="headline" style={styles.title}>
+          <AppText preset="unifiedTitle" style={styles.title}>
             {title}
           </AppText>
           {caption ? (
-            <AppText preset="caption" style={styles.caption}>
+            <AppText preset="unifiedMeta" style={styles.caption}>
               {caption}
             </AppText>
           ) : null}
@@ -237,7 +237,7 @@ export default function LocationDiscoveryMapPanel({
         </ClusteredMapView>
       </View>
       {!compact ? (
-        <AppText preset="caption" style={styles.footerCaption}>
+        <AppText preset="unifiedMeta" style={styles.footerCaption}>
           {mappableItems.length
             ? '마커나 리스트 카드를 선택하면 지도와 리스트가 같은 장소에 맞춰지고, 상세에 다녀와도 마지막 위치를 그대로 복원해요.'
             : '현재 위치를 기준으로 예쁜 확대 레벨을 유지해 다음 검색을 바로 이어갈 수 있어요.'}

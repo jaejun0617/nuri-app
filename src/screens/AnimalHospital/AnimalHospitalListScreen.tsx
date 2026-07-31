@@ -130,10 +130,10 @@ export default function AnimalHospitalListScreen() {
           <Feather name="crosshair" size={18} color={petTheme.primary} />
         </View>
         <View style={styles.locationCopy}>
-          <AppText preset="caption" style={styles.locationSubtitle}>
+          <AppText preset="unifiedMeta" style={styles.locationSubtitle}>
             {discoveryState.scope.distanceLabel}
           </AppText>
-          <AppText preset="body" style={styles.locationTitle}>
+          <AppText preset="unifiedBody" style={styles.locationTitle}>
             {discoveryState.scope.displayLabel}
           </AppText>
         </View>
@@ -148,7 +148,7 @@ export default function AnimalHospitalListScreen() {
           }}
         >
           <AppText
-            preset="caption"
+            preset="unifiedMeta"
             style={[
               styles.locationRefreshButtonText,
               { color: petTheme.primary },
@@ -221,7 +221,7 @@ export default function AnimalHospitalListScreen() {
               />
             </TouchableOpacity>
           </View>
-          <AppText preset="headline" style={styles.headerTitle}>
+          <AppText preset="unifiedTitle" style={styles.headerTitle}>
             우리동네 동물병원
           </AppText>
           <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />

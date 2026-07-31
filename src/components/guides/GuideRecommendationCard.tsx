@@ -44,24 +44,24 @@ function GuideRecommendationCardBase({
       </View>
 
       <View style={styles.content}>
-        <AppText preset="caption" style={[styles.eyebrow, { color: accentColor }]}>
+        <AppText preset="unifiedMeta" style={[styles.eyebrow, { color: accentColor }]}>
           {getGuideCategoryLabel(guide.category)}
         </AppText>
-        <AppText preset="body" style={styles.title} numberOfLines={2}>
+        <AppText preset="unifiedBody" style={styles.title} numberOfLines={2}>
           {guide.title}
         </AppText>
         {debugBadgeText ? (
           <View style={styles.debugBadge}>
-            <AppText preset="caption" style={styles.debugBadgeText}>
+            <AppText preset="unifiedMeta" style={styles.debugBadgeText}>
               {debugBadgeText}
             </AppText>
           </View>
         ) : null}
-        <AppText preset="caption" style={styles.desc} numberOfLines={2}>
+        <AppText preset="unifiedMeta" style={styles.desc} numberOfLines={2}>
           {guide.summary}
         </AppText>
         <AppText
-          preset="caption"
+          preset="unifiedMeta"
           style={[styles.audience, { color: accentDeepColor }]}
           numberOfLines={1}
         >

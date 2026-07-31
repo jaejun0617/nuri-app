@@ -169,7 +169,7 @@ export default function ScheduleListScreen() {
           </TouchableOpacity>
         </View>
 
-        <AppText preset="headline" style={styles.headerTitle}>
+        <AppText preset="unifiedTitle" style={styles.headerTitle}>
           일정 보기
         </AppText>
 
@@ -191,10 +191,10 @@ export default function ScheduleListScreen() {
         }
       >
         <View style={styles.heroCard}>
-          <AppText preset="headline" style={styles.heroTitle}>
+          <AppText preset="unifiedTitle" style={styles.heroTitle}>
             전체 일정
           </AppText>
-          <AppText preset="caption" style={styles.heroSub}>
+          <AppText preset="unifiedMeta" style={styles.heroSub}>
             오래 남겨둘 일정도 한 곳에서 차분히 확인해 보세요
           </AppText>
         </View>
@@ -206,10 +206,10 @@ export default function ScheduleListScreen() {
               size={34}
               color={petTheme.primary}
             />
-            <AppText preset="headline" style={styles.emptyTitle}>
+            <AppText preset="unifiedTitle" style={styles.emptyTitle}>
               일정을 불러오는 중이에요
             </AppText>
-            <AppText preset="body" style={styles.emptyDesc}>
+            <AppText preset="unifiedBody" style={styles.emptyDesc}>
               저장된 일정을 정리해서 보여드리고 있어요.
             </AppText>
           </View>
@@ -220,10 +220,10 @@ export default function ScheduleListScreen() {
               size={34}
               color={petTheme.primary}
             />
-            <AppText preset="headline" style={styles.emptyTitle}>
+            <AppText preset="unifiedTitle" style={styles.emptyTitle}>
               일정을 불러오지 못했어요
             </AppText>
-            <AppText preset="body" style={styles.emptyDesc}>
+            <AppText preset="unifiedBody" style={styles.emptyDesc}>
               {errorMessage ?? '잠시 후 다시 시도해 주세요.'}
             </AppText>
             <TouchableOpacity
@@ -231,7 +231,7 @@ export default function ScheduleListScreen() {
               style={[styles.primaryBtn, { backgroundColor: petTheme.primary }]}
               onPress={onRefresh}
             >
-              <AppText preset="body" style={styles.primaryBtnText}>
+              <AppText preset="unifiedBody" style={styles.primaryBtnText}>
                 다시 불러오기
               </AppText>
             </TouchableOpacity>
@@ -243,10 +243,10 @@ export default function ScheduleListScreen() {
               size={34}
               color={petTheme.primary}
             />
-            <AppText preset="headline" style={styles.emptyTitle}>
+            <AppText preset="unifiedTitle" style={styles.emptyTitle}>
               등록된 일정이 아직 없어요
             </AppText>
-            <AppText preset="body" style={styles.emptyDesc}>
+            <AppText preset="unifiedBody" style={styles.emptyDesc}>
               산책, 식사, 미용처럼 오래 남겨둘 일정을 먼저 정리해 보세요.
             </AppText>
             <TouchableOpacity
@@ -254,7 +254,7 @@ export default function ScheduleListScreen() {
               style={[styles.primaryBtn, { backgroundColor: petTheme.primary }]}
               onPress={onPressCreate}
             >
-              <AppText preset="body" style={styles.primaryBtnText}>
+              <AppText preset="unifiedBody" style={styles.primaryBtnText}>
                 첫 일정 추가하기
               </AppText>
             </TouchableOpacity>
@@ -286,14 +286,14 @@ export default function ScheduleListScreen() {
                   </View>
 
                   <View style={styles.cardTextCol}>
-                    <AppText preset="body" style={styles.cardTitle}>
+                    <AppText preset="unifiedBody" style={styles.cardTitle}>
                       {schedule.title}
                     </AppText>
-                    <AppText preset="caption" style={styles.cardMeta}>
+                    <AppText preset="unifiedMeta" style={styles.cardMeta}>
                       {formatScheduleDate(schedule)}
                     </AppText>
                     {schedule.note?.trim() ? (
-                      <AppText preset="caption" style={styles.cardNote}>
+                      <AppText preset="unifiedMeta" style={styles.cardNote}>
                         {schedule.note}
                       </AppText>
                     ) : null}

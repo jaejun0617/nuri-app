@@ -25,7 +25,7 @@ const PetSelectedBadge = memo(function PetSelectedBadge({
     >
       <View style={styles.content}>
         <Feather name="check" size={12} color={accentColor} />
-        <AppText preset="caption" style={[styles.text, { color: accentColor }]}>
+        <AppText preset="unifiedMeta" style={[styles.text, { color: accentColor }]}>
           보고 있어요
         </AppText>
       </View>

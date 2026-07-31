@@ -117,7 +117,7 @@ function WalkLoadingSkeleton() {
           </View>
         </View>
       ))}
-      <AppText preset="caption" style={styles.resultsLoadingText}>
+      <AppText preset="unifiedMeta" style={styles.resultsLoadingText}>
         주변 산책 장소를 정리하고 있어요.
       </AppText>
     </View>
@@ -254,10 +254,10 @@ export default function LocationDiscoveryListScreen() {
           <Feather name="map-pin" size={18} color={petTheme.primary} />
         </View>
         <View style={styles.locationCopy}>
-          <AppText preset="caption" style={styles.locationSubtitle}>
+          <AppText preset="unifiedMeta" style={styles.locationSubtitle}>
             {locationSubtitle}
           </AppText>
-          <AppText preset="body" style={styles.locationTitle}>
+          <AppText preset="unifiedBody" style={styles.locationTitle}>
             {locationTitle}
           </AppText>
         </View>
@@ -272,7 +272,7 @@ export default function LocationDiscoveryListScreen() {
           }}
         >
           <AppText
-            preset="caption"
+            preset="unifiedMeta"
             style={[styles.locationRefreshButtonText, { color: petTheme.primary }]}
           >
             새로고침
@@ -309,7 +309,7 @@ export default function LocationDiscoveryListScreen() {
                 }}
               >
                 <AppText
-                  preset="caption"
+                  preset="unifiedMeta"
                   style={[
                     styles.sortChipText,
                     selected
@@ -341,7 +341,7 @@ export default function LocationDiscoveryListScreen() {
               <Feather name="arrow-left" size={20} color="#102033" />
             </TouchableOpacity>
           </View>
-          <AppText preset="headline" style={styles.headerTitle}>
+          <AppText preset="unifiedTitle" style={styles.headerTitle}>
             우리동네 산책 리스트
           </AppText>
           <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
@@ -367,7 +367,7 @@ export default function LocationDiscoveryListScreen() {
         {recentSearches.searches.length ? (
           <View style={styles.recentSearchSection}>
             <View style={styles.recentSearchHeader}>
-              <AppText preset="headline" style={styles.recentSearchTitle}>
+              <AppText preset="unifiedTitle" style={styles.recentSearchTitle}>
                 최근 검색
               </AppText>
               <TouchableOpacity
@@ -378,7 +378,7 @@ export default function LocationDiscoveryListScreen() {
                 }}
               >
                 <AppText
-                  preset="caption"
+                  preset="unifiedMeta"
                   style={styles.recentSearchClearButtonText}
                 >
                   지우기
@@ -397,7 +397,7 @@ export default function LocationDiscoveryListScreen() {
                     recentSearches.save(entry.query).catch(() => {});
                   }}
                 >
-                  <AppText preset="caption" style={styles.recentSearchChipText}>
+                  <AppText preset="unifiedMeta" style={styles.recentSearchChipText}>
                     {entry.query}
                   </AppText>
                 </TouchableOpacity>

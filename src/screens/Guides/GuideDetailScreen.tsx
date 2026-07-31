@@ -91,20 +91,20 @@ export default function GuideDetailScreen() {
       {guideState.loading ? (
         <View style={styles.emptyCard}>
           <Feather name="loader" size={28} color={petTheme.primary} />
-          <AppText preset="headline" style={styles.emptyTitle}>
+          <AppText preset="unifiedTitle" style={styles.emptyTitle}>
             가이드를 불러오는 중이에요
           </AppText>
-          <AppText preset="body" style={styles.emptyDesc}>
+          <AppText preset="unifiedBody" style={styles.emptyDesc}>
             상세 콘텐츠를 차분히 정리하고 있어요.
           </AppText>
         </View>
       ) : !guideState.guide ? (
         <View style={styles.emptyCard}>
           <Feather name="alert-circle" size={28} color={petTheme.primary} />
-          <AppText preset="headline" style={styles.emptyTitle}>
+          <AppText preset="unifiedTitle" style={styles.emptyTitle}>
             가이드를 찾지 못했어요
           </AppText>
-          <AppText preset="body" style={styles.emptyDesc}>
+          <AppText preset="unifiedBody" style={styles.emptyDesc}>
             {guideState.error ?? '비활성화되었거나 더 이상 제공되지 않는 콘텐츠일 수 있어요.'}
           </AppText>
         </View>
@@ -128,7 +128,7 @@ export default function GuideDetailScreen() {
             </View>
 
             <View style={styles.topBarTitleWrap}>
-              <AppText preset="headline" style={styles.headerTitle}>
+              <AppText preset="unifiedTitle" style={styles.headerTitle}>
                 집사 꿀팁 가이드
               </AppText>
             </View>
@@ -152,7 +152,7 @@ export default function GuideDetailScreen() {
               >
                 <Feather name="book-open" size={28} color={petTheme.primary} />
                 <AppText
-                  preset="body"
+                  preset="unifiedBody"
                   style={[styles.heroPlaceholderText, { color: petTheme.primary }]}
                 >
                   이미지가 준비되면 여기에 노출됩니다
@@ -172,39 +172,39 @@ export default function GuideDetailScreen() {
                 ]}
               >
                 <AppText
-                  preset="caption"
+                  preset="unifiedMeta"
                   style={[styles.categoryText, { color: petTheme.primary }]}
                 >
                   {getGuideCategoryLabel(guideState.guide.category)}
                 </AppText>
               </View>
-              <AppText preset="title2" style={styles.title}>
+              <AppText preset="unifiedTitle" style={styles.title}>
                 {guideState.guide.title}
               </AppText>
-              <AppText preset="body" style={styles.summary}>
+              <AppText preset="unifiedBody" style={styles.summary}>
                 {guideState.guide.summary}
               </AppText>
             </View>
           </View>
 
           <View style={styles.metaCard}>
-            <AppText preset="headline" style={styles.sectionTitle}>
+            <AppText preset="unifiedTitle" style={styles.sectionTitle}>
               대상 정보
             </AppText>
             <View style={styles.metaRow}>
               <View style={styles.metaChip}>
-                <AppText preset="caption" style={styles.metaChipText}>
+                <AppText preset="unifiedMeta" style={styles.metaChipText}>
                   {formatGuideTargetSpeciesLabel(guideState.guide.targetSpecies)}
                 </AppText>
               </View>
               <View style={styles.metaChip}>
-                <AppText preset="caption" style={styles.metaChipText}>
+                <AppText preset="unifiedMeta" style={styles.metaChipText}>
                   {formatGuideAgePolicyLabel(guideState.guide.agePolicy)}
                 </AppText>
               </View>
               {guideState.guide.tags.map(tag => (
                 <View key={tag} style={styles.metaChip}>
-                  <AppText preset="caption" style={styles.metaChipText}>
+                  <AppText preset="unifiedMeta" style={styles.metaChipText}>
                     #{tag}
                   </AppText>
                 </View>
@@ -213,10 +213,10 @@ export default function GuideDetailScreen() {
           </View>
 
           <View style={styles.bodyCard}>
-            <AppText preset="headline" style={styles.sectionTitle}>
+            <AppText preset="unifiedTitle" style={styles.sectionTitle}>
               상세 가이드
             </AppText>
-            <AppText preset="body" style={styles.bodyText}>
+            <AppText preset="unifiedBody" style={styles.bodyText}>
               {guideState.guide.body ?? guideState.guide.bodyPreview}
             </AppText>
           </View>

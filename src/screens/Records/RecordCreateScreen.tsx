@@ -970,7 +970,7 @@ export default function RecordCreateScreen() {
           </TouchableOpacity>
         </View>
 
-        <AppText preset="headline" style={styles.headerTitle}>
+        <AppText preset="unifiedTitle" style={styles.headerTitle}>
           기록하기
         </AppText>
 
@@ -1015,7 +1015,7 @@ export default function RecordCreateScreen() {
             <View style={styles.dateIconWrap}>
               <Feather name="calendar" size={16} color={petTheme.primary} />
             </View>
-            <AppText preset="body" style={styles.dateText}>
+            <AppText preset="unifiedBody" style={styles.dateText}>
               {formattedDate}
             </AppText>
           </View>
@@ -1038,7 +1038,7 @@ export default function RecordCreateScreen() {
                 <View style={styles.photoIconBadge}>
                   <Feather name="camera" size={22} color="#94A1B5" />
                 </View>
-                <AppText preset="body" style={styles.photoPlaceholderTitle}>
+                <AppText preset="unifiedBody" style={styles.photoPlaceholderTitle}>
                   사진 추가 (최대 10장)
                 </AppText>
               </View>
@@ -1060,7 +1060,7 @@ export default function RecordCreateScreen() {
                   style={styles.photoGhostBtn}
                   onPress={pickImage}
                 >
-                  <AppText preset="caption" style={styles.photoGhostBtnText}>
+                  <AppText preset="unifiedMeta" style={styles.photoGhostBtnText}>
                     추가
                   </AppText>
                 </TouchableOpacity>
@@ -1069,7 +1069,7 @@ export default function RecordCreateScreen() {
                   style={styles.photoGhostBtn}
                   onPress={removeActiveImage}
                 >
-                  <AppText preset="caption" style={styles.photoGhostBtnText}>
+                  <AppText preset="unifiedMeta" style={styles.photoGhostBtnText}>
                     제거
                   </AppText>
                 </TouchableOpacity>
@@ -1111,7 +1111,7 @@ export default function RecordCreateScreen() {
                   />
                 </View>
                 <AppText
-                  preset="caption"
+                  preset="unifiedMeta"
                   style={[
                     styles.quickTagLabel,
                     active ? styles.quickTagLabelActive : null,
@@ -1130,7 +1130,7 @@ export default function RecordCreateScreen() {
             style={[styles.quickTagHint, { backgroundColor: petTheme.tint }]}
           >
             <AppText
-              preset="caption"
+              preset="unifiedMeta"
               style={[styles.quickTagHintText, { color: petTheme.deep }]}
             >
               분류: {selectedMainCategory.label}
@@ -1162,7 +1162,7 @@ export default function RecordCreateScreen() {
                   onPress={() => onSelectOtherSubCategory(sub.key)}
                 >
                   <AppText
-                    preset="caption"
+                    preset="unifiedMeta"
                     style={[
                       styles.otherSubChipText,
                       active ? styles.otherSubChipTextActive : null,
@@ -1189,7 +1189,7 @@ export default function RecordCreateScreen() {
 
         {isShoppingCategory ? (
           <View style={styles.field}>
-            <AppText preset="body" style={styles.fieldLabel}>
+            <AppText preset="unifiedBody" style={styles.fieldLabel}>
               구매 가격
             </AppText>
             <TextInput
@@ -1202,11 +1202,11 @@ export default function RecordCreateScreen() {
               editable={!saving}
             />
             {priceLabel ? (
-              <AppText preset="caption" style={styles.helperText}>
+              <AppText preset="unifiedMeta" style={styles.helperText}>
                 저장 예정 금액: {priceLabel}
               </AppText>
             ) : (
-              <AppText preset="caption" style={styles.helperText}>
+              <AppText preset="unifiedMeta" style={styles.helperText}>
                 숫자만 입력하면 자동으로 원 단위로 저장돼요.
               </AppText>
             )}
@@ -1215,7 +1215,7 @@ export default function RecordCreateScreen() {
 
         {isMealCategory ? (
           <View style={styles.field}>
-            <AppText preset="body" style={styles.fieldLabel}>
+            <AppText preset="unifiedBody" style={styles.fieldLabel}>
               급여량
             </AppText>
             {typeof selectedPet?.defaultMealAmountGrams === 'number' &&
@@ -1230,7 +1230,7 @@ export default function RecordCreateScreen() {
                   size={20}
                   color={useDefaultMealAmount ? petTheme.primary : '#9AA4B6'}
                 />
-                <AppText preset="body" style={styles.checkLabel}>
+                <AppText preset="unifiedBody" style={styles.checkLabel}>
                   기본 급여량 사용 ({selectedPet.defaultMealAmountGrams}g)
                 </AppText>
               </TouchableOpacity>
@@ -1245,7 +1245,7 @@ export default function RecordCreateScreen() {
                   size={20}
                   color={saveMealAmountAsDefault ? petTheme.primary : '#9AA4B6'}
                 />
-                <AppText preset="body" style={styles.checkLabel}>
+                <AppText preset="unifiedBody" style={styles.checkLabel}>
                   이 급여량을 기본값으로 저장
                 </AppText>
               </TouchableOpacity>
@@ -1260,11 +1260,11 @@ export default function RecordCreateScreen() {
                 keyboardType="number-pad"
                 editable={!saving && !useDefaultMealAmount}
               />
-              <AppText preset="body" style={styles.unitLabel}>
+              <AppText preset="unifiedBody" style={styles.unitLabel}>
                 g
               </AppText>
             </View>
-            <AppText preset="caption" style={styles.helperText}>
+            <AppText preset="unifiedMeta" style={styles.helperText}>
               음식 종류는 사료로 저장돼요.
             </AppText>
           </View>
@@ -1272,7 +1272,7 @@ export default function RecordCreateScreen() {
 
         {isHealthCategory ? (
           <View style={styles.field}>
-            <AppText preset="body" style={styles.fieldLabel}>
+            <AppText preset="unifiedBody" style={styles.fieldLabel}>
               오늘 컨디션
             </AppText>
             <View style={styles.optionGrid}>
@@ -1292,7 +1292,7 @@ export default function RecordCreateScreen() {
                     onPress={() => setHealthCondition(option.value)}
                   >
                     <AppText
-                      preset="caption"
+                      preset="unifiedMeta"
                       style={[styles.optionChipText, active ? { color: petTheme.deep } : null]}
                     >
                       {option.label}
@@ -1301,7 +1301,7 @@ export default function RecordCreateScreen() {
                 );
               })}
             </View>
-            <AppText preset="body" style={styles.fieldLabel}>
+            <AppText preset="unifiedBody" style={styles.fieldLabel}>
               체중 (선택)
             </AppText>
             <View style={styles.unitInputRow}>
@@ -1314,7 +1314,7 @@ export default function RecordCreateScreen() {
                 keyboardType="decimal-pad"
                 editable={!saving}
               />
-              <AppText preset="body" style={styles.unitLabel}>
+              <AppText preset="unifiedBody" style={styles.unitLabel}>
                 kg
               </AppText>
             </View>
@@ -1323,7 +1323,7 @@ export default function RecordCreateScreen() {
 
         {isGroomingCategory ? (
           <View style={styles.field}>
-            <AppText preset="body" style={styles.fieldLabel}>
+            <AppText preset="unifiedBody" style={styles.fieldLabel}>
               관리 항목 (1개 이상)
             </AppText>
             <View style={styles.optionGrid}>
@@ -1343,7 +1343,7 @@ export default function RecordCreateScreen() {
                     onPress={() => onToggleGroomingCareType(option.value)}
                   >
                     <AppText
-                      preset="caption"
+                      preset="unifiedMeta"
                       style={[styles.optionChipText, active ? { color: petTheme.deep } : null]}
                     >
                       {option.label}
@@ -1356,7 +1356,7 @@ export default function RecordCreateScreen() {
         ) : null}
 
         {!isHealthCategory ? <View style={styles.field}>
-          <AppText preset="body" style={styles.fieldLabel}>
+          <AppText preset="unifiedBody" style={styles.fieldLabel}>
             오늘의 기분
           </AppText>
           <View style={styles.moodGrid}>
@@ -1382,11 +1382,11 @@ export default function RecordCreateScreen() {
                     )
                   }
                 >
-                  <AppText preset="caption" style={styles.moodEmoji}>
+                  <AppText preset="unifiedMeta" style={styles.moodEmoji}>
                     {mood.emoji}
                   </AppText>
                   <AppText
-                    preset="caption"
+                    preset="unifiedMeta"
                     style={[
                       styles.moodText,
                       active ? styles.moodTextActive : null,
@@ -1402,7 +1402,7 @@ export default function RecordCreateScreen() {
         </View> : null}
 
         <View style={styles.field}>
-          <AppText preset="body" style={styles.fieldLabel}>
+          <AppText preset="unifiedBody" style={styles.fieldLabel}>
             제목
           </AppText>
           <TextInput
@@ -1415,7 +1415,7 @@ export default function RecordCreateScreen() {
         </View>
 
         <View style={styles.field}>
-          <AppText preset="body" style={styles.fieldLabel}>
+          <AppText preset="unifiedBody" style={styles.fieldLabel}>
             내용
           </AppText>
           <TextInput
@@ -1430,7 +1430,7 @@ export default function RecordCreateScreen() {
         </View>
 
         <View style={styles.field}>
-          <AppText preset="body" style={styles.fieldLabel}>
+          <AppText preset="unifiedBody" style={styles.fieldLabel}>
             태그
           </AppText>
           <TouchableOpacity
@@ -1449,7 +1449,7 @@ export default function RecordCreateScreen() {
                     ]}
                   >
                     <AppText
-                      preset="caption"
+                      preset="unifiedMeta"
                       style={[styles.selectedTagText, { color: petTheme.deep }]}
                     >
                       {tag}
@@ -1458,13 +1458,13 @@ export default function RecordCreateScreen() {
                 ))}
               </View>
             ) : (
-              <AppText preset="body" style={styles.tagPlaceholder}>
+              <AppText preset="unifiedBody" style={styles.tagPlaceholder}>
                 태그를 추가하세요
               </AppText>
             )}
             <Feather name="chevron-right" size={18} color="#B5BDCB" />
           </TouchableOpacity>
-          <AppText preset="caption" style={styles.helperText}>
+          <AppText preset="unifiedMeta" style={styles.helperText}>
             빠른 태그와 함께 최대 10개까지 저장됩니다.
           </AppText>
         </View>
@@ -1498,7 +1498,7 @@ export default function RecordCreateScreen() {
               textStyle={styles.bottomSubmitText}
             />
           ) : (
-            <AppText preset="body" style={styles.bottomSubmitText}>
+            <AppText preset="unifiedBody" style={styles.bottomSubmitText}>
               완료
             </AppText>
           )}

@@ -227,7 +227,7 @@ export default function WeightLogEntrySheet({
             >
               <View style={styles.headerRow}>
                 <View style={styles.headerTextWrap}>
-                  <AppText preset="titleSm">{title}</AppText>
+                  <AppText preset="unifiedTitle">{title}</AppText>
                   <AppText
                     preset="helper"
                     color={theme.colors.textMuted}
@@ -249,7 +249,7 @@ export default function WeightLogEntrySheet({
               </View>
 
               <View style={styles.fieldBlock}>
-                <AppText preset="caption" style={styles.label}>
+                <AppText preset="unifiedMeta" style={styles.label}>
                   몸무게
                 </AppText>
                 <View
@@ -266,14 +266,14 @@ export default function WeightLogEntrySheet({
                     keyboardType="decimal-pad"
                     style={[styles.input, { color: theme.colors.textPrimary }]}
                   />
-                  <AppText preset="bodySm" color={theme.colors.textMuted}>
+                  <AppText preset="unifiedMeta" color={theme.colors.textMuted}>
                     kg
                   </AppText>
                 </View>
               </View>
 
               <View style={styles.fieldBlock}>
-                <AppText preset="caption" style={styles.label}>
+                <AppText preset="unifiedMeta" style={styles.label}>
                   측정 날짜
                 </AppText>
                 <TouchableOpacity
@@ -284,13 +284,13 @@ export default function WeightLogEntrySheet({
                     { borderColor: theme.colors.border },
                   ]}
                 >
-                  <AppText preset="body">{measuredOn.replace(/-/g, '.')}</AppText>
+                  <AppText preset="unifiedBody">{measuredOn.replace(/-/g, '.')}</AppText>
                   <Feather color={theme.colors.textMuted} name="calendar" size={16} />
                 </TouchableOpacity>
               </View>
 
               <View style={styles.fieldBlock}>
-                <AppText preset="caption" style={styles.label}>
+                <AppText preset="unifiedMeta" style={styles.label}>
                   메모
                 </AppText>
                 <View
@@ -325,7 +325,7 @@ export default function WeightLogEntrySheet({
                       { borderColor: theme.colors.border },
                     ]}
                   >
-                    <AppText preset="button" color={theme.colors.danger}>
+                    <AppText preset="unifiedLabel" color={theme.colors.danger}>
                       {deleting ? '삭제 중...' : '삭제'}
                     </AppText>
                   </TouchableOpacity>
@@ -345,7 +345,7 @@ export default function WeightLogEntrySheet({
                     },
                   ]}
                 >
-                  <AppText preset="button" color="#FFFFFF">
+                  <AppText preset="unifiedLabel" color="#FFFFFF">
                     {saving ? '저장 중...' : '저장'}
                   </AppText>
                 </TouchableOpacity>

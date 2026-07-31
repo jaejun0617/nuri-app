@@ -133,7 +133,7 @@ export default function GuideAdminListScreen() {
           </TouchableOpacity>
         </View>
 
-        <AppText preset="headline" style={styles.headerTitle}>
+        <AppText preset="unifiedTitle" style={styles.headerTitle}>
           가이드 운영
         </AppText>
 
@@ -153,10 +153,10 @@ export default function GuideAdminListScreen() {
       {!isGuideAdmin ? (
         <View style={styles.emptyCard}>
           <Feather name="shield-off" size={28} color={petTheme.primary} />
-          <AppText preset="headline" style={styles.emptyTitle}>
+          <AppText preset="unifiedTitle" style={styles.emptyTitle}>
             운영 권한이 필요해요
           </AppText>
-          <AppText preset="body" style={styles.emptyDesc}>
+          <AppText preset="unifiedBody" style={styles.emptyDesc}>
             관리자 또는 최고관리자 계정에서만 접근할 수 있어요.
           </AppText>
         </View>
@@ -195,7 +195,7 @@ export default function GuideAdminListScreen() {
                     onPress={() => setStatusFilter(item)}
                   >
                     <AppText
-                      preset="caption"
+                      preset="unifiedMeta"
                       style={[
                         styles.filterChipText,
                         active ? styles.filterChipTextActive : null,
@@ -213,27 +213,27 @@ export default function GuideAdminListScreen() {
           {catalogState.loading ? (
             <View style={styles.emptyCard}>
               <Feather name="loader" size={28} color={petTheme.primary} />
-              <AppText preset="headline" style={styles.emptyTitle}>
+              <AppText preset="unifiedTitle" style={styles.emptyTitle}>
                 운영 목록을 불러오는 중이에요
               </AppText>
             </View>
           ) : catalogState.error ? (
             <View style={styles.emptyCard}>
               <Feather name="alert-circle" size={28} color={petTheme.primary} />
-              <AppText preset="headline" style={styles.emptyTitle}>
+              <AppText preset="unifiedTitle" style={styles.emptyTitle}>
                 운영 목록을 불러오지 못했어요
               </AppText>
-              <AppText preset="body" style={styles.emptyDesc}>
+              <AppText preset="unifiedBody" style={styles.emptyDesc}>
                 {catalogState.error}
               </AppText>
             </View>
           ) : filteredGuides.length === 0 ? (
             <View style={styles.emptyCard}>
               <Feather name="book-open" size={28} color={petTheme.primary} />
-              <AppText preset="headline" style={styles.emptyTitle}>
+              <AppText preset="unifiedTitle" style={styles.emptyTitle}>
                 조건에 맞는 가이드가 없어요
               </AppText>
-              <AppText preset="body" style={styles.emptyDesc}>
+              <AppText preset="unifiedBody" style={styles.emptyDesc}>
                 상태 필터를 바꾸거나 검색어를 지우고 다시 확인해 주세요.
               </AppText>
             </View>

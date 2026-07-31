@@ -30,10 +30,10 @@ export function LocationDiscoveryStatusCard({
       ) : (
         <Feather name={icon as never} size={24} color="#6D6AF8" />
       )}
-      <AppText preset="headline" style={styles.emptyTitle}>
+      <AppText preset="unifiedTitle" style={styles.emptyTitle}>
         {title}
       </AppText>
-      <AppText preset="body" style={styles.emptyDesc}>
+      <AppText preset="unifiedBody" style={styles.emptyDesc}>
         {body}
       </AppText>
       {actionLabel && onPressAction ? (
@@ -42,7 +42,7 @@ export function LocationDiscoveryStatusCard({
           style={styles.primaryActionButton}
           onPress={onPressAction}
         >
-          <AppText preset="body" style={styles.primaryActionButtonText}>
+          <AppText preset="unifiedBody" style={styles.primaryActionButtonText}>
             {actionLabel}
           </AppText>
         </TouchableOpacity>

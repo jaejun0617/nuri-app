@@ -7,6 +7,7 @@
 
 import { StyleSheet } from 'react-native';
 import { SCREEN_TOP_SPACING } from '../../../../theme/layout';
+import { typography } from '../../../../app/theme/tokens/typography';
 
 const BRAND = '#6D6AF8';
 const BRAND_DEEP = '#5753E6';
@@ -759,10 +760,13 @@ export const styles = StyleSheet.create({
   },
   recentSection: {
     gap: 14,
-    paddingHorizontal: 10,
+    paddingHorizontal: 0,
   },
   recentSectionHeaderRow: {
     alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingTop: 14,
+    paddingBottom: 12,
   },
   recentSectionTitleRow: {
     flexDirection: 'row',
@@ -784,6 +788,7 @@ export const styles = StyleSheet.create({
     color: BRAND_DEEP,
   },
   sectionTitle: {
+    ...typography.unified.title,
     fontSize: 18,
     lineHeight: 24,
     fontWeight: '600',
@@ -796,15 +801,11 @@ export const styles = StyleSheet.create({
     lineHeight: 18,
   },
   sectionLink: {
+    ...typography.unified.body,
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '600',
     color: BRAND_DEEP,
-  },
-  recentSectionLink: {
-    fontSize: 11,
-    lineHeight: 16,
-    fontWeight: '500',
   },
 
   // ---------------------------------------------------------
@@ -860,12 +861,12 @@ export const styles = StyleSheet.create({
   // Recent Records Preview
   // ---------------------------------------------------------
   recentPreviewWrap: {
-    marginTop: -2,
+    marginTop: 0,
   },
   recentPreviewCard: {
-    borderRadius: 18,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    borderRadius: 16,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
     backgroundColor: SURFACE,
     borderWidth: 1,
     borderColor: 'rgba(15,23,42,0.06)',
@@ -876,43 +877,47 @@ export const styles = StyleSheet.create({
     elevation: 1,
   },
   recentPreviewList: {
-    gap: 8,
+    gap: 12,
   },
   recentDateGroup: {
-    gap: 8,
+    gap: 4,
   },
   recentDateHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
-    paddingHorizontal: 4,
+    paddingHorizontal: 12,
+    paddingTop: 14,
+    paddingBottom: 4,
   },
   recentDateText: {
+    ...typography.unified.date,
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '500',
     color: MUTED,
   },
   recentRecordRow: {
-    minHeight: 88,
+    position: 'relative',
+    minHeight: 82,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
   recentRecordDivider: {
     position: 'absolute',
-    left: 68,
+    left: 0,
     right: 0,
     bottom: 0,
     height: 1,
     backgroundColor: 'rgba(15,23,42,0.08)',
   },
   recentRecordIconBox: {
-    width: 56,
-    height: 56,
-    borderRadius: 18,
+    width: 52,
+    height: 52,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -923,12 +928,14 @@ export const styles = StyleSheet.create({
     gap: 3,
   },
   recentRecordCategory: {
+    ...typography.unified.label,
     fontSize: 14,
     lineHeight: 18,
     fontWeight: '500',
     color: TEXT,
   },
   recentRecordSummary: {
+    ...typography.unified.body,
     fontSize: 11,
     lineHeight: 15,
     fontWeight: '500',
@@ -938,10 +945,11 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    minWidth: 76,
+    gap: 4,
+    minWidth: 70,
   },
   recentRecordTime: {
+    ...typography.unified.body,
     fontSize: 11,
     lineHeight: 15,
     fontWeight: '500',
@@ -955,7 +963,7 @@ export const styles = StyleSheet.create({
   },
   recentEmptyState: {
     minHeight: 132,
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     paddingVertical: 18,
     alignItems: 'center',
     justifyContent: 'center',

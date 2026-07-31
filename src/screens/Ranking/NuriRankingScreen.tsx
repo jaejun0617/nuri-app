@@ -64,17 +64,17 @@ const RankingRow = memo(function RankingRow({
       ]}
     >
       <View style={[styles.rankBadge, { backgroundColor: `${podiumColor}18` }]}>
-        <AppText preset="caption" style={[styles.rankBadgeText, { color: podiumColor }]}>
+        <AppText preset="unifiedMeta" style={[styles.rankBadgeText, { color: podiumColor }]}>
           {row.rankNo}
         </AppText>
       </View>
 
       <View style={styles.rankBody}>
         <View style={styles.rankTopRow}>
-          <AppText preset="headline" style={styles.rankName} numberOfLines={1}>
+          <AppText preset="unifiedTitle" style={styles.rankName} numberOfLines={1}>
             {row.displayName}
           </AppText>
-          <AppText preset="caption" style={styles.rankLevel}>
+          <AppText preset="unifiedMeta" style={styles.rankLevel}>
             Lv.{row.level}
           </AppText>
         </View>
@@ -92,10 +92,10 @@ const RankingRow = memo(function RankingRow({
         </View>
 
         <View style={styles.rankBottomRow}>
-          <AppText preset="caption" style={styles.rankScore}>
+          <AppText preset="unifiedMeta" style={styles.rankScore}>
             {row.scoreLabel}
           </AppText>
-          <AppText preset="caption" style={[styles.rankTotal, { color: theme.colors.textMuted }]}>
+          <AppText preset="unifiedMeta" style={[styles.rankTotal, { color: theme.colors.textMuted }]}>
             누적 {formatTotalXp(row.totalXp)}
           </AppText>
         </View>
@@ -235,7 +235,7 @@ export default function NuriRankingScreen() {
           <Feather name="chevron-left" size={22} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <View style={styles.headerTitleWrap}>
-          <AppText preset="caption" style={[styles.headerEyebrow, { color: petTheme.primary }]}>
+          <AppText preset="unifiedMeta" style={[styles.headerEyebrow, { color: petTheme.primary }]}>
             NURI RANKING
           </AppText>
           <AppText preset="title1" style={styles.headerTitle}>
@@ -271,10 +271,10 @@ export default function NuriRankingScreen() {
             <Feather name="bar-chart-2" size={23} color={petTheme.primary} />
           </View>
           <View style={styles.heroTextWrap}>
-            <AppText preset="headline" style={styles.heroTitle}>
+            <AppText preset="unifiedTitle" style={styles.heroTitle}>
               서로의 활동을 가볍게 응원해요
             </AppText>
-            <AppText preset="body" style={styles.heroBody}>
+            <AppText preset="unifiedBody" style={styles.heroBody}>
               개인정보는 숨기고, 활동 점수만 차분하게 보여주는 성장형 랭킹이에요.
             </AppText>
           </View>
@@ -300,7 +300,7 @@ export default function NuriRankingScreen() {
                 onPress={() => setSelectedCategory(item.key)}
               >
                 <AppText
-                  preset="caption"
+                  preset="unifiedMeta"
                   style={[
                     styles.tabText,
                     { color: active ? '#FFFFFF' : theme.colors.textSecondary },
@@ -315,16 +315,16 @@ export default function NuriRankingScreen() {
 
         <View style={styles.sectionHeader}>
           <View>
-            <AppText preset="headline" style={styles.sectionTitle}>
+            <AppText preset="unifiedTitle" style={styles.sectionTitle}>
               {selectedMeta.label} 랭킹
             </AppText>
-            <AppText preset="caption" style={styles.sectionHelper}>
+            <AppText preset="unifiedMeta" style={styles.sectionHelper}>
               {selectedMeta.helper}
             </AppText>
           </View>
           <View style={[styles.privacyPill, { backgroundColor: petTheme.soft }]}>
             <Feather name="shield" size={13} color={petTheme.primary} />
-            <AppText preset="caption" style={[styles.privacyText, { color: petTheme.primary }]}>
+            <AppText preset="unifiedMeta" style={[styles.privacyText, { color: petTheme.primary }]}>
               마스킹
             </AppText>
           </View>
@@ -337,10 +337,10 @@ export default function NuriRankingScreen() {
         {rankingQuery.isError && rows.length === 0 ? (
           <View style={styles.stateCard}>
             <Feather name="alert-circle" size={24} color={theme.colors.textMuted} />
-            <AppText preset="headline" style={styles.stateTitle}>
+            <AppText preset="unifiedTitle" style={styles.stateTitle}>
               랭킹을 준비 중이에요
             </AppText>
-            <AppText preset="body" style={styles.stateText}>
+            <AppText preset="unifiedBody" style={styles.stateText}>
               {rankingErrorMessage}
             </AppText>
           </View>
@@ -349,10 +349,10 @@ export default function NuriRankingScreen() {
         {!isInitialLoading && !rankingQuery.isError && rows.length === 0 ? (
           <View style={styles.stateCard}>
             <Feather name="bar-chart" size={24} color={theme.colors.textMuted} />
-            <AppText preset="headline" style={styles.stateTitle}>
+            <AppText preset="unifiedTitle" style={styles.stateTitle}>
               아직 쌓인 활동이 없어요
             </AppText>
-            <AppText preset="body" style={styles.stateText}>
+            <AppText preset="unifiedBody" style={styles.stateText}>
               기록과 댓글이 쌓이면 이곳에 예쁜 막대 랭킹으로 표시돼요.
             </AppText>
           </View>

@@ -146,7 +146,7 @@ function MemoryCardComponent({
           {dateHeaderTitle ? (
             <View style={styles.dateGroupHeaderYearTitleWrap}>
               <AppText
-                preset="headline"
+                preset="unifiedTitle"
                 style={[
                   styles.dateGroupHeaderTitleYear,
                   dateHeaderTitleColor ? { color: dateHeaderTitleColor } : null,
@@ -178,7 +178,7 @@ function MemoryCardComponent({
             <View style={styles.dateGroupHeaderText}>
               {dateHeaderSubtitle ? (
                 <AppText
-                  preset="caption"
+                  preset="unifiedMeta"
                   style={[
                     styles.dateGroupHeaderSubtitle,
                     dateHeaderSubtitleColor ? { color: dateHeaderSubtitleColor } : null,
@@ -216,7 +216,7 @@ function MemoryCardComponent({
           <View style={styles.dateGroupHeaderText}>
             {dateHeaderTitle ? (
               <AppText
-                preset="headline"
+                preset="unifiedTitle"
                 style={[
                   dateHeaderTitleVariant === 'today'
                     ? styles.dateGroupHeaderTitleToday
@@ -229,7 +229,7 @@ function MemoryCardComponent({
             ) : null}
             {dateHeaderSubtitle ? (
               <AppText
-                preset="caption"
+                preset="unifiedMeta"
                 style={[
                   styles.dateGroupHeaderSubtitle,
                   dateHeaderSubtitleColor ? { color: dateHeaderSubtitleColor } : null,
@@ -291,7 +291,7 @@ function MemoryCardComponent({
 
         <View style={styles.itemBody}>
           <AppText
-            preset="body"
+            preset="unifiedBody"
             numberOfLines={1}
             style={[styles.itemTitle, itemTitleStyle]}
           >
@@ -301,7 +301,7 @@ function MemoryCardComponent({
           {metaText ? (
             <View style={styles.metaRow}>
               <AppText
-                preset="caption"
+                preset="unifiedMeta"
                 numberOfLines={1}
                 style={[
                   styles.metaText,

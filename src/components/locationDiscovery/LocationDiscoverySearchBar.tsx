@@ -63,7 +63,7 @@ export default function LocationDiscoverySearchBar({
       {showMetaRow ? (
         <View style={styles.searchMetaRow}>
           {helperText ? (
-            <AppText preset="caption" style={styles.searchHelperText}>
+            <AppText preset="unifiedMeta" style={styles.searchHelperText}>
               {helperText}
             </AppText>
           ) : (
@@ -71,7 +71,7 @@ export default function LocationDiscoverySearchBar({
           )}
           {loadingText ? (
             <AppText
-              preset="caption"
+              preset="unifiedMeta"
               style={[styles.searchLoadingText, { color: loadingColor }]}
             >
               {loadingText}

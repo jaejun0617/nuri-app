@@ -103,7 +103,7 @@ function TimeWheel({
       return (
         <View style={styles.wheelRow}>
           <AppText
-            preset="body"
+            preset="unifiedBody"
             style={[
               styles.wheelText,
               {
@@ -124,7 +124,7 @@ function TimeWheel({
   return (
     <View style={styles.wheelColumn}>
       <AppText
-        preset="caption"
+        preset="unifiedMeta"
         style={[
           styles.wheelLabel,
           {
@@ -247,13 +247,13 @@ function TimePickerModalBase({
 
           <View style={styles.headerBlock}>
             <AppText
-              preset="body"
+              preset="unifiedBody"
               style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '800' }}
             >
               {title}
             </AppText>
             <AppText
-              preset="caption"
+              preset="unifiedMeta"
               style={[
                 styles.helperText,
                 { color: 'rgba(255,255,255,0.62)', fontSize: 12 },
@@ -262,7 +262,7 @@ function TimePickerModalBase({
               {helperText}
             </AppText>
             <AppText
-              preset="body"
+              preset="unifiedBody"
               style={[
                 styles.previewText,
                 { color: '#FFFFFF', fontSize: 22, fontWeight: '800' },
@@ -282,7 +282,7 @@ function TimePickerModalBase({
             />
 
             <AppText
-              preset="body"
+              preset="unifiedBody"
               style={[styles.colonText, { color: theme.colors.textPrimary }]}
             >
               :
@@ -310,7 +310,7 @@ function TimePickerModalBase({
               onPress={onCancel}
             >
               <AppText
-                preset="caption"
+                preset="unifiedMeta"
                 style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '600' }}
               >
                 {cancelText}
@@ -337,7 +337,7 @@ function TimePickerModalBase({
                 ]}
               >
                 <AppText
-                  preset="caption"
+                  preset="unifiedMeta"
                   style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '700' }}
                 >
                   {confirmText}

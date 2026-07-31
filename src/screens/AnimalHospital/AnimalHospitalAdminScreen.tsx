@@ -120,10 +120,10 @@ function formatDateTime(value: string | null | undefined): string {
 function MetadataLine({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.metadataLine}>
-      <AppText preset="caption" style={styles.metadataLabel}>
+      <AppText preset="unifiedMeta" style={styles.metadataLabel}>
         {label}
       </AppText>
-      <AppText preset="caption" style={styles.metadataValue}>
+      <AppText preset="unifiedMeta" style={styles.metadataValue}>
         {value}
       </AppText>
     </View>
@@ -139,10 +139,10 @@ function SummaryCard({
 }) {
   return (
     <View style={styles.summaryCard}>
-      <AppText preset="caption" style={styles.summaryLabel}>
+      <AppText preset="unifiedMeta" style={styles.summaryLabel}>
         {label}
       </AppText>
-      <AppText preset="headline" style={styles.summaryValue}>
+      <AppText preset="unifiedTitle" style={styles.summaryValue}>
         {typeof value === 'number' ? formatCount(value) : value}
       </AppText>
     </View>
@@ -164,7 +164,7 @@ function FilterChip({
       onPress={onPress}
     >
       <AppText
-        preset="caption"
+        preset="unifiedMeta"
         style={[
           styles.filterChipText,
           selected ? styles.filterChipTextSelected : null,
@@ -198,43 +198,43 @@ function ReviewItemCard({
     >
       <View style={styles.reviewCardHeader}>
         <View style={styles.reviewTitleBlock}>
-          <AppText preset="caption" style={styles.reviewField}>
+          <AppText preset="unifiedMeta" style={styles.reviewField}>
             {formatFieldLabel(item.fieldKey)}
             {item.verificationStatus ? ` · ${item.verificationStatus}` : ''}
           </AppText>
-          <AppText preset="headline" style={styles.reviewName}>
+          <AppText preset="unifiedTitle" style={styles.reviewName}>
             {item.name}
           </AppText>
         </View>
         <Feather name="chevron-right" size={18} color="#7B8597" />
       </View>
-      <AppText preset="caption" style={styles.reviewAddress} numberOfLines={2}>
+      <AppText preset="unifiedMeta" style={styles.reviewAddress} numberOfLines={2}>
         {item.address}
       </AppText>
       {excludedReason ? (
-        <AppText preset="caption" style={styles.reviewExcluded}>
+        <AppText preset="unifiedMeta" style={styles.reviewExcluded}>
           {excludedReason}
         </AppText>
       ) : null}
       <View style={styles.valueCompareRow}>
         <View style={styles.valueBox}>
-          <AppText preset="caption" style={styles.valueLabel}>
+          <AppText preset="unifiedMeta" style={styles.valueLabel}>
             현재 public 값
           </AppText>
-          <AppText preset="caption" style={styles.valueText}>
+          <AppText preset="unifiedMeta" style={styles.valueText}>
             {formatJsonValue(item.currentPublicValue)}
           </AppText>
         </View>
         <View style={styles.valueBox}>
-          <AppText preset="caption" style={styles.valueLabel}>
+          <AppText preset="unifiedMeta" style={styles.valueLabel}>
             후보 값
           </AppText>
-          <AppText preset="caption" style={styles.valueText}>
+          <AppText preset="unifiedMeta" style={styles.valueText}>
             {formatJsonValue(item.candidateValue)}
           </AppText>
         </View>
       </View>
-      <AppText preset="caption" style={styles.reviewMeta}>
+      <AppText preset="unifiedMeta" style={styles.reviewMeta}>
         {item.sourceType}
         {item.sourceRecordKey ? ` · ${item.sourceRecordKey}` : ''}
       </AppText>
@@ -382,17 +382,17 @@ export default function AnimalHospitalAdminScreen() {
           <TouchableOpacity style={styles.backButton} onPress={onPressBack}>
             <Feather name="arrow-left" size={20} color="#102033" />
           </TouchableOpacity>
-          <AppText preset="headline" style={styles.headerTitle}>
+          <AppText preset="unifiedTitle" style={styles.headerTitle}>
             동물병원 운영
           </AppText>
           <View style={styles.headerSide} />
         </View>
         <View style={styles.permissionCard}>
           <Feather name="shield-off" size={28} color="#D75B23" />
-          <AppText preset="headline" style={styles.permissionTitle}>
+          <AppText preset="unifiedTitle" style={styles.permissionTitle}>
             운영 권한이 필요해요
           </AppText>
-          <AppText preset="body" style={styles.permissionBody}>
+          <AppText preset="unifiedBody" style={styles.permissionBody}>
             관리자 또는 최고관리자 계정에서만 접근할 수 있어요.
           </AppText>
         </View>
@@ -406,7 +406,7 @@ export default function AnimalHospitalAdminScreen() {
         <TouchableOpacity style={styles.backButton} onPress={onPressBack}>
           <Feather name="arrow-left" size={20} color="#102033" />
         </TouchableOpacity>
-        <AppText preset="headline" style={styles.headerTitle}>
+        <AppText preset="unifiedTitle" style={styles.headerTitle}>
           동물병원 운영
         </AppText>
         <TouchableOpacity
@@ -427,20 +427,20 @@ export default function AnimalHospitalAdminScreen() {
       >
         {summaryQuery.isLoading ? (
           <View style={styles.stateCard}>
-            <AppText preset="body" style={styles.stateText}>
+            <AppText preset="unifiedBody" style={styles.stateText}>
               운영 summary를 불러오는 중이에요.
             </AppText>
           </View>
         ) : summaryQuery.error ? (
           <View style={styles.stateCard}>
-            <AppText preset="headline" style={styles.stateTitle}>
+            <AppText preset="unifiedTitle" style={styles.stateTitle}>
               운영 summary를 불러오지 못했어요
             </AppText>
             <TouchableOpacity
               style={styles.retryButton}
               onPress={() => summaryQuery.refetch()}
             >
-              <AppText preset="caption" style={styles.retryButtonText}>
+              <AppText preset="unifiedMeta" style={styles.retryButtonText}>
                 다시 시도
               </AppText>
             </TouchableOpacity>
@@ -546,30 +546,30 @@ export default function AnimalHospitalAdminScreen() {
 
         {reviewQuery.isLoading ? (
           <View style={styles.stateCard}>
-            <AppText preset="body" style={styles.stateText}>
+            <AppText preset="unifiedBody" style={styles.stateText}>
               검수 목록을 불러오는 중이에요.
             </AppText>
           </View>
         ) : reviewQuery.error ? (
           <View style={styles.stateCard}>
-            <AppText preset="headline" style={styles.stateTitle}>
+            <AppText preset="unifiedTitle" style={styles.stateTitle}>
               검수 목록을 불러오지 못했어요
             </AppText>
             <TouchableOpacity
               style={styles.retryButton}
               onPress={() => reviewQuery.refetch()}
             >
-              <AppText preset="caption" style={styles.retryButtonText}>
+              <AppText preset="unifiedMeta" style={styles.retryButtonText}>
                 다시 시도
               </AppText>
             </TouchableOpacity>
           </View>
         ) : reviewQuery.data?.length === 0 ? (
           <View style={styles.stateCard}>
-            <AppText preset="headline" style={styles.stateTitle}>
+            <AppText preset="unifiedTitle" style={styles.stateTitle}>
               조건에 맞는 검수 항목이 없어요
             </AppText>
-            <AppText preset="body" style={styles.stateText}>
+            <AppText preset="unifiedBody" style={styles.stateText}>
               필터를 바꾸거나 source key로 다시 검색해 주세요.
             </AppText>
           </View>
@@ -588,39 +588,39 @@ export default function AnimalHospitalAdminScreen() {
 
         {selectedItem ? (
           <View style={styles.detailCard}>
-            <AppText preset="caption" style={styles.detailLabel}>
+            <AppText preset="unifiedMeta" style={styles.detailLabel}>
               병원 단위 상세 검수
             </AppText>
-            <AppText preset="titleSm" style={styles.detailTitle}>
+            <AppText preset="unifiedTitle" style={styles.detailTitle}>
               {selectedItem.name}
             </AppText>
-            <AppText preset="bodySm" style={styles.detailAddress}>
+            <AppText preset="unifiedMeta" style={styles.detailAddress}>
               {selectedItem.address}
             </AppText>
 
             <View style={styles.valueCompareRow}>
               <View style={styles.valueBox}>
-                <AppText preset="caption" style={styles.valueLabel}>
+                <AppText preset="unifiedMeta" style={styles.valueLabel}>
                   현재 public projection
                 </AppText>
-                <AppText preset="caption" style={styles.valueText}>
+                <AppText preset="unifiedMeta" style={styles.valueText}>
                   {detailQuery.data
                     ? formatJsonValue(detailQuery.data.publicProjection)
                     : formatJsonValue(selectedItem.currentPublicValue)}
                 </AppText>
               </View>
               <View style={styles.valueBox}>
-                <AppText preset="caption" style={styles.valueLabel}>
+                <AppText preset="unifiedMeta" style={styles.valueLabel}>
                   pending candidate
                 </AppText>
-                <AppText preset="caption" style={styles.valueText}>
+                <AppText preset="unifiedMeta" style={styles.valueText}>
                   {formatJsonValue(selectedItem.candidateValue)}
                 </AppText>
               </View>
             </View>
 
             {selectedItem.lifecycleNote ? (
-              <AppText preset="caption" style={styles.lifecycleNote}>
+              <AppText preset="unifiedMeta" style={styles.lifecycleNote}>
                 제외 사유: {selectedItem.lifecycleNote}
               </AppText>
             ) : null}
@@ -653,23 +653,23 @@ export default function AnimalHospitalAdminScreen() {
             </View>
 
             <View style={styles.metadataCard}>
-              <AppText preset="caption" style={styles.valueLabel}>
+              <AppText preset="unifiedMeta" style={styles.valueLabel}>
                 evidence
               </AppText>
-              <AppText preset="caption" style={styles.valueText}>
+              <AppText preset="unifiedMeta" style={styles.valueText}>
                 {formatJsonValue(selectedItem.evidence)}
               </AppText>
             </View>
 
             {detailQuery.data?.actionLogs.length ? (
               <View style={styles.metadataCard}>
-                <AppText preset="caption" style={styles.valueLabel}>
+                <AppText preset="unifiedMeta" style={styles.valueLabel}>
                   action log
                 </AppText>
                 {detailQuery.data.actionLogs.slice(0, 5).map((log, index) => (
                   <AppText
                     key={`animal-hospital-action-log:${index}`}
-                    preset="caption"
+                    preset="unifiedMeta"
                     style={styles.valueText}
                   >
                     {formatJsonValue(log)}
@@ -695,7 +695,7 @@ export default function AnimalHospitalAdminScreen() {
                 disabled={!selectedItem.verificationId || reviewMutation.isPending}
                 onPress={() => handleReview('approved')}
               >
-                <AppText preset="caption" style={styles.approveText}>
+                <AppText preset="unifiedMeta" style={styles.approveText}>
                   승인
                 </AppText>
               </TouchableOpacity>
@@ -704,7 +704,7 @@ export default function AnimalHospitalAdminScreen() {
                 disabled={!selectedItem.verificationId || reviewMutation.isPending}
                 onPress={() => handleReview('held')}
               >
-                <AppText preset="caption" style={styles.actionText}>
+                <AppText preset="unifiedMeta" style={styles.actionText}>
                   보류
                 </AppText>
               </TouchableOpacity>
@@ -713,7 +713,7 @@ export default function AnimalHospitalAdminScreen() {
                 disabled={!selectedItem.verificationId || reviewMutation.isPending}
                 onPress={() => handleReview('rejected')}
               >
-                <AppText preset="caption" style={styles.actionText}>
+                <AppText preset="unifiedMeta" style={styles.actionText}>
                   반려
                 </AppText>
               </TouchableOpacity>

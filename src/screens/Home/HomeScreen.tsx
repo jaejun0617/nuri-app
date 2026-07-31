@@ -201,7 +201,7 @@ export default function HomeScreen() {
             <S.Spacer $h={8} />
 
             <AppText
-              preset="body"
+              preset="unifiedBody"
               color="#ffffff"
               style={[textStyles.shadow, { fontSize: 16 }]}
             >
@@ -211,7 +211,7 @@ export default function HomeScreen() {
             <S.Spacer $h={8} />
 
             <AppText
-              preset="body"
+              preset="unifiedBody"
               color="#ffffff"
               style={[textStyles.shadow, { fontSize: 16 }]}
             >
@@ -222,13 +222,13 @@ export default function HomeScreen() {
               <>
                 <S.Spacer $h={20} />
                 <S.Button onPress={goToMainDev}>
-                  <AppText preset="body" color="#000000" weight="600">
+                  <AppText preset="unifiedBody" color="#000000" weight="600">
                     (DEV) AppTabs로 이동
                   </AppText>
                 </S.Button>
 
                 <S.Spacer $h={10} />
-                <AppText preset="caption" color="rgba(255,255,255,0.75)">
+                <AppText preset="unifiedMeta" color="rgba(255,255,255,0.75)">
                   개발모드: Splash 자동 진입(booted gate) 동작 중
                 </AppText>
               </>

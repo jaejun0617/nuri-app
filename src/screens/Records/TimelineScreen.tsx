@@ -294,7 +294,7 @@ const ControlsBar = memo(function ControlsBar({
           onPress={onToggleSort}
         >
           <AppText
-            preset="caption"
+            preset="unifiedMeta"
             style={[styles.controlChipText, { color: theme.primary }]}
           >
             {sortLabel}
@@ -307,7 +307,7 @@ const ControlsBar = memo(function ControlsBar({
           onPress={onOpenMonthModal}
         >
           <AppText
-            preset="caption"
+            preset="unifiedMeta"
             style={[
               styles.controlChipText,
               !isMonthFiltered ? styles.controlChipTextInactive : null,
@@ -354,7 +354,7 @@ const ControlsBar = memo(function ControlsBar({
               >
                 <View style={styles.categoryChipLabelRow}>
                   <AppText
-                    preset="caption"
+                    preset="unifiedMeta"
                     style={[
                       styles.categoryChipText,
                       active
@@ -375,7 +375,7 @@ const ControlsBar = memo(function ControlsBar({
                     ]}
                   >
                     <AppText
-                      preset="caption"
+                      preset="unifiedMeta"
                       style={[
                         styles.categoryCountBadgeText,
                         active ? { color: theme.primary } : null,
@@ -438,21 +438,21 @@ const TimelineActivitySummaryHeader = memo(function TimelineActivitySummaryHeade
       <View style={[styles.dailyCard, { borderColor: theme.soft }]}>
         <View style={styles.dailyCardTopRow}>
           <View style={[styles.dailyIcon, { backgroundColor: theme.soft }]}>
-            <AppText preset="caption" style={[styles.dailyIconText, { color: theme.primary }]}>
+            <AppText preset="unifiedMeta" style={[styles.dailyIconText, { color: theme.primary }]}>
               산책
             </AppText>
           </View>
-          <AppText preset="caption" style={styles.dailyMetaText}>
+          <AppText preset="unifiedMeta" style={styles.dailyMetaText}>
             KST 기준 하루 1회
           </AppText>
         </View>
-        <AppText preset="headline" style={styles.dailyTitle}>
+        <AppText preset="unifiedTitle" style={styles.dailyTitle}>
           {dailyStatus?.todayCompleted ? '오늘도 산책 완료!' : `${petLabel}의 데일리판`}
         </AppText>
-        <AppText preset="body" style={styles.dailyBody}>
+        <AppText preset="unifiedBody" style={styles.dailyBody}>
           {streakText}
         </AppText>
-        <AppText preset="caption" style={styles.dailySubText}>
+        <AppText preset="unifiedMeta" style={styles.dailySubText}>
           최고 기록 {bestStreak}일 · 같은 날 여러 번 기록해도 1회만 인정돼요
         </AppText>
       </View>
@@ -460,14 +460,14 @@ const TimelineActivitySummaryHeader = memo(function TimelineActivitySummaryHeade
       <View style={[styles.progressCard, { borderColor: theme.soft }]}>
         <View style={styles.progressTopRow}>
           <View>
-            <AppText preset="caption" style={styles.progressEyebrow}>
+            <AppText preset="unifiedMeta" style={styles.progressEyebrow}>
               활동 성장
             </AppText>
-            <AppText preset="headline" style={styles.progressTitle}>
+            <AppText preset="unifiedTitle" style={styles.progressTitle}>
               Lv.{effectiveLevel.level} · {latestTitle}
             </AppText>
           </View>
-          <AppText preset="caption" style={[styles.progressXp, { color: theme.primary }]}>
+          <AppText preset="unifiedMeta" style={[styles.progressXp, { color: theme.primary }]}>
             {effectiveLevel.totalXp} XP
           </AppText>
         </View>
@@ -482,7 +482,7 @@ const TimelineActivitySummaryHeader = memo(function TimelineActivitySummaryHeade
             ]}
           />
         </View>
-        <AppText preset="caption" style={styles.progressHint}>
+        <AppText preset="unifiedMeta" style={styles.progressHint}>
           다음 레벨 {effectiveLevel.nextLevelXp} XP까지 차분히 쌓아가요
         </AppText>
       </View>
@@ -1139,7 +1139,7 @@ export default function TimelineScreen() {
       return (
         <View style={styles.footer}>
           <ActivityIndicator />
-          <AppText preset="caption" style={styles.footerText}>
+          <AppText preset="unifiedMeta" style={styles.footerText}>
             더 불러오는 중...
           </AppText>
         </View>
@@ -1149,7 +1149,7 @@ export default function TimelineScreen() {
     if (status === 'ready' && !hasMore) {
       return (
         <View style={styles.footer}>
-          <AppText preset="caption" style={styles.footerText}>
+          <AppText preset="unifiedMeta" style={styles.footerText}>
             마지막 기록이에요
           </AppText>
         </View>
@@ -1164,7 +1164,7 @@ export default function TimelineScreen() {
       return (
         <View style={styles.empty}>
           <ActivityIndicator />
-          <AppText preset="body" style={styles.emptyDesc}>
+          <AppText preset="unifiedBody" style={styles.emptyDesc}>
             기록을 불러오는 중이에요.
           </AppText>
         </View>
@@ -1174,10 +1174,10 @@ export default function TimelineScreen() {
     if (status === 'error') {
       return (
         <View style={styles.empty}>
-          <AppText preset="headline" style={styles.emptyTitle}>
+          <AppText preset="unifiedTitle" style={styles.emptyTitle}>
             기록을 불러오지 못했어요
           </AppText>
-          <AppText preset="body" style={styles.emptyDesc}>
+          <AppText preset="unifiedBody" style={styles.emptyDesc}>
             네트워크를 확인한 뒤 다시 시도해 주세요.
           </AppText>
           <TouchableOpacity
@@ -1185,7 +1185,7 @@ export default function TimelineScreen() {
             style={[styles.primary, { backgroundColor: petTheme.primary }]}
             onPress={onRefresh}
           >
-            <AppText preset="body" style={styles.primaryText}>
+            <AppText preset="unifiedBody" style={styles.primaryText}>
               다시 불러오기
             </AppText>
           </TouchableOpacity>
@@ -1202,13 +1202,13 @@ export default function TimelineScreen() {
             resizeMode="contain"
           />
         </View>
-        <AppText preset="headline" style={styles.emptyTitle}>
+        <AppText preset="unifiedTitle" style={styles.emptyTitle}>
           아직 남겨진 추억이 없어요
         </AppText>
-        <AppText preset="body" style={styles.emptyDesc}>
+        <AppText preset="unifiedBody" style={styles.emptyDesc}>
           우리 아이와 함께한 반짝이는 순간을
         </AppText>
-        <AppText preset="body" style={styles.emptyDesc}>
+        <AppText preset="unifiedBody" style={styles.emptyDesc}>
           첫 기록으로 천천히 시작해보세요
         </AppText>
         <TouchableOpacity
@@ -1216,10 +1216,10 @@ export default function TimelineScreen() {
           style={[styles.primary, { backgroundColor: petTheme.primary }]}
           onPress={onPressCreate}
         >
-          <AppText preset="body" style={styles.primaryIcon}>
+          <AppText preset="unifiedBody" style={styles.primaryIcon}>
             ✎
           </AppText>
-          <AppText preset="body" style={styles.primaryText}>
+          <AppText preset="unifiedBody" style={styles.primaryText}>
             기록 시작하기
           </AppText>
         </TouchableOpacity>
@@ -1298,7 +1298,7 @@ export default function TimelineScreen() {
               <Feather name="arrow-left" size={20} color="#102033" />
             </TouchableOpacity>
           </View>
-          <AppText preset="headline" style={styles.headerTitle}>
+          <AppText preset="unifiedTitle" style={styles.headerTitle}>
             타임라인
           </AppText>
           <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
@@ -1328,13 +1328,13 @@ export default function TimelineScreen() {
                 resizeMode="contain"
               />
             </View>
-            <AppText preset="headline" style={styles.emptyTitle}>
+            <AppText preset="unifiedTitle" style={styles.emptyTitle}>
               NURI의 모든 기능을 경험해 보세요
             </AppText>
-            <AppText preset="body" style={styles.emptyDesc}>
+            <AppText preset="unifiedBody" style={styles.emptyDesc}>
               로그인 후 우리 아이의 기록과 시간을
             </AppText>
-            <AppText preset="body" style={styles.emptyDesc}>
+            <AppText preset="unifiedBody" style={styles.emptyDesc}>
               타임라인으로 차분하게 모아볼 수 있어요
             </AppText>
             <TouchableOpacity
@@ -1342,7 +1342,7 @@ export default function TimelineScreen() {
               style={[styles.primary, { backgroundColor: theme.colors.brand }]}
               onPress={goSignIn}
             >
-              <AppText preset="body" style={styles.primaryText}>
+              <AppText preset="unifiedBody" style={styles.primaryText}>
                 로그인하고 기록하기
               </AppText>
             </TouchableOpacity>
@@ -1366,7 +1366,7 @@ export default function TimelineScreen() {
             <Feather name="arrow-left" size={20} color="#102033" />
           </TouchableOpacity>
         </View>
-        <AppText preset="headline" style={styles.headerTitle}>
+        <AppText preset="unifiedTitle" style={styles.headerTitle}>
           타임라인
         </AppText>
         <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
@@ -1449,7 +1449,7 @@ export default function TimelineScreen() {
             onPress={() => {}}
           >
             <AppText
-              preset="headline"
+              preset="unifiedTitle"
               style={[styles.modalTitle, { color: theme.colors.textPrimary }]}
             >
               월/연도 선택
@@ -1461,7 +1461,7 @@ export default function TimelineScreen() {
               onPress={() => jumpToYm(null)}
             >
               <AppText
-                preset="body"
+                preset="unifiedBody"
                 style={[styles.modalItemText, { color: theme.colors.textPrimary }]}
               >
                 전체 보기
@@ -1476,7 +1476,7 @@ export default function TimelineScreen() {
                 onPress={() => jumpToYm(ym)}
               >
                 <AppText
-                  preset="body"
+                  preset="unifiedBody"
                   style={[styles.modalItemText, { color: theme.colors.textPrimary }]}
                 >
                   {humanizeTimelineMonthKey(ym)}
@@ -1508,7 +1508,7 @@ export default function TimelineScreen() {
             onPress={() => {}}
           >
             <AppText
-              preset="headline"
+              preset="unifiedTitle"
               style={[styles.modalTitle, { color: theme.colors.textPrimary }]}
             >
               생활 카테고리
@@ -1520,7 +1520,7 @@ export default function TimelineScreen() {
               onPress={clearOtherSub}
             >
               <AppText
-                preset="body"
+                preset="unifiedBody"
                 style={[styles.modalItemText, { color: theme.colors.textPrimary }]}
               >
                 전체 보기
@@ -1535,7 +1535,7 @@ export default function TimelineScreen() {
                 onPress={() => applyOtherSub(option.key)}
               >
                 <AppText
-                  preset="body"
+                  preset="unifiedBody"
                   style={[styles.modalItemText, { color: theme.colors.textPrimary }]}
                 >
                   {option.label}

@@ -285,17 +285,17 @@ const FeedPostCard = memo(function FeedPostCard({
             />
           ) : (
             <View style={[styles.postAvatar, styles.postAvatarFallback]}>
-              <AppText preset="caption" style={styles.postAvatarFallbackText}>
+              <AppText preset="unifiedMeta" style={styles.postAvatarFallbackText}>
                 {avatarFallback}
               </AppText>
             </View>
           )}
 
           <View style={styles.postHeaderTextWrap}>
-            <AppText preset="body" style={styles.postPetName}>
+            <AppText preset="unifiedBody" style={styles.postPetName}>
               {petName}
             </AppText>
-            <AppText preset="caption" style={styles.postMetaLine}>
+            <AppText preset="unifiedMeta" style={styles.postMetaLine}>
               {displayDate}
               {relativeTime ? ` · ${relativeTime}` : ''}
             </AppText>
@@ -324,7 +324,7 @@ const FeedPostCard = memo(function FeedPostCard({
             removeClippedSubviews={false}
           />
           <View style={styles.postImagePager}>
-            <AppText preset="caption" style={styles.postImagePagerText}>
+            <AppText preset="unifiedMeta" style={styles.postImagePagerText}>
               {Math.min(imageIndex + 1, imagePaths.length)} / {imagePaths.length}
             </AppText>
           </View>
@@ -338,7 +338,7 @@ const FeedPostCard = memo(function FeedPostCard({
         />
       ) : (
         <View style={styles.postImageFallback}>
-          <AppText preset="caption" style={styles.postImageFallbackText}>
+          <AppText preset="unifiedMeta" style={styles.postImageFallbackText}>
             사진이 없어요
           </AppText>
         </View>
@@ -354,40 +354,40 @@ const FeedPostCard = memo(function FeedPostCard({
       </View>
 
       <View style={styles.postBody}>
-        <AppText preset="body" style={styles.postTitleText}>
+        <AppText preset="unifiedBody" style={styles.postTitleText}>
           {item.title.trim()}
         </AppText>
 
         {contentText ? (
-          <AppText preset="body" style={styles.postContentText}>
+          <AppText preset="unifiedBody" style={styles.postContentText}>
             {contentText}
           </AppText>
         ) : null}
 
         {moodMeta ? (
           <View style={styles.postMoodRow}>
-            <AppText preset="caption" style={styles.postMoodEmoji}>
+            <AppText preset="unifiedMeta" style={styles.postMoodEmoji}>
               {moodMeta.emoji}
             </AppText>
-            <AppText preset="caption" style={styles.postMoodLabel}>
+            <AppText preset="unifiedMeta" style={styles.postMoodLabel}>
               {moodMeta.label}
             </AppText>
           </View>
         ) : null}
 
         {tagsText ? (
-          <AppText preset="caption" style={styles.postTagsText}>
+          <AppText preset="unifiedMeta" style={styles.postTagsText}>
             {tagsText}
           </AppText>
         ) : null}
 
         {priceText ? (
-          <AppText preset="caption" style={styles.postTagsText}>
+          <AppText preset="unifiedMeta" style={styles.postTagsText}>
             구매 가격 {priceText}
           </AppText>
         ) : null}
 
-        <AppText preset="caption" style={styles.postDateText}>
+        <AppText preset="unifiedMeta" style={styles.postDateText}>
           {displayDate}
         </AppText>
 
@@ -681,14 +681,14 @@ export default function RecordDetailScreen() {
     return (
       <View style={styles.screen}>
         <View style={styles.header}>
-          <AppText preset="headline" style={styles.headerTitle}>
+          <AppText preset="unifiedTitle" style={styles.headerTitle}>
             추억상세보기
           </AppText>
         </View>
 
         <View style={styles.empty}>
           <ActivityIndicator size="small" />
-          <AppText preset="body" style={styles.emptyDesc}>
+          <AppText preset="unifiedBody" style={styles.emptyDesc}>
             기록을 불러오는 중이에요.
           </AppText>
         </View>
@@ -702,16 +702,16 @@ export default function RecordDetailScreen() {
       return (
         <View style={styles.screen}>
           <View style={styles.header}>
-            <AppText preset="headline" style={styles.headerTitle}>
+            <AppText preset="unifiedTitle" style={styles.headerTitle}>
               추억상세보기
             </AppText>
           </View>
 
           <View style={styles.empty}>
-            <AppText preset="headline" style={styles.emptyTitle}>
+            <AppText preset="unifiedTitle" style={styles.emptyTitle}>
               기록을 불러오지 못했어요
             </AppText>
-            <AppText preset="body" style={styles.emptyDesc}>
+            <AppText preset="unifiedBody" style={styles.emptyDesc}>
               {hydrateErrorMessage}
             </AppText>
             <TouchableOpacity
@@ -719,7 +719,7 @@ export default function RecordDetailScreen() {
               style={styles.modalPrimaryBtn}
               onPress={retryHydrateRecord}
             >
-              <AppText preset="body" style={styles.modalPrimaryBtnText}>
+              <AppText preset="unifiedBody" style={styles.modalPrimaryBtnText}>
                 다시 시도
               </AppText>
             </TouchableOpacity>
@@ -732,16 +732,16 @@ export default function RecordDetailScreen() {
     return (
       <View style={styles.screen}>
         <View style={styles.header}>
-          <AppText preset="headline" style={styles.headerTitle}>
+          <AppText preset="unifiedTitle" style={styles.headerTitle}>
             추억상세보기
           </AppText>
         </View>
 
         <View style={styles.empty}>
-          <AppText preset="headline" style={styles.emptyTitle}>
+          <AppText preset="unifiedTitle" style={styles.emptyTitle}>
             기록을 찾을 수 없어요
           </AppText>
-          <AppText preset="body" style={styles.emptyDesc}>
+          <AppText preset="unifiedBody" style={styles.emptyDesc}>
             목록으로 돌아가서 새로고침 해주세요.
           </AppText>
         </View>
@@ -763,7 +763,7 @@ export default function RecordDetailScreen() {
             <Feather name="arrow-left" size={20} color="#102033" />
           </TouchableOpacity>
         </View>
-        <AppText preset="headline" style={styles.headerLinkText}>
+        <AppText preset="unifiedTitle" style={styles.headerLinkText}>
           {route.params?.entrySource === 'health_report'
             ? '건강 기록 상세'
             : '추억상세보기'}
@@ -781,10 +781,10 @@ export default function RecordDetailScreen() {
         {route.params?.entrySource === 'health_report' ? null : (
         <View style={styles.relatedSection}>
           <View style={styles.relatedSectionHeader}>
-            <AppText preset="headline" style={styles.relatedSectionTitle}>
+            <AppText preset="unifiedTitle" style={styles.relatedSectionTitle}>
               다른 추억도 이어서 볼래요
             </AppText>
-            <AppText preset="caption" style={styles.relatedSectionCount}>
+            <AppText preset="unifiedMeta" style={styles.relatedSectionCount}>
               {relatedRecords.length}개
             </AppText>
           </View>
@@ -801,7 +801,7 @@ export default function RecordDetailScreen() {
             />
           ) : (
             <View style={styles.relatedEmptyCard}>
-              <AppText preset="body" style={styles.relatedEmptyText}>
+              <AppText preset="unifiedBody" style={styles.relatedEmptyText}>
                 이어서 볼 추억이 아직 없어요.
               </AppText>
             </View>
@@ -818,7 +818,7 @@ export default function RecordDetailScreen() {
               disabled={timelineStatus === 'loadingMore'}
             >
               <AppText
-                preset="body"
+                preset="unifiedBody"
                 style={[styles.relatedMoreButtonText, { color: petTheme.primary }]}
               >
                 {timelineStatus === 'loadingMore' ? '더 불러오는 중...' : '더보기'}
@@ -863,7 +863,7 @@ export default function RecordDetailScreen() {
                 color={theme.colors.textPrimary}
               />
               <AppText
-                preset="body"
+                preset="unifiedBody"
                 style={[
                   styles.sheetActionText,
                   { color: theme.colors.textPrimary },
@@ -887,7 +887,7 @@ export default function RecordDetailScreen() {
               disabled={deleting}
             >
               <Feather name="trash-2" size={18} color="#FF5A5F" />
-              <AppText preset="body" style={styles.sheetActionDeleteText}>
+              <AppText preset="unifiedBody" style={styles.sheetActionDeleteText}>
                 {deleting ? '삭제 중' : '삭제'}
               </AppText>
             </TouchableOpacity>

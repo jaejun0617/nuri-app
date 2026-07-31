@@ -11,9 +11,7 @@ import {
   View,
   type AppStateStatus,
 } from 'react-native';
-import Feather from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import LinearGradient from 'react-native-linear-gradient';
 import { useIsFocused } from '@react-navigation/native';
 
 import type { MemoryRecord } from '../../services/supabase/memories';
@@ -23,6 +21,7 @@ import {
   type FrequentRecordSummary,
 } from '../../services/home/frequentRecords';
 import type { buildPetThemePalette } from '../../services/pets/themePalette';
+import { SectionHeaderAction } from '../../app/ui/SectionHeaderAction';
 import { styles } from './FrequentRecordsSection.styles';
 
 type PetTheme = ReturnType<typeof buildPetThemePalette>;
@@ -78,7 +77,9 @@ function RecordSummaryCard({
       onPress={onPress}
       style={({ pressed }) => [
         styles.recordCard,
-        { borderColor: `${accentColor}20` },
+        item.category !== 'grooming'
+          ? { borderRightColor: `${accentColor}20` }
+          : null,
         pressed ? styles.recordCardPressed : null,
       ]}
     >
@@ -87,7 +88,7 @@ function RecordSummaryCard({
           <View style={[styles.recordIconWrap, { backgroundColor: accentTint }]}>
             <MaterialCommunityIcons
               name={meta.icon}
-              size={22}
+              size={19}
               color={accentColor}
             />
           </View>
@@ -100,7 +101,7 @@ function RecordSummaryCard({
         <View style={styles.recordTimeSlot}>
           {item.relativeTimeLabel ? (
             <View
-              style={[styles.relativeTimePill, { backgroundColor: accentTint }]}
+              style={[styles.relativeTimeMarker, { backgroundColor: accentTint }]}
             >
               <Text style={[styles.relativeTimeText, { color: accentColor }]}>
                 {item.relativeTimeLabel}
@@ -166,18 +167,7 @@ function FrequentRecordsSectionBase({
   const hasError = recordStatus === 'error' && records.length === 0;
 
   return (
-    <LinearGradient
-      colors={[
-        `${petTheme.ringGradient[0]}A6`,
-        '#F6D9F6',
-        '#F7E0D1',
-        '#DDEBFA',
-        `${petTheme.ringGradient[2]}A6`,
-      ]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.outerCard}
-    >
+    <View style={styles.outerCard}>
       <View style={styles.innerCard}>
         <View style={styles.headerRow}>
           <View style={styles.headerLead}>
@@ -204,23 +194,11 @@ function FrequentRecordsSectionBase({
               </Text>
             </View>
           </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="전체 기록 보기"
+          <SectionHeaderAction
+            color={petTheme.primary}
             onPress={onPressAll}
-            style={({ pressed }) => [
-              styles.allButton,
-              {
-                borderColor: `${petTheme.primary}26`,
-              },
-              pressed ? styles.allButtonPressed : null,
-            ]}
-          >
-            <Text style={[styles.allButtonText, { color: petTheme.primary }]}>
-              전체 보기
-            </Text>
-            <Feather name="chevron-right" size={14} color={petTheme.primary} />
-          </Pressable>
+            accessibilityLabel="전체 기록 보기"
+          />
         </View>
 
         {isLoading ? (
@@ -245,7 +223,7 @@ function FrequentRecordsSectionBase({
           </View>
         )}
       </View>
-    </LinearGradient>
+    </View>
   );
 }
 

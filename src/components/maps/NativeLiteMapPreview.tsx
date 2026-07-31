@@ -73,7 +73,7 @@ export default function NativeLiteMapPreview({
     return (
       <View style={styles.card}>
         <View style={[styles.map, styles.emptyState]}>
-          <AppText preset="caption" style={styles.emptyStateText}>
+          <AppText preset="unifiedMeta" style={styles.emptyStateText}>
             위치 정보 준비 중이에요.
           </AppText>
         </View>
@@ -106,7 +106,7 @@ export default function NativeLiteMapPreview({
       </MapView>
       {overlayText ? (
         <View pointerEvents="none" style={styles.overlay}>
-          <AppText preset="caption" style={styles.overlayText}>
+          <AppText preset="unifiedMeta" style={styles.overlayText}>
             {overlayText}
           </AppText>
         </View>

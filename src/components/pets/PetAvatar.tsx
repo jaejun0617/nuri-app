@@ -52,7 +52,7 @@ const PetAvatar = memo(function PetAvatar({
   return (
     <View style={[styles.fallback, fallbackStyle]}>
       {fallbackInitial ? (
-        <AppText preset="body" style={styles.fallbackText}>
+        <AppText preset="unifiedBody" style={styles.fallbackText}>
           {fallbackInitial}
         </AppText>
       ) : (

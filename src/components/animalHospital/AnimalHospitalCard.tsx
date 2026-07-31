@@ -79,7 +79,7 @@ function AnimalHospitalCard({ item, onOpenDetail }: Props) {
               >
                 <View style={styles.cardPhotoAttributionWrap}>
                   <AppText
-                    preset="caption"
+                    preset="unifiedMeta"
                     style={styles.cardPhotoAttributionText}
                     numberOfLines={1}
                   >
@@ -93,7 +93,7 @@ function AnimalHospitalCard({ item, onOpenDetail }: Props) {
           <View style={[styles.cardHeader, styles.cardHeaderCompact]}>
             <View style={[styles.cardHeaderCopy, styles.cardHeaderCopyCentered]}>
               <AppText
-                preset="caption"
+                preset="unifiedMeta"
                 style={styles.cardCategory}
                 numberOfLines={1}
               >
@@ -108,7 +108,7 @@ function AnimalHospitalCard({ item, onOpenDetail }: Props) {
                     ]}
                   >
                     <AppText
-                      preset="caption"
+                      preset="unifiedMeta"
                       style={[
                         styles.animalHospitalOperatingBadgeText,
                         operatingBadgeTextStyle,
@@ -121,14 +121,14 @@ function AnimalHospitalCard({ item, onOpenDetail }: Props) {
                 </View>
               ) : null}
               <AppText
-                preset="headline"
+                preset="unifiedTitle"
                 style={styles.cardTitle}
                 numberOfLines={2}
               >
                 {viewModel.title}
               </AppText>
               <AppText
-                preset="caption"
+                preset="unifiedMeta"
                 style={styles.cardMetaText}
                 numberOfLines={1}
               >

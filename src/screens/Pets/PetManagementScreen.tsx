@@ -44,10 +44,10 @@ const EmptyPetState = memo(function EmptyPetState({
       <View style={[styles.emptyIconWrap, { backgroundColor: `${accentColor}14` }]}>
         <Feather name="heart" size={22} color={accentColor} />
       </View>
-      <AppText preset="headline" style={styles.emptyTitle}>
+      <AppText preset="unifiedTitle" style={styles.emptyTitle}>
         아직 등록된 아이가 없어요
       </AppText>
-      <AppText preset="body" style={styles.emptyBody}>
+      <AppText preset="unifiedBody" style={styles.emptyBody}>
         아이를 등록하면 홈과 기록, 일정에서 함께 관리할 수 있어요.
       </AppText>
       <TouchableOpacity
@@ -56,7 +56,7 @@ const EmptyPetState = memo(function EmptyPetState({
         onPress={onPressAdd}
       >
         <AppText
-          preset="body"
+          preset="unifiedBody"
           style={[styles.addButtonText, { color: accentTextColor }]}
         >
           아이 등록하기
@@ -150,7 +150,7 @@ export default function PetManagementScreen() {
           onPress={handleAddPet}
         >
           <AppText
-            preset="body"
+            preset="unifiedBody"
             style={[styles.addButtonText, { color: accentPalette.onPrimary }]}
           >
             + 아이 등록하기
@@ -199,10 +199,10 @@ export default function PetManagementScreen() {
         </TouchableOpacity>
 
         <View style={styles.headerTextWrap}>
-          <AppText preset="headline" style={[styles.title, { color: theme.colors.textPrimary }]}>
+          <AppText preset="unifiedTitle" style={[styles.title, { color: theme.colors.textPrimary }]}>
             아이들 프로필 관리
           </AppText>
-          <AppText preset="caption" style={[styles.subtitle, { color: theme.colors.textMuted }]}>
+          <AppText preset="unifiedMeta" style={[styles.subtitle, { color: theme.colors.textMuted }]}>
             {subtitle}
           </AppText>
         </View>

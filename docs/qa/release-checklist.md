@@ -1261,3 +1261,36 @@ Artifact SHA-256: `0d598322d5cd6463582ab3e17d93a9d0bc81e44ce7d7eec5fa45efbcb74fa
   - app-PID filtered logcat fatal/ANR/ReactNativeJS fatal 0건
   - APK SHA-256: `cb21911013ebc74debc2b2f3b54b1d467cb3adf4f4bfd2bdf4b3da6500a0bc60`
   - logcat: `/tmp/nuri-qa/home-logcat-app.txt`
+
+## 2026-07-31 비제외 전역 UI 및 홈 기록 영역 최종 release evidence
+
+- [x] unified typography 적용
+  - unifiedTitle: 18/600
+  - unifiedLabel: 14/500
+  - unifiedBody/unifiedMeta: 11/500
+  - unifiedDate: 13/500
+  - PretendardVariable 기반, 커뮤니티·네비게이션·날씨 preset/소스 미변경
+- [x] 홈 자주 쓰는 기록
+  - 4열 동일 폭 유지
+  - 외부 gradient 및 항목별 카드 배경 제거
+  - marker형 시간 강조, clock icon 없음
+  - 공통 `전체 보기` action 적용
+- [x] 홈 최근 기록
+  - 단일 외부 카드 내부에 헤더·날짜 그룹·row 배치
+  - 전체 보기 버튼을 카드 내부로 이동
+  - divider를 icon 영역까지 전체 row 폭으로 확장
+  - 마지막 row divider 없음
+- [x] physical device
+  - `SM-S937N / R5CY613NMSY`, Android 16, 1080x2340, density 450, portrait
+  - 최종 release APK install/cold start/home scroll 성공
+  - Galaxy S24 동일 모델 evidence는 미확인
+- [x] 최종 코드 게이트
+  - typecheck 통과
+  - lint 통과, 신규 error 없음
+  - Jest `69 suites / 279 tests` 통과
+  - Supabase `db push --dry-run`: remote up to date
+  - release build 성공
+  - APK SHA-256: `15992eeceeed7ce99a205d84d2691384b0e62fb8d17d20554a5a713df853eefb`
+  - evidence: `/tmp/nuri-qa/global-ui-final.png`, `/tmp/nuri-qa/global-ui-final-records.png`, `/tmp/nuri-qa/global-ui-final-recent.png`, `/tmp/nuri-qa/global-ui-final-logcat.txt`
+  - 앱 PID 기준 Fatal/ANR/ReactNativeJS fatal/Fatal signal/unhandled promise 0건
+  - diff check 통과

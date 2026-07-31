@@ -74,18 +74,18 @@ export default function PetProfileEditDoneScreen() {
           </View>
         </View>
 
-        <AppText preset="title2" style={styles.title}>
+        <AppText preset="unifiedTitle" style={styles.title}>
           프로필 수정 완료!
         </AppText>
-        <AppText preset="body" style={styles.body}>
+        <AppText preset="unifiedBody" style={styles.body}>
           {petName}의 정보를 더 또렷하게 정리했어요.
         </AppText>
         {petMetaLine ? (
-          <AppText preset="body" style={styles.meta}>
+          <AppText preset="unifiedBody" style={styles.meta}>
             {petMetaLine}
           </AppText>
         ) : null}
-        <AppText preset="body" style={styles.body}>
+        <AppText preset="unifiedBody" style={styles.body}>
           이제 홈에서 바로 새로운 프로필을 볼 수 있어요.
         </AppText>
       </View>
@@ -104,7 +104,7 @@ export default function PetProfileEditDoneScreen() {
           })
         }
       >
-        <AppText preset="body" style={styles.primaryButtonText}>
+        <AppText preset="unifiedBody" style={styles.primaryButtonText}>
           홈으로 가기
         </AppText>
       </TouchableOpacity>

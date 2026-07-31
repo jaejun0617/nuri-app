@@ -31,35 +31,35 @@ function GuideListCardBase({ guide, onPress, debugBadgeText }: Props) {
             size={14}
             color="#6D6AF8"
           />
-          <AppText preset="caption" style={styles.categoryText}>
+          <AppText preset="unifiedMeta" style={styles.categoryText}>
             {getGuideCategoryLabel(guide.category)}
           </AppText>
         </View>
         <Feather name="chevron-right" size={18} color="#98A1B2" />
       </View>
 
-      <AppText preset="headline" style={styles.title}>
+      <AppText preset="unifiedTitle" style={styles.title}>
         {guide.title}
       </AppText>
       {debugBadgeText ? (
         <View style={styles.debugBadge}>
-          <AppText preset="caption" style={styles.debugBadgeText}>
+          <AppText preset="unifiedMeta" style={styles.debugBadgeText}>
             {debugBadgeText}
           </AppText>
         </View>
       ) : null}
-      <AppText preset="body" style={styles.summary}>
+      <AppText preset="unifiedBody" style={styles.summary}>
         {guide.summary}
       </AppText>
 
       <View style={styles.metaRow}>
         <View style={styles.metaChip}>
-          <AppText preset="caption" style={styles.metaChipText}>
+          <AppText preset="unifiedMeta" style={styles.metaChipText}>
             {formatGuideTargetSpeciesLabel(guide.targetSpecies)}
           </AppText>
         </View>
         <View style={styles.metaChip}>
-          <AppText preset="caption" style={styles.metaChipText}>
+          <AppText preset="unifiedMeta" style={styles.metaChipText}>
             {formatGuideAgePolicyLabel(guide.agePolicy)}
           </AppText>
         </View>
@@ -68,7 +68,7 @@ function GuideListCardBase({ guide, onPress, debugBadgeText }: Props) {
       <View style={styles.tagsRow}>
         {guide.tags.slice(0, 3).map(tag => (
           <View key={tag} style={styles.tagChip}>
-            <AppText preset="caption" style={styles.tagText}>
+            <AppText preset="unifiedMeta" style={styles.tagText}>
               #{tag}
             </AppText>
           </View>
