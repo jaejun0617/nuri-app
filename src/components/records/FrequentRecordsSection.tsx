@@ -85,27 +85,19 @@ function RecordSummaryCard({
           <View style={[styles.recordIconWrap, { backgroundColor: accentTint }]}>
             <MaterialCommunityIcons
               name={meta.icon}
-              size={19}
+              size={23}
               color={accentColor}
             />
           </View>
         </View>
-        <View style={styles.recordTextGroup}>
-          <View style={styles.recordTitleSlot}>
-            <AppText preset="unifiedLabel" style={styles.recordLabel} numberOfLines={1}>
-              {meta.label}
-            </AppText>
-          </View>
-          <View style={styles.recordSummarySlot}>
-            <AppText
-              preset="unifiedBody"
-              style={styles.recordSummary}
-              numberOfLines={2}
-              ellipsizeMode="tail"
-            >
-              {item.summaryLabel}
-            </AppText>
-          </View>
+        <View style={styles.recordTitleSlot}>
+          <AppText
+            preset="unifiedLabel"
+            style={styles.recordLabel}
+            numberOfLines={1}
+          >
+            {meta.label}
+          </AppText>
         </View>
         <View style={styles.recordTimeSlot}>
           {item.relativeTimeLabel ? (
@@ -119,6 +111,16 @@ function RecordSummaryCard({
           ) : (
             <View style={styles.relativeTimePlaceholder} />
           )}
+        </View>
+        <View style={styles.recordSummarySlot}>
+          <AppText
+            preset="unifiedBody"
+            style={styles.recordSummary}
+            numberOfLines={2}
+            ellipsizeMode="tail"
+          >
+            {item.summaryLabel}
+          </AppText>
         </View>
       </View>
     </Pressable>
