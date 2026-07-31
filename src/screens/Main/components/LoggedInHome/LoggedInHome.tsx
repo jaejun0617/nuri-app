@@ -1102,7 +1102,6 @@ const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
 
 const HomeHeaderSection = React.memo(function HomeHeaderSection({
   greetingTitle,
-  greetingSubTitle,
   visiblePets,
   activePetId,
   petThemePrimary,
@@ -1113,7 +1112,6 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
   notificationUnreadCount,
 }: {
   greetingTitle: string;
-  greetingSubTitle: string;
   visiblePets: Pet[];
   activePetId: string | null;
   petThemePrimary: string;
@@ -1135,7 +1133,6 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
           <Text style={[styles.title, { color: petThemePrimary }]}>
             {greetingTitle}
           </Text>
-          <Text style={styles.subTitle}>{greetingSubTitle}</Text>
         </View>
 
         <View style={styles.headerIcons}>
@@ -3006,14 +3003,6 @@ export default function LoggedInHome() {
     [nickname],
   );
 
-  const greetingSubTitle = useMemo(() => {
-    if (petLoading && !hasPets) {
-      return '반려동물 정보를 불러오는 중이에요';
-    }
-    if (!hasPets) return '소중한 아이를 등록하고 추억을 기록해 보세요';
-    return '오늘의 메시지로 하루를 시작해요';
-  }, [hasPets, petLoading]);
-
   const homeWidgetSnapshot = useMemo(
     () =>
       buildHomeWidgetSnapshot({
@@ -3462,7 +3451,6 @@ export default function LoggedInHome() {
       >
         <HomeHeaderSection
           greetingTitle={greetingTitle}
-          greetingSubTitle={greetingSubTitle}
           visiblePets={visiblePets}
           activePetId={activePetId}
           petThemePrimary={petTheme.primary}

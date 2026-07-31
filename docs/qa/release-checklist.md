@@ -1236,7 +1236,7 @@ Artifact SHA-256: `0d598322d5cd6463582ab3e17d93a9d0bc81e44ce7d7eec5fa45efbcb74fa
 ## 2026-07-31 홈 전체 기준선 조사·최근 기록 단일 카드 release evidence
 
 - [x] 홈 범위 변경
-  - 로그인 홈 동적 오늘 메시지 영역 제거
+  - 로그인 홈 동적 오늘 메시지 영역과 헤더의 정적 오늘 메시지 문구 제거
   - 자주 쓰는 기록 clock icon 제거, 상대시간 텍스트·진입 동작 유지
   - 최근 기록을 외부 카드 1개와 row/inset divider로 정리
   - loading/empty 상태도 동일 외부 카드 안에 유지
@@ -1252,12 +1252,12 @@ Artifact SHA-256: `0d598322d5cd6463582ab3e17d93a9d0bc81e44ce7d7eec5fa45efbcb74fa
   - `SM-S937N / R5CY613NMSY`, Android 16, 1080x2340, density 450
   - release APK install/cold start/home scroll 확인
   - 오늘 메시지 미노출, 자주 쓰는 기록 clock icon 미노출, 최근 기록 단일 card/inset divider 확인
-  - evidence: `/tmp/nuri-qa/home-after-recent-card.png`, `/tmp/nuri-qa/home-recent-single-card.png`
+  - evidence: `/tmp/nuri-qa/home-after-recent-card.png`, `/tmp/nuri-qa/home-recent-single-card.png`, `/tmp/nuri-qa/home-final-release-no-today-message.png`, `/tmp/nuri-qa/home-final-release-logcat-app.txt`
 - [x] 최종 코드 게이트
   - typecheck 통과
   - lint 통과, 신규 error 없음
   - Jest `69 suites / 279 tests` 통과
   - release build/install 통과
   - app-PID filtered logcat fatal/ANR/ReactNativeJS fatal 0건
-  - APK SHA-256: `c8c3b9aab670b2b3827ab65b0604eb00279755bc7dcbb01593d93b3266a275b6`
+  - APK SHA-256: `cb21911013ebc74debc2b2f3b54b1d467cb3adf4f4bfd2bdf4b3da6500a0bc60`
   - logcat: `/tmp/nuri-qa/home-logcat-app.txt`

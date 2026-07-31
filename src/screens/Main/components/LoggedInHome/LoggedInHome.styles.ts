@@ -77,7 +77,7 @@ export const styles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'space-between',
   },
-  headerTextArea: { gap: 4, paddingTop: 2, flex: 1 },
+  headerTextArea: { paddingTop: 2, flex: 1 },
   title: { fontSize: 16, fontWeight: '900', color: BRAND_DEEP },
   subTitle: {
     fontSize: 12,
