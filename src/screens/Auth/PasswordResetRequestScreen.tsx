@@ -1,11 +1,11 @@
+import AppTextInput from '../../app/ui/AppTextInput';
+import AppText from '../../app/ui/AppText';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -105,23 +105,23 @@ export default function PasswordResetRequestScreen({ navigation, route }: Props)
         >
           <View style={styles.content}>
             <View style={styles.hero}>
-              <Text style={styles.heroEyebrow}>PASSWORD RESET</Text>
-              <Text style={styles.heroTitle}>비밀번호 재설정</Text>
-              <Text style={styles.heroBody}>
+              <AppText preset="unifiedTitle" style={styles.heroEyebrow}>PASSWORD RESET</AppText>
+              <AppText preset="unifiedTitle" style={styles.heroTitle}>비밀번호 재설정</AppText>
+              <AppText preset="unifiedBody" style={styles.heroBody}>
                 가입된 계정이 있다면 입력한 이메일로 비밀번호 재설정 안내를 보내드려요.
-              </Text>
+              </AppText>
             </View>
 
             {reasonMessage ? (
               <View style={styles.banner}>
-                <Text style={styles.bannerText}>{reasonMessage}</Text>
+                <AppText preset="unifiedLabel" style={styles.bannerText}>{reasonMessage}</AppText>
               </View>
             ) : null}
 
             <View style={styles.fieldBlock}>
-              <Text style={styles.fieldLabel}>이메일</Text>
+              <AppText preset="unifiedLabel" style={styles.fieldLabel}>이메일</AppText>
               <View style={styles.inputRow}>
-                <TextInput
+                <AppTextInput
                   autoCapitalize="none"
                   autoCorrect={false}
                   keyboardType="email-address"
@@ -136,15 +136,15 @@ export default function PasswordResetRequestScreen({ navigation, route }: Props)
 
             {lastSentEmail ? (
               <View style={styles.successBox}>
-                <Text style={styles.successTitle}>메일 전송 안내</Text>
-                <Text style={styles.successBody}>
+                <AppText preset="unifiedTitle" style={styles.successTitle}>메일 전송 안내</AppText>
+                <AppText preset="unifiedBody" style={styles.successBody}>
                   {`${lastSentEmail} 주소로 계정이 있다면 안내 메일을 보냈어요. 메일함과 스팸함을 함께 확인해 주세요.`}
-                </Text>
-                <Text style={styles.successBody}>
+                </AppText>
+                <AppText preset="unifiedBody" style={styles.successBody}>
                   {remainingSeconds > 0
                     ? `${remainingSeconds}초 후 다시 요청할 수 있어요.`
                     : '필요하면 같은 이메일로 다시 요청할 수 있어요.'}
-                </Text>
+                </AppText>
               </View>
             ) : null}
 
@@ -157,7 +157,7 @@ export default function PasswordResetRequestScreen({ navigation, route }: Props)
                 disabled ? styles.primaryButtonDisabled : null,
               ]}
             >
-              <Text style={styles.primaryButtonText}>
+              <AppText preset="unifiedLabel" style={styles.primaryButtonText}>
                 {submitting
                   ? '메일을 준비하고 있어요...'
                   : remainingSeconds > 0
@@ -165,7 +165,7 @@ export default function PasswordResetRequestScreen({ navigation, route }: Props)
                     : lastSentEmail
                       ? '재발송'
                       : '재설정 메일 보내기'}
-              </Text>
+              </AppText>
             </TouchableOpacity>
 
             <View style={styles.footerAction}>
@@ -174,7 +174,7 @@ export default function PasswordResetRequestScreen({ navigation, route }: Props)
                 onPress={onPressBack}
                 style={styles.secondaryButton}
               >
-                <Text style={styles.secondaryButtonText}>로그인으로 돌아가기</Text>
+                <AppText preset="unifiedLabel" style={styles.secondaryButtonText}>로그인으로 돌아가기</AppText>
               </TouchableOpacity>
             </View>
           </View>

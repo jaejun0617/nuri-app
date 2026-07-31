@@ -12,6 +12,8 @@
 // - 로그인 성공 직후 바로 홈으로 보내지 않고 Splash를 다시 거쳐야 닉네임/펫 가드가 맞게 작동한다.
 // - OAuth 성공 후에도 Splash를 다시 거쳐야 닉네임/펫 가드가 이메일 로그인과 동일하게 작동한다.
 
+import AppTextInput from '../../app/ui/AppTextInput';
+import AppText from '../../app/ui/AppText';
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
@@ -96,9 +98,9 @@ const AuthField = memo(function AuthField({
 }: FieldProps) {
   return (
     <View style={styles.fieldBlock}>
-      <Text style={styles.fieldLabel}>{label}</Text>
+      <AppText preset="unifiedLabel" style={styles.fieldLabel}>{label}</AppText>
       <View style={styles.inputRow}>
-        <TextInput
+        <AppTextInput
           autoCapitalize={autoCapitalize}
           keyboardType={keyboardType}
           onChangeText={onChangeText}
@@ -150,7 +152,7 @@ const SocialButton = memo(function SocialButton({
       ]}
     >
       <View style={styles.socialBadge}>{badge}</View>
-      <Text style={[styles.socialButtonText, { color: textColor }]}>{label}</Text>
+      <AppText preset="unifiedLabel" style={[styles.socialButtonText, { color: textColor }]}>{label}</AppText>
       {isRecentLogin ? <RecentLoginPill /> : null}
     </TouchableOpacity>
   );
@@ -159,7 +161,7 @@ const SocialButton = memo(function SocialButton({
 const RecentLoginPill = memo(function RecentLoginPill() {
   return (
     <View style={styles.recentLoginPill}>
-      <Text style={styles.recentLoginPillText}>최근 로그인</Text>
+      <AppText preset="unifiedLabel" style={styles.recentLoginPillText}>최근 로그인</AppText>
     </View>
   );
 });
@@ -190,9 +192,9 @@ const NaverBadgeMark = memo(function NaverBadgeMark() {
         { backgroundColor: '#03C75A', borderColor: '#03C75A' },
       ]}
     >
-      <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '900' }}>
+      <AppText preset="unifiedLabel" style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '900' }}>
         N
-      </Text>
+      </AppText>
     </View>
   );
 });
@@ -234,25 +236,25 @@ const SocialConsentNotice = memo(function SocialConsentNotice({
         rowGap: 2,
       }}
     >
-      <Text style={textStyle}>소셜 계정으로 계속 진행 시 NURI의 </Text>
+      <AppText preset="unifiedLabel" style={textStyle}>소셜 계정으로 계속 진행 시 NURI의 </AppText>
       <TouchableOpacity
         accessibilityRole="link"
         activeOpacity={0.72}
         hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
         onPress={() => onPressDocument('terms')}
       >
-        <Text style={linkStyle}>[이용약관]</Text>
+        <AppText preset="unifiedLabel" style={linkStyle}>[이용약관]</AppText>
       </TouchableOpacity>
-      <Text style={textStyle}> 및 </Text>
+      <AppText preset="unifiedLabel" style={textStyle}> 및 </AppText>
       <TouchableOpacity
         accessibilityRole="link"
         activeOpacity={0.72}
         hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
         onPress={() => onPressDocument('privacy')}
       >
-        <Text style={linkStyle}>[개인정보처리방침]</Text>
+        <AppText preset="unifiedLabel" style={linkStyle}>[개인정보처리방침]</AppText>
       </TouchableOpacity>
-      <Text style={textStyle}>을 확인하고 동의한 것으로 간주합니다.</Text>
+      <AppText preset="unifiedLabel" style={textStyle}>을 확인하고 동의한 것으로 간주합니다.</AppText>
     </View>
   );
 });
@@ -583,9 +585,9 @@ export default function SignInScreen() {
               style={styles.heroLogo}
             />
           </View>
-          <Text style={styles.heroBody}>
+          <AppText preset="unifiedBody" style={styles.heroBody}>
             함께한 모든 순간이, 오래도록 기억이 되도록
-          </Text>
+          </AppText>
         </View>
 
         <AuthField
@@ -639,7 +641,7 @@ export default function SignInScreen() {
               staggerMs={55}
             />
           ) : (
-            <Text style={styles.primaryButtonText}>로그인</Text>
+            <AppText preset="unifiedLabel" style={styles.primaryButtonText}>로그인</AppText>
           )}
           {recentLoginProvider === 'email' ? <RecentLoginPill /> : null}
         </TouchableOpacity>
@@ -649,11 +651,11 @@ export default function SignInScreen() {
             activeOpacity={0.75}
             onPress={onPressForgotPassword}
           >
-            <Text style={styles.inlineLinkText}>비밀번호 찾기</Text>
+            <AppText preset="unifiedLabel" style={styles.inlineLinkText}>비밀번호 찾기</AppText>
           </TouchableOpacity>
           <Text style={styles.inlineDivider}>|</Text>
           <TouchableOpacity activeOpacity={0.75} onPress={onPressSignUp}>
-            <Text style={styles.inlineLinkText}>회원가입</Text>
+            <AppText preset="unifiedLabel" style={styles.inlineLinkText}>회원가입</AppText>
           </TouchableOpacity>
         </View>
 
@@ -661,9 +663,9 @@ export default function SignInScreen() {
           <>
             <View style={styles.socialSection}>
               <View style={styles.socialDivider} />
-              <Text style={styles.socialSectionTitle}>
+              <AppText preset="unifiedTitle" style={styles.socialSectionTitle}>
                 SNS 계정으로 시작하기
-              </Text>
+              </AppText>
               <View style={styles.socialDivider} />
             </View>
 
@@ -736,6 +738,7 @@ export default function SignInScreen() {
         {noticeConfig && !accountDeletionGate ? (
           <PremiumNoticeModal
             visible
+            typographyMode="unified"
             eyebrow={noticeConfig.eyebrow}
             iconName={noticeConfig.iconName}
             titleLines={noticeConfig.titleLines}
@@ -751,6 +754,7 @@ export default function SignInScreen() {
         {accountDeletionGate ? (
           <PremiumNoticeModal
             visible
+            typographyMode="unified"
             eyebrow="ACCOUNT RECOVERY"
             iconName="user-plus"
             titleLines={['잠시만요! 계정 삭제가 진행 중이에요 🥺']}

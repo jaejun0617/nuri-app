@@ -119,6 +119,7 @@ export default function MainScreen() {
       {isLoggedIn && !isPasswordRecoveryActive ? <LoggedInHome /> : <GuestHome />}
       <ConfirmDialog
         visible={exitConfirmVisible}
+        typographyMode="unified"
         title="앱을 종료할까요?"
         message={'앱을 닫아도 저장된 정보는 그대로 유지되며\n다음에 다시 이어서 사용할 수 있어요.'}
         cancelLabel="계속 둘러보기"

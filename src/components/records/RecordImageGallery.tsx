@@ -5,11 +5,11 @@
 // - 액션 위치/버튼 표현은 화면별로 다를 수 있어 render prop으로 주입 가능하게 설계
 
 import React from 'react';
+import AppText from '../../app/ui/AppText';
 import {
   Image,
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
   type ImageStyle,
@@ -69,7 +69,7 @@ export default function RecordImageGallery({
 
         {counterText ? (
           <View style={counterBadgeStyle}>
-            <Text style={counterTextStyle}>{counterText}</Text>
+            <AppText preset="unifiedLabel" style={counterTextStyle}>{counterText}</AppText>
           </View>
         ) : null}
       </View>

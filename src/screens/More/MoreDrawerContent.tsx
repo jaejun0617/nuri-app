@@ -13,6 +13,8 @@
 // - 이 파일은 실제 구현된 기능만 노출해야 하므로 placeholder 메뉴를 다시 넣을 때는 사용자 기대치와 실제 동작을 함께 검증해야 한다.
 // - 계정 액션과 일반 메뉴 이동이 섞여 있어, 모달 상태와 navigation 호출 순서를 함부로 바꾸면 드로어 닫힘/복귀 UX가 어긋날 수 있다.
 
+import AppTextInput from '../../app/ui/AppTextInput';
+import AppText from '../../app/ui/AppText';
 import React, {
   memo,
   useCallback,
@@ -234,14 +236,14 @@ const MenuRow = memo(function MenuRow({
             <Feather name={icon as never} size={17} color={tone.icon} />
           )}
         </View>
-        <Text style={[styles.menuLabel, { color: theme.colors.textPrimary }]}>
+        <AppText preset="unifiedLabel" style={[styles.menuLabel, { color: theme.colors.textPrimary }]}>
           {label}
-        </Text>
+        </AppText>
       </View>
 
       <View style={styles.menuRight}>
         {badge === 'dot' ? <View style={styles.menuDot} /> : null}
-        {badge === 'soon' ? <Text style={styles.badgeSoon}>soon</Text> : null}
+        {badge === 'soon' ? <AppText preset="unifiedLabel" style={styles.badgeSoon}>soon</AppText> : null}
         <Feather
           name="chevron-right"
           size={18}
@@ -260,9 +262,9 @@ const MenuCard = memo(function MenuCard({
   const theme = useTheme();
   return (
     <View style={styles.sectionWrap}>
-      <Text style={[styles.sectionTitle, { color: theme.colors.textMuted }]}>
+      <AppText preset="unifiedTitle" style={[styles.sectionTitle, { color: theme.colors.textMuted }]}>
         {title}
-      </Text>
+      </AppText>
       <View
         style={[
           styles.menuCard,
@@ -314,11 +316,11 @@ const PasswordField = memo(function PasswordField({
   const theme = useTheme();
   return (
     <View style={styles.modalField}>
-      <Text style={styles.modalLabel}>{label}</Text>
+      <AppText preset="unifiedLabel" style={styles.modalLabel}>{label}</AppText>
       <View
         style={[styles.inputShell, { backgroundColor: theme.colors.surface }]}
       >
-        <TextInput
+        <AppTextInput
           value={value}
           onChangeText={onChangeText}
           style={[styles.inputText, { color: theme.colors.textPrimary }]}
@@ -343,9 +345,9 @@ const PasswordField = memo(function PasswordField({
         </TouchableOpacity>
       </View>
       {helper ? (
-        <Text style={[styles.modalHelper, { color: theme.colors.textMuted }]}>
+        <AppText preset="unifiedBody" style={[styles.modalHelper, { color: theme.colors.textMuted }]}>
           {helper}
-        </Text>
+        </AppText>
       ) : null}
     </View>
   );
@@ -423,11 +425,11 @@ export const PasswordChangeModal = memo(function PasswordChangeModal({
             onPress={Keyboard.dismiss}
           >
             <View style={styles.sheetHeader}>
-              <Text
+              <AppText preset="unifiedTitle"
                 style={[styles.sheetTitle, { color: theme.colors.textPrimary }]}
               >
                 비밀번호 변경
-              </Text>
+              </AppText>
               <TouchableOpacity
                 activeOpacity={0.88}
                 style={[
@@ -506,9 +508,9 @@ export const PasswordChangeModal = memo(function PasswordChangeModal({
                   onPress={onSubmit}
                   disabled={saving}
                 >
-                  <Text style={styles.primaryButtonText}>
+                  <AppText preset="unifiedLabel" style={styles.primaryButtonText}>
                     {saving ? '변경 중...' : '변경하기'}
-                  </Text>
+                  </AppText>
                 </TouchableOpacity>
               </View>
             </KeyboardAwareScrollView>
@@ -557,11 +559,11 @@ const ThemeSettingsModal = memo(function ThemeSettingsModal({
           ]}
         >
           <View style={styles.sheetHeader}>
-            <Text
+            <AppText preset="unifiedTitle"
               style={[styles.sheetTitle, { color: theme.colors.textPrimary }]}
             >
               테마 설정
-            </Text>
+            </AppText>
             <TouchableOpacity
               activeOpacity={0.85}
               style={[
@@ -575,7 +577,7 @@ const ThemeSettingsModal = memo(function ThemeSettingsModal({
           </View>
 
           <View style={styles.themeInfoBlock}>
-            <Text
+            <AppText preset="unifiedTitle"
               style={[
                 styles.themeInfoTitle,
                 { color: theme.colors.textPrimary },
@@ -584,15 +586,15 @@ const ThemeSettingsModal = memo(function ThemeSettingsModal({
               {petName
                 ? `${petName}의 테마를 바꿔볼까요?`
                 : '현재 아이의 테마를 바꿔볼까요?'}
-            </Text>
-            <Text
+            </AppText>
+            <AppText preset="unifiedBody"
               style={[
                 styles.themeInfoBody,
                 { color: theme.colors.textSecondary },
               ]}
             >
               {helperText}
-            </Text>
+            </AppText>
           </View>
 
           <PetThemePicker
@@ -611,9 +613,9 @@ const ThemeSettingsModal = memo(function ThemeSettingsModal({
             onPress={onSubmit}
             disabled={saving}
           >
-            <Text style={styles.primaryButtonText}>
+            <AppText preset="unifiedLabel" style={styles.primaryButtonText}>
               {saving ? '저장 중...' : '테마 적용하기'}
-            </Text>
+            </AppText>
           </TouchableOpacity>
         </View>
       </View>
@@ -679,11 +681,11 @@ const NotificationSettingsModal = memo(function NotificationSettingsModal({
           ]}
         >
           <View style={styles.sheetHeader}>
-            <Text
+            <AppText preset="unifiedTitle"
               style={[styles.sheetTitle, { color: theme.colors.textPrimary }]}
             >
               알림 설정
-            </Text>
+            </AppText>
             <TouchableOpacity
               activeOpacity={0.85}
               style={[
@@ -697,15 +699,15 @@ const NotificationSettingsModal = memo(function NotificationSettingsModal({
           </View>
 
           <View style={styles.notificationInfoBlock}>
-            <Text
+            <AppText preset="unifiedTitle"
               style={[
                 styles.themeInfoTitle,
                 { color: theme.colors.textPrimary },
               ]}
             >
               중요한 병원, 약 시간을 놓치지 않게 도와드릴게요.
-            </Text>
-            <Text
+            </AppText>
+            <AppText preset="unifiedBody"
               style={[
                 styles.themeInfoBody,
                 { color: theme.colors.textSecondary },
@@ -713,7 +715,7 @@ const NotificationSettingsModal = memo(function NotificationSettingsModal({
             >
               일정 추가에서 알림을 선택하면 이 기기에 로컬 알림으로 예약됩니다.
               완료 처리하거나 알림을 끄면 예약도 함께 정리됩니다.
-            </Text>
+            </AppText>
           </View>
 
           <View
@@ -726,19 +728,19 @@ const NotificationSettingsModal = memo(function NotificationSettingsModal({
             ]}
           >
             <View style={styles.notificationSettingText}>
-              <Text
+              <AppText preset="unifiedLabel"
                 style={[styles.modalLabel, { color: theme.colors.textPrimary }]}
               >
                 일정 알림
-              </Text>
-              <Text
+              </AppText>
+              <AppText preset="unifiedBody"
                 style={[
                   styles.notificationSettingHelper,
                   { color: theme.colors.textMuted },
                 ]}
               >
                 병원, 약, 산책 등 일정 알림 예약 허용
-              </Text>
+              </AppText>
             </View>
             <Switch
               value={enabled}
@@ -759,19 +761,19 @@ const NotificationSettingsModal = memo(function NotificationSettingsModal({
             ]}
           >
             <View style={styles.notificationSettingText}>
-              <Text
+              <AppText preset="unifiedLabel"
                 style={[styles.modalLabel, { color: theme.colors.textPrimary }]}
               >
                 운영 알림 수신 동의
-              </Text>
-              <Text
+              </AppText>
+              <AppText preset="unifiedBody"
                 style={[
                   styles.notificationSettingHelper,
                   { color: theme.colors.textMuted },
                 ]}
               >
                 공지, 계정, 서비스 안내 수신 동의 저장
-              </Text>
+              </AppText>
             </View>
             <Switch
               value={pushOptIn}
@@ -791,15 +793,15 @@ const NotificationSettingsModal = memo(function NotificationSettingsModal({
               },
             ]}
           >
-            <Text
+            <AppText preset="unifiedTitle"
               style={[
                 styles.notificationStatusTitle,
                 { color: theme.colors.textPrimary },
               ]}
             >
               운영 알림 상태: {pushOptIn ? '수신 동의 저장됨' : '수신 동의 꺼짐'}
-            </Text>
-            <Text
+            </AppText>
+            <AppText preset="unifiedBody"
               style={[
                 styles.notificationSettingHelper,
                 { color: theme.colors.textMuted },
@@ -810,7 +812,7 @@ const NotificationSettingsModal = memo(function NotificationSettingsModal({
                 : pushProviderStatus === 'registered'
                   ? '이 기기의 알림 token lifecycle이 서버에 기록되어 있어요.'
                   : '로그아웃 또는 수신 거부 시 이 기기 token은 폐기 상태로 정리됩니다.'}
-            </Text>
+            </AppText>
           </View>
 
           <View
@@ -826,15 +828,15 @@ const NotificationSettingsModal = memo(function NotificationSettingsModal({
               },
             ]}
           >
-            <Text
+            <AppText preset="unifiedTitle"
               style={[
                 styles.notificationStatusTitle,
                 { color: permissionGranted ? '#15803D' : '#C2410C' },
               ]}
             >
               기기 권한: {getNotificationPermissionLabel(permissionStatus)}
-            </Text>
-            <Text
+            </AppText>
+            <AppText preset="unifiedBody"
               style={[
                 styles.notificationSettingHelper,
                 { color: theme.colors.textMuted },
@@ -842,7 +844,7 @@ const NotificationSettingsModal = memo(function NotificationSettingsModal({
             >
               권한이 꺼져 있으면 일정에는 알림값이 저장되지만 실제 기기 알림은
               오지 않아요.
-            </Text>
+            </AppText>
           </View>
 
           {permissionGranted ? (
@@ -854,14 +856,14 @@ const NotificationSettingsModal = memo(function NotificationSettingsModal({
               ]}
               onPress={onOpenSystemSettings}
             >
-              <Text
+              <AppText preset="unifiedLabel"
                 style={[
                   styles.secondaryButtonText,
                   { color: theme.colors.textPrimary },
                 ]}
               >
                 시스템 알림 설정 열기
-              </Text>
+              </AppText>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
@@ -870,9 +872,9 @@ const NotificationSettingsModal = memo(function NotificationSettingsModal({
               onPress={onRequestPermission}
               disabled={loading}
             >
-              <Text style={styles.primaryButtonText}>
+              <AppText preset="unifiedLabel" style={styles.primaryButtonText}>
                 {loading ? '확인 중...' : '알림 권한 허용하기'}
-              </Text>
+              </AppText>
             </TouchableOpacity>
           )}
         </View>
@@ -926,25 +928,25 @@ export const PasswordChangeSuccessModal = memo(
                 <Feather name="check" size={26} color="#FFFFFF" />
               </View>
             </View>
-            <Text
+            <AppText preset="unifiedTitle"
               style={[styles.successTitle, { color: theme.colors.textPrimary }]}
             >
               비밀번호 변경 완료
-            </Text>
-            <Text
+            </AppText>
+            <AppText preset="unifiedBody"
               style={[
                 styles.successBody,
                 { color: theme.colors.textSecondary },
               ]}
             >
               비밀번호가 성공적으로{'\n'}변경되었습니다.
-            </Text>
+            </AppText>
             <TouchableOpacity
               activeOpacity={0.92}
               style={[styles.primaryButton, { backgroundColor: accentColor }]}
               onPress={onClose}
             >
-              <Text style={styles.primaryButtonText}>확인</Text>
+              <AppText preset="unifiedLabel" style={styles.primaryButtonText}>확인</AppText>
             </TouchableOpacity>
           </View>
         </View>
@@ -1001,11 +1003,11 @@ const ProfileEditModal = memo(function ProfileEditModal({
             onPress={Keyboard.dismiss}
           >
             <View style={styles.sheetHeader}>
-              <Text
+              <AppText preset="unifiedBody"
                 style={[styles.sheetTitle, { color: theme.colors.textPrimary }]}
               >
                 닉네임 수정
-              </Text>
+              </AppText>
               <TouchableOpacity
                 activeOpacity={0.88}
                 style={[
@@ -1019,12 +1021,12 @@ const ProfileEditModal = memo(function ProfileEditModal({
             </View>
 
             <View style={styles.modalField}>
-              <Text
+              <AppText preset="unifiedLabel"
                 style={[styles.modalLabel, { color: theme.colors.textPrimary }]}
               >
                 닉네임
-              </Text>
-              <TextInput
+              </AppText>
+              <AppTextInput
                 value={nickname}
                 onChangeText={onChangeNickname}
                 style={[
@@ -1040,7 +1042,7 @@ const ProfileEditModal = memo(function ProfileEditModal({
                 autoCorrect={false}
                 maxLength={NICKNAME_MAX_LENGTH}
               />
-              <Text
+              <AppText preset="unifiedBody"
                 style={[
                   styles.profileHelper,
                   helperTone === 'error'
@@ -1056,7 +1058,7 @@ const ProfileEditModal = memo(function ProfileEditModal({
                 ]}
               >
                 {helperText}
-              </Text>
+              </AppText>
             </View>
 
             <View style={styles.modalCardFooter}>
@@ -1071,9 +1073,9 @@ const ProfileEditModal = memo(function ProfileEditModal({
                 onPress={onSubmit}
                 disabled={saving}
               >
-                <Text style={styles.primaryButtonText}>
+                <AppText preset="unifiedLabel" style={styles.primaryButtonText}>
                   {saving ? '저장 중...' : '수정 완료'}
-                </Text>
+                </AppText>
               </TouchableOpacity>
             </View>
           </Pressable>
@@ -2096,7 +2098,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       >
         <View style={styles.headerRow}>
           <View style={styles.headerTextWrap}>
-            <Text
+            <AppText preset="unifiedTitle"
               style={[
                 styles.headerTitle,
                 !isLoggedIn ? styles.guestHeaderTitle : null,
@@ -2108,8 +2110,8 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
               ]}
             >
               {headerTitle}
-            </Text>
-            <Text
+            </AppText>
+            <AppText preset="unifiedBody"
               style={[
                 styles.headerSubtitle,
                 !isLoggedIn ? styles.guestHeaderSubtitle : null,
@@ -2117,7 +2119,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
               ]}
             >
               {headerSubtitle}
-            </Text>
+            </AppText>
           </View>
 
           <TouchableOpacity
@@ -2134,14 +2136,14 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
               <View
                 style={[styles.headerAvatarImage, styles.headerAvatarFallback]}
               >
-                <Text
+                <AppText preset="unifiedBody"
                   style={[
                     styles.headerAvatarFallbackText,
                     { color: petTheme.deep },
                   ]}
                 >
                   {avatarFallback}
-                </Text>
+                </AppText>
               </View>
             )}
             <View
@@ -2193,22 +2195,22 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
 
           {session?.user?.email ? (
             <View style={styles.accountMeta}>
-              <Text
+              <AppText preset="unifiedBody"
                 style={[
                   styles.accountMetaEmail,
                   { color: theme.colors.textSecondary },
                 ]}
               >
                 {session.user.email}
-              </Text>
-              <Text
+              </AppText>
+              <AppText preset="unifiedBody"
                 style={[
                   styles.accountMetaText,
                   { color: theme.colors.textMuted },
                 ]}
               >
                 닉네임은 월 1회 변경할 수 있어요.
-              </Text>
+              </AppText>
             </View>
           ) : null}
 
@@ -2223,15 +2225,15 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
                   },
                 ]}
               >
-                <Text
+                <AppText preset="unifiedBody"
                   style={[
                     styles.deleteSectionTitle,
                     { color: theme.colors.danger },
                   ]}
                 >
                   계정 삭제
-                </Text>
-                <Text
+                </AppText>
+                <AppText preset="unifiedBody"
                   style={[
                     styles.deleteSectionBody,
                     { color: theme.colors.textMuted },
@@ -2239,8 +2241,8 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
                 >
                   회원탈퇴는 삭제 요청을 보내는 단계예요. 실제 정리 완료 시점과
                   파일 정리 완료 시점은 즉시 아닐 수 있어요.
-                </Text>
-                <Text
+                </AppText>
+                <AppText preset="unifiedBody"
                   style={[
                     styles.deleteSectionNote,
                     { color: theme.colors.textMuted },
@@ -2248,7 +2250,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
                 >
                   개인 콘텐츠는 삭제되고, 일부 동의/신고 이력은 식별자를 제거한
                   뒤 보관될 수 있어요.
-                </Text>
+                </AppText>
                 <TouchableOpacity
                   activeOpacity={0.88}
                   disabled={openingDeletionGuide}
@@ -2263,7 +2265,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
                     },
                   ]}
                 >
-                  <Text
+                  <AppText preset="unifiedLabel"
                     style={[
                       styles.deleteGuideButtonLabel,
                       { color: theme.colors.textPrimary },
@@ -2272,8 +2274,8 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
                     {openingDeletionGuide
                       ? '안내 상태 확인 중...'
                       : '삭제 안내 상태 확인'}
-                  </Text>
-                  <Text
+                  </AppText>
+                  <AppText preset="unifiedBody"
                     style={[
                       styles.deleteGuideButtonMeta,
                       { color: theme.colors.textMuted },
@@ -2282,7 +2284,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
                     {LEGAL_DOCUMENTS.accountDeletion.status === 'external'
                       ? '공식 안내 문서 연결 완료'
                       : '안내 문서 미정, 현재는 상태 안내만 제공'}
-                  </Text>
+                  </AppText>
                 </TouchableOpacity>
                 <TouchableOpacity
                   activeOpacity={0.88}
@@ -2293,14 +2295,14 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
                   onPress={onPressDeleteAccount}
                   disabled={deleting}
                 >
-                  <Text
+                  <AppText preset="unifiedLabel"
                     style={[
                       styles.bottomDangerButtonLabel,
                       { color: theme.colors.danger },
                     ]}
                   >
                     {deleting ? '회원탈퇴 처리 중...' : '회원탈퇴'}
-                  </Text>
+                  </AppText>
                 </TouchableOpacity>
               </View>
             </View>
@@ -2313,7 +2315,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
               ]}
               onPress={onPressLogin}
             >
-              <Text style={styles.loginButtonLabel}>로그인하러 가기</Text>
+              <AppText preset="unifiedLabel" style={styles.loginButtonLabel}>로그인하러 가기</AppText>
             </TouchableOpacity>
           )}
         </ScrollView>
@@ -2370,6 +2372,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       />
       <ConfirmDialog
         visible={logoutConfirmVisible}
+        typographyMode="unified"
         title="로그아웃할까요?"
         message={
           '현재 기기에서만 로그아웃되며,\n다시 로그인하면 이어서 사용할 수 있어요.'
@@ -2385,6 +2388,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       />
       <ConfirmDialog
         visible={deleteConfirmVisible}
+        typographyMode="unified"
         title="정말 NURI를 떠나시겠어요? 🥺"
         message={
           '탈퇴를 요청하시면 고객님의 프로필과 작성하신 모든 기록은\n다른 사람들에게 즉시 [비노출 처리]되어 안전하게 보호됩니다.\n\n요청일로부터 7일의 유예기간이 지나면,\n복구할 수 없도록 모든 데이터가 영구적으로 완전 삭제됩니다.'
@@ -2405,15 +2409,15 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         }}
       >
         <View style={styles.deleteConfirmField}>
-          <Text
+          <AppText preset="unifiedLabel"
             style={[
               styles.deleteConfirmLabel,
               { color: theme.colors.textMuted },
             ]}
           >
             계속하려면 아래에 {ACCOUNT_DELETION_CONFIRMATION_TEXT}를 입력해 주세요.
-          </Text>
-          <TextInput
+          </AppText>
+          <AppTextInput
             autoCapitalize="none"
             autoCorrect={false}
             onChangeText={setDeleteConfirmationText}
@@ -2433,6 +2437,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       </ConfirmDialog>
       <PremiumNoticeModal
         visible={accountStatusNoticeConfig !== null}
+        typographyMode="unified"
         eyebrow={accountStatusNoticeConfig?.eyebrow ?? 'ACCOUNT STATUS'}
         iconName="shield"
         titleLines={accountStatusNoticeConfig?.titleLines ?? ['']}

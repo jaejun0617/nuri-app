@@ -2,8 +2,10 @@
 // 역할:
 // - 펫 생성/수정 화면에서 추모 상태와 날짜 입력 UI를 공용으로 재사용
 
+import AppTextInput from '../../app/ui/AppTextInput';
+import AppText from '../../app/ui/AppText';
 import React, { memo } from 'react';
-import { Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import {
   PET_MEMORIAL_OPTIONS,
@@ -31,7 +33,7 @@ export default memo(function PetMemorialFields({
 }: Props) {
   return (
     <View style={{ gap: 10 }}>
-      <Text
+      <AppText preset="unifiedLabel"
         style={{
           color: '#778195',
           fontSize: 12,
@@ -39,7 +41,7 @@ export default memo(function PetMemorialFields({
         }}
       >
         추모 프로필 설정
-      </Text>
+      </AppText>
 
       <View style={{ gap: 8 }}>
         {PET_MEMORIAL_OPTIONS.map(option => {
@@ -59,7 +61,7 @@ export default memo(function PetMemorialFields({
                 gap: 4,
               }}
             >
-              <Text
+              <AppText preset="unifiedLabel"
                 style={{
                   color: active ? '#5753E6' : '#1B2230',
                   fontSize: 13,
@@ -67,8 +69,8 @@ export default memo(function PetMemorialFields({
                 }}
               >
                 {option.label}
-              </Text>
-              <Text
+              </AppText>
+              <AppText preset="unifiedLabel"
                 style={{
                   color: '#7F8899',
                   fontSize: 11,
@@ -77,7 +79,7 @@ export default memo(function PetMemorialFields({
                 }}
               >
                 {option.helper}
-              </Text>
+              </AppText>
             </TouchableOpacity>
           );
         })}
@@ -85,7 +87,7 @@ export default memo(function PetMemorialFields({
 
       {choice === 'memorial' ? (
         <View style={{ gap: 7 }}>
-          <Text
+          <AppText preset="unifiedLabel"
             style={{
               color: '#778195',
               fontSize: 12,
@@ -93,7 +95,7 @@ export default memo(function PetMemorialFields({
             }}
           >
             무지개다리를 건넌 날짜
-          </Text>
+          </AppText>
           <TouchableOpacity
             activeOpacity={0.88}
             onPress={onOpenDeathDateModal}
@@ -107,7 +109,7 @@ export default memo(function PetMemorialFields({
               gap: 10,
             }}
           >
-            <TextInput
+            <AppTextInput
               value={deathDate}
               onChangeText={onChangeDeathDate}
               onBlur={onBlurDeathDate}
@@ -125,7 +127,7 @@ export default memo(function PetMemorialFields({
             />
             <Feather color="#98A1B2" name="calendar" size={16} />
           </TouchableOpacity>
-          <Text
+          <AppText preset="unifiedLabel"
             style={{
               color: '#A0A7B4',
               fontSize: 12,
@@ -134,7 +136,7 @@ export default memo(function PetMemorialFields({
             }}
           >
             {buildHint(deathDate)}
-          </Text>
+          </AppText>
         </View>
       ) : null}
     </View>

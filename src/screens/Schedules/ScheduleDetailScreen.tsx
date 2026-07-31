@@ -501,6 +501,7 @@ export default function ScheduleDetailScreen() {
       </ScrollView>
       <ConfirmDialog
         visible={completeConfirmVisible}
+        typographyMode="unified"
         title="지금 일정 마침으로 정리할까요?"
         message={
           '아직 일정 시간이 남아 있어도 건강관리에서 먼저 마친 일정으로 정리할 수 있어요.\n확인을 누르면 바로 완료 상태로 바뀌고 리스트에서도 정리됩니다.'
@@ -517,6 +518,7 @@ export default function ScheduleDetailScreen() {
       />
       <ConfirmDialog
         visible={deleteConfirmVisible}
+        typographyMode="unified"
         title="일정을 삭제할까요?"
         message={'이 일정은 목록과 홈 카드에서 함께 사라지며\n삭제 후에는 다시 되돌릴 수 없어요.'}
         cancelLabel="계속 유지하기"
@@ -530,6 +532,7 @@ export default function ScheduleDetailScreen() {
       />
       <ConfirmDialog
         visible={feedbackDialog !== null}
+        typographyMode="unified"
         title={feedbackDialog?.title ?? '안내'}
         message={feedbackDialog?.message ?? ''}
         confirmLabel="확인"

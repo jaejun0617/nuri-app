@@ -144,14 +144,14 @@ export default function GlobalToast() {
           <View style={styles.copyBlock}>
             {title ? (
               <AppText
-                preset="bodySm"
+                preset="unifiedBody"
                 style={[styles.title, { color: petTheme.deep }]}
               >
                 {title}
               </AppText>
             ) : null}
             <AppText
-              preset="helper"
+              preset="unifiedBody"
               style={[styles.message, { color: theme.colors.textSecondary }]}
             >
               {message}

@@ -4,8 +4,9 @@
 // - 사용자가 다음 홈 구조를 인지할 수 있도록 최소 체류 시간을 제공
 // - 일정 시간이 지나면 AppTabs HomeTab으로 reset 이동해 온보딩 플로우를 마무리
 
+import AppText from '../../app/ui/AppText';
 import React, { useEffect, useMemo, useRef } from 'react';
-import { Animated, Easing, Image, Text, View } from 'react-native';
+import { Animated, Easing, Image, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -68,11 +69,11 @@ export default function WelcomeTransitionScreen() {
           <Image source={ASSETS.logo} style={styles.logo} resizeMode="contain" />
         </View>
 
-        <Text style={styles.name}>{headline}</Text>
+        <AppText preset="unifiedTitle" style={styles.name}>{headline}</AppText>
         <View style={styles.nameUnderline} />
 
-        <Text style={styles.body}>{bodyLine}</Text>
-        <Text style={styles.body}>준비하고 있어요...</Text>
+        <AppText preset="unifiedBody" style={styles.body}>{bodyLine}</AppText>
+        <AppText preset="unifiedBody" style={styles.body}>준비하고 있어요...</AppText>
 
         <View style={styles.progressWrap}>
           <View style={styles.progressTrack}>

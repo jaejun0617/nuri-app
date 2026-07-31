@@ -1,10 +1,10 @@
+import AppTextInput from '../../app/ui/AppTextInput';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Pressable,
   ScrollView,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -502,7 +502,7 @@ export default function AnimalHospitalAdminScreen() {
         <View style={styles.searchCard}>
           <View style={styles.searchInputWrap}>
             <Feather name="search" size={16} color="#98A1B2" />
-            <TextInput
+            <AppTextInput
               value={search}
               onChangeText={setSearch}
               placeholder="병원명, 주소, source key 검색"
@@ -679,7 +679,7 @@ export default function AnimalHospitalAdminScreen() {
             ) : null}
 
             <View style={styles.noteInputWrap}>
-              <TextInput
+              <AppTextInput
                 value={reviewNote}
                 onChangeText={setReviewNote}
                 placeholder="검수 사유 또는 보류/반려 메모"

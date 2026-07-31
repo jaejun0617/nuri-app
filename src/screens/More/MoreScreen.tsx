@@ -4,12 +4,13 @@
 // - 로그아웃 버튼 제공
 // - 로그아웃 시: Supabase signOut → store clear → Splash reset
 
+import AppTextInput from '../../app/ui/AppTextInput';
+import AppText from '../../app/ui/AppText';
 import React, { useMemo, useState } from 'react';
 import {
   Alert,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -220,13 +221,13 @@ export default function MoreScreen() {
   return (
     <View style={styles.screen}>
       <View style={styles.card}>
-        <Text style={styles.title}>더보기</Text>
-        <Text style={styles.desc}>현재 상태: {title}</Text>
+        <AppText preset="unifiedTitle" style={styles.title}>더보기</AppText>
+        <AppText preset="unifiedBody" style={styles.desc}>현재 상태: {title}</AppText>
 
         {status === 'logged_in' ? (
           <>
             <View style={styles.menuSection}>
-              <Text style={styles.menuSectionTitle}>계정 관리</Text>
+              <AppText preset="unifiedTitle" style={styles.menuSectionTitle}>계정 관리</AppText>
 
               <TouchableOpacity
                 activeOpacity={0.88}
@@ -235,12 +236,12 @@ export default function MoreScreen() {
                 disabled={loading}
               >
                 <View>
-                  <Text style={styles.menuRowTitle}>
+                  <AppText preset="unifiedTitle" style={styles.menuRowTitle}>
                     {loading ? '로그아웃 중...' : '로그아웃'}
-                  </Text>
-                  <Text style={styles.menuRowDesc}>
+                  </AppText>
+                  <AppText preset="unifiedBody" style={styles.menuRowDesc}>
                     현재 기기 세션을 정리하고 게스트 상태로 전환해요.
-                  </Text>
+                  </AppText>
                 </View>
                 <Text style={styles.menuRowArrow}>›</Text>
               </TouchableOpacity>
@@ -252,12 +253,12 @@ export default function MoreScreen() {
                 disabled={deleting}
               >
                 <View>
-                  <Text style={styles.menuRowDangerTitle}>
+                  <AppText preset="unifiedTitle" style={styles.menuRowDangerTitle}>
                     {deleting ? '회원탈퇴 처리 중...' : '회원탈퇴'}
-                  </Text>
-                  <Text style={styles.menuRowDesc}>
+                  </AppText>
+                  <AppText preset="unifiedBody" style={styles.menuRowDesc}>
                     개인 콘텐츠는 삭제되고, 일부 동의/신고 이력은 식별자를 제거한 뒤 보관될 수 있어요.
-                  </Text>
+                  </AppText>
                 </View>
                 <Text style={styles.menuRowDangerArrow}>›</Text>
               </TouchableOpacity>
@@ -273,9 +274,9 @@ export default function MoreScreen() {
               onPress={onPressLogout}
               disabled={loading}
             >
-              <Text style={styles.primaryText}>
+              <AppText preset="unifiedLabel" style={styles.primaryText}>
                 {loading ? '로그아웃 중...' : '로그아웃'}
-              </Text>
+              </AppText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -284,9 +285,9 @@ export default function MoreScreen() {
               onPress={onPressDeleteAccount}
               disabled={deleting}
             >
-              <Text style={styles.dangerButtonText}>
+              <AppText preset="unifiedLabel" style={styles.dangerButtonText}>
                 {deleting ? '계정 삭제 중...' : '계정 삭제'}
-              </Text>
+              </AppText>
             </TouchableOpacity>
           </>
         ) : (
@@ -295,12 +296,13 @@ export default function MoreScreen() {
             style={[styles.primary, { backgroundColor: petTheme.primary }]}
             onPress={onPressLogin}
           >
-            <Text style={styles.primaryText}>로그인하러 가기</Text>
+            <AppText preset="unifiedLabel" style={styles.primaryText}>로그인하러 가기</AppText>
           </TouchableOpacity>
         )}
       </View>
       <ConfirmDialog
         visible={logoutConfirmVisible}
+        typographyMode="unified"
         title="로그아웃할까요?"
         message={'현재 기기에서만 로그아웃되며,\n다시 로그인하면 이어서 사용할 수 있어요.'}
         cancelLabel="계속 머무르기"
@@ -315,6 +317,7 @@ export default function MoreScreen() {
       />
       <ConfirmDialog
         visible={deleteConfirmVisible}
+        typographyMode="unified"
         title="정말 NURI를 떠나시겠어요? 🥺"
         message={
           '탈퇴를 요청하시면 고객님의 프로필과 작성하신 모든 기록은\n다른 사람들에게 즉시 [비노출 처리]되어 안전하게 보호됩니다.\n\n요청일로부터 7일의 유예기간이 지나면,\n복구할 수 없도록 모든 데이터가 영구적으로 완전 삭제됩니다.'
@@ -336,10 +339,10 @@ export default function MoreScreen() {
         }}
       >
         <View style={styles.deleteConfirmField}>
-          <Text style={styles.deleteConfirmLabel}>
+          <AppText preset="unifiedLabel" style={styles.deleteConfirmLabel}>
             계속하려면 아래에 {ACCOUNT_DELETION_CONFIRMATION_TEXT}를 입력해 주세요.
-          </Text>
-          <TextInput
+          </AppText>
+          <AppTextInput
             autoCapitalize="none"
             autoCorrect={false}
             onChangeText={setDeleteConfirmationText}
@@ -352,6 +355,7 @@ export default function MoreScreen() {
       </ConfirmDialog>
       <PremiumNoticeModal
         visible={accountStatusNoticeConfig !== null}
+        typographyMode="unified"
         eyebrow={accountStatusNoticeConfig?.eyebrow ?? 'ACCOUNT STATUS'}
         iconName="shield"
         titleLines={accountStatusNoticeConfig?.titleLines ?? ['']}

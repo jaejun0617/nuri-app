@@ -4,12 +4,12 @@
 // - 이름, 날짜, 태그, 프로필 이미지 등 프로필 전반의 값을 보정
 // - 수정 완료 후 스토어와 후속 완료 화면으로 흐름을 연결해 홈 반영을 빠르게 유지
 
+import AppTextInput from '../../app/ui/AppTextInput';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   AppState,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -711,7 +711,7 @@ export default function PetProfileEditScreen() {
             <AppText preset="unifiedMeta" style={styles.label}>
               반려동물 이름
             </AppText>
-              <TextInput
+              <AppTextInput
                 value={name}
                 onChangeText={setName}
                 editable={canEditName}
@@ -735,7 +735,7 @@ export default function PetProfileEditScreen() {
                 style={styles.input}
                 onPress={openBirthDateModal}
               >
-                <TextInput
+                <AppTextInput
                   value={birthDate}
                   onChangeText={setBirthDate}
                   placeholder="YYYY.MM.DD"
@@ -756,7 +756,7 @@ export default function PetProfileEditScreen() {
                 style={styles.input}
                 onPress={openAdoptionDateModal}
               >
-                <TextInput
+                <AppTextInput
                   value={adoptionDate}
                   onChangeText={setAdoptionDate}
                   placeholder="YYYY.MM.DD"
@@ -844,7 +844,7 @@ export default function PetProfileEditScreen() {
               </View>
             ) : null}
             <View style={styles.searchInputWrap}>
-              <TextInput
+              <AppTextInput
                 value={speciesDetailKey}
                 onChangeText={setSpeciesDetailKey}
                 placeholder={representativeOption.placeholders.detail}
@@ -963,7 +963,7 @@ export default function PetProfileEditScreen() {
                 취미
               </AppText>
             </View>
-            <TextInput
+            <AppTextInput
               value={hobbiesText}
               onChangeText={setHobbiesText}
               onFocus={handleFocusLowerField}
@@ -982,7 +982,7 @@ export default function PetProfileEditScreen() {
                 좋아하는 것
               </AppText>
             </View>
-            <TextInput
+            <AppTextInput
               value={likesText}
               onChangeText={setLikesText}
               onFocus={handleFocusLowerField}
@@ -1001,7 +1001,7 @@ export default function PetProfileEditScreen() {
                 싫어하는 것
               </AppText>
             </View>
-            <TextInput
+            <AppTextInput
               value={dislikesText}
               onChangeText={setDislikesText}
               onFocus={handleFocusLowerField}
@@ -1041,7 +1041,7 @@ export default function PetProfileEditScreen() {
               </View>
 
               <View style={styles.tagInputRow}>
-                <TextInput
+                <AppTextInput
                   value={draftTag}
                   onChangeText={setDraftTag}
                   onFocus={handleFocusLowerField}

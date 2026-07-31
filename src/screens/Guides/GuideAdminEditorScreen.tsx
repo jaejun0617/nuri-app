@@ -1,3 +1,4 @@
+import AppTextInput from '../../app/ui/AppTextInput';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
@@ -5,7 +6,6 @@ import {
   Pressable,
   StyleSheet,
   Switch,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -70,7 +70,7 @@ function Field({
       <AppText preset="unifiedMeta" style={styles.fieldLabel}>
         {label}
       </AppText>
-      <TextInput
+      <AppTextInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}

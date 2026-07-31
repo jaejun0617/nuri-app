@@ -4,11 +4,11 @@
 // - 홈/상세/목록 등 다른 진입점에서 들어와도 일관된 기본값으로 생성 가능하게 처리
 // - 생성 성공 시 schedule store refresh와 완료 플로우 연결까지 수행
 
+import AppTextInput from '../../app/ui/AppTextInput';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   BackHandler,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -541,7 +541,7 @@ export default function ScheduleCreateScreen() {
           <AppText preset="unifiedMeta" style={styles.label}>
             일정 이름
           </AppText>
-          <TextInput
+          <AppTextInput
             value={title}
             onChangeText={setTitle}
             placeholder="예: 병원 정기 검진"
@@ -882,7 +882,7 @@ export default function ScheduleCreateScreen() {
               <AppText preset="unifiedMeta" style={styles.inlineFieldLabel}>
                 직접 설정(분)
               </AppText>
-              <TextInput
+              <AppTextInput
                 value={customReminderMinutesText}
                 onChangeText={setCustomReminderMinutesText}
                 keyboardType="number-pad"
@@ -899,7 +899,7 @@ export default function ScheduleCreateScreen() {
           <AppText preset="unifiedMeta" style={styles.label}>
             메모
           </AppText>
-          <TextInput
+          <AppTextInput
             value={note}
             onChangeText={setNote}
             onFocus={handleFocusNote}
@@ -952,6 +952,7 @@ export default function ScheduleCreateScreen() {
       />
       <ConfirmDialog
         visible={exitConfirmVisible}
+        typographyMode="unified"
         title="저장하지 않고 나갈까요?"
         message={
           '입력한 일정 내용은 아직 저장되지 않았으며\n지금 나가면 현재 화면에서 사라져요.'

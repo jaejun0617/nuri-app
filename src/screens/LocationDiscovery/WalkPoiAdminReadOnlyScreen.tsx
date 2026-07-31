@@ -6,6 +6,7 @@
 // 핵심 역할:
 // - admin/super_admin에게만 batch, review queue, audit, fallback gate 요약을 보여준다.
 // - write action은 pending 후보의 approve/reject/held로 제한하고 import commit UI와 raw payload는 제공하지 않는다.
+import AppTextInput from '../../app/ui/AppTextInput';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -15,7 +16,6 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -1031,7 +1031,7 @@ export default function WalkPoiAdminReadOnlyScreen() {
               </View>
             </View>
 
-            <TextInput
+            <AppTextInput
               value={actionReason}
               onChangeText={text => {
                 setActionReason(text);

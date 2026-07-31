@@ -5,6 +5,7 @@
 // - 최근 기록은 홈 전용 세로 프리뷰 섹션으로, 이미지 기록을 우선 포함하되
 //   화면 높이가 과도하게 길어지지 않도록 최대 7개까지만 압축 노출한다.
 
+import AppText from '../../../../app/ui/AppText';
 import React, {
   useEffect,
   useMemo,
@@ -425,18 +426,18 @@ const HomeRecentRecordRow = React.memo(function HomeRecentRecordRow({
       </View>
 
       <View style={styles.recentRecordBody}>
-        <Text style={styles.recentRecordCategory} numberOfLines={1}>
+        <AppText preset="unifiedLabel" style={styles.recentRecordCategory} numberOfLines={1}>
           {categoryLabel}
-        </Text>
-        <Text style={styles.recentRecordSummary} numberOfLines={1}>
+        </AppText>
+        <AppText preset="unifiedBody" style={styles.recentRecordSummary} numberOfLines={1}>
           {summary}
-        </Text>
+        </AppText>
       </View>
 
       <View style={styles.recentRecordMeta}>
-        <Text style={styles.recentRecordTime} numberOfLines={1}>
+        <AppText preset="unifiedBody" style={styles.recentRecordTime} numberOfLines={1}>
           {createdTime || '기록 시각 없음'}
-        </Text>
+        </AppText>
         <MaterialCommunityIcons
           name="chevron-right"
           size={18}
@@ -568,12 +569,12 @@ const MonthlyDiaryCard = React.memo(function MonthlyDiaryCard({
           </View>
         )}
       </View>
-      <Text style={styles.monthDiaryTitle} numberOfLines={1}>
+      <AppText preset="unifiedLabel" style={styles.monthDiaryTitle} numberOfLines={1}>
         {item.title?.trim() || '기록'}
-      </Text>
-      <Text style={styles.monthDiaryMeta} numberOfLines={1}>
+      </AppText>
+      <AppText preset="unifiedBody" style={styles.monthDiaryMeta} numberOfLines={1}>
         {getRecordYmdDots(item)}
-      </Text>
+      </AppText>
     </TouchableOpacity>
   );
 });
@@ -653,9 +654,9 @@ const TodayPhotoSection = React.memo(function TodayPhotoSection({
   return (
     <View style={[styles.section, styles.todayPhotoSection]}>
       <View style={styles.sectionHeaderRow}>
-        <Text style={[styles.sectionTitle, { color: accentColor }]}>
+        <AppText preset="unifiedTitle" style={[styles.sectionTitle, { color: accentColor }]}>
           오늘 한장
-        </Text>
+        </AppText>
       </View>
 
       <TouchableOpacity
@@ -698,9 +699,9 @@ const TodayPhotoSection = React.memo(function TodayPhotoSection({
         )}
 
         <View style={styles.photoOverlay}>
-          <Text style={styles.photoOverlayDate} numberOfLines={1}>
+          <AppText preset="unifiedDate" style={styles.photoOverlayDate} numberOfLines={1}>
             {photoDateLabel}
-          </Text>
+          </AppText>
         </View>
       </TouchableOpacity>
     </View>
@@ -862,12 +863,12 @@ const HomeNotificationSwipeItem = React.memo(function HomeNotificationSwipeItem(
               <View style={styles.notificationModalItemTopRow}>
                 <View style={styles.notificationModalItemTitleWrap}>
                   {unread ? <View style={styles.notificationModalUnreadDot} /> : null}
-                  <Text style={styles.notificationModalItemTitle} numberOfLines={1}>
+                  <AppText preset="unifiedLabel" style={styles.notificationModalItemTitle} numberOfLines={1}>
                     {item.title}
-                  </Text>
+                  </AppText>
                 </View>
               </View>
-              <Text
+              <AppText preset="unifiedBody"
                 style={[
                   styles.notificationModalItemBody,
                   expanded
@@ -877,11 +878,11 @@ const HomeNotificationSwipeItem = React.memo(function HomeNotificationSwipeItem(
                 numberOfLines={expanded ? undefined : 1}
               >
                 {item.body}
-              </Text>
+              </AppText>
               <View style={styles.notificationModalItemFooterRow}>
-                <Text style={styles.notificationModalItemDate}>
+                <AppText preset="unifiedDate" style={styles.notificationModalItemDate}>
                   {formatHomeNotificationDate(item.createdAt)}
-                </Text>
+                </AppText>
                 <TouchableOpacity
                   activeOpacity={0.84}
                   accessibilityLabel={expanded ? '알림 접기' : '알림 펼치기'}
@@ -1007,10 +1008,10 @@ const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
         >
           <View style={styles.notificationModalHeader}>
             <View style={styles.notificationModalTitleWrap}>
-              <Text style={styles.notificationModalTitle}>알림</Text>
-              <Text style={styles.notificationModalSubtitle}>
+              <AppText preset="unifiedTitle" style={styles.notificationModalTitle}>알림</AppText>
+              <AppText preset="unifiedBody" style={styles.notificationModalSubtitle}>
                 읽지 않은 알림 {unreadCount}개
-              </Text>
+              </AppText>
             </View>
             {items.length > 0 && !loading && !errorMessage ? (
               <TouchableOpacity
@@ -1021,9 +1022,9 @@ const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
                 onPress={onDismissAll}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Text style={styles.notificationModalClearAllText}>
+                <AppText preset="unifiedLabel" style={styles.notificationModalClearAllText}>
                   모두 치우기
-                </Text>
+                </AppText>
               </TouchableOpacity>
             ) : null}
             <TouchableOpacity
@@ -1041,26 +1042,26 @@ const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
           {loading ? (
             <View style={styles.notificationModalState}>
               <ActivityIndicator />
-              <Text style={styles.notificationModalStateText}>
+              <AppText preset="unifiedLabel" style={styles.notificationModalStateText}>
                 알림을 불러오는 중이에요.
-              </Text>
+              </AppText>
             </View>
           ) : errorMessage ? (
             <View style={styles.notificationModalState}>
-              <Text style={styles.notificationModalStateTitle}>
+              <AppText preset="unifiedTitle" style={styles.notificationModalStateTitle}>
                 알림을 불러오지 못했어요
-              </Text>
-              <Text style={styles.notificationModalStateText}>
+              </AppText>
+              <AppText preset="unifiedLabel" style={styles.notificationModalStateText}>
                 {errorMessage}
-              </Text>
+              </AppText>
               <TouchableOpacity
                 activeOpacity={0.9}
                 style={styles.notificationModalRetryButton}
                 onPress={onRefresh}
               >
-                <Text style={styles.notificationModalRetryText}>
+                <AppText preset="unifiedLabel" style={styles.notificationModalRetryText}>
                   다시 불러오기
-                </Text>
+                </AppText>
               </TouchableOpacity>
             </View>
           ) : items.length === 0 ? (
@@ -1068,12 +1069,12 @@ const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
               <View style={styles.notificationModalEmptyIcon}>
                 <Feather name="bell" size={22} color="rgba(85,96,112,0.72)" />
               </View>
-              <Text style={styles.notificationModalStateTitle}>
+              <AppText preset="unifiedTitle" style={styles.notificationModalStateTitle}>
                 아직 새 알림이 없어요
-              </Text>
-              <Text style={styles.notificationModalStateText}>
+              </AppText>
+              <AppText preset="unifiedLabel" style={styles.notificationModalStateText}>
                 우리 아이 소식이 도착하면 여기에 알려드릴게요.
-              </Text>
+              </AppText>
             </View>
           ) : (
             <ScrollView
@@ -1131,9 +1132,9 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
     <View style={styles.header}>
       <View style={styles.headerTopRow}>
         <View style={styles.headerTextArea}>
-          <Text style={[styles.title, { color: petThemePrimary }]}>
+          <AppText preset="unifiedTitle" style={[styles.title, { color: petThemePrimary }]}>
             {greetingTitle}
-          </Text>
+          </AppText>
         </View>
 
         <View style={styles.headerIcons}>
@@ -1157,11 +1158,11 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
             <Feather name="bell" size={18} color="rgba(11,18,32,0.75)" />
             {notificationUnreadCount > 0 ? (
               <View style={styles.headerNotificationBadge}>
-                <Text style={styles.headerNotificationBadgeText}>
+                <AppText preset="unifiedLabel" style={styles.headerNotificationBadgeText}>
                   {notificationUnreadCount > 99
                     ? '99+'
                     : notificationUnreadCount}
-                </Text>
+                </AppText>
               </View>
             ) : null}
           </TouchableOpacity>
@@ -1273,38 +1274,38 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
               size={14}
               color={petTheme.deep}
             />
-            <Text
+            <AppText preset="unifiedTitle"
               style={[styles.heroTitleBadgeText, { color: petTheme.deep }]}
               numberOfLines={1}
               ellipsizeMode="tail"
             >
               {titleBadge}
-            </Text>
+            </AppText>
           </View>
         ) : null}
 
-        <Text
+        <AppText preset="unifiedTitle"
           style={[styles.heroName, { color: petTheme.deep }]}
           numberOfLines={1}
           ellipsizeMode="tail"
         >
           {profilePetName}
-        </Text>
+        </AppText>
 
         {topMetaLine ? (
-          <Text style={styles.heroMetaLine} numberOfLines={1}>
+          <AppText preset="unifiedBody" style={styles.heroMetaLine} numberOfLines={1}>
             {topMetaLine}
-          </Text>
+          </AppText>
         ) : (
-          <Text style={styles.heroMetaMuted} numberOfLines={1}>
+          <AppText preset="unifiedBody" style={styles.heroMetaMuted} numberOfLines={1}>
             아이 정보를 채우면 더 예쁘게 보여요
-          </Text>
+          </AppText>
         )}
 
         {birthText ? (
-          <Text style={styles.heroBirthText} numberOfLines={1}>
+          <AppText preset="unifiedDate" style={styles.heroBirthText} numberOfLines={1}>
             태어난 날 {birthText}
-          </Text>
+          </AppText>
         ) : null}
 
         {togetherDays !== null ? (
@@ -1318,20 +1319,20 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
               <Text style={styles.heroTogetherHeart}>
                 {petTheme.heartEmoji}
               </Text>
-              <Text
+              <AppText preset="unifiedBody"
                 style={[styles.heroTogetherText, { color: petTheme.onDeep }]}
               >
                 함께한 시간{' '}
-                <Text
+                <AppText preset="unifiedBody"
                   style={[
                     styles.heroTogetherStrong,
                     { color: petTheme.onDeep },
                   ]}
                 >
                   {togetherDays}
-                </Text>{' '}
+                </AppText>{' '}
                 일
-              </Text>
+              </AppText>
               <Text style={styles.heroTogetherHeart}>
                 {petTheme.heartEmoji}
               </Text>
@@ -1371,9 +1372,9 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
         style={styles.accordionAllRow}
         onPress={onToggleAll}
       >
-        <Text style={[styles.accordionAllLabel, { color: petTheme.primary }]}>
+        <AppText preset="unifiedLabel" style={[styles.accordionAllLabel, { color: petTheme.primary }]}>
           모두펼치기
-        </Text>
+        </AppText>
         <Feather
           name={allExpanded ? 'chevron-up' : 'chevron-down'}
           size={18}
@@ -1391,9 +1392,9 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
             <View style={[styles.accordionIconCircle, styles.iconCircleBlue]}>
               <Text style={styles.accordionIconText}>🐾</Text>
             </View>
-            <Text style={[styles.accordionTitle, styles.accTitleBlue]}>
+            <AppText preset="unifiedLabel" style={[styles.accordionTitle, styles.accTitleBlue]}>
               취미
-            </Text>
+            </AppText>
           </View>
           <Feather
             name={acc.hobby ? 'chevron-up' : 'chevron-down'}
@@ -1406,12 +1407,12 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
           <View style={styles.accordionBody}>
             {hobbies.length > 0 ? (
               hobbies.map(v => (
-                <Text key={v} style={styles.accordionBullet}>
+                <AppText preset="unifiedLabel" key={v} style={styles.accordionBullet}>
                   • {v}
-                </Text>
+                </AppText>
               ))
             ) : (
-              <Text style={styles.accordionEmpty}>• 아직 없어요</Text>
+              <AppText preset="unifiedLabel" style={styles.accordionEmpty}>• 아직 없어요</AppText>
             )}
           </View>
         ) : null}
@@ -1427,9 +1428,9 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
             <View style={[styles.accordionIconCircle, styles.iconCircleOrange]}>
               <Text style={styles.accordionIconText}>💛</Text>
             </View>
-            <Text style={[styles.accordionTitle, styles.accTitleOrange]}>
+            <AppText preset="unifiedLabel" style={[styles.accordionTitle, styles.accTitleOrange]}>
               좋아하는 것
-            </Text>
+            </AppText>
           </View>
           <Feather
             name={acc.like ? 'chevron-up' : 'chevron-down'}
@@ -1442,12 +1443,12 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
           <View style={styles.accordionBody}>
             {likes.length > 0 ? (
               likes.map(v => (
-                <Text key={v} style={styles.accordionBullet}>
+                <AppText preset="unifiedLabel" key={v} style={styles.accordionBullet}>
                   • {v}
-                </Text>
+                </AppText>
               ))
             ) : (
-              <Text style={styles.accordionEmpty}>• 아직 없어요</Text>
+              <AppText preset="unifiedLabel" style={styles.accordionEmpty}>• 아직 없어요</AppText>
             )}
           </View>
         ) : null}
@@ -1463,9 +1464,9 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
             <View style={[styles.accordionIconCircle, styles.iconCirclePink]}>
               <Text style={styles.accordionIconText}>💔</Text>
             </View>
-            <Text style={[styles.accordionTitle, styles.accTitlePink]}>
+            <AppText preset="unifiedLabel" style={[styles.accordionTitle, styles.accTitlePink]}>
               싫어하는 것
-            </Text>
+            </AppText>
           </View>
           <Feather
             name={acc.dislike ? 'chevron-up' : 'chevron-down'}
@@ -1478,12 +1479,12 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
           <View style={styles.accordionBody}>
             {dislikes.length > 0 ? (
               dislikes.map(v => (
-                <Text key={v} style={styles.accordionBullet}>
+                <AppText preset="unifiedLabel" key={v} style={styles.accordionBullet}>
                   • {v}
-                </Text>
+                </AppText>
               ))
             ) : (
-              <Text style={styles.accordionEmpty}>• 아직 없어요</Text>
+              <AppText preset="unifiedLabel" style={styles.accordionEmpty}>• 아직 없어요</AppText>
             )}
           </View>
         ) : null}
@@ -1499,9 +1500,9 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
             <View style={[styles.accordionIconCircle, styles.iconCirclePurple]}>
               <Feather name="hash" size={16} color={petTheme.primary} />
             </View>
-            <Text style={[styles.accordionTitle, styles.accTitlePurple]}>
+            <AppText preset="unifiedLabel" style={[styles.accordionTitle, styles.accTitlePurple]}>
               #태그
-            </Text>
+            </AppText>
           </View>
           <Feather
             name={acc.tag ? 'chevron-up' : 'chevron-down'}
@@ -1524,9 +1525,9 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
                     },
                   ]}
                 >
-                  <Text style={[styles.tagText, { color: petTheme.deep }]}>
+                  <AppText preset="unifiedLabel" style={[styles.tagText, { color: petTheme.deep }]}>
                     {t}
-                  </Text>
+                  </AppText>
                 </View>
               ))}
             </View>
@@ -1627,11 +1628,11 @@ const RecommendationTipsSection = React.memo(
       <View style={styles.section}>
         <View style={styles.sectionHeaderRow}>
           <View style={styles.tipSectionHeading}>
-            <Text style={[styles.tipSectionTitle, { color: petTheme.deep }]}>
+            <AppText preset="unifiedTitle" style={[styles.tipSectionTitle, { color: petTheme.deep }]}>
               {isMemorial
                 ? '함께한 시간을 돌아보는 홈'
                 : '우리 아이를 위한 추천 팁'}
-            </Text>
+            </AppText>
             {__DEV__ ? (
               <View
                 style={[
@@ -1643,52 +1644,52 @@ const RecommendationTipsSection = React.memo(
                     : styles.guideDebugBadgeEmpty,
                 ]}
               >
-                <Text style={styles.guideDebugBadgeText}>
+                <AppText preset="unifiedLabel" style={styles.guideDebugBadgeText}>
                   {debugSourceLabel}
-                </Text>
+                </AppText>
               </View>
             ) : null}
           </View>
           {!isMemorial ? (
             <TouchableOpacity activeOpacity={0.85} onPress={onPressMore}>
-              <Text style={[styles.sectionLink, { color: petTheme.deep }]}>
+              <AppText preset="unifiedBody" style={[styles.sectionLink, { color: petTheme.deep }]}>
                 더보기
-              </Text>
+              </AppText>
             </TouchableOpacity>
           ) : null}
         </View>
 
         {isMemorial ? (
           <View style={styles.emptyBox}>
-            <Text style={styles.emptyTitle}>케어 추천은 잠시 쉬어둘게요</Text>
-            <Text style={styles.emptyDesc}>
+            <AppText preset="unifiedTitle" style={styles.emptyTitle}>케어 추천은 잠시 쉬어둘게요</AppText>
+            <AppText preset="unifiedBody" style={styles.emptyDesc}>
               함께한 시간을 조용히 돌아볼 수 있도록, 일반 케어 팁 대신 기록과
               추억을 중심으로 홈을 보여드릴게요.
-            </Text>
+            </AppText>
           </View>
         ) : loading ? (
           <View style={styles.emptyBox}>
-            <Text style={styles.emptyTitle}>추천 팁을 불러오는 중이에요</Text>
-            <Text style={styles.emptyDesc}>
+            <AppText preset="unifiedTitle" style={styles.emptyTitle}>추천 팁을 불러오는 중이에요</AppText>
+            <AppText preset="unifiedBody" style={styles.emptyDesc}>
               우리 아이 기준으로 먼저 보여드릴 가이드를 정리하고 있어요.
-            </Text>
+            </AppText>
           </View>
         ) : error ? (
           <View style={styles.emptyBox}>
-            <Text style={styles.emptyTitle}>추천 팁을 불러오지 못했어요</Text>
-            <Text style={styles.emptyDesc}>{error}</Text>
+            <AppText preset="unifiedTitle" style={styles.emptyTitle}>추천 팁을 불러오지 못했어요</AppText>
+            <AppText preset="unifiedBody" style={styles.emptyDesc}>{error}</AppText>
           </View>
         ) : guides.length === 0 ? (
           <View style={styles.emptyBox}>
-            <Text style={styles.emptyTitle}>
+            <AppText preset="unifiedTitle" style={styles.emptyTitle}>
               추천 가능한 공개 가이드가 아직 없어요
-            </Text>
-            <Text style={styles.emptyDesc}>
+            </AppText>
+            <AppText preset="unifiedBody" style={styles.emptyDesc}>
               {getGuideDataSourceDescription({
                 source,
                 reason: sourceReason,
               })}
-            </Text>
+            </AppText>
           </View>
         ) : (
           <View style={styles.tipList}>
@@ -1726,12 +1727,12 @@ const TodayHomeTipSection = React.memo(function TodayHomeTipSection({
       <View style={[styles.todayTipCard, { backgroundColor: petTheme.tint }]}>
         <View style={styles.todayTipBadge}>
           <Feather name="map-pin" size={12} color={petTheme.primary} />
-          <Text style={[styles.todayTipBadgeText, { color: petTheme.primary }]}>
+          <AppText preset="unifiedDate" style={[styles.todayTipBadgeText, { color: petTheme.primary }]}>
             {TODAY_HOME_TIP.badge}
-          </Text>
+          </AppText>
         </View>
-        <Text style={styles.todayTipTitle}>{TODAY_HOME_TIP.title}</Text>
-        <Text style={styles.todayTipDesc}>{TODAY_HOME_TIP.description}</Text>
+        <AppText preset="unifiedDate" style={styles.todayTipTitle}>{TODAY_HOME_TIP.title}</AppText>
+        <AppText preset="unifiedDate" style={styles.todayTipDesc}>{TODAY_HOME_TIP.description}</AppText>
       </View>
     </View>
   );
@@ -1783,9 +1784,9 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
               size={20}
               color={accentDeepColor}
             />
-            <Text style={[styles.sectionTitle, { color: accentDeepColor }]}>
+            <AppText preset="unifiedTitle" style={[styles.sectionTitle, { color: accentDeepColor }]}>
               최근 기록
-            </Text>
+            </AppText>
           </View>
           <SectionHeaderAction
             color={accentColor}
@@ -1796,16 +1797,16 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
         {isRecordBootstrapPending ? (
           <View style={styles.recentEmptyState}>
             <ActivityIndicator size="small" color={accentDeepColor} />
-            <Text style={[styles.emptyDesc, styles.recentEmptyDesc]}>
+            <AppText preset="unifiedBody" style={[styles.emptyDesc, styles.recentEmptyDesc]}>
               기록을 불러오는 중이에요.
-            </Text>
+            </AppText>
           </View>
         ) : previewItems.length === 0 ? (
           <View style={styles.recentEmptyState}>
-            <Text style={styles.emptyTitle}>아직 기록이 없어요</Text>
-            <Text style={[styles.emptyDesc, styles.recentEmptyDesc]}>
+            <AppText preset="unifiedTitle" style={styles.emptyTitle}>아직 기록이 없어요</AppText>
+            <AppText preset="unifiedBody" style={[styles.emptyDesc, styles.recentEmptyDesc]}>
               첫 번째 추억을 남겨보세요.
-            </Text>
+            </AppText>
 
             <TouchableOpacity
               activeOpacity={0.9}
@@ -1818,7 +1819,7 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
               ]}
               onPress={onPressRecord}
             >
-              <Text style={styles.recordBtnText}>기록하기</Text>
+              <AppText preset="unifiedLabel" style={styles.recordBtnText}>기록하기</AppText>
             </TouchableOpacity>
           </View>
         ) : (
@@ -1832,7 +1833,7 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
                       size={18}
                       color="#7A8594"
                     />
-                    <Text style={styles.recentDateText}>{group.label}</Text>
+                    <AppText preset="unifiedDate" style={styles.recentDateText}>{group.label}</AppText>
                   </View>
 
                   {group.items.map(previewItem => (
@@ -1903,16 +1904,16 @@ const WeeklySummaryMetricCard = React.memo(function WeeklySummaryMetricCard({
         </View>
       </View>
 
-      <Text style={styles.weeklySummaryMetricLabel} numberOfLines={1}>
+      <AppText preset="unifiedBody" style={styles.weeklySummaryMetricLabel} numberOfLines={1}>
         {label}
-      </Text>
+      </AppText>
       <View style={styles.weeklySummaryMetricValueRow}>
-        <Text style={[styles.weeklySummaryMetricValue, { color: accentColor }]}>
+        <AppText preset="unifiedBody" style={[styles.weeklySummaryMetricValue, { color: accentColor }]}>
           {value}
-        </Text>
-        <Text style={[styles.weeklySummaryMetricUnit, { color: accentColor }]}>
+        </AppText>
+        <AppText preset="unifiedBody" style={[styles.weeklySummaryMetricUnit, { color: accentColor }]}>
           {unit}
-        </Text>
+        </AppText>
       </View>
     </TouchableOpacity>
   );
@@ -1952,12 +1953,12 @@ const WeeklySummarySection = React.memo(function WeeklySummarySection({
             />
           </View>
           <View style={styles.weeklySummaryHeaderText}>
-            <Text style={[styles.weeklySummaryTitle, { color: accentDeepColor }]}>
+            <AppText preset="unifiedTitle" style={[styles.weeklySummaryTitle, { color: accentDeepColor }]}>
               이번 주 요약
-            </Text>
-            <Text style={styles.weeklySummarySubtitle}>
+            </AppText>
+            <AppText preset="unifiedBody" style={styles.weeklySummarySubtitle}>
               이번 주 리듬을 한눈에 확인해요.
-            </Text>
+            </AppText>
           </View>
         </View>
 
@@ -2019,12 +2020,12 @@ const WeeklySummarySection = React.memo(function WeeklySummarySection({
             />
           </View>
           <View style={styles.weeklySummaryInsightText}>
-            <Text style={styles.weeklySummaryInsightTitle}>
+            <AppText preset="unifiedLabel" style={styles.weeklySummaryInsightTitle}>
               이번 주 한 줄 요약
-            </Text>
-            <Text style={styles.weeklySummaryInsightBody} numberOfLines={2}>
+            </AppText>
+            <AppText preset="unifiedBody" style={styles.weeklySummaryInsightBody} numberOfLines={2}>
               {summaryLine}
-            </Text>
+            </AppText>
           </View>
           <MaterialCommunityIcons
             name="chevron-right"
@@ -2041,18 +2042,18 @@ const WeeklySummarySection = React.memo(function WeeklySummarySection({
               size={17}
               color={accentDeepColor}
             />
-            <Text style={styles.weeklySummaryFooterText} numberOfLines={1}>
+            <AppText preset="unifiedBody" style={styles.weeklySummaryFooterText} numberOfLines={1}>
               이번 주 총 기록{' '}
-              <Text
+              <AppText preset="unifiedBody"
                 style={[
                   styles.weeklySummaryFooterValue,
                   { color: accentDeepColor },
                 ]}
               >
                 {weeklySummary.totalRecords}
-              </Text>
+              </AppText>
               개
-            </Text>
+            </AppText>
           </View>
           <View style={styles.weeklySummaryFooterDividerVertical} />
           <View style={styles.weeklySummaryFooterItem}>
@@ -2061,18 +2062,18 @@ const WeeklySummarySection = React.memo(function WeeklySummarySection({
               size={17}
               color={accentDeepColor}
             />
-            <Text style={styles.weeklySummaryFooterText} numberOfLines={1}>
+            <AppText preset="unifiedBody" style={styles.weeklySummaryFooterText} numberOfLines={1}>
               남은 일정{' '}
-              <Text
+              <AppText preset="unifiedBody"
                 style={[
                   styles.weeklySummaryFooterValue,
                   { color: accentDeepColor },
                 ]}
               >
                 {weeklySummary.upcomingSchedules}
-              </Text>
+              </AppText>
               개
-            </Text>
+            </AppText>
           </View>
         </View>
       </View>
@@ -2104,22 +2105,22 @@ const ScheduleSection = React.memo(function ScheduleSection({
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
-        <Text style={[styles.tipSectionTitle, { color: accentDeepColor }]}>
+        <AppText preset="unifiedTitle" style={[styles.tipSectionTitle, { color: accentDeepColor }]}>
           일정 보기
-        </Text>
+        </AppText>
         <TouchableOpacity activeOpacity={0.85} onPress={onPressScheduleList}>
-          <Text style={[styles.sectionLink, { color: accentColor }]}>
+          <AppText preset="unifiedBody" style={[styles.sectionLink, { color: accentColor }]}>
             더보기
-          </Text>
+          </AppText>
         </TouchableOpacity>
       </View>
 
       {weekScheduleItems.length === 0 ? (
         <View style={styles.emptyBox}>
-          <Text style={styles.emptyTitle}>등록된 일정이 아직 없어요</Text>
-          <Text style={styles.emptyDesc}>
+          <AppText preset="unifiedTitle" style={styles.emptyTitle}>등록된 일정이 아직 없어요</AppText>
+          <AppText preset="unifiedBody" style={styles.emptyDesc}>
             오래 남겨둘 일정도 한곳에 모아두고 홈에서 가볍게 꺼내볼 수 있어요.
-          </Text>
+          </AppText>
         </View>
       ) : (
         <View style={styles.scheduleList}>
@@ -2136,7 +2137,7 @@ const ScheduleSection = React.memo(function ScheduleSection({
                   { backgroundColor: accentTint },
                 ]}
               >
-                <Text style={styles.scheduleDateText}>{item.dateLabel}</Text>
+                <AppText preset="unifiedDate" style={styles.scheduleDateText}>{item.dateLabel}</AppText>
               </View>
 
               <View style={styles.scheduleBody}>
@@ -2157,10 +2158,10 @@ const ScheduleSection = React.memo(function ScheduleSection({
                 </View>
 
                 <View style={styles.scheduleTextCol}>
-                  <Text style={styles.scheduleTitle}>{item.title}</Text>
-                  <Text style={styles.scheduleSub} numberOfLines={2}>
+                  <AppText preset="unifiedLabel" style={styles.scheduleTitle}>{item.title}</AppText>
+                  <AppText preset="unifiedBody" style={styles.scheduleSub} numberOfLines={2}>
                     {item.subtitle}
-                  </Text>
+                  </AppText>
                 </View>
 
                 <Feather
@@ -2182,7 +2183,7 @@ const ScheduleSection = React.memo(function ScheduleSection({
         ]}
         onPress={onPressScheduleCreate}
       >
-        <Text style={styles.recordBtnText}>일정 추가하기</Text>
+        <AppText preset="unifiedLabel" style={styles.recordBtnText}>일정 추가하기</AppText>
       </TouchableOpacity>
     </View>
   );
@@ -2228,22 +2229,22 @@ const HealthRecentActivitiesSection = React.memo(
     return (
       <View style={styles.section}>
         <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.tipSectionTitle, { color: accentDeepColor }]}>
+          <AppText preset="unifiedTitle" style={[styles.tipSectionTitle, { color: accentDeepColor }]}>
             건강관리 최근 활동
-          </Text>
+          </AppText>
           <TouchableOpacity activeOpacity={0.85} onPress={onPressHealthReport}>
-            <Text style={[styles.sectionLink, { color: accentColor }]}>
+            <AppText preset="unifiedBody" style={[styles.sectionLink, { color: accentColor }]}>
               건강관리 열기
-            </Text>
+            </AppText>
           </TouchableOpacity>
         </View>
 
         {recentActivities.length === 0 ? (
           <View style={styles.emptyBox}>
-            <Text style={styles.emptyTitle}>건강관리 기록이 아직 없어요</Text>
-            <Text style={styles.emptyDesc}>
+            <AppText preset="unifiedTitle" style={styles.emptyTitle}>건강관리 기록이 아직 없어요</AppText>
+            <AppText preset="unifiedBody" style={styles.emptyDesc}>
               병원, 약, 증상, 체중 기록은 건강관리에서 차분히 모아볼 수 있어요.
-            </Text>
+            </AppText>
           </View>
         ) : (
           <View style={styles.activityList}>
@@ -2268,18 +2269,18 @@ const HealthRecentActivitiesSection = React.memo(
                 </View>
 
                 <View style={styles.activityTextCol}>
-                  <Text style={styles.activityTitle} numberOfLines={1}>
+                  <AppText preset="unifiedLabel" style={styles.activityTitle} numberOfLines={1}>
                     {item.title?.trim() ||
                       getHealthActivityKindLabel(item.kind)}
-                  </Text>
-                  <Text style={styles.activitySub} numberOfLines={1}>
+                  </AppText>
+                  <AppText preset="unifiedBody" style={styles.activitySub} numberOfLines={1}>
                     {getHealthActivityKindLabel(item.kind)} · {item.subtitle}
-                  </Text>
+                  </AppText>
                 </View>
 
-                <Text style={styles.activityTime}>
+                <AppText preset="unifiedBody" style={styles.activityTime}>
                   {formatYmdToDots(item.ymd) ?? item.ymd}
-                </Text>
+                </AppText>
               </TouchableOpacity>
             ))}
           </View>
@@ -2327,23 +2328,23 @@ const MonthlyDiarySection = React.memo(function MonthlyDiarySection({
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
-        <Text style={[styles.tipSectionTitle, { color: accentDeepColor }]}>
+        <AppText preset="unifiedTitle" style={[styles.tipSectionTitle, { color: accentDeepColor }]}>
           이번 달 {petName} 일기
-        </Text>
+        </AppText>
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={() => onPressTimelineCategory('diary')}
         >
-          <Text style={[styles.sectionLink, { color: accentColor }]}>
+          <AppText preset="unifiedBody" style={[styles.sectionLink, { color: accentColor }]}>
             더보기
-          </Text>
+          </AppText>
         </TouchableOpacity>
       </View>
 
       {currentMonthDiaryEntries.length === 0 ? (
         <View style={styles.emptyBox}>
-          <Text style={styles.emptyTitle}>이번 달 일기가 아직 없어요</Text>
-          <Text style={styles.emptyDesc}>첫 번째 일기를 남겨보세요.</Text>
+          <AppText preset="unifiedTitle" style={styles.emptyTitle}>이번 달 일기가 아직 없어요</AppText>
+          <AppText preset="unifiedBody" style={styles.emptyDesc}>첫 번째 일기를 남겨보세요.</AppText>
           <TouchableOpacity
             activeOpacity={0.9}
             style={[
@@ -2355,7 +2356,7 @@ const MonthlyDiarySection = React.memo(function MonthlyDiarySection({
             ]}
             onPress={onPressRecord}
           >
-            <Text style={styles.recordBtnText}>기록하기</Text>
+            <AppText preset="unifiedLabel" style={styles.recordBtnText}>기록하기</AppText>
           </TouchableOpacity>
         </View>
       ) : (

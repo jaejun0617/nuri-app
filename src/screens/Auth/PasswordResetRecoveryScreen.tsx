@@ -1,5 +1,6 @@
+import AppText from '../../app/ui/AppText';
 import React, { useEffect } from 'react';
-import { ActivityIndicator, Alert, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -73,10 +74,10 @@ export default function PasswordResetRecoveryScreen({ navigation, route }: Props
       <View style={styles.scrollContent}>
         <View style={styles.processingCard}>
           <ActivityIndicator color="#6D6AF8" size="large" />
-          <Text style={styles.processingTitle}>링크를 확인하고 있어요</Text>
-          <Text style={styles.processingBody}>
+          <AppText preset="unifiedTitle" style={styles.processingTitle}>링크를 확인하고 있어요</AppText>
+          <AppText preset="unifiedBody" style={styles.processingBody}>
             보안을 위해 복구 링크를 확인한 뒤 새 비밀번호 입력 화면으로 이동합니다.
-          </Text>
+          </AppText>
         </View>
       </View>
     </SafeAreaView>

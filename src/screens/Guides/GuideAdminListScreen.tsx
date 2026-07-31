@@ -1,3 +1,4 @@
+import AppTextInput from '../../app/ui/AppTextInput';
 import React, {
   startTransition,
   useCallback,
@@ -9,7 +10,6 @@ import {
   FlatList,
   Platform,
   Pressable,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -165,7 +165,7 @@ export default function GuideAdminListScreen() {
           <View style={styles.searchCard}>
             <View style={styles.searchInputWrap}>
               <Feather name="search" size={16} color="#98A1B2" />
-              <TextInput
+              <AppTextInput
                 value={searchQuery}
                 onChangeText={value => {
                   startTransition(() => {

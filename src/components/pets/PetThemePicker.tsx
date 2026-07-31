@@ -3,8 +3,9 @@
 // - 펫 프로필 생성/수정 화면에서 공용으로 쓰는 테마 선택 UI
 // - 자동 추천 색을 초기값으로 삼되, 사용자가 직접 고를 수 있게 유지
 
+import AppText from '../../app/ui/AppText';
 import React, { memo } from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import {
   PET_THEME_OPTIONS,
@@ -36,7 +37,7 @@ export default memo(function PetThemePicker({
         borderColor: preview.border,
       }}
     >
-      <Text
+      <AppText preset="unifiedLabel"
         style={{
           fontSize: 13,
           fontWeight: '700',
@@ -44,7 +45,7 @@ export default memo(function PetThemePicker({
         }}
       >
         {title}
-      </Text>
+      </AppText>
 
       <View
         style={{
@@ -87,7 +88,7 @@ export default memo(function PetThemePicker({
         })}
       </View>
 
-      <Text
+      <AppText preset="unifiedLabel"
         style={{
           marginTop: 10,
           fontSize: 12,
@@ -97,7 +98,7 @@ export default memo(function PetThemePicker({
         }}
       >
         {helperText}
-      </Text>
+      </AppText>
     </View>
   );
 });

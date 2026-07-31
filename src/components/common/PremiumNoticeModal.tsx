@@ -37,6 +37,7 @@ type Props = {
   secondaryActions?: readonly SecondaryAction[];
   onClose: () => void;
   onConfirm?: () => void;
+  typographyMode?: 'legacy' | 'unified';
 };
 
 function toAccessibilityText(lines: readonly string[]) {
@@ -67,6 +68,7 @@ function PremiumNoticeModalBase({
   secondaryActions,
   onClose,
   onConfirm,
+  typographyMode = 'legacy',
 }: Props) {
   const theme = useTheme();
   const pets = usePetStore(s => s.pets);
@@ -80,6 +82,19 @@ function PremiumNoticeModalBase({
     [selectedPet?.themeColor, theme.colors.brand],
   );
   const primaryColor = accentColor ?? petTheme.primary;
+  const textPresets = typographyMode === 'unified'
+    ? {
+        eyebrow: 'unifiedBody' as const,
+        title: 'unifiedTitle' as const,
+        body: 'unifiedBody' as const,
+        button: 'unifiedLabel' as const,
+      }
+    : {
+        eyebrow: 'caption' as const,
+        title: 'title2' as const,
+        body: 'body' as const,
+        button: 'button' as const,
+      };
   const handleConfirm = onConfirm ?? onClose;
   const announcementText = useMemo(() => {
     const titleText = toAccessibilityText(accessibilityTitleLines ?? titleLines);
@@ -148,7 +163,7 @@ function PremiumNoticeModalBase({
           </View>
 
           <AppText
-            preset="caption"
+            preset={textPresets.eyebrow}
             style={[styles.eyebrow, { color: primaryColor }]}
           >
             {eyebrow}
@@ -158,7 +173,7 @@ function PremiumNoticeModalBase({
             {titleLines.map((line, index) => (
               <AppText
                 key={`title-${line}-${index}`}
-                preset="title2"
+                preset={textPresets.title}
                 style={[styles.title, { color: theme.colors.textPrimary }]}
               >
                 {line}
@@ -170,7 +185,7 @@ function PremiumNoticeModalBase({
             {bodyLines.map((line, index) => (
               <AppText
                 key={`body-${line}-${index}`}
-                preset="body"
+                preset={textPresets.body}
                 style={[styles.body, { color: theme.colors.textSecondary }]}
               >
                 {line}
@@ -186,7 +201,7 @@ function PremiumNoticeModalBase({
             accessibilityHint={confirmAccessibilityHint}
             style={[styles.button, { backgroundColor: primaryColor }]}
           >
-            <AppText preset="button" style={styles.buttonText}>
+            <AppText preset={textPresets.button} style={styles.buttonText}>
               {confirmLabel}
             </AppText>
           </TouchableOpacity>
@@ -207,7 +222,7 @@ function PremiumNoticeModalBase({
                   ]}
                 >
                   <AppText
-                    preset="button"
+                    preset={textPresets.button}
                     style={[styles.secondaryButtonText, { color: primaryColor }]}
                   >
                     {action.label}

@@ -13,6 +13,7 @@
 // - returnTo와 탭 복귀 규칙은 하단 탭/More 드로어 흐름과 연결돼 있으므로 독립적으로 바꾸면 안 된다.
 // - 이미지 업로드는 저장과 분리돼 있어, 폼 성공과 업로드 완료를 같은 시점으로 가정하면 상태가 꼬일 수 있다.
 
+import AppTextInput from '../../app/ui/AppTextInput';
 import React, {
   useCallback,
   useEffect,
@@ -20,7 +21,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { Alert, BackHandler, Image, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, BackHandler, Image, TouchableOpacity, View } from 'react-native';
 import type { RouteProp } from '@react-navigation/native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -1192,7 +1193,7 @@ export default function RecordCreateScreen() {
             <AppText preset="unifiedBody" style={styles.fieldLabel}>
               구매 가격
             </AppText>
-            <TextInput
+            <AppTextInput
               style={styles.input}
               value={priceText}
               onChangeText={onChangePriceText}
@@ -1251,7 +1252,7 @@ export default function RecordCreateScreen() {
               </TouchableOpacity>
             )}
             <View style={styles.unitInputRow}>
-              <TextInput
+              <AppTextInput
                 style={[styles.input, styles.unitInput, useDefaultMealAmount ? styles.inputDisabled : null]}
                 value={mealAmountText}
                 onChangeText={onChangeMealAmountText}
@@ -1305,7 +1306,7 @@ export default function RecordCreateScreen() {
               체중 (선택)
             </AppText>
             <View style={styles.unitInputRow}>
-              <TextInput
+              <AppTextInput
                 style={[styles.input, styles.unitInput]}
                 value={healthWeightText}
                 onChangeText={onChangeHealthWeightText}
@@ -1405,7 +1406,7 @@ export default function RecordCreateScreen() {
           <AppText preset="unifiedBody" style={styles.fieldLabel}>
             제목
           </AppText>
-          <TextInput
+          <AppTextInput
             style={styles.input}
             value={title}
             onChangeText={setTitle}
@@ -1418,7 +1419,7 @@ export default function RecordCreateScreen() {
           <AppText preset="unifiedBody" style={styles.fieldLabel}>
             내용
           </AppText>
-          <TextInput
+          <AppTextInput
             style={[styles.input, styles.textArea]}
             value={content}
             onChangeText={setContent}
@@ -1537,6 +1538,7 @@ export default function RecordCreateScreen() {
       />
       <ConfirmDialog
         visible={exitConfirmVisible}
+        typographyMode="unified"
         title="작성을 멈추고 나갈까요?"
         message={
           '입력 중인 기록 내용은 임시 저장된 상태로 남아\n다음에 다시 이어서 작성할 수 있어요.'

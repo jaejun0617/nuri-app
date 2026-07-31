@@ -185,7 +185,7 @@ export default function HomeScreen() {
               <S.BrandRow>
                 {/* <S.Logo source={logoSource} resizeMode="contain" /> */}
                 <AppText
-                  preset="title1"
+                  preset="unifiedTitle"
                   color="#ffffff"
                   style={{
                     textShadowColor: 'rgba(0,0,0,0.25)',

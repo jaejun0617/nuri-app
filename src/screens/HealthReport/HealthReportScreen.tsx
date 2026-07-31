@@ -304,7 +304,7 @@ function ActivityCard({
         <AppText preset="unifiedBody" numberOfLines={1}>
           {item.title}
         </AppText>
-        <AppText preset="helper" color={theme.colors.textMuted} numberOfLines={1}>
+          <AppText preset="unifiedBody" color={theme.colors.textMuted} numberOfLines={1}>
           {item.subtitle}
         </AppText>
         {item.source === 'schedule' ? (
@@ -538,7 +538,7 @@ function InsightMetricCard({
         },
       ]}
     >
-      <AppText preset="helper" color={theme.colors.textMuted}>
+      <AppText preset="unifiedBody" color={theme.colors.textMuted}>
         {label}
       </AppText>
       <AppText preset="unifiedTitle" color={accentColor}>
@@ -1178,7 +1178,7 @@ export default function HealthReportScreen() {
 
         <View style={styles.monthLabelWrap}>
           <AppText preset="unifiedTitle">{humanizeMonthKey(monthKey)}</AppText>
-          <AppText preset="helper" color={theme.colors.textMuted}>
+          <AppText preset="unifiedBody" color={theme.colors.textMuted}>
             월 단위로 묶어 빠르게 훑어볼 수 있어요
           </AppText>
         </View>
@@ -1216,7 +1216,7 @@ export default function HealthReportScreen() {
               ]}
             >
               <AppText
-                preset="tab"
+                preset="unifiedLabel"
                 color={active ? '#FFFFFF' : theme.colors.textPrimary}
               >
                 {item.label}
@@ -1379,7 +1379,7 @@ export default function HealthReportScreen() {
           >
             <View style={styles.weightSummaryTopRow}>
               <View>
-                <AppText preset="helper" color={theme.colors.textMuted}>
+          <AppText preset="unifiedBody" color={theme.colors.textMuted}>
                   최신 몸무게
                 </AppText>
                 <AppText preset="display">{formatWeightKg(monthQuery.data?.weightSummary.latestWeightKg)}</AppText>
@@ -1467,11 +1467,11 @@ export default function HealthReportScreen() {
                   >
                     <View style={styles.cardTextWrap}>
                       <AppText preset="unifiedBody">{log.measuredOn.replace(/-/g, '.')}</AppText>
-                      <AppText preset="helper" color={itemDeltaColor}>
+                      <AppText preset="unifiedBody" color={itemDeltaColor}>
                         {typeof itemDelta === 'string' ? itemDelta : itemDelta.text}
                       </AppText>
                       {log.note ? (
-                        <AppText preset="helper" color={theme.colors.textMuted} numberOfLines={1}>
+                        <AppText preset="unifiedBody" color={theme.colors.textMuted} numberOfLines={1}>
                           {log.note}
                         </AppText>
                       ) : null}
@@ -1511,7 +1511,7 @@ export default function HealthReportScreen() {
               },
             ]}
           >
-            <AppText preset="helper" color={petTheme.primary}>
+            <AppText preset="unifiedBody" color={petTheme.primary}>
               {humanizeMonthKey(monthKey)} 건강 인사이트
             </AppText>
             <AppText preset="unifiedTitle">
@@ -1569,7 +1569,7 @@ export default function HealthReportScreen() {
             <View style={styles.insightPanelHeader}>
               <View>
                 <AppText preset="unifiedTitle">기록 밀도</AppText>
-                <AppText preset="helper" color={theme.colors.textMuted}>
+                <AppText preset="unifiedBody" color={theme.colors.textMuted}>
                   날짜별 건강 이벤트와 체중 기록 수
                 </AppText>
               </View>
@@ -1595,7 +1595,7 @@ export default function HealthReportScreen() {
             <View style={styles.insightPanelHeader}>
               <View>
                 <AppText preset="unifiedTitle">체중 흐름</AppText>
-                <AppText preset="helper" color={theme.colors.textMuted}>
+                <AppText preset="unifiedBody" color={theme.colors.textMuted}>
                   최신 {formatWeightKg(monthQuery.data?.weightSummary.latestWeightKg)}
                 </AppText>
               </View>
@@ -1685,7 +1685,7 @@ export default function HealthReportScreen() {
                 <AppText preset="unifiedTitle">
                   {selectedInsightDetail?.title ?? '인사이트'}
                 </AppText>
-                <AppText preset="helper" color={theme.colors.textMuted}>
+                <AppText preset="unifiedBody" color={theme.colors.textMuted}>
                   {selectedInsightDetail?.helper ?? '이번 달 건강관리 기록'}
                 </AppText>
               </View>
@@ -1714,7 +1714,7 @@ export default function HealthReportScreen() {
                   >
                     <View style={styles.cardTextWrap}>
                       <AppText preset="unifiedBody">{row.title}</AppText>
-                      <AppText preset="helper" color={theme.colors.textMuted}>
+                      <AppText preset="unifiedBody" color={theme.colors.textMuted}>
                         {row.subtitle}
                       </AppText>
                     </View>
@@ -1771,7 +1771,7 @@ export default function HealthReportScreen() {
                   </AppText>
                 </View>
                 <AppText preset="unifiedTitle">건강 기록하기</AppText>
-                <AppText preset="helper" color={theme.colors.textMuted}>
+                <AppText preset="unifiedBody" color={theme.colors.textMuted}>
                   병원, 약, 증상, 체중을 한 곳에서 남겨요.
                 </AppText>
               </View>
@@ -1801,7 +1801,7 @@ export default function HealthReportScreen() {
                 </View>
                 <View style={styles.writeActionItemText}>
                   <AppText preset="unifiedBody">{action.title}</AppText>
-                  <AppText preset="helper" color={theme.colors.textMuted}>
+                  <AppText preset="unifiedBody" color={theme.colors.textMuted}>
                     {action.description}
                   </AppText>
                 </View>

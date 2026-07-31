@@ -1,11 +1,11 @@
+import AppTextInput from '../../app/ui/AppTextInput';
+import AppText from '../../app/ui/AppText';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -162,17 +162,17 @@ export default function PasswordResetFormScreen({ navigation }: Props) {
         >
           <View style={styles.content}>
             <View style={styles.hero}>
-              <Text style={styles.heroEyebrow}>NEW PASSWORD</Text>
-              <Text style={styles.heroTitle}>새 비밀번호 설정</Text>
-              <Text style={styles.heroBody}>
+              <AppText preset="unifiedTitle" style={styles.heroEyebrow}>NEW PASSWORD</AppText>
+              <AppText preset="unifiedTitle" style={styles.heroTitle}>새 비밀번호 설정</AppText>
+              <AppText preset="unifiedBody" style={styles.heroBody}>
                 비밀번호를 변경한 뒤에는 새 비밀번호로 다시 로그인해야 합니다.
-              </Text>
+              </AppText>
             </View>
 
             <View style={styles.fieldBlock}>
-              <Text style={styles.fieldLabel}>새 비밀번호</Text>
+              <AppText preset="unifiedLabel" style={styles.fieldLabel}>새 비밀번호</AppText>
               <View style={styles.inputRow}>
-                <TextInput
+                <AppTextInput
                   autoCapitalize="none"
                   autoCorrect={false}
                   onChangeText={setPassword}
@@ -183,15 +183,15 @@ export default function PasswordResetFormScreen({ navigation }: Props) {
                   value={password}
                 />
               </View>
-              <Text style={styles.helperText}>
+              <AppText preset="unifiedBody" style={styles.helperText}>
                 영문, 숫자, 특수문자를 포함한 8자 이상으로 입력해 주세요.
-              </Text>
+              </AppText>
             </View>
 
             <View style={styles.fieldBlock}>
-              <Text style={styles.fieldLabel}>새 비밀번호 확인</Text>
+              <AppText preset="unifiedLabel" style={styles.fieldLabel}>새 비밀번호 확인</AppText>
               <View style={styles.inputRow}>
-                <TextInput
+                <AppTextInput
                   autoCapitalize="none"
                   autoCorrect={false}
                   onChangeText={setConfirmPassword}
@@ -213,9 +213,9 @@ export default function PasswordResetFormScreen({ navigation }: Props) {
                 disabled ? styles.primaryButtonDisabled : null,
               ]}
             >
-              <Text style={styles.primaryButtonText}>
+              <AppText preset="unifiedLabel" style={styles.primaryButtonText}>
                 {submitting ? '비밀번호를 변경하고 있어요...' : '비밀번호 변경하기'}
-              </Text>
+              </AppText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -223,7 +223,7 @@ export default function PasswordResetFormScreen({ navigation }: Props) {
               onPress={onPressCancelRecovery}
               style={styles.secondaryButton}
             >
-              <Text style={styles.secondaryButtonText}>로그인으로 돌아가기</Text>
+              <AppText preset="unifiedLabel" style={styles.secondaryButtonText}>로그인으로 돌아가기</AppText>
             </TouchableOpacity>
           </View>
         </ScrollView>

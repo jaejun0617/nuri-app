@@ -1,5 +1,6 @@
+import AppText from './AppText';
 import React, { memo } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 
 import { styles } from './SectionHeaderAction.styles';
@@ -28,7 +29,7 @@ function SectionHeaderActionBase({
         pressed ? styles.pressed : null,
       ]}
     >
-      <Text style={[styles.text, { color }]}>{label}</Text>
+      <AppText preset="unifiedLabel" style={[styles.text, { color }]}>{label}</AppText>
       <View style={styles.iconSlot}>
         <Feather name="chevron-right" size={14} color={color} />
       </View>

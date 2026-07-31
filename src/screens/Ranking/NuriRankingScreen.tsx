@@ -238,7 +238,7 @@ export default function NuriRankingScreen() {
           <AppText preset="unifiedMeta" style={[styles.headerEyebrow, { color: petTheme.primary }]}>
             NURI RANKING
           </AppText>
-          <AppText preset="title1" style={styles.headerTitle}>
+          <AppText preset="unifiedTitle" style={styles.headerTitle}>
             누리 랭킹
           </AppText>
         </View>

@@ -4,11 +4,11 @@
 // - 수정 완료 시 상세 화면과 목록 화면이 바로 최신 상태를 반영하도록 연결
 // - 생성 화면과 동일한 입력 경험을 유지하면서도 기존 값 초기화를 책임짐
 
+import AppTextInput from '../../app/ui/AppTextInput';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   BackHandler,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -560,7 +560,7 @@ export default function ScheduleEditScreen() {
               <AppText preset="unifiedMeta" style={styles.label}>
                 일정 이름
               </AppText>
-              <TextInput
+              <AppTextInput
                 value={title}
                 onChangeText={setTitle}
                 placeholder="예: 병원 정기 검진"
@@ -904,7 +904,7 @@ export default function ScheduleEditScreen() {
                   <AppText preset="unifiedMeta" style={styles.inlineFieldLabel}>
                     직접 설정(분)
                   </AppText>
-                  <TextInput
+                  <AppTextInput
                     value={customReminderMinutesText}
                     onChangeText={setCustomReminderMinutesText}
                     keyboardType="number-pad"
@@ -921,7 +921,7 @@ export default function ScheduleEditScreen() {
               <AppText preset="unifiedMeta" style={styles.label}>
                 메모
               </AppText>
-              <TextInput
+              <AppTextInput
                 value={note}
                 onChangeText={setNote}
                 placeholder="홈 일정 카드에 보일 짧은 메모를 남겨보세요"
@@ -975,6 +975,7 @@ export default function ScheduleEditScreen() {
       />
       <ConfirmDialog
         visible={exitConfirmVisible}
+        typographyMode="unified"
         title="저장하지 않고 나갈까요?"
         message={
           '수정 중인 일정 내용은 아직 저장되지 않았으며\n지금 나가면 현재 화면에서 사라져요.'

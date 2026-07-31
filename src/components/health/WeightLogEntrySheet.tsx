@@ -1,3 +1,4 @@
+import AppTextInput from '../../app/ui/AppTextInput';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
@@ -6,7 +7,6 @@ import {
   Platform,
   Pressable,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -229,7 +229,7 @@ export default function WeightLogEntrySheet({
                 <View style={styles.headerTextWrap}>
                   <AppText preset="unifiedTitle">{title}</AppText>
                   <AppText
-                    preset="helper"
+                    preset="unifiedBody"
                     color={theme.colors.textMuted}
                     style={styles.headerHelper}
                   >
@@ -258,7 +258,7 @@ export default function WeightLogEntrySheet({
                     { borderColor: theme.colors.border },
                   ]}
                 >
-                  <TextInput
+                  <AppTextInput
                     value={weightText}
                     onChangeText={setWeightText}
                     placeholder="0.0"
@@ -299,7 +299,7 @@ export default function WeightLogEntrySheet({
                     { borderColor: theme.colors.border },
                   ]}
                 >
-                  <TextInput
+                  <AppTextInput
                     value={note}
                     onChangeText={setNote}
                     placeholder="식단 변화, 병원 방문, 컨디션 메모를 남겨둘 수 있어요."

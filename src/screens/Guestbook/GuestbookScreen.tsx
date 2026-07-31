@@ -8,13 +8,13 @@
 // 수정 시 주의:
 // - 공개 방명록, 사용자 신고, AI 답장, 공유 기능을 이 화면에서 먼저 열지 않는다.
 
+import AppTextInput from '../../app/ui/AppTextInput';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   RefreshControl,
   ScrollView,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -252,7 +252,7 @@ export default function GuestbookScreen() {
             </View>
           </View>
 
-          <TextInput
+          <AppTextInput
             value={draft}
             onChangeText={handleChangeDraft}
             placeholder="오늘 마음에 남은 이야기를 조용히 적어 주세요."

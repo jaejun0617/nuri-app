@@ -123,24 +123,24 @@ function PremiumRewardModalBase({
             </View>
           </View>
 
-          <AppText preset="caption" style={[styles.eyebrow, { color: primaryColor }]}>
+          <AppText preset="unifiedBody" style={[styles.eyebrow, { color: primaryColor }]}>
             NURI REWARD
           </AppText>
-          <AppText preset="title2" style={[styles.title, { color: theme.colors.textPrimary }]}>
+          <AppText preset="unifiedTitle" style={[styles.title, { color: theme.colors.textPrimary }]}>
             {title}
           </AppText>
-          <AppText preset="body" style={[styles.message, { color: theme.colors.textSecondary }]}>
+          <AppText preset="unifiedBody" style={[styles.message, { color: theme.colors.textSecondary }]}>
             {message}
           </AppText>
 
           <View style={[styles.rewardPanel, { backgroundColor: petTheme.soft }]}>
             <View style={styles.rewardHeader}>
-              <AppText preset="headline" style={[styles.rewardTitle, { color: primaryColor }]}>
+              <AppText preset="unifiedTitle" style={[styles.rewardTitle, { color: primaryColor }]}>
                 {rewardTitle}
               </AppText>
               {leveledUp ? (
                 <View style={[styles.levelUpPill, { backgroundColor: primaryColor }]}>
-                  <AppText preset="caption" style={styles.levelUpText}>
+                  <AppText preset="unifiedBody" style={styles.levelUpText}>
                     LEVEL UP
                   </AppText>
                 </View>
@@ -149,18 +149,18 @@ function PremiumRewardModalBase({
 
             <View style={styles.metricRow}>
               <View style={[styles.metricCard, { backgroundColor: theme.colors.surfaceElevated }]}>
-                <AppText preset="caption" style={styles.metricLabel}>
+                <AppText preset="unifiedBody" style={styles.metricLabel}>
                   누적 XP
                 </AppText>
-                <AppText preset="headline" style={[styles.metricValue, { color: theme.colors.textPrimary }]}>
+                <AppText preset="unifiedTitle" style={[styles.metricValue, { color: theme.colors.textPrimary }]}>
                   {formatXp(totalXp)}
                 </AppText>
               </View>
               <View style={[styles.metricCard, { backgroundColor: theme.colors.surfaceElevated }]}>
-                <AppText preset="caption" style={styles.metricLabel}>
+                <AppText preset="unifiedBody" style={styles.metricLabel}>
                   현재 레벨
                 </AppText>
-                <AppText preset="headline" style={[styles.metricValue, { color: theme.colors.textPrimary }]}>
+                <AppText preset="unifiedTitle" style={[styles.metricValue, { color: theme.colors.textPrimary }]}>
                   Lv.{levelStatus.level}
                 </AppText>
               </View>
@@ -179,7 +179,7 @@ function PremiumRewardModalBase({
                 />
               </View>
               <AppText
-                preset="caption"
+                preset="unifiedBody"
                 style={[
                   styles.levelStatusText,
                   {
@@ -205,7 +205,7 @@ function PremiumRewardModalBase({
               ]}
             >
               <Feather name="heart" size={15} color={primaryColor} />
-              <AppText preset="caption" style={[styles.streakText, { color: theme.colors.textSecondary }]}>
+              <AppText preset="unifiedBody" style={[styles.streakText, { color: theme.colors.textSecondary }]}>
                 우리 아이와 {streakDays}일 연속 산책 중이에요
               </AppText>
             </View>
@@ -218,7 +218,7 @@ function PremiumRewardModalBase({
             style={[styles.primaryButton, { backgroundColor: primaryColor }]}
             onPress={onClose}
           >
-            <AppText preset="button" style={styles.primaryButtonText}>
+            <AppText preset="unifiedLabel" style={styles.primaryButtonText}>
               닫기
             </AppText>
           </TouchableOpacity>
@@ -231,7 +231,7 @@ function PremiumRewardModalBase({
               style={styles.dismissTodayButton}
               onPress={onDismissToday}
             >
-              <AppText preset="caption" style={[styles.dismissTodayText, { color: theme.colors.textMuted }]}>
+              <AppText preset="unifiedBody" style={[styles.dismissTodayText, { color: theme.colors.textMuted }]}>
                 오늘 하루 안 보기
               </AppText>
             </TouchableOpacity>

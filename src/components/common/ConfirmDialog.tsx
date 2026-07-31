@@ -28,6 +28,7 @@ type Props = {
   confirmDisabled?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  typographyMode?: 'legacy' | 'unified';
 };
 
 function withHexAlpha(color: string, alpha: number, fallback: string) {
@@ -95,6 +96,7 @@ function ConfirmDialogBase({
   confirmDisabled = false,
   onConfirm,
   onCancel,
+  typographyMode = 'legacy',
 }: Props) {
   const theme = useTheme();
   const pets = usePetStore(s => s.pets);
@@ -108,6 +110,17 @@ function ConfirmDialogBase({
     [selectedPet?.themeColor, theme.colors.brand],
   );
   const resolvedAccentColor = accentColor ?? petTheme.primary;
+  const textPresets = typographyMode === 'unified'
+    ? {
+        title: 'unifiedTitle' as const,
+        body: 'unifiedBody' as const,
+        button: 'unifiedLabel' as const,
+      }
+    : {
+        title: 'headline' as const,
+        body: 'bodySm' as const,
+        button: 'button' as const,
+      };
   const lines = useMemo(() => message.split('\n'), [message]);
   const toneMeta = useMemo(
     () =>
@@ -148,7 +161,7 @@ function ConfirmDialogBase({
           </View>
 
           <View style={styles.copyBlock}>
-            <AppText preset="headline" style={[styles.title, { color: theme.colors.textPrimary }]}>
+            <AppText preset={textPresets.title} style={[styles.title, { color: theme.colors.textPrimary }]}>
               {title}
             </AppText>
 
@@ -157,7 +170,7 @@ function ConfirmDialogBase({
                 line.trim().length > 0 ? (
                   <AppText
                     key={`${line}-${index}`}
-                    preset="bodySm"
+                    preset={textPresets.body}
                     style={[styles.message, { color: theme.colors.textSecondary }]}
                   >
                     {line}
@@ -181,7 +194,7 @@ function ConfirmDialogBase({
               ]}
               onPress={onCancel}
             >
-              <AppText preset="button" style={[styles.cancelButtonText, { color: toneMeta.cancelText }]}>
+              <AppText preset={textPresets.button} style={[styles.cancelButtonText, { color: toneMeta.cancelText }]}>
                 {cancelLabel}
               </AppText>
             </TouchableOpacity>
@@ -199,7 +212,7 @@ function ConfirmDialogBase({
               ]}
               onPress={onConfirm}
             >
-              <AppText preset="button" style={[styles.confirmButtonText, { color: toneMeta.confirmText }]}>
+              <AppText preset={textPresets.button} style={[styles.confirmButtonText, { color: toneMeta.confirmText }]}>
                 {confirmLabel}
               </AppText>
             </TouchableOpacity>

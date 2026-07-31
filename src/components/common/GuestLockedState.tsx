@@ -51,7 +51,7 @@ function GuestLockedStateBase({
         </View>
 
         <AppText
-          preset="caption"
+          preset="unifiedBody"
           style={[styles.eyebrow, { color: theme.colors.brand }]}
         >
           {eyebrow}
@@ -61,7 +61,7 @@ function GuestLockedStateBase({
           {titleLines.map((line, index) => (
             <AppText
               key={`title-${line}-${index}`}
-              preset="title2"
+              preset="unifiedTitle"
               style={[styles.title, { color: theme.colors.textPrimary }]}
             >
               {line}
@@ -73,7 +73,7 @@ function GuestLockedStateBase({
           {bodyLines.map((line, index) => (
             <AppText
               key={`body-${line}-${index}`}
-              preset="body"
+              preset="unifiedBody"
               style={[styles.body, { color: theme.colors.textSecondary }]}
             >
               {line}
@@ -87,7 +87,7 @@ function GuestLockedStateBase({
           style={[styles.button, { backgroundColor: theme.colors.brand }]}
         >
           <Feather name="arrow-right" size={16} color="#FFFFFF" />
-          <AppText preset="button" style={styles.buttonText}>
+          <AppText preset="unifiedLabel" style={styles.buttonText}>
             {buttonLabel}
           </AppText>
         </TouchableOpacity>

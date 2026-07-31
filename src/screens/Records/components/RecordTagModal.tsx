@@ -3,12 +3,12 @@
 // - RecordCreateScreen에서 사용하는 태그 선택/추가 모달을 공통 컴포넌트로 분리
 // - 직접 입력과 선택된 태그 제거 동선을 한 컴포넌트에서 관리
 
+import AppTextInput from '../../../app/ui/AppTextInput';
 import React from 'react';
 import {
   Keyboard,
   Modal,
   Platform,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -94,7 +94,7 @@ export default function RecordTagModal({
 
           <View style={styles.tagInputRow}>
             <Feather name="hash" size={16} color={theme.colors.brand} />
-            <TextInput
+            <AppTextInput
               style={styles.tagModalInput}
               value={tagDraft}
               onChangeText={onChangeTagDraft}

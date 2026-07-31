@@ -1294,3 +1294,29 @@ Artifact SHA-256: `0d598322d5cd6463582ab3e17d93a9d0bc81e44ce7d7eec5fa45efbcb74fa
   - evidence: `/tmp/nuri-qa/global-ui-final.png`, `/tmp/nuri-qa/global-ui-final-records.png`, `/tmp/nuri-qa/global-ui-final-recent.png`, `/tmp/nuri-qa/global-ui-final-logcat.txt`
   - 앱 PID 기준 Fatal/ANR/ReactNativeJS fatal/Fatal signal/unhandled promise 0건
   - diff check 통과
+
+## 2026-07-31 비제외 전역 UI 최종 보정 release evidence
+
+- unified typography: title `18/600`, label/input `14/500`, body/meta/time/link `11/500`, date `13/500`, Android `PretendardVariable`
+- 비제외 입력 화면 24개 파일에 `AppTextInput` 적용. native ref, keyboard, placeholder, selection 계약 유지.
+- 커뮤니티 파일 `0`, 하단 네비게이션 파일 `0`, 날씨 및 날씨 상세 파일 `0` 변경.
+- TypeScript, lint, Jest `69 suites / 279 tests`, `git diff --check`, release build/install 통과.
+- Supabase `db push --dry-run`: remote up to date, 신규 migration 없음.
+- APK SHA-256: `112a3fcc050e73eb5f3003a356c9cd57e348072d0b3157a5247335fb37277d92`
+- physical device: `SM-S937N / R5CY613NMSY`, Android 16, 1080x2340, density 450, portrait.
+- evidence: `/tmp/nuri-qa/global-ui-typography-final.png`, `/tmp/nuri-qa/global-ui-typography-records.png`, `/tmp/nuri-qa/global-ui-typography-frequent.png`, `/tmp/nuri-qa/global-ui-typography-final-logcat.txt`
+- app-PID logcat markers: Fatal/ANR/ReactNativeJS fatal/Unhandled promise/SecurityException `0`
+- Galaxy S24 동일 모델 evidence는 실제 연결 기기가 `SM-S937N`이므로 미확인.
+
+## 2026-07-31 비제외 typography 모드 최종 release evidence
+
+- [x] 비제외 사용자-facing `AppText` semantic preset 잔여분을 unified 기준으로 전환.
+- [x] 공유 `ConfirmDialog`·`PremiumNoticeModal`은 비제외 호출만 `typographyMode="unified"`, 커뮤니티·날씨 호출은 legacy 유지.
+- [x] `WaveText` 처리 문구 unified label 적용, 수치 display·아이콘·이모지·구분자·네비게이션은 역할별 예외 유지.
+- [x] TypeScript, lint, Jest `69 suites / 279 tests`, `git diff --check`, release build/install 재통과.
+- [x] Supabase `db push --dry-run`: remote up to date, 신규 migration 없음.
+- [x] APK SHA-256: `0fe640ac958c935e47ec2b501da23b67d22d610e2947a0e442a228071fd810ff`
+- [x] physical device: `SM-S937N / R5CY613NMSY`, Android 16, 1080x2340, density 450, portrait.
+- [x] evidence: `/tmp/nuri-qa/global-ui-typography-final.png`, `/tmp/nuri-qa/global-ui-typography-final-logcat.txt`
+- [x] app-PID logcat markers: Fatal/ANR/ReactNativeJS fatal/Unhandled promise/SecurityException `0`
+- [ ] Galaxy S24 동일 모델 evidence: 실제 연결 기기가 `SM-S937N`이므로 미확인.

@@ -43,7 +43,7 @@ export default function ExpandableBodyText({
           }}
         >
           <AppText
-            preset="body"
+            preset="unifiedBody"
             style={textStyle}
             onTextLayout={event => {
               if (measured) return;
@@ -56,7 +56,7 @@ export default function ExpandableBodyText({
         </View>
       ) : null}
       <AppText
-        preset="body"
+        preset="unifiedBody"
         style={textStyle}
         numberOfLines={expanded ? undefined : collapsedLines}
       >
@@ -70,7 +70,7 @@ export default function ExpandableBodyText({
           }}
         >
           <AppText
-            preset="caption"
+            preset="unifiedBody"
             style={[
               {
                 marginTop: 6,

@@ -86,7 +86,7 @@ const WheelColumn = memo(function WheelColumn({
           onPress={() => onSelect(item)}
         >
           <AppText
-            preset={active ? 'body' : 'caption'}
+            preset={active ? 'unifiedLabel' : 'unifiedBody'}
             style={[
               styles.wheelText,
               {

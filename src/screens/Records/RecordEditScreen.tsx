@@ -14,12 +14,12 @@
 // 4) UI 렌더는 imagePath → getMemoryImageSignedUrlCached() 규칙으로 고정.
 // 5) “이미지 제거” 의도는 removeRequested 플래그로 관리한다.
 
+import AppTextInput from '../../app/ui/AppTextInput';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Image,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -801,7 +801,7 @@ export default function RecordEditScreen() {
         <AppText preset="unifiedMeta" style={styles.label}>
           제목
         </AppText>
-        <TextInput
+        <AppTextInput
           style={styles.input}
           value={title}
           onChangeText={v => {
@@ -817,7 +817,7 @@ export default function RecordEditScreen() {
         <AppText preset="unifiedMeta" style={styles.label}>
           내용(선택)
         </AppText>
-        <TextInput
+        <AppTextInput
           style={[styles.input, styles.multiline]}
           value={content ?? ''}
           onChangeText={v => {
@@ -925,7 +925,7 @@ export default function RecordEditScreen() {
             <AppText preset="unifiedMeta" style={styles.label}>
               구매 가격
             </AppText>
-            <TextInput
+            <AppTextInput
               style={styles.input}
               value={priceText}
               onChangeText={onChangePriceText}
@@ -946,7 +946,7 @@ export default function RecordEditScreen() {
         <AppText preset="unifiedMeta" style={styles.label}>
           태그(선택)
         </AppText>
-        <TextInput
+        <AppTextInput
           style={styles.input}
           value={tagsText}
           onChangeText={v => {
@@ -1031,6 +1031,7 @@ export default function RecordEditScreen() {
 
       <PremiumNoticeModal
         visible={successModalVisible}
+        typographyMode="unified"
         eyebrow="NURI MEMORY"
         iconName="check"
         titleLines={['수정이 완료되었어요']}

@@ -13,14 +13,14 @@
 // - OAuth 성공 후에는 Splash 부트 플로우가 닉네임/펫 온보딩 경로를 결정한다.
 // - 회원가입 성공 후 이동 경로를 바꾸면 닉네임/펫 온보딩 계약이 깨질 수 있다.
 
+import AppTextInput from '../../app/ui/AppTextInput';
+import AppText from '../../app/ui/AppText';
 import React, { memo, useCallback, useMemo, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -86,9 +86,9 @@ const InputField = memo(function InputField({
 }: InputFieldProps) {
   return (
     <View style={styles.fieldBlock}>
-      <Text style={styles.label}>{label}</Text>
+      <AppText preset="unifiedLabel" style={styles.label}>{label}</AppText>
       <View style={styles.inputRow}>
-        <TextInput
+        <AppTextInput
           autoCapitalize={autoCapitalize}
           keyboardType={keyboardType}
           onChangeText={onChangeText}
@@ -169,7 +169,7 @@ const ConsentRow = memo(function ConsentRow({
                   required ? styles.requiredBadge : styles.optionalBadge,
                 ]}
               >
-                <Text
+                <AppText preset="unifiedLabel"
                   style={[
                     styles.consentBadgeText,
                     required
@@ -178,11 +178,11 @@ const ConsentRow = memo(function ConsentRow({
                   ]}
                 >
                   {required ? '필수' : '선택'}
-                </Text>
+                </AppText>
               </View>
-              <Text style={styles.consentTitle}>{title}</Text>
+              <AppText preset="unifiedTitle" style={styles.consentTitle}>{title}</AppText>
             </View>
-            <Text style={styles.termsText}>{description}</Text>
+            <AppText preset="unifiedBody" style={styles.termsText}>{description}</AppText>
           </View>
         </TouchableOpacity>
 
@@ -206,13 +206,13 @@ const ConsentRow = memo(function ConsentRow({
       {expanded ? (
         <View style={styles.consentExpandedBox}>
           <View style={styles.expandedMetaRow}>
-            <Text style={styles.expandedTitle}>{title}</Text>
+            <AppText preset="unifiedTitle" style={styles.expandedTitle}>{title}</AppText>
             <View style={styles.statusChip}>
-              <Text style={styles.statusChipText}>{statusLabel}</Text>
+              <AppText preset="unifiedBody" style={styles.statusChipText}>{statusLabel}</AppText>
             </View>
           </View>
-          <Text style={styles.expandedSummary}>{summary}</Text>
-          <Text style={styles.expandedDescription}>{detailDescription}</Text>
+          <AppText preset="unifiedBody" style={styles.expandedSummary}>{summary}</AppText>
+          <AppText preset="unifiedBody" style={styles.expandedDescription}>{detailDescription}</AppText>
           <TouchableOpacity
             accessibilityRole="button"
             activeOpacity={0.85}
@@ -220,9 +220,9 @@ const ConsentRow = memo(function ConsentRow({
             onPress={onPressAction}
             style={styles.documentButton}
           >
-            <Text style={styles.documentButtonText}>
+            <AppText preset="unifiedLabel" style={styles.documentButtonText}>
               {isOpening ? '열어보는 중...' : actionLabel}
-            </Text>
+            </AppText>
           </TouchableOpacity>
         </View>
       ) : null}
@@ -261,9 +261,9 @@ const SocialButton = memo(function SocialButton({
       ]}
     >
       <View style={styles.socialBadge}>{badge}</View>
-      <Text style={[styles.socialButtonText, { color: textColor }]}>
+      <AppText preset="unifiedLabel" style={[styles.socialButtonText, { color: textColor }]}>
         {label}
-      </Text>
+      </AppText>
     </TouchableOpacity>
   );
 });
@@ -305,25 +305,25 @@ const SocialConsentNotice = memo(function SocialConsentNotice({
         rowGap: 2,
       }}
     >
-      <Text style={textStyle}>소셜 계정으로 계속 진행 시 NURI의 </Text>
+      <AppText preset="unifiedLabel" style={textStyle}>소셜 계정으로 계속 진행 시 NURI의 </AppText>
       <TouchableOpacity
         accessibilityRole="link"
         activeOpacity={0.72}
         hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
         onPress={() => onPressDocument('terms')}
       >
-        <Text style={linkStyle}>[이용약관]</Text>
+        <AppText preset="unifiedLabel" style={linkStyle}>[이용약관]</AppText>
       </TouchableOpacity>
-      <Text style={textStyle}> 및 </Text>
+      <AppText preset="unifiedLabel" style={textStyle}> 및 </AppText>
       <TouchableOpacity
         accessibilityRole="link"
         activeOpacity={0.72}
         hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
         onPress={() => onPressDocument('privacy')}
       >
-        <Text style={linkStyle}>[개인정보처리방침]</Text>
+        <AppText preset="unifiedLabel" style={linkStyle}>[개인정보처리방침]</AppText>
       </TouchableOpacity>
-      <Text style={textStyle}>을 확인하고 동의한 것으로 간주합니다.</Text>
+      <AppText preset="unifiedLabel" style={textStyle}>을 확인하고 동의한 것으로 간주합니다.</AppText>
     </View>
   );
 });
@@ -615,18 +615,18 @@ export default function SignUpScreen() {
             >
               <Feather color="#1B2435" name="arrow-left" size={20} />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>회원가입</Text>
+            <AppText preset="unifiedTitle" style={styles.headerTitle}>회원가입</AppText>
             <View style={styles.headerSpacer} />
           </View>
 
           <View style={styles.heroCopy}>
-            <Text style={styles.heroTitle}>
+            <AppText preset="unifiedTitle" style={styles.heroTitle}>
               새로운 시작을{'\n'}
               함께해요
-            </Text>
-            <Text style={styles.heroBody}>
+            </AppText>
+            <AppText preset="unifiedBody" style={styles.heroBody}>
               소중한 반려동물과의 기억을 기록하세요
-            </Text>
+            </AppText>
           </View>
 
           <InputField
@@ -681,27 +681,27 @@ export default function SignUpScreen() {
           />
 
           {!emailValid && email.length > 0 ? (
-            <Text style={styles.errorText}>
+            <AppText preset="unifiedBody" style={styles.errorText}>
               올바른 이메일 형식을 입력해주세요.
-            </Text>
+            </AppText>
           ) : null}
           {!passwordValid && password.length > 0 ? (
-            <Text style={styles.errorText}>
+            <AppText preset="unifiedBody" style={styles.errorText}>
               비밀번호는 8자 이상이어야 합니다.
-            </Text>
+            </AppText>
           ) : null}
           {confirmPassword.length > 0 && !passwordsMatch ? (
-            <Text style={styles.errorText}>비밀번호가 일치하지 않습니다.</Text>
+            <AppText preset="unifiedBody" style={styles.errorText}>비밀번호가 일치하지 않습니다.</AppText>
           ) : null}
 
           <View style={styles.termsCard}>
             <View style={styles.termsCardHeader}>
               <View style={styles.termsCardHeaderCopy}>
-                <Text style={styles.termsCardTitle}>약관 및 정책 동의</Text>
-                <Text style={styles.termsCardBody}>
+                <AppText preset="unifiedTitle" style={styles.termsCardTitle}>약관 및 정책 동의</AppText>
+                <AppText preset="unifiedBody" style={styles.termsCardBody}>
                   필수 2개 동의가 완료되면 가입할 수 있고, 마케팅 수신은 선택으로
                   둘 수 있어요.
-                </Text>
+                </AppText>
               </View>
               <TouchableOpacity
                 accessibilityRole="checkbox"
@@ -720,7 +720,7 @@ export default function SignUpScreen() {
                     <Feather color="#FFFFFF" name="check" size={12} />
                   ) : null}
                 </View>
-                <Text style={styles.allAgreeLabel}>모두 동의하기</Text>
+                <AppText preset="unifiedLabel" style={styles.allAgreeLabel}>모두 동의하기</AppText>
               </TouchableOpacity>
             </View>
 
@@ -749,23 +749,23 @@ export default function SignUpScreen() {
             ))}
           </View>
 
-          <Text style={styles.termsMeta}>
+          <AppText preset="unifiedBody" style={styles.termsMeta}>
             필수 동의: 이용약관, 개인정보처리방침
-          </Text>
+          </AppText>
           {consentErrorVisible ? (
-            <Text style={styles.errorText}>
+            <AppText preset="unifiedBody" style={styles.errorText}>
               회원가입을 진행하려면 필수 동의 2가지를 모두 체크해 주세요.
-            </Text>
+            </AppText>
           ) : null}
           {requiredDocumentPending ? (
             <View style={styles.legalNoticeBox}>
-              <Text style={styles.legalNoticeTitle}>
+              <AppText preset="unifiedTitle" style={styles.legalNoticeTitle}>
                 정책 문서 연결 상태 안내
-              </Text>
-              <Text style={styles.legalNoticeBody}>
+              </AppText>
+              <AppText preset="unifiedBody" style={styles.legalNoticeBody}>
                 현재 앱에서는 정책 초안 구조와 요약만 먼저 제공합니다. 전체 문서
                 열람 연결과 최종 법무 문안은 후속 운영 작업에서 확정됩니다.
-              </Text>
+              </AppText>
             </View>
           ) : null}
 
@@ -778,14 +778,14 @@ export default function SignUpScreen() {
               disabled ? styles.primaryButtonDisabled : null,
             ]}
           >
-            <Text style={styles.primaryButtonText}>
+            <AppText preset="unifiedLabel" style={styles.primaryButtonText}>
               {submitting ? '가입 중...' : '가입하기'}
-            </Text>
+            </AppText>
           </TouchableOpacity>
 
           {SHOW_SOCIAL_OAUTH_SECTION ? (
             <>
-              <Text style={styles.socialLead}>또는 소셜 계정으로 시작하기</Text>
+              <AppText preset="unifiedLabel" style={styles.socialLead}>또는 소셜 계정으로 시작하기</AppText>
 
               {SHOW_KAKAO_OAUTH ? (
                 <SocialButton
@@ -810,7 +810,7 @@ export default function SignUpScreen() {
                   backgroundColor="#FFFFFF"
                   badge={
                     <View style={styles.googleBadge}>
-                      <Text style={styles.googleBadgeText}>G</Text>
+                      <AppText preset="unifiedLabel" style={styles.googleBadgeText}>G</AppText>
                     </View>
                   }
                   borderColor="#E2E8F2"
@@ -840,9 +840,9 @@ export default function SignUpScreen() {
                         },
                       ]}
                     >
-                      <Text style={{ color: '#FFFFFF', fontWeight: '900' }}>
+                      <AppText preset="unifiedLabel" style={{ color: '#FFFFFF', fontWeight: '900' }}>
                         N
-                      </Text>
+                      </AppText>
                     </View>
                   }
                   borderColor="#03C75A"
@@ -870,12 +870,12 @@ export default function SignUpScreen() {
           ) : null}
 
           <View style={styles.signInRow}>
-            <Text style={styles.signInHint}>이미 계정이 있으신가요?</Text>
+            <AppText preset="unifiedBody" style={styles.signInHint}>이미 계정이 있으신가요?</AppText>
             <TouchableOpacity
               activeOpacity={0.75}
               onPress={() => navigation.navigate('SignIn')}
             >
-              <Text style={styles.signInLink}>로그인</Text>
+              <AppText preset="unifiedLabel" style={styles.signInLink}>로그인</AppText>
             </TouchableOpacity>
           </View>
         </ScrollView>

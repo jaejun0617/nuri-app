@@ -3,11 +3,11 @@
 // - 홈에서 빠른 기록 진입과 선택된 반려동물의 최신 기록 요약을 함께 제공한다.
 // - 그라디언트 보더, 테마 포인트, 1:1:1:1 기록 카드를 이 섹션 안에서만 관리한다.
 
+import AppText from '../../app/ui/AppText';
 import React, { memo, useMemo } from 'react';
 import {
   AppState,
   Pressable,
-  Text,
   View,
   type AppStateStatus,
 } from 'react-native';
@@ -94,27 +94,27 @@ function RecordSummaryCard({
           </View>
         </View>
         <View style={styles.recordTitleSlot}>
-          <Text style={styles.recordLabel} numberOfLines={1}>
+          <AppText preset="unifiedLabel" style={styles.recordLabel} numberOfLines={1}>
             {meta.label}
-          </Text>
+          </AppText>
         </View>
         <View style={styles.recordTimeSlot}>
           {item.relativeTimeLabel ? (
             <View
               style={[styles.relativeTimeMarker, { backgroundColor: accentTint }]}
             >
-              <Text style={[styles.relativeTimeText, { color: accentColor }]}>
+              <AppText preset="unifiedBody" style={[styles.relativeTimeText, { color: accentColor }]}>
                 {item.relativeTimeLabel}
-              </Text>
+              </AppText>
             </View>
           ) : (
             <View style={styles.relativeTimePlaceholder} />
           )}
         </View>
         <View style={styles.recordSummarySlot}>
-          <Text style={styles.recordSummary} numberOfLines={2}>
+          <AppText preset="unifiedBody" style={styles.recordSummary} numberOfLines={2}>
             {item.summaryLabel}
-          </Text>
+          </AppText>
         </View>
       </View>
     </Pressable>
@@ -181,17 +181,17 @@ function FrequentRecordsSectionBase({
               />
             </View>
             <View style={styles.headerTextGroup}>
-              <Text style={[styles.title, { color: petTheme.primary }]}>
+              <AppText preset="unifiedTitle" style={[styles.title, { color: petTheme.primary }]}>
                 자주 쓰는 기록
-              </Text>
-              <Text
+              </AppText>
+              <AppText preset="unifiedBody"
                 style={styles.subtitle}
                 numberOfLines={1}
                 ellipsizeMode="tail"
                 allowFontScaling={false}
               >
                 우리 아이의 일상을 빠르게 기록해보세요
-              </Text>
+              </AppText>
             </View>
           </View>
           <SectionHeaderAction
@@ -203,11 +203,11 @@ function FrequentRecordsSectionBase({
 
         {isLoading ? (
           <View style={styles.statusBox}>
-            <Text style={styles.statusText}>최근 기록을 불러오는 중이에요.</Text>
+            <AppText preset="unifiedBody" style={styles.statusText}>최근 기록을 불러오는 중이에요.</AppText>
           </View>
         ) : hasError ? (
           <View style={styles.statusBox}>
-            <Text style={styles.statusText}>기록을 확인할 수 없어요.</Text>
+            <AppText preset="unifiedBody" style={styles.statusText}>기록을 확인할 수 없어요.</AppText>
           </View>
         ) : (
           <View style={styles.grid}>

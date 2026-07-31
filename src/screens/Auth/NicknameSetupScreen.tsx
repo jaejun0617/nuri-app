@@ -12,13 +12,13 @@
 // - 닉네임 검증 규칙과 availability 메시지는 서버 RPC 정책과 어긋나지 않아야 한다.
 // - 비로그인 상태 fallback과 draft 복구 타이밍을 바꾸면 온보딩 진입 흐름이 쉽게 깨진다.
 
+import AppTextInput from '../../app/ui/AppTextInput';
+import AppText from '../../app/ui/AppText';
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Image,
-  Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -116,7 +116,7 @@ const NicknameInputSection = memo(function NicknameInputSection({
   return (
     <View style={styles.inputBlock}>
       <View style={styles.inputRow}>
-        <TextInput
+        <AppTextInput
           value={nickname}
           onChangeText={onChangeNickname}
           onBlur={onBlurNickname}
@@ -139,23 +139,23 @@ const NicknameInputSection = memo(function NicknameInputSection({
           {checking ? (
             <ActivityIndicator color="#98A1B2" size="small" />
           ) : (
-            <Text style={styles.checkButtonText}>중복확인</Text>
+            <AppText preset="unifiedLabel" style={styles.checkButtonText}>중복확인</AppText>
           )}
         </TouchableOpacity>
       </View>
 
       <View style={styles.underline} />
-      <Text style={styles.hintText}>{hintText}</Text>
+      <AppText preset="unifiedBody" style={styles.hintText}>{hintText}</AppText>
 
       {checking ? (
         <View style={styles.checkingRow}>
           <ActivityIndicator color="#98A1B2" size="small" />
-          <Text style={styles.checkingText}>닉네임 확인중...</Text>
+          <AppText preset="unifiedLabel" style={styles.checkingText}>닉네임 확인중...</AppText>
         </View>
       ) : null}
 
       {helperMessage.message ? (
-        <Text
+        <AppText preset="unifiedBody"
           style={[
             styles.validationText,
             helperMessage.tone === 'error'
@@ -166,7 +166,7 @@ const NicknameInputSection = memo(function NicknameInputSection({
           ]}
         >
           {helperMessage.message}
-        </Text>
+        </AppText>
       ) : null}
     </View>
   );
@@ -185,7 +185,7 @@ const NicknameFooter = memo(function NicknameFooter({
         onPress={onSubmit}
         disabled={!canSubmit}
       >
-        <Text style={styles.primaryButtonText}>{saving ? '저장 중...' : '완료'}</Text>
+        <AppText preset="unifiedLabel" style={styles.primaryButtonText}>{saving ? '저장 중...' : '완료'}</AppText>
       </TouchableOpacity>
     </View>
   );

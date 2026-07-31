@@ -10,8 +10,9 @@
 // 수정 시 주의:
 // - password reset recovery route와 섞지 않는다. `nuri://auth/reset`은 이 화면에서 처리하지 않는다.
 
+import AppText from '../../app/ui/AppText';
 import React, { useEffect } from 'react';
-import { ActivityIndicator, Alert, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -98,10 +99,10 @@ export default function OAuthCallbackScreen({ navigation, route }: Props) {
       <View style={styles.scrollContent}>
         <View style={styles.processingCard}>
           <ActivityIndicator color="#6D6AF8" size="large" />
-          <Text style={styles.processingTitle}>소셜 로그인을 확인하고 있어요</Text>
-          <Text style={styles.processingBody}>
+          <AppText preset="unifiedTitle" style={styles.processingTitle}>소셜 로그인을 확인하고 있어요</AppText>
+          <AppText preset="unifiedBody" style={styles.processingBody}>
             인증 결과를 확인한 뒤 NURI 시작 화면으로 돌아갑니다.
-          </Text>
+          </AppText>
         </View>
       </View>
     </SafeAreaView>

@@ -897,6 +897,7 @@ export default function RecordDetailScreen() {
 
       <ConfirmDialog
         visible={deleteModalVisible}
+        typographyMode="unified"
         title="정말 삭제할까요?"
         message={'삭제된 추억은 다시 복구할 수 없어요.\n신중하게 선택해 주세요.'}
         cancelLabel="취소"

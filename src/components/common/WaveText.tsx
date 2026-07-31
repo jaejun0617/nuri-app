@@ -19,6 +19,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { typography } from '../../app/theme/tokens/typography';
+
 type Props = {
   text: string;
   color: string;
@@ -97,6 +99,7 @@ function WaveGlyph({
       style={[
         styles.glyph,
         textStyle,
+        typography.preset.unifiedLabel,
         { color },
         animatedStyle,
       ]}
@@ -134,6 +137,7 @@ function WaveText({
               style={[
                 styles.glyph,
                 resolvedTextStyle,
+                typography.preset.unifiedLabel,
                 { color },
               ]}
             >

@@ -13,6 +13,8 @@
 // - 온보딩 가드가 이 화면을 강제 진입시키므로, 취소/뒤로가기/성공 후 이동 흐름을 함부로 바꾸면 첫 사용 흐름이 깨진다.
 // - draft 필드와 폼 state 계약은 타입과 UX가 함께 얽혀 있어 optional 값 처리 변경 시 복원 로직을 같이 봐야 한다.
 
+import AppTextInput from '../../app/ui/AppTextInput';
+import AppText from '../../app/ui/AppText';
 import React, {
   memo,
   useCallback,
@@ -26,7 +28,6 @@ import {
   BackHandler,
   Image,
   Modal,
-  Text,
   TextInput,
   TouchableOpacity,
   View,
@@ -209,14 +210,14 @@ const MultiInputSection = memo(function MultiInputSection({
   return (
     <View style={styles.fieldBlock}>
       <View style={styles.fieldLabelRow}>
-        <Text style={styles.label}>{label}</Text>
-        <Text style={styles.countText}>
+        <AppText preset="unifiedLabel" style={styles.label}>{label}</AppText>
+        <AppText preset="unifiedLabel" style={styles.countText}>
           {list.length}/{MAX_MULTI_ITEMS}
-        </Text>
+        </AppText>
       </View>
 
       <View style={styles.tagInputRow}>
-        <TextInput
+        <AppTextInput
           value={draft}
           onChangeText={onDraftChange}
           onFocus={onFocusInput}
@@ -231,11 +232,11 @@ const MultiInputSection = memo(function MultiInputSection({
           style={styles.inlineAddButton}
           onPress={onAdd}
         >
-          <Text style={styles.inlineAddButtonText}>추가</Text>
+          <AppText preset="unifiedLabel" style={styles.inlineAddButtonText}>추가</AppText>
         </TouchableOpacity>
       </View>
 
-      {hint ? <Text style={styles.inputHint}>{hint}</Text> : null}
+      {hint ? <AppText preset="unifiedBody" style={styles.inputHint}>{hint}</AppText> : null}
 
       <View style={styles.pillRow}>
         {list.map(item => (
@@ -245,8 +246,8 @@ const MultiInputSection = memo(function MultiInputSection({
             style={styles.pill}
             onPress={() => onRemove(item)}
           >
-            <Text style={styles.pillText}>{item}</Text>
-            <Text style={styles.pillX}>×</Text>
+            <AppText preset="unifiedLabel" style={styles.pillText}>{item}</AppText>
+            <AppText preset="unifiedLabel" style={styles.pillX}>×</AppText>
           </TouchableOpacity>
         ))}
       </View>
@@ -340,7 +341,7 @@ const StepOneForm = memo(function StepOneForm({
         />
       </View>
 
-      <Text style={styles.heroCopy}>우리 아이 사진을 등록해주세요</Text>
+      <AppText preset="unifiedTitle" style={styles.heroCopy}>우리 아이 사진을 등록해주세요</AppText>
 
       <PetThemePicker
         selectedColor={selectedThemeColor}
@@ -359,8 +360,8 @@ const StepOneForm = memo(function StepOneForm({
       />
 
       <View style={styles.fieldBlock}>
-        <Text style={styles.label}>반려동물 이름</Text>
-        <TextInput
+        <AppText preset="unifiedLabel" style={styles.label}>반려동물 이름</AppText>
+        <AppTextInput
           value={name}
           onChangeText={onNameChange}
           placeholder="이름을 입력해 주세요"
@@ -371,13 +372,13 @@ const StepOneForm = memo(function StepOneForm({
       </View>
 
       <View style={styles.fieldBlock}>
-        <Text style={styles.label}>생일</Text>
+        <AppText preset="unifiedLabel" style={styles.label}>생일</AppText>
         <TouchableOpacity
           activeOpacity={0.88}
           style={styles.iconInputWrap}
           onPress={onOpenBirthModal}
         >
-          <TextInput
+          <AppTextInput
             value={birthDate}
             onChangeText={onBirthDateChange}
             onBlur={onBirthDateBlur}
@@ -389,17 +390,17 @@ const StepOneForm = memo(function StepOneForm({
           />
           <Feather color="#98A1B2" name="calendar" size={16} />
         </TouchableOpacity>
-        <Text style={styles.inputHint}>{buildDateHint(birthDate)}</Text>
+        <AppText preset="unifiedBody" style={styles.inputHint}>{buildDateHint(birthDate)}</AppText>
       </View>
 
       <View style={styles.fieldBlock}>
-        <Text style={styles.label}>입양일</Text>
+        <AppText preset="unifiedLabel" style={styles.label}>입양일</AppText>
         <TouchableOpacity
           activeOpacity={0.88}
           style={styles.iconInputWrap}
           onPress={onOpenAdoptionModal}
         >
-          <TextInput
+          <AppTextInput
             value={adoptionDate}
             onChangeText={onAdoptionDateChange}
             onBlur={onAdoptionDateBlur}
@@ -411,11 +412,11 @@ const StepOneForm = memo(function StepOneForm({
           />
           <Feather color="#98A1B2" name="calendar" size={16} />
         </TouchableOpacity>
-        <Text style={styles.inputHint}>{buildDateHint(adoptionDate)}</Text>
+        <AppText preset="unifiedBody" style={styles.inputHint}>{buildDateHint(adoptionDate)}</AppText>
       </View>
 
       <View style={styles.fieldBlock}>
-        <Text style={styles.label}>대표 종</Text>
+        <AppText preset="unifiedLabel" style={styles.label}>대표 종</AppText>
         <View style={styles.segmentWrap}>
           {PET_REPRESENTATIVE_SPECIES_OPTIONS.map(option => {
             const active = representativeSpecies === option.key;
@@ -430,23 +431,23 @@ const StepOneForm = memo(function StepOneForm({
                 ]}
                 onPress={() => onRepresentativeSpeciesChange(option.key)}
               >
-                <Text
+                <AppText preset="unifiedLabel"
                   style={[
                     styles.segmentChipText,
                     active ? styles.segmentChipTextActive : null,
                   ]}
                 >
                   {option.label}
-                </Text>
+                </AppText>
               </TouchableOpacity>
             );
           })}
         </View>
-        <Text style={styles.inputHint}>{representativeOption.description}</Text>
+        <AppText preset="unifiedBody" style={styles.inputHint}>{representativeOption.description}</AppText>
       </View>
 
       <View style={styles.fieldBlock}>
-        <Text style={styles.label}>{representativeOption.showBreedField ? '품종/세부 종' : '세부 종'}</Text>
+        <AppText preset="unifiedLabel" style={styles.label}>{representativeOption.showBreedField ? '품종/세부 종' : '세부 종'}</AppText>
         {quickDetailOptions.length > 0 ? (
           <View style={styles.segmentWrap}>
             {quickDetailOptions.map(option => {
@@ -461,21 +462,21 @@ const StepOneForm = memo(function StepOneForm({
                   ]}
                   onPress={() => onSpeciesDetailKeyChange(option.label)}
                 >
-                  <Text
+                  <AppText preset="unifiedLabel"
                     style={[
                       styles.quickChipText,
                       active ? styles.quickChipTextActive : null,
                     ]}
                   >
                     {option.label}
-                  </Text>
+                  </AppText>
                 </TouchableOpacity>
               );
             })}
           </View>
         ) : null}
         <View style={styles.iconInputWrap}>
-          <TextInput
+          <AppTextInput
             ref={speciesDetailInputRef}
             value={speciesDetailKey}
             onChangeText={onSpeciesDetailKeyChange}
@@ -492,7 +493,7 @@ const StepOneForm = memo(function StepOneForm({
 
       <View style={styles.row}>
         <View style={styles.col}>
-          <Text style={styles.label}>성별</Text>
+          <AppText preset="unifiedLabel" style={styles.label}>성별</AppText>
           <View style={styles.segmentRow}>
             <TouchableOpacity
               activeOpacity={0.88}
@@ -502,14 +503,14 @@ const StepOneForm = memo(function StepOneForm({
               ]}
               onPress={() => onGenderChange('female')}
             >
-              <Text
+              <AppText preset="unifiedLabel"
                 style={[
                   styles.segmentChipText,
                   gender === 'female' ? styles.segmentChipTextActive : null,
                 ]}
               >
                 여아
-              </Text>
+              </AppText>
             </TouchableOpacity>
             <TouchableOpacity
               activeOpacity={0.88}
@@ -519,20 +520,20 @@ const StepOneForm = memo(function StepOneForm({
               ]}
               onPress={() => onGenderChange('male')}
             >
-              <Text
+              <AppText preset="unifiedLabel"
                 style={[
                   styles.segmentChipText,
                   gender === 'male' ? styles.segmentChipTextActive : null,
                 ]}
               >
                 남아
-              </Text>
+              </AppText>
             </TouchableOpacity>
           </View>
         </View>
 
         <View style={styles.col}>
-          <Text style={styles.label}>중성화 여부</Text>
+          <AppText preset="unifiedLabel" style={styles.label}>중성화 여부</AppText>
           <View style={styles.segmentRow}>
             <TouchableOpacity
               activeOpacity={0.88}
@@ -542,14 +543,14 @@ const StepOneForm = memo(function StepOneForm({
               ]}
               onPress={() => onNeuteredChange(true)}
             >
-              <Text
+              <AppText preset="unifiedLabel"
                 style={[
                   styles.segmentChipText,
                   neutered === true ? styles.segmentChipTextActive : null,
                 ]}
               >
                 예
-              </Text>
+              </AppText>
             </TouchableOpacity>
             <TouchableOpacity
               activeOpacity={0.88}
@@ -559,14 +560,14 @@ const StepOneForm = memo(function StepOneForm({
               ]}
               onPress={() => onNeuteredChange(false)}
             >
-              <Text
+              <AppText preset="unifiedLabel"
                 style={[
                   styles.segmentChipText,
                   neutered === false ? styles.segmentChipTextActive : null,
                 ]}
               >
                 아니오
-              </Text>
+              </AppText>
             </TouchableOpacity>
           </View>
         </View>
@@ -629,9 +630,9 @@ const StepTwoForm = memo(function StepTwoForm({
   return (
     <>
       <View style={styles.fieldBlock}>
-        <Text style={styles.label}>몸무게</Text>
+        <AppText preset="unifiedLabel" style={styles.label}>몸무게</AppText>
         <View style={styles.iconInputWrap}>
-          <TextInput
+          <AppTextInput
             value={weightKg}
             onChangeText={onWeightChange}
             onFocus={onFieldFocus}
@@ -640,7 +641,7 @@ const StepTwoForm = memo(function StepTwoForm({
             style={styles.iconInput}
             keyboardType="decimal-pad"
           />
-          <Text style={styles.trailingUnit}>kg</Text>
+          <AppText preset="unifiedLabel" style={styles.trailingUnit}>kg</AppText>
         </View>
       </View>
 
@@ -1412,17 +1413,17 @@ export default function PetCreateScreen() {
         <View style={styles.header}>
           <View style={styles.headerActionPlaceholder} />
 
-          <Text style={styles.headerTitle}>프로필 등록 ({step}/2)</Text>
+          <AppText preset="unifiedTitle" style={styles.headerTitle}>프로필 등록 ({step}/2)</AppText>
 
           <View style={styles.headerActionPlaceholder} />
         </View>
 
         <View style={styles.progressHeader}>
           <View style={styles.progressMetaRow}>
-            <Text style={styles.progressLabel}>
+            <AppText preset="unifiedLabel" style={styles.progressLabel}>
               {step === 1 ? '기본 정보 입력' : '상세 정보 입력'}
-            </Text>
-            <Text style={styles.progressStepText}>{step}/2</Text>
+            </AppText>
+            <AppText preset="unifiedLabel" style={styles.progressStepText}>{step}/2</AppText>
           </View>
           <View style={styles.progressMain}>
             <View style={styles.progressTrack}>
@@ -1536,14 +1537,14 @@ export default function PetCreateScreen() {
                   ]}
                   onPress={goNext}
                 >
-                  <Text
+                  <AppText preset="unifiedLabel"
                     style={[
                       styles.primaryButtonText,
                       { color: selectedTheme.onPrimary },
                     ]}
                   >
                     다음으로
-                  </Text>
+                  </AppText>
                 </TouchableOpacity>
 
                 {showStepOneExitButton ? (
@@ -1552,7 +1553,7 @@ export default function PetCreateScreen() {
                     style={styles.secondaryButton}
                     onPress={onPressRequestExit}
                   >
-                    <Text style={styles.secondaryButtonText}>돌아가기</Text>
+                    <AppText preset="unifiedLabel" style={styles.secondaryButtonText}>돌아가기</AppText>
                   </TouchableOpacity>
                 ) : null}
               </>
@@ -1563,7 +1564,7 @@ export default function PetCreateScreen() {
                   style={styles.secondaryButton}
                   onPress={goPrevStep}
                 >
-                  <Text style={styles.secondaryButtonText}>이전 단계로</Text>
+                  <AppText preset="unifiedLabel" style={styles.secondaryButtonText}>이전 단계로</AppText>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -1592,14 +1593,14 @@ export default function PetCreateScreen() {
                       textStyle={styles.primaryButtonText}
                     />
                   ) : (
-                    <Text
+                    <AppText preset="unifiedLabel"
                       style={[
                         styles.primaryButtonText,
                         { color: selectedTheme.onPrimary },
                       ]}
                     >
                       등록 완료
-                    </Text>
+                    </AppText>
                   )}
                 </TouchableOpacity>
               </>
@@ -1624,11 +1625,11 @@ export default function PetCreateScreen() {
             </View>
 
             <View style={styles.successCopyWrap}>
-              <Text style={styles.successTitle}>등록이 완료되었어요!</Text>
-              <Text style={styles.successBody}>
+              <AppText preset="unifiedTitle" style={styles.successTitle}>등록이 완료되었어요!</AppText>
+              <AppText preset="unifiedBody" style={styles.successBody}>
                 우리 아이와 함께할 소중한 추억들을
-              </Text>
-              <Text style={styles.successBody}>차곡차곡 쌓아보세요.</Text>
+              </AppText>
+              <AppText preset="unifiedBody" style={styles.successBody}>차곡차곡 쌓아보세요.</AppText>
             </View>
 
             <TouchableOpacity
@@ -1642,14 +1643,14 @@ export default function PetCreateScreen() {
               ]}
               onPress={goToWelcomeTransition}
             >
-              <Text
+              <AppText preset="unifiedTitle"
                 style={[
                   styles.successPrimaryButtonText,
                   { color: selectedTheme.onPrimary },
                 ]}
               >
                 시작하기
-              </Text>
+              </AppText>
             </TouchableOpacity>
           </View>
         </View>
@@ -1667,6 +1668,7 @@ export default function PetCreateScreen() {
       />
       <ConfirmDialog
         visible={exitConfirmVisible}
+        typographyMode="unified"
         title="등록을 멈추고 나갈까요?"
         message={
           '입력 중인 내용은 임시 저장되어\n다음에 다시 이어서 작성할 수 있어요.'

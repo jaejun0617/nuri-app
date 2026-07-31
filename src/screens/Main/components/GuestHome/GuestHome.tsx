@@ -6,6 +6,7 @@
 // 핵심 역할:
 // - 메인 홈의 실제 typography, spacing, card system을 재사용하면서, 모든 CTA는 SignIn으로 수렴시킨다.
 
+import AppText from '../../../../app/ui/AppText';
 import React, { useCallback, useMemo, useState } from 'react';
 import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -163,13 +164,13 @@ export default function GuestHome() {
         <View style={styles.header}>
           <View style={styles.headerTopRow}>
             <View style={styles.headerTextArea}>
-              <Text style={[styles.title, { color: petTheme.primary }]}>
+              <AppText preset="unifiedTitle" style={[styles.title, { color: petTheme.primary }]}>
                 반가워요!
-              </Text>
-              <Text style={styles.subTitle}>
+              </AppText>
+              <AppText preset="unifiedBody" style={styles.subTitle}>
                 로그인하면 메인 홈에서 기록, 일정, 추천 팁이 더 자연스럽게
                 이어집니다
-              </Text>
+              </AppText>
             </View>
 
             <View style={styles.headerIcons}>
@@ -266,12 +267,12 @@ export default function GuestHome() {
               </LinearGradient>
             </View>
 
-            <Text style={[styles.heroName, { color: petTheme.deep }]}>
+            <AppText preset="unifiedTitle" style={[styles.heroName, { color: petTheme.deep }]}>
               우리 아이의 첫 홈
-            </Text>
-            <Text style={styles.heroMetaLine}>
+            </AppText>
+            <AppText preset="unifiedBody" style={styles.heroMetaLine}>
               함께한 모든 순간이, 오래도록 기억이 되도록
-            </Text>
+            </AppText>
 
             <View
               style={[
@@ -286,11 +287,11 @@ export default function GuestHome() {
                 <Text style={styles.heroTogetherHeart}>
                   {petTheme.heartEmoji}
                 </Text>
-                <Text
+                <AppText preset="unifiedBody"
                   style={[styles.heroTogetherText, { color: petTheme.onDeep }]}
                 >
                   함께한 시간을 차곡차곡 남겨보세요
-                </Text>
+                </AppText>
                 <Text style={styles.heroTogetherHeart}>
                   {petTheme.heartEmoji}
                 </Text>
@@ -316,7 +317,7 @@ export default function GuestHome() {
                 elevation: 4,
               }}
             >
-              <Text
+              <AppText preset="unifiedLabel"
                 style={{
                   fontSize: 14,
                   lineHeight: 18,
@@ -325,7 +326,7 @@ export default function GuestHome() {
                 }}
               >
                 로그인하고 시작하기
-              </Text>
+              </AppText>
             </TouchableOpacity>
           </View>
 
@@ -335,11 +336,11 @@ export default function GuestHome() {
               style={styles.accordionAllRow}
               onPress={toggleAll}
             >
-              <Text
+              <AppText preset="unifiedLabel"
                 style={[styles.accordionAllLabel, { color: petTheme.primary }]}
               >
                 모두펼치기
-              </Text>
+              </AppText>
               <Feather
                 name={allExpanded ? 'chevron-up' : 'chevron-down'}
                 size={18}
@@ -359,9 +360,9 @@ export default function GuestHome() {
                   >
                     <Text style={styles.accordionIconText}>🐾</Text>
                   </View>
-                  <Text style={[styles.accordionTitle, styles.accTitleBlue]}>
+                  <AppText preset="unifiedLabel" style={[styles.accordionTitle, styles.accTitleBlue]}>
                     취미
-                  </Text>
+                  </AppText>
                 </View>
                 <Feather
                   name={acc.hobby ? 'chevron-up' : 'chevron-down'}
@@ -372,9 +373,9 @@ export default function GuestHome() {
               {acc.hobby ? (
                 <View style={styles.accordionBody}>
                   {HOBBIES.map(item => (
-                    <Text key={item} style={styles.accordionBullet}>
+                    <AppText preset="unifiedLabel" key={item} style={styles.accordionBullet}>
                       • {item}
-                    </Text>
+                    </AppText>
                   ))}
                 </View>
               ) : null}
@@ -395,9 +396,9 @@ export default function GuestHome() {
                   >
                     <Text style={styles.accordionIconText}>💛</Text>
                   </View>
-                  <Text style={[styles.accordionTitle, styles.accTitleOrange]}>
+                  <AppText preset="unifiedLabel" style={[styles.accordionTitle, styles.accTitleOrange]}>
                     좋아하는 것
-                  </Text>
+                  </AppText>
                 </View>
                 <Feather
                   name={acc.like ? 'chevron-up' : 'chevron-down'}
@@ -408,9 +409,9 @@ export default function GuestHome() {
               {acc.like ? (
                 <View style={styles.accordionBody}>
                   {LIKES.map(item => (
-                    <Text key={item} style={styles.accordionBullet}>
+                    <AppText preset="unifiedLabel" key={item} style={styles.accordionBullet}>
                       • {item}
-                    </Text>
+                    </AppText>
                   ))}
                 </View>
               ) : null}
@@ -428,9 +429,9 @@ export default function GuestHome() {
                   >
                     <Text style={styles.accordionIconText}>💔</Text>
                   </View>
-                  <Text style={[styles.accordionTitle, styles.accTitlePink]}>
+                  <AppText preset="unifiedLabel" style={[styles.accordionTitle, styles.accTitlePink]}>
                     싫어하는 것
-                  </Text>
+                  </AppText>
                 </View>
                 <Feather
                   name={acc.dislike ? 'chevron-up' : 'chevron-down'}
@@ -441,9 +442,9 @@ export default function GuestHome() {
               {acc.dislike ? (
                 <View style={styles.accordionBody}>
                   {DISLIKES.map(item => (
-                    <Text key={item} style={styles.accordionBullet}>
+                    <AppText preset="unifiedLabel" key={item} style={styles.accordionBullet}>
                       • {item}
-                    </Text>
+                    </AppText>
                   ))}
                 </View>
               ) : null}
@@ -464,9 +465,9 @@ export default function GuestHome() {
                   >
                     <Feather name="hash" size={16} color={petTheme.primary} />
                   </View>
-                  <Text style={[styles.accordionTitle, styles.accTitlePurple]}>
+                  <AppText preset="unifiedLabel" style={[styles.accordionTitle, styles.accTitlePurple]}>
                     #태그
-                  </Text>
+                  </AppText>
                 </View>
                 <Feather
                   name={acc.tag ? 'chevron-up' : 'chevron-down'}
@@ -488,11 +489,11 @@ export default function GuestHome() {
                           },
                         ]}
                       >
-                        <Text
+                        <AppText preset="unifiedLabel"
                           style={[styles.tagText, { color: petTheme.deep }]}
                         >
                           {tag}
-                        </Text>
+                        </AppText>
                       </View>
                     ))}
                   </View>
@@ -505,10 +506,10 @@ export default function GuestHome() {
             <View style={styles.heroMessageIcon}>
               <Text style={styles.heroMessageIconText}>✨</Text>
             </View>
-            <Text style={styles.heroMessageText}>
+            <AppText preset="unifiedBody" style={styles.heroMessageText}>
               로그인하면 메인 홈에서 오늘의 기록과 루틴을 같은 톤으로 이어갈 수
               있어요.
-            </Text>
+            </AppText>
             <View style={styles.heroMessageBottomShadow} />
           </View>
         </View>
@@ -524,12 +525,12 @@ export default function GuestHome() {
           ]}
         >
           <View style={styles.sectionHeaderCol}>
-            <Text style={[styles.sectionTitle, { color: petTheme.deep }]}>
+            <AppText preset="unifiedTitle" style={[styles.sectionTitle, { color: petTheme.deep }]}>
               자주 쓰는 기록
-            </Text>
-            <Text style={styles.sectionSubText}>
+            </AppText>
+            <AppText preset="unifiedBody" style={styles.sectionSubText}>
               산책 · 식사 · 미용 기록을 바로 열어보세요
-            </Text>
+            </AppText>
           </View>
 
           <View style={styles.quickGridFrame}>
@@ -554,12 +555,12 @@ export default function GuestHome() {
                       style={styles.quickIcon}
                     />
                   </View>
-                  <Text style={styles.quickCardTitle}>{item.label}</Text>
-                  <Text
+                  <AppText preset="unifiedLabel" style={styles.quickCardTitle}>{item.label}</AppText>
+                  <AppText preset="unifiedLabel"
                     style={[styles.quickCardNote, { color: petTheme.primary }]}
                   >
                     {item.note}
-                  </Text>
+                  </AppText>
                 </TouchableOpacity>
               ))}
             </View>
@@ -575,12 +576,12 @@ export default function GuestHome() {
             },
           ]}
         >
-          <Text style={[styles.sectionLeadTitle, { color: petTheme.deep }]}>
+          <AppText preset="unifiedTitle" style={[styles.sectionLeadTitle, { color: petTheme.deep }]}>
             오늘의 추억 둘러보기
-          </Text>
-          <Text style={styles.sectionLeadSub}>
+          </AppText>
+          <AppText preset="unifiedBody" style={styles.sectionLeadSub}>
             사진과 기록을 천천히 살펴보세요
-          </Text>
+          </AppText>
         </View>
 
         <TouchableOpacity
@@ -591,26 +592,26 @@ export default function GuestHome() {
           <Image source={HERO_IMAGE} style={styles.photoImage} />
           <View style={styles.photoOverlayTint} />
           <View style={styles.photoOverlay}>
-            <Text style={styles.photoOverlayTitle}>
+            <AppText preset="unifiedTitle" style={styles.photoOverlayTitle}>
               따뜻한 햇살 아래 남긴 산책 장면
-            </Text>
-            <Text style={styles.photoOverlaySub}>
+            </AppText>
+            <AppText preset="unifiedBody" style={styles.photoOverlaySub}>
               메인 홈에서 사진과 한 줄 기록이 이런 톤으로 차분하게 이어집니다
-            </Text>
+            </AppText>
           </View>
         </TouchableOpacity>
 
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <View style={styles.tipSectionHeading}>
-              <Text style={[styles.tipSectionTitle, { color: petTheme.deep }]}>
+              <AppText preset="unifiedTitle" style={[styles.tipSectionTitle, { color: petTheme.deep }]}>
                 우리 아이를 위한 추천 팁
-              </Text>
+              </AppText>
             </View>
             <TouchableOpacity activeOpacity={0.85} onPress={goSignIn}>
-              <Text style={[styles.sectionLink, { color: petTheme.primary }]}>
+              <AppText preset="unifiedBody" style={[styles.sectionLink, { color: petTheme.primary }]}>
                 더보기
-              </Text>
+              </AppText>
             </TouchableOpacity>
           </View>
 
@@ -632,13 +633,13 @@ export default function GuestHome() {
                   </View>
                 </View>
                 <View style={styles.tipContent}>
-                  <Text
+                  <AppText preset="unifiedLabel"
                     style={[styles.tipEyebrow, { color: petTheme.primary }]}
                   >
                     {item.eyebrow}
-                  </Text>
-                  <Text style={styles.tipTitle}>{item.title}</Text>
-                  <Text style={styles.tipDescription}>{item.description}</Text>
+                  </AppText>
+                  <AppText preset="unifiedLabel" style={styles.tipTitle}>{item.title}</AppText>
+                  <AppText preset="unifiedBody" style={styles.tipDescription}>{item.description}</AppText>
                 </View>
               </TouchableOpacity>
             ))}
@@ -648,12 +649,12 @@ export default function GuestHome() {
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <View style={styles.sectionHeaderCol}>
-              <Text style={[styles.sectionTitle, { color: petTheme.deep }]}>
+              <AppText preset="unifiedTitle" style={[styles.sectionTitle, { color: petTheme.deep }]}>
                 이번 주 일정
-              </Text>
-              <Text style={styles.sectionSubText}>
+              </AppText>
+              <AppText preset="unifiedBody" style={styles.sectionSubText}>
                 중요한 루틴과 체크 포인트를 한 흐름으로 정리해요
-              </Text>
+              </AppText>
             </View>
           </View>
 
@@ -671,7 +672,7 @@ export default function GuestHome() {
                     { backgroundColor: petTheme.tint },
                   ]}
                 >
-                  <Text style={styles.scheduleDateText}>{item.dateLabel}</Text>
+                  <AppText preset="unifiedDate" style={styles.scheduleDateText}>{item.dateLabel}</AppText>
                 </View>
                 <View style={styles.scheduleBody}>
                   <View
@@ -687,8 +688,8 @@ export default function GuestHome() {
                     />
                   </View>
                   <View style={styles.scheduleTextCol}>
-                    <Text style={styles.scheduleTitle}>{item.title}</Text>
-                    <Text style={styles.scheduleSub}>{item.subtitle}</Text>
+                    <AppText preset="unifiedLabel" style={styles.scheduleTitle}>{item.title}</AppText>
+                    <AppText preset="unifiedBody" style={styles.scheduleSub}>{item.subtitle}</AppText>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -698,13 +699,13 @@ export default function GuestHome() {
 
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
-            <Text style={[styles.tipSectionTitle, { color: petTheme.deep }]}>
+            <AppText preset="unifiedTitle" style={[styles.tipSectionTitle, { color: petTheme.deep }]}>
               최근 활동
-            </Text>
+            </AppText>
             <TouchableOpacity activeOpacity={0.85} onPress={goSignIn}>
-              <Text style={[styles.sectionLink, { color: petTheme.primary }]}>
+              <AppText preset="unifiedBody" style={[styles.sectionLink, { color: petTheme.primary }]}>
                 전체보기
-              </Text>
+              </AppText>
             </TouchableOpacity>
           </View>
 
@@ -732,10 +733,10 @@ export default function GuestHome() {
                   />
                 </View>
                 <View style={styles.activityTextCol}>
-                  <Text style={styles.activityTitle}>{item.title}</Text>
-                  <Text style={styles.activitySub}>{item.subtitle}</Text>
+                  <AppText preset="unifiedLabel" style={styles.activityTitle}>{item.title}</AppText>
+                  <AppText preset="unifiedBody" style={styles.activitySub}>{item.subtitle}</AppText>
                 </View>
-                <Text style={styles.activityTime}>{item.timeLabel}</Text>
+                <AppText preset="unifiedBody" style={styles.activityTime}>{item.timeLabel}</AppText>
               </TouchableOpacity>
             ))}
           </View>
@@ -743,13 +744,13 @@ export default function GuestHome() {
 
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
-            <Text style={[styles.tipSectionTitle, { color: petTheme.deep }]}>
+            <AppText preset="unifiedTitle" style={[styles.tipSectionTitle, { color: petTheme.deep }]}>
               이번 달 누리 일기
-            </Text>
+            </AppText>
             <TouchableOpacity activeOpacity={0.85} onPress={goSignIn}>
-              <Text style={[styles.sectionLink, { color: petTheme.primary }]}>
+              <AppText preset="unifiedBody" style={[styles.sectionLink, { color: petTheme.primary }]}>
                 더보기
-              </Text>
+              </AppText>
             </TouchableOpacity>
           </View>
 
@@ -768,10 +769,10 @@ export default function GuestHome() {
                 <View style={styles.monthDiaryCover}>
                   <Image source={HERO_IMAGE} style={styles.monthDiaryImage} />
                 </View>
-                <Text style={styles.monthDiaryTitle} numberOfLines={1}>
+                <AppText preset="unifiedLabel" style={styles.monthDiaryTitle} numberOfLines={1}>
                   {item.title}
-                </Text>
-                <Text style={styles.monthDiaryMeta}>{item.meta}</Text>
+                </AppText>
+                <AppText preset="unifiedBody" style={styles.monthDiaryMeta}>{item.meta}</AppText>
               </TouchableOpacity>
             ))}
           </ScrollView>

@@ -1,3 +1,4 @@
+import AppTextInput from '../../app/ui/AppTextInput';
 import React, {
   memo,
   useCallback,
@@ -8,7 +9,6 @@ import React, {
 import {
   Modal,
   ScrollView,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -702,7 +702,7 @@ function DatePickerModalBase({
                       <AppText preset="unifiedMeta" style={styles.timeColumnLabel}>
                         시
                       </AppText>
-                      <TextInput
+                      <AppTextInput
                         value={timeSelection.hour}
                         editable={!disabled}
                         keyboardType="number-pad"
@@ -732,7 +732,7 @@ function DatePickerModalBase({
                       <AppText preset="unifiedMeta" style={styles.timeColumnLabel}>
                         분
                       </AppText>
-                      <TextInput
+                      <AppTextInput
                         value={timeSelection.minute}
                         editable={!disabled}
                         keyboardType="number-pad"
@@ -768,7 +768,7 @@ function DatePickerModalBase({
                     {directInputHelper}
                   </AppText>
                 </View>
-                <TextInput
+                <AppTextInput
                   value={directInputValue}
                   editable={!disabled}
                   keyboardType="number-pad"

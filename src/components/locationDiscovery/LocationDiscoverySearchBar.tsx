@@ -1,5 +1,6 @@
+import AppTextInput from '../../app/ui/AppTextInput';
 import React from 'react';
-import { Pressable, TextInput, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 
 import AppText from '../../app/ui/AppText';
@@ -34,7 +35,7 @@ export default function LocationDiscoverySearchBar({
     <View style={styles.searchWrap}>
       <View style={styles.searchInputWrap}>
         <Feather name="search" size={18} color="#98A1B2" />
-        <TextInput
+        <AppTextInput
           value={value}
           onChangeText={onChangeText}
           onSubmitEditing={onSubmit}
