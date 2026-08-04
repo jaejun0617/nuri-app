@@ -30,7 +30,7 @@ export function useEntryAwareBackAction({
       return;
     }
 
-    if (entrySource === 'home') {
+    if (entrySource === 'home' || entrySource === 'home-total-summary') {
       onHome();
       return;
     }

@@ -133,3 +133,16 @@ local verification은 typecheck 통과, lint 0 error/기존 warning 6건, Jest 6
 ## 조건부/반복 QA
 
 이번 smoke는 최신 코드 변경 영향 경로와 대표 keyboard/navigation 경로를 직접 확인했다. 로그인/소셜 취소, 전체 입력 화면 sweep, logout/account switch token isolation은 기존 evidence와 테스트를 유지하되, 최종 제출 직전 release QA에서 반복 수행한다.
+
+## 2026-08-04 전체 요약 → Timeline 반복 진입 최종 QA
+
+- APK: `android/app/build/outputs/apk/release/app-release.apk`
+- APK SHA-256: `4ce48ee702edcea90962b9b14ebc5f84748f513c54fc27f3a8be9cbf3685bf6e`
+- 기기: `SM-S937N / R5CY613NMSY`, Android 16, 1080x2340, density 450, portrait
+- 범위: 전체 요약 산책·식사·생활·기록한 날 카드 각 3회, 총 12회 반복 진입
+- 진입 결과: 매 탭별 고유 요청으로 올바른 Timeline 필터가 즉시 적용됐다. 같은 카테고리 재진입도 재적용됐다.
+- 전환 결과: 이전 카테고리·이전 리스트·false empty·이전 count frame은 확인되지 않았다. entry request별 list offset은 0으로 시작했다.
+- 복귀 결과: Android Back, Timeline 상단 Back, 하단 Home 탭에서 홈의 `전체 요약` 위치와 누적 수치가 유지됐다.
+- 정적 검증: TypeScript, ESLint, 전체 Jest `71 suites / 308 tests`, `git diff --check`, Android release build 통과.
+- Logcat: Fatal, ANR, ReactNativeJS fatal, unhandled promise, navigation loop, duplicate total-summary request loop 0건.
+- 증적 디렉터리: `/tmp/nuri-qa/total-summary-timeline-entry-fix/`

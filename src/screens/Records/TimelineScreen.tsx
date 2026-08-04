@@ -13,7 +13,15 @@
 // - 대량 데이터 성능에 민감한 화면이라 렌더링, 이미지 prefetch, filter 계산 비용을 함께 봐야 한다.
 // - 타임라인 ids와 entity cache가 분리돼 있으므로 목록 표시 로직만 바꾸면 상세 복귀가 어긋날 수 있다.
 
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -94,6 +102,12 @@ import {
   getMonthKeyFromYmd,
 } from '../../utils/date';
 import { styles } from './TimelineScreen.styles';
+import {
+  HOME_TOTAL_SUMMARY_ENTRY_SOURCE,
+  isTimelineEntryPending,
+  shouldShowTimelineEmpty,
+  shouldShowTimelineEntryLoading,
+} from './timelineEntry';
 
 type TimelineMainRoute = RouteProp<TimelineStackParamList, 'TimelineMain'>;
 type TimelineTabNav = BottomTabNavigationProp<AppTabParamList, 'TimelineTab'>;
@@ -196,6 +210,8 @@ const MAIN_CATEGORY_KEY_SET = new Set<MainCategory>(
 const OTHER_SUBCATEGORY_KEY_SET = new Set<OtherSubCategory>(
   TIMELINE_OTHER_SUBCATEGORY_OPTIONS.map(item => item.key),
 );
+const EMPTY_TIMELINE_IDS: string[] = [];
+const EMPTY_TIMELINE_CATEGORY_COUNTS = createEmptyTimelineCategoryCounts();
 const TIMELINE_PAST_GROUP_COLORS = {
   title: '#6B7280',
   subtitle: '#9CA3AF',
@@ -273,6 +289,7 @@ const ControlsBar = memo(function ControlsBar({
   onOpenMonthModal,
   onPressMainCategory,
   theme,
+  isTransitioning = false,
 }: {
   sortLabel: string;
   monthLabel: string;
@@ -284,6 +301,7 @@ const ControlsBar = memo(function ControlsBar({
   onOpenMonthModal: () => void;
   onPressMainCategory: (key: MainCategory) => void;
   theme: ReturnType<typeof buildPetThemePalette>;
+  isTransitioning?: boolean;
 }) {
   return (
     <View style={styles.controlsWrap}>
@@ -368,22 +386,26 @@ const ControlsBar = memo(function ControlsBar({
                   >
                     {label}
                   </AppText>
-                  <View
-                    style={[
-                      styles.categoryCountBadge,
-                      active ? { backgroundColor: theme.soft } : null,
-                    ]}
-                  >
-                    <AppText
-                      preset="unifiedMeta"
+                  {isTransitioning ? (
+                    <View style={styles.categoryCountBadge} />
+                  ) : (
+                    <View
                       style={[
-                        styles.categoryCountBadgeText,
-                        active ? { color: theme.primary } : null,
+                        styles.categoryCountBadge,
+                        active ? { backgroundColor: theme.soft } : null,
                       ]}
                     >
-                      {count}
-                    </AppText>
-                  </View>
+                      <AppText
+                        preset="unifiedMeta"
+                        style={[
+                          styles.categoryCountBadgeText,
+                          active ? { color: theme.primary } : null,
+                        ]}
+                      >
+                        {count}
+                      </AppText>
+                    </View>
+                  )}
                 </View>
                 {active ? (
                   <View
@@ -500,6 +522,10 @@ export default function TimelineScreen() {
 
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
+  const entryRequestId = route?.params?.entryRequestId ?? null;
+  const isHomeTotalSummaryEntry =
+    route?.params?.entrySource === HOME_TOTAL_SUMMARY_ENTRY_SOURCE &&
+    entryRequestId !== null;
   const petIdFromParams = route?.params?.petId?.trim() || null;
   const mainCategoryFromParams = MAIN_CATEGORY_KEY_SET.has(
     route?.params?.mainCategory ?? 'all',
@@ -511,6 +537,11 @@ export default function TimelineScreen() {
   )
     ? (route?.params?.otherSubCategory ?? null)
     : null;
+  const entryOtherSubCategoryFromParams =
+    route?.params?.otherSubCategory &&
+    OTHER_SUBCATEGORY_KEY_SET.has(route.params.otherSubCategory)
+      ? route.params.otherSubCategory
+      : null;
 
   const petId = useMemo(
     () => resolveSelectedPetId(pets, selectedPetId, petIdFromParams),
@@ -555,6 +586,9 @@ export default function TimelineScreen() {
   const [ymFilter, setYmFilter] = useState<string | null>(null);
   const [ymModalOpen, setYmModalOpen] = useState(false);
   const [mainCategory, setMainCategory] = useState<MainCategory>('all');
+  const [appliedEntryRequestId, setAppliedEntryRequestId] = useState<number | null>(
+    null,
+  );
   const [otherSubCategory, setOtherSubCategory] =
     useState<OtherSubCategory | null>(null);
   const [otherModalOpen, setOtherModalOpen] = useState(false);
@@ -573,16 +607,19 @@ export default function TimelineScreen() {
     setSortMode('recent');
     setYmFilter(null);
     setYmModalOpen(false);
-    setMainCategory('all');
-    setOtherSubCategory(null);
-    setOtherModalOpen(false);
+    if (!isHomeTotalSummaryEntry) {
+      setMainCategory('all');
+      setOtherSubCategory(null);
+      setOtherModalOpen(false);
+      setAppliedEntryRequestId(null);
+    }
     setPendingJumpYm(null);
     setImageWindow(TIMELINE_INITIAL_IMAGE_WINDOW);
     imageWindowRef.current = TIMELINE_INITIAL_IMAGE_WINDOW;
-  }, [petId]);
+  }, [isHomeTotalSummaryEntry, petId]);
 
   useEffect(() => {
-    if (!mainCategoryFromParams) return;
+    if (!mainCategoryFromParams || isHomeTotalSummaryEntry) return;
     setMainCategory(mainCategoryFromParams);
     setOtherModalOpen(false);
 
@@ -592,7 +629,12 @@ export default function TimelineScreen() {
     }
 
     setOtherSubCategory(null);
-  }, [mainCategoryFromParams, otherSubCategoryFromParams, petId]);
+  }, [
+    isHomeTotalSummaryEntry,
+    mainCategoryFromParams,
+    otherSubCategoryFromParams,
+    petId,
+  ]);
 
   const timelineView = useMemo(
     () => {
@@ -622,6 +664,23 @@ export default function TimelineScreen() {
   );
   const availableYmList = timelineView.availableMonthKeys;
   const filteredIds = timelineView.filteredIds;
+  const isApplyingHomeTotalSummaryEntry = isTimelineEntryPending(
+    route?.params?.entrySource,
+    entryRequestId,
+    appliedEntryRequestId,
+  );
+  const isHomeTotalSummaryListLoading =
+    isHomeTotalSummaryEntry &&
+    shouldShowTimelineEntryLoading({
+      isEntryPending: isApplyingHomeTotalSummaryEntry,
+      status,
+    });
+  const isHomeTotalSummaryControlsLoading =
+    isHomeTotalSummaryEntry &&
+    (isHomeTotalSummaryListLoading || !timelineCategoryCountsReady);
+  const renderedFilteredIds = isHomeTotalSummaryListLoading
+    ? EMPTY_TIMELINE_IDS
+    : filteredIds;
   const categoryCounts = timelineCategoryCountsReady
     ? timelineCategoryCounts
     : timelineView.categoryCounts;
@@ -696,11 +755,76 @@ export default function TimelineScreen() {
   const listRef = useRef<FlashListRef<string>>(null);
   const targetLayoutOffsetRef = useRef<number | null>(null);
   const pendingFocusedMemoryIdRef = useRef<string | null>(null);
+  const entryScrollRequestIdRef = useRef<number | null>(null);
+  const entryContentReadyRef = useRef(false);
+
+  useLayoutEffect(() => {
+    if (!isHomeTotalSummaryEntry || entryRequestId === null) return;
+
+    setSortMode('recent');
+    setYmFilter(null);
+    setYmModalOpen(false);
+    setMainCategory(mainCategoryFromParams ?? 'all');
+    setOtherSubCategory(
+      mainCategoryFromParams === 'other'
+        ? entryOtherSubCategoryFromParams
+        : null,
+    );
+    setOtherModalOpen(false);
+    setPendingJumpYm(null);
+    setImageWindow(TIMELINE_INITIAL_IMAGE_WINDOW);
+    imageWindowRef.current = TIMELINE_INITIAL_IMAGE_WINDOW;
+    entryScrollRequestIdRef.current = null;
+    entryContentReadyRef.current = false;
+    targetLayoutOffsetRef.current = null;
+    pendingFocusedMemoryIdRef.current = null;
+    setAppliedEntryRequestId(entryRequestId);
+  }, [
+    entryOtherSubCategoryFromParams,
+    entryRequestId,
+    isHomeTotalSummaryEntry,
+    mainCategoryFromParams,
+  ]);
 
   const clearPendingFocusedMemory = useCallback(() => {
     targetLayoutOffsetRef.current = null;
     pendingFocusedMemoryIdRef.current = null;
   }, []);
+
+  const consumeHomeTotalSummaryEntryScroll = useCallback(() => {
+    if (!isHomeTotalSummaryEntry || entryRequestId === null) return false;
+    if (isApplyingHomeTotalSummaryEntry) return false;
+    if (entryScrollRequestIdRef.current === entryRequestId) return true;
+    if (!entryContentReadyRef.current) return false;
+    if (!listRef.current) return false;
+
+    listRef.current.scrollToOffset({ offset: 0, animated: false });
+    entryScrollRequestIdRef.current = entryRequestId;
+    return true;
+  }, [
+    entryRequestId,
+    isApplyingHomeTotalSummaryEntry,
+    isHomeTotalSummaryEntry,
+  ]);
+
+  useEffect(() => {
+    if (!isHomeTotalSummaryEntry || entryRequestId === null) return;
+    if (isApplyingHomeTotalSummaryEntry) return;
+    if (status === 'idle' || status === 'loading') return;
+    if (!entryContentReadyRef.current) return;
+
+    const frame = requestAnimationFrame(() => {
+      consumeHomeTotalSummaryEntryScroll();
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [
+    consumeHomeTotalSummaryEntryScroll,
+    entryRequestId,
+    isApplyingHomeTotalSummaryEntry,
+    isHomeTotalSummaryEntry,
+    status,
+  ]);
 
   const finalizeFocusedMemoryScroll = useCallback(
     (targetMemoryId: string) => {
@@ -723,6 +847,7 @@ export default function TimelineScreen() {
 
   const consumeFocusedMemory = useCallback(() => {
     if (!petId || !focusedMemoryId || !isFocused) return false;
+    if (isHomeTotalSummaryEntry) return false;
     if (filteredIds.length === 0) return false;
 
     const index = filteredIds.indexOf(focusedMemoryId);
@@ -744,7 +869,29 @@ export default function TimelineScreen() {
       viewPosition: 0.35,
     });
     return true;
-  }, [filteredIds, finalizeFocusedMemoryScroll, focusedMemoryId, isFocused, petId]);
+  }, [
+    filteredIds,
+    finalizeFocusedMemoryScroll,
+    focusedMemoryId,
+    isFocused,
+    isHomeTotalSummaryEntry,
+    petId,
+  ]);
+
+  const handleListContentSizeChange = useCallback(() => {
+    if (isHomeTotalSummaryEntry && !isHomeTotalSummaryListLoading) {
+      entryContentReadyRef.current = true;
+      requestAnimationFrame(() => {
+        consumeHomeTotalSummaryEntryScroll();
+      });
+    }
+    consumeFocusedMemory();
+  }, [
+    consumeFocusedMemory,
+    consumeHomeTotalSummaryEntryScroll,
+    isHomeTotalSummaryEntry,
+    isHomeTotalSummaryListLoading,
+  ]);
 
   useEffect(() => {
     if (!pendingJumpYm) return;
@@ -1039,6 +1186,39 @@ export default function TimelineScreen() {
       (TIMELINE_MAIN_CATEGORY_OPTIONS.find(x => x.key === 'other')?.label ?? '생활')
     );
   }, [mainCategory, otherSubCategory]);
+  const visibleMainCategory = isApplyingHomeTotalSummaryEntry
+    ? mainCategoryFromParams ?? 'all'
+    : mainCategory;
+  const visibleOtherSubCategory = isApplyingHomeTotalSummaryEntry
+    ? entryOtherSubCategoryFromParams
+    : otherSubCategory;
+  const requestedCategoryLabel = useMemo(() => {
+    if (visibleMainCategory !== 'other') {
+      return (
+        TIMELINE_MAIN_CATEGORY_OPTIONS.find(
+          item => item.key === visibleMainCategory,
+        )?.label ?? '전체'
+      );
+    }
+
+    if (!visibleOtherSubCategory) return '생활';
+
+    return (
+      TIMELINE_OTHER_SUBCATEGORY_OPTIONS.find(
+        item => item.key === visibleOtherSubCategory,
+      )?.label ?? '생활'
+    );
+  }, [visibleMainCategory, visibleOtherSubCategory]);
+  const visibleCategoryLabel = isApplyingHomeTotalSummaryEntry
+    ? requestedCategoryLabel
+    : categoryLabel;
+  const visibleYmFilter = isApplyingHomeTotalSummaryEntry ? null : ymFilter;
+  const visibleMonthLabel = isApplyingHomeTotalSummaryEntry
+    ? '월/전체'
+    : monthLabel;
+  const visibleCategoryCounts = isHomeTotalSummaryControlsLoading
+    ? EMPTY_TIMELINE_CATEGORY_COUNTS
+    : categoryCounts;
   const currentYearHeaderTitleColor = useMemo(() => petTheme.primary, [petTheme.primary]);
   const currentYearHeaderSubtitleColor = useMemo(() => petTheme.muted, [petTheme.muted]);
   const currentYearHeaderDotColor = useMemo(() => petTheme.primary, [petTheme.primary]);
@@ -1160,16 +1340,11 @@ export default function TimelineScreen() {
   }, [hasMore, status, timelineIds.length]);
 
   const listEmptyComponent = useMemo(() => {
-    if (status === 'loading' || status === 'idle') {
-      return (
-        <View style={styles.empty}>
-          <ActivityIndicator />
-          <AppText preset="unifiedBody" style={styles.emptyDesc}>
-            기록을 불러오는 중이에요.
-          </AppText>
-        </View>
-      );
-    }
+    const shouldRenderActualEmpty = shouldShowTimelineEmpty({
+      isEntryPending: isApplyingHomeTotalSummaryEntry,
+      status,
+      filteredCount: filteredIds.length,
+    });
 
     if (status === 'error') {
       return (
@@ -1189,6 +1364,22 @@ export default function TimelineScreen() {
               다시 불러오기
             </AppText>
           </TouchableOpacity>
+        </View>
+      );
+    }
+
+    if (
+      isHomeTotalSummaryListLoading ||
+      status === 'loading' ||
+      status === 'idle' ||
+      !shouldRenderActualEmpty
+    ) {
+      return (
+        <View style={styles.empty}>
+          <ActivityIndicator />
+          <AppText preset="unifiedBody" style={styles.emptyDesc}>
+            기록을 불러오는 중이에요.
+          </AppText>
         </View>
       );
     }
@@ -1225,7 +1416,15 @@ export default function TimelineScreen() {
         </TouchableOpacity>
       </View>
     );
-  }, [onPressCreate, onRefresh, petTheme.primary, status]);
+  }, [
+    filteredIds.length,
+    isApplyingHomeTotalSummaryEntry,
+    isHomeTotalSummaryListLoading,
+    onPressCreate,
+    onRefresh,
+    petTheme.primary,
+    status,
+  ]);
 
   const listExtraData = useMemo(
     () => ({
@@ -1306,11 +1505,11 @@ export default function TimelineScreen() {
 
         <ControlsBar
           sortLabel={sortLabel}
-          monthLabel={monthLabel}
-          isMonthFiltered={Boolean(ymFilter)}
-          mainCategory={mainCategory}
-          categoryLabel={categoryLabel}
-          categoryCounts={categoryCounts}
+          monthLabel={visibleMonthLabel}
+          isMonthFiltered={Boolean(visibleYmFilter)}
+          mainCategory={visibleMainCategory}
+          categoryLabel={visibleCategoryLabel}
+          categoryCounts={visibleCategoryCounts}
           onToggleSort={goSignIn}
           onOpenMonthModal={goSignIn}
           onPressMainCategory={() => {
@@ -1373,11 +1572,12 @@ export default function TimelineScreen() {
       </View>
       <ControlsBar
         sortLabel={sortLabel}
-        monthLabel={monthLabel}
-        isMonthFiltered={Boolean(ymFilter)}
-        mainCategory={mainCategory}
-        categoryLabel={categoryLabel}
-        categoryCounts={categoryCounts}
+        monthLabel={visibleMonthLabel}
+        isMonthFiltered={Boolean(visibleYmFilter)}
+        mainCategory={visibleMainCategory}
+        categoryLabel={visibleCategoryLabel}
+        categoryCounts={visibleCategoryCounts}
+        isTransitioning={isHomeTotalSummaryControlsLoading}
         onToggleSort={() =>
           setSortMode(prev => (prev === 'recent' ? 'oldest' : 'recent'))
         }
@@ -1388,14 +1588,14 @@ export default function TimelineScreen() {
 
       <FlashList
         ref={listRef}
-        data={filteredIds}
+        data={renderedFilteredIds}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
         drawDistance={TIMELINE_ITEM_HEIGHT * TIMELINE_WINDOW_SIZE}
         getItemType={getItemType}
         extraData={listExtraData}
         contentContainerStyle={
-          filteredIds.length ? styles.list : styles.listEmpty
+          renderedFilteredIds.length ? styles.list : styles.listEmpty
         }
         refreshing={refreshing}
         onRefresh={onRefresh}
@@ -1406,9 +1606,7 @@ export default function TimelineScreen() {
         ListFooterComponent={listFooterComponent}
         ListEmptyComponent={listEmptyComponent}
         removeClippedSubviews
-        onContentSizeChange={() => {
-          consumeFocusedMemory();
-        }}
+        onContentSizeChange={handleListContentSizeChange}
         keyboardShouldPersistTaps="handled"
       />
 

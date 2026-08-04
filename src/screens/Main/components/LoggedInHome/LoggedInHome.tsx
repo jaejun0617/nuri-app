@@ -118,6 +118,10 @@ import {
   buildFrequentRecordSummary,
   type FrequentRecordCategory,
 } from '../../../../services/home/frequentRecords';
+import {
+  createTimelineEntryRequestId,
+  HOME_TOTAL_SUMMARY_ENTRY_SOURCE,
+} from '../../../Records/timelineEntry';
 import { formatPetAgeLabelFromBirthDate } from '../../../../services/pets/age';
 import {
   formatMemorialPetName,
@@ -2818,6 +2822,7 @@ export default function LoggedInHome() {
     () => createTotalSummaryState(),
   );
   const totalSummaryRequestIdRef = useRef(0);
+  const timelineEntryRequestIdRef = useRef(0);
   const recordStatusRef = useRef(recordStatus);
   recordStatusRef.current = recordStatus;
   const scheduleItems = useScheduleStore(s =>
@@ -3224,17 +3229,49 @@ export default function LoggedInHome() {
     [navigation, activePetId],
   );
 
+  const createHomeTotalSummaryEntryRequestId = useCallback(() => {
+    const nextRequestId = createTimelineEntryRequestId(
+      timelineEntryRequestIdRef.current,
+    );
+    timelineEntryRequestIdRef.current = nextRequestId;
+    return nextRequestId;
+  }, []);
+
+  const onPressTotalSummaryTimeline = useCallback(
+    (
+      mainCategory: Exclude<TimelineMainCategory, undefined>,
+      otherSubCategory?: Exclude<TimelineOtherSubCategory, undefined>,
+    ) => {
+      navigation.navigate('TimelineTab', {
+        screen: 'TimelineMain',
+        params: {
+          petId: activePetId ?? undefined,
+          mainCategory,
+          otherSubCategory,
+          entrySource: HOME_TOTAL_SUMMARY_ENTRY_SOURCE,
+          entryRequestId: createHomeTotalSummaryEntryRequestId(),
+        },
+      });
+    },
+    [activePetId, createHomeTotalSummaryEntryRequestId, navigation],
+  );
+
+  const onPressTotalSummaryAllRecords = useCallback(
+    () => onPressTotalSummaryTimeline('all'),
+    [onPressTotalSummaryTimeline],
+  );
+
   const onPressTotalWalk = useCallback(
-    () => onPressTimelineCategory('walk'),
-    [onPressTimelineCategory],
+    () => onPressTotalSummaryTimeline('walk'),
+    [onPressTotalSummaryTimeline],
   );
   const onPressTotalMeal = useCallback(
-    () => onPressTimelineCategory('meal'),
-    [onPressTimelineCategory],
+    () => onPressTotalSummaryTimeline('meal'),
+    [onPressTotalSummaryTimeline],
   );
   const onPressTotalLife = useCallback(
-    () => onPressTimelineCategory('other'),
-    [onPressTimelineCategory],
+    () => onPressTotalSummaryTimeline('other'),
+    [onPressTotalSummaryTimeline],
   );
 
   const onPressFrequentRecord = useCallback(
@@ -3676,7 +3713,7 @@ export default function LoggedInHome() {
             onPressWalk={onPressTotalWalk}
             onPressMeal={onPressTotalMeal}
             onPressLife={onPressTotalLife}
-            onPressAllRecords={onPressTimeline}
+            onPressAllRecords={onPressTotalSummaryAllRecords}
           />
 
           <RecommendationTipsSection

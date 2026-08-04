@@ -20,6 +20,7 @@ export type TimelineStackParamList = {
         mainCategory?: 'all' | 'walk' | 'meal' | 'health' | 'diary' | 'other';
         otherSubCategory?: MemoryOtherSubCategory;
         entrySource?: ScreenEntrySource;
+        entryRequestId?: number;
       }
     | undefined;
   RecordDetail: {
