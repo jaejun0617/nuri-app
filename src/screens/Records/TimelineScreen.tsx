@@ -440,12 +440,14 @@ const TimelineActivitySummaryHeader = memo(function TimelineActivitySummaryHeade
   titles,
   petName,
   theme,
+  mainCategory,
 }: {
   dailyStatus: DailyStreakStatus | null;
   levelSummary: UserLevelSummary | null;
   titles: UserTitle[];
   petName: string | null;
   theme: ReturnType<typeof buildPetThemePalette>;
+  mainCategory: MainCategory;
 }) {
   const effectiveLevel = levelSummary ?? EMPTY_LEVEL_SUMMARY;
   const progress = getProgressWithinLevel(effectiveLevel);
@@ -453,32 +455,25 @@ const TimelineActivitySummaryHeader = memo(function TimelineActivitySummaryHeade
   const streakText = dailyStatus?.todayCompleted
     ? `오늘 산책 완료 · ${dailyStatus.currentStreak}일 연속`
     : '오늘 산책 기록을 기다리고 있어요';
-  const bestStreak = dailyStatus?.bestStreak ?? 0;
   const petLabel = petName?.trim() || '우리 아이';
 
   return (
     <View style={styles.activityHeaderWrap}>
-      <View style={[styles.dailyCard, { borderColor: theme.soft }]}>
-        <View style={styles.dailyCardTopRow}>
+      {mainCategory === 'walk' ? (
+        <View style={[styles.dailyCard, { borderColor: theme.soft }]}>
           <View style={[styles.dailyIcon, { backgroundColor: theme.soft }]}>
             <AppText preset="unifiedMeta" style={[styles.dailyIconText, { color: theme.primary }]}>
               산책
             </AppText>
           </View>
-          <AppText preset="unifiedMeta" style={styles.dailyMetaText}>
-            KST 기준 하루 1회
+          <AppText preset="unifiedTitle" style={styles.dailyTitle}>
+            {dailyStatus?.todayCompleted ? '오늘도 산책 완료!' : `${petLabel}의 데일리판`}
+          </AppText>
+          <AppText preset="unifiedBody" style={styles.dailyBody}>
+            {streakText}
           </AppText>
         </View>
-        <AppText preset="unifiedTitle" style={styles.dailyTitle}>
-          {dailyStatus?.todayCompleted ? '오늘도 산책 완료!' : `${petLabel}의 데일리판`}
-        </AppText>
-        <AppText preset="unifiedBody" style={styles.dailyBody}>
-          {streakText}
-        </AppText>
-        <AppText preset="unifiedMeta" style={styles.dailySubText}>
-          최고 기록 {bestStreak}일 · 같은 날 여러 번 기록해도 1회만 인정돼요
-        </AppText>
-      </View>
+      ) : null}
 
       <View style={[styles.progressCard, { borderColor: theme.soft }]}>
         <View style={styles.progressTopRow}>
@@ -1454,6 +1449,7 @@ export default function TimelineScreen() {
         titles={earnedTitles}
         petName={selectedPet?.name ?? null}
         theme={petTheme}
+        mainCategory={visibleMainCategory}
       />
     );
   }, [
@@ -1461,6 +1457,7 @@ export default function TimelineScreen() {
     earnedTitles,
     isLoggedIn,
     levelSummary,
+    visibleMainCategory,
     petId,
     petTheme,
     selectedPet?.name,

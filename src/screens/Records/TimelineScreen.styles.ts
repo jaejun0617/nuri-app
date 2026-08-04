@@ -169,12 +169,6 @@ export const styles = StyleSheet.create({
     padding: 14,
     gap: 7,
   },
-  dailyCardTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
   dailyIcon: {
     minHeight: 26,
     borderRadius: 999,
@@ -186,10 +180,6 @@ export const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '900',
   },
-  dailyMetaText: {
-    color: '#8D96A5',
-    fontWeight: '700',
-  },
   dailyTitle: {
     color: TEXT,
     fontWeight: '900',
@@ -197,10 +187,6 @@ export const styles = StyleSheet.create({
   dailyBody: {
     color: '#4B5563',
     fontWeight: '700',
-  },
-  dailySubText: {
-    color: '#8D96A5',
-    lineHeight: 18,
   },
   progressCard: {
     borderWidth: 1,
