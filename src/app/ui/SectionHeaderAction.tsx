@@ -27,6 +27,7 @@ function SectionHeaderActionBase({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
+      hitSlop={8}
       onPress={onPress}
       style={({ pressed }) => [
         size === 'compact' ? styles.compactButton : styles.button,

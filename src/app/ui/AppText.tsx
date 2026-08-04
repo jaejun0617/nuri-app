@@ -21,6 +21,7 @@ type Props = TextProps & {
   color?: string; // theme 컬러 대신 임의 색상 지정이 필요할 때
   align?: 'auto' | 'left' | 'right' | 'center' | 'justify';
   weight?: TextStyle['fontWeight']; // preset fontWeight를 덮어쓰기 할 때
+  styleOverridesPreset?: boolean;
 };
 
 function AppTextBase({
@@ -30,6 +31,7 @@ function AppTextBase({
   weight,
   allowFontScaling = true,
   maxFontSizeMultiplier = 2,
+  styleOverridesPreset = false,
   style,
   children,
   ...rest
@@ -46,11 +48,25 @@ function AppTextBase({
       StyleSheet.flatten([
         // 비제외 전역 기준은 화면별 기존 fontSize override보다 우선한다.
         // 기존 preset은 공유 화면의 회귀 방지를 위해 기존 순서를 유지한다.
-        isUnifiedPreset ? style : presetStyle,
-        isUnifiedPreset ? presetStyle : weight ? ({ fontWeight: weight } as TextStyle) : null,
-        isUnifiedPreset ? (weight ? ({ fontWeight: weight } as TextStyle) : null) : style,
+        isUnifiedPreset
+          ? styleOverridesPreset
+            ? presetStyle
+            : style
+          : presetStyle,
+        isUnifiedPreset
+          ? styleOverridesPreset
+            ? style
+            : presetStyle
+          : weight
+            ? ({ fontWeight: weight } as TextStyle)
+            : null,
+        isUnifiedPreset
+          ? weight
+            ? ({ fontWeight: weight } as TextStyle)
+            : null
+          : style,
       ]),
-    [isUnifiedPreset, presetStyle, weight, style],
+    [isUnifiedPreset, presetStyle, styleOverridesPreset, weight, style],
   );
 
   return (

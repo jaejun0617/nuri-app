@@ -34,12 +34,17 @@ type Notice = {
   detail: string;
 };
 
-const DAY_BORDER_COLORS = [
+export const WEATHER_DAY_BORDER_COLORS = [
   '#8ED7FF',
   '#C1B7FF',
   '#F6B9E9',
   '#F2D66A',
-] as const;
+];
+
+// Weekly summary metrics derive their scale from the same temperature number.
+// Keep this source value beside the weather card so the two visual hierarchies
+// cannot drift independently.
+export const WEATHER_TEMPERATURE_FONT_SIZE = 38;
 
 const NIGHT_BORDER_COLORS = [
   'rgba(155,174,255,0.72)',
@@ -174,7 +179,7 @@ export default React.memo(function WeatherGuideHomeCard({
     : ['#FFFFFF', '#F8F9FD'];
   const gradientColors = isNightCard
     ? [...NIGHT_BORDER_COLORS]
-    : [...DAY_BORDER_COLORS];
+    : [...WEATHER_DAY_BORDER_COLORS];
   const temperatureValue = hasLiveData || isPreview
     ? `${weather.currentTemperature}`
     : '--';
@@ -405,7 +410,7 @@ const styles = StyleSheet.create({
     minHeight: 34,
   },
   temperatureValue: {
-    fontSize: 38,
+    fontSize: WEATHER_TEMPERATURE_FONT_SIZE,
     lineHeight: 40,
     fontWeight: '800',
   },

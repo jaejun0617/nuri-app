@@ -8,6 +8,7 @@ import { typography } from '../../app/theme/tokens/typography';
 export const styles = StyleSheet.create({
   section: {
     width: '100%',
+    paddingHorizontal: 14,
   },
   headerRow: {
     minHeight: 44,
@@ -21,7 +22,7 @@ export const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 8,
   },
   sparkleWrap: {
@@ -106,14 +107,14 @@ export const styles = StyleSheet.create({
   recordLabel: {
     ...typography.unified.label,
     maxWidth: '100%',
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 16,
+    lineHeight: 22,
     fontWeight: '500',
     color: '#1E2A43',
     textAlign: 'center',
   },
   relativeTimeMarker: {
-    minHeight: 18,
+    minHeight: 22,
     maxWidth: '100%',
     paddingHorizontal: 4,
     paddingVertical: 0,
@@ -123,19 +124,19 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   relativeTimePlaceholder: {
-    height: 18,
+    height: 22,
   },
   recordTimeSlot: {
-    minHeight: 18,
+    minHeight: 22,
     marginTop: 6,
     alignItems: 'center',
     justifyContent: 'center',
   },
   relativeTimeText: {
     ...typography.unified.body,
-    fontSize: 9,
-    lineHeight: 12,
-    fontWeight: '500',
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: '600',
     flexShrink: 1,
     textAlign: 'center',
   },

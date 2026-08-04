@@ -163,7 +163,9 @@ import {
   getMonthKeyFromYmd,
   getMonthKeyInKst,
 } from '../../../../utils/date';
-import WeatherGuideHomeCard from '../../../../components/weather/WeatherGuideHomeCard';
+import WeatherGuideHomeCard, {
+  WEATHER_DAY_BORDER_COLORS,
+} from '../../../../components/weather/WeatherGuideHomeCard';
 import type { PetCareGuide } from '../../../../services/guides/types';
 import { styles } from './LoggedInHome.styles';
 
@@ -174,6 +176,9 @@ type Nav = CompositeNavigationProp<
 >;
 
 const HOME_SCROLL_OFFSET_BY_KEY = new Map<string, number>();
+
+const WEEKLY_SUMMARY_COUNT_FONT_SIZE = 24;
+const WEEKLY_SUMMARY_UNIT_FONT_SIZE = 14;
 
 if (Platform.OS === 'android') {
   UIManager.setLayoutAnimationEnabledExperimental?.(true);
@@ -1199,7 +1204,6 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
   profilePetName,
   titleBadge,
   topMetaLine,
-  birthText,
   togetherDays,
   onPressPetProfileEdit,
 }: {
@@ -1208,7 +1212,6 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
   profilePetName: string;
   titleBadge: string | null;
   topMetaLine: string | null;
-  birthText: string | null;
   togetherDays: number | null;
   onPressPetProfileEdit: () => void;
 }) {
@@ -1275,6 +1278,7 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
               color={petTheme.deep}
             />
             <AppText preset="unifiedTitle"
+              styleOverridesPreset
               style={[styles.heroTitleBadgeText, { color: petTheme.deep }]}
               numberOfLines={1}
               ellipsizeMode="tail"
@@ -1284,7 +1288,9 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
           </View>
         ) : null}
 
-        <AppText preset="unifiedTitle"
+        <AppText
+          preset="unifiedTitle"
+          styleOverridesPreset
           style={[styles.heroName, { color: petTheme.deep }]}
           numberOfLines={1}
           ellipsizeMode="tail"
@@ -1293,20 +1299,24 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
         </AppText>
 
         {topMetaLine ? (
-          <AppText preset="unifiedBody" style={styles.heroMetaLine} numberOfLines={1}>
+          <AppText
+            preset="unifiedBody"
+            styleOverridesPreset
+            style={styles.heroMetaLine}
+            numberOfLines={1}
+          >
             {topMetaLine}
           </AppText>
         ) : (
-          <AppText preset="unifiedBody" style={styles.heroMetaMuted} numberOfLines={1}>
+          <AppText
+            preset="unifiedBody"
+            styleOverridesPreset
+            style={styles.heroMetaMuted}
+            numberOfLines={1}
+          >
             아이 정보를 채우면 더 예쁘게 보여요
           </AppText>
         )}
-
-        {birthText ? (
-          <AppText preset="unifiedDate" style={styles.heroBirthText} numberOfLines={1}>
-            태어난 날 {birthText}
-          </AppText>
-        ) : null}
 
         {togetherDays !== null ? (
           <View
@@ -1319,11 +1329,15 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
               <Text style={styles.heroTogetherHeart}>
                 {petTheme.heartEmoji}
               </Text>
-              <AppText preset="unifiedBody"
+              <AppText
+                preset="unifiedBody"
+                styleOverridesPreset
                 style={[styles.heroTogetherText, { color: petTheme.onDeep }]}
               >
                 함께한 시간{' '}
-                <AppText preset="unifiedBody"
+                <AppText
+                  preset="unifiedBody"
+                  styleOverridesPreset
                   style={[
                     styles.heroTogetherStrong,
                     { color: petTheme.onDeep },
@@ -1544,7 +1558,6 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
   profilePetName,
   titleBadge,
   topMetaLine,
-  birthText,
   togetherDays,
   hobbies,
   likes,
@@ -1561,7 +1574,6 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
   profilePetName: string;
   titleBadge: string | null;
   topMetaLine: string | null;
-  birthText: string | null;
   togetherDays: number | null;
   hobbies: string[];
   likes: string[];
@@ -1581,7 +1593,6 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
         profilePetName={profilePetName}
         titleBadge={titleBadge}
         topMetaLine={topMetaLine}
-        birthText={birthText}
         togetherDays={togetherDays}
         onPressPetProfileEdit={onPressPetProfileEdit}
       />
@@ -1776,7 +1787,13 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
 
   return (
     <View style={[styles.section, styles.recentSection]}>
-      <View style={styles.recentPreviewCard}>
+      <LinearGradient
+        colors={WEATHER_DAY_BORDER_COLORS}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.recentPreviewBorder}
+      >
+        <View style={styles.recentPreviewCard}>
         <View style={[styles.sectionHeaderRow, styles.recentSectionHeaderRow]}>
           <View style={styles.recentSectionTitleRow}>
             <MaterialCommunityIcons
@@ -1792,6 +1809,8 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
             color={accentColor}
             onPress={onPressTimeline}
             accessibilityLabel="전체 기록 보기"
+            textPreset="unifiedMicro"
+            size="compact"
           />
         </View>
         {isRecordBootstrapPending ? (
@@ -1852,7 +1871,8 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
             </View>
           </View>
         )}
-      </View>
+        </View>
+      </LinearGradient>
     </View>
   );
 });
@@ -1904,14 +1924,41 @@ const WeeklySummaryMetricCard = React.memo(function WeeklySummaryMetricCard({
         </View>
       </View>
 
-      <AppText preset="unifiedBody" style={styles.weeklySummaryMetricLabel} numberOfLines={1}>
+      <AppText
+        preset="unifiedBody"
+        styleOverridesPreset
+        style={styles.weeklySummaryMetricLabel}
+        numberOfLines={1}
+      >
         {label}
       </AppText>
       <View style={styles.weeklySummaryMetricValueRow}>
-        <AppText preset="unifiedBody" style={[styles.weeklySummaryMetricValue, { color: accentColor }]}>
+        <AppText
+          preset="unifiedBody"
+          styleOverridesPreset
+          style={[
+            styles.weeklySummaryMetricValue,
+            {
+              color: accentColor,
+              fontSize: WEEKLY_SUMMARY_COUNT_FONT_SIZE,
+              lineHeight: WEEKLY_SUMMARY_COUNT_FONT_SIZE + 4,
+            },
+          ]}
+        >
           {value}
         </AppText>
-        <AppText preset="unifiedBody" style={[styles.weeklySummaryMetricUnit, { color: accentColor }]}>
+        <AppText
+          preset="unifiedBody"
+          styleOverridesPreset
+          style={[
+            styles.weeklySummaryMetricUnit,
+            {
+              color: accentColor,
+              fontSize: WEEKLY_SUMMARY_UNIT_FONT_SIZE,
+              lineHeight: WEEKLY_SUMMARY_UNIT_FONT_SIZE + 5,
+            },
+          ]}
+        >
           {unit}
         </AppText>
       </View>
@@ -1941,9 +1988,13 @@ const WeeklySummarySection = React.memo(function WeeklySummarySection({
 
   return (
     <View style={[styles.section, styles.weeklySummarySection]}>
-      <View
-        style={[styles.weeklySummaryCard, { shadowColor: accentDeepColor }]}
+      <LinearGradient
+        colors={WEATHER_DAY_BORDER_COLORS}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.weeklySummaryBorder}
       >
+        <View style={[styles.weeklySummaryCard, { shadowColor: accentDeepColor }]}>
         <View style={styles.weeklySummaryHeader}>
           <View style={styles.weeklySummaryHeaderIcon}>
             <MaterialCommunityIcons
@@ -2076,7 +2127,8 @@ const WeeklySummarySection = React.memo(function WeeklySummarySection({
             </AppText>
           </View>
         </View>
-      </View>
+        </View>
+      </LinearGradient>
     </View>
   );
 });
@@ -2914,7 +2966,6 @@ export default function LoggedInHome() {
     () => (selectedPet?.birthDate ?? '').trim() || null,
     [selectedPet?.birthDate],
   );
-  const birthText = useMemo(() => formatYmdToDots(birthYmd), [birthYmd]);
 
   const ageText = useMemo(() => {
     return formatPetAgeLabelFromBirthDate(birthYmd);
@@ -3476,7 +3527,6 @@ export default function LoggedInHome() {
             profilePetName={profilePetName}
             titleBadge={homeTitleBadge}
             topMetaLine={topMetaLine}
-            birthText={birthText}
             togetherDays={togetherDays}
             hobbies={hobbies}
             likes={likes}

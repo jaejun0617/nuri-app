@@ -101,6 +101,10 @@ type RecordStore = {
 };
 
 const PAGE_SIZE = 20;
+// Record creation can start a background hydration refresh before the
+// navigation callback awaits refresh. Share that in-flight task per pet so
+// home never treats an already-running refresh as completed.
+const refreshPromises = new Map<string, Promise<void>>();
 
 const createInitialPetState = (): PetRecordsState => ({
   items: [],
@@ -468,80 +472,95 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
   refresh: async (petId: string) => {
     if (!petId) return;
 
+    const activeRefresh = refreshPromises.get(petId);
+    if (activeRefresh) {
+      await activeRefresh;
+      return;
+    }
+
     get().ensurePetState(petId);
     const st = get().getPetState(petId);
 
-    if (st.status === 'refreshing') return;
-
     const req = st.requestSeq + 1;
 
-    set(s => ({
-      byPetId: {
-        ...s.byPetId,
-        [petId]: {
-          ...s.byPetId[petId],
-          status: 'refreshing',
-          errorMessage: null,
-          requestSeq: req,
+    const refreshTask = (async () => {
+      set(s => ({
+        byPetId: {
+          ...s.byPetId,
+          [petId]: {
+            ...s.byPetId[petId],
+            status: 'refreshing',
+            errorMessage: null,
+            requestSeq: req,
+          },
         },
-      },
-    }));
+      }));
 
+      try {
+        const page = await fetchMemoriesByPetPage({
+          petId,
+          limit: PAGE_SIZE,
+          cursor: null,
+          prefetchTop: 10,
+        });
+
+        set(s => {
+          const cur = s.byPetId[petId];
+          if (!cur || cur.requestSeq !== req) return s;
+
+          const items = normalizeRecordItems([...page.items]);
+          sortByDisplayDateDesc(items);
+          const nextPetState: PetRecordsState = {
+            ...cur,
+            items,
+            status: 'ready',
+            errorMessage: null,
+            cursor: page.nextCursor,
+            hasMore: page.hasMore,
+          };
+
+          return {
+            recordsById: upsertRecordEntities(s.recordsById, items),
+            byPetId: {
+              ...s.byPetId,
+              [petId]: nextPetState,
+            },
+            timelineByPetId: {
+              ...s.timelineByPetId,
+              [petId]: {
+                ...toTimelineState(nextPetState),
+                entityVersion:
+                  (s.timelineByPetId[petId]?.entityVersion ?? 0) + 1,
+              },
+            },
+          };
+        });
+      } catch (error: unknown) {
+        set(s => {
+          const cur = s.byPetId[petId];
+          if (!cur || cur.requestSeq !== req) return s;
+
+          return {
+            byPetId: {
+              ...s.byPetId,
+              [petId]: {
+                ...cur,
+                status: 'error',
+                errorMessage: getErrorMessage(error) || '새로고침 실패',
+              },
+            },
+          };
+        });
+      }
+    })();
+
+    refreshPromises.set(petId, refreshTask);
     try {
-      const page = await fetchMemoriesByPetPage({
-        petId,
-        limit: PAGE_SIZE,
-        cursor: null,
-        prefetchTop: 10,
-      });
-
-      set(s => {
-        const cur = s.byPetId[petId];
-        if (!cur || cur.requestSeq !== req) return s;
-
-        const items = normalizeRecordItems([...page.items]);
-        sortByDisplayDateDesc(items);
-        const nextPetState: PetRecordsState = {
-          ...cur,
-          items,
-          status: 'ready',
-          errorMessage: null,
-          cursor: page.nextCursor,
-          hasMore: page.hasMore,
-        };
-
-        return {
-          recordsById: upsertRecordEntities(s.recordsById, items),
-          byPetId: {
-            ...s.byPetId,
-            [petId]: nextPetState,
-          },
-          timelineByPetId: {
-            ...s.timelineByPetId,
-            [petId]: {
-              ...toTimelineState(nextPetState),
-              entityVersion:
-                (s.timelineByPetId[petId]?.entityVersion ?? 0) + 1,
-            },
-          },
-        };
-      });
-    } catch (error: unknown) {
-      set(s => {
-        const cur = s.byPetId[petId];
-        if (!cur || cur.requestSeq !== req) return s;
-
-        return {
-          byPetId: {
-            ...s.byPetId,
-            [petId]: {
-              ...cur,
-              status: 'error',
-              errorMessage: getErrorMessage(error) || '새로고침 실패',
-            },
-          },
-        };
-      });
+      await refreshTask;
+    } finally {
+      if (refreshPromises.get(petId) === refreshTask) {
+        refreshPromises.delete(petId);
+      }
     }
   },
 

@@ -33,6 +33,7 @@ const BLUE = '#2563EB';
 const ORANGE = '#F97316';
 const PINK = '#EF4444';
 const PURPLE = BRAND_DEEP;
+const HOME_SECTION_GAP = 24;
 
 export const styles = StyleSheet.create({
   // ---------------------------------------------------------
@@ -44,7 +45,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: SCREEN_TOP_SPACING,
     paddingBottom: 34,
-    gap: 18,
+    gap: HOME_SECTION_GAP,
   },
   topButtonWrap: {
     position: 'absolute',
@@ -508,11 +509,12 @@ export const styles = StyleSheet.create({
 
   heroName: {
     maxWidth: '88%',
-    fontSize: 28,
-    fontWeight: '900',
+    fontSize: 24,
+    lineHeight: 30,
+    fontWeight: '800',
     color: BRAND_DEEP,
-    letterSpacing: -0.4,
-    marginTop: 2,
+    letterSpacing: 0,
+    marginTop: 8,
     textAlign: 'center',
   },
   heroTitleBadge: {
@@ -529,31 +531,27 @@ export const styles = StyleSheet.create({
   },
   heroTitleBadgeText: {
     flexShrink: 1,
-    fontSize: 11,
-    lineHeight: 15,
-    fontWeight: '900',
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '800',
     letterSpacing: 0,
   },
   heroMetaLine: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: MUTED,
+    marginTop: 6,
+    fontSize: 12,
     lineHeight: 18,
+    fontWeight: '600',
+    color: MUTED,
   },
   heroMetaMuted: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: 'rgba(85,96,112,0.65)',
+    marginTop: 6,
+    fontSize: 12,
     lineHeight: 18,
+    fontWeight: '600',
+    color: 'rgba(85,96,112,0.65)',
   },
-  heroBirthText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: 'rgba(85,96,112,0.85)',
-  },
-
   heroTogetherPill: {
-    marginTop: 12,
+    marginTop: 16,
     alignSelf: 'center',
     paddingHorizontal: 24,
     paddingVertical: 12,
@@ -569,12 +567,14 @@ export const styles = StyleSheet.create({
   },
   heroTogetherText: {
     fontSize: 14,
+    lineHeight: 20,
     fontWeight: '900',
     color: '#FFFFFF',
-    letterSpacing: -0.2,
+    letterSpacing: 0,
   },
   heroTogetherStrong: {
-    fontSize: 16,
+    fontSize: 18,
+    lineHeight: 22,
     fontWeight: '900',
     color: '#FFFFFF',
   },
@@ -749,18 +749,18 @@ export const styles = StyleSheet.create({
   // ---------------------------------------------------------
   section: {
     gap: 20,
-    marginTop: 6,
+    marginTop: 0,
     paddingTop: 20,
     paddingBottom: 14,
     paddingHorizontal: 14,
   },
   todayPhotoSection: {
-    marginTop: 18,
-    paddingTop: 28,
+    marginTop: 0,
+    paddingTop: 20,
   },
   recentSection: {
     gap: 14,
-    paddingHorizontal: 0,
+    paddingHorizontal: 14,
   },
   recentSectionHeaderRow: {
     alignItems: 'center',
@@ -863,13 +863,16 @@ export const styles = StyleSheet.create({
   recentPreviewWrap: {
     marginTop: 0,
   },
+  recentPreviewBorder: {
+    borderRadius: 17,
+    padding: 1.25,
+  },
   recentPreviewCard: {
     borderRadius: 16,
     paddingHorizontal: 0,
     paddingVertical: 0,
     backgroundColor: SURFACE,
-    borderWidth: 1,
-    borderColor: 'rgba(15,23,42,0.06)',
+    borderWidth: 0,
     shadowColor: '#64748B',
     shadowOpacity: 0.045,
     shadowRadius: 10,
@@ -976,13 +979,16 @@ export const styles = StyleSheet.create({
   weeklySummarySection: {
     marginTop: 0,
   },
+  weeklySummaryBorder: {
+    borderRadius: 29.25,
+    padding: 1.25,
+  },
   weeklySummaryCard: {
     borderRadius: 28,
     paddingHorizontal: 18,
     paddingVertical: 18,
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#F0ECF7',
+    borderWidth: 0,
     gap: 14,
     shadowColor: '#2C1654',
     shadowOpacity: 0.06,
@@ -1066,7 +1072,7 @@ export const styles = StyleSheet.create({
   weeklySummaryMetricLabel: {
     marginTop: 8,
     fontSize: 14,
-    lineHeight: 18,
+    lineHeight: 20,
     fontWeight: '500',
     color: '#26213B',
   },
@@ -1076,15 +1082,15 @@ export const styles = StyleSheet.create({
     gap: 6,
   },
   weeklySummaryMetricValue: {
-    fontSize: 28,
-    lineHeight: 32,
-    fontWeight: '800',
-    letterSpacing: -0.5,
+    fontSize: 24,
+    lineHeight: 28,
+    fontWeight: '700',
+    letterSpacing: 0,
   },
   weeklySummaryMetricUnit: {
-    fontSize: 11,
-    lineHeight: 16,
-    fontWeight: '500',
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: '600',
   },
   weeklySummaryInsight: {
     minHeight: 76,
@@ -1136,6 +1142,7 @@ export const styles = StyleSheet.create({
     minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 5,
   },
   weeklySummaryFooterDividerVertical: {
