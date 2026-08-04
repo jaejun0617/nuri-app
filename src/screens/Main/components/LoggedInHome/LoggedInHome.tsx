@@ -78,7 +78,7 @@ import { useRecordStore } from '../../../../store/recordStore';
 import { useScheduleStore } from '../../../../store/scheduleStore';
 
 import {
-  fetchMemoriesByPetDateRange,
+  fetchMemorySummaryRecordsByPet,
   type MemoryRecord,
 } from '../../../../services/supabase/memories';
 import type { PetSchedule } from '../../../../services/supabase/schedules';
@@ -88,9 +88,13 @@ import {
 import { buildHomeWidgetSnapshot } from '../../../../services/home/widgetSnapshot';
 import { syncHomeWidgetSnapshot } from '../../../../services/home/widgetBridge';
 import {
-  buildWeeklySummary,
-  buildWeeklySummaryLine,
-  getWeeklySummaryBounds,
+  buildTotalSummary,
+  buildTotalSummaryLine,
+  completeTotalSummaryLoad,
+  createTotalSummaryState,
+  failTotalSummaryLoad,
+  startTotalSummaryLoad,
+  type TotalSummaryState,
 } from '../../../../services/home/weeklySummary';
 import {
   formatRecordCreatedTime,
@@ -1889,22 +1893,27 @@ const WeeklySummaryMetricCard = React.memo(function WeeklySummaryMetricCard({
   accentColor,
   iconBackground,
   onPress,
+  isLoading = false,
 }: {
   label: string;
-  value: number;
+  value: number | null;
   unit: string;
   icon: WeeklySummaryIconName;
   accentColor: string;
   iconBackground: string;
   onPress: () => void;
+  isLoading?: boolean;
 }) {
+  const valueLabel =
+    value === null ? (isLoading ? '불러오는 중' : '확인 필요') : `${value}${unit}`;
+
   return (
     <TouchableOpacity
       activeOpacity={0.9}
       style={styles.weeklySummaryMetricCard}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${label} ${value}${unit}`}
+      accessibilityLabel={`${label} ${valueLabel}`}
     >
       <View style={styles.weeklySummaryMetricTopRow}>
         <View
@@ -1933,20 +1942,41 @@ const WeeklySummaryMetricCard = React.memo(function WeeklySummaryMetricCard({
         {label}
       </AppText>
       <View style={styles.weeklySummaryMetricValueRow}>
-        <AppText
-          preset="unifiedBody"
-          styleOverridesPreset
-          style={[
-            styles.weeklySummaryMetricValue,
-            {
-              color: accentColor,
-              fontSize: WEEKLY_SUMMARY_COUNT_FONT_SIZE,
-              lineHeight: WEEKLY_SUMMARY_COUNT_FONT_SIZE + 4,
-            },
-          ]}
-        >
-          {value}
-        </AppText>
+        {value === null ? (
+          isLoading ? (
+            <View
+              style={{
+                width: 26,
+                height: 14,
+                borderRadius: 4,
+                backgroundColor: '#F0ECF7',
+              }}
+            />
+          ) : (
+            <AppText
+              preset="unifiedBody"
+              styleOverridesPreset
+              style={[styles.weeklySummaryMetricValue, { color: accentColor }]}
+            >
+              —
+            </AppText>
+          )
+        ) : (
+          <AppText
+            preset="unifiedBody"
+            styleOverridesPreset
+            style={[
+              styles.weeklySummaryMetricValue,
+              {
+                color: accentColor,
+                fontSize: WEEKLY_SUMMARY_COUNT_FONT_SIZE,
+                lineHeight: WEEKLY_SUMMARY_COUNT_FONT_SIZE + 4,
+              },
+            ]}
+          >
+            {value}
+          </AppText>
+        )}
         <AppText
           preset="unifiedBody"
           styleOverridesPreset
@@ -1966,24 +1996,35 @@ const WeeklySummaryMetricCard = React.memo(function WeeklySummaryMetricCard({
   );
 });
 
-const WeeklySummarySection = React.memo(function WeeklySummarySection({
+const TotalSummarySection = React.memo(function TotalSummarySection({
   records,
-  schedules,
   accentDeepColor,
-  onPressTimeline,
+  isLoading,
+  onPressWalk,
+  onPressMeal,
+  onPressLife,
+  onPressAllRecords,
 }: {
-  records: MemoryRecord[];
-  schedules: PetSchedule[];
+  records: MemoryRecord[] | null;
   accentDeepColor: string;
-  onPressTimeline: () => void;
+  isLoading: boolean;
+  onPressWalk: () => void;
+  onPressMeal: () => void;
+  onPressLife: () => void;
+  onPressAllRecords: () => void;
 }) {
-  const weeklySummary = useMemo(
-    () => buildWeeklySummary(records, schedules),
-    [records, schedules],
+  const totalSummary = useMemo(
+    () => (records ? buildTotalSummary(records) : null),
+    [records],
   );
   const summaryLine = useMemo(
-    () => buildWeeklySummaryLine(weeklySummary),
-    [weeklySummary],
+    () =>
+      totalSummary
+        ? buildTotalSummaryLine(totalSummary)
+        : isLoading
+          ? '전체 기록을 불러오는 중이에요.'
+          : '전체 기록을 확인할 수 없어요.',
+    [isLoading, totalSummary],
   );
 
   return (
@@ -2005,10 +2046,10 @@ const WeeklySummarySection = React.memo(function WeeklySummarySection({
           </View>
           <View style={styles.weeklySummaryHeaderText}>
             <AppText preset="unifiedTitle" style={[styles.weeklySummaryTitle, { color: accentDeepColor }]}>
-              이번 주 요약
+              전체 요약
             </AppText>
             <AppText preset="unifiedBody" style={styles.weeklySummarySubtitle}>
-              이번 주 리듬을 한눈에 확인해요.
+              지금까지 남긴 기록을 한눈에 확인해보세요
             </AppText>
           </View>
         </View>
@@ -2017,41 +2058,45 @@ const WeeklySummarySection = React.memo(function WeeklySummarySection({
           <View style={styles.weeklySummaryRow}>
             <WeeklySummaryMetricCard
               label="산책 기록"
-              value={weeklySummary.walkCount}
+              value={totalSummary?.walkCount ?? null}
               unit="기록"
               icon="paw"
               accentColor={accentDeepColor}
               iconBackground="#F4EEFF"
-              onPress={onPressTimeline}
+              onPress={onPressWalk}
+              isLoading={isLoading}
             />
             <WeeklySummaryMetricCard
               label="식사 기록"
-              value={weeklySummary.mealCount}
+              value={totalSummary?.mealCount ?? null}
               unit="기록"
               icon="silverware-fork-knife"
               accentColor="#FF4FA3"
               iconBackground="#FFEAF3"
-              onPress={onPressTimeline}
+              onPress={onPressMeal}
+              isLoading={isLoading}
             />
           </View>
           <View style={styles.weeklySummaryRow}>
             <WeeklySummaryMetricCard
               label="생활 기록"
-              value={weeklySummary.lifeCount}
+              value={totalSummary?.lifeCount ?? null}
               unit="기록"
               icon="notebook-outline"
               accentColor="#18BFA7"
               iconBackground="#EAF9F6"
-              onPress={onPressTimeline}
+              onPress={onPressLife}
+              isLoading={isLoading}
             />
             <WeeklySummaryMetricCard
               label="기록한 날"
-              value={weeklySummary.recordDays}
+              value={totalSummary?.recordDays ?? null}
               unit="일"
               icon="calendar-month-outline"
               accentColor="#FF8A24"
               iconBackground="#FFF3E8"
-              onPress={onPressTimeline}
+              onPress={onPressAllRecords}
+              isLoading={isLoading}
             />
           </View>
         </View>
@@ -2059,9 +2104,9 @@ const WeeklySummarySection = React.memo(function WeeklySummarySection({
         <TouchableOpacity
           activeOpacity={0.9}
           style={styles.weeklySummaryInsight}
-          onPress={onPressTimeline}
+          onPress={onPressAllRecords}
           accessibilityRole="button"
-          accessibilityLabel={`이번 주 한 줄 요약, ${summaryLine}`}
+          accessibilityLabel={`전체 기록 한 줄 요약, ${summaryLine}`}
         >
           <View style={styles.weeklySummaryInsightIcon}>
             <MaterialCommunityIcons
@@ -2072,7 +2117,7 @@ const WeeklySummarySection = React.memo(function WeeklySummarySection({
           </View>
           <View style={styles.weeklySummaryInsightText}>
             <AppText preset="unifiedLabel" style={styles.weeklySummaryInsightTitle}>
-              이번 주 한 줄 요약
+              전체 기록 한 줄 요약
             </AppText>
             <AppText preset="unifiedBody" style={styles.weeklySummaryInsightBody} numberOfLines={2}>
               {summaryLine}
@@ -2094,36 +2139,54 @@ const WeeklySummarySection = React.memo(function WeeklySummarySection({
               color={accentDeepColor}
             />
             <AppText preset="unifiedBody" style={styles.weeklySummaryFooterText} numberOfLines={1}>
-              이번 주 총 기록{' '}
-              <AppText preset="unifiedBody"
-                style={[
-                  styles.weeklySummaryFooterValue,
-                  { color: accentDeepColor },
-                ]}
-              >
-                {weeklySummary.totalRecords}
-              </AppText>
-              개
+              {totalSummary ? (
+                <>
+                  전체 기록{' '}
+                  <AppText
+                    preset="unifiedBody"
+                    style={[
+                      styles.weeklySummaryFooterValue,
+                      { color: accentDeepColor },
+                    ]}
+                  >
+                    {totalSummary.totalRecords}
+                  </AppText>
+                  개
+                </>
+              ) : isLoading ? (
+                '확인 중'
+              ) : (
+                '확인 필요'
+              )}
             </AppText>
           </View>
           <View style={styles.weeklySummaryFooterDividerVertical} />
           <View style={styles.weeklySummaryFooterItem}>
             <MaterialCommunityIcons
-              name="clock-outline"
+              name="calendar-month-outline"
               size={17}
               color={accentDeepColor}
             />
             <AppText preset="unifiedBody" style={styles.weeklySummaryFooterText} numberOfLines={1}>
-              남은 일정{' '}
-              <AppText preset="unifiedBody"
-                style={[
-                  styles.weeklySummaryFooterValue,
-                  { color: accentDeepColor },
-                ]}
-              >
-                {weeklySummary.upcomingSchedules}
-              </AppText>
-              개
+              {totalSummary ? (
+                <>
+                  기록한 날{' '}
+                  <AppText
+                    preset="unifiedBody"
+                    style={[
+                      styles.weeklySummaryFooterValue,
+                      { color: accentDeepColor },
+                    ]}
+                  >
+                    {totalSummary.recordDays}
+                  </AppText>
+                  일
+                </>
+              ) : isLoading ? (
+                '확인 중'
+              ) : (
+                '확인 필요'
+              )}
             </AppText>
           </View>
         </View>
@@ -2751,9 +2814,10 @@ export default function LoggedInHome() {
   const recordStatus = useRecordStore(s =>
     activePetId ? s.byPetId[activePetId]?.status ?? 'idle' : 'idle',
   );
-  const [weeklySummaryRecords, setWeeklySummaryRecords] = useState<
-    MemoryRecord[] | null
-  >(null);
+  const [totalSummaryState, setTotalSummaryState] = useState<TotalSummaryState>(
+    () => createTotalSummaryState(),
+  );
+  const totalSummaryRequestIdRef = useRef(0);
   const recordStatusRef = useRef(recordStatus);
   recordStatusRef.current = recordStatus;
   const scheduleItems = useScheduleStore(s =>
@@ -2770,33 +2834,50 @@ export default function LoggedInHome() {
   );
 
   useEffect(() => {
-    if (!activePetId || !isScreenFocused) {
-      if (!activePetId) setWeeklySummaryRecords(null);
+    if (!activePetId) {
+      const requestId = ++totalSummaryRequestIdRef.current;
+      setTotalSummaryState(() => ({
+        ...createTotalSummaryState(),
+        requestId,
+      }));
       return undefined;
     }
 
-    let cancelled = false;
-    setWeeklySummaryRecords(null);
-    const bounds = getWeeklySummaryBounds();
+    if (!isScreenFocused) {
+      return undefined;
+    }
 
-    fetchMemoriesByPetDateRange({
-      petId: activePetId,
-      startYmd: bounds.startYmd,
-      endExclusiveYmd: bounds.endExclusiveYmd,
-      createdAtStartIso: bounds.startIso,
-      createdAtEndExclusiveIso: bounds.endExclusiveIso,
-    })
+    const requestId = ++totalSummaryRequestIdRef.current;
+    let cancelled = false;
+    setTotalSummaryState(previous =>
+      startTotalSummaryLoad(previous, activePetId, requestId),
+    );
+
+    fetchMemorySummaryRecordsByPet(activePetId)
       .then(records => {
-        if (!cancelled) setWeeklySummaryRecords(records);
+        if (cancelled) return;
+        setTotalSummaryState(previous =>
+          completeTotalSummaryLoad(previous, {
+            petId: activePetId,
+            requestId,
+            records,
+          }),
+        );
       })
       .catch(() => {
-        if (!cancelled) setWeeklySummaryRecords(null);
+        if (cancelled) return;
+        setTotalSummaryState(previous =>
+          failTotalSummaryLoad(previous, {
+            petId: activePetId,
+            requestId,
+          }),
+        );
       });
 
     return () => {
       cancelled = true;
     };
-  }, [activePetId, isScreenFocused, recordItems]);
+  }, [activePetId, isScreenFocused]);
   const healthActivityItems = useMemo(
     () => buildHealthActivityItems(recordItems, scheduleItems),
     [recordItems, scheduleItems],
@@ -3141,6 +3222,19 @@ export default function LoggedInHome() {
       });
     },
     [navigation, activePetId],
+  );
+
+  const onPressTotalWalk = useCallback(
+    () => onPressTimelineCategory('walk'),
+    [onPressTimelineCategory],
+  );
+  const onPressTotalMeal = useCallback(
+    () => onPressTimelineCategory('meal'),
+    [onPressTimelineCategory],
+  );
+  const onPressTotalLife = useCallback(
+    () => onPressTimelineCategory('other'),
+    [onPressTimelineCategory],
   );
 
   const onPressFrequentRecord = useCallback(
@@ -3566,11 +3660,23 @@ export default function LoggedInHome() {
             accentDeepColor={petTheme.deep}
           />
 
-          <WeeklySummarySection
-            records={weeklySummaryRecords ?? recordItems}
-            schedules={visibleScheduleItems}
+          <TotalSummarySection
+            records={
+              totalSummaryState.petId === activePetId
+                ? totalSummaryState.records
+                : null
+            }
             accentDeepColor={petTheme.deep}
-            onPressTimeline={onPressTimeline}
+            isLoading={
+              activePetId !== null &&
+              (totalSummaryState.petId !== activePetId ||
+                (totalSummaryState.records === null &&
+                  totalSummaryState.status === 'loading'))
+            }
+            onPressWalk={onPressTotalWalk}
+            onPressMeal={onPressTotalMeal}
+            onPressLife={onPressTotalLife}
+            onPressAllRecords={onPressTimeline}
           />
 
           <RecommendationTipsSection

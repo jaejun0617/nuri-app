@@ -1,7 +1,7 @@
 // 파일: src/services/home/weeklySummary.ts
 // 역할:
-// - 홈 화면의 "이번 주 요약" 카드 계산
-// - 기록/일정 데이터를 한 번만 훑어서 이번 주 핵심 지표를 만든다
+// - 홈 요약 카드의 주간 호환 집계와 전체 누적 집계를 계산한다.
+// - 기록 분류와 KST 표시 날짜 기준을 주간/전체 요약에서 공유한다.
 
 import type { MemoryRecord } from '../supabase/memories';
 import type { PetSchedule } from '../supabase/schedules';
@@ -29,6 +29,83 @@ export type WeeklySummary = {
   upcomingSchedules: number;
 };
 
+export type TotalSummary = Omit<WeeklySummary, 'upcomingSchedules'>;
+
+export type TotalSummaryLoadStatus =
+  | 'idle'
+  | 'loading'
+  | 'ready'
+  | 'refreshing'
+  | 'error';
+
+export type TotalSummaryState = {
+  petId: string | null;
+  records: MemoryRecord[] | null;
+  status: TotalSummaryLoadStatus;
+  hasError: boolean;
+  requestId: number;
+};
+
+export function createTotalSummaryState(): TotalSummaryState {
+  return {
+    petId: null,
+    records: null,
+    status: 'idle',
+    hasError: false,
+    requestId: 0,
+  };
+}
+
+export function startTotalSummaryLoad(
+  previous: TotalSummaryState,
+  petId: string,
+  requestId: number,
+): TotalSummaryState {
+  const hasCurrentPetData =
+    previous.petId === petId && previous.records !== null;
+
+  return {
+    petId,
+    records: hasCurrentPetData ? previous.records : null,
+    status: hasCurrentPetData ? 'refreshing' : 'loading',
+    hasError: false,
+    requestId,
+  };
+}
+
+export function completeTotalSummaryLoad(
+  previous: TotalSummaryState,
+  input: { petId: string; requestId: number; records: MemoryRecord[] },
+): TotalSummaryState {
+  if (previous.petId !== input.petId || previous.requestId !== input.requestId) {
+    return previous;
+  }
+
+  return {
+    petId: input.petId,
+    records: input.records,
+    status: 'ready',
+    hasError: false,
+    requestId: input.requestId,
+  };
+}
+
+export function failTotalSummaryLoad(
+  previous: TotalSummaryState,
+  input: { petId: string; requestId: number },
+): TotalSummaryState {
+  if (previous.petId !== input.petId || previous.requestId !== input.requestId) {
+    return previous;
+  }
+
+  const hasPreviousData = previous.records !== null;
+  return {
+    ...previous,
+    status: hasPreviousData ? 'ready' : 'error',
+    hasError: true,
+  };
+}
+
 export type WeeklySummaryBounds = {
   startYmd: string;
   endExclusiveYmd: string;
@@ -36,7 +113,7 @@ export type WeeklySummaryBounds = {
   endExclusiveIso: string;
 };
 
-type WeeklyRecordKind = 'walk' | 'meal' | 'life' | null;
+type SummaryRecordKind = 'walk' | 'meal' | 'life' | null;
 
 function toKstMidnightIso(ymd: string): string {
   return new Date(`${ymd}T00:00:00+09:00`).toISOString();
@@ -82,7 +159,7 @@ function hasExplicitCategory(record: MemoryRecord): boolean {
   });
 }
 
-function getWeeklyRecordKind(record: MemoryRecord): WeeklyRecordKind {
+function getSummaryRecordKind(record: MemoryRecord): SummaryRecordKind {
   const explicitCategory = hasExplicitCategory(record);
   const rawCategory = readRecordCategoryRaw(record).trim().toLowerCase();
   const mainCategory = normalizeCategoryKey(readRecordCategoryRaw(record));
@@ -146,7 +223,7 @@ export function buildWeeklySummary(
     const ymd = getRecordDisplayYmd(record);
     if (!isWithinWeekYmd(ymd, weekStartYmd, weekEndYmd)) continue;
 
-    const recordKind = getWeeklyRecordKind(record);
+    const recordKind = getSummaryRecordKind(record);
     if (!recordKind) continue;
 
     totalRecords += 1;
@@ -173,6 +250,39 @@ export function buildWeeklySummary(
   };
 }
 
+/**
+ * 현재 선택된 반려동물의 전체 유효 기록을 기간 제한 없이 집계한다.
+ * 기록 날짜는 occurredAt을 우선하고, 없으면 createdAt의 KST 날짜를 사용한다.
+ */
+export function buildTotalSummary(records: MemoryRecord[]): TotalSummary {
+  const seenDays = new Set<string>();
+  let walkCount = 0;
+  let mealCount = 0;
+  let lifeCount = 0;
+  let totalRecords = 0;
+
+  for (const record of records) {
+    const ymd = getRecordDisplayYmd(record);
+    const recordKind = getSummaryRecordKind(record);
+    if (!ymd || !recordKind) continue;
+
+    totalRecords += 1;
+    seenDays.add(ymd);
+
+    if (recordKind === 'walk') walkCount += 1;
+    if (recordKind === 'meal') mealCount += 1;
+    if (recordKind === 'life') lifeCount += 1;
+  }
+
+  return {
+    walkCount,
+    mealCount,
+    lifeCount,
+    recordDays: seenDays.size,
+    totalRecords,
+  };
+}
+
 export function buildWeeklySummaryLine(summary: WeeklySummary): string {
   if (summary.totalRecords === 0) return '이번 주 첫 기록을 남겨보세요.';
   if (summary.walkCount > 0 && summary.mealCount > 0) {
@@ -182,4 +292,15 @@ export function buildWeeklySummaryLine(summary: WeeklySummary): string {
   if (summary.mealCount > 0) return '꾸준한 식사 기록으로 건강한 한 주를 만들었어요!';
   if (summary.lifeCount > 0) return '소중한 생활 기록으로 한 주를 남겼어요.';
   return '이번 주의 기록을 차곡차곡 남겨보세요.';
+}
+
+export function buildTotalSummaryLine(summary: TotalSummary): string {
+  if (summary.totalRecords === 0) return '아직 남긴 기록이 없어요.';
+  if (summary.walkCount > 0 && summary.mealCount > 0) {
+    return '산책과 식사 기록이 차곡차곡 쌓였어요!';
+  }
+  if (summary.walkCount > 0) return '산책 기록이 차곡차곡 쌓였어요!';
+  if (summary.mealCount > 0) return '식사 기록이 차곡차곡 쌓였어요!';
+  if (summary.lifeCount > 0) return '소중한 생활 기록이 쌓였어요.';
+  return '우리 아이의 기록을 차곡차곡 남겨보세요.';
 }

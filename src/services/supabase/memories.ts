@@ -31,7 +31,6 @@ import {
 import { getRecordSortTimestamp } from '../records/date';
 import {
   buildTimelineCategoryCounts,
-  createEmptyTimelineCategoryCounts,
   type TimelineCategoryCounts,
 } from '../timeline/query';
 
@@ -101,6 +100,7 @@ type TimelineCategoryCountRow = {
   tags?: string[] | null;
   category?: string | null;
   sub_category?: string | null;
+  occurred_at?: string | null;
   created_at: string;
 };
 
@@ -206,6 +206,7 @@ function mapTimelineCountRowToMemoryRecord(
     tags: Array.isArray(row.tags) ? row.tags.filter(tag => typeof tag === 'string') : [],
     category: row.category ?? null,
     subCategory: row.sub_category ?? null,
+    occurredAt: row.occurred_at ?? null,
     createdAt: row.created_at,
     imagePaths: [],
   };
@@ -667,19 +668,31 @@ export async function fetchMemoriesByPetPage(input: {
 export async function fetchTimelineCategoryCountsByPet(
   petId: string,
 ): Promise<TimelineCategoryCounts> {
-  if (!petId.trim()) return createEmptyTimelineCategoryCounts();
+  const records = await fetchMemorySummaryRecordsByPet(petId);
+  return buildTimelineCategoryCounts(records);
+}
+
+/**
+ * 홈 전체 요약과 타임라인 카운트가 같은 전체 기록 source를 사용하도록
+ * 이미지·본문을 제외한 집계용 컬럼만 조회한다.
+ */
+export async function fetchMemorySummaryRecordsByPet(
+  petId: string,
+): Promise<MemoryRecord[]> {
+  if (!petId.trim()) return [];
 
   const { data, error } = await supabase
     .from('memories')
-    .select('id, pet_id, title, tags, category, sub_category, created_at')
+    .select(
+      'id, pet_id, title, tags, category, sub_category, occurred_at, created_at',
+    )
     .eq('pet_id', petId);
 
   if (error) throw error;
 
-  const records = toTimelineCategoryCountRows(data).map(
+  return toTimelineCategoryCountRows(data).map(
     mapTimelineCountRowToMemoryRecord,
   );
-  return buildTimelineCategoryCounts(records);
 }
 
 export async function fetchMemoriesByPetDateRange(input: {
