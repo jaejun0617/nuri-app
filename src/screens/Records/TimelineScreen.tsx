@@ -1110,7 +1110,10 @@ export default function TimelineScreen() {
   const endReachedLockRef = useRef(0);
   const onEndReached = useCallback(() => {
     if (!petId || !hasMore || status !== 'ready') return;
-    if (ymFilter || mainCategory !== 'all' || otherSubCategory) return;
+
+    // Category/month filters still use the same cursor pages. Blocking
+    // loadMore here makes the badge count represent all records while the
+    // timeline can only render the first page.
 
     const now = Date.now();
     if (now - endReachedLockRef.current < 800) return;
@@ -1120,11 +1123,8 @@ export default function TimelineScreen() {
   }, [
     hasMore,
     loadMore,
-    mainCategory,
-    otherSubCategory,
     petId,
     status,
-    ymFilter,
   ]);
 
   const jumpToYm = useCallback((ym: string | null) => {
