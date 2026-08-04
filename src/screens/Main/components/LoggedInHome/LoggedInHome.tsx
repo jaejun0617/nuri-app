@@ -2,8 +2,7 @@
 // 목적:
 // - 로그인 홈 (LoggedInHome)
 // - 홈 허브에서 프로필/날씨/최근 기록/건강관리/일정/가이드를 한 번에 소비한다.
-// - 최근 기록은 홈 전용 세로 프리뷰 섹션으로, 이미지 기록을 우선 포함하되
-//   화면 높이가 과도하게 길어지지 않도록 최대 7개까지만 압축 노출한다.
+// - 최근 기록은 홈 전용 세로 프리뷰 섹션으로, 최신 3개만 압축 노출한다.
 
 import AppText from '../../../../app/ui/AppText';
 import React, {
@@ -166,7 +165,6 @@ import { getGuideRotationWindowKey } from '../../../../services/guides/rotation'
 import { recordPetCareGuideEvents } from '../../../../services/guides/service';
 import {
   diffDaysFromKst,
-  formatKstDateWithWeekday,
   formatYmdToDots,
   formatYmdWithWeekday,
   getMonthKeyFromYmd,
@@ -231,9 +229,6 @@ type WeeklyScheduleItem = {
 
 type HomeRecentPreviewItem = {
   record: MemoryRecord;
-  groupKey: string;
-  groupLabel: string;
-  groupDateText: string | null;
 };
 
 type HomeNotificationOverlayProps = {
@@ -314,11 +309,6 @@ function clampList(list: string[] | null | undefined, max = 2) {
     .slice(0, max);
 }
 
-function formatHomeRecentGroupLabel(ymd: string | null): string {
-  if (!ymd) return '최근';
-  return formatKstDateWithWeekday(ymd) || '최근';
-}
-
 function buildHomeRecentPreviewItems(
   records: MemoryRecord[],
 ): HomeRecentPreviewItem[] {
@@ -329,40 +319,8 @@ function buildHomeRecentPreviewItems(
     .slice(0, HOME_RECENT_RECORDS_MAX);
 
   return selectedRecords.map(record => {
-    const displayYmd = getRecordDisplayYmd(record);
-    return {
-      record,
-      groupKey: displayYmd ?? record.id,
-      groupLabel: formatHomeRecentGroupLabel(displayYmd),
-      groupDateText: null,
-    };
+    return { record };
   });
-}
-
-function groupHomeRecentPreviewItems(items: HomeRecentPreviewItem[]) {
-  const groups: Array<{
-    key: string;
-    label: string;
-    dateText: string | null;
-    items: HomeRecentPreviewItem[];
-  }> = [];
-
-  for (const item of items) {
-    const prev = groups[groups.length - 1];
-    if (prev && prev.key === item.groupKey) {
-      prev.items.push(item);
-      continue;
-    }
-
-    groups.push({
-      key: item.groupKey,
-      label: item.groupLabel,
-      dateText: item.groupDateText,
-      items: [item],
-    });
-  }
-
-  return groups;
 }
 
 function getHomeRecentSummary(record: MemoryRecord): string {
@@ -487,7 +445,7 @@ Object.freeze(EMPTY_RECORD_ITEMS);
 const EMPTY_SCHEDULE_ITEMS: PetSchedule[] = [];
 Object.freeze(EMPTY_SCHEDULE_ITEMS);
 
-const HOME_RECENT_RECORDS_MAX = 7;
+const HOME_RECENT_RECORDS_MAX = 3;
 
 const TODAY_HOME_TIP = {
   badge: '오늘의 팁',
@@ -1144,6 +1102,24 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
 
   return (
     <View style={styles.header}>
+      <View style={styles.brandRow}>
+        <View style={styles.brandLockup}>
+          <AppText
+            preset="unifiedTitle"
+            styleOverridesPreset
+            style={[styles.brandWordmark, { color: petThemePrimary }]}
+          >
+            NURI
+          </AppText>
+          <MaterialCommunityIcons
+            name="paw"
+            size={12}
+            color={petThemePrimary}
+            style={styles.brandPaw}
+          />
+        </View>
+      </View>
+
       <View style={styles.headerTopRow}>
         <View style={styles.headerTextArea}>
           <AppText preset="unifiedTitle" style={[styles.title, { color: petThemePrimary }]}>
@@ -1786,102 +1762,77 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
     () => buildHomeRecentPreviewItems(todayRecords),
     [todayRecords],
   );
-  const groupedPreviewItems = useMemo(
-    () => groupHomeRecentPreviewItems(previewItems),
-    [previewItems],
-  );
   const isRecordBootstrapPending =
     (recordStatus === 'idle' || recordStatus === 'loading') &&
     recordItems.length === 0;
 
   return (
     <View style={[styles.section, styles.recentSection]}>
-      <LinearGradient
-        colors={WEATHER_DAY_BORDER_COLORS}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.recentPreviewBorder}
-      >
+      <View style={styles.recentPreviewBorder}>
         <View style={styles.recentPreviewCard}>
-        <View style={[styles.sectionHeaderRow, styles.recentSectionHeaderRow]}>
-          <View style={styles.recentSectionTitleRow}>
-            <MaterialCommunityIcons
-              name="history"
-              size={20}
-              color={accentDeepColor}
-            />
-            <AppText preset="unifiedTitle" style={[styles.sectionTitle, { color: accentDeepColor }]}>
-              최근 기록
-            </AppText>
-          </View>
-          <SectionHeaderAction
-            color={accentColor}
-            onPress={onPressTimeline}
-            accessibilityLabel="전체 기록 보기"
-            textPreset="unifiedMicro"
-            size="compact"
-          />
-        </View>
-        {isRecordBootstrapPending ? (
-          <View style={styles.recentEmptyState}>
-            <ActivityIndicator size="small" color={accentDeepColor} />
-            <AppText preset="unifiedBody" style={[styles.emptyDesc, styles.recentEmptyDesc]}>
-              기록을 불러오는 중이에요.
-            </AppText>
-          </View>
-        ) : previewItems.length === 0 ? (
-          <View style={styles.recentEmptyState}>
-            <AppText preset="unifiedTitle" style={styles.emptyTitle}>아직 기록이 없어요</AppText>
-            <AppText preset="unifiedBody" style={[styles.emptyDesc, styles.recentEmptyDesc]}>
-              첫 번째 추억을 남겨보세요.
-            </AppText>
-
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={[
-                styles.recordBtn,
-                {
-                  backgroundColor: accentDeepColor,
-                  shadowColor: accentDeepColor,
-                },
-              ]}
-              onPress={onPressRecord}
-            >
-              <AppText preset="unifiedLabel" style={styles.recordBtnText}>기록하기</AppText>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={styles.recentPreviewWrap}>
-            <View style={styles.recentPreviewList}>
-              {groupedPreviewItems.map(group => (
-                <View key={group.key} style={styles.recentDateGroup}>
-                  <View style={styles.recentDateHeader}>
-                    <MaterialCommunityIcons
-                      name="calendar-blank-outline"
-                      size={18}
-                      color="#7A8594"
-                    />
-                    <AppText preset="unifiedDate" style={styles.recentDateText}>{group.label}</AppText>
-                  </View>
-
-                  {group.items.map(previewItem => (
-                    <HomeRecentRecordRow
-                      key={previewItem.record.id}
-                      item={previewItem.record}
-                      showDivider={
-                        previewItem.record.id !==
-                        previewItems[previewItems.length - 1]?.record.id
-                      }
-                      onPress={record => onPressRecordItem(record.id)}
-                    />
-                  ))}
-                </View>
-              ))}
+          <View style={[styles.sectionHeaderRow, styles.recentSectionHeaderRow]}>
+            <View style={styles.recentSectionTitleRow}>
+              <MaterialCommunityIcons
+                name="history"
+                size={18}
+                color={accentDeepColor}
+              />
+              <AppText preset="unifiedTitle" style={[styles.sectionTitle, { color: accentDeepColor }]}>
+                최근 기록
+              </AppText>
             </View>
+            <SectionHeaderAction
+              color={accentColor}
+              onPress={onPressTimeline}
+              accessibilityLabel="전체 기록 보기"
+              textPreset="unifiedMicro"
+              size="compact"
+            />
           </View>
-        )}
+          {isRecordBootstrapPending ? (
+            <View style={styles.recentEmptyState}>
+              <ActivityIndicator size="small" color={accentDeepColor} />
+              <AppText preset="unifiedBody" style={[styles.emptyDesc, styles.recentEmptyDesc]}>
+                기록을 불러오는 중이에요.
+              </AppText>
+            </View>
+          ) : previewItems.length === 0 ? (
+            <View style={styles.recentEmptyState}>
+              <AppText preset="unifiedTitle" style={styles.emptyTitle}>아직 기록이 없어요</AppText>
+              <AppText preset="unifiedBody" style={[styles.emptyDesc, styles.recentEmptyDesc]}>
+                첫 번째 추억을 남겨보세요.
+              </AppText>
+
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={[
+                  styles.recordBtn,
+                  {
+                    backgroundColor: accentDeepColor,
+                    shadowColor: accentDeepColor,
+                  },
+                ]}
+                onPress={onPressRecord}
+              >
+                <AppText preset="unifiedLabel" style={styles.recordBtnText}>기록하기</AppText>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.recentPreviewWrap}>
+              <View style={styles.recentPreviewList}>
+                {previewItems.map((previewItem, index) => (
+                  <HomeRecentRecordRow
+                    key={previewItem.record.id}
+                    item={previewItem.record}
+                    showDivider={index < previewItems.length - 1}
+                    onPress={record => onPressRecordItem(record.id)}
+                  />
+                ))}
+              </View>
+            </View>
+          )}
         </View>
-      </LinearGradient>
+      </View>
     </View>
   );
 });
