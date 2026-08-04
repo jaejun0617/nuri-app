@@ -163,3 +163,15 @@ local verification은 typecheck 통과, lint 0 error/기존 warning 6건, Jest 6
 | 증적 | `/tmp/nuri-qa/timeline-fast-reentry-final/` |
 
 이번 QA는 고정 QA 계정과 기존 QA 펫을 사용했으며, 실제 기록 CRUD나 원본 데이터는 변경하지 않았다. 네비게이션 stack 누적 없이 최종 Home으로 복귀했고, 날짜 입력 및 기존 요약 구현의 dirty 변경은 별도로 보존했다. Galaxy S24 동일 모델은 연결되지 않아 `SM-S937N` 기준으로만 확인했다.
+
+## 2026-08-04 전체 요약 카드 Gate 무한 로딩 수정 QA
+
+- 원인: 빠른 Back 후 Timeline stack에 남은 `TimelineEntryGate`가 재사용될 때 단일 `committedRef`가 새 요청을 차단했고, 직전 native navigation transition 중 reset이 너무 이르게 실행될 수 있었다.
+- 수정: Gate가 요청 ID별로 재적용되도록 변경하고, Gate 이탈 시 Gate route를 pop한다. Gate가 focus된 뒤 한 번의 `requestAnimationFrame`에서 현재 Timeline stack을 `TimelineMain` 단일 route로 reset한다. 고정 지연과 강제 navigator remount는 사용하지 않았다.
+- 기기: `SM-S937N / R5CY613NMSY`, Android 16, 1080x2340, density 450, portrait
+- APK: `android/app/build/outputs/apk/release/app-release.apk`
+- APK SHA-256: `c5ee8ed1fb7843cc53ba6376f821825e205fcc40b0cd56e98ca70ffec1700998`
+- 검증: 전체 요약 산책 카드 첫 진입, 200ms 내 Android Back, 350ms 후 동일 카드 재진입을 수행했다. 두 번째 요청도 Gate에 머물지 않고 Timeline 산책 필터와 `산책, 13` count로 전환됐다.
+- 결과: Gate 무한 로딩, 이전 Gate route 재사용에 의한 정지, Home 복귀 후 전체 요약 카드 수치 손실은 재현되지 않았다.
+- 증적: `/tmp/nuri-fix5-fast1.png`, `/tmp/nuri-fix5-fast2.png`, `/tmp/nuri-fix5-correct2.xml`, `/tmp/nuri-fix5-home-return.png`
+- 정적 검증: TypeScript, ESLint, 전체 Jest `71 suites / 310 tests`, `git diff --check`, Android release build 통과.

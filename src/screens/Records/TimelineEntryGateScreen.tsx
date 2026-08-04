@@ -2,11 +2,14 @@ import React, { useLayoutEffect, useRef } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import {
-  CommonActions,
   type CompositeNavigationProp,
   type RouteProp,
 } from '@react-navigation/native';
-import { useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
+import {
+  useIsFocused,
+  useNavigation,
+  useRoute,
+} from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from 'styled-components/native';
 
@@ -18,7 +21,7 @@ import {
   getLatestTimelineEntrySnapshot,
   HOME_TOTAL_SUMMARY_ENTRY_SOURCE,
   invalidateTimelineEntryRequest,
-  isLatestTimelineEntryRequest,
+  publishTimelineEntryRequest,
 } from './timelineEntry';
 
 type GateRoute = RouteProp<TimelineStackParamList, 'TimelineEntryGate'>;
@@ -41,11 +44,15 @@ export default function TimelineEntryGateScreen() {
   const theme = useTheme();
   const navigation = useNavigation<GateNav>();
   const route = useRoute<GateRoute>();
+  const entryRequest = route.params;
   const isFocused = useIsFocused();
-  const committedRef = useRef(false);
+  const committedRequestIdRef = useRef<number | null>(null);
 
   const leaveGate = () => {
     invalidateTimelineEntryRequest(route.params.entryRequestId);
+    if (navigation.canGoBack()) {
+      navigation.pop();
+    }
     navigation.navigate('HomeTab');
   };
 
@@ -57,41 +64,50 @@ export default function TimelineEntryGateScreen() {
   });
 
   useLayoutEffect(() => {
-    if (!isFocused || committedRef.current) return;
-
-    const latest = getLatestTimelineEntrySnapshot();
+    if (!isFocused) return;
     if (
-      !latest ||
-      !isLatestTimelineEntryRequest(route.params.entryRequestId)
+      committedRequestIdRef.current === entryRequest.entryRequestId
     ) {
       return;
     }
-    if (latest.request.entryRequestId !== route.params.entryRequestId) return;
 
-    committedRef.current = true;
-    navigation.dispatch(
-      {
-        ...CommonActions.reset({
-          index: 0,
-          routes: [
-            {
-              name: 'TimelineMain',
-              params: {
-                petId: latest.request.petId,
-                mainCategory: latest.request.mainCategory,
-                otherSubCategory: latest.request.otherSubCategory ?? undefined,
-                ymFilter: latest.request.ymFilter,
-                entrySource: HOME_TOTAL_SUMMARY_ENTRY_SOURCE,
-                entryRequestId: latest.request.entryRequestId,
-                entryGeneration: latest.generation,
-              },
-            },
-          ],
-        }),
-        target: navigation.getState().key,
-      },
-    );
-  }, [isFocused, navigation, route.params.entryRequestId]);
+    // Wait for the native stack to commit the focused Gate before resetting
+    // it. A frame boundary avoids racing the previous Back/tab transition.
+    const frame = requestAnimationFrame(() => {
+      if (
+        committedRequestIdRef.current === entryRequest.entryRequestId
+      ) {
+        return;
+      }
+
+      // The module snapshot is the latest-wins source. The route payload is a
+      // safe recovery source for a remounted Gate when the module snapshot was
+      // cleared during a fast back/re-entry cycle.
+      const latest =
+        getLatestTimelineEntrySnapshot() ??
+        publishTimelineEntryRequest(entryRequest);
+      const timelineMainParams = {
+        petId: latest.request.petId,
+        mainCategory: latest.request.mainCategory,
+        otherSubCategory: latest.request.otherSubCategory ?? undefined,
+        ymFilter: latest.request.ymFilter,
+        entrySource: HOME_TOTAL_SUMMARY_ENTRY_SOURCE,
+        entryRequestId: latest.request.entryRequestId,
+        entryGeneration: latest.generation,
+      } as const;
+
+      // Call reset on the nearest Timeline stack instead of dispatching a
+      // targeted root action. This guarantees that a stale Main route and the
+      // Gate cannot remain in the stack when the screen is re-entered quickly.
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'TimelineMain', params: timelineMainParams }],
+      });
+      committedRequestIdRef.current = latest.request.entryRequestId;
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [entryRequest, isFocused, navigation]);
 
   return (
     <View
