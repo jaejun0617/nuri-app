@@ -17,7 +17,6 @@ import React, {
   memo,
   useCallback,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -104,6 +103,8 @@ import {
 import { styles } from './TimelineScreen.styles';
 import {
   HOME_TOTAL_SUMMARY_ENTRY_SOURCE,
+  invalidateTimelineEntryRequest,
+  isLatestTimelineEntryGeneration,
   isTimelineEntryPending,
   shouldShowTimelineEmpty,
   shouldShowTimelineEntryLoading,
@@ -526,6 +527,7 @@ export default function TimelineScreen() {
   const isHomeTotalSummaryEntry =
     route?.params?.entrySource === HOME_TOTAL_SUMMARY_ENTRY_SOURCE &&
     entryRequestId !== null;
+  const entryGeneration = route?.params?.entryGeneration ?? 0;
   const petIdFromParams = route?.params?.petId?.trim() || null;
   const mainCategoryFromParams = MAIN_CATEGORY_KEY_SET.has(
     route?.params?.mainCategory ?? 'all',
@@ -583,14 +585,22 @@ export default function TimelineScreen() {
   }, [bootstrap, isLoggedIn, petId]);
 
   const [sortMode, setSortMode] = useState<TimelineSortMode>('recent');
-  const [ymFilter, setYmFilter] = useState<string | null>(null);
-  const [ymModalOpen, setYmModalOpen] = useState(false);
-  const [mainCategory, setMainCategory] = useState<MainCategory>('all');
-  const [appliedEntryRequestId, setAppliedEntryRequestId] = useState<number | null>(
-    null,
+  const [ymFilter, setYmFilter] = useState<string | null>(() =>
+    isHomeTotalSummaryEntry ? route?.params?.ymFilter ?? null : null,
   );
-  const [otherSubCategory, setOtherSubCategory] =
-    useState<OtherSubCategory | null>(null);
+  const [ymModalOpen, setYmModalOpen] = useState(false);
+  const [mainCategory, setMainCategory] = useState<MainCategory>(() =>
+    isHomeTotalSummaryEntry ? mainCategoryFromParams ?? 'all' : 'all',
+  );
+  const [appliedEntryRequestId] = useState<number | null>(() =>
+    isHomeTotalSummaryEntry ? entryRequestId : null,
+  );
+  const [otherSubCategory, setOtherSubCategory] = useState<OtherSubCategory | null>(
+    () =>
+      isHomeTotalSummaryEntry && mainCategoryFromParams === 'other'
+        ? entryOtherSubCategoryFromParams
+        : null,
+  );
   const [otherModalOpen, setOtherModalOpen] = useState(false);
   const [pendingJumpYm, setPendingJumpYm] = useState<string | null>(null);
   const [imageWindow, setImageWindow] = useState(TIMELINE_INITIAL_IMAGE_WINDOW);
@@ -611,7 +621,6 @@ export default function TimelineScreen() {
       setMainCategory('all');
       setOtherSubCategory(null);
       setOtherModalOpen(false);
-      setAppliedEntryRequestId(null);
     }
     setPendingJumpYm(null);
     setImageWindow(TIMELINE_INITIAL_IMAGE_WINDOW);
@@ -758,33 +767,10 @@ export default function TimelineScreen() {
   const entryScrollRequestIdRef = useRef<number | null>(null);
   const entryContentReadyRef = useRef(false);
 
-  useLayoutEffect(() => {
-    if (!isHomeTotalSummaryEntry || entryRequestId === null) return;
-
-    setSortMode('recent');
-    setYmFilter(null);
-    setYmModalOpen(false);
-    setMainCategory(mainCategoryFromParams ?? 'all');
-    setOtherSubCategory(
-      mainCategoryFromParams === 'other'
-        ? entryOtherSubCategoryFromParams
-        : null,
-    );
-    setOtherModalOpen(false);
-    setPendingJumpYm(null);
-    setImageWindow(TIMELINE_INITIAL_IMAGE_WINDOW);
-    imageWindowRef.current = TIMELINE_INITIAL_IMAGE_WINDOW;
-    entryScrollRequestIdRef.current = null;
-    entryContentReadyRef.current = false;
-    targetLayoutOffsetRef.current = null;
-    pendingFocusedMemoryIdRef.current = null;
-    setAppliedEntryRequestId(entryRequestId);
-  }, [
-    entryOtherSubCategoryFromParams,
-    entryRequestId,
-    isHomeTotalSummaryEntry,
-    mainCategoryFromParams,
-  ]);
+  const isCurrentHomeEntryGeneration = useCallback(() => {
+    if (!isHomeTotalSummaryEntry || entryRequestId === null) return true;
+    return isLatestTimelineEntryGeneration(entryRequestId, entryGeneration);
+  }, [entryGeneration, entryRequestId, isHomeTotalSummaryEntry]);
 
   const clearPendingFocusedMemory = useCallback(() => {
     targetLayoutOffsetRef.current = null;
@@ -793,6 +779,7 @@ export default function TimelineScreen() {
 
   const consumeHomeTotalSummaryEntryScroll = useCallback(() => {
     if (!isHomeTotalSummaryEntry || entryRequestId === null) return false;
+    if (!isCurrentHomeEntryGeneration()) return false;
     if (isApplyingHomeTotalSummaryEntry) return false;
     if (entryScrollRequestIdRef.current === entryRequestId) return true;
     if (!entryContentReadyRef.current) return false;
@@ -803,6 +790,7 @@ export default function TimelineScreen() {
     return true;
   }, [
     entryRequestId,
+    isCurrentHomeEntryGeneration,
     isApplyingHomeTotalSummaryEntry,
     isHomeTotalSummaryEntry,
   ]);
@@ -896,16 +884,23 @@ export default function TimelineScreen() {
   useEffect(() => {
     if (!pendingJumpYm) return;
 
+    let cancelled = false;
+
     if (pendingJumpYm === JUMP_TO_ALL) {
-      requestAnimationFrame(() => {
+      const frame = requestAnimationFrame(() => {
+        if (cancelled || !isCurrentHomeEntryGeneration()) return;
         listRef.current?.scrollToOffset({ offset: 0, animated: true });
+        setPendingJumpYm(null);
       });
-      setPendingJumpYm(null);
-      return;
+      return () => {
+        cancelled = true;
+        cancelAnimationFrame(frame);
+      };
     }
 
     const idx = timelineView.firstIndexByMonth.get(pendingJumpYm) ?? -1;
-    requestAnimationFrame(() => {
+    const frame = requestAnimationFrame(() => {
+      if (cancelled || !isCurrentHomeEntryGeneration()) return;
       if (idx >= 0) {
         listRef.current?.scrollToIndex({ index: idx, animated: true });
       } else {
@@ -913,7 +908,12 @@ export default function TimelineScreen() {
       }
       setPendingJumpYm(null);
     });
-  }, [pendingJumpYm, timelineView.firstIndexByMonth]);
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+    };
+  }, [isCurrentHomeEntryGeneration, pendingJumpYm, timelineView.firstIndexByMonth]);
 
   useEffect(() => {
     if (focusedMemoryId) return;
@@ -1469,6 +1469,9 @@ export default function TimelineScreen() {
   const onPressBack = useEntryAwareBackAction({
     entrySource: route.params?.entrySource,
     onHome: () => {
+      if (isHomeTotalSummaryEntry && entryRequestId !== null) {
+        invalidateTimelineEntryRequest(entryRequestId);
+      }
       navigation.navigate('HomeTab');
     },
     onMore: () => {
@@ -1587,6 +1590,11 @@ export default function TimelineScreen() {
       />
 
       <FlashList
+        key={
+          isHomeTotalSummaryEntry
+            ? `timeline-entry-${entryGeneration}`
+            : 'timeline-default'
+        }
         ref={listRef}
         data={renderedFilteredIds}
         keyExtractor={keyExtractor}

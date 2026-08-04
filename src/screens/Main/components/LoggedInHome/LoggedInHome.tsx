@@ -121,6 +121,7 @@ import {
 import {
   createTimelineEntryRequestId,
   HOME_TOTAL_SUMMARY_ENTRY_SOURCE,
+  publishTimelineEntryRequest,
 } from '../../../Records/timelineEntry';
 import { formatPetAgeLabelFromBirthDate } from '../../../../services/pets/age';
 import {
@@ -3242,15 +3243,23 @@ export default function LoggedInHome() {
       mainCategory: Exclude<TimelineMainCategory, undefined>,
       otherSubCategory?: Exclude<TimelineOtherSubCategory, undefined>,
     ) => {
+      if (!activePetId) return;
+
+      const entryRequestId = createHomeTotalSummaryEntryRequestId();
+      const entryRequest = {
+        entryRequestId,
+        entrySource: HOME_TOTAL_SUMMARY_ENTRY_SOURCE,
+        petId: activePetId,
+        mainCategory,
+        otherSubCategory: otherSubCategory ?? null,
+        ymFilter: null,
+        createdAt: Date.now(),
+      } as const;
+      publishTimelineEntryRequest(entryRequest);
+
       navigation.navigate('TimelineTab', {
-        screen: 'TimelineMain',
-        params: {
-          petId: activePetId ?? undefined,
-          mainCategory,
-          otherSubCategory,
-          entrySource: HOME_TOTAL_SUMMARY_ENTRY_SOURCE,
-          entryRequestId: createHomeTotalSummaryEntryRequestId(),
-        },
+        screen: 'TimelineEntryGate',
+        params: entryRequest,
       });
     },
     [activePetId, createHomeTotalSummaryEntryRequestId, navigation],

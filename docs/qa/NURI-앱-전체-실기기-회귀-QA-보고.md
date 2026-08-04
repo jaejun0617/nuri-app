@@ -146,3 +146,20 @@ local verification은 typecheck 통과, lint 0 error/기존 warning 6건, Jest 6
 - 정적 검증: TypeScript, ESLint, 전체 Jest `71 suites / 308 tests`, `git diff --check`, Android release build 통과.
 - Logcat: Fatal, ANR, ReactNativeJS fatal, unhandled promise, navigation loop, duplicate total-summary request loop 0건.
 - 증적 디렉터리: `/tmp/nuri-qa/total-summary-timeline-entry-fix/`
+
+## 2026-08-04 Timeline Fast Re-entry Race 최종 QA
+
+| 항목 | 결과 |
+| --- | --- |
+| 기기 | `SM-S937N`, serial `R5CY613NMSY`, Android 16, 1080x2340, density 450 |
+| APK | `android/app/build/outputs/apk/release/app-release.apk` |
+| SHA-256 | `0343ec76cf45ac6c0f221352fba32aa4295220452a72dec49b71014dea937ed4` |
+| 고속 반복 | 산책·식사·생활·기록한 날 각 20회, 혼합 30회 |
+| 첫 visible frame | 이전 Timeline native view가 아닌 opaque Gate 또는 새 요청의 TimelineMain |
+| Timeline 결과 | 카드별 대상 filter 진입 및 offset 0 확인 |
+| Home 복귀 | Android Back 이후 Home 전체 요약 유지 |
+| stale frame | 이전 category/list/count/false empty/partial list 미확인 |
+| logcat | Fatal, ANR, RN fatal, unhandled promise, navigation loop, duplicate request blocker 0건 |
+| 증적 | `/tmp/nuri-qa/timeline-fast-reentry-final/` |
+
+이번 QA는 고정 QA 계정과 기존 QA 펫을 사용했으며, 실제 기록 CRUD나 원본 데이터는 변경하지 않았다. 네비게이션 stack 누적 없이 최종 Home으로 복귀했고, 날짜 입력 및 기존 요약 구현의 dirty 변경은 별도로 보존했다. Galaxy S24 동일 모델은 연결되지 않아 `SM-S937N` 기준으로만 확인했다.

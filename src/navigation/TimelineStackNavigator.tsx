@@ -8,9 +8,11 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import TimelineScreen from '../screens/Records/TimelineScreen';
+import TimelineEntryGateScreen from '../screens/Records/TimelineEntryGateScreen';
 import RecordDetailScreen from '../screens/Records/RecordDetailScreen';
 import RecordEditScreen from '../screens/Records/RecordEditScreen';
 import type { MemoryOtherSubCategory } from '../services/memories/categoryMeta';
+import type { HomeTotalSummaryEntryRequest } from '../screens/Records/timelineEntry';
 import type { ScreenEntrySource } from './entry';
 
 export type TimelineStackParamList = {
@@ -19,10 +21,13 @@ export type TimelineStackParamList = {
         petId?: string;
         mainCategory?: 'all' | 'walk' | 'meal' | 'health' | 'diary' | 'other';
         otherSubCategory?: MemoryOtherSubCategory;
+        ymFilter?: string | null;
         entrySource?: ScreenEntrySource;
         entryRequestId?: number;
+        entryGeneration?: number;
       }
     | undefined;
+  TimelineEntryGate: HomeTotalSummaryEntryRequest;
   RecordDetail: {
     petId: string;
     memoryId: string;
@@ -41,6 +46,11 @@ export default function TimelineStackNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="TimelineMain" component={TimelineScreen} />
+      <Stack.Screen
+        name="TimelineEntryGate"
+        component={TimelineEntryGateScreen}
+        options={{ animation: 'none' }}
+      />
       <Stack.Screen name="RecordDetail" component={RecordDetailScreen} />
       <Stack.Screen name="RecordEdit" component={RecordEditScreen} />
     </Stack.Navigator>
