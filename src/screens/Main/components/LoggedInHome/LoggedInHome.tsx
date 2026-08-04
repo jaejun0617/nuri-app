@@ -39,6 +39,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import Animated, {
+  cancelAnimation,
   Easing,
   interpolate,
   runOnJS,
@@ -457,8 +458,8 @@ const TODAY_HOME_TIP = {
 
 const HOME_TOP_BUTTON_SHOW_OFFSET = 96;
 const HOME_TOP_BUTTON_FALLBACK_SHOW_OFFSET = 300;
-const HOME_TOP_BUTTON_BOTTOM_OFFSET = 102;
-const HOME_TOP_BUTTON_MIN_BOTTOM = 116;
+const HOME_TOP_BUTTON_BOTTOM_OFFSET = 90;
+const HOME_TOP_BUTTON_MIN_BOTTOM = 104;
 
 function resolveHomeTopButtonThreshold(
   scheduleSectionOffset: number | null,
@@ -2461,6 +2462,7 @@ export default function LoggedInHome() {
   const shouldRestoreHomeScrollRef = useRef(true);
   const scheduleSectionOffsetRef = useRef<number | null>(null);
   const showTopButtonRef = useRef(false);
+  const isReturningToTopRef = useRef(false);
 
   // ---------------------------------------------------------
   // 1) auth
@@ -3023,10 +3025,10 @@ export default function LoggedInHome() {
     const parts: string[] = [];
     if (breed) parts.push(breed);
     if (ageText) parts.push(ageText);
-    if (genderText) parts.push(genderText);
     if (weightText) parts.push(weightText);
+    if (genderText) parts.push(genderText);
     if (parts.length === 0) return null;
-    return parts.join(' | ');
+    return parts.join(' · ');
   }, [breed, ageText, genderText, weightText]);
 
   const togetherDays = useMemo(
@@ -3278,6 +3280,19 @@ export default function LoggedInHome() {
       };
     }) => {
       const offsetY = Math.max(0, event.nativeEvent.contentOffset.y);
+
+      if (isReturningToTopRef.current) {
+        if (offsetY <= 1) {
+          isReturningToTopRef.current = false;
+        } else {
+          if (showTopButtonRef.current) {
+            showTopButtonRef.current = false;
+            setShowTopButton(false);
+          }
+          return;
+        }
+      }
+
       HOME_SCROLL_OFFSET_BY_KEY.set(homeScrollStorageKey, offsetY);
 
       const shouldShow =
@@ -3289,6 +3304,21 @@ export default function LoggedInHome() {
       setShowTopButton(shouldShow);
     },
     [homeScrollStorageKey],
+  );
+
+  const handleHomeScrollMomentumEnd = useCallback(
+    (event: { nativeEvent: { contentOffset: { y: number } } }) => {
+      isReturningToTopRef.current = false;
+      const offsetY = Math.max(0, event.nativeEvent.contentOffset.y);
+      const shouldShow =
+        offsetY >=
+        resolveHomeTopButtonThreshold(scheduleSectionOffsetRef.current);
+      if (showTopButtonRef.current === shouldShow) return;
+
+      showTopButtonRef.current = shouldShow;
+      setShowTopButton(shouldShow);
+    },
+    [],
   );
 
   const restoreHomeScrollPosition = useCallback(() => {
@@ -3446,13 +3476,17 @@ export default function LoggedInHome() {
   );
 
   const handlePressTop = useCallback(() => {
+    isReturningToTopRef.current = true;
     HOME_SCROLL_OFFSET_BY_KEY.set(homeScrollStorageKey, 0);
     showTopButtonRef.current = false;
     setShowTopButton(false);
+    cancelAnimation(topButtonVisibility);
+    topButtonVisibility.value = 0;
     homeScrollRef.current?.scrollTo({ x: 0, y: 0, animated: true });
-  }, [homeScrollStorageKey]);
+  }, [homeScrollStorageKey, topButtonVisibility]);
 
   useEffect(() => {
+    cancelAnimation(topButtonVisibility);
     topButtonVisibility.value = withTiming(showTopButton ? 1 : 0, {
       duration: showTopButton ? 220 : 180,
       easing: Easing.out(Easing.cubic),
@@ -3587,6 +3621,7 @@ export default function LoggedInHome() {
         contentOffset={{ x: 0, y: initialHomeScrollOffset }}
         onContentSizeChange={restoreHomeScrollPosition}
         onScroll={handleHomeScroll}
+        onMomentumScrollEnd={handleHomeScrollMomentumEnd}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
