@@ -10,8 +10,9 @@ Room: [정확한 NURI room 이름]
 Domain: [소유 도메인]
 Bootstrap mode: BOOTSTRAP_ONLY
 Write state: WRITE_LOCKED
-Activation: ACTIVATE_FIRST | ACTIVATE_PRIORITY_2 | ACTIVATE_LATER | REFERENCE_ONLY
-Physical room state: ROOM_EXISTS | ROOM_NOT_CREATED | ROOM_EXISTENCE_UNCONFIRMED
+Activation class: ACTIVATE_FIRST | ACTIVATE_SCHEDULED | ACTIVATE_LATER | REFERENCE_ONLY
+Activation order: 1~6 | 마스터 승인 시 결정 | v1.1 승인 시 결정
+Physical room state: ROOM_EXISTS
 
 Repository:
 - app: /Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri

@@ -10,8 +10,9 @@ Room: NURI-14-v1.1-아키텍처·확장
 Domain: NURI-14-v1.1-아키텍처·확장
 Bootstrap mode: BOOTSTRAP_ONLY
 Write state: WRITE_LOCKED
-Activation: REFERENCE_ONLY
-Physical room state: ROOM_EXISTENCE_UNCONFIRMED
+Activation class: REFERENCE_ONLY
+Activation order: v1.1 승인 시 결정
+Physical room state: ROOM_EXISTS
 Role: architecture
 Primary issue: v1.1 planning
 
@@ -72,7 +73,7 @@ Bootstrap completion report:
 - Room: NURI-14-v1.1-아키텍처·확장
 - Bootstrap mode: BOOTSTRAP_READY
 - Write state: WRITE_LOCKED
-- Physical room state: ROOM_EXISTENCE_UNCONFIRMED
+- Physical room state: ROOM_EXISTS
 - Repository: app/admin paths above
 - Actual HEAD:
 - Branch:

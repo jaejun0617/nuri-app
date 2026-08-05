@@ -10,9 +10,10 @@
 
 | 축 | 값 |
 | --- | --- |
-| Physical room | `ROOM_EXISTS` / `ROOM_NOT_CREATED` / `ROOM_EXISTENCE_UNCONFIRMED` |
+| Physical room | `ROOM_EXISTS` / `ROOM_EXISTENCE_UNCONFIRMED` |
 | Bootstrap | `BOOTSTRAP_NOT_STARTED` / `BOOTSTRAP_READY` |
-| Activation | `ACTIVATE_FIRST` / `ACTIVATE_PRIORITY_2` / `ACTIVATE_LATER` / `REFERENCE_ONLY` |
+| Activation class | `ACTIVATE_FIRST` / `ACTIVATE_SCHEDULED` / `ACTIVATE_LATER` / `REFERENCE_ONLY` |
+| Activation order | `1`~`6` / `마스터 승인 시 결정` / `v1.1 승인 시 결정` |
 | Write | `WRITE_LOCKED` / `WRITE_ACTIVE` / `WRITE_COMPLETE` |
 
 새 room은 사용자가 Codex UI에서 생성한다. Codex는 새 room이나 background agent를 자동 생성하지 않는다. 모든 새 starter는 `BOOTSTRAP_ONLY / WRITE_LOCKED`로 시작하며 NURI-00의 별도 승인 전에는 수정하지 않는다.

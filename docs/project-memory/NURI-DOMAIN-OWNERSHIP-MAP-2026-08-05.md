@@ -5,20 +5,20 @@
 | ID | 도메인 | 화면·코드 | service/store·Supabase | tests/docs | 상태 | 주 risk |
 | --- | --- | --- | --- | --- | --- | --- |
 | 00 | Master | cross-domain decision, project-memory | 없음 | canonical/handoff | EXISTS | 결정 source 정합성 |
-| 01 | Auth·Onboarding | `src/screens/Auth`, Splash, nickname, account entry | `src/store/authStore.ts`, `src/services/supabase/auth.ts` | auth/session/oauth tests, `docs/domains/auth` | ACTIVATE_PRIORITY_2 | AUTH-001 Naver 완전 제거 |
-| 02 | Pet·Profile·Date | `src/screens/Pets`, profile components, date picker | `src/services/pets`, profile, account | date/pet tests, profile docs | ACTIVATE_FIRST | dirty date input |
-| 03 | Main Home·Weather·Summary | `src/screens/Main`, `src/screens/Weather`, home services | `src/services/home`, weather, query client | home/weather tests, typography docs | ACTIVATE_FIRST | dirty Home and clean RC |
-| 04 | Records·Timeline | `src/screens/Records`, Timeline navigation | `src/services/supabase/memories.ts`, `src/services/timeline` | records/timeline/weekly tests | ACTIVATE_FIRST | fast re-entry and count parity |
-| 05 | Schedules·Health·Activity | `src/screens/Schedules`, `HealthReport`, activity UI | schedules, health-report, activity services; schedule/health tables | schedules/health/activity tests | ACTIVATE_LATER | cross-domain record semantics |
-| 06 | Community·Moderation | `src/screens/Community`, comments/reports | community services, moderation migrations | community tests, community docs | ACTIVATE_LATER | write-path and abuse policy |
-| 07 | Notifications·Operations Messages | `src/screens/Notifications`, notification UI | notifications services, push token lifecycle, user_notifications | notification tests, notification migrations | ACTIVATE_LATER | actual push is disabled |
-| 08 | Hospital·Walk POI·Pet Travel | hospital/location discovery/walk POI screens | animalHospital/locationDiscovery/place/trust; hospital/POI/travel tables/RPC | hospital/POI/trust tests and docs | ACTIVATE_LATER | provider/trust boundary |
-| 09 | Supabase·RLS·RPC·운영DB | no user-facing ownership; shared backend contract | all migrations, functions, policies, grants, triggers | SQL docs and migration list | ACTIVATE_PRIORITY_2 | SUPABASE-001 remote catalog와 AUTH-001 Provider evidence |
-| 10 | Admin Web·Operations | `nuri-web` admin routes and scripts | admin APIs, operator policies, audit tables | admin tests/docs | ACTIVATE_LATER | production operator QA |
-| 11 | Design System·Accessibility | `src/components`, theme, AppText, modal/input common UI | theme tokens only | typography/a11y docs and snapshots | ACTIVATE_LATER | avoid feature logic ownership |
-| 12 | Android·Release-QA | android build, APK, device evidence, Play gate | build/signing/config; no feature DB ownership | release checklist/QA | ACTIVATE_PRIORITY_2 | dirty APK provenance와 NURI-01 Google/Kakao 회귀 |
-| 13 | Guides·Rewards·Private Memory | Guides, Ranking, Guestbook, Letters, reward UI | guides/ranking/letters/reward services | related tests/docs | ACTIVATE_LATER | low-frequency cross-domain scope |
-| 14 | v1.1 Architecture·Expansion | cross-domain architecture decisions only | no direct runtime ownership | roadmap/planning | REFERENCE_ONLY | must not duplicate domain writes |
+| 01 | Auth·Onboarding | `src/screens/Auth`, Splash, nickname, account entry | `src/store/authStore.ts`, `src/services/supabase/auth.ts` | auth/session/oauth tests, `docs/domains/auth` | ACTIVATE_SCHEDULED, order 5 | AUTH-001 Naver 완전 제거 |
+| 02 | Pet·Profile·Date | `src/screens/Pets`, profile components, date picker | `src/services/pets`, profile, account | date/pet tests, profile docs | ACTIVATE_FIRST, order 1 | dirty date input |
+| 03 | Main Home·Weather·Summary | `src/screens/Main`, `src/screens/Weather`, home services | `src/services/home`, weather, query client | home/weather tests, typography docs | ACTIVATE_SCHEDULED, order 2 | dirty Home and clean RC |
+| 04 | Records·Timeline | `src/screens/Records`, Timeline navigation | `src/services/supabase/memories.ts`, `src/services/timeline` | records/timeline/weekly tests | ACTIVATE_SCHEDULED, order 3 | fast re-entry and count parity |
+| 05 | Schedules·Health·Activity | `src/screens/Schedules`, `HealthReport`, activity UI | schedules, health-report, activity services; schedule/health tables | schedules/health/activity tests | ACTIVATE_LATER, order master approval | cross-domain record semantics |
+| 06 | Community·Moderation | `src/screens/Community`, comments/reports | community services, moderation migrations | community tests, community docs | ACTIVATE_LATER, order master approval | write-path and abuse policy |
+| 07 | Notifications·Operations Messages | `src/screens/Notifications`, notification UI | notifications services, push token lifecycle, user_notifications | notification tests, notification migrations | ACTIVATE_LATER, order master approval | actual push is disabled |
+| 08 | Hospital·Walk POI·Pet Travel | hospital/location discovery/walk POI screens | animalHospital/locationDiscovery/place/trust; hospital/POI/travel tables/RPC | hospital/POI/trust tests and docs | ACTIVATE_LATER, order master approval | provider/trust boundary |
+| 09 | Supabase·RLS·RPC·운영DB | no user-facing ownership; shared backend contract | all migrations, functions, policies, grants, triggers | SQL docs and migration list | ACTIVATE_SCHEDULED, order 4 | SUPABASE-001 primary; AUTH-001 remote Provider support |
+| 10 | Admin Web·Operations | `nuri-web` admin routes and scripts | admin APIs, operator policies, audit tables | admin tests/docs | ACTIVATE_LATER, order master approval | production operator QA |
+| 11 | Design System·Accessibility | `src/components`, theme, AppText, modal/input common UI | theme tokens only | typography/a11y docs and snapshots | ACTIVATE_LATER, order master approval | avoid feature logic ownership |
+| 12 | Android·Release-QA | android build, APK, device evidence, Play gate | build/signing/config; no feature DB ownership | release checklist/QA | ACTIVATE_SCHEDULED, order 6 | ANDROID-001/RELEASE-001 primary; feature regression support |
+| 13 | Guides·Rewards·Private Memory | Guides, Ranking, Guestbook, Letters, reward UI | guides/ranking/letters/reward services | related tests/docs | ACTIVATE_LATER, order master approval | low-frequency cross-domain scope |
+| 14 | v1.1 Architecture·Expansion | cross-domain architecture decisions only | no direct runtime ownership | roadmap/planning | REFERENCE_ONLY, order v1.1 approval | must not duplicate domain writes |
 
 ## Cross-domain ownership
 

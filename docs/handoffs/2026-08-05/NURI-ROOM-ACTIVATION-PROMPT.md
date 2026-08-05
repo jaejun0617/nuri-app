@@ -7,7 +7,8 @@ NURI-00 활성화 승인
 
 Room: [정확한 room 이름]
 Issue: [issue ID]
-Activation: [ACTIVATE_FIRST | ACTIVATE_PRIORITY_2 | ACTIVATE_LATER]
+Activation class: [ACTIVATE_FIRST | ACTIVATE_SCHEDULED | ACTIVATE_LATER | REFERENCE_ONLY]
+Activation order: [1~6 | 마스터 승인 시 결정 | v1.1 승인 시 결정]
 Write state: WRITE_ACTIVE
 Primary scope: [ownership 문서의 범위]
 Supporting rooms: [없으면 없음]

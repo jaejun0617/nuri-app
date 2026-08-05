@@ -10,9 +10,12 @@ Room: NURI-12-Android·Release-QA
 Domain: NURI-12-Android·Release-QA
 Bootstrap mode: BOOTSTRAP_ONLY
 Write state: WRITE_LOCKED
-Activation: ACTIVATE_PRIORITY_2
-Physical room state: ROOM_EXISTENCE_UNCONFIRMED
-Role: supporting
+Activation class: ACTIVATE_SCHEDULED
+Activation order: 6
+Physical room state: ROOM_EXISTS
+Role: release-control primary / feature-regression supporting
+Primary ownership: ANDROID-001·RELEASE-001 — build·APK·signing·device·logcat·clean RC·Play Store gate
+Supporting ownership: 각 feature Room 작업 이후 Android regression
 Primary issue: ANDROID-001 / RELEASE-001
 
 Repository:
@@ -72,7 +75,7 @@ Bootstrap completion report:
 - Room: NURI-12-Android·Release-QA
 - Bootstrap mode: BOOTSTRAP_READY
 - Write state: WRITE_LOCKED
-- Physical room state: ROOM_EXISTENCE_UNCONFIRMED
+- Physical room state: ROOM_EXISTS
 - Repository: app/admin paths above
 - Actual HEAD:
 - Branch:

@@ -10,8 +10,9 @@ Room: NURI-02-반려동물·프로필·날짜
 Domain: NURI-02-반려동물·프로필·날짜
 Bootstrap mode: BOOTSTRAP_ONLY
 Write state: WRITE_LOCKED
-Activation: ACTIVATE_FIRST
-Physical room state: ROOM_EXISTENCE_UNCONFIRMED
+Activation class: ACTIVATE_FIRST
+Activation order: 1
+Physical room state: ROOM_EXISTS
 Role: primary
 Primary issue: DATE-001
 
@@ -72,7 +73,7 @@ Bootstrap completion report:
 - Room: NURI-02-반려동물·프로필·날짜
 - Bootstrap mode: BOOTSTRAP_READY
 - Write state: WRITE_LOCKED
-- Physical room state: ROOM_EXISTENCE_UNCONFIRMED
+- Physical room state: ROOM_EXISTS
 - Repository: app/admin paths above
 - Actual HEAD:
 - Branch:

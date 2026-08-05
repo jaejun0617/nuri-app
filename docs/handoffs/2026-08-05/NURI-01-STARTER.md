@@ -10,8 +10,9 @@ Room: NURI-01-인증·온보딩
 Domain: NURI-01-인증·온보딩
 Bootstrap mode: BOOTSTRAP_ONLY
 Write state: WRITE_LOCKED
-Activation: ACTIVATE_PRIORITY_2
-Physical room state: ROOM_EXISTENCE_UNCONFIRMED
+Activation class: ACTIVATE_SCHEDULED
+Activation order: 5
+Physical room state: ROOM_EXISTS
 Role: primary
 Primary issue: AUTH-001
 
@@ -72,7 +73,7 @@ Bootstrap completion report:
 - Room: NURI-01-인증·온보딩
 - Bootstrap mode: BOOTSTRAP_READY
 - Write state: WRITE_LOCKED
-- Physical room state: ROOM_EXISTENCE_UNCONFIRMED
+- Physical room state: ROOM_EXISTS
 - Repository: app/admin paths above
 - Actual HEAD:
 - Branch:

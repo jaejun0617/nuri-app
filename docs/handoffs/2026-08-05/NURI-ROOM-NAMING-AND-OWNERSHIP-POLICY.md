@@ -2,9 +2,10 @@
 
 ## 고정 상태
 
-- Physical: `ROOM_EXISTS`, `ROOM_NOT_CREATED`, `ROOM_EXISTENCE_UNCONFIRMED`
+- Physical: `ROOM_EXISTS`, `ROOM_EXISTENCE_UNCONFIRMED`
 - Bootstrap: `BOOTSTRAP_NOT_STARTED`, `BOOTSTRAP_READY`
-- Activation: `ACTIVATE_FIRST`, `ACTIVATE_PRIORITY_2`, `ACTIVATE_LATER`, `REFERENCE_ONLY`
+- Activation class: `ACTIVATE_FIRST`, `ACTIVATE_SCHEDULED`, `ACTIVATE_LATER`, `REFERENCE_ONLY`
+- Activation order: `1`~`6`, `마스터 승인 시 결정`, `v1.1 승인 시 결정`
 - Write: `WRITE_LOCKED`, `WRITE_ACTIVE`, `WRITE_COMPLETE`
 
 물리적 room 존재, bootstrap 완료, activation 승인, 실제 write 완료는 서로 다른 상태다. Codex는 Codex UI 밖의 room 존재를 자동 확인하지 않는다.

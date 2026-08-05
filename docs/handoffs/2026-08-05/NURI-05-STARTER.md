@@ -10,8 +10,9 @@ Room: NURI-05-일정·건강·활동
 Domain: NURI-05-일정·건강·활동
 Bootstrap mode: BOOTSTRAP_ONLY
 Write state: WRITE_LOCKED
-Activation: ACTIVATE_LATER
-Physical room state: ROOM_EXISTENCE_UNCONFIRMED
+Activation class: ACTIVATE_LATER
+Activation order: 마스터 승인 시 결정
+Physical room state: ROOM_EXISTS
 Role: domain
 Primary issue: record semantics
 
@@ -72,7 +73,7 @@ Bootstrap completion report:
 - Room: NURI-05-일정·건강·활동
 - Bootstrap mode: BOOTSTRAP_READY
 - Write state: WRITE_LOCKED
-- Physical room state: ROOM_EXISTENCE_UNCONFIRMED
+- Physical room state: ROOM_EXISTS
 - Repository: app/admin paths above
 - Actual HEAD:
 - Branch:

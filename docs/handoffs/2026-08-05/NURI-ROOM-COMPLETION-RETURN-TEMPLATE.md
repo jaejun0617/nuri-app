@@ -6,7 +6,9 @@
 - Room:
 - Primary issue:
 - Supporting rooms:
-- Activation:
+- Activation class:
+- Activation order:
+- Physical room state: `ROOM_EXISTS`
 - Write state: `WRITE_COMPLETE` | `WRITE_ACTIVE` | `WRITE_LOCKED`
 
 ## Repository

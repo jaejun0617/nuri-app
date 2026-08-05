@@ -10,9 +10,12 @@ Room: NURI-09-Supabase·RLS·RPC·운영DB
 Domain: NURI-09-Supabase·RLS·RPC·운영DB
 Bootstrap mode: BOOTSTRAP_ONLY
 Write state: WRITE_LOCKED
-Activation: ACTIVATE_PRIORITY_2
-Physical room state: ROOM_EXISTENCE_UNCONFIRMED
-Role: supporting
+Activation class: ACTIVATE_SCHEDULED
+Activation order: 4
+Physical room state: ROOM_EXISTS
+Role: shared-backend primary / cross-domain supporting
+Primary ownership: SUPABASE-001 — 공용 migration·RLS·RPC·trigger·grant·remote catalog
+Supporting ownership: AUTH-001 remote Provider scope와 feature Room의 공용 DB 계약
 Primary issue: SUPABASE-001 / AUTH-001
 
 Repository:
@@ -72,7 +75,7 @@ Bootstrap completion report:
 - Room: NURI-09-Supabase·RLS·RPC·운영DB
 - Bootstrap mode: BOOTSTRAP_READY
 - Write state: WRITE_LOCKED
-- Physical room state: ROOM_EXISTENCE_UNCONFIRMED
+- Physical room state: ROOM_EXISTS
 - Repository: app/admin paths above
 - Actual HEAD:
 - Branch:
