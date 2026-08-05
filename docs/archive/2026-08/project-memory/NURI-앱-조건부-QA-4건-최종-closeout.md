@@ -1,3 +1,10 @@
+상태: Historical / Superseded
+현재 source of truth가 아님
+보존 목적: 과거 조건부 QA closeout 증적
+최신 기준: docs/project-memory/NURI-CANONICAL-CURRENT-STATE-2026-08-05.md
+
+---
+
 # NURI 앱 조건부 QA 4건 최종 Closeout
 
 기준일: 2026-07-19

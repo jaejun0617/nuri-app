@@ -1,3 +1,10 @@
+상태: Historical / Superseded
+현재 source of truth가 아님
+보존 목적: 과거 진행률 판단과 작업 이력
+최신 기준: docs/project-memory/NURI-CANONICAL-CURRENT-STATE-2026-08-05.md
+
+---
+
 # NURI 앱 전체 진행률 최종보고
 
 ## 2026-07-22 날씨 안전 안내·펫 이름 하드코딩 버그 최종 closeout
