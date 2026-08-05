@@ -8,5 +8,5 @@
 - 허용: Home composition, summary display, Home-owned service calls, weather presentation
 - 금지: Timeline internal state, navigation bar, Community, weather backend contract 변경
 - 경계: Home→Timeline payload는 NURI-04 primary; weather provider/cache backend는 NURI-09 review
-- 현재 상태: CREATE_NOW Priority 1; HOME-001
+- 현재 상태: ACTIVATE_FIRST; HOME-001
 - 첫 작업: dirty Home hunk 분리와 clean APK regression

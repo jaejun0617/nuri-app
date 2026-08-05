@@ -7,5 +7,5 @@
 - 허용: shared token/common component changes with migration note
 - 금지: feature business logic, navigation bar redesign without product approval
 - 경계: feature room applies scoped UI; this room reviews shared changes
-- 현재 상태: CREATE_LATER
+- 현재 상태: ACTIVATE_LATER
 - 첫 작업: token inventory and system-font/accessibility baseline

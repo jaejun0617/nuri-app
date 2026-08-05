@@ -8,5 +8,5 @@
 - 허용: client notification lifecycle and stable event contract
 - 금지: actual push activation without product/ops approval, community moderation logic
 - 경계: community event producer NURI-06, admin send console NURI-10
-- 현재 상태: CREATE_LATER; actual Push disabled by policy
+- 현재 상태: ACTIVATE_LATER; actual Push disabled by policy
 - 첫 작업: account switch/token cleanup audit

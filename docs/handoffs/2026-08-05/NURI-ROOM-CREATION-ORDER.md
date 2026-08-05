@@ -10,8 +10,8 @@
 
 ## Priority 2 sequence
 
-4. `NURI-01-인증·온보딩` — `ACTIVATE_PRIORITY_2` — AUTH-001 primary
-5. `NURI-09-Supabase·RLS·RPC·운영DB` — `ACTIVATE_PRIORITY_2` — AUTH-001 remote support, SUPABASE-001
+4. `NURI-09-Supabase·RLS·RPC·운영DB` — `ACTIVATE_PRIORITY_2` — AUTH-001 remote support, SUPABASE-001
+5. `NURI-01-인증·온보딩` — `ACTIVATE_PRIORITY_2` — AUTH-001 primary
 6. `NURI-12-Android·Release-QA` — `ACTIVATE_PRIORITY_2` — Google/Kakao regression and release evidence
 
 ## Later

@@ -8,5 +8,5 @@
 - 허용: community read/write/moderation runtime and server contract proposal
 - 금지: notification delivery, admin operator UI, unreviewed view-count shortcut
 - 경계: user notification event is NURI-07; admin execution UI is NURI-10
-- 현재 상태: CREATE_LATER
+- 현재 상태: ACTIVATE_LATER
 - 첫 작업: create/update/comment abuse boundary regression

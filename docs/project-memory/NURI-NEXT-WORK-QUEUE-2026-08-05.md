@@ -15,7 +15,7 @@
 6. `NURI-12-Android·Release-QA`: clean RC artifact, checksum, logcat, store gate를 고정하고 NURI-01의 Google/Kakao 회귀를 검증한다.
 7. `NURI-10-관리자웹·운영도구`: production operator QA와 audit/rollback/security route를 실제 권한으로 검증한다.
 
-## CREATE_LATER
+## Activation later/reference
 
 - `NURI-05-일정·건강·활동`: schedule/health/activity 제품 변경 때 생성한다.
 - `NURI-06-커뮤니티·모더레이션`: community write path 또는 moderation 변경 때 생성한다.
@@ -25,6 +25,6 @@
 - `NURI-13-가이드·리워드·프라이빗기억`: guides/ranking/rewards/letters/guestbook 변경 때 생성한다.
 - `NURI-14-v1.1-아키텍처·확장`: v1.1 cross-domain architecture decision이 필요할 때 생성한다.
 
-`NURI-01-인증·온보딩`은 CREATE_NOW / Priority 2다. 현재 정책을 다시 결정하는 방이 아니라 AUTH-001 완전 제거를 실행하는 방이다.
+모든 Room은 물리적으로 미리 생성할 수 있다. `NURI-01-인증·온보딩`은 AUTH-001의 다섯 번째 write activation 대상이며, 현재 정책을 다시 결정하는 방이 아니라 확정된 Naver 완전 제거를 실행하는 방이다.
 
 코드 write 작업은 항상 한 방만 동시에 실행한다.

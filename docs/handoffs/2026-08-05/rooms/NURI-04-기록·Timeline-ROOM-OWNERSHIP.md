@@ -8,5 +8,5 @@
 - 허용: record CRUD, Timeline filter/list/render/generation, Home payload의 최소 협의 변경
 - 금지: Home composition, date picker, DB schema 직접 변경 without NURI-09
 - 경계: Home card → Timeline issue의 primary owner; health report가 record semantics를 소비할 때 계약만 공유
-- 현재 상태: CREATE_NOW Priority 1; TIMELINE-001
+- 현재 상태: ACTIVATE_FIRST; TIMELINE-001
 - 첫 작업: clean APK 네 카드 parity/fast re-entry evidence

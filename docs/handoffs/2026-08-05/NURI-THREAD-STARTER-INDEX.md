@@ -30,19 +30,20 @@ Codex는 UI의 실제 room 존재를 자동 확인하지 않는다. 사용자가
 
 각 starter에는 정확한 첫 문장, BOOTSTRAP_ONLY, WRITE_LOCKED, dynamic HEAD 확인 명령, ownership, scope, 금지 범위, bootstrap report 형식이 포함된다.
 
-## 생성 순서
+## Physical Room 생성과 activation 순서
+
+모든 NURI-01~NURI-14 일반 Room은 사용자가 미리 생성할 수 있다. 아래는 물리적 생성 순서가 아니라 첫 write activation 순서다.
 
 1. NURI-02 — DATE-001, 현재 dirty 날짜 입력
 2. NURI-03 — HOME-001, 현재 dirty Home
 3. NURI-04 — TIMELINE-001, 전체 요약/Timeline parity와 fast re-entry
-4. NURI-01 — AUTH-001 app-side Naver 완전 제거
-5. NURI-09 — AUTH-001 remote Provider read-only 및 SUPABASE-001 지원
+4. NURI-09 — AUTH-001 remote Provider read-only 및 SUPABASE-001 지원
+5. NURI-01 — AUTH-001 app-side Naver 완전 제거
 6. NURI-12 — clean RC와 Google/Kakao 회귀
-7. NURI-10 — 관리자 운영 QA
 
-생성은 사용자가 UI에서 순차적으로 수행한다. 생성 순서와 write 순서는 다르며, 동시에 하나의 write room만 허용한다.
+물리적 생성은 사용자가 원하는 시점에 전부 수행할 수 있다. bootstrap은 Room별로 순차 진행하고, 동시에 하나의 write room만 허용한다.
 
-## DO_NOT_CREATE
+## 별도 Room을 만들지 않는 범위
 
 - Community 조회수 전용 room: NURI-06에 흡수
 - Weather 전용 room: NURI-03에 흡수

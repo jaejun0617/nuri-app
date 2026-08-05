@@ -8,18 +8,20 @@
 
 `NURI-00`부터 `NURI-14`까지는 `docs/handoffs/2026-08-05/rooms/`의 ownership 문서에 정의되어 있다. 실제 생성은 사용자가 Codex UI에서 수행하고, 코드는 한 번에 한 방에서만 수정한다.
 
-## CREATE_NOW
+## 모든 Room 사전 생성
 
-1. `NURI-02-반려동물·프로필·날짜` — Priority 1 — `docs/handoffs/2026-08-05/rooms/NURI-02-반려동물·프로필·날짜-ROOM-OWNERSHIP.md`
-2. `NURI-03-메인홈·날씨·요약` — Priority 1 — `docs/handoffs/2026-08-05/rooms/NURI-03-메인홈·날씨·요약-ROOM-OWNERSHIP.md`
-3. `NURI-04-기록·Timeline` — Priority 1 — `docs/handoffs/2026-08-05/rooms/NURI-04-기록·Timeline-ROOM-OWNERSHIP.md`
-4. `NURI-09-Supabase·RLS·RPC·운영DB` — Priority 1 supporting — `docs/handoffs/2026-08-05/rooms/NURI-09-Supabase·RLS·RPC·운영DB-ROOM-OWNERSHIP.md`
-5. `NURI-01-인증·온보딩` — Priority 2 — `docs/handoffs/2026-08-05/rooms/NURI-01-인증·온보딩-ROOM-OWNERSHIP.md`
-6. `NURI-12-Android·Release-QA` — Priority 2 supporting — `docs/handoffs/2026-08-05/rooms/NURI-12-Android·Release-QA-ROOM-OWNERSHIP.md`
+사용자는 NURI-01부터 NURI-14까지 모든 일반 Room을 미리 생성할 수 있다. 아래 순서는 물리적 생성 순서가 아니라 첫 write activation 순서다.
 
-## CREATE_LATER
+1. `NURI-02-반려동물·프로필·날짜` — ACTIVATE_FIRST — `docs/handoffs/2026-08-05/rooms/NURI-02-반려동물·프로필·날짜-ROOM-OWNERSHIP.md`
+2. `NURI-03-메인홈·날씨·요약` — ACTIVATE_FIRST — `docs/handoffs/2026-08-05/rooms/NURI-03-메인홈·날씨·요약-ROOM-OWNERSHIP.md`
+3. `NURI-04-기록·Timeline` — ACTIVATE_FIRST — `docs/handoffs/2026-08-05/rooms/NURI-04-기록·Timeline-ROOM-OWNERSHIP.md`
+4. `NURI-09-Supabase·RLS·RPC·운영DB` — ACTIVATE_PRIORITY_2 — `docs/handoffs/2026-08-05/rooms/NURI-09-Supabase·RLS·RPC·운영DB-ROOM-OWNERSHIP.md`
+5. `NURI-01-인증·온보딩` — ACTIVATE_PRIORITY_2 — `docs/handoffs/2026-08-05/rooms/NURI-01-인증·온보딩-ROOM-OWNERSHIP.md`
+6. `NURI-12-Android·Release-QA` — ACTIVATE_PRIORITY_2 — `docs/handoffs/2026-08-05/rooms/NURI-12-Android·Release-QA-ROOM-OWNERSHIP.md`
 
-`NURI-05`, `NURI-06`, `NURI-07`, `NURI-08`, `NURI-10`, `NURI-11`, `NURI-13`, `NURI-14`. 생성 조건과 starter template은 `docs/handoffs/2026-08-05/NURI-THREAD-STARTER-INDEX.md`에 기록한다.
+## Activation later/reference
+
+`NURI-05`, `NURI-06`, `NURI-07`, `NURI-08`, `NURI-10`, `NURI-11`, `NURI-13`은 ACTIVATE_LATER, `NURI-14`는 REFERENCE_ONLY다. 모든 Room은 사전 생성할 수 있으며, 실제 write는 NURI-00 승인 전까지 금지한다.
 
 ## DO_NOT_CREATE
 

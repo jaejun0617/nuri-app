@@ -7,5 +7,5 @@
 - 허용: admin web runtime and operator UX
 - 금지: mobile feature code, production role escalation, DB policy without NURI-09
 - 경계: Release evidence NURI-12; backend security NURI-09
-- 현재 상태: CREATE_LATER; build passed, production operator QA remains
+- 현재 상태: ACTIVATE_LATER; build passed, production operator QA remains
 - 첫 작업: real operator permission/audit route QA

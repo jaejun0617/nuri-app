@@ -8,5 +8,5 @@
 - 허용: domain runtime and focused tests
 - 금지: generic Timeline filter semantics, Home layout, reward/private memory scope
 - 경계: record row source는 NURI-04와 계약으로 공유
-- 현재 상태: CREATE_LATER
+- 현재 상태: ACTIVATE_LATER
 - 첫 작업: schedule/health/activity cross-domain contract review

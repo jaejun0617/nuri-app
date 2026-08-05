@@ -8,5 +8,5 @@
 - 허용: read path, public-safe presentation, candidate/trust labels, domain tests
 - 금지: candidate→confirmed promotion without operations, provider key exposure, public RLS changes
 - 경계: admin operator screens NURI-10; shared migration NURI-09
-- 현재 상태: CREATE_LATER; PLACE-001
+- 현재 상태: ACTIVATE_LATER; PLACE-001
 - 첫 작업: provider scope and public trust boundary audit

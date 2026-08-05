@@ -8,5 +8,5 @@
 - 허용: secondary product domain runtime and tests
 - 금지: Community moderation, public trust promotion, notification delivery
 - 경계: activity source may be NURI-05, user notification NURI-07
-- 현재 상태: CREATE_LATER
+- 현재 상태: ACTIVATE_LATER
 - 첫 작업: consolidate secondary-domain ownership before feature expansion
