@@ -4,12 +4,18 @@
 
 ## 저장소 기준선
 
+감사 당시 runtime baseline: `c691bb7`
+
+최초 canonical/handoff publication: `8975ba7`
+
+현재 실제 작업 시작 HEAD는 이 문서에 영구 고정하지 않는다. 각 room이 시작할 때 `git rev-parse HEAD`로 확인한다.
+
 ### 앱
 
-- HEAD: `c691bb74108c1648ce59912bca6f6e00000616e1`
+- actual HEAD: room 시작 시 Git으로 확인
 - branch: `codex/task6-community-content-policy`
 - origin과 ahead/behind: `0 / 0`
-- 현재 dirty 변경: 날짜 입력 5개 runtime 파일과 테스트 1개, Home 1개, project-memory 3개, 리서치 1개
+- 현재 dirty 변경: 날짜 입력 5개 runtime/test 파일, Home 1개, project-memory 3개, 리서치 1개
 - 이번 audit은 위 변경을 수정·stage·삭제하지 않았다.
 
 ### 관리자 웹
@@ -51,13 +57,13 @@
 
 - dirty runtime 변경 때문에 현재 APK는 clean source provenance가 아니다.
 - Play Store 제출 자산과 clean RC provenance는 아직 별도 release gate다.
-- 실기기 기준선은 `SM-S937N`이며 사용자가 지정한 Galaxy S24 고유 모델 증적과 동일하지 않다.
+- Android QA 기준은 model code `SM-S937N`, adb serial `R5CY613NMSY`, Android 16이다. market name은 검증되지 않았으므로 병기하지 않는다.
 - Android 전체 smoke와 이전 작업별 증적은 존재하지만, 이번 audit에서는 destructive CRUD를 재수행하지 않았다.
 
 ## 정책 기준
 
-- 공개 social login은 현재 코드·문서 기준 Google/Kakao scope로 관리한다.
-- Naver app-side/config 경로가 코드와 과거 문서에 남아 있어 hard removal은 완료로 판정하지 않는다. public surface 비노출과 hard delete는 별도 risk다.
+- 최종 social login 정책은 Google ON, Kakao ON, Naver 완전 제거, Apple OFF다.
+- Naver 관련 app-side/config/helper/provider 잔존은 정책 재결정 대상이 아니라 AUTH-001 제거 작업의 미완료 증적이다.
 - Apple은 Android-first v1.0 public surface에서 제외한다.
 - Candidate/Trust/User 경계와 Community moderation 경계를 유지한다.
 - 산책 POI는 자체 POI/PostGIS 및 운영 검수 경로를 우선하며, 공용 Kakao 경로가 모든 장소 도메인에서 제거됐다고 단정하지 않는다.
@@ -66,5 +72,6 @@
 
 1. dirty 날짜 입력·Home 변경을 각 소유 방에서 분리 검증하고 commit한다.
 2. Home 전체 요약과 Timeline의 장기 누적·필터·고속 re-entry를 clean APK에서 다시 닫는다.
-3. Supabase remote policy/RPC/grant catalog의 직접 read-only 증적을 확보한다.
-4. clean release artifact와 실제 운영 gate를 분리해 판정한다.
+3. Naver 잔존물을 NURI-01 → NURI-09 → NURI-12 순서로 제거·검증한다.
+4. Supabase remote policy/RPC/grant catalog의 직접 read-only 증적을 확보한다.
+5. clean release artifact와 실제 운영 gate를 분리해 판정한다.

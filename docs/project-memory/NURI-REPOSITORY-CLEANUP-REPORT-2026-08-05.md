@@ -27,6 +27,14 @@
 - 현재 dirty 파일 10개는 변경 소유권을 확인했지만 사용자 변경으로 보존했고, 이 audit commit에 stage하지 않는다.
 - unknown 변경은 삭제하지 않았다.
 
+## Canonical 정합성 교정
+
+- `8975ba7`은 최초 canonical/handoff publication lineage로 기록하고, current work baseline은 각 room 시작 시 `git rev-parse HEAD`로 확인하도록 교정했다.
+- social policy를 Google ON, Kakao ON, Naver 완전 제거, Apple OFF로 고정하고 AUTH-001은 정책 결정이 아니라 잔존물 제거·검증 risk로 분류했다.
+- `SM-S937N`, `R5CY613NMSY`, Android 16만 current Android evidence 명칭으로 사용한다. market name은 검증하지 않았다.
+- 14개 room starter, room registry, master routing/activation/completion 계약을 추가했다. 실제 Codex room은 생성하지 않았다.
+- 기존 dirty runtime·research·project-memory 파일은 이 교정에서 수정·stage하지 않았으며 current canonical 자동 source로 취급하지 않는다.
+
 ## 문서 링크
 
 이번 audit이 새로 만든 문서의 절대 링크 누락과 `git diff --check`를 확인한다. 과거 문서 내부의 모든 링크는 archive 이동에 따른 전수 자동 치환을 하지 않았으므로, 다음 문서 방에서 domain별로 점진 점검한다.

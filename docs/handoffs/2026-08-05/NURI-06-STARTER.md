@@ -6,14 +6,14 @@
 이 새 대화방은 기존 NURI 장기 대화와 보관된 다른 대화방의 내용을 자동으로 기억한다고 가정하지 마라.
 현재 이 대화방은 BOOTSTRAP_ONLY 상태다. NURI-00-마스터-현황·결정·과거이력의 별도 활성화 승인 전에는 코드·문서·DB를 수정하지 마라.
 
-Room: NURI-04-기록·Timeline
-Domain: NURI-04-기록·Timeline
+Room: NURI-06-커뮤니티·모더레이션
+Domain: NURI-06-커뮤니티·모더레이션
 Bootstrap mode: BOOTSTRAP_ONLY
 Write state: WRITE_LOCKED
-Activation: ACTIVATE_FIRST
+Activation: ACTIVATE_LATER
 Physical room state: ROOM_EXISTENCE_UNCONFIRMED
-Role: primary
-Primary issue: TIMELINE-001
+Role: domain
+Primary issue: community policy
 
 Repository:
 - app: /Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri
@@ -37,17 +37,17 @@ Read first:
 - `docs/project-memory/NURI-OPEN-RISK-REGISTER-2026-08-05.md`
 - `docs/project-memory/NURI-DOMAIN-OWNERSHIP-MAP-2026-08-05.md`
 - `docs/project-memory/NURI-THREAD-MAP-AND-HANDOFF-INDEX.md`
-- `docs/handoffs/2026-08-05/rooms/NURI-04-기록·Timeline-ROOM-OWNERSHIP.md`
-- `docs/handoffs/2026-08-05/NURI-04-STARTER.md`
+- `docs/handoffs/2026-08-05/rooms/NURI-06-커뮤니티·모더레이션-ROOM-OWNERSHIP.md`
+- `docs/handoffs/2026-08-05/NURI-06-STARTER.md`
 
 Ownership:
-- screens: Timeline all/walk/meal/other, record detail/create/edit/delete, filters
-- code/services/store: `TimelineScreen.tsx`, Timeline navigators, `memories.ts`, timeline entry/generation and FlashList wrappers
-- Supabase: memory records and category queries; shared policy via NURI-09
-- tests/docs: weekly/total summary, memory CRUD, Timeline navigation, KST/date and fast re-entry tests
-- ownership boundary: `src/screens/Records`, Timeline navigation, timeline entry/generation and memory list rendering
+- screens: community main/list/detail/create/edit/comments/reports
+- code/services/store: community services, moderation action handling and admin-facing contracts
+- Supabase: community tables, reports, moderation policies and audit paths; common security via NURI-09
+- tests/docs: community write-path/moderation tests and policy docs
+- ownership boundary: `src/screens/Community`, posts/comments/replies/reports and moderation UI
 
-Open issue: total summary/Timeline count parity and fast re-entry evidence
+Open issue: abuse defense and moderation write-path remains domain-scoped
 Existing dirty changes:
 - docs/project-memory/다음-작업-우선순위.md
 - docs/project-memory/현재-프로젝트-상태.md
@@ -61,15 +61,15 @@ Existing dirty changes:
 - __tests__/datePickerUtils.test.ts
 These files are not automatically owned by this room. Classify hunks before any activation.
 
-Bootstrap scope: record list completeness, category routing, loading/empty, generation and stale frame behavior.
-Next dependency: clean APK fast re-entry evidence with NURI-12.
+Bootstrap scope: community only; no Home, navigation shell or shared typography ownership.
+Next dependency: create/activate for approved community write-path work.
 Bootstrap allowed: read-only code/docs/Git inspection, ownership classification, risk report and bootstrap handoff.
 Bootstrap prohibited: runtime/doc/test/migration/RLS/RPC/config changes; remote Supabase changes; production data; Android build/install/device actions; stage/commit/push; reset/checkout/stash/rebase/force push; deleting dirty files; parallel write or background agents.
 Do not hard-code a HEAD from this file. Do not treat `8975ba7` as current work HEAD. Do not treat historical archive text or dirty legacy docs as current policy.
 
 Bootstrap completion report:
 # NURI Room Bootstrap 완료 보고
-- Room: NURI-04-기록·Timeline
+- Room: NURI-06-커뮤니티·모더레이션
 - Bootstrap mode: BOOTSTRAP_READY
 - Write state: WRITE_LOCKED
 - Physical room state: ROOM_EXISTENCE_UNCONFIRMED
@@ -78,15 +78,15 @@ Bootstrap completion report:
 - Branch:
 - Git status:
 - Handoff lineage: `8975ba7`
-- Ownership doc: `docs/handoffs/2026-08-05/rooms/NURI-04-기록·Timeline-ROOM-OWNERSHIP.md`
+- Ownership doc: `docs/handoffs/2026-08-05/rooms/NURI-06-커뮤니티·모더레이션-ROOM-OWNERSHIP.md`
 - Read canonical docs:
-- Screens/code/service/store/Supabase/tests: Timeline all/walk/meal/other, record detail/create/edit/delete, filters; `TimelineScreen.tsx`, Timeline navigators, `memories.ts`, timeline entry/generation and FlashList wrappers; memory records and category queries; shared policy via NURI-09; weekly/total summary, memory CRUD, Timeline navigation, KST/date and fast re-entry tests
-- Open issue: TIMELINE-001 — total summary/Timeline count parity and fast re-entry evidence
+- Screens/code/service/store/Supabase/tests: community main/list/detail/create/edit/comments/reports; community services, moderation action handling and admin-facing contracts; community tables, reports, moderation policies and audit paths; common security via NURI-09; community write-path/moderation tests and policy docs
+- Open issue: community policy — abuse defense and moderation write-path remains domain-scoped
 - Existing dirty changes: preserved and not staged
 - Implementation status:
 - Verification status:
 - Release status:
-- Boundaries: `src/screens/Records`, Timeline navigation, timeline entry/generation and memory list rendering
+- Boundaries: `src/screens/Community`, posts/comments/replies/reports and moderation UI
 - Activation blocker: NURI-00 separate approval
 - Write performed: no
 - File modification: none

@@ -143,3 +143,6 @@
 
 ## 마지막 원칙
 항상 “가장 빨리 만드는 방법”이 아니라 “가장 오래 버티고, 덜 깨지고, 운영 리스크를 줄이는 방법”을 선택하라.
+
+## NURI Master Task Routing
+NURI 작업은 NURI-00 Master Task Routing 정책을 따른다. 작업 요청의 primary room, supporting room, bootstrap/activation/write 상태와 완료 review 계약은 `docs/handoffs/2026-08-05/NURI-MASTER-TASK-ROUTING-POLICY.md`를 기준으로 확인한다.

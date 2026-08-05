@@ -1,0 +1,31 @@
+# NURI Room Registry
+
+기준일: 2026-08-05
+
+이 registry는 대화방의 물리적 존재와 bootstrap/activation/write 상태를 분리한다. Codex가 UI에서 실제 room 존재를 확인하지 못한 방은 `ROOM_EXISTENCE_UNCONFIRMED`다. `8975ba7`은 최초 canonical/handoff publication lineage이며 current work HEAD가 아니다.
+
+| 번호 | 정확한 이름 | Physical | Bootstrap | Activation | Write | Primary issue/role | Ownership | Starter | Last report HEAD | Completion commit | Next action |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 00 | `NURI-00-마스터-현황·결정·과거이력` | ROOM_EXISTS | BOOTSTRAP_READY | ACTIVATE_FIRST | WRITE_LOCKED | master routing/review | `NURI-00-MASTER-HANDOFF.md` | N/A | actual current thread | N/A | dispatch/review only |
+| 01 | `NURI-01-인증·온보딩` | ROOM_EXISTENCE_UNCONFIRMED | BOOTSTRAP_NOT_STARTED | ACTIVATE_PRIORITY_2 | WRITE_LOCKED | AUTH-001 primary | `rooms/NURI-01-인증·온보딩-ROOM-OWNERSHIP.md` | `NURI-01-STARTER.md` | not reported | none | user creates, bootstrap |
+| 02 | `NURI-02-반려동물·프로필·날짜` | ROOM_EXISTENCE_UNCONFIRMED | BOOTSTRAP_NOT_STARTED | ACTIVATE_FIRST | WRITE_LOCKED | DATE-001 | `rooms/NURI-02-반려동물·프로필·날짜-ROOM-OWNERSHIP.md` | `NURI-02-STARTER.md` | not reported | none | user creates, bootstrap |
+| 03 | `NURI-03-메인홈·날씨·요약` | ROOM_EXISTENCE_UNCONFIRMED | BOOTSTRAP_NOT_STARTED | ACTIVATE_FIRST | WRITE_LOCKED | HOME-001 | `rooms/NURI-03-메인홈·날씨·요약-ROOM-OWNERSHIP.md` | `NURI-03-STARTER.md` | not reported | none | user creates, bootstrap |
+| 04 | `NURI-04-기록·Timeline` | ROOM_EXISTENCE_UNCONFIRMED | BOOTSTRAP_NOT_STARTED | ACTIVATE_FIRST | WRITE_LOCKED | TIMELINE-001 | `rooms/NURI-04-기록·Timeline-ROOM-OWNERSHIP.md` | `NURI-04-STARTER.md` | not reported | none | user creates, bootstrap |
+| 05 | `NURI-05-일정·건강·활동` | ROOM_EXISTENCE_UNCONFIRMED | BOOTSTRAP_NOT_STARTED | ACTIVATE_LATER | WRITE_LOCKED | future domain | `rooms/NURI-05-일정·건강·활동-ROOM-OWNERSHIP.md` | `NURI-05-STARTER.md` | not reported | none | activate on approved change |
+| 06 | `NURI-06-커뮤니티·모더레이션` | ROOM_EXISTENCE_UNCONFIRMED | BOOTSTRAP_NOT_STARTED | ACTIVATE_LATER | WRITE_LOCKED | community policy | `rooms/NURI-06-커뮤니티·모더레이션-ROOM-OWNERSHIP.md` | `NURI-06-STARTER.md` | not reported | none | activate on approved change |
+| 07 | `NURI-07-알림·운영메시지` | ROOM_EXISTENCE_UNCONFIRMED | BOOTSTRAP_NOT_STARTED | ACTIVATE_LATER | WRITE_LOCKED | notification lifecycle | `rooms/NURI-07-알림·운영메시지-ROOM-OWNERSHIP.md` | `NURI-07-STARTER.md` | not reported | none | activate on approved change |
+| 08 | `NURI-08-동물병원·산책POI·펫여행` | ROOM_EXISTENCE_UNCONFIRMED | BOOTSTRAP_NOT_STARTED | ACTIVATE_LATER | WRITE_LOCKED | PLACE-001 | `rooms/NURI-08-동물병원·산책POI·펫여행-ROOM-OWNERSHIP.md` | `NURI-08-STARTER.md` | not reported | none | activate on approved change |
+| 09 | `NURI-09-Supabase·RLS·RPC·운영DB` | ROOM_EXISTENCE_UNCONFIRMED | BOOTSTRAP_NOT_STARTED | ACTIVATE_PRIORITY_2 | WRITE_LOCKED | SUPABASE-001, AUTH-001 support | `rooms/NURI-09-Supabase·RLS·RPC·운영DB-ROOM-OWNERSHIP.md` | `NURI-09-STARTER.md` | not reported | none | after NURI-01 bootstrap |
+| 10 | `NURI-10-관리자웹·운영도구` | ROOM_EXISTENCE_UNCONFIRMED | BOOTSTRAP_NOT_STARTED | ACTIVATE_LATER | WRITE_LOCKED | ADMIN-001 | `rooms/NURI-10-관리자웹·운영도구-ROOM-OWNERSHIP.md` | `NURI-10-STARTER.md` | not reported | none | activate on approved change |
+| 11 | `NURI-11-디자인시스템·접근성` | ROOM_EXISTENCE_UNCONFIRMED | BOOTSTRAP_NOT_STARTED | ACTIVATE_LATER | WRITE_LOCKED | DESIGN-001 review | `rooms/NURI-11-디자인시스템·접근성-ROOM-OWNERSHIP.md` | `NURI-11-STARTER.md` | not reported | none | read-only review first |
+| 12 | `NURI-12-Android·Release-QA` | ROOM_EXISTENCE_UNCONFIRMED | BOOTSTRAP_NOT_STARTED | ACTIVATE_PRIORITY_2 | WRITE_LOCKED | ANDROID-001, RELEASE-001 support | `rooms/NURI-12-Android·Release-QA-ROOM-OWNERSHIP.md` | `NURI-12-STARTER.md` | not reported | none | after NURI-01/NURI-09 |
+| 13 | `NURI-13-가이드·리워드·프라이빗기억` | ROOM_EXISTENCE_UNCONFIRMED | BOOTSTRAP_NOT_STARTED | ACTIVATE_LATER | WRITE_LOCKED | future domain | `rooms/NURI-13-가이드·리워드·프라이빗기억-ROOM-OWNERSHIP.md` | `NURI-13-STARTER.md` | not reported | none | activate on approved change |
+| 14 | `NURI-14-v1.1-아키텍처·확장` | ROOM_EXISTENCE_UNCONFIRMED | BOOTSTRAP_NOT_STARTED | REFERENCE_ONLY | WRITE_LOCKED | v1.1 architecture reference | `rooms/NURI-14-v1.1-아키텍처·확장-ROOM-OWNERSHIP.md` | `NURI-14-STARTER.md` | not reported | none | NURI-00 approval |
+
+## Registry update rules
+
+- 사용자가 실제 room 생성과 이름을 확인하면 해당 Physical 상태만 `ROOM_EXISTS`로 갱신한다.
+- starter를 첫 메시지로 처리한 뒤 bootstrap report가 제출되면 Bootstrap만 `BOOTSTRAP_READY`로 갱신한다.
+- NURI-00의 활성화 승인 전에는 Write를 `WRITE_LOCKED`로 유지한다.
+- 실제 commit/push가 있어도 room의 Physical 또는 Activation 상태를 자동으로 바꾸지 않는다.
+- 완료 report의 HEAD, status, files, tests, remote/device evidence, commit/push를 검수한 뒤에만 `WRITE_COMPLETE`를 기록한다.

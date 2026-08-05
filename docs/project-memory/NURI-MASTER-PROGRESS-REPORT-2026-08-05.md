@@ -2,6 +2,10 @@
 
 기준일: 2026-08-05
 
+- 감사 당시 runtime baseline: `c691bb7`
+- 최초 canonical/handoff publication: `8975ba7`
+- 현재 작업 기준 HEAD: room 시작 시 실제 Git으로 확인
+
 ## 판정 축
 
 | 축 | 현재 판정 | 근거 |
@@ -14,7 +18,7 @@
 
 | 영역 | 구현 | 검증 | 출시 |
 | --- | --- | --- | --- |
-| Auth/Onboarding | 구현 | 자동 테스트 및 과거 Android evidence | current social policy drift risk |
+| Auth/Onboarding | 구현 | 자동 테스트 및 과거 Android evidence | Naver 완전 제거 작업 필요 |
 | Pet/Profile/Date | 구현 및 dirty 수정 | 날짜 단위 테스트와 과거 device evidence | dirty 변경 closeout 필요 |
 | Home/Weather/Summary | 구현 및 dirty Home 변경 | 자동 테스트와 과거 Home evidence | clean APK 회귀 gate 필요 |
 | Records/Timeline | 구현 | 71/310 전체 테스트와 과거 re-entry evidence | current fast stress 재확인 필요 |

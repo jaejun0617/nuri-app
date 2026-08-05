@@ -14,8 +14,12 @@
 
 ## 현재 기준선
 
+- 감사 당시 runtime baseline: `c691bb7`
+- 최초 canonical/handoff publication: `8975ba7`
+- 실제 작업 기준 HEAD: room 시작 시 `git rev-parse HEAD` 결과
+
 - 앱 repo: `/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri`
-- 앱 HEAD: `c691bb74108c1648ce59912bca6f6e00000616e1`
+- 앱 HEAD: 고정하지 않음. 실제 room 시작 시 Git으로 확인
 - 앱 branch: `codex/task6-community-content-policy`
 - 관리자 repo: `/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri-web`
 - 관리자 HEAD: `5027caee2212ceca54dfe02270cc3ccdf76e32a3`
@@ -30,6 +34,10 @@
 - dirty worktree의 변경은 소유권이 명확해도 별도 작업의 사용자 변경으로 보존한다.
 - Supabase migration 일치와 remote policy/RPC row-level 증적은 별도 항목이다.
 - 보관된 Codex 대화는 자동 source of truth가 아니다. 필요한 사실은 repo 문서와 Git에 기록한다.
+- `8975ba7`은 handoff lineage일 뿐 미래 작업의 고정 HEAD가 아니다.
+- archive historical HEAD와 current room 시작 HEAD를 혼동하지 않는다.
+- 최종 social login 정책은 Google ON, Kakao ON, Naver 완전 제거, Apple OFF다.
+- Android 명칭은 검증된 model code만 사용한다: `SM-S937N` / `R5CY613NMSY` / Android 16.
 
 ## Canonical 문서 색인
 

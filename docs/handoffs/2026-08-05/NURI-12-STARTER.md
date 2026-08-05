@@ -1,18 +1,95 @@
+# NURI Room Starter
+
+아래는 새 대화방 첫 메시지로 복사할 단일 Markdown code block이다.
+
+```md
 이 새 대화방은 기존 NURI 장기 대화와 보관된 다른 대화방의 내용을 자동으로 기억한다고 가정하지 마라.
+현재 이 대화방은 BOOTSTRAP_ONLY 상태다. NURI-00-마스터-현황·결정·과거이력의 별도 활성화 승인 전에는 코드·문서·DB를 수정하지 마라.
 
-# 작업명
+Room: NURI-12-Android·Release-QA
+Domain: NURI-12-Android·Release-QA
+Bootstrap mode: BOOTSTRAP_ONLY
+Write state: WRITE_LOCKED
+Activation: ACTIVATE_PRIORITY_2
+Physical room state: ROOM_EXISTENCE_UNCONFIRMED
+Role: supporting
+Primary issue: ANDROID-001 / RELEASE-001
 
-`NURI-12-Android·Release-QA` — clean RC·실기기·출시 gate
+Repository:
+- app: /Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri
+- admin: /Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri-web
+- first handoff lineage: 최초 canonical/handoff publication `8975ba7`
+- actual work baseline: room 시작 시 `git rev-parse HEAD` 결과
 
-repo: `/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri`
-기준 HEAD: `c691bb74108c1648ce59912bca6f6e00000616e1`
-branch: `codex/task6-community-content-policy`
-ownership: `docs/handoffs/2026-08-05/rooms/NURI-12-Android·Release-QA-ROOM-OWNERSHIP.md`
+Room start commands:
+cd /Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri
+git status --short
+git rev-parse HEAD
+git rev-parse --short HEAD
+git branch --show-current
+git log --oneline --decorate -10
+git diff --check
 
-현재 앱 dirty 파일은 날짜 입력 5개 runtime/test 파일, `LoggedInHome.tsx`, project-memory 3개, `docs/리서치/리서치.md`다. 관리자 웹 worktree는 clean이다. APK provenance에는 이 dirty 상태를 명시한다.
+Read first:
+- `AGENTS.md`
+- `docs/project-memory/NURI-CANONICAL-SOURCE-OF-TRUTH.md`
+- `docs/project-memory/NURI-CANONICAL-CURRENT-STATE-2026-08-05.md`
+- `docs/project-memory/NURI-OPEN-RISK-REGISTER-2026-08-05.md`
+- `docs/project-memory/NURI-DOMAIN-OWNERSHIP-MAP-2026-08-05.md`
+- `docs/project-memory/NURI-THREAD-MAP-AND-HANDOFF-INDEX.md`
+- `docs/handoffs/2026-08-05/rooms/NURI-12-Android·Release-QA-ROOM-OWNERSHIP.md`
+- `docs/handoffs/2026-08-05/NURI-12-STARTER.md`
 
-기능 코드를 소유하지 않는다. clean 또는 명시된 dirty provenance의 APK를 build/install하고 version, checksum, signing, device, smoke, logcat, 증적을 관리한다. 현재 baseline은 `SM-S937N`, `R5CY613NMSY`, Android 16, app version 1.0 code 1이다.
+Ownership:
+- screens: no feature screen ownership
+- code/services/store: Android build/release config and evidence scripts only
+- Supabase: release configuration evidence; no schema/provider ownership
+- tests/docs: release checklist, smoke, logcat, APK checksum and physical-device QA
+- ownership boundary: `android`, build/signing scripts, APK provenance, device evidence, logcat and store gate
 
-네트워크·QA 계정·사용자 데이터 변경은 통제된 범위에서만 수행한다. release blocker가 발견되면 owning domain으로 되돌린다. 날짜 입력, Home, Timeline 기능을 이 방에서 수정하지 않는다.
+Open issue: clean RC provenance and NURI-01 Google/Kakao regression
+Existing dirty changes:
+- docs/project-memory/다음-작업-우선순위.md
+- docs/project-memory/현재-프로젝트-상태.md
+- docs/project-memory/최근-작업-로그.md
+- docs/리서치/리서치.md
+- src/components/date-picker/DatePickerModal.tsx
+- src/components/date-picker/datePickerUtils.ts
+- src/screens/Main/components/LoggedInHome/LoggedInHome.tsx
+- src/screens/Pets/PetCreateScreen.tsx
+- src/screens/Pets/PetProfileEditScreen.tsx
+- __tests__/datePickerUtils.test.ts
+These files are not automatically owned by this room. Classify hunks before any activation.
 
-검증: app/web relevant builds, release APK, install, cold start, Auth/Pet/Home/Timeline/Weather/Hospital/Community/More, Android Back, app-scoped logcat, evidence directory. clean RC provenance와 dirty baseline을 섞어 보고하지 않는다. 완료 후 checksum과 남은 risk를 master에 전달한다.
+Bootstrap scope: build, install, device and release evidence; return feature bugs to owning room.
+Next dependency: run after NURI-01 and NURI-09 sequence.
+Bootstrap allowed: read-only code/docs/Git inspection, ownership classification, risk report and bootstrap handoff.
+Bootstrap prohibited: runtime/doc/test/migration/RLS/RPC/config changes; remote Supabase changes; production data; Android build/install/device actions; stage/commit/push; reset/checkout/stash/rebase/force push; deleting dirty files; parallel write or background agents.
+Do not hard-code a HEAD from this file. Do not treat `8975ba7` as current work HEAD. Do not treat historical archive text or dirty legacy docs as current policy.
+
+Bootstrap completion report:
+# NURI Room Bootstrap 완료 보고
+- Room: NURI-12-Android·Release-QA
+- Bootstrap mode: BOOTSTRAP_READY
+- Write state: WRITE_LOCKED
+- Physical room state: ROOM_EXISTENCE_UNCONFIRMED
+- Repository: app/admin paths above
+- Actual HEAD:
+- Branch:
+- Git status:
+- Handoff lineage: `8975ba7`
+- Ownership doc: `docs/handoffs/2026-08-05/rooms/NURI-12-Android·Release-QA-ROOM-OWNERSHIP.md`
+- Read canonical docs:
+- Screens/code/service/store/Supabase/tests: no feature screen ownership; Android build/release config and evidence scripts only; release configuration evidence; no schema/provider ownership; release checklist, smoke, logcat, APK checksum and physical-device QA
+- Open issue: ANDROID-001 / RELEASE-001 — clean RC provenance and NURI-01 Google/Kakao regression
+- Existing dirty changes: preserved and not staged
+- Implementation status:
+- Verification status:
+- Release status:
+- Boundaries: `android`, build/signing scripts, APK provenance, device evidence, logcat and store gate
+- Activation blocker: NURI-00 separate approval
+- Write performed: no
+- File modification: none
+- Commit/push: none
+- Final state: BOOTSTRAP_READY / WRITE_LOCKED
+```

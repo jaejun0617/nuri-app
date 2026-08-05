@@ -1,18 +1,95 @@
+# NURI Room Starter
+
+아래는 새 대화방 첫 메시지로 복사할 단일 Markdown code block이다.
+
+```md
 이 새 대화방은 기존 NURI 장기 대화와 보관된 다른 대화방의 내용을 자동으로 기억한다고 가정하지 마라.
+현재 이 대화방은 BOOTSTRAP_ONLY 상태다. NURI-00-마스터-현황·결정·과거이력의 별도 활성화 승인 전에는 코드·문서·DB를 수정하지 마라.
 
-# 작업명
+Room: NURI-09-Supabase·RLS·RPC·운영DB
+Domain: NURI-09-Supabase·RLS·RPC·운영DB
+Bootstrap mode: BOOTSTRAP_ONLY
+Write state: WRITE_LOCKED
+Activation: ACTIVATE_PRIORITY_2
+Physical room state: ROOM_EXISTENCE_UNCONFIRMED
+Role: supporting
+Primary issue: SUPABASE-001 / AUTH-001
 
-`NURI-09-Supabase·RLS·RPC·운영DB` — remote catalog와 provider policy closeout
+Repository:
+- app: /Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri
+- admin: /Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri-web
+- first handoff lineage: 최초 canonical/handoff publication `8975ba7`
+- actual work baseline: room 시작 시 `git rev-parse HEAD` 결과
 
-repo: `/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri`
-기준 HEAD: `c691bb74108c1648ce59912bca6f6e00000616e1`
-branch: `codex/task6-community-content-policy`
-ownership: `docs/handoffs/2026-08-05/rooms/NURI-09-Supabase·RLS·RPC·운영DB-ROOM-OWNERSHIP.md`
+Room start commands:
+cd /Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri
+git status --short
+git rev-parse HEAD
+git rev-parse --short HEAD
+git branch --show-current
+git log --oneline --decorate -10
+git diff --check
 
-현재 앱 dirty 파일은 날짜 입력 5개 runtime/test 파일, `LoggedInHome.tsx`, project-memory 3개, `docs/리서치/리서치.md`다. 관리자 웹 worktree는 clean이다. 이 방은 기존 dirty 파일을 stage하지 않는다.
+Read first:
+- `AGENTS.md`
+- `docs/project-memory/NURI-CANONICAL-SOURCE-OF-TRUTH.md`
+- `docs/project-memory/NURI-CANONICAL-CURRENT-STATE-2026-08-05.md`
+- `docs/project-memory/NURI-OPEN-RISK-REGISTER-2026-08-05.md`
+- `docs/project-memory/NURI-DOMAIN-OWNERSHIP-MAP-2026-08-05.md`
+- `docs/project-memory/NURI-THREAD-MAP-AND-HANDOFF-INDEX.md`
+- `docs/handoffs/2026-08-05/rooms/NURI-09-Supabase·RLS·RPC·운영DB-ROOM-OWNERSHIP.md`
+- `docs/handoffs/2026-08-05/NURI-09-STARTER.md`
 
-이번 작업은 read-only catalog, local/remote migration 정합성, RLS/policy, RPC/function grants, triggers, public trust boundary, OAuth provider 정책을 실제 remote 기준으로 확인한다. 현재 `supabase db push --dry-run`은 up to date이고 Docker 부재로 `db dump` full catalog는 미확인이다.
+Ownership:
+- screens: none; shared backend contract
+- code/services/store: Supabase adapters only when contract evidence requires it
+- Supabase: migration, RLS, RPC, trigger, grant, storage, auth Provider catalog
+- tests/docs: migration/security SQL docs and remote catalog evidence
+- ownership boundary: all `supabase/migrations`, functions, policies, grants, triggers, storage and remote catalog
 
-production data, migration edit/apply, RLS disable, secret 출력은 금지한다. Naver app/config 잔존은 사실대로 분리하고 hard removal 여부를 결정하지 못하면 risk로 남긴다. feature room의 앱 호출 계약과 공용 DB 변경을 혼합하지 않는다.
+Open issue: remote catalog evidence and Naver Provider read-only support
+Existing dirty changes:
+- docs/project-memory/다음-작업-우선순위.md
+- docs/project-memory/현재-프로젝트-상태.md
+- docs/project-memory/최근-작업-로그.md
+- docs/리서치/리서치.md
+- src/components/date-picker/DatePickerModal.tsx
+- src/components/date-picker/datePickerUtils.ts
+- src/screens/Main/components/LoggedInHome/LoggedInHome.tsx
+- src/screens/Pets/PetCreateScreen.tsx
+- src/screens/Pets/PetProfileEditScreen.tsx
+- __tests__/datePickerUtils.test.ts
+These files are not automatically owned by this room. Classify hunks before any activation.
 
-검증: CLI read-only, migration list/dry-run, 가능한 remote SQL catalog, 관련 tests, diff check. 필요 시 앱/관리자 room에 계약 결과를 handoff한다. migration이 필요하면 별도 사용자 승인과 staged review를 먼저 기록한다.
+Bootstrap scope: read-only audit first; approved additive backend security/data work only after activation.
+Next dependency: support NURI-01, then close SUPABASE-001.
+Bootstrap allowed: read-only code/docs/Git inspection, ownership classification, risk report and bootstrap handoff.
+Bootstrap prohibited: runtime/doc/test/migration/RLS/RPC/config changes; remote Supabase changes; production data; Android build/install/device actions; stage/commit/push; reset/checkout/stash/rebase/force push; deleting dirty files; parallel write or background agents.
+Do not hard-code a HEAD from this file. Do not treat `8975ba7` as current work HEAD. Do not treat historical archive text or dirty legacy docs as current policy.
+
+Bootstrap completion report:
+# NURI Room Bootstrap 완료 보고
+- Room: NURI-09-Supabase·RLS·RPC·운영DB
+- Bootstrap mode: BOOTSTRAP_READY
+- Write state: WRITE_LOCKED
+- Physical room state: ROOM_EXISTENCE_UNCONFIRMED
+- Repository: app/admin paths above
+- Actual HEAD:
+- Branch:
+- Git status:
+- Handoff lineage: `8975ba7`
+- Ownership doc: `docs/handoffs/2026-08-05/rooms/NURI-09-Supabase·RLS·RPC·운영DB-ROOM-OWNERSHIP.md`
+- Read canonical docs:
+- Screens/code/service/store/Supabase/tests: none; shared backend contract; Supabase adapters only when contract evidence requires it; migration, RLS, RPC, trigger, grant, storage, auth Provider catalog; migration/security SQL docs and remote catalog evidence
+- Open issue: SUPABASE-001 / AUTH-001 — remote catalog evidence and Naver Provider read-only support
+- Existing dirty changes: preserved and not staged
+- Implementation status:
+- Verification status:
+- Release status:
+- Boundaries: all `supabase/migrations`, functions, policies, grants, triggers, storage and remote catalog
+- Activation blocker: NURI-00 separate approval
+- Write performed: no
+- File modification: none
+- Commit/push: none
+- Final state: BOOTSTRAP_READY / WRITE_LOCKED
+```

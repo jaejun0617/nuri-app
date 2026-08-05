@@ -1,6 +1,8 @@
 # NURI Thread Map and Handoff Index
 
-현재 master thread는 사용자가 생성한 `NURI-00-마스터-현황·결정·과거이력`이다. Codex는 일반 대화방을 자동 생성하거나 과거 보관 대화를 자동 상속한다고 가정하지 않는다.
+현재 master thread는 사용자가 생성한 `NURI-00-마스터-현황·결정·과거이력`이다. Codex는 일반 대화방을 자동 생성하거나 과거 보관 대화를 자동 상속한다고 가정하지 않는다. Codex가 UI의 실제 방 존재를 확인하기 전에는 신규 방을 `ROOM_EXISTENCE_UNCONFIRMED`로 기록한다.
+
+정상 bootstrap 상태는 `BOOTSTRAP_READY / WRITE_LOCKED`다. NURI-00의 별도 활성화 승인으로 한 번에 하나의 방만 `WRITE_ACTIVE`가 될 수 있다. 방 생성 여부, bootstrap 완료 여부, activation 순서, write 상태는 서로 다른 필드다.
 
 ## 전체 영구 방
 
@@ -11,12 +13,13 @@
 1. `NURI-02-반려동물·프로필·날짜` — Priority 1 — `docs/handoffs/2026-08-05/rooms/NURI-02-반려동물·프로필·날짜-ROOM-OWNERSHIP.md`
 2. `NURI-03-메인홈·날씨·요약` — Priority 1 — `docs/handoffs/2026-08-05/rooms/NURI-03-메인홈·날씨·요약-ROOM-OWNERSHIP.md`
 3. `NURI-04-기록·Timeline` — Priority 1 — `docs/handoffs/2026-08-05/rooms/NURI-04-기록·Timeline-ROOM-OWNERSHIP.md`
-4. `NURI-09-Supabase·RLS·RPC·운영DB` — Priority 1 — `docs/handoffs/2026-08-05/rooms/NURI-09-Supabase·RLS·RPC·운영DB-ROOM-OWNERSHIP.md`
-5. `NURI-12-Android·Release-QA` — Priority 2 — `docs/handoffs/2026-08-05/rooms/NURI-12-Android·Release-QA-ROOM-OWNERSHIP.md`
+4. `NURI-09-Supabase·RLS·RPC·운영DB` — Priority 1 supporting — `docs/handoffs/2026-08-05/rooms/NURI-09-Supabase·RLS·RPC·운영DB-ROOM-OWNERSHIP.md`
+5. `NURI-01-인증·온보딩` — Priority 2 — `docs/handoffs/2026-08-05/rooms/NURI-01-인증·온보딩-ROOM-OWNERSHIP.md`
+6. `NURI-12-Android·Release-QA` — Priority 2 supporting — `docs/handoffs/2026-08-05/rooms/NURI-12-Android·Release-QA-ROOM-OWNERSHIP.md`
 
 ## CREATE_LATER
 
-`NURI-01`, `NURI-05`, `NURI-06`, `NURI-07`, `NURI-08`, `NURI-10`, `NURI-11`, `NURI-13`, `NURI-14`. 생성 조건과 starter template은 `docs/handoffs/2026-08-05/NURI-THREAD-STARTER-INDEX.md`에 기록한다.
+`NURI-05`, `NURI-06`, `NURI-07`, `NURI-08`, `NURI-10`, `NURI-11`, `NURI-13`, `NURI-14`. 생성 조건과 starter template은 `docs/handoffs/2026-08-05/NURI-THREAD-STARTER-INDEX.md`에 기록한다.
 
 ## DO_NOT_CREATE
 
