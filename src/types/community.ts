@@ -17,6 +17,17 @@ export type CommunityPostStatus =
 
 export type CommunityPostCategory = 'free' | 'question' | 'info' | 'daily';
 
+export type CommunityListFilter = 'all' | 'popular' | 'notice';
+export type CommunityPageSize = 30 | 50 | 100 | 150 | 200;
+export const COMMUNITY_PAGE_SIZE_OPTIONS: readonly CommunityPageSize[] = [
+  30,
+  50,
+  100,
+  150,
+  200,
+];
+export const DEFAULT_COMMUNITY_PAGE_SIZE: CommunityPageSize = 30;
+
 export type CommunityCommentStatus =
   | 'active'
   | 'hidden'
@@ -77,6 +88,8 @@ export type CommunityPostRow = {
   like_count: number | null;
   comment_count: number | null;
   view_count?: number | null;
+  is_notice?: boolean | null;
+  notice_published_at?: string | null;
   author_snapshot_nickname?: string | null;
   author_snapshot_avatar_url?: string | null;
   pet_snapshot_name?: string | null;
@@ -146,6 +159,8 @@ export type CommunityPost = {
   likeCount: number;
   commentCount: number;
   viewCount: number;
+  isNotice: boolean;
+  noticePublishedAt: string | null;
   isLikedByMe: boolean;
   deletedAt: string | null;
   createdAt: string;
@@ -188,9 +203,9 @@ export type CommunityDetailStatus =
   | 'moderated';
 
 export type FetchCommunityPostsParams = {
-  category?: CommunityPostCategory | null;
+  filter?: CommunityListFilter;
   cursor?: string | null;
-  limit?: number;
+  limit?: CommunityPageSize;
 };
 
 export type CreateCommunityPostParams = {

@@ -5,7 +5,10 @@ import { useTheme } from 'styled-components/native';
 
 import AppText from '../../../app/ui/AppText';
 import type { CommunityPost } from '../../../types/community';
-import { formatCommunityListTimestamp } from '../communityListPresentation';
+import {
+  formatCommunityListTimestamp,
+  getCommunityCategoryLabel,
+} from '../communityListPresentation';
 import { styles } from './PostCard.styles';
 
 type Props = {
@@ -13,21 +16,6 @@ type Props = {
   accentColor: string;
   onPressPost: (postId: string) => void;
 };
-
-function getCategoryLabel(category: CommunityPost['category']) {
-  switch (category) {
-    case 'question':
-      return '질문';
-    case 'info':
-      return '팁 공유';
-    case 'daily':
-      return '일상';
-    case 'free':
-      return '정보';
-    default:
-      return '전체';
-  }
-}
 
 function trimText(value: string | null | undefined) {
   return `${value ?? ''}`.trim();
@@ -53,7 +41,7 @@ function PostCardBase({
 }: Props) {
   const theme = useTheme();
   const title = useMemo(() => resolvePostTitle(post), [post]);
-  const categoryLabel = getCategoryLabel(post.category);
+  const categoryLabel = getCommunityCategoryLabel(post.category);
   const createdAtLabel = useMemo(
     () => formatCommunityListTimestamp(post.createdAt),
     [post.createdAt],
@@ -81,6 +69,24 @@ function PostCardBase({
     >
       <View style={styles.content}>
         <View style={styles.titleRow}>
+          {post.isNotice ? (
+            <View
+              style={[
+                styles.noticeBadge,
+                {
+                  backgroundColor: `${accentColor}18`,
+                  borderColor: `${accentColor}55`,
+                },
+              ]}
+            >
+              <AppText
+                preset="caption"
+                style={[styles.noticeBadgeText, { color: accentColor }]}
+              >
+                공지
+              </AppText>
+            </View>
+          ) : null}
           {post.hasImage ? (
             <View style={styles.imageTypeIcon}>
               <MaterialCommunityIcons name="image" size={13} color="#FFFFFF" />
@@ -137,6 +143,8 @@ const areEqual = (prev: Props, next: Props) =>
   prev.post.id === next.post.id &&
   prev.post.authorNickname === next.post.authorNickname &&
   prev.post.category === next.post.category &&
+  prev.post.isNotice === next.post.isNotice &&
+  prev.post.noticePublishedAt === next.post.noticePublishedAt &&
   prev.post.title === next.post.title &&
   prev.post.content === next.post.content &&
   prev.post.hasImage === next.post.hasImage &&

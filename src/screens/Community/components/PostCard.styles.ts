@@ -37,6 +37,19 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 5,
   },
+  noticeBadge: {
+    minHeight: 20,
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noticeBadgeText: {
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '800',
+  },
   title: {
     flex: 1,
     minWidth: 0,

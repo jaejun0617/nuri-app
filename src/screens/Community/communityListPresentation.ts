@@ -1,4 +1,34 @@
 import { getKstDateParts } from '../../utils/date';
+import type {
+  CommunityListFilter,
+  CommunityPostCategory,
+} from '../../types/community';
+
+export const COMMUNITY_LIST_FILTER_OPTIONS: ReadonlyArray<{
+  key: CommunityListFilter;
+  label: string;
+}> = [
+  { key: 'all', label: '전체' },
+  { key: 'popular', label: '인기글' },
+  { key: 'notice', label: '공지' },
+];
+
+export function getCommunityCategoryLabel(
+  category: CommunityPostCategory | null | undefined,
+) {
+  switch (category) {
+    case 'question':
+      return '질문';
+    case 'info':
+      return '정보';
+    case 'daily':
+      return '일상';
+    case 'free':
+      return '자유';
+    default:
+      return '전체';
+  }
+}
 
 function pad2(value: number) {
   return String(value).padStart(2, '0');

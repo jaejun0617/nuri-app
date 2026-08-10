@@ -31,16 +31,35 @@ import {
 import type {
   CommunityComment,
   CommunityDetailStatus,
+  CommunityListFilter,
+  CommunityPageSize,
   CommunityListStatus,
   CommunityPost,
-  CommunityPostCategory,
   CommunityReportReasonCategory,
   CreateCommunityPostParams,
   UpdateCommunityPostParams,
 } from '../types/community';
+import { DEFAULT_COMMUNITY_PAGE_SIZE } from '../types/community';
 
-const COMMUNITY_PAGE_SIZE = 20;
 const UNKNOWN_COMMENT_AUTHOR_NICKNAME = '알 수 없는 사용자';
+
+type CommunityCursorHistory = Record<string, Record<number, string | null>>;
+
+function getCommunityListKey(
+  filter: CommunityListFilter,
+  pageSize: CommunityPageSize,
+) {
+  return `${filter}:${pageSize}`;
+}
+
+function uniquePosts(posts: CommunityPost[]) {
+  const seen = new Set<string>();
+  return posts.filter(post => {
+    if (seen.has(post.id)) return false;
+    seen.add(post.id);
+    return true;
+  });
+}
 
 type CommunityStore = {
   posts: CommunityPost[];
@@ -61,12 +80,19 @@ type CommunityStore = {
   listErrorMessage: string | null;
   cursor: string | null;
   hasMore: boolean;
-  activeCategory: CommunityPostCategory | null;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  currentPage: number;
+  cursorHistory: CommunityCursorHistory;
+  activeFilter: CommunityListFilter;
+  pageSize: CommunityPageSize;
   lastFetchedAt: number | null;
 
-  fetchPosts: (category?: CommunityPostCategory | null) => Promise<void>;
+  fetchPosts: (filter?: CommunityListFilter) => Promise<void>;
   refreshPosts: () => Promise<void>;
   loadMorePosts: () => Promise<void>;
+  loadPreviousPosts: () => Promise<void>;
+  setPageSize: (pageSize: CommunityPageSize) => Promise<void>;
   fetchPostDetail: (postId: string) => Promise<void>;
   recordPostView: (postId: string) => Promise<void>;
   fetchPostComments: (postId: string) => Promise<void>;
@@ -172,7 +198,107 @@ function reconcileLatestCommentPreviewState(
   };
 }
 
-export const useCommunityStore = create<CommunityStore>((set, get) => ({
+export const useCommunityStore = create<CommunityStore>((set, get) => {
+  let listRequestSequence = 0;
+
+  const requestListPage = async (options: {
+    filter: CommunityListFilter;
+    pageSize: CommunityPageSize;
+    page: number;
+    cursor: string | null;
+    status: 'loading' | 'refreshing' | 'loadingMore';
+    resetHistory: boolean;
+    clearPosts: boolean;
+  }) => {
+    const requestId = ++listRequestSequence;
+    const listKey = getCommunityListKey(options.filter, options.pageSize);
+
+    set(prev => ({
+      listStatus: options.status,
+      listErrorMessage: null,
+      activeFilter: options.filter,
+      pageSize: options.pageSize,
+      ...(options.resetHistory
+        ? {
+            currentPage: 1,
+            cursor: null,
+            hasMore: true,
+            hasNextPage: true,
+            hasPreviousPage: false,
+            cursorHistory: {
+              ...prev.cursorHistory,
+              [listKey]: { 1: null },
+            },
+          }
+        : {}),
+      ...(options.clearPosts ? { posts: [] } : {}),
+    }));
+
+    try {
+      const result = await fetchCommunityPosts({
+        filter: options.filter,
+        cursor: options.cursor,
+        limit: options.pageSize,
+      });
+
+      if (
+        requestId !== listRequestSequence ||
+        getCommunityListKey(get().activeFilter, get().pageSize) !== listKey
+      ) {
+        return;
+      }
+
+      set(prev => {
+        const historyForKey = {
+          ...(prev.cursorHistory[listKey] ?? { 1: null }),
+          [options.page]: options.cursor,
+        };
+        if (result.nextCursor) {
+          historyForKey[options.page + 1] = result.nextCursor;
+        } else {
+          delete historyForKey[options.page + 1];
+        }
+
+        return {
+          posts: uniquePosts(result.items),
+          postsById: mergePostsById(prev.postsById, result.items),
+          ...reconcileLatestCommentPreviewState(
+            prev.postsById,
+            prev.latestCommentByPostId,
+            prev.latestCommentStatusByPostId,
+            result.items,
+          ),
+          listStatus: 'ready',
+          listErrorMessage: null,
+          cursor: result.nextCursor,
+          hasMore: result.hasMore,
+          hasNextPage: result.hasMore,
+          hasPreviousPage: options.page > 1,
+          currentPage: options.page,
+          cursorHistory: {
+            ...prev.cursorHistory,
+            [listKey]: historyForKey,
+          },
+          lastFetchedAt: Date.now(),
+        };
+      });
+    } catch (error: unknown) {
+      if (
+        requestId !== listRequestSequence ||
+        getCommunityListKey(get().activeFilter, get().pageSize) !== listKey
+      ) {
+        return;
+      }
+
+      set({
+        listStatus: options.status === 'loadingMore' ? 'ready' : 'error',
+        listErrorMessage:
+          getErrorMessage(error) || '게시글을 불러오지 못했어요.',
+      });
+    }
+  };
+
+  return ({
   posts: [],
   postsById: {},
   commentsByPostId: {},
@@ -188,82 +314,53 @@ export const useCommunityStore = create<CommunityStore>((set, get) => ({
   listErrorMessage: null,
   cursor: null,
   hasMore: true,
-  activeCategory: null,
+  hasNextPage: true,
+  hasPreviousPage: false,
+  currentPage: 1,
+  cursorHistory: {
+    [getCommunityListKey('all', DEFAULT_COMMUNITY_PAGE_SIZE)]: { 1: null },
+  },
+  activeFilter: 'all',
+  pageSize: DEFAULT_COMMUNITY_PAGE_SIZE,
   lastFetchedAt: null,
 
-  fetchPosts: async category => {
-    if (get().listStatus === 'loading') return;
-    set({
-      listStatus: 'loading',
-      listErrorMessage: null,
-      activeCategory: category ?? null,
+  fetchPosts: async filter => {
+    const nextFilter = filter ?? 'all';
+    await requestListPage({
+      filter: nextFilter,
+      pageSize: get().pageSize,
+      page: 1,
+      cursor: null,
+      status: 'loading',
+      resetHistory: true,
+      clearPosts: true,
     });
-
-    try {
-      const result = await fetchCommunityPosts({
-        category: category ?? null,
-        cursor: null,
-        limit: COMMUNITY_PAGE_SIZE,
-      });
-      set(prev => ({
-        posts: result.items,
-        postsById: mergePostsById(prev.postsById, result.items),
-        ...reconcileLatestCommentPreviewState(
-          prev.postsById,
-          prev.latestCommentByPostId,
-          prev.latestCommentStatusByPostId,
-          result.items,
-        ),
-        listStatus: 'ready',
-        cursor: result.nextCursor,
-        hasMore: result.hasMore,
-        lastFetchedAt: Date.now(),
-      }));
-    } catch (error: unknown) {
-      set({
-        listStatus: 'error',
-        listErrorMessage: getErrorMessage(error) || '게시글을 불러오지 못했어요.',
-      });
-    }
   },
 
   refreshPosts: async () => {
-    const category = get().activeCategory;
-    if (get().listStatus === 'refreshing') return;
-
-    set({ listStatus: 'refreshing', listErrorMessage: null });
-
-    try {
-      const result = await fetchCommunityPosts({
-        category,
-        cursor: null,
-        limit: COMMUNITY_PAGE_SIZE,
-      });
-      set(prev => ({
-        posts: result.items,
-        postsById: mergePostsById(prev.postsById, result.items),
-        ...reconcileLatestCommentPreviewState(
-          prev.postsById,
-          prev.latestCommentByPostId,
-          prev.latestCommentStatusByPostId,
-          result.items,
-        ),
-        listStatus: 'ready',
-        cursor: result.nextCursor,
-        hasMore: result.hasMore,
-        lastFetchedAt: Date.now(),
-      }));
-    } catch (error: unknown) {
-      set({
-        listStatus: 'error',
-        listErrorMessage: getErrorMessage(error) || '새로고침에 실패했어요.',
-      });
+    const state = get();
+    if (
+      state.listStatus === 'refreshing' ||
+      state.listStatus === 'loading' ||
+      state.listStatus === 'loadingMore'
+    ) {
+      return;
     }
+
+    await requestListPage({
+      filter: state.activeFilter,
+      pageSize: state.pageSize,
+      page: 1,
+      cursor: null,
+      status: 'refreshing',
+      resetHistory: true,
+      clearPosts: false,
+    });
   },
 
   loadMorePosts: async () => {
     const state = get();
-    if (!state.hasMore || !state.cursor) return;
+    if (!state.hasNextPage || !state.cursor) return;
     if (
       state.listStatus === 'loading' ||
       state.listStatus === 'refreshing' ||
@@ -272,36 +369,56 @@ export const useCommunityStore = create<CommunityStore>((set, get) => ({
       return;
     }
 
-    set({ listStatus: 'loadingMore', listErrorMessage: null });
+    await requestListPage({
+      filter: state.activeFilter,
+      pageSize: state.pageSize,
+      page: state.currentPage + 1,
+      cursor: state.cursor,
+      status: 'loadingMore',
+      resetHistory: false,
+      clearPosts: false,
+    });
+  },
 
-    try {
-      const result = await fetchCommunityPosts({
-        category: state.activeCategory,
-        cursor: state.cursor,
-        limit: COMMUNITY_PAGE_SIZE,
-      });
-      const existingIds = new Set(get().posts.map(post => post.id));
-      const appended = result.items.filter(post => !existingIds.has(post.id));
-      set(prev => ({
-        posts: [...prev.posts, ...appended],
-        postsById: mergePostsById(prev.postsById, result.items),
-        ...reconcileLatestCommentPreviewState(
-          prev.postsById,
-          prev.latestCommentByPostId,
-          prev.latestCommentStatusByPostId,
-          result.items,
-        ),
-        listStatus: 'ready',
-        cursor: result.nextCursor,
-        hasMore: result.hasMore,
-        lastFetchedAt: Date.now(),
-      }));
-    } catch (error: unknown) {
-      set({
-        listStatus: 'ready',
-        listErrorMessage: getErrorMessage(error) || '더 불러오지 못했어요.',
-      });
+  loadPreviousPosts: async () => {
+    const state = get();
+    if (state.currentPage <= 1 || !state.hasPreviousPage) return;
+    if (
+      state.listStatus === 'loading' ||
+      state.listStatus === 'refreshing' ||
+      state.listStatus === 'loadingMore'
+    ) {
+      return;
     }
+
+    const listKey = getCommunityListKey(state.activeFilter, state.pageSize);
+    const previousPage = state.currentPage - 1;
+    const previousCursor = state.cursorHistory[listKey]?.[previousPage];
+    if (previousCursor === undefined) return;
+
+    await requestListPage({
+      filter: state.activeFilter,
+      pageSize: state.pageSize,
+      page: previousPage,
+      cursor: previousCursor,
+      status: 'loadingMore',
+      resetHistory: false,
+      clearPosts: false,
+    });
+  },
+
+  setPageSize: async pageSize => {
+    const state = get();
+    if (state.pageSize === pageSize) return;
+    await requestListPage({
+      filter: state.activeFilter,
+      pageSize,
+      page: 1,
+      cursor: null,
+      status: 'loading',
+      resetHistory: true,
+      clearPosts: true,
+    });
   },
 
   fetchPostDetail: async postId => {
@@ -579,7 +696,12 @@ export const useCommunityStore = create<CommunityStore>((set, get) => ({
   submitPost: async (params, userId) => {
     const post = await createCommunityPost(params, userId);
     set(prev => ({
-      posts: [post, ...prev.posts],
+      // A newly-created regular post belongs in the first page of the all
+      // filter only. Do not inject it into popular/notice pages client-side.
+      posts:
+        prev.activeFilter === 'all' && prev.currentPage === 1
+          ? [post, ...prev.posts]
+          : prev.posts,
       postsById: { ...prev.postsById, [post.id]: post },
     }));
     return post;
@@ -949,6 +1071,7 @@ export const useCommunityStore = create<CommunityStore>((set, get) => ({
   },
 
   clearAll: () => {
+    listRequestSequence += 1;
     set({
       posts: [],
       postsById: {},
@@ -965,8 +1088,16 @@ export const useCommunityStore = create<CommunityStore>((set, get) => ({
       listErrorMessage: null,
       cursor: null,
       hasMore: true,
-      activeCategory: null,
+      hasNextPage: true,
+      hasPreviousPage: false,
+      currentPage: 1,
+      cursorHistory: {
+        [getCommunityListKey('all', DEFAULT_COMMUNITY_PAGE_SIZE)]: { 1: null },
+      },
+      activeFilter: 'all',
+      pageSize: DEFAULT_COMMUNITY_PAGE_SIZE,
       lastFetchedAt: null,
     });
   },
-}));
+  });
+});

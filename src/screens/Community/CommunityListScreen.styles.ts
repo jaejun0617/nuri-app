@@ -73,28 +73,34 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   stickyCategoryHeader: {
-    paddingTop: 2,
-    paddingBottom: 4,
+    height: 48,
     zIndex: 2,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#E6E8F0',
   },
+  filterBarRow: {
+    height: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  filterScroll: {
+    flex: 1,
+  },
   categoryRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 0,
-    paddingHorizontal: 10,
+    gap: 8,
+    paddingRight: 8,
   },
-  categoryLoadingWrap: {
+  pageSizeButton: {
+    minWidth: 68,
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginTop: 10,
-    paddingHorizontal: 20,
-    minHeight: 20,
-  },
-  categoryLoadingText: {
-    lineHeight: 18,
+    justifyContent: 'center',
+    gap: 3,
+    paddingHorizontal: 6,
   },
   categoryChip: {
     minHeight: 44,
@@ -153,6 +159,81 @@ export const styles = StyleSheet.create({
   },
   footerLoading: {
     paddingVertical: 18,
+  },
+  pageSizeText: {
+    fontWeight: '800',
+  },
+  paginationFooter: {
+    minHeight: 68,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    paddingTop: 10,
+    paddingBottom: 8,
+  },
+  paginationButton: {
+    minWidth: 78,
+    minHeight: 44,
+    borderRadius: 22,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: '#D9DDE5',
+  },
+  paginationButtonDisabled: {
+    opacity: 0.42,
+  },
+  paginationButtonText: {
+    fontWeight: '700',
+  },
+  paginationPageIndicator: {
+    minWidth: 76,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  paginationPageText: {
+    fontWeight: '800',
+  },
+  pageSizeModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(11, 18, 32, 0.38)',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 16,
+  },
+  pageSizeModalCard: {
+    width: '100%',
+    borderRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 22,
+    paddingBottom: 12,
+    shadowColor: '#0B1220',
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  },
+  pageSizeModalTitle: {
+    marginBottom: 6,
+  },
+  pageSizeModalDescription: {
+    marginBottom: 10,
+    lineHeight: 22,
+  },
+  pageSizeOption: {
+    minHeight: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+  },
+  pageSizeOptionText: {
+    flexShrink: 1,
+    fontWeight: '700',
   },
   topButton: {
     position: 'absolute',

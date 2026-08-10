@@ -13,6 +13,7 @@ import {
   Easing,
   FlatList,
   InteractionManager,
+  Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
@@ -43,27 +44,18 @@ import { useCommunityStore } from '../../store/communityStore';
 import { usePetStore } from '../../store/petStore';
 import { openMoreDrawer } from '../../store/uiStore';
 import type {
-  CommunityPostCategory,
+  CommunityListFilter,
+  CommunityPageSize,
+} from '../../types/community';
+import {
+  COMMUNITY_PAGE_SIZE_OPTIONS,
 } from '../../types/community';
 import { styles } from './CommunityListScreen.styles';
 import CommunityPostListItem from './components/CommunityPostListItem';
+import { COMMUNITY_LIST_FILTER_OPTIONS } from './communityListPresentation';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'CommunityList'>;
 type Route = RootScreenRoute<'CommunityList'>;
-
-type CategoryChip = {
-  key: 'all' | CommunityPostCategory;
-  label: string;
-  value: CommunityPostCategory | null;
-};
-
-const CATEGORY_CHIPS: CategoryChip[] = [
-  { key: 'all', label: '전체', value: null },
-  { key: 'question', label: '질문', value: 'question' },
-  { key: 'info', label: '팁 공유', value: 'info' },
-  { key: 'daily', label: '일상', value: 'daily' },
-  { key: 'free', label: '정보', value: 'free' },
-];
 
 const TOP_BUTTON_SHOW_SCROLL_Y = 260;
 const TOP_BUTTON_BOTTOM_OFFSET = 82;
@@ -71,27 +63,19 @@ const LIST_BOTTOM_PADDING_OFFSET = 98;
 
 const keyExtractor = (item: string) => item;
 
-const ListFooterLoading = memo(function ListFooterLoading() {
-  return (
-    <View style={styles.footerLoading}>
-      <ActivityIndicator size="small" />
-    </View>
-  );
-});
-
-type CategoryChipButtonProps = {
-  chip: CategoryChip;
+type FilterChipButtonProps = {
+  chip: (typeof COMMUNITY_LIST_FILTER_OPTIONS)[number];
   isActive: boolean;
   activeColor: string;
-  onPress: (category: CommunityPostCategory | null) => void;
+  onPress: (filter: CommunityListFilter) => void;
 };
 
-const CategoryChipButton = memo(function CategoryChipButton({
+const FilterChipButton = memo(function FilterChipButton({
   chip,
   isActive,
   activeColor,
   onPress,
-}: CategoryChipButtonProps) {
+}: FilterChipButtonProps) {
   const underlineProgress = useRef(new Animated.Value(isActive ? 1 : 0)).current;
 
   useEffect(() => {
@@ -104,8 +88,8 @@ const CategoryChipButton = memo(function CategoryChipButton({
   }, [isActive, underlineProgress]);
 
   const handlePress = useCallback(() => {
-    onPress(chip.value);
-  }, [chip.value, onPress]);
+    onPress(chip.key);
+  }, [chip.key, onPress]);
 
   return (
     <TouchableOpacity
@@ -152,9 +136,6 @@ export default function CommunityListScreen() {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const flatListRef = useRef<FlatList<string> | null>(null);
-  const pendingCategoryTransitionRef = useRef<
-    CommunityPostCategory | null | 'all'
-  >(null);
 
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
@@ -170,20 +151,26 @@ export default function CommunityListScreen() {
   const posts = useCommunityStore(s => s.posts);
   const listStatus = useCommunityStore(s => s.listStatus);
   const listErrorMessage = useCommunityStore(s => s.listErrorMessage);
-  const hasMore = useCommunityStore(s => s.hasMore);
-  const activeCategory = useCommunityStore(s => s.activeCategory);
+  const hasNextPage = useCommunityStore(s => s.hasNextPage);
+  const hasPreviousPage = useCommunityStore(s => s.hasPreviousPage);
+  const currentPage = useCommunityStore(s => s.currentPage);
+  const activeFilter = useCommunityStore(s => s.activeFilter);
+  const pageSize = useCommunityStore(s => s.pageSize);
   const lastFetchedAt = useCommunityStore(s => s.lastFetchedAt);
   const fetchPosts = useCommunityStore(s => s.fetchPosts);
   const refreshPosts = useCommunityStore(s => s.refreshPosts);
   const loadMorePosts = useCommunityStore(s => s.loadMorePosts);
+  const loadPreviousPosts = useCommunityStore(s => s.loadPreviousPosts);
+  const setPageSize = useCommunityStore(s => s.setPageSize);
 
   const [showTopButton, setShowTopButton] = useState(false);
+  const [isPageSizeModalVisible, setPageSizeModalVisible] = useState(false);
   const { requireLogin } = useCommunityAuth();
 
   useEffect(() => {
     if (listStatus !== 'idle' || posts.length > 0) return;
     const task = InteractionManager.runAfterInteractions(() => {
-      fetchPosts(null).catch(() => {});
+      fetchPosts('all').catch(() => {});
     });
     return () => {
       task.cancel();
@@ -272,24 +259,46 @@ export default function CommunityListScreen() {
     });
   }, [navigation, renderHeaderLeft, renderHeaderRight]);
 
-  const handlePressCategory = useCallback(
-    (category: CommunityPostCategory | null) => {
-      if (category === activeCategory) return;
-      pendingCategoryTransitionRef.current = category ?? 'all';
+  const handlePressFilter = useCallback(
+    (filter: CommunityListFilter) => {
+      if (filter === activeFilter) return;
       flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
-      fetchPosts(category).catch(() => {});
+      fetchPosts(filter).catch(() => {});
     },
-    [activeCategory, fetchPosts],
+    [activeFilter, fetchPosts],
   );
 
   const handleRefresh = useCallback(() => {
     refreshPosts().catch(() => {});
   }, [refreshPosts]);
 
-  const handleLoadMore = useCallback(() => {
-    if (!hasMore) return;
+  const handleLoadNextPage = useCallback(() => {
+    if (!hasNextPage) return;
     loadMorePosts().catch(() => {});
-  }, [hasMore, loadMorePosts]);
+  }, [hasNextPage, loadMorePosts]);
+
+  const handleLoadPreviousPage = useCallback(() => {
+    if (!hasPreviousPage) return;
+    loadPreviousPosts().catch(() => {});
+  }, [hasPreviousPage, loadPreviousPosts]);
+
+  const isListBusy =
+    listStatus === 'loading' ||
+    listStatus === 'refreshing' ||
+    listStatus === 'loadingMore';
+
+  const handleSelectPageSize = useCallback(
+    (nextPageSize: CommunityPageSize) => {
+      if (isListBusy || nextPageSize === pageSize) {
+        setPageSizeModalVisible(false);
+        return;
+      }
+      setPageSizeModalVisible(false);
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+      setPageSize(nextPageSize).catch(() => {});
+    },
+    [isListBusy, pageSize, setPageSize],
+  );
 
   const handlePressTop = useCallback(() => {
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
@@ -308,8 +317,8 @@ export default function CommunityListScreen() {
   );
 
   const handleRetry = useCallback(() => {
-    fetchPosts(activeCategory).catch(() => {});
-  }, [activeCategory, fetchPosts]);
+    fetchPosts(activeFilter).catch(() => {});
+  }, [activeFilter, fetchPosts]);
 
   const handlePressPost = useCallback(
     (postId: string) => {
@@ -331,10 +340,6 @@ export default function CommunityListScreen() {
     [handlePressPost, petTheme.primary],
   );
 
-  const isCategoryTransitioning =
-    pendingCategoryTransitionRef.current !== null &&
-    (listStatus === 'loading' || listStatus === 'refreshing');
-
   const categoryHeader = useMemo(
     () => (
       <View
@@ -345,46 +350,56 @@ export default function CommunityListScreen() {
           },
         ]}
       >
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryRow}
-        >
-          {CATEGORY_CHIPS.map(chip => {
-            return (
-              <CategoryChipButton
-                key={chip.key}
-                chip={chip}
-                isActive={chip.value === activeCategory}
-                activeColor={petTheme.primary}
-                onPress={handlePressCategory}
-              />
-            );
-          })}
-        </ScrollView>
-        {isCategoryTransitioning ? (
-          <View style={styles.categoryLoadingWrap}>
-            <ActivityIndicator size="small" color={petTheme.primary} />
+        <View style={styles.filterBarRow}>
+          <ScrollView
+            horizontal
+            style={styles.filterScroll}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoryRow}
+          >
+            {COMMUNITY_LIST_FILTER_OPTIONS.map(chip => {
+              return (
+                <FilterChipButton
+                  key={chip.key}
+                  chip={chip}
+                  isActive={chip.key === activeFilter}
+                  activeColor={petTheme.primary}
+                  onPress={handlePressFilter}
+                />
+              );
+            })}
+          </ScrollView>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={`페이지 크기 ${pageSize}개`}
+            accessibilityState={{ disabled: isListBusy }}
+            activeOpacity={0.84}
+            disabled={isListBusy}
+            style={styles.pageSizeButton}
+            onPress={() => setPageSizeModalVisible(true)}
+          >
             <AppText
               preset="caption"
-              style={[
-                styles.categoryLoadingText,
-                { color: theme.colors.textMuted },
-              ]}
+              style={[styles.pageSizeText, { color: petTheme.primary }]}
             >
-              목록을 바꾸는 중이에요
+              {pageSize}개
             </AppText>
-          </View>
-        ) : null}
+            {isListBusy ? (
+              <ActivityIndicator size="small" color={petTheme.primary} />
+            ) : (
+                <Feather name="chevron-down" size={15} color={petTheme.primary} />
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
     ),
     [
-      activeCategory,
-      handlePressCategory,
-      isCategoryTransitioning,
+      activeFilter,
+      handlePressFilter,
+      isListBusy,
+      pageSize,
       petTheme.primary,
       theme.colors.background,
-      theme.colors.textMuted,
     ],
   );
 
@@ -403,7 +418,11 @@ export default function CommunityListScreen() {
           preset="headline"
           style={[styles.emptyTitle, { color: theme.colors.textPrimary }]}
         >
-          아직 게시글이 없어요
+          {activeFilter === 'notice'
+            ? '등록된 공지가 없어요'
+            : activeFilter === 'popular'
+              ? '아직 인기글이 없어요'
+              : '아직 게시글이 없어요'}
         </AppText>
         <AppText
           preset="body"
@@ -427,6 +446,7 @@ export default function CommunityListScreen() {
     ),
     [
       handlePressCreate,
+      activeFilter,
       petTheme.onPrimary,
       petTheme.primary,
       theme.colors.textMuted,
@@ -435,19 +455,82 @@ export default function CommunityListScreen() {
   );
 
   const footerComponent = useMemo(() => {
-    if (listStatus !== 'loadingMore') return null;
-    return <ListFooterLoading />;
-  }, [listStatus]);
+    if (postIds.length === 0) return null;
+    const isPageLoading = listStatus === 'loadingMore';
+
+    return (
+      <View style={styles.paginationFooter}>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="이전 페이지"
+          accessibilityState={{ disabled: !hasPreviousPage || isPageLoading }}
+          activeOpacity={0.84}
+          disabled={!hasPreviousPage || isPageLoading}
+          style={[
+            styles.paginationButton,
+            (!hasPreviousPage || isPageLoading) && styles.paginationButtonDisabled,
+          ]}
+          onPress={handleLoadPreviousPage}
+        >
+          <Feather name="chevron-left" size={17} color={theme.colors.textPrimary} />
+          <AppText
+            preset="caption"
+            style={[styles.paginationButtonText, { color: theme.colors.textPrimary }]}
+          >
+            이전
+          </AppText>
+        </TouchableOpacity>
+
+        <View style={styles.paginationPageIndicator}>
+          {isPageLoading ? (
+            <ActivityIndicator size="small" color={petTheme.primary} />
+          ) : (
+            <AppText
+              preset="caption"
+              style={[styles.paginationPageText, { color: theme.colors.textPrimary }]}
+            >
+              {currentPage}페이지
+            </AppText>
+          )}
+        </View>
+
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="다음 페이지"
+          accessibilityState={{ disabled: !hasNextPage || isPageLoading }}
+          activeOpacity={0.84}
+          disabled={!hasNextPage || isPageLoading}
+          style={[
+            styles.paginationButton,
+            (!hasNextPage || isPageLoading) && styles.paginationButtonDisabled,
+          ]}
+          onPress={handleLoadNextPage}
+        >
+          <AppText
+            preset="caption"
+            style={[styles.paginationButtonText, { color: theme.colors.textPrimary }]}
+          >
+            다음
+          </AppText>
+          <Feather name="chevron-right" size={17} color={theme.colors.textPrimary} />
+        </TouchableOpacity>
+      </View>
+    );
+  }, [
+    currentPage,
+    handleLoadNextPage,
+    handleLoadPreviousPage,
+    hasNextPage,
+    hasPreviousPage,
+    listStatus,
+    petTheme.primary,
+    postIds.length,
+    theme.colors.textPrimary,
+  ]);
   const refreshing = listStatus === 'refreshing';
   const isInitialLoading =
     (listStatus === 'idle' || listStatus === 'loading') && postIds.length === 0;
   const isError = listStatus === 'error' && postIds.length === 0;
-
-  useEffect(() => {
-    if (pendingCategoryTransitionRef.current === null) return;
-    if (listStatus !== 'ready' && listStatus !== 'error') return;
-    pendingCategoryTransitionRef.current = null;
-  }, [listStatus]);
 
   const topButtonBottom = useMemo(
     () => Math.max(insets.bottom + TOP_BUTTON_BOTTOM_OFFSET, 88),
@@ -506,8 +589,6 @@ export default function CommunityListScreen() {
             windowSize={9}
             updateCellsBatchingPeriod={50}
             removeClippedSubviews={Platform.OS === 'android'}
-            onEndReached={handleLoadMore}
-            onEndReachedThreshold={0.3}
             onScroll={handleScroll}
             scrollEventThrottle={16}
             showsVerticalScrollIndicator={false}
@@ -547,6 +628,71 @@ export default function CommunityListScreen() {
           ) : null}
         </View>
       )}
+
+      <Modal
+        transparent
+        visible={isPageSizeModalVisible}
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setPageSizeModalVisible(false)}
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="페이지 크기 선택 닫기"
+          style={styles.pageSizeModalBackdrop}
+          onPress={() => setPageSizeModalVisible(false)}
+        >
+          <View
+            style={[
+              styles.pageSizeModalCard,
+              {
+                backgroundColor: theme.colors.surface,
+                marginBottom: insets.bottom,
+              },
+            ]}
+            onStartShouldSetResponder={() => true}
+          >
+            <AppText
+              preset="headline"
+              style={[styles.pageSizeModalTitle, { color: theme.colors.textPrimary }]}
+            >
+              목록 개수
+            </AppText>
+            <AppText
+              preset="body"
+              style={[styles.pageSizeModalDescription, { color: theme.colors.textMuted }]}
+            >
+              한 페이지에 표시할 게시글 수를 선택해 주세요.
+            </AppText>
+            {COMMUNITY_PAGE_SIZE_OPTIONS.map(option => {
+              const isSelected = option === pageSize;
+              return (
+                <TouchableOpacity
+                  key={option}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: isSelected, disabled: isListBusy }}
+                  activeOpacity={0.84}
+                  disabled={isListBusy}
+                  style={styles.pageSizeOption}
+                  onPress={() => handleSelectPageSize(option)}
+                >
+                  <AppText
+                    preset="body"
+                    style={[styles.pageSizeOptionText, { color: theme.colors.textPrimary }]}
+                  >
+                    {option}개
+                  </AppText>
+                  <Feather
+                    name={isSelected ? 'check-circle' : 'circle'}
+                    size={22}
+                    color={isSelected ? petTheme.primary : theme.colors.textMuted}
+                  />
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }

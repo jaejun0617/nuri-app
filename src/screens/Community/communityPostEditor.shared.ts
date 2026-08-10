@@ -7,9 +7,9 @@ export const COMMUNITY_CATEGORY_OPTIONS: Array<{
   label: string;
 }> = [
   { key: 'question', label: '질문' },
-  { key: 'info', label: '팁 공유' },
+  { key: 'info', label: '정보' },
   { key: 'daily', label: '일상' },
-  { key: 'free', label: '정보' },
+  { key: 'free', label: '자유' },
 ];
 
 export function resolveCommunityPetMetaLabel(options: {

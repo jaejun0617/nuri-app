@@ -14,6 +14,8 @@ import type {
   CommunityComment,
   CommunityCommentRow,
   CommunityCommentStatus,
+  CommunityListFilter,
+  CommunityPageSize,
   CommunityPetRow,
   CommunityPost,
   CommunityPostCategory,
@@ -35,14 +37,14 @@ import { formatPetAgeLabelFromBirthDate } from '../pets/age';
 import { supabase } from './client';
 import { toPublicPetAvatarUrl } from './pets';
 
-const COMMUNITY_PAGE_SIZE = 20;
+const COMMUNITY_PAGE_SIZE: CommunityPageSize = 30;
 const UNKNOWN_COMMUNITY_AUTHOR_NICKNAME = '알 수 없는 사용자';
 const COMMUNITY_REPORT_RATE_LIMIT_MESSAGE =
   '신고는 10분에 5건, 하루에 20건까지 접수할 수 있어요.';
 const COMMUNITY_POST_SELECT_LEGACY =
-  'id, user_id, pet_id, visibility, content, image_url, status, category, like_count, comment_count, view_count, deleted_at, created_at, updated_at';
+  'id, user_id, pet_id, visibility, content, image_url, status, category, like_count, comment_count, view_count, is_notice, notice_published_at, deleted_at, created_at, updated_at';
 const COMMUNITY_POST_SELECT_TITLE =
-  'id, user_id, pet_id, visibility, title, content, image_url, status, category, like_count, comment_count, view_count, deleted_at, created_at, updated_at';
+  'id, user_id, pet_id, visibility, title, content, image_url, status, category, like_count, comment_count, view_count, is_notice, notice_published_at, deleted_at, created_at, updated_at';
 const COMMUNITY_POST_SELECT_SNAPSHOT = `${COMMUNITY_POST_SELECT_TITLE}, image_urls, author_snapshot_nickname, author_snapshot_avatar_url, pet_snapshot_name, pet_snapshot_species, pet_snapshot_breed, pet_snapshot_age_label, pet_snapshot_avatar_path, show_pet_age`;
 
 type CommunityPostViewRecordRow = {
@@ -280,7 +282,6 @@ function normalizePost(
   profilesByUserId: Map<string, CommunityProfileRow>,
   petsById: Map<string, CommunityPetRow>,
   likedPostIds: Set<string>,
-  likeCountsByPostId: Map<string, number>,
   resolvedImageUrl?: string | null,
   resolvedImageUrls?: Array<string | null>,
 ): CommunityPost {
@@ -349,11 +350,13 @@ function normalizePost(
     hasImage: canExposeImages && rawImage.length > 0,
     status: normalizedStatus,
     category: normalizeCategory(row.category),
-    likeCount:
-      likeCountsByPostId.get(row.id) ??
-      normalizeCountValue(row.like_count),
+    // The list RPC and posts projection own the server-maintained count.
+    // Do not reconstruct it from client-visible likes rows.
+    likeCount: normalizeCountValue(row.like_count),
     commentCount: normalizeCountValue(row.comment_count),
     viewCount: normalizeCountValue(row.view_count),
+    isNotice: row.is_notice === true,
+    noticePublishedAt: row.notice_published_at ?? null,
     isLikedByMe: likedPostIds.has(row.id),
     deletedAt: row.deleted_at ?? null,
     createdAt: row.created_at,
@@ -488,41 +491,26 @@ async function getCommunityCurrentUserId() {
 async function fetchLikeMetaForPosts(
   postIds: string[],
   currentUserId: string | null,
-): Promise<{
-  likedPostIds: Set<string>;
-  likeCountsByPostId: Map<string, number>;
-}> {
+): Promise<Set<string>> {
   const ids = Array.from(new Set(postIds.filter(Boolean)));
-  if (ids.length === 0) {
-    return {
-      likedPostIds: new Set<string>(),
-      likeCountsByPostId: new Map<string, number>(),
-    };
-  }
+  if (ids.length === 0 || !currentUserId) return new Set<string>();
 
   const { data, error } = await supabase
     .from('likes')
-    .select('post_id, user_id')
-    .in('post_id', ids);
+    .select('post_id')
+    .in('post_id', ids)
+    .eq('user_id', currentUserId);
 
   if (error) throw error;
 
-  const likeCountsByPostId = new Map<string, number>();
   const likedPostIds = new Set<string>();
 
   (Array.isArray(data) ? data : []).forEach(item => {
     if (!isRecord(item) || typeof item.post_id !== 'string') return;
-    likeCountsByPostId.set(
-      item.post_id,
-      (likeCountsByPostId.get(item.post_id) ?? 0) + 1,
-    );
-
-    if (currentUserId && item.user_id === currentUserId) {
-      likedPostIds.add(item.post_id);
-    }
+    likedPostIds.add(item.post_id);
   });
 
-  return { likedPostIds, likeCountsByPostId };
+  return likedPostIds;
 }
 
 async function fetchLikeMetaForComments(
@@ -575,16 +563,27 @@ async function fetchLikeMetaForComments(
   return { likedCommentIds, likeCountsByCommentId };
 }
 
-export function encodeCommunityCursor(createdAt: string, id: string) {
-  return `${createdAt}::${id}`;
-}
-
-function decodeCommunityCursor(cursor: string | null | undefined) {
+function decodeCommunityRpcCursor(cursor: string | null | undefined) {
   const raw = `${cursor ?? ''}`.trim();
   if (!raw) return null;
-  const [createdAt, id] = raw.split('::');
-  if (!createdAt || !id) return null;
-  return { createdAt, id };
+
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!isRecord(parsed) || Array.isArray(parsed)) {
+      throw new Error('invalid_cursor');
+    }
+    return parsed;
+  } catch {
+    throw new Error('게시글 목록 페이지 정보가 올바르지 않아요.');
+  }
+}
+
+function encodeCommunityRpcCursor(value: unknown) {
+  if (value === null || value === undefined) return null;
+  if (!isRecord(value) || Array.isArray(value)) {
+    throw new Error('게시글 목록 페이지 정보가 올바르지 않아요.');
+  }
+  return JSON.stringify(value);
 }
 
 function isMissingSnapshotColumnsError(error: unknown) {
@@ -672,51 +671,6 @@ async function fetchCurrentAuthorSnapshot(userId: string) {
   return { nickname, avatarUrl };
 }
 
-async function selectCommunityPostsWithFallback(params: {
-  category?: CommunityPostCategory | null;
-  cursor?: string | null;
-  limit: number;
-}) {
-  const buildQuery = (columns: string) => {
-    let query = supabase
-      .from('posts')
-      .select(columns)
-      .eq('visibility', 'public')
-      .eq('status', 'active')
-      .is('deleted_at', null)
-      .order('created_at', { ascending: false })
-      .order('id', { ascending: false })
-      .limit(params.limit + 1);
-
-    if (params.category) {
-      query = query.eq('category', params.category);
-    }
-
-    if (params.cursor) {
-      const decoded = decodeCommunityCursor(params.cursor);
-      if (decoded) {
-        query = query.or(
-          `created_at.lt.${decoded.createdAt},and(created_at.eq.${decoded.createdAt},id.lt.${decoded.id})`,
-        );
-      }
-    }
-
-    return query;
-  };
-
-  const primary = await buildQuery(COMMUNITY_POST_SELECT_SNAPSHOT);
-  if (!primary.error) {
-    return primary.data;
-  }
-  if (!isMissingSnapshotColumnsError(primary.error)) {
-    throw primary.error;
-  }
-
-  const fallback = await buildQuery(COMMUNITY_POST_SELECT_LEGACY);
-  if (fallback.error) throw fallback.error;
-  return fallback.data;
-}
-
 async function selectCommunityPostByIdWithFallback(postId: string) {
   const primary = await supabase
     .from('posts')
@@ -747,25 +701,33 @@ export async function fetchCommunityPosts(
   nextCursor: string | null;
   hasMore: boolean;
 }> {
+  const filter: CommunityListFilter = params.filter ?? 'all';
   const limit = params.limit ?? COMMUNITY_PAGE_SIZE;
-  const rows = toCommunityPostRows(
-    await selectCommunityPostsWithFallback({
-      category: params.category ?? null,
-      cursor: params.cursor ?? null,
-      limit,
-    }),
-  );
-  const hasMore = rows.length > limit;
-  const pageRows = hasMore ? rows.slice(0, limit) : rows;
+  const cursor = decodeCommunityRpcCursor(params.cursor ?? null);
+  const { data, error } = await supabase.rpc('community_list_posts_v1', {
+    p_filter: filter,
+    p_limit: limit,
+    p_cursor: cursor,
+  });
 
-  const profilesByUserId = await fetchProfilesByUserIds(
-    pageRows.map(row => row.user_id),
-  );
-  const petsById = await fetchPetsByIds(
-    pageRows.map(row => row.pet_id ?? '').filter(Boolean),
-  );
-  const currentUserId = await getCommunityCurrentUserId();
-  const { likedPostIds, likeCountsByPostId } = await fetchLikeMetaForPosts(
+  if (error) throw error;
+  if (!isRecord(data)) {
+    throw new Error('게시글 목록 응답을 읽지 못했어요.');
+  }
+
+  const pageRows = toCommunityPostRows(data.items);
+  const hasMore = data.hasMore === true;
+  const nextCursor = encodeCommunityRpcCursor(data.nextCursor);
+  if (hasMore && nextCursor === null) {
+    throw new Error('게시글 목록 페이지 정보가 올바르지 않아요.');
+  }
+
+  const [profilesByUserId, petsById, currentUserId] = await Promise.all([
+    fetchProfilesByUserIds(pageRows.map(row => row.user_id)),
+    fetchPetsByIds(pageRows.map(row => row.pet_id ?? '').filter(Boolean)),
+    getCommunityCurrentUserId(),
+  ]);
+  const likedPostIds = await fetchLikeMetaForPosts(
     pageRows.map(row => row.id),
     currentUserId,
   );
@@ -776,14 +738,12 @@ export async function fetchCommunityPosts(
       profilesByUserId,
       petsById,
       likedPostIds,
-      likeCountsByPostId,
     ),
   );
-  const last = pageRows[pageRows.length - 1];
 
   return {
     items,
-    nextCursor: last ? encodeCommunityCursor(last.created_at, last.id) : null,
+    nextCursor,
     hasMore,
   };
 }
@@ -809,7 +769,7 @@ export async function fetchCommunityPostById(postId: string) {
       : Promise.resolve([]),
   ]);
   const currentUserId = await getCommunityCurrentUserId();
-  const { likedPostIds, likeCountsByPostId } = await fetchLikeMetaForPosts(
+  const likedPostIds = await fetchLikeMetaForPosts(
     [data.id],
     currentUserId,
   );
@@ -819,7 +779,6 @@ export async function fetchCommunityPostById(postId: string) {
     profilesByUserId,
     petsById,
     likedPostIds,
-    likeCountsByPostId,
     resolvedImageUrls[0] ?? null,
     resolvedImageUrls,
   );
@@ -1045,7 +1004,6 @@ export async function createCommunityPost(
     profilesByUserId,
     petsById,
     new Set(),
-    new Map<string, number>(),
   );
 }
 

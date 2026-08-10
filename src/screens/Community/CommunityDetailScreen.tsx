@@ -40,6 +40,7 @@ import type {
 } from '../../types/community';
 import { getKstDateParts } from '../../utils/date';
 import CommentThreadItem from './components/CommentThreadItem';
+import { getCommunityCategoryLabel } from './communityListPresentation';
 import { resolveCommunityCommentNavigationTarget } from './utils/commentHelpers';
 import {
   DETAIL_DIVIDER_COLOR,
@@ -64,21 +65,6 @@ const REPORT_REASON_OPTIONS: Array<{
   { key: 'personal_info', label: '개인정보 노출' },
   { key: 'other', label: '기타' },
 ];
-
-function getCategoryLabel(category: string | null) {
-  switch (category) {
-    case 'question':
-      return '질문';
-    case 'info':
-      return '팁 공유';
-    case 'daily':
-      return '일상';
-    case 'free':
-      return '정보';
-    default:
-      return '';
-  }
-}
 
 function getCategoryTone(category: string | null) {
   switch (category) {
@@ -609,7 +595,7 @@ export default function CommunityDetailScreen() {
                     { color: categoryTone.textColor },
                   ]}
                 >
-                  {getCategoryLabel(post.category)}
+                  {getCommunityCategoryLabel(post.category)}
                 </AppText>
               </View>
             ) : (
