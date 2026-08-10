@@ -1,5 +1,6 @@
 import React, {
   memo,
+  Profiler,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -47,9 +48,7 @@ import type {
   CommunityListFilter,
   CommunityPageSize,
 } from '../../types/community';
-import {
-  COMMUNITY_PAGE_SIZE_OPTIONS,
-} from '../../types/community';
+import { COMMUNITY_PAGE_SIZE_OPTIONS } from '../../types/community';
 import { styles } from './CommunityListScreen.styles';
 import CommunityPostListItem from './components/CommunityPostListItem';
 import { COMMUNITY_LIST_FILTER_OPTIONS } from './communityListPresentation';
@@ -76,7 +75,9 @@ const FilterChipButton = memo(function FilterChipButton({
   activeColor,
   onPress,
 }: FilterChipButtonProps) {
-  const underlineProgress = useRef(new Animated.Value(isActive ? 1 : 0)).current;
+  const underlineProgress = useRef(
+    new Animated.Value(isActive ? 1 : 0),
+  ).current;
 
   useEffect(() => {
     Animated.timing(underlineProgress, {
@@ -227,11 +228,7 @@ export default function CommunityListScreen() {
         onPress={handlePressBack}
         hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
       >
-        <Feather
-          name="arrow-left"
-          size={20}
-          color={theme.colors.textPrimary}
-        />
+        <Feather name="arrow-left" size={20} color={theme.colors.textPrimary} />
       </TouchableOpacity>
     ),
     [handlePressBack, theme.colors.textPrimary],
@@ -329,6 +326,31 @@ export default function CommunityListScreen() {
 
   const postIds = useMemo(() => posts.map(post => post.id), [posts]);
 
+  const handleListRender = useCallback(
+    (
+      id: string,
+      phase: 'mount' | 'update' | 'nested-update',
+      actualDuration: number,
+      baseDuration: number,
+      startTime: number,
+      commitTime: number,
+    ) => {
+      if (!__DEV__) return;
+      console.info('[NURI-PERF] community-list-render', {
+        id,
+        phase,
+        filter: activeFilter,
+        pageSize,
+        itemCount: postIds.length,
+        actualDurationMs: Number(actualDuration.toFixed(2)),
+        baseDurationMs: Number(baseDuration.toFixed(2)),
+        renderStartMs: Number(startTime.toFixed(2)),
+        renderCommitMs: Number(commitTime.toFixed(2)),
+      });
+    },
+    [activeFilter, pageSize, postIds.length],
+  );
+
   const renderItem = useCallback<ListRenderItem<string>>(
     ({ item: postId }) => (
       <CommunityPostListItem
@@ -371,7 +393,7 @@ export default function CommunityListScreen() {
           </ScrollView>
           <TouchableOpacity
             accessibilityRole="button"
-            accessibilityLabel={`페이지 크기 ${pageSize}개`}
+            accessibilityLabel={`목록 표시 개수, 현재 ${pageSize}개`}
             accessibilityState={{ disabled: isListBusy }}
             activeOpacity={0.84}
             disabled={isListBusy}
@@ -387,7 +409,7 @@ export default function CommunityListScreen() {
             {isListBusy ? (
               <ActivityIndicator size="small" color={petTheme.primary} />
             ) : (
-                <Feather name="chevron-down" size={15} color={petTheme.primary} />
+              <Feather name="chevron-down" size={15} color={petTheme.primary} />
             )}
           </TouchableOpacity>
         </View>
@@ -421,8 +443,8 @@ export default function CommunityListScreen() {
           {activeFilter === 'notice'
             ? '등록된 공지가 없어요'
             : activeFilter === 'popular'
-              ? '아직 인기글이 없어요'
-              : '아직 게시글이 없어요'}
+            ? '아직 인기글이 없어요'
+            : '아직 게시글이 없어요'}
         </AppText>
         <AppText
           preset="body"
@@ -456,7 +478,7 @@ export default function CommunityListScreen() {
 
   const footerComponent = useMemo(() => {
     if (postIds.length === 0) return null;
-    const isPageLoading = listStatus === 'loadingMore';
+    const isPageLoading = isListBusy;
 
     return (
       <View style={styles.paginationFooter}>
@@ -468,14 +490,22 @@ export default function CommunityListScreen() {
           disabled={!hasPreviousPage || isPageLoading}
           style={[
             styles.paginationButton,
-            (!hasPreviousPage || isPageLoading) && styles.paginationButtonDisabled,
+            (!hasPreviousPage || isPageLoading) &&
+              styles.paginationButtonDisabled,
           ]}
           onPress={handleLoadPreviousPage}
         >
-          <Feather name="chevron-left" size={17} color={theme.colors.textPrimary} />
+          <Feather
+            name="chevron-left"
+            size={17}
+            color={theme.colors.textPrimary}
+          />
           <AppText
             preset="caption"
-            style={[styles.paginationButtonText, { color: theme.colors.textPrimary }]}
+            style={[
+              styles.paginationButtonText,
+              { color: theme.colors.textPrimary },
+            ]}
           >
             이전
           </AppText>
@@ -487,7 +517,10 @@ export default function CommunityListScreen() {
           ) : (
             <AppText
               preset="caption"
-              style={[styles.paginationPageText, { color: theme.colors.textPrimary }]}
+              style={[
+                styles.paginationPageText,
+                { color: theme.colors.textPrimary },
+              ]}
             >
               {currentPage}페이지
             </AppText>
@@ -508,11 +541,18 @@ export default function CommunityListScreen() {
         >
           <AppText
             preset="caption"
-            style={[styles.paginationButtonText, { color: theme.colors.textPrimary }]}
+            style={[
+              styles.paginationButtonText,
+              { color: theme.colors.textPrimary },
+            ]}
           >
             다음
           </AppText>
-          <Feather name="chevron-right" size={17} color={theme.colors.textPrimary} />
+          <Feather
+            name="chevron-right"
+            size={17}
+            color={theme.colors.textPrimary}
+          />
         </TouchableOpacity>
       </View>
     );
@@ -522,7 +562,7 @@ export default function CommunityListScreen() {
     handleLoadPreviousPage,
     hasNextPage,
     hasPreviousPage,
-    listStatus,
+    isListBusy,
     petTheme.primary,
     postIds.length,
     theme.colors.textPrimary,
@@ -531,6 +571,7 @@ export default function CommunityListScreen() {
   const isInitialLoading =
     (listStatus === 'idle' || listStatus === 'loading') && postIds.length === 0;
   const isError = listStatus === 'error' && postIds.length === 0;
+  const isInlineListLoading = listStatus === 'loading' && postIds.length > 0;
 
   const topButtonBottom = useMemo(
     () => Math.max(insets.bottom + TOP_BUTTON_BOTTOM_OFFSET, 88),
@@ -577,38 +618,45 @@ export default function CommunityListScreen() {
       ) : (
         <View style={styles.listWrap}>
           {categoryHeader}
-          <FlatList
-            ref={flatListRef}
-            style={styles.postList}
-            data={postIds}
-            overScrollMode="always"
-            keyExtractor={keyExtractor}
-            renderItem={renderItem}
-            initialNumToRender={12}
-            maxToRenderPerBatch={10}
-            windowSize={9}
-            updateCellsBatchingPeriod={50}
-            removeClippedSubviews={Platform.OS === 'android'}
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
-            showsVerticalScrollIndicator={false}
-            ListEmptyComponent={emptyComponent}
-            ListFooterComponent={footerComponent}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={handleRefresh}
-                tintColor={petTheme.primary}
-                progressViewOffset={8}
-              />
-            }
-            contentContainerStyle={[
-              styles.listContent,
-              {
-                paddingBottom: listBottomInset,
-              },
-            ]}
-          />
+          {isInlineListLoading ? (
+            <View style={styles.inlineListLoading}>
+              <ActivityIndicator size="small" color={petTheme.primary} />
+            </View>
+          ) : null}
+          <Profiler id="community-list" onRender={handleListRender}>
+            <FlatList
+              ref={flatListRef}
+              style={styles.postList}
+              data={postIds}
+              overScrollMode="always"
+              keyExtractor={keyExtractor}
+              renderItem={renderItem}
+              initialNumToRender={12}
+              maxToRenderPerBatch={10}
+              windowSize={9}
+              updateCellsBatchingPeriod={50}
+              removeClippedSubviews={Platform.OS === 'android'}
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
+              showsVerticalScrollIndicator={false}
+              ListEmptyComponent={emptyComponent}
+              ListFooterComponent={footerComponent}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={handleRefresh}
+                  tintColor={petTheme.primary}
+                  progressViewOffset={8}
+                />
+              }
+              contentContainerStyle={[
+                styles.listContent,
+                {
+                  paddingBottom: listBottomInset,
+                },
+              ]}
+            />
+          </Profiler>
 
           {showTopButton ? (
             <Pressable
@@ -647,30 +695,20 @@ export default function CommunityListScreen() {
               styles.pageSizeModalCard,
               {
                 backgroundColor: theme.colors.surface,
-                marginBottom: insets.bottom,
               },
             ]}
             onStartShouldSetResponder={() => true}
           >
-            <AppText
-              preset="headline"
-              style={[styles.pageSizeModalTitle, { color: theme.colors.textPrimary }]}
-            >
-              목록 개수
-            </AppText>
-            <AppText
-              preset="body"
-              style={[styles.pageSizeModalDescription, { color: theme.colors.textMuted }]}
-            >
-              한 페이지에 표시할 게시글 수를 선택해 주세요.
-            </AppText>
             {COMMUNITY_PAGE_SIZE_OPTIONS.map(option => {
               const isSelected = option === pageSize;
               return (
                 <TouchableOpacity
                   key={option}
                   accessibilityRole="radio"
-                  accessibilityState={{ selected: isSelected, disabled: isListBusy }}
+                  accessibilityState={{
+                    selected: isSelected,
+                    disabled: isListBusy,
+                  }}
                   activeOpacity={0.84}
                   disabled={isListBusy}
                   style={styles.pageSizeOption}
@@ -678,14 +716,19 @@ export default function CommunityListScreen() {
                 >
                   <AppText
                     preset="body"
-                    style={[styles.pageSizeOptionText, { color: theme.colors.textPrimary }]}
+                    style={[
+                      styles.pageSizeOptionText,
+                      { color: theme.colors.textPrimary },
+                    ]}
                   >
                     {option}개
                   </AppText>
                   <Feather
                     name={isSelected ? 'check-circle' : 'circle'}
                     size={22}
-                    color={isSelected ? petTheme.primary : theme.colors.textMuted}
+                    color={
+                      isSelected ? petTheme.primary : theme.colors.textMuted
+                    }
                   />
                 </TouchableOpacity>
               );

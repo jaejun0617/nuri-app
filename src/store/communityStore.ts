@@ -69,8 +69,14 @@ type CommunityStore = {
   commentEntitiesById: Record<string, CommunityComment>;
   topLevelCommentIdsByPostId: Record<string, string[]>;
   replyCommentIdsByParentId: Record<string, string[]>;
-  commentsStatusByPostId: Record<string, 'idle' | 'loading' | 'ready' | 'error'>;
-  latestCommentStatusByPostId: Record<string, 'idle' | 'loading' | 'ready' | 'error'>;
+  commentsStatusByPostId: Record<
+    string,
+    'idle' | 'loading' | 'ready' | 'error'
+  >;
+  latestCommentStatusByPostId: Record<
+    string,
+    'idle' | 'loading' | 'ready' | 'error'
+  >;
   detailStatusByPostId: Record<string, CommunityDetailStatus>;
   postViewRecordStatusByPostId: Record<
     string,
@@ -97,11 +103,21 @@ type CommunityStore = {
   recordPostView: (postId: string) => Promise<void>;
   fetchPostComments: (postId: string) => Promise<void>;
   fetchLatestCommentPreview: (postId: string) => Promise<void>;
-  submitPost: (params: CreateCommunityPostParams, userId: string) => Promise<CommunityPost>;
-  editPost: (postId: string, params: UpdateCommunityPostParams) => Promise<void>;
+  submitPost: (
+    params: CreateCommunityPostParams,
+    userId: string,
+  ) => Promise<CommunityPost>;
+  editPost: (
+    postId: string,
+    params: UpdateCommunityPostParams,
+  ) => Promise<void>;
   removePost: (postId: string) => Promise<void>;
   togglePostLike: (postId: string, userId: string) => Promise<void>;
-  toggleCommentLike: (commentId: string, postId: string, userId: string) => Promise<void>;
+  toggleCommentLike: (
+    commentId: string,
+    postId: string,
+    userId: string,
+  ) => Promise<void>;
   submitComment: (
     postId: string,
     content: string,
@@ -132,11 +148,11 @@ function mergePostsById(
   return next;
 }
 
-function hasKnownCommentAuthorNickname(comment: CommunityComment | null | undefined) {
+function hasKnownCommentAuthorNickname(
+  comment: CommunityComment | null | undefined,
+) {
   const nickname = `${comment?.authorNickname ?? ''}`.trim();
-  return (
-    nickname.length > 0 && nickname !== UNKNOWN_COMMENT_AUTHOR_NICKNAME
-  );
+  return nickname.length > 0 && nickname !== UNKNOWN_COMMENT_AUTHOR_NICKNAME;
 }
 
 function preserveCommentAuthorMetadata(
@@ -200,6 +216,8 @@ function reconcileLatestCommentPreviewState(
 
 export const useCommunityStore = create<CommunityStore>((set, get) => {
   let listRequestSequence = 0;
+  let filterRequestGeneration = 0;
+  let pageSizeRequestGeneration = 0;
 
   const requestListPage = async (options: {
     filter: CommunityListFilter;
@@ -209,11 +227,24 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
     status: 'loading' | 'refreshing' | 'loadingMore';
     resetHistory: boolean;
     clearPosts: boolean;
+    requestKind: 'filter' | 'pageSize' | 'refresh' | 'pagination';
   }) => {
+    if (options.requestKind === 'filter') filterRequestGeneration += 1;
+    if (options.requestKind === 'pageSize') pageSizeRequestGeneration += 1;
+
     const requestId = ++listRequestSequence;
     const listKey = getCommunityListKey(options.filter, options.pageSize);
+    const requestGeneration = {
+      filter: filterRequestGeneration,
+      pageSize: pageSizeRequestGeneration,
+    };
+    const isCurrentRequest = () =>
+      requestId === listRequestSequence &&
+      filterRequestGeneration === requestGeneration.filter &&
+      pageSizeRequestGeneration === requestGeneration.pageSize &&
+      getCommunityListKey(get().activeFilter, get().pageSize) === listKey;
 
-    set(prev => ({
+    set(() => ({
       listStatus: options.status,
       listErrorMessage: null,
       activeFilter: options.filter,
@@ -226,7 +257,6 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
             hasNextPage: true,
             hasPreviousPage: false,
             cursorHistory: {
-              ...prev.cursorHistory,
               [listKey]: { 1: null },
             },
           }
@@ -241,12 +271,7 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
         limit: options.pageSize,
       });
 
-      if (
-        requestId !== listRequestSequence ||
-        getCommunityListKey(get().activeFilter, get().pageSize) !== listKey
-      ) {
-        return;
-      }
+      if (!isCurrentRequest()) return;
 
       set(prev => {
         const historyForKey = {
@@ -283,561 +308,551 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
         };
       });
     } catch (error: unknown) {
-      if (
-        requestId !== listRequestSequence ||
-        getCommunityListKey(get().activeFilter, get().pageSize) !== listKey
-      ) {
-        return;
-      }
+      if (!isCurrentRequest()) return;
 
       set({
-        listStatus: options.status === 'loadingMore' ? 'ready' : 'error',
+        listStatus:
+          options.status === 'loadingMore' || !options.clearPosts
+            ? 'ready'
+            : 'error',
         listErrorMessage:
           getErrorMessage(error) || '게시글을 불러오지 못했어요.',
       });
     }
   };
 
-  return ({
-  posts: [],
-  postsById: {},
-  commentsByPostId: {},
-  latestCommentByPostId: {},
-  commentEntitiesById: {},
-  topLevelCommentIdsByPostId: {},
-  replyCommentIdsByParentId: {},
-  commentsStatusByPostId: {},
-  latestCommentStatusByPostId: {},
-  detailStatusByPostId: {},
-  postViewRecordStatusByPostId: {},
-  listStatus: 'idle',
-  listErrorMessage: null,
-  cursor: null,
-  hasMore: true,
-  hasNextPage: true,
-  hasPreviousPage: false,
-  currentPage: 1,
-  cursorHistory: {
-    [getCommunityListKey('all', DEFAULT_COMMUNITY_PAGE_SIZE)]: { 1: null },
-  },
-  activeFilter: 'all',
-  pageSize: DEFAULT_COMMUNITY_PAGE_SIZE,
-  lastFetchedAt: null,
+  return {
+    posts: [],
+    postsById: {},
+    commentsByPostId: {},
+    latestCommentByPostId: {},
+    commentEntitiesById: {},
+    topLevelCommentIdsByPostId: {},
+    replyCommentIdsByParentId: {},
+    commentsStatusByPostId: {},
+    latestCommentStatusByPostId: {},
+    detailStatusByPostId: {},
+    postViewRecordStatusByPostId: {},
+    listStatus: 'idle',
+    listErrorMessage: null,
+    cursor: null,
+    hasMore: true,
+    hasNextPage: true,
+    hasPreviousPage: false,
+    currentPage: 1,
+    cursorHistory: {
+      [getCommunityListKey('all', DEFAULT_COMMUNITY_PAGE_SIZE)]: { 1: null },
+    },
+    activeFilter: 'all',
+    pageSize: DEFAULT_COMMUNITY_PAGE_SIZE,
+    lastFetchedAt: null,
 
-  fetchPosts: async filter => {
-    const nextFilter = filter ?? 'all';
-    await requestListPage({
-      filter: nextFilter,
-      pageSize: get().pageSize,
-      page: 1,
-      cursor: null,
-      status: 'loading',
-      resetHistory: true,
-      clearPosts: true,
-    });
-  },
+    fetchPosts: async filter => {
+      const nextFilter = filter ?? 'all';
+      const state = get();
+      if (state.listStatus === 'loading' && state.activeFilter === nextFilter) {
+        return;
+      }
+      await requestListPage({
+        filter: nextFilter,
+        pageSize: get().pageSize,
+        page: 1,
+        cursor: null,
+        status: 'loading',
+        resetHistory: true,
+        clearPosts: true,
+        requestKind: 'filter',
+      });
+    },
 
-  refreshPosts: async () => {
-    const state = get();
-    if (
-      state.listStatus === 'refreshing' ||
-      state.listStatus === 'loading' ||
-      state.listStatus === 'loadingMore'
-    ) {
-      return;
-    }
+    refreshPosts: async () => {
+      const state = get();
+      if (
+        state.listStatus === 'refreshing' ||
+        state.listStatus === 'loading' ||
+        state.listStatus === 'loadingMore'
+      ) {
+        return;
+      }
 
-    await requestListPage({
-      filter: state.activeFilter,
-      pageSize: state.pageSize,
-      page: 1,
-      cursor: null,
-      status: 'refreshing',
-      resetHistory: true,
-      clearPosts: false,
-    });
-  },
+      await requestListPage({
+        filter: state.activeFilter,
+        pageSize: state.pageSize,
+        page: 1,
+        cursor: null,
+        status: 'refreshing',
+        resetHistory: true,
+        clearPosts: false,
+        requestKind: 'refresh',
+      });
+    },
 
-  loadMorePosts: async () => {
-    const state = get();
-    if (!state.hasNextPage || !state.cursor) return;
-    if (
-      state.listStatus === 'loading' ||
-      state.listStatus === 'refreshing' ||
-      state.listStatus === 'loadingMore'
-    ) {
-      return;
-    }
+    loadMorePosts: async () => {
+      const state = get();
+      if (!state.hasNextPage || !state.cursor) return;
+      if (
+        state.listStatus === 'loading' ||
+        state.listStatus === 'refreshing' ||
+        state.listStatus === 'loadingMore'
+      ) {
+        return;
+      }
 
-    await requestListPage({
-      filter: state.activeFilter,
-      pageSize: state.pageSize,
-      page: state.currentPage + 1,
-      cursor: state.cursor,
-      status: 'loadingMore',
-      resetHistory: false,
-      clearPosts: false,
-    });
-  },
+      await requestListPage({
+        filter: state.activeFilter,
+        pageSize: state.pageSize,
+        page: state.currentPage + 1,
+        cursor: state.cursor,
+        status: 'loadingMore',
+        resetHistory: false,
+        clearPosts: false,
+        requestKind: 'pagination',
+      });
+    },
 
-  loadPreviousPosts: async () => {
-    const state = get();
-    if (state.currentPage <= 1 || !state.hasPreviousPage) return;
-    if (
-      state.listStatus === 'loading' ||
-      state.listStatus === 'refreshing' ||
-      state.listStatus === 'loadingMore'
-    ) {
-      return;
-    }
+    loadPreviousPosts: async () => {
+      const state = get();
+      if (state.currentPage <= 1 || !state.hasPreviousPage) return;
+      if (
+        state.listStatus === 'loading' ||
+        state.listStatus === 'refreshing' ||
+        state.listStatus === 'loadingMore'
+      ) {
+        return;
+      }
 
-    const listKey = getCommunityListKey(state.activeFilter, state.pageSize);
-    const previousPage = state.currentPage - 1;
-    const previousCursor = state.cursorHistory[listKey]?.[previousPage];
-    if (previousCursor === undefined) return;
+      const listKey = getCommunityListKey(state.activeFilter, state.pageSize);
+      const previousPage = state.currentPage - 1;
+      const previousCursor = state.cursorHistory[listKey]?.[previousPage];
+      if (previousCursor === undefined) return;
 
-    await requestListPage({
-      filter: state.activeFilter,
-      pageSize: state.pageSize,
-      page: previousPage,
-      cursor: previousCursor,
-      status: 'loadingMore',
-      resetHistory: false,
-      clearPosts: false,
-    });
-  },
+      await requestListPage({
+        filter: state.activeFilter,
+        pageSize: state.pageSize,
+        page: previousPage,
+        cursor: previousCursor,
+        status: 'loadingMore',
+        resetHistory: false,
+        clearPosts: false,
+        requestKind: 'pagination',
+      });
+    },
 
-  setPageSize: async pageSize => {
-    const state = get();
-    if (state.pageSize === pageSize) return;
-    await requestListPage({
-      filter: state.activeFilter,
-      pageSize,
-      page: 1,
-      cursor: null,
-      status: 'loading',
-      resetHistory: true,
-      clearPosts: true,
-    });
-  },
+    setPageSize: async pageSize => {
+      const state = get();
+      if (state.pageSize === pageSize) return;
+      await requestListPage({
+        filter: state.activeFilter,
+        pageSize,
+        page: 1,
+        cursor: null,
+        status: 'loading',
+        resetHistory: true,
+        clearPosts: false,
+        requestKind: 'pageSize',
+      });
+    },
 
-  fetchPostDetail: async postId => {
-    if (get().detailStatusByPostId[postId] === 'loading') return;
-    const cachedPost = get().postsById[postId] ?? null;
+    fetchPostDetail: async postId => {
+      if (get().detailStatusByPostId[postId] === 'loading') return;
+      const cachedPost = get().postsById[postId] ?? null;
 
-    set(prev => ({
-      detailStatusByPostId: {
-        ...prev.detailStatusByPostId,
-        [postId]: 'loading',
-      },
-    }));
+      set(prev => ({
+        detailStatusByPostId: {
+          ...prev.detailStatusByPostId,
+          [postId]: 'loading',
+        },
+      }));
 
-    try {
-      const post = await fetchCommunityPostById(postId);
-      if (!post) {
+      try {
+        const post = await fetchCommunityPostById(postId);
+        if (!post) {
+          set(prev => ({
+            posts: prev.posts.filter(item => item.id !== postId),
+            postsById: (() => {
+              if (!prev.postsById[postId]) return prev.postsById;
+              const nextPostsById = { ...prev.postsById };
+              delete nextPostsById[postId];
+              return nextPostsById;
+            })(),
+            detailStatusByPostId: {
+              ...prev.detailStatusByPostId,
+              [postId]: 'not_found',
+            },
+          }));
+          return;
+        }
+
+        let nextStatus: CommunityDetailStatus = 'ready';
+        if (post.deletedAt) {
+          nextStatus = 'deleted';
+        } else if (
+          post.status === 'hidden' ||
+          post.status === 'auto_hidden' ||
+          post.status === 'banned'
+        ) {
+          nextStatus = 'moderated';
+        }
+
         set(prev => ({
-          posts: prev.posts.filter(item => item.id !== postId),
-          postsById: (() => {
-            if (!prev.postsById[postId]) return prev.postsById;
-            const nextPostsById = { ...prev.postsById };
-            delete nextPostsById[postId];
-            return nextPostsById;
-          })(),
+          postsById: { ...prev.postsById, [postId]: post },
+          posts: prev.posts.map(item => (item.id === postId ? post : item)),
           detailStatusByPostId: {
             ...prev.detailStatusByPostId,
-            [postId]: 'not_found',
+            [postId]: nextStatus,
+          },
+        }));
+      } catch {
+        set(prev => {
+          if (cachedPost) {
+            return {
+              detailStatusByPostId: {
+                ...prev.detailStatusByPostId,
+                [postId]: 'ready',
+              },
+            };
+          }
+
+          return {
+            detailStatusByPostId: {
+              ...prev.detailStatusByPostId,
+              [postId]: 'error',
+            },
+          };
+        });
+      }
+    },
+
+    recordPostView: async postId => {
+      if (get().postViewRecordStatusByPostId[postId] === 'loading') return;
+      if (!get().postsById[postId]) return;
+
+      set(prev => ({
+        postViewRecordStatusByPostId: {
+          ...prev.postViewRecordStatusByPostId,
+          [postId]: 'loading',
+        },
+      }));
+
+      try {
+        const result = await recordCommunityPostView(postId);
+        set(prev => {
+          const current = prev.postsById[postId] ?? null;
+          const nextStatusMap = {
+            ...prev.postViewRecordStatusByPostId,
+            [postId]: 'ready' as const,
+          };
+
+          if (!current) {
+            return {
+              postViewRecordStatusByPostId: nextStatusMap,
+            };
+          }
+
+          if (current.viewCount === result.viewCount) {
+            return {
+              postViewRecordStatusByPostId: nextStatusMap,
+            };
+          }
+
+          const updatedPost: CommunityPost = {
+            ...current,
+            viewCount: result.viewCount,
+          };
+
+          return {
+            postViewRecordStatusByPostId: nextStatusMap,
+            postsById: {
+              ...prev.postsById,
+              [postId]: updatedPost,
+            },
+            posts: prev.posts.map(post =>
+              post.id === postId
+                ? {
+                    ...post,
+                    viewCount: result.viewCount,
+                  }
+                : post,
+            ),
+          };
+        });
+      } catch (error) {
+        console.warn('community_post_view_record_failed', error);
+        set(prev => ({
+          postViewRecordStatusByPostId: {
+            ...prev.postViewRecordStatusByPostId,
+            [postId]: 'error',
+          },
+        }));
+      }
+    },
+
+    fetchPostComments: async postId => {
+      if (get().commentsStatusByPostId[postId] === 'loading') return;
+
+      set(prev => ({
+        commentsStatusByPostId: {
+          ...prev.commentsStatusByPostId,
+          [postId]: 'loading',
+        },
+      }));
+
+      try {
+        const comments = await fetchCommunityComments(postId);
+        const previousCommentsById = new Map(
+          (get().commentsByPostId[postId] ?? []).map(
+            comment => [comment.id, comment] as const,
+          ),
+        );
+        const mergedComments = comments.map(comment =>
+          preserveCommentAuthorMetadata(
+            comment,
+            previousCommentsById.get(comment.id),
+          ),
+        );
+        const grouped = groupCommentsIntoThreads(mergedComments);
+        set(prev => ({
+          ...((): Pick<
+            CommunityStore,
+            'commentEntitiesById' | 'replyCommentIdsByParentId'
+          > => {
+            const previousCommentIds = new Set(
+              (prev.commentsByPostId[postId] ?? []).map(comment => comment.id),
+            );
+            const nextCommentEntitiesById = { ...prev.commentEntitiesById };
+            previousCommentIds.forEach(commentId => {
+              delete nextCommentEntitiesById[commentId];
+            });
+
+            const nextReplyCommentIdsByParentId = {
+              ...prev.replyCommentIdsByParentId,
+            };
+            const previousTopLevelIds =
+              prev.topLevelCommentIdsByPostId[postId] ?? [];
+            previousTopLevelIds.forEach(commentId => {
+              delete nextReplyCommentIdsByParentId[commentId];
+            });
+
+            return {
+              commentEntitiesById: {
+                ...nextCommentEntitiesById,
+                ...grouped.commentEntitiesById,
+              },
+              replyCommentIdsByParentId: {
+                ...nextReplyCommentIdsByParentId,
+                ...grouped.replyCommentIdsByParentId,
+              },
+            };
+          })(),
+          commentsByPostId: {
+            ...prev.commentsByPostId,
+            [postId]: mergedComments,
+          },
+          latestCommentByPostId: {
+            ...prev.latestCommentByPostId,
+            [postId]: getLatestCommentPreview(mergedComments),
+          },
+          topLevelCommentIdsByPostId: {
+            ...prev.topLevelCommentIdsByPostId,
+            [postId]: grouped.topLevelCommentIds,
+          },
+          commentsStatusByPostId: {
+            ...prev.commentsStatusByPostId,
+            [postId]: 'ready',
+          },
+          latestCommentStatusByPostId: {
+            ...prev.latestCommentStatusByPostId,
+            [postId]: 'ready',
+          },
+        }));
+      } catch {
+        set(prev => ({
+          commentsStatusByPostId: {
+            ...prev.commentsStatusByPostId,
+            [postId]: 'error',
+          },
+        }));
+      }
+    },
+
+    fetchLatestCommentPreview: async postId => {
+      if (get().latestCommentStatusByPostId[postId] === 'loading') return;
+      const currentPost = get().postsById[postId] ?? null;
+      if (currentPost && currentPost.commentCount <= 0) {
+        set(prev => ({
+          latestCommentByPostId: {
+            ...prev.latestCommentByPostId,
+            [postId]: null,
+          },
+          latestCommentStatusByPostId: {
+            ...prev.latestCommentStatusByPostId,
+            [postId]: 'ready',
           },
         }));
         return;
       }
 
-      let nextStatus: CommunityDetailStatus = 'ready';
-      if (post.deletedAt) {
-        nextStatus = 'deleted';
-      } else if (
-        post.status === 'hidden' ||
-        post.status === 'auto_hidden' ||
-        post.status === 'banned'
-      ) {
-        nextStatus = 'moderated';
-      }
-
       set(prev => ({
-        postsById: { ...prev.postsById, [postId]: post },
-        posts: prev.posts.map(item => (item.id === postId ? post : item)),
-        detailStatusByPostId: {
-          ...prev.detailStatusByPostId,
-          [postId]: nextStatus,
+        latestCommentStatusByPostId: {
+          ...prev.latestCommentStatusByPostId,
+          [postId]: 'loading',
         },
       }));
-    } catch {
-      set(prev => {
-        if (cachedPost) {
-          return {
-            detailStatusByPostId: {
-              ...prev.detailStatusByPostId,
-              [postId]: 'ready',
-            },
-          };
-        }
 
-        return {
-          detailStatusByPostId: {
-            ...prev.detailStatusByPostId,
+      try {
+        const latestComment = await fetchLatestCommunityCommentPreview(postId);
+        const previousComment = get().latestCommentByPostId[postId] ?? null;
+        set(prev => ({
+          latestCommentByPostId: {
+            ...prev.latestCommentByPostId,
+            [postId]:
+              latestComment === null
+                ? null
+                : preserveCommentAuthorMetadata(latestComment, previousComment),
+          },
+          latestCommentStatusByPostId: {
+            ...prev.latestCommentStatusByPostId,
+            [postId]: 'ready',
+          },
+        }));
+      } catch {
+        set(prev => ({
+          latestCommentStatusByPostId: {
+            ...prev.latestCommentStatusByPostId,
             [postId]: 'error',
           },
-        };
-      });
-    }
-  },
+        }));
+      }
+    },
 
-  recordPostView: async postId => {
-    if (get().postViewRecordStatusByPostId[postId] === 'loading') return;
-    if (!get().postsById[postId]) return;
-
-    set(prev => ({
-      postViewRecordStatusByPostId: {
-        ...prev.postViewRecordStatusByPostId,
-        [postId]: 'loading',
-      },
-    }));
-
-    try {
-      const result = await recordCommunityPostView(postId);
-      set(prev => {
-        const current = prev.postsById[postId] ?? null;
-        const nextStatusMap = {
-          ...prev.postViewRecordStatusByPostId,
-          [postId]: 'ready' as const,
-        };
-
-        if (!current) {
-          return {
-            postViewRecordStatusByPostId: nextStatusMap,
-          };
-        }
-
-        if (current.viewCount === result.viewCount) {
-          return {
-            postViewRecordStatusByPostId: nextStatusMap,
-          };
-        }
-
-        const updatedPost: CommunityPost = {
-          ...current,
-          viewCount: result.viewCount,
-        };
-
-        return {
-          postViewRecordStatusByPostId: nextStatusMap,
-          postsById: {
-            ...prev.postsById,
-            [postId]: updatedPost,
-          },
-          posts: prev.posts.map(post =>
-            post.id === postId
-              ? {
-                  ...post,
-                  viewCount: result.viewCount,
-                }
-              : post,
-          ),
-        };
-      });
-    } catch (error) {
-      console.warn('community_post_view_record_failed', error);
+    submitPost: async (params, userId) => {
+      const post = await createCommunityPost(params, userId);
       set(prev => ({
-        postViewRecordStatusByPostId: {
-          ...prev.postViewRecordStatusByPostId,
-          [postId]: 'error',
-        },
+        // A newly-created regular post belongs in the first page of the all
+        // filter only. Do not inject it into popular/notice pages client-side.
+        posts:
+          prev.activeFilter === 'all' && prev.currentPage === 1
+            ? [post, ...prev.posts]
+            : prev.posts,
+        postsById: { ...prev.postsById, [post.id]: post },
       }));
-    }
-  },
+      return post;
+    },
 
-  fetchPostComments: async postId => {
-    if (get().commentsStatusByPostId[postId] === 'loading') return;
-
-    set(prev => ({
-      commentsStatusByPostId: {
-        ...prev.commentsStatusByPostId,
-        [postId]: 'loading',
-      },
-    }));
-
-    try {
-      const comments = await fetchCommunityComments(postId);
-      const previousCommentsById = new Map(
-        (get().commentsByPostId[postId] ?? []).map(comment => [comment.id, comment] as const),
-      );
-      const mergedComments = comments.map(comment =>
-        preserveCommentAuthorMetadata(
-          comment,
-          previousCommentsById.get(comment.id),
-        ),
-      );
-      const grouped = groupCommentsIntoThreads(mergedComments);
-      set(prev => ({
-        ...((): Pick<
-          CommunityStore,
-          'commentEntitiesById' | 'replyCommentIdsByParentId'
-        > => {
-          const previousCommentIds = new Set(
-            (prev.commentsByPostId[postId] ?? []).map(comment => comment.id),
-          );
-          const nextCommentEntitiesById = { ...prev.commentEntitiesById };
-          previousCommentIds.forEach(commentId => {
-            delete nextCommentEntitiesById[commentId];
-          });
-
-          const nextReplyCommentIdsByParentId = {
-            ...prev.replyCommentIdsByParentId,
-          };
-          const previousTopLevelIds = prev.topLevelCommentIdsByPostId[postId] ?? [];
-          previousTopLevelIds.forEach(commentId => {
-            delete nextReplyCommentIdsByParentId[commentId];
-          });
-
-          return {
-            commentEntitiesById: {
-              ...nextCommentEntitiesById,
-              ...grouped.commentEntitiesById,
-            },
-            replyCommentIdsByParentId: {
-              ...nextReplyCommentIdsByParentId,
-              ...grouped.replyCommentIdsByParentId,
-            },
-          };
-        })(),
-        commentsByPostId: {
-          ...prev.commentsByPostId,
-          [postId]: mergedComments,
-        },
-        latestCommentByPostId: {
-          ...prev.latestCommentByPostId,
-          [postId]: getLatestCommentPreview(mergedComments),
-        },
-        topLevelCommentIdsByPostId: {
-          ...prev.topLevelCommentIdsByPostId,
-          [postId]: grouped.topLevelCommentIds,
-        },
-        commentsStatusByPostId: {
-          ...prev.commentsStatusByPostId,
-          [postId]: 'ready',
-        },
-        latestCommentStatusByPostId: {
-          ...prev.latestCommentStatusByPostId,
-          [postId]: 'ready',
-        },
-      }));
-    } catch {
-      set(prev => ({
-        commentsStatusByPostId: {
-          ...prev.commentsStatusByPostId,
-          [postId]: 'error',
-        },
-      }));
-    }
-  },
-
-  fetchLatestCommentPreview: async postId => {
-    if (get().latestCommentStatusByPostId[postId] === 'loading') return;
-    const currentPost = get().postsById[postId] ?? null;
-    if (currentPost && currentPost.commentCount <= 0) {
-      set(prev => ({
-        latestCommentByPostId: {
-          ...prev.latestCommentByPostId,
-          [postId]: null,
-        },
-        latestCommentStatusByPostId: {
-          ...prev.latestCommentStatusByPostId,
-          [postId]: 'ready',
-        },
-      }));
-      return;
-    }
-
-    set(prev => ({
-      latestCommentStatusByPostId: {
-        ...prev.latestCommentStatusByPostId,
-        [postId]: 'loading',
-      },
-    }));
-
-    try {
-      const latestComment = await fetchLatestCommunityCommentPreview(postId);
-      const previousComment = get().latestCommentByPostId[postId] ?? null;
-      set(prev => ({
-        latestCommentByPostId: {
-          ...prev.latestCommentByPostId,
-          [postId]:
-            latestComment === null
-              ? null
-              : preserveCommentAuthorMetadata(
-                  latestComment,
-                  previousComment,
-                ),
-        },
-        latestCommentStatusByPostId: {
-          ...prev.latestCommentStatusByPostId,
-          [postId]: 'ready',
-        },
-      }));
-    } catch {
-      set(prev => ({
-        latestCommentStatusByPostId: {
-          ...prev.latestCommentStatusByPostId,
-          [postId]: 'error',
-        },
-      }));
-    }
-  },
-
-  submitPost: async (params, userId) => {
-    const post = await createCommunityPost(params, userId);
-    set(prev => ({
-      // A newly-created regular post belongs in the first page of the all
-      // filter only. Do not inject it into popular/notice pages client-side.
-      posts:
-        prev.activeFilter === 'all' && prev.currentPage === 1
-          ? [post, ...prev.posts]
-          : prev.posts,
-      postsById: { ...prev.postsById, [post.id]: post },
-    }));
-    return post;
-  },
-
-  editPost: async (postId, params) => {
-    await updateCommunityPost(postId, params);
-    const current = get().postsById[postId];
-    if (!current) return;
-    const nextAvatarUrl =
-      params.petSnapshot !== undefined
-        ? toPublicPetAvatarUrl(params.petSnapshot?.avatarPath ?? null)
-        : current.petAvatarUrl;
-    const nextPetName =
-      params.petId === null ? null : params.petSnapshot?.name ?? current.petName;
-    const nextPetBreed =
-      params.petId === null ? null : params.petSnapshot?.breed ?? current.petBreed;
-    const nextPetSpecies =
-      params.petId === null ? null : params.petSnapshot?.species ?? current.petSpecies;
-    const nextPetAgeLabel =
-      params.petId === null
-        ? null
-        : params.petSnapshot?.showPetAge === false
+    editPost: async (postId, params) => {
+      await updateCommunityPost(postId, params);
+      const current = get().postsById[postId];
+      if (!current) return;
+      const nextAvatarUrl =
+        params.petSnapshot !== undefined
+          ? toPublicPetAvatarUrl(params.petSnapshot?.avatarPath ?? null)
+          : current.petAvatarUrl;
+      const nextPetName =
+        params.petId === null
+          ? null
+          : params.petSnapshot?.name ?? current.petName;
+      const nextPetBreed =
+        params.petId === null
+          ? null
+          : params.petSnapshot?.breed ?? current.petBreed;
+      const nextPetSpecies =
+        params.petId === null
+          ? null
+          : params.petSnapshot?.species ?? current.petSpecies;
+      const nextPetAgeLabel =
+        params.petId === null
+          ? null
+          : params.petSnapshot?.showPetAge === false
           ? null
           : params.petSnapshot?.ageLabel ?? current.petAgeLabel;
 
-    get().updatePostInCache(postId, {
-      title: params.title ?? current.title,
-      content: params.content ?? current.content,
-      category: params.category ?? current.category,
-      petId: params.petId !== undefined ? params.petId : current.petId,
-      imagePath: params.imagePath !== undefined ? params.imagePath : current.imagePath,
-      imagePaths:
-        params.imagePaths !== undefined ? params.imagePaths : current.imagePaths,
-      imageUrls: params.imagePaths !== undefined ? [] : current.imageUrls,
-      hasImage:
-        params.imagePaths !== undefined
-          ? params.imagePaths.some(path => `${path ?? ''}`.trim().length > 0)
-          : params.imagePath !== undefined
+      get().updatePostInCache(postId, {
+        title: params.title ?? current.title,
+        content: params.content ?? current.content,
+        category: params.category ?? current.category,
+        petId: params.petId !== undefined ? params.petId : current.petId,
+        imagePath:
+          params.imagePath !== undefined ? params.imagePath : current.imagePath,
+        imagePaths:
+          params.imagePaths !== undefined
+            ? params.imagePaths
+            : current.imagePaths,
+        imageUrls: params.imagePaths !== undefined ? [] : current.imageUrls,
+        hasImage:
+          params.imagePaths !== undefined
+            ? params.imagePaths.some(path => `${path ?? ''}`.trim().length > 0)
+            : params.imagePath !== undefined
             ? `${params.imagePath ?? ''}`.trim().length > 0
             : current.hasImage,
-      imageUrl: params.imagePath !== undefined ? null : current.imageUrl,
-      petName: nextPetName,
-      petBreed: nextPetBreed,
-      petSpecies: nextPetSpecies,
-      petAgeLabel: nextPetAgeLabel,
-      petAvatarUrl: nextAvatarUrl,
-      showPetAge: params.petSnapshot?.showPetAge ?? current.showPetAge,
-    });
-  },
-
-  removePost: async postId => {
-    const deletedAt = await deleteCommunityPost(postId);
-    set(prev => {
-      const current = prev.postsById[postId];
-      const nextPost = current
-        ? {
-            ...current,
-            status: 'deleted' as const,
-            deletedAt,
-          }
-        : undefined;
-
-      return {
-        posts: prev.posts.filter(post => post.id !== postId),
-        postsById: nextPost
-          ? { ...prev.postsById, [postId]: nextPost }
-          : prev.postsById,
-        detailStatusByPostId: {
-          ...prev.detailStatusByPostId,
-          [postId]: 'deleted',
-        },
-      };
-    });
-  },
-
-  togglePostLike: async (postId, userId) => {
-    const current = get().postsById[postId];
-    if (!current) return;
-
-    const optimisticIsLiked = !current.isLikedByMe;
-    const optimisticLikeCount = optimisticIsLiked
-      ? current.likeCount + 1
-      : Math.max(current.likeCount - 1, 0);
-
-    get().updatePostInCache(postId, {
-      isLikedByMe: optimisticIsLiked,
-      likeCount: optimisticLikeCount,
-    });
-
-    try {
-      await toggleCommunityPostLike(postId, userId, current.isLikedByMe);
-    } catch (error) {
-      get().updatePostInCache(postId, {
-        isLikedByMe: current.isLikedByMe,
-        likeCount: current.likeCount,
+        imageUrl: params.imagePath !== undefined ? null : current.imageUrl,
+        petName: nextPetName,
+        petBreed: nextPetBreed,
+        petSpecies: nextPetSpecies,
+        petAgeLabel: nextPetAgeLabel,
+        petAvatarUrl: nextAvatarUrl,
+        showPetAge: params.petSnapshot?.showPetAge ?? current.showPetAge,
       });
-      throw error;
-    }
-  },
+    },
 
-  toggleCommentLike: async (commentId, postId, userId) => {
-    const current = get().commentEntitiesById[commentId] ?? null;
-    if (!current) return;
+    removePost: async postId => {
+      const deletedAt = await deleteCommunityPost(postId);
+      set(prev => {
+        const current = prev.postsById[postId];
+        const nextPost = current
+          ? {
+              ...current,
+              status: 'deleted' as const,
+              deletedAt,
+            }
+          : undefined;
 
-    const optimisticIsLiked = !current.isLikedByMe;
-    const optimisticLikeCount = optimisticIsLiked
-      ? current.likeCount + 1
-      : Math.max(current.likeCount - 1, 0);
+        return {
+          posts: prev.posts.filter(post => post.id !== postId),
+          postsById: nextPost
+            ? { ...prev.postsById, [postId]: nextPost }
+            : prev.postsById,
+          detailStatusByPostId: {
+            ...prev.detailStatusByPostId,
+            [postId]: 'deleted',
+          },
+        };
+      });
+    },
 
-    set(prev => ({
-      commentsByPostId: {
-        ...prev.commentsByPostId,
-        [postId]: (prev.commentsByPostId[postId] ?? []).map(comment =>
-          comment.id === commentId
-            ? {
-                ...comment,
-                isLikedByMe: optimisticIsLiked,
-                likeCount: optimisticLikeCount,
-              }
-            : comment,
-        ),
-      },
-      commentEntitiesById: {
-        ...prev.commentEntitiesById,
-        [commentId]: {
-          ...prev.commentEntitiesById[commentId],
-          isLikedByMe: optimisticIsLiked,
-          likeCount: optimisticLikeCount,
-        },
-      },
-    }));
+    togglePostLike: async (postId, userId) => {
+      const current = get().postsById[postId];
+      if (!current) return;
 
-    try {
-      await toggleCommunityCommentLike(commentId, userId, current.isLikedByMe);
-    } catch (error) {
+      const optimisticIsLiked = !current.isLikedByMe;
+      const optimisticLikeCount = optimisticIsLiked
+        ? current.likeCount + 1
+        : Math.max(current.likeCount - 1, 0);
+
+      get().updatePostInCache(postId, {
+        isLikedByMe: optimisticIsLiked,
+        likeCount: optimisticLikeCount,
+      });
+
+      try {
+        await toggleCommunityPostLike(postId, userId, current.isLikedByMe);
+      } catch (error) {
+        get().updatePostInCache(postId, {
+          isLikedByMe: current.isLikedByMe,
+          likeCount: current.likeCount,
+        });
+        throw error;
+      }
+    },
+
+    toggleCommentLike: async (commentId, postId, userId) => {
+      const current = get().commentEntitiesById[commentId] ?? null;
+      if (!current) return;
+
+      const optimisticIsLiked = !current.isLikedByMe;
+      const optimisticLikeCount = optimisticIsLiked
+        ? current.likeCount + 1
+        : Math.max(current.likeCount - 1, 0);
+
       set(prev => ({
         commentsByPostId: {
           ...prev.commentsByPostId,
@@ -845,8 +860,8 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
             comment.id === commentId
               ? {
                   ...comment,
-                  isLikedByMe: current.isLikedByMe,
-                  likeCount: current.likeCount,
+                  isLikedByMe: optimisticIsLiked,
+                  likeCount: optimisticLikeCount,
                 }
               : comment,
           ),
@@ -855,167 +870,106 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
           ...prev.commentEntitiesById,
           [commentId]: {
             ...prev.commentEntitiesById[commentId],
-            isLikedByMe: current.isLikedByMe,
-            likeCount: current.likeCount,
+            isLikedByMe: optimisticIsLiked,
+            likeCount: optimisticLikeCount,
           },
         },
       }));
-      throw error;
-    }
-  },
 
-  submitComment: async (postId, content, userId, parentCommentId) => {
-    const comment = await createCommunityComment(
-      { postId, content, parentCommentId: parentCommentId ?? null },
-      userId,
-    );
-    set(prev => ({
-      commentsByPostId: {
-        ...prev.commentsByPostId,
-        [postId]: ((): CommunityComment[] => {
-          const currentComments = prev.commentsByPostId[postId] ?? [];
-          const nextComments = [...currentComments, comment];
-          if (!comment.parentCommentId) {
-            return nextComments;
-          }
-
-          return nextComments.map(item =>
-            item.id === comment.parentCommentId
-                ? { ...item, replyCount: item.replyCount + 1 }
-              : item,
-          );
-        })(),
-      },
-      latestCommentByPostId: {
-        ...prev.latestCommentByPostId,
-        [postId]: comment,
-      },
-      commentEntitiesById: {
-        ...prev.commentEntitiesById,
-        ...(comment.parentCommentId && prev.commentEntitiesById[comment.parentCommentId]
-          ? {
-              [comment.parentCommentId]: {
-                ...prev.commentEntitiesById[comment.parentCommentId],
-                replyCount:
-                  prev.commentEntitiesById[comment.parentCommentId].replyCount + 1,
-              },
-            }
-          : {}),
-        [comment.id]: comment,
-      },
-      topLevelCommentIdsByPostId: {
-        ...prev.topLevelCommentIdsByPostId,
-        [postId]: comment.parentCommentId
-          ? prev.topLevelCommentIdsByPostId[postId] ?? []
-          : [...(prev.topLevelCommentIdsByPostId[postId] ?? []), comment.id],
-      },
-      replyCommentIdsByParentId: comment.parentCommentId
-        ? {
-            ...prev.replyCommentIdsByParentId,
-            [comment.parentCommentId]: [
-              ...(prev.replyCommentIdsByParentId[comment.parentCommentId] ?? []),
-              comment.id,
-            ],
-          }
-        : prev.replyCommentIdsByParentId,
-      commentsStatusByPostId: {
-        ...prev.commentsStatusByPostId,
-        [postId]: 'ready',
-      },
-      latestCommentStatusByPostId: {
-        ...prev.latestCommentStatusByPostId,
-        [postId]: 'ready',
-      },
-      postsById: prev.postsById[postId]
-        ? {
-            ...prev.postsById,
-            [postId]: {
-              ...prev.postsById[postId],
-              commentCount: prev.postsById[postId].commentCount + 1,
+      try {
+        await toggleCommunityCommentLike(
+          commentId,
+          userId,
+          current.isLikedByMe,
+        );
+      } catch (error) {
+        set(prev => ({
+          commentsByPostId: {
+            ...prev.commentsByPostId,
+            [postId]: (prev.commentsByPostId[postId] ?? []).map(comment =>
+              comment.id === commentId
+                ? {
+                    ...comment,
+                    isLikedByMe: current.isLikedByMe,
+                    likeCount: current.likeCount,
+                  }
+                : comment,
+            ),
+          },
+          commentEntitiesById: {
+            ...prev.commentEntitiesById,
+            [commentId]: {
+              ...prev.commentEntitiesById[commentId],
+              isLikedByMe: current.isLikedByMe,
+              likeCount: current.likeCount,
             },
-          }
-        : prev.postsById,
-      posts: prev.posts.map(post =>
-        post.id === postId
-          ? { ...post, commentCount: post.commentCount + 1 }
-          : post,
-      ),
-    }));
-  },
-
-  removeComment: async (commentId, postId) => {
-    set(prev => {
-      const currentComments = prev.commentsByPostId[postId] ?? [];
-      const target = prev.commentEntitiesById[commentId] ?? null;
-      const removedCommentIds = new Set<string>([commentId]);
-
-      if (target && target.parentCommentId === null) {
-        (prev.replyCommentIdsByParentId[target.id] ?? []).forEach(replyId => {
-          removedCommentIds.add(replyId);
-        });
+          },
+        }));
+        throw error;
       }
+    },
 
-      const removedCount = removedCommentIds.size;
-      const filteredComments = currentComments.filter(
-        comment => !removedCommentIds.has(comment.id),
+    submitComment: async (postId, content, userId, parentCommentId) => {
+      const comment = await createCommunityComment(
+        { postId, content, parentCommentId: parentCommentId ?? null },
+        userId,
       );
-      const nextCommentEntitiesById = { ...prev.commentEntitiesById };
-      removedCommentIds.forEach(removedId => {
-        delete nextCommentEntitiesById[removedId];
-      });
-      const nextReplyCommentIdsByParentId = { ...prev.replyCommentIdsByParentId };
-
-      if (target?.parentCommentId) {
-        nextReplyCommentIdsByParentId[target.parentCommentId] = (
-          prev.replyCommentIdsByParentId[target.parentCommentId] ?? []
-        ).filter(id => id !== commentId);
-      }
-
-      if (target && target.parentCommentId === null) {
-        delete nextReplyCommentIdsByParentId[target.id];
-      }
-
-      const nextTopLevelCommentIds = (prev.topLevelCommentIdsByPostId[postId] ?? []).filter(
-        id => !removedCommentIds.has(id),
-      );
-      const nextCommentsForPost = target?.parentCommentId
-        ? filteredComments.map(comment =>
-            comment.id === target.parentCommentId
-              ? {
-                  ...comment,
-                  replyCount: Math.max(comment.replyCount - 1, 0),
-                }
-              : comment,
-          )
-        : filteredComments;
-
-      return {
+      set(prev => ({
         commentsByPostId: {
           ...prev.commentsByPostId,
-          [postId]: nextCommentsForPost,
+          [postId]: ((): CommunityComment[] => {
+            const currentComments = prev.commentsByPostId[postId] ?? [];
+            const nextComments = [...currentComments, comment];
+            if (!comment.parentCommentId) {
+              return nextComments;
+            }
+
+            return nextComments.map(item =>
+              item.id === comment.parentCommentId
+                ? { ...item, replyCount: item.replyCount + 1 }
+                : item,
+            );
+          })(),
         },
         latestCommentByPostId: {
           ...prev.latestCommentByPostId,
-          [postId]: getLatestCommentPreview(nextCommentsForPost),
+          [postId]: comment,
         },
-        commentEntitiesById:
-          target?.parentCommentId && prev.commentEntitiesById[target.parentCommentId]
+        commentEntitiesById: {
+          ...prev.commentEntitiesById,
+          ...(comment.parentCommentId &&
+          prev.commentEntitiesById[comment.parentCommentId]
             ? {
-                ...nextCommentEntitiesById,
-                [target.parentCommentId]: {
-                  ...prev.commentEntitiesById[target.parentCommentId],
-                  replyCount: Math.max(
-                    prev.commentEntitiesById[target.parentCommentId].replyCount - 1,
-                    0,
-                  ),
+                [comment.parentCommentId]: {
+                  ...prev.commentEntitiesById[comment.parentCommentId],
+                  replyCount:
+                    prev.commentEntitiesById[comment.parentCommentId]
+                      .replyCount + 1,
                 },
               }
-            : nextCommentEntitiesById,
+            : {}),
+          [comment.id]: comment,
+        },
         topLevelCommentIdsByPostId: {
           ...prev.topLevelCommentIdsByPostId,
-          [postId]: nextTopLevelCommentIds,
+          [postId]: comment.parentCommentId
+            ? prev.topLevelCommentIdsByPostId[postId] ?? []
+            : [...(prev.topLevelCommentIdsByPostId[postId] ?? []), comment.id],
         },
-        replyCommentIdsByParentId: nextReplyCommentIdsByParentId,
+        replyCommentIdsByParentId: comment.parentCommentId
+          ? {
+              ...prev.replyCommentIdsByParentId,
+              [comment.parentCommentId]: [
+                ...(prev.replyCommentIdsByParentId[comment.parentCommentId] ??
+                  []),
+                comment.id,
+              ],
+            }
+          : prev.replyCommentIdsByParentId,
+        commentsStatusByPostId: {
+          ...prev.commentsStatusByPostId,
+          [postId]: 'ready',
+        },
         latestCommentStatusByPostId: {
           ...prev.latestCommentStatusByPostId,
           [postId]: 'ready',
@@ -1025,79 +979,185 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
               ...prev.postsById,
               [postId]: {
                 ...prev.postsById[postId],
-                commentCount: Math.max(
-                  prev.postsById[postId].commentCount - removedCount,
-                  0,
-                ),
+                commentCount: prev.postsById[postId].commentCount + 1,
               },
             }
           : prev.postsById,
         posts: prev.posts.map(post =>
           post.id === postId
-            ? {
-                ...post,
-                commentCount: Math.max(post.commentCount - removedCount, 0),
-              }
+            ? { ...post, commentCount: post.commentCount + 1 }
             : post,
         ),
-      };
-    });
+      }));
+    },
 
-    try {
-      await deleteCommunityComment(commentId);
-    } catch (error) {
-      await get().fetchPostComments(postId);
-      throw error;
-    }
-  },
+    removeComment: async (commentId, postId) => {
+      set(prev => {
+        const currentComments = prev.commentsByPostId[postId] ?? [];
+        const target = prev.commentEntitiesById[commentId] ?? null;
+        const removedCommentIds = new Set<string>([commentId]);
 
-  reportContent: async (targetType, targetId, reasonCategory, reason, reporterId) => {
-    return createCommunityReport(
-      { targetType, targetId, reasonCategory, reason },
+        if (target && target.parentCommentId === null) {
+          (prev.replyCommentIdsByParentId[target.id] ?? []).forEach(replyId => {
+            removedCommentIds.add(replyId);
+          });
+        }
+
+        const removedCount = removedCommentIds.size;
+        const filteredComments = currentComments.filter(
+          comment => !removedCommentIds.has(comment.id),
+        );
+        const nextCommentEntitiesById = { ...prev.commentEntitiesById };
+        removedCommentIds.forEach(removedId => {
+          delete nextCommentEntitiesById[removedId];
+        });
+        const nextReplyCommentIdsByParentId = {
+          ...prev.replyCommentIdsByParentId,
+        };
+
+        if (target?.parentCommentId) {
+          nextReplyCommentIdsByParentId[target.parentCommentId] = (
+            prev.replyCommentIdsByParentId[target.parentCommentId] ?? []
+          ).filter(id => id !== commentId);
+        }
+
+        if (target && target.parentCommentId === null) {
+          delete nextReplyCommentIdsByParentId[target.id];
+        }
+
+        const nextTopLevelCommentIds = (
+          prev.topLevelCommentIdsByPostId[postId] ?? []
+        ).filter(id => !removedCommentIds.has(id));
+        const nextCommentsForPost = target?.parentCommentId
+          ? filteredComments.map(comment =>
+              comment.id === target.parentCommentId
+                ? {
+                    ...comment,
+                    replyCount: Math.max(comment.replyCount - 1, 0),
+                  }
+                : comment,
+            )
+          : filteredComments;
+
+        return {
+          commentsByPostId: {
+            ...prev.commentsByPostId,
+            [postId]: nextCommentsForPost,
+          },
+          latestCommentByPostId: {
+            ...prev.latestCommentByPostId,
+            [postId]: getLatestCommentPreview(nextCommentsForPost),
+          },
+          commentEntitiesById:
+            target?.parentCommentId &&
+            prev.commentEntitiesById[target.parentCommentId]
+              ? {
+                  ...nextCommentEntitiesById,
+                  [target.parentCommentId]: {
+                    ...prev.commentEntitiesById[target.parentCommentId],
+                    replyCount: Math.max(
+                      prev.commentEntitiesById[target.parentCommentId]
+                        .replyCount - 1,
+                      0,
+                    ),
+                  },
+                }
+              : nextCommentEntitiesById,
+          topLevelCommentIdsByPostId: {
+            ...prev.topLevelCommentIdsByPostId,
+            [postId]: nextTopLevelCommentIds,
+          },
+          replyCommentIdsByParentId: nextReplyCommentIdsByParentId,
+          latestCommentStatusByPostId: {
+            ...prev.latestCommentStatusByPostId,
+            [postId]: 'ready',
+          },
+          postsById: prev.postsById[postId]
+            ? {
+                ...prev.postsById,
+                [postId]: {
+                  ...prev.postsById[postId],
+                  commentCount: Math.max(
+                    prev.postsById[postId].commentCount - removedCount,
+                    0,
+                  ),
+                },
+              }
+            : prev.postsById,
+          posts: prev.posts.map(post =>
+            post.id === postId
+              ? {
+                  ...post,
+                  commentCount: Math.max(post.commentCount - removedCount, 0),
+                }
+              : post,
+          ),
+        };
+      });
+
+      try {
+        await deleteCommunityComment(commentId);
+      } catch (error) {
+        await get().fetchPostComments(postId);
+        throw error;
+      }
+    },
+
+    reportContent: async (
+      targetType,
+      targetId,
+      reasonCategory,
+      reason,
       reporterId,
-    );
-  },
+    ) => {
+      return createCommunityReport(
+        { targetType, targetId, reasonCategory, reason },
+        reporterId,
+      );
+    },
 
-  updatePostInCache: (postId, patch) => {
-    set(prev => {
-      const current = prev.postsById[postId];
-      if (!current) return prev;
-      const updated = { ...current, ...patch };
-      return {
-        postsById: { ...prev.postsById, [postId]: updated },
-        posts: prev.posts.map(post => (post.id === postId ? updated : post)),
-      };
-    });
-  },
+    updatePostInCache: (postId, patch) => {
+      set(prev => {
+        const current = prev.postsById[postId];
+        if (!current) return prev;
+        const updated = { ...current, ...patch };
+        return {
+          postsById: { ...prev.postsById, [postId]: updated },
+          posts: prev.posts.map(post => (post.id === postId ? updated : post)),
+        };
+      });
+    },
 
-  clearAll: () => {
-    listRequestSequence += 1;
-    set({
-      posts: [],
-      postsById: {},
-      commentsByPostId: {},
-      latestCommentByPostId: {},
-      commentEntitiesById: {},
-      topLevelCommentIdsByPostId: {},
-      replyCommentIdsByParentId: {},
-      commentsStatusByPostId: {},
-      latestCommentStatusByPostId: {},
-      detailStatusByPostId: {},
-      postViewRecordStatusByPostId: {},
-      listStatus: 'idle',
-      listErrorMessage: null,
-      cursor: null,
-      hasMore: true,
-      hasNextPage: true,
-      hasPreviousPage: false,
-      currentPage: 1,
-      cursorHistory: {
-        [getCommunityListKey('all', DEFAULT_COMMUNITY_PAGE_SIZE)]: { 1: null },
-      },
-      activeFilter: 'all',
-      pageSize: DEFAULT_COMMUNITY_PAGE_SIZE,
-      lastFetchedAt: null,
-    });
-  },
-  });
+    clearAll: () => {
+      listRequestSequence += 1;
+      set({
+        posts: [],
+        postsById: {},
+        commentsByPostId: {},
+        latestCommentByPostId: {},
+        commentEntitiesById: {},
+        topLevelCommentIdsByPostId: {},
+        replyCommentIdsByParentId: {},
+        commentsStatusByPostId: {},
+        latestCommentStatusByPostId: {},
+        detailStatusByPostId: {},
+        postViewRecordStatusByPostId: {},
+        listStatus: 'idle',
+        listErrorMessage: null,
+        cursor: null,
+        hasMore: true,
+        hasNextPage: true,
+        hasPreviousPage: false,
+        currentPage: 1,
+        cursorHistory: {
+          [getCommunityListKey('all', DEFAULT_COMMUNITY_PAGE_SIZE)]: {
+            1: null,
+          },
+        },
+        activeFilter: 'all',
+        pageSize: DEFAULT_COMMUNITY_PAGE_SIZE,
+        lastFetchedAt: null,
+      });
+    },
+  };
 });

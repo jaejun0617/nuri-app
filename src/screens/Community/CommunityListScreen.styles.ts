@@ -160,6 +160,11 @@ export const styles = StyleSheet.create({
   footerLoading: {
     paddingVertical: 18,
   },
+  inlineListLoading: {
+    minHeight: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   pageSizeText: {
     fontWeight: '800',
   },
@@ -202,27 +207,22 @@ export const styles = StyleSheet.create({
   pageSizeModalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(11, 18, 32, 0.38)',
-    justifyContent: 'flex-end',
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 16,
   },
   pageSizeModalCard: {
     width: '100%',
+    maxWidth: 420,
     borderRadius: 24,
     paddingHorizontal: 20,
-    paddingTop: 22,
+    paddingTop: 12,
     paddingBottom: 12,
     shadowColor: '#0B1220',
     shadowOpacity: 0.18,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 8 },
     elevation: 8,
-  },
-  pageSizeModalTitle: {
-    marginBottom: 6,
-  },
-  pageSizeModalDescription: {
-    marginBottom: 10,
-    lineHeight: 22,
   },
   pageSizeOption: {
     minHeight: 52,

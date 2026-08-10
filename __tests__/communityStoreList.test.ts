@@ -16,7 +16,18 @@ const mockedFetchCommunityPosts = fetchCommunityPosts as jest.MockedFunction<
 type CommunityPostsResult = Awaited<ReturnType<typeof fetchCommunityPosts>>;
 type CommunityPostsResolver = (value: CommunityPostsResult) => void;
 
-function makePost(id: string, overrides: Partial<CommunityPost> = {}): CommunityPost {
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>(nextResolve => {
+    resolve = nextResolve;
+  });
+  return { promise, resolve };
+}
+
+function makePost(
+  id: string,
+  overrides: Partial<CommunityPost> = {},
+): CommunityPost {
   return {
     id,
     authorId: `author-${id}`,
@@ -61,9 +72,7 @@ function makeCursor(
     pageSize,
     createdAt: '2026-08-10T00:00:00.000Z',
     id,
-    ...(filter === 'popular'
-      ? { likeCount: 10, commentCount: 0 }
-      : {}),
+    ...(filter === 'popular' ? { likeCount: 10, commentCount: 0 } : {}),
     ...(filter === 'notice'
       ? { noticePublishedAt: '2026-08-10T00:00:00.000Z' }
       : {}),
@@ -160,6 +169,9 @@ describe('community list store pagination', () => {
     expect(useCommunityStore.getState().pageSize).toBe(50);
     expect(useCommunityStore.getState().currentPage).toBe(1);
     expect(useCommunityStore.getState().hasPreviousPage).toBe(false);
+    expect(Object.keys(useCommunityStore.getState().cursorHistory)).toEqual([
+      'popular:50',
+    ]);
     expect(mockedFetchCommunityPosts).toHaveBeenLastCalledWith({
       filter: 'popular',
       cursor: null,
@@ -213,5 +225,101 @@ describe('community list store pagination', () => {
     expect(useCommunityStore.getState().posts.map(post => post.id)).toEqual([
       'notice-1',
     ]);
+  });
+
+  it('keeps the current list visible while changing page size', async () => {
+    mockedFetchCommunityPosts.mockResolvedValueOnce({
+      items: [makePost('all-1')],
+      nextCursor: makeCursor('all', 30, 'all-1'),
+      hasMore: true,
+    });
+    await useCommunityStore.getState().fetchPosts('all');
+
+    const pageSizeRequest = createDeferred<CommunityPostsResult>();
+    mockedFetchCommunityPosts.mockReturnValueOnce(pageSizeRequest.promise);
+
+    const request = useCommunityStore.getState().setPageSize(50);
+
+    expect(useCommunityStore.getState().pageSize).toBe(50);
+    expect(useCommunityStore.getState().listStatus).toBe('loading');
+    expect(useCommunityStore.getState().posts.map(post => post.id)).toEqual([
+      'all-1',
+    ]);
+
+    pageSizeRequest.resolve({
+      items: [makePost('all-50')],
+      nextCursor: null,
+      hasMore: false,
+    });
+    await request;
+
+    expect(useCommunityStore.getState().posts.map(post => post.id)).toEqual([
+      'all-50',
+    ]);
+    expect(useCommunityStore.getState().listStatus).toBe('ready');
+  });
+
+  it('applies only the latest page size response', async () => {
+    mockedFetchCommunityPosts.mockResolvedValueOnce({
+      items: [makePost('all-1')],
+      nextCursor: null,
+      hasMore: false,
+    });
+    await useCommunityStore.getState().fetchPosts('all');
+
+    const firstPageSizeRequest = createDeferred<CommunityPostsResult>();
+    const secondPageSizeRequest = createDeferred<CommunityPostsResult>();
+    mockedFetchCommunityPosts
+      .mockReturnValueOnce(firstPageSizeRequest.promise)
+      .mockReturnValueOnce(secondPageSizeRequest.promise);
+
+    const firstRequest = useCommunityStore.getState().setPageSize(50);
+    const secondRequest = useCommunityStore.getState().setPageSize(100);
+
+    firstPageSizeRequest.resolve({
+      items: [makePost('stale-50')],
+      nextCursor: null,
+      hasMore: false,
+    });
+    await firstRequest;
+    expect(useCommunityStore.getState().pageSize).toBe(100);
+    expect(useCommunityStore.getState().posts.map(post => post.id)).toEqual([
+      'all-1',
+    ]);
+
+    secondPageSizeRequest.resolve({
+      items: [makePost('current-100')],
+      nextCursor: null,
+      hasMore: false,
+    });
+    await secondRequest;
+
+    expect(useCommunityStore.getState().posts.map(post => post.id)).toEqual([
+      'current-100',
+    ]);
+  });
+
+  it('blocks duplicate requests for the same page size', async () => {
+    mockedFetchCommunityPosts.mockResolvedValueOnce({
+      items: [makePost('all-1')],
+      nextCursor: null,
+      hasMore: false,
+    });
+    await useCommunityStore.getState().fetchPosts('all');
+
+    const pageSizeRequest = createDeferred<CommunityPostsResult>();
+    mockedFetchCommunityPosts.mockReturnValueOnce(pageSizeRequest.promise);
+
+    const firstRequest = useCommunityStore.getState().setPageSize(50);
+    const duplicateRequest = useCommunityStore.getState().setPageSize(50);
+
+    expect(mockedFetchCommunityPosts).toHaveBeenCalledTimes(2);
+
+    pageSizeRequest.resolve({
+      items: [makePost('all-50')],
+      nextCursor: null,
+      hasMore: false,
+    });
+    await Promise.all([firstRequest, duplicateRequest]);
   });
 });

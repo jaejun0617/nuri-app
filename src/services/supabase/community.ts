@@ -288,7 +288,8 @@ function normalizePost(
   const profile = profilesByUserId.get(row.user_id) ?? null;
   const pet = row.pet_id ? petsById.get(row.pet_id) ?? null : null;
   const normalizedStatus = normalizePostStatus(row.status);
-  const canExposeImages = normalizedStatus === 'active' && row.deleted_at === null;
+  const canExposeImages =
+    normalizedStatus === 'active' && row.deleted_at === null;
   const imagePaths = normalizeImagePaths(row);
   const rawImage = imagePaths[0] ?? `${row.image_url ?? ''}`.trim();
   const inlineRemoteImageUrls = imagePaths.filter(path =>
@@ -336,16 +337,17 @@ function normalizePost(
     title: `${row.title ?? ''}`.trim() || null,
     content: row.content,
     imagePath: rawImage || null,
-    imageUrl: canExposeImages ? (resolvedImageUrl ?? inlineRemoteImageUrl) : null,
+    imageUrl: canExposeImages ? resolvedImageUrl ?? inlineRemoteImageUrl : null,
     imagePaths,
     imageUrls: canExposeImages
       ? resolvedImageUrls && resolvedImageUrls.length > 0
         ? resolvedImageUrls.filter(
-            (value): value is string => typeof value === 'string' && value.length > 0,
+            (value): value is string =>
+              typeof value === 'string' && value.length > 0,
           )
         : resolvedImageUrl && imagePaths.length > 0
-          ? [resolvedImageUrl, ...inlineRemoteImageUrls.slice(1)]
-          : inlineRemoteImageUrls
+        ? [resolvedImageUrl, ...inlineRemoteImageUrls.slice(1)]
+        : inlineRemoteImageUrls
       : [],
     hasImage: canExposeImages && rawImage.length > 0,
     status: normalizedStatus,
@@ -488,6 +490,15 @@ async function getCommunityCurrentUserId() {
   return data.session?.user?.id ?? null;
 }
 
+async function measureCommunityListStage<T>(task: () => Promise<T>) {
+  const startedAt = Date.now();
+  const value = await task();
+  return {
+    value,
+    elapsedMs: Date.now() - startedAt,
+  };
+}
+
 async function fetchLikeMetaForPosts(
   postIds: string[],
   currentUserId: string | null,
@@ -536,7 +547,11 @@ async function fetchLikeMetaForComments(
   if (error) {
     const code = `${error.code ?? ''}`.toUpperCase();
     const message = `${error.message ?? ''}`.toLowerCase();
-    if (code === '42P01' || code === 'PGRST205' || message.includes('comment_likes')) {
+    if (
+      code === '42P01' ||
+      code === 'PGRST205' ||
+      message.includes('comment_likes')
+    ) {
       return {
         likedCommentIds: new Set<string>(),
         likeCountsByCommentId: new Map<string, number>(),
@@ -701,14 +716,17 @@ export async function fetchCommunityPosts(
   nextCursor: string | null;
   hasMore: boolean;
 }> {
+  const totalStartedAt = Date.now();
   const filter: CommunityListFilter = params.filter ?? 'all';
   const limit = params.limit ?? COMMUNITY_PAGE_SIZE;
   const cursor = decodeCommunityRpcCursor(params.cursor ?? null);
+  const rpcStartedAt = Date.now();
   const { data, error } = await supabase.rpc('community_list_posts_v1', {
     p_filter: filter,
     p_limit: limit,
     p_cursor: cursor,
   });
+  const rpcElapsedMs = Date.now() - rpcStartedAt;
 
   if (error) throw error;
   if (!isRecord(data)) {
@@ -722,24 +740,47 @@ export async function fetchCommunityPosts(
     throw new Error('게시글 목록 페이지 정보가 올바르지 않아요.');
   }
 
-  const [profilesByUserId, petsById, currentUserId] = await Promise.all([
-    fetchProfilesByUserIds(pageRows.map(row => row.user_id)),
-    fetchPetsByIds(pageRows.map(row => row.pet_id ?? '').filter(Boolean)),
-    getCommunityCurrentUserId(),
+  const [profilesStage, petsStage, currentUserStage] = await Promise.all([
+    measureCommunityListStage(() =>
+      fetchProfilesByUserIds(pageRows.map(row => row.user_id)),
+    ),
+    measureCommunityListStage(() =>
+      fetchPetsByIds(pageRows.map(row => row.pet_id ?? '').filter(Boolean)),
+    ),
+    measureCommunityListStage(() => getCommunityCurrentUserId()),
   ]);
-  const likedPostIds = await fetchLikeMetaForPosts(
-    pageRows.map(row => row.id),
-    currentUserId,
+  const likedPostsStage = await measureCommunityListStage(() =>
+    fetchLikeMetaForPosts(
+      pageRows.map(row => row.id),
+      currentUserStage.value,
+    ),
   );
 
+  const normalizationStartedAt = Date.now();
   const items = pageRows.map(row =>
     normalizePost(
       row,
-      profilesByUserId,
-      petsById,
-      likedPostIds,
+      profilesStage.value,
+      petsStage.value,
+      likedPostsStage.value,
     ),
   );
+  const normalizationElapsedMs = Date.now() - normalizationStartedAt;
+
+  if (__DEV__) {
+    console.info('[NURI-PERF] community-list', {
+      filter,
+      limit,
+      itemCount: items.length,
+      rpcMs: rpcElapsedMs,
+      profilesBatchMs: profilesStage.elapsedMs,
+      petsBatchMs: petsStage.elapsedMs,
+      currentUserMs: currentUserStage.elapsedMs,
+      likesBatchMs: likedPostsStage.elapsedMs,
+      normalizationMs: normalizationElapsedMs,
+      totalMs: Date.now() - totalStartedAt,
+    });
+  }
 
   return {
     items,
@@ -769,10 +810,7 @@ export async function fetchCommunityPostById(postId: string) {
       : Promise.resolve([]),
   ]);
   const currentUserId = await getCommunityCurrentUserId();
-  const likedPostIds = await fetchLikeMetaForPosts(
-    [data.id],
-    currentUserId,
-  );
+  const likedPostIds = await fetchLikeMetaForPosts([data.id], currentUserId);
 
   return normalizePost(
     data,
@@ -999,12 +1037,7 @@ export async function createCommunityPost(
     fetchPetsByIds([data.pet_id ?? ''].filter(Boolean)),
   ]);
 
-  return normalizePost(
-    data,
-    profilesByUserId,
-    petsById,
-    new Set(),
-  );
+  return normalizePost(data, profilesByUserId, petsById, new Set());
 }
 
 export async function updateCommunityPost(
