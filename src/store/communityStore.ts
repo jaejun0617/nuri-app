@@ -27,6 +27,8 @@ import {
   toggleCommunityCommentLike,
   toggleCommunityPostLike,
   updateCommunityPost,
+  getCommunityListCursorErrorCode,
+  getCommunityListErrorMessage,
 } from '../services/supabase/community';
 import type {
   CommunityComment,
@@ -310,13 +312,35 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
     } catch (error: unknown) {
       if (!isCurrentRequest()) return;
 
+      if (
+        options.cursor !== null &&
+        getCommunityListCursorErrorCode(error) === 'community_cursor_invalid'
+      ) {
+        // A cursor from before the current server contract is not a list
+        // failure. Restart this filter at page one without exposing an empty
+        // list or applying the stale page response.
+        await requestListPage({
+          filter: options.filter,
+          pageSize: options.pageSize,
+          page: 1,
+          cursor: null,
+          status: 'loading',
+          resetHistory: true,
+          clearPosts: false,
+          requestKind: 'filter',
+        });
+        return;
+      }
+
       set({
         listStatus:
           options.status === 'loadingMore' || !options.clearPosts
             ? 'ready'
             : 'error',
         listErrorMessage:
-          getErrorMessage(error) || '게시글을 불러오지 못했어요.',
+          getCommunityListErrorMessage(error) ||
+          getErrorMessage(error) ||
+          '게시글을 불러오지 못했어요.',
       });
     }
   };
@@ -728,14 +752,17 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
     submitPost: async (params, userId) => {
       const post = await createCommunityPost(params, userId);
       set(prev => ({
-        // A newly-created regular post belongs in the first page of the all
-        // filter only. Do not inject it into popular/notice pages client-side.
-        posts:
-          prev.activeFilter === 'all' && prev.currentPage === 1
-            ? [post, ...prev.posts]
-            : prev.posts,
+        // The server owns notice-first ordering. Do not prepend a newly-created
+        // regular post into an already-fetched page because that could place it
+        // above a notice returned by the RPC.
+        posts: prev.posts,
         postsById: { ...prev.postsById, [post.id]: post },
       }));
+
+      const state = get();
+      if (state.activeFilter === 'all' && state.currentPage === 1) {
+        await state.fetchPosts('all').catch(() => {});
+      }
       return post;
     },
 

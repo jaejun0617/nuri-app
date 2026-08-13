@@ -13,6 +13,40 @@ export const COMMUNITY_LIST_FILTER_OPTIONS: ReadonlyArray<{
   { key: 'notice', label: '공지' },
 ];
 
+export const COMMUNITY_NOTICE_ICON_NAME = 'pin' as const;
+
+export function getCommunityPostAccessibilityLabel(
+  title: string,
+  commentCount: number,
+  isNotice: boolean,
+): string {
+  const prefix = isNotice ? '공지사항 게시글, ' : '';
+  return `${prefix}${title}, 댓글 ${commentCount}개`;
+}
+
+export function getCommunityPostTitleLineCount(isNotice: boolean): 1 | 2 {
+  return isNotice ? 2 : 1;
+}
+
+export function canCreateCommunityPost(filter: CommunityListFilter): boolean {
+  return filter === 'all';
+}
+
+export function getCommunityEmptyState(filter: CommunityListFilter): {
+  title: string;
+  showCreateCta: boolean;
+} {
+  switch (filter) {
+    case 'popular':
+      return { title: '아직 인기글이 없어요', showCreateCta: false };
+    case 'notice':
+      return { title: '등록된 공지가 없어요', showCreateCta: false };
+    case 'all':
+    default:
+      return { title: '아직 게시글이 없어요', showCreateCta: true };
+  }
+}
+
 export function getCommunityCategoryLabel(
   category: CommunityPostCategory | null | undefined,
 ) {

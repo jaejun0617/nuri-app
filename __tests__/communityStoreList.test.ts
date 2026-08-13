@@ -7,6 +7,7 @@ import { fetchCommunityPosts } from '../src/services/supabase/community';
 import { useCommunityStore } from '../src/store/communityStore';
 
 jest.mock('../src/services/supabase/community', () => ({
+  ...jest.requireActual('../src/services/supabase/community'),
   fetchCommunityPosts: jest.fn(),
 }));
 
@@ -224,6 +225,58 @@ describe('community list store pagination', () => {
     expect(useCommunityStore.getState().activeFilter).toBe('notice');
     expect(useCommunityStore.getState().posts.map(post => post.id)).toEqual([
       'notice-1',
+    ]);
+  });
+
+  it('restarts the first page when a legacy cursor is rejected', async () => {
+    mockedFetchCommunityPosts
+      .mockResolvedValueOnce({
+        items: [makePost('page-1')],
+        nextCursor: makeCursor('all', 30, 'page-1'),
+        hasMore: true,
+      })
+      .mockRejectedValueOnce(new Error('community_cursor_invalid'))
+      .mockResolvedValueOnce({
+        items: [makePost('restarted-page-1')],
+        nextCursor: null,
+        hasMore: false,
+      });
+
+    await useCommunityStore.getState().fetchPosts('all');
+    await useCommunityStore.getState().loadMorePosts();
+
+    expect(mockedFetchCommunityPosts).toHaveBeenNthCalledWith(2, {
+      filter: 'all',
+      cursor: makeCursor('all', 30, 'page-1'),
+      limit: 30,
+    });
+    expect(mockedFetchCommunityPosts).toHaveBeenNthCalledWith(3, {
+      filter: 'all',
+      cursor: null,
+      limit: 30,
+    });
+    expect(useCommunityStore.getState().currentPage).toBe(1);
+    expect(useCommunityStore.getState().posts.map(post => post.id)).toEqual([
+      'restarted-page-1',
+    ]);
+    expect(useCommunityStore.getState().listStatus).toBe('ready');
+  });
+
+  it('renders the server-provided notice-first order without client sorting', async () => {
+    mockedFetchCommunityPosts.mockResolvedValueOnce({
+      items: [
+        makePost('notice-1', { isNotice: true }),
+        makePost('regular-1'),
+      ],
+      nextCursor: null,
+      hasMore: false,
+    });
+
+    await useCommunityStore.getState().fetchPosts('all');
+
+    expect(useCommunityStore.getState().posts.map(post => post.id)).toEqual([
+      'notice-1',
+      'regular-1',
     ]);
   });
 

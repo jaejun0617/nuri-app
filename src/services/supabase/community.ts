@@ -31,6 +31,10 @@ import type {
   FetchCommunityPostsParams,
   UpdateCommunityPostParams,
 } from '../../types/community';
+import {
+  getErrorMessage,
+  getStableAppErrorCode,
+} from '../app/errors';
 import { awardUserActivityXp } from '../activity/xpProgress';
 import { getCommunityGuestSessionId } from '../community/guestSession';
 import { formatPetAgeLabelFromBirthDate } from '../pets/age';
@@ -585,11 +589,11 @@ function decodeCommunityRpcCursor(cursor: string | null | undefined) {
   try {
     const parsed: unknown = JSON.parse(raw);
     if (!isRecord(parsed) || Array.isArray(parsed)) {
-      throw new Error('invalid_cursor');
+      throw new Error('community_cursor_invalid');
     }
     return parsed;
   } catch {
-    throw new Error('게시글 목록 페이지 정보가 올바르지 않아요.');
+    throw new Error('community_cursor_invalid');
   }
 }
 
@@ -599,6 +603,42 @@ function encodeCommunityRpcCursor(value: unknown) {
     throw new Error('게시글 목록 페이지 정보가 올바르지 않아요.');
   }
   return JSON.stringify(value);
+}
+
+export type CommunityListCursorErrorCode =
+  | 'community_cursor_invalid'
+  | 'community_cursor_version_unsupported';
+
+export function getCommunityListCursorErrorCode(
+  error: unknown,
+): CommunityListCursorErrorCode | null {
+  const stableCode = getStableAppErrorCode(error);
+  if (
+    stableCode === 'community_cursor_invalid' ||
+    stableCode === 'community_cursor_version_unsupported'
+  ) {
+    return stableCode;
+  }
+
+  const message = getErrorMessage(error);
+  if (message.includes('community_cursor_invalid')) {
+    return 'community_cursor_invalid';
+  }
+  if (message.includes('community_cursor_version_unsupported')) {
+    return 'community_cursor_version_unsupported';
+  }
+  return null;
+}
+
+export function getCommunityListErrorMessage(error: unknown): string {
+  switch (getCommunityListCursorErrorCode(error)) {
+    case 'community_cursor_invalid':
+      return '목록 페이지 정보가 만료되어 첫 페이지부터 다시 불러왔어요.';
+    case 'community_cursor_version_unsupported':
+      return '목록 페이지 정보가 변경되었어요. 첫 페이지부터 다시 시도해 주세요.';
+    default:
+      return getErrorMessage(error);
+  }
 }
 
 function isMissingSnapshotColumnsError(error: unknown) {
@@ -731,6 +771,9 @@ export async function fetchCommunityPosts(
   if (error) throw error;
   if (!isRecord(data)) {
     throw new Error('게시글 목록 응답을 읽지 못했어요.');
+  }
+  if (data.cursorVersion !== 2) {
+    throw new Error('community_cursor_version_unsupported');
   }
 
   const pageRows = toCommunityPostRows(data.items);
@@ -954,14 +997,11 @@ export async function fetchLatestCommunityCommentPreview(postId: string) {
   );
 }
 
-export async function createCommunityPost(
+export function buildCommunityRegularPostInsertPayload(
   params: CreateCommunityPostParams,
   userId: string,
 ) {
-  const authorSnapshot =
-    params.authorSnapshot ?? (await fetchCurrentAuthorSnapshot(userId));
-
-  const basePayload = {
+  return {
     user_id: userId,
     pet_id: params.petId ?? null,
     visibility: 'public' as const,
@@ -975,6 +1015,37 @@ export async function createCommunityPost(
     category: params.category,
     status: 'active' as const,
   };
+}
+
+export function buildCommunityRegularPostUpdatePatch(
+  params: UpdateCommunityPostParams,
+): Record<string, unknown> {
+  const patch: Record<string, unknown> = {};
+  if (params.title !== undefined) patch.title = params.title.trim();
+  if (params.content !== undefined) patch.content = params.content.trim();
+  if (params.category !== undefined) patch.category = params.category;
+  if (params.petId !== undefined) patch.pet_id = params.petId;
+  if (params.imagePath !== undefined) patch.image_url = params.imagePath;
+  if (params.imagePaths !== undefined) patch.image_urls = params.imagePaths;
+  if (params.petSnapshot !== undefined) {
+    patch.pet_snapshot_name = params.petSnapshot?.name ?? null;
+    patch.pet_snapshot_species = params.petSnapshot?.species ?? null;
+    patch.pet_snapshot_breed = params.petSnapshot?.breed ?? null;
+    patch.pet_snapshot_age_label = params.petSnapshot?.ageLabel ?? null;
+    patch.pet_snapshot_avatar_path = params.petSnapshot?.avatarPath ?? null;
+    patch.show_pet_age = params.petSnapshot?.showPetAge ?? true;
+  }
+  return patch;
+}
+
+export async function createCommunityPost(
+  params: CreateCommunityPostParams,
+  userId: string,
+) {
+  const authorSnapshot =
+    params.authorSnapshot ?? (await fetchCurrentAuthorSnapshot(userId));
+
+  const basePayload = buildCommunityRegularPostInsertPayload(params, userId);
   const snapshotPayload = params.petSnapshot
     ? {
         author_snapshot_nickname: authorSnapshot.nickname,
@@ -1044,21 +1115,7 @@ export async function updateCommunityPost(
   postId: string,
   params: UpdateCommunityPostParams,
 ) {
-  const patch: Record<string, unknown> = {};
-  if (params.title !== undefined) patch.title = params.title.trim();
-  if (params.content !== undefined) patch.content = params.content.trim();
-  if (params.category !== undefined) patch.category = params.category;
-  if (params.petId !== undefined) patch.pet_id = params.petId;
-  if (params.imagePath !== undefined) patch.image_url = params.imagePath;
-  if (params.imagePaths !== undefined) patch.image_urls = params.imagePaths;
-  if (params.petSnapshot !== undefined) {
-    patch.pet_snapshot_name = params.petSnapshot?.name ?? null;
-    patch.pet_snapshot_species = params.petSnapshot?.species ?? null;
-    patch.pet_snapshot_breed = params.petSnapshot?.breed ?? null;
-    patch.pet_snapshot_age_label = params.petSnapshot?.ageLabel ?? null;
-    patch.pet_snapshot_avatar_path = params.petSnapshot?.avatarPath ?? null;
-    patch.show_pet_age = params.petSnapshot?.showPetAge ?? true;
-  }
+  const patch = buildCommunityRegularPostUpdatePatch(params);
 
   if (Object.keys(patch).length === 0) return;
 

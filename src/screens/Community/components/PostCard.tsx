@@ -8,6 +8,9 @@ import type { CommunityPost } from '../../../types/community';
 import {
   formatCommunityListTimestamp,
   getCommunityCategoryLabel,
+  getCommunityPostAccessibilityLabel,
+  getCommunityPostTitleLineCount,
+  COMMUNITY_NOTICE_ICON_NAME,
 } from '../communityListPresentation';
 import { styles } from './PostCard.styles';
 
@@ -46,6 +49,12 @@ function PostCardBase({
     () => formatCommunityListTimestamp(post.createdAt),
     [post.createdAt],
   );
+  const noticeColor = theme.colors.brand;
+  const accessibilityLabel = getCommunityPostAccessibilityLabel(
+    title,
+    post.commentCount,
+    post.isNotice,
+  );
 
   const handlePress = useCallback(() => {
     onPressPost(post.id);
@@ -54,15 +63,27 @@ function PostCardBase({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${title}, 댓글 ${post.commentCount}개`}
-      android_ripple={{ color: `${accentColor}0D` }}
+      accessibilityLabel={accessibilityLabel}
+      android_ripple={{
+        color: post.isNotice ? `${noticeColor}18` : `${accentColor}0D`,
+      }}
       style={({ pressed }) => [
         styles.row,
+        post.isNotice ? styles.noticeRow : null,
         {
           backgroundColor: pressed
-            ? `${accentColor}08`
+            ? post.isNotice
+              ? `${noticeColor}18`
+              : `${accentColor}08`
+            : post.isNotice
+            ? `${noticeColor}08`
             : theme.colors.background,
-          borderBottomColor: `${theme.colors.textMuted}55`,
+          borderColor: post.isNotice
+            ? noticeColor
+            : `${theme.colors.textMuted}55`,
+          borderBottomColor: post.isNotice
+            ? noticeColor
+            : `${theme.colors.textMuted}55`,
         },
       ]}
       onPress={handlePress}
@@ -74,14 +95,20 @@ function PostCardBase({
               style={[
                 styles.noticeBadge,
                 {
-                  backgroundColor: `${accentColor}18`,
-                  borderColor: `${accentColor}55`,
+                  backgroundColor: `${noticeColor}18`,
+                  borderColor: `${noticeColor}66`,
                 },
               ]}
             >
+              <MaterialCommunityIcons
+                name={COMMUNITY_NOTICE_ICON_NAME}
+                size={13}
+                color={noticeColor}
+                accessibilityElementsHidden
+              />
               <AppText
                 preset="caption"
-                style={[styles.noticeBadgeText, { color: accentColor }]}
+                style={[styles.noticeBadgeText, { color: noticeColor }]}
               >
                 공지
               </AppText>
@@ -101,7 +128,7 @@ function PostCardBase({
           )}
           <AppText
             preset="body"
-            numberOfLines={1}
+            numberOfLines={getCommunityPostTitleLineCount(post.isNotice)}
             style={[styles.title, { color: theme.colors.textPrimary }]}
           >
             {title}
@@ -123,7 +150,9 @@ function PostCardBase({
         style={[
           styles.commentRail,
           {
-            backgroundColor: theme.colors.surface,
+            backgroundColor: post.isNotice
+              ? `${noticeColor}0D`
+              : theme.colors.surface,
             borderLeftColor: `${theme.colors.textMuted}35`,
           },
         ]}

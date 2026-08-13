@@ -9,6 +9,12 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'stretch',
   },
+  noticeRow: {
+    marginHorizontal: 8,
+    marginVertical: 4,
+    borderWidth: 1,
+    borderRadius: 10,
+  },
   imageTypeIcon: {
     width: 18,
     height: 18,
@@ -38,10 +44,12 @@ export const styles = StyleSheet.create({
     gap: 5,
   },
   noticeBadge: {
-    minHeight: 20,
+    minHeight: 24,
     borderRadius: 10,
     borderWidth: 1,
     paddingHorizontal: 7,
+    flexDirection: 'row',
+    gap: 3,
     alignItems: 'center',
     justifyContent: 'center',
   },

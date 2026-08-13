@@ -51,7 +51,11 @@ import type {
 import { COMMUNITY_PAGE_SIZE_OPTIONS } from '../../types/community';
 import { styles } from './CommunityListScreen.styles';
 import CommunityPostListItem from './components/CommunityPostListItem';
-import { COMMUNITY_LIST_FILTER_OPTIONS } from './communityListPresentation';
+import {
+  canCreateCommunityPost,
+  COMMUNITY_LIST_FILTER_OPTIONS,
+  getCommunityEmptyState,
+} from './communityListPresentation';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'CommunityList'>;
 type Route = RootScreenRoute<'CommunityList'>;
@@ -167,6 +171,7 @@ export default function CommunityListScreen() {
   const [showTopButton, setShowTopButton] = useState(false);
   const [isPageSizeModalVisible, setPageSizeModalVisible] = useState(false);
   const { requireLogin } = useCommunityAuth();
+  const isCreateActionVisible = canCreateCommunityPost(activeFilter);
 
   useEffect(() => {
     if (listStatus !== 'idle' || posts.length > 0) return;
@@ -252,9 +257,14 @@ export default function CommunityListScreen() {
     navigation.setOptions({
       headerTitle: '커뮤니티',
       headerLeft: renderHeaderLeft,
-      headerRight: renderHeaderRight,
+      headerRight: isCreateActionVisible ? renderHeaderRight : undefined,
     });
-  }, [navigation, renderHeaderLeft, renderHeaderRight]);
+  }, [
+    isCreateActionVisible,
+    navigation,
+    renderHeaderLeft,
+    renderHeaderRight,
+  ]);
 
   const handlePressFilter = useCallback(
     (filter: CommunityListFilter) => {
@@ -425,8 +435,10 @@ export default function CommunityListScreen() {
     ],
   );
 
-  const emptyComponent = useMemo(
-    () => (
+  const emptyComponent = useMemo(() => {
+    const emptyState = getCommunityEmptyState(activeFilter);
+
+    return (
       <View style={styles.emptyWrap}>
         <View
           style={[
@@ -440,41 +452,40 @@ export default function CommunityListScreen() {
           preset="headline"
           style={[styles.emptyTitle, { color: theme.colors.textPrimary }]}
         >
-          {activeFilter === 'notice'
-            ? '등록된 공지가 없어요'
-            : activeFilter === 'popular'
-            ? '아직 인기글이 없어요'
-            : '아직 게시글이 없어요'}
+          {emptyState.title}
         </AppText>
-        <AppText
-          preset="body"
-          style={[styles.emptyBody, { color: theme.colors.textMuted }]}
-        >
-          첫 번째로 공유해 보세요!
-        </AppText>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={[styles.emptyButton, { backgroundColor: petTheme.primary }]}
-          onPress={handlePressCreate}
-        >
-          <AppText
-            preset="body"
-            style={[styles.emptyButtonText, { color: petTheme.onPrimary }]}
-          >
-            첫 글 작성하기
-          </AppText>
-        </TouchableOpacity>
+        {emptyState.showCreateCta ? (
+          <>
+            <AppText
+              preset="body"
+              style={[styles.emptyBody, { color: theme.colors.textMuted }]}
+            >
+              첫 번째로 공유해 보세요!
+            </AppText>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={[styles.emptyButton, { backgroundColor: petTheme.primary }]}
+              onPress={handlePressCreate}
+            >
+              <AppText
+                preset="body"
+                style={[styles.emptyButtonText, { color: petTheme.onPrimary }]}
+              >
+                첫 글 작성하기
+              </AppText>
+            </TouchableOpacity>
+          </>
+        ) : null}
       </View>
-    ),
-    [
-      handlePressCreate,
-      activeFilter,
-      petTheme.onPrimary,
-      petTheme.primary,
-      theme.colors.textMuted,
-      theme.colors.textPrimary,
-    ],
-  );
+    );
+  }, [
+    activeFilter,
+    handlePressCreate,
+    petTheme.onPrimary,
+    petTheme.primary,
+    theme.colors.textMuted,
+    theme.colors.textPrimary,
+  ]);
 
   const footerComponent = useMemo(() => {
     if (postIds.length === 0) return null;
