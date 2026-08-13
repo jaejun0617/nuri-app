@@ -148,6 +148,8 @@ export default function CommunityDetailScreen() {
 
   const postId = route.params.postId;
   const notificationCommentId = route.params.commentId ?? null;
+  const restoredFromRouteSnapshot =
+    route.params.restoredFromRouteSnapshot === true;
   const post = useCommunityStore(s => s.postsById[postId] ?? null);
   const topLevelCommentIds = useCommunityStore(
     s => s.topLevelCommentIdsByPostId[postId] ?? EMPTY_COMMENT_IDS,
@@ -214,6 +216,20 @@ export default function CommunityDetailScreen() {
     fetchPostDetail(postId).catch(() => {});
     fetchPostComments(postId).catch(() => {});
   }, [fetchPostComments, fetchPostDetail, postId]);
+
+  useEffect(() => {
+    if (!restoredFromRouteSnapshot || detailStatus !== 'not_found') {
+      return undefined;
+    }
+
+    const task = InteractionManager.runAfterInteractions(() => {
+      navigation.goBack();
+    });
+
+    return () => {
+      task.cancel();
+    };
+  }, [detailStatus, navigation, restoredFromRouteSnapshot]);
 
   useEffect(() => {
     if (!post || detailStatus !== 'ready') return;

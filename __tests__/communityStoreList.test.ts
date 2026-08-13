@@ -262,6 +262,85 @@ describe('community list store pagination', () => {
     expect(useCommunityStore.getState().listStatus).toBe('ready');
   });
 
+  it('resumes the saved filter, page size, and current page cursor', async () => {
+    mockedFetchCommunityPosts.mockResolvedValueOnce({
+      items: [makePost('popular-page-2', { likeCount: 10 })],
+      nextCursor: 'cursor-page-3',
+      hasMore: true,
+    });
+
+    useCommunityStore.getState().restoreListSnapshot({
+      activeFilter: 'popular',
+      pageSize: 100,
+      currentPage: 2,
+      cursor: 'cursor-page-3',
+      hasMore: true,
+      hasNextPage: true,
+      hasPreviousPage: true,
+      cursorHistory: {
+        1: null,
+        2: 'cursor-page-2',
+      },
+    });
+
+    await useCommunityStore.getState().resumePosts();
+
+    expect(mockedFetchCommunityPosts).toHaveBeenCalledWith({
+      filter: 'popular',
+      cursor: 'cursor-page-2',
+      limit: 100,
+    });
+    expect(useCommunityStore.getState().activeFilter).toBe('popular');
+    expect(useCommunityStore.getState().pageSize).toBe(100);
+    expect(useCommunityStore.getState().currentPage).toBe(2);
+    expect(useCommunityStore.getState().posts.map(post => post.id)).toEqual([
+      'popular-page-2',
+    ]);
+  });
+
+  it('keeps the filter and page size when a saved cursor is stale', async () => {
+    mockedFetchCommunityPosts
+      .mockRejectedValueOnce(new Error('community_cursor_invalid'))
+      .mockResolvedValueOnce({
+        items: [makePost('popular-restarted', { likeCount: 10 })],
+        nextCursor: null,
+        hasMore: false,
+      });
+
+    useCommunityStore.getState().restoreListSnapshot({
+      activeFilter: 'popular',
+      pageSize: 100,
+      currentPage: 2,
+      cursor: 'cursor-page-3',
+      hasMore: true,
+      hasNextPage: true,
+      hasPreviousPage: true,
+      cursorHistory: {
+        1: null,
+        2: 'stale-cursor',
+      },
+    });
+
+    await useCommunityStore.getState().resumePosts();
+
+    expect(mockedFetchCommunityPosts).toHaveBeenNthCalledWith(1, {
+      filter: 'popular',
+      cursor: 'stale-cursor',
+      limit: 100,
+    });
+    expect(mockedFetchCommunityPosts).toHaveBeenNthCalledWith(2, {
+      filter: 'popular',
+      cursor: null,
+      limit: 100,
+    });
+    expect(useCommunityStore.getState().activeFilter).toBe('popular');
+    expect(useCommunityStore.getState().pageSize).toBe(100);
+    expect(useCommunityStore.getState().currentPage).toBe(1);
+    expect(useCommunityStore.getState().posts.map(post => post.id)).toEqual([
+      'popular-restarted',
+    ]);
+  });
+
   it('renders the server-provided notice-first order without client sorting', async () => {
     mockedFetchCommunityPosts.mockResolvedValueOnce({
       items: [

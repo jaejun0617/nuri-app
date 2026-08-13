@@ -42,6 +42,7 @@ import type {
   UpdateCommunityPostParams,
 } from '../types/community';
 import { DEFAULT_COMMUNITY_PAGE_SIZE } from '../types/community';
+import type { CommunityRouteListSnapshot } from '../navigation/communityRouteState';
 
 const UNKNOWN_COMMENT_AUTHOR_NICKNAME = '알 수 없는 사용자';
 
@@ -96,6 +97,9 @@ type CommunityStore = {
   pageSize: CommunityPageSize;
   lastFetchedAt: number | null;
 
+  getListSnapshot: () => CommunityRouteListSnapshot;
+  restoreListSnapshot: (snapshot: CommunityRouteListSnapshot) => void;
+  resumePosts: () => Promise<void>;
   fetchPosts: (filter?: CommunityListFilter) => Promise<void>;
   refreshPosts: () => Promise<void>;
   loadMorePosts: () => Promise<void>;
@@ -229,7 +233,12 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
     status: 'loading' | 'refreshing' | 'loadingMore';
     resetHistory: boolean;
     clearPosts: boolean;
-    requestKind: 'filter' | 'pageSize' | 'refresh' | 'pagination';
+    requestKind:
+      | 'filter'
+      | 'pageSize'
+      | 'refresh'
+      | 'pagination'
+      | 'restore';
   }) => {
     if (options.requestKind === 'filter') filterRequestGeneration += 1;
     if (options.requestKind === 'pageSize') pageSizeRequestGeneration += 1;
@@ -345,6 +354,24 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
     }
   };
 
+  const getListSnapshot = (): CommunityRouteListSnapshot => {
+    const state = get();
+    const listKey = getCommunityListKey(state.activeFilter, state.pageSize);
+
+    return {
+      activeFilter: state.activeFilter,
+      pageSize: state.pageSize,
+      currentPage: state.currentPage,
+      cursor: state.cursor,
+      hasMore: state.hasMore,
+      hasNextPage: state.hasNextPage,
+      hasPreviousPage: state.hasPreviousPage,
+      cursorHistory: {
+        ...(state.cursorHistory[listKey] ?? { 1: null }),
+      },
+    };
+  };
+
   return {
     posts: [],
     postsById: {},
@@ -370,6 +397,77 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
     activeFilter: 'all',
     pageSize: DEFAULT_COMMUNITY_PAGE_SIZE,
     lastFetchedAt: null,
+
+    getListSnapshot,
+
+    restoreListSnapshot: snapshot => {
+      listRequestSequence += 1;
+      const listKey = getCommunityListKey(
+        snapshot.activeFilter,
+        snapshot.pageSize,
+      );
+
+      set({
+        posts: [],
+        postsById: {},
+        commentsByPostId: {},
+        latestCommentByPostId: {},
+        commentEntitiesById: {},
+        topLevelCommentIdsByPostId: {},
+        replyCommentIdsByParentId: {},
+        commentsStatusByPostId: {},
+        latestCommentStatusByPostId: {},
+        detailStatusByPostId: {},
+        postViewRecordStatusByPostId: {},
+        listStatus: 'idle',
+        listErrorMessage: null,
+        cursor: snapshot.cursor,
+        hasMore: snapshot.hasMore,
+        hasNextPage: snapshot.hasNextPage,
+        hasPreviousPage: snapshot.hasPreviousPage,
+        currentPage: snapshot.currentPage,
+        cursorHistory: {
+          [listKey]: { ...snapshot.cursorHistory },
+        },
+        activeFilter: snapshot.activeFilter,
+        pageSize: snapshot.pageSize,
+        lastFetchedAt: null,
+      });
+    },
+
+    resumePosts: async () => {
+      const state = get();
+      const listKey = getCommunityListKey(state.activeFilter, state.pageSize);
+      const pageCursor =
+        state.currentPage === 1
+          ? null
+          : state.cursorHistory[listKey]?.[state.currentPage];
+
+      if (state.currentPage > 1 && pageCursor === undefined) {
+        await requestListPage({
+          filter: state.activeFilter,
+          pageSize: state.pageSize,
+          page: 1,
+          cursor: null,
+          status: 'loading',
+          resetHistory: true,
+          clearPosts: true,
+          requestKind: 'restore',
+        });
+        return;
+      }
+
+      await requestListPage({
+        filter: state.activeFilter,
+        pageSize: state.pageSize,
+        page: state.currentPage,
+        cursor: pageCursor ?? null,
+        status: 'loading',
+        resetHistory: state.currentPage === 1,
+        clearPosts: true,
+        requestKind: 'restore',
+      });
+    },
 
     fetchPosts: async filter => {
       const nextFilter = filter ?? 'all';

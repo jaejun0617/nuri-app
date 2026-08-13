@@ -13,7 +13,7 @@
 // - 이 화면에서 직접 분기 정책을 늘리기보다 `services/app/boot.ts`를 기준으로 유지해야 가드 규칙이 한곳에 모인다.
 // - reset 이동과 최소 노출 시간 규칙을 바꾸면 첫 실행 UX와 로그인 복귀 흐름이 흔들릴 수 있다.
 
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, useWindowDimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -23,12 +23,14 @@ import type { RootStackParamList } from '../../navigation/RootNavigator';
 import AppText from '../../app/ui/AppText';
 import * as S from './HomeScreen.styles';
 import { textStyles } from './HomeScreen.styles';
+import { getBootSplashHoldMs, resolveBootRoute } from '../../services/app/boot';
 import {
-  getBootSplashHoldMs,
-  resolveBootRoute,
-} from '../../services/app/boot';
+  loadCommunityRouteStateSnapshot,
+  type CommunityRouteStateSnapshot,
+} from '../../navigation/communityRouteState';
 
 import { useAuthStore } from '../../store/authStore';
+import { useCommunityStore } from '../../store/communityStore';
 import { usePetStore } from '../../store/petStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Splash'>;
@@ -40,6 +42,7 @@ export default function HomeScreen() {
 
   const authBooted = useAuthStore(s => s.booted);
   const isLoggedIn = useAuthStore(s => s.isLoggedIn);
+  const currentUserId = useAuthStore(s => s.session?.user.id ?? null);
   const nickname = useAuthStore(s => s.profile.nickname);
   const profileSyncStatus = useAuthStore(s => s.profileSyncStatus);
   const passwordRecoveryFlow = useAuthStore(s => s.passwordRecoveryFlow);
@@ -47,6 +50,13 @@ export default function HomeScreen() {
   const petBooted = usePetStore(s => s.booted);
   const pets = usePetStore(s => s.pets);
   const petErrorMessage = usePetStore(s => s.errorMessage);
+  const restoreCommunityListSnapshot = useCommunityStore(
+    s => s.restoreListSnapshot,
+  );
+  const [communityRouteSnapshot, setCommunityRouteSnapshot] =
+    useState<CommunityRouteStateSnapshot | null>(null);
+  const [communityRouteSnapshotChecked, setCommunityRouteSnapshotChecked] =
+    useState(false);
 
   // Splash 시작 시각
   const startedAtRef = useRef<number>(Date.now());
@@ -99,6 +109,30 @@ export default function HomeScreen() {
     () => getBootSplashHoldMs(nextRoute.name),
     [nextRoute.name],
   );
+
+  useEffect(() => {
+    if (!authBooted || !petBooted) return;
+
+    let isActive = true;
+    setCommunityRouteSnapshotChecked(false);
+
+    loadCommunityRouteStateSnapshot(currentUserId)
+      .then(snapshot => {
+        if (!isActive) return;
+        if (snapshot) restoreCommunityListSnapshot(snapshot.list);
+        setCommunityRouteSnapshot(snapshot);
+        setCommunityRouteSnapshotChecked(true);
+      })
+      .catch(() => {
+        if (!isActive) return;
+        setCommunityRouteSnapshot(null);
+        setCommunityRouteSnapshotChecked(true);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [authBooted, currentUserId, petBooted, restoreCommunityListSnapshot]);
   // const blurSource = useMemo(() => require('../../assets/home/test.png'), []);
 
   // ---------------------------------------------------------
@@ -107,6 +141,7 @@ export default function HomeScreen() {
   useEffect(() => {
     if (movedRef.current) return;
     if (!authBooted || !petBooted) return;
+    if (!communityRouteSnapshotChecked) return;
 
     const elapsed = Date.now() - startedAtRef.current;
     const wait = Math.max(0, splashHoldMs - elapsed);
@@ -114,6 +149,34 @@ export default function HomeScreen() {
     const t = setTimeout(() => {
       if (movedRef.current) return;
       movedRef.current = true;
+
+      if (nextRoute.name === 'AppTabs' && communityRouteSnapshot) {
+        if (communityRouteSnapshot.route.name === 'detail') {
+          navigation.reset({
+            index: 1,
+            routes: [
+              { name: 'AppTabs', params: { screen: 'CommunityTab' } },
+              {
+                name: 'CommunityDetail',
+                params: {
+                  postId: communityRouteSnapshot.route.postId,
+                  ...(communityRouteSnapshot.route.commentId
+                    ? { commentId: communityRouteSnapshot.route.commentId }
+                    : {}),
+                  restoredFromRouteSnapshot: true,
+                },
+              },
+            ],
+          });
+        } else {
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'AppTabs', params: { screen: 'CommunityTab' } }],
+          });
+        }
+        return;
+      }
+
       navigation.reset({
         index: 0,
         routes: [{ name: nextRoute.name, params: nextRoute.params }],
@@ -121,7 +184,15 @@ export default function HomeScreen() {
     }, wait);
 
     return () => clearTimeout(t);
-  }, [authBooted, navigation, nextRoute, petBooted, splashHoldMs]);
+  }, [
+    authBooted,
+    communityRouteSnapshot,
+    communityRouteSnapshotChecked,
+    navigation,
+    nextRoute,
+    petBooted,
+    splashHoldMs,
+  ]);
 
   // ---------------------------------------------------------
   // 애니메이션(기존 유지)

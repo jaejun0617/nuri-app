@@ -12,7 +12,7 @@
 // - Provider 순서와 NavigationContainer 등록 순서를 바꾸면 제스처, safe area, 전역 상태, 모니터링이 함께 깨질 수 있다.
 // - 부팅 시점 코드이므로 무거운 로직을 직접 넣지 말고 하위 provider/service로 내려야 한다.
 
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { StatusBar } from 'react-native';
 import {
   createNavigationContainerRef,
@@ -29,10 +29,17 @@ import RootNavigator from './src/navigation/RootNavigator';
 import type { RootStackParamList } from './src/navigation/RootNavigator';
 import { appLinking } from './src/navigation/linking';
 import {
+  clearCommunityRouteStateSnapshot,
+  createCommunityRouteStateSnapshot,
+  saveCommunityRouteStateSnapshot,
+} from './src/navigation/communityRouteState';
+import {
   initMonitoring,
   registerSentryNavigation,
   wrapWithSentry,
 } from './src/services/monitoring/sentry';
+import { useAuthStore } from './src/store/authStore';
+import { useCommunityStore } from './src/store/communityStore';
 
 enableScreens(true);
 initMonitoring();
@@ -41,11 +48,65 @@ function App() {
   const navigationRef = useRef(
     createNavigationContainerRef<RootStackParamList>(),
   );
+  const communitySnapshotExistsRef = useRef(false);
+
+  const persistCommunityRouteState = useCallback(() => {
+    if (!navigationRef.current.isReady()) return;
+
+    const userId = useAuthStore.getState().session?.user.id ?? null;
+    const currentRoute = navigationRef.current.getCurrentRoute();
+    const currentRouteName = String(currentRoute?.name ?? '');
+    const isCommunityRoute =
+      currentRouteName === 'CommunityTab' ||
+      currentRouteName === 'CommunityTabList' ||
+      currentRouteName === 'CommunityList' ||
+      currentRouteName === 'CommunityDetail';
+
+    if (!userId || !isCommunityRoute || !currentRoute) {
+      if (!communitySnapshotExistsRef.current) return;
+      communitySnapshotExistsRef.current = false;
+      clearCommunityRouteStateSnapshot().catch(() => {});
+      return;
+    }
+
+    const snapshot = createCommunityRouteStateSnapshot({
+      userId,
+      route: {
+        name: currentRouteName,
+        params: currentRoute.params,
+      },
+      list: useCommunityStore.getState().getListSnapshot(),
+    });
+
+    if (!snapshot) return;
+
+    communitySnapshotExistsRef.current = true;
+    saveCommunityRouteStateSnapshot(snapshot).catch(() => {});
+  }, []);
 
   const handleNavigationReady = useCallback(() => {
     if (!navigationRef.current.isReady()) return;
     registerSentryNavigation(navigationRef.current);
-  }, []);
+    persistCommunityRouteState();
+  }, [persistCommunityRouteState]);
+
+  useEffect(() => {
+    return useCommunityStore.subscribe((state, previousState) => {
+      if (
+        state.activeFilter === previousState.activeFilter &&
+        state.pageSize === previousState.pageSize &&
+        state.currentPage === previousState.currentPage &&
+        state.cursor === previousState.cursor &&
+        state.hasNextPage === previousState.hasNextPage &&
+        state.hasPreviousPage === previousState.hasPreviousPage &&
+        state.cursorHistory === previousState.cursorHistory
+      ) {
+        return;
+      }
+
+      persistCommunityRouteState();
+    });
+  }, [persistCommunityRouteState]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -63,6 +124,7 @@ function App() {
               linking={appLinking}
               ref={navigationRef}
               onReady={handleNavigationReady}
+              onStateChange={persistCommunityRouteState}
             >
               <RootNavigator />
             </NavigationContainer>

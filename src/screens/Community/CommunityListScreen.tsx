@@ -167,6 +167,7 @@ export default function CommunityListScreen() {
   const loadMorePosts = useCommunityStore(s => s.loadMorePosts);
   const loadPreviousPosts = useCommunityStore(s => s.loadPreviousPosts);
   const setPageSize = useCommunityStore(s => s.setPageSize);
+  const resumePosts = useCommunityStore(s => s.resumePosts);
 
   const [showTopButton, setShowTopButton] = useState(false);
   const [isPageSizeModalVisible, setPageSizeModalVisible] = useState(false);
@@ -176,12 +177,12 @@ export default function CommunityListScreen() {
   useEffect(() => {
     if (listStatus !== 'idle' || posts.length > 0) return;
     const task = InteractionManager.runAfterInteractions(() => {
-      fetchPosts('all').catch(() => {});
+      resumePosts().catch(() => {});
     });
     return () => {
       task.cancel();
     };
-  }, [fetchPosts, listStatus, posts.length]);
+  }, [listStatus, posts.length, resumePosts]);
 
   useFocusEffect(
     useCallback(() => {
