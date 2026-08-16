@@ -73,12 +73,18 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   stickyCategoryHeader: {
-    height: 48,
+    minHeight: 96,
     zIndex: 2,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#E6E8F0',
   },
   filterBarRow: {
+    height: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  secondaryCategoryRow: {
     height: 48,
     flexDirection: 'row',
     alignItems: 'center',

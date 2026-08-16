@@ -31,6 +31,7 @@ import {
   getCommunityListErrorMessage,
 } from '../services/supabase/community';
 import type {
+  CommunityCategory,
   CommunityComment,
   CommunityDetailStatus,
   CommunityListFilter,
@@ -50,9 +51,10 @@ type CommunityCursorHistory = Record<string, Record<number, string | null>>;
 
 function getCommunityListKey(
   filter: CommunityListFilter,
+  category: CommunityCategory,
   pageSize: CommunityPageSize,
 ) {
-  return `${filter}:${pageSize}`;
+  return `${filter}:${category}:${pageSize}`;
 }
 
 function uniquePosts(posts: CommunityPost[]) {
@@ -94,13 +96,18 @@ type CommunityStore = {
   currentPage: number;
   cursorHistory: CommunityCursorHistory;
   activeFilter: CommunityListFilter;
+  activeCategory: CommunityCategory;
   pageSize: CommunityPageSize;
   lastFetchedAt: number | null;
 
   getListSnapshot: () => CommunityRouteListSnapshot;
   restoreListSnapshot: (snapshot: CommunityRouteListSnapshot) => void;
   resumePosts: () => Promise<void>;
-  fetchPosts: (filter?: CommunityListFilter) => Promise<void>;
+  fetchPosts: (
+    filter?: CommunityListFilter,
+    category?: CommunityCategory,
+  ) => Promise<void>;
+  setCategory: (category: CommunityCategory) => Promise<void>;
   refreshPosts: () => Promise<void>;
   loadMorePosts: () => Promise<void>;
   loadPreviousPosts: () => Promise<void>;
@@ -223,10 +230,12 @@ function reconcileLatestCommentPreviewState(
 export const useCommunityStore = create<CommunityStore>((set, get) => {
   let listRequestSequence = 0;
   let filterRequestGeneration = 0;
+  let categoryRequestGeneration = 0;
   let pageSizeRequestGeneration = 0;
 
   const requestListPage = async (options: {
     filter: CommunityListFilter;
+    category: CommunityCategory;
     pageSize: CommunityPageSize;
     page: number;
     cursor: string | null;
@@ -235,30 +244,43 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
     clearPosts: boolean;
     requestKind:
       | 'filter'
+      | 'category'
       | 'pageSize'
       | 'refresh'
       | 'pagination'
       | 'restore';
   }) => {
     if (options.requestKind === 'filter') filterRequestGeneration += 1;
+    if (options.requestKind === 'category') categoryRequestGeneration += 1;
     if (options.requestKind === 'pageSize') pageSizeRequestGeneration += 1;
 
     const requestId = ++listRequestSequence;
-    const listKey = getCommunityListKey(options.filter, options.pageSize);
+    const listKey = getCommunityListKey(
+      options.filter,
+      options.category,
+      options.pageSize,
+    );
     const requestGeneration = {
       filter: filterRequestGeneration,
+      category: categoryRequestGeneration,
       pageSize: pageSizeRequestGeneration,
     };
     const isCurrentRequest = () =>
       requestId === listRequestSequence &&
       filterRequestGeneration === requestGeneration.filter &&
+      categoryRequestGeneration === requestGeneration.category &&
       pageSizeRequestGeneration === requestGeneration.pageSize &&
-      getCommunityListKey(get().activeFilter, get().pageSize) === listKey;
+      getCommunityListKey(
+        get().activeFilter,
+        get().activeCategory,
+        get().pageSize,
+      ) === listKey;
 
     set(() => ({
       listStatus: options.status,
       listErrorMessage: null,
       activeFilter: options.filter,
+      activeCategory: options.category,
       pageSize: options.pageSize,
       ...(options.resetHistory
         ? {
@@ -278,6 +300,7 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
     try {
       const result = await fetchCommunityPosts({
         filter: options.filter,
+        category: options.category,
         cursor: options.cursor,
         limit: options.pageSize,
       });
@@ -323,13 +346,14 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
 
       if (
         options.cursor !== null &&
-        getCommunityListCursorErrorCode(error) === 'community_cursor_invalid'
+        getCommunityListCursorErrorCode(error) !== null
       ) {
         // A cursor from before the current server contract is not a list
         // failure. Restart this filter at page one without exposing an empty
         // list or applying the stale page response.
         await requestListPage({
           filter: options.filter,
+          category: options.category,
           pageSize: options.pageSize,
           page: 1,
           cursor: null,
@@ -356,10 +380,15 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
 
   const getListSnapshot = (): CommunityRouteListSnapshot => {
     const state = get();
-    const listKey = getCommunityListKey(state.activeFilter, state.pageSize);
+    const listKey = getCommunityListKey(
+      state.activeFilter,
+      state.activeCategory,
+      state.pageSize,
+    );
 
     return {
       activeFilter: state.activeFilter,
+      activeCategory: state.activeCategory,
       pageSize: state.pageSize,
       currentPage: state.currentPage,
       cursor: state.cursor,
@@ -392,9 +421,12 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
     hasPreviousPage: false,
     currentPage: 1,
     cursorHistory: {
-      [getCommunityListKey('all', DEFAULT_COMMUNITY_PAGE_SIZE)]: { 1: null },
+      [getCommunityListKey('all', 'all', DEFAULT_COMMUNITY_PAGE_SIZE)]: {
+        1: null,
+      },
     },
     activeFilter: 'all',
+    activeCategory: 'all',
     pageSize: DEFAULT_COMMUNITY_PAGE_SIZE,
     lastFetchedAt: null,
 
@@ -404,6 +436,7 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
       listRequestSequence += 1;
       const listKey = getCommunityListKey(
         snapshot.activeFilter,
+        snapshot.activeCategory,
         snapshot.pageSize,
       );
 
@@ -430,6 +463,8 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
           [listKey]: { ...snapshot.cursorHistory },
         },
         activeFilter: snapshot.activeFilter,
+        activeCategory:
+          snapshot.activeFilter === 'notice' ? 'all' : snapshot.activeCategory,
         pageSize: snapshot.pageSize,
         lastFetchedAt: null,
       });
@@ -437,7 +472,11 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
 
     resumePosts: async () => {
       const state = get();
-      const listKey = getCommunityListKey(state.activeFilter, state.pageSize);
+      const listKey = getCommunityListKey(
+        state.activeFilter,
+        state.activeCategory,
+        state.pageSize,
+      );
       const pageCursor =
         state.currentPage === 1
           ? null
@@ -446,6 +485,7 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
       if (state.currentPage > 1 && pageCursor === undefined) {
         await requestListPage({
           filter: state.activeFilter,
+          category: state.activeCategory,
           pageSize: state.pageSize,
           page: 1,
           cursor: null,
@@ -459,6 +499,7 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
 
       await requestListPage({
         filter: state.activeFilter,
+        category: state.activeCategory,
         pageSize: state.pageSize,
         page: state.currentPage,
         cursor: pageCursor ?? null,
@@ -469,14 +510,21 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
       });
     },
 
-    fetchPosts: async filter => {
+    fetchPosts: async (filter, category) => {
       const nextFilter = filter ?? 'all';
+      const nextCategory =
+        nextFilter === 'notice' ? 'all' : category ?? get().activeCategory;
       const state = get();
-      if (state.listStatus === 'loading' && state.activeFilter === nextFilter) {
+      if (
+        state.listStatus === 'loading' &&
+        state.activeFilter === nextFilter &&
+        state.activeCategory === nextCategory
+      ) {
         return;
       }
       await requestListPage({
         filter: nextFilter,
+        category: nextCategory,
         pageSize: get().pageSize,
         page: 1,
         cursor: null,
@@ -484,6 +532,24 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
         resetHistory: true,
         clearPosts: true,
         requestKind: 'filter',
+      });
+    },
+
+    setCategory: async category => {
+      const state = get();
+      const nextCategory = state.activeFilter === 'notice' ? 'all' : category;
+      if (state.activeCategory === nextCategory) return;
+
+      await requestListPage({
+        filter: state.activeFilter,
+        category: nextCategory,
+        pageSize: state.pageSize,
+        page: 1,
+        cursor: null,
+        status: 'loading',
+        resetHistory: true,
+        clearPosts: false,
+        requestKind: 'category',
       });
     },
 
@@ -499,6 +565,7 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
 
       await requestListPage({
         filter: state.activeFilter,
+        category: state.activeCategory,
         pageSize: state.pageSize,
         page: 1,
         cursor: null,
@@ -522,6 +589,7 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
 
       await requestListPage({
         filter: state.activeFilter,
+        category: state.activeCategory,
         pageSize: state.pageSize,
         page: state.currentPage + 1,
         cursor: state.cursor,
@@ -543,13 +611,18 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
         return;
       }
 
-      const listKey = getCommunityListKey(state.activeFilter, state.pageSize);
+      const listKey = getCommunityListKey(
+        state.activeFilter,
+        state.activeCategory,
+        state.pageSize,
+      );
       const previousPage = state.currentPage - 1;
       const previousCursor = state.cursorHistory[listKey]?.[previousPage];
       if (previousCursor === undefined) return;
 
       await requestListPage({
         filter: state.activeFilter,
+        category: state.activeCategory,
         pageSize: state.pageSize,
         page: previousPage,
         cursor: previousCursor,
@@ -565,6 +638,7 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
       if (state.pageSize === pageSize) return;
       await requestListPage({
         filter: state.activeFilter,
+        category: state.activeCategory,
         pageSize,
         page: 1,
         cursor: null,
@@ -1275,11 +1349,12 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
         hasPreviousPage: false,
         currentPage: 1,
         cursorHistory: {
-          [getCommunityListKey('all', DEFAULT_COMMUNITY_PAGE_SIZE)]: {
+          [getCommunityListKey('all', 'all', DEFAULT_COMMUNITY_PAGE_SIZE)]: {
             1: null,
           },
         },
         activeFilter: 'all',
+        activeCategory: 'all',
         pageSize: DEFAULT_COMMUNITY_PAGE_SIZE,
         lastFetchedAt: null,
       });

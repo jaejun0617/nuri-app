@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type {
+  CommunityCategory,
   CommunityListFilter,
   CommunityPageSize,
 } from '../types/community';
@@ -22,6 +23,7 @@ export type CommunityRouteSnapshotRoute =
 
 export type CommunityRouteListSnapshot = {
   activeFilter: CommunityListFilter;
+  activeCategory: CommunityCategory;
   pageSize: CommunityPageSize;
   currentPage: number;
   cursor: string | null;
@@ -59,6 +61,16 @@ function isNonEmptyString(value: unknown, maxLength: number): value is string {
 
 function isCommunityListFilter(value: unknown): value is CommunityListFilter {
   return value === 'all' || value === 'popular' || value === 'notice';
+}
+
+function isCommunityCategory(value: unknown): value is CommunityCategory {
+  return (
+    value === 'all' ||
+    value === 'question' ||
+    value === 'info' ||
+    value === 'daily' ||
+    value === 'free'
+  );
 }
 
 function isCommunityPageSize(value: unknown): value is CommunityPageSize {
@@ -105,6 +117,10 @@ function normalizeListSnapshot(
   if (!isCommunityListFilter(value.activeFilter)) return null;
   if (!isCommunityPageSize(value.pageSize)) return null;
 
+  const activeCategory = isCommunityCategory(value.activeCategory)
+    ? value.activeCategory
+    : 'all';
+
   const currentPage = value.currentPage;
   if (
     typeof currentPage !== 'number' ||
@@ -134,6 +150,8 @@ function normalizeListSnapshot(
 
   return {
     activeFilter: value.activeFilter,
+    activeCategory:
+      value.activeFilter === 'notice' ? 'all' : activeCategory,
     pageSize: value.pageSize,
     currentPage,
     cursor,

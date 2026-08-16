@@ -69,7 +69,9 @@ function makeCursor(
   id: string,
 ) {
   return JSON.stringify({
+    version: 3,
     filter,
+    category: 'all',
     pageSize,
     createdAt: '2026-08-10T00:00:00.000Z',
     id,
@@ -107,6 +109,7 @@ describe('community list store pagination', () => {
     await useCommunityStore.getState().fetchPosts('all');
     expect(mockedFetchCommunityPosts).toHaveBeenLastCalledWith({
       filter: 'all',
+      category: 'all',
       cursor: null,
       limit: 30,
     });
@@ -126,6 +129,7 @@ describe('community list store pagination', () => {
     ]);
     expect(mockedFetchCommunityPosts).toHaveBeenLastCalledWith({
       filter: 'all',
+      category: 'all',
       cursor: null,
       limit: 30,
     });
@@ -162,6 +166,7 @@ describe('community list store pagination', () => {
     expect(useCommunityStore.getState().hasPreviousPage).toBe(false);
     expect(mockedFetchCommunityPosts).toHaveBeenLastCalledWith({
       filter: 'popular',
+      category: 'all',
       cursor: null,
       limit: 30,
     });
@@ -171,13 +176,112 @@ describe('community list store pagination', () => {
     expect(useCommunityStore.getState().currentPage).toBe(1);
     expect(useCommunityStore.getState().hasPreviousPage).toBe(false);
     expect(Object.keys(useCommunityStore.getState().cursorHistory)).toEqual([
-      'popular:50',
+      'popular:all:50',
     ]);
     expect(mockedFetchCommunityPosts).toHaveBeenLastCalledWith({
       filter: 'popular',
+      category: 'all',
       cursor: null,
       limit: 50,
     });
+  });
+
+  it('keeps category in every filter combination and resets its own cursor key', async () => {
+    mockedFetchCommunityPosts
+      .mockResolvedValueOnce({
+        items: [makePost('info-1')],
+        nextCursor: null,
+        hasMore: false,
+      })
+      .mockResolvedValueOnce({
+        items: [makePost('popular-info-1', { likeCount: 10 })],
+        nextCursor: null,
+        hasMore: false,
+      })
+      .mockResolvedValueOnce({
+        items: [makePost('notice-1', { isNotice: true })],
+        nextCursor: null,
+        hasMore: false,
+      });
+
+    await useCommunityStore.getState().fetchPosts('all', 'info');
+    expect(useCommunityStore.getState().activeCategory).toBe('info');
+    expect(Object.keys(useCommunityStore.getState().cursorHistory)).toEqual([
+      'all:info:30',
+    ]);
+    expect(mockedFetchCommunityPosts).toHaveBeenLastCalledWith({
+      filter: 'all',
+      category: 'info',
+      cursor: null,
+      limit: 30,
+    });
+
+    await useCommunityStore.getState().fetchPosts('popular');
+    expect(useCommunityStore.getState().activeCategory).toBe('info');
+    expect(mockedFetchCommunityPosts).toHaveBeenLastCalledWith({
+      filter: 'popular',
+      category: 'info',
+      cursor: null,
+      limit: 30,
+    });
+
+    await useCommunityStore.getState().fetchPosts('notice');
+    expect(useCommunityStore.getState().activeCategory).toBe('all');
+    expect(mockedFetchCommunityPosts).toHaveBeenLastCalledWith({
+      filter: 'notice',
+      category: 'all',
+      cursor: null,
+      limit: 30,
+    });
+  });
+
+  it('ignores a stale category response after a fast category switch', async () => {
+    let resolveQuestion: CommunityPostsResolver | null = null;
+    let resolveInfo: CommunityPostsResolver | null = null;
+
+    mockedFetchCommunityPosts
+      .mockImplementationOnce(
+        () =>
+          new Promise(resolve => {
+            resolveQuestion = resolve;
+          }),
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise(resolve => {
+            resolveInfo = resolve;
+          }),
+      );
+
+    const questionRequest = useCommunityStore
+      .getState()
+      .fetchPosts('all', 'question');
+    const infoRequest = useCommunityStore.getState().setCategory('info');
+
+    if (!resolveQuestion || !resolveInfo) {
+      throw new Error('test resolvers were not initialized');
+    }
+    const resolveQuestionRequest = resolveQuestion as CommunityPostsResolver;
+    const resolveInfoRequest = resolveInfo as CommunityPostsResolver;
+
+    resolveQuestionRequest({
+      items: [makePost('stale-question')],
+      nextCursor: null,
+      hasMore: false,
+    });
+    await questionRequest;
+    expect(useCommunityStore.getState().activeCategory).toBe('info');
+    expect(useCommunityStore.getState().posts).toEqual([]);
+
+    resolveInfoRequest({
+      items: [makePost('info-1')],
+      nextCursor: null,
+      hasMore: false,
+    });
+    await infoRequest;
+    expect(useCommunityStore.getState().posts.map(post => post.id)).toEqual([
+      'info-1',
+    ]);
   });
 
   it('ignores a stale response after a fast filter switch', async () => {
@@ -247,11 +351,13 @@ describe('community list store pagination', () => {
 
     expect(mockedFetchCommunityPosts).toHaveBeenNthCalledWith(2, {
       filter: 'all',
+      category: 'all',
       cursor: makeCursor('all', 30, 'page-1'),
       limit: 30,
     });
     expect(mockedFetchCommunityPosts).toHaveBeenNthCalledWith(3, {
       filter: 'all',
+      category: 'all',
       cursor: null,
       limit: 30,
     });
@@ -271,6 +377,7 @@ describe('community list store pagination', () => {
 
     useCommunityStore.getState().restoreListSnapshot({
       activeFilter: 'popular',
+      activeCategory: 'all',
       pageSize: 100,
       currentPage: 2,
       cursor: 'cursor-page-3',
@@ -287,6 +394,7 @@ describe('community list store pagination', () => {
 
     expect(mockedFetchCommunityPosts).toHaveBeenCalledWith({
       filter: 'popular',
+      category: 'all',
       cursor: 'cursor-page-2',
       limit: 100,
     });
@@ -309,6 +417,7 @@ describe('community list store pagination', () => {
 
     useCommunityStore.getState().restoreListSnapshot({
       activeFilter: 'popular',
+      activeCategory: 'all',
       pageSize: 100,
       currentPage: 2,
       cursor: 'cursor-page-3',
@@ -325,11 +434,13 @@ describe('community list store pagination', () => {
 
     expect(mockedFetchCommunityPosts).toHaveBeenNthCalledWith(1, {
       filter: 'popular',
+      category: 'all',
       cursor: 'stale-cursor',
       limit: 100,
     });
     expect(mockedFetchCommunityPosts).toHaveBeenNthCalledWith(2, {
       filter: 'popular',
+      category: 'all',
       cursor: null,
       limit: 100,
     });

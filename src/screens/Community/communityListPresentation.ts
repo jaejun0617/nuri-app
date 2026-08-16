@@ -1,5 +1,6 @@
 import { getKstDateParts } from '../../utils/date';
 import type {
+  CommunityCategory,
   CommunityListFilter,
   CommunityPostCategory,
 } from '../../types/community';
@@ -14,6 +15,17 @@ export const COMMUNITY_LIST_FILTER_OPTIONS: ReadonlyArray<{
 ];
 
 export const COMMUNITY_NOTICE_ICON_NAME = 'pin' as const;
+
+export const COMMUNITY_CATEGORY_OPTIONS: ReadonlyArray<{
+  key: CommunityCategory;
+  label: string;
+}> = [
+  { key: 'all', label: '전체' },
+  { key: 'question', label: '질문' },
+  { key: 'info', label: '정보' },
+  { key: 'daily', label: '일상' },
+  { key: 'free', label: '자유' },
+];
 
 export function getCommunityPostAccessibilityLabel(
   title: string,
@@ -32,7 +44,10 @@ export function canCreateCommunityPost(filter: CommunityListFilter): boolean {
   return filter === 'all';
 }
 
-export function getCommunityEmptyState(filter: CommunityListFilter): {
+export function getCommunityEmptyState(
+  filter: CommunityListFilter,
+  category: CommunityCategory = 'all',
+): {
   title: string;
   showCreateCta: boolean;
 } {
@@ -43,7 +58,13 @@ export function getCommunityEmptyState(filter: CommunityListFilter): {
       return { title: '등록된 공지가 없어요', showCreateCta: false };
     case 'all':
     default:
-      return { title: '아직 게시글이 없어요', showCreateCta: true };
+      return {
+        title:
+          category === 'all'
+            ? '아직 게시글이 없어요'
+            : `${getCommunityCategoryLabel(category)} 게시글이 없어요`,
+        showCreateCta: true,
+      };
   }
 }
 

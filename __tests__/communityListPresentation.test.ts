@@ -1,5 +1,6 @@
 import {
   canCreateCommunityPost,
+  COMMUNITY_CATEGORY_OPTIONS,
   COMMUNITY_LIST_FILTER_OPTIONS,
   COMMUNITY_NOTICE_ICON_NAME,
   formatCommunityListTimestamp,
@@ -69,6 +70,23 @@ describe('community list controls', () => {
       title: '등록된 공지가 없어요',
       showCreateCta: false,
     });
+    expect(getCommunityEmptyState('all', 'info')).toEqual({
+      title: '정보 게시글이 없어요',
+      showCreateCta: true,
+    });
+  });
+
+  it('exposes the approved secondary categories without the legacy tips label', () => {
+    expect(COMMUNITY_CATEGORY_OPTIONS).toEqual([
+      { key: 'all', label: '전체' },
+      { key: 'question', label: '질문' },
+      { key: 'info', label: '정보' },
+      { key: 'daily', label: '일상' },
+      { key: 'free', label: '자유' },
+    ]);
+    expect(COMMUNITY_CATEGORY_OPTIONS.map(option => option.label)).not.toContain(
+      '팁 공유',
+    );
   });
 
   it('defines a non-color-only notice presentation contract', () => {

@@ -45,6 +45,7 @@ import { useCommunityStore } from '../../store/communityStore';
 import { usePetStore } from '../../store/petStore';
 import { openMoreDrawer } from '../../store/uiStore';
 import type {
+  CommunityCategory,
   CommunityListFilter,
   CommunityPageSize,
 } from '../../types/community';
@@ -53,6 +54,7 @@ import { styles } from './CommunityListScreen.styles';
 import CommunityPostListItem from './components/CommunityPostListItem';
 import {
   canCreateCommunityPost,
+  COMMUNITY_CATEGORY_OPTIONS,
   COMMUNITY_LIST_FILTER_OPTIONS,
   getCommunityEmptyState,
 } from './communityListPresentation';
@@ -71,6 +73,13 @@ type FilterChipButtonProps = {
   isActive: boolean;
   activeColor: string;
   onPress: (filter: CommunityListFilter) => void;
+};
+
+type CategoryChipButtonProps = {
+  option: (typeof COMMUNITY_CATEGORY_OPTIONS)[number];
+  isActive: boolean;
+  activeColor: string;
+  onPress: (category: CommunityCategory) => void;
 };
 
 const FilterChipButton = memo(function FilterChipButton({
@@ -135,6 +144,70 @@ const FilterChipButton = memo(function FilterChipButton({
   );
 });
 
+const CategoryChipButton = memo(function CategoryChipButton({
+  option,
+  isActive,
+  activeColor,
+  onPress,
+}: CategoryChipButtonProps) {
+  const underlineProgress = useRef(
+    new Animated.Value(isActive ? 1 : 0),
+  ).current;
+
+  useEffect(() => {
+    Animated.timing(underlineProgress, {
+      toValue: isActive ? 1 : 0,
+      duration: 180,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [isActive, underlineProgress]);
+
+  const handlePress = useCallback(() => {
+    onPress(option.key);
+  }, [onPress, option.key]);
+
+  return (
+    <TouchableOpacity
+      accessibilityRole="tab"
+      accessibilityState={{ selected: isActive }}
+      activeOpacity={0.88}
+      style={styles.categoryChip}
+      onPress={handlePress}
+    >
+      <AppText
+        preset="caption"
+        style={[
+          styles.categoryChipText,
+          isActive
+            ? [styles.categoryChipTextActive, { color: activeColor }]
+            : { color: '#8A8A8A' },
+        ]}
+      >
+        {option.label}
+      </AppText>
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.categoryChipUnderline,
+          {
+            backgroundColor: activeColor,
+            opacity: underlineProgress,
+            transform: [
+              {
+                scaleX: underlineProgress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.35, 1],
+                }),
+              },
+            ],
+          },
+        ]}
+      />
+    </TouchableOpacity>
+  );
+});
+
 export default function CommunityListScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
@@ -160,9 +233,11 @@ export default function CommunityListScreen() {
   const hasPreviousPage = useCommunityStore(s => s.hasPreviousPage);
   const currentPage = useCommunityStore(s => s.currentPage);
   const activeFilter = useCommunityStore(s => s.activeFilter);
+  const activeCategory = useCommunityStore(s => s.activeCategory);
   const pageSize = useCommunityStore(s => s.pageSize);
   const lastFetchedAt = useCommunityStore(s => s.lastFetchedAt);
   const fetchPosts = useCommunityStore(s => s.fetchPosts);
+  const setCategory = useCommunityStore(s => s.setCategory);
   const refreshPosts = useCommunityStore(s => s.refreshPosts);
   const loadMorePosts = useCommunityStore(s => s.loadMorePosts);
   const loadPreviousPosts = useCommunityStore(s => s.loadPreviousPosts);
@@ -271,9 +346,20 @@ export default function CommunityListScreen() {
     (filter: CommunityListFilter) => {
       if (filter === activeFilter) return;
       flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
-      fetchPosts(filter).catch(() => {});
+      fetchPosts(filter, filter === 'notice' ? 'all' : activeCategory).catch(
+        () => {},
+      );
     },
-    [activeFilter, fetchPosts],
+    [activeCategory, activeFilter, fetchPosts],
+  );
+
+  const handlePressCategory = useCallback(
+    (category: CommunityCategory) => {
+      if (activeFilter === 'notice' || category === activeCategory) return;
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+      setCategory(category).catch(() => {});
+    },
+    [activeCategory, activeFilter, setCategory],
   );
 
   const handleRefresh = useCallback(() => {
@@ -325,8 +411,8 @@ export default function CommunityListScreen() {
   );
 
   const handleRetry = useCallback(() => {
-    fetchPosts(activeFilter).catch(() => {});
-  }, [activeFilter, fetchPosts]);
+    fetchPosts(activeFilter, activeCategory).catch(() => {});
+  }, [activeCategory, activeFilter, fetchPosts]);
 
   const handlePressPost = useCallback(
     (postId: string) => {
@@ -351,6 +437,7 @@ export default function CommunityListScreen() {
         id,
         phase,
         filter: activeFilter,
+        category: activeCategory,
         pageSize,
         itemCount: postIds.length,
         actualDurationMs: Number(actualDuration.toFixed(2)),
@@ -359,7 +446,7 @@ export default function CommunityListScreen() {
         renderCommitMs: Number(commitTime.toFixed(2)),
       });
     },
-    [activeFilter, pageSize, postIds.length],
+    [activeCategory, activeFilter, pageSize, postIds.length],
   );
 
   const renderItem = useCallback<ListRenderItem<string>>(
@@ -424,10 +511,32 @@ export default function CommunityListScreen() {
             )}
           </TouchableOpacity>
         </View>
+        <View style={styles.secondaryCategoryRow}>
+          {activeFilter === 'notice' ? null : (
+            <ScrollView
+              horizontal
+              style={styles.filterScroll}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoryRow}
+            >
+              {COMMUNITY_CATEGORY_OPTIONS.map(option => (
+                <CategoryChipButton
+                  key={option.key}
+                  option={option}
+                  isActive={option.key === activeCategory}
+                  activeColor={petTheme.primary}
+                  onPress={handlePressCategory}
+                />
+              ))}
+            </ScrollView>
+          )}
+        </View>
       </View>
     ),
     [
       activeFilter,
+      activeCategory,
+      handlePressCategory,
       handlePressFilter,
       isListBusy,
       pageSize,
@@ -437,7 +546,7 @@ export default function CommunityListScreen() {
   );
 
   const emptyComponent = useMemo(() => {
-    const emptyState = getCommunityEmptyState(activeFilter);
+    const emptyState = getCommunityEmptyState(activeFilter, activeCategory);
 
     return (
       <View style={styles.emptyWrap}>
@@ -481,6 +590,7 @@ export default function CommunityListScreen() {
     );
   }, [
     activeFilter,
+    activeCategory,
     handlePressCreate,
     petTheme.onPrimary,
     petTheme.primary,

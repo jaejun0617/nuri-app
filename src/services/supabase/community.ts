@@ -14,6 +14,7 @@ import type {
   CommunityComment,
   CommunityCommentRow,
   CommunityCommentStatus,
+  CommunityCategory,
   CommunityListFilter,
   CommunityPageSize,
   CommunityPetRow,
@@ -758,11 +759,14 @@ export async function fetchCommunityPosts(
 }> {
   const totalStartedAt = Date.now();
   const filter: CommunityListFilter = params.filter ?? 'all';
+  const category: CommunityCategory =
+    filter === 'notice' ? 'all' : params.category ?? 'all';
   const limit = params.limit ?? COMMUNITY_PAGE_SIZE;
   const cursor = decodeCommunityRpcCursor(params.cursor ?? null);
   const rpcStartedAt = Date.now();
-  const { data, error } = await supabase.rpc('community_list_posts_v1', {
+  const { data, error } = await supabase.rpc('community_list_posts_v2', {
     p_filter: filter,
+    p_category: category,
     p_limit: limit,
     p_cursor: cursor,
   });
@@ -772,7 +776,7 @@ export async function fetchCommunityPosts(
   if (!isRecord(data)) {
     throw new Error('게시글 목록 응답을 읽지 못했어요.');
   }
-  if (data.cursorVersion !== 2) {
+  if (data.cursorVersion !== 3) {
     throw new Error('community_cursor_version_unsupported');
   }
 
@@ -813,6 +817,7 @@ export async function fetchCommunityPosts(
   if (__DEV__) {
     console.info('[NURI-PERF] community-list', {
       filter,
+      category,
       limit,
       itemCount: items.length,
       rpcMs: rpcElapsedMs,

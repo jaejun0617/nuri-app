@@ -17,6 +17,12 @@ export type CommunityPostStatus =
 
 export type CommunityPostCategory = 'free' | 'question' | 'info' | 'daily';
 
+/**
+ * 사용자에게 노출되는 목록 category 집합이다. `all`은 DB category 값이
+ * 아니며, 목록 RPC에서 category 조건을 적용하지 않는다는 뜻으로만 쓴다.
+ */
+export type CommunityCategory = 'all' | CommunityPostCategory;
+
 export type CommunityListFilter = 'all' | 'popular' | 'notice';
 export type CommunityPageSize = 30 | 50 | 100 | 150 | 200;
 export const COMMUNITY_PAGE_SIZE_OPTIONS: readonly CommunityPageSize[] = [
@@ -204,6 +210,7 @@ export type CommunityDetailStatus =
 
 export type FetchCommunityPostsParams = {
   filter?: CommunityListFilter;
+  category?: CommunityCategory;
   cursor?: string | null;
   limit?: CommunityPageSize;
 };

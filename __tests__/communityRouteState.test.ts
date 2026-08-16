@@ -6,6 +6,7 @@ import {
 function makeListSnapshot() {
   return {
     activeFilter: 'popular' as const,
+    activeCategory: 'all' as const,
     pageSize: 100 as const,
     currentPage: 2,
     cursor: 'cursor-next-page',
@@ -92,6 +93,31 @@ describe('community route state snapshot', () => {
         1_000,
       ),
     ).toBeNull();
+  });
+
+  it('normalizes missing or unsupported categories and notice categories', () => {
+    const snapshot = createCommunityRouteStateSnapshot({
+      userId: 'user-1',
+      route: { name: 'CommunityTabList' },
+      list: {
+        ...makeListSnapshot(),
+        activeFilter: 'notice',
+        activeCategory: 'question',
+      },
+      savedAt: 1_000,
+    });
+
+    expect(snapshot?.list.activeCategory).toBe('all');
+    expect(
+      parseCommunityRouteStateSnapshot(
+        {
+          ...snapshot,
+          list: { ...snapshot?.list, activeCategory: 'unsupported' },
+        },
+        'user-1',
+        1_000,
+      )?.list.activeCategory,
+    ).toBe('all');
   });
 
   it('whitelists detail params and never serializes unrelated route data', () => {
