@@ -75,3 +75,18 @@
 3. Naver 잔존물을 NURI-01 → NURI-09 → NURI-12 순서로 제거·검증한다.
 4. Supabase remote policy/RPC/grant catalog의 직접 read-only 증적을 확보한다.
 5. clean release artifact와 실제 운영 gate를 분리해 판정한다.
+
+## 2026-08-18 Home CommunitySection reconciliation
+
+이번 섹션 상태는 과거 디자인 dispatch보다 실제 repository와 QA evidence를 우선한다.
+
+- current local HEAD: `4a0bf1f2ef845204e12c38801fef6acc8dca262e`
+- branch: `codex/task6-community-content-policy`
+- origin branch는 dependency corrective commit 이전의 `0b22f8af1a0d04cd9cd53517332c33cf5ea74aa2`이며, dependency commit push 여부와 feature 완료 여부를 섞지 않는다.
+- `CommunitySection`은 `LoggedInHome.tsx`에서 TodayPhoto 다음, RecommendationTips 이전에 실제 렌더된다.
+- Home tabs는 `인기·질문·정보·일상·자유`이며 `community_home_highlights_v1()`에 `all/question/info/daily/free`를 전달하고 `p_limit=3`을 사용한다.
+- Home highlights는 서버의 `like_count DESC, created_at DESC, id DESC` 및 threshold-free 계약을 사용한다. client full-table fetch와 client ranking은 없다.
+- Home CommunitySection 구현, navigation, controlled ranking, Home Android feature visual QA는 완료로 동결한다.
+- feature visual QA는 dirty worktree APK evidence이며 clean signed release validation이 아니다.
+- NURI-12 release signing은 `RELEASE_SIGNING_BLOCKED_EXTERNAL_INPUT`으로 격리한다. signing credential 공급 전까지 dependency/source validation과 Home CommunitySection을 반복하지 않는다.
+- 좁은 residual risk는 CommunitySection의 중복 `items.slice(0, 3)`와 blocked-user 관계의 별도 정책 증적 미확인이다. 이는 전체 feature 재오픈 사유가 아니다.

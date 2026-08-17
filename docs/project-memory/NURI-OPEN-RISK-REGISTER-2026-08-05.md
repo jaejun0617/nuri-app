@@ -14,6 +14,9 @@
 | ADMIN-001 | P2 | 관리자 웹 build는 통과했지만 실제 production operator QA는 이번 audit에서 재수행하지 않았다. | NURI-10-관리자웹·운영도구 | OPEN | admin QA account 기준 route·권한·audit log evidence |
 | PLACE-001 | P2 | 병원·펫동반 장소·좌표변환에 Kakao/provider 경로가 남아 있어 global provider-zero로 판정할 수 없다. | NURI-08-동물병원·산책POI·펫여행 | DEFERRED | domain별 provider scope와 trust/public boundary 문서화 |
 | DOC-001 | P2 | 160개 QA 문서와 여러 domain 문서가 historical/current 혼합 상태다. | NURI-00-마스터-현황·결정·과거이력 | OPEN | canonical index 링크와 archive policy에 따른 점진 정리 |
+| HOME-COMMUNITY-001 | P2 | `CommunitySection.tsx`가 서버 `p_limit=3` 이후에도 `items.slice(0, 3)`을 적용한다. 승인된 Home 계약의 서버 bounded response와 중복되며 client-side slicing 금지 원칙과 불필요하게 겹친다. | NURI-03-메인홈·날씨·요약 | OPEN_NARROW / feature frozen | 별도 승인된 최소 수정에서 slice 제거 및 focused test로 서버 bounded contract 확인 |
+| COMMUNITY-POLICY-001 | P1 | Home highlights RPC는 public/active/non-deleted 및 author 제재·탈퇴 조건을 적용하지만 blocked-user 관계와 moderation queue의 직접 목록 제외 연결은 이번 reconciliation에서 확인되지 않았다. | NURI-09-Supabase·RLS·RPC·운영DB / NURI-06-커뮤니티·모더레이션 | UNVERIFIED_POLICY_EVIDENCE | 별도 read-only 정책 확인과 row-level negative evidence. 확인 전 moderation 없는 기능 확장 금지 |
+| RELEASE-SIGNING-001 | P1 | clean signed release APK를 만들기 위한 protected keystore password, alias, key password 공급이 현재 protected process에 없다. | NURI-12-Android·Release-QA | BLOCKED_EXTERNAL_INPUT | 승인된 signing credential supply path 확보 후 정확히 한 번 clean signed build, signer 확인, install/smoke 수행 |
 
 AUTH-001의 정책은 이미 최종 확정됐다. 잔존 여부를 확인하는 주 소유는 NURI-01이며 NURI-09가 remote Provider read-only 증거를 지원하고 NURI-12가 release 회귀를 검증한다. 기존 dirty 문서의 historical Naver 표현은 이번 작업에서 수정하지 않았으며 current source of truth로 사용하지 않는다.
 
