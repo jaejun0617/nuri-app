@@ -2,15 +2,19 @@ import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
   section: {
-    width: '100%',
+    gap: 20,
+    marginTop: 0,
+    paddingTop: 20,
+    paddingBottom: 14,
+    paddingHorizontal: 14,
   },
   panel: {
     paddingHorizontal: 18,
-    paddingTop: 22,
+    paddingTop: 18,
     paddingBottom: 18,
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: 1,
-    gap: 18,
+    gap: 14,
   },
   titleRow: {
     flexDirection: 'row',
@@ -20,21 +24,22 @@ export const styles = StyleSheet.create({
   title: {
     flex: 1,
     flexShrink: 1,
+    minWidth: 0,
   },
   pillContent: {
-    gap: 10,
+    gap: 8,
     paddingRight: 2,
   },
   pillTouch: {
     minHeight: 44,
-    paddingVertical: 3,
+    paddingVertical: 4,
     justifyContent: 'center',
   },
   pillVisual: {
-    minHeight: 38,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 19,
+    minHeight: 36,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 18,
     borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',

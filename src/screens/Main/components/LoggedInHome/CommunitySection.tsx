@@ -321,7 +321,7 @@ const CommunitySection = memo(function CommunitySection({
           <Feather
             name="message-circle"
             size={20}
-            color={accentColor}
+            color={theme.colors.brand}
             accessible={false}
             importantForAccessibility="no"
           />

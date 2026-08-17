@@ -6,6 +6,7 @@ import { ThemeProvider } from 'styled-components/native';
 import { createTheme } from '../src/app/theme/theme';
 import CommunitySection from '../src/screens/Main/components/LoggedInHome/CommunitySection';
 import { styles as communityStyles } from '../src/screens/Main/components/LoggedInHome/CommunitySection.styles';
+import { styles as homeStyles } from '../src/screens/Main/components/LoggedInHome/LoggedInHome.styles';
 import type { CommunityPost } from '../src/types/community';
 import {
   fetchHomeCommunityHighlights,
@@ -218,9 +219,11 @@ describe('CommunitySection', () => {
     const pillTouch = StyleSheet.flatten(communityStyles.pillTouch);
     const pillVisual = StyleSheet.flatten(communityStyles.pillVisual);
     const pillText = StyleSheet.flatten(communityStyles.pillText);
+    const communitySection = StyleSheet.flatten(communityStyles.section);
+    const homeSection = StyleSheet.flatten(homeStyles.section);
 
     expect(title.props.preset).toBe('unifiedTitle');
-    expect(titleIcon.props.color).toBe('#6D6AF8');
+    expect(titleIcon.props.color).toBe(createTheme('light').colors.brand);
     expect(titleIcon.props.accessible).toBe(false);
     expect(postTitle.props.numberOfLines).toBe(2);
     expect(StyleSheet.flatten(postTitle.props.style)).toEqual(
@@ -228,10 +231,24 @@ describe('CommunitySection', () => {
     );
     expect(horizontalPillScroll.props.horizontal).toBe(true);
     expect(pillTouch.minHeight).toBe(44);
-    expect(pillVisual.minHeight).toBe(38);
-    expect(pillVisual.borderRadius).toBe(19);
+    expect(pillVisual.minHeight).toBe(36);
+    expect(pillVisual.paddingHorizontal).toBe(12);
+    expect(pillVisual.borderRadius).toBe(18);
+    expect(StyleSheet.flatten(communityStyles.pillContent).gap).toBe(8);
     expect(pillText.fontSize).toBe(14);
     expect(pillText.lineHeight).toBe(20);
+    expect(communitySection).toEqual(
+      expect.objectContaining({
+        gap: homeSection.gap,
+        paddingHorizontal: homeSection.paddingHorizontal,
+        paddingTop: homeSection.paddingTop,
+        paddingBottom: homeSection.paddingBottom,
+      }),
+    );
+    expect('width' in communitySection).toBe(false);
+    expect('width' in StyleSheet.flatten(communityStyles.panel)).toBe(false);
+    expect(StyleSheet.flatten(communityStyles.title).flexShrink).toBe(1);
+    expect(StyleSheet.flatten(communityStyles.postBody).minWidth).toBe(0);
 
     await act(async () => {
       renderer.unmount();
