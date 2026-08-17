@@ -11,6 +11,13 @@ import {
 } from '../src/services/home/communityHighlights';
 
 jest.mock('../src/services/home/communityHighlights', () => ({
+  HOME_COMMUNITY_TAB_OPTIONS: [
+    { key: 'popular', label: '인기', filter: 'popular', category: 'all' },
+    { key: 'question', label: '질문', filter: 'all', category: 'question' },
+    { key: 'info', label: '정보', filter: 'all', category: 'info' },
+    { key: 'daily', label: '일상', filter: 'all', category: 'daily' },
+    { key: 'free', label: '자유', filter: 'all', category: 'free' },
+  ],
   fetchHomeCommunityHighlights: jest.fn(),
   getHomeCommunityHighlightsCache: jest.fn(),
 }));
@@ -157,6 +164,78 @@ describe('CommunitySection', () => {
     expect(output).toContain('게시글 two');
     expect(output).toContain('게시글 three');
     expect(output).not.toContain('게시글 four');
+
+    const tabs = renderer.root
+      .findAll(
+        node =>
+          node.props.accessibilityRole === 'tab' &&
+          node.props.accessibilityState !== undefined,
+      )
+      .map(node => node.props.accessibilityLabel)
+      .filter((label, index, labels) => labels.indexOf(label) === index);
+    expect(tabs).toEqual([
+      '인기 탭',
+      '질문 탭',
+      '정보 탭',
+      '일상 탭',
+      '자유 탭',
+    ]);
+    expect(output).not.toContain('산책');
+    expect(output).not.toContain('건강');
+    expect(output).not.toContain('생활');
+    expect(output).not.toContain('팁 공유');
+    expect(
+      renderer.root.find(node => node.props.accessibilityLabel === '인기 탭').props
+        .accessibilityState,
+    ).toEqual({ selected: true });
+    await act(async () => {
+      renderer.unmount();
+    });
+  });
+
+  it('loads the selected category and ignores an older tab response', async () => {
+    let resolvePopular!: (items: CommunityPost[]) => void;
+    let resolveQuestion!: (items: CommunityPost[]) => void;
+    const popularRequest = new Promise<CommunityPost[]>(resolve => {
+      resolvePopular = resolve;
+    });
+    const questionRequest = new Promise<CommunityPost[]>(resolve => {
+      resolveQuestion = resolve;
+    });
+    mockedFetchHomeCommunityHighlights
+      .mockReturnValueOnce(popularRequest)
+      .mockReturnValueOnce(questionRequest);
+
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = renderSection();
+      await Promise.resolve();
+    });
+
+    const questionTab = renderer.root.find(
+      node => node.props.accessibilityLabel === '질문 탭',
+    );
+    act(() => {
+      questionTab.props.onPress();
+    });
+
+    resolvePopular([makePost('old-popular')]);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(serialized(renderer)).not.toContain('old-popular');
+
+    resolveQuestion([makePost('new-question')]);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(serialized(renderer)).toContain('new-question');
+    expect(mockedFetchHomeCommunityHighlights).toHaveBeenNthCalledWith(1, 'popular', {
+      force: false,
+    });
+    expect(mockedFetchHomeCommunityHighlights).toHaveBeenNthCalledWith(2, 'question', {
+      force: false,
+    });
     await act(async () => {
       renderer.unmount();
     });
@@ -180,7 +259,7 @@ describe('CommunitySection', () => {
     const postButton = renderer.root.find(
       node =>
         node.props.accessibilityRole === 'button' &&
-        node.props.accessibilityLabel?.startsWith('게시글 one'),
+        node.props.accessibilityLabel?.includes('게시글 one'),
     );
 
     act(() => {
@@ -214,7 +293,9 @@ describe('CommunitySection', () => {
   });
 
   it('keeps the error and retry inside the section', async () => {
-    mockedFetchHomeCommunityHighlights.mockRejectedValue(new Error('network'));
+    mockedFetchHomeCommunityHighlights
+      .mockRejectedValueOnce(new Error('network'))
+      .mockResolvedValueOnce([makePost('retry-success')]);
 
     let renderer!: TestRenderer.ReactTestRenderer;
     await act(async () => {
@@ -228,6 +309,13 @@ describe('CommunitySection', () => {
       node => node.props.accessibilityLabel === '커뮤니티 다시 시도',
     )[0];
     expect(retryButton).toBeDefined();
+    await act(async () => {
+      retryButton.props.onPress();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(serialized(renderer)).toContain('retry-success');
+    expect(mockedFetchHomeCommunityHighlights).toHaveBeenCalledTimes(2);
     await act(async () => {
       renderer.unmount();
     });

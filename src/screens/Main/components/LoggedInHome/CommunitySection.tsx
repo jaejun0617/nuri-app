@@ -1,19 +1,19 @@
 // 파일: src/screens/Main/components/LoggedInHome/CommunitySection.tsx
 // 목적:
-// - Home 개인 기록 흐름 뒤에 서버가 선별한 Community 인기글을 최대 3개만 보여준다.
+// - Home 개인 기록 흐름 뒤에 서버가 선별한 Community category 결과를 최대 3개만 보여준다.
 // - 목록 store의 filter/category/page 상태를 건드리지 않고, Home 전용 cache를 사용한다.
 // - Community 장애가 Home의 다른 섹션을 차단하지 않도록 상태 경계를 분리한다.
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../../../app/ui/AppText';
-import { getCommunityCategoryLabel } from '../../../../screens/Community/communityListPresentation';
 import type { CommunityPost } from '../../../../types/community';
 import {
+  HOME_COMMUNITY_TAB_OPTIONS,
+  type HomeCommunityTab,
   fetchHomeCommunityHighlights,
   getHomeCommunityHighlightsCache,
 } from '../../../../services/home/communityHighlights';
@@ -46,32 +46,48 @@ function resolveCommunityPostTitle(post: CommunityPost) {
   return firstContentLine || '내용이 없는 게시글';
 }
 
-function getPostAccessibilityLabel(post: CommunityPost) {
+function resolveCommunityPostCategoryLabel(post: CommunityPost) {
+  switch (post.category) {
+    case 'question':
+      return '질문';
+    case 'info':
+      return '정보';
+    case 'daily':
+      return '일상';
+    case 'free':
+      return '자유';
+    default:
+      return null;
+  }
+}
+
+function getPostAccessibilityLabel(post: CommunityPost, position: number) {
   const title = resolveCommunityPostTitle(post);
-  const category = getCommunityCategoryLabel(post.category);
-  return `${title}, ${category}, 좋아요 ${post.likeCount}개, 댓글 ${post.commentCount}개`;
+  const category = resolveCommunityPostCategoryLabel(post);
+  const categoryText = category ? `${category}, ` : '';
+  return `표시 순서 ${position}, ${title}, ${categoryText}좋아요 ${post.likeCount}개, 댓글 ${post.commentCount}개`;
 }
 
 type PostCardProps = {
   post: CommunityPost;
   accentColor: string;
-  accentTint: string;
   accentBorder: string;
+  position: number;
   featured: boolean;
   onPress: (postId: string) => void;
 };
 
-const PostHighlightCard = memo(function PostHighlightCard({
+const PostRow = memo(function PostRow({
   post,
   accentColor,
-  accentTint,
   accentBorder,
+  position,
   featured,
   onPress,
 }: PostCardProps) {
   const theme = useTheme();
   const title = useMemo(() => resolveCommunityPostTitle(post), [post]);
-  const category = getCommunityCategoryLabel(post.category);
+  const category = resolveCommunityPostCategoryLabel(post);
 
   const handlePress = useCallback(() => {
     onPress(post.id);
@@ -80,41 +96,29 @@ const PostHighlightCard = memo(function PostHighlightCard({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={getPostAccessibilityLabel(post)}
+      accessibilityLabel={getPostAccessibilityLabel(post, position)}
       android_ripple={{ color: `${accentColor}12` }}
       onPress={handlePress}
       style={({ pressed }) => [
-        featured ? styles.featuredCard : styles.supportRow,
+        styles.postRow,
         {
-          backgroundColor: pressed ? `${accentColor}08` : theme.colors.surfaceElevated,
+          backgroundColor: pressed ? `${accentColor}08` : 'transparent',
           borderColor: accentBorder || theme.colors.border,
         },
       ]}
     >
-      <View
-        style={[
-          featured ? styles.featuredIconWrap : styles.supportIconWrap,
-          { backgroundColor: accentTint },
-        ]}
-        pointerEvents="none"
+      <AppText
+        preset="titleMd"
+        accessibilityElementsHidden
+        importantForAccessibility="no"
+        style={[styles.position, { color: accentColor }]}
       >
-        <MaterialCommunityIcons
-          name={featured ? 'message-text-outline' : 'message-processing-outline'}
-          size={featured ? 21 : 18}
-          color={accentColor}
-        />
-      </View>
+        {position}
+      </AppText>
 
       <View style={styles.postBody} pointerEvents="none">
         <AppText
-          preset="unifiedMicro"
-          numberOfLines={1}
-          style={[styles.category, { color: accentColor }]}
-        >
-          {category}
-        </AppText>
-        <AppText
-          preset={featured ? 'unifiedTitle' : 'unifiedBody'}
+          preset={featured ? 'titleSm' : 'bodyStrong'}
           numberOfLines={2}
           ellipsizeMode="tail"
           style={[
@@ -125,21 +129,24 @@ const PostHighlightCard = memo(function PostHighlightCard({
           {title}
         </AppText>
         <View style={styles.metadata}>
+          {category ? (
+            <AppText
+              preset="caption"
+              numberOfLines={1}
+              style={[styles.category, { color: accentColor }]}
+            >
+              {category}
+            </AppText>
+          ) : null}
           <AppText
-            preset="unifiedMicro"
+            preset="caption"
             numberOfLines={1}
             style={[styles.metadataText, { color: theme.colors.textMuted }]}
           >
             좋아요 {post.likeCount}
           </AppText>
           <AppText
-            preset="unifiedMicro"
-            style={[styles.metadataSeparator, { color: theme.colors.textMuted }]}
-          >
-            ·
-          </AppText>
-          <AppText
-            preset="unifiedMicro"
+            preset="caption"
             numberOfLines={1}
             style={[styles.metadataText, { color: theme.colors.textMuted }]}
           >
@@ -148,9 +155,6 @@ const PostHighlightCard = memo(function PostHighlightCard({
         </View>
       </View>
 
-      <View style={styles.arrowSlot} pointerEvents="none">
-        <Feather name="chevron-right" size={18} color={theme.colors.textMuted} />
-      </View>
     </Pressable>
   );
 });
@@ -164,26 +168,20 @@ const LoadingState = memo(function LoadingState({
 }) {
   return (
     <View accessibilityLabel="커뮤니티를 불러오는 중이에요." accessibilityRole="progressbar">
-      <View style={[styles.skeletonFeatured, { borderColor, backgroundColor: fillColor }]}>
-        <View style={[styles.skeletonIcon, { backgroundColor: borderColor }]} />
-        <View style={styles.skeletonText}>
-          <View style={[styles.skeletonShortLine, { backgroundColor: borderColor }]} />
-          <View style={[styles.skeletonLine, { backgroundColor: borderColor }]} />
-          <View style={[styles.skeletonShortLine, { backgroundColor: borderColor }]} />
-        </View>
-      </View>
-      <View style={styles.skeletonSupportList}>
-        {[0, 1].map(index => (
-          <View
-            key={`community-skeleton-${index}`}
-            style={[styles.skeletonSupport, { borderColor, backgroundColor: fillColor }]}
-          >
-            <View style={[styles.skeletonSupportIcon, { backgroundColor: borderColor }]} />
-            <View style={styles.skeletonText}>
-              <View style={[styles.skeletonLine, { backgroundColor: borderColor }]} />
-              <View style={[styles.skeletonShortLine, { backgroundColor: borderColor }]} />
+      <View style={styles.skeletonList}>
+        {[0, 1, 2].map(index => (
+          <React.Fragment key={`community-skeleton-${index}`}>
+            <View style={styles.skeletonRow}>
+              <View style={[styles.skeletonNumber, { backgroundColor: borderColor }]} />
+              <View style={styles.skeletonText}>
+                <View style={[styles.skeletonLine, { backgroundColor: fillColor }]} />
+                <View style={[styles.skeletonShortLine, { backgroundColor: fillColor }]} />
+              </View>
             </View>
-          </View>
+            {index < 2 ? (
+              <View style={[styles.separator, { backgroundColor: borderColor }]} />
+            ) : null}
+          </React.Fragment>
         ))}
       </View>
     </View>
@@ -205,7 +203,7 @@ function StateBox({
 }) {
   return (
     <View style={[styles.stateBox, { borderColor }]}>
-      <AppText preset="unifiedBody" style={[styles.stateText, { color: textColor }]}>
+      <AppText preset="bodySm" style={[styles.stateText, { color: textColor }]}>
         {title}
       </AppText>
       {onRetry ? (
@@ -215,7 +213,7 @@ function StateBox({
           style={[styles.retryButton, { backgroundColor: buttonColor ?? textColor }]}
           onPress={onRetry}
         >
-          <AppText preset="unifiedLabel" style={[styles.retryText, { color: '#FFFFFF' }]}>
+          <AppText preset="button" style={[styles.retryText, { color: '#FFFFFF' }]}>
             다시 시도
           </AppText>
         </Pressable>
@@ -233,8 +231,9 @@ const CommunitySection = memo(function CommunitySection({
   onPressAll,
 }: CommunitySectionProps) {
   const theme = useTheme();
+  const [activeTab, setActiveTab] = useState<HomeCommunityTab>('popular');
   const [state, setState] = useState<CommunitySectionState>(() => {
-    const cached = getHomeCommunityHighlightsCache();
+    const cached = getHomeCommunityHighlightsCache('popular');
     return cached
       ? { status: 'ready', items: cached.items }
       : { status: 'loading', items: [] };
@@ -248,16 +247,16 @@ const CommunitySection = memo(function CommunitySection({
     };
   }, []);
 
-  const load = useCallback((force: boolean) => {
+  const load = useCallback((tab: HomeCommunityTab, force: boolean) => {
     const requestId = ++requestSequenceRef.current;
-    const cached = getHomeCommunityHighlightsCache();
+    const cached = getHomeCommunityHighlightsCache(tab);
 
     setState({
       status: cached?.items.length ? 'ready' : 'loading',
       items: cached?.items ?? [],
     });
 
-    fetchHomeCommunityHighlights({ force })
+    fetchHomeCommunityHighlights(tab, { force })
       .then(items => {
         if (!mountedRef.current || requestId !== requestSequenceRef.current) return;
         setState({ status: 'ready', items });
@@ -271,7 +270,7 @@ const CommunitySection = memo(function CommunitySection({
   useEffect(() => {
     if (!isFocused) return;
 
-    const cached = getHomeCommunityHighlightsCache();
+    const cached = getHomeCommunityHighlightsCache(activeTab);
     if (cached?.isFresh) {
       setState({ status: 'ready', items: cached.items });
       return;
@@ -279,29 +278,144 @@ const CommunitySection = memo(function CommunitySection({
 
     // Existing stale rows remain visible during background refresh. A new
     // response can only update the active request sequence.
-    load(Boolean(cached));
-  }, [isFocused, load]);
+    load(activeTab, Boolean(cached));
+  }, [activeTab, isFocused, load]);
+
+  const handleTabPress = useCallback((tab: HomeCommunityTab) => {
+    if (tab === activeTab) return;
+
+    requestSequenceRef.current += 1;
+    const cached = getHomeCommunityHighlightsCache(tab);
+    setActiveTab(tab);
+    setState({
+      status: cached?.items.length ? 'ready' : 'loading',
+      items: cached?.items ?? [],
+    });
+  }, [activeTab]);
 
   const handleRetry = useCallback(() => {
-    load(true);
-  }, [load]);
+    load(activeTab, true);
+  }, [activeTab, load]);
 
   const borderColor = accentBorder || theme.colors.border;
   const showErrorState = state.status === 'error' && state.items.length === 0;
   const showInlineError = state.status === 'error' && state.items.length > 0;
 
   return (
-    <View
-      style={styles.section}
-      accessibilityLabel="반려인들이 주목한 이야기"
-    >
-      <View style={styles.header}>
-        <AppText preset="unifiedTitle" style={[styles.title, { color: theme.colors.textPrimary }]}>
+    <View style={styles.section} accessibilityLabel="반려인들이 주목한 이야기">
+      <View
+        style={[
+          styles.panel,
+          {
+            backgroundColor: theme.colors.surfaceElevated,
+            borderColor,
+          },
+        ]}
+      >
+        <AppText
+          preset="titleLg"
+          style={[styles.title, { color: theme.colors.textPrimary }]}
+        >
           반려인들이 주목한 이야기
         </AppText>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.pillContent}
+          accessibilityLabel="커뮤니티 카테고리 선택"
+        >
+          {HOME_COMMUNITY_TAB_OPTIONS.map(option => {
+            const isActive = activeTab === option.key;
+            return (
+              <Pressable
+                key={option.key}
+                accessibilityRole="tab"
+                accessibilityLabel={`${option.label} 탭`}
+                accessibilityState={{ selected: isActive }}
+                onPress={() => handleTabPress(option.key)}
+                style={({ pressed }) => [
+                  styles.pill,
+                  {
+                    backgroundColor: isActive
+                      ? pressed
+                        ? `${accentColor}E6`
+                        : accentColor
+                      : pressed
+                        ? accentTint
+                        : theme.colors.surfaceElevated,
+                    borderColor: isActive ? accentColor : borderColor,
+                  },
+                ]}
+              >
+                <AppText
+                  preset="tab"
+                  style={[
+                    styles.pillText,
+                    { color: isActive ? '#FFFFFF' : theme.colors.textPrimary },
+                  ]}
+                >
+                  {option.label}
+                </AppText>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+
+        <View style={styles.content}>
+          {state.status === 'loading' && state.items.length === 0 ? (
+            <LoadingState borderColor={`${accentColor}20`} fillColor={theme.colors.surface} />
+          ) : showErrorState ? (
+            <StateBox
+              title="커뮤니티를 불러오지 못했어요"
+              borderColor={borderColor}
+              textColor={theme.colors.textSecondary}
+              buttonColor={accentColor}
+              onRetry={handleRetry}
+            />
+          ) : state.items.length === 0 ? (
+            <StateBox
+              title="아직 보여드릴 이야기가 없어요"
+              borderColor={borderColor}
+              textColor={theme.colors.textSecondary}
+            />
+          ) : (
+            <View style={styles.postList}>
+              {state.items.slice(0, 3).map((post, index, posts) => (
+                <React.Fragment key={post.id}>
+                  <PostRow
+                    post={post}
+                    accentColor={accentColor}
+                    accentBorder={borderColor}
+                    position={index + 1}
+                    featured={index === 0}
+                    onPress={onPressPost}
+                  />
+                  {index < posts.length - 1 ? (
+                    <View
+                      style={[styles.separator, { backgroundColor: borderColor }]}
+                      pointerEvents="none"
+                    />
+                  ) : null}
+                </React.Fragment>
+              ))}
+            </View>
+          )}
+          {showInlineError ? (
+            <StateBox
+              title="커뮤니티를 불러오지 못했어요"
+              borderColor={borderColor}
+              textColor={theme.colors.textSecondary}
+              buttonColor={accentColor}
+              onRetry={handleRetry}
+            />
+          ) : null}
+        </View>
+
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="커뮤니티 전체 보기"
+          onPress={onPressAll}
           style={({ pressed }) => [
             styles.allButton,
             {
@@ -309,68 +423,12 @@ const CommunitySection = memo(function CommunitySection({
               backgroundColor: pressed ? `${accentColor}08` : 'transparent',
             },
           ]}
-          onPress={onPressAll}
         >
-          <AppText preset="unifiedMicro" style={[styles.allButtonText, { color: accentColor }]}>
+          <AppText preset="button" style={[styles.allButtonText, { color: accentColor }]}>
             전체 보기
           </AppText>
-          <Feather name="chevron-right" size={14} color={accentColor} />
+          <Feather name="chevron-right" size={17} color={accentColor} />
         </Pressable>
-      </View>
-
-      <View style={styles.content}>
-        {state.status === 'loading' && state.items.length === 0 ? (
-          <LoadingState borderColor={`${accentColor}20`} fillColor={theme.colors.surface} />
-        ) : showErrorState ? (
-          <StateBox
-            title="커뮤니티를 불러오지 못했어요"
-            borderColor={borderColor}
-            textColor={theme.colors.textSecondary}
-            buttonColor={accentColor}
-            onRetry={handleRetry}
-          />
-        ) : state.items.length === 0 ? (
-          <StateBox
-            title="아직 보여드릴 이야기가 없어요"
-            borderColor={borderColor}
-            textColor={theme.colors.textSecondary}
-          />
-        ) : (
-          <>
-            <PostHighlightCard
-              post={state.items[0]}
-              accentColor={accentColor}
-              accentTint={accentTint}
-              accentBorder={borderColor}
-              featured
-              onPress={onPressPost}
-            />
-            {state.items.length > 1 ? (
-              <View style={styles.supportList}>
-                {state.items.slice(1, 3).map(post => (
-                  <PostHighlightCard
-                    key={post.id}
-                    post={post}
-                    accentColor={accentColor}
-                    accentTint={accentTint}
-                    accentBorder={borderColor}
-                    featured={false}
-                    onPress={onPressPost}
-                  />
-                ))}
-              </View>
-            ) : null}
-            {showInlineError ? (
-              <StateBox
-                title="커뮤니티를 불러오지 못했어요"
-                borderColor={borderColor}
-                textColor={theme.colors.textSecondary}
-                buttonColor={accentColor}
-                onRetry={handleRetry}
-              />
-            ) : null}
-          </>
-        )}
       </View>
     </View>
   );
