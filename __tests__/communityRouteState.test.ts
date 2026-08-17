@@ -120,6 +120,22 @@ describe('community route state snapshot', () => {
     ).toBe('all');
   });
 
+  it('round-trips popular plus info without normalizing the valid combination', () => {
+    const snapshot = createCommunityRouteStateSnapshot({
+      userId: 'user-1',
+      route: { name: 'CommunityTabList' },
+      list: {
+        ...makeListSnapshot(),
+        activeFilter: 'popular',
+        activeCategory: 'info',
+      },
+      savedAt: 1_000,
+    });
+
+    expect(snapshot?.list.activeFilter).toBe('popular');
+    expect(snapshot?.list.activeCategory).toBe('info');
+  });
+
   it('whitelists detail params and never serializes unrelated route data', () => {
     const snapshot = createCommunityRouteStateSnapshot({
       userId: 'user-1',

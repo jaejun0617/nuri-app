@@ -76,6 +76,17 @@ describe('community list controls', () => {
     });
   });
 
+  it.each(['info', 'question', 'daily', 'free'] as const)(
+    'keeps the popular CTA hidden for %s category',
+    category => {
+      expect(canCreateCommunityPost('popular')).toBe(false);
+      expect(getCommunityEmptyState('popular', category)).toEqual({
+        title: '아직 인기글이 없어요',
+        showCreateCta: false,
+      });
+    },
+  );
+
   it('exposes the approved secondary categories without the legacy tips label', () => {
     expect(COMMUNITY_CATEGORY_OPTIONS).toEqual([
       { key: 'all', label: '전체' },

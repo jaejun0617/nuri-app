@@ -254,10 +254,18 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
     if (options.requestKind === 'category') categoryRequestGeneration += 1;
     if (options.requestKind === 'pageSize') pageSizeRequestGeneration += 1;
 
+    // Category transitions must never infer a new primary filter from the
+    // category control. Read the live store filter at request creation time so
+    // a rapid popular -> category tap cannot fall back to the all feed.
+    const requestFilter =
+      options.requestKind === 'category' ? get().activeFilter : options.filter;
+    const requestCategory: CommunityCategory =
+      requestFilter === 'notice' ? 'all' : options.category;
+
     const requestId = ++listRequestSequence;
     const listKey = getCommunityListKey(
-      options.filter,
-      options.category,
+      requestFilter,
+      requestCategory,
       options.pageSize,
     );
     const requestGeneration = {
@@ -279,8 +287,8 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
     set(() => ({
       listStatus: options.status,
       listErrorMessage: null,
-      activeFilter: options.filter,
-      activeCategory: options.category,
+      activeFilter: requestFilter,
+      activeCategory: requestCategory,
       pageSize: options.pageSize,
       ...(options.resetHistory
         ? {
@@ -299,8 +307,8 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
 
     try {
       const result = await fetchCommunityPosts({
-        filter: options.filter,
-        category: options.category,
+        filter: requestFilter,
+        category: requestCategory,
         cursor: options.cursor,
         limit: options.pageSize,
       });
@@ -352,8 +360,8 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
         // failure. Restart this filter at page one without exposing an empty
         // list or applying the stale page response.
         await requestListPage({
-          filter: options.filter,
-          category: options.category,
+          filter: requestFilter,
+          category: requestCategory,
           pageSize: options.pageSize,
           page: 1,
           cursor: null,

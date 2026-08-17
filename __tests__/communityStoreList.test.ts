@@ -235,6 +235,39 @@ describe('community list store pagination', () => {
     });
   });
 
+  it.each(['info', 'question', 'daily', 'free'] as const)(
+    'preserves popular filter when changing category to %s',
+    async category => {
+      mockedFetchCommunityPosts
+        .mockResolvedValueOnce({
+          items: [makePost('popular-all-1', { likeCount: 10 })],
+          nextCursor: makeCursor('popular', 30, 'popular-all-1'),
+          hasMore: true,
+        })
+        .mockResolvedValueOnce({
+          items: [makePost(`popular-${category}-1`, { likeCount: 10 })],
+          nextCursor: null,
+          hasMore: false,
+        });
+
+      await useCommunityStore.getState().fetchPosts('popular', 'all');
+      await useCommunityStore.getState().setCategory(category);
+
+      expect(useCommunityStore.getState().activeFilter).toBe('popular');
+      expect(useCommunityStore.getState().activeCategory).toBe(category);
+      expect(useCommunityStore.getState().currentPage).toBe(1);
+      expect(Object.keys(useCommunityStore.getState().cursorHistory)).toEqual([
+        `popular:${category}:30`,
+      ]);
+      expect(mockedFetchCommunityPosts).toHaveBeenLastCalledWith({
+        filter: 'popular',
+        category,
+        cursor: null,
+        limit: 30,
+      });
+    },
+  );
+
   it('ignores a stale category response after a fast category switch', async () => {
     let resolveQuestion: CommunityPostsResolver | null = null;
     let resolveInfo: CommunityPostsResolver | null = null;

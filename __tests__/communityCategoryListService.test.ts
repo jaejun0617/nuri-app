@@ -149,4 +149,23 @@ describe('community category list v2 service contract', () => {
       }),
     );
   });
+
+  it.each(['info', 'question', 'daily', 'free'] as const)(
+    'passes popular + %s to the v2 RPC without changing the filter',
+    async category => {
+      await fetchCommunityPosts({
+        filter: 'popular',
+        category,
+        limit: 30,
+      });
+
+      expect(supabase.rpc).toHaveBeenLastCalledWith(
+        'community_list_posts_v2',
+        expect.objectContaining({
+          p_filter: 'popular',
+          p_category: category,
+        }),
+      );
+    },
+  );
 });
