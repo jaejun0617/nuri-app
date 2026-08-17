@@ -16,6 +16,7 @@ import type {
   CommunityCommentStatus,
   CommunityCategory,
   CommunityListFilter,
+  CommunityListCursor,
   CommunityPageSize,
   CommunityPetRow,
   CommunityPost,
@@ -32,6 +33,7 @@ import type {
   FetchCommunityPostsParams,
   UpdateCommunityPostParams,
 } from '../../types/community';
+import { COMMUNITY_LIST_CURSOR_VERSION } from '../../types/community';
 import {
   getErrorMessage,
   getStableAppErrorCode,
@@ -67,6 +69,106 @@ type CommunityAuthorSnapshot = {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
+}
+
+function isCommunityListFilter(value: unknown): value is CommunityListFilter {
+  return value === 'all' || value === 'popular' || value === 'notice';
+}
+
+function isCommunityCategory(value: unknown): value is CommunityCategory {
+  return (
+    value === 'all' ||
+    value === 'question' ||
+    value === 'info' ||
+    value === 'daily' ||
+    value === 'free'
+  );
+}
+
+function isCommunityPageSize(value: unknown): value is CommunityPageSize {
+  return (
+    value === 30 ||
+    value === 50 ||
+    value === 100 ||
+    value === 150 ||
+    value === 200
+  );
+}
+
+function isNullableTimestamp(value: unknown): value is string | null {
+  return value === null || (typeof value === 'string' && value.length > 0);
+}
+
+function hasOnlyCursorKeys(
+  value: Record<string, unknown>,
+  keys: readonly string[],
+) {
+  const allowedKeys = new Set(keys);
+  return Object.keys(value).every(key => allowedKeys.has(key));
+}
+
+function isCommunityListCursor(value: unknown): value is CommunityListCursor {
+  if (!isRecord(value) || Array.isArray(value)) return false;
+  if (
+    value.version !== COMMUNITY_LIST_CURSOR_VERSION ||
+    !isCommunityListFilter(value.filter) ||
+    !isCommunityCategory(value.category) ||
+    !isCommunityPageSize(value.pageSize) ||
+    typeof value.createdAt !== 'string' ||
+    value.createdAt.length === 0 ||
+    typeof value.id !== 'string' ||
+    value.id.length === 0
+  ) {
+    return false;
+  }
+
+  const commonKeys = [
+    'version',
+    'filter',
+    'category',
+    'pageSize',
+    'createdAt',
+    'id',
+  ] as const;
+
+  if (value.filter === 'popular') {
+    return (
+      hasOnlyCursorKeys(value, [...commonKeys, 'likeCount']) &&
+      typeof value.likeCount === 'number' &&
+      Number.isInteger(value.likeCount)
+    );
+  }
+
+  if (value.filter === 'notice') {
+    return (
+      value.category === 'all' &&
+      hasOnlyCursorKeys(value, [...commonKeys, 'noticePublishedAt']) &&
+      isNullableTimestamp(value.noticePublishedAt)
+    );
+  }
+
+  return (
+    hasOnlyCursorKeys(value, [
+      ...commonKeys,
+      'isNotice',
+      'noticePublishedAt',
+    ]) &&
+    typeof value.isNotice === 'boolean' &&
+    isNullableTimestamp(value.noticePublishedAt)
+  );
+}
+
+function parseCommunityListCursor(value: unknown): CommunityListCursor {
+  if (!isRecord(value) || Array.isArray(value)) {
+    throw new Error('community_cursor_invalid');
+  }
+  if (value.version !== COMMUNITY_LIST_CURSOR_VERSION) {
+    throw new Error('community_cursor_version_unsupported');
+  }
+  if (!isCommunityListCursor(value)) {
+    throw new Error('community_cursor_invalid');
+  }
+  return value;
 }
 
 function isCommunityPostStatus(value: unknown): value is CommunityPostStatus {
@@ -583,40 +685,43 @@ async function fetchLikeMetaForComments(
   return { likedCommentIds, likeCountsByCommentId };
 }
 
-function decodeCommunityRpcCursor(cursor: string | null | undefined) {
+export function decodeCommunityListCursor(
+  cursor: string | null | undefined,
+): CommunityListCursor | null {
   const raw = `${cursor ?? ''}`.trim();
   if (!raw) return null;
 
+  let parsed: unknown;
   try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!isRecord(parsed) || Array.isArray(parsed)) {
-      throw new Error('community_cursor_invalid');
-    }
-    return parsed;
+    parsed = JSON.parse(raw);
   } catch {
     throw new Error('community_cursor_invalid');
   }
+
+  return parseCommunityListCursor(parsed);
 }
 
-function encodeCommunityRpcCursor(value: unknown) {
+export function encodeCommunityListCursor(value: unknown): string | null {
   if (value === null || value === undefined) return null;
-  if (!isRecord(value) || Array.isArray(value)) {
-    throw new Error('게시글 목록 페이지 정보가 올바르지 않아요.');
-  }
-  return JSON.stringify(value);
+  return JSON.stringify(parseCommunityListCursor(value));
 }
 
 export type CommunityListCursorErrorCode =
   | 'community_cursor_invalid'
   | 'community_cursor_version_unsupported';
 
-export function getCommunityListCursorErrorCode(
+export type CommunityListErrorCode =
+  | CommunityListCursorErrorCode
+  | 'community_notice_category_unsupported';
+
+export function getCommunityListErrorCode(
   error: unknown,
-): CommunityListCursorErrorCode | null {
+): CommunityListErrorCode | null {
   const stableCode = getStableAppErrorCode(error);
   if (
     stableCode === 'community_cursor_invalid' ||
-    stableCode === 'community_cursor_version_unsupported'
+    stableCode === 'community_cursor_version_unsupported' ||
+    stableCode === 'community_notice_category_unsupported'
   ) {
     return stableCode;
   }
@@ -628,15 +733,30 @@ export function getCommunityListCursorErrorCode(
   if (message.includes('community_cursor_version_unsupported')) {
     return 'community_cursor_version_unsupported';
   }
+  if (message.includes('community_notice_category_unsupported')) {
+    return 'community_notice_category_unsupported';
+  }
   return null;
 }
 
+export function getCommunityListCursorErrorCode(
+  error: unknown,
+): CommunityListCursorErrorCode | null {
+  const code = getCommunityListErrorCode(error);
+  return code === 'community_cursor_invalid' ||
+    code === 'community_cursor_version_unsupported'
+    ? code
+    : null;
+}
+
 export function getCommunityListErrorMessage(error: unknown): string {
-  switch (getCommunityListCursorErrorCode(error)) {
+  switch (getCommunityListErrorCode(error)) {
     case 'community_cursor_invalid':
       return '목록 페이지 정보가 만료되어 첫 페이지부터 다시 불러왔어요.';
     case 'community_cursor_version_unsupported':
       return '목록 페이지 정보가 변경되었어요. 첫 페이지부터 다시 시도해 주세요.';
+    case 'community_notice_category_unsupported':
+      return '공지 목록에서는 카테고리를 선택할 수 없어요.';
     default:
       return getErrorMessage(error);
   }
@@ -759,12 +879,19 @@ export async function fetchCommunityPosts(
 }> {
   const totalStartedAt = Date.now();
   const filter: CommunityListFilter = params.filter ?? 'all';
-  const category: CommunityCategory =
-    filter === 'notice' ? 'all' : params.category ?? 'all';
+  const category: CommunityCategory = params.category ?? 'all';
   const limit = params.limit ?? COMMUNITY_PAGE_SIZE;
-  const cursor = decodeCommunityRpcCursor(params.cursor ?? null);
+  const cursor = decodeCommunityListCursor(params.cursor ?? null);
+  if (
+    cursor &&
+    (cursor.filter !== filter ||
+      cursor.category !== category ||
+      cursor.pageSize !== limit)
+  ) {
+    throw new Error('community_cursor_invalid');
+  }
   const rpcStartedAt = Date.now();
-  const { data, error } = await supabase.rpc('community_list_posts_v2', {
+  const { data, error } = await supabase.rpc('community_list_posts_v3', {
     p_filter: filter,
     p_category: category,
     p_limit: limit,
@@ -776,15 +903,33 @@ export async function fetchCommunityPosts(
   if (!isRecord(data)) {
     throw new Error('게시글 목록 응답을 읽지 못했어요.');
   }
-  if (data.cursorVersion !== 3) {
+  if (data.cursorVersion !== COMMUNITY_LIST_CURSOR_VERSION) {
     throw new Error('community_cursor_version_unsupported');
+  }
+  if (
+    data.filter !== filter ||
+    data.category !== category ||
+    data.pageSize !== limit
+  ) {
+    throw new Error('community_cursor_invalid');
   }
 
   const pageRows = toCommunityPostRows(data.items);
   const hasMore = data.hasMore === true;
-  const nextCursor = encodeCommunityRpcCursor(data.nextCursor);
+  const nextCursor = encodeCommunityListCursor(data.nextCursor);
   if (hasMore && nextCursor === null) {
     throw new Error('게시글 목록 페이지 정보가 올바르지 않아요.');
+  }
+  if (nextCursor) {
+    const decodedNextCursor = decodeCommunityListCursor(nextCursor);
+    if (
+      !decodedNextCursor ||
+      decodedNextCursor.filter !== filter ||
+      decodedNextCursor.category !== category ||
+      decodedNextCursor.pageSize !== limit
+    ) {
+      throw new Error('community_cursor_invalid');
+    }
   }
 
   const [profilesStage, petsStage, currentUserStage] = await Promise.all([

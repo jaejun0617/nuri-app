@@ -69,13 +69,13 @@ function makeCursor(
   id: string,
 ) {
   return JSON.stringify({
-    version: 3,
+    version: 4,
     filter,
     category: 'all',
     pageSize,
     createdAt: '2026-08-10T00:00:00.000Z',
     id,
-    ...(filter === 'popular' ? { likeCount: 10, commentCount: 0 } : {}),
+    ...(filter === 'popular' ? { likeCount: 10 } : {}),
     ...(filter === 'notice'
       ? { noticePublishedAt: '2026-08-10T00:00:00.000Z' }
       : {}),

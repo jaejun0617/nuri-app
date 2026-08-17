@@ -33,6 +33,37 @@ export const COMMUNITY_PAGE_SIZE_OPTIONS: readonly CommunityPageSize[] = [
   200,
 ];
 export const DEFAULT_COMMUNITY_PAGE_SIZE: CommunityPageSize = 30;
+export const COMMUNITY_LIST_CURSOR_VERSION = 4 as const;
+
+type CommunityListCursorCommon = {
+  version: typeof COMMUNITY_LIST_CURSOR_VERSION;
+  category: CommunityCategory;
+  pageSize: CommunityPageSize;
+  createdAt: string;
+  id: string;
+};
+
+export type CommunityAllListCursor = CommunityListCursorCommon & {
+  filter: 'all';
+  isNotice: boolean;
+  noticePublishedAt: string | null;
+};
+
+export type CommunityPopularListCursor = CommunityListCursorCommon & {
+  filter: 'popular';
+  likeCount: number;
+};
+
+export type CommunityNoticeListCursor = CommunityListCursorCommon & {
+  filter: 'notice';
+  category: 'all';
+  noticePublishedAt: string | null;
+};
+
+export type CommunityListCursor =
+  | CommunityAllListCursor
+  | CommunityPopularListCursor
+  | CommunityNoticeListCursor;
 
 export type CommunityCommentStatus =
   | 'active'
