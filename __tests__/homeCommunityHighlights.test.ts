@@ -1,134 +1,254 @@
-import type { CommunityPost } from '../src/types/community';
+import { supabase } from '../src/services/supabase/client';
 import {
   HOME_COMMUNITY_CACHE_KEYS,
+  HOME_COMMUNITY_HIGHLIGHTS_LIMIT,
   clearHomeCommunityHighlightsCache,
+  encodeHomeCommunityHighlightsCursor,
   fetchHomeCommunityHighlights,
+  fetchHomeCommunityHighlightsPage,
 } from '../src/services/home/communityHighlights';
-import { fetchCommunityPosts } from '../src/services/supabase/community';
 
-jest.mock('../src/services/supabase/community', () => ({
-  fetchCommunityPosts: jest.fn(),
+jest.mock('../src/services/supabase/client', () => ({
+  supabase: {
+    rpc: jest.fn(),
+  },
 }));
 
-const mockedFetchCommunityPosts = fetchCommunityPosts as jest.MockedFunction<
-  typeof fetchCommunityPosts
->;
+const mockedRpc = supabase.rpc as jest.Mock;
 
-function makePost(
+function makeRawItem(
   id: string,
   likeCount: number,
-  category: CommunityPost['category'] = 'question',
-): CommunityPost {
+  category: string,
+  createdAt: string,
+) {
   return {
     id,
-    authorId: `author-${id}`,
-    authorNickname: 'QA 사용자',
-    authorAvatarUrl: null,
-    petId: null,
-    petName: null,
-    petBreed: null,
-    petSpecies: null,
-    petAgeLabel: null,
-    petAvatarUrl: null,
-    showPetAge: true,
-    title: `게시글 ${id}`,
+    user_id: `author-${id}`,
+    pet_id: null,
     content: `게시글 내용 ${id}`,
-    imagePath: null,
-    imageUrl: null,
-    imagePaths: [],
-    imageUrls: [],
-    hasImage: false,
+    title: `게시글 ${id}`,
+    image_url: null,
+    image_urls: [],
     status: 'active',
     category,
-    likeCount,
-    commentCount: 2,
-    viewCount: 0,
-    isNotice: false,
-    noticePublishedAt: null,
-    isLikedByMe: false,
-    deletedAt: null,
-    createdAt: '2026-08-17T00:00:00.000Z',
-    updatedAt: '2026-08-17T00:00:00.000Z',
+    like_count: likeCount,
+    comment_count: 0,
+    view_count: 0,
+    is_notice: false,
+    notice_published_at: null,
+    deleted_at: null,
+    created_at: createdAt,
+    updated_at: createdAt,
+    author_snapshot_nickname: 'QA 사용자',
+    author_snapshot_avatar_url: null,
+    pet_snapshot_name: null,
+    pet_snapshot_species: null,
+    pet_snapshot_breed: null,
+    pet_snapshot_age_label: null,
+    pet_snapshot_avatar_path: null,
+    show_pet_age: true,
   };
 }
 
-describe('home community highlights service', () => {
+function makeResponse(
+  category: string,
+  items: unknown[] = [],
+  nextCursor: unknown = null,
+) {
+  return {
+    data: {
+      scope: 'home_highlights',
+      items,
+      hasMore: nextCursor !== null,
+      nextCursor,
+      pageSize: HOME_COMMUNITY_HIGHLIGHTS_LIMIT,
+      category,
+      cursorVersion: 1,
+    },
+    error: null,
+  };
+}
+
+const cursor = {
+  version: 1 as const,
+  category: 'info' as const,
+  pageSize: 3 as const,
+  likeCount: 8,
+  createdAt: '2026-08-17T00:00:00.000Z',
+  id: 'post-cursor',
+};
+
+describe('home community highlights service adapter', () => {
   beforeEach(() => {
     clearHomeCommunityHighlightsCache();
-    mockedFetchCommunityPosts.mockReset();
+    mockedRpc.mockReset();
   });
 
   it.each([
-    ['popular', 'popular', 'all'],
-    ['question', 'popular', 'question'],
-    ['info', 'popular', 'info'],
-    ['daily', 'popular', 'daily'],
-    ['free', 'popular', 'free'],
-  ] as const)('%s maps to the approved popular RPC filter/category', async (tab, filter, category) => {
-    mockedFetchCommunityPosts.mockResolvedValue({
-      items: [
-        makePost('first', 42, category === 'all' ? 'question' : category),
-        // The server owns the popular threshold. Home must not re-filter this
-        // response or replace the server order with a client ranking.
-        makePost('second', 1, category === 'all' ? 'info' : category),
-        makePost('third', 18, category === 'all' ? 'daily' : category),
-        makePost('fourth', 99, category === 'all' ? 'free' : category),
-      ],
-      nextCursor: null,
-      hasMore: false,
-    });
+    ['popular', 'all'],
+    ['question', 'question'],
+    ['info', 'info'],
+    ['daily', 'daily'],
+    ['free', 'free'],
+  ] as const)('%s maps to the threshold-free Home RPC category', async (tab, category) => {
+    mockedRpc.mockResolvedValueOnce(
+      makeResponse(category, [
+        makeRawItem('high', 42, category === 'all' ? 'question' : category, '2026-08-17T00:02:00.000Z'),
+        makeRawItem('zero', 0, category === 'all' ? 'info' : category, '2026-08-17T00:01:00.000Z'),
+        makeRawItem('low', 3, category === 'all' ? 'daily' : category, '2026-08-17T00:00:00.000Z'),
+      ]),
+    );
 
     const result = await fetchHomeCommunityHighlights(tab);
 
-    expect(mockedFetchCommunityPosts).toHaveBeenCalledWith({
-      filter,
-      category,
-      limit: 30,
+    expect(mockedRpc).toHaveBeenCalledWith('community_home_highlights_v1', {
+      p_category: category,
+      p_limit: 3,
+      p_cursor: null,
     });
-    expect(result.map(post => post.id)).toEqual(['first', 'second', 'third']);
+    expect(result.map(post => post.id)).toEqual(['high', 'zero', 'low']);
+    expect(result[1]?.likeCount).toBe(0);
+    expect(mockedRpc.mock.calls.every(call => call[0] !== 'community_list_posts_v3')).toBe(true);
   });
 
-  it('keeps tab caches separate', async () => {
-    mockedFetchCommunityPosts
-      .mockResolvedValueOnce({
-        items: [makePost('popular', 20)],
-        nextCursor: null,
-        hasMore: false,
-      })
-      .mockResolvedValueOnce({
-        items: [makePost('question', 1, 'question')],
-        nextCursor: null,
-        hasMore: false,
-      });
+  it('keeps all-zero server ordering unchanged', async () => {
+    mockedRpc.mockResolvedValueOnce(
+      makeResponse('all', [
+        makeRawItem('newest', 0, 'question', '2026-08-17T00:02:00.000Z'),
+        makeRawItem('older', 0, 'info', '2026-08-17T00:01:00.000Z'),
+      ]),
+    );
+
+    const result = await fetchHomeCommunityHighlights('popular');
+
+    expect(result.map(post => post.id)).toEqual(['newest', 'older']);
+  });
+
+  it('passes and returns an isolated Home cursor v1', async () => {
+    mockedRpc.mockResolvedValueOnce(
+      makeResponse('info', [makeRawItem('next', 4, 'info', '2026-08-17T00:00:00.000Z')], cursor),
+    );
+
+    const result = await fetchHomeCommunityHighlightsPage('info', cursor);
+
+    expect(mockedRpc).toHaveBeenCalledWith('community_home_highlights_v1', {
+      p_category: 'info',
+      p_limit: 3,
+      p_cursor: cursor,
+    });
+    expect(result.nextCursor).toEqual(cursor);
+    expect(result.hasMore).toBe(true);
+  });
+
+  it('restarts from page one when a cursor belongs to another category', async () => {
+    const mixedCursor = { ...cursor, category: 'question' as const };
+    mockedRpc.mockResolvedValueOnce(makeResponse('info'));
+
+    await fetchHomeCommunityHighlightsPage('info', mixedCursor);
+
+    expect(mockedRpc).toHaveBeenCalledWith('community_home_highlights_v1', {
+      p_category: 'info',
+      p_limit: 3,
+      p_cursor: null,
+    });
+  });
+
+  it('retries once with page one for a stale server cursor', async () => {
+    mockedRpc
+      .mockResolvedValueOnce({ data: null, error: { code: 'community_cursor_invalid' } })
+      .mockResolvedValueOnce(makeResponse('info'));
+
+    await fetchHomeCommunityHighlightsPage('info', cursor);
+
+    expect(mockedRpc).toHaveBeenNthCalledWith(1, 'community_home_highlights_v1', {
+      p_category: 'info',
+      p_limit: 3,
+      p_cursor: cursor,
+    });
+    expect(mockedRpc).toHaveBeenNthCalledWith(2, 'community_home_highlights_v1', {
+      p_category: 'info',
+      p_limit: 3,
+      p_cursor: null,
+    });
+  });
+
+  it('rejects unsupported cursor versions locally to the first page', async () => {
+    mockedRpc.mockResolvedValueOnce(makeResponse('info'));
+
+    await fetchHomeCommunityHighlightsPage('info', { ...cursor, version: 2 });
+
+    expect(mockedRpc).toHaveBeenCalledWith('community_home_highlights_v1', {
+      p_category: 'info',
+      p_limit: 3,
+      p_cursor: null,
+    });
+    expect(encodeHomeCommunityHighlightsCursor({ ...cursor, version: 2 }, 'info')).toBeNull();
+  });
+
+  it('keeps category cache keys separate', async () => {
+    mockedRpc
+      .mockResolvedValueOnce(makeResponse('all', [makeRawItem('popular', 1, 'question', '2026-08-17T00:00:00.000Z')]))
+      .mockResolvedValueOnce(makeResponse('question', [makeRawItem('question', 0, 'question', '2026-08-17T00:00:00.000Z')]));
 
     await fetchHomeCommunityHighlights('popular');
     await fetchHomeCommunityHighlights('question');
 
-    expect(mockedFetchCommunityPosts).toHaveBeenCalledTimes(2);
+    expect(mockedRpc).toHaveBeenCalledTimes(2);
     expect(HOME_COMMUNITY_CACHE_KEYS.popular).toBe('home-community:popular:all');
     expect(HOME_COMMUNITY_CACHE_KEYS.question).toBe('home-community:popular:question');
-    expect(HOME_COMMUNITY_CACHE_KEYS.info).toBe('home-community:popular:info');
-    expect(HOME_COMMUNITY_CACHE_KEYS.daily).toBe('home-community:popular:daily');
-    expect(HOME_COMMUNITY_CACHE_KEYS.free).toBe('home-community:popular:free');
   });
 
-  it('deduplicates concurrent requests and serves a fresh cache without refetching', async () => {
-    let resolveRequest!: (value: Awaited<ReturnType<typeof fetchCommunityPosts>>) => void;
-    const pending = new Promise<Awaited<ReturnType<typeof fetchCommunityPosts>>>(resolve => {
+  it('deduplicates in-flight requests and serves the fresh cache', async () => {
+    let resolveRequest!: (value: ReturnType<typeof makeResponse>) => void;
+    const pending = new Promise<ReturnType<typeof makeResponse>>(resolve => {
       resolveRequest = resolve;
     });
-    mockedFetchCommunityPosts.mockReturnValueOnce(pending);
+    mockedRpc.mockReturnValueOnce(pending);
 
-    const firstRequest = fetchHomeCommunityHighlights('popular');
-    const secondRequest = fetchHomeCommunityHighlights('popular');
-    resolveRequest({ items: [makePost('cached', 20)], nextCursor: null, hasMore: false });
+    const first = fetchHomeCommunityHighlights('popular');
+    const second = fetchHomeCommunityHighlights('popular');
+    resolveRequest(makeResponse('all', [makeRawItem('cached', 0, 'question', '2026-08-17T00:00:00.000Z')]));
 
-    await expect(Promise.all([firstRequest, secondRequest])).resolves.toEqual([
-      [expect.objectContaining({ id: 'cached' })],
-      [expect.objectContaining({ id: 'cached' })],
+    await expect(Promise.all([first, second])).resolves.toEqual([
+      [expect.objectContaining({ id: 'cached', likeCount: 0 })],
+      [expect.objectContaining({ id: 'cached', likeCount: 0 })],
     ]);
     await fetchHomeCommunityHighlights('popular');
 
-    expect(mockedFetchCommunityPosts).toHaveBeenCalledTimes(1);
+    expect(mockedRpc).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not let a cleared stale response repopulate the cache', async () => {
+    let resolveOldRequest!: (value: ReturnType<typeof makeResponse>) => void;
+    const oldRequest = new Promise<ReturnType<typeof makeResponse>>(resolve => {
+      resolveOldRequest = resolve;
+    });
+    mockedRpc
+      .mockReturnValueOnce(oldRequest)
+      .mockResolvedValueOnce(makeResponse('all', [makeRawItem('fresh', 0, 'question', '2026-08-17T00:00:00.000Z')]));
+
+    const stale = fetchHomeCommunityHighlights('popular');
+    clearHomeCommunityHighlightsCache();
+    resolveOldRequest(makeResponse('all', [makeRawItem('stale', 0, 'question', '2026-08-17T00:00:00.000Z')]));
+    await stale;
+
+    const fresh = await fetchHomeCommunityHighlights('popular');
+
+    expect(fresh.map(post => post.id)).toEqual(['fresh']);
+    expect(mockedRpc).toHaveBeenCalledTimes(2);
+  });
+
+  it('preserves empty and error results for the caller retry path', async () => {
+    mockedRpc
+      .mockResolvedValueOnce(makeResponse('all'))
+      .mockRejectedValueOnce(new Error('home_highlights_network_error'))
+      .mockResolvedValueOnce(makeResponse('all', [makeRawItem('retry', 0, 'question', '2026-08-17T00:00:00.000Z')]));
+
+    await expect(fetchHomeCommunityHighlights('popular')).resolves.toEqual([]);
+    await expect(fetchHomeCommunityHighlights('popular', { force: true })).rejects.toThrow('home_highlights_network_error');
+    await expect(fetchHomeCommunityHighlights('popular', { force: true })).resolves.toEqual([
+      expect.objectContaining({ id: 'retry' }),
+    ]);
   });
 });
