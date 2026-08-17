@@ -1,9 +1,11 @@
 import React from 'react';
+import { ScrollView, StyleSheet } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
 
 import { createTheme } from '../src/app/theme/theme';
 import CommunitySection from '../src/screens/Main/components/LoggedInHome/CommunitySection';
+import { styles as communityStyles } from '../src/screens/Main/components/LoggedInHome/CommunitySection.styles';
 import type { CommunityPost } from '../src/types/community';
 import {
   fetchHomeCommunityHighlights,
@@ -13,10 +15,10 @@ import {
 jest.mock('../src/services/home/communityHighlights', () => ({
   HOME_COMMUNITY_TAB_OPTIONS: [
     { key: 'popular', label: '인기', filter: 'popular', category: 'all' },
-    { key: 'question', label: '질문', filter: 'all', category: 'question' },
-    { key: 'info', label: '정보', filter: 'all', category: 'info' },
-    { key: 'daily', label: '일상', filter: 'all', category: 'daily' },
-    { key: 'free', label: '자유', filter: 'all', category: 'free' },
+    { key: 'question', label: '질문', filter: 'popular', category: 'question' },
+    { key: 'info', label: '정보', filter: 'popular', category: 'info' },
+    { key: 'daily', label: '일상', filter: 'popular', category: 'daily' },
+    { key: 'free', label: '자유', filter: 'popular', category: 'free' },
   ],
   fetchHomeCommunityHighlights: jest.fn(),
   getHomeCommunityHighlightsCache: jest.fn(),
@@ -188,6 +190,49 @@ describe('CommunitySection', () => {
       renderer.root.find(node => node.props.accessibilityLabel === '인기 탭').props
         .accessibilityState,
     ).toEqual({ selected: true });
+    await act(async () => {
+      renderer.unmount();
+    });
+  });
+
+  it('keeps the approved title, pill, and post typography geometry', async () => {
+    mockedFetchHomeCommunityHighlights.mockResolvedValue([makePost('one')]);
+
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = renderSection();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const title = renderer.root.find(
+      node =>
+        node.props.preset === 'unifiedTitle' &&
+        node.props.children === '반려인들이 주목한 이야기',
+    );
+    const titleIcon = renderer.root.find(node => node.props.name === 'message-circle');
+    const postTitle = renderer.root.find(node => node.props.preset === 'cardTitle');
+    const horizontalPillScroll = renderer.root.find(
+      node => node.type === ScrollView && node.props.horizontal === true,
+    );
+    const pillTouch = StyleSheet.flatten(communityStyles.pillTouch);
+    const pillVisual = StyleSheet.flatten(communityStyles.pillVisual);
+    const pillText = StyleSheet.flatten(communityStyles.pillText);
+
+    expect(title.props.preset).toBe('unifiedTitle');
+    expect(titleIcon.props.color).toBe('#6D6AF8');
+    expect(titleIcon.props.accessible).toBe(false);
+    expect(postTitle.props.numberOfLines).toBe(2);
+    expect(StyleSheet.flatten(postTitle.props.style)).toEqual(
+      expect.objectContaining({ fontSize: 16, lineHeight: 22 }),
+    );
+    expect(horizontalPillScroll.props.horizontal).toBe(true);
+    expect(pillTouch.minHeight).toBe(44);
+    expect(pillVisual.minHeight).toBe(38);
+    expect(pillVisual.borderRadius).toBe(19);
+    expect(pillText.fontSize).toBe(14);
+    expect(pillText.lineHeight).toBe(20);
+
     await act(async () => {
       renderer.unmount();
     });

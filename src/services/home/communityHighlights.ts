@@ -17,10 +17,10 @@ export const HOME_COMMUNITY_HIGHLIGHTS_STALE_MS = 5 * 60 * 1000;
 
 export const HOME_COMMUNITY_TAB_OPTIONS = [
   { key: 'popular', label: '인기', filter: 'popular', category: 'all' },
-  { key: 'question', label: '질문', filter: 'all', category: 'question' },
-  { key: 'info', label: '정보', filter: 'all', category: 'info' },
-  { key: 'daily', label: '일상', filter: 'all', category: 'daily' },
-  { key: 'free', label: '자유', filter: 'all', category: 'free' },
+  { key: 'question', label: '질문', filter: 'popular', category: 'question' },
+  { key: 'info', label: '정보', filter: 'popular', category: 'info' },
+  { key: 'daily', label: '일상', filter: 'popular', category: 'daily' },
+  { key: 'free', label: '자유', filter: 'popular', category: 'free' },
 ] as const satisfies ReadonlyArray<{
   key: 'popular' | 'question' | 'info' | 'daily' | 'free';
   label: string;
@@ -32,10 +32,10 @@ export type HomeCommunityTab = (typeof HOME_COMMUNITY_TAB_OPTIONS)[number]['key'
 
 export const HOME_COMMUNITY_CACHE_KEYS: Record<HomeCommunityTab, string> = {
   popular: 'home-community:popular:all',
-  question: 'home-community:all:question',
-  info: 'home-community:all:info',
-  daily: 'home-community:all:daily',
-  free: 'home-community:all:free',
+  question: 'home-community:popular:question',
+  info: 'home-community:popular:info',
+  daily: 'home-community:popular:daily',
+  free: 'home-community:popular:free',
 };
 
 type HomeCommunityTabConfig = {
@@ -48,10 +48,10 @@ const HOME_COMMUNITY_TAB_CONFIG: Record<
   HomeCommunityTabConfig
 > = {
   popular: { filter: 'popular', category: 'all' },
-  question: { filter: 'all', category: 'question' },
-  info: { filter: 'all', category: 'info' },
-  daily: { filter: 'all', category: 'daily' },
-  free: { filter: 'all', category: 'free' },
+  question: { filter: 'popular', category: 'question' },
+  info: { filter: 'popular', category: 'info' },
+  daily: { filter: 'popular', category: 'daily' },
+  free: { filter: 'popular', category: 'free' },
 };
 
 export type HomeCommunityHighlightsCache = {
@@ -97,7 +97,7 @@ export async function fetchHomeCommunityHighlights(
   const request = fetchCommunityPosts({
     filter: query.filter,
     category: query.category,
-    // The v2 RPC accepts bounded page sizes only. Home renders at most three
+    // The v3 RPC accepts bounded page sizes only. Home renders at most three
     // rows while retaining the established minimum server page contract.
     limit: DEFAULT_COMMUNITY_PAGE_SIZE,
   })

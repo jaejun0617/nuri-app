@@ -60,11 +60,11 @@ describe('home community highlights service', () => {
 
   it.each([
     ['popular', 'popular', 'all'],
-    ['question', 'all', 'question'],
-    ['info', 'all', 'info'],
-    ['daily', 'all', 'daily'],
-    ['free', 'all', 'free'],
-  ] as const)('%s maps to the approved RPC filter/category', async (tab, filter, category) => {
+    ['question', 'popular', 'question'],
+    ['info', 'popular', 'info'],
+    ['daily', 'popular', 'daily'],
+    ['free', 'popular', 'free'],
+  ] as const)('%s maps to the approved popular RPC filter/category', async (tab, filter, category) => {
     mockedFetchCommunityPosts.mockResolvedValue({
       items: [
         makePost('first', 42, category === 'all' ? 'question' : category),
@@ -106,7 +106,10 @@ describe('home community highlights service', () => {
 
     expect(mockedFetchCommunityPosts).toHaveBeenCalledTimes(2);
     expect(HOME_COMMUNITY_CACHE_KEYS.popular).toBe('home-community:popular:all');
-    expect(HOME_COMMUNITY_CACHE_KEYS.question).toBe('home-community:all:question');
+    expect(HOME_COMMUNITY_CACHE_KEYS.question).toBe('home-community:popular:question');
+    expect(HOME_COMMUNITY_CACHE_KEYS.info).toBe('home-community:popular:info');
+    expect(HOME_COMMUNITY_CACHE_KEYS.daily).toBe('home-community:popular:daily');
+    expect(HOME_COMMUNITY_CACHE_KEYS.free).toBe('home-community:popular:free');
   });
 
   it('deduplicates concurrent requests and serves a fresh cache without refetching', async () => {

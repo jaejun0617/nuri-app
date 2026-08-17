@@ -12,26 +12,36 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 18,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   title: {
-    fontSize: 22,
-    lineHeight: 29,
-    fontWeight: '700',
+    flex: 1,
+    flexShrink: 1,
   },
   pillContent: {
     gap: 10,
     paddingRight: 2,
   },
-  pill: {
+  pillTouch: {
     minHeight: 44,
-    paddingHorizontal: 22,
-    borderRadius: 22,
+    paddingVertical: 3,
+    justifyContent: 'center',
+  },
+  pillVisual: {
+    minHeight: 38,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 19,
     borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
   pillText: {
-    fontSize: 12,
+    fontSize: 14,
     lineHeight: 20,
     fontWeight: '600',
   },
@@ -62,13 +72,13 @@ export const styles = StyleSheet.create({
     gap: 6,
   },
   featuredTitle: {
-    fontSize: 18,
-    lineHeight: 26,
-    fontWeight: '700',
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '600',
   },
   supportTitle: {
-    fontSize: 16,
-    lineHeight: 23,
+    fontSize: 15,
+    lineHeight: 21,
     fontWeight: '600',
   },
   metadata: {

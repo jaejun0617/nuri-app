@@ -118,7 +118,7 @@ const PostRow = memo(function PostRow({
 
       <View style={styles.postBody} pointerEvents="none">
         <AppText
-          preset={featured ? 'titleSm' : 'bodyStrong'}
+          preset="cardTitle"
           numberOfLines={2}
           ellipsizeMode="tail"
           style={[
@@ -312,12 +312,23 @@ const CommunitySection = memo(function CommunitySection({
           },
         ]}
       >
-        <AppText
-          preset="titleLg"
-          style={[styles.title, { color: theme.colors.textPrimary }]}
+        <View
+          style={styles.titleRow}
+          accessible
+          accessibilityRole="header"
+          accessibilityLabel="커뮤니티, 반려인들이 주목한 이야기"
         >
-          반려인들이 주목한 이야기
-        </AppText>
+          <Feather
+            name="message-circle"
+            size={20}
+            color={accentColor}
+            accessible={false}
+            importantForAccessibility="no"
+          />
+          <AppText preset="unifiedTitle" style={[styles.title, { color: theme.colors.textPrimary }]}>
+            반려인들이 주목한 이야기
+          </AppText>
+        </View>
 
         <ScrollView
           horizontal
@@ -334,29 +345,35 @@ const CommunitySection = memo(function CommunitySection({
                 accessibilityLabel={`${option.label} 탭`}
                 accessibilityState={{ selected: isActive }}
                 onPress={() => handleTabPress(option.key)}
-                style={({ pressed }) => [
-                  styles.pill,
-                  {
-                    backgroundColor: isActive
-                      ? pressed
-                        ? `${accentColor}E6`
-                        : accentColor
-                      : pressed
-                        ? accentTint
-                        : theme.colors.surfaceElevated,
-                    borderColor: isActive ? accentColor : borderColor,
-                  },
-                ]}
+                style={styles.pillTouch}
               >
-                <AppText
-                  preset="tab"
-                  style={[
-                    styles.pillText,
-                    { color: isActive ? '#FFFFFF' : theme.colors.textPrimary },
-                  ]}
-                >
-                  {option.label}
-                </AppText>
+                {({ pressed }) => (
+                  <View
+                    style={[
+                      styles.pillVisual,
+                      {
+                        backgroundColor: isActive
+                          ? pressed
+                            ? `${accentColor}E6`
+                            : accentColor
+                          : pressed
+                            ? accentTint
+                            : theme.colors.surfaceElevated,
+                        borderColor: isActive ? accentColor : borderColor,
+                      },
+                    ]}
+                  >
+                    <AppText
+                      preset="tab"
+                      style={[
+                        styles.pillText,
+                        { color: isActive ? '#FFFFFF' : theme.colors.textPrimary },
+                      ]}
+                    >
+                      {option.label}
+                    </AppText>
+                  </View>
+                )}
               </Pressable>
             );
           })}
