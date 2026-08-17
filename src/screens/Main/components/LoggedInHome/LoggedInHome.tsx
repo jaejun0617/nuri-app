@@ -176,6 +176,7 @@ import WeatherGuideHomeCard, {
 } from '../../../../components/weather/WeatherGuideHomeCard';
 import type { PetCareGuide } from '../../../../services/guides/types';
 import { styles } from './LoggedInHome.styles';
+import CommunitySection from './CommunitySection';
 
 type HomeTabNav = BottomTabNavigationProp<AppTabParamList, 'HomeTab'>;
 type Nav = CompositeNavigationProp<
@@ -3127,6 +3128,17 @@ export default function LoggedInHome() {
     });
   }, [navigation, activePetId]);
 
+  const onPressCommunityPost = useCallback(
+    (postId: string) => {
+      navigation.navigate('CommunityDetail', { postId });
+    },
+    [navigation],
+  );
+
+  const onPressCommunityAll = useCallback(() => {
+    navigation.navigate('CommunityList', { entrySource: 'home' });
+  }, [navigation]);
+
   const onPressHealthReport = useCallback(
     (focusYmd?: string) => {
       navigation.navigate('HealthReport', {
@@ -3680,6 +3692,15 @@ export default function LoggedInHome() {
             onPressRecordItem={onPressRecordItem}
             onPressRecord={onPressRecord}
             accentColor={petTheme.deep}
+          />
+
+          <CommunitySection
+            isFocused={isScreenFocused}
+            accentColor={petTheme.primary}
+            accentTint={petTheme.tint}
+            accentBorder={petTheme.border}
+            onPressPost={onPressCommunityPost}
+            onPressAll={onPressCommunityAll}
           />
 
           <TodayRecordsSection
