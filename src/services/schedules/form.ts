@@ -204,6 +204,29 @@ export function inferScheduleSubCategory(
   }
 }
 
+const HEALTH_SCHEDULE_SUBCATEGORIES: ReadonlySet<ScheduleSubCategory> = new Set([
+  'vaccine',
+  'hospital',
+  'medicine',
+  'checkup',
+]);
+
+export function resolveScheduleSubCategoryOnEdit(input: {
+  category: ScheduleCategory;
+  existingSubCategory?: ScheduleSubCategory | null;
+  otherUiKey?: ScheduleOtherUiSubCategoryKey | null;
+}): ScheduleSubCategory | null {
+  if (
+    input.category === 'health' &&
+    input.existingSubCategory &&
+    HEALTH_SCHEDULE_SUBCATEGORIES.has(input.existingSubCategory)
+  ) {
+    return input.existingSubCategory;
+  }
+
+  return inferScheduleSubCategory(input.category, input.otherUiKey);
+}
+
 export function getAutoScheduleIconKey(
   category: ScheduleCategory,
   otherUiKey?: ScheduleOtherUiSubCategoryKey | null,

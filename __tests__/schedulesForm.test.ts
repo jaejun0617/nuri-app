@@ -12,6 +12,7 @@ import {
   normalizeReminderIntervalMinutes,
   normalizeScheduleTimeInput,
   parseReminderSelection,
+  resolveScheduleSubCategoryOnEdit,
 } from '../src/services/schedules/form';
 
 describe('schedules form helpers', () => {
@@ -26,6 +27,27 @@ describe('schedules form helpers', () => {
   it('카테고리에 맞는 기본 서브카테고리를 추론한다', () => {
     expect(inferScheduleSubCategory('health')).toBe('checkup');
     expect(inferScheduleSubCategory('grooming')).toBe('bath');
+  });
+
+  it('건강 일정 수정 시 기존 세부 유형을 보존한다', () => {
+    expect(
+      resolveScheduleSubCategoryOnEdit({
+        category: 'health',
+        existingSubCategory: 'medicine',
+      }),
+    ).toBe('medicine');
+    expect(
+      resolveScheduleSubCategoryOnEdit({
+        category: 'health',
+        existingSubCategory: 'hospital',
+      }),
+    ).toBe('hospital');
+    expect(
+      resolveScheduleSubCategoryOnEdit({
+        category: 'health',
+        existingSubCategory: null,
+      }),
+    ).toBe('checkup');
   });
 
   it('카테고리와 기타 분류에 맞는 기본 아이콘을 고른다', () => {
