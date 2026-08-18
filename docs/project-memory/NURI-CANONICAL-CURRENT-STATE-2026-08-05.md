@@ -100,3 +100,11 @@
 - Remote Auth provider 상태는 `UNVERIFIED_NON_BLOCKING`이며 NURI-09 supporting read-only 확인 대상이다. 이를 Auth app-surface blocker로 다시 열지 않는다.
 - NURI-04 Timeline이 다음 단일 write closeout 대상이다.
 - NURI-12 signing 및 signed RC Auth regression은 별도 release gate로 유지한다.
+
+## 2026-08-18 Timeline closeout reconciliation
+
+- Timeline current implementation과 과거 generation/entry gate 수정이 일치하며 `TIMELINE-001_IMPLEMENTATION CLOSED`로 판정했다.
+- entry identity, entry/list generation, latest-wins stale guard, filter/category state, loading/empty/error gate, count source, scroll reset, navigation/back/detail return이 focused tests와 기존 Android evidence로 확인됐다.
+- Home totalRecords와 Timeline all count는 일기·명시적 미분류 데이터의 포함 범위가 달라질 수 있다. 이는 Timeline 구현 결함이 아니라 별도 Home count contract risk다.
+- Timeline의 current-source physical QA와 clean signed RC QA는 NURI-12 책임으로 남긴다.
+- 다음 단일 write closeout 대상은 NURI-06의 `COMMUNITY-POLICY-001`이다.

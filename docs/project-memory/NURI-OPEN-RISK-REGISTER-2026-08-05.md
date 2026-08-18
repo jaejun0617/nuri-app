@@ -18,6 +18,7 @@
 | COMMUNITY-POLICY-001 | P1 | Home highlights RPC는 public/active/non-deleted 및 author 제재·탈퇴 조건을 적용하지만 blocked-user 관계와 moderation queue의 직접 목록 제외 연결은 이번 reconciliation에서 확인되지 않았다. | NURI-09-Supabase·RLS·RPC·운영DB / NURI-06-커뮤니티·모더레이션 | UNVERIFIED_POLICY_EVIDENCE | 별도 read-only 정책 확인과 row-level negative evidence. 확인 전 moderation 없는 기능 확장 금지 |
 | RELEASE-SIGNING-001 | P1 | clean signed release APK를 만들기 위한 protected keystore password, alias, key password 공급이 현재 protected process에 없다. | NURI-12-Android·Release-QA | BLOCKED_EXTERNAL_INPUT | 승인된 signing credential supply path 확보 후 정확히 한 번 clean signed build, signer 확인, install/smoke 수행 |
 | AUTH-REMOTE-001 | P2 | Google/Kakao/Naver/Apple remote Auth Provider catalog 상태는 이번 Auth closeout에서 mutation 없이 확인하지 않았다. | NURI-09-Supabase·RLS·RPC·운영DB | UNVERIFIED_NON_BLOCKING | remote provider read-only catalog evidence. Auth app-surface closeout을 재개하지 않는다 |
+| HOME-TIMELINE-001 | P1 | Home totalRecords는 건강·병원·일기·명시적 미분류를 제외하지만 Timeline all count는 일기·미분류를 포함할 수 있어 동일 데이터의 count 의미가 달라질 수 있다. | NURI-03-메인홈·날씨·요약 / NURI-00-마스터-현황·결정·과거이력 | RELEASE_CONTRACT_REVIEW | v1.0 노출 count 정책을 명시하고, 필요 시 Home 또는 Timeline 중 한쪽의 최소 수정과 focused evidence로 닫는다 |
 
 AUTH-001의 정책은 이미 최종 확정됐다. 잔존 여부를 확인하는 주 소유는 NURI-01이며 NURI-09가 remote Provider read-only 증거를 지원하고 NURI-12가 release 회귀를 검증한다. 기존 dirty 문서의 historical Naver 표현은 이번 작업에서 수정하지 않았으며 current source of truth로 사용하지 않는다.
 
