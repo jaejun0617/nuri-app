@@ -116,3 +116,11 @@
 - block/unblock은 본인 계정의 authenticated RLS 경로만 허용한다. service-role을 앱 세션으로 사용하지 않는다.
 - anonymous public feed 요청은 현재 public feed 계약을 유지하며 개인별 block filter를 적용하지 않는다. authenticated 앱 feed는 `auth.uid()` 기준 visibility helper를 적용한다.
 - `COMMUNITY-POLICY-001`은 정책 결정 완료 후 NURI-09 targeted SQL/RLS/RPC implementation 및 negative contract test 대기 상태다.
+
+## 2026-08-18 Community block backend closeout
+
+- NURI-09 additive migration `20260818100000`과 SQL contract test는 remote/local lineage, RLS, grants, function security, Home/List mutual feed predicate까지 완료했다.
+- `COMMUNITY-POLICY-001_BACKEND`는 완료했지만 authenticated block row가 0건이다.
+- 현재 앱에는 block action UI/service가 없으므로 NURI-06 controlled negative QA를 바로 실행할 수 없다. block action integration이 선행돼야 한다.
+- Community detail read path는 Home/List predicate를 재사용하지 않으므로 detail block visibility는 별도 정책·계약으로 남긴다.
+- NURI-06은 최소 block action integration 후 controlled negative visibility QA를 수행한다. Home CommunitySection은 계속 frozen이다.
