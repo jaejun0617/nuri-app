@@ -52,7 +52,6 @@ import {
   isSocialOAuthProviderReleaseReady,
   signInWithGoogle,
   signInWithKakao,
-  signInWithNaver,
   type SocialOAuthProvider,
 } from '../../services/supabase/auth';
 import { supabase } from '../../services/supabase/client';
@@ -334,9 +333,8 @@ function isValidEmail(value: string) {
 
 const SHOW_KAKAO_OAUTH = isSocialOAuthProviderReleaseReady('kakao');
 const SHOW_GOOGLE_OAUTH = isSocialOAuthProviderReleaseReady('google');
-const SHOW_NAVER_OAUTH = isSocialOAuthProviderReleaseReady('naver');
 const SHOW_SOCIAL_OAUTH_SECTION =
-  SHOW_KAKAO_OAUTH || SHOW_GOOGLE_OAUTH || SHOW_NAVER_OAUTH;
+  SHOW_KAKAO_OAUTH || SHOW_GOOGLE_OAUTH;
 
 async function signUpWithTimeout(email: string, password: string, timeoutMs = 12000) {
   const signUpPromise = supabase.auth.signUp({
@@ -542,9 +540,6 @@ export default function SignUpScreen() {
             break;
           case 'kakao':
             await signInWithKakao();
-            break;
-          case 'naver':
-            await signInWithNaver();
             break;
         }
       } catch (error: unknown) {
@@ -824,38 +819,6 @@ export default function SignUpScreen() {
                     onSocialPress('google').catch(() => {});
                   }}
                   textColor="#334155"
-                />
-              ) : null}
-
-              {SHOW_NAVER_OAUTH ? (
-                <SocialButton
-                  backgroundColor="#03C75A"
-                  badge={
-                    <View
-                      style={[
-                        styles.googleBadge,
-                        {
-                          backgroundColor: '#03C75A',
-                          borderColor: '#03C75A',
-                        },
-                      ]}
-                    >
-                      <AppText preset="unifiedLabel" style={{ color: '#FFFFFF', fontWeight: '900' }}>
-                        N
-                      </AppText>
-                    </View>
-                  }
-                  borderColor="#03C75A"
-                  disabled={socialDisabled}
-                  label={
-                    oauthSubmitting === 'naver'
-                      ? '네이버로 연결 중...'
-                      : '네이버로 시작하기'
-                  }
-                  onPress={() => {
-                    onSocialPress('naver').catch(() => {});
-                  }}
-                  textColor="#FFFFFF"
                 />
               ) : null}
 

@@ -1,5 +1,17 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-08-18 AUTH-001 current app/source closeout
+
+- [x] Auth policy is Google ON, Kakao ON, Naver completely removed, Apple OFF.
+- [x] Current Auth user surface/runtime/route/navigation branch/helper/config/env/dependency/feature flag/fallback has no Naver entry.
+- [x] Google/Kakao OAuth start, callback, session persistence, profile fetch, and onboarding contracts are preserved.
+- [x] Remote Provider catalog is a non-blocking NURI-09 read-only follow-up.
+- [ ] Signed RC Google/Kakao regression remains pending NURI-12 because release signing is externally blocked.
+
+Current Auth source of truth is the repository code and the latest Auth domain/console documents. The dated records below are historical release evidence and must not be used to restore or reintroduce a removed provider.
+
+## Historical release evidence
+
 ## 2026-07-23 날씨 상세 지표 낮/밤 색상 release gate
 
 - [x] 체감·습도·바람·자외선 지표의 낮 색상 `#111827` 적용.

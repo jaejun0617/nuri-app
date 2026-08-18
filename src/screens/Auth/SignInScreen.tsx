@@ -56,7 +56,6 @@ import {
   isSocialOAuthProviderReleaseReady,
   signInWithGoogle,
   signInWithKakao,
-  signInWithNaver,
   type SocialOAuthProvider,
 } from '../../services/supabase/auth';
 import {
@@ -184,21 +183,6 @@ const GoogleBadgeMark = memo(function GoogleBadgeMark() {
   );
 });
 
-const NaverBadgeMark = memo(function NaverBadgeMark() {
-  return (
-    <View
-      style={[
-        styles.googleBadge,
-        { backgroundColor: '#03C75A', borderColor: '#03C75A' },
-      ]}
-    >
-      <AppText preset="unifiedLabel" style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '900' }}>
-        N
-      </AppText>
-    </View>
-  );
-});
-
 type SocialConsentNoticeProps = {
   linkColor: string;
   onPressDocument: (documentId: LegalDocumentId) => void;
@@ -261,9 +245,8 @@ const SocialConsentNotice = memo(function SocialConsentNotice({
 
 const SHOW_KAKAO_OAUTH = isSocialOAuthProviderReleaseReady('kakao');
 const SHOW_GOOGLE_OAUTH = isSocialOAuthProviderReleaseReady('google');
-const SHOW_NAVER_OAUTH = isSocialOAuthProviderReleaseReady('naver');
 const SHOW_SOCIAL_OAUTH_SECTION =
-  SHOW_KAKAO_OAUTH || SHOW_GOOGLE_OAUTH || SHOW_NAVER_OAUTH;
+  SHOW_KAKAO_OAUTH || SHOW_GOOGLE_OAUTH;
 
 function formatScheduledDeletionDate(value: string | null) {
   const parts = getKstDateParts(value);
@@ -373,9 +356,6 @@ export default function SignInScreen() {
             break;
           case 'kakao':
             await signInWithKakao();
-            break;
-          case 'naver':
-            await signInWithNaver();
             break;
         }
       } catch (error: unknown) {
@@ -704,24 +684,6 @@ export default function SignInScreen() {
                   onSocialPress('google').catch(() => {});
                 }}
                 textColor="#334155"
-              />
-            ) : null}
-
-            {SHOW_NAVER_OAUTH ? (
-              <SocialButton
-                backgroundColor="#03C75A"
-                badge={<NaverBadgeMark />}
-                borderColor="#03C75A"
-                disabled={socialDisabled}
-                label={
-                  oauthSubmitting === 'naver'
-                    ? '네이버로 연결 중...'
-                    : '네이버로 시작하기'
-                }
-                onPress={() => {
-                  onSocialPress('naver').catch(() => {});
-                }}
-                textColor="#FFFFFF"
               />
             ) : null}
 

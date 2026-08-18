@@ -1,8 +1,9 @@
 # Social Provider Console Setup Guide
 
 작성일: 2026-05-10
-최신 콘솔 확인: 2026-05-27 PO 완료 전제
-최신 Android/runtime readiness 확인: 2026-05-28
+최종 갱신: 2026-08-18
+최신 콘솔 확인: 2026-05-27 PO 완료 전제 (historical)
+최신 Android/runtime readiness 확인: 2026-08-18
 
 ## 1. 문서 목적
 
@@ -10,7 +11,7 @@
 
 이 문서는 앱 코드 구현 문서가 아니다. social login app-side 구현은 재오픈하지 않는다.
 
-2026-05-28 PO 최종 결정 기준 V1.0 public social login provider는 Google + Kakao만 사용한다. Naver OAuth는 V1.0 public surface에서 soft disable한다. Supabase `custom:naver` provider와 관련 코드는 릴리즈 직전 안정성을 위해 hard delete하지 않으며, 완전 삭제는 V1.1 또는 출시 후 cleanup 작업으로 분리한다.
+2026-08-18 AUTH-001 closeout 기준 public social login provider는 Google + Kakao만 사용한다. Naver Auth는 app/source에서 완전 제거하며 soft-disable, hidden entrypoint, callback alias, provider helper를 유지하지 않는다.
 
 ## 2. 현재 social login 상태
 
@@ -18,22 +19,25 @@
 |---|---|---|---|---|---|---|---|
 | Google | closed | enabled | PO completed | closed | closed | completed | closed |
 | Kakao | closed | enabled | PO completed | closed | closed | completed | closed |
-| Naver | implemented but hidden | `custom:naver` 유지 | V1.0 제외 | partial-success | closed | smoke 중단 | V1.1 또는 출시 후 재검토 |
 
 현재 repo/remote 공개 Auth endpoint 기준 증거:
 
 - Google app-side: `signInWithGoogle()` exists and uses Supabase OAuth.
 - Kakao app-side: `signInWithKakao()` exists and uses Supabase OAuth.
-- Naver app-side: `signInWithNaver()` exists and maps app provider `naver` to Supabase provider id `custom:naver`, but the V1.0 public entrypoint is force-closed by the readiness flag.
-- Google Supabase provider: `/auth/v1/authorize?provider=google` returns HTTP 302 to Google authorize.
-- Kakao Supabase provider: `/auth/v1/authorize?provider=kakao` returns HTTP 302 to Kakao authorize.
-- Naver Supabase custom provider: `/auth/v1/authorize?provider=custom:naver` returns HTTP 302 to the Naver authorize endpoint.
+- Google/Kakao Supabase provider authorize paths remain the existing OAuth web flow.
 - App callback: `nuri://auth/callback`.
 - Password reset callback: `nuri://auth/reset`.
-- App readiness flags default to `true` for Google/Kakao and `false` for Naver. Naver is soft disabled for V1.0 even if the implementation remains in the codebase.
+- App readiness flags are defined only for Google/Kakao.
 - Apple: v1.0 no-op.
 
-### 2026-05-27 Android/runtime readiness closeout
+현재 Auth app/source 판정:
+
+- Naver user-facing/runtime/route/helper/config/env/dependency/feature/fallback: 0
+- Google/Kakao callback, session restore, profile/onboarding: preserved
+- Remote Provider catalog: NURI-09 read-only follow-up
+- Signed RC regression: NURI-12 follow-up
+
+### 2026-05-27 Android/runtime readiness closeout (historical)
 
 | Provider | Supabase runtime authorize | Android SignIn 버튼 | Callback 실패/취소 fallback | 현재 V1.0 분류 |
 |---|---|---|---|---|
@@ -43,7 +47,7 @@
 
 Android 실기기 `R5CY613NMSY` / `SM_S937N`, `com.nuri.app` 기준으로 Google/Kakao는 web flow, 앱 복귀, session 생성까지 성공했다. Naver는 2026-05-27 web flow 진입 후 Naver 페이지의 `pet_nuri 서비스 설정 오류`로 session 생성 전 차단됐고, 2026-05-28 PO 결정에 따라 V1.0 public surface에서 soft disable한다.
 
-### 2026-05-11 직접 콘솔 확인 결과
+### 2026-05-11 직접 콘솔 확인 결과 (historical)
 
 | Provider | 직접 확인한 화면 | 결과 | 남은 PO action | Smoke 판정 |
 |---|---|---|---|---|
@@ -62,7 +66,7 @@ Android 실기기 `R5CY613NMSY` / `SM_S937N`, `com.nuri.app` 기준으로 Google
 - Supabase Additional Redirect URLs에는 `nuri://auth/callback`을 등록한다.
 - OAuth 성공 후 session 복구는 기존 `OAuthCallbackScreen -> completeOAuthCallbackSession -> Splash/AppProviders` 흐름을 사용한다.
 - 신규 social user의 profile/nickname/pet onboarding 분기는 기존 email/password auth boot contract를 재사용한다.
-- Provider activation readiness는 public boolean flag로 제어한다. 이 flag는 secret이 아니며, provider credential 입력 후 release build config에서만 true로 전환한다.
+- Provider activation readiness는 Google/Kakao public boolean flag로 제어한다. 이 flag는 secret이 아니다.
 
 ## 3-1. Provider activation-ready 점검표
 
@@ -70,7 +74,6 @@ Android 실기기 `R5CY613NMSY` / `SM_S937N`, `com.nuri.app` 기준으로 Google
 |---|---|---|---|---|---|---|---|
 | Google | 입력 완료 전제 | enabled | `EXPO_PUBLIC_ENABLE_GOOGLE_OAUTH=true` | 노출 | closed | 없음 | closed |
 | Kakao | 입력 완료 전제 | enabled | `EXPO_PUBLIC_ENABLE_KAKAO_OAUTH=true` | 노출 | closed | 없음 | closed |
-| Naver | 입력 완료 전제, 서비스 설정 오류 관찰 | `custom:naver` 유지 | `EXPO_PUBLIC_ENABLE_NAVER_OAUTH=false` | 미노출 | closed | V1.1 또는 출시 후 재검토 | V1.0 제외 |
 
 Readiness flag source:
 
@@ -84,7 +87,7 @@ Readiness contract:
 - flag false: provider 함수가 직접 호출되어도 `provider_setup_required`로 안전하게 중단한다.
 - flag true: 기존 `signInWithOAuth` web flow를 그대로 실행한다.
 - client secret은 flag나 app env에 넣지 않는다.
-- Naver는 V1.0에서 `flag false`와 별도 public-surface guard로 닫는다. `signInWithNaver()`와 `custom:naver` provider는 삭제하지 않는다.
+- Naver Auth readiness flag와 public-surface guard는 제거됐다. Naver Auth direct-call/helper 경로도 유지하지 않는다.
 
 ## 3-2. Google 테스트 계정 / My First Project 격리 결정
 
@@ -273,53 +276,6 @@ Android OAuth Client ID가 필요한 경우 package name은 `com.nuri.app`으로
 - 이메일 제공이 불가능한 계정은 Supabase Kakao provider의 email-less user 허용 정책과 함께 PO가 결정한다.
 - token, provider token, full callback URL with code를 로그에 남기지 않는다.
 
-## 6. Naver credential 발급 절차
-
-### Naver 발급 대상
-
-- Client ID
-- Client Secret
-- Callback URL
-- Service URL
-- Supabase custom provider 설정값
-
-### Naver Developers에서 해야 할 일
-
-1. Naver Developers에 접속한다.
-2. 내 애플리케이션 메뉴에서 애플리케이션을 등록한다.
-3. 애플리케이션 이름을 NURI 기준으로 설정한다.
-4. 사용 API에서 네이버 로그인을 선택한다.
-5. 제공 정보 scope에서 profile/email 제공 항목을 선택한다.
-6. Service URL을 운영 기준 URL로 설정한다.
-7. Callback URL에 Supabase Auth callback URL을 등록한다.
-8. Client ID를 확인한다.
-9. Client Secret을 확인한다.
-10. Supabase custom OAuth provider `custom:naver`에 Client ID / Secret을 입력한다.
-11. 앱 redirect는 `nuri://auth/callback`으로 유지하되, Naver console Callback URL은 Supabase Auth callback URL로 둔다.
-12. 앱 코드에는 Naver Client Secret을 넣지 않는다.
-
-### Naver custom OAuth 설정값
-
-| 항목 | 값 |
-|---|---|
-| Supabase provider id | `custom:naver` |
-| Provider type | OAuth2 |
-| Authorization URL | `https://nid.naver.com/oauth2.0/authorize` |
-| Token URL | `https://nid.naver.com/oauth2.0/token` |
-| UserInfo URL | `https://openapi.naver.com/v1/nid/me` |
-| Scope | `email` 중심. Naver Developers 제공 정보 설정과 일치시킨다. |
-| App redirect | `nuri://auth/callback` |
-| Provider callback | `https://<PROJECT_REF>.supabase.co/auth/v1/callback` |
-
-### Naver 보안/API 방어 기준
-
-- Client Secret은 앱 코드에 넣지 않는다.
-- Client Secret은 유출 의심 시 Naver Developers에서 재발급한다.
-- Callback URL이 Naver console, Supabase provider, 앱 callback 흐름과 불일치하면 로그인 실패로 분류한다.
-- state/CSRF/PKCE 방어는 Supabase OAuth flow에 위임한다.
-- 앱 로그에 token, provider token, authorization code, full callback URL을 남기지 않는다.
-- Service URL과 Callback URL은 운영 값 기준으로 관리한다.
-
 ## 7. Supabase provider 설정 절차
 
 ### 공통 Supabase 설정
@@ -327,13 +283,12 @@ Android OAuth Client ID가 필요한 경우 package name은 `com.nuri.app`으로
 1. Supabase Dashboard > Authentication > Providers로 이동한다.
 2. Google provider를 enable하려면 Google Web OAuth client ID와 client secret을 입력한다.
 3. Kakao provider를 enable하려면 Kakao REST API Key와 Kakao Login Client Secret을 입력한다.
-4. Naver는 Custom OAuth Providers에서 `custom:naver`를 사용한다.
-5. Supabase Auth callback URL은 `https://<PROJECT_REF>.supabase.co/auth/v1/callback` 형식이다.
-6. Site URL은 운영 홈페이지 또는 운영 landing/support URL 기준으로 둔다.
-7. Additional Redirect URLs에 `nuri://auth/callback`을 등록한다.
-8. local callback과 production callback은 분리해서 관리한다.
-9. Android deep link intent-filter는 `nuri://auth/callback`을 수신한다.
-10. Provider client secret은 Supabase Dashboard에만 입력한다.
+4. Supabase Auth callback URL은 `https://<PROJECT_REF>.supabase.co/auth/v1/callback` 형식이다.
+5. Site URL은 운영 홈페이지 또는 운영 landing/support URL 기준으로 둔다.
+6. Additional Redirect URLs에 `nuri://auth/callback`을 등록한다.
+7. local callback과 production callback은 분리해서 관리한다.
+8. Android deep link intent-filter는 `nuri://auth/callback`을 수신한다.
+9. Provider client secret은 Supabase Dashboard에만 입력한다.
 
 ### Provider별 Supabase 입력값
 
@@ -341,7 +296,6 @@ Android OAuth Client ID가 필요한 경우 package name은 `com.nuri.app`으로
 |---|---|---|---|---|
 | Google | `google` | Google Cloud Web OAuth Client ID | Google Cloud Web OAuth Client Secret | `https://<PROJECT_REF>.supabase.co/auth/v1/callback` |
 | Kakao | `kakao` | Kakao REST API Key | Kakao Login Client Secret | `https://<PROJECT_REF>.supabase.co/auth/v1/callback` |
-| Naver | `custom:naver` | Naver Developers Client ID | Naver Developers Client Secret | `https://<PROJECT_REF>.supabase.co/auth/v1/callback` |
 
 ## 8. Redirect / callback 정합성
 
@@ -361,20 +315,20 @@ Android OAuth Client ID가 필요한 경우 package name은 `com.nuri.app`으로
 
 ## 9. 보안/API 방어 기준
 
-| 항목 | Google | Kakao | Naver | 판정 |
+| 항목 | Google | Kakao | 판정 |
 |---|---|---|---|---|
-| client secret 앱 코드 미노출 | closed | closed | closed | closed |
-| `.env.example` secret 미노출 | closed | closed | closed | closed |
-| provider token 로그 없음 | closed | closed | closed | closed |
-| access/refresh token 로그 없음 | closed | closed | closed | closed |
-| OAuth error 로그 민감정보 마스킹 | closed | closed | closed | closed |
-| redirect URI allowlist 명확 | ready-for-PO-action | ready-for-PO-action | PO action required | ready-for-PO-action |
-| 앱 deep link callback 정합 | closed | closed | closed | closed |
-| password reset callback과 분리 | closed | closed | closed | closed |
-| social login 약관/개인정보 고지 UI 존재 | closed | closed | closed | closed |
-| email 없는 social account 처리 정책 | ready-for-PO-action | ready-for-PO-action | ready-for-PO-action | ready-for-PO-action |
-| 중복 탭 방지 | closed | closed | closed | closed |
-| 느린 네트워크 실패 처리 | closed | closed | closed | closed |
+| client secret 앱 코드 미노출 | closed | closed | closed |
+| `.env.example` secret 미노출 | closed | closed | closed |
+| provider token 로그 없음 | closed | closed | closed |
+| access/refresh token 로그 없음 | closed | closed | closed |
+| OAuth error 로그 민감정보 마스킹 | closed | closed | closed |
+| redirect URI allowlist 명확 | ready-for-PO-action | ready-for-PO-action | ready-for-PO-action |
+| 앱 deep link callback 정합 | closed | closed | closed |
+| password reset callback과 분리 | closed | closed | closed |
+| social login 약관/개인정보 고지 UI 존재 | closed | closed | closed |
+| email 없는 social account 처리 정책 | ready-for-PO-action | ready-for-PO-action | ready-for-PO-action |
+| 중복 탭 방지 | closed | closed | closed |
+| 느린 네트워크 실패 처리 | closed | closed | closed |
 
 근거:
 
@@ -383,7 +337,6 @@ Android OAuth Client ID가 필요한 경우 package name은 `com.nuri.app`으로
 - `supabase.auth.exchangeCodeForSession()` 또는 `supabase.auth.setSession()` 후 기존 session storage 계약을 사용한다.
 - `.env.example`에는 public boolean readiness flag만 있고, social provider client secret placeholder는 없다.
 - Google/Kakao provider는 현재 external provider disabled 상태라 PO credential 입력 전 OAuth success smoke 대상이 아니다.
-- Naver `custom:naver`는 Supabase Dashboard에서 Enabled 상태다. 단, Naver Developers에는 Android 환경만 확인되었으므로 Supabase OAuth용 web callback 등록을 PO action으로 남긴다.
 - Client secret은 앱 코드와 문서에 기록하지 않는다.
 
 ## 10. Provider별 체크리스트
@@ -420,18 +373,6 @@ Android OAuth Client ID가 필요한 경우 package name은 `com.nuri.app`으로
 - [ ] account_email 필요 시 Biz App 조건 충족
 - [ ] Supabase Kakao provider enable
 
-### Naver
-
-- [x] Naver Developers 앱 준비
-- [x] Client ID 존재 확인
-- [ ] Client Secret은 Supabase Dashboard 입력 상태만 유지하고 문서에는 기록하지 않음
-- [ ] Supabase OAuth용 Service URL 설정
-- [ ] PC/모바일 웹 Callback URL에 Supabase Auth callback URL 등록
-- [x] 연락처 이메일 주소 필수 제공 항목 설정
-- [ ] 개인정보처리방침 URL 등록
-- [x] Supabase `custom:naver` provider enable 상태 유지
-- [ ] UserInfo response mapping이 Supabase custom provider 설정과 맞는지 운영 smoke에서 확인
-
 ## 11. PO가 준비해야 하는 값
 
 | Provider | 값 | 입력 위치 | 문서/채팅 기록 여부 |
@@ -442,8 +383,6 @@ Android OAuth Client ID가 필요한 경우 package name은 `com.nuri.app`으로
 | Google | release SHA-1/SHA-256 | Google Android OAuth client | 값 기록 가능하나 secret 아님 |
 | Kakao | REST API Key | Supabase Kakao provider Client ID | 값 기록 금지 |
 | Kakao | Kakao Login Client Secret | Supabase Kakao provider Client Secret | 값 기록 금지 |
-| Naver | Client ID | Supabase `custom:naver` Client ID | 값 기록 금지 |
-| Naver | Client Secret | Supabase `custom:naver` Client Secret | 값 기록 금지 |
 
 PO는 secret 값을 Codex 채팅이나 repository에 붙여넣지 않고 Supabase Dashboard에 직접 입력한다. 입력 완료 여부만 작업자에게 전달한다.
 
@@ -453,7 +392,6 @@ PO는 secret 값을 Codex 채팅이나 repository에 붙여넣지 않고 Supabas
 |---|---|
 | Google | Supabase Google provider enabled, client id/secret 입력, Google Authorized redirect URI 등록, `nuri://auth/callback` redirect allow list 등록, `EXPO_PUBLIC_ENABLE_GOOGLE_OAUTH=true` |
 | Kakao | Supabase Kakao provider enabled, REST API Key/Client Secret 입력, Kakao Login ON, Kakao Redirect URI 등록, 동의항목 설정, `EXPO_PUBLIC_ENABLE_KAKAO_OAUTH=true` |
-| Naver | V1.0 smoke 대상 아님. V1.1 또는 출시 후 재검토 시 Supabase `custom:naver` 유지, Naver Client ID/Secret, Callback URL, profile/email 제공 항목을 다시 확인하고 public-surface guard 해제까지 함께 검토한다. |
 
 Smoke 성공 기준:
 
@@ -488,17 +426,6 @@ Smoke 성공 기준:
 6. `EXPO_PUBLIC_ENABLE_KAKAO_OAUTH=true`로 Kakao readiness flag를 전환한다.
 7. Android smoke를 수행한다.
 
-### Naver 활성화 절차
-
-Naver OAuth는 V1.0 public surface에서 soft disable한다. 아래 절차는 V1.1 또는 출시 후 운영 설정 안정화 시점에만 다시 사용한다.
-
-1. Naver Developers에서 Client ID/Secret을 확인한다.
-2. Naver Callback URL이 Supabase Auth callback URL인지 맞춘다.
-3. Supabase Dashboard > Authentication > Providers > Custom OAuth `custom:naver` 설정을 유지한다.
-4. `custom:naver` provider를 enable한다.
-5. V1.1 재검토 시점에만 `EXPO_PUBLIC_ENABLE_NAVER_OAUTH=true`와 public-surface guard 해제를 함께 검토한다.
-6. Android smoke를 수행한다.
-
 주의:
 
 - secret 값은 Codex 채팅에 붙여넣지 않는다.
@@ -511,7 +438,7 @@ Naver OAuth는 V1.0 public surface에서 soft disable한다. 아래 절차는 V1
 
 ## 14. 다음 액션
 
-Google/Kakao OAuth는 2026-05-27 Android 실기기 성공 smoke로 닫았다. Naver는 `custom:naver` Supabase authorize와 Android web flow 진입은 닫혔지만 Naver Developers `pet_nuri 서비스 설정 오류`로 session 생성 전 차단됐다. 2026-05-28 PO 결정에 따라 V1.0에서는 Naver를 public surface에서 soft disable하고 Google + Kakao만 사용한다. Naver hard delete와 운영 설정 재검토는 V1.1 또는 출시 후 cleanup 작업으로 분리한다. Secret/client secret/token 전체값은 계속 문서와 채팅에 기록하지 않는다.
+Google/Kakao OAuth는 기존 Android 성공 smoke와 callback/session 계약을 유지한다. Naver 관련 운영/QA 기록은 historical evidence로만 보존하며 current Auth 실행 절차에는 포함하지 않는다. Secret/client secret/token 전체값은 계속 문서와 채팅에 기록하지 않는다.
 
 ## 공식 문서 기준
 
@@ -522,5 +449,3 @@ Google/Kakao OAuth는 2026-05-27 Android 실기기 성공 smoke로 닫았다. Na
 - Google OAuth 2.0 redirect URI: https://developers.google.com/identity/protocols/oauth2/web-server?hl=ko
 - Kakao Login prerequisite: https://developers.kakao.com/docs/en/kakaologin/prerequisite
 - Kakao Login REST API: https://developers.kakao.com/docs/latest/en/kakaologin/rest-api
-- Naver Login development guide: https://developers.naver.com/docs/login/devguide/devguide.md
-- Naver Login API spec: https://developers.naver.com/docs/login/api/api.md

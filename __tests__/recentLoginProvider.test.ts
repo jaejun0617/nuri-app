@@ -46,7 +46,7 @@ describe('recent login provider', () => {
     expect(normalizeRecentLoginProvider('email')).toBe('email');
     expect(normalizeRecentLoginProvider('google')).toBe('google');
     expect(normalizeRecentLoginProvider('kakao')).toBe('kakao');
-    expect(normalizeRecentLoginProvider('naver')).toBeNull();
+    expect(normalizeRecentLoginProvider('unsupported')).toBeNull();
     expect(normalizeRecentLoginProvider('apple')).toBeNull();
   });
 

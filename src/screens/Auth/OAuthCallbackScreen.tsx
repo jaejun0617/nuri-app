@@ -33,10 +33,9 @@ function readParam(value: string | string[] | undefined): string {
 }
 
 function parseProvider(value: string): SocialOAuthProvider | null {
-  if (value === 'google' || value === 'kakao' || value === 'naver') {
+  if (value === 'google' || value === 'kakao') {
     return value;
   }
-  if (value === 'custom:naver') return 'naver';
   return null;
 }
 

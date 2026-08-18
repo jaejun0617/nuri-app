@@ -10,7 +10,6 @@ import { isValidPasswordFormat } from './account';
 import {
   ENABLE_GOOGLE_OAUTH,
   ENABLE_KAKAO_OAUTH,
-  ENABLE_NAVER_OAUTH,
 } from './socialOAuthConfig';
 
 export const APP_URL_SCHEME = 'nuri';
@@ -18,7 +17,6 @@ export const PASSWORD_RESET_REDIRECT_URL = `${APP_URL_SCHEME}://auth/reset`;
 export const OAUTH_CALLBACK_REDIRECT_URL = `${APP_URL_SCHEME}://auth/callback`;
 
 const EMAIL_RULE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const NAVER_OAUTH_PROVIDER_ID = 'custom:naver';
 
 type BuiltInOAuthProvider = Parameters<
   typeof supabase.auth.signInWithOAuth
@@ -32,14 +30,13 @@ type SupabaseOAuthCredentials = Omit<
   provider: SupabaseOAuthProvider;
 };
 
-export type SocialOAuthProvider = 'google' | 'kakao' | 'naver';
+export type SocialOAuthProvider = 'google' | 'kakao';
 
 const SOCIAL_OAUTH_PROVIDER_READINESS: Readonly<
   Record<SocialOAuthProvider, boolean>
 > = {
   google: ENABLE_GOOGLE_OAUTH,
   kakao: ENABLE_KAKAO_OAUTH,
-  naver: ENABLE_NAVER_OAUTH,
 };
 
 const SUPABASE_PROVIDER_BY_SOCIAL_PROVIDER: Readonly<
@@ -47,7 +44,6 @@ const SUPABASE_PROVIDER_BY_SOCIAL_PROVIDER: Readonly<
 > = {
   google: 'google',
   kakao: 'kakao',
-  naver: NAVER_OAUTH_PROVIDER_ID,
 };
 
 type OAuthErrorCode =
@@ -129,8 +125,6 @@ export function getOAuthProviderLabel(provider: SocialOAuthProvider): string {
       return 'Google';
     case 'kakao':
       return '카카오';
-    case 'naver':
-      return '네이버';
   }
 }
 
@@ -213,10 +207,6 @@ export function signInWithGoogle(): Promise<void> {
 
 export function signInWithKakao(): Promise<void> {
   return signInWithOAuthProvider('kakao');
-}
-
-export function signInWithNaver(): Promise<void> {
-  return signInWithOAuthProvider('naver');
 }
 
 export async function completeOAuthCallbackSession(
