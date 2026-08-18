@@ -153,3 +153,13 @@
 - NURI-05 current-source Android QA는 protected signing input 부족으로 NURI-12에 위임한다. 기존 Android evidence는 feature evidence로만 재사용하며 final signed RC QA와 섞지 않는다.
 - Activity·칭호 화면은 현재 도달 가능하지만 v1.0 필수 범위가 아니며 `DEFER_TO_V1_1`로 분리한다. Timeline, Weather Activity Record, Walk POI는 각 소유 Room 범위를 유지한다.
 - NURI-05는 `RELEASE_CLOSEOUT_COMPLETE`이며 다음 독립 release triage 대상은 NURI-07 알림·운영메시지다.
+
+## 2026-08-19 Notifications and operational messages release closeout
+
+- current app local/origin HEAD: `e56cd1cf61a7dcc2eb89b5a66578d21a91798357`; NURI-07 stale response guard와 회귀 테스트가 push됐다.
+- Notification Center의 user notification/announcement 목록, 읽음·dismiss, loading/empty/error/retry/refresh, 재진입과 comment target fallback을 확인했다.
+- 최신 요청 우선, mutation revision, unmount/session 전환 후 늦은 응답 폐기 결함을 최소 수정과 focused tests로 닫았다. focused tests 5 suites/20 tests, TypeScript, 변경 범위 ESLint가 통과했다.
+- Schedule local reminder는 구현되어 있으나 current-source Android QA는 NURI-12 signing 이후 수행한다. Notification Center와 local reminder Android evidence는 final signed RC와 구분한다.
+- Remote Push provider, token 발급, broadcast/segment/send는 v1 정책상 비활성이다. 실제 Push enablement은 v1.1 이후 별도 승인 범위이며 이번 closeout에서 변경하지 않았다.
+- 50건 window를 넘는 unread count 표시 차이와 Community block 이후 in-app notification suppression 정책은 비차단 residual/policy review로 유지한다.
+- NURI-07은 `CLOSED_WITH_NON_BLOCKING_RESIDUAL`이며 다음 독립 release triage 대상은 NURI-08 장소·산책·펫여행이다.
