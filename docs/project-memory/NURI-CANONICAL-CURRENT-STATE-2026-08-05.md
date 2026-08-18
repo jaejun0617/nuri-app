@@ -121,7 +121,16 @@
 
 - NURI-09 additive migration `20260818100000`과 SQL contract test는 remote/local lineage, RLS, grants, function security, Home/List mutual feed predicate까지 완료했다.
 - `COMMUNITY-POLICY-001_BACKEND`는 완료했지만 authenticated block row가 0건이다.
-- 현재 앱에는 block action UI/service가 없으므로 NURI-06 controlled negative QA를 바로 실행할 수 없다. block action integration이 선행돼야 한다.
 - Community detail read path는 Home/List predicate를 재사용하지 않으므로 detail block visibility는 별도 정책·계약으로 남긴다.
-- NURI-06 block action integration은 `fcf4cdd`에서 완료됐지만 QA-A/QA-B controlled fixture와 cross-account runtime evidence가 아직 없다.
-- NURI-06은 승인된 QA-A/QA-B fixture를 확보한 뒤 controlled negative visibility QA를 수행한다. Home CommunitySection은 계속 frozen이다.
+- NURI-06 block action integration은 `fcf4cdd`에서 완료됐고, 사용자 차단·차단 해제·차단 사용자 관리·feed cache invalidation 경로를 구현했다.
+
+## 2026-08-18 Community block controlled visibility closeout
+
+- current local/origin HEAD: `3a400919e32f0392b650e3d39aa9246ecbb19943`; QA 실행 자체는 code change 없이 진행됐다.
+- QA-A/B/C의 authenticated identity/profile/role/read 계약과 block path read가 통과했다.
+- A→B 및 B→A 각각의 단방향 relation에서 Home/List의 상호 비노출, unblock 후 양방향 재노출, unrelated C의 지속 노출을 controlled QA로 확인했다.
+- block relation은 최종 0/0으로 정리됐고, 새 marker 3개는 soft-hide되어 active/public 잔류가 없다. 기존 fixture와 이전 marker는 변경하지 않았다.
+- `COMMUNITY-POLICY-001_BACKEND`, `COMMUNITY-POLICY-001_HOME_LIST`, `COMMUNITY-BLOCK-ACTION-001_IMPLEMENTATION`, `CONTROLLED_BLOCK_VISIBILITY_QA`는 완료다.
+- Home 대상 게시글은 `p_limit=3` ranking에서 관찰되지 않았으므로 Home target runtime의 직접 관찰은 미확인이다. 이는 ranking 변경이나 실패 증거가 아닌 비차단 관찰 공백이다.
+- Android block action UI QA와 clean signed RC QA는 NURI-12 책임으로 남긴다. Detail direct-read block 정책은 `COMMUNITY-DETAIL-001` 별도 정책 검토로 유지한다.
+- Home CommunitySection은 계속 `FEATURE_COMPLETE/FROZEN`이며 다음 단일 closeout 대상은 NURI-10 관리자 운영자 QA다.
