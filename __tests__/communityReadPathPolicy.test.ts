@@ -22,6 +22,7 @@ const { supabase } = jest.requireMock('../src/services/supabase/client') as {
 };
 
 import {
+  CommunityCommentDeleteError,
   CommunityDetailReadError,
   deleteCommunityComment,
   fetchCommunityPostById,
@@ -129,38 +130,57 @@ describe('community public read path policy', () => {
     );
   });
 
-  it('댓글 삭제는 legacy schema error에서도 hard delete fallback을 호출하지 않는다', async () => {
-    const hardDelete = jest.fn();
-    const eq = jest.fn(() =>
-      Promise.resolve({
-        data: null,
-        error: {
-          code: 'PGRST204',
-          message: 'deleted_at column missing',
-        },
+  it('댓글 삭제는 protected soft-delete RPC와 comment id만 사용한다', async () => {
+    supabase.rpc.mockResolvedValue({ data: true, error: null });
+
+    await expect(deleteCommunityComment('comment-1')).resolves.toBe(true);
+
+    expect(supabase.rpc).toHaveBeenCalledWith(
+      'community_soft_delete_comment_v1',
+      { p_comment_id: 'comment-1' },
+    );
+    expect(supabase.from).not.toHaveBeenCalled();
+  });
+
+  it('community_comment_delete_forbidden은 내부 RPC/RLS 메시지를 노출하지 않고 stable error로 매핑한다', async () => {
+    supabase.rpc.mockResolvedValue({
+      data: null,
+      error: {
+        code: '42501',
+        message: 'community_comment_delete_forbidden',
+      },
+    });
+
+    await expect(deleteCommunityComment('comment-1')).rejects.toEqual(
+      expect.objectContaining<Partial<CommunityCommentDeleteError>>({
+        code: 'community_comment_delete_forbidden',
+        message: '이 댓글을 삭제할 권한이 없어요.',
       }),
     );
-    const update = jest.fn(() => ({ eq }));
+    expect(supabase.from).not.toHaveBeenCalled();
+  });
 
-    supabase.from.mockImplementation((table: string) => {
-      if (table === 'comments') {
-        return {
-          update,
-          delete: hardDelete,
-        };
-      }
-      throw new Error(`Unexpected table write: ${table}`);
+  it('generic RPC error는 delete failure로 매핑하고 direct UPDATE fallback을 호출하지 않는다', async () => {
+    supabase.rpc.mockResolvedValue({
+      data: null,
+      error: { code: 'PGRST002', message: 'temporary rpc failure' },
     });
 
-    await expect(deleteCommunityComment('comment-1')).rejects.toMatchObject({
-      code: 'PGRST204',
-    });
+    await expect(deleteCommunityComment('comment-1')).rejects.toEqual(
+      expect.objectContaining<Partial<CommunityCommentDeleteError>>({
+        code: 'community_comment_delete_failed',
+      }),
+    );
+    expect(supabase.from).not.toHaveBeenCalled();
+  });
 
-    expect(update).toHaveBeenCalledWith({
-      status: 'deleted',
-      deleted_at: expect.any(String),
-    });
-    expect(eq).toHaveBeenCalledWith('id', 'comment-1');
-    expect(hardDelete).not.toHaveBeenCalled();
+  it('RPC가 true가 아닌 응답을 반환하면 성공으로 처리하지 않는다', async () => {
+    supabase.rpc.mockResolvedValue({ data: false, error: null });
+
+    await expect(deleteCommunityComment('comment-1')).rejects.toEqual(
+      expect.objectContaining<Partial<CommunityCommentDeleteError>>({
+        code: 'community_comment_delete_failed',
+      }),
+    );
   });
 });

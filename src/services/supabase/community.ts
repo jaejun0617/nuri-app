@@ -68,6 +68,36 @@ export class CommunityDetailReadError extends Error {
   }
 }
 
+export type CommunityCommentDeleteErrorCode =
+  | 'community_comment_delete_forbidden'
+  | 'community_comment_delete_failed';
+
+export class CommunityCommentDeleteError extends Error {
+  readonly code: CommunityCommentDeleteErrorCode;
+
+  constructor(code: CommunityCommentDeleteErrorCode) {
+    super(
+      code === 'community_comment_delete_forbidden'
+        ? '이 댓글을 삭제할 권한이 없어요.'
+        : '댓글을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요.',
+    );
+    this.name = 'CommunityCommentDeleteError';
+    this.code = code;
+  }
+}
+
+function isCommunityCommentDeleteForbidden(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const record = error as Record<string, unknown>;
+  const code = record.code;
+  const message = record.message;
+  return (
+    code === '42501' &&
+    typeof message === 'string' &&
+    message.includes('community_comment_delete_forbidden')
+  );
+}
+
 type CommunityPostViewRecordRow = {
   counted?: boolean | null;
   view_count?: number | null;
@@ -1410,15 +1440,25 @@ export async function createCommunityComment(
   );
 }
 
-export async function deleteCommunityComment(commentId: string) {
-  const deletedAt = new Date().toISOString();
-  const { error } = await supabase
-    .from('comments')
-    .update({ status: 'deleted', deleted_at: deletedAt })
-    .eq('id', commentId);
+export async function deleteCommunityComment(commentId: string): Promise<true> {
+  const { data, error } = await supabase.rpc(
+    'community_soft_delete_comment_v1',
+    { p_comment_id: commentId },
+  );
 
-  if (error) throw error;
-  return deletedAt;
+  if (error) {
+    throw new CommunityCommentDeleteError(
+      isCommunityCommentDeleteForbidden(error)
+        ? 'community_comment_delete_forbidden'
+        : 'community_comment_delete_failed',
+    );
+  }
+
+  if (data !== true) {
+    throw new CommunityCommentDeleteError('community_comment_delete_failed');
+  }
+
+  return true;
 }
 
 export async function toggleCommunityCommentLike(

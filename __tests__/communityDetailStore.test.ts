@@ -1,5 +1,6 @@
 import type { CommunityComment, CommunityPost } from '../src/types/community';
 import {
+  deleteCommunityComment,
   fetchCommunityComments,
   fetchCommunityPostById,
 } from '../src/services/supabase/community';
@@ -9,6 +10,7 @@ jest.mock('../src/services/supabase/community', () => ({
   ...jest.requireActual('../src/services/supabase/community'),
   fetchCommunityComments: jest.fn(),
   fetchCommunityPostById: jest.fn(),
+  deleteCommunityComment: jest.fn(),
   fetchCommunityPosts: jest.fn().mockResolvedValue({
     items: [],
     nextCursor: null,
@@ -21,6 +23,9 @@ const mockedFetchCommunityComments = fetchCommunityComments as jest.MockedFuncti
 >;
 const mockedFetchCommunityPostById = fetchCommunityPostById as jest.MockedFunction<
   typeof fetchCommunityPostById
+>;
+const mockedDeleteCommunityComment = deleteCommunityComment as jest.MockedFunction<
+  typeof deleteCommunityComment
 >;
 
 function makePost(id: string, authorId = `author-${id}`): CommunityPost {
@@ -89,6 +94,7 @@ describe('community detail protected read gate', () => {
   beforeEach(() => {
     mockedFetchCommunityPostById.mockReset();
     mockedFetchCommunityComments.mockReset();
+    mockedDeleteCommunityComment.mockReset();
     useCommunityStore.getState().clearAll();
   });
 
@@ -151,5 +157,67 @@ describe('community detail protected read gate', () => {
 
     expect(useCommunityStore.getState().commentsByPostId[postA.id]).toBeUndefined();
     expect(useCommunityStore.getState().commentsByPostId[postB.id]).toBeUndefined();
+  });
+
+  function seedCommentState(post: CommunityPost, comment: CommunityComment) {
+    useCommunityStore.setState({
+      posts: [post],
+      postsById: { [post.id]: post },
+      detailStatusByPostId: { [post.id]: 'ready' },
+      commentsByPostId: { [post.id]: [comment] },
+      commentsStatusByPostId: { [post.id]: 'ready' },
+      commentEntitiesById: { [comment.id]: comment },
+      topLevelCommentIdsByPostId: { [post.id]: [comment.id] },
+      replyCommentIdsByParentId: {},
+      latestCommentByPostId: { [post.id]: comment },
+      latestCommentStatusByPostId: { [post.id]: 'ready' },
+    });
+  }
+
+  it('owner delete 성공 후에만 comment state와 count를 제거한다', async () => {
+    const post = makePost('delete-post');
+    const comment = makeComment(post.id);
+    seedCommentState(post, comment);
+    mockedDeleteCommunityComment.mockResolvedValue(true);
+
+    await useCommunityStore.getState().removeComment(comment.id, post.id);
+
+    expect(mockedDeleteCommunityComment).toHaveBeenCalledWith(comment.id);
+    expect(useCommunityStore.getState().commentsByPostId[post.id]).toEqual([]);
+    expect(useCommunityStore.getState().commentEntitiesById[comment.id]).toBeUndefined();
+    expect(useCommunityStore.getState().postsById[post.id]?.commentCount).toBe(0);
+  });
+
+  it('delete failure와 forbidden은 comment state를 성공 상태로 바꾸지 않는다', async () => {
+    const post = makePost('failed-delete-post');
+    const comment = makeComment(post.id);
+    seedCommentState(post, comment);
+    const error = new Error('forbidden');
+    mockedDeleteCommunityComment.mockRejectedValue(error);
+
+    await expect(
+      useCommunityStore.getState().removeComment(comment.id, post.id),
+    ).rejects.toBe(error);
+
+    expect(useCommunityStore.getState().commentsByPostId[post.id]).toEqual([comment]);
+    expect(useCommunityStore.getState().commentEntitiesById[comment.id]).toEqual(comment);
+    expect(useCommunityStore.getState().postsById[post.id]?.commentCount).toBe(0);
+  });
+
+  it('삭제 성공 뒤 늦은 comments 응답이 삭제 comment를 재삽입하지 않는다', async () => {
+    const post = makePost('stale-delete-post');
+    const comment = makeComment(post.id);
+    seedCommentState(post, comment);
+    const staleComments = deferred<CommunityComment[]>();
+    mockedFetchCommunityComments.mockReturnValueOnce(staleComments.promise);
+    mockedDeleteCommunityComment.mockResolvedValue(true);
+
+    const commentsLoad = useCommunityStore.getState().fetchPostComments(post.id);
+    await useCommunityStore.getState().removeComment(comment.id, post.id);
+    staleComments.resolve([comment]);
+    await commentsLoad;
+
+    expect(useCommunityStore.getState().commentsByPostId[post.id]).toEqual([]);
+    expect(useCommunityStore.getState().commentEntitiesById[comment.id]).toBeUndefined();
   });
 });

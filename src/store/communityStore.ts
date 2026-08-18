@@ -1366,6 +1366,12 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
     },
 
     removeComment: async (commentId, postId) => {
+      await deleteCommunityComment(commentId);
+
+      // Invalidate an in-flight comments read before updating local state. A
+      // late response must not reinsert a comment the protected RPC deleted.
+      communityCommentsRequestSequence += 1;
+
       set(prev => {
         const currentComments = prev.commentsByPostId[postId] ?? [];
         const target = prev.commentEntitiesById[commentId] ?? null;
@@ -1469,12 +1475,6 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
         };
       });
 
-      try {
-        await deleteCommunityComment(commentId);
-      } catch (error) {
-        await get().fetchPostComments(postId);
-        throw error;
-      }
     },
 
     reportContent: async (
