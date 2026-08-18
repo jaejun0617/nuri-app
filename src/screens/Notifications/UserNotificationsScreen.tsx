@@ -35,6 +35,7 @@ import {
   getNotificationCardGestureIntent,
   shouldCaptureNotificationCardGesture,
 } from '../../services/notifications/gesturePolicy';
+import { createNotificationRequestGuard } from '../../services/notifications/notificationRequestGuard';
 import { getBrandedErrorMeta } from '../../services/app/errors';
 import { showToast } from '../../store/uiStore';
 
@@ -269,23 +270,55 @@ export default function UserNotificationsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const notificationRequestGuardRef = useRef(createNotificationRequestGuard());
+  const notificationDataRevisionRef = useRef(0);
+  const mountedRef = useRef(true);
 
   const unreadCount = useMemo(
     () => items.filter(item => !item.readAt).length,
     [items],
   );
 
+  useEffect(() => {
+    const requestGuard = notificationRequestGuardRef.current;
+    mountedRef.current = true;
+    requestGuard.activate();
+    return () => {
+      mountedRef.current = false;
+      requestGuard.deactivate();
+    };
+  }, []);
+
   const load = useCallback(async (mode: 'initial' | 'refresh' = 'initial') => {
+    const requestGuard = notificationRequestGuardRef.current;
+    const requestId = requestGuard.begin();
+    const dataRevisionAtStart = notificationDataRevisionRef.current;
     if (mode === 'initial') setLoading(true);
     if (mode === 'refresh') setRefreshing(true);
     setErrorMessage(null);
     try {
       const nextItems = await fetchUserNotifications(50);
+      if (
+        !mountedRef.current ||
+        !requestGuard.isCurrent(requestId) ||
+        notificationDataRevisionRef.current !== dataRevisionAtStart
+      ) {
+        return;
+      }
+      notificationDataRevisionRef.current += 1;
       setItems(nextItems);
     } catch (error) {
+      if (
+        !mountedRef.current ||
+        !requestGuard.isCurrent(requestId) ||
+        notificationDataRevisionRef.current !== dataRevisionAtStart
+      ) {
+        return;
+      }
       const meta = getBrandedErrorMeta(error, 'generic');
       setErrorMessage(meta.message);
     } finally {
+      if (!mountedRef.current || !requestGuard.isCurrent(requestId)) return;
       setLoading(false);
       setRefreshing(false);
     }
@@ -313,6 +346,8 @@ export default function UserNotificationsScreen() {
 
     if (item.readAt) return;
     const optimisticReadAt = new Date().toISOString();
+    const mutationRevision = notificationDataRevisionRef.current + 1;
+    notificationDataRevisionRef.current = mutationRevision;
     setItems(prev =>
       prev.map(current =>
         current.id === item.id && current.source === item.source
@@ -324,9 +359,17 @@ export default function UserNotificationsScreen() {
     try {
       await markUserNotificationRead({ id: item.id, source: item.source });
     } catch (error) {
+      if (
+        !mountedRef.current ||
+        notificationDataRevisionRef.current !== mutationRevision
+      ) {
+        return;
+      }
       setItems(prev =>
         prev.map(current =>
-          current.id === item.id && current.source === item.source
+          current.id === item.id &&
+          current.source === item.source &&
+          current.readAt === optimisticReadAt
             ? { ...current, readAt: null }
             : current,
         ),
@@ -343,6 +386,8 @@ export default function UserNotificationsScreen() {
         next.delete(getNotificationKey(item));
         return next;
       });
+      const mutationRevision = notificationDataRevisionRef.current + 1;
+      notificationDataRevisionRef.current = mutationRevision;
       setItems(prev =>
         prev.filter(
           current =>
@@ -353,6 +398,12 @@ export default function UserNotificationsScreen() {
       try {
         await dismissUserNotification({ id: item.id, source: item.source });
       } catch (error) {
+        if (
+          !mountedRef.current ||
+          notificationDataRevisionRef.current !== mutationRevision
+        ) {
+          return;
+        }
         setItems(prev => {
           const exists = prev.some(
             current =>
@@ -370,12 +421,20 @@ export default function UserNotificationsScreen() {
   const onDismissAllNotifications = useCallback(async () => {
     if (items.length === 0) return;
     const previousItems = items;
+    const mutationRevision = notificationDataRevisionRef.current + 1;
+    notificationDataRevisionRef.current = mutationRevision;
     setExpandedItemKeys(new Set());
     setItems([]);
 
     try {
       await dismissAllUserNotifications();
     } catch (error) {
+      if (
+        !mountedRef.current ||
+        notificationDataRevisionRef.current !== mutationRevision
+      ) {
+        return;
+      }
       setItems(previousItems);
       const meta = getBrandedErrorMeta(error, 'generic');
       showToast({ tone: 'error', title: meta.title, message: meta.message });
