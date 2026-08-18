@@ -25,6 +25,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import AppText from '../../app/ui/AppText';
 import WaveText from '../../components/common/WaveText';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
+import { normalizeDateInput } from '../../components/date-picker/datePickerUtils';
 import WeightLogEntrySheet from '../../components/health/WeightLogEntrySheet';
 import PhotoAddCard from '../../components/media/PhotoAddCard';
 import PetMemorialFields from '../../components/pets/PetMemorialFields';
@@ -110,12 +111,12 @@ function scheduleIdleTask(task: () => void, timeout = 180) {
 }
 
 function normalizeYmdOrNull(raw: string): string | null {
-  const value = raw.trim().replace(/\./g, '-');
-  if (!value) return null;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+  const normalized = normalizeDateInput(raw);
+  if (!raw.trim()) return null;
+  if (!normalized) {
     throw new Error('날짜 형식은 YYYY.MM.DD 또는 YYYY-MM-DD 입니다.');
   }
-  return value;
+  return normalized;
 }
 
 function normalizeWeightOrNull(raw: string): number | null {

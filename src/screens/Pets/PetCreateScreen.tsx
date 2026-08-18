@@ -82,6 +82,7 @@ import {
   PET_REPRESENTATIVE_SPECIES_OPTIONS,
   type PetRepresentativeSpeciesKey,
 } from '../../services/pets/species';
+import { normalizeDateInput } from '../../components/date-picker/datePickerUtils';
 import {
   createPet,
   fetchMyPets,
@@ -125,45 +126,9 @@ function formatYmdDigits(raw: string): string {
 }
 
 function normalizeYmdOrNull(raw: string): string | null {
-  const value = raw.trim();
-  if (!value) return null;
-
-  let year = '';
-  let month = '';
-  let day = '';
-
-  const separatedMatch = value.match(/^(\d{4})\D+(\d{1,2})\D+(\d{1,2})$/);
-  if (separatedMatch) {
-    year = separatedMatch[1];
-    month = separatedMatch[2].padStart(2, '0');
-    day = separatedMatch[3].padStart(2, '0');
-  } else {
-    const digits = value.replace(/\D/g, '');
-    if (digits.length !== 8) {
-      throw new Error(
-        '날짜는 20111028 또는 2011-10-28 형식으로 입력해 주세요.',
-      );
-    }
-    year = digits.slice(0, 4);
-    month = digits.slice(4, 6);
-    day = digits.slice(6, 8);
-  }
-
-  const normalized = `${year}-${month}-${day}`;
-  const date = new Date(`${normalized}T00:00:00`);
-  if (Number.isNaN(date.getTime())) {
-    throw new Error('올바른 날짜를 입력해 주세요.');
-  }
-
-  const [yearNum, monthNum, dayNum] = normalized.split('-').map(Number);
-  if (
-    date.getFullYear() !== yearNum ||
-    date.getMonth() + 1 !== monthNum ||
-    date.getDate() !== dayNum
-  ) {
-    throw new Error('올바른 날짜를 입력해 주세요.');
-  }
-
+  const normalized = normalizeDateInput(raw);
+  if (!raw.trim()) return null;
+  if (!normalized) throw new Error('올바른 날짜를 입력해 주세요.');
   return normalized;
 }
 

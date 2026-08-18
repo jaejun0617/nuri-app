@@ -57,7 +57,8 @@ function toDatePartsFromDate(date: Date): DateParts {
 }
 
 function parseStringDate(value: string): DateParts | null {
-  const normalized = value.trim().replace(/[./]/g, '-');
+  const trimmed = value.trim();
+  const normalized = trimmed.replace(/[./\s]+/g, '-');
   if (!normalized) return null;
 
   const separated = normalized.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
@@ -69,18 +70,15 @@ function parseStringDate(value: string): DateParts | null {
     };
   }
 
-  const digits = normalized.replace(/\D/g, '');
-  if (digits.length === 8) {
+  if (/^\d{8}$/.test(trimmed)) {
     return {
-      year: Number(digits.slice(0, 4)),
-      month: Number(digits.slice(4, 6)),
-      day: Number(digits.slice(6, 8)),
+      year: Number(trimmed.slice(0, 4)),
+      month: Number(trimmed.slice(4, 6)),
+      day: Number(trimmed.slice(6, 8)),
     };
   }
 
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return toDatePartsFromDate(date);
+  return null;
 }
 
 export function parseDateInputParts(value: string): DateParts | null {
@@ -125,4 +123,10 @@ export function validateDateParts(value: DateParts) {
   }
 
   return null;
+}
+
+export function normalizeDateInput(value: string): string | null {
+  const parts = parseDateInputParts(value);
+  if (!parts || validateDateParts(parts)) return null;
+  return formatDateParts(parts);
 }

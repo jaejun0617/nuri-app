@@ -4,6 +4,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import {
@@ -202,23 +203,10 @@ function toConstraintParts(value: Date | string | null | undefined) {
 }
 
 function formatDirectDateInput(raw: string) {
-  const normalized = raw.trim().replace(/[./]/g, '-');
-  if (normalized.includes('-')) {
-    const [yearRaw = '', monthRaw = '', dayRaw = ''] = normalized.split('-');
-    const year = yearRaw.replace(/\D/g, '').slice(0, 4);
-    const month = monthRaw.replace(/\D/g, '').slice(0, 2);
-    const day = dayRaw.replace(/\D/g, '').slice(0, 2);
-
-    let result = year;
-    if (normalized.includes('-') || month) result += `-${month}`;
-    if (normalized.split('-').length >= 3 || day) result += `-${day}`;
-    return result.slice(0, 10);
-  }
-
-  const digits = normalized.replace(/\D/g, '').slice(0, 8);
-  if (digits.length <= 4) return digits;
-  if (digits.length <= 6) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
-  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
+  // Keep separators and partial values exactly as entered. Re-grouping digits
+  // while typing turns `1996-6-6` into `1996-66` and can move the cursor;
+  // normalization belongs to the shared parser when the user confirms.
+  return raw.replace(/[^\d\s./-]/g, '').slice(0, 10);
 }
 
 function clampToConstraints(
@@ -348,6 +336,7 @@ function DatePickerModalBase({
     formatDateParts(initialParts),
   );
   const [directInputError, setDirectInputError] = useState<string | null>(null);
+  const directInputEditingRef = useRef(false);
   const [timeSelection, setTimeSelection] = useState(() =>
     parseTimeValue(timeValue),
   );
@@ -364,6 +353,7 @@ function DatePickerModalBase({
     setValue(nextInitialParts);
     setDirectInputValue(formatDateParts(nextInitialParts));
     setDirectInputError(null);
+    directInputEditingRef.current = false;
     setTimeSelection(parseTimeValue(timeValue));
   }, [
     effectiveMaxYear,
@@ -381,7 +371,7 @@ function DatePickerModalBase({
   }, [onChange, value, visible]);
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible || directInputEditingRef.current) return;
     setDirectInputValue(formatDateParts(value));
     setDirectInputError(null);
   }, [value, visible]);
@@ -412,6 +402,7 @@ function DatePickerModalBase({
 
   const moveMonth = useCallback(
     (delta: number) => {
+      directInputEditingRef.current = false;
       setValue(prev =>
         clampToConstraints(
           addMonths(prev, delta),
@@ -429,6 +420,7 @@ function DatePickerModalBase({
     (next: DateParts) => {
       if (disabled) return;
       if (!isDateSelectable(next)) return;
+      directInputEditingRef.current = false;
       setValue(
         clampToConstraints(
           next,
@@ -463,7 +455,9 @@ function DatePickerModalBase({
         return null;
       }
 
+      directInputEditingRef.current = false;
       setDirectInputError(null);
+      setDirectInputValue(formatDateParts(result.parts));
       setValue(result.parts);
       return result.parts;
     },
@@ -472,24 +466,13 @@ function DatePickerModalBase({
 
   const handleDirectInputChange = useCallback(
     (text: string) => {
+      directInputEditingRef.current = true;
       const nextValue = formatDirectDateInput(text);
       setDirectInputValue(nextValue);
-      if (nextValue.length === 10) {
-        applyDirectInput(nextValue);
-        return;
-      }
       setDirectInputError(null);
     },
-    [applyDirectInput],
+    [],
   );
-
-  const handleDirectInputBlur = useCallback(() => {
-    if (directInputValue.length === 10) {
-      applyDirectInput(directInputValue);
-      return;
-    }
-    setDirectInputError('날짜를 YYYY-MM-DD 형식으로 입력해 주세요.');
-  }, [applyDirectInput, directInputValue]);
 
   const handleConfirm = useCallback(() => {
     const directParts = applyDirectInput(directInputValue);
@@ -786,7 +769,6 @@ function DatePickerModalBase({
                         : theme.colors.border,
                     },
                   ]}
-                  onBlur={handleDirectInputBlur}
                   onChangeText={handleDirectInputChange}
                 />
                 {directInputError ? (
