@@ -141,4 +141,15 @@
 - `ADMIN-001`은 `CLOSED_WITH_NON_BLOCKING_RESIDUAL`이다. operator access, non-admin denial, protected route, user/reports/moderation, notification-safe path, hospital contract, audit/undo, secret exclusion을 확인했다.
 - production mutation, bulk mutation, hard delete, broadcast, actual push는 실행하지 않았다.
 - MFA enrollment/recovery, external monitoring/custom domain, Guides CMS production write smoke, hospital operator fixture QA, protected-route 원래 target 보존은 비차단 residual이다. 필요 시 별도 후속 작업으로 분리하며 v1.0 blocker로 승격하지 않는다.
-- 다음 단일 closeout은 아직 활성화하지 않았으며, NURI-05 일정·건강·활동의 v1.0 노출 범위를 release triage한다. NURI-12 signing blocker는 계속 독립적으로 격리한다.
+- NURI-12 signing blocker는 계속 독립적으로 격리한다.
+
+## 2026-08-18 Schedule, Health, Activity release closeout
+
+- current app local/origin HEAD: `a2685d42297e0c6fb84d539c801fa787ffbdad10`; NURI-05 commit `a2685d4`가 push됐다.
+- Schedule v1 범위는 목록·상세·생성·수정·삭제·완료·날짜/시간·반복·local reminder이며 implementation은 통과했다.
+- Health v1 범위는 HealthReport records/weight/report와 건강 기록, 체중, 병원·약 일정이며 implementation 및 data integrity는 통과했다.
+- 건강 일정 편집에서 `medicine/hospital/vaccine` subtype이 `checkup`으로 덮어써지던 데이터 의미 손실을 최소 수정과 회귀 테스트로 닫았다.
+- focused tests 5 suites/31 tests, TypeScript, 변경 범위 ESLint가 통과했다. full Jest와 controlled mutation은 실행하지 않았다.
+- NURI-05 current-source Android QA는 protected signing input 부족으로 NURI-12에 위임한다. 기존 Android evidence는 feature evidence로만 재사용하며 final signed RC QA와 섞지 않는다.
+- Activity·칭호 화면은 현재 도달 가능하지만 v1.0 필수 범위가 아니며 `DEFER_TO_V1_1`로 분리한다. Timeline, Weather Activity Record, Walk POI는 각 소유 Room 범위를 유지한다.
+- NURI-05는 `RELEASE_CLOSEOUT_COMPLETE`이며 다음 독립 release triage 대상은 NURI-07 알림·운영메시지다.
