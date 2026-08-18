@@ -230,6 +230,12 @@ export type CommunityListStatus =
   | 'loadingMore'
   | 'error';
 
+export type CommunityBlockedUser = {
+  userId: string;
+  nickname: string;
+  blockedAt: string;
+};
+
 export type CommunityDetailStatus =
   | 'idle'
   | 'loading'

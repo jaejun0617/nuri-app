@@ -58,6 +58,7 @@ import CommunityListScreen from '../screens/Community/CommunityListScreen';
 import CommunityDetailScreen from '../screens/Community/CommunityDetailScreen';
 import CommunityCreateScreen from '../screens/Community/CommunityCreateScreen';
 import CommunityEditScreen from '../screens/Community/CommunityEditScreen';
+import CommunityBlockedUsersScreen from '../screens/Community/CommunityBlockedUsersScreen';
 import RecordCreateScreen from '../screens/Records/RecordCreateScreen';
 import UserNotificationsScreen from '../screens/Notifications/UserNotificationsScreen';
 import NuriRankingScreen from '../screens/Ranking/NuriRankingScreen';
@@ -226,6 +227,7 @@ export type RootStackParamList = {
   };
   CommunityCreate: undefined;
   CommunityEdit: { postId: string };
+  CommunityBlockedUsers: undefined;
   UserNotifications: { entrySource?: ScreenEntrySource } | undefined;
   NuriRanking: { entrySource?: ScreenEntrySource } | undefined;
   RecordCreate:
@@ -466,6 +468,15 @@ export default function RootNavigator() {
         options={{
           headerShown: true,
           headerTitle: '게시글 수정',
+          header: renderCommunityHeader,
+        }}
+      />
+      <Stack.Screen
+        name="CommunityBlockedUsers"
+        component={CommunityBlockedUsersScreen}
+        options={{
+          headerShown: true,
+          headerTitle: '차단한 사용자',
           header: renderCommunityHeader,
         }}
       />

@@ -11,6 +11,7 @@
 import { create } from 'zustand';
 
 import { getErrorMessage } from '../services/app/errors';
+import { clearHomeCommunityHighlightsCache } from '../services/home/communityHighlights';
 import { toPublicPetAvatarUrl } from '../services/supabase/pets';
 import { groupCommentsIntoThreads } from '../screens/Community/utils/commentHelpers';
 import {
@@ -112,6 +113,7 @@ type CommunityStore = {
   loadMorePosts: () => Promise<void>;
   loadPreviousPosts: () => Promise<void>;
   setPageSize: (pageSize: CommunityPageSize) => Promise<void>;
+  invalidateCommunityVisibility: (authorId?: string) => Promise<void>;
   fetchPostDetail: (postId: string) => Promise<void>;
   recordPostView: (postId: string) => Promise<void>;
   fetchPostComments: (postId: string) => Promise<void>;
@@ -654,6 +656,105 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
         resetHistory: true,
         clearPosts: false,
         requestKind: 'pageSize',
+      });
+    },
+
+    invalidateCommunityVisibility: async authorId => {
+      // A block mutation can finish while a list request is still in flight.
+      // Invalidate that request before removing the author from the local
+      // entity cache so a late pre-block response cannot reinsert the post.
+      listRequestSequence += 1;
+      const state = get();
+      const removedPostIds = authorId
+        ? Object.values(state.postsById)
+            .filter(post => post.authorId === authorId)
+            .map(post => post.id)
+        : [];
+      const removedCommentIds = removedPostIds.flatMap(
+        postId =>
+          (state.commentsByPostId[postId] ?? []).map(comment => comment.id),
+      );
+
+      set(prev => {
+        const nextPostsById = { ...prev.postsById };
+        const nextDetailStatusByPostId = { ...prev.detailStatusByPostId };
+        const nextPostViewRecordStatusByPostId = {
+          ...prev.postViewRecordStatusByPostId,
+        };
+        const nextCommentsByPostId = { ...prev.commentsByPostId };
+        const nextLatestCommentByPostId = { ...prev.latestCommentByPostId };
+        const nextCommentsStatusByPostId = { ...prev.commentsStatusByPostId };
+        const nextLatestCommentStatusByPostId = {
+          ...prev.latestCommentStatusByPostId,
+        };
+        const nextTopLevelCommentIdsByPostId = {
+          ...prev.topLevelCommentIdsByPostId,
+        };
+        const nextCommentEntitiesById = { ...prev.commentEntitiesById };
+        const nextReplyCommentIdsByParentId = {
+          ...prev.replyCommentIdsByParentId,
+        };
+
+        removedPostIds.forEach(postId => {
+          delete nextPostsById[postId];
+          delete nextDetailStatusByPostId[postId];
+          delete nextPostViewRecordStatusByPostId[postId];
+          delete nextCommentsByPostId[postId];
+          delete nextLatestCommentByPostId[postId];
+          delete nextCommentsStatusByPostId[postId];
+          delete nextLatestCommentStatusByPostId[postId];
+          delete nextTopLevelCommentIdsByPostId[postId];
+        });
+        removedCommentIds.forEach(commentId => {
+          delete nextCommentEntitiesById[commentId];
+          delete nextReplyCommentIdsByParentId[commentId];
+        });
+
+        return {
+          posts: authorId
+            ? prev.posts.filter(post => post.authorId !== authorId)
+            : prev.posts,
+          postsById: authorId ? nextPostsById : prev.postsById,
+          detailStatusByPostId: authorId
+            ? nextDetailStatusByPostId
+            : prev.detailStatusByPostId,
+          postViewRecordStatusByPostId: authorId
+            ? nextPostViewRecordStatusByPostId
+            : prev.postViewRecordStatusByPostId,
+          commentsByPostId: authorId ? nextCommentsByPostId : prev.commentsByPostId,
+          latestCommentByPostId: authorId
+            ? nextLatestCommentByPostId
+            : prev.latestCommentByPostId,
+          commentsStatusByPostId: authorId
+            ? nextCommentsStatusByPostId
+            : prev.commentsStatusByPostId,
+          latestCommentStatusByPostId: authorId
+            ? nextLatestCommentStatusByPostId
+            : prev.latestCommentStatusByPostId,
+          topLevelCommentIdsByPostId: authorId
+            ? nextTopLevelCommentIdsByPostId
+            : prev.topLevelCommentIdsByPostId,
+          commentEntitiesById: authorId
+            ? nextCommentEntitiesById
+            : prev.commentEntitiesById,
+          replyCommentIdsByParentId: authorId
+            ? nextReplyCommentIdsByParentId
+            : prev.replyCommentIdsByParentId,
+        };
+      });
+
+      clearHomeCommunityHighlightsCache();
+      const refreshedState = get();
+      await requestListPage({
+        filter: refreshedState.activeFilter,
+        category: refreshedState.activeCategory,
+        pageSize: refreshedState.pageSize,
+        page: 1,
+        cursor: null,
+        status: 'refreshing',
+        resetHistory: true,
+        clearPosts: false,
+        requestKind: 'refresh',
       });
     },
 

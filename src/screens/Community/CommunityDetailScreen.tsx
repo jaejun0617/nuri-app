@@ -31,6 +31,10 @@ import type { RootScreenRoute } from '../../navigation/types';
 import { getErrorMessage } from '../../services/app/errors';
 import { getCommunityMutationErrorMeta } from '../../services/community/errors';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
+import {
+  blockCommunityUser,
+  getCommunityBlockErrorMessage,
+} from '../../services/supabase/communityBlocks';
 import { useCommunityStore } from '../../store/communityStore';
 import { usePetStore } from '../../store/petStore';
 import { showToast } from '../../store/uiStore';
@@ -42,6 +46,10 @@ import { getKstDateParts } from '../../utils/date';
 import CommentThreadItem from './components/CommentThreadItem';
 import { getCommunityCategoryLabel } from './communityListPresentation';
 import { resolveCommunityCommentNavigationTarget } from './utils/commentHelpers';
+import {
+  canShowCommunityBlockAction,
+  COMMUNITY_BLOCK_CONFIRMATION_MESSAGE,
+} from './communityBlockPresentation';
 import {
   DETAIL_DIVIDER_COLOR,
   styles,
@@ -178,9 +186,14 @@ export default function CommunityDetailScreen() {
   const submitComment = useCommunityStore(s => s.submitComment);
   const removeComment = useCommunityStore(s => s.removeComment);
   const reportContent = useCommunityStore(s => s.reportContent);
+  const invalidateCommunityVisibility = useCommunityStore(
+    s => s.invalidateCommunityVisibility,
+  );
   const [menuVisible, setMenuVisible] = React.useState(false);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
+  const [blockConfirmVisible, setBlockConfirmVisible] = React.useState(false);
+  const [blocking, setBlocking] = React.useState(false);
   const [commentDraft, setCommentDraft] = React.useState('');
   const [commentSubmitting, setCommentSubmitting] = React.useState(false);
   const [visibleCommentCount, setVisibleCommentCount] =
@@ -393,7 +406,7 @@ export default function CommunityDetailScreen() {
   );
   const renderHeaderRight = useCallback(
     () =>
-      isMyPost ? (
+      post ? (
         <TouchableOpacity
           activeOpacity={0.88}
           style={[
@@ -409,7 +422,7 @@ export default function CommunityDetailScreen() {
           />
         </TouchableOpacity>
       ) : null,
-    [isMyPost, theme.colors.border, theme.colors.textPrimary],
+    [post, theme.colors.border, theme.colors.textPrimary],
   );
 
   useLayoutEffect(() => {
@@ -431,6 +444,35 @@ export default function CommunityDetailScreen() {
       });
     });
   }, [currentUserId, post, requireLogin, togglePostLike]);
+
+  const handleConfirmBlock = useCallback(() => {
+    const blockedUserId = post?.authorId ?? null;
+    if (
+      !canShowCommunityBlockAction(blockedUserId, currentUserId) ||
+      blocking
+    ) {
+      return;
+    }
+
+    setBlocking(true);
+    blockCommunityUser(blockedUserId)
+      .then(async () => {
+        setBlockConfirmVisible(false);
+        setMenuVisible(false);
+        await invalidateCommunityVisibility(blockedUserId);
+        showToast({ tone: 'success', message: '사용자를 차단했어요.' });
+        navigation.goBack();
+      })
+      .catch(error => {
+        showToast({
+          tone: 'error',
+          message: getCommunityBlockErrorMessage(error),
+        });
+      })
+      .finally(() => {
+        setBlocking(false);
+      });
+  }, [blocking, currentUserId, invalidateCommunityVisibility, navigation, post]);
 
   const handleSubmitComment = () => {
     requireLogin(() => {
@@ -1186,6 +1228,32 @@ export default function CommunityDetailScreen() {
               </TouchableOpacity>
             ) : null}
 
+            {canShowCommunityBlockAction(post.authorId, currentUserId) ? (
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={styles.menuAction}
+                onPress={() => {
+                  setMenuVisible(false);
+                  setBlockConfirmVisible(true);
+                }}
+              >
+                <Feather
+                  name="slash"
+                  size={16}
+                  color={theme.colors.textPrimary}
+                />
+                <AppText
+                  preset="body"
+                  style={[
+                    styles.menuActionText,
+                    { color: theme.colors.textPrimary },
+                  ]}
+                >
+                  사용자 차단
+                </AppText>
+              </TouchableOpacity>
+            ) : null}
+
             <TouchableOpacity
               activeOpacity={0.9}
               style={[styles.menuAction, styles.menuDangerAction]}
@@ -1224,6 +1292,21 @@ export default function CommunityDetailScreen() {
           </View>
         </View>
       </Modal>
+
+      <ConfirmDialog
+        visible={blockConfirmVisible}
+        tone="warning"
+        title="이 사용자를 차단할까요?"
+        message={COMMUNITY_BLOCK_CONFIRMATION_MESSAGE}
+        confirmLabel={blocking ? '차단 중...' : '차단'}
+        cancelLabel="취소"
+        confirmDisabled={blocking}
+        onCancel={() => {
+          if (blocking) return;
+          setBlockConfirmVisible(false);
+        }}
+        onConfirm={handleConfirmBlock}
+      />
 
       <ConfirmDialog
         visible={deleteConfirmVisible}

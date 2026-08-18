@@ -598,4 +598,65 @@ describe('community list store pagination', () => {
     });
     await Promise.all([firstRequest, duplicateRequest]);
   });
+
+  it('removes a blocked author before refresh and invalidates stale list responses', async () => {
+    mockedFetchCommunityPosts.mockResolvedValueOnce({
+      items: [makePost('blocked-post', { authorId: 'blocked-author' })],
+      nextCursor: null,
+      hasMore: false,
+    });
+    await useCommunityStore.getState().fetchPosts('all');
+
+    const refreshRequest = createDeferred<CommunityPostsResult>();
+    mockedFetchCommunityPosts.mockReturnValueOnce(refreshRequest.promise);
+    const request = useCommunityStore
+      .getState()
+      .invalidateCommunityVisibility('blocked-author');
+
+    expect(useCommunityStore.getState().posts).toEqual([]);
+    expect(useCommunityStore.getState().postsById['blocked-post']).toBeUndefined();
+
+    refreshRequest.resolve({
+      items: [makePost('unrelated-post', { authorId: 'unrelated-author' })],
+      nextCursor: null,
+      hasMore: false,
+    });
+    await request;
+
+    expect(useCommunityStore.getState().posts.map(post => post.id)).toEqual([
+      'unrelated-post',
+    ]);
+  });
+
+  it('does not let a pre-block response reinsert a blocked author', async () => {
+    const preBlockRequest = createDeferred<CommunityPostsResult>();
+    const refreshRequest = createDeferred<CommunityPostsResult>();
+    mockedFetchCommunityPosts
+      .mockReturnValueOnce(preBlockRequest.promise)
+      .mockReturnValueOnce(refreshRequest.promise);
+
+    const firstRequest = useCommunityStore.getState().fetchPosts('all');
+    const visibilityRequest = useCommunityStore
+      .getState()
+      .invalidateCommunityVisibility('blocked-author');
+
+    preBlockRequest.resolve({
+      items: [makePost('stale-blocked-post', { authorId: 'blocked-author' })],
+      nextCursor: null,
+      hasMore: false,
+    });
+    await firstRequest;
+    expect(useCommunityStore.getState().posts).toEqual([]);
+
+    refreshRequest.resolve({
+      items: [makePost('fresh-unrelated-post', { authorId: 'other-author' })],
+      nextCursor: null,
+      hasMore: false,
+    });
+    await visibilityRequest;
+
+    expect(useCommunityStore.getState().posts.map(post => post.id)).toEqual([
+      'fresh-unrelated-post',
+    ]);
+  });
 });

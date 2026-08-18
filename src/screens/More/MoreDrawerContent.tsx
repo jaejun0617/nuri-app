@@ -1398,6 +1398,10 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     );
   }, [closeAndNavigate, navigation]);
 
+  const openCommunityBlockedUsers = useCallback(() => {
+    closeAndNavigate(() => navigation.navigate('CommunityBlockedUsers'));
+  }, [closeAndNavigate, navigation]);
+
   const openUserNotifications = useCallback(() => {
     closeAndNavigate(() =>
       navigation.navigate('UserNotifications', { entrySource: 'more' }),
@@ -2006,6 +2010,13 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         onPress: openUserNotifications,
       },
       {
+        key: 'community-blocked-users',
+        label: '차단한 사용자 관리',
+        icon: 'slash',
+        iconTone: 'accent',
+        onPress: openCommunityBlockedUsers,
+      },
+      {
         key: 'notification',
         label: '알림 설정',
         icon: 'bell',
@@ -2051,6 +2062,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     onPressLogin,
     onPressLogout,
     openNotificationModal,
+    openCommunityBlockedUsers,
     openProfileEditModal,
     openThemeModal,
     openUserNotifications,
