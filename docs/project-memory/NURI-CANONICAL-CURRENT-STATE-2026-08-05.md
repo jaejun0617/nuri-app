@@ -133,4 +133,12 @@
 - `COMMUNITY-POLICY-001_BACKEND`, `COMMUNITY-POLICY-001_HOME_LIST`, `COMMUNITY-BLOCK-ACTION-001_IMPLEMENTATION`, `CONTROLLED_BLOCK_VISIBILITY_QA`는 완료다.
 - Home 대상 게시글은 `p_limit=3` ranking에서 관찰되지 않았으므로 Home target runtime의 직접 관찰은 미확인이다. 이는 ranking 변경이나 실패 증거가 아닌 비차단 관찰 공백이다.
 - Android block action UI QA와 clean signed RC QA는 NURI-12 책임으로 남긴다. Detail direct-read block 정책은 `COMMUNITY-DETAIL-001` 별도 정책 검토로 유지한다.
-- Home CommunitySection은 계속 `FEATURE_COMPLETE/FROZEN`이며 다음 단일 closeout 대상은 NURI-10 관리자 운영자 QA다.
+- Home CommunitySection은 계속 `FEATURE_COMPLETE/FROZEN`이다.
+
+## 2026-08-18 Admin production operator closeout
+
+- Admin repo `nuri-web`는 `5027cae`에서 clean이며 runtime source 기준은 `bb840f857574`다. 이번 closeout은 코드 변경 없이 기존 운영 surface와 evidence를 검수했다.
+- `ADMIN-001`은 `CLOSED_WITH_NON_BLOCKING_RESIDUAL`이다. operator access, non-admin denial, protected route, user/reports/moderation, notification-safe path, hospital contract, audit/undo, secret exclusion을 확인했다.
+- production mutation, bulk mutation, hard delete, broadcast, actual push는 실행하지 않았다.
+- MFA enrollment/recovery, external monitoring/custom domain, Guides CMS production write smoke, hospital operator fixture QA, protected-route 원래 target 보존은 비차단 residual이다. 필요 시 별도 후속 작업으로 분리하며 v1.0 blocker로 승격하지 않는다.
+- 다음 단일 closeout은 아직 활성화하지 않았으며, NURI-05 일정·건강·활동의 v1.0 노출 범위를 release triage한다. NURI-12 signing blocker는 계속 독립적으로 격리한다.
