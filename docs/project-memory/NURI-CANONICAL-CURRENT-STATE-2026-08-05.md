@@ -108,3 +108,11 @@
 - Home totalRecords와 Timeline all count는 일기·명시적 미분류 데이터의 포함 범위가 달라질 수 있다. 이는 Timeline 구현 결함이 아니라 별도 Home count contract risk다.
 - Timeline의 current-source physical QA와 clean signed RC QA는 NURI-12 책임으로 남긴다.
 - 다음 단일 write closeout 대상은 NURI-06의 `COMMUNITY-POLICY-001`이다.
+
+## 2026-08-18 Community visibility policy decision
+
+- v1.0 authenticated feed policy: 사용자가 다른 사용자를 차단하면 두 사용자 사이의 public Community post row는 Home highlights와 Community list에서 서로 노출하지 않는다.
+- block relation은 방향을 저장하되 feed visibility는 상호 적용한다. 자기 자신 차단은 금지하고 동일 관계 중복은 금지한다.
+- block/unblock은 본인 계정의 authenticated RLS 경로만 허용한다. service-role을 앱 세션으로 사용하지 않는다.
+- anonymous public feed 요청은 현재 public feed 계약을 유지하며 개인별 block filter를 적용하지 않는다. authenticated 앱 feed는 `auth.uid()` 기준 visibility helper를 적용한다.
+- `COMMUNITY-POLICY-001`은 정책 결정 완료 후 NURI-09 targeted SQL/RLS/RPC implementation 및 negative contract test 대기 상태다.
