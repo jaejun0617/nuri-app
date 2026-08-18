@@ -123,4 +123,5 @@
 - `COMMUNITY-POLICY-001_BACKEND`는 완료했지만 authenticated block row가 0건이다.
 - 현재 앱에는 block action UI/service가 없으므로 NURI-06 controlled negative QA를 바로 실행할 수 없다. block action integration이 선행돼야 한다.
 - Community detail read path는 Home/List predicate를 재사용하지 않으므로 detail block visibility는 별도 정책·계약으로 남긴다.
-- NURI-06은 최소 block action integration 후 controlled negative visibility QA를 수행한다. Home CommunitySection은 계속 frozen이다.
+- NURI-06 block action integration은 `fcf4cdd`에서 완료됐지만 QA-A/QA-B controlled fixture와 cross-account runtime evidence가 아직 없다.
+- NURI-06은 승인된 QA-A/QA-B fixture를 확보한 뒤 controlled negative visibility QA를 수행한다. Home CommunitySection은 계속 frozen이다.
