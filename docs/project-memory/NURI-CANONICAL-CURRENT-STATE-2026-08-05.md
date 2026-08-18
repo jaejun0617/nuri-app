@@ -90,3 +90,13 @@
 - feature visual QA는 dirty worktree APK evidence이며 clean signed release validation이 아니다.
 - NURI-12 release signing은 `RELEASE_SIGNING_BLOCKED_EXTERNAL_INPUT`으로 격리한다. signing credential 공급 전까지 dependency/source validation과 Home CommunitySection을 반복하지 않는다.
 - 좁은 residual risk는 CommunitySection의 중복 `items.slice(0, 3)`와 blocked-user 관계의 별도 정책 증적 미확인이다. 이는 전체 feature 재오픈 사유가 아니다.
+
+## 2026-08-18 Release closeout reconciliation
+
+- current local/origin HEAD: `9f49bfb707cc078bfc135facc1b1d8debf1e23a4`
+- NURI-02 DatePicker/Pets closeout: `babe785`, `DATE-001 CLOSED`
+- NURI-01 Auth app-surface closeout: `fc96bfd` 및 `9f49bfb`, `AUTH-001_APP_SURFACE CLOSED`
+- 현재 Auth 정책은 Google/Kakao ON, Naver OFF, Apple OFF다. Current runtime/config/dependency/route/helper 문서에서 Naver 노출은 제거됐다.
+- Remote Auth provider 상태는 `UNVERIFIED_NON_BLOCKING`이며 NURI-09 supporting read-only 확인 대상이다. 이를 Auth app-surface blocker로 다시 열지 않는다.
+- NURI-04 Timeline이 다음 단일 write closeout 대상이다.
+- NURI-12 signing 및 signed RC Auth regression은 별도 release gate로 유지한다.
