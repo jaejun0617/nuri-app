@@ -4,9 +4,9 @@
 
 | ID | 심각도 | 현상·근거 | 담당 방 | 상태 | 완료 기준 |
 | --- | --- | --- | --- | --- | --- |
-| DATE-001 | P1 | 날짜 직접 입력·하이픈 표시 보정이 dirty runtime 변경으로 남아 있다. | NURI-02-반려동물·프로필·날짜 | OPEN | focused tests, clean commit, 등록·수정·캘린더·재진입 확인 |
+| DATE-001 | P1 | 날짜 직접 입력·하이픈 표시 보정과 PetCreate/PetProfileEdit 공통 입력 경로가 closeout에서 정리됐다. 수정본의 일부 실기기 재검증은 signed RC에서 수행한다. | NURI-02-반려동물·프로필·날짜 | CLOSED_IMPLEMENTATION; ANDROID_QA_PENDING_NURI12 | focused tests, closeout commit, feature evidence 확보; signed RC에서 cursor/middle-edit 및 PetCreate persistence 확인 |
 | HOME-001 | P1 | Home 프로필/최근 기록/전체 요약 관련 변경이 dirty 상태다. | NURI-03-메인홈·날씨·요약 | OPEN | 현재 diff 소유권 분리, clean APK, Home scroll·card·summary gate |
-| TIMELINE-001 | P1 | Timeline generation/gate 수정은 HEAD에 있으나 이번 audit에서 고속 20x/30x를 재수행하지 않았다. | NURI-04-기록·Timeline | OPEN | clean APK에서 네 카드 fast re-entry와 category/empty/count frame evidence |
+| TIMELINE-001 | P1 | Timeline entry/generation/stale/count/navigation 계약은 closeout에서 확인됐다. current-source physical QA와 clean signed RC QA는 NURI-12에 남아 있다. | NURI-04-기록·Timeline | CLOSED_IMPLEMENTATION; ANDROID_QA_PENDING_NURI12 | focused tests와 기존 feature evidence 확보; signed RC에서 current-source physical regression |
 | AUTH-001 | P1 | Naver 완전 제거 대상이었던 app-side 실행 표면·route·helper·config·dependency·current 문서가 closeout에서 제거됐다. | NURI-01-인증·온보딩 | CLOSED_APP_SURFACE | remote Provider read-only 확인은 별도 non-blocking follow-up이며 signed RC Auth regression은 NURI-12 책임 |
 | SUPABASE-001 | P1 | migration dry-run은 통과했지만 Docker 부재로 full remote policy/RPC/grant catalog dump는 미확인이다. | NURI-09-Supabase·RLS·RPC·운영DB | OPEN | 직접 read-only catalog evidence 또는 제한 사유를 release checklist에 고정 |
 | ANDROID-001 | P1 | 현재 APK는 dirty runtime 기준 baseline이며 clean RC provenance가 아니다. | NURI-12-Android·Release-QA | OPEN | clean HEAD APK, checksum, install, smoke, app-scoped logcat |
