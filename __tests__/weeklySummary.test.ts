@@ -8,6 +8,7 @@ import {
   failTotalSummaryLoad,
   startTotalSummaryLoad,
 } from '../src/services/home/weeklySummary';
+import { buildTimelineCategoryCounts } from '../src/services/timeline/query';
 import type { MemoryRecord } from '../src/services/supabase/memories';
 
 function makeWalkRecord(id: string): MemoryRecord {
@@ -86,6 +87,157 @@ describe('buildTotalSummary', () => {
       recordDays: 3,
       totalRecords: 4,
     });
+  });
+
+  it('Timeline 전체 eligible universe와 totalRecords·recordDays를 일치시킨다', () => {
+    const records: MemoryRecord[] = [
+      {
+        id: 'walk-1',
+        petId: 'pet-1',
+        title: '산책',
+        category: 'walk',
+        tags: [],
+        occurredAt: '2026-08-01',
+        createdAt: '2026-08-01T01:00:00.000Z',
+        imagePaths: [],
+      },
+      {
+        id: 'walk-1',
+        petId: 'pet-1',
+        title: '중복 산책',
+        category: 'walk',
+        tags: [],
+        occurredAt: '2026-08-02',
+        createdAt: '2026-08-02T01:00:00.000Z',
+        imagePaths: [],
+      },
+      {
+        id: 'meal-1',
+        petId: 'pet-1',
+        title: '식사',
+        category: 'meal',
+        tags: [],
+        occurredAt: '2026-08-01',
+        createdAt: '2026-08-01T02:00:00.000Z',
+        imagePaths: [],
+      },
+      {
+        id: 'life-1',
+        petId: 'pet-1',
+        title: '미용',
+        category: 'other',
+        subCategory: 'grooming',
+        tags: [],
+        occurredAt: '2026-08-02',
+        createdAt: '2026-08-02T03:00:00.000Z',
+        imagePaths: [],
+      },
+      {
+        id: 'diary-1',
+        petId: 'pet-1',
+        title: '일기',
+        category: 'diary',
+        tags: [],
+        occurredAt: '2026-08-03',
+        createdAt: '2026-08-03T04:00:00.000Z',
+        imagePaths: [],
+      },
+      {
+        id: 'unclassified-1',
+        petId: 'pet-1',
+        title: '분류 없는 기록',
+        tags: [],
+        createdAt: '2026-08-03T15:30:00.000Z',
+        imagePaths: [],
+      },
+      {
+        id: 'health-1',
+        petId: 'pet-1',
+        title: '건강',
+        category: 'health',
+        tags: [],
+        occurredAt: '2026-08-02',
+        createdAt: '2026-08-02T05:00:00.000Z',
+        imagePaths: [],
+      },
+      {
+        id: 'hospital-1',
+        petId: 'pet-1',
+        title: '병원',
+        category: 'other',
+        subCategory: 'hospital',
+        tags: [],
+        occurredAt: '2026-08-04',
+        createdAt: '2026-08-04T06:00:00.000Z',
+        imagePaths: [],
+      },
+      {
+        id: 'medicine-1',
+        petId: 'pet-1',
+        title: '약',
+        category: 'other',
+        subCategory: 'medicine',
+        tags: [],
+        occurredAt: '2026-08-05',
+        createdAt: '2026-08-05T07:00:00.000Z',
+        imagePaths: [],
+      },
+    ];
+
+    const home = buildTotalSummary(records);
+    const timeline = buildTimelineCategoryCounts(records);
+
+    expect(home.totalRecords).toBe(timeline.all);
+    expect(home).toMatchObject({
+      walkCount: 1,
+      mealCount: 1,
+      lifeCount: 1,
+      recordDays: 4,
+      totalRecords: 5,
+    });
+    expect(timeline).toEqual({
+      all: 5,
+      walk: 1,
+      meal: 1,
+      health: 0,
+      diary: 1,
+      other: 1,
+    });
+  });
+
+  it('eligible record가 없으면 전체 수와 기록 날짜를 모두 0으로 둔다', () => {
+    const excludedRecords: MemoryRecord[] = [
+      {
+        id: 'health-only',
+        petId: 'pet-1',
+        title: '건강',
+        category: 'health',
+        tags: [],
+        occurredAt: '2026-08-01',
+        createdAt: '2026-08-01T01:00:00.000Z',
+        imagePaths: [],
+      },
+      {
+        id: 'medicine-only',
+        petId: 'pet-1',
+        title: '약',
+        category: 'other',
+        subCategory: 'medicine',
+        tags: [],
+        occurredAt: '2026-08-02',
+        createdAt: '2026-08-02T01:00:00.000Z',
+        imagePaths: [],
+      },
+    ];
+
+    expect(buildTotalSummary(excludedRecords)).toMatchObject({
+      walkCount: 0,
+      mealCount: 0,
+      lifeCount: 0,
+      recordDays: 0,
+      totalRecords: 0,
+    });
+    expect(buildTimelineCategoryCounts(excludedRecords).all).toBe(0);
   });
 
   it('전체 누적 수치에 맞는 문구를 만든다', () => {

@@ -11,6 +11,8 @@ import {
   readOtherSubCategoryRaw,
   readRecordCategoryRaw,
 } from '../memories/categoryMeta';
+import { isHealthMemoryRecord } from '../health-report/viewModel';
+import { dedupeTimelineRecords } from '../timeline/query';
 import {
   addDaysToYmd,
   diffCalendarDaysBetweenYmd,
@@ -261,13 +263,21 @@ export function buildTotalSummary(records: MemoryRecord[]): TotalSummary {
   let lifeCount = 0;
   let totalRecords = 0;
 
-  for (const record of records) {
+  // Timeline "전체"와 같은 universe를 사용한다.
+  // Timeline은 먼저 id 중복을 제거한 뒤 health/hospital record를 제외하고,
+  // 남은 record는 category metric과 무관하게 전체 수에 포함한다.
+  const timelineAllEligibleRecords = dedupeTimelineRecords(records).filter(
+    record => !isHealthMemoryRecord(record),
+  );
+
+  for (const record of timelineAllEligibleRecords) {
     const ymd = getRecordDisplayYmd(record);
     const recordKind = getSummaryRecordKind(record);
-    if (!ymd || !recordKind) continue;
 
     totalRecords += 1;
-    seenDays.add(ymd);
+    if (ymd) seenDays.add(ymd);
+
+    if (!recordKind) continue;
 
     if (recordKind === 'walk') walkCount += 1;
     if (recordKind === 'meal') mealCount += 1;
