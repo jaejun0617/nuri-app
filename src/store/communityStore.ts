@@ -50,6 +50,9 @@ const UNKNOWN_COMMENT_AUTHOR_NICKNAME = '알 수 없는 사용자';
 
 type CommunityCursorHistory = Record<string, Record<number, string | null>>;
 
+let detailRequestSequence = 0;
+let communityCommentsRequestSequence = 0;
+
 function getCommunityListKey(
   filter: CommunityListFilter,
   category: CommunityCategory,
@@ -150,6 +153,83 @@ type CommunityStore = {
   updatePostInCache: (postId: string, patch: Partial<CommunityPost>) => void;
   clearAll: () => void;
 };
+
+type CommunityDetailStatePatch = Pick<
+  CommunityStore,
+  | 'posts'
+  | 'postsById'
+  | 'commentsByPostId'
+  | 'latestCommentByPostId'
+  | 'commentEntitiesById'
+  | 'topLevelCommentIdsByPostId'
+  | 'replyCommentIdsByParentId'
+  | 'commentsStatusByPostId'
+  | 'latestCommentStatusByPostId'
+  | 'detailStatusByPostId'
+  | 'postViewRecordStatusByPostId'
+>;
+
+function clearCommunityDetailState(
+  prev: CommunityStore,
+  postId: string,
+  status: CommunityDetailStatus,
+): CommunityDetailStatePatch {
+  const nextPostsById = { ...prev.postsById };
+  const nextCommentsByPostId = { ...prev.commentsByPostId };
+  const nextLatestCommentByPostId = { ...prev.latestCommentByPostId };
+  const nextCommentsStatusByPostId = { ...prev.commentsStatusByPostId };
+  const nextLatestCommentStatusByPostId = {
+    ...prev.latestCommentStatusByPostId,
+  };
+  const nextDetailStatusByPostId = { ...prev.detailStatusByPostId };
+  const nextPostViewRecordStatusByPostId = {
+    ...prev.postViewRecordStatusByPostId,
+  };
+  const nextTopLevelCommentIdsByPostId = {
+    ...prev.topLevelCommentIdsByPostId,
+  };
+  const nextCommentEntitiesById = { ...prev.commentEntitiesById };
+  const nextReplyCommentIdsByParentId = {
+    ...prev.replyCommentIdsByParentId,
+  };
+  const removedCommentIds = new Set(
+    (prev.commentsByPostId[postId] ?? []).map(comment => comment.id),
+  );
+
+  delete nextPostsById[postId];
+  delete nextCommentsByPostId[postId];
+  delete nextLatestCommentByPostId[postId];
+  delete nextCommentsStatusByPostId[postId];
+  delete nextLatestCommentStatusByPostId[postId];
+  delete nextTopLevelCommentIdsByPostId[postId];
+  delete nextPostViewRecordStatusByPostId[postId];
+  nextDetailStatusByPostId[postId] = status;
+
+  removedCommentIds.forEach(commentId => {
+    delete nextCommentEntitiesById[commentId];
+    delete nextReplyCommentIdsByParentId[commentId];
+  });
+  Object.keys(nextReplyCommentIdsByParentId).forEach(parentId => {
+    nextReplyCommentIdsByParentId[parentId] =
+      nextReplyCommentIdsByParentId[parentId].filter(
+        commentId => !removedCommentIds.has(commentId),
+      );
+  });
+
+  return {
+    posts: prev.posts.filter(post => post.id !== postId),
+    postsById: nextPostsById,
+    commentsByPostId: nextCommentsByPostId,
+    latestCommentByPostId: nextLatestCommentByPostId,
+    commentEntitiesById: nextCommentEntitiesById,
+    topLevelCommentIdsByPostId: nextTopLevelCommentIdsByPostId,
+    replyCommentIdsByParentId: nextReplyCommentIdsByParentId,
+    commentsStatusByPostId: nextCommentsStatusByPostId,
+    latestCommentStatusByPostId: nextLatestCommentStatusByPostId,
+    detailStatusByPostId: nextDetailStatusByPostId,
+    postViewRecordStatusByPostId: nextPostViewRecordStatusByPostId,
+  };
+}
 
 function mergePostsById(
   prev: Record<string, CommunityPost>,
@@ -444,6 +524,8 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
 
     restoreListSnapshot: snapshot => {
       listRequestSequence += 1;
+      detailRequestSequence += 1;
+      communityCommentsRequestSequence += 1;
       const listKey = getCommunityListKey(
         snapshot.activeFilter,
         snapshot.activeCategory,
@@ -664,6 +746,8 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
       // Invalidate that request before removing the author from the local
       // entity cache so a late pre-block response cannot reinsert the post.
       listRequestSequence += 1;
+      detailRequestSequence += 1;
+      communityCommentsRequestSequence += 1;
       const state = get();
       const removedPostIds = authorId
         ? Object.values(state.postsById)
@@ -760,31 +844,17 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
 
     fetchPostDetail: async postId => {
       if (get().detailStatusByPostId[postId] === 'loading') return;
-      const cachedPost = get().postsById[postId] ?? null;
+      const requestId = ++detailRequestSequence;
+      communityCommentsRequestSequence += 1;
 
-      set(prev => ({
-        detailStatusByPostId: {
-          ...prev.detailStatusByPostId,
-          [postId]: 'loading',
-        },
-      }));
+      set(prev => clearCommunityDetailState(prev, postId, 'loading'));
 
       try {
         const post = await fetchCommunityPostById(postId);
+        if (requestId !== detailRequestSequence) return;
+
         if (!post) {
-          set(prev => ({
-            posts: prev.posts.filter(item => item.id !== postId),
-            postsById: (() => {
-              if (!prev.postsById[postId]) return prev.postsById;
-              const nextPostsById = { ...prev.postsById };
-              delete nextPostsById[postId];
-              return nextPostsById;
-            })(),
-            detailStatusByPostId: {
-              ...prev.detailStatusByPostId,
-              [postId]: 'not_found',
-            },
-          }));
+          set(prev => clearCommunityDetailState(prev, postId, 'not_found'));
           return;
         }
 
@@ -808,23 +878,8 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
           },
         }));
       } catch {
-        set(prev => {
-          if (cachedPost) {
-            return {
-              detailStatusByPostId: {
-                ...prev.detailStatusByPostId,
-                [postId]: 'ready',
-              },
-            };
-          }
-
-          return {
-            detailStatusByPostId: {
-              ...prev.detailStatusByPostId,
-              [postId]: 'error',
-            },
-          };
-        });
+        if (requestId !== detailRequestSequence) return;
+        set(prev => clearCommunityDetailState(prev, postId, 'error'));
       }
     },
 
@@ -893,7 +948,16 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
     },
 
     fetchPostComments: async postId => {
+      const detailState = get();
+      if (
+        detailState.detailStatusByPostId[postId] !== 'ready' ||
+        !detailState.postsById[postId]
+      ) {
+        return;
+      }
       if (get().commentsStatusByPostId[postId] === 'loading') return;
+
+      const requestId = ++communityCommentsRequestSequence;
 
       set(prev => ({
         commentsStatusByPostId: {
@@ -904,6 +968,7 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
 
       try {
         const comments = await fetchCommunityComments(postId);
+        if (requestId !== communityCommentsRequestSequence) return;
         const previousCommentsById = new Map(
           (get().commentsByPostId[postId] ?? []).map(
             comment => [comment.id, comment] as const,
@@ -971,6 +1036,7 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
           },
         }));
       } catch {
+        if (requestId !== communityCommentsRequestSequence) return;
         set(prev => ({
           commentsStatusByPostId: {
             ...prev.commentsStatusByPostId,
@@ -1438,6 +1504,8 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
 
     clearAll: () => {
       listRequestSequence += 1;
+      detailRequestSequence += 1;
+      communityCommentsRequestSequence += 1;
       set({
         posts: [],
         postsById: {},

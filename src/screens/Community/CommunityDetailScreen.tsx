@@ -190,6 +190,7 @@ export default function CommunityDetailScreen() {
     s => s.invalidateCommunityVisibility,
   );
   const [menuVisible, setMenuVisible] = React.useState(false);
+  const [detailReloadKey, setDetailReloadKey] = React.useState(0);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
   const [blockConfirmVisible, setBlockConfirmVisible] = React.useState(false);
@@ -226,9 +227,28 @@ export default function CommunityDetailScreen() {
   );
 
   useEffect(() => {
-    fetchPostDetail(postId).catch(() => {});
-    fetchPostComments(postId).catch(() => {});
-  }, [fetchPostComments, fetchPostDetail, postId]);
+    let cancelled = false;
+
+    const loadDetail = async () => {
+      await fetchPostDetail(postId);
+      if (cancelled) return;
+
+      // Comments are content-bearing and may only start after the protected
+      // detail RPC has established that this post is visible to the viewer.
+      const state = useCommunityStore.getState();
+      if (
+        state.detailStatusByPostId[postId] === 'ready' &&
+        state.postsById[postId]
+      ) {
+        await fetchPostComments(postId);
+      }
+    };
+
+    loadDetail().catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [detailReloadKey, fetchPostComments, fetchPostDetail, postId]);
 
   useEffect(() => {
     if (!restoredFromRouteSnapshot || detailStatus !== 'not_found') {
@@ -1034,10 +1054,7 @@ export default function CommunityDetailScreen() {
           title="게시글을 불러오지 못했어요"
           body="잠시 후 다시 시도해 주세요."
           buttonLabel="다시 시도"
-          onPress={() => {
-            fetchPostDetail(postId).catch(() => {});
-            fetchPostComments(postId).catch(() => {});
-          }}
+          onPress={() => setDetailReloadKey(value => value + 1)}
         />
       </View>
     );

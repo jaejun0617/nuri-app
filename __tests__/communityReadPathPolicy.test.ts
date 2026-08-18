@@ -4,6 +4,7 @@ jest.mock('../src/services/supabase/client', () => ({
     auth: {
       getSession: jest.fn(),
     },
+    rpc: jest.fn(),
     storage: {
       from: jest.fn(),
     },
@@ -13,20 +14,18 @@ jest.mock('../src/services/supabase/client', () => ({
 const { supabase } = jest.requireMock('../src/services/supabase/client') as {
   supabase: {
     from: jest.Mock;
+    rpc: jest.Mock;
+    auth: {
+      getSession: jest.Mock;
+    };
   };
 };
 
 import {
+  CommunityDetailReadError,
   deleteCommunityComment,
   fetchCommunityPostById,
 } from '../src/services/supabase/community';
-
-function postDetailQuery(data: unknown) {
-  const maybeSingle = jest.fn(() => Promise.resolve({ data, error: null }));
-  const eq = jest.fn(() => ({ maybeSingle }));
-  const select = jest.fn(() => ({ eq }));
-  return { select, eq, maybeSingle };
-}
 
 function postRow(overrides: Record<string, unknown>) {
   return {
@@ -53,25 +52,81 @@ function postRow(overrides: Record<string, unknown>) {
 describe('community public read path policy', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    supabase.auth.getSession.mockResolvedValue({
+      data: { session: null },
+      error: null,
+    });
   });
 
-  it.each([
-    ['hidden visibility', { visibility: 'hidden' }],
-    ['private visibility', { visibility: 'private' }],
-    ['hidden status', { status: 'hidden' }],
-    ['deleted row', { deleted_at: '2026-07-13T01:00:00.000Z' }],
-  ])('직접 상세 접근에서도 %s 게시글을 노출하지 않는다', async (_label, overrides) => {
-    const postsQuery = postDetailQuery(postRow(overrides));
-    supabase.from.mockImplementation((table: string) => {
-      if (table === 'posts') return postsQuery;
-      throw new Error(`Unexpected table read: ${table}`);
+  it('protected detail RPC의 item:null을 unavailable로 매핑하고 direct posts fallback을 호출하지 않는다', async () => {
+    supabase.rpc.mockResolvedValue({
+      data: { item: null },
+      error: null,
     });
 
     await expect(fetchCommunityPostById('post-1')).resolves.toBeNull();
 
-    expect(supabase.from).toHaveBeenCalledTimes(1);
-    expect(supabase.from).toHaveBeenCalledWith('posts');
-    expect(postsQuery.eq).toHaveBeenCalledWith('id', 'post-1');
+    expect(supabase.rpc).toHaveBeenCalledWith('community_get_post_detail_v1', {
+      p_post_id: 'post-1',
+    });
+    expect(supabase.from).not.toHaveBeenCalled();
+  });
+
+  it('protected detail RPC의 item object를 기존 Community post model로 매핑한다', async () => {
+    const profileQuery = {
+      select: jest.fn(() => ({
+        in: jest.fn(() =>
+          Promise.resolve({
+            data: [
+              {
+                user_id: 'user-1',
+                nickname: 'QA 사용자',
+                nickname_confirmed: true,
+                avatar_url: null,
+              },
+            ],
+            error: null,
+          }),
+        ),
+      })),
+    };
+    supabase.rpc.mockResolvedValue({
+      data: { item: postRow({}) },
+      error: null,
+    });
+    supabase.from.mockImplementation((table: string) => {
+      if (table === 'profiles') return profileQuery;
+      throw new Error(`Unexpected table read: ${table}`);
+    });
+
+    await expect(fetchCommunityPostById('post-1')).resolves.toMatchObject({
+      id: 'post-1',
+      title: '테스트 글',
+      authorNickname: 'QA 사용자',
+    });
+    expect(supabase.rpc).toHaveBeenCalledTimes(1);
+  });
+
+  it('RPC 오류는 retryable detail error로 유지하고 not-found로 매핑하지 않는다', async () => {
+    supabase.rpc.mockResolvedValue({
+      data: null,
+      error: { code: 'PGRST002', message: 'network failure' },
+    });
+
+    await expect(fetchCommunityPostById('post-1')).rejects.toEqual(
+      expect.objectContaining<Partial<CommunityDetailReadError>>({
+        code: 'RETRYABLE_ERROR',
+      }),
+    );
+    expect(supabase.from).not.toHaveBeenCalled();
+  });
+
+  it('malformed detail RPC response는 안전한 parser error로 거부한다', async () => {
+    supabase.rpc.mockResolvedValue({ data: { item: {} }, error: null });
+
+    await expect(fetchCommunityPostById('post-1')).rejects.toEqual(
+      expect.objectContaining({ code: 'MALFORMED_RESPONSE' }),
+    );
   });
 
   it('댓글 삭제는 legacy schema error에서도 hard delete fallback을 호출하지 않는다', async () => {

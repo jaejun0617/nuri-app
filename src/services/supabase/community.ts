@@ -54,6 +54,20 @@ const COMMUNITY_POST_SELECT_TITLE =
   'id, user_id, pet_id, visibility, title, content, image_url, status, category, like_count, comment_count, view_count, is_notice, notice_published_at, deleted_at, created_at, updated_at';
 const COMMUNITY_POST_SELECT_SNAPSHOT = `${COMMUNITY_POST_SELECT_TITLE}, image_urls, author_snapshot_nickname, author_snapshot_avatar_url, pet_snapshot_name, pet_snapshot_species, pet_snapshot_breed, pet_snapshot_age_label, pet_snapshot_avatar_path, show_pet_age`;
 
+export type CommunityDetailReadErrorCode =
+  | 'RETRYABLE_ERROR'
+  | 'MALFORMED_RESPONSE';
+
+export class CommunityDetailReadError extends Error {
+  readonly code: CommunityDetailReadErrorCode;
+
+  constructor(code: CommunityDetailReadErrorCode) {
+    super(code);
+    this.name = 'CommunityDetailReadError';
+    this.code = code;
+  }
+}
+
 type CommunityPostViewRecordRow = {
   counted?: boolean | null;
   view_count?: number | null;
@@ -847,27 +861,17 @@ async function fetchCurrentAuthorSnapshot(userId: string) {
   return { nickname, avatarUrl };
 }
 
-async function selectCommunityPostByIdWithFallback(postId: string) {
-  const primary = await supabase
-    .from('posts')
-    .select(COMMUNITY_POST_SELECT_SNAPSHOT)
-    .eq('id', postId)
-    .maybeSingle();
-
-  if (!primary.error) {
-    return primary.data;
-  }
-  if (!isMissingSnapshotColumnsError(primary.error)) {
-    throw primary.error;
+function parseCommunityDetailResponse(data: unknown): CommunityPostRow | null {
+  if (!isRecord(data) || !Object.prototype.hasOwnProperty.call(data, 'item')) {
+    throw new CommunityDetailReadError('MALFORMED_RESPONSE');
   }
 
-  const fallback = await supabase
-    .from('posts')
-    .select(COMMUNITY_POST_SELECT_LEGACY)
-    .eq('id', postId)
-    .maybeSingle();
-  if (fallback.error) throw fallback.error;
-  return fallback.data;
+  if (data.item === null) return null;
+  if (!isCommunityPostRow(data.item)) {
+    throw new CommunityDetailReadError('MALFORMED_RESPONSE');
+  }
+
+  return data.item;
 }
 
 export async function fetchCommunityPosts(
@@ -983,30 +987,42 @@ export async function fetchCommunityPosts(
 }
 
 export async function fetchCommunityPostById(postId: string) {
-  const data = await selectCommunityPostByIdWithFallback(postId);
-  if (!data || !isCommunityPostRow(data)) return null;
+  const { data, error } = await supabase.rpc('community_get_post_detail_v1', {
+    p_post_id: postId,
+  });
+
+  // A null item is the backend's privacy-preserving unavailable result. It
+  // must never be rechecked through a direct posts read because that would
+  // bypass the mutual block/detail visibility contract.
+  if (error) {
+    throw new CommunityDetailReadError('RETRYABLE_ERROR');
+  }
+
+  const post = parseCommunityDetailResponse(data);
+  if (!post) return null;
+
   if (
-    data.visibility !== 'public' ||
-    data.status !== 'active' ||
-    data.deleted_at !== null
+    post.visibility !== 'public' ||
+    post.status !== 'active' ||
+    post.deleted_at !== null
   ) {
     return null;
   }
-  const canExposeImages = data.deleted_at === null && data.status === 'active';
-  const imagePaths = normalizeImagePaths(data);
+  const canExposeImages = post.deleted_at === null && post.status === 'active';
+  const imagePaths = normalizeImagePaths(post);
 
   const [profilesByUserId, petsById, resolvedImageUrls] = await Promise.all([
-    fetchProfilesByUserIds([data.user_id]),
-    fetchPetsByIds([data.pet_id ?? ''].filter(Boolean)),
+    fetchProfilesByUserIds([post.user_id]),
+    fetchPetsByIds([post.pet_id ?? ''].filter(Boolean)),
     canExposeImages
       ? Promise.all(imagePaths.map(resolveCommunityImageUrl))
       : Promise.resolve([]),
   ]);
   const currentUserId = await getCommunityCurrentUserId();
-  const likedPostIds = await fetchLikeMetaForPosts([data.id], currentUserId);
+  const likedPostIds = await fetchLikeMetaForPosts([post.id], currentUserId);
 
   return normalizePost(
-    data,
+    post,
     profilesByUserId,
     petsById,
     likedPostIds,
