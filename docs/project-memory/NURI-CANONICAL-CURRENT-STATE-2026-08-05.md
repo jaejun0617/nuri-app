@@ -163,3 +163,13 @@
 - Remote Push provider, token 발급, broadcast/segment/send는 v1 정책상 비활성이다. 실제 Push enablement은 v1.1 이후 별도 승인 범위이며 이번 closeout에서 변경하지 않았다.
 - 50건 window를 넘는 unread count 표시 차이와 Community block 이후 in-app notification suppression 정책은 비차단 residual/policy review로 유지한다.
 - NURI-07은 `CLOSED_WITH_NON_BLOCKING_RESIDUAL`이며 다음 독립 release triage 대상은 NURI-08 장소·산책·펫여행이다.
+
+## 2026-08-19 Places, Walk, Pet Travel release closeout
+
+- current app local/origin HEAD: `ebad0df4f717fe5df34b2cb155a668c7469f9741`; NURI-08은 코드·DB·문서 변경 없이 현재 v1 surface를 검수했다.
+- Hospital v1은 목록·검색·상세·Back·좌표/전화/길찾기 안전성·loading/empty/error/refresh와 candidate 표시 정책을 확인했다.
+- Walk Places v1은 자체 public RPC nearby/search/detail, approved/public/active predicate, 단일 RPC 요청, timeout/cache/stale/coordinate fallback과 anon direct table 차단을 확인했다.
+- Hospital/Walk는 `NON_BLOCKING`으로 닫고, `반려동물과 여행`은 현재 사용자 진입점이 없어 `DEFER_TO_V1_1`로 분리한다. 자체 POI/PostGIS 전환도 v1.1 범위다.
+- focused suites 12개/57 tests, TypeScript, NURI-08 ESLint와 read-only remote smoke가 통과했다. production mutation과 migration/RLS/RPC 변경은 없었다.
+- NURI-08 current-source Android QA는 signing provenance 부족으로 NURI-12에 위임한다. 기존 Hospital/Walk Android evidence는 feature evidence로만 재사용한다.
+- NURI-08은 `RELEASE_CLOSEOUT_COMPLETE`이며 v1 domain triage는 완료됐다. 다음 최종 release gate는 기존 P1 risk 검토 후 NURI-12 signed RC다.
