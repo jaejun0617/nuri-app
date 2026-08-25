@@ -977,11 +977,12 @@ export default function RecordCreateScreen() {
 
         <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
           <HeaderTextActionButton
-            accessibilityLabel={saving ? '기록 저장 중' : '기록 저장 완료'}
+            accessibilityLabel={saving ? '기록 저장 중' : '기록 등록'}
             backgroundColor={petTheme.tint}
             borderColor={petTheme.border}
+            compact
             disabled={disabled}
-            label={saving ? '담는 중 ☁️' : '완료'}
+            label={saving ? '담는 중 ☁️' : '등록'}
             onPress={onSubmit}
             textColor={petTheme.primary}
           />

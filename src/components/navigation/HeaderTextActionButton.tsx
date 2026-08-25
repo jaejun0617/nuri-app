@@ -12,6 +12,7 @@ type Props = {
   textColor: string;
   borderColor?: string;
   borderRadius?: number;
+  compact?: boolean;
 };
 
 export default function HeaderTextActionButton({
@@ -23,6 +24,7 @@ export default function HeaderTextActionButton({
   textColor,
   borderColor,
   borderRadius,
+  compact = false,
 }: Props) {
   return (
     <TouchableOpacity
@@ -30,9 +32,11 @@ export default function HeaderTextActionButton({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       disabled={disabled}
+      hitSlop={compact ? { top: 4, bottom: 4, left: 4, right: 4 } : undefined}
       onPress={onPress}
       style={[
         styles.button,
+        compact ? styles.compactButton : null,
         {
           backgroundColor,
           borderColor: borderColor ?? 'transparent',
@@ -60,6 +64,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
+  },
+  compactButton: {
+    minWidth: 54,
+    minHeight: 40,
+    paddingHorizontal: 10,
   },
   text: {
     fontWeight: '900',
