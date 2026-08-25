@@ -427,6 +427,7 @@ export default function CommunityCreateScreen() {
   const renderHeaderRight = useCallback(
     () => (
       <HeaderTextActionButton
+        compact
         label="등록"
         accessibilityLabel="게시글 등록"
         onPress={handleSubmit}
