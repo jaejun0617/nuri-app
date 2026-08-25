@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
+import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
 import {
@@ -27,10 +28,12 @@ function GuideRecommendationCardBase({
   onPress,
   debugBadgeText,
 }: Props) {
+  const theme = useTheme();
+
   return (
     <TouchableOpacity
       activeOpacity={0.92}
-      style={styles.card}
+      style={[styles.card, { borderColor: theme.colors.border }]}
       onPress={() => onPress(guide.id)}
     >
       <View style={[styles.thumb, { backgroundColor: tintColor }]}>
@@ -83,6 +86,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     backgroundColor: '#FFFFFF',
+    borderWidth: 1,
   },
   thumb: {
     width: 60,

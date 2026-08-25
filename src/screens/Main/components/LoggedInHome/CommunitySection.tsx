@@ -308,7 +308,7 @@ const CommunitySection = memo(function CommunitySection({
           styles.panel,
           {
             backgroundColor: theme.colors.surfaceElevated,
-            borderColor,
+            borderColor: theme.colors.border,
           },
         ]}
       >
@@ -325,7 +325,7 @@ const CommunitySection = memo(function CommunitySection({
             accessible={false}
             importantForAccessibility="no"
           />
-          <AppText preset="unifiedTitle" style={[styles.title, { color: theme.colors.textPrimary }]}>
+          <AppText preset="unifiedTitle" style={[styles.title, { color: accentColor }]}>
             반려인들이 주목한 이야기
           </AppText>
         </View>

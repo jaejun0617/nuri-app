@@ -35,6 +35,7 @@ import type { CompositeNavigationProp } from '@react-navigation/native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from 'styled-components/native';
 import Feather from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
@@ -171,9 +172,7 @@ import {
   getMonthKeyFromYmd,
   getMonthKeyInKst,
 } from '../../../../utils/date';
-import WeatherGuideHomeCard, {
-  WEATHER_DAY_BORDER_COLORS,
-} from '../../../../components/weather/WeatherGuideHomeCard';
+import WeatherGuideHomeCard from '../../../../components/weather/WeatherGuideHomeCard';
 import type { PetCareGuide } from '../../../../services/guides/types';
 import { styles } from './LoggedInHome.styles';
 import CommunitySection from './CommunitySection';
@@ -574,6 +573,7 @@ const TodayPhotoSection = React.memo(function TodayPhotoSection({
   onPressRecord: () => void;
   accentColor: string;
 }) {
+  const theme = useTheme();
   const [todayPhoto, setTodayPhoto] = useState<{
     record: MemoryRecord | null;
     mode: 'anniversary' | 'random' | 'none';
@@ -635,7 +635,7 @@ const TodayPhotoSection = React.memo(function TodayPhotoSection({
 
       <TouchableOpacity
         activeOpacity={0.92}
-        style={styles.photoCard}
+        style={[styles.photoCard, { borderColor: theme.colors.border }]}
         onPress={() =>
           todayPhoto.record
             ? onPressRecordItem(todayPhoto.record.id)
@@ -1083,7 +1083,6 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
   petThemePrimary,
   onPressPetChip,
   onPressAddPet,
-  onPressSearch,
   onPressNotifications,
   notificationUnreadCount,
 }: {
@@ -1093,7 +1092,6 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
   petThemePrimary: string;
   onPressPetChip: (petId: string) => void;
   onPressAddPet: () => void;
-  onPressSearch: () => void;
   onPressNotifications: () => void;
   notificationUnreadCount: number;
 }) {
@@ -1130,16 +1128,6 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
         </View>
 
         <View style={styles.headerIcons}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            style={styles.headerIconBtn}
-            onPress={onPressSearch}
-            accessibilityLabel="홈 검색"
-            accessibilityRole="button"
-          >
-            <Feather name="search" size={18} color="rgba(11,18,32,0.75)" />
-          </TouchableOpacity>
-
           <TouchableOpacity
             activeOpacity={0.85}
             style={styles.headerIconBtn}
@@ -1759,6 +1747,7 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
   accentColor: string;
   accentDeepColor: string;
 }) {
+  const theme = useTheme();
   const todayRecords = useMemo(() => recordItems, [recordItems]);
   const previewItems = useMemo(
     () => buildHomeRecentPreviewItems(todayRecords),
@@ -1770,7 +1759,9 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
 
   return (
     <View style={[styles.section, styles.recentSection]}>
-      <View style={styles.recentPreviewBorder}>
+      <View
+        style={[styles.recentPreviewBorder, { borderColor: theme.colors.border }]}
+      >
         <View style={styles.recentPreviewCard}>
           <View style={[styles.sectionHeaderRow, styles.recentSectionHeaderRow]}>
             <View style={styles.recentSectionTitleRow}>
@@ -1971,6 +1962,7 @@ const TotalSummarySection = React.memo(function TotalSummarySection({
   onPressLife: () => void;
   onPressAllRecords: () => void;
 }) {
+  const theme = useTheme();
   const totalSummary = useMemo(
     () => (records ? buildTotalSummary(records) : null),
     [records],
@@ -1987,11 +1979,11 @@ const TotalSummarySection = React.memo(function TotalSummarySection({
 
   return (
     <View style={[styles.section, styles.weeklySummarySection]}>
-      <LinearGradient
-        colors={WEATHER_DAY_BORDER_COLORS}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.weeklySummaryBorder}
+      <View
+        style={[
+          styles.weeklySummaryBorder,
+          { borderColor: theme.colors.border },
+        ]}
       >
         <View style={[styles.weeklySummaryCard, { shadowColor: accentDeepColor }]}>
         <View style={styles.weeklySummaryHeader}>
@@ -2149,7 +2141,7 @@ const TotalSummarySection = React.memo(function TotalSummarySection({
           </View>
         </View>
         </View>
-      </LinearGradient>
+      </View>
     </View>
   );
 });
@@ -2171,6 +2163,7 @@ const ScheduleSection = React.memo(function ScheduleSection({
   accentTint: string;
   accentBorder: string;
 }) {
+  const theme = useTheme();
   const weekScheduleItems = useMemo<WeeklyScheduleItem[]>(() => {
     return scheduleItems.slice(0, 7).map(buildScheduleCard);
   }, [scheduleItems]);
@@ -2189,7 +2182,7 @@ const ScheduleSection = React.memo(function ScheduleSection({
       </View>
 
       {weekScheduleItems.length === 0 ? (
-        <View style={styles.emptyBox}>
+        <View style={[styles.emptyBox, { borderColor: theme.colors.border }]}>
           <AppText preset="unifiedTitle" style={styles.emptyTitle}>등록된 일정이 아직 없어요</AppText>
           <AppText preset="unifiedBody" style={styles.emptyDesc}>
             오래 남겨둘 일정도 한곳에 모아두고 홈에서 가볍게 꺼내볼 수 있어요.
@@ -2201,7 +2194,7 @@ const ScheduleSection = React.memo(function ScheduleSection({
             <TouchableOpacity
               key={item.key}
               activeOpacity={0.92}
-              style={styles.scheduleCard}
+              style={[styles.scheduleCard, { borderColor: theme.colors.border }]}
               onPress={onPressScheduleList}
             >
               <View
@@ -2294,6 +2287,7 @@ const HealthRecentActivitiesSection = React.memo(
     accentColor: string;
     accentDeepColor: string;
   }) {
+    const theme = useTheme();
     const recentActivities = useMemo(
       () => activityItems.slice(0, 5),
       [activityItems],
@@ -2313,7 +2307,7 @@ const HealthRecentActivitiesSection = React.memo(
         </View>
 
         {recentActivities.length === 0 ? (
-          <View style={styles.emptyBox}>
+          <View style={[styles.emptyBox, { borderColor: theme.colors.border }]}>
             <AppText preset="unifiedTitle" style={styles.emptyTitle}>건강관리 기록이 아직 없어요</AppText>
             <AppText preset="unifiedBody" style={styles.emptyDesc}>
               병원, 약, 증상, 체중 기록은 건강관리에서 차분히 모아볼 수 있어요.
@@ -2325,7 +2319,7 @@ const HealthRecentActivitiesSection = React.memo(
               <TouchableOpacity
                 key={item.id}
                 activeOpacity={0.92}
-                style={styles.activityRow}
+                style={[styles.activityRow, { borderColor: theme.colors.border }]}
                 onPress={() => onPressActivityItem(item.ymd)}
               >
                 <View
@@ -3465,10 +3459,6 @@ export default function LoggedInHome() {
     setAcc(prev => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
-  const noopSearchHeaderAction = useCallback(() => {
-    // 검색 헤더는 아직 홈 구조 정리 트랙에서 연결할 기능이므로 layout만 유지한다.
-  }, []);
-
   const onPressGuideList = useCallback(() => {
     navigation.navigate('GuideList', { entrySource: 'home' });
   }, [navigation]);
@@ -3644,7 +3634,6 @@ export default function LoggedInHome() {
           petThemePrimary={petTheme.primary}
           onPressPetChip={onPressPetChip}
           onPressAddPet={onPressAddPet}
-          onPressSearch={noopSearchHeaderAction}
           onPressNotifications={openHomeNotifications}
           notificationUnreadCount={homeNotificationUnreadCount}
         />

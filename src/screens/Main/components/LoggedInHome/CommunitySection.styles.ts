@@ -37,7 +37,7 @@ export const styles = StyleSheet.create({
   },
   pillVisual: {
     minHeight: 36,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 7,
     borderRadius: 18,
     borderWidth: 1,

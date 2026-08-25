@@ -981,7 +981,8 @@ export const styles = StyleSheet.create({
   },
   weeklySummaryBorder: {
     borderRadius: 29.25,
-    padding: 1.25,
+    borderWidth: 1,
+    padding: 0,
   },
   weeklySummaryCard: {
     borderRadius: 28,
@@ -1505,6 +1506,7 @@ export const styles = StyleSheet.create({
   // ---------------------------------------------------------
   recordBtn: {
     height: 46,
+    width: '100%',
     borderRadius: 12,
     backgroundColor: BRAND_DEEP,
     alignItems: 'center',

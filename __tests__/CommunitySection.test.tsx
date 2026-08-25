@@ -232,7 +232,7 @@ describe('CommunitySection', () => {
     expect(horizontalPillScroll.props.horizontal).toBe(true);
     expect(pillTouch.minHeight).toBe(44);
     expect(pillVisual.minHeight).toBe(36);
-    expect(pillVisual.paddingHorizontal).toBe(12);
+    expect(pillVisual.paddingHorizontal).toBe(10);
     expect(pillVisual.borderRadius).toBe(18);
     expect(StyleSheet.flatten(communityStyles.pillContent).gap).toBe(8);
     expect(pillText.fontSize).toBe(14);
