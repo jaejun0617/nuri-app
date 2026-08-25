@@ -125,6 +125,7 @@ type MenuItemSpec = {
 type MenuCardProps = {
   title: string;
   items: MenuItemSpec[];
+  titleColor: string;
   themeColors: Record<
     'accent' | 'muted' | 'soft',
     { box: string; icon: string }
@@ -257,12 +258,13 @@ const MenuRow = memo(function MenuRow({
 const MenuCard = memo(function MenuCard({
   title,
   items,
+  titleColor,
   themeColors,
 }: MenuCardProps) {
   const theme = useTheme();
   return (
     <View style={styles.sectionWrap}>
-      <AppText preset="unifiedTitle" style={[styles.sectionTitle, { color: theme.colors.textMuted }]}>
+      <AppText preset="unifiedTitle" style={[styles.sectionTitle, { color: titleColor }]}>
         {title}
       </AppText>
       <View
@@ -2116,7 +2118,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
                 !isLoggedIn ? styles.guestHeaderTitle : null,
                 {
                   color: isLoggedIn
-                    ? theme.colors.textPrimary
+                    ? petTheme.deep
                     : theme.colors.brand,
                 },
               ]}
@@ -2180,27 +2182,32 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
           <MenuCard
             title="나의 반려동물"
             items={petItems}
+            titleColor={petTheme.deep}
             themeColors={menuThemeColors}
           />
           <MenuCard
             title="활동 및 기록"
             items={activityItems}
+            titleColor={petTheme.deep}
             themeColors={menuThemeColors}
           />
           <MenuCard
             title="소통 및 정보"
             items={infoItems}
+            titleColor={petTheme.deep}
             themeColors={menuThemeColors}
           />
           <MenuCard
             title="앱 서비스 설정"
             items={serviceItems}
+            titleColor={petTheme.deep}
             themeColors={menuThemeColors}
           />
           {isGuideAdmin ? (
             <MenuCard
               title="운영"
               items={adminItems}
+              titleColor={petTheme.deep}
               themeColors={menuThemeColors}
             />
           ) : null}
