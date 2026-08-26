@@ -74,14 +74,9 @@ export const styles = StyleSheet.create({
     padding: 18,
     gap: 16,
   },
-  postTop: {
+  postTitleRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  postTopRight: {
-    alignItems: 'flex-end',
     gap: 8,
   },
   authorBlock: {
@@ -129,16 +124,19 @@ export const styles = StyleSheet.create({
     ...typography.role.helper,
   },
   categoryBadge: {
-    minHeight: 28,
+    minHeight: 24,
     borderRadius: 999,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
+    flexShrink: 0,
   },
   categoryText: {
     ...typography.role.helper,
-    fontWeight: '700',
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: '600',
   },
   moreButton: {
     width: 44,
@@ -148,14 +146,12 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  moreButtonPlaceholder: {
-    width: 44,
-    height: 44,
-  },
   postTitle: {
     ...typography.role.titleLg,
-    fontSize: 22,
-    lineHeight: 30,
+    flex: 1,
+    minWidth: 0,
+    fontSize: 16,
+    lineHeight: 22,
     fontWeight: '600',
   },
   mediaSection: {

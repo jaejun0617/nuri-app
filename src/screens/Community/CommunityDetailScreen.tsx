@@ -719,7 +719,7 @@ export default function CommunityDetailScreen() {
     return (
       <View style={styles.scrollContent}>
         <View style={styles.postSection}>
-          <View style={styles.postTop}>
+          <View style={styles.postTitleRow}>
             {post.category && categoryTone ? (
               <View
                 style={[
@@ -740,20 +740,17 @@ export default function CommunityDetailScreen() {
                   {getCommunityCategoryLabel(post.category)}
                 </AppText>
               </View>
-            ) : (
-              <View />
-            )}
-            <View style={styles.moreButtonPlaceholder} />
-          </View>
+            ) : null}
 
-          {post.title ? (
-            <AppText
-              preset="headline"
-              style={[styles.postTitle, { color: theme.colors.textPrimary }]}
-            >
-              {post.title}
-            </AppText>
-          ) : null}
+            {post.title ? (
+              <AppText
+                preset="headline"
+                style={[styles.postTitle, { color: theme.colors.textPrimary }]}
+              >
+                {post.title}
+              </AppText>
+            ) : null}
+          </View>
 
           <View style={styles.postMetaRow}>
             <View style={styles.profileRow}>
