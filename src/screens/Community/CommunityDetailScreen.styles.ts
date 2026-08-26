@@ -154,7 +154,9 @@ export const styles = StyleSheet.create({
   },
   postTitle: {
     ...typography.role.titleLg,
-    fontWeight: '700',
+    fontSize: 22,
+    lineHeight: 30,
+    fontWeight: '600',
   },
   mediaSection: {
     marginTop: 4,
@@ -248,10 +250,29 @@ export const styles = StyleSheet.create({
     fontWeight: '800',
   },
   commentSortLabel: {
-    minHeight: 36,
+    minHeight: 44,
+    paddingHorizontal: 4,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
+  },
+  commentSortOptions: {
+    gap: 8,
+  },
+  commentSortOption: {
+    minHeight: 60,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  commentSortOptionCopy: {
+    flex: 1,
+    gap: 2,
   },
   commentsLoading: {
     paddingVertical: 10,

@@ -14,7 +14,6 @@ import {
   Easing,
   FlatList,
   InteractionManager,
-  Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
@@ -36,6 +35,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { useCommunityAuth } from '../../hooks/useCommunityAuth';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -799,65 +799,63 @@ export default function CommunityListScreen() {
         </View>
       )}
 
-      <Modal
-        transparent
+      <ConfirmDialog
         visible={isPageSizeModalVisible}
-        animationType="fade"
-        statusBarTranslucent
-        onRequestClose={() => setPageSizeModalVisible(false)}
+        title="게시글 표시 개수"
+        message="한 번에 불러올 게시글 수를 선택해 주세요."
+        confirmLabel="닫기"
+        hideActions
+        onCancel={() => setPageSizeModalVisible(false)}
+        onConfirm={() => setPageSizeModalVisible(false)}
       >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="페이지 크기 선택 닫기"
-          style={styles.pageSizeModalBackdrop}
-          onPress={() => setPageSizeModalVisible(false)}
-        >
-          <View
-            style={[
-              styles.pageSizeModalCard,
-              {
-                backgroundColor: theme.colors.surface,
-              },
-            ]}
-            onStartShouldSetResponder={() => true}
-          >
-            {COMMUNITY_PAGE_SIZE_OPTIONS.map(option => {
-              const isSelected = option === pageSize;
-              return (
-                <TouchableOpacity
-                  key={option}
-                  accessibilityRole="radio"
-                  accessibilityState={{
-                    selected: isSelected,
-                    disabled: isListBusy,
-                  }}
-                  activeOpacity={0.84}
-                  disabled={isListBusy}
-                  style={styles.pageSizeOption}
-                  onPress={() => handleSelectPageSize(option)}
+        <View style={styles.pageSizeOptions}>
+          {COMMUNITY_PAGE_SIZE_OPTIONS.map(option => {
+            const isSelected = option === pageSize;
+            return (
+              <TouchableOpacity
+                key={option}
+                accessibilityRole="radio"
+                accessibilityState={{
+                  selected: isSelected,
+                  disabled: isListBusy,
+                }}
+                activeOpacity={0.84}
+                disabled={isListBusy}
+                style={[
+                  styles.pageSizeOption,
+                  isSelected && {
+                    backgroundColor: petTheme.soft,
+                    borderColor: petTheme.border,
+                    borderWidth: 1,
+                  },
+                ]}
+                onPress={() => handleSelectPageSize(option)}
+              >
+                <AppText
+                  preset="body"
+                  style={[
+                    styles.pageSizeOptionText,
+                    {
+                      color: isSelected
+                        ? petTheme.primary
+                        : theme.colors.textPrimary,
+                    },
+                  ]}
                 >
-                  <AppText
-                    preset="body"
-                    style={[
-                      styles.pageSizeOptionText,
-                      { color: theme.colors.textPrimary },
-                    ]}
-                  >
-                    {option}개
-                  </AppText>
-                  <Feather
-                    name={isSelected ? 'check-circle' : 'circle'}
-                    size={22}
-                    color={
-                      isSelected ? petTheme.primary : theme.colors.textMuted
-                    }
-                  />
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </Pressable>
-      </Modal>
+                  {option}개
+                </AppText>
+                <Feather
+                  name={isSelected ? 'check-circle' : 'circle'}
+                  size={22}
+                  color={
+                    isSelected ? petTheme.primary : theme.colors.textMuted
+                  }
+                />
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </ConfirmDialog>
     </View>
   );
 }

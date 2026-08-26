@@ -1,8 +1,11 @@
 import {
+  COMMUNITY_COMMENT_SORT_OPTIONS,
   getVisibleReplies,
+  getCommunityCommentSortLabel,
   groupCommentsIntoThreads,
   isCommentByPostAuthor,
   resolveCommunityCommentNavigationTarget,
+  sortCommunityCommentIds,
 } from '../src/screens/Community/utils/commentHelpers';
 import type { CommunityComment } from '../src/types/community';
 
@@ -10,6 +13,7 @@ function buildComment(
   id: string,
   authorId: string,
   parentCommentId: string | null,
+  createdAt = '2026-07-19T00:00:00.000Z',
 ): CommunityComment {
   return {
     id,
@@ -25,8 +29,8 @@ function buildComment(
     content: id,
     status: 'active',
     deletedAt: null,
-    createdAt: '2026-07-19T00:00:00.000Z',
-    updatedAt: '2026-07-19T00:00:00.000Z',
+    createdAt,
+    updatedAt: createdAt,
   };
 }
 
@@ -88,5 +92,80 @@ describe('community comment presentation', () => {
         grouped.topLevelCommentIds,
       ),
     ).toBeNull();
+  });
+
+  it('sorts registered roots oldest first and preserves replies under their root', () => {
+    const comments = [
+      buildComment('root-2', 'reader-2', null, '2026-07-19T00:00:02.000Z'),
+      buildComment('reply-2', 'reader-3', 'root-2', '2026-07-19T00:00:03.000Z'),
+      buildComment('root-1', 'reader-1', null, '2026-07-19T00:00:01.000Z'),
+    ];
+    const grouped = groupCommentsIntoThreads(comments);
+
+    expect(
+      sortCommunityCommentIds(
+        grouped.topLevelCommentIds,
+        grouped.commentEntitiesById,
+        grouped.replyCommentIdsByParentId,
+        'registered',
+      ),
+    ).toEqual(['root-1', 'root-2']);
+    expect(grouped.replyCommentIdsByParentId).toEqual({
+      'root-2': ['reply-2'],
+    });
+  });
+
+  it('sorts latest roots by created time and stable id', () => {
+    const comments = [
+      buildComment('older-z', 'reader-1', null, '2026-07-19T00:00:01.000Z'),
+      buildComment('newer-a', 'reader-2', null, '2026-07-19T00:00:03.000Z'),
+      buildComment('newer-b', 'reader-3', null, '2026-07-19T00:00:03.000Z'),
+    ];
+    const grouped = groupCommentsIntoThreads(comments);
+
+    expect(
+      sortCommunityCommentIds(
+        grouped.topLevelCommentIds,
+        grouped.commentEntitiesById,
+        grouped.replyCommentIdsByParentId,
+        'latest',
+      ),
+    ).toEqual(['newer-b', 'newer-a', 'older-z']);
+  });
+
+  it('sorts reply mode by visible reply count, then oldest root', () => {
+    const comments = [
+      buildComment('root-c', 'reader-3', null, '2026-07-19T00:00:03.000Z'),
+      buildComment('root-a', 'reader-1', null, '2026-07-19T00:00:01.000Z'),
+      buildComment('root-b', 'reader-2', null, '2026-07-19T00:00:02.000Z'),
+    ];
+    const grouped = groupCommentsIntoThreads(comments);
+    const entitiesWithDifferentStoredCounts = {
+      ...grouped.commentEntitiesById,
+      'root-a': { ...grouped.commentEntitiesById['root-a'], replyCount: 0 },
+      'root-b': { ...grouped.commentEntitiesById['root-b'], replyCount: 99 },
+    };
+
+    expect(
+      sortCommunityCommentIds(
+        grouped.topLevelCommentIds,
+        entitiesWithDifferentStoredCounts,
+        {
+          'root-a': ['reply-a-1', 'reply-a-2'],
+          'root-b': ['reply-b-1'],
+          'root-c': ['reply-c-1', 'reply-c-2'],
+        },
+        'replies',
+      ),
+    ).toEqual(['root-a', 'root-c', 'root-b']);
+  });
+
+  it('exposes exactly the three session-only sort options', () => {
+    expect(COMMUNITY_COMMENT_SORT_OPTIONS.map(option => option.label)).toEqual([
+      '등록순',
+      '최신순',
+      '답글순',
+    ]);
+    expect(getCommunityCommentSortLabel('latest')).toBe('최신순');
   });
 });

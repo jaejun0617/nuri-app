@@ -25,6 +25,7 @@ type Props = {
   tone?: ConfirmDialogTone;
   accentColor?: string;
   children?: React.ReactNode;
+  hideActions?: boolean;
   confirmDisabled?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
@@ -93,6 +94,7 @@ function ConfirmDialogBase({
   tone = 'default',
   accentColor,
   children,
+  hideActions = false,
   confirmDisabled = false,
   onConfirm,
   onCancel,
@@ -184,39 +186,41 @@ function ConfirmDialogBase({
 
           {children ? <View style={styles.extraContent}>{children}</View> : null}
 
-          <View style={styles.buttonRow}>
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={[
-                styles.button,
-                styles.cancelButton,
-                { backgroundColor: toneMeta.cancelBackground },
-              ]}
-              onPress={onCancel}
-            >
-              <AppText preset={textPresets.button} style={[styles.cancelButtonText, { color: toneMeta.cancelText }]}>
-                {cancelLabel}
-              </AppText>
-            </TouchableOpacity>
+          {!hideActions ? (
+            <View style={styles.buttonRow}>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={[
+                  styles.button,
+                  styles.cancelButton,
+                  { backgroundColor: toneMeta.cancelBackground },
+                ]}
+                onPress={onCancel}
+              >
+                <AppText preset={textPresets.button} style={[styles.cancelButtonText, { color: toneMeta.cancelText }]}>
+                  {cancelLabel}
+                </AppText>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              activeOpacity={0.9}
-              disabled={confirmDisabled}
-              style={[
-                styles.button,
-                styles.confirmButton,
-                {
-                  backgroundColor: toneMeta.confirmBackground,
-                  opacity: confirmDisabled ? 0.45 : 1,
-                },
-              ]}
-              onPress={onConfirm}
-            >
-              <AppText preset={textPresets.button} style={[styles.confirmButtonText, { color: toneMeta.confirmText }]}>
-                {confirmLabel}
-              </AppText>
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                disabled={confirmDisabled}
+                style={[
+                  styles.button,
+                  styles.confirmButton,
+                  {
+                    backgroundColor: toneMeta.confirmBackground,
+                    opacity: confirmDisabled ? 0.45 : 1,
+                  },
+                ]}
+                onPress={onConfirm}
+              >
+                <AppText preset={textPresets.button} style={[styles.confirmButtonText, { color: toneMeta.confirmText }]}>
+                  {confirmLabel}
+                </AppText>
+              </TouchableOpacity>
+            </View>
+          ) : null}
         </View>
       </View>
     </Modal>

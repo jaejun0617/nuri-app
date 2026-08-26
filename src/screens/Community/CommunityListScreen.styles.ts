@@ -210,32 +210,16 @@ export const styles = StyleSheet.create({
   paginationPageText: {
     fontWeight: '800',
   },
-  pageSizeModalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(11, 18, 32, 0.38)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-  },
-  pageSizeModalCard: {
-    width: '100%',
-    maxWidth: 420,
-    borderRadius: 24,
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 12,
-    shadowColor: '#0B1220',
-    shadowOpacity: 0.18,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
+  pageSizeOptions: {
+    gap: 8,
   },
   pageSizeOption: {
-    minHeight: 52,
+    minHeight: 56,
+    borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 4,
+    paddingHorizontal: 12,
   },
   pageSizeOptionText: {
     flexShrink: 1,

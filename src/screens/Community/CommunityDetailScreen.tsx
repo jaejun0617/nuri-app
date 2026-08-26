@@ -45,7 +45,13 @@ import type {
 import { getKstDateParts } from '../../utils/date';
 import CommentThreadItem from './components/CommentThreadItem';
 import { getCommunityCategoryLabel } from './communityListPresentation';
-import { resolveCommunityCommentNavigationTarget } from './utils/commentHelpers';
+import {
+  COMMUNITY_COMMENT_SORT_OPTIONS,
+  getCommunityCommentSortLabel,
+  resolveCommunityCommentNavigationTarget,
+  sortCommunityCommentIds,
+  type CommunityCommentSort,
+} from './utils/commentHelpers';
 import {
   canShowCommunityBlockAction,
   COMMUNITY_BLOCK_CONFIRMATION_MESSAGE,
@@ -162,6 +168,10 @@ export default function CommunityDetailScreen() {
   const topLevelCommentIds = useCommunityStore(
     s => s.topLevelCommentIdsByPostId[postId] ?? EMPTY_COMMENT_IDS,
   );
+  const commentEntitiesById = useCommunityStore(s => s.commentEntitiesById);
+  const replyCommentIdsByParentId = useCommunityStore(
+    s => s.replyCommentIdsByParentId,
+  );
   const detailStatus = useCommunityStore(
     s => s.detailStatusByPostId[postId] ?? 'idle',
   );
@@ -199,6 +209,10 @@ export default function CommunityDetailScreen() {
   const [commentSubmitting, setCommentSubmitting] = React.useState(false);
   const [visibleCommentCount, setVisibleCommentCount] =
     React.useState(COMMENT_PAGE_SIZE);
+  const [commentSort, setCommentSort] =
+    React.useState<CommunityCommentSort>('registered');
+  const [commentSortModalVisible, setCommentSortModalVisible] =
+    React.useState(false);
   const [highlightedCommentId, setHighlightedCommentId] = React.useState<
     string | null
   >(null);
@@ -274,6 +288,8 @@ export default function CommunityDetailScreen() {
 
   useEffect(() => {
     setVisibleCommentCount(COMMENT_PAGE_SIZE);
+    setCommentSort('registered');
+    setCommentSortModalVisible(false);
     setExpandedRepliesByCommentId({});
     setReplyTargetId(null);
     setHighlightedCommentId(null);
@@ -282,19 +298,39 @@ export default function CommunityDetailScreen() {
     missingNavigationTargetKeyRef.current = null;
   }, [notificationCommentId, postId]);
 
+  const sortedTopLevelCommentIds = useMemo(
+    () =>
+      sortCommunityCommentIds(
+        topLevelCommentIds,
+        commentEntitiesById,
+        replyCommentIdsByParentId,
+        commentSort,
+      ),
+    [
+      commentEntitiesById,
+      commentSort,
+      replyCommentIdsByParentId,
+      topLevelCommentIds,
+    ],
+  );
+
   const commentNavigationTarget = useMemo(() => {
     if (!notificationCommentId || !notificationTargetComment) return null;
     return resolveCommunityCommentNavigationTarget(
       notificationCommentId,
       { [notificationCommentId]: notificationTargetComment },
-      topLevelCommentIds,
+      sortedTopLevelCommentIds,
     );
-  }, [notificationCommentId, notificationTargetComment, topLevelCommentIds]);
+  }, [
+    notificationCommentId,
+    notificationTargetComment,
+    sortedTopLevelCommentIds,
+  ]);
 
   useEffect(() => {
     if (!notificationCommentId || commentsStatus !== 'ready') return undefined;
 
-    const targetKey = `${postId}:${notificationCommentId}`;
+    const targetKey = `${postId}:${notificationCommentId}:${commentSort}`;
     if (!commentNavigationTarget) {
       if (missingNavigationTargetKeyRef.current !== targetKey) {
         missingNavigationTargetKeyRef.current = targetKey;
@@ -334,6 +370,7 @@ export default function CommunityDetailScreen() {
     };
   }, [
     commentNavigationTarget,
+    commentSort,
     commentsStatus,
     notificationCommentId,
     postId,
@@ -343,7 +380,7 @@ export default function CommunityDetailScreen() {
     (target: React.ElementRef<typeof View> | null) => {
       if (!target || !notificationCommentId || !commentNavigationTarget) return;
 
-      const targetKey = `${postId}:${notificationCommentId}`;
+      const targetKey = `${postId}:${notificationCommentId}:${commentSort}`;
       if (measuredNavigationTargetKeyRef.current === targetKey) return;
       measuredNavigationTargetKeyRef.current = targetKey;
 
@@ -369,7 +406,13 @@ export default function CommunityDetailScreen() {
         });
       }, 420);
     },
-    [commentNavigationTarget, insets.top, notificationCommentId, postId],
+    [
+      commentNavigationTarget,
+      commentSort,
+      insets.top,
+      notificationCommentId,
+      postId,
+    ],
   );
 
   useEffect(
@@ -600,6 +643,27 @@ export default function CommunityDetailScreen() {
       };
     });
   }, []);
+
+  const handlePressCommentSort = useCallback(() => {
+    setCommentSortModalVisible(true);
+  }, []);
+
+  const handleSelectCommentSort = useCallback(
+    (nextSort: CommunityCommentSort) => {
+      // The service returns one RLS-filtered comment snapshot, so sorting only
+      // resets the local root-comment window instead of issuing a new query.
+      setCommentSort(nextSort);
+      setCommentSortModalVisible(false);
+      setVisibleCommentCount(COMMENT_PAGE_SIZE);
+      setExpandedRepliesByCommentId({});
+      setReplyTargetId(null);
+      setHighlightedCommentId(null);
+      preparedNavigationTargetKeyRef.current = null;
+      measuredNavigationTargetKeyRef.current = null;
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+    },
+    [],
+  );
 
   const handleSubmitReport = () => {
     requireLogin(() => {
@@ -866,15 +930,21 @@ export default function CommunityDetailScreen() {
                 {post.commentCount.toLocaleString()}
               </AppText>
             </View>
-            <View style={styles.commentSortLabel}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={`댓글 정렬, 현재 ${getCommunityCommentSortLabel(commentSort)}`}
+              activeOpacity={0.84}
+              style={styles.commentSortLabel}
+              onPress={handlePressCommentSort}
+            >
               <AppText
                 preset="caption"
                 style={{ color: theme.colors.textMuted }}
               >
-                등록순
+                {getCommunityCommentSortLabel(commentSort)}
               </AppText>
               <Feather name="chevron-down" size={15} color={theme.colors.textMuted} />
-            </View>
+            </TouchableOpacity>
           </View>
           {commentsStatus === 'loading' ? (
             <View style={styles.commentsLoading}>
@@ -893,7 +963,9 @@ export default function CommunityDetailScreen() {
     );
   }, [
     commentsStatus,
+    commentSort,
     handlePressLike,
+    handlePressCommentSort,
     isMyPost,
     petTheme.primary,
     post,
@@ -908,9 +980,12 @@ export default function CommunityDetailScreen() {
     theme.colors.textPrimary,
   ]);
 
-  const visibleTopLevelCommentIds = topLevelCommentIds.slice(0, visibleCommentCount);
+  const visibleTopLevelCommentIds = sortedTopLevelCommentIds.slice(
+    0,
+    visibleCommentCount,
+  );
   const remainingCommentCount = Math.max(
-    topLevelCommentIds.length - visibleTopLevelCommentIds.length,
+    sortedTopLevelCommentIds.length - visibleTopLevelCommentIds.length,
     0,
   );
 
@@ -932,7 +1007,10 @@ export default function CommunityDetailScreen() {
           ]}
           onPress={() => {
             setVisibleCommentCount(previousCount =>
-              Math.min(previousCount + COMMENT_PAGE_SIZE, topLevelCommentIds.length),
+              Math.min(
+                previousCount + COMMENT_PAGE_SIZE,
+                sortedTopLevelCommentIds.length,
+              ),
             );
           }}
         >
@@ -951,7 +1029,7 @@ export default function CommunityDetailScreen() {
     theme.colors.background,
     theme.colors.border,
     theme.colors.textPrimary,
-    topLevelCommentIds.length,
+    sortedTopLevelCommentIds.length,
   ]);
 
   const renderCommentThread = useCallback(
@@ -1324,6 +1402,67 @@ export default function CommunityDetailScreen() {
         }}
         onConfirm={handleConfirmBlock}
       />
+
+      <ConfirmDialog
+        visible={commentSortModalVisible}
+        title="댓글 정렬"
+        message="원하는 정렬 기준을 선택해 주세요."
+        confirmLabel="닫기"
+        hideActions
+        onCancel={() => setCommentSortModalVisible(false)}
+        onConfirm={() => setCommentSortModalVisible(false)}
+      >
+        <View style={styles.commentSortOptions}>
+          {COMMUNITY_COMMENT_SORT_OPTIONS.map(option => {
+            const isSelected = option.key === commentSort;
+            return (
+              <TouchableOpacity
+                key={option.key}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: isSelected }}
+                activeOpacity={0.86}
+                style={[
+                  styles.commentSortOption,
+                  {
+                    backgroundColor: isSelected
+                      ? petTheme.soft
+                      : theme.colors.surface,
+                    borderColor: isSelected
+                      ? petTheme.border
+                      : theme.colors.border,
+                  },
+                ]}
+                onPress={() => handleSelectCommentSort(option.key)}
+              >
+                <View style={styles.commentSortOptionCopy}>
+                  <AppText
+                    preset="body"
+                    style={{
+                      color: isSelected
+                        ? petTheme.primary
+                        : theme.colors.textPrimary,
+                      fontWeight: '700',
+                    }}
+                  >
+                    {option.label}
+                  </AppText>
+                  <AppText
+                    preset="caption"
+                    style={{ color: theme.colors.textMuted }}
+                  >
+                    {option.description}
+                  </AppText>
+                </View>
+                <Feather
+                  name={isSelected ? 'check-circle' : 'circle'}
+                  size={22}
+                  color={isSelected ? petTheme.primary : theme.colors.textMuted}
+                />
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </ConfirmDialog>
 
       <ConfirmDialog
         visible={deleteConfirmVisible}
