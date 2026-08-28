@@ -281,7 +281,8 @@ export const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   commentThreadWrap: {
-    paddingHorizontal: 0,
+    // Keep the comment list breathable without padding the detail header or composer.
+    paddingHorizontal: 8,
     paddingVertical: 12,
     marginBottom: 0,
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -301,12 +302,15 @@ export const styles = StyleSheet.create({
     height: 28,
     borderRadius: 14,
     borderWidth: 1,
+    // Optically center the avatar against the nickname/meta line, not the body.
+    marginTop: -3,
   },
   commentAvatarFallback: {
     width: 28,
     height: 28,
     borderRadius: 14,
     borderWidth: 1,
+    marginTop: -3,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -414,12 +418,14 @@ export const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 1,
+    marginTop: -2,
   },
   replyAvatarFallback: {
     width: 24,
     height: 24,
     borderRadius: 12,
     borderWidth: 1,
+    marginTop: -2,
     alignItems: 'center',
     justifyContent: 'center',
   },

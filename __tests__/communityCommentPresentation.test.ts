@@ -175,11 +175,13 @@ describe('community comment presentation', () => {
   it('keeps comment presentation compact while preserving thread hierarchy and touch sizing', () => {
     const threadStyle = StyleSheet.flatten(styles.commentThreadWrap);
     const commentBubbleStyle = StyleSheet.flatten(styles.commentBubble);
+    const commentRowStyle = StyleSheet.flatten(styles.commentRow);
     const replyListStyle = StyleSheet.flatten(styles.replyListWrap);
     const replyConnectorStyle = StyleSheet.flatten(styles.replyConnector);
+    const replyRowStyle = StyleSheet.flatten(styles.replyRow);
     const replyBubbleStyle = StyleSheet.flatten(styles.replyBubble);
 
-    expect(threadStyle.paddingHorizontal).toBe(0);
+    expect(threadStyle.paddingHorizontal).toBe(8);
     expect(threadStyle.paddingVertical).toBe(12);
     expect(threadStyle.marginBottom).toBe(0);
     expect(threadStyle.borderBottomWidth).toBe(StyleSheet.hairlineWidth);
@@ -204,5 +206,11 @@ describe('community comment presentation', () => {
     expect(replyBubbleStyle.borderWidth).toBe(0);
     expect(styles.commentAvatar.width).toBe(28);
     expect(styles.replyAvatar.width).toBe(24);
+    expect(styles.commentAvatar.marginTop).toBe(-3);
+    expect(styles.commentAvatarFallback.marginTop).toBe(-3);
+    expect(styles.replyAvatar.marginTop).toBe(-2);
+    expect(styles.replyAvatarFallback.marginTop).toBe(-2);
+    expect(commentRowStyle.alignItems).toBe('flex-start');
+    expect(replyRowStyle.alignItems).toBe('flex-start');
   });
 });

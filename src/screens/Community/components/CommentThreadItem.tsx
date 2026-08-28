@@ -77,6 +77,9 @@ function CommentThreadItemBase({
     () => getVisibleReplies(replyIds, repliesExpanded, previewCount),
     [previewCount, repliesExpanded, replyIds],
   );
+  // The connector is intentionally quieter than the author badge while remaining
+  // visible against both light and dark surfaces.
+  const replyConnectorColor = `${authorAccentColor}44`;
 
   const handleExpandReplies = useCallback(() => {
     onExpandReplies(commentId);
@@ -97,6 +100,7 @@ function CommentThreadItemBase({
           borderLeftColor: isHighlighted
             ? authorAccentColor
             : theme.colors.border,
+          borderBottomColor: theme.colors.border,
         },
       ]}
     >
@@ -209,8 +213,8 @@ function CommentThreadItemBase({
                 style={[
                   styles.replyConnector,
                   {
-                    borderLeftColor: theme.colors.border,
-                    borderBottomColor: theme.colors.border,
+                    borderLeftColor: replyConnectorColor,
+                    borderBottomColor: replyConnectorColor,
                   },
                 ]}
               />
