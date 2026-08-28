@@ -58,7 +58,7 @@ function CommentActionRowBase({
       >
         <AppText
           preset="caption"
-          style={[styles.commentActionText, { color: theme.colors.textMuted }]}
+          style={[styles.commentActionText, { color: theme.colors.textSecondary }]}
         >
           답글쓰기
         </AppText>
@@ -74,7 +74,9 @@ function CommentActionRowBase({
           style={[
             styles.commentActionText,
             {
-              color: isLikedByMe ? theme.colors.danger : theme.colors.textMuted,
+              color: isLikedByMe
+                ? theme.colors.danger
+                : theme.colors.textSecondary,
             },
           ]}
         >
@@ -104,7 +106,7 @@ function CommentActionRowBase({
           >
             <AppText
               preset="caption"
-              style={[styles.commentActionText, { color: theme.colors.textMuted }]}
+              style={[styles.commentActionText, { color: theme.colors.textSecondary }]}
             >
               신고
             </AppText>

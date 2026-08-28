@@ -185,10 +185,10 @@ describe('community comment presentation', () => {
     expect(commentBubbleStyle.paddingHorizontal).toBe(0);
     expect(commentBubbleStyle.paddingVertical).toBe(0);
     expect(commentBubbleStyle.borderWidth).toBe(0);
-    expect(replyListStyle.marginLeft).toBe(16);
-    expect(replyListStyle.paddingLeft).toBe(12);
+    expect(replyListStyle.marginLeft).toBe(12);
+    expect(replyListStyle.paddingLeft).toBe(10);
     expect(replyListStyle.borderTopWidth).toBe(StyleSheet.hairlineWidth);
-    expect(replyListStyle.borderLeftWidth).toBe(1);
+    expect(replyListStyle.borderLeftWidth).toBe(StyleSheet.hairlineWidth);
     expect(replyBubbleStyle.paddingHorizontal).toBe(0);
     expect(replyBubbleStyle.paddingVertical).toBe(0);
     expect(replyBubbleStyle.borderWidth).toBe(0);

@@ -93,11 +93,7 @@ function CommentThreadItemBase({
         styles.commentThreadWrap,
         isHighlighted ? styles.targetCommentThread : null,
         {
-          backgroundColor: isHighlighted
-            ? `${authorAccentColor}1A`
-            : isPostAuthor
-            ? `${authorAccentColor}0A`
-            : 'transparent',
+          backgroundColor: isHighlighted ? `${authorAccentColor}1A` : 'transparent',
           borderLeftColor: isHighlighted
             ? authorAccentColor
             : theme.colors.border,
