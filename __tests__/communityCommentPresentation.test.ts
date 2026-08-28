@@ -176,6 +176,7 @@ describe('community comment presentation', () => {
     const threadStyle = StyleSheet.flatten(styles.commentThreadWrap);
     const commentBubbleStyle = StyleSheet.flatten(styles.commentBubble);
     const replyListStyle = StyleSheet.flatten(styles.replyListWrap);
+    const replyConnectorStyle = StyleSheet.flatten(styles.replyConnector);
     const replyBubbleStyle = StyleSheet.flatten(styles.replyBubble);
 
     expect(threadStyle.paddingHorizontal).toBe(0);
@@ -188,7 +189,16 @@ describe('community comment presentation', () => {
     expect(replyListStyle.marginLeft).toBe(12);
     expect(replyListStyle.paddingLeft).toBe(10);
     expect(replyListStyle.borderTopWidth).toBe(StyleSheet.hairlineWidth);
-    expect(replyListStyle.borderLeftWidth).toBe(StyleSheet.hairlineWidth);
+    expect('borderLeftWidth' in replyListStyle).toBe(false);
+    expect('borderLeftColor' in replyListStyle).toBe(false);
+    expect(replyConnectorStyle.position).toBe('absolute');
+    expect(replyConnectorStyle.top).toBe(-1);
+    expect(replyConnectorStyle.width).toBe(18);
+    expect(replyConnectorStyle.height).toBe(30);
+    expect(replyConnectorStyle.borderLeftWidth).toBe(StyleSheet.hairlineWidth);
+    expect(replyConnectorStyle.borderBottomWidth).toBe(StyleSheet.hairlineWidth);
+    expect(replyConnectorStyle.borderBottomLeftRadius).toBe(8);
+    expect(replyConnectorStyle.height).toBeLessThan(40);
     expect(replyBubbleStyle.paddingHorizontal).toBe(0);
     expect(replyBubbleStyle.paddingVertical).toBe(0);
     expect(replyBubbleStyle.borderWidth).toBe(0);

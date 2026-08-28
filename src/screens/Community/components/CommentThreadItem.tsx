@@ -203,12 +203,18 @@ function CommentThreadItemBase({
           />
 
           {visibleReplyIds.length > 0 ? (
-            <View
-              style={[
-                styles.replyListWrap,
-                { borderLeftColor: theme.colors.border },
-              ]}
-            >
+            <View style={styles.replyListWrap}>
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.replyConnector,
+                  {
+                    borderLeftColor: theme.colors.border,
+                    borderBottomColor: theme.colors.border,
+                  },
+                ]}
+              />
+
               {visibleReplyIds.map(replyId => (
                 <ReplyCommentItem
                   key={replyId}

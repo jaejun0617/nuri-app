@@ -375,6 +375,7 @@ export const styles = StyleSheet.create({
     ...typography.role.bodySm,
   },
   replyListWrap: {
+    position: 'relative',
     marginTop: 10,
     marginLeft: 12,
     marginRight: 0,
@@ -382,9 +383,17 @@ export const styles = StyleSheet.create({
     paddingLeft: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: DETAIL_DIVIDER_COLOR,
-    borderLeftWidth: StyleSheet.hairlineWidth,
-    borderLeftColor: DETAIL_DIVIDER_COLOR,
     gap: 0,
+  },
+  replyConnector: {
+    position: 'absolute',
+    top: -1,
+    left: 0,
+    width: 18,
+    height: 30,
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomLeftRadius: 8,
   },
   replyRow: {
     flexDirection: 'row',
