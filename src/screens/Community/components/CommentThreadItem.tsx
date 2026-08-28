@@ -232,6 +232,7 @@ function CommentThreadItemBase({
               {remainingReplyCount > 0 ? (
                 <TouchableOpacity
                   activeOpacity={0.88}
+                  hitSlop={8}
                   style={styles.moreRepliesButton}
                   onPress={handleExpandReplies}
                 >
@@ -247,6 +248,7 @@ function CommentThreadItemBase({
           ) : comment.replyCount > 0 ? (
             <TouchableOpacity
               activeOpacity={0.88}
+              hitSlop={8}
               style={styles.moreRepliesButton}
               onPress={handleExpandReplies}
             >

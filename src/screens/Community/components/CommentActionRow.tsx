@@ -51,7 +51,11 @@ function CommentActionRowBase({
 
   return (
     <View style={[styles.commentActionRow, rowStyle]}>
-      <TouchableOpacity activeOpacity={0.88} onPress={handlePressReply}>
+      <TouchableOpacity
+        activeOpacity={0.88}
+        hitSlop={8}
+        onPress={handlePressReply}
+      >
         <AppText
           preset="caption"
           style={[styles.commentActionText, { color: theme.colors.textMuted }]}
@@ -60,7 +64,11 @@ function CommentActionRowBase({
         </AppText>
       </TouchableOpacity>
 
-      <TouchableOpacity activeOpacity={0.88} onPress={handleToggleLike}>
+      <TouchableOpacity
+        activeOpacity={0.88}
+        hitSlop={8}
+        onPress={handleToggleLike}
+      >
         <AppText
           preset="caption"
           style={[
@@ -76,7 +84,11 @@ function CommentActionRowBase({
 
       {currentUserId ? (
         authorId === currentUserId ? (
-          <TouchableOpacity activeOpacity={0.88} onPress={handlePressDelete}>
+          <TouchableOpacity
+            activeOpacity={0.88}
+            hitSlop={8}
+            onPress={handlePressDelete}
+          >
             <AppText
               preset="caption"
               style={[styles.commentActionText, { color: theme.colors.danger }]}
@@ -85,7 +97,11 @@ function CommentActionRowBase({
             </AppText>
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity activeOpacity={0.88} onPress={handlePressReport}>
+          <TouchableOpacity
+            activeOpacity={0.88}
+            hitSlop={8}
+            onPress={handlePressReport}
+          >
             <AppText
               preset="caption"
               style={[styles.commentActionText, { color: theme.colors.textMuted }]}

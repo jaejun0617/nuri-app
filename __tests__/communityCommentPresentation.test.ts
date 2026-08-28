@@ -1,3 +1,5 @@
+import { StyleSheet } from 'react-native';
+
 import {
   COMMUNITY_COMMENT_SORT_OPTIONS,
   getVisibleReplies,
@@ -7,6 +9,7 @@ import {
   resolveCommunityCommentNavigationTarget,
   sortCommunityCommentIds,
 } from '../src/screens/Community/utils/commentHelpers';
+import { styles } from '../src/screens/Community/CommunityDetailScreen.styles';
 import type { CommunityComment } from '../src/types/community';
 
 function buildComment(
@@ -167,5 +170,22 @@ describe('community comment presentation', () => {
       '답글순',
     ]);
     expect(getCommunityCommentSortLabel('latest')).toBe('최신순');
+  });
+
+  it('keeps comment presentation compact while preserving thread hierarchy and touch sizing', () => {
+    const threadStyle = StyleSheet.flatten(styles.commentThreadWrap);
+    const commentBubbleStyle = StyleSheet.flatten(styles.commentBubble);
+    const replyListStyle = StyleSheet.flatten(styles.replyListWrap);
+
+    expect(threadStyle.paddingVertical).toBe(12);
+    expect(threadStyle.marginBottom).toBe(8);
+    expect(threadStyle.borderWidth).toBe(StyleSheet.hairlineWidth);
+    expect(commentBubbleStyle.paddingVertical).toBe(10);
+    expect(commentBubbleStyle.borderWidth).toBe(StyleSheet.hairlineWidth);
+    expect(replyListStyle.marginLeft).toBe(6);
+    expect(replyListStyle.paddingLeft).toBe(8);
+    expect(replyListStyle.borderTopWidth).toBe(StyleSheet.hairlineWidth);
+    expect(styles.commentAvatar.width).toBe(28);
+    expect(styles.replyAvatar.width).toBe(24);
   });
 });
