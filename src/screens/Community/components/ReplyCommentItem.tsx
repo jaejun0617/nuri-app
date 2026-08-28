@@ -123,12 +123,8 @@ function ReplyCommentItemBase({
           style={[
             styles.replyBubble,
             {
-              backgroundColor: isPostAuthor
-                ? `${authorAccentColor}10`
-                : theme.colors.surface,
-              borderColor: isPostAuthor
-                ? `${authorAccentColor}2E`
-                : theme.colors.border,
+              backgroundColor: 'transparent',
+              borderColor: 'transparent',
             },
           ]}
         >

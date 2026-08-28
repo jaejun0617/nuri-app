@@ -96,9 +96,8 @@ function CommentThreadItemBase({
           backgroundColor: isHighlighted
             ? `${authorAccentColor}1A`
             : isPostAuthor
-            ? `${authorAccentColor}0D`
-            : theme.colors.background,
-          borderColor: theme.colors.border,
+            ? `${authorAccentColor}0A`
+            : 'transparent',
           borderLeftColor: isHighlighted
             ? authorAccentColor
             : theme.colors.border,
@@ -182,12 +181,8 @@ function CommentThreadItemBase({
             style={[
               styles.commentBubble,
               {
-                backgroundColor: isPostAuthor
-                  ? `${authorAccentColor}10`
-                  : theme.colors.surface,
-                borderColor: isPostAuthor
-                  ? `${authorAccentColor}2E`
-                  : theme.colors.border,
+                backgroundColor: 'transparent',
+                borderColor: 'transparent',
               },
             ]}
           >
@@ -212,7 +207,12 @@ function CommentThreadItemBase({
           />
 
           {visibleReplyIds.length > 0 ? (
-            <View style={styles.replyListWrap}>
+            <View
+              style={[
+                styles.replyListWrap,
+                { borderLeftColor: theme.colors.border },
+              ]}
+            >
               {visibleReplyIds.map(replyId => (
                 <ReplyCommentItem
                   key={replyId}

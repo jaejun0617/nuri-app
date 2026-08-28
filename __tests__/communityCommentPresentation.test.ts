@@ -176,15 +176,22 @@ describe('community comment presentation', () => {
     const threadStyle = StyleSheet.flatten(styles.commentThreadWrap);
     const commentBubbleStyle = StyleSheet.flatten(styles.commentBubble);
     const replyListStyle = StyleSheet.flatten(styles.replyListWrap);
+    const replyBubbleStyle = StyleSheet.flatten(styles.replyBubble);
 
+    expect(threadStyle.paddingHorizontal).toBe(0);
     expect(threadStyle.paddingVertical).toBe(12);
-    expect(threadStyle.marginBottom).toBe(8);
-    expect(threadStyle.borderWidth).toBe(StyleSheet.hairlineWidth);
-    expect(commentBubbleStyle.paddingVertical).toBe(10);
-    expect(commentBubbleStyle.borderWidth).toBe(StyleSheet.hairlineWidth);
-    expect(replyListStyle.marginLeft).toBe(6);
-    expect(replyListStyle.paddingLeft).toBe(8);
+    expect(threadStyle.marginBottom).toBe(0);
+    expect(threadStyle.borderBottomWidth).toBe(StyleSheet.hairlineWidth);
+    expect(commentBubbleStyle.paddingHorizontal).toBe(0);
+    expect(commentBubbleStyle.paddingVertical).toBe(0);
+    expect(commentBubbleStyle.borderWidth).toBe(0);
+    expect(replyListStyle.marginLeft).toBe(16);
+    expect(replyListStyle.paddingLeft).toBe(12);
     expect(replyListStyle.borderTopWidth).toBe(StyleSheet.hairlineWidth);
+    expect(replyListStyle.borderLeftWidth).toBe(1);
+    expect(replyBubbleStyle.paddingHorizontal).toBe(0);
+    expect(replyBubbleStyle.paddingVertical).toBe(0);
+    expect(replyBubbleStyle.borderWidth).toBe(0);
     expect(styles.commentAvatar.width).toBe(28);
     expect(styles.replyAvatar.width).toBe(24);
   });
