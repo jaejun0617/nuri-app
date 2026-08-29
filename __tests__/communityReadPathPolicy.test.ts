@@ -168,6 +168,52 @@ describe('community public read path policy', () => {
     expect(supabase.from).not.toHaveBeenCalledWith('comments');
   });
 
+  it('thread reply는 canonical create RPC에 root parent만 전달하고 direct target은 null로 둔다', async () => {
+    supabase.rpc.mockResolvedValue({
+      data: {
+        item: commentRow({
+          id: 'thread-reply-1',
+          user_id: 'user-2',
+          parent_comment_id: 'root-1',
+          depth: 1,
+          reply_to_comment_id: null,
+          reply_target_user_id: null,
+        }),
+      },
+      error: null,
+    });
+    mockProfileRead([
+      {
+        user_id: 'user-2',
+        nickname: 'QA 작성자',
+        nickname_confirmed: true,
+        avatar_url: null,
+      },
+    ]);
+
+    await expect(
+      createCommunityComment({
+        postId: 'post-1',
+        content: '스레드에 남기는 의견',
+        parentCommentId: 'root-1',
+        replyToCommentId: null,
+      }),
+    ).resolves.toMatchObject({
+      parentCommentId: 'root-1',
+      replyToCommentId: null,
+      replyTargetUserId: null,
+      replyTargetNickname: null,
+    });
+
+    expect(supabase.rpc).toHaveBeenCalledWith('community_create_comment_v1', {
+      p_post_id: 'post-1',
+      p_content: '스레드에 남기는 의견',
+      p_parent_comment_id: 'root-1',
+      p_reply_to_comment_id: null,
+    });
+    expect(supabase.from).not.toHaveBeenCalledWith('comments');
+  });
+
   it('reply-to-reply는 root parent와 선택된 reply target을 함께 전달하고 target identity를 매핑한다', async () => {
     supabase.rpc.mockResolvedValue({
       data: {

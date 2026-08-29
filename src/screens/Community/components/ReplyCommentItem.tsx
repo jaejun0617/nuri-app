@@ -1,5 +1,5 @@
-import React, { memo, useMemo } from 'react';
-import { View } from 'react-native';
+import React, { memo, useCallback, useMemo } from 'react';
+import { Pressable, View } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from 'styled-components/native';
@@ -23,7 +23,7 @@ type Props = {
   authorAccentColor: string;
   highlighted: boolean;
   onTargetReady: (target: React.ElementRef<typeof View> | null) => void;
-  onPressReply: (commentId: string) => void;
+  onPressComment: (commentId: string) => void;
   onToggleLike: (commentId: string) => void;
   onPressDelete: (commentId: string) => void;
   onPressReport: (commentId: string) => void;
@@ -36,7 +36,7 @@ function ReplyCommentItemBase({
   authorAccentColor,
   highlighted,
   onTargetReady,
-  onPressReply,
+  onPressComment,
   onToggleLike,
   onPressDelete,
   onPressReport,
@@ -55,6 +55,9 @@ function ReplyCommentItemBase({
       priority: FastImage.priority.normal,
     };
   }, [reply?.authorAvatarUrl]);
+  const handlePressComment = useCallback(() => {
+    onPressComment(replyId);
+  }, [onPressComment, replyId]);
 
   if (!reply) return null;
   const isPostAuthor = isCommentByPostAuthor(reply.authorId, postAuthorId);
@@ -73,86 +76,100 @@ function ReplyCommentItemBase({
           : { backgroundColor: theme.colors.surface },
       ]}
     >
-      {avatarSource ? (
-        <FastImage
-          source={avatarSource}
-          style={[styles.replyAvatar, { borderColor: theme.colors.border }]}
-          resizeMode={FastImage.resizeMode.cover}
-        />
-      ) : (
-        <View
-          style={[
-            styles.replyAvatarFallback,
-            {
-              backgroundColor: theme.colors.surface,
-              borderColor: theme.colors.border,
-            },
-          ]}
-        >
-          <Feather name="user" size={10} color={theme.colors.textMuted} />
-        </View>
-      )}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`답글 ${reply.authorNickname}에 답글 남기기`}
+        hitSlop={8}
+        style={styles.replyAvatarTapTarget}
+        onPress={handlePressComment}
+      >
+        {avatarSource ? (
+          <FastImage
+            source={avatarSource}
+            style={[styles.replyAvatar, { borderColor: theme.colors.border }]}
+            resizeMode={FastImage.resizeMode.cover}
+          />
+        ) : (
+          <View
+            style={[
+              styles.replyAvatarFallback,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+              },
+            ]}
+          >
+            <Feather name="user" size={10} color={theme.colors.textMuted} />
+          </View>
+        )}
+      </Pressable>
       <View style={styles.replyContentWrap}>
-        <View style={styles.replyMetaRow}>
-          <AppText
-            preset="caption"
-            style={[styles.replyAuthorText, { color: theme.colors.textPrimary }]}
-          >
-            {reply.authorNickname}
-          </AppText>
-          {isPostAuthor ? (
-            <View
-              style={[
-                styles.authorBadge,
-                { backgroundColor: authorAccentColor },
-              ]}
-            >
-              <AppText
-                preset="caption"
-                style={[styles.authorBadgeText, { color: '#FFFFFF' }]}
-              >
-                글쓴이
-              </AppText>
-            </View>
-          ) : null}
-          <AppText
-            preset="caption"
-            style={[styles.replyMetaText, { color: theme.colors.textMuted }]}
-          >
-            {createdAtLabel}
-          </AppText>
-        </View>
-        <View
-          style={[
-            styles.replyBubble,
-            {
-              backgroundColor: 'transparent',
-              borderColor: 'transparent',
-            },
-          ]}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`답글 ${reply.authorNickname} 내용에 직접 답글 남기기`}
+          style={styles.replyTapContent}
+          onPress={handlePressComment}
         >
-          <AppText
-            preset="body"
-            style={[styles.replyContent, { color: theme.colors.textPrimary }]}
-          >
-            {reply.replyTargetNickname ? (
-              <AppText
-                preset="body"
-                style={[styles.replyMention, { color: authorAccentColor }]}
+          <View style={styles.replyMetaRow}>
+            <AppText
+              preset="caption"
+              style={[styles.replyAuthorText, { color: theme.colors.textPrimary }]}
+            >
+              {reply.authorNickname}
+            </AppText>
+            {isPostAuthor ? (
+              <View
+                style={[
+                  styles.authorBadge,
+                  { backgroundColor: authorAccentColor },
+                ]}
               >
-                {getCommunityReplyTargetMention(reply.replyTargetNickname)}{' '}
-              </AppText>
+                <AppText
+                  preset="caption"
+                  style={[styles.authorBadgeText, { color: '#FFFFFF' }]}
+                >
+                  글쓴이
+                </AppText>
+              </View>
             ) : null}
-            {reply.content}
-          </AppText>
-        </View>
+            <AppText
+              preset="caption"
+              style={[styles.replyMetaText, { color: theme.colors.textMuted }]}
+            >
+              {createdAtLabel}
+            </AppText>
+          </View>
+          <View
+            style={[
+              styles.replyBubble,
+              {
+                backgroundColor: 'transparent',
+                borderColor: 'transparent',
+              },
+            ]}
+          >
+            <AppText
+              preset="body"
+              style={[styles.replyContent, { color: theme.colors.textPrimary }]}
+            >
+              {reply.replyTargetNickname ? (
+                <AppText
+                  preset="body"
+                  style={[styles.replyMention, { color: authorAccentColor }]}
+                >
+                  {getCommunityReplyTargetMention(reply.replyTargetNickname)}{' '}
+                </AppText>
+              ) : null}
+              {reply.content}
+            </AppText>
+          </View>
+        </Pressable>
         <CommentActionRow
           commentId={reply.id}
           authorId={reply.authorId}
           currentUserId={currentUserId}
           isLikedByMe={reply.isLikedByMe}
           likeCount={reply.likeCount}
-          onPressReply={onPressReply}
           onToggleLike={onToggleLike}
           onPressDelete={onPressDelete}
           onPressReport={onPressReport}

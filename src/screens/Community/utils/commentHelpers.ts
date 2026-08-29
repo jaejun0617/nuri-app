@@ -180,6 +180,47 @@ export function getCommunityReplyTargetMention(
   return normalizedNickname.length > 0 ? `@${normalizedNickname}` : null;
 }
 
+export type CommunityReplyMode = 'thread' | 'direct';
+
+/**
+ * A root tap joins the root thread without selecting a direct target. A reply
+ * tap keeps the same one-level parent while preserving the selected reply as
+ * the canonical direct target.
+ */
+export function getCommunityReplyMode(
+  comment: CommunityComment | null | undefined,
+): CommunityReplyMode | null {
+  if (!comment) return null;
+  return comment.parentCommentId ? 'direct' : 'thread';
+}
+
+export function getCommunityReplyCreateTarget(
+  comment: CommunityComment | null | undefined,
+) {
+  if (!comment) {
+    return {
+      parentCommentId: null,
+      replyToCommentId: null,
+    };
+  }
+
+  if (!comment.parentCommentId) {
+    return {
+      parentCommentId: comment.id,
+      replyToCommentId: null,
+    };
+  }
+
+  return {
+    parentCommentId: comment.parentCommentId,
+    replyToCommentId: comment.id,
+  };
+}
+
+export function getCommunityReplySectionHeaderLabel(replyCount: number) {
+  return replyCount > 0 ? `답글 ${replyCount}` : null;
+}
+
 export function resolveCommunityCommentNavigationTarget(
   targetCommentId: string,
   commentEntitiesById: Readonly<Record<string, CommunityComment>>,

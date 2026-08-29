@@ -2,6 +2,9 @@ import { StyleSheet } from 'react-native';
 
 import {
   COMMUNITY_COMMENT_SORT_OPTIONS,
+  getCommunityReplyCreateTarget,
+  getCommunityReplyMode,
+  getCommunityReplySectionHeaderLabel,
   getCommunityReplyTargetMention,
   getVisibleReplies,
   getCommunityCommentSortLabel,
@@ -188,6 +191,33 @@ describe('community comment presentation', () => {
     expect(getCommunityReplyTargetMention(null)).toBeNull();
   });
 
+  it('maps root taps to untargeted thread replies and reply taps to direct replies', () => {
+    const root = buildComment('root-a', 'author-a', null);
+    const reply = buildComment('reply-b', 'author-b', 'root-a');
+    const replyToReply = buildComment('reply-c', 'author-c', 'root-a');
+
+    expect(getCommunityReplyMode(root)).toBe('thread');
+    expect(getCommunityReplyCreateTarget(root)).toEqual({
+      parentCommentId: 'root-a',
+      replyToCommentId: null,
+    });
+
+    expect(getCommunityReplyMode(reply)).toBe('direct');
+    expect(getCommunityReplyCreateTarget(reply)).toEqual({
+      parentCommentId: 'root-a',
+      replyToCommentId: 'reply-b',
+    });
+    expect(getCommunityReplyCreateTarget(replyToReply)).toEqual({
+      parentCommentId: 'root-a',
+      replyToCommentId: 'reply-c',
+    });
+  });
+
+  it('shows the reply section header only when visible replies exist', () => {
+    expect(getCommunityReplySectionHeaderLabel(3)).toBe('답글 3');
+    expect(getCommunityReplySectionHeaderLabel(0)).toBeNull();
+  });
+
   it('adds internal dividers only between multiple replies', () => {
     expect(shouldShowReplyDivider(0, 3)).toBe(true);
     expect(shouldShowReplyDivider(1, 3)).toBe(true);
@@ -210,7 +240,7 @@ describe('community comment presentation', () => {
     expect(threadStyle.marginBottom).toBe(0);
     expect(threadStyle.borderBottomWidth).toBe(StyleSheet.hairlineWidth);
     expect(rootContentStyle.paddingHorizontal).toBe(8);
-    expect(rootContentStyle.paddingVertical).toBe(12);
+    expect(rootContentStyle.paddingVertical).toBe(8);
     expect(COMMENT_ROOT_DIVIDER_COLOR).toBe('rgba(0, 0, 0, 0.20)');
     expect(commentBubbleStyle.paddingHorizontal).toBe(0);
     expect(commentBubbleStyle.paddingVertical).toBe(0);
@@ -235,15 +265,20 @@ describe('community comment presentation', () => {
     expect(replyRowStyle.paddingRight).toBe(16);
     expect(replyRowStyle.backgroundColor).toBe('#F6F7FB');
     expect('borderRadius' in replyRowStyle).toBe(false);
+    expect(styles.replySectionHeader.backgroundColor).toBe('#F6F7FB');
+    expect(styles.replySectionHeader.paddingHorizontal).toBe(16);
+    expect(styles.replySectionHeaderText.fontWeight).toBe('600');
     expect(replyBubbleStyle.paddingHorizontal).toBe(0);
     expect(replyBubbleStyle.paddingVertical).toBe(0);
     expect(replyBubbleStyle.borderWidth).toBe(0);
-    expect(styles.commentAvatar.width).toBe(28);
+    expect(styles.commentAvatar.width).toBe(24);
     expect(styles.replyAvatar.width).toBe(24);
-    expect(styles.commentAvatar.marginTop).toBe(-3);
-    expect(styles.commentAvatarFallback.marginTop).toBe(-3);
+    expect(styles.commentAvatar.marginTop).toBe(-2);
+    expect(styles.commentAvatarFallback.marginTop).toBe(-2);
     expect(styles.replyAvatar.marginTop).toBe(-2);
     expect(styles.replyAvatarFallback.marginTop).toBe(-2);
+    expect(commentRowStyle.gap).toBe(replyRowStyle.gap);
+    expect(styles.replyContent).toMatchObject(styles.commentContent);
     expect(commentRowStyle.alignItems).toBe('flex-start');
     expect(replyRowStyle.alignItems).toBe('flex-start');
   });

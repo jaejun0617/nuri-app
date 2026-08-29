@@ -12,7 +12,6 @@ type Props = {
   currentUserId: string | null;
   isLikedByMe: boolean;
   likeCount: number;
-  onPressReply: (commentId: string) => void;
   onToggleLike: (commentId: string) => void;
   onPressDelete: (commentId: string) => void;
   onPressReport: (commentId: string) => void;
@@ -25,17 +24,12 @@ function CommentActionRowBase({
   currentUserId,
   isLikedByMe,
   likeCount,
-  onPressReply,
   onToggleLike,
   onPressDelete,
   onPressReport,
   rowStyle,
 }: Props) {
   const theme = useTheme();
-
-  const handlePressReply = useCallback(() => {
-    onPressReply(commentId);
-  }, [commentId, onPressReply]);
 
   const handleToggleLike = useCallback(() => {
     onToggleLike(commentId);
@@ -51,19 +45,6 @@ function CommentActionRowBase({
 
   return (
     <View style={[styles.commentActionRow, rowStyle]}>
-      <TouchableOpacity
-        activeOpacity={0.88}
-        hitSlop={8}
-        onPress={handlePressReply}
-      >
-        <AppText
-          preset="caption"
-          style={[styles.commentActionText, { color: theme.colors.textSecondary }]}
-        >
-          답글쓰기
-        </AppText>
-      </TouchableOpacity>
-
       <TouchableOpacity
         activeOpacity={0.88}
         hitSlop={8}

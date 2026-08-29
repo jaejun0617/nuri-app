@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useMemo } from 'react';
-import { TouchableOpacity, View } from 'react-native';
+import { Pressable, TouchableOpacity, View } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import FastImage from 'react-native-fast-image';
 import { useTheme } from 'styled-components/native';
@@ -9,6 +9,7 @@ import { useCommunityStore } from '../../../store/communityStore';
 import { formatRelativeTimeFromNow } from '../../../utils/date';
 import {
   getCommunityReplyTargetMention,
+  getCommunityReplySectionHeaderLabel,
   getVisibleReplies,
   isCommentByPostAuthor,
   shouldShowReplyDivider,
@@ -33,7 +34,7 @@ type Props = {
   bestBadgeColor: string;
   highlightedCommentId: string | null;
   onTargetReady: (target: React.ElementRef<typeof View> | null) => void;
-  onPressReply: (commentId: string) => void;
+  onPressComment: (commentId: string) => void;
   onToggleLike: (commentId: string) => void;
   onPressDelete: (commentId: string) => void;
   onPressReport: (commentId: string) => void;
@@ -54,7 +55,7 @@ function CommentThreadItemBase({
   bestBadgeColor,
   highlightedCommentId,
   onTargetReady,
-  onPressReply,
+  onPressComment,
   onToggleLike,
   onPressDelete,
   onPressReport,
@@ -85,6 +86,9 @@ function CommentThreadItemBase({
   const handleExpandReplies = useCallback(() => {
     onExpandReplies(commentId);
   }, [commentId, onExpandReplies]);
+  const handlePressComment = useCallback(() => {
+    onPressComment(commentId);
+  }, [commentId, onPressComment]);
 
   if (!comment) return null;
   const isPostAuthor = isCommentByPostAuthor(comment.authorId, postAuthorId);
@@ -107,102 +111,117 @@ function CommentThreadItemBase({
     >
       <View style={styles.commentRootContent}>
         <View style={styles.commentRow}>
-          {avatarSource ? (
-            <FastImage
-              source={avatarSource}
-              style={[styles.commentAvatar, { borderColor: theme.colors.border }]}
-              resizeMode={FastImage.resizeMode.cover}
-            />
-          ) : (
-            <View
-              style={[
-                styles.commentAvatarFallback,
-                {
-                  backgroundColor: theme.colors.surface,
-                  borderColor: theme.colors.border,
-                },
-              ]}
-            >
-              <Feather name="user" size={12} color={theme.colors.textMuted} />
-            </View>
-          )}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`댓글 ${comment.authorNickname}에 답글 남기기`}
+            hitSlop={8}
+            style={styles.commentAvatarTapTarget}
+            onPress={handlePressComment}
+          >
+            {avatarSource ? (
+              <FastImage
+                source={avatarSource}
+                style={[styles.commentAvatar, { borderColor: theme.colors.border }]}
+                resizeMode={FastImage.resizeMode.cover}
+              />
+            ) : (
+              <View
+                style={[
+                  styles.commentAvatarFallback,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.border,
+                  },
+                ]}
+              >
+                <Feather name="user" size={12} color={theme.colors.textMuted} />
+              </View>
+            )}
+          </Pressable>
 
           <View style={styles.commentBodyWrap}>
-            <View style={styles.commentMetaRow}>
-              <View style={styles.commentMetaInline}>
-                <AppText
-                  preset="caption"
-                  style={[styles.commentAuthorText, { color: theme.colors.textPrimary }]}
-                >
-                  {comment.authorNickname}
-                </AppText>
-                {isPostAuthor ? (
-                  <View
-                    style={[
-                      styles.authorBadge,
-                      { backgroundColor: authorAccentColor },
-                    ]}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`댓글 ${comment.authorNickname} 내용에 답글 남기기`}
+              style={styles.commentTapContent}
+              onPress={handlePressComment}
+            >
+              <View style={styles.commentMetaRow}>
+                <View style={styles.commentMetaInline}>
+                  <AppText
+                    preset="caption"
+                    style={[styles.commentAuthorText, { color: theme.colors.textPrimary }]}
                   >
-                    <AppText
-                      preset="caption"
-                      style={[styles.authorBadgeText, { color: '#FFFFFF' }]}
+                    {comment.authorNickname}
+                  </AppText>
+                  {isPostAuthor ? (
+                    <View
+                      style={[
+                        styles.authorBadge,
+                        { backgroundColor: authorAccentColor },
+                      ]}
                     >
-                      글쓴이
-                    </AppText>
-                  </View>
-                ) : null}
-                {isBestCommentLikeEligible(
-                  comment.likeCount,
-                  comment.status,
-                  comment.depth,
-                ) ? (
-                  <View
-                    style={[
-                      styles.bestBadge,
-                      { backgroundColor: `${bestBadgeColor}12` },
-                    ]}
+                      <AppText
+                        preset="caption"
+                        style={[styles.authorBadgeText, { color: '#FFFFFF' }]}
+                      >
+                        글쓴이
+                      </AppText>
+                    </View>
+                  ) : null}
+                  {isBestCommentLikeEligible(
+                    comment.likeCount,
+                    comment.status,
+                    comment.depth,
+                  ) ? (
+                    <View
+                      style={[
+                        styles.bestBadge,
+                        { backgroundColor: `${bestBadgeColor}12` },
+                      ]}
+                    >
+                      <AppText
+                        preset="caption"
+                        style={[styles.bestBadgeText, { color: bestBadgeColor }]}
+                      >
+                        인기
+                      </AppText>
+                    </View>
+                  ) : null}
+                  <AppText
+                    preset="caption"
+                    style={[styles.commentMetaText, { color: theme.colors.textMuted }]}
                   >
-                    <AppText
-                      preset="caption"
-                      style={[styles.bestBadgeText, { color: bestBadgeColor }]}
-                    >
-                      인기
-                    </AppText>
-                  </View>
-                ) : null}
+                    {createdAtLabel}
+                  </AppText>
+                </View>
+              </View>
+
+              <View
+                style={[
+                  styles.commentBubble,
+                  {
+                    backgroundColor: 'transparent',
+                    borderColor: 'transparent',
+                  },
+                ]}
+              >
                 <AppText
-                  preset="caption"
-                  style={[styles.commentMetaText, { color: theme.colors.textMuted }]}
+                  preset="body"
+                  style={[styles.commentContent, { color: theme.colors.textPrimary }]}
                 >
-                  {createdAtLabel}
+                  {comment.replyTargetNickname ? (
+                    <AppText
+                      preset="body"
+                      style={[styles.commentMention, { color: authorAccentColor }]}
+                    >
+                      {getCommunityReplyTargetMention(comment.replyTargetNickname)}{' '}
+                    </AppText>
+                  ) : null}
+                  {comment.content}
                 </AppText>
               </View>
-            </View>
-
-            <View
-              style={[
-                styles.commentBubble,
-                {
-                  backgroundColor: 'transparent',
-                  borderColor: 'transparent',
-                },
-              ]}
-            >
-              <AppText
-                preset="body"
-                style={[styles.commentContent, { color: theme.colors.textPrimary }]}
-              >
-                {comment.replyTargetNickname ? (
-                  <AppText
-                    preset="body"
-                    style={[styles.commentMention, { color: authorAccentColor }]}
-                  >
-                    {getCommunityReplyTargetMention(comment.replyTargetNickname)}{' '}
-                  </AppText>
-                ) : null}
-                {comment.content}
-              </AppText>
-            </View>
+            </Pressable>
 
             <CommentActionRow
               commentId={comment.id}
@@ -210,7 +229,6 @@ function CommentThreadItemBase({
               currentUserId={currentUserId}
               isLikedByMe={comment.isLikedByMe}
               likeCount={comment.likeCount}
-              onPressReply={onPressReply}
               onToggleLike={onToggleLike}
               onPressDelete={onPressDelete}
               onPressReport={onPressReport}
@@ -237,6 +255,14 @@ function CommentThreadItemBase({
 
       {visibleReplyIds.length > 0 ? (
         <View style={styles.replyListWrap}>
+          <View style={styles.replySectionHeader}>
+            <AppText
+              preset="caption"
+              style={[styles.replySectionHeaderText, { color: theme.colors.textSecondary }]}
+            >
+              {getCommunityReplySectionHeaderLabel(replyIds.length)}
+            </AppText>
+          </View>
           {visibleReplyIds.map((replyId, replyIndex) => (
             <React.Fragment key={replyId}>
               <ReplyCommentItem
@@ -246,7 +272,7 @@ function CommentThreadItemBase({
                 authorAccentColor={authorAccentColor}
                 highlighted={highlightedCommentId === replyId}
                 onTargetReady={onTargetReady}
-                onPressReply={onPressReply}
+                onPressComment={onPressComment}
                 onToggleLike={onToggleLike}
                 onPressDelete={onPressDelete}
                 onPressReport={onPressReport}

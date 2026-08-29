@@ -39,7 +39,6 @@ import { useCommunityStore } from '../../store/communityStore';
 import { usePetStore } from '../../store/petStore';
 import { showToast } from '../../store/uiStore';
 import type {
-  CommunityComment,
   CommunityReportReasonCategory,
 } from '../../types/community';
 import { getKstDateParts } from '../../utils/date';
@@ -48,6 +47,8 @@ import { getCommunityCategoryLabel } from './communityListPresentation';
 import {
   COMMUNITY_COMMENT_SORT_OPTIONS,
   getCommunityCommentSortLabel,
+  getCommunityReplyCreateTarget,
+  getCommunityReplyMode,
   getCommunityReplyTargetMention,
   resolveCommunityCommentNavigationTarget,
   sortCommunityCommentIds,
@@ -118,14 +119,6 @@ function formatDetailMetaDate(input: string) {
   const month = String(parts.month).padStart(2, '0');
   const day = String(parts.day).padStart(2, '0');
   return `${parts.year}.${month}.${day}`;
-}
-
-function resolveReplyParentId(comment: CommunityComment) {
-  if (comment.depth === 0) {
-    return comment.id;
-  }
-
-  return comment.parentCommentId ?? comment.id;
 }
 
 export default function CommunityDetailScreen() {
@@ -548,11 +541,12 @@ export default function CommunityDetailScreen() {
       }
 
       setCommentSubmitting(true);
+      const replyCreateTarget = getCommunityReplyCreateTarget(replyTarget);
       submitComment(
         postId,
         trimmed,
-        replyTarget ? resolveReplyParentId(replyTarget) : null,
-        replyTarget?.id ?? null,
+        replyCreateTarget.parentCommentId,
+        replyCreateTarget.replyToCommentId,
       )
         .then(() => {
           setCommentDraft('');
@@ -589,7 +583,7 @@ export default function CommunityDetailScreen() {
     scrollCommentComposerIntoView();
   }, [scrollCommentComposerIntoView]);
 
-  const handlePressReply = useCallback(
+  const handlePressComment = useCallback(
     (commentId: string) => {
       setReplyTargetId(commentId);
       focusCommentComposer();
@@ -1042,7 +1036,7 @@ export default function CommunityDetailScreen() {
         bestBadgeColor={petTheme.primary}
         highlightedCommentId={highlightedCommentId}
         onTargetReady={handleTargetCommentReady}
-        onPressReply={handlePressReply}
+        onPressComment={handlePressComment}
         onToggleLike={handleToggleCommentLike}
         onPressDelete={handleRequestDeleteComment}
         onPressReport={handleRequestReportComment}
@@ -1053,7 +1047,7 @@ export default function CommunityDetailScreen() {
       currentUserId,
       expandedRepliesByCommentId,
       handleExpandReplies,
-      handlePressReply,
+      handlePressComment,
       handleRequestDeleteComment,
       handleRequestReportComment,
       handleToggleCommentLike,
@@ -1204,16 +1198,22 @@ export default function CommunityDetailScreen() {
                 preset="caption"
                 style={[styles.replyComposerText, { color: theme.colors.textPrimary }]}
               >
-                <AppText
-                  preset="caption"
-                  style={[
-                    styles.replyComposerMention,
-                    { color: petTheme.primary },
-                  ]}
-                >
-                  {getCommunityReplyTargetMention(replyTarget.authorNickname)}
-                </AppText>
-                {'님에게 답글 남기는 중'}
+                {getCommunityReplyMode(replyTarget) === 'direct' ? (
+                  <>
+                    <AppText
+                      preset="caption"
+                      style={[
+                        styles.replyComposerMention,
+                        { color: petTheme.primary },
+                      ]}
+                    >
+                      {getCommunityReplyTargetMention(replyTarget.authorNickname)}
+                    </AppText>
+                    {'님에게 답글 남기는 중'}
+                  </>
+                ) : (
+                  '답글 남기는 중'
+                )}
               </AppText>
               <TouchableOpacity
                 activeOpacity={0.88}

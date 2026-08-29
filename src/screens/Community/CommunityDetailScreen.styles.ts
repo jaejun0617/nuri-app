@@ -298,7 +298,7 @@ export const styles = StyleSheet.create({
   },
   commentRootContent: {
     paddingHorizontal: 8,
-    paddingVertical: 12,
+    paddingVertical: 8,
   },
   targetCommentThread: {
     borderLeftWidth: 3,
@@ -306,22 +306,29 @@ export const styles = StyleSheet.create({
   commentRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 10,
+    gap: 8,
+  },
+  commentAvatarTapTarget: {
+    alignSelf: 'flex-start',
+  },
+  commentTapContent: {
+    alignSelf: 'stretch',
+    minWidth: 0,
   },
   commentAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     borderWidth: 1,
     // Optically center the avatar against the nickname/meta line, not the body.
-    marginTop: -3,
+    marginTop: -2,
   },
   commentAvatarFallback: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     borderWidth: 1,
-    marginTop: -3,
+    marginTop: -2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -405,6 +412,15 @@ export const styles = StyleSheet.create({
     paddingRight: 0,
     gap: 0,
   },
+  replySectionHeader: {
+    backgroundColor: '#F6F7FB',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+  },
+  replySectionHeaderText: {
+    ...typography.role.helper,
+    fontWeight: '600',
+  },
   replyRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -448,6 +464,13 @@ export const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
+  replyAvatarTapTarget: {
+    alignSelf: 'flex-start',
+  },
+  replyTapContent: {
+    alignSelf: 'stretch',
+    minWidth: 0,
+  },
   replyMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -471,10 +494,10 @@ export const styles = StyleSheet.create({
     maxWidth: '100%',
   },
   replyContent: {
-    ...typography.role.helper,
+    ...typography.role.bodySm,
   },
   replyMention: {
-    ...typography.role.helper,
+    ...typography.role.bodySm,
     fontWeight: '600',
   },
   replyActionRow: {
