@@ -24,6 +24,7 @@ const { supabase } = jest.requireMock('../src/services/supabase/client') as {
 import {
   CommunityCommentDeleteError,
   CommunityDetailReadError,
+  createCommunityComment,
   deleteCommunityComment,
   fetchCommunityPostById,
 } from '../src/services/supabase/community';
@@ -48,6 +49,34 @@ function postRow(overrides: Record<string, unknown>) {
     updated_at: '2026-07-13T00:00:00.000Z',
     ...overrides,
   };
+}
+
+function commentRow(overrides: Record<string, unknown>) {
+  return {
+    id: 'comment-1',
+    post_id: 'post-1',
+    user_id: 'user-1',
+    content: '테스트 댓글',
+    parent_comment_id: null,
+    depth: 0,
+    reply_count: 0,
+    like_count: 0,
+    reply_to_comment_id: null,
+    reply_target_user_id: null,
+    status: 'active',
+    deleted_at: null,
+    created_at: '2026-08-29T00:00:00.000Z',
+    updated_at: '2026-08-29T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
+function mockProfileRead(rows: Array<Record<string, unknown>>) {
+  supabase.from.mockReturnValue({
+    select: jest.fn(() => ({
+      in: jest.fn().mockResolvedValue({ data: rows, error: null }),
+    })),
+  });
 }
 
 describe('community public read path policy', () => {
@@ -106,6 +135,89 @@ describe('community public read path policy', () => {
       authorNickname: 'QA 사용자',
     });
     expect(supabase.rpc).toHaveBeenCalledTimes(1);
+  });
+
+  it('root comment는 canonical create RPC에 parent와 target을 null로 전달한다', async () => {
+    supabase.rpc.mockResolvedValue({
+      data: { item: commentRow({}) },
+      error: null,
+    });
+    mockProfileRead([
+      {
+        user_id: 'user-1',
+        nickname: 'QA 사용자',
+        nickname_confirmed: true,
+        avatar_url: null,
+      },
+    ]);
+
+    await expect(
+      createCommunityComment({ postId: 'post-1', content: '새 댓글' }),
+    ).resolves.toMatchObject({
+      parentCommentId: null,
+      replyToCommentId: null,
+      replyTargetUserId: null,
+    });
+
+    expect(supabase.rpc).toHaveBeenCalledWith('community_create_comment_v1', {
+      p_post_id: 'post-1',
+      p_content: '새 댓글',
+      p_parent_comment_id: null,
+      p_reply_to_comment_id: null,
+    });
+    expect(supabase.from).not.toHaveBeenCalledWith('comments');
+  });
+
+  it('reply-to-reply는 root parent와 선택된 reply target을 함께 전달하고 target identity를 매핑한다', async () => {
+    supabase.rpc.mockResolvedValue({
+      data: {
+        item: commentRow({
+          id: 'reply-c',
+          user_id: 'user-c',
+          parent_comment_id: 'root-a',
+          depth: 1,
+          reply_to_comment_id: 'reply-b',
+          reply_target_user_id: 'user-b',
+        }),
+      },
+      error: null,
+    });
+    mockProfileRead([
+      {
+        user_id: 'user-c',
+        nickname: 'QA 작성자',
+        nickname_confirmed: true,
+        avatar_url: null,
+      },
+      {
+        user_id: 'user-b',
+        nickname: 'QA 대상',
+        nickname_confirmed: true,
+        avatar_url: null,
+      },
+    ]);
+
+    await expect(
+      createCommunityComment({
+        postId: 'post-1',
+        content: '답글 내용',
+        parentCommentId: 'root-a',
+        replyToCommentId: 'reply-b',
+      }),
+    ).resolves.toMatchObject({
+      parentCommentId: 'root-a',
+      replyToCommentId: 'reply-b',
+      replyTargetUserId: 'user-b',
+      replyTargetNickname: 'QA 대상',
+    });
+
+    expect(supabase.rpc).toHaveBeenCalledWith('community_create_comment_v1', {
+      p_post_id: 'post-1',
+      p_content: '답글 내용',
+      p_parent_comment_id: 'root-a',
+      p_reply_to_comment_id: 'reply-b',
+    });
+    expect(supabase.from).not.toHaveBeenCalledWith('comments');
   });
 
   it('RPC 오류는 retryable detail error로 유지하고 not-found로 매핑하지 않는다', async () => {

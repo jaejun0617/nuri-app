@@ -2,6 +2,7 @@ import { StyleSheet } from 'react-native';
 
 import {
   COMMUNITY_COMMENT_SORT_OPTIONS,
+  getCommunityReplyTargetMention,
   getVisibleReplies,
   getCommunityCommentSortLabel,
   groupCommentsIntoThreads,
@@ -29,6 +30,9 @@ function buildComment(
     authorNickname: authorId,
     authorAvatarUrl: null,
     parentCommentId,
+    replyToCommentId: parentCommentId,
+    replyTargetUserId: parentCommentId ? 'target-author' : null,
+    replyTargetNickname: parentCommentId ? 'target-author' : null,
     depth: parentCommentId ? 1 : 0,
     replyCount: parentCommentId ? 0 : 1,
     likeCount: 0,
@@ -176,6 +180,12 @@ describe('community comment presentation', () => {
     expect(getCommunityCommentSortLabel('latest')).toBe('최신순');
   });
 
+  it('formats reply targets as presentation-only mentions', () => {
+    expect(getCommunityReplyTargetMention('adminQA')).toBe('@adminQA');
+    expect(getCommunityReplyTargetMention('  adminQA  ')).toBe('@adminQA');
+    expect(getCommunityReplyTargetMention(null)).toBeNull();
+  });
+
   it('keeps comment presentation compact while preserving thread hierarchy and touch sizing', () => {
     const threadStyle = StyleSheet.flatten(styles.commentThreadWrap);
     const commentBubbleStyle = StyleSheet.flatten(styles.commentBubble);
@@ -202,11 +212,12 @@ describe('community comment presentation', () => {
     expect(replyConnectorStyle.top).toBe(-1);
     expect(replyConnectorStyle.width).toBe(18);
     expect(replyConnectorStyle.height).toBe(30);
-    expect(replyConnectorStyle.borderLeftWidth).toBe(StyleSheet.hairlineWidth);
-    expect(replyConnectorStyle.borderBottomWidth).toBe(StyleSheet.hairlineWidth);
+    expect(replyConnectorStyle.borderLeftWidth).toBe(1);
+    expect(replyConnectorStyle.borderBottomWidth).toBe(1);
     expect(replyConnectorStyle.borderBottomLeftRadius).toBe(8);
     expect(replyConnectorStyle.height).toBeLessThan(40);
-    expect(COMMENT_REPLY_CONNECTOR_COLOR).toBe('rgba(0, 0, 0, 0.28)');
+    expect(COMMENT_REPLY_CONNECTOR_COLOR).toBe('rgba(0, 0, 0, 0.38)');
+    expect(replyRowStyle.backgroundColor).toBe('#F6F7FB');
     expect(replyBubbleStyle.paddingHorizontal).toBe(0);
     expect(replyBubbleStyle.paddingVertical).toBe(0);
     expect(replyBubbleStyle.borderWidth).toBe(0);

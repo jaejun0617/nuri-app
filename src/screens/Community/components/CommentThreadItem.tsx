@@ -8,6 +8,7 @@ import AppText from '../../../app/ui/AppText';
 import { useCommunityStore } from '../../../store/communityStore';
 import { formatRelativeTimeFromNow } from '../../../utils/date';
 import {
+  getCommunityReplyTargetMention,
   getVisibleReplies,
   isCommentByPostAuthor,
 } from '../utils/commentHelpers';
@@ -190,6 +191,14 @@ function CommentThreadItemBase({
               preset="body"
               style={[styles.commentContent, { color: theme.colors.textPrimary }]}
             >
+              {comment.replyTargetNickname ? (
+                <AppText
+                  preset="body"
+                  style={[styles.commentMention, { color: authorAccentColor }]}
+                >
+                  {getCommunityReplyTargetMention(comment.replyTargetNickname)}{' '}
+                </AppText>
+              ) : null}
               {comment.content}
             </AppText>
           </View>

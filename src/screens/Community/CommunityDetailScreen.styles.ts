@@ -5,7 +5,8 @@ export const DETAIL_DIVIDER_COLOR = '#00000008';
 // Community comment separators use a neutral, low-contrast black so their
 // structure remains legible without changing the shared detail separators.
 export const COMMENT_ROOT_DIVIDER_COLOR = 'rgba(0, 0, 0, 0.20)';
-export const COMMENT_REPLY_CONNECTOR_COLOR = 'rgba(0, 0, 0, 0.28)';
+export const COMMENT_REPLY_CONNECTOR_COLOR = 'rgba(0, 0, 0, 0.38)';
+export const COMMENT_REPLY_CONNECTOR_WIDTH = 1;
 
 export const styles = StyleSheet.create({
   screen: {
@@ -382,6 +383,10 @@ export const styles = StyleSheet.create({
   commentContent: {
     ...typography.role.bodySm,
   },
+  commentMention: {
+    ...typography.role.bodySm,
+    fontWeight: '600',
+  },
   replyListWrap: {
     position: 'relative',
     marginTop: 10,
@@ -399,8 +404,8 @@ export const styles = StyleSheet.create({
     left: 0,
     width: 18,
     height: 30,
-    borderLeftWidth: StyleSheet.hairlineWidth,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderLeftWidth: COMMENT_REPLY_CONNECTOR_WIDTH,
+    borderBottomWidth: COMMENT_REPLY_CONNECTOR_WIDTH,
     borderBottomLeftRadius: 8,
   },
   replyRow: {
@@ -408,6 +413,9 @@ export const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 8,
     paddingVertical: 8,
+    // The reply surface separates a thread without bringing back card or
+    // speech-bubble treatment. Its value is theme-aware and near-flat.
+    backgroundColor: '#F6F7FB',
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: DETAIL_DIVIDER_COLOR,
   },
@@ -461,6 +469,10 @@ export const styles = StyleSheet.create({
   },
   replyContent: {
     ...typography.role.helper,
+  },
+  replyMention: {
+    ...typography.role.helper,
+    fontWeight: '600',
   },
   replyActionRow: {
     flexDirection: 'row',
@@ -521,6 +533,9 @@ export const styles = StyleSheet.create({
     flex: 1,
     ...typography.role.helper,
     fontWeight: '600',
+  },
+  replyComposerMention: {
+    fontWeight: '700',
   },
   replyComposerCancel: {
     ...typography.role.helper,

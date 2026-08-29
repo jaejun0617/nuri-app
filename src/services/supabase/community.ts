@@ -53,6 +53,8 @@ const COMMUNITY_POST_SELECT_LEGACY =
 const COMMUNITY_POST_SELECT_TITLE =
   'id, user_id, pet_id, visibility, title, content, image_url, status, category, like_count, comment_count, view_count, is_notice, notice_published_at, deleted_at, created_at, updated_at';
 const COMMUNITY_POST_SELECT_SNAPSHOT = `${COMMUNITY_POST_SELECT_TITLE}, image_urls, author_snapshot_nickname, author_snapshot_avatar_url, pet_snapshot_name, pet_snapshot_species, pet_snapshot_breed, pet_snapshot_age_label, pet_snapshot_avatar_path, show_pet_age`;
+const COMMUNITY_COMMENT_SELECT =
+  'id, post_id, user_id, parent_comment_id, depth, reply_count, like_count, reply_to_comment_id, reply_target_user_id, content, status, deleted_at, created_at, updated_at';
 
 export type CommunityDetailReadErrorCode =
   | 'RETRYABLE_ERROR'
@@ -266,7 +268,13 @@ function isCommunityCommentRow(value: unknown): value is CommunityCommentRow {
     typeof value.user_id === 'string' &&
     typeof value.content === 'string' &&
     typeof value.created_at === 'string' &&
-    typeof value.updated_at === 'string'
+    typeof value.updated_at === 'string' &&
+    (value.reply_to_comment_id === undefined ||
+      typeof value.reply_to_comment_id === 'string' ||
+      value.reply_to_comment_id === null) &&
+    (value.reply_target_user_id === undefined ||
+      typeof value.reply_target_user_id === 'string' ||
+      value.reply_target_user_id === null)
   );
 }
 
@@ -526,7 +534,17 @@ function normalizeComment(
 ): CommunityComment {
   const profile = profilesByUserId.get(row.user_id) ?? null;
   const authorSnapshot = authorSnapshotsByUserId.get(row.user_id) ?? null;
+  const replyTargetProfile = row.reply_target_user_id
+    ? profilesByUserId.get(row.reply_target_user_id) ?? null
+    : null;
+  const replyTargetSnapshot = row.reply_target_user_id
+    ? authorSnapshotsByUserId.get(row.reply_target_user_id) ?? null
+    : null;
   const profileNickname = getConfirmedProfileNickname(profile);
+  const replyTargetNickname =
+    getConfirmedProfileNickname(replyTargetProfile) ??
+    replyTargetSnapshot?.nickname ??
+    null;
   return {
     id: row.id,
     postId: row.post_id,
@@ -539,6 +557,9 @@ function normalizeComment(
     // editing becomes a first-class profile feature.
     authorAvatarUrl: null,
     parentCommentId: row.parent_comment_id ?? null,
+    replyToCommentId: row.reply_to_comment_id ?? null,
+    replyTargetUserId: row.reply_target_user_id ?? null,
+    replyTargetNickname,
     depth: toCommentDepth(row.depth),
     replyCount:
       typeof row.reply_count === 'number' ? Math.max(row.reply_count, 0) : 0,
@@ -833,7 +854,9 @@ function isMissingCommentColumnsError(error: unknown) {
     message.includes('updated_at') ||
     message.includes('deleted_at') ||
     message.includes('comment_likes') ||
-    message.includes('depth')
+    message.includes('depth') ||
+    message.includes('reply_to_comment_id') ||
+    message.includes('reply_target_user_id')
   );
 }
 
@@ -854,6 +877,8 @@ function normalizeLegacyCommentRow(data: unknown): CommunityCommentRow | null {
     post_id: data.post_id,
     user_id: data.user_id,
     parent_comment_id: null,
+    reply_to_comment_id: null,
+    reply_target_user_id: null,
     depth: 0,
     reply_count: 0,
     like_count: 0,
@@ -1083,9 +1108,7 @@ export async function recordCommunityPostView(
 export async function fetchCommunityComments(postId: string) {
   const primary = await supabase
     .from('comments')
-    .select(
-      'id, post_id, user_id, parent_comment_id, depth, reply_count, like_count, content, status, deleted_at, created_at, updated_at',
-    )
+    .select(COMMUNITY_COMMENT_SELECT)
     .eq('post_id', postId)
     .eq('status', 'active')
     .is('deleted_at', null)
@@ -1114,13 +1137,16 @@ export async function fetchCommunityComments(postId: string) {
   }
 
   const currentUserId = await getCommunityCurrentUserId();
+  const commentUserIds = rows.flatMap(row =>
+    [row.user_id, row.reply_target_user_id ?? ''].filter(Boolean),
+  );
   const [
     profilesByUserId,
     authorSnapshotsByUserId,
     { likedCommentIds, likeCountsByCommentId },
   ] = await Promise.all([
-    fetchProfilesByUserIds(rows.map(row => row.user_id)),
-    fetchPublicPostAuthorSnapshotsByUserIds(rows.map(row => row.user_id)),
+    fetchProfilesByUserIds(commentUserIds),
+    fetchPublicPostAuthorSnapshotsByUserIds(commentUserIds),
     fetchLikeMetaForComments(
       rows.map(row => row.id),
       currentUserId,
@@ -1140,9 +1166,7 @@ export async function fetchCommunityComments(postId: string) {
 export async function fetchLatestCommunityCommentPreview(postId: string) {
   const primary = await supabase
     .from('comments')
-    .select(
-      'id, post_id, user_id, parent_comment_id, depth, reply_count, like_count, content, status, deleted_at, created_at, updated_at',
-    )
+    .select(COMMUNITY_COMMENT_SELECT)
     .eq('post_id', postId)
     .eq('status', 'active')
     .is('deleted_at', null)
@@ -1177,12 +1201,21 @@ export async function fetchLatestCommunityCommentPreview(postId: string) {
 
   if (!row) return null;
 
-  const profilesByUserId = await fetchProfilesByUserIds([row.user_id]);
+  const commentUserIds = [row.user_id, row.reply_target_user_id ?? ''].filter(
+    Boolean,
+  );
+  const profilesByUserId = await fetchProfilesByUserIds(commentUserIds);
   const profile = profilesByUserId.get(row.user_id) ?? null;
+  const targetProfile = row.reply_target_user_id
+    ? profilesByUserId.get(row.reply_target_user_id) ?? null
+    : null;
   const needsAuthorSnapshot = !getConfirmedProfileNickname(profile);
-  const authorSnapshotsByUserId = needsAuthorSnapshot
-    ? await fetchPublicPostAuthorSnapshotsByUserIds([row.user_id])
-    : new Map<string, CommunityAuthorSnapshot>();
+  const needsTargetSnapshot =
+    !!row.reply_target_user_id && !getConfirmedProfileNickname(targetProfile);
+  const authorSnapshotsByUserId =
+    needsAuthorSnapshot || needsTargetSnapshot
+      ? await fetchPublicPostAuthorSnapshotsByUserIds(commentUserIds)
+      : new Map<string, CommunityAuthorSnapshot>();
 
   return normalizeComment(
     row,
@@ -1376,48 +1409,26 @@ export async function toggleCommunityPostLike(
 
 export async function createCommunityComment(
   params: CreateCommunityCommentParams,
-  userId: string,
 ) {
-  const primary = await supabase
-    .from('comments')
-    .insert({
-      post_id: params.postId,
-      user_id: userId,
-      parent_comment_id: params.parentCommentId ?? null,
-      depth: params.parentCommentId ? 1 : 0,
-      content: params.content.trim(),
-      status: 'active',
-    })
-    .select(
-      'id, post_id, user_id, parent_comment_id, depth, reply_count, like_count, content, status, deleted_at, created_at, updated_at',
-    )
-    .single();
+  const { data: response, error } = await supabase.rpc(
+    'community_create_comment_v1',
+    {
+      p_post_id: params.postId,
+      p_content: params.content.trim(),
+      p_parent_comment_id: params.parentCommentId ?? null,
+      p_reply_to_comment_id: params.replyToCommentId ?? null,
+    },
+  );
 
-  let data: CommunityCommentRow | null = null;
-
-  if (!primary.error) {
-    data = isCommunityCommentRow(primary.data) ? primary.data : null;
-  } else if (isMissingCommentColumnsError(primary.error)) {
-    if (params.parentCommentId) {
-      throw new Error('답글 기능 적용이 아직 완료되지 않았어요.');
-    }
-
-    const fallback = await supabase
-      .from('comments')
-      .insert({
-        post_id: params.postId,
-        user_id: userId,
-        content: params.content.trim(),
-      })
-      .select('id, post_id, user_id, content, created_at')
-      .single();
-
-    if (fallback.error) throw fallback.error;
-    data = normalizeLegacyCommentRow(fallback.data);
-  } else {
-    throw primary.error;
+  if (error) throw error;
+  if (
+    !isRecord(response) ||
+    !Object.prototype.hasOwnProperty.call(response, 'item')
+  ) {
+    throw new Error('댓글 저장 결과를 읽지 못했어요.');
   }
 
+  const data = isCommunityCommentRow(response.item) ? response.item : null;
   if (!data) {
     throw new Error('댓글 저장 결과를 읽지 못했어요.');
   }
@@ -1430,11 +1441,23 @@ export async function createCommunityComment(
     sourceId: data.id,
   }).catch(() => undefined);
 
-  const profilesByUserId = await fetchProfilesByUserIds([data.user_id]);
+  const commentUserIds = [data.user_id, data.reply_target_user_id ?? ''].filter(
+    Boolean,
+  );
+  const profilesByUserId = await fetchProfilesByUserIds(commentUserIds);
+  const targetProfile = data.reply_target_user_id
+    ? profilesByUserId.get(data.reply_target_user_id) ?? null
+    : null;
+  const authorSnapshotsByUserId =
+    data.reply_target_user_id && !getConfirmedProfileNickname(targetProfile)
+      ? await fetchPublicPostAuthorSnapshotsByUserIds([
+          data.reply_target_user_id,
+        ])
+      : new Map<string, CommunityAuthorSnapshot>();
   return normalizeComment(
     data,
     profilesByUserId,
-    new Map<string, CommunityAuthorSnapshot>(),
+    authorSnapshotsByUserId,
     new Set<string>(),
     new Map<string, number>(),
   );

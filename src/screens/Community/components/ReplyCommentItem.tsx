@@ -7,7 +7,10 @@ import { useTheme } from 'styled-components/native';
 import AppText from '../../../app/ui/AppText';
 import { useCommunityStore } from '../../../store/communityStore';
 import { formatRelativeTimeFromNow } from '../../../utils/date';
-import { isCommentByPostAuthor } from '../utils/commentHelpers';
+import {
+  getCommunityReplyTargetMention,
+  isCommentByPostAuthor,
+} from '../utils/commentHelpers';
 import { styles } from '../CommunityDetailScreen.styles';
 import CommentActionRow from './CommentActionRow';
 
@@ -67,7 +70,7 @@ function ReplyCommentItemBase({
               backgroundColor: `${authorAccentColor}1A`,
               borderColor: authorAccentColor,
             }
-          : null,
+          : { backgroundColor: theme.colors.surface },
       ]}
     >
       {avatarSource ? (
@@ -132,6 +135,14 @@ function ReplyCommentItemBase({
             preset="body"
             style={[styles.replyContent, { color: theme.colors.textPrimary }]}
           >
+            {reply.replyTargetNickname ? (
+              <AppText
+                preset="body"
+                style={[styles.replyMention, { color: authorAccentColor }]}
+              >
+                {getCommunityReplyTargetMention(reply.replyTargetNickname)}{' '}
+              </AppText>
+            ) : null}
             {reply.content}
           </AppText>
         </View>

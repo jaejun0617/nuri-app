@@ -145,6 +145,8 @@ export type CommunityCommentRow = {
   post_id: string;
   user_id: string;
   parent_comment_id?: string | null;
+  reply_to_comment_id?: string | null;
+  reply_target_user_id?: string | null;
   depth?: number | null;
   reply_count?: number | null;
   like_count?: number | null;
@@ -211,6 +213,9 @@ export type CommunityComment = {
   authorNickname: string;
   authorAvatarUrl: string | null;
   parentCommentId: string | null;
+  replyToCommentId: string | null;
+  replyTargetUserId: string | null;
+  replyTargetNickname: string | null;
   depth: 0 | 1;
   replyCount: number;
   likeCount: number;
@@ -294,6 +299,7 @@ export type CreateCommunityCommentParams = {
   postId: string;
   content: string;
   parentCommentId?: string | null;
+  replyToCommentId?: string | null;
 };
 
 export type CreateCommunityReportParams = {

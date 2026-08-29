@@ -139,8 +139,8 @@ type CommunityStore = {
   submitComment: (
     postId: string,
     content: string,
-    userId: string,
     parentCommentId?: string | null,
+    replyToCommentId?: string | null,
   ) => Promise<void>;
   removeComment: (commentId: string, postId: string) => Promise<void>;
   reportContent: (
@@ -1283,11 +1283,13 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
       }
     },
 
-    submitComment: async (postId, content, userId, parentCommentId) => {
-      const comment = await createCommunityComment(
-        { postId, content, parentCommentId: parentCommentId ?? null },
-        userId,
-      );
+    submitComment: async (postId, content, parentCommentId, replyToCommentId) => {
+      const comment = await createCommunityComment({
+        postId,
+        content,
+        parentCommentId: parentCommentId ?? null,
+        replyToCommentId: replyToCommentId ?? null,
+      });
       set(prev => ({
         commentsByPostId: {
           ...prev.commentsByPostId,

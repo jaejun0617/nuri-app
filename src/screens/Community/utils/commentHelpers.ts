@@ -169,6 +169,13 @@ export function getCommunityCommentSortLabel(sort: CommunityCommentSort) {
   );
 }
 
+export function getCommunityReplyTargetMention(
+  nickname: string | null | undefined,
+) {
+  const normalizedNickname = nickname?.trim() ?? '';
+  return normalizedNickname.length > 0 ? `@${normalizedNickname}` : null;
+}
+
 export function resolveCommunityCommentNavigationTarget(
   targetCommentId: string,
   commentEntitiesById: Readonly<Record<string, CommunityComment>>,

@@ -48,6 +48,7 @@ import { getCommunityCategoryLabel } from './communityListPresentation';
 import {
   COMMUNITY_COMMENT_SORT_OPTIONS,
   getCommunityCommentSortLabel,
+  getCommunityReplyTargetMention,
   resolveCommunityCommentNavigationTarget,
   sortCommunityCommentIds,
   type CommunityCommentSort,
@@ -550,8 +551,8 @@ export default function CommunityDetailScreen() {
       submitComment(
         postId,
         trimmed,
-        currentUserId,
         replyTarget ? resolveReplyParentId(replyTarget) : null,
+        replyTarget?.id ?? null,
       )
         .then(() => {
           setCommentDraft('');
@@ -1203,7 +1204,16 @@ export default function CommunityDetailScreen() {
                 preset="caption"
                 style={[styles.replyComposerText, { color: theme.colors.textPrimary }]}
               >
-                {`${replyTarget.authorNickname}님에게 답글 남기는 중`}
+                <AppText
+                  preset="caption"
+                  style={[
+                    styles.replyComposerMention,
+                    { color: petTheme.primary },
+                  ]}
+                >
+                  {getCommunityReplyTargetMention(replyTarget.authorNickname)}
+                </AppText>
+                {'님에게 답글 남기는 중'}
               </AppText>
               <TouchableOpacity
                 activeOpacity={0.88}
