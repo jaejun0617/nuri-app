@@ -5,8 +5,8 @@ export const DETAIL_DIVIDER_COLOR = '#00000008';
 // Community comment separators use a neutral, low-contrast black so their
 // structure remains legible without changing the shared detail separators.
 export const COMMENT_ROOT_DIVIDER_COLOR = 'rgba(0, 0, 0, 0.20)';
-export const COMMENT_REPLY_CONNECTOR_COLOR = 'rgba(0, 0, 0, 0.42)';
-export const COMMENT_REPLY_CONNECTOR_WIDTH = 1.25;
+export const COMMENT_REPLY_MARKER_COLOR = 'rgba(0, 0, 0, 0.42)';
+export const COMMENT_REPLY_MARKER_WIDTH = 1.25;
 export const COMMENT_REPLY_DIVIDER_COLOR = 'rgba(0, 0, 0, 0.20)';
 export const COMMENT_REPLY_DIVIDER_WIDTH = 1;
 
@@ -390,34 +390,36 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
   },
   replyListWrap: {
-    position: 'relative',
     marginTop: 10,
-    marginLeft: 12,
+    alignSelf: 'stretch',
+    // The list is rendered inside the root body column. Pull it back across
+    // the root avatar and gap so every reply surface shares the root bounds.
+    marginLeft: -38,
     marginRight: 0,
     paddingTop: 8,
-    paddingLeft: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: DETAIL_DIVIDER_COLOR,
+    paddingLeft: 0,
+    paddingRight: 0,
     gap: 0,
-  },
-  replyConnector: {
-    position: 'absolute',
-    top: -1,
-    left: 0,
-    width: 18,
-    height: 30,
-    borderLeftWidth: COMMENT_REPLY_CONNECTOR_WIDTH,
-    borderBottomWidth: COMMENT_REPLY_CONNECTOR_WIDTH,
-    borderBottomLeftRadius: 8,
   },
   replyRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 8,
+    gap: 4,
     paddingVertical: 8,
+    paddingLeft: 8,
+    paddingRight: 0,
     // The reply surface separates a thread without bringing back card or
     // speech-bubble treatment. Its value is theme-aware and near-flat.
     backgroundColor: '#F6F7FB',
+  },
+  replyMarker: {
+    width: 16,
+    height: 14,
+    marginTop: 3,
+    flexShrink: 0,
+    borderLeftWidth: COMMENT_REPLY_MARKER_WIDTH,
+    borderBottomWidth: COMMENT_REPLY_MARKER_WIDTH,
+    borderBottomLeftRadius: 6,
   },
   replyDivider: {
     height: COMMENT_REPLY_DIVIDER_WIDTH,

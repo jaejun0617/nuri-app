@@ -14,8 +14,8 @@ import {
 import {
   COMMENT_REPLY_DIVIDER_COLOR,
   COMMENT_REPLY_DIVIDER_WIDTH,
-  COMMENT_REPLY_CONNECTOR_COLOR,
-  COMMENT_REPLY_CONNECTOR_WIDTH,
+  COMMENT_REPLY_MARKER_COLOR,
+  COMMENT_REPLY_MARKER_WIDTH,
   COMMENT_ROOT_DIVIDER_COLOR,
   styles,
 } from '../src/screens/Community/CommunityDetailScreen.styles';
@@ -202,8 +202,8 @@ describe('community comment presentation', () => {
     const commentBubbleStyle = StyleSheet.flatten(styles.commentBubble);
     const commentRowStyle = StyleSheet.flatten(styles.commentRow);
     const replyListStyle = StyleSheet.flatten(styles.replyListWrap);
-    const replyConnectorStyle = StyleSheet.flatten(styles.replyConnector);
     const replyRowStyle = StyleSheet.flatten(styles.replyRow);
+    const replyMarkerStyle = StyleSheet.flatten(styles.replyMarker);
     const replyDividerStyle = StyleSheet.flatten(styles.replyDivider);
     const replyBubbleStyle = StyleSheet.flatten(styles.replyBubble);
 
@@ -215,23 +215,24 @@ describe('community comment presentation', () => {
     expect(commentBubbleStyle.paddingHorizontal).toBe(0);
     expect(commentBubbleStyle.paddingVertical).toBe(0);
     expect(commentBubbleStyle.borderWidth).toBe(0);
-    expect(replyListStyle.marginLeft).toBe(12);
-    expect(replyListStyle.paddingLeft).toBe(10);
-    expect(replyListStyle.borderTopWidth).toBe(StyleSheet.hairlineWidth);
+    expect(replyListStyle.alignSelf).toBe('stretch');
+    expect(replyListStyle.marginLeft).toBe(-38);
+    expect(replyListStyle.paddingLeft).toBe(0);
+    expect(replyListStyle.paddingRight).toBe(0);
     expect('borderLeftWidth' in replyListStyle).toBe(false);
     expect('borderLeftColor' in replyListStyle).toBe(false);
-    expect(replyConnectorStyle.position).toBe('absolute');
-    expect(replyConnectorStyle.top).toBe(-1);
-    expect(replyConnectorStyle.width).toBe(18);
-    expect(replyConnectorStyle.height).toBe(30);
-    expect(replyConnectorStyle.borderLeftWidth).toBe(COMMENT_REPLY_CONNECTOR_WIDTH);
-    expect(replyConnectorStyle.borderBottomWidth).toBe(COMMENT_REPLY_CONNECTOR_WIDTH);
-    expect(replyConnectorStyle.borderBottomLeftRadius).toBe(8);
-    expect(replyConnectorStyle.height).toBeLessThan(40);
-    expect(COMMENT_REPLY_CONNECTOR_COLOR).toBe('rgba(0, 0, 0, 0.42)');
+    expect(replyMarkerStyle.width).toBe(16);
+    expect(replyMarkerStyle.height).toBe(14);
+    expect(replyMarkerStyle.borderLeftWidth).toBe(COMMENT_REPLY_MARKER_WIDTH);
+    expect(replyMarkerStyle.borderBottomWidth).toBe(COMMENT_REPLY_MARKER_WIDTH);
+    expect(replyMarkerStyle.borderBottomLeftRadius).toBe(6);
+    expect(COMMENT_REPLY_MARKER_COLOR).toBe('rgba(0, 0, 0, 0.42)');
     expect(replyDividerStyle.height).toBe(COMMENT_REPLY_DIVIDER_WIDTH);
     expect(replyDividerStyle.backgroundColor).toBe(COMMENT_REPLY_DIVIDER_COLOR);
     expect('borderBottomWidth' in replyRowStyle).toBe(false);
+    expect(replyRowStyle.gap).toBe(4);
+    expect(replyRowStyle.paddingLeft).toBe(8);
+    expect(replyRowStyle.paddingRight).toBe(0);
     expect(replyRowStyle.backgroundColor).toBe('#F6F7FB');
     expect(replyBubbleStyle.paddingHorizontal).toBe(0);
     expect(replyBubbleStyle.paddingVertical).toBe(0);

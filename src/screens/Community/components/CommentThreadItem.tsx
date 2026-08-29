@@ -14,7 +14,6 @@ import {
   shouldShowReplyDivider,
 } from '../utils/commentHelpers';
 import {
-  COMMENT_REPLY_CONNECTOR_COLOR,
   COMMENT_ROOT_DIVIDER_COLOR,
   styles,
 } from '../CommunityDetailScreen.styles';
@@ -218,17 +217,6 @@ function CommentThreadItemBase({
 
           {visibleReplyIds.length > 0 ? (
             <View style={styles.replyListWrap}>
-              <View
-                pointerEvents="none"
-                style={[
-                  styles.replyConnector,
-                  {
-                    borderLeftColor: COMMENT_REPLY_CONNECTOR_COLOR,
-                    borderBottomColor: COMMENT_REPLY_CONNECTOR_COLOR,
-                  },
-                ]}
-              />
-
               {visibleReplyIds.map((replyId, replyIndex) => (
                 <React.Fragment key={replyId}>
                   <ReplyCommentItem

@@ -11,7 +11,10 @@ import {
   getCommunityReplyTargetMention,
   isCommentByPostAuthor,
 } from '../utils/commentHelpers';
-import { styles } from '../CommunityDetailScreen.styles';
+import {
+  COMMENT_REPLY_MARKER_COLOR,
+  styles,
+} from '../CommunityDetailScreen.styles';
 import CommentActionRow from './CommentActionRow';
 
 const EMPTY_REPLY = null;
@@ -73,6 +76,16 @@ function ReplyCommentItemBase({
           : { backgroundColor: theme.colors.surface },
       ]}
     >
+      <View
+        pointerEvents="none"
+        style={[
+          styles.replyMarker,
+          {
+            borderLeftColor: COMMENT_REPLY_MARKER_COLOR,
+            borderBottomColor: COMMENT_REPLY_MARKER_COLOR,
+          },
+        ]}
+      />
       {avatarSource ? (
         <FastImage
           source={avatarSource}
