@@ -5,8 +5,8 @@ export const DETAIL_DIVIDER_COLOR = '#00000008';
 // Community comment separators use a neutral, low-contrast black so their
 // structure remains legible without changing the shared detail separators.
 export const COMMENT_ROOT_DIVIDER_COLOR = 'rgba(0, 0, 0, 0.20)';
-export const COMMENT_REPLY_MARKER_COLOR = 'rgba(0, 0, 0, 0.42)';
-export const COMMENT_REPLY_MARKER_WIDTH = 1.25;
+export const COMMENT_REPLY_MARKER_COLOR = 'rgba(0, 0, 0, 0.50)';
+export const COMMENT_REPLY_MARKER_WIDTH = 1.75;
 export const COMMENT_REPLY_DIVIDER_COLOR = 'rgba(0, 0, 0, 0.20)';
 export const COMMENT_REPLY_DIVIDER_WIDTH = 1;
 
@@ -413,13 +413,15 @@ export const styles = StyleSheet.create({
     backgroundColor: '#F6F7FB',
   },
   replyMarker: {
-    width: 16,
-    height: 14,
+    width: 18,
+    height: 16,
     marginTop: 3,
     flexShrink: 0,
     borderLeftWidth: COMMENT_REPLY_MARKER_WIDTH,
     borderBottomWidth: COMMENT_REPLY_MARKER_WIDTH,
-    borderBottomLeftRadius: 6,
+    // Keep the parent/reply cue hard-edged. The small L is a structural
+    // marker, not a rounded card corner or a continuation line.
+    borderBottomLeftRadius: 0,
   },
   replyDivider: {
     height: COMMENT_REPLY_DIVIDER_WIDTH,
