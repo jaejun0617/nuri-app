@@ -11,7 +11,11 @@ import {
   getVisibleReplies,
   isCommentByPostAuthor,
 } from '../utils/commentHelpers';
-import { styles } from '../CommunityDetailScreen.styles';
+import {
+  COMMENT_REPLY_CONNECTOR_COLOR,
+  COMMENT_ROOT_DIVIDER_COLOR,
+  styles,
+} from '../CommunityDetailScreen.styles';
 import CommentActionRow from './CommentActionRow';
 import ReplyCommentItem from './ReplyCommentItem';
 
@@ -77,10 +81,6 @@ function CommentThreadItemBase({
     () => getVisibleReplies(replyIds, repliesExpanded, previewCount),
     [previewCount, repliesExpanded, replyIds],
   );
-  // The connector is intentionally quieter than the author badge while remaining
-  // visible against both light and dark surfaces.
-  const replyConnectorColor = `${authorAccentColor}44`;
-
   const handleExpandReplies = useCallback(() => {
     onExpandReplies(commentId);
   }, [commentId, onExpandReplies]);
@@ -100,7 +100,7 @@ function CommentThreadItemBase({
           borderLeftColor: isHighlighted
             ? authorAccentColor
             : theme.colors.border,
-          borderBottomColor: theme.colors.border,
+          borderBottomColor: COMMENT_ROOT_DIVIDER_COLOR,
         },
       ]}
     >
@@ -213,8 +213,8 @@ function CommentThreadItemBase({
                 style={[
                   styles.replyConnector,
                   {
-                    borderLeftColor: replyConnectorColor,
-                    borderBottomColor: replyConnectorColor,
+                    borderLeftColor: COMMENT_REPLY_CONNECTOR_COLOR,
+                    borderBottomColor: COMMENT_REPLY_CONNECTOR_COLOR,
                   },
                 ]}
               />

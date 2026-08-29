@@ -2,6 +2,10 @@ import { StyleSheet } from 'react-native';
 import { typography } from '../../app/theme/tokens/typography';
 
 export const DETAIL_DIVIDER_COLOR = '#00000008';
+// Community comment separators use a neutral, low-contrast black so their
+// structure remains legible without changing the shared detail separators.
+export const COMMENT_ROOT_DIVIDER_COLOR = 'rgba(0, 0, 0, 0.20)';
+export const COMMENT_REPLY_CONNECTOR_COLOR = 'rgba(0, 0, 0, 0.28)';
 
 export const styles = StyleSheet.create({
   screen: {

@@ -9,7 +9,11 @@ import {
   resolveCommunityCommentNavigationTarget,
   sortCommunityCommentIds,
 } from '../src/screens/Community/utils/commentHelpers';
-import { styles } from '../src/screens/Community/CommunityDetailScreen.styles';
+import {
+  COMMENT_REPLY_CONNECTOR_COLOR,
+  COMMENT_ROOT_DIVIDER_COLOR,
+  styles,
+} from '../src/screens/Community/CommunityDetailScreen.styles';
 import type { CommunityComment } from '../src/types/community';
 
 function buildComment(
@@ -185,6 +189,7 @@ describe('community comment presentation', () => {
     expect(threadStyle.paddingVertical).toBe(12);
     expect(threadStyle.marginBottom).toBe(0);
     expect(threadStyle.borderBottomWidth).toBe(StyleSheet.hairlineWidth);
+    expect(COMMENT_ROOT_DIVIDER_COLOR).toBe('rgba(0, 0, 0, 0.20)');
     expect(commentBubbleStyle.paddingHorizontal).toBe(0);
     expect(commentBubbleStyle.paddingVertical).toBe(0);
     expect(commentBubbleStyle.borderWidth).toBe(0);
@@ -201,6 +206,7 @@ describe('community comment presentation', () => {
     expect(replyConnectorStyle.borderBottomWidth).toBe(StyleSheet.hairlineWidth);
     expect(replyConnectorStyle.borderBottomLeftRadius).toBe(8);
     expect(replyConnectorStyle.height).toBeLessThan(40);
+    expect(COMMENT_REPLY_CONNECTOR_COLOR).toBe('rgba(0, 0, 0, 0.28)');
     expect(replyBubbleStyle.paddingHorizontal).toBe(0);
     expect(replyBubbleStyle.paddingVertical).toBe(0);
     expect(replyBubbleStyle.borderWidth).toBe(0);
