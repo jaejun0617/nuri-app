@@ -5,8 +5,10 @@ export const DETAIL_DIVIDER_COLOR = '#00000008';
 // Community comment separators use a neutral, low-contrast black so their
 // structure remains legible without changing the shared detail separators.
 export const COMMENT_ROOT_DIVIDER_COLOR = 'rgba(0, 0, 0, 0.20)';
-export const COMMENT_REPLY_CONNECTOR_COLOR = 'rgba(0, 0, 0, 0.38)';
-export const COMMENT_REPLY_CONNECTOR_WIDTH = 1;
+export const COMMENT_REPLY_CONNECTOR_COLOR = 'rgba(0, 0, 0, 0.42)';
+export const COMMENT_REPLY_CONNECTOR_WIDTH = 1.25;
+export const COMMENT_REPLY_DIVIDER_COLOR = 'rgba(0, 0, 0, 0.20)';
+export const COMMENT_REPLY_DIVIDER_WIDTH = 1;
 
 export const styles = StyleSheet.create({
   screen: {
@@ -416,8 +418,10 @@ export const styles = StyleSheet.create({
     // The reply surface separates a thread without bringing back card or
     // speech-bubble treatment. Its value is theme-aware and near-flat.
     backgroundColor: '#F6F7FB',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: DETAIL_DIVIDER_COLOR,
+  },
+  replyDivider: {
+    height: COMMENT_REPLY_DIVIDER_WIDTH,
+    backgroundColor: COMMENT_REPLY_DIVIDER_COLOR,
   },
   targetReplyRow: {
     borderWidth: 1,

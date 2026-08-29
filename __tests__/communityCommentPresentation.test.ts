@@ -9,9 +9,13 @@ import {
   isCommentByPostAuthor,
   resolveCommunityCommentNavigationTarget,
   sortCommunityCommentIds,
+  shouldShowReplyDivider,
 } from '../src/screens/Community/utils/commentHelpers';
 import {
+  COMMENT_REPLY_DIVIDER_COLOR,
+  COMMENT_REPLY_DIVIDER_WIDTH,
   COMMENT_REPLY_CONNECTOR_COLOR,
+  COMMENT_REPLY_CONNECTOR_WIDTH,
   COMMENT_ROOT_DIVIDER_COLOR,
   styles,
 } from '../src/screens/Community/CommunityDetailScreen.styles';
@@ -186,6 +190,13 @@ describe('community comment presentation', () => {
     expect(getCommunityReplyTargetMention(null)).toBeNull();
   });
 
+  it('adds internal dividers only between multiple replies', () => {
+    expect(shouldShowReplyDivider(0, 3)).toBe(true);
+    expect(shouldShowReplyDivider(1, 3)).toBe(true);
+    expect(shouldShowReplyDivider(2, 3)).toBe(false);
+    expect(shouldShowReplyDivider(0, 1)).toBe(false);
+  });
+
   it('keeps comment presentation compact while preserving thread hierarchy and touch sizing', () => {
     const threadStyle = StyleSheet.flatten(styles.commentThreadWrap);
     const commentBubbleStyle = StyleSheet.flatten(styles.commentBubble);
@@ -193,6 +204,7 @@ describe('community comment presentation', () => {
     const replyListStyle = StyleSheet.flatten(styles.replyListWrap);
     const replyConnectorStyle = StyleSheet.flatten(styles.replyConnector);
     const replyRowStyle = StyleSheet.flatten(styles.replyRow);
+    const replyDividerStyle = StyleSheet.flatten(styles.replyDivider);
     const replyBubbleStyle = StyleSheet.flatten(styles.replyBubble);
 
     expect(threadStyle.paddingHorizontal).toBe(8);
@@ -212,11 +224,14 @@ describe('community comment presentation', () => {
     expect(replyConnectorStyle.top).toBe(-1);
     expect(replyConnectorStyle.width).toBe(18);
     expect(replyConnectorStyle.height).toBe(30);
-    expect(replyConnectorStyle.borderLeftWidth).toBe(1);
-    expect(replyConnectorStyle.borderBottomWidth).toBe(1);
+    expect(replyConnectorStyle.borderLeftWidth).toBe(COMMENT_REPLY_CONNECTOR_WIDTH);
+    expect(replyConnectorStyle.borderBottomWidth).toBe(COMMENT_REPLY_CONNECTOR_WIDTH);
     expect(replyConnectorStyle.borderBottomLeftRadius).toBe(8);
     expect(replyConnectorStyle.height).toBeLessThan(40);
-    expect(COMMENT_REPLY_CONNECTOR_COLOR).toBe('rgba(0, 0, 0, 0.38)');
+    expect(COMMENT_REPLY_CONNECTOR_COLOR).toBe('rgba(0, 0, 0, 0.42)');
+    expect(replyDividerStyle.height).toBe(COMMENT_REPLY_DIVIDER_WIDTH);
+    expect(replyDividerStyle.backgroundColor).toBe(COMMENT_REPLY_DIVIDER_COLOR);
+    expect('borderBottomWidth' in replyRowStyle).toBe(false);
     expect(replyRowStyle.backgroundColor).toBe('#F6F7FB');
     expect(replyBubbleStyle.paddingHorizontal).toBe(0);
     expect(replyBubbleStyle.paddingVertical).toBe(0);

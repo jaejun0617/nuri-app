@@ -87,6 +87,10 @@ export function getVisibleReplies(
   };
 }
 
+export function shouldShowReplyDivider(replyIndex: number, replyCount: number) {
+  return replyCount > 1 && replyIndex >= 0 && replyIndex < replyCount - 1;
+}
+
 function compareIdsAscending(left: string, right: string) {
   if (left === right) return 0;
   return left < right ? -1 : 1;

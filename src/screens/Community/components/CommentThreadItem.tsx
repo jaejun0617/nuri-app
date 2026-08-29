@@ -11,6 +11,7 @@ import {
   getCommunityReplyTargetMention,
   getVisibleReplies,
   isCommentByPostAuthor,
+  shouldShowReplyDivider,
 } from '../utils/commentHelpers';
 import {
   COMMENT_REPLY_CONNECTOR_COLOR,
@@ -228,20 +229,24 @@ function CommentThreadItemBase({
                 ]}
               />
 
-              {visibleReplyIds.map(replyId => (
-                <ReplyCommentItem
-                  key={replyId}
-                  replyId={replyId}
-                  currentUserId={currentUserId}
-                  postAuthorId={postAuthorId}
-                  authorAccentColor={authorAccentColor}
-                  highlighted={highlightedCommentId === replyId}
-                  onTargetReady={onTargetReady}
-                  onPressReply={onPressReply}
-                  onToggleLike={onToggleLike}
-                  onPressDelete={onPressDelete}
-                  onPressReport={onPressReport}
-                />
+              {visibleReplyIds.map((replyId, replyIndex) => (
+                <React.Fragment key={replyId}>
+                  <ReplyCommentItem
+                    replyId={replyId}
+                    currentUserId={currentUserId}
+                    postAuthorId={postAuthorId}
+                    authorAccentColor={authorAccentColor}
+                    highlighted={highlightedCommentId === replyId}
+                    onTargetReady={onTargetReady}
+                    onPressReply={onPressReply}
+                    onToggleLike={onToggleLike}
+                    onPressDelete={onPressDelete}
+                    onPressReport={onPressReport}
+                  />
+                  {shouldShowReplyDivider(replyIndex, visibleReplyIds.length) ? (
+                    <View style={styles.replyDivider} />
+                  ) : null}
+                </React.Fragment>
               ))}
 
               {remainingReplyCount > 0 ? (
