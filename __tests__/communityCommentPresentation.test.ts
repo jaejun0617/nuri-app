@@ -14,8 +14,6 @@ import {
 import {
   COMMENT_REPLY_DIVIDER_COLOR,
   COMMENT_REPLY_DIVIDER_WIDTH,
-  COMMENT_REPLY_MARKER_COLOR,
-  COMMENT_REPLY_MARKER_WIDTH,
   COMMENT_ROOT_DIVIDER_COLOR,
   styles,
 } from '../src/screens/Community/CommunityDetailScreen.styles';
@@ -203,7 +201,6 @@ describe('community comment presentation', () => {
     const commentRowStyle = StyleSheet.flatten(styles.commentRow);
     const replyListStyle = StyleSheet.flatten(styles.replyListWrap);
     const replyRowStyle = StyleSheet.flatten(styles.replyRow);
-    const replyMarkerStyle = StyleSheet.flatten(styles.replyMarker);
     const replyDividerStyle = StyleSheet.flatten(styles.replyDivider);
     const replyBubbleStyle = StyleSheet.flatten(styles.replyBubble);
 
@@ -223,18 +220,16 @@ describe('community comment presentation', () => {
     expect('borderLeftWidth' in replyListStyle).toBe(false);
     expect('borderLeftColor' in replyListStyle).toBe(false);
     expect('borderTopWidth' in replyListStyle).toBe(false);
-    expect(replyMarkerStyle.width).toBe(18);
-    expect(replyMarkerStyle.height).toBe(16);
-    expect(replyMarkerStyle.borderLeftWidth).toBe(COMMENT_REPLY_MARKER_WIDTH);
-    expect(replyMarkerStyle.borderBottomWidth).toBe(COMMENT_REPLY_MARKER_WIDTH);
-    expect(replyMarkerStyle.borderBottomLeftRadius).toBe(0);
-    expect(COMMENT_REPLY_MARKER_COLOR).toBe('rgba(0, 0, 0, 0.50)');
+    expect('replyMarker' in styles).toBe(false);
     expect(replyDividerStyle.height).toBe(COMMENT_REPLY_DIVIDER_WIDTH);
+    expect(replyDividerStyle.alignSelf).toBe('stretch');
+    expect(COMMENT_REPLY_DIVIDER_COLOR).toBe('rgba(0, 0, 0, 0.12)');
     expect(replyDividerStyle.backgroundColor).toBe(COMMENT_REPLY_DIVIDER_COLOR);
     expect('borderBottomWidth' in replyRowStyle).toBe(false);
-    expect(replyRowStyle.gap).toBe(4);
-    expect(replyRowStyle.paddingLeft).toBe(8);
-    expect(replyRowStyle.paddingRight).toBe(0);
+    expect(replyRowStyle.alignSelf).toBe('stretch');
+    expect(replyRowStyle.gap).toBe(8);
+    expect(replyRowStyle.paddingLeft).toBe(16);
+    expect(replyRowStyle.paddingRight).toBe(16);
     expect(replyRowStyle.backgroundColor).toBe('#F6F7FB');
     expect('borderRadius' in replyRowStyle).toBe(false);
     expect(replyBubbleStyle.paddingHorizontal).toBe(0);

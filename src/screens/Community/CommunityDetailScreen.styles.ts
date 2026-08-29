@@ -5,9 +5,7 @@ export const DETAIL_DIVIDER_COLOR = '#00000008';
 // Community comment separators use a neutral, low-contrast black so their
 // structure remains legible without changing the shared detail separators.
 export const COMMENT_ROOT_DIVIDER_COLOR = 'rgba(0, 0, 0, 0.20)';
-export const COMMENT_REPLY_MARKER_COLOR = 'rgba(0, 0, 0, 0.50)';
-export const COMMENT_REPLY_MARKER_WIDTH = 1.75;
-export const COMMENT_REPLY_DIVIDER_COLOR = 'rgba(0, 0, 0, 0.20)';
+export const COMMENT_REPLY_DIVIDER_COLOR = 'rgba(0, 0, 0, 0.12)';
 export const COMMENT_REPLY_DIVIDER_WIDTH = 1;
 
 export const styles = StyleSheet.create({
@@ -404,27 +402,18 @@ export const styles = StyleSheet.create({
   replyRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 4,
+    alignSelf: 'stretch',
+    gap: 8,
     paddingVertical: 8,
-    paddingLeft: 8,
-    paddingRight: 0,
+    paddingLeft: 16,
+    paddingRight: 16,
     // The reply surface separates a thread without bringing back card or
     // speech-bubble treatment. Its value is theme-aware and near-flat.
     backgroundColor: '#F6F7FB',
   },
-  replyMarker: {
-    width: 18,
-    height: 16,
-    marginTop: 3,
-    flexShrink: 0,
-    borderLeftWidth: COMMENT_REPLY_MARKER_WIDTH,
-    borderBottomWidth: COMMENT_REPLY_MARKER_WIDTH,
-    // Keep the parent/reply cue hard-edged. The small L is a structural
-    // marker, not a rounded card corner or a continuation line.
-    borderBottomLeftRadius: 0,
-  },
   replyDivider: {
     height: COMMENT_REPLY_DIVIDER_WIDTH,
+    alignSelf: 'stretch',
     backgroundColor: COMMENT_REPLY_DIVIDER_COLOR,
   },
   targetReplyRow: {
@@ -491,7 +480,7 @@ export const styles = StyleSheet.create({
   },
   moreRepliesButton: {
     alignSelf: 'flex-start',
-    marginLeft: 4,
+    marginLeft: 16,
     paddingTop: 0,
     minHeight: 32,
     justifyContent: 'center',
