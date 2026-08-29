@@ -197,6 +197,7 @@ describe('community comment presentation', () => {
 
   it('keeps comment presentation compact while preserving thread hierarchy and touch sizing', () => {
     const threadStyle = StyleSheet.flatten(styles.commentThreadWrap);
+    const rootContentStyle = StyleSheet.flatten(styles.commentRootContent);
     const commentBubbleStyle = StyleSheet.flatten(styles.commentBubble);
     const commentRowStyle = StyleSheet.flatten(styles.commentRow);
     const replyListStyle = StyleSheet.flatten(styles.replyListWrap);
@@ -204,16 +205,18 @@ describe('community comment presentation', () => {
     const replyDividerStyle = StyleSheet.flatten(styles.replyDivider);
     const replyBubbleStyle = StyleSheet.flatten(styles.replyBubble);
 
-    expect(threadStyle.paddingHorizontal).toBe(8);
-    expect(threadStyle.paddingVertical).toBe(12);
+    expect(threadStyle.paddingHorizontal).toBe(0);
+    expect(threadStyle.paddingVertical).toBe(0);
     expect(threadStyle.marginBottom).toBe(0);
     expect(threadStyle.borderBottomWidth).toBe(StyleSheet.hairlineWidth);
+    expect(rootContentStyle.paddingHorizontal).toBe(8);
+    expect(rootContentStyle.paddingVertical).toBe(12);
     expect(COMMENT_ROOT_DIVIDER_COLOR).toBe('rgba(0, 0, 0, 0.20)');
     expect(commentBubbleStyle.paddingHorizontal).toBe(0);
     expect(commentBubbleStyle.paddingVertical).toBe(0);
     expect(commentBubbleStyle.borderWidth).toBe(0);
     expect(replyListStyle.alignSelf).toBe('stretch');
-    expect(replyListStyle.marginLeft).toBe(-38);
+    expect(replyListStyle.marginLeft).toBe(0);
     expect(replyListStyle.marginRight).toBe(0);
     expect(replyListStyle.paddingLeft).toBe(0);
     expect(replyListStyle.paddingRight).toBe(0);

@@ -286,13 +286,19 @@ export const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   commentThreadWrap: {
-    // Keep the comment list breathable without padding the detail header or composer.
-    paddingHorizontal: 8,
-    paddingVertical: 12,
+    // Root content and replies have different horizontal-boundary contracts:
+    // roots own their inner padding while the reply section can reach the
+    // comment viewport edge without a compensating margin patch.
+    paddingHorizontal: 0,
+    paddingVertical: 0,
     marginBottom: 0,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: DETAIL_DIVIDER_COLOR,
     borderRadius: 0,
+  },
+  commentRootContent: {
+    paddingHorizontal: 8,
+    paddingVertical: 12,
   },
   targetCommentThread: {
     borderLeftWidth: 3,
@@ -390,9 +396,9 @@ export const styles = StyleSheet.create({
   replyListWrap: {
     marginTop: 10,
     alignSelf: 'stretch',
-    // The list is rendered inside the root body column. Pull it back across
-    // the root avatar and gap so every reply surface shares the root bounds.
-    marginLeft: -38,
+    // This is a direct sibling of the padded root content, so reply surfaces
+    // and dividers use the complete comment viewport width by construction.
+    marginLeft: 0,
     marginRight: 0,
     paddingTop: 8,
     paddingLeft: 0,

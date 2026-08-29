@@ -105,155 +105,159 @@ function CommentThreadItemBase({
         },
       ]}
     >
-      <View style={styles.commentRow}>
-        {avatarSource ? (
-          <FastImage
-            source={avatarSource}
-            style={[styles.commentAvatar, { borderColor: theme.colors.border }]}
-            resizeMode={FastImage.resizeMode.cover}
-          />
-        ) : (
-          <View
-            style={[
-              styles.commentAvatarFallback,
-              {
-                backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.border,
-              },
-            ]}
-          >
-            <Feather name="user" size={12} color={theme.colors.textMuted} />
-          </View>
-        )}
-
-        <View style={styles.commentBodyWrap}>
-          <View style={styles.commentMetaRow}>
-            <View style={styles.commentMetaInline}>
-              <AppText
-                preset="caption"
-                style={[styles.commentAuthorText, { color: theme.colors.textPrimary }]}
-              >
-                {comment.authorNickname}
-              </AppText>
-              {isPostAuthor ? (
-                <View
-                  style={[
-                    styles.authorBadge,
-                    { backgroundColor: authorAccentColor },
-                  ]}
-                >
-                  <AppText
-                    preset="caption"
-                    style={[styles.authorBadgeText, { color: '#FFFFFF' }]}
-                  >
-                    글쓴이
-                  </AppText>
-                </View>
-              ) : null}
-              {isBestCommentLikeEligible(
-                comment.likeCount,
-                comment.status,
-                comment.depth,
-              ) ? (
-                <View
-                  style={[
-                    styles.bestBadge,
-                    { backgroundColor: `${bestBadgeColor}12` },
-                  ]}
-                >
-                  <AppText
-                    preset="caption"
-                    style={[styles.bestBadgeText, { color: bestBadgeColor }]}
-                  >
-                    인기
-                  </AppText>
-                </View>
-              ) : null}
-              <AppText
-                preset="caption"
-                style={[styles.commentMetaText, { color: theme.colors.textMuted }]}
-              >
-                {createdAtLabel}
-              </AppText>
-            </View>
-          </View>
-
-          <View
-            style={[
-              styles.commentBubble,
-              {
-                backgroundColor: 'transparent',
-                borderColor: 'transparent',
-              },
-            ]}
-          >
-            <AppText
-              preset="body"
-              style={[styles.commentContent, { color: theme.colors.textPrimary }]}
+      <View style={styles.commentRootContent}>
+        <View style={styles.commentRow}>
+          {avatarSource ? (
+            <FastImage
+              source={avatarSource}
+              style={[styles.commentAvatar, { borderColor: theme.colors.border }]}
+              resizeMode={FastImage.resizeMode.cover}
+            />
+          ) : (
+            <View
+              style={[
+                styles.commentAvatarFallback,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.border,
+                },
+              ]}
             >
-              {comment.replyTargetNickname ? (
-                <AppText
-                  preset="body"
-                  style={[styles.commentMention, { color: authorAccentColor }]}
-                >
-                  {getCommunityReplyTargetMention(comment.replyTargetNickname)}{' '}
-                </AppText>
-              ) : null}
-              {comment.content}
-            </AppText>
-          </View>
-
-          <CommentActionRow
-            commentId={comment.id}
-            authorId={comment.authorId}
-            currentUserId={currentUserId}
-            isLikedByMe={comment.isLikedByMe}
-            likeCount={comment.likeCount}
-            onPressReply={onPressReply}
-            onToggleLike={onToggleLike}
-            onPressDelete={onPressDelete}
-            onPressReport={onPressReport}
-          />
-
-          {visibleReplyIds.length > 0 ? (
-            <View style={styles.replyListWrap}>
-              {visibleReplyIds.map((replyId, replyIndex) => (
-                <React.Fragment key={replyId}>
-                  <ReplyCommentItem
-                    replyId={replyId}
-                    currentUserId={currentUserId}
-                    postAuthorId={postAuthorId}
-                    authorAccentColor={authorAccentColor}
-                    highlighted={highlightedCommentId === replyId}
-                    onTargetReady={onTargetReady}
-                    onPressReply={onPressReply}
-                    onToggleLike={onToggleLike}
-                    onPressDelete={onPressDelete}
-                    onPressReport={onPressReport}
-                  />
-                  {shouldShowReplyDivider(replyIndex, visibleReplyIds.length) ? (
-                    <View style={styles.replyDivider} />
-                  ) : null}
-                </React.Fragment>
-              ))}
-
-              {remainingReplyCount > 0 ? (
-                <TouchableOpacity
-                  activeOpacity={0.88}
-                  hitSlop={8}
-                  style={styles.moreRepliesButton}
-                  onPress={handleExpandReplies}
-                >
-                  <AppText
-                    preset="caption"
-                    style={[styles.moreRepliesText, { color: bestBadgeColor }]}
-                  >
-                    답글 {remainingReplyCount}개 더보기
-                  </AppText>
-                </TouchableOpacity>
-              ) : null}
+              <Feather name="user" size={12} color={theme.colors.textMuted} />
             </View>
-          ) : comment.replyCount > 0 ? (
+          )}
+
+          <View style={styles.commentBodyWrap}>
+            <View style={styles.commentMetaRow}>
+              <View style={styles.commentMetaInline}>
+                <AppText
+                  preset="caption"
+                  style={[styles.commentAuthorText, { color: theme.colors.textPrimary }]}
+                >
+                  {comment.authorNickname}
+                </AppText>
+                {isPostAuthor ? (
+                  <View
+                    style={[
+                      styles.authorBadge,
+                      { backgroundColor: authorAccentColor },
+                    ]}
+                  >
+                    <AppText
+                      preset="caption"
+                      style={[styles.authorBadgeText, { color: '#FFFFFF' }]}
+                    >
+                      글쓴이
+                    </AppText>
+                  </View>
+                ) : null}
+                {isBestCommentLikeEligible(
+                  comment.likeCount,
+                  comment.status,
+                  comment.depth,
+                ) ? (
+                  <View
+                    style={[
+                      styles.bestBadge,
+                      { backgroundColor: `${bestBadgeColor}12` },
+                    ]}
+                  >
+                    <AppText
+                      preset="caption"
+                      style={[styles.bestBadgeText, { color: bestBadgeColor }]}
+                    >
+                      인기
+                    </AppText>
+                  </View>
+                ) : null}
+                <AppText
+                  preset="caption"
+                  style={[styles.commentMetaText, { color: theme.colors.textMuted }]}
+                >
+                  {createdAtLabel}
+                </AppText>
+              </View>
+            </View>
+
+            <View
+              style={[
+                styles.commentBubble,
+                {
+                  backgroundColor: 'transparent',
+                  borderColor: 'transparent',
+                },
+              ]}
+            >
+              <AppText
+                preset="body"
+                style={[styles.commentContent, { color: theme.colors.textPrimary }]}
+              >
+                {comment.replyTargetNickname ? (
+                  <AppText
+                    preset="body"
+                    style={[styles.commentMention, { color: authorAccentColor }]}
+                  >
+                    {getCommunityReplyTargetMention(comment.replyTargetNickname)}{' '}
+                  </AppText>
+                ) : null}
+                {comment.content}
+              </AppText>
+            </View>
+
+            <CommentActionRow
+              commentId={comment.id}
+              authorId={comment.authorId}
+              currentUserId={currentUserId}
+              isLikedByMe={comment.isLikedByMe}
+              likeCount={comment.likeCount}
+              onPressReply={onPressReply}
+              onToggleLike={onToggleLike}
+              onPressDelete={onPressDelete}
+              onPressReport={onPressReport}
+            />
+
+            {visibleReplyIds.length === 0 && comment.replyCount > 0 ? (
+              <TouchableOpacity
+                activeOpacity={0.88}
+                hitSlop={8}
+                style={styles.moreRepliesButton}
+                onPress={handleExpandReplies}
+              >
+                <AppText
+                  preset="caption"
+                  style={[styles.moreRepliesText, { color: bestBadgeColor }]}
+                >
+                  답글 {comment.replyCount}개 보기
+                </AppText>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        </View>
+      </View>
+
+      {visibleReplyIds.length > 0 ? (
+        <View style={styles.replyListWrap}>
+          {visibleReplyIds.map((replyId, replyIndex) => (
+            <React.Fragment key={replyId}>
+              <ReplyCommentItem
+                replyId={replyId}
+                currentUserId={currentUserId}
+                postAuthorId={postAuthorId}
+                authorAccentColor={authorAccentColor}
+                highlighted={highlightedCommentId === replyId}
+                onTargetReady={onTargetReady}
+                onPressReply={onPressReply}
+                onToggleLike={onToggleLike}
+                onPressDelete={onPressDelete}
+                onPressReport={onPressReport}
+              />
+              {shouldShowReplyDivider(replyIndex, visibleReplyIds.length) ? (
+                <View style={styles.replyDivider} />
+              ) : null}
+            </React.Fragment>
+          ))}
+
+          {remainingReplyCount > 0 ? (
             <TouchableOpacity
               activeOpacity={0.88}
               hitSlop={8}
@@ -264,12 +268,12 @@ function CommentThreadItemBase({
                 preset="caption"
                 style={[styles.moreRepliesText, { color: bestBadgeColor }]}
               >
-                답글 {comment.replyCount}개 보기
+                답글 {remainingReplyCount}개 더보기
               </AppText>
             </TouchableOpacity>
           ) : null}
         </View>
-      </View>
+      ) : null}
     </View>
   );
 }
