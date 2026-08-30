@@ -6,11 +6,14 @@ NURI의 JS install·test·Metro·Android entrypoint는 다음 조합을 기준�
 - Yarn `3.6.4`
 - Yarn linker는 기존 `.yarnrc.yml`의 `node-modules`를 유지한다.
 
+NVM을 사용하는 환경에서는 `.nvmrc`와 `.node-version`을 모두 `24.20.0`으로 유지한다. `.nvmrc`는 NVM의 project pin이고 `.node-version`은 다른 version manager가 읽을 수 있는 동일한 보조 pin이다.
+
 ## 시작 절차
 
-1. version manager가 있으면 repository root에서 `.node-version`을 읽도록 Node `24.20.0`을 선택한다.
-2. Node 24 환경에서 Corepack을 활성화한다. 시스템 Node나 전역 Yarn 1을 삭제하지 않는다.
-3. 다음 명령으로 project pin을 확인한다.
+1. NVM 환경에서는 repository root에서 `nvm use`를 실행하여 `.nvmrc`의 Node `24.20.0`을 선택한다. 새 login shell의 NVM default도 `24.20.0`이어야 한다.
+2. 다른 version manager를 사용하는 환경에서는 `.node-version`을 읽도록 Node `24.20.0`을 선택한다.
+3. Node 24 환경에서 Corepack을 활성화한다. 시스템 Node나 전역 Yarn 1을 삭제하지 않는다.
+4. 다음 명령으로 project pin을 확인한다.
 
 ```text
 node --version
