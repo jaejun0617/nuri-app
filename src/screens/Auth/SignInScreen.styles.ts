@@ -16,7 +16,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   successScrim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   successCard: {
     borderRadius: 28,

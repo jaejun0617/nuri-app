@@ -13,7 +13,7 @@ export const styles = StyleSheet.create({
     backgroundColor: 'rgba(15, 23, 42, 0.28)',
   },
   dismissArea: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   modalCard: {
     flex: 1,
@@ -32,7 +32,7 @@ export const styles = StyleSheet.create({
     elevation: 16,
   },
   glassTint: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 16,
   },
   calendarHeader: {

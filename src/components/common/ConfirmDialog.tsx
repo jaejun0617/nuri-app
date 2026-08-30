@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   scrim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   card: {
     borderRadius: 24,

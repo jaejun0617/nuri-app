@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
   },
   scrim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   card: {
     borderRadius: 30,

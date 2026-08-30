@@ -271,7 +271,7 @@ export const styles = StyleSheet.create({
     height: '100%',
   },
   photoOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   photoTextWrap: {
     position: 'absolute',

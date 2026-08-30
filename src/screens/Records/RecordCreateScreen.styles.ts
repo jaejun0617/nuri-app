@@ -445,7 +445,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   modalDismissZone: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   tagModalCard: {
     width: '100%',

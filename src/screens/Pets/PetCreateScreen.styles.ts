@@ -377,7 +377,7 @@ export const styles = StyleSheet.create({
     backgroundColor: 'rgba(11,18,32,0.28)',
   },
   modalScrim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(11,18,32,0.28)',
   },
   dateModalCard: {

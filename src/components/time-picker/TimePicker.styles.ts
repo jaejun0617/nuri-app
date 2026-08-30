@@ -14,7 +14,7 @@ export const styles = StyleSheet.create({
     backgroundColor: 'rgba(6, 12, 26, 0.34)',
   },
   dismissArea: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   modalCard: {
     borderRadius: 16,
@@ -33,7 +33,7 @@ export const styles = StyleSheet.create({
     elevation: 16,
   },
   glassTint: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 16,
   },
   glassGlow: {

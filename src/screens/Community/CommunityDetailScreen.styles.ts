@@ -566,7 +566,7 @@ export const styles = StyleSheet.create({
     padding: 20,
   },
   menuScrim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   menuSheet: {
     borderWidth: 1,

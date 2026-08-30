@@ -252,7 +252,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   sheetDismiss: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   actionSheet: {
     width: '100%',
