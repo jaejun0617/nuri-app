@@ -27,6 +27,8 @@ const EMPTY_COMMENT = null;
 type Props = {
   commentId: string;
   repliesExpanded: boolean;
+  activeReplyTargetId: string | null;
+  inlineComposer: React.ReactNode;
   currentUserId: string | null;
   postAuthorId: string;
   authorAccentColor: string;
@@ -40,13 +42,19 @@ type Props = {
   onToggleReplies: (commentId: string) => void;
 };
 
-function isBestCommentLikeEligible(likeCount: number, status: string, depth: number) {
+function isBestCommentLikeEligible(
+  likeCount: number,
+  status: string,
+  depth: number,
+) {
   return depth === 0 && likeCount >= 5 && status === 'active';
 }
 
 function CommentThreadItemBase({
   commentId,
   repliesExpanded,
+  activeReplyTargetId,
+  inlineComposer,
   currentUserId,
   postAuthorId,
   authorAccentColor,
@@ -60,7 +68,9 @@ function CommentThreadItemBase({
   onToggleReplies,
 }: Props) {
   const theme = useTheme();
-  const comment = useCommunityStore(s => s.commentEntitiesById[commentId] ?? EMPTY_COMMENT);
+  const comment = useCommunityStore(
+    s => s.commentEntitiesById[commentId] ?? EMPTY_COMMENT,
+  );
   const replyIds = useCommunityStore(
     s => s.replyCommentIdsByParentId[commentId] ?? EMPTY_REPLY_IDS,
   );
@@ -99,7 +109,9 @@ function CommentThreadItemBase({
         styles.commentThreadWrap,
         isHighlighted ? styles.targetCommentThread : null,
         {
-          backgroundColor: isHighlighted ? `${authorAccentColor}1A` : 'transparent',
+          backgroundColor: isHighlighted
+            ? `${authorAccentColor}1A`
+            : 'transparent',
           borderLeftColor: isHighlighted
             ? authorAccentColor
             : theme.colors.border,
@@ -119,7 +131,10 @@ function CommentThreadItemBase({
             {avatarSource ? (
               <FastImage
                 source={avatarSource}
-                style={[styles.commentAvatar, { borderColor: theme.colors.border }]}
+                style={[
+                  styles.commentAvatar,
+                  { borderColor: theme.colors.border },
+                ]}
                 resizeMode={FastImage.resizeMode.cover}
               />
             ) : (
@@ -148,7 +163,10 @@ function CommentThreadItemBase({
                 <View style={styles.commentMetaInline}>
                   <AppText
                     preset="caption"
-                    style={[styles.commentAuthorText, { color: theme.colors.textPrimary }]}
+                    style={[
+                      styles.commentAuthorText,
+                      { color: theme.colors.textPrimary },
+                    ]}
                   >
                     {comment.authorNickname}
                   </AppText>
@@ -180,7 +198,10 @@ function CommentThreadItemBase({
                     >
                       <AppText
                         preset="caption"
-                        style={[styles.bestBadgeText, { color: bestBadgeColor }]}
+                        style={[
+                          styles.bestBadgeText,
+                          { color: bestBadgeColor },
+                        ]}
                       >
                         인기
                       </AppText>
@@ -188,7 +209,10 @@ function CommentThreadItemBase({
                   ) : null}
                   <AppText
                     preset="caption"
-                    style={[styles.commentMetaText, { color: theme.colors.textMuted }]}
+                    style={[
+                      styles.commentMetaText,
+                      { color: theme.colors.textMuted },
+                    ]}
                   >
                     {createdAtLabel}
                   </AppText>
@@ -206,14 +230,22 @@ function CommentThreadItemBase({
               >
                 <AppText
                   preset="body"
-                  style={[styles.commentContent, { color: theme.colors.textPrimary }]}
+                  style={[
+                    styles.commentContent,
+                    { color: theme.colors.textPrimary },
+                  ]}
                 >
                   {comment.replyTargetNickname ? (
                     <AppText
                       preset="body"
-                      style={[styles.commentMention, { color: authorAccentColor }]}
+                      style={[
+                        styles.commentMention,
+                        { color: authorAccentColor },
+                      ]}
                     >
-                      {getCommunityReplyTargetMention(comment.replyTargetNickname)}{' '}
+                      {getCommunityReplyTargetMention(
+                        comment.replyTargetNickname,
+                      )}{' '}
                     </AppText>
                   ) : null}
                   {comment.content}
@@ -231,9 +263,9 @@ function CommentThreadItemBase({
               onPressDelete={onPressDelete}
               onPressReport={onPressReport}
             />
-
           </View>
         </View>
+        {activeReplyTargetId === comment.id ? inlineComposer : null}
       </View>
 
       {replyIds.length > 0 ? (
@@ -250,7 +282,10 @@ function CommentThreadItemBase({
           >
             <AppText
               preset="caption"
-              style={[styles.replySectionHeaderText, { color: theme.colors.textSecondary }]}
+              style={[
+                styles.replySectionHeaderText,
+                { color: theme.colors.textSecondary },
+              ]}
             >
               {getCommunityReplySectionHeaderLabel(replyIds.length)}
             </AppText>
@@ -265,6 +300,8 @@ function CommentThreadItemBase({
                 <React.Fragment key={replyId}>
                   <ReplyCommentItem
                     replyId={replyId}
+                    activeReplyTargetId={activeReplyTargetId}
+                    inlineComposer={inlineComposer}
                     currentUserId={currentUserId}
                     postAuthorId={postAuthorId}
                     authorAccentColor={authorAccentColor}
@@ -275,7 +312,10 @@ function CommentThreadItemBase({
                     onPressDelete={onPressDelete}
                     onPressReport={onPressReport}
                   />
-                  {shouldShowReplyDivider(replyIndex, visibleReplyIds.length) ? (
+                  {shouldShowReplyDivider(
+                    replyIndex,
+                    visibleReplyIds.length,
+                  ) ? (
                     <View style={styles.replyDivider} />
                   ) : null}
                 </React.Fragment>

@@ -88,38 +88,16 @@ export const styles = StyleSheet.create({
     flex: 1,
     gap: 4,
   },
-  profileRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
   postMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
+    justifyContent: 'flex-start',
+    flexWrap: 'wrap',
+    gap: 8,
   },
   authorName: {
     ...typography.role.body,
     fontWeight: '700',
-  },
-  petAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 1,
-  },
-  petAvatarFallback: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  profileTextBlock: {
-    flex: 1,
-    gap: 4,
   },
   petNameLine: {
     ...typography.role.body,
@@ -437,6 +415,13 @@ export const styles = StyleSheet.create({
     // speech-bubble treatment. Its value is theme-aware and near-flat.
     backgroundColor: '#F6F7FB',
   },
+  replyMarkerTapTarget: {
+    width: 24,
+    height: 24,
+    marginTop: -2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   replyDivider: {
     height: COMMENT_REPLY_DIVIDER_WIDTH,
     alignSelf: 'stretch',
@@ -448,28 +433,9 @@ export const styles = StyleSheet.create({
     padding: 7,
     marginHorizontal: -7,
   },
-  replyAvatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginTop: -2,
-  },
-  replyAvatarFallback: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginTop: -2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   replyContentWrap: {
     flex: 1,
     minWidth: 0,
-  },
-  replyAvatarTapTarget: {
-    alignSelf: 'flex-start',
   },
   replyTapContent: {
     alignSelf: 'stretch',
@@ -537,6 +503,11 @@ export const styles = StyleSheet.create({
     borderTopWidth: 1,
     paddingHorizontal: 20,
     paddingTop: 10,
+  },
+  inlineCommentComposerWrap: {
+    alignSelf: 'stretch',
+    paddingTop: 4,
+    paddingBottom: 8,
   },
   replyComposerBanner: {
     minHeight: 34,

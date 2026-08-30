@@ -89,9 +89,9 @@ describe('community comment presentation', () => {
     expect(areCommunityRepliesExpanded({}, 'root-a')).toBe(true);
     expect(areCommunityRepliesExpanded(collapsedRoot, 'root-a')).toBe(false);
     expect(areCommunityRepliesExpanded(collapsedRoot, 'root-b')).toBe(true);
-    expect(
-      toggleCommunityReplyExpansion(collapsedRoot, 'root-a'),
-    ).toEqual({ 'root-a': true });
+    expect(toggleCommunityReplyExpansion(collapsedRoot, 'root-a')).toEqual({
+      'root-a': true,
+    });
   });
 
   it('resolves a notification target to the containing comment thread', () => {
@@ -266,6 +266,8 @@ describe('community comment presentation', () => {
     expect('borderLeftWidth' in replyListStyle).toBe(false);
     expect('borderLeftColor' in replyListStyle).toBe(false);
     expect('borderTopWidth' in replyListStyle).toBe(false);
+    expect('replyAvatar' in styles).toBe(false);
+    expect('replyAvatarFallback' in styles).toBe(false);
     expect('replyMarker' in styles).toBe(false);
     expect(replyDividerStyle.height).toBe(COMMENT_REPLY_DIVIDER_WIDTH);
     expect(replyDividerStyle.alignSelf).toBe('stretch');
@@ -285,11 +287,11 @@ describe('community comment presentation', () => {
     expect(replyBubbleStyle.paddingVertical).toBe(0);
     expect(replyBubbleStyle.borderWidth).toBe(0);
     expect(styles.commentAvatar.width).toBe(24);
-    expect(styles.replyAvatar.width).toBe(24);
     expect(styles.commentAvatar.marginTop).toBe(-2);
     expect(styles.commentAvatarFallback.marginTop).toBe(-2);
-    expect(styles.replyAvatar.marginTop).toBe(-2);
-    expect(styles.replyAvatarFallback.marginTop).toBe(-2);
+    expect(styles.replyMarkerTapTarget.width).toBe(24);
+    expect(styles.replyMarkerTapTarget.height).toBe(24);
+    expect(styles.replyMarkerTapTarget.marginTop).toBe(-2);
     expect(commentRowStyle.gap).toBe(replyRowStyle.gap);
     expect(styles.replyContent).toMatchObject(styles.commentContent);
     expect(commentRowStyle.alignItems).toBe('flex-start');

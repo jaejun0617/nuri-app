@@ -30,4 +30,20 @@ describe('community detail title presentation', () => {
       fontWeight: '600',
     });
   });
+
+  it('keeps the inline composer compact and the post author metadata essential', () => {
+    expect(StyleSheet.flatten(styles.inlineCommentComposerWrap)).toMatchObject({
+      alignSelf: 'stretch',
+      paddingTop: 4,
+      paddingBottom: 8,
+    });
+    expect(StyleSheet.flatten(styles.postMetaRow)).toMatchObject({
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    });
+    expect('petAvatar' in styles).toBe(false);
+    expect('petAvatarFallback' in styles).toBe(false);
+    expect('profileTextBlock' in styles).toBe(false);
+  });
 });

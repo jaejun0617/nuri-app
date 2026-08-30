@@ -1,8 +1,13 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   InteractionManager,
   Keyboard,
   Modal,
@@ -11,6 +16,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -38,9 +44,7 @@ import {
 import { useCommunityStore } from '../../store/communityStore';
 import { usePetStore } from '../../store/petStore';
 import { showToast } from '../../store/uiStore';
-import type {
-  CommunityReportReasonCategory,
-} from '../../types/community';
+import type { CommunityReportReasonCategory } from '../../types/community';
 import { getKstDateParts } from '../../utils/date';
 import CommentThreadItem from './components/CommentThreadItem';
 import { getCommunityCategoryLabel } from './communityListPresentation';
@@ -60,10 +64,7 @@ import {
   canShowCommunityBlockAction,
   COMMUNITY_BLOCK_CONFIRMATION_MESSAGE,
 } from './communityBlockPresentation';
-import {
-  DETAIL_DIVIDER_COLOR,
-  styles,
-} from './CommunityDetailScreen.styles';
+import { DETAIL_DIVIDER_COLOR, styles } from './CommunityDetailScreen.styles';
 const COMMENT_PAGE_SIZE = 10;
 const TARGET_COMMENT_HIGHLIGHT_MS = 2600;
 
@@ -129,14 +130,19 @@ export default function CommunityDetailScreen() {
   const theme = useTheme();
   const flatListRef = useRef<FlatList<string> | null>(null);
   const commentInputRef = useRef<TextInput | null>(null);
+  const inlineComposerRef = useRef<React.ElementRef<typeof View> | null>(null);
   const currentScrollOffsetRef = useRef(0);
   const preparedNavigationTargetKeyRef = useRef<string | null>(null);
   const measuredNavigationTargetKeyRef = useRef<string | null>(null);
   const missingNavigationTargetKeyRef = useRef<string | null>(null);
-  const targetScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const targetScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const targetHighlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+  const inlineRevealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { height: windowHeight } = useWindowDimensions();
   const keyboardInset = useKeyboardInset();
   const viewRecordAttemptedPostIdsRef = useRef<Record<string, boolean>>({});
   const commentLikeDebounceTimersRef = useRef<
@@ -214,8 +220,9 @@ export default function CommunityDetailScreen() {
   const [replyTargetId, setReplyTargetId] = React.useState<string | null>(null);
   const [expandedRepliesByCommentId, setExpandedRepliesByCommentId] =
     React.useState<Record<string, boolean>>({});
-  const [commentDeleteTargetId, setCommentDeleteTargetId] =
-    React.useState<string | null>(null);
+  const [commentDeleteTargetId, setCommentDeleteTargetId] = React.useState<
+    string | null
+  >(null);
   const [reportTarget, setReportTarget] = React.useState<{
     targetType: 'post' | 'comment';
     targetId: string;
@@ -230,7 +237,9 @@ export default function CommunityDetailScreen() {
   const replyTarget = useCommunityStore(
     useCallback(
       s =>
-        replyTargetId !== null ? s.commentEntitiesById[replyTargetId] ?? null : null,
+        replyTargetId !== null
+          ? s.commentEntitiesById[replyTargetId] ?? null
+          : null,
       [replyTargetId],
     ),
   );
@@ -421,6 +430,9 @@ export default function CommunityDetailScreen() {
       if (targetHighlightTimerRef.current) {
         clearTimeout(targetHighlightTimerRef.current);
       }
+      if (inlineRevealTimerRef.current) {
+        clearTimeout(inlineRevealTimerRef.current);
+      }
       commentLikeDebounceTimersRef.current = {};
     },
     [],
@@ -453,11 +465,7 @@ export default function CommunityDetailScreen() {
         onPress={handleBack}
         hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
       >
-        <Feather
-          name="arrow-left"
-          size={20}
-          color={theme.colors.textPrimary}
-        />
+        <Feather name="arrow-left" size={20} color={theme.colors.textPrimary} />
       </TouchableOpacity>
     ),
     [handleBack, theme.colors.textPrimary],
@@ -467,10 +475,7 @@ export default function CommunityDetailScreen() {
       post ? (
         <TouchableOpacity
           activeOpacity={0.88}
-          style={[
-            styles.moreButton,
-            { borderColor: theme.colors.border },
-          ]}
+          style={[styles.moreButton, { borderColor: theme.colors.border }]}
           onPress={() => setMenuVisible(true)}
         >
           <Feather
@@ -530,9 +535,15 @@ export default function CommunityDetailScreen() {
       .finally(() => {
         setBlocking(false);
       });
-  }, [blocking, currentUserId, invalidateCommunityVisibility, navigation, post]);
+  }, [
+    blocking,
+    currentUserId,
+    invalidateCommunityVisibility,
+    navigation,
+    post,
+  ]);
 
-  const handleSubmitComment = () => {
+  const handleSubmitComment = useCallback(() => {
     requireLogin(() => {
       if (!currentUserId || commentSubmitting) return;
       const trimmed = commentDraft.trim();
@@ -551,10 +562,14 @@ export default function CommunityDetailScreen() {
       )
         .then(() => {
           setCommentDraft('');
+          const parentCommentId = replyCreateTarget.parentCommentId;
+          if (parentCommentId) {
+            setExpandedRepliesByCommentId(previous => ({
+              ...previous,
+              [parentCommentId]: true,
+            }));
+          }
           setReplyTargetId(null);
-          setTimeout(() => {
-            flatListRef.current?.scrollToEnd({ animated: true });
-          }, 100);
         })
         .catch(error => {
           const meta = getCommunityMutationErrorMeta(error, 'comment-create');
@@ -568,29 +583,67 @@ export default function CommunityDetailScreen() {
           setCommentSubmitting(false);
         });
     });
-  };
+  }, [
+    commentDraft,
+    commentSubmitting,
+    currentUserId,
+    postId,
+    replyTarget,
+    requireLogin,
+    submitComment,
+  ]);
 
-  const scrollCommentComposerIntoView = useCallback(() => {
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
-    }, 150);
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
-    }, 300);
-  }, []);
+  const revealInlineComposer = useCallback(
+    (targetId: string | null) => {
+      if (targetId === null) return;
+    if (inlineRevealTimerRef.current) {
+      clearTimeout(inlineRevealTimerRef.current);
+    }
 
-  const focusCommentComposer = useCallback(() => {
-    commentInputRef.current?.focus();
-    scrollCommentComposerIntoView();
-  }, [scrollCommentComposerIntoView]);
+    // The keyboard can finish opening after the input receives focus. Measure
+    // once after that transition and move only the obscured delta into view;
+    // selecting a reply must never jump the conversation to its bottom.
+    inlineRevealTimerRef.current = setTimeout(() => {
+      const keyboardHeight = Keyboard.metrics()?.height ?? keyboardInset;
+      const visibleBottom = windowHeight - Math.max(keyboardHeight, keyboardInset) - 12;
+
+      inlineComposerRef.current?.measureInWindow((_x, y, _width, height) => {
+        const obscuredDelta = y + height - visibleBottom;
+        if (Number.isFinite(obscuredDelta) && obscuredDelta > 0) {
+          flatListRef.current?.scrollToOffset({
+            offset: Math.max(currentScrollOffsetRef.current + obscuredDelta, 0),
+            animated: true,
+          });
+        }
+      });
+      inlineRevealTimerRef.current = null;
+    }, 180);
+    },
+    [keyboardInset, windowHeight],
+  );
+
+  const focusCommentComposer = useCallback(
+    (targetId: string) => {
+    requestAnimationFrame(() => {
+      commentInputRef.current?.focus();
+        revealInlineComposer(targetId);
+    });
+    },
+    [revealInlineComposer],
+  );
 
   const handlePressComment = useCallback(
     (commentId: string) => {
       setReplyTargetId(commentId);
-      focusCommentComposer();
+      focusCommentComposer(commentId);
     },
     [focusCommentComposer],
   );
+
+  const handleCancelReply = useCallback(() => {
+    Keyboard.dismiss();
+    setReplyTargetId(null);
+  }, []);
 
   const handleToggleCommentLike = useCallback(
     (commentId: string) => {
@@ -630,11 +683,26 @@ export default function CommunityDetailScreen() {
     setReportTarget(null);
   }, [reportSubmitting]);
 
-  const handleToggleReplies = useCallback((commentId: string) => {
-    setExpandedRepliesByCommentId(prev =>
-      toggleCommunityReplyExpansion(prev, commentId),
-    );
-  }, []);
+  const handleToggleReplies = useCallback(
+    (commentId: string) => {
+      const willCollapse = areCommunityRepliesExpanded(
+        expandedRepliesByCommentId,
+        commentId,
+      );
+      const activeTargetBelongsToThread =
+        replyTargetId === commentId ||
+        replyTarget?.parentCommentId === commentId;
+
+      if (willCollapse && activeTargetBelongsToThread) {
+        handleCancelReply();
+      }
+
+      setExpandedRepliesByCommentId(prev =>
+        toggleCommunityReplyExpansion(prev, commentId),
+      );
+    },
+    [expandedRepliesByCommentId, handleCancelReply, replyTarget, replyTargetId],
+  );
 
   const handlePressCommentSort = useCallback(() => {
     setCommentSortModalVisible(true);
@@ -700,7 +768,7 @@ export default function CommunityDetailScreen() {
         .finally(() => {
           setReportSubmitting(false);
         });
-      });
+    });
   };
 
   const listHeader = useMemo(() => {
@@ -745,53 +813,20 @@ export default function CommunityDetailScreen() {
           </View>
 
           <View style={styles.postMetaRow}>
-            <View style={styles.profileRow}>
-              {post.petAvatarUrl ? (
-                <Image
-                  source={{ uri: post.petAvatarUrl }}
-                  style={[
-                    styles.petAvatar,
-                    { borderColor: theme.colors.border },
-                  ]}
-                  resizeMode="cover"
-                />
-              ) : (
-                <View
-                  style={[
-                    styles.petAvatarFallback,
-                    {
-                      backgroundColor: theme.colors.surface,
-                      borderColor: theme.colors.border,
-                    },
-                  ]}
-                >
-                  <Feather
-                    name="user"
-                    size={16}
-                    color={theme.colors.textMuted}
-                  />
-                </View>
-              )}
-              <View style={styles.profileTextBlock}>
-                <AppText
-                  preset="body"
-                  style={[
-                    styles.authorName,
-                    { color: theme.colors.textPrimary },
-                  ]}
-                >
-                  {post.authorNickname}
-                </AppText>
-                <AppText
-                  preset="caption"
-                  style={[styles.metaLine, { color: theme.colors.textMuted }]}
-                >
-                  {postMetaDate
-                    ? `${postMetaDate} · 조회수 ${post.viewCount.toLocaleString()}`
-                    : `조회수 ${post.viewCount.toLocaleString()}`}
-                </AppText>
-              </View>
-            </View>
+            <AppText
+              preset="body"
+              style={[styles.authorName, { color: theme.colors.textPrimary }]}
+            >
+              {post.authorNickname}
+            </AppText>
+            {postMetaDate ? (
+              <AppText
+                preset="caption"
+                style={[styles.metaLine, { color: theme.colors.textMuted }]}
+              >
+                {postMetaDate}
+              </AppText>
+            ) : null}
           </View>
 
           {(post.imageUrls?.length ?? 0) > 0 || post.hasImage ? (
@@ -894,7 +929,10 @@ export default function CommunityDetailScreen() {
                 />
                 <AppText
                   preset="caption"
-                  style={[styles.actionPillText, { color: theme.colors.textPrimary }]}
+                  style={[
+                    styles.actionPillText,
+                    { color: theme.colors.textPrimary },
+                  ]}
                 >
                   신고하기
                 </AppText>
@@ -908,7 +946,10 @@ export default function CommunityDetailScreen() {
             <View style={styles.commentsTitleRow}>
               <AppText
                 preset="headline"
-                style={[styles.commentsTitle, { color: theme.colors.textPrimary }]}
+                style={[
+                  styles.commentsTitle,
+                  { color: theme.colors.textPrimary },
+                ]}
               >
                 댓글
               </AppText>
@@ -921,7 +962,9 @@ export default function CommunityDetailScreen() {
             </View>
             <TouchableOpacity
               accessibilityRole="button"
-              accessibilityLabel={`댓글 정렬, 현재 ${getCommunityCommentSortLabel(commentSort)}`}
+              accessibilityLabel={`댓글 정렬, 현재 ${getCommunityCommentSortLabel(
+                commentSort,
+              )}`}
               activeOpacity={0.84}
               style={styles.commentSortLabel}
               onPress={handlePressCommentSort}
@@ -932,7 +975,11 @@ export default function CommunityDetailScreen() {
               >
                 {getCommunityCommentSortLabel(commentSort)}
               </AppText>
-              <Feather name="chevron-down" size={15} color={theme.colors.textMuted} />
+              <Feather
+                name="chevron-down"
+                size={15}
+                color={theme.colors.textMuted}
+              />
             </TouchableOpacity>
           </View>
           {commentsStatus === 'loading' ? (
@@ -1005,11 +1052,18 @@ export default function CommunityDetailScreen() {
         >
           <AppText
             preset="caption"
-            style={[styles.moreCommentsText, { color: theme.colors.textPrimary }]}
+            style={[
+              styles.moreCommentsText,
+              { color: theme.colors.textPrimary },
+            ]}
           >
             댓글 {remainingCommentCount.toLocaleString()}개 더보기
           </AppText>
-          <Feather name="chevron-right" size={15} color={theme.colors.textPrimary} />
+          <Feather
+            name="chevron-right"
+            size={15}
+            color={theme.colors.textPrimary}
+          />
         </TouchableOpacity>
       </View>
     );
@@ -1021,10 +1075,171 @@ export default function CommunityDetailScreen() {
     sortedTopLevelCommentIds.length,
   ]);
 
+  const renderCommentComposer = useCallback(
+    (placement: 'inline' | 'bottom') => {
+      const isInline = placement === 'inline';
+      const isDirectReply =
+        replyTarget !== null && getCommunityReplyMode(replyTarget) === 'direct';
+      const inlineBackground = replyTarget?.parentCommentId
+        ? theme.colors.surface
+        : theme.colors.background;
+
+      return (
+        <View
+          ref={isInline ? inlineComposerRef : undefined}
+          style={[
+            isInline
+              ? styles.inlineCommentComposerWrap
+              : styles.commentComposerWrap,
+            {
+              backgroundColor: isInline
+                ? inlineBackground
+                : theme.colors.background,
+              borderTopColor: theme.colors.border,
+              paddingHorizontal: isInline
+                ? replyTarget?.parentCommentId
+                  ? 16
+                  : 0
+                : 20,
+              paddingBottom: isInline ? 8 : Math.max(insets.bottom, 12),
+              marginBottom: isInline ? 0 : keyboardInset,
+            },
+          ]}
+        >
+          {replyTargetId !== null ? (
+            <View
+              style={[
+                styles.replyComposerBanner,
+                { backgroundColor: theme.colors.surface },
+              ]}
+            >
+              <AppText
+                preset="caption"
+                style={[
+                  styles.replyComposerText,
+                  { color: theme.colors.textPrimary },
+                ]}
+              >
+                {isDirectReply && replyTarget ? (
+                  <>
+                    <AppText
+                      preset="caption"
+                      style={[
+                        styles.replyComposerMention,
+                        { color: petTheme.primary },
+                      ]}
+                    >
+                      {getCommunityReplyTargetMention(
+                        replyTarget.authorNickname,
+                      )}
+                    </AppText>
+                    {'님에게 답글 남기는 중'}
+                  </>
+                ) : (
+                  '답글 남기는 중'
+                )}
+              </AppText>
+              <TouchableOpacity
+                activeOpacity={0.88}
+                onPress={handleCancelReply}
+                hitSlop={8}
+              >
+                <AppText
+                  preset="caption"
+                  style={[
+                    styles.replyComposerCancel,
+                    { color: theme.colors.textMuted },
+                  ]}
+                >
+                  취소
+                </AppText>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+          <View
+            style={[
+              styles.commentComposer,
+              {
+                backgroundColor: theme.colors.surfaceElevated,
+                borderColor: theme.colors.border,
+              },
+            ]}
+          >
+            <TextInput
+              ref={commentInputRef}
+              value={commentDraft}
+              onChangeText={setCommentDraft}
+              placeholder={
+                currentUserId
+                  ? replyTargetId !== null
+                    ? '답글을 입력해 주세요'
+                    : '댓글을 입력해 주세요'
+                  : '로그인 후 댓글을 남길 수 있어요'
+              }
+              placeholderTextColor={theme.colors.textMuted}
+              editable={!!currentUserId && !commentSubmitting}
+              style={[styles.commentInput, { color: theme.colors.textPrimary }]}
+              multiline
+              maxLength={500}
+              onFocus={() => {
+                if (!currentUserId) {
+                  navigation.navigate('SignIn');
+                  return;
+                }
+                if (isInline) revealInlineComposer(replyTargetId);
+              }}
+            />
+            <TouchableOpacity
+              activeOpacity={0.88}
+              style={[
+                styles.commentSubmitButton,
+                {
+                  backgroundColor: petTheme.primary,
+                  opacity: canSubmitComment ? 1 : 0.48,
+                },
+              ]}
+              disabled={!canSubmitComment}
+              onPress={handleSubmitComment}
+            >
+              <Feather name="send" size={17} color={petTheme.onPrimary} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    },
+    [
+      canSubmitComment,
+      commentDraft,
+      commentSubmitting,
+      currentUserId,
+      handleCancelReply,
+      handleSubmitComment,
+      insets.bottom,
+      keyboardInset,
+      navigation,
+      petTheme.onPrimary,
+      petTheme.primary,
+      revealInlineComposer,
+      replyTarget,
+      replyTargetId,
+      theme.colors.background,
+      theme.colors.border,
+      theme.colors.surface,
+      theme.colors.surfaceElevated,
+      theme.colors.textMuted,
+      theme.colors.textPrimary,
+    ],
+  );
+
+  const inlineCommentComposer =
+    replyTargetId !== null ? renderCommentComposer('inline') : null;
+
   const renderCommentThread = useCallback(
     ({ item: commentId }: { item: string }) => (
       <CommentThreadItem
         commentId={commentId}
+        activeReplyTargetId={replyTargetId}
+        inlineComposer={inlineCommentComposer}
         repliesExpanded={areCommunityRepliesExpanded(
           expandedRepliesByCommentId,
           commentId,
@@ -1052,8 +1267,10 @@ export default function CommunityDetailScreen() {
       handleToggleCommentLike,
       handleTargetCommentReady,
       highlightedCommentId,
+      inlineCommentComposer,
       petTheme.primary,
       post?.authorId,
+      replyTargetId,
     ],
   );
 
@@ -1174,109 +1391,9 @@ export default function CommunityDetailScreen() {
         renderItem={renderCommentThread}
       />
 
-      {canShowCommentComposer ? (
-        <View
-          style={[
-            styles.commentComposerWrap,
-            {
-              backgroundColor: theme.colors.background,
-              borderTopColor: theme.colors.border,
-              paddingBottom: Math.max(insets.bottom, 12),
-              marginBottom: keyboardInset,
-            },
-          ]}
-        >
-          {replyTarget ? (
-            <View
-              style={[
-                styles.replyComposerBanner,
-                { backgroundColor: theme.colors.surface },
-              ]}
-            >
-              <AppText
-                preset="caption"
-                style={[styles.replyComposerText, { color: theme.colors.textPrimary }]}
-              >
-                {getCommunityReplyMode(replyTarget) === 'direct' ? (
-                  <>
-                    <AppText
-                      preset="caption"
-                      style={[
-                        styles.replyComposerMention,
-                        { color: petTheme.primary },
-                      ]}
-                    >
-                      {getCommunityReplyTargetMention(replyTarget.authorNickname)}
-                    </AppText>
-                    {'님에게 답글 남기는 중'}
-                  </>
-                ) : (
-                  '답글 남기는 중'
-                )}
-              </AppText>
-              <TouchableOpacity
-                activeOpacity={0.88}
-                onPress={() => setReplyTargetId(null)}
-              >
-                <AppText
-                  preset="caption"
-                  style={[styles.replyComposerCancel, { color: theme.colors.textMuted }]}
-                >
-                  취소
-                </AppText>
-              </TouchableOpacity>
-            </View>
-          ) : null}
-          <View
-            style={[
-              styles.commentComposer,
-              {
-                backgroundColor: theme.colors.surfaceElevated,
-                borderColor: theme.colors.border,
-              },
-            ]}
-          >
-            <TextInput
-              ref={commentInputRef}
-              value={commentDraft}
-              onChangeText={setCommentDraft}
-              placeholder={
-                currentUserId
-                  ? replyTarget
-                    ? '답글을 입력해 주세요'
-                    : '댓글을 입력해 주세요'
-                  : '로그인 후 댓글을 남길 수 있어요'
-              }
-              placeholderTextColor={theme.colors.textMuted}
-              editable={!!currentUserId && !commentSubmitting}
-              style={[styles.commentInput, { color: theme.colors.textPrimary }]}
-              multiline
-              maxLength={500}
-              onFocus={() => {
-                if (!currentUserId) {
-                  navigation.navigate('SignIn');
-                  return;
-                }
-                scrollCommentComposerIntoView();
-              }}
-            />
-            <TouchableOpacity
-              activeOpacity={0.88}
-              style={[
-                styles.commentSubmitButton,
-                {
-                  backgroundColor: petTheme.primary,
-                  opacity: canSubmitComment ? 1 : 0.48,
-                },
-              ]}
-              disabled={!canSubmitComment}
-              onPress={handleSubmitComment}
-            >
-              <Feather name="send" size={17} color={petTheme.onPrimary} />
-            </TouchableOpacity>
-          </View>
-        </View>
-      ) : null}
+      {canShowCommentComposer && replyTargetId === null
+        ? renderCommentComposer('bottom')
+        : null}
 
       <Modal
         visible={menuVisible}
@@ -1543,7 +1660,9 @@ export default function CommunityDetailScreen() {
           ]}
           behavior="padding"
           enabled
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : Math.max(insets.bottom, 8)}
+          keyboardVerticalOffset={
+            Platform.OS === 'ios' ? 12 : Math.max(insets.bottom, 8)
+          }
         >
           <Pressable style={styles.menuScrim} onPress={closeReportModal} />
           <Pressable
@@ -1687,7 +1806,9 @@ export default function CommunityDetailScreen() {
 
       <PremiumNoticeModal
         visible={reportNotice !== null}
-        eyebrow={reportNotice === 'duplicate' ? 'REPORT RECEIVED' : 'REPORT SUBMITTED'}
+        eyebrow={
+          reportNotice === 'duplicate' ? 'REPORT RECEIVED' : 'REPORT SUBMITTED'
+        }
         iconName="shield"
         titleLines={
           reportNotice === 'duplicate'

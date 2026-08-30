@@ -52,4 +52,22 @@ describe('community error helpers', () => {
       message: '댓글을 등록하지 못했어요. 잠시 후 다시 시도해 주세요.',
     });
   });
+
+  it('댓글 rate limit 문구는 실제 제출 오류에만 매핑된다', () => {
+    expect(
+      getCommunityMutationErrorMeta(
+        {
+          message: 'community_comment_rate_limited',
+          details: JSON.stringify({
+            app_code: 'community_comment_rate_limited',
+          }),
+        },
+        'comment-create',
+      ),
+    ).toEqual({
+      title: '댓글 등록이 잠시 멈췄어요',
+      message:
+        '댓글은 짧은 시간에 너무 많이 등록할 수 없어요. 잠시 후 다시 시도해 주세요.',
+    });
+  });
 });
