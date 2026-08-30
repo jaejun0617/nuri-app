@@ -27,7 +27,6 @@ const EMPTY_COMMENT = null;
 type Props = {
   commentId: string;
   repliesExpanded: boolean;
-  previewCount: number;
   currentUserId: string | null;
   postAuthorId: string;
   authorAccentColor: string;
@@ -38,7 +37,7 @@ type Props = {
   onToggleLike: (commentId: string) => void;
   onPressDelete: (commentId: string) => void;
   onPressReport: (commentId: string) => void;
-  onExpandReplies: (commentId: string) => void;
+  onToggleReplies: (commentId: string) => void;
 };
 
 function isBestCommentLikeEligible(likeCount: number, status: string, depth: number) {
@@ -48,7 +47,6 @@ function isBestCommentLikeEligible(likeCount: number, status: string, depth: num
 function CommentThreadItemBase({
   commentId,
   repliesExpanded,
-  previewCount,
   currentUserId,
   postAuthorId,
   authorAccentColor,
@@ -59,7 +57,7 @@ function CommentThreadItemBase({
   onToggleLike,
   onPressDelete,
   onPressReport,
-  onExpandReplies,
+  onToggleReplies,
 }: Props) {
   const theme = useTheme();
   const comment = useCommunityStore(s => s.commentEntitiesById[commentId] ?? EMPTY_COMMENT);
@@ -79,13 +77,13 @@ function CommentThreadItemBase({
     };
   }, [comment?.authorAvatarUrl]);
 
-  const { visibleReplyIds, remainingReplyCount } = useMemo(
-    () => getVisibleReplies(replyIds, repliesExpanded, previewCount),
-    [previewCount, repliesExpanded, replyIds],
+  const visibleReplyIds = useMemo(
+    () => getVisibleReplies(replyIds, repliesExpanded),
+    [repliesExpanded, replyIds],
   );
-  const handleExpandReplies = useCallback(() => {
-    onExpandReplies(commentId);
-  }, [commentId, onExpandReplies]);
+  const handleToggleReplies = useCallback(() => {
+    onToggleReplies(commentId);
+  }, [commentId, onToggleReplies]);
   const handlePressComment = useCallback(() => {
     onPressComment(commentId);
   }, [commentId, onPressComment]);
@@ -234,70 +232,55 @@ function CommentThreadItemBase({
               onPressReport={onPressReport}
             />
 
-            {visibleReplyIds.length === 0 && comment.replyCount > 0 ? (
-              <TouchableOpacity
-                activeOpacity={0.88}
-                hitSlop={8}
-                style={styles.moreRepliesButton}
-                onPress={handleExpandReplies}
-              >
-                <AppText
-                  preset="caption"
-                  style={[styles.moreRepliesText, { color: bestBadgeColor }]}
-                >
-                  답글 {comment.replyCount}개 보기
-                </AppText>
-              </TouchableOpacity>
-            ) : null}
           </View>
         </View>
       </View>
 
-      {visibleReplyIds.length > 0 ? (
+      {replyIds.length > 0 ? (
         <View style={styles.replyListWrap}>
-          <View style={styles.replySectionHeader}>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={`답글 ${replyIds.length}, ${
+              repliesExpanded ? '접기' : '펼치기'
+            }`}
+            activeOpacity={0.88}
+            hitSlop={4}
+            style={styles.replySectionHeader}
+            onPress={handleToggleReplies}
+          >
             <AppText
               preset="caption"
               style={[styles.replySectionHeaderText, { color: theme.colors.textSecondary }]}
             >
               {getCommunityReplySectionHeaderLabel(replyIds.length)}
             </AppText>
-          </View>
-          {visibleReplyIds.map((replyId, replyIndex) => (
-            <React.Fragment key={replyId}>
-              <ReplyCommentItem
-                replyId={replyId}
-                currentUserId={currentUserId}
-                postAuthorId={postAuthorId}
-                authorAccentColor={authorAccentColor}
-                highlighted={highlightedCommentId === replyId}
-                onTargetReady={onTargetReady}
-                onPressComment={onPressComment}
-                onToggleLike={onToggleLike}
-                onPressDelete={onPressDelete}
-                onPressReport={onPressReport}
-              />
-              {shouldShowReplyDivider(replyIndex, visibleReplyIds.length) ? (
-                <View style={styles.replyDivider} />
-              ) : null}
-            </React.Fragment>
-          ))}
-
-          {remainingReplyCount > 0 ? (
-            <TouchableOpacity
-              activeOpacity={0.88}
-              hitSlop={8}
-              style={styles.moreRepliesButton}
-              onPress={handleExpandReplies}
-            >
-              <AppText
-                preset="caption"
-                style={[styles.moreRepliesText, { color: bestBadgeColor }]}
-              >
-                답글 {remainingReplyCount}개 더보기
-              </AppText>
-            </TouchableOpacity>
-          ) : null}
+            <Feather
+              name={repliesExpanded ? 'chevron-up' : 'chevron-down'}
+              size={15}
+              color={theme.colors.textSecondary}
+            />
+          </TouchableOpacity>
+          {repliesExpanded
+            ? visibleReplyIds.map((replyId, replyIndex) => (
+                <React.Fragment key={replyId}>
+                  <ReplyCommentItem
+                    replyId={replyId}
+                    currentUserId={currentUserId}
+                    postAuthorId={postAuthorId}
+                    authorAccentColor={authorAccentColor}
+                    highlighted={highlightedCommentId === replyId}
+                    onTargetReady={onTargetReady}
+                    onPressComment={onPressComment}
+                    onToggleLike={onToggleLike}
+                    onPressDelete={onPressDelete}
+                    onPressReport={onPressReport}
+                  />
+                  {shouldShowReplyDivider(replyIndex, visibleReplyIds.length) ? (
+                    <View style={styles.replyDivider} />
+                  ) : null}
+                </React.Fragment>
+              ))
+            : null}
         </View>
       ) : null}
     </View>

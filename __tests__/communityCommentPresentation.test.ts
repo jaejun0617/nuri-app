@@ -2,6 +2,7 @@ import { StyleSheet } from 'react-native';
 
 import {
   COMMUNITY_COMMENT_SORT_OPTIONS,
+  areCommunityRepliesExpanded,
   getCommunityReplyCreateTarget,
   getCommunityReplyMode,
   getCommunityReplySectionHeaderLabel,
@@ -13,6 +14,7 @@ import {
   resolveCommunityCommentNavigationTarget,
   sortCommunityCommentIds,
   shouldShowReplyDivider,
+  toggleCommunityReplyExpansion,
 } from '../src/screens/Community/utils/commentHelpers';
 import {
   COMMENT_REPLY_DIVIDER_COLOR,
@@ -70,15 +72,26 @@ describe('community comment presentation', () => {
     });
   });
 
-  it('keeps reply previews bounded until the thread is expanded', () => {
-    expect(getVisibleReplies(['1', '2', '3'], false, 2)).toEqual({
-      visibleReplyIds: ['1', '2'],
-      remainingReplyCount: 1,
-    });
-    expect(getVisibleReplies(['1', '2', '3'], true, 2)).toEqual({
-      visibleReplyIds: ['1', '2', '3'],
-      remainingReplyCount: 0,
-    });
+  it('renders every loaded reply when expanded and none when collapsed', () => {
+    for (const replyCount of [1, 3, 6, 12]) {
+      const replyIds = Array.from({ length: replyCount }, (_, index) =>
+        String(index + 1),
+      );
+
+      expect(getVisibleReplies(replyIds, false)).toEqual([]);
+      expect(getVisibleReplies(replyIds, true)).toEqual(replyIds);
+    }
+  });
+
+  it('keeps collapse state independent per root and expanded by default', () => {
+    const collapsedRoot = toggleCommunityReplyExpansion({}, 'root-a');
+
+    expect(areCommunityRepliesExpanded({}, 'root-a')).toBe(true);
+    expect(areCommunityRepliesExpanded(collapsedRoot, 'root-a')).toBe(false);
+    expect(areCommunityRepliesExpanded(collapsedRoot, 'root-b')).toBe(true);
+    expect(
+      toggleCommunityReplyExpansion(collapsedRoot, 'root-a'),
+    ).toEqual({ 'root-a': true });
   });
 
   it('resolves a notification target to the containing comment thread', () => {

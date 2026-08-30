@@ -50,8 +50,10 @@ import {
   getCommunityReplyCreateTarget,
   getCommunityReplyMode,
   getCommunityReplyTargetMention,
+  areCommunityRepliesExpanded,
   resolveCommunityCommentNavigationTarget,
   sortCommunityCommentIds,
+  toggleCommunityReplyExpansion,
   type CommunityCommentSort,
 } from './utils/commentHelpers';
 import {
@@ -63,7 +65,6 @@ import {
   styles,
 } from './CommunityDetailScreen.styles';
 const COMMENT_PAGE_SIZE = 10;
-const REPLY_PREVIEW_COUNT = 2;
 const TARGET_COMMENT_HIGHLIGHT_MS = 2600;
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'CommunityDetail'>;
@@ -629,14 +630,10 @@ export default function CommunityDetailScreen() {
     setReportTarget(null);
   }, [reportSubmitting]);
 
-  const handleExpandReplies = useCallback((commentId: string) => {
-    setExpandedRepliesByCommentId(prev => {
-      if (prev[commentId] === true) return prev;
-      return {
-        ...prev,
-        [commentId]: true,
-      };
-    });
+  const handleToggleReplies = useCallback((commentId: string) => {
+    setExpandedRepliesByCommentId(prev =>
+      toggleCommunityReplyExpansion(prev, commentId),
+    );
   }, []);
 
   const handlePressCommentSort = useCallback(() => {
@@ -1028,8 +1025,10 @@ export default function CommunityDetailScreen() {
     ({ item: commentId }: { item: string }) => (
       <CommentThreadItem
         commentId={commentId}
-        repliesExpanded={expandedRepliesByCommentId[commentId] === true}
-        previewCount={REPLY_PREVIEW_COUNT}
+        repliesExpanded={areCommunityRepliesExpanded(
+          expandedRepliesByCommentId,
+          commentId,
+        )}
         currentUserId={currentUserId}
         postAuthorId={post?.authorId ?? ''}
         authorAccentColor={petTheme.primary}
@@ -1040,13 +1039,13 @@ export default function CommunityDetailScreen() {
         onToggleLike={handleToggleCommentLike}
         onPressDelete={handleRequestDeleteComment}
         onPressReport={handleRequestReportComment}
-        onExpandReplies={handleExpandReplies}
+        onToggleReplies={handleToggleReplies}
       />
     ),
     [
       currentUserId,
       expandedRepliesByCommentId,
-      handleExpandReplies,
+      handleToggleReplies,
       handlePressComment,
       handleRequestDeleteComment,
       handleRequestReportComment,

@@ -414,8 +414,12 @@ export const styles = StyleSheet.create({
   },
   replySectionHeader: {
     backgroundColor: '#F6F7FB',
+    minHeight: 44,
     paddingHorizontal: 16,
     paddingVertical: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   replySectionHeaderText: {
     ...typography.role.helper,
@@ -506,17 +510,6 @@ export const styles = StyleSheet.create({
     gap: 8,
     marginTop: 6,
     paddingLeft: 0,
-  },
-  moreRepliesButton: {
-    alignSelf: 'flex-start',
-    marginLeft: 16,
-    paddingTop: 0,
-    minHeight: 32,
-    justifyContent: 'center',
-  },
-  moreRepliesText: {
-    ...typography.role.helper,
-    fontWeight: '700',
   },
   listFooterWrap: {
     paddingHorizontal: 20,

@@ -76,14 +76,31 @@ export function groupCommentsIntoThreads(
 export function getVisibleReplies(
   replyIds: ReadonlyArray<string>,
   expanded: boolean,
-  previewCount: number,
 ) {
-  const visibleReplyIds = expanded ? [...replyIds] : replyIds.slice(0, previewCount);
-  const remainingReplyCount = Math.max(replyIds.length - visibleReplyIds.length, 0);
+  return expanded ? [...replyIds] : [];
+}
 
+/**
+ * Reply sections are expanded by default. The map only needs to remember
+ * explicit collapses, while keeping each root thread independent.
+ */
+export function areCommunityRepliesExpanded(
+  expandedRepliesByCommentId: Readonly<Record<string, boolean>>,
+  commentId: string,
+) {
+  return expandedRepliesByCommentId[commentId] !== false;
+}
+
+export function toggleCommunityReplyExpansion(
+  expandedRepliesByCommentId: Readonly<Record<string, boolean>>,
+  commentId: string,
+) {
   return {
-    visibleReplyIds,
-    remainingReplyCount,
+    ...expandedRepliesByCommentId,
+    [commentId]: !areCommunityRepliesExpanded(
+      expandedRepliesByCommentId,
+      commentId,
+    ),
   };
 }
 
