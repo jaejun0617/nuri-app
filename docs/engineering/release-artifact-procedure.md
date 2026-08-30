@@ -2,7 +2,7 @@
 
 이 문서는 debug APK, local QA release APK, Store release APK를 파일명만으로 혼동하지 않도록 하는 canonical 절차다.
 
-Release entrypoint prerequisite는 [NURI Node/Yarn Toolchain](node-yarn-toolchain.md)의 Node `24.20.0`과 Yarn `3.6.4`다. release script는 build 전에 공용 toolchain guard를 실행한다.
+Release entrypoint prerequisite는 [NURI Node/Yarn Toolchain](node-yarn-toolchain.md)의 Node `24.20.0`과 Yarn `3.6.4`다. release script는 build 전에 공용 toolchain guard를 실행한다. Android native build 전후 disk 기준은 [NURI Native Build Disk Hygiene Policy](disk-hygiene-policy.md)를 따른다.
 
 ## 명령
 
