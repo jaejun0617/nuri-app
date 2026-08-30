@@ -14,7 +14,6 @@
 
 import React, { useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import type { NavigatorScreenParams } from '@react-navigation/native';
@@ -90,50 +89,41 @@ export default function AppTabsNavigator() {
   );
 
   return (
-    <SafeAreaView
-      style={[styles.safe, { backgroundColor: theme.colors.background }]}
-      edges={['top']}
-    >
-      <View style={[styles.root, { backgroundColor: theme.colors.background }]}>
-        <Tab.Navigator
-          screenOptions={{
-            headerShown: false,
-            tabBarHideOnKeyboard: true,
+    <View style={[styles.root, { backgroundColor: theme.colors.background }]}>
+      <Tab.Navigator
+        screenOptions={{
+          headerShown: false,
+          tabBarHideOnKeyboard: true,
+        }}
+        tabBar={renderTabBar}
+      >
+        <Tab.Screen name="HomeTab" component={MainScreen} />
+        <Tab.Screen name="TimelineTab" component={TimelineStackNavigator} />
+        <Tab.Screen
+          name="CommunityTab"
+          component={CommunityTabStackNavigator}
+        />
+        <Tab.Screen name="GuestbookTab" component={GuestbookScreen} />
+        <Tab.Screen
+          name="MoreTab"
+          component={MoreNull}
+          // ✅ Tab.Navigator 기본 동작 방지하려면 listeners도 같이(안전)
+          listeners={{
+            tabPress: e => {
+              e.preventDefault();
+              openMore();
+            },
           }}
-          tabBar={renderTabBar}
-        >
-          <Tab.Screen name="HomeTab" component={MainScreen} />
-          <Tab.Screen name="TimelineTab" component={TimelineStackNavigator} />
-          <Tab.Screen
-            name="CommunityTab"
-            component={CommunityTabStackNavigator}
-          />
-          <Tab.Screen name="GuestbookTab" component={GuestbookScreen} />
-          <Tab.Screen
-            name="MoreTab"
-            component={MoreNull}
-            // ✅ Tab.Navigator 기본 동작 방지하려면 listeners도 같이(안전)
-            listeners={{
-              tabPress: e => {
-                e.preventDefault();
-                openMore();
-              },
-            }}
-          />
-        </Tab.Navigator>
+        />
+      </Tab.Navigator>
 
-        {/* ✅ Overlay Drawer */}
-        <MoreDrawer open={moreOpen} onClose={closeMore} />
-      </View>
-    </SafeAreaView>
+      {/* ✅ Overlay Drawer */}
+      <MoreDrawer open={moreOpen} onClose={closeMore} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
   root: {
     flex: 1,
     backgroundColor: '#FFFFFF',

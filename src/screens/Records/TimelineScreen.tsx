@@ -1485,7 +1485,7 @@ export default function TimelineScreen() {
 
   if (!isLoggedIn) {
     return (
-      <View style={styles.screen}>
+      <View style={[styles.screen, { paddingTop: insets.top }]}>
         <View style={styles.header}>
           <View style={styles.headerSideSlot}>
             <TouchableOpacity
@@ -1553,7 +1553,7 @@ export default function TimelineScreen() {
   }
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <View style={styles.headerSideSlot}>
           <TouchableOpacity
