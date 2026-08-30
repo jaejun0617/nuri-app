@@ -13,7 +13,7 @@ export default function CommunityStackHeader({
 }: NativeStackHeaderProps) {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const headerTopInset = back ? Math.max(insets.top, 12) : 12;
+  const headerTopInset = Math.max(insets.top, 12);
   const headerTitle =
     typeof options.headerTitle === 'string'
       ? options.headerTitle
@@ -34,8 +34,8 @@ export default function CommunityStackHeader({
       style={[
         styles.header,
         {
-          // Tab root already sits inside a top SafeAreaView. Applying the full
-          // inset again here makes the header float too far below the status bar.
+          // The tab root no longer owns the top inset. Keep the custom native
+          // stack header below the status bar on both root and nested screens.
           paddingTop: headerTopInset,
           backgroundColor: theme.colors.background,
         },
