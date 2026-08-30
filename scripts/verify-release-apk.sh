@@ -6,6 +6,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+TOOLCHAIN_SCRIPT="$SCRIPT_DIR/verify-js-toolchain.sh"
 
 EXPECTED_PACKAGE="com.nuri.app"
 EXPECTED_SOURCE_HEAD="${NURI_EXPECTED_SOURCE_HEAD:-}"
@@ -72,6 +73,9 @@ esac
 [[ "$EXPECTED_BUILD_VARIANT" == "release" ]] || fail_gate "expected build variant must be release"
 [[ "${#EXPECTED_SIGNER}" -eq 64 && "$EXPECTED_SIGNER" != *[!0-9a-fA-F]* ]] \
   || fail_gate "approved signer SHA-256 is missing or invalid"
+
+[[ -x "$TOOLCHAIN_SCRIPT" ]] || fail_gate "toolchain guard is unavailable"
+"$TOOLCHAIN_SCRIPT" >/dev/null
 
 APK_PATH="$(cd "$(dirname "$APK_PATH")" && pwd)/$(basename "$APK_PATH")"
 

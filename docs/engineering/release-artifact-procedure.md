@@ -2,11 +2,15 @@
 
 이 문서는 debug APK, local QA release APK, Store release APK를 파일명만으로 혼동하지 않도록 하는 canonical 절차다.
 
+Release entrypoint prerequisite는 [NURI Node/Yarn Toolchain](node-yarn-toolchain.md)의 Node `24.20.0`과 Yarn `3.6.4`다. release script는 build 전에 공용 toolchain guard를 실행한다.
+
 ## 명령
 
 - QA artifact: `yarn android:release:qa`
 - Store artifact: `yarn android:release:store`
 - 기존 APK 검증: `yarn verify-release-apk <apk> --source-head <40-char-head> --variant release --signer <certificate-sha256>`
+- toolchain 확인: `yarn verify-js-toolchain`
+- immutable dependency install: `yarn install --immutable`
 
 `android:release:store`는 `NURI_UPLOAD_STORE_FILE`, `NURI_UPLOAD_STORE_PASSWORD`, `NURI_UPLOAD_KEY_ALIAS`, `NURI_UPLOAD_KEY_PASSWORD`가 모두 protected process에 존재하지 않으면 실패한다. 값은 출력하거나 파일·argv·evidence에 저장하지 않는다.
 

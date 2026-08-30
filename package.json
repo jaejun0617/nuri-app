@@ -3,16 +3,17 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "android": "react-native run-android",
+    "android": "bash scripts/verify-js-toolchain.sh && react-native run-android",
     "ios": "react-native run-ios",
     "android:release:qa": "bash scripts/build-android-release.sh qa",
     "android:release:store": "bash scripts/build-android-release.sh store",
     "ingest:animal-hospitals": "node scripts/ingest-animal-hospitals.js",
     "lint": "eslint .",
     "postinstall": "node scripts/ensure-geolocation-codegen.js && node scripts/ensure-debugger-frontend-locales.js",
-    "start": "react-native start",
-    "start:reset": "react-native start --reset-cache",
+    "start": "bash scripts/verify-js-toolchain.sh && react-native start",
+    "start:reset": "bash scripts/verify-js-toolchain.sh && react-native start --reset-cache",
     "test": "jest",
+    "verify-js-toolchain": "bash scripts/verify-js-toolchain.sh",
     "verify-release-apk": "bash scripts/verify-release-apk.sh",
     "test:qa": "jest --watchAll=false --watchman=false __tests__/recordsForm.test.ts __tests__/schedulesForm.test.ts __tests__/categoryMeta.test.ts __tests__/consents.test.ts __tests__/weeklySummary.test.ts __tests__/timelineHeatmap.test.ts __tests__/appErrors.test.ts __tests__/petThemePalette.test.ts __tests__/homeWidgetSnapshot.test.ts",
     "test:e2e:smoke": "maestro test .maestro/login-record-crud.yaml",
@@ -81,7 +82,7 @@
     "typescript": "^5.8.3"
   },
   "engines": {
-    "node": ">= 22.11.0"
+    "node": "24.20.0"
   },
   "packageManager": "yarn@3.6.4"
 }

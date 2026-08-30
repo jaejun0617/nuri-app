@@ -7,6 +7,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 VERIFY_SCRIPT="$SCRIPT_DIR/verify-release-apk.sh"
+TOOLCHAIN_SCRIPT="$SCRIPT_DIR/verify-js-toolchain.sh"
 EXPECTED_SIGNER="${NURI_APPROVED_SIGNER_SHA256:-}"
 MODE="${1:-}"
 
@@ -19,6 +20,13 @@ MODE="${1:-}"
   printf '%s\n' "Verifier is not executable: $VERIFY_SCRIPT" >&2
   exit 2
 }
+
+[[ -x "$TOOLCHAIN_SCRIPT" ]] || {
+  printf '%s\n' "Toolchain guard is not executable: $TOOLCHAIN_SCRIPT" >&2
+  exit 2
+}
+
+"$TOOLCHAIN_SCRIPT" >/dev/null
 
 if [[ "$MODE" == "store" ]]; then
   # Store path는 protected signing input 없이는 절대 fallback하지 않는다.
