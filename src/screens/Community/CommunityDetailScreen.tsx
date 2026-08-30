@@ -53,6 +53,7 @@ import {
   getCommunityCommentSortLabel,
   getCommunityReplyCreateTarget,
   getCommunityReplyMode,
+  getCommunityReplyThreadRootId,
   getCommunityReplyTargetMention,
   areCommunityRepliesExpanded,
   resolveCommunityCommentNavigationTarget,
@@ -67,6 +68,10 @@ import {
 import { DETAIL_DIVIDER_COLOR, styles } from './CommunityDetailScreen.styles';
 const COMMENT_PAGE_SIZE = 10;
 const TARGET_COMMENT_HIGHLIGHT_MS = 2600;
+const INLINE_REVEAL_INITIAL_DELAY_MS = 180;
+const INLINE_REVEAL_RETRY_DELAY_MS = 160;
+const INLINE_REVEAL_MAX_ATTEMPTS = 4;
+const INLINE_REVEAL_BOTTOM_MARGIN = 24;
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'CommunityDetail'>;
 type Route = RootScreenRoute<'CommunityDetail'>;
@@ -142,8 +147,13 @@ export default function CommunityDetailScreen() {
     null,
   );
   const inlineRevealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inlineKeyboardShowSubscriptionRef = useRef<{
+    remove: () => void;
+  } | null>(null);
+  const keyboardInsetRef = useRef(0);
   const { height: windowHeight } = useWindowDimensions();
   const keyboardInset = useKeyboardInset();
+  keyboardInsetRef.current = keyboardInset;
   const viewRecordAttemptedPostIdsRef = useRef<Record<string, boolean>>({});
   const commentLikeDebounceTimersRef = useRef<
     Record<string, ReturnType<typeof setTimeout>>
@@ -218,8 +228,14 @@ export default function CommunityDetailScreen() {
     string | null
   >(null);
   const [replyTargetId, setReplyTargetId] = React.useState<string | null>(null);
+  const [replyKeyboardInset, setReplyKeyboardInset] = React.useState(0);
   const [expandedRepliesByCommentId, setExpandedRepliesByCommentId] =
     React.useState<Record<string, boolean>>({});
+  useEffect(() => {
+    if (keyboardInset === 0 && replyKeyboardInset !== 0) {
+      setReplyKeyboardInset(0);
+    }
+  }, [keyboardInset, replyKeyboardInset]);
   const [commentDeleteTargetId, setCommentDeleteTargetId] = React.useState<
     string | null
   >(null);
@@ -433,6 +449,8 @@ export default function CommunityDetailScreen() {
       if (inlineRevealTimerRef.current) {
         clearTimeout(inlineRevealTimerRef.current);
       }
+      inlineKeyboardShowSubscriptionRef.current?.remove();
+      inlineKeyboardShowSubscriptionRef.current = null;
       commentLikeDebounceTimersRef.current = {};
     },
     [],
@@ -444,6 +462,8 @@ export default function CommunityDetailScreen() {
 
   const isMyPost = !!post && !!currentUserId && post.authorId === currentUserId;
   const detailBottomInset = insets.bottom + 156;
+  const detailKeyboardBottomInset =
+    replyTargetId !== null ? Math.max(keyboardInset, replyKeyboardInset) : 0;
   const reportBottomInset = Math.max(insets.bottom, 16) + 8;
   const canShowCommentComposer =
     !!post &&
@@ -596,52 +616,126 @@ export default function CommunityDetailScreen() {
   const revealInlineComposer = useCallback(
     (targetId: string | null) => {
       if (targetId === null) return;
-    if (inlineRevealTimerRef.current) {
-      clearTimeout(inlineRevealTimerRef.current);
-    }
+      if (inlineRevealTimerRef.current) {
+        clearTimeout(inlineRevealTimerRef.current);
+      }
+      inlineKeyboardShowSubscriptionRef.current?.remove();
+      inlineKeyboardShowSubscriptionRef.current = null;
 
-    // The keyboard can finish opening after the input receives focus. Measure
-    // once after that transition and move only the obscured delta into view;
-    // selecting a reply must never jump the conversation to its bottom.
-    inlineRevealTimerRef.current = setTimeout(() => {
-      const keyboardHeight = Keyboard.metrics()?.height ?? keyboardInset;
-      const visibleBottom = windowHeight - Math.max(keyboardHeight, keyboardInset) - 12;
-
-      inlineComposerRef.current?.measureInWindow((_x, y, _width, height) => {
-        const obscuredDelta = y + height - visibleBottom;
-        if (Number.isFinite(obscuredDelta) && obscuredDelta > 0) {
-          flatListRef.current?.scrollToOffset({
-            offset: Math.max(currentScrollOffsetRef.current + obscuredDelta, 0),
-            animated: true,
-          });
+      // The keyboard can finish opening after the input receives focus. Keep
+      // the retry bounded and measure only the obscured delta; selecting a
+      // reply must never jump the conversation to its bottom.
+      const measureAndReveal = (
+        attempt: number,
+        reportedKeyboardHeight = 0,
+        reportedKeyboardTop = 0,
+      ) => {
+        const keyboardHeight = Math.max(
+          reportedKeyboardHeight,
+          Keyboard.metrics()?.height ?? 0,
+          keyboardInsetRef.current,
+        );
+        if (keyboardHeight <= 0 && attempt < INLINE_REVEAL_MAX_ATTEMPTS) {
+          inlineRevealTimerRef.current = setTimeout(
+            () => measureAndReveal(attempt + 1),
+            INLINE_REVEAL_RETRY_DELAY_MS,
+          );
+          return;
         }
-      });
-      inlineRevealTimerRef.current = null;
-    }, 180);
+        inlineKeyboardShowSubscriptionRef.current?.remove();
+        inlineKeyboardShowSubscriptionRef.current = null;
+
+        const visibleBottom =
+          reportedKeyboardTop > 0
+            ? reportedKeyboardTop - INLINE_REVEAL_BOTTOM_MARGIN
+            : windowHeight - keyboardHeight - INLINE_REVEAL_BOTTOM_MARGIN;
+        inlineComposerRef.current?.measureInWindow((_x, y, _width, height) => {
+          const obscuredDelta = y + height - visibleBottom;
+          if (Number.isFinite(obscuredDelta) && obscuredDelta > 0) {
+            const nextOffset = Math.max(
+              currentScrollOffsetRef.current + obscuredDelta,
+              0,
+            );
+            currentScrollOffsetRef.current = nextOffset;
+            flatListRef.current?.scrollToOffset({
+              offset: nextOffset,
+              animated: false,
+            });
+            if (attempt < INLINE_REVEAL_MAX_ATTEMPTS) {
+              inlineRevealTimerRef.current = setTimeout(
+                () => measureAndReveal(attempt + 1, keyboardHeight),
+                INLINE_REVEAL_RETRY_DELAY_MS,
+              );
+              return;
+            }
+          }
+          inlineRevealTimerRef.current = null;
+        });
+      };
+
+      const keyboardShowSubscription = Keyboard.addListener(
+        'keyboardDidShow',
+        event => {
+          setReplyKeyboardInset(event.endCoordinates.height);
+          if (inlineRevealTimerRef.current) {
+            clearTimeout(inlineRevealTimerRef.current);
+          }
+          inlineRevealTimerRef.current = setTimeout(
+            () =>
+              measureAndReveal(
+                0,
+                event.endCoordinates.height,
+                event.endCoordinates.screenY,
+              ),
+            50,
+          );
+        },
+      );
+      inlineKeyboardShowSubscriptionRef.current = keyboardShowSubscription;
+
+      inlineRevealTimerRef.current = setTimeout(
+        () => measureAndReveal(0),
+        INLINE_REVEAL_INITIAL_DELAY_MS,
+      );
     },
-    [keyboardInset, windowHeight],
+    [windowHeight],
   );
 
   const focusCommentComposer = useCallback(
     (targetId: string) => {
-    requestAnimationFrame(() => {
-      commentInputRef.current?.focus();
+      requestAnimationFrame(() => {
+        commentInputRef.current?.focus();
         revealInlineComposer(targetId);
-    });
+      });
     },
     [revealInlineComposer],
   );
 
   const handlePressComment = useCallback(
     (commentId: string) => {
+      const selectedComment = commentEntitiesById[commentId] ?? null;
+      const threadRootId = getCommunityReplyThreadRootId(selectedComment);
+      if (
+        threadRootId !== null &&
+        !areCommunityRepliesExpanded(
+          expandedRepliesByCommentId,
+          threadRootId,
+        )
+      ) {
+        setExpandedRepliesByCommentId(previous => ({
+          ...previous,
+          [threadRootId]: true,
+        }));
+      }
       setReplyTargetId(commentId);
       focusCommentComposer(commentId);
     },
-    [focusCommentComposer],
+    [commentEntitiesById, expandedRepliesByCommentId, focusCommentComposer],
   );
 
   const handleCancelReply = useCallback(() => {
     Keyboard.dismiss();
+    setReplyKeyboardInset(0);
     setReplyTargetId(null);
   }, []);
 
@@ -1178,6 +1272,7 @@ export default function CommunityDetailScreen() {
               }
               placeholderTextColor={theme.colors.textMuted}
               editable={!!currentUserId && !commentSubmitting}
+              autoFocus={isInline}
               style={[styles.commentInput, { color: theme.colors.textPrimary }]}
               multiline
               maxLength={500}
@@ -1355,7 +1450,9 @@ export default function CommunityDetailScreen() {
         data={visibleTopLevelCommentIds}
         keyExtractor={item => item}
         style={styles.contentArea}
-        contentContainerStyle={{ paddingBottom: detailBottomInset }}
+        contentContainerStyle={{
+          paddingBottom: detailBottomInset + detailKeyboardBottomInset,
+        }}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         automaticallyAdjustKeyboardInsets={true}
@@ -1632,8 +1729,15 @@ export default function CommunityDetailScreen() {
         onCancel={() => setCommentDeleteTargetId(null)}
         onConfirm={() => {
           if (!commentDeleteTargetId) return;
+          const deletedCommentId = commentDeleteTargetId;
           removeComment(commentDeleteTargetId, postId)
             .then(() => {
+              const activeTargetWasDeleted =
+                replyTargetId === deletedCommentId ||
+                replyTarget?.parentCommentId === deletedCommentId;
+              if (activeTargetWasDeleted) {
+                handleCancelReply();
+              }
               setCommentDeleteTargetId(null);
             })
             .catch(error => {

@@ -293,6 +293,9 @@ export const styles = StyleSheet.create({
     alignSelf: 'stretch',
     minWidth: 0,
   },
+  commentTapPressed: {
+    opacity: 0.76,
+  },
   commentAvatar: {
     width: 24,
     height: 24,

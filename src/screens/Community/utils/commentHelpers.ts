@@ -211,6 +211,12 @@ export function getCommunityReplyMode(
   return comment.parentCommentId ? 'direct' : 'thread';
 }
 
+export function getCommunityReplyThreadRootId(
+  comment: Pick<CommunityComment, 'id' | 'parentCommentId'> | null | undefined,
+) {
+  return comment ? comment.parentCommentId ?? comment.id : null;
+}
+
 export function getCommunityReplyCreateTarget(
   comment: CommunityComment | null | undefined,
 ) {

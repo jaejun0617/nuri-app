@@ -6,6 +6,7 @@ import {
   getCommunityReplyCreateTarget,
   getCommunityReplyMode,
   getCommunityReplySectionHeaderLabel,
+  getCommunityReplyThreadRootId,
   getCommunityReplyTargetMention,
   getVisibleReplies,
   getCommunityCommentSortLabel,
@@ -73,7 +74,7 @@ describe('community comment presentation', () => {
   });
 
   it('renders every loaded reply when expanded and none when collapsed', () => {
-    for (const replyCount of [1, 3, 6, 12]) {
+    for (const replyCount of [1, 3, 6, 12, 20, 50]) {
       const replyIds = Array.from({ length: replyCount }, (_, index) =>
         String(index + 1),
       );
@@ -226,6 +227,15 @@ describe('community comment presentation', () => {
     });
   });
 
+  it('resolves root and reply taps to the same thread root for auto-expansion', () => {
+    const root = buildComment('root-a', 'author-a', null);
+    const reply = buildComment('reply-b', 'author-b', 'root-a');
+
+    expect(getCommunityReplyThreadRootId(root)).toBe('root-a');
+    expect(getCommunityReplyThreadRootId(reply)).toBe('root-a');
+    expect(getCommunityReplyThreadRootId(null)).toBeNull();
+  });
+
   it('shows the reply section header only when visible replies exist', () => {
     expect(getCommunityReplySectionHeaderLabel(3)).toBe('답글 3');
     expect(getCommunityReplySectionHeaderLabel(0)).toBeNull();
@@ -292,6 +302,7 @@ describe('community comment presentation', () => {
     expect(styles.replyMarkerTapTarget.width).toBe(24);
     expect(styles.replyMarkerTapTarget.height).toBe(24);
     expect(styles.replyMarkerTapTarget.marginTop).toBe(-2);
+    expect(styles.commentTapPressed.opacity).toBe(0.76);
     expect(commentRowStyle.gap).toBe(replyRowStyle.gap);
     expect(styles.replyContent).toMatchObject(styles.commentContent);
     expect(commentRowStyle.alignItems).toBe('flex-start');

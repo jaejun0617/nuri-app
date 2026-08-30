@@ -125,7 +125,10 @@ function CommentThreadItemBase({
             accessibilityRole="button"
             accessibilityLabel={`댓글 ${comment.authorNickname}에 답글 남기기`}
             hitSlop={8}
-            style={styles.commentAvatarTapTarget}
+            style={({ pressed }) => [
+              styles.commentAvatarTapTarget,
+              pressed ? styles.commentTapPressed : null,
+            ]}
             onPress={handlePressComment}
           >
             {avatarSource ? (
@@ -156,7 +159,10 @@ function CommentThreadItemBase({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`댓글 ${comment.authorNickname} 내용에 답글 남기기`}
-              style={styles.commentTapContent}
+              style={({ pressed }) => [
+                styles.commentTapContent,
+                pressed ? styles.commentTapPressed : null,
+              ]}
               onPress={handlePressComment}
             >
               <View style={styles.commentMetaRow}>

@@ -1,5 +1,6 @@
 import type { CommunityComment, CommunityPost } from '../src/types/community';
 import {
+  createCommunityComment,
   deleteCommunityComment,
   fetchCommunityComments,
   fetchCommunityPostById,
@@ -8,6 +9,7 @@ import { useCommunityStore } from '../src/store/communityStore';
 
 jest.mock('../src/services/supabase/community', () => ({
   ...jest.requireActual('../src/services/supabase/community'),
+  createCommunityComment: jest.fn(),
   fetchCommunityComments: jest.fn(),
   fetchCommunityPostById: jest.fn(),
   deleteCommunityComment: jest.fn(),
@@ -23,6 +25,9 @@ const mockedFetchCommunityComments = fetchCommunityComments as jest.MockedFuncti
 >;
 const mockedFetchCommunityPostById = fetchCommunityPostById as jest.MockedFunction<
   typeof fetchCommunityPostById
+>;
+const mockedCreateCommunityComment = createCommunityComment as jest.MockedFunction<
+  typeof createCommunityComment
 >;
 const mockedDeleteCommunityComment = deleteCommunityComment as jest.MockedFunction<
   typeof deleteCommunityComment
@@ -85,6 +90,21 @@ function makeComment(postId: string): CommunityComment {
   };
 }
 
+function makeReply(postId: string, parentCommentId: string): CommunityComment {
+  return {
+    ...makeComment(postId),
+    id: `reply-${postId}`,
+    authorId: 'reply-author',
+    authorNickname: '답글 사용자',
+    parentCommentId,
+    replyToCommentId: null,
+    replyTargetUserId: null,
+    replyTargetNickname: null,
+    depth: 1,
+    content: '답글',
+  };
+}
+
 function deferred<T>() {
   let resolve!: (value: T) => void;
   const promise = new Promise<T>(nextResolve => {
@@ -97,6 +117,7 @@ describe('community detail protected read gate', () => {
   beforeEach(() => {
     mockedFetchCommunityPostById.mockReset();
     mockedFetchCommunityComments.mockReset();
+    mockedCreateCommunityComment.mockReset();
     mockedDeleteCommunityComment.mockReset();
     useCommunityStore.getState().clearAll();
   });
@@ -188,6 +209,57 @@ describe('community detail protected read gate', () => {
     expect(mockedDeleteCommunityComment).toHaveBeenCalledWith(comment.id);
     expect(useCommunityStore.getState().commentsByPostId[post.id]).toEqual([]);
     expect(useCommunityStore.getState().commentEntitiesById[comment.id]).toBeUndefined();
+    expect(useCommunityStore.getState().postsById[post.id]?.commentCount).toBe(0);
+  });
+
+  it('reply create 성공 직후 visible reply와 root/post count를 함께 갱신한다', async () => {
+    const post = makePost('reply-create-post');
+    const root = makeComment(post.id);
+    const reply = makeReply(post.id, root.id);
+    seedCommentState(post, root);
+    mockedCreateCommunityComment.mockResolvedValue(reply);
+
+    await useCommunityStore
+      .getState()
+      .submitComment(post.id, reply.content, root.id, null);
+
+    expect(mockedCreateCommunityComment).toHaveBeenCalledWith({
+      postId: post.id,
+      content: reply.content,
+      parentCommentId: root.id,
+      replyToCommentId: null,
+    });
+    expect(useCommunityStore.getState().replyCommentIdsByParentId[root.id]).toEqual([
+      reply.id,
+    ]);
+    expect(useCommunityStore.getState().commentEntitiesById[root.id]?.replyCount).toBe(1);
+    expect(useCommunityStore.getState().postsById[post.id]?.commentCount).toBe(1);
+  });
+
+  it('reply delete 성공 직후 reply 목록과 root/post count를 함께 갱신한다', async () => {
+    const post = { ...makePost('reply-delete-post'), commentCount: 1 };
+    const root = { ...makeComment(post.id), replyCount: 1 };
+    const reply = makeReply(post.id, root.id);
+    useCommunityStore.setState({
+      posts: [post],
+      postsById: { [post.id]: post },
+      detailStatusByPostId: { [post.id]: 'ready' },
+      commentsByPostId: { [post.id]: [root, reply] },
+      commentsStatusByPostId: { [post.id]: 'ready' },
+      commentEntitiesById: { [root.id]: root, [reply.id]: reply },
+      topLevelCommentIdsByPostId: { [post.id]: [root.id] },
+      replyCommentIdsByParentId: { [root.id]: [reply.id] },
+      latestCommentByPostId: { [post.id]: reply },
+      latestCommentStatusByPostId: { [post.id]: 'ready' },
+    });
+    mockedDeleteCommunityComment.mockResolvedValue(true);
+
+    await useCommunityStore.getState().removeComment(reply.id, post.id);
+
+    expect(useCommunityStore.getState().commentsByPostId[post.id]).toEqual([
+      expect.objectContaining({ id: root.id, replyCount: 0 }),
+    ]);
+    expect(useCommunityStore.getState().replyCommentIdsByParentId[root.id]).toEqual([]);
     expect(useCommunityStore.getState().postsById[post.id]?.commentCount).toBe(0);
   });
 

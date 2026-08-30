@@ -79,7 +79,10 @@ function ReplyCommentItemBase({
           accessibilityRole="button"
           accessibilityLabel={`답글 ${reply.authorNickname}에 답글 남기기`}
           hitSlop={8}
-          style={styles.replyMarkerTapTarget}
+          style={({ pressed }) => [
+            styles.replyMarkerTapTarget,
+            pressed ? styles.commentTapPressed : null,
+          ]}
           onPress={handlePressComment}
         >
           <Feather
@@ -92,7 +95,10 @@ function ReplyCommentItemBase({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`답글 ${reply.authorNickname} 내용에 직접 답글 남기기`}
-            style={styles.replyTapContent}
+            style={({ pressed }) => [
+              styles.replyTapContent,
+              pressed ? styles.commentTapPressed : null,
+            ]}
             onPress={handlePressComment}
           >
             <View style={styles.replyMetaRow}>
