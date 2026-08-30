@@ -60,7 +60,7 @@ export default function AppNavigationToolbar({
   const bottomInset = useMemo(
     () =>
       Platform.OS === 'android'
-        ? Math.min(Math.max(insets.bottom, 4), 8)
+        ? Math.max(insets.bottom, 18)
         : Math.max(insets.bottom, 10),
     [insets.bottom],
   );
