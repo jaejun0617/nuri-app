@@ -13,7 +13,6 @@ import {
   Animated,
   Easing,
   FlatList,
-  InteractionManager,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
@@ -44,6 +43,7 @@ import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { useCommunityStore } from '../../store/communityStore';
 import { usePetStore } from '../../store/petStore';
 import { openMoreDrawer } from '../../store/uiStore';
+import { scheduleIdleTask } from '../../utils/scheduleIdleTask';
 import type {
   CommunityCategory,
   CommunityListFilter,
@@ -251,7 +251,7 @@ export default function CommunityListScreen() {
 
   useEffect(() => {
     if (listStatus !== 'idle' || posts.length > 0) return;
-    const task = InteractionManager.runAfterInteractions(() => {
+    const task = scheduleIdleTask(() => {
       resumePosts().catch(() => {});
     });
     return () => {

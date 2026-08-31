@@ -632,8 +632,6 @@ export default function WeatherInsightScreen() {
         barStyle={
           hasRenderableWeather && !sceneIsDaytime ? 'light-content' : 'dark-content'
         }
-        backgroundColor="transparent"
-        translucent
       />
       <SafeAreaView style={styles.safe}>
         <ScrollView

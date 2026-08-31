@@ -563,7 +563,7 @@ function ActivityDensityGraph({
   focusYmd: string;
 }) {
   const theme = useTheme();
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
   const countsByYmd = useMemo(
     () =>
       densityItems.reduce<Record<string, number>>((acc, item) => {

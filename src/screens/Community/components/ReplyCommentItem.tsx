@@ -23,7 +23,7 @@ type Props = {
   postAuthorId: string;
   authorAccentColor: string;
   highlighted: boolean;
-  onTargetReady: (target: React.ElementRef<typeof View> | null) => void;
+  onTargetReady: (target: React.ComponentRef<typeof View> | null) => void;
   onPressComment: (commentId: string) => void;
   onToggleLike: (commentId: string) => void;
   onPressDelete: (commentId: string) => void;

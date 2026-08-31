@@ -312,7 +312,7 @@ const PasswordField = memo(function PasswordField({
   onChangeText: (value: string) => void;
   onToggleSecure: () => void;
   helper?: string | null;
-  inputRef?: React.RefObject<TextInput | null>;
+  inputRef?: React.RefObject<React.ComponentRef<typeof TextInput> | null>;
   onFocus?: () => void;
 }) {
   const theme = useTheme();
@@ -377,12 +377,12 @@ export const PasswordChangeModal = memo(function PasswordChangeModal({
 }: PasswordModalProps) {
   const theme = useTheme();
   const scrollRef = useRef<KeyboardAwareScrollView | null>(null);
-  const currentPasswordRef = useRef<TextInput | null>(null);
-  const nextPasswordRef = useRef<TextInput | null>(null);
-  const confirmPasswordRef = useRef<TextInput | null>(null);
+  const currentPasswordRef = useRef<React.ComponentRef<typeof TextInput> | null>(null);
+  const nextPasswordRef = useRef<React.ComponentRef<typeof TextInput> | null>(null);
+  const confirmPasswordRef = useRef<React.ComponentRef<typeof TextInput> | null>(null);
 
   const scrollToInput = useCallback(
-    (ref: React.RefObject<TextInput | null>) => {
+    (ref: React.RefObject<React.ComponentRef<typeof TextInput> | null>) => {
       requestAnimationFrame(() => {
         const node = findNodeHandle(ref.current);
         if (!node) return;

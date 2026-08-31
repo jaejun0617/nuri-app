@@ -246,7 +246,7 @@ type StepOneFormProps = {
   speciesDetailKey: string;
   onSpeciesDetailKeyChange: (value: string) => void;
   onSpeciesDetailFocus: () => void;
-  speciesDetailInputRef: React.RefObject<TextInput | null>;
+  speciesDetailInputRef: React.RefObject<React.ComponentRef<typeof TextInput> | null>;
   gender: PetGender;
   onGenderChange: (value: PetGender) => void;
   neutered: boolean | null;
@@ -705,7 +705,7 @@ export default function PetCreateScreen() {
   const [draftHydrated, setDraftHydrated] = useState(false);
   const draftLoadOnceRef = useRef(false);
   const keyboardScrollRef = useRef<KeyboardAwareScrollViewRef | null>(null);
-  const speciesDetailInputRef = useRef<TextInput | null>(null);
+  const speciesDetailInputRef = useRef<React.ComponentRef<typeof TextInput> | null>(null);
 
   const trimmedName = useMemo(() => name.trim(), [name]);
   const canGoNext = useMemo(() => {

@@ -17,7 +17,6 @@ import AppText from '../../app/ui/AppText';
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
-  InteractionManager,
   Image,
   Text,
   TextInput,
@@ -66,6 +65,7 @@ import { supabase } from '../../services/supabase/client';
 import { useAuthStore } from '../../store/authStore';
 import { showToast } from '../../store/uiStore';
 import { getKstDateParts } from '../../utils/date';
+import { scheduleIdleTask } from '../../utils/scheduleIdleTask';
 
 import { styles } from './SignInScreen.styles';
 
@@ -278,8 +278,8 @@ export default function SignInScreen() {
   const [activeNotice, setActiveNotice] = useState<SignInNotice | null>(null);
   const [recentLoginProvider, setRecentLoginProviderState] =
     useState<RecentLoginProvider | null>(null);
-  const emailInputRef = useRef<TextInput>(null);
-  const passwordInputRef = useRef<TextInput>(null);
+  const emailInputRef = useRef<React.ComponentRef<typeof TextInput>>(null);
+  const passwordInputRef = useRef<React.ComponentRef<typeof TextInput>>(null);
 
   const disabled = useMemo(
     () => submitting || !!oauthSubmitting || !email.trim() || password.length < 8,
@@ -421,7 +421,7 @@ export default function SignInScreen() {
       return;
     }
 
-    const task = InteractionManager.runAfterInteractions(() => {
+    const task = scheduleIdleTask(() => {
       setActiveNotice(nextNotice);
       navigation.setParams({ notice: undefined });
     });

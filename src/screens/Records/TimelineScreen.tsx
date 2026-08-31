@@ -24,7 +24,6 @@ import React, {
 import {
   ActivityIndicator,
   Image,
-  InteractionManager,
   type LayoutChangeEvent,
   Modal,
   Pressable,
@@ -48,6 +47,7 @@ import { useIsFocused, useNavigation, useRoute } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
+import { scheduleIdleTask } from '../../utils/scheduleIdleTask';
 
 import { MemoryCard } from '../../components/MemoryCard/MemoryCard';
 import { preloadOptimizedImages } from '../../components/images/OptimizedImage';
@@ -136,18 +136,6 @@ type TimelinePreloadRef = {
   variant: MemoryImageVariant;
 };
 
-type GlobalWithIdleCallback = typeof globalThis & {
-  requestIdleCallback?: (
-    callback: () => void,
-    options?: { timeout?: number },
-  ) => number;
-  cancelIdleCallback?: (handle: number) => void;
-};
-
-type DeferredTaskHandle = {
-  cancel: () => void;
-};
-
 function normalizeStatus(v: unknown): Status {
   switch (v) {
     case 'idle':
@@ -160,35 +148,6 @@ function normalizeStatus(v: unknown): Status {
     default:
       return 'idle';
   }
-}
-
-function scheduleIdleTask(
-  task: () => void,
-  timeout = 180,
-): DeferredTaskHandle {
-  const globalScope = globalThis as GlobalWithIdleCallback;
-
-  if (typeof globalScope.requestIdleCallback === 'function') {
-    const handle = globalScope.requestIdleCallback(
-      () => {
-        task();
-      },
-      { timeout },
-    );
-
-    return {
-      cancel: () => {
-        if (typeof globalScope.cancelIdleCallback === 'function') {
-          globalScope.cancelIdleCallback(handle);
-        }
-      },
-    };
-  }
-
-  const timer = setTimeout(task, 48);
-  return {
-    cancel: () => clearTimeout(timer),
-  };
 }
 
 const JUMP_TO_ALL = '__ALL__';
@@ -700,7 +659,7 @@ export default function TimelineScreen() {
     let cancelled = false;
     setTimelineCategoryCountsReady(false);
 
-    const task = InteractionManager.runAfterInteractions(() => {
+    const task = scheduleIdleTask(() => {
       fetchTimelineCategoryCountsByPet(petId)
         .then(counts => {
           if (cancelled) return;
@@ -730,7 +689,7 @@ export default function TimelineScreen() {
 
     let cancelled = false;
 
-    const task = InteractionManager.runAfterInteractions(() => {
+    const task = scheduleIdleTask(() => {
       Promise.all([
         getPetDailyStatus(petId),
         getUserLevelSummary(),

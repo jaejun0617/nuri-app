@@ -17,7 +17,6 @@ import {
   Animated as RNAnimated,
   BackHandler,
   Image,
-  InteractionManager,
   LayoutAnimation,
   Modal,
   PanResponder,
@@ -172,6 +171,7 @@ import {
   getMonthKeyFromYmd,
   getMonthKeyInKst,
 } from '../../../../utils/date';
+import { scheduleIdleTask } from '../../../../utils/scheduleIdleTask';
 import WeatherGuideHomeCard from '../../../../components/weather/WeatherGuideHomeCard';
 import type { PetCareGuide } from '../../../../services/guides/types';
 import { styles } from './LoggedInHome.styles';
@@ -2453,7 +2453,7 @@ export default function LoggedInHome() {
   const { height: windowHeight } = useWindowDimensions();
   const navigation = useNavigation<Nav>();
   const isScreenFocused = useIsFocused();
-  const homeScrollRef = useRef<ScrollView | null>(null);
+  const homeScrollRef = useRef<React.ComponentRef<typeof ScrollView> | null>(null);
   const shouldRestoreHomeScrollRef = useRef(true);
   const scheduleSectionOffsetRef = useRef<number | null>(null);
   const showTopButtonRef = useRef(false);
@@ -2839,7 +2839,7 @@ export default function LoggedInHome() {
 
   useEffect(() => {
     if (!activePetId) return;
-    const task = InteractionManager.runAfterInteractions(() => {
+    const task = scheduleIdleTask(() => {
       bootstrapRecords(activePetId).catch(() => {});
     });
     return () => {
@@ -2851,7 +2851,7 @@ export default function LoggedInHome() {
     if (!isScreenFocused || !activePetId) return;
     if (recordStatusRef.current !== 'ready') return;
 
-    const task = InteractionManager.runAfterInteractions(() => {
+    const task = scheduleIdleTask(() => {
       refreshRecords(activePetId).catch(() => {});
     });
 
@@ -2862,7 +2862,7 @@ export default function LoggedInHome() {
 
   useEffect(() => {
     if (!activePetId) return;
-    const task = InteractionManager.runAfterInteractions(() => {
+    const task = scheduleIdleTask(() => {
       bootstrapSchedules(activePetId).catch(() => {});
     });
     return () => {
@@ -2924,7 +2924,7 @@ export default function LoggedInHome() {
       return undefined;
     }
 
-    const task = InteractionManager.runAfterInteractions(() => {
+    const task = scheduleIdleTask(() => {
       setDeferredHomeDataReady(true);
     });
 
@@ -2951,7 +2951,7 @@ export default function LoggedInHome() {
       })
       .catch(() => {});
 
-    const task = InteractionManager.runAfterInteractions(() => {
+    const task = scheduleIdleTask(() => {
       fetchHomePetTitleBadge(activePetId)
       .then(title => {
         if (cancelled) return;

@@ -8,7 +8,6 @@ import React, {
 import {
   ActivityIndicator,
   FlatList,
-  InteractionManager,
   Keyboard,
   Modal,
   Platform,
@@ -46,6 +45,7 @@ import { usePetStore } from '../../store/petStore';
 import { showToast } from '../../store/uiStore';
 import type { CommunityReportReasonCategory } from '../../types/community';
 import { getKstDateParts } from '../../utils/date';
+import { scheduleIdleTask } from '../../utils/scheduleIdleTask';
 import CommentThreadItem from './components/CommentThreadItem';
 import { getCommunityCategoryLabel } from './communityListPresentation';
 import {
@@ -134,8 +134,8 @@ export default function CommunityDetailScreen() {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const flatListRef = useRef<FlatList<string> | null>(null);
-  const commentInputRef = useRef<TextInput | null>(null);
-  const inlineComposerRef = useRef<React.ElementRef<typeof View> | null>(null);
+  const commentInputRef = useRef<React.ComponentRef<typeof TextInput> | null>(null);
+  const inlineComposerRef = useRef<React.ComponentRef<typeof View> | null>(null);
   const currentScrollOffsetRef = useRef(0);
   const preparedNavigationTargetKeyRef = useRef<string | null>(null);
   const measuredNavigationTargetKeyRef = useRef<string | null>(null);
@@ -289,7 +289,7 @@ export default function CommunityDetailScreen() {
       return undefined;
     }
 
-    const task = InteractionManager.runAfterInteractions(() => {
+    const task = scheduleIdleTask(() => {
       navigation.goBack();
     });
 
@@ -375,7 +375,7 @@ export default function CommunityDetailScreen() {
     }
     setHighlightedCommentId(notificationCommentId);
 
-    const task = InteractionManager.runAfterInteractions(() => {
+    const task = scheduleIdleTask(() => {
       targetScrollTimerRef.current = setTimeout(() => {
         flatListRef.current?.scrollToIndex({
           index: commentNavigationTarget.threadIndex,
@@ -397,7 +397,7 @@ export default function CommunityDetailScreen() {
   ]);
 
   const handleTargetCommentReady = useCallback(
-    (target: React.ElementRef<typeof View> | null) => {
+    (target: React.ComponentRef<typeof View> | null) => {
       if (!target || !notificationCommentId || !commentNavigationTarget) return;
 
       const targetKey = `${postId}:${notificationCommentId}:${commentSort}`;
