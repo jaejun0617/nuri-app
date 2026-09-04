@@ -354,6 +354,7 @@ class ScheduleAlarmRingingService : Service() {
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
       )
       val stopAction = NotificationCompat.Action.Builder(0, "중지", stop).build()
+      val privateBody = ScheduleAlarmPresentation.privateBody(occurrence.body, occurrence.note)
       val publicVersion = NotificationCompat.Builder(context, ScheduleNotificationScheduler.CHANNEL_ID)
         .setSmallIcon(R.mipmap.ic_launcher)
         .setContentTitle("NURI 일정 알람")
@@ -364,10 +365,8 @@ class ScheduleAlarmRingingService : Service() {
       return NotificationCompat.Builder(context, ScheduleNotificationScheduler.CHANNEL_ID)
         .setSmallIcon(R.mipmap.ic_launcher)
         .setContentTitle(occurrence.title)
-        .setContentText(occurrence.body)
-        .setStyle(NotificationCompat.BigTextStyle().bigText(
-          ScheduleAlarmPresentation.privateBody(occurrence.body, occurrence.note),
-        ))
+        .setContentText(privateBody)
+        .setStyle(NotificationCompat.BigTextStyle().bigText(privateBody))
         .setCategory(NotificationCompat.CATEGORY_ALARM)
         .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
         .setPublicVersion(publicVersion)

@@ -15,7 +15,7 @@ internal object ScheduleAlarmPresentation {
 
   fun privateBody(summary: String, note: String): String {
     val preview = notificationNote(note)
-    return if (preview.isEmpty()) summary else "$summary\n$preview"
+    return if (preview.isEmpty()) summary else preview
   }
 
   fun body(occurrenceAtMillis: Long, fireAtMillis: Long): String {
