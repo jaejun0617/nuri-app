@@ -56,6 +56,7 @@ object ScheduleNotificationScheduler {
     val scheduleId: String,
     val fireAtMillis: Long,
     val registrationToken: String,
+    val exactDelivery: Boolean,
   )
 
   fun isEnabled(context: Context): Boolean {
@@ -116,6 +117,7 @@ object ScheduleNotificationScheduler {
     repeatRule: String,
   ): ScheduleResult {
     synchronized(registryLock) {
+      ScheduleAlarmRingingService.cancel(context, alarmId)
       // The registry replacement and PendingIntent creation must share the
       // same lock. Creating the new PendingIntent before cancelling the old
       // identity would let removeAlarmLocked() cancel the very PendingIntent
@@ -193,7 +195,7 @@ object ScheduleNotificationScheduler {
     )
 
     val registry = alarmRegistry(context).toMutableMap()
-    registry[alarmId] = RegisteredAlarm(scheduleId, fireAtMillis, registrationToken)
+    registry[alarmId] = RegisteredAlarm(scheduleId, fireAtMillis, registrationToken, exact)
     val scheduled = scheduledIds(context).toMutableSet().apply { add(alarmId) }
     if (!persistStateLocked(context, scheduled, registry, postedRegistry(context))) {
       return ScheduleResult("failed", delivery, "alarm-registry-write-failed")
@@ -244,6 +246,7 @@ object ScheduleNotificationScheduler {
   }
 
   private fun cancelLocked(context: Context, scheduleIdOrPrefix: String) {
+    ScheduleAlarmRingingService.cancel(context, scheduleIdOrPrefix)
     val registry = alarmRegistry(context)
     val registeredIds = registry
       .filter { (alarmId, registration) ->
@@ -286,6 +289,7 @@ object ScheduleNotificationScheduler {
   }
 
   private fun cancelAllLocked(context: Context): Boolean {
+    ScheduleAlarmRingingService.cancelAll(context)
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager
     val notificationManager = context.getSystemService(NotificationManager::class.java)
     val alarmIds = (scheduledIds(context) + alarmRegistry(context).keys).toSet()
@@ -396,19 +400,26 @@ object ScheduleNotificationScheduler {
 
     val manager = context.getSystemService(NotificationManager::class.java)
     return try {
-      manager.notify(
-        notificationId(alarmId),
-        buildNotification(context, alarmId, scheduleId, petId, title, body),
-      )
-
       val posted = postedRegistry(context).toMutableMap()
       posted[notificationId(alarmId).toString()] = scheduleId
-      if (persistStateLocked(context, scheduledIds(context), alarmRegistry(context), posted)) {
-        true
-      } else {
-        manager.cancel(notificationId(alarmId))
-        false
+      if (!persistStateLocked(context, scheduledIds(context), alarmRegistry(context), posted)) {
+        return false
       }
+      val registration = alarmRegistry(context)[alarmId]
+      val ringing = registration?.exactDelivery == true && ScheduleAlarmRingingService.start(
+        context,
+        ScheduleAlarmOccurrence(
+          alarmId, scheduleId, petId, registration.registrationToken,
+          notificationId(alarmId), title, body,
+        ),
+      )
+      if (!ringing) {
+        manager.notify(
+          notificationId(alarmId),
+          buildNotification(context, alarmId, scheduleId, petId, title, body),
+        )
+      }
+      true
     } catch (_: SecurityException) {
       false
     } catch (_: RuntimeException) {
@@ -457,7 +468,7 @@ object ScheduleNotificationScheduler {
 
   fun requestCode(alarmId: String): Int = alarmId.hashCode()
 
-  private fun buildNotification(
+  internal fun buildNotification(
     context: Context,
     alarmId: String,
     scheduleId: String,
@@ -576,6 +587,7 @@ object ScheduleNotificationScheduler {
         scheduleId = scheduleId,
         fireAtMillis = value.optLong("fireAtMillis", 0L),
         registrationToken = token,
+        exactDelivery = value.optBoolean("exactDelivery", false),
       )
     }.toMap()
   }
@@ -602,7 +614,8 @@ object ScheduleNotificationScheduler {
         JSONObject()
           .put("scheduleId", value.scheduleId)
           .put("fireAtMillis", value.fireAtMillis)
-          .put("registrationToken", value.registrationToken),
+          .put("registrationToken", value.registrationToken)
+          .put("exactDelivery", value.exactDelivery),
       )
     }
     val postedJson = JSONObject()
