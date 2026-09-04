@@ -113,8 +113,6 @@ function App() {
       {/* ✅ 흰 배경에서 시간/아이콘이 안 보이는 문제 방지 */}
       <StatusBar
         barStyle="dark-content"
-        backgroundColor="transparent"
-        translucent
       />
 
       <KeyboardProvider>

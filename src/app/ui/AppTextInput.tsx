@@ -10,7 +10,10 @@ type Props = TextInputProps;
  * 색상, placeholder, 키보드, selection 등 화면별 동작은 호출부 스타일을 보존한다.
  */
 const AppTextInput = memo(
-  forwardRef<TextInput, Props>(function AppTextInput({ style, ...rest }, ref) {
+  forwardRef<React.ComponentRef<typeof TextInput>, Props>(function AppTextInput(
+    { style, ...rest },
+    ref,
+  ) {
     const theme = useTheme();
     const composedStyle = useMemo(
       () =>

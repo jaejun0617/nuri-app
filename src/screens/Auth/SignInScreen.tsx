@@ -81,7 +81,7 @@ type FieldProps = {
   keyboardType?: 'default' | 'email-address';
   autoCapitalize?: 'none' | 'sentences';
   rightAccessory?: React.ReactNode;
-  inputRef?: React.Ref<TextInput>;
+  inputRef?: React.Ref<React.ComponentRef<typeof TextInput>>;
 };
 
 const AuthField = memo(function AuthField({

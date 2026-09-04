@@ -762,7 +762,7 @@ export default function CommunityListScreen() {
               scrollEventThrottle={16}
               showsVerticalScrollIndicator={false}
               ListEmptyComponent={emptyComponent}
-              ListFooterComponent={footerComponent}
+              ListFooterComponent={footerComponent ?? undefined}
               refreshControl={
                 <RefreshControl
                   refreshing={refreshing}

@@ -19,6 +19,15 @@ const specs = [
   },
 ];
 
+function usesCanonicalReactNativeCodegen() {
+  const reactNativePackage = require(
+    require.resolve('react-native/package.json', { paths: [projectRoot] }),
+  );
+  const [major, minor] = reactNativePackage.version.split('.').map(Number);
+
+  return major > 0 || (major === 0 && minor >= 87);
+}
+
 function buildCMakeContents(specName) {
   return `cmake_minimum_required(VERSION 3.13)
 set(CMAKE_VERBOSE_MAKEFILE on)
@@ -88,6 +97,13 @@ std::shared_ptr<TurboModule> ${specName}_ModuleProvider(
 
 } // namespace facebook::react
 `;
+}
+
+if (usesCanonicalReactNativeCodegen()) {
+  console.log(
+    '[postinstall] skipped legacy geolocation JNI stub; React Native canonical codegen is available',
+  );
+  process.exit(0);
 }
 
 for (const spec of specs) {

@@ -1483,8 +1483,8 @@ export default function CommunityDetailScreen() {
         windowSize={7}
         updateCellsBatchingPeriod={50}
         removeClippedSubviews={Platform.OS === 'android'}
-        ListHeaderComponent={listHeader}
-        ListFooterComponent={listFooter}
+        ListHeaderComponent={listHeader ?? undefined}
+        ListFooterComponent={listFooter ?? undefined}
         renderItem={renderCommentThread}
       />
 

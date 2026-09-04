@@ -249,14 +249,14 @@ describe('community comment presentation', () => {
   });
 
   it('keeps comment presentation compact while preserving thread hierarchy and touch sizing', () => {
-    const threadStyle = StyleSheet.flatten(styles.commentThreadWrap);
-    const rootContentStyle = StyleSheet.flatten(styles.commentRootContent);
-    const commentBubbleStyle = StyleSheet.flatten(styles.commentBubble);
-    const commentRowStyle = StyleSheet.flatten(styles.commentRow);
-    const replyListStyle = StyleSheet.flatten(styles.replyListWrap);
-    const replyRowStyle = StyleSheet.flatten(styles.replyRow);
-    const replyDividerStyle = StyleSheet.flatten(styles.replyDivider);
-    const replyBubbleStyle = StyleSheet.flatten(styles.replyBubble);
+    const threadStyle = StyleSheet.flatten(styles.commentThreadWrap)!;
+    const rootContentStyle = StyleSheet.flatten(styles.commentRootContent)!;
+    const commentBubbleStyle = StyleSheet.flatten(styles.commentBubble)!;
+    const commentRowStyle = StyleSheet.flatten(styles.commentRow)!;
+    const replyListStyle = StyleSheet.flatten(styles.replyListWrap)!;
+    const replyRowStyle = StyleSheet.flatten(styles.replyRow)!;
+    const replyDividerStyle = StyleSheet.flatten(styles.replyDivider)!;
+    const replyBubbleStyle = StyleSheet.flatten(styles.replyBubble)!;
 
     expect(threadStyle.paddingHorizontal).toBe(0);
     expect(threadStyle.paddingVertical).toBe(0);

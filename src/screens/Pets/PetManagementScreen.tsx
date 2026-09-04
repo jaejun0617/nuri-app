@@ -218,7 +218,7 @@ export default function PetManagementScreen() {
         ]}
         ItemSeparatorComponent={ItemSeparator}
         ListEmptyComponent={emptyComponent}
-        ListFooterComponent={footer}
+        ListFooterComponent={footer ?? undefined}
         showsVerticalScrollIndicator={false}
       />
     </View>

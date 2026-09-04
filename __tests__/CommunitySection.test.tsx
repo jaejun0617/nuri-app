@@ -216,11 +216,11 @@ describe('CommunitySection', () => {
     const horizontalPillScroll = renderer.root.find(
       node => node.type === ScrollView && node.props.horizontal === true,
     );
-    const pillTouch = StyleSheet.flatten(communityStyles.pillTouch);
-    const pillVisual = StyleSheet.flatten(communityStyles.pillVisual);
-    const pillText = StyleSheet.flatten(communityStyles.pillText);
-    const communitySection = StyleSheet.flatten(communityStyles.section);
-    const homeSection = StyleSheet.flatten(homeStyles.section);
+    const pillTouch = StyleSheet.flatten(communityStyles.pillTouch)!;
+    const pillVisual = StyleSheet.flatten(communityStyles.pillVisual)!;
+    const pillText = StyleSheet.flatten(communityStyles.pillText)!;
+    const communitySection = StyleSheet.flatten(communityStyles.section)!;
+    const homeSection = StyleSheet.flatten(homeStyles.section)!;
 
     expect(title.props.preset).toBe('unifiedTitle');
     expect(titleIcon.props.color).toBe(createTheme('light').colors.brand);
@@ -234,7 +234,7 @@ describe('CommunitySection', () => {
     expect(pillVisual.minHeight).toBe(36);
     expect(pillVisual.paddingHorizontal).toBe(10);
     expect(pillVisual.borderRadius).toBe(18);
-    expect(StyleSheet.flatten(communityStyles.pillContent).gap).toBe(8);
+    expect(StyleSheet.flatten(communityStyles.pillContent)!.gap).toBe(8);
     expect(pillText.fontSize).toBe(14);
     expect(pillText.lineHeight).toBe(20);
     expect(communitySection).toEqual(
@@ -246,9 +246,9 @@ describe('CommunitySection', () => {
       }),
     );
     expect('width' in communitySection).toBe(false);
-    expect('width' in StyleSheet.flatten(communityStyles.panel)).toBe(false);
-    expect(StyleSheet.flatten(communityStyles.title).flexShrink).toBe(1);
-    expect(StyleSheet.flatten(communityStyles.postBody).minWidth).toBe(0);
+    expect('width' in StyleSheet.flatten(communityStyles.panel)!).toBe(false);
+    expect(StyleSheet.flatten(communityStyles.title)!.flexShrink).toBe(1);
+    expect(StyleSheet.flatten(communityStyles.postBody)!.minWidth).toBe(0);
 
     await act(async () => {
       renderer.unmount();
