@@ -5,7 +5,7 @@
 // - 생성 성공 시 schedule store refresh와 완료 플로우 연결까지 수행
 
 import AppTextInput from '../../app/ui/AppTextInput';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   BackHandler,
@@ -57,14 +57,12 @@ import {
   SCHEDULE_ICON_OPTIONS,
   SCHEDULE_OTHER_UI_SUBCATEGORY_OPTIONS,
   SCHEDULE_REMINDER_OPTIONS,
-  SCHEDULE_REMINDER_REPEAT_OPTIONS,
   SCHEDULE_REPEAT_OPTIONS,
   SCHEDULE_WRITE_CATEGORY_OPTIONS,
   SCHEDULE_WRITE_OTHER_UI_SUBCATEGORY_OPTIONS,
   toScheduleDateInput,
   type ScheduleOtherUiSubCategoryKey,
   type ScheduleReminderOptionKey,
-  type ScheduleReminderRepeatKey,
 } from '../../services/schedules/form';
 import {
   checkScheduleNotificationPermission,
@@ -73,8 +71,8 @@ import {
   captureScheduleNotificationLifecycle,
   requestScheduleNotificationPermission,
   upsertScheduleNotification,
-  type ScheduleNotificationPermissionStatus,
 } from '../../services/schedules/notifications';
+import { useScheduleNotificationSettings } from '../../hooks/useScheduleNotificationSettings';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { resolveSelectedPetId, usePetStore } from '../../store/petStore';
 import { useScheduleStore } from '../../store/scheduleStore';
@@ -142,12 +140,11 @@ export default function ScheduleCreateScreen() {
   const [repeatRule, setRepeatRule] = useState<ScheduleRepeatRule>('none');
   const [reminderKey, setReminderKey] =
     useState<ScheduleReminderOptionKey>('none');
-  const [reminderRepeatKey, setReminderRepeatKey] =
-    useState<ScheduleReminderRepeatKey>('once');
   const [customReminderMinutesText, setCustomReminderMinutesText] =
     useState('');
-  const [notificationPermissionStatus, setNotificationPermissionStatus] =
-    useState<ScheduleNotificationPermissionStatus>('unsupported');
+  const { settings: notificationSettings, refresh: refreshNotificationSettings } =
+    useScheduleNotificationSettings();
+  const notificationPermissionStatus = notificationSettings?.permission ?? 'unsupported';
   const categoryOptions = useMemo(
     () =>
       isHealthManagementEntry || category === 'health'
@@ -175,7 +172,6 @@ export default function ScheduleCreateScreen() {
       colorKey !== initialColorKey ||
       repeatRule !== 'none' ||
       reminderKey !== 'none' ||
-      reminderRepeatKey !== 'once' ||
       customReminderMinutesText.trim().length > 0,
     [
       allDay,
@@ -193,20 +189,11 @@ export default function ScheduleCreateScreen() {
       otherUiSubCategoryKey,
       customReminderMinutesText,
       reminderKey,
-      reminderRepeatKey,
       repeatRule,
       timeText,
       title,
     ],
   );
-
-  useEffect(() => {
-    checkScheduleNotificationPermission()
-      .then(setNotificationPermissionStatus)
-      .catch(() => {
-        setNotificationPermissionStatus('unsupported');
-      });
-  }, []);
 
   const goBackByEntrySource = useCallback(() => {
     if (returnTo?.screen === 'HealthReport') {
@@ -313,19 +300,18 @@ export default function ScheduleCreateScreen() {
     async (nextKey: ScheduleReminderOptionKey) => {
       setReminderKey(nextKey);
       if (nextKey === 'none') {
-        setReminderRepeatKey('once');
         setCustomReminderMinutesText('');
         return;
       }
 
       const currentPermission = await checkScheduleNotificationPermission();
       if (currentPermission === 'granted') {
-        setNotificationPermissionStatus(currentPermission);
+        await refreshNotificationSettings();
         return;
       }
 
       const requestedPermission = await requestScheduleNotificationPermission();
-      setNotificationPermissionStatus(requestedPermission);
+      await refreshNotificationSettings();
 
       if (requestedPermission !== 'granted') {
         Alert.alert(
@@ -334,7 +320,7 @@ export default function ScheduleCreateScreen() {
         );
       }
     },
-    [],
+    [refreshNotificationSettings],
   );
 
   const onSubmit = useCallback(async () => {
@@ -360,7 +346,6 @@ export default function ScheduleCreateScreen() {
       const startsAtIso = new Date(startsAt).toISOString();
       const reminderMinutes = buildReminderMinutesFromSelection({
         reminderKey,
-        reminderRepeatKey,
         customReminderMinutesText,
         startsAt: startsAtIso,
       });
@@ -443,7 +428,6 @@ export default function ScheduleCreateScreen() {
     queryClient,
     customReminderMinutesText,
     reminderKey,
-    reminderRepeatKey,
     refresh,
     repeatRule,
     returnTo,
@@ -461,7 +445,6 @@ export default function ScheduleCreateScreen() {
           : `${normalizedDate}T${normalizeScheduleTimeInput(timeText)}:00`;
         return buildReminderMinutesFromSelection({
           reminderKey,
-          reminderRepeatKey,
           customReminderMinutesText,
           startsAt: new Date(startsAt).toISOString(),
         });
@@ -474,7 +457,6 @@ export default function ScheduleCreateScreen() {
       customReminderMinutesText,
       dateText,
       reminderKey,
-      reminderRepeatKey,
       timeText,
     ],
   );
@@ -483,8 +465,9 @@ export default function ScheduleCreateScreen() {
       getScheduleNotificationHelperText(
         reminderMinutes,
         notificationPermissionStatus,
+        notificationSettings,
       ),
-    [notificationPermissionStatus, reminderMinutes],
+    [notificationPermissionStatus, notificationSettings, reminderMinutes],
   );
   const reminderSummaryText = useMemo(
     () => formatReminderMinutesSummary(reminderMinutes),
@@ -841,47 +824,9 @@ export default function ScheduleCreateScreen() {
             })}
           </View>
           {reminderKey !== 'none' ? (
-            <>
-              <AppText preset="unifiedMeta" style={styles.label}>
-                알림 반복
-              </AppText>
-              <View style={styles.optionRow}>
-                {SCHEDULE_REMINDER_REPEAT_OPTIONS.map(option => {
-                  const active = reminderRepeatKey === option.key;
-                  return (
-                    <TouchableOpacity
-                      key={option.key}
-                      activeOpacity={0.9}
-                      style={[
-                        styles.optionChip,
-                        active ? styles.optionChipActive : null,
-                        active
-                          ? {
-                              backgroundColor: petTheme.tint,
-                              borderColor: petTheme.border,
-                            }
-                          : null,
-                      ]}
-                      onPress={() => setReminderRepeatKey(option.key)}
-                    >
-                      <AppText
-                        preset="unifiedMeta"
-                        style={[
-                          styles.optionChipText,
-                          active ? styles.optionChipTextActive : null,
-                          active ? { color: petTheme.primary } : null,
-                        ]}
-                      >
-                        {option.label}
-                      </AppText>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-              <AppText preset="unifiedMeta" style={styles.helperText}>
-                예약 예정: {reminderSummaryText}
-              </AppText>
-            </>
+            <AppText preset="unifiedMeta" style={styles.helperText}>
+              예약 예정: {reminderSummaryText}
+            </AppText>
           ) : null}
           {reminderKey === 'custom' ? (
             <View style={styles.inlineFieldCard}>

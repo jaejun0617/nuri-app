@@ -10,13 +10,15 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.nuri.MainActivity
 import com.nuri.R
 import org.json.JSONObject
-import java.util.Calendar
 import java.util.UUID
+
+private typealias RegisteredAlarm = ScheduleAlarmRegistration
 
 object ScheduleNotificationScheduler {
   private const val PREFS_NAME = "nuri_schedule_notifications"
@@ -24,6 +26,8 @@ object ScheduleNotificationScheduler {
   private const val KEY_SCHEDULED_IDS = "scheduled_ids"
   private const val KEY_ALARM_REGISTRY = "alarm_registry"
   private const val KEY_POSTED_REGISTRY = "posted_registry"
+  private const val KEY_DELIVERED_REGISTRY = "delivered_occurrences"
+  private const val KEY_STOPPED_OCCURRENCES = "stopped_occurrences"
 
   const val CHANNEL_ID = "nuri_schedule_reminders"
   const val ACTION_FIRE = "com.nuri.notifications.SCHEDULE_REMINDER"
@@ -35,6 +39,7 @@ object ScheduleNotificationScheduler {
   const val EXTRA_REPEAT_RULE = "repeat_rule"
   const val EXTRA_FIRE_AT_MILLIS = "fire_at_millis"
   const val EXTRA_REGISTRATION_TOKEN = "registration_token"
+  const val EXTRA_OCCURRENCE_AT_MILLIS = "occurrence_at_millis"
 
   private val registryLock = Any()
 
@@ -50,13 +55,6 @@ object ScheduleNotificationScheduler {
     val channel: String,
     val delivery: String,
     val canOpenExactAlarmSettings: Boolean,
-  )
-
-  private data class RegisteredAlarm(
-    val scheduleId: String,
-    val fireAtMillis: Long,
-    val registrationToken: String,
-    val exactDelivery: Boolean,
   )
 
   fun isEnabled(context: Context): Boolean {
@@ -115,6 +113,7 @@ object ScheduleNotificationScheduler {
     body: String,
     fireAtMillis: Long,
     repeatRule: String,
+    occurrenceAtMillis: Long = 0L,
   ): ScheduleResult {
     synchronized(registryLock) {
       ScheduleAlarmRingingService.cancel(context, alarmId)
@@ -131,6 +130,7 @@ object ScheduleNotificationScheduler {
         body = body,
         fireAtMillis = fireAtMillis,
         repeatRule = repeatRule,
+        occurrenceAtMillis = occurrenceAtMillis,
       )
     }
   }
@@ -144,9 +144,16 @@ object ScheduleNotificationScheduler {
     body: String,
     fireAtMillis: Long,
     repeatRule: String,
+    occurrenceAtMillis: Long,
   ): ScheduleResult {
     if (alarmId.isBlank() || scheduleId.isBlank()) {
       return ScheduleResult("unsupported", "unknown", "invalid-alarm-payload")
+    }
+    val occurrence = occurrenceAtMillis.takeIf { it >= fireAtMillis && it > 0 }
+      ?: ScheduleOccurrencePolicy.legacyOccurrenceAt(alarmId, scheduleId, fireAtMillis)
+      ?: return ScheduleResult("unsupported", "unknown", "invalid-occurrence-payload")
+    if (occurrence <= stoppedOccurrences(context).optLong(scheduleId, 0L)) {
+      return ScheduleResult("skipped-past", "not-applicable", "occurrence-stopped")
     }
     if (!isEnabled(context)) {
       cancelLocked(context, scheduleId)
@@ -186,6 +193,7 @@ object ScheduleNotificationScheduler {
       fireAtMillis = fireAtMillis,
       repeatRule = repeatRule,
       registrationToken = registrationToken,
+      occurrenceAtMillis = occurrence,
     )
     val pendingIntent = PendingIntent.getBroadcast(
       context,
@@ -195,7 +203,9 @@ object ScheduleNotificationScheduler {
     )
 
     val registry = alarmRegistry(context).toMutableMap()
-    registry[alarmId] = RegisteredAlarm(scheduleId, fireAtMillis, registrationToken, exact)
+    registry[alarmId] = RegisteredAlarm(
+      scheduleId, fireAtMillis, registrationToken, exact, occurrence, repeatRule, petId, title, body,
+    )
     val scheduled = scheduledIds(context).toMutableSet().apply { add(alarmId) }
     if (!persistStateLocked(context, scheduled, registry, postedRegistry(context))) {
       return ScheduleResult("failed", delivery, "alarm-registry-write-failed")
@@ -245,8 +255,69 @@ object ScheduleNotificationScheduler {
     }
   }
 
+  /** Acknowledge only a delivered token; retain other schedules and later recurrences. */
+  fun stopOccurrence(context: Context, intent: Intent) {
+    val alarmId = intent.getStringExtra(EXTRA_ALARM_ID) ?: return
+    val token = intent.getStringExtra(EXTRA_REGISTRATION_TOKEN) ?: return
+    synchronized(registryLock) {
+      val receipts = deliveredRegistry(context)
+      val receipt = receipts[alarmId] ?: return
+      if (!receipt.matchesStop(token)) return
+      val stopped = stoppedOccurrences(context).apply {
+        put(receipt.scheduleId, maxOf(optLong(receipt.scheduleId, 0L), receipt.occurrenceAtMillis))
+      }
+      val remainingReceipts = receipts.filterValues { !it.sameOccurrence(receipt) }
+      // Persist the acknowledgement before cancelling/rearming. A process interruption
+      // cannot turn an already acknowledged legacy follow-up into a fresh notification.
+      val persisted = persistDeliveredLocked(context, remainingReceipts, stopped)
+      ScheduleAlarmRingingService.stopOccurrence(context, receipt.scheduleId, receipt.occurrenceAtMillis)
+      val siblings = alarmRegistry(context).filterValues { it.sameOccurrence(receipt) }
+      siblings.forEach { (id, sibling) ->
+        removeAlarmLocked(context, id, cancelPostedNotification = true)
+        // Older registrations stored only identity/time. Their delivered sibling
+        // supplies the same schedule recurrence; the offset is encoded in each ID.
+        val offsetMinutes = (sibling.occurrenceAtMillis - sibling.fireAtMillis) / 60000L
+        val complete = if (sibling.repeatRule.isEmpty()) sibling.copy(
+          repeatRule = receipt.repeatRule,
+          petId = receipt.petId,
+          title = receipt.title,
+          body = if (offsetMinutes > 0) "저장한 일정 시간이 ${offsetMinutes}분 뒤에 다가와요."
+            else "저장한 일정 시간이 되었어요.",
+        ) else sibling
+        advanceLocked(context, id, complete)
+      }
+      val posted = postedRegistry(context).toMutableMap()
+      receipts.filterValues { it.sameOccurrence(receipt) }.keys.forEach { id ->
+        context.getSystemService(NotificationManager::class.java).cancel(notificationId(id))
+        posted.remove(notificationId(id).toString())
+      }
+      persistStateLocked(context, scheduledIds(context), alarmRegistry(context), posted)
+      if (!persisted) Log.e("NuriScheduleAlarm", "Occurrence acknowledgement persistence failed")
+    }
+  }
+
+  private fun advanceLocked(context: Context, alarmId: String, registration: RegisteredAlarm) {
+    val offset = registration.occurrenceAtMillis - registration.fireAtMillis
+    val next = ScheduleOccurrencePolicy.nextOccurrence(
+      registration.occurrenceAtMillis, offset, registration.repeatRule, System.currentTimeMillis(),
+    ) ?: return
+    val result = scheduleLocked(
+      context, alarmId, registration.scheduleId, registration.petId, registration.title,
+      registration.body, next - offset, registration.repeatRule, next,
+    )
+    if (result.status != "scheduled") {
+      Log.w("NuriScheduleAlarm", "Next occurrence not scheduled: ${result.status}/${result.errorCode}")
+    }
+  }
+
   private fun cancelLocked(context: Context, scheduleIdOrPrefix: String) {
     ScheduleAlarmRingingService.cancel(context, scheduleIdOrPrefix)
+    val receipts = deliveredRegistry(context).filterNot { (alarmId, receipt) ->
+      receipt.scheduleId == scheduleIdOrPrefix || alarmId == scheduleIdOrPrefix ||
+        alarmId.startsWith("$scheduleIdOrPrefix::")
+    }
+    val stopped = stoppedOccurrences(context).apply { remove(scheduleIdOrPrefix) }
+    persistDeliveredLocked(context, receipts, stopped)
     val registry = alarmRegistry(context)
     val registeredIds = registry
       .filter { (alarmId, registration) ->
@@ -316,7 +387,8 @@ object ScheduleNotificationScheduler {
     postedRegistry(context).keys.forEach { notificationId ->
       notificationManager.cancel(notificationId.toInt())
     }
-    return persistStateLocked(context, emptySet(), emptyMap(), emptyMap())
+    val receiptsCleared = persistDeliveredLocked(context, emptyMap(), JSONObject())
+    return persistStateLocked(context, emptySet(), emptyMap(), emptyMap()) && receiptsCleared
   }
 
   /**
@@ -338,9 +410,18 @@ object ScheduleNotificationScheduler {
       val body = intent.getStringExtra(EXTRA_BODY)
         ?: "$title 일정 시간이 다가오고 있어요."
       val repeatRule = intent.getStringExtra(EXTRA_REPEAT_RULE) ?: "none"
-      val fireAtMillis = intent.getLongExtra(EXTRA_FIRE_AT_MILLIS, 0L)
+      val registration = (alarmRegistry(context)[alarmId] ?: return).copy(
+        petId = petId, title = title, body = body, repeatRule = repeatRule,
+      )
+      if (ScheduleOccurrencePolicy.isSuppressed(
+          registration, stoppedOccurrences(context).optLong(scheduleId, 0L),
+        )) {
+        removeAlarmLocked(context, alarmId, cancelPostedNotification = false)
+        advanceLocked(context, alarmId, registration)
+        return
+      }
 
-      val posted = postNotificationLocked(context, intent)
+      val posted = postNotificationLocked(context, intent, registration)
       if (!posted) {
         // Never reschedule after a failed or blocked delivery. The current
         // registration is consumed so a stale receiver cannot revive it.
@@ -348,25 +429,8 @@ object ScheduleNotificationScheduler {
         return
       }
 
-      val nextFireAt = nextRepeatFireAt(fireAtMillis, repeatRule)
-      if (nextFireAt == null) {
-        // Keep the posted notification tracked, but consume the future alarm.
-        removeAlarmLocked(context, alarmId, cancelPostedNotification = false)
-        return
-      }
-
-      // scheduleLocked replaces this registration under the same lock. If
-      // the replacement cannot be registered, it leaves no live alarm.
-      scheduleLocked(
-        context = context,
-        alarmId = alarmId,
-        scheduleId = scheduleId,
-        petId = petId,
-        title = title,
-        body = body,
-        fireAtMillis = nextFireAt,
-        repeatRule = repeatRule,
-      )
+      removeAlarmLocked(context, alarmId, cancelPostedNotification = false)
+      advanceLocked(context, alarmId, registration)
     }
   }
 
@@ -382,7 +446,9 @@ object ScheduleNotificationScheduler {
       registration.fireAtMillis == fireAtMillis
   }
 
-  private fun postNotificationLocked(context: Context, intent: Intent): Boolean {
+  private fun postNotificationLocked(
+    context: Context, intent: Intent, registration: RegisteredAlarm,
+  ): Boolean {
     val alarmId = intent.getStringExtra(EXTRA_ALARM_ID) ?: return false
     val scheduleId = intent.getStringExtra(EXTRA_SCHEDULE_ID) ?: return false
     val petId = intent.getStringExtra(EXTRA_PET_ID) ?: ""
@@ -405,12 +471,13 @@ object ScheduleNotificationScheduler {
       if (!persistStateLocked(context, scheduledIds(context), alarmRegistry(context), posted)) {
         return false
       }
-      val registration = alarmRegistry(context)[alarmId]
-      val ringing = registration?.exactDelivery == true && ScheduleAlarmRingingService.start(
+      val receipts = deliveredRegistry(context).toMutableMap().apply { put(alarmId, registration) }
+      if (!persistDeliveredLocked(context, receipts, stoppedOccurrences(context))) return false
+      val ringing = registration.exactDelivery && ScheduleAlarmRingingService.start(
         context,
         ScheduleAlarmOccurrence(
           alarmId, scheduleId, petId, registration.registrationToken,
-          notificationId(alarmId), title, body,
+          notificationId(alarmId), title, body, registration.occurrenceAtMillis,
         ),
       )
       if (!ringing) {
@@ -427,21 +494,6 @@ object ScheduleNotificationScheduler {
     }
   }
 
-  fun nextRepeatFireAt(fireAtMillis: Long, repeatRule: String): Long? {
-    val field = when (repeatRule) {
-      "daily" -> Calendar.DAY_OF_YEAR
-      "weekly" -> Calendar.WEEK_OF_YEAR
-      "monthly" -> Calendar.MONTH
-      "yearly" -> Calendar.YEAR
-      else -> return null
-    }
-
-    val calendar = Calendar.getInstance().apply { timeInMillis = fireAtMillis }
-    val now = System.currentTimeMillis()
-    while (calendar.timeInMillis <= now) calendar.add(field, 1)
-    return calendar.timeInMillis
-  }
-
   fun buildReminderIntent(
     context: Context,
     alarmId: String,
@@ -452,6 +504,7 @@ object ScheduleNotificationScheduler {
     fireAtMillis: Long,
     repeatRule: String,
     registrationToken: String = "",
+    occurrenceAtMillis: Long = 0L,
   ): Intent {
     return Intent(context, ScheduleNotificationReceiver::class.java).apply {
       action = ACTION_FIRE
@@ -463,6 +516,7 @@ object ScheduleNotificationScheduler {
       putExtra(EXTRA_FIRE_AT_MILLIS, fireAtMillis)
       putExtra(EXTRA_REPEAT_RULE, repeatRule)
       putExtra(EXTRA_REGISTRATION_TOKEN, registrationToken)
+      putExtra(EXTRA_OCCURRENCE_AT_MILLIS, occurrenceAtMillis)
     }
   }
 
@@ -575,22 +629,65 @@ object ScheduleNotificationScheduler {
   private fun scheduledIds(context: Context): Set<String> =
     prefs(context).getStringSet(KEY_SCHEDULED_IDS, emptySet())?.toSet() ?: emptySet()
 
-  private fun alarmRegistry(context: Context): Map<String, RegisteredAlarm> {
-    val raw = prefs(context).getString(KEY_ALARM_REGISTRY, null) ?: return emptyMap()
+  private fun alarmRegistry(context: Context): Map<String, RegisteredAlarm> =
+    readRegistrationMap(context, KEY_ALARM_REGISTRY)
+
+  private fun deliveredRegistry(context: Context): Map<String, RegisteredAlarm> =
+    readRegistrationMap(context, KEY_DELIVERED_REGISTRY)
+
+  private fun readRegistrationMap(context: Context, key: String): Map<String, RegisteredAlarm> {
+    val raw = prefs(context).getString(key, null) ?: return emptyMap()
     val json = runCatching { JSONObject(raw) }.getOrNull() ?: return emptyMap()
     return json.keys().asSequence().mapNotNull { alarmId ->
       val value = json.optJSONObject(alarmId) ?: return@mapNotNull null
       val scheduleId = value.optString("scheduleId")
       val token = value.optString("registrationToken")
       if (scheduleId.isBlank() || token.isBlank()) return@mapNotNull null
+      val fireAt = value.optLong("fireAtMillis", 0L)
+      val occurrenceAt = value.optLong("occurrenceAtMillis", 0L).takeIf { it >= fireAt && it > 0 }
+        ?: ScheduleOccurrencePolicy.legacyOccurrenceAt(alarmId, scheduleId, fireAt)
+        ?: return@mapNotNull null
       alarmId to RegisteredAlarm(
         scheduleId = scheduleId,
-        fireAtMillis = value.optLong("fireAtMillis", 0L),
+        fireAtMillis = fireAt,
         registrationToken = token,
         exactDelivery = value.optBoolean("exactDelivery", false),
+        occurrenceAtMillis = occurrenceAt,
+        repeatRule = value.optString("repeatRule"),
+        petId = value.optString("petId"),
+        title = value.optString("title"),
+        body = value.optString("body"),
       )
     }.toMap()
   }
+
+  private fun stoppedOccurrences(context: Context): JSONObject =
+    runCatching { JSONObject(prefs(context).getString(KEY_STOPPED_OCCURRENCES, "{}") ?: "{}") }
+      .getOrElse { JSONObject() }
+
+  private fun encodeRegistrations(registry: Map<String, RegisteredAlarm>): JSONObject {
+    val json = JSONObject()
+    registry.forEach { (id, value) ->
+      json.put(id, JSONObject()
+        .put("scheduleId", value.scheduleId)
+        .put("fireAtMillis", value.fireAtMillis)
+        .put("registrationToken", value.registrationToken)
+        .put("exactDelivery", value.exactDelivery)
+        .put("occurrenceAtMillis", value.occurrenceAtMillis)
+        .put("repeatRule", value.repeatRule)
+        .put("petId", value.petId)
+        .put("title", value.title)
+        .put("body", value.body))
+    }
+    return json
+  }
+
+  private fun persistDeliveredLocked(
+    context: Context, delivered: Map<String, RegisteredAlarm>, stopped: JSONObject,
+  ): Boolean = prefs(context).edit()
+    .putString(KEY_DELIVERED_REGISTRY, encodeRegistrations(delivered).toString())
+    .putString(KEY_STOPPED_OCCURRENCES, stopped.toString())
+    .commit()
 
   private fun postedRegistry(context: Context): Map<String, String> {
     val raw = prefs(context).getString(KEY_POSTED_REGISTRY, null) ?: return emptyMap()
@@ -607,17 +704,7 @@ object ScheduleNotificationScheduler {
     registry: Map<String, RegisteredAlarm>,
     posted: Map<String, String>,
   ): Boolean {
-    val alarmJson = JSONObject()
-    registry.forEach { (alarmId, value) ->
-      alarmJson.put(
-        alarmId,
-        JSONObject()
-          .put("scheduleId", value.scheduleId)
-          .put("fireAtMillis", value.fireAtMillis)
-          .put("registrationToken", value.registrationToken)
-          .put("exactDelivery", value.exactDelivery),
-      )
-    }
+    val alarmJson = encodeRegistrations(registry)
     val postedJson = JSONObject()
     posted.forEach { (notificationId, scheduleId) -> postedJson.put(notificationId, scheduleId) }
 

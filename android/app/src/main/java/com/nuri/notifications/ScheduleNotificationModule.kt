@@ -40,6 +40,7 @@ class ScheduleNotificationModule(
         "${payload.getSafeString("title")} 일정 시간이 다가오고 있어요."
       },
       fireAtMillis = payload.getSafeDouble("fireAtMillis").toLong(),
+      occurrenceAtMillis = payload.getSafeDouble("occurrenceAtMillis").toLong(),
       repeatRule = payload.getSafeString("repeatRule").ifBlank { "none" },
     )
     promise.resolve(

@@ -107,6 +107,7 @@ export const SCHEDULE_REPEAT_OPTIONS: Array<{
 
 export const SCHEDULE_REMINDER_OPTIONS = [
   { key: 'none', label: '알림 없음', intervalMinutes: null },
+  { key: 'at-start', label: '정시', intervalMinutes: 0 },
   { key: 'five', label: '5분 전', intervalMinutes: 5 },
   { key: 'ten', label: '10분 전', intervalMinutes: 10 },
   { key: 'fifteen', label: '15분 전', intervalMinutes: 15 },
@@ -349,7 +350,7 @@ function getReminderOptionByInterval(intervalMinutes: number) {
 export function parseReminderSelection(
   minutes: number[] | null | undefined,
 ): ScheduleReminderSelection {
-  const normalized = [...new Set((minutes ?? []).filter(value => value > 0))].sort(
+  const normalized = [...new Set((minutes ?? []).filter(value => Number.isInteger(value) && value >= 0))].sort(
     (left, right) => left - right,
   );
   if (normalized.length === 0) {
@@ -385,7 +386,8 @@ export function parseReminderSelection(
 
 export function buildReminderMinutesFromSelection(input: {
   reminderKey: ScheduleReminderOptionKey;
-  reminderRepeatKey: ScheduleReminderRepeatKey;
+  // Legacy callers remain readable; new create/edit omit this and schedule once.
+  reminderRepeatKey?: ScheduleReminderRepeatKey;
   customReminderMinutesText?: string;
   startsAt: string;
   now?: Date;
@@ -403,7 +405,7 @@ export function buildReminderMinutesFromSelection(input: {
   const minutesUntilStart = Math.floor(
     (scheduleStartsAtTime - baseNow.getTime()) / (60 * 1000),
   );
-  if (minutesUntilStart <= 0) {
+  if (scheduleStartsAtTime <= baseNow.getTime()) {
     return [];
   }
 
@@ -412,14 +414,18 @@ export function buildReminderMinutesFromSelection(input: {
       ? normalizeReminderIntervalMinutes(input.customReminderMinutesText ?? '')
       : getReminderMinutesByKey(input.reminderKey)[0] ?? null;
 
-  if (!intervalMinutes || intervalMinutes <= 0) {
+  if (intervalMinutes === null || intervalMinutes < 0) {
     return [];
+  }
+  if (intervalMinutes === 0) return [0];
+  if (!input.reminderRepeatKey || input.reminderRepeatKey === 'once') {
+    return scheduleStartsAtTime - intervalMinutes * 60000 > baseNow.getTime()
+      ? [intervalMinutes]
+      : [];
   }
 
   const reminderCount =
-    input.reminderRepeatKey === 'once'
-      ? 1
-      : input.reminderRepeatKey === 'three'
+    input.reminderRepeatKey === 'three'
       ? 3
       : input.reminderRepeatKey === 'five'
       ? 5
@@ -438,20 +444,13 @@ export function buildReminderMinutesFromSelection(input: {
 export function formatReminderMinutesSummary(
   minutes: number[] | null | undefined,
 ) {
-  const normalized = [...new Set((minutes ?? []).filter(value => value > 0))].sort(
+  const normalized = [...new Set((minutes ?? []).filter(value => Number.isInteger(value) && value >= 0))].sort(
     (left, right) => left - right,
   );
   if (normalized.length === 0) return '알림 없음';
 
   const interval = normalized[0] ?? 0;
-  const baseLabel = `${interval}분 전`;
-  if (normalized.length === 1 || !hasUniformReminderInterval(normalized)) {
-    return baseLabel;
-  }
-
-  if (normalized.length === 3) return `${baseLabel} · 3회`;
-  if (normalized.length === 5) return `${baseLabel} · 5회`;
-  return `${baseLabel} · 계속 반복`;
+  return interval === 0 ? '정시' : `${interval}분 전`;
 }
 
 export function buildQuickToggleReminderMinutes(startsAt: string): number[] {

@@ -116,6 +116,18 @@ describe('schedule notification lifecycle', () => {
     expect(getScheduleNotificationSyncFeedback(result)?.tone).toBe('error');
   });
 
+  it('registers an on-time reminder with the event occurrence identity', async () => {
+    const schedule = createSchedule({ reminderMinutes: [0], repeatRule: 'daily' });
+    const result = await upsertScheduleNotification(schedule);
+    expect(result.status).toBe('scheduled');
+    expect(mockScheduleNativeModule.schedule).toHaveBeenCalledWith(expect.objectContaining({
+      alarmId: 'schedule-1::0::0',
+      fireAtMillis: new Date(schedule.startsAt).getTime(),
+      occurrenceAtMillis: new Date(schedule.startsAt).getTime(),
+      repeatRule: 'daily',
+    }));
+  });
+
   it('cancels a pending native schedule when clear-all wins the race', async () => {
     let resolveSchedule: (value: string) => void = () => {};
     let markScheduleStarted: () => void = () => {};

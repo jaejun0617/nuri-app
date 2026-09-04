@@ -7,7 +7,7 @@ import android.content.Intent
 class ScheduleNotificationReceiver : BroadcastReceiver() {
   override fun onReceive(context: Context, intent: Intent) {
     if (intent.action == ScheduleAlarmRingingService.ACTION_STOP) {
-      ScheduleAlarmRingingService.stop(context, intent)
+      ScheduleNotificationScheduler.stopOccurrence(context, intent)
       return
     }
     // Verification, notification posting, and repeat/one-shot consumption

@@ -97,6 +97,7 @@ type AndroidScheduleNotificationPayload = {
   title: string;
   body: string;
   fireAtMillis: number;
+  occurrenceAtMillis: number;
   repeatRule: ScheduleRepeatRule;
 };
 
@@ -267,7 +268,7 @@ function buildAlarmId(
 
 function buildNotificationFireEntries(schedule: SchedulableSchedule) {
   return [...new Set(schedule.reminderMinutes ?? [])]
-    .filter(value => Number.isFinite(value) && value > 0)
+    .filter(value => Number.isFinite(value) && value >= 0)
     .sort((left, right) => left - right)
     .map((reminderMinutes, index) => ({
       alarmId: buildAlarmId(schedule.id, reminderMinutes, index),
@@ -738,6 +739,7 @@ export async function upsertScheduleNotification(
               entry.reminderMinutes,
             ),
             fireAtMillis: entry.fireDate,
+            occurrenceAtMillis: new Date(schedule.startsAt).getTime(),
             repeatRule: schedule.repeatRule,
           }),
           settings.delivery,

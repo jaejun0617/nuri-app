@@ -121,12 +121,9 @@ class ScheduleAlarmRingingService : Service() {
       }
     }
 
-    fun stop(context: Context, intent: Intent) {
-      val alarmId = intent.getStringExtra(ScheduleNotificationScheduler.EXTRA_ALARM_ID) ?: return
-      val token = intent.getStringExtra(ScheduleNotificationScheduler.EXTRA_REGISTRATION_TOKEN) ?: return
+    internal fun stopOccurrence(context: Context, scheduleId: String, occurrenceAtMillis: Long) {
       synchronized(lock) {
-        val removed = state.remove(alarmId, token) ?: return
-        cancelNotifications(context, listOf(removed))
+        cancelNotifications(context, state.removeOccurrence(scheduleId, occurrenceAtMillis))
         refreshAfterRemovalLocked()
         Log.i(TAG, "User stopped schedule alarm")
       }

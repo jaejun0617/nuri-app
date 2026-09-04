@@ -73,7 +73,7 @@ describe('schedules form helpers', () => {
     });
 
     expect(next).toEqual([5, 10, 15]);
-    expect(formatReminderMinutesSummary(next)).toBe('5분 전 · 3회');
+    expect(formatReminderMinutesSummary(next)).toBe('5분 전');
     expect(parseReminderSelection(next)).toEqual({
       reminderKey: 'five',
       reminderRepeatKey: 'three',
@@ -91,6 +91,29 @@ describe('schedules form helpers', () => {
         new Date(Date.now() + 20 * 60 * 1000).toISOString(),
       ),
     ).toEqual([5]);
+  });
+
+  it('새 입력과 legacy 수정 저장은 반복 횟수 없이 단일 알림을 만든다', () => {
+    const legacy = [5, 10, 15];
+    const selection = parseReminderSelection(legacy);
+    const input = {
+      reminderKey: selection.reminderKey,
+      customReminderMinutesText: selection.customReminderMinutesText,
+      startsAt: '2099-03-06T10:00:00.000Z',
+      now: new Date('2099-03-06T09:00:00.000Z'),
+    };
+    expect(buildReminderMinutesFromSelection(input)).toEqual([5]);
+    expect(legacy).toEqual([5, 10, 15]);
+    expect(buildReminderMinutesFromSelection({ ...input, reminderKey: 'none' })).toEqual([]);
+  });
+
+  it('정시 알림의 zero offset을 끄기로 오인하지 않는다', () => {
+    expect(parseReminderSelection([0]).reminderKey).toBe('at-start');
+    expect(formatReminderMinutesSummary([0])).toBe('정시');
+    expect(buildReminderMinutesFromSelection({
+      reminderKey: 'at-start', startsAt: '2099-03-06T10:00:00.000Z',
+      now: new Date('2099-03-06T09:59:40.000Z'),
+    })).toEqual([0]);
   });
 
   it('날짜 요약과 프리셋 목록을 만든다', () => {

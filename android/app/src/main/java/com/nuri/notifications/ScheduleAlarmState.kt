@@ -8,6 +8,7 @@ internal data class ScheduleAlarmOccurrence(
   val notificationId: Int,
   val title: String,
   val body: String,
+  val occurrenceAtMillis: Long = 0L,
 )
 
 /** Process-local ringing state. Persisted future alarms remain owned by the scheduler. */
@@ -40,4 +41,12 @@ internal class ScheduleAlarmState {
   }
 
   fun clear(): List<ScheduleAlarmOccurrence> = active.also { occurrences.clear() }
+
+  fun removeOccurrence(scheduleId: String, occurrenceAtMillis: Long): List<ScheduleAlarmOccurrence> {
+    val removed = active.filter {
+      it.scheduleId == scheduleId && it.occurrenceAtMillis == occurrenceAtMillis
+    }
+    removed.forEach { occurrences.remove(it.alarmId) }
+    return removed
+  }
 }
