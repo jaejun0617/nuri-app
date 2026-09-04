@@ -13,6 +13,9 @@ object ScheduleOccurrencePolicyVerification {
     TimeZone.setDefault(TimeZone.getTimeZone("Asia/Seoul"))
     try {
       val event = 1788517800000L
+      verify(ScheduleAlarmPresentation.body(event, event - 300000L) == "9월 4일 · 오후 7:30 · 5분 전 알림")
+      verify(ScheduleAlarmPresentation.body(event, event) == "9월 4일 · 오후 7:30 · 정시 알림")
+      verify(ScheduleAlarmPresentation.body(event + 86400000L, event + 86100000L).startsWith("9월 5일"))
       val five = ScheduleAlarmRegistration("a", event - 300000L, "five", true, event, "daily", "pet", "QA", "QA")
       val ten = five.copy(fireAtMillis = event - 600000L, registrationToken = "ten")
       val other = five.copy(scheduleId = "b")

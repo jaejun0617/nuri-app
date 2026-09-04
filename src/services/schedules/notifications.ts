@@ -733,7 +733,7 @@ export async function upsertScheduleNotification(
             alarmId: entry.alarmId,
             scheduleId: schedule.id,
             petId: schedule.petId,
-            title: 'NURI 일정 알림',
+            title: schedule.title.trim() || 'NURI 일정 알림',
             body: buildScheduleNotificationBody(
               schedule,
               entry.reminderMinutes,

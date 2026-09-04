@@ -27,6 +27,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.nuri.MainActivity
 import com.nuri.R
+import java.util.concurrent.CopyOnWriteArraySet
 
 /** Owns user-stopped vibration, never future scheduling or authentication. */
 class ScheduleAlarmRingingService : Service() {
@@ -74,6 +75,7 @@ class ScheduleAlarmRingingService : Service() {
         val removed = state.clear()
         cancelNotifications(this, removed)
         runningService = null
+        notifyStateChanged()
       }
     }
     super.onDestroy()
@@ -91,6 +93,21 @@ class ScheduleAlarmRingingService : Service() {
     private var runningService: ScheduleAlarmRingingService? = null
     private var vibrator: Vibrator? = null
     private var vibrationRequested = false
+    private val stateListeners = CopyOnWriteArraySet<() -> Unit>()
+
+    internal fun observeState(listener: () -> Unit): () -> Unit {
+      stateListeners.add(listener)
+      return { stateListeners.remove(listener) }
+    }
+
+    internal fun activeOccurrences(): List<ScheduleAlarmOccurrence> = synchronized(lock) {
+      if (runningService != null && vibrationRequested) state.active else emptyList()
+    }
+
+    private fun notifyStateChanged() {
+      // Invalidation only: JS queries the latest snapshot, never stale event payloads.
+      mainHandler.post { stateListeners.forEach { it() } }
+    }
 
     internal fun start(context: Context, occurrence: ScheduleAlarmOccurrence): Boolean {
       synchronized(lock) {
@@ -146,6 +163,7 @@ class ScheduleAlarmRingingService : Service() {
     }
 
     private fun refreshAfterRemovalLocked() {
+      notifyStateChanged()
       if (state.active.isEmpty()) {
         stopVibrationLocked()
         runningService?.let { service ->
@@ -234,6 +252,7 @@ class ScheduleAlarmRingingService : Service() {
           vibrationRequested = true
           Log.i(TAG, "Repeating schedule vibration requested; active=${active.size}")
         }
+        notifyStateChanged()
       } catch (error: RuntimeException) {
         finishWithOrdinaryNotificationsLocked(service, error.javaClass.simpleName)
       }
@@ -264,6 +283,7 @@ class ScheduleAlarmRingingService : Service() {
         }
       }
       Log.w(TAG, "Persistent vibration stopped/unavailable: $reason")
+      notifyStateChanged()
     }
 
     private fun stopVibrationLocked() {

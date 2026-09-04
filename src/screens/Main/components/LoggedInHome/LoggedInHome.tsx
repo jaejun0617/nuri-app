@@ -76,6 +76,8 @@ import { useAuthStore } from '../../../../store/authStore';
 import { usePetStore, type Pet } from '../../../../store/petStore';
 import { useRecordStore } from '../../../../store/recordStore';
 import { useScheduleStore } from '../../../../store/scheduleStore';
+import { useActiveScheduleAlarms } from '../../../../hooks/useActiveScheduleAlarms';
+import HomeActiveAlarmNotice from './HomeActiveAlarmNotice';
 
 import {
   fetchMemorySummaryRecordsByPet,
@@ -2148,6 +2150,7 @@ const TotalSummarySection = React.memo(function TotalSummarySection({
 
 const ScheduleSection = React.memo(function ScheduleSection({
   scheduleItems,
+  activeScheduleIds,
   onPressScheduleList,
   onPressScheduleCreate,
   accentColor,
@@ -2156,6 +2159,7 @@ const ScheduleSection = React.memo(function ScheduleSection({
   accentBorder,
 }: {
   scheduleItems: PetSchedule[];
+  activeScheduleIds: ReadonlySet<string>;
   onPressScheduleList: () => void;
   onPressScheduleCreate: () => void;
   accentColor: string;
@@ -2225,6 +2229,9 @@ const ScheduleSection = React.memo(function ScheduleSection({
 
                 <View style={styles.scheduleTextCol}>
                   <AppText preset="unifiedLabel" style={styles.scheduleTitle}>{item.title}</AppText>
+                  {activeScheduleIds.has(item.key) ? (
+                    <AppText preset="unifiedMicro" color={accentColor}>알람 울리는 중</AppText>
+                  ) : null}
                   <AppText preset="unifiedBody" style={styles.scheduleSub} numberOfLines={2}>
                     {item.subtitle}
                   </AppText>
@@ -2691,6 +2698,7 @@ export default function LoggedInHome() {
   // 2) pets
   // ---------------------------------------------------------
   const pets = usePetStore(s => s.pets);
+  const activeAlarms = useActiveScheduleAlarms(sessionUserId, pets, isScreenFocused);
   const selectedPetId = usePetStore(s => s.selectedPetId);
   const petLoading = usePetStore(s => s.loading);
   const selectPet = usePetStore(s => s.selectPet);
@@ -3638,6 +3646,14 @@ export default function LoggedInHome() {
           notificationUnreadCount={homeNotificationUnreadCount}
         />
 
+        <HomeActiveAlarmNotice
+          alarms={activeAlarms.alarms}
+          error={activeAlarms.error}
+          stoppingKeys={activeAlarms.stoppingKeys}
+          onStop={activeAlarms.stop}
+          onRefresh={activeAlarms.refresh}
+        />
+
         {/* Fade container */}
         <Animated.View style={animatedContentStyle}>
           <HomeWeatherSection
@@ -3736,6 +3752,7 @@ export default function LoggedInHome() {
           <View onLayout={handleScheduleSectionLayout}>
             <ScheduleSection
               scheduleItems={visibleScheduleItems}
+              activeScheduleIds={activeAlarms.activeScheduleIds}
               onPressScheduleList={onPressScheduleList}
               onPressScheduleCreate={onPressScheduleCreate}
               accentColor={petTheme.primary}

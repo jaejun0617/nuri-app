@@ -10,15 +10,61 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableMap
+import com.facebook.react.modules.core.DeviceEventManagerModule
 
 class ScheduleNotificationModule(
   private val reactContext: ReactApplicationContext,
 ) : ReactContextBaseJavaModule(reactContext) {
   override fun getName(): String = "NuriScheduleNotifications"
+  private var stopObservingAlarmState: (() -> Unit)? = null
+
+  override fun initialize() {
+    super.initialize()
+    stopObservingAlarmState = ScheduleAlarmRingingService.observeState {
+      if (reactContext.hasActiveReactInstance()) {
+        try {
+          reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+            .emit("NuriScheduleAlarmStateChanged", null)
+        } catch (_: RuntimeException) {
+          // React teardown can race this callback; next mount queries current state.
+        }
+      }
+    }
+  }
 
   override fun invalidate() {
+    stopObservingAlarmState?.invoke()
+    stopObservingAlarmState = null
     ScheduleNotificationTapStore.markConsumerNotReady()
     super.invalidate()
+  }
+
+  @ReactMethod
+  fun getActiveAlarms(promise: Promise) {
+    promise.resolve(Arguments.createArray().apply {
+      ScheduleAlarmRingingService.activeOccurrences().forEach { occurrence ->
+        pushMap(Arguments.createMap().apply {
+          putString("alarmId", occurrence.alarmId)
+          putString("scheduleId", occurrence.scheduleId)
+          putString("petId", occurrence.petId)
+          putString("token", occurrence.token)
+          putString("title", occurrence.title)
+          putString("body", occurrence.body)
+          putDouble("occurrenceAtMillis", occurrence.occurrenceAtMillis.toDouble())
+        })
+      }
+    })
+  }
+
+  @ReactMethod
+  fun stopActiveAlarm(alarmId: String, token: String, promise: Promise) {
+    promise.resolve(ScheduleNotificationScheduler.stopOccurrence(
+      reactContext,
+      Intent().apply {
+        putExtra(ScheduleNotificationScheduler.EXTRA_ALARM_ID, alarmId)
+        putExtra(ScheduleNotificationScheduler.EXTRA_REGISTRATION_TOKEN, token)
+      },
+    ))
   }
 
   @ReactMethod

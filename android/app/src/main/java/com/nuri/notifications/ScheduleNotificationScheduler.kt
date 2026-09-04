@@ -256,13 +256,13 @@ object ScheduleNotificationScheduler {
   }
 
   /** Acknowledge only a delivered token; retain other schedules and later recurrences. */
-  fun stopOccurrence(context: Context, intent: Intent) {
-    val alarmId = intent.getStringExtra(EXTRA_ALARM_ID) ?: return
-    val token = intent.getStringExtra(EXTRA_REGISTRATION_TOKEN) ?: return
+  fun stopOccurrence(context: Context, intent: Intent): Boolean {
+    val alarmId = intent.getStringExtra(EXTRA_ALARM_ID) ?: return false
+    val token = intent.getStringExtra(EXTRA_REGISTRATION_TOKEN) ?: return false
     synchronized(registryLock) {
       val receipts = deliveredRegistry(context)
-      val receipt = receipts[alarmId] ?: return
-      if (!receipt.matchesStop(token)) return
+      val receipt = receipts[alarmId] ?: return false
+      if (!receipt.matchesStop(token)) return false
       val stopped = stoppedOccurrences(context).apply {
         put(receipt.scheduleId, maxOf(optLong(receipt.scheduleId, 0L), receipt.occurrenceAtMillis))
       }
@@ -293,6 +293,7 @@ object ScheduleNotificationScheduler {
       }
       persistStateLocked(context, scheduledIds(context), alarmRegistry(context), posted)
       if (!persisted) Log.e("NuriScheduleAlarm", "Occurrence acknowledgement persistence failed")
+      return persisted
     }
   }
 
@@ -453,7 +454,8 @@ object ScheduleNotificationScheduler {
     val scheduleId = intent.getStringExtra(EXTRA_SCHEDULE_ID) ?: return false
     val petId = intent.getStringExtra(EXTRA_PET_ID) ?: ""
     val title = intent.getStringExtra(EXTRA_TITLE) ?: "일정 알림"
-    val body = intent.getStringExtra(EXTRA_BODY) ?: "$title 일정 시간이 다가오고 있어요."
+    // Render from this occurrence, not a date frozen when a recurring alarm was saved.
+    val body = ScheduleAlarmPresentation.body(registration.occurrenceAtMillis, registration.fireAtMillis)
 
     if (!isEnabled(context) ||
       !NotificationManagerCompat.from(context).areNotificationsEnabled()

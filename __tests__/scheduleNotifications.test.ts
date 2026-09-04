@@ -96,7 +96,7 @@ describe('schedule notification lifecycle', () => {
       exactAlarm: 'unknown',
       channel: 'unknown',
     });
-    expect(payload.title).toBe('NURI 일정 알림');
+    expect(payload.title).toBe('병원 방문');
     expect(payload.body).not.toContain('비공개 건강 메모');
   });
 
