@@ -12,6 +12,7 @@ internal data class ScheduleAlarmRegistration(
   val petId: String,
   val title: String,
   val body: String,
+  val note: String = "",
 ) {
   fun matchesStop(alarmToken: String): Boolean = registrationToken == alarmToken
 

@@ -96,6 +96,7 @@ type AndroidScheduleNotificationPayload = {
   petId: string;
   title: string;
   body: string;
+  note: string;
   fireAtMillis: number;
   occurrenceAtMillis: number;
   repeatRule: ScheduleRepeatRule;
@@ -738,6 +739,7 @@ export async function upsertScheduleNotification(
               schedule,
               entry.reminderMinutes,
             ),
+            note: schedule.note?.trim() ?? '',
             fireAtMillis: entry.fireDate,
             occurrenceAtMillis: new Date(schedule.startsAt).getTime(),
             repeatRule: schedule.repeatRule,

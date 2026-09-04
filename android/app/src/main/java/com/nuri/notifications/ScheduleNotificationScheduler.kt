@@ -36,6 +36,7 @@ object ScheduleNotificationScheduler {
   const val EXTRA_PET_ID = "pet_id"
   const val EXTRA_TITLE = "title"
   const val EXTRA_BODY = "body"
+  const val EXTRA_NOTE = "note"
   const val EXTRA_REPEAT_RULE = "repeat_rule"
   const val EXTRA_FIRE_AT_MILLIS = "fire_at_millis"
   const val EXTRA_REGISTRATION_TOKEN = "registration_token"
@@ -114,6 +115,7 @@ object ScheduleNotificationScheduler {
     fireAtMillis: Long,
     repeatRule: String,
     occurrenceAtMillis: Long = 0L,
+    note: String = "",
   ): ScheduleResult {
     synchronized(registryLock) {
       ScheduleAlarmRingingService.cancel(context, alarmId)
@@ -131,6 +133,7 @@ object ScheduleNotificationScheduler {
         fireAtMillis = fireAtMillis,
         repeatRule = repeatRule,
         occurrenceAtMillis = occurrenceAtMillis,
+        note = note,
       )
     }
   }
@@ -145,6 +148,7 @@ object ScheduleNotificationScheduler {
     fireAtMillis: Long,
     repeatRule: String,
     occurrenceAtMillis: Long,
+    note: String,
   ): ScheduleResult {
     if (alarmId.isBlank() || scheduleId.isBlank()) {
       return ScheduleResult("unsupported", "unknown", "invalid-alarm-payload")
@@ -194,6 +198,7 @@ object ScheduleNotificationScheduler {
       repeatRule = repeatRule,
       registrationToken = registrationToken,
       occurrenceAtMillis = occurrence,
+      note = note,
     )
     val pendingIntent = PendingIntent.getBroadcast(
       context,
@@ -205,6 +210,7 @@ object ScheduleNotificationScheduler {
     val registry = alarmRegistry(context).toMutableMap()
     registry[alarmId] = RegisteredAlarm(
       scheduleId, fireAtMillis, registrationToken, exact, occurrence, repeatRule, petId, title, body,
+      note,
     )
     val scheduled = scheduledIds(context).toMutableSet().apply { add(alarmId) }
     if (!persistStateLocked(context, scheduled, registry, postedRegistry(context))) {
@@ -281,6 +287,7 @@ object ScheduleNotificationScheduler {
           repeatRule = receipt.repeatRule,
           petId = receipt.petId,
           title = receipt.title,
+          note = receipt.note,
           body = if (offsetMinutes > 0) "저장한 일정 시간이 ${offsetMinutes}분 뒤에 다가와요."
             else "저장한 일정 시간이 되었어요.",
         ) else sibling
@@ -304,7 +311,7 @@ object ScheduleNotificationScheduler {
     ) ?: return
     val result = scheduleLocked(
       context, alarmId, registration.scheduleId, registration.petId, registration.title,
-      registration.body, next - offset, registration.repeatRule, next,
+      registration.body, next - offset, registration.repeatRule, next, registration.note,
     )
     if (result.status != "scheduled") {
       Log.w("NuriScheduleAlarm", "Next occurrence not scheduled: ${result.status}/${result.errorCode}")
@@ -413,6 +420,7 @@ object ScheduleNotificationScheduler {
       val repeatRule = intent.getStringExtra(EXTRA_REPEAT_RULE) ?: "none"
       val registration = (alarmRegistry(context)[alarmId] ?: return).copy(
         petId = petId, title = title, body = body, repeatRule = repeatRule,
+        note = ScheduleAlarmPresentation.notificationNote(intent.getStringExtra(EXTRA_NOTE) ?: ""),
       )
       if (ScheduleOccurrencePolicy.isSuppressed(
           registration, stoppedOccurrences(context).optLong(scheduleId, 0L),
@@ -480,12 +488,14 @@ object ScheduleNotificationScheduler {
         ScheduleAlarmOccurrence(
           alarmId, scheduleId, petId, registration.registrationToken,
           notificationId(alarmId), title, body, registration.occurrenceAtMillis,
+          registration.note,
         ),
       )
       if (!ringing) {
         manager.notify(
           notificationId(alarmId),
-          buildNotification(context, alarmId, scheduleId, petId, title, body),
+          buildNotification(context, alarmId, scheduleId, petId, title,
+            ScheduleAlarmPresentation.privateBody(body, registration.note)),
         )
       }
       true
@@ -507,6 +517,7 @@ object ScheduleNotificationScheduler {
     repeatRule: String,
     registrationToken: String = "",
     occurrenceAtMillis: Long = 0L,
+    note: String = "",
   ): Intent {
     return Intent(context, ScheduleNotificationReceiver::class.java).apply {
       action = ACTION_FIRE
@@ -515,6 +526,7 @@ object ScheduleNotificationScheduler {
       putExtra(EXTRA_PET_ID, petId)
       putExtra(EXTRA_TITLE, title)
       putExtra(EXTRA_BODY, body)
+      putExtra(EXTRA_NOTE, note)
       putExtra(EXTRA_FIRE_AT_MILLIS, fireAtMillis)
       putExtra(EXTRA_REPEAT_RULE, repeatRule)
       putExtra(EXTRA_REGISTRATION_TOKEN, registrationToken)
@@ -659,6 +671,7 @@ object ScheduleNotificationScheduler {
         petId = value.optString("petId"),
         title = value.optString("title"),
         body = value.optString("body"),
+        note = value.optString("note"),
       )
     }.toMap()
   }
@@ -679,7 +692,8 @@ object ScheduleNotificationScheduler {
         .put("repeatRule", value.repeatRule)
         .put("petId", value.petId)
         .put("title", value.title)
-        .put("body", value.body))
+        .put("body", value.body)
+        .put("note", value.note))
     }
     return json
   }

@@ -275,7 +275,8 @@ class ScheduleAlarmRingingService : Service() {
           service.getSystemService(NotificationManager::class.java).notify(
             it.notificationId,
             ScheduleNotificationScheduler.buildNotification(
-              service, it.alarmId, it.scheduleId, it.petId, it.title, it.body,
+              service, it.alarmId, it.scheduleId, it.petId, it.title,
+              ScheduleAlarmPresentation.privateBody(it.body, it.note),
             ),
           )
         } catch (error: RuntimeException) {
@@ -364,7 +365,9 @@ class ScheduleAlarmRingingService : Service() {
         .setSmallIcon(R.mipmap.ic_launcher)
         .setContentTitle(occurrence.title)
         .setContentText(occurrence.body)
-        .setStyle(NotificationCompat.BigTextStyle().bigText(occurrence.body))
+        .setStyle(NotificationCompat.BigTextStyle().bigText(
+          ScheduleAlarmPresentation.privateBody(occurrence.body, occurrence.note),
+        ))
         .setCategory(NotificationCompat.CATEGORY_ALARM)
         .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
         .setPublicVersion(publicVersion)

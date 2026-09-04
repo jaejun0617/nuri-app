@@ -85,7 +85,7 @@ describe('schedule notification lifecycle', () => {
     ).toBeLessThan(mockPermissionCheck.mock.invocationCallOrder[0]);
   });
 
-  it('keeps saved record semantics separate and never sends the private note', async () => {
+  it('sends the approved note separately from the generic notification body', async () => {
     const result = await upsertScheduleNotification(createSchedule());
     const payload = mockScheduleNativeModule.schedule.mock.calls[0][0];
 
@@ -98,6 +98,27 @@ describe('schedule notification lifecycle', () => {
     });
     expect(payload.title).toBe('병원 방문');
     expect(payload.body).not.toContain('비공개 건강 메모');
+    expect(payload.note).toBe('비공개 건강 메모');
+  });
+
+  it.each([null, '', '   '])('sends an empty preview for an absent note: %s', async note => {
+    await upsertScheduleNotification(createSchedule({ note }));
+    expect(mockScheduleNativeModule.schedule).toHaveBeenCalledWith(
+      expect.objectContaining({ note: '' }),
+    );
+  });
+
+  it('replaces and clears the reminder note without mutating the saved record', async () => {
+    const schedule = createSchedule({ note: '  QA note\nsecond line  ', repeatRule: 'daily' });
+    await upsertScheduleNotification(schedule);
+    expect(mockScheduleNativeModule.schedule).toHaveBeenLastCalledWith(
+      expect.objectContaining({ note: 'QA note\nsecond line', repeatRule: 'daily' }),
+    );
+    expect(schedule.note).toBe('  QA note\nsecond line  ');
+    await upsertScheduleNotification({ ...schedule, note: null });
+    expect(mockScheduleNativeModule.schedule).toHaveBeenLastCalledWith(
+      expect.objectContaining({ note: '' }),
+    );
   });
 
   it('does not mask a later reminder failure as a full success', async () => {

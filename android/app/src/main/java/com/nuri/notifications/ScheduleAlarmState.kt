@@ -9,6 +9,7 @@ internal data class ScheduleAlarmOccurrence(
   val title: String,
   val body: String,
   val occurrenceAtMillis: Long = 0L,
+  val note: String = "",
 )
 
 /** Process-local ringing state. Persisted future alarms remain owned by the scheduler. */
