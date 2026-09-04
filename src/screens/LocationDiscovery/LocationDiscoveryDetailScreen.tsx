@@ -271,6 +271,7 @@ export default function LocationDiscoveryDetailScreen() {
                     key={`walk-related:${relatedItem.id}`}
                     item={relatedItem}
                     onPress={onPressRelatedItem}
+                    hideThumbnailWhenUnavailable
                   />
                 ))}
               </View>

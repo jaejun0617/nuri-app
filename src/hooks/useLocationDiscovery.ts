@@ -133,6 +133,7 @@ export function useLocationDiscovery(input: {
     gcTime: 10 * 60 * 1000,
     placeholderData: previous => previous,
   });
+  const refetchLocationDiscovery = query.refetch;
 
   const shouldRefreshLocation = useCallback(() => {
     if (!locationState.coordinates) return true;
@@ -157,14 +158,23 @@ export function useLocationDiscovery(input: {
         if (hasSearchQuery || !isFreshLocationCoordinates(nextCoordinates)) {
           return;
         }
-        await query.refetch();
+        const nextCoordinatesKey = nextCoordinates
+          ? `${nextCoordinates.latitude.toFixed(3)}:${nextCoordinates.longitude.toFixed(3)}`
+          : 'no-coordinates';
+        if (nextCoordinatesKey !== coordinatesKey) {
+          // The coordinate-keyed query will fetch for the new location. Refetching
+          // here would also issue a request for the obsolete coordinate bucket.
+          return;
+        }
+        await refetchLocationDiscovery();
       })().catch(() => {});
 
       return undefined;
     }, [
       hasSearchQuery,
       input.coordinateOverride,
-      query,
+      coordinatesKey,
+      refetchLocationDiscovery,
       refreshLocation,
       shouldRefreshLocation,
     ]),

@@ -235,6 +235,7 @@ export default function LocationDiscoveryListScreen() {
         onPress={openDetail}
         onPressDetail={openDetail}
         layout="compact"
+        hideThumbnailWhenUnavailable
       />
     ),
     [openDetail],

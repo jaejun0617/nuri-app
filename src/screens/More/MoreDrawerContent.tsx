@@ -25,6 +25,7 @@ import React, {
 } from 'react';
 import {
   Alert,
+  AppState,
   findNodeHandle,
   Image,
   Keyboard,
@@ -37,6 +38,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { KeyboardAvoidingView as KeyboardControllerAvoidingView } from 'react-native-keyboard-controller';
@@ -92,9 +94,11 @@ import {
   checkScheduleNotificationPermission,
   getScheduleNotificationSettings,
   openScheduleNotificationSystemSettings,
+  openScheduleNotificationExactAlarmSettings,
   requestScheduleNotificationPermission,
   setScheduleNotificationEnabled,
   type ScheduleNotificationPermissionStatus,
+  type ScheduleNotificationSettings,
 } from '../../services/schedules/notifications';
 import { fetchUserNotificationUnreadCount } from '../../services/notifications/userNotifications';
 import {
@@ -188,6 +192,7 @@ type NotificationSettingsModalProps = {
   pushOptIn: boolean;
   pushProviderStatus: PushTokenLifecycleState['providerStatus'];
   permissionStatus: ScheduleNotificationPermissionStatus;
+  settings: ScheduleNotificationSettings | null;
   loading: boolean;
   accentColor: string;
   onClose: () => void;
@@ -195,7 +200,18 @@ type NotificationSettingsModalProps = {
   onTogglePushOptIn: (enabled: boolean) => void;
   onRequestPermission: () => void;
   onOpenSystemSettings: () => void;
+  onOpenExactAlarmSettings: () => void;
 };
+
+export function getNotificationSettingsMaxHeight(
+  windowHeight: number,
+  bottomInset: number,
+) {
+  return Math.max(
+    0,
+    Math.min(windowHeight * 0.72, windowHeight - bottomInset - 150),
+  );
+}
 
 function formatDateLabel(value: Date | null): string {
   if (!value) return '지금은 변경할 수 있어요.';
@@ -641,13 +657,52 @@ function getNotificationPermissionLabel(
   }
 }
 
-const NotificationSettingsModal = memo(function NotificationSettingsModal({
+function getExactAlarmLabel(
+  status: ScheduleNotificationSettings['exactAlarm'] | undefined,
+) {
+  switch (status) {
+    case 'granted':
+      return '정확한 시간 허용됨';
+    case 'not-granted':
+      return '정확한 시간 권한 필요';
+    case 'not-required':
+      return '이 플랫폼에서는 별도 권한 없음';
+    case 'unsupported':
+      return '지원되지 않음';
+    case 'unknown':
+    default:
+      return '상태 확인 필요';
+  }
+}
+
+function getNotificationChannelLabel(
+  status: ScheduleNotificationSettings['channel'] | undefined,
+) {
+  switch (status) {
+    case 'ready':
+      return '알림 채널 사용 가능';
+    case 'blocked':
+      return '알림 채널 꺼짐';
+    case 'missing':
+      return '알림 채널 확인 필요';
+    case 'not-required':
+      return '이 플랫폼에서는 별도 채널 없음';
+    case 'unsupported':
+      return '지원되지 않음';
+    case 'unknown':
+    default:
+      return '상태 확인 필요';
+  }
+}
+
+export const NotificationSettingsModal = memo(function NotificationSettingsModal({
   visible,
   bottomInset,
   enabled,
   pushOptIn,
   pushProviderStatus,
   permissionStatus,
+  settings,
   loading,
   accentColor,
   onClose,
@@ -655,9 +710,17 @@ const NotificationSettingsModal = memo(function NotificationSettingsModal({
   onTogglePushOptIn,
   onRequestPermission,
   onOpenSystemSettings,
+  onOpenExactAlarmSettings,
 }: NotificationSettingsModalProps) {
   const theme = useTheme();
+  const { height: windowHeight } = useWindowDimensions();
+  const notificationSettingsMaxHeight = getNotificationSettingsMaxHeight(
+    windowHeight,
+    bottomInset,
+  );
   const permissionGranted = permissionStatus === 'granted';
+  const exactAlarmStatus = settings?.exactAlarm;
+  const channelStatus = settings?.channel;
 
   return (
     <Modal
@@ -700,6 +763,14 @@ const NotificationSettingsModal = memo(function NotificationSettingsModal({
             </TouchableOpacity>
           </View>
 
+          <ScrollView
+            style={[
+              styles.notificationSettingsScroll,
+              { maxHeight: notificationSettingsMaxHeight },
+            ]}
+            contentContainerStyle={styles.notificationSettingsContent}
+            showsVerticalScrollIndicator={false}
+          >
           <View style={styles.notificationInfoBlock}>
             <AppText preset="unifiedTitle"
               style={[
@@ -715,8 +786,8 @@ const NotificationSettingsModal = memo(function NotificationSettingsModal({
                 { color: theme.colors.textSecondary },
               ]}
             >
-              일정 추가에서 알림을 선택하면 이 기기에 로컬 알림으로 예약됩니다.
-              완료 처리하거나 알림을 끄면 예약도 함께 정리됩니다.
+              일정 추가에서 알림을 선택하면 저장된 일정과 별도로 이 기기 알림 예약을
+              시도합니다. 완료 처리하거나 알림을 끄면 기기 예약도 함께 정리됩니다.
             </AppText>
           </View>
 
@@ -741,7 +812,7 @@ const NotificationSettingsModal = memo(function NotificationSettingsModal({
                   { color: theme.colors.textMuted },
                 ]}
               >
-                병원, 약, 산책 등 일정 알림 예약 허용
+                병원, 약, 산책 등 일정 알림 사용
               </AppText>
             </View>
             <Switch
@@ -785,6 +856,57 @@ const NotificationSettingsModal = memo(function NotificationSettingsModal({
               thumbColor={pushOptIn ? accentColor : '#FFFFFF'}
             />
           </View>
+
+          {Platform.OS === 'android' ? (
+            <>
+          <View
+            style={[
+              styles.notificationStatusBox,
+              {
+                backgroundColor: 'rgba(168,85,247,0.08)',
+                borderColor: 'rgba(168,85,247,0.18)',
+              },
+            ]}
+          >
+            <AppText preset="unifiedTitle"
+              style={styles.notificationStatusTitle}
+            >
+              Android 정확 알림: {getExactAlarmLabel(exactAlarmStatus)}
+            </AppText>
+            <AppText preset="unifiedBody"
+              style={styles.notificationSettingHelper}
+            >
+              {exactAlarmStatus === 'not-granted'
+                ? '권한이 없으면 Android가 허용하는 범위로 알림을 시도할 수 있어요. 정확한 시각을 원하면 시스템 설정에서 별도 권한을 확인해 주세요.'
+                : exactAlarmStatus === 'unknown'
+                  ? '현재 앱에서 정확 알림 권한 상태를 확인하지 못했어요. 저장된 일정과 기기 알림 예약 결과는 서로 별개로 관리됩니다.'
+                  : '정확 알림 권한은 저장된 일정 데이터와 별도로 기기에서 관리됩니다.'}
+            </AppText>
+          </View>
+
+          <View
+            style={[
+              styles.notificationStatusBox,
+              {
+                backgroundColor: 'rgba(14,116,144,0.08)',
+                borderColor: 'rgba(14,116,144,0.18)',
+              },
+            ]}
+          >
+            <AppText preset="unifiedTitle"
+              style={styles.notificationStatusTitle}
+            >
+              Android 알림 채널: {getNotificationChannelLabel(channelStatus)}
+            </AppText>
+            <AppText preset="unifiedBody"
+              style={styles.notificationSettingHelper}
+            >
+              채널이 꺼져 있으면 일정은 저장되지만 실제 알림이 보이지 않을 수 있어요.
+            </AppText>
+          </View>
+
+            </>
+          ) : null}
 
           <View
             style={[
@@ -879,6 +1001,23 @@ const NotificationSettingsModal = memo(function NotificationSettingsModal({
               </AppText>
             </TouchableOpacity>
           )}
+
+          {settings?.canOpenExactAlarmSettings ? (
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={[
+                styles.secondaryButton,
+                { borderColor: theme.colors.border },
+              ]}
+              onPress={onOpenExactAlarmSettings}
+              disabled={loading}
+            >
+              <AppText preset="unifiedLabel" style={styles.secondaryButtonText}>
+                Android 정확 알림 설정 열기
+              </AppText>
+            </TouchableOpacity>
+          ) : null}
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -1111,6 +1250,8 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const [notificationSettingsLoading, setNotificationSettingsLoading] =
     useState(false);
   const [notificationEnabled, setNotificationEnabled] = useState(true);
+  const [notificationSettings, setNotificationSettings] =
+    useState<ScheduleNotificationSettings | null>(null);
   const [pushNotificationOptIn, setPushNotificationOptInState] =
     useState(false);
   const [pushNotificationProviderStatus, setPushNotificationProviderStatus] =
@@ -1474,6 +1615,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       ]);
       setNotificationPermissionStatus(permissionStatus);
       setNotificationEnabled(settings.enabled);
+      setNotificationSettings(settings);
       if (pushLifecycleState) {
         setPushNotificationOptInState(pushLifecycleState.pushOptIn);
         setPushNotificationProviderStatus(pushLifecycleState.providerStatus);
@@ -1482,6 +1624,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       }
     } catch {
       setNotificationPermissionStatus('unsupported');
+      setNotificationSettings(null);
     } finally {
       setNotificationSettingsLoading(false);
     }
@@ -1491,6 +1634,18 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     setNotificationModalVisible(true);
     refreshNotificationSettings().catch(() => {});
   }, [refreshNotificationSettings]);
+
+  useEffect(() => {
+    if (!notificationModalVisible) return undefined;
+
+    const subscription = AppState.addEventListener('change', nextState => {
+      if (nextState === 'active') {
+        refreshNotificationSettings().catch(() => {});
+      }
+    });
+
+    return () => subscription.remove();
+  }, [notificationModalVisible, refreshNotificationSettings]);
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -1524,11 +1679,12 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     try {
       const settings = await setScheduleNotificationEnabled(enabled);
       setNotificationEnabled(settings.enabled);
+      setNotificationSettings(settings);
       showToast({
         tone: settings.enabled ? 'success' : 'info',
         title: settings.enabled ? '일정 알림 켜짐' : '일정 알림 꺼짐',
         message: settings.enabled
-          ? '새로 저장하는 일정 알림이 기기에 예약됩니다.'
+          ? '새로 저장하는 일정의 기기 알림 예약을 시도할 수 있어요.'
           : '예약된 일정 알림을 정리하고 새 알림 예약을 멈췄어요.',
       });
     } catch (error) {
@@ -1573,9 +1729,29 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
             : '알림 권한 필요',
         message:
           permissionStatus === 'granted'
-            ? '이제 알림을 선택한 일정은 기기에 예약됩니다.'
+            ? '이제 알림을 선택한 일정의 기기 알림 예약을 시도할 수 있어요.'
             : '권한이 꺼져 있으면 일정에는 저장되지만 실제 알림은 오지 않아요.',
       });
+    } catch (error) {
+      const { title, message } = getBrandedErrorMeta(error, 'generic');
+      showToast({ tone: 'error', title, message });
+    } finally {
+      setNotificationSettingsLoading(false);
+    }
+  }, []);
+
+  const onOpenExactAlarmSettings = useCallback(async () => {
+    setNotificationSettingsLoading(true);
+    try {
+      const opened = await openScheduleNotificationExactAlarmSettings();
+      if (!opened) {
+        showToast({
+          tone: 'info',
+          title: '정확 알림 설정을 열 수 없어요',
+          message:
+            '현재 앱에서 Android 정확 알림 설정 연결을 확인하지 못했어요. 일정은 저장되지만 기기 알림 결과는 별도로 확인해 주세요.',
+        });
+      }
     } catch (error) {
       const { title, message } = getBrandedErrorMeta(error, 'generic');
       showToast({ tone: 'error', title, message });
@@ -2381,6 +2557,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         pushOptIn={pushNotificationOptIn}
         pushProviderStatus={pushNotificationProviderStatus}
         permissionStatus={notificationPermissionStatus}
+        settings={notificationSettings}
         loading={notificationSettingsLoading}
         accentColor={petTheme.primary}
         onClose={closeNotificationModal}
@@ -2388,6 +2565,9 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         onTogglePushOptIn={onTogglePushNotificationOptIn}
         onRequestPermission={onRequestNotificationPermission}
         onOpenSystemSettings={openScheduleNotificationSystemSettings}
+        onOpenExactAlarmSettings={() => {
+          onOpenExactAlarmSettings().catch(() => {});
+        }}
       />
       <ConfirmDialog
         visible={logoutConfirmVisible}
@@ -2408,6 +2588,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       <ConfirmDialog
         visible={deleteConfirmVisible}
         typographyMode="unified"
+        keyboardAware
         title="정말 NURI를 떠나시겠어요? 🥺"
         message={
           '탈퇴를 요청하시면 고객님의 프로필과 작성하신 모든 기록은\n다른 사람들에게 즉시 [비노출 처리]되어 안전하게 보호됩니다.\n\n요청일로부터 7일의 유예기간이 지나면,\n복구할 수 없도록 모든 데이터가 영구적으로 완전 삭제됩니다.'
@@ -2749,6 +2930,13 @@ const styles = StyleSheet.create({
     paddingTop: 22,
     paddingBottom: 26,
     gap: 18,
+  },
+  notificationSettingsScroll: {
+    flexGrow: 0,
+  },
+  notificationSettingsContent: {
+    gap: 18,
+    paddingBottom: 4,
   },
   centeredSheetCard: {
     width: '100%',

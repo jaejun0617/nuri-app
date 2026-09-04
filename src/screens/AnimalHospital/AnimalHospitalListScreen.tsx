@@ -234,12 +234,36 @@ export default function AnimalHospitalListScreen() {
           placeholder="병원명, 지역 검색"
           helperText={null}
           accentColor={petTheme.primary}
-          loadingText={null}
+          loadingText={
+            discoveryState.searching
+              ? '검색 중'
+              : discoveryState.loading
+                ? '불러오는 중'
+                : null
+          }
         />
 
         <View style={styles.discoveryExperienceShell}>
           <View style={styles.resultsPanel}>
-            {discoveryState.error && discoveryState.items.length === 0 ? (
+            {discoveryState.loading && discoveryState.items.length === 0 ? (
+              <View style={styles.resultsEmptyWrap}>
+                <LocationDiscoveryStatusCard
+                  icon="clock"
+                  loading
+                  title="병원 목록을 준비하고 있어요"
+                  body="현재 위치와 공개된 병원 정보를 확인한 뒤 보여드릴게요."
+                />
+              </View>
+            ) : discoveryState.searching && discoveryState.items.length === 0 ? (
+              <View style={styles.resultsEmptyWrap}>
+                <LocationDiscoveryStatusCard
+                  icon="search"
+                  loading
+                  title="병원을 검색하고 있어요"
+                  body="잠시만 기다려 주세요."
+                />
+              </View>
+            ) : discoveryState.error && discoveryState.items.length === 0 ? (
               <View style={styles.resultsEmptyWrap}>
                 <LocationDiscoveryStatusCard
                   icon="alert-circle"

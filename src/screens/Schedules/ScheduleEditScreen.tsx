@@ -70,7 +70,9 @@ import {
 } from '../../services/schedules/form';
 import {
   checkScheduleNotificationPermission,
+  captureScheduleNotificationLifecycle,
   getScheduleNotificationHelperText,
+  getScheduleNotificationSyncFeedback,
   requestScheduleNotificationPermission,
   upsertScheduleNotification,
   type ScheduleNotificationPermissionStatus,
@@ -78,7 +80,7 @@ import {
 import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { usePetStore } from '../../store/petStore';
 import { useScheduleStore } from '../../store/scheduleStore';
-import { openMoreDrawer } from '../../store/uiStore';
+import { openMoreDrawer, showToast } from '../../store/uiStore';
 import { styles } from './ScheduleCreateScreen.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'ScheduleEdit'>;
@@ -377,6 +379,7 @@ export default function ScheduleEditScreen() {
         );
         return;
       }
+      const notificationLifecycle = captureScheduleNotificationLifecycle();
 
       await updateSchedule({
         scheduleId: schedule.id,
@@ -405,7 +408,7 @@ export default function ScheduleEditScreen() {
         syncStatus: schedule.syncStatus,
       });
 
-      await upsertScheduleNotification({
+      const notificationResult = await upsertScheduleNotification({
         id: schedule.id,
         petId: schedule.petId,
         title: title.trim(),
@@ -414,7 +417,10 @@ export default function ScheduleEditScreen() {
         repeatRule,
         reminderMinutes,
         completedAt: schedule.completedAt,
-      });
+      }, notificationLifecycle);
+      const notificationFeedback =
+        getScheduleNotificationSyncFeedback(notificationResult);
+      if (notificationFeedback) showToast(notificationFeedback);
 
       if (petId) {
         await refresh(petId);

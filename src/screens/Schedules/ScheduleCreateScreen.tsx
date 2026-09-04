@@ -69,6 +69,8 @@ import {
 import {
   checkScheduleNotificationPermission,
   getScheduleNotificationHelperText,
+  getScheduleNotificationSyncFeedback,
+  captureScheduleNotificationLifecycle,
   requestScheduleNotificationPermission,
   upsertScheduleNotification,
   type ScheduleNotificationPermissionStatus,
@@ -76,7 +78,7 @@ import {
 import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { resolveSelectedPetId, usePetStore } from '../../store/petStore';
 import { useScheduleStore } from '../../store/scheduleStore';
-import { openMoreDrawer } from '../../store/uiStore';
+import { openMoreDrawer, showToast } from '../../store/uiStore';
 import { styles } from './ScheduleCreateScreen.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'ScheduleCreate'>;
@@ -373,6 +375,7 @@ export default function ScheduleCreateScreen() {
         category === 'health' && initialHealthSubCategory
           ? initialHealthSubCategory
           : inferScheduleSubCategory(category, otherUiSubCategoryKey);
+      const notificationLifecycle = captureScheduleNotificationLifecycle();
 
       const createdScheduleId = await createSchedule({
         petId,
@@ -388,7 +391,7 @@ export default function ScheduleCreateScreen() {
         reminderMinutes,
       });
 
-      await upsertScheduleNotification({
+      const notificationResult = await upsertScheduleNotification({
         id: createdScheduleId,
         petId,
         title: trimmedTitle,
@@ -397,7 +400,10 @@ export default function ScheduleCreateScreen() {
         repeatRule,
         reminderMinutes,
         completedAt: null,
-      });
+      }, notificationLifecycle);
+      const notificationFeedback =
+        getScheduleNotificationSyncFeedback(notificationResult);
+      if (notificationFeedback) showToast(notificationFeedback);
 
       await refresh(petId);
       if (returnTo?.screen === 'HealthReport') {

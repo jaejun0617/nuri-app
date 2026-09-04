@@ -3,6 +3,7 @@ package com.nuri.notifications
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
+import android.net.Uri
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
@@ -15,6 +16,11 @@ class ScheduleNotificationModule(
 ) : ReactContextBaseJavaModule(reactContext) {
   override fun getName(): String = "NuriScheduleNotifications"
 
+  override fun invalidate() {
+    ScheduleNotificationTapStore.markConsumerNotReady()
+    super.invalidate()
+  }
+
   @ReactMethod
   fun schedule(payload: ReadableMap, promise: Promise) {
     val alarmId = payload.getSafeString("alarmId")
@@ -24,7 +30,7 @@ class ScheduleNotificationModule(
       return
     }
 
-    val status = ScheduleNotificationScheduler.schedule(
+    val result = ScheduleNotificationScheduler.schedule(
       context = reactContext,
       alarmId = alarmId,
       scheduleId = scheduleId,
@@ -36,7 +42,13 @@ class ScheduleNotificationModule(
       fireAtMillis = payload.getSafeDouble("fireAtMillis").toLong(),
       repeatRule = payload.getSafeString("repeatRule").ifBlank { "none" },
     )
-    promise.resolve(status)
+    promise.resolve(
+      Arguments.createMap().apply {
+        putString("status", result.status)
+        putString("delivery", result.delivery)
+        result.errorCode?.let { putString("errorCode", it) }
+      },
+    )
   }
 
   @ReactMethod
@@ -45,8 +57,15 @@ class ScheduleNotificationModule(
   }
 
   @ReactMethod
-  fun cancelAll() {
-    ScheduleNotificationScheduler.cancelAll(reactContext)
+  fun cancelAll(promise: Promise) {
+    val result = ScheduleNotificationScheduler.cancelAll(reactContext)
+    promise.resolve(
+      Arguments.createMap().apply {
+        putString("status", result.status)
+        putString("delivery", result.delivery)
+        result.errorCode?.let { putString("errorCode", it) }
+      },
+    )
   }
 
   @ReactMethod
@@ -65,6 +84,58 @@ class ScheduleNotificationModule(
   }
 
   @ReactMethod
+  fun getRuntimeCapabilities(promise: Promise) {
+    val capabilities = ScheduleNotificationScheduler.runtimeCapabilities(reactContext)
+    promise.resolve(
+      Arguments.createMap().apply {
+        putBoolean("enabled", capabilities.enabled)
+        putString("exactAlarm", capabilities.exactAlarm)
+        putString("channel", capabilities.channel)
+        putString("delivery", capabilities.delivery)
+        putBoolean(
+          "canOpenExactAlarmSettings",
+          capabilities.canOpenExactAlarmSettings,
+        )
+      },
+    )
+  }
+
+  @ReactMethod
+  fun openExactAlarmSettings(promise: Promise) {
+    val intent = ScheduleNotificationScheduler.exactAlarmSettingsIntent(reactContext)
+    if (intent == null) {
+      promise.resolve(false)
+      return
+    }
+
+    try {
+      reactContext.startActivity(intent)
+      promise.resolve(true)
+    } catch (_: RuntimeException) {
+      promise.resolve(false)
+    }
+  }
+
+  @ReactMethod
+  fun getInitialScheduleNotificationTap(promise: Promise) {
+    val tap = ScheduleNotificationTapStore.consumeInitial()
+    promise.resolve(tap?.toWritableMap())
+  }
+
+  @ReactMethod
+  fun markScheduleNotificationTapConsumerReady() {
+    // The JS listener is registered before this method is called. Native can
+    // now release one pending cold-start tap without losing it to startup
+    // timing; warm taps still use the same one-shot event path.
+    ScheduleNotificationTapStore.markConsumerReady(reactContext)
+  }
+
+  @ReactMethod
+  fun markScheduleNotificationTapConsumerNotReady() {
+    ScheduleNotificationTapStore.markConsumerNotReady()
+  }
+
+  @ReactMethod
   fun openAppNotificationSettings() {
     val intent =
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -73,7 +144,7 @@ class ScheduleNotificationModule(
         }
       } else {
         Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-          data = android.net.Uri.parse("package:${reactContext.packageName}")
+          data = Uri.parse("package:${reactContext.packageName}")
         }
       }
 

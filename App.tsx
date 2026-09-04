@@ -12,7 +12,7 @@
 // - Provider 순서와 NavigationContainer 등록 순서를 바꾸면 제스처, safe area, 전역 상태, 모니터링이 함께 깨질 수 있다.
 // - 부팅 시점 코드이므로 무거운 로직을 직접 넣지 말고 하위 provider/service로 내려야 한다.
 
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StatusBar } from 'react-native';
 import {
   createNavigationContainerRef,
@@ -29,6 +29,14 @@ import RootNavigator from './src/navigation/RootNavigator';
 import type { RootStackParamList } from './src/navigation/RootNavigator';
 import { appLinking } from './src/navigation/linking';
 import {
+  getInitialScheduleNotificationTap,
+  markScheduleNotificationTapConsumerNotReady,
+  markScheduleNotificationTapConsumerReady,
+  resolveScheduleNotificationTapRoute,
+  subscribeToScheduleNotificationTaps,
+  type ScheduleNotificationTapPayload,
+} from './src/services/schedules/notificationTap';
+import {
   clearCommunityRouteStateSnapshot,
   createCommunityRouteStateSnapshot,
   saveCommunityRouteStateSnapshot,
@@ -40,6 +48,7 @@ import {
 } from './src/services/monitoring/sentry';
 import { useAuthStore } from './src/store/authStore';
 import { useCommunityStore } from './src/store/communityStore';
+import { usePetStore } from './src/store/petStore';
 
 enableScreens(true);
 initMonitoring();
@@ -49,6 +58,15 @@ function App() {
     createNavigationContainerRef<RootStackParamList>(),
   );
   const communitySnapshotExistsRef = useRef(false);
+  const pendingScheduleTapRef = useRef<ScheduleNotificationTapPayload | null>(
+    null,
+  );
+  const [navigationReady, setNavigationReady] = useState(false);
+  const [navigationStateRevision, setNavigationStateRevision] = useState(0);
+  const authBooted = useAuthStore(state => state.booted);
+  const petBooted = usePetStore(state => state.booted);
+  const sessionUserId = useAuthStore(state => state.session?.user.id ?? null);
+  const pets = usePetStore(state => state.pets);
 
   const persistCommunityRouteState = useCallback(() => {
     if (!navigationRef.current.isReady()) return;
@@ -84,10 +102,103 @@ function App() {
     saveCommunityRouteStateSnapshot(snapshot).catch(() => {});
   }, []);
 
+  const queueScheduleNotificationTap = useCallback(
+    (tap: ScheduleNotificationTapPayload) => {
+      const key = `${tap.scheduleId}:${tap.petId}`;
+      if (
+        pendingScheduleTapRef.current &&
+        `${pendingScheduleTapRef.current.scheduleId}:${pendingScheduleTapRef.current.petId}` ===
+          key
+      ) {
+        return;
+      }
+
+      pendingScheduleTapRef.current = tap;
+      setNavigationStateRevision(previous => previous + 1);
+    },
+    [],
+  );
+
+  useEffect(() => {
+    let active = true;
+    const unsubscribe = subscribeToScheduleNotificationTaps(tap => {
+      if (active) queueScheduleNotificationTap(tap);
+    });
+
+    // Native releases a cold-start notification tap only after this listener
+    // exists, preventing a startup event from being emitted into the void.
+    markScheduleNotificationTapConsumerReady();
+
+    getInitialScheduleNotificationTap()
+      .then(tap => {
+        if (active && tap) queueScheduleNotificationTap(tap);
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
+      unsubscribe();
+      markScheduleNotificationTapConsumerNotReady();
+    };
+  }, [queueScheduleNotificationTap]);
+
+  useEffect(() => {
+    const tap = pendingScheduleTapRef.current;
+    if (!tap) return;
+
+    const currentRouteName = navigationRef.current.isReady()
+      ? String(navigationRef.current.getCurrentRoute()?.name ?? '')
+      : null;
+    const target = resolveScheduleNotificationTapRoute({
+      tap,
+      navigationReady,
+      appBooted: authBooted && petBooted,
+      currentRouteName,
+      sessionUserId,
+      pets,
+    });
+
+    if (target) {
+      pendingScheduleTapRef.current = null;
+      navigationRef.current.navigate('ScheduleList', {
+        petId: target.petId,
+      });
+      return;
+    }
+
+    // A tap for a missing session or an unowned pet must not be replayed after
+    // logout. Splash and incomplete boot states intentionally keep it queued.
+    if (
+      navigationReady &&
+      authBooted &&
+      petBooted &&
+      currentRouteName &&
+      currentRouteName !== 'Splash' &&
+      (!sessionUserId || !pets.some(pet => pet.id === tap.petId))
+    ) {
+      pendingScheduleTapRef.current = null;
+    }
+  }, [
+    authBooted,
+    navigationReady,
+    navigationStateRevision,
+    petBooted,
+    pets,
+    sessionUserId,
+  ]);
+
   const handleNavigationReady = useCallback(() => {
     if (!navigationRef.current.isReady()) return;
+    setNavigationReady(true);
     registerSentryNavigation(navigationRef.current);
     persistCommunityRouteState();
+  }, [persistCommunityRouteState]);
+
+  const handleNavigationStateChange = useCallback(() => {
+    persistCommunityRouteState();
+    if (pendingScheduleTapRef.current) {
+      setNavigationStateRevision(previous => previous + 1);
+    }
   }, [persistCommunityRouteState]);
 
   useEffect(() => {
@@ -122,7 +233,7 @@ function App() {
               linking={appLinking}
               ref={navigationRef}
               onReady={handleNavigationReady}
-              onStateChange={persistCommunityRouteState}
+              onStateChange={handleNavigationStateChange}
             >
               <RootNavigator />
             </NavigationContainer>

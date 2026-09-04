@@ -235,6 +235,9 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     minHeight: 112,
   },
+  compactCardTopWithoutThumbnail: {
+    minHeight: 0,
+  },
   cardThumbnailWrap: {
     borderRadius: 18,
     overflow: 'hidden',

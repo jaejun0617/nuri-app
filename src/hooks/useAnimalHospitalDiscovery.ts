@@ -196,7 +196,9 @@ export function useAnimalHospitalDiscovery(input: {
   );
 
   return {
-    loading: query.isLoading && !query.data,
+    // Keep the initial screen in a stable loading state while location
+    // bootstrap is pending; do not let the empty-state copy flash first.
+    loading: (locationState.loading || query.isLoading) && !query.data,
     refreshing: query.isRefetching && !hasSearchQuery,
     searching: query.isFetching && hasSearchQuery,
     items: query.data?.items ?? [],

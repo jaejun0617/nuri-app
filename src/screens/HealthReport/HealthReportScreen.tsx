@@ -51,7 +51,9 @@ import {
   formatReminderMinutesSummary,
 } from '../../services/schedules/form';
 import {
+  captureScheduleNotificationLifecycle,
   clearScheduleNotification,
+  getScheduleNotificationSyncFeedback,
   upsertScheduleNotification,
 } from '../../services/schedules/notifications';
 import type { PetWeightLog, PetWeightLogMutationResult } from '../../services/supabase/petWeightLogs';
@@ -62,7 +64,7 @@ import {
 import { useAuthStore } from '../../store/authStore';
 import { resolveSelectedPetId, usePetStore } from '../../store/petStore';
 import { useScheduleStore } from '../../store/scheduleStore';
-import { openMoreDrawer } from '../../store/uiStore';
+import { openMoreDrawer, showToast } from '../../store/uiStore';
 import { getKstYmd, humanizeMonthKey } from '../../utils/date';
 
 type Navigation = NativeStackNavigationProp<RootStackParamList, 'HealthReport'>;
@@ -878,6 +880,7 @@ export default function HealthReportScreen() {
     async (item: HealthActivityItem) => {
       if (!pet || item.source !== 'schedule' || !item.scheduleId) return;
 
+      const notificationLifecycle = captureScheduleNotificationLifecycle();
       const busyId = item.scheduleId;
       setTogglingReminderIds(current => [...current, busyId]);
 
@@ -898,7 +901,6 @@ export default function HealthReportScreen() {
           );
           return;
         }
-
         await updateSchedule({
           scheduleId: schedule.id,
           petId: schedule.petId,
@@ -924,9 +926,12 @@ export default function HealthReportScreen() {
         });
 
         if (nextReminderMinutes.length === 0) {
-          clearScheduleNotification(schedule.id);
+          const notificationResult = clearScheduleNotification(schedule.id);
+          const notificationFeedback =
+            getScheduleNotificationSyncFeedback(notificationResult);
+          if (notificationFeedback) showToast(notificationFeedback);
         } else {
-          await upsertScheduleNotification({
+          const notificationResult = await upsertScheduleNotification({
             id: schedule.id,
             petId: schedule.petId,
             title: schedule.title,
@@ -935,7 +940,10 @@ export default function HealthReportScreen() {
             repeatRule: schedule.repeatRule,
             reminderMinutes: nextReminderMinutes,
             completedAt: schedule.completedAt,
-          });
+          }, notificationLifecycle);
+          const notificationFeedback =
+            getScheduleNotificationSyncFeedback(notificationResult);
+          if (notificationFeedback) showToast(notificationFeedback);
         }
 
         if (Platform.OS === 'android') {

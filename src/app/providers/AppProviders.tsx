@@ -45,6 +45,10 @@ import {
   shouldReloadUserScopedState,
   withTimeout,
 } from '../../services/app/boot';
+import {
+  createAuthBoundaryCleanupQueue,
+  shouldClearAuthBoundScheduleNotifications,
+} from '../../services/auth/session';
 import { showToast } from '../../store/uiStore';
 import {
   appQueryClient,
@@ -151,6 +155,7 @@ export default function AppProviders({ children }: Props) {
     let unsub: { unsubscribe: () => void } | null = null;
     let alive = true;
     const pendingAuthTransitionTimers = new Set<ReturnType<typeof setTimeout>>();
+    const authBoundaryCleanupQueue = createAuthBoundaryCleanupQueue();
 
     const resolveValidSession = async () => {
       const { data } = await withTimeout(
@@ -433,7 +438,21 @@ export default function AppProviders({ children }: Props) {
       transitionSeqRef.current = seq;
       beginTransition();
 
+      const previousUserId =
+        getSessionUserId(useAuthStore.getState().session) ??
+        lastUserIdRef.current;
+      const nextUserId = getSessionUserId(session);
+      await authBoundaryCleanupQueue.waitForBoundary(
+        shouldClearAuthBoundScheduleNotifications({
+          event,
+          previousUserId,
+          nextUserId,
+        }),
+      );
+      if (!alive || transitionSeqRef.current !== seq) return;
+
       await setSession(session);
+      if (!alive || transitionSeqRef.current !== seq) return;
 
       if (
         shouldKeepGuestSandboxForRecovery({

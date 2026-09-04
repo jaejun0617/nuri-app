@@ -115,9 +115,9 @@ export default function AnimalHospitalDetailScreen() {
           contentContainerStyle={{ paddingBottom: 32, gap: 18 }}
         >
           <View style={styles.hero}>
-            <View style={styles.detailThumbnailMeta}>
-              <View style={styles.detailThumbnailWrap}>
-                {thumbnailUri ? (
+            {thumbnailUri ? (
+              <View style={styles.detailThumbnailMeta}>
+                <View style={styles.detailThumbnailWrap}>
                   <OptimizedImage
                     uri={thumbnailUri}
                     style={styles.detailThumbnail}
@@ -125,22 +125,14 @@ export default function AnimalHospitalDetailScreen() {
                     priority="normal"
                     fallback={false}
                   />
-                ) : (
-                  <View style={styles.detailThumbnailPlaceholder}>
-                    <Feather
-                      name="shield"
-                      size={24}
-                      color={theme.colors.textMuted}
-                    />
-                  </View>
-                )}
+                </View>
+                {photoAttributionLabel ? (
+                  <AppText preset="unifiedMeta" style={styles.photoAttributionText}>
+                    사진 출처 · {photoAttributionLabel}
+                  </AppText>
+                ) : null}
               </View>
-              {thumbnailUri && photoAttributionLabel ? (
-                <AppText preset="unifiedMeta" style={styles.photoAttributionText}>
-                  사진 출처 · {photoAttributionLabel}
-                </AppText>
-              ) : null}
-            </View>
+            ) : null}
 
             <View style={styles.heroHeader}>
               <AppText preset="unifiedMeta" style={styles.eyebrow}>

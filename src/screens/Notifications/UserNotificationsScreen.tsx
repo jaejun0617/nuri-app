@@ -496,7 +496,9 @@ export default function UserNotificationsScreen() {
   );
 
   return (
-    <View style={[styles.screen, { paddingTop: Math.max(insets.top, 12) }]}>
+    <View
+      style={[styles.screen, { paddingTop: Math.max(insets.top, 12) + 4 }]}
+    >
       <View style={styles.header}>
         <TouchableOpacity
           activeOpacity={0.88}

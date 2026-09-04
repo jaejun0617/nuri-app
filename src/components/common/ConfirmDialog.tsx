@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
+import { KeyboardAvoidingView as KeyboardControllerAvoidingView } from 'react-native-keyboard-controller';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
@@ -30,6 +31,7 @@ type Props = {
   onConfirm: () => void;
   onCancel: () => void;
   typographyMode?: 'legacy' | 'unified';
+  keyboardAware?: boolean;
 };
 
 function withHexAlpha(color: string, alpha: number, fallback: string) {
@@ -99,6 +101,7 @@ function ConfirmDialogBase({
   onConfirm,
   onCancel,
   typographyMode = 'legacy',
+  keyboardAware = false,
 }: Props) {
   const theme = useTheme();
   const pets = usePetStore(s => s.pets);
@@ -142,7 +145,12 @@ function ConfirmDialogBase({
       animationType="fade"
       onRequestClose={onCancel}
     >
-      <View style={[styles.backdrop, { backgroundColor: theme.colors.overlay }]}>
+      <KeyboardControllerAvoidingView
+        style={[styles.backdrop, { backgroundColor: theme.colors.overlay }]}
+        behavior="padding"
+        enabled={keyboardAware}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
+      >
         <Pressable style={styles.scrim} onPress={onCancel} />
         <View
           style={[
@@ -222,7 +230,7 @@ function ConfirmDialogBase({
             </View>
           ) : null}
         </View>
-      </View>
+      </KeyboardControllerAvoidingView>
     </Modal>
   );
 }

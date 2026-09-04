@@ -1,6 +1,5 @@
 import React, { memo, useMemo } from 'react';
 import { TouchableOpacity, View } from 'react-native';
-import Feather from 'react-native-vector-icons/Feather';
 
 import AppText from '../../app/ui/AppText';
 import { buildAnimalHospitalCardViewModel } from '../../domains/animalHospital/presentation';
@@ -46,11 +45,17 @@ function AnimalHospitalCard({ item, onOpenDetail }: Props) {
         style={styles.cardPressableAreaCompact}
         onPress={() => onOpenDetail(displayItem)}
       >
-        <View style={styles.compactCardTop}>
-          <View
-            style={[styles.cardThumbnailWrap, styles.cardThumbnailWrapCompact]}
-          >
-            {hasThumbnail && thumbnailUri ? (
+        <View
+          style={
+            hasThumbnail
+              ? styles.compactCardTop
+              : styles.compactCardTopWithoutThumbnail
+          }
+        >
+          {thumbnailUri ? (
+            <View
+              style={[styles.cardThumbnailWrap, styles.cardThumbnailWrapCompact]}
+            >
               <OptimizedImage
                 uri={thumbnailUri}
                 style={[styles.cardThumbnail, styles.cardThumbnailCompact]}
@@ -58,37 +63,26 @@ function AnimalHospitalCard({ item, onOpenDetail }: Props) {
                 priority="normal"
                 fallback={false}
               />
-            ) : (
-              <View
-                style={[
-                  styles.cardThumbnailPlaceholder,
-                  styles.cardThumbnailPlaceholderCompact,
-                ]}
-              >
-                <View style={styles.cardThumbnailPlaceholderIconWrap}>
-                  <Feather name="shield" size={20} color="#7A8699" />
+              {photoAttributionLabel ? (
+                <View
+                  style={[
+                    styles.cardThumbnailOverlay,
+                    styles.cardThumbnailOverlayCompact,
+                  ]}
+                >
+                  <View style={styles.cardPhotoAttributionWrap}>
+                    <AppText
+                      preset="unifiedMeta"
+                      style={styles.cardPhotoAttributionText}
+                      numberOfLines={1}
+                    >
+                      사진 출처 · {photoAttributionLabel}
+                    </AppText>
+                  </View>
                 </View>
-              </View>
-            )}
-            {hasThumbnail && photoAttributionLabel ? (
-              <View
-                style={[
-                  styles.cardThumbnailOverlay,
-                  styles.cardThumbnailOverlayCompact,
-                ]}
-              >
-                <View style={styles.cardPhotoAttributionWrap}>
-                  <AppText
-                    preset="unifiedMeta"
-                    style={styles.cardPhotoAttributionText}
-                    numberOfLines={1}
-                  >
-                    사진 출처 · {photoAttributionLabel}
-                  </AppText>
-                </View>
-              </View>
-            ) : null}
-          </View>
+              ) : null}
+            </View>
+          ) : null}
 
           <View style={[styles.cardHeader, styles.cardHeaderCompact]}>
             <View style={[styles.cardHeaderCopy, styles.cardHeaderCopyCentered]}>

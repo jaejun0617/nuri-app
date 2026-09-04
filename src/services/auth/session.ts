@@ -3,6 +3,8 @@
 // - 로그아웃/탈퇴 후 로컬 store 정리 공통화
 // - MoreScreen / Drawer가 같은 세션 종료 규칙을 공유하도록 유지
 
+import type { AuthChangeEvent } from '@supabase/supabase-js';
+
 import {
   clearLocalAuthSession,
   deleteMyAccount,
@@ -13,6 +15,7 @@ import {
 import { clearAllRecentPersonalSearches } from '../local/placeTravelSearch';
 import {
   captureMonitoringException,
+  captureMonitoringMessage,
   setMonitoringUser,
 } from '../monitoring/sentry';
 import { clearRecentLoginProvider } from './recentLoginProvider';
@@ -22,6 +25,74 @@ import { useRecordStore } from '../../store/recordStore';
 import { useScheduleStore } from '../../store/scheduleStore';
 import { revokeCurrentDevicePushToken } from '../notifications/pushTokenLifecycle';
 import { clearAppQueryCache } from '../query/appQueryClient';
+import {
+  clearAllScheduleNotifications,
+  type ScheduleNotificationSyncResult,
+} from '../schedules/notifications';
+
+let authBoundScheduleCleanupInFlight: Promise<ScheduleNotificationSyncResult> | null =
+  null;
+
+export async function clearAuthBoundScheduleNotifications(): Promise<ScheduleNotificationSyncResult> {
+  if (!authBoundScheduleCleanupInFlight) {
+    authBoundScheduleCleanupInFlight = clearAllScheduleNotifications()
+      .then(result => {
+        if (result.status === 'failed') {
+          captureMonitoringException(
+            new Error(
+              `auth-bound schedule cleanup failed: ${
+                result.errorCode ?? 'unknown'
+              }`,
+            ),
+          );
+        } else if (result.status === 'unsupported') {
+          captureMonitoringMessage('auth-bound schedule cleanup unsupported', {
+            level: 'warning',
+            tags: { status: result.status },
+          });
+        }
+
+        return result;
+      })
+      .finally(() => {
+        authBoundScheduleCleanupInFlight = null;
+      });
+  }
+
+  return authBoundScheduleCleanupInFlight;
+}
+
+export type AuthSessionBoundary = {
+  event: AuthChangeEvent | 'boot';
+  previousUserId: string | null;
+  nextUserId: string | null;
+};
+
+export function shouldClearAuthBoundScheduleNotifications(
+  boundary: AuthSessionBoundary,
+): boolean {
+  if (boundary.event === 'boot') return !boundary.nextUserId;
+  return Boolean(
+    boundary.previousUserId && boundary.previousUserId !== boundary.nextUserId,
+  );
+}
+
+export function createAuthBoundaryCleanupQueue() {
+  let tail = Promise.resolve();
+
+  return {
+    waitForBoundary: (shouldCleanup: boolean): Promise<void> => {
+      const next = tail.then(async () => {
+        if (shouldCleanup) {
+          await clearAuthBoundScheduleNotifications();
+        }
+      });
+
+      tail = next.catch(() => undefined);
+      return next;
+    },
+  };
+}
 
 export async function clearLocalSessionState(): Promise<void> {
   setMonitoringUser({ id: null });
@@ -52,6 +123,8 @@ export async function disposePasswordRecoverySession(): Promise<void> {
 }
 
 export async function performLogout(timeoutMs = 1200) {
+  await clearAuthBoundScheduleNotifications();
+
   try {
     await revokeCurrentDevicePushToken('user_logout');
   } catch (error: unknown) {
@@ -74,6 +147,8 @@ export async function performAccountDeletion(): Promise<AccountDeletionResult> {
     result.status === 'completed' ||
     result.status === 'completed_with_cleanup_pending'
   ) {
+    await clearAuthBoundScheduleNotifications();
+
     try {
       await revokeCurrentDevicePushToken('account_deleted');
     } catch (error: unknown) {

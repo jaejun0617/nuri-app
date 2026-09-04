@@ -30,7 +30,9 @@ import {
   type PetSchedule,
 } from '../../services/supabase/schedules';
 import {
+  captureScheduleNotificationLifecycle,
   clearScheduleNotification,
+  getScheduleNotificationSyncFeedback,
   upsertScheduleNotification,
 } from '../../services/schedules/notifications';
 import { formatReminderMinutesSummary } from '../../services/schedules/form';
@@ -41,6 +43,7 @@ import {
 } from '../../services/schedules/presentation';
 import { usePetStore } from '../../store/petStore';
 import { useScheduleStore } from '../../store/scheduleStore';
+import { showToast } from '../../store/uiStore';
 import { styles } from './ScheduleDetailScreen.styles';
 import { getDateYmdInKst } from '../../utils/date';
 
@@ -200,7 +203,10 @@ export default function ScheduleDetailScreen() {
       setDeleteConfirmVisible(false);
       const deletedFocusYmd = schedule ? getDateYmdInKst(schedule.startsAt) : null;
       await deleteSchedule(scheduleId);
-      clearScheduleNotification(scheduleId);
+      const notificationResult = clearScheduleNotification(scheduleId);
+      const notificationFeedback =
+        getScheduleNotificationSyncFeedback(notificationResult);
+      if (notificationFeedback) showToast(notificationFeedback);
       if (petId) {
         await queryClient.setQueriesData<HealthReportCache>(
           { queryKey: ['health-report', 'month', petId] },
@@ -238,6 +244,7 @@ export default function ScheduleDetailScreen() {
       const nextCompletedAt = schedule.completedAt
         ? null
         : buildScheduleCompletedAtForPersist(schedule.startsAt);
+      const notificationLifecycle = captureScheduleNotificationLifecycle();
 
       await updateSchedule({
         scheduleId: schedule.id,
@@ -264,9 +271,12 @@ export default function ScheduleDetailScreen() {
       });
 
       if (nextCompletedAt) {
-        clearScheduleNotification(schedule.id);
+        const notificationResult = clearScheduleNotification(schedule.id);
+        const notificationFeedback =
+          getScheduleNotificationSyncFeedback(notificationResult);
+        if (notificationFeedback) showToast(notificationFeedback);
       } else {
-        await upsertScheduleNotification({
+        const notificationResult = await upsertScheduleNotification({
           id: schedule.id,
           petId: schedule.petId,
           title: schedule.title,
@@ -275,7 +285,10 @@ export default function ScheduleDetailScreen() {
           repeatRule: schedule.repeatRule,
           reminderMinutes: schedule.reminderMinutes,
           completedAt: nextCompletedAt,
-        });
+        }, notificationLifecycle);
+        const notificationFeedback =
+          getScheduleNotificationSyncFeedback(notificationResult);
+        if (notificationFeedback) showToast(notificationFeedback);
       }
 
       setSchedule({
