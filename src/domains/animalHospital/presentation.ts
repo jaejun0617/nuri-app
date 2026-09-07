@@ -1,4 +1,5 @@
 import type { AnimalHospitalPublicHospital } from './types';
+import { compareNullableDistanceMeters } from '../../services/locationDiscovery/travelMetrics';
 
 export type AnimalHospitalTrustTone = 'calm' | 'caution' | 'neutral';
 export type AnimalHospitalListMode = 'nearby' | 'open24' | 'exotic';
@@ -80,15 +81,13 @@ function sortByNearbyAndName(
   left: AnimalHospitalPublicHospital,
   right: AnimalHospitalPublicHospital,
 ): number {
-  if (left.distanceMeters === null && right.distanceMeters === null) {
-    return 0;
-  }
-
-  const leftDistance = left.distanceMeters ?? Number.MAX_SAFE_INTEGER;
-  const rightDistance = right.distanceMeters ?? Number.MAX_SAFE_INTEGER;
-
-  if (leftDistance !== rightDistance) {
-    return leftDistance - rightDistance;
+  const distanceComparison = compareNullableDistanceMeters(
+    left.distanceMeters,
+    right.distanceMeters,
+    'ascending',
+  );
+  if (distanceComparison !== 0) {
+    return distanceComparison;
   }
 
   return left.name.localeCompare(right.name, 'ko');

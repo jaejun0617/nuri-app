@@ -47,7 +47,9 @@ describe('walk POI public RPC mapper', () => {
           road_address: '경상남도 통영시 강구안길 일대',
           latitude: 34.84285,
           longitude: 128.42325,
-          distance_meters: 97,
+          // The server value is intentionally wrong. Display/sort/minutes must
+          // all derive from the same local coordinate pair.
+          distance_meters: 9_999,
           source_attribution: '누리 운영자 검수 자료',
           public_trust_status: 'approved',
           reviewed_at: '2026-06-20T21:53:59.002787+00:00',
@@ -64,5 +66,25 @@ describe('walk POI public RPC mapper', () => {
       '운영 검수 통영 권역의 운영자 검수 장소 데이터 자료입니다.',
     );
     expect(item?.description).not.toMatch(/\b(seed|POI|V1\.1)\b/i);
+    expect(item?.distanceMeters).toBeGreaterThanOrEqual(95);
+    expect(item?.distanceMeters).toBeLessThanOrEqual(105);
+    expect(item?.estimatedMinutes).toBe(2);
+  });
+
+  it('invalid POI coordinate row를 거리 0의 장소로 노출하지 않는다', async () => {
+    supabase.rpc.mockResolvedValue({
+      data: [
+        {
+          id: 'invalid-coordinate',
+          name: '잘못된 좌표 장소',
+          latitude: 127,
+          longitude: 37,
+          distance_meters: 0,
+        },
+      ],
+      error: null,
+    });
+
+    await expect(searchWalkPoiLocations(SEARCH_INPUT)).resolves.toEqual([]);
   });
 });

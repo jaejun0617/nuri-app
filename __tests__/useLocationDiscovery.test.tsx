@@ -10,6 +10,7 @@ import type {
   LocationDiscoveryItem,
   LocationDiscoverySearchScope,
 } from '../src/services/locationDiscovery/types';
+import type { DeviceCoordinates } from '../src/services/location/currentPosition';
 
 type FocusEffect = () => void | (() => void);
 
@@ -52,12 +53,12 @@ const { searchLocationDiscovery } = jest.requireMock(
   searchLocationDiscovery: jest.Mock;
 };
 
-const coordinates = {
+const coordinates: DeviceCoordinates = {
   latitude: 37.5665,
   longitude: 126.978,
   accuracy: 12,
   capturedAt: Date.now(),
-  source: 'gps' as const,
+  source: 'gps',
 };
 const scope: LocationDiscoverySearchScope = {
   displayLabel: '현재 위치',
@@ -132,10 +133,17 @@ const walkResult = {
   scope,
 };
 
-function Harness() {
+function Harness(props: {
+  coordinateOverride?: {
+    latitude: number;
+    longitude: number;
+    label: string;
+  } | null;
+}) {
   latestDiscoveryState = useLocationDiscovery({
     domain: 'walk',
     query: '',
+    coordinateOverride: props.coordinateOverride,
   });
   return null;
 }
@@ -177,6 +185,7 @@ describe('useLocationDiscovery focus lifecycle', () => {
       source: 'gps',
       isFresh: true,
       isStale: false,
+      isRefreshing: false,
       lastUpdatedAt: coordinates.capturedAt,
       error: null,
       refresh: jest.fn(),
@@ -240,6 +249,7 @@ describe('useLocationDiscovery focus lifecycle', () => {
       source: 'cached',
       isFresh: false,
       isStale: true,
+      isRefreshing: false,
       lastUpdatedAt: staleCoordinates.capturedAt,
       error: null,
       refresh: refreshLocation,
@@ -255,16 +265,23 @@ describe('useLocationDiscovery focus lifecycle', () => {
         </QueryClientProvider>,
       );
     });
-    await waitFor(() => searchLocationDiscovery.mock.calls.length >= 1);
+    await waitFor(
+      () => latestDiscoveryState !== null && mockFocusCallbacks.length > 0,
+    );
+
+    expect(latestDiscoveryState?.scope.anchorCoordinates).toBeNull();
+    expect(searchLocationDiscovery).not.toHaveBeenCalled();
 
     const focusedEffect = mockFocusCallbacks[0];
     expect(focusedEffect).toBeDefined();
     await ReactTestRenderer.act(async () => {
-      await focusedEffect?.();
+      focusedEffect?.();
+      await Promise.resolve();
     });
+    await waitFor(() => refreshLocation.mock.calls.length === 1);
 
     expect(refreshLocation).toHaveBeenCalledTimes(1);
-    expect(searchLocationDiscovery).toHaveBeenCalledTimes(1);
+    expect(searchLocationDiscovery).not.toHaveBeenCalled();
 
     await ReactTestRenderer.act(async () => {
       renderer!.unmount();
@@ -307,6 +324,45 @@ describe('useLocationDiscovery focus lifecycle', () => {
     client.clear();
   });
 
+  it('fallback 뒤 precise 위치를 보정 중이면 empty보다 loading을 유지한다', async () => {
+    const fallbackCoordinates = {
+      ...coordinates,
+      source: 'default' as const,
+    };
+    useCurrentLocation.mockReturnValue({
+      loading: false,
+      permission: 'granted',
+      coordinates: fallbackCoordinates,
+      source: 'default',
+      isFresh: false,
+      isStale: true,
+      isRefreshing: false,
+      isRefining: true,
+      lastUpdatedAt: fallbackCoordinates.capturedAt,
+      error: null,
+      refresh: jest.fn().mockResolvedValue(fallbackCoordinates),
+    });
+
+    const client = createClient();
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await ReactTestRenderer.act(async () => {
+      renderer = ReactTestRenderer.create(
+        <QueryClientProvider client={client}>
+          <Harness />
+        </QueryClientProvider>,
+      );
+    });
+
+    expect(latestDiscoveryState?.loading).toBe(true);
+    expect(latestDiscoveryState?.items).toEqual([]);
+    expect(searchLocationDiscovery).not.toHaveBeenCalled();
+
+    await ReactTestRenderer.act(async () => {
+      renderer!.unmount();
+    });
+    client.clear();
+  });
+
   it('새로고침 중에도 정착된 Walk 결과를 보존한다', async () => {
     const refreshLocation = jest.fn().mockResolvedValue(coordinates);
     useCurrentLocation.mockReturnValue({
@@ -316,6 +372,7 @@ describe('useLocationDiscovery focus lifecycle', () => {
       source: 'gps',
       isFresh: true,
       isStale: false,
+      isRefreshing: false,
       lastUpdatedAt: coordinates.capturedAt,
       error: null,
       refresh: refreshLocation,
@@ -348,7 +405,7 @@ describe('useLocationDiscovery focus lifecycle', () => {
       pendingRefresh = latestDiscoveryState?.refresh() ?? null;
       await Promise.resolve();
     });
-    await waitFor(() => latestDiscoveryState?.refreshing === true);
+    await waitFor(() => searchLocationDiscovery.mock.calls.length === 2);
 
     expect(latestDiscoveryState?.items.map(item => item.id)).toEqual([
       walkItem.id,
@@ -358,7 +415,115 @@ describe('useLocationDiscovery focus lifecycle', () => {
       resolveRefresh?.(walkResult);
       await pendingRefresh;
     });
-    await waitFor(() => latestDiscoveryState?.refreshing === false);
+    await waitFor(() => latestDiscoveryState?.items.length === 1);
+
+    await ReactTestRenderer.act(async () => {
+      renderer!.unmount();
+    });
+    client.clear();
+  });
+
+  it('fresh 위치가 만료되면 이전 거리 결과를 다음 query에 넘기지 않는다', async () => {
+    const refreshLocation = jest.fn().mockResolvedValue(coordinates);
+    let currentLocationState = {
+      loading: false,
+      permission: 'granted',
+      coordinates,
+      source: 'gps',
+      isFresh: true,
+      isStale: false,
+      isRefreshing: false,
+      lastUpdatedAt: coordinates.capturedAt,
+      error: null,
+      refresh: refreshLocation,
+    };
+    useCurrentLocation.mockImplementation(() => currentLocationState);
+    searchLocationDiscovery.mockResolvedValue(walkResult);
+
+    const client = createClient();
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await ReactTestRenderer.act(async () => {
+      renderer = ReactTestRenderer.create(
+        <QueryClientProvider client={client}>
+          <Harness />
+        </QueryClientProvider>,
+      );
+    });
+    await waitFor(() => latestDiscoveryState?.items.length === 1);
+
+    currentLocationState = {
+      ...currentLocationState,
+      coordinates: {
+        ...coordinates,
+        source: 'cached',
+      },
+      source: 'cached',
+      isFresh: false,
+      isStale: true,
+    };
+    await ReactTestRenderer.act(async () => {
+      renderer!.update(
+        <QueryClientProvider client={client}>
+          <Harness />
+        </QueryClientProvider>,
+      );
+    });
+    await waitFor(
+      () =>
+        latestDiscoveryState?.scope.anchorCoordinates === null &&
+        latestDiscoveryState.items.length === 0,
+    );
+
+    expect(latestDiscoveryState?.items).toEqual([]);
+
+    await ReactTestRenderer.act(async () => {
+      renderer!.unmount();
+    });
+    client.clear();
+  });
+
+  it('선택 지도 중심은 검색에만 쓰고 fresh 기기 위치가 없으면 거리를 계산하지 않는다', async () => {
+    const cachedCoordinates = {
+      ...coordinates,
+      source: 'cached' as const,
+      capturedAt: Date.now(),
+    };
+    useCurrentLocation.mockReturnValue({
+      loading: false,
+      permission: 'granted',
+      coordinates: cachedCoordinates,
+      source: 'cached',
+      isFresh: false,
+      isStale: true,
+      isRefreshing: false,
+      lastUpdatedAt: cachedCoordinates.capturedAt,
+      error: null,
+      refresh: jest.fn().mockResolvedValue(cachedCoordinates),
+    });
+
+    const client = createClient();
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await ReactTestRenderer.act(async () => {
+      renderer = ReactTestRenderer.create(
+        <QueryClientProvider client={client}>
+          <Harness
+            coordinateOverride={{
+              latitude: 35.1796,
+              longitude: 129.0756,
+              label: '선택 위치',
+            }}
+          />
+        </QueryClientProvider>,
+      );
+    });
+    await waitFor(() => searchLocationDiscovery.mock.calls.length === 1);
+
+    const [, searchInput] = searchLocationDiscovery.mock.calls[0];
+    expect(searchInput.scope.searchCoordinates).toMatchObject({
+      latitude: 35.1796,
+      longitude: 129.0756,
+    });
+    expect(searchInput.scope.anchorCoordinates).toBeNull();
 
     await ReactTestRenderer.act(async () => {
       renderer!.unmount();

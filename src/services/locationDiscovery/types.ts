@@ -34,6 +34,7 @@ export type LocationDiscoverySourceType =
 export type LocationDiscoverySearchScope = {
   displayLabel: string;
   queryLabel: string | null;
+  searchCoordinates?: DeviceCoordinates | null;
   anchorCoordinates: DeviceCoordinates | null;
   distanceLabel: string;
 };

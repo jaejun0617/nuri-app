@@ -739,7 +739,11 @@ function getWalkPoiFallbackGateRegion(
 
   WALK_POI_FALLBACK_GATE_REGIONS.forEach(region => {
     const distance = calculateDistanceMeters(coordinates, region.center);
-    if (distance <= region.radiusMeters && distance < nearestDistance) {
+    if (
+      distance !== null &&
+      distance <= region.radiusMeters &&
+      distance < nearestDistance
+    ) {
       nearestRegion = region;
       nearestDistance = distance;
     }
@@ -1444,6 +1448,8 @@ async function searchWalkLocations(
   input: LocationDiscoverySearchInput,
 ): Promise<LocationDiscoveryResponse> {
   const normalizedQuery = normalizeQuery(input.query);
+  const searchCoordinates =
+    input.scope.searchCoordinates ?? input.scope.anchorCoordinates;
 
   if (!ENABLE_WALK_POI_RPC) {
     return buildWalkPoiSafeFallbackResponse(input, normalizedQuery, {
@@ -1452,7 +1458,7 @@ async function searchWalkLocations(
     });
   }
 
-  if (!normalizedQuery && !input.scope.anchorCoordinates) {
+  if (!normalizedQuery && !searchCoordinates) {
     return buildWalkPoiSafeFallbackResponse(input, normalizedQuery, {
       reason: 'coordinate_missing',
       mode: 'nearby',
@@ -1463,7 +1469,7 @@ async function searchWalkLocations(
     const poiItems = await searchWalkPoiLocations(input);
     if (poiItems.length > 0) {
       const readyGateRegion = getWalkPoiFallbackGateRegion(
-        input.scope.anchorCoordinates,
+        searchCoordinates,
       );
       if (ENABLE_WALK_POI_FALLBACK_GATE && readyGateRegion) {
         console.info(
@@ -1489,7 +1495,7 @@ async function searchWalkLocations(
     }
 
     const emptyFallbackGateRegion = getWalkPoiFallbackGateRegion(
-      input.scope.anchorCoordinates,
+      searchCoordinates,
     );
     const shouldLimitEmptyFallback =
       ENABLE_WALK_POI_FALLBACK_GATE && emptyFallbackGateRegion !== null;
@@ -1623,7 +1629,14 @@ export async function searchLocationDiscovery(
 ): Promise<LocationDiscoveryResponse> {
   const normalizedQuery = normalizeQuery(input.query);
 
-  if (!normalizedQuery && !input.scope.anchorCoordinates) {
+  const walkSearchCoordinates =
+    input.scope.searchCoordinates ?? input.scope.anchorCoordinates;
+  if (
+    !normalizedQuery &&
+    !(domain === 'walk'
+      ? walkSearchCoordinates
+      : input.scope.anchorCoordinates)
+  ) {
     if (domain === 'walk') {
       return buildWalkPoiSafeFallbackResponse(input, null, {
         reason: 'coordinate_missing',

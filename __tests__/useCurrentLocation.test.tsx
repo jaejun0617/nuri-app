@@ -184,4 +184,67 @@ describe('useCurrentLocation', () => {
       renderer!.unmount();
     });
   });
+
+  it('GPS jitter가 거절되면 refresh도 실제 채택된 좌표를 반환한다', async () => {
+    const initialCoordinates = coords({
+      latitude: 37.5,
+      capturedAt: Date.now(),
+      source: 'gps',
+    });
+    currentPositionModule.getQuickCurrentCoordinates.mockResolvedValue(
+      coords({
+        latitude: 37.5001,
+        capturedAt: Date.now() + 1_000,
+        source: 'gps',
+      }),
+    );
+
+    let renderer: TestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = TestRenderer.create(
+        <HookHarness initialCoordinates={initialCoordinates} />,
+      );
+    });
+
+    const result: { value: DeviceCoordinates | null } = { value: null };
+    await act(async () => {
+      result.value = (await latestState?.refresh()) ?? null;
+    });
+
+    expect(result.value?.latitude).toBe(initialCoordinates.latitude);
+    expect(latestState?.coordinates?.latitude).toBe(
+      initialCoordinates.latitude,
+    );
+
+    await act(async () => {
+      renderer!.unmount();
+    });
+  });
+
+  it('사용자 수동 refresh는 짧은 자동 throttle 구간도 우회한다', async () => {
+    const initialCoordinates = coords({ capturedAt: Date.now() });
+    currentPositionModule.getQuickCurrentCoordinates.mockResolvedValue(
+      coords({ capturedAt: Date.now() + 1_000 }),
+    );
+
+    let renderer: TestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = TestRenderer.create(
+        <HookHarness initialCoordinates={initialCoordinates} />,
+      );
+    });
+
+    await act(async () => {
+      await latestState?.refresh();
+      await latestState?.refresh();
+    });
+
+    expect(
+      currentPositionModule.getQuickCurrentCoordinates,
+    ).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      renderer!.unmount();
+    });
+  });
 });

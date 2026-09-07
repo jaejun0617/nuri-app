@@ -28,6 +28,7 @@ import type {
   LocationDiscoveryItem,
   LocationDiscoverySortOption,
 } from '../../services/locationDiscovery/types';
+import { compareNullableDistanceMeters } from '../../services/locationDiscovery/travelMetrics';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { usePetStore } from '../../store/petStore';
 import { openMoreDrawer } from '../../store/uiStore';
@@ -76,15 +77,13 @@ function sortWalkItems(
 
   const nextItems = [...items];
   nextItems.sort((left, right) => {
-    const leftDistance = left.distanceMeters ?? Number.MAX_SAFE_INTEGER;
-    const rightDistance = right.distanceMeters ?? Number.MAX_SAFE_INTEGER;
-
-    if (sortOrder === 'distance-desc') {
-      if (leftDistance !== rightDistance) {
-        return rightDistance - leftDistance;
-      }
-    } else if (leftDistance !== rightDistance) {
-      return leftDistance - rightDistance;
+    const distanceComparison = compareNullableDistanceMeters(
+      left.distanceMeters,
+      right.distanceMeters,
+      sortOrder === 'distance-desc' ? 'descending' : 'ascending',
+    );
+    if (distanceComparison !== 0) {
+      return distanceComparison;
     }
 
     return left.name.localeCompare(right.name, 'ko');
@@ -164,20 +163,24 @@ export default function LocationDiscoveryListScreen() {
     );
   }, [discoveryState.district, discoveryState.scope?.displayLabel]);
   const locationSubtitle = useMemo(() => {
-    if (discoveryState.usingStaleLocation && discoveryState.loading) {
+    if (discoveryState.loading || discoveryState.refreshing) {
       return '새 위치를 빠르게 확인하고 있어요';
     }
 
-    return submittedQuery.trim().length >= 2
-      ? '검색어와 현재 위치를 함께 참고하고 있어요'
-      : discoveryState.hasFreshLocation
+    if (submittedQuery.trim().length >= 2) {
+      return discoveryState.hasFreshLocation
+        ? '검색어와 현재 위치를 함께 참고하고 있어요'
+        : '검색어 기준 · 위치 확인 후 거리 표시';
+    }
+
+    return discoveryState.hasFreshLocation
       ? '현재 위치 기준'
-      : '최근 확인 위치 기준';
+      : '위치 확인 후 거리 표시';
   }, [
     submittedQuery,
     discoveryState.hasFreshLocation,
     discoveryState.loading,
-    discoveryState.usingStaleLocation,
+    discoveryState.refreshing,
   ]);
 
   const onPressBack = useEntryAwareBackAction({

@@ -13,7 +13,11 @@ import {
   isTrustDateStale,
 } from '../trust/publicTrust';
 import { buildStaticMapPreviewUrl } from './maps';
-import { estimateWalkMinutes } from './travelMetrics';
+import {
+  calculateDistanceMeters,
+  estimateWalkMinutes,
+  isValidGeographicCoordinate,
+} from './travelMetrics';
 import type {
   LocationDiscoveryItem,
   LocationDiscoverySearchInput,
@@ -131,7 +135,13 @@ function toWalkPoiPublicRpcRow(value: unknown): WalkPoiPublicRpcRow | null {
   const name = readString(value, 'name');
   const latitude = readNumber(value, 'latitude');
   const longitude = readNumber(value, 'longitude');
-  if (!id || !name || latitude === null || longitude === null) {
+  if (
+    !id ||
+    !name ||
+    latitude === null ||
+    longitude === null ||
+    !isValidGeographicCoordinate({ latitude, longitude })
+  ) {
     return null;
   }
 
@@ -247,7 +257,7 @@ function buildWalkPoiItem(
   options: WalkPoiDetailInput,
 ): LocationDiscoveryItem {
   const basisDate = row.reviewed_at ?? row.updated_at;
-  const distanceMeters = row.distance_meters ?? options.currentDistanceMeters;
+  const distanceMeters = options.currentDistanceMeters;
   const address = row.address ?? row.road_address ?? '주소 정보 준비 중';
   const attribution = row.source_attribution ?? 'NURI 운영 검수';
 
@@ -345,13 +355,15 @@ export async function searchWalkPoiLocations(
   }
 
   const query = normalizeQuery(input.query);
-  const anchor = input.scope.anchorCoordinates;
+  const searchCoordinates =
+    input.scope.searchCoordinates ?? input.scope.anchorCoordinates;
+  const distanceOrigin = input.scope.anchorCoordinates;
   const data = query
     ? await invokePublicRpc('walk_poi_public_search_v1', {
         p_query: query,
-        p_anchor_lat: anchor?.latitude ?? null,
-        p_anchor_lng: anchor?.longitude ?? null,
-        p_radius_meters: anchor
+        p_anchor_lat: searchCoordinates?.latitude ?? null,
+        p_anchor_lng: searchCoordinates?.longitude ?? null,
+        p_radius_meters: searchCoordinates
           ? WALK_POI_NEARBY_RADIUS_METERS
           : WALK_POI_SEARCH_RADIUS_METERS,
         p_limit: WALK_POI_DEFAULT_LIMIT,
@@ -361,18 +373,23 @@ export async function searchWalkPoiLocations(
         p_bbox_max_lng: null,
       })
     : await invokePublicRpc('walk_poi_public_nearby_v1', {
-        p_anchor_lat: anchor?.latitude ?? null,
-        p_anchor_lng: anchor?.longitude ?? null,
+        p_anchor_lat: searchCoordinates?.latitude ?? null,
+        p_anchor_lng: searchCoordinates?.longitude ?? null,
         p_radius_meters: WALK_POI_NEARBY_RADIUS_METERS,
         p_limit: WALK_POI_DEFAULT_LIMIT,
       });
 
-  return toRows(data).map(row =>
-    buildWalkPoiItem(row, {
-      currentDistanceMeters: row.distance_meters,
+  return toRows(data).map(row => {
+    const distanceMeters = calculateDistanceMeters(distanceOrigin, {
+      latitude: row.latitude,
+      longitude: row.longitude,
+    });
+
+    return buildWalkPoiItem(row, {
+      currentDistanceMeters: distanceMeters,
       currentDistanceLabel: input.scope.distanceLabel,
-    }),
-  );
+    });
+  });
 }
 
 export async function fetchWalkPoiDetailItem(

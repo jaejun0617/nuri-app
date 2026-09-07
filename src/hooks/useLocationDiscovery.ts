@@ -6,10 +6,12 @@ import { useCurrentLocation } from './useCurrentLocation';
 import { useDistrict } from './useDistrict';
 import { searchLocationDiscovery } from '../services/locationDiscovery/service';
 import {
+  buildLocationCoordinateKey,
   getLocationAgeMs,
-  isFreshLocationCoordinates,
+  getFreshDeviceCoordinates,
   LOCATION_AUTO_REFRESH_INTERVAL_MS,
 } from '../services/location/currentPosition';
+import { isValidGeographicCoordinate } from '../services/location/coordinates';
 import type {
   LocationDiscoveryDomain,
   LocationDiscoveryItem,
@@ -62,54 +64,76 @@ export function useLocationDiscovery(input: {
   );
   const refreshLocation = locationState.refresh;
   const hasSearchQuery = normalizedQuery.length >= 2;
-  const overrideCoordinates = input.coordinateOverride
-    ? {
-        accuracy: null,
-        capturedAt: Date.now(),
-        latitude: input.coordinateOverride.latitude,
-        longitude: input.coordinateOverride.longitude,
-        source: 'cached' as const,
-      }
-    : null;
-  const effectiveCoordinates = overrideCoordinates ?? locationState.coordinates;
+  const overrideCoordinates = useMemo(() => {
+    if (!input.coordinateOverride) return null;
+
+    const coordinate = {
+      latitude: input.coordinateOverride.latitude,
+      longitude: input.coordinateOverride.longitude,
+    };
+    if (!isValidGeographicCoordinate(coordinate)) return null;
+
+    return {
+      ...coordinate,
+      accuracy: null,
+      capturedAt: null,
+      source: 'cached' as const,
+    };
+  }, [input.coordinateOverride]);
+  const freshDeviceCoordinates = getFreshDeviceCoordinates(
+    locationState.coordinates,
+  );
+  const searchCoordinates = overrideCoordinates ?? freshDeviceCoordinates;
   const usingDefaultFallback = locationState.coordinates?.source === 'default';
-  const coordinatesKey = effectiveCoordinates
-    ? `${effectiveCoordinates.latitude.toFixed(3)}:${effectiveCoordinates.longitude.toFixed(3)}`
-    : 'no-coordinates';
+  const awaitingFreshLocation =
+    !hasSearchQuery &&
+    !searchCoordinates &&
+    (locationState.loading ||
+      locationState.isRefreshing ||
+      locationState.isRefining);
+  const distanceCoordinatesKey = buildLocationCoordinateKey(
+    freshDeviceCoordinates,
+  );
+  const searchCoordinatesKey = buildLocationCoordinateKey(searchCoordinates);
   const district = districtState.district?.trim() || null;
-  const normalizedDistrict = districtState.normalizedDistrict?.trim() || district;
+  const normalizedDistrict =
+    districtState.normalizedDistrict?.trim() || district;
   const scope = useMemo<LocationDiscoverySearchScope>(
     () => ({
       displayLabel:
         input.coordinateOverride?.label ??
-        (usingDefaultFallback
-          ? '서울 시청'
-          : !locationState.isFresh && locationState.loading
-          ? '새 위치 확인 중'
-          : district ?? (locationState.isFresh ? '현재 위치' : '최근 확인 위치')),
+        (usingDefaultFallback || !freshDeviceCoordinates
+          ? locationState.loading ||
+            locationState.isRefreshing ||
+            locationState.isRefining
+            ? '새 위치 확인 중'
+            : '현재 위치를 확인할 수 없음'
+          : district ?? '현재 위치'),
       queryLabel:
-        input.coordinateOverride ? null : districtState.city && district
+        input.coordinateOverride || !freshDeviceCoordinates
+          ? null
+          : districtState.city && district
           ? `${districtState.city} ${district}`.trim()
           : district,
-      anchorCoordinates: effectiveCoordinates,
-      distanceLabel:
-        input.coordinateOverride
-          ? `${input.coordinateOverride.label} 기준`
-          : usingDefaultFallback
-            ? '기본 위치 기준'
-            : !locationState.isFresh && locationState.loading
-              ? '새 위치 확인 중'
-              : locationState.isFresh
-                ? '현재 위치 기준'
-                : '최근 확인 위치 기준',
+      searchCoordinates,
+      anchorCoordinates: freshDeviceCoordinates,
+      distanceLabel: !freshDeviceCoordinates
+        ? locationState.loading ||
+          locationState.isRefreshing ||
+          locationState.isRefining
+          ? '새 위치 확인 중'
+          : '위치 확인 후 거리 표시'
+        : '현재 위치 기준',
     }),
     [
       district,
       districtState.city,
-      effectiveCoordinates,
+      freshDeviceCoordinates,
       input.coordinateOverride,
-      locationState.isFresh,
+      locationState.isRefining,
+      locationState.isRefreshing,
       locationState.loading,
+      searchCoordinates,
       usingDefaultFallback,
     ],
   );
@@ -119,7 +143,8 @@ export function useLocationDiscovery(input: {
       'location-discovery',
       input.domain,
       hasSearchQuery ? normalizedQuery : 'nearby',
-      coordinatesKey,
+      searchCoordinatesKey,
+      distanceCoordinatesKey,
       input.coordinateOverride ? 'map-center' : 'device',
     ],
     queryFn: async () =>
@@ -128,10 +153,9 @@ export function useLocationDiscovery(input: {
         scope,
         useNearbySearch: !hasSearchQuery,
       }),
-    enabled: hasSearchQuery || Boolean(effectiveCoordinates),
+    enabled: hasSearchQuery || Boolean(searchCoordinates),
     staleTime: 2 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
-    placeholderData: previous => previous,
   });
   const refetchLocationDiscovery = query.refetch;
 
@@ -145,23 +169,22 @@ export function useLocationDiscovery(input: {
 
   useFocusEffect(
     useCallback(() => {
-      if (input.coordinateOverride) {
-        return undefined;
-      }
-
       if (!shouldRefreshLocation()) {
         return undefined;
       }
 
       (async () => {
         const nextCoordinates = await refreshLocation();
-        if (hasSearchQuery || !isFreshLocationCoordinates(nextCoordinates)) {
+        const nextFreshCoordinates = getFreshDeviceCoordinates(nextCoordinates);
+        if (!nextFreshCoordinates) {
+          if (hasSearchQuery || input.coordinateOverride) {
+            await refetchLocationDiscovery();
+          }
           return;
         }
-        const nextCoordinatesKey = nextCoordinates
-          ? `${nextCoordinates.latitude.toFixed(3)}:${nextCoordinates.longitude.toFixed(3)}`
-          : 'no-coordinates';
-        if (nextCoordinatesKey !== coordinatesKey) {
+        const nextCoordinatesKey =
+          buildLocationCoordinateKey(nextFreshCoordinates);
+        if (nextCoordinatesKey !== distanceCoordinatesKey) {
           // The coordinate-keyed query will fetch for the new location. Refetching
           // here would also issue a request for the obsolete coordinate bucket.
           return;
@@ -173,7 +196,7 @@ export function useLocationDiscovery(input: {
     }, [
       hasSearchQuery,
       input.coordinateOverride,
-      coordinatesKey,
+      distanceCoordinatesKey,
       refetchLocationDiscovery,
       refreshLocation,
       shouldRefreshLocation,
@@ -181,11 +204,9 @@ export function useLocationDiscovery(input: {
   );
 
   return {
-    loading:
-      ((locationState.loading && !effectiveCoordinates && !hasSearchQuery) ||
-        query.isLoading) &&
-      !query.data,
-    refreshing: query.isRefetching && !hasSearchQuery,
+    loading: (awaitingFreshLocation || query.isLoading) && !query.data,
+    refreshing:
+      (query.isRefetching || locationState.isRefreshing) && !hasSearchQuery,
     searching: query.isFetching && hasSearchQuery,
     items: query.data?.items ?? [],
     error:
@@ -193,23 +214,31 @@ export function useLocationDiscovery(input: {
       (!hasSearchQuery ? locationState.error : null),
     verificationStatus: query.data?.verificationStatus ?? 'unknown',
     permission: locationState.permission,
-    coordinates: effectiveCoordinates,
+    coordinates: freshDeviceCoordinates,
     district,
     normalizedDistrict,
     city: districtState.city,
-    hasFreshLocation: locationState.isFresh,
-    usingStaleLocation: locationState.isStale,
+    hasFreshLocation: Boolean(freshDeviceCoordinates),
+    usingStaleLocation:
+      !overrideCoordinates &&
+      locationState.coordinates?.source !== 'default' &&
+      locationState.isStale,
     scope: query.data?.scope ?? scope,
     refresh: async () => {
-      const nextCoordinates = hasSearchQuery || input.coordinateOverride
-        ? effectiveCoordinates
-        : await refreshLocation();
-
+      const nextCoordinates = await refreshLocation();
+      const nextFreshCoordinates = getFreshDeviceCoordinates(nextCoordinates);
       if (
+        !nextFreshCoordinates &&
         !hasSearchQuery &&
-        !input.coordinateOverride &&
-        !isFreshLocationCoordinates(nextCoordinates)
+        !input.coordinateOverride
       ) {
+        return;
+      }
+
+      const nextCoordinatesKey = buildLocationCoordinateKey(
+        nextFreshCoordinates,
+      );
+      if (nextCoordinatesKey !== distanceCoordinatesKey) {
         return;
       }
 

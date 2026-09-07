@@ -1,40 +1,57 @@
-export type TravelCoordinate = {
-  latitude: number;
-  longitude: number;
-};
+export {
+  calculateDistanceMeters,
+  isValidGeographicCoordinate,
+  type GeographicCoordinate as TravelCoordinate,
+} from '../location/coordinates';
 
-export function calculateDistanceMeters(
-  origin: TravelCoordinate,
-  target: TravelCoordinate,
+export type DistanceSortDirection = 'ascending' | 'descending';
+
+function normalizeDistanceMeters(distanceMeters: number | null): number | null {
+  return distanceMeters !== null &&
+    Number.isFinite(distanceMeters) &&
+    distanceMeters >= 0
+    ? distanceMeters
+    : null;
+}
+
+export function compareNullableDistanceMeters(
+  leftDistance: number | null,
+  rightDistance: number | null,
+  direction: DistanceSortDirection,
 ): number {
-  const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
-  const earthRadius = 6371000;
-  const latDiff = toRadians(target.latitude - origin.latitude);
-  const lngDiff = toRadians(target.longitude - origin.longitude);
-  const originLat = toRadians(origin.latitude);
-  const targetLat = toRadians(target.latitude);
-  const a =
-    Math.sin(latDiff / 2) ** 2 +
-    Math.cos(originLat) * Math.cos(targetLat) * Math.sin(lngDiff / 2) ** 2;
+  const normalizedLeft = normalizeDistanceMeters(leftDistance);
+  const normalizedRight = normalizeDistanceMeters(rightDistance);
+  if (normalizedLeft === null && normalizedRight === null) return 0;
+  if (normalizedLeft === null) return 1;
+  if (normalizedRight === null) return -1;
 
-  return Math.round(
-    2 * earthRadius * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)),
-  );
+  return direction === 'ascending'
+    ? normalizedLeft - normalizedRight
+    : normalizedRight - normalizedLeft;
 }
 
 export function estimateWalkMinutes(
   distanceMeters: number | null,
 ): number | null {
-  if (distanceMeters === null) return null;
+  if (
+    distanceMeters === null ||
+    !Number.isFinite(distanceMeters) ||
+    distanceMeters < 0
+  ) {
+    return null;
+  }
 
+  // Straight-line distance is converted to a conservative walking route
+  // estimate, then divided by an ordinary 4.2 km/h walking pace.
   const routeDistance = distanceMeters * 1.6;
-  return Math.max(15, Math.min(90, Math.round(routeDistance / 70)));
+  return Math.max(1, Math.round(routeDistance / 70));
 }
 
 export function formatDistanceLabel(distanceMeters: number | null): string {
-  if (distanceMeters === null) return '거리 확인 중';
-  if (distanceMeters < 1000) return `${distanceMeters}m`;
-  return `${(distanceMeters / 1000).toFixed(1)}km`;
+  const normalizedDistance = normalizeDistanceMeters(distanceMeters);
+  if (normalizedDistance === null) return '거리 확인 중';
+  if (normalizedDistance < 1000) return `${normalizedDistance}m`;
+  return `${(normalizedDistance / 1000).toFixed(1)}km`;
 }
 
 export function formatDurationLabel(minutes: number | null): string | null {
@@ -46,8 +63,9 @@ export function buildWalkingTravelLabel(params: {
   distanceMeters: number | null;
   estimatedMinutes?: number | null;
 }): string {
-  const distanceLabel = formatDistanceLabel(params.distanceMeters);
-  if (params.distanceMeters === null) {
+  const normalizedDistance = normalizeDistanceMeters(params.distanceMeters);
+  const distanceLabel = formatDistanceLabel(normalizedDistance);
+  if (normalizedDistance === null) {
     return distanceLabel;
   }
 
@@ -57,7 +75,7 @@ export function buildWalkingTravelLabel(params: {
     Number.isFinite(preferredMinutes) &&
     preferredMinutes > 0
       ? Math.round(preferredMinutes)
-      : estimateWalkMinutes(params.distanceMeters);
+      : estimateWalkMinutes(normalizedDistance);
   const durationLabel = formatDurationLabel(estimatedMinutes);
 
   return durationLabel

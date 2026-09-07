@@ -190,8 +190,8 @@ export default function AnimalHospitalListScreen() {
       ) : discoveryState.usingStaleLocation ? (
         <LocationDiscoveryStatusCard
           icon="clock"
-          title="최근 위치로 먼저 보여주고 있어요"
-          body="새 위치를 확인하는 동안 이전 좌표 기준으로 병원 목록을 유지하고 있어요."
+          title="새 위치를 다시 확인해 주세요"
+          body="저장된 이전 좌표는 거리 계산에 사용하지 않아요. 현재 위치가 확인되면 거리와 순서를 갱신해요."
           actionLabel="새로고침"
           onPressAction={() => {
             discoveryState.refresh().catch(() => {});

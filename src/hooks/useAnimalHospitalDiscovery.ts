@@ -10,8 +10,9 @@ import type {
 } from '../domains/animalHospital/types';
 import { searchAnimalHospitals } from '../services/animalHospital/service';
 import {
+  buildLocationCoordinateKey,
   getLocationAgeMs,
-  isFreshLocationCoordinates,
+  getFreshDeviceCoordinates,
   LOCATION_AUTO_REFRESH_INTERVAL_MS,
 } from '../services/location/currentPosition';
 
@@ -24,7 +25,9 @@ export type AnimalHospitalDiscoveryState = {
   items: AnimalHospitalPublicHospital[];
   error: string | null;
   permission: ReturnType<typeof useCurrentLocation>['permission'];
-  permissionAccuracy: ReturnType<typeof useCurrentLocation>['permissionAccuracy'];
+  permissionAccuracy: ReturnType<
+    typeof useCurrentLocation
+  >['permissionAccuracy'];
   coordinates: ReturnType<typeof useCurrentLocation>['coordinates'];
   district: string | null;
   normalizedDistrict: string | null;
@@ -61,24 +64,28 @@ export function useAnimalHospitalDiscovery(input: {
   );
   const refreshLocation = locationState.refresh;
   const hasSearchQuery = normalizedQuery.length >= 2;
-  const coordinatesKey = locationState.coordinates
-    ? `${locationState.coordinates.latitude.toFixed(
-        4,
-      )}:${locationState.coordinates.longitude.toFixed(4)}`
-    : 'no-coordinates';
+  const freshDeviceCoordinates = getFreshDeviceCoordinates(
+    locationState.coordinates,
+  );
+  const coordinatesKey = buildLocationCoordinateKey(freshDeviceCoordinates);
   const district = districtState.district?.trim() || null;
-  const hasCoordinates = Boolean(locationState.coordinates);
+  const hasCoordinates = Boolean(freshDeviceCoordinates);
+  const locationBootstrapPending =
+    !hasCoordinates &&
+    (locationState.loading ||
+      locationState.isRefreshing ||
+      locationState.isRefining);
   const usesApproximatePermission =
     locationState.permission === 'granted' &&
     locationState.permissionAccuracy === 'approximate';
   const shouldRunQuery =
     hasSearchQuery ||
     hasCoordinates ||
-    !locationState.loading ||
+    !locationBootstrapPending ||
     locationBootstrapTimedOut;
 
   useEffect(() => {
-    if (hasCoordinates || !locationState.loading) {
+    if (!locationBootstrapPending) {
       setLocationBootstrapTimedOut(false);
       return undefined;
     }
@@ -90,39 +97,36 @@ export function useAnimalHospitalDiscovery(input: {
     return () => {
       clearTimeout(timer);
     };
-  }, [hasCoordinates, locationState.loading]);
+  }, [locationBootstrapPending]);
   const scope = useMemo<AnimalHospitalSearchScope>(() => {
-    const coordinates = locationState.coordinates;
+    const coordinates = freshDeviceCoordinates;
     const locationIsApproximate =
       usesApproximatePermission || locationState.isWeakSignal;
-    const locationIsStale = Boolean(coordinates) && locationState.isStale;
     const displayLabel = hasSearchQuery
       ? '전국 검색'
       : !coordinates
-      ? '기본 검색'
+      ? '현재 위치 확인 전'
       : district ?? '현재 위치';
     const distanceLabel = hasSearchQuery
       ? !coordinates
-        ? '검색어 기준'
-        : locationIsStale
-          ? '거리는 최근 위치 기준'
-          : locationIsApproximate
-            ? '거리는 대략 위치 기준'
-            : '거리는 현재 위치 기준'
-      : !coordinates
-      ? '기본 검색 기준'
-      : locationIsStale
-        ? '최근 위치 기준'
+        ? '검색어 기준 · 위치 확인 후 거리 표시'
         : locationIsApproximate
-          ? '대략 위치 기준'
-          : '현재 위치 기준';
+        ? '거리는 대략 위치 기준'
+        : '거리는 현재 위치 기준'
+      : !coordinates
+      ? '위치 확인 후 거리 표시'
+      : locationIsApproximate
+      ? '대략 위치 기준'
+      : '현재 위치 기준';
 
     return {
       displayLabel,
       queryLabel:
-        districtState.city && district
+        coordinates && districtState.city && district
           ? `${districtState.city} ${district}`.trim()
-          : district,
+          : coordinates
+          ? district
+          : null,
       anchorCoordinates: coordinates,
       distanceLabel,
     };
@@ -130,8 +134,7 @@ export function useAnimalHospitalDiscovery(input: {
     district,
     districtState.city,
     hasSearchQuery,
-    locationState.coordinates,
-    locationState.isStale,
+    freshDeviceCoordinates,
     locationState.isWeakSignal,
     usesApproximatePermission,
   ]);
@@ -143,8 +146,8 @@ export function useAnimalHospitalDiscovery(input: {
       input.open24HoursOnly
         ? 'open24'
         : input.exoticAnimalCareOnly
-          ? 'exotic'
-          : 'nearby',
+        ? 'exotic'
+        : 'nearby',
       coordinatesKey,
     ],
     queryFn: async () =>
@@ -160,7 +163,6 @@ export function useAnimalHospitalDiscovery(input: {
     gcTime: 10 * 60 * 1000,
     retry: false,
     refetchOnReconnect: false,
-    placeholderData: previous => previous,
   });
   const refetchAnimalHospitals = query.refetch;
 
@@ -180,7 +182,13 @@ export function useAnimalHospitalDiscovery(input: {
 
       (async () => {
         const nextCoordinates = await refreshLocation();
-        if (!hasSearchQuery && !isFreshLocationCoordinates(nextCoordinates)) {
+        const nextFreshCoordinates = getFreshDeviceCoordinates(nextCoordinates);
+        if (!hasSearchQuery && !nextFreshCoordinates) {
+          return;
+        }
+        const nextCoordinatesKey =
+          buildLocationCoordinateKey(nextFreshCoordinates);
+        if (nextCoordinatesKey !== coordinatesKey) {
           return;
         }
         await refetchAnimalHospitals();
@@ -189,6 +197,7 @@ export function useAnimalHospitalDiscovery(input: {
       return undefined;
     }, [
       hasSearchQuery,
+      coordinatesKey,
       refetchAnimalHospitals,
       refreshLocation,
       shouldRefreshLocation,
@@ -198,8 +207,17 @@ export function useAnimalHospitalDiscovery(input: {
   return {
     // Keep the initial screen in a stable loading state while location
     // bootstrap is pending; do not let the empty-state copy flash first.
-    loading: (locationState.loading || query.isLoading) && !query.data,
-    refreshing: query.isRefetching && !hasSearchQuery,
+    loading:
+      ((!hasSearchQuery &&
+        locationBootstrapPending &&
+        !locationBootstrapTimedOut) ||
+        query.isLoading) &&
+      !query.data,
+    refreshing:
+      (query.isRefetching ||
+        locationState.isRefreshing ||
+        locationState.isRefining) &&
+      !hasSearchQuery,
     searching: query.isFetching && hasSearchQuery,
     items: query.data?.items ?? [],
     error:
@@ -207,19 +225,29 @@ export function useAnimalHospitalDiscovery(input: {
       (!hasSearchQuery ? locationState.error : null),
     permission: locationState.permission,
     permissionAccuracy: locationState.permissionAccuracy,
-    coordinates: locationState.coordinates,
+    coordinates: freshDeviceCoordinates,
     district,
     normalizedDistrict: districtState.normalizedDistrict?.trim() || district,
     city: districtState.city,
-    hasFreshLocation: locationState.isFresh,
-    usingStaleLocation: locationState.isStale,
+    hasFreshLocation: Boolean(freshDeviceCoordinates),
+    usingStaleLocation:
+      locationState.coordinates?.source !== 'default' &&
+      locationState.isStale,
     hasPreciseLocation: locationState.isPrecise,
-    hasWeakLocationSignal: locationState.isWeakSignal,
+    hasWeakLocationSignal:
+      Boolean(freshDeviceCoordinates) && locationState.isWeakSignal,
     scope: query.data?.scope ?? scope,
     refresh: async () => {
       const nextCoordinates = await refreshLocation();
 
-      if (!hasSearchQuery && !isFreshLocationCoordinates(nextCoordinates)) {
+      const nextFreshCoordinates = getFreshDeviceCoordinates(nextCoordinates);
+      if (!hasSearchQuery && !nextFreshCoordinates) {
+        return;
+      }
+
+      const nextCoordinatesKey =
+        buildLocationCoordinateKey(nextFreshCoordinates);
+      if (nextCoordinatesKey !== coordinatesKey) {
         return;
       }
 
@@ -228,7 +256,12 @@ export function useAnimalHospitalDiscovery(input: {
     requestPreciseRefresh: async () => {
       const result = await locationState.requestPreciseRefresh();
 
-      if (result.coordinates) {
+      const nextFreshCoordinates = getFreshDeviceCoordinates(
+        result.coordinates,
+      );
+      const nextCoordinatesKey =
+        buildLocationCoordinateKey(nextFreshCoordinates);
+      if (nextFreshCoordinates && nextCoordinatesKey === coordinatesKey) {
         await refetchAnimalHospitals();
       }
 
