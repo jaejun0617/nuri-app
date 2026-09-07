@@ -3,13 +3,8 @@ import { TouchableOpacity, View } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 
 import AppText from '../../app/ui/AppText';
-import OptimizedImage from '../images/OptimizedImage';
-import { useLocationDiscoveryThumbnail } from '../../hooks/useLocationDiscoveryThumbnail';
-import {
-  formatDistanceLabel,
-  formatDurationLabel,
-} from '../../services/locationDiscovery/service';
 import type { LocationDiscoveryItem } from '../../services/locationDiscovery/types';
+import WalkingTravelMetaRow from './WalkingTravelMetaRow';
 import { styles } from './LocationDiscovery.styles';
 
 type Props = {
@@ -22,7 +17,6 @@ type Props = {
   } | null;
   selected?: boolean;
   layout?: 'default' | 'compact';
-  hideThumbnailWhenUnavailable?: boolean;
 };
 
 function LocationDiscoveryCard({
@@ -32,16 +26,8 @@ function LocationDiscoveryCard({
   personalState,
   selected = false,
   layout = 'default',
-  hideThumbnailWhenUnavailable = false,
 }: Props) {
   const compact = layout === 'compact';
-  const thumbnailQuery = useLocationDiscoveryThumbnail(item);
-  const thumbnailUri = thumbnailQuery.data ?? item.thumbnailUrl;
-  const photoAttributionLabel = thumbnailQuery.photoAttributionLabel ?? null;
-  const hasThumbnail = Boolean(thumbnailUri);
-  const renderThumbnail = hasThumbnail || !hideThumbnailWhenUnavailable;
-
-  const durationLabel = formatDurationLabel(item.estimatedMinutes);
   const handleCardPress = () => {
     if (compact && selected && onPressDetail) {
       onPressDetail(item);
@@ -61,90 +47,26 @@ function LocationDiscoveryCard({
         ]}
         onPress={handleCardPress}
       >
-        <View
-          style={
-            compact
-              ? renderThumbnail
-                ? styles.compactCardTop
-                : styles.compactCardTopWithoutThumbnail
-              : null
-          }
-        >
-          {renderThumbnail ? (
-            <View
-              style={[
-                styles.cardThumbnailWrap,
-                compact ? styles.cardThumbnailWrapCompact : null,
-              ]}
-            >
-              {hasThumbnail && thumbnailUri ? (
-                <OptimizedImage
-                  uri={thumbnailUri}
-                  style={[
-                    styles.cardThumbnail,
-                    compact ? styles.cardThumbnailCompact : null,
-                  ]}
-                  resizeMode="cover"
-                  priority={compact ? 'high' : 'normal'}
-                  fallback={false}
-                />
-              ) : (
-                <View
-                  style={[
-                    styles.cardThumbnailPlaceholder,
-                    compact ? styles.cardThumbnailPlaceholderCompact : null,
-                  ]}
-                >
-                  <View style={styles.cardThumbnailPlaceholderIconWrap}>
-                    <Feather name="map-pin" size={20} color="#7A8699" />
-                  </View>
-                  <AppText
-                    preset="unifiedMeta"
-                    style={styles.cardThumbnailPlaceholderText}
-                    numberOfLines={1}
-                  >
-                    {item.categoryLabel}
-                  </AppText>
-                </View>
-              )}
-              <View
-                style={[
-                  styles.cardThumbnailOverlay,
-                  compact ? styles.cardThumbnailOverlayCompact : null,
-                  !hasThumbnail ? styles.cardThumbnailOverlayFallback : null,
-                ]}
-              >
-                {hasThumbnail && photoAttributionLabel ? (
-                  <View style={styles.cardPhotoAttributionWrap}>
-                    <AppText
-                      preset="unifiedMeta"
-                      style={styles.cardPhotoAttributionText}
-                      numberOfLines={1}
-                    >
-                      사진 출처 · {photoAttributionLabel}
-                    </AppText>
-                  </View>
-                ) : null}
-                <View style={styles.cardThumbnailFooter}>
-                  {!compact ? (
-                    <View style={styles.cardIconWrap}>
-                      <Feather name="map" size={18} color="#2F8F48" />
-                    </View>
-                  ) : <View />}
-                  <AppText preset="unifiedMeta" style={styles.cardDistanceBadge}>
-                    {formatDistanceLabel(item.distanceMeters)}
-                  </AppText>
-                </View>
-              </View>
-            </View>
-          ) : null}
-
-          <View style={[styles.cardHeader, compact ? styles.cardHeaderCompact : null]}>
+        <View style={compact ? styles.compactCardTopWithoutThumbnail : null}>
+          <View
+            style={[
+              styles.cardHeader,
+              compact ? styles.cardHeaderCompact : null,
+            ]}
+          >
             <View style={styles.cardHeaderCopy}>
-              <AppText preset="unifiedMeta" style={styles.cardCategory} numberOfLines={1}>
+              <AppText
+                preset="unifiedMeta"
+                style={styles.cardCategory}
+                numberOfLines={1}
+              >
                 {item.categoryLabel}
               </AppText>
-              <AppText preset="unifiedTitle" style={styles.cardTitle} numberOfLines={2}>
+              <AppText
+                preset="unifiedTitle"
+                style={styles.cardTitle}
+                numberOfLines={2}
+              >
                 {item.name}
               </AppText>
               {compact ? (
@@ -156,51 +78,34 @@ function LocationDiscoveryCard({
                   >
                     {item.address}
                   </AppText>
-                  {durationLabel ? (
-                    <View style={styles.cardMetaPill}>
-                      <Feather name="clock" size={12} color="#7B8597" />
-                      <AppText preset="unifiedMeta" style={styles.cardMetaText}>
-                        {durationLabel}
-                      </AppText>
-                    </View>
-                  ) : null}
-                  {!renderThumbnail ? (
-                    <AppText preset="unifiedMeta" style={styles.cardMetaText}>
-                      {formatDistanceLabel(item.distanceMeters)}
-                    </AppText>
-                  ) : null}
+                  <WalkingTravelMetaRow
+                    distanceMeters={item.distanceMeters}
+                    estimatedMinutes={item.estimatedMinutes}
+                  />
                 </View>
               ) : null}
             </View>
           </View>
         </View>
 
-        <View style={styles.cardMetaRow}>
-          {!compact ? (
+        {!compact ? (
+          <View style={styles.cardMetaRow}>
             <View style={styles.cardMetaPill}>
               <Feather name="map-pin" size={12} color="#7B8597" />
-              <AppText preset="unifiedMeta" style={styles.cardMetaText}>
+              <AppText
+                preset="unifiedMeta"
+                style={styles.cardMetaText}
+                numberOfLines={2}
+              >
                 {item.address}
               </AppText>
             </View>
-          ) : null}
-          {!compact && durationLabel ? (
-            <View style={styles.cardMetaPill}>
-              <Feather name="clock" size={12} color="#7B8597" />
-              <AppText preset="unifiedMeta" style={styles.cardMetaText}>
-                {durationLabel}
-              </AppText>
-            </View>
-          ) : null}
-          {!compact && !renderThumbnail ? (
-            <View style={styles.cardMetaPill}>
-              <Feather name="navigation" size={12} color="#7B8597" />
-              <AppText preset="unifiedMeta" style={styles.cardMetaText}>
-                {formatDistanceLabel(item.distanceMeters)}
-              </AppText>
-            </View>
-          ) : null}
-        </View>
+            <WalkingTravelMetaRow
+              distanceMeters={item.distanceMeters}
+              estimatedMinutes={item.estimatedMinutes}
+            />
+          </View>
+        ) : null}
 
         {!compact && personalState?.badges.length ? (
           <View style={styles.personalStateSection}>
@@ -210,7 +115,10 @@ function LocationDiscoveryCard({
             <View style={styles.personalBadgeRow}>
               {personalState.badges.map(badge => (
                 <View key={`${item.id}:${badge}`} style={styles.personalBadge}>
-                  <AppText preset="unifiedMeta" style={styles.personalBadgeText}>
+                  <AppText
+                    preset="unifiedMeta"
+                    style={styles.personalBadgeText}
+                  >
                     {badge}
                   </AppText>
                 </View>

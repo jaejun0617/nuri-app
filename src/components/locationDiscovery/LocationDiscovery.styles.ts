@@ -229,90 +229,8 @@ export const styles = StyleSheet.create({
   cardPressableAreaCompact: {
     gap: 10,
   },
-  compactCardTop: {
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'center',
-    minHeight: 112,
-  },
   compactCardTopWithoutThumbnail: {
     minHeight: 0,
-  },
-  cardThumbnailWrap: {
-    borderRadius: 18,
-    overflow: 'hidden',
-    backgroundColor: '#DDE5EE',
-    minHeight: 132,
-  },
-  cardThumbnailWrapCompact: {
-    width: 112,
-    minHeight: 112,
-    borderRadius: 16,
-    flexShrink: 0,
-  },
-  cardThumbnail: {
-    width: '100%',
-    height: 148,
-  },
-  cardThumbnailCompact: {
-    height: 112,
-  },
-  cardThumbnailPlaceholder: {
-    flex: 1,
-    minHeight: 132,
-    backgroundColor: '#EEF2F5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    paddingHorizontal: 16,
-  },
-  cardThumbnailPlaceholderCompact: {
-    minHeight: 112,
-    paddingHorizontal: 10,
-  },
-  cardThumbnailPlaceholderIconWrap: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: 'rgba(122,134,153,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cardThumbnailPlaceholderText: {
-    color: '#7A8699',
-    fontWeight: '800',
-    textAlign: 'center',
-  },
-  cardThumbnailOverlay: {
-    position: 'absolute',
-    inset: 0,
-    justifyContent: 'space-between',
-    padding: 12,
-    backgroundColor: 'rgba(16,32,51,0.12)',
-  },
-  cardThumbnailOverlayCompact: {
-    padding: 10,
-    justifyContent: 'flex-end',
-  },
-  cardThumbnailOverlayFallback: {
-    backgroundColor: '#DDE5EE',
-  },
-  cardThumbnailFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  cardPhotoAttributionWrap: {
-    alignSelf: 'flex-start',
-    maxWidth: '100%',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: 'rgba(11,18,32,0.62)',
-  },
-  cardPhotoAttributionText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -324,21 +242,9 @@ export const styles = StyleSheet.create({
     alignSelf: 'stretch',
     justifyContent: 'center',
   },
-  cardIconWrap: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: 'rgba(47,143,72,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   cardHeaderCopy: {
     flex: 1,
     gap: 4,
-  },
-  cardHeaderCopyCentered: {
-    justifyContent: 'center',
-    alignItems: 'flex-start',
   },
   cardCompactMetaBlock: {
     gap: 6,
@@ -387,19 +293,6 @@ export const styles = StyleSheet.create({
   cardTitle: {
     color: '#0B1220',
     fontWeight: '900',
-  },
-  cardDistance: {
-    color: '#2F8F48',
-    fontWeight: '900',
-  },
-  cardDistanceBadge: {
-    color: '#FFFFFF',
-    fontWeight: '900',
-    backgroundColor: 'rgba(16,32,51,0.62)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    overflow: 'hidden',
   },
   cardBadgeRow: {
     flexDirection: 'row',
@@ -462,6 +355,16 @@ export const styles = StyleSheet.create({
     gap: 6,
   },
   cardMetaText: {
+    color: '#7B8597',
+    fontWeight: '700',
+  },
+  walkingTravelMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minHeight: 18,
+  },
+  walkingTravelMetaText: {
     color: '#7B8597',
     fontWeight: '700',
   },
@@ -839,21 +742,11 @@ export const styles = StyleSheet.create({
     fontWeight: '800',
   },
   resultsLoadingCard: {
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'center',
     borderRadius: 18,
     backgroundColor: '#F5F7FB',
     borderWidth: 1,
     borderColor: '#E7EDF5',
     padding: 14,
-  },
-  resultsLoadingThumb: {
-    width: 108,
-    height: 96,
-    borderRadius: 14,
-    backgroundColor: '#DCE4EF',
-    flexShrink: 0,
   },
   resultsLoadingBody: {
     flex: 1,

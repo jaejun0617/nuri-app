@@ -19,13 +19,10 @@ import ExpandableBodyText from '../../components/common/ExpandableBodyText';
 import Screen from '../../components/layout/Screen';
 import NativeLiteMapPreview from '../../components/maps/NativeLiteMapPreview';
 import LocationDiscoveryCard from '../../components/locationDiscovery/LocationDiscoveryCard';
+import WalkingTravelMetaRow from '../../components/locationDiscovery/WalkingTravelMetaRow';
 import { styles } from '../../components/locationDiscovery/LocationDiscovery.styles';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
-import {
-  formatDistanceLabel,
-  formatDurationLabel,
-} from '../../services/locationDiscovery/service';
 import { openExternalMap } from '../../services/locationDiscovery/maps';
 import { fetchWalkPoiDetailItem } from '../../services/locationDiscovery/walkPoiRpc';
 import type { LocationDiscoveryItem } from '../../services/locationDiscovery/types';
@@ -41,9 +38,8 @@ export default function LocationDiscoveryDetailScreen() {
     () => route.params?.resultItems ?? [],
     [route.params?.resultItems],
   );
-  const [resolvedItem, setResolvedItem] = useState<LocationDiscoveryItem | null>(
-    routeItem ?? null,
-  );
+  const [resolvedItem, setResolvedItem] =
+    useState<LocationDiscoveryItem | null>(routeItem ?? null);
   const [visibleRelatedCount, setVisibleRelatedCount] = useState(6);
   const item = resolvedItem ?? routeItem;
 
@@ -68,7 +64,8 @@ export default function LocationDiscoveryDetailScreen() {
   );
 
   const relatedItems = useMemo(
-    () => (item ? resultItems.filter(candidate => candidate.id !== item.id) : []),
+    () =>
+      item ? resultItems.filter(candidate => candidate.id !== item.id) : [],
     [item, resultItems],
   );
   const visibleRelatedItems = useMemo(
@@ -149,8 +146,6 @@ export default function LocationDiscoveryDetailScreen() {
     );
   }
 
-  const durationLabel = formatDurationLabel(item.estimatedMinutes);
-
   const onPressRelatedItem = (nextItem: LocationDiscoveryItem) => {
     navigation.push('WalkSpotDetail', {
       item: nextItem,
@@ -163,14 +158,14 @@ export default function LocationDiscoveryDetailScreen() {
       <View style={styles.container}>
         <View style={styles.header}>
           <View style={styles.headerSideSlot}>
-          <TouchableOpacity
-            activeOpacity={0.88}
-            style={styles.backButton}
-            onPress={goBack}
-            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-          >
-            <Feather name="arrow-left" size={20} color="#102033" />
-          </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.88}
+              style={styles.backButton}
+              onPress={goBack}
+              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+            >
+              <Feather name="arrow-left" size={20} color="#102033" />
+            </TouchableOpacity>
           </View>
           <AppText preset="unifiedTitle" style={styles.headerTitle}>
             산책 장소 상세
@@ -197,20 +192,10 @@ export default function LocationDiscoveryDetailScreen() {
                   {item.address}
                 </AppText>
               </View>
-              <View style={styles.detailMetaRow}>
-                <Feather name="navigation" size={15} color="#7B8597" />
-                <AppText preset="unifiedBody" style={styles.detailMetaText}>
-                  {formatDistanceLabel(item.distanceMeters)}
-                </AppText>
-              </View>
-              {durationLabel ? (
-                <View style={styles.detailMetaRow}>
-                  <Feather name="clock" size={15} color="#7B8597" />
-                  <AppText preset="unifiedBody" style={styles.detailMetaText}>
-                    {durationLabel}
-                  </AppText>
-                </View>
-              ) : null}
+              <WalkingTravelMetaRow
+                distanceMeters={item.distanceMeters}
+                estimatedMinutes={item.estimatedMinutes}
+              />
             </View>
 
             <ExpandableBodyText
@@ -230,7 +215,10 @@ export default function LocationDiscoveryDetailScreen() {
                   }).catch(() => {});
                 }}
               >
-                <AppText preset="unifiedBody" style={styles.primaryActionButtonText}>
+                <AppText
+                  preset="unifiedBody"
+                  style={styles.primaryActionButtonText}
+                >
                   지도 보기
                 </AppText>
               </TouchableOpacity>
@@ -242,7 +230,10 @@ export default function LocationDiscoveryDetailScreen() {
                     Linking.openURL(item.placeUrl!).catch(() => {});
                   }}
                 >
-                  <AppText preset="unifiedBody" style={styles.secondaryActionButtonText}>
+                  <AppText
+                    preset="unifiedBody"
+                    style={styles.secondaryActionButtonText}
+                  >
                     장소 링크
                   </AppText>
                 </TouchableOpacity>
@@ -260,7 +251,10 @@ export default function LocationDiscoveryDetailScreen() {
           {visibleRelatedItems.length > 0 ? (
             <View style={styles.relatedSection}>
               <View style={styles.relatedSectionHeader}>
-                <AppText preset="unifiedTitle" style={styles.relatedSectionTitle}>
+                <AppText
+                  preset="unifiedTitle"
+                  style={styles.relatedSectionTitle}
+                >
                   주변 산책 장소
                 </AppText>
               </View>
@@ -271,7 +265,6 @@ export default function LocationDiscoveryDetailScreen() {
                     key={`walk-related:${relatedItem.id}`}
                     item={relatedItem}
                     onPress={onPressRelatedItem}
-                    hideThumbnailWhenUnavailable
                   />
                 ))}
               </View>
@@ -283,7 +276,10 @@ export default function LocationDiscoveryDetailScreen() {
                     setVisibleRelatedCount(current => current + 6);
                   }}
                 >
-                  <AppText preset="unifiedBody" style={styles.secondaryActionButtonText}>
+                  <AppText
+                    preset="unifiedBody"
+                    style={styles.secondaryActionButtonText}
+                  >
                     더보기
                   </AppText>
                 </TouchableOpacity>

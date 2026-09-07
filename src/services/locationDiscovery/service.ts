@@ -42,6 +42,7 @@ import type {
   LocationDiscoveryVerificationStatus,
 } from './types';
 import { ENABLE_WALK_POI_RPC, searchWalkPoiLocations } from './walkPoiRpc';
+import { calculateDistanceMeters } from './travelMetrics';
 
 const WALK_POI_FALLBACK_GATE_REGIONS = [
   {
@@ -722,35 +723,7 @@ function parseDistanceMeters(
 
   if (!coordinates) return null;
 
-  const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
-  const earthRadius = 6371000;
-  const latDiff = toRadians(latitude - coordinates.latitude);
-  const lngDiff = toRadians(longitude - coordinates.longitude);
-  const originLat = toRadians(coordinates.latitude);
-  const targetLat = toRadians(latitude);
-  const a =
-    Math.sin(latDiff / 2) ** 2 +
-    Math.cos(originLat) * Math.cos(targetLat) * Math.sin(lngDiff / 2) ** 2;
-  const distance = 2 * earthRadius * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return Math.round(distance);
-}
-
-function calculateDistanceMeters(
-  origin: Pick<DeviceCoordinates, 'latitude' | 'longitude'>,
-  target: { latitude: number; longitude: number },
-): number {
-  const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
-  const earthRadius = 6371000;
-  const latDiff = toRadians(target.latitude - origin.latitude);
-  const lngDiff = toRadians(target.longitude - origin.longitude);
-  const originLat = toRadians(origin.latitude);
-  const targetLat = toRadians(target.latitude);
-  const a =
-    Math.sin(latDiff / 2) ** 2 +
-    Math.cos(originLat) * Math.cos(targetLat) * Math.sin(lngDiff / 2) ** 2;
-  return Math.round(
-    2 * earthRadius * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)),
-  );
+  return calculateDistanceMeters(coordinates, { latitude, longitude });
 }
 
 function getWalkPoiFallbackGateRegion(
@@ -1674,13 +1647,4 @@ export async function searchLocationDiscovery(
   return searchPetFriendlyPlaces(input);
 }
 
-export function formatDistanceLabel(distanceMeters: number | null): string {
-  if (distanceMeters === null) return '거리 확인 중';
-  if (distanceMeters < 1000) return `${distanceMeters}m`;
-  return `${(distanceMeters / 1000).toFixed(1)}km`;
-}
-
-export function formatDurationLabel(minutes: number | null): string | null {
-  if (minutes === null) return null;
-  return `약 ${minutes}분`;
-}
+export { formatDistanceLabel, formatDurationLabel } from './travelMetrics';

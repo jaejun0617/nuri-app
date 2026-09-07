@@ -15,6 +15,7 @@ import type {
   AnimalHospitalPhoneVerificationStatus,
   AnimalHospitalSensitiveFieldVisibility,
 } from './types';
+import { calculateDistanceMeters } from '../../services/locationDiscovery/travelMetrics';
 
 function isParsableDate(value: string | null | undefined): boolean {
   return Boolean(value) && Number.isFinite(Date.parse(value ?? ''));
@@ -49,7 +50,8 @@ export function buildAnimalHospitalTrustInfo(
   canonical: AnimalHospitalCanonicalHospital,
 ): PublicTrustInfo {
   const status = canonical.trust.publicStatus;
-  const sourceLabel = canonical.sourceProvenance[0]?.provider ?? 'source-unknown';
+  const sourceLabel =
+    canonical.sourceProvenance[0]?.provider ?? 'source-unknown';
   const sourceUpdatedAt = canonical.trust.sourceUpdatedAt;
   const hasConflict = canonical.trust.hasSourceConflict;
   const isStale = canonical.trust.freshness === 'stale';
@@ -58,15 +60,15 @@ export function buildAnimalHospitalTrustInfo(
     status === 'trust_reviewed'
       ? '최근 검수 또는 공식 근거가 있어 공개 가능한 병원 정보예요.'
       : status === 'needs_verification'
-        ? '기본 정보는 있지만 최신 확인이 더 필요해요.'
-        : '주변 병원 후보이며 방문 전 다시 확인이 필요해요.';
+      ? '기본 정보는 있지만 최신 확인이 더 필요해요.'
+      : '주변 병원 후보이며 방문 전 다시 확인이 필요해요.';
 
   const description =
     status === 'trust_reviewed'
       ? '공식 또는 최근 검수 기준으로 이름, 주소, 상태, 전화 정보를 공개해요.'
       : status === 'needs_verification'
-        ? '공개 가능한 기본 정보만 보여주고, 민감한 운영 정보는 숨겨 둬요.'
-        : '외부 검색 후보를 안전한 public subset으로만 보여줘요.';
+      ? '공개 가능한 기본 정보만 보여주고, 민감한 운영 정보는 숨겨 둬요.'
+      : '외부 검색 후보를 안전한 public subset으로만 보여줘요.';
 
   const guidance =
     status === 'candidate'
@@ -83,8 +85,8 @@ export function buildAnimalHospitalTrustInfo(
       status === 'trust_reviewed'
         ? 'positive'
         : status === 'needs_verification'
-          ? 'caution'
-          : 'neutral',
+        ? 'caution'
+        : 'neutral',
     sourceLabel,
     basisDate: sourceUpdatedAt,
     basisDateLabel: buildTrustBasisDateLabel(sourceUpdatedAt, '기준일'),
@@ -97,25 +99,29 @@ export function buildAnimalHospitalTrustInfo(
 export function canExposeAnimalHospitalPhone(
   canonical: AnimalHospitalCanonicalHospital,
 ): boolean {
-  return Boolean(resolveAnimalHospitalPublicPhone(canonical));
+  const publicPhone = canonical.contact.publicPhone;
+
+  return Boolean(
+    publicPhone?.value.trim() &&
+      (publicPhone.verificationStatus === 'official' ||
+        publicPhone.verificationStatus === 'reviewed'),
+  );
 }
 
 export function resolveAnimalHospitalPublicPhone(
   canonical: AnimalHospitalCanonicalHospital,
 ): string | null {
   const primaryPhone = canonical.contact.publicPhone;
-  if (primaryPhone?.value) {
+  if (primaryPhone?.value && canExposeAnimalHospitalPhone(canonical)) {
     return primaryPhone.value;
   }
 
-  const fallbackCandidate = canonical.contact.candidatePhones.find(
-    candidate => typeof candidate.value === 'string' && candidate.value.trim(),
-  );
-
-  return fallbackCandidate?.value ?? null;
+  return null;
 }
 
-export function sanitizeAnimalHospitalDialUri(phone: string | null): string | null {
+export function sanitizeAnimalHospitalDialUri(
+  phone: string | null,
+): string | null {
   if (!phone) {
     return null;
   }
@@ -126,7 +132,12 @@ export function sanitizeAnimalHospitalDialUri(phone: string | null): string | nu
 
 export function resolveAnimalHospitalSensitiveVisibility(params: {
   visibility: AnimalHospitalSensitiveFieldVisibility;
-  verificationStatus: AnimalHospitalPhoneVerificationStatus | 'official' | 'reviewed' | 'candidate' | 'unknown';
+  verificationStatus:
+    | AnimalHospitalPhoneVerificationStatus
+    | 'official'
+    | 'reviewed'
+    | 'candidate'
+    | 'unknown';
   verifiedAt: string | null;
   staleAfterDays: number;
 }): AnimalHospitalSensitiveFieldVisibility {
@@ -206,12 +217,10 @@ export function hasUsableAnimalHospitalCoordinates(
 }
 
 export function getAnimalHospitalDistanceMeters(params: {
-  coordinates:
-    | {
-        latitude: number;
-        longitude: number;
-      }
-    | null;
+  coordinates: {
+    latitude: number;
+    longitude: number;
+  } | null;
   latitude: number | null;
   longitude: number | null;
 }): number | null {
@@ -229,17 +238,7 @@ export function getAnimalHospitalDistanceMeters(params: {
     return null;
   }
 
-  const toRadians = (value: number) => (value * Math.PI) / 180;
-  const earthRadius = 6371000;
-  const latDiff = toRadians(latitude - coordinates.latitude);
-  const lngDiff = toRadians(longitude - coordinates.longitude);
-  const originLat = toRadians(coordinates.latitude);
-  const targetLat = toRadians(latitude);
-  const a =
-    Math.sin(latDiff / 2) ** 2 +
-    Math.cos(originLat) * Math.cos(targetLat) * Math.sin(lngDiff / 2) ** 2;
-  const distance = 2 * earthRadius * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return Math.round(distance);
+  return calculateDistanceMeters(coordinates, { latitude, longitude });
 }
 
 export function getAnimalHospitalCoordinateFreshness(
@@ -261,11 +260,13 @@ export function resolveCoordinateNormalizationStatus(params: {
   longitude: number | null;
   fallbackLatitude: number | null;
   fallbackLongitude: number | null;
-  crs: AnimalHospitalCanonicalHospital['coordinates']['source'] | 'official-wgs84' | 'epsg5174-pending' | 'unknown';
+  crs:
+    | AnimalHospitalCanonicalHospital['coordinates']['source']
+    | 'official-wgs84'
+    | 'epsg5174-pending'
+    | 'unknown';
 }): AnimalHospitalCoordinateNormalizationStatus {
-  if (
-    hasUsableAnimalHospitalCoordinates(params.latitude, params.longitude)
-  ) {
+  if (hasUsableAnimalHospitalCoordinates(params.latitude, params.longitude)) {
     return 'exact';
   }
 

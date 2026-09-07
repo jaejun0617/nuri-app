@@ -40,8 +40,9 @@ function createVerification(
     status: input.status ?? 'approved',
     verifiedValue: input.verifiedValue ?? { phone: '031-555-0000' },
     verificationSource: input.verificationSource ?? 'operator-call',
-    reviewerId: input.reviewerId ?? 'reviewer-1',
-    reviewedAt: input.reviewedAt ?? now,
+    reviewerId:
+      input.reviewerId === undefined ? 'reviewer-1' : input.reviewerId,
+    reviewedAt: input.reviewedAt === undefined ? now : input.reviewedAt,
     expiresAt: input.expiresAt ?? null,
     note: input.note ?? null,
     evidence: input.evidence ?? {},
@@ -152,8 +153,7 @@ describe('animalHospital public verification projection gate', () => {
           status: 'pending',
           verificationSource: 'provider-crosscheck',
           verifiedValue: {
-            thumbnailUrl:
-              'https://cdn.example.com/animal-hospital/pending.jpg',
+            thumbnailUrl: 'https://cdn.example.com/animal-hospital/pending.jpg',
           },
           reviewerId: null,
           reviewedAt: null,
@@ -172,6 +172,41 @@ describe('animalHospital public verification projection gate', () => {
     expect(projected.media.thumbnailUrl).toBe(
       'https://cdn.example.com/animal-hospital/pending.jpg',
     );
+  });
+
+  it('최신 pending 전화는 official-source여도 candidate로 보존한다', () => {
+    const canonical = createCanonical();
+    const projected = applyAnimalHospitalApprovedVerifications({
+      canonical,
+      now: Date.parse('2026-04-20T04:00:00.000Z'),
+      verifications: [
+        createVerification({
+          id: 'phone-approved-older',
+          animalHospitalId: canonical.id,
+          fieldKey: 'phone',
+          status: 'approved',
+          verifiedValue: { phone: '031-555-0000' },
+          reviewedAt: '2026-04-20T01:00:00.000Z',
+          updatedAt: '2026-04-20T01:00:00.000Z',
+        }),
+        createVerification({
+          id: 'phone-pending-newer',
+          animalHospitalId: canonical.id,
+          fieldKey: 'phone',
+          status: 'pending',
+          verificationSource: 'official-source',
+          verifiedValue: { phone: '031-888-0000' },
+          reviewerId: null,
+          reviewedAt: null,
+          updatedAt: '2026-04-20T02:00:00.000Z',
+        }),
+      ],
+    });
+
+    expect(projected.contact.publicPhone).toMatchObject({
+      value: '031-888-0000',
+      verificationStatus: 'candidate',
+    });
   });
 
   it('approved open24Hours verification은 내부 검수 값으로만 반영한다', () => {

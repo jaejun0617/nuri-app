@@ -21,7 +21,6 @@ import {
 import { styles } from '../../components/locationDiscovery/LocationDiscovery.styles';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import { useLocationDiscovery } from '../../hooks/useLocationDiscovery';
-import { usePrefetchLocationDiscoveryThumbnails } from '../../hooks/useLocationDiscoveryThumbnail';
 import { useRecentPersonalSearches } from '../../hooks/useRecentPersonalSearches';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
@@ -99,7 +98,6 @@ function WalkLoadingSkeleton() {
     <View style={styles.resultsLoadingWrap}>
       {[0, 1, 2].map(index => (
         <View key={`walk-loading-${index}`} style={styles.resultsLoadingCard}>
-          <View style={styles.resultsLoadingThumb} />
           <View style={styles.resultsLoadingBody}>
             <View
               style={[
@@ -146,7 +144,8 @@ export default function LocationDiscoveryListScreen() {
     coordinateOverride,
   });
   const selectedPet = useMemo(
-    () => pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
+    () =>
+      pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
     [pets, selectedPetId],
   );
   const petTheme = useMemo(
@@ -157,8 +156,6 @@ export default function LocationDiscoveryListScreen() {
     () => sortWalkItems(discoveryState.items, sortOrder),
     [discoveryState.items, sortOrder],
   );
-  usePrefetchLocationDiscoveryThumbnails(sortedItems);
-
   const locationTitle = useMemo(() => {
     return (
       discoveryState.scope?.displayLabel ??
@@ -174,8 +171,8 @@ export default function LocationDiscoveryListScreen() {
     return submittedQuery.trim().length >= 2
       ? '검색어와 현재 위치를 함께 참고하고 있어요'
       : discoveryState.hasFreshLocation
-        ? '현재 위치 기준'
-        : '최근 확인 위치 기준';
+      ? '현재 위치 기준'
+      : '최근 확인 위치 기준';
   }, [
     submittedQuery,
     discoveryState.hasFreshLocation,
@@ -235,7 +232,6 @@ export default function LocationDiscoveryListScreen() {
         onPress={openDetail}
         onPressDetail={openDetail}
         layout="compact"
-        hideThumbnailWhenUnavailable
       />
     ),
     [openDetail],
@@ -274,7 +270,10 @@ export default function LocationDiscoveryListScreen() {
         >
           <AppText
             preset="unifiedMeta"
-            style={[styles.locationRefreshButtonText, { color: petTheme.primary }]}
+            style={[
+              styles.locationRefreshButtonText,
+              { color: petTheme.primary },
+            ]}
           >
             새로고침
           </AppText>
@@ -283,11 +282,13 @@ export default function LocationDiscoveryListScreen() {
 
       <View style={styles.filterSection}>
         <View style={styles.sortRow}>
-          {([
-            ['recommended', '신뢰 우선'],
-            ['distance-asc', '가까운순'],
-            ['distance-desc', '먼순'],
-          ] as const).map(([value, label]) => {
+          {(
+            [
+              ['recommended', '신뢰 우선'],
+              ['distance-asc', '가까운순'],
+              ['distance-desc', '먼순'],
+            ] as const
+          ).map(([value, label]) => {
             const selected = sortOrder === value;
             return (
               <TouchableOpacity
@@ -314,7 +315,10 @@ export default function LocationDiscoveryListScreen() {
                   style={[
                     styles.sortChipText,
                     selected
-                      ? [styles.sortChipTextSelected, { color: petTheme.primary }]
+                      ? [
+                          styles.sortChipTextSelected,
+                          { color: petTheme.primary },
+                        ]
                       : null,
                   ]}
                 >
@@ -360,8 +364,8 @@ export default function LocationDiscoveryListScreen() {
             discoveryState.searching
               ? '검색 중'
               : discoveryState.loading
-                ? '불러오는 중'
-                : null
+              ? '불러오는 중'
+              : null
           }
         />
 
@@ -398,7 +402,10 @@ export default function LocationDiscoveryListScreen() {
                     recentSearches.save(entry.query).catch(() => {});
                   }}
                 >
-                  <AppText preset="unifiedMeta" style={styles.recentSearchChipText}>
+                  <AppText
+                    preset="unifiedMeta"
+                    style={styles.recentSearchChipText}
+                  >
                     {entry.query}
                   </AppText>
                 </TouchableOpacity>
@@ -451,7 +458,9 @@ export default function LocationDiscoveryListScreen() {
                 contentContainerStyle={styles.resultsListContent}
                 showsVerticalScrollIndicator
                 keyboardShouldPersistTaps="handled"
-                keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+                keyboardDismissMode={
+                  Platform.OS === 'ios' ? 'interactive' : 'on-drag'
+                }
                 removeClippedSubviews={Platform.OS === 'android'}
                 scrollEventThrottle={16}
                 initialNumToRender={6}

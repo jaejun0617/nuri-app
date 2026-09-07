@@ -4,8 +4,7 @@ import { TouchableOpacity, View } from 'react-native';
 import AppText from '../../app/ui/AppText';
 import { buildAnimalHospitalCardViewModel } from '../../domains/animalHospital/presentation';
 import type { AnimalHospitalPublicHospital } from '../../domains/animalHospital/types';
-import { useAnimalHospitalEnrichedItem } from '../../hooks/useAnimalHospitalThumbnail';
-import OptimizedImage from '../images/OptimizedImage';
+import WalkingTravelMetaRow from '../locationDiscovery/WalkingTravelMetaRow';
 import { styles } from '../locationDiscovery/LocationDiscovery.styles';
 
 type Props = {
@@ -14,78 +13,34 @@ type Props = {
 };
 
 function AnimalHospitalCard({ item, onOpenDetail }: Props) {
-  const enrichedItemQuery = useAnimalHospitalEnrichedItem(item);
-  const displayItem = enrichedItemQuery.data ?? item;
-  const photoAttributionLabel =
-    enrichedItemQuery.overlay?.photoAttributionLabel ?? null;
   const viewModel = useMemo(
-    () => buildAnimalHospitalCardViewModel(displayItem),
-    [displayItem],
+    () => buildAnimalHospitalCardViewModel(item),
+    [item],
   );
-  const thumbnailUri = displayItem.thumbnailUrl;
-  const hasThumbnail = Boolean(thumbnailUri);
-  const operatingBadge = displayItem.operatingBadge;
+  const operatingBadge = item.operatingBadge;
   const operatingBadgeStyle =
     operatingBadge?.kind === 'open24'
       ? styles.animalHospitalOperatingBadgeOpen24
       : operatingBadge?.kind === 'open'
-        ? styles.animalHospitalOperatingBadgeOpen
-        : styles.animalHospitalOperatingBadgeClosed;
+      ? styles.animalHospitalOperatingBadgeOpen
+      : styles.animalHospitalOperatingBadgeClosed;
   const operatingBadgeTextStyle =
     operatingBadge?.kind === 'open24'
       ? styles.animalHospitalOperatingBadgeTextOpen24
       : operatingBadge?.kind === 'open'
-        ? styles.animalHospitalOperatingBadgeTextOpen
-        : styles.animalHospitalOperatingBadgeTextClosed;
+      ? styles.animalHospitalOperatingBadgeTextOpen
+      : styles.animalHospitalOperatingBadgeTextClosed;
 
   return (
     <View style={styles.card}>
       <TouchableOpacity
         activeOpacity={0.92}
         style={styles.cardPressableAreaCompact}
-        onPress={() => onOpenDetail(displayItem)}
+        onPress={() => onOpenDetail(item)}
       >
-        <View
-          style={
-            hasThumbnail
-              ? styles.compactCardTop
-              : styles.compactCardTopWithoutThumbnail
-          }
-        >
-          {thumbnailUri ? (
-            <View
-              style={[styles.cardThumbnailWrap, styles.cardThumbnailWrapCompact]}
-            >
-              <OptimizedImage
-                uri={thumbnailUri}
-                style={[styles.cardThumbnail, styles.cardThumbnailCompact]}
-                resizeMode="cover"
-                priority="normal"
-                fallback={false}
-              />
-              {photoAttributionLabel ? (
-                <View
-                  style={[
-                    styles.cardThumbnailOverlay,
-                    styles.cardThumbnailOverlayCompact,
-                  ]}
-                >
-                  <View style={styles.cardPhotoAttributionWrap}>
-                    <AppText
-                      preset="unifiedMeta"
-                      style={styles.cardPhotoAttributionText}
-                      numberOfLines={1}
-                    >
-                      사진 출처 · {photoAttributionLabel}
-                    </AppText>
-                  </View>
-                </View>
-              ) : null}
-            </View>
-          ) : null}
-
+        <View style={styles.compactCardTopWithoutThumbnail}>
           <View style={[styles.cardHeader, styles.cardHeaderCompact]}>
-            <View style={[styles.cardHeaderCopy, styles.cardHeaderCopyCentered]}>
+            <View style={styles.cardHeaderCopy}>
               <AppText
                 preset="unifiedMeta"
                 style={styles.cardCategory}
@@ -121,6 +76,14 @@ function AnimalHospitalCard({ item, onOpenDetail }: Props) {
               >
                 {viewModel.title}
               </AppText>
+              <AppText
+                preset="unifiedMeta"
+                style={styles.cardMetaText}
+                numberOfLines={2}
+              >
+                {viewModel.address}
+              </AppText>
+              <WalkingTravelMetaRow distanceMeters={item.distanceMeters} />
               <AppText
                 preset="unifiedMeta"
                 style={styles.cardMetaText}

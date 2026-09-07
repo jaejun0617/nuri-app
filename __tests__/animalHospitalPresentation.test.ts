@@ -46,10 +46,8 @@ describe('animalHospital presentation models', () => {
     const card = buildAnimalHospitalCardViewModel(publicHospital);
 
     expect(card.title).toBe('누리동물병원');
+    expect(card.address).toBe('서울특별시 강남구 테헤란로 10');
     expect(card.phoneLabel).toBe('02-555-0101');
-    expect('address' in (card as unknown as Record<string, unknown>)).toBe(
-      false,
-    );
     expect(
       'operatingHours' in (card as unknown as Record<string, unknown>),
     ).toBe(false);

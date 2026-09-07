@@ -13,6 +13,7 @@ import {
   isTrustDateStale,
 } from '../trust/publicTrust';
 import { buildStaticMapPreviewUrl } from './maps';
+import { estimateWalkMinutes } from './travelMetrics';
 import type {
   LocationDiscoveryItem,
   LocationDiscoverySearchInput,
@@ -23,7 +24,10 @@ const WALK_POI_DEFAULT_LIMIT = 8;
 const WALK_POI_NEARBY_RADIUS_METERS = 5500;
 const WALK_POI_SEARCH_RADIUS_METERS = 20000;
 
-function parseBooleanFlag(value: string | undefined, defaultValue: boolean): boolean {
+function parseBooleanFlag(
+  value: string | undefined,
+  defaultValue: boolean,
+): boolean {
   if (value === undefined) {
     return defaultValue;
   }
@@ -212,12 +216,6 @@ function withTimeout<T>(
   });
 }
 
-function estimateWalkMinutes(distanceMeters: number | null): number | null {
-  if (distanceMeters === null) return null;
-  const routeDistance = distanceMeters * 1.6;
-  return Math.max(15, Math.min(90, Math.round(routeDistance / 70)));
-}
-
 function formatCoordinateLabel(latitude: number, longitude: number): string {
   return `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
 }
@@ -353,7 +351,9 @@ export async function searchWalkPoiLocations(
         p_query: query,
         p_anchor_lat: anchor?.latitude ?? null,
         p_anchor_lng: anchor?.longitude ?? null,
-        p_radius_meters: anchor ? WALK_POI_NEARBY_RADIUS_METERS : WALK_POI_SEARCH_RADIUS_METERS,
+        p_radius_meters: anchor
+          ? WALK_POI_NEARBY_RADIUS_METERS
+          : WALK_POI_SEARCH_RADIUS_METERS,
         p_limit: WALK_POI_DEFAULT_LIMIT,
         p_bbox_min_lat: null,
         p_bbox_min_lng: null,

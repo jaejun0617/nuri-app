@@ -23,7 +23,6 @@ import {
 import { styles } from '../../components/locationDiscovery/LocationDiscovery.styles';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import { useAnimalHospitalDiscovery } from '../../hooks/useAnimalHospitalDiscovery';
-import { usePrefetchAnimalHospitalThumbnails } from '../../hooks/useAnimalHospitalThumbnail';
 import {
   selectAnimalHospitalListItems,
   type AnimalHospitalListMode,
@@ -57,7 +56,6 @@ export default function AnimalHospitalListScreen() {
     () => selectAnimalHospitalListItems(discoveryState.items, listMode),
     [discoveryState.items, listMode],
   );
-  usePrefetchAnimalHospitalThumbnails(discoveryState.items);
   const selectedPet = useMemo(
     () =>
       pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
@@ -238,8 +236,8 @@ export default function AnimalHospitalListScreen() {
             discoveryState.searching
               ? '검색 중'
               : discoveryState.loading
-                ? '불러오는 중'
-                : null
+              ? '불러오는 중'
+              : null
           }
         />
 
@@ -254,7 +252,8 @@ export default function AnimalHospitalListScreen() {
                   body="현재 위치와 공개된 병원 정보를 확인한 뒤 보여드릴게요."
                 />
               </View>
-            ) : discoveryState.searching && discoveryState.items.length === 0 ? (
+            ) : discoveryState.searching &&
+              discoveryState.items.length === 0 ? (
               <View style={styles.resultsEmptyWrap}>
                 <LocationDiscoveryStatusCard
                   icon="search"

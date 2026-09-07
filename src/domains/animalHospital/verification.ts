@@ -106,11 +106,7 @@ function applyPhoneVerification(
       publicPhone: {
         value: phone,
         verificationStatus:
-          verification.status === 'approved'
-            ? 'reviewed'
-            : verification.verificationSource === 'official-source'
-              ? 'official'
-              : 'candidate',
+          verification.status === 'approved' ? 'reviewed' : 'candidate',
         sourceId: `verification:${verification.id}`,
         verifiedAt: verification.reviewedAt ?? verification.updatedAt,
       },
@@ -150,8 +146,8 @@ function applyCoordinateVerification(
         verification.status === 'approved'
           ? 'reviewed'
           : verification.verificationSource === 'official-source'
-            ? 'official-wgs84'
-            : 'external-fallback',
+          ? 'official-wgs84'
+          : 'external-fallback',
       normalizationStatus: 'exact',
     },
     trust: {
@@ -264,7 +260,7 @@ function compareVerificationRecency(
   left: AnimalHospitalVerificationRecord,
   right: AnimalHospitalVerificationRecord,
 ): number {
-  return getVerificationTime(right) - getVerificationTime(left);
+  return getVerificationTime(left) - getVerificationTime(right);
 }
 
 function getVerificationTime(

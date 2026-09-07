@@ -16,6 +16,7 @@ function createCanonicalHospital(input: {
   roadAddress?: string;
   latitude: number;
   longitude: number;
+  officialPhone?: string | null;
 }): AnimalHospitalCanonicalHospital {
   return mapOfficialAnimalHospitalSourceToCanonical({
     provider: 'official-localdata',
@@ -27,11 +28,13 @@ function createCanonicalHospital(input: {
     ingestMode: 'snapshot',
     name: input.name,
     roadAddress:
-      input.roadAddress ?? `경기 고양시 일산서구 중앙로 ${input.providerRecordId}`,
+      input.roadAddress ??
+      `경기 고양시 일산서구 중앙로 ${input.providerRecordId}`,
     lotAddress: `경기 고양시 일산서구 대화동 ${input.providerRecordId}`,
     operationStatusText: '영업/정상',
     licenseStatusText: '정상',
-    officialPhone: null,
+    officialPhone:
+      input.officialPhone === undefined ? '031-555-0101' : input.officialPhone,
     coordinates: {
       latitude: input.latitude,
       longitude: input.longitude,
@@ -44,7 +47,7 @@ function createCanonicalHospital(input: {
 }
 
 describe('animalHospital runtime query service', () => {
-  it('provider-only runtime candidate도 provider 전화번호와 좌표를 public으로 노출한다', async () => {
+  it('provider-only 후보 전화번호는 일반 목록과 검색에서 숨기고 내부 결과는 보존한다', async () => {
     const provider: LocationSearchProvider = {
       searchKeyword: async () => [
         {
@@ -58,6 +61,84 @@ describe('animalHospital runtime query service', () => {
           place_url: 'https://place.map.kakao.com/1',
         },
       ],
+      searchAddress: async () => [],
+    };
+
+    const scope = {
+      displayLabel: '강남구',
+      queryLabel: '서울 강남구',
+      anchorCoordinates: {
+        latitude: 37.5,
+        longitude: 127.01,
+        accuracy: 30,
+        capturedAt: Date.now(),
+        source: 'gps' as const,
+      },
+      distanceLabel: '현재 위치 기준',
+    };
+    const nearbyResult = await searchAnimalHospitals({
+      query: null,
+      scope,
+      useNearbySearch: true,
+      repository: emptyAnimalHospitalRepository,
+      provider,
+    });
+    const searchResult = await searchAnimalHospitals({
+      query: '근처동물병원',
+      scope,
+      useNearbySearch: false,
+      repository: emptyAnimalHospitalRepository,
+      provider,
+    });
+
+    expect(nearbyResult.items).toHaveLength(0);
+    expect(searchResult.items).toHaveLength(0);
+    expect(nearbyResult.internalItems).toHaveLength(1);
+    expect(
+      nearbyResult.internalItems[0]?.contact.candidatePhones[0],
+    ).toMatchObject({
+      value: '02-9999-0000',
+      verificationStatus: 'candidate',
+    });
+    expect(nearbyResult.internalItems[0]?.withheldFields).toContain(
+      'operatingHours',
+    );
+    expect(nearbyResult.internalItems[0]?.withheldFields).toContain(
+      'homepageUrl',
+    );
+  });
+
+  it('pending official-source 전화도 내부에는 보존하고 public 목록에서는 숨긴다', async () => {
+    const canonical = createCanonicalHospital({
+      providerRecordId: 'pending-official-phone',
+      name: '검수중동물병원',
+      latitude: 37.501,
+      longitude: 127.011,
+      officialPhone: null,
+    });
+    const now = new Date().toISOString();
+    const repository: AnimalHospitalCanonicalRepository = {
+      search: async () => [canonical],
+      getApprovedVerifications: async () => [
+        {
+          id: 'verification-phone-pending-official',
+          animalHospitalId: canonical.id,
+          fieldKey: 'phone',
+          status: 'pending',
+          verifiedValue: { phone: '02-8888-0000' },
+          verificationSource: 'official-source',
+          reviewerId: null,
+          reviewedAt: null,
+          expiresAt: null,
+          note: null,
+          evidence: {},
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+    };
+    const provider: LocationSearchProvider = {
+      searchKeyword: async () => [],
       searchAddress: async () => [],
     };
 
@@ -76,26 +157,15 @@ describe('animalHospital runtime query service', () => {
         distanceLabel: '현재 위치 기준',
       },
       useNearbySearch: true,
-      repository: emptyAnimalHospitalRepository,
+      repository,
       provider,
     });
 
-    expect(result.items).toHaveLength(1);
-    expect(result.items[0]?.name).toBe('근처동물병원');
-    expect(result.items[0]?.officialPhone).toBe('02-9999-0000');
-    expect(result.items[0]?.latitude).toBe(37.5012);
-    expect(result.items[0]?.longitude).toBe(127.0123);
-    expect(result.items[0]?.links.callUri).toBe('tel:0299990000');
-    expect(result.items[0]?.links.externalMapUrl).toContain('37.5012');
-    expect(result.items[0]?.links.providerPlaceUrl).toBe(
-      'https://place.map.kakao.com/1',
-    );
-    expect(result.items[0]?.publicTrust.publicLabel).toBe('candidate');
-    expect(result.items[0]?.statusSummary).toBe(
-      '인허가·운영상태 확인이 필요한 병원이에요.',
-    );
-    expect(result.internalItems[0]?.withheldFields).toContain('operatingHours');
-    expect(result.internalItems[0]?.withheldFields).toContain('homepageUrl');
+    expect(result.items).toHaveLength(0);
+    expect(result.internalItems[0]?.contact.publicPhone).toMatchObject({
+      value: '02-8888-0000',
+      verificationStatus: 'candidate',
+    });
   });
 
   it('명시 검색어는 현재 위치 반경으로 결과를 제한하지 않는다', async () => {
@@ -112,7 +182,7 @@ describe('animalHospital runtime query service', () => {
       lotAddress: '부산광역시 중구 중앙동 1',
       operationStatusText: '영업/정상',
       licenseStatusText: '정상',
-      officialPhone: null,
+      officialPhone: '051-555-0101',
       coordinates: {
         latitude: 35.1796,
         longitude: 129.0756,
@@ -280,11 +350,10 @@ describe('animalHospital runtime query service', () => {
         longitude: 126.77,
       },
     });
-    expect(result.items.some(item => item.name === '후보동물병원')).toBe(true);
+    expect(result.items.some(item => item.name === '후보동물병원')).toBe(false);
     expect(
-      result.items.find(item => item.name === '후보동물병원')?.publicTrust
-        .publicLabel,
-    ).toBe('candidate');
+      result.internalItems.some(item => item.canonicalName === '후보동물병원'),
+    ).toBe(true);
   });
 
   it('가까운순은 public 좌표 노출 없이도 canonical 좌표 기준 정렬을 유지한다', async () => {
@@ -301,7 +370,7 @@ describe('animalHospital runtime query service', () => {
       lotAddress: '경기 고양시 일산서구 대화동 201',
       operationStatusText: '영업/정상',
       licenseStatusText: '정상',
-      officialPhone: null,
+      officialPhone: '031-555-0201',
       coordinates: {
         latitude: 37.72,
         longitude: 126.8,
@@ -324,7 +393,7 @@ describe('animalHospital runtime query service', () => {
       lotAddress: '경기 고양시 일산서구 대화동 202',
       operationStatusText: '영업/정상',
       licenseStatusText: '정상',
-      officialPhone: null,
+      officialPhone: '031-555-0202',
       coordinates: {
         latitude: 37.6801,
         longitude: 126.7701,
@@ -529,13 +598,9 @@ describe('animalHospital runtime query service', () => {
       provider,
     });
 
-    expect(result.items).toHaveLength(1);
-    expect(result.items[0]?.id).not.toBe(unresolvedCanonical.id);
-    expect(result.items[0]?.name).toBe('초원동물병원');
-    expect(result.items[0]?.publicTrust.publicLabel).toBe('candidate');
-    expect(result.items[0]?.links.providerPlaceUrl).toBe(
-      'https://place.map.kakao.com/unresolved',
-    );
+    expect(result.items).toHaveLength(0);
+    expect(result.internalItems).toHaveLength(1);
+    expect(result.internalItems[0]?.canonicalName).toBe('초원동물병원');
   });
 
   it('approved phone verification은 public phone으로 쓰지만 민감 필드는 노출하지 않는다', async () => {
@@ -552,7 +617,7 @@ describe('animalHospital runtime query service', () => {
       lotAddress: '경기 고양시 일산서구 대화동 777',
       operationStatusText: '영업/정상',
       licenseStatusText: '정상',
-      officialPhone: null,
+      officialPhone: '031-555-2401',
       coordinates: {
         latitude: 37.68,
         longitude: 126.77,
@@ -662,7 +727,7 @@ describe('animalHospital runtime query service', () => {
       lotAddress: '경기도 파주시 동패동 1',
       operationStatusText: '영업/정상',
       licenseStatusText: '정상',
-      officialPhone: null,
+      officialPhone: '031-555-2499',
       coordinates: {
         latitude: 37.713595,
         longitude: 126.720972,
@@ -685,7 +750,7 @@ describe('animalHospital runtime query service', () => {
       lotAddress: '경기도 파주시 동패동 2',
       operationStatusText: '영업/정상',
       licenseStatusText: '정상',
-      officialPhone: null,
+      officialPhone: '031-555-0801',
       coordinates: {
         latitude: 37.71,
         longitude: 126.72,
@@ -773,7 +838,7 @@ describe('animalHospital runtime query service', () => {
       lotAddress: '경기 고양시 일산서구 대화동 801',
       operationStatusText: '영업/정상',
       licenseStatusText: '정상',
-      officialPhone: null,
+      officialPhone: '031-555-0802',
       coordinates: {
         latitude: 37.681,
         longitude: 126.771,
@@ -796,7 +861,7 @@ describe('animalHospital runtime query service', () => {
       lotAddress: '경기 고양시 일산서구 대화동 802',
       operationStatusText: '영업/정상',
       licenseStatusText: '정상',
-      officialPhone: null,
+      officialPhone: '031-555-0778',
       coordinates: {
         latitude: 37.682,
         longitude: 126.772,
@@ -884,7 +949,7 @@ describe('animalHospital runtime query service', () => {
       lotAddress: '경기 고양시 일산서구 대화동 778',
       operationStatusText: '영업/정상',
       licenseStatusText: '정상',
-      officialPhone: null,
+      officialPhone: '031-555-0778',
       coordinates: {
         latitude: 37.68,
         longitude: 126.77,

@@ -51,6 +51,7 @@ describe('animalHospital matching and query priority', () => {
           roadAddress: '서울특별시 강남구 테헤란로 10',
           latitude: 37.4999,
           longitude: 127.0333,
+          phone: '02-1000-0101',
         }),
       ],
     };
@@ -94,6 +95,7 @@ describe('animalHospital matching and query priority', () => {
           roadAddress: '서울특별시 강남구 테헤란로 10',
           latitude: 37.4999,
           longitude: 127.0333,
+          phone: '02-2000-0201',
         }),
         createOfficialCanonical({
           providerRecordId: 'official-202',
@@ -101,6 +103,7 @@ describe('animalHospital matching and query priority', () => {
           roadAddress: '서울특별시 강남구 테헤란로 11',
           latitude: 37.5,
           longitude: 127.0334,
+          phone: '02-2000-0202',
         }),
       ],
     };
@@ -128,9 +131,16 @@ describe('animalHospital matching and query priority', () => {
       provider,
     });
 
-    expect(result.items).toHaveLength(3);
+    expect(result.items).toHaveLength(2);
     expect(
       result.items.some(
+        item =>
+          item.links.providerPlaceUrl === 'https://place.map.kakao.com/201',
+      ),
+    ).toBe(false);
+    expect(result.internalItems).toHaveLength(3);
+    expect(
+      result.internalItems.some(
         item =>
           item.links.providerPlaceUrl === 'https://place.map.kakao.com/201',
       ),
@@ -176,7 +186,8 @@ describe('animalHospital matching and query priority', () => {
 
     expect(result.items[0]?.name).toBe('가까운동물병원');
     expect(result.items[0]?.publicTrust.publicLabel).toBe('needs_verification');
-    expect(result.items[1]?.publicTrust.publicLabel).toBe('candidate');
+    expect(result.items).toHaveLength(1);
+    expect(result.internalItems).toHaveLength(2);
   });
 
   it('주소 괄호 보조 설명 차이는 보수 exact address match로 허용한다', async () => {

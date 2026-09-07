@@ -13,12 +13,11 @@ import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
 import Screen from '../../components/layout/Screen';
+import WalkingTravelMetaRow from '../../components/locationDiscovery/WalkingTravelMetaRow';
 import NativeLiteMapPreview from '../../components/maps/NativeLiteMapPreview';
-import OptimizedImage from '../../components/images/OptimizedImage';
 import { buildAnimalHospitalDetailViewModel } from '../../domains/animalHospital/presentation';
 import { hasUsableAnimalHospitalCoordinates } from '../../domains/animalHospital/trust';
 import { createAnimalHospitalDetailStyles } from '../../components/animalHospital/styles';
-import { useAnimalHospitalEnrichedItem } from '../../hooks/useAnimalHospitalThumbnail';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
 
@@ -30,10 +29,7 @@ export default function AnimalHospitalDetailScreen() {
   const route = useRoute<Route>();
   const theme = useTheme();
   const item = route.params?.item;
-  const enrichedItemQuery = useAnimalHospitalEnrichedItem(item ?? null, {
-    includeDetails: true,
-  });
-  const displayItem = enrichedItemQuery.data ?? item ?? null;
+  const displayItem = item ?? null;
   const hasMapPreviewCoordinate = displayItem
     ? hasUsableAnimalHospitalCoordinates(
         displayItem.latitude,
@@ -42,13 +38,11 @@ export default function AnimalHospitalDetailScreen() {
     : false;
   const canRenderNativeMapPreview =
     hasMapPreviewCoordinate && Platform.OS !== 'android';
-  const photoAttributionLabel =
-    enrichedItemQuery.overlay?.photoAttributionLabel ?? null;
   const viewModel = useMemo(
-    () => (displayItem ? buildAnimalHospitalDetailViewModel(displayItem) : null),
+    () =>
+      displayItem ? buildAnimalHospitalDetailViewModel(displayItem) : null,
     [displayItem],
   );
-  const thumbnailUri = displayItem?.thumbnailUrl ?? null;
   const styles = useMemo(
     () =>
       createAnimalHospitalDetailStyles(
@@ -84,14 +78,14 @@ export default function AnimalHospitalDetailScreen() {
     operatingBadge?.kind === 'open24'
       ? styles.operatingBadgeOpen24
       : operatingBadge?.kind === 'open'
-        ? styles.operatingBadgeOpen
-        : styles.operatingBadgeClosed;
+      ? styles.operatingBadgeOpen
+      : styles.operatingBadgeClosed;
   const operatingBadgeTextStyle =
     operatingBadge?.kind === 'open24'
       ? styles.operatingBadgeTextOpen24
       : operatingBadge?.kind === 'open'
-        ? styles.operatingBadgeTextOpen
-        : styles.operatingBadgeTextClosed;
+      ? styles.operatingBadgeTextOpen
+      : styles.operatingBadgeTextClosed;
 
   return (
     <Screen style={styles.screen}>
@@ -115,25 +109,6 @@ export default function AnimalHospitalDetailScreen() {
           contentContainerStyle={{ paddingBottom: 32, gap: 18 }}
         >
           <View style={styles.hero}>
-            {thumbnailUri ? (
-              <View style={styles.detailThumbnailMeta}>
-                <View style={styles.detailThumbnailWrap}>
-                  <OptimizedImage
-                    uri={thumbnailUri}
-                    style={styles.detailThumbnail}
-                    resizeMode="cover"
-                    priority="normal"
-                    fallback={false}
-                  />
-                </View>
-                {photoAttributionLabel ? (
-                  <AppText preset="unifiedMeta" style={styles.photoAttributionText}>
-                    사진 출처 · {photoAttributionLabel}
-                  </AppText>
-                ) : null}
-              </View>
-            ) : null}
-
             <View style={styles.heroHeader}>
               <AppText preset="unifiedMeta" style={styles.eyebrow}>
                 우리동네 동물병원
@@ -178,16 +153,9 @@ export default function AnimalHospitalDetailScreen() {
                 </AppText>
               </View>
 
-              <View style={styles.infoRow}>
-                <Feather
-                  name="navigation"
-                  size={16}
-                  color={theme.colors.textMuted}
-                />
-                <AppText preset="unifiedBody" style={styles.infoText}>
-                  {viewModel.distanceLabel}
-                </AppText>
-              </View>
+              <WalkingTravelMetaRow
+                distanceMeters={displayItem.distanceMeters}
+              />
 
               <View style={styles.infoRow}>
                 <Feather
@@ -243,7 +211,9 @@ export default function AnimalHospitalDetailScreen() {
                       callUri ? styles.secondaryCtaText : styles.primaryCtaText
                     }
                   >
-                    {displayItem.links.externalMapUrl ? '길찾기' : '지도에서 보기'}
+                    {displayItem.links.externalMapUrl
+                      ? '길찾기'
+                      : '지도에서 보기'}
                   </AppText>
                 </TouchableOpacity>
               ) : null}
@@ -268,7 +238,10 @@ export default function AnimalHospitalDetailScreen() {
                     Linking.openURL(mapLink).catch(() => {});
                   }}
                 >
-                  <AppText preset="unifiedMeta" style={styles.mapOpenButtonText}>
+                  <AppText
+                    preset="unifiedMeta"
+                    style={styles.mapOpenButtonText}
+                  >
                     열기
                   </AppText>
                 </TouchableOpacity>

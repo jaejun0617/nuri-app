@@ -32,7 +32,10 @@ import {
   createHiddenAnimalHospitalDetail,
   mapOfficialAnimalHospitalSourceToCanonical,
 } from './mapper';
-import { getAnimalHospitalDistanceMeters } from '../../domains/animalHospital/trust';
+import {
+  canExposeAnimalHospitalPhone,
+  getAnimalHospitalDistanceMeters,
+} from '../../domains/animalHospital/trust';
 import { animalHospitalSupabaseRepository } from '../supabase/animalHospitals';
 
 const CANONICAL_SEARCH_TIMEOUT_MS = 2500;
@@ -556,16 +559,14 @@ export async function searchAnimalHospitals(input: {
       return false;
     }
 
-    if (
-      input.exoticAnimalCareOnly &&
-      !hasReviewedExoticAnimalCare(item)
-    ) {
+    if (input.exoticAnimalCareOnly && !hasReviewedExoticAnimalCare(item)) {
       return false;
     }
 
     return true;
   });
   const publicItems = merged
+    .filter(canExposeAnimalHospitalPhone)
     .map(canonical =>
       projectAnimalHospitalPublic({
         canonical,

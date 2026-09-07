@@ -5,6 +5,7 @@ import { View } from 'react-native';
 import AnimalHospitalCard from '../src/components/animalHospital/AnimalHospitalCard';
 import AnimalHospitalDetailScreen from '../src/screens/AnimalHospital/AnimalHospitalDetailScreen';
 import AnimalHospitalListScreen from '../src/screens/AnimalHospital/AnimalHospitalListScreen';
+import { buildWalkingTravelLabel } from '../src/services/locationDiscovery/travelMetrics';
 import LocationDiscoveryCard from '../src/components/locationDiscovery/LocationDiscoveryCard';
 import type { AnimalHospitalDiscoveryState } from '../src/hooks/useAnimalHospitalDiscovery';
 import type { AnimalHospitalPublicHospital } from '../src/domains/animalHospital/types';
@@ -79,18 +80,28 @@ jest.mock('../src/components/maps/NativeLiteMapPreview', () => {
   };
 });
 
-jest.mock('../src/components/locationDiscovery/LocationDiscoverySearchBar', () => {
-  const ReactRuntime = jest.requireActual('react');
-  const { Text: NativeText, View: NativeView } = jest.requireActual('react-native');
+jest.mock(
+  '../src/components/locationDiscovery/LocationDiscoverySearchBar',
+  () => {
+    const ReactRuntime = jest.requireActual('react');
+    const { Text: NativeText, View: NativeView } =
+      jest.requireActual('react-native');
 
-  return function MockSearchBar({ loadingText }: { loadingText?: string | null }) {
-    return ReactRuntime.createElement(
-      NativeView,
-      { testID: 'search-bar' },
-      loadingText ? ReactRuntime.createElement(NativeText, null, loadingText) : null,
-    );
-  };
-});
+    return function MockSearchBar({
+      loadingText,
+    }: {
+      loadingText?: string | null;
+    }) {
+      return ReactRuntime.createElement(
+        NativeView,
+        { testID: 'search-bar' },
+        loadingText
+          ? ReactRuntime.createElement(NativeText, null, loadingText)
+          : null,
+      );
+    };
+  },
+);
 
 jest.mock('../src/hooks/useLocationDiscoveryThumbnail', () => ({
   useLocationDiscoveryThumbnail: jest.fn(() => ({
@@ -101,12 +112,14 @@ jest.mock('../src/hooks/useLocationDiscoveryThumbnail', () => ({
 }));
 
 jest.mock('../src/hooks/useAnimalHospitalThumbnail', () => ({
-  useAnimalHospitalEnrichedItem: jest.fn((item: AnimalHospitalPublicHospital | null) => ({
-    data: item,
-    overlay: item?.thumbnailUrl
-      ? { photoAttributionLabel: '공식 출처' }
-      : null,
-  })),
+  useAnimalHospitalEnrichedItem: jest.fn(
+    (item: AnimalHospitalPublicHospital | null) => ({
+      data: item,
+      overlay: item?.thumbnailUrl
+        ? { photoAttributionLabel: '공식 출처' }
+        : null,
+    }),
+  ),
   usePrefetchAnimalHospitalThumbnails: jest.fn(),
 }));
 
@@ -284,53 +297,45 @@ describe('NURI-08 place media and initial loading', () => {
     });
   });
 
-  it('photo 없는 Walk compact card는 미디어 영역 없이 거리 정보를 유지한다', async () => {
+  it('Walk compact card는 이미지 데이터와 무관하게 미디어 영역을 렌더하지 않는다', async () => {
     const renderer = await renderElement(
       <LocationDiscoveryCard
-        item={walkItem}
+        item={{
+          ...walkItem,
+          thumbnailUrl: 'https://cdn.example.test/walk.jpg',
+        }}
         onPress={jest.fn()}
         layout="compact"
-        hideThumbnailWhenUnavailable
       />,
     );
 
     expect(countMediaImages(renderer)).toBe(0);
-    expect(serialized(renderer)).toContain('320m');
-    expect(serialized(renderer)).not.toContain('map-pin');
+    expect(serialized(renderer)).toContain('도보 약 5분 · 320m');
+    expect(serialized(renderer)).not.toContain('walk.jpg');
   });
 
-  it('photo 없는 Walk related card도 noncompact metadata에서 거리를 유지한다', async () => {
-    const renderer = await renderElement(
-      <LocationDiscoveryCard
-        item={walkItem}
-        onPress={jest.fn()}
-        hideThumbnailWhenUnavailable
-      />,
-    );
-
-    expect(countMediaImages(renderer)).toBe(0);
-    expect(serialized(renderer)).toContain('320m');
-  });
-
-  it('hide 옵션이 없는 shared location card는 기존 placeholder 계약을 유지한다', async () => {
+  it('Walk related card도 빈 이미지 슬롯 없이 이동 정보를 같은 row에 유지한다', async () => {
     const renderer = await renderElement(
       <LocationDiscoveryCard item={walkItem} onPress={jest.fn()} />,
     );
 
-    expect(serialized(renderer)).toContain('map-pin');
+    expect(countMediaImages(renderer)).toBe(0);
+    expect(
+      renderer.root.findAll(
+        node =>
+          node.type === View && node.props.testID === 'walking-travel-meta',
+      ),
+    ).toHaveLength(1);
+    expect(serialized(renderer)).toContain('도보 약 5분 · 320m');
   });
 
-  it('photo가 있는 Walk card는 기존 이미지와 출처 표시 경로를 유지한다', async () => {
+  it('Walk card의 이미지 제거는 특정 사용자나 QA row 조건에 의존하지 않는다', async () => {
     const renderer = await renderElement(
-      <LocationDiscoveryCard
-        item={{ ...walkItem, thumbnailUrl: 'https://cdn.example.test/walk.jpg' }}
-        onPress={jest.fn()}
-        layout="compact"
-        hideThumbnailWhenUnavailable
-      />,
+      <LocationDiscoveryCard item={walkItem} onPress={jest.fn()} />,
     );
 
-    expect(countMediaImages(renderer)).toBe(1);
+    expect(countMediaImages(renderer)).toBe(0);
+    expect(serialized(renderer)).toContain('도보 약 5분 · 320m');
   });
 
   it('photo 없는 Hospital card는 회색 placeholder를 예약하지 않는다', async () => {
@@ -342,15 +347,21 @@ describe('NURI-08 place media and initial loading', () => {
     expect(serialized(renderer)).not.toContain('shield');
   });
 
-  it('photo가 있는 Hospital card는 이미지를 유지한다', async () => {
+  it('Hospital card는 유효한 이미지 URI가 있어도 정보형 레이아웃만 렌더한다', async () => {
     const renderer = await renderElement(
       <AnimalHospitalCard
-        item={{ ...hospital, thumbnailUrl: 'https://cdn.example.test/hospital.jpg' }}
+        item={{
+          ...hospital,
+          thumbnailUrl: 'https://cdn.example.test/hospital.jpg',
+        }}
         onOpenDetail={jest.fn()}
       />,
     );
 
-    expect(countMediaImages(renderer)).toBe(1);
+    expect(countMediaImages(renderer)).toBe(0);
+    expect(serialized(renderer)).toContain(hospital.address);
+    expect(serialized(renderer)).toContain('도보 약 15분 · 250m');
+    expect(serialized(renderer)).toContain('02-555-0101');
   });
 
   it('photo 없는 Hospital detail은 placeholder 없이 정보와 지도 계약을 유지한다', async () => {
@@ -362,13 +373,26 @@ describe('NURI-08 place media and initial loading', () => {
     expect(serialized(renderer)).toContain('위치');
   });
 
-  it('photo가 있는 Hospital detail은 이미지를 유지한다', async () => {
+  it('Hospital detail은 유효한 이미지 URI가 있어도 미디어 영역을 렌더하지 않는다', async () => {
     mockRouteParams = {
-      item: { ...hospital, thumbnailUrl: 'https://cdn.example.test/hospital.jpg' },
+      item: {
+        ...hospital,
+        thumbnailUrl: 'https://cdn.example.test/hospital.jpg',
+      },
     };
     const renderer = await renderElement(<AnimalHospitalDetailScreen />);
 
-    expect(countMediaImages(renderer)).toBe(1);
+    expect(countMediaImages(renderer)).toBe(0);
+    expect(serialized(renderer)).toContain('도보 약 15분 · 250m');
+  });
+
+  it('위치가 없으면 거리와 예상 시간을 0으로 만들지 않는다', () => {
+    expect(
+      buildWalkingTravelLabel({
+        distanceMeters: null,
+        estimatedMinutes: null,
+      }),
+    ).toBe('거리 확인 중');
   });
 
   it('Hospital no-data pending 상태는 empty copy보다 stable loading을 먼저 보여준다', async () => {

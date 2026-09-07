@@ -161,30 +161,6 @@ export function createAnimalHospitalDetailStyles(
       padding: 22,
       gap: 18,
     },
-    detailThumbnailWrap: {
-      height: 178,
-      borderRadius: 22,
-      overflow: 'hidden',
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      backgroundColor: theme.colors.surface,
-    },
-    detailThumbnail: {
-      width: '100%',
-      height: '100%',
-    },
-    detailThumbnailMeta: {
-      gap: 8,
-    },
-    detailThumbnailPlaceholder: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: theme.colors.surface,
-    },
-    photoAttributionText: {
-      color: theme.colors.textMuted,
-    },
     heroHeader: {
       gap: 8,
     },

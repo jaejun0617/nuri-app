@@ -5,6 +5,7 @@ export type AnimalHospitalListMode = 'nearby' | 'open24' | 'exotic';
 
 export type AnimalHospitalCardViewModel = {
   title: string;
+  address: string;
   trustLabel: string;
   trustTone: AnimalHospitalTrustTone;
   distanceLabel: string;
@@ -129,6 +130,7 @@ export function buildAnimalHospitalCardViewModel(
 ): AnimalHospitalCardViewModel {
   return {
     title: item.name,
+    address: item.address,
     trustLabel: item.publicTrust.label,
     trustTone: resolveTrustTone(item.publicTrust.publicLabel),
     distanceLabel: item.distanceLabel,
