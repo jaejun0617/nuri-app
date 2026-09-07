@@ -360,7 +360,7 @@ describe('NURI-08 place media and initial loading', () => {
 
     expect(countMediaImages(renderer)).toBe(0);
     expect(serialized(renderer)).toContain(hospital.address);
-    expect(serialized(renderer)).toContain('도보 약 15분 · 250m');
+    expect(serialized(renderer)).toContain('도보 약 6분 · 250m');
     expect(serialized(renderer)).toContain('02-555-0101');
   });
 
@@ -371,6 +371,11 @@ describe('NURI-08 place media and initial loading', () => {
     expect(countMediaImages(renderer)).toBe(0);
     expect(serialized(renderer)).not.toContain('shield');
     expect(serialized(renderer)).toContain('위치');
+    expect(
+      renderer.root.findAll(
+        node => node.type === View && node.props.testID === 'map-preview',
+      ),
+    ).toHaveLength(1);
   });
 
   it('Hospital detail은 유효한 이미지 URI가 있어도 미디어 영역을 렌더하지 않는다', async () => {
@@ -383,7 +388,7 @@ describe('NURI-08 place media and initial loading', () => {
     const renderer = await renderElement(<AnimalHospitalDetailScreen />);
 
     expect(countMediaImages(renderer)).toBe(0);
-    expect(serialized(renderer)).toContain('도보 약 15분 · 250m');
+    expect(serialized(renderer)).toContain('도보 약 6분 · 250m');
   });
 
   it('위치가 없으면 거리와 예상 시간을 0으로 만들지 않는다', () => {

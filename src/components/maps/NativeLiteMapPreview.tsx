@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 
@@ -16,6 +16,10 @@ type Props = {
   overlayText?: string | null;
   interactive?: boolean;
 };
+
+type MapLoadStatus = 'loading' | 'ready' | 'failed';
+
+const MAP_LOAD_TIMEOUT_MS = 10_000;
 
 function normalizePreviewCoordinate(input: {
   latitude: number | string | null | undefined;
@@ -68,10 +72,44 @@ export default function NativeLiteMapPreview({
       interactive ? PRETTY_PREVIEW_DELTA / 2 : PRETTY_PREVIEW_DELTA,
     );
   }, [interactive, previewCoordinate]);
+  const coordinateKey = previewCoordinate
+    ? `${previewCoordinate.latitude.toFixed(
+        5,
+      )}:${previewCoordinate.longitude.toFixed(5)}`
+    : 'invalid';
+  const [loadState, setLoadState] = useState<{
+    coordinateKey: string;
+    status: MapLoadStatus;
+  }>({ coordinateKey, status: 'loading' });
+  const loadStatus =
+    loadState.coordinateKey === coordinateKey ? loadState.status : 'loading';
+
+  useEffect(() => {
+    if (!region || !previewCoordinate) {
+      return undefined;
+    }
+
+    setLoadState({ coordinateKey, status: 'loading' });
+    const timeout = setTimeout(() => {
+      setLoadState(current =>
+        current.coordinateKey === coordinateKey && current.status === 'loading'
+          ? { coordinateKey, status: 'failed' }
+          : current,
+      );
+    }, MAP_LOAD_TIMEOUT_MS);
+
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [coordinateKey, previewCoordinate, region]);
+
+  const handleMapLoaded = useCallback(() => {
+    setLoadState({ coordinateKey, status: 'ready' });
+  }, [coordinateKey]);
 
   if (!region || !previewCoordinate) {
     return (
-      <View style={styles.card}>
+      <View style={styles.card} testID="native-lite-map-fallback">
         <View style={[styles.map, styles.emptyState]}>
           <AppText preset="unifiedMeta" style={styles.emptyStateText}>
             위치 정보 준비 중이에요.
@@ -81,9 +119,22 @@ export default function NativeLiteMapPreview({
     );
   }
 
+  if (loadStatus === 'failed') {
+    return (
+      <View style={styles.card} testID="native-lite-map-fallback">
+        <View style={[styles.map, styles.emptyState]}>
+          <AppText preset="unifiedMeta" style={styles.emptyStateText}>
+            지도 미리보기를 불러오지 못했어요. 길찾기에서 위치를 확인해 주세요.
+          </AppText>
+        </View>
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.card}>
+    <View style={styles.card} testID="native-lite-map-preview">
       <MapView
+        key={coordinateKey}
         style={styles.map}
         provider={PROVIDER_GOOGLE}
         liteMode={Platform.OS === 'android' && !interactive}
@@ -97,6 +148,7 @@ export default function NativeLiteMapPreview({
         showsCompass={interactive}
         showsMyLocationButton={false}
         loadingEnabled
+        onMapLoaded={handleMapLoaded}
       >
         <Marker
           coordinate={previewCoordinate}
@@ -104,6 +156,17 @@ export default function NativeLiteMapPreview({
           pinColor="#C86F31"
         />
       </MapView>
+      {loadStatus === 'loading' ? (
+        <View
+          pointerEvents="none"
+          style={[styles.mapLoading, styles.emptyState]}
+          testID="native-lite-map-loading"
+        >
+          <AppText preset="unifiedMeta" style={styles.emptyStateText}>
+            지도를 불러오는 중이에요.
+          </AppText>
+        </View>
+      ) : null}
       {overlayText ? (
         <View pointerEvents="none" style={styles.overlay}>
           <AppText preset="unifiedMeta" style={styles.overlayText}>
@@ -125,6 +188,14 @@ const styles = StyleSheet.create({
   map: {
     width: '100%',
     height: 220,
+  },
+  mapLoading: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: '#DDE5EE',
   },
   overlay: {
     position: 'absolute',

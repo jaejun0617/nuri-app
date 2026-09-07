@@ -27,6 +27,22 @@ preBuild.dependsOn("ensureGeolocationCodegen")
 
 def enableProguardInReleaseBuilds = false
 def jscFlavor = "io.github.react-native-community:jsc-android:2026004.+"
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+  localPropertiesFile.withInputStream { localProperties.load(it) }
+}
+def nuriGoogleMapsApiKey = (
+  project.findProperty("NURI_GOOGLE_MAPS_API_KEY")
+    ?: System.getenv("NURI_GOOGLE_MAPS_API_KEY")
+    ?: localProperties.getProperty("NURI_GOOGLE_MAPS_API_KEY")
+)?.toString()?.trim()
+
+if (!nuriGoogleMapsApiKey) {
+  throw new GradleException(
+    "NURI_GOOGLE_MAPS_API_KEY must be supplied through a Gradle property, environment variable, or android/local.properties."
+  )
+}
 
 android {
   namespace "com.nuri"
@@ -41,6 +57,7 @@ android {
     targetSdkVersion rootProject.ext.targetSdkVersion
     versionCode 1
     versionName "1.0"
+    manifestPlaceholders["NURI_GOOGLE_MAPS_API_KEY"] = nuriGoogleMapsApiKey
   }
 
   signingConfigs {

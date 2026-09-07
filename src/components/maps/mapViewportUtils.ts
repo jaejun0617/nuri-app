@@ -1,5 +1,6 @@
 import type { Region } from 'react-native-maps';
 
+import { isValidGeographicCoordinate } from '../../services/location/coordinates';
 import type { MapViewportSnapshot } from '../../store/mapViewportStore';
 
 export type MutableViewport = Omit<MapViewportSnapshot, 'updatedAt'>;
@@ -28,16 +29,9 @@ export function clamp(value: number, min: number, max: number) {
 }
 
 export function hasValidCoordinate(
-  point:
-    | Pick<CoordinatePoint, 'latitude' | 'longitude'>
-    | null
-    | undefined,
+  point: Pick<CoordinatePoint, 'latitude' | 'longitude'> | null | undefined,
 ) {
-  return Boolean(
-    point &&
-      Number.isFinite(point.latitude) &&
-      Number.isFinite(point.longitude),
-  );
+  return isValidGeographicCoordinate(point);
 }
 
 export function filterValidCoordinatePoints<T extends CoordinatePoint>(
@@ -160,7 +154,11 @@ export function buildRegionFromPoints(
   return {
     latitude: (maxLatitude + minLatitude) / 2,
     longitude: (maxLongitude + minLongitude) / 2,
-    latitudeDelta: clamp((maxLatitude - minLatitude) * 1.45, PRETTY_DELTA, MAX_DELTA),
+    latitudeDelta: clamp(
+      (maxLatitude - minLatitude) * 1.45,
+      PRETTY_DELTA,
+      MAX_DELTA,
+    ),
     longitudeDelta: clamp(
       (maxLongitude - minLongitude) * 1.45,
       PRETTY_DELTA,
@@ -179,10 +177,7 @@ export function buildViewportFromPoints(
     return null;
   }
 
-  return regionToViewport(
-    region,
-    selectedItemId ?? validPoints[0]?.id ?? null,
-  );
+  return regionToViewport(region, selectedItemId ?? validPoints[0]?.id ?? null);
 }
 
 export function buildViewportFromCoordinate(

@@ -1,11 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
-import {
-  Linking,
-  Platform,
-  ScrollView,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Linking, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
@@ -36,8 +30,6 @@ export default function AnimalHospitalDetailScreen() {
         displayItem.longitude,
       )
     : false;
-  const canRenderNativeMapPreview =
-    hasMapPreviewCoordinate && Platform.OS !== 'android';
   const viewModel = useMemo(
     () =>
       displayItem ? buildAnimalHospitalDetailViewModel(displayItem) : null,
@@ -248,7 +240,7 @@ export default function AnimalHospitalDetailScreen() {
               ) : null}
             </View>
 
-            {canRenderNativeMapPreview ? (
+            {hasMapPreviewCoordinate ? (
               <NativeLiteMapPreview
                 latitude={displayItem.latitude}
                 longitude={displayItem.longitude}
@@ -263,9 +255,7 @@ export default function AnimalHospitalDetailScreen() {
                   color={theme.colors.textMuted}
                 />
                 <AppText preset="unifiedMeta" style={styles.subtleText}>
-                  {hasMapPreviewCoordinate
-                    ? '위치 정보 준비 중이에요. 길찾기로 외부 지도에서 확인해 주세요.'
-                    : '아직 좌표를 가져오지 못해 주소 기준으로 확인해 주세요.'}
+                  아직 좌표를 가져오지 못해 주소 기준으로 확인해 주세요.
                 </AppText>
               </View>
             )}
