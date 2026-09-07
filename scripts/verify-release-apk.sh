@@ -150,9 +150,18 @@ else
   fail_gate "assets/index.android.bundle is missing"
 fi
 
-SIGNER_LINE_COUNT="$(grep -c 'Signer #[0-9].*certificate SHA-256 digest:' "$SIGNATURE_FILE" || true)"
-[[ "$SIGNER_LINE_COUNT" -eq 1 ]] || fail_gate "APK signer count is not exactly one"
-SIGNER_SHA256="$(sed -n 's/.*certificate SHA-256 digest: //p' "$SIGNATURE_FILE" | tr '[:upper:]' '[:lower:]' | head -1)"
+SIGNER_COUNT="$(sed -nE 's/^Number of signers: ([0-9]+)$/\1/p' "$SIGNATURE_FILE" | head -1)"
+if [[ -z "$SIGNER_COUNT" ]]; then
+  # apksigner 36 and older identify certificates as "Signer #N" instead.
+  SIGNER_COUNT="$(grep -Ec '^Signer #[0-9]+ certificate SHA-256 digest:' "$SIGNATURE_FILE" || true)"
+fi
+[[ "$SIGNER_COUNT" == "1" ]] || fail_gate "APK signer count is not exactly one"
+
+SIGNER_SHA256="$(sed -n 's/.*certificate SHA-256 digest: //p' "$SIGNATURE_FILE" \
+  | tr '[:upper:]' '[:lower:]' \
+  | sort -u)"
+[[ -n "$SIGNER_SHA256" && "$SIGNER_SHA256" != *$'\n'* ]] \
+  || fail_gate "APK signer certificate digest is missing or ambiguous"
 EXPECTED_SIGNER_NORMALIZED="$(printf '%s' "$EXPECTED_SIGNER" | tr '[:upper:]' '[:lower:]')"
 [[ "$SIGNER_SHA256" == "$EXPECTED_SIGNER_NORMALIZED" ]] || fail_gate "APK signer does not match the approved signer"
 
