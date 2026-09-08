@@ -27,7 +27,10 @@ import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/nativ
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import {
+  KeyboardAwareScrollView,
+  type KeyboardAwareScrollViewRef,
+} from 'react-native-keyboard-controller';
 import Feather from 'react-native-vector-icons/Feather';
 
 import AppText from '../../app/ui/AppText';
@@ -37,7 +40,6 @@ import WaveText from '../../components/common/WaveText';
 import HeaderTextActionButton from '../../components/navigation/HeaderTextActionButton';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import RecordImageGallery from '../../components/records/RecordImageGallery';
-import { useKeyboardInset } from '../../hooks/useKeyboardInset';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
   buildPickedRecordImages,
@@ -123,7 +125,6 @@ export default function RecordCreateScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<RecordCreateRoute>();
   const insets = useSafeAreaInsets();
-  const keyboardInset = useKeyboardInset();
   const queryClient = useQueryClient();
 
   const userId = useAuthStore(s => s.session?.user?.id ?? null);
@@ -186,6 +187,7 @@ export default function RecordCreateScreen() {
   const [draftHydrated, setDraftHydrated] = useState(false);
   const draftLoadedRef = useRef(false);
   const pendingSuccessNavigationRef = useRef<(() => Promise<void>) | null>(null);
+  const scrollRef = useRef<KeyboardAwareScrollViewRef | null>(null);
 
   const trimmedTitle = useMemo(() => title.trim(), [title]);
   const isMealCategory = mainCategoryKey === 'meal';
@@ -265,14 +267,12 @@ export default function RecordCreateScreen() {
     title,
     todayYmd,
   ]);
-  const scrollBottomInset = useMemo(() => {
-    return Math.max(insets.bottom + 184, keyboardInset + 108, 224);
-  }, [insets.bottom, keyboardInset]);
-  const bottomSubmitMargin = useMemo(() => {
-    if (keyboardInset > 0) return Math.max(insets.bottom, 18) + 12;
-    return Math.max(insets.bottom, 18);
-  }, [insets.bottom, keyboardInset]);
   const headerTopInset = useMemo(() => Math.max(insets.top, 12), [insets.top]);
+  const handleFocusField = useCallback(() => {
+    requestAnimationFrame(() => {
+      scrollRef.current?.assureFocusedInputVisible();
+    });
+  }, []);
   const resetForm = useCallback(() => {
     setTitle('');
     setContent('');
@@ -990,17 +990,15 @@ export default function RecordCreateScreen() {
       </View>
 
       <KeyboardAwareScrollView
+        ref={scrollRef}
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,
-          { paddingBottom: Math.max(scrollBottomInset, 300) },
+          { paddingBottom: insets.bottom + 32 },
         ]}
         keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="interactive"
+        keyboardDismissMode="none"
         showsVerticalScrollIndicator={false}
-        enableOnAndroid
-        extraScrollHeight={12}
-        extraHeight={88}
       >
         <TouchableOpacity
           activeOpacity={0.9}
@@ -1198,6 +1196,7 @@ export default function RecordCreateScreen() {
               style={styles.input}
               value={priceText}
               onChangeText={onChangePriceText}
+              onFocus={handleFocusField}
               placeholder="예: 25000"
               placeholderTextColor="#8A94A6"
               keyboardType="number-pad"
@@ -1257,6 +1256,7 @@ export default function RecordCreateScreen() {
                 style={[styles.input, styles.unitInput, useDefaultMealAmount ? styles.inputDisabled : null]}
                 value={mealAmountText}
                 onChangeText={onChangeMealAmountText}
+                onFocus={handleFocusField}
                 placeholder="예: 180"
                 placeholderTextColor="#8A94A6"
                 keyboardType="number-pad"
@@ -1311,6 +1311,7 @@ export default function RecordCreateScreen() {
                 style={[styles.input, styles.unitInput]}
                 value={healthWeightText}
                 onChangeText={onChangeHealthWeightText}
+                onFocus={handleFocusField}
                 placeholder="예: 4.8"
                 placeholderTextColor="#8A94A6"
                 keyboardType="decimal-pad"
@@ -1411,6 +1412,7 @@ export default function RecordCreateScreen() {
             style={styles.input}
             value={title}
             onChangeText={setTitle}
+            onFocus={handleFocusField}
             placeholder="제목을 입력하세요"
             placeholderTextColor="#B5BDCB"
           />
@@ -1424,6 +1426,7 @@ export default function RecordCreateScreen() {
             style={[styles.input, styles.textArea]}
             value={content}
             onChangeText={setContent}
+            onFocus={handleFocusField}
             multiline
             placeholder="오늘의 추억을 남겨주세요"
             placeholderTextColor="#B5BDCB"
@@ -1481,7 +1484,6 @@ export default function RecordCreateScreen() {
           }
           style={[
             styles.bottomSubmitBtn,
-            { marginBottom: bottomSubmitMargin },
             disabled ? styles.bottomSubmitBtnDisabled : null,
             !disabled
               ? {
