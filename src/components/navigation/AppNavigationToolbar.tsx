@@ -12,7 +12,13 @@
 // - 탭 라벨이나 target route를 바꿀 때는 AppTabsNavigator와 RootNavigator 타입까지 같이 확인해야 한다.
 
 import React, { useCallback, useMemo } from 'react';
-import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import {
+  Platform,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  type LayoutChangeEvent,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -33,6 +39,7 @@ type Props = {
   activeKey: ActiveTabKey;
   onBeforeNavigate?: () => void;
   onPressMore?: () => void;
+  onLayout?: (event: LayoutChangeEvent) => void;
 };
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -41,6 +48,7 @@ export default function AppNavigationToolbar({
   activeKey,
   onBeforeNavigate,
   onPressMore,
+  onLayout,
 }: Props) {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
@@ -126,6 +134,7 @@ export default function AppNavigationToolbar({
 
   return (
     <View
+      onLayout={onLayout}
       style={[
         styles.wrap,
         { backgroundColor: theme.colors.background },

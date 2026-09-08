@@ -1,4 +1,5 @@
 import React from 'react';
+import { ScrollView, StyleSheet } from 'react-native';
 import TestRenderer from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
 
@@ -48,10 +49,14 @@ jest.mock('../src/components/pets/PetThemePicker', () => ({
   default: () => null,
 }));
 
-jest.mock('../src/components/navigation/AppNavigationToolbar', () => ({
-  __esModule: true,
-  default: () => null,
-}));
+jest.mock('../src/components/navigation/AppNavigationToolbar', () => {
+  const ReactRuntime = jest.requireActual('react') as typeof React;
+  return {
+    __esModule: true,
+    default: (props: MockProps) =>
+      ReactRuntime.createElement('AppNavigationToolbarMock', props),
+  };
+});
 
 jest.mock('../src/services/notifications/userNotifications', () => ({
   fetchUserNotificationUnreadCount: jest.fn(() => Promise.resolve(0)),
@@ -119,6 +124,42 @@ describe('More account deletion confirmation', () => {
     expect(deleteDialog.props.confirmDisabled).toBe(true);
     expect(deleteDialog.props.message).toContain('7일의 유예기간');
     expect(logoutDialog.props.keyboardAware).toBeUndefined();
+
+    await TestRenderer.act(async () => {
+      renderer.unmount();
+    });
+  });
+
+  it('reserves the measured fixed toolbar height from the scroll viewport', async () => {
+    let renderer!: TestRenderer.ReactTestRenderer;
+
+    await TestRenderer.act(async () => {
+      renderer = TestRenderer.create(
+        <ThemeProvider theme={createTheme('light')}>
+          <MoreDrawerContent onRequestClose={jest.fn()} />
+        </ThemeProvider>,
+      );
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const toolbar = renderer.root.find(
+      node => String(node.type) === 'AppNavigationToolbarMock',
+    );
+    await TestRenderer.act(async () => {
+      toolbar.props.onLayout({ nativeEvent: { layout: { height: 96 } } });
+    });
+
+    const scroll = renderer.root.findByProps({
+      testID: 'more-menu-scroll',
+    });
+    expect(scroll.type).toBe(ScrollView);
+    expect(StyleSheet.flatten(scroll.props.style)).toEqual(
+      expect.objectContaining({ marginBottom: 96 }),
+    );
+    expect(StyleSheet.flatten(scroll.props.contentContainerStyle)).toEqual(
+      expect.objectContaining({ paddingBottom: 18 }),
+    );
 
     await TestRenderer.act(async () => {
       renderer.unmount();

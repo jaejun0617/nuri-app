@@ -40,6 +40,7 @@ import {
   TouchableOpacity,
   useWindowDimensions,
   View,
+  type LayoutChangeEvent,
 } from 'react-native';
 import { KeyboardAvoidingView as KeyboardControllerAvoidingView } from 'react-native-keyboard-controller';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
@@ -1266,6 +1267,19 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const [accountStatusNotice, setAccountStatusNotice] = useState<
     'pending' | 'unknown' | null
   >(null);
+  const fallbackToolbarHeight =
+    56 +
+    (Platform.OS === 'android'
+      ? Math.max(insets.bottom, 18)
+      : Math.max(insets.bottom, 10));
+  const [toolbarHeight, setToolbarHeight] = useState(fallbackToolbarHeight);
+  const handleToolbarLayout = useCallback((event: LayoutChangeEvent) => {
+    const measuredHeight = Math.ceil(event.nativeEvent.layout.height);
+    if (measuredHeight <= 0) return;
+    setToolbarHeight(current =>
+      current === measuredHeight ? current : measuredHeight,
+    );
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -2351,7 +2365,8 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         </View>
 
         <ScrollView
-          style={styles.scroll}
+          testID="more-menu-scroll"
+          style={[styles.scroll, { marginBottom: toolbarHeight }]}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
         >
@@ -2518,6 +2533,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         <AppNavigationToolbar
           activeKey="more"
           onBeforeNavigate={onRequestClose}
+          onLayout={handleToolbarLayout}
         />
       </View>
 
@@ -2741,7 +2757,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 18,
-    paddingBottom: 118,
+    paddingBottom: 18,
     gap: 18,
   },
   sectionWrap: {
