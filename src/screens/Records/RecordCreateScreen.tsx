@@ -29,7 +29,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   KeyboardAwareScrollView,
-  KeyboardStickyView,
   type KeyboardAwareScrollViewRef,
 } from 'react-native-keyboard-controller';
 import Feather from 'react-native-vector-icons/Feather';
@@ -189,7 +188,6 @@ export default function RecordCreateScreen() {
   const draftLoadedRef = useRef(false);
   const pendingSuccessNavigationRef = useRef<(() => Promise<void>) | null>(null);
   const scrollRef = useRef<KeyboardAwareScrollViewRef | null>(null);
-  const submitInFlightRef = useRef(false);
 
   const trimmedTitle = useMemo(() => title.trim(), [title]);
   const isMealCategory = mainCategoryKey === 'meal';
@@ -720,9 +718,7 @@ export default function RecordCreateScreen() {
   }, []);
 
   const onSubmit = useCallback(async () => {
-    if (disabled || !petId || submitInFlightRef.current) return;
-
-    submitInFlightRef.current = true;
+    if (disabled || !petId) return;
 
     try {
       setSaving(true);
@@ -928,7 +924,6 @@ export default function RecordCreateScreen() {
         durationMs: 3200,
       });
     } finally {
-      submitInFlightRef.current = false;
       setSaving(false);
     }
   }, [
@@ -997,7 +992,10 @@ export default function RecordCreateScreen() {
       <KeyboardAwareScrollView
         ref={scrollRef}
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: insets.bottom + 32 },
+        ]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="none"
         showsVerticalScrollIndicator={false}
@@ -1476,15 +1474,6 @@ export default function RecordCreateScreen() {
           </AppText>
         </View>
 
-      </KeyboardAwareScrollView>
-
-      <KeyboardStickyView
-        testID="record-create-complete-action-area"
-        style={[
-          styles.submitFooter,
-          { paddingBottom: Math.max(insets.bottom, 12) },
-        ]}
-      >
         <TouchableOpacity
           activeOpacity={0.9}
           accessibilityLabel={saving ? '기록 저장 중' : '기록 저장 완료'}
@@ -1518,7 +1507,7 @@ export default function RecordCreateScreen() {
             </AppText>
           )}
         </TouchableOpacity>
-      </KeyboardStickyView>
+      </KeyboardAwareScrollView>
 
       <DatePickerModal
         visible={dateModalVisible}

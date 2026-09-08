@@ -40,8 +40,6 @@ jest.mock('react-native-keyboard-controller', () => {
       React.createElement(React.Fragment, null, children),
     KeyboardAwareScrollView: ({ children }) =>
       React.createElement(React.Fragment, null, children),
-    KeyboardStickyView: ({ children }) =>
-      React.createElement(React.Fragment, null, children),
   };
 });
 jest.mock('react-native-keyboard-aware-scroll-view', () => {
