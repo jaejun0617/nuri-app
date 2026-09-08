@@ -8,6 +8,7 @@ import RecordCreateScreen from '../src/screens/Records/RecordCreateScreen';
 import { usePetStore } from '../src/store/petStore';
 
 const mockAssureFocusedInputVisible = jest.fn();
+const mockCreateMemory = jest.fn();
 const mockNavigation = {
   canGoBack: () => true,
   goBack: jest.fn(),
@@ -35,6 +36,20 @@ jest.mock('react-native-keyboard-controller', () => {
           children,
         );
       },
+    ),
+    KeyboardStickyView: ReactRuntime.forwardRef(
+      (
+        {
+          children,
+          ...props
+        }: React.PropsWithChildren<Record<string, unknown>>,
+        ref: React.ForwardedRef<unknown>,
+      ) =>
+        ReactRuntime.createElement(
+          'KeyboardStickyView',
+          { ...props, ref },
+          children,
+        ),
     ),
     KeyboardAvoidingView: ({
       children,
@@ -74,6 +89,18 @@ jest.mock('../src/services/local/recordDraft', () => ({
   loadRecordCreateDraft: jest.fn().mockResolvedValue(null),
   saveRecordCreateDraft: jest.fn().mockResolvedValue(undefined),
 }));
+jest.mock('../src/services/supabase/memories', () => ({
+  ...jest.requireActual('../src/services/supabase/memories'),
+  createMemory: (...args: unknown[]) => mockCreateMemory(...args),
+  fetchMemoryById: jest.fn().mockRejectedValue(new Error('test-only fetch stop')),
+}));
+jest.mock('../src/services/activity/timelineActivity', () => ({
+  ...jest.requireActual('../src/services/activity/timelineActivity'),
+  recordTimelineCreateActivity: jest.fn().mockResolvedValue({
+    streak: null,
+    xp: null,
+  }),
+}));
 
 describe('RecordCreate keyboard visibility contract', () => {
   let renderer: TestRenderer.ReactTestRenderer | undefined;
@@ -82,6 +109,7 @@ describe('RecordCreate keyboard visibility contract', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockCreateMemory.mockReset();
     global.requestAnimationFrame = callback => {
       callback(0);
       return 1;
@@ -117,8 +145,20 @@ describe('RecordCreate keyboard visibility contract', () => {
     expect(scrollHost.props.keyboardDismissMode).toBe('none');
     expect(scrollHost.props.keyboardShouldPersistTaps).toBe('handled');
     expect(StyleSheet.flatten(scrollHost.props.contentContainerStyle)).toEqual(
-      expect.objectContaining({ paddingBottom: 50 }),
+      expect.objectContaining({ paddingBottom: 28 }),
     );
+
+    const completeActionArea = renderer.root.findByProps({
+      testID: 'record-create-complete-action-area',
+    });
+    expect(StyleSheet.flatten(completeActionArea.props.style)).toEqual(
+      expect.objectContaining({ paddingBottom: 18 }),
+    );
+
+    const completeAction = renderer.root.findByProps({
+      accessibilityLabel: '기록 저장 완료',
+    });
+    expect(completeAction.props.disabled).toBe(true);
 
     const title = renderer.root.findByProps({
       placeholder: '제목을 입력하세요',
@@ -133,5 +173,31 @@ describe('RecordCreate keyboard visibility contract', () => {
     TestRenderer.act(() => bodyInput.props.onFocus());
 
     expect(mockAssureFocusedInputVisible).toHaveBeenCalledTimes(2);
+
+    TestRenderer.act(() => titleInput.props.onChangeText('QA 완료 버튼 검증'));
+
+    const enabledCompleteAction = renderer.root.findByProps({
+      accessibilityLabel: '기록 저장 완료',
+    });
+    expect(enabledCompleteAction.props.disabled).toBe(false);
+
+    let resolveCreate!: (memoryId: string) => void;
+    mockCreateMemory.mockImplementation(
+      () =>
+        new Promise<string>(resolve => {
+          resolveCreate = resolve;
+        }),
+    );
+    const submit = enabledCompleteAction.props.onPress as () => Promise<void>;
+    await TestRenderer.act(async () => {
+      const firstSubmit = submit();
+      const secondSubmit = submit();
+
+      expect(mockCreateMemory).toHaveBeenCalledTimes(1);
+      resolveCreate('memory-id');
+      await Promise.all([firstSubmit, secondSubmit]);
+    });
+
+    expect(mockCreateMemory).toHaveBeenCalledTimes(1);
   });
 });

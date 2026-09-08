@@ -414,8 +414,15 @@ export const styles = StyleSheet.create({
     fontWeight: '800',
   },
 
+  submitFooter: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    backgroundColor: BG,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(17,24,39,0.06)',
+  },
+
   bottomSubmitBtn: {
-    marginTop: 28,
     height: 54,
     borderRadius: 18,
     backgroundColor: BRAND,
