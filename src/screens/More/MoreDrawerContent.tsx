@@ -80,10 +80,6 @@ import {
   performAccountDeletion,
   performLogout,
 } from '../../services/auth/session';
-import {
-  LEGAL_DOCUMENTS,
-  openLegalDocument,
-} from '../../services/legal/documents';
 import { fetchMyPets, updatePet } from '../../services/supabase/pets';
 import {
   checkNicknameAvailabilityDetailed,
@@ -1262,6 +1258,9 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const [userNotificationUnreadCount, setUserNotificationUnreadCount] =
     useState(0);
   const [logoutConfirmVisible, setLogoutConfirmVisible] = useState(false);
+  const [deleteAcknowledgementVisible, setDeleteAcknowledgementVisible] =
+    useState(false);
+  const [deleteAcknowledged, setDeleteAcknowledged] = useState(false);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
   const [accountStatusNotice, setAccountStatusNotice] = useState<
@@ -1367,7 +1366,6 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const [nicknameChangedAt, setNicknameChangedAt] = useState<string | null>(
     null,
   );
-  const [openingDeletionGuide, setOpeningDeletionGuide] = useState(false);
 
   const nickname = useMemo(() => nicknameRaw?.trim() || null, [nicknameRaw]);
   const selectedPet = useMemo(
@@ -1942,33 +1940,33 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
 
   const onPressDeleteAccount = useCallback(() => {
     if (!isLoggedIn || deleting) return;
+    setDeleteAcknowledged(false);
+    setDeleteAcknowledgementVisible(true);
+    setDeleteConfirmVisible(false);
     setDeleteConfirmationText('');
-    setDeleteConfirmVisible(true);
   }, [deleting, isLoggedIn]);
 
-  const onPressDeletionGuide = useCallback(async () => {
-    if (openingDeletionGuide) return;
+  const closeDeleteAcknowledgement = useCallback(() => {
+    setDeleteAcknowledgementVisible(false);
+    setDeleteAcknowledged(false);
+  }, []);
 
-    try {
-      setOpeningDeletionGuide(true);
-      const result = await openLegalDocument('accountDeletion');
+  const continueDeleteAcknowledgement = useCallback(() => {
+    if (!deleteAcknowledged || deleting) return;
 
-      if (!result.ok) {
-        if (result.reason === 'failed') {
-          Alert.alert(result.document.title, result.message);
-        }
+    setDeleteAcknowledgementVisible(false);
+    setDeleteConfirmationText('');
+    setDeleteConfirmVisible(true);
+  }, [deleteAcknowledged, deleting]);
 
-        showToast({
-          tone: result.reason === 'failed' ? 'error' : 'info',
-          title: result.document.title,
-          message: result.message,
-          durationMs: 3400,
-        });
-      }
-    } finally {
-      setOpeningDeletionGuide(false);
-    }
-  }, [openingDeletionGuide]);
+  const onPressDeletionGuide = useCallback(() => {
+    closeAndNavigate(() =>
+      navigation.navigate('PolicyDetail', {
+        documentId: 'accountDeletion',
+        entrySource: 'more',
+      }),
+    );
+  }, [closeAndNavigate, navigation]);
 
   const onPressLogin = useCallback(() => {
     closeAndNavigate(() => navigation.navigate('SignIn'));
@@ -2056,6 +2054,12 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const openAnimalHospital = useCallback(() => {
     closeAndNavigate(() =>
       navigation.navigate('AnimalHospitalList', { entrySource: 'more' }),
+    );
+  }, [closeAndNavigate, navigation]);
+
+  const openPolicyCenter = useCallback(() => {
+    closeAndNavigate(() =>
+      navigation.navigate('PolicyCenter', { entrySource: 'more' }),
     );
   }, [closeAndNavigate, navigation]);
 
@@ -2194,6 +2198,13 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
 
     const items: MenuItemSpec[] = [
       {
+        key: 'policy-center',
+        label: '약관 및 정책',
+        icon: 'file-text',
+        iconTone: 'accent',
+        onPress: openPolicyCenter,
+      },
+      {
         key: 'user-notifications',
         label: '알림함',
         icon: 'bell',
@@ -2255,6 +2266,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     onPressLogout,
     openNotificationModal,
     openCommunityBlockedUsers,
+    openPolicyCenter,
     openProfileEditModal,
     openThemeModal,
     openUserNotifications,
@@ -2463,10 +2475,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
                 </AppText>
                 <TouchableOpacity
                   activeOpacity={0.88}
-                  disabled={openingDeletionGuide}
-                  onPress={() => {
-                    onPressDeletionGuide().catch(() => {});
-                  }}
+                  onPress={onPressDeletionGuide}
                   style={[
                     styles.deleteGuideButton,
                     {
@@ -2481,9 +2490,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
                       { color: theme.colors.textPrimary },
                     ]}
                   >
-                    {openingDeletionGuide
-                      ? '안내 상태 확인 중...'
-                      : '삭제 안내 상태 확인'}
+                    삭제 안내 보기
                   </AppText>
                   <AppText preset="unifiedBody"
                     style={[
@@ -2491,13 +2498,12 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
                       { color: theme.colors.textMuted },
                     ]}
                   >
-                    {LEGAL_DOCUMENTS.accountDeletion.status === 'external'
-                      ? '공식 안내 문서 연결 완료'
-                      : '안내 문서 미정, 현재는 상태 안내만 제공'}
+                    내용 검토 중
                   </AppText>
                 </TouchableOpacity>
                 <TouchableOpacity
                   activeOpacity={0.88}
+                  accessibilityLabel="회원탈퇴 확인 시작"
                   style={[
                     styles.bottomDangerButton,
                     { backgroundColor: 'rgba(224, 90, 104, 0.12)' },
@@ -2602,6 +2608,77 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         }}
       />
       <ConfirmDialog
+        visible={deleteAcknowledgementVisible}
+        typographyMode="unified"
+        title="회원탈퇴 전 확인해 주세요"
+        message={
+          '계정과 연결된 프로필, 기록, 일정, 커뮤니티 콘텐츠가 삭제 대상이 될 수 있어요.\n다음 확인 단계에서 문구를 입력하기 전에는 탈퇴 요청이 진행되지 않습니다.'
+        }
+        cancelLabel="취소"
+        confirmLabel="다음 단계"
+        confirmDisabled={!deleteAcknowledged || deleting}
+        tone="danger"
+        accentColor={petTheme.primary}
+        onCancel={closeDeleteAcknowledgement}
+        onConfirm={continueDeleteAcknowledgement}
+      >
+        <TouchableOpacity
+          testID="account-delete-acknowledgement-toggle"
+          accessibilityRole="checkbox"
+          accessibilityLabel="회원탈퇴 안내 확인"
+          accessibilityState={{ checked: deleteAcknowledged }}
+          activeOpacity={0.86}
+          onPress={() => setDeleteAcknowledged(current => !current)}
+          style={[
+            styles.deleteAcknowledgementRow,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: deleteAcknowledged
+                ? theme.colors.danger
+                : theme.colors.border,
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.deleteAcknowledgementCheckbox,
+              {
+                backgroundColor: deleteAcknowledged
+                  ? theme.colors.danger
+                  : theme.colors.surfaceElevated,
+                borderColor: deleteAcknowledged
+                  ? theme.colors.danger
+                  : theme.colors.border,
+              },
+            ]}
+          >
+            {deleteAcknowledged ? (
+              <Feather name="check" size={14} color="#FFFFFF" />
+            ) : null}
+          </View>
+          <View style={styles.deleteAcknowledgementCopy}>
+            <AppText
+              preset="unifiedLabel"
+              style={[
+                styles.deleteAcknowledgementLabel,
+                { color: theme.colors.textPrimary },
+              ]}
+            >
+              계정 삭제 안내를 확인했습니다.
+            </AppText>
+            <AppText
+              preset="unifiedBody"
+              style={[
+                styles.deleteAcknowledgementHint,
+                { color: theme.colors.textMuted },
+              ]}
+            >
+              체크만으로는 탈퇴 요청이 실행되지 않습니다.
+            </AppText>
+          </View>
+        </TouchableOpacity>
+      </ConfirmDialog>
+      <ConfirmDialog
         visible={deleteConfirmVisible}
         typographyMode="unified"
         keyboardAware
@@ -2618,6 +2695,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         accentColor={petTheme.primary}
         onCancel={() => {
           setDeleteConfirmVisible(false);
+          setDeleteAcknowledged(false);
           setDeleteConfirmationText('');
         }}
         onConfirm={() => {
@@ -3021,6 +3099,38 @@ const styles = StyleSheet.create({
   },
   deleteConfirmField: {
     gap: 8,
+  },
+  deleteAcknowledgementRow: {
+    minHeight: 72,
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  deleteAcknowledgementCheckbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 7,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteAcknowledgementCopy: {
+    flex: 1,
+    gap: 3,
+  },
+  deleteAcknowledgementLabel: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '800',
+  },
+  deleteAcknowledgementHint: {
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '600',
   },
   deleteConfirmLabel: {
     fontSize: 13,

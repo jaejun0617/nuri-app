@@ -15,6 +15,7 @@ const mockNavigation = {
   navigate: jest.fn(),
   reset: jest.fn(),
 };
+const mockPerformAccountDeletion = jest.fn();
 
 jest.mock('@react-navigation/native', () => {
   const actual = jest.requireActual('@react-navigation/native');
@@ -62,6 +63,12 @@ jest.mock('../src/services/notifications/userNotifications', () => ({
   fetchUserNotificationUnreadCount: jest.fn(() => Promise.resolve(0)),
 }));
 
+jest.mock('../src/services/auth/session', () => ({
+  performAccountDeletion: (...args: unknown[]) =>
+    mockPerformAccountDeletion(...args),
+  performLogout: jest.fn(),
+}));
+
 describe('More account deletion confirmation', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -107,23 +114,106 @@ describe('More account deletion confirmation', () => {
     const dialogs = renderer.root.findAll(
       node => String(node.type) === CONFIRM_DIALOG_HOST,
     );
-    expect(dialogs).toHaveLength(2);
+    expect(dialogs).toHaveLength(3);
 
     const deleteDialog = dialogs.find(
       dialog => dialog.props.title === '정말 NURI를 떠나시겠어요? 🥺',
+    );
+    const acknowledgementDialog = dialogs.find(
+      dialog => dialog.props.title === '회원탈퇴 전 확인해 주세요',
     );
     const logoutDialog = dialogs.find(
       dialog => dialog.props.title === '로그아웃할까요?',
     );
 
-    if (!deleteDialog || !logoutDialog) {
+    if (!deleteDialog || !acknowledgementDialog || !logoutDialog) {
       throw new Error('Expected account confirmation dialogs were not rendered');
     }
 
     expect(deleteDialog.props.keyboardAware).toBe(true);
     expect(deleteDialog.props.confirmDisabled).toBe(true);
     expect(deleteDialog.props.message).toContain('7일의 유예기간');
+    expect(acknowledgementDialog.props.keyboardAware).toBeUndefined();
+    expect(acknowledgementDialog.props.confirmDisabled).toBe(true);
     expect(logoutDialog.props.keyboardAware).toBeUndefined();
+
+    await TestRenderer.act(async () => {
+      renderer.unmount();
+    });
+  });
+
+  it('requires acknowledgement before opening the destructive phrase step', async () => {
+    let renderer!: TestRenderer.ReactTestRenderer;
+
+    await TestRenderer.act(async () => {
+      renderer = TestRenderer.create(
+        <ThemeProvider theme={createTheme('light')}>
+          <MoreDrawerContent onRequestClose={jest.fn()} />
+        </ThemeProvider>,
+      );
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const startButton = renderer.root.findByProps({
+      accessibilityLabel: '회원탈퇴 확인 시작',
+    });
+    TestRenderer.act(() => startButton.props.onPress());
+
+    let acknowledgementDialog = renderer.root
+      .findAll(node => String(node.type) === CONFIRM_DIALOG_HOST)
+      .find(dialog => dialog.props.title === '회원탈퇴 전 확인해 주세요');
+    let phraseDialog = renderer.root
+      .findAll(node => String(node.type) === CONFIRM_DIALOG_HOST)
+      .find(dialog => dialog.props.title === '정말 NURI를 떠나시겠어요? 🥺');
+
+    expect(acknowledgementDialog?.props.visible).toBe(true);
+    expect(acknowledgementDialog?.props.confirmDisabled).toBe(true);
+    expect(phraseDialog?.props.visible).toBe(false);
+
+    TestRenderer.act(() => acknowledgementDialog?.props.onConfirm());
+    phraseDialog = renderer.root
+      .findAll(node => String(node.type) === CONFIRM_DIALOG_HOST)
+      .find(dialog => dialog.props.title === '정말 NURI를 떠나시겠어요? 🥺');
+    expect(phraseDialog?.props.visible).toBe(false);
+    expect(mockPerformAccountDeletion).not.toHaveBeenCalled();
+
+    TestRenderer.act(() => acknowledgementDialog?.props.onCancel());
+    acknowledgementDialog = renderer.root
+      .findAll(node => String(node.type) === CONFIRM_DIALOG_HOST)
+      .find(dialog => dialog.props.title === '회원탈퇴 전 확인해 주세요');
+    expect(acknowledgementDialog?.props.visible).toBe(false);
+
+    TestRenderer.act(() => startButton.props.onPress());
+
+    const acknowledgementToggle = renderer.root.findByProps({
+      testID: 'account-delete-acknowledgement-toggle',
+    });
+    TestRenderer.act(() => acknowledgementToggle.props.onPress());
+
+    acknowledgementDialog = renderer.root
+      .findAll(node => String(node.type) === CONFIRM_DIALOG_HOST)
+      .find(dialog => dialog.props.title === '회원탈퇴 전 확인해 주세요');
+    expect(acknowledgementDialog?.props.confirmDisabled).toBe(false);
+
+    TestRenderer.act(() => acknowledgementDialog?.props.onConfirm());
+
+    acknowledgementDialog = renderer.root
+      .findAll(node => String(node.type) === CONFIRM_DIALOG_HOST)
+      .find(dialog => dialog.props.title === '회원탈퇴 전 확인해 주세요');
+    phraseDialog = renderer.root
+      .findAll(node => String(node.type) === CONFIRM_DIALOG_HOST)
+      .find(dialog => dialog.props.title === '정말 NURI를 떠나시겠어요? 🥺');
+
+    expect(acknowledgementDialog?.props.visible).toBe(false);
+    expect(phraseDialog?.props.visible).toBe(true);
+    expect(mockPerformAccountDeletion).not.toHaveBeenCalled();
+
+    TestRenderer.act(() => phraseDialog?.props.onCancel());
+    phraseDialog = renderer.root
+      .findAll(node => String(node.type) === CONFIRM_DIALOG_HOST)
+      .find(dialog => dialog.props.title === '정말 NURI를 떠나시겠어요? 🥺');
+    expect(phraseDialog?.props.visible).toBe(false);
 
     await TestRenderer.act(async () => {
       renderer.unmount();
