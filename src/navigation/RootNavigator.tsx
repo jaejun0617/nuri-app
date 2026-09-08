@@ -62,6 +62,8 @@ import CommunityBlockedUsersScreen from '../screens/Community/CommunityBlockedUs
 import RecordCreateScreen from '../screens/Records/RecordCreateScreen';
 import UserNotificationsScreen from '../screens/Notifications/UserNotificationsScreen';
 import NuriRankingScreen from '../screens/Ranking/NuriRankingScreen';
+import PolicyCenterScreen from '../screens/Policy/PolicyCenterScreen';
+import PolicyDetailScreen from '../screens/Policy/PolicyDetailScreen';
 import CommunityStackHeader from './CommunityStackHeader';
 import type { DeviceCoordinates } from '../services/location/currentPosition';
 import type { LocationDiscoveryItem } from '../services/locationDiscovery/types';
@@ -88,6 +90,7 @@ import type {
 import AppTabsNavigator from './AppTabsNavigator';
 import type { AppTabParamList, RecordCreateReturnTo } from './AppTabsNavigator';
 import type { RouteSignInNotice } from '../services/auth/notices';
+import type { PolicyDocumentId } from '../services/legal/presentation';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -232,6 +235,11 @@ export type RootStackParamList = {
   CommunityBlockedUsers: undefined;
   UserNotifications: { entrySource?: ScreenEntrySource } | undefined;
   NuriRanking: { entrySource?: ScreenEntrySource } | undefined;
+  PolicyCenter: { entrySource?: ScreenEntrySource } | undefined;
+  PolicyDetail: {
+    documentId: PolicyDocumentId;
+    entrySource?: ScreenEntrySource;
+  };
   RecordCreate:
     | {
         petId?: string;
@@ -499,6 +507,16 @@ export default function RootNavigator() {
       <Stack.Screen
         name="NuriRanking"
         component={NuriRankingScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="PolicyCenter"
+        component={PolicyCenterScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="PolicyDetail"
+        component={PolicyDetailScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

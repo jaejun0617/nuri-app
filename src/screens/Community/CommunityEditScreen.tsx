@@ -27,7 +27,6 @@ import { usePetStore } from '../../store/petStore';
 import { showToast } from '../../store/uiStore';
 import type { CommunityPostCategory } from '../../types/community';
 import CommunityPostEditorForm from './components/CommunityPostEditorForm';
-import { openCommunityPolicyDocument } from './communityPolicyLink';
 import {
   buildCommunityPetSnapshot,
   getCommunityEditorExitDialogCopy,
@@ -266,15 +265,9 @@ export default function CommunityEditScreen() {
     title,
   ]);
 
-  const handlePressCommunityPolicy = useCallback(async () => {
-    const result = await openCommunityPolicyDocument();
-    if (result.ok) return;
-
-    showToast({
-      tone: 'error',
-      message: result.message,
-    });
-  }, []);
+  const handlePressCommunityPolicy = useCallback(() => {
+    navigation.navigate('PolicyDetail', { documentId: 'community' });
+  }, [navigation]);
 
   const disabled =
     submitting ||

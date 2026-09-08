@@ -39,12 +39,10 @@ import {
 } from '../../services/legal/consents';
 import {
   LEGAL_DOCUMENTS,
-  getLegalDocumentActionLabel,
-  getLegalDocumentStatusLabel,
-  openLegalDocument,
   type LegalDocumentConfig,
   type LegalDocumentId,
 } from '../../services/legal/documents';
+import { getPolicyPresentationDocument } from '../../services/legal/presentation';
 import {
   clearLocalAuthSession,
   getOAuthProviderLabel,
@@ -374,9 +372,6 @@ export default function SignUpScreen() {
   const [expandedConsentId, setExpandedConsentId] = useState<LegalDocumentId | null>(
     null,
   );
-  const [openingDocumentId, setOpeningDocumentId] = useState<LegalDocumentId | null>(
-    null,
-  );
 
   const emailValid = useMemo(() => isValidEmail(email), [email]);
   const passwordValid = password.length >= 8;
@@ -411,12 +406,6 @@ export default function SignUpScreen() {
     [agreePrivacy, agreeTerms, emailValid, passwordValid, passwordsMatch],
   );
 
-  const requiredDocumentPending = useMemo(
-    () =>
-      LEGAL_DOCUMENTS.terms.status !== 'external' ||
-      LEGAL_DOCUMENTS.privacy.status !== 'external',
-    [],
-  );
   const allConsentsChecked = agreeTerms && agreePrivacy && agreeMarketing;
 
   const consentItems = useMemo<
@@ -554,29 +543,12 @@ export default function SignUpScreen() {
     [socialDisabled],
   );
 
-  const onPressLegalDocument = useCallback(async (documentId: LegalDocumentId) => {
-    if (openingDocumentId) return;
-
-    try {
-      setOpeningDocumentId(documentId);
-      const result = await openLegalDocument(documentId);
-
-      if (!result.ok) {
-        if (result.reason === 'failed') {
-          Alert.alert(result.document.title, result.message);
-        }
-
-        showToast({
-          tone: result.reason === 'failed' ? 'error' : 'info',
-          title: result.document.title,
-          message: result.message,
-          durationMs: 3200,
-        });
-      }
-    } finally {
-      setOpeningDocumentId(null);
-    }
-  }, [openingDocumentId]);
+  const onPressLegalDocument = useCallback(
+    (documentId: LegalDocumentId) => {
+      navigation.navigate('PolicyDetail', { documentId });
+    },
+    [navigation],
+  );
 
   const onToggleExpandedConsent = useCallback((documentId: LegalDocumentId) => {
     setExpandedConsentId(current => (current === documentId ? null : documentId));
@@ -724,20 +696,21 @@ export default function SignUpScreen() {
             {consentItems.map(item => (
               <ConsentRow
                 key={item.id}
-                actionLabel={getLegalDocumentActionLabel(item.document)}
+                actionLabel="내용 보기"
                 checked={item.checked}
                 description={item.description}
                 detailDescription={item.document.description}
                 disabled={submitting}
                 expanded={expandedConsentId === item.id}
-                isOpening={openingDocumentId === item.id}
-                onPressAction={() => {
-                  onPressLegalDocument(item.id).catch(() => {});
-                }}
+                isOpening={false}
+                onPressAction={() => onPressLegalDocument(item.id)}
                 onPressDisclosure={() => onToggleExpandedConsent(item.id)}
                 onToggle={item.onToggle}
                 required={item.required}
-                statusLabel={getLegalDocumentStatusLabel(item.document.status)}
+                statusLabel={
+                  getPolicyPresentationDocument(item.id)?.contentStatusLabel ??
+                  '내용 검토 중'
+                }
                 summary={item.document.summary}
                 title={item.title}
               />
@@ -752,18 +725,6 @@ export default function SignUpScreen() {
               회원가입을 진행하려면 필수 동의 2가지를 모두 체크해 주세요.
             </AppText>
           ) : null}
-          {requiredDocumentPending ? (
-            <View style={styles.legalNoticeBox}>
-              <AppText preset="unifiedTitle" style={styles.legalNoticeTitle}>
-                정책 문서 연결 상태 안내
-              </AppText>
-              <AppText preset="unifiedBody" style={styles.legalNoticeBody}>
-                현재 앱에서는 정책 초안 구조와 요약만 먼저 제공합니다. 전체 문서
-                열람 연결과 최종 법무 문안은 후속 운영 작업에서 확정됩니다.
-              </AppText>
-            </View>
-          ) : null}
-
           <TouchableOpacity
             activeOpacity={0.9}
             disabled={disabled}
@@ -824,9 +785,7 @@ export default function SignUpScreen() {
 
               <SocialConsentNotice
                 linkColor={theme.colors.brand}
-                onPressDocument={documentId => {
-                  onPressLegalDocument(documentId).catch(() => {});
-                }}
+                onPressDocument={onPressLegalDocument}
                 textColor={theme.colors.textMuted}
               />
             </>

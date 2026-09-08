@@ -57,10 +57,7 @@ import {
   signInWithKakao,
   type SocialOAuthProvider,
 } from '../../services/supabase/auth';
-import {
-  openLegalDocument,
-  type LegalDocumentId,
-} from '../../services/legal/documents';
+import type { LegalDocumentId } from '../../services/legal/documents';
 import { supabase } from '../../services/supabase/client';
 import { useAuthStore } from '../../store/authStore';
 import { showToast } from '../../store/uiStore';
@@ -384,22 +381,12 @@ export default function SignInScreen() {
     navigation.navigate('SignUp');
   }, [navigation]);
 
-  const onPressLegalDocument = useCallback(async (documentId: LegalDocumentId) => {
-    const result = await openLegalDocument(documentId);
-
-    if (result.ok) return;
-
-    if (result.reason === 'failed') {
-      Alert.alert(result.document.title, result.message);
-    }
-
-    showToast({
-      tone: result.reason === 'failed' ? 'error' : 'info',
-      title: result.document.title,
-      message: result.message,
-      durationMs: 3200,
-    });
-  }, []);
+  const onPressLegalDocument = useCallback(
+    (documentId: LegalDocumentId) => {
+      navigation.navigate('PolicyDetail', { documentId });
+    },
+    [navigation],
+  );
 
   useEffect(() => {
     if (passwordRecoveryStatus !== 'active') {
@@ -689,9 +676,7 @@ export default function SignInScreen() {
 
             <SocialConsentNotice
               linkColor={theme.colors.brand}
-              onPressDocument={documentId => {
-                onPressLegalDocument(documentId).catch(() => {});
-              }}
+              onPressDocument={onPressLegalDocument}
               textColor={theme.colors.textMuted}
             />
           </>
