@@ -10,7 +10,10 @@ import React, {
 import { BackHandler } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import {
+  KeyboardAwareScrollView,
+  type KeyboardAwareScrollViewRef,
+} from 'react-native-keyboard-controller';
 import RNBlobUtil from 'react-native-blob-util';
 import {
   SafeAreaView,
@@ -20,7 +23,6 @@ import { useTheme } from 'styled-components/native';
 
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import HeaderTextActionButton from '../../components/navigation/HeaderTextActionButton';
-import { useKeyboardInset } from '../../hooks/useKeyboardInset';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { getBrandedErrorMeta } from '../../services/app/errors';
 import { getCommunityMutationErrorMeta } from '../../services/community/errors';
@@ -145,8 +147,7 @@ export default function CommunityCreateScreen() {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const draftHydratedRef = useRef(false);
-  const scrollViewRef = useRef<KeyboardAwareScrollView | null>(null);
-  const keyboardInset = useKeyboardInset();
+  const scrollViewRef = useRef<KeyboardAwareScrollViewRef | null>(null);
 
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
@@ -449,35 +450,10 @@ export default function CommunityCreateScreen() {
     renderHeaderLeft,
     renderHeaderRight,
   ]);
-  const hasPickedImage = pickedImages.length > 0;
-  const scrollBottomInset = useMemo(() => {
-    if (keyboardInset > 0) {
-      if (hasPickedImage) {
-        return Math.max(keyboardInset + 32, insets.bottom + 112);
-      }
-      return Math.max(keyboardInset + 56, insets.bottom + 128);
-    }
-    return hasPickedImage ? insets.bottom + 120 : insets.bottom + 132;
-  }, [hasPickedImage, insets.bottom, keyboardInset]);
-  const bottomSubmitMargin = useMemo(() => {
-    if (keyboardInset > 0) {
-      return (
-        Math.max(keyboardInset - 200, 0) +
-        (hasPickedImage
-          ? Math.max(insets.bottom, 12) + 4
-          : Math.max(insets.bottom, 12) + 8)
-      );
-    }
-    return Math.max(insets.bottom, 18);
-  }, [hasPickedImage, insets.bottom, keyboardInset]);
-
-  const handleFocusContent = useCallback(() => {
+  const handleFocusField = useCallback(() => {
     requestAnimationFrame(() => {
-      scrollViewRef.current?.scrollToEnd(true);
+      scrollViewRef.current?.assureFocusedInputVisible();
     });
-    setTimeout(() => {
-      scrollViewRef.current?.scrollToEnd(true);
-    }, 180);
   }, []);
 
   return (
@@ -486,19 +462,13 @@ export default function CommunityCreateScreen() {
       edges={['left', 'right', 'bottom']}
     >
       <KeyboardAwareScrollView
-        innerRef={ref => {
-          scrollViewRef.current = ref;
-        }}
-        enableOnAndroid
-        keyboardShouldPersistTaps="always"
-        keyboardDismissMode="interactive"
-        enableAutomaticScroll
+        ref={scrollViewRef}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="none"
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: scrollBottomInset },
+          { paddingBottom: insets.bottom + 32 },
         ]}
-        extraScrollHeight={hasPickedImage ? 18 : 42}
-        extraHeight={hasPickedImage ? 54 : 78}
         showsVerticalScrollIndicator={false}
       >
         <CommunityPostEditorForm
@@ -513,7 +483,7 @@ export default function CommunityCreateScreen() {
           imageUri={pickedImages[0]?.uri ?? null}
           imageUris={pickedImages.map(image => image.uri)}
           accentPalette={petTheme}
-          bottomSubmitMargin={bottomSubmitMargin}
+          bottomSubmitMargin={0}
           submitLabel={submitting ? '글 등록 중...' : '글 등록'}
           submitDisabled={disabled}
           onChangeCategory={setCategory}
@@ -521,7 +491,8 @@ export default function CommunityCreateScreen() {
           onToggleShowPetAge={() => setShowPetAge(prev => !prev)}
           onChangeTitle={setTitle}
           onChangeContent={setContent}
-          onContentFocus={handleFocusContent}
+          onTitleFocus={handleFocusField}
+          onContentFocus={handleFocusField}
           onPressPolicy={handlePressCommunityPolicy}
           onPickImage={handlePickImage}
           onRemoveImage={handleRemoveImage}

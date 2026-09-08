@@ -42,6 +42,7 @@ type Props = {
   onToggleShowPetAge: () => void;
   onChangeTitle: (title: string) => void;
   onChangeContent: (content: string) => void;
+  onTitleFocus?: () => void;
   onContentFocus?: () => void;
   onPressPolicy: () => void;
   onPickImage: () => void;
@@ -71,6 +72,7 @@ function CommunityPostEditorFormBase({
   onToggleShowPetAge,
   onChangeTitle,
   onChangeContent,
+  onTitleFocus,
   onContentFocus,
   onPressPolicy,
   onPickImage,
@@ -421,6 +423,7 @@ function CommunityPostEditorFormBase({
           <TextInput
             value={title}
             onChangeText={onChangeTitle}
+            onFocus={onTitleFocus}
             placeholder="제목을 입력해 주세요."
             placeholderTextColor={theme.colors.textMuted}
             style={[styles.titleInput, { color: theme.colors.textPrimary }]}
