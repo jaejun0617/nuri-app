@@ -23,6 +23,7 @@ const mockNavigation = {
   navigate: jest.fn(),
   reset: jest.fn(),
   replace: jest.fn(),
+  popTo: jest.fn(),
   canGoBack: () => true,
 };
 const mockQueryClient = {

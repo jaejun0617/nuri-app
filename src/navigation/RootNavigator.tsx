@@ -67,6 +67,7 @@ import type { DeviceCoordinates } from '../services/location/currentPosition';
 import type { LocationDiscoveryItem } from '../services/locationDiscovery/types';
 import type { AnimalHospitalPublicHospital } from '../domains/animalHospital/types';
 import type { ScreenEntrySource } from './entry';
+import type { ScheduleReturnTarget } from './scheduleReturn';
 import type { HealthReportTabKey } from '../services/health-report/viewModel';
 import type {
   RecordMainCategoryKey,
@@ -158,19 +159,20 @@ export type RootStackParamList = {
         >;
         initialIconKey?: ScheduleIconKey;
         initialColorKey?: ScheduleColorKey;
-        returnTo?: { screen: 'HealthReport'; initialTab?: HealthReportTabKey };
+        returnTo?: ScheduleReturnTarget;
       }
     | undefined;
   ScheduleDetail: {
     petId?: string;
     scheduleId: string;
     entrySource?: ScreenEntrySource;
+    returnTo?: ScheduleReturnTarget;
   };
   ScheduleEdit: {
     petId?: string;
     scheduleId: string;
     entrySource?: ScreenEntrySource;
-    returnTo?: { screen: 'HealthReport'; initialTab?: HealthReportTabKey };
+    returnTo?: ScheduleReturnTarget;
   };
   WeatherInsight:
     | {
@@ -246,7 +248,11 @@ export type RootStackParamList = {
     buttonLabel?: string;
     navigateTo:
       | { type: 'home' }
-      | { type: 'schedule-list'; petId?: string }
+      | {
+          type: 'schedule-list';
+          petId?: string;
+          entrySource?: ScreenEntrySource;
+        }
       | { type: 'record-detail'; petId: string; memoryId: string };
   };
 

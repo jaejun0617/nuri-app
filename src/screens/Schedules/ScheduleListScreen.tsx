@@ -120,6 +120,10 @@ export default function ScheduleListScreen() {
     navigation.navigate('ScheduleCreate', {
       petId: petId ?? undefined,
       entrySource: route.params?.entrySource,
+      returnTo: {
+        screen: 'ScheduleList',
+        entrySource: route.params?.entrySource,
+      },
     });
   }, [navigation, petId, route.params?.entrySource]);
 
@@ -148,6 +152,10 @@ export default function ScheduleListScreen() {
         petId: petId ?? undefined,
         scheduleId,
         entrySource: route.params?.entrySource,
+        returnTo: {
+          screen: 'ScheduleList',
+          entrySource: route.params?.entrySource,
+        },
       });
     },
     [navigation, petId, route.params?.entrySource],

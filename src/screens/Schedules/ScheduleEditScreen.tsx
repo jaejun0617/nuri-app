@@ -29,6 +29,7 @@ import WaveText from '../../components/common/WaveText';
 import HeaderTextActionButton from '../../components/navigation/HeaderTextActionButton';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import { resolveScheduleReturnTarget } from '../../navigation/scheduleReturn';
 import type { RootScreenRoute } from '../../navigation/types';
 import { createLatestRequestController } from '../../services/app/async';
 import {
@@ -78,7 +79,7 @@ import { useScheduleNotificationSettings } from '../../hooks/useScheduleNotifica
 import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { usePetStore } from '../../store/petStore';
 import { useScheduleStore } from '../../store/scheduleStore';
-import { openMoreDrawer, showToast } from '../../store/uiStore';
+import { showToast } from '../../store/uiStore';
 import { styles } from './ScheduleCreateScreen.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'ScheduleEdit'>;
@@ -91,6 +92,10 @@ export default function ScheduleEditScreen() {
   const insets = useSafeAreaInsets();
   const { petId, scheduleId } = route.params;
   const returnTo = route.params.returnTo;
+  const resolvedReturnTo = resolveScheduleReturnTarget(
+    returnTo,
+    route.params.entrySource,
+  );
   const pets = usePetStore(s => s.pets);
   const refresh = useScheduleStore(s => s.refresh);
   const selectedPet = useMemo(
@@ -178,24 +183,8 @@ export default function ScheduleEditScreen() {
   ]);
 
   const goBackByEntrySource = useCallback(() => {
-    if (route.params?.entrySource === 'home') {
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'AppTabs', params: { screen: 'HomeTab' } }],
-      });
-      return;
-    }
-
-    if (route.params?.entrySource === 'more') {
-      navigation.goBack();
-      requestAnimationFrame(() => {
-        openMoreDrawer();
-      });
-      return;
-    }
-
     navigation.goBack();
-  }, [navigation, route.params?.entrySource]);
+  }, [navigation]);
 
   const onPressBack = useCallback(() => {
     if (saving) return;
@@ -411,12 +400,12 @@ export default function ScheduleEditScreen() {
           queryKey: ['health-report', 'month', petId],
         });
       }
-      if (returnTo?.screen === 'HealthReport') {
-        navigation.replace('HealthReport', {
+      if (resolvedReturnTo.screen === 'HealthReport') {
+        navigation.popTo('HealthReport', {
           petId: petId ?? undefined,
-          initialTab: returnTo.initialTab ?? 'records',
+          initialTab: resolvedReturnTo.initialTab ?? 'records',
           focusYmd: normalizedDate,
-          entrySource: 'more',
+          entrySource: resolvedReturnTo.entrySource,
         });
         return;
       }
@@ -427,7 +416,11 @@ export default function ScheduleEditScreen() {
           '이제 전체 일정에서 바로 확인할 수 있어요.',
         ],
         buttonLabel: '전체 일정 보기',
-        navigateTo: { type: 'schedule-list', petId },
+        navigateTo: {
+          type: 'schedule-list',
+          petId,
+          entrySource: resolvedReturnTo.entrySource,
+        },
       });
     } catch (error) {
       const { title: alertTitle, message } = getBrandedErrorMeta(
@@ -450,7 +443,7 @@ export default function ScheduleEditScreen() {
     customReminderMinutesText,
     petId,
     queryClient,
-    returnTo,
+    resolvedReturnTo,
     reminderKey,
     refresh,
     repeatRule,

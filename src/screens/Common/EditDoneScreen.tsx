@@ -35,12 +35,9 @@ export default function EditDoneScreen() {
     }
 
     if (navigateTo.type === 'schedule-list') {
-      navigation.reset({
-        index: 1,
-        routes: [
-          { name: 'AppTabs', params: { screen: 'HomeTab' } },
-          { name: 'ScheduleList', params: { petId: navigateTo.petId } },
-        ],
+      navigation.popTo('ScheduleList', {
+        petId: navigateTo.petId,
+        entrySource: navigateTo.entrySource,
       });
       return;
     }

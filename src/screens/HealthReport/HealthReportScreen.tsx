@@ -800,14 +800,19 @@ export default function HealthReportScreen() {
       const medicineAction = action === 'medicine';
       navigation.navigate('ScheduleCreate', {
         petId: pet.id,
+        entrySource: 'health_report',
         initialTitle: medicineAction ? '투약/복약 기록' : '병원/검진 기록',
         initialCategory: 'health',
         initialHealthSubCategory: medicineAction ? 'medicine' : 'hospital',
         initialIconKey: medicineAction ? 'pill' : 'medical-bag',
-        returnTo: { screen: 'HealthReport', initialTab: 'records' },
+        returnTo: {
+          screen: 'HealthReport',
+          initialTab: 'records',
+          entrySource: route.params?.entrySource,
+        },
       });
     },
-    [navigation, openWeightCreate, pet],
+    [navigation, openWeightCreate, pet, route.params?.entrySource],
   );
 
   const handleWeightCommitted = useCallback(
@@ -869,11 +874,16 @@ export default function HealthReportScreen() {
         navigation.navigate('ScheduleDetail', {
           petId: pet.id,
           scheduleId: item.scheduleId,
-          entrySource: 'more',
+          entrySource: 'health_report',
+          returnTo: {
+            screen: 'HealthReport',
+            initialTab: 'records',
+            entrySource: route.params?.entrySource,
+          },
         });
       }
     },
-    [navigation, pet],
+    [navigation, pet, route.params?.entrySource],
   );
 
   const handleToggleScheduleReminder = useCallback(

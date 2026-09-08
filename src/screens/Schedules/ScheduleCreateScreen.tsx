@@ -32,6 +32,7 @@ import WaveText from '../../components/common/WaveText';
 import HeaderTextActionButton from '../../components/navigation/HeaderTextActionButton';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import { resolveScheduleReturnTarget } from '../../navigation/scheduleReturn';
 import type { RootScreenRoute } from '../../navigation/types';
 import {
   getBrandedErrorMeta,
@@ -76,7 +77,7 @@ import { useScheduleNotificationSettings } from '../../hooks/useScheduleNotifica
 import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { resolveSelectedPetId, usePetStore } from '../../store/petStore';
 import { useScheduleStore } from '../../store/scheduleStore';
-import { openMoreDrawer, showToast } from '../../store/uiStore';
+import { showToast } from '../../store/uiStore';
 import { styles } from './ScheduleCreateScreen.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'ScheduleCreate'>;
@@ -90,6 +91,10 @@ export default function ScheduleCreateScreen() {
   const routePetId = route.params?.petId ?? null;
   const startsAtParam = route.params?.startsAt?.trim() ?? null;
   const returnTo = route.params?.returnTo;
+  const resolvedReturnTo = resolveScheduleReturnTarget(
+    returnTo,
+    route.params?.entrySource,
+  );
   const isHealthManagementEntry = returnTo?.screen === 'HealthReport';
   const initialTitle = route.params?.initialTitle ?? '';
   const initialCategory = route.params?.initialCategory ?? 'other';
@@ -196,38 +201,25 @@ export default function ScheduleCreateScreen() {
   );
 
   const goBackByEntrySource = useCallback(() => {
-    if (returnTo?.screen === 'HealthReport') {
-      if (navigation.canGoBack()) {
-        navigation.goBack();
-        return;
-      }
-
-      navigation.navigate('HealthReport', {
-        petId: petId ?? undefined,
-        initialTab: returnTo.initialTab ?? 'records',
-        entrySource: 'more',
-      });
-      return;
-    }
-
-    if (route.params?.entrySource === 'home') {
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'AppTabs', params: { screen: 'HomeTab' } }],
-      });
-      return;
-    }
-
-    if (route.params?.entrySource === 'more') {
+    if (navigation.canGoBack()) {
       navigation.goBack();
-      requestAnimationFrame(() => {
-        openMoreDrawer();
+      return;
+    }
+
+    if (resolvedReturnTo.screen === 'HealthReport') {
+      navigation.popTo('HealthReport', {
+        petId: petId ?? undefined,
+        initialTab: resolvedReturnTo.initialTab ?? 'records',
+        entrySource: resolvedReturnTo.entrySource,
       });
       return;
     }
 
-    navigation.goBack();
-  }, [navigation, petId, returnTo, route.params?.entrySource]);
+    navigation.popTo('ScheduleList', {
+      petId: petId ?? undefined,
+      entrySource: resolvedReturnTo.entrySource,
+    });
+  }, [navigation, petId, resolvedReturnTo]);
 
   const onPressBack = useCallback(() => {
     if (saving) return;
@@ -391,20 +383,23 @@ export default function ScheduleCreateScreen() {
       if (notificationFeedback) showToast(notificationFeedback);
 
       await refresh(petId);
-      if (returnTo?.screen === 'HealthReport') {
+      if (resolvedReturnTo.screen === 'HealthReport') {
         await queryClient.invalidateQueries({
           queryKey: ['health-report', 'month', petId],
         });
-        navigation.navigate('HealthReport', {
+        navigation.popTo('HealthReport', {
           petId,
-          initialTab: returnTo.initialTab ?? 'records',
+          initialTab: resolvedReturnTo.initialTab ?? 'records',
           focusYmd: normalizedDate,
-          entrySource: 'more',
+          entrySource: resolvedReturnTo.entrySource,
         });
         return;
       }
 
-      navigation.replace('ScheduleList', { petId });
+      navigation.popTo('ScheduleList', {
+        petId,
+        entrySource: resolvedReturnTo.entrySource,
+      });
     } catch (error) {
       const { title: alertTitle, message } = getBrandedErrorMeta(
         error,
@@ -430,7 +425,7 @@ export default function ScheduleCreateScreen() {
     reminderKey,
     refresh,
     repeatRule,
-    returnTo,
+    resolvedReturnTo,
     timeText,
     title,
   ]);

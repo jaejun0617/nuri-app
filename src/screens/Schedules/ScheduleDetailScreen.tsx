@@ -19,6 +19,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import AppText from '../../app/ui/AppText';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import { resolveScheduleReturnTarget } from '../../navigation/scheduleReturn';
 import type { RootScreenRoute } from '../../navigation/types';
 import { createLatestRequestController } from '../../services/app/async';
 import { getErrorMessage } from '../../services/app/errors';
@@ -111,6 +112,10 @@ export default function ScheduleDetailScreen() {
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const { petId, scheduleId } = route.params;
+  const returnTo = resolveScheduleReturnTarget(
+    route.params.returnTo,
+    route.params.entrySource,
+  );
 
   const refresh = useScheduleStore(s => s.refresh);
   const pets = usePetStore(s => s.pets);
@@ -168,28 +173,28 @@ export default function ScheduleDetailScreen() {
       petId,
       scheduleId,
       entrySource: route.params?.entrySource,
-      returnTo:
-        route.params?.entrySource === 'more'
-          ? { screen: 'HealthReport', initialTab: 'records' }
-          : undefined,
+      returnTo,
     });
-  }, [navigation, petId, route.params?.entrySource, scheduleId]);
+  }, [navigation, petId, returnTo, route.params?.entrySource, scheduleId]);
 
-  const goBackToList = useCallback(
+  const returnToScheduleParent = useCallback(
     (focusYmd?: string | null) => {
-      if (route.params?.entrySource === 'more') {
-        navigation.replace('HealthReport', {
+      if (returnTo.screen === 'HealthReport') {
+        navigation.popTo('HealthReport', {
           petId: petId ?? undefined,
-          initialTab: 'records',
+          initialTab: returnTo.initialTab ?? 'records',
           focusYmd: focusYmd ?? undefined,
-          entrySource: 'more',
+          entrySource: returnTo.entrySource,
         });
         return;
       }
 
-      navigation.replace('ScheduleList', { petId });
+      navigation.popTo('ScheduleList', {
+        petId,
+        entrySource: returnTo.entrySource,
+      });
     },
-    [navigation, petId, route.params?.entrySource],
+    [navigation, petId, returnTo],
   );
 
   const onPressDelete = useCallback(() => {
@@ -226,7 +231,7 @@ export default function ScheduleDetailScreen() {
         );
         refresh(petId).catch(() => {});
       }
-      goBackToList(deletedFocusYmd);
+      returnToScheduleParent(deletedFocusYmd);
     } catch (error: unknown) {
       setFeedbackDialog({
         title: '삭제 실패',
@@ -235,7 +240,7 @@ export default function ScheduleDetailScreen() {
     } finally {
       setDeleting(false);
     }
-  }, [goBackToList, petId, queryClient, refresh, schedule, scheduleId]);
+  }, [petId, queryClient, refresh, returnToScheduleParent, schedule, scheduleId]);
 
   const executeToggleComplete = useCallback(async () => {
     if (!schedule) return;
@@ -314,14 +319,14 @@ export default function ScheduleDetailScreen() {
         );
         refresh(petId).catch(() => {});
       }
-      goBackToList(getDateYmdInKst(schedule.startsAt));
+      returnToScheduleParent(getDateYmdInKst(schedule.startsAt));
     } catch (error: unknown) {
       setFeedbackDialog({
         title: '상태 변경 실패',
         message: getScheduleStatusErrorMessage(error),
       });
     }
-  }, [goBackToList, petId, queryClient, refresh, schedule]);
+  }, [petId, queryClient, refresh, returnToScheduleParent, schedule]);
 
   const onToggleComplete = useCallback(() => {
     if (!schedule) return;
