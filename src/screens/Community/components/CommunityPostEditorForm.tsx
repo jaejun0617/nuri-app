@@ -19,6 +19,10 @@ type AccentPalette = {
   deep: string;
 };
 
+// Keeps meaningful long-form editing space above the IME while the keyboard
+// controller performs its single native-synchronized scroll.
+export const COMMUNITY_COMPOSER_KEYBOARD_BOTTOM_OFFSET = 144;
+
 type Props = {
   category: CommunityPostCategory;
   title: string;
@@ -33,9 +37,6 @@ type Props = {
   onChangeCategory: (category: CommunityPostCategory) => void;
   onChangeTitle: (title: string) => void;
   onChangeContent: (content: string) => void;
-  onFieldLayout?: (field: 'title' | 'body', offsetY: number) => void;
-  onTitleFocus?: () => void;
-  onContentFocus?: () => void;
   onPressPolicy: () => void;
   onPickImage: () => void;
   onRemoveImage: (index?: number) => void;
@@ -56,9 +57,6 @@ function CommunityPostEditorFormBase({
   onChangeCategory,
   onChangeTitle,
   onChangeContent,
-  onFieldLayout,
-  onTitleFocus,
-  onContentFocus,
   onPressPolicy,
   onPickImage,
   onRemoveImage,
@@ -211,7 +209,6 @@ function CommunityPostEditorFormBase({
       <View
         testID="community-composer-title-section"
         style={styles.section}
-        onLayout={event => onFieldLayout?.('title', event.nativeEvent.layout.y)}
       >
         <View style={styles.bodyHeader}>
           <AppText preset="caption" style={[styles.label, { color: theme.colors.textMuted }]}>
@@ -233,7 +230,6 @@ function CommunityPostEditorFormBase({
           <TextInput
             value={title}
             onChangeText={onChangeTitle}
-            onFocus={onTitleFocus}
             placeholder="제목을 입력해 주세요."
             placeholderTextColor={theme.colors.textMuted}
             style={[styles.titleInput, { color: theme.colors.textPrimary }]}
@@ -246,7 +242,6 @@ function CommunityPostEditorFormBase({
       <View
         testID="community-composer-body-section"
         style={styles.section}
-        onLayout={event => onFieldLayout?.('body', event.nativeEvent.layout.y)}
       >
         <View style={styles.bodyHeader}>
           <AppText preset="caption" style={[styles.label, { color: theme.colors.textMuted }]}>
@@ -269,7 +264,6 @@ function CommunityPostEditorFormBase({
             multiline
             value={content}
             onChangeText={onChangeContent}
-            onFocus={onContentFocus}
             placeholder="우리 아이의 소중한 일상과 고민을 자유롭게 나누어 보세요. (욕설, 비방 등 불쾌감을 주는 내용은 운영정책에 따라 숨김 처리될 수 있습니다.)"
             placeholderTextColor={theme.colors.textMuted}
             style={[styles.input, { color: theme.colors.textPrimary }]}

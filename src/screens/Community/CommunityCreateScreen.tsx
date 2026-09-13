@@ -32,10 +32,6 @@ import {
   pickPhotoAssets,
   type PickedPhotoAsset,
 } from '../../services/media/photoPicker';
-import {
-  resolveComposerFocusOffset,
-  type ComposerFocusTarget,
-} from '../../services/forms/composerFocus';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { flushPendingCommunityImageCleanup } from '../../services/supabase/storageCommunity';
 import { useCommunityAuth } from '../../hooks/useCommunityAuth';
@@ -43,7 +39,9 @@ import { useCommunityStore } from '../../store/communityStore';
 import { usePetStore } from '../../store/petStore';
 import { showToast } from '../../store/uiStore';
 import type { CommunityPostCategory } from '../../types/community';
-import CommunityPostEditorForm from './components/CommunityPostEditorForm';
+import CommunityPostEditorForm, {
+  COMMUNITY_COMPOSER_KEYBOARD_BOTTOM_OFFSET,
+} from './components/CommunityPostEditorForm';
 import {
   getCommunityEditorExitDialogCopy,
   hasCommunityEditorDraftChanges,
@@ -147,9 +145,6 @@ export default function CommunityCreateScreen() {
   const keyboardVisible = useKeyboardState(state => state.isVisible);
   const draftHydratedRef = useRef(false);
   const scrollViewRef = useRef<KeyboardAwareScrollViewRef | null>(null);
-  const composerFieldOffsetsRef = useRef<
-    Partial<Record<ComposerFocusTarget, number>>
-  >({});
 
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
@@ -414,35 +409,6 @@ export default function CommunityCreateScreen() {
     renderHeaderLeft,
     renderHeaderRight,
   ]);
-  const handleFieldLayout = useCallback(
-    (field: ComposerFocusTarget, offsetY: number) => {
-      composerFieldOffsetsRef.current[field] = offsetY;
-    },
-    [],
-  );
-  const handleFocusField = useCallback((field: ComposerFocusTarget) => {
-    requestAnimationFrame(() => {
-      const offsetY = composerFieldOffsetsRef.current[field];
-      if (offsetY === undefined) {
-        scrollViewRef.current?.assureFocusedInputVisible();
-        return;
-      }
-      scrollViewRef.current?.scrollTo({
-        x: 0,
-        y: resolveComposerFocusOffset(offsetY),
-        animated: true,
-      });
-    });
-  }, []);
-  const handleTitleFocus = useCallback(
-    () => handleFocusField('title'),
-    [handleFocusField],
-  );
-  const handleContentFocus = useCallback(
-    () => handleFocusField('body'),
-    [handleFocusField],
-  );
-
   return (
     <SafeAreaView
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
@@ -450,6 +416,7 @@ export default function CommunityCreateScreen() {
     >
       <KeyboardAwareScrollView
         ref={scrollViewRef}
+        bottomOffset={COMMUNITY_COMPOSER_KEYBOARD_BOTTOM_OFFSET}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="none"
         contentContainerStyle={[
@@ -475,9 +442,6 @@ export default function CommunityCreateScreen() {
           onChangeCategory={setCategory}
           onChangeTitle={setTitle}
           onChangeContent={setContent}
-          onFieldLayout={handleFieldLayout}
-          onTitleFocus={handleTitleFocus}
-          onContentFocus={handleContentFocus}
           onPressPolicy={handlePressCommunityPolicy}
           onPickImage={handlePickImage}
           onRemoveImage={handleRemoveImage}

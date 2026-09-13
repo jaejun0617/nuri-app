@@ -8,8 +8,6 @@ import { createTheme } from '../src/app/theme/theme';
 import CommunityCreateScreen from '../src/screens/Community/CommunityCreateScreen';
 import { usePetStore } from '../src/store/petStore';
 
-const mockAssureFocusedInputVisible = jest.fn();
-const mockScrollTo = jest.fn();
 let mockKeyboardVisible = false;
 const mockNavigation = {
   goBack: jest.fn(),
@@ -29,10 +27,7 @@ jest.mock('react-native-keyboard-controller', () => {
         }: React.PropsWithChildren<Record<string, unknown>>,
         ref: React.ForwardedRef<unknown>,
       ) => {
-        ReactRuntime.useImperativeHandle(ref, () => ({
-          assureFocusedInputVisible: mockAssureFocusedInputVisible,
-          scrollTo: mockScrollTo,
-        }));
+        ReactRuntime.useImperativeHandle(ref, () => ({}));
         return ReactRuntime.createElement(
           'KeyboardControllerScrollView',
           props,
@@ -105,7 +100,7 @@ describe('CommunityCreate keyboard visibility contract', () => {
     global.requestAnimationFrame = originalRequestAnimationFrame;
   });
 
-  it('moves title and body to their measured visible-area positions', async () => {
+  it('reserves meaningful editing space through one keyboard-aware scroll', async () => {
     await TestRenderer.act(async () => {
       renderer = TestRenderer.create(
         <ThemeProvider theme={createTheme('light')}>
@@ -120,6 +115,7 @@ describe('CommunityCreate keyboard visibility contract', () => {
     );
     expect(scrollHost.props.keyboardDismissMode).toBe('none');
     expect(scrollHost.props.keyboardShouldPersistTaps).toBe('handled');
+    expect(scrollHost.props.bottomOffset).toBe(144);
     expect(StyleSheet.flatten(scrollHost.props.contentContainerStyle)).toEqual(
       expect.objectContaining({ paddingBottom: 50 }),
     );
@@ -144,39 +140,18 @@ describe('CommunityCreate keyboard visibility contract', () => {
       StyleSheet.flatten(keyboardOpenScrollHost.props.contentContainerStyle),
     ).toEqual(expect.objectContaining({ paddingBottom: 12 }));
 
-    const title = renderer.root
-      .findByProps({ placeholder: '제목을 입력해 주세요.' })
-      .findByType(TextInput);
-    const body = renderer.root
-      .findByProps({
-        placeholder:
-          '우리 아이의 소중한 일상과 고민을 자유롭게 나누어 보세요. (욕설, 비방 등 불쾌감을 주는 내용은 운영정책에 따라 숨김 처리될 수 있습니다.)',
-      })
-      .findByType(TextInput);
-
-    TestRenderer.act(() => {
-      renderer?.root
-        .findByProps({ testID: 'community-composer-title-section' })
-        .props.onLayout({ nativeEvent: { layout: { y: 320 } } });
-      renderer?.root
-        .findByProps({ testID: 'community-composer-body-section' })
-        .props.onLayout({ nativeEvent: { layout: { y: 760 } } });
-    });
-
-    TestRenderer.act(() => title.props.onFocus());
-    TestRenderer.act(() => body.props.onFocus());
-
-    expect(mockScrollTo).toHaveBeenNthCalledWith(1, {
-      x: 0,
-      y: 304,
-      animated: true,
-    });
-    expect(mockScrollTo).toHaveBeenNthCalledWith(2, {
-      x: 0,
-      y: 744,
-      animated: true,
-    });
-    expect(mockAssureFocusedInputVisible).not.toHaveBeenCalled();
+    expect(
+      renderer.root.findByProps({ placeholder: '제목을 입력해 주세요.' })
+        .findByType(TextInput),
+    ).toBeDefined();
+    expect(
+      renderer.root
+        .findByProps({
+          placeholder:
+            '우리 아이의 소중한 일상과 고민을 자유롭게 나누어 보세요. (욕설, 비방 등 불쾌감을 주는 내용은 운영정책에 따라 숨김 처리될 수 있습니다.)',
+        })
+        .findByType(TextInput),
+    ).toBeDefined();
     expect(
       renderer.root.findAllByProps({ children: '반려동물 연결' }),
     ).toHaveLength(0);
