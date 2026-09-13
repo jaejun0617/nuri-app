@@ -1,5 +1,9 @@
 # docs 정리 가이드
 
+현재 NURI v1.0의 제품 상태, 완료 작업, release/실기기 QA 증적, 남은 gate는
+[`release/v1.0-closeout/05-documentation-index.md`](release/v1.0-closeout/05-documentation-index.md)에서 먼저 확인한다.
+기존 문서의 과거 상태가 이 closeout 문서와 충돌하면 closeout 문서를 현재 상태 기준으로 사용한다.
+
 `docs`는 역할 기준으로 아래처럼 본다.
 
 - `docs/domains/`
