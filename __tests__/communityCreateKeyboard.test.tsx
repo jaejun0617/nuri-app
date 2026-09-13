@@ -9,6 +9,7 @@ import CommunityCreateScreen from '../src/screens/Community/CommunityCreateScree
 import { usePetStore } from '../src/store/petStore';
 
 const mockAssureFocusedInputVisible = jest.fn();
+let mockKeyboardVisible = false;
 const mockNavigation = {
   goBack: jest.fn(),
   replace: jest.fn(),
@@ -37,6 +38,8 @@ jest.mock('react-native-keyboard-controller', () => {
         );
       },
     ),
+    useKeyboardState: (selector: (state: { isVisible: boolean }) => unknown) =>
+      selector({ isVisible: mockKeyboardVisible }),
   };
 });
 jest.mock('@react-navigation/native', () => ({
@@ -47,10 +50,19 @@ jest.mock('@react-navigation/native', () => ({
     ReactRuntime.useEffect(callback, [callback]);
   },
 }));
-jest.mock('react-native-safe-area-context', () => ({
-  ...jest.requireActual('react-native-safe-area-context'),
-  useSafeAreaInsets: () => ({ top: 24, bottom: 18, left: 0, right: 0 }),
-}));
+jest.mock('react-native-safe-area-context', () => {
+  const ReactRuntime = jest.requireActual('react') as typeof React;
+
+  return {
+    ...jest.requireActual('react-native-safe-area-context'),
+    SafeAreaView: ({
+      children,
+      ...props
+    }: React.PropsWithChildren<Record<string, unknown>>) =>
+      ReactRuntime.createElement('SafeAreaView', props, children),
+    useSafeAreaInsets: () => ({ top: 24, bottom: 18, left: 0, right: 0 }),
+  };
+});
 jest.mock('../src/hooks/useCommunityAuth', () => ({
   useCommunityAuth: () => ({
     isLoggedIn: true,
@@ -70,6 +82,7 @@ describe('CommunityCreate keyboard visibility contract', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockKeyboardVisible = false;
     jest.mocked(AsyncStorage.getItem).mockResolvedValue(null);
     global.requestAnimationFrame = callback => {
       callback(0);
@@ -108,6 +121,26 @@ describe('CommunityCreate keyboard visibility contract', () => {
     expect(StyleSheet.flatten(scrollHost.props.contentContainerStyle)).toEqual(
       expect.objectContaining({ paddingBottom: 50 }),
     );
+    expect(
+      renderer.root.find(
+        node => String(node.type) === 'SafeAreaView',
+      ).props.edges,
+    ).toEqual(['left', 'right']);
+
+    mockKeyboardVisible = true;
+    TestRenderer.act(() => {
+      renderer?.update(
+        <ThemeProvider theme={createTheme('light')}>
+          <CommunityCreateScreen />
+        </ThemeProvider>,
+      );
+    });
+    const keyboardOpenScrollHost = renderer.root.find(
+      node => String(node.type) === 'KeyboardControllerScrollView',
+    );
+    expect(
+      StyleSheet.flatten(keyboardOpenScrollHost.props.contentContainerStyle),
+    ).toEqual(expect.objectContaining({ paddingBottom: 12 }));
 
     const title = renderer.root
       .findByProps({ placeholder: '제목을 입력해 주세요.' })

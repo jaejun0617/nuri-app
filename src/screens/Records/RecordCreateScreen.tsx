@@ -30,10 +30,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   KeyboardAwareScrollView,
   type KeyboardAwareScrollViewRef,
+  useKeyboardState,
 } from 'react-native-keyboard-controller';
 import Feather from 'react-native-vector-icons/Feather';
 
 import AppText from '../../app/ui/AppText';
+import { spacing } from '../../app/theme/tokens/spacing';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import PremiumRewardModal from '../../components/common/PremiumRewardModal';
 import WaveText from '../../components/common/WaveText';
@@ -126,6 +128,7 @@ export default function RecordCreateScreen() {
   const route = useRoute<RecordCreateRoute>();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
+  const keyboardVisible = useKeyboardState(state => state.isVisible);
 
   const userId = useAuthStore(s => s.session?.user?.id ?? null);
   const pets = usePetStore(s => s.pets);
@@ -994,7 +997,11 @@ export default function RecordCreateScreen() {
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,
-          { paddingBottom: insets.bottom + 32 },
+          {
+            paddingBottom: keyboardVisible
+              ? spacing.md
+              : insets.bottom + spacing.xxl,
+          },
         ]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="none"

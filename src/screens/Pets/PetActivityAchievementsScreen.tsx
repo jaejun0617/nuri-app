@@ -13,6 +13,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
+import { spacing } from '../../app/theme/tokens/spacing';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
@@ -542,7 +543,7 @@ export default function PetActivityAchievementsScreen() {
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,
-          { paddingBottom: Math.max(insets.bottom + 104, 132) },
+          { paddingBottom: insets.bottom + spacing.xl },
         ]}
         showsVerticalScrollIndicator={false}
         refreshControl={

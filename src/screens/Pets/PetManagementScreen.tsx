@@ -13,6 +13,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
+import { spacing } from '../../app/theme/tokens/spacing';
 import PetManagementCard from '../../components/pets/PetManagementCard';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -214,7 +215,7 @@ export default function PetManagementScreen() {
         renderItem={renderItem}
         contentContainerStyle={[
           styles.listContent,
-          { paddingBottom: Math.max(insets.bottom + 104, 132) },
+          { paddingBottom: insets.bottom + spacing.xl },
         ]}
         ItemSeparatorComponent={ItemSeparator}
         ListEmptyComponent={emptyComponent}

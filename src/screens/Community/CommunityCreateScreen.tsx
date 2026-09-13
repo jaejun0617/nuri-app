@@ -13,6 +13,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   KeyboardAwareScrollView,
   type KeyboardAwareScrollViewRef,
+  useKeyboardState,
 } from 'react-native-keyboard-controller';
 import RNBlobUtil from 'react-native-blob-util';
 import {
@@ -22,6 +23,7 @@ import {
 import { useTheme } from 'styled-components/native';
 
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import { spacing } from '../../app/theme/tokens/spacing';
 import HeaderTextActionButton from '../../components/navigation/HeaderTextActionButton';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { getBrandedErrorMeta } from '../../services/app/errors';
@@ -145,6 +147,7 @@ export default function CommunityCreateScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+  const keyboardVisible = useKeyboardState(state => state.isVisible);
   const draftHydratedRef = useRef(false);
   const scrollViewRef = useRef<KeyboardAwareScrollViewRef | null>(null);
 
@@ -452,7 +455,7 @@ export default function CommunityCreateScreen() {
   return (
     <SafeAreaView
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
-      edges={['left', 'right', 'bottom']}
+      edges={['left', 'right']}
     >
       <KeyboardAwareScrollView
         ref={scrollViewRef}
@@ -460,7 +463,11 @@ export default function CommunityCreateScreen() {
         keyboardDismissMode="none"
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: insets.bottom + 32 },
+          {
+            paddingBottom: keyboardVisible
+              ? spacing.md
+              : insets.bottom + spacing.xxl,
+          },
         ]}
         showsVerticalScrollIndicator={false}
       >

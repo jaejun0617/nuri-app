@@ -8,6 +8,7 @@ import RecordCreateScreen from '../src/screens/Records/RecordCreateScreen';
 import { usePetStore } from '../src/store/petStore';
 
 const mockAssureFocusedInputVisible = jest.fn();
+let mockKeyboardVisible = false;
 const mockNavigation = {
   canGoBack: () => true,
   goBack: jest.fn(),
@@ -40,6 +41,8 @@ jest.mock('react-native-keyboard-controller', () => {
       children,
     }: React.PropsWithChildren<Record<string, unknown>>) =>
       ReactRuntime.createElement(ReactRuntime.Fragment, null, children),
+    useKeyboardState: (selector: (state: { isVisible: boolean }) => unknown) =>
+      selector({ isVisible: mockKeyboardVisible }),
   };
 });
 jest.mock('@react-navigation/native', () => ({
@@ -82,6 +85,7 @@ describe('RecordCreate keyboard visibility contract', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockKeyboardVisible = false;
     global.requestAnimationFrame = callback => {
       callback(0);
       return 1;
@@ -119,6 +123,21 @@ describe('RecordCreate keyboard visibility contract', () => {
     expect(StyleSheet.flatten(scrollHost.props.contentContainerStyle)).toEqual(
       expect.objectContaining({ paddingBottom: 50 }),
     );
+
+    mockKeyboardVisible = true;
+    TestRenderer.act(() => {
+      renderer?.update(
+        <ThemeProvider theme={createTheme('light')}>
+          <RecordCreateScreen />
+        </ThemeProvider>,
+      );
+    });
+    const keyboardOpenScrollHost = renderer.root.find(
+      node => String(node.type) === 'KeyboardControllerScrollView',
+    );
+    expect(
+      StyleSheet.flatten(keyboardOpenScrollHost.props.contentContainerStyle),
+    ).toEqual(expect.objectContaining({ paddingBottom: 12 }));
 
     const title = renderer.root.findByProps({
       placeholder: '제목을 입력하세요',
