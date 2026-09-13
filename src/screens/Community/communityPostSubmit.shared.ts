@@ -32,8 +32,6 @@ type EditSubmitDependencies = {
   title: string;
   content: string;
   category: CommunityPostCategory;
-  petId: string | null;
-  petSnapshot: PetSnapshot | null;
   pickedImage: PickedPhotoAsset | null;
   previousImagePath: string | null;
   existingImagePath: string | null;
@@ -126,9 +124,7 @@ export async function runCommunityEditSubmitFlow(
       title: dependencies.title,
       content: dependencies.content,
       category: dependencies.category,
-      petId: dependencies.petId,
       imagePath: nextImagePath ?? null,
-      petSnapshot: dependencies.petSnapshot,
     });
 
     const previousImagePath = dependencies.previousImagePath;

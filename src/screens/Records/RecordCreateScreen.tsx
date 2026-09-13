@@ -92,6 +92,10 @@ import {
   type PendingMemoryUploadEntry,
 } from '../../services/local/uploadQueue';
 import { getBrandedErrorMeta } from '../../services/app/errors';
+import {
+  resolveComposerFocusOffset,
+  type ComposerFocusTarget,
+} from '../../services/forms/composerFocus';
 import { pickPhotoAssets } from '../../services/media/photoPicker';
 import { supabase } from '../../services/supabase/client';
 import {
@@ -191,6 +195,9 @@ export default function RecordCreateScreen() {
   const draftLoadedRef = useRef(false);
   const pendingSuccessNavigationRef = useRef<(() => Promise<void>) | null>(null);
   const scrollRef = useRef<KeyboardAwareScrollViewRef | null>(null);
+  const composerFieldOffsetsRef = useRef<
+    Partial<Record<ComposerFocusTarget, number>>
+  >({});
 
   const trimmedTitle = useMemo(() => title.trim(), [title]);
   const isMealCategory = mainCategoryKey === 'meal';
@@ -274,6 +281,26 @@ export default function RecordCreateScreen() {
   const handleFocusField = useCallback(() => {
     requestAnimationFrame(() => {
       scrollRef.current?.assureFocusedInputVisible();
+    });
+  }, []);
+  const handleComposerFieldLayout = useCallback(
+    (field: ComposerFocusTarget, offsetY: number) => {
+      composerFieldOffsetsRef.current[field] = offsetY;
+    },
+    [],
+  );
+  const handleComposerFocus = useCallback((field: ComposerFocusTarget) => {
+    requestAnimationFrame(() => {
+      const offsetY = composerFieldOffsetsRef.current[field];
+      if (offsetY === undefined) {
+        scrollRef.current?.assureFocusedInputVisible();
+        return;
+      }
+      scrollRef.current?.scrollTo({
+        x: 0,
+        y: resolveComposerFocusOffset(offsetY),
+        animated: true,
+      });
     });
   }, []);
   const resetForm = useCallback(() => {
@@ -1411,7 +1438,13 @@ export default function RecordCreateScreen() {
           </View>
         </View> : null}
 
-        <View style={styles.field}>
+        <View
+          testID="timeline-composer-title-section"
+          style={styles.field}
+          onLayout={event =>
+            handleComposerFieldLayout('title', event.nativeEvent.layout.y)
+          }
+        >
           <AppText preset="unifiedBody" style={styles.fieldLabel}>
             제목
           </AppText>
@@ -1419,13 +1452,19 @@ export default function RecordCreateScreen() {
             style={styles.input}
             value={title}
             onChangeText={setTitle}
-            onFocus={handleFocusField}
+            onFocus={() => handleComposerFocus('title')}
             placeholder="제목을 입력하세요"
             placeholderTextColor="#B5BDCB"
           />
         </View>
 
-        <View style={styles.field}>
+        <View
+          testID="timeline-composer-body-section"
+          style={styles.field}
+          onLayout={event =>
+            handleComposerFieldLayout('body', event.nativeEvent.layout.y)
+          }
+        >
           <AppText preset="unifiedBody" style={styles.fieldLabel}>
             내용
           </AppText>
@@ -1433,7 +1472,7 @@ export default function RecordCreateScreen() {
             style={[styles.input, styles.textArea]}
             value={content}
             onChangeText={setContent}
-            onFocus={handleFocusField}
+            onFocus={() => handleComposerFocus('body')}
             multiline
             placeholder="오늘의 추억을 남겨주세요"
             placeholderTextColor="#B5BDCB"

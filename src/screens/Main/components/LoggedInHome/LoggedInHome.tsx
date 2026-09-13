@@ -39,7 +39,6 @@ import Feather from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import Animated, {
-  cancelAnimation,
   Easing,
   interpolate,
   runOnJS,
@@ -78,6 +77,9 @@ import { useRecordStore } from '../../../../store/recordStore';
 import { useScheduleStore } from '../../../../store/scheduleStore';
 import { useActiveScheduleAlarms } from '../../../../hooks/useActiveScheduleAlarms';
 import HomeActiveAlarmNotice from './HomeActiveAlarmNotice';
+import HomeTopButton, {
+  resolveHomeTopButtonThreshold,
+} from './HomeTopButton';
 
 import {
   fetchMemorySummaryRecordsByPet,
@@ -458,20 +460,8 @@ const TODAY_HOME_TIP = {
     '산책 후 숨소리, 잠든 뒤 호흡, 식사 직후의 반응처럼 평소의 기준을 남겨두면 컨디션 변화를 더 빨리 알아차릴 수 있어요.',
 };
 
-const HOME_TOP_BUTTON_SHOW_OFFSET = 96;
-const HOME_TOP_BUTTON_FALLBACK_SHOW_OFFSET = 300;
 const HOME_TOP_BUTTON_BOTTOM_OFFSET = 90;
 const HOME_TOP_BUTTON_MIN_BOTTOM = 104;
-
-function resolveHomeTopButtonThreshold(
-  scheduleSectionOffset: number | null,
-): number {
-  if (scheduleSectionOffset === null) {
-    return HOME_TOP_BUTTON_FALLBACK_SHOW_OFFSET;
-  }
-
-  return Math.max(0, scheduleSectionOffset - HOME_TOP_BUTTON_SHOW_OFFSET);
-}
 
 /* ---------------------------------------------------------
  * 3) sub components (hooks-safe)
@@ -2743,20 +2733,8 @@ export default function LoggedInHome() {
       transform: [{ translateY: svTranslateY.value }],
     };
   }, []);
-  const topButtonVisibility = useSharedValue(0);
   const [showTopButton, setShowTopButton] = useState(false);
   const [deferredHomeDataReady, setDeferredHomeDataReady] = useState(false);
-  const topButtonAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: topButtonVisibility.value,
-    transform: [
-      {
-        translateY: interpolate(topButtonVisibility.value, [0, 1], [10, 0]),
-      },
-      {
-        scale: interpolate(topButtonVisibility.value, [0, 1], [0.96, 1]),
-      },
-    ],
-  }));
 
   // ---------------------------------------------------------
   // 4) records
@@ -3490,18 +3468,8 @@ export default function LoggedInHome() {
     HOME_SCROLL_OFFSET_BY_KEY.set(homeScrollStorageKey, 0);
     showTopButtonRef.current = false;
     setShowTopButton(false);
-    cancelAnimation(topButtonVisibility);
-    topButtonVisibility.value = 0;
     homeScrollRef.current?.scrollTo({ x: 0, y: 0, animated: true });
-  }, [homeScrollStorageKey, topButtonVisibility]);
-
-  useEffect(() => {
-    cancelAnimation(topButtonVisibility);
-    topButtonVisibility.value = withTiming(showTopButton ? 1 : 0, {
-      duration: showTopButton ? 220 : 180,
-      easing: Easing.out(Easing.cubic),
-    });
-  }, [showTopButton, topButtonVisibility]);
+  }, [homeScrollStorageKey]);
 
   const onPressGuideDetail = useCallback(
     (guideId: string) => {
@@ -3784,32 +3752,14 @@ export default function LoggedInHome() {
         </Animated.View>
       </ScrollView>
 
-      <Animated.View
-        pointerEvents={showTopButton ? 'auto' : 'none'}
-        style={[
-          styles.topButtonWrap,
-          {
-            bottom: topButtonBottom,
-          },
-          topButtonAnimatedStyle,
-        ]}
-      >
-        <Pressable
-          android_ripple={{ color: `${petTheme.onPrimary}18` }}
-          style={[
-            styles.topButton,
-            {
-              backgroundColor: '#FFFFFF',
-              borderColor: petTheme.border,
-            },
-          ]}
-          onPress={handlePressTop}
-          accessibilityLabel="맨 위로"
-          accessibilityRole="button"
-        >
-          <Feather name="arrow-up" size={18} color={petTheme.primary} />
-        </Pressable>
-      </Animated.View>
+      <HomeTopButton
+        visible={showTopButton}
+        bottom={topButtonBottom}
+        accentColor={petTheme.primary}
+        borderColor={petTheme.border}
+        rippleColor={`${petTheme.onPrimary}18`}
+        onPress={handlePressTop}
+      />
 
       <HomeNotificationOverlay
         visible={notificationModalVisible}

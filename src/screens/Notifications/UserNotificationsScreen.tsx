@@ -16,14 +16,16 @@ import {
   UIManager,
   View,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
+import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import type { RootScreenRoute } from '../../navigation/types';
 import {
   dismissAllUserNotifications,
   dismissUserNotification,
@@ -37,9 +39,10 @@ import {
 } from '../../services/notifications/gesturePolicy';
 import { createNotificationRequestGuard } from '../../services/notifications/notificationRequestGuard';
 import { getBrandedErrorMeta } from '../../services/app/errors';
-import { showToast } from '../../store/uiStore';
+import { openMoreDrawer, showToast } from '../../store/uiStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'UserNotifications'>;
+type Route = RootScreenRoute<'UserNotifications'>;
 
 type NotificationSwipeItemProps = {
   item: UserNotificationItem;
@@ -261,6 +264,7 @@ const NotificationSwipeItem = React.memo(function NotificationSwipeItem({
 
 export default function UserNotificationsScreen() {
   const navigation = useNavigation<Nav>();
+  const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const [items, setItems] = useState<UserNotificationItem[]>([]);
@@ -328,13 +332,21 @@ export default function UserNotificationsScreen() {
     load().catch(() => {});
   }, [load]);
 
-  const onPressBack = useCallback(() => {
-    if (navigation.canGoBack()) {
+  const onPressBack = useEntryAwareBackAction({
+    entrySource: route.params?.entrySource,
+    onHome: navigation.goBack,
+    onMore: () => {
       navigation.goBack();
-      return;
-    }
-    navigation.navigate('AppTabs', { screen: 'HomeTab' });
-  }, [navigation]);
+      requestAnimationFrame(() => openMoreDrawer());
+    },
+    onFallback: () => {
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+        return;
+      }
+      navigation.navigate('AppTabs', { screen: 'HomeTab' });
+    },
+  });
 
   const onPressNotification = useCallback(async (item: UserNotificationItem) => {
     if (item.actionTarget?.kind === 'community_comment') {

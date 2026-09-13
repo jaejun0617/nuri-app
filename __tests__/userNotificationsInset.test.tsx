@@ -12,10 +12,13 @@ const mockNavigation = {
   canGoBack: jest.fn(() => true),
   goBack: jest.fn(),
   navigate: jest.fn(),
+  setOptions: jest.fn(),
 };
 
 jest.mock('@react-navigation/native', () => ({
+  useFocusEffect: jest.fn(),
   useNavigation: () => mockNavigation,
+  useRoute: () => ({ params: undefined }),
 }));
 
 jest.mock('react-native-safe-area-context', () => ({

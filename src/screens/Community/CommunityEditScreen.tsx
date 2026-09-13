@@ -6,19 +6,27 @@ import {
 } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import {
+  KeyboardAwareScrollView,
+  type KeyboardAwareScrollViewRef,
+  useKeyboardState,
+} from 'react-native-keyboard-controller';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
+import { spacing } from '../../app/theme/tokens/spacing';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import HeaderTextActionButton from '../../components/navigation/HeaderTextActionButton';
 import { useCommunityAuth } from '../../hooks/useCommunityAuth';
-import { useKeyboardInset } from '../../hooks/useKeyboardInset';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
 import { getBrandedErrorMeta } from '../../services/app/errors';
 import { getCommunityMutationErrorMeta } from '../../services/community/errors';
+import {
+  resolveComposerFocusOffset,
+  type ComposerFocusTarget,
+} from '../../services/forms/composerFocus';
 import { pickPhotoAssets, type PickedPhotoAsset } from '../../services/media/photoPicker';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { flushPendingCommunityImageCleanup } from '../../services/supabase/storageCommunity';
@@ -28,10 +36,8 @@ import { showToast } from '../../store/uiStore';
 import type { CommunityPostCategory } from '../../types/community';
 import CommunityPostEditorForm from './components/CommunityPostEditorForm';
 import {
-  buildCommunityPetSnapshot,
   getCommunityEditorExitDialogCopy,
   hasCommunityEditorDraftChanges,
-  resolveCommunityPetMetaLabel,
 } from './communityPostEditor.shared';
 import { runCommunityEditSubmitFlow } from './communityPostSubmit.shared';
 
@@ -43,8 +49,12 @@ export default function CommunityEditScreen() {
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const keyboardInset = useKeyboardInset();
+  const keyboardVisible = useKeyboardState(state => state.isVisible);
   const hydratedRef = useRef(false);
+  const scrollViewRef = useRef<KeyboardAwareScrollViewRef | null>(null);
+  const composerFieldOffsetsRef = useRef<
+    Partial<Record<ComposerFocusTarget, number>>
+  >({});
 
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
@@ -66,27 +76,11 @@ export default function CommunityEditScreen() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [category, setCategory] = useState<CommunityPostCategory>('question');
-  const [linkedPetId, setLinkedPetId] = useState<string | null>(null);
   const [pickedImage, setPickedImage] = useState<PickedPhotoAsset | null>(null);
-  const [showPetAge, setShowPetAge] = useState(true);
   const [existingImagePath, setExistingImagePath] = useState<string | null>(null);
   const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [exitConfirmVisible, setExitConfirmVisible] = useState(false);
-
-  const linkedPet = useMemo(
-    () => pets.find(pet => pet.id === linkedPetId) ?? null,
-    [linkedPetId, pets],
-  );
-  const linkedPetMetaLabel = useMemo(() => {
-    if (!linkedPet) return null;
-    return resolveCommunityPetMetaLabel({
-      breed: linkedPet.breed,
-      speciesDisplayName: linkedPet.speciesDisplayName,
-      showAge: showPetAge,
-      birthDate: linkedPet.birthDate,
-    });
-  }, [linkedPet, showPetAge]);
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -105,8 +99,6 @@ export default function CommunityEditScreen() {
     setTitle(post.title ?? '');
     setContent(post.content);
     setCategory(post.category ?? 'question');
-    setLinkedPetId(post.petId ?? null);
-    setShowPetAge(post.showPetAge);
     setExistingImagePath(post.imagePath ?? null);
     setExistingImageUrl(post.imageUrl ?? null);
   }, [post]);
@@ -126,22 +118,18 @@ export default function CommunityEditScreen() {
           title,
           content,
           category,
-          linkedPetId,
-          showPetAge,
           hasPickedImage: nextHasImage,
         },
         {
           title: post.title ?? '',
           content: post.content,
           category: post.category ?? 'question',
-          linkedPetId: post.petId ?? null,
-          showPetAge: post.showPetAge,
           hasImage: baselineHasImage,
         },
       ) ||
       existingImagePath !== (post.imagePath ?? null)
     );
-  }, [category, content, existingImagePath, linkedPetId, pickedImage, post, showPetAge, title]);
+  }, [category, content, existingImagePath, pickedImage, post, title]);
 
   const handleBack = useCallback(() => {
     if (submitting) return;
@@ -231,8 +219,6 @@ export default function CommunityEditScreen() {
         title: trimmedTitle,
         content: trimmed,
         category,
-        petId: linkedPetId,
-        petSnapshot: buildCommunityPetSnapshot(linkedPet, showPetAge),
         pickedImage,
         previousImagePath: post.imagePath ?? null,
         existingImagePath,
@@ -256,12 +242,9 @@ export default function CommunityEditScreen() {
     currentUserId,
     editPost,
     existingImagePath,
-    linkedPet,
-    linkedPetId,
     navigation,
     pickedImage,
     post,
-    showPetAge,
     title,
   ]);
 
@@ -299,14 +282,34 @@ export default function CommunityEditScreen() {
     renderHeaderLeft,
     renderHeaderRight,
   ]);
-  const scrollBottomInset = useMemo(
-    () => Math.max(insets.bottom + 240, keyboardInset + 160, 280),
-    [insets.bottom, keyboardInset],
+  const handleFieldLayout = useCallback(
+    (field: ComposerFocusTarget, offsetY: number) => {
+      composerFieldOffsetsRef.current[field] = offsetY;
+    },
+    [],
   );
-  const bottomSubmitMargin = useMemo(() => {
-    if (keyboardInset > 0) return Math.max(insets.bottom, 18) + 20;
-    return Math.max(insets.bottom, 18);
-  }, [insets.bottom, keyboardInset]);
+  const handleFocusField = useCallback((field: ComposerFocusTarget) => {
+    requestAnimationFrame(() => {
+      const offsetY = composerFieldOffsetsRef.current[field];
+      if (offsetY === undefined) {
+        scrollViewRef.current?.assureFocusedInputVisible();
+        return;
+      }
+      scrollViewRef.current?.scrollTo({
+        x: 0,
+        y: resolveComposerFocusOffset(offsetY),
+        animated: true,
+      });
+    });
+  }, []);
+  const handleTitleFocus = useCallback(
+    () => handleFocusField('title'),
+    [handleFocusField],
+  );
+  const handleContentFocus = useCallback(
+    () => handleFocusField('body'),
+    [handleFocusField],
+  );
 
   if (!post || detailStatus === 'idle' || detailStatus === 'loading') {
     return (
@@ -347,34 +350,34 @@ export default function CommunityEditScreen() {
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: theme.colors.background }]} edges={['left', 'right', 'bottom']}>
       <KeyboardAwareScrollView
-        enableOnAndroid
-        keyboardShouldPersistTaps="always"
-        keyboardDismissMode="on-drag"
-        enableAutomaticScroll
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: scrollBottomInset }]}
-        extraScrollHeight={132}
-        extraHeight={196}
+        ref={scrollViewRef}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="none"
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingBottom: keyboardVisible
+              ? spacing.md
+              : insets.bottom + spacing.xxl,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <CommunityPostEditorForm
-          pets={pets}
-          linkedPetId={linkedPetId}
-          linkedPet={linkedPet}
-          linkedPetMetaLabel={linkedPetMetaLabel}
-          showPetAge={showPetAge}
           category={category}
           title={title}
           content={content}
           imageUri={pickedImage?.uri ?? existingImageUrl}
           accentPalette={petTheme}
-          bottomSubmitMargin={bottomSubmitMargin}
+          bottomSubmitMargin={0}
           submitLabel={submitting ? '저장 중...' : '저장'}
           submitDisabled={disabled}
           onChangeCategory={setCategory}
-          onChangeLinkedPetId={setLinkedPetId}
-          onToggleShowPetAge={() => setShowPetAge(prev => !prev)}
           onChangeTitle={setTitle}
           onChangeContent={setContent}
+          onFieldLayout={handleFieldLayout}
+          onTitleFocus={handleTitleFocus}
+          onContentFocus={handleContentFocus}
           onPressPolicy={handlePressCommunityPolicy}
           onPickImage={handlePickImage}
           onRemoveImage={handleRemoveImage}
@@ -387,7 +390,6 @@ export default function CommunityEditScreen() {
             });
           }}
           onSubmit={handleSubmit}
-          petHintText="반려동물 메타는 게시글 저장 시점 기준으로 고정되고, 수정 시에도 같은 기준으로 다시 저장돼요."
         />
       </KeyboardAwareScrollView>
 

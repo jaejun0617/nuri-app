@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useLayoutEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -7,23 +7,32 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
+import HeaderTextActionButton from '../../components/navigation/HeaderTextActionButton';
+import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
+import type { RootStackParamList } from '../../navigation/RootNavigator';
+import type { RootScreenRoute } from '../../navigation/types';
 import {
   fetchCommunityBlockedUsers,
   getCommunityBlockErrorMessage,
   unblockCommunityUser,
 } from '../../services/supabase/communityBlocks';
 import { useCommunityStore } from '../../store/communityStore';
-import { showToast } from '../../store/uiStore';
+import { openMoreDrawer, showToast } from '../../store/uiStore';
 import type { CommunityBlockedUser } from '../../types/community';
 
 type LoadStatus = 'idle' | 'loading' | 'ready' | 'error';
+type Nav = NativeStackNavigationProp<RootStackParamList, 'CommunityBlockedUsers'>;
+type Route = RootScreenRoute<'CommunityBlockedUsers'>;
 
 export default function CommunityBlockedUsersScreen() {
+  const navigation = useNavigation<Nav>();
+  const route = useRoute<Route>();
   const theme = useTheme();
   const invalidateCommunityVisibility = useCommunityStore(
     state => state.invalidateCommunityVisibility,
@@ -32,6 +41,36 @@ export default function CommunityBlockedUsersScreen() {
   const [status, setStatus] = useState<LoadStatus>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [unblockingUserId, setUnblockingUserId] = useState<string | null>(null);
+
+  const onPressBack = useEntryAwareBackAction({
+    entrySource: route.params?.entrySource,
+    onHome: navigation.goBack,
+    onMore: () => {
+      navigation.goBack();
+      requestAnimationFrame(() => openMoreDrawer());
+    },
+    onFallback: navigation.goBack,
+  });
+
+  const renderHeaderLeft = useCallback(
+    () => (
+      <HeaderTextActionButton
+        label="뒤로"
+        accessibilityLabel="차단한 사용자 화면 닫기"
+        onPress={onPressBack}
+        backgroundColor={theme.colors.surfaceElevated}
+        textColor={theme.colors.textPrimary}
+        borderColor={theme.colors.border}
+      />
+    ),
+    [onPressBack, theme.colors],
+  );
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerLeft: renderHeaderLeft,
+    });
+  }, [navigation, renderHeaderLeft]);
 
   const loadBlockedUsers = useCallback(async () => {
     setStatus(previous => (previous === 'ready' ? 'ready' : 'loading'));

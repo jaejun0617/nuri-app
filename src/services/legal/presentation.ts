@@ -5,11 +5,14 @@ import {
 
 export type PolicyDocumentId = LegalDocumentId | 'community';
 
+export type PolicySemanticRole = 'normal' | 'callout' | 'warning' | 'danger';
+
 export type PolicyPresentationSection = {
   id: string;
   title: string;
   paragraphs: readonly string[];
   bullets?: readonly string[];
+  semanticRole?: PolicySemanticRole;
 };
 
 export type PolicyPresentationDocument = {
@@ -78,6 +81,7 @@ export const POLICY_PRESENTATION_DOCUMENTS: Record<
     {
       id: 'external-information',
       title: '외부 정보와 서비스',
+      semanticRole: 'callout',
       paragraphs: [
         '지도, 장소, 날씨 등 일부 정보는 외부 제공자의 응답과 데이터 상태에 영향을 받을 수 있습니다.',
         '장소와 생활 정보는 실제 방문이나 이용 전에 최신 정보를 직접 확인해 주세요.',
@@ -109,6 +113,7 @@ export const POLICY_PRESENTATION_DOCUMENTS: Record<
     {
       id: 'location',
       title: '위치 정보',
+      semanticRole: 'callout',
       paragraphs: [
         '현재 위치는 주변 장소 탐색과 날씨 등 위치 기반 기능에 필요한 범위에서 사용됩니다.',
         '개인 위치와 저장 상태는 공개 장소 정보의 검증 상태를 자동으로 높이는 근거로 사용하지 않습니다.',
@@ -124,6 +129,7 @@ export const POLICY_PRESENTATION_DOCUMENTS: Record<
     {
       id: 'rights-and-deletion',
       title: '이용자 권리와 삭제',
+      semanticRole: 'warning',
       paragraphs: [
         '사용자는 자신의 프로필과 반려동물 정보, 기록, 일정과 콘텐츠를 관리하고 계정 삭제를 요청할 수 있습니다.',
         '삭제 요청 뒤의 처리 단계와 예외 정보는 계정 삭제 안내 및 최종 개인정보 처리방침에 따릅니다.',
@@ -134,6 +140,7 @@ export const POLICY_PRESENTATION_DOCUMENTS: Record<
     {
       id: 'optional-consent',
       title: '선택 동의',
+      semanticRole: 'callout',
       paragraphs: [
         '마케팅 정보 수신 동의는 필수 가입 조건이 아닙니다. 이용자는 혜택, 업데이트와 이벤트 안내 수신 여부를 선택할 수 있습니다.',
       ],
@@ -164,6 +171,7 @@ export const POLICY_PRESENTATION_DOCUMENTS: Record<
     {
       id: 'deletion-scope',
       title: '삭제 대상',
+      semanticRole: 'danger',
       paragraphs: [
         '프로필, 반려동물 정보, 기록과 이미지, 일정, 커뮤니티 개인 콘텐츠와 개인화 데이터가 삭제 대상에 포함될 수 있습니다.',
       ],
@@ -178,6 +186,7 @@ export const POLICY_PRESENTATION_DOCUMENTS: Record<
     {
       id: 'operational-records',
       title: '남을 수 있는 정보',
+      semanticRole: 'warning',
       paragraphs: [
         '법적 의무, 분쟁 대응, 동의 증적과 서비스 안전을 위해 필요한 일부 정보는 직접 식별자를 제거한 형태로 보관될 수 있습니다. 구체 범위와 기간은 최종 정책에서 확정됩니다.',
       ],
@@ -199,6 +208,7 @@ export const POLICY_PRESENTATION_DOCUMENTS: Record<
       {
         id: 'prohibited-content',
         title: '허용되지 않는 내용',
+        semanticRole: 'danger',
         paragraphs: [
           '욕설, 혐오, 괴롭힘, 위협, 스팸, 불법 정보, 타인의 권리나 개인정보를 침해하는 콘텐츠는 허용되지 않습니다.',
         ],
@@ -206,6 +216,7 @@ export const POLICY_PRESENTATION_DOCUMENTS: Record<
       {
         id: 'reporting',
         title: '신고와 운영 처리',
+        semanticRole: 'callout',
         paragraphs: [
           '사용자는 게시글과 댓글을 신고할 수 있으며, 운영 검토 결과에 따라 콘텐츠의 노출이 제한될 수 있습니다.',
           '자동 노출 제한은 영구 삭제와 같은 의미가 아니며 필요한 경우 운영 검토가 이어집니다.',

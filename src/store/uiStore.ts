@@ -21,10 +21,14 @@ type ToastState = {
   tone: ToastTone;
   durationMs: number;
   moreDrawerOpen: boolean;
+  moreDrawerScrollOffset: number;
+  moreDrawerRestorePending: boolean;
   showToast: (payload: ToastPayload) => void;
   hideToast: () => void;
   openMoreDrawer: () => void;
   closeMoreDrawer: () => void;
+  preserveMoreDrawerReturnPosition: (offset: number) => void;
+  consumeMoreDrawerReturnPosition: () => void;
 };
 
 let hideTimer: ReturnType<typeof setTimeout> | null = null;
@@ -42,6 +46,8 @@ export const useUiStore = create<ToastState>(set => ({
   tone: 'info',
   durationMs: 2200,
   moreDrawerOpen: false,
+  moreDrawerScrollOffset: 0,
+  moreDrawerRestorePending: false,
   showToast: payload => {
     clearHideTimer();
 
@@ -65,7 +71,19 @@ export const useUiStore = create<ToastState>(set => ({
     set({ visible: false });
   },
   openMoreDrawer: () => set({ moreDrawerOpen: true }),
-  closeMoreDrawer: () => set({ moreDrawerOpen: false }),
+  closeMoreDrawer: () =>
+    set({
+      moreDrawerOpen: false,
+      moreDrawerScrollOffset: 0,
+      moreDrawerRestorePending: false,
+    }),
+  preserveMoreDrawerReturnPosition: offset =>
+    set({
+      moreDrawerScrollOffset: Math.max(0, Number.isFinite(offset) ? offset : 0),
+      moreDrawerRestorePending: true,
+    }),
+  consumeMoreDrawerReturnPosition: () =>
+    set({ moreDrawerRestorePending: false }),
 }));
 
 export function showToast(payload: ToastPayload) {
@@ -82,4 +100,12 @@ export function openMoreDrawer() {
 
 export function closeMoreDrawer() {
   useUiStore.getState().closeMoreDrawer();
+}
+
+export function preserveMoreDrawerReturnPosition(offset: number) {
+  useUiStore.getState().preserveMoreDrawerReturnPosition(offset);
+}
+
+export function consumeMoreDrawerReturnPosition() {
+  useUiStore.getState().consumeMoreDrawerReturnPosition();
 }

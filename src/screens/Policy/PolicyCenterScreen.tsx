@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
@@ -16,6 +16,8 @@ import {
   POLICY_PRESENTATION_DOCUMENTS,
   type PolicyDocumentId,
 } from '../../services/legal/presentation';
+import { buildPetThemePalette } from '../../services/pets/themePalette';
+import { usePetStore } from '../../store/petStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'PolicyCenter'>;
 type PolicyCenterRoute = RouteProp<RootStackParamList, 'PolicyCenter'>;
@@ -25,6 +27,16 @@ export default function PolicyCenterScreen() {
   const route = useRoute<PolicyCenterRoute>();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+  const pets = usePetStore(state => state.pets);
+  const selectedPetId = usePetStore(state => state.selectedPetId);
+  const selectedPet = useMemo(
+    () => pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
+    [pets, selectedPetId],
+  );
+  const petTheme = useMemo(
+    () => buildPetThemePalette(selectedPet?.themeColor ?? theme.colors.brand),
+    [selectedPet?.themeColor, theme.colors.brand],
+  );
 
   const onBack = useEntryAwareBackAction({
     entrySource: route.params?.entrySource,
@@ -68,7 +80,13 @@ export default function PolicyCenterScreen() {
         >
           <Feather name="arrow-left" size={21} color={theme.colors.textPrimary} />
         </TouchableOpacity>
-        <AppText preset="unifiedTitle" style={[styles.headerTitle, { color: theme.colors.textPrimary }]}>약관 및 정책</AppText>
+        <AppText
+          testID="policy-center-title"
+          preset="unifiedTitle"
+          style={[styles.headerTitle, { color: petTheme.deep }]}
+        >
+          약관 및 정책
+        </AppText>
         <View style={styles.headerSide} />
       </View>
 
@@ -81,7 +99,7 @@ export default function PolicyCenterScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.intro}>
-          <AppText preset="unifiedTitle" style={[styles.introTitle, { color: theme.colors.textPrimary }]}>NURI 이용 안내</AppText>
+          <AppText preset="unifiedTitle" style={[styles.introTitle, { color: petTheme.deep }]}>NURI 이용 안내</AppText>
           <AppText preset="unifiedBody" style={[styles.introBody, { color: theme.colors.textSecondary }]}>서비스 이용과 정보 처리에 필요한 안내를 확인할 수 있어요. 본문은 현재 최종 검토 중입니다.</AppText>
         </View>
 
@@ -110,10 +128,10 @@ export default function PolicyCenterScreen() {
                   style={styles.documentRow}
                 >
                   <View style={styles.documentCopy}>
-                    <AppText preset="unifiedLabel" style={[styles.documentTitle, { color: theme.colors.textPrimary }]}>{document.title}</AppText>
+                    <AppText preset="unifiedLabel" style={[styles.documentTitle, { color: petTheme.deep }]}>{document.title}</AppText>
                     <AppText preset="unifiedBody" style={[styles.documentSummary, { color: theme.colors.textMuted }]} numberOfLines={2}>{document.summary}</AppText>
                   </View>
-                  <Feather name="chevron-right" size={19} color={theme.colors.textMuted} />
+                  <Feather name="chevron-right" size={19} color={petTheme.primary} />
                 </TouchableOpacity>
               </React.Fragment>
             );

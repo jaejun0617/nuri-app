@@ -47,26 +47,6 @@ export const styles = StyleSheet.create({
     paddingBottom: 34,
     gap: HOME_SECTION_GAP,
   },
-  topButtonWrap: {
-    position: 'absolute',
-    right: 20,
-    zIndex: 8,
-    elevation: 8,
-  },
-  topButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 23,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    shadowColor: '#0B1220',
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
-  },
-
   // ---------------------------------------------------------
   // Header
   // ---------------------------------------------------------

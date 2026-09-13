@@ -9,7 +9,6 @@ import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../../app/ui/AppText';
-import type { Pet } from '../../../store/petStore';
 import type { CommunityPostCategory } from '../../../types/community';
 import { styles } from './CommunityPostEditorForm.styles';
 import { COMMUNITY_CATEGORY_OPTIONS } from '../communityPostEditor.shared';
@@ -17,16 +16,10 @@ import { COMMUNITY_CATEGORY_OPTIONS } from '../communityPostEditor.shared';
 type AccentPalette = {
   primary: string;
   onPrimary: string;
-  tint: string;
   deep: string;
 };
 
 type Props = {
-  pets: Pet[];
-  linkedPetId: string | null;
-  linkedPet: Pet | null;
-  linkedPetMetaLabel: string | null;
-  showPetAge: boolean;
   category: CommunityPostCategory;
   title: string;
   content: string;
@@ -38,10 +31,9 @@ type Props = {
   submitLabel: string;
   submitDisabled: boolean;
   onChangeCategory: (category: CommunityPostCategory) => void;
-  onChangeLinkedPetId: (petId: string | null) => void;
-  onToggleShowPetAge: () => void;
   onChangeTitle: (title: string) => void;
   onChangeContent: (content: string) => void;
+  onFieldLayout?: (field: 'title' | 'body', offsetY: number) => void;
   onTitleFocus?: () => void;
   onContentFocus?: () => void;
   onPressPolicy: () => void;
@@ -49,15 +41,9 @@ type Props = {
   onRemoveImage: (index?: number) => void;
   onImageError?: () => void;
   onSubmit: () => void;
-  petHintText?: string | null;
 };
 
 function CommunityPostEditorFormBase({
-  pets,
-  linkedPetId,
-  linkedPet,
-  linkedPetMetaLabel,
-  showPetAge,
   category,
   title,
   content,
@@ -68,10 +54,9 @@ function CommunityPostEditorFormBase({
   submitLabel,
   submitDisabled,
   onChangeCategory,
-  onChangeLinkedPetId,
-  onToggleShowPetAge,
   onChangeTitle,
   onChangeContent,
+  onFieldLayout,
   onTitleFocus,
   onContentFocus,
   onPressPolicy,
@@ -79,7 +64,6 @@ function CommunityPostEditorFormBase({
   onRemoveImage,
   onImageError,
   onSubmit,
-  petHintText,
 }: Props) {
   const theme = useTheme();
   const thumbnailUris =
@@ -174,184 +158,6 @@ function CommunityPostEditorFormBase({
         </TouchableOpacity>
       </View>
 
-      {pets.length > 0 ? (
-        <View style={styles.section}>
-          <AppText preset="caption" style={[styles.label, { color: theme.colors.textMuted }]}>
-            반려동물 연결
-          </AppText>
-          <View style={styles.chipRow}>
-            <TouchableOpacity
-              activeOpacity={0.88}
-              style={[
-                styles.chip,
-                linkedPetId === null
-                  ? {
-                      backgroundColor: accentPalette.primary,
-                      borderColor: accentPalette.primary,
-                    }
-                  : {
-                      backgroundColor: theme.colors.surfaceElevated,
-                      borderColor: theme.colors.border,
-                    },
-              ]}
-              onPress={() => onChangeLinkedPetId(null)}
-            >
-              <AppText
-                preset="caption"
-                style={[
-                  styles.chipText,
-                  {
-                    color:
-                      linkedPetId === null
-                        ? accentPalette.onPrimary
-                        : theme.colors.textPrimary,
-                  },
-                ]}
-              >
-                연결 안 함
-              </AppText>
-            </TouchableOpacity>
-            {pets.map(pet => {
-              const active = pet.id === linkedPetId;
-              return (
-                <TouchableOpacity
-                  key={pet.id}
-                  activeOpacity={0.88}
-                  style={[
-                    styles.chip,
-                    active
-                      ? {
-                          backgroundColor: accentPalette.primary,
-                          borderColor: accentPalette.primary,
-                        }
-                      : {
-                          backgroundColor: theme.colors.surfaceElevated,
-                          borderColor: theme.colors.border,
-                        },
-                  ]}
-                  onPress={() => onChangeLinkedPetId(pet.id)}
-                >
-                  <AppText
-                    preset="caption"
-                    style={[
-                      styles.chipText,
-                      {
-                        color: active
-                          ? accentPalette.onPrimary
-                          : theme.colors.textPrimary,
-                      },
-                    ]}
-                  >
-                    {pet.name}
-                  </AppText>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          {linkedPet ? (
-            <View style={styles.linkedPetMetaRow}>
-              <View
-                style={[
-                  styles.linkedPetPreview,
-                  {
-                    backgroundColor: theme.colors.surfaceElevated,
-                    borderColor: theme.colors.border,
-                  },
-                ]}
-              >
-                {linkedPet.avatarUrl ? (
-                  <Image
-                    source={{ uri: linkedPet.avatarUrl }}
-                    style={styles.linkedPetAvatar}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View
-                    style={[
-                      styles.linkedPetAvatarFallback,
-                      { backgroundColor: accentPalette.tint },
-                    ]}
-                  >
-                    <AppText
-                      preset="body"
-                      style={[
-                        styles.linkedPetAvatarFallbackText,
-                        { color: accentPalette.deep },
-                      ]}
-                    >
-                      {linkedPet.name.trim().charAt(0) || 'N'}
-                    </AppText>
-                  </View>
-                )}
-
-                <View style={styles.linkedPetInfo}>
-                  <AppText
-                    preset="body"
-                    style={[styles.linkedPetName, { color: theme.colors.textPrimary }]}
-                  >
-                    {linkedPet.name}
-                  </AppText>
-                  {linkedPetMetaLabel ? (
-                    <AppText
-                      preset="caption"
-                      style={[styles.linkedPetMeta, { color: theme.colors.textSecondary }]}
-                    >
-                      {linkedPetMetaLabel}
-                    </AppText>
-                  ) : null}
-                </View>
-              </View>
-
-              <TouchableOpacity
-                activeOpacity={0.88}
-                style={[
-                  styles.ageToggleButton,
-                  showPetAge
-                    ? {
-                        backgroundColor: accentPalette.tint,
-                        borderColor: accentPalette.primary,
-                      }
-                    : {
-                        backgroundColor: theme.colors.surfaceElevated,
-                        borderColor: theme.colors.border,
-                      },
-                ]}
-                onPress={onToggleShowPetAge}
-              >
-                <Feather
-                  name={showPetAge ? 'check-circle' : 'circle'}
-                  size={15}
-                  color={showPetAge ? accentPalette.primary : theme.colors.textMuted}
-                />
-                <AppText
-                  preset="caption"
-                  style={[
-                    styles.ageToggleText,
-                    {
-                      color: showPetAge
-                        ? accentPalette.deep
-                        : theme.colors.textPrimary,
-                    },
-                  ]}
-                >
-                  나이 함께 표시
-                </AppText>
-              </TouchableOpacity>
-            </View>
-          ) : null}
-
-          {linkedPet && petHintText ? (
-            <AppText
-              preset="caption"
-              style={[styles.petHintText, { color: theme.colors.textMuted }]}
-            >
-              {petHintText}
-            </AppText>
-          ) : null}
-        </View>
-      ) : null}
-
       <View style={styles.section}>
         <AppText preset="caption" style={[styles.label, { color: theme.colors.textMuted }]}>
           이미지 첨부
@@ -402,7 +208,11 @@ function CommunityPostEditorFormBase({
         </View>
       </View>
 
-      <View style={styles.section}>
+      <View
+        testID="community-composer-title-section"
+        style={styles.section}
+        onLayout={event => onFieldLayout?.('title', event.nativeEvent.layout.y)}
+      >
         <View style={styles.bodyHeader}>
           <AppText preset="caption" style={[styles.label, { color: theme.colors.textMuted }]}>
             제목
@@ -433,7 +243,11 @@ function CommunityPostEditorFormBase({
         </View>
       </View>
 
-      <View style={styles.section}>
+      <View
+        testID="community-composer-body-section"
+        style={styles.section}
+        onLayout={event => onFieldLayout?.('body', event.nativeEvent.layout.y)}
+      >
         <View style={styles.bodyHeader}>
           <AppText preset="caption" style={[styles.label, { color: theme.colors.textMuted }]}>
             본문

@@ -37,4 +37,32 @@ describe('policy presentation model', () => {
     expect(getPolicyPresentationDocument('unknown-policy')).toBeNull();
     expect(getPolicyPresentationDocument(undefined)).toBeNull();
   });
+
+  it('uses explicit semantic metadata sparingly without inspecting body text', () => {
+    const sections = Object.values(POLICY_PRESENTATION_DOCUMENTS).flatMap(
+      document => document.sections,
+    );
+    const emphasized = sections.filter(
+      section => (section.semanticRole ?? 'normal') !== 'normal',
+    );
+    const normal = sections.filter(
+      section => (section.semanticRole ?? 'normal') === 'normal',
+    );
+
+    expect(
+      Object.fromEntries(
+        emphasized.map(section => [section.id, section.semanticRole]),
+      ),
+    ).toEqual({
+      'external-information': 'callout',
+      location: 'callout',
+      'rights-and-deletion': 'warning',
+      'prohibited-content': 'danger',
+      reporting: 'callout',
+      'deletion-scope': 'danger',
+      'operational-records': 'warning',
+      'optional-consent': 'callout',
+    });
+    expect(normal.length).toBeGreaterThan(emphasized.length);
+  });
 });

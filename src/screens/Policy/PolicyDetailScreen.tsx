@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
@@ -10,7 +10,12 @@ import { useTheme } from 'styled-components/native';
 import AppText from '../../app/ui/AppText';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
-import { getPolicyPresentationDocument } from '../../services/legal/presentation';
+import {
+  getPolicyPresentationDocument,
+  type PolicySemanticRole,
+} from '../../services/legal/presentation';
+import { buildPetThemePalette } from '../../services/pets/themePalette';
+import { usePetStore } from '../../store/petStore';
 import { openMoreDrawer } from '../../store/uiStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'PolicyDetail'>;
@@ -21,7 +26,42 @@ export default function PolicyDetailScreen() {
   const route = useRoute<PolicyDetailRoute>();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+  const pets = usePetStore(state => state.pets);
+  const selectedPetId = usePetStore(state => state.selectedPetId);
+  const selectedPet = useMemo(
+    () => pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
+    [pets, selectedPetId],
+  );
+  const petTheme = useMemo(
+    () => buildPetThemePalette(selectedPet?.themeColor ?? theme.colors.brand),
+    [selectedPet?.themeColor, theme.colors.brand],
+  );
   const document = getPolicyPresentationDocument(route.params?.documentId);
+
+  const getSemanticPresentation = (role: PolicySemanticRole) => {
+    if (role === 'danger') {
+      return {
+        icon: 'alert-triangle' as const,
+        color: theme.colors.danger,
+        backgroundColor: theme.colors.surfaceElevated,
+        borderColor: theme.colors.danger,
+      };
+    }
+    if (role === 'warning') {
+      return {
+        icon: 'alert-circle' as const,
+        color: petTheme.deep,
+        backgroundColor: petTheme.soft,
+        borderColor: petTheme.border,
+      };
+    }
+    return {
+      icon: 'info' as const,
+      color: petTheme.deep,
+      backgroundColor: petTheme.tint,
+      borderColor: petTheme.border,
+    };
+  };
 
   const onBack = useEntryAwareBackAction({
     entrySource: route.params?.entrySource,
@@ -61,7 +101,7 @@ export default function PolicyDetailScreen() {
         <AppText
           preset="unifiedTitle"
           numberOfLines={1}
-          style={[styles.headerTitle, { color: theme.colors.textPrimary }]}
+          style={[styles.headerTitle, { color: petTheme.deep }]}
         >
           {document?.title ?? '정책 안내'}
         </AppText>
@@ -79,7 +119,7 @@ export default function PolicyDetailScreen() {
         {document ? (
           <>
             <View style={styles.titleBlock}>
-              <AppText preset="unifiedTitle" style={[styles.title, { color: theme.colors.textPrimary }]}>{document.title}</AppText>
+              <AppText preset="unifiedTitle" style={[styles.title, { color: petTheme.deep }]}>{document.title}</AppText>
               <AppText preset="unifiedBody" style={[styles.summary, { color: theme.colors.textSecondary }]}>{document.summary}</AppText>
             </View>
 
@@ -93,34 +133,83 @@ export default function PolicyDetailScreen() {
                 },
               ]}
             >
-              <Feather name="info" size={17} color={theme.colors.brand} />
+              <Feather name="info" size={17} color={petTheme.deep} />
               <AppText preset="unifiedBody" style={[styles.reviewNoticeText, { color: theme.colors.textSecondary }]}>이 안내는 현재 최종 검토 중이며, 확정된 정책 문안과 시행 정보는 추후 갱신됩니다.</AppText>
             </View>
 
             <View style={styles.sections}>
-              {document.sections.map((section, index) => (
-                <View
-                  key={section.id}
-                  testID={`policy-section-${section.id}`}
-                  style={[
-                    styles.section,
-                    index > 0
-                      ? { borderTopColor: theme.colors.border, borderTopWidth: 1 }
-                      : null,
-                  ]}
-                >
-                  <AppText preset="unifiedTitle" style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>{section.title}</AppText>
-                  {section.paragraphs.map(paragraph => (
-                    <AppText key={paragraph} preset="unifiedBody" style={[styles.paragraph, { color: theme.colors.textSecondary }]}>{paragraph}</AppText>
-                  ))}
-                  {section.bullets?.map(item => (
-                    <View key={item} style={styles.bulletRow}>
-                      <View style={[styles.bullet, { backgroundColor: theme.colors.brand }]} />
-                      <AppText preset="unifiedBody" style={[styles.bulletText, { color: theme.colors.textSecondary }]}>{item}</AppText>
+              {document.sections.map((section, index) => {
+                const semanticRole = section.semanticRole ?? 'normal';
+                const semanticPresentation =
+                  semanticRole === 'normal'
+                    ? null
+                    : getSemanticPresentation(semanticRole);
+
+                return (
+                  <View
+                    key={section.id}
+                    testID={`policy-section-${section.id}`}
+                    accessibilityLabel={`${section.title} 정책 항목`}
+                    style={[
+                      styles.section,
+                      index > 0
+                        ? { borderTopColor: theme.colors.border, borderTopWidth: 1 }
+                        : null,
+                      semanticPresentation
+                        ? {
+                            backgroundColor: semanticPresentation.backgroundColor,
+                            borderLeftColor: semanticPresentation.borderColor,
+                            borderLeftWidth: 3,
+                          }
+                        : null,
+                    ]}
+                  >
+                    <View style={styles.sectionHeadingRow}>
+                      {semanticPresentation ? (
+                        <Feather
+                          testID={`policy-semantic-${semanticRole}-${section.id}`}
+                          name={semanticPresentation.icon}
+                          size={17}
+                          color={semanticPresentation.color}
+                        />
+                      ) : null}
+                      <AppText
+                        testID={`policy-section-heading-${section.id}`}
+                        preset="unifiedTitle"
+                        accessibilityRole="header"
+                        style={[
+                          styles.sectionTitle,
+                          {
+                            color:
+                              semanticPresentation?.color ?? petTheme.deep,
+                          },
+                        ]}
+                      >
+                        {section.title}
+                      </AppText>
                     </View>
-                  ))}
-                </View>
-              ))}
+                    {section.paragraphs.map(paragraph => (
+                      <AppText
+                        key={paragraph}
+                        preset="unifiedBody"
+                        style={[
+                          styles.paragraph,
+                          semanticPresentation ? styles.semanticParagraph : null,
+                          { color: theme.colors.textSecondary },
+                        ]}
+                      >
+                        {paragraph}
+                      </AppText>
+                    ))}
+                    {section.bullets?.map(item => (
+                      <View key={item} style={styles.bulletRow}>
+                        <View style={[styles.bullet, { backgroundColor: petTheme.primary }]} />
+                        <AppText preset="unifiedBody" style={[styles.bulletText, { color: theme.colors.textSecondary }]}>{item}</AppText>
+                      </View>
+                    ))}
+                  </View>
+                );
+              })}
             </View>
           </>
         ) : (
@@ -174,9 +263,15 @@ const styles = StyleSheet.create({
   },
   reviewNoticeText: { flex: 1, fontSize: 13, lineHeight: 20, fontWeight: '600' },
   sections: { marginTop: 12 },
-  section: { paddingVertical: 22, gap: 10 },
+  section: {
+    paddingHorizontal: 12,
+    paddingVertical: 22,
+    gap: 10,
+  },
+  sectionHeadingRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   sectionTitle: { fontSize: 17, lineHeight: 24, fontWeight: '900' },
   paragraph: { fontSize: 14, lineHeight: 23, fontWeight: '500' },
+  semanticParagraph: { fontWeight: '600' },
   bulletRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   bullet: { width: 5, height: 5, borderRadius: 3, marginTop: 9 },
   bulletText: { flex: 1, fontSize: 14, lineHeight: 23, fontWeight: '500' },

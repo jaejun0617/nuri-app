@@ -7,6 +7,8 @@ import { createTheme } from '../src/app/theme/theme';
 import PolicyCenterScreen from '../src/screens/Policy/PolicyCenterScreen';
 import PolicyDetailScreen from '../src/screens/Policy/PolicyDetailScreen';
 import { POLICY_DOCUMENT_ORDER } from '../src/services/legal/presentation';
+import { buildPetThemePalette } from '../src/services/pets/themePalette';
+import { usePetStore } from '../src/store/petStore';
 
 const mockNavigation = {
   goBack: jest.fn(),
@@ -46,11 +48,16 @@ describe('policy presentation screens', () => {
   let renderer: TestRenderer.ReactTestRenderer | undefined;
   let hardwareBackHandler: HardwareBackHandler | undefined;
   let backHandlerSpy: jest.SpyInstance;
+  const originalPets = usePetStore.getState();
 
   beforeEach(() => {
     jest.clearAllMocks();
     mockRouteParams = undefined;
     hardwareBackHandler = undefined;
+    usePetStore.setState({
+      pets: [{ id: 'pet', name: 'QA', themeColor: '#4F7BCB' }],
+      selectedPetId: 'pet',
+    });
     backHandlerSpy = jest
       .spyOn(BackHandler, 'addEventListener')
       .mockImplementation((_eventName, handler) => {
@@ -64,6 +71,7 @@ describe('policy presentation screens', () => {
       TestRenderer.act(() => renderer?.unmount());
     }
     renderer = undefined;
+    usePetStore.setState(originalPets);
     backHandlerSpy.mockRestore();
   });
 
@@ -84,6 +92,16 @@ describe('policy presentation screens', () => {
         renderer.root.findByProps({ testID: `policy-entry-${documentId}` }),
       ).toBeDefined();
     }
+
+    expect(
+      StyleSheet.flatten(
+        renderer.root.findByProps({ testID: 'policy-center-title' }).props.style,
+      ),
+    ).toEqual(
+      expect.objectContaining({
+        color: buildPetThemePalette('#4F7BCB').deep,
+      }),
+    );
 
     TestRenderer.act(() => {
       renderer?.root.findByProps({ testID: 'policy-entry-privacy' }).props.onPress();
@@ -112,6 +130,32 @@ describe('policy presentation screens', () => {
     expect(
       renderer.root.findByProps({ testID: 'policy-section-operational-records' }),
     ).toBeDefined();
+    expect(
+      renderer.root.findByProps({
+        testID: 'policy-semantic-danger-deletion-scope',
+      }),
+    ).toBeDefined();
+    expect(
+      renderer.root.findByProps({
+        testID: 'policy-semantic-warning-operational-records',
+      }),
+    ).toBeDefined();
+    expect(
+      renderer.root.findAll(
+        node => node.props.testID === 'policy-semantic-normal-request-meaning',
+      ),
+    ).toHaveLength(0);
+    expect(
+      StyleSheet.flatten(
+        renderer.root.findByProps({
+          testID: 'policy-section-heading-request-meaning',
+        }).props.style,
+      ),
+    ).toEqual(
+      expect.objectContaining({
+        color: buildPetThemePalette('#4F7BCB').deep,
+      }),
+    );
 
     TestRenderer.act(() => {
       renderer?.root.findByProps({ testID: 'policy-detail-back' }).props.onPress();

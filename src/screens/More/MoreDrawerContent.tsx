@@ -105,7 +105,12 @@ import {
 } from '../../services/notifications/pushTokenLifecycle';
 import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
-import { showToast } from '../../store/uiStore';
+import {
+  consumeMoreDrawerReturnPosition,
+  preserveMoreDrawerReturnPosition,
+  showToast,
+  useUiStore,
+} from '../../store/uiStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -133,7 +138,9 @@ type MenuCardProps = {
   >;
 };
 
-type MenuRowProps = Omit<MenuItemSpec, 'key'>;
+type MenuRowProps = Omit<MenuItemSpec, 'key'> & {
+  testID?: string;
+};
 
 type PasswordModalProps = {
   visible: boolean;
@@ -223,6 +230,7 @@ const MenuRow = memo(function MenuRow({
   iconTone = 'accent',
   onPress,
   badge = null,
+  testID,
   themeColors,
 }: MenuRowProps & {
   themeColors: Record<
@@ -235,6 +243,7 @@ const MenuRow = memo(function MenuRow({
 
   return (
     <TouchableOpacity
+      testID={testID}
       activeOpacity={0.9}
       style={[
         styles.menuRow,
@@ -299,7 +308,11 @@ const MenuCard = memo(function MenuCard({
                 ]}
               />
             ) : null}
-            <MenuRow {...item} themeColors={themeColors} />
+            <MenuRow
+              {...item}
+              testID={`more-entry-${key}`}
+              themeColors={themeColors}
+            />
           </View>
         ))}
       </View>
@@ -1237,6 +1250,14 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
   const setPets = usePetStore(s => s.setPets);
+  const moreDrawerScrollOffset = useUiStore(s => s.moreDrawerScrollOffset);
+  const moreDrawerRestorePending = useUiStore(
+    s => s.moreDrawerRestorePending,
+  );
+  const menuScrollRef = useRef<React.ComponentRef<typeof ScrollView> | null>(null);
+  const currentMenuScrollOffsetRef = useRef(0);
+  const [menuViewportHeight, setMenuViewportHeight] = useState(0);
+  const [menuContentHeight, setMenuContentHeight] = useState(0);
 
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -1261,6 +1282,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const [deleteAcknowledgementVisible, setDeleteAcknowledgementVisible] =
     useState(false);
   const [deleteAcknowledged, setDeleteAcknowledged] = useState(false);
+  const [deleteGuideExpanded, setDeleteGuideExpanded] = useState(false);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
   const [accountStatusNotice, setAccountStatusNotice] = useState<
@@ -1279,6 +1301,32 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       current === measuredHeight ? current : measuredHeight,
     );
   }, []);
+
+  useEffect(() => {
+    if (!moreDrawerRestorePending) return undefined;
+    if (moreDrawerScrollOffset > 0 && menuContentHeight <= menuViewportHeight) {
+      return undefined;
+    }
+
+    const maxOffset = Math.max(0, menuContentHeight - menuViewportHeight);
+    const targetOffset = Math.min(moreDrawerScrollOffset, maxOffset);
+    const frame = requestAnimationFrame(() => {
+      menuScrollRef.current?.scrollTo({
+        x: 0,
+        y: targetOffset,
+        animated: false,
+      });
+      currentMenuScrollOffsetRef.current = targetOffset;
+      consumeMoreDrawerReturnPosition();
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [
+    menuContentHeight,
+    menuViewportHeight,
+    moreDrawerRestorePending,
+    moreDrawerScrollOffset,
+  ]);
 
   useFocusEffect(
     useCallback(() => {
@@ -1489,7 +1537,9 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const closeAndNavigate = useCallback(
     (navigate: () => void) => {
       try {
+        const returnOffset = currentMenuScrollOffsetRef.current;
         onRequestClose();
+        preserveMoreDrawerReturnPosition(returnOffset);
         navigate();
       } catch (error) {
         const { title, message } = getBrandedErrorMeta(error, 'generic');
@@ -1554,7 +1604,9 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   }, [closeAndNavigate, navigation]);
 
   const openCommunityBlockedUsers = useCallback(() => {
-    closeAndNavigate(() => navigation.navigate('CommunityBlockedUsers'));
+    closeAndNavigate(() =>
+      navigation.navigate('CommunityBlockedUsers', { entrySource: 'more' }),
+    );
   }, [closeAndNavigate, navigation]);
 
   const openUserNotifications = useCallback(() => {
@@ -1941,6 +1993,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const onPressDeleteAccount = useCallback(() => {
     if (!isLoggedIn || deleting) return;
     setDeleteAcknowledged(false);
+    setDeleteGuideExpanded(false);
     setDeleteAcknowledgementVisible(true);
     setDeleteConfirmVisible(false);
     setDeleteConfirmationText('');
@@ -1949,24 +2002,17 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const closeDeleteAcknowledgement = useCallback(() => {
     setDeleteAcknowledgementVisible(false);
     setDeleteAcknowledged(false);
+    setDeleteGuideExpanded(false);
   }, []);
 
   const continueDeleteAcknowledgement = useCallback(() => {
     if (!deleteAcknowledged || deleting) return;
 
     setDeleteAcknowledgementVisible(false);
+    setDeleteGuideExpanded(false);
     setDeleteConfirmationText('');
     setDeleteConfirmVisible(true);
   }, [deleteAcknowledged, deleting]);
-
-  const onPressDeletionGuide = useCallback(() => {
-    closeAndNavigate(() =>
-      navigation.navigate('PolicyDetail', {
-        documentId: 'accountDeletion',
-        entrySource: 'more',
-      }),
-    );
-  }, [closeAndNavigate, navigation]);
 
   const onPressLogin = useCallback(() => {
     closeAndNavigate(() => navigation.navigate('SignIn'));
@@ -2082,6 +2128,12 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         iconTone: 'accent',
         onPress: isLoggedIn ? openPetManagement : onPressLogin,
       },
+    ],
+    [isLoggedIn, onPressLogin, openPetManagement],
+  );
+
+  const activityItems = useMemo<MenuItemSpec[]>(
+    () => [
       {
         key: 'important-schedule',
         label: '중요 일정 & 기념일',
@@ -2089,25 +2141,6 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         iconTone: 'accent',
         onPress: isLoggedIn ? openScheduleList : onPressLogin,
       },
-      {
-        key: 'pet-activity-achievements',
-        label: '활동·칭호',
-        icon: 'award',
-        iconTone: 'accent',
-        onPress: isLoggedIn ? openPetActivityAchievements : onPressLogin,
-      },
-    ],
-    [
-      isLoggedIn,
-      onPressLogin,
-      openPetActivityAchievements,
-      openPetManagement,
-      openScheduleList,
-    ],
-  );
-
-  const activityItems = useMemo<MenuItemSpec[]>(
-    () => [
       {
         key: 'memory-diary',
         label: '추억 다이어리',
@@ -2123,43 +2156,28 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         onPress: isLoggedIn ? openHealthReport : onPressLogin,
       },
       {
+        key: 'pet-activity-achievements',
+        label: '활동·칭호',
+        icon: 'award',
+        iconTone: 'accent',
+        onPress: isLoggedIn ? openPetActivityAchievements : onPressLogin,
+      },
+      {
         key: 'indoor-activities',
         label: '실내 놀이 추천',
         icon: 'sun',
         iconTone: 'accent',
         onPress: isLoggedIn ? openIndoorActivities : onPressLogin,
       },
-      {
-        key: 'walk-nearby',
-        label: '우리동네 산책 장소 찾기',
-        icon: 'map',
-        iconTone: 'accent',
-        onPress: isLoggedIn ? openWalkDiscovery : onPressLogin,
-      },
-      {
-        key: 'animal-hospital',
-        label: '우리동네 동물병원',
-        icon: 'plus-square',
-        iconTone: 'accent',
-        onPress: isLoggedIn ? openAnimalHospital : onPressLogin,
-      },
-      {
-        key: 'nuri-ranking',
-        label: '누리 랭킹',
-        icon: 'bar-chart-2',
-        iconTone: 'accent',
-        onPress: isLoggedIn ? openNuriRanking : onPressLogin,
-      },
     ],
     [
       isLoggedIn,
-      openAnimalHospital,
       openHealthReport,
       openIndoorActivities,
-      openNuriRanking,
+      openPetActivityAchievements,
+      openScheduleList,
       onPressLogin,
       openTimeline,
-      openWalkDiscovery,
     ],
   );
 
@@ -2173,14 +2191,43 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         onPress: openCommunity,
       },
       {
+        key: 'nuri-ranking',
+        label: '누리 랭킹',
+        icon: 'bar-chart-2',
+        iconTone: 'muted',
+        onPress: isLoggedIn ? openNuriRanking : onPressLogin,
+      },
+      {
         key: 'tips',
         label: '집사 꿀팁 가이드',
         icon: 'map-pin',
         iconTone: 'muted',
         onPress: openGuideList,
       },
+      {
+        key: 'walk-nearby',
+        label: '우리동네 산책 장소 찾기',
+        icon: 'map',
+        iconTone: 'muted',
+        onPress: isLoggedIn ? openWalkDiscovery : onPressLogin,
+      },
+      {
+        key: 'animal-hospital',
+        label: '우리동네 동물병원',
+        icon: 'plus-square',
+        iconTone: 'muted',
+        onPress: isLoggedIn ? openAnimalHospital : onPressLogin,
+      },
     ],
-    [openCommunity, openGuideList],
+    [
+      isLoggedIn,
+      onPressLogin,
+      openAnimalHospital,
+      openCommunity,
+      openGuideList,
+      openNuriRanking,
+      openWalkDiscovery,
+    ],
   );
 
   const serviceItems = useMemo<MenuItemSpec[]>(() => {
@@ -2198,11 +2245,19 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
 
     const items: MenuItemSpec[] = [
       {
-        key: 'policy-center',
-        label: '약관 및 정책',
-        icon: 'file-text',
+        key: 'theme',
+        label: '테마 설정',
+        icon: 'palette',
+        iconEmoji: '🎨',
         iconTone: 'accent',
-        onPress: openPolicyCenter,
+        onPress: openThemeModal,
+      },
+      {
+        key: 'notification',
+        label: '알림 설정',
+        icon: 'settings',
+        iconTone: 'accent',
+        onPress: openNotificationModal,
       },
       {
         key: 'user-notifications',
@@ -2220,19 +2275,11 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         onPress: openCommunityBlockedUsers,
       },
       {
-        key: 'notification',
-        label: '알림 설정',
-        icon: 'bell',
+        key: 'policy-center',
+        label: '약관 및 정책',
+        icon: 'file-text',
         iconTone: 'accent',
-        onPress: openNotificationModal,
-      },
-      {
-        key: 'theme',
-        label: '테마 설정',
-        icon: 'palette',
-        iconEmoji: '🎨',
-        iconTone: 'accent',
-        onPress: openThemeModal,
+        onPress: openPolicyCenter,
       },
       {
         key: 'logout',
@@ -2377,9 +2424,24 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         </View>
 
         <ScrollView
+          ref={menuScrollRef}
           testID="more-menu-scroll"
           style={[styles.scroll, { marginBottom: toolbarHeight }]}
           contentContainerStyle={styles.content}
+          contentOffset={{ x: 0, y: moreDrawerScrollOffset }}
+          onLayout={event => {
+            setMenuViewportHeight(event.nativeEvent.layout.height);
+          }}
+          onContentSizeChange={(_width, height) => {
+            setMenuContentHeight(height);
+          }}
+          onScroll={event => {
+            currentMenuScrollOffsetRef.current = Math.max(
+              0,
+              event.nativeEvent.contentOffset.y,
+            );
+          }}
+          scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
         >
           <MenuCard
@@ -2438,89 +2500,29 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
 
           {isLoggedIn ? (
             <View style={styles.bottomActions}>
-              <View
+              <TouchableOpacity
+                testID="account-delete-entry"
+                accessibilityRole="button"
+                accessibilityLabel="회원탈퇴 확인 시작"
+                activeOpacity={0.82}
                 style={[
-                  styles.deleteSection,
-                  {
-                    backgroundColor: theme.colors.surfaceElevated,
-                    borderColor: 'rgba(224, 90, 104, 0.16)',
-                  },
+                  styles.standaloneDeleteAction,
+                  { borderColor: theme.colors.border },
                 ]}
+                onPress={onPressDeleteAccount}
+                disabled={deleting}
               >
-                <AppText preset="unifiedBody"
+                <Feather name="trash-2" size={16} color={theme.colors.danger} />
+                <AppText
+                  preset="unifiedLabel"
                   style={[
-                    styles.deleteSectionTitle,
+                    styles.standaloneDeleteActionLabel,
                     { color: theme.colors.danger },
                   ]}
                 >
-                  계정 삭제
+                  {deleting ? '회원탈퇴 처리 중...' : '회원탈퇴'}
                 </AppText>
-                <AppText preset="unifiedBody"
-                  style={[
-                    styles.deleteSectionBody,
-                    { color: theme.colors.textMuted },
-                  ]}
-                >
-                  회원탈퇴는 삭제 요청을 보내는 단계예요. 실제 정리 완료 시점과
-                  파일 정리 완료 시점은 즉시 아닐 수 있어요.
-                </AppText>
-                <AppText preset="unifiedBody"
-                  style={[
-                    styles.deleteSectionNote,
-                    { color: theme.colors.textMuted },
-                  ]}
-                >
-                  개인 콘텐츠는 삭제되고, 일부 동의/신고 이력은 식별자를 제거한
-                  뒤 보관될 수 있어요.
-                </AppText>
-                <TouchableOpacity
-                  activeOpacity={0.88}
-                  onPress={onPressDeletionGuide}
-                  style={[
-                    styles.deleteGuideButton,
-                    {
-                      backgroundColor: theme.colors.surface,
-                      borderColor: theme.colors.border,
-                    },
-                  ]}
-                >
-                  <AppText preset="unifiedLabel"
-                    style={[
-                      styles.deleteGuideButtonLabel,
-                      { color: theme.colors.textPrimary },
-                    ]}
-                  >
-                    삭제 안내 보기
-                  </AppText>
-                  <AppText preset="unifiedBody"
-                    style={[
-                      styles.deleteGuideButtonMeta,
-                      { color: theme.colors.textMuted },
-                    ]}
-                  >
-                    내용 검토 중
-                  </AppText>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  activeOpacity={0.88}
-                  accessibilityLabel="회원탈퇴 확인 시작"
-                  style={[
-                    styles.bottomDangerButton,
-                    { backgroundColor: 'rgba(224, 90, 104, 0.12)' },
-                  ]}
-                  onPress={onPressDeleteAccount}
-                  disabled={deleting}
-                >
-                  <AppText preset="unifiedLabel"
-                    style={[
-                      styles.bottomDangerButtonLabel,
-                      { color: theme.colors.danger },
-                    ]}
-                  >
-                    {deleting ? '회원탈퇴 처리 중...' : '회원탈퇴'}
-                  </AppText>
-                </TouchableOpacity>
-              </View>
+              </TouchableOpacity>
             </View>
           ) : (
             <TouchableOpacity
@@ -2612,7 +2614,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         typographyMode="unified"
         title="회원탈퇴 전 확인해 주세요"
         message={
-          '계정과 연결된 프로필, 기록, 일정, 커뮤니티 콘텐츠가 삭제 대상이 될 수 있어요.\n다음 확인 단계에서 문구를 입력하기 전에는 탈퇴 요청이 진행되지 않습니다.'
+          '계정과 연결된 프로필, 기록, 일정, 커뮤니티 콘텐츠가 삭제 대상이 될 수 있어요.\n안내를 확인한 뒤 다음 단계로 진행해 주세요.'
         }
         cancelLabel="취소"
         confirmLabel="다음 단계"
@@ -2677,6 +2679,85 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
             </AppText>
           </View>
         </TouchableOpacity>
+        <TouchableOpacity
+          testID="account-delete-guide-toggle"
+          accessibilityRole="button"
+          accessibilityLabel={
+            deleteGuideExpanded ? '삭제 안내 접기' : '삭제 안내 보기'
+          }
+          accessibilityState={{ expanded: deleteGuideExpanded }}
+          activeOpacity={0.82}
+          onPress={() => setDeleteGuideExpanded(current => !current)}
+          style={[
+            styles.deleteGuideToggle,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.border,
+            },
+          ]}
+        >
+          <View style={styles.deleteGuideToggleCopy}>
+            <Feather
+              name="info"
+              size={16}
+              color={theme.colors.textSecondary}
+            />
+            <AppText
+              preset="unifiedLabel"
+              style={[
+                styles.deleteGuideToggleLabel,
+                { color: theme.colors.textPrimary },
+              ]}
+            >
+              {deleteGuideExpanded ? '삭제 안내 접기' : '삭제 안내 보기'}
+            </AppText>
+          </View>
+          <Feather
+            name={deleteGuideExpanded ? 'chevron-up' : 'chevron-down'}
+            size={18}
+            color={theme.colors.textMuted}
+          />
+        </TouchableOpacity>
+        {deleteGuideExpanded ? (
+          <View
+            testID="account-delete-guide-content"
+            style={[
+              styles.deleteGuideContent,
+              {
+                backgroundColor: 'rgba(224, 90, 104, 0.08)',
+                borderColor: 'rgba(224, 90, 104, 0.18)',
+              },
+            ]}
+          >
+            <AppText
+              preset="unifiedBody"
+              style={[
+                styles.deleteGuideParagraph,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
+              탈퇴 요청 후 프로필과 개인 콘텐츠가 비노출 처리될 수 있어요.
+            </AppText>
+            <AppText
+              preset="unifiedBody"
+              style={[
+                styles.deleteGuideParagraph,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
+              최종 정리와 일부 파일 삭제는 바로 끝나지 않을 수 있어요.
+            </AppText>
+            <AppText
+              preset="unifiedBody"
+              style={[
+                styles.deleteGuideParagraph,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
+              일부 동의·신고 이력은 식별자를 제거한 뒤 보관될 수 있어요.
+            </AppText>
+          </View>
+        ) : null}
       </ConfirmDialog>
       <ConfirmDialog
         visible={deleteConfirmVisible}
@@ -2931,59 +3012,20 @@ const styles = StyleSheet.create({
     gap: 14,
     paddingTop: 6,
   },
-  deleteSection: {
-    width: '100%',
-    borderRadius: 18,
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 14,
-    gap: 10,
-  },
-  deleteSectionTitle: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '800',
-  },
-  deleteSectionBody: {
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '500',
-  },
-  deleteSectionNote: {
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '600',
-  },
-  deleteGuideButton: {
-    borderRadius: 14,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    gap: 4,
-  },
-  deleteGuideButtonLabel: {
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: '800',
-  },
-  deleteGuideButtonMeta: {
-    fontSize: 11,
-    lineHeight: 16,
-    fontWeight: '700',
-  },
-  bottomDangerButton: {
+  standaloneDeleteAction: {
     minHeight: 44,
-    width: '100%',
-    paddingHorizontal: 18,
-    borderRadius: 14,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 18,
+    borderWidth: 1,
+    borderRadius: 12,
   },
-  bottomDangerButtonLabel: {
-    fontSize: 14,
-    color: '#C3AEB0',
-    fontWeight: '800',
+  standaloneDeleteActionLabel: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '700',
   },
   loginButton: {
     minHeight: 50,
@@ -3128,6 +3170,37 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   deleteAcknowledgementHint: {
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '600',
+  },
+  deleteGuideToggle: {
+    minHeight: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  deleteGuideToggleCopy: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+  },
+  deleteGuideToggleLabel: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '800',
+  },
+  deleteGuideContent: {
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  deleteGuideParagraph: {
     fontSize: 12,
     lineHeight: 18,
     fontWeight: '600',

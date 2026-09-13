@@ -232,7 +232,7 @@ export type RootStackParamList = {
   };
   CommunityCreate: undefined;
   CommunityEdit: { postId: string };
-  CommunityBlockedUsers: undefined;
+  CommunityBlockedUsers: { entrySource?: ScreenEntrySource } | undefined;
   UserNotifications: { entrySource?: ScreenEntrySource } | undefined;
   NuriRanking: { entrySource?: ScreenEntrySource } | undefined;
   PolicyCenter: { entrySource?: ScreenEntrySource } | undefined;

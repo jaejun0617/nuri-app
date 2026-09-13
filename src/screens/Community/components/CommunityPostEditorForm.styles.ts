@@ -48,67 +48,6 @@ export const styles = StyleSheet.create({
     fontWeight: '800',
     textDecorationLine: 'underline',
   },
-  linkedPetPreview: {
-    flex: 1,
-    minHeight: 64,
-    minWidth: 0,
-    borderRadius: 20,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  linkedPetAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
-  linkedPetAvatarFallback: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  linkedPetAvatarFallbackText: {
-    fontWeight: '800',
-  },
-  linkedPetInfo: {
-    flex: 1,
-    minWidth: 0,
-    gap: 4,
-  },
-  linkedPetName: {
-    fontWeight: '700',
-  },
-  linkedPetMeta: {
-    lineHeight: 18,
-  },
-  linkedPetMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  ageToggleButton: {
-    minHeight: 40,
-    borderRadius: 16,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    alignSelf: 'stretch',
-  },
-  ageToggleText: {
-    fontWeight: '700',
-  },
-  petHintText: {
-    lineHeight: 18,
-  },
   bodyHeader: {
     flexDirection: 'row',
     alignItems: 'center',

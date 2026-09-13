@@ -44,6 +44,10 @@ import { createLatestRequestController } from '../../services/app/async';
 import { getBrandedErrorMeta } from '../../services/app/errors';
 import { recordTimelineCategoryChangeActivity } from '../../services/activity/timelineActivity';
 import {
+  resolveComposerFocusOffset,
+  type ComposerFocusTarget,
+} from '../../services/forms/composerFocus';
+import {
   enqueuePendingMemoryUpload,
   processPendingMemoryUploads,
   type PendingMemoryUploadEntry,
@@ -179,6 +183,9 @@ export default function RecordEditScreen() {
     null,
   );
   const scrollRef = useRef<KeyboardAwareScrollViewRef | null>(null);
+  const composerFieldOffsetsRef = useRef<
+    Partial<Record<ComposerFocusTarget, number>>
+  >({});
   const keyboardInset = useKeyboardInset();
   const keyboardVisible = keyboardInset > 0;
 
@@ -407,6 +414,26 @@ export default function RecordEditScreen() {
   const handleFocusField = useCallback(() => {
     requestAnimationFrame(() => {
       scrollRef.current?.assureFocusedInputVisible();
+    });
+  }, []);
+  const handleComposerFieldLayout = useCallback(
+    (field: ComposerFocusTarget, offsetY: number) => {
+      composerFieldOffsetsRef.current[field] = offsetY;
+    },
+    [],
+  );
+  const handleComposerFocus = useCallback((field: ComposerFocusTarget) => {
+    requestAnimationFrame(() => {
+      const offsetY = composerFieldOffsetsRef.current[field];
+      if (offsetY === undefined) {
+        scrollRef.current?.assureFocusedInputVisible();
+        return;
+      }
+      scrollRef.current?.scrollTo({
+        x: 0,
+        y: resolveComposerFocusOffset(offsetY),
+        animated: true,
+      });
     });
   }, []);
 
@@ -798,38 +825,54 @@ export default function RecordEditScreen() {
           }
         />
 
-        <AppText preset="unifiedMeta" style={styles.label}>
-          제목
-        </AppText>
-        <AppTextInput
-          style={styles.input}
-          value={title}
-          onChangeText={v => {
-            setDirty(true);
-            setTitle(v);
-          }}
-          onFocus={handleFocusField}
-          placeholder="제목"
-          placeholderTextColor="#8A94A6"
-          editable={!saving}
-        />
+        <View
+          testID="timeline-edit-composer-title-section"
+          collapsable={false}
+          onLayout={event =>
+            handleComposerFieldLayout('title', event.nativeEvent.layout.y)
+          }
+        >
+          <AppText preset="unifiedMeta" style={styles.label}>
+            제목
+          </AppText>
+          <AppTextInput
+            style={styles.input}
+            value={title}
+            onChangeText={v => {
+              setDirty(true);
+              setTitle(v);
+            }}
+            onFocus={() => handleComposerFocus('title')}
+            placeholder="제목"
+            placeholderTextColor="#8A94A6"
+            editable={!saving}
+          />
+        </View>
 
-        <AppText preset="unifiedMeta" style={styles.label}>
-          내용(선택)
-        </AppText>
-        <AppTextInput
-          style={[styles.input, styles.multiline]}
-          value={content ?? ''}
-          onChangeText={v => {
-            setDirty(true);
-            setContent(v);
-          }}
-          onFocus={handleFocusField}
-          placeholder="내용"
-          placeholderTextColor="#8A94A6"
-          multiline
-          editable={!saving}
-        />
+        <View
+          testID="timeline-edit-composer-body-section"
+          collapsable={false}
+          onLayout={event =>
+            handleComposerFieldLayout('body', event.nativeEvent.layout.y)
+          }
+        >
+          <AppText preset="unifiedMeta" style={styles.label}>
+            내용(선택)
+          </AppText>
+          <AppTextInput
+            style={[styles.input, styles.multiline]}
+            value={content ?? ''}
+            onChangeText={v => {
+              setDirty(true);
+              setContent(v);
+            }}
+            onFocus={() => handleComposerFocus('body')}
+            placeholder="내용"
+            placeholderTextColor="#8A94A6"
+            multiline
+            editable={!saving}
+          />
+        </View>
 
         <AppText preset="unifiedMeta" style={styles.label}>
           날짜(선택)

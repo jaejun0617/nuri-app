@@ -32,6 +32,10 @@ import {
   pickPhotoAssets,
   type PickedPhotoAsset,
 } from '../../services/media/photoPicker';
+import {
+  resolveComposerFocusOffset,
+  type ComposerFocusTarget,
+} from '../../services/forms/composerFocus';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { flushPendingCommunityImageCleanup } from '../../services/supabase/storageCommunity';
 import { useCommunityAuth } from '../../hooks/useCommunityAuth';
@@ -41,10 +45,8 @@ import { showToast } from '../../store/uiStore';
 import type { CommunityPostCategory } from '../../types/community';
 import CommunityPostEditorForm from './components/CommunityPostEditorForm';
 import {
-  buildCommunityPetSnapshot,
   getCommunityEditorExitDialogCopy,
   hasCommunityEditorDraftChanges,
-  resolveCommunityPetMetaLabel,
 } from './communityPostEditor.shared';
 import { runCommunityCreateSubmitFlow } from './communityPostSubmit.shared';
 
@@ -54,9 +56,7 @@ type DraftPayload = {
   title: string;
   content: string;
   category: CommunityPostCategory;
-  petId: string | null;
   pickedImages: PickedPhotoAsset[];
-  showPetAge: boolean;
 };
 
 const DRAFT_KEY = 'nuri.community.draft.v1';
@@ -81,9 +81,6 @@ function parseDraft(raw: string | null): DraftPayload | null {
     const category = isValidCategory(record.category)
       ? record.category
       : 'question';
-    const petId = typeof record.petId === 'string' ? record.petId : null;
-    const showPetAge =
-      typeof record.showPetAge === 'boolean' ? record.showPetAge : true;
     const rawPickedImages = Array.isArray(record.pickedImages)
       ? record.pickedImages
       : record.pickedImage
@@ -103,7 +100,7 @@ function parseDraft(raw: string | null): DraftPayload | null {
       .filter((item): item is PickedPhotoAsset => item !== null)
       .slice(0, 3);
     if (!title.trim() && !content.trim() && pickedImages.length === 0) return null;
-    return { title, content, category, petId, pickedImages, showPetAge };
+    return { title, content, category, pickedImages };
   } catch {
     return null;
   }
@@ -150,6 +147,9 @@ export default function CommunityCreateScreen() {
   const keyboardVisible = useKeyboardState(state => state.isVisible);
   const draftHydratedRef = useRef(false);
   const scrollViewRef = useRef<KeyboardAwareScrollViewRef | null>(null);
+  const composerFieldOffsetsRef = useRef<
+    Partial<Record<ComposerFocusTarget, number>>
+  >({});
 
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
@@ -168,31 +168,13 @@ export default function CommunityCreateScreen() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [category, setCategory] = useState<CommunityPostCategory>('question');
-  const [linkedPetId, setLinkedPetId] = useState<string | null>(
-    selectedPetId ?? null,
-  );
   const [pickedImages, setPickedImages] = useState<PickedPhotoAsset[]>([]);
-  const [showPetAge, setShowPetAge] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [exitConfirmVisible, setExitConfirmVisible] = useState(false);
   const [restoreDraftVisible, setRestoreDraftVisible] = useState(false);
   const [pendingDraft, setPendingDraft] = useState<DraftPayload | null>(null);
   const [imageRestoreWarningVisible, setImageRestoreWarningVisible] =
     useState(false);
-  const linkedPet = useMemo(
-    () => pets.find(pet => pet.id === linkedPetId) ?? null,
-    [linkedPetId, pets],
-  );
-  const linkedPetMetaLabel = useMemo(() => {
-    if (!linkedPet) return null;
-    return resolveCommunityPetMetaLabel({
-      breed: linkedPet.breed,
-      speciesDisplayName: linkedPet.speciesDisplayName,
-      showAge: showPetAge,
-      birthDate: linkedPet.birthDate,
-    });
-  }, [linkedPet, showPetAge]);
-
   useEffect(() => {
     if (isLoggedIn) return;
     navigation.replace('SignIn');
@@ -221,12 +203,7 @@ export default function CommunityCreateScreen() {
       title.trim().length > 0 ||
       content.trim().length > 0 ||
       pickedImages.length > 0;
-    if (
-      !hasDraftContent &&
-      category === 'question' &&
-      linkedPetId === (selectedPetId ?? null) &&
-      showPetAge
-    ) {
+    if (!hasDraftContent && category === 'question') {
       AsyncStorage.removeItem(DRAFT_KEY).catch(() => {});
       return;
     }
@@ -237,12 +214,10 @@ export default function CommunityCreateScreen() {
         title,
         content,
         category,
-        petId: linkedPetId,
         pickedImages,
-        showPetAge,
       } satisfies DraftPayload),
     ).catch(() => {});
-  }, [category, content, linkedPetId, pickedImages, selectedPetId, showPetAge, title]);
+  }, [category, content, pickedImages, title]);
 
   const hasUnsavedChanges = useMemo(
     () =>
@@ -251,20 +226,16 @@ export default function CommunityCreateScreen() {
           title,
           content,
           category,
-          linkedPetId,
-          showPetAge,
           hasPickedImage: pickedImages.length > 0,
         },
         {
           title: '',
           content: '',
           category: 'question',
-          linkedPetId: selectedPetId ?? null,
-          showPetAge: true,
           hasImage: false,
         },
       ),
-    [category, content, linkedPetId, pickedImages, selectedPetId, showPetAge, title],
+    [category, content, pickedImages, title],
   );
 
   const handleBack = useCallback(() => {
@@ -371,8 +342,8 @@ export default function CommunityCreateScreen() {
         title: trimmedTitle,
         content: trimmed,
         category,
-        petId: linkedPetId,
-        petSnapshot: buildCommunityPetSnapshot(linkedPet, showPetAge),
+        petId: null,
+        petSnapshot: null,
         pickedImages,
         submitPost,
         editPost,
@@ -406,11 +377,8 @@ export default function CommunityCreateScreen() {
     content,
     currentUserId,
     editPost,
-    linkedPetId,
-    linkedPet,
     navigation,
     pickedImages,
-    showPetAge,
     submitPost,
     title,
   ]);
@@ -446,11 +414,34 @@ export default function CommunityCreateScreen() {
     renderHeaderLeft,
     renderHeaderRight,
   ]);
-  const handleFocusField = useCallback(() => {
+  const handleFieldLayout = useCallback(
+    (field: ComposerFocusTarget, offsetY: number) => {
+      composerFieldOffsetsRef.current[field] = offsetY;
+    },
+    [],
+  );
+  const handleFocusField = useCallback((field: ComposerFocusTarget) => {
     requestAnimationFrame(() => {
-      scrollViewRef.current?.assureFocusedInputVisible();
+      const offsetY = composerFieldOffsetsRef.current[field];
+      if (offsetY === undefined) {
+        scrollViewRef.current?.assureFocusedInputVisible();
+        return;
+      }
+      scrollViewRef.current?.scrollTo({
+        x: 0,
+        y: resolveComposerFocusOffset(offsetY),
+        animated: true,
+      });
     });
   }, []);
+  const handleTitleFocus = useCallback(
+    () => handleFocusField('title'),
+    [handleFocusField],
+  );
+  const handleContentFocus = useCallback(
+    () => handleFocusField('body'),
+    [handleFocusField],
+  );
 
   return (
     <SafeAreaView
@@ -472,11 +463,6 @@ export default function CommunityCreateScreen() {
         showsVerticalScrollIndicator={false}
       >
         <CommunityPostEditorForm
-          pets={pets}
-          linkedPetId={linkedPetId}
-          linkedPet={linkedPet}
-          linkedPetMetaLabel={linkedPetMetaLabel}
-          showPetAge={showPetAge}
           category={category}
           title={title}
           content={content}
@@ -487,12 +473,11 @@ export default function CommunityCreateScreen() {
           submitLabel={submitting ? '글 등록 중...' : '글 등록'}
           submitDisabled={disabled}
           onChangeCategory={setCategory}
-          onChangeLinkedPetId={setLinkedPetId}
-          onToggleShowPetAge={() => setShowPetAge(prev => !prev)}
           onChangeTitle={setTitle}
           onChangeContent={setContent}
-          onTitleFocus={handleFocusField}
-          onContentFocus={handleFocusField}
+          onFieldLayout={handleFieldLayout}
+          onTitleFocus={handleTitleFocus}
+          onContentFocus={handleContentFocus}
           onPressPolicy={handlePressCommunityPolicy}
           onPickImage={handlePickImage}
           onRemoveImage={handleRemoveImage}
@@ -549,8 +534,6 @@ export default function CommunityCreateScreen() {
           setTitle(pendingDraft.title);
           setContent(pendingDraft.content);
           setCategory(pendingDraft.category);
-          setLinkedPetId(pendingDraft.petId);
-          setShowPetAge(pendingDraft.showPetAge);
 
           validateRestoredPickedImages(pendingDraft.pickedImages)
             .then(restoredImages => {

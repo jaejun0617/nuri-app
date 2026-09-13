@@ -9,6 +9,7 @@ import CommunityCreateScreen from '../src/screens/Community/CommunityCreateScree
 import { usePetStore } from '../src/store/petStore';
 
 const mockAssureFocusedInputVisible = jest.fn();
+const mockScrollTo = jest.fn();
 let mockKeyboardVisible = false;
 const mockNavigation = {
   goBack: jest.fn(),
@@ -30,6 +31,7 @@ jest.mock('react-native-keyboard-controller', () => {
       ) => {
         ReactRuntime.useImperativeHandle(ref, () => ({
           assureFocusedInputVisible: mockAssureFocusedInputVisible,
+          scrollTo: mockScrollTo,
         }));
         return ReactRuntime.createElement(
           'KeyboardControllerScrollView',
@@ -103,7 +105,7 @@ describe('CommunityCreate keyboard visibility contract', () => {
     global.requestAnimationFrame = originalRequestAnimationFrame;
   });
 
-  it('uses one controller host for both title and body focus', async () => {
+  it('moves title and body to their measured visible-area positions', async () => {
     await TestRenderer.act(async () => {
       renderer = TestRenderer.create(
         <ThemeProvider theme={createTheme('light')}>
@@ -152,9 +154,34 @@ describe('CommunityCreate keyboard visibility contract', () => {
       })
       .findByType(TextInput);
 
+    TestRenderer.act(() => {
+      renderer?.root
+        .findByProps({ testID: 'community-composer-title-section' })
+        .props.onLayout({ nativeEvent: { layout: { y: 320 } } });
+      renderer?.root
+        .findByProps({ testID: 'community-composer-body-section' })
+        .props.onLayout({ nativeEvent: { layout: { y: 760 } } });
+    });
+
     TestRenderer.act(() => title.props.onFocus());
     TestRenderer.act(() => body.props.onFocus());
 
-    expect(mockAssureFocusedInputVisible).toHaveBeenCalledTimes(2);
+    expect(mockScrollTo).toHaveBeenNthCalledWith(1, {
+      x: 0,
+      y: 304,
+      animated: true,
+    });
+    expect(mockScrollTo).toHaveBeenNthCalledWith(2, {
+      x: 0,
+      y: 744,
+      animated: true,
+    });
+    expect(mockAssureFocusedInputVisible).not.toHaveBeenCalled();
+    expect(
+      renderer.root.findAllByProps({ children: '반려동물 연결' }),
+    ).toHaveLength(0);
+    expect(
+      renderer.root.findAllByProps({ children: '나이 함께 표시' }),
+    ).toHaveLength(0);
   });
 });

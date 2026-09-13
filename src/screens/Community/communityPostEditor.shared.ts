@@ -1,5 +1,3 @@
-import { formatPetAgeLabelFromBirthDate } from '../../services/pets/age';
-import type { Pet } from '../../store/petStore';
 import type { CommunityPostCategory } from '../../types/community';
 
 export const COMMUNITY_CATEGORY_OPTIONS: Array<{
@@ -12,50 +10,10 @@ export const COMMUNITY_CATEGORY_OPTIONS: Array<{
   { key: 'free', label: '자유' },
 ];
 
-export function resolveCommunityPetMetaLabel(options: {
-  breed: string | null | undefined;
-  speciesDisplayName: string | null | undefined;
-  showAge: boolean;
-  birthDate: string | null | undefined;
-}) {
-  const parts: string[] = [];
-  const breedLabel = `${options.breed ?? ''}`.trim();
-  const speciesLabel = `${options.speciesDisplayName ?? ''}`.trim();
-  const baseLabel = breedLabel || speciesLabel || '품종 미입력';
-  parts.push(baseLabel);
-
-  if (options.showAge) {
-    const ageLabel = formatPetAgeLabelFromBirthDate(options.birthDate);
-    if (ageLabel) {
-      parts.push(ageLabel);
-    }
-  }
-
-  return parts.join(' · ');
-}
-
-export function buildCommunityPetSnapshot(
-  pet: Pet | null,
-  showPetAge: boolean,
-) {
-  if (!pet) return null;
-
-  return {
-    name: pet.name,
-    species: pet.speciesDisplayName ?? null,
-    breed: pet.breed ?? null,
-    ageLabel: showPetAge ? formatPetAgeLabelFromBirthDate(pet.birthDate) : null,
-    avatarPath: pet.avatarPath ?? null,
-    showPetAge,
-  };
-}
-
 type CommunityEditorDraftState = {
   title: string;
   content: string;
   category: CommunityPostCategory;
-  linkedPetId: string | null;
-  showPetAge: boolean;
   hasPickedImage: boolean;
 };
 
@@ -63,8 +21,6 @@ type CommunityEditorDraftBaseline = {
   title: string;
   content: string;
   category: CommunityPostCategory;
-  linkedPetId: string | null;
-  showPetAge: boolean;
   hasImage: boolean;
 };
 
@@ -81,8 +37,6 @@ export function hasCommunityEditorDraftChanges(
     currentTitle !== baselineTitle ||
     currentContent !== baselineContent ||
     current.category !== baseline.category ||
-    current.linkedPetId !== baseline.linkedPetId ||
-    current.showPetAge !== baseline.showPetAge ||
     current.hasPickedImage !== baseline.hasImage
   );
 }

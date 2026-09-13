@@ -8,6 +8,7 @@ import RecordCreateScreen from '../src/screens/Records/RecordCreateScreen';
 import { usePetStore } from '../src/store/petStore';
 
 const mockAssureFocusedInputVisible = jest.fn();
+const mockScrollTo = jest.fn();
 let mockKeyboardVisible = false;
 const mockNavigation = {
   canGoBack: () => true,
@@ -29,6 +30,7 @@ jest.mock('react-native-keyboard-controller', () => {
       ) => {
         ReactRuntime.useImperativeHandle(ref, () => ({
           assureFocusedInputVisible: mockAssureFocusedInputVisible,
+          scrollTo: mockScrollTo,
         }));
         return ReactRuntime.createElement(
           'KeyboardControllerScrollView',
@@ -105,7 +107,7 @@ describe('RecordCreate keyboard visibility contract', () => {
     global.requestAnimationFrame = originalRequestAnimationFrame;
   });
 
-  it('uses one controller scroll host and keeps title and body focused', async () => {
+  it('keeps the 12dp CTA contract and uses measured title/body positions', async () => {
     await TestRenderer.act(async () => {
       renderer = TestRenderer.create(
         <ThemeProvider theme={createTheme('light')}>
@@ -148,9 +150,28 @@ describe('RecordCreate keyboard visibility contract', () => {
     const titleInput = title.findByType(TextInput);
     const bodyInput = body.findByType(TextInput);
 
+    TestRenderer.act(() => {
+      renderer?.root
+        .findByProps({ testID: 'timeline-composer-title-section' })
+        .props.onLayout({ nativeEvent: { layout: { y: 480 } } });
+      renderer?.root
+        .findByProps({ testID: 'timeline-composer-body-section' })
+        .props.onLayout({ nativeEvent: { layout: { y: 880 } } });
+    });
+
     TestRenderer.act(() => titleInput.props.onFocus());
     TestRenderer.act(() => bodyInput.props.onFocus());
 
-    expect(mockAssureFocusedInputVisible).toHaveBeenCalledTimes(2);
+    expect(mockScrollTo).toHaveBeenNthCalledWith(1, {
+      x: 0,
+      y: 464,
+      animated: true,
+    });
+    expect(mockScrollTo).toHaveBeenNthCalledWith(2, {
+      x: 0,
+      y: 864,
+      animated: true,
+    });
+    expect(mockAssureFocusedInputVisible).not.toHaveBeenCalled();
   });
 });
