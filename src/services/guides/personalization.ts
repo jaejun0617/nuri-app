@@ -2,7 +2,7 @@ import { getAgeInMonthsFromBirthDate, matchesGuideAgePolicy } from './agePolicy'
 import { getGuideSeasonalityScore } from './seasonality';
 import type { GuidePersonalizationContext, PetCareGuide } from './types';
 import {
-  deriveRepresentativeSpeciesKey,
+  deriveCanonicalPetSpeciesKey,
   getPetSpeciesSearchKeywords,
 } from '../pets/species';
 
@@ -51,21 +51,21 @@ export function getGuideSpeciesScore(
   guide: PetCareGuide,
   context: Pick<
     GuidePersonalizationContext,
-    'species' | 'speciesDetailKey' | 'speciesDisplayName'
+    'species' | 'speciesKey' | 'speciesDetailKey' | 'speciesDisplayName'
   >,
 ): number {
-  const exactSpeciesMatch = context.species
-    ? guide.targetSpecies.includes(context.species)
-    : false;
-  const commonSpeciesMatch = guide.targetSpecies.includes('common');
-  const representativeSpecies = deriveRepresentativeSpeciesKey({
+  const canonicalSpecies = deriveCanonicalPetSpeciesKey({
+    speciesKey: context.speciesKey,
     species: context.species,
     speciesDetailKey: context.speciesDetailKey,
     speciesDisplayName: context.speciesDisplayName,
   });
+  const exactSpeciesMatch = guide.targetSpecies.includes(canonicalSpecies);
+  const commonSpeciesMatch = guide.targetSpecies.includes('COMMON');
   const guideSpeciesKeywords = buildNormalizedKeywordSet(guide.speciesKeywords);
   const guideTagKeywords = buildNormalizedKeywordSet(guide.tags);
   const petKeywords = getPetSpeciesSearchKeywords({
+    speciesKey: context.speciesKey,
     species: context.species,
     speciesDetailKey: context.speciesDetailKey,
     speciesDisplayName: context.speciesDisplayName,
@@ -75,8 +75,8 @@ export function getGuideSpeciesScore(
     context.speciesDisplayName ?? '',
   ].filter(Boolean);
   const representativeKeywords =
-    representativeSpecies !== 'dog' && representativeSpecies !== 'cat'
-      ? [representativeSpecies]
+    canonicalSpecies !== 'DOG' && canonicalSpecies !== 'CAT'
+      ? [canonicalSpecies]
       : [];
 
   const detailKeywordMatches = countKeywordMatches(guideSpeciesKeywords, detailKeywords);
@@ -89,7 +89,7 @@ export function getGuideSpeciesScore(
     countKeywordMatches(guideTagKeywords, petKeywords);
 
   return (
-    (exactSpeciesMatch ? (context.species === 'other' ? 150 : 320) : 0) +
+    (exactSpeciesMatch ? 320 : 0) +
     (commonSpeciesMatch ? 130 : 0) +
     detailKeywordMatches * 260 +
     representativeKeywordMatches * 220 +
@@ -101,7 +101,12 @@ export function getGuidePersonalizationScore(
   guide: PetCareGuide,
   context: Pick<
     GuidePersonalizationContext,
-    'species' | 'speciesDetailKey' | 'speciesDisplayName' | 'birthDate' | 'now'
+    | 'species'
+    | 'speciesKey'
+    | 'speciesDetailKey'
+    | 'speciesDisplayName'
+    | 'birthDate'
+    | 'now'
   >,
 ): number {
   const ageInMonths = getAgeInMonthsFromBirthDate(context.birthDate, context.now);

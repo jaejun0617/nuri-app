@@ -137,6 +137,54 @@ export const styles = StyleSheet.create({
     color: TEXT,
     lineHeight: 24,
   },
+  contentBlock: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+  },
+  contentBlockNormal: {
+    borderWidth: 0,
+    borderRadius: 0,
+    paddingHorizontal: 0,
+    paddingVertical: 4,
+  },
+  contentBlockCopy: {
+    flex: 1,
+    gap: 5,
+  },
+  contentBlockTitle: {
+    fontWeight: '900',
+  },
+  sourceCard: {
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: SURFACE,
+    borderWidth: 1,
+    borderColor: BORDER,
+    gap: 12,
+  },
+  sourceRow: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  sourceCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  sourceLabel: {
+    color: TEXT,
+    fontWeight: '800',
+  },
+  sourcePublisher: {
+    color: MUTED,
+  },
   emptyCard: {
     marginTop: 18,
     borderRadius: 24,

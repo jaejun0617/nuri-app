@@ -4,7 +4,11 @@ import {
 } from '../pets/species';
 import type { GuideEventContext, GuidePersonalizationContext, PetCareGuide } from './types';
 
-type GuideAnalyticsSource = 'home-recommendation' | 'guide-list' | 'guide-search' | 'guide-detail';
+type GuideAnalyticsSource =
+  | 'home-recommendation'
+  | 'guide-list'
+  | 'guide-search'
+  | 'guide-detail';
 
 export const GUIDE_RECOMMENDATION_STRATEGY_VERSION = 'guide-personalization-v3';
 
@@ -22,6 +26,7 @@ export function buildGuideEventMetadata(input: {
   context: Pick<
     GuidePersonalizationContext,
     | 'species'
+    | 'speciesKey'
     | 'speciesDetailKey'
     | 'speciesDisplayName'
     | 'deathDate'
@@ -33,6 +38,7 @@ export function buildGuideEventMetadata(input: {
   resultRank?: number | null;
 }): NonNullable<GuideEventContext['metadata']> {
   const representativeSpecies = deriveRepresentativeSpeciesKey({
+    speciesKey: input.context.speciesKey,
     species: input.context.species,
     speciesDetailKey: input.context.speciesDetailKey,
     speciesDisplayName: input.context.speciesDisplayName,

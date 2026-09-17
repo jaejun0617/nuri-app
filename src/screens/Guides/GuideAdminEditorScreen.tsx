@@ -161,7 +161,7 @@ export default function GuideAdminEditorScreen() {
 
       return {
         ...prev,
-        targetSpecies: next.length > 0 ? next : ['common'],
+        targetSpecies: next.length > 0 ? next : ['COMMON'],
       };
     });
   }, []);
@@ -371,13 +371,37 @@ export default function GuideAdminEditorScreen() {
             placeholder="검색/목록 최적화용 짧은 본문"
             multiline
           />
-          <Field
-            label="본문"
-            value={formValues.body}
-            onChangeText={value => updateField('body', value)}
-            placeholder="사용자 상세에서 보여줄 전문 본문"
-            multiline
-          />
+          {formValues.contentBlocks.length > 0 ? (
+            formValues.contentBlocks.map((block, index) => (
+              <Field
+                key={block.id}
+                label={block.title ?? `본문 ${index + 1}`}
+                value={block.body}
+                onChangeText={value => {
+                  const blocks = formValues.contentBlocks.map(item =>
+                    item.id === block.id ? { ...item, body: value } : item,
+                  );
+                  updateField('contentBlocks', blocks);
+                  updateField(
+                    'body',
+                    blocks
+                      .map(item =>
+                        [item.title, item.body].filter(Boolean).join('\n'),
+                      )
+                      .join('\n\n'),
+                  );
+                }}
+                multiline
+              />
+            ))
+          ) : (
+            <Field
+              label="본문"
+              value={formValues.body}
+              onChangeText={value => updateField('body', value)}
+              multiline
+            />
+          )}
         </Section>
 
         <Section title="분류와 검색">

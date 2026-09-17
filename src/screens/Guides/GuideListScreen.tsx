@@ -29,6 +29,7 @@ import { useRecentPetCareGuideSearches } from '../../hooks/useRecentPetCareGuide
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
+import { deriveCanonicalPetSpeciesKey } from '../../services/pets/species';
 import { getAgeInMonthsFromBirthDate } from '../../services/guides/agePolicy';
 import { buildGuideEventMetadata } from '../../services/guides/analytics';
 import {
@@ -73,6 +74,19 @@ export default function GuideListScreen() {
   }, [pets, selectedPetId]);
 
   const species = selectedPet?.species ?? null;
+  const speciesKey = useMemo(
+    () =>
+      selectedPet
+        ? deriveCanonicalPetSpeciesKey({
+            species: selectedPet.species,
+            speciesKey: selectedPet.speciesKey,
+            speciesDetailKey: selectedPet.speciesDetailKey,
+            speciesDisplayName: selectedPet.speciesDisplayName,
+            breed: selectedPet.breed,
+          })
+        : null,
+    [selectedPet],
+  );
   const petTheme = useMemo(
     () => buildPetThemePalette(selectedPet?.themeColor),
     [selectedPet?.themeColor],
@@ -89,26 +103,44 @@ export default function GuideListScreen() {
     () =>
       filterPetCareGuidesForListAudience(catalogState.guides, {
         species,
+        speciesKey,
         speciesDetailKey,
         speciesDisplayName,
         birthDate,
       }),
-    [birthDate, catalogState.guides, species, speciesDetailKey, speciesDisplayName],
+    [
+      birthDate,
+      catalogState.guides,
+      species,
+      speciesKey,
+      speciesDetailKey,
+      speciesDisplayName,
+    ],
   );
   const rankedGuides = useMemo(
     () =>
       rankPetCareGuidesForList(filteredCatalogGuides, {
         species,
+        speciesKey,
         speciesDetailKey,
         speciesDisplayName,
         birthDate,
       }),
-    [birthDate, filteredCatalogGuides, species, speciesDetailKey, speciesDisplayName],
+    [
+      birthDate,
+      filteredCatalogGuides,
+      species,
+      speciesKey,
+      speciesDetailKey,
+      speciesDisplayName,
+    ],
   );
   const rankedGuideSignature = useMemo(
     () =>
       rankedGuides
-        .map(guide => `${guide.id}:${guide.updatedAt}:${guide.priority}:${guide.sortOrder}`)
+        .map(
+          guide => `${guide.id}:${guide.updatedAt}:${guide.priority}:${guide.sortOrder}`,
+        )
         .join('|'),
     [rankedGuides],
   );
@@ -116,14 +148,14 @@ export default function GuideListScreen() {
   const hasSearchQuery = trimmedSearchQuery.length > 0;
   const searchState = usePetCareGuideSearch({
     query: trimmedSearchQuery,
-    species,
+    species: speciesKey,
     ageInMonths,
     fallbackCatalog: rankedGuides,
     catalogSignature: rankedGuideSignature,
     enabled: hasSearchQuery,
   });
   const popularSearchState = useGuidePopularSearches({
-    species,
+    species: speciesKey,
     fallbackCatalog: rankedGuides,
     catalogSignature: rankedGuideSignature,
     enabled: searchVisible,
@@ -272,6 +304,9 @@ export default function GuideListScreen() {
       <GuideListCard
         guide={item}
         onPress={onPressGuide}
+        accentColor={petTheme.primary}
+        accentTint={petTheme.tint}
+        accentBorder={petTheme.border}
         debugBadgeText={
           __DEV__ && catalogState.source === 'local-seed' && isLocalGuideSeedGuide(item)
             ? '테스트 seed'
@@ -279,7 +314,13 @@ export default function GuideListScreen() {
         }
       />
     ),
-    [catalogState.source, onPressGuide],
+    [
+      catalogState.source,
+      onPressGuide,
+      petTheme.border,
+      petTheme.primary,
+      petTheme.tint,
+    ],
   );
 
   const headerTopInset = Math.max(insets.top, 12);
@@ -429,7 +470,13 @@ export default function GuideListScreen() {
                         recentSearchState.clear().catch(() => {});
                       }}
                     >
-                      <AppText preset="unifiedMeta" style={styles.suggestionActionText}>
+                      <AppText
+                        preset="unifiedMeta"
+                        style={[
+                          styles.suggestionActionText,
+                          { color: petTheme.primary },
+                        ]}
+                      >
                         모두 지우기
                       </AppText>
                     </Pressable>

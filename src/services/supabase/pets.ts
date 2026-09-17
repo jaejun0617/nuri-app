@@ -9,7 +9,9 @@ import {
   normalizePetSpeciesDetailKey,
   normalizePetSpeciesDisplayName,
   normalizePetSpeciesGroup,
+  deriveCanonicalPetSpeciesKey,
   type PetSpeciesGroup,
+  type PetSpeciesKey,
 } from '../pets/species';
 import { supabase } from './client';
 
@@ -21,6 +23,7 @@ type PetsRow = {
 
   name: string;
   species_group: PetSpeciesGroup | null;
+  species_key: PetSpeciesKey | null;
   species_detail_key: string | null;
   species_display_name: string | null;
   birth_date: string | null;
@@ -92,6 +95,13 @@ function mapRowToPet(row: PetsRow): Pet {
     name: row.name,
     themeColor: row.theme_color ?? null,
     species: normalizePetSpeciesGroup(row.species_group),
+    speciesKey: deriveCanonicalPetSpeciesKey({
+      species: row.species_group,
+      speciesKey: row.species_key,
+      speciesDetailKey: row.species_detail_key,
+      speciesDisplayName: row.species_display_name,
+      breed: row.breed,
+    }),
     speciesDetailKey: normalizePetSpeciesDetailKey(row.species_detail_key),
     speciesDisplayName: normalizePetSpeciesDisplayName(row.species_display_name),
 
@@ -132,6 +142,7 @@ export async function fetchMyPets(userIdInput?: string | null): Promise<Pet[]> {
     'user_id',
     'name',
     'species_group',
+    'species_key',
     'species_detail_key',
     'species_display_name',
     'birth_date',
@@ -173,6 +184,7 @@ export async function fetchMyPets(userIdInput?: string | null): Promise<Pet[]> {
 export async function createPet(input: {
   name: string;
   species?: PetSpeciesGroup | null;
+  speciesKey?: PetSpeciesKey | null;
   speciesDetailKey?: string | null;
   speciesDisplayName?: string | null;
   themeColor?: string | null;
@@ -201,6 +213,10 @@ export async function createPet(input: {
     user_id: userId,
     name: input.name,
     species_group: input.species ?? 'other',
+    species_key: deriveCanonicalPetSpeciesKey({
+      ...input,
+      species: input.species ?? 'other',
+    }),
     species_detail_key: normalizePetSpeciesDetailKey(input.speciesDetailKey),
     species_display_name: normalizePetSpeciesDisplayName(input.speciesDisplayName),
     theme_color: input.themeColor ?? null,
@@ -228,6 +244,7 @@ export async function createPet(input: {
     'user_id',
     'name',
     'species_group',
+    'species_key',
     'species_detail_key',
     'species_display_name',
     'birth_date',
@@ -269,6 +286,7 @@ export async function updatePet(input: {
   petId: string;
   name: string;
   species?: PetSpeciesGroup | null;
+  speciesKey?: PetSpeciesKey | null;
   speciesDetailKey?: string | null;
   speciesDisplayName?: string | null;
   themeColor?: string | null;
@@ -293,6 +311,9 @@ export async function updatePet(input: {
   const payload = {
     name: input.name,
     species_group: input.species ?? 'other',
+    ...(input.speciesKey !== undefined
+      ? { species_key: input.speciesKey }
+      : {}),
     species_detail_key: normalizePetSpeciesDetailKey(input.speciesDetailKey),
     species_display_name: normalizePetSpeciesDisplayName(input.speciesDisplayName),
     theme_color: input.themeColor ?? null,

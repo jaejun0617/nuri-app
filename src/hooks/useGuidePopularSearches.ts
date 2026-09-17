@@ -7,7 +7,7 @@ import type { GuideSearchKeyword, PetCareGuide, PetGuideSpecies } from '../servi
 const EMPTY_KEYWORDS: GuideSearchKeyword[] = [];
 
 export function useGuidePopularSearches(input: {
-  species: Exclude<PetGuideSpecies, 'common'> | null;
+  species: Exclude<PetGuideSpecies, 'COMMON'> | null;
   fallbackCatalog: ReadonlyArray<PetCareGuide>;
   catalogSignature: string;
   enabled?: boolean;

@@ -15,9 +15,19 @@ type Props = {
   guide: PetCareGuide;
   onPress: (guideId: string) => void;
   debugBadgeText?: string | null;
+  accentColor: string;
+  accentTint: string;
+  accentBorder: string;
 };
 
-function GuideListCardBase({ guide, onPress, debugBadgeText }: Props) {
+function GuideListCardBase({
+  guide,
+  onPress,
+  debugBadgeText,
+  accentColor,
+  accentTint,
+  accentBorder,
+}: Props) {
   return (
     <TouchableOpacity
       activeOpacity={0.92}
@@ -25,13 +35,21 @@ function GuideListCardBase({ guide, onPress, debugBadgeText }: Props) {
       onPress={() => onPress(guide.id)}
     >
       <View style={styles.headerRow}>
-        <View style={styles.categoryBadge}>
+        <View
+          style={[
+            styles.categoryBadge,
+            { backgroundColor: accentTint, borderColor: accentBorder },
+          ]}
+        >
           <Feather
             name={getGuideCategoryIconName(guide.category)}
             size={14}
-            color="#6D6AF8"
+            color={accentColor}
           />
-          <AppText preset="unifiedMeta" style={styles.categoryText}>
+          <AppText
+            preset="unifiedMeta"
+            style={[styles.categoryText, { color: accentColor }]}
+          >
             {getGuideCategoryLabel(guide.category)}
           </AppText>
         </View>
@@ -102,10 +120,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: 'rgba(109,106,248,0.10)',
+    borderWidth: 1,
   },
   categoryText: {
-    color: '#6D6AF8',
     fontWeight: '900',
   },
   title: {

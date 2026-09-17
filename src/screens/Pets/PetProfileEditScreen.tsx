@@ -50,6 +50,7 @@ import {
   getPetSpeciesQuickDetailOptions,
   getRepresentativeSpeciesOption,
   PET_REPRESENTATIVE_SPECIES_OPTIONS,
+  resolveSubtypeAfterSpeciesChange,
   type PetRepresentativeSpeciesKey,
 } from '../../services/pets/species';
 import {
@@ -193,7 +194,7 @@ export default function PetProfileEditScreen() {
 
   const [name, setName] = useState('');
   const [representativeSpecies, setRepresentativeSpecies] =
-    useState<PetRepresentativeSpeciesKey>('other');
+    useState<PetRepresentativeSpeciesKey>('OTHER');
   const [speciesDetailKey, setSpeciesDetailKey] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [adoptionDate, setAdoptionDate] = useState('');
@@ -256,13 +257,12 @@ export default function PetProfileEditScreen() {
     setRepresentativeSpecies(
       deriveRepresentativeSpeciesKey({
         species: pet.species ?? 'other',
+        speciesKey: pet.speciesKey,
         speciesDetailKey: pet.speciesDetailKey,
         speciesDisplayName: pet.speciesDisplayName,
       }),
     );
-    setSpeciesDetailKey(
-      pet.speciesDetailKey ?? pet.speciesDisplayName ?? '',
-    );
+    setSpeciesDetailKey(pet.speciesDisplayName ?? pet.speciesDetailKey ?? '');
     setBirthDate(toDisplayYmd(pet.birthDate));
     setAdoptionDate(toDisplayYmd(pet.adoptionDate));
     setDeathDate(toDisplayYmd(pet.deathDate));
@@ -442,11 +442,17 @@ export default function PetProfileEditScreen() {
 
   const handleRepresentativeSpeciesChange = useCallback(
     (value: PetRepresentativeSpeciesKey) => {
-      const option = getRepresentativeSpeciesOption(value);
       setRepresentativeSpecies(value);
-      setSpeciesDetailKey(option.defaultDisplayName);
+      // Preserve legacy values on hydrate, but clear incompatible detail on an explicit species change.
+      setSpeciesDetailKey(currentSubtype =>
+        resolveSubtypeAfterSpeciesChange({
+          previousSpeciesKey: representativeSpecies,
+          nextSpeciesKey: value,
+          currentSubtype,
+        }),
+      );
     },
-    [],
+    [representativeSpecies],
   );
 
   const onSubmit = useCallback(async () => {
@@ -485,13 +491,25 @@ export default function PetProfileEditScreen() {
         representativeSpecies,
         speciesDetailKey,
       );
+      const taxonomyChanged =
+        representativeSpecies !==
+          deriveRepresentativeSpeciesKey({ ...pet, species: pet.species }) ||
+        speciesDetailKey !==
+          (pet.speciesDisplayName ?? pet.speciesDetailKey ?? '');
 
       await updatePet({
         petId: pet.id,
         name: trimmedName,
-        species: speciesSelection.species,
-        speciesDetailKey: speciesSelection.speciesDetailKey,
-        speciesDisplayName: speciesSelection.speciesDisplayName,
+        species: taxonomyChanged ? speciesSelection.species : pet.species,
+        speciesKey: taxonomyChanged
+          ? speciesSelection.speciesKey
+          : pet.speciesKey,
+        speciesDetailKey: taxonomyChanged
+          ? speciesSelection.speciesDetailKey
+          : pet.speciesDetailKey,
+        speciesDisplayName: taxonomyChanged
+          ? speciesSelection.speciesDisplayName
+          : pet.speciesDisplayName,
         themeColor: selectedThemeColor,
         birthDate: normalizeYmdOrNull(birthDate),
         adoptionDate: normalizeYmdOrNull(adoptionDate),
@@ -500,7 +518,7 @@ export default function PetProfileEditScreen() {
             ? normalizeYmdOrNull(displayDeathDate)
             : null,
         weightKg: normalizeWeightOrNull(weightKg),
-        breed: speciesDetailKey.trim() || null,
+        breed: taxonomyChanged ? speciesDetailKey.trim() || null : pet.breed,
         gender,
         neutered,
         hobbies: normalizeTextList(hobbiesText),
@@ -812,7 +830,7 @@ export default function PetProfileEditScreen() {
 
           <View style={styles.fieldBlock}>
             <AppText preset="unifiedMeta" style={styles.label}>
-              {representativeOption.showBreedField ? '품종/세부 종' : '세부 종'}
+              {representativeOption.detailLabel}
             </AppText>
             {quickDetailOptions.length > 0 ? (
               <View style={styles.segmentWrap}>

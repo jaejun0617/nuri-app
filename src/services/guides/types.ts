@@ -1,6 +1,27 @@
-import type { PetSpeciesGroup } from '../pets/species';
+import type { PetSpeciesGroup, PetSpeciesKey } from '../pets/species';
 
-export type PetGuideSpecies = PetSpeciesGroup | 'common';
+export type PetGuideSpecies = PetSpeciesKey | 'COMMON';
+
+export type GuideContentBlockRole =
+  | 'normal'
+  | 'important'
+  | 'tip'
+  | 'warning'
+  | 'danger';
+
+export type GuideContentBlock = {
+  id: string;
+  role: GuideContentBlockRole;
+  title: string | null;
+  body: string;
+};
+
+export type GuideSourceReference = {
+  label: string;
+  url: string;
+  publisher: string | null;
+  reviewedAt: string | null;
+};
 
 export type GuideCategory =
   | 'nutrition'
@@ -58,6 +79,8 @@ export type PetCareGuide = {
   category: GuideCategory;
   tags: ReadonlyArray<string>;
   targetSpecies: ReadonlyArray<PetGuideSpecies>;
+  contentBlocks: ReadonlyArray<GuideContentBlock>;
+  sources: ReadonlyArray<GuideSourceReference>;
   speciesKeywords: ReadonlyArray<string>;
   searchKeywords: ReadonlyArray<string>;
   agePolicy: GuideAgePolicy;
@@ -82,6 +105,8 @@ export type PetCareGuideAdminUpsertInput = {
   category: GuideCategory;
   tags: ReadonlyArray<string>;
   targetSpecies: ReadonlyArray<PetGuideSpecies>;
+  contentBlocks: ReadonlyArray<GuideContentBlock>;
+  sources: ReadonlyArray<GuideSourceReference>;
   speciesKeywords: ReadonlyArray<string>;
   searchKeywords: ReadonlyArray<string>;
   agePolicy: GuideAgePolicy;
@@ -100,6 +125,7 @@ export type GuidePersonalizationContext = {
   userId: string | null;
   petId: string | null;
   species: PetSpeciesGroup | null;
+  speciesKey?: PetSpeciesKey | null;
   speciesDetailKey?: string | null;
   speciesDisplayName?: string | null;
   birthDate: string | null;
@@ -123,7 +149,7 @@ export type GuideEventContext = {
 
 export type GuideSearchContext = {
   query: string;
-  species: PetSpeciesGroup | null;
+  species: PetSpeciesKey | null;
   ageInMonths: number | null;
   limit?: number;
 };

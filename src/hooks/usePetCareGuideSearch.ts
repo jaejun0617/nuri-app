@@ -13,7 +13,7 @@ const EMPTY_GUIDES: PetCareGuide[] = [];
 
 export function usePetCareGuideSearch(input: {
   query: string;
-  species: Exclude<PetGuideSpecies, 'common'> | null;
+  species: Exclude<PetGuideSpecies, 'COMMON'> | null;
   ageInMonths: number | null;
   fallbackCatalog: ReadonlyArray<PetCareGuide>;
   catalogSignature: string;

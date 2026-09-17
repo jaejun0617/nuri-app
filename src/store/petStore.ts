@@ -19,7 +19,9 @@ import {
   normalizePetSpeciesDetailKey,
   normalizePetSpeciesDisplayName,
   normalizePetSpeciesGroup,
+  deriveCanonicalPetSpeciesKey,
   type PetSpeciesGroup,
+  type PetSpeciesKey,
 } from '../services/pets/species';
 
 const STORAGE_SELECTED_KEY = 'nuri.selectedPetId.v1';
@@ -30,6 +32,7 @@ export type Pet = {
   name: string;
   themeColor?: string | null;
   species?: PetSpeciesGroup | null;
+  speciesKey?: PetSpeciesKey | null;
   speciesDetailKey?: string | null;
   speciesDisplayName?: string | null;
 
@@ -209,6 +212,15 @@ function normalizePersistedPet(value: unknown): Pet | null {
     name,
     themeColor: normalizeString(value.themeColor) || null,
     species: normalizePetSpeciesGroup(value.species),
+    speciesKey: deriveCanonicalPetSpeciesKey({
+      species: normalizePetSpeciesGroup(value.species),
+      speciesKey:
+        typeof value.speciesKey === 'string'
+          ? (value.speciesKey as PetSpeciesKey)
+          : null,
+      speciesDetailKey: normalizePetSpeciesDetailKey(value.speciesDetailKey),
+      speciesDisplayName: normalizePetSpeciesDisplayName(value.speciesDisplayName),
+    }),
     speciesDetailKey: normalizePetSpeciesDetailKey(value.speciesDetailKey),
     speciesDisplayName: normalizePetSpeciesDisplayName(value.speciesDisplayName),
     avatarPath: normalizeString(value.avatarPath) || null,

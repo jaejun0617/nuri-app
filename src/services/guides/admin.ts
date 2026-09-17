@@ -1,11 +1,14 @@
+import { PET_CANONICAL_SPECIES } from '../pets/species';
 import type {
   GuideAgePolicy,
   GuideCategory,
+  GuideContentBlock,
   GuideContentStatus,
   GuideLifeStage,
   PetCareGuide,
   PetCareGuideAdminUpsertInput,
   PetGuideSpecies,
+  GuideSourceReference,
 } from './types';
 
 export type GuideAdminFormValues = {
@@ -20,6 +23,8 @@ export type GuideAdminFormValues = {
   searchKeywordsText: string;
   speciesKeywordsText: string;
   targetSpecies: ReadonlyArray<PetGuideSpecies>;
+  contentBlocks: ReadonlyArray<GuideContentBlock>;
+  sources: ReadonlyArray<GuideSourceReference>;
   agePolicyType: GuideAgePolicy['type'];
   agePolicyLifeStage: GuideLifeStage;
   agePolicyMinMonths: string;
@@ -52,10 +57,10 @@ export const GUIDE_STATUS_OPTIONS: ReadonlyArray<GuideContentStatus> = [
 ];
 
 export const GUIDE_TARGET_SPECIES_OPTIONS: ReadonlyArray<PetGuideSpecies> = [
-  'dog',
-  'cat',
-  'other',
-  'common',
+  ...PET_CANONICAL_SPECIES.filter(species => species.isActive).map(
+    species => species.guideSpeciesKey,
+  ),
+  'COMMON',
 ];
 
 export const GUIDE_LIFE_STAGE_OPTIONS: ReadonlyArray<GuideLifeStage> = [
@@ -99,7 +104,9 @@ export function createEmptyGuideAdminFormValues(): GuideAdminFormValues {
     tagsText: '',
     searchKeywordsText: '',
     speciesKeywordsText: '',
-    targetSpecies: ['common'],
+    targetSpecies: ['COMMON'],
+    contentBlocks: [],
+    sources: [],
     agePolicyType: 'all',
     agePolicyLifeStage: 'adult',
     agePolicyMinMonths: '',
@@ -131,6 +138,8 @@ export function mapGuideToAdminFormValues(
     searchKeywordsText: guide.searchKeywords.join(', '),
     speciesKeywordsText: guide.speciesKeywords.join(', '),
     targetSpecies: [...guide.targetSpecies],
+    contentBlocks: [...guide.contentBlocks],
+    sources: [...guide.sources],
     agePolicyType: guide.agePolicy.type,
     agePolicyLifeStage: guide.agePolicy.lifeStage ?? 'adult',
     agePolicyMinMonths:
@@ -229,6 +238,18 @@ export function buildGuideAdminUpsertInput(
     searchKeywords: normalizeCsvText(values.searchKeywordsText),
     speciesKeywords: normalizeCsvText(values.speciesKeywordsText),
     targetSpecies: [...values.targetSpecies],
+    contentBlocks:
+      values.contentBlocks.length > 0
+        ? [...values.contentBlocks]
+        : [
+            {
+              id: 'body',
+              role: 'normal',
+              title: null,
+              body: values.body.trim(),
+            },
+          ],
+    sources: [...values.sources],
     agePolicy,
     status: values.status,
     isActive: values.isActive,

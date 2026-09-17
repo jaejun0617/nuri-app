@@ -1,5 +1,6 @@
 import type { ComponentProps } from 'react';
 import Feather from 'react-native-vector-icons/Feather';
+import { getPetSpeciesDefinition } from '../pets/species';
 
 import { resolveLifeStage } from './agePolicy';
 import type {
@@ -55,17 +56,9 @@ export function getGuideCategoryIconName(
 }
 
 function getSpeciesLabel(species: PetGuideSpecies): string {
-  switch (species) {
-    case 'dog':
-      return '강아지';
-    case 'cat':
-      return '고양이';
-    case 'other':
-      return '기타 반려동물';
-    case 'common':
-    default:
-      return '공통';
-  }
+  return species === 'COMMON'
+    ? '공통'
+    : getPetSpeciesDefinition(species).speciesLabel;
 }
 
 export function formatGuideTargetSpeciesLabel(
@@ -120,7 +113,7 @@ export function formatGuideStatusLabel(status: GuideContentStatus): string {
 }
 
 export function formatPersonalizationSummary(input: {
-  species: Exclude<PetGuideSpecies, 'common'> | null;
+  species: Exclude<PetGuideSpecies, 'COMMON'> | null;
   ageInMonths: number | null;
 }): string {
   const speciesLabel = input.species ? getSpeciesLabel(input.species) : '공통';

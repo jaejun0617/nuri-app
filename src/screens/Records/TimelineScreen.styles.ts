@@ -170,9 +170,12 @@ export const styles = StyleSheet.create({
     gap: 7,
   },
   dailyIcon: {
+    alignSelf: 'flex-start',
+    maxWidth: '100%',
     minHeight: 26,
     borderRadius: 999,
     paddingHorizontal: 10,
+    paddingVertical: 5,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -550,21 +553,10 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
   },
-  emptyHero: {
-    width: 220,
-    height: 220,
-    marginBottom: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyPawImage: {
-    width: 200,
-    height: 200,
-  },
   emptyTitle: {
     color: TEXT,
     fontWeight: '900',
-    marginTop: -6,
+    marginTop: 0,
   },
   emptyDesc: {
     color: '#6B7280',

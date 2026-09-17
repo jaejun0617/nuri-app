@@ -32,6 +32,7 @@ import { showToast } from '../../store/uiStore';
 import type { CommunityPostCategory } from '../../types/community';
 import CommunityPostEditorForm, {
   COMMUNITY_COMPOSER_KEYBOARD_BOTTOM_OFFSET,
+  COMMUNITY_EDIT_BODY_VIEWPORT_MIN_HEIGHT,
 } from './components/CommunityPostEditorForm';
 import {
   getCommunityEditorExitDialogCopy,
@@ -337,6 +338,7 @@ export default function CommunityEditScreen() {
           imageUri={pickedImage?.uri ?? existingImageUrl}
           accentPalette={petTheme}
           bottomSubmitMargin={0}
+          bodyViewportMinHeight={COMMUNITY_EDIT_BODY_VIEWPORT_MIN_HEIGHT}
           submitLabel={submitting ? '저장 중...' : '저장'}
           submitDisabled={disabled}
           onChangeCategory={setCategory}

@@ -8,6 +8,7 @@ import type {
   PetCareGuide,
 } from '../services/guides/types';
 import { usePetCareGuideCatalog } from './usePetCareGuideCatalog';
+import { usePetStore } from '../store/petStore';
 
 type UseHomePetCareGuidesState = {
   loading: boolean;
@@ -26,6 +27,10 @@ export function useHomePetCareGuides(
   const enabled = options.enabled ?? true;
   const { birthDate, deathDate, petId, species, speciesDetailKey, speciesDisplayName, userId } =
     context;
+  const storedSpeciesKey = usePetStore(
+    store => store.pets.find(pet => pet.id === petId)?.speciesKey ?? null,
+  );
+  const speciesKey = context.speciesKey ?? storedSpeciesKey;
   const catalogState = usePetCareGuideCatalog({ enabled });
   const [state, setState] = useState<UseHomePetCareGuidesState>({
     loading: true,
@@ -37,7 +42,9 @@ export function useHomePetCareGuides(
   const catalogSignature = useMemo(
     () =>
       catalogState.guides
-        .map(guide => `${guide.id}:${guide.updatedAt}:${guide.isActive ? '1' : '0'}`)
+        .map(
+          guide => `${guide.id}:${guide.updatedAt}:${guide.isActive ? '1' : '0'}`,
+        )
         .join(','),
     [catalogState.guides],
   );
@@ -78,15 +85,19 @@ export function useHomePetCareGuides(
       const requestId = request.begin();
 
       try {
-        const guides = await getHomePetCareGuideRecommendations({
-          userId,
-          petId,
-          species,
-          speciesDetailKey,
-          speciesDisplayName,
-          birthDate,
-          deathDate,
-        }, { catalog: catalogGuidesRef.current });
+        const guides = await getHomePetCareGuideRecommendations(
+          {
+            userId,
+            petId,
+            species,
+            speciesKey,
+            speciesDetailKey,
+            speciesDisplayName,
+            birthDate,
+            deathDate,
+          },
+          { catalog: catalogGuidesRef.current },
+        );
         if (!request.isCurrent(requestId)) return;
         setState({
           loading: false,
@@ -123,6 +134,7 @@ export function useHomePetCareGuides(
     catalogState.sourceReason,
     petId,
     species,
+    speciesKey,
     speciesDetailKey,
     speciesDisplayName,
     userId,

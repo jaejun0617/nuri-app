@@ -80,6 +80,7 @@ import {
   getPetSpeciesQuickDetailOptions,
   getRepresentativeSpeciesOption,
   PET_REPRESENTATIVE_SPECIES_OPTIONS,
+  resolveSubtypeAfterSpeciesChange,
   type PetRepresentativeSpeciesKey,
 } from '../../services/pets/species';
 import { normalizeDateInput } from '../../components/date-picker/datePickerUtils';
@@ -412,7 +413,9 @@ const StepOneForm = memo(function StepOneForm({
       </View>
 
       <View style={styles.fieldBlock}>
-        <AppText preset="unifiedLabel" style={styles.label}>{representativeOption.showBreedField ? '품종/세부 종' : '세부 종'}</AppText>
+        <AppText preset="unifiedLabel" style={styles.label}>
+          {representativeOption.detailLabel}
+        </AppText>
         {quickDetailOptions.length > 0 ? (
           <View style={styles.segmentWrap}>
             {quickDetailOptions.map(option => {
@@ -672,7 +675,7 @@ export default function PetCreateScreen() {
 
   const [name, setName] = useState('');
   const [representativeSpecies, setRepresentativeSpecies] =
-    useState<PetRepresentativeSpeciesKey>('other');
+    useState<PetRepresentativeSpeciesKey>('OTHER');
   const [speciesDetailKey, setSpeciesDetailKey] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [adoptionDate, setAdoptionDate] = useState('');
@@ -904,12 +907,13 @@ export default function PetCreateScreen() {
           setRepresentativeSpecies(
             deriveRepresentativeSpeciesKey({
               species: draft.species ?? 'other',
+              speciesKey: draft.speciesKey,
               speciesDetailKey: draft.speciesDetailKey,
               speciesDisplayName: draft.speciesDisplayName,
             }),
           );
           setSpeciesDetailKey(
-            draft.speciesDetailKey ?? draft.speciesDisplayName ?? '',
+            draft.speciesDisplayName ?? draft.speciesDetailKey ?? '',
           );
           setBirthDate(draft.birthDate);
           setAdoptionDate(draft.adoptionDate);
@@ -961,6 +965,7 @@ export default function PetCreateScreen() {
         step,
         name,
         species: speciesSelection.species,
+        speciesKey: speciesSelection.speciesKey,
         speciesDetailKey,
         speciesDisplayName: speciesSelection.speciesDisplayName,
         birthDate,
@@ -1130,6 +1135,7 @@ export default function PetCreateScreen() {
       const createdPet = await createPet({
         name: trimmedName,
         species: speciesSelection.species,
+        speciesKey: speciesSelection.speciesKey,
         speciesDetailKey: speciesSelection.speciesDetailKey,
         speciesDisplayName: speciesSelection.speciesDisplayName,
         themeColor: selectedThemeColor,
@@ -1273,11 +1279,17 @@ export default function PetCreateScreen() {
   );
   const handleRepresentativeSpeciesChange = useCallback(
     (value: PetRepresentativeSpeciesKey) => {
-      const option = getRepresentativeSpeciesOption(value);
       setRepresentativeSpecies(value);
-      setSpeciesDetailKey(option.defaultDisplayName);
+      // A subtype from a different species must never leak into the saved record.
+      setSpeciesDetailKey(currentSubtype =>
+        resolveSubtypeAfterSpeciesChange({
+          previousSpeciesKey: representativeSpecies,
+          nextSpeciesKey: value,
+          currentSubtype,
+        }),
+      );
     },
-    [],
+    [representativeSpecies],
   );
   const handleDeathDateChange = useCallback(
     (text: string) => syncDateInput(setDeathDate, text),

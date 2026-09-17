@@ -23,7 +23,6 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator,
-  Image,
   type LayoutChangeEvent,
   Modal,
   Pressable,
@@ -421,7 +420,7 @@ const TimelineActivitySummaryHeader = memo(function TimelineActivitySummaryHeade
       {mainCategory === 'walk' ? (
         <View style={[styles.dailyCard, { borderColor: theme.soft }]}>
           <View style={[styles.dailyIcon, { backgroundColor: theme.soft }]}>
-            <AppText preset="unifiedMeta" style={[styles.dailyIconText, { color: theme.primary }]}>
+            <AppText preset="unifiedMeta" numberOfLines={1} style={[styles.dailyIconText, { color: theme.primary }]}>
               산책
             </AppText>
           </View>
@@ -1340,13 +1339,6 @@ export default function TimelineScreen() {
 
     return (
       <View style={styles.empty}>
-        <View style={styles.emptyHero}>
-          <Image
-            source={require('../../assets/logo/logo_v2.png')}
-            style={styles.emptyPawImage}
-            resizeMode="contain"
-          />
-        </View>
         <AppText preset="unifiedTitle" style={styles.emptyTitle}>
           아직 남겨진 추억이 없어요
         </AppText>
@@ -1479,13 +1471,6 @@ export default function TimelineScreen() {
 
         <View style={styles.guestGateWrap}>
           <View style={styles.empty}>
-            <View style={styles.emptyHero}>
-              <Image
-                source={require('../../assets/logo/logo_v2.png')}
-                style={styles.emptyPawImage}
-                resizeMode="contain"
-              />
-            </View>
             <AppText preset="unifiedTitle" style={styles.emptyTitle}>
               NURI의 모든 기능을 경험해 보세요
             </AppText>

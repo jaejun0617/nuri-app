@@ -1,10 +1,13 @@
 import { supabase } from './client';
+import { PET_CANONICAL_SPECIES } from '../pets/species';
 import type {
   GuideAgePolicy,
+  GuideContentBlock,
   GuideContentStatus,
   GuideEventContext,
   GuideCategory,
   GuideSearchKeyword,
+  GuideSourceReference,
   PetCareGuide,
   PetCareGuideAdminUpsertInput,
   PetGuideSpecies,
@@ -19,6 +22,7 @@ type GuideSummaryRow = {
   category: string;
   tags: string[] | null;
   target_species: string[] | null;
+  species_keys: string[] | null;
   species_keywords: string[] | null;
   search_keywords: string[] | null;
   age_policy_type: 'all' | 'lifeStage' | 'ageRange';
@@ -40,6 +44,8 @@ type GuideSummaryRow = {
 
 type GuideDetailRow = GuideSummaryRow & {
   body: string;
+  content_blocks: unknown;
+  source_references: unknown;
 };
 
 type GuidePopularSearchRow = {
@@ -94,12 +100,107 @@ function toGuideCategory(value: string): GuideCategory {
   );
 }
 
-function toGuideSpecies(values: string[] | null): ReadonlyArray<PetGuideSpecies> {
-  if (!Array.isArray(values)) return ['common'];
-  const normalized = values.filter(
-    value => value === 'dog' || value === 'cat' || value === 'other' || value === 'common',
-  ) as PetGuideSpecies[];
-  return normalized.length > 0 ? normalized : ['common'];
+const GUIDE_SPECIES_KEYS: ReadonlySet<PetGuideSpecies> = new Set([
+  ...PET_CANONICAL_SPECIES.filter(item => item.isActive).map(item => item.guideSpeciesKey),
+  'COMMON',
+]);
+
+function isGuideSpecies(value: string): value is PetGuideSpecies {
+  return GUIDE_SPECIES_KEYS.has(value as PetGuideSpecies);
+}
+
+function toGuideSpecies(
+  speciesKeys: string[] | null,
+  legacyValues: string[] | null,
+): ReadonlyArray<PetGuideSpecies> {
+  const canonical = Array.isArray(speciesKeys)
+    ? speciesKeys.map(value => value.trim().toUpperCase()).filter(isGuideSpecies)
+    : [];
+  if (canonical.length > 0) return Array.from(new Set(canonical));
+
+  const legacyMap: Record<string, PetGuideSpecies> = {
+    dog: 'DOG',
+    cat: 'CAT',
+    other: 'OTHER',
+    common: 'COMMON',
+  };
+  const migrated = Array.isArray(legacyValues)
+    ? legacyValues.map(value => legacyMap[value.trim().toLowerCase()]).filter(Boolean)
+    : [];
+  return migrated.length > 0 ? Array.from(new Set(migrated)) : ['COMMON'];
+}
+
+function toGuideContentBlocks(value: unknown, fallbackBody: string | null): GuideContentBlock[] {
+  const blocks = Array.isArray(value)
+    ? value.flatMap((candidate, index) => {
+        if (!isRecord(candidate) || typeof candidate.body !== 'string') return [];
+        const body = candidate.body.trim();
+        if (!body) return [];
+        const role = candidate.role;
+        if (
+          role !== 'normal' &&
+          role !== 'important' &&
+          role !== 'tip' &&
+          role !== 'warning' &&
+          role !== 'danger'
+        ) {
+          return [];
+        }
+        const normalizedRole: GuideContentBlock['role'] = role;
+        return [{
+          id:
+            typeof candidate.id === 'string' && candidate.id.trim()
+              ? candidate.id.trim()
+              : `block-${index + 1}`,
+          role: normalizedRole,
+          title:
+            typeof candidate.title === 'string' && candidate.title.trim()
+              ? candidate.title.trim()
+              : null,
+          body,
+        }];
+      })
+    : [];
+
+  if (blocks.length > 0) return blocks;
+  if (!fallbackBody?.trim()) return [];
+  return [{ id: 'legacy-body', role: 'normal', title: null, body: fallbackBody.trim() }];
+}
+
+function toGuideSources(value: unknown): GuideSourceReference[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap(candidate => {
+    if (!isRecord(candidate) || typeof candidate.label !== 'string' || typeof candidate.url !== 'string') {
+      return [];
+    }
+    const label = candidate.label.trim();
+    const url = candidate.url.trim();
+    if (!label || !/^https:\/\//i.test(url)) return [];
+    return [{
+      label,
+      url,
+      publisher:
+        typeof candidate.publisher === 'string' && candidate.publisher.trim()
+          ? candidate.publisher.trim()
+          : null,
+      reviewedAt:
+        typeof candidate.reviewedAt === 'string' && candidate.reviewedAt.trim()
+          ? candidate.reviewedAt.trim()
+          : null,
+    }];
+  });
+}
+
+function toLegacyTargetSpecies(
+  values: ReadonlyArray<PetGuideSpecies>,
+): ReadonlyArray<'dog' | 'cat' | 'other' | 'common'> {
+  const legacy = values.map(value => {
+    if (value === 'DOG') return 'dog' as const;
+    if (value === 'CAT') return 'cat' as const;
+    if (value === 'COMMON') return 'common' as const;
+    return 'other' as const;
+  });
+  return Array.from(new Set(legacy));
 }
 
 function toGuideAgePolicy(row: GuideSummaryRow): GuideAgePolicy {
@@ -145,7 +246,12 @@ function mapRowToGuide(row: GuideSummaryRow | GuideDetailRow): PetCareGuide {
     bodyPreview: row.body_preview,
     category: toGuideCategory(row.category),
     tags: normalizeStringArray(row.tags),
-    targetSpecies: toGuideSpecies(row.target_species),
+    targetSpecies: toGuideSpecies(row.species_keys, row.target_species),
+    contentBlocks: toGuideContentBlocks(
+      'content_blocks' in row ? row.content_blocks : null,
+      'body' in row ? row.body : null,
+    ),
+    sources: toGuideSources('source_references' in row ? row.source_references : null),
     speciesKeywords: normalizeStringArray(row.species_keywords),
     searchKeywords: normalizeStringArray(row.search_keywords),
     agePolicy: toGuideAgePolicy(row),
@@ -177,6 +283,7 @@ const GUIDE_SUMMARY_COLUMNS = [
   'category',
   'tags',
   'target_species',
+  'species_keys',
   'species_keywords',
   'search_keywords',
   'age_policy_type',
@@ -211,7 +318,10 @@ function toAdminUpsertPayload(input: PetCareGuideAdminUpsertInput) {
     body_preview: input.bodyPreview.trim(),
     category: input.category,
     tags: [...input.tags],
-    target_species: [...input.targetSpecies],
+    target_species: toLegacyTargetSpecies(input.targetSpecies),
+    species_keys: [...input.targetSpecies],
+    content_blocks: [...input.contentBlocks],
+    source_references: [...input.sources],
     species_keywords: [...input.speciesKeywords],
     search_keywords: [...input.searchKeywords],
     age_policy_type: input.agePolicy.type,
@@ -252,16 +362,16 @@ export async function fetchPublishedPetCareGuideCatalog(): Promise<PetCareGuide[
 
 export async function searchPublishedPetCareGuidesRpc(input: {
   query: string;
-  species: Exclude<PetGuideSpecies, 'common'> | null;
+  species: Exclude<PetGuideSpecies, 'COMMON'> | null;
   ageInMonths: number | null;
   limit: number;
 }): Promise<PetCareGuide[]> {
   const normalizedQuery = input.query.trim();
   if (!normalizedQuery) return [];
 
-  const { data, error } = await supabase.rpc('search_pet_care_guides', {
+  const { data, error } = await supabase.rpc('search_pet_care_guides_v2', {
     p_query: normalizedQuery,
-    p_species_group: input.species,
+    p_species_key: input.species,
     p_age_in_months: input.ageInMonths,
     p_limit: input.limit,
   });
@@ -272,13 +382,13 @@ export async function searchPublishedPetCareGuidesRpc(input: {
 }
 
 export async function fetchPopularPetCareGuideSearchesRpc(input: {
-  species: Exclude<PetGuideSpecies, 'common'> | null;
+  species: Exclude<PetGuideSpecies, 'COMMON'> | null;
   limit: number;
 }): Promise<GuideSearchKeyword[]> {
   const { data, error } = await supabase.rpc(
-    'get_pet_care_guide_popular_searches',
+    'get_pet_care_guide_popular_searches_v2',
     {
-      p_species_group: input.species,
+      p_species_key: input.species,
       p_limit: input.limit,
     },
   );
@@ -316,7 +426,7 @@ export async function fetchPublishedPetCareGuideDetail(
 ): Promise<PetCareGuide | null> {
   const { data, error } = await supabase
     .from('pet_care_guides')
-    .select(`${GUIDE_SUMMARY_COLUMNS},body`)
+    .select(`${GUIDE_SUMMARY_COLUMNS},body,content_blocks,source_references`)
     .eq('id', guideId)
     .is('deleted_at', null)
     .eq('is_active', true)
@@ -333,7 +443,7 @@ export async function fetchManagedPetCareGuideDetail(
 ): Promise<PetCareGuide | null> {
   const { data, error } = await supabase
     .from('pet_care_guides')
-    .select(`${GUIDE_SUMMARY_COLUMNS},body`)
+    .select(`${GUIDE_SUMMARY_COLUMNS},body,content_blocks,source_references`)
     .eq('id', guideId)
     .is('deleted_at', null)
     .maybeSingle();
@@ -350,7 +460,7 @@ export async function upsertManagedPetCareGuide(
   const { data, error } = await supabase
     .from('pet_care_guides')
     .upsert(payload, { onConflict: 'id' })
-    .select(`${GUIDE_SUMMARY_COLUMNS},body`)
+    .select(`${GUIDE_SUMMARY_COLUMNS},body,content_blocks,source_references`)
     .single();
 
   if (error) throw error;

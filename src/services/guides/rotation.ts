@@ -6,8 +6,9 @@ import {
   GUIDE_ROTATION_INTERVAL_HOURS,
 } from './config';
 import { getAgeInMonthsFromBirthDate, matchesGuideAgePolicy } from './agePolicy';
-import { getGuidePersonalizationScore, getGuideSpeciesScore } from './personalization';
+import { getGuidePersonalizationScore } from './personalization';
 import type { GuidePersonalizationContext, PetCareGuide } from './types';
+import { deriveCanonicalPetSpeciesKey } from '../pets/species';
 
 const GUIDE_EXPOSURE_STATE_KEY = 'nuri.guides.exposureState.v1';
 
@@ -76,6 +77,7 @@ function getContextKey(context: GuidePersonalizationContext): string {
     context.userId ?? 'guest',
     context.petId ?? 'no-pet',
     context.species ?? 'no-species',
+    context.speciesKey ?? 'no-species-key',
     context.speciesDetailKey ?? 'no-detail',
     context.speciesDisplayName ?? 'no-display',
     context.birthDate ?? 'no-birth',
@@ -105,10 +107,14 @@ function guideSupportsSpecies(
   guide: PetCareGuide,
   context: Pick<
     GuidePersonalizationContext,
-    'species' | 'speciesDetailKey' | 'speciesDisplayName'
+    'species' | 'speciesKey' | 'speciesDetailKey' | 'speciesDisplayName'
   >,
 ): boolean {
-  return getGuideSpeciesScore(guide, context) > 0;
+  const canonicalSpecies = deriveCanonicalPetSpeciesKey(context);
+  return (
+    guide.targetSpecies.includes(canonicalSpecies) ||
+    guide.targetSpecies.includes('COMMON')
+  );
 }
 
 function rankGuide(
@@ -131,32 +137,10 @@ function rankGuide(
   );
 }
 
-function sortGuides(
-  guides: PetCareGuide[],
-  context: GuidePersonalizationContext,
-  seed: string,
-  recentGuideIds: string[],
-): PetCareGuide[] {
-  return [...guides].sort((left, right) => {
-    const scoreDiff =
-      rankGuide(right, context, seed, recentGuideIds, []) -
-      rankGuide(left, context, seed, recentGuideIds, []);
-    if (scoreDiff !== 0) return scoreDiff;
-
-    if (right.priority !== left.priority) {
-      return right.priority - left.priority;
-    }
-
-    if (left.sortOrder !== right.sortOrder) {
-      return left.sortOrder - right.sortOrder;
-    }
-
-    return left.id.localeCompare(right.id);
-  });
-}
-
 function isCommonOnlyGuide(guide: PetCareGuide): boolean {
-  return guide.targetSpecies.length === 1 && guide.targetSpecies.includes('common');
+  return (
+    guide.targetSpecies.length === 1 && guide.targetSpecies.includes('COMMON')
+  );
 }
 
 function pickGuideWithCategoryDiversity(
@@ -197,7 +181,13 @@ export async function pickHomeGuideRecommendations(
   guides: ReadonlyArray<PetCareGuide>,
   context: GuidePersonalizationContext,
 ): Promise<PetCareGuide[]> {
-  const activeGuides = guides.filter(guide => guide.isActive);
+  // Cached recommendations and shortage fallback obey the same species boundary.
+  const activeGuides = guides.filter(
+    guide =>
+      guide.isActive &&
+      guide.status === 'published' &&
+      guideSupportsSpecies(guide, context),
+  );
   const now = context.now ?? new Date();
   const windowKey = getGuideRotationWindowKey(now);
   const contextKey = getContextKey(context);
@@ -229,7 +219,7 @@ export async function pickHomeGuideRecommendations(
     guideSupportsSpecies(guide, context),
   );
   const commonFallbackCandidates = activeGuides.filter(guide =>
-    guide.targetSpecies.includes('common'),
+    guide.targetSpecies.includes('COMMON'),
   );
 
   const seed = `${contextKey}:${windowKey}`;
@@ -301,14 +291,6 @@ export async function pickHomeGuideRecommendations(
     commonSorted,
     GUIDE_HOME_CARD_COUNT,
   );
-
-  if (nextRecommendations.length < GUIDE_HOME_CARD_COUNT) {
-    nextRecommendations = pickUniqueGuides(
-      nextRecommendations,
-      sortGuides(activeGuides, context, seed, recentGuideIds),
-      GUIDE_HOME_CARD_COUNT,
-    );
-  }
 
   const selectedIds = nextRecommendations
     .slice(0, GUIDE_HOME_CARD_COUNT)

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef } from 'react';
-import { ScrollView, TouchableOpacity, View } from 'react-native';
+import { Linking, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,9 +22,54 @@ import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
 import { styles } from './GuideDetailScreen.styles';
+import type { GuideContentBlockRole } from '../../services/guides/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'GuideDetail'>;
 type Route = RootScreenRoute<'GuideDetail'>;
+
+export function getGuideContentBlockPresentation(
+  role: GuideContentBlockRole,
+  accent: { primary: string; tint: string; border: string; deep: string },
+) {
+  if (role === 'danger') {
+    return {
+      icon: 'alert-octagon' as const,
+      backgroundColor: '#FFF1F2',
+      borderColor: '#FDA4AF',
+      color: '#9F1239',
+    };
+  }
+  if (role === 'warning') {
+    return {
+      icon: 'alert-triangle' as const,
+      backgroundColor: '#FFF8E8',
+      borderColor: '#F4C96B',
+      color: '#8A5700',
+    };
+  }
+  if (role === 'tip') {
+    return {
+      icon: 'check-circle' as const,
+      backgroundColor: accent.tint,
+      borderColor: accent.border,
+      color: accent.deep,
+    };
+  }
+  if (role === 'important') {
+    return {
+      icon: 'info' as const,
+      backgroundColor: accent.tint,
+      borderColor: accent.primary,
+      color: accent.deep,
+    };
+  }
+  return {
+    icon: 'circle' as const,
+    backgroundColor: 'transparent',
+    borderColor: 'transparent',
+    color: '#0B1220',
+  };
+}
 
 export default function GuideDetailScreen() {
   const navigation = useNavigation<Nav>();
@@ -216,10 +261,96 @@ export default function GuideDetailScreen() {
             <AppText preset="unifiedTitle" style={styles.sectionTitle}>
               상세 가이드
             </AppText>
-            <AppText preset="unifiedBody" style={styles.bodyText}>
-              {guideState.guide.body ?? guideState.guide.bodyPreview}
-            </AppText>
+            {guideState.guide.contentBlocks.map(block => {
+              const presentation = getGuideContentBlockPresentation(
+                block.role,
+                petTheme,
+              );
+              const isNormal = block.role === 'normal';
+              return (
+                <View
+                  key={block.id}
+                  style={[
+                    styles.contentBlock,
+                    isNormal ? styles.contentBlockNormal : null,
+                    !isNormal
+                      ? {
+                          backgroundColor: presentation.backgroundColor,
+                          borderColor: presentation.borderColor,
+                        }
+                      : null,
+                  ]}
+                >
+                  {!isNormal ? (
+                    <Feather
+                      name={presentation.icon}
+                      size={18}
+                      color={presentation.color}
+                    />
+                  ) : null}
+                  <View style={styles.contentBlockCopy}>
+                    {block.title ? (
+                      <AppText
+                        preset="unifiedBody"
+                        style={[
+                          styles.contentBlockTitle,
+                          { color: presentation.color },
+                        ]}
+                      >
+                        {block.title}
+                      </AppText>
+                    ) : null}
+                    <AppText
+                      preset="unifiedBody"
+                      style={[
+                        styles.bodyText,
+                        !isNormal ? { color: presentation.color } : null,
+                      ]}
+                    >
+                      {block.body}
+                    </AppText>
+                  </View>
+                </View>
+              );
+            })}
           </View>
+
+          {guideState.guide.sources.length > 0 ? (
+            <View style={styles.sourceCard}>
+              <AppText preset="unifiedTitle" style={styles.sectionTitle}>
+                참고 출처
+              </AppText>
+              {guideState.guide.sources.map(source => (
+                <TouchableOpacity
+                  key={`${source.label}:${source.url}`}
+                  activeOpacity={0.8}
+                  style={styles.sourceRow}
+                  onPress={() => {
+                    Linking.openURL(source.url).catch(() => {});
+                  }}
+                >
+                  <View style={styles.sourceCopy}>
+                    <AppText preset="unifiedBody" style={styles.sourceLabel}>
+                      {source.label}
+                    </AppText>
+                    {source.publisher ? (
+                      <AppText
+                        preset="unifiedMeta"
+                        style={styles.sourcePublisher}
+                      >
+                        {source.publisher}
+                      </AppText>
+                    ) : null}
+                  </View>
+                  <Feather
+                    name="external-link"
+                    size={16}
+                    color={petTheme.primary}
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : null}
         </ScrollView>
       )}
     </SafeAreaView>

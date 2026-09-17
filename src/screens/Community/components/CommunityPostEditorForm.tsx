@@ -22,6 +22,7 @@ type AccentPalette = {
 // Keeps meaningful long-form editing space above the IME while the keyboard
 // controller performs its single native-synchronized scroll.
 export const COMMUNITY_COMPOSER_KEYBOARD_BOTTOM_OFFSET = 144;
+export const COMMUNITY_EDIT_BODY_VIEWPORT_MIN_HEIGHT = 288;
 
 type Props = {
   category: CommunityPostCategory;
@@ -32,6 +33,7 @@ type Props = {
   accentPalette: AccentPalette;
   scrollBottomInset?: number;
   bottomSubmitMargin?: number;
+  bodyViewportMinHeight?: number;
   submitLabel: string;
   submitDisabled: boolean;
   onChangeCategory: (category: CommunityPostCategory) => void;
@@ -52,6 +54,7 @@ function CommunityPostEditorFormBase({
   imageUris,
   accentPalette,
   bottomSubmitMargin = 18,
+  bodyViewportMinHeight,
   submitLabel,
   submitDisabled,
   onChangeCategory,
@@ -254,6 +257,7 @@ function CommunityPostEditorFormBase({
         <View
           style={[
             styles.inputShell,
+            bodyViewportMinHeight ? { minHeight: bodyViewportMinHeight } : null,
             {
               backgroundColor: theme.colors.surfaceElevated,
               borderColor: theme.colors.border,
@@ -266,7 +270,13 @@ function CommunityPostEditorFormBase({
             onChangeText={onChangeContent}
             placeholder="우리 아이의 소중한 일상과 고민을 자유롭게 나누어 보세요. (욕설, 비방 등 불쾌감을 주는 내용은 운영정책에 따라 숨김 처리될 수 있습니다.)"
             placeholderTextColor={theme.colors.textMuted}
-            style={[styles.input, { color: theme.colors.textPrimary }]}
+            style={[
+              styles.input,
+              bodyViewportMinHeight
+                ? { minHeight: Math.max(188, bodyViewportMinHeight - 32) }
+                : null,
+              { color: theme.colors.textPrimary },
+            ]}
             maxLength={5000}
             textAlignVertical="top"
           />
@@ -301,7 +311,6 @@ function CommunityPostEditorFormBase({
     </>
   );
 }
-
 
 const CommunityPostEditorForm = memo(CommunityPostEditorFormBase);
 

@@ -14,7 +14,7 @@
 // - 사용자용 공개 데이터와 관리자용 비공개 편집 데이터를 같은 규칙으로 섞지 않도록 주의해야 한다.
 import { GUIDE_POPULAR_SEARCH_LIMIT, GUIDE_SEARCH_RESULT_LIMIT } from './config';
 import { PET_CARE_GUIDES } from './data';
-import { getGuidePersonalizationScore, getGuideSpeciesScore } from './personalization';
+import { getGuidePersonalizationScore } from './personalization';
 import { getGuideCategoryLabel } from './presentation';
 import { pickHomeGuideRecommendations } from './rotation';
 import { searchPetCareGuides } from './search';
@@ -29,6 +29,7 @@ import type {
   PetCareGuideAdminUpsertInput,
 } from './types';
 import { isMemorialPet } from '../pets/memorial';
+import { deriveCanonicalPetSpeciesKey } from '../pets/species';
 import {
   fetchManagedPetCareGuideCatalog,
   fetchManagedPetCareGuideDetail,
@@ -43,7 +44,12 @@ import {
 export type GuideListContext = Partial<
   Pick<
     GuidePersonalizationContext,
-    'species' | 'speciesDetailKey' | 'speciesDisplayName' | 'birthDate' | 'now'
+    | 'species'
+    | 'speciesKey'
+    | 'speciesDetailKey'
+    | 'speciesDisplayName'
+    | 'birthDate'
+    | 'now'
   >
 >;
 
@@ -82,20 +88,30 @@ function supportsSpecies(
   guide: PetCareGuide,
   context: Pick<
     GuidePersonalizationContext,
-    'species' | 'speciesDetailKey' | 'speciesDisplayName'
+    'species' | 'speciesKey' | 'speciesDetailKey' | 'speciesDisplayName'
   >,
 ): boolean {
-  return getGuideSpeciesScore(guide, context) > 0;
+  const canonicalSpecies = deriveCanonicalPetSpeciesKey(context);
+  return (
+    guide.targetSpecies.includes(canonicalSpecies) ||
+    guide.targetSpecies.includes('COMMON')
+  );
 }
 
 function normalizeGuideListContext(
   context: GuideListContext,
 ): Pick<
   GuidePersonalizationContext,
-  'species' | 'speciesDetailKey' | 'speciesDisplayName' | 'birthDate' | 'now'
+  | 'species'
+  | 'speciesKey'
+  | 'speciesDetailKey'
+  | 'speciesDisplayName'
+  | 'birthDate'
+  | 'now'
 > {
   return {
     species: context.species ?? null,
+    speciesKey: context.speciesKey ?? null,
     speciesDetailKey: context.speciesDetailKey ?? null,
     speciesDisplayName: context.speciesDisplayName ?? null,
     birthDate: context.birthDate ?? null,
@@ -223,13 +239,14 @@ function buildFallbackPopularGuideSearches(
   },
 ): GuideSearchKeyword[] {
   const scores = new Map<string, GuideSearchKeyword>();
-  const filteredGuides = guides.filter(guide =>
-    supportsSpecies(guide, {
-      species: input.species ?? null,
-      speciesDetailKey: null,
-      speciesDisplayName: null,
-    }),
-  );
+  const filteredGuides = input.species
+    ? guides.filter(
+        guide =>
+          guide.targetSpecies.includes(
+            input.species as NonNullable<typeof input.species>,
+          ) || guide.targetSpecies.includes('COMMON'),
+      )
+    : [...guides];
 
   filteredGuides.forEach(guide => {
     const perGuideKeywords = new Set<string>();
@@ -364,7 +381,9 @@ export function filterManagedPetCareGuidesByStatus(
   return guides.filter(guide => guide.status === status);
 }
 
-export async function getPetCareGuideById(id: string): Promise<PetCareGuide | null> {
+export async function getPetCareGuideById(
+  id: string,
+): Promise<PetCareGuide | null> {
   const normalizedId = id.trim();
   if (!normalizedId) return null;
 
@@ -379,7 +398,9 @@ export async function getPetCareGuideById(id: string): Promise<PetCareGuide | nu
     return null;
   }
 
-  return PET_CARE_GUIDES.find(guide => guide.id === normalizedId && guide.isActive) ?? null;
+  return (
+    PET_CARE_GUIDES.find(guide => guide.id === normalizedId && guide.isActive) ?? null
+  );
 }
 
 export async function recordPetCareGuideEvents(
