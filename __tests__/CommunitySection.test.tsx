@@ -336,7 +336,7 @@ describe('CommunitySection', () => {
     });
   });
 
-  it('renders the approved empty copy without a create CTA', async () => {
+  it('renders tab-specific empty copy without a create CTA', async () => {
     mockedFetchHomeCommunityHighlights.mockResolvedValue([]);
 
     let renderer!: TestRenderer.ReactTestRenderer;
@@ -347,8 +347,34 @@ describe('CommunitySection', () => {
     });
 
     const output = serialized(renderer);
-    expect(output).toContain('아직 보여드릴 이야기가 없어요');
+    expect(output).toContain('반려인들의 공감을 모은 이야기를 기다리고 있어요.');
     expect(output).not.toContain('글쓰기');
+
+    const tabCopy = [
+      ['질문 탭', '작은 궁금증도 함께 나누면 답에 가까워져요.'],
+      ['정보 탭', '서로의 경험이 반려생활의 좋은 길잡이가 돼요.'],
+      ['일상 탭', '아이와 나눈 평범한 하루도 소중한 이야기가 돼요.'],
+      ['자유 탭', '정해진 주제 없이, 마음을 담은 이야기를 기다려요.'],
+    ] as const;
+
+    for (const [tabLabel, copy] of tabCopy) {
+      await act(async () => {
+        renderer.root.find(node => node.props.accessibilityLabel === tabLabel).props.onPress();
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      expect(serialized(renderer)).toContain(copy);
+      expect(serialized(renderer)).not.toContain('아직 보여드릴 이야기가 없어요');
+    }
+
+    await act(async () => {
+      renderer.root.find(node => node.props.accessibilityLabel === '인기 탭').props.onPress();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(serialized(renderer)).toContain('반려인들의 공감을 모은 이야기를 기다리고 있어요.');
     await act(async () => {
       renderer.unmount();
     });
