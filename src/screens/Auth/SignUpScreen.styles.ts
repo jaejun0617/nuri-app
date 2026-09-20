@@ -19,11 +19,16 @@ export const styles = StyleSheet.create({
     top: 0,
     left: 0,
   },
+  seasonalBackgroundTail: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+  },
   seasonalBackgroundFade: {
     position: 'absolute',
     left: 0,
     right: 0,
-    height: 140,
+    height: 240,
   },
   seasonalBackgroundWash: {
     ...StyleSheet.absoluteFill,
@@ -519,14 +524,7 @@ export const styles = StyleSheet.create({
     gap: 6,
   },
   seasonalSignInRow: {
-    marginTop: 0,
-  },
-  seasonalSignInScrim: {
-    alignSelf: 'center',
     marginTop: 9,
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-    borderRadius: 14,
   },
   signInHint: {
     color: '#B9C1CE',

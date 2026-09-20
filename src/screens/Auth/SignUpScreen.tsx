@@ -876,22 +876,7 @@ export default function SignUpScreen() {
         </AppText>
       </TouchableOpacity>
 
-      {seasonal ? (
-        <LinearGradient
-          colors={[
-            'rgba(66, 29, 12, 0)',
-            'rgba(66, 29, 12, 0.48)',
-            'rgba(66, 29, 12, 0)',
-          ]}
-          end={{ x: 1, y: 0 }}
-          start={{ x: 0, y: 0 }}
-          style={styles.seasonalSignInScrim}
-        >
-          {signInPrompt}
-        </LinearGradient>
-      ) : (
-        signInPrompt
-      )}
+      {signInPrompt}
     </>
   );
 
@@ -903,6 +888,16 @@ export default function SignUpScreen() {
           { backgroundColor: seasonalVisual.backgroundColor },
         ]}
       >
+        <Image
+          accessible={false}
+          pointerEvents="none"
+          resizeMode="cover"
+          source={seasonalVisual.source}
+          style={[
+            styles.seasonalBackgroundTail,
+            { width: viewportWidth, height: seasonalBackgroundHeight },
+          ]}
+        />
         <Image
           accessibilityIgnoresInvertColors
           accessibilityLabel={seasonalVisual.accessibilityLabel}
@@ -919,11 +914,12 @@ export default function SignUpScreen() {
           colors={[
             'rgba(233, 155, 84, 0)',
             seasonalVisual.backgroundColor,
+            'rgba(233, 155, 84, 0)',
           ]}
           pointerEvents="none"
           style={[
             styles.seasonalBackgroundFade,
-            { top: seasonalBackgroundHeight - 140 },
+            { top: seasonalBackgroundHeight - 120 },
           ]}
         />
         <StatusBar barStyle="dark-content" />
