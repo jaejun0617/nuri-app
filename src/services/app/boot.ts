@@ -2,10 +2,13 @@ import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import type { PasswordRecoveryFlowState } from '../../store/authStore';
 import type { AccountDeletionGate } from '../supabase/auth';
 
-export type BootRouteName = 'AppTabs' | 'NicknameSetup' | 'PetCreate' | 'SignIn';
+export type BootRouteName =
+  | 'AppTabs'
+  | 'NicknameSetup'
+  | 'PetCreate'
+  | 'SignIn';
 
-const SPLASH_DEFAULT_HOLD_MS = 700;
-const SPLASH_FORM_HOLD_MS = 900;
+export const MINIMUM_BRANDED_SPLASH_MS = 2000;
 
 export function getSessionUserId(session: Session | null | undefined) {
   return session?.user?.id ?? null;
@@ -122,9 +125,6 @@ export function resolveBootRoute(input: {
   return { name: 'AppTabs' as const, params: undefined };
 }
 
-export function getBootSplashHoldMs(routeName: BootRouteName) {
-  if (routeName === 'PetCreate' || routeName === 'NicknameSetup') {
-    return SPLASH_FORM_HOLD_MS;
-  }
-  return SPLASH_DEFAULT_HOLD_MS;
+export function getBootSplashHoldMs(_routeName: BootRouteName) {
+  return MINIMUM_BRANDED_SPLASH_MS;
 }

@@ -3,6 +3,8 @@ import type { Session } from '@supabase/supabase-js';
 
 import {
   createBootTimeoutError,
+  getBootSplashHoldMs,
+  MINIMUM_BRANDED_SPLASH_MS,
   resolveBootRoute,
   shouldKeepGuestSandboxForRecovery,
   shouldReloadUserScopedState,
@@ -40,6 +42,17 @@ describe('app boot helpers', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     usePetStore.getState().clear();
+  });
+
+  it('모든 진입 경로에서 브랜드 Splash를 최소 2000ms 유지한다', () => {
+    expect(MINIMUM_BRANDED_SPLASH_MS).toBe(2000);
+    expect(
+      ['AppTabs', 'NicknameSetup', 'PetCreate', 'SignIn'].map(routeName =>
+        getBootSplashHoldMs(
+          routeName as Parameters<typeof getBootSplashHoldMs>[0],
+        ),
+      ),
+    ).toEqual([2000, 2000, 2000, 2000]);
   });
 
   it('same-user token refresh에서는 user-scoped reload를 건너뛴다', () => {
@@ -204,11 +217,7 @@ describe('app boot helpers', () => {
 
   it('boot timeout helper는 지연된 작업을 에러로 끊는다', async () => {
     await expect(
-      withTimeout(
-        new Promise(() => {}),
-        10,
-        'boot-check',
-      ),
+      withTimeout(new Promise(() => {}), 10, 'boot-check'),
     ).rejects.toEqual(createBootTimeoutError('boot-check', 10));
   });
 });

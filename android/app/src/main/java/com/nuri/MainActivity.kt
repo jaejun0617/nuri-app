@@ -2,7 +2,6 @@ package com.nuri
 
 import android.content.Intent
 import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Bundle
 import com.facebook.react.ReactActivity
@@ -17,7 +16,9 @@ import com.nuri.notifications.ScheduleNotificationTapStore
 
 class MainActivity : ReactActivity() {
   private fun applySystemBarStyle() {
-    window.setBackgroundDrawable(ColorDrawable(Color.WHITE))
+    // Keep the native launch surface branded until React Native draws the
+    // date-resolved seasonal image; normal screens paint their own surfaces.
+    window.setBackgroundDrawableResource(R.color.nuri_splash_background)
     window.statusBarColor = Color.TRANSPARENT
     window.navigationBarColor = Color.WHITE
 

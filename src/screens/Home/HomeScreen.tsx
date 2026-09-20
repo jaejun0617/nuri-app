@@ -14,10 +14,17 @@
 // - reset 이동과 최소 노출 시간 규칙을 바꾸면 첫 실행 UX와 로그인 복귀 흐름이 흔들릴 수 있다.
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, useWindowDimensions } from 'react-native';
+import {
+  AccessibilityInfo,
+  Animated,
+  Easing,
+  StatusBar,
+  useWindowDimensions,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import AppText from '../../app/ui/AppText';
@@ -32,10 +39,10 @@ import {
 import { useAuthStore } from '../../store/authStore';
 import { useCommunityStore } from '../../store/communityStore';
 import { usePetStore } from '../../store/petStore';
+import { getSeasonalSplashVisual } from '../../theme/seasonal/assets';
+import { getSeasonalThemeKey } from '../../theme/seasonal/season';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Splash'>;
-
-const SPLASH_BG_SOURCE = require('../../assets/home/Splash_bg_v2.png');
 
 export default function HomeScreen() {
   const navigation = useNavigation<Nav>();
@@ -57,6 +64,9 @@ export default function HomeScreen() {
     useState<CommunityRouteStateSnapshot | null>(null);
   const [communityRouteSnapshotChecked, setCommunityRouteSnapshotChecked] =
     useState(false);
+  const [reduceMotionEnabled, setReduceMotionEnabled] = useState<
+    boolean | null
+  >(null);
 
   // Splash 시작 시각
   const startedAtRef = useRef<number>(Date.now());
@@ -65,27 +75,32 @@ export default function HomeScreen() {
   const { height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
+  const season = useMemo(() => getSeasonalThemeKey(), []);
+  const seasonalVisual = useMemo(
+    () => getSeasonalSplashVisual(season),
+    [season],
+  );
+
   const cardTopPadding = useMemo(() => {
-    const ratioBase = height * 0.16;
+    const ratioBase = height * 0.055;
     const safeTop = insets.top + 8;
     const raw = ratioBase + safeTop;
 
-    const min = 92 + safeTop;
-    const max = 200 + safeTop;
+    const min = 48 + safeTop;
+    const max = 112 + safeTop;
 
     return Math.max(min, Math.min(max, raw));
   }, [height, insets.top]);
+  // Preserve the established wordmark anchor after removing the decorative
+  // symbol from the four seasonal compositions.
+  const brandTopPadding = cardTopPadding + 68;
 
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-
-  const brandTranslateY = useRef(new Animated.Value(12)).current;
-  const brandScale = useRef(new Animated.Value(0.96)).current;
-  const brandOpacity = useRef(new Animated.Value(0)).current;
-
-  // const logoSource = useMemo(
-  //   () => require('../../assets/logo/logo_v2.png'),
-  //   [],
-  // );
+  const imageOpacity = useRef(new Animated.Value(0.96)).current;
+  const imageScale = useRef(new Animated.Value(1.025)).current;
+  const wordmarkTranslateY = useRef(new Animated.Value(5)).current;
+  const wordmarkOpacity = useRef(new Animated.Value(0)).current;
+  const copyTranslateY = useRef(new Animated.Value(4)).current;
+  const copyOpacity = useRef(new Animated.Value(0)).current;
   const nextRoute = useMemo(() => {
     return resolveBootRoute({
       isLoggedIn,
@@ -133,7 +148,27 @@ export default function HomeScreen() {
       isActive = false;
     };
   }, [authBooted, currentUserId, petBooted, restoreCommunityListSnapshot]);
-  // const blurSource = useMemo(() => require('../../assets/home/test.png'), []);
+  useEffect(() => {
+    let active = true;
+
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then(enabled => {
+        if (active) setReduceMotionEnabled(enabled);
+      })
+      .catch(() => {
+        if (active) setReduceMotionEnabled(false);
+      });
+
+    const subscription = AccessibilityInfo.addEventListener(
+      'reduceMotionChanged',
+      setReduceMotionEnabled,
+    );
+
+    return () => {
+      active = false;
+      subscription.remove();
+    };
+  }, []);
 
   // ---------------------------------------------------------
   // ✅ 핵심: 부트 완료 + 최소 Splash 시간 만족 → AppTabs reset
@@ -195,117 +230,161 @@ export default function HomeScreen() {
   ]);
 
   // ---------------------------------------------------------
-  // 애니메이션(기존 유지)
+  // Splash motion stays deliberately shallow so image decode and boot work do
+  // not compete with decorative animation on Android devices.
   // ---------------------------------------------------------
   useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 450,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
+    if (reduceMotionEnabled === null) return;
 
-    Animated.parallel([
-      Animated.timing(brandOpacity, {
+    if (reduceMotionEnabled) {
+      imageOpacity.setValue(1);
+      imageScale.setValue(1);
+      wordmarkTranslateY.setValue(0);
+      copyTranslateY.setValue(0);
+
+      const reducedMotionAnimation = Animated.parallel([
+        Animated.timing(wordmarkOpacity, {
+          toValue: 1,
+          duration: 450,
+          delay: 100,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(copyOpacity, {
+          toValue: 1,
+          duration: 450,
+          delay: 240,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]);
+
+      reducedMotionAnimation.start();
+      return () => reducedMotionAnimation.stop();
+    }
+
+    const animation = Animated.parallel([
+      Animated.timing(imageOpacity, {
         toValue: 1,
-        duration: 400,
+        duration: 520,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(imageScale, {
+        toValue: 1,
+        duration: 1650,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(wordmarkOpacity, {
+        toValue: 1,
+        duration: 520,
         delay: 120,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
-      Animated.timing(brandTranslateY, {
+      Animated.timing(wordmarkTranslateY, {
         toValue: 0,
         duration: 520,
         delay: 120,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
-      Animated.timing(brandScale, {
+      Animated.timing(copyOpacity, {
         toValue: 1,
-        duration: 520,
-        delay: 120,
+        duration: 500,
+        delay: 280,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
-    ]).start();
-  }, [fadeAnim, brandOpacity, brandTranslateY, brandScale]);
+      Animated.timing(copyTranslateY, {
+        toValue: 0,
+        duration: 500,
+        delay: 280,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]);
 
-  // ---------------------------------------------------------
-  // Dev 전용: 수동 진입 버튼(원하면 유지)
-  // ---------------------------------------------------------
-  // const goToMainDev = () => {
-  //   navigation.reset({ index: 0, routes: [{ name: 'AppTabs' }] });
-  // };
+    animation.start();
+    return () => animation.stop();
+  }, [
+    copyOpacity,
+    copyTranslateY,
+    imageOpacity,
+    imageScale,
+    wordmarkOpacity,
+    wordmarkTranslateY,
+    reduceMotionEnabled,
+  ]);
 
   return (
-    <S.Background>
-      <S.BgContain source={SPLASH_BG_SOURCE} />
+    <S.Background $backgroundColor={seasonalVisual.backgroundColor}>
+      <StatusBar barStyle="dark-content" />
+      <Animated.Image
+        source={seasonalVisual.source}
+        resizeMode="cover"
+        fadeDuration={0}
+        accessibilityLabel={seasonalVisual.accessibilityLabel}
+        accessibilityIgnoresInvertColors
+        style={[
+          textStyles.seasonalImage,
+          {
+            opacity: imageOpacity,
+            transform: [{ scale: imageScale }],
+          },
+        ]}
+      />
+      <LinearGradient
+        pointerEvents="none"
+        colors={[...seasonalVisual.overlayColors]}
+        locations={[0, 0.3, 0.58]}
+        style={textStyles.seasonalOverlay}
+      />
 
-      <S.Container $pt={cardTopPadding}>
-        <Animated.View style={{ opacity: fadeAnim }}>
-          <S.Card>
-            <Animated.View
-              style={{
-                opacity: brandOpacity,
-                transform: [
-                  { translateY: brandTranslateY },
-                  { scale: brandScale },
-                ],
-              }}
-            >
-              <S.BrandRow>
-                {/* <S.Logo source={logoSource} resizeMode="contain" /> */}
-                <AppText
-                  preset="unifiedTitle"
-                  color="#ffffff"
-                  style={{
-                    textShadowColor: 'rgba(0,0,0,0.25)',
-                    textShadowOffset: { width: 0, height: 2 },
-                    textShadowRadius: 10,
-                  }}
-                >
-                  NURI
-                </AppText>
-              </S.BrandRow>
-            </Animated.View>
+      <S.Container $pt={brandTopPadding}>
+        <S.Card>
+          <Animated.View
+            style={{
+              opacity: wordmarkOpacity,
+              transform: [{ translateY: wordmarkTranslateY }],
+            }}
+          >
+            <S.BrandRow>
+              <AppText
+                preset="unifiedTitle"
+                color="#ffffff"
+                weight="700"
+                style={[textStyles.shadow, textStyles.wordmark]}
+              >
+                NURI
+              </AppText>
+            </S.BrandRow>
+          </Animated.View>
 
-            <S.Spacer $h={8} />
+          <S.Spacer $h={10} />
 
-            <AppText
-              preset="unifiedBody"
-              color="#ffffff"
-              style={[textStyles.shadow, { fontSize: 16 }]}
-            >
-              지금 이 순간도, 함께 기록해요
-            </AppText>
-
-            <S.Spacer $h={8} />
-
-            <AppText
-              preset="unifiedBody"
-              color="#ffffff"
-              style={[textStyles.shadow, { fontSize: 16 }]}
-            >
-              우리의 시간을 기억으로 남기다
-            </AppText>
-
-            {/* {__DEV__ && (
-              <>
-                <S.Spacer $h={20} />
-                <S.Button onPress={goToMainDev}>
-                  <AppText preset="unifiedBody" color="#000000" weight="600">
-                    (DEV) AppTabs로 이동
-                  </AppText>
-                </S.Button>
-
-                <S.Spacer $h={10} />
-                <AppText preset="unifiedMeta" color="rgba(255,255,255,0.75)">
-                  개발모드: Splash 자동 진입(booted gate) 동작 중
-                </AppText>
-              </>
-            )} */}
-          </S.Card>
-        </Animated.View>
+          <Animated.View
+            style={{
+              opacity: copyOpacity,
+              transform: [{ translateY: copyTranslateY }],
+            }}
+          >
+            <S.CopyWrap>
+              <AppText
+                preset="body"
+                color="#ffffff"
+                align="center"
+                weight="500"
+                allowFontScaling
+                maxFontSizeMultiplier={1.15}
+                style={[textStyles.shadow, textStyles.copy]}
+              >
+                {'함께한 모든 순간이,\n오래도록 따뜻한 기억이 되도록'}
+              </AppText>
+            </S.CopyWrap>
+          </Animated.View>
+        </S.Card>
       </S.Container>
     </S.Background>
   );
