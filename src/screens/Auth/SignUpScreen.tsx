@@ -615,85 +615,6 @@ export default function SignUpScreen() {
         </View>
       )}
 
-      <InputField
-        autoCapitalize="none"
-        keyboardType="email-address"
-        label="이메일 주소"
-        onChangeText={setEmail}
-        placeholder="example@petmemory.com"
-        seasonalVisual={seasonalVisual}
-        value={email}
-      />
-
-      <InputField
-        autoCapitalize="none"
-        label="비밀번호"
-        onChangeText={setPassword}
-        placeholder="8자 이상 입력해주세요"
-        rightAccessory={
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => setSecurePassword(prev => !prev)}
-          >
-            <Feather
-              color={seasonalVisual?.fieldIconColor ?? '#9DA7BA'}
-              name={securePassword ? 'eye-off' : 'eye'}
-              size={18}
-            />
-          </TouchableOpacity>
-        }
-        secureTextEntry={securePassword}
-        seasonalVisual={seasonalVisual}
-        value={password}
-      />
-
-      <InputField
-        autoCapitalize="none"
-        label="비밀번호 확인"
-        onChangeText={setConfirmPassword}
-        placeholder="비밀번호를 다시 입력해주세요"
-        rightAccessory={
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => setSecureConfirmPassword(prev => !prev)}
-          >
-            <Feather
-              color={seasonalVisual?.fieldIconColor ?? '#9DA7BA'}
-              name={secureConfirmPassword ? 'eye-off' : 'eye'}
-              size={18}
-            />
-          </TouchableOpacity>
-        }
-        secureTextEntry={secureConfirmPassword}
-        seasonalVisual={seasonalVisual}
-        value={confirmPassword}
-      />
-
-      {!emailValid && email.length > 0 ? (
-        <AppText
-          preset="unifiedBody"
-          style={[styles.errorText, seasonal ? styles.seasonalErrorText : null]}
-        >
-          올바른 이메일 형식을 입력해주세요.
-        </AppText>
-      ) : null}
-      {!passwordValid && password.length > 0 ? (
-        <AppText
-          preset="unifiedBody"
-          style={[styles.errorText, seasonal ? styles.seasonalErrorText : null]}
-        >
-          비밀번호는 8자 이상이어야 합니다.
-        </AppText>
-      ) : null}
-      {confirmPassword.length > 0 && !passwordsMatch ? (
-        <AppText
-          preset="unifiedBody"
-          style={[styles.errorText, seasonal ? styles.seasonalErrorText : null]}
-        >
-          비밀번호가 일치하지 않습니다.
-        </AppText>
-      ) : null}
-
       <View
         style={[
           styles.termsCard,
@@ -820,6 +741,86 @@ export default function SignUpScreen() {
           필수 동의: 이용약관, 개인정보처리방침
         </AppText>
       )}
+
+      <InputField
+        autoCapitalize="none"
+        keyboardType="email-address"
+        label="이메일 주소"
+        onChangeText={setEmail}
+        placeholder="example@petmemory.com"
+        seasonalVisual={seasonalVisual}
+        value={email}
+      />
+
+      <InputField
+        autoCapitalize="none"
+        label="비밀번호"
+        onChangeText={setPassword}
+        placeholder="8자 이상 입력해주세요"
+        rightAccessory={
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setSecurePassword(prev => !prev)}
+          >
+            <Feather
+              color={seasonalVisual?.fieldIconColor ?? '#9DA7BA'}
+              name={securePassword ? 'eye-off' : 'eye'}
+              size={18}
+            />
+          </TouchableOpacity>
+        }
+        secureTextEntry={securePassword}
+        seasonalVisual={seasonalVisual}
+        value={password}
+      />
+
+      <InputField
+        autoCapitalize="none"
+        label="비밀번호 확인"
+        onChangeText={setConfirmPassword}
+        placeholder="비밀번호를 다시 입력해주세요"
+        rightAccessory={
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setSecureConfirmPassword(prev => !prev)}
+          >
+            <Feather
+              color={seasonalVisual?.fieldIconColor ?? '#9DA7BA'}
+              name={secureConfirmPassword ? 'eye-off' : 'eye'}
+              size={18}
+            />
+          </TouchableOpacity>
+        }
+        secureTextEntry={secureConfirmPassword}
+        seasonalVisual={seasonalVisual}
+        value={confirmPassword}
+      />
+
+      {!emailValid && email.length > 0 ? (
+        <AppText
+          preset="unifiedBody"
+          style={[styles.errorText, seasonal ? styles.seasonalErrorText : null]}
+        >
+          올바른 이메일 형식을 입력해주세요.
+        </AppText>
+      ) : null}
+      {!passwordValid && password.length > 0 ? (
+        <AppText
+          preset="unifiedBody"
+          style={[styles.errorText, seasonal ? styles.seasonalErrorText : null]}
+        >
+          비밀번호는 8자 이상이어야 합니다.
+        </AppText>
+      ) : null}
+      {confirmPassword.length > 0 && !passwordsMatch ? (
+        <AppText
+          preset="unifiedBody"
+          style={[styles.errorText, seasonal ? styles.seasonalErrorText : null]}
+        >
+          비밀번호가 일치하지 않습니다.
+        </AppText>
+      ) : null}
+
       {consentErrorVisible ? (
         <AppText
           preset="unifiedBody"

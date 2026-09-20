@@ -515,8 +515,8 @@ export const styles = StyleSheet.create({
   },
   seasonalSignInText: {
     color: '#FFFFFF',
-    fontSize: 11.5,
-    lineHeight: 16,
+    fontSize: 14,
+    lineHeight: 20,
   },
   signInLink: {
     color: BRAND,
