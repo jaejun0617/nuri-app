@@ -3,7 +3,7 @@ import type { ImageSourcePropType } from 'react-native';
 import type { SeasonKey } from './season';
 
 export type SeasonalLoginVisual = {
-  season: Extract<SeasonKey, 'autumn' | 'winter'>;
+  season: Extract<SeasonKey, 'spring' | 'autumn' | 'winter'>;
   source: ImageSourcePropType;
   backgroundColor: string;
   backgroundWashColor: string;
@@ -17,7 +17,7 @@ export type SeasonalLoginVisual = {
   headlineAccent: string;
   headlineSecondLineSuffix: string;
   headlineShadowColor: string;
-  ornamentIcon: 'leaf-maple' | 'snowflake';
+  ornamentIcon: 'flower' | 'leaf-maple' | 'snowflake';
   subtitle: string;
   subtitleColor: string;
   englishCopy: string;
@@ -43,6 +43,50 @@ export type SeasonalLoginVisual = {
   recentLoginBackgroundColor: string;
   recentLoginBorderColor: string;
   recentLoginTextColor: string;
+};
+
+const SPRING_LOGIN_VISUAL: SeasonalLoginVisual = {
+  season: 'spring',
+  source: require('../../assets/seasonal/login/spring.jpg'),
+  backgroundColor: '#FBEDEB',
+  backgroundWashColor: 'rgba(255, 250, 246, 0.04)',
+  accentColor: '#E98AA1',
+  headlineAccentColor: '#E86F88',
+  heroHeightOffset: 8,
+  accessibilityLabel:
+    '봄꽃 들판에서 여러 반려동물이 함께 있는 누리 로그인 배경',
+  headlineColor: '#5A453A',
+  headlineFirstLine: '함께한 모든 계절이',
+  headlineSecondLinePrefix: '',
+  headlineAccent: '따뜻한 추억',
+  headlineSecondLineSuffix: '으로 남도록',
+  headlineShadowColor: 'rgba(255, 255, 255, 0.9)',
+  ornamentIcon: 'flower',
+  subtitle: '사랑하는 아이와, 언제나 누리와 함께',
+  subtitleColor: '#59483F',
+  englishCopy: 'Better\nDays\nTogether ♥',
+  englishCopyColor: '#E7839B',
+  fieldBackgroundColor: 'rgba(255, 252, 249, 0.9)',
+  fieldBorderColor: 'rgba(226, 183, 189, 0.42)',
+  fieldShadowColor: '#B66F78',
+  fieldIconColor: '#6D687B',
+  fieldPlaceholderColor: '#777184',
+  fieldTextColor: '#433C48',
+  ctaColor: '#E77F9A',
+  ctaShadowColor: '#B85B76',
+  inlineTextColor: '#614D58',
+  inlineDividerColor: '#9B7A89',
+  socialDividerColor: 'rgba(145, 101, 122, 0.48)',
+  socialLabel: '소셜로 로그인',
+  socialTextColor: '#654F5A',
+  googleBackgroundColor: 'rgba(255, 255, 255, 0.94)',
+  googleBorderColor: '#DED4DE',
+  policyTextColor: '#66545E',
+  policyLinkColor: '#A83F68',
+  policyShadowColor: 'rgba(255, 255, 255, 0.96)',
+  recentLoginBackgroundColor: 'rgba(255, 252, 252, 0.96)',
+  recentLoginBorderColor: 'rgba(168, 63, 104, 0.24)',
+  recentLoginTextColor: '#A83F68',
 };
 
 const AUTUMN_LOGIN_VISUAL: SeasonalLoginVisual = {
@@ -134,6 +178,7 @@ const WINTER_LOGIN_VISUAL: SeasonalLoginVisual = {
 
 const APPROVED_LOGIN_VISUALS: Partial<Record<SeasonKey, SeasonalLoginVisual>> =
   {
+    spring: SPRING_LOGIN_VISUAL,
     autumn: AUTUMN_LOGIN_VISUAL,
     winter: WINTER_LOGIN_VISUAL,
   };
@@ -144,7 +189,9 @@ const APPROVED_LOGIN_VISUALS: Partial<Record<SeasonKey, SeasonalLoginVisual>> =
  */
 export function getSeasonalLoginVisual(
   season: SeasonKey,
-  override: 'auto' | Extract<SeasonKey, 'autumn' | 'winter'> = 'auto',
+  override:
+    | 'auto'
+    | Extract<SeasonKey, 'spring' | 'autumn' | 'winter'> = 'auto',
 ): SeasonalLoginVisual | null {
   const resolvedSeason = override === 'auto' ? season : override;
   return APPROVED_LOGIN_VISUALS[resolvedSeason] ?? null;

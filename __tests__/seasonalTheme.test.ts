@@ -48,7 +48,20 @@ describe('seasonal theme', () => {
     expect(new Set(sources).size).toBe(4);
   });
 
-  it('preserves autumn and adds only the PO-approved winter login visual', () => {
+  it('preserves approved autumn and winter visuals and adds spring', () => {
+    expect(getSeasonalLoginVisual('spring')).toEqual(
+      expect.objectContaining({
+        season: 'spring',
+        backgroundColor: '#FBEDEB',
+        ctaColor: '#E77F9A',
+        headlineAccentColor: '#E86F88',
+        heroHeightOffset: 8,
+        policyLinkColor: '#A83F68',
+        subtitleColor: '#59483F',
+        socialLabel: '소셜로 로그인',
+      }),
+    );
+
     expect(getSeasonalLoginVisual('autumn')).toEqual(
       expect.objectContaining({
         season: 'autumn',
@@ -72,11 +85,11 @@ describe('seasonal theme', () => {
       }),
     );
 
-    expect(getSeasonalLoginVisual('spring')).toBeNull();
     expect(getSeasonalLoginVisual('summer')).toBeNull();
   });
 
-  it('supports a bounded winter QA override and returns to AUTO', () => {
+  it('supports bounded seasonal QA overrides and returns to AUTO', () => {
+    expect(getSeasonalLoginVisual('autumn', 'spring')?.season).toBe('spring');
     expect(getSeasonalLoginVisual('autumn', 'winter')?.season).toBe('winter');
     expect(getSeasonalLoginVisual('autumn', 'auto')?.season).toBe('autumn');
   });
