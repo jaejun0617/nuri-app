@@ -6,6 +6,7 @@ import {
   getSeasonalSplashVisual,
   SEASONAL_SPLASH_VISUALS,
 } from '../src/theme/seasonal/assets';
+import { getSeasonalLoginVisual } from '../src/theme/seasonal/login';
 
 describe('seasonal theme', () => {
   it('uses Asia/Seoul as the fixed product timezone', () => {
@@ -45,5 +46,18 @@ describe('seasonal theme', () => {
     });
 
     expect(new Set(sources).size).toBe(4);
+  });
+
+  it('exposes only the PO-approved autumn login visual', () => {
+    expect(getSeasonalLoginVisual('autumn')).toEqual(
+      expect.objectContaining({
+        backgroundColor: '#E99B54',
+        accentColor: '#D95C2B',
+      }),
+    );
+
+    expect(getSeasonalLoginVisual('spring')).toBeNull();
+    expect(getSeasonalLoginVisual('summer')).toBeNull();
+    expect(getSeasonalLoginVisual('winter')).toBeNull();
   });
 });

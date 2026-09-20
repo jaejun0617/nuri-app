@@ -1,14 +1,36 @@
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import { typography } from '../../app/theme/tokens/typography';
 
 const TEXT = '#1B2435';
 
 const BRAND = '#6D6AF8';
 
+const SEASONAL_DISPLAY_FONT = Platform.select({
+  ios: 'AppleMyungjo',
+  android: 'serif',
+  default: 'serif',
+});
+
+const SEASONAL_SCRIPT_FONT = Platform.select({
+  ios: 'Snell Roundhand',
+  android: 'cursive',
+  default: 'cursive',
+});
+
 export const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  seasonalBackground: {
+    flex: 1,
+  },
+  seasonalBackgroundWash: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(255, 248, 240, 0.08)',
+  },
+  seasonalSafeArea: {
+    flex: 1,
   },
   successBackdrop: {
     flex: 1,
@@ -86,6 +108,11 @@ export const styles = StyleSheet.create({
     paddingTop: 36,
     backgroundColor: '#FFFFFF',
   },
+  seasonalScrollContent: {
+    paddingHorizontal: 32,
+    paddingTop: 0,
+    backgroundColor: 'transparent',
+  },
   hero: {
     alignItems: 'center',
     marginTop: 36,
@@ -109,8 +136,78 @@ export const styles = StyleSheet.create({
     color: '#000000',
     textAlign: 'center',
   },
+  seasonalHero: {
+    position: 'relative',
+    alignItems: 'center',
+  },
+  seasonalHeadlineGroup: {
+    alignItems: 'center',
+    marginTop: 8,
+    maxWidth: 332,
+    paddingHorizontal: 10,
+  },
+  seasonalHeadline: {
+    color: '#4B3527',
+    fontFamily: SEASONAL_DISPLAY_FONT,
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: '500',
+    letterSpacing: 0,
+    textAlign: 'center',
+    textShadowColor: 'rgba(255, 249, 241, 0.72)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 5,
+  },
+  seasonalHeadlineAccent: {
+    color: '#D95C2B',
+    fontWeight: '600',
+  },
+  seasonalHeadlineOrnament: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 7,
+    marginTop: 2,
+  },
+  seasonalOrnamentLine: {
+    width: 42,
+    height: 1,
+    backgroundColor: 'rgba(217, 92, 43, 0.7)',
+  },
+  seasonalSubtitle: {
+    color: '#5A4031',
+    fontFamily: SEASONAL_DISPLAY_FONT,
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '500',
+    marginTop: 2,
+    textAlign: 'center',
+    textShadowColor: 'rgba(255, 249, 241, 0.78)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  seasonalEnglishCopy: {
+    position: 'absolute',
+    top: 102,
+    right: 0,
+    color: '#C94F27',
+    fontFamily: SEASONAL_SCRIPT_FONT,
+    fontSize: 12,
+    lineHeight: 15,
+    fontWeight: '500',
+    textAlign: 'center',
+    transform: [{ rotate: '-7deg' }],
+    textShadowColor: 'rgba(255, 248, 238, 0.84)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  seasonalFormContent: {
+    paddingBottom: 2,
+  },
   fieldBlock: {
     marginBottom: 16,
+  },
+  seasonalFieldBlock: {
+    marginBottom: 7,
   },
   fieldLabel: {
     display: 'none',
@@ -125,11 +222,34 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  seasonalInputRow: {
+    minHeight: 48,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 250, 245, 0.92)',
+    borderColor: 'rgba(255, 255, 255, 0.8)',
+    paddingHorizontal: 16,
+    shadowColor: '#7B3E1C',
+    shadowOpacity: 0.14,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  inputLeadingIcon: {
+    marginRight: 12,
+  },
   input: {
     flex: 1,
     color: TEXT,
     ...typography.role.body,
     fontWeight: '700',
+  },
+  seasonalInput: {
+    color: '#3E342F',
+    fontFamily: typography.family.sans,
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: '500',
+    paddingVertical: 0,
   },
   inputAccessory: {
     marginLeft: 12,
@@ -150,10 +270,27 @@ export const styles = StyleSheet.create({
   primaryButtonDisabled: {
     opacity: 0.45,
   },
+  seasonalPrimaryButton: {
+    marginTop: 1,
+    minHeight: 48,
+    borderRadius: 18,
+    backgroundColor: '#E9693A',
+    shadowColor: '#9E3D1B',
+    shadowOpacity: 0.22,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
+  },
   primaryButtonText: {
     color: '#FFFFFF',
     ...typography.role.button,
     fontWeight: '900',
+  },
+  seasonalPrimaryButtonText: {
+    fontFamily: typography.family.sans,
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: '600',
   },
   inlineLinks: {
     flexDirection: 'row',
@@ -172,6 +309,26 @@ export const styles = StyleSheet.create({
     ...typography.role.helper,
     fontWeight: '700',
   },
+  seasonalInlineLinkText: {
+    color: '#51473F',
+    fontFamily: typography.family.sans,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
+    textShadowColor: 'rgba(255, 250, 245, 0.72)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  seasonalInlineLinks: {
+    marginTop: 10,
+  },
+  seasonalInlineDivider: {
+    color: '#856F61',
+    fontFamily: typography.family.sans,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '500',
+  },
   socialSection: {
     marginTop: 58,
     marginBottom: 18,
@@ -179,15 +336,33 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
+  seasonalSocialSection: {
+    justifyContent: 'center',
+    marginTop: 0,
+    marginBottom: 8,
+  },
   socialDivider: {
     flex: 1,
     height: 1,
     backgroundColor: '#E7ECF4',
   },
+  seasonalSocialDivider: {
+    backgroundColor: 'rgba(91, 72, 60, 0.46)',
+  },
   socialSectionTitle: {
     color: '#AAB3C1',
     ...typography.role.helper,
     fontWeight: '800',
+  },
+  seasonalSocialSectionTitle: {
+    color: '#4E4741',
+    fontFamily: typography.family.sans,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
+    textShadowColor: 'rgba(255, 250, 245, 0.78)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   socialButton: {
     minHeight: 56,
@@ -198,6 +373,16 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 12,
   },
+  seasonalSocialButton: {
+    minHeight: 48,
+    borderRadius: 18,
+    marginBottom: 7,
+    shadowColor: '#6E3D21',
+    shadowOpacity: 0.11,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
   socialBadge: {
     position: 'absolute',
     left: 18,
@@ -205,6 +390,12 @@ export const styles = StyleSheet.create({
   socialButtonText: {
     ...typography.role.button,
     fontWeight: '900',
+  },
+  seasonalSocialButtonText: {
+    fontFamily: typography.family.sans,
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: '600',
   },
   recentLoginPill: {
     position: 'absolute',
@@ -220,6 +411,18 @@ export const styles = StyleSheet.create({
     color: BRAND,
     ...typography.role.caption,
     fontWeight: '900',
+  },
+  seasonalRecentLoginPill: {
+    backgroundColor: 'rgba(255, 250, 245, 0.94)',
+    borderWidth: 1,
+    borderColor: 'rgba(218, 91, 43, 0.22)',
+  },
+  seasonalRecentLoginPillText: {
+    color: '#D4572C',
+    fontFamily: typography.family.sans,
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '600',
   },
   kakaoBadge: {
     width: 20,
