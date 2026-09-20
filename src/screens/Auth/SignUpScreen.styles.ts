@@ -12,6 +12,18 @@ export const styles = StyleSheet.create({
   },
   seasonalBackground: {
     flex: 1,
+    overflow: 'hidden',
+  },
+  seasonalBackgroundImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
+  seasonalBackgroundFade: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 140,
   },
   seasonalBackgroundWash: {
     ...StyleSheet.absoluteFill,
@@ -40,24 +52,25 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 30,
   },
-  seasonalHeaderRow: {
-    justifyContent: 'flex-start',
-    marginBottom: 0,
-    minHeight: 44,
-  },
   headerBackButton: {
     width: 44,
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  seasonalHeaderBackButton: {
+  seasonalFixedBackButton: {
+    position: 'absolute',
+    left: 26,
+    zIndex: 2,
+    elevation: 2,
     width: 40,
     height: 40,
     borderRadius: 20,
     backgroundColor: 'rgba(255, 252, 248, 0.82)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.78)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
     color: TEXT,
@@ -506,7 +519,14 @@ export const styles = StyleSheet.create({
     gap: 6,
   },
   seasonalSignInRow: {
+    marginTop: 0,
+  },
+  seasonalSignInScrim: {
+    alignSelf: 'center',
     marginTop: 9,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    borderRadius: 14,
   },
   signInHint: {
     color: '#B9C1CE',

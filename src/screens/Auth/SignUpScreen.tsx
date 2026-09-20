@@ -16,7 +16,7 @@ import AppText from '../../app/ui/AppText';
 import React, { memo, useCallback, useMemo, useState } from 'react';
 import {
   Alert,
-  ImageBackground,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -33,6 +33,7 @@ import {
 } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import Feather from 'react-native-vector-icons/Feather';
+import LinearGradient from 'react-native-linear-gradient';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { getBrandedErrorMeta } from '../../services/app/errors';
@@ -373,7 +374,7 @@ async function signUpWithTimeout(
 export default function SignUpScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
-  const { height: viewportHeight } = useWindowDimensions();
+  const { width: viewportWidth } = useWindowDimensions();
   const setSession = useAuthStore(s => s.setSession);
 
   const season = useMemo(() => getSeasonalThemeKey(), []);
@@ -382,12 +383,18 @@ export default function SignUpScreen() {
     [season],
   );
   const seasonal = seasonalVisual !== null;
+  const seasonalBackgroundHeight = seasonalVisual
+    ? viewportWidth * seasonalVisual.backgroundAspectRatio
+    : 0;
   const seasonalHeroSpacerHeight = useMemo(() => {
     if (!seasonal) return 0;
 
-    const heroEnd = Math.min(268, Math.max(252, viewportHeight * 0.33));
-    return Math.max(172, heroEnd - insets.top - 44);
-  }, [insets.top, seasonal, viewportHeight]);
+    const heroEnd = Math.min(
+      260,
+      Math.max(210, seasonalBackgroundHeight * 0.34),
+    );
+    return Math.max(172, heroEnd - insets.top);
+  }, [insets.top, seasonal, seasonalBackgroundHeight]);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -560,33 +567,46 @@ export default function SignUpScreen() {
     setAgreeMarketing(nextValue);
   }, [allConsentsChecked]);
 
+  const signInPrompt = (
+    <View style={[styles.signInRow, seasonal ? styles.seasonalSignInRow : null]}>
+      <AppText
+        preset="unifiedBody"
+        style={[styles.signInHint, seasonal ? styles.seasonalSignInText : null]}
+      >
+        이미 계정이 있으신가요?
+      </AppText>
+      <TouchableOpacity
+        activeOpacity={0.75}
+        onPress={() => navigation.navigate('SignIn')}
+      >
+        <AppText
+          preset="unifiedLabel"
+          style={[styles.signInLink, seasonal ? styles.seasonalSignInText : null]}
+        >
+          로그인
+        </AppText>
+      </TouchableOpacity>
+    </View>
+  );
+
   const content = (
     <>
-      <View
-        style={[styles.headerRow, seasonal ? styles.seasonalHeaderRow : null]}
-      >
-        <TouchableOpacity
-          activeOpacity={0.75}
-          onPress={() => navigation.navigate('SignIn')}
-          style={[
-            styles.headerBackButton,
-            seasonal ? styles.seasonalHeaderBackButton : null,
-          ]}
-          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-        >
-          <Feather
-            color={seasonalVisual?.textColor ?? '#1B2435'}
-            name="arrow-left"
-            size={20}
-          />
-        </TouchableOpacity>
-        {seasonal ? null : (
+      {seasonal ? null : (
+        <View style={styles.headerRow}>
+          <TouchableOpacity
+            activeOpacity={0.75}
+            onPress={() => navigation.navigate('SignIn')}
+            style={styles.headerBackButton}
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+          >
+            <Feather color="#1B2435" name="arrow-left" size={20} />
+          </TouchableOpacity>
           <AppText preset="unifiedTitle" style={styles.headerTitle}>
             회원가입
           </AppText>
-        )}
-        {seasonal ? null : <View style={styles.headerSpacer} />}
-      </View>
+          <View style={styles.headerSpacer} />
+        </View>
+      )}
 
       {seasonal ? (
         <>
@@ -856,49 +876,56 @@ export default function SignUpScreen() {
         </AppText>
       </TouchableOpacity>
 
-      <View
-        style={[styles.signInRow, seasonal ? styles.seasonalSignInRow : null]}
-      >
-        <AppText
-          preset="unifiedBody"
-          style={[
-            styles.signInHint,
-            seasonal ? styles.seasonalSignInText : null,
+      {seasonal ? (
+        <LinearGradient
+          colors={[
+            'rgba(66, 29, 12, 0)',
+            'rgba(66, 29, 12, 0.48)',
+            'rgba(66, 29, 12, 0)',
           ]}
+          end={{ x: 1, y: 0 }}
+          start={{ x: 0, y: 0 }}
+          style={styles.seasonalSignInScrim}
         >
-          이미 계정이 있으신가요?
-        </AppText>
-        <TouchableOpacity
-          activeOpacity={0.75}
-          onPress={() => navigation.navigate('SignIn')}
-        >
-          <AppText
-            preset="unifiedLabel"
-            style={[
-              styles.signInLink,
-              seasonal ? styles.seasonalSignInText : null,
-            ]}
-          >
-            로그인
-          </AppText>
-        </TouchableOpacity>
-      </View>
+          {signInPrompt}
+        </LinearGradient>
+      ) : (
+        signInPrompt
+      )}
     </>
   );
 
   if (seasonalVisual) {
     return (
-      <ImageBackground
-        accessibilityIgnoresInvertColors
-        accessibilityLabel={seasonalVisual.accessibilityLabel}
-        accessible={false}
-        resizeMode="cover"
-        source={seasonalVisual.source}
+      <View
         style={[
           styles.seasonalBackground,
           { backgroundColor: seasonalVisual.backgroundColor },
         ]}
       >
+        <Image
+          accessibilityIgnoresInvertColors
+          accessibilityLabel={seasonalVisual.accessibilityLabel}
+          accessible={false}
+          pointerEvents="none"
+          resizeMode="cover"
+          source={seasonalVisual.source}
+          style={[
+            styles.seasonalBackgroundImage,
+            { width: viewportWidth, height: seasonalBackgroundHeight },
+          ]}
+        />
+        <LinearGradient
+          colors={[
+            'rgba(233, 155, 84, 0)',
+            seasonalVisual.backgroundColor,
+          ]}
+          pointerEvents="none"
+          style={[
+            styles.seasonalBackgroundFade,
+            { top: seasonalBackgroundHeight - 140 },
+          ]}
+        />
         <StatusBar barStyle="dark-content" />
         <View
           pointerEvents="none"
@@ -923,7 +950,17 @@ export default function SignUpScreen() {
             {content}
           </KeyboardAwareScrollView>
         </SafeAreaView>
-      </ImageBackground>
+        <TouchableOpacity
+          accessibilityLabel="뒤로 가기"
+          accessibilityRole="button"
+          activeOpacity={0.75}
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+          onPress={() => navigation.navigate('SignIn')}
+          style={[styles.seasonalFixedBackButton, { top: insets.top + 2 }]}
+        >
+          <Feather color={seasonalVisual.textColor} name="arrow-left" size={20} />
+        </TouchableOpacity>
+      </View>
     );
   }
 

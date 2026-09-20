@@ -5,6 +5,7 @@ import type { SeasonKey } from './season';
 export type SeasonalSignupVisual = {
   season: Extract<SeasonKey, 'autumn'>;
   source: ImageSourcePropType;
+  backgroundAspectRatio: number;
   accessibilityLabel: string;
   backgroundColor: string;
   backgroundWashColor: string;
@@ -31,6 +32,7 @@ export type SeasonalSignupVisual = {
 const AUTUMN_SIGNUP_VISUAL: SeasonalSignupVisual = {
   season: 'autumn',
   source: require('../../assets/seasonal/signup/autumn.jpg'),
+  backgroundAspectRatio: 1672 / 941,
   accessibilityLabel:
     '단풍 숲에서 여러 반려동물이 함께 있는 누리 가을 회원가입 배경',
   backgroundColor: '#E99B54',
