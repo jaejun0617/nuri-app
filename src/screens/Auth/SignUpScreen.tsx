@@ -907,7 +907,7 @@ export default function SignUpScreen() {
           ]}
         />
         <SafeAreaView
-          edges={['top', 'left', 'right']}
+          edges={['top', 'bottom', 'left', 'right']}
           style={styles.seasonalSafeArea}
         >
           <KeyboardAwareScrollView
