@@ -323,7 +323,13 @@ export const styles = StyleSheet.create({
     textShadowRadius: 3,
   },
   seasonalInlineLinks: {
+    alignSelf: 'center',
     marginTop: 10,
+    width: '82%',
+  },
+  seasonalInlineLinkButton: {
+    flex: 1,
+    alignItems: 'center',
   },
   seasonalInlineDivider: {
     color: '#856F61',
@@ -341,7 +347,7 @@ export const styles = StyleSheet.create({
   },
   seasonalSocialSection: {
     justifyContent: 'center',
-    marginTop: 0,
+    marginTop: 14,
     marginBottom: 8,
   },
   socialDivider: {

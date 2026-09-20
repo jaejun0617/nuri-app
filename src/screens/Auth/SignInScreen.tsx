@@ -980,6 +980,7 @@ export default function SignInScreen() {
             accessibilityRole="button"
             activeOpacity={0.75}
             onPress={onPressForgotPassword}
+            style={isSeasonalLogin ? styles.seasonalInlineLinkButton : null}
           >
             <AppText
               preset="unifiedLabel"
@@ -1010,6 +1011,7 @@ export default function SignInScreen() {
             accessibilityRole="button"
             activeOpacity={0.75}
             onPress={onPressSignUp}
+            style={isSeasonalLogin ? styles.seasonalInlineLinkButton : null}
           >
             <AppText
               preset="unifiedLabel"
