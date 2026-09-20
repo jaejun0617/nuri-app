@@ -5,7 +5,9 @@ const TEXT = '#1B2435';
 
 const BRAND = '#6D6AF8';
 
-const SEASONAL_DISPLAY_FONT = Platform.select({
+const SEASONAL_HEADLINE_FONT = 'GowunBatang-Regular';
+
+const SEASONAL_SUPPORT_FONT = Platform.select({
   ios: 'AppleMyungjo',
   android: 'serif',
   default: 'serif',
@@ -148,10 +150,11 @@ export const styles = StyleSheet.create({
   },
   seasonalHeadline: {
     color: '#4B3527',
-    fontFamily: SEASONAL_DISPLAY_FONT,
+    fontFamily: SEASONAL_HEADLINE_FONT,
     fontSize: 18,
     lineHeight: 24,
-    fontWeight: '500',
+    fontWeight: '400',
+    includeFontPadding: false,
     letterSpacing: 0,
     textAlign: 'center',
     textShadowColor: 'rgba(255, 249, 241, 0.72)',
@@ -160,7 +163,7 @@ export const styles = StyleSheet.create({
   },
   seasonalHeadlineAccent: {
     color: '#D95C2B',
-    fontWeight: '600',
+    fontWeight: '400',
   },
   seasonalHeadlineOrnament: {
     alignItems: 'center',
@@ -175,7 +178,7 @@ export const styles = StyleSheet.create({
   },
   seasonalSubtitle: {
     color: '#5A4031',
-    fontFamily: SEASONAL_DISPLAY_FONT,
+    fontFamily: SEASONAL_SUPPORT_FONT,
     fontSize: 12,
     lineHeight: 17,
     fontWeight: '500',

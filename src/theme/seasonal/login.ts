@@ -3,7 +3,7 @@ import type { ImageSourcePropType } from 'react-native';
 import type { SeasonKey } from './season';
 
 export type SeasonalLoginVisual = {
-  season: Extract<SeasonKey, 'spring' | 'autumn' | 'winter'>;
+  season: SeasonKey;
   source: ImageSourcePropType;
   backgroundColor: string;
   backgroundWashColor: string;
@@ -17,7 +17,7 @@ export type SeasonalLoginVisual = {
   headlineAccent: string;
   headlineSecondLineSuffix: string;
   headlineShadowColor: string;
-  ornamentIcon: 'flower' | 'leaf-maple' | 'snowflake';
+  ornamentIcon: 'flower' | 'leaf' | 'leaf-maple' | 'snowflake';
   subtitle: string;
   subtitleColor: string;
   englishCopy: string;
@@ -87,6 +87,50 @@ const SPRING_LOGIN_VISUAL: SeasonalLoginVisual = {
   recentLoginBackgroundColor: 'rgba(255, 252, 252, 0.96)',
   recentLoginBorderColor: 'rgba(168, 63, 104, 0.24)',
   recentLoginTextColor: '#A83F68',
+};
+
+const SUMMER_LOGIN_VISUAL: SeasonalLoginVisual = {
+  season: 'summer',
+  source: require('../../assets/seasonal/login/summer.jpg'),
+  backgroundColor: '#EAF6D8',
+  backgroundWashColor: 'rgba(244, 252, 238, 0.03)',
+  accentColor: '#4D8FD8',
+  headlineAccentColor: '#438EDC',
+  heroHeightOffset: 8,
+  accessibilityLabel:
+    '여름 수국 들판에서 여러 반려동물이 함께 있는 누리 로그인 배경',
+  headlineColor: '#3E4C4F',
+  headlineFirstLine: '함께한 모든 여름이',
+  headlineSecondLinePrefix: '',
+  headlineAccent: '더 특별한 추억',
+  headlineSecondLineSuffix: '으로 남도록',
+  headlineShadowColor: 'rgba(255, 255, 255, 0.9)',
+  ornamentIcon: 'leaf',
+  subtitle: '사랑하는 아이와, 언제나 누리와 함께',
+  subtitleColor: '#3F5260',
+  englishCopy: 'Brighter\nDays\nTogether ♥',
+  englishCopyColor: '#3E8EE4',
+  fieldBackgroundColor: 'rgba(255, 255, 250, 0.9)',
+  fieldBorderColor: 'rgba(87, 148, 211, 0.3)',
+  fieldShadowColor: '#4D7AA5',
+  fieldIconColor: '#536684',
+  fieldPlaceholderColor: '#6C7B8F',
+  fieldTextColor: '#304258',
+  ctaColor: '#4F91D8',
+  ctaShadowColor: '#2F6EA8',
+  inlineTextColor: '#43566E',
+  inlineDividerColor: '#6B8098',
+  socialDividerColor: 'rgba(73, 105, 139, 0.48)',
+  socialLabel: '소셜로 로그인',
+  socialTextColor: '#40566E',
+  googleBackgroundColor: 'rgba(255, 255, 255, 0.94)',
+  googleBorderColor: '#C9D8E5',
+  policyTextColor: '#52687A',
+  policyLinkColor: '#2F6EB8',
+  policyShadowColor: 'rgba(255, 255, 255, 0.96)',
+  recentLoginBackgroundColor: 'rgba(250, 253, 255, 0.96)',
+  recentLoginBorderColor: 'rgba(47, 110, 184, 0.24)',
+  recentLoginTextColor: '#2F6EB8',
 };
 
 const AUTUMN_LOGIN_VISUAL: SeasonalLoginVisual = {
@@ -179,19 +223,17 @@ const WINTER_LOGIN_VISUAL: SeasonalLoginVisual = {
 const APPROVED_LOGIN_VISUALS: Partial<Record<SeasonKey, SeasonalLoginVisual>> =
   {
     spring: SPRING_LOGIN_VISUAL,
+    summer: SUMMER_LOGIN_VISUAL,
     autumn: AUTUMN_LOGIN_VISUAL,
     winter: WINTER_LOGIN_VISUAL,
   };
 
 /**
- * Returns a seasonal login visual only after that season has been approved.
- * Unapproved seasons deliberately fall back to the existing login experience.
+ * Resolves the approved login presentation for the active KST season.
  */
 export function getSeasonalLoginVisual(
   season: SeasonKey,
-  override:
-    | 'auto'
-    | Extract<SeasonKey, 'spring' | 'autumn' | 'winter'> = 'auto',
+  override: 'auto' | SeasonKey = 'auto',
 ): SeasonalLoginVisual | null {
   const resolvedSeason = override === 'auto' ? season : override;
   return APPROVED_LOGIN_VISUALS[resolvedSeason] ?? null;

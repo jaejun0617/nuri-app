@@ -48,7 +48,7 @@ describe('seasonal theme', () => {
     expect(new Set(sources).size).toBe(4);
   });
 
-  it('preserves approved autumn and winter visuals and adds spring', () => {
+  it('maps all four approved seasonal login visuals', () => {
     expect(getSeasonalLoginVisual('spring')).toEqual(
       expect.objectContaining({
         season: 'spring',
@@ -58,6 +58,19 @@ describe('seasonal theme', () => {
         heroHeightOffset: 8,
         policyLinkColor: '#A83F68',
         subtitleColor: '#59483F',
+        socialLabel: '소셜로 로그인',
+      }),
+    );
+
+    expect(getSeasonalLoginVisual('summer')).toEqual(
+      expect.objectContaining({
+        season: 'summer',
+        backgroundColor: '#EAF6D8',
+        ctaColor: '#4F91D8',
+        headlineAccentColor: '#438EDC',
+        heroHeightOffset: 8,
+        policyLinkColor: '#2F6EB8',
+        subtitleColor: '#3F5260',
         socialLabel: '소셜로 로그인',
       }),
     );
@@ -84,12 +97,11 @@ describe('seasonal theme', () => {
         socialLabel: 'SNS 계정으로 시작하기',
       }),
     );
-
-    expect(getSeasonalLoginVisual('summer')).toBeNull();
   });
 
   it('supports bounded seasonal QA overrides and returns to AUTO', () => {
     expect(getSeasonalLoginVisual('autumn', 'spring')?.season).toBe('spring');
+    expect(getSeasonalLoginVisual('autumn', 'summer')?.season).toBe('summer');
     expect(getSeasonalLoginVisual('autumn', 'winter')?.season).toBe('winter');
     expect(getSeasonalLoginVisual('autumn', 'auto')?.season).toBe('autumn');
   });

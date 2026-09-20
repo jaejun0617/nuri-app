@@ -69,6 +69,7 @@
 	<false/>
 	<key>UIAppFonts</key>
 	<array>
+		<string>GowunBatang-Regular.ttf</string>
 		<string>PretendardVariable.ttf</string>
 	</array>
 </dict>
