@@ -7,6 +7,7 @@ import {
   SEASONAL_SPLASH_VISUALS,
 } from '../src/theme/seasonal/assets';
 import { getSeasonalLoginVisual } from '../src/theme/seasonal/login';
+import { getSeasonalSignupVisual } from '../src/theme/seasonal/signup';
 
 describe('seasonal theme', () => {
   it('uses Asia/Seoul as the fixed product timezone', () => {
@@ -104,5 +105,24 @@ describe('seasonal theme', () => {
     expect(getSeasonalLoginVisual('autumn', 'summer')?.season).toBe('summer');
     expect(getSeasonalLoginVisual('autumn', 'winter')?.season).toBe('winter');
     expect(getSeasonalLoginVisual('autumn', 'auto')?.season).toBe('autumn');
+  });
+
+  it('enables only the approved autumn signup visual', () => {
+    expect(getSeasonalSignupVisual('autumn')).toEqual(
+      expect.objectContaining({
+        season: 'autumn',
+        backgroundColor: '#E99B54',
+        accentColor: '#E9693A',
+        policyLinkColor: '#8C351C',
+      }),
+    );
+    expect(getSeasonalSignupVisual('spring')).toBeNull();
+    expect(getSeasonalSignupVisual('summer')).toBeNull();
+    expect(getSeasonalSignupVisual('winter')).toBeNull();
+  });
+
+  it('supports the bounded autumn signup override and resets to AUTO', () => {
+    expect(getSeasonalSignupVisual('spring', 'autumn')?.season).toBe('autumn');
+    expect(getSeasonalSignupVisual('spring', 'auto')).toBeNull();
   });
 });

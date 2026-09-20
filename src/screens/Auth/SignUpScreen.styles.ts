@@ -10,6 +10,16 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
+  seasonalBackground: {
+    flex: 1,
+  },
+  seasonalBackgroundWash: {
+    ...StyleSheet.absoluteFill,
+  },
+  seasonalSafeArea: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
   keyboardView: {
     flex: 1,
   },
@@ -19,17 +29,35 @@ export const styles = StyleSheet.create({
     paddingTop: 40,
     paddingBottom: 28,
   },
+  seasonalScrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 26,
+    paddingBottom: 30,
+  },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 30,
   },
+  seasonalHeaderRow: {
+    justifyContent: 'flex-start',
+    marginBottom: 0,
+    minHeight: 44,
+  },
   headerBackButton: {
     width: 44,
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  seasonalHeaderBackButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 252, 248, 0.82)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.78)',
   },
   headerTitle: {
     color: TEXT,
@@ -42,6 +70,15 @@ export const styles = StyleSheet.create({
   },
   heroCopy: {
     marginBottom: 26,
+  },
+  seasonalHeroSpacer: {
+    width: '100%',
+  },
+  accessibilityHeading: {
+    position: 'absolute',
+    width: 1,
+    height: 1,
+    opacity: 0,
   },
   heroTitle: {
     color: TEXT,
@@ -56,6 +93,9 @@ export const styles = StyleSheet.create({
   },
   fieldBlock: {
     marginBottom: 14,
+  },
+  seasonalFieldBlock: {
+    marginBottom: 9,
   },
   label: {
     color: TEXT,
@@ -73,11 +113,26 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  seasonalInputRow: {
+    minHeight: 48,
+    borderRadius: 15,
+    paddingHorizontal: 14,
+    shadowOpacity: 0.09,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
   input: {
     flex: 1,
     color: TEXT,
     ...typography.role.body,
     fontWeight: '700',
+  },
+  seasonalInput: {
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: '600',
+    paddingVertical: 0,
   },
   inputAccessory: {
     marginLeft: 10,
@@ -88,6 +143,13 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
     marginTop: -4,
     marginBottom: 8,
+  },
+  seasonalErrorText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: -2,
+    marginBottom: 6,
   },
   termsRow: {
     marginTop: 6,
@@ -104,25 +166,52 @@ export const styles = StyleSheet.create({
     paddingVertical: 14,
     gap: 12,
   },
+  seasonalTermsCard: {
+    marginTop: 5,
+    marginBottom: 8,
+    borderRadius: 17,
+    paddingHorizontal: 11,
+    paddingVertical: 11,
+    gap: 8,
+    shadowColor: '#8E4D28',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 2,
+  },
   termsCardHeader: {
     flexDirection: 'row',
     gap: 12,
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  seasonalTermsCardHeader: {
+    gap: 8,
+  },
   termsCardHeaderCopy: {
     flex: 1,
     gap: 6,
+  },
+  seasonalTermsCardHeaderCopy: {
+    gap: 3,
   },
   termsCardTitle: {
     color: TEXT,
     ...typography.role.body,
     fontWeight: '800',
   },
+  seasonalTermsCardTitle: {
+    fontSize: 14,
+    lineHeight: 19,
+  },
   termsCardBody: {
     color: '#6B778C',
     ...typography.role.helper,
     fontWeight: '700',
+  },
+  seasonalTermsCardBody: {
+    fontSize: 11,
+    lineHeight: 16,
   },
   allAgreeButton: {
     minHeight: 48,
@@ -136,11 +225,22 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  seasonalAllAgreeButton: {
+    minHeight: 42,
+    minWidth: 112,
+    paddingHorizontal: 9,
+    borderRadius: 13,
+  },
   allAgreeLabel: {
     color: TEXT,
     ...typography.role.tab,
     fontWeight: '900',
     marginLeft: 8,
+  },
+  seasonalAllAgreeLabel: {
+    fontSize: 12,
+    lineHeight: 16,
+    marginLeft: 5,
   },
   termsDivider: {
     height: 1,
@@ -155,10 +255,19 @@ export const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 10,
   },
+  seasonalConsentCardRow: {
+    borderRadius: 13,
+    paddingHorizontal: 9,
+    paddingVertical: 8,
+    gap: 7,
+  },
   consentHeaderRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12,
+  },
+  seasonalConsentHeaderRow: {
+    gap: 7,
   },
   consentToggle: {
     flex: 1,
@@ -173,9 +282,17 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  seasonalDisclosureButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 11,
+  },
   consentCopy: {
     flex: 1,
     gap: 4,
+  },
+  seasonalConsentCopy: {
+    gap: 2,
   },
   consentTitleRow: {
     flexDirection: 'row',
@@ -187,6 +304,10 @@ export const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 8,
     paddingVertical: 3,
+  },
+  seasonalConsentBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
   },
   requiredBadge: {
     backgroundColor: '#FDECEC',
@@ -209,6 +330,10 @@ export const styles = StyleSheet.create({
     ...typography.role.bodySm,
     fontWeight: '900',
   },
+  seasonalConsentTitle: {
+    fontSize: 12,
+    lineHeight: 17,
+  },
   checkbox: {
     width: 22,
     height: 22,
@@ -220,6 +345,12 @@ export const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     marginRight: 10,
     marginTop: 1,
+  },
+  seasonalCheckbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    marginRight: 8,
   },
   checkboxChecked: {
     backgroundColor: BRAND,
@@ -234,6 +365,10 @@ export const styles = StyleSheet.create({
     ...typography.role.helper,
     fontWeight: '700',
   },
+  seasonalTermsText: {
+    fontSize: 10.5,
+    lineHeight: 15,
+  },
   consentExpandedBox: {
     borderRadius: 14,
     backgroundColor: '#F8FAFD',
@@ -242,6 +377,12 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 12,
     gap: 8,
+  },
+  seasonalConsentExpandedBox: {
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    gap: 6,
   },
   expandedMetaRow: {
     flexDirection: 'row',
@@ -298,6 +439,12 @@ export const styles = StyleSheet.create({
     ...typography.role.helper,
     fontWeight: '700',
   },
+  seasonalTermsMeta: {
+    marginTop: -1,
+    marginBottom: 11,
+    fontSize: 10.5,
+    lineHeight: 15,
+  },
   legalNoticeBox: {
     marginTop: -6,
     marginBottom: 18,
@@ -331,6 +478,14 @@ export const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     elevation: 5,
   },
+  seasonalPrimaryButton: {
+    minHeight: 50,
+    borderRadius: 16,
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
+  },
   primaryButtonDisabled: {
     opacity: 0.45,
   },
@@ -339,48 +494,9 @@ export const styles = StyleSheet.create({
     ...typography.role.button,
     fontWeight: '900',
   },
-  socialLead: {
-    textAlign: 'center',
-    color: '#C0C7D4',
-    ...typography.role.helper,
-    fontWeight: '700',
-    marginVertical: 18,
-  },
-  socialButton: {
-    minHeight: 56,
-    borderRadius: 16,
-    borderWidth: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  socialBadge: {
-    position: 'absolute',
-    left: 18,
-  },
-  socialButtonText: {
-    ...typography.role.button,
-    fontWeight: '900',
-  },
-  kakaoBadge: {
-    width: 18,
-    height: 15,
-    borderRadius: 6,
-    backgroundColor: '#3A2800',
-  },
-  googleBadge: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  googleBadgeText: {
-    color: '#4285F4',
-    ...typography.role.caption,
-    fontWeight: '900',
+  seasonalPrimaryButtonText: {
+    fontSize: 15,
+    lineHeight: 20,
   },
   signInRow: {
     marginTop: 12,
@@ -389,10 +505,18 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
   },
+  seasonalSignInRow: {
+    marginTop: 9,
+  },
   signInHint: {
     color: '#B9C1CE',
     ...typography.role.helper,
     fontWeight: '700',
+  },
+  seasonalSignInText: {
+    color: '#FFFFFF',
+    fontSize: 11.5,
+    lineHeight: 16,
   },
   signInLink: {
     color: BRAND,
