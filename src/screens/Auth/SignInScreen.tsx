@@ -80,7 +80,10 @@ import { useAuthStore } from '../../store/authStore';
 import { showToast } from '../../store/uiStore';
 import { getKstDateParts } from '../../utils/date';
 import { scheduleIdleTask } from '../../utils/scheduleIdleTask';
-import { getSeasonalLoginVisual } from '../../theme/seasonal/login';
+import {
+  getSeasonalLoginVisual,
+  type SeasonalLoginVisual,
+} from '../../theme/seasonal/login';
 import { getSeasonalThemeKey } from '../../theme/seasonal/season';
 
 import { styles } from './SignInScreen.styles';
@@ -99,7 +102,7 @@ type FieldProps = {
   rightAccessory?: React.ReactNode;
   inputRef?: React.Ref<React.ComponentRef<typeof TextInput>>;
   leftIconName?: React.ComponentProps<typeof Feather>['name'];
-  seasonal?: boolean;
+  seasonalVisual?: SeasonalLoginVisual | null;
 };
 
 const AuthField = memo(function AuthField({
@@ -113,8 +116,10 @@ const AuthField = memo(function AuthField({
   rightAccessory,
   inputRef,
   leftIconName,
-  seasonal = false,
+  seasonalVisual,
 }: FieldProps) {
+  const seasonal = seasonalVisual !== null && seasonalVisual !== undefined;
+
   return (
     <View
       style={[styles.fieldBlock, seasonal ? styles.seasonalFieldBlock : null]}
@@ -123,11 +128,21 @@ const AuthField = memo(function AuthField({
         {label}
       </AppText>
       <View
-        style={[styles.inputRow, seasonal ? styles.seasonalInputRow : null]}
+        style={[
+          styles.inputRow,
+          seasonal ? styles.seasonalInputRow : null,
+          seasonalVisual
+            ? {
+                backgroundColor: seasonalVisual.fieldBackgroundColor,
+                borderColor: seasonalVisual.fieldBorderColor,
+                shadowColor: seasonalVisual.fieldShadowColor,
+              }
+            : null,
+        ]}
       >
         {leftIconName ? (
           <Feather
-            color={seasonal ? '#5C554F' : '#9DA7BA'}
+            color={seasonalVisual?.fieldIconColor ?? '#9DA7BA'}
             name={leftIconName}
             size={20}
             style={styles.inputLeadingIcon}
@@ -138,11 +153,17 @@ const AuthField = memo(function AuthField({
           keyboardType={keyboardType}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={seasonal ? '#746C65' : '#B7C0D0'}
+          placeholderTextColor={
+            seasonalVisual?.fieldPlaceholderColor ?? '#B7C0D0'
+          }
           ref={inputRef}
           secureTextEntry={secureTextEntry}
-          selectionColor={seasonal ? '#D95C2B' : undefined}
-          style={[styles.input, seasonal ? styles.seasonalInput : null]}
+          selectionColor={seasonalVisual?.accentColor}
+          style={[
+            styles.input,
+            seasonal ? styles.seasonalInput : null,
+            seasonalVisual ? { color: seasonalVisual.fieldTextColor } : null,
+          ]}
           value={value}
         />
         {rightAccessory ? (
@@ -162,7 +183,7 @@ type SocialButtonProps = {
   disabled: boolean;
   isRecentLogin?: boolean;
   onPress: () => void;
-  seasonal?: boolean;
+  seasonalVisual?: SeasonalLoginVisual | null;
 };
 
 const SocialButton = memo(function SocialButton({
@@ -174,8 +195,10 @@ const SocialButton = memo(function SocialButton({
   disabled,
   isRecentLogin = false,
   onPress,
-  seasonal = false,
+  seasonalVisual,
 }: SocialButtonProps) {
+  const seasonal = seasonalVisual !== null && seasonalVisual !== undefined;
+
   return (
     <TouchableOpacity
       accessibilityRole="button"
@@ -200,21 +223,31 @@ const SocialButton = memo(function SocialButton({
       >
         {label}
       </AppText>
-      {isRecentLogin ? <RecentLoginPill seasonal={seasonal} /> : null}
+      {isRecentLogin ? (
+        <RecentLoginPill seasonalVisual={seasonalVisual} />
+      ) : null}
     </TouchableOpacity>
   );
 });
 
 const RecentLoginPill = memo(function RecentLoginPill({
-  seasonal = false,
+  seasonalVisual,
 }: {
-  seasonal?: boolean;
+  seasonalVisual?: SeasonalLoginVisual | null;
 }) {
+  const seasonal = seasonalVisual !== null && seasonalVisual !== undefined;
+
   return (
     <View
       style={[
         styles.recentLoginPill,
         seasonal ? styles.seasonalRecentLoginPill : null,
+        seasonalVisual
+          ? {
+              backgroundColor: seasonalVisual.recentLoginBackgroundColor,
+              borderColor: seasonalVisual.recentLoginBorderColor,
+            }
+          : null,
       ]}
     >
       <AppText
@@ -222,6 +255,9 @@ const RecentLoginPill = memo(function RecentLoginPill({
         style={[
           styles.recentLoginPillText,
           seasonal ? styles.seasonalRecentLoginPillText : null,
+          seasonalVisual
+            ? { color: seasonalVisual.recentLoginTextColor }
+            : null,
         ]}
         styleOverridesPreset={seasonal}
       >
@@ -253,6 +289,7 @@ type SocialConsentNoticeProps = {
   compact?: boolean;
   linkColor: string;
   onPressDocument: (documentId: LegalDocumentId) => void;
+  shadowColor?: string;
   textColor: string;
 };
 
@@ -260,6 +297,7 @@ const SocialConsentNotice = memo(function SocialConsentNotice({
   compact = false,
   linkColor,
   onPressDocument,
+  shadowColor,
   textColor,
 }: SocialConsentNoticeProps) {
   const textStyle = {
@@ -269,7 +307,7 @@ const SocialConsentNotice = memo(function SocialConsentNotice({
     fontWeight: compact ? ('500' as const) : ('700' as const),
     ...(compact
       ? {
-          textShadowColor: 'rgba(255, 249, 240, 0.96)',
+          textShadowColor: shadowColor ?? 'rgba(255, 249, 240, 0.96)',
           textShadowOffset: { width: 0, height: 1 },
           textShadowRadius: 3,
         }
@@ -438,10 +476,9 @@ export default function SignInScreen() {
     [season],
   );
   const isSeasonalLogin = seasonalVisual !== null;
-  const seasonalHeroHeight = Math.min(
-    330,
-    Math.max(315, viewportHeight * 0.41),
-  );
+  const seasonalHeroHeight =
+    Math.min(330, Math.max(315, viewportHeight * 0.41)) +
+    (seasonalVisual?.heroHeightOffset ?? 0);
 
   const setSession = useAuthStore(s => s.setSession);
   const setAccountDeletionGate = useAuthStore(s => s.setAccountDeletionGate);
@@ -747,38 +784,90 @@ export default function SignInScreen() {
       {isSeasonalLogin ? (
         <View style={[styles.seasonalHero, { minHeight: seasonalHeroHeight }]}>
           <View style={styles.seasonalHeadlineGroup}>
-            <AppText preset="title2" style={styles.seasonalHeadline}>
-              함께하는 오늘이
+            <AppText
+              preset="title2"
+              style={[
+                styles.seasonalHeadline,
+                seasonalVisual
+                  ? {
+                      color: seasonalVisual.headlineColor,
+                      textShadowColor: seasonalVisual.headlineShadowColor,
+                    }
+                  : null,
+              ]}
+            >
+              {seasonalVisual?.headlineFirstLine}
             </AppText>
-            <Text style={styles.seasonalHeadline}>
-              오래도록{' '}
-              <Text style={styles.seasonalHeadlineAccent}>따뜻한 기억</Text>이
-              되기를
+            <Text
+              style={[
+                styles.seasonalHeadline,
+                seasonalVisual
+                  ? {
+                      color: seasonalVisual.headlineColor,
+                      textShadowColor: seasonalVisual.headlineShadowColor,
+                    }
+                  : null,
+              ]}
+            >
+              {seasonalVisual?.headlineSecondLinePrefix}
+              <Text
+                style={[
+                  styles.seasonalHeadlineAccent,
+                  seasonalVisual
+                    ? { color: seasonalVisual.headlineAccentColor }
+                    : null,
+                ]}
+              >
+                {seasonalVisual?.headlineAccent}
+              </Text>
+              {seasonalVisual?.headlineSecondLineSuffix}
             </Text>
             <View style={styles.seasonalHeadlineOrnament}>
-              <View style={styles.seasonalOrnamentLine} />
+              <View
+                style={[
+                  styles.seasonalOrnamentLine,
+                  seasonalVisual
+                    ? { backgroundColor: seasonalVisual.accentColor }
+                    : null,
+                ]}
+              />
               <MaterialCommunityIcons
                 color={seasonalVisual?.accentColor}
-                name="leaf-maple"
+                name={seasonalVisual?.ornamentIcon ?? 'leaf-maple'}
                 size={18}
               />
-              <View style={styles.seasonalOrnamentLine} />
+              <View
+                style={[
+                  styles.seasonalOrnamentLine,
+                  seasonalVisual
+                    ? { backgroundColor: seasonalVisual.accentColor }
+                    : null,
+                ]}
+              />
             </View>
             <AppText
               preset="unifiedLabel"
-              style={styles.seasonalSubtitle}
+              style={[
+                styles.seasonalSubtitle,
+                seasonalVisual ? { color: seasonalVisual.subtitleColor } : null,
+              ]}
               styleOverridesPreset
             >
-              사랑하는 아이와, 언제나 누리와 함께
+              {seasonalVisual?.subtitle}
             </AppText>
           </View>
 
           <AppText
             preset="unifiedLabel"
-            style={styles.seasonalEnglishCopy}
+            style={[
+              styles.seasonalEnglishCopy,
+              seasonalVisual
+                ? { color: seasonalVisual.englishCopyColor }
+                : null,
+            ]}
             styleOverridesPreset
           >
-            Warm Moments{`\n`}Together ♥
+            {seasonalVisual?.englishCopy}
           </AppText>
         </View>
       ) : (
@@ -805,7 +894,7 @@ export default function SignInScreen() {
           leftIconName={isSeasonalLogin ? 'mail' : undefined}
           onChangeText={setEmail}
           placeholder="이메일"
-          seasonal={isSeasonalLogin}
+          seasonalVisual={seasonalVisual}
           value={email}
         />
 
@@ -827,13 +916,13 @@ export default function SignInScreen() {
               onPress={onToggleSecurePassword}
             >
               <Feather
-                color={isSeasonalLogin ? '#5C554F' : '#9DA7BA'}
+                color={seasonalVisual?.fieldIconColor ?? '#9DA7BA'}
                 name={securePassword ? 'eye-off' : 'eye'}
                 size={20}
               />
             </TouchableOpacity>
           }
-          seasonal={isSeasonalLogin}
+          seasonalVisual={seasonalVisual}
           secureTextEntry={securePassword}
           value={password}
         />
@@ -847,6 +936,12 @@ export default function SignInScreen() {
           style={[
             styles.primaryButton,
             isSeasonalLogin ? styles.seasonalPrimaryButton : null,
+            seasonalVisual
+              ? {
+                  backgroundColor: seasonalVisual.ctaColor,
+                  shadowColor: seasonalVisual.ctaShadowColor,
+                }
+              : null,
             disabled ? styles.primaryButtonDisabled : null,
           ]}
         >
@@ -871,7 +966,7 @@ export default function SignInScreen() {
             </AppText>
           )}
           {recentLoginProvider === 'email' ? (
-            <RecentLoginPill seasonal={isSeasonalLogin} />
+            <RecentLoginPill seasonalVisual={seasonalVisual} />
           ) : null}
         </TouchableOpacity>
 
@@ -891,6 +986,9 @@ export default function SignInScreen() {
               style={[
                 styles.inlineLinkText,
                 isSeasonalLogin ? styles.seasonalInlineLinkText : null,
+                seasonalVisual
+                  ? { color: seasonalVisual.inlineTextColor }
+                  : null,
               ]}
               styleOverridesPreset={isSeasonalLogin}
             >
@@ -901,6 +999,9 @@ export default function SignInScreen() {
             style={[
               styles.inlineDivider,
               isSeasonalLogin ? styles.seasonalInlineDivider : null,
+              seasonalVisual
+                ? { color: seasonalVisual.inlineDividerColor }
+                : null,
             ]}
           >
             |
@@ -915,6 +1016,9 @@ export default function SignInScreen() {
               style={[
                 styles.inlineLinkText,
                 isSeasonalLogin ? styles.seasonalInlineLinkText : null,
+                seasonalVisual
+                  ? { color: seasonalVisual.inlineTextColor }
+                  : null,
               ]}
               styleOverridesPreset={isSeasonalLogin}
             >
@@ -935,6 +1039,9 @@ export default function SignInScreen() {
                 style={[
                   styles.socialDivider,
                   isSeasonalLogin ? styles.seasonalSocialDivider : null,
+                  seasonalVisual
+                    ? { backgroundColor: seasonalVisual.socialDividerColor }
+                    : null,
                 ]}
               />
               <AppText
@@ -942,15 +1049,21 @@ export default function SignInScreen() {
                 style={[
                   styles.socialSectionTitle,
                   isSeasonalLogin ? styles.seasonalSocialSectionTitle : null,
+                  seasonalVisual
+                    ? { color: seasonalVisual.socialTextColor }
+                    : null,
                 ]}
                 styleOverridesPreset={isSeasonalLogin}
               >
-                소셜 계정으로 시작하기
+                {seasonalVisual?.socialLabel ?? '소셜 계정으로 시작하기'}
               </AppText>
               <View
                 style={[
                   styles.socialDivider,
                   isSeasonalLogin ? styles.seasonalSocialDivider : null,
+                  seasonalVisual
+                    ? { backgroundColor: seasonalVisual.socialDividerColor }
+                    : null,
                 ]}
               />
             </View>
@@ -970,7 +1083,7 @@ export default function SignInScreen() {
                 onPress={() => {
                   onSocialPress('kakao').catch(() => {});
                 }}
-                seasonal={isSeasonalLogin}
+                seasonalVisual={seasonalVisual}
                 textColor="#191600"
               />
             ) : null}
@@ -978,10 +1091,10 @@ export default function SignInScreen() {
             {SHOW_GOOGLE_OAUTH ? (
               <SocialButton
                 backgroundColor={
-                  isSeasonalLogin ? 'rgba(255, 255, 255, 0.94)' : '#FFFFFF'
+                  seasonalVisual?.googleBackgroundColor ?? '#FFFFFF'
                 }
                 badge={<GoogleBadgeMark />}
-                borderColor={isSeasonalLogin ? '#E5D8CC' : '#E2E8F2'}
+                borderColor={seasonalVisual?.googleBorderColor ?? '#E2E8F2'}
                 disabled={socialDisabled}
                 isRecentLogin={recentLoginProvider === 'google'}
                 label={
@@ -992,16 +1105,19 @@ export default function SignInScreen() {
                 onPress={() => {
                   onSocialPress('google').catch(() => {});
                 }}
-                seasonal={isSeasonalLogin}
+                seasonalVisual={seasonalVisual}
                 textColor="#332C29"
               />
             ) : null}
 
             <SocialConsentNotice
               compact={isSeasonalLogin}
-              linkColor={isSeasonalLogin ? '#5B2A18' : theme.colors.brand}
+              linkColor={seasonalVisual?.policyLinkColor ?? theme.colors.brand}
               onPressDocument={onPressLegalDocument}
-              textColor={isSeasonalLogin ? '#596574' : theme.colors.textMuted}
+              shadowColor={seasonalVisual?.policyShadowColor}
+              textColor={
+                seasonalVisual?.policyTextColor ?? theme.colors.textMuted
+              }
             />
           </>
         ) : null}
@@ -1070,7 +1186,13 @@ export default function SignInScreen() {
           source={seasonalVisual.source}
           style={styles.seasonalBackground}
         >
-          <View pointerEvents="none" style={styles.seasonalBackgroundWash} />
+          <View
+            pointerEvents="none"
+            style={[
+              styles.seasonalBackgroundWash,
+              { backgroundColor: seasonalVisual.backgroundWashColor },
+            ]}
+          />
           <SafeAreaView style={styles.seasonalSafeArea}>
             {screenContent}
           </SafeAreaView>
