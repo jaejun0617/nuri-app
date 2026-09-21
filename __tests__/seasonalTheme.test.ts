@@ -107,6 +107,21 @@ describe('seasonal theme', () => {
     expect(getSeasonalLoginVisual('autumn', 'auto')?.season).toBe('autumn');
   });
 
+  it.each([
+    ['spring', '#873458'],
+    ['summer', '#285C99'],
+    ['autumn', '#833D24'],
+    ['winter', '#454C9B'],
+  ] as const)(
+    'uses a distinct readable %s signup secondary tone',
+    (season, textColor) => {
+      const visual = getSeasonalLoginVisual(season);
+      expect(visual?.signupTonalTextColor).toBe(textColor);
+      expect(visual?.signupTonalBackgroundColor).not.toBe(visual?.ctaColor);
+      expect(visual?.signupTonalBorderColor).toBeTruthy();
+    },
+  );
+
   it('maps all four approved signup visuals with distinct bundled assets', () => {
     expect(getSeasonalSignupVisual('spring')).toEqual(
       expect.objectContaining({

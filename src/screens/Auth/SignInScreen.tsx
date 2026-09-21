@@ -289,7 +289,6 @@ type SocialConsentNoticeProps = {
   compact?: boolean;
   linkColor: string;
   onPressDocument: (documentId: LegalDocumentId) => void;
-  shadowColor?: string;
   textColor: string;
 };
 
@@ -297,41 +296,27 @@ const SocialConsentNotice = memo(function SocialConsentNotice({
   compact = false,
   linkColor,
   onPressDocument,
-  shadowColor,
   textColor,
 }: SocialConsentNoticeProps) {
   const textStyle = {
     color: textColor,
-    fontSize: compact ? 10 : 12,
-    lineHeight: compact ? 15 : 19,
+    fontSize: compact ? 13 : 12,
+    lineHeight: 19,
     fontWeight: compact ? ('500' as const) : ('700' as const),
-    ...(compact
-      ? {
-          textShadowColor: shadowColor ?? 'rgba(255, 249, 240, 0.96)',
-          textShadowOffset: { width: 0, height: 1 },
-          textShadowRadius: 3,
-        }
-      : null),
   };
   const linkStyle = {
     ...textStyle,
     color: linkColor,
-    fontWeight: compact ? ('700' as const) : ('900' as const),
+    fontWeight: compact ? ('600' as const) : ('900' as const),
   };
 
   if (compact) {
     return (
-      <View
-        accessibilityLabel="소셜 계정으로 계속 진행 시 NURI의 이용약관 및 개인정보처리방침을 확인하고 동의한 것으로 간주합니다."
-        accessible
-        style={{ alignItems: 'center' }}
-      >
+      <View style={styles.seasonalLegalPanel}>
         <View
-          style={{
-            alignItems: 'center',
-            flexDirection: 'row',
-            justifyContent: 'center',
-          }}
+          accessibilityLabel="소셜 계정으로 계속 진행 시 NURI의 이용약관 및 개인정보처리방침을 확인하고 동의한 것으로 간주합니다."
+          accessible
+          style={styles.seasonalLegalContent}
         >
           <AppText preset="unifiedLabel" style={textStyle} styleOverridesPreset>
             소셜 계정으로 계속 진행 시 NURI의{' '}
@@ -352,16 +337,8 @@ const SocialConsentNotice = memo(function SocialConsentNotice({
           </TouchableOpacity>
           <AppText preset="unifiedLabel" style={textStyle} styleOverridesPreset>
             {' '}
-            및
+            및{' '}
           </AppText>
-        </View>
-        <View
-          style={{
-            alignItems: 'center',
-            flexDirection: 'row',
-            justifyContent: 'center',
-          }}
-        >
           <TouchableOpacity
             accessibilityRole="link"
             activeOpacity={0.72}
@@ -980,38 +957,49 @@ export default function SignInScreen() {
             accessibilityRole="button"
             activeOpacity={0.75}
             onPress={onPressForgotPassword}
-            style={isSeasonalLogin ? styles.seasonalInlineLinkButton : null}
+            style={
+              isSeasonalLogin
+                ? [
+                    styles.seasonalInlineLinkButton,
+                    styles.seasonalRecoveryButton,
+                  ]
+                : null
+            }
           >
             <AppText
               preset="unifiedLabel"
               style={[
                 styles.inlineLinkText,
                 isSeasonalLogin ? styles.seasonalInlineLinkText : null,
-                seasonalVisual
-                  ? { color: seasonalVisual.inlineTextColor }
-                  : null,
+                isSeasonalLogin ? styles.seasonalRecoveryText : null,
               ]}
               styleOverridesPreset={isSeasonalLogin}
             >
               비밀번호 찾기
             </AppText>
           </TouchableOpacity>
-          <Text
-            style={[
-              styles.inlineDivider,
-              isSeasonalLogin ? styles.seasonalInlineDivider : null,
-              seasonalVisual
-                ? { color: seasonalVisual.inlineDividerColor }
-                : null,
-            ]}
-          >
-            |
-          </Text>
+          {!isSeasonalLogin ? (
+            <Text style={styles.inlineDivider}>|</Text>
+          ) : null}
           <TouchableOpacity
             accessibilityRole="button"
             activeOpacity={0.75}
             onPress={onPressSignUp}
-            style={isSeasonalLogin ? styles.seasonalInlineLinkButton : null}
+            style={
+              isSeasonalLogin
+                ? [
+                    styles.seasonalInlineLinkButton,
+                    styles.seasonalSignupButton,
+                    seasonalVisual
+                      ? {
+                          backgroundColor:
+                            seasonalVisual.signupTonalBackgroundColor,
+                          borderColor: seasonalVisual.signupTonalBorderColor,
+                        }
+                      : null,
+                  ]
+                : null
+            }
           >
             <AppText
               preset="unifiedLabel"
@@ -1019,7 +1007,7 @@ export default function SignInScreen() {
                 styles.inlineLinkText,
                 isSeasonalLogin ? styles.seasonalInlineLinkText : null,
                 seasonalVisual
-                  ? { color: seasonalVisual.inlineTextColor }
+                  ? { color: seasonalVisual.signupTonalTextColor }
                   : null,
               ]}
               styleOverridesPreset={isSeasonalLogin}
@@ -1116,7 +1104,6 @@ export default function SignInScreen() {
               compact={isSeasonalLogin}
               linkColor={seasonalVisual?.policyLinkColor ?? theme.colors.brand}
               onPressDocument={onPressLegalDocument}
-              shadowColor={seasonalVisual?.policyShadowColor}
               textColor={
                 seasonalVisual?.policyTextColor ?? theme.colors.textMuted
               }

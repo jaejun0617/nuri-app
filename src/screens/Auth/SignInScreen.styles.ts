@@ -323,13 +323,32 @@ export const styles = StyleSheet.create({
     textShadowRadius: 3,
   },
   seasonalInlineLinks: {
-    alignSelf: 'center',
     marginTop: 10,
-    width: '82%',
+    gap: 10,
   },
   seasonalInlineLinkButton: {
     flex: 1,
+    minHeight: 44,
     alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  seasonalRecoveryButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.82)',
+    borderColor: 'rgba(76, 82, 93, 0.25)',
+    elevation: 0,
+    shadowOpacity: 0,
+  },
+  seasonalRecoveryText: {
+    color: '#414853',
+    textShadowColor: 'transparent',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 0,
+  },
+  seasonalSignupButton: {
+    backgroundColor: 'rgba(255, 232, 218, 0.94)',
+    borderColor: 'rgba(169, 76, 39, 0.36)',
   },
   seasonalInlineDivider: {
     color: '#856F61',
@@ -347,8 +366,24 @@ export const styles = StyleSheet.create({
   },
   seasonalSocialSection: {
     justifyContent: 'center',
-    marginTop: 14,
+    marginTop: 12,
     marginBottom: 8,
+  },
+  seasonalLegalPanel: {
+    marginTop: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: 'rgba(255, 255, 255, 0.82)',
+  },
+  seasonalLegalContent: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
+    columnGap: 2,
   },
   socialDivider: {
     flex: 1,

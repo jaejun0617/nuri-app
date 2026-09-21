@@ -30,6 +30,9 @@ export type SeasonalLoginVisual = {
   fieldTextColor: string;
   ctaColor: string;
   ctaShadowColor: string;
+  signupTonalBackgroundColor: string;
+  signupTonalBorderColor: string;
+  signupTonalTextColor: string;
   inlineTextColor: string;
   inlineDividerColor: string;
   socialDividerColor: string;
@@ -74,6 +77,9 @@ const SPRING_LOGIN_VISUAL: SeasonalLoginVisual = {
   fieldTextColor: '#433C48',
   ctaColor: '#E77F9A',
   ctaShadowColor: '#B85B76',
+  signupTonalBackgroundColor: 'rgba(255, 232, 238, 0.94)',
+  signupTonalBorderColor: 'rgba(168, 63, 104, 0.36)',
+  signupTonalTextColor: '#873458',
   inlineTextColor: '#614D58',
   inlineDividerColor: '#9B7A89',
   socialDividerColor: 'rgba(145, 101, 122, 0.48)',
@@ -118,6 +124,9 @@ const SUMMER_LOGIN_VISUAL: SeasonalLoginVisual = {
   fieldTextColor: '#304258',
   ctaColor: '#4F91D8',
   ctaShadowColor: '#2F6EA8',
+  signupTonalBackgroundColor: 'rgba(229, 242, 255, 0.94)',
+  signupTonalBorderColor: 'rgba(47, 110, 184, 0.34)',
+  signupTonalTextColor: '#285C99',
   inlineTextColor: '#43566E',
   inlineDividerColor: '#6B8098',
   socialDividerColor: 'rgba(73, 105, 139, 0.48)',
@@ -161,6 +170,9 @@ const AUTUMN_LOGIN_VISUAL: SeasonalLoginVisual = {
   fieldTextColor: '#3E342F',
   ctaColor: '#E9693A',
   ctaShadowColor: '#9E3D1B',
+  signupTonalBackgroundColor: 'rgba(255, 232, 218, 0.94)',
+  signupTonalBorderColor: 'rgba(169, 76, 39, 0.36)',
+  signupTonalTextColor: '#833D24',
   inlineTextColor: '#51473F',
   inlineDividerColor: '#856F61',
   socialDividerColor: 'rgba(91, 72, 60, 0.46)',
@@ -205,6 +217,9 @@ const WINTER_LOGIN_VISUAL: SeasonalLoginVisual = {
   fieldTextColor: '#2D3C59',
   ctaColor: '#9297F2',
   ctaShadowColor: '#6670C8',
+  signupTonalBackgroundColor: 'rgba(237, 238, 255, 0.94)',
+  signupTonalBorderColor: 'rgba(89, 97, 200, 0.34)',
+  signupTonalTextColor: '#454C9B',
   inlineTextColor: '#465778',
   inlineDividerColor: '#7F8CAA',
   socialDividerColor: 'rgba(91, 112, 153, 0.56)',
