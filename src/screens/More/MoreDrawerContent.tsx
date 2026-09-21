@@ -1064,21 +1064,6 @@ export const PasswordChangeSuccessModal = memo(
               { backgroundColor: theme.colors.surfaceElevated },
             ]}
           >
-            <View
-              style={[
-                styles.successHalo,
-                { backgroundColor: theme.colors.surface },
-              ]}
-            >
-              <View
-                style={[
-                  styles.successIcon,
-                  { backgroundColor: theme.colors.success },
-                ]}
-              >
-                <Feather name="check" size={26} color="#FFFFFF" />
-              </View>
-            </View>
             <AppText preset="unifiedTitle"
               style={[styles.successTitle, { color: theme.colors.textPrimary }]}
             >
@@ -1090,7 +1075,7 @@ export const PasswordChangeSuccessModal = memo(
                 { color: theme.colors.textSecondary },
               ]}
             >
-              비밀번호가 성공적으로{'\n'}변경되었습니다.
+              비밀번호가 성공적으로 변경되었습니다.
             </AppText>
             <TouchableOpacity
               activeOpacity={0.92}
@@ -3345,23 +3330,6 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 22,
     alignItems: 'center',
-  },
-  successHalo: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: '#EAF8F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  successIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#21C47B',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   successTitle: {
     fontSize: 16,

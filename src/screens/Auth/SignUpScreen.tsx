@@ -590,7 +590,7 @@ export default function SignUpScreen() {
         style={[
           styles.signInHint,
           seasonal ? styles.seasonalSignInText : null,
-          seasonalVisual ? { color: seasonalVisual.signInTextColor } : null,
+          seasonalVisual ? { color: seasonalVisual.textColor } : null,
         ]}
       >
         이미 계정이 있으신가요?
@@ -598,17 +598,23 @@ export default function SignUpScreen() {
       <TouchableOpacity
         activeOpacity={0.75}
         onPress={() => navigation.navigate('SignIn')}
+        accessibilityRole="button"
+        accessibilityLabel="로그인 화면으로 이동"
+        style={seasonal ? styles.seasonalSignInLinkAction : null}
       >
         <AppText
           preset="unifiedLabel"
           style={[
             styles.signInLink,
-            seasonal ? styles.seasonalSignInText : null,
-            seasonalVisual ? { color: seasonalVisual.signInTextColor } : null,
+            seasonal ? styles.seasonalSignInLinkText : null,
+            seasonalVisual ? { color: seasonalVisual.policyLinkColor } : null,
           ]}
         >
           로그인
         </AppText>
+        {seasonalVisual ? (
+          <Feather name="chevron-right" size={15} color={seasonalVisual.policyLinkColor} />
+        ) : null}
       </TouchableOpacity>
     </View>
   );

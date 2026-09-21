@@ -909,9 +909,6 @@ export default function WalkPoiAdminReadOnlyScreen() {
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
-              <View style={styles.modalIcon}>
-                <Feather name="activity" size={18} color="#2F6F4E" />
-              </View>
               <View style={styles.modalTitleBlock}>
                 <AppText preset="unifiedTitle" style={styles.modalTitle}>
                   Audit detail
@@ -1016,9 +1013,6 @@ export default function WalkPoiAdminReadOnlyScreen() {
         >
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
-              <View style={styles.modalIcon}>
-                <Feather name="shield" size={18} color="#2F6F4E" />
-              </View>
               <View style={styles.modalTitleBlock}>
                 <AppText preset="unifiedTitle" style={styles.modalTitle}>
                   {actionDraft
@@ -1522,17 +1516,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   modalHeader: {
-    flexDirection: 'row',
-    gap: 10,
-    alignItems: 'center',
-  },
-  modalIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#EAF6EF',
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'flex-start',
   },
   modalTitleBlock: {
     flex: 1,

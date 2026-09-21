@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
@@ -40,15 +39,17 @@ type Props = {
   typographyMode?: 'legacy' | 'unified';
 };
 
+function withoutDecorativeEmoji(line: string) {
+  return line
+    .replace(/\p{Extended_Pictographic}/gu, '')
+    .replace(/\uFE0F/gu, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
 function toAccessibilityText(lines: readonly string[]) {
   return lines
-    .map(line =>
-      line
-        .replace(/\p{Extended_Pictographic}/gu, '')
-        .replace(/\uFE0F/gu, '')
-        .replace(/\s{2,}/g, ' ')
-        .trim(),
-    )
+    .map(withoutDecorativeEmoji)
     .filter(Boolean)
     .join(' ');
 }
@@ -56,7 +57,6 @@ function toAccessibilityText(lines: readonly string[]) {
 function PremiumNoticeModalBase({
   visible,
   eyebrow,
-  iconName,
   titleLines,
   bodyLines,
   accessibilityTitleLines,
@@ -101,17 +101,6 @@ function PremiumNoticeModalBase({
     const bodyText = toAccessibilityText(accessibilityBodyLines ?? bodyLines);
     return [titleText, bodyText].filter(Boolean).join('. ');
   }, [accessibilityBodyLines, accessibilityTitleLines, bodyLines, titleLines]);
-  const iconWrapStyle = useMemo(
-    () => [
-      styles.iconWrap,
-      {
-        backgroundColor: petTheme.soft,
-        borderColor: petTheme.border,
-      },
-    ],
-    [petTheme.border, petTheme.soft],
-  );
-
   useEffect(() => {
     if (!visible || !announcementText) return;
 
@@ -149,19 +138,6 @@ function PremiumNoticeModalBase({
             },
           ]}
         >
-          <View style={styles.halo}>
-            <View style={iconWrapStyle}>
-              <View
-                style={[
-                  styles.iconCore,
-                  { backgroundColor: primaryColor },
-                ]}
-              >
-                <Feather name={iconName as never} size={26} color="#FFF8EE" />
-              </View>
-            </View>
-          </View>
-
           <AppText
             preset={textPresets.eyebrow}
             style={[styles.eyebrow, { color: primaryColor }]}
@@ -176,7 +152,7 @@ function PremiumNoticeModalBase({
                 preset={textPresets.title}
                 style={[styles.title, { color: theme.colors.textPrimary }]}
               >
-                {line}
+                {withoutDecorativeEmoji(line)}
               </AppText>
             ))}
           </View>
@@ -188,7 +164,7 @@ function PremiumNoticeModalBase({
                 preset={textPresets.body}
                 style={[styles.body, { color: theme.colors.textSecondary }]}
               >
-                {line}
+                {withoutDecorativeEmoji(line)}
               </AppText>
             ))}
           </View>
@@ -250,7 +226,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     borderWidth: 1,
     paddingHorizontal: 24,
-    paddingTop: 26,
+    paddingTop: 22,
     paddingBottom: 24,
     alignItems: 'center',
     ...(Platform.OS === 'ios'
@@ -264,29 +240,8 @@ const styles = StyleSheet.create({
           elevation: 12,
         }),
   },
-  halo: {
-    width: 96,
-    height: 96,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconWrap: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-  },
-  iconCore: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   eyebrow: {
-    marginTop: 18,
+    marginTop: 0,
     fontWeight: '900',
     letterSpacing: 1.6,
     fontSize: 11,
@@ -312,7 +267,7 @@ const styles = StyleSheet.create({
   },
   button: {
     width: '100%',
-    marginTop: 22,
+    marginTop: 18,
     minHeight: 52,
     borderRadius: 18,
     alignItems: 'center',

@@ -525,6 +525,14 @@ export const styles = StyleSheet.create({
   },
   seasonalSignInRow: {
     marginTop: 9,
+    minHeight: 44,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.82)',
+    backgroundColor: 'rgba(255, 255, 255, 0.80)',
+    gap: 10,
   },
   signInHint: {
     color: '#B9C1CE',
@@ -532,13 +540,24 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
   },
   seasonalSignInText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 19,
+    flexShrink: 1,
   },
   signInLink: {
     color: BRAND,
     ...typography.role.helper,
     fontWeight: '900',
+  },
+  seasonalSignInLinkAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    minHeight: 24,
+  },
+  seasonalSignInLinkText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '800',
   },
 });

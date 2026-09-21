@@ -109,20 +109,6 @@ function PremiumRewardModalBase({
             <Feather name="x" size={18} color={theme.colors.textSecondary} />
           </TouchableOpacity>
 
-          <View style={[styles.halo, { backgroundColor: petTheme.soft }]}>
-            <View
-              style={[
-                styles.iconCore,
-                {
-                  backgroundColor: primaryColor,
-                  borderColor: petTheme.border,
-                },
-              ]}
-            >
-              <Feather name={leveledUp ? 'award' : 'star'} size={28} color="#FFF8EE" />
-            </View>
-          </View>
-
           <AppText preset="unifiedBody" style={[styles.eyebrow, { color: primaryColor }]}>
             NURI REWARD
           </AppText>
@@ -204,7 +190,6 @@ function PremiumRewardModalBase({
                 },
               ]}
             >
-              <Feather name="heart" size={15} color={primaryColor} />
               <AppText preset="unifiedBody" style={[styles.streakText, { color: theme.colors.textSecondary }]}>
                 우리 아이와 {streakDays}일 연속 산책 중이에요
               </AppText>
@@ -255,7 +240,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     borderWidth: 1,
     paddingHorizontal: 22,
-    paddingTop: 26,
+    paddingTop: 58,
     paddingBottom: 20,
     alignItems: 'center',
     overflow: 'hidden',
@@ -281,23 +266,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 2,
   },
-  halo: {
-    width: 94,
-    height: 94,
-    borderRadius: 47,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconCore: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   eyebrow: {
-    marginTop: 16,
+    marginTop: 0,
     fontSize: 11,
     lineHeight: 15,
     fontWeight: '900',
