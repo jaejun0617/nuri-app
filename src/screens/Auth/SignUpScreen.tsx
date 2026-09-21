@@ -338,7 +338,7 @@ const ConsentRow = memo(function ConsentRowComponent({
               preset="unifiedLabel"
               style={[
                 styles.documentButtonText,
-                seasonalVisual?.season === 'winter'
+                seasonalVisual && seasonalVisual.season !== 'autumn'
                   ? { color: seasonalVisual.policyLinkColor }
                   : null,
               ]}
@@ -391,8 +391,8 @@ export default function SignUpScreen() {
     [season],
   );
   const seasonal = seasonalVisual !== null;
-  const winterErrorStyle =
-    seasonalVisual?.season === 'winter'
+  const lightSeasonErrorStyle =
+    seasonalVisual && seasonalVisual.season !== 'autumn'
       ? { color: seasonalVisual.errorColor }
       : null;
   const seasonalBackgroundHeight = seasonalVisual
@@ -404,6 +404,10 @@ export default function SignUpScreen() {
     const heroEnd =
       seasonalVisual?.season === 'winter'
         ? Math.min(360, Math.max(320, seasonalBackgroundHeight * 0.48))
+        : seasonalVisual?.season === 'summer'
+          ? Math.min(380, Math.max(290, seasonalBackgroundHeight * 0.5))
+          : seasonalVisual?.season === 'spring'
+            ? Math.min(310, Math.max(245, seasonalBackgroundHeight * 0.4))
         : Math.min(260, Math.max(210, seasonalBackgroundHeight * 0.34));
     return Math.max(172, heroEnd - insets.top);
   }, [insets.top, seasonal, seasonalBackgroundHeight, seasonalVisual?.season]);
@@ -842,7 +846,7 @@ export default function SignUpScreen() {
           style={[
             styles.errorText,
             seasonal ? styles.seasonalErrorText : null,
-            winterErrorStyle,
+            lightSeasonErrorStyle,
           ]}
         >
           올바른 이메일 형식을 입력해주세요.
@@ -854,7 +858,7 @@ export default function SignUpScreen() {
           style={[
             styles.errorText,
             seasonal ? styles.seasonalErrorText : null,
-            winterErrorStyle,
+            lightSeasonErrorStyle,
           ]}
         >
           비밀번호는 8자 이상이어야 합니다.
@@ -866,7 +870,7 @@ export default function SignUpScreen() {
           style={[
             styles.errorText,
             seasonal ? styles.seasonalErrorText : null,
-            winterErrorStyle,
+            lightSeasonErrorStyle,
           ]}
         >
           비밀번호가 일치하지 않습니다.
@@ -879,7 +883,7 @@ export default function SignUpScreen() {
           style={[
             styles.errorText,
             seasonal ? styles.seasonalErrorText : null,
-            winterErrorStyle,
+            lightSeasonErrorStyle,
           ]}
         >
           회원가입을 진행하려면 필수 동의 2가지를 모두 체크해 주세요.

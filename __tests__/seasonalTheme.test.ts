@@ -107,7 +107,23 @@ describe('seasonal theme', () => {
     expect(getSeasonalLoginVisual('autumn', 'auto')?.season).toBe('autumn');
   });
 
-  it('maps the approved autumn and winter signup visuals without changing autumn', () => {
+  it('maps all four approved signup visuals with distinct bundled assets', () => {
+    expect(getSeasonalSignupVisual('spring')).toEqual(
+      expect.objectContaining({
+        season: 'spring',
+        backgroundColor: '#FBEDEB',
+        accentColor: '#E77F9A',
+        policyLinkColor: '#A83F68',
+      }),
+    );
+    expect(getSeasonalSignupVisual('summer')).toEqual(
+      expect.objectContaining({
+        season: 'summer',
+        backgroundColor: '#EAF6D8',
+        accentColor: '#4F91D8',
+        policyLinkColor: '#2F6EB8',
+      }),
+    );
     expect(getSeasonalSignupVisual('autumn')).toEqual(
       expect.objectContaining({
         season: 'autumn',
@@ -116,8 +132,6 @@ describe('seasonal theme', () => {
         policyLinkColor: '#8C351C',
       }),
     );
-    expect(getSeasonalSignupVisual('spring')).toBeNull();
-    expect(getSeasonalSignupVisual('summer')).toBeNull();
     expect(getSeasonalSignupVisual('winter')).toEqual(
       expect.objectContaining({
         season: 'winter',
@@ -126,16 +140,20 @@ describe('seasonal theme', () => {
         policyLinkColor: '#5961C8',
       }),
     );
-    expect(getSeasonalSignupVisual('winter')?.source).not.toBe(
-      getSeasonalSignupVisual('autumn')?.source,
+    const sources = (['spring', 'summer', 'autumn', 'winter'] as const).map(
+      season => getSeasonalSignupVisual(season).source,
     );
+    expect(new Set(sources).size).toBe(4);
   });
 
   it('supports bounded signup overrides and resets to AUTO', () => {
+    expect(getSeasonalSignupVisual('autumn', 'spring').season).toBe('spring');
+    expect(getSeasonalSignupVisual('autumn', 'summer').season).toBe('summer');
     expect(getSeasonalSignupVisual('spring', 'autumn')?.season).toBe('autumn');
     expect(getSeasonalSignupVisual('autumn', 'winter')?.season).toBe('winter');
     expect(getSeasonalSignupVisual('winter', 'autumn')?.season).toBe('autumn');
-    expect(getSeasonalSignupVisual('spring', 'auto')).toBeNull();
+    expect(getSeasonalSignupVisual('spring', 'auto').season).toBe('spring');
+    expect(getSeasonalSignupVisual('summer', 'auto').season).toBe('summer');
     expect(getSeasonalSignupVisual('autumn', 'auto')?.season).toBe('autumn');
   });
 });
