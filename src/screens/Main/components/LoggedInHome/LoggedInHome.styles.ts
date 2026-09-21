@@ -1144,65 +1144,6 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // GuestHome also consumes these shared legacy quick-action tokens.
-  quickGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    columnGap: 8,
-  },
-  quickGridFrame: {
-    borderRadius: 0,
-    paddingHorizontal: 0,
-    paddingVertical: 2,
-    borderWidth: 0,
-    backgroundColor: 'transparent',
-  },
-  quickCard: {
-    width: '23%',
-    minHeight: 84,
-    borderRadius: 0,
-    paddingHorizontal: 4,
-    paddingVertical: 4,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    gap: 8,
-    backgroundColor: 'transparent',
-    borderWidth: 0,
-  },
-  quickIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
-    marginBottom: 2,
-    shadowColor: 'transparent',
-    shadowOpacity: 0,
-    shadowRadius: 0,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 0,
-  },
-  quickIcon: {
-    marginTop: 0,
-  },
-  quickCardTitle: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '500',
-    color: MUTED,
-    letterSpacing: 0,
-    textAlign: 'center',
-  },
-  quickCardNote: {
-    marginTop: 4,
-    fontSize: 10,
-    fontWeight: '800',
-    color: BRAND,
-    textAlign: 'center',
-  },
-
   // ---------------------------------------------------------
   // Recommendation Tips
   // ---------------------------------------------------------

@@ -1,10 +1,10 @@
 // 파일: src/screens/Main/MainScreen.tsx
 // 파일 목적:
-// - 홈 탭의 진입 분기 전용 화면으로, 게스트 홈과 로그인 홈을 나눈다.
+// - 홈 탭의 로그인 사용자 진입과 온보딩 가드를 담당한다.
 // 어디서 쓰이는지:
 // - AppTabsNavigator의 `HomeTab` 화면으로 사용된다.
 // 핵심 역할:
-// - 로그인 여부에 따라 GuestHome 또는 LoggedInHome을 렌더링한다.
+// - AppTabs로 잘못 진입한 비로그인 상태를 SignIn으로 되돌린다.
 // - 로그인 사용자는 포커스 시 닉네임/펫 등록 상태를 다시 확인해 온보딩 가드를 유지한다.
 // 데이터·상태 흐름:
 // - authStore와 petStore의 최소 정보만 읽어 화면 분기와 자동 이동을 결정하고, 실제 홈 데이터 렌더링은 하위 컴포넌트가 맡는다.
@@ -22,7 +22,6 @@ import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
 
-import GuestHome from './components/GuestHome/GuestHome';
 import LoggedInHome from './components/LoggedInHome/LoggedInHome';
 
 export default function MainScreen() {
@@ -69,12 +68,22 @@ export default function MainScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      const rootNavigation =
+        navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
+      const resetToSignIn = () => {
+        (rootNavigation ?? navigation).reset({
+          index: 0,
+          routes: [{ name: 'SignIn' }],
+        });
+      };
+
       if (isPasswordRecoveryActive) {
-        navigation.reset({ index: 0, routes: [{ name: 'SignIn' }] });
+        resetToSignIn();
         return undefined;
       }
 
       if (!isLoggedIn) {
+        resetToSignIn();
         return undefined;
       }
       // A failed profile fetch must never be interpreted as a new account.
@@ -85,8 +94,6 @@ export default function MainScreen() {
 
       const trimmedNickname = nickname?.trim() ?? '';
       if (!trimmedNickname) {
-        const rootNavigation =
-          navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
         (rootNavigation ?? navigation).navigate('NicknameSetup');
         return undefined;
       }
@@ -96,8 +103,6 @@ export default function MainScreen() {
       }
 
       if (petsCount === 0) {
-        const rootNavigation =
-          navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
         (rootNavigation ?? navigation).navigate('PetCreate', { from: 'auto' });
       }
 
@@ -116,7 +121,7 @@ export default function MainScreen() {
 
   return (
     <>
-      {isLoggedIn && !isPasswordRecoveryActive ? <LoggedInHome /> : <GuestHome />}
+      {isLoggedIn && !isPasswordRecoveryActive ? <LoggedInHome /> : null}
       <ConfirmDialog
         visible={exitConfirmVisible}
         typographyMode="unified"

@@ -123,6 +123,42 @@ describe('app boot helpers', () => {
     ).toEqual({ name: 'NicknameSetup', params: undefined });
   });
 
+  it('세션이 없으면 게스트 홈 없이 로그인 화면으로 진입한다', () => {
+    expect(
+      resolveBootRoute({
+        isLoggedIn: false,
+        nickname: null,
+        profileSyncStatus: 'idle',
+        petsCount: 0,
+        petErrorMessage: null,
+      }),
+    ).toEqual({ name: 'SignIn', params: undefined });
+  });
+
+  it('복원된 정상 세션은 메인 홈으로 진입한다', () => {
+    expect(
+      resolveBootRoute({
+        isLoggedIn: true,
+        nickname: '누리',
+        profileSyncStatus: 'ready',
+        petsCount: 1,
+        petErrorMessage: null,
+      }),
+    ).toEqual({ name: 'AppTabs', params: undefined });
+  });
+
+  it('로그아웃 뒤 stale 프로필이 남아도 로그인 화면으로 진입한다', () => {
+    expect(
+      resolveBootRoute({
+        isLoggedIn: false,
+        nickname: '누리',
+        profileSyncStatus: 'ready',
+        petsCount: 1,
+        petErrorMessage: null,
+      }),
+    ).toEqual({ name: 'SignIn', params: undefined });
+  });
+
   it('password recovery 중에는 로그인 bootstrap 대신 SignIn으로 되돌린다', () => {
     expect(
       resolveBootRoute({

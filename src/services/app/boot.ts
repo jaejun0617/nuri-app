@@ -97,7 +97,7 @@ export function resolveBootRoute(input: {
   }
 
   if (!input.isLoggedIn) {
-    return { name: 'AppTabs' as const, params: undefined };
+    return { name: 'SignIn' as const, params: undefined };
   }
 
   // Profile read failures are not proof that onboarding is incomplete.
