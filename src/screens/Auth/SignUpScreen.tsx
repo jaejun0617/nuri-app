@@ -334,7 +334,15 @@ const ConsentRow = memo(function ConsentRowComponent({
             onPress={onPressAction}
             style={styles.documentButton}
           >
-            <AppText preset="unifiedLabel" style={styles.documentButtonText}>
+            <AppText
+              preset="unifiedLabel"
+              style={[
+                styles.documentButtonText,
+                seasonalVisual?.season === 'winter'
+                  ? { color: seasonalVisual.policyLinkColor }
+                  : null,
+              ]}
+            >
               {isOpening ? '열어보는 중...' : actionLabel}
             </AppText>
           </TouchableOpacity>
@@ -383,18 +391,22 @@ export default function SignUpScreen() {
     [season],
   );
   const seasonal = seasonalVisual !== null;
+  const winterErrorStyle =
+    seasonalVisual?.season === 'winter'
+      ? { color: seasonalVisual.errorColor }
+      : null;
   const seasonalBackgroundHeight = seasonalVisual
     ? viewportWidth * seasonalVisual.backgroundAspectRatio
     : 0;
   const seasonalHeroSpacerHeight = useMemo(() => {
     if (!seasonal) return 0;
 
-    const heroEnd = Math.min(
-      260,
-      Math.max(210, seasonalBackgroundHeight * 0.34),
-    );
+    const heroEnd =
+      seasonalVisual?.season === 'winter'
+        ? Math.min(360, Math.max(320, seasonalBackgroundHeight * 0.48))
+        : Math.min(260, Math.max(210, seasonalBackgroundHeight * 0.34));
     return Math.max(172, heroEnd - insets.top);
-  }, [insets.top, seasonal, seasonalBackgroundHeight]);
+  }, [insets.top, seasonal, seasonalBackgroundHeight, seasonalVisual?.season]);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -571,7 +583,11 @@ export default function SignUpScreen() {
     <View style={[styles.signInRow, seasonal ? styles.seasonalSignInRow : null]}>
       <AppText
         preset="unifiedBody"
-        style={[styles.signInHint, seasonal ? styles.seasonalSignInText : null]}
+        style={[
+          styles.signInHint,
+          seasonal ? styles.seasonalSignInText : null,
+          seasonalVisual ? { color: seasonalVisual.signInTextColor } : null,
+        ]}
       >
         이미 계정이 있으신가요?
       </AppText>
@@ -581,7 +597,11 @@ export default function SignUpScreen() {
       >
         <AppText
           preset="unifiedLabel"
-          style={[styles.signInLink, seasonal ? styles.seasonalSignInText : null]}
+          style={[
+            styles.signInLink,
+            seasonal ? styles.seasonalSignInText : null,
+            seasonalVisual ? { color: seasonalVisual.signInTextColor } : null,
+          ]}
         >
           로그인
         </AppText>
@@ -819,7 +839,11 @@ export default function SignUpScreen() {
       {!emailValid && email.length > 0 ? (
         <AppText
           preset="unifiedBody"
-          style={[styles.errorText, seasonal ? styles.seasonalErrorText : null]}
+          style={[
+            styles.errorText,
+            seasonal ? styles.seasonalErrorText : null,
+            winterErrorStyle,
+          ]}
         >
           올바른 이메일 형식을 입력해주세요.
         </AppText>
@@ -827,7 +851,11 @@ export default function SignUpScreen() {
       {!passwordValid && password.length > 0 ? (
         <AppText
           preset="unifiedBody"
-          style={[styles.errorText, seasonal ? styles.seasonalErrorText : null]}
+          style={[
+            styles.errorText,
+            seasonal ? styles.seasonalErrorText : null,
+            winterErrorStyle,
+          ]}
         >
           비밀번호는 8자 이상이어야 합니다.
         </AppText>
@@ -835,7 +863,11 @@ export default function SignUpScreen() {
       {confirmPassword.length > 0 && !passwordsMatch ? (
         <AppText
           preset="unifiedBody"
-          style={[styles.errorText, seasonal ? styles.seasonalErrorText : null]}
+          style={[
+            styles.errorText,
+            seasonal ? styles.seasonalErrorText : null,
+            winterErrorStyle,
+          ]}
         >
           비밀번호가 일치하지 않습니다.
         </AppText>
@@ -844,7 +876,11 @@ export default function SignUpScreen() {
       {consentErrorVisible ? (
         <AppText
           preset="unifiedBody"
-          style={[styles.errorText, seasonal ? styles.seasonalErrorText : null]}
+          style={[
+            styles.errorText,
+            seasonal ? styles.seasonalErrorText : null,
+            winterErrorStyle,
+          ]}
         >
           회원가입을 진행하려면 필수 동의 2가지를 모두 체크해 주세요.
         </AppText>
@@ -912,9 +948,9 @@ export default function SignUpScreen() {
         />
         <LinearGradient
           colors={[
-            'rgba(233, 155, 84, 0)',
+            seasonalVisual.backgroundFadeTransparentColor,
             seasonalVisual.backgroundColor,
-            'rgba(233, 155, 84, 0)',
+            seasonalVisual.backgroundFadeTransparentColor,
           ]}
           pointerEvents="none"
           style={[

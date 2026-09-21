@@ -107,7 +107,7 @@ describe('seasonal theme', () => {
     expect(getSeasonalLoginVisual('autumn', 'auto')?.season).toBe('autumn');
   });
 
-  it('enables only the approved autumn signup visual', () => {
+  it('maps the approved autumn and winter signup visuals without changing autumn', () => {
     expect(getSeasonalSignupVisual('autumn')).toEqual(
       expect.objectContaining({
         season: 'autumn',
@@ -118,11 +118,24 @@ describe('seasonal theme', () => {
     );
     expect(getSeasonalSignupVisual('spring')).toBeNull();
     expect(getSeasonalSignupVisual('summer')).toBeNull();
-    expect(getSeasonalSignupVisual('winter')).toBeNull();
+    expect(getSeasonalSignupVisual('winter')).toEqual(
+      expect.objectContaining({
+        season: 'winter',
+        backgroundColor: '#EAF0FB',
+        accentColor: '#9297F2',
+        policyLinkColor: '#5961C8',
+      }),
+    );
+    expect(getSeasonalSignupVisual('winter')?.source).not.toBe(
+      getSeasonalSignupVisual('autumn')?.source,
+    );
   });
 
-  it('supports the bounded autumn signup override and resets to AUTO', () => {
+  it('supports bounded signup overrides and resets to AUTO', () => {
     expect(getSeasonalSignupVisual('spring', 'autumn')?.season).toBe('autumn');
+    expect(getSeasonalSignupVisual('autumn', 'winter')?.season).toBe('winter');
+    expect(getSeasonalSignupVisual('winter', 'autumn')?.season).toBe('autumn');
     expect(getSeasonalSignupVisual('spring', 'auto')).toBeNull();
+    expect(getSeasonalSignupVisual('autumn', 'auto')?.season).toBe('autumn');
   });
 });
