@@ -16,7 +16,9 @@ import {
   ActivityIndicator,
   Animated as RNAnimated,
   BackHandler,
+  Easing as RNEasing,
   Image,
+  type ImageSourcePropType,
   LayoutAnimation,
   Modal,
   PanResponder,
@@ -77,18 +79,20 @@ import { useRecordStore } from '../../../../store/recordStore';
 import { useScheduleStore } from '../../../../store/scheduleStore';
 import { useActiveScheduleAlarms } from '../../../../hooks/useActiveScheduleAlarms';
 import HomeActiveAlarmNotice from './HomeActiveAlarmNotice';
-import HomeTopButton, {
-  resolveHomeTopButtonThreshold,
-} from './HomeTopButton';
+import HomeTopButton, { resolveHomeTopButtonThreshold } from './HomeTopButton';
+import {
+  AutumnLeafOrnament,
+  SeasonalHomeAutumnStage,
+} from './SeasonalHomeAutumn';
+import { getSeasonalHomeVisual } from '../../../../theme/seasonal/home';
+import { getSeasonalThemeKey } from '../../../../theme/seasonal/season';
 
 import {
   fetchMemorySummaryRecordsByPet,
   type MemoryRecord,
 } from '../../../../services/supabase/memories';
 import type { PetSchedule } from '../../../../services/supabase/schedules';
-import {
-  pickTodayPhoto,
-} from '../../../../services/home/homeRecall';
+import { pickTodayPhoto } from '../../../../services/home/homeRecall';
 import { buildHomeWidgetSnapshot } from '../../../../services/home/widgetSnapshot';
 import { syncHomeWidgetSnapshot } from '../../../../services/home/widgetBridge';
 import {
@@ -188,6 +192,7 @@ type Nav = CompositeNavigationProp<
 >;
 
 const HOME_SCROLL_OFFSET_BY_KEY = new Map<string, number>();
+const AUTUMN_PROFILE_SHEET_BOTTOM_WAVE = require('../../../../assets/seasonal/home/autumn/profile-sheet-bottom-wave.png');
 
 const WEEKLY_SUMMARY_COUNT_FONT_SIZE = 24;
 const WEEKLY_SUMMARY_UNIT_FONT_SIZE = 14;
@@ -1070,6 +1075,7 @@ const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
 
 const HomeHeaderSection = React.memo(function HomeHeaderSection({
   greetingTitle,
+  seasonalCopy,
   visiblePets,
   activePetId,
   petThemePrimary,
@@ -1079,6 +1085,7 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
   notificationUnreadCount,
 }: {
   greetingTitle: string;
+  seasonalCopy: string | null;
   visiblePets: Pet[];
   activePetId: string | null;
   petThemePrimary: string;
@@ -1095,7 +1102,12 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
   return (
     <View style={styles.header}>
       <View style={styles.brandRow}>
-        <View style={styles.brandLockup}>
+        <View
+          style={[
+            styles.brandLockup,
+            seasonalCopy ? styles.autumnBrandMicroSurface : null,
+          ]}
+        >
           <AppText
             preset="unifiedTitle"
             styleOverridesPreset
@@ -1114,15 +1126,38 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
 
       <View style={styles.headerTopRow}>
         <View style={styles.headerTextArea}>
-          <AppText preset="unifiedTitle" style={[styles.title, { color: petThemePrimary }]}>
-            {greetingTitle}
-          </AppText>
+          <View
+            style={seasonalCopy ? styles.autumnGreetingMicroSurface : undefined}
+          >
+            <AppText
+              preset="unifiedTitle"
+              style={[
+                styles.title,
+                styles.autumnGreetingText,
+                { color: petThemePrimary },
+              ]}
+            >
+              {greetingTitle}
+            </AppText>
+          </View>
+          {seasonalCopy ? (
+            <AppText
+              preset="unifiedBody"
+              styleOverridesPreset
+              style={styles.autumnSeasonalCopy}
+            >
+              {seasonalCopy}
+            </AppText>
+          ) : null}
         </View>
 
         <View style={styles.headerIcons}>
           <TouchableOpacity
             activeOpacity={0.85}
-            style={styles.headerIconBtn}
+            style={[
+              styles.headerIconBtn,
+              seasonalCopy ? styles.autumnHeaderIconBtn : null,
+            ]}
             onPress={onPressNotifications}
             accessibilityLabel={notificationAccessibilityLabel}
             accessibilityRole="button"
@@ -1172,6 +1207,8 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
   titleBadge,
   topMetaLine,
   togetherDays,
+  autumnOrnamentSheet,
+  avatarDiameter,
   onPressPetProfileEdit,
 }: {
   petTheme: ReturnType<typeof buildPetThemePalette>;
@@ -1180,13 +1217,32 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
   titleBadge: string | null;
   topMetaLine: string | null;
   togetherDays: number | null;
+  autumnOrnamentSheet: ImageSourcePropType | null;
+  avatarDiameter: number;
   onPressPetProfileEdit: () => void;
 }) {
+  const petNameText = (
+    <AppText
+      preset="unifiedTitle"
+      styleOverridesPreset
+      style={[
+        styles.heroName,
+        autumnOrnamentSheet ? styles.autumnPetName : null,
+        { color: petTheme.deep },
+      ]}
+      numberOfLines={1}
+      ellipsizeMode="tail"
+    >
+      {profilePetName}
+    </AppText>
+  );
+  const isAutumn = autumnOrnamentSheet !== null;
+
   return (
     <>
       <TouchableOpacity
         activeOpacity={0.85}
-        style={styles.heroGearBtn}
+        style={[styles.heroGearBtn, isAutumn ? styles.autumnHeroGearBtn : null]}
         onPress={onPressPetProfileEdit}
       >
         <MaterialCommunityIcons
@@ -1197,10 +1253,28 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
       </TouchableOpacity>
 
       <View style={styles.heroCenter}>
-        <View style={styles.heroAvatarOuter}>
+        <View
+          style={[
+            styles.heroAvatarOuter,
+            { width: avatarDiameter, height: avatarDiameter },
+          ]}
+        >
+          {autumnOrnamentSheet ? (
+            <View
+              style={[
+                styles.autumnHeroHalo,
+                {
+                  width: avatarDiameter + 16,
+                  height: avatarDiameter + 16,
+                  borderRadius: (avatarDiameter + 16) / 2,
+                },
+              ]}
+            />
+          ) : null}
           <View
             style={[
               styles.heroAvatarGlow,
+              { width: avatarDiameter - 2, height: avatarDiameter - 2 },
               {
                 backgroundColor: petTheme.glow,
                 shadowColor: petTheme.primary,
@@ -1212,10 +1286,22 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
             locations={[0, 0.55, 1]}
             start={{ x: 0.18, y: 0.12 }}
             end={{ x: 0.82, y: 0.9 }}
-            style={[styles.heroAvatarRing, { shadowColor: petTheme.primary }]}
+            style={[
+              styles.heroAvatarRing,
+              {
+                width: avatarDiameter - 12,
+                height: avatarDiameter - 12,
+                shadowColor: petTheme.primary,
+              },
+            ]}
           >
             <View style={styles.heroAvatarRingInner}>
-              <View style={styles.heroAvatarWrap}>
+              <View
+                style={[
+                  styles.heroAvatarWrap,
+                  { width: avatarDiameter - 24, height: avatarDiameter - 24 },
+                ]}
+              >
                 {selectedAvatarUri ? (
                   <Image
                     source={{ uri: selectedAvatarUri }}
@@ -1255,22 +1341,25 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
           </View>
         ) : null}
 
-        <AppText
-          preset="unifiedTitle"
-          styleOverridesPreset
-          style={[styles.heroName, { color: petTheme.deep }]}
-          numberOfLines={1}
-          ellipsizeMode="tail"
-        >
-          {profilePetName}
-        </AppText>
+        {autumnOrnamentSheet ? (
+          <View style={styles.autumnPetNameRow}>
+            <View style={styles.autumnPetNameBalance} accessible={false} />
+            {petNameText}
+            <AutumnLeafOrnament source={autumnOrnamentSheet} />
+          </View>
+        ) : (
+          petNameText
+        )}
 
         {topMetaLine ? (
           <AppText
             preset="unifiedBody"
             styleOverridesPreset
-            style={styles.heroMetaLine}
-            numberOfLines={1}
+            style={[
+              styles.heroMetaLine,
+              isAutumn ? styles.autumnHeroMeta : null,
+            ]}
+            numberOfLines={isAutumn ? 2 : 1}
           >
             {topMetaLine}
           </AppText>
@@ -1278,8 +1367,11 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
           <AppText
             preset="unifiedBody"
             styleOverridesPreset
-            style={styles.heroMetaMuted}
-            numberOfLines={1}
+            style={[
+              styles.heroMetaMuted,
+              isAutumn ? styles.autumnHeroMeta : null,
+            ]}
+            numberOfLines={isAutumn ? 2 : 1}
           >
             아이 정보를 채우면 더 예쁘게 보여요
           </AppText>
@@ -1335,6 +1427,9 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
   acc,
   onToggleAll,
   onToggleOne,
+  isAutumn,
+  autumnOrnamentSheet,
+  presentation = 'accordion',
 }: {
   petTheme: ReturnType<typeof buildPetThemePalette>;
   hobbies: string[];
@@ -1345,12 +1440,149 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
   acc: Record<ProfileAccordionKey, boolean>;
   onToggleAll: () => void;
   onToggleOne: (key: ProfileAccordionKey) => void;
+  isAutumn: boolean;
+  autumnOrnamentSheet: ImageSourcePropType | null;
+  presentation?: 'accordion' | 'sheet';
 }) {
+  if (presentation === 'sheet') {
+    const profileRows = [
+      {
+        key: 'hobby',
+        label: '취미',
+        iconEmoji: '✨',
+        iconStyle: styles.iconCircleBlue,
+        titleStyle: styles.accTitleBlue,
+        chipStyle: styles.profileSheetValueChipBlue,
+        chipTextStyle: styles.profileSheetValueChipTextBlue,
+        ornamentVariant: 'sprig',
+        ornamentStyle: styles.profileSheetRowOrnamentHobby,
+        description: '즐거워하는 활동이에요',
+        values: hobbies,
+        empty: '등록된 취미가 없어요',
+      },
+      {
+        key: 'like',
+        label: '좋아하는 것',
+        iconEmoji: '🧡',
+        iconStyle: styles.iconCircleOrange,
+        titleStyle: styles.accTitleOrange,
+        chipStyle: styles.profileSheetValueChipOrange,
+        chipTextStyle: styles.profileSheetValueChipTextOrange,
+        ornamentVariant: 'berries',
+        ornamentStyle: styles.profileSheetRowOrnamentLike,
+        description: '마음을 편하게 해주는 것들이에요',
+        values: likes,
+        empty: '등록된 좋아하는 것이 없어요',
+      },
+      {
+        key: 'dislike',
+        label: '싫어하는 것',
+        iconEmoji: '💔',
+        iconStyle: styles.iconCirclePink,
+        titleStyle: styles.accTitlePink,
+        chipStyle: styles.profileSheetValueChipPink,
+        chipTextStyle: styles.profileSheetValueChipTextPink,
+        ornamentVariant: 'singleLeaf',
+        ornamentStyle: styles.profileSheetRowOrnamentDislike,
+        description: '조금 불편해하는 것들이에요',
+        values: dislikes,
+        empty: '등록된 싫어하는 것이 없어요',
+      },
+      {
+        key: 'tag',
+        label: '#태그',
+        iconEmoji: '🏷️',
+        iconStyle: styles.iconCirclePurple,
+        titleStyle: styles.accTitlePurple,
+        chipStyle: styles.profileSheetValueChipPurple,
+        chipTextStyle: styles.profileSheetValueChipTextPurple,
+        ornamentVariant: 'ginkgo',
+        ornamentStyle: styles.profileSheetRowOrnamentTag,
+        description: '우리 아이를 표현하는 특별한 키워드예요',
+        values: tags,
+        empty: '등록된 태그가 없어요',
+      },
+    ] as const;
+
+    return (
+      <View style={styles.profileSheetRows}>
+        {profileRows.map(row => {
+          return (
+            <View key={row.key} style={styles.profileSheetRow}>
+              <View style={[styles.profileSheetIconCircle, row.iconStyle]}>
+                <Text style={styles.profileSheetCategoryEmoji}>
+                  {row.iconEmoji}
+                </Text>
+              </View>
+              <View style={styles.profileSheetRowContent}>
+                <View style={styles.profileSheetCategoryLine}>
+                  <Text style={[styles.profileSheetRowLabel, row.titleStyle]}>
+                    {row.label}
+                  </Text>
+                  <Text style={styles.profileSheetRowDescription}>
+                    {' · '}
+                    {row.description}
+                  </Text>
+                </View>
+                {row.values.length > 0 ? (
+                  <View style={styles.profileSheetValueWrap}>
+                    {row.values.map((value, index) => (
+                      <View
+                        key={`${row.key}-${index}-${value}`}
+                        style={[styles.profileSheetValueChip, row.chipStyle]}
+                      >
+                        <Text
+                          style={[
+                            styles.profileSheetValueChipText,
+                            row.chipTextStyle,
+                          ]}
+                        >
+                          {value}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={styles.profileSheetEmptyValue}>
+                    {row.empty}
+                  </Text>
+                )}
+              </View>
+              {autumnOrnamentSheet ? (
+                <View
+                  pointerEvents="none"
+                  accessible={false}
+                  style={[
+                    styles.profileSheetRowOrnament,
+                    row.ornamentStyle,
+                  ]}
+                >
+                  <AutumnLeafOrnament
+                    source={autumnOrnamentSheet}
+                    variant={row.ornamentVariant}
+                  />
+                </View>
+              ) : null}
+            </View>
+          );
+        })}
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.accordionWrap}>
+    <View
+      style={[
+        styles.accordionWrap,
+        isAutumn ? styles.autumnAccordionWrap : null,
+      ]}
+    >
       <TouchableOpacity
         activeOpacity={0.85}
-        style={styles.accordionAllRow}
+        style={[
+          styles.accordionAllRow,
+          isAutumn ? styles.autumnAccordionAllRow : null,
+        ]}
         onPress={onToggleAll}
       >
         <AppText preset="unifiedLabel" style={[styles.accordionAllLabel, { color: petTheme.primary }]}>
@@ -1363,7 +1595,12 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
         />
       </TouchableOpacity>
 
-      <View style={styles.accordionItem}>
+      <View
+        style={[
+          styles.accordionItem,
+          isAutumn ? styles.autumnAccordionItem : null,
+        ]}
+      >
         <TouchableOpacity
           activeOpacity={0.85}
           style={styles.accordionHeaderRow}
@@ -1399,7 +1636,12 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
         ) : null}
       </View>
 
-      <View style={styles.accordionItem}>
+      <View
+        style={[
+          styles.accordionItem,
+          isAutumn ? styles.autumnAccordionItem : null,
+        ]}
+      >
         <TouchableOpacity
           activeOpacity={0.85}
           style={styles.accordionHeaderRow}
@@ -1435,7 +1677,12 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
         ) : null}
       </View>
 
-      <View style={styles.accordionItem}>
+      <View
+        style={[
+          styles.accordionItem,
+          isAutumn ? styles.autumnAccordionItem : null,
+        ]}
+      >
         <TouchableOpacity
           activeOpacity={0.85}
           style={styles.accordionHeaderRow}
@@ -1471,7 +1718,13 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
         ) : null}
       </View>
 
-      <View style={[styles.accordionItem, { borderBottomWidth: 0 }]}>
+      <View
+        style={[
+          styles.accordionItem,
+          isAutumn ? styles.autumnAccordionItem : null,
+          { borderBottomWidth: 0 },
+        ]}
+      >
         <TouchableOpacity
           activeOpacity={0.85}
           style={styles.accordionHeaderRow}
@@ -1519,6 +1772,272 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
   );
 });
 
+const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
+  visible,
+  petTheme,
+  profilePetName,
+  selectedAvatarUri,
+  hobbies,
+  likes,
+  dislikes,
+  tags,
+  autumnOrnamentSheet,
+  onCloseComplete,
+}: {
+  visible: boolean;
+  petTheme: ReturnType<typeof buildPetThemePalette>;
+  profilePetName: string;
+  selectedAvatarUri: string | null;
+  hobbies: string[];
+  likes: string[];
+  dislikes: string[];
+  tags: string[];
+  autumnOrnamentSheet: ImageSourcePropType | null;
+  onCloseComplete: () => void;
+}) {
+  const insets = useSafeAreaInsets();
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
+  const contentHorizontalInset = windowWidth <= 360 ? 18 : 20;
+  const translateY = useRef(new RNAnimated.Value(windowHeight)).current;
+  const backdropOpacity = useRef(new RNAnimated.Value(0)).current;
+  const closingRef = useRef(false);
+
+  useEffect(() => {
+    if (!visible) return;
+
+    closingRef.current = false;
+    translateY.setValue(windowHeight);
+    backdropOpacity.setValue(0);
+    RNAnimated.parallel([
+      RNAnimated.timing(translateY, {
+        toValue: 0,
+        duration: 320,
+        easing: RNEasing.out(RNEasing.cubic),
+        useNativeDriver: true,
+      }),
+      RNAnimated.timing(backdropOpacity, {
+        toValue: 1,
+        duration: 300,
+        easing: RNEasing.out(RNEasing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [backdropOpacity, translateY, visible, windowHeight]);
+
+  const requestClose = useCallback(() => {
+    if (!visible || closingRef.current) return;
+
+    closingRef.current = true;
+    RNAnimated.parallel([
+      RNAnimated.timing(translateY, {
+        toValue: windowHeight,
+        duration: 270,
+        easing: RNEasing.in(RNEasing.cubic),
+        useNativeDriver: true,
+      }),
+      RNAnimated.timing(backdropOpacity, {
+        toValue: 0,
+        duration: 240,
+        easing: RNEasing.in(RNEasing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start(({ finished }) => {
+      if (finished) onCloseComplete();
+    });
+  }, [backdropOpacity, onCloseComplete, translateY, visible, windowHeight]);
+
+  if (!visible) return null;
+
+  return (
+    <Modal
+      visible
+      transparent
+      statusBarTranslucent
+      animationType="none"
+      onRequestClose={requestClose}
+    >
+      <View style={styles.profileSheetRoot}>
+        <Pressable
+          accessibilityLabel="프로필 상세 바깥 영역 닫기"
+          accessibilityRole="button"
+          style={styles.profileSheetBackdropPressable}
+          onPress={requestClose}
+        >
+          <RNAnimated.View
+            style={[styles.profileSheetBackdrop, { opacity: backdropOpacity }]}
+          />
+        </Pressable>
+
+        <RNAnimated.View
+          accessibilityViewIsModal
+          style={[styles.profileSheet, { transform: [{ translateY }] }]}
+        >
+          <View
+            pointerEvents="none"
+            accessible={false}
+            style={styles.profileSheetBackgroundLayer}
+          >
+            <LinearGradient
+              colors={['#FFFDF8', '#FFF9F1', '#FFF4E6']}
+              locations={[0, 0.58, 1]}
+              style={styles.profileSheetBackgroundBase}
+            />
+            <Image
+              source={AUTUMN_PROFILE_SHEET_BOTTOM_WAVE}
+              resizeMode="stretch"
+              style={styles.profileSheetBottomWave}
+            />
+          </View>
+          {autumnOrnamentSheet ? (
+            <View
+              pointerEvents="none"
+              accessible={false}
+              style={styles.profileSheetFrameOrnaments}
+            >
+              <View style={styles.profileSheetOrnamentLeft}>
+                <AutumnLeafOrnament source={autumnOrnamentSheet} />
+              </View>
+              <View style={styles.profileSheetOrnamentLeftTrail}>
+                <AutumnLeafOrnament
+                  source={autumnOrnamentSheet}
+                  variant="singleLeaf"
+                />
+              </View>
+              <View style={styles.profileSheetOrnamentRight}>
+                <AutumnLeafOrnament
+                  source={autumnOrnamentSheet}
+                  variant="ginkgo"
+                />
+              </View>
+              <View style={styles.profileSheetOrnamentRightTrail}>
+                <AutumnLeafOrnament
+                  source={autumnOrnamentSheet}
+                  variant="berries"
+                />
+              </View>
+              <View style={styles.profileSheetFallingLeafLeftUpper}>
+                <AutumnLeafOrnament
+                  source={autumnOrnamentSheet}
+                  variant="singleLeaf"
+                />
+              </View>
+              <View style={styles.profileSheetFallingLeafRightUpper}>
+                <AutumnLeafOrnament
+                  source={autumnOrnamentSheet}
+                  variant="berries"
+                />
+              </View>
+              <View style={styles.profileSheetFallingLeafLeftMiddle}>
+                <AutumnLeafOrnament
+                  source={autumnOrnamentSheet}
+                  variant="ginkgo"
+                />
+              </View>
+              <View style={styles.profileSheetFallingLeafRightMiddle}>
+                <AutumnLeafOrnament
+                  source={autumnOrnamentSheet}
+                  variant="sprig"
+                />
+              </View>
+              <View style={styles.profileSheetFallingLeafLeftLower}>
+                <AutumnLeafOrnament source={autumnOrnamentSheet} />
+              </View>
+              <View style={styles.profileSheetFallingLeafRightLower}>
+                <AutumnLeafOrnament
+                  source={autumnOrnamentSheet}
+                  variant="singleLeaf"
+                />
+              </View>
+            </View>
+          ) : null}
+          <View style={styles.profileSheetHandle} />
+          <View
+            style={[
+              styles.profileSheetHeader,
+              { marginHorizontal: contentHorizontalInset },
+            ]}
+          >
+            <View style={styles.profileSheetHeaderIdentity}>
+              <View
+                style={[
+                  styles.profileSheetThumbnail,
+                  { borderColor: petTheme.border },
+                ]}
+              >
+                {selectedAvatarUri ? (
+                  <Image
+                    source={{ uri: selectedAvatarUri }}
+                    style={styles.profileSheetThumbnailImage}
+                    accessibilityLabel={`${profilePetName} 프로필 사진`}
+                  />
+                ) : (
+                  <MaterialCommunityIcons
+                    name="image-outline"
+                    size={20}
+                    color={petTheme.deep}
+                  />
+                )}
+              </View>
+              <View style={styles.profileSheetTitleWrap}>
+                <Text style={styles.profileSheetTitle}>
+                  우리 아이의 취향 이야기
+                </Text>
+                <Text style={styles.profileSheetSubtitle}>
+                  작고 소중한 취향을 살펴보세요
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              accessibilityLabel="프로필 상세 닫기"
+              accessibilityRole="button"
+              style={styles.profileSheetCloseButton}
+              onPress={requestClose}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Feather name="x" size={19} color="rgba(79,56,42,0.78)" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            style={styles.profileSheetScroll}
+            contentContainerStyle={[
+              styles.profileSheetScrollContent,
+              { paddingHorizontal: contentHorizontalInset },
+            ]}
+            showsVerticalScrollIndicator={false}
+          >
+            <HeroProfileAccordion
+              petTheme={petTheme}
+              hobbies={hobbies}
+              likes={likes}
+              dislikes={dislikes}
+              tags={tags}
+              allExpanded
+              acc={{ hobby: true, like: true, dislike: true, tag: true }}
+              onToggleAll={() => {}}
+              onToggleOne={() => {}}
+              isAutumn
+              autumnOrnamentSheet={autumnOrnamentSheet}
+              presentation="sheet"
+            />
+            <View
+              style={[
+                styles.profileSheetFooter,
+                { paddingBottom: Math.max(24, insets.bottom + 16) },
+              ]}
+            >
+              <Text style={styles.profileSheetFooterCopy}>
+                언제나 우리 아이와 함께 ♡
+              </Text>
+            </View>
+          </ScrollView>
+        </RNAnimated.View>
+      </View>
+    </Modal>
+  );
+});
+
 const HeroProfileSection = React.memo(function HeroProfileSection({
   petTheme,
   selectedAvatarUri,
@@ -1526,15 +2045,10 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
   titleBadge,
   topMetaLine,
   togetherDays,
-  hobbies,
-  likes,
-  dislikes,
-  tags,
-  allExpanded,
-  acc,
   onPressPetProfileEdit,
-  onToggleAll,
-  onToggleOne,
+  onPressProfileInfo,
+  autumnOrnamentSheet,
+  avatarDiameter,
 }: {
   petTheme: ReturnType<typeof buildPetThemePalette>;
   selectedAvatarUri: string | null;
@@ -1542,18 +2056,18 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
   titleBadge: string | null;
   topMetaLine: string | null;
   togetherDays: number | null;
-  hobbies: string[];
-  likes: string[];
-  dislikes: string[];
-  tags: string[];
-  allExpanded: boolean;
-  acc: Record<ProfileAccordionKey, boolean>;
   onPressPetProfileEdit: () => void;
-  onToggleAll: () => void;
-  onToggleOne: (key: ProfileAccordionKey) => void;
+  onPressProfileInfo: () => void;
+  autumnOrnamentSheet: ImageSourcePropType | null;
+  avatarDiameter: number;
 }) {
   return (
-    <View style={styles.heroCard}>
+    <View
+      style={[
+        styles.heroCard,
+        autumnOrnamentSheet ? styles.autumnHeroCard : null,
+      ]}
+    >
       <HeroProfileIdentity
         petTheme={petTheme}
         selectedAvatarUri={selectedAvatarUri}
@@ -1561,19 +2075,29 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
         titleBadge={titleBadge}
         topMetaLine={topMetaLine}
         togetherDays={togetherDays}
+        autumnOrnamentSheet={autumnOrnamentSheet}
+        avatarDiameter={avatarDiameter}
         onPressPetProfileEdit={onPressPetProfileEdit}
       />
-      <HeroProfileAccordion
-        petTheme={petTheme}
-        hobbies={hobbies}
-        likes={likes}
-        dislikes={dislikes}
-        tags={tags}
-        allExpanded={allExpanded}
-        acc={acc}
-        onToggleAll={onToggleAll}
-        onToggleOne={onToggleOne}
-      />
+      {autumnOrnamentSheet ? (
+        <TouchableOpacity
+          activeOpacity={0.86}
+          accessibilityLabel="우리 아이 더 알아보기"
+          accessibilityRole="button"
+          style={styles.autumnProfileEntry}
+          onPress={onPressProfileInfo}
+        >
+          <AppText preset="unifiedLabel" style={styles.autumnProfileEntryText}>
+            우리 아이 더 알아보기
+          </AppText>
+          <Feather
+            name="chevron-right"
+            size={17}
+            color={petTheme.deep}
+            style={styles.autumnProfileEntryChevron}
+          />
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 });
@@ -2447,7 +2971,17 @@ export default function LoggedInHome() {
   // 0) navigation
   // ---------------------------------------------------------
   const insets = useSafeAreaInsets();
-  const { height: windowHeight } = useWindowDimensions();
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
+  const seasonalHomeVisual = useMemo(
+    () => getSeasonalHomeVisual(getSeasonalThemeKey()),
+    [],
+  );
+  const heroAvatarDiameter = seasonalHomeVisual
+    ? Math.min(176, Math.max(146, Math.round(windowWidth * 0.41)))
+    : 156;
+  const autumnHeroOffset = seasonalHomeVisual
+    ? Math.min(48, Math.max(36, Math.round(windowWidth * 0.11)))
+    : 0;
   const navigation = useNavigation<Nav>();
   const isScreenFocused = useIsFocused();
   const homeScrollRef = useRef<React.ComponentRef<typeof ScrollView> | null>(null);
@@ -2467,6 +3001,7 @@ export default function LoggedInHome() {
   // ---------------------------------------------------------
   const [notificationModalVisible, setNotificationModalVisible] =
     useState(false);
+  const [profileSheetVisible, setProfileSheetVisible] = useState(false);
   const [homeNotificationItems, setHomeNotificationItems] = useState<
     UserNotificationItem[]
   >([]);
@@ -2531,6 +3066,14 @@ export default function LoggedInHome() {
   const closeHomeNotifications = useCallback(() => {
     setExpandedHomeNotificationKeys(new Set());
     setNotificationModalVisible(false);
+  }, []);
+
+  const openProfileInfoSheet = useCallback(() => {
+    setProfileSheetVisible(true);
+  }, []);
+
+  const closeProfileInfoSheet = useCallback(() => {
+    setProfileSheetVisible(false);
   }, []);
 
   useEffect(() => {
@@ -3038,8 +3581,7 @@ export default function LoggedInHome() {
       .map(t => (t ?? '').trim())
       .filter(Boolean)
       .slice(0, 10);
-    if (normalized.length > 0) return normalized;
-    return ['#산책러버', '#간식최애', '#주인바라기'];
+    return normalized;
   }, [selectedPet?.tags]);
 
   const selectedAvatarUri = useMemo(
@@ -3415,36 +3957,6 @@ export default function LoggedInHome() {
   });
   const homeGuideExposureSignatureRef = useRef('');
 
-  // ---------------------------------------------------------
-  // 8) Accordion state (pet 변경 시 초기화)
-  // ---------------------------------------------------------
-  const [acc, setAcc] = useState<Record<ProfileAccordionKey, boolean>>({
-    hobby: false,
-    like: false,
-    dislike: false,
-    tag: false,
-  });
-
-  useEffect(() => {
-    setAcc({ hobby: false, like: false, dislike: false, tag: false });
-  }, [activePetId]);
-
-  const allExpanded = useMemo(
-    () => acc.hobby && acc.like && acc.dislike && acc.tag,
-    [acc.hobby, acc.like, acc.dislike, acc.tag],
-  );
-
-  const onToggleAll = useCallback(() => {
-    setAcc(prev => {
-      const next = !(prev.hobby && prev.like && prev.dislike && prev.tag);
-      return { hobby: next, like: next, dislike: next, tag: next };
-    });
-  }, []);
-
-  const onToggleOne = useCallback((key: ProfileAccordionKey) => {
-    setAcc(prev => ({ ...prev, [key]: !prev[key] }));
-  }, []);
-
   const onPressGuideList = useCallback(() => {
     navigation.navigate('GuideList', { entrySource: 'home' });
   }, [navigation]);
@@ -3584,6 +4096,43 @@ export default function LoggedInHome() {
     [windowHeight],
   );
 
+  const homeHeader = (
+    <HomeHeaderSection
+      greetingTitle={greetingTitle}
+      seasonalCopy={seasonalHomeVisual?.greetingCopy ?? null}
+      visiblePets={visiblePets}
+      activePetId={activePetId}
+      petThemePrimary={petTheme.primary}
+      onPressPetChip={onPressPetChip}
+      onPressAddPet={onPressAddPet}
+      onPressNotifications={openHomeNotifications}
+      notificationUnreadCount={homeNotificationUnreadCount}
+    />
+  );
+  const activeAlarmNotice = (
+    <HomeActiveAlarmNotice
+      alarms={activeAlarms.alarms}
+      error={activeAlarms.error}
+      stoppingKeys={activeAlarms.stoppingKeys}
+      onStop={activeAlarms.stop}
+      onRefresh={activeAlarms.refresh}
+    />
+  );
+  const homeHero = (
+    <HeroProfileSection
+      petTheme={petTheme}
+      selectedAvatarUri={selectedAvatarUri}
+      profilePetName={profilePetName}
+      titleBadge={homeTitleBadge}
+      topMetaLine={topMetaLine}
+      togetherDays={togetherDays}
+      onPressPetProfileEdit={onPressPetProfileEdit}
+      onPressProfileInfo={openProfileInfoSheet}
+      autumnOrnamentSheet={seasonalHomeVisual?.ornamentSheet ?? null}
+      avatarDiameter={heroAvatarDiameter}
+    />
+  );
+
   // ---------------------------------------------------------
   // 10) render
   // ---------------------------------------------------------
@@ -3594,7 +4143,10 @@ export default function LoggedInHome() {
         style={styles.scroll}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: Math.max(132, insets.bottom + 108) },
+          {
+            paddingBottom: Math.max(132, insets.bottom + 108),
+            gap: seasonalHomeVisual ? 0 : 24,
+          },
         ]}
         contentOffset={{ x: 0, y: initialHomeScrollOffset }}
         onContentSizeChange={restoreHomeScrollPosition}
@@ -3603,44 +4155,29 @@ export default function LoggedInHome() {
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
-        <HomeHeaderSection
-          greetingTitle={greetingTitle}
-          visiblePets={visiblePets}
-          activePetId={activePetId}
-          petThemePrimary={petTheme.primary}
-          onPressPetChip={onPressPetChip}
-          onPressAddPet={onPressAddPet}
-          onPressNotifications={openHomeNotifications}
-          notificationUnreadCount={homeNotificationUnreadCount}
-        />
-
-        <HomeActiveAlarmNotice
-          alarms={activeAlarms.alarms}
-          error={activeAlarms.error}
-          stoppingKeys={activeAlarms.stoppingKeys}
-          onStop={activeAlarms.stop}
-          onRefresh={activeAlarms.refresh}
-        />
+        {seasonalHomeVisual ? (
+          <SeasonalHomeAutumnStage
+            atmosphere={seasonalHomeVisual.atmosphere}
+            atmosphereAspectRatio={seasonalHomeVisual.atmosphereAspectRatio}
+          >
+            {homeHeader}
+            {activeAlarmNotice}
+            <Animated.View
+              style={[animatedContentStyle, { marginTop: autumnHeroOffset }]}
+            >
+              {homeHero}
+            </Animated.View>
+          </SeasonalHomeAutumnStage>
+        ) : (
+          <>
+            {homeHeader}
+            {activeAlarmNotice}
+          </>
+        )}
 
         {/* Fade container */}
         <Animated.View style={animatedContentStyle}>
-          <HeroProfileSection
-            petTheme={petTheme}
-            selectedAvatarUri={selectedAvatarUri}
-            profilePetName={profilePetName}
-            titleBadge={homeTitleBadge}
-            topMetaLine={topMetaLine}
-            togetherDays={togetherDays}
-            hobbies={hobbies}
-            likes={likes}
-            dislikes={dislikes}
-            tags={tags}
-            allExpanded={allExpanded}
-            acc={acc}
-            onPressPetProfileEdit={onPressPetProfileEdit}
-            onToggleAll={onToggleAll}
-            onToggleOne={onToggleOne}
-          />
+          {seasonalHomeVisual ? null : homeHero}
 
           <HomeWeatherSection
             weather={weatherGuide}
@@ -3759,6 +4296,19 @@ export default function LoggedInHome() {
         borderColor={petTheme.border}
         rippleColor={`${petTheme.onPrimary}18`}
         onPress={handlePressTop}
+      />
+
+      <ProfileInfoBottomSheet
+        visible={profileSheetVisible}
+        petTheme={petTheme}
+        profilePetName={profilePetName}
+        selectedAvatarUri={selectedAvatarUri}
+        hobbies={hobbies}
+        likes={likes}
+        dislikes={dislikes}
+        tags={tags}
+        autumnOrnamentSheet={seasonalHomeVisual?.ornamentSheet ?? null}
+        onCloseComplete={closeProfileInfoSheet}
       />
 
       <HomeNotificationOverlay

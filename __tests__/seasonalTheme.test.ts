@@ -8,8 +8,29 @@ import {
 } from '../src/theme/seasonal/assets';
 import { getSeasonalLoginVisual } from '../src/theme/seasonal/login';
 import { getSeasonalSignupVisual } from '../src/theme/seasonal/signup';
+import {
+  getSeasonalHomeVisual,
+  SEASONAL_HOME_COPY,
+} from '../src/theme/seasonal/home';
 
 describe('seasonal theme', () => {
+  it('enables only the approved autumn Home atmosphere', () => {
+    expect(getSeasonalHomeVisual('autumn')).toEqual(
+      expect.objectContaining({
+        season: 'autumn',
+        greetingCopy: '선선한 오늘, 함께한 순간을 남겨보세요',
+        atmosphereAspectRatio: 941 / 1672,
+        atmosphere: expect.anything(),
+        ornamentSheet: expect.anything(),
+      }),
+    );
+    expect(getSeasonalHomeVisual('spring')).toBeNull();
+    expect(getSeasonalHomeVisual('summer')).toBeNull();
+    expect(getSeasonalHomeVisual('winter')).toBeNull();
+    expect(SEASONAL_HOME_COPY.autumn).toBe(
+      getSeasonalHomeVisual('autumn')?.greetingCopy,
+    );
+  });
   it('uses Asia/Seoul as the fixed product timezone', () => {
     expect(NURI_SEASON_TIME_ZONE).toBe('Asia/Seoul');
   });
