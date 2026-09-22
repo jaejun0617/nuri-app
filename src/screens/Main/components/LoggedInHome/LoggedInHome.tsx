@@ -3624,14 +3624,6 @@ export default function LoggedInHome() {
 
         {/* Fade container */}
         <Animated.View style={animatedContentStyle}>
-          <HomeWeatherSection
-            weather={weatherGuide}
-            locationLabel={weatherGuideState.locationLabel}
-            petName={selectedPet?.name}
-            accentColor={petTheme.primary}
-            onPress={onPressWeatherInsight}
-          />
-
           <HeroProfileSection
             petTheme={petTheme}
             selectedAvatarUri={selectedAvatarUri}
@@ -3648,6 +3640,14 @@ export default function LoggedInHome() {
             onPressPetProfileEdit={onPressPetProfileEdit}
             onToggleAll={onToggleAll}
             onToggleOne={onToggleOne}
+          />
+
+          <HomeWeatherSection
+            weather={weatherGuide}
+            locationLabel={weatherGuideState.locationLabel}
+            petName={selectedPet?.name}
+            accentColor={petTheme.primary}
+            onPress={onPressWeatherInsight}
           />
 
           <FrequentRecordsSection

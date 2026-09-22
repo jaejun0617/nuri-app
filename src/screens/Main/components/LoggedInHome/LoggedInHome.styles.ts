@@ -424,7 +424,8 @@ export const styles = StyleSheet.create({
   // Weather Guide
   // ---------------------------------------------------------
   weatherGuideWrap: {
-    marginBottom: 2,
+    marginTop: 16,
+    marginBottom: 18,
   },
 
   // ---------------------------------------------------------
