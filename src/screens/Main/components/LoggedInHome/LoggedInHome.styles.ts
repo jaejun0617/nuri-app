@@ -70,6 +70,12 @@ export const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: 'rgba(255, 252, 247, 0.18)',
   },
+  winterBrandMicroSurface: {
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 6,
+    backgroundColor: 'rgba(248, 251, 255, 0.18)',
+  },
   brandWordmark: {
     fontSize: 24,
     lineHeight: 28,
@@ -99,6 +105,20 @@ export const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 3,
   },
+  winterGreetingMicroSurface: {
+    alignSelf: 'flex-start',
+    maxWidth: '100%',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 6,
+    backgroundColor: 'rgba(248, 251, 255, 0.12)',
+  },
+  winterGreetingText: {
+    color: '#40516F',
+    textShadowColor: 'rgba(248, 251, 255, 0.92)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 3,
+  },
   title: { fontSize: 16, fontWeight: '900', color: BRAND_DEEP },
   subTitle: {
     fontSize: 12,
@@ -112,6 +132,16 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '500',
+  },
+  winterSeasonalCopy: {
+    marginTop: 4,
+    color: '#50627F',
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '500',
+    textShadowColor: 'rgba(248, 251, 255, 0.88)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 2,
   },
 
   headerIcons: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -133,6 +163,15 @@ export const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 1 },
+    elevation: 3,
+  },
+  winterHeaderIconBtn: {
+    backgroundColor: 'rgba(248, 251, 255, 0.94)',
+    borderColor: 'rgba(120, 148, 210, 0.30)',
+    shadowColor: '#40516F',
+    shadowOpacity: 0.12,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
     elevation: 3,
   },
   headerNotificationBadge: {
@@ -476,6 +515,11 @@ export const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 0,
   },
+  winterHeroCard: {
+    backgroundColor: 'transparent',
+    paddingTop: 8,
+    paddingBottom: 0,
+  },
 
   heroGearBtn: {
     position: 'absolute',
@@ -491,6 +535,16 @@ export const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 252, 247, 0.97)',
     borderWidth: 1,
     borderColor: 'rgba(94, 68, 49, 0.30)',
+    elevation: 3,
+  },
+  winterHeroGearBtn: {
+    backgroundColor: 'rgba(248, 251, 255, 0.94)',
+    borderWidth: 1,
+    borderColor: 'rgba(120, 148, 210, 0.28)',
+    shadowColor: '#40516F',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
     elevation: 3,
   },
   heroGearText: {
@@ -517,6 +571,12 @@ export const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 214, 173, 0.24)',
     borderWidth: 1,
     borderColor: 'rgba(255, 235, 204, 0.62)',
+  },
+  winterHeroHalo: {
+    position: 'absolute',
+    backgroundColor: 'rgba(220, 234, 255, 0.22)',
+    borderWidth: 1,
+    borderColor: 'rgba(248, 251, 255, 0.68)',
   },
   heroAvatarGlow: {
     position: 'absolute',
@@ -623,6 +683,17 @@ export const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 250, 243, 0.88)',
     textAlign: 'center',
   },
+  winterHeroMeta: {
+    maxWidth: '100%',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    backgroundColor: 'rgba(248, 251, 255, 0.88)',
+    borderWidth: 1,
+    borderColor: 'rgba(120, 148, 210, 0.12)',
+    color: '#50627F',
+    textAlign: 'center',
+  },
   heroMetaMuted: {
     marginTop: 6,
     fontSize: 14,
@@ -690,6 +761,29 @@ export const styles = StyleSheet.create({
   autumnProfileEntryChevron: {
     position: 'absolute',
     right: 16,
+  },
+  winterProfileEntry: {
+    borderColor: 'rgba(120, 148, 210, 0.30)',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#7894D2',
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
+  winterProfileEntryText: {
+    color: '#40516F',
+    maxWidth: undefined,
+    alignSelf: 'center',
+    includeFontPadding: false,
+    backgroundColor: '#FFFFFF',
+  },
+  winterProfileEntryPressTarget: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
   },
 
   // ---------------------------------------------------------
@@ -829,6 +923,11 @@ export const styles = StyleSheet.create({
     elevation: 14,
     overflow: 'hidden',
   },
+  winterProfileSheet: {
+    backgroundColor: '#F4F8FF',
+    borderColor: 'rgba(120, 148, 210, 0.22)',
+    shadowColor: '#40516F',
+  },
   profileSheetBackgroundLayer: {
     ...ABS_FILL,
   },
@@ -842,6 +941,15 @@ export const styles = StyleSheet.create({
     bottom: 0,
     width: '100%',
     height: 116,
+  },
+  winterProfileSheetBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
   },
   profileSheetFrameOrnaments: {
     ...ABS_FILL,
@@ -924,6 +1032,9 @@ export const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: 'rgba(93, 67, 51, 0.22)',
   },
+  winterProfileSheetHandle: {
+    backgroundColor: 'rgba(64, 81, 111, 0.22)',
+  },
   profileSheetHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -970,11 +1081,17 @@ export const styles = StyleSheet.create({
     color: '#4F382A',
     flexShrink: 1,
   },
+  winterProfileSheetTitle: {
+    color: '#40516F',
+  },
   profileSheetSubtitle: {
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '400',
     color: '#806958',
+  },
+  winterProfileSheetSubtitle: {
+    color: '#677792',
   },
   profileSheetCloseButton: {
     width: 44,
@@ -990,6 +1107,11 @@ export const styles = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
+  },
+  winterProfileSheetCloseButton: {
+    backgroundColor: 'rgba(248, 251, 255, 0.92)',
+    borderColor: 'rgba(120, 148, 210, 0.25)',
+    shadowColor: '#40516F',
   },
   profileSheetScroll: {
     minHeight: 0,
@@ -1012,6 +1134,10 @@ export const styles = StyleSheet.create({
     backgroundColor: '#FFFCF7',
     borderWidth: 1,
     borderColor: 'rgba(180,135,101,0.14)',
+  },
+  winterProfileSheetRow: {
+    backgroundColor: 'rgba(251, 253, 255, 0.90)',
+    borderColor: 'rgba(120, 148, 210, 0.16)',
   },
   profileSheetRowOrnament: {
     position: 'absolute',
@@ -1069,6 +1195,9 @@ export const styles = StyleSheet.create({
     color: '#806958',
     flexShrink: 1,
   },
+  winterProfileSheetRowDescription: {
+    color: '#677792',
+  },
   profileSheetValueWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1118,6 +1247,9 @@ export const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#927D6B',
   },
+  winterProfileSheetEmptyValue: {
+    color: '#75839B',
+  },
   profileSheetFooter: {
     alignItems: 'center',
     marginTop: 16,
@@ -1128,6 +1260,9 @@ export const styles = StyleSheet.create({
     lineHeight: 18,
     fontWeight: '500',
     color: '#B66B31',
+  },
+  winterProfileSheetFooterCopy: {
+    color: '#6F78B8',
   },
 
   // ---------------------------------------------------------

@@ -14,7 +14,7 @@ import {
 } from '../src/theme/seasonal/home';
 
 describe('seasonal theme', () => {
-  it('enables only the approved autumn Home atmosphere', () => {
+  it('maps the approved autumn and winter Home atmospheres', () => {
     expect(getSeasonalHomeVisual('autumn')).toEqual(
       expect.objectContaining({
         season: 'autumn',
@@ -22,14 +22,28 @@ describe('seasonal theme', () => {
         atmosphereAspectRatio: 941 / 1672,
         atmosphere: expect.anything(),
         ornamentSheet: expect.anything(),
+        profileSheetBackground: null,
+      }),
+    );
+    expect(getSeasonalHomeVisual('winter')).toEqual(
+      expect.objectContaining({
+        season: 'winter',
+        greetingCopy: '포근한 오늘도 따뜻한 기억을 남겨보세요',
+        atmosphereAspectRatio: 941 / 1672,
+        atmosphere: expect.anything(),
+        ornamentSheet: expect.anything(),
+        profileSheetBackground: expect.anything(),
       }),
     );
     expect(getSeasonalHomeVisual('spring')).toBeNull();
     expect(getSeasonalHomeVisual('summer')).toBeNull();
-    expect(getSeasonalHomeVisual('winter')).toBeNull();
     expect(SEASONAL_HOME_COPY.autumn).toBe(
       getSeasonalHomeVisual('autumn')?.greetingCopy,
     );
+    expect(SEASONAL_HOME_COPY.winter).toBe(
+      getSeasonalHomeVisual('winter')?.greetingCopy,
+    );
+    expect(getSeasonalHomeVisual('autumn', 'winter')?.season).toBe('winter');
   });
   it('uses Asia/Seoul as the fixed product timezone', () => {
     expect(NURI_SEASON_TIME_ZONE).toBe('Asia/Seoul');

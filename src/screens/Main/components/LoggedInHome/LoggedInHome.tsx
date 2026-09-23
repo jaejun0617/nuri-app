@@ -84,7 +84,15 @@ import {
   AutumnLeafOrnament,
   SeasonalHomeAutumnStage,
 } from './SeasonalHomeAutumn';
-import { getSeasonalHomeVisual } from '../../../../theme/seasonal/home';
+import {
+  SeasonalHomeWinterStage,
+  WinterOrnament,
+  type WinterOrnamentVariant,
+} from './SeasonalHomeWinter';
+import {
+  getSeasonalHomeVisual,
+  type SeasonalHomeVisual,
+} from '../../../../theme/seasonal/home';
 import { getSeasonalThemeKey } from '../../../../theme/seasonal/season';
 
 import {
@@ -193,6 +201,8 @@ type Nav = CompositeNavigationProp<
 
 const HOME_SCROLL_OFFSET_BY_KEY = new Map<string, number>();
 const AUTUMN_PROFILE_SHEET_BOTTOM_WAVE = require('../../../../assets/seasonal/home/autumn/profile-sheet-bottom-wave.png');
+// Device QA only. The resolver's production AUTO behavior remains unchanged.
+const HOME_SEASON_QA_OVERRIDE = 'auto' as const;
 
 const WEEKLY_SUMMARY_COUNT_FONT_SIZE = 24;
 const WEEKLY_SUMMARY_UNIT_FONT_SIZE = 14;
@@ -1076,6 +1086,7 @@ const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
 const HomeHeaderSection = React.memo(function HomeHeaderSection({
   greetingTitle,
   seasonalCopy,
+  season,
   visiblePets,
   activePetId,
   petThemePrimary,
@@ -1086,6 +1097,7 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
 }: {
   greetingTitle: string;
   seasonalCopy: string | null;
+  season: SeasonalHomeVisual['season'] | null;
   visiblePets: Pet[];
   activePetId: string | null;
   petThemePrimary: string;
@@ -1094,6 +1106,7 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
   onPressNotifications: () => void;
   notificationUnreadCount: number;
 }) {
+  const isWinter = season === 'winter';
   const notificationAccessibilityLabel =
     notificationUnreadCount > 0
       ? `알림 목록 열기, 읽지 않은 알림 ${notificationUnreadCount}개`
@@ -1105,20 +1118,24 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
         <View
           style={[
             styles.brandLockup,
-            seasonalCopy ? styles.autumnBrandMicroSurface : null,
+            season === 'autumn' ? styles.autumnBrandMicroSurface : null,
+            isWinter ? styles.winterBrandMicroSurface : null,
           ]}
         >
           <AppText
             preset="unifiedTitle"
             styleOverridesPreset
-            style={[styles.brandWordmark, { color: petThemePrimary }]}
+            style={[
+              styles.brandWordmark,
+              { color: isWinter ? '#40516F' : petThemePrimary },
+            ]}
           >
             NURI
           </AppText>
           <MaterialCommunityIcons
             name="paw"
             size={12}
-            color={petThemePrimary}
+            color={isWinter ? '#7894D2' : petThemePrimary}
             style={styles.brandPaw}
           />
         </View>
@@ -1127,14 +1144,21 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
       <View style={styles.headerTopRow}>
         <View style={styles.headerTextArea}>
           <View
-            style={seasonalCopy ? styles.autumnGreetingMicroSurface : undefined}
+            style={
+              season === 'autumn'
+                ? styles.autumnGreetingMicroSurface
+                : isWinter
+                  ? styles.winterGreetingMicroSurface
+                  : undefined
+            }
           >
             <AppText
               preset="unifiedTitle"
               style={[
                 styles.title,
-                styles.autumnGreetingText,
-                { color: petThemePrimary },
+                season === 'autumn' ? styles.autumnGreetingText : null,
+                isWinter ? styles.winterGreetingText : null,
+                { color: isWinter ? '#40516F' : petThemePrimary },
               ]}
             >
               {greetingTitle}
@@ -1144,7 +1168,11 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
             <AppText
               preset="unifiedBody"
               styleOverridesPreset
-              style={styles.autumnSeasonalCopy}
+              style={
+                isWinter
+                  ? styles.winterSeasonalCopy
+                  : styles.autumnSeasonalCopy
+              }
             >
               {seasonalCopy}
             </AppText>
@@ -1156,7 +1184,8 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
             activeOpacity={0.85}
             style={[
               styles.headerIconBtn,
-              seasonalCopy ? styles.autumnHeaderIconBtn : null,
+              season === 'autumn' ? styles.autumnHeaderIconBtn : null,
+              isWinter ? styles.winterHeaderIconBtn : null,
             ]}
             onPress={onPressNotifications}
             accessibilityLabel={notificationAccessibilityLabel}
@@ -1207,7 +1236,8 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
   titleBadge,
   topMetaLine,
   togetherDays,
-  autumnOrnamentSheet,
+  season,
+  seasonalOrnamentSheet,
   avatarDiameter,
   onPressPetProfileEdit,
 }: {
@@ -1217,7 +1247,8 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
   titleBadge: string | null;
   topMetaLine: string | null;
   togetherDays: number | null;
-  autumnOrnamentSheet: ImageSourcePropType | null;
+  season: SeasonalHomeVisual['season'] | null;
+  seasonalOrnamentSheet: ImageSourcePropType | null;
   avatarDiameter: number;
   onPressPetProfileEdit: () => void;
 }) {
@@ -1227,7 +1258,7 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
       styleOverridesPreset
       style={[
         styles.heroName,
-        autumnOrnamentSheet ? styles.autumnPetName : null,
+        seasonalOrnamentSheet ? styles.autumnPetName : null,
         { color: petTheme.deep },
       ]}
       numberOfLines={1}
@@ -1236,13 +1267,19 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
       {profilePetName}
     </AppText>
   );
-  const isAutumn = autumnOrnamentSheet !== null;
+  const isAutumn = season === 'autumn';
+  const isWinter = season === 'winter';
+  const isSeasonal = season !== null;
 
   return (
     <>
       <TouchableOpacity
         activeOpacity={0.85}
-        style={[styles.heroGearBtn, isAutumn ? styles.autumnHeroGearBtn : null]}
+        style={[
+          styles.heroGearBtn,
+          isAutumn ? styles.autumnHeroGearBtn : null,
+          isWinter ? styles.winterHeroGearBtn : null,
+        ]}
         onPress={onPressPetProfileEdit}
       >
         <MaterialCommunityIcons
@@ -1259,10 +1296,10 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
             { width: avatarDiameter, height: avatarDiameter },
           ]}
         >
-          {autumnOrnamentSheet ? (
+          {isSeasonal ? (
             <View
               style={[
-                styles.autumnHeroHalo,
+                isWinter ? styles.winterHeroHalo : styles.autumnHeroHalo,
                 {
                   width: avatarDiameter + 16,
                   height: avatarDiameter + 16,
@@ -1341,11 +1378,15 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
           </View>
         ) : null}
 
-        {autumnOrnamentSheet ? (
+        {seasonalOrnamentSheet ? (
           <View style={styles.autumnPetNameRow}>
             <View style={styles.autumnPetNameBalance} accessible={false} />
             {petNameText}
-            <AutumnLeafOrnament source={autumnOrnamentSheet} />
+            {isWinter ? (
+              <WinterOrnament variant="snowflake" size={29} />
+            ) : (
+              <AutumnLeafOrnament source={seasonalOrnamentSheet} />
+            )}
           </View>
         ) : (
           petNameText
@@ -1358,8 +1399,9 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
             style={[
               styles.heroMetaLine,
               isAutumn ? styles.autumnHeroMeta : null,
+              isWinter ? styles.winterHeroMeta : null,
             ]}
-            numberOfLines={isAutumn ? 2 : 1}
+            numberOfLines={isSeasonal ? 2 : 1}
           >
             {topMetaLine}
           </AppText>
@@ -1370,8 +1412,9 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
             style={[
               styles.heroMetaMuted,
               isAutumn ? styles.autumnHeroMeta : null,
+              isWinter ? styles.winterHeroMeta : null,
             ]}
-            numberOfLines={isAutumn ? 2 : 1}
+            numberOfLines={isSeasonal ? 2 : 1}
           >
             아이 정보를 채우면 더 예쁘게 보여요
           </AppText>
@@ -1427,8 +1470,8 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
   acc,
   onToggleAll,
   onToggleOne,
-  isAutumn,
-  autumnOrnamentSheet,
+  season,
+  seasonalOrnamentSheet,
   presentation = 'accordion',
 }: {
   petTheme: ReturnType<typeof buildPetThemePalette>;
@@ -1440,10 +1483,13 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
   acc: Record<ProfileAccordionKey, boolean>;
   onToggleAll: () => void;
   onToggleOne: (key: ProfileAccordionKey) => void;
-  isAutumn: boolean;
-  autumnOrnamentSheet: ImageSourcePropType | null;
+  season: SeasonalHomeVisual['season'] | null;
+  seasonalOrnamentSheet: ImageSourcePropType | null;
   presentation?: 'accordion' | 'sheet';
 }) {
+  const isAutumn = season === 'autumn';
+  const isWinter = season === 'winter';
+
   if (presentation === 'sheet') {
     const profileRows = [
       {
@@ -1455,6 +1501,8 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
         chipStyle: styles.profileSheetValueChipBlue,
         chipTextStyle: styles.profileSheetValueChipTextBlue,
         ornamentVariant: 'sprig',
+        winterOrnamentVariant: 'snowflake',
+        winterOrnamentSize: 26,
         ornamentStyle: styles.profileSheetRowOrnamentHobby,
         description: '즐거워하는 활동이에요',
         values: hobbies,
@@ -1469,6 +1517,8 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
         chipStyle: styles.profileSheetValueChipOrange,
         chipTextStyle: styles.profileSheetValueChipTextOrange,
         ornamentVariant: 'berries',
+        winterOrnamentVariant: 'berryBranch',
+        winterOrnamentSize: 39,
         ornamentStyle: styles.profileSheetRowOrnamentLike,
         description: '마음을 편하게 해주는 것들이에요',
         values: likes,
@@ -1483,6 +1533,8 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
         chipStyle: styles.profileSheetValueChipPink,
         chipTextStyle: styles.profileSheetValueChipTextPink,
         ornamentVariant: 'singleLeaf',
+        winterOrnamentVariant: 'frostedTwig',
+        winterOrnamentSize: 35,
         ornamentStyle: styles.profileSheetRowOrnamentDislike,
         description: '조금 불편해하는 것들이에요',
         values: dislikes,
@@ -1497,6 +1549,8 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
         chipStyle: styles.profileSheetValueChipPurple,
         chipTextStyle: styles.profileSheetValueChipTextPurple,
         ornamentVariant: 'ginkgo',
+        winterOrnamentVariant: 'sparkle',
+        winterOrnamentSize: 28,
         ornamentStyle: styles.profileSheetRowOrnamentTag,
         description: '우리 아이를 표현하는 특별한 키워드예요',
         values: tags,
@@ -1508,7 +1562,13 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
       <View style={styles.profileSheetRows}>
         {profileRows.map(row => {
           return (
-            <View key={row.key} style={styles.profileSheetRow}>
+            <View
+              key={row.key}
+              style={[
+                styles.profileSheetRow,
+                isWinter ? styles.winterProfileSheetRow : null,
+              ]}
+            >
               <View style={[styles.profileSheetIconCircle, row.iconStyle]}>
                 <Text style={styles.profileSheetCategoryEmoji}>
                   {row.iconEmoji}
@@ -1519,7 +1579,14 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
                   <Text style={[styles.profileSheetRowLabel, row.titleStyle]}>
                     {row.label}
                   </Text>
-                  <Text style={styles.profileSheetRowDescription}>
+                  <Text
+                    style={[
+                      styles.profileSheetRowDescription,
+                      isWinter
+                        ? styles.winterProfileSheetRowDescription
+                        : null,
+                    ]}
+                  >
                     {' · '}
                     {row.description}
                   </Text>
@@ -1543,12 +1610,17 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
                     ))}
                   </View>
                 ) : (
-                  <Text style={styles.profileSheetEmptyValue}>
+                  <Text
+                    style={[
+                      styles.profileSheetEmptyValue,
+                      isWinter ? styles.winterProfileSheetEmptyValue : null,
+                    ]}
+                  >
                     {row.empty}
                   </Text>
                 )}
               </View>
-              {autumnOrnamentSheet ? (
+              {seasonalOrnamentSheet ? (
                 <View
                   pointerEvents="none"
                   accessible={false}
@@ -1557,10 +1629,19 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
                     row.ornamentStyle,
                   ]}
                 >
-                  <AutumnLeafOrnament
-                    source={autumnOrnamentSheet}
-                    variant={row.ornamentVariant}
-                  />
+                  {isWinter ? (
+                    <WinterOrnament
+                      variant={
+                        row.winterOrnamentVariant as WinterOrnamentVariant
+                      }
+                      size={row.winterOrnamentSize}
+                    />
+                  ) : (
+                    <AutumnLeafOrnament
+                      source={seasonalOrnamentSheet}
+                      variant={row.ornamentVariant}
+                    />
+                  )}
                 </View>
               ) : null}
             </View>
@@ -1781,7 +1862,9 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
   likes,
   dislikes,
   tags,
-  autumnOrnamentSheet,
+  season,
+  seasonalOrnamentSheet,
+  profileSheetBackground,
   onCloseComplete,
 }: {
   visible: boolean;
@@ -1792,9 +1875,12 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
   likes: string[];
   dislikes: string[];
   tags: string[];
-  autumnOrnamentSheet: ImageSourcePropType | null;
+  season: SeasonalHomeVisual['season'] | null;
+  seasonalOrnamentSheet: ImageSourcePropType | null;
+  profileSheetBackground: ImageSourcePropType | null;
   onCloseComplete: () => void;
 }) {
+  const isWinter = season === 'winter';
   const insets = useSafeAreaInsets();
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const contentHorizontalInset = windowWidth <= 360 ? 18 : 20;
@@ -1870,87 +1956,145 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
 
         <RNAnimated.View
           accessibilityViewIsModal
-          style={[styles.profileSheet, { transform: [{ translateY }] }]}
+          style={[
+            styles.profileSheet,
+            isWinter ? styles.winterProfileSheet : null,
+            { transform: [{ translateY }] },
+          ]}
         >
           <View
             pointerEvents="none"
             accessible={false}
             style={styles.profileSheetBackgroundLayer}
           >
-            <LinearGradient
-              colors={['#FFFDF8', '#FFF9F1', '#FFF4E6']}
-              locations={[0, 0.58, 1]}
-              style={styles.profileSheetBackgroundBase}
-            />
-            <Image
-              source={AUTUMN_PROFILE_SHEET_BOTTOM_WAVE}
-              resizeMode="stretch"
-              style={styles.profileSheetBottomWave}
-            />
+            {isWinter && profileSheetBackground ? (
+              <>
+                <LinearGradient
+                  colors={['#F8FBFF', '#F4F8FF', '#EDF4FF']}
+                  locations={[0, 0.58, 1]}
+                  style={styles.profileSheetBackgroundBase}
+                />
+                <Image
+                  source={profileSheetBackground}
+                  resizeMode="stretch"
+                  style={styles.winterProfileSheetBackground}
+                />
+              </>
+            ) : (
+              <>
+                <LinearGradient
+                  colors={['#FFFDF8', '#FFF9F1', '#FFF4E6']}
+                  locations={[0, 0.58, 1]}
+                  style={styles.profileSheetBackgroundBase}
+                />
+                <Image
+                  source={AUTUMN_PROFILE_SHEET_BOTTOM_WAVE}
+                  resizeMode="stretch"
+                  style={styles.profileSheetBottomWave}
+                />
+              </>
+            )}
           </View>
-          {autumnOrnamentSheet ? (
+          {seasonalOrnamentSheet ? (
             <View
               pointerEvents="none"
               accessible={false}
               style={styles.profileSheetFrameOrnaments}
             >
-              <View style={styles.profileSheetOrnamentLeft}>
-                <AutumnLeafOrnament source={autumnOrnamentSheet} />
-              </View>
-              <View style={styles.profileSheetOrnamentLeftTrail}>
-                <AutumnLeafOrnament
-                  source={autumnOrnamentSheet}
-                  variant="singleLeaf"
-                />
-              </View>
-              <View style={styles.profileSheetOrnamentRight}>
-                <AutumnLeafOrnament
-                  source={autumnOrnamentSheet}
-                  variant="ginkgo"
-                />
-              </View>
-              <View style={styles.profileSheetOrnamentRightTrail}>
-                <AutumnLeafOrnament
-                  source={autumnOrnamentSheet}
-                  variant="berries"
-                />
-              </View>
-              <View style={styles.profileSheetFallingLeafLeftUpper}>
-                <AutumnLeafOrnament
-                  source={autumnOrnamentSheet}
-                  variant="singleLeaf"
-                />
-              </View>
-              <View style={styles.profileSheetFallingLeafRightUpper}>
-                <AutumnLeafOrnament
-                  source={autumnOrnamentSheet}
-                  variant="berries"
-                />
-              </View>
-              <View style={styles.profileSheetFallingLeafLeftMiddle}>
-                <AutumnLeafOrnament
-                  source={autumnOrnamentSheet}
-                  variant="ginkgo"
-                />
-              </View>
-              <View style={styles.profileSheetFallingLeafRightMiddle}>
-                <AutumnLeafOrnament
-                  source={autumnOrnamentSheet}
-                  variant="sprig"
-                />
-              </View>
-              <View style={styles.profileSheetFallingLeafLeftLower}>
-                <AutumnLeafOrnament source={autumnOrnamentSheet} />
-              </View>
-              <View style={styles.profileSheetFallingLeafRightLower}>
-                <AutumnLeafOrnament
-                  source={autumnOrnamentSheet}
-                  variant="singleLeaf"
-                />
-              </View>
+              {isWinter ? (
+                <>
+                  <WinterOrnament
+                    variant="snowflake"
+                    size={42}
+                    style={styles.profileSheetOrnamentLeft}
+                  />
+                  <WinterOrnament
+                    variant="sparkle"
+                    size={28}
+                    style={styles.profileSheetOrnamentLeftTrail}
+                  />
+                  <WinterOrnament
+                    variant="berrySprig"
+                    size={48}
+                    style={styles.profileSheetFallingLeafRightUpper}
+                  />
+                  <WinterOrnament
+                    variant="pineSprig"
+                    size={64}
+                    style={styles.profileSheetFallingLeafLeftMiddle}
+                  />
+                  <WinterOrnament
+                    variant="frostedTwig"
+                    size={54}
+                    style={styles.profileSheetFallingLeafRightLower}
+                  />
+                </>
+              ) : (
+                <>
+                  <View style={styles.profileSheetOrnamentLeft}>
+                    <AutumnLeafOrnament source={seasonalOrnamentSheet} />
+                  </View>
+                  <View style={styles.profileSheetOrnamentLeftTrail}>
+                    <AutumnLeafOrnament
+                      source={seasonalOrnamentSheet}
+                      variant="singleLeaf"
+                    />
+                  </View>
+                  <View style={styles.profileSheetOrnamentRight}>
+                    <AutumnLeafOrnament
+                      source={seasonalOrnamentSheet}
+                      variant="ginkgo"
+                    />
+                  </View>
+                  <View style={styles.profileSheetOrnamentRightTrail}>
+                    <AutumnLeafOrnament
+                      source={seasonalOrnamentSheet}
+                      variant="berries"
+                    />
+                  </View>
+                  <View style={styles.profileSheetFallingLeafLeftUpper}>
+                    <AutumnLeafOrnament
+                      source={seasonalOrnamentSheet}
+                      variant="singleLeaf"
+                    />
+                  </View>
+                  <View style={styles.profileSheetFallingLeafRightUpper}>
+                    <AutumnLeafOrnament
+                      source={seasonalOrnamentSheet}
+                      variant="berries"
+                    />
+                  </View>
+                  <View style={styles.profileSheetFallingLeafLeftMiddle}>
+                    <AutumnLeafOrnament
+                      source={seasonalOrnamentSheet}
+                      variant="ginkgo"
+                    />
+                  </View>
+                  <View style={styles.profileSheetFallingLeafRightMiddle}>
+                    <AutumnLeafOrnament
+                      source={seasonalOrnamentSheet}
+                      variant="sprig"
+                    />
+                  </View>
+                  <View style={styles.profileSheetFallingLeafLeftLower}>
+                    <AutumnLeafOrnament source={seasonalOrnamentSheet} />
+                  </View>
+                  <View style={styles.profileSheetFallingLeafRightLower}>
+                    <AutumnLeafOrnament
+                      source={seasonalOrnamentSheet}
+                      variant="singleLeaf"
+                    />
+                  </View>
+                </>
+              )}
             </View>
           ) : null}
-          <View style={styles.profileSheetHandle} />
+          <View
+            style={[
+              styles.profileSheetHandle,
+              isWinter ? styles.winterProfileSheetHandle : null,
+            ]}
+          />
           <View
             style={[
               styles.profileSheetHeader,
@@ -1979,10 +2123,20 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
                 )}
               </View>
               <View style={styles.profileSheetTitleWrap}>
-                <Text style={styles.profileSheetTitle}>
+                <Text
+                  style={[
+                    styles.profileSheetTitle,
+                    isWinter ? styles.winterProfileSheetTitle : null,
+                  ]}
+                >
                   우리 아이의 취향 이야기
                 </Text>
-                <Text style={styles.profileSheetSubtitle}>
+                <Text
+                  style={[
+                    styles.profileSheetSubtitle,
+                    isWinter ? styles.winterProfileSheetSubtitle : null,
+                  ]}
+                >
                   작고 소중한 취향을 살펴보세요
                 </Text>
               </View>
@@ -1991,11 +2145,18 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
               activeOpacity={0.85}
               accessibilityLabel="프로필 상세 닫기"
               accessibilityRole="button"
-              style={styles.profileSheetCloseButton}
+              style={[
+                styles.profileSheetCloseButton,
+                isWinter ? styles.winterProfileSheetCloseButton : null,
+              ]}
               onPress={requestClose}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Feather name="x" size={19} color="rgba(79,56,42,0.78)" />
+              <Feather
+                name="x"
+                size={19}
+                color={isWinter ? '#50627F' : 'rgba(79,56,42,0.78)'}
+              />
             </TouchableOpacity>
           </View>
 
@@ -2017,8 +2178,8 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
               acc={{ hobby: true, like: true, dislike: true, tag: true }}
               onToggleAll={() => {}}
               onToggleOne={() => {}}
-              isAutumn
-              autumnOrnamentSheet={autumnOrnamentSheet}
+              season={season}
+              seasonalOrnamentSheet={seasonalOrnamentSheet}
               presentation="sheet"
             />
             <View
@@ -2027,7 +2188,12 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
                 { paddingBottom: Math.max(24, insets.bottom + 16) },
               ]}
             >
-              <Text style={styles.profileSheetFooterCopy}>
+              <Text
+                style={[
+                  styles.profileSheetFooterCopy,
+                  isWinter ? styles.winterProfileSheetFooterCopy : null,
+                ]}
+              >
                 언제나 우리 아이와 함께 ♡
               </Text>
             </View>
@@ -2047,7 +2213,8 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
   togetherDays,
   onPressPetProfileEdit,
   onPressProfileInfo,
-  autumnOrnamentSheet,
+  season,
+  seasonalOrnamentSheet,
   avatarDiameter,
 }: {
   petTheme: ReturnType<typeof buildPetThemePalette>;
@@ -2058,14 +2225,19 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
   togetherDays: number | null;
   onPressPetProfileEdit: () => void;
   onPressProfileInfo: () => void;
-  autumnOrnamentSheet: ImageSourcePropType | null;
+  season: SeasonalHomeVisual['season'] | null;
+  seasonalOrnamentSheet: ImageSourcePropType | null;
   avatarDiameter: number;
 }) {
+  const isAutumn = season === 'autumn';
+  const isWinter = season === 'winter';
+
   return (
     <View
       style={[
         styles.heroCard,
-        autumnOrnamentSheet ? styles.autumnHeroCard : null,
+        isAutumn ? styles.autumnHeroCard : null,
+        isWinter ? styles.winterHeroCard : null,
       ]}
     >
       <HeroProfileIdentity
@@ -2075,19 +2247,57 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
         titleBadge={titleBadge}
         topMetaLine={topMetaLine}
         togetherDays={togetherDays}
-        autumnOrnamentSheet={autumnOrnamentSheet}
+        season={season}
+        seasonalOrnamentSheet={seasonalOrnamentSheet}
         avatarDiameter={avatarDiameter}
         onPressPetProfileEdit={onPressPetProfileEdit}
       />
-      {autumnOrnamentSheet ? (
+      {seasonalOrnamentSheet && isWinter ? (
+        <View
+          style={[styles.autumnProfileEntry, styles.winterProfileEntry]}
+        >
+          <Text
+            accessible={false}
+            style={[
+              styles.autumnProfileEntryText,
+              styles.winterProfileEntryText,
+            ]}
+          >
+            우리 아이 더 알아보기
+          </Text>
+          <Feather
+            accessible={false}
+            name="chevron-right"
+            size={17}
+            color={petTheme.deep}
+            style={styles.autumnProfileEntryChevron}
+          />
+          <View
+            accessible
+            accessibilityLabel="우리 아이 더 알아보기"
+            accessibilityRole="button"
+            focusable={false}
+            style={styles.winterProfileEntryPressTarget}
+            onAccessibilityTap={onPressProfileInfo}
+            onStartShouldSetResponder={() => true}
+            onResponderRelease={onPressProfileInfo}
+          />
+        </View>
+      ) : seasonalOrnamentSheet ? (
         <TouchableOpacity
           activeOpacity={0.86}
           accessibilityLabel="우리 아이 더 알아보기"
           accessibilityRole="button"
-          style={styles.autumnProfileEntry}
+          style={[
+            styles.autumnProfileEntry,
+            isWinter ? styles.winterProfileEntry : null,
+          ]}
           onPress={onPressProfileInfo}
         >
-          <AppText preset="unifiedLabel" style={styles.autumnProfileEntryText}>
+          <AppText
+            preset="unifiedLabel"
+            style={styles.autumnProfileEntryText}
+          >
             우리 아이 더 알아보기
           </AppText>
           <Feather
@@ -2973,13 +3183,17 @@ export default function LoggedInHome() {
   const insets = useSafeAreaInsets();
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const seasonalHomeVisual = useMemo(
-    () => getSeasonalHomeVisual(getSeasonalThemeKey()),
+    () =>
+      getSeasonalHomeVisual(
+        getSeasonalThemeKey(),
+        HOME_SEASON_QA_OVERRIDE,
+      ),
     [],
   );
   const heroAvatarDiameter = seasonalHomeVisual
     ? Math.min(176, Math.max(146, Math.round(windowWidth * 0.41)))
     : 156;
-  const autumnHeroOffset = seasonalHomeVisual
+  const seasonalHeroOffset = seasonalHomeVisual
     ? Math.min(48, Math.max(36, Math.round(windowWidth * 0.11)))
     : 0;
   const navigation = useNavigation<Nav>();
@@ -4100,6 +4314,7 @@ export default function LoggedInHome() {
     <HomeHeaderSection
       greetingTitle={greetingTitle}
       seasonalCopy={seasonalHomeVisual?.greetingCopy ?? null}
+      season={seasonalHomeVisual?.season ?? null}
       visiblePets={visiblePets}
       activePetId={activePetId}
       petThemePrimary={petTheme.primary}
@@ -4128,7 +4343,8 @@ export default function LoggedInHome() {
       togetherDays={togetherDays}
       onPressPetProfileEdit={onPressPetProfileEdit}
       onPressProfileInfo={openProfileInfoSheet}
-      autumnOrnamentSheet={seasonalHomeVisual?.ornamentSheet ?? null}
+      season={seasonalHomeVisual?.season ?? null}
+      seasonalOrnamentSheet={seasonalHomeVisual?.ornamentSheet ?? null}
       avatarDiameter={heroAvatarDiameter}
     />
   );
@@ -4155,7 +4371,7 @@ export default function LoggedInHome() {
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
-        {seasonalHomeVisual ? (
+        {seasonalHomeVisual?.season === 'autumn' ? (
           <SeasonalHomeAutumnStage
             atmosphere={seasonalHomeVisual.atmosphere}
             atmosphereAspectRatio={seasonalHomeVisual.atmosphereAspectRatio}
@@ -4163,11 +4379,24 @@ export default function LoggedInHome() {
             {homeHeader}
             {activeAlarmNotice}
             <Animated.View
-              style={[animatedContentStyle, { marginTop: autumnHeroOffset }]}
+              style={[animatedContentStyle, { marginTop: seasonalHeroOffset }]}
             >
               {homeHero}
             </Animated.View>
           </SeasonalHomeAutumnStage>
+        ) : seasonalHomeVisual?.season === 'winter' ? (
+          <SeasonalHomeWinterStage
+            atmosphere={seasonalHomeVisual.atmosphere}
+            atmosphereAspectRatio={seasonalHomeVisual.atmosphereAspectRatio}
+          >
+            {homeHeader}
+            {activeAlarmNotice}
+            <Animated.View
+              style={[animatedContentStyle, { marginTop: seasonalHeroOffset }]}
+            >
+              {homeHero}
+            </Animated.View>
+          </SeasonalHomeWinterStage>
         ) : (
           <>
             {homeHeader}
@@ -4307,7 +4536,11 @@ export default function LoggedInHome() {
         likes={likes}
         dislikes={dislikes}
         tags={tags}
-        autumnOrnamentSheet={seasonalHomeVisual?.ornamentSheet ?? null}
+        season={seasonalHomeVisual?.season ?? null}
+        seasonalOrnamentSheet={seasonalHomeVisual?.ornamentSheet ?? null}
+        profileSheetBackground={
+          seasonalHomeVisual?.profileSheetBackground ?? null
+        }
         onCloseComplete={closeProfileInfoSheet}
       />
 
