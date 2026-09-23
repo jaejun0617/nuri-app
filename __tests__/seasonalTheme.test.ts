@@ -14,7 +14,7 @@ import {
 } from '../src/theme/seasonal/home';
 
 describe('seasonal theme', () => {
-  it('maps the approved autumn and winter Home atmospheres', () => {
+  it('maps all four seasonal Home atmospheres', () => {
     expect(getSeasonalHomeVisual('autumn')).toEqual(
       expect.objectContaining({
         season: 'autumn',
@@ -23,6 +23,11 @@ describe('seasonal theme', () => {
         atmosphere: expect.anything(),
         ornamentSheet: expect.anything(),
         profileSheetBackground: null,
+        headerPalette: {
+          brand: '#C94732',
+          greeting: '#C94732',
+          copy: '#60483F',
+        },
       }),
     );
     expect(getSeasonalHomeVisual('winter')).toEqual(
@@ -33,17 +38,56 @@ describe('seasonal theme', () => {
         atmosphere: expect.anything(),
         ornamentSheet: expect.anything(),
         profileSheetBackground: expect.anything(),
+        headerPalette: {
+          brand: '#4167A6',
+          greeting: '#4167A6',
+          copy: '#45536B',
+        },
       }),
     );
-    expect(getSeasonalHomeVisual('spring')).toBeNull();
-    expect(getSeasonalHomeVisual('summer')).toBeNull();
+    expect(getSeasonalHomeVisual('spring')).toEqual(
+      expect.objectContaining({
+        season: 'spring',
+        atmosphereAspectRatio: 1024 / 1536,
+        ornamentSheet: null,
+        profileSheetBackground: null,
+        greetingCopy: '따뜻한 봄날, 함께 좋은 추억을 남겨보세요',
+        headerPalette: {
+          brand: '#D94F7A',
+          greeting: '#D94F7A',
+          copy: '#654C59',
+        },
+      }),
+    );
+    expect(getSeasonalHomeVisual('summer')).toEqual(
+      expect.objectContaining({
+        season: 'summer',
+        atmosphereAspectRatio: 1024 / 1536,
+        ornamentSheet: null,
+        profileSheetBackground: null,
+        greetingCopy: '반짝이는 여름날도 함께 기록해요',
+        headerPalette: {
+          brand: '#25705F',
+          greeting: '#25705F',
+          copy: '#405C56',
+        },
+      }),
+    );
     expect(SEASONAL_HOME_COPY.autumn).toBe(
       getSeasonalHomeVisual('autumn')?.greetingCopy,
     );
     expect(SEASONAL_HOME_COPY.winter).toBe(
       getSeasonalHomeVisual('winter')?.greetingCopy,
     );
+    expect(SEASONAL_HOME_COPY.spring).toBe(
+      getSeasonalHomeVisual('spring')?.greetingCopy,
+    );
+    expect(SEASONAL_HOME_COPY.summer).toBe(
+      getSeasonalHomeVisual('summer')?.greetingCopy,
+    );
     expect(getSeasonalHomeVisual('autumn', 'winter')?.season).toBe('winter');
+    expect(getSeasonalHomeVisual('autumn', 'spring')?.season).toBe('spring');
+    expect(getSeasonalHomeVisual('autumn', 'summer')?.season).toBe('summer');
   });
   it('uses Asia/Seoul as the fixed product timezone', () => {
     expect(NURI_SEASON_TIME_ZONE).toBe('Asia/Seoul');

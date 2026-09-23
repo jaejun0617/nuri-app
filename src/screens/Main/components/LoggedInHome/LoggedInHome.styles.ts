@@ -79,8 +79,9 @@ export const styles = StyleSheet.create({
   brandWordmark: {
     fontSize: 24,
     lineHeight: 28,
-    fontWeight: '900',
-    letterSpacing: 1.2,
+    fontFamily: 'Fredoka-SemiBold',
+    fontWeight: 'normal',
+    letterSpacing: 0,
   },
   brandPaw: {
     marginTop: -2,
@@ -114,7 +115,6 @@ export const styles = StyleSheet.create({
     backgroundColor: 'rgba(248, 251, 255, 0.12)',
   },
   winterGreetingText: {
-    color: '#40516F',
     textShadowColor: 'rgba(248, 251, 255, 0.92)',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 3,
@@ -126,19 +126,13 @@ export const styles = StyleSheet.create({
     color: MUTED,
     lineHeight: 16,
   },
-  autumnSeasonalCopy: {
+  seasonalCopy: {
     marginTop: 4,
-    color: '#765446',
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '500',
   },
   winterSeasonalCopy: {
-    marginTop: 4,
-    color: '#50627F',
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '500',
     textShadowColor: 'rgba(248, 251, 255, 0.88)',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 2,
@@ -521,38 +515,6 @@ export const styles = StyleSheet.create({
     paddingBottom: 0,
   },
 
-  heroGearBtn: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    width: 34,
-    height: 34,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  autumnHeroGearBtn: {
-    backgroundColor: 'rgba(255, 252, 247, 0.97)',
-    borderWidth: 1,
-    borderColor: 'rgba(94, 68, 49, 0.30)',
-    elevation: 3,
-  },
-  winterHeroGearBtn: {
-    backgroundColor: 'rgba(248, 251, 255, 0.94)',
-    borderWidth: 1,
-    borderColor: 'rgba(120, 148, 210, 0.28)',
-    shadowColor: '#40516F',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 3,
-  },
-  heroGearText: {
-    color: 'rgba(11,18,32,0.55)',
-    fontSize: 18,
-    fontWeight: '900',
-  },
-
   heroCenter: {
     alignItems: 'center',
     paddingTop: 10,
@@ -565,6 +527,14 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 6,
+  },
+  heroAvatarPressTarget: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  heroAvatarPressVisual: {
+    marginBottom: 0,
   },
   autumnHeroHalo: {
     position: 'absolute',
