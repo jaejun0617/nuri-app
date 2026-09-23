@@ -21,7 +21,7 @@ const SPRING_HOME_VISUAL: SeasonalHomeVisual = {
   atmosphere: require('../../assets/seasonal/home/spring/atmosphere.png'),
   atmosphereAspectRatio: 1024 / 1536,
   ornamentSheet: null,
-  profileSheetBackground: null,
+  profileSheetBackground: require('../../assets/seasonal/home/spring/profile-sheet-background.png'),
   greetingCopy: '따뜻한 봄날, 함께 좋은 추억을 남겨보세요',
   headerPalette: {
     brand: '#D94F7A',
@@ -35,7 +35,7 @@ const SUMMER_HOME_VISUAL: SeasonalHomeVisual = {
   atmosphere: require('../../assets/seasonal/home/summer/atmosphere.png'),
   atmosphereAspectRatio: 1024 / 1536,
   ornamentSheet: null,
-  profileSheetBackground: null,
+  profileSheetBackground: require('../../assets/seasonal/home/summer/profile-sheet-background.png'),
   greetingCopy: '반짝이는 여름날도 함께 기록해요',
   headerPalette: {
     brand: '#25705F',

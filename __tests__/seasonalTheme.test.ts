@@ -50,7 +50,7 @@ describe('seasonal theme', () => {
         season: 'spring',
         atmosphereAspectRatio: 1024 / 1536,
         ornamentSheet: null,
-        profileSheetBackground: null,
+        profileSheetBackground: expect.anything(),
         greetingCopy: '따뜻한 봄날, 함께 좋은 추억을 남겨보세요',
         headerPalette: {
           brand: '#D94F7A',
@@ -64,7 +64,7 @@ describe('seasonal theme', () => {
         season: 'summer',
         atmosphereAspectRatio: 1024 / 1536,
         ornamentSheet: null,
-        profileSheetBackground: null,
+        profileSheetBackground: expect.anything(),
         greetingCopy: '반짝이는 여름날도 함께 기록해요',
         headerPalette: {
           brand: '#25705F',

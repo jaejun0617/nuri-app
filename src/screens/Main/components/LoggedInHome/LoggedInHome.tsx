@@ -91,6 +91,11 @@ import {
   type WinterOrnamentVariant,
 } from './SeasonalHomeWinter';
 import {
+  SeasonalProfileSheetOrnament,
+  type SeasonalProfileSheetOrnamentSeason,
+  type SeasonalProfileSheetOrnamentVariant,
+} from './SeasonalProfileSheetOrnament';
+import {
   getSeasonalHomeVisual,
   type SeasonalHomeVisual,
 } from '../../../../theme/seasonal/home';
@@ -1506,6 +1511,13 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
 }) {
   const isAutumn = season === 'autumn';
   const isWinter = season === 'winter';
+  const isSpring = season === 'spring';
+  const isSummer = season === 'summer';
+  const natureSeason: SeasonalProfileSheetOrnamentSeason | null = isSpring
+    ? 'spring'
+    : isSummer
+      ? 'summer'
+      : null;
 
   if (presentation === 'sheet') {
     const profileRows = [
@@ -1520,6 +1532,8 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
         ornamentVariant: 'sprig',
         winterOrnamentVariant: 'snowflake',
         winterOrnamentSize: 26,
+        natureOrnamentVariant: 'sparkle',
+        natureOrnamentSize: 25,
         ornamentStyle: styles.profileSheetRowOrnamentHobby,
         description: '즐거워하는 활동이에요',
         values: hobbies,
@@ -1536,6 +1550,8 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
         ornamentVariant: 'berries',
         winterOrnamentVariant: 'berryBranch',
         winterOrnamentSize: 39,
+        natureOrnamentVariant: 'primary',
+        natureOrnamentSize: 36,
         ornamentStyle: styles.profileSheetRowOrnamentLike,
         description: '마음을 편하게 해주는 것들이에요',
         values: likes,
@@ -1552,6 +1568,8 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
         ornamentVariant: 'singleLeaf',
         winterOrnamentVariant: 'frostedTwig',
         winterOrnamentSize: 35,
+        natureOrnamentVariant: 'secondary',
+        natureOrnamentSize: 35,
         ornamentStyle: styles.profileSheetRowOrnamentDislike,
         description: '조금 불편해하는 것들이에요',
         values: dislikes,
@@ -1568,6 +1586,8 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
         ornamentVariant: 'ginkgo',
         winterOrnamentVariant: 'sparkle',
         winterOrnamentSize: 28,
+        natureOrnamentVariant: 'branch',
+        natureOrnamentSize: 34,
         ornamentStyle: styles.profileSheetRowOrnamentTag,
         description: '우리 아이를 표현하는 특별한 키워드예요',
         values: tags,
@@ -1584,6 +1604,8 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
               style={[
                 styles.profileSheetRow,
                 isWinter ? styles.winterProfileSheetRow : null,
+                isSpring ? styles.springProfileSheetRow : null,
+                isSummer ? styles.summerProfileSheetRow : null,
               ]}
             >
               <View style={[styles.profileSheetIconCircle, row.iconStyle]}>
@@ -1602,6 +1624,8 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
                       isWinter
                         ? styles.winterProfileSheetRowDescription
                         : null,
+                      isSpring ? styles.springProfileSheetRowDescription : null,
+                      isSummer ? styles.summerProfileSheetRowDescription : null,
                     ]}
                   >
                     {' · '}
@@ -1631,13 +1655,15 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
                     style={[
                       styles.profileSheetEmptyValue,
                       isWinter ? styles.winterProfileSheetEmptyValue : null,
+                      isSpring ? styles.springProfileSheetEmptyValue : null,
+                      isSummer ? styles.summerProfileSheetEmptyValue : null,
                     ]}
                   >
                     {row.empty}
                   </Text>
                 )}
               </View>
-              {seasonalOrnamentSheet ? (
+              {seasonalOrnamentSheet || natureSeason ? (
                 <View
                   pointerEvents="none"
                   accessible={false}
@@ -1653,12 +1679,20 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
                       }
                       size={row.winterOrnamentSize}
                     />
-                  ) : (
+                  ) : natureSeason ? (
+                    <SeasonalProfileSheetOrnament
+                      season={natureSeason}
+                      variant={
+                        row.natureOrnamentVariant as SeasonalProfileSheetOrnamentVariant
+                      }
+                      size={row.natureOrnamentSize}
+                    />
+                  ) : seasonalOrnamentSheet ? (
                     <AutumnLeafOrnament
                       source={seasonalOrnamentSheet}
                       variant={row.ornamentVariant}
                     />
-                  )}
+                  ) : null}
                 </View>
               ) : null}
             </View>
@@ -1898,6 +1932,9 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
   onCloseComplete: () => void;
 }) {
   const isWinter = season === 'winter';
+  const isSpring = season === 'spring';
+  const isSummer = season === 'summer';
+  const isNatureSeason = isSpring || isSummer;
   const insets = useSafeAreaInsets();
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const contentHorizontalInset = windowWidth <= 360 ? 18 : 20;
@@ -1976,6 +2013,8 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
           style={[
             styles.profileSheet,
             isWinter ? styles.winterProfileSheet : null,
+            isSpring ? styles.springProfileSheet : null,
+            isSummer ? styles.summerProfileSheet : null,
             { transform: [{ translateY }] },
           ]}
         >
@@ -1984,7 +2023,24 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
             accessible={false}
             style={styles.profileSheetBackgroundLayer}
           >
-            {isWinter && profileSheetBackground ? (
+            {isNatureSeason && profileSheetBackground ? (
+              <>
+                <LinearGradient
+                  colors={
+                    isSpring
+                      ? ['#F7FBFF', '#FCFDFF', '#F7FBF2']
+                      : ['#F4FBFF', '#FAFDFF', '#F5FBEF']
+                  }
+                  locations={[0, 0.58, 1]}
+                  style={styles.profileSheetBackgroundBase}
+                />
+                <Image
+                  source={profileSheetBackground}
+                  resizeMode="stretch"
+                  style={styles.winterProfileSheetBackground}
+                />
+              </>
+            ) : isWinter && profileSheetBackground ? (
               <>
                 <LinearGradient
                   colors={['#F8FBFF', '#F4F8FF', '#EDF4FF']}
@@ -2110,6 +2166,8 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
             style={[
               styles.profileSheetHandle,
               isWinter ? styles.winterProfileSheetHandle : null,
+              isSpring ? styles.springProfileSheetHandle : null,
+              isSummer ? styles.summerProfileSheetHandle : null,
             ]}
           />
           <View
@@ -2144,6 +2202,8 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
                   style={[
                     styles.profileSheetTitle,
                     isWinter ? styles.winterProfileSheetTitle : null,
+                    isSpring ? styles.springProfileSheetTitle : null,
+                    isSummer ? styles.summerProfileSheetTitle : null,
                   ]}
                 >
                   우리 아이의 취향 이야기
@@ -2152,6 +2212,8 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
                   style={[
                     styles.profileSheetSubtitle,
                     isWinter ? styles.winterProfileSheetSubtitle : null,
+                    isSpring ? styles.springProfileSheetSubtitle : null,
+                    isSummer ? styles.summerProfileSheetSubtitle : null,
                   ]}
                 >
                   작고 소중한 취향을 살펴보세요
@@ -2165,6 +2227,8 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
               style={[
                 styles.profileSheetCloseButton,
                 isWinter ? styles.winterProfileSheetCloseButton : null,
+                isSpring ? styles.springProfileSheetCloseButton : null,
+                isSummer ? styles.summerProfileSheetCloseButton : null,
               ]}
               onPress={requestClose}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -2172,7 +2236,15 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
               <Feather
                 name="x"
                 size={19}
-                color={isWinter ? '#50627F' : 'rgba(79,56,42,0.78)'}
+                color={
+                  isWinter
+                    ? '#50627F'
+                    : isSpring
+                      ? '#765564'
+                      : isSummer
+                        ? '#426C63'
+                        : 'rgba(79,56,42,0.78)'
+                }
               />
             </TouchableOpacity>
           </View>
@@ -2209,6 +2281,8 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
                 style={[
                   styles.profileSheetFooterCopy,
                   isWinter ? styles.winterProfileSheetFooterCopy : null,
+                  isSpring ? styles.springProfileSheetFooterCopy : null,
+                  isSummer ? styles.summerProfileSheetFooterCopy : null,
                 ]}
               >
                 언제나 우리 아이와 함께 ♡

@@ -898,6 +898,16 @@ export const styles = StyleSheet.create({
     borderColor: 'rgba(120, 148, 210, 0.22)',
     shadowColor: '#40516F',
   },
+  springProfileSheet: {
+    backgroundColor: '#F8FBFF',
+    borderColor: 'rgba(217, 79, 122, 0.18)',
+    shadowColor: '#9F6A82',
+  },
+  summerProfileSheet: {
+    backgroundColor: '#F4FBFF',
+    borderColor: 'rgba(37, 112, 95, 0.18)',
+    shadowColor: '#4F8479',
+  },
   profileSheetBackgroundLayer: {
     ...ABS_FILL,
   },
@@ -1005,6 +1015,12 @@ export const styles = StyleSheet.create({
   winterProfileSheetHandle: {
     backgroundColor: 'rgba(64, 81, 111, 0.22)',
   },
+  springProfileSheetHandle: {
+    backgroundColor: 'rgba(143, 91, 116, 0.22)',
+  },
+  summerProfileSheetHandle: {
+    backgroundColor: 'rgba(62, 111, 104, 0.22)',
+  },
   profileSheetHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1054,6 +1070,12 @@ export const styles = StyleSheet.create({
   winterProfileSheetTitle: {
     color: '#40516F',
   },
+  springProfileSheetTitle: {
+    color: '#604957',
+  },
+  summerProfileSheetTitle: {
+    color: '#385B56',
+  },
   profileSheetSubtitle: {
     fontSize: 13,
     lineHeight: 18,
@@ -1062,6 +1084,12 @@ export const styles = StyleSheet.create({
   },
   winterProfileSheetSubtitle: {
     color: '#677792',
+  },
+  springProfileSheetSubtitle: {
+    color: '#7B6672',
+  },
+  summerProfileSheetSubtitle: {
+    color: '#607A75',
   },
   profileSheetCloseButton: {
     width: 44,
@@ -1082,6 +1110,16 @@ export const styles = StyleSheet.create({
     backgroundColor: 'rgba(248, 251, 255, 0.92)',
     borderColor: 'rgba(120, 148, 210, 0.25)',
     shadowColor: '#40516F',
+  },
+  springProfileSheetCloseButton: {
+    backgroundColor: 'rgba(255, 252, 254, 0.92)',
+    borderColor: 'rgba(217, 79, 122, 0.20)',
+    shadowColor: '#9F6A82',
+  },
+  summerProfileSheetCloseButton: {
+    backgroundColor: 'rgba(252, 255, 254, 0.92)',
+    borderColor: 'rgba(37, 112, 95, 0.20)',
+    shadowColor: '#4F8479',
   },
   profileSheetScroll: {
     minHeight: 0,
@@ -1108,6 +1146,14 @@ export const styles = StyleSheet.create({
   winterProfileSheetRow: {
     backgroundColor: 'rgba(251, 253, 255, 0.90)',
     borderColor: 'rgba(120, 148, 210, 0.16)',
+  },
+  springProfileSheetRow: {
+    backgroundColor: 'rgba(255, 254, 253, 0.91)',
+    borderColor: 'rgba(217, 79, 122, 0.13)',
+  },
+  summerProfileSheetRow: {
+    backgroundColor: 'rgba(253, 255, 253, 0.91)',
+    borderColor: 'rgba(37, 112, 95, 0.13)',
   },
   profileSheetRowOrnament: {
     position: 'absolute',
@@ -1168,6 +1214,12 @@ export const styles = StyleSheet.create({
   winterProfileSheetRowDescription: {
     color: '#677792',
   },
+  springProfileSheetRowDescription: {
+    color: '#7B6672',
+  },
+  summerProfileSheetRowDescription: {
+    color: '#607A75',
+  },
   profileSheetValueWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1220,6 +1272,12 @@ export const styles = StyleSheet.create({
   winterProfileSheetEmptyValue: {
     color: '#75839B',
   },
+  springProfileSheetEmptyValue: {
+    color: '#8C7480',
+  },
+  summerProfileSheetEmptyValue: {
+    color: '#6E8580',
+  },
   profileSheetFooter: {
     alignItems: 'center',
     marginTop: 16,
@@ -1233,6 +1291,12 @@ export const styles = StyleSheet.create({
   },
   winterProfileSheetFooterCopy: {
     color: '#6F78B8',
+  },
+  springProfileSheetFooterCopy: {
+    color: '#C4688D',
+  },
+  summerProfileSheetFooterCopy: {
+    color: '#3F8172',
   },
 
   // ---------------------------------------------------------
