@@ -1,5 +1,6 @@
-import React, { memo, useCallback, useMemo } from 'react';
+import React, { memo, useCallback, useMemo, useState } from 'react';
 import {
+  Alert,
   FlatList,
   StyleSheet,
   TouchableOpacity,
@@ -14,13 +15,26 @@ import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
 import { spacing } from '../../app/theme/tokens/spacing';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
+import PetDeleteConfirmDialog from '../../components/pets/PetDeleteConfirmDialog';
 import PetManagementCard from '../../components/pets/PetManagementCard';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
+import {
+  captureMonitoringException,
+  captureMonitoringMessage,
+} from '../../services/monitoring/sentry';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
-import { openMoreDrawer } from '../../store/uiStore';
+import {
+  deletePetSafely,
+  fetchMyPets,
+  getPetDeleteErrorMessage,
+} from '../../services/supabase/pets';
 import { usePetStore, type Pet } from '../../store/petStore';
+import { useRecordStore } from '../../store/recordStore';
+import { useScheduleStore } from '../../store/scheduleStore';
+import { openMoreDrawer, showToast } from '../../store/uiStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'PetManagement'>;
 type Route = RootScreenRoute<'PetManagement'>;
@@ -76,6 +90,10 @@ export default function PetManagementScreen() {
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
   const selectPet = usePetStore(s => s.selectPet);
+  const setPets = usePetStore(s => s.setPets);
+  const [deleteTarget, setDeleteTarget] = useState<Pet | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [lastPetGuardVisible, setLastPetGuardVisible] = useState(false);
 
   const selectedPet = useMemo(
     () => pets.find(pet => pet.id === selectedPetId) ?? pets[0] ?? null,
@@ -122,6 +140,78 @@ export default function PetManagementScreen() {
     [navigation, route.params?.entrySource],
   );
 
+  const handleDelete = useCallback(
+    (petId: string) => {
+      if (deleting) return;
+      if (pets.length <= 1) {
+        setLastPetGuardVisible(true);
+        return;
+      }
+
+      const target = pets.find(pet => pet.id === petId) ?? null;
+      if (!target) {
+        Alert.alert('삭제할 수 없어요', '아이 프로필을 다시 확인해 주세요.');
+        return;
+      }
+
+      setDeleteTarget(target);
+    },
+    [deleting, pets],
+  );
+
+  const executeDeletePet = useCallback(async () => {
+    if (!deleteTarget || deleting) return;
+
+    setDeleting(true);
+    try {
+      const result = await deletePetSafely(deleteTarget.id);
+      const localRemainingPets = pets.filter(
+        candidate => candidate.id !== deleteTarget.id,
+      );
+
+      useRecordStore.getState().clearPet(deleteTarget.id);
+      useScheduleStore.getState().clearPet(deleteTarget.id);
+      setPets(localRemainingPets, { userId: result.userId });
+
+      try {
+        const refreshedPets = await fetchMyPets(result.userId);
+        setPets(refreshedPets, { userId: result.userId });
+      } catch (refreshError) {
+        captureMonitoringException(refreshError);
+      }
+
+      setDeleteTarget(null);
+
+      if (result.storageCleanup.failedBuckets.length > 0) {
+        captureMonitoringMessage('pet_delete_storage_cleanup_pending', {
+          level: 'warning',
+          tags: { petId: deleteTarget.id },
+          extras: { failedBuckets: result.storageCleanup.failedBuckets },
+        });
+        showToast({
+          tone: 'warning',
+          title: '프로필은 삭제됐어요',
+          message: '일부 사진 파일 정리를 완료하지 못했어요.',
+          durationMs: 3200,
+        });
+      } else {
+        showToast({
+          tone: 'success',
+          title: '프로필을 삭제했어요',
+          message: `${deleteTarget.name} 프로필이 목록에서 정리됐어요.`,
+        });
+      }
+    } catch (error) {
+      captureMonitoringException(error);
+      Alert.alert(
+        '아이 프로필을 삭제하지 못했어요',
+        getPetDeleteErrorMessage(error),
+      );
+    } finally {
+      setDeleting(false);
+    }
+  }, [deleteTarget, deleting, pets, setPets]);
+
   const handleAddPet = useCallback(() => {
     navigation.navigate('PetCreate', { from: 'header_plus' });
   }, [navigation]);
@@ -133,9 +223,10 @@ export default function PetManagementScreen() {
         isSelected={item.id === selectedPetId}
         onPressSelect={handleSelect}
         onPressEdit={handleEdit}
+        onPressDelete={handleDelete}
       />
     ),
-    [handleEdit, handleSelect, selectedPetId],
+    [handleDelete, handleEdit, handleSelect, selectedPetId],
   );
 
   const footer = useMemo(
@@ -221,6 +312,30 @@ export default function PetManagementScreen() {
         ListEmptyComponent={emptyComponent}
         ListFooterComponent={footer ?? undefined}
         showsVerticalScrollIndicator={false}
+      />
+
+      {deleteTarget ? (
+        <PetDeleteConfirmDialog
+          visible
+          pet={deleteTarget}
+          deleting={deleting}
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={() => {
+            executeDeletePet().catch(() => {});
+          }}
+        />
+      ) : null}
+      <ConfirmDialog
+        visible={lastPetGuardVisible}
+        typographyMode="unified"
+        title="아이 프로필을 삭제하지 못했어요"
+        message="최소 1개의 아이 프로필은 필요해요."
+        cancelLabel="돌아가기"
+        confirmLabel="확인"
+        tone="warning"
+        accentColor={accentPalette.primary}
+        onCancel={() => setLastPetGuardVisible(false)}
+        onConfirm={() => setLastPetGuardVisible(false)}
       />
     </View>
   );

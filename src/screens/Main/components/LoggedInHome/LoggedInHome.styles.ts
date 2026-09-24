@@ -51,30 +51,19 @@ export const styles = StyleSheet.create({
   // Header
   // ---------------------------------------------------------
   header: {
-    gap: 10,
+    position: 'relative',
     marginBottom: 2,
   },
-  brandRow: {
-    minHeight: 28,
+  brandContentStack: {
+    width: '100%',
     paddingTop: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    gap: 7,
+    marginBottom: 16,
   },
   brandLockup: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-  },
-  autumnBrandMicroSurface: {
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255, 252, 247, 0.18)',
-  },
-  winterBrandMicroSurface: {
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderRadius: 6,
-    backgroundColor: 'rgba(248, 251, 255, 0.18)',
   },
   brandWordmark: {
     fontSize: 24,
@@ -87,37 +76,16 @@ export const styles = StyleSheet.create({
     marginTop: -2,
     marginLeft: 2,
   },
-  headerTopRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
+  notificationAnchor: {
+    position: 'absolute',
+    top: 5,
+    right: 0,
+    zIndex: 1,
   },
-  headerTextArea: { paddingTop: 2, flex: 1 },
-  autumnGreetingMicroSurface: {
-    alignSelf: 'flex-start',
-    maxWidth: '100%',
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255, 252, 247, 0.09)',
-  },
-  autumnGreetingText: {
-    textShadowColor: 'rgba(255, 249, 240, 0.70)',
+  seasonalCopyReadabilityText: {
+    textShadowColor: 'rgba(255,255,255,0.32)',
     textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 3,
-  },
-  winterGreetingMicroSurface: {
-    alignSelf: 'flex-start',
-    maxWidth: '100%',
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    borderRadius: 6,
-    backgroundColor: 'rgba(248, 251, 255, 0.12)',
-  },
-  winterGreetingText: {
-    textShadowColor: 'rgba(248, 251, 255, 0.92)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 3,
+    textShadowRadius: 1.5,
   },
   title: { fontSize: 16, fontWeight: '900', color: BRAND_DEEP },
   subTitle: {
@@ -127,18 +95,11 @@ export const styles = StyleSheet.create({
     lineHeight: 16,
   },
   seasonalCopy: {
-    marginTop: 4,
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '500',
   },
-  winterSeasonalCopy: {
-    textShadowColor: 'rgba(248, 251, 255, 0.88)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 2,
-  },
 
-  headerIcons: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   headerIconBtn: {
     width: 34,
     height: 34,
@@ -600,41 +561,22 @@ export const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
   },
-  autumnPetNameRow: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 5,
-    marginTop: 8,
-  },
-  autumnPetNameBalance: {
-    width: 31,
-    height: 32,
-    flexShrink: 0,
-  },
-  autumnPetName: {
-    flexShrink: 1,
-    maxWidth: '75%',
-    minWidth: 0,
-    marginTop: 0,
-  },
   heroTitleBadge: {
     maxWidth: '82%',
-    minHeight: 28,
+    minHeight: 26,
     borderRadius: 999,
     borderWidth: 1,
-    paddingHorizontal: 11,
-    paddingVertical: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
+    gap: 4,
   },
   heroTitleBadgeText: {
     flexShrink: 1,
-    fontSize: 14,
-    lineHeight: 18,
+    fontSize: 13,
+    lineHeight: 17,
     fontWeight: '800',
     letterSpacing: 0,
   },
@@ -645,24 +587,12 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
     color: MUTED,
   },
-  autumnHeroMeta: {
+  heroMetaThemeText: {
     maxWidth: '100%',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255, 250, 243, 0.88)',
     textAlign: 'center',
-  },
-  winterHeroMeta: {
-    maxWidth: '100%',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    backgroundColor: 'rgba(248, 251, 255, 0.88)',
-    borderWidth: 1,
-    borderColor: 'rgba(120, 148, 210, 0.12)',
-    color: '#50627F',
-    textAlign: 'center',
+    textShadowColor: 'rgba(255,255,255,0.90)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 3,
   },
   heroMetaMuted: {
     marginTop: 6,
@@ -727,6 +657,18 @@ export const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#5D4333',
     textAlign: 'center',
+  },
+  autumnProfileEntrySeason: {
+    borderColor: 'rgba(124, 46, 32, 0.72)',
+    backgroundColor: 'rgba(159, 66, 44, 0.94)',
+    shadowColor: '#6E2B20',
+    shadowOpacity: 0.16,
+    shadowRadius: 7,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  autumnProfileEntrySeasonText: {
+    color: '#FFF9F0',
   },
   autumnProfileEntryChevron: {
     position: 'absolute',

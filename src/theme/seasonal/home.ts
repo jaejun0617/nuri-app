@@ -47,7 +47,7 @@ const SUMMER_HOME_VISUAL: SeasonalHomeVisual = {
 const AUTUMN_HOME_VISUAL: SeasonalHomeVisual = {
   season: 'autumn',
   atmosphere: require('../../assets/seasonal/home/autumn/atmosphere.png'),
-  atmosphereAspectRatio: 941 / 1672,
+  atmosphereAspectRatio: 1024 / 1536,
   ornamentSheet: require('../../assets/seasonal/home/autumn/ornament-sheet.png'),
   profileSheetBackground: null,
   greetingCopy: '선선한 오늘, 함께한 순간을 남겨보세요',
@@ -61,7 +61,7 @@ const AUTUMN_HOME_VISUAL: SeasonalHomeVisual = {
 const WINTER_HOME_VISUAL: SeasonalHomeVisual = {
   season: 'winter',
   atmosphere: require('../../assets/seasonal/home/winter/atmosphere.png'),
-  atmosphereAspectRatio: 941 / 1672,
+  atmosphereAspectRatio: 1024 / 1536,
   ornamentSheet: require('../../assets/seasonal/home/winter/ornament-sheet.png'),
   profileSheetBackground: require('../../assets/seasonal/home/winter/profile-sheet-background.png'),
   greetingCopy: '포근한 오늘도 따뜻한 기억을 남겨보세요',

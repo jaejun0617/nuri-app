@@ -22,6 +22,7 @@ type NatureStageProps = {
   season: NatureSeason;
   atmosphere: ImageSourcePropType;
   atmosphereAspectRatio: number;
+  minHeight?: number;
   children: React.ReactNode;
 };
 
@@ -54,6 +55,7 @@ export function SeasonalHomeNatureStage({
   season,
   atmosphere,
   atmosphereAspectRatio,
+  minHeight,
   children,
 }: NatureStageProps) {
   const { width: windowWidth } = useWindowDimensions();
@@ -67,7 +69,13 @@ export function SeasonalHomeNatureStage({
   );
 
   return (
-    <View style={[styles.stage, { backgroundColor: palette.background }]}>
+    <View
+      style={[
+        styles.stage,
+        { backgroundColor: palette.background },
+        minHeight ? { minHeight } : null,
+      ]}
+    >
       <Image
         source={atmosphere}
         resizeMode="contain"

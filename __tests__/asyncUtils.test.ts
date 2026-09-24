@@ -40,4 +40,12 @@ describe('resolveSelectedPetId', () => {
     expect(resolveSelectedPetId(pets, 'missing', 'also-missing')).toBe('pet-1');
     expect(resolveSelectedPetId([], null, null)).toBeNull();
   });
+
+  it('다른 pet 삭제 후에도 유효한 기존 선택을 유지한다', () => {
+    expect(resolveSelectedPetId([pets[0]], 'pet-1')).toBe('pet-1');
+  });
+
+  it('선택된 pet 삭제 후 canonical ordering 첫 pet으로 복구한다', () => {
+    expect(resolveSelectedPetId([pets[0]], 'pet-2')).toBe('pet-1');
+  });
 });

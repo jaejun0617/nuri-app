@@ -14,6 +14,10 @@ import {
   type PetSpeciesKey,
 } from '../pets/species';
 import { supabase } from './client';
+import {
+  cleanupDeletedPetStorage,
+  type DeletedPetStorageCleanupResult,
+} from './storagePets';
 
 const PET_PROFILE_BUCKET = 'pet-profiles';
 
@@ -48,6 +52,46 @@ type PetsRow = {
   created_at?: string;
   updated_at?: string;
 };
+
+type PetDeleteCandidate = Pick<PetsRow, 'id'>;
+
+export type PetDeleteErrorCode =
+  | 'INVALID_PET_ID'
+  | 'UNAUTHENTICATED'
+  | 'PET_NOT_FOUND'
+  | 'LAST_PET_REQUIRED'
+  | 'DELETE_FAILED';
+
+export class PetDeleteError extends Error {
+  readonly code: PetDeleteErrorCode;
+
+  constructor(code: PetDeleteErrorCode, message: string) {
+    super(message);
+    this.name = 'PetDeleteError';
+    this.code = code;
+  }
+}
+
+export type DeletePetSafelyResult = {
+  deletedPetId: string;
+  userId: string;
+  storageCleanup: DeletedPetStorageCleanupResult;
+};
+
+function toPetDeleteCandidates(data: unknown): PetDeleteCandidate[] {
+  if (!Array.isArray(data)) return [];
+  return data.filter(
+    (entry): entry is PetDeleteCandidate =>
+      isRecord(entry) &&
+      typeof entry.id === 'string' &&
+      entry.id.trim().length > 0,
+  );
+}
+
+export function getPetDeleteErrorMessage(error: unknown): string {
+  if (error instanceof PetDeleteError) return error.message;
+  return '아이 프로필을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요.';
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -359,4 +403,80 @@ export async function updatePetDefaultMealAmount(input: {
     .eq('user_id', userId);
 
   if (error) throw error;
+}
+
+/**
+ * 마지막 펫을 남기는 현재 앱 계약을 지키면서 인증 사용자의 펫 하나만 삭제한다.
+ * DB가 삭제된 뒤에는 해당 펫의 사용자 소유 Storage 폴더를 별도 정리한다.
+ */
+export async function deletePetSafely(
+  petIdInput: string,
+): Promise<DeletePetSafelyResult> {
+  const petId = petIdInput.trim();
+  if (!petId) {
+    throw new PetDeleteError(
+      'INVALID_PET_ID',
+      '삭제할 아이 프로필을 확인하지 못했어요.',
+    );
+  }
+
+  const userId = (await supabase.auth.getUser()).data.user?.id ?? null;
+  if (!userId) {
+    throw new PetDeleteError(
+      'UNAUTHENTICATED',
+      '로그인이 잠시 끊어졌어요. 다시 로그인한 뒤 시도해 주세요.',
+    );
+  }
+
+  const { data: ownedPetData, error: ownedPetError } = await supabase
+    .from('pets')
+    .select('id')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true });
+
+  if (ownedPetError) {
+    throw new PetDeleteError(
+      'DELETE_FAILED',
+      '아이 프로필 상태를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.',
+    );
+  }
+
+  const ownedPets = toPetDeleteCandidates(ownedPetData);
+  if (!ownedPets.some(candidate => candidate.id === petId)) {
+    throw new PetDeleteError(
+      'PET_NOT_FOUND',
+      '삭제할 아이 프로필을 찾을 수 없어요.',
+    );
+  }
+  if (ownedPets.length <= 1) {
+    throw new PetDeleteError(
+      'LAST_PET_REQUIRED',
+      '최소 1개의 아이 프로필은 필요해요.',
+    );
+  }
+
+  const { data: deletedData, error: deleteError } = await supabase
+    .from('pets')
+    .delete()
+    .eq('id', petId)
+    .eq('user_id', userId)
+    .select('id');
+
+  if (deleteError) {
+    throw new PetDeleteError(
+      'DELETE_FAILED',
+      '아이 프로필을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요.',
+    );
+  }
+
+  const deletedPets = toPetDeleteCandidates(deletedData);
+  if (!deletedPets.some(candidate => candidate.id === petId)) {
+    throw new PetDeleteError(
+      'PET_NOT_FOUND',
+      '삭제할 아이 프로필을 찾을 수 없어요.',
+    );
+  }
+
+  const storageCleanup = await cleanupDeletedPetStorage({ userId, petId });
+  return { deletedPetId: petId, userId, storageCleanup };
 }

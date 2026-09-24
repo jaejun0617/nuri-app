@@ -19,6 +19,7 @@ import {
   Easing as RNEasing,
   Image,
   type ImageSourcePropType,
+  type LayoutChangeEvent,
   LayoutAnimation,
   Modal,
   PanResponder,
@@ -31,7 +32,10 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import {
+  useBottomTabBarHeight,
+  type BottomTabNavigationProp,
+} from '@react-navigation/bottom-tabs';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -1090,7 +1094,6 @@ const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
 });
 
 const HomeHeaderSection = React.memo(function HomeHeaderSection({
-  greetingTitle,
   seasonalCopy,
   season,
   headerPalette,
@@ -1102,7 +1105,6 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
   onPressNotifications,
   notificationUnreadCount,
 }: {
-  greetingTitle: string;
   seasonalCopy: string | null;
   season: SeasonalHomeVisual['season'] | null;
   headerPalette: SeasonalHomeVisual['headerPalette'] | null;
@@ -1123,14 +1125,8 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
 
   return (
     <View style={styles.header}>
-      <View style={styles.brandRow}>
-        <View
-          style={[
-            styles.brandLockup,
-            usesCanonicalWarmSurface ? styles.autumnBrandMicroSurface : null,
-            isWinter ? styles.winterBrandMicroSurface : null,
-          ]}
-        >
+      <View style={styles.brandContentStack}>
+        <View style={styles.brandLockup}>
           <Text
             style={[
               styles.brandWordmark,
@@ -1146,70 +1142,44 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
             style={styles.brandPaw}
           />
         </View>
+        {seasonalCopy ? (
+          <AppText
+            preset="unifiedBody"
+            styleOverridesPreset
+            style={[
+              styles.seasonalCopy,
+              styles.seasonalCopyReadabilityText,
+              { color: headerPalette?.copy ?? petThemePrimary },
+            ]}
+          >
+            {seasonalCopy}
+          </AppText>
+        ) : null}
       </View>
 
-      <View style={styles.headerTopRow}>
-        <View style={styles.headerTextArea}>
-          <View
-            style={
-              usesCanonicalWarmSurface
-                ? styles.autumnGreetingMicroSurface
-                : isWinter
-                  ? styles.winterGreetingMicroSurface
-                  : undefined
-            }
-          >
-            <AppText
-              preset="unifiedTitle"
-              style={[
-                styles.title,
-                usesCanonicalWarmSurface ? styles.autumnGreetingText : null,
-                isWinter ? styles.winterGreetingText : null,
-                { color: headerPalette?.greeting ?? petThemePrimary },
-              ]}
-            >
-              {greetingTitle}
-            </AppText>
-          </View>
-          {seasonalCopy ? (
-            <AppText
-              preset="unifiedBody"
-              styleOverridesPreset
-              style={[
-                styles.seasonalCopy,
-                isWinter ? styles.winterSeasonalCopy : null,
-                { color: headerPalette?.copy ?? petThemePrimary },
-              ]}
-            >
-              {seasonalCopy}
-            </AppText>
+      <View style={styles.notificationAnchor}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={[
+            styles.headerIconBtn,
+            usesCanonicalWarmSurface ? styles.autumnHeaderIconBtn : null,
+            isWinter ? styles.winterHeaderIconBtn : null,
+          ]}
+          onPress={onPressNotifications}
+          accessibilityLabel={notificationAccessibilityLabel}
+          accessibilityRole="button"
+        >
+          <Feather name="bell" size={18} color="rgba(11,18,32,0.75)" />
+          {notificationUnreadCount > 0 ? (
+            <View style={styles.headerNotificationBadge}>
+              <AppText preset="unifiedLabel" style={styles.headerNotificationBadgeText}>
+                {notificationUnreadCount > 99
+                  ? '99+'
+                  : notificationUnreadCount}
+              </AppText>
+            </View>
           ) : null}
-        </View>
-
-        <View style={styles.headerIcons}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            style={[
-              styles.headerIconBtn,
-              usesCanonicalWarmSurface ? styles.autumnHeaderIconBtn : null,
-              isWinter ? styles.winterHeaderIconBtn : null,
-            ]}
-            onPress={onPressNotifications}
-            accessibilityLabel={notificationAccessibilityLabel}
-            accessibilityRole="button"
-          >
-            <Feather name="bell" size={18} color="rgba(11,18,32,0.75)" />
-            {notificationUnreadCount > 0 ? (
-              <View style={styles.headerNotificationBadge}>
-                <AppText preset="unifiedLabel" style={styles.headerNotificationBadgeText}>
-                  {notificationUnreadCount > 99
-                    ? '99+'
-                    : notificationUnreadCount}
-                </AppText>
-              </View>
-            ) : null}
-          </TouchableOpacity>
-        </View>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.petSwitcherRow}>
@@ -1244,7 +1214,6 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
   topMetaLine,
   togetherDays,
   season,
-  seasonalOrnamentSheet,
   avatarDiameter,
   onPressPetProfileEdit,
 }: {
@@ -1255,28 +1224,11 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
   topMetaLine: string | null;
   togetherDays: number | null;
   season: SeasonalHomeVisual['season'] | null;
-  seasonalOrnamentSheet: ImageSourcePropType | null;
   avatarDiameter: number;
   onPressPetProfileEdit: () => void;
 }) {
-  const petNameText = (
-    <AppText
-      preset="unifiedTitle"
-      styleOverridesPreset
-      style={[
-        styles.heroName,
-        seasonalOrnamentSheet ? styles.autumnPetName : null,
-        { color: petTheme.deep },
-      ]}
-      numberOfLines={1}
-      ellipsizeMode="tail"
-    >
-      {profilePetName}
-    </AppText>
-  );
   const isWinter = season === 'winter';
   const isSeasonal = season !== null;
-  const usesCanonicalWarmSurface = isSeasonal && !isWinter;
   const heroPressScale = useRef(new RNAnimated.Value(1)).current;
   const animateHeroPress = useCallback(
     (toValue: number) => {
@@ -1386,7 +1338,7 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
           >
             <MaterialCommunityIcons
               name="medal-outline"
-              size={14}
+              size={13}
               color={petTheme.deep}
             />
             <AppText preset="unifiedTitle"
@@ -1400,19 +1352,15 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
           </View>
         ) : null}
 
-        {seasonalOrnamentSheet ? (
-          <View style={styles.autumnPetNameRow}>
-            <View style={styles.autumnPetNameBalance} accessible={false} />
-            {petNameText}
-            {isWinter ? (
-              <WinterOrnament variant="snowflake" size={29} />
-            ) : (
-              <AutumnLeafOrnament source={seasonalOrnamentSheet} />
-            )}
-          </View>
-        ) : (
-          petNameText
-        )}
+        <AppText
+          preset="unifiedTitle"
+          styleOverridesPreset
+          style={[styles.heroName, { color: petTheme.deep }]}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
+          {profilePetName}
+        </AppText>
 
         {topMetaLine ? (
           <AppText
@@ -1420,8 +1368,8 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
             styleOverridesPreset
             style={[
               styles.heroMetaLine,
-              usesCanonicalWarmSurface ? styles.autumnHeroMeta : null,
-              isWinter ? styles.winterHeroMeta : null,
+              styles.heroMetaThemeText,
+              { color: petTheme.deep },
             ]}
             numberOfLines={isSeasonal ? 2 : 1}
           >
@@ -1433,8 +1381,8 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
             styleOverridesPreset
             style={[
               styles.heroMetaMuted,
-              usesCanonicalWarmSurface ? styles.autumnHeroMeta : null,
-              isWinter ? styles.winterHeroMeta : null,
+              styles.heroMetaThemeText,
+              { color: petTheme.deep },
             ]}
             numberOfLines={isSeasonal ? 2 : 1}
           >
@@ -2320,6 +2268,7 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
   seasonalOrnamentSheet: ImageSourcePropType | null;
   avatarDiameter: number;
 }) {
+  const isAutumn = season === 'autumn';
   const isWinter = season === 'winter';
   const isSeasonal = season !== null;
   const usesCanonicalWarmSurface = isSeasonal && !isWinter;
@@ -2340,7 +2289,6 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
         topMetaLine={topMetaLine}
         togetherDays={togetherDays}
         season={season}
-        seasonalOrnamentSheet={seasonalOrnamentSheet}
         avatarDiameter={avatarDiameter}
         onPressPetProfileEdit={onPressPetProfileEdit}
       />
@@ -2382,20 +2330,24 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
           accessibilityRole="button"
           style={[
             styles.autumnProfileEntry,
+            isAutumn ? styles.autumnProfileEntrySeason : null,
             isWinter ? styles.winterProfileEntry : null,
           ]}
           onPress={onPressProfileInfo}
         >
           <AppText
             preset="unifiedLabel"
-            style={styles.autumnProfileEntryText}
+            style={[
+              styles.autumnProfileEntryText,
+              isAutumn ? styles.autumnProfileEntrySeasonText : null,
+            ]}
           >
             우리 아이 더 알아보기
           </AppText>
           <Feather
             name="chevron-right"
             size={17}
-            color={petTheme.deep}
+            color={isAutumn ? '#FFF9F0' : petTheme.deep}
             style={styles.autumnProfileEntryChevron}
           />
         </TouchableOpacity>
@@ -3273,6 +3225,7 @@ export default function LoggedInHome() {
   // 0) navigation
   // ---------------------------------------------------------
   const insets = useSafeAreaInsets();
+  const bottomTabBarHeight = useBottomTabBarHeight();
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const seasonalHomeVisual = useMemo(
     () =>
@@ -3299,7 +3252,6 @@ export default function LoggedInHome() {
   // ---------------------------------------------------------
   // 1) auth
   // ---------------------------------------------------------
-  const nicknameRaw = useAuthStore(s => s.profile.nickname);
   const sessionUserId = useAuthStore(s => s.session?.user.id ?? null);
 
   // ---------------------------------------------------------
@@ -3308,6 +3260,11 @@ export default function LoggedInHome() {
   const [notificationModalVisible, setNotificationModalVisible] =
     useState(false);
   const [profileSheetVisible, setProfileSheetVisible] = useState(false);
+  const [homeViewportHeight, setHomeViewportHeight] = useState(0);
+  const seasonalHeroViewportHeight = Math.max(
+    0,
+    homeViewportHeight - bottomTabBarHeight,
+  );
   const [homeNotificationItems, setHomeNotificationItems] = useState<
     UserNotificationItem[]
   >([]);
@@ -3545,8 +3502,6 @@ export default function LoggedInHome() {
   // ---------------------------------------------------------
   // 3) derived
   // ---------------------------------------------------------
-  const nickname = useMemo(() => nicknameRaw?.trim() || null, [nicknameRaw]);
-
   const selectedPet = useMemo(() => {
     if (pets.length === 0) return null;
     if (!selectedPetId) return pets[0];
@@ -3912,14 +3867,6 @@ export default function LoggedInHome() {
       initialCoordinates: weatherGuideState.coordinates ?? undefined,
     }),
     [weatherGuide, weatherGuideState.coordinates],
-  );
-
-  // ---------------------------------------------------------
-  // 6) header text
-  // ---------------------------------------------------------
-  const greetingTitle = useMemo(
-    () => (nickname ? `${nickname}님, 반가워요!` : '반가워요!'),
-    [nickname],
   );
 
   const homeWidgetSnapshot = useMemo(
@@ -4401,10 +4348,20 @@ export default function LoggedInHome() {
     () => Math.round(windowHeight * 0.74),
     [windowHeight],
   );
+  const handleHomeViewportLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      const nextHeight = Math.round(event.nativeEvent.layout.height);
+      if (nextHeight > 0) {
+        setHomeViewportHeight(currentHeight =>
+          currentHeight === nextHeight ? currentHeight : nextHeight,
+        );
+      }
+    },
+    [],
+  );
 
   const homeHeader = (
     <HomeHeaderSection
-      greetingTitle={greetingTitle}
       seasonalCopy={seasonalHomeVisual?.greetingCopy ?? null}
       season={seasonalHomeVisual?.season ?? null}
       headerPalette={seasonalHomeVisual?.headerPalette ?? null}
@@ -4459,6 +4416,7 @@ export default function LoggedInHome() {
         ]}
         contentOffset={{ x: 0, y: initialHomeScrollOffset }}
         onContentSizeChange={restoreHomeScrollPosition}
+        onLayout={handleHomeViewportLayout}
         onScroll={handleHomeScroll}
         onMomentumScrollEnd={handleHomeScrollMomentumEnd}
         scrollEventThrottle={16}
@@ -4468,6 +4426,7 @@ export default function LoggedInHome() {
           <SeasonalHomeAutumnStage
             atmosphere={seasonalHomeVisual.atmosphere}
             atmosphereAspectRatio={seasonalHomeVisual.atmosphereAspectRatio}
+            minHeight={seasonalHeroViewportHeight}
           >
             {homeHeader}
             {activeAlarmNotice}
@@ -4481,6 +4440,7 @@ export default function LoggedInHome() {
           <SeasonalHomeWinterStage
             atmosphere={seasonalHomeVisual.atmosphere}
             atmosphereAspectRatio={seasonalHomeVisual.atmosphereAspectRatio}
+            minHeight={seasonalHeroViewportHeight}
           >
             {homeHeader}
             {activeAlarmNotice}
@@ -4496,6 +4456,7 @@ export default function LoggedInHome() {
             season={seasonalHomeVisual.season}
             atmosphere={seasonalHomeVisual.atmosphere}
             atmosphereAspectRatio={seasonalHomeVisual.atmosphereAspectRatio}
+            minHeight={seasonalHeroViewportHeight}
           >
             {homeHeader}
             {activeAlarmNotice}

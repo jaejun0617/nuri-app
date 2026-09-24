@@ -15,6 +15,7 @@ type Props = {
   isSelected: boolean;
   onPressSelect: (petId: string) => void;
   onPressEdit: (petId: string) => void;
+  onPressDelete: (petId: string) => void;
 };
 
 function PetManagementCardComponent({
@@ -22,6 +23,7 @@ function PetManagementCardComponent({
   isSelected,
   onPressSelect,
   onPressEdit,
+  onPressDelete,
 }: Props) {
   const petTheme = useMemo(
     () => buildPetThemePalette(pet.themeColor),
@@ -50,6 +52,9 @@ function PetManagementCardComponent({
   const handleEdit = useCallback(() => {
     onPressEdit(pet.id);
   }, [onPressEdit, pet.id]);
+  const handleDelete = useCallback(() => {
+    onPressDelete(pet.id);
+  }, [onPressDelete, pet.id]);
 
   return (
     <View
@@ -134,6 +139,21 @@ function PetManagementCardComponent({
             style={[styles.editButtonText, { color: petTheme.deep }]}
           >
             프로필 수정
+          </AppText>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          testID={`pet-delete-entry-${pet.id}`}
+          accessibilityRole="button"
+          accessibilityLabel={`${pet.name} 아이 프로필 삭제하기`}
+          accessibilityHint="확인 절차를 열며 바로 삭제하지 않습니다."
+          activeOpacity={0.88}
+          style={styles.deleteButton}
+          onPress={handleDelete}
+        >
+          <Feather name="trash-2" size={13} color="#C83E4D" />
+          <AppText preset="unifiedMeta" style={styles.deleteButtonText}>
+            삭제하기
           </AppText>
         </TouchableOpacity>
       </View>
@@ -225,6 +245,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   editButtonText: {
+    fontWeight: '900',
+  },
+  deleteButton: {
+    minHeight: 36,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(200,62,77,0.28)',
+    backgroundColor: 'rgba(200,62,77,0.06)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+  },
+  deleteButtonText: {
+    color: '#C83E4D',
     fontWeight: '900',
   },
 });
