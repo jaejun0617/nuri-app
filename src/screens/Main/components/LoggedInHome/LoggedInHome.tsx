@@ -2330,24 +2330,18 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
           accessibilityRole="button"
           style={[
             styles.autumnProfileEntry,
-            isAutumn ? styles.autumnProfileEntrySeason : null,
+            isAutumn ? styles.autumnProfileEntryReadable : null,
             isWinter ? styles.winterProfileEntry : null,
           ]}
           onPress={onPressProfileInfo}
         >
-          <AppText
-            preset="unifiedLabel"
-            style={[
-              styles.autumnProfileEntryText,
-              isAutumn ? styles.autumnProfileEntrySeasonText : null,
-            ]}
-          >
+          <AppText preset="unifiedLabel" style={styles.autumnProfileEntryText}>
             우리 아이 더 알아보기
           </AppText>
           <Feather
             name="chevron-right"
             size={17}
-            color={isAutumn ? '#FFF9F0' : petTheme.deep}
+            color={petTheme.deep}
             style={styles.autumnProfileEntryChevron}
           />
         </TouchableOpacity>

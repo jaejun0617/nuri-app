@@ -658,17 +658,9 @@ export const styles = StyleSheet.create({
     color: '#5D4333',
     textAlign: 'center',
   },
-  autumnProfileEntrySeason: {
-    borderColor: 'rgba(124, 46, 32, 0.72)',
-    backgroundColor: 'rgba(159, 66, 44, 0.94)',
-    shadowColor: '#6E2B20',
-    shadowOpacity: 0.16,
-    shadowRadius: 7,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
-  },
-  autumnProfileEntrySeasonText: {
-    color: '#FFF9F0',
+  autumnProfileEntryReadable: {
+    borderColor: 'rgba(132, 91, 65, 0.46)',
+    backgroundColor: 'rgba(255, 248, 235, 0.88)',
   },
   autumnProfileEntryChevron: {
     position: 'absolute',
