@@ -456,6 +456,29 @@ export const styles = StyleSheet.create({
     marginTop: 32,
     marginBottom: 18,
   },
+  seasonalWeatherSection: {
+    position: 'relative',
+    marginHorizontal: -16,
+    marginTop: -64,
+    paddingTop: 48,
+    paddingHorizontal: 16,
+    paddingBottom: 40,
+    overflow: 'hidden',
+  },
+  weatherSectionBottomFinish: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 40,
+  },
+  autumnPostWeatherSurface: {
+    position: 'relative',
+    zIndex: 1,
+    marginHorizontal: -16,
+    paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+  },
 
   // ---------------------------------------------------------
   // HERO CARD

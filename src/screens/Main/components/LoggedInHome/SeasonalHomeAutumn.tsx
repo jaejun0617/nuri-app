@@ -36,6 +36,7 @@ export function SeasonalHomeAutumnStage({
   const sourceHeight = windowWidth / atmosphereAspectRatio;
   const atmosphereHeight = windowWidth / CANONICAL_STAGE_ASPECT_RATIO;
   const focalOffset = Math.round(windowWidth * ATMOSPHERE_FOCAL_OFFSET_RATIO);
+  const needsAtmosphereExtension = sourceHeight < atmosphereHeight;
   const tailHeight = Math.max(0, atmosphereHeight - sourceHeight - focalOffset);
 
   return (
@@ -46,31 +47,33 @@ export function SeasonalHomeAutumnStage({
         style={[styles.atmosphere, { top: 0, height: sourceHeight }]}
         accessible={false}
       />
-      <MaskedViewCompat
-        style={[
-          styles.shiftedAtmosphereMask,
-          { height: focalOffset + sourceHeight },
-        ]}
-        maskElement={
-          <LinearGradient
-            colors={['transparent', 'transparent', '#000000']}
-            locations={[0, 0.26, 0.39]}
-            style={styles.maskFill}
-          />
-        }
-        pointerEvents="none"
-      >
-        <Image
-          source={atmosphere}
-          resizeMode="contain"
+      {needsAtmosphereExtension ? (
+        <MaskedViewCompat
           style={[
-            styles.atmosphere,
-            { top: focalOffset, height: sourceHeight },
+            styles.shiftedAtmosphereMask,
+            { height: focalOffset + sourceHeight },
           ]}
-          accessible={false}
-        />
-      </MaskedViewCompat>
-      {tailHeight > 0 ? (
+          maskElement={
+            <LinearGradient
+              colors={['transparent', 'transparent', '#000000']}
+              locations={[0, 0.26, 0.39]}
+              style={styles.maskFill}
+            />
+          }
+          pointerEvents="none"
+        >
+          <Image
+            source={atmosphere}
+            resizeMode="contain"
+            style={[
+              styles.atmosphere,
+              { top: focalOffset, height: sourceHeight },
+            ]}
+            accessible={false}
+          />
+        </MaskedViewCompat>
+      ) : null}
+      {needsAtmosphereExtension && tailHeight > 0 ? (
         <View
           style={[
             styles.atmosphereTailClip,
@@ -90,11 +93,6 @@ export function SeasonalHomeAutumnStage({
         </View>
       ) : null}
       <LinearGradient
-        colors={['rgba(255, 250, 244, 0)', '#FFF7ED']}
-        style={[styles.imageTailWash, { top: atmosphereHeight - 100 }]}
-        pointerEvents="none"
-      />
-      <LinearGradient
         colors={[
           'rgba(255, 251, 246, 0.16)',
           'rgba(255, 251, 246, 0.06)',
@@ -102,11 +100,6 @@ export function SeasonalHomeAutumnStage({
         ]}
         locations={[0, 0.48, 1]}
         style={styles.headerSafeWash}
-        pointerEvents="none"
-      />
-      <LinearGradient
-        colors={['rgba(255, 247, 237, 0)', '#FFFFFF']}
-        style={styles.stageTailWash}
         pointerEvents="none"
       />
       <View style={styles.content}>{children}</View>
@@ -176,25 +169,12 @@ const styles = StyleSheet.create({
     left: 0,
     width: '100%',
   },
-  imageTailWash: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 140,
-  },
   headerSafeWash: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     height: 190,
-  },
-  stageTailWash: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: -76,
-    height: 220,
   },
   content: {
     paddingHorizontal: 16,

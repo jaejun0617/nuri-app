@@ -104,6 +104,7 @@ import {
   type SeasonalHomeVisual,
 } from '../../../../theme/seasonal/home';
 import { getSeasonalThemeKey } from '../../../../theme/seasonal/season';
+import { getSeasonalWeatherVisualTheme } from '../../../../theme/seasonal/weather';
 
 import {
   fetchMemorySummaryRecordsByPet,
@@ -704,21 +705,50 @@ const HomeWeatherSection = React.memo(function HomeWeatherSection({
   locationLabel,
   petName,
   accentColor,
+  season,
   onPress,
 }: {
   weather: ReturnType<typeof useWeatherGuide>['bundle'];
   locationLabel: ReturnType<typeof useWeatherGuide>['locationLabel'];
   petName?: string | null;
   accentColor: string;
+  season: SeasonalHomeVisual['season'] | null;
   onPress: () => void;
 }) {
+  const visualTheme = getSeasonalWeatherVisualTheme(season);
+
+  if (!visualTheme) {
+    return (
+      <View style={styles.weatherGuideWrap}>
+        <WeatherGuideHomeCard
+          weather={weather}
+          locationLabel={locationLabel}
+          petName={petName}
+          accentColor={accentColor}
+          onPress={onPress}
+        />
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.weatherGuideWrap}>
+    <View style={styles.seasonalWeatherSection}>
+      <LinearGradient
+        pointerEvents="none"
+        colors={[
+          'rgba(255, 250, 240, 0)',
+          'rgba(255, 251, 245, 0.82)',
+          '#FFFFFF',
+        ]}
+        locations={[0, 0.58, 1]}
+        style={styles.weatherSectionBottomFinish}
+      />
       <WeatherGuideHomeCard
         weather={weather}
         locationLabel={locationLabel}
         petName={petName}
         accentColor={accentColor}
+        visualTheme={visualTheme.card}
         onPress={onPress}
       />
     </View>
@@ -4476,16 +4506,29 @@ export default function LoggedInHome() {
             locationLabel={weatherGuideState.locationLabel}
             petName={selectedPet?.name}
             accentColor={petTheme.primary}
+            season={seasonalHomeVisual?.season ?? null}
             onPress={onPressWeatherInsight}
           />
 
-          <FrequentRecordsSection
-            petTheme={petTheme}
-            records={recordItems}
-            recordStatus={recordStatus}
-            onPressCategory={onPressFrequentRecord}
-            onPressAll={onPressTimeline}
-          />
+          {seasonalHomeVisual?.season === 'autumn' ? (
+            <View style={styles.autumnPostWeatherSurface}>
+              <FrequentRecordsSection
+                petTheme={petTheme}
+                records={recordItems}
+                recordStatus={recordStatus}
+                onPressCategory={onPressFrequentRecord}
+                onPressAll={onPressTimeline}
+              />
+            </View>
+          ) : (
+            <FrequentRecordsSection
+              petTheme={petTheme}
+              records={recordItems}
+              recordStatus={recordStatus}
+              onPressCategory={onPressFrequentRecord}
+              onPressAll={onPressTimeline}
+            />
+          )}
 
           <TodayPhotoSection
             activePetId={activePetId}

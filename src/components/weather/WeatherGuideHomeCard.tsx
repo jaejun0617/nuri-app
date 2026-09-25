@@ -5,6 +5,7 @@
 
 import React from 'react';
 import {
+  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -19,12 +20,14 @@ import {
   getWeatherEmoji,
   type WeatherGuideBundle,
 } from '../../services/weather/guide';
+import type { SeasonalWeatherCardVisualTheme } from '../../theme/seasonal/weather';
 
 type Props = {
   weather: WeatherGuideBundle;
   locationLabel?: string;
   petName?: string | null;
   accentColor?: string;
+  visualTheme?: SeasonalWeatherCardVisualTheme | null;
   onPress: () => void;
 };
 
@@ -154,6 +157,7 @@ export default React.memo(function WeatherGuideHomeCard({
   locationLabel,
   petName,
   accentColor = '#6D6AF8',
+  visualTheme = null,
   onPress,
 }: Props) {
   const { width } = useWindowDimensions();
@@ -162,24 +166,33 @@ export default React.memo(function WeatherGuideHomeCard({
   const hasLiveData = weather.dataSource === 'live';
   const isPreview = weather.dataSource === 'preview';
   const notice = getNotice(weather, petName);
-  const textPrimary = isNightCard ? '#FFFFFF' : '#1F2940';
-  const detailMetricColor = isNightCard ? '#FFFFFF' : '#111827';
-  const textSecondary = isNightCard
-    ? 'rgba(241,245,255,0.76)'
-    : '#5B647A';
-  const muted = isNightCard ? 'rgba(221,229,249,0.72)' : '#69758B';
-  const separator = isNightCard
-    ? 'rgba(255,255,255,0.14)'
-    : 'rgba(80,93,122,0.14)';
-  const panelBackground = isNightCard
-    ? 'rgba(255,255,255,0.07)'
-    : 'rgba(255,255,255,0.68)';
-  const surfaceColors = isNightCard
+  const textPrimary =
+    visualTheme?.primaryText ?? (isNightCard ? '#FFFFFF' : '#1F2940');
+  const detailMetricColor =
+    visualTheme?.metricText ?? (isNightCard ? '#FFFFFF' : '#111827');
+  const textSecondary =
+    visualTheme?.secondaryText ??
+    (isNightCard ? 'rgba(241,245,255,0.76)' : '#5B647A');
+  const muted =
+    visualTheme?.mutedText ??
+    (isNightCard ? 'rgba(221,229,249,0.72)' : '#69758B');
+  const separator =
+    visualTheme?.separator ??
+    (isNightCard ? 'rgba(255,255,255,0.14)' : 'rgba(80,93,122,0.14)');
+  const panelBackground =
+    visualTheme?.guideBackground ??
+    (isNightCard ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.68)');
+  const surfaceColors = visualTheme
+    ? [...visualTheme.surfaceColors]
+    : isNightCard
     ? ['#2A2F63', '#1B214B', '#111734']
     : ['#FFFFFF', '#F8F9FD'];
-  const gradientColors = isNightCard
+  const gradientColors = visualTheme
+    ? [...visualTheme.borderColors]
+    : isNightCard
     ? [...NIGHT_BORDER_COLORS]
     : [...WEATHER_DAY_BORDER_COLORS];
+  const effectiveAccentColor = visualTheme?.accent ?? accentColor;
   const temperatureValue = hasLiveData || isPreview
     ? `${weather.currentTemperature}`
     : '--';
@@ -187,7 +200,15 @@ export default React.memo(function WeatherGuideHomeCard({
   return (
     <TouchableOpacity
       activeOpacity={0.96}
-      style={styles.touchable}
+      style={[
+        styles.touchable,
+        visualTheme
+          ? {
+              shadowColor: visualTheme.shadowColor,
+              shadowOpacity: visualTheme.shadowOpacity,
+            }
+          : null,
+      ]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel="날씨 상세 보기"
@@ -199,9 +220,28 @@ export default React.memo(function WeatherGuideHomeCard({
         style={styles.outerBorder}
       >
         <LinearGradient colors={surfaceColors} style={styles.cardSurface}>
+          {visualTheme ? (
+            <>
+              <Image
+                source={visualTheme.backgroundImage}
+                resizeMode="cover"
+                style={styles.cardBackgroundImage}
+                accessible={false}
+                pointerEvents="none"
+              />
+              <LinearGradient
+                colors={[...visualTheme.backgroundOverlayColors]}
+                locations={[0, 0.52, 1]}
+                style={styles.cardBackgroundReadabilityLayer}
+                pointerEvents="none"
+              />
+            </>
+          ) : null}
           <LinearGradient
             colors={
-              isNightCard
+              visualTheme
+                ? [...visualTheme.highlightColors]
+                : isNightCard
                 ? ['rgba(255,255,255,0.12)', 'rgba(255,255,255,0)']
                 : ['rgba(255,255,255,0.82)', 'rgba(255,255,255,0)']
             }
@@ -214,12 +254,16 @@ export default React.memo(function WeatherGuideHomeCard({
               style={[
                 styles.locationPill,
                 {
-                  backgroundColor: isNightCard
-                    ? 'rgba(255,255,255,0.08)'
-                    : 'rgba(255,255,255,0.78)',
-                  borderColor: isNightCard
-                    ? 'rgba(255,255,255,0.18)'
-                    : 'rgba(121,139,182,0.15)',
+                  backgroundColor:
+                    visualTheme?.locationBackground ??
+                    (isNightCard
+                      ? 'rgba(255,255,255,0.08)'
+                      : 'rgba(255,255,255,0.78)'),
+                  borderColor:
+                    visualTheme?.locationBorder ??
+                    (isNightCard
+                      ? 'rgba(255,255,255,0.18)'
+                      : 'rgba(121,139,182,0.15)'),
                 },
               ]}
             >
@@ -258,7 +302,10 @@ export default React.memo(function WeatherGuideHomeCard({
                 </View>
               </View>
               <Text style={[styles.headline, isCompact ? styles.headlineCompact : null, { color: textPrimary }]} numberOfLines={2}>
-                {renderAccentText(formatWeatherPetText(weather.homeMessage, petName), accentColor)}
+                {renderAccentText(
+                  formatWeatherPetText(weather.homeMessage, petName),
+                  effectiveAccentColor,
+                )}
               </Text>
               <Text style={[styles.caption, isCompact ? styles.captionCompact : null, { color: textSecondary }]} numberOfLines={2}>
                 {isPreview
@@ -273,13 +320,15 @@ export default React.memo(function WeatherGuideHomeCard({
                 isCompact ? styles.noticePanelCompact : null,
                 {
                   backgroundColor: panelBackground,
-                  borderColor: isNightCard
-                    ? 'rgba(255,255,255,0.18)'
-                    : 'rgba(160,180,255,0.30)',
+                  borderColor:
+                    visualTheme?.guideBorder ??
+                    (isNightCard
+                      ? 'rgba(255,255,255,0.18)'
+                      : 'rgba(160,180,255,0.30)'),
                 },
               ]}
             >
-              <Text style={[styles.noticeLabel, isCompact ? styles.noticeLabelCompact : null, { color: accentColor }]} numberOfLines={2}>
+              <Text style={[styles.noticeLabel, isCompact ? styles.noticeLabelCompact : null, { color: effectiveAccentColor }]} numberOfLines={2}>
                 {notice.label}
               </Text>
               <Text style={[styles.noticeMessage, isCompact ? styles.noticeMessageCompact : null, { color: textPrimary }]} numberOfLines={3}>
@@ -289,7 +338,19 @@ export default React.memo(function WeatherGuideHomeCard({
             </View>
           </View>
 
-          <View style={[styles.metricsBar, { backgroundColor: isNightCard ? 'rgba(7,11,30,0.24)' : 'rgba(255,255,255,0.56)', borderTopColor: separator }]}>
+          <View
+            style={[
+              styles.metricsBar,
+              {
+                backgroundColor:
+                  visualTheme?.metricBackground ??
+                  (isNightCard
+                    ? 'rgba(7,11,30,0.24)'
+                    : 'rgba(255,255,255,0.56)'),
+                borderTopColor: separator,
+              },
+            ]}
+          >
             <Metric icon="thermometer" label="체감" value={`${weather.apparentTemperature}°`} color={detailMetricColor} borderRightColor={separator} />
             <Metric icon="droplet" label="습도" value={`${weather.humidity}%`} color={detailMetricColor} borderRightColor={separator} />
             <Metric icon="wind" label="바람" value={`${weather.windSpeed}m/s`} color={detailMetricColor} borderRightColor={separator} />
@@ -322,6 +383,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 14,
     overflow: 'hidden',
+  },
+  cardBackgroundImage: {
+    ...StyleSheet.absoluteFill,
+  },
+  cardBackgroundReadabilityLayer: {
+    ...StyleSheet.absoluteFill,
   },
   highlightStroke: {
     position: 'absolute',
