@@ -61,6 +61,10 @@ export const styles = StyleSheet.create({
     gap: 7,
     marginBottom: 16,
   },
+  autumnBrandContentStack: {
+    paddingTop: 4,
+    marginBottom: 12,
+  },
   brandLockup: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -484,6 +488,7 @@ export const styles = StyleSheet.create({
   // HERO CARD
   // ---------------------------------------------------------
   heroCard: {
+    position: 'relative',
     borderRadius: 22,
     padding: 16,
     backgroundColor: SURFACE,
@@ -492,6 +497,9 @@ export const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     paddingTop: 8,
     paddingBottom: 0,
+  },
+  autumnHeroCardWithMemoryChip: {
+    paddingTop: 34,
   },
   winterHeroCard: {
     backgroundColor: 'transparent',
@@ -503,6 +511,46 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 10,
     gap: 6,
+  },
+  autumnMemoryChipAnchor: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 4,
+    alignItems: 'center',
+  },
+  autumnMemoryChip: {
+    maxWidth: '88%',
+    minHeight: 46,
+    paddingHorizontal: 17,
+    paddingVertical: 9,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.76)',
+    backgroundColor: 'rgba(255, 252, 247, 0.72)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    shadowColor: '#6A3C26',
+    shadowOpacity: 0.1,
+    shadowRadius: 7,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  autumnMemoryChipMark: {
+    width: 22,
+    height: 22,
+    flexShrink: 0,
+  },
+  autumnMemoryChipText: {
+    minWidth: 0,
+    flexShrink: 1,
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '700',
+    color: '#664332',
+    letterSpacing: 0,
   },
 
   heroAvatarOuter: {

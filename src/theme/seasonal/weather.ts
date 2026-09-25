@@ -6,7 +6,6 @@ type GradientColors = readonly [string, string, ...string[]];
 
 export type SeasonalWeatherCardVisualTheme = {
   backgroundImage: ImageSourcePropType;
-  backgroundOverlayColors: GradientColors;
   borderColors: GradientColors;
   surfaceColors: GradientColors;
   highlightColors: GradientColors;
@@ -34,11 +33,6 @@ const AUTUMN_WEATHER_THEME: SeasonalWeatherVisualTheme = {
   season: 'autumn',
   card: {
     backgroundImage: require('../../assets/seasonal/home/autumn/weather/card-background.png'),
-    backgroundOverlayColors: [
-      'rgba(255, 251, 244, 0.64)',
-      'rgba(255, 247, 234, 0.46)',
-      'rgba(255, 246, 229, 0.72)',
-    ],
     borderColors: ['#E5A05A', '#F4D6A7', '#D97943'],
     surfaceColors: ['#FFF9F0', '#F9E8CD'],
     highlightColors: ['rgba(255,255,255,0.88)', 'rgba(255,255,255,0)'],

@@ -10,7 +10,7 @@ describe('seasonal weather visual theme', () => {
       }),
     );
     expect(autumn?.card.backgroundImage).toBeTruthy();
-    expect(autumn?.card.backgroundOverlayColors).toHaveLength(3);
+    expect(autumn?.card).not.toHaveProperty('backgroundOverlayColors');
   });
 
   it.each(['spring', 'summer', 'winter'] as const)(

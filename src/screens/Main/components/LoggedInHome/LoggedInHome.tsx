@@ -146,6 +146,10 @@ import {
   type FrequentRecordCategory,
 } from '../../../../services/home/frequentRecords';
 import {
+  buildHomeHeroMemoryChip,
+  type HomeHeroMemoryChip,
+} from '../../../../services/home/heroMemoryChip';
+import {
   createTimelineEntryRequestId,
   HOME_TOTAL_SUMMARY_ENTRY_SOURCE,
   publishTimelineEntryRequest,
@@ -212,6 +216,8 @@ type Nav = CompositeNavigationProp<
 
 const HOME_SCROLL_OFFSET_BY_KEY = new Map<string, number>();
 const AUTUMN_PROFILE_SHEET_BOTTOM_WAVE = require('../../../../assets/seasonal/home/autumn/profile-sheet-bottom-wave.png');
+const NURI_BRAND_MARK = require('../../../../assets/logo/logo_v2.png');
+const AUTUMN_MEMORY_CHIP_FLOW_COMPENSATION = 26;
 // Device QA only. The resolver's production AUTO behavior remains unchanged.
 const HOME_SEASON_QA_OVERRIDE = 'auto' as const;
 
@@ -1146,6 +1152,7 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
   onPressNotifications: () => void;
   notificationUnreadCount: number;
 }) {
+  const isAutumn = season === 'autumn';
   const isWinter = season === 'winter';
   const usesCanonicalWarmSurface = season !== null && !isWinter;
   const notificationAccessibilityLabel =
@@ -1155,7 +1162,12 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
 
   return (
     <View style={styles.header}>
-      <View style={styles.brandContentStack}>
+      <View
+        style={[
+          styles.brandContentStack,
+          isAutumn ? styles.autumnBrandContentStack : null,
+        ]}
+      >
         <View style={styles.brandLockup}>
           <Text
             style={[
@@ -2277,10 +2289,13 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
   petTheme,
   selectedAvatarUri,
   profilePetName,
+  heroMemoryChip,
   titleBadge,
   topMetaLine,
   togetherDays,
   onPressPetProfileEdit,
+  onPressMemoryChip,
+  onPressCreateMemory,
   onPressProfileInfo,
   season,
   seasonalOrnamentSheet,
@@ -2289,10 +2304,13 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
   petTheme: ReturnType<typeof buildPetThemePalette>;
   selectedAvatarUri: string | null;
   profilePetName: string;
+  heroMemoryChip: HomeHeroMemoryChip | null;
   titleBadge: string | null;
   topMetaLine: string | null;
   togetherDays: number | null;
   onPressPetProfileEdit: () => void;
+  onPressMemoryChip: (memoryId: string) => void;
+  onPressCreateMemory: () => void;
   onPressProfileInfo: () => void;
   season: SeasonalHomeVisual['season'] | null;
   seasonalOrnamentSheet: ImageSourcePropType | null;
@@ -2308,9 +2326,49 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
       style={[
         styles.heroCard,
         usesCanonicalWarmSurface ? styles.autumnHeroCard : null,
+        isAutumn ? styles.autumnHeroCardWithMemoryChip : null,
         isWinter ? styles.winterHeroCard : null,
       ]}
     >
+      {isAutumn && heroMemoryChip ? (
+        <View style={styles.autumnMemoryChipAnchor} pointerEvents="box-none">
+          <TouchableOpacity
+            activeOpacity={0.86}
+            style={styles.autumnMemoryChip}
+            onPress={() => {
+              if (heroMemoryChip.recordId) {
+                onPressMemoryChip(heroMemoryChip.recordId);
+                return;
+              }
+              onPressCreateMemory();
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={heroMemoryChip.accessibilityLabel}
+          >
+            <Image
+              source={NURI_BRAND_MARK}
+              resizeMode="contain"
+              style={styles.autumnMemoryChipMark}
+              accessible={false}
+            />
+            <AppText
+              preset="unifiedBody"
+              styleOverridesPreset
+              style={styles.autumnMemoryChipText}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {heroMemoryChip.label}
+            </AppText>
+            <Feather
+              name="chevron-right"
+              size={16}
+              color="#8A4B2D"
+              accessible={false}
+            />
+          </TouchableOpacity>
+        </View>
+      ) : null}
       <HeroProfileIdentity
         petTheme={petTheme}
         selectedAvatarUri={selectedAvatarUri}
@@ -3262,9 +3320,12 @@ export default function LoggedInHome() {
   const heroAvatarDiameter = seasonalHomeVisual
     ? Math.min(176, Math.max(146, Math.round(windowWidth * 0.41)))
     : 156;
-  const seasonalHeroOffset = seasonalHomeVisual
-    ? Math.min(48, Math.max(36, Math.round(windowWidth * 0.11)))
-    : 0;
+  const seasonalHeroOffset =
+    seasonalHomeVisual?.season === 'autumn'
+      ? Math.min(34, Math.max(26, Math.round(windowWidth * 0.075)))
+      : seasonalHomeVisual
+        ? Math.min(48, Math.max(36, Math.round(windowWidth * 0.11)))
+        : 0;
   const navigation = useNavigation<Nav>();
   const isScreenFocused = useIsFocused();
   const homeScrollRef = useRef<React.ComponentRef<typeof ScrollView> | null>(null);
@@ -4384,6 +4445,13 @@ export default function LoggedInHome() {
     [],
   );
 
+  const heroMemoryChip = useMemo(
+    () =>
+      seasonalHomeVisual?.season === 'autumn'
+        ? buildHomeHeroMemoryChip(recordItems, plainPetName)
+        : null,
+    [plainPetName, recordItems, seasonalHomeVisual?.season],
+  );
   const homeHeader = (
     <HomeHeaderSection
       seasonalCopy={seasonalHomeVisual?.greetingCopy ?? null}
@@ -4412,10 +4480,13 @@ export default function LoggedInHome() {
       petTheme={petTheme}
       selectedAvatarUri={selectedAvatarUri}
       profilePetName={profilePetName}
+      heroMemoryChip={heroMemoryChip}
       titleBadge={homeTitleBadge}
       topMetaLine={topMetaLine}
       togetherDays={togetherDays}
       onPressPetProfileEdit={onPressPetProfileEdit}
+      onPressMemoryChip={onPressRecordItem}
+      onPressCreateMemory={onPressRecord}
       onPressProfileInfo={openProfileInfoSheet}
       season={seasonalHomeVisual?.season ?? null}
       seasonalOrnamentSheet={seasonalHomeVisual?.ornamentSheet ?? null}
@@ -4455,7 +4526,13 @@ export default function LoggedInHome() {
             {homeHeader}
             {activeAlarmNotice}
             <Animated.View
-              style={[animatedContentStyle, { marginTop: seasonalHeroOffset }]}
+              style={[
+                animatedContentStyle,
+                {
+                  marginTop:
+                    seasonalHeroOffset - AUTUMN_MEMORY_CHIP_FLOW_COMPENSATION,
+                },
+              ]}
             >
               {homeHero}
             </Animated.View>

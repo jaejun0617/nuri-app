@@ -48,6 +48,8 @@ export const WEATHER_DAY_BORDER_COLORS = [
 // Keep this source value beside the weather card so the two visual hierarchies
 // cannot drift independently.
 export const WEATHER_TEMPERATURE_FONT_SIZE = 38;
+const AUTUMN_CARD_ASPECT_RATIO = 1665 / 945;
+const HOME_HORIZONTAL_GUTTER = 16;
 
 const NIGHT_BORDER_COLORS = [
   'rgba(155,174,255,0.72)',
@@ -161,6 +163,9 @@ export default React.memo(function WeatherGuideHomeCard({
   onPress,
 }: Props) {
   const { width } = useWindowDimensions();
+  const seasonalCardHeight = visualTheme
+    ? (width - HOME_HORIZONTAL_GUTTER * 2) / AUTUMN_CARD_ASPECT_RATIO
+    : undefined;
   const isNightCard = !weather.isDaytime;
   const isCompact = width <= 370;
   const hasLiveData = weather.dataSource === 'live';
@@ -217,25 +222,28 @@ export default React.memo(function WeatherGuideHomeCard({
         colors={gradientColors}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.outerBorder}
+        style={[
+          styles.outerBorder,
+          visualTheme ? styles.seasonalOuterBorder : null,
+          seasonalCardHeight ? { height: seasonalCardHeight } : null,
+        ]}
       >
-        <LinearGradient colors={surfaceColors} style={styles.cardSurface}>
+        <LinearGradient
+          colors={surfaceColors}
+          style={[
+            styles.cardSurface,
+            visualTheme ? styles.seasonalCardSurface : null,
+          ]}
+        >
           {visualTheme ? (
-            <>
+            <View style={styles.cardBackgroundLayer} pointerEvents="none">
               <Image
                 source={visualTheme.backgroundImage}
                 resizeMode="cover"
                 style={styles.cardBackgroundImage}
                 accessible={false}
-                pointerEvents="none"
               />
-              <LinearGradient
-                colors={[...visualTheme.backgroundOverlayColors]}
-                locations={[0, 0.52, 1]}
-                style={styles.cardBackgroundReadabilityLayer}
-                pointerEvents="none"
-              />
-            </>
+            </View>
           ) : null}
           <LinearGradient
             colors={
@@ -279,7 +287,13 @@ export default React.memo(function WeatherGuideHomeCard({
             </View>
           </View>
 
-          <View style={[styles.mainRow, isCompact ? styles.mainRowCompact : null]}>
+          <View
+            style={[
+              styles.mainRow,
+              visualTheme ? styles.seasonalMainRow : null,
+              isCompact ? styles.mainRowCompact : null,
+            ]}
+          >
             <View style={styles.weatherArt}>
               <Text style={[styles.weatherEmoji, isCompact ? styles.weatherEmojiCompact : null]}>
                 {getNightWeatherEmoji(weather)}
@@ -341,6 +355,7 @@ export default React.memo(function WeatherGuideHomeCard({
           <View
             style={[
               styles.metricsBar,
+              visualTheme ? styles.seasonalMetricsBar : null,
               {
                 backgroundColor:
                   visualTheme?.metricBackground ??
@@ -376,6 +391,9 @@ const styles = StyleSheet.create({
     borderRadius: 27,
     padding: 1.25,
   },
+  seasonalOuterBorder: {
+    minHeight: 0,
+  },
   cardSurface: {
     flex: 1,
     minHeight: 213,
@@ -384,11 +402,21 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     overflow: 'hidden',
   },
-  cardBackgroundImage: {
-    ...StyleSheet.absoluteFill,
+  seasonalCardSurface: {
+    minHeight: 0,
+    paddingVertical: 8,
   },
-  cardBackgroundReadabilityLayer: {
-    ...StyleSheet.absoluteFill,
+  cardBackgroundLayer: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: -18,
+    zIndex: 0,
+  },
+  cardBackgroundImage: {
+    width: '100%',
+    height: '100%',
   },
   highlightStroke: {
     position: 'absolute',
@@ -397,8 +425,11 @@ const styles = StyleSheet.create({
     top: 1,
     height: 42,
     borderRadius: 25,
+    zIndex: 1,
   },
   metaRow: {
+    position: 'relative',
+    zIndex: 2,
     minHeight: 27,
     flexDirection: 'row',
     alignItems: 'center',
@@ -436,11 +467,18 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   mainRow: {
+    position: 'relative',
+    zIndex: 2,
     minHeight: 100,
     marginTop: 4,
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
+  },
+  seasonalMainRow: {
+    minHeight: 0,
+    flex: 1,
+    marginTop: 2,
   },
   mainRowCompact: {
     gap: 5,
@@ -562,12 +600,19 @@ const styles = StyleSheet.create({
     bottom: 8,
   },
   metricsBar: {
+    position: 'relative',
+    zIndex: 2,
     minHeight: 43,
     marginTop: 10,
     borderTopWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
     overflow: 'hidden',
+  },
+  seasonalMetricsBar: {
+    minHeight: 38,
+    marginTop: 4,
+    borderRadius: 10,
   },
   metric: {
     minWidth: 0,
