@@ -1,7 +1,7 @@
 // 파일: src/services/home/heroMemoryChip.ts
 // 목적:
 // - Home Hero의 추억 콜백을 실제 선택 펫의 최신 기록과 연결한다.
-// - 기록 선택, KST 날짜 문구, 카테고리별 카피를 UI에서 분리해 테스트 가능하게 유지한다.
+// - 기록 선택과 카테고리별 카피를 UI에서 분리해 테스트 가능하게 유지한다.
 
 import { getMemoryCategoryChipLabel } from '../memories/categoryMeta';
 import {
@@ -9,7 +9,7 @@ import {
   getRecordSortTimestamp,
 } from '../records/date';
 import type { MemoryRecord } from '../supabase/memories';
-import { diffCalendarDaysBetweenYmd, getKstYmd } from '../../utils/date';
+import { formatRelativeTimeFromNow } from '../../utils/date';
 
 export type HomeHeroMemoryChip = {
   recordId: string | null;
@@ -33,16 +33,6 @@ function selectLatestRecord(
   }, null);
 }
 
-function formatRecordDayLabel(record: MemoryRecord, now: Date): string {
-  const recordYmd = getRecordDisplayYmd(record);
-  const diffDays = diffCalendarDaysBetweenYmd(recordYmd, getKstYmd(now));
-
-  if (diffDays === null) return '최근';
-  if (diffDays <= 0) return '오늘';
-  if (diffDays === 1) return '어제';
-  return `${diffDays}일 전`;
-}
-
 function appendWithParticle(
   name: string,
   vowelParticle: string,
@@ -64,16 +54,28 @@ function buildMemoryLabel(
   petName: string,
   now: Date,
 ): string {
-  const dayLabel = formatRecordDayLabel(record, now);
+  const recordDate = getRecordDisplayYmd(record) ?? record.createdAt;
+  const relativeTime = formatRelativeTimeFromNow(recordDate, now) || '최근';
   const categoryLabel = getMemoryCategoryChipLabel(record);
 
   if (categoryLabel === '산책') {
     const nameWithParticle = appendWithParticle(petName, '와', '과');
-    return `${dayLabel}, ${nameWithParticle} 산책한 추억이 있어요`;
+    return `${relativeTime}, ${nameWithParticle} 산책한 추억이 있어요`;
   }
 
-  const normalizedCategory = categoryLabel.trim() || '생활';
-  return `${dayLabel}, ${petName}의 ${normalizedCategory} 기록이 있어요`;
+  if (categoryLabel === '식사') {
+    return `${relativeTime}, ${petName}의 식사 기록이 있어요`;
+  }
+
+  if (categoryLabel === '건강') {
+    return `${relativeTime}, ${petName}의 건강 기록이 있어요`;
+  }
+
+  if (categoryLabel === '미용') {
+    return `${relativeTime}, ${petName}의 미용 기록이 있어요`;
+  }
+
+  return `${relativeTime}, ${petName}의 소중한 기록이 있어요`;
 }
 
 export function buildHomeHeroMemoryChip(
@@ -84,7 +86,7 @@ export function buildHomeHeroMemoryChip(
   const normalizedPetName = petName?.trim() || '우리 아이';
   const latestRecord = selectLatestRecord(records);
   if (!latestRecord) {
-    const label = '기록을 시작해보아요';
+    const label = '오늘의 첫 순간을 남겨볼까요?';
     return {
       recordId: null,
       label,

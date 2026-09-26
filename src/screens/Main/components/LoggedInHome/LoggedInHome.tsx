@@ -1323,6 +1323,7 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
             <View
               style={[
                 styles.heroAvatarGlow,
+                !isWinter && isSeasonal ? styles.autumnHeroAvatarGlow : null,
                 { width: avatarDiameter - 2, height: avatarDiameter - 2 },
                 {
                   backgroundColor: petTheme.glow,
@@ -2335,6 +2336,7 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
           <TouchableOpacity
             activeOpacity={0.86}
             style={styles.autumnMemoryChip}
+            hitSlop={{ top: 4, right: 4, bottom: 4, left: 4 }}
             onPress={() => {
               if (heroMemoryChip.recordId) {
                 onPressMemoryChip(heroMemoryChip.recordId);
@@ -2369,6 +2371,7 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
           </TouchableOpacity>
         </View>
       ) : null}
+      <View style={isAutumn ? styles.autumnHeroBodyGroup : null}>
       <HeroProfileIdentity
         petTheme={petTheme}
         selectedAvatarUri={selectedAvatarUri}
@@ -2434,6 +2437,7 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
           />
         </TouchableOpacity>
       ) : null}
+      </View>
     </View>
   );
 });

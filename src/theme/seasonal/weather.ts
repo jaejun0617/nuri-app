@@ -12,6 +12,8 @@ export type SeasonalWeatherCardVisualTheme = {
   primaryText: string;
   secondaryText: string;
   mutedText: string;
+  copyBackground: string;
+  copyBorder: string;
   metricText: string;
   accent: string;
   separator: string;
@@ -39,14 +41,16 @@ const AUTUMN_WEATHER_THEME: SeasonalWeatherVisualTheme = {
     primaryText: '#5A3023',
     secondaryText: '#77665E',
     mutedText: '#806D60',
+    copyBackground: 'rgba(255, 252, 246, 0.30)',
+    copyBorder: 'rgba(255, 255, 255, 0.18)',
     metricText: '#5A3023',
     accent: '#D95F32',
     separator: 'rgba(122, 80, 53, 0.18)',
-    locationBackground: 'rgba(255, 252, 246, 0.82)',
+    locationBackground: 'rgba(255, 252, 246, 0.36)',
     locationBorder: 'rgba(191, 119, 67, 0.26)',
-    guideBackground: 'rgba(255, 252, 246, 0.76)',
-    guideBorder: 'rgba(211, 137, 78, 0.34)',
-    metricBackground: 'rgba(255, 250, 242, 0.62)',
+    guideBackground: 'rgba(255, 252, 246, 0.34)',
+    guideBorder: 'transparent',
+    metricBackground: 'rgba(255, 250, 242, 0.34)',
     shadowColor: '#8B4A2B',
     shadowOpacity: 0.16,
   },

@@ -649,7 +649,15 @@ export default function PetProfileEditScreen() {
 
   return (
     <View style={styles.screen}>
-      <View style={styles.header}>
+      <View
+        style={[
+          styles.header,
+          {
+            marginTop: 0,
+            paddingTop: Math.max(insets.top + 4, 12),
+          },
+        ]}
+      >
         <View style={styles.headerSideSlot}>
           <TouchableOpacity
             activeOpacity={0.88}

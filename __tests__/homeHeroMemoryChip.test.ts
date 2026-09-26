@@ -24,7 +24,7 @@ function record(overrides: Partial<MemoryRecord> = {}): MemoryRecord {
 }
 
 describe('home hero memory chip', () => {
-  const now = new Date('2026-09-25T03:00:00.000Z');
+  const now = new Date('2026-09-27T03:00:00.000Z');
 
   it('selects the latest actual record without depending on array order', () => {
     const chip = buildHomeHeroMemoryChip(
@@ -38,14 +38,15 @@ describe('home hero memory chip', () => {
 
     expect(chip).toMatchObject({
       recordId: 'new',
-      label: '어제, 누리와 산책한 추억이 있어요',
+      label: '3일 전, 누리와 산책한 추억이 있어요',
     });
   });
 
   it.each([
-    ['meal', null, '오늘, 누리의 식사 기록이 있어요'],
-    ['health', null, '오늘, 누리의 건강 기록이 있어요'],
-    ['other', 'grooming', '오늘, 누리의 미용 기록이 있어요'],
+    ['meal', null, '2일 전, 누리의 식사 기록이 있어요'],
+    ['health', null, '2일 전, 누리의 건강 기록이 있어요'],
+    ['other', 'grooming', '2일 전, 누리의 미용 기록이 있어요'],
+    ['diary', null, '2일 전, 누리의 소중한 기록이 있어요'],
   ] as const)(
     'builds a %s callback from the normalized record category',
     (category, subCategory, expected) => {
@@ -68,14 +69,24 @@ describe('home hero memory chip', () => {
   it('uses the correct Korean particle for a pet name with a final consonant', () => {
     const chip = buildHomeHeroMemoryChip([record()], '몽실', now);
 
-    expect(chip?.label).toBe('3일 전, 몽실과 산책한 추억이 있어요');
+    expect(chip?.label).toBe('5일 전, 몽실과 산책한 추억이 있어요');
+  });
+
+  it('uses the shared calendar label for records older than one week', () => {
+    const chip = buildHomeHeroMemoryChip(
+      [record({ occurredAt: '2026-08-12' })],
+      '누리',
+      now,
+    );
+
+    expect(chip?.label).toBe('8.12, 누리와 산책한 추억이 있어요');
   });
 
   it('builds a neutral create action when there is no record', () => {
-    expect(buildHomeHeroMemoryChip([], '누리', now)).toEqual({
+    expect(buildHomeHeroMemoryChip([], '누리')).toEqual({
       recordId: null,
-      label: '기록을 시작해보아요',
-      accessibilityLabel: '기록을 시작해보아요, 기록 작성하기',
+      label: '오늘의 첫 순간을 남겨볼까요?',
+      accessibilityLabel: '오늘의 첫 순간을 남겨볼까요?, 기록 작성하기',
     });
   });
 });

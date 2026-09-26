@@ -64,6 +64,7 @@ export const styles = StyleSheet.create({
   autumnBrandContentStack: {
     paddingTop: 4,
     marginBottom: 12,
+    gap: 4,
   },
   brandLockup: {
     flexDirection: 'row',
@@ -514,7 +515,7 @@ export const styles = StyleSheet.create({
   },
   autumnMemoryChipAnchor: {
     position: 'absolute',
-    top: 0,
+    top: 6,
     left: 0,
     right: 0,
     zIndex: 4,
@@ -522,16 +523,16 @@ export const styles = StyleSheet.create({
   },
   autumnMemoryChip: {
     maxWidth: '88%',
-    minHeight: 46,
-    paddingHorizontal: 17,
-    paddingVertical: 9,
+    minHeight: 40,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.76)',
     backgroundColor: 'rgba(255, 252, 247, 0.72)',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 9,
+    gap: 8,
     shadowColor: '#6A3C26',
     shadowOpacity: 0.1,
     shadowRadius: 7,
@@ -539,8 +540,8 @@ export const styles = StyleSheet.create({
     elevation: 3,
   },
   autumnMemoryChipMark: {
-    width: 22,
-    height: 22,
+    width: 18,
+    height: 18,
     flexShrink: 0,
   },
   autumnMemoryChipText: {
@@ -551,6 +552,9 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#664332',
     letterSpacing: 0,
+  },
+  autumnHeroBodyGroup: {
+    transform: [{ translateY: 14 }],
   },
 
   heroAvatarOuter: {
@@ -591,6 +595,11 @@ export const styles = StyleSheet.create({
     shadowRadius: 32,
     shadowOffset: { width: 0, height: 0 },
     elevation: 9,
+  },
+  autumnHeroAvatarGlow: {
+    shadowOpacity: 0.34,
+    shadowRadius: 26,
+    elevation: 10,
   },
   heroAvatarRing: {
     width: 144,
@@ -710,7 +719,7 @@ export const styles = StyleSheet.create({
   },
   autumnProfileEntry: {
     minHeight: 52,
-    marginTop: 20,
+    marginTop: 32,
     position: 'relative',
     paddingHorizontal: 48,
     paddingVertical: 10,

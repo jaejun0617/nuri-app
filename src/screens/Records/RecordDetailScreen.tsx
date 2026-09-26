@@ -20,6 +20,7 @@ import {
 import { FlashList } from '@shopify/flash-list';
 import type { CompositeNavigationProp, RouteProp } from '@react-navigation/native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from 'styled-components/native';
@@ -344,15 +345,6 @@ const FeedPostCard = memo(function FeedPostCard({
         </View>
       )}
 
-      <View style={styles.postActions}>
-        <View style={styles.postActionsLeft}>
-          <Feather name="heart" size={20} color="#1C2434" />
-          <Feather name="message-circle" size={20} color="#1C2434" />
-          <Feather name="send" size={20} color="#1C2434" />
-        </View>
-        <Feather name="bookmark" size={20} color="#1C2434" />
-      </View>
-
       <View style={styles.postBody}>
         <AppText preset="unifiedBody" style={styles.postTitleText}>
           {item.title.trim()}
@@ -397,6 +389,7 @@ const FeedPostCard = memo(function FeedPostCard({
 });
 
 export default function RecordDetailScreen() {
+  const insets = useSafeAreaInsets();
   const theme = useTheme();
   const navigation = useNavigation<TimelineNav>();
   const route = useRoute<Route>();
@@ -680,7 +673,7 @@ export default function RecordDetailScreen() {
   if (!record && hydratingMissingRecord) {
     return (
       <View style={styles.screen}>
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: Math.max(insets.top + 4, 14) }]}>
           <AppText preset="unifiedTitle" style={styles.headerTitle}>
             추억상세보기
           </AppText>
@@ -701,7 +694,7 @@ export default function RecordDetailScreen() {
     if (hydrateErrorMessage) {
       return (
         <View style={styles.screen}>
-          <View style={styles.header}>
+          <View style={[styles.header, { paddingTop: Math.max(insets.top + 4, 14) }]}>
             <AppText preset="unifiedTitle" style={styles.headerTitle}>
               추억상세보기
             </AppText>
@@ -731,7 +724,7 @@ export default function RecordDetailScreen() {
 
     return (
       <View style={styles.screen}>
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: Math.max(insets.top + 4, 14) }]}>
           <AppText preset="unifiedTitle" style={styles.headerTitle}>
             추억상세보기
           </AppText>
@@ -752,7 +745,12 @@ export default function RecordDetailScreen() {
 
   return (
     <View style={styles.screen}>
-      <View style={styles.headerLink}>
+      <View
+        style={[
+          styles.headerLink,
+          { paddingTop: Math.max(insets.top + 4, 12) },
+        ]}
+      >
         <View style={styles.headerSideSlot}>
           <TouchableOpacity
             activeOpacity={0.88}

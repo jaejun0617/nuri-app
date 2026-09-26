@@ -198,6 +198,9 @@ export default React.memo(function WeatherGuideHomeCard({
     ? [...NIGHT_BORDER_COLORS]
     : [...WEATHER_DAY_BORDER_COLORS];
   const effectiveAccentColor = visualTheme?.accent ?? accentColor;
+  const locationColor = visualTheme ? effectiveAccentColor : textPrimary;
+  const temperatureColor = visualTheme ? effectiveAccentColor : textPrimary;
+  const noticeArrowColor = visualTheme ? effectiveAccentColor : muted;
   const temperatureValue = hasLiveData || isPreview
     ? `${weather.currentTemperature}`
     : '--';
@@ -267,6 +270,7 @@ export default React.memo(function WeatherGuideHomeCard({
                     (isNightCard
                       ? 'rgba(255,255,255,0.08)'
                       : 'rgba(255,255,255,0.78)'),
+                  borderWidth: visualTheme ? 0 : 1,
                   borderColor:
                     visualTheme?.locationBorder ??
                     (isNightCard
@@ -275,8 +279,8 @@ export default React.memo(function WeatherGuideHomeCard({
                 },
               ]}
             >
-              <Feather name="map-pin" size={14} color={textPrimary} />
-              <Text style={[styles.locationText, { color: textPrimary }]} numberOfLines={1}>
+              <Feather name="map-pin" size={14} color={locationColor} />
+              <Text style={[styles.locationText, { color: locationColor }]} numberOfLines={1}>
                 {locationLabel ?? weather.district}
               </Text>
             </View>
@@ -307,25 +311,46 @@ export default React.memo(function WeatherGuideHomeCard({
                   isCompact ? styles.temperatureCompact : null,
                 ]}
               >
-                <Text style={[styles.temperatureValue, { color: textPrimary }]} numberOfLines={1}>
+                <Text style={[styles.temperatureValue, { color: temperatureColor }]} numberOfLines={1}>
                   {temperatureValue}
                 </Text>
                 <View style={styles.temperatureUnit}>
-                  <Text style={[styles.temperatureDegree, { color: textPrimary }]}>°</Text>
-                  <Text style={[styles.temperatureCelsius, { color: textPrimary }]}>C</Text>
+                  <Text style={[styles.temperatureDegree, { color: temperatureColor }]}>°</Text>
+                  <Text style={[styles.temperatureCelsius, { color: temperatureColor }]}>C</Text>
                 </View>
               </View>
-              <Text style={[styles.headline, isCompact ? styles.headlineCompact : null, { color: textPrimary }]} numberOfLines={2}>
-                {renderAccentText(
-                  formatWeatherPetText(weather.homeMessage, petName),
-                  effectiveAccentColor,
-                )}
-              </Text>
-              <Text style={[styles.caption, isCompact ? styles.captionCompact : null, { color: textSecondary }]} numberOfLines={2}>
-                {isPreview
-                  ? '최근 확인한 날씨를 잠시 보여드리고 있어요.'
-                  : formatWeatherPetText(weather.homeCaption, petName)}
-              </Text>
+              <View style={styles.copyTextGroup}>
+                {visualTheme ? (
+                  <View
+                    pointerEvents="none"
+                    style={[
+                      styles.copyTextBacking,
+                      {
+                        backgroundColor: visualTheme.copyBackground,
+                        borderColor: visualTheme.copyBorder,
+                      },
+                    ]}
+                  />
+                ) : null}
+                <Text style={[styles.headline, isCompact ? styles.headlineCompact : null, { color: textPrimary }]} numberOfLines={2}>
+                  {renderAccentText(
+                    formatWeatherPetText(weather.homeMessage, petName),
+                    effectiveAccentColor,
+                  )}
+                </Text>
+                <Text
+                  style={[
+                    styles.caption,
+                    isCompact ? styles.captionCompact : null,
+                    { color: visualTheme ? textPrimary : textSecondary },
+                  ]}
+                  numberOfLines={2}
+                >
+                  {isPreview
+                    ? '최근 확인한 날씨를 잠시 보여드리고 있어요.'
+                    : formatWeatherPetText(weather.homeCaption, petName)}
+                </Text>
+              </View>
             </View>
 
             <View
@@ -334,6 +359,7 @@ export default React.memo(function WeatherGuideHomeCard({
                 isCompact ? styles.noticePanelCompact : null,
                 {
                   backgroundColor: panelBackground,
+                  borderWidth: visualTheme ? 0 : 1,
                   borderColor:
                     visualTheme?.guideBorder ??
                     (isNightCard
@@ -348,7 +374,7 @@ export default React.memo(function WeatherGuideHomeCard({
               <Text style={[styles.noticeMessage, isCompact ? styles.noticeMessageCompact : null, { color: textPrimary }]} numberOfLines={3}>
                 {notice.message}
               </Text>
-              <Feather name="chevron-right" size={17} color={muted} style={styles.noticeArrow} />
+              <Feather name="chevron-right" size={17} color={noticeArrowColor} style={styles.noticeArrow} />
             </View>
           </View>
 
@@ -505,6 +531,19 @@ const styles = StyleSheet.create({
     minWidth: 0,
     flex: 1,
     gap: 1,
+  },
+  copyTextGroup: {
+    position: 'relative',
+    gap: 1,
+  },
+  copyTextBacking: {
+    position: 'absolute',
+    top: -2,
+    right: -4,
+    bottom: -2,
+    left: -4,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   temperatureRow: {
     minHeight: 40,
