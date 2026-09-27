@@ -48,7 +48,7 @@ export const WEATHER_DAY_BORDER_COLORS = [
 // Keep this source value beside the weather card so the two visual hierarchies
 // cannot drift independently.
 export const WEATHER_TEMPERATURE_FONT_SIZE = 38;
-const AUTUMN_CARD_ASPECT_RATIO = 1665 / 945;
+const SEASONAL_CARD_ASPECT_RATIO = 1665 / 945;
 const HOME_HORIZONTAL_GUTTER = 16;
 
 const NIGHT_BORDER_COLORS = [
@@ -164,7 +164,7 @@ export default React.memo(function WeatherGuideHomeCard({
 }: Props) {
   const { width } = useWindowDimensions();
   const seasonalCardHeight = visualTheme
-    ? (width - HOME_HORIZONTAL_GUTTER * 2) / AUTUMN_CARD_ASPECT_RATIO
+    ? (width - HOME_HORIZONTAL_GUTTER * 2) / SEASONAL_CARD_ASPECT_RATIO
     : undefined;
   const isNightCard = !weather.isDaytime;
   const isCompact = width <= 370;
@@ -239,10 +239,16 @@ export default React.memo(function WeatherGuideHomeCard({
           ]}
         >
           {visualTheme ? (
-            <View style={styles.cardBackgroundLayer} pointerEvents="none">
+            <View
+              style={[
+                styles.cardBackgroundLayer,
+                { left: visualTheme.backgroundLeftInset },
+              ]}
+              pointerEvents="none"
+            >
               <Image
                 source={visualTheme.backgroundImage}
-                resizeMode="cover"
+                resizeMode={visualTheme.backgroundResizeMode}
                 style={styles.cardBackgroundImage}
                 accessible={false}
               />
@@ -285,9 +291,30 @@ export default React.memo(function WeatherGuideHomeCard({
               </Text>
             </View>
             <View style={styles.dateWrap}>
-              <Text style={[styles.dateText, { color: textPrimary }]} numberOfLines={1}>
-                {getWeatherDateLabel()}
-              </Text>
+              <View
+                style={[
+                  styles.dateGlassSurface,
+                  {
+                    backgroundColor:
+                      visualTheme?.locationBackground ??
+                      (isNightCard
+                        ? 'rgba(18, 29, 61, 0.34)'
+                        : 'rgba(255, 255, 255, 0.58)'),
+                    borderColor:
+                      visualTheme?.copyBorder ??
+                      (isNightCard
+                        ? 'rgba(255, 255, 255, 0.18)'
+                        : 'rgba(255, 255, 255, 0.66)'),
+                  },
+                ]}
+              >
+                <Text
+                  style={[styles.dateText, { color: textPrimary }]}
+                  numberOfLines={1}
+                >
+                  {getWeatherDateLabel()}
+                </Text>
+              </View>
             </View>
           </View>
 
@@ -437,7 +464,7 @@ const styles = StyleSheet.create({
     top: 0,
     right: 0,
     bottom: 0,
-    left: -18,
+    left: 0,
     zIndex: 0,
   },
   cardBackgroundImage: {
@@ -484,6 +511,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-end',
     gap: 6,
+  },
+  dateGlassSurface: {
+    minHeight: 28,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   dateText: {
     flexShrink: 1,

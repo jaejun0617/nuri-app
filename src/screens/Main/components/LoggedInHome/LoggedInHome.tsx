@@ -741,12 +741,8 @@ const HomeWeatherSection = React.memo(function HomeWeatherSection({
     <View style={styles.seasonalWeatherSection}>
       <LinearGradient
         pointerEvents="none"
-        colors={[
-          'rgba(255, 250, 240, 0)',
-          'rgba(255, 251, 245, 0.82)',
-          '#FFFFFF',
-        ]}
-        locations={[0, 0.58, 1]}
+        colors={[...visualTheme.bottomFinishColors]}
+        locations={[...visualTheme.bottomFinishLocations]}
         style={styles.weatherSectionBottomFinish}
       />
       <WeatherGuideHomeCard
@@ -1165,7 +1161,7 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
       <View
         style={[
           styles.brandContentStack,
-          isAutumn ? styles.autumnBrandContentStack : null,
+          isAutumn || isWinter ? styles.autumnBrandContentStack : null,
         ]}
       >
         <View style={styles.brandLockup}>
@@ -1323,7 +1319,11 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
             <View
               style={[
                 styles.heroAvatarGlow,
-                !isWinter && isSeasonal ? styles.autumnHeroAvatarGlow : null,
+                isWinter
+                  ? styles.winterHeroAvatarGlow
+                  : isSeasonal
+                  ? styles.autumnHeroAvatarGlow
+                  : null,
                 { width: avatarDiameter - 2, height: avatarDiameter - 2 },
                 {
                   backgroundColor: petTheme.glow,
@@ -2299,7 +2299,6 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
   onPressCreateMemory,
   onPressProfileInfo,
   season,
-  seasonalOrnamentSheet,
   avatarDiameter,
 }: {
   petTheme: ReturnType<typeof buildPetThemePalette>;
@@ -2314,7 +2313,6 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
   onPressCreateMemory: () => void;
   onPressProfileInfo: () => void;
   season: SeasonalHomeVisual['season'] | null;
-  seasonalOrnamentSheet: ImageSourcePropType | null;
   avatarDiameter: number;
 }) {
   const isAutumn = season === 'autumn';
@@ -2327,15 +2325,18 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
       style={[
         styles.heroCard,
         usesCanonicalWarmSurface ? styles.autumnHeroCard : null,
-        isAutumn ? styles.autumnHeroCardWithMemoryChip : null,
+        isAutumn || isWinter ? styles.autumnHeroCardWithMemoryChip : null,
         isWinter ? styles.winterHeroCard : null,
       ]}
     >
-      {isAutumn && heroMemoryChip ? (
+      {(isAutumn || isWinter) && heroMemoryChip ? (
         <View style={styles.autumnMemoryChipAnchor} pointerEvents="box-none">
           <TouchableOpacity
             activeOpacity={0.86}
-            style={styles.autumnMemoryChip}
+            style={[
+              styles.autumnMemoryChip,
+              isWinter ? styles.winterMemoryChip : null,
+            ]}
             hitSlop={{ top: 4, right: 4, bottom: 4, left: 4 }}
             onPress={() => {
               if (heroMemoryChip.recordId) {
@@ -2356,7 +2357,10 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
             <AppText
               preset="unifiedBody"
               styleOverridesPreset
-              style={styles.autumnMemoryChipText}
+              style={[
+                styles.autumnMemoryChipText,
+                isWinter ? styles.winterMemoryChipText : null,
+              ]}
               numberOfLines={1}
               ellipsizeMode="tail"
             >
@@ -2365,78 +2369,57 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
             <Feather
               name="chevron-right"
               size={16}
-              color="#8A4B2D"
+              color={isWinter ? '#3E6F9F' : '#8A4B2D'}
               accessible={false}
             />
           </TouchableOpacity>
         </View>
       ) : null}
-      <View style={isAutumn ? styles.autumnHeroBodyGroup : null}>
-      <HeroProfileIdentity
-        petTheme={petTheme}
-        selectedAvatarUri={selectedAvatarUri}
-        profilePetName={profilePetName}
-        titleBadge={titleBadge}
-        topMetaLine={topMetaLine}
-        togetherDays={togetherDays}
-        season={season}
-        avatarDiameter={avatarDiameter}
-        onPressPetProfileEdit={onPressPetProfileEdit}
-      />
-      {seasonalOrnamentSheet && isWinter ? (
-        <View
-          style={[styles.autumnProfileEntry, styles.winterProfileEntry]}
-        >
-          <Text
-            accessible={false}
-            style={[
-              styles.autumnProfileEntryText,
-              styles.winterProfileEntryText,
-            ]}
-          >
-            우리 아이 더 알아보기
-          </Text>
-          <Feather
-            accessible={false}
-            name="chevron-right"
-            size={17}
-            color={petTheme.deep}
-            style={styles.autumnProfileEntryChevron}
-          />
-          <View
-            accessible
+      <View
+        style={
+          isAutumn || isWinter ? styles.autumnHeroBodyGroup : null
+        }
+      >
+        <HeroProfileIdentity
+          petTheme={petTheme}
+          selectedAvatarUri={selectedAvatarUri}
+          profilePetName={profilePetName}
+          titleBadge={titleBadge}
+          topMetaLine={topMetaLine}
+          togetherDays={togetherDays}
+          season={season}
+          avatarDiameter={avatarDiameter}
+          onPressPetProfileEdit={onPressPetProfileEdit}
+        />
+        {isSeasonal ? (
+          <TouchableOpacity
+            activeOpacity={0.86}
             accessibilityLabel="우리 아이 더 알아보기"
             accessibilityRole="button"
-            focusable={false}
-            style={styles.winterProfileEntryPressTarget}
-            onAccessibilityTap={onPressProfileInfo}
-            onStartShouldSetResponder={() => true}
-            onResponderRelease={onPressProfileInfo}
-          />
-        </View>
-      ) : isSeasonal ? (
-        <TouchableOpacity
-          activeOpacity={0.86}
-          accessibilityLabel="우리 아이 더 알아보기"
-          accessibilityRole="button"
-          style={[
-            styles.autumnProfileEntry,
-            isAutumn ? styles.autumnProfileEntryReadable : null,
-            isWinter ? styles.winterProfileEntry : null,
-          ]}
-          onPress={onPressProfileInfo}
-        >
-          <AppText preset="unifiedLabel" style={styles.autumnProfileEntryText}>
-            우리 아이 더 알아보기
-          </AppText>
-          <Feather
-            name="chevron-right"
-            size={17}
-            color={petTheme.deep}
-            style={styles.autumnProfileEntryChevron}
-          />
-        </TouchableOpacity>
-      ) : null}
+            style={[
+              styles.autumnProfileEntry,
+              isAutumn ? styles.autumnProfileEntryReadable : null,
+              isWinter ? styles.winterProfileEntry : null,
+            ]}
+            onPress={onPressProfileInfo}
+          >
+            <AppText
+              preset="unifiedLabel"
+              style={[
+                styles.autumnProfileEntryText,
+                isWinter ? styles.winterProfileEntryText : null,
+              ]}
+            >
+              우리 아이 더 알아보기
+            </AppText>
+            <Feather
+              name="chevron-right"
+              size={17}
+              color={petTheme.deep}
+              style={styles.autumnProfileEntryChevron}
+            />
+          </TouchableOpacity>
+        ) : null}
       </View>
     </View>
   );
@@ -3325,7 +3308,8 @@ export default function LoggedInHome() {
     ? Math.min(176, Math.max(146, Math.round(windowWidth * 0.41)))
     : 156;
   const seasonalHeroOffset =
-    seasonalHomeVisual?.season === 'autumn'
+    seasonalHomeVisual?.season === 'autumn' ||
+    seasonalHomeVisual?.season === 'winter'
       ? Math.min(34, Math.max(26, Math.round(windowWidth * 0.075)))
       : seasonalHomeVisual
         ? Math.min(48, Math.max(36, Math.round(windowWidth * 0.11)))
@@ -4451,7 +4435,8 @@ export default function LoggedInHome() {
 
   const heroMemoryChip = useMemo(
     () =>
-      seasonalHomeVisual?.season === 'autumn'
+      seasonalHomeVisual?.season === 'autumn' ||
+      seasonalHomeVisual?.season === 'winter'
         ? buildHomeHeroMemoryChip(recordItems, plainPetName)
         : null,
     [plainPetName, recordItems, seasonalHomeVisual?.season],
@@ -4493,7 +4478,6 @@ export default function LoggedInHome() {
       onPressCreateMemory={onPressRecord}
       onPressProfileInfo={openProfileInfoSheet}
       season={seasonalHomeVisual?.season ?? null}
-      seasonalOrnamentSheet={seasonalHomeVisual?.ornamentSheet ?? null}
       avatarDiameter={heroAvatarDiameter}
     />
   );
@@ -4550,7 +4534,13 @@ export default function LoggedInHome() {
             {homeHeader}
             {activeAlarmNotice}
             <Animated.View
-              style={[animatedContentStyle, { marginTop: seasonalHeroOffset }]}
+              style={[
+                animatedContentStyle,
+                {
+                  marginTop:
+                    seasonalHeroOffset - AUTUMN_MEMORY_CHIP_FLOW_COMPENSATION,
+                },
+              ]}
             >
               {homeHero}
             </Animated.View>
@@ -4591,7 +4581,8 @@ export default function LoggedInHome() {
             onPress={onPressWeatherInsight}
           />
 
-          {seasonalHomeVisual?.season === 'autumn' ? (
+          {seasonalHomeVisual?.season === 'autumn' ||
+          seasonalHomeVisual?.season === 'winter' ? (
             <View style={styles.autumnPostWeatherSurface}>
               <FrequentRecordsSection
                 petTheme={petTheme}

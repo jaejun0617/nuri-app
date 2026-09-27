@@ -34,7 +34,7 @@ describe('seasonal theme', () => {
       expect.objectContaining({
         season: 'winter',
         greetingCopy: '포근한 오늘도 따뜻한 기억을 남겨보세요',
-        atmosphereAspectRatio: 1024 / 1536,
+        atmosphereAspectRatio: 724 / 2172,
         atmosphere: expect.anything(),
         ornamentSheet: expect.anything(),
         profileSheetBackground: expect.anything(),

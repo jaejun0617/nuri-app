@@ -504,7 +504,6 @@ export const styles = StyleSheet.create({
   },
   winterHeroCard: {
     backgroundColor: 'transparent',
-    paddingTop: 8,
     paddingBottom: 0,
   },
 
@@ -553,6 +552,15 @@ export const styles = StyleSheet.create({
     color: '#664332',
     letterSpacing: 0,
   },
+  winterMemoryChip: {
+    borderColor: 'rgba(255, 255, 255, 0.82)',
+    backgroundColor: 'rgba(244, 249, 255, 0.74)',
+    shadowColor: '#456D96',
+    shadowOpacity: 0.12,
+  },
+  winterMemoryChipText: {
+    color: '#40556F',
+  },
   autumnHeroBodyGroup: {
     transform: [{ translateY: 14 }],
   },
@@ -580,9 +588,14 @@ export const styles = StyleSheet.create({
   },
   winterHeroHalo: {
     position: 'absolute',
-    backgroundColor: 'rgba(220, 234, 255, 0.22)',
+    backgroundColor: 'rgba(205, 226, 255, 0.30)',
     borderWidth: 1,
-    borderColor: 'rgba(248, 251, 255, 0.68)',
+    borderColor: 'rgba(255, 255, 255, 0.88)',
+    shadowColor: '#78A8DF',
+    shadowOpacity: 0.22,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 5,
   },
   heroAvatarGlow: {
     position: 'absolute',
@@ -599,6 +612,11 @@ export const styles = StyleSheet.create({
   autumnHeroAvatarGlow: {
     shadowOpacity: 0.34,
     shadowRadius: 26,
+    elevation: 10,
+  },
+  winterHeroAvatarGlow: {
+    shadowOpacity: 0.36,
+    shadowRadius: 28,
     elevation: 10,
   },
   heroAvatarRing: {
@@ -747,8 +765,8 @@ export const styles = StyleSheet.create({
     right: 16,
   },
   winterProfileEntry: {
-    borderColor: 'rgba(120, 148, 210, 0.30)',
-    backgroundColor: '#FFFFFF',
+    borderColor: 'rgba(95, 131, 172, 0.34)',
+    backgroundColor: 'rgba(246, 250, 255, 0.86)',
     shadowColor: '#7894D2',
     shadowOpacity: 0.06,
     shadowRadius: 6,
@@ -760,7 +778,7 @@ export const styles = StyleSheet.create({
     maxWidth: undefined,
     alignSelf: 'center',
     includeFontPadding: false,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
   },
   winterProfileEntryPressTarget: {
     position: 'absolute',
