@@ -5,7 +5,12 @@
 
 import AppText from '../../app/ui/AppText';
 import React, { memo } from 'react';
-import { TouchableOpacity, View } from 'react-native';
+import {
+  TouchableOpacity,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import {
   PET_THEME_OPTIONS,
@@ -16,6 +21,8 @@ type Props = {
   selectedColor: string;
   title?: string;
   helperText?: string;
+  embedded?: boolean;
+  containerStyle?: StyleProp<ViewStyle>;
   onSelectColor: (color: string) => void;
 };
 
@@ -23,25 +30,31 @@ export default memo(function PetThemePicker({
   selectedColor,
   title = '테마 선택',
   helperText = '홈 강조색과 프로필 분위기에 반영돼요.',
+  embedded = false,
+  containerStyle,
   onSelectColor,
 }: Props) {
   const preview = buildPetThemePalette(selectedColor);
 
   return (
     <View
-      style={{
-        borderRadius: 18,
-        padding: 14,
-        backgroundColor: preview.soft,
-        borderWidth: 1,
-        borderColor: preview.border,
-      }}
+      style={[
+        {
+          borderRadius: 18,
+          padding: embedded ? 0 : 14,
+          backgroundColor: embedded ? 'transparent' : preview.soft,
+          borderWidth: embedded ? 0 : 1,
+          borderColor: preview.border,
+        },
+        containerStyle,
+      ]}
     >
-      <AppText preset="unifiedLabel"
+      <AppText
+        preset="unifiedLabel"
         style={{
-          fontSize: 13,
-          fontWeight: '700',
-          color: preview.deep,
+          fontSize: embedded ? 18 : 13,
+          fontWeight: '800',
+          color: embedded ? '#352B25' : preview.deep,
         }}
       >
         {title}
@@ -49,10 +62,10 @@ export default memo(function PetThemePicker({
 
       <View
         style={{
-          marginTop: 12,
+          marginTop: embedded ? 14 : 12,
           flexDirection: 'row',
           flexWrap: 'wrap',
-          gap: 10,
+          gap: embedded ? 9 : 10,
         }}
       >
         {PET_THEME_OPTIONS.map(color => {
@@ -64,8 +77,8 @@ export default memo(function PetThemePicker({
               activeOpacity={0.88}
               onPress={() => onSelectColor(color)}
               style={{
-                width: 34,
-                height: 34,
+                width: embedded ? 36 : 34,
+                height: embedded ? 36 : 34,
                 borderRadius: 999,
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -88,13 +101,14 @@ export default memo(function PetThemePicker({
         })}
       </View>
 
-      <AppText preset="unifiedLabel"
+      <AppText
+        preset="unifiedLabel"
         style={{
-          marginTop: 10,
+          marginTop: embedded ? 8 : 10,
           fontSize: 12,
           fontWeight: '600',
           lineHeight: 18,
-          color: preview.deep,
+          color: embedded ? '#786B61' : preview.deep,
         }}
       >
         {helperText}

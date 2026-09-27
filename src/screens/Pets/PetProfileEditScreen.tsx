@@ -6,29 +6,47 @@
 
 import AppTextInput from '../../app/ui/AppTextInput';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   Alert,
   AppState,
+  Image,
+  type TextInputContentSizeChangeEvent,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
 import {
+  useIsFocused,
+  useNavigation,
+  useRoute,
+} from '@react-navigation/native';
+import {
+  KeyboardStickyView,
   KeyboardAwareScrollView,
   type KeyboardAwareScrollViewRef,
+  useReanimatedKeyboardAnimation,
 } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+} from 'react-native-reanimated';
 
+import { spacing } from '../../app/theme/tokens/spacing';
 import AppText from '../../app/ui/AppText';
 import WaveText from '../../components/common/WaveText';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import { normalizeDateInput } from '../../components/date-picker/datePickerUtils';
 import WeightLogEntrySheet from '../../components/health/WeightLogEntrySheet';
 import PhotoAddCard from '../../components/media/PhotoAddCard';
-import PetMemorialFields from '../../components/pets/PetMemorialFields';
 import PetThemePicker from '../../components/pets/PetThemePicker';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -42,6 +60,7 @@ import { pickPhotoAssets } from '../../services/media/photoPicker';
 import { formatPetAgeLabelFromBirthDate } from '../../services/pets/age';
 import {
   getPetMemorialChoice,
+  PET_MEMORIAL_OPTIONS,
   type PetMemorialChoice,
 } from '../../services/pets/memorial';
 import {
@@ -63,7 +82,14 @@ import { uploadPetAvatar } from '../../services/supabase/storagePets';
 import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
 import { openMoreDrawer, showToast } from '../../store/uiStore';
+import { getSeasonalProfileEditVisual } from '../../theme/seasonal/profileEdit';
+import { getSeasonalThemeKey } from '../../theme/seasonal/season';
 import { getKstYmd } from '../../utils/date';
+import {
+  buildStickyActionPadding,
+  buildProfileEditMetadata,
+  clampStoryFieldHeight,
+} from './profileEditPresentation';
 import { styles } from './PetProfileEditScreen.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'PetProfileEdit'>;
@@ -72,7 +98,21 @@ type Route = RootScreenRoute<'PetProfileEdit'>;
 const NAME_CHANGE_LIMIT = 3;
 const NAME_CHANGE_STORAGE_KEY = 'nuri.petNameChangeCounts.v1';
 const MAX_TAGS = 10;
-const RECOMMENDED_TAGS = ['#귀요미', '#산책왕', '#활발함', '#애교쟁이', '#호기심'];
+const STICKY_ACTION_KEYBOARD_OFFSET = 172;
+// Device QA may temporarily select a season; production must remain AUTO.
+const PROFILE_EDIT_SEASON_QA_OVERRIDE = 'auto' as const;
+const RECOMMENDED_TAGS = [
+  '#귀요미',
+  '#산책왕',
+  '#활발함',
+  '#애교쟁이',
+  '#호기심',
+  '#먹보',
+  '#낮잠왕',
+  '#순둥이',
+  '#장난꾸러기',
+  '#포토제닉',
+];
 const RECOMMEND_STYLES = [
   'recommendChipBlue',
   'recommendChipOrange',
@@ -80,6 +120,22 @@ const RECOMMEND_STYLES = [
   'recommendChipPink',
   'recommendChipPurple',
 ] as const;
+
+type StoryFieldKey = 'hobbies' | 'likes' | 'dislikes';
+
+const PROFILE_STATUS_COPY: Record<
+  PetMemorialChoice,
+  { title: string; description: string }
+> = {
+  together: {
+    title: '함께하고 있어요',
+    description: '현재 프로필로 계속 사용해요',
+  },
+  memorial: {
+    title: '추억으로 함께해요',
+    description: '추모 프로필과 무지개다리 날짜를 함께 기록해요',
+  },
+};
 
 type GlobalWithIdleCallback = typeof globalThis & {
   requestIdleCallback?: (
@@ -181,8 +237,28 @@ export default function PetProfileEditScreen() {
   const route = useRoute<Route>();
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
+  const { progress: keyboardProgress } = useReanimatedKeyboardAnimation();
   const petId = route.params?.petId?.trim() || '';
   const scrollRef = useRef<KeyboardAwareScrollViewRef | null>(null);
+
+  const stickyActionPadding = useMemo(
+    () =>
+      buildStickyActionPadding({
+        safeAreaBottom: insets.bottom,
+        actionZonePadding: spacing.md,
+      }),
+    [insets.bottom],
+  );
+  const stickyActionInsetStyle = useAnimatedStyle(
+    () => ({
+      paddingBottom: interpolate(
+        keyboardProgress.value,
+        [0, 1],
+        [stickyActionPadding.closedBottom, stickyActionPadding.openBottom],
+      ),
+    }),
+    [stickyActionPadding.closedBottom, stickyActionPadding.openBottom],
+  );
 
   const pets = usePetStore(s => s.pets);
   const setPets = usePetStore(s => s.setPets);
@@ -190,7 +266,10 @@ export default function PetProfileEditScreen() {
   const invalidatePetAvatar = usePetStore(s => s.invalidatePetAvatar);
   const sessionUserId = useAuthStore(s => s.session?.user?.id ?? null);
 
-  const pet = useMemo(() => pets.find(item => item.id === petId) ?? null, [pets, petId]);
+  const pet = useMemo(
+    () => pets.find(item => item.id === petId) ?? null,
+    [pets, petId],
+  );
 
   const [name, setName] = useState('');
   const [representativeSpecies, setRepresentativeSpecies] =
@@ -202,7 +281,9 @@ export default function PetProfileEditScreen() {
   const [weightKg, setWeightKg] = useState('');
   const [memorialChoice, setMemorialChoice] =
     useState<PetMemorialChoice>('together');
-  const [gender, setGender] = useState<'male' | 'female' | 'unknown'>('unknown');
+  const [gender, setGender] = useState<'male' | 'female' | 'unknown'>(
+    'unknown',
+  );
   const [neutered, setNeutered] = useState<boolean | null>(null);
   const [hobbiesText, setHobbiesText] = useState('');
   const [likesText, setLikesText] = useState('');
@@ -218,6 +299,43 @@ export default function PetProfileEditScreen() {
     'birth' | 'adoption' | 'death' | null
   >(null);
   const [weightSheetVisible, setWeightSheetVisible] = useState(false);
+  const [storyFieldHeights, setStoryFieldHeights] = useState<
+    Record<StoryFieldKey, number>
+  >({
+    hobbies: 58,
+    likes: 58,
+    dislikes: 58,
+  });
+  const profileEditVisual = useMemo(
+    () =>
+      getSeasonalProfileEditVisual(
+        getSeasonalThemeKey(),
+        PROFILE_EDIT_SEASON_QA_OVERRIDE,
+      ),
+    [],
+  );
+  const seasonalStyles = useMemo(() => {
+    const { palette } = profileEditVisual;
+
+    return {
+      screen: { backgroundColor: palette.pageBackgroundColor },
+      ambient: { backgroundColor: palette.ambientOverlayColor },
+      section: {
+        backgroundColor: palette.sectionSurfaceColor,
+        borderColor: palette.sectionBorderColor,
+      },
+      control: {
+        backgroundColor: palette.controlSurfaceColor,
+        borderColor: palette.controlBorderColor,
+      },
+      sticky: {
+        backgroundColor: palette.stickySurfaceColor,
+        borderTopColor: palette.stickyBorderColor,
+      },
+      primaryText: { color: palette.primaryTextColor },
+      secondaryText: { color: palette.secondaryTextColor },
+    };
+  }, [profileEditVisual]);
 
   useEffect(() => {
     if (petId || !isFocused) return;
@@ -226,22 +344,26 @@ export default function PetProfileEditScreen() {
     const cancelIdleTask = scheduleIdleTask(() => {
       if (cancelled || AppState.currentState !== 'active') return;
 
-      Alert.alert('프로필을 열지 못했어요', '아이 정보를 다시 불러온 뒤 시도해 주세요.', [
-        {
-          text: '확인',
-          onPress: () => {
-            if (navigation.canGoBack()) {
-              navigation.goBack();
-              return;
-            }
+      Alert.alert(
+        '프로필을 열지 못했어요',
+        '아이 정보를 다시 불러온 뒤 시도해 주세요.',
+        [
+          {
+            text: '확인',
+            onPress: () => {
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+                return;
+              }
 
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'AppTabs' }],
-            });
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'AppTabs' }],
+              });
+            },
           },
-        },
-      ]);
+        ],
+      );
     });
 
     return () => {
@@ -309,7 +431,10 @@ export default function PetProfileEditScreen() {
     () => imageUri?.trim() || pet?.avatarUrl?.trim() || null,
     [imageUri, pet?.avatarUrl],
   );
-  const displayDeathDate = useMemo(() => deathDate.replace(/\./g, '-'), [deathDate]);
+  const displayDeathDate = useMemo(
+    () => deathDate.replace(/\./g, '-'),
+    [deathDate],
+  );
   const selectedThemeColor = useMemo(
     () =>
       themeColor ??
@@ -384,26 +509,32 @@ export default function PetProfileEditScreen() {
     return null;
   }, [adoptionDate, birthDate, dateModalTarget, deathDate]);
 
-  const applyDateModal = useCallback((date: Date) => {
-    try {
-      const normalized = normalizeYmdOrNull(
-        `${date.getFullYear()}-${`${date.getMonth() + 1}`.padStart(2, '0')}-${`${date.getDate()}`.padStart(2, '0')}`,
-      );
-      const displayValue = toDisplayYmd(normalized);
+  const applyDateModal = useCallback(
+    (date: Date) => {
+      try {
+        const normalized = normalizeYmdOrNull(
+          `${date.getFullYear()}-${`${date.getMonth() + 1}`.padStart(
+            2,
+            '0',
+          )}-${`${date.getDate()}`.padStart(2, '0')}`,
+        );
+        const displayValue = toDisplayYmd(normalized);
 
-      if (dateModalTarget === 'birth') {
-        setBirthDate(displayValue);
-      } else if (dateModalTarget === 'adoption') {
-        setAdoptionDate(displayValue);
-      } else if (dateModalTarget === 'death') {
-        setDeathDate(displayValue);
+        if (dateModalTarget === 'birth') {
+          setBirthDate(displayValue);
+        } else if (dateModalTarget === 'adoption') {
+          setAdoptionDate(displayValue);
+        } else if (dateModalTarget === 'death') {
+          setDeathDate(displayValue);
+        }
+
+        setDateModalTarget(null);
+      } catch (error) {
+        Alert.alert('날짜 확인', getErrorMessage(error));
       }
-
-      setDateModalTarget(null);
-    } catch (error) {
-      Alert.alert('날짜 확인', getErrorMessage(error));
-    }
-  }, [dateModalTarget]);
+    },
+    [dateModalTarget],
+  );
 
   const pickImage = useCallback(async () => {
     try {
@@ -463,7 +594,10 @@ export default function PetProfileEditScreen() {
     }
 
     if (isNameChanged && remainingNameChanges <= 0) {
-      Alert.alert('이름 변경 제한', '반려동물 이름은 최대 3번까지만 변경할 수 있어요.');
+      Alert.alert(
+        '이름 변경 제한',
+        '반려동물 이름은 최대 3번까지만 변경할 수 있어요.',
+      );
       return;
     }
 
@@ -594,8 +728,12 @@ export default function PetProfileEditScreen() {
       navigation.goBack();
     },
   });
-  const representativeOption = getRepresentativeSpeciesOption(representativeSpecies);
-  const quickDetailOptions = getPetSpeciesQuickDetailOptions(representativeSpecies);
+  const representativeOption = getRepresentativeSpeciesOption(
+    representativeSpecies,
+  );
+  const quickDetailOptions = getPetSpeciesQuickDetailOptions(
+    representativeSpecies,
+  );
   const normalizedBirthDate = useMemo(
     () => birthDate.trim().replace(/\./g, '-') || null,
     [birthDate],
@@ -610,17 +748,36 @@ export default function PetProfileEditScreen() {
     [normalizedBirthDate],
   );
   const profileSummaryLine = useMemo(() => {
-    const parts: string[] = [];
-    if (profileSpeciesLabel) parts.push(profileSpeciesLabel);
-    if (profileAgeLabel) parts.push(profileAgeLabel);
-    return parts.length > 0 ? parts.join(' · ') : null;
-  }, [profileAgeLabel, profileSpeciesLabel]);
-  const scrollBottomInset = insets.bottom + 32;
+    const numericWeight = Number(weightKg);
+    return buildProfileEditMetadata({
+      speciesLabel: profileSpeciesLabel,
+      ageLabel: profileAgeLabel,
+      weightKg:
+        weightKg.trim() && Number.isFinite(numericWeight)
+          ? numericWeight
+          : null,
+      gender,
+    });
+  }, [gender, profileAgeLabel, profileSpeciesLabel, weightKg]);
+  const scrollBottomInset = 28;
   const handleFocusLowerField = useCallback(() => {
     requestAnimationFrame(() => {
       scrollRef.current?.assureFocusedInputVisible();
     });
   }, []);
+  const handleStoryContentSizeChange = useCallback(
+    (key: StoryFieldKey, event: TextInputContentSizeChangeEvent) => {
+      const nextHeight = clampStoryFieldHeight(
+        event.nativeEvent.contentSize.height,
+      );
+      setStoryFieldHeights(current =>
+        current[key] === nextHeight
+          ? current
+          : { ...current, [key]: nextHeight },
+      );
+    },
+    [],
+  );
 
   if (!pet) {
     return (
@@ -634,7 +791,10 @@ export default function PetProfileEditScreen() {
             accessibilityLabel="뒤로 가기"
             style={[
               styles.primaryButton,
-              { backgroundColor: petTheme.primary, shadowColor: petTheme.primary },
+              {
+                backgroundColor: petTheme.primary,
+                shadowColor: petTheme.primary,
+              },
             ]}
             onPress={onPressBack}
           >
@@ -648,7 +808,19 @@ export default function PetProfileEditScreen() {
   }
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, seasonalStyles.screen]}>
+      <Image
+        accessibilityIgnoresInvertColors
+        pointerEvents="none"
+        resizeMode="cover"
+        source={profileEditVisual.backgroundSource}
+        style={styles.backgroundImage}
+      />
+      <View
+        pointerEvents="none"
+        style={[styles.backgroundWarmth, seasonalStyles.ambient]}
+      />
+
       <View
         style={[
           styles.header,
@@ -661,7 +833,7 @@ export default function PetProfileEditScreen() {
         <View style={styles.headerSideSlot}>
           <TouchableOpacity
             activeOpacity={0.88}
-            style={styles.backButton}
+            style={[styles.backButton, seasonalStyles.control]}
             onPress={onPressBack}
             hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           >
@@ -678,6 +850,8 @@ export default function PetProfileEditScreen() {
 
       <KeyboardAwareScrollView
         ref={scrollRef}
+        bottomOffset={STICKY_ACTION_KEYBOARD_OFFSET}
+        style={styles.scroll}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.scrollContent,
@@ -687,27 +861,46 @@ export default function PetProfileEditScreen() {
         keyboardDismissMode="none"
       >
         <View style={styles.avatarSection}>
-          <PhotoAddCard
-            imageUri={avatarSourceUri}
-            onPress={pickImage}
-            containerStyle={styles.avatarWrap}
-            imageStyle={styles.avatarImage}
-            placeholderStyle={styles.avatarFallback}
-            placeholderIconName="image"
-            placeholderIconColor="#A0A7B4"
-            placeholderIconSize={28}
-            editButtonStyle={[
-              styles.avatarCameraBtn,
-              { backgroundColor: petTheme.primary },
+          <View
+            style={[
+              styles.avatarHalo,
+              {
+                backgroundColor: petTheme.glow,
+                shadowColor: petTheme.primary,
+              },
             ]}
-            editIconName="camera"
-            editIconSize={16}
-          />
-          <AppText preset="unifiedTitle" style={[styles.profileName, { color: petTheme.deep }]}>
+          >
+            <PhotoAddCard
+              imageUri={avatarSourceUri}
+              onPress={pickImage}
+              containerStyle={[
+                styles.avatarWrap,
+                { borderColor: petTheme.border },
+              ]}
+              imageStyle={styles.avatarImage}
+              placeholderStyle={styles.avatarFallback}
+              placeholderIconName="image"
+              placeholderIconColor="#A0A7B4"
+              placeholderIconSize={28}
+              editButtonStyle={[
+                styles.avatarCameraBtn,
+                { backgroundColor: petTheme.primary },
+              ]}
+              editIconName="camera"
+              editIconSize={16}
+            />
+          </View>
+          <AppText
+            preset="unifiedTitle"
+            style={[styles.profileName, { color: petTheme.deep }]}
+          >
             {trimmedName || pet.name || '우리 아이'}
           </AppText>
           {profileSummaryLine ? (
-            <AppText preset="unifiedBody" style={styles.profileMeta}>
+            <AppText
+              preset="unifiedBody"
+              style={[styles.profileMeta, { color: petTheme.muted }]}
+            >
               {profileSummaryLine}
             </AppText>
           ) : (
@@ -717,88 +910,245 @@ export default function PetProfileEditScreen() {
           )}
         </View>
 
-        <PetThemePicker
-          selectedColor={selectedThemeColor}
-          helperText="홈 프로필 카드와 위젯 강조색에 함께 반영돼요."
-          onSelectColor={setThemeColor}
-        />
+        <View style={[styles.sectionGlass, seasonalStyles.section]}>
+          <PetThemePicker
+            embedded
+            selectedColor={selectedThemeColor}
+            title="프로필 컬러"
+            helperText="홈과 위젯의 강조색으로 사용돼요."
+            onSelectColor={setThemeColor}
+          />
+        </View>
 
-        <PetMemorialFields
-          choice={memorialChoice}
-          deathDate={deathDate}
-          onChangeChoice={setMemorialChoice}
-          onChangeDeathDate={onChangeDeathDate}
-          onBlurDeathDate={onBlurDeathDate}
-          onOpenDeathDateModal={openDeathDateModal}
-          buildHint={value => (value ? value : 'YYYY.MM.DD 또는 YYYY-MM-DD')}
-        />
-
-        <View style={styles.formSection}>
-          <View style={styles.fieldBlock}>
-            <AppText preset="unifiedMeta" style={styles.label}>
-              반려동물 이름
+        <View style={[styles.sectionGlass, seasonalStyles.section]}>
+          <View style={styles.sectionHeader}>
+            <AppText
+              preset="unifiedTitle"
+              style={[styles.sectionTitle, seasonalStyles.primaryText]}
+            >
+              프로필 상태
             </AppText>
-              <AppTextInput
-                value={name}
-                onChangeText={setName}
-                editable={canEditName}
-                placeholder="이름"
-                placeholderTextColor="#A0A7B4"
-                style={[styles.input, !canEditName ? styles.inputDisabled : null]}
-                returnKeyType="next"
-              />
-            <AppText preset="unifiedMeta" style={styles.inputHint}>
-              이름 변경은 최대 3회까지 가능해요. 남은 횟수 {remainingNameChanges}회
+          </View>
+          <View style={styles.memorialOptionRow}>
+            {PET_MEMORIAL_OPTIONS.map(option => {
+              const active = option.key === memorialChoice;
+              const copy = PROFILE_STATUS_COPY[option.key];
+              return (
+                <TouchableOpacity
+                  key={option.key}
+                  activeOpacity={0.9}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: active }}
+                  style={[
+                    styles.memorialOption,
+                    seasonalStyles.control,
+                    active
+                      ? {
+                          backgroundColor: petTheme.tint,
+                          borderColor: petTheme.primary,
+                        }
+                      : null,
+                  ]}
+                  onPress={() => setMemorialChoice(option.key)}
+                >
+                  <Feather
+                    color={
+                      active
+                        ? petTheme.primary
+                        : profileEditVisual.palette.neutralIconColor
+                    }
+                    name="heart"
+                    size={18}
+                  />
+                  <AppText
+                    preset="unifiedLabel"
+                    style={[
+                      styles.memorialTitle,
+                      seasonalStyles.primaryText,
+                      active ? { color: petTheme.deep } : null,
+                    ]}
+                  >
+                    {copy.title}
+                  </AppText>
+                  <AppText
+                    preset="unifiedMeta"
+                    style={[
+                      styles.memorialDescription,
+                      seasonalStyles.secondaryText,
+                    ]}
+                  >
+                    {copy.description}
+                  </AppText>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {memorialChoice === 'memorial' ? (
+            <View style={styles.fieldBlock}>
+              <AppText
+                preset="unifiedMeta"
+                style={[styles.label, seasonalStyles.secondaryText]}
+              >
+                무지개다리를 건넌 날짜
+              </AppText>
+              <TouchableOpacity
+                activeOpacity={0.88}
+                style={[styles.input, seasonalStyles.control]}
+                onPress={openDeathDateModal}
+              >
+                <AppTextInput
+                  editable={false}
+                  pointerEvents="none"
+                  value={deathDate}
+                  onChangeText={onChangeDeathDate}
+                  onBlur={onBlurDeathDate}
+                  placeholder="YYYY.MM.DD"
+                  placeholderTextColor={
+                    profileEditVisual.palette.placeholderTextColor
+                  }
+                  style={[styles.readonlyInputText, seasonalStyles.primaryText]}
+                />
+                <Feather
+                  name="calendar"
+                  size={16}
+                  color={profileEditVisual.palette.neutralIconColor}
+                />
+              </TouchableOpacity>
+              <AppText
+                preset="unifiedMeta"
+                style={[styles.inputHint, seasonalStyles.secondaryText]}
+              >
+                {deathDate || 'YYYY.MM.DD 또는 YYYY-MM-DD'}
+              </AppText>
+            </View>
+          ) : null}
+        </View>
+
+        <View
+          style={[
+            styles.sectionGlass,
+            seasonalStyles.section,
+            styles.formSection,
+          ]}
+        >
+          <View style={styles.sectionHeader}>
+            <AppText
+              preset="unifiedTitle"
+              style={[styles.sectionTitle, seasonalStyles.primaryText]}
+            >
+              기본 정보
+            </AppText>
+            <AppText
+              preset="unifiedMeta"
+              style={[styles.sectionHelper, seasonalStyles.secondaryText]}
+            >
+              우리 아이의 기본 정보를 알려주세요.
+            </AppText>
+          </View>
+
+          <View style={styles.fieldBlock}>
+            <AppText
+              preset="unifiedMeta"
+              style={[styles.label, seasonalStyles.secondaryText]}
+            >
+              이름
+            </AppText>
+            <AppTextInput
+              value={name}
+              onChangeText={setName}
+              editable={canEditName}
+              placeholder="이름"
+              placeholderTextColor={
+                profileEditVisual.palette.placeholderTextColor
+              }
+              style={[
+                styles.input,
+                seasonalStyles.control,
+                seasonalStyles.primaryText,
+                !canEditName ? styles.inputDisabled : null,
+              ]}
+              returnKeyType="next"
+            />
+            <AppText
+              preset="unifiedMeta"
+              style={[styles.inputHint, seasonalStyles.secondaryText]}
+            >
+              이름 변경은 최대 3회까지 가능해요. 남은 횟수{' '}
+              {remainingNameChanges}회
             </AppText>
           </View>
 
           <View style={styles.row}>
             <View style={styles.col}>
-              <AppText preset="unifiedMeta" style={styles.label}>
+              <AppText
+                preset="unifiedMeta"
+                style={[styles.label, seasonalStyles.secondaryText]}
+              >
                 생일
               </AppText>
               <TouchableOpacity
                 activeOpacity={0.88}
-                style={styles.input}
+                style={[styles.input, seasonalStyles.control]}
                 onPress={openBirthDateModal}
               >
                 <AppTextInput
                   value={birthDate}
                   onChangeText={setBirthDate}
                   placeholder="YYYY.MM.DD"
-                  placeholderTextColor="#A0A7B4"
-                  style={styles.readonlyInputText}
+                  placeholderTextColor={
+                    profileEditVisual.palette.placeholderTextColor
+                  }
+                  style={[styles.readonlyInputText, seasonalStyles.primaryText]}
                   editable={false}
                   pointerEvents="none"
+                />
+                <Feather
+                  name="calendar"
+                  size={16}
+                  color={profileEditVisual.palette.neutralIconColor}
                 />
               </TouchableOpacity>
             </View>
 
             <View style={styles.col}>
-              <AppText preset="unifiedMeta" style={styles.label}>
+              <AppText
+                preset="unifiedMeta"
+                style={[styles.label, seasonalStyles.secondaryText]}
+              >
                 입양일
               </AppText>
               <TouchableOpacity
                 activeOpacity={0.88}
-                style={styles.input}
+                style={[styles.input, seasonalStyles.control]}
                 onPress={openAdoptionDateModal}
               >
                 <AppTextInput
                   value={adoptionDate}
                   onChangeText={setAdoptionDate}
                   placeholder="YYYY.MM.DD"
-                  placeholderTextColor="#A0A7B4"
-                  style={styles.readonlyInputText}
+                  placeholderTextColor={
+                    profileEditVisual.palette.placeholderTextColor
+                  }
+                  style={[styles.readonlyInputText, seasonalStyles.primaryText]}
                   editable={false}
                   pointerEvents="none"
+                />
+                <Feather
+                  name="calendar"
+                  size={16}
+                  color={profileEditVisual.palette.neutralIconColor}
                 />
               </TouchableOpacity>
             </View>
           </View>
 
           <View style={styles.fieldBlock}>
-            <AppText preset="unifiedMeta" style={styles.label}>
-              대표 종
+            <AppText
+              preset="unifiedMeta"
+              style={[styles.label, seasonalStyles.secondaryText]}
+            >
+              대표 동물
             </AppText>
             <View style={styles.segmentWrap}>
               {PET_REPRESENTATIVE_SPECIES_OPTIONS.map(option => {
@@ -810,17 +1160,19 @@ export default function PetProfileEditScreen() {
                     style={[
                       styles.segmentChip,
                       styles.segmentChipWide,
+                      seasonalStyles.control,
                       active ? styles.segmentChipActive : null,
-                      active
-                        ? { backgroundColor: petTheme.tint }
-                        : null,
+                      active ? { backgroundColor: petTheme.tint } : null,
                     ]}
-                    onPress={() => handleRepresentativeSpeciesChange(option.key)}
+                    onPress={() =>
+                      handleRepresentativeSpeciesChange(option.key)
+                    }
                   >
                     <AppText
                       preset="unifiedMeta"
                       style={[
                         styles.segmentChipText,
+                        seasonalStyles.secondaryText,
                         active ? styles.segmentChipTextActive : null,
                         active ? { color: petTheme.deep } : null,
                       ]}
@@ -831,13 +1183,19 @@ export default function PetProfileEditScreen() {
                 );
               })}
             </View>
-            <AppText preset="unifiedMeta" style={styles.inputHint}>
+            <AppText
+              preset="unifiedMeta"
+              style={[styles.inputHint, seasonalStyles.secondaryText]}
+            >
               {representativeOption.description}
             </AppText>
           </View>
 
           <View style={styles.fieldBlock}>
-            <AppText preset="unifiedMeta" style={styles.label}>
+            <AppText
+              preset="unifiedMeta"
+              style={[styles.label, seasonalStyles.secondaryText]}
+            >
               {representativeOption.detailLabel}
             </AppText>
             {quickDetailOptions.length > 0 ? (
@@ -850,6 +1208,7 @@ export default function PetProfileEditScreen() {
                       activeOpacity={0.92}
                       style={[
                         styles.quickChip,
+                        seasonalStyles.control,
                         active ? styles.quickChipActive : null,
                         active ? { backgroundColor: petTheme.tint } : null,
                       ]}
@@ -859,6 +1218,7 @@ export default function PetProfileEditScreen() {
                         preset="unifiedMeta"
                         style={[
                           styles.quickChipText,
+                          seasonalStyles.secondaryText,
                           active ? styles.quickChipTextActive : null,
                           active ? { color: petTheme.deep } : null,
                         ]}
@@ -870,23 +1230,34 @@ export default function PetProfileEditScreen() {
                 })}
               </View>
             ) : null}
-            <View style={styles.searchInputWrap}>
+            <View style={[styles.searchInputWrap, seasonalStyles.control]}>
               <AppTextInput
                 value={speciesDetailKey}
                 onChangeText={setSpeciesDetailKey}
                 placeholder={representativeOption.placeholders.detail}
-                placeholderTextColor="#A0A7B4"
-                style={styles.searchInput}
+                placeholderTextColor={
+                  profileEditVisual.palette.placeholderTextColor
+                }
+                style={[styles.searchInput, seasonalStyles.primaryText]}
                 autoCapitalize="none"
-                returnKeyType={representativeOption.showBreedField ? 'next' : 'done'}
+                returnKeyType={
+                  representativeOption.showBreedField ? 'next' : 'done'
+                }
               />
-              <Feather name="search" size={16} color="#A0A7B4" />
+              <Feather
+                name="search"
+                size={16}
+                color={profileEditVisual.palette.neutralIconColor}
+              />
             </View>
           </View>
 
           <View style={styles.row}>
             <View style={styles.col}>
-              <AppText preset="unifiedMeta" style={styles.label}>
+              <AppText
+                preset="unifiedMeta"
+                style={[styles.label, seasonalStyles.secondaryText]}
+              >
                 성별
               </AppText>
               <View style={styles.segmentRow}>
@@ -901,6 +1272,7 @@ export default function PetProfileEditScreen() {
                       activeOpacity={0.92}
                       style={[
                         styles.segmentChip,
+                        seasonalStyles.control,
                         active ? styles.segmentChipActive : null,
                         active ? { backgroundColor: petTheme.tint } : null,
                       ]}
@@ -910,6 +1282,7 @@ export default function PetProfileEditScreen() {
                         preset="unifiedMeta"
                         style={[
                           styles.segmentChipText,
+                          seasonalStyles.secondaryText,
                           active ? styles.segmentChipTextActive : null,
                           active ? { color: petTheme.deep } : null,
                         ]}
@@ -923,7 +1296,10 @@ export default function PetProfileEditScreen() {
             </View>
 
             <View style={styles.col}>
-              <AppText preset="unifiedMeta" style={styles.label}>
+              <AppText
+                preset="unifiedMeta"
+                style={[styles.label, seasonalStyles.secondaryText]}
+              >
                 중성화 여부
               </AppText>
               <View style={styles.segmentRow}>
@@ -938,6 +1314,7 @@ export default function PetProfileEditScreen() {
                       activeOpacity={0.92}
                       style={[
                         styles.segmentChip,
+                        seasonalStyles.control,
                         active ? styles.segmentChipActive : null,
                         active ? { backgroundColor: petTheme.tint } : null,
                       ]}
@@ -947,6 +1324,7 @@ export default function PetProfileEditScreen() {
                         preset="unifiedMeta"
                         style={[
                           styles.segmentChipText,
+                          seasonalStyles.secondaryText,
                           active ? styles.segmentChipTextActive : null,
                           active ? { color: petTheme.deep } : null,
                         ]}
@@ -961,32 +1339,74 @@ export default function PetProfileEditScreen() {
           </View>
 
           <View style={styles.fieldBlock}>
-            <AppText preset="unifiedMeta" style={styles.label}>
+            <AppText
+              preset="unifiedMeta"
+              style={[styles.label, seasonalStyles.secondaryText]}
+            >
               몸무게
             </AppText>
-            <View style={styles.searchInputWrap}>
+            <View style={[styles.searchInputWrap, seasonalStyles.control]}>
               <TouchableOpacity
                 activeOpacity={0.88}
-                style={[styles.searchInput, styles.segmentChip]}
+                style={styles.weightButton}
                 onPress={() => setWeightSheetVisible(true)}
               >
-                <AppText preset="unifiedBody" color={weightKg ? undefined : '#A0A7B4'}>
+                <AppText
+                  preset="unifiedBody"
+                  color={
+                    weightKg
+                      ? profileEditVisual.palette.primaryTextColor
+                      : profileEditVisual.palette.placeholderTextColor
+                  }
+                >
                   {weightKg ? `${weightKg} kg` : '체중 기록 남기기'}
                 </AppText>
+                <Feather
+                  name="chevron-right"
+                  size={17}
+                  color={profileEditVisual.palette.neutralIconColor}
+                />
               </TouchableOpacity>
-              <AppText preset="unifiedMeta" style={styles.unitText}>
-                최신값
-              </AppText>
             </View>
-            <AppText preset="unifiedMeta" style={styles.inputHint}>
-              건강 리포트와 홈 화면이 같은 체중 기준을 쓰도록 공통 시트에서 관리합니다.
+            <AppText
+              preset="unifiedMeta"
+              style={[styles.inputHint, seasonalStyles.secondaryText]}
+            >
+              건강 리포트와 홈 화면이 같은 체중 기준을 쓰도록 공통 시트에서
+              관리합니다.
             </AppText>
           </View>
+        </View>
 
+        <View
+          style={[
+            styles.sectionGlass,
+            seasonalStyles.section,
+            styles.formSection,
+          ]}
+        >
+          <View style={styles.sectionHeader}>
+            <AppText
+              preset="unifiedTitle"
+              style={[styles.sectionTitle, seasonalStyles.primaryText]}
+            >
+              우리 아이 이야기
+            </AppText>
+            <AppText
+              preset="unifiedMeta"
+              style={[styles.sectionHelper, seasonalStyles.secondaryText]}
+            >
+              {trimmedName || pet.name || '우리 아이'}의 성격과 취향을
+              기록해보세요.
+            </AppText>
+          </View>
           <View style={styles.fieldBlock}>
             <View style={styles.inlineLabel}>
               <Feather name="home" size={13} color={petTheme.primary} />
-              <AppText preset="unifiedMeta" style={styles.labelInlineText}>
+              <AppText
+                preset="unifiedMeta"
+                style={[styles.labelInlineText, seasonalStyles.secondaryText]}
+              >
                 취미
               </AppText>
             </View>
@@ -995,9 +1415,21 @@ export default function PetProfileEditScreen() {
               onChangeText={setHobbiesText}
               onFocus={handleFocusLowerField}
               placeholder="산책하기, 공놀이, 창밖 구경하기"
-              placeholderTextColor="#A0A7B4"
-              style={[styles.input, styles.multilineInput]}
+              placeholderTextColor={
+                profileEditVisual.palette.placeholderTextColor
+              }
+              style={[
+                styles.input,
+                seasonalStyles.control,
+                seasonalStyles.primaryText,
+                styles.multilineInput,
+                { height: storyFieldHeights.hobbies },
+              ]}
               multiline
+              onContentSizeChange={event =>
+                handleStoryContentSizeChange('hobbies', event)
+              }
+              scrollEnabled={storyFieldHeights.hobbies >= 108}
               returnKeyType="default"
             />
           </View>
@@ -1005,7 +1437,10 @@ export default function PetProfileEditScreen() {
           <View style={styles.fieldBlock}>
             <View style={styles.inlineLabel}>
               <Feather name="heart" size={13} color="#FF8B3D" />
-              <AppText preset="unifiedMeta" style={styles.labelInlineText}>
+              <AppText
+                preset="unifiedMeta"
+                style={[styles.labelInlineText, seasonalStyles.secondaryText]}
+              >
                 좋아하는 것
               </AppText>
             </View>
@@ -1014,9 +1449,21 @@ export default function PetProfileEditScreen() {
               onChangeText={setLikesText}
               onFocus={handleFocusLowerField}
               placeholder="고구마 간식, 백색이 인형, 낮잠 자기"
-              placeholderTextColor="#A0A7B4"
-              style={[styles.input, styles.multilineInput]}
+              placeholderTextColor={
+                profileEditVisual.palette.placeholderTextColor
+              }
+              style={[
+                styles.input,
+                seasonalStyles.control,
+                seasonalStyles.primaryText,
+                styles.multilineInput,
+                { height: storyFieldHeights.likes },
+              ]}
               multiline
+              onContentSizeChange={event =>
+                handleStoryContentSizeChange('likes', event)
+              }
+              scrollEnabled={storyFieldHeights.likes >= 108}
               returnKeyType="default"
             />
           </View>
@@ -1024,7 +1471,10 @@ export default function PetProfileEditScreen() {
           <View style={styles.fieldBlock}>
             <View style={styles.inlineLabel}>
               <Feather name="heart" size={13} color="#FF5FA0" />
-              <AppText preset="unifiedMeta" style={styles.labelInlineText}>
+              <AppText
+                preset="unifiedMeta"
+                style={[styles.labelInlineText, seasonalStyles.secondaryText]}
+              >
                 싫어하는 것
               </AppText>
             </View>
@@ -1033,147 +1483,202 @@ export default function PetProfileEditScreen() {
               onChangeText={setDislikesText}
               onFocus={handleFocusLowerField}
               placeholder="천둥 소리, 목욕하기, 낯선 사람"
-              placeholderTextColor="#A0A7B4"
-              style={[styles.input, styles.multilineInput]}
+              placeholderTextColor={
+                profileEditVisual.palette.placeholderTextColor
+              }
+              style={[
+                styles.input,
+                seasonalStyles.control,
+                seasonalStyles.primaryText,
+                styles.multilineInput,
+                { height: storyFieldHeights.dislikes },
+              ]}
               multiline
+              onContentSizeChange={event =>
+                handleStoryContentSizeChange('dislikes', event)
+              }
+              scrollEnabled={storyFieldHeights.dislikes >= 108}
               returnKeyType="default"
             />
-          </View>
-
-          <View style={styles.fieldBlock}>
-            <View style={styles.inlineLabel}>
-              <Feather name="hash" size={13} color={petTheme.primary} />
-              <AppText preset="unifiedMeta" style={styles.labelInlineText}>
-                태그
-              </AppText>
-            </View>
-
-            <View style={styles.tagBox}>
-              <View style={styles.tagRow}>
-                {tags.map(tag => (
-                  <View key={tag} style={styles.tagChip}>
-                    <AppText preset="unifiedMeta" style={styles.tagChipText}>
-                      {tag}
-                    </AppText>
-                    <TouchableOpacity
-                      activeOpacity={0.9}
-                      onPress={() => removeTag(tag)}
-                    >
-                      <AppText preset="unifiedMeta" style={styles.tagChipX}>
-                        ×
-                      </AppText>
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
-
-              <View style={styles.tagInputRow}>
-                <AppTextInput
-                  value={draftTag}
-                  onChangeText={setDraftTag}
-                  onFocus={handleFocusLowerField}
-                  placeholder="태그 입력"
-                  placeholderTextColor="#A0A7B4"
-                  style={styles.tagInput}
-                  onSubmitEditing={() => addTag(draftTag)}
-                  returnKeyType="done"
-                />
-
-                <TouchableOpacity
-                  activeOpacity={0.92}
-                  style={[styles.tagAddButton, { backgroundColor: petTheme.tint }]}
-                  onPress={() => addTag(draftTag)}
-                >
-                  <AppText
-                    preset="unifiedMeta"
-                    style={[styles.tagAddButtonText, { color: petTheme.deep }]}
-                  >
-                    추가
-                  </AppText>
-                </TouchableOpacity>
-
-                <AppText preset="unifiedMeta" style={styles.tagCount}>
-                  {tags.length}/{MAX_TAGS}
-                </AppText>
-              </View>
-
-              <View style={styles.recommendWrap}>
-                <View style={styles.recommendHeaderRow}>
-                  <AppText preset="unifiedMeta" style={styles.recommendLabel}>
-                    추천 태그
-                  </AppText>
-                </View>
-
-                <View style={styles.recommendRow}>
-                  {RECOMMENDED_TAGS.map((tag, index) => (
-                    <TouchableOpacity
-                      key={tag}
-                      activeOpacity={0.92}
-                      style={[
-                        styles.recommendChip,
-                        styles[RECOMMEND_STYLES[index]],
-                        index === RECOMMENDED_TAGS.length - 1
-                          ? { backgroundColor: petTheme.tint }
-                          : null,
-                      ]}
-                      onPress={() => addTag(tag)}
-                    >
-                      <AppText
-                        preset="unifiedMeta"
-                        style={[
-                          styles.recommendChipText,
-                          index === RECOMMENDED_TAGS.length - 1
-                            ? { color: petTheme.deep }
-                            : null,
-                        ]}
-                      >
-                        {tag}
-                      </AppText>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            </View>
           </View>
         </View>
 
         <View
           style={[
-            styles.footerActionSection,
-            { paddingBottom: 0 },
+            styles.sectionGlass,
+            seasonalStyles.section,
+            styles.formSection,
           ]}
         >
-          <TouchableOpacity
-            activeOpacity={0.92}
-            accessibilityLabel={saving ? '반려동물 프로필 수정 중' : '프로필 수정 완료'}
-            accessibilityHint={
-              saving
-                ? '프로필 수정을 완료할 때까지 잠시 기다려 주세요.'
-                : '두 번 탭하면 수정한 프로필을 저장합니다.'
-            }
-            style={[
-              styles.primaryButton,
-              { backgroundColor: petTheme.primary, shadowColor: petTheme.primary },
-              saving ? styles.primaryButtonDisabled : null,
-            ]}
-            onPress={onSubmit}
-            disabled={saving}
-          >
-            {saving ? (
-              <WaveText
-                text="우리 아이 프로필을 단장하는 중 🎀"
-                color="#FFFFFF"
-                textStyle={styles.primaryButtonText}
-              />
-            ) : (
-              <AppText preset="unifiedBody" style={styles.primaryButtonText}>
-                수정 완료
+          <View style={styles.sectionHeader}>
+            <View style={styles.inlineLabel}>
+              <Feather name="hash" size={18} color={petTheme.primary} />
+              <AppText
+                preset="unifiedTitle"
+                style={[styles.sectionTitle, seasonalStyles.primaryText]}
+              >
+                태그
               </AppText>
-            )}
-          </TouchableOpacity>
-        </View>
+            </View>
+          </View>
 
+          <View style={styles.tagRow}>
+            {tags.map(tag => (
+              <View
+                key={tag}
+                style={[styles.tagChip, { backgroundColor: petTheme.tint }]}
+              >
+                <AppText
+                  preset="unifiedMeta"
+                  style={[styles.tagChipText, { color: petTheme.deep }]}
+                >
+                  {tag}
+                </AppText>
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  accessibilityLabel={`${tag} 태그 삭제`}
+                  onPress={() => removeTag(tag)}
+                >
+                  <AppText
+                    preset="unifiedMeta"
+                    style={[styles.tagChipX, { color: petTheme.muted }]}
+                  >
+                    ×
+                  </AppText>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.tagInputRow}>
+            <AppTextInput
+              value={draftTag}
+              onChangeText={setDraftTag}
+              onFocus={handleFocusLowerField}
+              placeholder="태그 입력 (최대 10개)"
+              placeholderTextColor={
+                profileEditVisual.palette.placeholderTextColor
+              }
+              style={[
+                styles.tagInput,
+                seasonalStyles.control,
+                seasonalStyles.primaryText,
+              ]}
+              onSubmitEditing={() => addTag(draftTag)}
+              returnKeyType="done"
+            />
+
+            <TouchableOpacity
+              activeOpacity={0.92}
+              style={[styles.tagAddButton, { backgroundColor: petTheme.tint }]}
+              onPress={() => addTag(draftTag)}
+            >
+              <AppText
+                preset="unifiedMeta"
+                style={[styles.tagAddButtonText, { color: petTheme.deep }]}
+              >
+                추가
+              </AppText>
+            </TouchableOpacity>
+
+            <AppText
+              preset="unifiedMeta"
+              style={[styles.tagCount, seasonalStyles.secondaryText]}
+            >
+              {tags.length}/{MAX_TAGS}
+            </AppText>
+          </View>
+
+          <View style={styles.recommendWrap}>
+            <View style={styles.recommendHeaderRow}>
+              <AppText
+                preset="unifiedMeta"
+                style={[styles.recommendLabel, seasonalStyles.secondaryText]}
+              >
+                추천 태그
+              </AppText>
+            </View>
+
+            <View style={styles.recommendRow}>
+              {RECOMMENDED_TAGS.map((tag, index) => (
+                <TouchableOpacity
+                  key={tag}
+                  activeOpacity={0.92}
+                  style={[
+                    styles.recommendChip,
+                    styles[RECOMMEND_STYLES[index % RECOMMEND_STYLES.length]],
+                    index === RECOMMENDED_TAGS.length - 1
+                      ? { backgroundColor: petTheme.tint }
+                      : null,
+                  ]}
+                  onPress={() => addTag(tag)}
+                >
+                  <AppText
+                    preset="unifiedMeta"
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.78}
+                    style={[
+                      styles.recommendChipText,
+                      index === RECOMMENDED_TAGS.length - 1
+                        ? { color: petTheme.deep }
+                        : null,
+                    ]}
+                  >
+                    {tag}
+                  </AppText>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
       </KeyboardAwareScrollView>
+
+      <KeyboardStickyView>
+        <Animated.View
+          style={[
+            styles.stickyActionSection,
+            seasonalStyles.sticky,
+            stickyActionInsetStyle,
+          ]}
+        >
+          <View style={styles.stickyActionInner}>
+            <TouchableOpacity
+              activeOpacity={0.92}
+              accessibilityLabel={
+                saving ? '반려동물 프로필 수정 중' : '프로필 수정 완료'
+              }
+              accessibilityHint={
+                saving
+                  ? '프로필 수정을 완료할 때까지 잠시 기다려 주세요.'
+                  : '두 번 탭하면 수정한 프로필을 저장합니다.'
+              }
+              style={[
+                styles.primaryButton,
+                {
+                  backgroundColor: petTheme.primary,
+                  shadowColor: petTheme.primary,
+                },
+                saving ? styles.primaryButtonDisabled : null,
+              ]}
+              onPress={onSubmit}
+              disabled={saving}
+            >
+              {saving ? (
+                <WaveText
+                  text="우리 아이 프로필을 단장하는 중 🎀"
+                  color="#FFFFFF"
+                  textStyle={styles.primaryButtonText}
+                />
+              ) : (
+                <AppText preset="unifiedBody" style={styles.primaryButtonText}>
+                  수정 완료
+                </AppText>
+              )}
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      </KeyboardStickyView>
 
       <DatePickerModal
         visible={dateModalTarget !== null}
@@ -1196,9 +1701,11 @@ export default function PetProfileEditScreen() {
           initialMeasuredOn={getKstYmd()}
           onClose={() => setWeightSheetVisible(false)}
           onCommitted={result => {
-            const latestWeightKg = result.latestSnapshot?.latestWeightKg ?? null;
+            const latestWeightKg =
+              result.latestSnapshot?.latestWeightKg ?? null;
             setWeightKg(
-              typeof latestWeightKg === 'number' && Number.isFinite(latestWeightKg)
+              typeof latestWeightKg === 'number' &&
+                Number.isFinite(latestWeightKg)
                 ? String(latestWeightKg)
                 : '',
             );
