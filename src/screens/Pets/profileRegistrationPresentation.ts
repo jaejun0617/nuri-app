@@ -1,4 +1,76 @@
 import { buildStickyActionPadding } from './profileEditPresentation';
+import {
+  getSeasonalProfileEditVisual,
+  type SeasonalProfileEditVisual,
+} from '../../theme/seasonal/profileEdit';
+import type { SeasonKey } from '../../theme/seasonal/season';
+
+export type ProfileRegistrationSeasonalPresentation =
+  SeasonalProfileEditVisual & {
+    continuationColors: [string, string, string, string];
+    readabilityVeilColors: [string, string, string, string];
+  };
+
+type RegistrationAtmosphere = Pick<
+  ProfileRegistrationSeasonalPresentation,
+  'continuationColors' | 'readabilityVeilColors'
+>;
+
+const REGISTRATION_ATMOSPHERES: Record<SeasonKey, RegistrationAtmosphere> = {
+  autumn: {
+    continuationColors: ['#FAEEDC', '#FBF3E7', '#FFF8EE', '#FFFCF8'],
+    readabilityVeilColors: [
+      'rgba(255, 251, 244, 0.52)',
+      'rgba(255, 249, 239, 0.34)',
+      'rgba(255, 247, 236, 0.14)',
+      'rgba(255, 247, 236, 0)',
+    ],
+  },
+  winter: {
+    continuationColors: ['#EAF5FC', '#F1F8FD', '#F8FCFF', '#FFFFFF'],
+    readabilityVeilColors: [
+      'rgba(249, 253, 255, 0.58)',
+      'rgba(242, 249, 255, 0.36)',
+      'rgba(237, 247, 255, 0.14)',
+      'rgba(237, 247, 255, 0)',
+    ],
+  },
+  spring: {
+    continuationColors: ['#FDE9EF', '#FFF1F4', '#FFF7F5', '#FFFCFA'],
+    readabilityVeilColors: [
+      'rgba(255, 249, 251, 0.56)',
+      'rgba(255, 244, 248, 0.36)',
+      'rgba(255, 240, 246, 0.14)',
+      'rgba(255, 240, 246, 0)',
+    ],
+  },
+  summer: {
+    continuationColors: ['#EDF8E5', '#F4FBEF', '#FAFCEF', '#FFFEF9'],
+    readabilityVeilColors: [
+      'rgba(252, 255, 248, 0.56)',
+      'rgba(247, 253, 240, 0.36)',
+      'rgba(242, 250, 233, 0.14)',
+      'rgba(242, 250, 233, 0)',
+    ],
+  },
+};
+
+/**
+ * Resolves Registration atmosphere without owning any layout values. The
+ * underlying Profile Edit visual keeps both profile surfaces on one asset and
+ * palette contract while Registration remains the sole owner of its geometry.
+ */
+export function getProfileRegistrationSeasonalPresentation(
+  season: SeasonKey,
+  override: 'auto' | SeasonKey = 'auto',
+): ProfileRegistrationSeasonalPresentation {
+  const profileVisual = getSeasonalProfileEditVisual(season, override);
+
+  return {
+    ...profileVisual,
+    ...REGISTRATION_ATMOSPHERES[profileVisual.season],
+  };
+}
 
 export type RegistrationActionLayout = {
   closedBottom: number;

@@ -106,10 +106,15 @@ import { uploadPetAvatar } from '../../services/supabase/storagePets';
 import { usePetStore } from '../../store/petStore';
 import { showToast } from '../../store/uiStore';
 import { getKstYmd } from '../../utils/date';
-import { getSeasonalProfileEditVisual } from '../../theme/seasonal/profileEdit';
+import {
+  getSeasonalThemeKey,
+  type SeasonKey,
+} from '../../theme/seasonal/season';
 import {
   buildRegistrationActionLayout,
   clampRegistrationScrollOffset,
+  getProfileRegistrationSeasonalPresentation,
+  type ProfileRegistrationSeasonalPresentation,
 } from './profileRegistrationPresentation';
 import { styles } from './PetCreateScreen.styles';
 
@@ -119,7 +124,8 @@ type Step = 1 | 2;
 type PetGender = 'male' | 'female' | 'unknown';
 
 const MAX_MULTI_ITEMS = 10;
-const AUTUMN_REGISTRATION_VISUAL = getSeasonalProfileEditVisual('autumn');
+// Device QA may temporarily select a season; production must remain AUTO.
+const PROFILE_REGISTRATION_SEASON_QA_OVERRIDE: 'auto' | SeasonKey = 'auto';
 const PROFILE_STATUS_COPY: Record<
   PetMemorialChoice,
   { title: string; description: string }
@@ -133,6 +139,48 @@ const PROFILE_STATUS_COPY: Record<
     description: '추모 프로필과 무지개다리 날짜를 함께 기록해요',
   },
 };
+
+function buildRegistrationSeasonalStyles(
+  palette: ProfileRegistrationSeasonalPresentation['palette'],
+) {
+  return {
+    screen: { backgroundColor: palette.pageBackgroundColor },
+    ambient: { backgroundColor: palette.ambientOverlayColor },
+    section: {
+      backgroundColor: palette.sectionSurfaceColor,
+      borderColor: palette.sectionBorderColor,
+    },
+    control: {
+      backgroundColor: palette.controlSurfaceColor,
+      borderColor: palette.controlBorderColor,
+    },
+    sticky: {
+      backgroundColor: palette.stickySurfaceColor,
+      borderTopColor: palette.stickyBorderColor,
+    },
+    primaryText: { color: palette.primaryTextColor },
+    secondaryText: { color: palette.secondaryTextColor },
+    placeholderTextColor: palette.placeholderTextColor,
+    neutralIconColor: palette.neutralIconColor,
+  };
+}
+
+type RegistrationSeasonalStyles = ReturnType<
+  typeof buildRegistrationSeasonalStyles
+>;
+
+const RegistrationSeasonalStyleContext =
+  React.createContext<RegistrationSeasonalStyles | null>(null);
+
+function useRegistrationSeasonalStyles(): RegistrationSeasonalStyles {
+  const value = React.useContext(RegistrationSeasonalStyleContext);
+
+  if (!value) {
+    throw new Error('Registration seasonal styles must be provided.');
+  }
+
+  return value;
+}
 
 function normalizeTextItem(raw: string): string {
   return raw.trim().replace(/\s+/g, ' ');
@@ -204,13 +252,21 @@ const MultiInputSection = memo(function MultiInputSectionComponent({
   placeholder,
   hint,
 }: MultiInputSectionProps) {
+  const seasonalStyles = useRegistrationSeasonalStyles();
+
   return (
     <View style={styles.fieldBlock}>
       <View style={styles.fieldLabelRow}>
-        <AppText preset="unifiedLabel" style={styles.label}>
+        <AppText
+          preset="unifiedLabel"
+          style={[styles.label, seasonalStyles.primaryText]}
+        >
           {label}
         </AppText>
-        <AppText preset="unifiedLabel" style={styles.countText}>
+        <AppText
+          preset="unifiedLabel"
+          style={[styles.countText, seasonalStyles.secondaryText]}
+        >
           {list.length}/{MAX_MULTI_ITEMS}
         </AppText>
       </View>
@@ -221,8 +277,13 @@ const MultiInputSection = memo(function MultiInputSectionComponent({
           onChangeText={onDraftChange}
           onFocus={onFocusInput}
           placeholder={placeholder}
-          placeholderTextColor="#A0A7B4"
-          style={[styles.input, styles.tagInput]}
+          placeholderTextColor={seasonalStyles.placeholderTextColor}
+          style={[
+            styles.input,
+            styles.tagInput,
+            seasonalStyles.control,
+            seasonalStyles.primaryText,
+          ]}
           returnKeyType="done"
           onSubmitEditing={onAdd}
         />
@@ -238,7 +299,10 @@ const MultiInputSection = memo(function MultiInputSectionComponent({
       </View>
 
       {hint ? (
-        <AppText preset="unifiedBody" style={styles.inputHint}>
+        <AppText
+          preset="unifiedBody"
+          style={[styles.inputHint, seasonalStyles.secondaryText]}
+        >
           {hint}
         </AppText>
       ) : null}
@@ -331,6 +395,7 @@ const StepOneForm = memo(function StepOneFormComponent({
   neutered,
   onNeuteredChange,
 }: StepOneFormProps) {
+  const seasonalStyles = useRegistrationSeasonalStyles();
   const selectedTheme = buildPetThemePalette(selectedThemeColor);
   const representativeOption = getRepresentativeSpeciesOption(
     representativeSpecies,
@@ -377,15 +442,21 @@ const StepOneForm = memo(function StepOneFormComponent({
             showEditButton={false}
           />
         </View>
-        <AppText preset="unifiedTitle" style={styles.heroCopy}>
+        <AppText
+          preset="unifiedTitle"
+          style={[styles.heroCopy, seasonalStyles.primaryText]}
+        >
           우리 아이의 첫 프로필을 만들어볼까요?
         </AppText>
-        <AppText preset="unifiedBody" style={styles.heroHelper}>
+        <AppText
+          preset="unifiedBody"
+          style={[styles.heroHelper, seasonalStyles.secondaryText]}
+        >
           사진과 기본 정보를 차근차근 알려주세요.
         </AppText>
       </View>
 
-      <View style={styles.sectionGlass}>
+      <View style={[styles.sectionGlass, seasonalStyles.section]}>
         <PetThemePicker
           embedded
           selectedColor={selectedThemeColor}
@@ -395,12 +466,18 @@ const StepOneForm = memo(function StepOneFormComponent({
         />
       </View>
 
-      <View style={styles.sectionGlass}>
+      <View style={[styles.sectionGlass, seasonalStyles.section]}>
         <View style={styles.sectionHeader}>
-          <AppText preset="unifiedTitle" style={styles.sectionTitle}>
+          <AppText
+            preset="unifiedTitle"
+            style={[styles.sectionTitle, seasonalStyles.primaryText]}
+          >
             프로필 상태
           </AppText>
-          <AppText preset="unifiedBody" style={styles.sectionHelper}>
+          <AppText
+            preset="unifiedBody"
+            style={[styles.sectionHelper, seasonalStyles.secondaryText]}
+          >
             우리 아이와 함께하는 방식을 선택해 주세요.
           </AppText>
         </View>
@@ -422,14 +499,18 @@ const StepOneForm = memo(function StepOneFormComponent({
                         backgroundColor: selectedTheme.tint,
                         borderColor: selectedTheme.primary,
                       }
-                    : null,
+                    : seasonalStyles.control,
                 ]}
                 onPress={() => onChangeMemorialChoice(option.key)}
               >
                 <Feather
                   name="heart"
                   size={18}
-                  color={active ? selectedTheme.primary : '#8B7465'}
+                  color={
+                    active
+                      ? selectedTheme.primary
+                      : seasonalStyles.neutralIconColor
+                  }
                 />
                 <AppText
                   preset="unifiedLabel"
@@ -442,7 +523,10 @@ const StepOneForm = memo(function StepOneFormComponent({
                 </AppText>
                 <AppText
                   preset="unifiedMeta"
-                  style={styles.memorialDescription}
+                  style={[
+                    styles.memorialDescription,
+                    seasonalStyles.secondaryText,
+                  ]}
                 >
                   {copy.description}
                 </AppText>
@@ -453,12 +537,15 @@ const StepOneForm = memo(function StepOneFormComponent({
 
         {memorialChoice === 'memorial' ? (
           <View style={styles.fieldBlock}>
-            <AppText preset="unifiedLabel" style={styles.label}>
+            <AppText
+              preset="unifiedLabel"
+              style={[styles.label, seasonalStyles.primaryText]}
+            >
               무지개다리를 건넌 날짜
             </AppText>
             <TouchableOpacity
               activeOpacity={0.88}
-              style={styles.iconInputWrap}
+              style={[styles.iconInputWrap, seasonalStyles.control]}
               onPress={onOpenDeathDateModal}
             >
               <AppTextInput
@@ -468,50 +555,73 @@ const StepOneForm = memo(function StepOneFormComponent({
                 onChangeText={onDeathDateChange}
                 onBlur={onDeathDateBlur}
                 placeholder="YYYY-MM-DD"
-                placeholderTextColor="#A99586"
-                style={styles.iconInput}
+                placeholderTextColor={seasonalStyles.placeholderTextColor}
+                style={[styles.iconInput, seasonalStyles.primaryText]}
               />
-              <Feather color="#8B7465" name="calendar" size={16} />
+              <Feather
+                color={seasonalStyles.neutralIconColor}
+                name="calendar"
+                size={16}
+              />
             </TouchableOpacity>
-            <AppText preset="unifiedBody" style={styles.inputHint}>
+            <AppText
+              preset="unifiedBody"
+              style={[styles.inputHint, seasonalStyles.secondaryText]}
+            >
               {buildDateHint(deathDate)}
             </AppText>
           </View>
         ) : null}
       </View>
 
-      <View style={styles.sectionGlass}>
+      <View style={[styles.sectionGlass, seasonalStyles.section]}>
         <View style={styles.sectionHeader}>
-          <AppText preset="unifiedTitle" style={styles.sectionTitle}>
+          <AppText
+            preset="unifiedTitle"
+            style={[styles.sectionTitle, seasonalStyles.primaryText]}
+          >
             기본 정보
           </AppText>
-          <AppText preset="unifiedBody" style={styles.sectionHelper}>
+          <AppText
+            preset="unifiedBody"
+            style={[styles.sectionHelper, seasonalStyles.secondaryText]}
+          >
             우리 아이의 기본 정보를 알려주세요.
           </AppText>
         </View>
 
         <View style={styles.fieldBlock}>
-          <AppText preset="unifiedLabel" style={styles.label}>
+          <AppText
+            preset="unifiedLabel"
+            style={[styles.label, seasonalStyles.primaryText]}
+          >
             반려동물 이름
           </AppText>
           <AppTextInput
             value={name}
             onChangeText={onNameChange}
             placeholder="이름을 입력해 주세요"
-            placeholderTextColor="#A99586"
-            style={styles.input}
+            placeholderTextColor={seasonalStyles.placeholderTextColor}
+            style={[
+              styles.input,
+              seasonalStyles.control,
+              seasonalStyles.primaryText,
+            ]}
             returnKeyType="done"
           />
         </View>
 
         <View style={styles.row}>
           <View style={styles.col}>
-            <AppText preset="unifiedLabel" style={styles.label}>
+            <AppText
+              preset="unifiedLabel"
+              style={[styles.label, seasonalStyles.primaryText]}
+            >
               생일
             </AppText>
             <TouchableOpacity
               activeOpacity={0.88}
-              style={styles.iconInputWrap}
+              style={[styles.iconInputWrap, seasonalStyles.control]}
               onPress={onOpenBirthModal}
             >
               <AppTextInput
@@ -519,21 +629,28 @@ const StepOneForm = memo(function StepOneFormComponent({
                 onChangeText={onBirthDateChange}
                 onBlur={onBirthDateBlur}
                 placeholder="YYYY-MM-DD"
-                placeholderTextColor="#A99586"
-                style={styles.iconInput}
+                placeholderTextColor={seasonalStyles.placeholderTextColor}
+                style={[styles.iconInput, seasonalStyles.primaryText]}
                 editable={false}
                 pointerEvents="none"
               />
-              <Feather color="#8B7465" name="calendar" size={15} />
+              <Feather
+                color={seasonalStyles.neutralIconColor}
+                name="calendar"
+                size={15}
+              />
             </TouchableOpacity>
           </View>
           <View style={styles.col}>
-            <AppText preset="unifiedLabel" style={styles.label}>
+            <AppText
+              preset="unifiedLabel"
+              style={[styles.label, seasonalStyles.primaryText]}
+            >
               입양일
             </AppText>
             <TouchableOpacity
               activeOpacity={0.88}
-              style={styles.iconInputWrap}
+              style={[styles.iconInputWrap, seasonalStyles.control]}
               onPress={onOpenAdoptionModal}
             >
               <AppTextInput
@@ -541,18 +658,25 @@ const StepOneForm = memo(function StepOneFormComponent({
                 onChangeText={onAdoptionDateChange}
                 onBlur={onAdoptionDateBlur}
                 placeholder="YYYY-MM-DD"
-                placeholderTextColor="#A99586"
-                style={styles.iconInput}
+                placeholderTextColor={seasonalStyles.placeholderTextColor}
+                style={[styles.iconInput, seasonalStyles.primaryText]}
                 editable={false}
                 pointerEvents="none"
               />
-              <Feather color="#8B7465" name="calendar" size={15} />
+              <Feather
+                color={seasonalStyles.neutralIconColor}
+                name="calendar"
+                size={15}
+              />
             </TouchableOpacity>
           </View>
         </View>
 
         <View style={styles.fieldBlock}>
-          <AppText preset="unifiedLabel" style={styles.label}>
+          <AppText
+            preset="unifiedLabel"
+            style={[styles.label, seasonalStyles.primaryText]}
+          >
             대표 동물
           </AppText>
           <View style={styles.segmentWrap}>
@@ -570,7 +694,7 @@ const StepOneForm = memo(function StepOneFormComponent({
                           backgroundColor: selectedTheme.tint,
                           borderColor: selectedTheme.primary,
                         }
-                      : null,
+                      : seasonalStyles.control,
                   ]}
                   onPress={() => onRepresentativeSpeciesChange(option.key)}
                 >
@@ -587,13 +711,19 @@ const StepOneForm = memo(function StepOneFormComponent({
               );
             })}
           </View>
-          <AppText preset="unifiedBody" style={styles.inputHint}>
+          <AppText
+            preset="unifiedBody"
+            style={[styles.inputHint, seasonalStyles.secondaryText]}
+          >
             {representativeOption.description}
           </AppText>
         </View>
 
         <View style={styles.fieldBlock}>
-          <AppText preset="unifiedLabel" style={styles.label}>
+          <AppText
+            preset="unifiedLabel"
+            style={[styles.label, seasonalStyles.primaryText]}
+          >
             {representativeOption.detailLabel}
           </AppText>
           {quickDetailOptions.length > 0 ? (
@@ -611,7 +741,7 @@ const StepOneForm = memo(function StepOneFormComponent({
                             backgroundColor: selectedTheme.tint,
                             borderColor: selectedTheme.primary,
                           }
-                        : null,
+                        : seasonalStyles.control,
                     ]}
                     onPress={() => onSpeciesDetailKeyChange(option.label)}
                   >
@@ -629,25 +759,32 @@ const StepOneForm = memo(function StepOneFormComponent({
               })}
             </View>
           ) : null}
-          <View style={styles.iconInputWrap}>
+          <View style={[styles.iconInputWrap, seasonalStyles.control]}>
             <AppTextInput
               ref={speciesDetailInputRef}
               value={speciesDetailKey}
               onChangeText={onSpeciesDetailKeyChange}
               onFocus={onSpeciesDetailFocus}
               placeholder={representativeOption.placeholders.detail}
-              placeholderTextColor="#A99586"
-              style={styles.iconInput}
+              placeholderTextColor={seasonalStyles.placeholderTextColor}
+              style={[styles.iconInput, seasonalStyles.primaryText]}
               autoCapitalize="none"
               returnKeyType="done"
             />
-            <Feather color="#8B7465" name="search" size={16} />
+            <Feather
+              color={seasonalStyles.neutralIconColor}
+              name="search"
+              size={16}
+            />
           </View>
         </View>
 
         <View style={styles.row}>
           <View style={styles.col}>
-            <AppText preset="unifiedLabel" style={styles.label}>
+            <AppText
+              preset="unifiedLabel"
+              style={[styles.label, seasonalStyles.primaryText]}
+            >
               성별
             </AppText>
             <View style={styles.segmentRow}>
@@ -664,7 +801,7 @@ const StepOneForm = memo(function StepOneFormComponent({
                             backgroundColor: selectedTheme.tint,
                             borderColor: selectedTheme.primary,
                           }
-                        : null,
+                        : seasonalStyles.control,
                     ]}
                     onPress={() => onGenderChange(value)}
                   >
@@ -684,7 +821,10 @@ const StepOneForm = memo(function StepOneFormComponent({
           </View>
 
           <View style={styles.col}>
-            <AppText preset="unifiedLabel" style={styles.label}>
+            <AppText
+              preset="unifiedLabel"
+              style={[styles.label, seasonalStyles.primaryText]}
+            >
               중성화 여부
             </AppText>
             <View style={styles.segmentRow}>
@@ -701,7 +841,7 @@ const StepOneForm = memo(function StepOneFormComponent({
                             backgroundColor: selectedTheme.tint,
                             borderColor: selectedTheme.primary,
                           }
-                        : null,
+                        : seasonalStyles.control,
                     ]}
                     onPress={() => onNeuteredChange(value)}
                   >
@@ -776,42 +916,62 @@ const StepTwoForm = memo(function StepTwoFormComponent({
   onAddTag,
   onRemoveTag,
 }: StepTwoFormProps) {
+  const seasonalStyles = useRegistrationSeasonalStyles();
+
   return (
     <>
       <View style={styles.continuationIntro}>
-        <AppText preset="unifiedTitle" style={styles.continuationTitle}>
+        <AppText
+          preset="unifiedTitle"
+          style={[styles.continuationTitle, seasonalStyles.primaryText]}
+        >
           마지막으로, 우리 아이의 취향을 알려주세요
         </AppText>
-        <AppText preset="unifiedBody" style={styles.continuationBody}>
+        <AppText
+          preset="unifiedBody"
+          style={[styles.continuationBody, seasonalStyles.secondaryText]}
+        >
           입력한 정보는 맞춤 기록과 추억을 정리하는 데 사용돼요.
         </AppText>
       </View>
 
-      <View style={styles.sectionGlass}>
+      <View style={[styles.sectionGlass, seasonalStyles.section]}>
         <View style={styles.sectionHeader}>
-          <AppText preset="unifiedTitle" style={styles.sectionTitle}>
+          <AppText
+            preset="unifiedTitle"
+            style={[styles.sectionTitle, seasonalStyles.primaryText]}
+          >
             상세 정보
           </AppText>
-          <AppText preset="unifiedBody" style={styles.sectionHelper}>
+          <AppText
+            preset="unifiedBody"
+            style={[styles.sectionHelper, seasonalStyles.secondaryText]}
+          >
             체중과 평소 취향을 간단히 기록해 주세요.
           </AppText>
         </View>
 
         <View style={styles.fieldBlock}>
-          <AppText preset="unifiedLabel" style={styles.label}>
+          <AppText
+            preset="unifiedLabel"
+            style={[styles.label, seasonalStyles.primaryText]}
+          >
             몸무게
           </AppText>
-          <View style={styles.iconInputWrap}>
+          <View style={[styles.iconInputWrap, seasonalStyles.control]}>
             <AppTextInput
               value={weightKg}
               onChangeText={onWeightChange}
               onFocus={onFieldFocus}
               placeholder="0.0"
-              placeholderTextColor="#A99586"
-              style={styles.iconInput}
+              placeholderTextColor={seasonalStyles.placeholderTextColor}
+              style={[styles.iconInput, seasonalStyles.primaryText]}
               keyboardType="decimal-pad"
             />
-            <AppText preset="unifiedLabel" style={styles.trailingUnit}>
+            <AppText
+              preset="unifiedLabel"
+              style={[styles.trailingUnit, seasonalStyles.secondaryText]}
+            >
               kg
             </AppText>
           </View>
@@ -851,12 +1011,18 @@ const StepTwoForm = memo(function StepTwoFormComponent({
         />
       </View>
 
-      <View style={styles.sectionGlass}>
+      <View style={[styles.sectionGlass, seasonalStyles.section]}>
         <View style={styles.sectionHeader}>
-          <AppText preset="unifiedTitle" style={styles.sectionTitle}>
+          <AppText
+            preset="unifiedTitle"
+            style={[styles.sectionTitle, seasonalStyles.primaryText]}
+          >
             태그
           </AppText>
-          <AppText preset="unifiedBody" style={styles.sectionHelper}>
+          <AppText
+            preset="unifiedBody"
+            style={[styles.sectionHelper, seasonalStyles.secondaryText]}
+          >
             우리 아이를 잘 보여주는 키워드를 남겨주세요.
           </AppText>
         </View>
@@ -1096,6 +1262,18 @@ export default function PetCreateScreen() {
   const selectedTheme = useMemo(
     () => buildPetThemePalette(selectedThemeColor),
     [selectedThemeColor],
+  );
+  const registrationPresentation = useMemo(
+    () =>
+      getProfileRegistrationSeasonalPresentation(
+        getSeasonalThemeKey(),
+        PROFILE_REGISTRATION_SEASON_QA_OVERRIDE,
+      ),
+    [],
+  );
+  const seasonalStyles = useMemo(
+    () => buildRegistrationSeasonalStyles(registrationPresentation.palette),
+    [registrationPresentation],
   );
   const actionLayout = useMemo(
     () =>
@@ -1696,341 +1874,339 @@ export default function PetCreateScreen() {
   );
 
   return (
-    <View
-      style={[
-        styles.screen,
-        {
-          backgroundColor:
-            AUTUMN_REGISTRATION_VISUAL.palette.pageBackgroundColor,
-        },
-      ]}
-    >
-      {step === 1 ? (
-        <Image
-          accessibilityIgnoresInvertColors
+    <RegistrationSeasonalStyleContext.Provider value={seasonalStyles}>
+      <View style={[styles.screen, seasonalStyles.screen]}>
+        {step === 1 ? (
+          <Image
+            accessibilityIgnoresInvertColors
+            pointerEvents="none"
+            resizeMode="cover"
+            source={registrationPresentation.backgroundSource}
+            style={styles.backgroundImage}
+          />
+        ) : (
+          <LinearGradient
+            pointerEvents="none"
+            colors={registrationPresentation.continuationColors}
+            locations={[0, 0.34, 0.72, 1]}
+            style={styles.continuationCanvas}
+          />
+        )}
+        <View
           pointerEvents="none"
-          resizeMode="cover"
-          source={AUTUMN_REGISTRATION_VISUAL.backgroundSource}
-          style={styles.backgroundImage}
+          style={[styles.backgroundWarmth, seasonalStyles.ambient]}
         />
-      ) : (
-        <View pointerEvents="none" style={styles.continuationCanvas} />
-      )}
-      <View
-        pointerEvents="none"
-        style={[
-          styles.backgroundWarmth,
-          {
-            backgroundColor:
-              AUTUMN_REGISTRATION_VISUAL.palette.ambientOverlayColor,
-          },
-        ]}
-      />
-      {step === 1 ? (
-        <LinearGradient
-          pointerEvents="none"
-          colors={[
-            'rgba(255, 251, 244, 0.52)',
-            'rgba(255, 249, 239, 0.34)',
-            'rgba(255, 247, 236, 0.14)',
-            'rgba(255, 247, 236, 0)',
+        {step === 1 ? (
+          <LinearGradient
+            pointerEvents="none"
+            colors={registrationPresentation.readabilityVeilColors}
+            locations={[0, 0.38, 0.76, 1]}
+            style={styles.topReadabilityVeil}
+          />
+        ) : null}
+
+        <View
+          style={[
+            styles.topChrome,
+            { paddingTop: Math.max(insets.top + 4, 12) },
           ]}
-          locations={[0, 0.38, 0.76, 1]}
-          style={styles.topReadabilityVeil}
-        />
-      ) : null}
+        >
+          <View style={styles.header}>
+            <View style={styles.headerActionPlaceholder} />
 
-      <View
-        style={[styles.topChrome, { paddingTop: Math.max(insets.top + 4, 12) }]}
-      >
-        <View style={styles.header}>
-          <View style={styles.headerActionPlaceholder} />
-
-          <AppText preset="unifiedTitle" style={styles.headerTitle}>
-            프로필 등록 ({step}/2)
-          </AppText>
-
-          <View style={styles.headerActionPlaceholder} />
-        </View>
-
-        <View style={styles.progressHeader}>
-          <View style={styles.progressMetaRow}>
-            <AppText preset="unifiedLabel" style={styles.progressLabel}>
-              {step === 1 ? '기본 정보 입력' : '상세 정보 입력'}
+            <AppText
+              preset="unifiedTitle"
+              style={[styles.headerTitle, seasonalStyles.primaryText]}
+            >
+              프로필 등록 ({step}/2)
             </AppText>
-            <AppText preset="unifiedLabel" style={styles.progressStepText}>
-              {step}/2
-            </AppText>
+
+            <View style={styles.headerActionPlaceholder} />
           </View>
-          <View style={styles.progressMain}>
-            <View style={styles.progressTrack}>
-              <View
-                style={[
-                  styles.progressFill,
-                  step === 1
-                    ? styles.progressFillHalf
-                    : styles.progressFillFull,
-                ]}
-              />
+
+          <View style={styles.progressHeader}>
+            <View style={styles.progressMetaRow}>
+              <AppText
+                preset="unifiedLabel"
+                style={[styles.progressLabel, seasonalStyles.primaryText]}
+              >
+                {step === 1 ? '기본 정보 입력' : '상세 정보 입력'}
+              </AppText>
+              <AppText preset="unifiedLabel" style={styles.progressStepText}>
+                {step}/2
+              </AppText>
+            </View>
+            <View style={styles.progressMain}>
+              <View style={styles.progressTrack}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    step === 1
+                      ? styles.progressFillHalf
+                      : styles.progressFillFull,
+                  ]}
+                />
+              </View>
             </View>
           </View>
         </View>
-      </View>
 
-      <KeyboardAwareScrollView
-        ref={keyboardScrollRef}
-        bottomOffset={actionLayout.focusedInputBottomOffset}
-        disableScrollOnKeyboardHide={false}
-        mode="layout"
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        onContentSizeChange={handleScrollContentSizeChange}
-        onLayout={handleScrollLayout}
-        onMomentumScrollEnd={handleScrollEnd}
-        onScroll={handleScroll}
-        onScrollEndDrag={handleScrollEnd}
-        scrollEventThrottle={16}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-      >
-        {step === 1 ? (
-          <StepOneForm
-            imageUri={imageUri}
-            onPickImage={pickImage}
-            selectedThemeColor={selectedThemeColor}
-            onSelectThemeColor={setThemeColor}
-            memorialChoice={memorialChoice}
-            deathDate={deathDate}
-            onChangeMemorialChoice={setMemorialChoice}
-            onDeathDateChange={handleDeathDateChange}
-            onDeathDateBlur={handleDeathDateBlur}
-            onOpenDeathDateModal={openDeathDateModal}
-            name={name}
-            onNameChange={setName}
-            birthDate={birthDate}
-            onBirthDateChange={handleBirthDateChange}
-            onBirthDateBlur={handleBirthDateBlur}
-            onOpenBirthModal={openBirthDateModal}
-            adoptionDate={adoptionDate}
-            onAdoptionDateChange={handleAdoptionDateChange}
-            onAdoptionDateBlur={handleAdoptionDateBlur}
-            onOpenAdoptionModal={openAdoptionDateModal}
-            representativeSpecies={representativeSpecies}
-            onRepresentativeSpeciesChange={handleRepresentativeSpeciesChange}
-            speciesDetailKey={speciesDetailKey}
-            onSpeciesDetailKeyChange={setSpeciesDetailKey}
-            onSpeciesDetailFocus={handleFocusVisibleInput}
-            speciesDetailInputRef={speciesDetailInputRef}
-            gender={gender}
-            onGenderChange={setGender}
-            neutered={neutered}
-            onNeuteredChange={setNeutered}
-          />
-        ) : (
-          <StepTwoForm
-            weightKg={weightKg}
-            onWeightChange={setWeightKg}
-            onFieldFocus={handleFocusVisibleInput}
-            likes={likes}
-            draftLike={draftLike}
-            onDraftLikeChange={setDraftLike}
-            onAddLike={addLike}
-            onRemoveLike={removeLike}
-            dislikes={dislikes}
-            draftDislike={draftDislike}
-            onDraftDislikeChange={setDraftDislike}
-            onAddDislike={addDislike}
-            onRemoveDislike={removeDislike}
-            hobbies={hobbies}
-            draftHobby={draftHobby}
-            onDraftHobbyChange={setDraftHobby}
-            onAddHobby={addHobby}
-            onRemoveHobby={removeHobby}
-            tags={tags}
-            draftTag={draftTag}
-            onDraftTagChange={setDraftTag}
-            onAddTag={addTag}
-            onRemoveTag={removeTag}
-          />
-        )}
-      </KeyboardAwareScrollView>
-
-      <KeyboardStickyView>
-        <Animated.View
-          style={[
-            styles.actionZone,
-            {
-              backgroundColor:
-                AUTUMN_REGISTRATION_VISUAL.palette.stickySurfaceColor,
-              borderTopColor:
-                AUTUMN_REGISTRATION_VISUAL.palette.stickyBorderColor,
-            },
-            stickyActionInsetStyle,
-          ]}
+        <KeyboardAwareScrollView
+          ref={keyboardScrollRef}
+          bottomOffset={actionLayout.focusedInputBottomOffset}
+          disableScrollOnKeyboardHide={false}
+          mode="layout"
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          onContentSizeChange={handleScrollContentSizeChange}
+          onLayout={handleScrollLayout}
+          onMomentumScrollEnd={handleScrollEnd}
+          onScroll={handleScroll}
+          onScrollEndDrag={handleScrollEnd}
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
         >
-          <View style={styles.actionRow} onLayout={handleActionZoneLayout}>
-            {step === 1 && showStepOneExitButton ? (
-              <TouchableOpacity
-                activeOpacity={0.88}
-                style={styles.secondaryButton}
-                onPress={onPressRequestExit}
-              >
-                <AppText
-                  preset="unifiedLabel"
-                  style={styles.secondaryButtonText}
-                >
-                  돌아가기
-                </AppText>
-              </TouchableOpacity>
-            ) : null}
+          {step === 1 ? (
+            <StepOneForm
+              imageUri={imageUri}
+              onPickImage={pickImage}
+              selectedThemeColor={selectedThemeColor}
+              onSelectThemeColor={setThemeColor}
+              memorialChoice={memorialChoice}
+              deathDate={deathDate}
+              onChangeMemorialChoice={setMemorialChoice}
+              onDeathDateChange={handleDeathDateChange}
+              onDeathDateBlur={handleDeathDateBlur}
+              onOpenDeathDateModal={openDeathDateModal}
+              name={name}
+              onNameChange={setName}
+              birthDate={birthDate}
+              onBirthDateChange={handleBirthDateChange}
+              onBirthDateBlur={handleBirthDateBlur}
+              onOpenBirthModal={openBirthDateModal}
+              adoptionDate={adoptionDate}
+              onAdoptionDateChange={handleAdoptionDateChange}
+              onAdoptionDateBlur={handleAdoptionDateBlur}
+              onOpenAdoptionModal={openAdoptionDateModal}
+              representativeSpecies={representativeSpecies}
+              onRepresentativeSpeciesChange={handleRepresentativeSpeciesChange}
+              speciesDetailKey={speciesDetailKey}
+              onSpeciesDetailKeyChange={setSpeciesDetailKey}
+              onSpeciesDetailFocus={handleFocusVisibleInput}
+              speciesDetailInputRef={speciesDetailInputRef}
+              gender={gender}
+              onGenderChange={setGender}
+              neutered={neutered}
+              onNeuteredChange={setNeutered}
+            />
+          ) : (
+            <StepTwoForm
+              weightKg={weightKg}
+              onWeightChange={setWeightKg}
+              onFieldFocus={handleFocusVisibleInput}
+              likes={likes}
+              draftLike={draftLike}
+              onDraftLikeChange={setDraftLike}
+              onAddLike={addLike}
+              onRemoveLike={removeLike}
+              dislikes={dislikes}
+              draftDislike={draftDislike}
+              onDraftDislikeChange={setDraftDislike}
+              onAddDislike={addDislike}
+              onRemoveDislike={removeDislike}
+              hobbies={hobbies}
+              draftHobby={draftHobby}
+              onDraftHobbyChange={setDraftHobby}
+              onAddHobby={addHobby}
+              onRemoveHobby={removeHobby}
+              tags={tags}
+              draftTag={draftTag}
+              onDraftTagChange={setDraftTag}
+              onAddTag={addTag}
+              onRemoveTag={removeTag}
+            />
+          )}
+        </KeyboardAwareScrollView>
 
-            {step === 2 ? (
-              <TouchableOpacity
-                activeOpacity={0.88}
-                style={styles.secondaryButton}
-                onPress={goPrevStep}
-              >
-                <AppText
-                  preset="unifiedLabel"
-                  style={styles.secondaryButtonText}
+        <KeyboardStickyView>
+          <Animated.View
+            style={[
+              styles.actionZone,
+              seasonalStyles.sticky,
+              stickyActionInsetStyle,
+            ]}
+          >
+            <View style={styles.actionRow} onLayout={handleActionZoneLayout}>
+              {step === 1 && showStepOneExitButton ? (
+                <TouchableOpacity
+                  activeOpacity={0.88}
+                  style={[styles.secondaryButton, seasonalStyles.control]}
+                  onPress={onPressRequestExit}
                 >
-                  이전 단계로
-                </AppText>
-              </TouchableOpacity>
-            ) : null}
+                  <AppText
+                    preset="unifiedLabel"
+                    style={[
+                      styles.secondaryButtonText,
+                      seasonalStyles.primaryText,
+                    ]}
+                  >
+                    돌아가기
+                  </AppText>
+                </TouchableOpacity>
+              ) : null}
 
-            <TouchableOpacity
-              activeOpacity={0.9}
-              disabled={step === 1 ? !canGoNext : !canSubmit}
-              accessibilityLabel={
-                step === 1
-                  ? '다음 등록 단계로 이동'
-                  : saving
-                  ? '반려동물 등록 중'
-                  : '반려동물 등록 완료'
-              }
-              accessibilityHint={
-                step === 1
-                  ? '두 번 탭하면 상세 정보 입력 단계로 이동합니다.'
-                  : saving
-                  ? '반려동물 등록을 완료할 때까지 잠시 기다려 주세요.'
-                  : '두 번 탭하면 반려동물 등록을 완료합니다.'
-              }
-              style={[
-                styles.primaryButton,
-                {
-                  backgroundColor: selectedTheme.primary,
-                  shadowColor: selectedTheme.primary,
-                },
-                (step === 1 ? !canGoNext : !canSubmit)
-                  ? styles.buttonDisabled
-                  : null,
-              ]}
-              onPress={step === 1 ? goNext : onSubmit}
-            >
-              {step === 2 && saving ? (
-                <WaveText
-                  text="소중한 가족을 맞이하는 중 💖"
-                  color={selectedTheme.onPrimary}
-                  textStyle={styles.primaryButtonText}
+              {step === 2 ? (
+                <TouchableOpacity
+                  activeOpacity={0.88}
+                  style={[styles.secondaryButton, seasonalStyles.control]}
+                  onPress={goPrevStep}
+                >
+                  <AppText
+                    preset="unifiedLabel"
+                    style={[
+                      styles.secondaryButtonText,
+                      seasonalStyles.primaryText,
+                    ]}
+                  >
+                    이전 단계로
+                  </AppText>
+                </TouchableOpacity>
+              ) : null}
+
+              <TouchableOpacity
+                activeOpacity={0.9}
+                disabled={step === 1 ? !canGoNext : !canSubmit}
+                accessibilityLabel={
+                  step === 1
+                    ? '다음 등록 단계로 이동'
+                    : saving
+                    ? '반려동물 등록 중'
+                    : '반려동물 등록 완료'
+                }
+                accessibilityHint={
+                  step === 1
+                    ? '두 번 탭하면 상세 정보 입력 단계로 이동합니다.'
+                    : saving
+                    ? '반려동물 등록을 완료할 때까지 잠시 기다려 주세요.'
+                    : '두 번 탭하면 반려동물 등록을 완료합니다.'
+                }
+                style={[
+                  styles.primaryButton,
+                  {
+                    backgroundColor: selectedTheme.primary,
+                    shadowColor: selectedTheme.primary,
+                  },
+                  (step === 1 ? !canGoNext : !canSubmit)
+                    ? styles.buttonDisabled
+                    : null,
+                ]}
+                onPress={step === 1 ? goNext : onSubmit}
+              >
+                {step === 2 && saving ? (
+                  <WaveText
+                    text="소중한 가족을 맞이하는 중 💖"
+                    color={selectedTheme.onPrimary}
+                    textStyle={styles.primaryButtonText}
+                  />
+                ) : (
+                  <AppText
+                    preset="unifiedLabel"
+                    style={[
+                      styles.primaryButtonText,
+                      { color: selectedTheme.onPrimary },
+                    ]}
+                  >
+                    {step === 1 ? '다음으로' : '등록 완료'}
+                  </AppText>
+                )}
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </KeyboardStickyView>
+
+        <Modal
+          transparent
+          visible={successModalVisible}
+          animationType="fade"
+          onRequestClose={goToWelcomeTransition}
+        >
+          <View style={styles.successModalBackdrop}>
+            <View style={styles.successModalCard}>
+              <View style={styles.successLogoWrap}>
+                <Image
+                  source={ASSETS.logo}
+                  style={styles.successLogo}
+                  resizeMode="contain"
                 />
-              ) : (
+              </View>
+
+              <View style={styles.successCopyWrap}>
+                <AppText preset="unifiedTitle" style={styles.successTitle}>
+                  등록이 완료되었어요!
+                </AppText>
+                <AppText preset="unifiedBody" style={styles.successBody}>
+                  우리 아이와 함께할 소중한 추억들을
+                </AppText>
+                <AppText preset="unifiedBody" style={styles.successBody}>
+                  차곡차곡 쌓아보세요.
+                </AppText>
+              </View>
+
+              <TouchableOpacity
+                activeOpacity={0.92}
+                style={[
+                  styles.successPrimaryButton,
+                  {
+                    backgroundColor: selectedTheme.primary,
+                    shadowColor: selectedTheme.primary,
+                  },
+                ]}
+                onPress={goToWelcomeTransition}
+              >
                 <AppText
-                  preset="unifiedLabel"
+                  preset="unifiedTitle"
                   style={[
-                    styles.primaryButtonText,
+                    styles.successPrimaryButtonText,
                     { color: selectedTheme.onPrimary },
                   ]}
                 >
-                  {step === 1 ? '다음으로' : '등록 완료'}
+                  시작하기
                 </AppText>
-              )}
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
-      </KeyboardStickyView>
-
-      <Modal
-        transparent
-        visible={successModalVisible}
-        animationType="fade"
-        onRequestClose={goToWelcomeTransition}
-      >
-        <View style={styles.successModalBackdrop}>
-          <View style={styles.successModalCard}>
-            <View style={styles.successLogoWrap}>
-              <Image
-                source={ASSETS.logo}
-                style={styles.successLogo}
-                resizeMode="contain"
-              />
+              </TouchableOpacity>
             </View>
-
-            <View style={styles.successCopyWrap}>
-              <AppText preset="unifiedTitle" style={styles.successTitle}>
-                등록이 완료되었어요!
-              </AppText>
-              <AppText preset="unifiedBody" style={styles.successBody}>
-                우리 아이와 함께할 소중한 추억들을
-              </AppText>
-              <AppText preset="unifiedBody" style={styles.successBody}>
-                차곡차곡 쌓아보세요.
-              </AppText>
-            </View>
-
-            <TouchableOpacity
-              activeOpacity={0.92}
-              style={[
-                styles.successPrimaryButton,
-                {
-                  backgroundColor: selectedTheme.primary,
-                  shadowColor: selectedTheme.primary,
-                },
-              ]}
-              onPress={goToWelcomeTransition}
-            >
-              <AppText
-                preset="unifiedTitle"
-                style={[
-                  styles.successPrimaryButtonText,
-                  { color: selectedTheme.onPrimary },
-                ]}
-              >
-                시작하기
-              </AppText>
-            </TouchableOpacity>
           </View>
-        </View>
-      </Modal>
+        </Modal>
 
-      <DatePickerModal
-        visible={dateModalTarget !== null}
-        title={dateModalTitle}
-        initialDate={dateModalInitialValue}
-        maximumDate={new Date()}
-        directInputLabel="날짜 직접 입력"
-        directInputHelper="과거 날짜는 YYYY-MM-DD로 입력"
-        onCancel={closeDateModal}
-        onConfirm={onConfirmDateModal}
-      />
-      <ConfirmDialog
-        visible={exitConfirmVisible}
-        typographyMode="unified"
-        title="등록을 멈추고 나갈까요?"
-        message={
-          '입력 중인 내용은 임시 저장되어\n다음에 다시 이어서 작성할 수 있어요.'
-        }
-        cancelLabel="계속 작성하기"
-        confirmLabel="나가기"
-        tone="warning"
-        accentColor={selectedThemeColor}
-        onCancel={() => setExitConfirmVisible(false)}
-        onConfirm={() => {
-          setExitConfirmVisible(false);
-          onPressExitToPrevious();
-        }}
-      />
-    </View>
+        <DatePickerModal
+          visible={dateModalTarget !== null}
+          title={dateModalTitle}
+          initialDate={dateModalInitialValue}
+          maximumDate={new Date()}
+          directInputLabel="날짜 직접 입력"
+          directInputHelper="과거 날짜는 YYYY-MM-DD로 입력"
+          onCancel={closeDateModal}
+          onConfirm={onConfirmDateModal}
+        />
+        <ConfirmDialog
+          visible={exitConfirmVisible}
+          typographyMode="unified"
+          title="등록을 멈추고 나갈까요?"
+          message={
+            '입력 중인 내용은 임시 저장되어\n다음에 다시 이어서 작성할 수 있어요.'
+          }
+          cancelLabel="계속 작성하기"
+          confirmLabel="나가기"
+          tone="warning"
+          accentColor={selectedThemeColor}
+          onCancel={() => setExitConfirmVisible(false)}
+          onConfirm={() => {
+            setExitConfirmVisible(false);
+            onPressExitToPrevious();
+          }}
+        />
+      </View>
+    </RegistrationSeasonalStyleContext.Provider>
   );
 }

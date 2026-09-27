@@ -1,6 +1,7 @@
 import {
   buildRegistrationActionLayout,
   clampRegistrationScrollOffset,
+  getProfileRegistrationSeasonalPresentation,
 } from '../src/screens/Pets/profileRegistrationPresentation';
 
 describe('profile registration presentation', () => {
@@ -57,5 +58,36 @@ describe('profile registration presentation', () => {
         viewportHeight: -10,
       }),
     ).toBe(0);
+  });
+
+  it.each(['autumn', 'winter', 'spring', 'summer'] as const)(
+    'uses the approved %s asset and palette without geometry tokens',
+    season => {
+      const presentation = getProfileRegistrationSeasonalPresentation(season);
+
+      expect(presentation.season).toBe(season);
+      expect(presentation.backgroundSource).toBeDefined();
+      expect(presentation.continuationColors).toHaveLength(4);
+      expect(presentation.readabilityVeilColors).toHaveLength(4);
+      expect(presentation).not.toHaveProperty('marginTop');
+      expect(presentation).not.toHaveProperty('paddingTop');
+      expect(presentation).not.toHaveProperty('translateY');
+      expect(presentation).not.toHaveProperty('height');
+    },
+  );
+
+  it('returns to the resolver season when the QA override is AUTO', () => {
+    expect(
+      getProfileRegistrationSeasonalPresentation('autumn', 'winter').season,
+    ).toBe('winter');
+    expect(
+      getProfileRegistrationSeasonalPresentation('autumn', 'spring').season,
+    ).toBe('spring');
+    expect(
+      getProfileRegistrationSeasonalPresentation('autumn', 'summer').season,
+    ).toBe('summer');
+    expect(
+      getProfileRegistrationSeasonalPresentation('autumn', 'auto').season,
+    ).toBe('autumn');
   });
 });
