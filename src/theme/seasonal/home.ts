@@ -19,7 +19,7 @@ export type SeasonalHomeVisual = {
 const SPRING_HOME_VISUAL: SeasonalHomeVisual = {
   season: 'spring',
   atmosphere: require('../../assets/seasonal/home/spring/atmosphere.png'),
-  atmosphereAspectRatio: 1024 / 1536,
+  atmosphereAspectRatio: 724 / 2172,
   ornamentSheet: null,
   profileSheetBackground: require('../../assets/seasonal/home/spring/profile-sheet-background.png'),
   greetingCopy: '따뜻한 봄날, 함께 좋은 추억을 남겨보세요',
@@ -33,7 +33,7 @@ const SPRING_HOME_VISUAL: SeasonalHomeVisual = {
 const SUMMER_HOME_VISUAL: SeasonalHomeVisual = {
   season: 'summer',
   atmosphere: require('../../assets/seasonal/home/summer/atmosphere.png'),
-  atmosphereAspectRatio: 1024 / 1536,
+  atmosphereAspectRatio: 724 / 2172,
   ornamentSheet: null,
   profileSheetBackground: require('../../assets/seasonal/home/summer/profile-sheet-background.png'),
   greetingCopy: '반짝이는 여름날도 함께 기록해요',

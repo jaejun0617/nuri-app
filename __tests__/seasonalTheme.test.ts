@@ -48,7 +48,7 @@ describe('seasonal theme', () => {
     expect(getSeasonalHomeVisual('spring')).toEqual(
       expect.objectContaining({
         season: 'spring',
-        atmosphereAspectRatio: 1024 / 1536,
+        atmosphereAspectRatio: 724 / 2172,
         ornamentSheet: null,
         profileSheetBackground: expect.anything(),
         greetingCopy: '따뜻한 봄날, 함께 좋은 추억을 남겨보세요',
@@ -62,7 +62,7 @@ describe('seasonal theme', () => {
     expect(getSeasonalHomeVisual('summer')).toEqual(
       expect.objectContaining({
         season: 'summer',
-        atmosphereAspectRatio: 1024 / 1536,
+        atmosphereAspectRatio: 724 / 2172,
         ornamentSheet: null,
         profileSheetBackground: expect.anything(),
         greetingCopy: '반짝이는 여름날도 함께 기록해요',

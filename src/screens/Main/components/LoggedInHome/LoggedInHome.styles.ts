@@ -561,6 +561,24 @@ export const styles = StyleSheet.create({
   winterMemoryChipText: {
     color: '#40556F',
   },
+  springMemoryChip: {
+    borderColor: 'rgba(255, 255, 255, 0.84)',
+    backgroundColor: 'rgba(255, 248, 251, 0.74)',
+    shadowColor: '#A65B78',
+    shadowOpacity: 0.1,
+  },
+  springMemoryChipText: {
+    color: '#654C59',
+  },
+  summerMemoryChip: {
+    borderColor: 'rgba(255, 255, 255, 0.84)',
+    backgroundColor: 'rgba(247, 253, 244, 0.74)',
+    shadowColor: '#3F785B',
+    shadowOpacity: 0.1,
+  },
+  summerMemoryChipText: {
+    color: '#405C56',
+  },
   autumnHeroBodyGroup: {
     transform: [{ translateY: 14 }],
   },
@@ -597,6 +615,28 @@ export const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     elevation: 5,
   },
+  springHeroHalo: {
+    position: 'absolute',
+    backgroundColor: 'rgba(230, 241, 255, 0.24)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.9)',
+    shadowColor: '#8AB7E3',
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 5,
+  },
+  summerHeroHalo: {
+    position: 'absolute',
+    backgroundColor: 'rgba(228, 244, 255, 0.22)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.9)',
+    shadowColor: '#78AECF',
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 5,
+  },
   heroAvatarGlow: {
     position: 'absolute',
     width: 154,
@@ -617,6 +657,16 @@ export const styles = StyleSheet.create({
   winterHeroAvatarGlow: {
     shadowOpacity: 0.36,
     shadowRadius: 28,
+    elevation: 10,
+  },
+  springHeroAvatarGlow: {
+    shadowOpacity: 0.34,
+    shadowRadius: 27,
+    elevation: 10,
+  },
+  summerHeroAvatarGlow: {
+    shadowOpacity: 0.34,
+    shadowRadius: 27,
     elevation: 10,
   },
   heroAvatarRing: {
@@ -775,6 +825,38 @@ export const styles = StyleSheet.create({
   },
   winterProfileEntryText: {
     color: '#40516F',
+    maxWidth: undefined,
+    alignSelf: 'center',
+    includeFontPadding: false,
+    backgroundColor: 'transparent',
+  },
+  springProfileEntry: {
+    borderColor: 'rgba(207, 102, 128, 0.34)',
+    backgroundColor: 'rgba(255, 250, 252, 0.86)',
+    shadowColor: '#A65B78',
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
+  springProfileEntryText: {
+    color: '#654C59',
+    maxWidth: undefined,
+    alignSelf: 'center',
+    includeFontPadding: false,
+    backgroundColor: 'transparent',
+  },
+  summerProfileEntry: {
+    borderColor: 'rgba(46, 125, 91, 0.32)',
+    backgroundColor: 'rgba(248, 253, 244, 0.86)',
+    shadowColor: '#3F785B',
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
+  summerProfileEntryText: {
+    color: '#405C56',
     maxWidth: undefined,
     alignSelf: 'center',
     includeFontPadding: false,
