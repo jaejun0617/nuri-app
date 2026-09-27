@@ -26,6 +26,7 @@ type PhotoAddCardProps = {
   editIconName?: string;
   editIconSize?: number;
   editIconColor?: string;
+  showEditButton?: boolean;
   overlayContent?: React.ReactNode;
 };
 
@@ -44,10 +45,15 @@ function PhotoAddCardComponent({
   editIconName = 'edit-3',
   editIconSize = 14,
   editIconColor = '#FFFFFF',
+  showEditButton = true,
   overlayContent,
 }: PhotoAddCardProps) {
   return (
-    <TouchableOpacity activeOpacity={0.92} style={containerStyle} onPress={onPress}>
+    <TouchableOpacity
+      activeOpacity={0.92}
+      style={containerStyle}
+      onPress={onPress}
+    >
       {imageUri ? (
         <Image source={{ uri: imageUri }} style={imageStyle} />
       ) : (
@@ -65,9 +71,15 @@ function PhotoAddCardComponent({
 
       {overlayContent}
 
-      <View style={editButtonStyle}>
-        <Feather color={editIconColor} name={editIconName} size={editIconSize} />
-      </View>
+      {showEditButton ? (
+        <View style={editButtonStyle}>
+          <Feather
+            color={editIconColor}
+            name={editIconName}
+            size={editIconSize}
+          />
+        </View>
+      ) : null}
     </TouchableOpacity>
   );
 }

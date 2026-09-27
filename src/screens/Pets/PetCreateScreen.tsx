@@ -27,19 +27,22 @@ import {
   Alert,
   BackHandler,
   Image,
+  Keyboard,
+  type LayoutChangeEvent,
   Modal,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import {
+  KeyboardStickyView,
   KeyboardAwareScrollView,
   type KeyboardAwareScrollViewRef,
+  useReanimatedKeyboardAnimation,
 } from 'react-native-keyboard-controller';
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   useFocusEffect,
   useNavigation,
@@ -48,16 +51,24 @@ import {
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import Feather from 'react-native-vector-icons/Feather';
+import LinearGradient from 'react-native-linear-gradient';
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+} from 'react-native-reanimated';
 
 import { ASSETS } from '../../assets';
+import { spacing } from '../../app/theme/tokens/spacing';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import WaveText from '../../components/common/WaveText';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import PhotoAddCard from '../../components/media/PhotoAddCard';
-import PetMemorialFields from '../../components/pets/PetMemorialFields';
 import PetThemePicker from '../../components/pets/PetThemePicker';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
-import { getBrandedErrorMeta, getErrorMessage } from '../../services/app/errors';
+import {
+  getBrandedErrorMeta,
+  getErrorMessage,
+} from '../../services/app/errors';
 import { readFileAsBase64 } from '../../services/files/readFileAsBase64';
 import { pickPhotoAssets } from '../../services/media/photoPicker';
 import { supabase } from '../../services/supabase/client';
@@ -72,6 +83,7 @@ import {
 } from '../../services/pets/themePalette';
 import {
   getPetMemorialChoice,
+  PET_MEMORIAL_OPTIONS,
   type PetMemorialChoice,
 } from '../../services/pets/memorial';
 import {
@@ -94,6 +106,11 @@ import { uploadPetAvatar } from '../../services/supabase/storagePets';
 import { usePetStore } from '../../store/petStore';
 import { showToast } from '../../store/uiStore';
 import { getKstYmd } from '../../utils/date';
+import { getSeasonalProfileEditVisual } from '../../theme/seasonal/profileEdit';
+import {
+  buildRegistrationActionLayout,
+  clampRegistrationScrollOffset,
+} from './profileRegistrationPresentation';
 import { styles } from './PetCreateScreen.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'PetCreate'>;
@@ -102,6 +119,20 @@ type Step = 1 | 2;
 type PetGender = 'male' | 'female' | 'unknown';
 
 const MAX_MULTI_ITEMS = 10;
+const AUTUMN_REGISTRATION_VISUAL = getSeasonalProfileEditVisual('autumn');
+const PROFILE_STATUS_COPY: Record<
+  PetMemorialChoice,
+  { title: string; description: string }
+> = {
+  together: {
+    title: '함께하고 있어요',
+    description: '현재 프로필로 계속 사용해요',
+  },
+  memorial: {
+    title: '추억으로 함께해요',
+    description: '추모 프로필과 무지개다리 날짜를 함께 기록해요',
+  },
+};
 
 function normalizeTextItem(raw: string): string {
   return raw.trim().replace(/\s+/g, ' ');
@@ -162,7 +193,7 @@ type MultiInputSectionProps = {
   hint?: string;
 };
 
-const MultiInputSection = memo(function MultiInputSection({
+const MultiInputSection = memo(function MultiInputSectionComponent({
   label,
   list,
   draft,
@@ -176,7 +207,9 @@ const MultiInputSection = memo(function MultiInputSection({
   return (
     <View style={styles.fieldBlock}>
       <View style={styles.fieldLabelRow}>
-        <AppText preset="unifiedLabel" style={styles.label}>{label}</AppText>
+        <AppText preset="unifiedLabel" style={styles.label}>
+          {label}
+        </AppText>
         <AppText preset="unifiedLabel" style={styles.countText}>
           {list.length}/{MAX_MULTI_ITEMS}
         </AppText>
@@ -198,11 +231,17 @@ const MultiInputSection = memo(function MultiInputSection({
           style={styles.inlineAddButton}
           onPress={onAdd}
         >
-          <AppText preset="unifiedLabel" style={styles.inlineAddButtonText}>추가</AppText>
+          <AppText preset="unifiedLabel" style={styles.inlineAddButtonText}>
+            추가
+          </AppText>
         </TouchableOpacity>
       </View>
 
-      {hint ? <AppText preset="unifiedBody" style={styles.inputHint}>{hint}</AppText> : null}
+      {hint ? (
+        <AppText preset="unifiedBody" style={styles.inputHint}>
+          {hint}
+        </AppText>
+      ) : null}
 
       <View style={styles.pillRow}>
         {list.map(item => (
@@ -212,8 +251,12 @@ const MultiInputSection = memo(function MultiInputSection({
             style={styles.pill}
             onPress={() => onRemove(item)}
           >
-            <AppText preset="unifiedLabel" style={styles.pillText}>{item}</AppText>
-            <AppText preset="unifiedLabel" style={styles.pillX}>×</AppText>
+            <AppText preset="unifiedLabel" style={styles.pillText}>
+              {item}
+            </AppText>
+            <AppText preset="unifiedLabel" style={styles.pillX}>
+              ×
+            </AppText>
           </TouchableOpacity>
         ))}
       </View>
@@ -247,14 +290,16 @@ type StepOneFormProps = {
   speciesDetailKey: string;
   onSpeciesDetailKeyChange: (value: string) => void;
   onSpeciesDetailFocus: () => void;
-  speciesDetailInputRef: React.RefObject<React.ComponentRef<typeof TextInput> | null>;
+  speciesDetailInputRef: React.RefObject<React.ComponentRef<
+    typeof TextInput
+  > | null>;
   gender: PetGender;
   onGenderChange: (value: PetGender) => void;
   neutered: boolean | null;
   onNeuteredChange: (value: boolean) => void;
 };
 
-const StepOneForm = memo(function StepOneForm({
+const StepOneForm = memo(function StepOneFormComponent({
   imageUri,
   onPickImage,
   selectedThemeColor,
@@ -287,153 +332,253 @@ const StepOneForm = memo(function StepOneForm({
   onNeuteredChange,
 }: StepOneFormProps) {
   const selectedTheme = buildPetThemePalette(selectedThemeColor);
-  const representativeOption = getRepresentativeSpeciesOption(representativeSpecies);
-  const quickDetailOptions = getPetSpeciesQuickDetailOptions(representativeSpecies);
+  const representativeOption = getRepresentativeSpeciesOption(
+    representativeSpecies,
+  );
+  const quickDetailOptions = getPetSpeciesQuickDetailOptions(
+    representativeSpecies,
+  );
 
   return (
     <>
       <View style={styles.avatarSection}>
-        <PhotoAddCard
-          imageUri={imageUri}
-          onPress={onPickImage}
-          containerStyle={styles.avatarCircle}
-          imageStyle={styles.avatarImage}
-          placeholderStyle={styles.avatarPlaceholder}
-          placeholderIconColor={selectedTheme.primary}
-          placeholderIconSize={18}
-          editButtonStyle={styles.avatarEditButton}
-          editIconSize={12}
-          editIconColor={selectedTheme.onPrimary}
+        <View
+          style={[
+            styles.avatarHalo,
+            {
+              backgroundColor: selectedTheme.glow,
+              shadowColor: selectedTheme.primary,
+            },
+          ]}
+        >
+          <PhotoAddCard
+            imageUri={imageUri}
+            onPress={onPickImage}
+            containerStyle={[
+              styles.avatarCircle,
+              { borderColor: selectedTheme.primary },
+            ]}
+            imageStyle={styles.avatarImage}
+            placeholderStyle={styles.avatarPlaceholder}
+            placeholderIconColor={selectedTheme.primary}
+            placeholderIconSize={22}
+            placeholderText="사진 추가"
+            placeholderTextStyle={[
+              styles.avatarPlaceholderText,
+              { color: selectedTheme.deep },
+            ]}
+            editButtonStyle={[
+              styles.avatarEditButton,
+              { backgroundColor: selectedTheme.primary },
+            ]}
+            editIconName="camera"
+            editIconSize={14}
+            editIconColor={selectedTheme.onPrimary}
+            showEditButton={false}
+          />
+        </View>
+        <AppText preset="unifiedTitle" style={styles.heroCopy}>
+          우리 아이의 첫 프로필을 만들어볼까요?
+        </AppText>
+        <AppText preset="unifiedBody" style={styles.heroHelper}>
+          사진과 기본 정보를 차근차근 알려주세요.
+        </AppText>
+      </View>
+
+      <View style={styles.sectionGlass}>
+        <PetThemePicker
+          embedded
+          selectedColor={selectedThemeColor}
+          title="프로필 컬러"
+          helperText="홈과 위젯의 강조색으로 사용돼요."
+          onSelectColor={onSelectThemeColor}
         />
       </View>
 
-      <AppText preset="unifiedTitle" style={styles.heroCopy}>우리 아이 사진을 등록해주세요</AppText>
+      <View style={styles.sectionGlass}>
+        <View style={styles.sectionHeader}>
+          <AppText preset="unifiedTitle" style={styles.sectionTitle}>
+            프로필 상태
+          </AppText>
+          <AppText preset="unifiedBody" style={styles.sectionHelper}>
+            우리 아이와 함께하는 방식을 선택해 주세요.
+          </AppText>
+        </View>
+        <View style={styles.memorialOptionRow}>
+          {PET_MEMORIAL_OPTIONS.map(option => {
+            const active = option.key === memorialChoice;
+            const copy = PROFILE_STATUS_COPY[option.key];
 
-      <PetThemePicker
-        selectedColor={selectedThemeColor}
-        helperText="기본값은 자동으로 잡아두고, 원하는 색으로 바꿀 수 있어요."
-        onSelectColor={onSelectThemeColor}
-      />
-
-      <PetMemorialFields
-        choice={memorialChoice}
-        deathDate={deathDate}
-        onChangeChoice={onChangeMemorialChoice}
-        onChangeDeathDate={onDeathDateChange}
-        onBlurDeathDate={onDeathDateBlur}
-        onOpenDeathDateModal={onOpenDeathDateModal}
-        buildHint={buildDateHint}
-      />
-
-      <View style={styles.fieldBlock}>
-        <AppText preset="unifiedLabel" style={styles.label}>반려동물 이름</AppText>
-        <AppTextInput
-          value={name}
-          onChangeText={onNameChange}
-          placeholder="이름을 입력해 주세요"
-          placeholderTextColor="#A0A7B4"
-          style={styles.input}
-          returnKeyType="done"
-        />
-      </View>
-
-      <View style={styles.fieldBlock}>
-        <AppText preset="unifiedLabel" style={styles.label}>생일</AppText>
-        <TouchableOpacity
-          activeOpacity={0.88}
-          style={styles.iconInputWrap}
-          onPress={onOpenBirthModal}
-        >
-          <AppTextInput
-            value={birthDate}
-            onChangeText={onBirthDateChange}
-            onBlur={onBirthDateBlur}
-            placeholder="2011-10-28"
-            placeholderTextColor="#A0A7B4"
-            style={styles.iconInput}
-            editable={false}
-            pointerEvents="none"
-          />
-          <Feather color="#98A1B2" name="calendar" size={16} />
-        </TouchableOpacity>
-        <AppText preset="unifiedBody" style={styles.inputHint}>{buildDateHint(birthDate)}</AppText>
-      </View>
-
-      <View style={styles.fieldBlock}>
-        <AppText preset="unifiedLabel" style={styles.label}>입양일</AppText>
-        <TouchableOpacity
-          activeOpacity={0.88}
-          style={styles.iconInputWrap}
-          onPress={onOpenAdoptionModal}
-        >
-          <AppTextInput
-            value={adoptionDate}
-            onChangeText={onAdoptionDateChange}
-            onBlur={onAdoptionDateBlur}
-            placeholder="입양일을 입력해 주세요"
-            placeholderTextColor="#A0A7B4"
-            style={styles.iconInput}
-            editable={false}
-            pointerEvents="none"
-          />
-          <Feather color="#98A1B2" name="calendar" size={16} />
-        </TouchableOpacity>
-        <AppText preset="unifiedBody" style={styles.inputHint}>{buildDateHint(adoptionDate)}</AppText>
-      </View>
-
-      <View style={styles.fieldBlock}>
-        <AppText preset="unifiedLabel" style={styles.label}>대표 종</AppText>
-        <View style={styles.segmentWrap}>
-          {PET_REPRESENTATIVE_SPECIES_OPTIONS.map(option => {
-            const active = representativeSpecies === option.key;
             return (
               <TouchableOpacity
                 key={option.key}
-                activeOpacity={0.88}
+                activeOpacity={0.9}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: active }}
                 style={[
-                  styles.segmentChip,
-                  styles.segmentChipWide,
-                  active ? styles.segmentChipActive : null,
+                  styles.memorialOption,
+                  active
+                    ? {
+                        backgroundColor: selectedTheme.tint,
+                        borderColor: selectedTheme.primary,
+                      }
+                    : null,
                 ]}
-                onPress={() => onRepresentativeSpeciesChange(option.key)}
+                onPress={() => onChangeMemorialChoice(option.key)}
               >
-                <AppText preset="unifiedLabel"
+                <Feather
+                  name="heart"
+                  size={18}
+                  color={active ? selectedTheme.primary : '#8B7465'}
+                />
+                <AppText
+                  preset="unifiedLabel"
                   style={[
-                    styles.segmentChipText,
-                    active ? styles.segmentChipTextActive : null,
+                    styles.memorialTitle,
+                    active ? { color: selectedTheme.deep } : null,
                   ]}
                 >
-                  {option.label}
+                  {copy.title}
+                </AppText>
+                <AppText
+                  preset="unifiedMeta"
+                  style={styles.memorialDescription}
+                >
+                  {copy.description}
                 </AppText>
               </TouchableOpacity>
             );
           })}
         </View>
-        <AppText preset="unifiedBody" style={styles.inputHint}>{representativeOption.description}</AppText>
+
+        {memorialChoice === 'memorial' ? (
+          <View style={styles.fieldBlock}>
+            <AppText preset="unifiedLabel" style={styles.label}>
+              무지개다리를 건넌 날짜
+            </AppText>
+            <TouchableOpacity
+              activeOpacity={0.88}
+              style={styles.iconInputWrap}
+              onPress={onOpenDeathDateModal}
+            >
+              <AppTextInput
+                editable={false}
+                pointerEvents="none"
+                value={deathDate}
+                onChangeText={onDeathDateChange}
+                onBlur={onDeathDateBlur}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor="#A99586"
+                style={styles.iconInput}
+              />
+              <Feather color="#8B7465" name="calendar" size={16} />
+            </TouchableOpacity>
+            <AppText preset="unifiedBody" style={styles.inputHint}>
+              {buildDateHint(deathDate)}
+            </AppText>
+          </View>
+        ) : null}
       </View>
 
-      <View style={styles.fieldBlock}>
-        <AppText preset="unifiedLabel" style={styles.label}>
-          {representativeOption.detailLabel}
-        </AppText>
-        {quickDetailOptions.length > 0 ? (
+      <View style={styles.sectionGlass}>
+        <View style={styles.sectionHeader}>
+          <AppText preset="unifiedTitle" style={styles.sectionTitle}>
+            기본 정보
+          </AppText>
+          <AppText preset="unifiedBody" style={styles.sectionHelper}>
+            우리 아이의 기본 정보를 알려주세요.
+          </AppText>
+        </View>
+
+        <View style={styles.fieldBlock}>
+          <AppText preset="unifiedLabel" style={styles.label}>
+            반려동물 이름
+          </AppText>
+          <AppTextInput
+            value={name}
+            onChangeText={onNameChange}
+            placeholder="이름을 입력해 주세요"
+            placeholderTextColor="#A99586"
+            style={styles.input}
+            returnKeyType="done"
+          />
+        </View>
+
+        <View style={styles.row}>
+          <View style={styles.col}>
+            <AppText preset="unifiedLabel" style={styles.label}>
+              생일
+            </AppText>
+            <TouchableOpacity
+              activeOpacity={0.88}
+              style={styles.iconInputWrap}
+              onPress={onOpenBirthModal}
+            >
+              <AppTextInput
+                value={birthDate}
+                onChangeText={onBirthDateChange}
+                onBlur={onBirthDateBlur}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor="#A99586"
+                style={styles.iconInput}
+                editable={false}
+                pointerEvents="none"
+              />
+              <Feather color="#8B7465" name="calendar" size={15} />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.col}>
+            <AppText preset="unifiedLabel" style={styles.label}>
+              입양일
+            </AppText>
+            <TouchableOpacity
+              activeOpacity={0.88}
+              style={styles.iconInputWrap}
+              onPress={onOpenAdoptionModal}
+            >
+              <AppTextInput
+                value={adoptionDate}
+                onChangeText={onAdoptionDateChange}
+                onBlur={onAdoptionDateBlur}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor="#A99586"
+                style={styles.iconInput}
+                editable={false}
+                pointerEvents="none"
+              />
+              <Feather color="#8B7465" name="calendar" size={15} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.fieldBlock}>
+          <AppText preset="unifiedLabel" style={styles.label}>
+            대표 동물
+          </AppText>
           <View style={styles.segmentWrap}>
-            {quickDetailOptions.map(option => {
-              const active = speciesDetailKey.trim() === option.label;
+            {PET_REPRESENTATIVE_SPECIES_OPTIONS.map(option => {
+              const active = representativeSpecies === option.key;
               return (
                 <TouchableOpacity
-                  key={option.detailKey}
+                  key={option.key}
                   activeOpacity={0.88}
                   style={[
-                    styles.quickChip,
-                    active ? styles.quickChipActive : null,
+                    styles.segmentChip,
+                    styles.segmentChipWide,
+                    active
+                      ? {
+                          backgroundColor: selectedTheme.tint,
+                          borderColor: selectedTheme.primary,
+                        }
+                      : null,
                   ]}
-                  onPress={() => onSpeciesDetailKeyChange(option.label)}
+                  onPress={() => onRepresentativeSpeciesChange(option.key)}
                 >
-                  <AppText preset="unifiedLabel"
+                  <AppText
+                    preset="unifiedLabel"
                     style={[
-                      styles.quickChipText,
-                      active ? styles.quickChipTextActive : null,
+                      styles.segmentChipText,
+                      active ? { color: selectedTheme.deep } : null,
                     ]}
                   >
                     {option.label}
@@ -442,101 +587,137 @@ const StepOneForm = memo(function StepOneForm({
               );
             })}
           </View>
-        ) : null}
-        <View style={styles.iconInputWrap}>
-          <AppTextInput
-            ref={speciesDetailInputRef}
-            value={speciesDetailKey}
-            onChangeText={onSpeciesDetailKeyChange}
-            onFocus={onSpeciesDetailFocus}
-            placeholder={representativeOption.placeholders.detail}
-            placeholderTextColor="#A0A7B4"
-            style={styles.iconInput}
-            autoCapitalize="none"
-            returnKeyType="done"
-          />
-          <Feather color="#98A1B2" name="search" size={16} />
+          <AppText preset="unifiedBody" style={styles.inputHint}>
+            {representativeOption.description}
+          </AppText>
         </View>
-      </View>
 
-      <View style={styles.row}>
-        <View style={styles.col}>
-          <AppText preset="unifiedLabel" style={styles.label}>성별</AppText>
-          <View style={styles.segmentRow}>
-            <TouchableOpacity
-              activeOpacity={0.88}
-              style={[
-                styles.segmentChip,
-                gender === 'female' ? styles.segmentChipActive : null,
-              ]}
-              onPress={() => onGenderChange('female')}
-            >
-              <AppText preset="unifiedLabel"
-                style={[
-                  styles.segmentChipText,
-                  gender === 'female' ? styles.segmentChipTextActive : null,
-                ]}
-              >
-                여아
-              </AppText>
-            </TouchableOpacity>
-            <TouchableOpacity
-              activeOpacity={0.88}
-              style={[
-                styles.segmentChip,
-                gender === 'male' ? styles.segmentChipActive : null,
-              ]}
-              onPress={() => onGenderChange('male')}
-            >
-              <AppText preset="unifiedLabel"
-                style={[
-                  styles.segmentChipText,
-                  gender === 'male' ? styles.segmentChipTextActive : null,
-                ]}
-              >
-                남아
-              </AppText>
-            </TouchableOpacity>
+        <View style={styles.fieldBlock}>
+          <AppText preset="unifiedLabel" style={styles.label}>
+            {representativeOption.detailLabel}
+          </AppText>
+          {quickDetailOptions.length > 0 ? (
+            <View style={styles.segmentWrap}>
+              {quickDetailOptions.map(option => {
+                const active = speciesDetailKey.trim() === option.label;
+                return (
+                  <TouchableOpacity
+                    key={option.detailKey}
+                    activeOpacity={0.88}
+                    style={[
+                      styles.quickChip,
+                      active
+                        ? {
+                            backgroundColor: selectedTheme.tint,
+                            borderColor: selectedTheme.primary,
+                          }
+                        : null,
+                    ]}
+                    onPress={() => onSpeciesDetailKeyChange(option.label)}
+                  >
+                    <AppText
+                      preset="unifiedLabel"
+                      style={[
+                        styles.quickChipText,
+                        active ? { color: selectedTheme.deep } : null,
+                      ]}
+                    >
+                      {option.label}
+                    </AppText>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          ) : null}
+          <View style={styles.iconInputWrap}>
+            <AppTextInput
+              ref={speciesDetailInputRef}
+              value={speciesDetailKey}
+              onChangeText={onSpeciesDetailKeyChange}
+              onFocus={onSpeciesDetailFocus}
+              placeholder={representativeOption.placeholders.detail}
+              placeholderTextColor="#A99586"
+              style={styles.iconInput}
+              autoCapitalize="none"
+              returnKeyType="done"
+            />
+            <Feather color="#8B7465" name="search" size={16} />
           </View>
         </View>
 
-        <View style={styles.col}>
-          <AppText preset="unifiedLabel" style={styles.label}>중성화 여부</AppText>
-          <View style={styles.segmentRow}>
-            <TouchableOpacity
-              activeOpacity={0.88}
-              style={[
-                styles.segmentChip,
-                neutered === true ? styles.segmentChipActive : null,
-              ]}
-              onPress={() => onNeuteredChange(true)}
-            >
-              <AppText preset="unifiedLabel"
-                style={[
-                  styles.segmentChipText,
-                  neutered === true ? styles.segmentChipTextActive : null,
-                ]}
-              >
-                예
-              </AppText>
-            </TouchableOpacity>
-            <TouchableOpacity
-              activeOpacity={0.88}
-              style={[
-                styles.segmentChip,
-                neutered === false ? styles.segmentChipActive : null,
-              ]}
-              onPress={() => onNeuteredChange(false)}
-            >
-              <AppText preset="unifiedLabel"
-                style={[
-                  styles.segmentChipText,
-                  neutered === false ? styles.segmentChipTextActive : null,
-                ]}
-              >
-                아니오
-              </AppText>
-            </TouchableOpacity>
+        <View style={styles.row}>
+          <View style={styles.col}>
+            <AppText preset="unifiedLabel" style={styles.label}>
+              성별
+            </AppText>
+            <View style={styles.segmentRow}>
+              {(['female', 'male'] as const).map(value => {
+                const active = gender === value;
+                return (
+                  <TouchableOpacity
+                    key={value}
+                    activeOpacity={0.88}
+                    style={[
+                      styles.segmentChip,
+                      active
+                        ? {
+                            backgroundColor: selectedTheme.tint,
+                            borderColor: selectedTheme.primary,
+                          }
+                        : null,
+                    ]}
+                    onPress={() => onGenderChange(value)}
+                  >
+                    <AppText
+                      preset="unifiedLabel"
+                      style={[
+                        styles.segmentChipText,
+                        active ? { color: selectedTheme.deep } : null,
+                      ]}
+                    >
+                      {value === 'female' ? '여아' : '남아'}
+                    </AppText>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          <View style={styles.col}>
+            <AppText preset="unifiedLabel" style={styles.label}>
+              중성화 여부
+            </AppText>
+            <View style={styles.segmentRow}>
+              {([true, false] as const).map(value => {
+                const active = neutered === value;
+                return (
+                  <TouchableOpacity
+                    key={String(value)}
+                    activeOpacity={0.88}
+                    style={[
+                      styles.segmentChip,
+                      active
+                        ? {
+                            backgroundColor: selectedTheme.tint,
+                            borderColor: selectedTheme.primary,
+                          }
+                        : null,
+                    ]}
+                    onPress={() => onNeuteredChange(value)}
+                  >
+                    <AppText
+                      preset="unifiedLabel"
+                      style={[
+                        styles.segmentChipText,
+                        active ? { color: selectedTheme.deep } : null,
+                      ]}
+                    >
+                      {value ? '예' : '아니오'}
+                    </AppText>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
         </View>
       </View>
@@ -570,7 +751,7 @@ type StepTwoFormProps = {
   onRemoveTag: (value: string) => void;
 };
 
-const StepTwoForm = memo(function StepTwoForm({
+const StepTwoForm = memo(function StepTwoFormComponent({
   weightKg,
   onWeightChange,
   onFieldFocus,
@@ -597,66 +778,100 @@ const StepTwoForm = memo(function StepTwoForm({
 }: StepTwoFormProps) {
   return (
     <>
-      <View style={styles.fieldBlock}>
-        <AppText preset="unifiedLabel" style={styles.label}>몸무게</AppText>
-        <View style={styles.iconInputWrap}>
-          <AppTextInput
-            value={weightKg}
-            onChangeText={onWeightChange}
-            onFocus={onFieldFocus}
-            placeholder="0.0"
-            placeholderTextColor="#A0A7B4"
-            style={styles.iconInput}
-            keyboardType="decimal-pad"
-          />
-          <AppText preset="unifiedLabel" style={styles.trailingUnit}>kg</AppText>
-        </View>
+      <View style={styles.continuationIntro}>
+        <AppText preset="unifiedTitle" style={styles.continuationTitle}>
+          마지막으로, 우리 아이의 취향을 알려주세요
+        </AppText>
+        <AppText preset="unifiedBody" style={styles.continuationBody}>
+          입력한 정보는 맞춤 기록과 추억을 정리하는 데 사용돼요.
+        </AppText>
       </View>
 
-      <MultiInputSection
-        label="좋아하는 것 (최소 1개)"
-        list={likes}
-        draft={draftLike}
-        onDraftChange={onDraftLikeChange}
-        onFocusInput={onFieldFocus}
-        onAdd={onAddLike}
-        onRemove={onRemoveLike}
-        placeholder="좋아하는 간식, 장난감 등"
-      />
+      <View style={styles.sectionGlass}>
+        <View style={styles.sectionHeader}>
+          <AppText preset="unifiedTitle" style={styles.sectionTitle}>
+            상세 정보
+          </AppText>
+          <AppText preset="unifiedBody" style={styles.sectionHelper}>
+            체중과 평소 취향을 간단히 기록해 주세요.
+          </AppText>
+        </View>
 
-      <MultiInputSection
-        label="싫어하는 것 (최소 1개)"
-        list={dislikes}
-        draft={draftDislike}
-        onDraftChange={onDraftDislikeChange}
-        onFocusInput={onFieldFocus}
-        onAdd={onAddDislike}
-        onRemove={onRemoveDislike}
-        placeholder="싫어하는 소리, 행동 등"
-      />
+        <View style={styles.fieldBlock}>
+          <AppText preset="unifiedLabel" style={styles.label}>
+            몸무게
+          </AppText>
+          <View style={styles.iconInputWrap}>
+            <AppTextInput
+              value={weightKg}
+              onChangeText={onWeightChange}
+              onFocus={onFieldFocus}
+              placeholder="0.0"
+              placeholderTextColor="#A99586"
+              style={styles.iconInput}
+              keyboardType="decimal-pad"
+            />
+            <AppText preset="unifiedLabel" style={styles.trailingUnit}>
+              kg
+            </AppText>
+          </View>
+        </View>
 
-      <MultiInputSection
-        label="취미 (최소 1개)"
-        list={hobbies}
-        draft={draftHobby}
-        onDraftChange={onDraftHobbyChange}
-        onFocusInput={onFieldFocus}
-        onAdd={onAddHobby}
-        onRemove={onRemoveHobby}
-        placeholder="산책하기, 낮잠자기 등"
-      />
+        <MultiInputSection
+          label="좋아하는 것 (최소 1개)"
+          list={likes}
+          draft={draftLike}
+          onDraftChange={onDraftLikeChange}
+          onFocusInput={onFieldFocus}
+          onAdd={onAddLike}
+          onRemove={onRemoveLike}
+          placeholder="좋아하는 간식, 장난감 등"
+        />
 
-      <MultiInputSection
-        label="태그 (최소 1개)"
-        list={tags}
-        draft={draftTag}
-        onDraftChange={onDraftTagChange}
-        onFocusInput={onFieldFocus}
-        onAdd={onAddTag}
-        onRemove={onRemoveTag}
-        placeholder="우리 아이를 표현해 주세요"
-        hint="태그는 저장 시 #이 자동으로 붙습니다."
-      />
+        <MultiInputSection
+          label="싫어하는 것 (최소 1개)"
+          list={dislikes}
+          draft={draftDislike}
+          onDraftChange={onDraftDislikeChange}
+          onFocusInput={onFieldFocus}
+          onAdd={onAddDislike}
+          onRemove={onRemoveDislike}
+          placeholder="싫어하는 소리, 행동 등"
+        />
+
+        <MultiInputSection
+          label="취미 (최소 1개)"
+          list={hobbies}
+          draft={draftHobby}
+          onDraftChange={onDraftHobbyChange}
+          onFocusInput={onFieldFocus}
+          onAdd={onAddHobby}
+          onRemove={onRemoveHobby}
+          placeholder="산책하기, 낮잠자기 등"
+        />
+      </View>
+
+      <View style={styles.sectionGlass}>
+        <View style={styles.sectionHeader}>
+          <AppText preset="unifiedTitle" style={styles.sectionTitle}>
+            태그
+          </AppText>
+          <AppText preset="unifiedBody" style={styles.sectionHelper}>
+            우리 아이를 잘 보여주는 키워드를 남겨주세요.
+          </AppText>
+        </View>
+        <MultiInputSection
+          label="태그 (최소 1개)"
+          list={tags}
+          draft={draftTag}
+          onDraftChange={onDraftTagChange}
+          onFocusInput={onFieldFocus}
+          onAdd={onAddTag}
+          onRemove={onRemoveTag}
+          placeholder="우리 아이를 표현해 주세요"
+          hint="태그는 저장 시 #이 자동으로 붙습니다."
+        />
+      </View>
     </>
   );
 });
@@ -666,6 +881,7 @@ export default function PetCreateScreen() {
   const route = useRoute<PetCreateRoute>();
   const routeFrom = route.params?.from ?? null;
   const insets = useSafeAreaInsets();
+  const { progress: keyboardProgress } = useReanimatedKeyboardAnimation();
   const setPets = usePetStore(s => s.setPets);
   const upsertPet = usePetStore(s => s.upsertPet);
   const updatePetAvatar = usePetStore(s => s.updatePetAvatar);
@@ -706,9 +922,17 @@ export default function PetCreateScreen() {
     'birth' | 'adoption' | 'death' | null
   >(null);
   const [draftHydrated, setDraftHydrated] = useState(false);
+  const [actionZoneHeight, setActionZoneHeight] = useState(0);
   const draftLoadOnceRef = useRef(false);
   const keyboardScrollRef = useRef<KeyboardAwareScrollViewRef | null>(null);
-  const speciesDetailInputRef = useRef<React.ComponentRef<typeof TextInput> | null>(null);
+  const scrollMetricsRef = useRef({
+    contentHeight: 0,
+    offsetY: 0,
+    viewportHeight: 0,
+  });
+  const speciesDetailInputRef = useRef<React.ComponentRef<
+    typeof TextInput
+  > | null>(null);
 
   const trimmedName = useMemo(() => name.trim(), [name]);
   const canGoNext = useMemo(() => {
@@ -840,7 +1064,10 @@ export default function PetCreateScreen() {
     (date: Date) => {
       try {
         const normalized = normalizeYmdOrNull(
-          `${date.getFullYear()}-${`${date.getMonth() + 1}`.padStart(2, '0')}-${`${date.getDate()}`.padStart(2, '0')}`,
+          `${date.getFullYear()}-${`${date.getMonth() + 1}`.padStart(
+            2,
+            '0',
+          )}-${`${date.getDate()}`.padStart(2, '0')}`,
         );
         if (dateModalTarget === 'birth') {
           setBirthDate(normalized ?? '');
@@ -858,10 +1085,6 @@ export default function PetCreateScreen() {
     },
     [dateModalTarget],
   );
-  const compactTopInset = useMemo(
-    () => Math.max(insets.top - 24, 0),
-    [insets.top],
-  );
   const selectedThemeColor = useMemo(
     () =>
       themeColor ??
@@ -874,7 +1097,76 @@ export default function PetCreateScreen() {
     () => buildPetThemePalette(selectedThemeColor),
     [selectedThemeColor],
   );
-  const scrollBottomInset = insets.bottom + 32;
+  const actionLayout = useMemo(
+    () =>
+      buildRegistrationActionLayout({
+        safeAreaBottom: insets.bottom,
+        actionZonePadding: spacing.md,
+        measuredActionZoneHeight: actionZoneHeight,
+      }),
+    [actionZoneHeight, insets.bottom],
+  );
+  const stickyActionInsetStyle = useAnimatedStyle(
+    () => ({
+      paddingBottom: interpolate(
+        keyboardProgress.value,
+        [0, 1],
+        [actionLayout.closedBottom, actionLayout.openBottom],
+      ),
+    }),
+    [actionLayout.closedBottom, actionLayout.openBottom],
+  );
+
+  const clampScrollToContentBounds = useCallback(() => {
+    const nextOffsetY = clampRegistrationScrollOffset(scrollMetricsRef.current);
+
+    if (nextOffsetY === scrollMetricsRef.current.offsetY) return;
+
+    scrollMetricsRef.current.offsetY = nextOffsetY;
+    keyboardScrollRef.current?.scrollTo({
+      x: 0,
+      y: nextOffsetY,
+      animated: false,
+    });
+  }, []);
+
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      scrollMetricsRef.current.offsetY = Math.max(
+        0,
+        event.nativeEvent.contentOffset.y,
+      );
+    },
+    [],
+  );
+
+  const handleScrollLayout = useCallback((event: LayoutChangeEvent) => {
+    scrollMetricsRef.current.viewportHeight = event.nativeEvent.layout.height;
+  }, []);
+
+  const handleScrollContentSizeChange = useCallback(
+    (_width: number, height: number) => {
+      const previousHeight = scrollMetricsRef.current.contentHeight;
+      scrollMetricsRef.current.contentHeight = height;
+
+      if (height < previousHeight) {
+        requestAnimationFrame(clampScrollToContentBounds);
+      }
+    },
+    [clampScrollToContentBounds],
+  );
+
+  const handleScrollEnd = useCallback(() => {
+    requestAnimationFrame(clampScrollToContentBounds);
+  }, [clampScrollToContentBounds]);
+
+  useEffect(() => {
+    const subscription = Keyboard.addListener('keyboardDidHide', () => {
+      requestAnimationFrame(clampScrollToContentBounds);
+    });
+
+    return () => subscription.remove();
+  }, [clampScrollToContentBounds]);
 
   useEffect(() => {
     if (imageUri) return;
@@ -1101,7 +1393,11 @@ export default function PetCreateScreen() {
         setDeathDate(normalizedDeath ?? '');
       }
 
+      Keyboard.dismiss();
       setStep(2);
+      requestAnimationFrame(() => {
+        keyboardScrollRef.current?.scrollTo({ x: 0, y: 0, animated: false });
+      });
     } catch (error) {
       Alert.alert('기본 정보 확인', getErrorMessage(error));
     }
@@ -1212,7 +1508,9 @@ export default function PetCreateScreen() {
 
       const refreshedPets = await fetchMyPets(userId);
       const currentPets = usePetStore.getState().pets;
-      const includesCreatedPet = refreshedPets.some(p => p.id === createdPet.id);
+      const includesCreatedPet = refreshedPets.some(
+        p => p.id === createdPet.id,
+      );
 
       if (refreshedPets.length === 0 && currentPets.length > 0) {
         showToast({
@@ -1221,7 +1519,10 @@ export default function PetCreateScreen() {
           message: '새로 등록한 반려동물 정보를 먼저 보여드리고 있어요.',
           durationMs: 2200,
         });
-      } else if (includesCreatedPet || refreshedPets.length >= currentPets.length) {
+      } else if (
+        includesCreatedPet ||
+        refreshedPets.length >= currentPets.length
+      ) {
         setPets(refreshedPets, { userId, preferredPetId: createdPet.id });
       }
 
@@ -1258,7 +1559,11 @@ export default function PetCreateScreen() {
     weightKg,
   ]);
   const goPrevStep = useCallback(() => {
+    Keyboard.dismiss();
     setStep(1);
+    requestAnimationFrame(() => {
+      keyboardScrollRef.current?.scrollTo({ x: 0, y: 0, animated: false });
+    });
   }, []);
 
   const handleBirthDateChange = useCallback(
@@ -1315,6 +1620,12 @@ export default function PetCreateScreen() {
     requestAnimationFrame(() => {
       keyboardScrollRef.current?.assureFocusedInputVisible();
     });
+  }, []);
+  const handleActionZoneLayout = useCallback((event: LayoutChangeEvent) => {
+    const nextHeight = Math.ceil(event.nativeEvent.layout.height) + spacing.md;
+    setActionZoneHeight(currentHeight =>
+      currentHeight === nextHeight ? currentHeight : nextHeight,
+    );
   }, []);
 
   const addLike = useCallback(() => addItem('likes'), [addItem]);
@@ -1385,12 +1696,59 @@ export default function PetCreateScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
-      <View style={[styles.topChrome, { paddingTop: compactTopInset }]}>
+    <View
+      style={[
+        styles.screen,
+        {
+          backgroundColor:
+            AUTUMN_REGISTRATION_VISUAL.palette.pageBackgroundColor,
+        },
+      ]}
+    >
+      {step === 1 ? (
+        <Image
+          accessibilityIgnoresInvertColors
+          pointerEvents="none"
+          resizeMode="cover"
+          source={AUTUMN_REGISTRATION_VISUAL.backgroundSource}
+          style={styles.backgroundImage}
+        />
+      ) : (
+        <View pointerEvents="none" style={styles.continuationCanvas} />
+      )}
+      <View
+        pointerEvents="none"
+        style={[
+          styles.backgroundWarmth,
+          {
+            backgroundColor:
+              AUTUMN_REGISTRATION_VISUAL.palette.ambientOverlayColor,
+          },
+        ]}
+      />
+      {step === 1 ? (
+        <LinearGradient
+          pointerEvents="none"
+          colors={[
+            'rgba(255, 251, 244, 0.52)',
+            'rgba(255, 249, 239, 0.34)',
+            'rgba(255, 247, 236, 0.14)',
+            'rgba(255, 247, 236, 0)',
+          ]}
+          locations={[0, 0.38, 0.76, 1]}
+          style={styles.topReadabilityVeil}
+        />
+      ) : null}
+
+      <View
+        style={[styles.topChrome, { paddingTop: Math.max(insets.top + 4, 12) }]}
+      >
         <View style={styles.header}>
           <View style={styles.headerActionPlaceholder} />
 
-          <AppText preset="unifiedTitle" style={styles.headerTitle}>프로필 등록 ({step}/2)</AppText>
+          <AppText preset="unifiedTitle" style={styles.headerTitle}>
+            프로필 등록 ({step}/2)
+          </AppText>
 
           <View style={styles.headerActionPlaceholder} />
         </View>
@@ -1400,7 +1758,9 @@ export default function PetCreateScreen() {
             <AppText preset="unifiedLabel" style={styles.progressLabel}>
               {step === 1 ? '기본 정보 입력' : '상세 정보 입력'}
             </AppText>
-            <AppText preset="unifiedLabel" style={styles.progressStepText}>{step}/2</AppText>
+            <AppText preset="unifiedLabel" style={styles.progressStepText}>
+              {step}/2
+            </AppText>
           </View>
           <View style={styles.progressMain}>
             <View style={styles.progressTrack}>
@@ -1419,171 +1779,177 @@ export default function PetCreateScreen() {
 
       <KeyboardAwareScrollView
         ref={keyboardScrollRef}
+        bottomOffset={actionLayout.focusedInputBottomOffset}
+        disableScrollOnKeyboardHide={false}
+        mode="layout"
         style={styles.scroll}
-        contentContainerStyle={[
-          styles.scrollContent,
-          {
-            paddingBottom: scrollBottomInset,
-          },
-        ]}
+        contentContainerStyle={styles.scrollContent}
+        onContentSizeChange={handleScrollContentSizeChange}
+        onLayout={handleScrollLayout}
+        onMomentumScrollEnd={handleScrollEnd}
+        onScroll={handleScroll}
+        onScrollEndDrag={handleScrollEnd}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="none"
+        keyboardDismissMode="on-drag"
       >
-          <View style={styles.card}>
-            {step === 1 ? (
-              <StepOneForm
-                imageUri={imageUri}
-                onPickImage={pickImage}
-                selectedThemeColor={selectedThemeColor}
-                onSelectThemeColor={setThemeColor}
-                memorialChoice={memorialChoice}
-                deathDate={deathDate}
-                onChangeMemorialChoice={setMemorialChoice}
-                onDeathDateChange={handleDeathDateChange}
-                onDeathDateBlur={handleDeathDateBlur}
-                onOpenDeathDateModal={openDeathDateModal}
-                name={name}
-                onNameChange={setName}
-                birthDate={birthDate}
-                onBirthDateChange={handleBirthDateChange}
-                onBirthDateBlur={handleBirthDateBlur}
-                onOpenBirthModal={openBirthDateModal}
-                adoptionDate={adoptionDate}
-                onAdoptionDateChange={handleAdoptionDateChange}
-                onAdoptionDateBlur={handleAdoptionDateBlur}
-                onOpenAdoptionModal={openAdoptionDateModal}
-                representativeSpecies={representativeSpecies}
-                onRepresentativeSpeciesChange={handleRepresentativeSpeciesChange}
-                speciesDetailKey={speciesDetailKey}
-                onSpeciesDetailKeyChange={setSpeciesDetailKey}
-                onSpeciesDetailFocus={handleFocusVisibleInput}
-                speciesDetailInputRef={speciesDetailInputRef}
-                gender={gender}
-                onGenderChange={setGender}
-                neutered={neutered}
-                onNeuteredChange={setNeutered}
-              />
-            ) : (
-              <StepTwoForm
-                weightKg={weightKg}
-                onWeightChange={setWeightKg}
-                onFieldFocus={handleFocusVisibleInput}
-                likes={likes}
-                draftLike={draftLike}
-                onDraftLikeChange={setDraftLike}
-                onAddLike={addLike}
-                onRemoveLike={removeLike}
-                dislikes={dislikes}
-                draftDislike={draftDislike}
-                onDraftDislikeChange={setDraftDislike}
-                onAddDislike={addDislike}
-                onRemoveDislike={removeDislike}
-                hobbies={hobbies}
-                draftHobby={draftHobby}
-                onDraftHobbyChange={setDraftHobby}
-                onAddHobby={addHobby}
-                onRemoveHobby={removeHobby}
-                tags={tags}
-                draftTag={draftTag}
-                onDraftTagChange={setDraftTag}
-                onAddTag={addTag}
-                onRemoveTag={removeTag}
-              />
-            )}
-          </View>
-
-          <View
-            style={[
-              styles.footerActions,
-              { marginBottom: 0 },
-            ]}
-          >
-            {step === 1 ? (
-              <>
-                <TouchableOpacity
-                  activeOpacity={0.9}
-                  disabled={!canGoNext}
-                  style={[
-                    styles.primaryButton,
-                    {
-                      backgroundColor: selectedTheme.primary,
-                      shadowColor: selectedTheme.primary,
-                    },
-                    !canGoNext ? styles.buttonDisabled : null,
-                  ]}
-                  onPress={goNext}
-                >
-                  <AppText preset="unifiedLabel"
-                    style={[
-                      styles.primaryButtonText,
-                      { color: selectedTheme.onPrimary },
-                    ]}
-                  >
-                    다음으로
-                  </AppText>
-                </TouchableOpacity>
-
-                {showStepOneExitButton ? (
-                  <TouchableOpacity
-                    activeOpacity={0.88}
-                    style={styles.secondaryButton}
-                    onPress={onPressRequestExit}
-                  >
-                    <AppText preset="unifiedLabel" style={styles.secondaryButtonText}>돌아가기</AppText>
-                  </TouchableOpacity>
-                ) : null}
-              </>
-            ) : (
-              <>
-                <TouchableOpacity
-                  activeOpacity={0.88}
-                  style={styles.secondaryButton}
-                  onPress={goPrevStep}
-                >
-                  <AppText preset="unifiedLabel" style={styles.secondaryButtonText}>이전 단계로</AppText>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  activeOpacity={0.9}
-                  disabled={!canSubmit}
-                  accessibilityLabel={saving ? '반려동물 등록 중' : '반려동물 등록 완료'}
-                  accessibilityHint={
-                    saving
-                      ? '반려동물 등록을 완료할 때까지 잠시 기다려 주세요.'
-                      : '두 번 탭하면 반려동물 등록을 완료합니다.'
-                  }
-                  style={[
-                    styles.primaryButton,
-                    {
-                      backgroundColor: selectedTheme.primary,
-                      shadowColor: selectedTheme.primary,
-                    },
-                    !canSubmit ? styles.buttonDisabled : null,
-                  ]}
-                  onPress={onSubmit}
-                >
-                  {saving ? (
-                    <WaveText
-                      text="소중한 가족을 맞이하는 중 💖"
-                      color={selectedTheme.onPrimary}
-                      textStyle={styles.primaryButtonText}
-                    />
-                  ) : (
-                    <AppText preset="unifiedLabel"
-                      style={[
-                        styles.primaryButtonText,
-                        { color: selectedTheme.onPrimary },
-                      ]}
-                    >
-                      등록 완료
-                    </AppText>
-                  )}
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
+        {step === 1 ? (
+          <StepOneForm
+            imageUri={imageUri}
+            onPickImage={pickImage}
+            selectedThemeColor={selectedThemeColor}
+            onSelectThemeColor={setThemeColor}
+            memorialChoice={memorialChoice}
+            deathDate={deathDate}
+            onChangeMemorialChoice={setMemorialChoice}
+            onDeathDateChange={handleDeathDateChange}
+            onDeathDateBlur={handleDeathDateBlur}
+            onOpenDeathDateModal={openDeathDateModal}
+            name={name}
+            onNameChange={setName}
+            birthDate={birthDate}
+            onBirthDateChange={handleBirthDateChange}
+            onBirthDateBlur={handleBirthDateBlur}
+            onOpenBirthModal={openBirthDateModal}
+            adoptionDate={adoptionDate}
+            onAdoptionDateChange={handleAdoptionDateChange}
+            onAdoptionDateBlur={handleAdoptionDateBlur}
+            onOpenAdoptionModal={openAdoptionDateModal}
+            representativeSpecies={representativeSpecies}
+            onRepresentativeSpeciesChange={handleRepresentativeSpeciesChange}
+            speciesDetailKey={speciesDetailKey}
+            onSpeciesDetailKeyChange={setSpeciesDetailKey}
+            onSpeciesDetailFocus={handleFocusVisibleInput}
+            speciesDetailInputRef={speciesDetailInputRef}
+            gender={gender}
+            onGenderChange={setGender}
+            neutered={neutered}
+            onNeuteredChange={setNeutered}
+          />
+        ) : (
+          <StepTwoForm
+            weightKg={weightKg}
+            onWeightChange={setWeightKg}
+            onFieldFocus={handleFocusVisibleInput}
+            likes={likes}
+            draftLike={draftLike}
+            onDraftLikeChange={setDraftLike}
+            onAddLike={addLike}
+            onRemoveLike={removeLike}
+            dislikes={dislikes}
+            draftDislike={draftDislike}
+            onDraftDislikeChange={setDraftDislike}
+            onAddDislike={addDislike}
+            onRemoveDislike={removeDislike}
+            hobbies={hobbies}
+            draftHobby={draftHobby}
+            onDraftHobbyChange={setDraftHobby}
+            onAddHobby={addHobby}
+            onRemoveHobby={removeHobby}
+            tags={tags}
+            draftTag={draftTag}
+            onDraftTagChange={setDraftTag}
+            onAddTag={addTag}
+            onRemoveTag={removeTag}
+          />
+        )}
       </KeyboardAwareScrollView>
+
+      <KeyboardStickyView>
+        <Animated.View
+          style={[
+            styles.actionZone,
+            {
+              backgroundColor:
+                AUTUMN_REGISTRATION_VISUAL.palette.stickySurfaceColor,
+              borderTopColor:
+                AUTUMN_REGISTRATION_VISUAL.palette.stickyBorderColor,
+            },
+            stickyActionInsetStyle,
+          ]}
+        >
+          <View style={styles.actionRow} onLayout={handleActionZoneLayout}>
+            {step === 1 && showStepOneExitButton ? (
+              <TouchableOpacity
+                activeOpacity={0.88}
+                style={styles.secondaryButton}
+                onPress={onPressRequestExit}
+              >
+                <AppText
+                  preset="unifiedLabel"
+                  style={styles.secondaryButtonText}
+                >
+                  돌아가기
+                </AppText>
+              </TouchableOpacity>
+            ) : null}
+
+            {step === 2 ? (
+              <TouchableOpacity
+                activeOpacity={0.88}
+                style={styles.secondaryButton}
+                onPress={goPrevStep}
+              >
+                <AppText
+                  preset="unifiedLabel"
+                  style={styles.secondaryButtonText}
+                >
+                  이전 단계로
+                </AppText>
+              </TouchableOpacity>
+            ) : null}
+
+            <TouchableOpacity
+              activeOpacity={0.9}
+              disabled={step === 1 ? !canGoNext : !canSubmit}
+              accessibilityLabel={
+                step === 1
+                  ? '다음 등록 단계로 이동'
+                  : saving
+                  ? '반려동물 등록 중'
+                  : '반려동물 등록 완료'
+              }
+              accessibilityHint={
+                step === 1
+                  ? '두 번 탭하면 상세 정보 입력 단계로 이동합니다.'
+                  : saving
+                  ? '반려동물 등록을 완료할 때까지 잠시 기다려 주세요.'
+                  : '두 번 탭하면 반려동물 등록을 완료합니다.'
+              }
+              style={[
+                styles.primaryButton,
+                {
+                  backgroundColor: selectedTheme.primary,
+                  shadowColor: selectedTheme.primary,
+                },
+                (step === 1 ? !canGoNext : !canSubmit)
+                  ? styles.buttonDisabled
+                  : null,
+              ]}
+              onPress={step === 1 ? goNext : onSubmit}
+            >
+              {step === 2 && saving ? (
+                <WaveText
+                  text="소중한 가족을 맞이하는 중 💖"
+                  color={selectedTheme.onPrimary}
+                  textStyle={styles.primaryButtonText}
+                />
+              ) : (
+                <AppText
+                  preset="unifiedLabel"
+                  style={[
+                    styles.primaryButtonText,
+                    { color: selectedTheme.onPrimary },
+                  ]}
+                >
+                  {step === 1 ? '다음으로' : '등록 완료'}
+                </AppText>
+              )}
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      </KeyboardStickyView>
 
       <Modal
         transparent
@@ -1602,11 +1968,15 @@ export default function PetCreateScreen() {
             </View>
 
             <View style={styles.successCopyWrap}>
-              <AppText preset="unifiedTitle" style={styles.successTitle}>등록이 완료되었어요!</AppText>
+              <AppText preset="unifiedTitle" style={styles.successTitle}>
+                등록이 완료되었어요!
+              </AppText>
               <AppText preset="unifiedBody" style={styles.successBody}>
                 우리 아이와 함께할 소중한 추억들을
               </AppText>
-              <AppText preset="unifiedBody" style={styles.successBody}>차곡차곡 쌓아보세요.</AppText>
+              <AppText preset="unifiedBody" style={styles.successBody}>
+                차곡차곡 쌓아보세요.
+              </AppText>
             </View>
 
             <TouchableOpacity
@@ -1620,7 +1990,8 @@ export default function PetCreateScreen() {
               ]}
               onPress={goToWelcomeTransition}
             >
-              <AppText preset="unifiedTitle"
+              <AppText
+                preset="unifiedTitle"
                 style={[
                   styles.successPrimaryButtonText,
                   { color: selectedTheme.onPrimary },
@@ -1660,6 +2031,6 @@ export default function PetCreateScreen() {
           onPressExitToPrevious();
         }}
       />
-    </SafeAreaView>
+    </View>
   );
 }
