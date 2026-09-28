@@ -12,25 +12,34 @@
 // - 닉네임 검증 규칙과 availability 메시지는 서버 RPC 정책과 어긋나지 않아야 한다.
 // - 비로그인 상태 fallback과 draft 복구 타이밍을 바꾸면 온보딩 진입 흐름이 쉽게 깨진다.
 
-import AppTextInput from '../../app/ui/AppTextInput';
 import AppText from '../../app/ui/AppText';
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Image,
+  type LayoutChangeEvent,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import {
+  KeyboardStickyView,
   KeyboardAwareScrollView,
   type KeyboardAwareScrollViewRef,
+  useReanimatedKeyboardAnimation,
 } from 'react-native-keyboard-controller';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
+import Feather from 'react-native-vector-icons/Feather';
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+} from 'react-native-reanimated';
 
+import { spacing } from '../../app/theme/tokens/spacing';
 import { ASSETS } from '../../assets';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { getBrandedErrorMeta } from '../../services/app/errors';
@@ -49,6 +58,7 @@ import {
   loadNicknameDraft,
   saveNicknameDraft,
 } from '../../services/local/onboardingDraft';
+import { buildRegistrationActionLayout } from '../Pets/profileRegistrationPresentation';
 import { useAuthStore } from '../../store/authStore';
 import { styles } from './NicknameSetupScreen.styles';
 
@@ -66,9 +76,12 @@ type NicknameInputSectionProps = {
   canCheck: boolean;
   checking: boolean;
   onCheckDuplicate: () => void;
+  onFocusNickname: () => void;
   onBlurNickname: () => void;
+  isFocused: boolean;
   hintText: string;
   helperMessage: ValidationState;
+  onFeedbackLayout: (event: LayoutChangeEvent) => void;
 };
 
 type NicknameFooterProps = {
@@ -103,89 +116,179 @@ function mapAvailabilityCodeToMessage(
     : { tone: 'error', message };
 }
 
-const NicknameInputSection = memo(function NicknameInputSection({
+const NicknameHero = memo(function NicknameHeroView() {
+  return (
+    <View pointerEvents="none" style={styles.heroCopy}>
+      <View style={styles.wordmarkRow}>
+        <AppText style={styles.wordmark}>N U R I</AppText>
+        <Image
+          accessibilityIgnoresInvertColors
+          resizeMode="contain"
+          source={ASSETS.logo}
+          style={styles.wordmarkSymbol}
+        />
+      </View>
+
+      <AppText style={styles.heroTitle}>닉네임 설정</AppText>
+      <AppText style={styles.heroSubtitle}>
+        홈에서 표시될 닉네임을{`\n`}설정해주세요.
+      </AppText>
+      <View style={styles.heroDivider} />
+      <View style={styles.heroSupportBlock}>
+        <AppText style={styles.heroSupportText}>
+          소중한 반려와의 일상이,
+        </AppText>
+        <View style={styles.heroSupportLastLine}>
+          <AppText style={styles.heroSupportText}>더 특별해져요</AppText>
+          <AppText style={styles.heroSupportHeart}>♥</AppText>
+        </View>
+      </View>
+    </View>
+  );
+});
+
+const NicknameInputSection = memo(function NicknameInputSectionView({
   nickname,
   onChangeNickname,
   canCheck,
   checking,
   onCheckDuplicate,
+  onFocusNickname,
   onBlurNickname,
+  isFocused,
   hintText,
   helperMessage,
+  onFeedbackLayout,
 }: NicknameInputSectionProps) {
+  const feedbackTone = checking ? 'checking' : helperMessage.tone;
+  const feedbackMessage = checking
+    ? '닉네임 확인중...'
+    : helperMessage.message ?? hintText;
+  const feedbackIcon =
+    feedbackTone === 'error'
+      ? 'alert-circle'
+      : feedbackTone === 'success'
+        ? 'check-circle'
+        : 'info';
+
   return (
     <View style={styles.inputBlock}>
       <View style={styles.inputRow}>
-        <AppTextInput
-          value={nickname}
-          onChangeText={onChangeNickname}
-          onBlur={onBlurNickname}
-          placeholder="닉네임을 입력해주세요"
-          placeholderTextColor="#B8C0CE"
-          style={styles.input}
-          autoCapitalize="none"
-          autoCorrect={false}
-          returnKeyType="done"
-          maxLength={NICKNAME_MAX_LENGTH}
-          onSubmitEditing={onBlurNickname}
-        />
+        <View style={[styles.inputSurface, isFocused ? styles.inputSurfaceFocused : null]}>
+          <TextInput
+            value={nickname}
+            onChangeText={onChangeNickname}
+            onFocus={onFocusNickname}
+            onBlur={onBlurNickname}
+            placeholder="닉네임을 입력해주세요"
+            placeholderTextColor="#9E928D"
+            selectionColor="#9B7CF6"
+            style={styles.input}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="done"
+            maxLength={NICKNAME_MAX_LENGTH}
+            onSubmitEditing={onBlurNickname}
+            accessibilityLabel="닉네임"
+            accessibilityHint="홈에서 사용할 2자에서 10자 사이의 닉네임을 입력합니다."
+          />
+        </View>
 
         <TouchableOpacity
           activeOpacity={0.88}
-          style={[styles.checkButton, !canCheck ? styles.checkButtonDisabled : null]}
+          hitSlop={{ top: 4, right: 4, bottom: 4, left: 4 }}
+          accessibilityRole="button"
+          accessibilityLabel="닉네임 중복 확인"
+          accessibilityState={{ disabled: !canCheck, busy: checking }}
+          style={[
+            styles.checkButton,
+            canCheck ? styles.checkButtonEnabled : styles.checkButtonDisabled,
+          ]}
           onPress={onCheckDuplicate}
           disabled={!canCheck}
         >
           {checking ? (
-            <ActivityIndicator color="#98A1B2" size="small" />
+            <ActivityIndicator color="#8B6CF5" size="small" />
           ) : (
-            <AppText preset="unifiedLabel" style={styles.checkButtonText}>중복확인</AppText>
+            <AppText style={styles.checkButtonText}>
+              중복확인
+            </AppText>
           )}
         </TouchableOpacity>
       </View>
 
-      <View style={styles.underline} />
-      <AppText preset="unifiedBody" style={styles.hintText}>{hintText}</AppText>
-
-      {checking ? (
-        <View style={styles.checkingRow}>
-          <ActivityIndicator color="#98A1B2" size="small" />
-          <AppText preset="unifiedLabel" style={styles.checkingText}>닉네임 확인중...</AppText>
-        </View>
-      ) : null}
-
-      {helperMessage.message ? (
-        <AppText preset="unifiedBody"
+      <View
+        accessibilityLiveRegion="polite"
+        onLayout={onFeedbackLayout}
+        style={[
+          styles.feedbackRow,
+          feedbackTone === 'error'
+            ? styles.feedbackRowError
+            : feedbackTone === 'success'
+              ? styles.feedbackRowSuccess
+              : null,
+        ]}
+      >
+        {checking ? (
+          <ActivityIndicator color="#8B6CF5" size="small" />
+        ) : (
+          <Feather
+            color={
+              feedbackTone === 'error'
+                ? '#D95D64'
+                : feedbackTone === 'success'
+                  ? '#4E9B68'
+                  : '#9A8780'
+            }
+            name={feedbackIcon}
+            size={18}
+          />
+        )}
+        <AppText
           style={[
-            styles.validationText,
-            helperMessage.tone === 'error'
+            styles.feedbackText,
+            feedbackTone === 'error'
               ? styles.validationError
-              : helperMessage.tone === 'success'
+              : feedbackTone === 'success'
                 ? styles.validationSuccess
                 : null,
           ]}
         >
-          {helperMessage.message}
+          {feedbackMessage}
         </AppText>
-      ) : null}
+      </View>
     </View>
   );
 });
 
-const NicknameFooter = memo(function NicknameFooter({
+const NicknameFooter = memo(function NicknameFooterView({
   canSubmit,
   saving,
   onSubmit,
 }: NicknameFooterProps) {
   return (
-    <View style={styles.footer}>
+    <View style={styles.footerInner}>
       <TouchableOpacity
         activeOpacity={0.9}
+        accessibilityRole="button"
+        accessibilityLabel={saving ? '닉네임 저장 중' : '닉네임 설정 완료'}
+        accessibilityState={{ disabled: !canSubmit, busy: saving }}
         style={[styles.primaryButton, !canSubmit ? styles.primaryButtonDisabled : null]}
         onPress={onSubmit}
         disabled={!canSubmit}
       >
-        <AppText preset="unifiedLabel" style={styles.primaryButtonText}>{saving ? '저장 중...' : '완료'}</AppText>
+        {saving ? (
+          <ActivityIndicator color="#FFFFFF" size="small" />
+        ) : (
+          <>
+            <AppText style={styles.primaryButtonText}>
+              완료
+            </AppText>
+            <View pointerEvents="none" style={styles.primaryButtonArrow}>
+              <Feather color="#FFFFFF" name="chevron-right" size={22} />
+            </View>
+          </>
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -195,6 +298,7 @@ export default function NicknameSetupScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<R>();
   const insets = useSafeAreaInsets();
+  const { progress: keyboardProgress } = useReanimatedKeyboardAnimation();
   const scrollRef = useRef<KeyboardAwareScrollViewRef | null>(null);
   const after = route.params?.after ?? 'signup';
 
@@ -205,6 +309,9 @@ export default function NicknameSetupScreen() {
   const [nickname, setLocalNickname] = useState(after === 'signup' ? '' : current);
   const [checking, setChecking] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [inputFocused, setInputFocused] = useState(false);
+  const [actionZoneHeight, setActionZoneHeight] = useState(0);
+  const [feedbackHeight, setFeedbackHeight] = useState(0);
   const [availabilityChecked, setAvailabilityChecked] = useState(false);
   const [validationState, setValidationState] = useState<ValidationState>({
     tone: 'idle',
@@ -239,6 +346,28 @@ export default function NicknameSetupScreen() {
     if (saving || checking) return false;
     return isAvailable && availabilityChecked;
   }, [availabilityChecked, checking, isAvailable, saving]);
+
+  const actionLayout = useMemo(
+    () =>
+      buildRegistrationActionLayout({
+        safeAreaBottom: insets.bottom,
+        actionZonePadding: spacing.md,
+        measuredActionZoneHeight: actionZoneHeight,
+      }),
+    [actionZoneHeight, insets.bottom],
+  );
+  const actionZoneInsetStyle = useAnimatedStyle(
+    () => ({
+      paddingBottom: interpolate(
+        keyboardProgress.value,
+        [0, 1],
+        [actionLayout.closedBottom, actionLayout.openBottom],
+      ),
+    }),
+    [actionLayout.closedBottom, actionLayout.openBottom],
+  );
+  const focusedInputBottomOffset =
+    actionLayout.focusedInputBottomOffset + feedbackHeight + spacing.sm;
 
   const onChangeNickname = useCallback((value: string) => {
     setLocalNickname(value);
@@ -320,11 +449,26 @@ export default function NicknameSetupScreen() {
   }, [trimmed, validationState.tone]);
 
   const onBlurNickname = useCallback(() => {
+    setInputFocused(false);
     if (checking || saving) return;
     runAvailabilityCheck().catch(() => {
       // handled inside runAvailabilityCheck
     });
   }, [checking, runAvailabilityCheck, saving]);
+
+  const onFocusNickname = useCallback(() => {
+    setInputFocused(true);
+  }, []);
+
+  const handleActionZoneLayout = useCallback((event: LayoutChangeEvent) => {
+    const nextHeight = Math.max(0, Math.round(event.nativeEvent.layout.height));
+    setActionZoneHeight(height => (height === nextHeight ? height : nextHeight));
+  }, []);
+
+  const handleFeedbackLayout = useCallback((event: LayoutChangeEvent) => {
+    const nextHeight = Math.max(0, Math.round(event.nativeEvent.layout.height));
+    setFeedbackHeight(height => (height === nextHeight ? height : nextHeight));
+  }, []);
 
   const onCheckDuplicate = useCallback(() => {
     if (checking || saving) return;
@@ -392,40 +536,60 @@ export default function NicknameSetupScreen() {
   }, [isLoggedIn, navigation]);
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top']}>
-      <KeyboardAwareScrollView
-        ref={scrollRef}
-        style={styles.keyboardView}
-        bounces={false}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: insets.bottom + 32 },
-        ]}
-        keyboardDismissMode="none"
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.content}>
-          <Image source={ASSETS.logo} style={styles.logo} resizeMode="contain" />
+    <View style={styles.screen}>
+      <Image
+        accessibilityIgnoresInvertColors
+        pointerEvents="none"
+        resizeMode="stretch"
+        source={ASSETS.nicknameSetupBackground}
+        style={styles.backgroundImage}
+      />
+      <View pointerEvents="none" style={styles.readabilityVeil} />
 
-          <NicknameInputSection
-            nickname={nickname}
-            onChangeNickname={onChangeNickname}
-            canCheck={canCheck}
-            checking={checking}
-            onCheckDuplicate={onCheckDuplicate}
-            onBlurNickname={onBlurNickname}
-            hintText={hintText}
-            helperMessage={helperMessage}
-          />
-        </View>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <KeyboardAwareScrollView
+          ref={scrollRef}
+          bottomOffset={focusedInputBottomOffset}
+          bounces={false}
+          contentContainerStyle={styles.scrollContent}
+          disableScrollOnKeyboardHide={false}
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
+          mode="layout"
+          showsVerticalScrollIndicator={false}
+          style={styles.keyboardView}
+        >
+          <View style={styles.content}>
+            <NicknameHero />
+            <NicknameInputSection
+              nickname={nickname}
+              onChangeNickname={onChangeNickname}
+              canCheck={canCheck}
+              checking={checking}
+              onCheckDuplicate={onCheckDuplicate}
+              onFocusNickname={onFocusNickname}
+              onBlurNickname={onBlurNickname}
+              isFocused={inputFocused}
+              hintText={hintText}
+              helperMessage={helperMessage}
+              onFeedbackLayout={handleFeedbackLayout}
+            />
+          </View>
+        </KeyboardAwareScrollView>
 
-        <NicknameFooter
-          canSubmit={canSubmit}
-          saving={saving}
-          onSubmit={onSubmit}
-        />
-      </KeyboardAwareScrollView>
-    </SafeAreaView>
+        <KeyboardStickyView>
+          <Animated.View
+            onLayout={handleActionZoneLayout}
+            style={[styles.actionZone, actionZoneInsetStyle]}
+          >
+            <NicknameFooter
+              canSubmit={canSubmit}
+              saving={saving}
+              onSubmit={onSubmit}
+            />
+          </Animated.View>
+        </KeyboardStickyView>
+      </SafeAreaView>
+    </View>
   );
 }
