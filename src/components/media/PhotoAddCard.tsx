@@ -1,7 +1,6 @@
 import React, { memo } from 'react';
 import {
   Image,
-  Text,
   TouchableOpacity,
   View,
   type ImageStyle,
@@ -10,6 +9,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
+import AppText from '../../app/ui/AppText';
 
 type PhotoAddCardProps = {
   imageUri: string | null;
@@ -64,7 +64,7 @@ function PhotoAddCardComponent({
             size={placeholderIconSize}
           />
           {placeholderText ? (
-            <Text style={placeholderTextStyle}>{placeholderText}</Text>
+            <AppText style={placeholderTextStyle}>{placeholderText}</AppText>
           ) : null}
         </View>
       )}

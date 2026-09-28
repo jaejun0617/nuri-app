@@ -505,7 +505,7 @@ export default function ScheduleEditScreen() {
             <Feather name="arrow-left" size={20} color="#102033" />
           </TouchableOpacity>
         </View>
-        <AppText preset="unifiedTitle" style={styles.headerTitle}>
+        <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
           일정 수정
         </AppText>
         <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>

@@ -424,7 +424,7 @@ const TimelineActivitySummaryHeader = memo(function TimelineActivitySummaryHeade
               산책
             </AppText>
           </View>
-          <AppText preset="unifiedTitle" style={styles.dailyTitle}>
+          <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={styles.dailyTitle}>
             {dailyStatus?.todayCompleted ? '오늘도 산책 완료!' : `${petLabel}의 데일리판`}
           </AppText>
           <AppText preset="unifiedBody" style={styles.dailyBody}>
@@ -439,7 +439,7 @@ const TimelineActivitySummaryHeader = memo(function TimelineActivitySummaryHeade
             <AppText preset="unifiedMeta" style={styles.progressEyebrow}>
               활동 성장
             </AppText>
-            <AppText preset="unifiedTitle" style={styles.progressTitle}>
+            <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={styles.progressTitle}>
               Lv.{effectiveLevel.level} · {latestTitle}
             </AppText>
           </View>
@@ -1302,7 +1302,7 @@ export default function TimelineScreen() {
     if (status === 'error') {
       return (
         <View style={styles.empty}>
-          <AppText preset="unifiedTitle" style={styles.emptyTitle}>
+          <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
             기록을 불러오지 못했어요
           </AppText>
           <AppText preset="unifiedBody" style={styles.emptyDesc}>
@@ -1339,7 +1339,7 @@ export default function TimelineScreen() {
 
     return (
       <View style={styles.empty}>
-        <AppText preset="unifiedTitle" style={styles.emptyTitle}>
+        <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
           아직 남겨진 추억이 없어요
         </AppText>
         <AppText preset="unifiedBody" style={styles.emptyDesc}>
@@ -1448,7 +1448,7 @@ export default function TimelineScreen() {
               <Feather name="arrow-left" size={20} color="#102033" />
             </TouchableOpacity>
           </View>
-          <AppText preset="unifiedTitle" style={styles.headerTitle}>
+          <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
             타임라인
           </AppText>
           <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
@@ -1471,7 +1471,7 @@ export default function TimelineScreen() {
 
         <View style={styles.guestGateWrap}>
           <View style={styles.empty}>
-            <AppText preset="unifiedTitle" style={styles.emptyTitle}>
+            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
               NURI의 모든 기능을 경험해 보세요
             </AppText>
             <AppText preset="unifiedBody" style={styles.emptyDesc}>
@@ -1509,7 +1509,7 @@ export default function TimelineScreen() {
             <Feather name="arrow-left" size={20} color="#102033" />
           </TouchableOpacity>
         </View>
-        <AppText preset="unifiedTitle" style={styles.headerTitle}>
+        <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
           타임라인
         </AppText>
         <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
@@ -1595,7 +1595,7 @@ export default function TimelineScreen() {
             ]}
             onPress={() => {}}
           >
-            <AppText
+            <AppText typographyRole="sectionTitle"
               preset="unifiedTitle"
               style={[styles.modalTitle, { color: theme.colors.textPrimary }]}
             >
@@ -1654,7 +1654,7 @@ export default function TimelineScreen() {
             ]}
             onPress={() => {}}
           >
-            <AppText
+            <AppText typographyRole="sectionTitle"
               preset="unifiedTitle"
               style={[styles.modalTitle, { color: theme.colors.textPrimary }]}
             >

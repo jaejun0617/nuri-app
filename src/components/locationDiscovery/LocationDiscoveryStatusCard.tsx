@@ -30,7 +30,7 @@ export function LocationDiscoveryStatusCard({
       ) : (
         <Feather name={icon as never} size={24} color="#6D6AF8" />
       )}
-      <AppText preset="unifiedTitle" style={styles.emptyTitle}>
+      <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
         {title}
       </AppText>
       <AppText preset="unifiedBody" style={styles.emptyDesc}>

@@ -172,7 +172,7 @@ export default function LocationDiscoveryMapPanel({
     <View style={compact ? styles.compactCard : styles.card}>
       {!compact && title ? (
         <View style={styles.headerRow}>
-          <AppText preset="unifiedTitle" style={styles.title}>
+        <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={styles.title}>
             {title}
           </AppText>
           {caption ? (

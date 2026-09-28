@@ -53,7 +53,7 @@ export default function AnimalHospitalDetailScreen() {
       <Screen style={styles.screen}>
         <View style={styles.container}>
           <View style={styles.sectionCard}>
-            <AppText preset="unifiedTitle" style={styles.sectionTitle}>
+            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.sectionTitle}>
               병원 정보를 찾을 수 없어요
             </AppText>
           </View>
@@ -105,7 +105,7 @@ export default function AnimalHospitalDetailScreen() {
               <AppText preset="unifiedMeta" style={styles.eyebrow}>
                 우리동네 동물병원
               </AppText>
-              <AppText preset="unifiedTitle" style={styles.title}>
+              <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.title}>
                 {viewModel.title}
               </AppText>
             </View>
@@ -215,7 +215,7 @@ export default function AnimalHospitalDetailScreen() {
           <View style={styles.mapSection}>
             <View style={styles.mapSectionHeader}>
               <View style={styles.mapSectionCopy}>
-                <AppText preset="unifiedTitle" style={styles.sectionTitle}>
+                <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={styles.sectionTitle}>
                   위치
                 </AppText>
                 <AppText preset="unifiedMeta" style={styles.subtleText}>

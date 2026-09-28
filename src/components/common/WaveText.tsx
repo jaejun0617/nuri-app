@@ -18,7 +18,13 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
+import { useTheme } from 'styled-components/native';
 
+import {
+  useAppFontPreference,
+  useTypographyScope,
+} from '../../app/providers/AppFontPreferenceProvider';
+import { resolveAppFontMode } from '../../app/typography/appFontMode';
 import { typography } from '../../app/theme/tokens/typography';
 
 type Props = {
@@ -39,6 +45,7 @@ type GlyphProps = {
   amplitude: number;
   staggerMs: number;
   textStyle: TextStyle;
+  appFontStyle: TextStyle | null;
 };
 
 const AnimatedNativeText = Animated.createAnimatedComponent(Text);
@@ -51,6 +58,7 @@ function WaveGlyph({
   amplitude,
   staggerMs,
   textStyle,
+  appFontStyle,
 }: GlyphProps) {
   const progress = useSharedValue(0);
 
@@ -100,6 +108,7 @@ function WaveGlyph({
         styles.glyph,
         textStyle,
         typography.preset.unifiedLabel,
+        appFontStyle,
         { color },
         animatedStyle,
       ]}
@@ -118,6 +127,13 @@ function WaveText({
   amplitude = 3,
   staggerMs = 70,
 }: Props) {
+  const theme = useTheme();
+  const { mode } = useAppFontPreference();
+  const typographyScope = useTypographyScope();
+  const effectiveMode = resolveAppFontMode({ mode, scope: typographyScope });
+  const appFontStyle = effectiveMode
+    ? (theme.typography.appFontMode[effectiveMode] as TextStyle)
+    : null;
   const resolvedTextStyle = useMemo(
     () => StyleSheet.flatten(textStyle) ?? {},
     [textStyle],
@@ -138,6 +154,7 @@ function WaveText({
                 styles.glyph,
                 resolvedTextStyle,
                 typography.preset.unifiedLabel,
+                appFontStyle,
                 { color },
               ]}
             >
@@ -156,6 +173,7 @@ function WaveText({
             amplitude={amplitude}
             staggerMs={staggerMs}
             textStyle={resolvedTextStyle}
+            appFontStyle={appFontStyle}
           />
         );
       })}

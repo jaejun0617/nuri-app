@@ -631,7 +631,7 @@ export default function SignUpScreen() {
           >
             <Feather color="#1B2435" name="arrow-left" size={20} />
           </TouchableOpacity>
-          <AppText preset="unifiedTitle" style={styles.headerTitle}>
+          <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
             회원가입
           </AppText>
           <View style={styles.headerSpacer} />
@@ -655,7 +655,7 @@ export default function SignUpScreen() {
         </>
       ) : (
         <View style={styles.heroCopy}>
-          <AppText preset="unifiedTitle" style={styles.heroTitle}>
+          <AppText typographyRole="heroCopy" preset="unifiedTitle" style={styles.heroTitle}>
             새로운 시작을{'\n'}
             함께해요
           </AppText>
@@ -690,6 +690,7 @@ export default function SignUpScreen() {
             ]}
           >
             <AppText
+              typographyRole="sectionTitle"
               preset="unifiedTitle"
               style={[
                 styles.termsCardTitle,

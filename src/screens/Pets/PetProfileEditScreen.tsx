@@ -783,7 +783,7 @@ export default function PetProfileEditScreen() {
     return (
       <View style={styles.screen}>
         <View style={styles.centerFallback}>
-          <AppText preset="unifiedTitle" style={styles.fallbackTitle}>
+          <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.fallbackTitle}>
             수정할 프로필을 찾을 수 없어요
           </AppText>
           <TouchableOpacity
@@ -841,7 +841,7 @@ export default function PetProfileEditScreen() {
           </TouchableOpacity>
         </View>
 
-        <AppText preset="unifiedTitle" style={styles.headerTitle}>
+        <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
           프로필 수정
         </AppText>
 
@@ -922,7 +922,7 @@ export default function PetProfileEditScreen() {
 
         <View style={[styles.sectionGlass, seasonalStyles.section]}>
           <View style={styles.sectionHeader}>
-            <AppText
+            <AppText typographyRole="sectionTitle"
               preset="unifiedTitle"
               style={[styles.sectionTitle, seasonalStyles.primaryText]}
             >
@@ -1033,7 +1033,7 @@ export default function PetProfileEditScreen() {
           ]}
         >
           <View style={styles.sectionHeader}>
-            <AppText
+            <AppText typographyRole="sectionTitle"
               preset="unifiedTitle"
               style={[styles.sectionTitle, seasonalStyles.primaryText]}
             >
@@ -1386,7 +1386,7 @@ export default function PetProfileEditScreen() {
           ]}
         >
           <View style={styles.sectionHeader}>
-            <AppText
+            <AppText typographyRole="sectionTitle"
               preset="unifiedTitle"
               style={[styles.sectionTitle, seasonalStyles.primaryText]}
             >
@@ -1513,7 +1513,7 @@ export default function PetProfileEditScreen() {
           <View style={styles.sectionHeader}>
             <View style={styles.inlineLabel}>
               <Feather name="hash" size={18} color={petTheme.primary} />
-              <AppText
+              <AppText typographyRole="sectionTitle"
                 preset="unifiedTitle"
                 style={[styles.sectionTitle, seasonalStyles.primaryText]}
               >

@@ -73,7 +73,7 @@ export default function RecordTagModal({
           onPress={Keyboard.dismiss}
         >
           <View style={styles.tagModalHeader}>
-            <AppText preset="unifiedTitle" style={styles.tagModalTitle}>
+            <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={styles.tagModalTitle}>
               태그 추가
             </AppText>
             <TouchableOpacity

@@ -1001,7 +1001,7 @@ export default function RecordCreateScreen() {
           </TouchableOpacity>
         </View>
 
-        <AppText preset="unifiedTitle" style={styles.headerTitle}>
+        <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
           기록하기
         </AppText>
 

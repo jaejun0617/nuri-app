@@ -98,7 +98,7 @@ export default function PolicyDetailScreen() {
         >
           <Feather name="arrow-left" size={21} color={theme.colors.textPrimary} />
         </TouchableOpacity>
-        <AppText
+        <AppText typographyRole="screenTitle"
           preset="unifiedTitle"
           numberOfLines={1}
           style={[styles.headerTitle, { color: petTheme.deep }]}
@@ -119,7 +119,7 @@ export default function PolicyDetailScreen() {
         {document ? (
           <>
             <View style={styles.titleBlock}>
-              <AppText preset="unifiedTitle" style={[styles.title, { color: petTheme.deep }]}>{document.title}</AppText>
+              <AppText typographyRole="screenTitle" preset="unifiedTitle" style={[styles.title, { color: petTheme.deep }]}>{document.title}</AppText>
               <AppText preset="unifiedBody" style={[styles.summary, { color: theme.colors.textSecondary }]}>{document.summary}</AppText>
             </View>
 
@@ -215,7 +215,7 @@ export default function PolicyDetailScreen() {
         ) : (
           <View style={styles.unavailable}>
             <Feather name="file-text" size={28} color={theme.colors.textMuted} />
-            <AppText preset="unifiedTitle" style={[styles.unavailableTitle, { color: theme.colors.textPrimary }]}>정책을 찾을 수 없어요</AppText>
+            <AppText typographyRole="celebration" preset="unifiedTitle" style={[styles.unavailableTitle, { color: theme.colors.textPrimary }]}>정책을 찾을 수 없어요</AppText>
             <AppText preset="unifiedBody" style={[styles.unavailableBody, { color: theme.colors.textMuted }]}>이전 화면으로 돌아가 다시 선택해 주세요.</AppText>
           </View>
         )}

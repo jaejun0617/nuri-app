@@ -1,23 +1,11 @@
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { typography } from '../../app/theme/tokens/typography';
 
 const TEXT = '#1B2435';
 
 const BRAND = '#6D6AF8';
 
-const SEASONAL_HEADLINE_FONT = 'GowunBatang-Regular';
-
-const SEASONAL_SUPPORT_FONT = Platform.select({
-  ios: 'AppleMyungjo',
-  android: 'serif',
-  default: 'serif',
-});
-
-const SEASONAL_SCRIPT_FONT = Platform.select({
-  ios: 'Snell Roundhand',
-  android: 'cursive',
-  default: 'cursive',
-});
+const SEASONAL_DISPLAY_FONT = typography.family.display;
 
 export const styles = StyleSheet.create({
   screen: {
@@ -150,7 +138,7 @@ export const styles = StyleSheet.create({
   },
   seasonalHeadline: {
     color: '#4B3527',
-    fontFamily: SEASONAL_HEADLINE_FONT,
+    fontFamily: SEASONAL_DISPLAY_FONT,
     fontSize: 18,
     lineHeight: 24,
     fontWeight: '400',
@@ -178,10 +166,10 @@ export const styles = StyleSheet.create({
   },
   seasonalSubtitle: {
     color: '#5A4031',
-    fontFamily: SEASONAL_SUPPORT_FONT,
+    fontFamily: SEASONAL_DISPLAY_FONT,
     fontSize: 12,
     lineHeight: 17,
-    fontWeight: '500',
+    fontWeight: '400',
     marginTop: 2,
     textAlign: 'center',
     textShadowColor: 'rgba(255, 249, 241, 0.78)',
@@ -193,10 +181,10 @@ export const styles = StyleSheet.create({
     top: 102,
     right: 0,
     color: '#C94F27',
-    fontFamily: SEASONAL_SCRIPT_FONT,
+    fontFamily: SEASONAL_DISPLAY_FONT,
     fontSize: 12,
     lineHeight: 15,
-    fontWeight: '500',
+    fontWeight: '400',
     textAlign: 'center',
     transform: [{ rotate: '-7deg' }],
     textShadowColor: 'rgba(255, 248, 238, 0.84)',

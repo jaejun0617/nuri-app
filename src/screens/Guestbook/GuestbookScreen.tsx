@@ -163,7 +163,7 @@ export default function GuestbookScreen() {
             subtitle="편지를 남길 아이를 먼저 등록해 주세요."
           />
           <View style={styles.emptyCard}>
-            <AppText
+            <AppText typographyRole="celebration"
               preset="unifiedTitle"
               style={[styles.emptyTitle, { color: theme.colors.textPrimary }]}
             >
@@ -289,7 +289,7 @@ export default function GuestbookScreen() {
         </View>
 
         <View style={styles.sectionHeader}>
-          <AppText
+          <AppText typographyRole="sectionTitle"
             preset="unifiedTitle"
             style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}
           >
@@ -315,7 +315,7 @@ export default function GuestbookScreen() {
           </View>
         ) : lettersState.error ? (
           <View style={styles.emptyCard}>
-            <AppText
+            <AppText typographyRole="celebration"
               preset="unifiedTitle"
               style={[styles.emptyTitle, { color: theme.colors.textPrimary }]}
             >
@@ -339,7 +339,7 @@ export default function GuestbookScreen() {
           </View>
         ) : lettersState.letters.length === 0 ? (
           <View style={styles.emptyCard}>
-            <AppText
+            <AppText typographyRole="celebration"
               preset="unifiedTitle"
               style={[styles.emptyTitle, { color: theme.colors.textPrimary }]}
             >
@@ -408,7 +408,7 @@ function PrivateLettersHeader({
       >
         {eyebrow}
       </AppText>
-      <AppText
+      <AppText typographyRole="screenTitle"
         preset="unifiedTitle"
         style={[styles.title, { color: theme.colors.textPrimary }]}
       >

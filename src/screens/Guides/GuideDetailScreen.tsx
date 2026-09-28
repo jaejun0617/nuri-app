@@ -136,7 +136,7 @@ export default function GuideDetailScreen() {
       {guideState.loading ? (
         <View style={styles.emptyCard}>
           <Feather name="loader" size={28} color={petTheme.primary} />
-          <AppText preset="unifiedTitle" style={styles.emptyTitle}>
+          <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
             가이드를 불러오는 중이에요
           </AppText>
           <AppText preset="unifiedBody" style={styles.emptyDesc}>
@@ -146,7 +146,7 @@ export default function GuideDetailScreen() {
       ) : !guideState.guide ? (
         <View style={styles.emptyCard}>
           <Feather name="alert-circle" size={28} color={petTheme.primary} />
-          <AppText preset="unifiedTitle" style={styles.emptyTitle}>
+          <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
             가이드를 찾지 못했어요
           </AppText>
           <AppText preset="unifiedBody" style={styles.emptyDesc}>
@@ -173,7 +173,7 @@ export default function GuideDetailScreen() {
             </View>
 
             <View style={styles.topBarTitleWrap}>
-              <AppText preset="unifiedTitle" style={styles.headerTitle}>
+              <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
                 집사 꿀팁 가이드
               </AppText>
             </View>
@@ -223,7 +223,7 @@ export default function GuideDetailScreen() {
                   {getGuideCategoryLabel(guideState.guide.category)}
                 </AppText>
               </View>
-              <AppText preset="unifiedTitle" style={styles.title}>
+              <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.title}>
                 {guideState.guide.title}
               </AppText>
               <AppText preset="unifiedBody" style={styles.summary}>
@@ -233,7 +233,7 @@ export default function GuideDetailScreen() {
           </View>
 
           <View style={styles.metaCard}>
-            <AppText preset="unifiedTitle" style={styles.sectionTitle}>
+            <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={styles.sectionTitle}>
               대상 정보
             </AppText>
             <View style={styles.metaRow}>
@@ -258,7 +258,7 @@ export default function GuideDetailScreen() {
           </View>
 
           <View style={styles.bodyCard}>
-            <AppText preset="unifiedTitle" style={styles.sectionTitle}>
+            <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={styles.sectionTitle}>
               상세 가이드
             </AppText>
             {guideState.guide.contentBlocks.map(block => {
@@ -317,7 +317,7 @@ export default function GuideDetailScreen() {
 
           {guideState.guide.sources.length > 0 ? (
             <View style={styles.sourceCard}>
-              <AppText preset="unifiedTitle" style={styles.sectionTitle}>
+              <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={styles.sectionTitle}>
                 참고 출처
               </AppText>
               {guideState.guide.sources.map(source => (

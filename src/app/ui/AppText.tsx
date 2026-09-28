@@ -13,11 +13,24 @@ import type { TextProps, TextStyle } from 'react-native';
 import { StyleSheet } from 'react-native';
 import { useTheme } from 'styled-components/native';
 
-import type { TypographyPresetName } from '../theme/tokens/typography';
+import {
+  useAppFontPreference,
+  useTypographyScope,
+} from '../providers/AppFontPreferenceProvider';
+import {
+  resolveAppFontMode,
+  type AppFontMode,
+} from '../typography/appFontMode';
+import type {
+  TypographyFamilyRoleName,
+  TypographyPresetName,
+} from '../theme/tokens/typography';
 import { StyledText } from './AppText.styles';
 
 type Props = TextProps & {
   preset?: TypographyPresetName;
+  typographyRole?: TypographyFamilyRoleName;
+  fontModeOverride?: AppFontMode;
   color?: string; // theme 컬러 대신 임의 색상 지정이 필요할 때
   align?: 'auto' | 'left' | 'right' | 'center' | 'justify';
   weight?: TextStyle['fontWeight']; // preset fontWeight를 덮어쓰기 할 때
@@ -26,6 +39,8 @@ type Props = TextProps & {
 
 function AppTextBase({
   preset = 'body',
+  typographyRole: _typographyRole,
+  fontModeOverride,
   color,
   align,
   weight,
@@ -37,9 +52,18 @@ function AppTextBase({
   ...rest
 }: Props) {
   const theme = useTheme();
-
+  const { mode } = useAppFontPreference();
+  const typographyScope = useTypographyScope();
   // theme.typography.preset[preset]은 디자인 토큰에 따라 일관된 텍스트 스타일 제공
   const presetStyle = theme.typography.preset[preset];
+  const effectiveMode = resolveAppFontMode({
+    mode,
+    scope: typographyScope,
+    override: fontModeOverride,
+  });
+  const appFontStyle = effectiveMode
+    ? theme.typography.appFontMode[effectiveMode]
+    : null;
   const isUnifiedPreset = preset.startsWith('unified');
 
   // 스타일 합성은 매 렌더마다 비용이 발생할 수 있어 useMemo로 캐싱
@@ -58,15 +82,25 @@ function AppTextBase({
             ? style
             : presetStyle
           : weight
-            ? ({ fontWeight: weight } as TextStyle)
-            : null,
+          ? ({ fontWeight: weight } as TextStyle)
+          : null,
         isUnifiedPreset
           ? weight
             ? ({ fontWeight: weight } as TextStyle)
             : null
           : style,
+        // Semantic roles remain classification metadata. The user's app mode
+        // owns the family globally, except inside an explicit fixed boundary.
+        appFontStyle,
       ]),
-    [isUnifiedPreset, presetStyle, styleOverridesPreset, weight, style],
+    [
+      isUnifiedPreset,
+      presetStyle,
+      appFontStyle,
+      styleOverridesPreset,
+      weight,
+      style,
+    ],
   );
 
   return (

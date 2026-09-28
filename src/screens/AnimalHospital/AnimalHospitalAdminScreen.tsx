@@ -382,14 +382,14 @@ export default function AnimalHospitalAdminScreen() {
           <TouchableOpacity style={styles.backButton} onPress={onPressBack}>
             <Feather name="arrow-left" size={20} color="#102033" />
           </TouchableOpacity>
-          <AppText preset="unifiedTitle" style={styles.headerTitle}>
+          <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
             동물병원 운영
           </AppText>
           <View style={styles.headerSide} />
         </View>
         <View style={styles.permissionCard}>
           <Feather name="shield-off" size={28} color="#D75B23" />
-          <AppText preset="unifiedTitle" style={styles.permissionTitle}>
+          <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.permissionTitle}>
             운영 권한이 필요해요
           </AppText>
           <AppText preset="unifiedBody" style={styles.permissionBody}>
@@ -406,7 +406,7 @@ export default function AnimalHospitalAdminScreen() {
         <TouchableOpacity style={styles.backButton} onPress={onPressBack}>
           <Feather name="arrow-left" size={20} color="#102033" />
         </TouchableOpacity>
-        <AppText preset="unifiedTitle" style={styles.headerTitle}>
+        <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
           동물병원 운영
         </AppText>
         <TouchableOpacity
@@ -433,7 +433,7 @@ export default function AnimalHospitalAdminScreen() {
           </View>
         ) : summaryQuery.error ? (
           <View style={styles.stateCard}>
-            <AppText preset="unifiedTitle" style={styles.stateTitle}>
+            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.stateTitle}>
               운영 summary를 불러오지 못했어요
             </AppText>
             <TouchableOpacity
@@ -552,7 +552,7 @@ export default function AnimalHospitalAdminScreen() {
           </View>
         ) : reviewQuery.error ? (
           <View style={styles.stateCard}>
-            <AppText preset="unifiedTitle" style={styles.stateTitle}>
+            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.stateTitle}>
               검수 목록을 불러오지 못했어요
             </AppText>
             <TouchableOpacity
@@ -566,7 +566,7 @@ export default function AnimalHospitalAdminScreen() {
           </View>
         ) : reviewQuery.data?.length === 0 ? (
           <View style={styles.stateCard}>
-            <AppText preset="unifiedTitle" style={styles.stateTitle}>
+            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.stateTitle}>
               조건에 맞는 검수 항목이 없어요
             </AppText>
             <AppText preset="unifiedBody" style={styles.stateText}>

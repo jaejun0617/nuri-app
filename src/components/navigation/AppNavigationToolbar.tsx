@@ -167,6 +167,7 @@ export default function AppNavigationToolbar({
                 color={active ? activeColor : theme.colors.textMuted}
               />
               <AppText
+                typographyRole="navigation"
                 preset="tab"
                 maxFontSizeMultiplier={1.6}
                 style={[

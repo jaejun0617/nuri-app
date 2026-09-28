@@ -59,7 +59,13 @@ import Animated, {
 
 import { ASSETS } from '../../assets';
 import { spacing } from '../../app/theme/tokens/spacing';
+import { useAppFontPreference } from '../../app/providers/AppFontPreferenceProvider';
+import {
+  FIRST_PET_PRESELECTED_FONT_MODE,
+  type AppFontMode,
+} from '../../app/typography/appFontMode';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import FirstPetFontSelectorModal from '../../components/onboarding/FirstPetFontSelectorModal';
 import WaveText from '../../components/common/WaveText';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import PhotoAddCard from '../../components/media/PhotoAddCard';
@@ -77,6 +83,7 @@ import {
   loadPetCreateDraft,
   savePetCreateDraft,
 } from '../../services/local/onboardingDraft';
+import { shouldShowFirstPetFontSelector } from '../../services/local/appFontPreference';
 import {
   isFirstPetOnboardingEntry,
   markFirstPetWelcomePending,
@@ -447,7 +454,7 @@ const StepOneForm = memo(function StepOneFormComponent({
             showEditButton={false}
           />
         </View>
-        <AppText
+        <AppText typographyRole="heroCopy"
           preset="unifiedTitle"
           style={[styles.heroCopy, seasonalStyles.primaryText]}
         >
@@ -473,7 +480,7 @@ const StepOneForm = memo(function StepOneFormComponent({
 
       <View style={[styles.sectionGlass, seasonalStyles.section]}>
         <View style={styles.sectionHeader}>
-          <AppText
+          <AppText typographyRole="sectionTitle"
             preset="unifiedTitle"
             style={[styles.sectionTitle, seasonalStyles.primaryText]}
           >
@@ -581,7 +588,7 @@ const StepOneForm = memo(function StepOneFormComponent({
 
       <View style={[styles.sectionGlass, seasonalStyles.section]}>
         <View style={styles.sectionHeader}>
-          <AppText
+          <AppText typographyRole="sectionTitle"
             preset="unifiedTitle"
             style={[styles.sectionTitle, seasonalStyles.primaryText]}
           >
@@ -926,7 +933,7 @@ const StepTwoForm = memo(function StepTwoFormComponent({
   return (
     <>
       <View style={styles.continuationIntro}>
-        <AppText
+        <AppText typographyRole="screenTitle"
           preset="unifiedTitle"
           style={[styles.continuationTitle, seasonalStyles.primaryText]}
         >
@@ -942,7 +949,7 @@ const StepTwoForm = memo(function StepTwoFormComponent({
 
       <View style={[styles.sectionGlass, seasonalStyles.section]}>
         <View style={styles.sectionHeader}>
-          <AppText
+          <AppText typographyRole="sectionTitle"
             preset="unifiedTitle"
             style={[styles.sectionTitle, seasonalStyles.primaryText]}
           >
@@ -1018,7 +1025,7 @@ const StepTwoForm = memo(function StepTwoFormComponent({
 
       <View style={[styles.sectionGlass, seasonalStyles.section]}>
         <View style={styles.sectionHeader}>
-          <AppText
+          <AppText typographyRole="sectionTitle"
             preset="unifiedTitle"
             style={[styles.sectionTitle, seasonalStyles.primaryText]}
           >
@@ -1064,6 +1071,11 @@ export default function PetCreateScreen() {
       previousRouteName,
     }),
   );
+  const {
+    hydrated: fontPreferenceHydrated,
+    hasStoredPreference,
+    setMode: setAppFontMode,
+  } = useAppFontPreference();
   const insets = useSafeAreaInsets();
   const { progress: keyboardProgress } = useReanimatedKeyboardAnimation();
   const setPets = usePetStore(s => s.setPets);
@@ -1072,6 +1084,10 @@ export default function PetCreateScreen() {
 
   const [step, setStep] = useState<Step>(1);
   const [saving, setSaving] = useState(false);
+  const [fontSelectionSaving, setFontSelectionSaving] = useState(false);
+  const [selectedFontMode, setSelectedFontMode] = useState<AppFontMode>(
+    FIRST_PET_PRESELECTED_FONT_MODE,
+  );
 
   const [name, setName] = useState('');
   const [representativeSpecies, setRepresentativeSpecies] =
@@ -1108,6 +1124,29 @@ export default function PetCreateScreen() {
   const [draftHydrated, setDraftHydrated] = useState(false);
   const [actionZoneHeight, setActionZoneHeight] = useState(0);
   const draftLoadOnceRef = useRef(false);
+  const showFirstPetFontSelector = shouldShowFirstPetFontSelector({
+    hydrated: fontPreferenceHydrated,
+    hasStoredPreference,
+    isFirstPetOnboardingEntry: isFirstOnboardingCompletionRef.current,
+  });
+
+  const confirmFirstPetFontSelection = useCallback(async () => {
+    if (fontSelectionSaving) return;
+
+    setFontSelectionSaving(true);
+    try {
+      await setAppFontMode(selectedFontMode);
+    } catch (error) {
+      captureMonitoringException(error);
+      showToast({
+        tone: 'error',
+        title: '글꼴을 저장하지 못했어요',
+        message: '잠시 후 다시 시도해 주세요.',
+      });
+    } finally {
+      setFontSelectionSaving(false);
+    }
+  }, [fontSelectionSaving, selectedFontMode, setAppFontMode]);
   const keyboardScrollRef = useRef<KeyboardAwareScrollViewRef | null>(null);
   const scrollMetricsRef = useRef({
     contentHeight: 0,
@@ -1894,6 +1933,9 @@ export default function PetCreateScreen() {
   useFocusEffect(
     useCallback(() => {
       const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+        if (showFirstPetFontSelector) {
+          return true;
+        }
         if (!showStepOneExitButton || saving || successModalVisible) {
           return true;
         }
@@ -1901,7 +1943,12 @@ export default function PetCreateScreen() {
         return true;
       });
       return () => sub.remove();
-    }, [saving, showStepOneExitButton, successModalVisible]),
+    }, [
+      saving,
+      showFirstPetFontSelector,
+      showStepOneExitButton,
+      successModalVisible,
+    ]),
   );
 
   return (
@@ -1945,7 +1992,7 @@ export default function PetCreateScreen() {
           <View style={styles.header}>
             <View style={styles.headerActionPlaceholder} />
 
-            <AppText
+            <AppText typographyRole="screenTitle"
               preset="unifiedTitle"
               style={[styles.headerTitle, seasonalStyles.primaryText]}
             >
@@ -2157,6 +2204,16 @@ export default function PetCreateScreen() {
           </Animated.View>
         </KeyboardStickyView>
 
+        <FirstPetFontSelectorModal
+          visible={showFirstPetFontSelector}
+          selectedMode={selectedFontMode}
+          saving={fontSelectionSaving}
+          onSelect={setSelectedFontMode}
+          onConfirm={() => {
+            confirmFirstPetFontSelection().catch(() => {});
+          }}
+        />
+
         <Modal
           transparent
           visible={successModalVisible}
@@ -2174,7 +2231,7 @@ export default function PetCreateScreen() {
               </View>
 
               <View style={styles.successCopyWrap}>
-                <AppText preset="unifiedTitle" style={styles.successTitle}>
+                <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.successTitle}>
                   등록이 완료되었어요!
                 </AppText>
                 <AppText preset="unifiedBody" style={styles.successBody}>
@@ -2196,7 +2253,7 @@ export default function PetCreateScreen() {
                 ]}
                 onPress={goToWelcomeTransition}
               >
-                <AppText
+                <AppText typographyRole="emotionalCta"
                   preset="unifiedTitle"
                   style={[
                     styles.successPrimaryButtonText,

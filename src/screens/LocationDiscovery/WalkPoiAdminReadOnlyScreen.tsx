@@ -171,7 +171,7 @@ function Section({
 }) {
   return (
     <View style={styles.section}>
-      <AppText preset="unifiedTitle" style={styles.sectionTitle}>
+      <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={styles.sectionTitle}>
         {title}
       </AppText>
       {children}
@@ -469,7 +469,7 @@ function CoverageSummary({ summary }: { summary: WalkPoiAdminReadSummary }) {
           <AppText preset="unifiedMeta" style={styles.bannerEyebrow}>
             FALLBACK GATE
           </AppText>
-          <AppText preset="unifiedTitle" style={styles.bannerTitle}>
+          <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={styles.bannerTitle}>
             {summary.coverageRegion.label}
           </AppText>
           <AppText preset="unifiedMeta" style={styles.bannerBody}>
@@ -671,14 +671,14 @@ export default function WalkPoiAdminReadOnlyScreen() {
           <TouchableOpacity style={styles.backButton} onPress={onPressBack}>
             <Feather name="arrow-left" size={20} color="#102033" />
           </TouchableOpacity>
-          <AppText preset="unifiedTitle" style={styles.headerTitle}>
+          <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
             산책 POI 운영
           </AppText>
           <View style={styles.headerSide} />
         </View>
         <View style={styles.permissionCard}>
           <Feather name="loader" size={28} color="#2F6F4E" />
-          <AppText preset="unifiedTitle" style={styles.permissionTitle}>
+          <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.permissionTitle}>
             운영 권한을 확인하고 있어요
           </AppText>
           <AppText preset="unifiedBody" style={styles.permissionBody}>
@@ -696,14 +696,14 @@ export default function WalkPoiAdminReadOnlyScreen() {
           <TouchableOpacity style={styles.backButton} onPress={onPressBack}>
             <Feather name="arrow-left" size={20} color="#102033" />
           </TouchableOpacity>
-          <AppText preset="unifiedTitle" style={styles.headerTitle}>
+          <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
             산책 POI 운영
           </AppText>
           <View style={styles.headerSide} />
         </View>
         <View style={styles.permissionCard}>
           <Feather name="shield-off" size={28} color="#D75B23" />
-          <AppText preset="unifiedTitle" style={styles.permissionTitle}>
+          <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.permissionTitle}>
             운영 권한이 필요해요
           </AppText>
           <AppText preset="unifiedBody" style={styles.permissionBody}>
@@ -721,7 +721,7 @@ export default function WalkPoiAdminReadOnlyScreen() {
         <TouchableOpacity style={styles.backButton} onPress={onPressBack}>
           <Feather name="arrow-left" size={20} color="#102033" />
         </TouchableOpacity>
-        <AppText preset="unifiedTitle" style={styles.headerTitle}>
+        <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
           산책 POI 운영
         </AppText>
         <TouchableOpacity style={styles.refreshButton} onPress={refresh}>
@@ -751,7 +751,7 @@ export default function WalkPoiAdminReadOnlyScreen() {
           <EmptyState message="산책 POI 운영 현황을 불러오는 중이에요." />
         ) : summaryQuery.error ? (
           <View style={styles.stateCard}>
-            <AppText preset="unifiedTitle" style={styles.stateTitle}>
+            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.stateTitle}>
               운영 현황을 불러오지 못했어요
             </AppText>
             <AppText preset="unifiedBody" style={styles.stateText}>
@@ -884,7 +884,7 @@ export default function WalkPoiAdminReadOnlyScreen() {
 
             <Section title="전국 확장 준비">
               <View style={styles.nextStepBox}>
-                <AppText preset="unifiedTitle" style={styles.nextStepTitle}>
+                <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={styles.nextStepTitle}>
                   다음 batch: {summary.coverageSummary.nextBatchRegion}
                 </AppText>
                 <AppText preset="unifiedMeta" style={styles.nextStepBody}>
@@ -910,7 +910,7 @@ export default function WalkPoiAdminReadOnlyScreen() {
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <View style={styles.modalTitleBlock}>
-                <AppText preset="unifiedTitle" style={styles.modalTitle}>
+                <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={styles.modalTitle}>
                   Audit detail
                 </AppText>
                 <AppText preset="unifiedMeta" style={styles.modalSubtitle}>
@@ -1014,7 +1014,7 @@ export default function WalkPoiAdminReadOnlyScreen() {
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <View style={styles.modalTitleBlock}>
-                <AppText preset="unifiedTitle" style={styles.modalTitle}>
+                <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={styles.modalTitle}>
                   {actionDraft
                     ? `${REVIEW_ACTION_LABEL[actionDraft.action]} 처리`
                     : '검수 처리'}

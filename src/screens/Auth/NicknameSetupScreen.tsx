@@ -13,13 +13,13 @@
 // - 비로그인 상태 fallback과 draft 복구 타이밍을 바꾸면 온보딩 진입 흐름이 쉽게 깨진다.
 
 import AppText from '../../app/ui/AppText';
+import AppTextInput from '../../app/ui/AppTextInput';
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Image,
   type LayoutChangeEvent,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -175,7 +175,7 @@ const NicknameInputSection = memo(function NicknameInputSectionView({
     <View style={styles.inputBlock}>
       <View style={styles.inputRow}>
         <View style={[styles.inputSurface, isFocused ? styles.inputSurfaceFocused : null]}>
-          <TextInput
+          <AppTextInput
             value={nickname}
             onChangeText={onChangeNickname}
             onFocus={onFocusNickname}

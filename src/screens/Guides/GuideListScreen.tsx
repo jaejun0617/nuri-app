@@ -338,7 +338,7 @@ export default function GuideListScreen() {
           </TouchableOpacity>
         </View>
 
-        <AppText preset="unifiedTitle" style={styles.headerTitle}>
+        <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
           집사 꿀팁 가이드
         </AppText>
 
@@ -585,7 +585,7 @@ export default function GuideListScreen() {
       {catalogState.loading ? (
         <View style={styles.emptyCard}>
           <Feather name="loader" size={28} color={petTheme.primary} />
-          <AppText preset="unifiedTitle" style={styles.emptyTitle}>
+          <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
             가이드를 불러오는 중이에요
           </AppText>
           <AppText preset="unifiedBody" style={styles.emptyDesc}>
@@ -595,7 +595,7 @@ export default function GuideListScreen() {
       ) : catalogState.error && rankedGuides.length === 0 ? (
         <View style={styles.emptyCard}>
           <Feather name="alert-circle" size={28} color={petTheme.primary} />
-          <AppText preset="unifiedTitle" style={styles.emptyTitle}>
+          <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
             가이드를 불러오지 못했어요
           </AppText>
           <AppText preset="unifiedBody" style={styles.emptyDesc}>
@@ -609,7 +609,7 @@ export default function GuideListScreen() {
             size={28}
             color={petTheme.primary}
           />
-          <AppText preset="unifiedTitle" style={styles.emptyTitle}>
+          <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
             {hasSearchQuery
               ? '검색 결과가 없어요'
               : catalogState.guides.length > 0

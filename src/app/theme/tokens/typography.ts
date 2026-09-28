@@ -1,11 +1,45 @@
 // 파일: src/app/theme/tokens/typography.ts
 import { Platform } from 'react-native';
 
+import type { AppFontMode } from '../../typography/appFontMode';
+
 const pretendardFamily = Platform.select({
   ios: 'PretendardVariable',
   android: 'PretendardVariable',
   default: 'System',
 });
+
+const jisuFamily = 'insungitCutelivelyjisu';
+
+export const TYPOGRAPHY_SEMANTIC_ROLES = [
+  'brandDisplay',
+  'screenTitle',
+  'sectionTitle',
+  'heroCopy',
+  'petIdentity',
+  'celebration',
+  'emotionalCta',
+  'body',
+  'formInput',
+  'formHelper',
+  'validation',
+  'data',
+  'metadata',
+  'list',
+  'utility',
+  'chip',
+  'navigation',
+] as const;
+
+const appFontModeStyle = {
+  jisu: {
+    fontFamily: jisuFamily,
+    fontWeight: '400' as const,
+  },
+  pretendard: {
+    fontFamily: pretendardFamily,
+  },
+} satisfies Record<AppFontMode, { fontFamily: string; fontWeight?: '400' }>;
 
 const semanticPreset = {
   screenTitle: {
@@ -158,6 +192,7 @@ const unifiedPreset = {
 export const typography = {
   family: {
     sans: pretendardFamily,
+    display: jisuFamily,
   },
   size: {
     xs: 12,
@@ -185,6 +220,7 @@ export const typography = {
     display: 36,
   },
   role: semanticPreset,
+  appFontMode: appFontModeStyle,
   preset: {
     ...semanticPreset,
     unifiedTitle: unifiedPreset.title,
@@ -203,4 +239,6 @@ export const typography = {
 } as const;
 
 export type TypographyRoleName = keyof typeof semanticPreset;
+export type TypographyFamilyRoleName =
+  (typeof TYPOGRAPHY_SEMANTIC_ROLES)[number];
 export type TypographyPresetName = keyof typeof typography.preset;

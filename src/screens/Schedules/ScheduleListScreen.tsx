@@ -177,7 +177,7 @@ export default function ScheduleListScreen() {
           </TouchableOpacity>
         </View>
 
-        <AppText preset="unifiedTitle" style={styles.headerTitle}>
+        <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
           일정 보기
         </AppText>
 
@@ -199,7 +199,7 @@ export default function ScheduleListScreen() {
         }
       >
         <View style={styles.heroCard}>
-          <AppText preset="unifiedTitle" style={styles.heroTitle}>
+          <AppText typographyRole="heroCopy" preset="unifiedTitle" style={styles.heroTitle}>
             전체 일정
           </AppText>
           <AppText preset="unifiedMeta" style={styles.heroSub}>
@@ -214,7 +214,7 @@ export default function ScheduleListScreen() {
               size={34}
               color={petTheme.primary}
             />
-            <AppText preset="unifiedTitle" style={styles.emptyTitle}>
+            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
               일정을 불러오는 중이에요
             </AppText>
             <AppText preset="unifiedBody" style={styles.emptyDesc}>
@@ -228,7 +228,7 @@ export default function ScheduleListScreen() {
               size={34}
               color={petTheme.primary}
             />
-            <AppText preset="unifiedTitle" style={styles.emptyTitle}>
+            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
               일정을 불러오지 못했어요
             </AppText>
             <AppText preset="unifiedBody" style={styles.emptyDesc}>
@@ -251,7 +251,7 @@ export default function ScheduleListScreen() {
               size={34}
               color={petTheme.primary}
             />
-            <AppText preset="unifiedTitle" style={styles.emptyTitle}>
+            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
               등록된 일정이 아직 없어요
             </AppText>
             <AppText preset="unifiedBody" style={styles.emptyDesc}>

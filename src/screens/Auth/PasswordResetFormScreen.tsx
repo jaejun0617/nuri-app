@@ -162,8 +162,8 @@ export default function PasswordResetFormScreen({ navigation }: Props) {
         >
           <View style={styles.content}>
             <View style={styles.hero}>
-              <AppText preset="unifiedTitle" style={styles.heroEyebrow}>NEW PASSWORD</AppText>
-              <AppText preset="unifiedTitle" style={styles.heroTitle}>새 비밀번호 설정</AppText>
+              <AppText typographyRole="brandDisplay" preset="unifiedTitle" style={styles.heroEyebrow}>NEW PASSWORD</AppText>
+              <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.heroTitle}>새 비밀번호 설정</AppText>
               <AppText preset="unifiedBody" style={styles.heroBody}>
                 비밀번호를 변경한 뒤에는 새 비밀번호로 다시 로그인해야 합니다.
               </AppText>

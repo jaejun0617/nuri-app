@@ -131,13 +131,13 @@ export default function LocationDiscoveryDetailScreen() {
                 <Feather name="arrow-left" size={20} color="#102033" />
               </TouchableOpacity>
             </View>
-            <AppText preset="unifiedTitle" style={styles.headerTitle}>
+            <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
               산책 장소 상세
             </AppText>
             <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
           </View>
           <View style={styles.emptyCard}>
-            <AppText preset="unifiedTitle" style={styles.emptyTitle}>
+            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
               장소 정보를 찾을 수 없어요
             </AppText>
           </View>
@@ -167,7 +167,7 @@ export default function LocationDiscoveryDetailScreen() {
               <Feather name="arrow-left" size={20} color="#102033" />
             </TouchableOpacity>
           </View>
-          <AppText preset="unifiedTitle" style={styles.headerTitle}>
+          <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
             산책 장소 상세
           </AppText>
           <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
@@ -181,7 +181,7 @@ export default function LocationDiscoveryDetailScreen() {
             <AppText preset="unifiedMeta" style={styles.detailCategory}>
               {item.categoryLabel}
             </AppText>
-            <AppText preset="unifiedTitle" style={styles.detailTitle}>
+            <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.detailTitle}>
               {item.name}
             </AppText>
 
@@ -251,7 +251,7 @@ export default function LocationDiscoveryDetailScreen() {
           {visibleRelatedItems.length > 0 ? (
             <View style={styles.relatedSection}>
               <View style={styles.relatedSectionHeader}>
-                <AppText
+                <AppText typographyRole="sectionTitle"
                   preset="unifiedTitle"
                   style={styles.relatedSectionTitle}
                 >

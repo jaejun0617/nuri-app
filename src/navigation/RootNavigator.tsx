@@ -91,6 +91,7 @@ import AppTabsNavigator from './AppTabsNavigator';
 import type { AppTabParamList, RecordCreateReturnTo } from './AppTabsNavigator';
 import type { RouteSignInNotice } from '../services/auth/notices';
 import type { PolicyDocumentId } from '../services/legal/presentation';
+import { FixedTypographyBoundary } from '../app/providers/AppFontPreferenceProvider';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -270,7 +271,55 @@ export type RootStackParamList = {
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const renderCommunityHeader = (props: NativeStackHeaderProps) => (
-  <CommunityStackHeader {...props} />
+  <FixedTypographyBoundary>
+    <CommunityStackHeader {...props} />
+  </FixedTypographyBoundary>
+);
+
+const FixedWeatherInsightScreen = () => (
+  <FixedTypographyBoundary>
+    <WeatherInsightScreen />
+  </FixedTypographyBoundary>
+);
+const FixedIndoorActivityRecommendationsScreen = () => (
+  <FixedTypographyBoundary>
+    <IndoorActivityRecommendationsScreen />
+  </FixedTypographyBoundary>
+);
+const FixedActivityGuideScreen = () => (
+  <FixedTypographyBoundary>
+    <ActivityGuideScreen />
+  </FixedTypographyBoundary>
+);
+const FixedWeatherActivityRecordScreen = () => (
+  <FixedTypographyBoundary>
+    <WeatherActivityRecordScreen />
+  </FixedTypographyBoundary>
+);
+const FixedCommunityListScreen = () => (
+  <FixedTypographyBoundary>
+    <CommunityListScreen />
+  </FixedTypographyBoundary>
+);
+const FixedCommunityDetailScreen = () => (
+  <FixedTypographyBoundary>
+    <CommunityDetailScreen />
+  </FixedTypographyBoundary>
+);
+const FixedCommunityCreateScreen = () => (
+  <FixedTypographyBoundary>
+    <CommunityCreateScreen />
+  </FixedTypographyBoundary>
+);
+const FixedCommunityEditScreen = () => (
+  <FixedTypographyBoundary>
+    <CommunityEditScreen />
+  </FixedTypographyBoundary>
+);
+const FixedCommunityBlockedUsersScreen = () => (
+  <FixedTypographyBoundary>
+    <CommunityBlockedUsersScreen />
+  </FixedTypographyBoundary>
 );
 
 export default function RootNavigator() {
@@ -396,22 +445,22 @@ export default function RootNavigator() {
       />
       <Stack.Screen
         name="WeatherInsight"
-        component={WeatherInsightScreen}
+        component={FixedWeatherInsightScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen
         name="IndoorActivityRecommendations"
-        component={IndoorActivityRecommendationsScreen}
+        component={FixedIndoorActivityRecommendationsScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen
         name="ActivityGuide"
-        component={ActivityGuideScreen}
+        component={FixedActivityGuideScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen
         name="WeatherActivityRecord"
-        component={WeatherActivityRecordScreen}
+        component={FixedWeatherActivityRecordScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen
@@ -451,7 +500,7 @@ export default function RootNavigator() {
       />
       <Stack.Screen
         name="CommunityList"
-        component={CommunityListScreen}
+        component={FixedCommunityListScreen}
         options={{
           headerShown: true,
           headerTitle: '커뮤니티',
@@ -460,7 +509,7 @@ export default function RootNavigator() {
       />
       <Stack.Screen
         name="CommunityDetail"
-        component={CommunityDetailScreen}
+        component={FixedCommunityDetailScreen}
         options={{
           headerShown: true,
           headerTitle: '커뮤니티',
@@ -469,7 +518,7 @@ export default function RootNavigator() {
       />
       <Stack.Screen
         name="CommunityCreate"
-        component={CommunityCreateScreen}
+        component={FixedCommunityCreateScreen}
         options={{
           headerShown: true,
           headerTitle: '새 게시글',
@@ -478,7 +527,7 @@ export default function RootNavigator() {
       />
       <Stack.Screen
         name="CommunityEdit"
-        component={CommunityEditScreen}
+        component={FixedCommunityEditScreen}
         options={{
           headerShown: true,
           headerTitle: '게시글 수정',
@@ -487,7 +536,7 @@ export default function RootNavigator() {
       />
       <Stack.Screen
         name="CommunityBlockedUsers"
-        component={CommunityBlockedUsersScreen}
+        component={FixedCommunityBlockedUsersScreen}
         options={{
           headerShown: true,
           headerTitle: '차단한 사용자',

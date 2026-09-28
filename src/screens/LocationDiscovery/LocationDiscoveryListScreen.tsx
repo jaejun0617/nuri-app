@@ -349,7 +349,7 @@ export default function LocationDiscoveryListScreen() {
               <Feather name="arrow-left" size={20} color="#102033" />
             </TouchableOpacity>
           </View>
-          <AppText preset="unifiedTitle" style={styles.headerTitle}>
+          <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
             우리동네 산책 리스트
           </AppText>
           <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
@@ -375,7 +375,7 @@ export default function LocationDiscoveryListScreen() {
         {recentSearches.searches.length ? (
           <View style={styles.recentSearchSection}>
             <View style={styles.recentSearchHeader}>
-              <AppText preset="unifiedTitle" style={styles.recentSearchTitle}>
+              <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={styles.recentSearchTitle}>
                 최근 검색
               </AppText>
               <TouchableOpacity

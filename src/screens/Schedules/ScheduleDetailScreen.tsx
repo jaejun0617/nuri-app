@@ -354,7 +354,7 @@ export default function ScheduleDetailScreen() {
           </TouchableOpacity>
         </View>
 
-        <AppText preset="unifiedTitle" style={styles.headerTitle}>
+        <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
           일정 상세
         </AppText>
 
@@ -383,7 +383,7 @@ export default function ScheduleDetailScreen() {
               />
             </View>
             <View style={styles.heroTextWrap}>
-              <AppText preset="unifiedTitle" style={styles.title}>
+              <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.title}>
                 {schedule.title}
               </AppText>
               <View

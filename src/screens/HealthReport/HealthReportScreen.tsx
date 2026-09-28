@@ -1103,7 +1103,7 @@ export default function HealthReportScreen() {
               <Feather color="#102033" name="arrow-left" size={20} />
             </TouchableOpacity>
           </View>
-          <AppText preset="unifiedTitle" style={styles.headerTitle}>
+          <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
             건강관리
           </AppText>
           <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
@@ -1164,7 +1164,7 @@ export default function HealthReportScreen() {
           </TouchableOpacity>
         </View>
 
-        <AppText preset="unifiedTitle" style={styles.headerTitle}>
+        <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
           건강관리
         </AppText>
 

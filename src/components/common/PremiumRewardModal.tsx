@@ -112,7 +112,7 @@ function PremiumRewardModalBase({
           <AppText preset="unifiedBody" style={[styles.eyebrow, { color: primaryColor }]}>
             NURI REWARD
           </AppText>
-          <AppText preset="unifiedTitle" style={[styles.title, { color: theme.colors.textPrimary }]}>
+          <AppText typographyRole="celebration" preset="unifiedTitle" style={[styles.title, { color: theme.colors.textPrimary }]}>
             {title}
           </AppText>
           <AppText preset="unifiedBody" style={[styles.message, { color: theme.colors.textSecondary }]}>
@@ -121,7 +121,7 @@ function PremiumRewardModalBase({
 
           <View style={[styles.rewardPanel, { backgroundColor: petTheme.soft }]}>
             <View style={styles.rewardHeader}>
-              <AppText preset="unifiedTitle" style={[styles.rewardTitle, { color: primaryColor }]}>
+              <AppText typographyRole="celebration" preset="unifiedTitle" style={[styles.rewardTitle, { color: primaryColor }]}>
                 {rewardTitle}
               </AppText>
               {leveledUp ? (

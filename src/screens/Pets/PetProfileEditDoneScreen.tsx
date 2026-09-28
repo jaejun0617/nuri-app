@@ -74,7 +74,7 @@ export default function PetProfileEditDoneScreen() {
           </View>
         </View>
 
-        <AppText preset="unifiedTitle" style={styles.title}>
+        <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.title}>
           프로필 수정 완료!
         </AppText>
         <AppText preset="unifiedBody" style={styles.body}>

@@ -85,7 +85,7 @@ export default function EditDoneScreen() {
           </View>
         </View>
 
-        <AppText preset="unifiedTitle" style={styles.title}>
+        <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.title}>
           {title}
         </AppText>
         <AppText preset="unifiedBody" style={styles.body}>

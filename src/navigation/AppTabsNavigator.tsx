@@ -30,6 +30,7 @@ import MoreDrawer from '../components/MoreDrawer/MoreDrawer';
 import AppNavigationToolbar from '../components/navigation/AppNavigationToolbar';
 import { useUiStore } from '../store/uiStore';
 import type { HealthReportTabKey } from '../services/health-report/viewModel';
+import { FixedTypographyBoundary } from '../app/providers/AppFontPreferenceProvider';
 
 export type RecordCreateReturnTo =
   | { tab: 'HomeTab'; afterCreate?: 'detail' | 'home' }
@@ -59,6 +60,14 @@ const Tab = createBottomTabNavigator<AppTabParamList>();
 function MoreNull() {
   const theme = useTheme();
   return <View style={{ flex: 1, backgroundColor: theme.colors.background }} />;
+}
+
+function FixedCommunityTabStack() {
+  return (
+    <FixedTypographyBoundary>
+      <CommunityTabStackNavigator />
+    </FixedTypographyBoundary>
+  );
 }
 
 function CustomTabBar(props: BottomTabBarProps) {
@@ -101,7 +110,7 @@ export default function AppTabsNavigator() {
         <Tab.Screen name="TimelineTab" component={TimelineStackNavigator} />
         <Tab.Screen
           name="CommunityTab"
-          component={CommunityTabStackNavigator}
+          component={FixedCommunityTabStack}
         />
         <Tab.Screen name="GuestbookTab" component={GuestbookScreen} />
         <Tab.Screen

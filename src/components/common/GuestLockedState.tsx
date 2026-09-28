@@ -59,7 +59,7 @@ function GuestLockedStateBase({
 
         <View style={styles.copyBlock}>
           {titleLines.map((line, index) => (
-            <AppText
+            <AppText typographyRole="celebration"
               key={`title-${line}-${index}`}
               preset="unifiedTitle"
               style={[styles.title, { color: theme.colors.textPrimary }]}

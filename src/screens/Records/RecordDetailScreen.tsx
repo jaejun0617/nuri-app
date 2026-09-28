@@ -674,7 +674,7 @@ export default function RecordDetailScreen() {
     return (
       <View style={styles.screen}>
         <View style={[styles.header, { paddingTop: Math.max(insets.top + 4, 14) }]}>
-          <AppText preset="unifiedTitle" style={styles.headerTitle}>
+          <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
             추억상세보기
           </AppText>
         </View>
@@ -695,13 +695,13 @@ export default function RecordDetailScreen() {
       return (
         <View style={styles.screen}>
           <View style={[styles.header, { paddingTop: Math.max(insets.top + 4, 14) }]}>
-            <AppText preset="unifiedTitle" style={styles.headerTitle}>
+            <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
               추억상세보기
             </AppText>
           </View>
 
           <View style={styles.empty}>
-            <AppText preset="unifiedTitle" style={styles.emptyTitle}>
+            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
               기록을 불러오지 못했어요
             </AppText>
             <AppText preset="unifiedBody" style={styles.emptyDesc}>
@@ -725,13 +725,13 @@ export default function RecordDetailScreen() {
     return (
       <View style={styles.screen}>
         <View style={[styles.header, { paddingTop: Math.max(insets.top + 4, 14) }]}>
-          <AppText preset="unifiedTitle" style={styles.headerTitle}>
+          <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
             추억상세보기
           </AppText>
         </View>
 
         <View style={styles.empty}>
-          <AppText preset="unifiedTitle" style={styles.emptyTitle}>
+          <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
             기록을 찾을 수 없어요
           </AppText>
           <AppText preset="unifiedBody" style={styles.emptyDesc}>
@@ -779,7 +779,7 @@ export default function RecordDetailScreen() {
         {route.params?.entrySource === 'health_report' ? null : (
         <View style={styles.relatedSection}>
           <View style={styles.relatedSectionHeader}>
-            <AppText preset="unifiedTitle" style={styles.relatedSectionTitle}>
+            <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={styles.relatedSectionTitle}>
               다른 추억도 이어서 볼래요
             </AppText>
             <AppText preset="unifiedMeta" style={styles.relatedSectionCount}>

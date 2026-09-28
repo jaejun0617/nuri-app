@@ -492,7 +492,7 @@ export default function ScheduleCreateScreen() {
           </TouchableOpacity>
         </View>
 
-        <AppText preset="unifiedTitle" style={styles.headerTitle}>
+        <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
           일정 추가
         </AppText>
 

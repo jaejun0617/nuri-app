@@ -95,7 +95,7 @@ function Section({
 }) {
   return (
     <View style={styles.sectionCard}>
-      <AppText preset="unifiedTitle" style={styles.sectionTitle}>
+      <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={styles.sectionTitle}>
         {title}
       </AppText>
       {children}
@@ -215,7 +215,7 @@ export default function GuideAdminEditorScreen() {
       <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
         <View style={styles.emptyCard}>
           <Feather name="shield-off" size={28} color={petTheme.primary} />
-          <AppText preset="unifiedTitle" style={styles.emptyTitle}>
+          <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
             운영 권한이 필요해요
           </AppText>
         </View>
@@ -228,7 +228,7 @@ export default function GuideAdminEditorScreen() {
       <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
         <View style={styles.emptyCard}>
           <Feather name="loader" size={28} color={petTheme.primary} />
-          <AppText preset="unifiedTitle" style={styles.emptyTitle}>
+          <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
             가이드 편집 정보를 불러오는 중이에요
           </AppText>
         </View>
@@ -241,7 +241,7 @@ export default function GuideAdminEditorScreen() {
       <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
         <View style={styles.emptyCard}>
           <Feather name="alert-circle" size={28} color={petTheme.primary} />
-          <AppText preset="unifiedTitle" style={styles.emptyTitle}>
+          <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
             편집할 가이드를 찾지 못했어요
           </AppText>
           <AppText preset="unifiedBody" style={styles.emptyDesc}>
@@ -277,7 +277,7 @@ export default function GuideAdminEditorScreen() {
             </TouchableOpacity>
           </View>
 
-          <AppText preset="unifiedTitle" style={styles.headerTitle}>
+          <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
             {route.params.mode === 'create' ? '가이드 등록' : '가이드 편집'}
           </AppText>
 
@@ -285,7 +285,7 @@ export default function GuideAdminEditorScreen() {
         </View>
 
         <View style={styles.heroCard}>
-          <AppText preset="unifiedTitle" style={styles.heroTitle}>
+          <AppText typographyRole="heroCopy" preset="unifiedTitle" style={styles.heroTitle}>
             {formValues.title.trim() || '새 가이드 초안'}
           </AppText>
           <AppText preset="unifiedBody" style={styles.heroSub}>

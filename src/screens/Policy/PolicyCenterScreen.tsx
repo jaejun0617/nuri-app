@@ -80,7 +80,7 @@ export default function PolicyCenterScreen() {
         >
           <Feather name="arrow-left" size={21} color={theme.colors.textPrimary} />
         </TouchableOpacity>
-        <AppText
+        <AppText typographyRole="screenTitle"
           testID="policy-center-title"
           preset="unifiedTitle"
           style={[styles.headerTitle, { color: petTheme.deep }]}
@@ -99,7 +99,7 @@ export default function PolicyCenterScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.intro}>
-          <AppText preset="unifiedTitle" style={[styles.introTitle, { color: petTheme.deep }]}>NURI 이용 안내</AppText>
+          <AppText typographyRole="heroCopy" preset="unifiedTitle" style={[styles.introTitle, { color: petTheme.deep }]}>NURI 이용 안내</AppText>
           <AppText preset="unifiedBody" style={[styles.introBody, { color: theme.colors.textSecondary }]}>서비스 이용과 정보 처리에 필요한 안내를 확인할 수 있어요. 본문은 현재 최종 검토 중입니다.</AppText>
         </View>
 

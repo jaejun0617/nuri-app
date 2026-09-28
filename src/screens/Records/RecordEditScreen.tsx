@@ -740,7 +740,7 @@ export default function RecordEditScreen() {
           </TouchableOpacity>
         </View>
 
-        <AppText preset="unifiedTitle" style={styles.headerTitle}>
+        <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
           {isHealthEntry ? '건강 기록 수정' : '기록 수정'}
         </AppText>
 

@@ -133,7 +133,7 @@ export default function GuideAdminListScreen() {
           </TouchableOpacity>
         </View>
 
-        <AppText preset="unifiedTitle" style={styles.headerTitle}>
+        <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
           가이드 운영
         </AppText>
 
@@ -153,7 +153,7 @@ export default function GuideAdminListScreen() {
       {!isGuideAdmin ? (
         <View style={styles.emptyCard}>
           <Feather name="shield-off" size={28} color={petTheme.primary} />
-          <AppText preset="unifiedTitle" style={styles.emptyTitle}>
+          <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
             운영 권한이 필요해요
           </AppText>
           <AppText preset="unifiedBody" style={styles.emptyDesc}>
@@ -213,14 +213,14 @@ export default function GuideAdminListScreen() {
           {catalogState.loading ? (
             <View style={styles.emptyCard}>
               <Feather name="loader" size={28} color={petTheme.primary} />
-              <AppText preset="unifiedTitle" style={styles.emptyTitle}>
+              <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
                 운영 목록을 불러오는 중이에요
               </AppText>
             </View>
           ) : catalogState.error ? (
             <View style={styles.emptyCard}>
               <Feather name="alert-circle" size={28} color={petTheme.primary} />
-              <AppText preset="unifiedTitle" style={styles.emptyTitle}>
+              <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
                 운영 목록을 불러오지 못했어요
               </AppText>
               <AppText preset="unifiedBody" style={styles.emptyDesc}>
@@ -230,7 +230,7 @@ export default function GuideAdminListScreen() {
           ) : filteredGuides.length === 0 ? (
             <View style={styles.emptyCard}>
               <Feather name="book-open" size={28} color={petTheme.primary} />
-              <AppText preset="unifiedTitle" style={styles.emptyTitle}>
+              <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
                 조건에 맞는 가이드가 없어요
               </AppText>
               <AppText preset="unifiedBody" style={styles.emptyDesc}>

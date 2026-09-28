@@ -238,7 +238,7 @@ export default function NuriRankingScreen() {
           <AppText preset="unifiedMeta" style={[styles.headerEyebrow, { color: petTheme.primary }]}>
             NURI RANKING
           </AppText>
-          <AppText preset="unifiedTitle" style={styles.headerTitle}>
+          <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
             누리 랭킹
           </AppText>
         </View>
@@ -271,7 +271,7 @@ export default function NuriRankingScreen() {
             <Feather name="bar-chart-2" size={23} color={petTheme.primary} />
           </View>
           <View style={styles.heroTextWrap}>
-            <AppText preset="unifiedTitle" style={styles.heroTitle}>
+            <AppText typographyRole="heroCopy" preset="unifiedTitle" style={styles.heroTitle}>
               서로의 활동을 가볍게 응원해요
             </AppText>
             <AppText preset="unifiedBody" style={styles.heroBody}>
@@ -315,7 +315,7 @@ export default function NuriRankingScreen() {
 
         <View style={styles.sectionHeader}>
           <View>
-            <AppText preset="unifiedTitle" style={styles.sectionTitle}>
+            <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={styles.sectionTitle}>
               {selectedMeta.label} 랭킹
             </AppText>
             <AppText preset="unifiedMeta" style={styles.sectionHelper}>
@@ -337,7 +337,7 @@ export default function NuriRankingScreen() {
         {rankingQuery.isError && rows.length === 0 ? (
           <View style={styles.stateCard}>
             <Feather name="alert-circle" size={24} color={theme.colors.textMuted} />
-            <AppText preset="unifiedTitle" style={styles.stateTitle}>
+            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.stateTitle}>
               랭킹을 준비 중이에요
             </AppText>
             <AppText preset="unifiedBody" style={styles.stateText}>
@@ -349,7 +349,7 @@ export default function NuriRankingScreen() {
         {!isInitialLoading && !rankingQuery.isError && rows.length === 0 ? (
           <View style={styles.stateCard}>
             <Feather name="bar-chart" size={24} color={theme.colors.textMuted} />
-            <AppText preset="unifiedTitle" style={styles.stateTitle}>
+            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.stateTitle}>
               아직 쌓인 활동이 없어요
             </AppText>
             <AppText preset="unifiedBody" style={styles.stateText}>

@@ -14,6 +14,9 @@
 // - 계정 액션과 일반 메뉴 이동이 섞여 있어, 모달 상태와 navigation 호출 순서를 함부로 바꾸면 드로어 닫힘/복귀 UX가 어긋날 수 있다.
 
 import AppTextInput from '../../app/ui/AppTextInput';
+import AppFontSettingsModal from '../../components/settings/AppFontSettingsModal';
+import { useAppFontPreference } from '../../app/providers/AppFontPreferenceProvider';
+import { getAppFontModeLabel } from '../../app/typography/appFontMode';
 import AppText from '../../app/ui/AppText';
 import React, {
   memo,
@@ -126,6 +129,7 @@ type MenuItemSpec = {
   iconTone?: 'accent' | 'muted' | 'soft';
   onPress: () => void;
   badge?: 'dot' | 'soon' | null;
+  valueLabel?: string | null;
 };
 
 type MenuCardProps = {
@@ -230,6 +234,7 @@ const MenuRow = memo(function MenuRow({
   iconTone = 'accent',
   onPress,
   badge = null,
+  valueLabel = null,
   testID,
   themeColors,
 }: MenuRowProps & {
@@ -265,6 +270,14 @@ const MenuRow = memo(function MenuRow({
       </View>
 
       <View style={styles.menuRight}>
+        {valueLabel ? (
+          <AppText
+            preset="unifiedBody"
+            style={[styles.menuValue, { color: theme.colors.textMuted }]}
+          >
+            {valueLabel}
+          </AppText>
+        ) : null}
         {badge === 'dot' ? <View style={styles.menuDot} /> : null}
         {badge === 'soon' ? <AppText preset="unifiedLabel" style={styles.badgeSoon}>soon</AppText> : null}
         <Feather
@@ -286,7 +299,7 @@ const MenuCard = memo(function MenuCard({
   const theme = useTheme();
   return (
     <View style={styles.sectionWrap}>
-      <AppText preset="unifiedTitle" style={[styles.sectionTitle, { color: titleColor }]}>
+      <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={[styles.sectionTitle, { color: titleColor }]}>
         {title}
       </AppText>
       <View
@@ -453,7 +466,7 @@ export const PasswordChangeModal = memo(function PasswordChangeModal({
             onPress={Keyboard.dismiss}
           >
             <View style={styles.sheetHeader}>
-              <AppText preset="unifiedTitle"
+              <AppText typographyRole="sectionTitle" preset="unifiedTitle"
                 style={[styles.sheetTitle, { color: theme.colors.textPrimary }]}
               >
                 비밀번호 변경
@@ -587,7 +600,7 @@ const ThemeSettingsModal = memo(function ThemeSettingsModal({
           ]}
         >
           <View style={styles.sheetHeader}>
-            <AppText preset="unifiedTitle"
+            <AppText typographyRole="sectionTitle" preset="unifiedTitle"
               style={[styles.sheetTitle, { color: theme.colors.textPrimary }]}
             >
               테마 설정
@@ -756,7 +769,7 @@ export const NotificationSettingsModal = memo(function NotificationSettingsModal
           ]}
         >
           <View style={styles.sheetHeader}>
-            <AppText preset="unifiedTitle"
+            <AppText typographyRole="sectionTitle" preset="unifiedTitle"
               style={[styles.sheetTitle, { color: theme.colors.textPrimary }]}
             >
               알림 설정
@@ -1064,7 +1077,7 @@ export const PasswordChangeSuccessModal = memo(
               { backgroundColor: theme.colors.surfaceElevated },
             ]}
           >
-            <AppText preset="unifiedTitle"
+            <AppText typographyRole="celebration" preset="unifiedTitle"
               style={[styles.successTitle, { color: theme.colors.textPrimary }]}
             >
               비밀번호 변경 완료
@@ -1139,7 +1152,7 @@ const ProfileEditModal = memo(function ProfileEditModal({
             onPress={Keyboard.dismiss}
           >
             <View style={styles.sheetHeader}>
-              <AppText preset="unifiedBody"
+              <AppText typographyRole="sectionTitle" preset="unifiedBody"
                 style={[styles.sheetTitle, { color: theme.colors.textPrimary }]}
               >
                 닉네임 수정
@@ -1225,6 +1238,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+  const { mode: appFontMode } = useAppFontPreference();
   const nicknameRaw = useAuthStore(s => s.profile.nickname);
   const role = useAuthStore(s => s.profile.role ?? 'user');
   const profileSyncStatus = useAuthStore(s => s.profileSyncStatus);
@@ -1248,6 +1262,8 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const [deleting, setDeleting] = useState(false);
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [themeModalVisible, setThemeModalVisible] = useState(false);
+  const [fontSettingsModalVisible, setFontSettingsModalVisible] =
+    useState(false);
   const [notificationModalVisible, setNotificationModalVisible] =
     useState(false);
   const [notificationSettingsLoading, setNotificationSettingsLoading] =
@@ -2238,6 +2254,14 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         onPress: openThemeModal,
       },
       {
+        key: 'app-font',
+        label: '앱 글꼴',
+        valueLabel: getAppFontModeLabel(appFontMode),
+        icon: 'type',
+        iconTone: 'accent',
+        onPress: () => setFontSettingsModalVisible(true),
+      },
+      {
         key: 'notification',
         label: '알림 설정',
         icon: 'settings',
@@ -2291,6 +2315,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
 
     return items;
   }, [
+    appFontMode,
     canShowLogout,
     isLoggedIn,
     loading,
@@ -2346,7 +2371,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       >
         <View style={styles.headerRow}>
           <View style={styles.headerTextWrap}>
-            <AppText preset="unifiedTitle"
+            <AppText typographyRole="screenTitle" preset="unifiedTitle"
               style={[
                 styles.headerTitle,
                 !isLoggedIn ? styles.guestHeaderTitle : null,
@@ -2558,6 +2583,11 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         onSubmit={() => {
           onSubmitTheme().catch(() => {});
         }}
+      />
+      <AppFontSettingsModal
+        visible={fontSettingsModalVisible}
+        bottomInset={Math.max(insets.bottom, 6)}
+        onClose={() => setFontSettingsModalVisible(false)}
       />
       <NotificationSettingsModal
         visible={notificationModalVisible}
@@ -2957,6 +2987,12 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: '#2C3445',
     fontWeight: '600',
+  },
+  menuValue: {
+    maxWidth: 110,
+    fontSize: 12,
+    lineHeight: 16,
+    textAlign: 'right',
   },
   menuRight: {
     flexDirection: 'row',

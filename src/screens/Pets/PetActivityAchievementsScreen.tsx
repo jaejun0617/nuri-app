@@ -90,7 +90,7 @@ const SectionCard = memo(function SectionCard({
           {eyebrow}
         </AppText>
       ) : null}
-      <AppText preset="unifiedTitle" style={styles.sectionTitle}>
+      <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={styles.sectionTitle}>
         {title}
       </AppText>
       {children}
@@ -190,7 +190,7 @@ function GrowthCard({
           <AppText preset="unifiedMeta" style={styles.growthEyebrow}>
             나의 활동 성장
           </AppText>
-          <AppText preset="display" style={styles.growthTitle}>
+          <AppText typographyRole="heroCopy" preset="display" style={styles.growthTitle}>
             Lv.{levelSummary.level}
           </AppText>
         </View>
@@ -239,7 +239,7 @@ function PetSelector({
   if (pets.length === 0) {
     return (
       <View style={styles.emptyPetsCard}>
-        <AppText preset="unifiedTitle" style={styles.emptyTitle}>
+        <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
           아직 연결된 아이가 없어요
         </AppText>
         <AppText preset="unifiedBody" style={styles.emptyBody}>
@@ -530,7 +530,7 @@ export default function PetActivityAchievementsScreen() {
           <Feather name="arrow-left" size={20} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <View style={styles.headerTextWrap}>
-          <AppText preset="unifiedTitle" style={[styles.title, { color: theme.colors.textPrimary }]}>
+          <AppText typographyRole="screenTitle" preset="unifiedTitle" style={[styles.title, { color: theme.colors.textPrimary }]}>
             활동·칭호
           </AppText>
           <AppText preset="unifiedMeta" style={[styles.subtitle, { color: theme.colors.textMuted }]}>
@@ -585,7 +585,7 @@ export default function PetActivityAchievementsScreen() {
           </>
         ) : (
           <View style={styles.emptyPetsCard}>
-            <AppText preset="unifiedTitle" style={styles.emptyTitle}>
+            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
               활동 기록을 불러오지 못했어요
             </AppText>
             <AppText preset="unifiedBody" style={styles.emptyBody}>

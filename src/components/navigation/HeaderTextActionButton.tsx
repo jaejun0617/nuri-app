@@ -46,6 +46,7 @@ export default function HeaderTextActionButton({
       ]}
     >
       <AppText
+        typographyRole="utility"
         preset="tab"
         maxFontSizeMultiplier={1.5}
         style={[styles.text, { color: textColor }]}

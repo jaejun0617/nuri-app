@@ -521,7 +521,7 @@ export default function UserNotificationsScreen() {
           <Feather name="arrow-left" size={20} color="#102033" />
         </TouchableOpacity>
         <View style={styles.headerTextWrap}>
-          <AppText preset="unifiedTitle" style={styles.headerTitle}>
+          <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
             알림함
           </AppText>
           <AppText preset="unifiedMeta" style={styles.headerSubText}>
@@ -557,7 +557,7 @@ export default function UserNotificationsScreen() {
         </View>
       ) : errorMessage ? (
         <View style={styles.centerState}>
-          <AppText preset="unifiedTitle" style={styles.centerTitle}>
+          <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.centerTitle}>
             알림을 불러오지 못했어요
           </AppText>
           <AppText preset="unifiedBody" style={styles.centerText}>
@@ -590,7 +590,7 @@ export default function UserNotificationsScreen() {
               <View style={styles.emptyIcon}>
                 <Feather name="bell" size={24} color="#7D8798" />
               </View>
-              <AppText preset="unifiedTitle" style={styles.centerTitle}>
+              <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.centerTitle}>
                 아직 새 알림이 없어요
               </AppText>
               <AppText preset="unifiedBody" style={styles.centerText}>

@@ -59,7 +59,7 @@ const EmptyPetState = memo(function EmptyPetState({
       <View style={[styles.emptyIconWrap, { backgroundColor: `${accentColor}14` }]}>
         <Feather name="heart" size={22} color={accentColor} />
       </View>
-      <AppText preset="unifiedTitle" style={styles.emptyTitle}>
+      <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
         아직 등록된 아이가 없어요
       </AppText>
       <AppText preset="unifiedBody" style={styles.emptyBody}>
@@ -291,7 +291,7 @@ export default function PetManagementScreen() {
         </TouchableOpacity>
 
         <View style={styles.headerTextWrap}>
-          <AppText preset="unifiedTitle" style={[styles.title, { color: theme.colors.textPrimary }]}>
+          <AppText typographyRole="screenTitle" preset="unifiedTitle" style={[styles.title, { color: theme.colors.textPrimary }]}>
             아이들 프로필 관리
           </AppText>
           <AppText preset="unifiedMeta" style={[styles.subtitle, { color: theme.colors.textMuted }]}>

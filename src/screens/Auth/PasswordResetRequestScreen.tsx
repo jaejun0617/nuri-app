@@ -105,8 +105,8 @@ export default function PasswordResetRequestScreen({ navigation, route }: Props)
         >
           <View style={styles.content}>
             <View style={styles.hero}>
-              <AppText preset="unifiedTitle" style={styles.heroEyebrow}>PASSWORD RESET</AppText>
-              <AppText preset="unifiedTitle" style={styles.heroTitle}>비밀번호 재설정</AppText>
+              <AppText typographyRole="brandDisplay" preset="unifiedTitle" style={styles.heroEyebrow}>PASSWORD RESET</AppText>
+              <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.heroTitle}>비밀번호 재설정</AppText>
               <AppText preset="unifiedBody" style={styles.heroBody}>
                 가입된 계정이 있다면 입력한 이메일로 비밀번호 재설정 안내를 보내드려요.
               </AppText>
@@ -136,7 +136,7 @@ export default function PasswordResetRequestScreen({ navigation, route }: Props)
 
             {lastSentEmail ? (
               <View style={styles.successBox}>
-                <AppText preset="unifiedTitle" style={styles.successTitle}>메일 전송 안내</AppText>
+                <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.successTitle}>메일 전송 안내</AppText>
                 <AppText preset="unifiedBody" style={styles.successBody}>
                   {`${lastSentEmail} 주소로 계정이 있다면 안내 메일을 보냈어요. 메일함과 스팸함을 함께 확인해 주세요.`}
                 </AppText>

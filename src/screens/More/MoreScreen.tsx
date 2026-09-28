@@ -221,13 +221,13 @@ export default function MoreScreen() {
   return (
     <View style={styles.screen}>
       <View style={styles.card}>
-        <AppText preset="unifiedTitle" style={styles.title}>더보기</AppText>
+        <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.title}>더보기</AppText>
         <AppText preset="unifiedBody" style={styles.desc}>현재 상태: {title}</AppText>
 
         {status === 'logged_in' ? (
           <>
             <View style={styles.menuSection}>
-              <AppText preset="unifiedTitle" style={styles.menuSectionTitle}>계정 관리</AppText>
+              <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={styles.menuSectionTitle}>계정 관리</AppText>
 
               <TouchableOpacity
                 activeOpacity={0.88}

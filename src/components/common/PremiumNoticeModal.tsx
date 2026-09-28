@@ -147,7 +147,7 @@ function PremiumNoticeModalBase({
 
           <View style={styles.copyBlock}>
             {titleLines.map((line, index) => (
-              <AppText
+              <AppText typographyRole="celebration"
                 key={`title-${line}-${index}`}
                 preset={textPresets.title}
                 style={[styles.title, { color: theme.colors.textPrimary }]}

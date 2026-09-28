@@ -1,8 +1,10 @@
 import { StyleSheet } from 'react-native';
+import { typography } from '../../app/theme/tokens/typography';
 
 const BRAND = '#8B6CF5';
 const TEXT = '#3F302D';
-const CUTE_FONT = 'insungitCutelivelyjisu';
+const DISPLAY_FONT = typography.family.display;
+const SYSTEM_FONT = typography.family.sans;
 
 export const styles = StyleSheet.create({
   screen: {
@@ -52,10 +54,10 @@ export const styles = StyleSheet.create({
   },
   wordmark: {
     color: '#EE8177',
-    fontFamily: 'Fredoka-SemiBold',
+    fontFamily: DISPLAY_FONT,
     fontSize: 15,
     lineHeight: 20,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   wordmarkSymbol: {
     width: 19,
@@ -63,14 +65,14 @@ export const styles = StyleSheet.create({
   },
   heroTitle: {
     color: TEXT,
-    fontFamily: CUTE_FONT,
+    fontFamily: DISPLAY_FONT,
     fontSize: 35,
     lineHeight: 43,
   },
   heroSubtitle: {
     marginTop: 10,
     color: '#665B57',
-    fontFamily: CUTE_FONT,
+    fontFamily: DISPLAY_FONT,
     fontSize: 17,
     lineHeight: 27,
   },
@@ -92,13 +94,13 @@ export const styles = StyleSheet.create({
   },
   heroSupportText: {
     color: '#665B57',
-    fontFamily: CUTE_FONT,
+    fontFamily: DISPLAY_FONT,
     fontSize: 14,
     lineHeight: 22,
   },
   heroSupportHeart: {
     color: '#EF7F78',
-    fontFamily: CUTE_FONT,
+    fontFamily: DISPLAY_FONT,
     fontSize: 16,
     lineHeight: 22,
   },
@@ -130,7 +132,7 @@ export const styles = StyleSheet.create({
     width: '100%',
     height: 45,
     color: TEXT,
-    fontFamily: CUTE_FONT,
+    fontFamily: SYSTEM_FONT,
     fontSize: 16,
     lineHeight: 22,
     paddingHorizontal: 13,
@@ -156,7 +158,7 @@ export const styles = StyleSheet.create({
   },
   checkButtonText: {
     color: BRAND,
-    fontFamily: CUTE_FONT,
+    fontFamily: SYSTEM_FONT,
     fontSize: 15,
     lineHeight: 20,
   },
@@ -180,7 +182,7 @@ export const styles = StyleSheet.create({
   feedbackText: {
     flexShrink: 1,
     color: '#776A65',
-    fontFamily: CUTE_FONT,
+    fontFamily: SYSTEM_FONT,
     fontSize: 14,
     lineHeight: 19,
   },
@@ -223,7 +225,7 @@ export const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: '#FFFFFF',
-    fontFamily: CUTE_FONT,
+    fontFamily: DISPLAY_FONT,
     fontSize: 18,
     lineHeight: 23,
   },

@@ -98,7 +98,7 @@ export default function OAuthCallbackScreen({ navigation, route }: Props) {
       <View style={styles.scrollContent}>
         <View style={styles.processingCard}>
           <ActivityIndicator color="#6D6AF8" size="large" />
-          <AppText preset="unifiedTitle" style={styles.processingTitle}>소셜 로그인을 확인하고 있어요</AppText>
+          <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.processingTitle}>소셜 로그인을 확인하고 있어요</AppText>
           <AppText preset="unifiedBody" style={styles.processingBody}>
             인증 결과를 확인한 뒤 NURI 시작 화면으로 돌아갑니다.
           </AppText>

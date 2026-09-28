@@ -73,8 +73,8 @@ export const styles = StyleSheet.create({
   brandWordmark: {
     fontSize: 24,
     lineHeight: 28,
-    fontFamily: 'Fredoka-SemiBold',
-    fontWeight: 'normal',
+    fontFamily: typography.family.display,
+    fontWeight: '400',
     letterSpacing: 0,
   },
   brandPaw: {
@@ -1177,7 +1177,8 @@ export const styles = StyleSheet.create({
   profileSheetTitle: {
     fontSize: 18,
     lineHeight: 24,
-    fontWeight: '600',
+    fontFamily: typography.family.display,
+    fontWeight: '400',
     color: '#4F382A',
     flexShrink: 1,
   },

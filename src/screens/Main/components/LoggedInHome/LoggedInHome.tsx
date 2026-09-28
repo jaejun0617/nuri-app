@@ -5,6 +5,7 @@
 // - 최근 기록은 홈 전용 세로 프리뷰 섹션으로, 최신 3개만 압축 노출한다.
 
 import AppText from '../../../../app/ui/AppText';
+import { FixedTypographyBoundary } from '../../../../app/providers/AppFontPreferenceProvider';
 import React, {
   useEffect,
   useMemo,
@@ -1169,14 +1170,14 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
         ]}
       >
         <View style={styles.brandLockup}>
-          <Text
+          <AppText
             style={[
               styles.brandWordmark,
               { color: headerPalette?.brand ?? petThemePrimary },
             ]}
           >
             NURI
-          </Text>
+          </AppText>
           <MaterialCommunityIcons
             name="paw"
             size={12}
@@ -4618,14 +4619,16 @@ export default function LoggedInHome() {
         <Animated.View style={animatedContentStyle}>
           {seasonalHomeVisual ? null : homeHero}
 
-          <HomeWeatherSection
-            weather={weatherGuide}
-            locationLabel={weatherGuideState.locationLabel}
-            petName={selectedPet?.name}
-            accentColor={petTheme.primary}
-            season={seasonalHomeVisual?.season ?? null}
-            onPress={onPressWeatherInsight}
-          />
+          <FixedTypographyBoundary>
+            <HomeWeatherSection
+              weather={weatherGuide}
+              locationLabel={weatherGuideState.locationLabel}
+              petName={selectedPet?.name}
+              accentColor={petTheme.primary}
+              season={seasonalHomeVisual?.season ?? null}
+              onPress={onPressWeatherInsight}
+            />
+          </FixedTypographyBoundary>
 
           {seasonalHomeVisual?.season === 'autumn' ||
           seasonalHomeVisual?.season === 'winter' ||
@@ -4659,14 +4662,16 @@ export default function LoggedInHome() {
             accentColor={petTheme.deep}
           />
 
-          <CommunitySection
-            isFocused={isScreenFocused}
-            accentColor={petTheme.primary}
-            accentTint={petTheme.tint}
-            accentBorder={petTheme.border}
-            onPressPost={onPressCommunityPost}
-            onPressAll={onPressCommunityAll}
-          />
+          <FixedTypographyBoundary>
+            <CommunitySection
+              isFocused={isScreenFocused}
+              accentColor={petTheme.primary}
+              accentTint={petTheme.tint}
+              accentBorder={petTheme.border}
+              onPressPost={onPressCommunityPost}
+              onPressAll={onPressCommunityAll}
+            />
+          </FixedTypographyBoundary>
 
           <TodayRecordsSection
             recordItems={recordItems}

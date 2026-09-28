@@ -186,7 +186,7 @@ function FrequentRecordsSectionBase({
               />
             </View>
             <View style={styles.headerTextGroup}>
-              <AppText preset="unifiedTitle" style={[styles.title, { color: petTheme.primary }]}>
+              <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={[styles.title, { color: petTheme.primary }]}>
                 자주 쓰는 기록
               </AppText>
               <AppText preset="unifiedBody"

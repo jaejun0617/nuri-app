@@ -219,7 +219,7 @@ export default function AnimalHospitalListScreen() {
               />
             </TouchableOpacity>
           </View>
-          <AppText preset="unifiedTitle" style={styles.headerTitle}>
+          <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
             우리동네 동물병원
           </AppText>
           <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />

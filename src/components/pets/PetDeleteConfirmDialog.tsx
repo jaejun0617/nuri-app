@@ -165,7 +165,7 @@ function PetDeleteConfirmDialogBase({
                 >
                   삭제 대상
                 </AppText>
-                <AppText
+                <AppText typographyRole="petIdentity"
                   numberOfLines={2}
                   preset="unifiedTitle"
                   style={[styles.petName, { color: theme.colors.textPrimary }]}

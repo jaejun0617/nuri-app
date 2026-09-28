@@ -762,6 +762,7 @@ export default function SignInScreen() {
         <View style={[styles.seasonalHero, { minHeight: seasonalHeroHeight }]}>
           <View style={styles.seasonalHeadlineGroup}>
             <AppText
+              typographyRole="heroCopy"
               preset="title2"
               style={[
                 styles.seasonalHeadline,
@@ -775,7 +776,9 @@ export default function SignInScreen() {
             >
               {seasonalVisual?.headlineFirstLine}
             </AppText>
-            <Text
+            <AppText
+              typographyRole="heroCopy"
+              preset="title2"
               style={[
                 styles.seasonalHeadline,
                 seasonalVisual
@@ -787,7 +790,9 @@ export default function SignInScreen() {
               ]}
             >
               {seasonalVisual?.headlineSecondLinePrefix}
-              <Text
+              <AppText
+                typographyRole="heroCopy"
+                preset="title2"
                 style={[
                   styles.seasonalHeadlineAccent,
                   seasonalVisual
@@ -796,9 +801,9 @@ export default function SignInScreen() {
                 ]}
               >
                 {seasonalVisual?.headlineAccent}
-              </Text>
+              </AppText>
               {seasonalVisual?.headlineSecondLineSuffix}
-            </Text>
+            </AppText>
             <View style={styles.seasonalHeadlineOrnament}>
               <View
                 style={[
@@ -835,6 +840,7 @@ export default function SignInScreen() {
           </View>
 
           <AppText
+            typographyRole="heroCopy"
             preset="unifiedLabel"
             style={[
               styles.seasonalEnglishCopy,
@@ -931,8 +937,9 @@ export default function SignInScreen() {
               staggerMs={55}
             />
           ) : (
-            <AppText
-              preset="unifiedLabel"
+          <AppText
+            typographyRole="heroCopy"
+            preset="unifiedLabel"
               style={[
                 styles.primaryButtonText,
                 isSeasonalLogin ? styles.seasonalPrimaryButtonText : null,
@@ -1034,8 +1041,9 @@ export default function SignInScreen() {
                     : null,
                 ]}
               />
-              <AppText
-                preset="unifiedTitle"
+          <AppText
+            typographyRole="sectionTitle"
+            preset="unifiedTitle"
                 style={[
                   styles.socialSectionTitle,
                   isSeasonalLogin ? styles.seasonalSocialSectionTitle : null,
