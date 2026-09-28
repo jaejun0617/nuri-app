@@ -1,91 +1,133 @@
 import { StyleSheet } from 'react-native';
 
-const BRAND = '#3E9BFF';
-const SURFACE_DEEP = '#081225';
+const SURFACE_DEEP = '#090A21';
+const DISPLAY_FONT = 'insungitCutelivelyjisu';
 
 export const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: SURFACE_DEEP,
   },
+  backgroundImage: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    width: undefined,
+    height: undefined,
+  },
+  readabilityVeil: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: 'rgba(5, 5, 24, 0.08)',
+  },
+  safeArea: {
+    flex: 1,
+  },
   content: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 28,
-    backgroundColor: SURFACE_DEEP,
+    paddingHorizontal: 24,
+    paddingTop: 76,
   },
-  heroCard: {
-    width: 200,
-    height: 200,
-    borderRadius: 999,
+  brandBlock: {
+    width: 142,
+    height: 126,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logo: {
-    width: 200,
-    height: 200,
-    tintColor: BRAND,
+  symbolGlow: {
+    position: 'absolute',
+    width: 126,
+    height: 112,
+    tintColor: '#FFD0B4',
   },
-  name: {
-    marginTop: 18,
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '900',
-    textAlign: 'center',
+  symbol: {
+    width: 118,
+    height: 105,
+    tintColor: '#FFE8CF',
+    opacity: 0.96,
   },
-  nameUnderline: {
-    width: 38,
-    height: 4,
-    borderRadius: 999,
+  wordmark: {
     marginTop: 10,
-    backgroundColor: BRAND,
-  },
-  body: {
-    marginTop: 14,
-    color: 'rgba(255,255,255,0.64)',
-    fontSize: 12,
-    fontWeight: '700',
+    color: '#F7D7C2',
+    fontFamily: DISPLAY_FONT,
+    fontSize: 36,
+    lineHeight: 44,
     textAlign: 'center',
-    lineHeight: 19,
+    textShadowColor: 'rgba(255, 184, 148, 0.42)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 12,
   },
-  progressWrap: {
+  divider: {
+    width: 154,
+    height: StyleSheet.hairlineWidth,
+    marginTop: 20,
+    backgroundColor: 'rgba(239, 187, 180, 0.38)',
+  },
+  copyBlock: {
     width: '100%',
-    marginTop: 44,
-    gap: 10,
+    alignItems: 'center',
+    marginTop: 25,
   },
-  progressTrack: {
-    width: '100%',
-    height: 6,
-    borderRadius: 999,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(62,155,255,0.16)',
+  headline: {
+    color: '#F9E4D3',
+    fontFamily: DISPLAY_FONT,
+    fontSize: 25,
+    lineHeight: 34,
+    textAlign: 'center',
+    textShadowColor: 'rgba(255, 177, 150, 0.26)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 9,
   },
-  progressFill: {
-    height: '100%',
-    borderRadius: 999,
-    backgroundColor: BRAND,
-  },
-  timer: {
-    color: 'rgba(255,255,255,0.68)',
-    fontSize: 12,
-    fontWeight: '700',
+  description: {
+    marginTop: 8,
+    color: 'rgba(219, 210, 226, 0.76)',
+    fontFamily: DISPLAY_FONT,
+    fontSize: 15,
+    lineHeight: 22,
     textAlign: 'center',
   },
   dotRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 10,
-    marginTop: 56,
+    marginTop: 29,
   },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 999,
-    backgroundColor: 'rgba(62,155,255,0.24)',
+  dotSlot: {
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dotBase: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    opacity: 0.72,
+  },
+  dotHalo: {
+    position: 'absolute',
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: 'rgba(255, 190, 157, 0.32)',
   },
   dotActive: {
-    width: 28,
-    backgroundColor: BRAND,
+    position: 'absolute',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#FFE3C7',
+    shadowColor: '#FF9E79',
+    shadowOpacity: 0.9,
+    shadowRadius: 7,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 5,
   },
 });

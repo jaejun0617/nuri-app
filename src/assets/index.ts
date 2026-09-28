@@ -9,4 +9,5 @@ export const ASSETS = {
   logo: require('./logo/logo_v2.png'),
   sampleDogProfile: require('./logo/logo_v2.png'),
   nicknameSetupBackground: require('./onboarding/nickname-setup-background.png'),
+  postRegistrationLoadingBackground: require('./onboarding/post-registration-loading-background.png'),
 } as const;
