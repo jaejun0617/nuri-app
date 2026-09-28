@@ -12,15 +12,23 @@
 // - 이 파일은 허브 분기만 담당해야 하므로, 홈 비즈니스 로직을 여기로 끌어올리면 결합도가 빠르게 커진다.
 // - Android 뒤로가기 종료 처리와 온보딩 가드가 함께 있어 포커스 effect 변경 시 회귀를 주의해야 한다.
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BackHandler, Platform } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import FirstPetWelcomeModal from '../../components/onboarding/FirstPetWelcomeModal';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import {
+  consumeFirstPetWelcome,
+  loadFirstPetWelcomePending,
+  type FirstPetWelcomePending,
+} from '../../services/local/firstPetWelcome';
+import { captureMonitoringException } from '../../services/monitoring/sentry';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
+import { showToast } from '../../store/uiStore';
 
 import LoggedInHome from './components/LoggedInHome/LoggedInHome';
 
@@ -28,6 +36,7 @@ export default function MainScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const isLoggedIn = useAuthStore(s => s.isLoggedIn);
+  const userId = useAuthStore(s => s.session?.user.id ?? null);
   const nickname = useAuthStore(s => s.profile.nickname);
   const profileSyncStatus = useAuthStore(s => s.profileSyncStatus);
   const isPasswordRecoveryActive = useAuthStore(
@@ -39,6 +48,10 @@ export default function MainScreen() {
   const petLoading = usePetStore(s => s.loading);
   const petErrorMessage = usePetStore(s => s.errorMessage);
   const [exitConfirmVisible, setExitConfirmVisible] = useState(false);
+  const [firstPetWelcome, setFirstPetWelcome] =
+    useState<FirstPetWelcomePending | null>(null);
+  const [welcomeDismissPending, setWelcomeDismissPending] = useState(false);
+  const welcomeDismissInFlightRef = useRef(false);
   const selectedPet = useMemo(
     () => pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
     [pets, selectedPetId],
@@ -47,6 +60,51 @@ export default function MainScreen() {
     () => buildPetThemePalette(selectedPet?.themeColor),
     [selectedPet?.themeColor],
   );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!isLoggedIn || !userId || petLoading || petsCount === 0) {
+      setFirstPetWelcome(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    loadFirstPetWelcomePending(userId)
+      .then(pending => {
+        if (!cancelled) setFirstPetWelcome(pending);
+      })
+      .catch(error => {
+        captureMonitoringException(error);
+        if (!cancelled) setFirstPetWelcome(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoggedIn, petLoading, petsCount, userId]);
+
+  const closeFirstPetWelcome = useCallback(async () => {
+    if (!userId || !firstPetWelcome || welcomeDismissInFlightRef.current) return;
+
+    welcomeDismissInFlightRef.current = true;
+    setWelcomeDismissPending(true);
+    try {
+      await consumeFirstPetWelcome(userId);
+      setFirstPetWelcome(null);
+    } catch (error) {
+      captureMonitoringException(error);
+      showToast({
+        tone: 'error',
+        title: '환영 안내를 닫지 못했어요',
+        message: '잠시 후 다시 눌러주세요.',
+      });
+    } finally {
+      welcomeDismissInFlightRef.current = false;
+      setWelcomeDismissPending(false);
+    }
+  }, [firstPetWelcome, userId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -136,6 +194,13 @@ export default function MainScreen() {
           setExitConfirmVisible(false);
           BackHandler.exitApp();
         }}
+      />
+      <FirstPetWelcomeModal
+        accentColor={petTheme.primary}
+        onConfirm={closeFirstPetWelcome}
+        petName={firstPetWelcome?.petName ?? selectedPet?.name ?? null}
+        submitting={welcomeDismissPending}
+        visible={firstPetWelcome !== null}
       />
     </>
   );

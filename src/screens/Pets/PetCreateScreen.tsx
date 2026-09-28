@@ -78,6 +78,11 @@ import {
   savePetCreateDraft,
 } from '../../services/local/onboardingDraft';
 import {
+  isFirstPetOnboardingEntry,
+  markFirstPetWelcomePending,
+} from '../../services/local/firstPetWelcome';
+import { captureMonitoringException } from '../../services/monitoring/sentry';
+import {
   buildPetThemePalette,
   recommendPetThemeColor,
 } from '../../services/pets/themePalette';
@@ -1046,6 +1051,19 @@ export default function PetCreateScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<PetCreateRoute>();
   const routeFrom = route.params?.from ?? null;
+  const currentRouteIndex = navigation
+    .getState()
+    .routes.findIndex(candidate => candidate.key === route.key);
+  const previousRouteName =
+    currentRouteIndex > 0
+      ? navigation.getState().routes[currentRouteIndex - 1]?.name ?? null
+      : null;
+  const isFirstOnboardingCompletionRef = useRef(
+    isFirstPetOnboardingEntry({
+      entrySource: routeFrom,
+      previousRouteName,
+    }),
+  );
   const insets = useSafeAreaInsets();
   const { progress: keyboardProgress } = useReanimatedKeyboardAnimation();
   const setPets = usePetStore(s => s.setPets);
@@ -1702,6 +1720,19 @@ export default function PetCreateScreen() {
         refreshedPets.length >= currentPets.length
       ) {
         setPets(refreshedPets, { userId, preferredPetId: createdPet.id });
+      }
+
+      if (isFirstOnboardingCompletionRef.current) {
+        try {
+          await markFirstPetWelcomePending({
+            userId,
+            petId: createdPet.id,
+            petName: createdPet.name?.trim() || trimmedName,
+          });
+        } catch (error) {
+          // 펫 생성 성공을 presentation 상태 저장 실패로 되돌리지는 않는다.
+          captureMonitoringException(error);
+        }
       }
 
       await clearPetCreateDraft();

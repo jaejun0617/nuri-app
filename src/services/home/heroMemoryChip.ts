@@ -10,6 +10,7 @@ import {
 } from '../records/date';
 import type { MemoryRecord } from '../supabase/memories';
 import { formatRelativeTimeFromNow } from '../../utils/date';
+import { appendKoreanParticle } from '../../utils/koreanParticle';
 
 export type HomeHeroMemoryChip = {
   recordId: string | null;
@@ -33,22 +34,6 @@ function selectLatestRecord(
   }, null);
 }
 
-function appendWithParticle(
-  name: string,
-  vowelParticle: string,
-  consonantParticle: string,
-) {
-  const lastCharacter = name[name.length - 1];
-  if (!lastCharacter) return name;
-
-  const codePoint = lastCharacter.charCodeAt(0);
-  const isHangulSyllable = codePoint >= 0xac00 && codePoint <= 0xd7a3;
-  if (!isHangulSyllable) return `${name}${vowelParticle}`;
-
-  const hasFinalConsonant = (codePoint - 0xac00) % 28 !== 0;
-  return `${name}${hasFinalConsonant ? consonantParticle : vowelParticle}`;
-}
-
 function buildMemoryLabel(
   record: MemoryRecord,
   petName: string,
@@ -59,7 +44,7 @@ function buildMemoryLabel(
   const categoryLabel = getMemoryCategoryChipLabel(record);
 
   if (categoryLabel === '산책') {
-    const nameWithParticle = appendWithParticle(petName, '와', '과');
+    const nameWithParticle = appendKoreanParticle(petName, '와', '과');
     return `${relativeTime}, ${nameWithParticle} 산책한 추억이 있어요`;
   }
 
