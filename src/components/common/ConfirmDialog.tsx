@@ -3,14 +3,18 @@ import {
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { KeyboardAvoidingView as KeyboardControllerAvoidingView } from 'react-native-keyboard-controller';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
+import { useOptionalSafeAreaInsets } from '../../hooks/useOptionalSafeAreaInsets';
+import { getResponsiveOverlayMaxHeight } from '../../services/app/responsiveLayout';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { usePetStore } from '../../store/petStore';
 
@@ -81,6 +85,14 @@ function ConfirmDialogBase({
   keyboardAware = false,
 }: Props) {
   const theme = useTheme();
+  const insets = useOptionalSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const maxCardHeight = getResponsiveOverlayMaxHeight({
+    windowHeight,
+    topInset: insets.top,
+    bottomInset: insets.bottom,
+    verticalMargin: 20,
+  });
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
   const selectedPet = useMemo(
@@ -134,9 +146,16 @@ function ConfirmDialogBase({
             {
               backgroundColor: theme.colors.surfaceElevated,
               borderColor: theme.colors.border,
+              maxHeight: maxCardHeight,
             },
           ]}
         >
+          <ScrollView
+            style={styles.cardScroll}
+            contentContainerStyle={styles.cardContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
           <View style={styles.copyBlock}>
             <AppText preset={textPresets.title} style={[styles.title, children ? styles.richTextAlignment : null, { color: theme.colors.textPrimary }]}>
               {title}
@@ -196,6 +215,7 @@ function ConfirmDialogBase({
               </TouchableOpacity>
             </View>
           ) : null}
+          </ScrollView>
         </View>
       </KeyboardControllerAvoidingView>
     </Modal>
@@ -212,12 +232,14 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
   },
   card: {
+    width: '100%',
+    maxWidth: 440,
+    alignSelf: 'center',
     borderRadius: 24,
     borderWidth: 1,
     paddingHorizontal: 20,
     paddingTop: 22,
     paddingBottom: 18,
-    gap: 18,
     ...(Platform.OS === 'ios'
       ? {
           shadowColor: '#000000',
@@ -229,6 +251,8 @@ const styles = StyleSheet.create({
           elevation: 6,
         }),
   },
+  cardScroll: { flexGrow: 0, width: '100%' },
+  cardContent: { gap: 18 },
   copyBlock: {
     gap: 8,
   },

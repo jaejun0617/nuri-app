@@ -9,7 +9,9 @@ import {
   Keyboard,
   Modal,
   Platform,
+  ScrollView,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
@@ -18,6 +20,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../../app/ui/AppText';
+import { getResponsiveOverlayMaxHeight } from '../../../services/app/responsiveLayout';
 import { styles } from '../RecordCreateScreen.styles';
 
 type Props = {
@@ -41,6 +44,13 @@ export default function RecordTagModal({
 }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const maxCardHeight = getResponsiveOverlayMaxHeight({
+    windowHeight,
+    topInset: insets.top,
+    bottomInset: insets.bottom,
+    verticalMargin: 18,
+  });
 
   return (
     <Modal
@@ -68,7 +78,10 @@ export default function RecordTagModal({
           activeOpacity={1}
           style={[
             styles.tagModalCard,
-            { paddingBottom: Math.max(insets.bottom, 18) + 6 },
+            {
+              maxHeight: maxCardHeight,
+              paddingBottom: Math.max(insets.bottom, 18) + 6,
+            },
           ]}
           onPress={Keyboard.dismiss}
         >
@@ -92,6 +105,12 @@ export default function RecordTagModal({
             </TouchableOpacity>
           </View>
 
+          <ScrollView
+            style={styles.tagModalScroll}
+            contentContainerStyle={styles.tagModalContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
           <View style={styles.tagInputRow}>
             <Feather name="hash" size={16} color={theme.colors.brand} />
             <AppTextInput
@@ -131,6 +150,7 @@ export default function RecordTagModal({
               </View>
             </>
           ) : null}
+          </ScrollView>
         </TouchableOpacity>
       </KeyboardAvoidingView>
     </Modal>

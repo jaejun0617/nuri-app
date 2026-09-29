@@ -382,6 +382,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(11,18,32,0.44)',
   },
   sheet: {
+    width: '100%',
+    maxWidth: 620,
+    alignSelf: 'center',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     borderWidth: 1,

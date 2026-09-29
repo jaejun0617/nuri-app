@@ -456,6 +456,12 @@ export const styles = StyleSheet.create({
     paddingTop: 18,
     paddingBottom: 28,
   },
+  tagModalScroll: {
+    flexGrow: 0,
+  },
+  tagModalContent: {
+    paddingBottom: 2,
+  },
   tagModalHeader: {
     flexDirection: 'row',
     alignItems: 'center',

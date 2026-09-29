@@ -3,14 +3,18 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
+import { useOptionalSafeAreaInsets } from '../../hooks/useOptionalSafeAreaInsets';
+import { getResponsiveOverlayMaxHeight } from '../../services/app/responsiveLayout';
 import {
   APP_FONT_MODES,
   getAppFontModeLabel,
@@ -38,6 +42,14 @@ function FirstPetFontSelectorModalComponent({
   onConfirm,
 }: Props) {
   const theme = useTheme();
+  const insets = useOptionalSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const maxCardHeight = getResponsiveOverlayMaxHeight({
+    windowHeight,
+    topInset: insets.top,
+    bottomInset: insets.bottom,
+    verticalMargin: 20,
+  });
 
   return (
     <Modal
@@ -58,9 +70,16 @@ function FirstPetFontSelectorModalComponent({
             {
               backgroundColor: theme.colors.surfaceElevated,
               borderColor: theme.colors.border,
+              maxHeight: maxCardHeight,
             },
           ]}
         >
+          <ScrollView
+            style={styles.cardScroll}
+            contentContainerStyle={styles.cardContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
           <View style={styles.heading}>
             <AppText
               accessibilityRole="header"
@@ -182,6 +201,7 @@ function FirstPetFontSelectorModalComponent({
               </AppText>
             )}
           </TouchableOpacity>
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -205,13 +225,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 24,
     padding: 20,
-    gap: 18,
     shadowColor: '#2C1B46',
     shadowOpacity: 0.16,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 10 },
     elevation: 8,
   },
+  cardScroll: { flexGrow: 0, width: '100%' },
+  cardContent: { gap: 18 },
   heading: { gap: 6 },
   title: { fontSize: 21, lineHeight: 28, textAlign: 'center' },
   description: { fontSize: 13, lineHeight: 19, textAlign: 'center' },

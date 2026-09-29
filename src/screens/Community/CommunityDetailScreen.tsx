@@ -1195,7 +1195,7 @@ export default function CommunityDetailScreen() {
                   ? 16
                   : 0
                 : 20,
-              paddingBottom: isInline ? 8 : Math.max(insets.bottom, 12),
+              paddingBottom: isInline ? 8 : insets.bottom + 6,
               marginBottom: isInline ? 0 : keyboardInset,
             },
           ]}
@@ -1286,6 +1286,7 @@ export default function CommunityDetailScreen() {
             />
             <TouchableOpacity
               activeOpacity={0.88}
+              hitSlop={4}
               style={[
                 styles.commentSubmitButton,
                 {

@@ -69,6 +69,7 @@ import {
 } from '../../services/local/accountPreferences';
 import { formatDateLabelFromDate } from '../../utils/date';
 import { getBrandedErrorMeta } from '../../services/app/errors';
+import { getResponsiveBottomSheetMaxHeight } from '../../services/app/responsiveLayout';
 import {
   ACCOUNT_DELETION_CONFIRMATION_TEXT,
   isAccountDeletionConfirmationValid,
@@ -575,6 +576,11 @@ const ThemeSettingsModal = memo(function ThemeSettingsModal({
   onSubmit,
 }: ThemeSettingsModalProps) {
   const theme = useTheme();
+  const { height: windowHeight } = useWindowDimensions();
+  const maxSheetHeight = getResponsiveBottomSheetMaxHeight({
+    windowHeight,
+    bottomInset,
+  });
 
   return (
     <Modal
@@ -596,6 +602,7 @@ const ThemeSettingsModal = memo(function ThemeSettingsModal({
             {
               backgroundColor: theme.colors.surfaceElevated,
               paddingBottom: Math.max(bottomInset + 18, 26),
+              maxHeight: maxSheetHeight,
             },
           ]}
         >
@@ -617,6 +624,11 @@ const ThemeSettingsModal = memo(function ThemeSettingsModal({
             </TouchableOpacity>
           </View>
 
+          <ScrollView
+            style={styles.themeSettingsScroll}
+            contentContainerStyle={styles.themeSettingsContent}
+            showsVerticalScrollIndicator={false}
+          >
           <View style={styles.themeInfoBlock}>
             <AppText preset="unifiedTitle"
               style={[
@@ -658,6 +670,7 @@ const ThemeSettingsModal = memo(function ThemeSettingsModal({
               {saving ? '저장 중...' : '테마 적용하기'}
             </AppText>
           </TouchableOpacity>
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -3080,6 +3093,9 @@ const styles = StyleSheet.create({
     maxWidth: 420,
   },
   sheetCard: {
+    width: '100%',
+    maxWidth: 620,
+    alignSelf: 'center',
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
@@ -3087,6 +3103,13 @@ const styles = StyleSheet.create({
     paddingTop: 22,
     paddingBottom: 26,
     gap: 18,
+  },
+  themeSettingsScroll: {
+    flexGrow: 0,
+  },
+  themeSettingsContent: {
+    gap: 18,
+    paddingBottom: 2,
   },
   notificationSettingsScroll: {
     flexGrow: 0,

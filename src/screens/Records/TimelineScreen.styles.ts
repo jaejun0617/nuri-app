@@ -624,6 +624,9 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modalCard: {
+    width: '100%',
+    maxWidth: 460,
+    alignSelf: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 14,
@@ -631,9 +634,11 @@ export const styles = StyleSheet.create({
     borderColor: 'rgba(0,0,0,0.08)',
   },
   modalTitle: { color: TEXT, fontWeight: '900', marginBottom: 10 },
+  modalOptionsScroll: { flexGrow: 0 },
+  modalOptionsContent: { paddingBottom: 2 },
 
   modalItem: {
-    height: 46,
+    minHeight: 46,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.08)',

@@ -17,6 +17,9 @@ export const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
   },
   modalCard: {
+    width: '100%',
+    maxWidth: 420,
+    alignSelf: 'center',
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingTop: 16,

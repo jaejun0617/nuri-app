@@ -8,15 +8,19 @@ import {
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
+import { useOptionalSafeAreaInsets } from '../../hooks/useOptionalSafeAreaInsets';
 import { buildPremiumRewardLevelStatus } from '../../services/activity/rewardNoticePresentation';
+import { getResponsiveOverlayMaxHeight } from '../../services/app/responsiveLayout';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { usePetStore } from '../../store/petStore';
 
@@ -52,6 +56,14 @@ function PremiumRewardModalBase({
   onDismissToday,
 }: Props) {
   const theme = useTheme();
+  const insets = useOptionalSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const maxCardHeight = getResponsiveOverlayMaxHeight({
+    windowHeight,
+    topInset: insets.top,
+    bottomInset: insets.bottom,
+    verticalMargin: 20,
+  });
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
   const selectedPet = useMemo(
@@ -96,6 +108,7 @@ function PremiumRewardModalBase({
             {
               backgroundColor: theme.colors.surfaceElevated,
               borderColor: theme.colors.border,
+              maxHeight: maxCardHeight,
             },
           ]}
         >
@@ -109,6 +122,11 @@ function PremiumRewardModalBase({
             <Feather name="x" size={18} color={theme.colors.textSecondary} />
           </TouchableOpacity>
 
+          <ScrollView
+            style={styles.cardScroll}
+            contentContainerStyle={styles.cardContent}
+            showsVerticalScrollIndicator={false}
+          >
           <AppText preset="unifiedBody" style={[styles.eyebrow, { color: primaryColor }]}>
             NURI REWARD
           </AppText>
@@ -221,6 +239,7 @@ function PremiumRewardModalBase({
               </AppText>
             </TouchableOpacity>
           ) : null}
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -237,6 +256,9 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
   },
   card: {
+    width: '100%',
+    maxWidth: 440,
+    alignSelf: 'center',
     borderRadius: 30,
     borderWidth: 1,
     paddingHorizontal: 22,
@@ -255,6 +277,8 @@ const styles = StyleSheet.create({
           elevation: 13,
         }),
   },
+  cardScroll: { flexGrow: 0, width: '100%' },
+  cardContent: { width: '100%', alignItems: 'center' },
   closeButton: {
     position: 'absolute',
     top: 16,

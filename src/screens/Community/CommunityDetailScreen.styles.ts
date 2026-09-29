@@ -505,7 +505,7 @@ export const styles = StyleSheet.create({
   commentComposerWrap: {
     borderTopWidth: 1,
     paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingVertical: 6,
   },
   inlineCommentComposerWrap: {
     alignSelf: 'stretch',
@@ -536,11 +536,11 @@ export const styles = StyleSheet.create({
   },
   commentComposer: {
     borderWidth: 1,
-    borderRadius: 18,
-    minHeight: 58,
+    borderRadius: 20,
+    minHeight: 52,
     paddingLeft: 14,
     paddingRight: 8,
-    paddingVertical: 8,
+    paddingVertical: 4,
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 10,
@@ -552,11 +552,12 @@ export const styles = StyleSheet.create({
     ...typography.role.body,
     paddingTop: 4,
     paddingBottom: 4,
+    textAlignVertical: 'center',
   },
   commentSubmitButton: {
     width: 44,
     height: 44,
-    borderRadius: 19,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },

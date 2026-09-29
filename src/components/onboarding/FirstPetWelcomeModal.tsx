@@ -6,14 +6,18 @@ import {
   Image,
   Modal,
   Platform,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 
 import AppText from '../../app/ui/AppText';
 import { ASSETS } from '../../assets';
+import { useOptionalSafeAreaInsets } from '../../hooks/useOptionalSafeAreaInsets';
+import { getResponsiveOverlayMaxHeight } from '../../services/app/responsiveLayout';
 import { buildFirstPetWelcomeCopy } from '../../services/local/firstPetWelcome';
 
 const JISU_FONT = 'insungitCutelivelyjisu';
@@ -35,6 +39,14 @@ function FirstPetWelcomeModalBase({
 }: Props) {
   const entrance = useRef(new Animated.Value(0)).current;
   const copy = useMemo(() => buildFirstPetWelcomeCopy(petName), [petName]);
+  const insets = useOptionalSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const maxCardHeight = getResponsiveOverlayMaxHeight({
+    windowHeight,
+    topInset: insets.top,
+    bottomInset: insets.bottom,
+    verticalMargin: 20,
+  });
 
   useEffect(() => {
     if (!visible) {
@@ -87,6 +99,7 @@ function FirstPetWelcomeModalBase({
           style={[
             styles.card,
             {
+              maxHeight: maxCardHeight,
               opacity,
               transform: [{ scale }, { translateY }],
             },
@@ -99,6 +112,11 @@ function FirstPetWelcomeModalBase({
             <Feather color="rgba(184, 154, 210, 0.66)" name="star" size={13} />
           </View>
 
+          <ScrollView
+            style={styles.cardScroll}
+            contentContainerStyle={styles.cardContent}
+            showsVerticalScrollIndicator={false}
+          >
           <View accessibilityLabel="NURI" accessibilityRole="image" style={styles.symbolWrap}>
             <Image
               accessibilityIgnoresInvertColors
@@ -141,6 +159,7 @@ function FirstPetWelcomeModalBase({
           >
             <AppText style={styles.primaryButtonText}>{copy.cta}</AppText>
           </TouchableOpacity>
+          </ScrollView>
         </Animated.View>
       </View>
     </Modal>
@@ -154,6 +173,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
+  cardScroll: { flexGrow: 0, width: '100%' },
+  cardContent: { width: '100%', alignItems: 'center' },
   scrim: {
     ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(35, 25, 45, 0.30)',

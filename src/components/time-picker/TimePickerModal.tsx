@@ -3,6 +3,7 @@ import {
   FlatList,
   Modal,
   TouchableOpacity,
+  useWindowDimensions,
   View,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -12,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
+import { getResponsivePickerVisibleRows } from '../../services/app/responsiveLayout';
 import {
   styles,
   TIME_WHEEL_ITEM_HEIGHT,
@@ -58,12 +60,14 @@ function TimeWheel({
   options,
   value,
   disabled,
+  wheelHeight,
   onChange,
 }: {
   label: string;
   options: string[];
   value: string;
   disabled: boolean;
+  wheelHeight: number;
   onChange: (next: string) => void;
 }) {
   const listRef = useRef<FlatList<string>>(null);
@@ -151,8 +155,9 @@ function TimeWheel({
         <View
           pointerEvents="none"
           style={[
-            styles.wheelCenterHighlight,
-            {
+          styles.wheelCenterHighlight,
+          {
+              top: (wheelHeight - TIME_WHEEL_ITEM_HEIGHT) / 2,
               backgroundColor: 'rgba(124,137,255,0.20)',
               borderColor: 'rgba(167,182,255,0.34)',
             },
@@ -167,8 +172,11 @@ function TimeWheel({
           showsVerticalScrollIndicator={false}
           bounces={false}
           scrollEnabled={!disabled}
-          style={styles.wheelList}
-          contentContainerStyle={styles.wheelContent}
+          style={[styles.wheelList, { height: wheelHeight }]}
+          contentContainerStyle={[
+            styles.wheelContent,
+            { paddingVertical: (wheelHeight - TIME_WHEEL_ITEM_HEIGHT) / 2 },
+          ]}
           snapToInterval={TIME_WHEEL_ITEM_HEIGHT}
           decelerationRate="fast"
           onMomentumScrollEnd={onMomentumScrollEnd}
@@ -196,6 +204,11 @@ function TimePickerModalBase({
 }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const availableHeight = Math.max(0, windowHeight - insets.top - insets.bottom);
+  const wheelHeight =
+    TIME_WHEEL_ITEM_HEIGHT *
+    getResponsivePickerVisibleRows({ availableHeight });
   const [selection, setSelection] = useState(() => parseTimeValue(value));
 
   useEffect(() => {
@@ -278,6 +291,7 @@ function TimePickerModalBase({
               options={HOURS}
               value={selection.hour}
               disabled={disabled}
+              wheelHeight={wheelHeight}
               onChange={onChangeHour}
             />
 
@@ -293,6 +307,7 @@ function TimePickerModalBase({
               options={MINUTES}
               value={selection.minute}
               disabled={disabled}
+              wheelHeight={wheelHeight}
               onChange={onChangeMinute}
             />
           </View>

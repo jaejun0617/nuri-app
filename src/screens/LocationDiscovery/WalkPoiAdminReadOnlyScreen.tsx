@@ -17,6 +17,7 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -29,6 +30,7 @@ import {
 
 import AppText from '../../app/ui/AppText';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
+import { getResponsiveOverlayMaxHeight } from '../../services/app/responsiveLayout';
 import type {
   RootScreenNavigation,
   RootScreenRoute,
@@ -529,6 +531,13 @@ export default function WalkPoiAdminReadOnlyScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const modalMaxHeight = getResponsiveOverlayMaxHeight({
+    windowHeight,
+    topInset: insets.top,
+    bottomInset: insets.bottom,
+    verticalMargin: 18,
+  });
   const role = useAuthStore(state => state.profile.role ?? 'user');
   const profileSyncStatus = useAuthStore(state => state.profileSyncStatus);
   const [actionDraft, setActionDraft] = useState<ReviewActionDraft | null>(
@@ -907,7 +916,12 @@ export default function WalkPoiAdminReadOnlyScreen() {
         onRequestClose={closeAuditDetail}
       >
         <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
+          <View style={[styles.modalCard, { maxHeight: modalMaxHeight }]}>
+            <ScrollView
+              style={styles.modalCardScroll}
+              contentContainerStyle={styles.modalCardContent}
+              showsVerticalScrollIndicator={false}
+            >
             <View style={styles.modalHeader}>
               <View style={styles.modalTitleBlock}>
                 <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={styles.modalTitle}>
@@ -998,6 +1012,7 @@ export default function WalkPoiAdminReadOnlyScreen() {
                 </AppText>
               </Pressable>
             </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -1011,7 +1026,13 @@ export default function WalkPoiAdminReadOnlyScreen() {
           style={styles.modalBackdrop}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <View style={styles.modalCard}>
+          <View style={[styles.modalCard, { maxHeight: modalMaxHeight }]}>
+            <ScrollView
+              style={styles.modalCardScroll}
+              contentContainerStyle={styles.modalCardContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
             <View style={styles.modalHeader}>
               <View style={styles.modalTitleBlock}>
                 <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={styles.modalTitle}>
@@ -1075,6 +1096,7 @@ export default function WalkPoiAdminReadOnlyScreen() {
                 </AppText>
               </Pressable>
             </View>
+            </ScrollView>
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -1510,9 +1532,17 @@ const styles = StyleSheet.create({
     padding: 18,
   },
   modalCard: {
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
     borderRadius: 20,
     backgroundColor: '#FFFFFF',
     padding: 16,
+  },
+  modalCardScroll: {
+    flexGrow: 0,
+  },
+  modalCardContent: {
     gap: 12,
   },
   modalHeader: {

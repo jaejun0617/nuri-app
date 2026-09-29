@@ -15,8 +15,8 @@ import {
   Animated,
   Pressable,
   StyleSheet,
+  useWindowDimensions,
   View,
-  Dimensions,
   BackHandler,
   Easing,
 } from 'react-native';
@@ -28,10 +28,8 @@ type Props = {
   onClose: () => void;
 };
 
-const { width: W } = Dimensions.get('window');
-const DRAWER_W = W;
-
 export default function MoreDrawer({ open, onClose }: Props) {
+  const { width: drawerWidth } = useWindowDimensions();
   // ---------------------------------------------------------
   // 0) mount control (닫힐 때 애니메이션 끝나고 unmount)
   // ---------------------------------------------------------
@@ -59,9 +57,9 @@ export default function MoreDrawer({ open, onClose }: Props) {
     () =>
       progress.interpolate({
         inputRange: [0, 1],
-        outputRange: [DRAWER_W, 0], // ✅ 오른쪽에서 들어옴
+        outputRange: [drawerWidth, 0], // ✅ 현재 창의 오른쪽에서 들어옴
       }),
-    [progress],
+    [drawerWidth, progress],
   );
 
   const runOpen = useCallback(() => {
@@ -135,7 +133,7 @@ export default function MoreDrawer({ open, onClose }: Props) {
         style={[
           styles.drawer,
           {
-            width: DRAWER_W,
+            width: drawerWidth,
             transform: [{ translateX }],
           },
         ]}

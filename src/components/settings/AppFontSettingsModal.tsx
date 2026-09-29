@@ -3,8 +3,10 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
@@ -18,6 +20,7 @@ import {
 } from '../../app/typography/appFontMode';
 import AppText from '../../app/ui/AppText';
 import { captureMonitoringException } from '../../services/monitoring/sentry';
+import { getResponsiveBottomSheetMaxHeight } from '../../services/app/responsiveLayout';
 import { showToast } from '../../store/uiStore';
 
 type Props = {
@@ -39,8 +42,13 @@ function AppFontSettingsModalComponent({
   onClose,
 }: Props) {
   const theme = useTheme();
+  const { height: windowHeight } = useWindowDimensions();
   const { mode, setMode } = useAppFontPreference();
   const [savingMode, setSavingMode] = useState<AppFontMode | null>(null);
+  const maxSheetHeight = getResponsiveBottomSheetMaxHeight({
+    windowHeight,
+    bottomInset,
+  });
 
   const selectMode = useCallback(
     async (nextMode: AppFontMode) => {
@@ -80,6 +88,7 @@ function AppFontSettingsModalComponent({
             {
               backgroundColor: theme.colors.surfaceElevated,
               paddingBottom: Math.max(bottomInset + 18, 26),
+              maxHeight: maxSheetHeight,
             },
           ]}
         >
@@ -111,6 +120,11 @@ function AppFontSettingsModalComponent({
             </TouchableOpacity>
           </View>
 
+          <ScrollView
+            style={styles.sheetScroll}
+            contentContainerStyle={styles.sheetScrollContent}
+            showsVerticalScrollIndicator={false}
+          >
           <View style={styles.options}>
             {APP_FONT_MODES.map(optionMode => {
               const selected = optionMode === mode;
@@ -198,6 +212,7 @@ function AppFontSettingsModalComponent({
               {JISU_FONT_CREDIT}
             </AppText>
           </View>
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -211,12 +226,17 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'flex-end' },
   scrim: { ...StyleSheet.absoluteFill },
   sheet: {
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
     borderTopLeftRadius: 26,
     borderTopRightRadius: 26,
     paddingHorizontal: 20,
     paddingTop: 18,
     gap: 18,
   },
+  sheetScroll: { flexGrow: 0 },
+  sheetScrollContent: { gap: 18, paddingBottom: 2 },
   header: {
     minHeight: 48,
     flexDirection: 'row',

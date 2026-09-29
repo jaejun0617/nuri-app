@@ -28,6 +28,7 @@ import {
   Pressable,
   ScrollView,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import {
@@ -47,6 +48,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
 import { scheduleIdleTask } from '../../utils/scheduleIdleTask';
+import { getResponsiveOverlayMaxHeight } from '../../services/app/responsiveLayout';
 
 import { MemoryCard } from '../../components/MemoryCard/MemoryCard';
 import { preloadOptimizedImages } from '../../components/images/OptimizedImage';
@@ -469,6 +471,13 @@ const TimelineActivitySummaryHeader = memo(function TimelineActivitySummaryHeade
 export default function TimelineScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const modalMaxHeight = getResponsiveOverlayMaxHeight({
+    windowHeight,
+    topInset: insets.top,
+    bottomInset: insets.bottom,
+    verticalMargin: 18,
+  });
   const navigation = useNavigation<Nav>();
   const route = useRoute<TimelineMainRoute>();
   const isFocused = useIsFocused();
@@ -1591,6 +1600,7 @@ export default function TimelineScreen() {
               {
                 backgroundColor: theme.colors.surfaceElevated,
                 borderColor: theme.colors.border,
+                maxHeight: modalMaxHeight,
               },
             ]}
             onPress={() => {}}
@@ -1602,6 +1612,11 @@ export default function TimelineScreen() {
               월/연도 선택
             </AppText>
 
+            <ScrollView
+              style={styles.modalOptionsScroll}
+              contentContainerStyle={styles.modalOptionsContent}
+              showsVerticalScrollIndicator={false}
+            >
             <TouchableOpacity
               activeOpacity={0.9}
               style={[styles.modalItem, { borderColor: theme.colors.border }]}
@@ -1630,6 +1645,7 @@ export default function TimelineScreen() {
                 </AppText>
               </TouchableOpacity>
             ))}
+            </ScrollView>
           </Pressable>
         </Pressable>
       </Modal>
@@ -1650,6 +1666,7 @@ export default function TimelineScreen() {
               {
                 backgroundColor: theme.colors.surfaceElevated,
                 borderColor: theme.colors.border,
+                maxHeight: modalMaxHeight,
               },
             ]}
             onPress={() => {}}
@@ -1661,6 +1678,11 @@ export default function TimelineScreen() {
               생활 카테고리
             </AppText>
 
+            <ScrollView
+              style={styles.modalOptionsScroll}
+              contentContainerStyle={styles.modalOptionsContent}
+              showsVerticalScrollIndicator={false}
+            >
             <TouchableOpacity
               activeOpacity={0.9}
               style={[styles.modalItem, { borderColor: theme.colors.border }]}
@@ -1689,6 +1711,7 @@ export default function TimelineScreen() {
                 </AppText>
               </TouchableOpacity>
             ))}
+            </ScrollView>
           </Pressable>
         </Pressable>
       </Modal>
