@@ -10,6 +10,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../../../app/ui/AppText';
+import { HomeSectionGlass } from '../../../../components/home/HomeSectionGlass';
 import type { CommunityPost } from '../../../../types/community';
 import {
   HOME_COMMUNITY_TAB_OPTIONS,
@@ -310,13 +311,17 @@ const CommunitySection = memo(function CommunitySection({
   const showInlineError = state.status === 'error' && state.items.length > 0;
 
   return (
-    <View style={styles.section} accessibilityLabel="반려인들이 주목한 이야기">
+    <HomeSectionGlass
+      testID="home-glass-community"
+      style={styles.section}
+      accessibilityLabel="반려인들이 주목한 이야기"
+    >
       <View
         style={[
           styles.panel,
           {
-            backgroundColor: theme.colors.surfaceElevated,
-            borderColor: theme.colors.border,
+            backgroundColor: 'transparent',
+            borderColor: 'transparent',
           },
         ]}
       >
@@ -455,7 +460,7 @@ const CommunitySection = memo(function CommunitySection({
           <Feather name="chevron-right" size={17} color={accentColor} />
         </Pressable>
       </View>
-    </View>
+    </HomeSectionGlass>
   );
 });
 

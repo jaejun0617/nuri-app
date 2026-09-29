@@ -16,7 +16,9 @@ const TEXT = '#0B1220';
 const MUTED = '#556070';
 const MUTED2 = 'rgba(85,96,112,0.70)';
 
-const SURFACE = '#FFFFFF';
+export const HOME_BASE_BACKGROUND_COLOR = '#FFFFFF';
+
+const SURFACE = HOME_BASE_BACKGROUND_COLOR;
 const SURFACE_SOFT = '#F6F7FB';
 
 const BORDER_SOFT = 'rgba(0,0,0,0.06)';
@@ -239,6 +241,7 @@ export const styles = StyleSheet.create({
     borderColor: 'rgba(11,18,32,0.06)',
   },
   notificationModalState: {
+    flex: 1,
     minHeight: 160,
     alignItems: 'center',
     justifyContent: 'center',
@@ -286,7 +289,8 @@ export const styles = StyleSheet.create({
     borderColor: BORDER_SOFT,
   },
   notificationModalList: {
-    maxHeight: '100%',
+    flex: 1,
+    minHeight: 0,
   },
   notificationModalListContent: {
     gap: 6,
@@ -477,12 +481,22 @@ export const styles = StyleSheet.create({
     bottom: 0,
     height: 40,
   },
-  autumnPostWeatherSurface: {
+  weatherToHomeBridgeHost: {
     position: 'relative',
-    zIndex: 1,
+    height: 0,
+    overflow: 'visible',
+  },
+  weatherToHomeBridge: {
+    position: 'absolute',
+    top: -1,
+    left: -16,
+    right: -16,
+  },
+  lowerHomeRoot: {
+    position: 'relative',
     marginHorizontal: -16,
     paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: HOME_BASE_BACKGROUND_COLOR,
   },
 
   // ---------------------------------------------------------
@@ -1479,14 +1493,12 @@ export const styles = StyleSheet.create({
   // ---------------------------------------------------------
   section: {
     gap: 20,
-    marginTop: 0,
-    paddingTop: 20,
-    paddingBottom: 14,
+    paddingTop: 18,
+    paddingBottom: 18,
     paddingHorizontal: 14,
   },
   todayPhotoSection: {
-    marginTop: 0,
-    paddingTop: 20,
+    paddingTop: 18,
   },
   recentSection: {
     gap: 10,
@@ -1593,20 +1605,6 @@ export const styles = StyleSheet.create({
   recentPreviewWrap: {
     marginTop: 0,
   },
-  recentPreviewBorder: {
-    borderRadius: 16,
-    backgroundColor: SURFACE,
-    borderWidth: 1,
-    borderColor: 'rgba(15,23,42,0.09)',
-  },
-  recentPreviewCard: {
-    borderRadius: 15,
-    paddingHorizontal: 0,
-    paddingVertical: 0,
-    backgroundColor: SURFACE,
-    borderWidth: 0,
-    overflow: 'hidden',
-  },
   recentPreviewList: {
     gap: 0,
   },
@@ -1687,25 +1685,10 @@ export const styles = StyleSheet.create({
   // Weekly Summary
   // ---------------------------------------------------------
   weeklySummarySection: {
-    marginTop: 0,
-  },
-  weeklySummaryBorder: {
-    borderRadius: 29.25,
-    borderWidth: 1,
-    padding: 0,
-  },
-  weeklySummaryCard: {
-    borderRadius: 28,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 0,
+    paddingHorizontal: 32,
+    paddingTop: 36,
+    paddingBottom: 36,
     gap: 14,
-    shadowColor: '#2C1654',
-    shadowOpacity: 0.06,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 2,
   },
   weeklySummaryHeader: {
     flexDirection: 'row',
@@ -1769,6 +1752,10 @@ export const styles = StyleSheet.create({
     borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  weeklySummaryMetricBrandMark: {
+    width: 24,
+    height: 22,
   },
   weeklySummaryChevron: {
     width: 26,
@@ -2080,10 +2067,10 @@ export const styles = StyleSheet.create({
   // Home Tip
   // ---------------------------------------------------------
   todayTipCard: {
-    borderRadius: 16,
+    borderRadius: 0,
     paddingHorizontal: 18,
     paddingVertical: 18,
-    backgroundColor: 'rgba(109,106,248,0.09)',
+    backgroundColor: 'transparent',
     gap: 10,
   },
   todayTipBadge: {
@@ -2177,11 +2164,11 @@ export const styles = StyleSheet.create({
   },
 
   emptyBox: {
-    borderRadius: 16,
+    borderRadius: 0,
     padding: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
-    backgroundColor: SURFACE,
+    borderWidth: 0,
+    borderColor: 'transparent',
+    backgroundColor: 'transparent',
     gap: 6,
   },
   emptyTitle: {

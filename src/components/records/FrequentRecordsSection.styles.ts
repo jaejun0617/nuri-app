@@ -9,6 +9,8 @@ export const styles = StyleSheet.create({
   section: {
     width: '100%',
     paddingHorizontal: 14,
+    paddingTop: 18,
+    paddingBottom: 18,
   },
   headerRow: {
     minHeight: 44,
@@ -21,15 +23,6 @@ export const styles = StyleSheet.create({
   headerLead: {
     flex: 1,
     minWidth: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  sparkleWrap: {
-    width: 26,
-    height: 26,
-    borderRadius: 9,
-    alignItems: 'center',
     justifyContent: 'center',
   },
   headerTextGroup: {

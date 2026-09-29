@@ -72,14 +72,31 @@ describe('home hero memory chip', () => {
     expect(chip?.label).toBe('5일 전, 몽실과 산책한 추억이 있어요');
   });
 
-  it('uses the shared calendar label for records older than one week', () => {
+  it('keeps old Home memories on a local-calendar relative day label', () => {
     const chip = buildHomeHeroMemoryChip(
       [record({ occurredAt: '2026-08-12' })],
       '누리',
       now,
     );
 
-    expect(chip?.label).toBe('8.12, 누리와 산책한 추억이 있어요');
+    expect(chip?.label).toBe('46일 전, 누리와 산책한 추억이 있어요');
+  });
+
+  it('uses 오늘 and 1일 전 instead of time or month-day labels', () => {
+    expect(
+      buildHomeHeroMemoryChip(
+        [record({ occurredAt: '2026-09-27' })],
+        '누리',
+        now,
+      )?.label,
+    ).toBe('오늘, 누리와 산책한 추억이 있어요');
+    expect(
+      buildHomeHeroMemoryChip(
+        [record({ occurredAt: '2026-09-26' })],
+        '누리',
+        now,
+      )?.label,
+    ).toBe('1일 전, 누리와 산책한 추억이 있어요');
   });
 
   it('builds a neutral create action when there is no record', () => {

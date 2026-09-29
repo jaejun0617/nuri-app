@@ -22,6 +22,7 @@ import {
 } from '../../services/home/frequentRecords';
 import type { buildPetThemePalette } from '../../services/pets/themePalette';
 import { SectionHeaderAction } from '../../app/ui/SectionHeaderAction';
+import { HomeSectionGlass } from '../home/HomeSectionGlass';
 import { styles } from './FrequentRecordsSection.styles';
 
 type PetTheme = ReturnType<typeof buildPetThemePalette>;
@@ -173,18 +174,12 @@ function FrequentRecordsSectionBase({
   const hasError = recordStatus === 'error' && records.length === 0;
 
   return (
-    <View style={styles.section}>
+    <HomeSectionGlass
+      testID="home-glass-frequent-records"
+      style={styles.section}
+    >
         <View style={styles.headerRow}>
           <View style={styles.headerLead}>
-            <View
-              style={[styles.sparkleWrap, { backgroundColor: petTheme.tint }]}
-            >
-              <MaterialCommunityIcons
-                name="creation"
-                size={19}
-                color={petTheme.primary}
-              />
-            </View>
             <View style={styles.headerTextGroup}>
               <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={[styles.title, { color: petTheme.primary }]}>
                 자주 쓰는 기록
@@ -229,7 +224,7 @@ function FrequentRecordsSectionBase({
             ))}
           </View>
         )}
-    </View>
+    </HomeSectionGlass>
   );
 }
 

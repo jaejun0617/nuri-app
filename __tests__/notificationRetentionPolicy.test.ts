@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import {
   buildHomeNotificationDismissStorageKey,
+  countHomeVisibleUnreadNotifications,
   dismissHomeNotification,
   dismissHomeNotifications,
   filterHomeVisibleNotifications,
@@ -62,6 +63,27 @@ describe('notification retention policy', () => {
 
     expect(homeVisible).toEqual([second]);
     expect(inboxItems).toEqual([first, second]);
+  });
+
+  it('홈 배지는 알림함 히스토리가 아닌 현재 홈에 보이는 미읽음 항목만 세다', () => {
+    const dismissed = notification('00000000-0000-0000-0000-000000000001');
+    const read = {
+      ...notification('00000000-0000-0000-0000-000000000002'),
+      readAt: '2026-07-03T01:00:00.000Z',
+    };
+    const visibleUnread = notification(
+      '00000000-0000-0000-0000-000000000003',
+      'announcement',
+    );
+    const inboxItems = [dismissed, read, visibleUnread];
+
+    expect(
+      countHomeVisibleUnreadNotifications(
+        inboxItems,
+        new Set([getHomeNotificationDismissKey(dismissed)]),
+      ),
+    ).toBe(1);
+    expect(inboxItems).toHaveLength(3);
   });
 
   it('홈 모두 치우기는 현재 홈 목록의 key만 추가하고 중복 key를 정규화한다', async () => {

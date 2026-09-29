@@ -3,17 +3,16 @@ import { StyleSheet } from 'react-native';
 export const styles = StyleSheet.create({
   section: {
     gap: 20,
-    marginTop: 0,
-    paddingTop: 20,
-    paddingBottom: 14,
+    paddingTop: 18,
+    paddingBottom: 18,
     paddingHorizontal: 14,
   },
   panel: {
-    paddingHorizontal: 18,
-    paddingTop: 18,
-    paddingBottom: 18,
-    borderRadius: 16,
-    borderWidth: 1,
+    paddingHorizontal: 0,
+    paddingTop: 0,
+    paddingBottom: 0,
+    borderRadius: 21,
+    borderWidth: 0,
     gap: 14,
   },
   titleRow: {

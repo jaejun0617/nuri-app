@@ -50,6 +50,18 @@ export function filterHomeVisibleNotifications(
   return items.filter(item => !dismissedKeys.has(getHomeNotificationDismissKey(item)));
 }
 
+export function countHomeVisibleUnreadNotifications(
+  items: UserNotificationItem[],
+  dismissedKeys: ReadonlySet<string>,
+): number {
+  return items.reduce((count, item) => {
+    if (item.readAt || dismissedKeys.has(getHomeNotificationDismissKey(item))) {
+      return count;
+    }
+    return count + 1;
+  }, 0);
+}
+
 async function saveHomeDismissKeys(
   userId: string,
   keys: ReadonlySet<string>,

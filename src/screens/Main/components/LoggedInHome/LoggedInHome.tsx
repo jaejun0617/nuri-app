@@ -55,6 +55,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import Screen from '../../../../components/layout/Screen';
+import { HomeSectionGlass } from '../../../../components/home/HomeSectionGlass';
 import { FrequentRecordsSection } from '../../../../components/records/FrequentRecordsSection';
 import { SectionHeaderAction } from '../../../../app/ui/SectionHeaderAction';
 import GuideRecommendationCard from '../../../../components/guides/GuideRecommendationCard';
@@ -171,17 +172,19 @@ import {
 } from '../../../../services/local/homeRecordScheduleCache';
 import { getBrandedErrorMeta } from '../../../../services/app/errors';
 import {
-  fetchUserNotificationUnreadCount,
   fetchUserNotifications,
   markUserNotificationRead,
   type UserNotificationItem,
 } from '../../../../services/notifications/userNotifications';
 import {
+  countHomeVisibleUnreadNotifications,
   dismissHomeNotification,
   dismissHomeNotifications,
   filterHomeVisibleNotifications,
   loadHomeNotificationDismissedKeys,
 } from '../../../../services/notifications/homeQuickDismiss';
+import { resolveHomeNotificationModalHeight } from '../../../../services/home/notificationOverlayLayout';
+import { resolveWeatherToHomeBridgeHeight } from '../../../../services/home/weatherToHomeTransition';
 import {
   getNotificationCardGestureIntent,
   shouldCaptureNotificationCardGesture,
@@ -206,7 +209,10 @@ import {
 import { scheduleIdleTask } from '../../../../utils/scheduleIdleTask';
 import WeatherGuideHomeCard from '../../../../components/weather/WeatherGuideHomeCard';
 import type { PetCareGuide } from '../../../../services/guides/types';
-import { styles } from './LoggedInHome.styles';
+import {
+  HOME_BASE_BACKGROUND_COLOR,
+  styles,
+} from './LoggedInHome.styles';
 import CommunitySection from './CommunitySection';
 
 type HomeTabNav = BottomTabNavigationProp<AppTabParamList, 'HomeTab'>;
@@ -275,7 +281,7 @@ type HomeNotificationOverlayProps = {
   loading: boolean;
   errorMessage: string | null;
   topInset: number;
-  maxHeight: number;
+  panelHeight: number;
   onClose: () => void;
   onRefresh: () => void;
   onPressItem: (item: UserNotificationItem) => void;
@@ -367,12 +373,12 @@ function getHomeRecentSummary(record: MemoryRecord): string {
     categoryLabel === '산책'
       ? 'walk'
       : categoryLabel === '식사'
-        ? 'meal'
-        : categoryLabel === '건강'
-          ? 'health'
-          : categoryLabel === '미용'
-            ? 'grooming'
-            : null;
+      ? 'meal'
+      : categoryLabel === '건강'
+      ? 'health'
+      : categoryLabel === '미용'
+      ? 'grooming'
+      : null;
 
   if (summaryCategory) {
     return buildFrequentRecordSummary(summaryCategory, record);
@@ -427,7 +433,12 @@ const HomeRecentRecordRow = React.memo(function HomeRecentRecordRow({
         createdTime ? `, ${createdTime}` : ''
       }`}
     >
-      <View style={[styles.recentRecordIconBox, { backgroundColor: iconBackground }]}>
+      <View
+        style={[
+          styles.recentRecordIconBox,
+          { backgroundColor: iconBackground },
+        ]}
+      >
         <MaterialCommunityIcons
           name={getHomeRecentIcon(item)}
           size={25}
@@ -436,16 +447,28 @@ const HomeRecentRecordRow = React.memo(function HomeRecentRecordRow({
       </View>
 
       <View style={styles.recentRecordBody}>
-        <AppText preset="unifiedLabel" style={styles.recentRecordCategory} numberOfLines={1}>
+        <AppText
+          preset="unifiedLabel"
+          style={styles.recentRecordCategory}
+          numberOfLines={1}
+        >
           {categoryLabel}
         </AppText>
-        <AppText preset="unifiedBody" style={styles.recentRecordSummary} numberOfLines={1}>
+        <AppText
+          preset="unifiedBody"
+          style={styles.recentRecordSummary}
+          numberOfLines={1}
+        >
           {summary}
         </AppText>
       </View>
 
       <View style={styles.recentRecordMeta}>
-        <AppText preset="unifiedBody" style={styles.recentRecordTime} numberOfLines={1}>
+        <AppText
+          preset="unifiedBody"
+          style={styles.recentRecordTime}
+          numberOfLines={1}
+        >
           {createdTime || '기록 시각 없음'}
         </AppText>
         <MaterialCommunityIcons
@@ -567,10 +590,18 @@ const MonthlyDiaryCard = React.memo(function MonthlyDiaryCard({
           </View>
         )}
       </View>
-      <AppText preset="unifiedLabel" style={styles.monthDiaryTitle} numberOfLines={1}>
+      <AppText typographyRole="sectionTitle"
+        preset="unifiedLabel"
+        style={styles.monthDiaryTitle}
+        numberOfLines={1}
+      >
         {item.title?.trim() || '기록'}
       </AppText>
-      <AppText preset="unifiedBody" style={styles.monthDiaryMeta} numberOfLines={1}>
+      <AppText
+        preset="unifiedBody"
+        style={styles.monthDiaryMeta}
+        numberOfLines={1}
+      >
         {getRecordYmdDots(item)}
       </AppText>
     </TouchableOpacity>
@@ -651,9 +682,15 @@ const TodayPhotoSection = React.memo(function TodayPhotoSection({
   }, [todayPhoto.record]);
 
   return (
-    <View style={[styles.section, styles.todayPhotoSection]}>
+    <HomeSectionGlass
+      testID="home-glass-today-photo"
+      style={[styles.section, styles.todayPhotoSection]}
+    >
       <View style={styles.sectionHeaderRow}>
-        <AppText preset="unifiedTitle" style={[styles.sectionTitle, { color: accentColor }]}>
+        <AppText typographyRole="sectionTitle"
+          preset="unifiedTitle"
+          style={[styles.sectionTitle, { color: accentColor }]}
+        >
           오늘 한장
         </AppText>
       </View>
@@ -698,12 +735,16 @@ const TodayPhotoSection = React.memo(function TodayPhotoSection({
         )}
 
         <View style={styles.photoOverlay}>
-          <AppText preset="unifiedDate" style={styles.photoOverlayDate} numberOfLines={1}>
+          <AppText
+            preset="unifiedDate"
+            style={styles.photoOverlayDate}
+            numberOfLines={1}
+          >
             {photoDateLabel}
           </AppText>
         </View>
       </TouchableOpacity>
-    </View>
+    </HomeSectionGlass>
   );
 });
 
@@ -758,177 +799,227 @@ const HomeWeatherSection = React.memo(function HomeWeatherSection({
   );
 });
 
-const HomeNotificationSwipeItem = React.memo(function HomeNotificationSwipeItem({
-  item,
-  onPressItem,
-  onDismissItem,
-  expanded,
-  onToggleExpanded,
-  onSetExpanded,
-}: HomeNotificationSwipeItemProps) {
-  const unread = !item.readAt;
-  const dismissItem = useCallback(() => {
-    onDismissItem(item);
-  }, [item, onDismissItem]);
-  const toggleExpanded = useCallback(() => {
-    onToggleExpanded(item);
-  }, [item, onToggleExpanded]);
-  const setExpanded = useCallback(
-    (nextExpanded: boolean) => {
-      onSetExpanded(item, nextExpanded);
-    },
-    [item, onSetExpanded],
-  );
-  const swipeTranslateX = useRef(new RNAnimated.Value(0)).current;
-  const resetSwipePosition = useCallback(() => {
-    RNAnimated.spring(swipeTranslateX, {
-      toValue: 0,
-      useNativeDriver: true,
-      speed: 18,
-      bounciness: 0,
-    }).start();
-  }, [swipeTranslateX]);
-  const dismissWithSwipeAnimation = useCallback(
-    (dx: number) => {
-      const exitX = dx < 0 ? -460 : 460;
-      RNAnimated.timing(swipeTranslateX, {
-        toValue: exitX,
-        duration: 150,
-        useNativeDriver: true,
-      }).start(({ finished }) => {
-        swipeTranslateX.setValue(0);
-        if (finished) {
-          dismissItem();
-          return;
-        }
-        resetSwipePosition();
-      });
-    },
-    [dismissItem, resetSwipePosition, swipeTranslateX],
-  );
-  const panResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onMoveShouldSetPanResponderCapture: (_event, gestureState) =>
-          shouldCaptureNotificationCardGesture({
-            dx: gestureState.dx,
-            dy: gestureState.dy,
-          }),
-        onMoveShouldSetPanResponder: (_event, gestureState) =>
-          shouldCaptureNotificationCardGesture({
-            dx: gestureState.dx,
-            dy: gestureState.dy,
-          }),
-        onPanResponderTerminationRequest: () => false,
-        onPanResponderMove: (_event, gestureState) => {
-          const absDx = Math.abs(gestureState.dx);
-          const absDy = Math.abs(gestureState.dy);
-          if (absDx > 8 && absDx > absDy * 1.15) {
-            swipeTranslateX.setValue(gestureState.dx);
-          }
-        },
-        onPanResponderRelease: (_event, gestureState) => {
-          const intent = getNotificationCardGestureIntent({
-            dx: gestureState.dx,
-            dy: gestureState.dy,
-            expanded,
-          });
+const WeatherToLowerHomeBridge = React.memo(
+  ({
+    season,
+    height,
+  }: {
+    season: SeasonalHomeVisual['season'] | null;
+    height: number;
+  }) => {
+    const visualTheme = getSeasonalWeatherVisualTheme(season);
+    if (!visualTheme) return null;
 
-          if (intent === 'dismiss') {
-            dismissWithSwipeAnimation(gestureState.dx);
+    const finishColors = visualTheme.bottomFinishColors;
+    const weatherBottomColor = finishColors[finishColors.length - 1];
+    const weatherGlowColor = finishColors[finishColors.length - 2];
+
+    return (
+      <View
+        pointerEvents="none"
+        accessible={false}
+        style={styles.weatherToHomeBridgeHost}
+      >
+        <LinearGradient
+          colors={[
+            weatherBottomColor,
+            weatherGlowColor,
+            HOME_BASE_BACKGROUND_COLOR,
+          ]}
+          locations={[0, 0.18, 1]}
+          style={[styles.weatherToHomeBridge, { height }]}
+        />
+      </View>
+    );
+  },
+);
+
+const HomeNotificationSwipeItem = React.memo(
+  function HomeNotificationSwipeItem({
+    item,
+    onPressItem,
+    onDismissItem,
+    expanded,
+    onToggleExpanded,
+    onSetExpanded,
+  }: HomeNotificationSwipeItemProps) {
+    const unread = !item.readAt;
+    const dismissItem = useCallback(() => {
+      onDismissItem(item);
+    }, [item, onDismissItem]);
+    const toggleExpanded = useCallback(() => {
+      onToggleExpanded(item);
+    }, [item, onToggleExpanded]);
+    const setExpanded = useCallback(
+      (nextExpanded: boolean) => {
+        onSetExpanded(item, nextExpanded);
+      },
+      [item, onSetExpanded],
+    );
+    const swipeTranslateX = useRef(new RNAnimated.Value(0)).current;
+    const resetSwipePosition = useCallback(() => {
+      RNAnimated.spring(swipeTranslateX, {
+        toValue: 0,
+        useNativeDriver: true,
+        speed: 18,
+        bounciness: 0,
+      }).start();
+    }, [swipeTranslateX]);
+    const dismissWithSwipeAnimation = useCallback(
+      (dx: number) => {
+        const exitX = dx < 0 ? -460 : 460;
+        RNAnimated.timing(swipeTranslateX, {
+          toValue: exitX,
+          duration: 150,
+          useNativeDriver: true,
+        }).start(({ finished }) => {
+          swipeTranslateX.setValue(0);
+          if (finished) {
+            dismissItem();
             return;
           }
           resetSwipePosition();
-          if (intent === 'expand') {
-            setExpanded(true);
-            return;
-          }
-          if (intent === 'collapse') {
-            setExpanded(false);
-          }
-        },
-        onPanResponderTerminate: resetSwipePosition,
-      }),
-    [
-      dismissWithSwipeAnimation,
-      expanded,
-      resetSwipePosition,
-      setExpanded,
-      swipeTranslateX,
-    ],
-  );
+        });
+      },
+      [dismissItem, resetSwipePosition, swipeTranslateX],
+    );
+    const panResponder = useMemo(
+      () =>
+        PanResponder.create({
+          onMoveShouldSetPanResponderCapture: (_event, gestureState) =>
+            shouldCaptureNotificationCardGesture({
+              dx: gestureState.dx,
+              dy: gestureState.dy,
+            }),
+          onMoveShouldSetPanResponder: (_event, gestureState) =>
+            shouldCaptureNotificationCardGesture({
+              dx: gestureState.dx,
+              dy: gestureState.dy,
+            }),
+          onPanResponderTerminationRequest: () => false,
+          onPanResponderMove: (_event, gestureState) => {
+            const absDx = Math.abs(gestureState.dx);
+            const absDy = Math.abs(gestureState.dy);
+            if (absDx > 8 && absDx > absDy * 1.15) {
+              swipeTranslateX.setValue(gestureState.dx);
+            }
+          },
+          onPanResponderRelease: (_event, gestureState) => {
+            const intent = getNotificationCardGestureIntent({
+              dx: gestureState.dx,
+              dy: gestureState.dy,
+              expanded,
+            });
 
-  return (
-    <View style={styles.notificationModalSwipeRow} {...panResponder.panHandlers}>
-      <RNAnimated.View
-        style={[
-          styles.notificationModalSwipeCard,
-          { transform: [{ translateX: swipeTranslateX }] },
-        ]}
+            if (intent === 'dismiss') {
+              dismissWithSwipeAnimation(gestureState.dx);
+              return;
+            }
+            resetSwipePosition();
+            if (intent === 'expand') {
+              setExpanded(true);
+              return;
+            }
+            if (intent === 'collapse') {
+              setExpanded(false);
+            }
+          },
+          onPanResponderTerminate: resetSwipePosition,
+        }),
+      [
+        dismissWithSwipeAnimation,
+        expanded,
+        resetSwipePosition,
+        setExpanded,
+        swipeTranslateX,
+      ],
+    );
+
+    return (
+      <View
+        style={styles.notificationModalSwipeRow}
+        {...panResponder.panHandlers}
       >
-        <TouchableOpacity
-          activeOpacity={0.9}
+        <RNAnimated.View
           style={[
-            styles.notificationModalItem,
-            unread ? styles.notificationModalItemUnread : null,
-            expanded ? styles.notificationModalItemExpanded : null,
+            styles.notificationModalSwipeCard,
+            { transform: [{ translateX: swipeTranslateX }] },
           ]}
-          onPress={() => onPressItem(item)}
         >
-          <View style={styles.notificationModalItemMainRow}>
-            <View style={styles.notificationModalItemIconWrap}>
-              <Feather
-                name={item.actionTarget ? 'message-circle' : 'bell'}
-                size={14}
-                color="rgba(85,96,112,0.72)"
-              />
-            </View>
-            <View style={styles.notificationModalItemContent}>
-              <View style={styles.notificationModalItemTopRow}>
-                <View style={styles.notificationModalItemTitleWrap}>
-                  {unread ? <View style={styles.notificationModalUnreadDot} /> : null}
-                  <AppText preset="unifiedLabel" style={styles.notificationModalItemTitle} numberOfLines={1}>
-                    {item.title}
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={[
+              styles.notificationModalItem,
+              unread ? styles.notificationModalItemUnread : null,
+              expanded ? styles.notificationModalItemExpanded : null,
+            ]}
+            onPress={() => onPressItem(item)}
+          >
+            <View style={styles.notificationModalItemMainRow}>
+              <View style={styles.notificationModalItemIconWrap}>
+                <Feather
+                  name={item.actionTarget ? 'message-circle' : 'bell'}
+                  size={14}
+                  color="rgba(85,96,112,0.72)"
+                />
+              </View>
+              <View style={styles.notificationModalItemContent}>
+                <View style={styles.notificationModalItemTopRow}>
+                  <View style={styles.notificationModalItemTitleWrap}>
+                    {unread ? (
+                      <View style={styles.notificationModalUnreadDot} />
+                    ) : null}
+                    <AppText
+                      preset="unifiedLabel"
+                      style={styles.notificationModalItemTitle}
+                      numberOfLines={1}
+                    >
+                      {item.title}
+                    </AppText>
+                  </View>
+                </View>
+                <AppText
+                  preset="unifiedBody"
+                  style={[
+                    styles.notificationModalItemBody,
+                    expanded
+                      ? styles.notificationModalItemBodyExpanded
+                      : styles.notificationModalItemBodyCollapsed,
+                  ]}
+                  numberOfLines={expanded ? undefined : 1}
+                >
+                  {item.body}
+                </AppText>
+                <View style={styles.notificationModalItemFooterRow}>
+                  <AppText
+                    preset="unifiedDate"
+                    style={styles.notificationModalItemDate}
+                  >
+                    {formatHomeNotificationDate(item.createdAt)}
                   </AppText>
+                  <TouchableOpacity
+                    activeOpacity={0.84}
+                    accessibilityLabel={expanded ? '알림 접기' : '알림 펼치기'}
+                    accessibilityRole="button"
+                    style={styles.notificationModalExpandButton}
+                    onPress={toggleExpanded}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Feather
+                      name={expanded ? 'chevron-up' : 'chevron-down'}
+                      size={18}
+                      color="rgba(85,96,112,0.72)"
+                    />
+                  </TouchableOpacity>
                 </View>
               </View>
-              <AppText preset="unifiedBody"
-                style={[
-                  styles.notificationModalItemBody,
-                  expanded
-                    ? styles.notificationModalItemBodyExpanded
-                    : styles.notificationModalItemBodyCollapsed,
-                ]}
-                numberOfLines={expanded ? undefined : 1}
-              >
-                {item.body}
-              </AppText>
-              <View style={styles.notificationModalItemFooterRow}>
-                <AppText preset="unifiedDate" style={styles.notificationModalItemDate}>
-                  {formatHomeNotificationDate(item.createdAt)}
-                </AppText>
-                <TouchableOpacity
-                  activeOpacity={0.84}
-                  accessibilityLabel={expanded ? '알림 접기' : '알림 펼치기'}
-                  accessibilityRole="button"
-                  style={styles.notificationModalExpandButton}
-                  onPress={toggleExpanded}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Feather
-                    name={expanded ? 'chevron-up' : 'chevron-down'}
-                    size={18}
-                    color="rgba(85,96,112,0.72)"
-                  />
-                </TouchableOpacity>
-              </View>
             </View>
-          </View>
-        </TouchableOpacity>
-      </RNAnimated.View>
-    </View>
-  );
-});
+          </TouchableOpacity>
+        </RNAnimated.View>
+      </View>
+    );
+  },
+);
 
 const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
   visible,
@@ -936,7 +1027,7 @@ const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
   loading,
   errorMessage,
   topInset,
-  maxHeight,
+  panelHeight,
   onClose,
   onRefresh,
   onPressItem,
@@ -1015,10 +1106,7 @@ const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
           onPress={onClose}
         >
           <Animated.View
-            style={[
-              styles.notificationOverlayBackdrop,
-              backdropAnimatedStyle,
-            ]}
+            style={[styles.notificationOverlayBackdrop, backdropAnimatedStyle]}
           />
         </Pressable>
 
@@ -1026,14 +1114,26 @@ const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
           accessibilityViewIsModal
           style={[
             styles.notificationOverlayPanel,
-            { marginTop: panelTopOffset, maxHeight },
+            {
+              marginTop: panelTopOffset,
+              height: panelHeight,
+              maxHeight: panelHeight,
+            },
             sheetAnimatedStyle,
           ]}
         >
           <View style={styles.notificationModalHeader}>
             <View style={styles.notificationModalTitleWrap}>
-              <AppText preset="unifiedTitle" style={styles.notificationModalTitle}>알림</AppText>
-              <AppText preset="unifiedBody" style={styles.notificationModalSubtitle}>
+              <AppText typographyRole="sectionTitle"
+                preset="unifiedTitle"
+                style={styles.notificationModalTitle}
+              >
+                알림
+              </AppText>
+              <AppText
+                preset="unifiedBody"
+                style={styles.notificationModalSubtitle}
+              >
                 읽지 않은 알림 {unreadCount}개
               </AppText>
             </View>
@@ -1046,7 +1146,10 @@ const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
                 onPress={onDismissAll}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <AppText preset="unifiedLabel" style={styles.notificationModalClearAllText}>
+                <AppText
+                  preset="unifiedLabel"
+                  style={styles.notificationModalClearAllText}
+                >
                   모두 치우기
                 </AppText>
               </TouchableOpacity>
@@ -1066,16 +1169,25 @@ const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
           {loading ? (
             <View style={styles.notificationModalState}>
               <ActivityIndicator />
-              <AppText preset="unifiedLabel" style={styles.notificationModalStateText}>
+              <AppText
+                preset="unifiedLabel"
+                style={styles.notificationModalStateText}
+              >
                 알림을 불러오는 중이에요.
               </AppText>
             </View>
           ) : errorMessage ? (
             <View style={styles.notificationModalState}>
-              <AppText preset="unifiedTitle" style={styles.notificationModalStateTitle}>
+              <AppText typographyRole="celebration"
+                preset="unifiedTitle"
+                style={styles.notificationModalStateTitle}
+              >
                 알림을 불러오지 못했어요
               </AppText>
-              <AppText preset="unifiedLabel" style={styles.notificationModalStateText}>
+              <AppText
+                preset="unifiedLabel"
+                style={styles.notificationModalStateText}
+              >
                 {errorMessage}
               </AppText>
               <TouchableOpacity
@@ -1083,7 +1195,10 @@ const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
                 style={styles.notificationModalRetryButton}
                 onPress={onRefresh}
               >
-                <AppText preset="unifiedLabel" style={styles.notificationModalRetryText}>
+                <AppText
+                  preset="unifiedLabel"
+                  style={styles.notificationModalRetryText}
+                >
                   다시 불러오기
                 </AppText>
               </TouchableOpacity>
@@ -1093,10 +1208,16 @@ const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
               <View style={styles.notificationModalEmptyIcon}>
                 <Feather name="bell" size={22} color="rgba(85,96,112,0.72)" />
               </View>
-              <AppText preset="unifiedTitle" style={styles.notificationModalStateTitle}>
+              <AppText typographyRole="celebration"
+                preset="unifiedTitle"
+                style={styles.notificationModalStateTitle}
+              >
                 아직 새 알림이 없어요
               </AppText>
-              <AppText preset="unifiedLabel" style={styles.notificationModalStateText}>
+              <AppText
+                preset="unifiedLabel"
+                style={styles.notificationModalStateText}
+              >
                 우리 아이 소식이 도착하면 여기에 알려드릴게요.
               </AppText>
             </View>
@@ -1212,10 +1333,17 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
           accessibilityLabel={notificationAccessibilityLabel}
           accessibilityRole="button"
         >
-          <Feather name="bell" size={18} color="rgba(11,18,32,0.75)" />
+          <Feather
+            name="bell"
+            size={18}
+            color="rgba(11,18,32,0.75)"
+          />
           {notificationUnreadCount > 0 ? (
             <View style={styles.headerNotificationBadge}>
-              <AppText preset="unifiedLabel" style={styles.headerNotificationBadgeText}>
+              <AppText
+                preset="unifiedLabel"
+                style={styles.headerNotificationBadgeText}
+              >
                 {notificationUnreadCount > 99
                   ? '99+'
                   : notificationUnreadCount}
@@ -1401,7 +1529,8 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
               size={13}
               color={petTheme.deep}
             />
-            <AppText preset="unifiedTitle"
+            <AppText typographyRole="heroCopy"
+              preset="unifiedTitle"
               styleOverridesPreset
               style={[styles.heroTitleBadgeText, { color: petTheme.deep }]}
               numberOfLines={1}
@@ -1412,7 +1541,7 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
           </View>
         ) : null}
 
-        <AppText
+        <AppText typographyRole="petIdentity"
           preset="unifiedTitle"
           styleOverridesPreset
           style={[styles.heroName, { color: petTheme.deep }]}
@@ -1623,22 +1752,20 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
               </View>
               <View style={styles.profileSheetRowContent}>
                 <View style={styles.profileSheetCategoryLine}>
-                  <Text style={[styles.profileSheetRowLabel, row.titleStyle]}>
+                  <AppText style={[styles.profileSheetRowLabel, row.titleStyle]}>
                     {row.label}
-                  </Text>
-                  <Text
+                  </AppText>
+                  <AppText
                     style={[
                       styles.profileSheetRowDescription,
-                      isWinter
-                        ? styles.winterProfileSheetRowDescription
-                        : null,
+                      isWinter ? styles.winterProfileSheetRowDescription : null,
                       isSpring ? styles.springProfileSheetRowDescription : null,
                       isSummer ? styles.summerProfileSheetRowDescription : null,
                     ]}
                   >
                     {' · '}
                     {row.description}
-                  </Text>
+                  </AppText>
                 </View>
                 {row.values.length > 0 ? (
                   <View style={styles.profileSheetValueWrap}>
@@ -1647,19 +1774,19 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
                         key={`${row.key}-${index}-${value}`}
                         style={[styles.profileSheetValueChip, row.chipStyle]}
                       >
-                        <Text
+                        <AppText
                           style={[
                             styles.profileSheetValueChipText,
                             row.chipTextStyle,
                           ]}
                         >
                           {value}
-                        </Text>
+                        </AppText>
                       </View>
                     ))}
                   </View>
                 ) : (
-                  <Text
+                  <AppText
                     style={[
                       styles.profileSheetEmptyValue,
                       isWinter ? styles.winterProfileSheetEmptyValue : null,
@@ -1668,17 +1795,14 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
                     ]}
                   >
                     {row.empty}
-                  </Text>
+                  </AppText>
                 )}
               </View>
               {seasonalOrnamentSheet || natureSeason ? (
                 <View
                   pointerEvents="none"
                   accessible={false}
-                  style={[
-                    styles.profileSheetRowOrnament,
-                    row.ornamentStyle,
-                  ]}
+                  style={[styles.profileSheetRowOrnament, row.ornamentStyle]}
                 >
                   {isWinter ? (
                     <WinterOrnament
@@ -1725,7 +1849,10 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
         ]}
         onPress={onToggleAll}
       >
-        <AppText preset="unifiedLabel" style={[styles.accordionAllLabel, { color: petTheme.primary }]}>
+        <AppText
+          preset="unifiedLabel"
+          style={[styles.accordionAllLabel, { color: petTheme.primary }]}
+        >
           모두펼치기
         </AppText>
         <Feather
@@ -1750,7 +1877,10 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
             <View style={[styles.accordionIconCircle, styles.iconCircleBlue]}>
               <Text style={styles.accordionIconText}>🐾</Text>
             </View>
-            <AppText preset="unifiedLabel" style={[styles.accordionTitle, styles.accTitleBlue]}>
+            <AppText typographyRole="sectionTitle"
+              preset="unifiedLabel"
+              style={[styles.accordionTitle, styles.accTitleBlue]}
+            >
               취미
             </AppText>
           </View>
@@ -1765,12 +1895,18 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
           <View style={styles.accordionBody}>
             {hobbies.length > 0 ? (
               hobbies.map(v => (
-                <AppText preset="unifiedLabel" key={v} style={styles.accordionBullet}>
+                <AppText
+                  preset="unifiedLabel"
+                  key={v}
+                  style={styles.accordionBullet}
+                >
                   • {v}
                 </AppText>
               ))
             ) : (
-              <AppText preset="unifiedLabel" style={styles.accordionEmpty}>• 아직 없어요</AppText>
+              <AppText preset="unifiedLabel" style={styles.accordionEmpty}>
+                • 아직 없어요
+              </AppText>
             )}
           </View>
         ) : null}
@@ -1791,7 +1927,10 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
             <View style={[styles.accordionIconCircle, styles.iconCircleOrange]}>
               <Text style={styles.accordionIconText}>💛</Text>
             </View>
-            <AppText preset="unifiedLabel" style={[styles.accordionTitle, styles.accTitleOrange]}>
+            <AppText typographyRole="sectionTitle"
+              preset="unifiedLabel"
+              style={[styles.accordionTitle, styles.accTitleOrange]}
+            >
               좋아하는 것
             </AppText>
           </View>
@@ -1806,12 +1945,18 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
           <View style={styles.accordionBody}>
             {likes.length > 0 ? (
               likes.map(v => (
-                <AppText preset="unifiedLabel" key={v} style={styles.accordionBullet}>
+                <AppText
+                  preset="unifiedLabel"
+                  key={v}
+                  style={styles.accordionBullet}
+                >
                   • {v}
                 </AppText>
               ))
             ) : (
-              <AppText preset="unifiedLabel" style={styles.accordionEmpty}>• 아직 없어요</AppText>
+              <AppText preset="unifiedLabel" style={styles.accordionEmpty}>
+                • 아직 없어요
+              </AppText>
             )}
           </View>
         ) : null}
@@ -1832,7 +1977,10 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
             <View style={[styles.accordionIconCircle, styles.iconCirclePink]}>
               <Text style={styles.accordionIconText}>💔</Text>
             </View>
-            <AppText preset="unifiedLabel" style={[styles.accordionTitle, styles.accTitlePink]}>
+            <AppText typographyRole="sectionTitle"
+              preset="unifiedLabel"
+              style={[styles.accordionTitle, styles.accTitlePink]}
+            >
               싫어하는 것
             </AppText>
           </View>
@@ -1847,12 +1995,18 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
           <View style={styles.accordionBody}>
             {dislikes.length > 0 ? (
               dislikes.map(v => (
-                <AppText preset="unifiedLabel" key={v} style={styles.accordionBullet}>
+                <AppText
+                  preset="unifiedLabel"
+                  key={v}
+                  style={styles.accordionBullet}
+                >
                   • {v}
                 </AppText>
               ))
             ) : (
-              <AppText preset="unifiedLabel" style={styles.accordionEmpty}>• 아직 없어요</AppText>
+              <AppText preset="unifiedLabel" style={styles.accordionEmpty}>
+                • 아직 없어요
+              </AppText>
             )}
           </View>
         ) : null}
@@ -1874,7 +2028,10 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
             <View style={[styles.accordionIconCircle, styles.iconCirclePurple]}>
               <Feather name="hash" size={16} color={petTheme.primary} />
             </View>
-            <AppText preset="unifiedLabel" style={[styles.accordionTitle, styles.accTitlePurple]}>
+            <AppText typographyRole="sectionTitle"
+              preset="unifiedLabel"
+              style={[styles.accordionTitle, styles.accTitlePurple]}
+            >
               #태그
             </AppText>
           </View>
@@ -1899,7 +2056,10 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
                     },
                   ]}
                 >
-                  <AppText preset="unifiedLabel" style={[styles.tagText, { color: petTheme.deep }]}>
+                  <AppText
+                    preset="unifiedLabel"
+                    style={[styles.tagText, { color: petTheme.deep }]}
+                  >
                     {t}
                   </AppText>
                 </View>
@@ -2206,7 +2366,7 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
                 )}
               </View>
               <View style={styles.profileSheetTitleWrap}>
-                <Text
+                <AppText
                   style={[
                     styles.profileSheetTitle,
                     isWinter ? styles.winterProfileSheetTitle : null,
@@ -2215,8 +2375,8 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
                   ]}
                 >
                   우리 아이의 취향 이야기
-                </Text>
-                <Text
+                </AppText>
+                <AppText
                   style={[
                     styles.profileSheetSubtitle,
                     isWinter ? styles.winterProfileSheetSubtitle : null,
@@ -2225,7 +2385,7 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
                   ]}
                 >
                   작고 소중한 취향을 살펴보세요
-                </Text>
+                </AppText>
               </View>
             </View>
             <TouchableOpacity
@@ -2285,7 +2445,7 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
                 { paddingBottom: Math.max(24, insets.bottom + 16) },
               ]}
             >
-              <Text
+              <AppText
                 style={[
                   styles.profileSheetFooterCopy,
                   isWinter ? styles.winterProfileSheetFooterCopy : null,
@@ -2294,7 +2454,7 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
                 ]}
               >
                 언제나 우리 아이와 함께 ♡
-              </Text>
+              </AppText>
             </View>
           </ScrollView>
         </RNAnimated.View>
@@ -2487,10 +2647,16 @@ const RecommendationTipsSection = React.memo(
     const debugSourceLabel = getGuideDataSourceLabel(source);
 
     return (
-      <View style={styles.section}>
+      <HomeSectionGlass
+        testID="home-glass-recommendation-tips"
+        style={styles.section}
+      >
         <View style={styles.sectionHeaderRow}>
           <View style={styles.tipSectionHeading}>
-            <AppText preset="unifiedTitle" style={[styles.tipSectionTitle, { color: petTheme.deep }]}>
+            <AppText typographyRole="sectionTitle"
+              preset="unifiedTitle"
+              style={[styles.tipSectionTitle, { color: petTheme.deep }]}
+            >
               {isMemorial
                 ? '함께한 시간을 돌아보는 홈'
                 : '우리 아이를 위한 추천 팁'}
@@ -2506,7 +2672,10 @@ const RecommendationTipsSection = React.memo(
                     : styles.guideDebugBadgeEmpty,
                 ]}
               >
-                <AppText preset="unifiedLabel" style={styles.guideDebugBadgeText}>
+                <AppText
+                  preset="unifiedLabel"
+                  style={styles.guideDebugBadgeText}
+                >
                   {debugSourceLabel}
                 </AppText>
               </View>
@@ -2514,7 +2683,10 @@ const RecommendationTipsSection = React.memo(
           </View>
           {!isMemorial ? (
             <TouchableOpacity activeOpacity={0.85} onPress={onPressMore}>
-              <AppText preset="unifiedBody" style={[styles.sectionLink, { color: petTheme.deep }]}>
+              <AppText
+                preset="unifiedBody"
+                style={[styles.sectionLink, { color: petTheme.deep }]}
+              >
                 더보기
               </AppText>
             </TouchableOpacity>
@@ -2523,7 +2695,9 @@ const RecommendationTipsSection = React.memo(
 
         {isMemorial ? (
           <View style={styles.emptyBox}>
-            <AppText preset="unifiedTitle" style={styles.emptyTitle}>케어 추천은 잠시 쉬어둘게요</AppText>
+            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
+              케어 추천은 잠시 쉬어둘게요
+            </AppText>
             <AppText preset="unifiedBody" style={styles.emptyDesc}>
               함께한 시간을 조용히 돌아볼 수 있도록, 일반 케어 팁 대신 기록과
               추억을 중심으로 홈을 보여드릴게요.
@@ -2531,19 +2705,25 @@ const RecommendationTipsSection = React.memo(
           </View>
         ) : loading ? (
           <View style={styles.emptyBox}>
-            <AppText preset="unifiedTitle" style={styles.emptyTitle}>추천 팁을 불러오는 중이에요</AppText>
+            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
+              추천 팁을 불러오는 중이에요
+            </AppText>
             <AppText preset="unifiedBody" style={styles.emptyDesc}>
               우리 아이 기준으로 먼저 보여드릴 가이드를 정리하고 있어요.
             </AppText>
           </View>
         ) : error ? (
           <View style={styles.emptyBox}>
-            <AppText preset="unifiedTitle" style={styles.emptyTitle}>추천 팁을 불러오지 못했어요</AppText>
-            <AppText preset="unifiedBody" style={styles.emptyDesc}>{error}</AppText>
+            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
+              추천 팁을 불러오지 못했어요
+            </AppText>
+            <AppText preset="unifiedBody" style={styles.emptyDesc}>
+              {error}
+            </AppText>
           </View>
         ) : guides.length === 0 ? (
           <View style={styles.emptyBox}>
-            <AppText preset="unifiedTitle" style={styles.emptyTitle}>
+            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
               추천 가능한 공개 가이드가 아직 없어요
             </AppText>
             <AppText preset="unifiedBody" style={styles.emptyDesc}>
@@ -2574,7 +2754,7 @@ const RecommendationTipsSection = React.memo(
             ))}
           </View>
         )}
-      </View>
+      </HomeSectionGlass>
     );
   },
 );
@@ -2585,18 +2765,25 @@ const TodayHomeTipSection = React.memo(function TodayHomeTipSection({
   petTheme: ReturnType<typeof buildPetThemePalette>;
 }) {
   return (
-    <View style={styles.section}>
-      <View style={[styles.todayTipCard, { backgroundColor: petTheme.tint }]}>
+    <HomeSectionGlass testID="home-glass-today-tip" style={styles.section}>
+      <View style={styles.todayTipCard}>
         <View style={styles.todayTipBadge}>
           <Feather name="map-pin" size={12} color={petTheme.primary} />
-          <AppText preset="unifiedDate" style={[styles.todayTipBadgeText, { color: petTheme.primary }]}>
+          <AppText
+            preset="unifiedDate"
+            style={[styles.todayTipBadgeText, { color: petTheme.primary }]}
+          >
             {TODAY_HOME_TIP.badge}
           </AppText>
         </View>
-        <AppText preset="unifiedDate" style={styles.todayTipTitle}>{TODAY_HOME_TIP.title}</AppText>
-        <AppText preset="unifiedDate" style={styles.todayTipDesc}>{TODAY_HOME_TIP.description}</AppText>
+        <AppText preset="unifiedDate" style={styles.todayTipTitle}>
+          {TODAY_HOME_TIP.title}
+        </AppText>
+        <AppText preset="unifiedDate" style={styles.todayTipDesc}>
+          {TODAY_HOME_TIP.description}
+        </AppText>
       </View>
-    </View>
+    </HomeSectionGlass>
   );
 });
 
@@ -2623,7 +2810,6 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
   accentColor: string;
   accentDeepColor: string;
 }) {
-  const theme = useTheme();
   const todayRecords = useMemo(() => recordItems, [recordItems]);
   const previewItems = useMemo(
     () => buildHomeRecentPreviewItems(todayRecords),
@@ -2634,75 +2820,85 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
     recordItems.length === 0;
 
   return (
-    <View style={[styles.section, styles.recentSection]}>
-      <View
-        style={[styles.recentPreviewBorder, { borderColor: theme.colors.border }]}
-      >
-        <View style={styles.recentPreviewCard}>
-          <View style={[styles.sectionHeaderRow, styles.recentSectionHeaderRow]}>
-            <View style={styles.recentSectionTitleRow}>
-              <MaterialCommunityIcons
-                name="history"
-                size={18}
-                color={accentDeepColor}
-              />
-              <AppText preset="unifiedTitle" style={[styles.sectionTitle, { color: accentDeepColor }]}>
-                최근 기록
-              </AppText>
-            </View>
-            <SectionHeaderAction
-              color={accentColor}
-              onPress={onPressTimeline}
-              accessibilityLabel="전체 기록 보기"
-              textPreset="unifiedMicro"
-              size="compact"
-            />
-          </View>
-          {isRecordBootstrapPending ? (
-            <View style={styles.recentEmptyState}>
-              <ActivityIndicator size="small" color={accentDeepColor} />
-              <AppText preset="unifiedBody" style={[styles.emptyDesc, styles.recentEmptyDesc]}>
-                기록을 불러오는 중이에요.
-              </AppText>
-            </View>
-          ) : previewItems.length === 0 ? (
-            <View style={styles.recentEmptyState}>
-              <AppText preset="unifiedTitle" style={styles.emptyTitle}>아직 기록이 없어요</AppText>
-              <AppText preset="unifiedBody" style={[styles.emptyDesc, styles.recentEmptyDesc]}>
-                첫 번째 추억을 남겨보세요.
-              </AppText>
-
-              <TouchableOpacity
-                activeOpacity={0.9}
-                style={[
-                  styles.recordBtn,
-                  {
-                    backgroundColor: accentDeepColor,
-                    shadowColor: accentDeepColor,
-                  },
-                ]}
-                onPress={onPressRecord}
-              >
-                <AppText preset="unifiedLabel" style={styles.recordBtnText}>기록하기</AppText>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.recentPreviewWrap}>
-              <View style={styles.recentPreviewList}>
-                {previewItems.map((previewItem, index) => (
-                  <HomeRecentRecordRow
-                    key={previewItem.record.id}
-                    item={previewItem.record}
-                    showDivider={index < previewItems.length - 1}
-                    onPress={record => onPressRecordItem(record.id)}
-                  />
-                ))}
-              </View>
-            </View>
-          )}
+    <HomeSectionGlass
+      testID="home-glass-recent-records"
+      style={[styles.section, styles.recentSection]}
+    >
+      <View style={[styles.sectionHeaderRow, styles.recentSectionHeaderRow]}>
+        <View style={styles.recentSectionTitleRow}>
+          <MaterialCommunityIcons
+            name="history"
+            size={18}
+            color={accentDeepColor}
+          />
+          <AppText typographyRole="sectionTitle"
+            preset="unifiedTitle"
+            style={[styles.sectionTitle, { color: accentDeepColor }]}
+          >
+            최근 기록
+          </AppText>
         </View>
+        <SectionHeaderAction
+          color={accentColor}
+          onPress={onPressTimeline}
+          accessibilityLabel="전체 기록 보기"
+          textPreset="unifiedMicro"
+          size="compact"
+        />
       </View>
-    </View>
+      {isRecordBootstrapPending ? (
+        <View style={styles.recentEmptyState}>
+          <ActivityIndicator size="small" color={accentDeepColor} />
+          <AppText
+            preset="unifiedBody"
+            style={[styles.emptyDesc, styles.recentEmptyDesc]}
+          >
+            기록을 불러오는 중이에요.
+          </AppText>
+        </View>
+      ) : previewItems.length === 0 ? (
+        <View style={styles.recentEmptyState}>
+          <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
+            아직 기록이 없어요
+          </AppText>
+          <AppText
+            preset="unifiedBody"
+            style={[styles.emptyDesc, styles.recentEmptyDesc]}
+          >
+            첫 번째 추억을 남겨보세요.
+          </AppText>
+
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={[
+              styles.recordBtn,
+              {
+                backgroundColor: accentDeepColor,
+                shadowColor: accentDeepColor,
+              },
+            ]}
+            onPress={onPressRecord}
+          >
+            <AppText preset="unifiedLabel" style={styles.recordBtnText}>
+              기록하기
+            </AppText>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={styles.recentPreviewWrap}>
+          <View style={styles.recentPreviewList}>
+            {previewItems.map((previewItem, index) => (
+              <HomeRecentRecordRow
+                key={previewItem.record.id}
+                item={previewItem.record}
+                showDivider={index < previewItems.length - 1}
+                onPress={record => onPressRecordItem(record.id)}
+              />
+            ))}
+          </View>
+        </View>
+      )}
+    </HomeSectionGlass>
   );
 });
 
@@ -2715,6 +2911,7 @@ const WeeklySummaryMetricCard = React.memo(function WeeklySummaryMetricCard({
   value,
   unit,
   icon,
+  iconSource,
   accentColor,
   iconBackground,
   onPress,
@@ -2723,14 +2920,19 @@ const WeeklySummaryMetricCard = React.memo(function WeeklySummaryMetricCard({
   label: string;
   value: number | null;
   unit: string;
-  icon: WeeklySummaryIconName;
+  icon?: WeeklySummaryIconName;
+  iconSource?: ImageSourcePropType;
   accentColor: string;
   iconBackground: string;
   onPress: () => void;
   isLoading?: boolean;
 }) {
   const valueLabel =
-    value === null ? (isLoading ? '불러오는 중' : '확인 필요') : `${value}${unit}`;
+    value === null
+      ? isLoading
+        ? '불러오는 중'
+        : '확인 필요'
+      : `${value}${unit}`;
 
   return (
     <TouchableOpacity
@@ -2747,7 +2949,16 @@ const WeeklySummaryMetricCard = React.memo(function WeeklySummaryMetricCard({
             { backgroundColor: iconBackground },
           ]}
         >
-          <MaterialCommunityIcons name={icon} size={22} color={accentColor} />
+          {iconSource ? (
+            <Image
+              source={iconSource}
+              style={styles.weeklySummaryMetricBrandMark}
+              resizeMode="contain"
+              accessible={false}
+            />
+          ) : icon ? (
+            <MaterialCommunityIcons name={icon} size={22} color={accentColor} />
+          ) : null}
         </View>
         <View style={styles.weeklySummaryChevron}>
           <MaterialCommunityIcons
@@ -2838,7 +3049,6 @@ const TotalSummarySection = React.memo(function TotalSummarySection({
   onPressLife: () => void;
   onPressAllRecords: () => void;
 }) {
-  const theme = useTheme();
   const totalSummary = useMemo(
     () => (records ? buildTotalSummary(records) : null),
     [records],
@@ -2848,177 +3058,192 @@ const TotalSummarySection = React.memo(function TotalSummarySection({
       totalSummary
         ? buildTotalSummaryLine(totalSummary)
         : isLoading
-          ? '전체 기록을 불러오는 중이에요.'
-          : '전체 기록을 확인할 수 없어요.',
+        ? '전체 기록을 불러오는 중이에요.'
+        : '전체 기록을 확인할 수 없어요.',
     [isLoading, totalSummary],
   );
 
   return (
-    <View style={[styles.section, styles.weeklySummarySection]}>
-      <View
-        style={[
-          styles.weeklySummaryBorder,
-          { borderColor: theme.colors.border },
-        ]}
-      >
-        <View style={[styles.weeklySummaryCard, { shadowColor: accentDeepColor }]}>
-        <View style={styles.weeklySummaryHeader}>
-          <View style={styles.weeklySummaryHeaderIcon}>
-            <MaterialCommunityIcons
-              name="chart-bar"
-              size={22}
-              color={accentDeepColor}
-            />
-          </View>
-          <View style={styles.weeklySummaryHeaderText}>
-            <AppText preset="unifiedTitle" style={[styles.weeklySummaryTitle, { color: accentDeepColor }]}>
-              전체 요약
-            </AppText>
-            <AppText preset="unifiedBody" style={styles.weeklySummarySubtitle}>
-              지금까지 남긴 기록을 한눈에 확인해보세요
-            </AppText>
-          </View>
-        </View>
-
-        <View style={styles.weeklySummaryGrid}>
-          <View style={styles.weeklySummaryRow}>
-            <WeeklySummaryMetricCard
-              label="산책 기록"
-              value={totalSummary?.walkCount ?? null}
-              unit="기록"
-              icon="paw"
-              accentColor={accentDeepColor}
-              iconBackground="#F4EEFF"
-              onPress={onPressWalk}
-              isLoading={isLoading}
-            />
-            <WeeklySummaryMetricCard
-              label="식사 기록"
-              value={totalSummary?.mealCount ?? null}
-              unit="기록"
-              icon="silverware-fork-knife"
-              accentColor="#FF4FA3"
-              iconBackground="#FFEAF3"
-              onPress={onPressMeal}
-              isLoading={isLoading}
-            />
-          </View>
-          <View style={styles.weeklySummaryRow}>
-            <WeeklySummaryMetricCard
-              label="생활 기록"
-              value={totalSummary?.lifeCount ?? null}
-              unit="기록"
-              icon="notebook-outline"
-              accentColor="#18BFA7"
-              iconBackground="#EAF9F6"
-              onPress={onPressLife}
-              isLoading={isLoading}
-            />
-            <WeeklySummaryMetricCard
-              label="기록한 날"
-              value={totalSummary?.recordDays ?? null}
-              unit="일"
-              icon="calendar-month-outline"
-              accentColor="#FF8A24"
-              iconBackground="#FFF3E8"
-              onPress={onPressAllRecords}
-              isLoading={isLoading}
-            />
-          </View>
-        </View>
-
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={styles.weeklySummaryInsight}
-          onPress={onPressAllRecords}
-          accessibilityRole="button"
-          accessibilityLabel={`전체 기록 한 줄 요약, ${summaryLine}`}
-        >
-          <View style={styles.weeklySummaryInsightIcon}>
-            <MaterialCommunityIcons
-              name="creation"
-              size={20}
-              color="#9B6BFF"
-            />
-          </View>
-          <View style={styles.weeklySummaryInsightText}>
-            <AppText preset="unifiedLabel" style={styles.weeklySummaryInsightTitle}>
-              전체 기록 한 줄 요약
-            </AppText>
-            <AppText preset="unifiedBody" style={styles.weeklySummaryInsightBody} numberOfLines={2}>
-              {summaryLine}
-            </AppText>
-          </View>
-          <MaterialCommunityIcons
-            name="chevron-right"
-            size={20}
-            color="#B1A8C8"
-          />
-        </TouchableOpacity>
-
-        <View style={styles.weeklySummaryFooterDivider} />
-        <View style={styles.weeklySummaryFooter}>
-          <View style={styles.weeklySummaryFooterItem}>
-            <MaterialCommunityIcons
-              name="calendar-check-outline"
-              size={17}
-              color={accentDeepColor}
-            />
-            <AppText preset="unifiedBody" style={styles.weeklySummaryFooterText} numberOfLines={1}>
-              {totalSummary ? (
-                <>
-                  전체 기록{' '}
-                  <AppText
-                    preset="unifiedBody"
-                    style={[
-                      styles.weeklySummaryFooterValue,
-                      { color: accentDeepColor },
-                    ]}
-                  >
-                    {totalSummary.totalRecords}
-                  </AppText>
-                  개
-                </>
-              ) : isLoading ? (
-                '확인 중'
-              ) : (
-                '확인 필요'
-              )}
-            </AppText>
-          </View>
-          <View style={styles.weeklySummaryFooterDividerVertical} />
-          <View style={styles.weeklySummaryFooterItem}>
-            <MaterialCommunityIcons
-              name="calendar-month-outline"
-              size={17}
-              color={accentDeepColor}
-            />
-            <AppText preset="unifiedBody" style={styles.weeklySummaryFooterText} numberOfLines={1}>
-              {totalSummary ? (
-                <>
-                  기록한 날{' '}
-                  <AppText
-                    preset="unifiedBody"
-                    style={[
-                      styles.weeklySummaryFooterValue,
-                      { color: accentDeepColor },
-                    ]}
-                  >
-                    {totalSummary.recordDays}
-                  </AppText>
-                  일
-                </>
-              ) : isLoading ? (
-                '확인 중'
-              ) : (
-                '확인 필요'
-              )}
-            </AppText>
-          </View>
-        </View>
-        </View>
+    <HomeSectionGlass
+      testID="home-glass-total-summary"
+      style={[styles.section, styles.weeklySummarySection]}
+    >
+      <View style={styles.weeklySummaryHeader}>
+            <View style={styles.weeklySummaryHeaderIcon}>
+              <MaterialCommunityIcons
+                name="chart-bar"
+                size={22}
+                color={accentDeepColor}
+              />
+            </View>
+            <View style={styles.weeklySummaryHeaderText}>
+              <AppText typographyRole="sectionTitle"
+                preset="unifiedTitle"
+                style={[styles.weeklySummaryTitle, { color: accentDeepColor }]}
+              >
+                전체 요약
+              </AppText>
+              <AppText
+                preset="unifiedBody"
+                style={styles.weeklySummarySubtitle}
+              >
+                지금까지 남긴 기록을 한눈에 확인해보세요
+              </AppText>
+            </View>
       </View>
-    </View>
+
+      <View style={styles.weeklySummaryGrid}>
+            <View style={styles.weeklySummaryRow}>
+              <WeeklySummaryMetricCard
+                label="산책 기록"
+                value={totalSummary?.walkCount ?? null}
+                unit="기록"
+                iconSource={NURI_BRAND_MARK}
+                accentColor={accentDeepColor}
+                iconBackground="#F4EEFF"
+                onPress={onPressWalk}
+                isLoading={isLoading}
+              />
+              <WeeklySummaryMetricCard
+                label="식사 기록"
+                value={totalSummary?.mealCount ?? null}
+                unit="기록"
+                icon="silverware-fork-knife"
+                accentColor="#FF4FA3"
+                iconBackground="#FFEAF3"
+                onPress={onPressMeal}
+                isLoading={isLoading}
+              />
+            </View>
+            <View style={styles.weeklySummaryRow}>
+              <WeeklySummaryMetricCard
+                label="생활 기록"
+                value={totalSummary?.lifeCount ?? null}
+                unit="기록"
+                icon="notebook-outline"
+                accentColor="#18BFA7"
+                iconBackground="#EAF9F6"
+                onPress={onPressLife}
+                isLoading={isLoading}
+              />
+              <WeeklySummaryMetricCard
+                label="기록한 날"
+                value={totalSummary?.recordDays ?? null}
+                unit="일"
+                icon="calendar-month-outline"
+                accentColor="#FF8A24"
+                iconBackground="#FFF3E8"
+                onPress={onPressAllRecords}
+                isLoading={isLoading}
+              />
+            </View>
+      </View>
+
+      <TouchableOpacity
+            activeOpacity={0.9}
+            style={styles.weeklySummaryInsight}
+            onPress={onPressAllRecords}
+            accessibilityRole="button"
+            accessibilityLabel={`전체 기록 한 줄 요약, ${summaryLine}`}
+          >
+            <View style={styles.weeklySummaryInsightIcon}>
+              <MaterialCommunityIcons
+                name="creation"
+                size={20}
+                color="#9B6BFF"
+              />
+            </View>
+            <View style={styles.weeklySummaryInsightText}>
+              <AppText
+                preset="unifiedLabel"
+                style={styles.weeklySummaryInsightTitle}
+              >
+                전체 기록 한 줄 요약
+              </AppText>
+              <AppText
+                preset="unifiedBody"
+                style={styles.weeklySummaryInsightBody}
+                numberOfLines={2}
+              >
+                {summaryLine}
+              </AppText>
+            </View>
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={20}
+              color="#B1A8C8"
+            />
+      </TouchableOpacity>
+
+      <View style={styles.weeklySummaryFooterDivider} />
+      <View style={styles.weeklySummaryFooter}>
+            <View style={styles.weeklySummaryFooterItem}>
+              <MaterialCommunityIcons
+                name="calendar-check-outline"
+                size={17}
+                color={accentDeepColor}
+              />
+              <AppText
+                preset="unifiedBody"
+                style={styles.weeklySummaryFooterText}
+                numberOfLines={1}
+              >
+                {totalSummary ? (
+                  <>
+                    전체 기록{' '}
+                    <AppText
+                      preset="unifiedBody"
+                      style={[
+                        styles.weeklySummaryFooterValue,
+                        { color: accentDeepColor },
+                      ]}
+                    >
+                      {totalSummary.totalRecords}
+                    </AppText>
+                    개
+                  </>
+                ) : isLoading ? (
+                  '확인 중'
+                ) : (
+                  '확인 필요'
+                )}
+              </AppText>
+            </View>
+            <View style={styles.weeklySummaryFooterDividerVertical} />
+            <View style={styles.weeklySummaryFooterItem}>
+              <MaterialCommunityIcons
+                name="calendar-month-outline"
+                size={17}
+                color={accentDeepColor}
+              />
+              <AppText
+                preset="unifiedBody"
+                style={styles.weeklySummaryFooterText}
+                numberOfLines={1}
+              >
+                {totalSummary ? (
+                  <>
+                    기록한 날{' '}
+                    <AppText
+                      preset="unifiedBody"
+                      style={[
+                        styles.weeklySummaryFooterValue,
+                        { color: accentDeepColor },
+                      ]}
+                    >
+                      {totalSummary.recordDays}
+                    </AppText>
+                    일
+                  </>
+                ) : isLoading ? (
+                  '확인 중'
+                ) : (
+                  '확인 필요'
+                )}
+              </AppText>
+            </View>
+      </View>
+    </HomeSectionGlass>
   );
 });
 
@@ -3047,13 +3272,19 @@ const ScheduleSection = React.memo(function ScheduleSection({
   }, [scheduleItems]);
 
   return (
-    <View style={styles.section}>
+    <HomeSectionGlass testID="home-glass-schedule" style={styles.section}>
       <View style={styles.sectionHeaderRow}>
-        <AppText preset="unifiedTitle" style={[styles.tipSectionTitle, { color: accentDeepColor }]}>
+        <AppText typographyRole="sectionTitle"
+          preset="unifiedTitle"
+          style={[styles.tipSectionTitle, { color: accentDeepColor }]}
+        >
           일정 보기
         </AppText>
         <TouchableOpacity activeOpacity={0.85} onPress={onPressScheduleList}>
-          <AppText preset="unifiedBody" style={[styles.sectionLink, { color: accentColor }]}>
+          <AppText
+            preset="unifiedBody"
+            style={[styles.sectionLink, { color: accentColor }]}
+          >
             더보기
           </AppText>
         </TouchableOpacity>
@@ -3061,7 +3292,9 @@ const ScheduleSection = React.memo(function ScheduleSection({
 
       {weekScheduleItems.length === 0 ? (
         <View style={[styles.emptyBox, { borderColor: theme.colors.border }]}>
-          <AppText preset="unifiedTitle" style={styles.emptyTitle}>등록된 일정이 아직 없어요</AppText>
+          <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
+            등록된 일정이 아직 없어요
+          </AppText>
           <AppText preset="unifiedBody" style={styles.emptyDesc}>
             오래 남겨둘 일정도 한곳에 모아두고 홈에서 가볍게 꺼내볼 수 있어요.
           </AppText>
@@ -3072,7 +3305,10 @@ const ScheduleSection = React.memo(function ScheduleSection({
             <TouchableOpacity
               key={item.key}
               activeOpacity={0.92}
-              style={[styles.scheduleCard, { borderColor: theme.colors.border }]}
+              style={[
+                styles.scheduleCard,
+                { borderColor: theme.colors.border },
+              ]}
               onPress={onPressScheduleList}
             >
               <View
@@ -3081,7 +3317,9 @@ const ScheduleSection = React.memo(function ScheduleSection({
                   { backgroundColor: accentTint },
                 ]}
               >
-                <AppText preset="unifiedDate" style={styles.scheduleDateText}>{item.dateLabel}</AppText>
+                <AppText preset="unifiedDate" style={styles.scheduleDateText}>
+                  {item.dateLabel}
+                </AppText>
               </View>
 
               <View style={styles.scheduleBody}>
@@ -3102,11 +3340,19 @@ const ScheduleSection = React.memo(function ScheduleSection({
                 </View>
 
                 <View style={styles.scheduleTextCol}>
-                  <AppText preset="unifiedLabel" style={styles.scheduleTitle}>{item.title}</AppText>
+                  <AppText preset="unifiedLabel" style={styles.scheduleTitle}>
+                    {item.title}
+                  </AppText>
                   {activeScheduleIds.has(item.key) ? (
-                    <AppText preset="unifiedMicro" color={accentColor}>알람 울리는 중</AppText>
+                    <AppText preset="unifiedMicro" color={accentColor}>
+                      알람 울리는 중
+                    </AppText>
                   ) : null}
-                  <AppText preset="unifiedBody" style={styles.scheduleSub} numberOfLines={2}>
+                  <AppText
+                    preset="unifiedBody"
+                    style={styles.scheduleSub}
+                    numberOfLines={2}
+                  >
                     {item.subtitle}
                   </AppText>
                 </View>
@@ -3130,9 +3376,11 @@ const ScheduleSection = React.memo(function ScheduleSection({
         ]}
         onPress={onPressScheduleCreate}
       >
-        <AppText preset="unifiedLabel" style={styles.recordBtnText}>일정 추가하기</AppText>
+        <AppText preset="unifiedLabel" style={styles.recordBtnText}>
+          일정 추가하기
+        </AppText>
       </TouchableOpacity>
-    </View>
+    </HomeSectionGlass>
   );
 });
 
@@ -3175,13 +3423,19 @@ const HealthRecentActivitiesSection = React.memo(
     );
 
     return (
-      <View style={styles.section}>
+      <HomeSectionGlass testID="home-glass-health" style={styles.section}>
         <View style={styles.sectionHeaderRow}>
-          <AppText preset="unifiedTitle" style={[styles.tipSectionTitle, { color: accentDeepColor }]}>
+          <AppText typographyRole="sectionTitle"
+            preset="unifiedTitle"
+            style={[styles.tipSectionTitle, { color: accentDeepColor }]}
+          >
             건강관리 최근 활동
           </AppText>
           <TouchableOpacity activeOpacity={0.85} onPress={onPressHealthReport}>
-            <AppText preset="unifiedBody" style={[styles.sectionLink, { color: accentColor }]}>
+            <AppText
+              preset="unifiedBody"
+              style={[styles.sectionLink, { color: accentColor }]}
+            >
               건강관리 열기
             </AppText>
           </TouchableOpacity>
@@ -3189,7 +3443,9 @@ const HealthRecentActivitiesSection = React.memo(
 
         {recentActivities.length === 0 ? (
           <View style={[styles.emptyBox, { borderColor: theme.colors.border }]}>
-            <AppText preset="unifiedTitle" style={styles.emptyTitle}>건강관리 기록이 아직 없어요</AppText>
+            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
+              건강관리 기록이 아직 없어요
+            </AppText>
             <AppText preset="unifiedBody" style={styles.emptyDesc}>
               병원, 약, 증상, 체중 기록은 건강관리에서 차분히 모아볼 수 있어요.
             </AppText>
@@ -3200,7 +3456,10 @@ const HealthRecentActivitiesSection = React.memo(
               <TouchableOpacity
                 key={item.id}
                 activeOpacity={0.92}
-                style={[styles.activityRow, { borderColor: theme.colors.border }]}
+                style={[
+                  styles.activityRow,
+                  { borderColor: theme.colors.border },
+                ]}
                 onPress={() => onPressActivityItem(item.ymd)}
               >
                 <View
@@ -3217,11 +3476,19 @@ const HealthRecentActivitiesSection = React.memo(
                 </View>
 
                 <View style={styles.activityTextCol}>
-                  <AppText preset="unifiedLabel" style={styles.activityTitle} numberOfLines={1}>
+                  <AppText
+                    preset="unifiedLabel"
+                    style={styles.activityTitle}
+                    numberOfLines={1}
+                  >
                     {item.title?.trim() ||
                       getHealthActivityKindLabel(item.kind)}
                   </AppText>
-                  <AppText preset="unifiedBody" style={styles.activitySub} numberOfLines={1}>
+                  <AppText
+                    preset="unifiedBody"
+                    style={styles.activitySub}
+                    numberOfLines={1}
+                  >
                     {getHealthActivityKindLabel(item.kind)} · {item.subtitle}
                   </AppText>
                 </View>
@@ -3233,7 +3500,7 @@ const HealthRecentActivitiesSection = React.memo(
             ))}
           </View>
         )}
-      </View>
+      </HomeSectionGlass>
     );
   },
 );
@@ -3274,16 +3541,25 @@ const MonthlyDiarySection = React.memo(function MonthlyDiarySection({
   }, [recordItems]);
 
   return (
-    <View style={styles.section}>
+    <HomeSectionGlass
+      testID="home-glass-monthly-diary"
+      style={styles.section}
+    >
       <View style={styles.sectionHeaderRow}>
-        <AppText preset="unifiedTitle" style={[styles.tipSectionTitle, { color: accentDeepColor }]}>
+        <AppText typographyRole="sectionTitle"
+          preset="unifiedTitle"
+          style={[styles.tipSectionTitle, { color: accentDeepColor }]}
+        >
           이번 달 {petName} 일기
         </AppText>
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={() => onPressTimelineCategory('diary')}
         >
-          <AppText preset="unifiedBody" style={[styles.sectionLink, { color: accentColor }]}>
+          <AppText
+            preset="unifiedBody"
+            style={[styles.sectionLink, { color: accentColor }]}
+          >
             더보기
           </AppText>
         </TouchableOpacity>
@@ -3291,8 +3567,12 @@ const MonthlyDiarySection = React.memo(function MonthlyDiarySection({
 
       {currentMonthDiaryEntries.length === 0 ? (
         <View style={styles.emptyBox}>
-          <AppText preset="unifiedTitle" style={styles.emptyTitle}>이번 달 일기가 아직 없어요</AppText>
-          <AppText preset="unifiedBody" style={styles.emptyDesc}>첫 번째 일기를 남겨보세요.</AppText>
+          <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
+            이번 달 일기가 아직 없어요
+          </AppText>
+          <AppText preset="unifiedBody" style={styles.emptyDesc}>
+            첫 번째 일기를 남겨보세요.
+          </AppText>
           <TouchableOpacity
             activeOpacity={0.9}
             style={[
@@ -3304,7 +3584,9 @@ const MonthlyDiarySection = React.memo(function MonthlyDiarySection({
             ]}
             onPress={onPressRecord}
           >
-            <AppText preset="unifiedLabel" style={styles.recordBtnText}>기록하기</AppText>
+            <AppText preset="unifiedLabel" style={styles.recordBtnText}>
+              기록하기
+            </AppText>
           </TouchableOpacity>
         </View>
       ) : (
@@ -3322,7 +3604,7 @@ const MonthlyDiarySection = React.memo(function MonthlyDiarySection({
           ))}
         </ScrollView>
       )}
-    </View>
+    </HomeSectionGlass>
   );
 });
 
@@ -3334,11 +3616,7 @@ export default function LoggedInHome() {
   const bottomTabBarHeight = useBottomTabBarHeight();
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const seasonalHomeVisual = useMemo(
-    () =>
-      getSeasonalHomeVisual(
-        getSeasonalThemeKey(),
-        HOME_SEASON_QA_OVERRIDE,
-      ),
+    () => getSeasonalHomeVisual(getSeasonalThemeKey(), HOME_SEASON_QA_OVERRIDE),
     [],
   );
   const heroAvatarDiameter = seasonalHomeVisual
@@ -3351,11 +3629,13 @@ export default function LoggedInHome() {
     seasonalHomeVisual?.season === 'summer'
       ? Math.min(34, Math.max(26, Math.round(windowWidth * 0.075)))
       : seasonalHomeVisual
-        ? Math.min(48, Math.max(36, Math.round(windowWidth * 0.11)))
-        : 0;
+      ? Math.min(48, Math.max(36, Math.round(windowWidth * 0.11)))
+      : 0;
   const navigation = useNavigation<Nav>();
   const isScreenFocused = useIsFocused();
-  const homeScrollRef = useRef<React.ComponentRef<typeof ScrollView> | null>(null);
+  const homeScrollRef = useRef<React.ComponentRef<typeof ScrollView> | null>(
+    null,
+  );
   const shouldRestoreHomeScrollRef = useRef(true);
   const scheduleSectionOffsetRef = useRef<number | null>(null);
   const showTopButtonRef = useRef(false);
@@ -3396,8 +3676,13 @@ export default function LoggedInHome() {
     }
 
     try {
-      const unreadCount = await fetchUserNotificationUnreadCount();
-      setHomeNotificationUnreadCount(unreadCount);
+      const [items, dismissedKeys] = await Promise.all([
+        fetchUserNotifications(30),
+        loadHomeNotificationDismissedKeys(sessionUserId),
+      ]);
+      setHomeNotificationUnreadCount(
+        countHomeVisibleUnreadNotifications(items, dismissedKeys),
+      );
     } catch {
       // 알림 배지는 보조 정보다. Home 본문 렌더를 실패시키지 않는다.
     }
@@ -3412,13 +3697,15 @@ export default function LoggedInHome() {
         setHomeNotificationUnreadCount(0);
         return;
       }
-      const [items, unreadCount] = await Promise.all([
+      const [items, dismissedKeys] = await Promise.all([
         fetchUserNotifications(30),
-        fetchUserNotificationUnreadCount(),
+        loadHomeNotificationDismissedKeys(sessionUserId),
       ]);
-      const dismissedKeys = await loadHomeNotificationDismissedKeys(sessionUserId);
-      setHomeNotificationItems(filterHomeVisibleNotifications(items, dismissedKeys));
-      setHomeNotificationUnreadCount(unreadCount);
+      const visibleItems = filterHomeVisibleNotifications(items, dismissedKeys);
+      setHomeNotificationItems(visibleItems);
+      setHomeNotificationUnreadCount(
+        countHomeVisibleUnreadNotifications(items, dismissedKeys),
+      );
     } catch (error) {
       const meta = getBrandedErrorMeta(error, 'generic');
       setHomeNotificationError(meta.message);
@@ -3486,13 +3773,13 @@ export default function LoggedInHome() {
             : current,
         ),
       );
+      setHomeNotificationUnreadCount(current => Math.max(0, current - 1));
 
       try {
-        const unreadCount = await markUserNotificationRead({
+        await markUserNotificationRead({
           id: item.id,
           source: item.source,
         });
-        setHomeNotificationUnreadCount(unreadCount);
       } catch (error) {
         const meta = getBrandedErrorMeta(error, 'generic');
         setHomeNotificationError(meta.message);
@@ -3503,6 +3790,7 @@ export default function LoggedInHome() {
               : current,
           ),
         );
+        setHomeNotificationUnreadCount(current => current + 1);
       }
     },
     [closeHomeNotifications, navigation],
@@ -3522,6 +3810,9 @@ export default function LoggedInHome() {
             !(current.id === item.id && current.source === item.source),
         ),
       );
+      if (!item.readAt) {
+        setHomeNotificationUnreadCount(current => Math.max(0, current - 1));
+      }
 
       try {
         await dismissHomeNotification({
@@ -3533,11 +3824,13 @@ export default function LoggedInHome() {
         setHomeNotificationError(meta.message);
         setHomeNotificationItems(prev => {
           const exists = prev.some(
-            current =>
-              current.id === item.id && current.source === item.source,
+            current => current.id === item.id && current.source === item.source,
           );
           return exists ? prev : [item, ...prev];
         });
+        if (!item.readAt) {
+          setHomeNotificationUnreadCount(current => current + 1);
+        }
         showToast({ tone: 'error', title: meta.title, message: meta.message });
       }
     },
@@ -3548,8 +3841,10 @@ export default function LoggedInHome() {
     if (!sessionUserId) return;
     if (homeNotificationItems.length === 0) return;
     const previousItems = homeNotificationItems;
+    const previousUnreadCount = homeNotificationUnreadCount;
     setExpandedHomeNotificationKeys(new Set());
     setHomeNotificationItems([]);
+    setHomeNotificationUnreadCount(0);
     setHomeNotificationError(null);
 
     try {
@@ -3564,9 +3859,10 @@ export default function LoggedInHome() {
       const meta = getBrandedErrorMeta(error, 'generic');
       setHomeNotificationError(meta.message);
       setHomeNotificationItems(previousItems);
+      setHomeNotificationUnreadCount(previousUnreadCount);
       showToast({ tone: 'error', title: meta.title, message: meta.message });
     }
-  }, [homeNotificationItems, sessionUserId]);
+  }, [homeNotificationItems, homeNotificationUnreadCount, sessionUserId]);
 
   const onToggleHomeNotificationExpanded = useCallback(
     (item: UserNotificationItem) => {
@@ -3606,7 +3902,11 @@ export default function LoggedInHome() {
   // 2) pets
   // ---------------------------------------------------------
   const pets = usePetStore(s => s.pets);
-  const activeAlarms = useActiveScheduleAlarms(sessionUserId, pets, isScreenFocused);
+  const activeAlarms = useActiveScheduleAlarms(
+    sessionUserId,
+    pets,
+    isScreenFocused,
+  );
   const selectedPetId = usePetStore(s => s.selectedPetId);
   const petLoading = usePetStore(s => s.loading);
   const selectPet = usePetStore(s => s.selectPet);
@@ -3788,7 +4088,9 @@ export default function LoggedInHome() {
           replaceAllRecords(activePetId, cache.records);
         }
 
-        const scheduleState = useScheduleStore.getState().getPetState(activePetId);
+        const scheduleState = useScheduleStore
+          .getState()
+          .getPetState(activePetId);
         if (cache.schedules.length > 0 && scheduleState.items.length === 0) {
           replaceAllSchedules(activePetId, cache.schedules);
         }
@@ -3855,18 +4157,18 @@ export default function LoggedInHome() {
 
     const task = scheduleIdleTask(() => {
       fetchHomePetTitleBadge(activePetId)
-      .then(title => {
-        if (cancelled) return;
-        setHomeTitleBadge(title);
-        saveCachedHomePetTitleBadge({
-          userId: sessionUserId,
-          petId: activePetId,
-          title,
-        }).catch(() => {});
-      })
-      .catch(() => {
-        if (!cancelled) setHomeTitleBadge(null);
-      });
+        .then(title => {
+          if (cancelled) return;
+          setHomeTitleBadge(title);
+          saveCachedHomePetTitleBadge({
+            userId: sessionUserId,
+            petId: activePetId,
+            title,
+          }).catch(() => {});
+        })
+        .catch(() => {
+          if (!cancelled) setHomeTitleBadge(null);
+        });
     });
 
     return () => {
@@ -4137,13 +4439,11 @@ export default function LoggedInHome() {
 
   const onPressFrequentRecord = useCallback(
     (category: FrequentRecordCategory) => {
-      const initialMainCategory =
-        category === 'grooming' ? 'other' : category;
+      const initialMainCategory = category === 'grooming' ? 'other' : category;
       navigation.navigate('RecordCreate', {
         petId: activePetId ?? undefined,
         initialMainCategory,
-        initialOtherSubCategory:
-          category === 'grooming' ? 'grooming' : null,
+        initialOtherSubCategory: category === 'grooming' ? 'grooming' : null,
         returnTo: { tab: 'HomeTab', afterCreate: 'home' },
       });
     },
@@ -4456,8 +4756,17 @@ export default function LoggedInHome() {
       ),
     [insets.bottom],
   );
-  const notificationOverlayMaxHeight = useMemo(
-    () => Math.round(windowHeight * 0.74),
+  const notificationOverlayHeight = useMemo(
+    () =>
+      resolveHomeNotificationModalHeight({
+        windowHeight,
+        topInset: insets.top,
+        bottomInset: insets.bottom,
+      }),
+    [insets.bottom, insets.top, windowHeight],
+  );
+  const weatherToHomeBridgeHeight = useMemo(
+    () => resolveWeatherToHomeBridgeHeight(windowHeight),
     [windowHeight],
   );
   const handleHomeViewportLayout = useCallback(
@@ -4521,6 +4830,119 @@ export default function LoggedInHome() {
       season={seasonalHomeVisual?.season ?? null}
       avatarDiameter={heroAvatarDiameter}
     />
+  );
+  const frequentRecordsSection = (
+    <FrequentRecordsSection
+      petTheme={petTheme}
+      records={recordItems}
+      recordStatus={recordStatus}
+      onPressCategory={onPressFrequentRecord}
+      onPressAll={onPressTimeline}
+    />
+  );
+  const lowerHomeSections = (
+    <View style={styles.lowerHomeRoot}>
+      <WeatherToLowerHomeBridge
+        season={seasonalHomeVisual?.season ?? null}
+        height={weatherToHomeBridgeHeight}
+      />
+
+      {frequentRecordsSection}
+
+      <TotalSummarySection
+        records={
+          totalSummaryState.petId === activePetId
+            ? totalSummaryState.records
+            : null
+        }
+        accentDeepColor={petTheme.deep}
+        isLoading={
+          activePetId !== null &&
+          (totalSummaryState.petId !== activePetId ||
+            (totalSummaryState.records === null &&
+              totalSummaryState.status === 'loading'))
+        }
+        onPressWalk={onPressTotalWalk}
+        onPressMeal={onPressTotalMeal}
+        onPressLife={onPressTotalLife}
+        onPressAllRecords={onPressTotalSummaryAllRecords}
+      />
+
+      <TodayRecordsSection
+        recordItems={recordItems}
+        recordStatus={recordStatus}
+        onPressTimeline={onPressTimeline}
+        onPressRecord={onPressRecord}
+        onPressRecordItem={onPressRecordItem}
+        accentColor={petTheme.primary}
+        accentDeepColor={petTheme.deep}
+      />
+
+      <TodayPhotoSection
+        activePetId={activePetId}
+        recordItems={recordItems}
+        recordStatus={recordStatus}
+        onPressRecordItem={onPressRecordItem}
+        onPressRecord={onPressRecord}
+        accentColor={petTheme.deep}
+      />
+
+      <FixedTypographyBoundary>
+        <CommunitySection
+          isFocused={isScreenFocused}
+          accentColor={petTheme.primary}
+          accentTint={petTheme.tint}
+          accentBorder={petTheme.border}
+          onPressPost={onPressCommunityPost}
+          onPressAll={onPressCommunityAll}
+        />
+      </FixedTypographyBoundary>
+
+      <RecommendationTipsSection
+        guides={homeGuideState.guides}
+        loading={homeGuideState.loading}
+        error={homeGuideState.error}
+        isMemorial={isMemorialPet(selectedPet?.deathDate)}
+        source={homeGuideState.source}
+        sourceReason={homeGuideState.sourceReason}
+        petTheme={petTheme}
+        onPressGuide={onPressGuideDetail}
+        onPressMore={onPressGuideList}
+      />
+
+      <View onLayout={handleScheduleSectionLayout}>
+        <ScheduleSection
+          scheduleItems={visibleScheduleItems}
+          activeScheduleIds={activeAlarms.activeScheduleIds}
+          onPressScheduleList={onPressScheduleList}
+          onPressScheduleCreate={onPressScheduleCreate}
+          accentColor={petTheme.primary}
+          accentDeepColor={petTheme.deep}
+          accentTint={petTheme.tint}
+          accentBorder={petTheme.border}
+        />
+      </View>
+
+      <HealthRecentActivitiesSection
+        activityItems={healthActivityItems}
+        onPressHealthReport={() => onPressHealthReport()}
+        onPressActivityItem={onPressHealthReport}
+        accentColor={petTheme.primary}
+        accentDeepColor={petTheme.deep}
+      />
+
+      <TodayHomeTipSection petTheme={petTheme} />
+
+      <MonthlyDiarySection
+        petName={plainPetName}
+        recordItems={recordItems}
+        onPressTimelineCategory={onPressTimelineCategory}
+        onPressRecord={onPressRecord}
+        onPressRecordItem={onPressRecordItem}
+        accentColor={petTheme.primary}
+        accentDeepColor={petTheme.deep}
+      />
+    </View>
   );
 
   // ---------------------------------------------------------
@@ -4630,122 +5052,7 @@ export default function LoggedInHome() {
             />
           </FixedTypographyBoundary>
 
-          {seasonalHomeVisual?.season === 'autumn' ||
-          seasonalHomeVisual?.season === 'winter' ||
-          seasonalHomeVisual?.season === 'spring' ||
-          seasonalHomeVisual?.season === 'summer' ? (
-            <View style={styles.autumnPostWeatherSurface}>
-              <FrequentRecordsSection
-                petTheme={petTheme}
-                records={recordItems}
-                recordStatus={recordStatus}
-                onPressCategory={onPressFrequentRecord}
-                onPressAll={onPressTimeline}
-              />
-            </View>
-          ) : (
-            <FrequentRecordsSection
-              petTheme={petTheme}
-              records={recordItems}
-              recordStatus={recordStatus}
-              onPressCategory={onPressFrequentRecord}
-              onPressAll={onPressTimeline}
-            />
-          )}
-
-          <TodayPhotoSection
-            activePetId={activePetId}
-            recordItems={recordItems}
-            recordStatus={recordStatus}
-            onPressRecordItem={onPressRecordItem}
-            onPressRecord={onPressRecord}
-            accentColor={petTheme.deep}
-          />
-
-          <FixedTypographyBoundary>
-            <CommunitySection
-              isFocused={isScreenFocused}
-              accentColor={petTheme.primary}
-              accentTint={petTheme.tint}
-              accentBorder={petTheme.border}
-              onPressPost={onPressCommunityPost}
-              onPressAll={onPressCommunityAll}
-            />
-          </FixedTypographyBoundary>
-
-          <TodayRecordsSection
-            recordItems={recordItems}
-            recordStatus={recordStatus}
-            onPressTimeline={onPressTimeline}
-            onPressRecord={onPressRecord}
-            onPressRecordItem={onPressRecordItem}
-            accentColor={petTheme.primary}
-            accentDeepColor={petTheme.deep}
-          />
-
-          <TotalSummarySection
-            records={
-              totalSummaryState.petId === activePetId
-                ? totalSummaryState.records
-                : null
-            }
-            accentDeepColor={petTheme.deep}
-            isLoading={
-              activePetId !== null &&
-              (totalSummaryState.petId !== activePetId ||
-                (totalSummaryState.records === null &&
-                  totalSummaryState.status === 'loading'))
-            }
-            onPressWalk={onPressTotalWalk}
-            onPressMeal={onPressTotalMeal}
-            onPressLife={onPressTotalLife}
-            onPressAllRecords={onPressTotalSummaryAllRecords}
-          />
-
-          <RecommendationTipsSection
-            guides={homeGuideState.guides}
-            loading={homeGuideState.loading}
-            error={homeGuideState.error}
-            isMemorial={isMemorialPet(selectedPet?.deathDate)}
-            source={homeGuideState.source}
-            sourceReason={homeGuideState.sourceReason}
-            petTheme={petTheme}
-            onPressGuide={onPressGuideDetail}
-            onPressMore={onPressGuideList}
-          />
-
-          <View onLayout={handleScheduleSectionLayout}>
-            <ScheduleSection
-              scheduleItems={visibleScheduleItems}
-              activeScheduleIds={activeAlarms.activeScheduleIds}
-              onPressScheduleList={onPressScheduleList}
-              onPressScheduleCreate={onPressScheduleCreate}
-              accentColor={petTheme.primary}
-              accentDeepColor={petTheme.deep}
-              accentTint={petTheme.tint}
-              accentBorder={petTheme.border}
-            />
-          </View>
-
-          <HealthRecentActivitiesSection
-            activityItems={healthActivityItems}
-            onPressHealthReport={() => onPressHealthReport()}
-            onPressActivityItem={onPressHealthReport}
-            accentColor={petTheme.primary}
-            accentDeepColor={petTheme.deep}
-          />
-
-          <TodayHomeTipSection petTheme={petTheme} />
-
-          <MonthlyDiarySection
-            petName={plainPetName}
-            recordItems={recordItems}
-            onPressTimelineCategory={onPressTimelineCategory}
-            onPressRecord={onPressRecord}
-            onPressRecordItem={onPressRecordItem}
-            accentColor={petTheme.primary}
-            accentDeepColor={petTheme.deep}
-          />
+          {lowerHomeSections}
         </Animated.View>
       </ScrollView>
 
@@ -4781,7 +5088,7 @@ export default function LoggedInHome() {
         loading={homeNotificationLoading}
         errorMessage={homeNotificationError}
         topInset={insets.top}
-        maxHeight={notificationOverlayMaxHeight}
+        panelHeight={notificationOverlayHeight}
         onClose={closeHomeNotifications}
         onRefresh={loadHomeNotifications}
         onPressItem={onPressHomeNotificationItem}

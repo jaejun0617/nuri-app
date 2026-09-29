@@ -9,7 +9,11 @@ import {
   getRecordSortTimestamp,
 } from '../records/date';
 import type { MemoryRecord } from '../supabase/memories';
-import { formatRelativeTimeFromNow } from '../../utils/date';
+import {
+  diffCalendarDaysBetweenYmd,
+  getDateYmdInKst,
+  getKstYmd,
+} from '../../utils/date';
 import { appendKoreanParticle } from '../../utils/koreanParticle';
 
 export type HomeHeroMemoryChip = {
@@ -39,8 +43,14 @@ function buildMemoryLabel(
   petName: string,
   now: Date,
 ): string {
-  const recordDate = getRecordDisplayYmd(record) ?? record.createdAt;
-  const relativeTime = formatRelativeTimeFromNow(recordDate, now) || '최근';
+  const recordYmd =
+    getRecordDisplayYmd(record) ?? getDateYmdInKst(record.createdAt);
+  const todayYmd = getKstYmd(now);
+  const diffDays = recordYmd
+    ? diffCalendarDaysBetweenYmd(recordYmd, todayYmd)
+    : null;
+  const relativeTime =
+    diffDays === null ? '최근' : diffDays <= 0 ? '오늘' : `${diffDays}일 전`;
   const categoryLabel = getMemoryCategoryChipLabel(record);
 
   if (categoryLabel === '산책') {

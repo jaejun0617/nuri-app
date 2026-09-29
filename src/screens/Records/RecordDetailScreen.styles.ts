@@ -209,6 +209,7 @@ export const styles = StyleSheet.create({
   },
   postBody: {
     paddingHorizontal: 14,
+    paddingTop: 14,
     paddingBottom: 16,
     gap: 8,
   },
