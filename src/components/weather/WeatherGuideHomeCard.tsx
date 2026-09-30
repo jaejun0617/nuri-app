@@ -15,6 +15,8 @@ import {
 import Feather from 'react-native-vector-icons/Feather';
 import LinearGradient from 'react-native-linear-gradient';
 
+import { HomeSectionGlassSurface } from '../home/HomeSectionGlass';
+
 import {
   formatWeatherPetText,
   getWeatherEmoji,
@@ -28,6 +30,7 @@ type Props = {
   petName?: string | null;
   accentColor?: string;
   visualTheme?: SeasonalWeatherCardVisualTheme | null;
+  hideSeasonalBackgroundImage?: boolean;
   onPress: () => void;
 };
 
@@ -44,6 +47,12 @@ export const WEATHER_DAY_BORDER_COLORS = [
   '#F2D66A',
 ];
 
+const NIGHT_BORDER_COLORS = [
+  'rgba(155,174,255,0.72)',
+  'rgba(157,126,255,0.86)',
+  'rgba(99,132,224,0.72)',
+] as const;
+
 // Weekly summary metrics derive their scale from the same temperature number.
 // Keep this source value beside the weather card so the two visual hierarchies
 // cannot drift independently.
@@ -51,13 +60,10 @@ export const WEATHER_TEMPERATURE_FONT_SIZE = 38;
 const SEASONAL_CARD_ASPECT_RATIO = 1665 / 945;
 const HOME_HORIZONTAL_GUTTER = 16;
 
-const NIGHT_BORDER_COLORS = [
-  'rgba(155,174,255,0.72)',
-  'rgba(157,126,255,0.86)',
-  'rgba(99,132,224,0.72)',
-] as const;
-
-function getNotice(weather: WeatherGuideBundle, petName?: string | null): Notice {
+function getNotice(
+  weather: WeatherGuideBundle,
+  petName?: string | null,
+): Notice {
   const safety = weather.precipitationSafety ?? weather.temperatureSafety;
 
   if (!safety) {
@@ -119,7 +125,7 @@ function getUvLabel(uvIndex: number) {
   return '확인 필요';
 }
 
-const Metric = React.memo(function Metric({
+const Metric = React.memo(function WeatherMetric({
   icon,
   label,
   value,
@@ -160,6 +166,7 @@ export default React.memo(function WeatherGuideHomeCard({
   petName,
   accentColor = '#6D6AF8',
   visualTheme = null,
+  hideSeasonalBackgroundImage = false,
   onPress,
 }: Props) {
   const { width } = useWindowDimensions();
@@ -187,13 +194,14 @@ export default React.memo(function WeatherGuideHomeCard({
   const panelBackground =
     visualTheme?.guideBackground ??
     (isNightCard ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.68)');
+  // Seasonal Home uses one shared glass surface; retain the legacy night fallback.
   const surfaceColors = visualTheme
-    ? [...visualTheme.surfaceColors]
+    ? ['transparent', 'transparent']
     : isNightCard
     ? ['#2A2F63', '#1B214B', '#111734']
     : ['#FFFFFF', '#F8F9FD'];
   const gradientColors = visualTheme
-    ? [...visualTheme.borderColors]
+    ? ['transparent', 'transparent']
     : isNightCard
     ? [...NIGHT_BORDER_COLORS]
     : [...WEATHER_DAY_BORDER_COLORS];
@@ -201,21 +209,15 @@ export default React.memo(function WeatherGuideHomeCard({
   const locationColor = visualTheme ? effectiveAccentColor : textPrimary;
   const temperatureColor = visualTheme ? effectiveAccentColor : textPrimary;
   const noticeArrowColor = visualTheme ? effectiveAccentColor : muted;
-  const temperatureValue = hasLiveData || isPreview
-    ? `${weather.currentTemperature}`
-    : '--';
+  const temperatureValue =
+    hasLiveData || isPreview ? `${weather.currentTemperature}` : '--';
 
   return (
     <TouchableOpacity
       activeOpacity={0.96}
       style={[
         styles.touchable,
-        visualTheme
-          ? {
-              shadowColor: visualTheme.shadowColor,
-              shadowOpacity: visualTheme.shadowOpacity,
-            }
-          : null,
+        visualTheme ? styles.profileEditGlassTouchable : null,
       ]}
       onPress={onPress}
       accessibilityRole="button"
@@ -231,20 +233,17 @@ export default React.memo(function WeatherGuideHomeCard({
           seasonalCardHeight ? { height: seasonalCardHeight } : null,
         ]}
       >
-        <LinearGradient
-          colors={surfaceColors}
-          style={[
-            styles.cardSurface,
-            visualTheme ? styles.seasonalCardSurface : null,
-          ]}
-        >
-          {visualTheme ? (
+        {visualTheme && !hideSeasonalBackgroundImage ? (
+          <View
+            style={styles.cardImageUnderlay}
+            pointerEvents="none"
+            accessible={false}
+          >
             <View
               style={[
                 styles.cardBackgroundLayer,
                 { left: visualTheme.backgroundLeftInset },
               ]}
-              pointerEvents="none"
             >
               <Image
                 source={visualTheme.backgroundImage}
@@ -253,19 +252,31 @@ export default React.memo(function WeatherGuideHomeCard({
                 accessible={false}
               />
             </View>
-          ) : null}
-          <LinearGradient
-            colors={
-              visualTheme
-                ? [...visualTheme.highlightColors]
-                : isNightCard
-                ? ['rgba(255,255,255,0.12)', 'rgba(255,255,255,0)']
-                : ['rgba(255,255,255,0.82)', 'rgba(255,255,255,0)']
-            }
-            style={styles.highlightStroke}
-            pointerEvents="none"
+          </View>
+        ) : null}
+        {visualTheme ? (
+          <HomeSectionGlassSurface
+            borderRadius={styles.outerBorder.borderRadius}
           />
-
+        ) : null}
+        <LinearGradient
+          colors={surfaceColors}
+          style={[
+            styles.cardSurface,
+            visualTheme ? styles.seasonalCardSurface : null,
+          ]}
+        >
+          {!visualTheme ? (
+            <LinearGradient
+              colors={
+                isNightCard
+                  ? ['rgba(255,255,255,0.12)', 'rgba(255,255,255,0)']
+                  : ['rgba(255,255,255,0.82)', 'rgba(255,255,255,0)']
+              }
+              style={styles.highlightStroke}
+              pointerEvents="none"
+            />
+          ) : null}
           <View style={styles.metaRow}>
             <View
               style={[
@@ -286,7 +297,10 @@ export default React.memo(function WeatherGuideHomeCard({
               ]}
             >
               <Feather name="map-pin" size={14} color={locationColor} />
-              <Text style={[styles.locationText, { color: locationColor }]} numberOfLines={1}>
+              <Text
+                style={[styles.locationText, { color: locationColor }]}
+                numberOfLines={1}
+              >
                 {locationLabel ?? weather.district}
               </Text>
             </View>
@@ -326,7 +340,12 @@ export default React.memo(function WeatherGuideHomeCard({
             ]}
           >
             <View style={styles.weatherArt}>
-              <Text style={[styles.weatherEmoji, isCompact ? styles.weatherEmojiCompact : null]}>
+              <Text
+                style={[
+                  styles.weatherEmoji,
+                  isCompact ? styles.weatherEmojiCompact : null,
+                ]}
+              >
                 {getNightWeatherEmoji(weather)}
               </Text>
             </View>
@@ -338,12 +357,29 @@ export default React.memo(function WeatherGuideHomeCard({
                   isCompact ? styles.temperatureCompact : null,
                 ]}
               >
-                <Text style={[styles.temperatureValue, { color: temperatureColor }]} numberOfLines={1}>
+                <Text
+                  style={[styles.temperatureValue, { color: temperatureColor }]}
+                  numberOfLines={1}
+                >
                   {temperatureValue}
                 </Text>
                 <View style={styles.temperatureUnit}>
-                  <Text style={[styles.temperatureDegree, { color: temperatureColor }]}>°</Text>
-                  <Text style={[styles.temperatureCelsius, { color: temperatureColor }]}>C</Text>
+                  <Text
+                    style={[
+                      styles.temperatureDegree,
+                      { color: temperatureColor },
+                    ]}
+                  >
+                    °
+                  </Text>
+                  <Text
+                    style={[
+                      styles.temperatureCelsius,
+                      { color: temperatureColor },
+                    ]}
+                  >
+                    C
+                  </Text>
                 </View>
               </View>
               <View style={styles.copyTextGroup}>
@@ -359,7 +395,14 @@ export default React.memo(function WeatherGuideHomeCard({
                     ]}
                   />
                 ) : null}
-                <Text style={[styles.headline, isCompact ? styles.headlineCompact : null, { color: textPrimary }]} numberOfLines={2}>
+                <Text
+                  style={[
+                    styles.headline,
+                    isCompact ? styles.headlineCompact : null,
+                    { color: textPrimary },
+                  ]}
+                  numberOfLines={2}
+                >
                   {renderAccentText(
                     formatWeatherPetText(weather.homeMessage, petName),
                     effectiveAccentColor,
@@ -395,13 +438,32 @@ export default React.memo(function WeatherGuideHomeCard({
                 },
               ]}
             >
-              <Text style={[styles.noticeLabel, isCompact ? styles.noticeLabelCompact : null, { color: effectiveAccentColor }]} numberOfLines={2}>
+              <Text
+                style={[
+                  styles.noticeLabel,
+                  isCompact ? styles.noticeLabelCompact : null,
+                  { color: effectiveAccentColor },
+                ]}
+                numberOfLines={2}
+              >
                 {notice.label}
               </Text>
-              <Text style={[styles.noticeMessage, isCompact ? styles.noticeMessageCompact : null, { color: textPrimary }]} numberOfLines={3}>
+              <Text
+                style={[
+                  styles.noticeMessage,
+                  isCompact ? styles.noticeMessageCompact : null,
+                  { color: textPrimary },
+                ]}
+                numberOfLines={3}
+              >
                 {notice.message}
               </Text>
-              <Feather name="chevron-right" size={17} color={noticeArrowColor} style={styles.noticeArrow} />
+              <Feather
+                name="chevron-right"
+                size={17}
+                color={noticeArrowColor}
+                style={styles.noticeArrow}
+              />
             </View>
           </View>
 
@@ -419,10 +481,33 @@ export default React.memo(function WeatherGuideHomeCard({
               },
             ]}
           >
-            <Metric icon="thermometer" label="체감" value={`${weather.apparentTemperature}°`} color={detailMetricColor} borderRightColor={separator} />
-            <Metric icon="droplet" label="습도" value={`${weather.humidity}%`} color={detailMetricColor} borderRightColor={separator} />
-            <Metric icon="wind" label="바람" value={`${weather.windSpeed}m/s`} color={detailMetricColor} borderRightColor={separator} />
-            <Metric icon="sun" label="자외선" value={getUvLabel(weather.uvIndex)} color={detailMetricColor} />
+            <Metric
+              icon="thermometer"
+              label="체감"
+              value={`${weather.apparentTemperature}°`}
+              color={detailMetricColor}
+              borderRightColor={separator}
+            />
+            <Metric
+              icon="droplet"
+              label="습도"
+              value={`${weather.humidity}%`}
+              color={detailMetricColor}
+              borderRightColor={separator}
+            />
+            <Metric
+              icon="wind"
+              label="바람"
+              value={`${weather.windSpeed}m/s`}
+              color={detailMetricColor}
+              borderRightColor={separator}
+            />
+            <Metric
+              icon="sun"
+              label="자외선"
+              value={getUvLabel(weather.uvIndex)}
+              color={detailMetricColor}
+            />
           </View>
         </LinearGradient>
       </LinearGradient>
@@ -438,6 +523,10 @@ const styles = StyleSheet.create({
     shadowRadius: 22,
     shadowOffset: { width: 0, height: 10 },
     elevation: 7,
+  },
+  profileEditGlassTouchable: {
+    shadowOpacity: 0,
+    elevation: 0,
   },
   outerBorder: {
     minHeight: 216,
@@ -458,6 +547,16 @@ const styles = StyleSheet.create({
   seasonalCardSurface: {
     minHeight: 0,
     paddingVertical: 8,
+  },
+  // Keep the existing seasonal image geometry underneath the shared glass.
+  cardImageUnderlay: {
+    position: 'absolute',
+    top: 1.25,
+    right: 1.25,
+    bottom: 1.25,
+    left: 1.25,
+    borderRadius: 26,
+    overflow: 'hidden',
   },
   cardBackgroundLayer: {
     position: 'absolute',

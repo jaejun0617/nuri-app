@@ -11,7 +11,10 @@ import {
   getSeasonalProfileEditVisual,
   type SeasonalProfileEditPalette,
 } from '../../theme/seasonal/profileEdit';
-import { getSeasonalThemeKey, type SeasonKey } from '../../theme/seasonal/season';
+import {
+  getSeasonalThemeKey,
+  type SeasonKey,
+} from '../../theme/seasonal/season';
 
 export const HOME_SECTION_GLASS_RADIUS = 22;
 export const HOME_SECTION_ROOT_STYLE: ViewStyle = {
@@ -29,29 +32,21 @@ export const HOME_SECTION_GLASS_MATERIAL_STYLE: ViewStyle = {
   left: 0,
   borderRadius: HOME_SECTION_GLASS_RADIUS,
   borderWidth: 1,
-  backgroundColor: 'rgba(255, 255, 255, 0.015)',
+  backgroundColor: 'transparent',
   overflow: 'hidden',
 };
 export const HOME_SECTION_GLASS_SHADOW_EVALUATION_STYLE: ViewStyle = {
-  shadowColor: '#64748B',
   shadowOpacity: 0,
-  shadowRadius: 16,
-  shadowOffset: { width: 0, height: 3 },
   elevation: 0,
-};
-export const HOME_SECTION_GLASS_HIGHLIGHT_STYLE: ViewStyle = {
-  position: 'absolute',
-  top: 1,
-  left: 14,
-  right: 14,
-  height: StyleSheet.hairlineWidth,
-  borderRadius: 999,
 };
 
 type HomeSectionGlassMaterial = {
+  backgroundColor: string;
   borderColor: string;
-  highlightColor: string;
 };
+
+// Home-only PO trial; Profile Edit and the approved border remain unchanged.
+const AUTUMN_HOME_GLASS_SURFACE_COLOR = 'rgba(255, 252, 246, 0.50)';
 
 export function resolveHomeSectionGlassMaterial(
   season: SeasonKey,
@@ -60,10 +55,42 @@ export function resolveHomeSectionGlassMaterial(
     getSeasonalProfileEditVisual(season).palette;
 
   return {
-    borderColor: palette.controlBorderColor,
-    highlightColor: palette.sectionBorderColor,
+    backgroundColor:
+      season === 'autumn'
+        ? AUTUMN_HOME_GLASS_SURFACE_COLOR
+        : palette.sectionSurfaceColor,
+    borderColor: palette.sectionBorderColor,
   };
 }
+
+/** Shared glass material, painted behind content without layout impact. */
+export const HomeSectionGlassSurface = React.memo(
+  function ProfileEditMaterialSurface({
+    borderRadius = HOME_SECTION_GLASS_RADIUS,
+  }: {
+    borderRadius?: number;
+  }) {
+    const materialStyle = useMemo(
+      () => resolveHomeSectionGlassMaterial(getSeasonalThemeKey()),
+      [],
+    );
+
+    return (
+      <View
+        testID="home-section-glass-surface"
+        pointerEvents="none"
+        accessible={false}
+        importantForAccessibility="no-hide-descendants"
+        style={[
+          styles.canonicalMaterial,
+          materialStyle,
+          { borderRadius },
+          styles.homeShadowEvaluation,
+        ]}
+      />
+    );
+  },
+);
 
 type HomeSectionGlassProps = PropsWithChildren<
   Omit<ViewProps, 'style'> & {
@@ -72,44 +99,19 @@ type HomeSectionGlassProps = PropsWithChildren<
 >;
 
 /**
- * Mirrors Profile Edit's edge language without introducing a filled card.
- * Android shadow/elevation stay disabled; visibility comes from edge light.
+ * Keeps the existing transparent section root and its functional content intact.
  */
 export function HomeSectionGlass({
   children,
   style,
   ...viewProps
 }: HomeSectionGlassProps) {
-  const materialStyle = useMemo(
-    () => resolveHomeSectionGlassMaterial(getSeasonalThemeKey()),
-    [],
-  );
-
   return (
     <View
       {...viewProps}
-      style={[
-        styles.transparentRoot,
-        style,
-        styles.forceTransparentRoot,
-      ]}
+      style={[styles.transparentRoot, style, styles.forceTransparentRoot]}
     >
-      <View
-        pointerEvents="none"
-        accessible={false}
-        style={[
-          styles.canonicalMaterial,
-          { borderColor: materialStyle.borderColor },
-          styles.homeShadowEvaluation,
-        ]}
-      >
-        <View
-          style={[
-            styles.topEdgeHighlight,
-            { backgroundColor: materialStyle.highlightColor },
-          ]}
-        />
-      </View>
+      <HomeSectionGlassSurface />
       {children}
     </View>
   );
@@ -124,6 +126,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 0,
   },
   canonicalMaterial: HOME_SECTION_GLASS_MATERIAL_STYLE,
-  topEdgeHighlight: HOME_SECTION_GLASS_HIGHLIGHT_STYLE,
   homeShadowEvaluation: HOME_SECTION_GLASS_SHADOW_EVALUATION_STYLE,
 });

@@ -1,5 +1,115 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-09-30 Home 최종 PO 직접 검증 완료
+
+- [x] PO 직접 검증 완료 및 승인된 Home 작업의 선별 커밋 지시 수신.
+- [x] 최신 문구 수정 설치본과 현재 승인 source 유지. 추가 앱 변경·빌드·설치 없음.
+- [x] 관련 없는 날짜 입력·이전 요약 문서 변경, 미사용 이미지와 임시 파일을 커밋에서 제외하는 종료 범위 확정.
+- [x] push 및 다음 작업 자동 착수 없음. 새 지시 대기.
+
+최신 설치 SHA-256: `3db179257623a599e344c9e04f3231b85c711fb4283464e4b8660efe39e70069`.
+아래 후보별 미승인·설치 대기는 진행 당시 이력이다. 현재 최종 PO 승인 상태는 이 항목과 최신 후보 보고서를 따른다.
+
+## 2026-09-30 승인된 Home 후속 문구 수정본 설치
+
+- [x] PO의 추가 1회 빌드·설치 승인 수신. 시각 최종 승인과 Git closeout은 별개.
+- [x] `파충류 · 전 연령`, `공통 · 전 연령` caption 제거와 지정 안내 줄바꿈 포함.
+- [x] 추가 source 변경·그림자 조정 없음. 보존 대상 9개 source baseline 동일.
+- [x] Node 24.20.0, Yarn 3.6.4, TypeScript, 대상 lint 오류 0개·새 경고 0개·기존 경고 20개, 12개 스위트 106개 테스트, diff check.
+- [x] 승인된 추가 Release·설치 각 1회, verifier ACCEPTED, embedded bundle, Metro OFF, 앱 데이터 유지.
+- [x] Galaxy S24 문구 제거·두 줄 안내·겹침 없음, 추천 상세·전체 목록 이동·복귀, 전체 Home·Diary 끝·맨 위·Bottom Navigation 확인.
+- [x] Hero 공통 label 43개 bounds 동일. 16:31:29~16:41:34 KST, PID 9351 FATAL 0, ANR 0, RN Fatal 0, Red Screen 없음.
+- [x] 최신 후보의 최종 PO 직접 검증 완료. 그림자 제안은 미적용.
+
+최신 APK SHA-256: `3db179257623a599e344c9e04f3231b85c711fb4283464e4b8660efe39e70069`.
+보고서: `docs/qa/nuri-home-layered-glass-recommendation-candidate-2026-09-30.md`.
+staging, commit, push 및 자동 다음 작업 없음. 아래 설치 대기 항목은 승인 전 후보 이력이다.
+
+## 2026-09-30 Home 내부 유리·추천 팁 후보
+
+- [x] 내부 8개 위젯·한 줄 요약 CTA·추천 카드 60% 유리, 14%~3% 반사광, no-shadow·no-elevation.
+- [x] 바깥 유리 50%, Hero·Weather·bubble canvas 및 기록 위젯 geometry 보존.
+- [x] 일반 헤드라인 20dp, 추천 22dp/30dp 계층과 실제 카탈로그 내용·태그·navigation 유지.
+- [x] TypeScript, 대상 ESLint 오류 0개·새 경고 0개·기존 경고 20개, 12개 스위트 105개 테스트, diff check.
+- [x] Release·설치 각 1회, 서명 verifier ACCEPTED, embedded bundle, Metro OFF.
+- [x] Galaxy S24 전체 Home·Diary 끝, 요약 CTA·추천 상세·목록 이동·복귀. Hero 공통 UI label 49개 bounds 동일.
+- [x] 15:45:27~16:09:15 KST, PID 5860 FATAL 0, ANR 0, RN Fatal 0, Red Screen 없음.
+- [x] 설치 후 audience caption 제거·안내 줄바꿈 source 반영과 재검증.
+- [ ] 후속 두 문구 수정본 추가 빌드·설치 여부 결정 및 실기기 반영.
+- [ ] 위젯 전용 약한 그림자 시험 여부 결정. 현재 미적용.
+- [ ] 이번 후보 최종 PO 시각 승인.
+
+설치 APK SHA-256: `8a2ded488a6c394d9121f152501c9ad24ad1e1a2dc7043b060fd355adbe61e4e`.
+설치본에는 후속 두 문구 변경이 아직 없다. 보고서: `docs/qa/nuri-home-layered-glass-recommendation-candidate-2026-09-30.md`.
+staging, commit, push 및 자동 다음 작업 없음. 아래는 이전 후보 검증 이력이다.
+
+## 2026-09-30 Home 섹션 리듬·위젯·버블 후보
+
+- [x] 날씨 기준 패널 간격 52dp: list gap 40dp와 기존 root margin 12dp. Hero 버튼·날씨 fold 유지.
+- [x] 10개 공통 헤더, headline icon 제거, 8개 목록 CTA 중앙 label·오른쪽 arrow·`전체 보기` 통일.
+- [x] Frequent·Summary 위젯 공통 반사광·베벨 재질. 바깥 glass 50%, no-shadow·no-elevation 유지.
+- [x] Home 커뮤니티만 선택 글꼴 적용. 커뮤니티 전용 화면·Weather 고정 글꼴 유지.
+- [x] 하단 41 small·8 medium·3 corner large bubble. 실제 layout anchor, 한 canvas, Hero 보존.
+- [x] TypeScript, 대상 ESLint 오류 0개·새 경고 0개, 관련 9개 스위트 82개 테스트, diff check. 기존 경고 23개 유지.
+- [x] 서명 검증 ACCEPTED, Release 1회, `adb install -r` 1회, Metro OFF.
+- [x] Galaxy S24 전체 Home·대표 navigation·복귀. gap 146~147px, header x 84px, Hero 고유 label 40개 bounds 동일.
+- [x] 확인 구간 FATAL 0, ANR 0, RN Fatal 0, Red Screen 없음. 기록 저장과 원격 운영 변경 없음.
+- [ ] 이번 통합 후보의 최종 PO 시각 승인.
+
+현재 APK SHA-256: `585d8e1df5cfd6b54b2bc17ba1a066d7b581cc4bc4910f0e3c3310f6380e7b04`.
+보고서: `docs/qa/nuri-home-section-rhythm-widget-bubble-candidate-2026-09-30.md`.
+staging, commit, push 및 자동 다음 작업 없음. 아래 50% 분석의 버블 미적용 항목은 이전 이력이다.
+
+## 2026-09-30 Home Glass 50% 투과감 시험
+
+- [x] PO의 58% 시험 및 추가 조정 지시에 따른 Autumn Home 채움 50% 후보.
+- [x] Profile Edit 70%, 다른 계절, 테두리 72%, 기존 radius와 내부 UI 보존. 부모 opacity 미사용.
+- [x] Single glass surface, transparent root, shadowOpacity 0, elevation 0 유지.
+- [x] Hero, Weather, Home composition·styles, Profile Edit palette 및 배경 source 작업 전후 해시 동일.
+- [x] TypeScript, 대상 ESLint 오류·경고 0개, 관련 6개 스위트 66개 테스트, diff check 통과.
+- [x] 58% Release·설치 각 1회, 새 PO 추가 지시에 따른 50% Release·설치 각 1회.
+- [x] Galaxy S24 전체 Home, 날씨 상세 이동·복귀, Timeline 이동·Home 복귀, 맨 위로 이동 확인.
+- [x] Hero 공통 label 44개 bounds 동일. 확인 구간 Fatal, ANR, RN Fatal 0건 및 Red Screen 없음.
+- [ ] 50% 후보 재질 PO 직접 시각 승인.
+- [x] 하단 버블 분석안 적용 지시 수신 및 위 통합 후보에 구현. 최종 시각 승인은 대기.
+
+현재 APK SHA-256: `1caa2a8c936c0d448eae3cf685bf8ee61d5efce2fbc6cf64a783104942fb7d3c`.
+현재값은 기존 승인 재질에 대한 별도 시험이며 최종 freeze가 아니다. staging, commit, push 및 자동 다음 작업 없음.
+분석과 증적은 `docs/qa/nuri-home-glass-transmission-bubble-analysis-2026-09-30.md`에 기록했다.
+
+## 2026-09-30 Autumn Glossy Bubble 후보
+
+- [x] 최신 Hero 시안 기반 좌측 중단·우측 하단 glossy sphere 및 edge crop.
+- [x] Weather부터 마지막 일기까지 작은 버블과 빛을 하나의 canvas로 연결.
+- [x] 기존 승인 glass와 Weather, Hero stage, Home styles 소스 보존.
+- [x] 360dp, 400dp, 430dp 크기·중앙 corridor 및 dynamic content 계약 확인.
+- [x] TypeScript, 대상 ESLint 새 오류·경고 0개, 관련 6개 스위트 66개 테스트, diff check 통과.
+- [x] 서명 검증된 Release 1회 및 Galaxy S24 설치 1회.
+- [x] 전체 Home scroll, 날씨 상세 이동·복귀, 하단 메뉴 이동, 맨 위로 돌아가기 확인.
+- [x] 변경 전후 공통 UI 항목 46개 bounds 동일. NURI 확인 구간 Fatal, ANR, RN Fatal 0건, Red Screen 없음.
+- [ ] PO 배경 직접 시각 승인.
+
+APK SHA-256: `c9509cf54c1ddc3bb2342f6e83f71666488f0c385c28a4b2f81a21f2dc0bef74`.
+현재 glass 승인은 유지한다. 배경 승인, staging, commit, push, 다른 계절은 자동 진행하지 않는다.
+대표 증적 6장과 별도 QA 도구 사건은 `docs/qa/nuri-autumn-glossy-bubble-candidate-2026-09-30.md`에 기록했다.
+
+## 2026-09-30 메인홈 유리패널 재질 통일 후보
+
+- [x] 프로필 수정의 실제 채움·테두리와 Home 공통 표면 일치.
+- [x] Home transparent root, single material surface, shadowOpacity 0, elevation 0 유지.
+- [x] 날씨 기존 스타일 46개와 본문·지표 구성 소스 대조 일치.
+- [x] 360dp, 400dp, 430dp 날씨 높이·모서리·터치 동작 테스트 통과.
+- [x] TypeScript, 대상 ESLint 오류·경고 0개, 관련 테스트 6개 스위트 60개 통과.
+- [x] 서명 검증된 Android Release 1회 및 Galaxy S24 설치 1회.
+- [x] 실기기 Home 전체 scroll, 날씨 상세 이동·복귀, 기록 입력 진입, 하단 메뉴 이동 및 마지막 일기 렌더 확인.
+- [x] 확인 구간 앱 Fatal, ANR, RN Fatal 0건. Red Screen 없음.
+- [x] 주요 Hero와 하단 메뉴 bounds 변경 전 동일.
+- [x] 현재 유리패널 재질 PO 승인.
+
+배경 버블, Hero, 기능 데이터, 원격 운영 계약의 변경은 없다. staging, commit, push는 하지 않는다.
+승인 범위는 현재 패널 재질이다. 배경 버블 디자인 및 배경 완성 후 재질 재평가는 별도 지시 대상이며 전체 배경 최종 freeze로 해석하지 않는다.
+설치 APK SHA-256: `b1d395a521d6fa8390fd4130f366dd655d64f3b30ddbc43117bb268324b08371`.
+
 ## 2026-08-18 AUTH-001 current app/source closeout
 
 - [x] Auth policy is Google ON, Kakao ON, Naver completely removed, Apple OFF.

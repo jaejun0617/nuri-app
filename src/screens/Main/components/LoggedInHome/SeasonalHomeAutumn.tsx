@@ -19,6 +19,7 @@ const MaskedViewCompat =
 type AutumnStageProps = {
   atmosphere: ImageSourcePropType;
   atmosphereAspectRatio: number;
+  backgroundImageVisible?: boolean;
   minHeight?: number;
   children: React.ReactNode;
 };
@@ -29,6 +30,7 @@ const ATMOSPHERE_FOCAL_OFFSET_RATIO = 0.1;
 export function SeasonalHomeAutumnStage({
   atmosphere,
   atmosphereAspectRatio,
+  backgroundImageVisible = true,
   minHeight,
   children,
 }: AutumnStageProps) {
@@ -40,14 +42,22 @@ export function SeasonalHomeAutumnStage({
   const tailHeight = Math.max(0, atmosphereHeight - sourceHeight - focalOffset);
 
   return (
-    <View style={[styles.stage, minHeight ? { minHeight } : null]}>
-      <Image
-        source={atmosphere}
-        resizeMode="contain"
-        style={[styles.atmosphere, { top: 0, height: sourceHeight }]}
-        accessible={false}
-      />
-      {needsAtmosphereExtension ? (
+    <View
+      style={[
+        styles.stage,
+        !backgroundImageVisible ? styles.stageWithoutBackgroundImage : null,
+        minHeight ? { minHeight } : null,
+      ]}
+    >
+      {backgroundImageVisible ? (
+        <Image
+          source={atmosphere}
+          resizeMode="contain"
+          style={[styles.atmosphere, { top: 0, height: sourceHeight }]}
+          accessible={false}
+        />
+      ) : null}
+      {backgroundImageVisible && needsAtmosphereExtension ? (
         <MaskedViewCompat
           style={[
             styles.shiftedAtmosphereMask,
@@ -73,7 +83,7 @@ export function SeasonalHomeAutumnStage({
           />
         </MaskedViewCompat>
       ) : null}
-      {needsAtmosphereExtension && tailHeight > 0 ? (
+      {backgroundImageVisible && needsAtmosphereExtension && tailHeight > 0 ? (
         <View
           style={[
             styles.atmosphereTailClip,
@@ -118,12 +128,12 @@ export function AutumnLeafOrnament({
     variant === 'singleLeaf'
       ? styles.leafSheetSingleLeaf
       : variant === 'berries'
-        ? styles.leafSheetBerries
-        : variant === 'ginkgo'
-          ? styles.leafSheetGinkgo
-          : variant === 'sprig'
-            ? styles.leafSheetSprig
-            : styles.leafSheetMaple;
+      ? styles.leafSheetBerries
+      : variant === 'ginkgo'
+      ? styles.leafSheetGinkgo
+      : variant === 'sprig'
+      ? styles.leafSheetSprig
+      : styles.leafSheetMaple;
 
   return (
     <View style={styles.leafCrop} accessible={false} pointerEvents="none">
@@ -142,6 +152,9 @@ const styles = StyleSheet.create({
     marginHorizontal: -16,
     backgroundColor: '#FFF7ED',
     overflow: 'visible',
+  },
+  stageWithoutBackgroundImage: {
+    backgroundColor: 'transparent',
   },
   atmosphere: {
     position: 'absolute',

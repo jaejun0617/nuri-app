@@ -1,9 +1,10 @@
 import React from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, Text } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
 
 import { createTheme } from '../src/app/theme/theme';
+import * as fontPreference from '../src/app/providers/AppFontPreferenceProvider';
 import CommunitySection from '../src/screens/Main/components/LoggedInHome/CommunitySection';
 import { styles as communityStyles } from '../src/screens/Main/components/LoggedInHome/CommunitySection.styles';
 import { styles as homeStyles } from '../src/screens/Main/components/LoggedInHome/LoggedInHome.styles';
@@ -92,6 +93,7 @@ function serialized(renderer: TestRenderer.ReactTestRenderer) {
 }
 
 describe('CommunitySection', () => {
+  afterEach(() => jest.restoreAllMocks());
   beforeEach(() => {
     jest.clearAllMocks();
     mockedGetHomeCommunityHighlightsCache.mockReturnValue(null);
@@ -211,7 +213,6 @@ describe('CommunitySection', () => {
         node.props.preset === 'unifiedTitle' &&
         node.props.children === '반려인들이 주목한 이야기',
     );
-    const titleIcon = renderer.root.find(node => node.props.name === 'message-circle');
     const postTitle = renderer.root.find(node => node.props.preset === 'cardTitle');
     const horizontalPillScroll = renderer.root.find(
       node => node.type === ScrollView && node.props.horizontal === true,
@@ -223,8 +224,7 @@ describe('CommunitySection', () => {
     const homeSection = StyleSheet.flatten(homeStyles.section)!;
 
     expect(title.props.preset).toBe('unifiedTitle');
-    expect(titleIcon.props.color).toBe(createTheme('light').colors.brand);
-    expect(titleIcon.props.accessible).toBe(false);
+    expect(renderer.root.findAll(node => node.props.name === 'message-circle')).toHaveLength(0);
     expect(postTitle.props.numberOfLines).toBe(2);
     expect(StyleSheet.flatten(postTitle.props.style)).toEqual(
       expect.objectContaining({ fontSize: 16, lineHeight: 22 }),
@@ -301,6 +301,25 @@ describe('CommunitySection', () => {
     await act(async () => {
       renderer.unmount();
     });
+  });
+
+  it.each(['jisu', 'pretendard'] as const)('follows the %s Home font preference without reopening Community screens', async mode => {
+    jest.spyOn(fontPreference, 'useAppFontPreference').mockReturnValue({
+      mode, hydrated: true, hasStoredPreference: true, setMode: jest.fn(),
+    });
+    mockedFetchHomeCommunityHighlights.mockResolvedValue([]);
+    let renderer: TestRenderer.ReactTestRenderer | undefined;
+    await act(async () => {
+      renderer = renderSection();
+      await Promise.resolve();
+    });
+    if (!renderer) throw new Error('Community section missing');
+    const texts = renderer.root.findAllByType(Text);
+    expect(texts.length).toBeGreaterThan(0);
+    for (const text of texts) {
+      expect(StyleSheet.flatten(text.props.style).fontFamily).toBe(createTheme('light').typography.appFontMode[mode].fontFamily);
+    }
+    await act(async () => renderer?.unmount());
   });
 
   it('delegates post and all-view presses to the existing navigation callbacks', async () => {

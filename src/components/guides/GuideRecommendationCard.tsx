@@ -1,15 +1,18 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
-import { useTheme } from 'styled-components/native';
+import LinearGradient from 'react-native-linear-gradient';
 
 import AppText from '../../app/ui/AppText';
 import {
-  formatGuideAudienceLabel,
   getGuideCategoryIconName,
   getGuideCategoryLabel,
 } from '../../services/guides/presentation';
 import type { PetCareGuide } from '../../services/guides/types';
+import {
+  HOME_WIDGET_MATERIAL,
+  HomeWidgetSheen,
+} from '../home/HomeWidgetMaterial';
 
 type Props = {
   guide: PetCareGuide;
@@ -28,49 +31,90 @@ function GuideRecommendationCardBase({
   onPress,
   debugBadgeText,
 }: Props) {
-  const theme = useTheme();
+  // Keep the catalog's metadata; the mockup's sample copy is not content.
+  const tags = useMemo(
+    () =>
+      Array.from(
+        new Set(guide.tags.map(tag => tag.trim()).filter(Boolean)),
+      ).slice(0, 3),
+    [guide.tags],
+  );
 
   return (
     <TouchableOpacity
       activeOpacity={0.92}
-      style={[styles.card, { borderColor: theme.colors.border }]}
+      style={styles.card}
       onPress={() => onPress(guide.id)}
+      accessibilityRole="button"
+      accessibilityLabel={`${getGuideCategoryLabel(guide.category)}, ${
+        guide.title
+      }, 상세 보기`}
+      testID="home-guide-glass-card"
     >
-      <View style={[styles.thumb, { backgroundColor: tintColor }]}>
-        <View style={styles.thumbInner}>
+      <HomeWidgetSheen radius={22} />
+      <View style={styles.header}>
+        <LinearGradient
+          colors={[tintColor, 'rgba(255, 255, 255, 0.24)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.thumb}
+          pointerEvents="none"
+          accessible={false}
+          importantForAccessibility="no-hide-descendants"
+        >
           <Feather
             name={getGuideCategoryIconName(guide.category)}
-            size={20}
+            size={28}
             color={accentColor}
           />
+        </LinearGradient>
+        <View style={styles.content}>
+          <AppText
+            preset="unifiedMeta"
+            style={[styles.eyebrow, { color: accentColor }]}
+          >
+            {getGuideCategoryLabel(guide.category)}
+          </AppText>
+          <AppText
+            preset="unifiedBody"
+            styleOverridesPreset
+            style={styles.title}
+            numberOfLines={3}
+          >
+            {guide.title}
+          </AppText>
+        </View>
+        <View style={styles.chevron} pointerEvents="none">
+          <Feather name="chevron-right" size={20} color={accentDeepColor} />
         </View>
       </View>
-
-      <View style={styles.content}>
-        <AppText preset="unifiedMeta" style={[styles.eyebrow, { color: accentColor }]}>
-          {getGuideCategoryLabel(guide.category)}
-        </AppText>
-        <AppText preset="unifiedBody" style={styles.title} numberOfLines={2}>
-          {guide.title}
-        </AppText>
-        {debugBadgeText ? (
-          <View style={styles.debugBadge}>
-            <AppText preset="unifiedMeta" style={styles.debugBadgeText}>
-              {debugBadgeText}
-            </AppText>
-          </View>
-        ) : null}
-        <AppText preset="unifiedMeta" style={styles.desc} numberOfLines={2}>
-          {guide.summary}
-        </AppText>
-        <AppText
-          preset="unifiedMeta"
-          style={[styles.audience, { color: accentDeepColor }]}
-          numberOfLines={1}
-        >
-          {formatGuideAudienceLabel(guide)}
-        </AppText>
-      </View>
+      {debugBadgeText ? (
+        <View style={styles.debugBadge}>
+          <AppText preset="unifiedMeta" style={styles.debugBadgeText}>
+            {debugBadgeText}
+          </AppText>
+        </View>
+      ) : null}
+      <AppText preset="unifiedBody" style={styles.desc} numberOfLines={4}>
+        {guide.summary}
+      </AppText>
+      {tags.length > 0 ? (
+        <View style={styles.tags}>
+          {tags.map(tag => (
+            <View
+              key={tag}
+              style={[styles.tag, { backgroundColor: tintColor }]}
+            >
+              <AppText
+                preset="unifiedMeta"
+                style={[styles.tagText, { color: accentDeepColor }]}
+              >
+                {tag.startsWith('#') ? tag : `#${tag}`}
+              </AppText>
+            </View>
+          ))}
+        </View>
+      ) : null}
     </TouchableOpacity>
   );
 }
@@ -79,44 +123,51 @@ export default React.memo(GuideRecommendationCardBase);
 
 const styles = StyleSheet.create({
   card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    gap: 14,
     borderRadius: 22,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
+    padding: 16,
+    ...HOME_WIDGET_MATERIAL,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
   },
   thumb: {
     width: 60,
     height: 60,
-    borderRadius: 999,
+    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  thumbInner: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(109,106,248,0.12)',
+    borderColor: 'rgba(255, 255, 255, 0.86)',
+    flexShrink: 0,
+  },
+  chevron: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.32)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.86)',
+    flexShrink: 0,
   },
   content: {
     flex: 1,
-    gap: 3,
+    minWidth: 0,
+    gap: 4,
   },
   eyebrow: {
-    fontWeight: '900',
+    fontWeight: '700',
   },
   title: {
     color: '#0B1220',
-    fontWeight: '800',
-    lineHeight: 21,
-    letterSpacing: -0.2,
+    fontSize: 16,
+    fontWeight: '700',
+    lineHeight: 23,
+    letterSpacing: 0,
   },
   debugBadge: {
     alignSelf: 'flex-start',
@@ -131,11 +182,24 @@ const styles = StyleSheet.create({
   },
   desc: {
     color: '#556070',
-    fontWeight: '700',
-    lineHeight: 17,
+    fontWeight: '500',
+    letterSpacing: 0,
   },
-  audience: {
-    marginTop: 2,
-    fontWeight: '800',
+  tags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  tag: {
+    maxWidth: '100%',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.80)',
+  },
+  tagText: {
+    flexShrink: 1,
+    letterSpacing: 0,
   },
 });

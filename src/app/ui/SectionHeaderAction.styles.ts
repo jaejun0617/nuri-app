@@ -5,7 +5,8 @@ import { typography } from '../theme/tokens/typography';
 export const styles = StyleSheet.create({
   button: {
     minHeight: 34,
-    minWidth: 82,
+    width: 88,
+    flexShrink: 0,
     paddingHorizontal: 5,
     borderRadius: 17,
     borderWidth: 1,
@@ -17,7 +18,8 @@ export const styles = StyleSheet.create({
   },
   compactButton: {
     minHeight: 28,
-    minWidth: 70,
+    width: 80,
+    flexShrink: 0,
     paddingHorizontal: 4,
     borderRadius: 14,
     borderWidth: 1,
@@ -29,14 +31,21 @@ export const styles = StyleSheet.create({
   },
   text: {
     ...typography.unified.body,
+    textAlign: 'center',
+    flex: 1,
+    marginHorizontal: 14,
   },
   iconSlot: {
+    position: 'absolute',
+    right: 5,
     width: 14,
     height: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
   compactIconSlot: {
+    position: 'absolute',
+    right: 5,
     width: 12,
     height: 14,
     alignItems: 'center',

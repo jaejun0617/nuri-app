@@ -4,6 +4,7 @@
 import { StyleSheet } from 'react-native';
 
 import { typography } from '../../app/theme/tokens/typography';
+import { HOME_WIDGET_MATERIAL } from '../home/HomeWidgetMaterial';
 
 export const styles = StyleSheet.create({
   section: {
@@ -56,14 +57,10 @@ export const styles = StyleSheet.create({
     aspectRatio: 1,
     paddingHorizontal: 8,
     paddingVertical: 8,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(124,132,149,0.22)',
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'transparent',
-    shadowOpacity: 0,
-    elevation: 0,
+    ...HOME_WIDGET_MATERIAL,
   },
   recordCardPressed: {
     opacity: 0.93,

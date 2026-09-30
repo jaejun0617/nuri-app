@@ -56,8 +56,15 @@ import Animated, {
 
 import Screen from '../../../../components/layout/Screen';
 import { HomeSectionGlass } from '../../../../components/home/HomeSectionGlass';
+import { HomeSectionHeader } from '../../../../components/home/HomeSectionHeader';
+import { HomeWidgetSheen } from '../../../../components/home/HomeWidgetMaterial';
+import {
+  HOME_AMBIENT_SECTION_ZONES,
+  updateHomeAmbientSectionLayout,
+  type HomeAmbientBubbleZone,
+  type HomeAmbientSectionLayouts,
+} from '../../../../theme/home/ambientMesh';
 import { FrequentRecordsSection } from '../../../../components/records/FrequentRecordsSection';
-import { SectionHeaderAction } from '../../../../app/ui/SectionHeaderAction';
 import GuideRecommendationCard from '../../../../components/guides/GuideRecommendationCard';
 import { useWeatherGuide } from '../../../../hooks/useWeatherGuide';
 import { useHomePetCareGuides } from '../../../../hooks/useHomePetCareGuides';
@@ -86,6 +93,7 @@ import { useScheduleStore } from '../../../../store/scheduleStore';
 import { useActiveScheduleAlarms } from '../../../../hooks/useActiveScheduleAlarms';
 import HomeActiveAlarmNotice from './HomeActiveAlarmNotice';
 import HomeTopButton, { resolveHomeTopButtonThreshold } from './HomeTopButton';
+import { HomeAmbientBubbleCanvas } from './HomeAmbientBubbleCanvas';
 import {
   AutumnLeafOrnament,
   SeasonalHomeAutumnStage,
@@ -209,10 +217,7 @@ import {
 import { scheduleIdleTask } from '../../../../utils/scheduleIdleTask';
 import WeatherGuideHomeCard from '../../../../components/weather/WeatherGuideHomeCard';
 import type { PetCareGuide } from '../../../../services/guides/types';
-import {
-  HOME_BASE_BACKGROUND_COLOR,
-  styles,
-} from './LoggedInHome.styles';
+import { HOME_BASE_BACKGROUND_COLOR, styles } from './LoggedInHome.styles';
 import CommunitySection from './CommunitySection';
 
 type HomeTabNav = BottomTabNavigationProp<AppTabParamList, 'HomeTab'>;
@@ -590,7 +595,8 @@ const MonthlyDiaryCard = React.memo(function MonthlyDiaryCard({
           </View>
         )}
       </View>
-      <AppText typographyRole="sectionTitle"
+      <AppText
+        typographyRole="sectionTitle"
         preset="unifiedLabel"
         style={styles.monthDiaryTitle}
         numberOfLines={1}
@@ -686,14 +692,7 @@ const TodayPhotoSection = React.memo(function TodayPhotoSection({
       testID="home-glass-today-photo"
       style={[styles.section, styles.todayPhotoSection]}
     >
-      <View style={styles.sectionHeaderRow}>
-        <AppText typographyRole="sectionTitle"
-          preset="unifiedTitle"
-          style={[styles.sectionTitle, { color: accentColor }]}
-        >
-          오늘 한장
-        </AppText>
-      </View>
+      <HomeSectionHeader title="오늘 한장" color={accentColor} />
 
       <TouchableOpacity
         activeOpacity={0.92}
@@ -754,6 +753,7 @@ const HomeWeatherSection = React.memo(function HomeWeatherSection({
   petName,
   accentColor,
   season,
+  hideSeasonalBackgroundImage = false,
   onPress,
 }: {
   weather: ReturnType<typeof useWeatherGuide>['bundle'];
@@ -761,6 +761,7 @@ const HomeWeatherSection = React.memo(function HomeWeatherSection({
   petName?: string | null;
   accentColor: string;
   season: SeasonalHomeVisual['season'] | null;
+  hideSeasonalBackgroundImage?: boolean;
   onPress: () => void;
 }) {
   const visualTheme = getSeasonalWeatherVisualTheme(season);
@@ -781,18 +782,21 @@ const HomeWeatherSection = React.memo(function HomeWeatherSection({
 
   return (
     <View style={styles.seasonalWeatherSection}>
-      <LinearGradient
-        pointerEvents="none"
-        colors={[...visualTheme.bottomFinishColors]}
-        locations={[...visualTheme.bottomFinishLocations]}
-        style={styles.weatherSectionBottomFinish}
-      />
+      {!hideSeasonalBackgroundImage ? (
+        <LinearGradient
+          pointerEvents="none"
+          colors={[...visualTheme.bottomFinishColors]}
+          locations={[...visualTheme.bottomFinishLocations]}
+          style={styles.weatherSectionBottomFinish}
+        />
+      ) : null}
       <WeatherGuideHomeCard
         weather={weather}
         locationLabel={locationLabel}
         petName={petName}
         accentColor={accentColor}
         visualTheme={visualTheme.card}
+        hideSeasonalBackgroundImage={hideSeasonalBackgroundImage}
         onPress={onPress}
       />
     </View>
@@ -803,17 +807,20 @@ const WeatherToLowerHomeBridge = React.memo(
   ({
     season,
     height,
+    hidden = false,
   }: {
     season: SeasonalHomeVisual['season'] | null;
     height: number;
+    hidden?: boolean;
   }) => {
+    if (hidden) return null;
+
     const visualTheme = getSeasonalWeatherVisualTheme(season);
     if (!visualTheme) return null;
 
     const finishColors = visualTheme.bottomFinishColors;
     const weatherBottomColor = finishColors[finishColors.length - 1];
     const weatherGlowColor = finishColors[finishColors.length - 2];
-
     return (
       <View
         pointerEvents="none"
@@ -1124,7 +1131,8 @@ const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
         >
           <View style={styles.notificationModalHeader}>
             <View style={styles.notificationModalTitleWrap}>
-              <AppText typographyRole="sectionTitle"
+              <AppText
+                typographyRole="sectionTitle"
                 preset="unifiedTitle"
                 style={styles.notificationModalTitle}
               >
@@ -1178,7 +1186,8 @@ const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
             </View>
           ) : errorMessage ? (
             <View style={styles.notificationModalState}>
-              <AppText typographyRole="celebration"
+              <AppText
+                typographyRole="celebration"
                 preset="unifiedTitle"
                 style={styles.notificationModalStateTitle}
               >
@@ -1208,7 +1217,8 @@ const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
               <View style={styles.notificationModalEmptyIcon}>
                 <Feather name="bell" size={22} color="rgba(85,96,112,0.72)" />
               </View>
-              <AppText typographyRole="celebration"
+              <AppText
+                typographyRole="celebration"
                 preset="unifiedTitle"
                 style={styles.notificationModalStateTitle}
               >
@@ -1333,20 +1343,14 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
           accessibilityLabel={notificationAccessibilityLabel}
           accessibilityRole="button"
         >
-          <Feather
-            name="bell"
-            size={18}
-            color="rgba(11,18,32,0.75)"
-          />
+          <Feather name="bell" size={18} color="rgba(11,18,32,0.75)" />
           {notificationUnreadCount > 0 ? (
             <View style={styles.headerNotificationBadge}>
               <AppText
                 preset="unifiedLabel"
                 style={styles.headerNotificationBadgeText}
               >
-                {notificationUnreadCount > 99
-                  ? '99+'
-                  : notificationUnreadCount}
+                {notificationUnreadCount > 99 ? '99+' : notificationUnreadCount}
               </AppText>
             </View>
           ) : null}
@@ -1529,7 +1533,8 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
               size={13}
               color={petTheme.deep}
             />
-            <AppText typographyRole="heroCopy"
+            <AppText
+              typographyRole="heroCopy"
               preset="unifiedTitle"
               styleOverridesPreset
               style={[styles.heroTitleBadgeText, { color: petTheme.deep }]}
@@ -1541,7 +1546,8 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
           </View>
         ) : null}
 
-        <AppText typographyRole="petIdentity"
+        <AppText
+          typographyRole="petIdentity"
           preset="unifiedTitle"
           styleOverridesPreset
           style={[styles.heroName, { color: petTheme.deep }]}
@@ -1653,8 +1659,8 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
   const natureSeason: SeasonalProfileSheetOrnamentSeason | null = isSpring
     ? 'spring'
     : isSummer
-      ? 'summer'
-      : null;
+    ? 'summer'
+    : null;
 
   if (presentation === 'sheet') {
     const profileRows = [
@@ -1752,7 +1758,9 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
               </View>
               <View style={styles.profileSheetRowContent}>
                 <View style={styles.profileSheetCategoryLine}>
-                  <AppText style={[styles.profileSheetRowLabel, row.titleStyle]}>
+                  <AppText
+                    style={[styles.profileSheetRowLabel, row.titleStyle]}
+                  >
                     {row.label}
                   </AppText>
                   <AppText
@@ -1877,7 +1885,8 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
             <View style={[styles.accordionIconCircle, styles.iconCircleBlue]}>
               <Text style={styles.accordionIconText}>🐾</Text>
             </View>
-            <AppText typographyRole="sectionTitle"
+            <AppText
+              typographyRole="sectionTitle"
               preset="unifiedLabel"
               style={[styles.accordionTitle, styles.accTitleBlue]}
             >
@@ -1927,7 +1936,8 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
             <View style={[styles.accordionIconCircle, styles.iconCircleOrange]}>
               <Text style={styles.accordionIconText}>💛</Text>
             </View>
-            <AppText typographyRole="sectionTitle"
+            <AppText
+              typographyRole="sectionTitle"
               preset="unifiedLabel"
               style={[styles.accordionTitle, styles.accTitleOrange]}
             >
@@ -1977,7 +1987,8 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
             <View style={[styles.accordionIconCircle, styles.iconCirclePink]}>
               <Text style={styles.accordionIconText}>💔</Text>
             </View>
-            <AppText typographyRole="sectionTitle"
+            <AppText
+              typographyRole="sectionTitle"
               preset="unifiedLabel"
               style={[styles.accordionTitle, styles.accTitlePink]}
             >
@@ -2028,7 +2039,8 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
             <View style={[styles.accordionIconCircle, styles.iconCirclePurple]}>
               <Feather name="hash" size={16} color={petTheme.primary} />
             </View>
-            <AppText typographyRole="sectionTitle"
+            <AppText
+              typographyRole="sectionTitle"
               preset="unifiedLabel"
               style={[styles.accordionTitle, styles.accTitlePurple]}
             >
@@ -2408,10 +2420,10 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
                   isWinter
                     ? '#50627F'
                     : isSpring
-                      ? '#765564'
-                      : isSummer
-                        ? '#426C63'
-                        : 'rgba(79,56,42,0.78)'
+                    ? '#765564'
+                    : isSummer
+                    ? '#426C63'
+                    : 'rgba(79,56,42,0.78)'
                 }
               />
             </TouchableOpacity>
@@ -2506,9 +2518,7 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
       style={[
         styles.heroCard,
         usesCanonicalWarmSurface ? styles.autumnHeroCard : null,
-        usesCanonicalHeroGeometry
-          ? styles.autumnHeroCardWithMemoryChip
-          : null,
+        usesCanonicalHeroGeometry ? styles.autumnHeroCardWithMemoryChip : null,
         isWinter ? styles.winterHeroCard : null,
       ]}
     >
@@ -2651,16 +2661,24 @@ const RecommendationTipsSection = React.memo(
         testID="home-glass-recommendation-tips"
         style={styles.section}
       >
-        <View style={styles.sectionHeaderRow}>
-          <View style={styles.tipSectionHeading}>
-            <AppText typographyRole="sectionTitle"
-              preset="unifiedTitle"
-              style={[styles.tipSectionTitle, { color: petTheme.deep }]}
-            >
-              {isMemorial
-                ? '함께한 시간을 돌아보는 홈'
-                : '우리 아이를 위한 추천 팁'}
-            </AppText>
+        <HomeSectionHeader
+          title={isMemorial ? '함께한 시간을 돌아보는 홈' : '우리 아이를 위한'}
+          color={petTheme.deep}
+          emphasis={
+            isMemorial
+              ? undefined
+              : { title: '추천 팁', color: petTheme.primary }
+          }
+          description={
+            isMemorial
+              ? undefined
+              : '아이의 건강한 하루를 위한\n맞춤형 팁을 확인해보세요.'
+          }
+          action={isMemorial ? undefined : {
+            onPress: onPressMore,
+            accessibilityLabel: '추천 팁 전체 보기',
+          }}
+        />
             {__DEV__ ? (
               <View
                 style={[
@@ -2680,22 +2698,14 @@ const RecommendationTipsSection = React.memo(
                 </AppText>
               </View>
             ) : null}
-          </View>
-          {!isMemorial ? (
-            <TouchableOpacity activeOpacity={0.85} onPress={onPressMore}>
-              <AppText
-                preset="unifiedBody"
-                style={[styles.sectionLink, { color: petTheme.deep }]}
-              >
-                더보기
-              </AppText>
-            </TouchableOpacity>
-          ) : null}
-        </View>
 
         {isMemorial ? (
           <View style={styles.emptyBox}>
-            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
+            <AppText
+              typographyRole="celebration"
+              preset="unifiedTitle"
+              style={styles.emptyTitle}
+            >
               케어 추천은 잠시 쉬어둘게요
             </AppText>
             <AppText preset="unifiedBody" style={styles.emptyDesc}>
@@ -2705,7 +2715,11 @@ const RecommendationTipsSection = React.memo(
           </View>
         ) : loading ? (
           <View style={styles.emptyBox}>
-            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
+            <AppText
+              typographyRole="celebration"
+              preset="unifiedTitle"
+              style={styles.emptyTitle}
+            >
               추천 팁을 불러오는 중이에요
             </AppText>
             <AppText preset="unifiedBody" style={styles.emptyDesc}>
@@ -2714,7 +2728,11 @@ const RecommendationTipsSection = React.memo(
           </View>
         ) : error ? (
           <View style={styles.emptyBox}>
-            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
+            <AppText
+              typographyRole="celebration"
+              preset="unifiedTitle"
+              style={styles.emptyTitle}
+            >
               추천 팁을 불러오지 못했어요
             </AppText>
             <AppText preset="unifiedBody" style={styles.emptyDesc}>
@@ -2723,7 +2741,11 @@ const RecommendationTipsSection = React.memo(
           </View>
         ) : guides.length === 0 ? (
           <View style={styles.emptyBox}>
-            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
+            <AppText
+              typographyRole="celebration"
+              preset="unifiedTitle"
+              style={styles.emptyTitle}
+            >
               추천 가능한 공개 가이드가 아직 없어요
             </AppText>
             <AppText preset="unifiedBody" style={styles.emptyDesc}>
@@ -2766,16 +2788,8 @@ const TodayHomeTipSection = React.memo(function TodayHomeTipSection({
 }) {
   return (
     <HomeSectionGlass testID="home-glass-today-tip" style={styles.section}>
+      <HomeSectionHeader title={TODAY_HOME_TIP.badge} color={petTheme.primary} />
       <View style={styles.todayTipCard}>
-        <View style={styles.todayTipBadge}>
-          <Feather name="map-pin" size={12} color={petTheme.primary} />
-          <AppText
-            preset="unifiedDate"
-            style={[styles.todayTipBadgeText, { color: petTheme.primary }]}
-          >
-            {TODAY_HOME_TIP.badge}
-          </AppText>
-        </View>
         <AppText preset="unifiedDate" style={styles.todayTipTitle}>
           {TODAY_HOME_TIP.title}
         </AppText>
@@ -2793,7 +2807,6 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
   onPressTimeline,
   onPressRecord,
   onPressRecordItem,
-  accentColor,
   accentDeepColor,
 }: {
   recordItems: MemoryRecord[];
@@ -2807,7 +2820,6 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
   onPressTimeline: () => void;
   onPressRecord: () => void;
   onPressRecordItem: (memoryId: string) => void;
-  accentColor: string;
   accentDeepColor: string;
 }) {
   const todayRecords = useMemo(() => recordItems, [recordItems]);
@@ -2824,28 +2836,11 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
       testID="home-glass-recent-records"
       style={[styles.section, styles.recentSection]}
     >
-      <View style={[styles.sectionHeaderRow, styles.recentSectionHeaderRow]}>
-        <View style={styles.recentSectionTitleRow}>
-          <MaterialCommunityIcons
-            name="history"
-            size={18}
-            color={accentDeepColor}
-          />
-          <AppText typographyRole="sectionTitle"
-            preset="unifiedTitle"
-            style={[styles.sectionTitle, { color: accentDeepColor }]}
-          >
-            최근 기록
-          </AppText>
-        </View>
-        <SectionHeaderAction
-          color={accentColor}
-          onPress={onPressTimeline}
-          accessibilityLabel="전체 기록 보기"
-          textPreset="unifiedMicro"
-          size="compact"
-        />
-      </View>
+      <HomeSectionHeader
+        title="최근 기록"
+        color={accentDeepColor}
+        action={{ onPress: onPressTimeline, accessibilityLabel: '최근 기록 전체 보기' }}
+      />
       {isRecordBootstrapPending ? (
         <View style={styles.recentEmptyState}>
           <ActivityIndicator size="small" color={accentDeepColor} />
@@ -2858,7 +2853,11 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
         </View>
       ) : previewItems.length === 0 ? (
         <View style={styles.recentEmptyState}>
-          <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
+          <AppText
+            typographyRole="celebration"
+            preset="unifiedTitle"
+            style={styles.emptyTitle}
+          >
             아직 기록이 없어요
           </AppText>
           <AppText
@@ -2942,6 +2941,7 @@ const WeeklySummaryMetricCard = React.memo(function WeeklySummaryMetricCard({
       accessibilityRole="button"
       accessibilityLabel={`${label} ${valueLabel}`}
     >
+      <HomeWidgetSheen radius={20} />
       <View style={styles.weeklySummaryMetricTopRow}>
         <View
           style={[
@@ -3068,180 +3068,164 @@ const TotalSummarySection = React.memo(function TotalSummarySection({
       testID="home-glass-total-summary"
       style={[styles.section, styles.weeklySummarySection]}
     >
-      <View style={styles.weeklySummaryHeader}>
-            <View style={styles.weeklySummaryHeaderIcon}>
-              <MaterialCommunityIcons
-                name="chart-bar"
-                size={22}
-                color={accentDeepColor}
-              />
-            </View>
-            <View style={styles.weeklySummaryHeaderText}>
-              <AppText typographyRole="sectionTitle"
-                preset="unifiedTitle"
-                style={[styles.weeklySummaryTitle, { color: accentDeepColor }]}
-              >
-                전체 요약
-              </AppText>
-              <AppText
-                preset="unifiedBody"
-                style={styles.weeklySummarySubtitle}
-              >
-                지금까지 남긴 기록을 한눈에 확인해보세요
-              </AppText>
-            </View>
-      </View>
-
-      <View style={styles.weeklySummaryGrid}>
-            <View style={styles.weeklySummaryRow}>
-              <WeeklySummaryMetricCard
-                label="산책 기록"
-                value={totalSummary?.walkCount ?? null}
-                unit="기록"
-                iconSource={NURI_BRAND_MARK}
-                accentColor={accentDeepColor}
-                iconBackground="#F4EEFF"
-                onPress={onPressWalk}
-                isLoading={isLoading}
-              />
-              <WeeklySummaryMetricCard
-                label="식사 기록"
-                value={totalSummary?.mealCount ?? null}
-                unit="기록"
-                icon="silverware-fork-knife"
-                accentColor="#FF4FA3"
-                iconBackground="#FFEAF3"
-                onPress={onPressMeal}
-                isLoading={isLoading}
-              />
-            </View>
-            <View style={styles.weeklySummaryRow}>
-              <WeeklySummaryMetricCard
-                label="생활 기록"
-                value={totalSummary?.lifeCount ?? null}
-                unit="기록"
-                icon="notebook-outline"
-                accentColor="#18BFA7"
-                iconBackground="#EAF9F6"
-                onPress={onPressLife}
-                isLoading={isLoading}
-              />
-              <WeeklySummaryMetricCard
-                label="기록한 날"
-                value={totalSummary?.recordDays ?? null}
-                unit="일"
-                icon="calendar-month-outline"
-                accentColor="#FF8A24"
-                iconBackground="#FFF3E8"
-                onPress={onPressAllRecords}
-                isLoading={isLoading}
-              />
-            </View>
-      </View>
-
-      <TouchableOpacity
-            activeOpacity={0.9}
-            style={styles.weeklySummaryInsight}
-            onPress={onPressAllRecords}
-            accessibilityRole="button"
-            accessibilityLabel={`전체 기록 한 줄 요약, ${summaryLine}`}
-          >
-            <View style={styles.weeklySummaryInsightIcon}>
-              <MaterialCommunityIcons
-                name="creation"
-                size={20}
-                color="#9B6BFF"
-              />
-            </View>
-            <View style={styles.weeklySummaryInsightText}>
-              <AppText
-                preset="unifiedLabel"
-                style={styles.weeklySummaryInsightTitle}
-              >
-                전체 기록 한 줄 요약
-              </AppText>
-              <AppText
-                preset="unifiedBody"
-                style={styles.weeklySummaryInsightBody}
-                numberOfLines={2}
-              >
-                {summaryLine}
-              </AppText>
-            </View>
-            <MaterialCommunityIcons
-              name="chevron-right"
-              size={20}
-              color="#B1A8C8"
+      <HomeSectionHeader
+        title="전체 요약"
+        color={accentDeepColor}
+        description="지금까지 남긴 기록을 한눈에 확인해보세요"
+        action={{
+          onPress: onPressAllRecords,
+          accessibilityLabel: '전체 요약 기록 전체 보기',
+        }}
+      />
+      <View style={styles.weeklySummaryBody}>
+        <View style={styles.weeklySummaryGrid}>
+          <View style={styles.weeklySummaryRow}>
+            <WeeklySummaryMetricCard
+              label="산책 기록"
+              value={totalSummary?.walkCount ?? null}
+              unit="기록"
+              iconSource={NURI_BRAND_MARK}
+              accentColor={accentDeepColor}
+              iconBackground="#F4EEFF"
+              onPress={onPressWalk}
+              isLoading={isLoading}
             />
-      </TouchableOpacity>
+            <WeeklySummaryMetricCard
+              label="식사 기록"
+              value={totalSummary?.mealCount ?? null}
+              unit="기록"
+              icon="silverware-fork-knife"
+              accentColor="#FF4FA3"
+              iconBackground="#FFEAF3"
+              onPress={onPressMeal}
+              isLoading={isLoading}
+            />
+          </View>
+          <View style={styles.weeklySummaryRow}>
+            <WeeklySummaryMetricCard
+              label="생활 기록"
+              value={totalSummary?.lifeCount ?? null}
+              unit="기록"
+              icon="notebook-outline"
+              accentColor="#18BFA7"
+              iconBackground="#EAF9F6"
+              onPress={onPressLife}
+              isLoading={isLoading}
+            />
+            <WeeklySummaryMetricCard
+              label="기록한 날"
+              value={totalSummary?.recordDays ?? null}
+              unit="일"
+              icon="calendar-month-outline"
+              accentColor="#FF8A24"
+              iconBackground="#FFF3E8"
+              onPress={onPressAllRecords}
+              isLoading={isLoading}
+            />
+          </View>
+        </View>
 
-      <View style={styles.weeklySummaryFooterDivider} />
-      <View style={styles.weeklySummaryFooter}>
-            <View style={styles.weeklySummaryFooterItem}>
-              <MaterialCommunityIcons
-                name="calendar-check-outline"
-                size={17}
-                color={accentDeepColor}
-              />
-              <AppText
-                preset="unifiedBody"
-                style={styles.weeklySummaryFooterText}
-                numberOfLines={1}
-              >
-                {totalSummary ? (
-                  <>
-                    전체 기록{' '}
-                    <AppText
-                      preset="unifiedBody"
-                      style={[
-                        styles.weeklySummaryFooterValue,
-                        { color: accentDeepColor },
-                      ]}
-                    >
-                      {totalSummary.totalRecords}
-                    </AppText>
-                    개
-                  </>
-                ) : isLoading ? (
-                  '확인 중'
-                ) : (
-                  '확인 필요'
-                )}
-              </AppText>
-            </View>
-            <View style={styles.weeklySummaryFooterDividerVertical} />
-            <View style={styles.weeklySummaryFooterItem}>
-              <MaterialCommunityIcons
-                name="calendar-month-outline"
-                size={17}
-                color={accentDeepColor}
-              />
-              <AppText
-                preset="unifiedBody"
-                style={styles.weeklySummaryFooterText}
-                numberOfLines={1}
-              >
-                {totalSummary ? (
-                  <>
-                    기록한 날{' '}
-                    <AppText
-                      preset="unifiedBody"
-                      style={[
-                        styles.weeklySummaryFooterValue,
-                        { color: accentDeepColor },
-                      ]}
-                    >
-                      {totalSummary.recordDays}
-                    </AppText>
-                    일
-                  </>
-                ) : isLoading ? (
-                  '확인 중'
-                ) : (
-                  '확인 필요'
-                )}
-              </AppText>
-            </View>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={styles.weeklySummaryInsight}
+          onPress={onPressAllRecords}
+          accessibilityRole="button"
+          accessibilityLabel={`전체 기록 한 줄 요약, ${summaryLine}`}
+        >
+          <HomeWidgetSheen radius={18} />
+          <View style={styles.weeklySummaryInsightIcon}>
+            <MaterialCommunityIcons name="creation" size={20} color="#9B6BFF" />
+          </View>
+          <View style={styles.weeklySummaryInsightText}>
+            <AppText
+              preset="unifiedLabel"
+              style={styles.weeklySummaryInsightTitle}
+            >
+              전체 기록 한 줄 요약
+            </AppText>
+            <AppText
+              preset="unifiedBody"
+              style={styles.weeklySummaryInsightBody}
+              numberOfLines={2}
+            >
+              {summaryLine}
+            </AppText>
+          </View>
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={20}
+            color="#B1A8C8"
+          />
+        </TouchableOpacity>
+
+        <View style={styles.weeklySummaryFooterDivider} />
+        <View style={styles.weeklySummaryFooter}>
+          <View style={styles.weeklySummaryFooterItem}>
+            <MaterialCommunityIcons
+              name="calendar-check-outline"
+              size={17}
+              color={accentDeepColor}
+            />
+            <AppText
+              preset="unifiedBody"
+              style={styles.weeklySummaryFooterText}
+              numberOfLines={1}
+            >
+              {totalSummary ? (
+                <>
+                  전체 기록{' '}
+                  <AppText
+                    preset="unifiedBody"
+                    style={[
+                      styles.weeklySummaryFooterValue,
+                      { color: accentDeepColor },
+                    ]}
+                  >
+                    {totalSummary.totalRecords}
+                  </AppText>
+                  개
+                </>
+              ) : isLoading ? (
+                '확인 중'
+              ) : (
+                '확인 필요'
+              )}
+            </AppText>
+          </View>
+          <View style={styles.weeklySummaryFooterDividerVertical} />
+          <View style={styles.weeklySummaryFooterItem}>
+            <MaterialCommunityIcons
+              name="calendar-month-outline"
+              size={17}
+              color={accentDeepColor}
+            />
+            <AppText
+              preset="unifiedBody"
+              style={styles.weeklySummaryFooterText}
+              numberOfLines={1}
+            >
+              {totalSummary ? (
+                <>
+                  기록한 날{' '}
+                  <AppText
+                    preset="unifiedBody"
+                    style={[
+                      styles.weeklySummaryFooterValue,
+                      { color: accentDeepColor },
+                    ]}
+                  >
+                    {totalSummary.recordDays}
+                  </AppText>
+                  일
+                </>
+              ) : isLoading ? (
+                '확인 중'
+              ) : (
+                '확인 필요'
+              )}
+            </AppText>
+          </View>
+        </View>
       </View>
     </HomeSectionGlass>
   );
@@ -3273,26 +3257,19 @@ const ScheduleSection = React.memo(function ScheduleSection({
 
   return (
     <HomeSectionGlass testID="home-glass-schedule" style={styles.section}>
-      <View style={styles.sectionHeaderRow}>
-        <AppText typographyRole="sectionTitle"
-          preset="unifiedTitle"
-          style={[styles.tipSectionTitle, { color: accentDeepColor }]}
-        >
-          일정 보기
-        </AppText>
-        <TouchableOpacity activeOpacity={0.85} onPress={onPressScheduleList}>
-          <AppText
-            preset="unifiedBody"
-            style={[styles.sectionLink, { color: accentColor }]}
-          >
-            더보기
-          </AppText>
-        </TouchableOpacity>
-      </View>
+      <HomeSectionHeader
+        title="일정 보기"
+        color={accentDeepColor}
+        action={{ onPress: onPressScheduleList, accessibilityLabel: '일정 전체 보기' }}
+      />
 
       {weekScheduleItems.length === 0 ? (
         <View style={[styles.emptyBox, { borderColor: theme.colors.border }]}>
-          <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
+          <AppText
+            typographyRole="celebration"
+            preset="unifiedTitle"
+            style={styles.emptyTitle}
+          >
             등록된 일정이 아직 없어요
           </AppText>
           <AppText preset="unifiedBody" style={styles.emptyDesc}>
@@ -3424,26 +3401,19 @@ const HealthRecentActivitiesSection = React.memo(
 
     return (
       <HomeSectionGlass testID="home-glass-health" style={styles.section}>
-        <View style={styles.sectionHeaderRow}>
-          <AppText typographyRole="sectionTitle"
-            preset="unifiedTitle"
-            style={[styles.tipSectionTitle, { color: accentDeepColor }]}
-          >
-            건강관리 최근 활동
-          </AppText>
-          <TouchableOpacity activeOpacity={0.85} onPress={onPressHealthReport}>
-            <AppText
-              preset="unifiedBody"
-              style={[styles.sectionLink, { color: accentColor }]}
-            >
-              건강관리 열기
-            </AppText>
-          </TouchableOpacity>
-        </View>
+        <HomeSectionHeader
+          title="건강관리 최근 활동"
+          color={accentDeepColor}
+          action={{ onPress: onPressHealthReport, accessibilityLabel: '건강관리 전체 보기' }}
+        />
 
         {recentActivities.length === 0 ? (
           <View style={[styles.emptyBox, { borderColor: theme.colors.border }]}>
-            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
+            <AppText
+              typographyRole="celebration"
+              preset="unifiedTitle"
+              style={styles.emptyTitle}
+            >
               건강관리 기록이 아직 없어요
             </AppText>
             <AppText preset="unifiedBody" style={styles.emptyDesc}>
@@ -3511,7 +3481,6 @@ const MonthlyDiarySection = React.memo(function MonthlyDiarySection({
   onPressTimelineCategory,
   onPressRecord,
   onPressRecordItem,
-  accentColor,
   accentDeepColor,
 }: {
   petName: string;
@@ -3522,7 +3491,6 @@ const MonthlyDiarySection = React.memo(function MonthlyDiarySection({
   ) => void;
   onPressRecord: () => void;
   onPressRecordItem: (memoryId: string) => void;
-  accentColor: string;
   accentDeepColor: string;
 }) {
   const currentMonthDiaryEntries = useMemo(() => {
@@ -3541,33 +3509,23 @@ const MonthlyDiarySection = React.memo(function MonthlyDiarySection({
   }, [recordItems]);
 
   return (
-    <HomeSectionGlass
-      testID="home-glass-monthly-diary"
-      style={styles.section}
-    >
-      <View style={styles.sectionHeaderRow}>
-        <AppText typographyRole="sectionTitle"
-          preset="unifiedTitle"
-          style={[styles.tipSectionTitle, { color: accentDeepColor }]}
-        >
-          이번 달 {petName} 일기
-        </AppText>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={() => onPressTimelineCategory('diary')}
-        >
-          <AppText
-            preset="unifiedBody"
-            style={[styles.sectionLink, { color: accentColor }]}
-          >
-            더보기
-          </AppText>
-        </TouchableOpacity>
-      </View>
+    <HomeSectionGlass testID="home-glass-monthly-diary" style={styles.section}>
+      <HomeSectionHeader
+        title={`이번 달 ${petName} 일기`}
+        color={accentDeepColor}
+        action={{
+          onPress: () => onPressTimelineCategory('diary'),
+          accessibilityLabel: '이번 달 일기 전체 보기',
+        }}
+      />
 
       {currentMonthDiaryEntries.length === 0 ? (
         <View style={styles.emptyBox}>
-          <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
+          <AppText
+            typographyRole="celebration"
+            preset="unifiedTitle"
+            style={styles.emptyTitle}
+          >
             이번 달 일기가 아직 없어요
           </AppText>
           <AppText preset="unifiedBody" style={styles.emptyDesc}>
@@ -3653,6 +3611,9 @@ export default function LoggedInHome() {
     useState(false);
   const [profileSheetVisible, setProfileSheetVisible] = useState(false);
   const [homeViewportHeight, setHomeViewportHeight] = useState(0);
+  const [ambientSectionLayouts, setAmbientSectionLayouts] = useState<HomeAmbientSectionLayouts>({});
+  const [ambientContentY, setAmbientContentY] = useState(0);
+  const [ambientLowerY, setAmbientLowerY] = useState(0);
   const seasonalHeroViewportHeight = Math.max(
     0,
     homeViewportHeight - bottomTabBarHeight,
@@ -4769,17 +4730,14 @@ export default function LoggedInHome() {
     () => resolveWeatherToHomeBridgeHeight(windowHeight),
     [windowHeight],
   );
-  const handleHomeViewportLayout = useCallback(
-    (event: LayoutChangeEvent) => {
-      const nextHeight = Math.round(event.nativeEvent.layout.height);
-      if (nextHeight > 0) {
-        setHomeViewportHeight(currentHeight =>
-          currentHeight === nextHeight ? currentHeight : nextHeight,
-        );
-      }
-    },
-    [],
-  );
+  const handleHomeViewportLayout = useCallback((event: LayoutChangeEvent) => {
+    const nextHeight = Math.round(event.nativeEvent.layout.height);
+    if (nextHeight > 0) {
+      setHomeViewportHeight(currentHeight =>
+        currentHeight === nextHeight ? currentHeight : nextHeight,
+      );
+    }
+  }, []);
 
   const heroMemoryChip = useMemo(
     () =>
@@ -4791,6 +4749,32 @@ export default function LoggedInHome() {
         : null,
     [plainPetName, recordItems, seasonalHomeVisual?.season],
   );
+  const warmAmbientMeshExperimentEnabled =
+    seasonalHomeVisual?.season === 'autumn';
+  const handleAmbientContentLayout = useCallback((event: LayoutChangeEvent) => {
+    const y = Math.round(event.nativeEvent.layout.y * 2) / 2;
+    setAmbientContentY(previous => (previous === y ? previous : y));
+  }, []);
+  const handleAmbientLowerLayout = useCallback((event: LayoutChangeEvent) => {
+    const y = Math.round(event.nativeEvent.layout.y * 2) / 2;
+    setAmbientLowerY(previous => (previous === y ? previous : y));
+  }, []);
+  // Passive layout updates keep decoration anchored without scroll-time state.
+  const ambientSectionLayoutHandlers = useMemo(() => {
+    const handlers: Partial<
+      Record<HomeAmbientBubbleZone, (event: LayoutChangeEvent) => void>
+    > = {};
+    for (const zone of HOME_AMBIENT_SECTION_ZONES) {
+      handlers[zone] = (event: LayoutChangeEvent) => {
+        const { y, height } = event.nativeEvent.layout;
+        setAmbientSectionLayouts(previous =>
+          updateHomeAmbientSectionLayout(previous, zone, { y, height }),
+        );
+        if (zone === 'schedule') handleScheduleSectionLayout(event);
+      };
+    }
+    return handlers;
+  }, [handleScheduleSectionLayout]);
   const homeHeader = (
     <HomeHeaderSection
       seasonalCopy={seasonalHomeVisual?.greetingCopy ?? null}
@@ -4841,107 +4825,123 @@ export default function LoggedInHome() {
     />
   );
   const lowerHomeSections = (
-    <View style={styles.lowerHomeRoot}>
+    <View
+      onLayout={handleAmbientLowerLayout}
+      style={[
+        styles.lowerHomeRoot,
+        warmAmbientMeshExperimentEnabled
+          ? styles.ambientBackgroundTransparent
+          : null,
+      ]}
+    >
       <WeatherToLowerHomeBridge
         season={seasonalHomeVisual?.season ?? null}
         height={weatherToHomeBridgeHeight}
+        hidden={warmAmbientMeshExperimentEnabled}
       />
 
-      {frequentRecordsSection}
-
-      <TotalSummarySection
-        records={
-          totalSummaryState.petId === activePetId
-            ? totalSummaryState.records
-            : null
-        }
-        accentDeepColor={petTheme.deep}
-        isLoading={
-          activePetId !== null &&
-          (totalSummaryState.petId !== activePetId ||
-            (totalSummaryState.records === null &&
-              totalSummaryState.status === 'loading'))
-        }
-        onPressWalk={onPressTotalWalk}
-        onPressMeal={onPressTotalMeal}
-        onPressLife={onPressTotalLife}
-        onPressAllRecords={onPressTotalSummaryAllRecords}
-      />
-
-      <TodayRecordsSection
-        recordItems={recordItems}
-        recordStatus={recordStatus}
-        onPressTimeline={onPressTimeline}
-        onPressRecord={onPressRecord}
-        onPressRecordItem={onPressRecordItem}
-        accentColor={petTheme.primary}
-        accentDeepColor={petTheme.deep}
-      />
-
-      <TodayPhotoSection
-        activePetId={activePetId}
-        recordItems={recordItems}
-        recordStatus={recordStatus}
-        onPressRecordItem={onPressRecordItem}
-        onPressRecord={onPressRecord}
-        accentColor={petTheme.deep}
-      />
-
-      <FixedTypographyBoundary>
-        <CommunitySection
-          isFocused={isScreenFocused}
-          accentColor={petTheme.primary}
-          accentTint={petTheme.tint}
-          accentBorder={petTheme.border}
-          onPressPost={onPressCommunityPost}
-          onPressAll={onPressCommunityAll}
-        />
-      </FixedTypographyBoundary>
-
-      <RecommendationTipsSection
-        guides={homeGuideState.guides}
-        loading={homeGuideState.loading}
-        error={homeGuideState.error}
-        isMemorial={isMemorialPet(selectedPet?.deathDate)}
-        source={homeGuideState.source}
-        sourceReason={homeGuideState.sourceReason}
-        petTheme={petTheme}
-        onPressGuide={onPressGuideDetail}
-        onPressMore={onPressGuideList}
-      />
-
-      <View onLayout={handleScheduleSectionLayout}>
-        <ScheduleSection
-          scheduleItems={visibleScheduleItems}
-          activeScheduleIds={activeAlarms.activeScheduleIds}
-          onPressScheduleList={onPressScheduleList}
-          onPressScheduleCreate={onPressScheduleCreate}
-          accentColor={petTheme.primary}
-          accentDeepColor={petTheme.deep}
-          accentTint={petTheme.tint}
-          accentBorder={petTheme.border}
-        />
+      <View testID="home-section-list" style={styles.lowerHomeSectionList}>
+        <View onLayout={ambientSectionLayoutHandlers.frequent}>
+          {frequentRecordsSection}
+        </View>
+        <View onLayout={ambientSectionLayoutHandlers.summary}>
+          <TotalSummarySection
+            records={
+              totalSummaryState.petId === activePetId
+                ? totalSummaryState.records
+                : null
+            }
+            accentDeepColor={petTheme.deep}
+            isLoading={
+              activePetId !== null &&
+              (totalSummaryState.petId !== activePetId ||
+                (totalSummaryState.records === null &&
+                  totalSummaryState.status === 'loading'))
+            }
+            onPressWalk={onPressTotalWalk}
+            onPressMeal={onPressTotalMeal}
+            onPressLife={onPressTotalLife}
+            onPressAllRecords={onPressTotalSummaryAllRecords}
+          />
+        </View>
+        <View onLayout={ambientSectionLayoutHandlers.recent}>
+          <TodayRecordsSection
+            recordItems={recordItems}
+            recordStatus={recordStatus}
+            onPressTimeline={onPressTimeline}
+            onPressRecord={onPressRecord}
+            onPressRecordItem={onPressRecordItem}
+            accentDeepColor={petTheme.deep}
+          />
+        </View>
+        <View onLayout={ambientSectionLayoutHandlers.photo}>
+          <TodayPhotoSection
+            activePetId={activePetId}
+            recordItems={recordItems}
+            recordStatus={recordStatus}
+            onPressRecordItem={onPressRecordItem}
+            onPressRecord={onPressRecord}
+            accentColor={petTheme.deep}
+          />
+        </View>
+        <View onLayout={ambientSectionLayoutHandlers.community}>
+          <CommunitySection
+            isFocused={isScreenFocused}
+            accentColor={petTheme.primary}
+            accentTint={petTheme.tint}
+            accentBorder={petTheme.border}
+            onPressPost={onPressCommunityPost}
+            onPressAll={onPressCommunityAll}
+          />
+        </View>
+        <View onLayout={ambientSectionLayoutHandlers.recommendation}>
+          <RecommendationTipsSection
+            guides={homeGuideState.guides}
+            loading={homeGuideState.loading}
+            error={homeGuideState.error}
+            isMemorial={isMemorialPet(selectedPet?.deathDate)}
+            source={homeGuideState.source}
+            sourceReason={homeGuideState.sourceReason}
+            petTheme={petTheme}
+            onPressGuide={onPressGuideDetail}
+            onPressMore={onPressGuideList}
+          />
+        </View>
+        <View onLayout={ambientSectionLayoutHandlers.schedule}>
+          <ScheduleSection
+            scheduleItems={visibleScheduleItems}
+            activeScheduleIds={activeAlarms.activeScheduleIds}
+            onPressScheduleList={onPressScheduleList}
+            onPressScheduleCreate={onPressScheduleCreate}
+            accentColor={petTheme.primary}
+            accentDeepColor={petTheme.deep}
+            accentTint={petTheme.tint}
+            accentBorder={petTheme.border}
+          />
+        </View>
+        <View onLayout={ambientSectionLayoutHandlers.health}>
+          <HealthRecentActivitiesSection
+            activityItems={healthActivityItems}
+            onPressHealthReport={() => onPressHealthReport()}
+            onPressActivityItem={onPressHealthReport}
+            accentColor={petTheme.primary}
+            accentDeepColor={petTheme.deep}
+          />
+        </View>
+        <View onLayout={ambientSectionLayoutHandlers['today-tip']}>
+          <TodayHomeTipSection petTheme={petTheme} />
+        </View>
+        <View onLayout={ambientSectionLayoutHandlers.diary}>
+          <MonthlyDiarySection
+            petName={plainPetName}
+            recordItems={recordItems}
+            onPressTimelineCategory={onPressTimelineCategory}
+            onPressRecord={onPressRecord}
+            onPressRecordItem={onPressRecordItem}
+            accentDeepColor={petTheme.deep}
+          />
+        </View>
       </View>
-
-      <HealthRecentActivitiesSection
-        activityItems={healthActivityItems}
-        onPressHealthReport={() => onPressHealthReport()}
-        onPressActivityItem={onPressHealthReport}
-        accentColor={petTheme.primary}
-        accentDeepColor={petTheme.deep}
-      />
-
-      <TodayHomeTipSection petTheme={petTheme} />
-
-      <MonthlyDiarySection
-        petName={plainPetName}
-        recordItems={recordItems}
-        onPressTimelineCategory={onPressTimelineCategory}
-        onPressRecord={onPressRecord}
-        onPressRecordItem={onPressRecordItem}
-        accentColor={petTheme.primary}
-        accentDeepColor={petTheme.deep}
-      />
     </View>
   );
 
@@ -4968,10 +4968,18 @@ export default function LoggedInHome() {
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
+        {warmAmbientMeshExperimentEnabled ? (
+          <HomeAmbientBubbleCanvas
+            heroHeight={seasonalHeroViewportHeight}
+            sectionLayouts={ambientSectionLayouts}
+            sectionOrigin={ambientContentY + ambientLowerY}
+          />
+        ) : null}
         {seasonalHomeVisual?.season === 'autumn' ? (
           <SeasonalHomeAutumnStage
             atmosphere={seasonalHomeVisual.atmosphere}
             atmosphereAspectRatio={seasonalHomeVisual.atmosphereAspectRatio}
+            backgroundImageVisible={!warmAmbientMeshExperimentEnabled}
             minHeight={seasonalHeroViewportHeight}
           >
             {homeHeader}
@@ -5038,7 +5046,10 @@ export default function LoggedInHome() {
         )}
 
         {/* Fade container */}
-        <Animated.View style={animatedContentStyle}>
+        <Animated.View
+          style={animatedContentStyle}
+          onLayout={handleAmbientContentLayout}
+        >
           {seasonalHomeVisual ? null : homeHero}
 
           <FixedTypographyBoundary>
@@ -5048,6 +5059,7 @@ export default function LoggedInHome() {
               petName={selectedPet?.name}
               accentColor={petTheme.primary}
               season={seasonalHomeVisual?.season ?? null}
+              hideSeasonalBackgroundImage={warmAmbientMeshExperimentEnabled}
               onPress={onPressWeatherInsight}
             />
           </FixedTypographyBoundary>

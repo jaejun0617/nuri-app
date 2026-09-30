@@ -6,11 +6,11 @@
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
-import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../../../app/ui/AppText';
 import { HomeSectionGlass } from '../../../../components/home/HomeSectionGlass';
+import { HomeSectionHeader } from '../../../../components/home/HomeSectionHeader';
 import type { CommunityPost } from '../../../../types/community';
 import {
   HOME_COMMUNITY_TAB_OPTIONS,
@@ -325,23 +325,11 @@ const CommunitySection = memo(function CommunitySection({
           },
         ]}
       >
-        <View
-          style={styles.titleRow}
-          accessible
-          accessibilityRole="header"
-          accessibilityLabel="커뮤니티, 반려인들이 주목한 이야기"
-        >
-          <Feather
-            name="message-circle"
-            size={20}
-            color={theme.colors.brand}
-            accessible={false}
-            importantForAccessibility="no"
-          />
-          <AppText preset="unifiedTitle" style={[styles.title, { color: accentColor }]}>
-            반려인들이 주목한 이야기
-          </AppText>
-        </View>
+        <HomeSectionHeader
+          title="반려인들이 주목한 이야기"
+          color={accentColor}
+          action={{ onPress: onPressAll, accessibilityLabel: '커뮤니티 전체 보기' }}
+        />
 
         <ScrollView
           horizontal
@@ -442,23 +430,6 @@ const CommunitySection = memo(function CommunitySection({
           ) : null}
         </View>
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="커뮤니티 전체 보기"
-          onPress={onPressAll}
-          style={({ pressed }) => [
-            styles.allButton,
-            {
-              borderColor,
-              backgroundColor: pressed ? `${accentColor}08` : 'transparent',
-            },
-          ]}
-        >
-          <AppText preset="button" style={[styles.allButtonText, { color: accentColor }]}>
-            전체 보기
-          </AppText>
-          <Feather name="chevron-right" size={17} color={accentColor} />
-        </Pressable>
       </View>
     </HomeSectionGlass>
   );

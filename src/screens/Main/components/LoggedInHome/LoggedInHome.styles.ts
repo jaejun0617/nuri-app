@@ -8,6 +8,7 @@
 import { StyleSheet } from 'react-native';
 import { SCREEN_TOP_SPACING } from '../../../../theme/layout';
 import { typography } from '../../../../app/theme/tokens/typography';
+import { HOME_WIDGET_MATERIAL } from '../../../../components/home/HomeWidgetMaterial';
 
 const BRAND = '#6D6AF8';
 const BRAND_DEEP = '#5753E6';
@@ -36,6 +37,7 @@ const ORANGE = '#F97316';
 const PINK = '#EF4444';
 const PURPLE = BRAND_DEEP;
 const HOME_SECTION_GAP = 24;
+export const HOME_LOWER_SECTION_GAP = 40;
 
 export const styles = StyleSheet.create({
   // ---------------------------------------------------------
@@ -471,7 +473,7 @@ export const styles = StyleSheet.create({
     marginTop: -64,
     paddingTop: 48,
     paddingHorizontal: 16,
-    paddingBottom: 40,
+    paddingBottom: HOME_LOWER_SECTION_GAP,
     overflow: 'hidden',
   },
   weatherSectionBottomFinish: {
@@ -497,6 +499,12 @@ export const styles = StyleSheet.create({
     marginHorizontal: -16,
     paddingHorizontal: 16,
     backgroundColor: HOME_BASE_BACKGROUND_COLOR,
+  },
+  lowerHomeSectionList: {
+    gap: HOME_LOWER_SECTION_GAP,
+  },
+  ambientBackgroundTransparent: {
+    backgroundColor: 'transparent',
   },
 
   // ---------------------------------------------------------
@@ -1501,7 +1509,7 @@ export const styles = StyleSheet.create({
     paddingTop: 18,
   },
   recentSection: {
-    gap: 10,
+    gap: 20,
     paddingHorizontal: 14,
   },
   recentSectionHeaderRow: {
@@ -1685,9 +1693,13 @@ export const styles = StyleSheet.create({
   // Weekly Summary
   // ---------------------------------------------------------
   weeklySummarySection: {
-    paddingHorizontal: 32,
-    paddingTop: 36,
-    paddingBottom: 36,
+    paddingHorizontal: 14,
+    paddingTop: 18,
+    paddingBottom: 18,
+    gap: 20,
+  },
+  weeklySummaryBody: {
+    paddingHorizontal: 18,
     gap: 14,
   },
   weeklySummaryHeader: {
@@ -1732,14 +1744,7 @@ export const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 14,
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#F3EFF8',
-    shadowColor: '#2C1654',
-    shadowOpacity: 0.035,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 1,
+    ...HOME_WIDGET_MATERIAL,
   },
   weeklySummaryMetricTopRow: {
     flexDirection: 'row',
@@ -1797,9 +1802,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#FBF9FF',
-    borderWidth: 1,
-    borderColor: '#F1ECFA',
+    ...HOME_WIDGET_MATERIAL,
   },
   weeklySummaryInsightIcon: {
     width: 36,
@@ -2068,8 +2071,8 @@ export const styles = StyleSheet.create({
   // ---------------------------------------------------------
   todayTipCard: {
     borderRadius: 0,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
     backgroundColor: 'transparent',
     gap: 10,
   },

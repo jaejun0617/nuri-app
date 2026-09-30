@@ -1,7 +1,7 @@
 // 파일: src/components/records/FrequentRecordsSection.tsx
 // 목적:
 // - 홈에서 빠른 기록 진입과 선택된 반려동물의 최신 기록 요약을 함께 제공한다.
-// - 평면 섹션 안에서 빠른 기록 진입과 최신 기록 요약을 함께 제공한다.
+// - 유리 패널 위의 위젯은 공통 반사광과 베벨 재질로 구분한다.
 
 import AppText from '../../app/ui/AppText';
 import React, { memo, useMemo } from 'react';
@@ -21,8 +21,9 @@ import {
   type FrequentRecordSummary,
 } from '../../services/home/frequentRecords';
 import type { buildPetThemePalette } from '../../services/pets/themePalette';
-import { SectionHeaderAction } from '../../app/ui/SectionHeaderAction';
 import { HomeSectionGlass } from '../home/HomeSectionGlass';
+import { HomeSectionHeader } from '../home/HomeSectionHeader';
+import { HomeWidgetSheen } from '../home/HomeWidgetMaterial';
 import { styles } from './FrequentRecordsSection.styles';
 
 type PetTheme = ReturnType<typeof buildPetThemePalette>;
@@ -81,6 +82,7 @@ function RecordSummaryCard({
         pressed ? styles.recordCardPressed : null,
       ]}
     >
+      <HomeWidgetSheen radius={12} />
       <View style={styles.recordContentStack}>
         <View style={styles.recordIconSlot}>
           <View style={[styles.recordIconWrap, { backgroundColor: accentTint }]}>
@@ -179,27 +181,11 @@ function FrequentRecordsSectionBase({
       style={styles.section}
     >
         <View style={styles.headerRow}>
-          <View style={styles.headerLead}>
-            <View style={styles.headerTextGroup}>
-              <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={[styles.title, { color: petTheme.primary }]}>
-                자주 쓰는 기록
-              </AppText>
-              <AppText preset="unifiedBody"
-                style={styles.subtitle}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-                allowFontScaling={false}
-              >
-                우리 아이의 일상을 빠르게 기록해보세요
-              </AppText>
-            </View>
-          </View>
-          <SectionHeaderAction
+          <HomeSectionHeader
+            title="자주 쓰는 기록"
+            description="우리 아이의 일상을 빠르게 기록해보세요"
             color={petTheme.primary}
-            onPress={onPressAll}
-            accessibilityLabel="전체 기록 보기"
-            textPreset="unifiedMicro"
-            size="compact"
+            action={{ onPress: onPressAll, accessibilityLabel: '전체 기록 보기' }}
           />
         </View>
 
