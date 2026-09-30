@@ -43,3 +43,13 @@
 - 연구 문서·Supabase 임시 파일·미사용 Autumn 이미지 3개·output과 project-memory의 이전 작업 hunk는 제외하고 보존한다. reset·stash·clean·restore·전체 add를 사용하지 않는다.
 - main 병합과 앱 스토어 배포는 범위 밖이다. Git 실행 결과는 최종 응답, Git 이력과 origin의 실제 SHA 대조를 따른다.
 - 최종 반영 후 다음 기능이나 시각 조정을 시작하지 않고 새 PO 지시를 기다린다.
+
+## 7. Confirmed Source Closeout
+
+- 승인 source commit: `55f8c9e3584c0046bfc812e5fee7cf8943e44c93`, `feat(home): finalize approved four-season ambient canvas`. 승인된 source·테스트·자산·기록 26개 파일을 반영했다.
+- `origin/codex/task6-community-content-policy`에 push Success. 실제 원격 SHA를 다시 조회해 같은 `55f8c9e3584c0046bfc812e5fee7cf8943e44c93`임을 확인했고 ahead/behind 0/0이다.
+- commit 뒤 남은 dirty는 원래 보존하기로 한 project-memory 3개의 이전 작업 hunk·연구 문서·Supabase temp·output·미사용 Autumn 자산 3개뿐이다. 승인 source는 작업 공간과 커밋이 동일하다.
+- 이 종료 확인 기록의 후속 커밋은 문서만 포함한다. source·APK 변경이나 추가 빌드·설치 없이 같은 브랜치에 반영한다.
+- PO_VISUAL_APPROVAL: APPROVED. APPROVED_DESIGN: FROZEN. PRODUCTION_REVIEW_BUTTONS: REMOVED. RELEASE_INSTALL: COMPLETE. SOURCE_COMMIT_PUSH: VERIFIED. AUTO_START_NEXT_WORK: NO.
+
+새 PO 지시를 기다립니다.

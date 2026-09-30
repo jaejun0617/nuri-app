@@ -9,7 +9,7 @@
 - [x] 버튼 없는 최종 Release·install 각 1회 PO 승인 수신.
 - [x] 최종 Release 1회·install 1회, verifier ACCEPTED·install Success. 최종 SHA-256 `6bd2e2ae29ba3ad6c3da90320ab7101f37fe7cf1616e189fc386341460718f4b`, Metro·Fast Refresh OFF.
 - [x] 최종 APK와 승인 기준 APK 보존 후 재생성된 프로젝트 native cache 6곳 정리. source·기존 dirty 보존, 약 4.00GiB 회수.
-- [ ] 승인된 source·자산·문서 hunk만 선별 commit·push하고 origin 대조.
+- [x] 승인된 source·자산·문서 hunk 26개 파일만 선별 commit `55f8c9e3584c0046bfc812e5fee7cf8943e44c93`·push, 실제 remote SHA 일치 및 ahead/behind 0/0 확인. 완료 확인 기록은 문서 전용 후속 커밋이다.
 - [ ] 최신 자동 runtime QA·Fatal·ANR·RN Fatal·Red Screen·확대 글꼴·Memorial 증적. 기기 조작 중단으로 미확인.
 
 보고서: `docs/qa/nuri-home-four-season-final-approval-2026-09-30.md`. 아래 PO 승인 대기는 이전 후보 이력이다.
