@@ -13,12 +13,12 @@ import {
   HOME_AMBIENT_MESH_BASE_COLOR,
   HOME_AMBIENT_MESH_FIELDS,
   HOME_AMBIENT_SCROLL_BUBBLES,
-  HOME_AMBIENT_SCROLL_LIGHTS,
   HOME_AMBIENT_SECTION_ZONES,
   updateHomeAmbientSectionLayout,
   type HomeAmbientSectionLayouts,
   type HomeAmbientBubbleZone,
 } from '../src/theme/home/ambientMesh';
+import { HOME_AMBIENT_SECTION_LIGHTS } from '../src/theme/home/seasonalAmbient';
 
 const canvasSource = fs.readFileSync(
   path.join(
@@ -102,38 +102,52 @@ describe('Home glossy bubble atmosphere', () => {
     'health',
     'today-tip',
     'diary',
-  ])('continues varied edge bubbles through %s', zone => {
+  ])('balances cropped and complete spheres through %s', zone => {
     const bubbles = HOME_AMBIENT_SCROLL_BUBBLES.filter(
       bubble => bubble.zone === zone,
     );
-    expect(bubbles.length).toBeGreaterThanOrEqual(4);
+    expect(bubbles.filter(bubble => bubble.kind === 'large')).toHaveLength(zone === 'weather' ? 2 : 1);
+    expect(bubbles.filter(bubble => bubble.kind === 'medium')).toHaveLength(zone === 'weather' ? 2 : 1);
     expect(
       bubbles.every(
-        bubble => bubble.centerXRatio <= 0.18 || bubble.centerXRatio >= 0.82,
+        bubble => bubble.centerXRatio <= 0.24 || bubble.centerXRatio >= 0.76,
       ),
     ).toBe(true);
   });
 
   it.each([360, 400, 430])(
-    'limits large bubbles to three corners and varies smaller sizes at %sdp',
+    'matches the three decoration families and keeps complete spheres visible at %sdp',
     width => {
       const sizes = HOME_AMBIENT_SCROLL_BUBBLES.map(bubble =>
         getHomeAmbientBubbleSize(bubble, width),
       );
-      expect(sizes.every(size => size >= 18 && size <= 150)).toBe(true);
-      expect(new Set(sizes).size).toBeGreaterThan(12);
+      expect(sizes.every(size => size >= 44 && size <= 150)).toBe(true);
+      expect(new Set(sizes).size).toBeGreaterThanOrEqual(8);
       const large = HOME_AMBIENT_SCROLL_BUBBLES.filter(bubble => bubble.kind === 'large');
-      expect(large.map(bubble => bubble.zone)).toEqual(['summary', 'photo', 'diary']);
+      expect(large).toHaveLength(12);
       for (const bubble of large) {
         const size = getHomeAmbientBubbleSize(bubble, width);
         const left = width * bubble.centerXRatio - size / 2;
         const visible = Math.min(width, left + size) - Math.max(0, left);
+        expect(visible / size).toBeGreaterThan(0.42);
         expect(visible / size).toBeLessThan(0.5);
         expect(size / width).toBeLessThanOrEqual(0.35);
       }
-      expect(HOME_AMBIENT_SCROLL_BUBBLES.filter(bubble => bubble.kind !== 'large')).toHaveLength(49);
+      const complete = HOME_AMBIENT_SCROLL_BUBBLES.filter(bubble => bubble.kind === 'medium');
+      expect(complete).toHaveLength(12);
+      for (const bubble of complete) {
+        const size = getHomeAmbientBubbleSize(bubble, width);
+        const left = Math.round(width * bubble.centerXRatio - size / 2);
+        expect(left).toBeGreaterThanOrEqual(8);
+        expect(left + size).toBeLessThanOrEqual(width - 8);
+        if (bubble.offsetY === -14) {
+          expect(bubble.offsetY - size / 2).toBeGreaterThanOrEqual(-40);
+          expect(bubble.offsetY + size / 2).toBeLessThanOrEqual(12);
+        }
+      }
+      expect(HOME_AMBIENT_SCROLL_BUBBLES.some(bubble => bubble.kind === 'small')).toBe(false);
       expect(HOME_AMBIENT_HERO_LIGHTS).toHaveLength(9);
-      expect(HOME_AMBIENT_SCROLL_LIGHTS).toHaveLength(15);
+      expect(HOME_AMBIENT_SECTION_LIGHTS).toHaveLength(12);
     },
   );
 
@@ -159,7 +173,8 @@ describe('Home glossy bubble atmosphere', () => {
     expect(glow.readUInt32BE(20)).toBe(192);
     expect(glow[25]).toBe(6);
     expect(glow.byteLength).toBeLessThan(100_000);
-    expect(canvasSource.match(/require\(/g)).toHaveLength(2);
+    expect(canvasSource.match(/require\(/g)).toHaveLength(1);
+    expect(canvasSource).toContain('source={texture}');
     expect(canvasSource).toContain('resizeMode="contain"');
     expect(canvasSource).not.toContain('BlurView');
     expect(canvasSource).not.toContain('Animated');
@@ -206,8 +221,9 @@ describe('Home glossy bubble atmosphere', () => {
       HOME_AMBIENT_HERO_BUBBLES.length +
         HOME_AMBIENT_SCROLL_BUBBLES.length +
         HOME_AMBIENT_MESH_FIELDS.length +
+        22 +
         HOME_AMBIENT_HERO_LIGHTS.length +
-        HOME_AMBIENT_SCROLL_LIGHTS.length,
+        HOME_AMBIENT_SECTION_LIGHTS.length,
     );
     await ReactTestRenderer.act(async () => {
       renderer?.update(
@@ -247,14 +263,55 @@ describe('Home glossy bubble atmosphere', () => {
     if (!renderer) throw new Error('Home canvas did not render');
     const findSphere = () => renderer?.root.findAllByType(ReactNative.Image).find(node => node.props.testID === `home-ambient-lower-bubble-${HOME_AMBIENT_SCROLL_BUBBLES.indexOf(bubble)}`);
     const firstStyle = ReactNative.StyleSheet.flatten(findSphere()?.props.style);
-    expect(firstStyle.top).toBeCloseTo(940 + 500 + 360 * 0.12 - 704 - firstStyle.width / 2);
+    expect(firstStyle.top).toBe(Math.round(940 + 500 + 360 * 0.12 - 704 - firstStyle.width / 2));
     await ReactTestRenderer.act(async () => {
       renderer?.update(React.createElement(HomeAmbientBubbleCanvas, {
         heroHeight: 704, sectionOrigin: 940, sectionLayouts: { summary: { y: 700, height: 540 } },
       }));
     });
     const nextStyle = ReactNative.StyleSheet.flatten(findSphere()?.props.style);
-    expect(nextStyle.top).toBeCloseTo(940 + 700 + 540 * 0.12 - 704 - nextStyle.width / 2);
+    expect(nextStyle.top).toBe(Math.round(940 + 700 + 540 * 0.12 - 704 - nextStyle.width / 2));
+    await ReactTestRenderer.act(async () => renderer?.unmount());
+  });
+
+  it('keeps full spheres in panel gaps and beside the recommendation emphasis as content grows', async () => {
+    for (const height of [240, 620, 1100]) {
+      let renderer: ReactTestRenderer.ReactTestRenderer | undefined;
+      await ReactTestRenderer.act(async () => {
+        renderer = ReactTestRenderer.create(React.createElement(HomeAmbientBubbleCanvas, {
+          heroHeight: 704,
+          sectionOrigin: 940,
+          sectionLayouts: {
+            frequent: { y: 0, height },
+            recommendation: { y: 1600, height },
+          },
+        }));
+      });
+      if (!renderer) throw new Error('Home canvas did not render');
+      for (const [zone, offset] of [['frequent', -14], ['recommendation', 98]] as const) {
+        const bubble = HOME_AMBIENT_SCROLL_BUBBLES.find(item => item.zone === zone && item.kind === 'medium');
+        if (!bubble) throw new Error('Complete sphere missing');
+        const sphere = renderer.root.findAllByType(ReactNative.Image).find(node => node.props.testID === `home-ambient-lower-bubble-${HOME_AMBIENT_SCROLL_BUBBLES.indexOf(bubble)}`);
+        const style = ReactNative.StyleSheet.flatten(sphere?.props.style);
+        expect(style.top).toBe(Math.round(940 + (zone === 'frequent' ? 0 : 1600) + offset - 704 - style.width / 2));
+        if (zone === 'recommendation') {
+          expect(bubble.centerXRatio).toBe(0.83);
+          expect(offset - style.width / 2).toBeGreaterThan(66);
+        }
+      }
+      await ReactTestRenderer.act(async () => renderer?.unmount());
+    }
+  });
+
+  it('waits for the measured Weather interval before rendering its decoration', async () => {
+    let renderer: ReactTestRenderer.ReactTestRenderer | undefined;
+    await ReactTestRenderer.act(async () => {
+      renderer = ReactTestRenderer.create(React.createElement(HomeAmbientBubbleCanvas, {
+        heroHeight: 704, sectionOrigin: 0,
+      }));
+    });
+    if (!renderer) throw new Error('Home canvas did not render');
+    expect(renderer.root.findAllByType(ReactNative.Image).filter(node => /home-ambient-lower-bubble-/.test(node.props.testID ?? ''))).toHaveLength(0);
     await ReactTestRenderer.act(async () => renderer?.unmount());
   });
 });

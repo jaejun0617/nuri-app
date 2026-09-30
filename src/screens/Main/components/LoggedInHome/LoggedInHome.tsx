@@ -56,6 +56,7 @@ import Animated, {
 
 import Screen from '../../../../components/layout/Screen';
 import { HomeSectionGlass } from '../../../../components/home/HomeSectionGlass';
+import { HomeSeasonProvider } from '../../../../components/home/HomeSeasonContext';
 import { HomeSectionHeader } from '../../../../components/home/HomeSectionHeader';
 import { HomeWidgetSheen } from '../../../../components/home/HomeWidgetMaterial';
 import {
@@ -94,13 +95,12 @@ import { useActiveScheduleAlarms } from '../../../../hooks/useActiveScheduleAlar
 import HomeActiveAlarmNotice from './HomeActiveAlarmNotice';
 import HomeTopButton, { resolveHomeTopButtonThreshold } from './HomeTopButton';
 import { HomeAmbientBubbleCanvas } from './HomeAmbientBubbleCanvas';
+import { HOME_FOREGROUND_UI_SEASON } from '../../../../theme/home/seasonalAmbient';
 import {
   AutumnLeafOrnament,
   SeasonalHomeAutumnStage,
 } from './SeasonalHomeAutumn';
-import { SeasonalHomeNatureStage } from './SeasonalHomeNature';
 import {
-  SeasonalHomeWinterStage,
   WinterOrnament,
   type WinterOrnamentVariant,
 } from './SeasonalHomeWinter';
@@ -230,8 +230,6 @@ const HOME_SCROLL_OFFSET_BY_KEY = new Map<string, number>();
 const AUTUMN_PROFILE_SHEET_BOTTOM_WAVE = require('../../../../assets/seasonal/home/autumn/profile-sheet-bottom-wave.png');
 const NURI_BRAND_MARK = require('../../../../assets/logo/logo_v2.png');
 const AUTUMN_MEMORY_CHIP_FLOW_COMPENSATION = 26;
-// Device QA only. The resolver's production AUTO behavior remains unchanged.
-const HOME_SEASON_QA_OVERRIDE = 'auto' as const;
 
 const WEEKLY_SUMMARY_COUNT_FONT_SIZE = 24;
 const WEEKLY_SUMMARY_UNIT_FONT_SIZE = 14;
@@ -3573,8 +3571,10 @@ export default function LoggedInHome() {
   const insets = useSafeAreaInsets();
   const bottomTabBarHeight = useBottomTabBarHeight();
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
+  const ambientSeason = getSeasonalThemeKey();
+  // Seasonal atmosphere is independent of the approved logo, copy and Weather UI.
   const seasonalHomeVisual = useMemo(
-    () => getSeasonalHomeVisual(getSeasonalThemeKey(), HOME_SEASON_QA_OVERRIDE),
+    () => getSeasonalHomeVisual(HOME_FOREGROUND_UI_SEASON),
     [],
   );
   const heroAvatarDiameter = seasonalHomeVisual
@@ -4749,8 +4749,7 @@ export default function LoggedInHome() {
         : null,
     [plainPetName, recordItems, seasonalHomeVisual?.season],
   );
-  const warmAmbientMeshExperimentEnabled =
-    seasonalHomeVisual?.season === 'autumn';
+  const ambientBubbleCanvasEnabled = seasonalHomeVisual !== null;
   const handleAmbientContentLayout = useCallback((event: LayoutChangeEvent) => {
     const y = Math.round(event.nativeEvent.layout.y * 2) / 2;
     setAmbientContentY(previous => (previous === y ? previous : y));
@@ -4829,15 +4828,13 @@ export default function LoggedInHome() {
       onLayout={handleAmbientLowerLayout}
       style={[
         styles.lowerHomeRoot,
-        warmAmbientMeshExperimentEnabled
-          ? styles.ambientBackgroundTransparent
-          : null,
+        ambientBubbleCanvasEnabled ? styles.ambientBackgroundTransparent : null,
       ]}
     >
       <WeatherToLowerHomeBridge
         season={seasonalHomeVisual?.season ?? null}
         height={weatherToHomeBridgeHeight}
-        hidden={warmAmbientMeshExperimentEnabled}
+        hidden={ambientBubbleCanvasEnabled}
       />
 
       <View testID="home-section-list" style={styles.lowerHomeSectionList}>
@@ -4949,167 +4946,131 @@ export default function LoggedInHome() {
   // 10) render
   // ---------------------------------------------------------
   return (
-    <Screen style={styles.screen}>
-      <ScrollView
-        ref={homeScrollRef}
-        style={styles.scroll}
-        contentContainerStyle={[
-          styles.scrollContent,
-          {
-            paddingBottom: Math.max(132, insets.bottom + 108),
-            gap: seasonalHomeVisual ? 0 : 24,
-          },
-        ]}
-        contentOffset={{ x: 0, y: initialHomeScrollOffset }}
-        onContentSizeChange={restoreHomeScrollPosition}
-        onLayout={handleHomeViewportLayout}
-        onScroll={handleHomeScroll}
-        onMomentumScrollEnd={handleHomeScrollMomentumEnd}
-        scrollEventThrottle={16}
-        showsVerticalScrollIndicator={false}
-      >
-        {warmAmbientMeshExperimentEnabled ? (
-          <HomeAmbientBubbleCanvas
-            heroHeight={seasonalHeroViewportHeight}
-            sectionLayouts={ambientSectionLayouts}
-            sectionOrigin={ambientContentY + ambientLowerY}
-          />
-        ) : null}
-        {seasonalHomeVisual?.season === 'autumn' ? (
-          <SeasonalHomeAutumnStage
-            atmosphere={seasonalHomeVisual.atmosphere}
-            atmosphereAspectRatio={seasonalHomeVisual.atmosphereAspectRatio}
-            backgroundImageVisible={!warmAmbientMeshExperimentEnabled}
-            minHeight={seasonalHeroViewportHeight}
-          >
-            {homeHeader}
-            {activeAlarmNotice}
-            <Animated.View
-              style={[
-                animatedContentStyle,
-                {
-                  marginTop:
-                    seasonalHeroOffset - AUTUMN_MEMORY_CHIP_FLOW_COMPENSATION,
-                },
-              ]}
-            >
-              {homeHero}
-            </Animated.View>
-          </SeasonalHomeAutumnStage>
-        ) : seasonalHomeVisual?.season === 'winter' ? (
-          <SeasonalHomeWinterStage
-            atmosphere={seasonalHomeVisual.atmosphere}
-            atmosphereAspectRatio={seasonalHomeVisual.atmosphereAspectRatio}
-            minHeight={seasonalHeroViewportHeight}
-          >
-            {homeHeader}
-            {activeAlarmNotice}
-            <Animated.View
-              style={[
-                animatedContentStyle,
-                {
-                  marginTop:
-                    seasonalHeroOffset - AUTUMN_MEMORY_CHIP_FLOW_COMPENSATION,
-                },
-              ]}
-            >
-              {homeHero}
-            </Animated.View>
-          </SeasonalHomeWinterStage>
-        ) : seasonalHomeVisual?.season === 'spring' ||
-          seasonalHomeVisual?.season === 'summer' ? (
-          <SeasonalHomeNatureStage
-            season={seasonalHomeVisual.season}
-            atmosphere={seasonalHomeVisual.atmosphere}
-            atmosphereAspectRatio={seasonalHomeVisual.atmosphereAspectRatio}
-            minHeight={seasonalHeroViewportHeight}
-          >
-            {homeHeader}
-            {activeAlarmNotice}
-            <Animated.View
-              style={[
-                animatedContentStyle,
-                {
-                  marginTop:
-                    seasonalHeroOffset - AUTUMN_MEMORY_CHIP_FLOW_COMPENSATION,
-                },
-              ]}
-            >
-              {homeHero}
-            </Animated.View>
-          </SeasonalHomeNatureStage>
-        ) : (
-          <>
-            {homeHeader}
-            {activeAlarmNotice}
-          </>
-        )}
-
-        {/* Fade container */}
-        <Animated.View
-          style={animatedContentStyle}
-          onLayout={handleAmbientContentLayout}
+    <HomeSeasonProvider
+      season={seasonalHomeVisual?.season ?? getSeasonalThemeKey()}
+    >
+      <Screen style={styles.screen}>
+        <ScrollView
+          ref={homeScrollRef}
+          style={styles.scroll}
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingBottom: Math.max(132, insets.bottom + 108),
+              gap: seasonalHomeVisual ? 0 : 24,
+            },
+          ]}
+          contentOffset={{ x: 0, y: initialHomeScrollOffset }}
+          onContentSizeChange={restoreHomeScrollPosition}
+          onLayout={handleHomeViewportLayout}
+          onScroll={handleHomeScroll}
+          onMomentumScrollEnd={handleHomeScrollMomentumEnd}
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
         >
-          {seasonalHomeVisual ? null : homeHero}
-
-          <FixedTypographyBoundary>
-            <HomeWeatherSection
-              weather={weatherGuide}
-              locationLabel={weatherGuideState.locationLabel}
-              petName={selectedPet?.name}
-              accentColor={petTheme.primary}
-              season={seasonalHomeVisual?.season ?? null}
-              hideSeasonalBackgroundImage={warmAmbientMeshExperimentEnabled}
-              onPress={onPressWeatherInsight}
+          {seasonalHomeVisual ? (
+            <HomeAmbientBubbleCanvas
+              season={ambientSeason}
+              heroHeight={seasonalHeroViewportHeight}
+              sectionLayouts={ambientSectionLayouts}
+              sectionOrigin={ambientContentY + ambientLowerY}
             />
-          </FixedTypographyBoundary>
+          ) : null}
+          {seasonalHomeVisual ? (
+            <SeasonalHomeAutumnStage
+              atmosphere={seasonalHomeVisual.atmosphere}
+              atmosphereAspectRatio={seasonalHomeVisual.atmosphereAspectRatio}
+              backgroundImageVisible={false}
+              ambientSeason={ambientSeason}
+              minHeight={seasonalHeroViewportHeight}
+            >
+              {homeHeader}
+              {activeAlarmNotice}
+              <Animated.View
+                style={[
+                  animatedContentStyle,
+                  {
+                    marginTop:
+                      seasonalHeroOffset - AUTUMN_MEMORY_CHIP_FLOW_COMPENSATION,
+                  },
+                ]}
+              >
+                {homeHero}
+              </Animated.View>
+            </SeasonalHomeAutumnStage>
+          ) : (
+            <>
+              {homeHeader}
+              {activeAlarmNotice}
+            </>
+          )}
 
-          {lowerHomeSections}
-        </Animated.View>
-      </ScrollView>
+          {/* Fade container */}
+          <Animated.View
+            style={animatedContentStyle}
+            onLayout={handleAmbientContentLayout}
+          >
+            {seasonalHomeVisual ? null : homeHero}
 
-      <HomeTopButton
-        visible={showTopButton}
-        bottom={topButtonBottom}
-        accentColor={petTheme.primary}
-        borderColor={petTheme.border}
-        rippleColor={`${petTheme.onPrimary}18`}
-        onPress={handlePressTop}
-      />
+            <FixedTypographyBoundary>
+              <HomeWeatherSection
+                weather={weatherGuide}
+                locationLabel={weatherGuideState.locationLabel}
+                petName={selectedPet?.name}
+                accentColor={petTheme.primary}
+                season={seasonalHomeVisual?.season ?? null}
+                hideSeasonalBackgroundImage={ambientBubbleCanvasEnabled}
+                onPress={onPressWeatherInsight}
+              />
+            </FixedTypographyBoundary>
 
-      <ProfileInfoBottomSheet
-        visible={profileSheetVisible}
-        petTheme={petTheme}
-        profilePetName={profilePetName}
-        selectedAvatarUri={selectedAvatarUri}
-        hobbies={hobbies}
-        likes={likes}
-        dislikes={dislikes}
-        tags={tags}
-        season={seasonalHomeVisual?.season ?? null}
-        seasonalOrnamentSheet={seasonalHomeVisual?.ornamentSheet ?? null}
-        profileSheetBackground={
-          seasonalHomeVisual?.profileSheetBackground ?? null
-        }
-        onCloseComplete={closeProfileInfoSheet}
-      />
+            {lowerHomeSections}
+          </Animated.View>
+        </ScrollView>
 
-      <HomeNotificationOverlay
-        visible={notificationModalVisible}
-        items={homeNotificationItems}
-        loading={homeNotificationLoading}
-        errorMessage={homeNotificationError}
-        topInset={insets.top}
-        panelHeight={notificationOverlayHeight}
-        onClose={closeHomeNotifications}
-        onRefresh={loadHomeNotifications}
-        onPressItem={onPressHomeNotificationItem}
-        onDismissItem={onDismissHomeNotificationItem}
-        onDismissAll={onDismissAllHomeNotifications}
-        expandedItemKeys={expandedHomeNotificationKeys}
-        onToggleExpandedItem={onToggleHomeNotificationExpanded}
-        onSetExpandedItem={onSetHomeNotificationExpanded}
-      />
-    </Screen>
+        <HomeTopButton
+          visible={showTopButton}
+          bottom={topButtonBottom}
+          accentColor={petTheme.primary}
+          borderColor={petTheme.border}
+          rippleColor={`${petTheme.onPrimary}18`}
+          onPress={handlePressTop}
+        />
+
+        <ProfileInfoBottomSheet
+          visible={profileSheetVisible}
+          petTheme={petTheme}
+          profilePetName={profilePetName}
+          selectedAvatarUri={selectedAvatarUri}
+          hobbies={hobbies}
+          likes={likes}
+          dislikes={dislikes}
+          tags={tags}
+          season={seasonalHomeVisual?.season ?? null}
+          seasonalOrnamentSheet={seasonalHomeVisual?.ornamentSheet ?? null}
+          profileSheetBackground={
+            seasonalHomeVisual?.profileSheetBackground ?? null
+          }
+          onCloseComplete={closeProfileInfoSheet}
+        />
+
+        <HomeNotificationOverlay
+          visible={notificationModalVisible}
+          items={homeNotificationItems}
+          loading={homeNotificationLoading}
+          errorMessage={homeNotificationError}
+          topInset={insets.top}
+          panelHeight={notificationOverlayHeight}
+          onClose={closeHomeNotifications}
+          onRefresh={loadHomeNotifications}
+          onPressItem={onPressHomeNotificationItem}
+          onDismissItem={onDismissHomeNotificationItem}
+          onDismissAll={onDismissAllHomeNotifications}
+          expandedItemKeys={expandedHomeNotificationKeys}
+          onToggleExpandedItem={onToggleHomeNotificationExpanded}
+          onSetExpandedItem={onSetHomeNotificationExpanded}
+        />
+      </Screen>
+    </HomeSeasonProvider>
   );
 }

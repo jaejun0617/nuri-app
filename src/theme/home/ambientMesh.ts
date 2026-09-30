@@ -39,8 +39,10 @@ export type HomeAmbientHeroBubble = HomeAmbientBubble & {
 
 export type HomeAmbientScrollBubble = HomeAmbientBubble & {
   zone: HomeAmbientBubbleZone;
-  /** Relative to its measured section; Weather uses the lower canvas bounds. */
+  /** Relative to its measured section; Weather uses the measured handoff interval. */
   top: `${number}%`;
+  /** Section-local whitespace offset, independent of changing content height. */
+  offsetY?: number;
 };
 
 export type HomeAmbientSectionLayout = { y: number; height: number };
@@ -221,60 +223,71 @@ function scrollBubble(
   };
 }
 
-/** Irregular section-local clusters stay beside content as its height changes. */
+/** A 48dp sphere fits inside the existing 52dp panel gap without sitting under a tile. */
+function gapBubble(
+  zone: HomeAmbientBubbleZone,
+  centerXRatio: number,
+  sizeRatio: number,
+  opacity: number,
+  rotation: `${number}deg`,
+): HomeAmbientScrollBubble {
+  return {
+    ...scrollBubble(
+      zone,
+      '0%',
+      centerXRatio,
+      sizeRatio,
+      opacity,
+      rotation,
+      'medium',
+    ),
+    maximumSize: 48,
+    offsetY: -14,
+  };
+}
+
+/** Twelve cropped spheres and twelve complete spheres alternate through one canvas. */
 export const HOME_AMBIENT_SCROLL_BUBBLES: readonly HomeAmbientScrollBubble[] = [
-  scrollBubble('weather', '0.4%', 0.08, 0.065, 0.78, '-9deg'),
-  scrollBubble('weather', '2.1%', 0.93, 0.085, 0.84, '18deg'),
-  scrollBubble('weather', '4.3%', 0.03, 0.038, 0.68, '-20deg'),
-  scrollBubble('weather', '5.2%', 0.87, 0.05, 0.75, '12deg'),
-  scrollBubble('frequent', '2%', 0.08, 0.125, 0.86, '-14deg', 'medium'),
-  scrollBubble('frequent', '21%', 0.17, 0.055, 0.8, '24deg'),
-  scrollBubble('frequent', '37%', 0.94, 0.1, 0.88, '7deg'),
-  scrollBubble('frequent', '67%', 0.045, 0.078, 0.82, '-28deg'),
-  scrollBubble('frequent', '96%', 0.88, 0.062, 0.78, '16deg'),
+  scrollBubble('weather', '22%', -0.012, 0.26, 0.8, '-16deg', 'large'),
+  scrollBubble('weather', '78%', 1.012, 0.29, 0.82, '21deg', 'large'),
+  scrollBubble('weather', '8%', 0.16, 0.12, 0.88, '-9deg', 'medium'),
+  scrollBubble('weather', '94%', 0.84, 0.14, 0.9, '18deg', 'medium'),
+  gapBubble('frequent', 0.14, 0.125, 0.9, '-14deg'),
+  scrollBubble('frequent', '59%', -0.012, 0.27, 0.8, '-28deg', 'large'),
   scrollBubble('summary', '12%', 1.015, 0.32, 0.82, '22deg', 'large'),
-  scrollBubble('summary', '4%', 0.87, 0.07, 0.86, '-10deg'),
-  scrollBubble('summary', '28%', 0.055, 0.096, 0.82, '11deg'),
-  scrollBubble('summary', '47%', 0.15, 0.052, 0.78, '-24deg'),
-  scrollBubble('summary', '75%', 0.95, 0.12, 0.84, '17deg', 'medium'),
-  scrollBubble('summary', '98%', 0.1, 0.081, 0.82, '-13deg'),
-  scrollBubble('recent', '1%', 0.9, 0.068, 0.78, '31deg'),
-  scrollBubble('recent', '43%', 0.045, 0.084, 0.8, '-8deg'),
-  scrollBubble('recent', '78%', 0.84, 0.052, 0.74, '14deg'),
-  scrollBubble('recent', '101%', 0.13, 0.068, 0.78, '-21deg'),
-  scrollBubble('photo', '8%', 0.96, 0.13, 0.88, '16deg', 'medium'),
-  scrollBubble('photo', '22%', 0.87, 0.06, 0.8, '-12deg'),
-  scrollBubble('photo', '71%', 0.055, 0.086, 0.86, '-27deg'),
+  gapBubble('summary', 0.78, 0.115, 0.88, '-10deg'),
+  gapBubble('recent', 0.2, 0.12, 0.9, '-21deg'),
+  scrollBubble('recent', '73%', -0.008, 0.25, 0.78, '-8deg', 'large'),
+  gapBubble('photo', 0.82, 0.125, 0.9, '16deg'),
   scrollBubble('photo', '103%', -0.015, 0.3, 0.8, '7deg', 'large'),
-  scrollBubble('photo', '96%', 0.12, 0.064, 0.82, '17deg'),
-  scrollBubble('community', '2%', 0.95, 0.094, 0.82, '25deg'),
-  scrollBubble('community', '25%', 0.08, 0.125, 0.84, '-11deg', 'medium'),
-  scrollBubble('community', '46%', 0.17, 0.054, 0.78, '18deg'),
-  scrollBubble('community', '81%', 0.89, 0.097, 0.84, '-17deg'),
-  scrollBubble('community', '102%', 0.95, 0.06, 0.76, '9deg'),
-  scrollBubble('recommendation', '3%', 0.07, 0.07, 0.82, '-23deg'),
-  scrollBubble('recommendation', '26%', 0.93, 0.13, 0.86, '14deg', 'medium'),
-  scrollBubble('recommendation', '61%', 0.12, 0.093, 0.82, '-9deg'),
-  scrollBubble('recommendation', '98%', 0.96, 0.064, 0.78, '21deg'),
-  scrollBubble('schedule', '2%', 0.07, 0.12, 0.86, '-16deg', 'medium'),
-  scrollBubble('schedule', '31%', 0.88, 0.067, 0.82, '26deg'),
-  scrollBubble('schedule', '69%', 0.96, 0.088, 0.8, '-6deg'),
-  scrollBubble('schedule', '102%', 0.14, 0.057, 0.76, '13deg'),
-  scrollBubble('health', '4%', 0.93, 0.083, 0.8, '19deg'),
-  scrollBubble('health', '35%', 0.055, 0.068, 0.78, '-18deg'),
-  scrollBubble('health', '79%', 0.15, 0.052, 0.74, '10deg'),
-  scrollBubble('health', '102%', 0.96, 0.093, 0.82, '-29deg'),
-  scrollBubble('today-tip', '2%', 0.07, 0.09, 0.82, '-12deg'),
-  scrollBubble('today-tip', '24%', 0.9, 0.13, 0.88, '23deg', 'medium'),
-  scrollBubble('today-tip', '48%', 0.96, 0.061, 0.78, '-17deg'),
-  scrollBubble('today-tip', '81%', 0.13, 0.08, 0.8, '8deg'),
-  scrollBubble('today-tip', '103%', 0.045, 0.105, 0.84, '-24deg'),
-  scrollBubble('diary', '3%', 0.93, 0.086, 0.82, '18deg'),
-  scrollBubble('diary', '23%', 0.06, 0.12, 0.84, '-13deg', 'medium'),
-  scrollBubble('diary', '49%', 0.16, 0.058, 0.78, '28deg'),
+  gapBubble('community', 0.18, 0.12, 0.9, '-11deg'),
+  scrollBubble('community', '44%', 1.01, 0.28, 0.8, '-17deg', 'large'),
+  {
+    ...scrollBubble(
+      'recommendation',
+      '0%',
+      0.83,
+      0.14,
+      0.92,
+      '14deg',
+      'medium',
+    ),
+    maximumSize: 60,
+    offsetY: 98,
+  },
+  scrollBubble('recommendation', '67%', -0.012, 0.29, 0.8, '-9deg', 'large'),
+  gapBubble('schedule', 0.84, 0.115, 0.9, '-16deg'),
+  scrollBubble('schedule', '48%', 1.015, 0.26, 0.78, '26deg', 'large'),
+  gapBubble('health', 0.16, 0.125, 0.88, '19deg'),
+  scrollBubble('health', '80%', -0.012, 0.27, 0.78, '-18deg', 'large'),
+  {
+    ...scrollBubble('today-tip', '0%', 0.84, 0.13, 0.9, '23deg', 'medium'),
+    maximumSize: 56,
+    offsetY: 50,
+  },
+  scrollBubble('today-tip', '98%', 1.01, 0.28, 0.8, '-17deg', 'large'),
+  gapBubble('diary', 0.22, 0.12, 0.9, '-13deg'),
   scrollBubble('diary', '99%', 1.01, 0.34, 0.82, '-9deg', 'large'),
-  scrollBubble('diary', '94%', 0.86, 0.07, 0.82, '17deg'),
-  scrollBubble('diary', '105%', 0.08, 0.095, 0.84, '-21deg'),
 ];
 
 export const HOME_AMBIENT_HERO_LIGHTS: readonly (HomeAmbientLight & {

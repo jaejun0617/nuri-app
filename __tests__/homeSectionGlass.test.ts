@@ -13,6 +13,7 @@ import WeatherGuideHomeCard from '../src/components/weather/WeatherGuideHomeCard
 import { buildWeatherGuideBundleForScenario } from '../src/services/weather/guide';
 import { styles as profileEditStyles } from '../src/screens/Pets/PetProfileEditScreen.styles';
 import { getSeasonalProfileEditVisual } from '../src/theme/seasonal/profileEdit';
+import { getHomeAmbientVisual } from '../src/theme/home/seasonalAmbient';
 import * as seasonalTheme from '../src/theme/seasonal/season';
 import type { SeasonKey } from '../src/theme/seasonal/season';
 import { getSeasonalWeatherVisualTheme } from '../src/theme/seasonal/weather';
@@ -23,14 +24,16 @@ describe('Home section glass', () => {
   });
 
   it.each<SeasonKey>(['winter', 'spring', 'summer'])(
-    'matches the actual %s Profile Edit panel material',
+    'uses the approved Home transmission while retaining the %s Profile Edit border',
     season => {
       const palette = getSeasonalProfileEditVisual(season).palette;
 
       expect(resolveHomeSectionGlassMaterial(season)).toEqual({
-        backgroundColor: palette.sectionSurfaceColor,
+        backgroundColor: getHomeAmbientVisual(season).glassSurface,
         borderColor: palette.sectionBorderColor,
       });
+      expect(palette.sectionSurfaceColor).toContain('0.70');
+      expect(getHomeAmbientVisual(season).glassSurface).toContain('0.50');
       expect(HOME_SECTION_GLASS_MATERIAL_STYLE.borderWidth).toBe(
         profileEditStyles.sectionGlass.borderWidth,
       );
@@ -120,24 +123,26 @@ describe('Home section glass', () => {
     });
     const content = renderer.root.findByProps({ testID: 'content' });
     expect(content.props.style).toBe(contentStyle);
-    expect(ReactNative.StyleSheet.flatten(surfaces[0].props.style)).not.toHaveProperty(
-      'opacity',
-    );
-    expect(ReactNative.StyleSheet.flatten(section.props.style)).not.toHaveProperty(
-      'opacity',
-    );
+    expect(
+      ReactNative.StyleSheet.flatten(surfaces[0].props.style),
+    ).not.toHaveProperty('opacity');
+    expect(
+      ReactNative.StyleSheet.flatten(section.props.style),
+    ).not.toHaveProperty('opacity');
     content.props.onPress();
     expect(onPress).toHaveBeenCalledTimes(1);
 
     await ReactTestRenderer.act(async () => renderer?.unmount());
   });
 
-  it.each([360, 400, 430])(
-    'preserves the %sdp Weather geometry and action under the shared glass',
-    async width => {
-      jest
-        .spyOn(seasonalTheme, 'getSeasonalThemeKey')
-        .mockReturnValue('autumn');
+  it.each(
+    (['autumn', 'winter', 'spring', 'summer'] as const).flatMap(season =>
+      [360, 400, 430].map(width => ({ season, width })),
+    ),
+  )(
+    'preserves the $season $width dp Weather geometry and action under the shared glass',
+    async ({ season, width }) => {
+      jest.spyOn(seasonalTheme, 'getSeasonalThemeKey').mockReturnValue(season);
       jest.spyOn(ReactNative.Dimensions, 'get').mockReturnValue({
         width,
         height: 832,
@@ -151,7 +156,7 @@ describe('Home section glass', () => {
         renderer = ReactTestRenderer.create(
           React.createElement(WeatherGuideHomeCard, {
             weather: buildWeatherGuideBundleForScenario('fresh', '일산3동'),
-            visualTheme: getSeasonalWeatherVisualTheme('autumn')?.card,
+            visualTheme: getSeasonalWeatherVisualTheme(season)?.card,
             hideSeasonalBackgroundImage: true,
             onPress,
           }),
@@ -181,7 +186,7 @@ describe('Home section glass', () => {
       expect(
         ReactNative.StyleSheet.flatten(surfaces[0].props.style),
       ).toMatchObject({
-        ...resolveHomeSectionGlassMaterial('autumn'),
+        ...resolveHomeSectionGlassMaterial(season),
         borderRadius: 27,
       });
       const action = renderer.root.findByType(ReactNative.TouchableOpacity);

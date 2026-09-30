@@ -8,6 +8,8 @@ import {
   type ImageSourcePropType,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { getHomeAmbientVisual } from '../../../../theme/home/seasonalAmbient';
+import type { SeasonKey } from '../../../../theme/seasonal/season';
 
 type MaskedViewCompatProps = React.ComponentProps<typeof View> & {
   maskElement: React.ReactElement;
@@ -20,6 +22,7 @@ type AutumnStageProps = {
   atmosphere: ImageSourcePropType;
   atmosphereAspectRatio: number;
   backgroundImageVisible?: boolean;
+  ambientSeason?: SeasonKey;
   minHeight?: number;
   children: React.ReactNode;
 };
@@ -31,6 +34,7 @@ export function SeasonalHomeAutumnStage({
   atmosphere,
   atmosphereAspectRatio,
   backgroundImageVisible = true,
+  ambientSeason = 'autumn',
   minHeight,
   children,
 }: AutumnStageProps) {
@@ -103,11 +107,7 @@ export function SeasonalHomeAutumnStage({
         </View>
       ) : null}
       <LinearGradient
-        colors={[
-          'rgba(255, 251, 246, 0.16)',
-          'rgba(255, 251, 246, 0.06)',
-          'rgba(255, 251, 246, 0)',
-        ]}
+        colors={[...getHomeAmbientVisual(ambientSeason).headerWash]}
         locations={[0, 0.48, 1]}
         style={styles.headerSafeWash}
         pointerEvents="none"

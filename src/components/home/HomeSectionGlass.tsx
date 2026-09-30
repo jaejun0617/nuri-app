@@ -11,10 +11,9 @@ import {
   getSeasonalProfileEditVisual,
   type SeasonalProfileEditPalette,
 } from '../../theme/seasonal/profileEdit';
-import {
-  getSeasonalThemeKey,
-  type SeasonKey,
-} from '../../theme/seasonal/season';
+import type { SeasonKey } from '../../theme/seasonal/season';
+import { getHomeAmbientVisual } from '../../theme/home/seasonalAmbient';
+import { useHomeSeason } from './HomeSeasonContext';
 
 export const HOME_SECTION_GLASS_RADIUS = 22;
 export const HOME_SECTION_ROOT_STYLE: ViewStyle = {
@@ -45,9 +44,6 @@ type HomeSectionGlassMaterial = {
   borderColor: string;
 };
 
-// Home-only PO trial; Profile Edit and the approved border remain unchanged.
-const AUTUMN_HOME_GLASS_SURFACE_COLOR = 'rgba(255, 252, 246, 0.50)';
-
 export function resolveHomeSectionGlassMaterial(
   season: SeasonKey,
 ): HomeSectionGlassMaterial {
@@ -55,10 +51,7 @@ export function resolveHomeSectionGlassMaterial(
     getSeasonalProfileEditVisual(season).palette;
 
   return {
-    backgroundColor:
-      season === 'autumn'
-        ? AUTUMN_HOME_GLASS_SURFACE_COLOR
-        : palette.sectionSurfaceColor,
+    backgroundColor: getHomeAmbientVisual(season).glassSurface,
     borderColor: palette.sectionBorderColor,
   };
 }
@@ -70,9 +63,10 @@ export const HomeSectionGlassSurface = React.memo(
   }: {
     borderRadius?: number;
   }) {
+    const season = useHomeSeason();
     const materialStyle = useMemo(
-      () => resolveHomeSectionGlassMaterial(getSeasonalThemeKey()),
-      [],
+      () => resolveHomeSectionGlassMaterial(season),
+      [season],
     );
 
     return (

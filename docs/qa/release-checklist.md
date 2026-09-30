@@ -1,5 +1,88 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-09-30 네 계절 Home 최종 승인 및 검토 버튼 제거
+
+- [x] 마지막 `cfe40e21` 후보의 최종 PO 시각 승인 수신.
+- [x] 임시 계절 버튼·선택 state·QA override 제거, KST 자동 배경 선택과 승인 공통 foreground 연결.
+- [x] 승인 Hero·색감·구체·별빛 배치·유리 50%/60%·UI와 기능 유지.
+- [x] TypeScript, 대상 lint 오류 0·새 경고 0·기존 20개, 관련 16개 스위트 184개 테스트 PASS.
+- [x] 버튼 없는 최종 Release·install 각 1회 PO 승인 수신.
+- [x] 최종 Release 1회·install 1회, verifier ACCEPTED·install Success. 최종 SHA-256 `6bd2e2ae29ba3ad6c3da90320ab7101f37fe7cf1616e189fc386341460718f4b`, Metro·Fast Refresh OFF.
+- [x] 최종 APK와 승인 기준 APK 보존 후 재생성된 프로젝트 native cache 6곳 정리. source·기존 dirty 보존, 약 4.00GiB 회수.
+- [ ] 승인된 source·자산·문서 hunk만 선별 commit·push하고 origin 대조.
+- [ ] 최신 자동 runtime QA·Fatal·ANR·RN Fatal·Red Screen·확대 글꼴·Memorial 증적. 기기 조작 중단으로 미확인.
+
+보고서: `docs/qa/nuri-home-four-season-final-approval-2026-09-30.md`. 아래 PO 승인 대기는 이전 후보 이력이다.
+
+## 2026-09-30 세 장식 균형과 디스크 정리
+
+- [x] PO의 마지막 하단 배치 지시 반영. cropped 구체·complete 구체·별빛 각 12개, 제목 옆·패널 gap 활용.
+- [x] Hero·네 계절 palette·UI·유리·구체 자산·임시 버튼 보존. source 3개·test 2개 수정, 새 native dependency 없음.
+- [x] TypeScript, 대상 lint 오류 0·새 경고 0·기존 20개, 16개 스위트 189개 테스트와 diff check PASS.
+- [x] 승인 추가 release·install 각 1회 완료, verifier ACCEPTED, install Success, Metro OFF, 기존 앱 데이터 유지.
+- [x] 오래된 후보 APK 6개 및 Git-ignored native build cache 삭제. 약 4.99GiB 확보. 최신·직전·승인 가을 APK와 source·로그·시안·증적·기존 dirty 보존.
+- [x] 기기 조작 중단 유지. 설치 외 실행·터치·스크롤·전환·캡처 없음.
+- [ ] 최신 실기기 합성·가독성·성능·Fatal·ANR·RN Fatal·Red Screen 검증. 미확인.
+- [ ] PO 최종 승인 및 후속 임시 버튼 제거·재검증·선별 커밋·푸시.
+
+최신 설치 SHA-256: `cfe40e218e4ff324783f35ab1fbb1188f3e7c69c54fd256ab17223753ba93c96`. 계절 작업 누적 각 8회, 이번 후보 각 1회다.
+보고서: `docs/qa/nuri-home-four-season-three-family-balance-2026-09-30.md`. 아래는 이전 이력이며 일부 오래된 APK 파일은 이번 정리로 삭제됐고 checksum·로그·증적은 보존했다.
+
+## 2026-09-30 좌우 색·봄 pink·별빛 corrective
+
+- [x] 직전 후보 PO 미승인과 남은 흰 edge·봄 emerald·하단 별빛 지적 반영.
+- [x] 기존 mesh 이동 보존, 중앙 투명 edge wash와 lower field 색 보완, 봄 mint 제거, 실제 section-anchor 별빛 28개 적용.
+- [x] UI·유리 50%/60%·구체 60개·Hero 별빛 9개·임시 버튼 보존. 새 자산·native dependency·애니메이션 없음.
+- [x] Node 24.20.0, Yarn 3.6.4, TypeScript, 대상 lint 오류 0·새 경고 0·기존 20개, 16개 스위트 187개 테스트, diff check PASS.
+- [x] PO 승인 추가 release·install 각 1회 완료, verifier ACCEPTED, install Success, Metro OFF, 앱 데이터 유지.
+- [x] 기기 조작 중단 유지. 설치 외 실행·터치·스크롤·전환·캡처 없음.
+- [ ] 최신 실기기 합성·가독성·성능 및 Fatal·ANR·RN Fatal·Red Screen 검증. 미확인.
+- [ ] PO 최종 시각 승인, 이후 임시 버튼 제거·재검증·선별 커밋·푸시.
+
+최신 설치 SHA-256: `1e3291e62436fcdf84d57786db373a338513f08a258b692c9247f387ccdcae2d`. 계절 작업 누적 release·install 각 7회, 이번 corrective 각 1회다.
+보고서: `docs/qa/nuri-home-four-season-edge-pink-starlight-corrective-2026-09-30.md`. 아래는 이전 후보 이력이다.
+
+## 2026-09-30 하단 mesh 복원·흰 구간 선택 감소 corrective
+
+- [x] PO의 통일 후보가 밋밋하다는 판단과 기존 mesh 유지·흰 구간만 감소 지시 반영.
+- [x] lower base·tail 덮개 제거, 기존 세 가지 색 field 복원, 밝은 lower neutral 선택 감소, 가을 흰 빈 구간 보완. Hero descriptor·구체·UI·glass 유지.
+- [x] TypeScript, 대상 lint 오류 0·새 경고 0·기존 20개, 16개 스위트 185개 테스트, diff check PASS.
+- [x] 이번 corrective 추가 Release·install 1회 PO 승인 및 완료. verifier ACCEPTED, install Success, Metro OFF, 앱 데이터 유지.
+- [x] 기기 조작 중단 유지. 설치 외 실행·제스처·캡처 없음.
+- [ ] 최신 source의 실기기 합성 및 Fatal·ANR·RN Fatal 검증. 현재 미확인.
+- [ ] PO 최종 시각 승인 및 이후 버튼 제거·재검증·선별 커밋·푸시.
+
+최신 설치 SHA-256: `b5529e8accbc91b419ced2943cae88adc8cbe0f87052a0cb3a626ce56c257d99`. 누적 release·install 각 6회이며 이번 corrective 각 1회다.
+최신 source 보고서: `docs/qa/nuri-home-four-season-white-pocket-corrective-2026-09-30.md`. 아래는 이전 후보 이력이다.
+
+## 2026-09-30 네 계절 하단 색 통일 후보
+
+- [x] PO의 하단 white pocket 보정 지시와 추가 Release·설치 1회 승인 수신.
+- [x] 네 계절 lower base 통일, Hero tail 16% transition, 하단 white wash 제거. 구체·주요 Hero 색·유리·UI 보존.
+- [x] TypeScript, 대상 lint 오류 0·새 경고 0·기존 20개, 관련 16개 스위트 182개 테스트와 diff check.
+- [x] Release·install 각 1회, verifier ACCEPTED, 앱 데이터 유지, Metro OFF. 누적 각 5회.
+- [x] 기기 조작 중단 지시 유지. 승인 설치 외 자동 제스처·캡처·cold launch 없음.
+- [ ] 최신 전체 실기기 QA·Fatal·ANR·RN Fatal 확인. 현재 미확인.
+- [ ] PO 최종 시각 승인.
+- [ ] 승인 후 버튼 제거와 재검증, 선별 커밋·푸시.
+
+최신 SHA-256: `55b6784f93c95efd8e9cb0e3e3fb129554a8bd1224a3d586bec992fcc3689ab8`.
+보고서: `docs/qa/nuri-home-four-season-lower-tone-2026-09-30.md`. 아래는 이전 후보 이력이다.
+
+## 2026-09-30 세 계절 참조 corrective 후보
+
+- [x] 첨부 겨울·봄·여름 재질·mesh 교정, 가을 및 승인 Home UI·유리 보존, 검토용 네 계절 버튼 유지.
+- [x] TypeScript, 대상 lint 오류 0·새 경고 0·기존 20개, 관련 16개 스위트 178개 테스트와 diff check.
+- [x] 이번 corrective release·install 각 1회, verifier ACCEPTED, 앱 데이터 유지, Metro OFF. 이전 3회를 포함한 누적 각 4회.
+- [x] Cold Home 실행, 가을 공통 unique label 13개 bounds 동일, 확인 구간 Fatal·ANR·RN Fatal 0건.
+- [x] PO 직접 검토 중 기기 조작 중단 요청 이행. 추가 터치·스크롤·전환·캡처 없음.
+- [ ] 세 계절 전체 통제 실기기 QA. 현재 일부 화면 관찰이며 PNG/XML 불일치는 geometry 증거에서 제외한다.
+- [ ] PO 최종 시각 승인.
+- [ ] 승인 후 임시 버튼 제거, 재검증과 선별 커밋·푸시.
+
+최신 APK SHA-256: `cc28e0f2f03e89029ff8db383bc29d38dfd09523792279b3344708358a53ccb7`.
+보고서: `docs/qa/nuri-home-three-season-reference-corrective-2026-09-30.md`. 아래 가을 승인은 유지되는 이전 baseline 승인으로 이번 세 계절 승인을 뜻하지 않는다.
+
 ## 2026-09-30 Home 최종 PO 직접 검증 완료
 
 - [x] PO 직접 검증 완료 및 승인된 Home 작업의 선별 커밋 지시 수신.
