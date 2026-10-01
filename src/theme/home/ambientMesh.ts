@@ -246,7 +246,7 @@ function gapBubble(
   };
 }
 
-/** Twelve cropped spheres and twelve complete spheres alternate through one canvas. */
+/** Approved rhythm plus Summary concept accents, painted by the same canvas. */
 export const HOME_AMBIENT_SCROLL_BUBBLES: readonly HomeAmbientScrollBubble[] = [
   scrollBubble('weather', '22%', -0.012, 0.26, 0.8, '-16deg', 'large'),
   scrollBubble('weather', '78%', 1.012, 0.29, 0.82, '21deg', 'large'),
@@ -256,6 +256,10 @@ export const HOME_AMBIENT_SCROLL_BUBBLES: readonly HomeAmbientScrollBubble[] = [
   scrollBubble('frequent', '59%', -0.012, 0.27, 0.8, '-28deg', 'large'),
   scrollBubble('summary', '12%', 1.015, 0.32, 0.82, '22deg', 'large'),
   gapBubble('summary', 0.78, 0.115, 0.88, '-10deg'),
+  scrollBubble('summary', '40%', -0.012, 0.29, 0.82, '-18deg', 'large'),
+  scrollBubble('summary', '86%', 1.015, 0.30, 0.80, '14deg', 'large'),
+  scrollBubble('summary', '30%', 0.60, 0.052, 0.86, '-12deg'),
+  scrollBubble('summary', '54%', 0.89, 0.062, 0.88, '18deg'),
   gapBubble('recent', 0.2, 0.12, 0.9, '-21deg'),
   scrollBubble('recent', '73%', -0.008, 0.25, 0.78, '-8deg', 'large'),
   gapBubble('photo', 0.82, 0.125, 0.9, '16deg'),

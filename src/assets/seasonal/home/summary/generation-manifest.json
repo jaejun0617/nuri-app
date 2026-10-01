@@ -1,0 +1,56 @@
+{
+  "tool": "built-in image_gen",
+  "date": "2026-10-01",
+  "purpose": "Approved four-season Total Summary concept implementation; decorative blank cards, no account data",
+  "conceptRoot": "output/design/nuri-home-summary-four-seasons-20261001",
+  "assets": [
+    {
+      "season": "autumn",
+      "prompt": "Use case: background-extraction. Asset type: transparent PNG illustration for NURI React Native total-summary section. Input image: approved autumn UI concept, extract ONLY the small open glass keepsake memory box on its right middle. Recreate that exact object enlarged as an isolated square composition: open rounded rectangular translucent crystal-glass box with upright hinged lid, two blank cards inside (warm ivory and pale lavender), a small glossy coral heart in front of the cards. Preserve three-quarter camera, soft pearlescent material, delicate champagne/apricot rim reflections and subtle object contact shading. Object fills 86-90% of square canvas, whole lid/base fully visible and centered, minimal transparent margin. Truly transparent alpha background, including glass interiors translucent rather than opaque. No UI, no panel, no backdrop, no text, numbers, labels, animal, paw, unrelated ornament or floating bubbles. Do not include the rest of the screenshot. High-quality 3D glass render, clear legible silhouette at 160dp.",
+      "source": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-6fc6c893-696d-464a-a5ee-2c1d620d2fa8.png",
+      "file": "keepsake-autumn-v1.png",
+      "path": "src/assets/seasonal/home/summary/keepsake-autumn-v1.png",
+      "width": 1254,
+      "height": 1254,
+      "colorType": 6,
+      "bytes": 1579786,
+      "sha256": "429bef36ffa435ab5b04ebae496e1dbfed3055971cc9690dde7ae56cf680d5ff"
+    },
+    {
+      "season": "winter",
+      "prompt": "Use case: precise-object-edit. Asset type: transparent square NURI UI illustration. Image 1 is the isolated glass box master, Image 2 the approved winter color reference. Recolor ONLY Image 1 to match the winter memory box in Image 2: clear icy-blue glass rim with powder sky and pale lilac pearl reflections, two blank cards icy blue and pale lilac, small frost-pink glossy heart. Preserve the EXACT open keepsake box silhouette, lid/base pose, cards/heart coordinates, camera, square canvas scale and centered 86-90% fill. Truly transparent background and preserved alpha; translucent glass, not white rectangle. No background, UI/text/numbers, snowflake decorations, animals/paws, extra bubbles or stars. High fidelity 3D pearl crystal, readable at 160dp.",
+      "source": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-2f34a757-0f82-49d6-9ffd-0217a96c58ae.png",
+      "file": "keepsake-winter-v1.png",
+      "path": "src/assets/seasonal/home/summary/keepsake-winter-v1.png",
+      "width": 1254,
+      "height": 1254,
+      "colorType": 6,
+      "bytes": 1549585,
+      "sha256": "484dc77d7a0f4d9ea1e515cae081e9c5dbabbeeeada559be070405854870b51b"
+    },
+    {
+      "season": "spring",
+      "prompt": "Use case: precise-object-edit. Asset type: transparent square NURI UI illustration. Image 1 is the isolated glass box master, Image 2 the approved spring color reference. Recolor ONLY Image 1 to match the spring memory box in Image 2: clear rose-pink glass rim with petal pink and soft rose pearlescent reflections, two blank cards blush ivory and pink lilac, small bright rose glossy heart. NO emerald, mint or green tint. Preserve EXACT open keepsake box silhouette, lid/base pose, cards/heart coordinates, camera, square canvas scale and centered 86-90% fill. Truly transparent background and preserved alpha; translucent glass, not white rectangle. No background, UI/text/numbers, flowers, animals/paws, extra bubbles or stars. High fidelity 3D pearl crystal, readable at 160dp.",
+      "source": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-90d3953f-7377-471e-9c0f-bb859f1e108c.png",
+      "file": "keepsake-spring-v1.png",
+      "path": "src/assets/seasonal/home/summary/keepsake-spring-v1.png",
+      "width": 1254,
+      "height": 1254,
+      "colorType": 6,
+      "bytes": 1513123,
+      "sha256": "f8db5d24e555c6c3544f6e4c8ea675a6b47858c62a68c9e90af22c763e3211bd"
+    },
+    {
+      "season": "summer",
+      "prompt": "Use case: precise-object-edit. Asset type: transparent square NURI UI illustration. Image 1 is isolated glass box master, Image 2 approved summer color reference. Recolor ONLY Image 1 to match summer memory box in Image 2: clear aqua/cyan glass rim with fresh sky-blue and faint pale-lemon pearl reflections, two blank cards light sky blue and pale aqua, small coral glossy heart. Distinct from winter blue-lilac. Preserve EXACT open keepsake box silhouette, lid/base pose, cards/heart coordinates, camera, square canvas scale and centered 86-90% fill. Truly transparent background and preserved alpha; translucent glass, not white rectangle. No background, UI/text/numbers, plants/beach props, animals/paws, extra bubbles or stars. High fidelity 3D pearl crystal, readable at 160dp.",
+      "source": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-038d29a6-8a05-4105-a534-2bfc046dd481.png",
+      "file": "keepsake-summer-v1.png",
+      "path": "src/assets/seasonal/home/summary/keepsake-summer-v1.png",
+      "width": 1254,
+      "height": 1254,
+      "colorType": 6,
+      "bytes": 1604622,
+      "sha256": "c3e8ec777beeacc9528b8d686f9fcfe4747012899b3c007940bb6f3303f12bad"
+    }
+  ]
+}

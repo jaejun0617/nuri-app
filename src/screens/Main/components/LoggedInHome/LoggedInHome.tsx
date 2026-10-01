@@ -61,7 +61,6 @@ import {
   HomeSectionHeader,
   isHomeSectionConfirmedEmpty,
 } from '../../../../components/home/HomeSectionHeader';
-import { HomeWidgetSheen } from '../../../../components/home/HomeWidgetMaterial';
 import {
   HOME_AMBIENT_SECTION_ZONES,
   updateHomeAmbientSectionLayout,
@@ -106,6 +105,7 @@ import {
 } from './HomeEmptySectionState';
 import { HomeSeasonReviewControls } from './HomeSeasonReviewControls';
 import { TodayPhotoSection } from './TodayPhotoSection';
+import { TotalSummarySection } from './TotalSummarySection';
 import { HomeAmbientBubbleCanvas } from './HomeAmbientBubbleCanvas';
 import { HOME_FOREGROUND_UI_SEASON } from '../../../../theme/home/seasonalAmbient';
 import {
@@ -139,8 +139,6 @@ import type { PetSchedule } from '../../../../services/supabase/schedules';
 import { buildHomeWidgetSnapshot } from '../../../../services/home/widgetSnapshot';
 import { syncHomeWidgetSnapshot } from '../../../../services/home/widgetBridge';
 import {
-  buildTotalSummary,
-  buildTotalSummaryLine,
   completeTotalSummaryLoad,
   createTotalSummaryState,
   failTotalSummaryLoad,
@@ -244,9 +242,6 @@ const HOME_SCROLL_OFFSET_BY_KEY = new Map<string, number>();
 const AUTUMN_PROFILE_SHEET_BOTTOM_WAVE = require('../../../../assets/seasonal/home/autumn/profile-sheet-bottom-wave.png');
 const NURI_BRAND_MARK = require('../../../../assets/logo/logo_v2.png');
 const AUTUMN_MEMORY_CHIP_FLOW_COMPENSATION = 26;
-
-const WEEKLY_SUMMARY_COUNT_FONT_SIZE = 24;
-const WEEKLY_SUMMARY_UNIT_FONT_SIZE = 14;
 
 if (Platform.OS === 'android') {
   UIManager.setLayoutAnimationEnabledExperimental?.(true);
@@ -2781,342 +2776,6 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
   );
 });
 
-type WeeklySummaryIconName = React.ComponentProps<
-  typeof MaterialCommunityIcons
->['name'];
-
-const WeeklySummaryMetricCard = React.memo(function WeeklySummaryMetricCard({
-  label,
-  value,
-  unit,
-  icon,
-  iconSource,
-  accentColor,
-  iconBackground,
-  onPress,
-  isLoading = false,
-}: {
-  label: string;
-  value: number | null;
-  unit: string;
-  icon?: WeeklySummaryIconName;
-  iconSource?: ImageSourcePropType;
-  accentColor: string;
-  iconBackground: string;
-  onPress: () => void;
-  isLoading?: boolean;
-}) {
-  const valueLabel =
-    value === null
-      ? isLoading
-        ? '불러오는 중'
-        : '확인 필요'
-      : `${value}${unit}`;
-
-  return (
-    <TouchableOpacity
-      activeOpacity={0.9}
-      style={styles.weeklySummaryMetricCard}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`${label} ${valueLabel}`}
-    >
-      <HomeWidgetSheen radius={20} />
-      <View style={styles.weeklySummaryMetricTopRow}>
-        <View
-          style={[
-            styles.weeklySummaryMetricIcon,
-            { backgroundColor: iconBackground },
-          ]}
-        >
-          {iconSource ? (
-            <Image
-              source={iconSource}
-              style={styles.weeklySummaryMetricBrandMark}
-              resizeMode="contain"
-              accessible={false}
-            />
-          ) : icon ? (
-            <MaterialCommunityIcons name={icon} size={22} color={accentColor} />
-          ) : null}
-        </View>
-        <View style={styles.weeklySummaryChevron}>
-          <MaterialCommunityIcons
-            name="chevron-right"
-            size={18}
-            color="#9A92AE"
-          />
-        </View>
-      </View>
-
-      <AppText
-        preset="unifiedBody"
-        styleOverridesPreset
-        style={styles.weeklySummaryMetricLabel}
-        numberOfLines={1}
-      >
-        {label}
-      </AppText>
-      <View style={styles.weeklySummaryMetricValueRow}>
-        {value === null ? (
-          isLoading ? (
-            <View
-              style={{
-                width: 26,
-                height: 14,
-                borderRadius: 4,
-                backgroundColor: '#F0ECF7',
-              }}
-            />
-          ) : (
-            <AppText
-              preset="unifiedBody"
-              styleOverridesPreset
-              style={[styles.weeklySummaryMetricValue, { color: accentColor }]}
-            >
-              —
-            </AppText>
-          )
-        ) : (
-          <AppText
-            preset="unifiedBody"
-            styleOverridesPreset
-            style={[
-              styles.weeklySummaryMetricValue,
-              {
-                color: accentColor,
-                fontSize: WEEKLY_SUMMARY_COUNT_FONT_SIZE,
-                lineHeight: WEEKLY_SUMMARY_COUNT_FONT_SIZE + 4,
-              },
-            ]}
-          >
-            {value}
-          </AppText>
-        )}
-        <AppText
-          preset="unifiedBody"
-          styleOverridesPreset
-          style={[
-            styles.weeklySummaryMetricUnit,
-            {
-              color: accentColor,
-              fontSize: WEEKLY_SUMMARY_UNIT_FONT_SIZE,
-              lineHeight: WEEKLY_SUMMARY_UNIT_FONT_SIZE + 5,
-            },
-          ]}
-        >
-          {unit}
-        </AppText>
-      </View>
-    </TouchableOpacity>
-  );
-});
-
-const TotalSummarySection = React.memo(function TotalSummarySection({
-  records,
-  accentDeepColor,
-  isLoading,
-  isReady,
-  onPressWalk,
-  onPressMeal,
-  onPressLife,
-  onPressAllRecords,
-}: {
-  records: MemoryRecord[] | null;
-  accentDeepColor: string;
-  isLoading: boolean;
-  isReady: boolean;
-  onPressWalk: () => void;
-  onPressMeal: () => void;
-  onPressLife: () => void;
-  onPressAllRecords: () => void;
-}) {
-  const totalSummary = useMemo(
-    () => (records ? buildTotalSummary(records) : null),
-    [records],
-  );
-  const summaryLine = useMemo(
-    () =>
-      totalSummary
-        ? buildTotalSummaryLine(totalSummary)
-        : isLoading
-        ? '전체 기록을 불러오는 중이에요.'
-        : '전체 기록을 확인할 수 없어요.',
-    [isLoading, totalSummary],
-  );
-
-  return (
-    <HomeSectionGlass
-      testID="home-glass-total-summary"
-      style={[styles.section, styles.weeklySummarySection]}
-    >
-      <HomeSectionHeader
-        title="전체 요약"
-        color={accentDeepColor}
-        hideAction={isHomeSectionConfirmedEmpty(
-          isReady,
-          records?.length ?? null,
-        )}
-        description="지금까지 남긴 기록을 한눈에 확인해보세요"
-        action={{
-          onPress: onPressAllRecords,
-          accessibilityLabel: '전체 요약 기록 전체 보기',
-        }}
-      />
-      <View style={styles.weeklySummaryBody}>
-        <View style={styles.weeklySummaryGrid}>
-          <View style={styles.weeklySummaryRow}>
-            <WeeklySummaryMetricCard
-              label="산책 기록"
-              value={totalSummary?.walkCount ?? null}
-              unit="기록"
-              iconSource={NURI_BRAND_MARK}
-              accentColor={accentDeepColor}
-              iconBackground="#F4EEFF"
-              onPress={onPressWalk}
-              isLoading={isLoading}
-            />
-            <WeeklySummaryMetricCard
-              label="식사 기록"
-              value={totalSummary?.mealCount ?? null}
-              unit="기록"
-              icon="silverware-fork-knife"
-              accentColor="#FF4FA3"
-              iconBackground="#FFEAF3"
-              onPress={onPressMeal}
-              isLoading={isLoading}
-            />
-          </View>
-          <View style={styles.weeklySummaryRow}>
-            <WeeklySummaryMetricCard
-              label="생활 기록"
-              value={totalSummary?.lifeCount ?? null}
-              unit="기록"
-              icon="notebook-outline"
-              accentColor="#18BFA7"
-              iconBackground="#EAF9F6"
-              onPress={onPressLife}
-              isLoading={isLoading}
-            />
-            <WeeklySummaryMetricCard
-              label="기록한 날"
-              value={totalSummary?.recordDays ?? null}
-              unit="일"
-              icon="calendar-month-outline"
-              accentColor="#FF8A24"
-              iconBackground="#FFF3E8"
-              onPress={onPressAllRecords}
-              isLoading={isLoading}
-            />
-          </View>
-        </View>
-
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={styles.weeklySummaryInsight}
-          onPress={onPressAllRecords}
-          accessibilityRole="button"
-          accessibilityLabel={`전체 기록 한 줄 요약, ${summaryLine}`}
-        >
-          <HomeWidgetSheen radius={18} />
-          <View style={styles.weeklySummaryInsightIcon}>
-            <MaterialCommunityIcons name="creation" size={20} color="#9B6BFF" />
-          </View>
-          <View style={styles.weeklySummaryInsightText}>
-            <AppText
-              preset="unifiedLabel"
-              style={styles.weeklySummaryInsightTitle}
-            >
-              전체 기록 한 줄 요약
-            </AppText>
-            <AppText
-              preset="unifiedBody"
-              style={styles.weeklySummaryInsightBody}
-              numberOfLines={2}
-            >
-              {summaryLine}
-            </AppText>
-          </View>
-          <MaterialCommunityIcons
-            name="chevron-right"
-            size={20}
-            color="#B1A8C8"
-          />
-        </TouchableOpacity>
-
-        <View style={styles.weeklySummaryFooterDivider} />
-        <View style={styles.weeklySummaryFooter}>
-          <View style={styles.weeklySummaryFooterItem}>
-            <MaterialCommunityIcons
-              name="calendar-check-outline"
-              size={17}
-              color={accentDeepColor}
-            />
-            <AppText
-              preset="unifiedBody"
-              style={styles.weeklySummaryFooterText}
-              numberOfLines={1}
-            >
-              {totalSummary ? (
-                <>
-                  전체 기록{' '}
-                  <AppText
-                    preset="unifiedBody"
-                    style={[
-                      styles.weeklySummaryFooterValue,
-                      { color: accentDeepColor },
-                    ]}
-                  >
-                    {totalSummary.totalRecords}
-                  </AppText>
-                  개
-                </>
-              ) : isLoading ? (
-                '확인 중'
-              ) : (
-                '확인 필요'
-              )}
-            </AppText>
-          </View>
-          <View style={styles.weeklySummaryFooterDividerVertical} />
-          <View style={styles.weeklySummaryFooterItem}>
-            <MaterialCommunityIcons
-              name="calendar-month-outline"
-              size={17}
-              color={accentDeepColor}
-            />
-            <AppText
-              preset="unifiedBody"
-              style={styles.weeklySummaryFooterText}
-              numberOfLines={1}
-            >
-              {totalSummary ? (
-                <>
-                  기록한 날{' '}
-                  <AppText
-                    preset="unifiedBody"
-                    style={[
-                      styles.weeklySummaryFooterValue,
-                      { color: accentDeepColor },
-                    ]}
-                  >
-                    {totalSummary.recordDays}
-                  </AppText>
-                  일
-                </>
-              ) : isLoading ? (
-                '확인 중'
-              ) : (
-                '확인 필요'
-              )}
-            </AppText>
-          </View>
-        </View>
-      </View>
-    </HomeSectionGlass>
-  );
-});
-
 const ScheduleSection = React.memo(function ScheduleSection({
   scheduleItems,
   isReady,
@@ -4727,6 +4386,7 @@ export default function LoggedInHome() {
         </View>
         <View onLayout={ambientSectionLayoutHandlers.summary}>
           <TotalSummarySection
+            season={ambientSeason}
             records={
               totalSummaryState.petId === activePetId
                 ? totalSummaryState.records

@@ -1,5 +1,34 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-10-01 전체 요약 Git 종료
+
+- [x] 전체 요약 PO 최종 승인 후 별도 선별 commit·기존 브랜치 push 지시 수신.
+- [x] 승인 source·asset 559개 hash 동일, 종료 전 19개 스위트 211개 테스트 PASS. 추가 build·install·기기 조작 없음.
+- [x] 무관한 dirty·공유 문서 과거 hunk를 제외하며 계절 버튼·승인 APK·증적 보존.
+- [ ] 선별 commit·push와 실제 원격 SHA 일치 확인. 결과는 `/tmp/nuri-summary-four-season-20261001/git-closeout.json`에 기록한다.
+- 다음 기능·main 병합·스토어 배포·cleanup·버튼 제거는 자동 실행하지 않는다. 아래 Git 미승인 표시는 이전 이력이다.
+
+## 2026-10-01 전체 요약 최종 PO 승인
+
+- [x] 최신 `84961478` 설치 후보의 전체 요약 네 계절 PO 최종 시각 승인 수신.
+- [x] 승인 상태를 QA·project-memory에 기록. 이번 턴 앱 source·asset·계절 버튼·설치본 변경 없음.
+- [x] 기존 타입·lint·19개 스위트 211개 테스트, QA Release·install 각 1회 증적 보존. 추가 build·install·test 미실행.
+- [ ] 최신 자동 runtime smoke·Fatal·ANR·RN Fatal·native bounds 측정: 기기 조작 중단으로 미확인, PO 승인과 별도 관리.
+- 이번 전체 요약의 staging·commit·push·cleanup·버튼 제거·다음 기능은 자동 진행하지 않는다. 다음 PO 지시를 기다린다. 아래 후보 승인 대기는 이전 이력이다.
+
+## 2026-10-01 전체 요약 네 계절 후보
+
+- [x] 승인 시안의 큰 실제 total·고유 KST 날짜·계절별 투명 보관함·세 보조 유리 위젯·기존 insight action 구현.
+- [x] PNG 네 개 genuine alpha, 최대 176dp frame, 작은 폭·큰 글꼴 세로 배치·줄바꿈, loading/error/empty·기존 집계/filter contract.
+- [x] Summary zone의 구체·별빛·가을 field만 보완. 다른 승인 section·Hero·outer glass·단일 canvas·계절 버튼 유지.
+- [x] TypeScript·대상 ESLint 오류 0·새 경고 0·기존 17개, 19개 스위트 211개 테스트, diff check PASS.
+- [x] 이번 QA Release·install 각 1회 PO 승인. 설치 외 기기 조작 중단 유지.
+- [x] 승인 QA Release·install 각 1회 완료. Verifier ACCEPTED·Success, APK `84961478`, 네 PNG 실제 포함·build 입력 559개 hash 및 Git 상태 동일.
+- [ ] 최신 native height·시각 합성·runtime smoke·Fatal·ANR·RN Fatal: 자동 기기 검토 중단으로 미확인.
+- [ ] PO 최종 시각 승인. staging·commit·push·cleanup·다음 자동 작업 없음.
+
+보고서: `docs/qa/nuri-home-total-summary-four-season-candidate-2026-10-01.md`. 아래는 기존 승인 기준과 이전 후보 이력이다.
+
 ## 2026-10-01 세 빈 섹션 최종 PO 승인·버튼 유지
 
 - [x] 건강관리·일정·오늘 한장 계절별 빈 상태와 section geometry를 유지한 일정·사진 표시 확대 PO 최종 승인.

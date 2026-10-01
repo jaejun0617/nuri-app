@@ -106,11 +106,11 @@ describe('Home glossy bubble atmosphere', () => {
     const bubbles = HOME_AMBIENT_SCROLL_BUBBLES.filter(
       bubble => bubble.zone === zone,
     );
-    expect(bubbles.filter(bubble => bubble.kind === 'large')).toHaveLength(zone === 'weather' ? 2 : 1);
+    expect(bubbles.filter(bubble => bubble.kind === 'large')).toHaveLength(zone === 'summary' ? 3 : zone === 'weather' ? 2 : 1);
     expect(bubbles.filter(bubble => bubble.kind === 'medium')).toHaveLength(zone === 'weather' ? 2 : 1);
     expect(
       bubbles.every(
-        bubble => bubble.centerXRatio <= 0.24 || bubble.centerXRatio >= 0.76,
+        bubble => bubble.kind === 'small' || bubble.centerXRatio <= 0.24 || bubble.centerXRatio >= 0.76,
       ),
     ).toBe(true);
   });
@@ -124,7 +124,7 @@ describe('Home glossy bubble atmosphere', () => {
       expect(sizes.every(size => size >= 18 && size <= 150)).toBe(true);
       expect(new Set(sizes).size).toBeGreaterThanOrEqual(8);
       const large = HOME_AMBIENT_SCROLL_BUBBLES.filter(bubble => bubble.kind === 'large');
-      expect(large).toHaveLength(12);
+      expect(large).toHaveLength(14);
       for (const bubble of large) {
         const size = getHomeAmbientBubbleSize(bubble, width);
         const left = width * bubble.centerXRatio - size / 2;
@@ -145,12 +145,12 @@ describe('Home glossy bubble atmosphere', () => {
           expect(bubble.offsetY + size / 2).toBeLessThanOrEqual(12);
         }
       }
-      const diaryDetails = HOME_AMBIENT_SCROLL_BUBBLES.filter(bubble => bubble.kind === 'small');
+      const diaryDetails = HOME_AMBIENT_SCROLL_BUBBLES.filter(bubble => bubble.kind === 'small' && bubble.zone === 'diary');
       expect(diaryDetails).toHaveLength(2);
       expect(diaryDetails.every(bubble => bubble.zone === 'diary')).toBe(true);
       expect(diaryDetails.every(bubble => getHomeAmbientBubbleSize(bubble, width) <= 28)).toBe(true);
       expect(HOME_AMBIENT_HERO_LIGHTS).toHaveLength(9);
-      expect(HOME_AMBIENT_SECTION_LIGHTS).toHaveLength(14);
+      expect(HOME_AMBIENT_SECTION_LIGHTS).toHaveLength(16);
     },
   );
 

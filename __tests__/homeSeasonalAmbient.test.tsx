@@ -8,6 +8,7 @@ import { HomeAmbientBubbleCanvas } from '../src/screens/Main/components/LoggedIn
 import { SeasonalHomeAutumnStage } from '../src/screens/Main/components/LoggedInHome/SeasonalHomeAutumn';
 import {
   HOME_AMBIENT_BASE_GRADIENT,
+  HOME_AMBIENT_HERO_BUBBLES,
   HOME_AMBIENT_MESH_FIELDS,
   HOME_AMBIENT_SCROLL_BUBBLES,
   HOME_AMBIENT_SECTION_ZONES,
@@ -147,7 +148,9 @@ describe('seasonal Home ambient material', () => {
         .filter(node =>
           /home-ambient-(hero|lower)-bubble-/.test(node.props.testID ?? ''),
         );
-      expect(spheres).toHaveLength(34);
+      expect(spheres).toHaveLength(
+        HOME_AMBIENT_HERO_BUBBLES.length + HOME_AMBIENT_SCROLL_BUBBLES.length,
+      );
       spheres.forEach(node => {
         const style = ReactNative.StyleSheet.flatten(node.props.style);
         expect(node.props.source).toBe(
@@ -261,9 +264,18 @@ describe('seasonal Home ambient material', () => {
       expect(new Set(visual.sectionFields.map(field => field.color)).size).toBe(
         3,
       );
-      expect(new Set(visual.sectionFields.map(field => field.opacity))).toEqual(
-        new Set(season === 'autumn' ? [0.4, 0.34] : [0.66, 0.58]),
-      );
+      expect(
+        new Set(
+          visual.sectionFields
+            .filter(field => field.zone !== 'summary')
+            .map(field => field.opacity),
+        ),
+      ).toEqual(new Set(season === 'autumn' ? [0.4, 0.34] : [0.66, 0.58]));
+      expect(
+        visual.sectionFields
+          .filter(field => field.zone === 'summary')
+          .map(field => field.opacity),
+      ).toEqual(season === 'autumn' ? [0.64, 0.56] : [0.66, 0.58]);
       for (const field of visual.sectionFields) {
         expect(field.color).not.toBe('#FFFFFF');
         expect(HOME_AMBIENT_SECTION_ZONES).toContain(field.zone);
@@ -318,7 +330,9 @@ describe('seasonal Home ambient material', () => {
       const lights = HOME_AMBIENT_SECTION_LIGHTS.filter(
         light => light.zone === zone,
       );
-      expect(lights).toHaveLength(zone === 'weather' ? 2 : zone === 'diary' ? 3 : 1);
+      expect(lights).toHaveLength(
+        zone === 'weather' ? 2 : zone === 'diary' || zone === 'summary' ? 3 : 1,
+      );
     }
     expect(
       new Set(HOME_AMBIENT_SECTION_LIGHTS.map(light => light.size)).size,
@@ -326,7 +340,7 @@ describe('seasonal Home ambient material', () => {
     expect(HOME_AMBIENT_SECTION_LIGHTS.some(light => light.topRatio < 0)).toBe(
       true,
     );
-    expect(HOME_AMBIENT_SECTION_LIGHTS).toHaveLength(14);
+    expect(HOME_AMBIENT_SECTION_LIGHTS).toHaveLength(16);
     for (const light of HOME_AMBIENT_SECTION_LIGHTS) {
       if (
         light.zone !== 'weather' &&
@@ -393,7 +407,9 @@ describe('seasonal Home ambient material', () => {
   );
 
   it('connects every season to one canvas without altering automatic season selection', () => {
-    expect(homeSource).toContain('const ambientSeason = reviewSeason ?? getSeasonalThemeKey()');
+    expect(homeSource).toContain(
+      'const ambientSeason = reviewSeason ?? getSeasonalThemeKey()',
+    );
     expect(homeSource).toContain('season={ambientSeason}');
     expect(homeSource).toContain('ambientSeason={ambientSeason}');
     expect(homeSource).toContain(

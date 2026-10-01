@@ -19,6 +19,7 @@ import {
   HOME_LOWER_SECTION_GAP,
 } from '../src/screens/Main/components/LoggedInHome/LoggedInHome.styles';
 import { styles as actionStyles } from '../src/app/ui/SectionHeaderAction.styles';
+import { styles as summaryStyles } from '../src/screens/Main/components/LoggedInHome/TotalSummarySection';
 import { buildPetThemePalette } from '../src/services/pets/themePalette';
 
 jest.mock('@react-navigation/native', () => ({
@@ -48,7 +49,7 @@ describe('Home section rhythm and material', () => {
     expect(source).toContain('style={styles.lowerHomeSectionList}');
     for (const section of [
       homeStyles.section,
-      homeStyles.weeklySummarySection,
+      summaryStyles.section,
       frequentStyles.section,
     ]) {
       expect(section.paddingHorizontal).toBe(14);
@@ -59,17 +60,16 @@ describe('Home section rhythm and material', () => {
   it('unifies widgets and the insight CTA as translucent inner glass', () => {
     for (const style of [
       frequentStyles.recordCard,
-      homeStyles.weeklySummaryMetricCard,
-      homeStyles.weeklySummaryInsight,
+      summaryStyles.metric,
+      summaryStyles.insight,
     ]) {
       expect(style).toMatchObject(HOME_WIDGET_MATERIAL);
       expect(style.elevation).toBe(0);
       expect(style.shadowOpacity).toBe(0);
     }
     expect(frequentStyles.recordCard.aspectRatio).toBe(1);
-    expect(homeStyles.weeklySummaryMetricCard.height).toBe(144);
-    expect(source).toContain('<HomeWidgetSheen radius={20} />');
-    expect(source).toContain('<HomeWidgetSheen radius={18} />');
+    expect(summaryStyles.metric.height).toBeUndefined();
+    expect(summaryStyles.metric.minHeight).toBe(108);
     expect(HOME_WIDGET_MATERIAL.backgroundColor).toBe(
       'rgba(255, 253, 250, 0.60)',
     );
