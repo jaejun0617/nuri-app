@@ -23,6 +23,11 @@ type Props = {
 const HOME_TOP_BUTTON_SHOW_OFFSET = 96;
 const HOME_TOP_BUTTON_FALLBACK_SHOW_OFFSET = 300;
 
+/** Leave room below the last CTA while staying above the bottom navigation. */
+export function resolveHomeTopButtonBottom(bottomInset: number): number {
+  return Math.max(bottomInset + 70, 84);
+}
+
 export function resolveHomeTopButtonThreshold(
   scheduleSectionOffset: number | null,
 ): number {

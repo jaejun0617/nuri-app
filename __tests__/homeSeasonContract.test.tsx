@@ -122,7 +122,7 @@ describe('approved Home season contract', () => {
     await TestRenderer.act(async () => renderer.unmount());
   });
 
-  it('removes review controls and restores calendar selection in the production Home', () => {
+  it('removes diary review controls and restores calendar selection in the production Home', () => {
     const source = fs.readFileSync(
       path.join(
         __dirname,
@@ -130,8 +130,9 @@ describe('approved Home season contract', () => {
       ),
       'utf8',
     );
-    expect(source).not.toContain('HomeSeasonPreviewControls');
-    expect(source).not.toContain('homeSeasonPreview');
+    expect(source).not.toContain('HomeDiarySeasonReviewControls');
+    expect(source).not.toContain('diaryReviewSeason');
+    expect(source).not.toContain('setDiaryReviewSeason');
     expect(source).not.toContain('HOME_SEASON_QA_OVERRIDE');
     expect(source).toContain('const ambientSeason = getSeasonalThemeKey()');
     expect(source).toContain(

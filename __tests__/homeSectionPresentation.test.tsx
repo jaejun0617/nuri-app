@@ -6,7 +6,10 @@ import TestRenderer, { act } from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
 
 import { createTheme } from '../src/app/theme/theme';
-import { HomeSectionHeader } from '../src/components/home/HomeSectionHeader';
+import {
+  HomeSectionHeader,
+  isHomeSectionConfirmedEmpty,
+} from '../src/components/home/HomeSectionHeader';
 import { HOME_SECTION_ROOT_STYLE } from '../src/components/home/HomeSectionGlass';
 import { HOME_WIDGET_MATERIAL } from '../src/components/home/HomeWidgetMaterial';
 import { FrequentRecordsSection } from '../src/components/records/FrequentRecordsSection';
@@ -204,10 +207,10 @@ describe('Home section rhythm and material', () => {
       'health',
       'grooming',
     ]);
-    buttons
-      .find(node => node.props.accessibilityLabel === '전체 기록 보기')
-      ?.props.onPress();
-    expect(onPressAll).toHaveBeenCalledTimes(1);
+    expect(
+      buttons.find(node => node.props.accessibilityLabel === '전체 기록 보기'),
+    ).toBeUndefined();
+    expect(onPressAll).not.toHaveBeenCalled();
     const sheens = renderer.root.findAll(
       node => node.props.testID === 'home-widget-sheen' && node.props.colors,
     );
@@ -215,7 +218,101 @@ describe('Home section rhythm and material', () => {
     expect(sheens.every(node => node.props.pointerEvents === 'none')).toBe(
       true,
     );
+    await act(async () => {
+      renderer?.update(
+        <ThemeProvider theme={createTheme('light')}>
+          <FrequentRecordsSection
+            petTheme={buildPetThemePalette('#2563EB')}
+            records={[
+              {
+                id: 'header-ready-record',
+                petId: 'header-ready-pet',
+                title: '산책',
+                tags: [],
+                imagePaths: [],
+                category: 'walk',
+                createdAt: '2026-09-30T00:00:00Z',
+              },
+            ]}
+            recordStatus="ready"
+            now={new Date('2026-09-30T00:00:00Z')}
+            onPressCategory={onPressCategory}
+            onPressAll={onPressAll}
+          />
+        </ThemeProvider>,
+      );
+    });
+    renderer.root
+      .find(
+        node =>
+          node.props.accessibilityLabel === '전체 기록 보기' &&
+          typeof node.props.onPress === 'function',
+      )
+      .props.onPress();
+    expect(onPressAll).toHaveBeenCalledTimes(1);
     await act(async () => renderer?.unmount());
+  });
+
+  it('hides actions only for confirmed empty data, not loading or errors', () => {
+    expect(isHomeSectionConfirmedEmpty(true, 0)).toBe(true);
+    expect(isHomeSectionConfirmedEmpty(false, 0)).toBe(false);
+    expect(isHomeSectionConfirmedEmpty(true, null)).toBe(false);
+    expect(isHomeSectionConfirmedEmpty(true, 1)).toBe(false);
+    for (const status of [
+      'idle',
+      'loading',
+      'refreshing',
+      'loadingMore',
+      'error',
+    ]) {
+      expect(isHomeSectionConfirmedEmpty(status === 'ready', 0)).toBe(false);
+    }
+    expect(source).toContain("isReady={scheduleStatus === 'ready'}");
+    expect(source).toContain(
+      "isReady={recordStatus === 'ready' && scheduleStatus === 'ready'}",
+    );
+    expect(source).toContain("totalSummaryState.status === 'ready'");
+    expect(source).toContain('currentMonthDiaryEntries.length,');
+  });
+
+  it('restores the real list button as soon as data is available', async () => {
+    const onPress = jest.fn();
+    let renderer!: TestRenderer.ReactTestRenderer;
+    const renderHeader = (count: number) => (
+      <ThemeProvider theme={createTheme('light')}>
+        <HomeSectionHeader
+          title="이번 달 누리 일기"
+          color="#2563EB"
+          hideAction={isHomeSectionConfirmedEmpty(true, count)}
+          action={{ onPress, accessibilityLabel: '이번 달 일기 전체 보기' }}
+        />
+      </ThemeProvider>
+    );
+    await act(async () => {
+      renderer = TestRenderer.create(renderHeader(0));
+    });
+    expect(
+      renderer.root.findAllByProps({ testID: 'home-section-empty-status' })
+        .length,
+    ).toBe(0);
+    expect(
+      renderer.root.findAll(node => typeof node.props.onPress === 'function'),
+    ).toHaveLength(0);
+    await act(async () => {
+      renderer.update(renderHeader(1));
+    });
+    expect(
+      renderer.root.findAllByProps({ testID: 'home-section-empty-status' }),
+    ).toHaveLength(0);
+    renderer.root
+      .find(
+        node =>
+          node.props.accessibilityLabel === '이번 달 일기 전체 보기' &&
+          typeof node.props.onPress === 'function',
+      )
+      .props.onPress();
+    expect(onPress).toHaveBeenCalledTimes(1);
+    await act(async () => renderer.unmount());
   });
 
   it('opens only the embedded Home Community font boundary and keeps Weather fixed', () => {

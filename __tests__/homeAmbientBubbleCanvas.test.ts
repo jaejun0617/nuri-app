@@ -121,7 +121,7 @@ describe('Home glossy bubble atmosphere', () => {
       const sizes = HOME_AMBIENT_SCROLL_BUBBLES.map(bubble =>
         getHomeAmbientBubbleSize(bubble, width),
       );
-      expect(sizes.every(size => size >= 44 && size <= 150)).toBe(true);
+      expect(sizes.every(size => size >= 18 && size <= 150)).toBe(true);
       expect(new Set(sizes).size).toBeGreaterThanOrEqual(8);
       const large = HOME_AMBIENT_SCROLL_BUBBLES.filter(bubble => bubble.kind === 'large');
       expect(large).toHaveLength(12);
@@ -145,9 +145,12 @@ describe('Home glossy bubble atmosphere', () => {
           expect(bubble.offsetY + size / 2).toBeLessThanOrEqual(12);
         }
       }
-      expect(HOME_AMBIENT_SCROLL_BUBBLES.some(bubble => bubble.kind === 'small')).toBe(false);
+      const diaryDetails = HOME_AMBIENT_SCROLL_BUBBLES.filter(bubble => bubble.kind === 'small');
+      expect(diaryDetails).toHaveLength(2);
+      expect(diaryDetails.every(bubble => bubble.zone === 'diary')).toBe(true);
+      expect(diaryDetails.every(bubble => getHomeAmbientBubbleSize(bubble, width) <= 28)).toBe(true);
       expect(HOME_AMBIENT_HERO_LIGHTS).toHaveLength(9);
-      expect(HOME_AMBIENT_SECTION_LIGHTS).toHaveLength(12);
+      expect(HOME_AMBIENT_SECTION_LIGHTS).toHaveLength(14);
     },
   );
 

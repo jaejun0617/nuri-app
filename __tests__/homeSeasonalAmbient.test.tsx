@@ -147,7 +147,7 @@ describe('seasonal Home ambient material', () => {
         .filter(node =>
           /home-ambient-(hero|lower)-bubble-/.test(node.props.testID ?? ''),
         );
-      expect(spheres).toHaveLength(32);
+      expect(spheres).toHaveLength(34);
       spheres.forEach(node => {
         const style = ReactNative.StyleSheet.flatten(node.props.style);
         expect(node.props.source).toBe(
@@ -318,7 +318,7 @@ describe('seasonal Home ambient material', () => {
       const lights = HOME_AMBIENT_SECTION_LIGHTS.filter(
         light => light.zone === zone,
       );
-      expect(lights).toHaveLength(zone === 'weather' ? 2 : 1);
+      expect(lights).toHaveLength(zone === 'weather' ? 2 : zone === 'diary' ? 3 : 1);
     }
     expect(
       new Set(HOME_AMBIENT_SECTION_LIGHTS.map(light => light.size)).size,
@@ -326,7 +326,7 @@ describe('seasonal Home ambient material', () => {
     expect(HOME_AMBIENT_SECTION_LIGHTS.some(light => light.topRatio < 0)).toBe(
       true,
     );
-    expect(HOME_AMBIENT_SECTION_LIGHTS).toHaveLength(12);
+    expect(HOME_AMBIENT_SECTION_LIGHTS).toHaveLength(14);
     for (const light of HOME_AMBIENT_SECTION_LIGHTS) {
       if (
         light.zone !== 'weather' &&

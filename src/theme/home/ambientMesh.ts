@@ -288,6 +288,9 @@ export const HOME_AMBIENT_SCROLL_BUBBLES: readonly HomeAmbientScrollBubble[] = [
   scrollBubble('today-tip', '98%', 1.01, 0.28, 0.8, '-17deg', 'large'),
   gapBubble('diary', 0.22, 0.12, 0.9, '-13deg'),
   scrollBubble('diary', '99%', 1.01, 0.34, 0.82, '-9deg', 'large'),
+  // Small diary details stay in the illustration's side whitespace.
+  scrollBubble('diary', '42%', 0.13, 0.064, 0.82, '14deg'),
+  scrollBubble('diary', '58%', 0.87, 0.052, 0.78, '-18deg'),
 ];
 
 export const HOME_AMBIENT_HERO_LIGHTS: readonly (HomeAmbientLight & {

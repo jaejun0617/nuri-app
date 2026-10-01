@@ -9,8 +9,17 @@ type Props = {
   color: string;
   description?: string;
   emphasis?: { title: string; color: string };
+  hideAction?: boolean;
   action?: { onPress: () => void; accessibilityLabel: string };
 };
+
+/** Loading and unavailable data must not be mistaken for a confirmed empty list. */
+export function isHomeSectionConfirmedEmpty(
+  isReady: boolean,
+  itemCount: number | null,
+): boolean {
+  return isReady && itemCount === 0;
+}
 
 /** Home headings share a text baseline; destination names remain accessible. */
 export const HomeSectionHeader = memo(function HomeSectionHeaderView({
@@ -18,6 +27,7 @@ export const HomeSectionHeader = memo(function HomeSectionHeaderView({
   color,
   description,
   emphasis,
+  hideAction = false,
   action,
 }: Props) {
   return (
@@ -43,7 +53,7 @@ export const HomeSectionHeader = memo(function HomeSectionHeaderView({
             </AppText>
           ) : null}
         </View>
-        {action ? (
+        {action && !hideAction ? (
           <SectionHeaderAction
             color={color}
             onPress={action.onPress}

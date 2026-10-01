@@ -110,7 +110,7 @@ export type HomeAmbientSectionLight = HomeAmbientLight & {
   topRatio: number;
 };
 
-/** Twelve glints balance the two sphere families without repeating a section pattern. */
+/** Original glint rhythm plus two PO-requested diary accents, in one canvas. */
 export const HOME_AMBIENT_SECTION_LIGHTS: readonly HomeAmbientSectionLight[] = [
   {
     zone: 'weather',
@@ -195,6 +195,20 @@ export const HOME_AMBIENT_SECTION_LIGHTS: readonly HomeAmbientSectionLight[] = [
     centerXRatio: 0.17,
     size: 14,
     opacity: 0.76,
+  },
+  {
+    zone: 'diary',
+    topRatio: 0.25,
+    centerXRatio: 0.86,
+    size: 18,
+    opacity: 0.86,
+  },
+  {
+    zone: 'diary',
+    topRatio: 0.61,
+    centerXRatio: 0.16,
+    size: 16,
+    opacity: 0.86,
   },
 ];
 

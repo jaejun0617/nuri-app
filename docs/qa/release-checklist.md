@@ -1,5 +1,20 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-10-01 이번 달 일기 최종 PO 승인과 검토 버튼 제거
+
+- [x] 최신 `971128d2` 설치 후보의 PO 직접 검토·최종 승인 수신.
+- [x] 네 계절 투명 notebook, 최대 200dp frame, 중앙 정렬 기록하기와 탑 버튼 비겹침 corrective 반영.
+- [x] 정상 조회 완료·표시 항목 0개인 헤더는 목록 버튼과 대체 문구 모두 제거. 실제 데이터·본문 실행 action과 loading/error 구분 보존.
+- [x] 임시 계절 버튼·선택 state 제거, 배경과 일기 이미지에 기존 KST 자동 판정 연결.
+- [x] TypeScript, 대상 lint 오류 0·새 경고 0·기존 20개, 13개 스위트 168개 테스트와 diff check PASS.
+- [x] 승인 추가 Release·install 각 1회, verifier ACCEPTED·install Success. 최종 `c0543274e92aa78b5cae82581e202c5c14199d4e091fc33bcb51b9bfbfcc7a2c`, 작업 누적 build 6회·install 5회.
+- [x] 승인·최종 APK·증적 보존 후 regenerable output/cache 8곳 정리. 실제 available 약 4.24GiB 증가, 프로젝트 1,268개·증적 284개 hash 동일.
+- [x] Metro·Fast Refresh OFF. 설치 외 기기 조작 중단, 원격 DB·앱 데이터·시스템·공유 전역 cache 변경 없음.
+- [ ] 승인 변경의 선별 commit·push 결과는 종료 보고서의 실제 Git 확인을 따른다.
+- [ ] 최신 자동 Fatal·ANR·RN Fatal·확대 글꼴·다른 물리 폭·populated diary runtime QA는 미확인. PO 시각 승인과 구분한다.
+
+보고서: `docs/qa/nuri-home-monthly-diary-final-approval-2026-10-01.md`. 아래 대기는 이전 후보 이력이다.
+
 ## 2026-09-30 네 계절 Home 최종 승인 및 검토 버튼 제거
 
 - [x] 마지막 `cfe40e21` 후보의 최종 PO 시각 승인 수신.

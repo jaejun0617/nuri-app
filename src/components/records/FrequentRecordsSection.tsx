@@ -5,12 +5,7 @@
 
 import AppText from '../../app/ui/AppText';
 import React, { memo, useMemo } from 'react';
-import {
-  AppState,
-  Pressable,
-  View,
-  type AppStateStatus,
-} from 'react-native';
+import { AppState, Pressable, View, type AppStateStatus } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useIsFocused } from '@react-navigation/native';
 
@@ -22,7 +17,10 @@ import {
 } from '../../services/home/frequentRecords';
 import type { buildPetThemePalette } from '../../services/pets/themePalette';
 import { HomeSectionGlass } from '../home/HomeSectionGlass';
-import { HomeSectionHeader } from '../home/HomeSectionHeader';
+import {
+  HomeSectionHeader,
+  isHomeSectionConfirmedEmpty,
+} from '../home/HomeSectionHeader';
 import { HomeWidgetSheen } from '../home/HomeWidgetMaterial';
 import { styles } from './FrequentRecordsSection.styles';
 
@@ -69,7 +67,9 @@ function RecordSummaryCard({
 }) {
   const meta = CATEGORY_META[item.category];
   const accessibilityLabel = item.hasRecentRecord
-    ? `${meta.label} 기록하기, 최근 기록 ${item.relativeTimeLabel ?? '확인 불가'}, ${item.summaryLabel}`
+    ? `${meta.label} 기록하기, 최근 기록 ${
+        item.relativeTimeLabel ?? '확인 불가'
+      }, ${item.summaryLabel}`
     : `${meta.label} 기록하기, 아직 기록이 없습니다`;
 
   return (
@@ -85,7 +85,9 @@ function RecordSummaryCard({
       <HomeWidgetSheen radius={12} />
       <View style={styles.recordContentStack}>
         <View style={styles.recordIconSlot}>
-          <View style={[styles.recordIconWrap, { backgroundColor: accentTint }]}>
+          <View
+            style={[styles.recordIconWrap, { backgroundColor: accentTint }]}
+          >
             <MaterialCommunityIcons
               name={meta.icon}
               size={23}
@@ -105,9 +107,15 @@ function RecordSummaryCard({
         <View style={styles.recordTimeSlot}>
           {item.relativeTimeLabel ? (
             <View
-              style={[styles.relativeTimeMarker, { backgroundColor: `${accentColor}18` }]}
+              style={[
+                styles.relativeTimeMarker,
+                { backgroundColor: `${accentColor}18` },
+              ]}
             >
-              <AppText preset="unifiedBody" style={[styles.relativeTimeText, { color: accentColor }]}>
+              <AppText
+                preset="unifiedBody"
+                style={[styles.relativeTimeText, { color: accentColor }]}
+              >
                 {item.relativeTimeLabel}
               </AppText>
             </View>
@@ -180,36 +188,44 @@ function FrequentRecordsSectionBase({
       testID="home-glass-frequent-records"
       style={styles.section}
     >
-        <View style={styles.headerRow}>
-          <HomeSectionHeader
-            title="자주 쓰는 기록"
-            description="우리 아이의 일상을 빠르게 기록해보세요"
-            color={petTheme.primary}
-            action={{ onPress: onPressAll, accessibilityLabel: '전체 기록 보기' }}
-          />
-        </View>
+      <View style={styles.headerRow}>
+        <HomeSectionHeader
+          title="자주 쓰는 기록"
+          description="우리 아이의 일상을 빠르게 기록해보세요"
+          color={petTheme.primary}
+          hideAction={isHomeSectionConfirmedEmpty(
+            recordStatus === 'ready',
+            records.length,
+          )}
+          action={{ onPress: onPressAll, accessibilityLabel: '전체 기록 보기' }}
+        />
+      </View>
 
-        {isLoading ? (
-          <View style={styles.statusBox}>
-            <AppText preset="unifiedBody" style={styles.statusText}>최근 기록을 불러오는 중이에요.</AppText>
-          </View>
-        ) : hasError ? (
-          <View style={styles.statusBox}>
-            <AppText preset="unifiedBody" style={styles.statusText}>기록을 확인할 수 없어요.</AppText>
-          </View>
-        ) : (
-          <View style={styles.grid}>
-            {summaries.map(item => (
-              <RecordSummaryCard
-                key={item.category}
-                item={item}
-                accentColor={petTheme.primary}
-                accentTint={petTheme.tint}
-                onPress={() => onPressCategory(item.category)}
-              />
-            ))}
-          </View>
-        )}
+      {isLoading ? (
+        <View style={styles.statusBox}>
+          <AppText preset="unifiedBody" style={styles.statusText}>
+            최근 기록을 불러오는 중이에요.
+          </AppText>
+        </View>
+      ) : hasError ? (
+        <View style={styles.statusBox}>
+          <AppText preset="unifiedBody" style={styles.statusText}>
+            기록을 확인할 수 없어요.
+          </AppText>
+        </View>
+      ) : (
+        <View style={styles.grid}>
+          {summaries.map(item => (
+            <RecordSummaryCard
+              key={item.category}
+              item={item}
+              accentColor={petTheme.primary}
+              accentTint={petTheme.tint}
+              onPress={() => onPressCategory(item.category)}
+            />
+          ))}
+        </View>
+      )}
     </HomeSectionGlass>
   );
 }

@@ -3,11 +3,13 @@ import { Platform, StyleSheet } from 'react-native';
 import TestRenderer from 'react-test-renderer';
 
 import HomeTopButton, {
+  resolveHomeTopButtonBottom,
   resolveHomeTopButtonThreshold,
 } from '../src/screens/Main/components/LoggedInHome/HomeTopButton';
 
 const mockCancelAnimation = jest.fn();
-const mockTimingCallbacks: Array<((finished?: boolean) => void) | undefined> = [];
+const mockTimingCallbacks: Array<((finished?: boolean) => void) | undefined> =
+  [];
 
 jest.mock('react-native-reanimated', () => ({
   __esModule: true,
@@ -51,6 +53,12 @@ describe('HomeTopButton animation lifecycle', () => {
     expect(resolveHomeTopButtonThreshold(null)).toBe(300);
     expect(resolveHomeTopButtonThreshold(420)).toBe(324);
     expect(resolveHomeTopButtonThreshold(64)).toBe(0);
+  });
+
+  it('moves below the final CTA without entering the navigation safe area', () => {
+    expect(resolveHomeTopButtonBottom(0)).toBe(84);
+    expect(resolveHomeTopButtonBottom(24)).toBe(94);
+    expect(resolveHomeTopButtonBottom(34)).toBe(104);
   });
 
   it('mounts only for visibility and removes pointer/shadow state while hiding', () => {
@@ -100,7 +108,9 @@ describe('HomeTopButton animation lifecycle', () => {
     let renderer!: TestRenderer.ReactTestRenderer;
 
     TestRenderer.act(() => {
-      renderer = TestRenderer.create(<HomeTopButton {...commonProps} visible />);
+      renderer = TestRenderer.create(
+        <HomeTopButton {...commonProps} visible />,
+      );
     });
     TestRenderer.act(() => {
       renderer.update(<HomeTopButton {...commonProps} visible={false} />);

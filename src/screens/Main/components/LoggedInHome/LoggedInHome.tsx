@@ -57,7 +57,10 @@ import Animated, {
 import Screen from '../../../../components/layout/Screen';
 import { HomeSectionGlass } from '../../../../components/home/HomeSectionGlass';
 import { HomeSeasonProvider } from '../../../../components/home/HomeSeasonContext';
-import { HomeSectionHeader } from '../../../../components/home/HomeSectionHeader';
+import {
+  HomeSectionHeader,
+  isHomeSectionConfirmedEmpty,
+} from '../../../../components/home/HomeSectionHeader';
 import { HomeWidgetSheen } from '../../../../components/home/HomeWidgetMaterial';
 import {
   HOME_AMBIENT_SECTION_ZONES,
@@ -89,11 +92,18 @@ import {
 } from '../../../../services/records/imageSources';
 import { useAuthStore } from '../../../../store/authStore';
 import { usePetStore, type Pet } from '../../../../store/petStore';
-import { useRecordStore } from '../../../../store/recordStore';
+import {
+  useRecordStore,
+  type PetRecordsState,
+} from '../../../../store/recordStore';
 import { useScheduleStore } from '../../../../store/scheduleStore';
 import { useActiveScheduleAlarms } from '../../../../hooks/useActiveScheduleAlarms';
 import HomeActiveAlarmNotice from './HomeActiveAlarmNotice';
-import HomeTopButton, { resolveHomeTopButtonThreshold } from './HomeTopButton';
+import HomeTopButton, {
+  resolveHomeTopButtonBottom,
+  resolveHomeTopButtonThreshold,
+} from './HomeTopButton';
+import { MonthlyDiaryEmptyState } from './MonthlyDiaryEmptyState';
 import { HomeAmbientBubbleCanvas } from './HomeAmbientBubbleCanvas';
 import { HOME_FOREGROUND_UI_SEASON } from '../../../../theme/home/seasonalAmbient';
 import {
@@ -113,7 +123,10 @@ import {
   getSeasonalHomeVisual,
   type SeasonalHomeVisual,
 } from '../../../../theme/seasonal/home';
-import { getSeasonalThemeKey } from '../../../../theme/seasonal/season';
+import {
+  getSeasonalThemeKey,
+  type SeasonKey,
+} from '../../../../theme/seasonal/season';
 import { getSeasonalWeatherVisualTheme } from '../../../../theme/seasonal/weather';
 
 import {
@@ -518,9 +531,6 @@ const TODAY_HOME_TIP = {
   description:
     '산책 후 숨소리, 잠든 뒤 호흡, 식사 직후의 반응처럼 평소의 기준을 남겨두면 컨디션 변화를 더 빨리 알아차릴 수 있어요.',
 };
-
-const HOME_TOP_BUTTON_BOTTOM_OFFSET = 90;
-const HOME_TOP_BUTTON_MIN_BOTTOM = 104;
 
 /* ---------------------------------------------------------
  * 3) sub components (hooks-safe)
@@ -2837,6 +2847,10 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
       <HomeSectionHeader
         title="최근 기록"
         color={accentDeepColor}
+        hideAction={isHomeSectionConfirmedEmpty(
+          recordStatus === 'ready',
+          previewItems.length,
+        )}
         action={{ onPress: onPressTimeline, accessibilityLabel: '최근 기록 전체 보기' }}
       />
       {isRecordBootstrapPending ? (
@@ -3034,6 +3048,7 @@ const TotalSummarySection = React.memo(function TotalSummarySection({
   records,
   accentDeepColor,
   isLoading,
+  isReady,
   onPressWalk,
   onPressMeal,
   onPressLife,
@@ -3042,6 +3057,7 @@ const TotalSummarySection = React.memo(function TotalSummarySection({
   records: MemoryRecord[] | null;
   accentDeepColor: string;
   isLoading: boolean;
+  isReady: boolean;
   onPressWalk: () => void;
   onPressMeal: () => void;
   onPressLife: () => void;
@@ -3069,6 +3085,10 @@ const TotalSummarySection = React.memo(function TotalSummarySection({
       <HomeSectionHeader
         title="전체 요약"
         color={accentDeepColor}
+        hideAction={isHomeSectionConfirmedEmpty(
+          isReady,
+          records?.length ?? null,
+        )}
         description="지금까지 남긴 기록을 한눈에 확인해보세요"
         action={{
           onPress: onPressAllRecords,
@@ -3231,6 +3251,7 @@ const TotalSummarySection = React.memo(function TotalSummarySection({
 
 const ScheduleSection = React.memo(function ScheduleSection({
   scheduleItems,
+  isReady,
   activeScheduleIds,
   onPressScheduleList,
   onPressScheduleCreate,
@@ -3240,6 +3261,7 @@ const ScheduleSection = React.memo(function ScheduleSection({
   accentBorder,
 }: {
   scheduleItems: PetSchedule[];
+  isReady: boolean;
   activeScheduleIds: ReadonlySet<string>;
   onPressScheduleList: () => void;
   onPressScheduleCreate: () => void;
@@ -3258,6 +3280,10 @@ const ScheduleSection = React.memo(function ScheduleSection({
       <HomeSectionHeader
         title="일정 보기"
         color={accentDeepColor}
+        hideAction={isHomeSectionConfirmedEmpty(
+          isReady,
+          weekScheduleItems.length,
+        )}
         action={{ onPress: onPressScheduleList, accessibilityLabel: '일정 전체 보기' }}
       />
 
@@ -3380,12 +3406,14 @@ function getHealthActivityKindLabel(kind: HealthActivityItem['kind']) {
 const HealthRecentActivitiesSection = React.memo(
   function HealthRecentActivitiesSection({
     activityItems,
+    isReady,
     onPressHealthReport,
     onPressActivityItem,
     accentColor,
     accentDeepColor,
   }: {
     activityItems: HealthActivityItem[];
+    isReady: boolean;
     onPressHealthReport: () => void;
     onPressActivityItem: (ymd: string) => void;
     accentColor: string;
@@ -3402,6 +3430,10 @@ const HealthRecentActivitiesSection = React.memo(
         <HomeSectionHeader
           title="건강관리 최근 활동"
           color={accentDeepColor}
+          hideAction={isHomeSectionConfirmedEmpty(
+            isReady,
+            recentActivities.length,
+          )}
           action={{ onPress: onPressHealthReport, accessibilityLabel: '건강관리 전체 보기' }}
         />
 
@@ -3476,6 +3508,8 @@ const HealthRecentActivitiesSection = React.memo(
 const MonthlyDiarySection = React.memo(function MonthlyDiarySection({
   petName,
   recordItems,
+  recordStatus,
+  season,
   onPressTimelineCategory,
   onPressRecord,
   onPressRecordItem,
@@ -3483,6 +3517,8 @@ const MonthlyDiarySection = React.memo(function MonthlyDiarySection({
 }: {
   petName: string;
   recordItems: MemoryRecord[];
+  recordStatus: PetRecordsState['status'];
+  season: SeasonKey;
   onPressTimelineCategory: (
     mainCategory: Exclude<TimelineMainCategory, undefined>,
     otherSubCategory?: Exclude<TimelineOtherSubCategory, undefined>,
@@ -3511,6 +3547,10 @@ const MonthlyDiarySection = React.memo(function MonthlyDiarySection({
       <HomeSectionHeader
         title={`이번 달 ${petName} 일기`}
         color={accentDeepColor}
+        hideAction={isHomeSectionConfirmedEmpty(
+          recordStatus === 'ready',
+          currentMonthDiaryEntries.length,
+        )}
         action={{
           onPress: () => onPressTimelineCategory('diary'),
           accessibilityLabel: '이번 달 일기 전체 보기',
@@ -3518,33 +3558,12 @@ const MonthlyDiarySection = React.memo(function MonthlyDiarySection({
       />
 
       {currentMonthDiaryEntries.length === 0 ? (
-        <View style={styles.emptyBox}>
-          <AppText
-            typographyRole="celebration"
-            preset="unifiedTitle"
-            style={styles.emptyTitle}
-          >
-            이번 달 일기가 아직 없어요
-          </AppText>
-          <AppText preset="unifiedBody" style={styles.emptyDesc}>
-            첫 번째 일기를 남겨보세요.
-          </AppText>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={[
-              styles.recordBtn,
-              {
-                backgroundColor: accentDeepColor,
-                shadowColor: accentDeepColor,
-              },
-            ]}
-            onPress={onPressRecord}
-          >
-            <AppText preset="unifiedLabel" style={styles.recordBtnText}>
-              기록하기
-            </AppText>
-          </TouchableOpacity>
-        </View>
+        <MonthlyDiaryEmptyState
+          season={season}
+          recordStatus={recordStatus}
+          accentDeepColor={accentDeepColor}
+          onPressRecord={onPressRecord}
+        />
       ) : (
         <ScrollView
           horizontal
@@ -4710,11 +4729,7 @@ export default function LoggedInHome() {
     sessionUserId,
   ]);
   const topButtonBottom = useMemo(
-    () =>
-      Math.max(
-        insets.bottom + HOME_TOP_BUTTON_BOTTOM_OFFSET,
-        HOME_TOP_BUTTON_MIN_BOTTOM,
-      ),
+    () => resolveHomeTopButtonBottom(insets.bottom),
     [insets.bottom],
   );
   const notificationOverlayHeight = useMemo(
@@ -4849,6 +4864,11 @@ export default function LoggedInHome() {
                 : null
             }
             accentDeepColor={petTheme.deep}
+            isReady={
+              totalSummaryState.petId === activePetId &&
+              totalSummaryState.status === 'ready' &&
+              !totalSummaryState.hasError
+            }
             isLoading={
               activePetId !== null &&
               (totalSummaryState.petId !== activePetId ||
@@ -4907,6 +4927,7 @@ export default function LoggedInHome() {
         <View onLayout={ambientSectionLayoutHandlers.schedule}>
           <ScheduleSection
             scheduleItems={visibleScheduleItems}
+            isReady={scheduleStatus === 'ready'}
             activeScheduleIds={activeAlarms.activeScheduleIds}
             onPressScheduleList={onPressScheduleList}
             onPressScheduleCreate={onPressScheduleCreate}
@@ -4919,6 +4940,7 @@ export default function LoggedInHome() {
         <View onLayout={ambientSectionLayoutHandlers.health}>
           <HealthRecentActivitiesSection
             activityItems={healthActivityItems}
+            isReady={recordStatus === 'ready' && scheduleStatus === 'ready'}
             onPressHealthReport={() => onPressHealthReport()}
             onPressActivityItem={onPressHealthReport}
             accentColor={petTheme.primary}
@@ -4932,6 +4954,8 @@ export default function LoggedInHome() {
           <MonthlyDiarySection
             petName={plainPetName}
             recordItems={recordItems}
+            recordStatus={recordStatus}
+            season={ambientSeason}
             onPressTimelineCategory={onPressTimelineCategory}
             onPressRecord={onPressRecord}
             onPressRecordItem={onPressRecordItem}
