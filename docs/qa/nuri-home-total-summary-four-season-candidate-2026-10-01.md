@@ -1,11 +1,13 @@
 # NURI Home Total Summary Four-Season Candidate
 
-## Selective Git Closeout Authorization
+## Selective Git Closeout Complete
 
 - PO가 최종 승인에 이어 전체 요약 변경의 커밋·기존 브랜치 푸시를 명시적으로 지시했다. 승인 source·계절 PNG 네 개와 manifest·관련 테스트·이번 QA 및 project-memory 기록만 선별한다.
 - 공유 문서의 과거 dirty hunk, 연구 문서·Supabase CLI metadata·무관한 untracked 자산·디자인 산출물은 staging에서 제외하며 working file은 그대로 보존한다. 계절 버튼·설치본·앱 데이터도 유지한다.
 - 종료 전 관련 19개 스위트 211개 테스트를 재확인해 PASS했다. 승인된 앱 source와 asset 559개 hash가 build 입력과 같으며 추가 TypeScript·lint·build·install·device UI automation은 하지 않는다.
 - 시작 branch `codex/task6-community-content-policy`, HEAD `e451f62ba856f905a443eda9112c8cb06b3005c6`, staged NONE. 원격 같은 브랜치도 시작 HEAD와 일치한다. 실행 결과는 `/tmp/nuri-summary-four-season-20261001/git-closeout.json`에 기록한다.
+- 승인 변경 20개 파일을 source commit `d1130895b3271e46fbf28631c8cecbcee23eb09a` (`feat(home): redesign total summary for four seasons`)으로 선별 커밋하고 기존 원격 브랜치에 푸시했다. 실제 원격 SHA 일치와 ahead/behind 0/0을 확인했다.
+- 이 완료 기록은 문서만 후속 커밋하며 앱 source·asset·설치본은 바꾸지 않는다. 후속 문서 commit과 최종 remote 확인 결과도 위 Git 증적에 남긴다.
 - main 병합·스토어 배포·cache cleanup·버튼 제거·다음 기능 자동 시작은 범위 밖이다. 아래 Git 미승인은 이 명시 지시 이전 이력이다.
 
 ## Final PO Approval
@@ -102,7 +104,9 @@
 - PO_VISUAL_APPROVAL: APPROVED.
 - REVIEW_SEASON_CONTROLS: PRESENT.
 - DEVICE_UI_AUTOMATION: STOPPED_AT_PO_REQUEST.
-- STAGED: NONE. COMMIT: NO. PUSH: NO.
+- SOURCE_COMMIT: `d1130895b3271e46fbf28631c8cecbcee23eb09a`.
+- SOURCE_PUSH: COMPLETE, REMOTE_SHA_MATCH, AHEAD_BEHIND 0/0.
+- STAGED: NONE_AFTER_SOURCE_COMMIT. 무관한 기존 dirty는 보존한다.
 - AUTO_START_NEXT_WORK: NO.
 
 다음 지시를 기다립니다.

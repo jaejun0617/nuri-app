@@ -5,7 +5,8 @@
 - [x] 전체 요약 PO 최종 승인 후 별도 선별 commit·기존 브랜치 push 지시 수신.
 - [x] 승인 source·asset 559개 hash 동일, 종료 전 19개 스위트 211개 테스트 PASS. 추가 build·install·기기 조작 없음.
 - [x] 무관한 dirty·공유 문서 과거 hunk를 제외하며 계절 버튼·승인 APK·증적 보존.
-- [ ] 선별 commit·push와 실제 원격 SHA 일치 확인. 결과는 `/tmp/nuri-summary-four-season-20261001/git-closeout.json`에 기록한다.
+- [x] 승인 변경 20개 파일의 source commit `d1130895b3271e46fbf28631c8cecbcee23eb09a`·기존 브랜치 push와 실제 원격 SHA 일치·ahead/behind 0/0 확인. 결과는 `/tmp/nuri-summary-four-season-20261001/git-closeout.json`에 기록한다.
+- 완료 기록은 문서만 후속 커밋하며 승인 source·asset·설치본을 변경하지 않는다.
 - 다음 기능·main 병합·스토어 배포·cleanup·버튼 제거는 자동 실행하지 않는다. 아래 Git 미승인 표시는 이전 이력이다.
 
 ## 2026-10-01 전체 요약 최종 PO 승인
