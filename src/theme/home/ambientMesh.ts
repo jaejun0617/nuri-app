@@ -246,7 +246,7 @@ function gapBubble(
   };
 }
 
-/** Approved rhythm plus Summary concept accents, painted by the same canvas. */
+/** Approved rhythm plus scoped editorial accents, painted by the same canvas. */
 export const HOME_AMBIENT_SCROLL_BUBBLES: readonly HomeAmbientScrollBubble[] = [
   scrollBubble('weather', '22%', -0.012, 0.26, 0.8, '-16deg', 'large'),
   scrollBubble('weather', '78%', 1.012, 0.29, 0.82, '21deg', 'large'),
@@ -262,10 +262,16 @@ export const HOME_AMBIENT_SCROLL_BUBBLES: readonly HomeAmbientScrollBubble[] = [
   scrollBubble('summary', '54%', 0.89, 0.062, 0.88, '18deg'),
   gapBubble('recent', 0.2, 0.12, 0.9, '-21deg'),
   scrollBubble('recent', '73%', -0.008, 0.25, 0.78, '-8deg', 'large'),
+  scrollBubble('recent', '28%', 1.012, 0.28, 0.8, '19deg', 'large'),
+  scrollBubble('recent', '10%', 0.86, 0.052, 0.82, '11deg'),
+  scrollBubble('recent', '62%', 0.12, 0.062, 0.8, '-15deg'),
   gapBubble('photo', 0.82, 0.125, 0.9, '16deg'),
   scrollBubble('photo', '103%', -0.015, 0.3, 0.8, '7deg', 'large'),
   gapBubble('community', 0.18, 0.12, 0.9, '-11deg'),
   scrollBubble('community', '44%', 1.01, 0.28, 0.8, '-17deg', 'large'),
+  scrollBubble('community', '25%', -0.012, 0.27, 0.8, '17deg', 'large'),
+  scrollBubble('community', '6%', 0.9, 0.056, 0.84, '-12deg'),
+  scrollBubble('community', '88%', 0.1, 0.066, 0.8, '23deg'),
   {
     ...scrollBubble(
       'recommendation',
@@ -290,6 +296,9 @@ export const HOME_AMBIENT_SCROLL_BUBBLES: readonly HomeAmbientScrollBubble[] = [
     offsetY: 50,
   },
   scrollBubble('today-tip', '98%', 1.01, 0.28, 0.8, '-17deg', 'large'),
+  scrollBubble('today-tip', '38%', -0.012, 0.27, 0.78, '16deg', 'large'),
+  scrollBubble('today-tip', '8%', 0.14, 0.052, 0.8, '-11deg'),
+  scrollBubble('today-tip', '84%', 0.89, 0.064, 0.82, '18deg'),
   gapBubble('diary', 0.22, 0.12, 0.9, '-13deg'),
   scrollBubble('diary', '99%', 1.01, 0.34, 0.82, '-9deg', 'large'),
   // Small diary details stay in the illustration's side whitespace.

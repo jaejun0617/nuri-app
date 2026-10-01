@@ -106,6 +106,11 @@ import {
 import { HomeSeasonReviewControls } from './HomeSeasonReviewControls';
 import { TodayPhotoSection } from './TodayPhotoSection';
 import { TotalSummarySection } from './TotalSummarySection';
+import {
+  RecentRecordsEmptyState,
+  TodayHomeTipSection,
+  getRecentEmptyDataState,
+} from './HomeEditorialStates';
 import { HomeAmbientBubbleCanvas } from './HomeAmbientBubbleCanvas';
 import { HOME_FOREGROUND_UI_SEASON } from '../../../../theme/home/seasonalAmbient';
 import {
@@ -519,14 +524,6 @@ const EMPTY_SCHEDULE_ITEMS: PetSchedule[] = [];
 Object.freeze(EMPTY_SCHEDULE_ITEMS);
 
 const HOME_RECENT_RECORDS_MAX = 3;
-
-const TODAY_HOME_TIP = {
-  badge: '오늘의 팁',
-  title:
-    '반려동물의 평소 소리를 기억해두면 작은 변화도 더 빨리 알아챌 수 있어요.',
-  description:
-    '산책 후 숨소리, 잠든 뒤 호흡, 식사 직후의 반응처럼 평소의 기준을 남겨두면 컨디션 변화를 더 빨리 알아차릴 수 있어요.',
-};
 
 /* ---------------------------------------------------------
  * 3) sub components (hooks-safe)
@@ -2652,26 +2649,6 @@ const RecommendationTipsSection = React.memo(
   },
 );
 
-const TodayHomeTipSection = React.memo(function TodayHomeTipSection({
-  petTheme,
-}: {
-  petTheme: ReturnType<typeof buildPetThemePalette>;
-}) {
-  return (
-    <HomeSectionGlass testID="home-glass-today-tip" style={styles.section}>
-      <HomeSectionHeader title={TODAY_HOME_TIP.badge} color={petTheme.primary} />
-      <View style={styles.todayTipCard}>
-        <AppText preset="unifiedDate" style={styles.todayTipTitle}>
-          {TODAY_HOME_TIP.title}
-        </AppText>
-        <AppText preset="unifiedDate" style={styles.todayTipDesc}>
-          {TODAY_HOME_TIP.description}
-        </AppText>
-      </View>
-    </HomeSectionGlass>
-  );
-});
-
 const TodayRecordsSection = React.memo(function TodayRecordsSection({
   recordItems,
   recordStatus,
@@ -2679,6 +2656,7 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
   onPressRecord,
   onPressRecordItem,
   accentDeepColor,
+  season,
 }: {
   recordItems: MemoryRecord[];
   recordStatus:
@@ -2692,16 +2670,13 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
   onPressRecord: () => void;
   onPressRecordItem: (memoryId: string) => void;
   accentDeepColor: string;
+  season: SeasonKey;
 }) {
   const todayRecords = useMemo(() => recordItems, [recordItems]);
   const previewItems = useMemo(
     () => buildHomeRecentPreviewItems(todayRecords),
     [todayRecords],
   );
-  const isRecordBootstrapPending =
-    (recordStatus === 'idle' || recordStatus === 'loading') &&
-    recordItems.length === 0;
-
   return (
     <HomeSectionGlass
       testID="home-glass-recent-records"
@@ -2716,48 +2691,13 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
         )}
         action={{ onPress: onPressTimeline, accessibilityLabel: '최근 기록 전체 보기' }}
       />
-      {isRecordBootstrapPending ? (
-        <View style={styles.recentEmptyState}>
-          <ActivityIndicator size="small" color={accentDeepColor} />
-          <AppText
-            preset="unifiedBody"
-            style={[styles.emptyDesc, styles.recentEmptyDesc]}
-          >
-            기록을 불러오는 중이에요.
-          </AppText>
-        </View>
-      ) : previewItems.length === 0 ? (
-        <View style={styles.recentEmptyState}>
-          <AppText
-            typographyRole="celebration"
-            preset="unifiedTitle"
-            style={styles.emptyTitle}
-          >
-            아직 기록이 없어요
-          </AppText>
-          <AppText
-            preset="unifiedBody"
-            style={[styles.emptyDesc, styles.recentEmptyDesc]}
-          >
-            첫 번째 추억을 남겨보세요.
-          </AppText>
-
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={[
-              styles.recordBtn,
-              {
-                backgroundColor: accentDeepColor,
-                shadowColor: accentDeepColor,
-              },
-            ]}
-            onPress={onPressRecord}
-          >
-            <AppText preset="unifiedLabel" style={styles.recordBtnText}>
-              기록하기
-            </AppText>
-          </TouchableOpacity>
-        </View>
+      {previewItems.length === 0 ? (
+        <RecentRecordsEmptyState
+          season={season}
+          dataState={getRecentEmptyDataState(recordStatus)}
+          accentColor={accentDeepColor}
+          onPressRecord={onPressRecord}
+        />
       ) : (
         <View style={styles.recentPreviewWrap}>
           <View style={styles.recentPreviewList}>
@@ -4418,6 +4358,7 @@ export default function LoggedInHome() {
             onPressRecord={onPressRecord}
             onPressRecordItem={onPressRecordItem}
             accentDeepColor={petTheme.deep}
+            season={ambientSeason}
           />
         </View>
         <View onLayout={ambientSectionLayoutHandlers.photo}>
@@ -4434,6 +4375,7 @@ export default function LoggedInHome() {
         <View onLayout={ambientSectionLayoutHandlers.community}>
           <CommunitySection
             isFocused={isScreenFocused}
+            season={ambientSeason}
             accentColor={petTheme.primary}
             accentTint={petTheme.tint}
             accentBorder={petTheme.border}
@@ -4494,7 +4436,7 @@ export default function LoggedInHome() {
           />
         </View>
         <View onLayout={ambientSectionLayoutHandlers['today-tip']}>
-          <TodayHomeTipSection petTheme={petTheme} />
+          <TodayHomeTipSection season={ambientSeason} accentColor={petTheme.primary} />
         </View>
         <View onLayout={ambientSectionLayoutHandlers.diary}>
           <MonthlyDiarySection

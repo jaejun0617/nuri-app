@@ -331,7 +331,7 @@ describe('seasonal Home ambient material', () => {
         light => light.zone === zone,
       );
       expect(lights).toHaveLength(
-        zone === 'weather' ? 2 : zone === 'diary' || zone === 'summary' ? 3 : 1,
+        zone === 'weather' ? 2 : ['diary', 'summary', 'recent', 'community', 'today-tip'].includes(zone) ? 3 : 1,
       );
     }
     expect(
@@ -340,7 +340,7 @@ describe('seasonal Home ambient material', () => {
     expect(HOME_AMBIENT_SECTION_LIGHTS.some(light => light.topRatio < 0)).toBe(
       true,
     );
-    expect(HOME_AMBIENT_SECTION_LIGHTS).toHaveLength(16);
+    expect(HOME_AMBIENT_SECTION_LIGHTS).toHaveLength(22);
     for (const light of HOME_AMBIENT_SECTION_LIGHTS) {
       if (
         light.zone !== 'weather' &&

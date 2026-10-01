@@ -161,6 +161,8 @@ export const HOME_AMBIENT_SECTION_LIGHTS: readonly HomeAmbientSectionLight[] = [
     size: 18,
     opacity: 0.84,
   },
+  { zone: 'recent', topRatio: 0.4, centerXRatio: 0.06, size: 14, opacity: 0.8 },
+  { zone: 'recent', topRatio: 0.88, centerXRatio: 0.92, size: 14, opacity: 0.76 },
   {
     zone: 'photo',
     topRatio: 0.96,
@@ -175,6 +177,8 @@ export const HOME_AMBIENT_SECTION_LIGHTS: readonly HomeAmbientSectionLight[] = [
     size: 18,
     opacity: 0.82,
   },
+  { zone: 'community', topRatio: 0.42, centerXRatio: 0.06, size: 14, opacity: 0.8 },
+  { zone: 'community', topRatio: 0.9, centerXRatio: 0.94, size: 20, opacity: 0.84 },
   {
     zone: 'recommendation',
     topRatio: -0.045,
@@ -203,6 +207,8 @@ export const HOME_AMBIENT_SECTION_LIGHTS: readonly HomeAmbientSectionLight[] = [
     size: 16,
     opacity: 0.86,
   },
+  { zone: 'today-tip', topRatio: 0.08, centerXRatio: 0.92, size: 13, opacity: 0.8 },
+  { zone: 'today-tip', topRatio: 0.88, centerXRatio: 0.06, size: 19, opacity: 0.84 },
   {
     zone: 'diary',
     topRatio: 0.96,

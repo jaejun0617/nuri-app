@@ -1,5 +1,29 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-10-01 Home editorial PO 최종 승인·종료 계약
+
+- [x] PO가 최신 `ca7d2751`의 Today Tip·Recent empty·Community 다섯 탭과 Recent 표시 corrective를 최종 승인.
+- [x] 승인 입력 809개 동일, 최신 타입·수정 범위 lint 오류/경고 0·관련 20개 스위트 275개 테스트 PASS 증적 보존.
+- [x] 계절 버튼·현재 설치본 유지. 추가 source 변경·build·install·기기 조작 없음.
+- [x] 승인 source·PNG 28개·manifest·관련 테스트·이번 문서만 선별 commit·push, 이후 재생성 가능한 산출물 정리 지시 수신. 기존 dirty·필수 APK·증적·toolchain 보존.
+- [ ] 최신 자동 runtime smoke·native bounds·bitmap 메모리·스크롤 성능: 미확인. PO 시각 승인과 별도 관리한다.
+- 실제 Git·정리·보존 검증은 `/tmp/nuri-tip-recent-community-20261001/git-closeout`에 기록한다. 아래 후보 승인 대기는 이전 이력이다.
+
+## 2026-10-01 오늘의 팁·최근 기록·커뮤니티 후보
+
+- [x] 후속 Recent 그림만 20% 확대·가로 중심 약 27~30dp 안쪽 이동, 기존 slot 높이·PNG·문구·버튼·다른 섹션 유지. 타입·수정 두 파일 lint 오류/경고 0·20개 스위트 275개 테스트 PASS.
+- [x] 추가 승인 Release·install 각 1회 완료, 작업 누적 각 2회. 최신 `ca7d2751`·verifier ACCEPTED·Success, 809개 build input hash 동일·28개 packaged 그림 픽셀 동일. 직전 후보·승인 APK 보존.
+- [x] Recent·Community 네 계절 시안 8장, production genuine-alpha PNG 28개와 source·prompt·hash manifest 생성. Community 다섯 탭별 서로 다른 그림 20개.
+- [x] bounded frame·absolute Image, 작은 폭·큰 글꼴 세로 배치, confirmed-empty·loading·error 구분과 기존 실제 데이터·action·캐시·정렬 계약 보존.
+- [x] 대상 세 구간만 단일 canvas 구체·별빛 보완. 승인 Hero·다른 섹션·outer glass·계절 버튼 유지.
+- [x] Node 24.20.0·Yarn 3.6.4, TypeScript·대상 lint 오류 0·새 경고 0·기존 19개, 20개 스위트 271개 테스트·diff check PASS.
+- [x] 승인 QA Release·install 각 1회 완료, verifier ACCEPTED·Success, APK `45d0b72b`. 새 PNG 28개 실제 포함·alpha와 보이는 RGB 원본 동일, build input 809개 hash 동일.
+- [x] 기존 dirty·증적·승인 APK 보존. 설치 외 기기 실행·터치·스크롤·캡처와 Git·cleanup 없음.
+- [ ] 최신 native 높이·시각 합성·성능·runtime smoke·Fatal·ANR·RN Fatal: 기기 조작 중단으로 미확인.
+- [ ] PO 최종 시각 승인. 계절 버튼 제거·추가 빌드·설치·staging·commit·push·cleanup·다음 자동 작업 없음.
+
+보고서: `docs/qa/nuri-home-tip-recent-community-four-season-candidate-2026-10-01.md`. 아래는 이전 승인 기준과 작업 이력이다.
+
 ## 2026-10-01 전체 요약 Git 종료
 
 - [x] 전체 요약 PO 최종 승인 후 별도 선별 commit·기존 브랜치 push 지시 수신.

@@ -12,6 +12,8 @@ import AppText from '../../../../app/ui/AppText';
 import { HomeSectionGlass } from '../../../../components/home/HomeSectionGlass';
 import { HomeSectionHeader } from '../../../../components/home/HomeSectionHeader';
 import type { CommunityPost } from '../../../../types/community';
+import type { SeasonKey } from '../../../../theme/seasonal/season';
+import { CommunityEmptyState } from './HomeEditorialStates';
 import {
   HOME_COMMUNITY_TAB_OPTIONS,
   type HomeCommunityTab,
@@ -22,6 +24,7 @@ import { styles } from './CommunitySection.styles';
 
 type CommunitySectionProps = {
   isFocused: boolean;
+  season: SeasonKey;
   accentColor: string;
   accentTint: string;
   accentBorder: string;
@@ -32,14 +35,6 @@ type CommunitySectionProps = {
 type CommunitySectionState = {
   status: 'loading' | 'ready' | 'error';
   items: CommunityPost[];
-};
-
-const HOME_COMMUNITY_EMPTY_COPY: Record<HomeCommunityTab, string> = {
-  popular: '반려인들의 공감을 모은 이야기를 기다리고 있어요.',
-  question: '작은 궁금증도 함께 나누면 답에 가까워져요.',
-  info: '서로의 경험이 반려생활의 좋은 길잡이가 돼요.',
-  daily: '아이와 나눈 평범한 하루도 소중한 이야기가 돼요.',
-  free: '정해진 주제 없이, 마음을 담은 이야기를 기다려요.',
 };
 
 function resolveCommunityPostTitle(post: CommunityPost) {
@@ -233,6 +228,7 @@ function StateBox({
 
 const CommunitySection = memo(function CommunitySection({
   isFocused,
+  season,
   accentColor,
   accentTint,
   accentBorder,
@@ -392,11 +388,7 @@ const CommunitySection = memo(function CommunitySection({
               onRetry={handleRetry}
             />
           ) : state.items.length === 0 ? (
-            <StateBox
-              title={HOME_COMMUNITY_EMPTY_COPY[activeTab]}
-              borderColor={borderColor}
-              textColor={theme.colors.textSecondary}
-            />
+            <CommunityEmptyState tab={activeTab} season={season} />
           ) : (
             <View style={styles.postList}>
               {state.items.slice(0, 3).map((post, index, posts) => (

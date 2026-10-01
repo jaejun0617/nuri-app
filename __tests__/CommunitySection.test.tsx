@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
 
@@ -8,6 +8,8 @@ import * as fontPreference from '../src/app/providers/AppFontPreferenceProvider'
 import CommunitySection from '../src/screens/Main/components/LoggedInHome/CommunitySection';
 import { styles as communityStyles } from '../src/screens/Main/components/LoggedInHome/CommunitySection.styles';
 import { styles as homeStyles } from '../src/screens/Main/components/LoggedInHome/LoggedInHome.styles';
+import { HOME_EDITORIAL_ART } from '../src/screens/Main/components/LoggedInHome/HomeEditorialArtwork';
+import type { SeasonKey } from '../src/theme/seasonal/season';
 import type { CommunityPost } from '../src/types/community';
 import {
   fetchHomeCommunityHighlights,
@@ -71,6 +73,7 @@ function makePost(id: string, title = `게시글 ${id}`): CommunityPost {
 
 function renderSection(options: {
   isFocused?: boolean;
+  season?: SeasonKey;
   onPressPost?: (postId: string) => void;
   onPressAll?: () => void;
 } = {}) {
@@ -78,6 +81,7 @@ function renderSection(options: {
     <ThemeProvider theme={createTheme('light')}>
       <CommunitySection
         isFocused={options.isFocused ?? true}
+        season={options.season ?? 'autumn'}
         accentColor="#6D6AF8"
         accentTint="#F0EFFF"
         accentBorder="#D9D7FF"
@@ -109,6 +113,7 @@ describe('CommunitySection', () => {
     });
 
     expect(serialized(renderer)).toContain('커뮤니티를 불러오는 중이에요.');
+    expect(renderer.root.findAllByType(Image)).toHaveLength(0);
     await act(async () => {
       renderer.unmount();
     });
@@ -130,6 +135,7 @@ describe('CommunitySection', () => {
         <ThemeProvider theme={createTheme('light')}>
           <CommunitySection
             isFocused
+            season="autumn"
             accentColor="#6D6AF8"
             accentTint="#F0EFFF"
             accentBorder="#D9D7FF"
@@ -412,6 +418,7 @@ describe('CommunitySection', () => {
     });
 
     expect(serialized(renderer)).toContain('커뮤니티를 불러오지 못했어요');
+    expect(renderer.root.findAllByType(Image)).toHaveLength(0);
     const retryButton = renderer.root.findAll(
       node => node.props.accessibilityLabel === '커뮤니티 다시 시도',
     )[0];
@@ -427,4 +434,39 @@ describe('CommunitySection', () => {
       renderer.unmount();
     });
   });
+
+  it.each<SeasonKey>(['autumn', 'winter', 'spring', 'summer'])(
+    'switches all five empty illustrations with the active tab in %s',
+    async season => {
+      mockedFetchHomeCommunityHighlights.mockResolvedValue([]);
+      let renderer!: TestRenderer.ReactTestRenderer;
+      await act(async () => {
+        renderer = renderSection({ season });
+        await Promise.resolve();
+      });
+      const tabs = [
+        ['popular', '인기 탭'],
+        ['question', '질문 탭'],
+        ['info', '정보 탭'],
+        ['daily', '일상 탭'],
+        ['free', '자유 탭'],
+      ] as const;
+      for (const [tab, label] of tabs) {
+        if (tab !== 'popular') {
+          await act(async () => {
+            renderer.root.find(node => node.props.accessibilityLabel === label).props.onPress();
+            await Promise.resolve();
+          });
+        }
+        const images = renderer.root.findAllByType(Image);
+        expect(images).toHaveLength(1);
+        expect(images[0].props.source).toBe(HOME_EDITORIAL_ART[`community-${tab}`][season]);
+        expect(images[0].props.testID).toBe(`home-community-${tab}-art`);
+        expect(renderer.root.find(node => node.props.accessibilityLabel === label).props.accessibilityState).toEqual({ selected: true });
+        // A zero-item preview does not prove the complete community list is empty.
+        expect(renderer.root.findAll(node => node.props.accessibilityLabel === '커뮤니티 전체 보기').length).toBeGreaterThan(0);
+      }
+      await act(async () => renderer.unmount());
+    },
+  );
 });
