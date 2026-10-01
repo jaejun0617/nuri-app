@@ -1,5 +1,29 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-10-01 세 빈 섹션 최종 PO 승인·버튼 유지
+
+- [x] 건강관리·일정·오늘 한장 계절별 빈 상태와 section geometry를 유지한 일정·사진 표시 확대 PO 최종 승인.
+- [x] 최신 QA Release·install 각 1회 PASS, verifier ACCEPTED·Success, APK `a6914fe5`. 최초 후보 포함 scope 누적 각 2회.
+- [x] 종료 전 관련 17개 스위트 187개 테스트 PASS. Full test·추가 build·install 없음.
+- [x] PO의 최신 지시로 계절 버튼과 local selection을 유지한다. 버튼 제거·추가 빌드·설치는 하지 않는다.
+- [x] 승인 source·12 PNG·관련 테스트·이번 문서 block만 선별 commit·기존 브랜치 push 승인. 무관한 dirty·공유 문서의 과거 hunk·기존 APK·증적은 보존한다.
+- [ ] 최신 전체 자동 runtime smoke·Fatal·ANR·RN Fatal. 설치 외 기기 조작 중단으로 미확인이며 PO 시각 승인과 별도로 관리한다.
+- 다음 기능·main 병합·스토어 배포·cleanup 자동 시작 없음. 실제 Git 종료 결과는 `/tmp/nuri-empty-art-scale-20261001/git-closeout.json`을 따른다. 아래 pending은 이전 후보 이력이다.
+
+## 2026-10-01 세 빈 섹션 계절 후보
+
+- [x] 건강관리·일정·오늘 한장 confirmed-empty 리디자인과 네 계절 투명 PNG 12개 구현. 건강관리 강아지·발바닥 제거, 허구 데이터 없음.
+- [x] 그림 최대 Health 128dp·Schedule 136dp·Photo 168dp, absolute Image·square frame, 확대 글꼴 Health 세로 전환과 CTA 줄바꿈 계약.
+- [x] loading/error/unknown과 empty 구분, 실제 photo selection·상세·일정·건강 action과 승인 배경·glass·일기 유지.
+- [x] overlay가 아닌 Home 상단 임시 네 계절 버튼. Home local selection, global theme/date·공통 foreground 보존.
+- [x] TypeScript·대상 lint 오류 0·새 경고 0·기존 19개, 17개 스위트 185개 테스트와 diff check PASS.
+- [x] 추가 QA Release·install 각 1회 PO 승인. 설치 외 기기 실행·터치·스크롤·캡처 중단 유지.
+- [x] 승인 QA Release·install 각 1회 완료, verifier ACCEPTED·install Success. SHA-256 `86cb8f48e44be07fe603335952b2df238f3881e4105b23bec008539a3ce2ca51`, 새 PNG 12개 실제 APK 포함 확인.
+- [ ] 최신 native 높이·전체 시각 합성·runtime QA·Fatal·ANR·RN Fatal. 현재 미확인.
+- [ ] PO 최종 디자인 승인. 승인 전 버튼 제거·staging·commit·push·cleanup과 다음 작업 없음.
+
+보고서: `docs/qa/nuri-home-three-empty-sections-candidate-2026-10-01.md`. 아래 일기 최종 승인 기록은 기존 승인 baseline이다.
+
 ## 2026-10-01 이번 달 일기 최종 PO 승인과 검토 버튼 제거
 
 - [x] 승인 source·asset·test·문서 26개 파일만 선별 commit `410483dfb301425cebb7f5db6e730324c34629ca`·push, 실제 remote SHA와 ahead/behind 0/0 확인. 무관한 기존 dirty 제외·보존.

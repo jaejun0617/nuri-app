@@ -122,7 +122,7 @@ describe('approved Home season contract', () => {
     await TestRenderer.act(async () => renderer.unmount());
   });
 
-  it('removes diary review controls and restores calendar selection in the production Home', () => {
+  it('temporarily shares the review selection across canvas and empty art without changing the foreground', () => {
     const source = fs.readFileSync(
       path.join(
         __dirname,
@@ -134,7 +134,9 @@ describe('approved Home season contract', () => {
     expect(source).not.toContain('diaryReviewSeason');
     expect(source).not.toContain('setDiaryReviewSeason');
     expect(source).not.toContain('HOME_SEASON_QA_OVERRIDE');
-    expect(source).toContain('const ambientSeason = getSeasonalThemeKey()');
+    expect(source).toContain('const ambientSeason = reviewSeason ?? getSeasonalThemeKey()');
+    expect(source).toContain('<HomeSeasonReviewControls');
+    expect(source).toContain('onChange={setReviewSeason}');
     expect(source).toContain(
       'getSeasonalHomeVisual(HOME_FOREGROUND_UI_SEASON)',
     );

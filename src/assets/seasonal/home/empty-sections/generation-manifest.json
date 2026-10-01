@@ -1,0 +1,115 @@
+{
+  "createdAt": "2026-10-01",
+  "tool": "built-in image_gen",
+  "purpose": "PO-review candidate. Neutral all-pets empty states, four seasons.",
+  "assets": [
+    {
+      "section": "health",
+      "season": "autumn",
+      "prompt": "Use case: stylized-concept. Asset type: production transparent PNG illustration for NURI all-species companion animal health empty state.\nInput image role: reference ONLY for the 3D pouch/card materials and aesthetic, not a UI edit. Generate ONLY the compact illustrated object, without any UI or background.\nSubject: a premium miniature soft periwinkle healthcare record pouch, layered cream health record cards protruding from the pouch, a simple coral heart emblem on pouch and tiny heart beside cards. Blank card has a neutral subtle heartbeat line, never an animal face. All pets inclusive.\nMaterials: soft matte leather and frosted pearl ceramic, rounded edges, delicate realistic 3D highlight. Autumn variant has pale apricot/ivory accents and one tiny amber leaf beside pouch. Main pouch stays pale periwinkle. Three quarter view, entire object visible, centered, occupies 80% of square canvas with clean transparent margin.\nTransparent background: genuine alpha, NO background plate, floor, rectangle, glass UI card, captions, text, letters, numbers, borders or watermark. Only subtle contact occlusion within objects; NO broad cast shadow or opaque ground. DO NOT include dogs, cats, paws, pawprints, animals, medical red crosses, pills, syringe, fake health numbers or charts. Keep reference's reassuring cute sophistication without dog bias. One coherent object cluster, not a collage.",
+      "generatedPath": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-90f93838-8115-4930-97de-e93b5cbb8925.png",
+      "output": "src/assets/seasonal/home/empty-sections/health-autumn-v1.png",
+      "bytes": 1316618,
+      "sha256": "18720942ff0dc6c30e573519af4c7c2cd809a2b255ae65789b1c74a16cfb64a3"
+    },
+    {
+      "section": "health",
+      "season": "winter",
+      "prompt": "Use case: precise-object-edit. Edit target is the referenced transparent health pouch asset. Make the winter seasonal variant for NURI all-pets health empty state. Preserve object size, camera perspective, centered compact silhouette, card placement, textures and alpha transparency exactly. Change ONLY palette and the single seasonal accent: icy periwinkle pouch, snow-white and pale ice-blue layered record cards, a pale blue/lilac heart and one small crystalline snowflake at lower left. No warm autumn leaf. Preserve heart emblem and decorative embossed heartbeat line; no animal figures, dogs, cats, pawprints, paws, species silhouettes, red cross, text or numbers. No UI frame, no background, no floor, no glow backdrop, no broad cast shadow. Genuine transparent RGBA PNG. The complete object fits square canvas with generous transparent margin. One object, not collage.",
+      "generatedPath": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-ac28fedc-695d-4796-a342-99a5dd0f0238.png",
+      "output": "src/assets/seasonal/home/empty-sections/health-winter-v1.png",
+      "bytes": 1263318,
+      "sha256": "d84aebb6f90f10cbf58ce04a14fa22bf51df1e482ed36bee01ae666c26110e26"
+    },
+    {
+      "section": "health",
+      "season": "spring",
+      "prompt": "Use case: precise-object-edit. Edit target is the referenced transparent health pouch asset. Make the spring seasonal variant for NURI all-pets health empty state. Preserve object size, camera perspective, centered compact silhouette, card placement, textures and alpha transparency exactly. Change ONLY palette and the single seasonal accent: soft petal-pink pouch with a subtle periwinkle clasp, pink ivory record cards, rosy heart and one tiny pink blossom at lower left. No mint, emerald, green or autumn leaf. Preserve heart emblem and decorative embossed heartbeat line; no animal figures, dogs, cats, pawprints, paws, species silhouettes, red cross, text or numbers. No UI frame, no background, no floor, no glow backdrop, no broad cast shadow. Genuine transparent RGBA PNG. The complete object fits square canvas with generous transparent margin. One object, not collage.",
+      "generatedPath": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-f8a621f5-0e6c-469c-a45b-7fa5bc759086.png",
+      "output": "src/assets/seasonal/home/empty-sections/health-spring-v1.png",
+      "bytes": 1244672,
+      "sha256": "f8b122d10b9a9b4d038e61996b0c9b296b761cfb1da076237f65339337f9db29"
+    },
+    {
+      "section": "health",
+      "season": "summer",
+      "prompt": "Use case: precise-object-edit. Edit target is the referenced transparent health pouch asset. Make the summer seasonal variant for NURI all-pets health empty state. Preserve object size, camera perspective, centered compact silhouette, card placement, textures and alpha transparency exactly. Change ONLY palette and the single seasonal accent: pale aqua pouch with icy blue clasp, cool ivory aqua record cards, blue coral heart, and one tiny translucent sea-blue droplet at lower left. No autumn leaf. Preserve heart emblem and decorative embossed heartbeat line; no animal figures, dogs, cats, pawprints, paws, species silhouettes, red cross, text or numbers. No UI frame, no background, no floor, no glow backdrop, no broad cast shadow. Genuine transparent RGBA PNG. The complete object fits square canvas with generous transparent margin. One object, not collage.",
+      "generatedPath": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-7a79b46c-9c5b-4023-885c-b8952324df79.png",
+      "output": "src/assets/seasonal/home/empty-sections/health-summer-v1.png",
+      "bytes": 1167056,
+      "sha256": "b3c8c6655db5813239819c88876ff8b5f30620b75bd94a5af729c6709fad672d"
+    },
+    {
+      "section": "schedule",
+      "season": "autumn",
+      "prompt": "Use case: stylized-concept. Asset type: production transparent PNG empty-state illustration for NURI schedule section.\nInput image role: aesthetic reference ONLY for the miniature calendar and glass clock, NOT a UI edit. Generate ONLY those objects, no panel or text.\nSubject: compact miniature standing desk calendar with three round periwinkle binding rings, layered ivory paper pages and blank soft embossed grid cells; small pearl-glass analog clock nestled on lower right and tiny coral heart pin. Autumn palette soft periwinkle, ivory and pale apricot with ONE tiny amber leaf near left base.\nEntire coherent object cluster centered with 12% transparent margin around it, square canvas, subtle three-quarter view, cute premium matte 3D ceramic/leather/paper textures, softly luminous edges.\nGenuine alpha TRANSPARENT background; NO floor, broad cast shadow, glow plate, glass UI rectangle, environment, backdrop, text, letters, dates, numbers, events, watermark, animals, pawprints. Calendar squares blank. Clock has only hands/simple tick marks, no numbers. Preserve the reference object's premium comforting feel. Do not generate a screen or collage.",
+      "generatedPath": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-d5e6a360-e811-479b-9ed4-e4b1ed6245e7.png",
+      "output": "src/assets/seasonal/home/empty-sections/schedule-autumn-v1.png",
+      "bytes": 1027300,
+      "sha256": "78853380acef3ec28c4fb6db7300c614a127175b87d1c4aab2182b3f2bc6ffe0"
+    },
+    {
+      "section": "schedule",
+      "season": "winter",
+      "prompt": "Use case: precise-object-edit. Edit target is the referenced transparent calendar illustration. Create its winter variant: icy blue/periwinkle calendar, snow-white ivory pages, lilac heart, frost-blue glass clock. Replace amber leaf with one tiny crystalline snowflake. Preserve the exact camera, full compact silhouette, object proportions, placement, matte paper texture, blank embossed squares and transparent margin. Calendar and clock only, same cute premium realistic 3D finish. Genuine transparent alpha background, no scene, floor, shadow plate, UI frame, text, letters, numbers, event data, animals or pawprints. Clock only simple tick marks and hands. Do not change anything except seasonal palette and single seasonal accent. One cluster, not collage.",
+      "generatedPath": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-eeaa4d12-3418-4af7-9f01-3ef0cecf66b9.png",
+      "output": "src/assets/seasonal/home/empty-sections/schedule-winter-v1.png",
+      "bytes": 987542,
+      "sha256": "36c861b1a8ac54d1c8e3eab3d120e3b9d8fed1c16f2121268603e2a417ab466e"
+    },
+    {
+      "section": "schedule",
+      "season": "spring",
+      "prompt": "Use case: precise-object-edit. Edit target is the referenced transparent calendar illustration. Create its spring variant: petal pink calendar body/rings, pale rose ivory pages, pink heart, pink pearl glass clock. Replace amber leaf with one tiny pink blossom. Absolutely no emerald, mint or green. Preserve the exact camera, full compact silhouette, object proportions, placement, matte paper texture, blank embossed squares and transparent margin. Calendar and clock only, same cute premium realistic 3D finish. Genuine transparent alpha background, no scene, floor, shadow plate, UI frame, text, letters, numbers, event data, animals or pawprints. Clock only simple tick marks and hands. Do not change anything except seasonal palette and single seasonal accent. One cluster, not collage.",
+      "generatedPath": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-78041271-9625-4074-90ea-ab9b6c8e5fc5.png",
+      "output": "src/assets/seasonal/home/empty-sections/schedule-spring-v1.png",
+      "bytes": 969112,
+      "sha256": "c897c55072ac7b6fa4dfb901adc24248c312cfac380c262225ff6a0159ddc989"
+    },
+    {
+      "section": "schedule",
+      "season": "summer",
+      "prompt": "Use case: precise-object-edit. Edit target is the referenced transparent calendar illustration. Create its summer variant: aqua/sky-blue calendar body/rings, cool ivory pages, blue heart, sea-blue pearl glass clock. Replace amber leaf with one tiny translucent aqua droplet. Preserve the exact camera, full compact silhouette, object proportions, placement, matte paper texture, blank embossed squares and transparent margin. Calendar and clock only, same cute premium realistic 3D finish. Genuine transparent alpha background, no scene, floor, shadow plate, UI frame, text, letters, numbers, event data, animals or pawprints. Clock only simple tick marks and hands. Do not change anything except seasonal palette and single seasonal accent. One cluster, not collage.",
+      "generatedPath": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-50a51f1b-8a34-4fb9-a5dc-c8cd615d1454.png",
+      "output": "src/assets/seasonal/home/empty-sections/schedule-summer-v1.png",
+      "bytes": 996034,
+      "sha256": "c74c100d78bcd60a22d6dd0fcd07782adf3f57a9e54ddb71bbd07cc0c028a346"
+    },
+    {
+      "section": "photo",
+      "season": "autumn",
+      "prompt": "Use case: stylized-concept. Production transparent PNG object illustration for NURI today-photo empty state. Reference image role: aesthetic of the TWO layered cream instant-photo frames and tiny blue camera ONLY; do NOT copy UI/background/text.\nSubject: two clean lightly overlapping ivory instant-photo frames at opposing gentle angles with empty soft pastel blue/lilac inset photo windows. A small sky blue ceramic camera in front, tiny strap, small cream heart embossed on one frame. Remove the pawprint from reference, replace with simple tiny embossed heart; absolutely NO animal face, paws or animal silhouette. Autumn variant: pale ivory/apricot frame warmth, tiny amber leaf beside camera, calm blue camera. Camera and layered frames are the focal object, compact central cluster with full silhouette.\nPremium softly lit matte realistic 3D, clean soft pearl highlights, no actual photo, fake memory, text, date, numbers, animal, UI panel, border, backdrop, floor, broad cast shadow or watermark. Genuinely transparent alpha square background with 12% margin. Do not include full background bubbles or stars; those remain app canvas. One object cluster, not collage.",
+      "generatedPath": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-5fc6c1be-4f05-414c-91a5-2ececc4b8a5c.png",
+      "output": "src/assets/seasonal/home/empty-sections/photo-autumn-v1.png",
+      "bytes": 883579,
+      "sha256": "378f172185abf66c23c5c5e8176e88c7b754cbff9b7de33f6e035d2d50249b26"
+    },
+    {
+      "section": "photo",
+      "season": "winter",
+      "prompt": "Use case: precise-object-edit. Edit target referenced transparent photo-frame and camera illustration. Generate its winter variant: snow ivory frames with pale icy blue/lilac photo windows, icy blue camera. Replace amber leaf with one small crystalline snowflake. Preserve exact centered silhouette, full object size, margin, two layered angled frames, camera position and 3D textures. Keep both photo windows empty pastel without actual photos. Preserve tiny neutral heart embossings. Do NOT add any dog, cat, paws, pawprints or species imagery. Genuine transparent alpha background, no floor, cast shadow plate, full scene, bubble backdrop, UI card, text, date, numbers, watermark, screenshot or collage. Change only seasonal palette and small seasonal accent.",
+      "generatedPath": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-8bd858de-3008-481c-855c-9fe1f30f9a02.png",
+      "output": "src/assets/seasonal/home/empty-sections/photo-winter-v1.png",
+      "bytes": 891305,
+      "sha256": "6f891c933d97968486596712f8f858eaf32d419a35655b517216c093f79d92b0"
+    },
+    {
+      "section": "photo",
+      "season": "spring",
+      "prompt": "Use case: precise-object-edit. Edit target referenced transparent photo-frame and camera illustration. Generate its spring variant: rose ivory frames, pale pink/lilac photo windows, blush pink camera with subtle periwinkle lens. Replace amber leaf with one tiny pink blossom. NO emerald, mint or green. Preserve exact centered silhouette, full object size, margin, two layered angled frames, camera position and 3D textures. Keep both photo windows empty pastel without actual photos. Preserve tiny neutral heart embossings. Do NOT add any dog, cat, paws, pawprints or species imagery. Genuine transparent alpha background, no floor, cast shadow plate, full scene, bubble backdrop, UI card, text, date, numbers, watermark, screenshot or collage. Change only seasonal palette and small seasonal accent.",
+      "generatedPath": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-e87d6936-a546-4520-82f6-9f4420fdc3e6.png",
+      "output": "src/assets/seasonal/home/empty-sections/photo-spring-v1.png",
+      "bytes": 863946,
+      "sha256": "fe97700541393c552c1bbd8c9b86c324fe11960487c37229edcea5265e03df38"
+    },
+    {
+      "section": "photo",
+      "season": "summer",
+      "prompt": "Use case: precise-object-edit. Edit target referenced transparent photo-frame and camera illustration. Generate its summer variant: cool ivory frames, pale aqua/sky-blue photo windows, aqua camera with sky-blue lens. Replace amber leaf with one tiny translucent blue water droplet. Preserve exact centered silhouette, full object size, margin, two layered angled frames, camera position and 3D textures. Keep both photo windows empty pastel without actual photos. Preserve tiny neutral heart embossings. Do NOT add any dog, cat, paws, pawprints or species imagery. Genuine transparent alpha background, no floor, cast shadow plate, full scene, bubble backdrop, UI card, text, date, numbers, watermark, screenshot or collage. Change only seasonal palette and small seasonal accent.",
+      "generatedPath": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-edfb84ec-e2c0-4bb2-b3ad-abe45e622158.png",
+      "output": "src/assets/seasonal/home/empty-sections/photo-summer-v1.png",
+      "bytes": 863751,
+      "sha256": "0f57d3c9ab9b5b64838db78611d78eab3dadb030f12f353d2bf7ea19c92c5b35"
+    }
+  ]
+}

@@ -393,7 +393,7 @@ describe('seasonal Home ambient material', () => {
   );
 
   it('connects every season to one canvas without altering automatic season selection', () => {
-    expect(homeSource).toContain('const ambientSeason = getSeasonalThemeKey()');
+    expect(homeSource).toContain('const ambientSeason = reviewSeason ?? getSeasonalThemeKey()');
     expect(homeSource).toContain('season={ambientSeason}');
     expect(homeSource).toContain('ambientSeason={ambientSeason}');
     expect(homeSource).toContain(

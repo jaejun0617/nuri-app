@@ -76,7 +76,6 @@ import { useSignedMemoryImage } from '../../../../hooks/useSignedMemoryImage';
 import type { AppTabParamList } from '../../../../navigation/AppTabsNavigator';
 import type { TimelineStackParamList } from '../../../../navigation/TimelineStackNavigator';
 import type { RootStackParamList } from '../../../../navigation/RootNavigator';
-import { createLatestRequestController } from '../../../../services/app/async';
 import {
   normalizeCategoryKey,
   getMemoryCategoryChipLabel,
@@ -86,10 +85,7 @@ import {
   type MemoryMainCategory,
   type MemoryOtherSubCategory,
 } from '../../../../services/memories/categoryMeta';
-import {
-  getPrimaryMemoryImageRef,
-  hasMemoryImage,
-} from '../../../../services/records/imageSources';
+import { getPrimaryMemoryImageRef } from '../../../../services/records/imageSources';
 import { useAuthStore } from '../../../../store/authStore';
 import { usePetStore, type Pet } from '../../../../store/petStore';
 import {
@@ -104,6 +100,12 @@ import HomeTopButton, {
   resolveHomeTopButtonThreshold,
 } from './HomeTopButton';
 import { MonthlyDiaryEmptyState } from './MonthlyDiaryEmptyState';
+import {
+  HomeEmptySectionState,
+  type HomeEmptyDataState,
+} from './HomeEmptySectionState';
+import { HomeSeasonReviewControls } from './HomeSeasonReviewControls';
+import { TodayPhotoSection } from './TodayPhotoSection';
 import { HomeAmbientBubbleCanvas } from './HomeAmbientBubbleCanvas';
 import { HOME_FOREGROUND_UI_SEASON } from '../../../../theme/home/seasonalAmbient';
 import {
@@ -134,7 +136,6 @@ import {
   type MemoryRecord,
 } from '../../../../services/supabase/memories';
 import type { PetSchedule } from '../../../../services/supabase/schedules';
-import { pickTodayPhoto } from '../../../../services/home/homeRecall';
 import { buildHomeWidgetSnapshot } from '../../../../services/home/widgetSnapshot';
 import { syncHomeWidgetSnapshot } from '../../../../services/home/widgetBridge';
 import {
@@ -619,139 +620,6 @@ const MonthlyDiaryCard = React.memo(function MonthlyDiaryCard({
         {getRecordYmdDots(item)}
       </AppText>
     </TouchableOpacity>
-  );
-});
-
-const TodayPhotoSection = React.memo(function TodayPhotoSection({
-  activePetId,
-  recordItems,
-  recordStatus,
-  onPressRecordItem,
-  onPressRecord,
-  accentColor,
-}: {
-  activePetId: string | null;
-  recordItems: MemoryRecord[];
-  recordStatus:
-    | 'idle'
-    | 'loading'
-    | 'ready'
-    | 'refreshing'
-    | 'loadingMore'
-    | 'error';
-  onPressRecordItem: (memoryId: string) => void;
-  onPressRecord: () => void;
-  accentColor: string;
-}) {
-  const theme = useTheme();
-  const [todayPhoto, setTodayPhoto] = useState<{
-    record: MemoryRecord | null;
-    mode: 'anniversary' | 'random' | 'none';
-  }>({ record: null, mode: 'none' });
-
-  useEffect(() => {
-    setTodayPhoto({ record: null, mode: 'none' });
-  }, [activePetId]);
-
-  useEffect(() => {
-    const request = createLatestRequestController();
-
-    async function run() {
-      const requestId = request.begin();
-      if (!activePetId) {
-        if (request.isCurrent(requestId)) {
-          setTodayPhoto({ record: null, mode: 'none' });
-        }
-        return;
-      }
-      const picked = await pickTodayPhoto(activePetId, recordItems);
-      if (request.isCurrent(requestId)) {
-        setTodayPhoto(picked);
-      }
-    }
-
-    run();
-    return () => {
-      request.cancel();
-    };
-  }, [activePetId, recordItems]);
-
-  const { signedUrl: todayPhotoUrl, loading: isTodayPhotoLoading } =
-    useSignedMemoryImage(
-      todayPhoto.record ? getPrimaryMemoryImageRef(todayPhoto.record) : null,
-    );
-
-  const isRecordBootstrapPending =
-    (recordStatus === 'idle' || recordStatus === 'loading') &&
-    recordItems.length === 0 &&
-    !todayPhoto.record;
-  const photoDateLabel = useMemo(() => {
-    if (!todayPhoto.record) return '';
-    return (
-      formatYmdWithWeekday(getRecordDisplayYmd(todayPhoto.record), {
-        separator: '.',
-        suffix: true,
-      }) ?? formatRecordDisplayDate(todayPhoto.record)
-    );
-  }, [todayPhoto.record]);
-
-  return (
-    <HomeSectionGlass
-      testID="home-glass-today-photo"
-      style={[styles.section, styles.todayPhotoSection]}
-    >
-      <HomeSectionHeader title="오늘 한장" color={accentColor} />
-
-      <TouchableOpacity
-        activeOpacity={0.92}
-        style={[styles.photoCard, { borderColor: theme.colors.border }]}
-        onPress={() =>
-          todayPhoto.record
-            ? onPressRecordItem(todayPhoto.record.id)
-            : onPressRecord()
-        }
-      >
-        {isRecordBootstrapPending ? (
-          <View
-            style={[
-              styles.photoPlaceholder,
-              { justifyContent: 'center', alignItems: 'center' },
-            ]}
-          >
-            <ActivityIndicator size="large" color="#fff" />
-          </View>
-        ) : !todayPhoto.record || !hasMemoryImage(todayPhoto.record) ? (
-          <View style={styles.photoPlaceholder} />
-        ) : isTodayPhotoLoading ? (
-          <View
-            style={[
-              styles.photoPlaceholder,
-              { justifyContent: 'center', alignItems: 'center' },
-            ]}
-          >
-            <ActivityIndicator size="large" color="#fff" />
-          </View>
-        ) : todayPhotoUrl ? (
-          <Image
-            source={{ uri: todayPhotoUrl }}
-            style={styles.photoImage}
-            fadeDuration={250}
-          />
-        ) : (
-          <View style={styles.photoPlaceholder} />
-        )}
-
-        <View style={styles.photoOverlay}>
-          <AppText
-            preset="unifiedDate"
-            style={styles.photoOverlayDate}
-            numberOfLines={1}
-          >
-            {photoDateLabel}
-          </AppText>
-        </View>
-      </TouchableOpacity>
-    </HomeSectionGlass>
   );
 });
 
@@ -3252,6 +3120,8 @@ const TotalSummarySection = React.memo(function TotalSummarySection({
 const ScheduleSection = React.memo(function ScheduleSection({
   scheduleItems,
   isReady,
+  dataState,
+  season,
   activeScheduleIds,
   onPressScheduleList,
   onPressScheduleCreate,
@@ -3262,6 +3132,8 @@ const ScheduleSection = React.memo(function ScheduleSection({
 }: {
   scheduleItems: PetSchedule[];
   isReady: boolean;
+  dataState: HomeEmptyDataState;
+  season: SeasonKey;
   activeScheduleIds: ReadonlySet<string>;
   onPressScheduleList: () => void;
   onPressScheduleCreate: () => void;
@@ -3288,18 +3160,13 @@ const ScheduleSection = React.memo(function ScheduleSection({
       />
 
       {weekScheduleItems.length === 0 ? (
-        <View style={[styles.emptyBox, { borderColor: theme.colors.border }]}>
-          <AppText
-            typographyRole="celebration"
-            preset="unifiedTitle"
-            style={styles.emptyTitle}
-          >
-            등록된 일정이 아직 없어요
-          </AppText>
-          <AppText preset="unifiedBody" style={styles.emptyDesc}>
-            오래 남겨둘 일정도 한곳에 모아두고 홈에서 가볍게 꺼내볼 수 있어요.
-          </AppText>
-        </View>
+        <HomeEmptySectionState
+          kind="schedule"
+          season={season}
+          dataState={dataState}
+          accentDeepColor={accentDeepColor}
+          onPressAction={onPressScheduleCreate}
+        />
       ) : (
         <View style={styles.scheduleList}>
           {weekScheduleItems.map(item => (
@@ -3369,18 +3236,20 @@ const ScheduleSection = React.memo(function ScheduleSection({
         </View>
       )}
 
-      <TouchableOpacity
-        activeOpacity={0.9}
-        style={[
-          styles.recordBtn,
-          { backgroundColor: accentDeepColor, shadowColor: accentDeepColor },
-        ]}
-        onPress={onPressScheduleCreate}
-      >
-        <AppText preset="unifiedLabel" style={styles.recordBtnText}>
-          일정 추가하기
-        </AppText>
-      </TouchableOpacity>
+      {weekScheduleItems.length > 0 ? (
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={[
+            styles.recordBtn,
+            { backgroundColor: accentDeepColor, shadowColor: accentDeepColor },
+          ]}
+          onPress={onPressScheduleCreate}
+        >
+          <AppText preset="unifiedLabel" style={styles.recordBtnText}>
+            일정 추가하기
+          </AppText>
+        </TouchableOpacity>
+      ) : null}
     </HomeSectionGlass>
   );
 });
@@ -3407,6 +3276,8 @@ const HealthRecentActivitiesSection = React.memo(
   function HealthRecentActivitiesSection({
     activityItems,
     isReady,
+    dataState,
+    season,
     onPressHealthReport,
     onPressActivityItem,
     accentColor,
@@ -3414,6 +3285,8 @@ const HealthRecentActivitiesSection = React.memo(
   }: {
     activityItems: HealthActivityItem[];
     isReady: boolean;
+    dataState: HomeEmptyDataState;
+    season: SeasonKey;
     onPressHealthReport: () => void;
     onPressActivityItem: (ymd: string) => void;
     accentColor: string;
@@ -3438,18 +3311,13 @@ const HealthRecentActivitiesSection = React.memo(
         />
 
         {recentActivities.length === 0 ? (
-          <View style={[styles.emptyBox, { borderColor: theme.colors.border }]}>
-            <AppText
-              typographyRole="celebration"
-              preset="unifiedTitle"
-              style={styles.emptyTitle}
-            >
-              건강관리 기록이 아직 없어요
-            </AppText>
-            <AppText preset="unifiedBody" style={styles.emptyDesc}>
-              병원, 약, 증상, 체중 기록은 건강관리에서 차분히 모아볼 수 있어요.
-            </AppText>
-          </View>
+          <HomeEmptySectionState
+            kind="health"
+            season={season}
+            dataState={dataState}
+            accentDeepColor={accentDeepColor}
+            onPressAction={onPressHealthReport}
+          />
         ) : (
           <View style={styles.activityList}>
             {recentActivities.map(item => (
@@ -3590,7 +3458,8 @@ export default function LoggedInHome() {
   const insets = useSafeAreaInsets();
   const bottomTabBarHeight = useBottomTabBarHeight();
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
-  const ambientSeason = getSeasonalThemeKey();
+  const [reviewSeason, setReviewSeason] = useState<SeasonKey | null>(null);
+  const ambientSeason = reviewSeason ?? getSeasonalThemeKey();
   // Seasonal atmosphere is independent of the approved logo, copy and Weather UI.
   const seasonalHomeVisual = useMemo(
     () => getSeasonalHomeVisual(HOME_FOREGROUND_UI_SEASON),
@@ -4896,6 +4765,7 @@ export default function LoggedInHome() {
             activePetId={activePetId}
             recordItems={recordItems}
             recordStatus={recordStatus}
+            season={ambientSeason}
             onPressRecordItem={onPressRecordItem}
             onPressRecord={onPressRecord}
             accentColor={petTheme.deep}
@@ -4928,6 +4798,14 @@ export default function LoggedInHome() {
           <ScheduleSection
             scheduleItems={visibleScheduleItems}
             isReady={scheduleStatus === 'ready'}
+            dataState={
+              scheduleStatus === 'ready'
+                ? 'ready'
+                : scheduleStatus === 'error'
+                ? 'error'
+                : 'loading'
+            }
+            season={ambientSeason}
             activeScheduleIds={activeAlarms.activeScheduleIds}
             onPressScheduleList={onPressScheduleList}
             onPressScheduleCreate={onPressScheduleCreate}
@@ -4941,6 +4819,14 @@ export default function LoggedInHome() {
           <HealthRecentActivitiesSection
             activityItems={healthActivityItems}
             isReady={recordStatus === 'ready' && scheduleStatus === 'ready'}
+            dataState={
+              recordStatus === 'error' || scheduleStatus === 'error'
+                ? 'error'
+                : recordStatus === 'ready' && scheduleStatus === 'ready'
+                ? 'ready'
+                : 'loading'
+            }
+            season={ambientSeason}
             onPressHealthReport={() => onPressHealthReport()}
             onPressActivityItem={onPressHealthReport}
             accentColor={petTheme.primary}
@@ -4974,6 +4860,10 @@ export default function LoggedInHome() {
       season={seasonalHomeVisual?.season ?? getSeasonalThemeKey()}
     >
       <Screen style={styles.screen}>
+        <HomeSeasonReviewControls
+          season={ambientSeason}
+          onChange={setReviewSeason}
+        />
         <ScrollView
           ref={homeScrollRef}
           style={styles.scroll}
