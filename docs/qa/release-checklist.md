@@ -1,5 +1,15 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-10-01 Home editorial Git·cleanup 종료 결과
+
+- [x] 승인 source·asset·test·문서 46개 파일을 `44284adff5454676268db6bc6f62a6b36b7f2f2a`로 선별 commit·기존 브랜치 push, 실제 remote SHA 일치·ahead/behind 0/0 확인.
+- [x] 종료 전 20개 스위트 275개 테스트 PASS, 승인 입력 809개 hash 동일·과거 dirty 제외·보존.
+- [x] push 이후 네 Git-ignored Android generated 경로 정리. 측정 3.51GiB·실제 여유 공간 증가 2.99GiB·최종 51.75GiB.
+- [x] 프로젝트 1,353개·기존 QA 5,466개 hash 및 Git 상태 동일. 승인·직전·안정 APK, 자산·signing·wrapper·SDK·개인 파일 보존.
+- [x] 계절 버튼·설치본 유지, 추가 source 수정·build·install·기기 조작·시스템 관리 공간 정리 없음.
+- [ ] 최신 자동 runtime·bitmap 메모리·스크롤 성능·다중 화면 폭과 큰 글꼴 native 확인: 미확인. 다음 후보로 제안하되 새 승인 전에는 실행하지 않는다.
+- 종료 증적: `/tmp/nuri-tip-recent-community-20261001/git-closeout`. 아래 실행 예정은 이전 이력이다.
+
 ## 2026-10-01 Home editorial PO 최종 승인·종료 계약
 
 - [x] PO가 최신 `ca7d2751`의 Today Tip·Recent empty·Community 다섯 탭과 Recent 표시 corrective를 최종 승인.

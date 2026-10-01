@@ -1,5 +1,26 @@
 # NURI Home Today Tip, Recent Records, Community Candidate
 
+## Git·Safe Cleanup 종료 결과
+
+- `PO_VISUAL_APPROVAL: APPROVED`. 승인 변경 46개 파일을 `44284adff5454676268db6bc6f62a6b36b7f2f2a`로 commit하고 `codex/task6-community-content-policy`에 push했다. 실제 원격 SHA 일치·ahead/behind 0/0을 확인했다.
+- 이번 종료 전 20개 스위트 275개 테스트 PASS. 승인된 source·asset·test·toolchain 입력 809개 hash 동일. 공유 문서 이전 dirty hunk·Supabase CLI metadata·무관한 자산·output은 제외·보존했다.
+- push 이후 아래 exact-path Git-ignored NURI 산출물 네 곳만 정리했다. 모두 tracked file·open file 0개이며 10GiB 미만인 재생성 경로다. current evidence APK는 별도 보호 위치에서 세 hash를 확인했다.
+
+| 삭제 경로 | allocated 크기 |
+| --- | ---: |
+| `android/app/build` | 3,235,120KiB |
+| `android/app/.cxx` | 404,616KiB |
+| `android/build` | 200KiB |
+| `android/.gradle` | 41,976KiB |
+| 합계 | 3,681,912KiB = 3.51GiB |
+
+- Data volume available은 51,128,292→54,258,604KiB, 48.76→51.75GiB다. 실제 여유 공간 증가는 3,130,312KiB = 2.99GiB다. APFS 공유·동시 앱 활동으로 삭제 경로의 allocated 합계와 실제 free 증가량은 다를 수 있다.
+- 정리 전후 프로젝트 파일 1,353개·기존 QA 파일 5,466개 hash 동일, required source·asset·QA 손실 0개, cleanup Git delta 0. 최신 `ca7d2751`, 직전 `45d0b72b`, 이전 안정 `84961478` APK는 보존한다.
+- signing·keystore·wrapper·SDK·node_modules·전역 dependency cache·개인 파일·시스템 관리 공간·기존 Watchman은 삭제하거나 종료하지 않았다. Metro OFF·Fast Refresh OFF, 실행 중인 Gradle build 없음.
+- 계절 버튼 유지. 이번 종료의 추가 앱 변경·build·install·기기 실행·터치·스크롤·캡처는 0회다. native runtime·bitmap 메모리·스크롤 성능 미확인을 PO 시각 승인과 구분한다.
+- 이 종료 기록은 문서만 후속 commit·push한다. 증적: `/tmp/nuri-tip-recent-community-20261001/git-closeout`의 `baseline.json`, `stage.json`, `tests.json`, `tests.log`, `cleanup.json`, `final.json`.
+- 다음 후보: 반응형·bitmap 성능 검증, 오늘 한장 실제 사진 상태, 커뮤니티 실제 게시글의 정보 위계, 일정·건강 실제 활동 목록. PO 선택 전에는 자동 시작하지 않는다. 아래 실행 예정은 종료 전 이력이다.
+
 ## 최종 PO 승인과 Git 종료 계약
 
 - PO가 최신 `ca7d2751` 설치 후보와 Recent 그림 크기·위치 corrective를 최종 승인했다. `PO_VISUAL_APPROVAL: APPROVED`다. 아래 후보의 pending 표시는 당시 이력이다.
