@@ -71,7 +71,9 @@ Project root: `/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri`.
 
 - Branch: `codex/task6-community-content-policy`.
 - Before HEAD: `7e5a3cfeb1cf9fda229b775ffa128e47b75b0c68`. Before staged: NONE.
-- PO가 승인 source·자산·test·관련 문서의 선별 commit과 기존 원격 브랜치 push를 지시했다. 실제 Git 결과는 완료 후 이 절에 기록한다.
+- 승인 source commit: `410483dfb301425cebb7f5db6e730324c34629ca` (`feat(home): finalize approved seasonal diary empty state`). source·asset·test·관련 문서 26개 파일만 포함했다.
+- 기존 원격 `origin/codex/task6-community-content-policy`로 push 성공. 직접 조회한 remote SHA가 위 source commit과 같고 ahead/behind 0/0이다. 완료 확인 기록은 문서 전용 후속 commit으로 남기며 추가 source·build·install은 하지 않는다.
+- build source fingerprint의 source/asset 12개가 승인 commit과 일치하고, 세 dirty memory 파일의 index에는 이번 승인 block만 들어갔음을 검증했다.
 - 기존 project-memory dirty의 원문은 보존하고 이번에 추가한 승인 block만 staging한다. 연구 문서·Supabase temp·output/design·기존 미사용 untracked asset은 staging 대상에서 제외한다.
 - main 병합·PR 생성·스토어 배포·다음 섹션 착수는 이번 범위가 아니다.
 
@@ -83,6 +85,7 @@ Root: `/tmp/nuri-monthly-diary-height-corrective-20261001`.
 - Build/install: `build-closeout.log`, `install-closeout.log`.
 - 최종 source fingerprint: `source-fingerprint-closeout.json`.
 - 정리 감사·보존 검증: `cleanup-before.json`, `cleanup-after.json`.
+- 승인 commit 보존 검사: `approved-commit-preservation.json`. 실제 source push: `push-approved-source.log`. 최종 문서 commit·remote 일치는 `GIT_CLOSEOUT.json`에 기록한다.
 - 4계절 native 후보 측정: `12-final-autumn-diary`, `13-final-winter-diary`, `14-final-spring-diary`, `15-final-summer-diary` PNG/XML.
 - 최신 후보 관찰: `30-hidden-hero`, `31-hidden-weather`, `32-hidden-frequent-summary`, `33-hidden-summary-recent` PNG/XML. `34-hidden-lower.png`는 관찰용이며 XML pairing은 제외한다.
 - 네 계절 자산: `src/assets/seasonal/home/diary/`의 PNG 4개와 generation manifest, 합계 약 4.12MiB. 기존 생성 hash를 유지한다.
@@ -111,6 +114,8 @@ Hero·날씨·자주 쓰는 기록·추천 팁과 승인 배경·유리 재질�
 - FINAL_RELEASE_AND_INSTALL: COMPLETE.
 - SAFE_ARTIFACT_CLEANUP: COMPLETE.
 - PREEXISTING_DIRTY: PRESERVED_AND_EXCLUDED.
+- APPROVED_SOURCE_COMMIT: `410483dfb301425cebb7f5db6e730324c34629ca`.
+- APPROVED_SOURCE_PUSH: VERIFIED.
 - DEVICE_UI_AUTOMATION: STOPPED_AT_PO_REQUEST.
 - NEXT_IMPLEMENTATION: NOT_STARTED.
 
