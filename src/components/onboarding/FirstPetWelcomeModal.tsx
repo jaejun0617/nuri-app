@@ -16,6 +16,8 @@ import Feather from 'react-native-vector-icons/Feather';
 
 import AppText from '../../app/ui/AppText';
 import { ASSETS } from '../../assets';
+import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
+import { getSeasonalOnboardingVisual } from '../../theme/seasonal/onboarding';
 import { useOptionalSafeAreaInsets } from '../../hooks/useOptionalSafeAreaInsets';
 import { getResponsiveOverlayMaxHeight } from '../../services/app/responsiveLayout';
 import { buildFirstPetWelcomeCopy } from '../../services/local/firstPetWelcome';
@@ -38,6 +40,8 @@ function FirstPetWelcomeModalBase({
   onConfirm,
 }: Props) {
   const entrance = useRef(new Animated.Value(0)).current;
+  const season = useEffectiveSeason();
+  const seasonalVisual = useMemo(() => getSeasonalOnboardingVisual(season), [season]);
   const copy = useMemo(() => buildFirstPetWelcomeCopy(petName), [petName]);
   const insets = useOptionalSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
@@ -100,16 +104,17 @@ function FirstPetWelcomeModalBase({
             styles.card,
             {
               maxHeight: maxCardHeight,
+              backgroundColor: seasonalVisual.welcomeSurface,
               opacity,
               transform: [{ scale }, { translateY }],
             },
           ]}
         >
           <View pointerEvents="none" style={styles.sparkleLeft}>
-            <Feather color="rgba(231, 165, 133, 0.78)" name="star" size={17} />
+            <Feather color={season === 'autumn' ? 'rgba(231, 165, 133, 0.78)' : seasonalVisual.palette.neutralIconColor} name="star" size={17} />
           </View>
           <View pointerEvents="none" style={styles.sparkleRight}>
-            <Feather color="rgba(184, 154, 210, 0.66)" name="star" size={13} />
+            <Feather color={season === 'autumn' ? 'rgba(184, 154, 210, 0.66)' : seasonalVisual.palette.neutralIconColor} name="star" size={13} />
           </View>
 
           <ScrollView

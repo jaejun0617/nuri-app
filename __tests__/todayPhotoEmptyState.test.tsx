@@ -10,17 +10,14 @@ import {
 } from '../src/services/home/homeRecall';
 import type { MemoryRecord } from '../src/services/supabase/memories';
 import type { PetRecordsState } from '../src/store/recordStore';
+import { useSignedMemoryImage } from '../src/hooks/useSignedMemoryImage';
 import { TodayPhotoSection } from '../src/screens/Main/components/LoggedInHome/TodayPhotoSection';
 
 jest.mock('../src/services/home/homeRecall', () => ({
   pickTodayPhoto: jest.fn(),
 }));
 jest.mock('../src/hooks/useSignedMemoryImage', () => ({
-  useSignedMemoryImage: () => ({
-    signedUrl: 'https://example.test/photo.jpg',
-    loading: false,
-    resolved: true,
-  }),
+  useSignedMemoryImage: jest.fn(),
 }));
 jest.mock('../src/app/ui/AppText', () => 'AppText');
 jest.mock('../src/app/providers/AppFontPreferenceProvider', () => ({
@@ -29,6 +26,7 @@ jest.mock('../src/app/providers/AppFontPreferenceProvider', () => ({
 }));
 
 const pick = jest.mocked(pickTodayPhoto);
+const signedImage = jest.mocked(useSignedMemoryImage);
 const emptyRecords: MemoryRecord[] = [];
 const photo: MemoryRecord = {
   id: 'real-photo-record',
@@ -51,7 +49,16 @@ function deferred<T>() {
 }
 
 describe('Today photo confirmed-empty contract', () => {
-  beforeEach(() => pick.mockReset());
+  beforeEach(() => {
+    pick.mockReset();
+    signedImage
+      .mockReset()
+      .mockReturnValue({
+        signedUrl: 'https://example.test/photo.jpg',
+        loading: false,
+        resolved: true,
+      });
+  });
   const action = jest.fn();
   const detail = jest.fn();
   const render = (
@@ -124,7 +131,7 @@ describe('Today photo confirmed-empty contract', () => {
     await act(async () => renderer.unmount());
   });
 
-  it('keeps the real photo, date overlay and detail navigation', async () => {
+  it('keeps the real photo and date with an independent album caption and detail navigation', async () => {
     pick.mockResolvedValue({ record: photo, mode: 'random' });
     let renderer!: TestRenderer.ReactTestRenderer;
     await act(async () => {
@@ -133,11 +140,64 @@ describe('Today photo confirmed-empty contract', () => {
     expect(renderer.root.findByType(Image).props.source).toEqual({
       uri: 'https://example.test/photo.jpg',
     });
+    expect(JSON.stringify(renderer.toJSON())).toContain('실제 사진 기록');
+    expect(JSON.stringify(renderer.toJSON())).toContain('2026.10.01');
+    expect(JSON.stringify(renderer.toJSON())).not.toContain('rgba(0,0,0,0.14)');
     renderer.root.findByType(TouchableOpacity).props.onPress();
     expect(detail).toHaveBeenCalledWith(photo.id);
     expect(
       renderer.root.findAllByProps({ testID: 'home-photo-empty' }),
     ).toHaveLength(0);
+    await act(async () => renderer.unmount());
+  });
+
+  it.each(['pending', 'missing-url', 'download-error'] as const)(
+    'keeps a real record navigable during %s',
+    async state => {
+      pick.mockResolvedValue({ record: photo, mode: 'random' });
+      if (state === 'pending')
+        signedImage.mockReturnValue({
+          signedUrl: null,
+          loading: true,
+          resolved: false,
+        });
+      if (state === 'missing-url')
+        signedImage.mockReturnValue({
+          signedUrl: null,
+          loading: false,
+          resolved: true,
+        });
+      let renderer!: TestRenderer.ReactTestRenderer;
+      await act(async () => {
+        renderer = TestRenderer.create(render('ready', [photo]));
+      });
+      if (state === 'download-error') {
+        await act(async () => renderer.root.findByType(Image).props.onError());
+      }
+      const output = JSON.stringify(renderer.toJSON());
+      expect(output).toContain('실제 사진 기록');
+      expect(output).not.toContain('home-photo-empty');
+      if (state !== 'pending')
+        expect(output).toContain('사진을 불러오지 못했어요.');
+      renderer.root.findByType(TouchableOpacity).props.onPress();
+      expect(detail).toHaveBeenCalledWith(photo.id);
+      await act(async () => renderer.unmount());
+    },
+  );
+
+  it('resets image failure when the selected record image identity changes', async () => {
+    pick.mockResolvedValue({ record: photo, mode: 'random' });
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = TestRenderer.create(render('ready', [photo]));
+    });
+    await act(async () => renderer.root.findByType(Image).props.onError());
+    expect(renderer.root.findAllByType(Image)).toHaveLength(0);
+    const changed = { ...photo, imagePaths: ['pet-a/replaced.jpg'] };
+    pick.mockResolvedValue({ record: changed, mode: 'random' });
+    await act(async () => renderer.update(render('ready', [changed])));
+    expect(renderer.root.findAllByType(Image)).toHaveLength(1);
+    expect(signedImage).toHaveBeenLastCalledWith('pet-a/replaced.jpg');
     await act(async () => renderer.unmount());
   });
 

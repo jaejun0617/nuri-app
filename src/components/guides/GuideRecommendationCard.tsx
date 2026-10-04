@@ -64,7 +64,7 @@ function GuideRecommendationCardBase({
         >
           <Feather
             name={getGuideCategoryIconName(guide.category)}
-            size={28}
+            size={22}
             color={accentColor}
           />
         </LinearGradient>

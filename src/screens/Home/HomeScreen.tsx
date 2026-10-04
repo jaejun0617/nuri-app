@@ -40,7 +40,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useCommunityStore } from '../../store/communityStore';
 import { usePetStore } from '../../store/petStore';
 import { getSeasonalSplashVisual } from '../../theme/seasonal/assets';
-import { getSeasonalThemeKey } from '../../theme/seasonal/season';
+import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Splash'>;
 
@@ -75,7 +75,7 @@ export default function HomeScreen() {
   const { height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
-  const season = useMemo(() => getSeasonalThemeKey(), []);
+  const season = useEffectiveSeason();
   const seasonalVisual = useMemo(
     () => getSeasonalSplashVisual(season),
     [season],

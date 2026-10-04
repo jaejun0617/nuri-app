@@ -64,6 +64,8 @@ import {
   SCHEDULE_WRITE_CATEGORY_OPTIONS,
   SCHEDULE_WRITE_OTHER_UI_SUBCATEGORY_OPTIONS,
   toScheduleDateInput,
+  buildScheduleStartsAtIso,
+  getScheduleFormDateTime,
   type ScheduleOtherUiSubCategoryKey,
   type ScheduleReminderOptionKey,
 } from '../../services/schedules/form';
@@ -145,10 +147,8 @@ export default function ScheduleEditScreen() {
   const hasUnsavedChanges = useMemo(() => {
     if (!schedule) return false;
 
-    const startsAt = new Date(schedule.startsAt);
-    const nextDateText = toScheduleDateInput(startsAt);
-    const nextTimeText =
-      `${`${startsAt.getHours()}`.padStart(2, '0')}:${`${startsAt.getMinutes()}`.padStart(2, '0')}`;
+    const { dateText: nextDateText, timeText: nextTimeText } =
+      getScheduleFormDateTime(schedule.startsAt, schedule.allDay);
 
     return (
       title.trim() !== schedule.title.trim() ||
@@ -218,14 +218,12 @@ export default function ScheduleEditScreen() {
       try {
         const next = await fetchScheduleById(scheduleId);
         if (!request.isCurrent(requestId)) return;
-        const startsAt = new Date(next.startsAt);
+        const formDateTime = getScheduleFormDateTime(next.startsAt, next.allDay);
         setSchedule(next);
         setTitle(next.title);
         setNote(next.note ?? '');
-        setDateText(toScheduleDateInput(startsAt));
-        setTimeText(
-          `${`${startsAt.getHours()}`.padStart(2, '0')}:${`${startsAt.getMinutes()}`.padStart(2, '0')}`,
-        );
+        setDateText(formDateTime.dateText);
+        setTimeText(formDateTime.timeText);
         setAllDay(next.allDay);
         setCategory(next.category);
         setOtherUiSubCategoryKey(
@@ -335,10 +333,7 @@ export default function ScheduleEditScreen() {
     try {
       setSaving(true);
       const normalizedDate = normalizeScheduleDateInput(dateText);
-      const startsAt = allDay
-        ? `${normalizedDate}T00:00:00`
-        : `${normalizedDate}T${normalizeScheduleTimeInput(timeText)}:00`;
-      const startsAtIso = new Date(startsAt).toISOString();
+      const startsAtIso = buildScheduleStartsAtIso(normalizedDate, timeText, allDay);
       const reminderMinutes = buildReminderMinutesFromSelection({
         reminderKey,
         customReminderMinutesText,
@@ -457,13 +452,11 @@ export default function ScheduleEditScreen() {
       if (reminderKey === 'none') return [];
       try {
         const normalizedDate = normalizeScheduleDateInput(dateText);
-        const startsAt = allDay
-          ? `${normalizedDate}T00:00:00`
-          : `${normalizedDate}T${normalizeScheduleTimeInput(timeText)}:00`;
+        const startsAt = buildScheduleStartsAtIso(normalizedDate, timeText, allDay);
         return buildReminderMinutesFromSelection({
           reminderKey,
           customReminderMinutesText,
-          startsAt: new Date(startsAt).toISOString(),
+          startsAt,
         });
       } catch {
         return [];

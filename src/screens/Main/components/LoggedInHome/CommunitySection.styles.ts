@@ -63,6 +63,7 @@ export const styles = StyleSheet.create({
     gap: 14,
     borderRadius: 10,
   },
+  featuredRow: { paddingTop: 14, paddingBottom: 20, alignItems: 'flex-start' },
   position: {
     width: 30,
     textAlign: 'center',
@@ -76,10 +77,11 @@ export const styles = StyleSheet.create({
     gap: 6,
   },
   featuredTitle: {
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 22,
+    lineHeight: 30,
     fontWeight: '600',
   },
+  excerpt: { fontSize: 14, lineHeight: 21 },
   supportTitle: {
     fontSize: 15,
     lineHeight: 21,
@@ -103,7 +105,7 @@ export const styles = StyleSheet.create({
   },
   separator: {
     height: 1,
-    marginLeft: 44,
+    marginLeft: 0,
     opacity: 0.8,
   },
   allButton: {

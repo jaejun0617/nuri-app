@@ -17,7 +17,7 @@ describe('Weather Home enlarged text flow', () => {
       width, height: 800, scale: 3, fontScale,
     });
     const onPress = jest.fn();
-    const weather = buildWeatherGuideBundleForScenario('fresh', '일산3동');
+    const weather = { ...buildWeatherGuideBundleForScenario('fresh', '일산3동'), windSpeed: 13.5 };
     let renderer!: TestRenderer.ReactTestRenderer;
     await act(async () => {
       renderer = TestRenderer.create(
@@ -37,6 +37,8 @@ describe('Weather Home enlarged text flow', () => {
       node.props.children === `${weather.windSpeed}m/s`,
     );
     expect(wind?.props.numberOfLines).toBe(fontScale > 1 ? undefined : 1);
+    expect(wind?.props.children).toBe('13.5m/s');
+    expect(StyleSheet.flatten(wind?.parent?.props.style).flexShrink).toBe(0);
     const metrics = renderer.root.findAllByType(View).filter(node =>
       StyleSheet.flatten(node.props.style)?.width === '50%',
     );

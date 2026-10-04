@@ -62,6 +62,7 @@ import {
   SCHEDULE_WRITE_CATEGORY_OPTIONS,
   SCHEDULE_WRITE_OTHER_UI_SUBCATEGORY_OPTIONS,
   toScheduleDateInput,
+  buildScheduleStartsAtIso,
   type ScheduleOtherUiSubCategoryKey,
   type ScheduleReminderOptionKey,
 } from '../../services/schedules/form';
@@ -331,11 +332,7 @@ export default function ScheduleCreateScreen() {
       setSaving(true);
 
       const normalizedDate = normalizeScheduleDateInput(dateText);
-      const startsAt = allDay
-        ? `${normalizedDate}T00:00:00`
-        : `${normalizedDate}T${normalizeScheduleTimeInput(timeText)}:00`;
-
-      const startsAtIso = new Date(startsAt).toISOString();
+      const startsAtIso = buildScheduleStartsAtIso(normalizedDate, timeText, allDay);
       const reminderMinutes = buildReminderMinutesFromSelection({
         reminderKey,
         customReminderMinutesText,
@@ -435,13 +432,11 @@ export default function ScheduleCreateScreen() {
       if (reminderKey === 'none') return [];
       try {
         const normalizedDate = normalizeScheduleDateInput(dateText);
-        const startsAt = allDay
-          ? `${normalizedDate}T00:00:00`
-          : `${normalizedDate}T${normalizeScheduleTimeInput(timeText)}:00`;
+        const startsAt = buildScheduleStartsAtIso(normalizedDate, timeText, allDay);
         return buildReminderMinutesFromSelection({
           reminderKey,
           customReminderMinutesText,
-          startsAt: new Date(startsAt).toISOString(),
+          startsAt,
         });
       } catch {
         return [];

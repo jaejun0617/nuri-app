@@ -1,5 +1,12 @@
 import React, { memo, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Image,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
+} from 'react-native';
+import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../../../app/ui/AppText';
@@ -25,6 +32,7 @@ import {
   type HomeEmptyDataState,
 } from './HomeEmptySectionState';
 import { styles } from './LoggedInHome.styles';
+import { resolveHomePopulatedLayout } from './homePopulatedLayout';
 
 type Selection = {
   petId: string | null;
@@ -43,6 +51,118 @@ type Props = {
   accentColor: string;
 };
 
+const PhotoMemory = memo(function PhotoMemoryView({
+  record,
+  onPress,
+  accentColor,
+}: {
+  record: MemoryRecord;
+  onPress: (memoryId: string) => void;
+  accentColor: string;
+}) {
+  const theme = useTheme();
+  const { width, fontScale } = useWindowDimensions();
+  const { signedUrl, loading, resolved } = useSignedMemoryImage(
+    getPrimaryMemoryImageRef(record),
+  );
+  const [imageResult, setImageResult] = useState<{
+    uri: string;
+    status: 'loaded' | 'error';
+  } | null>(null);
+  const imageFailed = Boolean(
+    signedUrl &&
+      imageResult?.uri === signedUrl &&
+      imageResult.status === 'error',
+  );
+  const imageLoaded = Boolean(
+    signedUrl &&
+      imageResult?.uri === signedUrl &&
+      imageResult.status === 'loaded',
+  );
+  const failed = imageFailed || (resolved && !loading && !signedUrl);
+  const dateLabel = useMemo(
+    () =>
+      formatYmdWithWeekday(getRecordDisplayYmd(record), {
+        separator: '.',
+        suffix: true,
+      }) ?? formatRecordDisplayDate(record),
+    [record],
+  );
+
+  return (
+    <TouchableOpacity
+      testID="home-today-photo-record"
+      accessibilityRole="button"
+      accessibilityLabel={`오늘 한장, ${record.title}, ${dateLabel}, 사진 기록 상세 보기`}
+      activeOpacity={0.92}
+      style={[styles.photoCard, { borderColor: theme.colors.border }]}
+      onPress={() => onPress(record.id)}
+    >
+      <View
+        style={[
+          styles.photoViewport,
+          { height: resolveHomePopulatedLayout(width, fontScale).photoHeight },
+        ]}
+      >
+        {signedUrl && !failed ? (
+          <Image
+            testID="home-today-photo-image"
+            source={{ uri: signedUrl }}
+            style={styles.photoImage}
+            resizeMode="cover"
+            fadeDuration={250}
+            accessible={false}
+            onLoad={() => setImageResult({ uri: signedUrl, status: 'loaded' })}
+            onError={() => setImageResult({ uri: signedUrl, status: 'error' })}
+          />
+        ) : null}
+        {!imageLoaded || failed ? (
+          <View
+            style={styles.photoImageState}
+            accessibilityRole={failed ? 'text' : 'progressbar'}
+          >
+            {failed ? (
+              <>
+                <Feather name="image" size={28} color={accentColor} />
+                <AppText
+                  preset="unifiedBody"
+                  align="center"
+                  color={theme.colors.textMuted}
+                >
+                  사진을 불러오지 못했어요.{'\n'}기록에서 다시 확인해 주세요.
+                </AppText>
+              </>
+            ) : (
+              <ActivityIndicator size="small" color={accentColor} />
+            )}
+          </View>
+        ) : null}
+      </View>
+      <View style={styles.photoCaption}>
+        {record.title.trim() ? (
+          <AppText
+            preset="cardTitle"
+            numberOfLines={2}
+            color={theme.colors.textPrimary}
+          >
+            {record.title}
+          </AppText>
+        ) : null}
+        <View style={styles.photoCaptionMeta}>
+          <AppText
+            preset="unifiedDate"
+            style={styles.photoDate}
+            color={theme.colors.textMuted}
+          >
+            {dateLabel}
+          </AppText>
+          <Feather name="arrow-up-right" size={18} color={accentColor} />
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+});
+
 export const TodayPhotoSection = memo(function TodayPhotoSectionView({
   activePetId,
   recordItems,
@@ -52,13 +172,15 @@ export const TodayPhotoSection = memo(function TodayPhotoSectionView({
   onPressRecord,
   accentColor,
 }: Props) {
-  const theme = useTheme();
   const [selection, setSelection] = useState<Selection | null>(null);
 
   useEffect(() => {
     const request = createLatestRequestController();
     const requestId = request.begin();
-    const update = (status: HomeEmptyDataState, record: MemoryRecord | null) => {
+    const update = (
+      status: HomeEmptyDataState,
+      record: MemoryRecord | null,
+    ) => {
       if (request.isCurrent(requestId)) {
         setSelection({
           petId: activePetId,
@@ -68,7 +190,10 @@ export const TodayPhotoSection = memo(function TodayPhotoSectionView({
         });
       }
     };
-    if (!activePetId || (recordStatus !== 'ready' && recordItems.length === 0)) {
+    if (
+      !activePetId ||
+      (recordStatus !== 'ready' && recordItems.length === 0)
+    ) {
       update(recordStatus === 'error' ? 'error' : 'loading', null);
     } else {
       // Existing daily selection/cache remains the source of truth for real photos.
@@ -92,19 +217,6 @@ export const TodayPhotoSection = memo(function TodayPhotoSectionView({
       : recordStatus === 'ready' && current?.status === 'ready'
       ? 'ready'
       : 'loading';
-  const { signedUrl, loading } = useSignedMemoryImage(
-    record ? getPrimaryMemoryImageRef(record) : null,
-  );
-  const dateLabel = useMemo(
-    () =>
-      record
-        ? formatYmdWithWeekday(getRecordDisplayYmd(record), {
-            separator: '.',
-            suffix: true,
-          }) ?? formatRecordDisplayDate(record)
-        : '',
-    [record],
-  );
 
   return (
     <HomeSectionGlass
@@ -120,46 +232,14 @@ export const TodayPhotoSection = memo(function TodayPhotoSectionView({
           accentDeepColor={accentColor}
           onPressAction={onPressRecord}
         />
-      ) : (
-        <TouchableOpacity
-          testID="home-today-photo-record"
-          accessibilityRole="button"
-          accessibilityLabel="오늘 한장, 사진 기록 상세 보기"
-          activeOpacity={0.92}
-          style={[styles.photoCard, { borderColor: theme.colors.border }]}
-          onPress={() => {
-            if (record) onPressRecordItem(record.id);
-          }}
-        >
-          {loading ? (
-            <View
-              style={[
-                styles.photoPlaceholder,
-                { justifyContent: 'center', alignItems: 'center' },
-              ]}
-            >
-              <ActivityIndicator size="large" color="#fff" />
-            </View>
-          ) : signedUrl ? (
-            <Image
-              source={{ uri: signedUrl }}
-              style={styles.photoImage}
-              fadeDuration={250}
-            />
-          ) : (
-            <View style={styles.photoPlaceholder} />
-          )}
-          <View style={styles.photoOverlay}>
-            <AppText
-              preset="unifiedDate"
-              style={styles.photoOverlayDate}
-              numberOfLines={1}
-            >
-              {dateLabel}
-            </AppText>
-          </View>
-        </TouchableOpacity>
-      )}
+      ) : record ? (
+        <PhotoMemory
+          key={`${record.id}:${getPrimaryMemoryImageRef(record)}`}
+          record={record}
+          accentColor={accentColor}
+          onPress={onPressRecordItem}
+        />
+      ) : null}
     </HomeSectionGlass>
   );
 });

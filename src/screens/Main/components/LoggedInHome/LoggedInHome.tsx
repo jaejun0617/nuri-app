@@ -41,7 +41,6 @@ import type { CompositeNavigationProp } from '@react-navigation/native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme } from 'styled-components/native';
 import Feather from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
@@ -81,8 +80,6 @@ import {
   getRecordCategoryMeta,
   getMemoryCategoryChipTone,
   readRecordCategoryRaw,
-  type MemoryMainCategory,
-  type MemoryOtherSubCategory,
 } from '../../../../services/memories/categoryMeta';
 import { getPrimaryMemoryImageRef } from '../../../../services/records/imageSources';
 import { useAuthStore } from '../../../../store/authStore';
@@ -105,6 +102,7 @@ import {
 } from './HomeEmptySectionState';
 import { HomeSeasonReviewControls } from './HomeSeasonReviewControls';
 import { TodayPhotoSection } from './TodayPhotoSection';
+import { HomeHealthActivityList, HomeScheduleList } from './HomePopulatedLists';
 import { TotalSummarySection } from './TotalSummarySection';
 import {
   RecentRecordsEmptyState,
@@ -130,10 +128,9 @@ import {
   getSeasonalHomeVisual,
   type SeasonalHomeVisual,
 } from '../../../../theme/seasonal/home';
-import {
-  getSeasonalThemeKey,
-  type SeasonKey,
-} from '../../../../theme/seasonal/season';
+import type { SeasonKey } from '../../../../theme/seasonal/season';
+import { useSeasonPreference } from '../../../../app/providers/SeasonPreferenceProvider';
+import { captureMonitoringException } from '../../../../services/monitoring/sentry';
 import { getSeasonalWeatherVisualTheme } from '../../../../theme/seasonal/weather';
 
 import {
@@ -161,12 +158,6 @@ import {
   isHealthSchedule,
   type HealthActivityItem,
 } from '../../../../services/health-report/viewModel';
-import {
-  formatScheduleDateLabel,
-  getScheduleColorPalette,
-  mapScheduleIconName,
-  mapScheduleToMemoryCategory,
-} from '../../../../services/schedules/presentation';
 import { buildPetThemePalette } from '../../../../services/pets/themePalette';
 import {
   buildFrequentRecordSummary,
@@ -226,7 +217,6 @@ import { getGuideRotationWindowKey } from '../../../../services/guides/rotation'
 import { recordPetCareGuideEvents } from '../../../../services/guides/service';
 import {
   diffDaysFromKst,
-  formatYmdToDots,
   formatYmdWithWeekday,
   getMonthKeyFromYmd,
   getMonthKeyInKst,
@@ -273,20 +263,7 @@ type TimelineMainCategory = NonNullable<
 type TimelineOtherSubCategory = NonNullable<
   TimelineStackParamList['TimelineMain']
 >['otherSubCategory'];
-type HomeMainCategory = Exclude<MemoryMainCategory, 'all'>;
-type HomeOtherSubCategory = MemoryOtherSubCategory;
 type ProfileAccordionKey = 'hobby' | 'like' | 'dislike' | 'tag';
-
-type WeeklyScheduleItem = {
-  key: string;
-  dateLabel: string;
-  title: string;
-  subtitle: string;
-  icon: string;
-  tint: string;
-  mainCategory: HomeMainCategory;
-  otherSubCategory?: HomeOtherSubCategory;
-};
 
 type HomeRecentPreviewItem = {
   record: MemoryRecord;
@@ -498,25 +475,6 @@ const HomeRecentRecordRow = React.memo(function HomeRecentRecordRow({
     </TouchableOpacity>
   );
 });
-
-function buildScheduleCard(schedule: PetSchedule): WeeklyScheduleItem {
-  const category = mapScheduleToMemoryCategory(schedule);
-  const palette = getScheduleColorPalette(schedule.colorKey);
-  return {
-    key: schedule.id,
-    dateLabel: formatScheduleDateLabel(schedule),
-    title: schedule.title,
-    subtitle:
-      schedule.note?.trim() ||
-      (schedule.allDay
-        ? '하루 일정으로 저장된 항목이에요'
-        : '예정된 일정이에요'),
-    icon: mapScheduleIconName(schedule.iconKey),
-    tint: palette.tint,
-    mainCategory: category.mainCategory,
-    otherSubCategory: category.otherSubCategory,
-  };
-}
 
 const EMPTY_RECORD_ITEMS: MemoryRecord[] = [];
 Object.freeze(EMPTY_RECORD_ITEMS);
@@ -2734,7 +2692,6 @@ const ScheduleSection = React.memo(function ScheduleSection({
   accentColor,
   accentDeepColor,
   accentTint,
-  accentBorder,
 }: {
   scheduleItems: PetSchedule[];
   isReady: boolean;
@@ -2746,11 +2703,9 @@ const ScheduleSection = React.memo(function ScheduleSection({
   accentColor: string;
   accentDeepColor: string;
   accentTint: string;
-  accentBorder: string;
 }) {
-  const theme = useTheme();
-  const weekScheduleItems = useMemo<WeeklyScheduleItem[]>(() => {
-    return scheduleItems.slice(0, 7).map(buildScheduleCard);
+  const weekScheduleItems = useMemo(() => {
+    return scheduleItems.slice(0, 7);
   }, [scheduleItems]);
 
   return (
@@ -2774,72 +2729,8 @@ const ScheduleSection = React.memo(function ScheduleSection({
           onPressAction={onPressScheduleCreate}
         />
       ) : (
-        <View style={styles.scheduleList}>
-          {weekScheduleItems.map(item => (
-            <TouchableOpacity
-              key={item.key}
-              activeOpacity={0.92}
-              style={[
-                styles.scheduleCard,
-                { borderColor: theme.colors.border },
-              ]}
-              onPress={onPressScheduleList}
-            >
-              <View
-                style={[
-                  styles.scheduleDateBadge,
-                  { backgroundColor: accentTint },
-                ]}
-              >
-                <AppText preset="unifiedDate" style={styles.scheduleDateText}>
-                  {item.dateLabel}
-                </AppText>
-              </View>
-
-              <View style={styles.scheduleBody}>
-                <View
-                  style={[
-                    styles.scheduleIconWrap,
-                    {
-                      backgroundColor: accentColor,
-                      borderColor: accentBorder,
-                    },
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name={item.icon}
-                    size={18}
-                    color="#FFFFFF"
-                  />
-                </View>
-
-                <View style={styles.scheduleTextCol}>
-                  <AppText preset="unifiedLabel" style={styles.scheduleTitle}>
-                    {item.title}
-                  </AppText>
-                  {activeScheduleIds.has(item.key) ? (
-                    <AppText preset="unifiedMicro" color={accentColor}>
-                      알람 울리는 중
-                    </AppText>
-                  ) : null}
-                  <AppText
-                    preset="unifiedBody"
-                    style={styles.scheduleSub}
-                    numberOfLines={2}
-                  >
-                    {item.subtitle}
-                  </AppText>
-                </View>
-
-                <Feather
-                  name="chevron-right"
-                  size={18}
-                  color="rgba(85,96,112,0.48)"
-                />
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <HomeScheduleList items={weekScheduleItems} activeScheduleIds={activeScheduleIds}
+          accentColor={accentColor} accentTint={accentTint} onPress={onPressScheduleList} />
       )}
 
       {weekScheduleItems.length > 0 ? (
@@ -2859,24 +2750,6 @@ const ScheduleSection = React.memo(function ScheduleSection({
     </HomeSectionGlass>
   );
 });
-
-function getHealthActivityKindLabel(kind: HealthActivityItem['kind']) {
-  switch (kind) {
-    case 'hospital':
-      return '병원';
-    case 'medicine':
-      return '약';
-    case 'checkup':
-      return '검진';
-    case 'vaccine':
-      return '접종';
-    case 'symptom':
-      return '증상';
-    case 'health':
-    default:
-      return '건강';
-  }
-}
 
 const HealthRecentActivitiesSection = React.memo(
   function HealthRecentActivitiesSection({
@@ -2898,7 +2771,6 @@ const HealthRecentActivitiesSection = React.memo(
     accentColor: string;
     accentDeepColor: string;
   }) {
-    const theme = useTheme();
     const recentActivities = useMemo(
       () => activityItems.slice(0, 5),
       [activityItems],
@@ -2925,54 +2797,7 @@ const HealthRecentActivitiesSection = React.memo(
             onPressAction={onPressHealthReport}
           />
         ) : (
-          <View style={styles.activityList}>
-            {recentActivities.map(item => (
-              <TouchableOpacity
-                key={item.id}
-                activeOpacity={0.92}
-                style={[
-                  styles.activityRow,
-                  { borderColor: theme.colors.border },
-                ]}
-                onPress={() => onPressActivityItem(item.ymd)}
-              >
-                <View
-                  style={[
-                    styles.activityIconWrap,
-                    { backgroundColor: `${accentColor}14` },
-                  ]}
-                >
-                  <Feather
-                    name={item.iconName as never}
-                    size={17}
-                    color={accentColor}
-                  />
-                </View>
-
-                <View style={styles.activityTextCol}>
-                  <AppText
-                    preset="unifiedLabel"
-                    style={styles.activityTitle}
-                    numberOfLines={1}
-                  >
-                    {item.title?.trim() ||
-                      getHealthActivityKindLabel(item.kind)}
-                  </AppText>
-                  <AppText
-                    preset="unifiedBody"
-                    style={styles.activitySub}
-                    numberOfLines={1}
-                  >
-                    {getHealthActivityKindLabel(item.kind)} · {item.subtitle}
-                  </AppText>
-                </View>
-
-                <AppText preset="unifiedBody" style={styles.activityTime}>
-                  {formatYmdToDots(item.ymd) ?? item.ymd}
-                </AppText>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <HomeHealthActivityList items={recentActivities} accentColor={accentColor} onPress={onPressActivityItem} />
         )}
       </HomeSectionGlass>
     );
@@ -3064,12 +2889,18 @@ export default function LoggedInHome() {
   const insets = useSafeAreaInsets();
   const bottomTabBarHeight = useBottomTabBarHeight();
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
-  const [reviewSeason, setReviewSeason] = useState<SeasonKey | null>(null);
-  const ambientSeason = reviewSeason ?? getSeasonalThemeKey();
+  const { season: ambientSeason, setOverride: setSeasonOverride } = useSeasonPreference();
+  const setReviewSeason = useCallback((season: SeasonKey) => {
+    setSeasonOverride(season).catch(captureMonitoringException);
+  }, [setSeasonOverride]);
   // Seasonal atmosphere is independent of the approved logo, copy and Weather UI.
   const seasonalHomeVisual = useMemo(
     () => getSeasonalHomeVisual(HOME_FOREGROUND_UI_SEASON),
     [],
+  );
+  const profileSheetVisual = useMemo(
+    () => getSeasonalHomeVisual(ambientSeason),
+    [ambientSeason],
   );
   const heroAvatarDiameter = seasonalHomeVisual
     ? Math.min(176, Math.max(146, Math.round(windowWidth * 0.41)))
@@ -4421,7 +4252,6 @@ export default function LoggedInHome() {
             accentColor={petTheme.primary}
             accentDeepColor={petTheme.deep}
             accentTint={petTheme.tint}
-            accentBorder={petTheme.border}
           />
         </View>
         <View onLayout={ambientSectionLayoutHandlers.health}>
@@ -4466,7 +4296,7 @@ export default function LoggedInHome() {
   // ---------------------------------------------------------
   return (
     <HomeSeasonProvider
-      season={seasonalHomeVisual?.season ?? getSeasonalThemeKey()}
+      season={HOME_FOREGROUND_UI_SEASON}
     >
       <Screen style={styles.screen}>
         <HomeSeasonReviewControls
@@ -4572,10 +4402,10 @@ export default function LoggedInHome() {
           likes={likes}
           dislikes={dislikes}
           tags={tags}
-          season={seasonalHomeVisual?.season ?? null}
-          seasonalOrnamentSheet={seasonalHomeVisual?.ornamentSheet ?? null}
+          season={ambientSeason}
+          seasonalOrnamentSheet={profileSheetVisual?.ornamentSheet ?? null}
           profileSheetBackground={
-            seasonalHomeVisual?.profileSheetBackground ?? null
+            profileSheetVisual?.profileSheetBackground ?? null
           }
           onCloseComplete={closeProfileInfoSheet}
         />

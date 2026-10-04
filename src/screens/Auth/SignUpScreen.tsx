@@ -55,7 +55,7 @@ import {
   getSeasonalSignupVisual,
   type SeasonalSignupVisual,
 } from '../../theme/seasonal/signup';
-import { getSeasonalThemeKey } from '../../theme/seasonal/season';
+import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
 
 import { styles } from './SignUpScreen.styles';
 
@@ -385,7 +385,7 @@ export default function SignUpScreen() {
   const { width: viewportWidth } = useWindowDimensions();
   const setSession = useAuthStore(s => s.setSession);
 
-  const season = useMemo(() => getSeasonalThemeKey(), []);
+  const season = useEffectiveSeason();
   const seasonalVisual = useMemo(
     () => getSeasonalSignupVisual(season),
     [season],

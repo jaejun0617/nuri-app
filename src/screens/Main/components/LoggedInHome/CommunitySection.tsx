@@ -6,6 +6,7 @@
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
+import Feather from 'react-native-vector-icons/Feather';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../../../app/ui/AppText';
@@ -92,6 +93,7 @@ const PostRow = memo(function PostRow({
   const theme = useTheme();
   const title = useMemo(() => resolveCommunityPostTitle(post), [post]);
   const category = resolveCommunityPostCategoryLabel(post);
+  const excerpt = post.content.trim();
 
   const handlePress = useCallback(() => {
     onPress(post.id);
@@ -99,31 +101,27 @@ const PostRow = memo(function PostRow({
 
   return (
     <Pressable
+      testID={`home-community-${featured ? 'featured' : 'support'}-${post.id}`}
       accessibilityRole="button"
       accessibilityLabel={getPostAccessibilityLabel(post, position)}
       android_ripple={{ color: `${accentColor}12` }}
       onPress={handlePress}
       style={({ pressed }) => [
         styles.postRow,
+        featured && styles.featuredRow,
         {
           backgroundColor: pressed ? `${accentColor}08` : 'transparent',
           borderColor: accentBorder || theme.colors.border,
         },
       ]}
     >
-      <AppText
-        preset="titleMd"
-        accessibilityElementsHidden
-        importantForAccessibility="no"
-        style={[styles.position, { color: accentColor }]}
-      >
-        {position}
-      </AppText>
-
       <View style={styles.postBody} pointerEvents="none">
+        {featured && category ? (
+          <AppText preset="caption" style={[styles.category, { color: accentColor }]}>{category}</AppText>
+        ) : null}
         <AppText
           preset="cardTitle"
-          numberOfLines={2}
+          numberOfLines={featured ? 3 : 2}
           ellipsizeMode="tail"
           style={[
             featured ? styles.featuredTitle : styles.supportTitle,
@@ -132,8 +130,11 @@ const PostRow = memo(function PostRow({
         >
           {title}
         </AppText>
+        {featured && post.title?.trim() && excerpt && excerpt !== title ? (
+          <AppText preset="body" numberOfLines={2} style={styles.excerpt} color={theme.colors.textMuted}>{excerpt}</AppText>
+        ) : null}
         <View style={styles.metadata}>
-          {category ? (
+          {!featured && category ? (
             <AppText
               preset="caption"
               numberOfLines={1}
@@ -158,6 +159,7 @@ const PostRow = memo(function PostRow({
           </AppText>
         </View>
       </View>
+      <Feather name="chevron-right" size={18} color={accentColor} />
 
     </Pressable>
   );
@@ -230,7 +232,7 @@ const CommunitySection = memo(function CommunitySection({
   isFocused,
   season,
   accentColor,
-  accentTint,
+  accentTint: _accentTint,
   accentBorder,
   onPressPost,
   onPressAll,
@@ -344,18 +346,13 @@ const CommunitySection = memo(function CommunitySection({
                 onPress={() => handleTabPress(option.key)}
                 style={styles.pillTouch}
               >
-                {({ pressed }) => (
                   <View
                     style={[
                       styles.pillVisual,
                       {
                         backgroundColor: isActive
-                          ? pressed
-                            ? `${accentColor}E6`
-                            : accentColor
-                          : pressed
-                            ? accentTint
-                            : theme.colors.surfaceElevated,
+                          ? accentColor
+                          : theme.colors.surfaceElevated,
                         borderColor: isActive ? accentColor : borderColor,
                       },
                     ]}
@@ -370,7 +367,6 @@ const CommunitySection = memo(function CommunitySection({
                       {option.label}
                     </AppText>
                   </View>
-                )}
               </Pressable>
             );
           })}

@@ -12,6 +12,8 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { ASSETS } from '../../assets';
+import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
+import { getSeasonalOnboardingVisual } from '../../theme/seasonal/onboarding';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { styles } from './WelcomeTransitionScreen.styles';
 
@@ -73,6 +75,8 @@ const LoadingDot = memo(function LoadingDotView({
 });
 
 export default function WelcomeTransitionScreen() {
+  const season = useEffectiveSeason();
+  const seasonalVisual = getSeasonalOnboardingVisual(season);
   const navigation = useNavigation<Nav>();
   const entranceProgress = useRef(new Animated.Value(0)).current;
   const dotProgress = useRef(new Animated.Value(0)).current;
@@ -157,7 +161,7 @@ export default function WelcomeTransitionScreen() {
         accessibilityIgnoresInvertColors
         pointerEvents="none"
         resizeMode="cover"
-        source={ASSETS.postRegistrationLoadingBackground}
+        source={seasonalVisual.loadingBackground}
         style={styles.backgroundImage}
       />
       <View pointerEvents="none" style={styles.readabilityVeil} />

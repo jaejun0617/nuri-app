@@ -25,7 +25,7 @@ describe('approved Home season contract', () => {
   afterEach(() => jest.restoreAllMocks());
 
   it('changes atmosphere without changing approved glass, remounting content or changing the calendar', async () => {
-    const calendar = jest
+    jest
       .spyOn(calendarSeason, 'getSeasonalThemeKey')
       .mockReturnValue('autumn');
     const mounted = jest.fn();
@@ -70,7 +70,6 @@ describe('approved Home season contract', () => {
     expect(mounted).toHaveBeenCalledTimes(1);
     expect(unmounted).not.toHaveBeenCalled();
     expect(calendarSeason.getSeasonalThemeKey()).toBe('autumn');
-    expect(calendar).toHaveBeenCalledTimes(1);
     await TestRenderer.act(async () => renderer.unmount());
   });
 
@@ -134,7 +133,8 @@ describe('approved Home season contract', () => {
     expect(source).not.toContain('diaryReviewSeason');
     expect(source).not.toContain('setDiaryReviewSeason');
     expect(source).not.toContain('HOME_SEASON_QA_OVERRIDE');
-    expect(source).toContain('const ambientSeason = reviewSeason ?? getSeasonalThemeKey()');
+    expect(source).toContain('season: ambientSeason, setOverride: setSeasonOverride');
+    expect(source).not.toContain('useState<SeasonKey | null>');
     expect(source).toContain('<HomeSeasonReviewControls');
     expect(source).toContain('onChange={setReviewSeason}');
     expect(source).toContain(
@@ -143,7 +143,7 @@ describe('approved Home season contract', () => {
     expect(source).toContain('season={ambientSeason}');
     expect(source).toContain('ambientSeason={ambientSeason}');
     expect(source).toContain(
-      'season={seasonalHomeVisual?.season ?? getSeasonalThemeKey()}',
+      'season={HOME_FOREGROUND_UI_SEASON}',
     );
   });
 });

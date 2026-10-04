@@ -4,10 +4,8 @@ import React, {
   type PropsWithChildren,
 } from 'react';
 
-import {
-  getSeasonalThemeKey,
-  type SeasonKey,
-} from '../../theme/seasonal/season';
+import type { SeasonKey } from '../../theme/seasonal/season';
+import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
 
 const HomeSeasonContext = createContext<SeasonKey | null>(null);
 
@@ -24,5 +22,6 @@ export function HomeSeasonProvider({
 }
 
 export function useHomeSeason(): SeasonKey {
-  return useContext(HomeSeasonContext) ?? getSeasonalThemeKey();
+  const globalSeason = useEffectiveSeason();
+  return useContext(HomeSeasonContext) ?? globalSeason;
 }

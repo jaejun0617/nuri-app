@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, ScrollView, StyleSheet, Text } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
 
@@ -97,6 +97,26 @@ function serialized(renderer: TestRenderer.ReactTestRenderer) {
 }
 
 describe('CommunitySection', () => {
+  it('keeps only the selected category fill without a retained press layer', async () => {
+    mockedFetchHomeCommunityHighlights.mockResolvedValue([]);
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => { renderer = renderSection(); });
+    for (const label of ['질문 탭', '정보 탭', '일상 탭', '자유 탭', '인기 탭', '정보 탭']) {
+      const tab = renderer.root.find(node => node.props.accessibilityLabel === label);
+      await act(async () => tab.props.onPress());
+      const tabs = ['인기 탭', '질문 탭', '정보 탭', '일상 탭', '자유 탭'].map(value =>
+        renderer.root.find(node => node.props.accessibilityLabel === value),
+      );
+      expect(tabs.filter(node => node.props.accessibilityState.selected)).toHaveLength(1);
+      for (const node of tabs) {
+        expect(typeof node.props.children).not.toBe('function');
+        expect(node.props.android_ripple).toBeUndefined();
+        const visual = node.findAllByType(View).find(value => StyleSheet.flatten(value.props.style)?.backgroundColor);
+        expect(StyleSheet.flatten(visual?.props.style).backgroundColor).toBe(node.props.accessibilityState.selected ? '#6D6AF8' : createTheme('light').colors.surfaceElevated);
+      }
+    }
+    await act(async () => renderer.unmount());
+  });
   afterEach(() => jest.restoreAllMocks());
   beforeEach(() => {
     jest.clearAllMocks();
@@ -204,7 +224,7 @@ describe('CommunitySection', () => {
     });
   });
 
-  it('keeps the approved title, pill, and post typography geometry', async () => {
+  it('keeps approved header and pills while giving the real first story more hierarchy', async () => {
     mockedFetchHomeCommunityHighlights.mockResolvedValue([makePost('one')]);
 
     let renderer!: TestRenderer.ReactTestRenderer;
@@ -231,9 +251,9 @@ describe('CommunitySection', () => {
 
     expect(title.props.preset).toBe('unifiedTitle');
     expect(renderer.root.findAll(node => node.props.name === 'message-circle')).toHaveLength(0);
-    expect(postTitle.props.numberOfLines).toBe(2);
+    expect(postTitle.props.numberOfLines).toBe(3);
     expect(StyleSheet.flatten(postTitle.props.style)).toEqual(
-      expect.objectContaining({ fontSize: 16, lineHeight: 22 }),
+      expect.objectContaining({ fontSize: 22, lineHeight: 30 }),
     );
     expect(horizontalPillScroll.props.horizontal).toBe(true);
     expect(pillTouch.minHeight).toBe(44);

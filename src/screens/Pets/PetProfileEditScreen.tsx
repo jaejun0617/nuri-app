@@ -83,7 +83,7 @@ import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
 import { openMoreDrawer, showToast } from '../../store/uiStore';
 import { getSeasonalProfileEditVisual } from '../../theme/seasonal/profileEdit';
-import { getSeasonalThemeKey } from '../../theme/seasonal/season';
+import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
 import { getKstYmd } from '../../utils/date';
 import {
   buildStickyActionPadding,
@@ -99,8 +99,6 @@ const NAME_CHANGE_LIMIT = 3;
 const NAME_CHANGE_STORAGE_KEY = 'nuri.petNameChangeCounts.v1';
 const MAX_TAGS = 10;
 const STICKY_ACTION_KEYBOARD_OFFSET = 172;
-// Device QA may temporarily select a season; production must remain AUTO.
-const PROFILE_EDIT_SEASON_QA_OVERRIDE = 'auto' as const;
 const RECOMMENDED_TAGS = [
   '#귀요미',
   '#산책왕',
@@ -306,13 +304,13 @@ export default function PetProfileEditScreen() {
     likes: 58,
     dislikes: 58,
   });
+  const effectiveSeason = useEffectiveSeason();
   const profileEditVisual = useMemo(
     () =>
       getSeasonalProfileEditVisual(
-        getSeasonalThemeKey(),
-        PROFILE_EDIT_SEASON_QA_OVERRIDE,
+        effectiveSeason,
       ),
-    [],
+    [effectiveSeason],
   );
   const seasonalStyles = useMemo(() => {
     const { palette } = profileEditVisual;

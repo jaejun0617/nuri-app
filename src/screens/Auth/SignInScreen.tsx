@@ -84,7 +84,7 @@ import {
   getSeasonalLoginVisual,
   type SeasonalLoginVisual,
 } from '../../theme/seasonal/login';
-import { getSeasonalThemeKey } from '../../theme/seasonal/season';
+import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
 
 import { styles } from './SignInScreen.styles';
 
@@ -447,7 +447,7 @@ export default function SignInScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { height: viewportHeight } = useWindowDimensions();
-  const season = useMemo(() => getSeasonalThemeKey(), []);
+  const season = useEffectiveSeason();
   const seasonalVisual = useMemo(
     () => getSeasonalLoginVisual(season),
     [season],

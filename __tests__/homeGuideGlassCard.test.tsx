@@ -7,6 +7,7 @@ import { createTheme } from '../src/app/theme/theme';
 import GuideRecommendationCard from '../src/components/guides/GuideRecommendationCard';
 import { HOME_WIDGET_MATERIAL } from '../src/components/home/HomeWidgetMaterial';
 import type { PetCareGuide } from '../src/services/guides/types';
+import Feather from 'react-native-vector-icons/Feather';
 
 const guide: PetCareGuide = {
   id: 'home-glass-guide',
@@ -55,6 +56,14 @@ async function renderCard(value: PetCareGuide = guide) {
 }
 
 describe('Home nested guide glass', () => {
+  it('reduces only the glyph by 21 percent while retaining the 60dp container', async () => {
+    const { renderer } = await renderCard();
+    const icon = renderer.root.findAllByType(Feather).find(node => node.props.name !== 'chevron-right');
+    expect(icon?.props.size).toBe(22);
+    expect(renderer.root.findAll(node => StyleSheet.flatten(node.props.style)?.width === 60).length).toBeGreaterThan(0);
+    expect(StyleSheet.flatten(renderer.root.findByType(TouchableOpacity).props.style).padding).toBe(16);
+    await act(async () => renderer.unmount());
+  });
   it('uses the same inner glass plate and non-interactive reflection as widgets', async () => {
     const { renderer, onPress } = await renderCard();
     const button = renderer.root.findByType(TouchableOpacity);

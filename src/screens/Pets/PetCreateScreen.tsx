@@ -120,10 +120,7 @@ import { uploadPetAvatar } from '../../services/supabase/storagePets';
 import { usePetStore } from '../../store/petStore';
 import { showToast } from '../../store/uiStore';
 import { getKstYmd } from '../../utils/date';
-import {
-  getSeasonalThemeKey,
-  type SeasonKey,
-} from '../../theme/seasonal/season';
+import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
 import {
   buildRegistrationActionLayout,
   clampRegistrationScrollOffset,
@@ -139,8 +136,6 @@ type Step = 1 | 2;
 type PetGender = 'male' | 'female' | 'unknown';
 
 const MAX_MULTI_ITEMS = 10;
-// Device QA may temporarily select a season; production must remain AUTO.
-const PROFILE_REGISTRATION_SEASON_QA_OVERRIDE: 'auto' | SeasonKey = 'auto';
 const PROFILE_STATUS_COPY: Record<
   PetMemorialChoice,
   { title: string; description: string }
@@ -1435,13 +1430,13 @@ export default function PetCreateScreen() {
     () => buildPetThemePalette(selectedThemeColor),
     [selectedThemeColor],
   );
+  const effectiveSeason = useEffectiveSeason();
   const registrationPresentation = useMemo(
     () =>
       getProfileRegistrationSeasonalPresentation(
-        getSeasonalThemeKey(),
-        PROFILE_REGISTRATION_SEASON_QA_OVERRIDE,
+        effectiveSeason,
       ),
-    [],
+    [effectiveSeason],
   );
   const seasonalStyles = useMemo(
     () => buildRegistrationSeasonalStyles(registrationPresentation.palette),
@@ -2380,7 +2375,7 @@ export default function PetCreateScreen() {
           onRequestClose={goToWelcomeTransition}
         >
           <View style={styles.successModalBackdrop}>
-            <View style={styles.successModalCard}>
+            <View style={[styles.successModalCard, { backgroundColor: registrationPresentation.palette.stickySurfaceColor }]}>
               <View style={styles.successLogoWrap}>
                 <Image
                   source={ASSETS.logo}

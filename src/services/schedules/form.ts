@@ -4,6 +4,7 @@
 // - 날짜/시간 검증, 반복/알림 옵션, 카테고리-서브카테고리 매핑 규칙을 중앙화
 // - ScheduleCreateScreen / ScheduleEditScreen 사이의 중복 분기를 줄여 유지보수 비용을 낮춤
 
+import { getKstDateParts } from '../../utils/date';
 import type {
   ScheduleCategory,
   ScheduleColorKey,
@@ -154,6 +155,32 @@ export function normalizeScheduleTimeInput(raw: string): string {
     throw new Error('시간 형식은 HH:MM 입니다.');
   }
   return value;
+}
+
+/** All-day dates belong to the KST calendar; timed events keep local-time input. */
+export function buildScheduleStartsAtIso(dateText: string, timeText: string, allDay: boolean): string {
+  const date = normalizeScheduleDateInput(dateText);
+  const input = allDay
+    ? `${date}T00:00:00+09:00`
+    : `${date}T${normalizeScheduleTimeInput(timeText)}:00`;
+  return new Date(input).toISOString();
+}
+
+/** Reopening an all-day form must not reinterpret its date in the device zone. */
+export function getScheduleFormDateTime(startsAt: string, allDay: boolean) {
+  const date = new Date(startsAt);
+  if (allDay) {
+    const parts = getKstDateParts(startsAt);
+    if (!parts) throw new Error('일정 날짜 정보를 확인하지 못했어요.');
+    return {
+      dateText: `${parts.year}.${String(parts.month).padStart(2, '0')}.${String(parts.day).padStart(2, '0')}`,
+      timeText: '00:00',
+    };
+  }
+  return {
+    dateText: toScheduleDateInput(date),
+    timeText: `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`,
+  };
 }
 
 export function normalizeReminderIntervalMinutes(raw: string): number {

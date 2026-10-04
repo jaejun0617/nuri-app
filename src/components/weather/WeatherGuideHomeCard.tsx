@@ -16,6 +16,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import LinearGradient from 'react-native-linear-gradient';
 
 import { HomeSectionGlassSurface } from '../home/HomeSectionGlass';
+import { resolveWeatherMetricLayout } from './weatherMetricLayout';
 
 import {
   formatWeatherPetText,
@@ -132,6 +133,7 @@ const Metric = React.memo(function WeatherMetric({
   color,
   borderRightColor,
   enlarged = false,
+  compact = false,
 }: {
   icon: string;
   label: string;
@@ -139,11 +141,13 @@ const Metric = React.memo(function WeatherMetric({
   color: string;
   borderRightColor?: string;
   enlarged?: boolean;
+  compact?: boolean;
 }) {
   return (
     <View
       style={[
         styles.metric,
+        compact ? styles.compactMetric : null,
         enlarged ? styles.enlargedMetric : null,
         borderRightColor
           ? { borderRightColor, borderRightWidth: StyleSheet.hairlineWidth }
@@ -180,8 +184,13 @@ export default React.memo(function WeatherGuideHomeCard({
 }: Props) {
   const { width, fontScale } = useWindowDimensions();
   const enlarged = fontScale > 1;
+  const metricLayout = resolveWeatherMetricLayout({ width, fontScale, values: [
+    `${weather.apparentTemperature}°`, `${weather.humidity}%`,
+    `${weather.windSpeed}m/s`, getUvLabel(weather.uvIndex),
+  ] });
+  const metricsExpanded = metricLayout.columns === 2;
   // The approved aspect ratio applies only while the copy fits at default scale.
-  const seasonalCardHeight = visualTheme && !enlarged
+  const seasonalCardHeight = visualTheme && !enlarged && !metricsExpanded
     ? (width - HOME_HORIZONTAL_GUTTER * 2) / SEASONAL_CARD_ASPECT_RATIO
     : undefined;
   const isNightCard = !weather.isDaytime;
@@ -484,7 +493,7 @@ export default React.memo(function WeatherGuideHomeCard({
             style={[
               styles.metricsBar,
               visualTheme ? styles.seasonalMetricsBar : null,
-              enlarged ? styles.enlargedMetricsBar : null,
+              metricsExpanded ? styles.enlargedMetricsBar : null,
               {
                 backgroundColor:
                   visualTheme?.metricBackground ??
@@ -501,15 +510,17 @@ export default React.memo(function WeatherGuideHomeCard({
               value={`${weather.apparentTemperature}°`}
               color={detailMetricColor}
               borderRightColor={separator}
-              enlarged={enlarged}
+              enlarged={metricsExpanded}
+              compact={metricLayout.compact}
             />
             <Metric
               icon="droplet"
               label="습도"
               value={`${weather.humidity}%`}
               color={detailMetricColor}
-              borderRightColor={enlarged ? undefined : separator}
-              enlarged={enlarged}
+              borderRightColor={metricsExpanded ? undefined : separator}
+              enlarged={metricsExpanded}
+              compact={metricLayout.compact}
             />
             <Metric
               icon="wind"
@@ -517,14 +528,16 @@ export default React.memo(function WeatherGuideHomeCard({
               value={`${weather.windSpeed}m/s`}
               color={detailMetricColor}
               borderRightColor={separator}
-              enlarged={enlarged}
+              enlarged={metricsExpanded}
+              compact={metricLayout.compact}
             />
             <Metric
               icon="sun"
               label="자외선"
               value={getUvLabel(weather.uvIndex)}
               color={detailMetricColor}
-              enlarged={enlarged}
+              enlarged={metricsExpanded}
+              compact={metricLayout.compact}
             />
           </View>
         </LinearGradient>
@@ -833,7 +846,11 @@ const styles = StyleSheet.create({
   },
   metricCopy: {
     minWidth: 0,
-    flexShrink: 1,
+    flexShrink: 0,
+  },
+  compactMetric: {
+    paddingHorizontal: 2,
+    gap: 2,
   },
   enlargedMetric: {
     flex: 0,

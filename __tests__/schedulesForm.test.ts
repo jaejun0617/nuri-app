@@ -1,5 +1,7 @@
 import {
   buildReminderMinutesFromSelection,
+  buildScheduleStartsAtIso,
+  getScheduleFormDateTime,
   buildQuickToggleReminderMinutes,
   createScheduleDatePresets,
   formatReminderMinutesSummary,
@@ -16,6 +18,23 @@ import {
 } from '../src/services/schedules/form';
 
 describe('schedules form helpers', () => {
+  it.each([
+    ['2026.10.05', '2026-10-04T15:00:00.000Z'],
+    ['2027.01.01', '2026-12-31T15:00:00.000Z'],
+    ['2026.03.01', '2026-02-28T15:00:00.000Z'],
+  ])('preserves KST all-day date %s through UTC storage and reload', (date, expected) => {
+    const iso = buildScheduleStartsAtIso(date, 'unused', true);
+    expect(iso).toBe(expected);
+    expect(getScheduleFormDateTime(iso, true)).toEqual({ dateText: date, timeText: '00:00' });
+    expect(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(iso))).toBe(date.replace(/\./g, '-'));
+  });
+  it('preserves timed local input and reminder offsets', () => {
+    const iso = buildScheduleStartsAtIso('2099.10.05', '09:30', false);
+    expect(iso).toBe(new Date('2099-10-05T09:30:00').toISOString());
+    expect(getScheduleFormDateTime(iso, false)).toEqual({ dateText: '2099.10.05', timeText: '09:30' });
+    expect(buildReminderMinutesFromSelection({ reminderKey: 'ten', startsAt: iso, now: new Date(new Date(iso).getTime() - 3600000) })).toEqual([10]);
+    expect(() => buildScheduleStartsAtIso('wrong', '09:30', true)).toThrow();
+  });
   it('날짜/시간 입력을 정규화한다', () => {
     expect(normalizeScheduleDateInput('2026.03.06')).toBe('2026-03-06');
     expect(normalizeScheduleTimeInput('09:30')).toBe('09:30');

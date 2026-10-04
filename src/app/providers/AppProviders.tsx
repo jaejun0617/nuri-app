@@ -23,6 +23,7 @@ import { ThemeProvider } from 'styled-components/native';
 import { createTheme } from '../theme/theme';
 import { useThemeMode } from '../theme/useThemeMode';
 import { AppFontPreferenceProvider } from './AppFontPreferenceProvider';
+import { SeasonPreferenceProvider } from './SeasonPreferenceProvider';
 
 import { supabase } from '../../services/supabase/client';
 import { fetchMyProfile } from '../../services/supabase/profile';
@@ -589,7 +590,9 @@ export default function AppProviders({ children }: Props) {
   return (
     <QueryClientProvider client={appQueryClient}>
       <AppFontPreferenceProvider>
-        <ThemeProvider theme={theme}>{children}</ThemeProvider>
+        <SeasonPreferenceProvider>
+          <ThemeProvider theme={theme}>{children}</ThemeProvider>
+        </SeasonPreferenceProvider>
       </AppFontPreferenceProvider>
     </QueryClientProvider>
   );

@@ -1562,14 +1562,20 @@ export const styles = StyleSheet.create({
   // Today Photo Card
   // ---------------------------------------------------------
   photoCard: {
-    height: 250,
     borderRadius: 16,
     overflow: 'hidden',
-    backgroundColor: SURFACE_SOFT,
+    backgroundColor: 'rgba(255,255,255,0.38)',
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.06)',
+    padding: 6,
+    gap: 2,
   },
+  photoViewport: { overflow: 'hidden', borderRadius: 11, backgroundColor: SURFACE_SOFT },
   photoImage: { width: '100%', height: '100%', position: 'absolute' },
+  photoImageState: { ...ABS_FILL, alignItems: 'center', justifyContent: 'center', padding: 18, gap: 10 },
+  photoCaption: { paddingHorizontal: 8, paddingVertical: 10, gap: 6 },
+  photoCaptionMeta: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  photoDate: { flex: 1, minWidth: 0 },
   photoPlaceholder: { flex: 1, backgroundColor: 'rgba(0,0,0,0.06)' },
 
   photoOverlayTint: {
