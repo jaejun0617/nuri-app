@@ -101,7 +101,6 @@ import {
   type HomeEmptyDataState,
 } from './HomeEmptySectionState';
 import { HomeSeasonReviewControls } from './HomeSeasonReviewControls';
-import { TodayPhotoSection } from './TodayPhotoSection';
 import { HomeHealthActivityList, HomeScheduleList } from './HomePopulatedLists';
 import { TotalSummarySection } from './TotalSummarySection';
 import {
@@ -4197,17 +4196,6 @@ export default function LoggedInHome() {
             onPressRecordItem={onPressRecordItem}
             accentDeepColor={petTheme.deep}
             season={ambientSeason}
-          />
-        </View>
-        <View onLayout={ambientSectionLayoutHandlers.photo}>
-          <TodayPhotoSection
-            activePetId={activePetId}
-            recordItems={recordItems}
-            recordStatus={recordStatus}
-            season={ambientSeason}
-            onPressRecordItem={onPressRecordItem}
-            onPressRecord={onPressRecord}
-            accentColor={petTheme.deep}
           />
         </View>
         <View onLayout={ambientSectionLayoutHandlers.community}>

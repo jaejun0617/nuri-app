@@ -1,5 +1,14 @@
 # V1.0 Remaining Task/Risk Closeout
 
+<!-- NURI_REMOVE_TODAY_PHOTO_20261004_BEGIN -->
+## 2026-10-04 Home Today Photo Removal
+
+- [x] PO authorizes removal without a replacement. Home no longer mounts Today Photo or its measured wrapper; recent records flow directly into community.
+- [x] Preserve photo recording, Timeline, recall service, seasonal assets, QA, AUTH freeze and season review controls. No server or data changes.
+- Local validation, one exact-commit Android QA build, selective commit/push and safe generated-only cleanup are recorded in `/tmp/nuri-remove-today-photo-20261004-191631/FINAL_REPORT.md`; implementation is not native installation evidence.
+- Device installation is not requested. Store remains HOLD. Stop after closeout; no automatic replacement design.
+<!-- NURI_REMOVE_TODAY_PHOTO_20261004_END -->
+
 <!-- NURI_FOUNDATION_20261004_BEGIN -->
 ## 2026-10-04 Pre-Design Foundation Gate
 
