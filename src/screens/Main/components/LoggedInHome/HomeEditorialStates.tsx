@@ -6,7 +6,6 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
 
 import AppText from '../../../../app/ui/AppText';
 import { HomeSectionGlass } from '../../../../components/home/HomeSectionGlass';
@@ -145,19 +144,16 @@ export const RecentRecordsEmptyState = memo(
           accessibilityRole="button"
           accessibilityLabel="기록하기, 기록 작성 화면 열기"
           activeOpacity={0.9}
-          style={[styles.action, { backgroundColor: accentColor }]}
+          style={[
+            homeStyles.recordBtn,
+            styles.action,
+            { backgroundColor: accentColor, shadowColor: accentColor },
+          ]}
           onPress={onPressRecord}
         >
-          <LinearGradient
-            colors={['rgba(255,255,255,0.28)', 'rgba(255,255,255,0)']}
-            locations={[0, 0.65]}
-            style={StyleSheet.absoluteFill}
-            pointerEvents="none"
-          />
           <AppText
             preset="unifiedLabel"
-            styleOverridesPreset
-            style={styles.actionText}
+            style={[homeStyles.recordBtnText, styles.actionText]}
           >
             기록하기
           </AppText>
@@ -217,25 +213,15 @@ export const styles = StyleSheet.create({
   },
   divider: { height: 1, backgroundColor: 'rgba(134,145,174,0.14)' },
   action: {
-    width: '100%',
+    height: undefined,
     minHeight: 46,
-    paddingHorizontal: 18,
     paddingVertical: 12,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.45)',
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 0,
-    shadowOpacity: 0,
+    marginTop: 0,
   },
   actionText: {
-    fontSize: 15,
-    lineHeight: 22,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    alignSelf: 'stretch',
     textAlign: 'center',
+    flexShrink: 1,
   },
   pending: { paddingVertical: 18, gap: 10, alignItems: 'center' },
   pendingCopy: { color: '#586575', textAlign: 'center' },

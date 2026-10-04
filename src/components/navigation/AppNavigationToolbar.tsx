@@ -170,6 +170,9 @@ export default function AppNavigationToolbar({
                 typographyRole="navigation"
                 preset="tab"
                 maxFontSizeMultiplier={1.6}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.75}
                 style={[
                   styles.label,
                   { color: theme.colors.textMuted },
@@ -213,6 +216,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   label: {
+    width: '100%',
     textAlign: 'center',
   },
 });

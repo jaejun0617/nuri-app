@@ -60,6 +60,16 @@ export const styles = StyleSheet.create({
     width: 40,
     height: 32,
   },
+  fontSelectField: {
+    minHeight: 48,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 10,
+  },
+  fontSelectValue: {
+    flex: 1,
+    minWidth: 0,
+  },
   headerTitle: {
     flex: 1,
     textAlign: 'center',

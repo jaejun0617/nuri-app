@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import React from 'react';
+import ReactNative from 'react-native';
 import { StyleSheet, View } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
@@ -36,6 +37,96 @@ const source = fs.readFileSync(
 );
 
 describe('Home section rhythm and material', () => {
+  beforeEach(() => {
+    jest.spyOn(ReactNative, 'useWindowDimensions').mockReturnValue({
+      width: 384, height: 800, scale: 3, fontScale: 1,
+    });
+  });
+  afterEach(() => jest.restoreAllMocks());
+
+  it.each([360, 384, 400, 430].flatMap(width =>
+    [1, 1.3, 1.5].map(fontScale => ({ width, fontScale })),
+  ))('gives header actions room at $width dp and font scale $fontScale', async ({ width, fontScale }) => {
+    jest.spyOn(ReactNative, 'useWindowDimensions').mockReturnValue({
+      width, height: 800, scale: 3, fontScale,
+    });
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = TestRenderer.create(
+        <ThemeProvider theme={createTheme('light')}>
+          <HomeSectionHeader title="반려인들이 주목한 이야기" color="#2563EB"
+            action={{ onPress: jest.fn(), accessibilityLabel: '커뮤니티 전체 보기' }} />
+        </ThemeProvider>,
+      );
+    });
+    const header = renderer.root.findAllByType(View).find(
+      node => node.props.testID === 'home-section-header',
+    );
+    const button = renderer.root.findAll(node =>
+      node.props.accessibilityLabel === '커뮤니티 전체 보기' && !!node.props.style,
+    )[0];
+    const buttonStyle = StyleSheet.flatten(
+      typeof button.props.style === 'function'
+        ? button.props.style({ pressed: false }) : button.props.style,
+    );
+    expect(buttonStyle.width).toBe(Math.ceil(80 * fontScale));
+    expect(buttonStyle.minHeight).toBe(Math.ceil(28 * fontScale));
+    expect(StyleSheet.flatten(header?.props.style).flexDirection).toBe(
+      fontScale >= 1.3 ? 'column' : 'row',
+    );
+    expect(button.props.accessibilityLabel).toBe('커뮤니티 전체 보기');
+    await act(async () => renderer.unmount());
+  });
+
+  it('reserves the Hero body offset in actual layout rather than only translating it', () => {
+    expect(homeStyles.autumnHeroBodyGroup.paddingTop).toBe(14);
+    expect(homeStyles.autumnHeroBodyGroup).not.toHaveProperty('transform');
+  });
+
+  it('lets record tiles grow with enlarged copy instead of painting outside a square', async () => {
+    jest.spyOn(ReactNative, 'useWindowDimensions').mockReturnValue({
+      width: 360, height: 800, scale: 3, fontScale: 1.5,
+    });
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = TestRenderer.create(
+        <ThemeProvider theme={createTheme('light')}>
+          <FrequentRecordsSection petTheme={buildPetThemePalette('#2563EB')}
+            records={[]} recordStatus="ready" now={new Date('2026-10-04T03:00:00Z')}
+            onPressCategory={jest.fn()} onPressAll={jest.fn()} />
+        </ThemeProvider>,
+      );
+    });
+    const tiles = renderer.root.findAll(node =>
+      String(node.props.accessibilityLabel).includes('기록하기') && !!node.props.style,
+    ).filter(node => typeof node.props.style === 'function');
+    expect(tiles).toHaveLength(4);
+    for (const tile of tiles) {
+      expect(StyleSheet.flatten(tile.props.style({ pressed: false }))).toMatchObject({
+        aspectRatio: undefined, minHeight: 156,
+      });
+    }
+    await act(async () => renderer.unmount());
+  });
+
+  it('preserves the requested populated preview limits and diary month filter', () => {
+    expect(source).toContain('const HOME_RECENT_RECORDS_MAX = 3;');
+    expect(source).toContain('scheduleItems.slice(0, 7)');
+    expect(source).toContain('activityItems.slice(0, 5)');
+    expect(source).toMatch(/getMonthKeyFromYmd\(getRecordDisplayYmd\(item\)\) === currentMonthKey[\s\S]*?\.slice\(0, 7\)/);
+  });
+
+  it('lets touches cross the transparent overlapping Weather and lower-content wrappers', () => {
+    expect(homeStyles.seasonalWeatherSection.marginTop).toBe(-64);
+    expect(homeStyles.seasonalWeatherSection.paddingTop).toBe(48);
+    expect(source).toMatch(
+      /styles\.seasonalWeatherSection,[\s\S]*?fontScale > 1 \? \{ marginTop: 0 \} : null,[\s\S]*?pointerEvents="box-none"/,
+    );
+    expect(source).toMatch(
+      /<Animated\.View[\s\S]*?onLayout=\{handleAmbientContentLayout\}[\s\S]*?pointerEvents="box-none"/,
+    );
+  });
+
   it('uses the existing Weather-to-records distance between every lower section', () => {
     expect(HOME_LOWER_SECTION_GAP).toBe(40);
     expect(homeStyles.lowerHomeSectionList.gap).toBe(

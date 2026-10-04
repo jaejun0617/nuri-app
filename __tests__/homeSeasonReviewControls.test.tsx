@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 
 import {
@@ -9,8 +9,11 @@ import {
 import type { SeasonKey } from '../src/theme/seasonal/season';
 
 jest.mock('../src/app/ui/AppText', () => 'AppText');
+jest.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 24, bottom: 0, left: 0, right: 0 }),
+}));
 
-it('provides four accessible review selections without remounting content or overlaying it', async () => {
+it('provides four review selections without remounting or shifting Home content', async () => {
   const changed = jest.fn();
   const mounted = jest.fn();
   function Content() {
@@ -63,7 +66,9 @@ it('provides four accessible review selections without remounting content or ove
     'summer',
   ]);
   expect(mounted).toHaveBeenCalledTimes(1);
-  expect(styles.shelf).not.toHaveProperty('position');
+  expect(styles.shelf).toMatchObject({ position: 'absolute', top: 0 });
+  expect(renderer.root.findByProps({ testID: 'home-season-review-controls' }).props.pointerEvents).toBe('box-none');
+  expect(StyleSheet.flatten(renderer.root.findByProps({ testID: 'home-season-review-controls' }).props.style).top).toBe(24);
   expect(styles.option.minHeight).toBeGreaterThanOrEqual(38);
   await act(async () => renderer.unmount());
 });

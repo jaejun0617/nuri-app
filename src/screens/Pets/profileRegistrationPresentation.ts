@@ -132,3 +132,25 @@ export function clampRegistrationScrollOffset(
 
   return Math.min(offsetY, Math.max(0, contentHeight - viewportHeight));
 }
+
+/** Reveals added chips without moving their still-focused input off screen. */
+export function getRegistrationAddedItemScrollOffset(input: {
+  offsetY: number;
+  inputTop: number;
+  viewportTop: number;
+  fieldBottom: number;
+  visibleBottom: number;
+  previewGap: number;
+}): number {
+  if (!Object.values(input).every(Number.isFinite)) return input.offsetY;
+
+  const needed = Math.max(
+    0,
+    input.fieldBottom + input.previewGap - input.visibleBottom,
+  );
+  const available = Math.max(
+    0,
+    input.inputTop - input.viewportTop - input.previewGap,
+  );
+  return input.offsetY + Math.min(needed, available);
+}

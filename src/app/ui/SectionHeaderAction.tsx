@@ -1,6 +1,6 @@
 import AppText from './AppText';
 import React, { memo } from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, useWindowDimensions, View } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 
 import type { TypographyPresetName } from '../theme/tokens/typography';
@@ -23,6 +23,11 @@ function SectionHeaderActionBase({
   textPreset = 'unifiedLabel',
   size = 'default',
 }: Props) {
+  const { width, fontScale } = useWindowDimensions();
+  const enlarged = fontScale > 1;
+  const baseWidth = size === 'compact' ? 80 : 88;
+  const baseHeight = size === 'compact' ? 28 : 34;
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -31,13 +36,29 @@ function SectionHeaderActionBase({
       onPress={onPress}
       style={({ pressed }) => [
         size === 'compact' ? styles.compactButton : styles.button,
+        enlarged
+          ? {
+              width: Math.min(
+                Math.max(44, width - 32),
+                Math.ceil(baseWidth * fontScale),
+              ),
+              minHeight: Math.ceil(baseHeight * fontScale),
+              paddingVertical: 4,
+            }
+          : null,
         { borderColor: `${color}26` },
         pressed ? styles.pressed : null,
       ]}
     >
-      <AppText preset={textPreset} style={[styles.text, { color }]}>{label}</AppText>
+      <AppText preset={textPreset} style={[styles.text, { color }]}>
+        {label}
+      </AppText>
       <View style={size === 'compact' ? styles.compactIconSlot : styles.iconSlot}>
-        <Feather name="chevron-right" size={size === 'compact' ? 12 : 14} color={color} />
+        <Feather
+          name="chevron-right"
+          size={size === 'compact' ? 12 : 14}
+          color={color}
+        />
       </View>
     </Pressable>
   );

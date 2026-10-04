@@ -5,7 +5,7 @@
 
 import AppText from '../../app/ui/AppText';
 import React, { memo, useMemo } from 'react';
-import { AppState, Pressable, View, type AppStateStatus } from 'react-native';
+import { AppState, Pressable, useWindowDimensions, View, type AppStateStatus } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useIsFocused } from '@react-navigation/native';
 
@@ -65,6 +65,8 @@ function RecordSummaryCard({
   accentTint: string;
   onPress: () => void;
 }) {
+  const { fontScale } = useWindowDimensions();
+  const enlarged = fontScale > 1;
   const meta = CATEGORY_META[item.category];
   const accessibilityLabel = item.hasRecentRecord
     ? `${meta.label} 기록하기, 최근 기록 ${
@@ -79,11 +81,12 @@ function RecordSummaryCard({
       onPress={onPress}
       style={({ pressed }) => [
         styles.recordCard,
+        enlarged ? { aspectRatio: undefined, minHeight: 156 } : null,
         pressed ? styles.recordCardPressed : null,
       ]}
     >
       <HomeWidgetSheen radius={12} />
-      <View style={styles.recordContentStack}>
+      <View style={[styles.recordContentStack, enlarged ? { flex: 0 } : null]}>
         <View style={styles.recordIconSlot}>
           <View
             style={[styles.recordIconWrap, { backgroundColor: accentTint }]}

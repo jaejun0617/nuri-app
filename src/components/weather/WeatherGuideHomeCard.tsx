@@ -131,17 +131,20 @@ const Metric = React.memo(function WeatherMetric({
   value,
   color,
   borderRightColor,
+  enlarged = false,
 }: {
   icon: string;
   label: string;
   value: string;
   color: string;
   borderRightColor?: string;
+  enlarged?: boolean;
 }) {
   return (
     <View
       style={[
         styles.metric,
+        enlarged ? styles.enlargedMetric : null,
         borderRightColor
           ? { borderRightColor, borderRightWidth: StyleSheet.hairlineWidth }
           : null,
@@ -149,10 +152,16 @@ const Metric = React.memo(function WeatherMetric({
     >
       <Feather name={icon} size={16} color={color} />
       <View style={styles.metricCopy}>
-        <Text style={[styles.metricLabel, { color }]} numberOfLines={1}>
+        <Text
+          style={[styles.metricLabel, { color }]}
+          numberOfLines={enlarged ? undefined : 1}
+        >
           {label}
         </Text>
-        <Text style={[styles.metricValue, { color }]} numberOfLines={1}>
+        <Text
+          style={[styles.metricValue, { color }]}
+          numberOfLines={enlarged ? undefined : 1}
+        >
           {value}
         </Text>
       </View>
@@ -169,8 +178,10 @@ export default React.memo(function WeatherGuideHomeCard({
   hideSeasonalBackgroundImage = false,
   onPress,
 }: Props) {
-  const { width } = useWindowDimensions();
-  const seasonalCardHeight = visualTheme
+  const { width, fontScale } = useWindowDimensions();
+  const enlarged = fontScale > 1;
+  // The approved aspect ratio applies only while the copy fits at default scale.
+  const seasonalCardHeight = visualTheme && !enlarged
     ? (width - HOME_HORIZONTAL_GUTTER * 2) / SEASONAL_CARD_ASPECT_RATIO
     : undefined;
   const isNightCard = !weather.isDaytime;
@@ -337,6 +348,7 @@ export default React.memo(function WeatherGuideHomeCard({
               styles.mainRow,
               visualTheme ? styles.seasonalMainRow : null,
               isCompact ? styles.mainRowCompact : null,
+              enlarged ? styles.enlargedMainRow : null,
             ]}
           >
             <View style={styles.weatherArt}>
@@ -401,7 +413,7 @@ export default React.memo(function WeatherGuideHomeCard({
                     isCompact ? styles.headlineCompact : null,
                     { color: textPrimary },
                   ]}
-                  numberOfLines={2}
+                  numberOfLines={enlarged ? undefined : 2}
                 >
                   {renderAccentText(
                     formatWeatherPetText(weather.homeMessage, petName),
@@ -414,7 +426,7 @@ export default React.memo(function WeatherGuideHomeCard({
                     isCompact ? styles.captionCompact : null,
                     { color: visualTheme ? textPrimary : textSecondary },
                   ]}
-                  numberOfLines={2}
+                  numberOfLines={enlarged ? undefined : 2}
                 >
                   {isPreview
                     ? '최근 확인한 날씨를 잠시 보여드리고 있어요.'
@@ -427,6 +439,7 @@ export default React.memo(function WeatherGuideHomeCard({
               style={[
                 styles.noticePanel,
                 isCompact ? styles.noticePanelCompact : null,
+                enlarged ? styles.enlargedNoticePanel : null,
                 {
                   backgroundColor: panelBackground,
                   borderWidth: visualTheme ? 0 : 1,
@@ -444,7 +457,7 @@ export default React.memo(function WeatherGuideHomeCard({
                   isCompact ? styles.noticeLabelCompact : null,
                   { color: effectiveAccentColor },
                 ]}
-                numberOfLines={2}
+                numberOfLines={enlarged ? undefined : 2}
               >
                 {notice.label}
               </Text>
@@ -454,7 +467,7 @@ export default React.memo(function WeatherGuideHomeCard({
                   isCompact ? styles.noticeMessageCompact : null,
                   { color: textPrimary },
                 ]}
-                numberOfLines={3}
+                numberOfLines={enlarged ? undefined : 3}
               >
                 {notice.message}
               </Text>
@@ -471,6 +484,7 @@ export default React.memo(function WeatherGuideHomeCard({
             style={[
               styles.metricsBar,
               visualTheme ? styles.seasonalMetricsBar : null,
+              enlarged ? styles.enlargedMetricsBar : null,
               {
                 backgroundColor:
                   visualTheme?.metricBackground ??
@@ -487,13 +501,15 @@ export default React.memo(function WeatherGuideHomeCard({
               value={`${weather.apparentTemperature}°`}
               color={detailMetricColor}
               borderRightColor={separator}
+              enlarged={enlarged}
             />
             <Metric
               icon="droplet"
               label="습도"
               value={`${weather.humidity}%`}
               color={detailMetricColor}
-              borderRightColor={separator}
+              borderRightColor={enlarged ? undefined : separator}
+              enlarged={enlarged}
             />
             <Metric
               icon="wind"
@@ -501,12 +517,14 @@ export default React.memo(function WeatherGuideHomeCard({
               value={`${weather.windSpeed}m/s`}
               color={detailMetricColor}
               borderRightColor={separator}
+              enlarged={enlarged}
             />
             <Metric
               icon="sun"
               label="자외선"
               value={getUvLabel(weather.uvIndex)}
               color={detailMetricColor}
+              enlarged={enlarged}
             />
           </View>
         </LinearGradient>
@@ -643,6 +661,11 @@ const styles = StyleSheet.create({
   mainRowCompact: {
     gap: 5,
   },
+  enlargedMainRow: {
+    flex: 0,
+    flexWrap: 'wrap',
+    rowGap: 8,
+  },
   weatherArt: {
     width: '22%',
     minWidth: 58,
@@ -746,6 +769,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 9,
   },
+  enlargedNoticePanel: {
+    width: '100%',
+    minHeight: 0,
+    paddingBottom: 22,
+  },
   noticeLabel: {
     fontSize: 11,
     lineHeight: 15,
@@ -787,6 +815,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
     borderRadius: 10,
   },
+  enlargedMetricsBar: {
+    flexWrap: 'wrap',
+    rowGap: 8,
+    paddingVertical: 8,
+    marginTop: 10,
+  },
   metric: {
     minWidth: 0,
     flex: 1,
@@ -800,6 +834,10 @@ const styles = StyleSheet.create({
   metricCopy: {
     minWidth: 0,
     flexShrink: 1,
+  },
+  enlargedMetric: {
+    flex: 0,
+    width: '50%',
   },
   metricLabel: {
     fontSize: 9,

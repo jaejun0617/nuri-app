@@ -633,6 +633,7 @@ const HomeWeatherSection = React.memo(function HomeWeatherSection({
   onPress: () => void;
 }) {
   const visualTheme = getSeasonalWeatherVisualTheme(season);
+  const { fontScale } = useWindowDimensions();
 
   if (!visualTheme) {
     return (
@@ -649,7 +650,13 @@ const HomeWeatherSection = React.memo(function HomeWeatherSection({
   }
 
   return (
-    <View style={styles.seasonalWeatherSection}>
+    <View
+      style={[
+        styles.seasonalWeatherSection,
+        fontScale > 1 ? { marginTop: 0 } : null,
+      ]}
+      pointerEvents="box-none"
+    >
       {!hideSeasonalBackgroundImage ? (
         <LinearGradient
           pointerEvents="none"
@@ -4525,6 +4532,9 @@ export default function LoggedInHome() {
           <Animated.View
             style={animatedContentStyle}
             onLayout={handleAmbientContentLayout}
+            // The Weather wrapper overlaps Hero through its negative margin;
+            // transparent layout space must not swallow the Hero CTA's touches.
+            pointerEvents="box-none"
           >
             {seasonalHomeVisual ? null : homeHero}
 

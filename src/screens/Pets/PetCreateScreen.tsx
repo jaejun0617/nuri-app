@@ -62,10 +62,12 @@ import { spacing } from '../../app/theme/tokens/spacing';
 import { useAppFontPreference } from '../../app/providers/AppFontPreferenceProvider';
 import {
   FIRST_PET_PRESELECTED_FONT_MODE,
+  getAppFontModeLabel,
   type AppFontMode,
 } from '../../app/typography/appFontMode';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import FirstPetFontSelectorModal from '../../components/onboarding/FirstPetFontSelectorModal';
+import AppFontSettingsModal from '../../components/settings/AppFontSettingsModal';
 import WaveText from '../../components/common/WaveText';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import PhotoAddCard from '../../components/media/PhotoAddCard';
@@ -125,6 +127,7 @@ import {
 import {
   buildRegistrationActionLayout,
   clampRegistrationScrollOffset,
+  getRegistrationAddedItemScrollOffset,
   getProfileRegistrationSeasonalPresentation,
   type ProfileRegistrationSeasonalPresentation,
 } from './profileRegistrationPresentation';
@@ -241,12 +244,18 @@ function buildDateHint(value: string): string {
   return formatYmdDigits(value);
 }
 
+type MultiInputRevealHandler = (
+  field: React.ComponentRef<typeof View>,
+  input: React.ComponentRef<typeof TextInput>,
+) => void;
+
 type MultiInputSectionProps = {
   label: string;
   list: string[];
   draft: string;
   onDraftChange: (value: string) => void;
   onFocusInput?: () => void;
+  onItemsAdded: MultiInputRevealHandler;
   onAdd: () => void;
   onRemove: (value: string) => void;
   placeholder: string;
@@ -259,15 +268,39 @@ const MultiInputSection = memo(function MultiInputSectionComponent({
   draft,
   onDraftChange,
   onFocusInput,
+  onItemsAdded,
   onAdd,
   onRemove,
   placeholder,
   hint,
 }: MultiInputSectionProps) {
   const seasonalStyles = useRegistrationSeasonalStyles();
+  const inputRef = useRef<React.ComponentRef<typeof TextInput> | null>(null);
+  const fieldRef = useRef<React.ComponentRef<typeof View> | null>(null);
+  const pendingAddLengthRef = useRef<number | null>(null);
+  const addAndContinue = useCallback(() => {
+    pendingAddLengthRef.current = list.length;
+    onAdd();
+    // Keep the same field ready for the next item after the chip is added.
+    inputRef.current?.focus();
+  }, [list.length, onAdd]);
+
+  useEffect(() => {
+    const previousLength = pendingAddLengthRef.current;
+    pendingAddLengthRef.current = null;
+    if (previousLength === null || list.length <= previousLength) return;
+
+    // Wait for the committed chip layout, not a guessed keyboard delay.
+    const frame = requestAnimationFrame(() => {
+      const field = fieldRef.current;
+      const input = inputRef.current;
+      if (field && input?.isFocused()) onItemsAdded(field, input);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [draft, list.length, onItemsAdded]);
 
   return (
-    <View style={styles.fieldBlock}>
+    <View ref={fieldRef} collapsable={false} style={styles.fieldBlock}>
       <View style={styles.fieldLabelRow}>
         <AppText
           preset="unifiedLabel"
@@ -285,6 +318,8 @@ const MultiInputSection = memo(function MultiInputSectionComponent({
 
       <View style={styles.tagInputRow}>
         <AppTextInput
+          ref={inputRef}
+          accessibilityLabel={label}
           value={draft}
           onChangeText={onDraftChange}
           onFocus={onFocusInput}
@@ -297,12 +332,15 @@ const MultiInputSection = memo(function MultiInputSectionComponent({
             seasonalStyles.primaryText,
           ]}
           returnKeyType="done"
-          onSubmitEditing={onAdd}
+          submitBehavior="submit"
+          onSubmitEditing={addAndContinue}
         />
         <TouchableOpacity
           activeOpacity={0.88}
           style={styles.inlineAddButton}
-          onPress={onAdd}
+          accessibilityRole="button"
+          accessibilityLabel={`${label} 추가`}
+          onPress={addAndContinue}
         >
           <AppText preset="unifiedLabel" style={styles.inlineAddButtonText}>
             추가
@@ -340,7 +378,59 @@ const MultiInputSection = memo(function MultiInputSectionComponent({
   );
 });
 
-type StepOneFormProps = {
+type RegistrationFontFieldProps = {
+  fontLabel: string;
+  fontSettingsDisabled: boolean;
+  onOpenFontSettings: () => void;
+};
+
+/** The persisted app-wide preference is selectable beside registration fields. */
+const RegistrationFontField = memo(function RegistrationFontFieldComponent({
+  fontLabel,
+  fontSettingsDisabled,
+  onOpenFontSettings,
+}: RegistrationFontFieldProps) {
+  const seasonalStyles = useRegistrationSeasonalStyles();
+  return (
+    <View style={styles.fieldBlock} testID="pet-create-font-field">
+      <AppText
+        preset="unifiedLabel"
+        style={[styles.label, seasonalStyles.primaryText]}
+      >
+        앱 글꼴
+      </AppText>
+      <TouchableOpacity
+        testID="pet-create-font-settings"
+        accessibilityRole="button"
+        accessibilityLabel="앱 글꼴 선택"
+        accessibilityValue={{ text: fontLabel }}
+        accessibilityState={{ disabled: fontSettingsDisabled }}
+        activeOpacity={0.85}
+        disabled={fontSettingsDisabled}
+        style={[
+          styles.iconInputWrap,
+          styles.fontSelectField,
+          seasonalStyles.control,
+        ]}
+        onPress={onOpenFontSettings}
+      >
+        <AppText
+          preset="unifiedBody"
+          style={[styles.fontSelectValue, seasonalStyles.primaryText]}
+        >
+          {fontLabel}
+        </AppText>
+        <Feather
+          name="chevron-down"
+          size={18}
+          color={seasonalStyles.neutralIconColor}
+        />
+      </TouchableOpacity>
+    </View>
+  );
+});
+
+type StepOneFormProps = RegistrationFontFieldProps & {
   imageUri: string | null;
   onPickImage: () => void;
   selectedThemeColor: string;
@@ -376,6 +466,9 @@ type StepOneFormProps = {
 };
 
 const StepOneForm = memo(function StepOneFormComponent({
+  fontLabel,
+  fontSettingsDisabled,
+  onOpenFontSettings,
   imageUri,
   onPickImage,
   selectedThemeColor,
@@ -475,6 +568,11 @@ const StepOneForm = memo(function StepOneFormComponent({
           title="프로필 컬러"
           helperText="홈과 위젯의 강조색으로 사용돼요."
           onSelectColor={onSelectThemeColor}
+        />
+        <RegistrationFontField
+          fontLabel={fontLabel}
+          fontSettingsDisabled={fontSettingsDisabled}
+          onOpenFontSettings={onOpenFontSettings}
         />
       </View>
 
@@ -877,10 +975,11 @@ const StepOneForm = memo(function StepOneFormComponent({
   );
 });
 
-type StepTwoFormProps = {
+type StepTwoFormProps = RegistrationFontFieldProps & {
   weightKg: string;
   onWeightChange: (value: string) => void;
   onFieldFocus: () => void;
+  onItemsAdded: MultiInputRevealHandler;
   likes: string[];
   draftLike: string;
   onDraftLikeChange: (value: string) => void;
@@ -904,9 +1003,13 @@ type StepTwoFormProps = {
 };
 
 const StepTwoForm = memo(function StepTwoFormComponent({
+  fontLabel,
+  fontSettingsDisabled,
+  onOpenFontSettings,
   weightKg,
   onWeightChange,
   onFieldFocus,
+  onItemsAdded,
   likes,
   draftLike,
   onDraftLikeChange,
@@ -963,6 +1066,12 @@ const StepTwoForm = memo(function StepTwoFormComponent({
           </AppText>
         </View>
 
+        <RegistrationFontField
+          fontLabel={fontLabel}
+          fontSettingsDisabled={fontSettingsDisabled}
+          onOpenFontSettings={onOpenFontSettings}
+        />
+
         <View style={styles.fieldBlock}>
           <AppText
             preset="unifiedLabel"
@@ -995,6 +1104,7 @@ const StepTwoForm = memo(function StepTwoFormComponent({
           draft={draftLike}
           onDraftChange={onDraftLikeChange}
           onFocusInput={onFieldFocus}
+          onItemsAdded={onItemsAdded}
           onAdd={onAddLike}
           onRemove={onRemoveLike}
           placeholder="좋아하는 간식, 장난감 등"
@@ -1006,6 +1116,7 @@ const StepTwoForm = memo(function StepTwoFormComponent({
           draft={draftDislike}
           onDraftChange={onDraftDislikeChange}
           onFocusInput={onFieldFocus}
+          onItemsAdded={onItemsAdded}
           onAdd={onAddDislike}
           onRemove={onRemoveDislike}
           placeholder="싫어하는 소리, 행동 등"
@@ -1017,6 +1128,7 @@ const StepTwoForm = memo(function StepTwoFormComponent({
           draft={draftHobby}
           onDraftChange={onDraftHobbyChange}
           onFocusInput={onFieldFocus}
+          onItemsAdded={onItemsAdded}
           onAdd={onAddHobby}
           onRemove={onRemoveHobby}
           placeholder="산책하기, 낮잠자기 등"
@@ -1044,6 +1156,7 @@ const StepTwoForm = memo(function StepTwoFormComponent({
           draft={draftTag}
           onDraftChange={onDraftTagChange}
           onFocusInput={onFieldFocus}
+          onItemsAdded={onItemsAdded}
           onAdd={onAddTag}
           onRemove={onRemoveTag}
           placeholder="우리 아이를 표현해 주세요"
@@ -1072,6 +1185,7 @@ export default function PetCreateScreen() {
     }),
   );
   const {
+    mode: appFontMode,
     hydrated: fontPreferenceHydrated,
     hasStoredPreference,
     setMode: setAppFontMode,
@@ -1085,6 +1199,7 @@ export default function PetCreateScreen() {
   const [step, setStep] = useState<Step>(1);
   const [saving, setSaving] = useState(false);
   const [fontSelectionSaving, setFontSelectionSaving] = useState(false);
+  const [fontSettingsVisible, setFontSettingsVisible] = useState(false);
   const [selectedFontMode, setSelectedFontMode] = useState<AppFontMode>(
     FIRST_PET_PRESELECTED_FONT_MODE,
   );
@@ -1869,6 +1984,40 @@ export default function PetCreateScreen() {
       keyboardScrollRef.current?.assureFocusedInputVisible();
     });
   }, []);
+  const handleOpenFontSettings = useCallback(() => {
+    Keyboard.dismiss();
+    setFontSettingsVisible(true);
+  }, []);
+  const handleRevealAddedItems = useCallback<MultiInputRevealHandler>(
+    (field, input) => {
+      const scroll = keyboardScrollRef.current;
+      if (!scroll || !Keyboard.isVisible()) return;
+
+      scroll.measureInWindow((_scrollX, viewportTop) => {
+        field.measureInWindow((_fieldX, fieldTop, _fieldWidth, fieldHeight) => {
+          input.measureInWindow((_inputX, inputTop) => {
+            const keyboard = Keyboard.metrics();
+            if (!keyboard || !input.isFocused()) return;
+            const offsetY = scrollMetricsRef.current.offsetY;
+            const nextOffsetY = getRegistrationAddedItemScrollOffset({
+              offsetY,
+              inputTop,
+              viewportTop,
+              fieldBottom: fieldTop + fieldHeight,
+              visibleBottom:
+                keyboard.screenY - actionLayout.focusedInputBottomOffset,
+              previewGap: spacing.md,
+            });
+            if (nextOffsetY <= offsetY) return;
+
+            // One native animated scroll; keep keyboard/focus and avoid resets.
+            scroll.scrollTo({ x: 0, y: nextOffsetY, animated: true });
+          });
+        });
+      });
+    },
+    [actionLayout.focusedInputBottomOffset],
+  );
   const handleActionZoneLayout = useCallback((event: LayoutChangeEvent) => {
     const nextHeight = Math.ceil(event.nativeEvent.layout.height) + spacing.md;
     setActionZoneHeight(currentHeight =>
@@ -1990,8 +2139,6 @@ export default function PetCreateScreen() {
           ]}
         >
           <View style={styles.header}>
-            <View style={styles.headerActionPlaceholder} />
-
             <AppText typographyRole="screenTitle"
               preset="unifiedTitle"
               style={[styles.headerTitle, seasonalStyles.primaryText]}
@@ -1999,7 +2146,6 @@ export default function PetCreateScreen() {
               프로필 등록 ({step}/2)
             </AppText>
 
-            <View style={styles.headerActionPlaceholder} />
           </View>
 
           <View style={styles.progressHeader}>
@@ -2048,6 +2194,9 @@ export default function PetCreateScreen() {
         >
           {step === 1 ? (
             <StepOneForm
+              fontLabel={getAppFontModeLabel(appFontMode)}
+              fontSettingsDisabled={!fontPreferenceHydrated || saving}
+              onOpenFontSettings={handleOpenFontSettings}
               imageUri={imageUri}
               onPickImage={pickImage}
               selectedThemeColor={selectedThemeColor}
@@ -2081,9 +2230,13 @@ export default function PetCreateScreen() {
             />
           ) : (
             <StepTwoForm
+              fontLabel={getAppFontModeLabel(appFontMode)}
+              fontSettingsDisabled={!fontPreferenceHydrated || saving}
+              onOpenFontSettings={handleOpenFontSettings}
               weightKg={weightKg}
               onWeightChange={setWeightKg}
               onFieldFocus={handleFocusVisibleInput}
+              onItemsAdded={handleRevealAddedItems}
               likes={likes}
               draftLike={draftLike}
               onDraftLikeChange={setDraftLike}
@@ -2212,6 +2365,12 @@ export default function PetCreateScreen() {
           onConfirm={() => {
             confirmFirstPetFontSelection().catch(() => {});
           }}
+        />
+
+        <AppFontSettingsModal
+          visible={fontSettingsVisible}
+          bottomInset={insets.bottom}
+          onClose={() => setFontSettingsVisible(false)}
         />
 
         <Modal

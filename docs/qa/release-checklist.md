@@ -1,5 +1,24 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-10-04 Home · 프로필 등록 QA corrective · PO 최종 승인
+
+- [x] 세 취향 입력 추가 후 같은 입력 focus·키보드 유지, 새 chip 아래까지 측정 기반 animated scroll, 정규화·중복 방지·draft 보존.
+- [x] 등록 1단계 프로필 컬러 아래·2단계 상세 정보 안에 앱 글꼴 폼 필드. 기존 전체 preference·설정 모달 재사용, 실제 Pretendard 선택·귀염발랄체 복원.
+- [x] Hero 실제 padding layout과 뒤 transparent wrapper touch 보완. 최신 설치본 중앙 터치로 프로필 상세 진입. 부모 높이·이후 시작 위치 +14dp 명시.
+- [x] Recent CTA 공용 material·중앙 정렬, 확대 글꼴 header action·Weather·Frequent·하단 메뉴 보완, 상단 여백 없는 absolute 계절 버튼.
+- [x] Node 24.20.0·Yarn 3.6.4, TypeScript·대상 lint 오류 0·새 진단 0·기존 경고 19, 29개 스위트 368개 관련 테스트·diff check PASS.
+- [x] 마지막 앱 글꼴 필드 후속 Release·install 각 1회 성공. 10월 4일 누적 build 5회·install 4회. latest `9e6a110c` 설치 hash 일치·594개 build 입력 변경 0.
+- [x] 정상 앱 UI QA 15기록·8일정·3공개 글 생성, scoped remote SELECT 보존 확인. 개인 원본·기존 실제 항목 변경 없음, QA 삭제 없음.
+- [x] 동일 S24의 360/384/400/430dp·font scale 1.0/1.3/1.5 12조합·179캡처, 일정 7·건강 5·일기 7 native preview. 원래 1080×2340px·density 450·font scale 1.0 복원. 여러 물리 기기 검증은 아님.
+- [x] 한국시간 13:02 실제 알림·반복 진동과 Home 중지·IDLE·notice 제거. 이전 OS notification 중지·일정 목록 이동도 별도 확인.
+- [x] 실제 warm scroll/Top 3회 성능 기록. 짧은 native 관찰·보존 로그의 NURI Fatal·ANR·RN 오류 패턴 0, 장시간 누수 확인으로 간주하지 않음.
+- [ ] KST 종일 일정 저장과 remote UTC 자정 제약 충돌 해결: 별도 서버 계약 검토 필요, 이번 작업에서 migration 없음.
+- [ ] 360dp 기본 글꼴의 Weather 풍속 말줄임 보완: 현재 compact 4열의 잔여 표시 문제.
+- [x] Galaxy S24에서 PO의 10개 Home·등록 시각/UX 항목 직접 검토·최종 승인 완료. 현재 corrective scope 동결.
+- [ ] 계절 검토 버튼 production 노출 승인: 현재 유지, Final RC 전에 제거 또는 production 비노출 확정 필요.
+- [ ] 다른 물리 기기의 native 확인·장시간 bitmap 메모리 검증·Test Hygiene/Full Suite·Final Release Hardening. 전체 release gate HOLD.
+- 이번 10월 4일 task-owned 변경만 선별 commit·push 대상으로 삼는다. 기존 10월 2일 dirty·research·metadata·output·unrelated asset은 제외한다. QA 데이터·증적·APK는 보존하고 추가 build·install·QA·cleanup·계절 버튼 제거·다음 작업은 하지 않는다. 기존 증적은 `docs/qa/nuri-home-profile-qa-corrective-2026-10-04.md`, Git 결과는 `/tmp/nuri-home-qa-fixes-20261004/git-closeout/final.json`을 따른다.
+
 ## 2026-10-01 Home editorial Git·cleanup 종료 결과
 
 - [x] 승인 source·asset·test·문서 46개 파일을 `44284adff5454676268db6bc6f62a6b36b7f2f2a`로 선별 commit·기존 브랜치 push, 실제 remote SHA 일치·ahead/behind 0/0 확인.

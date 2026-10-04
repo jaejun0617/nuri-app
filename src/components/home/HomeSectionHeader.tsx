@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import AppText from '../../app/ui/AppText';
 import { SectionHeaderAction } from '../../app/ui/SectionHeaderAction';
@@ -30,10 +30,16 @@ export const HomeSectionHeader = memo(function HomeSectionHeaderView({
   hideAction = false,
   action,
 }: Props) {
+  const { fontScale } = useWindowDimensions();
+  const stackAction = !!action && !hideAction && fontScale >= 1.3;
+
   return (
     <View style={styles.container}>
-      <View testID="home-section-header" style={styles.row}>
-        <View style={styles.heading}>
+      <View
+        testID="home-section-header"
+        style={[styles.row, stackAction ? styles.stackedRow : null]}
+      >
+        <View style={[styles.heading, stackAction ? styles.stackedHeading : null]}>
           <AppText
             accessibilityRole="header"
             typographyRole="sectionTitle"
@@ -95,6 +101,8 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   heading: { flex: 1, minWidth: 0, gap: 4 },
+  stackedRow: { flexDirection: 'column', alignItems: 'flex-end' },
+  stackedHeading: { flex: 0, width: '100%' },
   title: {
     flexShrink: 1,
     minWidth: 0,

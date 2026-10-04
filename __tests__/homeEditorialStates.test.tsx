@@ -26,6 +26,7 @@ import {
 import type { SeasonKey } from '../src/theme/seasonal/season';
 import { HOME_AMBIENT_SCROLL_BUBBLES } from '../src/theme/home/ambientMesh';
 import { HOME_AMBIENT_SECTION_LIGHTS } from '../src/theme/home/seasonalAmbient';
+import { styles as homeStyles } from '../src/screens/Main/components/LoggedInHome/LoggedInHome.styles';
 
 jest.mock('../src/app/ui/AppText', () => 'AppText');
 
@@ -144,8 +145,10 @@ describe('seasonal editorial Home sections', () => {
       expect(onPress).toHaveBeenCalledTimes(1);
       expect(RN.StyleSheet.flatten(action.props.style)).toMatchObject({
         minHeight: 46,
-        shadowOpacity: 0,
-        elevation: 0,
+        borderRadius: homeStyles.recordBtn.borderRadius,
+        shadowOpacity: homeStyles.recordBtn.shadowOpacity,
+        elevation: homeStyles.recordBtn.elevation,
+        backgroundColor: '#0754DA',
       });
       const label = action.find(node => node.props.children === '기록하기');
       expect(RN.StyleSheet.flatten(label.props.style).textAlign).toBe('center');
@@ -217,7 +220,7 @@ describe('seasonal editorial Home sections', () => {
       expect(shouldStackEditorialCopy(width, 1.5)).toBe(true);
       expect(styles.copy).not.toHaveProperty('maxHeight');
       expect(styles.content).not.toHaveProperty('height');
-      expect(styles.action).not.toHaveProperty('height');
+      expect(styles.action.height).toBeUndefined();
     },
   );
 

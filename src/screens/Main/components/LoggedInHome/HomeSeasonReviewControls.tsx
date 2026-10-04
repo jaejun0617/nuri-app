@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AppText from '../../../../app/ui/AppText';
 import type { SeasonKey } from '../../../../theme/seasonal/season';
@@ -11,7 +12,7 @@ const OPTIONS: readonly { key: SeasonKey; label: string }[] = [
   { key: 'summer', label: '여름' },
 ];
 
-/** Temporary PO controls reserve their own space, never covering a Home action. */
+/** Only the temporary buttons receive touches; the shelf does not shift Home. */
 export const HomeSeasonReviewControls = memo(
   function HomeSeasonReviewControlsView({
     season,
@@ -20,8 +21,13 @@ export const HomeSeasonReviewControls = memo(
     season: SeasonKey;
     onChange: (season: SeasonKey) => void;
   }) {
+    const insets = useSafeAreaInsets();
     return (
-      <View testID="home-season-review-controls" style={styles.shelf}>
+      <View
+        testID="home-season-review-controls"
+        style={[styles.shelf, { top: insets.top }]}
+        pointerEvents="box-none"
+      >
         <View style={styles.segment}>
           {OPTIONS.map(option => (
             <TouchableOpacity
@@ -39,6 +45,8 @@ export const HomeSeasonReviewControls = memo(
             >
               <AppText
                 preset="unifiedLabel"
+                numberOfLines={1}
+                maxFontSizeMultiplier={1.4}
                 styleOverridesPreset
                 style={[
                   styles.label,
@@ -57,9 +65,11 @@ export const HomeSeasonReviewControls = memo(
 
 export const styles = StyleSheet.create({
   shelf: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    backgroundColor: '#FFFCFA',
+    position: 'absolute',
+    top: 0,
+    left: 104,
+    right: 56,
+    zIndex: 20,
   },
   segment: {
     flexDirection: 'row',
@@ -71,6 +81,7 @@ export const styles = StyleSheet.create({
   },
   option: {
     flex: 1,
+    minWidth: 0,
     minHeight: 38,
     paddingVertical: 8,
     paddingHorizontal: 4,
