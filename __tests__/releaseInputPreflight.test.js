@@ -5,9 +5,22 @@ const {
   readLiteralConfig,
   relativeImports,
   resolveAndroidPlatform,
+  prepareInputs,
 } = require('../scripts/preflight-release-inputs.js');
 
 describe('release input preflight', () => {
+  test('rejects source-only CI fixtures before any deployment input is written', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nuri-ci-fixture-test-'));
+    try {
+      expect(() => prepareInputs(root, root, {
+        NURI_SUPABASE_URL: 'https://aaaaaaaaaaaaaaaaaaaa.supabase.co',
+        NURI_SUPABASE_CLIENT_KEY: 'sb_publishable_SOURCE_VALIDATION_ONLY_NOT_A_CREDENTIAL',
+      })).toThrow('NURI_SOURCE_VALIDATION_FIXTURE_NOT_DEPLOYABLE');
+      expect(fs.readdirSync(root)).toEqual([]);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
   test('resolves stable SDK API metadata, including decimal installation directory names', () => {
     const sdk = fs.mkdtempSync(
       path.join(os.tmpdir(), 'nuri-sdk-preflight-test-'),

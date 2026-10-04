@@ -190,6 +190,10 @@ function prepareInputs(root, inputRoot, env) {
           ? fs.readFileSync(configSource, 'utf8')
           : '',
       );
+  // CI can validate source without credentials, but that fixture cannot ship.
+  if (config.SUPABASE_ANON_KEY?.includes('SOURCE_VALIDATION_ONLY')) {
+    fail('NURI_SOURCE_VALIDATION_FIXTURE_NOT_DEPLOYABLE');
+  }
   loadValidator(root)(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
   const configDestination = path.join(root, CONFIG_PATH);
   const generated =

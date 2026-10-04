@@ -15,6 +15,8 @@
     "test": "jest",
     "verify-js-toolchain": "bash scripts/verify-js-toolchain.sh",
     "verify-release-apk": "bash scripts/verify-release-apk.sh",
+    "release:source-check": "node scripts/release-foundation.js source",
+    "test:foundation": "jest --runInBand --watchAll=false --watchman=false __tests__/releaseFoundation.test.js __tests__/releaseInputPreflight.test.js __tests__/authBootstrap.test.ts __tests__/authLocalSession.test.ts __tests__/authStoreRecovery.test.ts __tests__/oauthCallbackSession.test.ts __tests__/authAppLinks.test.ts __tests__/oauthRedirectSelection.test.ts __tests__/schedulesForm.test.ts __tests__/seasonPreference.test.tsx __tests__/seasonalRouteIntegration.test.ts __tests__/seasonalTheme.test.ts",
     "test:qa": "jest --watchAll=false --watchman=false __tests__/recordsForm.test.ts __tests__/schedulesForm.test.ts __tests__/categoryMeta.test.ts __tests__/consents.test.ts __tests__/weeklySummary.test.ts __tests__/timelineHeatmap.test.ts __tests__/appErrors.test.ts __tests__/petThemePalette.test.ts __tests__/homeWidgetSnapshot.test.ts",
     "test:e2e:smoke": "maestro test .maestro/login-record-crud.yaml",
     "test:e2e:account": "maestro test .maestro/account-delete.yaml",

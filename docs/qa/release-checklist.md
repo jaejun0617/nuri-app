@@ -1,5 +1,19 @@
 # V1.0 Remaining Task/Risk Closeout
 
+<!-- NURI_FOUNDATION_20261004_BEGIN -->
+## 2026-10-04 Pre-Design Foundation Gate
+
+- [x] PO AUTH visual/UX PASS; offline/Kakao COMPLETE_FROZEN; native cancel/back NOT_RUN remains an evidence gap.
+- [x] Source-validation workflow, non-deployable CI fixture, input/provenance tamper guards and critical logical automation implemented; execution results belong to `/tmp/nuri-foundation-20261004/FINAL_REPORT.md`.
+- [x] Web production source/health/independent deployment record aligned; production monitor run 37191169067 PASS, no hardcoded expected hash.
+- [x] Read-only remote RLS/ownership review and release/recovery runbooks. No production restore, QA write, visual change or app rebuild.
+- [ ] Signed CI: existing GitHub signing secrets/environment unavailable; protected provisioning approval required.
+- [ ] Crashlytics event receipt, commit/symbol/source-map attribution and payload redaction proof; current implementation alone is not operational PASS.
+- [ ] Current database/media/auth recovery set and timed isolated restore; Free plan and old public dumps are not complete recovery evidence.
+- [ ] Existing security advisor function/grant/search-path findings require contract-specific review, not automatic grant changes.
+- Store HOLD. Season control/QA/canonical APK+AAB preserved. Next: PO NEXT DESIGN DIRECTION; design-sensitive audits deferred.
+<!-- NURI_FOUNDATION_20261004_END -->
+
 ## 2026-10-04 Auth Final Corrective Gate
 
 - [x] Separate network failure from definitive invalid auth; SDK-local session and explicit logout contract; same-user silent revalidation.

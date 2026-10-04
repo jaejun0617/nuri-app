@@ -1,0 +1,53 @@
+name: Release source validation
+
+on:
+  push:
+    branches: [main, 'codex/**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: source-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TZ: Asia/Seoul
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - name: Install pinned package manager and immutable dependencies
+        run: |
+          corepack enable
+          corepack prepare yarn@3.6.4 --activate
+          yarn install --immutable
+          bash scripts/verify-js-toolchain.sh
+      - name: Prepare non-deployable typecheck fixture
+        run: node scripts/release-foundation.js ci-input
+      - name: Release source and secret guards
+        run: node scripts/release-foundation.js source
+      - name: TypeScript
+        run: yarn tsc --noEmit
+      - name: ESLint
+        run: yarn eslint src scripts/release-foundation.js __tests__/releaseFoundation.test.js
+      - name: Critical nonvisual contracts
+        run: yarn test:foundation
+      - name: Full suite
+        if: github.event_name != 'pull_request'
+        run: yarn jest --runInBand --watch=false --watchman=false
+      - name: Source diff guard
+        run: git diff --exit-code && git diff --check
+
+# No signing secrets exist yet. This workflow cannot build, install or upload.
+# Signed CI is a separate provisioning gate; the fixture must never enter an RC.
