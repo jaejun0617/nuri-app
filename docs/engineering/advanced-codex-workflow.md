@@ -1,5 +1,12 @@
 # advanced-codex-workflow.md
 
+## 2026-10-04 PO 고정 정책: substantial task 종료
+
+- 필수 APK/AAB·증적 복사 → hash·Git 보존 확인 → exact-path 재생성 산출물 안전 정리 → 디스크 전후 확인 → 보고 → STOP 순서를 지킨다.
+- source·asset·migration·dirty·서명·SDK/NDK/CMake·wrapper·modules-2·node_modules·Codex·개인/시스템 데이터는 삭제하지 않는다. 과거 증적은 참조 여부가 불명확하면 보존한다.
+- 대형 전역 캐시는 자동 포괄 승인 대상이 아니다. 이번 2026-10-04 통합 배치의 build-cache-1 ≥10GiB 삭제 승인만 별도 적용한다.
+- RC는 정확한 committed source에 귀속한다. unrelated dirty는 보존·제외하며 모든 계절 QA 버튼은 새 PO 지시 전까지 유지한다. 미적 최종 승인과 Store 승인 권한은 PO에게 있다.
+
 > 이 문서는 Codex가 이 프로젝트에서 작업할 때 따라야 하는 최상위 실행 규칙이다.
 > 행동 기준은 이 문서가 우선이며, 세부 검증은 `advanced-codex-checklist.md`, 컨텍스트 유지와 문서 기반 기억은 `advanced-codex-memory.md`를 따른다.
 

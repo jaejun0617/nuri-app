@@ -1,5 +1,15 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-10-04 Consolidated PRE-RC Gate
+
+- [x] Local implementation: width-safe Weather, selected-only Community category fill, 22dp recommendation glyph, app-wide persisted seasonal override and missing onboarding variants.
+- [x] Linked KST all-day constraint migration 20261004051105; existing 12 rows/RLS identical immediately before and after.
+- [x] Node 24.20.0 / Yarn 3.6.4, typecheck; full Jest 144 suites / 1056 tests; target lint 0 errors / 25 existing warnings / 0 new diagnostics.
+- [ ] Committed-source APK/AAB and physical QA execution results: /tmp/nuri-final-batch-20261004/FINAL_REPORT.md is the post-execution evidence owner.
+- [ ] Final PO visual approval and Store release approval. Review buttons remain visible by PO decision.
+- Permanent order: final artifact copy → evidence/Git verify → safe generated-only cleanup → disk verify → report → STOP.
+
+
 ## 2026-10-04 Home · 프로필 등록 QA corrective · PO 최종 승인
 
 - [x] 세 취향 입력 추가 후 같은 입력 focus·키보드 유지, 새 chip 아래까지 측정 기반 animated scroll, 정규화·중복 방지·draft 보존.

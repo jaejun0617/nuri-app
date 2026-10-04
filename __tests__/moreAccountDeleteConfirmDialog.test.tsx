@@ -127,7 +127,7 @@ describe('More account deletion confirmation', () => {
     global.requestAnimationFrame = originalRequestAnimationFrame;
   });
 
-  it('keeps all 18 functional entries in the four approved groups', async () => {
+  it('keeps all 19 functional entries including app font in the four approved groups', async () => {
     let renderer!: TestRenderer.ReactTestRenderer;
 
     await TestRenderer.act(async () => {
@@ -162,6 +162,7 @@ describe('More account deletion confirmation', () => {
       'animal-hospital',
       'my-profile',
       'theme',
+      'app-font',
       'notification',
       'user-notifications',
       'community-blocked-users',
