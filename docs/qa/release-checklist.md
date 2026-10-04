@@ -1,5 +1,13 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-10-04 RC Input Recovery Gate
+
+- [x] Classify public Supabase client inputs without logging values; preserve ignored/protected source inputs.
+- [x] Official clean-checkout input manifest, shared validator, undeclared-relative-import guard, and DEV=false Android bundle gate before Gradle.
+- [ ] Exact final HEAD APK/AAB, native acceptance and final preservation: `/tmp/nuri-rc-recovery-20261004/FINAL_REPORT.md` is the execution evidence owner.
+- [ ] PO visual approval and separate Play Store readiness. Season review control remains visible.
+
+
 ## 2026-10-04 Consolidated PRE-RC Gate
 
 - [x] Local implementation: width-safe Weather, selected-only Community category fill, 22dp recommendation glyph, app-wide persisted seasonal override and missing onboarding variants.

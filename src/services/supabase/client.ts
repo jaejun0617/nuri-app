@@ -4,8 +4,11 @@ import { createClient } from '@supabase/supabase-js';
 import 'react-native-url-polyfill/auto';
 
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from './config';
+import { validateSupabaseRuntimeConfig } from './runtimeConfig';
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+const config = validateSupabaseRuntimeConfig(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+export const supabase = createClient(config.url, config.clientKey, {
   auth: {
     // ✅ RN에서 세션 영구 유지 핵심
     storage: AsyncStorage,

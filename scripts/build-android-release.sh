@@ -48,6 +48,7 @@ fi
 }
 
 SOURCE_HEAD="$(git -C "$REPO_ROOT" rev-parse HEAD)"
+node "$SCRIPT_DIR/preflight-release-inputs.js" --root "$REPO_ROOT"
 SHORT_HEAD="${SOURCE_HEAD:0:7}"
 DIRTY_STATUS="$(git -C "$REPO_ROOT" status --short)"
 
@@ -61,10 +62,10 @@ else
   printf '%s\n' 'DIRTY_PATHS: NONE'
 fi
 printf 'RELEASE_INTENT: %s\n' "$MODE"
-printf '%s\n' 'BUILD_COMMAND: ./gradlew assembleRelease --no-daemon --console plain'
+printf '%s\n' 'BUILD_COMMAND: ./gradlew assembleRelease bundleRelease --no-daemon --console plain'
 
 cd "$REPO_ROOT/android"
-./gradlew assembleRelease --no-daemon --console plain
+./gradlew assembleRelease bundleRelease --no-daemon --console plain
 
 DEFAULT_APK="$REPO_ROOT/android/app/build/outputs/apk/release/app-release.apk"
 [[ -f "$DEFAULT_APK" ]] || {
