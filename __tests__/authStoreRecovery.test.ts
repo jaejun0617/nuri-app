@@ -119,4 +119,18 @@ describe('authStore password recovery guard', () => {
       'nuri.auth.passwordRecovery.v1',
     );
   });
+
+  it('same-user background token update leaves the boot gate and profile intact', async () => {
+    await useAuthStore.getState().setSession(createSession());
+    useAuthStore.setState({ booted: true, profileSyncStatus: 'ready' });
+    useAuthStore.getState().updateSessionTokens({ ...createSession(), access_token: 'fresh' });
+    expect(useAuthStore.getState().booted).toBe(true);
+    expect(useAuthStore.getState().profileSyncStatus).toBe('ready');
+    expect(useAuthStore.getState().session?.access_token).toBe('fresh');
+    useAuthStore.getState().updateSessionTokens(createSession('other-user'));
+    expect(useAuthStore.getState().session?.user.id).toBe('user-1');
+    await useAuthStore.getState().signOutLocal();
+    useAuthStore.getState().updateSessionTokens(createSession());
+    expect(useAuthStore.getState().isLoggedIn).toBe(false);
+  });
 });

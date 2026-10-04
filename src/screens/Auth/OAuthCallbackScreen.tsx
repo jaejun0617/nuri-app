@@ -40,6 +40,14 @@ function parseProvider(value: string): SocialOAuthProvider | null {
 }
 
 export default function OAuthCallbackScreen({ navigation, route }: Props) {
+  const error = readParam(route.params?.error);
+  const errorDescription = readParam(route.params?.error_description);
+  const provider = parseProvider(readParam(route.params?.provider));
+  const accessToken = readParam(route.params?.access_token);
+  const refreshToken = readParam(route.params?.refresh_token);
+  const code = readParam(route.params?.code);
+  const tokenHash = readParam(route.params?.token_hash);
+  const verificationType = readParam(route.params?.type);
   useEffect(() => {
     let active = true;
 
@@ -49,10 +57,6 @@ export default function OAuthCallbackScreen({ navigation, route }: Props) {
     };
 
     const handleCallback = async () => {
-      const error = readParam(route.params?.error);
-      const errorDescription = readParam(route.params?.error_description);
-      const provider = parseProvider(readParam(route.params?.provider));
-
       if (error) {
         Alert.alert(
           '소셜 로그인을 완료하지 못했어요',
@@ -65,11 +69,11 @@ export default function OAuthCallbackScreen({ navigation, route }: Props) {
 
       try {
         await completeOAuthCallbackSession({
-          accessToken: readParam(route.params?.access_token),
-          refreshToken: readParam(route.params?.refresh_token),
-          code: readParam(route.params?.code),
-          tokenHash: readParam(route.params?.token_hash),
-          verificationType: readParam(route.params?.type),
+          accessToken,
+          refreshToken,
+          code,
+          tokenHash,
+          verificationType,
           provider,
         });
         if (!active) return;
@@ -91,7 +95,7 @@ export default function OAuthCallbackScreen({ navigation, route }: Props) {
     return () => {
       active = false;
     };
-  }, [navigation, route.params]);
+  }, [navigation, error, errorDescription, provider, accessToken, refreshToken, code, tokenHash, verificationType]);
 
   return (
     <SafeAreaView style={styles.screen}>

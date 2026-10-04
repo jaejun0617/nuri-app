@@ -6,6 +6,11 @@ jest.mock('../src/services/auth/session', () => ({
   createAuthBoundaryCleanupQueue: jest.fn(),
   shouldClearAuthBoundScheduleNotifications: jest.fn(),
 }));
+jest.mock('../src/services/auth/localSession', () => ({
+  hasExplicitLogout: jest.fn(async () => false),
+  readPersistedAuthSession: jest.fn(async () => null),
+  markExplicitLogout: jest.fn(async () => undefined),
+}));
 
 jest.mock('../src/services/supabase/client', () => ({
   supabase: {
@@ -68,6 +73,7 @@ jest.mock('../src/store/authStore', () => {
     setSession: jest.fn(async (session: unknown) => {
       state.session = session;
     }),
+    updateSessionTokens: jest.fn((session: unknown) => { state.session = session; }),
     setProfile: jest.fn(() => Promise.resolve()),
     setProfileSyncState: jest.fn(),
     setAccountDeletionGate: jest.fn((gate: unknown) => {
@@ -157,6 +163,7 @@ import { supabase } from '../src/services/supabase/client';
 import { fetchMyProfile } from '../src/services/supabase/profile';
 import { fetchMyPets } from '../src/services/supabase/pets';
 import { useAuthStore } from '../src/store/authStore';
+import { hasExplicitLogout, readPersistedAuthSession } from '../src/services/auth/localSession';
 
 type AuthStateCallback = Parameters<typeof supabase.auth.onAuthStateChange>[0];
 
@@ -232,8 +239,14 @@ describe('AppProviders auth boundary notification cleanup', () => {
       startedAt: null,
     };
     useAuthStore.getState().accountDeletionGate = null;
+    jest.mocked(hasExplicitLogout).mockResolvedValue(false);
+    jest.mocked(readPersistedAuthSession).mockResolvedValue(null);
 
     mockGetSession.mockReturnValue(new Promise(() => {}));
+    jest.mocked(supabase.auth.getUser).mockImplementation(async jwt => {
+      const id = String(jwt).replace('access-', '');
+      return { data: { user: createSession(id).user }, error: null };
+    });
     mockOnAuthStateChange.mockImplementation(callback => {
       authStateCallback = callback;
       return {
@@ -351,5 +364,34 @@ describe('AppProviders auth boundary notification cleanup', () => {
     expect(mockSetSession).not.toHaveBeenCalledWith(sessionB);
     expect(mockSetSession).toHaveBeenLastCalledWith(sessionC);
     expect(useAuthStore.getState().session?.user.id).toBe('user-c');
+  });
+
+  it('boots offline with the real local session and recovers without closing the Home gate', async () => {
+    const session = createSession('user-offline');
+    mockCreateQueue.mockReturnValue(createBoundaryQueue(async () => undefined));
+    jest.mocked(readPersistedAuthSession).mockResolvedValue(session);
+    mockGetSession.mockResolvedValue({ data: { session }, error: null });
+    jest.mocked(supabase.auth.getUser).mockResolvedValue({
+      data: { user: null },
+      error: Object.assign(new Error('Network request failed'), { name: 'AuthRetryableFetchError', status: 0 }),
+    } as unknown as Awaited<ReturnType<typeof supabase.auth.getUser>>);
+    await renderProvider();
+    expect(useAuthStore.getState().session?.user.id).toBe('user-offline');
+    expect(mockFetchMyProfile).not.toHaveBeenCalled();
+    const closeGateCount = jest.mocked(useAuthStore.getState().setBooted).mock.calls.filter(([open]) => !open).length;
+    jest.mocked(supabase.auth.getUser).mockResolvedValue({ data: { user: session.user }, error: null });
+    await act(async () => { await jest.advanceTimersByTimeAsync(5_000); });
+    expect(mockFetchMyProfile).toHaveBeenCalledWith('user-offline');
+    expect(useAuthStore.getState().updateSessionTokens).toHaveBeenCalledWith(session);
+    expect(jest.mocked(useAuthStore.getState().setBooted).mock.calls.filter(([open]) => !open)).toHaveLength(closeGateCount);
+  });
+
+  it('a null SIGNED_OUT event never falls back to persisted credentials', async () => {
+    mockCreateQueue.mockReturnValue(createBoundaryQueue(async () => undefined));
+    await renderProvider();
+    jest.mocked(readPersistedAuthSession).mockResolvedValue(createSession('stale-user'));
+    await emitAuthEvent('SIGNED_OUT', null);
+    expect(mockSetSession).toHaveBeenLastCalledWith(null);
+    expect(useAuthStore.getState().session).toBeNull();
   });
 });

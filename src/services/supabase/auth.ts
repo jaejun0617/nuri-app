@@ -7,6 +7,8 @@ import { Linking } from 'react-native';
 
 import { supabase } from './client';
 import { isValidPasswordFormat } from './account';
+import { getOAuthRedirectTo } from '../auth/appLinks';
+import { clearExplicitLogoutAfterSignIn } from '../auth/localSession';
 import {
   ENABLE_GOOGLE_OAUTH,
   ENABLE_KAKAO_OAUTH,
@@ -163,7 +165,7 @@ export async function signInWithOAuthProvider(
   const { data, error } = await signInWithSupabaseOAuth({
     provider: SUPABASE_PROVIDER_BY_SOCIAL_PROVIDER[provider],
     options: {
-      redirectTo: OAUTH_CALLBACK_REDIRECT_URL,
+      redirectTo: getOAuthRedirectTo(provider),
       skipBrowserRedirect: true,
     },
   });
@@ -209,7 +211,31 @@ export function signInWithKakao(): Promise<void> {
   return signInWithOAuthProvider('kakao');
 }
 
-export async function completeOAuthCallbackSession(
+const callbackExchanges = new Map<string, { promise: Promise<void>; timer: ReturnType<typeof setTimeout> | null }>();
+
+export function completeOAuthCallbackSession(input: OAuthCallbackSessionInput): Promise<void> {
+  const key = JSON.stringify([input.code?.trim(), input.tokenHash?.trim(), input.accessToken?.trim(), input.refreshToken?.trim()]);
+  const pending = callbackExchanges.get(key);
+  if (pending) return pending.promise;
+  if (callbackExchanges.size >= 4) {
+    const completed = [...callbackExchanges.entries()].find(([, entry]) => entry.timer !== null);
+    if (!completed) return Promise.reject(new OAuthSignInError({ code: 'session_exchange_failed', message: '로그인을 확인 중이에요. 잠시 후 다시 시도해 주세요.' }));
+    if (completed[1].timer) clearTimeout(completed[1].timer);
+    callbackExchanges.delete(completed[0]);
+  }
+  const expireCompleted = () => {
+    const entry = callbackExchanges.get(key);
+    if (entry) entry.timer = setTimeout(() => callbackExchanges.delete(key), 60_000);
+  };
+  const promise = exchangeOAuthCallbackSession(input).then(clearExplicitLogoutAfterSignIn).then(
+    () => { expireCompleted(); },
+    (error: unknown) => { expireCompleted(); throw error; },
+  );
+  callbackExchanges.set(key, { promise, timer: null });
+  return promise;
+}
+
+async function exchangeOAuthCallbackSession(
   input: OAuthCallbackSessionInput,
 ): Promise<void> {
   const code = normalizeOptionalToken(input.code);
@@ -297,6 +323,7 @@ export async function signInWithEmail(email: string, password: string) {
     password,
   });
   if (error) throw error;
+  if (data.session) await clearExplicitLogoutAfterSignIn();
   return data.session;
 }
 
@@ -306,6 +333,7 @@ export async function signUpWithEmail(email: string, password: string) {
     password,
   });
   if (error) throw error;
+  if (data.session) await clearExplicitLogoutAfterSignIn();
   // 이메일 인증을 켠 경우 session이 null일 수 있음
   return data.session;
 }

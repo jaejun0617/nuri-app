@@ -26,6 +26,12 @@ import { AppFontPreferenceProvider } from './AppFontPreferenceProvider';
 import { SeasonPreferenceProvider } from './SeasonPreferenceProvider';
 
 import { supabase } from '../../services/supabase/client';
+import { resolveAuthBoot, type AuthBootDecision } from '../../services/auth/bootstrap';
+import {
+  hasExplicitLogout,
+  markExplicitLogout,
+  readPersistedAuthSession,
+} from '../../services/auth/localSession';
 import { fetchMyProfile } from '../../services/supabase/profile';
 import { fetchMyPets } from '../../services/supabase/pets';
 import {
@@ -68,7 +74,6 @@ type Props = {
 };
 
 const LOCAL_HYDRATION_TIMEOUT_MS = 3_000;
-const SESSION_READ_TIMEOUT_MS = 4_000;
 const SESSION_VALIDATE_TIMEOUT_MS = 5_000;
 const USER_SCOPED_FETCH_TIMEOUT_MS = 6_000;
 const ACCOUNT_DELETION_GATE_TIMEOUT_MS = 2_500;
@@ -158,37 +163,25 @@ export default function AppProviders({ children }: Props) {
     let alive = true;
     const pendingAuthTransitionTimers = new Set<ReturnType<typeof setTimeout>>();
     const authBoundaryCleanupQueue = createAuthBoundaryCleanupQueue();
-
-    const resolveValidSession = async () => {
-      const { data } = await withTimeout(
-        supabase.auth.getSession(),
-        SESSION_READ_TIMEOUT_MS,
-        'auth.getSession',
-      );
-      const session = data.session ?? null;
-      if (!session) return null;
-
-      const userResult = await withTimeout(
-        supabase.auth.getUser(),
-        SESSION_VALIDATE_TIMEOUT_MS,
-        'auth.getUser',
-      ).catch(error => {
-        captureMonitoringException(error);
-        return null;
-      });
-
-      if (!userResult) {
-        return session;
-      }
-
-      const { data: userData, error: userError } = userResult;
-      if (userError || !userData.user) {
-        await supabase.auth.signOut();
-        return null;
-      }
-
-      return session;
-    };
+    let authResolutionVersion = 0;
+    let offlineUnverified = false;
+    let revalidating = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let sessionRead: ReturnType<typeof supabase.auth.getSession> | null = null;
+    const resolveValidSession = (provided?: Session) => resolveAuthBoot({
+      readLocalSession: readPersistedAuthSession,
+      hasExplicitLogout,
+      getSession: () => {
+        if (provided) return Promise.resolve({ data: { session: provided }, error: null });
+        // A timed-out SDK refresh may still hold its lock. Share it until it
+        // settles rather than queuing more reads/refreshes behind that lock.
+        if (!sessionRead) {
+          sessionRead = supabase.auth.getSession().finally(() => { sessionRead = null; });
+        }
+        return sessionRead;
+      },
+      getUser: jwt => supabase.auth.getUser(jwt),
+    });
 
     const beginTransition = () => {
       setAuthBooted(false);
@@ -352,6 +345,14 @@ export default function AppProviders({ children }: Props) {
       if (cachedPets.length > 0) {
         warmSelectedPetScopedState();
       }
+      if (offlineUnverified) {
+        setProfileSyncState('error', '오프라인에서 최근 정보를 보여드리고 있어요');
+        setPetErrorMessage('오프라인에서 최근 반려동물 목록을 보여드리고 있어요');
+        setPetLoading(false);
+        lastUserIdRef.current = userId;
+        finishTransition(seq);
+        return;
+      }
       if (!shouldReload) {
         setProfileSyncState('ready');
         setPetErrorMessage(null);
@@ -475,7 +476,10 @@ export default function AppProviders({ children }: Props) {
         id: session.user.id,
       });
 
-      const accountDeletionGate = await loadAccountDeletionGate(session);
+      const cachedGate = useAuthStore.getState().accountDeletionGate;
+      const accountDeletionGate = offlineUnverified
+        ? (cachedGate?.userId === session.user.id ? cachedGate : null)
+        : await loadAccountDeletionGate(session);
       if (accountDeletionGate) {
         await applyAccountDeletionGuardState(seq, accountDeletionGate);
         return;
@@ -490,7 +494,66 @@ export default function AppProviders({ children }: Props) {
       });
     };
 
+    const cancelRetry = () => {
+      if (retryTimer) clearTimeout(retryTimer);
+      retryTimer = null;
+    };
+
+    const scheduleRevalidation = () => {
+      cancelRetry();
+      if (!alive || !offlineUnverified) return;
+      retryTimer = setTimeout(() => {
+        retryTimer = null;
+        revalidate().catch(captureMonitoringException);
+      }, 5_000);
+    };
+
+    const applyDecision = async (event: AuthChangeEvent | 'boot', decision: AuthBootDecision) => {
+      offlineUnverified = decision.state === 'offline_unverified';
+      if (decision.state === 'invalid') {
+        await markExplicitLogout();
+        await supabase.auth.signOut({ scope: 'local' });
+      }
+      await applySessionTransition(event, decision.session);
+      scheduleRevalidation();
+    };
+
+    const revalidate = async () => {
+      if (!alive || !offlineUnverified || revalidating || AppState.currentState === 'background') return;
+      revalidating = true;
+      const version = authResolutionVersion;
+      const previousUserId = getSessionUserId(useAuthStore.getState().session);
+      try {
+        const decision = await resolveValidSession();
+        if (!alive || version !== authResolutionVersion ||
+          getSessionUserId(useAuthStore.getState().session) !== previousUserId) return;
+        if (decision.state === 'offline_unverified') return;
+        offlineUnverified = false;
+        if (decision.state === 'validated' && decision.session.user.id === previousUserId) {
+          useAuthStore.getState().updateSessionTokens(decision.session);
+          const gate = await loadAccountDeletionGate(decision.session);
+          if (!alive || version !== authResolutionVersion) return;
+          if (gate) {
+            await applyAccountDeletionGuardState(transitionSeqRef.current, gate);
+          } else {
+            await applyLoggedInState(decision.session, transitionSeqRef.current, { forceReload: true });
+          }
+        } else {
+          await applyDecision('boot', decision);
+        }
+      } finally {
+        revalidating = false;
+        scheduleRevalidation();
+      }
+    };
+
+    const networkRecoverySub = AppState.addEventListener('change', state => {
+      if (state === 'active') revalidate().catch(captureMonitoringException);
+      else cancelRetry();
+    });
+
     const boot = async () => {
+      const version = authResolutionVersion;
       localHydrationPromiseRef.current = withTimeout(
         Promise.all([hydrateAuth(), hydrateSelectedPetId()]).then(() => undefined),
         LOCAL_HYDRATION_TIMEOUT_MS,
@@ -500,25 +563,42 @@ export default function AppProviders({ children }: Props) {
       });
       await localHydrationPromiseRef.current;
 
-      const session = await resolveValidSession();
-      await applySessionTransition('boot', session);
+      const decision = await resolveValidSession();
+      if (!alive || version !== authResolutionVersion) return;
+      await applyDecision('boot', decision);
     };
 
     const { data: listener } = supabase.auth.onAuthStateChange(
       (event, nextSession) => {
         // Supabase holds its auth lock while this callback runs. Defer every
         // Supabase read so OAuth SIGNED_IN cannot deadlock profile/pet bootstrap.
-        beginTransition();
+        const version = ++authResolutionVersion;
+        cancelRetry();
+        const sameUserRefresh = !!nextSession && event === 'TOKEN_REFRESHED' &&
+          getSessionUserId(nextSession) === getSessionUserId(useAuthStore.getState().session);
+        if (!sameUserRefresh) beginTransition();
         const timer = setTimeout(() => {
           pendingAuthTransitionTimers.delete(timer);
           if (!alive) return;
 
           const runTransition = async () => {
             await localHydrationPromiseRef.current;
-            const resolvedSession = nextSession?.user
-              ? nextSession
-              : await resolveValidSession();
-            await applySessionTransition(event, resolvedSession);
+            if (!alive || version !== authResolutionVersion) return;
+            if (event === 'SIGNED_OUT') {
+              await markExplicitLogout();
+              if (!alive || version !== authResolutionVersion) return;
+              offlineUnverified = false;
+              await applySessionTransition(event, null);
+              return;
+            }
+            if (sameUserRefresh && nextSession) {
+              useAuthStore.getState().updateSessionTokens(nextSession);
+              if (offlineUnverified) await revalidate();
+              return;
+            }
+            const decision = await resolveValidSession(nextSession ?? undefined);
+            if (!alive || version !== authResolutionVersion) return;
+            await applyDecision(event, decision);
           };
 
           runTransition().catch((error: unknown) => {
@@ -535,6 +615,11 @@ export default function AppProviders({ children }: Props) {
     unsub = listener.subscription;
 
     const unsubscribeGate = useAuthStore.subscribe((state, prevState) => {
+      if (prevState.session && !state.session) {
+        ++authResolutionVersion;
+        offlineUnverified = false;
+        cancelRetry();
+      }
       const prevGate = prevState.accountDeletionGate;
       const nextGate = state.accountDeletionGate;
       if (!prevGate || nextGate) return;
@@ -562,6 +647,8 @@ export default function AppProviders({ children }: Props) {
 
     return () => {
       alive = false;
+      cancelRetry();
+      networkRecoverySub.remove();
       pendingAuthTransitionTimers.forEach(timer => clearTimeout(timer));
       pendingAuthTransitionTimers.clear();
       unsubscribeGate();

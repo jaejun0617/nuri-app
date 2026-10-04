@@ -133,6 +133,7 @@ type AuthState = {
   // ---------------------------------------------------------
   hydrate: () => Promise<void>;
   setSession: (session: Session | null) => Promise<void>;
+  updateSessionTokens: (session: Session) => void;
   setProfile: (profile: Profile) => Promise<void>;
   setNickname: (nickname: string | null) => Promise<void>;
   setProfileSyncState: (
@@ -259,6 +260,13 @@ export const useAuthStore = create<AuthState>(set => ({
       // gate here so onboarding guards cannot race ahead with stale guest state.
       booted: false,
     });
+  },
+
+  updateSessionTokens: session => {
+    const state = useAuthStore.getState();
+    if (!state.isLoggedIn || state.session?.user.id !== session.user.id || state.passwordRecoveryFlow.status === 'active') return;
+    // Same-user refresh must not close the Splash gate or erase offline UI.
+    set({ session });
   },
 
   setProfile: async profile => {

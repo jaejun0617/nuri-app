@@ -106,6 +106,17 @@
                     android:pathPrefix="/callback" />
             </intent-filter>
 
+            <!-- Only the auth callback is delegated by the first-party host. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="nuri-web-beryl.vercel.app"
+                    android:path="/auth/callback" />
+            </intent-filter>
+
             <intent-filter android:autoVerify="false">
                 <action android:name="android.intent.action.VIEW" />
 

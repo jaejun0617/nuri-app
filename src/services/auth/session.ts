@@ -23,6 +23,7 @@ import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
 import { useScheduleStore } from '../../store/scheduleStore';
+import { markExplicitLogout } from './localSession';
 import { revokeCurrentDevicePushToken } from '../notifications/pushTokenLifecycle';
 import { clearAppQueryCache } from '../query/appQueryClient';
 import {
@@ -123,6 +124,9 @@ export async function disposePasswordRecoverySession(): Promise<void> {
 }
 
 export async function performLogout(timeoutMs = 1200) {
+  // Persist intent before any network work: failed remote logout must never
+  // resurrect the old local credential on the next offline cold start.
+  await markExplicitLogout();
   await clearAuthBoundScheduleNotifications();
 
   try {

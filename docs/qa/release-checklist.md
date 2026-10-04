@@ -1,5 +1,13 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-10-04 Auth Final Corrective Gate
+
+- [x] Separate network failure from definitive invalid auth; SDK-local session and explicit logout contract; same-user silent revalidation.
+- [x] Exact Kakao HTTPS app redirect, dual legacy parser, callback single-flight and narrow Android autoVerify filter; Google source contract preserved.
+- [x] Node 24.20.0 / Yarn 3.6.4; typecheck; target lint 0 diagnostics; 7 suites / 48 target tests; full suite once: 151 suites / 1,118 tests PASS.
+- Execution-only host deployment, exact redirect allowlist delta, signed exact-HEAD artifact, S24 zero-tap/offline acceptance, Git and cleanup results: `/tmp/nuri-auth-final-corrective-20261004/FINAL_REPORT.md` is authoritative. No pre-recorded native PASS.
+- [ ] Final PO visual/UX approval. Store release/upload remains HOLD; season review control stays visible; no automatic next design work.
+
 ## 2026-10-04 RC Input Recovery Gate
 
 - [x] Classify public Supabase client inputs without logging values; preserve ignored/protected source inputs.
