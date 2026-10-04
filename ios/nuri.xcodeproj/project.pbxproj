@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		91AB73A030F123456789AB01 /* NuriIcons.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 91AB73A030F123456789AB02 /* NuriIcons.ttf */; };
 		0C80B921A6F3F58F76C31292 /* libPods-nuri.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5DCACB8F33CDC322A6C60F78 /* libPods-nuri.a */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
@@ -19,6 +20,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		91AB73A030F123456789AB02 /* NuriIcons.ttf */ = {isa = PBXFileReference; name = "NuriIcons.ttf"; path = "../src/assets/fonts/NuriIcons.ttf"; sourceTree = "<group>"; lastKnownFileType = file; includeInIndex = 0; };
 		13B07F961A680F5B00A75B9A /* nuri.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = nuri.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = nuri/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = nuri/Info.plist; sourceTree = "<group>"; };
@@ -111,6 +113,7 @@
 			isa = "PBXGroup";
 			children = (
 				C1B3D5F709A12468ACE13579 /* insungitCutelivelyjisu.ttf */,
+				91AB73A030F123456789AB02 /* NuriIcons.ttf */,
 				F1A2B3C4D5E6F708192A3B4C /* Fredoka-SemiBold.ttf */,
 				B7E59B8881694206B01AE438 /* GowunBatang-Regular.ttf */,
 				B28A166EE45F4EAAAD7D4985 /* PretendardVariable.ttf */,
@@ -188,6 +191,7 @@
 				0DE49FEE9D62496B9FDAD33E /* PretendardVariable.ttf in Resources */,
 				E1A2B3C4D5E6F708192A3B4C /* Fredoka-SemiBold.ttf in Resources */,
 				D2A4C6E8F0B213579BDF2468 /* insungitCutelivelyjisu.ttf in Resources */,
+				91AB73A030F123456789AB01 /* NuriIcons.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

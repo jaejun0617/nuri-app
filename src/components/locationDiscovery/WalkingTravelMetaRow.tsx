@@ -1,6 +1,6 @@
 import React, { memo, useMemo } from 'react';
 import { View } from 'react-native';
-import Feather from 'react-native-vector-icons/Feather';
+import Feather from '../icons/NuriFeatherIcon';
 
 import AppText from '../../app/ui/AppText';
 import { buildWalkingTravelLabel } from '../../services/locationDiscovery/travelMetrics';

@@ -1,0 +1,1569 @@
+{
+  "walk": {
+    "primary": "#62AEF7",
+    "detail": "#2A9476",
+    "accent": "#FFD279",
+    "secondary": "#71DAB3",
+    "detailAccent": "#FFFFFF",
+    "surface": "#B9E2FF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "accent",
+      "secondary"
+    ]
+  },
+  "meal": {
+    "primary": "#FFC76C",
+    "detail": "#855333",
+    "accent": "#FFE5B1",
+    "secondary": "#ECA16C",
+    "detailAccent": "#F8AB82",
+    "surface": "#FFE6B0",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "accent",
+      "secondary",
+      "detailAccent"
+    ]
+  },
+  "health": {
+    "primary": "#FF8F9E",
+    "detail": "#FFFFFF",
+    "accent": "#FFD4DC",
+    "secondary": "#EBC5F7",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFD1DB",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "grooming": {
+    "primary": "#4CCDC4",
+    "detail": "#2F8E9B",
+    "accent": "#9BD3FC",
+    "secondary": "#86BFF7",
+    "detailAccent": "#FFFFFF",
+    "surface": "#A5EEE1",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "accent"
+    ]
+  },
+  "diary": {
+    "primary": "#62AEF7",
+    "detail": "#3A719A",
+    "accent": "#D2F1FF",
+    "secondary": "#FFB9CB",
+    "detailAccent": "#FFD2DD",
+    "surface": "#B9E2FF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "accent",
+      "secondary",
+      "detailAccent"
+    ]
+  },
+  "calendar": {
+    "primary": "#DCEAFF",
+    "detail": "#599BE3",
+    "accent": "#6BB9FC",
+    "secondary": "#BCDFFF",
+    "detailAccent": "#FFAEC2",
+    "surface": "#F2F8FF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "accent",
+      "secondary",
+      "detailAccent"
+    ]
+  },
+  "timeline": {
+    "primary": "#62AEF7",
+    "detail": "#FFFFFF",
+    "accent": "#80DDC6",
+    "secondary": "#FFB2C7",
+    "detailAccent": "#FFFFFF",
+    "surface": "#B9E2FF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "accent",
+      "secondary"
+    ]
+  },
+  "home": {
+    "primary": "#62AEF7",
+    "detail": "#FFFFFF",
+    "accent": "#BCE3FF",
+    "secondary": "#FFB7C5",
+    "detailAccent": "#FFFFFF",
+    "surface": "#B9E2FF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "community": {
+    "primary": "#B3A0ED",
+    "detail": "#66538F",
+    "accent": "#E1D6FF",
+    "secondary": "#F4B4D0",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DDD0FF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "secondary"
+    ]
+  },
+  "letter": {
+    "primary": "#FF8F9E",
+    "detail": "#FFFFFF",
+    "accent": "#FFD4DC",
+    "secondary": "#EBC5F7",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFD1DB",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "menu": {
+    "primary": "#62AEF7",
+    "detail": "#286EBB",
+    "accent": "#BCE3FF",
+    "secondary": "#FFB7C5",
+    "detailAccent": "#FFFFFF",
+    "surface": "#B9E2FF",
+    "layers": [
+      "fill",
+      "outline",
+      "highlight"
+    ]
+  },
+  "heart": {
+    "primary": "#FF8F9E",
+    "detail": "#B94965",
+    "accent": "#FFD4DC",
+    "secondary": "#EBC5F7",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFD1DB",
+    "layers": [
+      "fill",
+      "outline",
+      "highlight"
+    ]
+  },
+  "broken-heart": {
+    "primary": "#FF8F9E",
+    "detail": "#B94965",
+    "accent": "#FFD4DC",
+    "secondary": "#EBC5F7",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFD1DB",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "pet": {
+    "primary": "#4CCDC4",
+    "detail": "#167F87",
+    "accent": "#A4E9EF",
+    "secondary": "#86BFF7",
+    "detailAccent": "#FFFFFF",
+    "surface": "#A5EEE1",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "accent",
+      "secondary"
+    ]
+  },
+  "user": {
+    "primary": "#B3A0ED",
+    "detail": "#6F59B4",
+    "accent": "#E1D6FF",
+    "secondary": "#92D8EE",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DDD0FF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "user-search": {
+    "primary": "#B3A0ED",
+    "detail": "#6F59B4",
+    "accent": "#E1D6FF",
+    "secondary": "#92D8EE",
+    "detailAccent": "#66538F",
+    "surface": "#DDD0FF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "accent",
+      "detailAccent"
+    ]
+  },
+  "bell": {
+    "primary": "#FFC76C",
+    "detail": "#A76B2E",
+    "accent": "#FFE9B7",
+    "secondary": "#F9AA71",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFE6B0",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "bell-off": {
+    "primary": "#AAB9CE",
+    "detail": "#51627B",
+    "accent": "#E2EAF5",
+    "secondary": "#BED0E4",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DBE4EF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "clock": {
+    "primary": "#4CCDC4",
+    "detail": "#167F87",
+    "accent": "#A4E9EF",
+    "secondary": "#86BFF7",
+    "detailAccent": "#FFFFFF",
+    "surface": "#A5EEE1",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "accent"
+    ]
+  },
+  "calendar-clock": {
+    "primary": "#62AEF7",
+    "detail": "#286EBB",
+    "accent": "#BCE3FF",
+    "secondary": "#FFB7C5",
+    "detailAccent": "#FFFFFF",
+    "surface": "#B9E2FF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "accent",
+      "detailAccent"
+    ]
+  },
+  "calendar-alert": {
+    "primary": "#FCA285",
+    "detail": "#B65A42",
+    "accent": "#FFDDC8",
+    "secondary": "#F7C779",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFDAC0",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "medical-bag": {
+    "primary": "#FF8F9E",
+    "detail": "#B94965",
+    "accent": "#FFD4DC",
+    "secondary": "#EBC5F7",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFD1DB",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "detailAccent"
+    ]
+  },
+  "pill": {
+    "primary": "#FF8F9E",
+    "detail": "#B94965",
+    "accent": "#FFD4DC",
+    "secondary": "#EBC5F7",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFD1DB",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "accent"
+    ]
+  },
+  "needle": {
+    "primary": "#4CCDC4",
+    "detail": "#167F87",
+    "accent": "#A4E9EF",
+    "secondary": "#86BFF7",
+    "detailAccent": "#FFFFFF",
+    "surface": "#A5EEE1",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "stethoscope": {
+    "primary": "#4CCDC4",
+    "detail": "#167F87",
+    "accent": "#A4E9EF",
+    "secondary": "#86BFF7",
+    "detailAccent": "#FFFFFF",
+    "surface": "#A5EEE1",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "shower": {
+    "primary": "#4CCDC4",
+    "detail": "#167F87",
+    "accent": "#A4E9EF",
+    "secondary": "#86BFF7",
+    "detailAccent": "#FFFFFF",
+    "surface": "#A5EEE1",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "activity": {
+    "primary": "#FF8F9E",
+    "detail": "#B94965",
+    "accent": "#FFD4DC",
+    "secondary": "#EBC5F7",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFD1DB",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "award": {
+    "primary": "#FFC76C",
+    "detail": "#A76B2E",
+    "accent": "#FFE9B7",
+    "secondary": "#F9AA71",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFE6B0",
+    "layers": [
+      "fill",
+      "outline",
+      "highlight",
+      "accent"
+    ]
+  },
+  "chart": {
+    "primary": "#62AEF7",
+    "detail": "#286EBB",
+    "accent": "#BCE3FF",
+    "secondary": "#FFB7C5",
+    "detailAccent": "#FFFFFF",
+    "surface": "#B9E2FF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "accent",
+      "secondary"
+    ]
+  },
+  "star": {
+    "primary": "#FFC76C",
+    "detail": "#A76B2E",
+    "accent": "#FFE9B7",
+    "secondary": "#F9AA71",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFE6B0",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "secondary"
+    ]
+  },
+  "sparkles": {
+    "primary": "#B3A0ED",
+    "detail": "#6F59B4",
+    "accent": "#E1D6FF",
+    "secondary": "#92D8EE",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DDD0FF",
+    "layers": [
+      "fill",
+      "outline",
+      "highlight"
+    ]
+  },
+  "leaf": {
+    "primary": "#78D6A0",
+    "detail": "#23825A",
+    "accent": "#C9F1D5",
+    "secondary": "#A3E2DB",
+    "detailAccent": "#FFFFFF",
+    "surface": "#BEF1C9",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "flower": {
+    "primary": "#FF8F9E",
+    "detail": "#B94965",
+    "accent": "#FFD4DC",
+    "secondary": "#EBC5F7",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFD1DB",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "accent"
+    ]
+  },
+  "snowflake": {
+    "primary": "#62AEF7",
+    "detail": "#286EBB",
+    "accent": "#BCE3FF",
+    "secondary": "#FFB7C5",
+    "detailAccent": "#FFFFFF",
+    "surface": "#B9E2FF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "sun": {
+    "primary": "#FFC76C",
+    "detail": "#A76B2E",
+    "accent": "#FFE9B7",
+    "secondary": "#F9AA71",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFE6B0",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "secondary"
+    ]
+  },
+  "cloud": {
+    "primary": "#62AEF7",
+    "detail": "#286EBB",
+    "accent": "#BCE3FF",
+    "secondary": "#FFB7C5",
+    "detailAccent": "#FFFFFF",
+    "surface": "#B9E2FF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "secondary"
+    ]
+  },
+  "moon": {
+    "primary": "#B3A0ED",
+    "detail": "#6F59B4",
+    "accent": "#E1D6FF",
+    "secondary": "#92D8EE",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DDD0FF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "drop": {
+    "primary": "#62AEF7",
+    "detail": "#286EBB",
+    "accent": "#BCE3FF",
+    "secondary": "#FFB7C5",
+    "detailAccent": "#FFFFFF",
+    "surface": "#B9E2FF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "wind": {
+    "primary": "#4CCDC4",
+    "detail": "#167F87",
+    "accent": "#A4E9EF",
+    "secondary": "#86BFF7",
+    "detailAccent": "#FFFFFF",
+    "surface": "#A5EEE1",
+    "layers": [
+      "fill",
+      "outline",
+      "highlight"
+    ]
+  },
+  "thermometer": {
+    "primary": "#FCA285",
+    "detail": "#B65A42",
+    "accent": "#FFDDC8",
+    "secondary": "#F7C779",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFDAC0",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "camera": {
+    "primary": "#B3A0ED",
+    "detail": "#6F59B4",
+    "accent": "#E1D6FF",
+    "secondary": "#92D8EE",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DDD0FF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "accent",
+      "secondary"
+    ]
+  },
+  "image": {
+    "primary": "#4CCDC4",
+    "detail": "#167F87",
+    "accent": "#A4E9EF",
+    "secondary": "#86BFF7",
+    "detailAccent": "#FFFFFF",
+    "surface": "#A5EEE1",
+    "layers": [
+      "fill",
+      "outline",
+      "highlight",
+      "accent",
+      "secondary"
+    ]
+  },
+  "layers": {
+    "primary": "#B3A0ED",
+    "detail": "#6F59B4",
+    "accent": "#E1D6FF",
+    "secondary": "#92D8EE",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DDD0FF",
+    "layers": [
+      "fill",
+      "outline",
+      "highlight"
+    ]
+  },
+  "map": {
+    "primary": "#4CCDC4",
+    "detail": "#167F87",
+    "accent": "#A4E9EF",
+    "secondary": "#86BFF7",
+    "detailAccent": "#FFFFFF",
+    "surface": "#A5EEE1",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "secondary"
+    ]
+  },
+  "pin": {
+    "primary": "#FCA285",
+    "detail": "#B65A42",
+    "accent": "#FFDDC8",
+    "secondary": "#F7C779",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFDAC0",
+    "layers": [
+      "fill",
+      "outline",
+      "highlight",
+      "detailAccent"
+    ]
+  },
+  "flag": {
+    "primary": "#FCA285",
+    "detail": "#B65A42",
+    "accent": "#FFDDC8",
+    "secondary": "#F7C779",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFDAC0",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "shield": {
+    "primary": "#4CCDC4",
+    "detail": "#167F87",
+    "accent": "#A4E9EF",
+    "secondary": "#86BFF7",
+    "detailAccent": "#FFFFFF",
+    "surface": "#A5EEE1",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "shield-off": {
+    "primary": "#AAB9CE",
+    "detail": "#51627B",
+    "accent": "#E2EAF5",
+    "secondary": "#BED0E4",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DBE4EF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "check": {
+    "primary": "#78D6A0",
+    "detail": "#23825A",
+    "accent": "#C9F1D5",
+    "secondary": "#A3E2DB",
+    "detailAccent": "#FFFFFF",
+    "surface": "#BEF1C9",
+    "layers": [
+      "fill",
+      "outline",
+      "highlight"
+    ]
+  },
+  "check-circle": {
+    "primary": "#78D6A0",
+    "detail": "#FFFFFF",
+    "accent": "#C9F1D5",
+    "secondary": "#A3E2DB",
+    "detailAccent": "#FFFFFF",
+    "surface": "#BEF1C9",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "square": {
+    "primary": "#AAB9CE",
+    "detail": "#51627B",
+    "accent": "#E2EAF5",
+    "secondary": "#BED0E4",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DBE4EF",
+    "layers": [
+      "fill",
+      "outline",
+      "highlight"
+    ]
+  },
+  "check-square": {
+    "primary": "#78D6A0",
+    "detail": "#FFFFFF",
+    "accent": "#C9F1D5",
+    "secondary": "#A3E2DB",
+    "detailAccent": "#FFFFFF",
+    "surface": "#BEF1C9",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "circle": {
+    "primary": "#AAB9CE",
+    "detail": "#51627B",
+    "accent": "#E2EAF5",
+    "secondary": "#BED0E4",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DBE4EF",
+    "layers": [
+      "fill",
+      "outline",
+      "highlight"
+    ]
+  },
+  "plus": {
+    "primary": "#4CCDC4",
+    "detail": "#167F87",
+    "accent": "#A4E9EF",
+    "secondary": "#86BFF7",
+    "detailAccent": "#FFFFFF",
+    "surface": "#A5EEE1",
+    "layers": [
+      "fill",
+      "outline",
+      "highlight"
+    ]
+  },
+  "plus-square": {
+    "primary": "#4CCDC4",
+    "detail": "#FFFFFF",
+    "accent": "#A4E9EF",
+    "secondary": "#86BFF7",
+    "detailAccent": "#FFFFFF",
+    "surface": "#A5EEE1",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "minus": {
+    "primary": "#AAB9CE",
+    "detail": "#51627B",
+    "accent": "#E2EAF5",
+    "secondary": "#BED0E4",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DBE4EF",
+    "layers": [
+      "fill",
+      "outline",
+      "highlight"
+    ]
+  },
+  "close": {
+    "primary": "#AAB9CE",
+    "detail": "#51627B",
+    "accent": "#E2EAF5",
+    "secondary": "#BED0E4",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DBE4EF",
+    "layers": [
+      "fill",
+      "outline",
+      "highlight"
+    ]
+  },
+  "close-circle": {
+    "primary": "#AAB9CE",
+    "detail": "#FFFFFF",
+    "accent": "#E2EAF5",
+    "secondary": "#BED0E4",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DBE4EF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "search": {
+    "primary": "#B3A0ED",
+    "detail": "#6F59B4",
+    "accent": "#E1D6FF",
+    "secondary": "#92D8EE",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DDD0FF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "eye": {
+    "primary": "#B3A0ED",
+    "detail": "#6F59B4",
+    "accent": "#E1D6FF",
+    "secondary": "#92D8EE",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DDD0FF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "eye-off": {
+    "primary": "#AAB9CE",
+    "detail": "#51627B",
+    "accent": "#E2EAF5",
+    "secondary": "#BED0E4",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DBE4EF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "info": {
+    "primary": "#62AEF7",
+    "detail": "#FFFFFF",
+    "accent": "#BCE3FF",
+    "secondary": "#FFB7C5",
+    "detailAccent": "#FFFFFF",
+    "surface": "#B9E2FF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "warning": {
+    "primary": "#FFC76C",
+    "detail": "#A76B2E",
+    "accent": "#FFE9B7",
+    "secondary": "#F9AA71",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFE6B0",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "warning-circle": {
+    "primary": "#FCA285",
+    "detail": "#B65A42",
+    "accent": "#FFDDC8",
+    "secondary": "#F7C779",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFDAC0",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "warning-octagon": {
+    "primary": "#FCA285",
+    "detail": "#B65A42",
+    "accent": "#FFDDC8",
+    "secondary": "#F7C779",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFDAC0",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "settings": {
+    "primary": "#B3A0ED",
+    "detail": "#6F59B4",
+    "accent": "#E1D6FF",
+    "secondary": "#92D8EE",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DDD0FF",
+    "layers": [
+      "fill",
+      "outline",
+      "highlight"
+    ]
+  },
+  "sliders": {
+    "primary": "#4CCDC4",
+    "detail": "#167F87",
+    "accent": "#A4E9EF",
+    "secondary": "#86BFF7",
+    "detailAccent": "#FFFFFF",
+    "surface": "#A5EEE1",
+    "layers": [
+      "fill",
+      "outline",
+      "highlight"
+    ]
+  },
+  "lock": {
+    "primary": "#FFC76C",
+    "detail": "#A76B2E",
+    "accent": "#FFE9B7",
+    "secondary": "#F9AA71",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFE6B0",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "pen": {
+    "primary": "#B3A0ED",
+    "detail": "#6F59B4",
+    "accent": "#E1D6FF",
+    "secondary": "#92D8EE",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DDD0FF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "accent"
+    ]
+  },
+  "save": {
+    "primary": "#4CCDC4",
+    "detail": "#167F87",
+    "accent": "#A4E9EF",
+    "secondary": "#86BFF7",
+    "detailAccent": "#FFFFFF",
+    "surface": "#A5EEE1",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "trash": {
+    "primary": "#FCA285",
+    "detail": "#B65A42",
+    "accent": "#FFDDC8",
+    "secondary": "#F7C779",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFDAC0",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "file": {
+    "primary": "#62AEF7",
+    "detail": "#286EBB",
+    "accent": "#BCE3FF",
+    "secondary": "#FFB7C5",
+    "detailAccent": "#FFFFFF",
+    "surface": "#B9E2FF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "tag": {
+    "primary": "#FCA285",
+    "detail": "#B65A42",
+    "accent": "#FFDDC8",
+    "secondary": "#F7C779",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFDAC0",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "hashtag": {
+    "primary": "#B3A0ED",
+    "detail": "#6F59B4",
+    "accent": "#E1D6FF",
+    "secondary": "#92D8EE",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DDD0FF",
+    "layers": [
+      "fill",
+      "outline",
+      "highlight"
+    ]
+  },
+  "phone": {
+    "primary": "#78D6A0",
+    "detail": "#23825A",
+    "accent": "#C9F1D5",
+    "secondary": "#A3E2DB",
+    "detailAccent": "#FFFFFF",
+    "surface": "#BEF1C9",
+    "layers": [
+      "fill",
+      "outline",
+      "highlight"
+    ]
+  },
+  "send": {
+    "primary": "#62AEF7",
+    "detail": "#286EBB",
+    "accent": "#BCE3FF",
+    "secondary": "#FFB7C5",
+    "detailAccent": "#FFFFFF",
+    "surface": "#B9E2FF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "more-horizontal": {
+    "primary": "#AAB9CE",
+    "detail": "#51627B",
+    "accent": "#E2EAF5",
+    "secondary": "#BED0E4",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DBE4EF",
+    "layers": [
+      "fill",
+      "outline",
+      "highlight"
+    ]
+  },
+  "more-vertical": {
+    "primary": "#AAB9CE",
+    "detail": "#51627B",
+    "accent": "#E2EAF5",
+    "secondary": "#BED0E4",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DBE4EF",
+    "layers": [
+      "fill",
+      "outline",
+      "highlight"
+    ]
+  },
+  "grid": {
+    "primary": "#B3A0ED",
+    "detail": "#6F59B4",
+    "accent": "#E1D6FF",
+    "secondary": "#92D8EE",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DDD0FF",
+    "layers": [
+      "fill",
+      "outline",
+      "highlight"
+    ]
+  },
+  "pause": {
+    "primary": "#AAB9CE",
+    "detail": "#51627B",
+    "accent": "#E2EAF5",
+    "secondary": "#BED0E4",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DBE4EF",
+    "layers": [
+      "fill",
+      "outline",
+      "highlight"
+    ]
+  },
+  "pause-circle": {
+    "primary": "#AAB9CE",
+    "detail": "#FFFFFF",
+    "accent": "#E2EAF5",
+    "secondary": "#BED0E4",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DBE4EF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "type": {
+    "primary": "#B3A0ED",
+    "detail": "#6F59B4",
+    "accent": "#E1D6FF",
+    "secondary": "#92D8EE",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DDD0FF",
+    "layers": [
+      "fill",
+      "outline",
+      "highlight"
+    ]
+  },
+  "palette": {
+    "primary": "#4CCDC4",
+    "detail": "#167F87",
+    "accent": "#A4E9EF",
+    "secondary": "#86BFF7",
+    "detailAccent": "#FFFFFF",
+    "surface": "#A5EEE1",
+    "layers": [
+      "fill",
+      "outline",
+      "highlight",
+      "accent",
+      "secondary"
+    ]
+  },
+  "touch": {
+    "primary": "#FCA285",
+    "detail": "#B65A42",
+    "accent": "#FFDDC8",
+    "secondary": "#F7C779",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFDAC0",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "hand": {
+    "primary": "#FCA285",
+    "detail": "#B65A42",
+    "accent": "#FFDDC8",
+    "secondary": "#F7C779",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFDAC0",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "hand-heart": {
+    "primary": "#FF8F9E",
+    "detail": "#B94965",
+    "accent": "#FFD4DC",
+    "secondary": "#EBC5F7",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFD1DB",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "accent"
+    ]
+  },
+  "megaphone": {
+    "primary": "#FCA285",
+    "detail": "#B65A42",
+    "accent": "#FFDDC8",
+    "secondary": "#F7C779",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFDAC0",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "ball": {
+    "primary": "#78D6A0",
+    "detail": "#23825A",
+    "accent": "#C9F1D5",
+    "secondary": "#A3E2DB",
+    "detailAccent": "#FFFFFF",
+    "surface": "#BEF1C9",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "puzzle": {
+    "primary": "#B3A0ED",
+    "detail": "#6F59B4",
+    "accent": "#E1D6FF",
+    "secondary": "#92D8EE",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DDD0FF",
+    "layers": [
+      "fill",
+      "outline",
+      "highlight"
+    ]
+  },
+  "toy-brick": {
+    "primary": "#62AEF7",
+    "detail": "#286EBB",
+    "accent": "#BCE3FF",
+    "secondary": "#FFB7C5",
+    "detailAccent": "#FFFFFF",
+    "surface": "#B9E2FF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "accent",
+      "secondary"
+    ]
+  },
+  "cookie": {
+    "primary": "#FFC76C",
+    "detail": "#A76B2E",
+    "accent": "#FFE9B7",
+    "secondary": "#F9AA71",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFE6B0",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "treat": {
+    "primary": "#FFC76C",
+    "detail": "#A76B2E",
+    "accent": "#FFE9B7",
+    "secondary": "#F9AA71",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFE6B0",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "curtains": {
+    "primary": "#B3A0ED",
+    "detail": "#6F59B4",
+    "accent": "#E1D6FF",
+    "secondary": "#92D8EE",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DDD0FF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "party": {
+    "primary": "#FCA285",
+    "detail": "#B65A42",
+    "accent": "#FFDDC8",
+    "secondary": "#F7C779",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFDAC0",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "school": {
+    "primary": "#B3A0ED",
+    "detail": "#6F59B4",
+    "accent": "#E1D6FF",
+    "secondary": "#92D8EE",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DDD0FF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "shopping": {
+    "primary": "#FF8F9E",
+    "detail": "#B94965",
+    "accent": "#FFD4DC",
+    "secondary": "#EBC5F7",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFD1DB",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "secondary"
+    ]
+  },
+  "sleep": {
+    "primary": "#B3A0ED",
+    "detail": "#6F59B4",
+    "accent": "#E1D6FF",
+    "secondary": "#92D8EE",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DDD0FF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "sand-timer": {
+    "primary": "#FFC76C",
+    "detail": "#A76B2E",
+    "accent": "#FFE9B7",
+    "secondary": "#F9AA71",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFE6B0",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "meditation": {
+    "primary": "#4CCDC4",
+    "detail": "#167F87",
+    "accent": "#A4E9EF",
+    "secondary": "#86BFF7",
+    "detailAccent": "#FFFFFF",
+    "surface": "#A5EEE1",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "target": {
+    "primary": "#4CCDC4",
+    "detail": "#167F87",
+    "accent": "#A4E9EF",
+    "secondary": "#86BFF7",
+    "detailAccent": "#FFFFFF",
+    "surface": "#A5EEE1",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "blocked": {
+    "primary": "#FCA285",
+    "detail": "#B65A42",
+    "accent": "#FFDDC8",
+    "secondary": "#F7C779",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFDAC0",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight"
+    ]
+  },
+  "loader": {
+    "primary": "#B3A0ED",
+    "detail": "#6F59B4",
+    "accent": "#E1D6FF",
+    "secondary": "#92D8EE",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DDD0FF",
+    "layers": [
+      "fill",
+      "outline",
+      "highlight"
+    ]
+  },
+  "smile": {
+    "primary": "#FFC76C",
+    "detail": "#665348",
+    "accent": "#FFE9B7",
+    "secondary": "#FFAFC0",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFE6B0",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "secondary"
+    ]
+  },
+  "calm": {
+    "primary": "#4CCDC4",
+    "detail": "#665348",
+    "accent": "#A4E9EF",
+    "secondary": "#FFAFC0",
+    "detailAccent": "#FFFFFF",
+    "surface": "#A5EEE1",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "secondary"
+    ]
+  },
+  "excited": {
+    "primary": "#FCA285",
+    "detail": "#665348",
+    "accent": "#FFDDC8",
+    "secondary": "#FFAFC0",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFDAC0",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "secondary"
+    ]
+  },
+  "neutral": {
+    "primary": "#FFC76C",
+    "detail": "#665348",
+    "accent": "#FFE9B7",
+    "secondary": "#FFAFC0",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFE6B0",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "secondary"
+    ]
+  },
+  "sad": {
+    "primary": "#62AEF7",
+    "detail": "#665348",
+    "accent": "#BCE3FF",
+    "secondary": "#FFAFC0",
+    "detailAccent": "#FFFFFF",
+    "surface": "#B9E2FF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "accent",
+      "secondary"
+    ]
+  },
+  "anxious": {
+    "primary": "#B3A0ED",
+    "detail": "#665348",
+    "accent": "#E1D6FF",
+    "secondary": "#FFAFC0",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DDD0FF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "secondary"
+    ]
+  },
+  "angry": {
+    "primary": "#FF8F9E",
+    "detail": "#665348",
+    "accent": "#FFD4DC",
+    "secondary": "#FFAFC0",
+    "detailAccent": "#FFFFFF",
+    "surface": "#FFD1DB",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "secondary"
+    ]
+  },
+  "tired": {
+    "primary": "#B3A0ED",
+    "detail": "#665348",
+    "accent": "#E1D6FF",
+    "secondary": "#FFAFC0",
+    "detailAccent": "#FFFFFF",
+    "surface": "#DDD0FF",
+    "layers": [
+      "fill",
+      "outline",
+      "detail",
+      "highlight",
+      "secondary"
+    ]
+  }
+}

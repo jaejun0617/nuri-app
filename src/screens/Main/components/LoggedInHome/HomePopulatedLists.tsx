@@ -6,8 +6,8 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useTheme } from 'styled-components/native';
-import Feather from 'react-native-vector-icons/Feather';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Feather from '../../../../components/icons/NuriFeatherIcon';
+import NuriSemanticIcon from '../../../../components/icons/NuriSemanticIcon';
 import AppText from '../../../../app/ui/AppText';
 import type { PetSchedule } from '../../../../services/supabase/schedules';
 import type { HealthActivityItem } from '../../../../services/health-report/viewModel';
@@ -108,7 +108,8 @@ export const HomeScheduleList = memo(function HomeScheduleListView({
             ) : null}
             <View style={styles.body} pointerEvents="none">
               <View style={styles.metadata}>
-                <MaterialCommunityIcons
+                <NuriSemanticIcon
+                  family="material"
                   name={mapScheduleIconName(item.iconKey)}
                   size={17}
                   color={accentColor}
@@ -201,7 +202,7 @@ export const HomeHealthActivityList = memo(function HomeHealthActivityListView({
               ]}
               pointerEvents="none"
             >
-              <Feather name={kind.icon} size={18} color={accentColor} />
+              <NuriSemanticIcon family="feather" name={kind.icon} size={18} color={accentColor} />
             </View>
             <View style={styles.body} pointerEvents="none">
               <View

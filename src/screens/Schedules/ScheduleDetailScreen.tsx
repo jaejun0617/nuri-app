@@ -13,8 +13,8 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
-import Feather from 'react-native-vector-icons/Feather';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Feather from '../../components/icons/NuriFeatherIcon';
+import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
 
 import AppText from '../../app/ui/AppText';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
@@ -376,7 +376,8 @@ export default function ScheduleDetailScreen() {
           <>
           <View style={[styles.hero, { backgroundColor: petTheme.tint, borderColor: petTheme.border }]}>
             <View style={[styles.iconWrap, { backgroundColor: petTheme.soft }]}>
-              <MaterialCommunityIcons
+              <NuriSemanticIcon
+                family="material"
                 name={mapScheduleIconName(schedule.iconKey)}
                 size={24}
                 color={petTheme.primary}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
 
@@ -7,7 +7,6 @@ import { createTheme } from '../src/app/theme/theme';
 import GuideRecommendationCard from '../src/components/guides/GuideRecommendationCard';
 import { HOME_WIDGET_MATERIAL } from '../src/components/home/HomeWidgetMaterial';
 import type { PetCareGuide } from '../src/services/guides/types';
-import Feather from 'react-native-vector-icons/Feather';
 
 const guide: PetCareGuide = {
   id: 'home-glass-guide',
@@ -58,13 +57,17 @@ async function renderCard(value: PetCareGuide = guide) {
 describe('Home nested guide glass', () => {
   it('reduces only the glyph by 21 percent while retaining the 60dp container', async () => {
     const { renderer } = await renderCard();
-    const icon = renderer.root.findAllByType(Feather).find(node => node.props.name !== 'chevron-right');
-    expect(icon?.props.size).toBe(22);
+    const glyphs = renderer.root.findAllByType(Text).filter(node => StyleSheet.flatten(node.props.style)?.fontFamily === 'NuriIcons');
+    expect(glyphs.length).toBeGreaterThan(0);
+    for (const glyph of glyphs) {
+      expect(StyleSheet.flatten(glyph.props.style)?.fontSize).toBe(22);
+      expect(glyph.props.allowFontScaling).toBe(false);
+    }
     expect(renderer.root.findAll(node => StyleSheet.flatten(node.props.style)?.width === 60).length).toBeGreaterThan(0);
     expect(StyleSheet.flatten(renderer.root.findByType(TouchableOpacity).props.style).padding).toBe(16);
     await act(async () => renderer.unmount());
   });
-  it('uses the same inner glass plate and non-interactive reflection as widgets', async () => {
+  it('retains glass reflection and navigation without a bottom shadow or dark rim', async () => {
     const { renderer, onPress } = await renderCard();
     const button = renderer.root.findByType(TouchableOpacity);
     expect(StyleSheet.flatten(button.props.style)).toMatchObject(
@@ -75,6 +78,10 @@ describe('Home nested guide glass', () => {
     );
     button.props.onPress();
     expect(onPress).toHaveBeenCalledWith(guide.id);
+    const cardStyle = StyleSheet.flatten(button.props.style);
+    expect(cardStyle.shadowOpacity).toBe(0);
+    expect(cardStyle.elevation).toBe(0);
+    expect(cardStyle.borderBottomColor).toBeUndefined();
     const sheen = renderer.root.find(
       node => node.props.testID === 'home-widget-sheen' && node.props.colors,
     );

@@ -45,8 +45,8 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import Feather from 'react-native-vector-icons/Feather';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Feather from '../../components/icons/NuriFeatherIcon';
+import MaterialCommunityIcons from '../../components/icons/NuriMaterialIcon';
 import { useTheme } from 'styled-components/native';
 
 import { ASSETS } from '../../assets';

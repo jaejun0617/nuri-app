@@ -38,7 +38,6 @@ import {
   ScrollView,
   StyleSheet,
   Switch,
-  Text,
   TextInput,
   TouchableOpacity,
   useWindowDimensions,
@@ -54,7 +53,9 @@ import {
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from 'styled-components/native';
-import Feather from 'react-native-vector-icons/Feather';
+import Feather from '../../components/icons/NuriFeatherIcon';
+import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
+import type { NuriIconName } from '../../components/icons/NuriIcon';
 
 import AppNavigationToolbar from '../../components/navigation/AppNavigationToolbar';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
@@ -126,7 +127,7 @@ type MenuItemSpec = {
   key: string;
   label: string;
   icon: string;
-  iconEmoji?: string | null;
+  nuriIcon?: NuriIconName;
   iconTone?: 'accent' | 'muted' | 'soft';
   onPress: () => void;
   badge?: 'dot' | 'soon' | null;
@@ -231,7 +232,7 @@ function formatDateLabel(value: Date | null): string {
 const MenuRow = memo(function MenuRow({
   label,
   icon,
-  iconEmoji = null,
+  nuriIcon,
   iconTone = 'accent',
   onPress,
   badge = null,
@@ -259,11 +260,7 @@ const MenuRow = memo(function MenuRow({
     >
       <View style={styles.menuLeft}>
         <View style={[styles.menuIconBox, { backgroundColor: tone.box }]}>
-          {iconEmoji ? (
-            <Text style={styles.menuEmojiIcon}>{iconEmoji}</Text>
-          ) : (
-            <Feather name={icon as never} size={17} color={tone.icon} />
-          )}
+          <NuriSemanticIcon family="feather" name={icon} semantic={nuriIcon} size={17} color={tone.icon} />
         </View>
         <AppText preset="unifiedLabel" style={[styles.menuLabel, { color: theme.colors.textPrimary }]}>
           {label}
@@ -1449,19 +1446,19 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const menuThemeColors = useMemo(
     () => ({
       accent: {
-        box: petTheme.tint,
-        icon: petTheme.primary,
+        box: '#F2F5FA',
+        icon: '#65748A',
       },
       muted: {
-        box: petTheme.soft,
-        icon: petTheme.deep,
+        box: '#F3F4F6',
+        icon: '#65748A',
       },
       soft: {
-        box: petTheme.glow,
-        icon: petTheme.primary,
+        box: '#F6F7FA',
+        icon: '#65748A',
       },
     }),
-    [petTheme],
+    [],
   );
   const avatarUri = useMemo(
     () => selectedPet?.avatarUrl?.trim() || null,
@@ -2152,6 +2149,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         key: 'important-schedule',
         label: '중요 일정 & 기념일',
         icon: 'calendar',
+        nuriIcon: 'calendar',
         iconTone: 'accent',
         onPress: isLoggedIn ? openScheduleList : onPressLogin,
       },
@@ -2159,6 +2157,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         key: 'memory-diary',
         label: '추억 다이어리',
         icon: 'book-open',
+        nuriIcon: 'diary',
         iconTone: 'accent',
         onPress: isLoggedIn ? openTimeline : onPressLogin,
       },
@@ -2166,6 +2165,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         key: 'health-report',
         label: '건강관리',
         icon: 'clipboard',
+        nuriIcon: 'health',
         iconTone: 'accent',
         onPress: isLoggedIn ? openHealthReport : onPressLogin,
       },
@@ -2262,7 +2262,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         key: 'theme',
         label: '테마 설정',
         icon: 'palette',
-        iconEmoji: '🎨',
+        nuriIcon: 'palette',
         iconTone: 'accent',
         onPress: openThemeModal,
       },
@@ -2990,10 +2990,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  menuEmojiIcon: {
-    fontSize: 17,
-    lineHeight: 20,
   },
   menuLabel: {
     fontSize: 15,

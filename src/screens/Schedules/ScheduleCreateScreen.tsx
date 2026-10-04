@@ -23,8 +23,8 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
-import Feather from 'react-native-vector-icons/Feather';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Feather from '../../components/icons/NuriFeatherIcon';
+import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
 
 import AppText from '../../app/ui/AppText';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
@@ -604,7 +604,8 @@ export default function ScheduleCreateScreen() {
                   ]}
                   onPress={() => onSelectCategory(option.key)}
                 >
-                  <MaterialCommunityIcons
+                  <NuriSemanticIcon
+                    family="material"
                     name={option.icon}
                     size={16}
                     color={active ? petTheme.primary : '#556070'}
@@ -687,7 +688,8 @@ export default function ScheduleCreateScreen() {
                   ]}
                   onPress={() => setIconKey(option.key)}
                 >
-                  <MaterialCommunityIcons
+                  <NuriSemanticIcon
+                    family="material"
                     name={option.icon}
                     size={16}
                     color={active ? petTheme.primary : '#556070'}

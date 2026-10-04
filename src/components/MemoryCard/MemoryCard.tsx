@@ -7,7 +7,7 @@
 import React, { memo, useCallback, useMemo } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 import type { LayoutChangeEvent, StyleProp, TextStyle } from 'react-native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import NuriSemanticIcon from '../icons/NuriSemanticIcon';
 
 import OptimizedImage from '../images/OptimizedImage';
 import { useSignedMemoryImage } from '../../hooks/useSignedMemoryImage';
@@ -280,7 +280,8 @@ function MemoryCardComponent({
                 { backgroundColor: categoryTone.placeholderColor },
               ]}
             >
-              <MaterialCommunityIcons
+            <NuriSemanticIcon
+              family="material"
                 name={categoryMeta.icon}
                 size={thumbnailPlaceholderIconSize}
                 color={categoryTone.textColor}

@@ -26,8 +26,9 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
-import Feather from 'react-native-vector-icons/Feather';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Feather from '../../components/icons/NuriFeatherIcon';
+import MaterialCommunityIcons from '../../components/icons/NuriMaterialIcon';
+import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
 
 import AppText from '../../app/ui/AppText';
 import HeaderIconActionButton from '../../components/navigation/HeaderIconActionButton';
@@ -286,7 +287,8 @@ export default function ScheduleListScreen() {
                       },
                     ]}
                   >
-                    <MaterialCommunityIcons
+                    <NuriSemanticIcon
+                      family="material"
                       name={mapScheduleIconName(schedule.iconKey)}
                       size={19}
                       color={petTheme.primary}

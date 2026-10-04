@@ -29,7 +29,7 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import LinearGradient from 'react-native-linear-gradient';
-import Feather from 'react-native-vector-icons/Feather';
+import Feather from '../../components/icons/NuriFeatherIcon';
 
 import AirQualityInsightCard from '../../components/weather/AirQualityInsightCard';
 import WeatherForecastStrip from '../../components/weather/WeatherForecastStrip';

@@ -12,9 +12,16 @@ import {
   isHomeSectionConfirmedEmpty,
 } from '../src/components/home/HomeSectionHeader';
 import { HOME_SECTION_ROOT_STYLE } from '../src/components/home/HomeSectionGlass';
-import { HOME_WIDGET_MATERIAL } from '../src/components/home/HomeWidgetMaterial';
+import {
+  HOME_FLOATING_WIDGET_MATERIAL,
+  HOME_FLOATING_WIDGET_REFLECTION,
+  HOME_WIDGET_MATERIAL,
+} from '../src/components/home/HomeWidgetMaterial';
+import { HomeSeasonProvider } from '../src/components/home/HomeSeasonContext';
 import { FrequentRecordsSection } from '../src/components/records/FrequentRecordsSection';
 import { styles as frequentStyles } from '../src/components/records/FrequentRecordsSection.styles';
+import { getHomeAmbientVisual } from '../src/theme/home/seasonalAmbient';
+import type { SeasonKey } from '../src/theme/seasonal/season';
 import {
   styles as homeStyles,
   HOME_LOWER_SECTION_GAP,
@@ -78,9 +85,22 @@ describe('Home section rhythm and material', () => {
     await act(async () => renderer.unmount());
   });
 
-  it('reserves the Hero body offset in actual layout rather than only translating it', () => {
-    expect(homeStyles.autumnHeroBodyGroup.paddingTop).toBe(14);
+  it('lowers the Hero identity and CTA together by 16dp while keeping the memory chip fixed', () => {
+    expect(homeStyles.autumnHeroBodyGroup.paddingTop).toBe(14 + 16);
     expect(homeStyles.autumnHeroBodyGroup).not.toHaveProperty('transform');
+    expect(homeStyles.autumnMemoryChipAnchor).toMatchObject({
+      position: 'absolute', top: 6,
+    });
+    expect(homeStyles.autumnHeroCardWithMemoryChip.paddingTop).toBe(34);
+    expect(homeStyles.heroCenter.paddingTop).toBe(10);
+    expect(homeStyles.autumnProfileEntry.marginTop).toBe(32);
+    expect(homeStyles.autumnProfileEntry.minHeight).toBe(52);
+    expect(source).toMatch(
+      /const usesCanonicalHeroGeometry =\s*isAutumn \|\| isWinter \|\| isSpring \|\| isSummer;/,
+    );
+    expect(source).toMatch(
+      /style=\{usesCanonicalHeroGeometry \? styles\.autumnHeroBodyGroup : null\}[\s\S]*?<HeroProfileIdentity[\s\S]*?accessibilityLabel="우리 아이 더 알아보기"/,
+    );
   });
 
   it('lets record tiles grow with enlarged copy instead of painting outside a square', async () => {
@@ -148,23 +168,132 @@ describe('Home section rhythm and material', () => {
     }
   });
 
-  it('unifies widgets and the insight CTA as translucent inner glass', () => {
+  it('unifies summary and quick-record glass without changing guide material or panel geometry', () => {
     for (const style of [
-      frequentStyles.recordCard,
       summaryStyles.metric,
       summaryStyles.insight,
     ]) {
-      expect(style).toMatchObject(HOME_WIDGET_MATERIAL);
+      expect(style).toMatchObject(HOME_FLOATING_WIDGET_MATERIAL);
       expect(style.elevation).toBe(0);
       expect(style.shadowOpacity).toBe(0);
     }
     expect(frequentStyles.recordCard.aspectRatio).toBe(1);
+    expect(frequentStyles.recordCard).toMatchObject(
+      HOME_FLOATING_WIDGET_MATERIAL,
+    );
+    expect(HOME_FLOATING_WIDGET_MATERIAL).toMatchObject({
+      backgroundColor: 'rgba(255, 255, 255, 0.26)',
+      borderTopColor: 'rgba(255, 255, 255, 0.98)',
+      borderWidth: 1,
+      elevation: 0,
+      shadowOpacity: 0,
+    });
     expect(summaryStyles.metric.height).toBeUndefined();
     expect(summaryStyles.metric.minHeight).toBe(108);
     expect(HOME_WIDGET_MATERIAL.backgroundColor).toBe(
       'rgba(255, 253, 250, 0.60)',
     );
+    // A uniform white rim must not imitate a dark bottom shadow.
+    expect(HOME_WIDGET_MATERIAL.borderBottomColor).toBeUndefined();
+    expect(HOME_FLOATING_WIDGET_MATERIAL.borderBottomColor).toBeUndefined();
   });
+
+  it.each(
+    (['autumn', 'winter', 'spring', 'summer'] as SeasonKey[]).flatMap(season =>
+      [360, 384, 400, 430].flatMap(width =>
+        [1, 1.3, 1.5].map(fontScale => ({ season, width, fontScale })),
+      ),
+    ),
+  )(
+    'keeps four untouchable glass decorations and record targets at $season $width dp font $fontScale',
+    async ({ season, width, fontScale }) => {
+      jest.spyOn(ReactNative, 'useWindowDimensions').mockReturnValue({
+        width, height: 800, scale: 3, fontScale,
+      });
+      const onPressCategory = jest.fn();
+      const onPressAll = jest.fn();
+      let renderer!: TestRenderer.ReactTestRenderer;
+      await act(async () => {
+        renderer = TestRenderer.create(
+          <ThemeProvider theme={createTheme('light')}>
+            <HomeSeasonProvider season={season}>
+              <FrequentRecordsSection
+                petTheme={buildPetThemePalette('#2563EB')}
+                records={[]}
+                recordStatus="ready"
+                now={new Date('2026-10-04T03:00:00Z')}
+                onPressCategory={onPressCategory}
+                onPressAll={onPressAll}
+              />
+            </HomeSeasonProvider>
+          </ThemeProvider>,
+        );
+      });
+      const tiles = renderer.root.findAll(node =>
+        typeof node.props.style === 'function' &&
+        String(node.props.accessibilityLabel).includes('기록하기'),
+      );
+      expect(tiles).toHaveLength(4);
+      for (const tile of tiles) {
+        const style = StyleSheet.flatten(tile.props.style({ pressed: false }));
+        expect(style).toMatchObject({
+          ...HOME_FLOATING_WIDGET_MATERIAL,
+          width: '48%',
+          borderRadius: 12,
+          paddingHorizontal: 8,
+          paddingVertical: 8,
+          aspectRatio: fontScale > 1 ? undefined : 1,
+        });
+        expect(style.opacity).toBeUndefined();
+        if (fontScale > 1) expect(style.minHeight).toBe(156);
+        expect(StyleSheet.flatten(tile.props.style({ pressed: true }))).toMatchObject({
+          opacity: 0.93, transform: [{ scale: 0.985 }],
+        });
+        tile.props.onPress();
+      }
+      expect(onPressCategory.mock.calls.map(call => call[0])).toEqual([
+        'walk', 'meal', 'health', 'grooming',
+      ]);
+      expect(onPressAll).not.toHaveBeenCalled();
+      const iconSlots = renderer.root.findAll(node =>
+        node.type === View &&
+        StyleSheet.flatten(node.props.style)?.width === 40 &&
+        StyleSheet.flatten(node.props.style)?.height === 40,
+      );
+      expect(iconSlots).toHaveLength(4);
+      for (const slot of iconSlots) {
+        expect(StyleSheet.flatten(slot.props.style).backgroundColor).toBeUndefined();
+      }
+      const outerGlass = renderer.root.findAll(node =>
+        node.type === View && node.props.testID === 'home-section-glass-surface',
+      )[0];
+      expect(StyleSheet.flatten(outerGlass.props.style).backgroundColor).toBe(
+        getHomeAmbientVisual(season).glassSurface,
+      );
+      for (const id of ['reflection', 'glint']) {
+        const decorations = renderer.root.findAll(node =>
+          node.props.testID === `frequent-record-glass-${id}` && node.props.colors,
+        );
+        expect(decorations).toHaveLength(4);
+        for (const decoration of decorations) {
+          expect(decoration.props.pointerEvents).toBe('none');
+          expect(decoration.props.accessible).toBe(false);
+          expect(decoration.props.importantForAccessibility).toBe('no-hide-descendants');
+          expect(StyleSheet.flatten(decoration.props.style).position).toBe('absolute');
+        }
+      }
+      const reflection = renderer.root.findAll(node =>
+        node.props.testID === 'frequent-record-glass-reflection' && node.props.colors,
+      )[0];
+      expect(reflection.props.colors).toEqual(HOME_FLOATING_WIDGET_REFLECTION.colors);
+      expect(reflection.props.locations).toEqual(HOME_FLOATING_WIDGET_REFLECTION.locations);
+      expect(renderer.root.findAll(node =>
+        node.props.testID === 'frequent-record-glass-contact-shadow',
+      )).toHaveLength(0);
+      expect(frequentStyles.grid.rowGap).toBe(10);
+      await act(async () => renderer.unmount());
+    },
+  );
 
   it('limits the oversized title treatment to the recommendation heading', async () => {
     let renderer: TestRenderer.ReactTestRenderer | undefined;
@@ -303,12 +432,15 @@ describe('Home section rhythm and material', () => {
     ).toBeUndefined();
     expect(onPressAll).not.toHaveBeenCalled();
     const sheens = renderer.root.findAll(
-      node => node.props.testID === 'home-widget-sheen' && node.props.colors,
+      node => node.props.testID === 'frequent-record-glass-reflection' && node.props.colors,
     );
     expect(sheens).toHaveLength(4);
     expect(sheens.every(node => node.props.pointerEvents === 'none')).toBe(
       true,
     );
+    expect(renderer.root.findAll(
+      node => node.props.testID === 'frequent-record-glass-contact-shadow',
+    )).toHaveLength(0);
     await act(async () => {
       renderer?.update(
         <ThemeProvider theme={createTheme('light')}>

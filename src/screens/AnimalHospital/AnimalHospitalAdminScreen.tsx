@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import Feather from 'react-native-vector-icons/Feather';
+import Feather from '../../components/icons/NuriFeatherIcon';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AppText from '../../app/ui/AppText';

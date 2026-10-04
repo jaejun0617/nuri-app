@@ -6,7 +6,7 @@ import AppTextInput from '../../app/ui/AppTextInput';
 import AppText from '../../app/ui/AppText';
 import React, { memo } from 'react';
 import { TouchableOpacity, View } from 'react-native';
-import Feather from 'react-native-vector-icons/Feather';
+import Feather from '../icons/NuriFeatherIcon';
 import {
   PET_MEMORIAL_OPTIONS,
   type PetMemorialChoice,

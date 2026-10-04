@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useMemo } from 'react';
 import { Pressable, View } from 'react-native';
-import Feather from 'react-native-vector-icons/Feather';
+import Feather from '../../../components/icons/NuriFeatherIcon';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../../app/ui/AppText';

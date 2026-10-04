@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
-import Feather from 'react-native-vector-icons/Feather';
+import Feather from '../icons/NuriFeatherIcon';
 import LinearGradient from 'react-native-linear-gradient';
 
 import AppText from '../../app/ui/AppText';

@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useMemo } from 'react';
 import { Pressable, TouchableOpacity, View } from 'react-native';
-import Feather from 'react-native-vector-icons/Feather';
+import Feather from '../../../components/icons/NuriFeatherIcon';
 import FastImage from 'react-native-fast-image';
 import { useTheme } from 'styled-components/native';
 

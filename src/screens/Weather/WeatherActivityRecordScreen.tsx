@@ -19,8 +19,10 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import Feather from 'react-native-vector-icons/Feather';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Feather from '../../components/icons/NuriFeatherIcon';
+import NuriIcon from '../../components/icons/NuriIcon';
+import { NURI_MOOD_ICONS } from '../../components/icons/nuriIconNames';
+import MaterialCommunityIcons from '../../components/icons/NuriMaterialIcon';
 
 import PremiumNoticeModal from '../../components/common/PremiumNoticeModal';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
@@ -373,7 +375,7 @@ export default function WeatherActivityRecordScreen() {
                     ]}
                     onPress={() => setSelectedEmotion(option.key)}
                   >
-                    <Text style={styles.emotionEmoji}>{option.emoji}</Text>
+                    <NuriIcon name={NURI_MOOD_ICONS[option.key]} size={22} />
                     <Text
                       style={[
                         styles.emotionLabel,

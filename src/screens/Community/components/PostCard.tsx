@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useMemo } from 'react';
 import { Pressable, View } from 'react-native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import MaterialCommunityIcons from '../../../components/icons/NuriMaterialIcon';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../../app/ui/AppText';

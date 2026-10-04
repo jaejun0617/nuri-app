@@ -1,5 +1,15 @@
 # advanced-codex-workflow.md
 
+<!-- NURI_SUMMARY_GLASS_INSTALL_20261005_BEGIN -->
+## 2026-10-05 PO 최신 정책: 디자인 반복 빌드 산출물 유지
+
+- 디자인 수정들을 먼저 묶고 incremental Release build 1회 → `adb install -r` → PO Galaxy S24 직접 확인 순서로 진행한다. 후속 수정도 같은 순서를 반복한다.
+- PO가 산출물 제거를 명시하기 전까지 project-local build output·`.cxx`·`.gradle`·task build-temp·캐시를 유지한다. `clean`이나 자동 post-task cleanup으로 다음 incremental build 기반을 지우지 않는다.
+- 이 최신 지시는 아래 2026-10-04 자동 정리 정책과 기존 task의 cleanup 승인을 대체한다. 최종 디자인 승인만으로 산출물 삭제를 자동 실행하지 않는다. 삭제에는 새로운 명시적 PO 지시가 필요하다.
+- APK·증적·소스·자산·QA·서명·개발 도구·개인 데이터 보존 계약은 유지한다. incremental은 기존 산출물 재사용 방식이며 변경 영향에 따라 일부 재빌드가 발생할 수 있다.
+- 빌드·설치는 요청된 디자인 검토 범위에 한정한다. commit·push·Store·다음 작업 자동 시작은 별도 승인 계약을 따른다.
+<!-- NURI_SUMMARY_GLASS_INSTALL_20261005_END -->
+
 ## 2026-10-04 PO 고정 정책: substantial task 종료
 
 - 필수 APK/AAB·증적 복사 → hash·Git 보존 확인 → exact-path 재생성 산출물 안전 정리 → 디스크 전후 확인 → 보고 → STOP 순서를 지킨다.

@@ -1,6 +1,6 @@
 import React from 'react';
 import { ActivityIndicator, Linking, TouchableOpacity, View } from 'react-native';
-import Feather from 'react-native-vector-icons/Feather';
+import Feather from '../icons/NuriFeatherIcon';
 
 import AppText from '../../app/ui/AppText';
 import type { LocationPermissionStatus } from '../../services/location/permission';

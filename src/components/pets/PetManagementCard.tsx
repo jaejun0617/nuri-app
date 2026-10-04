@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useMemo } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
-import Feather from 'react-native-vector-icons/Feather';
+import Feather from '../icons/NuriFeatherIcon';
 
 import AppText from '../../app/ui/AppText';
 import { formatPetAgeLabelFromBirthDate } from '../../services/pets/age';

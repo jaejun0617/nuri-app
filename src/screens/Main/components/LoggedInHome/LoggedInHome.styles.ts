@@ -601,8 +601,8 @@ export const styles = StyleSheet.create({
     color: '#405C56',
   },
   autumnHeroBodyGroup: {
-    // Real layout space keeps the last CTA inside its Android touch ancestors.
-    paddingTop: 14,
+    // Lower the identity and CTA together without moving the fixed memory chip.
+    paddingTop: 30,
   },
 
   heroAvatarOuter: {

@@ -37,7 +37,7 @@ import {
   type ListRenderItem,
   type ViewToken,
 } from '@shopify/flash-list';
-import Feather from 'react-native-vector-icons/Feather';
+import Feather from '../../components/icons/NuriFeatherIcon';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type {
   CompositeNavigationProp,

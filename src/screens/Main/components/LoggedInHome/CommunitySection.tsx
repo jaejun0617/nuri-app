@@ -6,7 +6,7 @@
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
-import Feather from 'react-native-vector-icons/Feather';
+import Feather from '../../../../components/icons/NuriFeatherIcon';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../../../app/ui/AppText';

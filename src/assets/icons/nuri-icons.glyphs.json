@@ -1,0 +1,992 @@
+{
+  "walk": {
+    "fill": 59648,
+    "outline": 59649,
+    "detail": 59650,
+    "highlight": 59651,
+    "accent": 59652,
+    "secondary": 59653,
+    "detailAccent": 59654
+  },
+  "meal": {
+    "fill": 59655,
+    "outline": 59656,
+    "detail": 59657,
+    "highlight": 59658,
+    "accent": 59659,
+    "secondary": 59660,
+    "detailAccent": 59661
+  },
+  "health": {
+    "fill": 59662,
+    "outline": 59663,
+    "detail": 59664,
+    "highlight": 59665,
+    "accent": 59666,
+    "secondary": 59667,
+    "detailAccent": 59668
+  },
+  "grooming": {
+    "fill": 59669,
+    "outline": 59670,
+    "detail": 59671,
+    "highlight": 59672,
+    "accent": 59673,
+    "secondary": 59674,
+    "detailAccent": 59675
+  },
+  "diary": {
+    "fill": 59676,
+    "outline": 59677,
+    "detail": 59678,
+    "highlight": 59679,
+    "accent": 59680,
+    "secondary": 59681,
+    "detailAccent": 59682
+  },
+  "calendar": {
+    "fill": 59683,
+    "outline": 59684,
+    "detail": 59685,
+    "highlight": 59686,
+    "accent": 59687,
+    "secondary": 59688,
+    "detailAccent": 59689
+  },
+  "timeline": {
+    "fill": 59690,
+    "outline": 59691,
+    "detail": 59692,
+    "highlight": 59693,
+    "accent": 59694,
+    "secondary": 59695,
+    "detailAccent": 59696
+  },
+  "home": {
+    "fill": 59697,
+    "outline": 59698,
+    "detail": 59699,
+    "highlight": 59700,
+    "accent": 59701,
+    "secondary": 59702,
+    "detailAccent": 59703
+  },
+  "community": {
+    "fill": 59704,
+    "outline": 59705,
+    "detail": 59706,
+    "highlight": 59707,
+    "accent": 59708,
+    "secondary": 59709,
+    "detailAccent": 59710
+  },
+  "letter": {
+    "fill": 59711,
+    "outline": 59712,
+    "detail": 59713,
+    "highlight": 59714,
+    "accent": 59715,
+    "secondary": 59716,
+    "detailAccent": 59717
+  },
+  "menu": {
+    "fill": 59718,
+    "outline": 59719,
+    "detail": 59720,
+    "highlight": 59721,
+    "accent": 59722,
+    "secondary": 59723,
+    "detailAccent": 59724
+  },
+  "heart": {
+    "fill": 59725,
+    "outline": 59726,
+    "detail": 59727,
+    "highlight": 59728,
+    "accent": 59729,
+    "secondary": 59730,
+    "detailAccent": 59731
+  },
+  "broken-heart": {
+    "fill": 59732,
+    "outline": 59733,
+    "detail": 59734,
+    "highlight": 59735,
+    "accent": 59736,
+    "secondary": 59737,
+    "detailAccent": 59738
+  },
+  "pet": {
+    "fill": 59739,
+    "outline": 59740,
+    "detail": 59741,
+    "highlight": 59742,
+    "accent": 59743,
+    "secondary": 59744,
+    "detailAccent": 59745
+  },
+  "user": {
+    "fill": 59746,
+    "outline": 59747,
+    "detail": 59748,
+    "highlight": 59749,
+    "accent": 59750,
+    "secondary": 59751,
+    "detailAccent": 59752
+  },
+  "user-search": {
+    "fill": 59753,
+    "outline": 59754,
+    "detail": 59755,
+    "highlight": 59756,
+    "accent": 59757,
+    "secondary": 59758,
+    "detailAccent": 59759
+  },
+  "bell": {
+    "fill": 59760,
+    "outline": 59761,
+    "detail": 59762,
+    "highlight": 59763,
+    "accent": 59764,
+    "secondary": 59765,
+    "detailAccent": 59766
+  },
+  "bell-off": {
+    "fill": 59767,
+    "outline": 59768,
+    "detail": 59769,
+    "highlight": 59770,
+    "accent": 59771,
+    "secondary": 59772,
+    "detailAccent": 59773
+  },
+  "clock": {
+    "fill": 59774,
+    "outline": 59775,
+    "detail": 59776,
+    "highlight": 59777,
+    "accent": 59778,
+    "secondary": 59779,
+    "detailAccent": 59780
+  },
+  "calendar-clock": {
+    "fill": 59781,
+    "outline": 59782,
+    "detail": 59783,
+    "highlight": 59784,
+    "accent": 59785,
+    "secondary": 59786,
+    "detailAccent": 59787
+  },
+  "calendar-alert": {
+    "fill": 59788,
+    "outline": 59789,
+    "detail": 59790,
+    "highlight": 59791,
+    "accent": 59792,
+    "secondary": 59793,
+    "detailAccent": 59794
+  },
+  "medical-bag": {
+    "fill": 59795,
+    "outline": 59796,
+    "detail": 59797,
+    "highlight": 59798,
+    "accent": 59799,
+    "secondary": 59800,
+    "detailAccent": 59801
+  },
+  "pill": {
+    "fill": 59802,
+    "outline": 59803,
+    "detail": 59804,
+    "highlight": 59805,
+    "accent": 59806,
+    "secondary": 59807,
+    "detailAccent": 59808
+  },
+  "needle": {
+    "fill": 59809,
+    "outline": 59810,
+    "detail": 59811,
+    "highlight": 59812,
+    "accent": 59813,
+    "secondary": 59814,
+    "detailAccent": 59815
+  },
+  "stethoscope": {
+    "fill": 59816,
+    "outline": 59817,
+    "detail": 59818,
+    "highlight": 59819,
+    "accent": 59820,
+    "secondary": 59821,
+    "detailAccent": 59822
+  },
+  "shower": {
+    "fill": 59823,
+    "outline": 59824,
+    "detail": 59825,
+    "highlight": 59826,
+    "accent": 59827,
+    "secondary": 59828,
+    "detailAccent": 59829
+  },
+  "activity": {
+    "fill": 59830,
+    "outline": 59831,
+    "detail": 59832,
+    "highlight": 59833,
+    "accent": 59834,
+    "secondary": 59835,
+    "detailAccent": 59836
+  },
+  "award": {
+    "fill": 59837,
+    "outline": 59838,
+    "detail": 59839,
+    "highlight": 59840,
+    "accent": 59841,
+    "secondary": 59842,
+    "detailAccent": 59843
+  },
+  "chart": {
+    "fill": 59844,
+    "outline": 59845,
+    "detail": 59846,
+    "highlight": 59847,
+    "accent": 59848,
+    "secondary": 59849,
+    "detailAccent": 59850
+  },
+  "star": {
+    "fill": 59851,
+    "outline": 59852,
+    "detail": 59853,
+    "highlight": 59854,
+    "accent": 59855,
+    "secondary": 59856,
+    "detailAccent": 59857
+  },
+  "sparkles": {
+    "fill": 59858,
+    "outline": 59859,
+    "detail": 59860,
+    "highlight": 59861,
+    "accent": 59862,
+    "secondary": 59863,
+    "detailAccent": 59864
+  },
+  "leaf": {
+    "fill": 59865,
+    "outline": 59866,
+    "detail": 59867,
+    "highlight": 59868,
+    "accent": 59869,
+    "secondary": 59870,
+    "detailAccent": 59871
+  },
+  "flower": {
+    "fill": 59872,
+    "outline": 59873,
+    "detail": 59874,
+    "highlight": 59875,
+    "accent": 59876,
+    "secondary": 59877,
+    "detailAccent": 59878
+  },
+  "snowflake": {
+    "fill": 59879,
+    "outline": 59880,
+    "detail": 59881,
+    "highlight": 59882,
+    "accent": 59883,
+    "secondary": 59884,
+    "detailAccent": 59885
+  },
+  "sun": {
+    "fill": 59886,
+    "outline": 59887,
+    "detail": 59888,
+    "highlight": 59889,
+    "accent": 59890,
+    "secondary": 59891,
+    "detailAccent": 59892
+  },
+  "cloud": {
+    "fill": 59893,
+    "outline": 59894,
+    "detail": 59895,
+    "highlight": 59896,
+    "accent": 59897,
+    "secondary": 59898,
+    "detailAccent": 59899
+  },
+  "moon": {
+    "fill": 59900,
+    "outline": 59901,
+    "detail": 59902,
+    "highlight": 59903,
+    "accent": 59904,
+    "secondary": 59905,
+    "detailAccent": 59906
+  },
+  "drop": {
+    "fill": 59907,
+    "outline": 59908,
+    "detail": 59909,
+    "highlight": 59910,
+    "accent": 59911,
+    "secondary": 59912,
+    "detailAccent": 59913
+  },
+  "wind": {
+    "fill": 59914,
+    "outline": 59915,
+    "detail": 59916,
+    "highlight": 59917,
+    "accent": 59918,
+    "secondary": 59919,
+    "detailAccent": 59920
+  },
+  "thermometer": {
+    "fill": 59921,
+    "outline": 59922,
+    "detail": 59923,
+    "highlight": 59924,
+    "accent": 59925,
+    "secondary": 59926,
+    "detailAccent": 59927
+  },
+  "camera": {
+    "fill": 59928,
+    "outline": 59929,
+    "detail": 59930,
+    "highlight": 59931,
+    "accent": 59932,
+    "secondary": 59933,
+    "detailAccent": 59934
+  },
+  "image": {
+    "fill": 59935,
+    "outline": 59936,
+    "detail": 59937,
+    "highlight": 59938,
+    "accent": 59939,
+    "secondary": 59940,
+    "detailAccent": 59941
+  },
+  "layers": {
+    "fill": 59942,
+    "outline": 59943,
+    "detail": 59944,
+    "highlight": 59945,
+    "accent": 59946,
+    "secondary": 59947,
+    "detailAccent": 59948
+  },
+  "map": {
+    "fill": 59949,
+    "outline": 59950,
+    "detail": 59951,
+    "highlight": 59952,
+    "accent": 59953,
+    "secondary": 59954,
+    "detailAccent": 59955
+  },
+  "pin": {
+    "fill": 59956,
+    "outline": 59957,
+    "detail": 59958,
+    "highlight": 59959,
+    "accent": 59960,
+    "secondary": 59961,
+    "detailAccent": 59962
+  },
+  "flag": {
+    "fill": 59963,
+    "outline": 59964,
+    "detail": 59965,
+    "highlight": 59966,
+    "accent": 59967,
+    "secondary": 59968,
+    "detailAccent": 59969
+  },
+  "shield": {
+    "fill": 59970,
+    "outline": 59971,
+    "detail": 59972,
+    "highlight": 59973,
+    "accent": 59974,
+    "secondary": 59975,
+    "detailAccent": 59976
+  },
+  "shield-off": {
+    "fill": 59977,
+    "outline": 59978,
+    "detail": 59979,
+    "highlight": 59980,
+    "accent": 59981,
+    "secondary": 59982,
+    "detailAccent": 59983
+  },
+  "check": {
+    "fill": 59984,
+    "outline": 59985,
+    "detail": 59986,
+    "highlight": 59987,
+    "accent": 59988,
+    "secondary": 59989,
+    "detailAccent": 59990
+  },
+  "check-circle": {
+    "fill": 59991,
+    "outline": 59992,
+    "detail": 59993,
+    "highlight": 59994,
+    "accent": 59995,
+    "secondary": 59996,
+    "detailAccent": 59997
+  },
+  "square": {
+    "fill": 59998,
+    "outline": 59999,
+    "detail": 60000,
+    "highlight": 60001,
+    "accent": 60002,
+    "secondary": 60003,
+    "detailAccent": 60004
+  },
+  "check-square": {
+    "fill": 60005,
+    "outline": 60006,
+    "detail": 60007,
+    "highlight": 60008,
+    "accent": 60009,
+    "secondary": 60010,
+    "detailAccent": 60011
+  },
+  "circle": {
+    "fill": 60012,
+    "outline": 60013,
+    "detail": 60014,
+    "highlight": 60015,
+    "accent": 60016,
+    "secondary": 60017,
+    "detailAccent": 60018
+  },
+  "plus": {
+    "fill": 60019,
+    "outline": 60020,
+    "detail": 60021,
+    "highlight": 60022,
+    "accent": 60023,
+    "secondary": 60024,
+    "detailAccent": 60025
+  },
+  "plus-square": {
+    "fill": 60026,
+    "outline": 60027,
+    "detail": 60028,
+    "highlight": 60029,
+    "accent": 60030,
+    "secondary": 60031,
+    "detailAccent": 60032
+  },
+  "minus": {
+    "fill": 60033,
+    "outline": 60034,
+    "detail": 60035,
+    "highlight": 60036,
+    "accent": 60037,
+    "secondary": 60038,
+    "detailAccent": 60039
+  },
+  "close": {
+    "fill": 60040,
+    "outline": 60041,
+    "detail": 60042,
+    "highlight": 60043,
+    "accent": 60044,
+    "secondary": 60045,
+    "detailAccent": 60046
+  },
+  "close-circle": {
+    "fill": 60047,
+    "outline": 60048,
+    "detail": 60049,
+    "highlight": 60050,
+    "accent": 60051,
+    "secondary": 60052,
+    "detailAccent": 60053
+  },
+  "search": {
+    "fill": 60054,
+    "outline": 60055,
+    "detail": 60056,
+    "highlight": 60057,
+    "accent": 60058,
+    "secondary": 60059,
+    "detailAccent": 60060
+  },
+  "eye": {
+    "fill": 60061,
+    "outline": 60062,
+    "detail": 60063,
+    "highlight": 60064,
+    "accent": 60065,
+    "secondary": 60066,
+    "detailAccent": 60067
+  },
+  "eye-off": {
+    "fill": 60068,
+    "outline": 60069,
+    "detail": 60070,
+    "highlight": 60071,
+    "accent": 60072,
+    "secondary": 60073,
+    "detailAccent": 60074
+  },
+  "info": {
+    "fill": 60075,
+    "outline": 60076,
+    "detail": 60077,
+    "highlight": 60078,
+    "accent": 60079,
+    "secondary": 60080,
+    "detailAccent": 60081
+  },
+  "warning": {
+    "fill": 60082,
+    "outline": 60083,
+    "detail": 60084,
+    "highlight": 60085,
+    "accent": 60086,
+    "secondary": 60087,
+    "detailAccent": 60088
+  },
+  "warning-circle": {
+    "fill": 60089,
+    "outline": 60090,
+    "detail": 60091,
+    "highlight": 60092,
+    "accent": 60093,
+    "secondary": 60094,
+    "detailAccent": 60095
+  },
+  "warning-octagon": {
+    "fill": 60096,
+    "outline": 60097,
+    "detail": 60098,
+    "highlight": 60099,
+    "accent": 60100,
+    "secondary": 60101,
+    "detailAccent": 60102
+  },
+  "settings": {
+    "fill": 60103,
+    "outline": 60104,
+    "detail": 60105,
+    "highlight": 60106,
+    "accent": 60107,
+    "secondary": 60108,
+    "detailAccent": 60109
+  },
+  "sliders": {
+    "fill": 60110,
+    "outline": 60111,
+    "detail": 60112,
+    "highlight": 60113,
+    "accent": 60114,
+    "secondary": 60115,
+    "detailAccent": 60116
+  },
+  "lock": {
+    "fill": 60117,
+    "outline": 60118,
+    "detail": 60119,
+    "highlight": 60120,
+    "accent": 60121,
+    "secondary": 60122,
+    "detailAccent": 60123
+  },
+  "pen": {
+    "fill": 60124,
+    "outline": 60125,
+    "detail": 60126,
+    "highlight": 60127,
+    "accent": 60128,
+    "secondary": 60129,
+    "detailAccent": 60130
+  },
+  "save": {
+    "fill": 60131,
+    "outline": 60132,
+    "detail": 60133,
+    "highlight": 60134,
+    "accent": 60135,
+    "secondary": 60136,
+    "detailAccent": 60137
+  },
+  "trash": {
+    "fill": 60138,
+    "outline": 60139,
+    "detail": 60140,
+    "highlight": 60141,
+    "accent": 60142,
+    "secondary": 60143,
+    "detailAccent": 60144
+  },
+  "file": {
+    "fill": 60145,
+    "outline": 60146,
+    "detail": 60147,
+    "highlight": 60148,
+    "accent": 60149,
+    "secondary": 60150,
+    "detailAccent": 60151
+  },
+  "tag": {
+    "fill": 60152,
+    "outline": 60153,
+    "detail": 60154,
+    "highlight": 60155,
+    "accent": 60156,
+    "secondary": 60157,
+    "detailAccent": 60158
+  },
+  "hashtag": {
+    "fill": 60159,
+    "outline": 60160,
+    "detail": 60161,
+    "highlight": 60162,
+    "accent": 60163,
+    "secondary": 60164,
+    "detailAccent": 60165
+  },
+  "phone": {
+    "fill": 60166,
+    "outline": 60167,
+    "detail": 60168,
+    "highlight": 60169,
+    "accent": 60170,
+    "secondary": 60171,
+    "detailAccent": 60172
+  },
+  "send": {
+    "fill": 60173,
+    "outline": 60174,
+    "detail": 60175,
+    "highlight": 60176,
+    "accent": 60177,
+    "secondary": 60178,
+    "detailAccent": 60179
+  },
+  "more-horizontal": {
+    "fill": 60180,
+    "outline": 60181,
+    "detail": 60182,
+    "highlight": 60183,
+    "accent": 60184,
+    "secondary": 60185,
+    "detailAccent": 60186
+  },
+  "more-vertical": {
+    "fill": 60187,
+    "outline": 60188,
+    "detail": 60189,
+    "highlight": 60190,
+    "accent": 60191,
+    "secondary": 60192,
+    "detailAccent": 60193
+  },
+  "grid": {
+    "fill": 60194,
+    "outline": 60195,
+    "detail": 60196,
+    "highlight": 60197,
+    "accent": 60198,
+    "secondary": 60199,
+    "detailAccent": 60200
+  },
+  "pause": {
+    "fill": 60201,
+    "outline": 60202,
+    "detail": 60203,
+    "highlight": 60204,
+    "accent": 60205,
+    "secondary": 60206,
+    "detailAccent": 60207
+  },
+  "pause-circle": {
+    "fill": 60208,
+    "outline": 60209,
+    "detail": 60210,
+    "highlight": 60211,
+    "accent": 60212,
+    "secondary": 60213,
+    "detailAccent": 60214
+  },
+  "type": {
+    "fill": 60215,
+    "outline": 60216,
+    "detail": 60217,
+    "highlight": 60218,
+    "accent": 60219,
+    "secondary": 60220,
+    "detailAccent": 60221
+  },
+  "palette": {
+    "fill": 60222,
+    "outline": 60223,
+    "detail": 60224,
+    "highlight": 60225,
+    "accent": 60226,
+    "secondary": 60227,
+    "detailAccent": 60228
+  },
+  "touch": {
+    "fill": 60229,
+    "outline": 60230,
+    "detail": 60231,
+    "highlight": 60232,
+    "accent": 60233,
+    "secondary": 60234,
+    "detailAccent": 60235
+  },
+  "hand": {
+    "fill": 60236,
+    "outline": 60237,
+    "detail": 60238,
+    "highlight": 60239,
+    "accent": 60240,
+    "secondary": 60241,
+    "detailAccent": 60242
+  },
+  "hand-heart": {
+    "fill": 60243,
+    "outline": 60244,
+    "detail": 60245,
+    "highlight": 60246,
+    "accent": 60247,
+    "secondary": 60248,
+    "detailAccent": 60249
+  },
+  "megaphone": {
+    "fill": 60250,
+    "outline": 60251,
+    "detail": 60252,
+    "highlight": 60253,
+    "accent": 60254,
+    "secondary": 60255,
+    "detailAccent": 60256
+  },
+  "ball": {
+    "fill": 60257,
+    "outline": 60258,
+    "detail": 60259,
+    "highlight": 60260,
+    "accent": 60261,
+    "secondary": 60262,
+    "detailAccent": 60263
+  },
+  "puzzle": {
+    "fill": 60264,
+    "outline": 60265,
+    "detail": 60266,
+    "highlight": 60267,
+    "accent": 60268,
+    "secondary": 60269,
+    "detailAccent": 60270
+  },
+  "toy-brick": {
+    "fill": 60271,
+    "outline": 60272,
+    "detail": 60273,
+    "highlight": 60274,
+    "accent": 60275,
+    "secondary": 60276,
+    "detailAccent": 60277
+  },
+  "cookie": {
+    "fill": 60278,
+    "outline": 60279,
+    "detail": 60280,
+    "highlight": 60281,
+    "accent": 60282,
+    "secondary": 60283,
+    "detailAccent": 60284
+  },
+  "treat": {
+    "fill": 60285,
+    "outline": 60286,
+    "detail": 60287,
+    "highlight": 60288,
+    "accent": 60289,
+    "secondary": 60290,
+    "detailAccent": 60291
+  },
+  "curtains": {
+    "fill": 60292,
+    "outline": 60293,
+    "detail": 60294,
+    "highlight": 60295,
+    "accent": 60296,
+    "secondary": 60297,
+    "detailAccent": 60298
+  },
+  "party": {
+    "fill": 60299,
+    "outline": 60300,
+    "detail": 60301,
+    "highlight": 60302,
+    "accent": 60303,
+    "secondary": 60304,
+    "detailAccent": 60305
+  },
+  "school": {
+    "fill": 60306,
+    "outline": 60307,
+    "detail": 60308,
+    "highlight": 60309,
+    "accent": 60310,
+    "secondary": 60311,
+    "detailAccent": 60312
+  },
+  "shopping": {
+    "fill": 60313,
+    "outline": 60314,
+    "detail": 60315,
+    "highlight": 60316,
+    "accent": 60317,
+    "secondary": 60318,
+    "detailAccent": 60319
+  },
+  "sleep": {
+    "fill": 60320,
+    "outline": 60321,
+    "detail": 60322,
+    "highlight": 60323,
+    "accent": 60324,
+    "secondary": 60325,
+    "detailAccent": 60326
+  },
+  "sand-timer": {
+    "fill": 60327,
+    "outline": 60328,
+    "detail": 60329,
+    "highlight": 60330,
+    "accent": 60331,
+    "secondary": 60332,
+    "detailAccent": 60333
+  },
+  "meditation": {
+    "fill": 60334,
+    "outline": 60335,
+    "detail": 60336,
+    "highlight": 60337,
+    "accent": 60338,
+    "secondary": 60339,
+    "detailAccent": 60340
+  },
+  "target": {
+    "fill": 60341,
+    "outline": 60342,
+    "detail": 60343,
+    "highlight": 60344,
+    "accent": 60345,
+    "secondary": 60346,
+    "detailAccent": 60347
+  },
+  "blocked": {
+    "fill": 60348,
+    "outline": 60349,
+    "detail": 60350,
+    "highlight": 60351,
+    "accent": 60352,
+    "secondary": 60353,
+    "detailAccent": 60354
+  },
+  "loader": {
+    "fill": 60355,
+    "outline": 60356,
+    "detail": 60357,
+    "highlight": 60358,
+    "accent": 60359,
+    "secondary": 60360,
+    "detailAccent": 60361
+  },
+  "smile": {
+    "fill": 60362,
+    "outline": 60363,
+    "detail": 60364,
+    "highlight": 60365,
+    "accent": 60366,
+    "secondary": 60367,
+    "detailAccent": 60368
+  },
+  "calm": {
+    "fill": 60369,
+    "outline": 60370,
+    "detail": 60371,
+    "highlight": 60372,
+    "accent": 60373,
+    "secondary": 60374,
+    "detailAccent": 60375
+  },
+  "excited": {
+    "fill": 60376,
+    "outline": 60377,
+    "detail": 60378,
+    "highlight": 60379,
+    "accent": 60380,
+    "secondary": 60381,
+    "detailAccent": 60382
+  },
+  "neutral": {
+    "fill": 60383,
+    "outline": 60384,
+    "detail": 60385,
+    "highlight": 60386,
+    "accent": 60387,
+    "secondary": 60388,
+    "detailAccent": 60389
+  },
+  "sad": {
+    "fill": 60390,
+    "outline": 60391,
+    "detail": 60392,
+    "highlight": 60393,
+    "accent": 60394,
+    "secondary": 60395,
+    "detailAccent": 60396
+  },
+  "anxious": {
+    "fill": 60397,
+    "outline": 60398,
+    "detail": 60399,
+    "highlight": 60400,
+    "accent": 60401,
+    "secondary": 60402,
+    "detailAccent": 60403
+  },
+  "angry": {
+    "fill": 60404,
+    "outline": 60405,
+    "detail": 60406,
+    "highlight": 60407,
+    "accent": 60408,
+    "secondary": 60409,
+    "detailAccent": 60410
+  },
+  "tired": {
+    "fill": 60411,
+    "outline": 60412,
+    "detail": 60413,
+    "highlight": 60414,
+    "accent": 60415,
+    "secondary": 60416,
+    "detailAccent": 60417
+  }
+}

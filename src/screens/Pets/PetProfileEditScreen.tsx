@@ -34,7 +34,7 @@ import {
 } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import Feather from 'react-native-vector-icons/Feather';
+import Feather from '../../components/icons/NuriFeatherIcon';
 import Animated, {
   interpolate,
   useAnimatedStyle,

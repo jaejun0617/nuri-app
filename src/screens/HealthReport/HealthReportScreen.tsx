@@ -23,7 +23,8 @@ import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQueryClient } from '@tanstack/react-query';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import Feather from 'react-native-vector-icons/Feather';
+import Feather from '../../components/icons/NuriFeatherIcon';
+import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
@@ -300,7 +301,7 @@ function ActivityCard({
           { backgroundColor: `${accentColor}18` },
         ]}
       >
-        <Feather color={accentColor} name={item.iconName as never} size={16} />
+        <NuriSemanticIcon family="feather" color={accentColor} name={item.iconName} size={16} />
       </View>
       <View style={styles.cardTextWrap}>
         <AppText preset="unifiedBody" numberOfLines={1}>
@@ -1815,7 +1816,7 @@ export default function HealthReportScreen() {
                     { backgroundColor: `${petTheme.primary}18` },
                   ]}
                 >
-                  <Feather color={petTheme.primary} name={action.icon as never} size={16} />
+                  <NuriSemanticIcon family="feather" color={petTheme.primary} name={action.icon} size={16} />
                 </View>
                 <View style={styles.writeActionItemText}>
                   <AppText preset="unifiedBody">{action.title}</AppText>

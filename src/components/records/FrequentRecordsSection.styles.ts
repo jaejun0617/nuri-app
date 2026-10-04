@@ -1,10 +1,10 @@
 // 파일: src/components/records/FrequentRecordsSection.styles.ts
-// 목적: 자주 쓰는 기록 섹션의 평면 2x2 정사각 그리드 토큰을 관리한다.
+// 목적: 자주 쓰는 기록의 2x2 배치와 얇은 내부 유리 재질을 관리한다.
 
 import { StyleSheet } from 'react-native';
 
 import { typography } from '../../app/theme/tokens/typography';
-import { HOME_WIDGET_MATERIAL } from '../home/HomeWidgetMaterial';
+import { HOME_FLOATING_WIDGET_MATERIAL } from '../home/HomeWidgetMaterial';
 
 export const styles = StyleSheet.create({
   section: {
@@ -60,7 +60,7 @@ export const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    ...HOME_WIDGET_MATERIAL,
+    ...HOME_FLOATING_WIDGET_MATERIAL,
   },
   recordCardPressed: {
     opacity: 0.93,

@@ -6,7 +6,7 @@
 import AppText from '../../app/ui/AppText';
 import React, { memo, useMemo } from 'react';
 import { AppState, Pressable, useWindowDimensions, View, type AppStateStatus } from 'react-native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import NuriSemanticIcon from '../icons/NuriSemanticIcon';
 import { useIsFocused } from '@react-navigation/native';
 
 import type { MemoryRecord } from '../../services/supabase/memories';
@@ -21,7 +21,7 @@ import {
   HomeSectionHeader,
   isHomeSectionConfirmedEmpty,
 } from '../home/HomeSectionHeader';
-import { HomeWidgetSheen } from '../home/HomeWidgetMaterial';
+import { HomeFloatingWidgetSurface } from '../home/HomeWidgetMaterial';
 import { styles } from './FrequentRecordsSection.styles';
 
 type PetTheme = ReturnType<typeof buildPetThemePalette>;
@@ -57,12 +57,10 @@ const CATEGORY_META: Record<
 function RecordSummaryCard({
   item,
   accentColor,
-  accentTint,
   onPress,
 }: {
   item: FrequentRecordSummary;
   accentColor: string;
-  accentTint: string;
   onPress: () => void;
 }) {
   const { fontScale } = useWindowDimensions();
@@ -85,13 +83,15 @@ function RecordSummaryCard({
         pressed ? styles.recordCardPressed : null,
       ]}
     >
-      <HomeWidgetSheen radius={12} />
+      <HomeFloatingWidgetSurface
+        radius={12}
+        testIDPrefix="frequent-record-glass"
+      />
       <View style={[styles.recordContentStack, enlarged ? { flex: 0 } : null]}>
         <View style={styles.recordIconSlot}>
-          <View
-            style={[styles.recordIconWrap, { backgroundColor: accentTint }]}
-          >
-            <MaterialCommunityIcons
+          <View style={styles.recordIconWrap}>
+            <NuriSemanticIcon
+              family="material"
               name={meta.icon}
               size={23}
               color={accentColor}
@@ -223,7 +223,6 @@ function FrequentRecordsSectionBase({
               key={item.category}
               item={item}
               accentColor={petTheme.primary}
-              accentTint={petTheme.tint}
               onPress={() => onPressCategory(item.category)}
             />
           ))}

@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { TouchableOpacity, View } from 'react-native';
-import Feather from 'react-native-vector-icons/Feather';
+import Feather from '../icons/NuriFeatherIcon';
 
 import AppText from '../../app/ui/AppText';
 import type { LocationDiscoveryItem } from '../../services/locationDiscovery/types';

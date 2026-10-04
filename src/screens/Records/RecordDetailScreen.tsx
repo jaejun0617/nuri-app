@@ -22,7 +22,8 @@ import type { CompositeNavigationProp, RouteProp } from '@react-navigation/nativ
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import Feather from 'react-native-vector-icons/Feather';
+import Feather from '../../components/icons/NuriFeatherIcon';
+import NuriIcon, { type NuriIconName } from '../../components/icons/NuriIcon';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
@@ -84,18 +85,18 @@ function toPreviewImageSources(
 const EMOTION_META: Record<
   string,
   {
-    emoji: string;
+    icon: NuriIconName;
     label: string;
   }
 > = {
-  happy: { emoji: '😊', label: '행복해요' },
-  calm: { emoji: '😌', label: '평온해요' },
-  excited: { emoji: '🤩', label: '신나요' },
-  neutral: { emoji: '🙂', label: '무난해요' },
-  sad: { emoji: '😢', label: '아쉬워요' },
-  anxious: { emoji: '😥', label: '걱정돼요' },
-  angry: { emoji: '😠', label: '예민해요' },
-  tired: { emoji: '😴', label: '피곤해요' },
+  happy: { icon: 'smile', label: '행복해요' },
+  calm: { icon: 'calm', label: '평온해요' },
+  excited: { icon: 'excited', label: '신나요' },
+  neutral: { icon: 'neutral', label: '무난해요' },
+  sad: { icon: 'sad', label: '아쉬워요' },
+  anxious: { icon: 'anxious', label: '걱정돼요' },
+  angry: { icon: 'angry', label: '예민해요' },
+  tired: { icon: 'tired', label: '피곤해요' },
 };
 
 const FeedPostCard = memo(function FeedPostCard({
@@ -358,9 +359,7 @@ const FeedPostCard = memo(function FeedPostCard({
 
         {moodMeta ? (
           <View style={styles.postMoodRow}>
-            <AppText preset="unifiedMeta" style={styles.postMoodEmoji}>
-              {moodMeta.emoji}
-            </AppText>
+            <NuriIcon name={moodMeta.icon} size={16} />
             <AppText preset="unifiedMeta" style={styles.postMoodLabel}>
               {moodMeta.label}
             </AppText>

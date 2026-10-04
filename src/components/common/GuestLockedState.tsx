@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import Feather from 'react-native-vector-icons/Feather';
+import Feather from '../icons/NuriFeatherIcon';
 import { useTheme } from 'styled-components/native';
 
 import { ASSETS } from '../../assets';

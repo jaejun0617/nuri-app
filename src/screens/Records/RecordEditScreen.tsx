@@ -30,7 +30,9 @@ import {
   KeyboardAwareScrollView,
   type KeyboardAwareScrollViewRef,
 } from 'react-native-keyboard-controller';
-import Feather from 'react-native-vector-icons/Feather';
+import Feather from '../../components/icons/NuriFeatherIcon';
+import NuriIcon from '../../components/icons/NuriIcon';
+import { NURI_MOOD_ICONS } from '../../components/icons/nuriIconNames';
 
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import PremiumNoticeModal from '../../components/common/PremiumNoticeModal';
@@ -1020,9 +1022,7 @@ export default function RecordEditScreen() {
                 disabled={saving}
                 activeOpacity={0.9}
               >
-                <AppText preset="unifiedMeta" style={styles.moodEmoji}>
-                  {em.emoji}
-                </AppText>
+                <NuriIcon name={NURI_MOOD_ICONS[em.value]} size={16} />
                 <AppText
                   preset="unifiedMeta"
                   style={[styles.moodText, active ? styles.moodTextActive : null]}

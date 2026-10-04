@@ -1,7 +1,7 @@
 import AppTextInput from '../../app/ui/AppTextInput';
 import React from 'react';
 import { Pressable, View } from 'react-native';
-import Feather from 'react-native-vector-icons/Feather';
+import Feather from '../icons/NuriFeatherIcon';
 
 import AppText from '../../app/ui/AppText';
 import { styles } from './LocationDiscovery.styles';

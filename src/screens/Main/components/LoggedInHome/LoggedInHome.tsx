@@ -27,7 +27,6 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  Text,
   TouchableOpacity,
   UIManager,
   View,
@@ -41,8 +40,10 @@ import type { CompositeNavigationProp } from '@react-navigation/native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Feather from 'react-native-vector-icons/Feather';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Feather from '../../../../components/icons/NuriFeatherIcon';
+import MaterialCommunityIcons from '../../../../components/icons/NuriMaterialIcon';
+import NuriSemanticIcon from '../../../../components/icons/NuriSemanticIcon';
+import NuriIcon from '../../../../components/icons/NuriIcon';
 import LinearGradient from 'react-native-linear-gradient';
 import Animated, {
   Easing,
@@ -432,7 +433,8 @@ const HomeRecentRecordRow = React.memo(function HomeRecentRecordRow({
           { backgroundColor: iconBackground },
         ]}
       >
-        <MaterialCommunityIcons
+        <NuriSemanticIcon
+          family="material"
           name={getHomeRecentIcon(item)}
           size={25}
           color={iconColor}
@@ -1141,7 +1143,9 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
           >
             NURI
           </AppText>
-          <MaterialCommunityIcons
+          <NuriSemanticIcon
+            family="material"
+            preserveOriginal
             name="paw"
             size={12}
             color={headerPalette?.brand ?? petThemePrimary}
@@ -1425,9 +1429,7 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
             ]}
           >
             <View style={styles.heroTogetherRow}>
-              <Text style={styles.heroTogetherHeart}>
-                {petTheme.heartEmoji}
-              </Text>
+              <NuriIcon name="heart" size={16} />
               <AppText
                 preset="unifiedBody"
                 styleOverridesPreset
@@ -1446,9 +1448,7 @@ const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
                 </AppText>{' '}
                 일
               </AppText>
-              <Text style={styles.heroTogetherHeart}>
-                {petTheme.heartEmoji}
-              </Text>
+              <NuriIcon name="heart" size={16} />
             </View>
           </View>
         ) : null}
@@ -1499,7 +1499,7 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
       {
         key: 'hobby',
         label: '취미',
-        iconEmoji: '✨',
+        iconName: 'sparkles',
         iconStyle: styles.iconCircleBlue,
         titleStyle: styles.accTitleBlue,
         chipStyle: styles.profileSheetValueChipBlue,
@@ -1517,7 +1517,7 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
       {
         key: 'like',
         label: '좋아하는 것',
-        iconEmoji: '🧡',
+        iconName: 'heart',
         iconStyle: styles.iconCircleOrange,
         titleStyle: styles.accTitleOrange,
         chipStyle: styles.profileSheetValueChipOrange,
@@ -1535,7 +1535,7 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
       {
         key: 'dislike',
         label: '싫어하는 것',
-        iconEmoji: '💔',
+        iconName: 'broken-heart',
         iconStyle: styles.iconCirclePink,
         titleStyle: styles.accTitlePink,
         chipStyle: styles.profileSheetValueChipPink,
@@ -1553,7 +1553,7 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
       {
         key: 'tag',
         label: '#태그',
-        iconEmoji: '🏷️',
+        iconName: 'tag',
         iconStyle: styles.iconCirclePurple,
         titleStyle: styles.accTitlePurple,
         chipStyle: styles.profileSheetValueChipPurple,
@@ -1584,9 +1584,7 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
               ]}
             >
               <View style={[styles.profileSheetIconCircle, row.iconStyle]}>
-                <Text style={styles.profileSheetCategoryEmoji}>
-                  {row.iconEmoji}
-                </Text>
+                <NuriIcon name={row.iconName} size={16} />
               </View>
               <View style={styles.profileSheetRowContent}>
                 <View style={styles.profileSheetCategoryLine}>
@@ -1715,7 +1713,7 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
         >
           <View style={styles.accordionLeft}>
             <View style={[styles.accordionIconCircle, styles.iconCircleBlue]}>
-              <Text style={styles.accordionIconText}>🐾</Text>
+              <NuriIcon name="sparkles" size={16} />
             </View>
             <AppText
               typographyRole="sectionTitle"
@@ -1766,7 +1764,7 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
         >
           <View style={styles.accordionLeft}>
             <View style={[styles.accordionIconCircle, styles.iconCircleOrange]}>
-              <Text style={styles.accordionIconText}>💛</Text>
+              <NuriIcon name="heart" size={16} />
             </View>
             <AppText
               typographyRole="sectionTitle"
@@ -1817,7 +1815,7 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
         >
           <View style={styles.accordionLeft}>
             <View style={[styles.accordionIconCircle, styles.iconCirclePink]}>
-              <Text style={styles.accordionIconText}>💔</Text>
+              <NuriIcon name="broken-heart" size={16} />
             </View>
             <AppText
               typographyRole="sectionTitle"

@@ -1,5 +1,110 @@
 # V1.0 Remaining Task/Risk Closeout
 
+<!-- NURI_DESIGN_CLOSEOUT_20261005_BEGIN -->
+## 2026-10-05 PO Final Design Approval and Selective Closeout
+
+- [x] PO final Galaxy S24 approval: 110 custom NURI icons, original-color feature/More icons, themed navigation, frequent/summary glass, icon-background removal, bottom-shadow removal and the +16dp Hero identity-to-CTA group spacing.
+- [x] Reuse the approved installed QA APK SHA-256 `44de5c7c5d274b9b508222bf4993489ac28ebc3aaa822428622021ffbf324717`, source/input fingerprints, signature/bundle/font checks and existing full-icon 154 suites/1298 tests, glass 9 suites/341 tests and Hero 5 suites/92 tests. No additional runtime edit, build, install, device operation or DB mutation for closeout.
+- [x] PO authorizes selective commit and normal push of approved source/assets/tests/document blocks only. Exclude and preserve preexisting unrelated document bodies, research, Supabase temp, historical designs/QA and untracked seasonal inputs. Actual Git result: `/private/tmp/nuri-hero-spacing-20261005-005707/FINAL_REPORT.md`.
+- [x] Keep outputs and caches until an explicit removal instruction. This QA artifact is not an exact-commit Store RC; iOS native rendering and performance remain separate unverified boundaries. AUTH frozen, QA/season controls preserved, Store HOLD, no automatic next work. Earlier pending-review entries below are history.
+<!-- NURI_DESIGN_CLOSEOUT_20261005_END -->
+
+<!-- NURI_HERO_SPACING_20261005_BEGIN -->
+## 2026-10-05 Hero Profile Group Spacing Installed Candidate
+
+- [x] Preserve the fixed recent-memory chip and lower the existing identity-to-CTA group by 16dp across four seasons. Body paddingTop 14→30dp; internal spacing, assets, data/navigation and CTA dimensions unchanged. Real layout expansion, not a transform: Hero and Weather start move +16dp while keeping the CTA inside its touch ancestors.
+- [x] Source scope: one runtime style file and one test. TypeScript PASS; target lint 0 errors/0 warnings; 5 suites/92 tests PASS, including shared four-season grouping and existing memory-chip/CTA geometry contracts.
+- [x] One incremental Release QA build PASS: 952 tasks, 61 executed, 891 up-to-date, 296.519 seconds. One Galaxy S24 install-r PASS. APK SHA-256 `44de5c7c5d274b9b508222bf4993489ac28ebc3aaa822428622021ffbf324717`; signature, embedded bundle, font, installed hash, UID and firstInstallTime verified.
+- [x] Outputs and caches retained under the latest PO policy. No cleanup, automated app launch/touch/scroll/capture, DB changes, staging, commit or push. Existing required artifacts, current QA and unrelated dirty preserved. The earlier historical 12-file QA absence remains unexplained.
+- [ ] PO final native visual approval of spacing and Hero→Weather rhythm. Uncommitted design QA candidate, not a Store RC. AUTH frozen, season controls kept, Store HOLD. Evidence: `/private/tmp/nuri-hero-spacing-20261005-005707/FINAL_REPORT.md`. Earlier blocks below are history.
+<!-- NURI_HERO_SPACING_20261005_END -->
+
+<!-- NURI_HOME_NO_REFLECTION_20261005_BEGIN -->
+## 2026-10-05 Bottom Shadow Removal Installed Candidate
+
+- [x] Corrected intent: remove bottom shadows, not reflections. Restore the interim reflection-removal edits before any build/install. Remove only the common contact-shadow layer and dark bottom-rim colors; preserve reflections, glints, guide sheen, glass opacity, geometry, icons, seasonal assets and data/navigation contracts.
+- [x] Final source scope: one runtime material file and three tests. TypeScript PASS; target lint 0 errors/0 warnings; 9 suites/341 tests PASS, including four-season/width/font contracts, reflection preservation and shadow absence.
+- [x] One incremental Release QA build PASS: 952 tasks, 61 executed, 891 up-to-date, 275.493 seconds. One Galaxy S24 install-r PASS. APK SHA-256 `f4a21fe39e1dc793ef70f849e6c771e1011a53fae6255e836ddd2f470dcade76`; signature, embedded bundle, font, installed hash, UID and firstInstallTime verified.
+- [x] Build outputs and all caches retained under the latest PO policy. No cleanup, app launch, touch, scroll, capture, DB changes, staging, commit or push. Required artifacts, current QA and unrelated dirty preserved. The earlier historical 12-file QA absence remains unexplained.
+- [ ] PO final native visual approval. Uncommitted design QA candidate, not a Store RC. AUTH frozen, season controls kept, Store HOLD. Evidence: `/private/tmp/nuri-home-no-reflection-20261005-004425/FINAL_REPORT.md`. Earlier blocks below are history.
+<!-- NURI_HOME_NO_REFLECTION_20261005_END -->
+
+<!-- NURI_SUMMARY_GLASS_INSTALL_20261005_BEGIN -->
+## 2026-10-05 Summary Glass Installed Candidate and Build Retention
+
+- [x] One authorized Android release QA build and install-r. APK SHA-256 `c541981c6bbcf2a1ce8552de8afe0c5f2641b7a9f3aded688a2ba4731626272d`; signer, embedded bundle, icon font, installed hash, UID and firstInstallTime verified. Production source and declared inputs unchanged during this installation task.
+- [x] Prior TypeScript, target lint and 9 suites/341 tests reused. Existing required APK/AAB and the 1,729 QA evidence files present at this task baseline preserved. The earlier 12-file historical QA absence remains unexplained; this task does not resolve that boundary.
+- [x] Latest PO policy: consolidate design changes, incremental Release build once, install-r, PO direct review, retain outputs for the next iteration. Do not clean build output, .cxx, .gradle, task build-temp or caches before an explicit PO removal instruction. No cleanup this turn.
+- [ ] Final PO native visual approval. No additional app launch, touch, scroll, capture, DB operation, staging, commit or push. This uncommitted design QA candidate is not a Store RC. AUTH frozen, QA and season controls kept, Store HOLD.
+- [x] Workflow and project memory updated to supersede the previous automatic cleanup policy. Evidence: `/private/tmp/nuri-summary-glass-install-20261005-002304/FINAL_REPORT.md`. Earlier blocks below are history.
+<!-- NURI_SUMMARY_GLASS_INSTALL_20261005_END -->
+
+<!-- NURI_SUMMARY_GLASS_20261005_BEGIN -->
+## 2026-10-05 전체요약 유리 후속 디자인 후보
+
+- [x] 전체요약 산책·식사·생활·한 줄 요약 패널을 기록 위젯의 26% 중립 유리 재질로 통일, 공통 paint로 geometry·touch·접근성 계약 유지.
+- [x] 기록 위젯 4개 테마색 원형 바탕 제거. 원본 아이콘색·위치 슬롯·시간 칩 유지, 전체요약은 기존 바탕 없는 아이콘 유지.
+- [x] TypeScript, 대상 lint 0 errors/0 warnings, 9 suites/341 tests, diff check. 4계절·4폭·3글꼴의 로컬 참고 화면 48개 조합에서 asset load·내용 경계·전후 높이 동일 확인.
+- [ ] 새 후보 빌드·설치·native 시각 PO 승인·native 성능. 현재 설치 `dcb92954`는 이 후속 변경을 포함하지 않는다.
+- [ ] 최종 PO 승인 후 selective Git closeout. 이번 staging/commit/push 없음, AUTH 동결·QA 보존·계절 버튼 KEEP·Store HOLD. 증적 소유자: `/private/tmp/nuri-summary-glass-20261005-000410/FINAL_REPORT.md`.
+<!-- NURI_SUMMARY_GLASS_20261005_END -->
+
+<!-- NURI_FREQUENT_GLASS_INSTALL_20261004_BEGIN -->
+## 2026-10-04 Frequent Glass Installed Review Candidate
+
+- [x] One authorized Android QA build and update install. APK SHA-256 `dcb92954d696dbefc4b99aee33e0dc72735c47cc4611a3f3941b421fc35592d2`; signature, embedded bundle, icon font and installed hash verified. Actual UID and firstInstallTime captured before/after and unchanged. Source and declared inputs unchanged during build.
+- [x] Reuse prior typecheck, target lint and 7 suites/266 tests. No app launch, touch, scroll, capture, database operation or further production-source change. This dirty design candidate is not an exact-commit RC.
+- [x] Audited exact-path Android outputs and task build-temp cleanup: 3.311GiB allocated, 2.800GiB observed free-space increase. Preserve required APK/AAB, evidence, QA, source/assets, unrelated dirty, credentials, toolchain, dependencies and global caches. Shared Watchman retained.
+- [ ] PO final native visual approval. No staging, commit or push. AUTH freeze, QA, season controls and Store HOLD remain intact. Source of truth: `/private/tmp/nuri-frequent-glass-install-20261004-234846/FINAL_REPORT.md`. Earlier blocks below are history.
+<!-- NURI_FREQUENT_GLASS_INSTALL_20261004_END -->
+
+<!-- NURI_FREQUENT_GLASS_20261004_BEGIN -->
+## 2026-10-04 Frequent Records Glass Candidate
+
+- [x] Change only the four quick-record inner surfaces to 26% fill, asymmetric rims, a glint and a 5dp contact shadow. Keep shared Home material, outer glass, seasonal background, icon colors, 2x2 geometry, large-font sizing and record/navigation contracts.
+- [x] Typecheck PASS; target lint 0 errors/0 warnings; 7 suites/266 tests PASS; diff check PASS. Local season/width/font matrix and browser-reference fit checks cover 48 combinations; these do not establish native appearance or performance.
+- [ ] PO visual approval and any separately authorized build/install. No new build, install, device operation, DB operation, staging, commit, push or artifact cleanup this turn. Existing installed `e08b0d95` icon candidate does not include this glass change.
+- [x] Frozen AUTH, current QA, seasonal controls, unrelated dirty and Store HOLD preserved. Source of truth: `/private/tmp/nuri-frequent-glass-20261004-233329/FINAL_REPORT.md`. Earlier blocks below are history.
+<!-- NURI_FREQUENT_GLASS_20261004_END -->
+
+<!-- NURI_CUTE_INSTALL_20261004_BEGIN -->
+## 2026-10-04 Cute Global Icons Installed PO Candidate
+
+- [x] PO approved the design direction and one build/install. Global 110-icon wiring verified; functional/menu/recommendation source colors, pet-theme navigation, arrows/weather/official-brand exclusions preserved.
+- [x] Android assembleRelease once PASS; APK verifier ACCEPTED; embedded NuriIcons font matches; source and declared inputs unchanged during build. Existing type/lint/full-suite evidence reused: 154 suites/1298 tests PASS.
+- [x] Galaxy S24 update install once Success. Installed APK SHA-256 `e08b0d95db5b78b188ca43b476584c29c63f203fd0ad20a0c61b638b3281ab8f` matches; firstInstallTime unchanged. No app launch, touch, scroll, capture, uninstall, data clear or DB operation. Pre-install UID was not captured; the helper's missing-value equality is not UID preservation evidence.
+- [ ] PO final native visual approval. Native performance and iOS behavior remain unverified. This uncommitted design candidate is not an exact-commit RC; no staging/commit/push/artifact cleanup until final approval.
+- [x] Frozen AUTH, QA data, season controls and Store HOLD preserved. Canonical results: `/private/tmp/nuri-cute-icons-install-20261004-230741/FINAL_REPORT.md`. Older entries below are historical.
+<!-- NURI_CUTE_INSTALL_20261004_END -->
+
+<!-- NURI_CUTE_ICONS_20261004_BEGIN -->
+## 2026-10-04 NURI Jelly Object Candidate
+
+- [x] Redraw 88 object silhouettes within the existing editable 110-icon catalog. Keep clinical/control semantics, species-neutral motifs, original functional/menu colors and pet-theme navigation. No new app dependency or business/data contract.
+- [x] Typecheck PASS; lint 0 errors/48 existing warnings/0 new diagnostics; full suite 154 suites/1298 tests PASS; 3959 local rendering checks and 467 vector bounds PASS. Identical Android/iOS font bytes; these are not native visual evidence.
+- [ ] Additional QA build/install: not performed, prior approval question remains unanswered. Installed first-stage candidate is not the jelly revision. Native appearance/performance/iOS acceptance remain unverified.
+- [ ] PO final approval. No staging/commit/push/cleanup in this turn. Preserve frozen AUTH, QA, season controls and Store HOLD. Evidence: `/private/tmp/nuri-cute-icons-20261004-225302/FINAL_REPORT.md`.
+<!-- NURI_CUTE_ICONS_20261004_END -->
+
+<!-- NURI_GLOBAL_ICONS_20261004_BEGIN -->
+## 2026-10-04 Global NURI Icon Candidate
+
+- [x] Source-color functional/menu/recommendation/state icons, explicit pet-theme navigation mode, editable 110-shape catalog and identical Android/iOS font bytes. No new app dependency or data/navigation contract.
+- [x] Keep arrows, standalone weather card and official brands unchanged. Preserve current QA, AUTH freeze, season review controls and unrelated dirty.
+- [x] Typecheck PASS; target lint 0 errors/48 existing warnings/0 new diagnostics; full suite 154 suites/1295 tests PASS; 3478 local rendering checks and 430 actual vector bounds PASS.
+- [ ] Additional Android QA build/install: awaiting PO response. Existing first-stage installation is not evidence for this global candidate. Native appearance, iOS rendering and performance acceptance remain unverified.
+- [ ] PO final approval. No staging/commit/push/cleanup before approval. This is an uncommitted design candidate, not an exact-commit release. Evidence owner: `/tmp/nuri-global-icons-20261004-222219/FINAL_REPORT.md`. Store HOLD.
+<!-- NURI_GLOBAL_ICONS_20261004_END -->
+
+<!-- NURI_ICON_CANDIDATE_20261004_BEGIN -->
+## 2026-10-04 NURI Icon Design Candidate
+
+- [x] PO authorizes seven functional and five navigation concepts, implementation and Galaxy S24 installation. Timeline is shared across both sets; arrows and unapproved medical subtypes stay unchanged.
+- [x] Native font registration on Android/iOS, fixed icon geometry and pet-theme navigation tint are implemented without new app dependencies.
+- This uncommitted design QA build is not an exact-commit RC. Actual tests, source/input hashes, artifact verification and installation results belong to `/tmp/nuri-icons-20261004-214355/FINAL_REPORT.md`.
+- [ ] PO final native visual approval. iOS native rendering and performance acceptance are not established by Android installation or local tests. No staging/commit/push; AUTH remains frozen, season review controls and QA remain preserved, Store stays HOLD.
+<!-- NURI_ICON_CANDIDATE_20261004_END -->
+
 <!-- NURI_REMOVE_TODAY_PHOTO_20261004_BEGIN -->
 ## 2026-10-04 Home Today Photo Removal
 

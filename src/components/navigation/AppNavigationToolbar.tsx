@@ -23,7 +23,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from 'styled-components/native';
-import Feather from 'react-native-vector-icons/Feather';
+import NuriIcon, { type NuriIconName } from '../icons/NuriIcon';
 
 import AppText from '../../app/ui/AppText';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -124,11 +124,11 @@ export default function AppNavigationToolbar({
   const tabs = useMemo(
     () => [
       { key: 'home' as const, label: '홈', icon: 'home' },
-      { key: 'timeline' as const, label: '타임라인', icon: 'activity' },
-      { key: 'community' as const, label: '커뮤니티', icon: 'message-circle' },
-      { key: 'guestbook' as const, label: '편지함', icon: 'mail' },
+      { key: 'timeline' as const, label: '타임라인', icon: 'timeline' },
+      { key: 'community' as const, label: '커뮤니티', icon: 'community' },
+      { key: 'guestbook' as const, label: '편지함', icon: 'letter' },
       { key: 'more' as const, label: '전체메뉴', icon: 'menu' },
-    ],
+    ] satisfies Array<{ key: ActiveTabKey; label: string; icon: NuriIconName }>,
     [],
   );
 
@@ -161,10 +161,12 @@ export default function AppNavigationToolbar({
               style={styles.item}
               onPress={() => navigateTo(tab.key)}
             >
-              <Feather
-                name={tab.icon as never}
+              <NuriIcon
+                name={tab.icon}
                 size={18}
                 color={active ? activeColor : theme.colors.textMuted}
+                colorMode="theme"
+                variant={active ? 'glass' : 'outline'}
               />
               <AppText
                 typographyRole="navigation"

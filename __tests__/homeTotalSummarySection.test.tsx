@@ -1,19 +1,23 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import React from 'react';
-import * as RN from 'react-native';
+import ReactNative, * as RN from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
 
 import { createTheme } from '../src/app/theme/theme';
 import {
   HOME_SUMMARY_ART,
-  HOME_SUMMARY_GLASS,
   TotalSummarySection,
   resolveSummaryCountFontSize,
   shouldStackSummary,
   styles,
 } from '../src/screens/Main/components/LoggedInHome/TotalSummarySection';
+import {
+  HOME_FLOATING_WIDGET_MATERIAL,
+  HOME_FLOATING_WIDGET_REFLECTION,
+} from '../src/components/home/HomeWidgetMaterial';
+import iconPalettes from '../src/assets/icons/nuri-icons.palette.json';
 import type { MemoryRecord } from '../src/services/supabase/memories';
 import type { SeasonKey } from '../src/theme/seasonal/season';
 import {
@@ -111,7 +115,7 @@ describe('Total Summary seasonal concept', () => {
             renderer.root.findByProps({ testID: id }).props.style,
           ),
         ).toMatchObject({
-          backgroundColor: HOME_SUMMARY_GLASS[season],
+          ...HOME_FLOATING_WIDGET_MATERIAL,
           elevation: 0,
           shadowOpacity: 0,
         });
@@ -125,6 +129,92 @@ describe('Total Summary seasonal concept', () => {
       expect(png[25]).toBe(6);
       expect(png.readUInt32BE(16)).toBe(png.readUInt32BE(20));
       expect(png.length).toBeLessThan(1_700_000);
+      await act(async () => renderer.unmount());
+    },
+  );
+
+  it.each(SEASONS.flatMap(season =>
+    [320, 360, 384, 430].flatMap(width =>
+      [1, 1.3, 1.5].map(fontScale => ({ season, width, fontScale })),
+    ),
+  ))(
+    'preserves four glass targets and bare original-color icons at $season $width dp font $fontScale',
+    async ({ season, width, fontScale }) => {
+      jest.spyOn(ReactNative, 'useWindowDimensions').mockReturnValue({
+        width, height: 900, scale: 3, fontScale,
+      });
+      const handlers = actions();
+      let renderer!: TestRenderer.ReactTestRenderer;
+      await act(async () => {
+        renderer = TestRenderer.create(render({ season, ...handlers }));
+      });
+      const stacked = shouldStackSummary(width, fontScale);
+      expect(RN.StyleSheet.flatten(
+        renderer.root.findByProps({ testID: 'home-summary-metrics' }).props.style,
+      ).flexDirection).toBe(stacked ? 'column' : 'row');
+      for (const key of ['walk', 'meal', 'life', 'insight']) {
+        const panel = renderer.root.findByProps({ testID: `home-summary-${key}` });
+        const panelStyle = RN.StyleSheet.flatten(panel.props.style);
+        expect(panelStyle).toMatchObject({
+          ...HOME_FLOATING_WIDGET_MATERIAL,
+          borderRadius: 18,
+          minHeight: key === 'insight' ? 70 : stacked ? 76 : 108,
+        });
+        expect(panelStyle.height).toBeUndefined();
+        expect(panel.props.activeOpacity).toBe(0.9);
+        panel.props.onPress();
+        for (const layer of ['reflection', 'glint']) {
+          const decoration = panel.findAll(node =>
+            node.props.testID === `home-summary-glass-${layer}` && node.props.colors,
+          );
+          expect(decoration).toHaveLength(1);
+          expect(decoration[0].props).toMatchObject({
+            pointerEvents: 'none',
+            accessible: false,
+            importantForAccessibility: 'no-hide-descendants',
+          });
+          expect(RN.StyleSheet.flatten(decoration[0].props.style).position).toBe('absolute');
+        }
+        const reflection = panel.findAll(node =>
+          node.props.testID === 'home-summary-glass-reflection' && node.props.colors,
+        )[0];
+        expect(reflection.props.colors).toEqual(HOME_FLOATING_WIDGET_REFLECTION.colors);
+        expect(reflection.props.locations).toEqual(HOME_FLOATING_WIDGET_REFLECTION.locations);
+        expect(RN.StyleSheet.flatten(reflection.props.style)).toMatchObject({
+          borderRadius: 18, top: 0, right: 0, bottom: 0, left: 0,
+        });
+        const glint = panel.findAll(node =>
+          node.props.testID === 'home-summary-glass-glint' && node.props.colors,
+        )[0];
+        expect(RN.StyleSheet.flatten(glint.props.style)).toMatchObject({
+          height: 1, top: 0, left: 18, right: 18,
+        });
+        expect(panelStyle.borderBottomColor).toBeUndefined();
+        expect(panel.findAll(node =>
+          node.props.testID === 'home-summary-glass-contact-shadow',
+        )).toHaveLength(0);
+        const iconSurface = panel.findAll(node =>
+          node.type === RN.View && node.props.pointerEvents === 'none' &&
+          RN.StyleSheet.flatten(node.props.style)?.width === 30 &&
+          RN.StyleSheet.flatten(node.props.style)?.height === 30,
+        );
+        expect(iconSurface).toHaveLength(1);
+        expect(RN.StyleSheet.flatten(iconSurface[0].props.style).backgroundColor).toBeUndefined();
+        const iconFill = panel.findAll(node =>
+          node.props.colors && node.props.locations?.[1] === 0.55,
+        );
+        const iconName = key === 'life' ? 'diary' : key === 'insight' ? 'sparkles' : key === 'walk' ? 'walk' : 'meal';
+        const palette = iconPalettes[iconName];
+        expect(iconFill).toHaveLength(1);
+        expect(iconFill[0].props.colors).toEqual([
+          palette.surface, palette.primary, palette.primary,
+        ]);
+      }
+      expect(handlers.onPressWalk).toHaveBeenCalledTimes(1);
+      expect(handlers.onPressMeal).toHaveBeenCalledTimes(1);
+      expect(handlers.onPressLife).toHaveBeenCalledTimes(1);
+      expect(handlers.onPressAllRecords).toHaveBeenCalledTimes(1);
+      expect(renderer.root.findByProps({ testID: 'home-summary-total-value' }).props.children[0]).toBe(5);
       await act(async () => renderer.unmount());
     },
   );
@@ -245,7 +335,7 @@ describe('Total Summary seasonal concept', () => {
       );
       expect(shouldStackSummary(width, 1)).toBe(width < 350);
       jest
-        .spyOn(RN, 'useWindowDimensions')
+        .spyOn(ReactNative, 'useWindowDimensions')
         .mockReturnValue({ width, height: 900, scale: 3, fontScale: 1.5 });
       let renderer!: TestRenderer.ReactTestRenderer;
       await act(async () => {

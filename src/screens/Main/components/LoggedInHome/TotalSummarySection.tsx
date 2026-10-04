@@ -8,7 +8,8 @@ import {
   useWindowDimensions,
   type ImageSourcePropType,
 } from 'react-native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import MaterialCommunityIcons from '../../../../components/icons/NuriMaterialIcon';
+import NuriSemanticIcon from '../../../../components/icons/NuriSemanticIcon';
 
 import AppText from '../../../../app/ui/AppText';
 import { HomeSectionGlass } from '../../../../components/home/HomeSectionGlass';
@@ -17,8 +18,8 @@ import {
   isHomeSectionConfirmedEmpty,
 } from '../../../../components/home/HomeSectionHeader';
 import {
-  HOME_WIDGET_MATERIAL,
-  HomeWidgetSheen,
+  HOME_FLOATING_WIDGET_MATERIAL,
+  HomeFloatingWidgetSurface,
 } from '../../../../components/home/HomeWidgetMaterial';
 import {
   buildTotalSummary,
@@ -34,13 +35,6 @@ export const HOME_SUMMARY_ART: Readonly<
   winter: require('../../../../assets/seasonal/home/summary/keepsake-winter-v1.png'),
   spring: require('../../../../assets/seasonal/home/summary/keepsake-spring-v1.png'),
   summer: require('../../../../assets/seasonal/home/summary/keepsake-summer-v1.png'),
-};
-
-export const HOME_SUMMARY_GLASS: Readonly<Record<SeasonKey, string>> = {
-  autumn: 'rgba(255, 246, 236, 0.48)',
-  winter: 'rgba(235, 244, 255, 0.48)',
-  spring: 'rgba(255, 238, 245, 0.48)',
-  summer: 'rgba(230, 252, 253, 0.48)',
 };
 
 export function shouldStackSummary(width: number, fontScale: number): boolean {
@@ -67,7 +61,7 @@ type Props = {
   onPressAllRecords: () => void;
 };
 
-/** Layout changes only; aggregation and category destinations stay canonical. */
+/** Material and season changes preserve canonical totals and category destinations. */
 export const TotalSummarySection = memo(function TotalSummarySectionView({
   records,
   season,
@@ -94,7 +88,6 @@ export const TotalSummarySection = memo(function TotalSummarySectionView({
   const countFontSize = resolveSummaryCountFontSize(
     summary?.totalRecords ?? null,
   );
-  const glass = { backgroundColor: HOME_SUMMARY_GLASS[season] };
   const metrics = [
     {
       key: 'walk',
@@ -209,7 +202,8 @@ export const TotalSummarySection = memo(function TotalSummarySectionView({
             }
             style={styles.days}
           >
-            <MaterialCommunityIcons
+            <NuriSemanticIcon
+              family="material"
               name="calendar-month-outline"
               size={19}
               color={accentDeepColor}
@@ -261,7 +255,7 @@ export const TotalSummarySection = memo(function TotalSummarySectionView({
           <TouchableOpacity
             key={metric.key}
             testID={`home-summary-${metric.key}`}
-            style={[styles.metric, glass, stack ? styles.metricStacked : null]}
+            style={[styles.metric, stack ? styles.metricStacked : null]}
             onPress={metric.onPress}
             activeOpacity={0.9}
             accessibilityRole="button"
@@ -273,8 +267,12 @@ export const TotalSummarySection = memo(function TotalSummarySectionView({
                 : `${metric.value}개`
             }, 기록 보기`}
           >
-            <HomeWidgetSheen radius={18} />
-            <MaterialCommunityIcons
+            <HomeFloatingWidgetSurface
+              radius={18}
+              testIDPrefix="home-summary-glass"
+            />
+            <NuriSemanticIcon
+              family="material"
               name={metric.icon}
               size={30}
               color={metric.color}
@@ -315,13 +313,16 @@ export const TotalSummarySection = memo(function TotalSummarySectionView({
 
       <TouchableOpacity
         testID="home-summary-insight"
-        style={[styles.insight, glass]}
+        style={styles.insight}
         onPress={onPressAllRecords}
         activeOpacity={0.9}
         accessibilityRole="button"
         accessibilityLabel={`전체 기록 한 줄 요약, ${summaryLine}`}
       >
-        <HomeWidgetSheen radius={18} />
+        <HomeFloatingWidgetSurface
+          radius={18}
+          testIDPrefix="home-summary-glass"
+        />
         <MaterialCommunityIcons
           name="star-four-points"
           size={30}
@@ -416,7 +417,7 @@ export const styles = StyleSheet.create({
   metrics: { flexDirection: 'row', gap: 8, alignItems: 'stretch' },
   metricsStacked: { flexDirection: 'column' },
   metric: {
-    ...HOME_WIDGET_MATERIAL,
+    ...HOME_FLOATING_WIDGET_MATERIAL,
     flex: 1,
     minWidth: 0,
     minHeight: 108,
@@ -451,7 +452,7 @@ export const styles = StyleSheet.create({
     letterSpacing: 0,
   },
   insight: {
-    ...HOME_WIDGET_MATERIAL,
+    ...HOME_FLOATING_WIDGET_MATERIAL,
     minHeight: 70,
     borderRadius: 18,
     padding: 12,

@@ -32,7 +32,10 @@ import {
   type KeyboardAwareScrollViewRef,
   useKeyboardState,
 } from 'react-native-keyboard-controller';
-import Feather from 'react-native-vector-icons/Feather';
+import Feather from '../../components/icons/NuriFeatherIcon';
+import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
+import NuriIcon from '../../components/icons/NuriIcon';
+import { NURI_MOOD_ICONS } from '../../components/icons/nuriIconNames';
 
 import AppText from '../../app/ui/AppText';
 import { spacing } from '../../app/theme/tokens/spacing';
@@ -1047,7 +1050,7 @@ export default function RecordCreateScreen() {
         >
           <View style={styles.dateLeft}>
             <View style={styles.dateIconWrap}>
-              <Feather name="calendar" size={16} color={petTheme.primary} />
+              <NuriSemanticIcon family="feather" name="calendar" size={16} color={petTheme.primary} />
             </View>
             <AppText preset="unifiedBody" style={styles.dateText}>
               {formattedDate}
@@ -1138,10 +1141,13 @@ export default function RecordCreateScreen() {
                       : null,
                   ]}
                 >
-                  <Feather
+                  <NuriSemanticIcon
+                    family="feather"
                     name={category.icon}
+                    semantic={category.key === 'other' ? undefined : category.key}
                     size={18}
                     color={active ? '#FFFFFF' : '#97A2B6'}
+                    variant={active ? 'outline' : 'glass'}
                   />
                 </View>
                 <AppText
@@ -1419,9 +1425,7 @@ export default function RecordCreateScreen() {
                     )
                   }
                 >
-                  <AppText preset="unifiedMeta" style={styles.moodEmoji}>
-                    {mood.emoji}
-                  </AppText>
+                  <NuriIcon name={NURI_MOOD_ICONS[mood.value]} size={16} />
                   <AppText
                     preset="unifiedMeta"
                     style={[
