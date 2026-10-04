@@ -4,9 +4,30 @@ const path = require('node:path');
 const {
   readLiteralConfig,
   relativeImports,
+  resolveAndroidPlatform,
 } = require('../scripts/preflight-release-inputs.js');
 
 describe('release input preflight', () => {
+  test('resolves stable SDK API metadata, including decimal installation directory names', () => {
+    const sdk = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'nuri-sdk-preflight-test-'),
+    );
+    try {
+      const platform = path.join(sdk, 'platforms/android-37.0');
+      fs.mkdirSync(platform, { recursive: true });
+      fs.writeFileSync(
+        path.join(platform, 'source.properties'),
+        'AndroidVersion.ApiLevel=37.0\nAndroidVersion.CodeName=\n',
+      );
+      fs.writeFileSync(path.join(platform, 'android.jar'), 'test-only');
+      expect(resolveAndroidPlatform(sdk, '37')).toBe('android-37.0');
+      expect(() => resolveAndroidPlatform(sdk, '36')).toThrow(
+        'NURI_ANDROID_PLATFORM_MISSING',
+      );
+    } finally {
+      fs.rmSync(sdk, { recursive: true, force: true });
+    }
+  });
   test('reads only declared string literals, without executing the config', () => {
     expect(
       readLiteralConfig(

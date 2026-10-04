@@ -74,6 +74,31 @@ function loadValidator(root) {
   return runtime.exports.validateSupabaseRuntimeConfig;
 }
 
+function resolveAndroidPlatform(sdk, apiLevel) {
+  const directory = path.join(sdk, 'platforms');
+  if (!fs.existsSync(directory)) {
+    fail('NURI_ANDROID_PLATFORM_MISSING');
+  }
+  for (const name of fs.readdirSync(directory).sort().reverse()) {
+    const candidate = path.join(directory, name);
+    const metadata = path.join(candidate, 'source.properties');
+    if (!fs.existsSync(metadata)) {
+      continue;
+    }
+    const source = fs.readFileSync(metadata, 'utf8');
+    const api = /^AndroidVersion\.ApiLevel=(.+)$/m.exec(source)?.[1];
+    const codename = /^AndroidVersion\.CodeName=(.*)$/m.exec(source)?.[1];
+    if (
+      Number(api) === Number(apiLevel) &&
+      !codename &&
+      fs.existsSync(path.join(candidate, 'android.jar'))
+    ) {
+      return name;
+    }
+  }
+  fail('NURI_ANDROID_PLATFORM_MISSING');
+}
+
 function relativeImports(root, files, declared) {
   const extensions = [
     '',
@@ -264,9 +289,10 @@ function prepareInputs(root, inputRoot, env) {
   }
   // The app uses the prebuilt ReactAndroid AAR, not ReactAndroid's source-build CMake.
   const cmake = '3.22.1';
+  const platformDirectory = resolveAndroidPlatform(sdk, platform);
   for (const item of [
     `build-tools/${buildTools}/aapt2`,
-    `platforms/android-${platform}/android.jar`,
+    `platforms/${platformDirectory}/android.jar`,
     `ndk/${ndk}/source.properties`,
     `cmake/${cmake}/bin/cmake`,
   ]) {
@@ -301,7 +327,7 @@ function prepareInputs(root, inputRoot, env) {
   });
   return {
     manifest,
-    android: { sdk, buildTools, platform, ndk, cmake },
+    android: { sdk, buildTools, platform, platformDirectory, ndk, cmake },
     declared: [CONFIG_PATH, `android/app/${store}`, 'android/local.properties'],
   };
 }
@@ -449,6 +475,7 @@ module.exports = {
   relativeImports,
   prepareInputs,
   loadValidator,
+  resolveAndroidPlatform,
 };
 if (require.main === module) {
   try {
