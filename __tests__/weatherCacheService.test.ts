@@ -1,7 +1,7 @@
 import {
   fetchWeatherCacheBundle,
   WEATHER_CACHE_FUNCTION_NAME,
-} from '../src/services/weather/api';
+} from '../src/services/weather/legacy';
 import {
   WEATHER_FOCUS_REFRESH_MS,
   WEATHER_PREVIEW_MAX_AGE_MS,

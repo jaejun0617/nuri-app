@@ -27,12 +27,12 @@ import {
   LOCATION_AUTO_REFRESH_INTERVAL_MS,
   type DeviceCoordinates,
 } from '../services/location/currentPosition';
-import { fetchWeatherCacheBundle } from '../services/weather/api';
+import { fetchNuriWeatherV1 } from '../services/weather/api';
 import {
   loadCachedWeatherGuideBundle,
   saveCachedWeatherGuideBundle,
 } from '../services/weather/cache';
-import { buildWeatherGuideBundleFromApi } from '../services/weather/mapper';
+import { buildWeatherGuideBundleFromNuri } from '../services/weather/mapper';
 import {
   createPreviewWeatherGuideBundle,
   createUnavailableWeatherGuideBundle,
@@ -195,31 +195,16 @@ export function useWeatherGuide(
     staleTime: WEATHER_QUERY_STALE_MS,
     gcTime: WEATHER_QUERY_GC_MS,
     refetchOnMount: autoRefreshOnMount,
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (!location.coordinates) {
         throw new Error('현재 위치를 아직 확인하지 못했어요.');
       }
 
-      const previewCandidate =
-        initialBundle ?? memoryEntry?.bundle ?? diskPreviewBundle ?? null;
-      const weatherCacheResult = await fetchWeatherCacheBundle(
-        location.coordinates,
-      );
+      const weather = await fetchNuriWeatherV1(location.coordinates, signal);
 
-      return buildWeatherGuideBundleFromApi({
+      return buildWeatherGuideBundleFromNuri({
         district: resolvedDistrict,
-        coords: location.coordinates,
-        forecast: weatherCacheResult.forecast,
-        airQuality: weatherCacheResult.airQuality,
-        dataSource:
-          weatherCacheResult.source === 'stale_cache' ? 'preview' : 'live',
-        attribution: weatherCacheResult.attribution,
-        fetchedAt: weatherCacheResult.fetchedAt,
-        expiresAt: weatherCacheResult.expiresAt,
-        staleUntil: weatherCacheResult.staleUntil,
-        coordBucket: weatherCacheResult.coordBucket,
-        fallbackAirQualityMetrics: previewCandidate?.airQualityMetrics,
-        fallbackAirQualityConcern: previewCandidate?.airQualityConcern,
+        weather,
       });
     },
   });

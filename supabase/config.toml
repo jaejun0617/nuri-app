@@ -16,3 +16,9 @@ verify_jwt = false
 
 [functions.location-discovery-seed]
 verify_jwt = true
+
+[functions.nuri-weather-v1]
+verify_jwt = true
+
+[functions.weather-cache]
+verify_jwt = false

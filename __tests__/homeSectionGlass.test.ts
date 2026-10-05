@@ -172,11 +172,13 @@ describe('Home section glass', () => {
         ),
       )[0];
       expect(ReactNative.StyleSheet.flatten(frame.props.style)).toMatchObject({
-        height: (width - 32) / (1665 / 945),
+        minHeight: (width - 32) / (1665 / 945),
         borderRadius: 27,
-        minHeight: 0,
         padding: 1.25,
       });
+      expect(
+        ReactNative.StyleSheet.flatten(frame.props.style),
+      ).not.toHaveProperty('height');
       const surfaces = renderer.root
         .findAllByProps({
           testID: 'home-frosted-tint',

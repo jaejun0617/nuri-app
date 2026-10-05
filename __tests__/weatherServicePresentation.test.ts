@@ -10,7 +10,7 @@ import {
   getWeatherAdvice,
   getWeatherUpdatedLabel,
 } from '../src/services/weather/presentation';
-import type { WeatherForecastResponse } from '../src/services/weather/api';
+import type { WeatherForecastResponse } from '../src/services/weather/legacy';
 
 const coords = { latitude: 37.68, longitude: 126.76, accuracy: 10 };
 const forecast: WeatherForecastResponse = {

@@ -11,6 +11,10 @@ import { buildWeatherGuideBundleForScenario } from '../src/services/weather/guid
 import { useWeatherStore } from '../src/store/weatherStore';
 import * as dateUtils from '../src/utils/date';
 
+const {
+  projectWeatherV1,
+} = require('../supabase/functions/_shared/weather-api-domain');
+
 let mockWeatherFocused = true;
 
 jest.mock('@react-navigation/native', () => {
@@ -39,7 +43,7 @@ jest.mock('../src/hooks/useDistrict', () => ({
 }));
 
 jest.mock('../src/services/weather/api', () => ({
-  fetchWeatherCacheBundle: jest.fn(),
+  fetchNuriWeatherV1: jest.fn(),
 }));
 
 jest.mock('../src/services/weather/cache', () => ({
@@ -55,10 +59,10 @@ const { useCurrentLocation } = jest.requireMock(
 const { useDistrict } = jest.requireMock('../src/hooks/useDistrict') as {
   useDistrict: jest.Mock;
 };
-const { fetchWeatherCacheBundle } = jest.requireMock(
+const { fetchNuriWeatherV1 } = jest.requireMock(
   '../src/services/weather/api',
 ) as {
-  fetchWeatherCacheBundle: jest.Mock;
+  fetchNuriWeatherV1: jest.Mock;
 };
 
 type HarnessProps = {
@@ -113,27 +117,39 @@ function mockWeatherCacheResponse(input: {
   airQuality: Record<string, unknown> | null;
   source?: 'fresh_cache' | 'provider' | 'stale_cache';
 }) {
-  fetchWeatherCacheBundle.mockResolvedValue({
-    airQuality: input.airQuality,
-    attribution: {
-      label: 'Open-Meteo',
-      url: 'https://open-meteo.com/',
-    },
-    coordBucket: 'v1:37.68:126.76:d0.02',
-    expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-    fallbackReason: null,
-    fetchedAt: new Date().toISOString(),
-    forecast: {
-      ...input.forecast,
-      current: {
-        ...(input.forecast.current as Record<string, unknown>),
-        time: new Date().toISOString(),
+  fetchNuriWeatherV1.mockResolvedValue(
+    projectWeatherV1({
+      data: {
+        airQuality: input.airQuality,
+        forecast: {
+          ...input.forecast,
+          current: {
+            ...(input.forecast.current as Record<string, unknown>),
+            time: new Date().toISOString(),
+          },
+        },
       },
-    },
-    source: input.source ?? 'provider',
-    staleUntil: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-    warning: null,
-  });
+      airQuality: input.airQuality,
+      attribution: {
+        label: 'Open-Meteo',
+        url: 'https://open-meteo.com/',
+      },
+      coordBucket: 'v1:37.68:126.76:d0.02',
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+      fallbackReason: null,
+      fetchedAt: new Date().toISOString(),
+      forecast: {
+        ...input.forecast,
+        current: {
+          ...(input.forecast.current as Record<string, unknown>),
+          time: new Date().toISOString(),
+        },
+      },
+      source: input.source ?? 'provider',
+      staleUntil: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      warning: null,
+    }),
+  );
 }
 
 function initialWeather(
@@ -209,21 +225,19 @@ describe('useWeatherGuide', () => {
       await jest.advanceTimersByTimeAsync(1);
     });
     expect(latestState?.bundle.dataSource).toBe('live');
-    const initialCalls = fetchWeatherCacheBundle.mock.calls.length;
+    const initialCalls = fetchNuriWeatherV1.mock.calls.length;
     await ReactTestRenderer.act(async () => {
       await jest.advanceTimersByTimeAsync(4 * 60000);
     });
-    expect(fetchWeatherCacheBundle).toHaveBeenCalledTimes(initialCalls);
+    expect(fetchNuriWeatherV1).toHaveBeenCalledTimes(initialCalls);
     await ReactTestRenderer.act(async () => {
       await jest.advanceTimersByTimeAsync(60000);
     });
     await ReactTestRenderer.act(async () => {
       await jest.advanceTimersByTimeAsync(1);
     });
-    expect(fetchWeatherCacheBundle.mock.calls.length).toBeGreaterThan(
-      initialCalls,
-    );
-    const foregroundCalls = fetchWeatherCacheBundle.mock.calls.length;
+    expect(fetchNuriWeatherV1.mock.calls.length).toBeGreaterThan(initialCalls);
+    const foregroundCalls = fetchNuriWeatherV1.mock.calls.length;
     mockWeatherFocused = false;
     await ReactTestRenderer.act(async () => {
       renderer.update(
@@ -235,7 +249,7 @@ describe('useWeatherGuide', () => {
     await ReactTestRenderer.act(async () => {
       await jest.advanceTimersByTimeAsync(5 * 60000);
     });
-    expect(fetchWeatherCacheBundle).toHaveBeenCalledTimes(foregroundCalls);
+    expect(fetchNuriWeatherV1).toHaveBeenCalledTimes(foregroundCalls);
     mockWeatherFocused = true;
     await ReactTestRenderer.act(async () => {
       renderer.update(
@@ -245,15 +259,15 @@ describe('useWeatherGuide', () => {
       );
       await jest.advanceTimersByTimeAsync(1);
     });
-    const refocusedCalls = fetchWeatherCacheBundle.mock.calls.length;
+    const refocusedCalls = fetchNuriWeatherV1.mock.calls.length;
     await ReactTestRenderer.act(async () => {
       onState?.('background');
     });
     await ReactTestRenderer.act(async () => {
       await jest.advanceTimersByTimeAsync(10 * 60000);
     });
-    expect(fetchWeatherCacheBundle).toHaveBeenCalledTimes(refocusedCalls);
-    fetchWeatherCacheBundle.mockRejectedValue(new Error('offline'));
+    expect(fetchNuriWeatherV1).toHaveBeenCalledTimes(refocusedCalls);
+    fetchNuriWeatherV1.mockRejectedValue(new Error('offline'));
     await ReactTestRenderer.act(async () => {
       onState?.('active');
       await jest.advanceTimersByTimeAsync(1);
@@ -398,7 +412,7 @@ describe('useWeatherGuide', () => {
       source: 'kakao',
       error: null,
     });
-    fetchWeatherCacheBundle.mockRejectedValue(
+    fetchNuriWeatherV1.mockRejectedValue(
       new Error('날씨 정보를 불러오지 못했어요.'),
     );
 

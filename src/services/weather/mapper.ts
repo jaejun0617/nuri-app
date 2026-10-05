@@ -1,349 +1,216 @@
-// 파일: src/services/weather/mapper.ts
-// 역할:
-// - weather-cache provider 응답을 현재 앱의 WeatherGuideBundle 모델로 변환
-// - 화면 공통 번들 구조에 실제 API 데이터를 일관되게 매핑하는 계층
-
-import type { DeviceCoordinates } from '../location/currentPosition';
-import type {
-  WeatherAirQualityResponse,
-  WeatherDataAttribution,
-  WeatherForecastResponse,
-} from './api';
-import { addDaysToYmd, getKstYmd, safeYmd } from '../../utils/date';
+// Presentation mapping consumes the NURI schema, never a provider-specific payload.
+import { addDaysToYmd, getKstYmd } from '../../utils/date';
+import type { WeatherApiV1, WeatherMetric } from './domain';
 import { getCurrentWeatherIsDaytime } from './dayPhase';
 import {
   buildWeatherGuideBundleForScenario,
   buildWeatherPrecipitationSafety,
   buildWeatherTemperatureSafety,
-  createUnavailableWeatherGuideBundle,
-  type AirQualityMetric,
-  type AirQualityTone,
-  type WeatherDataSource,
   type WeatherGuideBundle,
   type WeatherIconKey,
-  type WeatherScenario,
-  type WeeklyWeatherItem,
   type WeatherMeasurement,
+  type AirQualityMetric,
 } from './guide';
 import { getWeatherAdvice } from './presentation';
-import { buildHourlyWeather, parseWeatherTime } from './reliability';
+import { parseWeatherTime } from './reliability';
+// Explicit compatibility export for rollback tests; the production hook uses only the v1 mapper.
+export { buildWeatherGuideBundleFromApi } from './legacyMapper';
 
-function getAirTone(
-  value: number,
-  badThreshold: number,
-  moderateThreshold: number,
-): AirQualityTone {
-  if (value >= badThreshold) return 'bad';
-  if (value >= moderateThreshold) return 'moderate';
-  return 'good';
-}
-
-function getProgress(value: number, max: number) {
-  return Math.max(0.08, Math.min(1, value / max));
-}
-
-function mapWeatherCodeToIcon(code: number, isDay: boolean): WeatherIconKey {
-  if ([95, 96, 99].includes(code)) {
-    return 'weather-lightning';
-  }
-  if ([71, 73, 75, 77, 85, 86].includes(code)) {
-    return 'weather-snowy';
-  }
-  if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code)) {
+function icon(code: number, isDay: boolean): WeatherIconKey {
+  if ([95, 96, 99].includes(code)) return 'weather-lightning';
+  if ([71, 73, 75, 77, 85, 86].includes(code)) return 'weather-snowy';
+  if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code))
     return 'weather-pouring';
-  }
-  if ([45, 48].includes(code)) {
-    return 'weather-fog';
-  }
-  if ([1, 2].includes(code)) {
+  if ([45, 48].includes(code)) return 'weather-fog';
+  if ([1, 2].includes(code))
     return isDay ? 'weather-partly-cloudy' : 'weather-night-partly-cloudy';
-  }
-  if (code === 3) {
-    return 'weather-cloudy';
-  }
-  if (code === 0) {
+  if (code === 0)
     return isDay ? 'weather-sunny' : 'weather-night-partly-cloudy';
-  }
   return 'weather-cloudy';
 }
-
-function mapScenarioFromData(input: { weatherCode: number }): WeatherScenario {
-  if ([71, 73, 75, 77, 85, 86].includes(input.weatherCode)) {
-    return 'snow';
-  }
-  if (
-    [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(
-      input.weatherCode,
-    )
-  ) {
-    return 'rain';
-  }
-  return 'fresh';
-}
-
-function buildWeeklyItems(
-  daily: WeatherForecastResponse['daily'],
-  isDay: boolean,
-): WeeklyWeatherItem[] {
-  const weekday = new Intl.DateTimeFormat('ko-KR', {
-    weekday: 'short',
-    timeZone: 'Asia/Seoul',
-  });
-
-  const today = getKstYmd();
-  return (daily?.time ?? [])
-    .flatMap((_, index): WeeklyWeatherItem[] => {
-      const weatherCode = daily?.weather_code?.[index];
-      const dateString = safeYmd(daily?.time?.[index]);
-      const date = dateString ? new Date(`${dateString}T12:00:00+09:00`) : null;
-      const high = daily?.temperature_2m_max?.[index];
-      const low = daily?.temperature_2m_min?.[index];
-      if (
-        !dateString ||
-        dateString < today ||
-        !date ||
-        !isFiniteNumber(high) ||
-        !isFiniteNumber(low) ||
-        !isFiniteNumber(weatherCode)
-      )
-        return [];
-      const dayLabel =
-        dateString === today
-          ? '오늘'
-          : dateString === addDaysToYmd(today, 1)
-          ? '내일'
-          : weekday.format(date);
-
-      const chance = daily?.precipitation_probability_max?.[index];
-      return [
-        {
-          key: dateString,
-          label: dayLabel,
-          icon: mapWeatherCodeToIcon(weatherCode, isDay),
-          temperature: Math.round(high),
-          lowTemperature: Math.round(low),
-          precipitationChance:
-            isFiniteNumber(chance) && chance >= 0 && chance <= 100
-              ? Math.round(chance)
-              : undefined,
-        },
-      ];
-    })
-    .slice(0, 7);
-}
-
-function isFiniteNumber(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value);
-}
-
-function formatKoreanTime(iso: string | undefined): string | null {
-  if (!iso) return null;
-
-  // Provider timestamps without an offset are local to the requested KST zone.
-  const date = new Date(
-    /(?:Z|[+-]\d{2}:\d{2})$/.test(iso) ? iso : `${iso}+09:00`,
-  );
-  if (Number.isNaN(date.getTime())) return null;
-
-  const formatter = new Intl.DateTimeFormat('ko-KR', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-    timeZone: 'Asia/Seoul',
-  });
-
-  return formatter.format(date);
-}
-
-function buildAirQualityMetrics(
-  response: WeatherAirQualityResponse | null | undefined,
-): AirQualityMetric[] {
-  const air = response?.current;
+function airMetrics(data: WeatherApiV1): AirQualityMetric[] {
   return (['pm10', 'pm25', 'ozone'] as const).map(key => {
-    const field = key === 'pm25' ? 'pm2_5' : key;
-    const value = air?.[field];
+    const metric = data.airQuality[key];
+    const stamp = parseWeatherTime(metric.meta.validAt ?? undefined);
+    const value = metric.value;
     const label =
       key === 'pm10' ? '미세먼지' : key === 'pm25' ? '초미세먼지' : '오존';
-    const units = response?.current_units?.[field] ?? 'μg/m³';
     if (
-      !isFiniteNumber(value) ||
-      value < 0 ||
-      !['μg/m³', 'µg/m³', 'ug/m³'].includes(units)
-    ) {
+      value === null ||
+      stamp === null ||
+      Date.now() - stamp >= 7200000 ||
+      stamp > Date.now() + 300000
+    )
       return {
         key,
         label,
-        valueLabel: '확인 중',
         tone: 'unknown',
         progress: 0,
+        valueLabel: '확인 중',
       };
-    }
-    // Ozone mass concentration cannot be compared directly with Korean ppm bands.
+    const suffix =
+      metric.meta.kind === 'AIR_QUALITY_OBSERVED' ? '관측 농도' : '예측 농도';
     if (key === 'ozone')
       return {
         key,
         label,
-        valueLabel: `${Math.round(value)} μg/m³ · 예측 농도`,
         tone: 'unknown',
         progress: 0,
+        valueLabel: `${Math.round(value)} μg/m³ · ${suffix}`,
       };
-    const rounded = Math.round(value);
-    const tone = getAirTone(
-      rounded,
-      key === 'pm10' ? 81 : 36,
-      key === 'pm10' ? 31 : 16,
-    );
-    const veryBad = rounded >= (key === 'pm10' ? 151 : 76);
-    const grade = veryBad
-      ? '매우 나쁨'
-      : tone === 'bad'
-      ? '나쁨'
-      : tone === 'moderate'
-      ? '보통'
-      : '좋음';
+    const rounded = Math.round(value),
+      bad = key === 'pm10' ? 81 : 36,
+      moderate = key === 'pm10' ? 31 : 16;
+    const tone =
+      rounded >= bad ? 'bad' : rounded >= moderate ? 'moderate' : 'good';
+    const grade =
+      rounded >= (key === 'pm10' ? 151 : 76)
+        ? '매우 나쁨'
+        : tone === 'bad'
+        ? '나쁨'
+        : tone === 'moderate'
+        ? '보통'
+        : '좋음';
     return {
       key,
       label,
-      valueLabel: `${grade} · ${rounded} μg/m³`,
       tone,
-      progress: getProgress(value, key === 'pm10' ? 150 : 75),
+      progress: Math.max(
+        0.08,
+        Math.min(1, value / (key === 'pm10' ? 150 : 75)),
+      ),
+      valueLabel: `${grade} · ${rounded} μg/m³`,
     };
   });
 }
+const koreanTime = (value: string | null) =>
+  value
+    ? new Intl.DateTimeFormat('ko-KR', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: 'Asia/Seoul',
+      }).format(new Date(value))
+    : null;
 
-export function buildWeatherGuideBundleFromApi(input: {
+export function buildWeatherGuideBundleFromNuri(input: {
   district: string;
-  coords: DeviceCoordinates;
-  forecast: WeatherForecastResponse;
-  airQuality?: WeatherAirQualityResponse | null;
-  dataSource?: Extract<WeatherDataSource, 'live' | 'preview'>;
-  attribution?: WeatherDataAttribution;
-  fetchedAt?: string;
-  expiresAt?: string;
-  staleUntil?: string;
-  coordBucket?: string;
-  fallbackAirQualityMetrics?: AirQualityMetric[];
-  fallbackAirQualityConcern?: boolean;
+  weather: WeatherApiV1;
 }): WeatherGuideBundle {
-  const current = input.forecast.current ?? {};
-  const daily = input.forecast.daily ?? {};
-  const air = input.airQuality?.current ?? null;
-
+  const { weather } = input,
+    current = weather.current,
+    today = getKstYmd();
   if (
-    !isFiniteNumber(current.temperature_2m) ||
-    !isFiniteNumber(current.weather_code)
+    current.temperature.value === null ||
+    current.weatherCode.value === null
   ) {
-    return createUnavailableWeatherGuideBundle(input.district);
+    throw new Error('weather_current_required');
   }
-
-  const weatherCode = current.weather_code ?? 1;
-  const isDaytime = getCurrentWeatherIsDaytime();
-  const airValidAt = parseWeatherTime(air?.time);
-  const usableAir =
-    airValidAt !== null &&
-    Date.now() - airValidAt < 2 * 60 * 60 * 1000 &&
-    airValidAt <= Date.now() + 5 * 60 * 1000;
-  const airQualityMetrics = buildAirQualityMetrics(
-    usableAir ? input.airQuality : null,
-  );
-  const airQualityConcern = airQualityMetrics.some(
-    metric => metric.key !== 'ozone' && metric.tone === 'bad',
-  );
-  const scenario = mapScenarioFromData({
-    weatherCode,
-  });
+  const code = current.weatherCode.value,
+    isDay = getCurrentWeatherIsDaytime();
+  const weatherIcon = icon(code, isDay);
+  const scenario =
+    weatherIcon === 'weather-snowy'
+      ? 'snow'
+      : weatherIcon === 'weather-pouring'
+      ? 'rain'
+      : 'fresh';
   const base = buildWeatherGuideBundleForScenario(scenario, input.district, {
-    isDaytime,
+    isDaytime: isDay,
   });
-  const missingMeasurements: WeatherMeasurement[] = [];
-  const reading = (
+  const missing: WeatherMeasurement[] = [];
+  const read = (
     key: WeatherMeasurement,
-    value: unknown,
-    min = -Infinity,
-    max = Infinity,
+    metric: WeatherMetric | undefined,
     precision = 0,
   ) => {
-    if (!isFiniteNumber(value) || value < min || value > max) {
-      missingMeasurements.push(key);
+    if (metric?.value === null || metric?.value === undefined) {
+      missing.push(key);
       return 0;
     }
-    const factor = 10 ** precision;
-    return Math.round(value * factor) / factor;
+    return Math.round(metric.value * 10 ** precision) / 10 ** precision;
   };
-  const currentTemperature = Math.round(current.temperature_2m);
-  const apparentTemperature = reading(
-    'apparentTemperature',
-    current.apparent_temperature,
-  );
-  const weatherIcon = mapWeatherCodeToIcon(weatherCode, isDaytime);
-  const todayIndex = daily.time?.findIndex(date => date === getKstYmd()) ?? -1;
-  const windUnit = input.forecast.current_units?.wind_speed_10m ?? 'km/h';
-  const windFactor =
-    windUnit === 'km/h'
-      ? 1 / 3.6
-      : windUnit === 'm/s'
-      ? 1
-      : windUnit === 'mp/h' || windUnit === 'mph'
-      ? 0.44704
-      : windUnit === 'kn' || windUnit === 'knots'
-      ? 0.514444
-      : null;
-  const rawWind = current.wind_speed_10m;
-  let windSpeed = 0;
-  if (isFiniteNumber(rawWind) && rawWind >= 0 && windFactor !== null) {
-    windSpeed = Math.round(rawWind * windFactor * 10) / 10;
-  } else {
-    missingMeasurements.push('windSpeed');
-  }
-  const weekly = buildWeeklyItems(daily, isDaytime);
-
+  const day = weather.daily.find(d => d.date === today);
+  const temperature = Math.round(current.temperature.value),
+    apparent = read('apparentTemperature', current.apparentTemperature);
+  const airQualityMetrics = airMetrics(weather),
+    airQualityConcern = airQualityMetrics.some(
+      m => m.key !== 'ozone' && m.tone === 'bad',
+    );
+  const weekday = new Intl.DateTimeFormat('ko-KR', {
+    weekday: 'short',
+    timeZone: 'Asia/Seoul',
+  });
+  const weekly = weather.daily
+    .filter(
+      d =>
+        d.date >= today &&
+        d.weatherCode.value !== null &&
+        d.highTemperature.value !== null &&
+        d.lowTemperature.value !== null,
+    )
+    .map(d => ({
+      key: d.date,
+      label:
+        d.date === today
+          ? '오늘'
+          : d.date === addDaysToYmd(today, 1)
+          ? '내일'
+          : weekday.format(new Date(`${d.date}T12:00:00+09:00`)),
+      icon: icon(d.weatherCode.value ?? 0, isDay),
+      temperature: Math.round(d.highTemperature.value ?? 0),
+      lowTemperature: Math.round(d.lowTemperature.value ?? 0),
+      precipitationChance:
+        d.precipitationProbability.value === null
+          ? undefined
+          : Math.round(d.precipitationProbability.value),
+    }));
+  const attribution =
+    weather.sources.find(s => s.state === 'ACTIVE' && s.kind === 'FORECAST')
+      ?.attribution ?? undefined;
   const bundle: WeatherGuideBundle = {
     ...base,
     district: input.district,
     scenario,
-    dataSource: input.dataSource ?? 'live',
-    attribution: input.attribution,
-    fetchedAt: input.fetchedAt,
-    expiresAt: input.expiresAt,
-    staleUntil: input.staleUntil,
-    coordBucket: input.coordBucket,
-    forecastValidAt: current.time,
-    forecastDate: getKstYmd(),
-    airQualityValidAt: usableAir ? air?.time : undefined,
-    hourly: buildHourlyWeather(input.forecast),
-    missingMeasurements,
+    dataSource: weather.freshness.state === 'STALE_SAFE' ? 'preview' : 'live',
+    attribution,
+    fetchedAt: weather.freshness.retrievedAt,
+    expiresAt: weather.freshness.expiresAt,
+    staleUntil: weather.freshness.staleUntil,
+    coordBucket: weather.location.key,
+    forecastValidAt: current.temperature.meta.validAt ?? undefined,
+    forecastDate: today,
+    airQualityValidAt: weather.airQuality.pm10.meta.validAt ?? undefined,
+    hourly: weather.hourly.map(h => ({
+      endsAt: h.endsAt,
+      precipitationChance:
+        h.precipitationProbability.value === null
+          ? null
+          : Math.round(h.precipitationProbability.value),
+      precipitationMm:
+        h.precipitationAmount.value === null
+          ? null
+          : Math.round(h.precipitationAmount.value * 10) / 10,
+    })),
+    missingMeasurements: missing,
     airQualityConcern,
     weatherIcon,
-    isDaytime,
-    currentTemperature,
-    apparentTemperature,
+    isDaytime: isDay,
+    currentTemperature: temperature,
+    apparentTemperature: apparent,
     temperatureSafety: buildWeatherTemperatureSafety(
-      currentTemperature,
-      missingMeasurements.includes('apparentTemperature')
-        ? null
-        : apparentTemperature,
+      temperature,
+      missing.includes('apparentTemperature') ? null : apparent,
     ),
     precipitationSafety: buildWeatherPrecipitationSafety(scenario, weatherIcon),
-    highTemperature: reading(
-      'highTemperature',
-      daily.temperature_2m_max?.[todayIndex],
-    ),
-    lowTemperature: reading(
-      'lowTemperature',
-      daily.temperature_2m_min?.[todayIndex],
-    ),
-    humidity: reading('humidity', current.relative_humidity_2m, 0, 100),
-    windSpeed,
-    cloudCover: reading('cloudCover', current.cloud_cover, 0, 100),
-    uvIndex: reading(
-      'uvIndex',
-      daily.uv_index_max?.[todayIndex],
-      0,
-      Infinity,
-      1,
-    ),
-    sunriseTime: formatKoreanTime(daily.sunrise?.[todayIndex]),
-    sunsetTime: formatKoreanTime(daily.sunset?.[todayIndex]),
+    highTemperature: read('highTemperature', day?.highTemperature),
+    lowTemperature: read('lowTemperature', day?.lowTemperature),
+    humidity: read('humidity', current.humidity),
+    windSpeed: read('windSpeed', current.windSpeed, 1),
+    cloudCover: read('cloudCover', current.cloudCover),
+    uvIndex: read('uvIndex', day?.uvIndex, 1),
+    sunriseTime: koreanTime(day?.sunrise.value ?? null),
+    sunsetTime: koreanTime(day?.sunset.value ?? null),
     weekly,
     airQualityMetrics,
     detailStatus:
@@ -355,17 +222,17 @@ export function buildWeatherGuideBundleFromApi(input: {
         ? '눈'
         : weatherIcon === 'weather-fog'
         ? '안개'
-        : weatherCode === 3
+        : code === 3
         ? '흐림'
-        : weatherCode === 2
+        : code === 2
         ? '구름 많음'
-        : weatherCode === 0
+        : code === 0
         ? '맑음'
         : '구름 조금',
     recommendedGuideKeys:
       airQualityConcern && scenario === 'fresh'
         ? buildWeatherGuideBundleForScenario('dusty', input.district, {
-            isDaytime,
+            isDaytime: isDay,
           }).recommendedGuideKeys
         : base.recommendedGuideKeys,
   };

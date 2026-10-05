@@ -1,5 +1,5 @@
 import { getKstYmd } from '../../utils/date';
-import type { WeatherForecastResponse } from './api';
+import type { WeatherForecastResponse } from './legacy';
 import {
   createPreviewWeatherGuideBundle,
   createUnavailableWeatherGuideBundle,
