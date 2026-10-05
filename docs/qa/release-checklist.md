@@ -1,4 +1,86 @@
 # V1.0 Remaining Task/Risk Closeout
+<!-- NURI_UX_PO_CLOSEOUT_20261005_BEGIN -->
+## 2026-10-05 PO Approved Calendar / Frosted Home / Consolidated UX Closeout
+
+- [x] PO final approval of the installed `28440d50` candidate, including Calendar/Home frost/autumn changes and consolidated input/list/modal UX. Prior pending-review entries below are historical and superseded.
+- [x] Reuse TypeScript, lint 0 errors/28 existing warnings/0 new, 31 suites/512 targeted tests, 164 suites/1494 full tests and targeted S24 native evidence. Verify installed-candidate runtime source identity; no new runtime edit/build/install/device/DB operation.
+- [x] Selective commit/normal push authorized for approved source/assets/tests/document blocks only. Preserve unrelated document bodies, research, Supabase temp, historical QA/designs and unused assets. Actual Git/preservation result: `/private/tmp/nuri-ux-po-closeout-20261005/git-final.json`.
+- [x] Whole-app redesign inventory based on current route/screen/overlay source, not all-screen physical QA. Keep approved foundations and state/data/moderation contracts. Full candidate list: `/private/tmp/nuri-ux-po-closeout-20261005/FINAL_REPORT.md`.
+- [x] AUTH frozen, QA/account preserved, season controls KEEP, Store HOLD. No cleanup without a new explicit instruction; build/cache/APK/evidence retained. No automatic next design. Existing iOS/other-keyboard/native-matrix/admin/community targeted proof/performance gaps are unchanged.
+<!-- NURI_UX_PO_CLOSEOUT_20261005_END -->
+
+<!-- NURI_UX_CONSOLIDATED_20261005_BEGIN -->
+## 2026-10-05 Consolidated Schedule/Home/Input UX Candidate
+
+- [x] Calendar opaque full-width sheet, measured keyboard viewport clamp, fixed header/X/footer, embedded NURI discard confirmation and first-close touch contract. Continue retains transient draft/focus/IME; no schedule save performed.
+- [x] IME-open bottom-inset audit: Calendar/Weight/Tag/DatePicker/Password design gap, Weather root+content duplicate inset, CommunityEdit/Detail report/composer, GuideAdmin single controller. Existing RecordCreate/Profile/Auth contracts preserved. RecordEdit top/left/right SafeArea added without a new bottom inset.
+- [x] Local TypeScript; targeted lint 0 errors/28 existing warnings/0 new; 31 suites/512 targeted tests and 164 suites/1494 full tests PASS. Structural audit covers 149 TSX/29 Modal declarations, not all-screen physical QA.
+- [x] Four individually approved incremental release builds/install-r in this batch. Latest `28440d50de6afd93a1b25678ff9dd9f6db322640499dfaa698704aa441616014`, final build 263.419s/61 executed/934 up-to-date. Signer, embedded JS/font, source/input fingerprint, installed hash/UID/firstInstall PASS. Uncommitted design QA candidate, not Store RC.
+- [x] S24 native evidence: Calendar settled header/X/save, first close/continue draft focus; Weight inputs/scroll/close; normal record/tag; indoor record CTA; CommunityCreate; final RecordEdit header below statusbar and stable through scroll with save/cancel above IME. Indoor action gap reduced 124dp to 12dp; Calendar approximately 13dp. PNG/XML are sequential; transitional captures are not final geometry proof.
+- [x] Unchanged logic evidence reused for Home reselect/away-back position, Community Home tab recordings, four schedule filters and Timeline filtered-empty footer. Third-to-final runtime delta is RecordEdit only. Sampled motion has no sharp underlay/skeleton/Top layer; no universal ghost-free or full performance claim. Bounded final runtime fatal/ANR/RN error sample 0/0/0.
+- [ ] PO final visual/UX approval. iOS, other physical keyboards/devices, this-turn native width/large-font matrix, password/admin entry, CommunityEdit/report/composer native targeted proof, schedule search persistence native proof and full performance remain unverified.
+- [x] No QA save/edit/delete, DB/config/settings mutation, cleanup, staging, commit or push. Protected artifacts/evidence and unrelated dirty preserved. AUTH frozen, season controls KEEP, Store HOLD, build/cache retained. Evidence: `/private/tmp/nuri-ux-consolidated-20261005-173000/FINAL_REPORT.md`. Older pending Calendar clamp notes below are superseded by this candidate.
+<!-- NURI_UX_CONSOLIDATED_20261005_END -->
+
+<!-- NURI_SCHEDULE_NATIVE_20261005_BEGIN -->
+## 2026-10-05 App-Wide Modal / Keyboard Structural Audit
+
+- [x] Parse 150 TSX files and 29 native Modal declarations. Correct duplicated keyboard owners in Calendar/Weight/Password, fixed controls in Weight/Confirm/PetDelete, legacy ScheduleEdit bottom compensation, Health inner Pressable propagation and Calendar frame/rim/reading corners. Preserve consent, saving and callback contracts.
+- [x] Local TypeScript, lint 0 errors/8 existing warnings, 20 targeted suites/278 tests and 162 full suites/1481 tests PASS, including the final keyboard viewport clamp. Structural regression fixtures detect the prohibited patterns; this is not all-screen native certification.
+- [x] Two approved incremental Release builds/install-r. Current installed SHA-256 `36c239aac63fe951484edc6b2c9e55dbe48da4584bf6d24d18312ba90108ba75`; signer, embedded bundle, source/input fingerprint, installed hash, UID and first-install checks PASS. Build/cache preserved.
+- [x] Native Weight header/close/save remain visible with input focus and keyboard scroll. Health insight/write-action blank touches do not dismiss. Calendar agenda is full width, round top corners and fixed actions above system navigation. Recorded transition samples mask sharp underlay during motion; small gfx intervals are not a full performance gate.
+- [ ] Final Calendar keyboard clamp installed/native validated: 36c239aa still pushes header/close out of bounds after bottom note focus. Local measured-parent-height clamp is ready; additional build/install approval requested. Do not close this defect from local tests alone.
+- [ ] PO final visual/UX approval; iOS, password modal unavailable to current OAuth account, onboarding/admin native flows and full performance gate remain unverified. Initial top ghost cause was not reproduced; no universal collision/ghost guarantee.
+- [x] No QA/DB writes, logout, device-setting changes, cleanup, staging, commit or push. AUTH frozen, season controls KEEP, Store HOLD. Evidence: `/private/tmp/nuri-schedule-native-followup-20261005-132532/FINAL_REPORT.md`.
+<!-- NURI_SCHEDULE_NATIVE_20261005_END -->
+
+<!-- NURI_SCHEDULE_UX_20261005_BEGIN -->
+## 2026-10-05 Schedule Readability, Sheet Motion and Home Top Return Candidate
+
+- [x] Modal-local safe-area provider/view, translucent system bars and safe footer placement; readable search/form placeholders, secondary labels and original-geometry X control. Replace the fixed time column with time above title. Reduce schedule-list ornaments to small edge bubbles/lights while preserving Home decoration and seasonal assets.
+- [x] Stationary backdrop fade and UI-thread sheet translation, 300ms entrance/240ms exit; invoke dismissal/detail/save completion only after successful exit. Measure agenda height, bound the sheet to the viewport and animate agenda/form height over 220ms. Preserve saving/draft guards and existing scheduling/notification contracts.
+- [x] Home bottom-to-top return: remove the entire button layer before next-frame scrolling, remove Android ripple/elevation and prevent stale momentum/layout callbacks from redisplaying it. Preserve normal visibility and user-scroll behavior.
+- [x] TypeScript/diff check PASS; targeted lint 0 errors/16 existing warnings; targeted 14 suites/244 tests and final full 159 suites/1457 tests PASS. One incremental Release build: 244.659 seconds, 995 tasks with 61 executed/934 up-to-date. One Galaxy S24 install-r PASS; SHA-256 `28a89fe74bee7e93ace3523dc3b0a25cca93b29793b3b701a874ed70a36af933`, signer/bundle/font/source/input/installed-hash/UID/first-install verification PASS. Uncommitted design QA APK, not an exact-commit Store RC.
+- [ ] PO direct native approval: footer/system navigation separation, X/search/secondary legibility, long-title/agenda height, open/close/form/keyboard motion, bottom-to-top ghost and later button reappearance. Native motion/performance and iOS remain unverified. PO took over device QA during the build; after that, installation only. One old-candidate baseline screenshot is not new-candidate validation.
+- [x] Existing QA metadata/protected APK/AAB/evidence/unrelated dirty retained. No DB changes, cleanup, staging, commit or push. Build/cache KEEP, AUTH frozen, season controls KEEP, Store HOLD. Evidence: `/private/tmp/nuri-schedule-ux-20261005-125000/FINAL_REPORT.md`.
+<!-- NURI_SCHEDULE_UX_20261005_END -->
+
+<!-- NURI_CALENDAR_COMPLETION_20261005_BEGIN -->
+## 2026-10-05 Calendar Completion Candidate
+
+- [x] One bounded bottom modal owns agenda and inline registration; hide Home CTA while open. Remove only month-row Today, preserve today highlighting and max-one Home preview.
+- [x] Shared full-screen/sheet generation controller: KST semantics, category ownership, reminders, native alarm lifecycle, draft protection and duplicate-insert prevention. Backend and notification engine unchanged.
+- [x] Full hub: seasonal background, title/note search, all/upcoming/past by saved KST start date, today included in upcoming, date grouping, virtualized rows and Today jump. Repeat definitions appear once; calendar owns occurrence expansion. Entry/return and health separation preserved.
+- [x] Autumn-only generated apricot-v3 RGBA sphere: transparent outer corners, pigmented center. Original assets, other seasons and decoration geometry retained.
+- [x] TypeScript/diff check PASS; lint 0 errors/16 existing warnings/0 new; final targeted 13 suites/233 tests and full 159 suites/1450 tests PASS. One incremental Release build and one install-r PASS. SHA-256 `1a03b169a5014485c108c43faaeaace28c6e0c042587eefa61bddf60570d3f35`; signed, embedded bundle, debuggable/cleartext false; font, installed hash, UID, first install timestamp and build source/inputs match.
+- [ ] PO native visual/UX approval; keyboard behavior, date-picker layering, long-list performance and iOS verification. Structural width/font tests are not native pixel evidence.
+- [x] QA/evidence/canonical APK/AAB/auth freeze/season controls/Store HOLD retained. Cleanup/staging/commit/push NONE; build/cache KEEP. Evidence: `/private/tmp/nuri-calendar-completion-20261005-035700/FINAL_REPORT.md`. Earlier separate-screen/Today-control candidate below is superseded.
+<!-- NURI_CALENDAR_COMPLETION_20261005_END -->
+
+<!-- NURI_HOME_CALENDAR_FROST_20261005_BEGIN -->
+## 2026-10-05 Home Calendar, Shared Frost and Autumn Candidate
+
+- [x] Authorized expansion of the previous material-only pilot: 42 date cells, month/today controls, actual category dots/counts, max one selected-day Home preview and a bounded day-agenda modal. Reuse ScheduleCreate with a prefilled KST date and existing ScheduleDetail/List; retain the More-menu entry. The previous max-seven Home list contract is superseded for this candidate.
+- [x] Read-only occurrences from the loaded pet cache, not a seven-row slice: KST midnight, all-day/multi-day exclusive end, daily/weekly/monthly/yearly recurrence and invalid/deleted/duplicate rows covered. Existing persistence, native alarms, health-schedule ownership, remote rows and backend policies unchanged. Large server-side schedule completeness not audited.
+- [x] Shared native frost for Home outer panels, including Weather: amount 18, rounds 2, additional seasonal tint 10%, bright rim, no shadow/elevation. Keep foreground content in the capture-excluded subtree and preserve inner widgets/icons/Hero/season controls. Native material overlay is separate from the additional tint.
+- [x] Autumn-only warm amber/apricot/maple palette and a generated RGBA globe with transparent corners/core; original globe and winter/spring/summer background descriptors preserved. Globe/starlight positions unchanged.
+- [x] TypeScript PASS; targeted lint 0 errors/16 existing warnings/0 new; targeted 13 suites/250 tests and full 157 suites/1427 tests PASS. Initial failed evidence retained. Width/font style tests and native blur mocks are not native rendering/performance evidence.
+- [x] One incremental Release QA build PASS: 995 tasks, 66 executed/929 up-to-date, 263.500 seconds. One Galaxy S24 install-r PASS. APK SHA-256 `1fcd23a5e15aca2615c3b0f4d9ae719fee2425daac13d238f5a73e7be54c9c70`; signer, embedded bundle/font, installed hash, UID, firstInstallTime and source/input fingerprints verified. Uncommitted design QA artifact, not an exact-commit Store RC.
+- [x] No device launch/touch/scroll/capture, DB mutation, cleanup, staging, commit or push. Preserve existing QA/protected artifacts/unrelated dirty and retain build outputs/caches. AUTH frozen, season controls KEEP, Store HOLD.
+- [ ] PO native calendar height/modal/create UX, four-season material/legibility/autumn-color approval and scroll feel; native performance and iOS build/rendering remain unverified. Evidence: `/private/tmp/nuri-home-calendar-frost-autumn-20261005-033500/FINAL_REPORT.md`. Earlier pilot-only entries below are history.
+<!-- NURI_HOME_CALENDAR_FROST_20261005_END -->
+
+<!-- NURI_SCHEDULE_FROSTED_20261005_BEGIN -->
+## 2026-10-05 Schedule-Only Native Frosted Glass Candidate
+
+- [x] Material-only pilot: pinned native blur 6.0.2 and isolated Schedule wrapper; retain max 7 preview items, section spacing/width, existing empty/loading/error states and schedule navigation/alarm contracts. Calendar, date modal and full schedule hub not implemented this turn.
+- [x] Blur amount 18/rounds 2, additional seasonal tint 10%, bright rim, no native shadow/elevation. Content stays inside the Android capture-excluded subtree; no whole-view filter/opacity. The native material overlay is additional to the tint.
+- [x] TypeScript PASS; targeted lint 0 errors/16 existing warnings/0 new; targeted 8 suites/151 tests and full 155 suites/1401 tests PASS. Initial selector/mock failures and repaired test evidence retained. Mock-based checks are not native visual/performance evidence.
+- [x] One incremental Release QA build PASS: 995 tasks, 123 executed/3 from cache/869 up-to-date, 387.321 seconds. One Galaxy S24 install-r PASS. APK SHA-256 `8923b821033955686ff963586c9f131890cfcee1ffd916ed494958cdd972add9`; signature, embedded bundle/font, installed hash, UID, firstInstallTime and source/input fingerprints verified. Permissions unchanged: 18 before/after.
+- [x] No automated launch/touch/scroll/capture, DB mutation, staging, commit or push. Existing QA/protected artifacts/unrelated dirty preserved; build outputs and caches retained. AUTH frozen, season controls KEEP, Store HOLD. This is an uncommitted design QA artifact, not an exact-commit RC.
+- [ ] PO native material/legibility/scroll approval across four seasons; native performance and iOS build/rendering remain unverified. Evidence: `/private/tmp/nuri-schedule-frosted-20261005-025219/FINAL_REPORT.md`. Earlier entries below are history.
+<!-- NURI_SCHEDULE_FROSTED_20261005_END -->
+
 
 <!-- NURI_DESIGN_CLOSEOUT_20261005_BEGIN -->
 ## 2026-10-05 PO Final Design Approval and Selective Closeout

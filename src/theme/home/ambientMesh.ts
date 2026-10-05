@@ -90,41 +90,41 @@ export type HomeAmbientLight = {
   opacity: number;
 };
 
-export const HOME_AMBIENT_MESH_BASE_COLOR = '#FFF9F0';
+export const HOME_AMBIENT_MESH_BASE_COLOR = '#FFF3DE';
 
 export const HOME_AMBIENT_BASE_GRADIENT = [
-  '#FFF9F0',
-  '#FFF6ED',
-  '#FFFAF4',
-  '#FCF5EE',
-  '#FFF9F0',
+  '#FFF3DE',
+  '#FFEBD7',
+  '#FFF5DF',
+  '#FCE7D4',
+  '#FFF0D9',
 ] as const;
 
 const FIELD_COLORS = {
   peach: [
-    'rgba(249, 220, 203, 0)',
-    'rgba(249, 220, 203, 0.62)',
-    'rgba(249, 220, 203, 0)',
+    'rgba(247, 190, 136, 0)',
+    'rgba(247, 190, 136, 0.62)',
+    'rgba(247, 190, 136, 0)',
   ],
   apricot: [
-    'rgba(254, 212, 190, 0)',
-    'rgba(254, 212, 190, 0.64)',
-    'rgba(254, 212, 190, 0)',
+    'rgba(252, 201, 139, 0)',
+    'rgba(252, 201, 139, 0.64)',
+    'rgba(252, 201, 139, 0)',
   ],
-  blush: [
-    'rgba(253, 223, 214, 0)',
-    'rgba(253, 223, 214, 0.54)',
-    'rgba(253, 223, 214, 0)',
+  maple: [
+    'rgba(240, 169, 125, 0)',
+    'rgba(240, 169, 125, 0.54)',
+    'rgba(240, 169, 125, 0)',
   ],
-  cool: [
-    'rgba(234, 242, 248, 0)',
-    'rgba(234, 242, 248, 0.40)',
-    'rgba(234, 242, 248, 0)',
+  honey: [
+    'rgba(249, 215, 151, 0)',
+    'rgba(249, 215, 151, 0.40)',
+    'rgba(249, 215, 151, 0)',
   ],
-  lilac: [
-    'rgba(241, 236, 247, 0)',
-    'rgba(241, 236, 247, 0.46)',
-    'rgba(241, 236, 247, 0)',
+  wheat: [
+    'rgba(237, 209, 159, 0)',
+    'rgba(237, 209, 159, 0.46)',
+    'rgba(237, 209, 159, 0)',
   ],
 } as const;
 
@@ -149,15 +149,15 @@ function field(
 export const HOME_AMBIENT_MESH_FIELDS: readonly HomeAmbientMeshField[] = [
   field('-3%', -0.08, 1.3, 'peach', 0.78),
   field('0%', 1.02, 1.4, 'apricot', 0.76),
-  field('7%', 1.0, 1.28, 'blush', 0.74),
-  field('15%', -0.1, 1.32, 'cool', 0.7),
+  field('7%', 1.0, 1.28, 'maple', 0.74),
+  field('15%', -0.1, 1.32, 'honey', 0.7),
   field('24%', 1.05, 1.4, 'peach', 0.76),
-  field('34%', -0.04, 1.36, 'blush', 0.74),
-  field('44%', 1.08, 1.3, 'lilac', 0.72),
+  field('34%', -0.04, 1.36, 'maple', 0.74),
+  field('44%', 1.08, 1.3, 'wheat', 0.72),
   field('55%', -0.1, 1.42, 'apricot', 0.72),
   field('65%', 1.06, 1.36, 'peach', 0.76),
-  field('75%', -0.08, 1.34, 'cool', 0.68),
-  field('84%', 1.04, 1.4, 'blush', 0.74),
+  field('75%', -0.08, 1.34, 'honey', 0.68),
+  field('84%', 1.04, 1.4, 'maple', 0.74),
   field('94%', -0.06, 1.38, 'apricot', 0.7),
 ];
 

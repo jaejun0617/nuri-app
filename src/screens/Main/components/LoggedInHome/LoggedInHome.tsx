@@ -37,7 +37,7 @@ import {
   type BottomTabNavigationProp,
 } from '@react-navigation/bottom-tabs';
 import type { CompositeNavigationProp } from '@react-navigation/native';
-import { useIsFocused, useNavigation } from '@react-navigation/native';
+import { useIsFocused, useNavigation, useScrollToTop } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from '../../../../components/icons/NuriFeatherIcon';
@@ -56,6 +56,7 @@ import Animated, {
 
 import Screen from '../../../../components/layout/Screen';
 import { HomeSectionGlass } from '../../../../components/home/HomeSectionGlass';
+import { HomeScheduleCalendar } from '../../../../components/home/HomeScheduleCalendar';
 import { HomeSeasonProvider } from '../../../../components/home/HomeSeasonContext';
 import {
   HomeSectionHeader,
@@ -92,17 +93,13 @@ import {
 import { useScheduleStore } from '../../../../store/scheduleStore';
 import { useActiveScheduleAlarms } from '../../../../hooks/useActiveScheduleAlarms';
 import HomeActiveAlarmNotice from './HomeActiveAlarmNotice';
-import HomeTopButton, {
-  resolveHomeTopButtonBottom,
-  resolveHomeTopButtonThreshold,
-} from './HomeTopButton';
 import { MonthlyDiaryEmptyState } from './MonthlyDiaryEmptyState';
 import {
   HomeEmptySectionState,
   type HomeEmptyDataState,
 } from './HomeEmptySectionState';
 import { HomeSeasonReviewControls } from './HomeSeasonReviewControls';
-import { HomeHealthActivityList, HomeScheduleList } from './HomePopulatedLists';
+import { HomeHealthActivityList } from './HomePopulatedLists';
 import { TotalSummarySection } from './TotalSummarySection';
 import {
   RecentRecordsEmptyState,
@@ -2679,72 +2676,42 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
 });
 
 const ScheduleSection = React.memo(function ScheduleSection({
+  petId,
   scheduleItems,
-  isReady,
+  isFocused,
   dataState,
   season,
   activeScheduleIds,
   onPressScheduleList,
-  onPressScheduleCreate,
+  onPressScheduleDetail,
   accentColor,
   accentDeepColor,
-  accentTint,
 }: {
+  petId: string | null;
   scheduleItems: PetSchedule[];
-  isReady: boolean;
+  isFocused: boolean;
   dataState: HomeEmptyDataState;
   season: SeasonKey;
   activeScheduleIds: ReadonlySet<string>;
   onPressScheduleList: () => void;
-  onPressScheduleCreate: () => void;
+  onPressScheduleDetail: (id: string) => void;
   accentColor: string;
   accentDeepColor: string;
-  accentTint: string;
 }) {
-  const weekScheduleItems = useMemo(() => {
-    return scheduleItems.slice(0, 7);
-  }, [scheduleItems]);
-
+  if (!petId) return null;
   return (
-    <HomeSectionGlass testID="home-glass-schedule" style={styles.section}>
-      <HomeSectionHeader
-        title="일정 보기"
-        color={accentDeepColor}
-        hideAction={isHomeSectionConfirmedEmpty(
-          isReady,
-          weekScheduleItems.length,
-        )}
-        action={{ onPress: onPressScheduleList, accessibilityLabel: '일정 전체 보기' }}
-      />
-
-      {weekScheduleItems.length === 0 ? (
-        <HomeEmptySectionState
-          kind="schedule"
-          season={season}
-          dataState={dataState}
-          accentDeepColor={accentDeepColor}
-          onPressAction={onPressScheduleCreate}
-        />
-      ) : (
-        <HomeScheduleList items={weekScheduleItems} activeScheduleIds={activeScheduleIds}
-          accentColor={accentColor} accentTint={accentTint} onPress={onPressScheduleList} />
-      )}
-
-      {weekScheduleItems.length > 0 ? (
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={[
-            styles.recordBtn,
-            { backgroundColor: accentDeepColor, shadowColor: accentDeepColor },
-          ]}
-          onPress={onPressScheduleCreate}
-        >
-          <AppText preset="unifiedLabel" style={styles.recordBtnText}>
-            일정 추가하기
-          </AppText>
-        </TouchableOpacity>
-      ) : null}
-    </HomeSectionGlass>
+    <HomeScheduleCalendar
+      petId={petId}
+      items={scheduleItems}
+      dataState={dataState}
+      season={season}
+      isFocused={isFocused}
+      activeScheduleIds={activeScheduleIds}
+      onPressAll={onPressScheduleList}
+      onPressDetail={onPressScheduleDetail}
+      accentColor={accentColor}
+      accentDeepColor={accentDeepColor}
+    />
   );
 });
 
@@ -2917,9 +2884,7 @@ export default function LoggedInHome() {
     null,
   );
   const shouldRestoreHomeScrollRef = useRef(true);
-  const scheduleSectionOffsetRef = useRef<number | null>(null);
-  const showTopButtonRef = useRef(false);
-  const isReturningToTopRef = useRef(false);
+  useScrollToTop(homeScrollRef);
 
   // ---------------------------------------------------------
   // 1) auth
@@ -3232,7 +3197,6 @@ export default function LoggedInHome() {
       transform: [{ translateY: svTranslateY.value }],
     };
   }, []);
-  const [showTopButton, setShowTopButton] = useState(false);
   const [deferredHomeDataReady, setDeferredHomeDataReady] = useState(false);
 
   // ---------------------------------------------------------
@@ -3630,10 +3594,11 @@ export default function LoggedInHome() {
     });
   }, [activePetId, navigation]);
 
-  const onPressScheduleCreate = useCallback(() => {
-    navigation.navigate('ScheduleCreate', {
+  const onPressScheduleDetail = useCallback((scheduleId: string) => {
+    navigation.navigate('ScheduleDetail', {
       petId: activePetId ?? undefined,
       entrySource: 'home',
+      scheduleId,
     });
   }, [activePetId, navigation]);
 
@@ -3763,55 +3728,15 @@ export default function LoggedInHome() {
     }) => {
       const offsetY = Math.max(0, event.nativeEvent.contentOffset.y);
 
-      if (isReturningToTopRef.current) {
-        if (offsetY <= 1) {
-          isReturningToTopRef.current = false;
-        } else {
-          if (showTopButtonRef.current) {
-            showTopButtonRef.current = false;
-            setShowTopButton(false);
-          }
-          return;
-        }
-      }
-
       HOME_SCROLL_OFFSET_BY_KEY.set(homeScrollStorageKey, offsetY);
-
-      const shouldShow =
-        offsetY >=
-        resolveHomeTopButtonThreshold(scheduleSectionOffsetRef.current);
-      if (showTopButtonRef.current === shouldShow) return;
-
-      showTopButtonRef.current = shouldShow;
-      setShowTopButton(shouldShow);
     },
     [homeScrollStorageKey],
-  );
-
-  const handleHomeScrollMomentumEnd = useCallback(
-    (event: { nativeEvent: { contentOffset: { y: number } } }) => {
-      isReturningToTopRef.current = false;
-      const offsetY = Math.max(0, event.nativeEvent.contentOffset.y);
-      const shouldShow =
-        offsetY >=
-        resolveHomeTopButtonThreshold(scheduleSectionOffsetRef.current);
-      if (showTopButtonRef.current === shouldShow) return;
-
-      showTopButtonRef.current = shouldShow;
-      setShowTopButton(shouldShow);
-    },
-    [],
   );
 
   const restoreHomeScrollPosition = useCallback(() => {
     if (!shouldRestoreHomeScrollRef.current) return;
     const nextOffset = HOME_SCROLL_OFFSET_BY_KEY.get(homeScrollStorageKey) ?? 0;
     homeScrollRef.current?.scrollTo({ x: 0, y: nextOffset, animated: false });
-    const shouldShow =
-      nextOffset >=
-      resolveHomeTopButtonThreshold(scheduleSectionOffsetRef.current);
-    showTopButtonRef.current = shouldShow;
-    setShowTopButton(shouldShow);
     shouldRestoreHomeScrollRef.current = false;
   }, [homeScrollStorageKey]);
 
@@ -3908,28 +3833,6 @@ export default function LoggedInHome() {
   const onPressGuideList = useCallback(() => {
     navigation.navigate('GuideList', { entrySource: 'home' });
   }, [navigation]);
-
-  const handleScheduleSectionLayout = useCallback(
-    (event: { nativeEvent: { layout: { y: number } } }) => {
-      scheduleSectionOffsetRef.current = event.nativeEvent.layout.y;
-      const restoredOffset =
-        HOME_SCROLL_OFFSET_BY_KEY.get(homeScrollStorageKey) ?? 0;
-      const shouldShow =
-        restoredOffset >=
-        resolveHomeTopButtonThreshold(event.nativeEvent.layout.y);
-      showTopButtonRef.current = shouldShow;
-      setShowTopButton(shouldShow);
-    },
-    [homeScrollStorageKey],
-  );
-
-  const handlePressTop = useCallback(() => {
-    isReturningToTopRef.current = true;
-    HOME_SCROLL_OFFSET_BY_KEY.set(homeScrollStorageKey, 0);
-    showTopButtonRef.current = false;
-    setShowTopButton(false);
-    homeScrollRef.current?.scrollTo({ x: 0, y: 0, animated: true });
-  }, [homeScrollStorageKey]);
 
   const onPressGuideDetail = useCallback(
     (guideId: string) => {
@@ -4031,10 +3934,6 @@ export default function LoggedInHome() {
     selectedPet?.speciesDisplayName,
     sessionUserId,
   ]);
-  const topButtonBottom = useMemo(
-    () => resolveHomeTopButtonBottom(insets.bottom),
-    [insets.bottom],
-  );
   const notificationOverlayHeight = useMemo(
     () =>
       resolveHomeNotificationModalHeight({
@@ -4087,11 +3986,10 @@ export default function LoggedInHome() {
         setAmbientSectionLayouts(previous =>
           updateHomeAmbientSectionLayout(previous, zone, { y, height }),
         );
-        if (zone === 'schedule') handleScheduleSectionLayout(event);
       };
     }
     return handlers;
-  }, [handleScheduleSectionLayout]);
+  }, []);
   const homeHeader = (
     <HomeHeaderSection
       seasonalCopy={seasonalHomeVisual?.greetingCopy ?? null}
@@ -4222,8 +4120,10 @@ export default function LoggedInHome() {
         </View>
         <View onLayout={ambientSectionLayoutHandlers.schedule}>
           <ScheduleSection
+            key={activePetId}
+            petId={activePetId}
             scheduleItems={visibleScheduleItems}
-            isReady={scheduleStatus === 'ready'}
+            isFocused={isScreenFocused}
             dataState={
               scheduleStatus === 'ready'
                 ? 'ready'
@@ -4234,10 +4134,9 @@ export default function LoggedInHome() {
             season={ambientSeason}
             activeScheduleIds={activeAlarms.activeScheduleIds}
             onPressScheduleList={onPressScheduleList}
-            onPressScheduleCreate={onPressScheduleCreate}
+            onPressScheduleDetail={onPressScheduleDetail}
             accentColor={petTheme.primary}
             accentDeepColor={petTheme.deep}
-            accentTint={petTheme.tint}
           />
         </View>
         <View onLayout={ambientSectionLayoutHandlers.health}>
@@ -4291,6 +4190,7 @@ export default function LoggedInHome() {
         />
         <ScrollView
           ref={homeScrollRef}
+          keyboardShouldPersistTaps="handled"
           style={styles.scroll}
           contentContainerStyle={[
             styles.scrollContent,
@@ -4303,7 +4203,6 @@ export default function LoggedInHome() {
           onContentSizeChange={restoreHomeScrollPosition}
           onLayout={handleHomeViewportLayout}
           onScroll={handleHomeScroll}
-          onMomentumScrollEnd={handleHomeScrollMomentumEnd}
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
         >
@@ -4369,15 +4268,6 @@ export default function LoggedInHome() {
             {lowerHomeSections}
           </Animated.View>
         </ScrollView>
-
-        <HomeTopButton
-          visible={showTopButton}
-          bottom={topButtonBottom}
-          accentColor={petTheme.primary}
-          borderColor={petTheme.border}
-          rippleColor={`${petTheme.onPrimary}18`}
-          onPress={handlePressTop}
-        />
 
         <ProfileInfoBottomSheet
           visible={profileSheetVisible}

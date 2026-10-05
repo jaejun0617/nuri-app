@@ -29,7 +29,6 @@ import React, {
 import {
   Alert,
   AppState,
-  findNodeHandle,
   Image,
   Keyboard,
   Modal,
@@ -45,7 +44,9 @@ import {
   type LayoutChangeEvent,
 } from 'react-native';
 import { KeyboardAvoidingView as KeyboardControllerAvoidingView } from 'react-native-keyboard-controller';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { useBoundedKeyboardScroll } from '../../hooks/useBoundedKeyboardScroll';
+import { useKeyboardBottomPadding } from '../../hooks/useKeyboardBottomPadding';
+import Animated from 'react-native-reanimated';
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -118,6 +119,7 @@ import {
 } from '../../store/uiStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 type Props = {
   onRequestClose: () => void;
@@ -413,21 +415,17 @@ export const PasswordChangeModal = memo(function PasswordChangeModal({
   onSubmit,
 }: PasswordModalProps) {
   const theme = useTheme();
-  const scrollRef = useRef<KeyboardAwareScrollView | null>(null);
-  const currentPasswordRef = useRef<React.ComponentRef<typeof TextInput> | null>(null);
-  const nextPasswordRef = useRef<React.ComponentRef<typeof TextInput> | null>(null);
-  const confirmPasswordRef = useRef<React.ComponentRef<typeof TextInput> | null>(null);
-
-  const scrollToInput = useCallback(
-    (ref: React.RefObject<React.ComponentRef<typeof TextInput> | null>) => {
-      requestAnimationFrame(() => {
-        const node = findNodeHandle(ref.current);
-        if (!node) return;
-        scrollRef.current?.scrollToFocusedInput?.(node);
-      });
-    },
-    [],
+  const bottomPaddingStyle = useKeyboardBottomPadding(18 + bottomInset, 18);
+  const { scrollProps, revealInput } = useBoundedKeyboardScroll(visible);
+  const currentPasswordRef = useRef<React.ComponentRef<
+    typeof TextInput
+  > | null>(null);
+  const nextPasswordRef = useRef<React.ComponentRef<typeof TextInput> | null>(
+    null,
   );
+  const confirmPasswordRef = useRef<React.ComponentRef<
+    typeof TextInput
+  > | null>(null);
 
   return (
     <Modal
@@ -443,6 +441,7 @@ export const PasswordChangeModal = memo(function PasswordChangeModal({
         ]}
         behavior="padding"
         enabled
+        automaticOffset
         keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
       >
         <Pressable
@@ -453,18 +452,20 @@ export const PasswordChangeModal = memo(function PasswordChangeModal({
           }}
         />
         <View style={styles.centeredModalWrap} pointerEvents="box-none">
-          <Pressable
+          <AnimatedPressable
             style={[
               styles.centeredSheetCard,
               {
                 backgroundColor: theme.colors.surfaceElevated,
-                paddingBottom: 18 + bottomInset,
               },
+              bottomPaddingStyle,
             ]}
             onPress={Keyboard.dismiss}
           >
             <View style={styles.sheetHeader}>
-              <AppText typographyRole="sectionTitle" preset="unifiedTitle"
+              <AppText
+                typographyRole="sectionTitle"
+                preset="unifiedTitle"
                 style={[styles.sheetTitle, { color: theme.colors.textPrimary }]}
               >
                 비밀번호 변경
@@ -481,23 +482,14 @@ export const PasswordChangeModal = memo(function PasswordChangeModal({
               </TouchableOpacity>
             </View>
 
-            <KeyboardAwareScrollView
-              innerRef={ref => {
-                scrollRef.current = ref;
-              }}
+            <ScrollView
+              {...scrollProps}
+              testID="password-change-scroll"
               style={styles.modalContentScroll}
               contentContainerStyle={styles.modalContentContainer}
-              keyboardDismissMode={
-                Platform.OS === 'ios' ? 'interactive' : 'on-drag'
-              }
+              keyboardDismissMode="none"
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
-              enableOnAndroid
-              enableAutomaticScroll
-              enableResetScrollToCoords={false}
-              keyboardOpeningTime={0}
-              extraScrollHeight={32}
-              extraHeight={84}
             >
               <View style={styles.modalCardBody}>
                 <PasswordField
@@ -508,7 +500,7 @@ export const PasswordChangeModal = memo(function PasswordChangeModal({
                   onChangeText={onChangeCurrentPassword}
                   onToggleSecure={onToggleCurrentPasswordVisible}
                   inputRef={currentPasswordRef}
-                  onFocus={() => scrollToInput(currentPasswordRef)}
+                  onFocus={() => revealInput(currentPasswordRef)}
                 />
 
                 <PasswordField
@@ -520,7 +512,7 @@ export const PasswordChangeModal = memo(function PasswordChangeModal({
                   onToggleSecure={onToggleNextPasswordVisible}
                   helper="영문, 숫자, 특수문자 포함 8자 이상 입력해주세요"
                   inputRef={nextPasswordRef}
-                  onFocus={() => scrollToInput(nextPasswordRef)}
+                  onFocus={() => revealInput(nextPasswordRef)}
                 />
 
                 <PasswordField
@@ -531,29 +523,32 @@ export const PasswordChangeModal = memo(function PasswordChangeModal({
                   onChangeText={onChangeConfirmPassword}
                   onToggleSecure={onToggleConfirmPasswordVisible}
                   inputRef={confirmPasswordRef}
-                  onFocus={() => scrollToInput(confirmPasswordRef)}
+                  onFocus={() => revealInput(confirmPasswordRef)}
                 />
               </View>
-
-              <View style={styles.modalCardFooter}>
-                <TouchableOpacity
-                  activeOpacity={0.92}
-                  style={[
-                    styles.primaryButton,
-                    styles.modalPrimaryButton,
-                    { backgroundColor: accentColor },
-                    saving ? styles.disabledButton : null,
-                  ]}
-                  onPress={onSubmit}
-                  disabled={saving}
-                >
-                  <AppText preset="unifiedLabel" style={styles.primaryButtonText}>
-                    {saving ? '변경 중...' : '변경하기'}
-                  </AppText>
-                </TouchableOpacity>
-              </View>
-            </KeyboardAwareScrollView>
-          </Pressable>
+            </ScrollView>
+            <View
+              testID="password-change-actions"
+              style={styles.modalCardFooter}
+            >
+              <TouchableOpacity
+                testID="password-change-submit"
+                activeOpacity={0.92}
+                style={[
+                  styles.primaryButton,
+                  styles.modalPrimaryButton,
+                  { backgroundColor: accentColor },
+                  saving ? styles.disabledButton : null,
+                ]}
+                onPress={onSubmit}
+                disabled={saving}
+              >
+                <AppText preset="unifiedLabel" style={styles.primaryButtonText}>
+                  {saving ? '변경 중...' : '변경하기'}
+                </AppText>
+              </TouchableOpacity>
+            </View>
+          </AnimatedPressable>
         </View>
       </KeyboardControllerAvoidingView>
     </Modal>
@@ -1116,7 +1111,7 @@ export const PasswordChangeSuccessModal = memo(
 
 const ProfileEditModal = memo(function ProfileEditModal({
   visible,
-  bottomInset,
+  bottomInset: _bottomInset,
   nickname,
   helperText,
   helperTone,
@@ -1127,6 +1122,8 @@ const ProfileEditModal = memo(function ProfileEditModal({
   onSubmit,
 }: ProfileEditModalProps) {
   const theme = useTheme();
+  const { scrollProps, revealInput } = useBoundedKeyboardScroll(visible);
+  const nicknameRef = useRef<React.ComponentRef<typeof TextInput>>(null);
   return (
     <Modal
       visible={visible}
@@ -1139,7 +1136,8 @@ const ProfileEditModal = memo(function ProfileEditModal({
           styles.modalBackdropCentered,
           { backgroundColor: theme.colors.overlay },
         ]}
-        behavior="padding"
+        behavior="height"
+        automaticOffset
         enabled
         keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
       >
@@ -1150,13 +1148,14 @@ const ProfileEditModal = memo(function ProfileEditModal({
             onClose();
           }}
         />
-        <View style={styles.centeredModalWrap} pointerEvents="box-none">
+        <View style={[styles.centeredModalWrap, { maxHeight: '100%' }]} pointerEvents="box-none">
           <Pressable
             style={[
               styles.centeredSheetCard,
+              styles.nicknameCard,
               {
                 backgroundColor: theme.colors.surfaceElevated,
-                paddingBottom: 18 + bottomInset,
+                paddingBottom: 22,
               },
             ]}
             onPress={Keyboard.dismiss}
@@ -1171,14 +1170,18 @@ const ProfileEditModal = memo(function ProfileEditModal({
                 activeOpacity={0.88}
                 style={[
                   styles.sheetClose,
+                  styles.nicknameClose,
                   { backgroundColor: theme.colors.surface },
                 ]}
                 onPress={onClose}
+                accessibilityRole="button"
+                accessibilityLabel="닉네임 수정 닫기"
               >
-                <Feather name="x" size={20} color={theme.colors.textMuted} />
+                <NuriSemanticIcon family="feather" name="x" size={24} color={theme.colors.textPrimary} preserveOriginal />
               </TouchableOpacity>
             </View>
 
+            <ScrollView {...scrollProps} style={styles.nicknameBody} keyboardShouldPersistTaps="handled" keyboardDismissMode="none">
             <View style={styles.modalField}>
               <AppText preset="unifiedLabel"
                 style={[styles.modalLabel, { color: theme.colors.textPrimary }]}
@@ -1187,7 +1190,9 @@ const ProfileEditModal = memo(function ProfileEditModal({
               </AppText>
               <AppTextInput
                 value={nickname}
+                ref={nicknameRef}
                 onChangeText={onChangeNickname}
+                onFocus={() => revealInput(nicknameRef)}
                 style={[
                   styles.nicknameInput,
                   {
@@ -1219,6 +1224,7 @@ const ProfileEditModal = memo(function ProfileEditModal({
                 {helperText}
               </AppText>
             </View>
+            </ScrollView>
 
             <View style={styles.modalCardFooter}>
               <TouchableOpacity
@@ -3126,6 +3132,9 @@ const styles = StyleSheet.create({
     gap: 16,
     overflow: 'hidden',
   },
+  nicknameCard: { minHeight: 0, maxHeight: '100%', flexShrink: 1 },
+  nicknameBody: { flexShrink: 1, minHeight: 0 },
+  nicknameClose: { width: 44, height: 44, borderRadius: 22 },
   sheetHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -3353,6 +3362,8 @@ const styles = StyleSheet.create({
   },
   modalContentScroll: {
     maxHeight: 360,
+    flexShrink: 1,
+    minHeight: 0,
   },
   modalContentContainer: {
     paddingBottom: 4,
@@ -3361,6 +3372,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   modalCardFooter: {
+    flexShrink: 0,
     paddingTop: 4,
   },
   modalPrimaryButton: {

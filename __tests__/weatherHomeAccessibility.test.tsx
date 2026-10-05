@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactNative, { StyleSheet, Text, View } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
-import LinearGradient from 'react-native-linear-gradient';
+import { BlurView } from '@sbaiahmed1/react-native-blur';
 
 import WeatherGuideHomeCard from '../src/components/weather/WeatherGuideHomeCard';
 import { buildWeatherGuideBundleForScenario } from '../src/services/weather/guide';
@@ -26,8 +26,7 @@ describe('Weather Home enlarged text flow', () => {
           onPress={onPress} />,
       );
     });
-    const gradients = renderer.root.findAllByType(LinearGradient);
-    const border = StyleSheet.flatten(gradients[0].props.style);
+    const border = StyleSheet.flatten(renderer.root.findByType(BlurView).props.style);
     if (fontScale === 1) {
       expect(border.height).toBe((width - 32) / (1665 / 945));
     } else {

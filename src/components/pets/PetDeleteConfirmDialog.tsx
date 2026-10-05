@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useMemo, useState } from 'react';
+import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Image,
   Modal,
@@ -6,6 +6,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  TextInput,
   TouchableOpacity,
   useWindowDimensions,
   View,
@@ -17,6 +18,7 @@ import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
 import AppTextInput from '../../app/ui/AppTextInput';
+import { useBoundedKeyboardScroll } from '../../hooks/useBoundedKeyboardScroll';
 import type { Pet } from '../../store/petStore';
 
 export const PET_DELETE_CONFIRMATION_TEXT = '삭제하기';
@@ -48,6 +50,10 @@ function PetDeleteConfirmDialogBase({
   const window = useWindowDimensions();
   const [consentChecked, setConsentChecked] = useState(false);
   const [confirmationText, setConfirmationText] = useState('');
+  const confirmationRef = useRef<React.ComponentRef<typeof TextInput> | null>(
+    null,
+  );
+  const { scrollProps, revealInput } = useBoundedKeyboardScroll(visible);
   const canDelete = useMemo(
     () => isPetDeleteConfirmationReady(consentChecked, confirmationText),
     [confirmationText, consentChecked],
@@ -76,6 +82,7 @@ function PetDeleteConfirmDialogBase({
         style={[styles.backdrop, { backgroundColor: theme.colors.overlay }]}
         behavior="padding"
         enabled
+        automaticOffset
         keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
       >
         <Pressable
@@ -98,38 +105,37 @@ function PetDeleteConfirmDialogBase({
             },
           ]}
         >
+          <View testID="pet-delete-header" style={styles.titleRow}>
+            <View style={styles.titleSpacer} />
+            <AppText
+              accessibilityRole="header"
+              preset="unifiedTitle"
+              style={[styles.title, { color: theme.colors.textPrimary }]}
+            >
+              아이 프로필을 삭제할까요?
+            </AppText>
+            <TouchableOpacity
+              testID="pet-delete-close"
+              accessibilityRole="button"
+              accessibilityLabel="삭제 확인 닫기"
+              accessibilityState={{ disabled: deleting }}
+              activeOpacity={0.86}
+              disabled={deleting}
+              style={styles.iconButton}
+              onPress={handleCancel}
+            >
+              <Feather name="x" size={20} color={theme.colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
           <ScrollView
+            {...scrollProps}
+            testID="pet-delete-scroll"
+            style={styles.body}
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="none"
             showsVerticalScrollIndicator={false}
           >
-            <View style={styles.titleRow}>
-              <View style={styles.titleSpacer} />
-              <AppText
-                accessibilityRole="header"
-                preset="unifiedTitle"
-                style={[styles.title, { color: theme.colors.textPrimary }]}
-              >
-                아이 프로필을 삭제할까요?
-              </AppText>
-              <TouchableOpacity
-                testID="pet-delete-close"
-                accessibilityRole="button"
-                accessibilityLabel="삭제 확인 닫기"
-                accessibilityState={{ disabled: deleting }}
-                activeOpacity={0.86}
-                disabled={deleting}
-                style={styles.iconButton}
-                onPress={handleCancel}
-              >
-                <Feather
-                  name="x"
-                  size={20}
-                  color={theme.colors.textSecondary}
-                />
-              </TouchableOpacity>
-            </View>
-
             <View
               style={[
                 styles.petTarget,
@@ -165,7 +171,8 @@ function PetDeleteConfirmDialogBase({
                 >
                   삭제 대상
                 </AppText>
-                <AppText typographyRole="petIdentity"
+                <AppText
+                  typographyRole="petIdentity"
                   numberOfLines={2}
                   preset="unifiedTitle"
                   style={[styles.petName, { color: theme.colors.textPrimary }]}
@@ -246,6 +253,8 @@ function PetDeleteConfirmDialogBase({
                 확인을 위해 ‘{PET_DELETE_CONFIRMATION_TEXT}’를 입력해주세요.
               </AppText>
               <AppTextInput
+                ref={confirmationRef}
+                onFocus={() => revealInput(confirmationRef)}
                 testID="pet-delete-confirmation-input"
                 accessibilityLabel="삭제 확인 문구 입력"
                 autoCapitalize="none"
@@ -267,52 +276,51 @@ function PetDeleteConfirmDialogBase({
                 onChangeText={setConfirmationText}
               />
             </View>
-
-            <View style={styles.actions}>
-              <TouchableOpacity
-                testID="pet-delete-cancel"
-                accessibilityRole="button"
-                accessibilityLabel="아이 프로필 삭제 취소"
-                accessibilityState={{ disabled: deleting }}
-                activeOpacity={0.9}
-                disabled={deleting}
-                style={[
-                  styles.actionButton,
-                  { backgroundColor: theme.colors.surface },
-                ]}
-                onPress={handleCancel}
-              >
-                <AppText
-                  preset="unifiedLabel"
-                  style={{ color: theme.colors.textSecondary }}
-                >
-                  취소
-                </AppText>
-              </TouchableOpacity>
-              <TouchableOpacity
-                testID="pet-delete-confirm"
-                accessibilityRole="button"
-                accessibilityLabel={
-                  deleting ? '아이 프로필 삭제 중' : '아이 프로필 삭제하기'
-                }
-                accessibilityState={{ disabled: deleting || !canDelete }}
-                activeOpacity={0.9}
-                disabled={deleting || !canDelete}
-                style={[
-                  styles.actionButton,
-                  {
-                    backgroundColor: theme.colors.danger,
-                    opacity: deleting || !canDelete ? 0.42 : 1,
-                  },
-                ]}
-                onPress={onConfirm}
-              >
-                <AppText preset="unifiedLabel" style={styles.deleteButtonText}>
-                  {deleting ? '삭제 중...' : '삭제하기'}
-                </AppText>
-              </TouchableOpacity>
-            </View>
           </ScrollView>
+          <View testID="pet-delete-actions" style={styles.actions}>
+            <TouchableOpacity
+              testID="pet-delete-cancel"
+              accessibilityRole="button"
+              accessibilityLabel="아이 프로필 삭제 취소"
+              accessibilityState={{ disabled: deleting }}
+              activeOpacity={0.9}
+              disabled={deleting}
+              style={[
+                styles.actionButton,
+                { backgroundColor: theme.colors.surface },
+              ]}
+              onPress={handleCancel}
+            >
+              <AppText
+                preset="unifiedLabel"
+                style={{ color: theme.colors.textSecondary }}
+              >
+                취소
+              </AppText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              testID="pet-delete-confirm"
+              accessibilityRole="button"
+              accessibilityLabel={
+                deleting ? '아이 프로필 삭제 중' : '아이 프로필 삭제하기'
+              }
+              accessibilityState={{ disabled: deleting || !canDelete }}
+              activeOpacity={0.9}
+              disabled={deleting || !canDelete}
+              style={[
+                styles.actionButton,
+                {
+                  backgroundColor: theme.colors.danger,
+                  opacity: deleting || !canDelete ? 0.42 : 1,
+                },
+              ]}
+              onPress={onConfirm}
+            >
+              <AppText preset="unifiedLabel" style={styles.deleteButtonText}>
+                {deleting ? '삭제 중...' : '삭제하기'}
+              </AppText>
+            </TouchableOpacity>
+          </View>
         </View>
       </KeyboardControllerAvoidingView>
     </Modal>
@@ -327,6 +335,8 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   card: {
+    flexShrink: 1,
+    minHeight: 0,
     borderRadius: 24,
     borderWidth: 1,
     overflow: 'hidden',
@@ -339,6 +349,9 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   titleRow: {
+    flexShrink: 0,
+    paddingHorizontal: 18,
+    paddingTop: 18,
     minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
@@ -424,9 +437,13 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   actions: {
+    flexShrink: 0,
+    paddingHorizontal: 18,
+    paddingBottom: 18,
     flexDirection: 'row',
     gap: 10,
   },
+  body: { flexShrink: 1, minHeight: 0 },
   actionButton: {
     flex: 1,
     minHeight: 50,

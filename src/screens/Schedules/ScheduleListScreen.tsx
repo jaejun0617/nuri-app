@@ -13,10 +13,17 @@
 // - route petId와 selectedPetId 해석 우선순위를 바꾸면 홈에서 들어온 일정 컨텍스트가 달라질 수 있다.
 // - 일정 목록은 홈 요약과 같은 캐시를 공유하므로 로딩/갱신 UX를 과하게 따로 만들면 상태가 어긋날 수 있다.
 
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import {
   RefreshControl,
-  ScrollView,
+  AppState,
+  SectionList,
+  useWindowDimensions,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -27,24 +34,29 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import Feather from '../../components/icons/NuriFeatherIcon';
-import MaterialCommunityIcons from '../../components/icons/NuriMaterialIcon';
 import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
 
+import AppTextInput from '../../app/ui/AppTextInput';
+import { useTheme } from 'styled-components/native';
+import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
+import { HomeAmbientBubbleCanvas } from '../Main/components/LoggedInHome/HomeAmbientBubbleCanvas';
+import { getKstYmd } from '../../utils/date';
+import {
+  buildScheduleListSections,
+  scheduleListDayLabel,
+  scheduleListMonthLabel,
+  scheduleListTimeLabel,
+  type ScheduleListFilter,
+} from '../../services/schedules/listPresentation';
 import AppText from '../../app/ui/AppText';
 import HeaderIconActionButton from '../../components/navigation/HeaderIconActionButton';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
-import type {
-  PetSchedule,
-} from '../../services/supabase/schedules';
+import type { PetSchedule } from '../../services/supabase/schedules';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
-import {
-  isHealthSchedule,
-} from '../../services/health-report/viewModel';
-import {
-  mapScheduleIconName,
-} from '../../services/schedules/presentation';
+import { isHealthSchedule } from '../../services/health-report/viewModel';
+import { mapScheduleIconName } from '../../services/schedules/presentation';
 import { resolveSelectedPetId, usePetStore } from '../../store/petStore';
 import { useScheduleStore } from '../../store/scheduleStore';
 import { openMoreDrawer } from '../../store/uiStore';
@@ -55,21 +67,14 @@ type Route = RootScreenRoute<'ScheduleList'>;
 const EMPTY_SCHEDULE_ITEMS: PetSchedule[] = [];
 Object.freeze(EMPTY_SCHEDULE_ITEMS);
 
-function formatScheduleDate(schedule: PetSchedule) {
-  const date = new Date(schedule.startsAt);
-  if (Number.isNaN(date.getTime())) return '';
-
-  const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
-  const base = `${date.getMonth() + 1}.${date.getDate()} (${weekdays[date.getDay()]})`;
-
-  if (schedule.allDay) return `${base} · 하루 종일`;
-
-  const hour = `${date.getHours()}`.padStart(2, '0');
-  const minute = `${date.getMinutes()}`.padStart(2, '0');
-  return `${base} · ${hour}:${minute}`;
-}
-
 export default function ScheduleListScreen() {
+  const theme = useTheme();
+  const season = useEffectiveSeason();
+  const { height, width, fontScale } = useWindowDimensions();
+  const compactFilters = width < 380 || fontScale >= 1.3;
+  const [filter, setFilter] = useState<ScheduleListFilter>('all');
+  const [query, setQuery] = useState('');
+  const [today, setToday] = useState(getKstYmd);
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
@@ -104,7 +109,8 @@ export default function ScheduleListScreen() {
   const status = petState?.status ?? 'idle';
   const errorMessage = petState?.errorMessage ?? null;
   const refreshing = status === 'refreshing';
-  const isInitialLoading = status === 'loading' && visibleSchedules.length === 0;
+  const isInitialLoading =
+    status === 'loading' && visibleSchedules.length === 0;
   const isError = status === 'error' && visibleSchedules.length === 0;
 
   useEffect(() => {
@@ -162,158 +168,296 @@ export default function ScheduleListScreen() {
     [navigation, petId, route.params?.entrySource],
   );
 
+  const sections = useMemo(
+    () => buildScheduleListSections(visibleSchedules, filter, query, today),
+    [visibleSchedules, filter, query, today],
+  );
+  useEffect(() => {
+    setFilter('all');
+    setQuery('');
+  }, [petId]);
+  useEffect(() => {
+    const update = () => setToday(getKstYmd());
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active') update();
+    });
+    const timer = setInterval(update, 60000);
+    return () => {
+      subscription.remove();
+      clearInterval(timer);
+    };
+  }, []);
   const headerTopInset = Math.max(insets.top, 12);
 
   return (
     <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
-      <View style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
-        <View style={styles.headerSideSlot}>
-          <TouchableOpacity
-            activeOpacity={0.88}
-            style={styles.headerBackButton}
-            onPress={onPressBack}
-            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-          >
-            <Feather name="arrow-left" size={20} color="#102033" />
-          </TouchableOpacity>
-        </View>
-
-        <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
-          일정 보기
-        </AppText>
-
-        <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
-          <HeaderIconActionButton
-            accessibilityLabel="일정 추가"
-            backgroundColor={petTheme.primary}
-            onPress={onPressCreate}
-          />
-        </View>
+      <View pointerEvents="none" style={styles.ambient}>
+        <HomeAmbientBubbleCanvas
+          heroHeight={height}
+          season={season}
+          decorationMode="reading"
+        />
       </View>
-
-      <ScrollView
+      <View style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="뒤로"
+          style={styles.headerBackButton}
+          onPress={onPressBack}
+        >
+          <Feather name="chevron-left" size={24} color={petTheme.deep} />
+        </TouchableOpacity>
+        <AppText
+          typographyRole="screenTitle"
+          preset="unifiedTitle"
+          color={petTheme.primary}
+          style={styles.headerTitle}
+        >
+          전체 일정
+        </AppText>
+        <HeaderIconActionButton
+          accessibilityLabel="일정 추가"
+          backgroundColor={petTheme.primary}
+          onPress={onPressCreate}
+        />
+      </View>
+      <SectionList
+        testID="schedule-hub-list"
+        sections={sections}
+        keyExtractor={item => item.key}
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
+        stickySectionHeadersEnabled={false}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        initialNumToRender={12}
+        maxToRenderPerBatch={12}
+        windowSize={7}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={petTheme.primary}
+          />
         }
-      >
-        <View style={styles.heroCard}>
-          <AppText typographyRole="heroCopy" preset="unifiedTitle" style={styles.heroTitle}>
-            전체 일정
-          </AppText>
-          <AppText preset="unifiedMeta" style={styles.heroSub}>
-            오래 남겨둘 일정도 한 곳에서 차분히 확인해 보세요
-          </AppText>
-        </View>
-
-        {isInitialLoading ? (
-          <View style={styles.emptyCard}>
-            <MaterialCommunityIcons
-              name="calendar-clock-outline"
-              size={34}
-              color={petTheme.primary}
-            />
-            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
-              일정을 불러오는 중이에요
-            </AppText>
-            <AppText preset="unifiedBody" style={styles.emptyDesc}>
-              저장된 일정을 정리해서 보여드리고 있어요.
-            </AppText>
-          </View>
-        ) : isError ? (
-          <View style={styles.emptyCard}>
-            <MaterialCommunityIcons
-              name="calendar-alert-outline"
-              size={34}
-              color={petTheme.primary}
-            />
-            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
-              일정을 불러오지 못했어요
-            </AppText>
-            <AppText preset="unifiedBody" style={styles.emptyDesc}>
-              {errorMessage ?? '잠시 후 다시 시도해 주세요.'}
-            </AppText>
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={[styles.primaryBtn, { backgroundColor: petTheme.primary }]}
-              onPress={onRefresh}
+        ListHeaderComponent={
+          <View>
+            <AppText
+              preset="cardTitle"
+              color={theme.colors.textPrimary}
+              style={styles.subtitle}
             >
-              <AppText preset="unifiedBody" style={styles.primaryBtnText}>
-                다시 불러오기
-              </AppText>
-            </TouchableOpacity>
-          </View>
-        ) : visibleSchedules.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <MaterialCommunityIcons
-              name="calendar-blank-outline"
-              size={34}
-              color={petTheme.primary}
-            />
-            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
-              등록된 일정이 아직 없어요
+              {selectedPet?.name ?? '우리 아이'}의 일정·기념일
             </AppText>
-            <AppText preset="unifiedBody" style={styles.emptyDesc}>
-              산책, 식사, 미용처럼 오래 남겨둘 일정을 먼저 정리해 보세요.
-            </AppText>
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={[styles.primaryBtn, { backgroundColor: petTheme.primary }]}
-              onPress={onPressCreate}
-            >
-              <AppText preset="unifiedBody" style={styles.primaryBtnText}>
-                첫 일정 추가하기
-              </AppText>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={styles.list}>
-            {visibleSchedules.map(schedule => {
-              return (
+            <View style={styles.search}>
+              <Feather
+                name="search"
+                size={22}
+                color={theme.colors.textSecondary}
+              />
+              <AppTextInput
+                testID="schedule-hub-search"
+                accessibilityLabel="일정 검색"
+                placeholder="일정 검색"
+                placeholderTextColor={theme.colors.textSecondary}
+                value={query}
+                onChangeText={value => {
+                  setQuery(value);
+                }}
+                style={[
+                  styles.searchInput,
+                  { color: theme.colors.textPrimary },
+                ]}
+              />
+              {query ? (
                 <TouchableOpacity
-                  key={schedule.id}
-                  activeOpacity={0.92}
-                  style={styles.card}
-                  onPress={() => onPressItem(schedule.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel="검색어 지우기"
+                  style={styles.clearButton}
+                  onPress={() => setQuery('')}
                 >
-                  <View
+                  <NuriSemanticIcon
+                    family="feather"
+                    name="x"
+                    size={20}
+                    color={theme.colors.textSecondary}
+                    preserveOriginal
+                  />
+                </TouchableOpacity>
+              ) : null}
+            </View>
+            <View
+              style={styles.filterRow}
+            >
+              <View style={[styles.segments, compactFilters && styles.segmentsGrid]} accessibilityLabel="일정 기간 선택">
+                {(
+                  [
+                    { key: 'all', label: '전체' },
+                    { key: 'today', label: '오늘' },
+                    { key: 'upcoming', label: '예정' },
+                    { key: 'past', label: '지난' },
+                  ] as const
+                ).map(item => (
+                  <TouchableOpacity
+                    key={item.key}
+                    testID={`schedule-hub-filter-${item.key}`}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected: filter === item.key }}
+                    onPress={() => {
+                      setFilter(item.key);
+                      setToday(getKstYmd());
+                    }}
                     style={[
-                      styles.cardIconWrap,
-                      {
-                        backgroundColor: petTheme.tint,
-                        borderColor: petTheme.border,
+                      styles.segment,
+                      compactFilters && styles.segmentGrid,
+                      filter === item.key && {
+                        backgroundColor: petTheme.primary,
                       },
                     ]}
                   >
-                    <NuriSemanticIcon
-                      family="material"
-                      name={mapScheduleIconName(schedule.iconKey)}
-                      size={19}
-                      color={petTheme.primary}
-                    />
-                  </View>
-
-                  <View style={styles.cardTextCol}>
-                    <AppText preset="unifiedBody" style={styles.cardTitle}>
-                      {schedule.title}
+                    <AppText
+                      preset="unifiedLabel"
+                      color={
+                        filter === item.key
+                          ? '#FFFFFF'
+                          : theme.colors.textSecondary
+                      }
+                      style={styles.centered}
+                    >
+                      {item.label}
                     </AppText>
-                    <AppText preset="unifiedMeta" style={styles.cardMeta}>
-                      {formatScheduleDate(schedule)}
-                    </AppText>
-                    {schedule.note?.trim() ? (
-                      <AppText preset="unifiedMeta" style={styles.cardNote}>
-                        {schedule.note}
-                      </AppText>
-                    ) : null}
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+            {errorMessage && visibleSchedules.length ? (
+              <AppText
+                accessibilityLiveRegion="polite"
+                preset="unifiedMicro"
+                color={theme.colors.textMuted}
+              >
+                새 일정을 불러오지 못했어요. 이전에 확인한 일정을 보여드려요.
+              </AppText>
+            ) : null}
           </View>
-        )}
-      </ScrollView>
+        }
+        renderSectionHeader={({ section }) => {
+          const index = sections.indexOf(section);
+          const showMonth =
+            index === 0 || sections[index - 1].month !== section.month;
+          return (
+            <View>
+              {showMonth ? (
+                <AppText
+                  preset="unifiedTitle"
+                  color={theme.colors.textPrimary}
+                  style={styles.monthTitle}
+                >
+                  {scheduleListMonthLabel(section.month)}
+                </AppText>
+              ) : null}
+              <AppText
+                preset="cardTitle"
+                color={petTheme.deep}
+                style={styles.dayTitle}
+              >
+                {scheduleListDayLabel(section.day)}
+              </AppText>
+            </View>
+          );
+        }}
+        renderItem={({ item: occurrence, section }) => {
+          const item = occurrence.schedule;
+          const timeLabel = scheduleListTimeLabel(occurrence, section.day);
+          return (
+          <TouchableOpacity
+            testID={`schedule-hub-item-${item.id}`}
+            accessibilityRole="button"
+            accessibilityLabel={`${timeLabel}, ${
+              item.title
+            }, 일정 상세 보기`}
+            activeOpacity={0.8}
+            onPress={() => onPressItem(item.id)}
+            style={styles.card}
+          >
+            <NuriSemanticIcon
+              family="material"
+              name={mapScheduleIconName(item.iconKey)}
+              size={30}
+              color={petTheme.primary}
+            />
+            <View style={styles.cardTextCol}>
+              <AppText preset="unifiedMicro" color={theme.colors.textSecondary}>
+                {timeLabel}
+              </AppText>
+              <AppText preset="cardTitle" color={theme.colors.textPrimary}>
+                {item.title}
+              </AppText>
+              {item.repeatRule !== 'none' || item.completedAt ? (
+                <AppText
+                  preset="unifiedMicro"
+                  color={theme.colors.textSecondary}
+                >
+                  {[
+                    item.repeatRule !== 'none' ? '반복 일정' : '',
+                    item.completedAt ? '완료' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </AppText>
+              ) : null}
+            </View>
+            {item.reminderMinutes.length ? (
+              <Feather name="bell" size={18} color={theme.colors.textMuted} />
+            ) : null}
+            <Feather name="chevron-right" size={19} color={petTheme.primary} />
+          </TouchableOpacity>
+          );
+        }}
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <NuriSemanticIcon
+              family="material"
+              name="calendar-blank-outline"
+              size={36}
+              color={petTheme.primary}
+            />
+            <AppText
+              preset="cardTitle"
+              color={theme.colors.textPrimary}
+              style={styles.centered}
+            >
+              {!petId
+                ? '우리 아이를 먼저 선택해 주세요'
+                : isInitialLoading || status === 'idle'
+                ? '일정을 불러오는 중이에요'
+                : isError
+                ? '일정을 불러오지 못했어요'
+                : query.trim()
+                ? '검색한 일정이 없어요'
+                : filter === 'past'
+                ? '지난 일정이 아직 없어요'
+                : filter === 'today'
+                ? '오늘 일정이 없어요'
+                : filter === 'upcoming'
+                ? '예정된 일정이 없어요'
+                : '등록된 일정이 아직 없어요'}
+            </AppText>
+            {isError ? (
+              <TouchableOpacity
+                accessibilityRole="button"
+                onPress={onRefresh}
+                style={styles.todayButton}
+              >
+                <AppText preset="unifiedLabel" color={petTheme.primary}>
+                  다시 불러오기
+                </AppText>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        }
+      />
     </SafeAreaView>
   );
 }

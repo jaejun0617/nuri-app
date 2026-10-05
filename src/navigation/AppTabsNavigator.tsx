@@ -84,7 +84,13 @@ function CustomTabBar(props: BottomTabBarProps) {
       ? 'more'
       : 'home';
 
-  return <AppNavigationToolbar activeKey={activeKey} />;
+  // Only the real tab bar emits reselect. Shared detail/drawer toolbars still navigate.
+  const onPressActiveHome = () => {
+    const route = state.routes[state.index];
+    if (route?.name !== 'HomeTab') return;
+    props.navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+  };
+  return <AppNavigationToolbar activeKey={activeKey} onPressActiveHome={onPressActiveHome} />;
 }
 
 export default function AppTabsNavigator() {

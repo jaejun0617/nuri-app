@@ -48,7 +48,9 @@ describe('responsive source guards', () => {
     expect(styles).toContain("textAlignVertical: 'center'");
     expect(styles).toContain('width: 44');
     expect(styles).toContain('height: 44');
-    expect(screen).toContain('paddingBottom: isInline ? 8 : insets.bottom + 6');
+    expect(screen).toContain(
+      'paddingBottom: isInline ? 8 : keyboardInset > 0 ? 6 : insets.bottom + 6',
+    );
     expect(screen).toContain('hitSlop={4}');
   });
 });

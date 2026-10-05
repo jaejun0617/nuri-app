@@ -64,9 +64,11 @@ export const HOME_EDITORIAL_ART: Readonly<
 export const HomeEditorialArtwork = memo(function HomeEditorialArtworkView({
   kind,
   season,
+  onReady,
 }: {
   kind: HomeEditorialArtKind;
   season: SeasonKey;
+  onReady?: () => void;
 }) {
   const community = kind.startsWith('community-');
   const recent = kind === 'recent';
@@ -83,9 +85,13 @@ export const HomeEditorialArtwork = memo(function HomeEditorialArtworkView({
       importantForAccessibility="no-hide-descendants"
     >
       <Image
+        key={`${kind}:${season}`}
         testID={`home-${kind}-art`}
         source={HOME_EDITORIAL_ART[kind][season]}
         resizeMode="contain"
+        fadeDuration={0}
+        onLoad={onReady}
+        onError={onReady}
         style={[styles.image, recent ? styles.recentImage : null]}
         accessible={false}
         pointerEvents="none"

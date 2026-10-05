@@ -15,6 +15,8 @@ import {
 } from 'react-native';
 import { KeyboardAvoidingView as KeyboardControllerAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated from 'react-native-reanimated';
+import { useKeyboardBottomPadding } from '../../hooks/useKeyboardBottomPadding';
 import Feather from '../icons/NuriFeatherIcon';
 import { useTheme } from 'styled-components/native';
 
@@ -298,6 +300,7 @@ function DatePickerModalBase({
 }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const bottomPaddingStyle = useKeyboardBottomPadding(16 + Math.max(insets.bottom, 8));
   const todayParts = useMemo(toTodayParts, []);
   const minimumParts = useMemo(
     () => toConstraintParts(minimumDate),
@@ -512,15 +515,16 @@ function DatePickerModalBase({
           onPress={onCancel}
         />
 
-        <View
+        <Animated.View
+          testID="date-picker-surface"
           style={[
             styles.modalCard,
             {
               backgroundColor: theme.colors.surfaceElevated,
               borderColor: theme.colors.border,
               paddingTop: 18 + Math.max(insets.top, 0),
-              paddingBottom: 16 + Math.max(insets.bottom, 8),
             },
+            bottomPaddingStyle,
           ]}
         >
           <View style={styles.calendarHeader}>
@@ -812,7 +816,7 @@ function DatePickerModalBase({
               </AppText>
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
       </KeyboardControllerAvoidingView>
     </Modal>
   );

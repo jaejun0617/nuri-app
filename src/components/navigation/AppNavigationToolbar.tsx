@@ -39,6 +39,7 @@ type Props = {
   activeKey: ActiveTabKey;
   onBeforeNavigate?: () => void;
   onPressMore?: () => void;
+  onPressActiveHome?: () => void;
   onLayout?: (event: LayoutChangeEvent) => void;
 };
 
@@ -48,6 +49,7 @@ export default function AppNavigationToolbar({
   activeKey,
   onBeforeNavigate,
   onPressMore,
+  onPressActiveHome,
   onLayout,
 }: Props) {
   const navigation = useNavigation<Nav>();
@@ -76,6 +78,10 @@ export default function AppNavigationToolbar({
 
   const navigateTo = useCallback(
     (target: ActiveTabKey) => {
+      if (target === 'home' && activeKey === 'home' && onPressActiveHome) {
+        onPressActiveHome();
+        return;
+      }
       onBeforeNavigate?.();
       const entrySource: ScreenEntrySource =
         activeKey === 'more' ? 'more' : 'home';
@@ -118,7 +124,7 @@ export default function AppNavigationToolbar({
         screen: 'HomeTab',
       });
     },
-    [activeKey, navigation, onBeforeNavigate, onPressMore],
+    [activeKey, navigation, onBeforeNavigate, onPressMore, onPressActiveHome],
   );
 
   const tabs = useMemo(

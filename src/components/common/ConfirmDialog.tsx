@@ -35,6 +35,7 @@ type Props = {
   onCancel: () => void;
   typographyMode?: 'legacy' | 'unified';
   keyboardAware?: boolean;
+  embedded?: boolean;
 };
 
 function resolveToneMeta(
@@ -83,6 +84,7 @@ function ConfirmDialogBase({
   onCancel,
   typographyMode = 'legacy',
   keyboardAware = false,
+  embedded = false,
 }: Props) {
   const theme = useTheme();
   const insets = useOptionalSafeAreaInsets();
@@ -96,7 +98,8 @@ function ConfirmDialogBase({
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
   const selectedPet = useMemo(
-    () => pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
+    () =>
+      pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
     [pets, selectedPetId],
   );
   const petTheme = useMemo(
@@ -104,43 +107,40 @@ function ConfirmDialogBase({
     [selectedPet?.themeColor, theme.colors.brand],
   );
   const resolvedAccentColor = accentColor ?? petTheme.primary;
-  const textPresets = typographyMode === 'unified'
-    ? {
-        title: 'unifiedTitle' as const,
-        body: 'unifiedBody' as const,
-        button: 'unifiedLabel' as const,
-      }
-    : {
-        title: 'headline' as const,
-        body: 'bodySm' as const,
-        button: 'button' as const,
-      };
+  const textPresets =
+    typographyMode === 'unified'
+      ? {
+          title: 'unifiedTitle' as const,
+          body: 'unifiedBody' as const,
+          button: 'unifiedLabel' as const,
+        }
+      : {
+          title: 'headline' as const,
+          body: 'bodySm' as const,
+          button: 'button' as const,
+        };
   const lines = useMemo(() => message.split('\n'), [message]);
   const toneMeta = useMemo(
-    () =>
-      resolveToneMeta(
-        tone,
-        resolvedAccentColor,
-        theme.colors.danger,
-      ),
+    () => resolveToneMeta(tone, resolvedAccentColor, theme.colors.danger),
     [resolvedAccentColor, theme.colors.danger, tone],
   );
 
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onCancel}
-    >
+  const content = (
       <KeyboardControllerAvoidingView
-        style={[styles.backdrop, { backgroundColor: theme.colors.overlay }]}
-        behavior="padding"
+        style={[
+          styles.backdrop,
+          embedded ? StyleSheet.absoluteFill : null,
+          { backgroundColor: theme.colors.overlay },
+        ]}
+        behavior={embedded ? 'height' : 'padding'}
         enabled={keyboardAware}
+        automaticOffset
         keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
       >
         <Pressable style={styles.scrim} onPress={onCancel} />
         <View
+          testID="confirm-dialog-card"
+          accessibilityViewIsModal
           style={[
             styles.card,
             {
@@ -156,33 +156,52 @@ function ConfirmDialogBase({
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-          <View style={styles.copyBlock}>
-            <AppText preset={textPresets.title} style={[styles.title, children ? styles.richTextAlignment : null, { color: theme.colors.textPrimary }]}>
-              {title}
-            </AppText>
+            <View style={styles.copyBlock}>
+              <AppText
+                preset={textPresets.title}
+                style={[
+                  styles.title,
+                  children ? styles.richTextAlignment : null,
+                  { color: theme.colors.textPrimary },
+                ]}
+              >
+                {title}
+              </AppText>
 
-            <View style={styles.messageBlock}>
-              {lines.map((line, index) =>
-                line.trim().length > 0 ? (
-                  <AppText
-                    key={`${line}-${index}`}
-                    preset={textPresets.body}
-                    style={[styles.message, children ? styles.richTextAlignment : null, { color: theme.colors.textSecondary }]}
-                  >
-                    {line}
-                  </AppText>
-                ) : (
-                  <View key={`spacer-${index}`} style={styles.messageSpacer} />
-                ),
-              )}
+              <View style={styles.messageBlock}>
+                {lines.map((line, index) =>
+                  line.trim().length > 0 ? (
+                    <AppText
+                      key={`${line}-${index}`}
+                      preset={textPresets.body}
+                      style={[
+                        styles.message,
+                        children ? styles.richTextAlignment : null,
+                        { color: theme.colors.textSecondary },
+                      ]}
+                    >
+                      {line}
+                    </AppText>
+                  ) : (
+                    <View
+                      key={`spacer-${index}`}
+                      style={styles.messageSpacer}
+                    />
+                  ),
+                )}
+              </View>
             </View>
-          </View>
 
-          {children ? <View style={styles.extraContent}>{children}</View> : null}
-
+            {children ? (
+              <View style={styles.extraContent}>{children}</View>
+            ) : null}
+          </ScrollView>
           {!hideActions ? (
-            <View style={styles.buttonRow}>
+            <View testID="confirm-dialog-actions" style={styles.buttonRow}>
               <TouchableOpacity
+                testID="confirm-dialog-cancel"
+                accessibilityRole="button"
+                accessibilityLabel={cancelLabel}
                 activeOpacity={0.9}
                 style={[
                   styles.button,
@@ -191,12 +210,21 @@ function ConfirmDialogBase({
                 ]}
                 onPress={onCancel}
               >
-                <AppText preset={textPresets.button} style={[styles.cancelButtonText, { color: toneMeta.cancelText }]}>
+                <AppText
+                  preset={textPresets.button}
+                  style={[
+                    styles.cancelButtonText,
+                    { color: toneMeta.cancelText },
+                  ]}
+                >
                   {cancelLabel}
                 </AppText>
               </TouchableOpacity>
 
               <TouchableOpacity
+                testID="confirm-dialog-confirm"
+                accessibilityRole="button"
+                accessibilityLabel={confirmLabel}
                 activeOpacity={0.9}
                 disabled={confirmDisabled}
                 style={[
@@ -209,15 +237,31 @@ function ConfirmDialogBase({
                 ]}
                 onPress={onConfirm}
               >
-                <AppText preset={textPresets.button} style={[styles.confirmButtonText, { color: toneMeta.confirmText }]}>
+                <AppText
+                  preset={textPresets.button}
+                  style={[
+                    styles.confirmButtonText,
+                    { color: toneMeta.confirmText },
+                  ]}
+                >
                   {confirmLabel}
                 </AppText>
               </TouchableOpacity>
             </View>
           ) : null}
-          </ScrollView>
         </View>
       </KeyboardControllerAvoidingView>
+  );
+  // Native sheets can own confirmation without stacking another Android window.
+  if (embedded) return visible ? content : null;
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onCancel}
+    >
+      {content}
     </Modal>
   );
 }
@@ -232,6 +276,8 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
   },
   card: {
+    flexShrink: 1,
+    minHeight: 0,
     width: '100%',
     maxWidth: 440,
     alignSelf: 'center',
@@ -251,8 +297,8 @@ const styles = StyleSheet.create({
           elevation: 6,
         }),
   },
-  cardScroll: { flexGrow: 0, width: '100%' },
-  cardContent: { gap: 18 },
+  cardScroll: { flexGrow: 0, flexShrink: 1, minHeight: 0, width: '100%' },
+  cardContent: { gap: 18, paddingBottom: 18 },
   copyBlock: {
     gap: 8,
   },

@@ -3,7 +3,7 @@
 // - 홈 화면의 날씨 요약을 낮/밤 프리미엄 카드로 렌더링한다.
 // - 날씨 번들의 안전 문구와 선택 펫 이름을 표시 계층에서 개인화한다.
 
-import React from 'react';
+import React, { type PropsWithChildren } from 'react';
 import {
   Image,
   StyleSheet,
@@ -11,11 +11,14 @@ import {
   TouchableOpacity,
   useWindowDimensions,
   View,
+  type StyleProp,
+  type ViewStyle,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import LinearGradient from 'react-native-linear-gradient';
 
-import { HomeSectionGlassSurface } from '../home/HomeSectionGlass';
+import { HomeFrostedGlass } from '../home/HomeFrostedGlass';
+import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
 import { resolveWeatherMetricLayout } from './weatherMetricLayout';
 
 import {
@@ -40,6 +43,23 @@ type Notice = {
   message: string;
   detail: string;
 };
+
+function WeatherMaterialFrame({ children, colors, style, frosted }: PropsWithChildren<{
+  colors: string[];
+  style: StyleProp<ViewStyle>;
+  frosted: boolean;
+}>) {
+  const season = useEffectiveSeason();
+  return frosted ? (
+    <HomeFrostedGlass season={season} borderRadius={27} style={[{ marginTop: 0 }, style]}>
+      {children}
+    </HomeFrostedGlass>
+  ) : (
+    <LinearGradient colors={colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={style}>
+      {children}
+    </LinearGradient>
+  );
+}
 
 export const WEATHER_DAY_BORDER_COLORS = [
   '#8ED7FF',
@@ -243,10 +263,9 @@ export default React.memo(function WeatherGuideHomeCard({
       accessibilityRole="button"
       accessibilityLabel="날씨 상세 보기"
     >
-      <LinearGradient
+      <WeatherMaterialFrame
+        frosted={!!visualTheme}
         colors={gradientColors}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
         style={[
           styles.outerBorder,
           visualTheme ? styles.seasonalOuterBorder : null,
@@ -273,11 +292,6 @@ export default React.memo(function WeatherGuideHomeCard({
               />
             </View>
           </View>
-        ) : null}
-        {visualTheme ? (
-          <HomeSectionGlassSurface
-            borderRadius={styles.outerBorder.borderRadius}
-          />
         ) : null}
         <LinearGradient
           colors={surfaceColors}
@@ -541,7 +555,7 @@ export default React.memo(function WeatherGuideHomeCard({
             />
           </View>
         </LinearGradient>
-      </LinearGradient>
+      </WeatherMaterialFrame>
     </TouchableOpacity>
   );
 });

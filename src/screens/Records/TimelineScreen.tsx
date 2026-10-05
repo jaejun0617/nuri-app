@@ -1275,7 +1275,7 @@ export default function TimelineScreen() {
   const getItemType = useCallback(() => 'memory', []);
 
   const listFooterComponent = useMemo(() => {
-    if (timelineIds.length === 0) return null;
+    if (filteredIds.length === 0) return null;
 
     if (status === 'loadingMore') {
       return (
@@ -1299,7 +1299,7 @@ export default function TimelineScreen() {
     }
 
     return <View style={{ height: 18 }} />;
-  }, [hasMore, status, timelineIds.length]);
+  }, [filteredIds.length, hasMore, status]);
 
   const listEmptyComponent = useMemo(() => {
     const shouldRenderActualEmpty = shouldShowTimelineEmpty({

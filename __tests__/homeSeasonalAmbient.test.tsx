@@ -38,10 +38,10 @@ describe('seasonal Home ambient material', () => {
     const autumn = getHomeAmbientVisual('autumn');
     expect(autumn.baseGradient).toBe(HOME_AMBIENT_BASE_GRADIENT);
     expect(autumn.fields).toBe(HOME_AMBIENT_MESH_FIELDS);
-    expect(autumn.baseColor).toBe('#FFF9F0');
+    expect(autumn.baseColor).toBe('#FFF3DE');
     expect(autumn.heroFields).toEqual([]);
     expect(autumn.sectionFields).toHaveLength(20);
-    expect(autumn.centerWashOpacity).toBe(0.38);
+    expect(autumn.centerWashOpacity).toBe(0.20);
     expect(autumn.glassSurface).toBe('rgba(255, 252, 246, 0.50)');
     expect(autumn.lightHalo).toBe('#FFFDEB');
   });
@@ -439,7 +439,7 @@ describe('seasonal Home ambient material', () => {
       const autumn = fs.readFileSync(
         path.join(
           __dirname,
-          '../src/assets/seasonal/home/autumn/bubbles/pearl-bubble-v1.png',
+          '../src/assets/seasonal/home/autumn/bubbles/pearl-bubble-apricot-v3.png',
         ),
       );
       expect(texture.equals(autumn)).toBe(false);

@@ -240,15 +240,15 @@ const HOME_AMBIENT_VISUALS: Record<SeasonKey, HomeAmbientVisual> = {
     heroFields: [],
     // Keep colored variation while the edge wash covers gaps between radial fields.
     sectionFields: sectionFields(
-      ['#F9DCCB', '#EDE2ED', '#FED4BE'],
+      ['#F7C896', '#F2D6A4', '#F3B88A'],
       [0.4, 0.34],
     ),
     lowerEdgeWash: [
-      'rgba(249, 201, 175, 0.46)',
-      'rgba(249, 220, 203, 0.14)',
-      'rgba(249, 220, 203, 0)',
-      'rgba(254, 212, 190, 0.18)',
-      'rgba(254, 202, 176, 0.48)',
+      'rgba(246, 191, 135, 0.46)',
+      'rgba(249, 212, 162, 0.14)',
+      'rgba(249, 212, 162, 0)',
+      'rgba(253, 220, 163, 0.18)',
+      'rgba(248, 186, 129, 0.48)',
     ],
     headerWash: [
       'rgba(255, 251, 246, 0.16)',
@@ -256,8 +256,8 @@ const HOME_AMBIENT_VISUALS: Record<SeasonKey, HomeAmbientVisual> = {
       'rgba(255, 251, 246, 0)',
     ],
     glassSurface: 'rgba(255, 252, 246, 0.50)',
-    bubbleTexture: require('../../assets/seasonal/home/autumn/bubbles/pearl-bubble-v1.png'),
-    centerWashOpacity: 0.38,
+    bubbleTexture: require('../../assets/seasonal/home/autumn/bubbles/pearl-bubble-apricot-v3.png'),
+    centerWashOpacity: 0.20,
     lightHalo: '#FFFDEB',
   },
   winter: {

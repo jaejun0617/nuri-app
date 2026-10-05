@@ -1,155 +1,95 @@
 import { StyleSheet } from 'react-native';
 
-const TEXT = '#0B1220';
-const MUTED = '#556070';
-const BG = '#FFFFFF';
-const SURFACE = '#FFFFFF';
-const BORDER = 'rgba(0,0,0,0.06)';
-const BRAND = '#6D6AF8';
-
 export const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: BG },
-  scroll: { flex: 1 },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 32,
-    gap: 14,
-  },
-
+  screen: { flex: 1 },
+  ambient: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
   header: {
     paddingHorizontal: 18,
-    paddingTop: 8,
     paddingBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: BG,
-  },
-  headerSideSlot: {
-    width: 88,
-    minHeight: 40,
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-  },
-  headerSideSlotRight: {
-    alignItems: 'flex-end',
   },
   headerBackButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.8)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    color: TEXT,
-    fontWeight: '900',
-  },
-  headerCreateBtn: {
-    height: 36,
+  headerTitle: { flex: 1, minWidth: 0, textAlign: 'center' },
+  scroll: { flex: 1 },
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 32 },
+  subtitle: { marginTop: 8, marginBottom: 14 },
+  search: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.85)',
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.56)',
     paddingHorizontal: 12,
-    borderRadius: 999,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: BRAND,
   },
-  headerCreateText: {
-    color: '#FFFFFF',
-    fontWeight: '900',
-  },
-
-  heroCard: {
-    borderRadius: 22,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: SURFACE,
-    borderWidth: 1,
-    borderColor: BORDER,
-    gap: 4,
-  },
-  heroTitle: {
-    color: TEXT,
-    fontWeight: '900',
-  },
-  heroSub: {
-    color: MUTED,
-    fontWeight: '700',
-  },
-
-  list: {
-    gap: 10,
-  },
-  card: {
-    borderRadius: 22,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    backgroundColor: SURFACE,
-    borderWidth: 1,
-    borderColor: BORDER,
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'flex-start',
-  },
-  cardIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 999,
+  searchInput: { flex: 1, minWidth: 0, minHeight: 46, paddingVertical: 10 },
+  clearButton: {
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
   },
-  cardTextCol: {
+  filterRow: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  segments: {
     flex: 1,
-    gap: 4,
-  },
-  cardTitle: {
-    color: TEXT,
-    fontWeight: '800',
-  },
-  cardMeta: {
-    color: MUTED,
-    fontWeight: '700',
-  },
-  cardNote: {
-    color: 'rgba(85,96,112,0.82)',
-    lineHeight: 17,
-  },
-
-  emptyCard: {
-    borderRadius: 24,
-    paddingHorizontal: 20,
-    paddingVertical: 24,
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: SURFACE,
+    width: '100%',
+    flexDirection: 'row',
+    padding: 3,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: 'rgba(255,255,255,0.85)',
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.30)',
   },
-  emptyTitle: {
-    color: TEXT,
-    fontWeight: '900',
-    textAlign: 'center',
-  },
-  emptyDesc: {
-    color: MUTED,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  primaryBtn: {
-    marginTop: 4,
-    height: 48,
-    minWidth: 164,
-    paddingHorizontal: 18,
-    borderRadius: 14,
+  segment: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 44,
+    paddingHorizontal: 6,
+    paddingVertical: 10,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: BRAND,
   },
-  primaryBtnText: {
-    color: '#FFFFFF',
-    fontWeight: '900',
+  segmentsGrid: { flexWrap: 'wrap' },
+  segmentGrid: { flexBasis: '50%', flexGrow: 0 },
+  todayButton: {
+    minHeight: 44,
+    paddingHorizontal: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  monthTitle: { marginTop: 20, marginBottom: 8 },
+  dayTitle: { marginTop: 12, marginBottom: 8 },
+  card: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.75)',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    backgroundColor: 'rgba(255,255,255,0.52)',
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  cardTextCol: { flex: 1, minWidth: 0, gap: 4 },
+  empty: { paddingVertical: 36, gap: 12, alignItems: 'center' },
+  centered: { textAlign: 'center' },
 });

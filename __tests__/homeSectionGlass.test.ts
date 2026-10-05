@@ -1,6 +1,8 @@
 import React from 'react';
 import * as ReactNative from 'react-native';
 import ReactTestRenderer from 'react-test-renderer';
+import { BlurView } from '@sbaiahmed1/react-native-blur';
+import { resolveHomeFrostedMaterial } from '../src/components/home/HomeFrostedGlass';
 
 import {
   HOME_SECTION_GLASS_MATERIAL_STYLE,
@@ -96,7 +98,7 @@ describe('Home section glass', () => {
     if (!renderer) throw new Error('Home glass did not render');
 
     const section = renderer.root.findAll(
-      node => node.type === ReactNative.View && node.props.testID === 'section',
+      node => node.type === BlurView && node.props.testID === 'section',
     )[0];
     expect(ReactNative.StyleSheet.flatten(section.props.style)).toMatchObject({
       padding: 14,
@@ -107,7 +109,7 @@ describe('Home section glass', () => {
     });
     const surfaces = renderer.root
       .findAllByProps({
-        testID: 'home-section-glass-surface',
+        testID: 'home-frosted-tint',
       })
       .filter(node => node.type === ReactNative.View);
     expect(surfaces).toHaveLength(1);
@@ -115,11 +117,10 @@ describe('Home section glass', () => {
     expect(
       ReactNative.StyleSheet.flatten(surfaces[0].props.style),
     ).toMatchObject({
-      ...resolveHomeSectionGlassMaterial('autumn'),
+      backgroundColor: resolveHomeFrostedMaterial('autumn').backgroundColor,
+      borderColor: resolveHomeFrostedMaterial('autumn').borderColor,
       position: 'absolute',
       borderRadius: 22,
-      elevation: 0,
-      shadowOpacity: 0,
     });
     const content = renderer.root.findByProps({ testID: 'content' });
     expect(content.props.style).toBe(contentStyle);
@@ -166,7 +167,7 @@ describe('Home section glass', () => {
 
       const frame = renderer.root.findAll(node =>
         Boolean(
-          node.props.colors &&
+          node.type === BlurView &&
             ReactNative.StyleSheet.flatten(node.props.style)?.padding === 1.25,
         ),
       )[0];
@@ -178,7 +179,7 @@ describe('Home section glass', () => {
       });
       const surfaces = renderer.root
         .findAllByProps({
-          testID: 'home-section-glass-surface',
+          testID: 'home-frosted-tint',
         })
         .filter(node => node.type === ReactNative.View);
       expect(surfaces).toHaveLength(1);
@@ -186,7 +187,8 @@ describe('Home section glass', () => {
       expect(
         ReactNative.StyleSheet.flatten(surfaces[0].props.style),
       ).toMatchObject({
-        ...resolveHomeSectionGlassMaterial(season),
+        backgroundColor: resolveHomeFrostedMaterial(season).backgroundColor,
+        borderColor: resolveHomeFrostedMaterial(season).borderColor,
         borderRadius: 27,
       });
       const action = renderer.root.findByType(ReactNative.TouchableOpacity);

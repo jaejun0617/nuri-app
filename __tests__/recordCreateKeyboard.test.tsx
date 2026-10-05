@@ -20,6 +20,7 @@ jest.mock('react-native-keyboard-controller', () => {
   const ReactRuntime = jest.requireActual('react') as typeof React;
 
   return {
+    useReanimatedKeyboardAnimation: () => ({ progress: { value: mockKeyboardVisible ? 1 : 0 } }),
     KeyboardAwareScrollView: ReactRuntime.forwardRef(
       (
         {

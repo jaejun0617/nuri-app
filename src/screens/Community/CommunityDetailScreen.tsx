@@ -20,6 +20,8 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { KeyboardAvoidingView as KeyboardControllerAvoidingView } from 'react-native-keyboard-controller';
+import Animated from 'react-native-reanimated';
+import { useKeyboardBottomPadding } from '../../hooks/useKeyboardBottomPadding';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from '../../components/icons/NuriFeatherIcon';
 import MaterialCommunityIcons from '../../components/icons/NuriMaterialIcon';
@@ -132,6 +134,7 @@ export default function CommunityDetailScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
+  const reportBottomPaddingStyle = useKeyboardBottomPadding(Math.max(insets.bottom, 16) + 8);
   const theme = useTheme();
   const flatListRef = useRef<FlatList<string> | null>(null);
   const commentInputRef = useRef<React.ComponentRef<typeof TextInput> | null>(null);
@@ -464,7 +467,6 @@ export default function CommunityDetailScreen() {
   const detailBottomInset = insets.bottom + 156;
   const detailKeyboardBottomInset =
     replyTargetId !== null ? Math.max(keyboardInset, replyKeyboardInset) : 0;
-  const reportBottomInset = Math.max(insets.bottom, 16) + 8;
   const canShowCommentComposer =
     !!post &&
     detailStatus !== 'deleted' &&
@@ -1195,7 +1197,7 @@ export default function CommunityDetailScreen() {
                   ? 16
                   : 0
                 : 20,
-              paddingBottom: isInline ? 8 : insets.bottom + 6,
+              paddingBottom: isInline ? 8 : keyboardInset > 0 ? 6 : insets.bottom + 6,
               marginBottom: isInline ? 0 : keyboardInset,
             },
           ]}
@@ -1765,23 +1767,22 @@ export default function CommunityDetailScreen() {
           ]}
           behavior="padding"
           enabled
-          keyboardVerticalOffset={
-            Platform.OS === 'ios' ? 12 : Math.max(insets.bottom, 8)
-          }
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
         >
           <Pressable style={styles.menuScrim} onPress={closeReportModal} />
           <Pressable
             style={styles.reportSheetTouchGuard}
             onPress={Keyboard.dismiss}
           >
-            <View
+            <Animated.View
+              testID="community-report-surface"
               style={[
                 styles.reportSheet,
                 {
                   backgroundColor: theme.colors.surfaceElevated,
                   borderColor: theme.colors.brand,
-                  paddingBottom: reportBottomInset,
                 },
+                reportBottomPaddingStyle,
               ]}
             >
               <View
@@ -1904,7 +1905,7 @@ export default function CommunityDetailScreen() {
                   </AppText>
                 </TouchableOpacity>
               </View>
-            </View>
+            </Animated.View>
           </Pressable>
         </KeyboardControllerAvoidingView>
       </Modal>

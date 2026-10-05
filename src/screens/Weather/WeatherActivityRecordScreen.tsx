@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import {
   KeyboardAwareScrollView,
+  useKeyboardState,
   type KeyboardAwareScrollViewRef,
 } from 'react-native-keyboard-controller';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -72,6 +73,7 @@ export default function WeatherActivityRecordScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
+  const keyboardVisible = useKeyboardState(state => state.isVisible);
 
   const userId = useAuthStore(s => s.session?.user?.id ?? null);
   const pets = usePetStore(s => s.pets);
@@ -281,7 +283,7 @@ export default function WeatherActivityRecordScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView testID="weather-activity-record-screen" style={styles.safe} edges={keyboardVisible ? ['top', 'left', 'right'] : ['top', 'left', 'right', 'bottom']}>
       <View style={styles.keyboardContent}>
         <View style={styles.header}>
           <View style={styles.headerSideSlot}>
@@ -303,7 +305,7 @@ export default function WeatherActivityRecordScreen() {
           style={styles.scroll}
           contentContainerStyle={[
             styles.content,
-            { paddingBottom: Math.max(insets.bottom + 28, 40) },
+            { paddingBottom: keyboardVisible ? 12 : Math.max(insets.bottom + 28, 40) },
           ]}
           keyboardDismissMode="none"
           keyboardShouldPersistTaps="handled"

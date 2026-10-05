@@ -1690,6 +1690,7 @@ export default function HealthReportScreen() {
           onPress={() => setSelectedInsightMetric(null)}
         >
           <Pressable
+            onPress={event => event.stopPropagation()}
             style={[
               styles.insightDetailSheet,
               {
@@ -1764,6 +1765,7 @@ export default function HealthReportScreen() {
       >
         <Pressable style={styles.sheetBackdrop} onPress={closeHealthWriteActions}>
           <Pressable
+            onPress={event => event.stopPropagation()}
             style={[
               styles.writeActionSheet,
               {

@@ -6,17 +6,17 @@
 
 import AppTextInput from '../../app/ui/AppTextInput';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { BackHandler, TouchableOpacity, View } from 'react-native';
 import {
-  Alert,
-  BackHandler,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   KeyboardAwareScrollView,
+  useKeyboardState,
   type KeyboardAwareScrollViewRef,
 } from 'react-native-keyboard-controller';
 import {
@@ -35,50 +35,15 @@ import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { resolveScheduleReturnTarget } from '../../navigation/scheduleReturn';
 import type { RootScreenRoute } from '../../navigation/types';
 import {
-  getBrandedErrorMeta,
-  getErrorMessage,
-} from '../../services/app/errors';
-import {
-  createSchedule,
-  type ScheduleCategory,
-  type ScheduleColorKey,
-  type ScheduleIconKey,
-  type ScheduleRepeatRule,
-} from '../../services/supabase/schedules';
-import {
-  buildReminderMinutesFromSelection,
-  formatReminderMinutesSummary,
   formatScheduleDateSummary,
-  getAutoScheduleIconKey,
-  inferScheduleSubCategory,
-  normalizeScheduleDateInput,
-  normalizeScheduleTimeInput,
-  SCHEDULE_CATEGORY_OPTIONS,
   SCHEDULE_COLOR_OPTIONS,
   SCHEDULE_ICON_OPTIONS,
-  SCHEDULE_OTHER_UI_SUBCATEGORY_OPTIONS,
   SCHEDULE_REMINDER_OPTIONS,
   SCHEDULE_REPEAT_OPTIONS,
-  SCHEDULE_WRITE_CATEGORY_OPTIONS,
-  SCHEDULE_WRITE_OTHER_UI_SUBCATEGORY_OPTIONS,
-  toScheduleDateInput,
-  buildScheduleStartsAtIso,
-  type ScheduleOtherUiSubCategoryKey,
-  type ScheduleReminderOptionKey,
 } from '../../services/schedules/form';
-import {
-  checkScheduleNotificationPermission,
-  getScheduleNotificationHelperText,
-  getScheduleNotificationSyncFeedback,
-  captureScheduleNotificationLifecycle,
-  requestScheduleNotificationPermission,
-  upsertScheduleNotification,
-} from '../../services/schedules/notifications';
-import { useScheduleNotificationSettings } from '../../hooks/useScheduleNotificationSettings';
+import { useScheduleCreateForm } from '../../hooks/useScheduleCreateForm';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { resolveSelectedPetId, usePetStore } from '../../store/petStore';
-import { useScheduleStore } from '../../store/scheduleStore';
-import { showToast } from '../../store/uiStore';
 import { styles } from './ScheduleCreateScreen.styles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'ScheduleCreate'>;
@@ -88,26 +53,17 @@ export default function ScheduleCreateScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
+  const keyboardVisible = useKeyboardState(state => state.isVisible);
   const queryClient = useQueryClient();
   const routePetId = route.params?.petId ?? null;
-  const startsAtParam = route.params?.startsAt?.trim() ?? null;
   const returnTo = route.params?.returnTo;
   const resolvedReturnTo = resolveScheduleReturnTarget(
     returnTo,
     route.params?.entrySource,
   );
-  const isHealthManagementEntry = returnTo?.screen === 'HealthReport';
-  const initialTitle = route.params?.initialTitle ?? '';
-  const initialCategory = route.params?.initialCategory ?? 'other';
-  const initialOtherUiSubCategoryKey =
-    route.params?.initialOtherUiSubCategoryKey ?? null;
-  const initialHealthSubCategory = route.params?.initialHealthSubCategory;
-  const initialIconKey = route.params?.initialIconKey ?? 'medical-bag';
-  const initialColorKey = route.params?.initialColorKey ?? 'brand';
 
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
-  const refresh = useScheduleStore(s => s.refresh);
 
   const petId = useMemo(() => {
     return resolveSelectedPetId(pets, selectedPetId, routePetId);
@@ -121,85 +77,66 @@ export default function ScheduleCreateScreen() {
     [selectedPet?.themeColor],
   );
 
-  const initialDate = useMemo(() => {
-    if (startsAtParam) {
-      const date = new Date(startsAtParam);
-      if (!Number.isNaN(date.getTime())) return date;
-    }
-    return new Date();
-  }, [startsAtParam]);
-  const initialDateText = useMemo(() => toScheduleDateInput(initialDate), [initialDate]);
-
-  const [title, setTitle] = useState(initialTitle);
-  const [note, setNote] = useState('');
-  const [dateText, setDateText] = useState(toScheduleDateInput(initialDate));
-  const [timeText, setTimeText] = useState('10:00');
-  const [allDay, setAllDay] = useState(false);
-  const [category, setCategory] = useState<ScheduleCategory>(initialCategory);
-  const [otherUiSubCategoryKey, setOtherUiSubCategoryKey] =
-    useState<ScheduleOtherUiSubCategoryKey | null>(initialOtherUiSubCategoryKey);
-  const [iconKey, setIconKey] = useState<ScheduleIconKey>(initialIconKey);
-  const [colorKey, setColorKey] = useState<ScheduleColorKey>(initialColorKey);
-  const [saving, setSaving] = useState(false);
   const [exitConfirmVisible, setExitConfirmVisible] = useState(false);
-  const [dateModalVisible, setDateModalVisible] = useState(false);
-  const [repeatRule, setRepeatRule] = useState<ScheduleRepeatRule>('none');
-  const [reminderKey, setReminderKey] =
-    useState<ScheduleReminderOptionKey>('none');
-  const [customReminderMinutesText, setCustomReminderMinutesText] =
-    useState('');
-  const { settings: notificationSettings, refresh: refreshNotificationSettings } =
-    useScheduleNotificationSettings();
-  const notificationPermissionStatus = notificationSettings?.permission ?? 'unsupported';
-  const categoryOptions = useMemo(
-    () =>
-      isHealthManagementEntry || category === 'health'
-        ? SCHEDULE_CATEGORY_OPTIONS
-        : SCHEDULE_WRITE_CATEGORY_OPTIONS,
-    [category, isHealthManagementEntry],
+  const onSaved = useCallback(
+    async ({ ymd }: { id: string; ymd: string }) => {
+      if (!petId) return;
+      if (resolvedReturnTo.screen === 'HealthReport') {
+        await queryClient.invalidateQueries({
+          queryKey: ['health-report', 'month', petId],
+        });
+        navigation.popTo('HealthReport', {
+          petId,
+          initialTab: resolvedReturnTo.initialTab ?? 'records',
+          focusYmd: ymd,
+          entrySource: resolvedReturnTo.entrySource,
+        });
+        return;
+      }
+      navigation.popTo('ScheduleList', {
+        petId,
+        entrySource: resolvedReturnTo.entrySource,
+      });
+    },
+    [navigation, petId, queryClient, resolvedReturnTo],
   );
-  const otherSubCategoryOptions = useMemo(
-    () =>
-      isHealthManagementEntry || otherUiSubCategoryKey === 'hospital'
-        ? SCHEDULE_OTHER_UI_SUBCATEGORY_OPTIONS
-        : SCHEDULE_WRITE_OTHER_UI_SUBCATEGORY_OPTIONS,
-    [isHealthManagementEntry, otherUiSubCategoryKey],
-  );
-  const hasUnsavedChanges = useMemo(
-    () =>
-      title.trim() !== initialTitle.trim() ||
-      note.trim().length > 0 ||
-      dateText !== initialDateText ||
-      timeText !== '10:00' ||
-      allDay ||
-      category !== initialCategory ||
-      otherUiSubCategoryKey !== initialOtherUiSubCategoryKey ||
-      iconKey !== initialIconKey ||
-      colorKey !== initialColorKey ||
-      repeatRule !== 'none' ||
-      reminderKey !== 'none' ||
-      customReminderMinutesText.trim().length > 0,
-    [
-      allDay,
-      category,
-      colorKey,
-      dateText,
-      iconKey,
-      initialDateText,
-      initialCategory,
-      initialColorKey,
-      initialIconKey,
-      initialOtherUiSubCategoryKey,
-      initialTitle,
-      note,
-      otherUiSubCategoryKey,
-      customReminderMinutesText,
-      reminderKey,
-      repeatRule,
-      timeText,
-      title,
-    ],
-  );
+  const {
+    title,
+    setTitle,
+    note,
+    setNote,
+    dateText,
+    timeText,
+    allDay,
+    setAllDay,
+    category,
+    otherUiSubCategoryKey,
+    iconKey,
+    setIconKey,
+    colorKey,
+    setColorKey,
+    saving,
+    persisted,
+    hasUnsavedChanges,
+    dateModalVisible,
+    setDateModalVisible,
+    repeatRule,
+    setRepeatRule,
+    reminderKey,
+    customReminderMinutesText,
+    setCustomReminderMinutesText,
+    categoryOptions,
+    otherSubCategoryOptions,
+    onOpenDateModal,
+    onConfirmDate,
+    onConfirmDateTime,
+    onSelectCategory,
+    onSelectOtherSubCategory,
+    onSelectReminder,
+    onSubmit,
+    reminderHelperText,
+    reminderSummaryText,
+  } = useScheduleCreateForm({ petId, params: route.params, onSaved });
 
   const goBackByEntrySource = useCallback(() => {
     if (navigation.canGoBack()) {
@@ -224,12 +161,12 @@ export default function ScheduleCreateScreen() {
 
   const onPressBack = useCallback(() => {
     if (saving) return;
-    if (hasUnsavedChanges) {
+    if (hasUnsavedChanges && !persisted) {
       setExitConfirmVisible(true);
       return;
     }
     goBackByEntrySource();
-  }, [goBackByEntrySource, hasUnsavedChanges, saving]);
+  }, [goBackByEntrySource, hasUnsavedChanges, persisted, saving]);
 
   useFocusEffect(
     useCallback(() => {
@@ -247,225 +184,9 @@ export default function ScheduleCreateScreen() {
     }, [onPressBack]),
   );
 
-  const onOpenDateModal = useCallback(() => {
-    setDateModalVisible(true);
-  }, []);
-
-  const onConfirmDate = useCallback((nextDate: Date) => {
-    setDateText(toScheduleDateInput(nextDate).replace(/-/g, '.'));
-    setDateModalVisible(false);
-  }, []);
-
-  const onConfirmDateTime = useCallback((nextDate: Date, nextTimeText: string) => {
-    try {
-      const normalized = normalizeScheduleTimeInput(nextTimeText);
-      setDateText(toScheduleDateInput(nextDate).replace(/-/g, '.'));
-      setTimeText(normalized);
-      setDateModalVisible(false);
-    } catch (error) {
-      Alert.alert('시간 확인', getErrorMessage(error));
-    }
-  }, []);
-
-  const onSelectCategory = useCallback((nextCategory: ScheduleCategory) => {
-    setCategory(nextCategory);
-    if (nextCategory !== 'other') {
-      setOtherUiSubCategoryKey(null);
-      setIconKey(getAutoScheduleIconKey(nextCategory));
-    } else {
-      setOtherUiSubCategoryKey(prev => {
-        const nextOtherKey = prev ?? 'etc';
-        setIconKey(getAutoScheduleIconKey(nextCategory, nextOtherKey));
-        return nextOtherKey;
-      });
-    }
-  }, []);
-
-  const onSelectOtherSubCategory = useCallback(
-    (nextKey: ScheduleOtherUiSubCategoryKey) => {
-      setOtherUiSubCategoryKey(nextKey);
-      setIconKey(getAutoScheduleIconKey('other', nextKey));
-    },
-    [],
-  );
-
-  const onSelectReminder = useCallback(
-    async (nextKey: ScheduleReminderOptionKey) => {
-      setReminderKey(nextKey);
-      if (nextKey === 'none') {
-        setCustomReminderMinutesText('');
-        return;
-      }
-
-      const currentPermission = await checkScheduleNotificationPermission();
-      if (currentPermission === 'granted') {
-        await refreshNotificationSettings();
-        return;
-      }
-
-      const requestedPermission = await requestScheduleNotificationPermission();
-      await refreshNotificationSettings();
-
-      if (requestedPermission !== 'granted') {
-        Alert.alert(
-          '알림 권한 필요',
-          '권한이 허용되지 않으면 일정 데이터에는 저장되지만 실제 기기 알림은 오지 않아요.',
-        );
-      }
-    },
-    [refreshNotificationSettings],
-  );
-
-  const onSubmit = useCallback(async () => {
-    if (!petId) {
-      Alert.alert('반려동물을 찾을 수 없어요.');
-      return;
-    }
-
-    const trimmedTitle = title.trim();
-    if (!trimmedTitle) {
-      Alert.alert('일정 제목을 입력해 주세요.');
-      return;
-    }
-
-    try {
-      setSaving(true);
-
-      const normalizedDate = normalizeScheduleDateInput(dateText);
-      const startsAtIso = buildScheduleStartsAtIso(normalizedDate, timeText, allDay);
-      const reminderMinutes = buildReminderMinutesFromSelection({
-        reminderKey,
-        customReminderMinutesText,
-        startsAt: startsAtIso,
-      });
-      if (reminderKey !== 'none' && reminderMinutes.length === 0) {
-        Alert.alert(
-          '알림 시간 확인',
-          '선택한 알림 시점이 이미 지났어요. 더 짧은 간격으로 바꾸거나 직접 설정해 주세요.',
-        );
-        return;
-      }
-      const subCategory =
-        category === 'health' && initialHealthSubCategory
-          ? initialHealthSubCategory
-          : inferScheduleSubCategory(category, otherUiSubCategoryKey);
-      const notificationLifecycle = captureScheduleNotificationLifecycle();
-
-      const createdScheduleId = await createSchedule({
-        petId,
-        title: trimmedTitle,
-        note: note.trim() || null,
-        startsAt: startsAtIso,
-        allDay,
-        category,
-        subCategory,
-        iconKey,
-        colorKey,
-        repeatRule,
-        reminderMinutes,
-      });
-
-      const notificationResult = await upsertScheduleNotification({
-        id: createdScheduleId,
-        petId,
-        title: trimmedTitle,
-        note: note.trim() || null,
-        startsAt: startsAtIso,
-        repeatRule,
-        reminderMinutes,
-        completedAt: null,
-      }, notificationLifecycle);
-      const notificationFeedback =
-        getScheduleNotificationSyncFeedback(notificationResult);
-      if (notificationFeedback) showToast(notificationFeedback);
-
-      await refresh(petId);
-      if (resolvedReturnTo.screen === 'HealthReport') {
-        await queryClient.invalidateQueries({
-          queryKey: ['health-report', 'month', petId],
-        });
-        navigation.popTo('HealthReport', {
-          petId,
-          initialTab: resolvedReturnTo.initialTab ?? 'records',
-          focusYmd: normalizedDate,
-          entrySource: resolvedReturnTo.entrySource,
-        });
-        return;
-      }
-
-      navigation.popTo('ScheduleList', {
-        petId,
-        entrySource: resolvedReturnTo.entrySource,
-      });
-    } catch (error) {
-      const { title: alertTitle, message } = getBrandedErrorMeta(
-        error,
-        'schedule-create',
-      );
-      Alert.alert(alertTitle, message);
-    } finally {
-      setSaving(false);
-    }
-  }, [
-    allDay,
-    category,
-    colorKey,
-    dateText,
-    iconKey,
-    initialHealthSubCategory,
-    navigation,
-    note,
-    otherUiSubCategoryKey,
-    petId,
-    queryClient,
-    customReminderMinutesText,
-    reminderKey,
-    refresh,
-    repeatRule,
-    resolvedReturnTo,
-    timeText,
-    title,
-  ]);
-
-  const reminderMinutes = useMemo(
-    () => {
-      if (reminderKey === 'none') return [];
-      try {
-        const normalizedDate = normalizeScheduleDateInput(dateText);
-        const startsAt = buildScheduleStartsAtIso(normalizedDate, timeText, allDay);
-        return buildReminderMinutesFromSelection({
-          reminderKey,
-          customReminderMinutesText,
-          startsAt,
-        });
-      } catch {
-        return [];
-      }
-    },
-    [
-      allDay,
-      customReminderMinutesText,
-      dateText,
-      reminderKey,
-      timeText,
-    ],
-  );
-  const reminderHelperText = useMemo(
-    () =>
-      getScheduleNotificationHelperText(
-        reminderMinutes,
-        notificationPermissionStatus,
-        notificationSettings,
-      ),
-    [notificationPermissionStatus, notificationSettings, reminderMinutes],
-  );
-  const reminderSummaryText = useMemo(
-    () => formatReminderMinutesSummary(reminderMinutes),
-    [reminderMinutes],
-  );
   const headerTopInset = Math.max(insets.top, 12);
   const scrollRef = useRef<KeyboardAwareScrollViewRef | null>(null);
-  const scrollBottomInset = insets.bottom + 32;
+  const scrollBottomInset = keyboardVisible ? 12 : insets.bottom + 32;
 
   const handleFocusNote = useCallback(() => {
     requestAnimationFrame(() => {
@@ -474,7 +195,7 @@ export default function ScheduleCreateScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
+    <SafeAreaView style={styles.screen} edges={keyboardVisible ? ['left', 'right'] : ['left', 'right', 'bottom']}>
       <View style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
         <View style={styles.headerSideSlot}>
           <TouchableOpacity
@@ -487,7 +208,11 @@ export default function ScheduleCreateScreen() {
           </TouchableOpacity>
         </View>
 
-        <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
+        <AppText
+          typographyRole="screenTitle"
+          preset="unifiedTitle"
+          style={styles.headerTitle}
+        >
           일정 추가
         </AppText>
 
@@ -516,12 +241,16 @@ export default function ScheduleCreateScreen() {
         keyboardDismissMode="none"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.card}>
+        <View
+          style={styles.card}
+          pointerEvents={saving || persisted ? 'none' : 'auto'}
+        >
           <AppText preset="unifiedMeta" style={styles.label}>
             일정 이름
           </AppText>
           <AppTextInput
             value={title}
+            editable={!saving && !persisted}
             onChangeText={setTitle}
             placeholder="예: 병원 정기 검진"
             placeholderTextColor="#8A94A6"
@@ -827,6 +556,7 @@ export default function ScheduleCreateScreen() {
               </AppText>
               <AppTextInput
                 value={customReminderMinutesText}
+                editable={!saving && !persisted}
                 onChangeText={setCustomReminderMinutesText}
                 keyboardType="number-pad"
                 placeholder="예: 1"
@@ -844,6 +574,7 @@ export default function ScheduleCreateScreen() {
           </AppText>
           <AppTextInput
             value={note}
+            editable={!saving && !persisted}
             onChangeText={setNote}
             onFocus={handleFocusNote}
             placeholder="홈 일정 카드에 보일 짧은 메모를 남겨보세요"

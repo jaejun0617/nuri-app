@@ -97,6 +97,29 @@ function serialized(renderer: TestRenderer.ReactTestRenderer) {
 }
 
 describe('CommunitySection', () => {
+  it('reuses fresh zero-item results and reveals illustration/copy together after the matching image loads', async () => {
+    mockedGetHomeCommunityHighlightsCache.mockReturnValue({ items: [], fetchedAt: Date.now(), isFresh: true });
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => { renderer = renderSection(); });
+    expect(mockedFetchHomeCommunityHighlights).not.toHaveBeenCalled();
+    let image = renderer.root.findByType(Image);
+    expect(image.props.fadeDuration).toBe(0);
+    const content = () => renderer.root.findAllByType(View).find(node =>
+      StyleSheet.flatten(node.props.style)?.opacity !== undefined &&
+      node.props.accessibilityElementsHidden !== undefined,
+    );
+    expect(StyleSheet.flatten(content()?.props.style).opacity).toBe(0);
+    await act(async () => image.props.onLoad());
+    expect(StyleSheet.flatten(content()?.props.style).opacity).toBe(1);
+    await act(async () => renderer.root.find(node => node.props.accessibilityLabel === '질문 탭').props.onPress());
+    expect(mockedFetchHomeCommunityHighlights).not.toHaveBeenCalled();
+    image = renderer.root.findByType(Image);
+    expect(image.props.testID).toBe('home-community-question-art');
+    expect(StyleSheet.flatten(content()?.props.style).opacity).toBe(0);
+    await act(async () => image.props.onLoad());
+    expect(StyleSheet.flatten(content()?.props.style).opacity).toBe(1);
+    await act(async () => renderer.unmount());
+  });
   it('keeps only the selected category fill without a retained press layer', async () => {
     mockedFetchHomeCommunityHighlights.mockResolvedValue([]);
     let renderer!: TestRenderer.ReactTestRenderer;
@@ -133,7 +156,7 @@ describe('CommunitySection', () => {
     });
 
     expect(serialized(renderer)).toContain('커뮤니티를 불러오는 중이에요.');
-    expect(renderer.root.findAllByType(Image)).toHaveLength(0);
+    expect(renderer.root.findAllByType(Image)).toHaveLength(1);
     await act(async () => {
       renderer.unmount();
     });

@@ -30,6 +30,7 @@ import {
   KeyboardAwareScrollView,
   type KeyboardAwareScrollViewRef,
 } from 'react-native-keyboard-controller';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Feather from '../../components/icons/NuriFeatherIcon';
 import NuriIcon from '../../components/icons/NuriIcon';
 import { NURI_MOOD_ICONS } from '../../components/icons/nuriIconNames';
@@ -707,7 +708,7 @@ export default function RecordEditScreen() {
   // ---------------------------------------------------------
   if (!record) {
     return (
-      <View style={styles.screen}>
+      <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
         <View style={styles.card}>
           <AppText preset="unifiedTitle">기록을 찾을 수 없어요</AppText>
           <AppText preset="unifiedBody" style={styles.desc}>
@@ -720,7 +721,7 @@ export default function RecordEditScreen() {
             </AppText>
           </TouchableOpacity>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -728,7 +729,7 @@ export default function RecordEditScreen() {
   // 10) UI
   // ---------------------------------------------------------
   return (
-    <View style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
         <View style={styles.headerSideSlot}>
           <TouchableOpacity
@@ -1107,6 +1108,6 @@ export default function RecordEditScreen() {
         onCancel={closeDateModal}
         onConfirm={applyDateModal}
       />
-    </View>
+    </SafeAreaView>
   );
 }

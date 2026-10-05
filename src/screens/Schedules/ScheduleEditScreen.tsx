@@ -15,7 +15,7 @@ import {
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { KeyboardAwareScrollView, useKeyboardState } from 'react-native-keyboard-controller';
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -92,6 +92,7 @@ export default function ScheduleEditScreen() {
   const route = useRoute<Route>();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
+  const keyboardVisible = useKeyboardState(state => state.isVisible);
   const { petId, scheduleId } = route.params;
   const returnTo = route.params.returnTo;
   const resolvedReturnTo = resolveScheduleReturnTarget(
@@ -486,7 +487,7 @@ export default function ScheduleEditScreen() {
   const headerTopInset = Math.max(insets.top, 12);
 
   return (
-    <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
+    <SafeAreaView style={styles.screen} edges={keyboardVisible ? ['left', 'right'] : ['left', 'right', 'bottom']}>
       <View style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
         <View style={styles.headerSideSlot}>
           <TouchableOpacity
@@ -518,14 +519,11 @@ export default function ScheduleEditScreen() {
         style={styles.scroll}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: Math.max(insets.bottom + 316, 376) },
+          { paddingBottom: keyboardVisible ? 12 : insets.bottom + 32 },
         ]}
         keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="interactive"
+        keyboardDismissMode="none"
         showsVerticalScrollIndicator={false}
-        enableOnAndroid
-        extraScrollHeight={82}
-        extraHeight={228}
       >
         <View style={styles.card}>
           {loading ? (
@@ -884,7 +882,7 @@ export default function ScheduleEditScreen() {
           style={[
             styles.bottomSubmitBtn,
             { backgroundColor: petTheme.primary },
-            { marginBottom: Math.max(insets.bottom, 18) },
+            { marginBottom: keyboardVisible ? 0 : Math.max(insets.bottom, 18) },
           ]}
           onPress={onSubmit}
           disabled={saving || loading}

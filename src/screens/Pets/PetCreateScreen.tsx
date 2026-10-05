@@ -2185,7 +2185,7 @@ export default function PetCreateScreen() {
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
+          keyboardDismissMode="none"
         >
           {step === 1 ? (
             <StepOneForm

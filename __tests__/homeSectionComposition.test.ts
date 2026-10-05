@@ -30,6 +30,22 @@ function findNodes<T extends ts.Node>(
 }
 
 describe('Home section composition after Today Photo retirement', () => {
+  it('passes the full pet schedule cache to the calendar and preserves date-prefilled navigation', () => {
+    const calendars = findNodes(ts.isJsxSelfClosingElement).filter(
+      node => node.tagName.getText(parsed) === 'HomeScheduleCalendar',
+    );
+    expect(calendars).toHaveLength(1);
+    const attributes = calendars[0].attributes.properties.map(attribute => attribute.getText(parsed));
+    expect(attributes).toContain('items={scheduleItems}');
+    expect(attributes).toContain('season={season}');
+    expect(attributes).toContain('petId={petId}');
+    expect(attributes).toContain('onPressDetail={onPressScheduleDetail}');
+    expect(source).not.toContain('scheduleItems.slice(0, 7)');
+    expect(source).toContain('key={activePetId}');
+    expect(attributes).not.toContain('onPressCreate={onPressScheduleCreate}');
+    expect(source).toMatch(/navigate\('ScheduleDetail', \{[\s\S]*?scheduleId,/);
+  });
+
   it('does not import or mount Today Photo in any Home state', () => {
     const imports = findNodes(ts.isImportDeclaration).map(node =>
       ts.isStringLiteral(node.moduleSpecifier) ? node.moduleSpecifier.text : '',

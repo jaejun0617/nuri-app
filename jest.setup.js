@@ -18,6 +18,7 @@ jest.mock('react-native-reanimated', () => {
     Extrapolate: { CLAMP: 'clamp' },
     interpolate: jest.fn(() => 0),
     runOnJS: fn => fn,
+    cancelAnimation: jest.fn(),
     useAnimatedScrollHandler: jest.fn(() => jest.fn()),
     useAnimatedStyle: jest.fn(factory => factory()),
     useDerivedValue: jest.fn(factory => ({ value: factory() })),
@@ -34,6 +35,8 @@ jest.mock(
 jest.mock('react-native-keyboard-controller', () => {
   const React = jest.requireActual('react');
   return {
+    useReanimatedKeyboardAnimation: () => ({ progress: { value: 0 }, height: { value: 0 } }),
+    useKeyboardState: selector => selector({ isVisible: false, height: 0 }),
     KeyboardProvider: ({ children }) =>
       React.createElement(React.Fragment, null, children),
     KeyboardAvoidingView: ({ children }) =>
@@ -97,6 +100,9 @@ jest.mock('react-native-blob-util', () => ({
   fetch: jest.fn(),
 }));
 jest.mock('react-native-linear-gradient', () => 'LinearGradient');
+jest.mock('@sbaiahmed1/react-native-blur', () => ({
+  BlurView: 'NativeBlurView',
+}));
 jest.mock('react-native-maps', () => ({
   __esModule: true,
   default: 'MapView',

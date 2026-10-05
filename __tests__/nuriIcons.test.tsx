@@ -357,7 +357,6 @@ describe('NURI custom icon candidate', () => {
       'src/components/weather/WeatherGuideHomeCard.tsx',
       'src/services/guides/presentation.ts',
       'src/app/ui/SectionHeaderAction.tsx',
-      'src/screens/Main/components/LoggedInHome/HomeTopButton.tsx',
     ]);
     const walk = (directory: string): string[] =>
       fs

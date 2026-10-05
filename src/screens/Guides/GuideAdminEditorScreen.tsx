@@ -2,7 +2,6 @@ import AppTextInput from '../../app/ui/AppTextInput';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
-  Platform,
   Pressable,
   StyleSheet,
   Switch,
@@ -13,7 +12,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQueryClient } from '@tanstack/react-query';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { KeyboardAwareScrollView, useKeyboardState } from 'react-native-keyboard-controller';
 import Feather from '../../components/icons/NuriFeatherIcon';
 
 import AppText from '../../app/ui/AppText';
@@ -107,6 +106,7 @@ export default function GuideAdminEditorScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
+  const keyboardVisible = useKeyboardState(state => state.isVisible);
   const queryClient = useQueryClient();
   const role = useAuthStore(s => s.profile.role ?? 'user');
   const pets = usePetStore(s => s.pets);
@@ -253,17 +253,15 @@ export default function GuideAdminEditorScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
+    <SafeAreaView style={styles.screen} edges={keyboardVisible ? ['left', 'right'] : ['left', 'right', 'bottom']}>
       <KeyboardAwareScrollView
-        enableOnAndroid
-        enableAutomaticScroll
-        extraScrollHeight={24}
-        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        bottomOffset={12}
+        keyboardDismissMode="none"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: headerTopInset + 4, paddingBottom: insets.bottom + 32 },
+          { paddingTop: headerTopInset + 4, paddingBottom: keyboardVisible ? 12 : insets.bottom + 32 },
         ]}
       >
         <View style={styles.header}>

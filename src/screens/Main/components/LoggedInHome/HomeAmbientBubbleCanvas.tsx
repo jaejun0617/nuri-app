@@ -223,11 +223,13 @@ export const HomeAmbientBubbleCanvas = memo(
     sectionLayouts = {},
     sectionOrigin = 0,
     season = 'autumn',
+    decorationMode = 'home',
   }: {
     heroHeight: number;
     sectionLayouts?: HomeAmbientSectionLayouts;
     sectionOrigin?: number;
     season?: SeasonKey;
+    decorationMode?: 'home' | 'reading';
   }) {
     const { width: windowWidth } = useWindowDimensions();
     const visual = getHomeAmbientVisual(season);
@@ -241,7 +243,11 @@ export const HomeAmbientBubbleCanvas = memo(
         accessible={false}
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
-        style={[styles.canvas, { backgroundColor: visual.baseColor }]}
+        style={[
+          styles.canvas,
+          decorationMode === 'reading' && styles.readingCanvas,
+          { backgroundColor: visual.baseColor },
+        ]}
       >
         <LinearGradient
           colors={[...visual.baseGradient]}
@@ -283,7 +289,7 @@ export const HomeAmbientBubbleCanvas = memo(
           style={[styles.heroWash, { height: heroHeight }]}
         />
 
-        {heroHeight > 0 ? (
+        {heroHeight > 0 && decorationMode === 'home' ? (
           <>
             {/* Edge-only color persists between fields; the center stays transparent. */}
             <LinearGradient
@@ -334,7 +340,7 @@ export const HomeAmbientBubbleCanvas = memo(
           </>
         ) : null}
 
-        {heroHeight > 0 ? (
+        {heroHeight > 0 && decorationMode === 'home' ? (
           <>
             {HOME_AMBIENT_HERO_BUBBLES.map((bubble, index) => (
               <AmbientBubble
@@ -424,12 +430,49 @@ export const HomeAmbientBubbleCanvas = memo(
             </View>
           </>
         ) : null}
+        {decorationMode === 'reading' ? (
+          <>
+            {[0.16, 0.88].map((ratio, index) => (
+              <AmbientBubble
+                key={`reading-bubble-${index}`}
+                testID={`schedule-ambient-edge-bubble-${index}`}
+                bubble={{
+                  kind: 'small',
+                  centerXRatio: index === 0 ? -0.014 : 1.014,
+                  sizeRatio: 0.13,
+                  minimumSize: 36,
+                  maximumSize: 56,
+                  opacity: 0.62,
+                  rotation: '0deg',
+                }}
+                top={Math.round(heroHeight * ratio)}
+                windowWidth={windowWidth}
+                texture={visual.bubbleTexture}
+              />
+            ))}
+            {[0.38, 0.7].map((ratio, index) => (
+              <AmbientLight
+                key={`reading-light-${index}`}
+                light={{
+                  centerXRatio: index === 0 ? 0.018 : 0.982,
+                  size: 9,
+                  opacity: 0.48,
+                }}
+                top={Math.round(heroHeight * ratio)}
+                windowWidth={windowWidth}
+                haloColor={visual.lightHalo}
+                colors={lightColors}
+              />
+            ))}
+          </>
+        ) : null}
       </View>
     );
   },
 );
 
 const styles = StyleSheet.create({
+  readingCanvas: { left: 0, right: 0 },
   canvas: {
     position: 'absolute',
     top: 0,

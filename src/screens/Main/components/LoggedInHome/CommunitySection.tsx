@@ -34,6 +34,7 @@ type CommunitySectionProps = {
 };
 
 type CommunitySectionState = {
+  tab: HomeCommunityTab;
   status: 'loading' | 'ready' | 'error';
   items: CommunityPost[];
 };
@@ -165,35 +166,6 @@ const PostRow = memo(function PostRow({
   );
 });
 
-const LoadingState = memo(function LoadingState({
-  borderColor,
-  fillColor,
-}: {
-  borderColor: string;
-  fillColor: string;
-}) {
-  return (
-    <View accessibilityLabel="커뮤니티를 불러오는 중이에요." accessibilityRole="progressbar">
-      <View style={styles.skeletonList}>
-        {[0, 1, 2].map(index => (
-          <React.Fragment key={`community-skeleton-${index}`}>
-            <View style={styles.skeletonRow}>
-              <View style={[styles.skeletonNumber, { backgroundColor: borderColor }]} />
-              <View style={styles.skeletonText}>
-                <View style={[styles.skeletonLine, { backgroundColor: fillColor }]} />
-                <View style={[styles.skeletonShortLine, { backgroundColor: fillColor }]} />
-              </View>
-            </View>
-            {index < 2 ? (
-              <View style={[styles.separator, { backgroundColor: borderColor }]} />
-            ) : null}
-          </React.Fragment>
-        ))}
-      </View>
-    </View>
-  );
-});
-
 function StateBox({
   title,
   borderColor,
@@ -242,8 +214,8 @@ const CommunitySection = memo(function CommunitySection({
   const [state, setState] = useState<CommunitySectionState>(() => {
     const cached = getHomeCommunityHighlightsCache('popular');
     return cached
-      ? { status: 'ready', items: cached.items }
-      : { status: 'loading', items: [] };
+      ? { tab: 'popular', status: cached.isFresh || cached.items.length ? 'ready' : 'loading', items: cached.items }
+      : { tab: 'popular', status: 'loading', items: [] };
   });
   const requestSequenceRef = useRef(0);
   const mountedRef = useRef(true);
@@ -259,14 +231,15 @@ const CommunitySection = memo(function CommunitySection({
     const cached = getHomeCommunityHighlightsCache(tab);
 
     setState({
-      status: cached?.items.length ? 'ready' : 'loading',
+      tab,
+      status: cached && (cached.isFresh || cached.items.length) ? 'ready' : 'loading',
       items: cached?.items ?? [],
     });
 
     fetchHomeCommunityHighlights(tab, { force })
       .then(items => {
         if (!mountedRef.current || requestId !== requestSequenceRef.current) return;
-        setState({ status: 'ready', items });
+        setState({ tab, status: 'ready', items });
       })
       .catch(() => {
         if (!mountedRef.current || requestId !== requestSequenceRef.current) return;
@@ -279,7 +252,7 @@ const CommunitySection = memo(function CommunitySection({
 
     const cached = getHomeCommunityHighlightsCache(activeTab);
     if (cached?.isFresh) {
-      setState({ status: 'ready', items: cached.items });
+      setState({ tab: activeTab, status: 'ready', items: cached.items });
       return;
     }
 
@@ -295,7 +268,8 @@ const CommunitySection = memo(function CommunitySection({
     const cached = getHomeCommunityHighlightsCache(tab);
     setActiveTab(tab);
     setState({
-      status: cached?.items.length ? 'ready' : 'loading',
+      tab,
+      status: cached && (cached.isFresh || cached.items.length) ? 'ready' : 'loading',
       items: cached?.items ?? [],
     });
   }, [activeTab]);
@@ -373,8 +347,8 @@ const CommunitySection = memo(function CommunitySection({
         </ScrollView>
 
         <View style={styles.content}>
-          {state.status === 'loading' && state.items.length === 0 ? (
-            <LoadingState borderColor={`${accentColor}20`} fillColor={theme.colors.surface} />
+          {state.tab !== activeTab || (state.status === 'loading' && state.items.length === 0) ? (
+            <CommunityEmptyState key={`${activeTab}:${season}`} tab={activeTab} season={season} loading />
           ) : showErrorState ? (
             <StateBox
               title="커뮤니티를 불러오지 못했어요"
@@ -384,7 +358,7 @@ const CommunitySection = memo(function CommunitySection({
               onRetry={handleRetry}
             />
           ) : state.items.length === 0 ? (
-            <CommunityEmptyState tab={activeTab} season={season} />
+            <CommunityEmptyState key={`${activeTab}:${season}`} tab={activeTab} season={season} />
           ) : (
             <View style={styles.postList}>
               {state.items.slice(0, 3).map((post, index, posts) => (

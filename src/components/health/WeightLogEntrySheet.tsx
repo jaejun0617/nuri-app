@@ -1,19 +1,30 @@
 import AppTextInput from '../../app/ui/AppTextInput';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   Alert,
   Keyboard,
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
+  type TextInput,
 } from 'react-native';
 import { KeyboardAvoidingView as KeyboardControllerAvoidingView } from 'react-native-keyboard-controller';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { useBoundedKeyboardScroll } from '../../hooks/useBoundedKeyboardScroll';
+import { useKeyboardBottomPadding } from '../../hooks/useKeyboardBottomPadding';
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from '../icons/NuriFeatherIcon';
+import NuriSemanticIcon from '../icons/NuriSemanticIcon';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
@@ -64,6 +75,7 @@ export default function WeightLogEntrySheet({
 }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const bottomPaddingStyle = useKeyboardBottomPadding(Math.max(insets.bottom, 20));
   const [weightText, setWeightText] = useState('');
   const [measuredOn, setMeasuredOn] = useState(getKstYmd());
   const [note, setNote] = useState('');
@@ -71,6 +83,9 @@ export default function WeightLogEntrySheet({
   const [deleting, setDeleting] = useState(false);
   const [dateModalVisible, setDateModalVisible] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const weightRef = useRef<React.ComponentRef<typeof TextInput> | null>(null);
+  const noteRef = useRef<React.ComponentRef<typeof TextInput> | null>(null);
+  const { scrollProps, revealInput } = useBoundedKeyboardScroll(visible);
 
   const handleClose = useCallback(() => {
     Keyboard.dismiss();
@@ -146,12 +161,25 @@ export default function WeightLogEntrySheet({
       onCommitted?.(result);
       handleClose();
     } catch (error) {
-      const { title: errorTitle, message } = getBrandedErrorMeta(error, 'pet-update');
+      const { title: errorTitle, message } = getBrandedErrorMeta(
+        error,
+        'pet-update',
+      );
       Alert.alert(errorTitle, message);
     } finally {
       setSaving(false);
     }
-  }, [entrySource, handleClose, initialLog, measuredOn, note, onCommitted, petId, petName, weightText]);
+  }, [
+    entrySource,
+    handleClose,
+    initialLog,
+    measuredOn,
+    note,
+    onCommitted,
+    petId,
+    petName,
+    weightText,
+  ]);
 
   const handleDelete = useCallback(() => {
     if (!initialLog) return;
@@ -195,59 +223,76 @@ export default function WeightLogEntrySheet({
       <Modal
         animationType="slide"
         transparent
+        statusBarTranslucent
+        navigationBarTranslucent
         visible={visible}
         onRequestClose={handleRequestClose}
       >
         <KeyboardControllerAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           enabled
+          automaticOffset
           keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
-          style={styles.modalRoot}
+          style={[styles.modalRoot, { paddingTop: insets.top + 12 }]}
         >
-          <Pressable style={styles.backdrop} onPress={handleClose} />
-          <View
+          <Pressable
+            testID="weight-entry-backdrop"
+            style={styles.backdrop}
+            disabled={saving || deleting}
+            onPress={handleClose}
+          />
+          <Animated.View
+            testID="weight-entry-sheet"
             style={[
               styles.sheet,
               {
                 backgroundColor: theme.colors.surfaceElevated,
                 borderColor: theme.colors.border,
-                paddingBottom: Math.max(insets.bottom, 20),
               },
+              bottomPaddingStyle,
             ]}
           >
-            <KeyboardAwareScrollView
-              keyboardShouldPersistTaps="handled"
-              keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-              enableOnAndroid
-              enableAutomaticScroll
-              enableResetScrollToCoords={false}
-              keyboardOpeningTime={0}
-              extraScrollHeight={20}
-              extraHeight={84}
-            >
-              <View style={styles.headerRow}>
-                <View style={styles.headerTextWrap}>
-                  <AppText preset="unifiedTitle">{title}</AppText>
-                  <AppText
-                    preset="unifiedBody"
-                    color={theme.colors.textMuted}
-                    style={styles.headerHelper}
-                  >
-                    {petName}의 최신 체중과 리포트를 같은 기준으로 맞춥니다.
-                  </AppText>
-                </View>
-                <TouchableOpacity
-                  activeOpacity={0.88}
-                  onPress={handleClose}
-                  style={[
-                    styles.closeButton,
-                    { backgroundColor: theme.colors.background },
-                  ]}
+            {/* Empty sheet space must not hand a touch to the dismiss backdrop. */}
+            <Pressable
+              testID="weight-entry-touch-boundary"
+              accessible={false}
+              style={StyleSheet.absoluteFill}
+              onPress={event => event.stopPropagation()}
+            />
+            <View testID="weight-entry-header" style={styles.headerRow}>
+              <View style={styles.headerTextWrap}>
+                <AppText preset="unifiedTitle">{title}</AppText>
+                <AppText
+                  preset="unifiedBody"
+                  color={theme.colors.textMuted}
+                  style={styles.headerHelper}
                 >
-                  <Feather color={theme.colors.textMuted} name="x" size={18} />
-                </TouchableOpacity>
+                  {petName}의 최신 체중과 리포트를 같은 기준으로 맞춥니다.
+                </AppText>
               </View>
-
+              <TouchableOpacity
+                testID="weight-entry-close"
+                accessibilityRole="button"
+                accessibilityLabel="체중 기록 닫기"
+                activeOpacity={0.88}
+                disabled={saving || deleting}
+                onPress={handleClose}
+                style={[
+                  styles.closeButton,
+                  { backgroundColor: theme.colors.background },
+                ]}
+              >
+                <NuriSemanticIcon family="feather" color={theme.colors.textPrimary} name="x" size={24} preserveOriginal />
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              {...scrollProps}
+              testID="weight-entry-scroll"
+              style={styles.body}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="none"
+              showsVerticalScrollIndicator={false}
+            >
               <View style={styles.fieldBlock}>
                 <AppText preset="unifiedMeta" style={styles.label}>
                   몸무게
@@ -259,6 +304,9 @@ export default function WeightLogEntrySheet({
                   ]}
                 >
                   <AppTextInput
+                    ref={weightRef}
+                    testID="weight-entry-value"
+                    onFocus={() => revealInput(weightRef)}
                     value={weightText}
                     onChangeText={setWeightText}
                     placeholder="0.0"
@@ -284,8 +332,14 @@ export default function WeightLogEntrySheet({
                     { borderColor: theme.colors.border },
                   ]}
                 >
-                  <AppText preset="unifiedBody">{measuredOn.replace(/-/g, '.')}</AppText>
-                  <Feather color={theme.colors.textMuted} name="calendar" size={16} />
+                  <AppText preset="unifiedBody">
+                    {measuredOn.replace(/-/g, '.')}
+                  </AppText>
+                  <Feather
+                    color={theme.colors.textMuted}
+                    name="calendar"
+                    size={16}
+                  />
                 </TouchableOpacity>
               </View>
 
@@ -300,6 +354,9 @@ export default function WeightLogEntrySheet({
                   ]}
                 >
                   <AppTextInput
+                    ref={noteRef}
+                    testID="weight-entry-note"
+                    onFocus={() => revealInput(noteRef)}
                     value={note}
                     onChangeText={setNote}
                     placeholder="식단 변화, 병원 방문, 컨디션 메모를 남겨둘 수 있어요."
@@ -313,45 +370,45 @@ export default function WeightLogEntrySheet({
                   />
                 </View>
               </View>
-
-              <View style={styles.actionRow}>
-                {initialLog ? (
-                  <TouchableOpacity
-                    activeOpacity={0.88}
-                    onPress={handleDelete}
-                    disabled={saving || deleting}
-                    style={[
-                      styles.deleteButton,
-                      { borderColor: theme.colors.border },
-                    ]}
-                  >
-                    <AppText preset="unifiedLabel" color={theme.colors.danger}>
-                      {deleting ? '삭제 중...' : '삭제'}
-                    </AppText>
-                  </TouchableOpacity>
-                ) : null}
-
+            </ScrollView>
+            <View testID="weight-entry-actions" style={styles.actionRow}>
+              {initialLog ? (
                 <TouchableOpacity
-                  activeOpacity={0.9}
-                  onPress={handleSave}
-                  disabled={!canSubmit || saving || deleting}
+                  activeOpacity={0.88}
+                  onPress={handleDelete}
+                  disabled={saving || deleting}
                   style={[
-                    styles.primaryButton,
-                    {
-                      backgroundColor:
-                        !canSubmit || saving || deleting
-                          ? `${accentColor}66`
-                          : accentColor,
-                    },
+                    styles.deleteButton,
+                    { borderColor: theme.colors.border },
                   ]}
                 >
-                  <AppText preset="unifiedLabel" color="#FFFFFF">
-                    {saving ? '저장 중...' : '저장'}
+                  <AppText preset="unifiedLabel" color={theme.colors.danger}>
+                    {deleting ? '삭제 중...' : '삭제'}
                   </AppText>
                 </TouchableOpacity>
-              </View>
-            </KeyboardAwareScrollView>
-          </View>
+              ) : null}
+
+              <TouchableOpacity
+                testID="weight-entry-save"
+                activeOpacity={0.9}
+                onPress={handleSave}
+                disabled={!canSubmit || saving || deleting}
+                style={[
+                  styles.primaryButton,
+                  {
+                    backgroundColor:
+                      !canSubmit || saving || deleting
+                        ? `${accentColor}66`
+                        : accentColor,
+                  },
+                ]}
+              >
+                <AppText preset="unifiedLabel" color="#FFFFFF">
+                  {saving ? '저장 중...' : '저장'}
+                </AppText>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
         </KeyboardControllerAvoidingView>
       </Modal>
 
@@ -378,7 +435,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   backdrop: {
-    flex: 1,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(11,18,32,0.44)',
   },
   sheet: {
@@ -387,12 +444,16 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    overflow: 'hidden',
+    flexShrink: 1,
+    minHeight: 0,
     borderWidth: 1,
     paddingHorizontal: 20,
     paddingTop: 18,
     maxHeight: '82%',
   },
   headerRow: {
+    flexShrink: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
@@ -406,15 +467,16 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   closeButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 8,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
   fieldBlock: {
     marginBottom: 16,
   },
+  body: { flexShrink: 1, minHeight: 0 },
   label: {
     marginBottom: 8,
   },
@@ -447,6 +509,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   actionRow: {
+    flexShrink: 0,
     flexDirection: 'row',
     gap: 10,
     marginTop: 8,

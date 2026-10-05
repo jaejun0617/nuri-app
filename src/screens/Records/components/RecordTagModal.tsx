@@ -8,19 +8,19 @@ import React from 'react';
 import {
   Keyboard,
   Modal,
-  Platform,
   ScrollView,
   TouchableOpacity,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import Animated from 'react-native-reanimated';
+import { useKeyboardBottomPadding } from '../../../hooks/useKeyboardBottomPadding';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from '../../../components/icons/NuriFeatherIcon';
+import NuriSemanticIcon from '../../../components/icons/NuriSemanticIcon';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../../app/ui/AppText';
-import { getResponsiveOverlayMaxHeight } from '../../../services/app/responsiveLayout';
 import { styles } from '../RecordCreateScreen.styles';
 
 type Props = {
@@ -33,6 +33,8 @@ type Props = {
   onRemoveTag: (tag: string) => void;
 };
 
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+
 export default function RecordTagModal({
   visible,
   tagDraft,
@@ -44,13 +46,7 @@ export default function RecordTagModal({
 }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { height: windowHeight } = useWindowDimensions();
-  const maxCardHeight = getResponsiveOverlayMaxHeight({
-    windowHeight,
-    topInset: insets.top,
-    bottomInset: insets.bottom,
-    verticalMargin: 18,
-  });
+  const bottomPaddingStyle = useKeyboardBottomPadding(Math.max(insets.bottom, 18) + 6);
 
   return (
     <Modal
@@ -61,9 +57,9 @@ export default function RecordTagModal({
     >
       <KeyboardAvoidingView
         style={styles.modalBackdrop}
-        behavior="padding"
+        behavior="height"
+        automaticOffset
         enabled
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
       >
         <TouchableOpacity
           activeOpacity={1}
@@ -74,14 +70,16 @@ export default function RecordTagModal({
           }}
         />
 
-        <TouchableOpacity
+        <AnimatedTouchableOpacity
           activeOpacity={1}
           style={[
             styles.tagModalCard,
             {
-              maxHeight: maxCardHeight,
-              paddingBottom: Math.max(insets.bottom, 18) + 6,
+              maxHeight: '100%',
+              flexShrink: 1,
+              minHeight: 0,
             },
+            bottomPaddingStyle,
           ]}
           onPress={Keyboard.dismiss}
         >
@@ -91,25 +89,30 @@ export default function RecordTagModal({
             </AppText>
             <TouchableOpacity
               activeOpacity={0.85}
-              style={styles.tagModalCloseBtn}
+              style={[styles.tagModalCloseBtn, { width: 44, height: 44, borderRadius: 22 }]}
+              accessibilityRole="button"
+              accessibilityLabel="태그 추가 닫기"
               onPress={() => {
                 Keyboard.dismiss();
                 onClose();
               }}
             >
-              <Feather
+              <NuriSemanticIcon
+                family="feather"
                 name="x"
-                size={18}
-                color={theme.colors.textMuted}
+                size={24}
+                color={theme.colors.textPrimary}
+                preserveOriginal
               />
             </TouchableOpacity>
           </View>
 
           <ScrollView
-            style={styles.tagModalScroll}
+            style={[styles.tagModalScroll, { flexShrink: 1, minHeight: 0 }]}
             contentContainerStyle={styles.tagModalContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="none"
           >
           <View style={styles.tagInputRow}>
             <Feather name="hash" size={16} color={theme.colors.brand} />
@@ -151,7 +154,7 @@ export default function RecordTagModal({
             </>
           ) : null}
           </ScrollView>
-        </TouchableOpacity>
+        </AnimatedTouchableOpacity>
       </KeyboardAvoidingView>
     </Modal>
   );

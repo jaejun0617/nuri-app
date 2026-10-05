@@ -8,6 +8,7 @@ import AppNavigationToolbar from '../src/components/navigation/AppNavigationTool
 
 const mockNavigate = jest.fn();
 const mockOpenMore = jest.fn();
+beforeEach(() => jest.clearAllMocks());
 jest.mock('../src/app/ui/AppText', () => 'AppText');
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ navigate: mockNavigate }),
@@ -57,5 +58,31 @@ it('bounds long tab labels to one fitted line without changing the routes', asyn
   });
   tabs[4].props.onPress();
   expect(mockOpenMore).toHaveBeenCalledTimes(1);
+  await act(async () => renderer.unmount());
+});
+
+it('reselects only focused Home; detail/drawer Home navigation remains intact', async () => {
+  let renderer!: TestRenderer.ReactTestRenderer;
+  const reselect = jest.fn();
+  const before = jest.fn();
+  const mount = (active: 'home' | 'more', callback?: () => void) => (
+    <ThemeProvider theme={createTheme('light')}>
+      <AppNavigationToolbar activeKey={active} onPressActiveHome={callback} onBeforeNavigate={before} />
+    </ThemeProvider>
+  );
+  await act(async () => { renderer = TestRenderer.create(mount('home', reselect)); });
+  const pressHome = () => renderer.root.findAll(node => node.props.accessibilityRole === 'tab' && typeof node.props.onPress === 'function')[0].props.onPress();
+  await act(async () => pressHome());
+  expect(reselect).toHaveBeenCalledTimes(1);
+  expect(mockNavigate).not.toHaveBeenCalled();
+  expect(before).not.toHaveBeenCalled();
+  await act(async () => renderer.update(mount('more', reselect)));
+  await act(async () => pressHome());
+  expect(mockNavigate).toHaveBeenCalledWith('AppTabs', { screen: 'HomeTab' });
+  expect(reselect).toHaveBeenCalledTimes(1);
+  expect(before).toHaveBeenCalledTimes(1);
+  await act(async () => renderer.update(mount('home')));
+  await act(async () => pressHome());
+  expect(mockNavigate).toHaveBeenCalledTimes(2);
   await act(async () => renderer.unmount());
 });

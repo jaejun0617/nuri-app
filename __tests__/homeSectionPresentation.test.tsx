@@ -20,7 +20,7 @@ import {
 import { HomeSeasonProvider } from '../src/components/home/HomeSeasonContext';
 import { FrequentRecordsSection } from '../src/components/records/FrequentRecordsSection';
 import { styles as frequentStyles } from '../src/components/records/FrequentRecordsSection.styles';
-import { getHomeAmbientVisual } from '../src/theme/home/seasonalAmbient';
+import { resolveHomeFrostedMaterial } from '../src/components/home/HomeFrostedGlass';
 import type { SeasonKey } from '../src/theme/seasonal/season';
 import {
   styles as homeStyles,
@@ -131,7 +131,8 @@ describe('Home section rhythm and material', () => {
 
   it('preserves the requested populated preview limits and diary month filter', () => {
     expect(source).toContain('const HOME_RECENT_RECORDS_MAX = 3;');
-    expect(source).toContain('scheduleItems.slice(0, 7)');
+    expect(source).not.toContain('scheduleItems.slice(0, 7)');
+    expect(source).toContain('items={scheduleItems}');
     expect(source).toContain('activityItems.slice(0, 5)');
     expect(source).toMatch(/getMonthKeyFromYmd\(getRecordDisplayYmd\(item\)\) === currentMonthKey[\s\S]*?\.slice\(0, 7\)/);
   });
@@ -265,10 +266,10 @@ describe('Home section rhythm and material', () => {
         expect(StyleSheet.flatten(slot.props.style).backgroundColor).toBeUndefined();
       }
       const outerGlass = renderer.root.findAll(node =>
-        node.type === View && node.props.testID === 'home-section-glass-surface',
+        node.type === View && node.props.testID === 'home-frosted-tint',
       )[0];
       expect(StyleSheet.flatten(outerGlass.props.style).backgroundColor).toBe(
-        getHomeAmbientVisual(season).glassSurface,
+        resolveHomeFrostedMaterial('autumn').backgroundColor,
       );
       for (const id of ['reflection', 'glint']) {
         const decorations = renderer.root.findAll(node =>
@@ -490,7 +491,8 @@ describe('Home section rhythm and material', () => {
     ]) {
       expect(isHomeSectionConfirmedEmpty(status === 'ready', 0)).toBe(false);
     }
-    expect(source).toContain("isReady={scheduleStatus === 'ready'}");
+    expect(source).toContain('scheduleItems={visibleScheduleItems}');
+    expect(source).toContain("scheduleStatus === 'error'");
     expect(source).toContain(
       "isReady={recordStatus === 'ready' && scheduleStatus === 'ready'}",
     );

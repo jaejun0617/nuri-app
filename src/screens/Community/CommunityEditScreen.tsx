@@ -315,7 +315,7 @@ export default function CommunityEditScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: theme.colors.background }]} edges={['left', 'right', 'bottom']}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: theme.colors.background }]} edges={keyboardVisible ? ['left', 'right'] : ['left', 'right', 'bottom']}>
       <KeyboardAwareScrollView
         ref={scrollViewRef}
         bottomOffset={COMMUNITY_COMPOSER_KEYBOARD_BOTTOM_OFFSET}

@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useState } from 'react';
 import {
   ActivityIndicator,
   StyleSheet,
@@ -166,13 +166,18 @@ export const RecentRecordsEmptyState = memo(
 export const CommunityEmptyState = memo(function CommunityEmptyStateView({
   season,
   tab,
+  loading = false,
 }: {
   season: SeasonKey;
   tab: HomeCommunityTab;
+  loading?: boolean;
 }) {
+  const [artReady, setArtReady] = useState(false);
+  const ready = !loading && artReady;
   return (
     <View testID="home-community-empty" style={styles.community}>
-      <HomeEditorialArtwork kind={`community-${tab}`} season={season} />
+      <View style={[styles.communityContent, { opacity: ready ? 1 : 0 }]} accessibilityElementsHidden={!ready} importantForAccessibility={ready ? 'auto' : 'no-hide-descendants'}>
+      <HomeEditorialArtwork kind={`community-${tab}`} season={season} onReady={() => setArtReady(true)} />
       <AppText
         preset="unifiedBody"
         styleOverridesPreset
@@ -180,6 +185,8 @@ export const CommunityEmptyState = memo(function CommunityEmptyStateView({
       >
         {HOME_COMMUNITY_EMPTY_COPY[tab]}
       </AppText>
+      </View>
+      {!ready ? <View style={styles.communityPending} accessibilityRole="progressbar" accessibilityLabel="커뮤니티를 불러오는 중이에요."><ActivityIndicator /></View> : null}
     </View>
   );
 });
@@ -232,4 +239,6 @@ export const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   communityCopy: { textAlign: 'center', maxWidth: 300 },
+  communityContent: { width: '100%', alignItems: 'center', gap: 12 },
+  communityPending: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
 });
