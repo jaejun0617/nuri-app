@@ -84,6 +84,7 @@ describe('weather-cache client service', () => {
           locale: 'ko-KR',
           timezone: 'Asia/Seoul',
         },
+        timeout: 8500,
       },
     );
     expect(fetchMock).not.toHaveBeenCalled();
@@ -93,9 +94,23 @@ describe('weather-cache client service', () => {
     global.fetch = originalFetch;
   });
 
-  it('클라이언트 TTL 정책을 55~60분 기준으로 유지한다', () => {
-    expect(WEATHER_QUERY_STALE_MS).toBe(55 * 60 * 1000);
-    expect(WEATHER_FOCUS_REFRESH_MS).toBe(55 * 60 * 1000);
+  it('rejects a response for a different region', async () => {
+    supabase.functions.invoke.mockResolvedValue({
+      data: { ok: true, coordBucket: 'v1:35.00:129.00:d0.02' },
+      error: null,
+    });
+    await expect(
+      fetchWeatherCacheBundle({
+        latitude: 37.674,
+        longitude: 126.769,
+        accuracy: 10,
+      }),
+    ).rejects.toMatchObject({ code: 'weather_cache_region_mismatch' });
+  });
+
+  it('checks foreground weather every five minutes with a bounded one-hour preview', () => {
+    expect(WEATHER_QUERY_STALE_MS).toBe(5 * 60 * 1000);
+    expect(WEATHER_FOCUS_REFRESH_MS).toBe(5 * 60 * 1000);
     expect(WEATHER_PREVIEW_MAX_AGE_MS).toBe(60 * 60 * 1000);
   });
 });

@@ -11,6 +11,8 @@ import {
 const FREE_FORECAST_BASE_URL = 'https://api.open-meteo.com/v1/forecast';
 const FREE_AIR_QUALITY_BASE_URL =
   'https://air-quality-api.open-meteo.com/v1/air-quality';
+const providerRequests = new Map();
+const PROVIDER_TIMEOUT_MS = 6500;
 const CORS_HEADERS = {
   'access-control-allow-origin': '*',
   'access-control-allow-headers':
@@ -24,6 +26,7 @@ function jsonResponse(body, status = 200) {
     headers: {
       ...CORS_HEADERS,
       'content-type': 'application/json; charset=utf-8',
+      'cache-control': 'no-store',
     },
   });
 }
@@ -123,20 +126,35 @@ function createWeatherCacheRepository() {
 }
 
 async function fetchProviderJson(url, errorCode) {
-  const response = await fetch(url);
-  if (!response.ok) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), PROVIDER_TIMEOUT_MS);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) {
+      throw new WeatherCacheHttpError(
+        502,
+        errorCode,
+        `${errorCode}:${response.status}`,
+      );
+    }
+
+    return await response.json();
+  } catch {
+    // Never expose provider URLs (which may contain API credentials) through errors/logs.
     throw new WeatherCacheHttpError(
       502,
       errorCode,
-      `${errorCode}:${response.status}`,
+      'weather provider request failed',
     );
+  } finally {
+    clearTimeout(timer);
   }
-
-  return response.json();
 }
 
 function createOpenMeteoProvider() {
-  const providerMode = buildProviderMode(Deno.env.get('OPEN_METEO_PROVIDER_MODE'));
+  const providerMode = buildProviderMode(
+    Deno.env.get('OPEN_METEO_PROVIDER_MODE'),
+  );
   const forecastBaseUrl =
     normalizeString(Deno.env.get('OPEN_METEO_BASE_URL')) ??
     (providerMode === 'free' ? FREE_FORECAST_BASE_URL : null);
@@ -165,10 +183,7 @@ function createOpenMeteoProvider() {
       });
       const [forecastResult, airQualityResult] = await Promise.allSettled([
         fetchProviderJson(forecastUrl, 'weather_forecast_provider_failed'),
-        fetchProviderJson(
-          airQualityUrl,
-          'weather_air_quality_provider_failed',
-        ),
+        fetchProviderJson(airQualityUrl, 'weather_air_quality_provider_failed'),
       ]);
 
       if (forecastResult.status !== 'fulfilled') {
@@ -222,6 +237,10 @@ Deno.serve(async request => {
       ok: true,
       scope: 'weather-cache',
       message: 'ready',
+      contractVersion: 2,
+      freshMinutes: 15,
+      staleMinutes: 60,
+      providerMode: buildProviderMode(Deno.env.get('OPEN_METEO_PROVIDER_MODE')),
     });
   }
 
@@ -244,6 +263,7 @@ Deno.serve(async request => {
       body,
       cache: createWeatherCacheRepository(),
       provider: createOpenMeteoProvider(),
+      inFlight: providerRequests,
     });
 
     debugLog({

@@ -1,11 +1,14 @@
 import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { HomeFrostedGlass } from '../home/HomeFrostedGlass';
+import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
 
 type Props = {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   backgroundColor?: string;
   borderColor?: string;
+  frosted?: boolean;
 };
 
 export default React.memo(function WeatherGlassCard({
@@ -13,7 +16,18 @@ export default React.memo(function WeatherGlassCard({
   style,
   backgroundColor,
   borderColor,
+  frosted = false,
 }: Props) {
+  const season = useEffectiveSeason();
+  if (frosted)
+    return (
+      <HomeFrostedGlass
+        season={season}
+        style={[styles.card, { marginTop: 0 }, style]}
+      >
+        {children}
+      </HomeFrostedGlass>
+    );
   return (
     <View
       style={[

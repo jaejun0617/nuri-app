@@ -5,6 +5,7 @@
 
 import type { DeviceCoordinates } from '../location/currentPosition';
 import { supabase } from '../supabase/client';
+import { getWeatherCoordBucketKey } from './coordBucket';
 
 export const WEATHER_CACHE_FUNCTION_NAME = 'weather-cache';
 const WEATHER_CACHE_REQUEST_TIMEOUT_MS = 8500;
@@ -12,13 +13,21 @@ const WEATHER_CACHE_LOCALE = 'ko-KR';
 const WEATHER_CACHE_TIMEZONE = 'Asia/Seoul';
 
 export type WeatherForecastResponse = {
+  current_units?: { wind_speed_10m?: string };
   current?: {
+    time?: string;
     temperature_2m?: number;
     apparent_temperature?: number;
     weather_code?: number;
     relative_humidity_2m?: number;
     wind_speed_10m?: number;
     cloud_cover?: number;
+  };
+  hourly_units?: { precipitation_probability?: string; precipitation?: string };
+  hourly?: {
+    time?: string[];
+    precipitation_probability?: (number | null)[];
+    precipitation?: (number | null)[];
   };
   daily?: {
     time?: string[];
@@ -33,7 +42,9 @@ export type WeatherForecastResponse = {
 };
 
 export type WeatherAirQualityResponse = {
+  current_units?: { pm10?: string; pm2_5?: string; ozone?: string };
   current?: {
+    time?: string;
     pm10?: number;
     pm2_5?: number;
     ozone?: number;
@@ -202,38 +213,37 @@ function parseWeatherCacheResponse(
 async function invokeWeatherCache(
   coords: DeviceCoordinates,
 ): Promise<WeatherCacheInvokeResponse> {
-  const invokePromise = supabase.functions.invoke(WEATHER_CACHE_FUNCTION_NAME, {
-    body: {
-      latitude: coords.latitude,
-      longitude: coords.longitude,
-      locale: WEATHER_CACHE_LOCALE,
-      timezone: WEATHER_CACHE_TIMEZONE,
+  const { data, error } = await supabase.functions.invoke(
+    WEATHER_CACHE_FUNCTION_NAME,
+    {
+      body: {
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        locale: WEATHER_CACHE_LOCALE,
+        timezone: WEATHER_CACHE_TIMEZONE,
+      },
+      timeout: WEATHER_CACHE_REQUEST_TIMEOUT_MS,
     },
-  });
-  let timeoutId: ReturnType<typeof setTimeout> | null = null;
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(() => {
-      reject(new Error('weather-cache timeout'));
-    }, WEATHER_CACHE_REQUEST_TIMEOUT_MS);
-  });
-
-  const { data, error } = await Promise.race([
-    invokePromise,
-    timeoutPromise,
-  ]).finally(() => {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-  });
+  );
 
   if (error) {
     throw new WeatherCacheServiceError(
       'weather_cache_invoke_failed',
-      error.message || '날씨 정보를 잠시 불러오지 못했어요.',
+      '날씨 정보를 잠시 불러오지 못했어요.',
     );
   }
 
-  return data as WeatherCacheInvokeResponse;
+  if (!isRecord(data))
+    throw new WeatherCacheServiceError(
+      'weather_cache_invalid_response',
+      '날씨 응답 형식이 올바르지 않아요.',
+    );
+  if (data.ok === true && data.coordBucket !== getWeatherCoordBucketKey(coords))
+    throw new WeatherCacheServiceError(
+      'weather_cache_region_mismatch',
+      '현재 지역의 날씨 정보를 다시 확인해 주세요.',
+    );
+  return data;
 }
 
 export async function fetchWeatherCacheBundle(

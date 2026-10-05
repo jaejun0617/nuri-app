@@ -2,11 +2,13 @@ import {
   createCoordBucket,
   resolveWeatherCache,
   WeatherCacheHttpError,
+  buildOpenMeteoUrl,
 } from '../supabase/functions/_shared/weather-cache-core.js';
 
 const NOW = new Date('2026-04-29T03:00:00.000Z');
 const FORECAST = {
   current: {
+    time: '2026-04-29T12:00',
     temperature_2m: 18,
     apparent_temperature: 18,
     weather_code: 1,
@@ -38,6 +40,7 @@ function createCacheRow(overrides = {}) {
   return {
     air_quality_payload: AIR_QUALITY,
     combined_payload: {
+      contractVersion: 2,
       airQuality: AIR_QUALITY,
       coordBucket,
       forecast: FORECAST,
@@ -45,7 +48,7 @@ function createCacheRow(overrides = {}) {
     },
     coord_bucket: coordBucket,
     expires_at: '2026-04-29T03:30:00.000Z',
-    fetched_at: '2026-04-29T02:30:00.000Z',
+    fetched_at: '2026-04-29T02:55:00.000Z',
     forecast_payload: FORECAST,
     locale: 'ko-KR|Asia/Seoul',
     provider: 'open-meteo',
@@ -82,6 +85,93 @@ describe('weather-cache core', () => {
     locale: 'ko-KR',
     timezone: 'Asia/Seoul',
   };
+
+  it('refreshes legacy payloads even if their old TTL remains fresh', async () => {
+    const row = createCacheRow();
+    delete row.combined_payload.contractVersion;
+    const provider = {
+      fetchBundle: jest.fn(async () => ({
+        forecast: FORECAST,
+        airQuality: null,
+      })),
+    };
+    const result = await resolveWeatherCache({
+      body,
+      cache: createCache(row),
+      provider,
+      now: NOW,
+    });
+    expect(result.source).toBe('provider');
+    expect(Date.parse(result.expiresAt) - Date.parse(result.fetchedAt)).toBe(
+      15 * 60 * 1000,
+    );
+    expect(Date.parse(result.staleUntil) - Date.parse(result.fetchedAt)).toBe(
+      60 * 60 * 1000,
+    );
+  });
+  it('does not revive hour-old fallback data using an old six-hour limit', async () => {
+    await expect(
+      resolveWeatherCache({
+        body,
+        cache: createCache(
+          createCacheRow({ fetched_at: '2026-04-29T01:59:00Z' }),
+        ),
+        provider: {
+          fetchBundle: async () => {
+            throw new Error('offline');
+          },
+        },
+        now: NOW,
+      }),
+    ).rejects.toMatchObject({ code: 'weather_provider_unavailable' });
+  });
+  it.each([undefined, '2026-04-29T10:59', '2026-04-29T12:10'])(
+    'rejects absent/stale/future model time %s',
+    async time => {
+      await expect(
+        resolveWeatherCache({
+          body,
+          cache: createCache(null),
+          provider: {
+            fetchBundle: async () => ({
+              forecast: { ...FORECAST, current: { ...FORECAST.current, time } },
+            }),
+          },
+          now: NOW,
+        }),
+      ).rejects.toMatchObject({ code: 'weather_forecast_invalid' });
+    },
+  );
+  it('deduplicates simultaneous provider misses within one isolate', async () => {
+    const inFlight = new Map();
+    const provider = {
+      fetchBundle: jest.fn(async () => ({
+        forecast: FORECAST,
+        airQuality: null,
+      })),
+    };
+    const cache = createCache(null);
+    await Promise.all(
+      [1, 2, 3].map(() =>
+        resolveWeatherCache({ body, cache, provider, now: NOW, inFlight }),
+      ),
+    );
+    expect(provider.fetchBundle).toHaveBeenCalledTimes(1);
+    expect(cache.upsert).toHaveBeenCalledTimes(1);
+    expect(inFlight.size).toBe(0);
+  });
+  it('requests hourly probability and amount without forcing a model', () => {
+    const url = buildOpenMeteoUrl({
+      baseUrl: 'https://api.open-meteo.com/v1/forecast',
+      coordBucket: createCoordBucket(body),
+      timezone: 'Asia/Seoul',
+      kind: 'forecast',
+    });
+    expect(url.searchParams.get('hourly')).toBe(
+      'precipitation_probability,precipitation',
+    );
+    expect(url.searchParams.get('models')).toBeNull();
+  });
 
   it('0.02도 좌표 bucket을 생성한다', () => {
     const bucket = createCoordBucket(body);

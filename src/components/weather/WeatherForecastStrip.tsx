@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import {
   getWeatherEmoji,
@@ -23,11 +23,13 @@ export default React.memo(function WeatherForecastStrip({
   temperatureColor = '#FFFFFF',
   lowTemperatureColor = 'rgba(226,236,248,0.74)',
 }: Props) {
+  const { fontScale } = useWindowDimensions();
+  const enlarged = fontScale > 1.2;
   if (items.length === 0) {
     return (
       <View style={styles.emptyWrap}>
         <Text style={[styles.emptyText, { color: labelColor }]}>
-          주간 예보를 아직 받아오지 못했어요.
+          예보 정보를 확인하지 못했어요.
         </Text>
       </View>
     );
@@ -38,14 +40,29 @@ export default React.memo(function WeatherForecastStrip({
       {items.map((item, index) => (
         <View
           key={item.key}
-          style={[styles.row, index === items.length - 1 ? styles.rowLast : null]}
+          style={[
+            styles.row,
+            index === items.length - 1 ? styles.rowLast : null,
+          ]}
         >
-          <Text style={[styles.label, { color: labelColor }]}>{item.label}</Text>
+          <Text
+            style={[
+              styles.label,
+              enlarged ? styles.labelEnlarged : null,
+              { color: labelColor },
+            ]}
+          >
+            {item.label}
+          </Text>
 
-          <View style={styles.precipWrap}>
+          <View
+            style={[styles.precipWrap, enlarged ? styles.precipEnlarged : null]}
+          >
             <Text style={styles.precipEmoji}>💧</Text>
             <Text style={[styles.precipText, { color: precipitationColor }]}>
-              {item.precipitationChance ?? 0}%
+              {item.precipitationChance === undefined
+                ? '—'
+                : `${item.precipitationChance}%`}
             </Text>
           </View>
 
@@ -55,7 +72,13 @@ export default React.memo(function WeatherForecastStrip({
             </Text>
           </View>
 
-          <Text style={[styles.tempText, { color: temperatureColor }]}>
+          <Text
+            style={[
+              styles.tempText,
+              enlarged ? styles.tempEnlarged : null,
+              { color: temperatureColor },
+            ]}
+          >
             {item.temperature}°{' '}
             <Text style={[styles.lowText, { color: lowTemperatureColor }]}>
               {item.lowTemperature}°
@@ -96,6 +119,9 @@ const styles = StyleSheet.create({
     color: '#F8FBFF',
     fontWeight: '700',
   },
+  labelEnlarged: { width: 48 },
+  precipEnlarged: { width: 78 },
+  tempEnlarged: { width: 108 },
   precipWrap: {
     width: 58,
     flexDirection: 'row',

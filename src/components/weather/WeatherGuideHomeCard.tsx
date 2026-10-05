@@ -27,6 +27,12 @@ import {
   type WeatherGuideBundle,
 } from '../../services/weather/guide';
 import type { SeasonalWeatherCardVisualTheme } from '../../theme/seasonal/weather';
+import {
+  formatWeatherMeasurement,
+  getUvLabel,
+  getWeatherAdvice,
+  readWeatherMeasurement,
+} from '../../services/weather/presentation';
 
 type Props = {
   weather: WeatherGuideBundle;
@@ -38,24 +44,32 @@ type Props = {
   onPress: () => void;
 };
 
-type Notice = {
-  label: string;
-  message: string;
-  detail: string;
-};
-
-function WeatherMaterialFrame({ children, colors, style, frosted }: PropsWithChildren<{
+function WeatherMaterialFrame({
+  children,
+  colors,
+  style,
+  frosted,
+}: PropsWithChildren<{
   colors: string[];
   style: StyleProp<ViewStyle>;
   frosted: boolean;
 }>) {
   const season = useEffectiveSeason();
   return frosted ? (
-    <HomeFrostedGlass season={season} borderRadius={27} style={[{ marginTop: 0 }, style]}>
+    <HomeFrostedGlass
+      season={season}
+      borderRadius={27}
+      style={[{ marginTop: 0 }, style]}
+    >
       {children}
     </HomeFrostedGlass>
   ) : (
-    <LinearGradient colors={colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={style}>
+    <LinearGradient
+      colors={colors}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={style}
+    >
       {children}
     </LinearGradient>
   );
@@ -80,27 +94,6 @@ const NIGHT_BORDER_COLORS = [
 export const WEATHER_TEMPERATURE_FONT_SIZE = 38;
 const SEASONAL_CARD_ASPECT_RATIO = 1665 / 945;
 const HOME_HORIZONTAL_GUTTER = 16;
-
-function getNotice(
-  weather: WeatherGuideBundle,
-  petName?: string | null,
-): Notice {
-  const safety = weather.precipitationSafety ?? weather.temperatureSafety;
-
-  if (!safety) {
-    return {
-      label: '오늘의 날씨 안내',
-      message: '실시간 날씨를 확인해 주세요',
-      detail: '연결이 완료되면 산책 전 필요한 안내를 보여드려요.',
-    };
-  }
-
-  return {
-    label: safety.label,
-    message: formatWeatherPetText(safety.message, petName),
-    detail: formatWeatherPetText(safety.detail, petName),
-  };
-}
 
 function getWeatherDateLabel() {
   const parts = new Intl.DateTimeFormat('ko-KR', {
@@ -136,14 +129,6 @@ function renderAccentText(text: string, accentColor: string) {
 
 function getNightWeatherEmoji(weather: WeatherGuideBundle) {
   return getWeatherEmoji(weather.weatherIcon);
-}
-
-function getUvLabel(uvIndex: number) {
-  if (uvIndex >= 8) return '매우 높음';
-  if (uvIndex >= 6) return '높음';
-  if (uvIndex >= 3) return '보통';
-  if (uvIndex >= 1) return '낮음';
-  return '확인 필요';
 }
 
 const Metric = React.memo(function WeatherMetric({
@@ -204,20 +189,27 @@ export default React.memo(function WeatherGuideHomeCard({
 }: Props) {
   const { width, fontScale } = useWindowDimensions();
   const enlarged = fontScale > 1;
-  const metricLayout = resolveWeatherMetricLayout({ width, fontScale, values: [
-    `${weather.apparentTemperature}°`, `${weather.humidity}%`,
-    `${weather.windSpeed}m/s`, getUvLabel(weather.uvIndex),
-  ] });
+  const metricLayout = resolveWeatherMetricLayout({
+    width,
+    fontScale,
+    values: [
+      formatWeatherMeasurement(weather, 'apparentTemperature', '°'),
+      formatWeatherMeasurement(weather, 'humidity', '%'),
+      formatWeatherMeasurement(weather, 'windSpeed', 'm/s'),
+      getUvLabel(readWeatherMeasurement(weather, 'uvIndex')),
+    ],
+  });
   const metricsExpanded = metricLayout.columns === 2;
   // The approved aspect ratio applies only while the copy fits at default scale.
-  const seasonalCardHeight = visualTheme && !enlarged && !metricsExpanded
-    ? (width - HOME_HORIZONTAL_GUTTER * 2) / SEASONAL_CARD_ASPECT_RATIO
-    : undefined;
+  const seasonalCardHeight =
+    visualTheme && !enlarged && !metricsExpanded
+      ? (width - HOME_HORIZONTAL_GUTTER * 2) / SEASONAL_CARD_ASPECT_RATIO
+      : undefined;
   const isNightCard = !weather.isDaytime;
   const isCompact = width <= 370;
   const hasLiveData = weather.dataSource === 'live';
   const isPreview = weather.dataSource === 'preview';
-  const notice = getNotice(weather, petName);
+  const notice = getWeatherAdvice(weather);
   const textPrimary =
     visualTheme?.primaryText ?? (isNightCard ? '#FFFFFF' : '#1F2940');
   const detailMetricColor =
@@ -231,9 +223,6 @@ export default React.memo(function WeatherGuideHomeCard({
   const separator =
     visualTheme?.separator ??
     (isNightCard ? 'rgba(255,255,255,0.14)' : 'rgba(80,93,122,0.14)');
-  const panelBackground =
-    visualTheme?.guideBackground ??
-    (isNightCard ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.68)');
   // Seasonal Home uses one shared glass surface; retain the legacy night fallback.
   const surfaceColors = visualTheme
     ? ['transparent', 'transparent']
@@ -250,7 +239,9 @@ export default React.memo(function WeatherGuideHomeCard({
   const temperatureColor = visualTheme ? effectiveAccentColor : textPrimary;
   const noticeArrowColor = visualTheme ? effectiveAccentColor : muted;
   const temperatureValue =
-    hasLiveData || isPreview ? `${weather.currentTemperature}` : '--';
+    hasLiveData || isPreview
+      ? formatWeatherMeasurement(weather, 'currentTemperature', '')
+      : '--';
 
   return (
     <TouchableOpacity
@@ -269,7 +260,11 @@ export default React.memo(function WeatherGuideHomeCard({
         style={[
           styles.outerBorder,
           visualTheme ? styles.seasonalOuterBorder : null,
-          seasonalCardHeight ? { height: seasonalCardHeight } : null,
+          seasonalCardHeight
+            ? notice.caution
+              ? { height: seasonalCardHeight }
+              : { minHeight: seasonalCardHeight }
+            : null,
         ]}
       >
         {visualTheme && !hideSeasonalBackgroundImage ? (
@@ -316,17 +311,8 @@ export default React.memo(function WeatherGuideHomeCard({
               style={[
                 styles.locationPill,
                 {
-                  backgroundColor:
-                    visualTheme?.locationBackground ??
-                    (isNightCard
-                      ? 'rgba(255,255,255,0.08)'
-                      : 'rgba(255,255,255,0.78)'),
-                  borderWidth: visualTheme ? 0 : 1,
-                  borderColor:
-                    visualTheme?.locationBorder ??
-                    (isNightCard
-                      ? 'rgba(255,255,255,0.18)'
-                      : 'rgba(121,139,182,0.15)'),
+                  backgroundColor: 'transparent',
+                  borderWidth: 0,
                 },
               ]}
             >
@@ -343,16 +329,8 @@ export default React.memo(function WeatherGuideHomeCard({
                 style={[
                   styles.dateGlassSurface,
                   {
-                    backgroundColor:
-                      visualTheme?.locationBackground ??
-                      (isNightCard
-                        ? 'rgba(18, 29, 61, 0.34)'
-                        : 'rgba(255, 255, 255, 0.58)'),
-                    borderColor:
-                      visualTheme?.copyBorder ??
-                      (isNightCard
-                        ? 'rgba(255, 255, 255, 0.18)'
-                        : 'rgba(255, 255, 255, 0.66)'),
+                    backgroundColor: 'transparent',
+                    borderWidth: 0,
                   },
                 ]}
               >
@@ -418,18 +396,6 @@ export default React.memo(function WeatherGuideHomeCard({
                 </View>
               </View>
               <View style={styles.copyTextGroup}>
-                {visualTheme ? (
-                  <View
-                    pointerEvents="none"
-                    style={[
-                      styles.copyTextBacking,
-                      {
-                        backgroundColor: visualTheme.copyBackground,
-                        borderColor: visualTheme.copyBorder,
-                      },
-                    ]}
-                  />
-                ) : null}
                 <Text
                   style={[
                     styles.headline,
@@ -439,7 +405,12 @@ export default React.memo(function WeatherGuideHomeCard({
                   numberOfLines={enlarged ? undefined : 2}
                 >
                   {renderAccentText(
-                    formatWeatherPetText(weather.homeMessage, petName),
+                    formatWeatherPetText(
+                      weather.dataSource === 'live'
+                        ? `${weather.detailStatus} 예측`
+                        : notice.headline,
+                      petName,
+                    ),
                     effectiveAccentColor,
                   )}
                 </Text>
@@ -451,9 +422,17 @@ export default React.memo(function WeatherGuideHomeCard({
                   ]}
                   numberOfLines={enlarged ? undefined : 2}
                 >
-                  {isPreview
-                    ? '최근 확인한 날씨를 잠시 보여드리고 있어요.'
-                    : formatWeatherPetText(weather.homeCaption, petName)}
+                  {weather.dataSource === 'live'
+                    ? `최고 ${formatWeatherMeasurement(
+                        weather,
+                        'highTemperature',
+                        '°',
+                      )} · 최저 ${formatWeatherMeasurement(
+                        weather,
+                        'lowTemperature',
+                        '°',
+                      )}`
+                    : notice.caption}
                 </Text>
               </View>
             </View>
@@ -463,14 +442,10 @@ export default React.memo(function WeatherGuideHomeCard({
                 styles.noticePanel,
                 isCompact ? styles.noticePanelCompact : null,
                 enlarged ? styles.enlargedNoticePanel : null,
+                !notice.caution ? styles.genericNoticePanel : null,
                 {
-                  backgroundColor: panelBackground,
-                  borderWidth: visualTheme ? 0 : 1,
-                  borderColor:
-                    visualTheme?.guideBorder ??
-                    (isNightCard
-                      ? 'rgba(255,255,255,0.18)'
-                      : 'rgba(160,180,255,0.30)'),
+                  backgroundColor: 'transparent',
+                  borderWidth: 0,
                 },
               ]}
             >
@@ -490,9 +465,11 @@ export default React.memo(function WeatherGuideHomeCard({
                   isCompact ? styles.noticeMessageCompact : null,
                   { color: textPrimary },
                 ]}
-                numberOfLines={enlarged ? undefined : 3}
+                numberOfLines={notice.caution && !enlarged ? 3 : undefined}
               >
-                {notice.message}
+                {notice.caution
+                  ? formatWeatherPetText(notice.message, petName)
+                  : notice.message}
               </Text>
               <Feather
                 name="chevron-right"
@@ -509,11 +486,7 @@ export default React.memo(function WeatherGuideHomeCard({
               visualTheme ? styles.seasonalMetricsBar : null,
               metricsExpanded ? styles.enlargedMetricsBar : null,
               {
-                backgroundColor:
-                  visualTheme?.metricBackground ??
-                  (isNightCard
-                    ? 'rgba(7,11,30,0.24)'
-                    : 'rgba(255,255,255,0.56)'),
+                backgroundColor: 'transparent',
                 borderTopColor: separator,
               },
             ]}
@@ -521,7 +494,11 @@ export default React.memo(function WeatherGuideHomeCard({
             <Metric
               icon="thermometer"
               label="체감"
-              value={`${weather.apparentTemperature}°`}
+              value={formatWeatherMeasurement(
+                weather,
+                'apparentTemperature',
+                '°',
+              )}
               color={detailMetricColor}
               borderRightColor={separator}
               enlarged={metricsExpanded}
@@ -530,7 +507,7 @@ export default React.memo(function WeatherGuideHomeCard({
             <Metric
               icon="droplet"
               label="습도"
-              value={`${weather.humidity}%`}
+              value={formatWeatherMeasurement(weather, 'humidity', '%')}
               color={detailMetricColor}
               borderRightColor={metricsExpanded ? undefined : separator}
               enlarged={metricsExpanded}
@@ -539,7 +516,7 @@ export default React.memo(function WeatherGuideHomeCard({
             <Metric
               icon="wind"
               label="바람"
-              value={`${weather.windSpeed}m/s`}
+              value={formatWeatherMeasurement(weather, 'windSpeed', 'm/s')}
               color={detailMetricColor}
               borderRightColor={separator}
               enlarged={metricsExpanded}
@@ -548,7 +525,7 @@ export default React.memo(function WeatherGuideHomeCard({
             <Metric
               icon="sun"
               label="자외선"
-              value={getUvLabel(weather.uvIndex)}
+              value={getUvLabel(readWeatherMeasurement(weather, 'uvIndex'))}
               color={detailMetricColor}
               enlarged={metricsExpanded}
               compact={metricLayout.compact}
@@ -720,15 +697,6 @@ const styles = StyleSheet.create({
     position: 'relative',
     gap: 1,
   },
-  copyTextBacking: {
-    position: 'absolute',
-    top: -2,
-    right: -4,
-    bottom: -2,
-    left: -4,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
   temperatureRow: {
     minHeight: 40,
     flexDirection: 'row',
@@ -801,6 +769,7 @@ const styles = StyleSheet.create({
     minHeight: 0,
     paddingBottom: 22,
   },
+  genericNoticePanel: { paddingHorizontal: 8, paddingBottom: 25 },
   noticeLabel: {
     fontSize: 11,
     lineHeight: 15,

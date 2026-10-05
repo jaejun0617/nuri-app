@@ -1,4 +1,34 @@
 # 날씨 API 비용 방어 구조
+<!-- NURI_WEATHER_UX_PO_CLOSEOUT_20261005_BEGIN -->
+## 2026-10-05 Weather UX PO 승인 및 API 작업 분리
+
+- PO가 Home Weather, 상세 화면, 시간대별 강수 UI와 현재 데이터 계약을 승인했다. 기존 아래 후보 기록의 승인 대기는 이 결정으로 종료한다.
+- 승인 설치 후보 `6bf9ebf5`와 동일한 Weather runtime, 테스트, 기존 배포 v5 source를 선별 closeout한다. 무관한 dirty, QA, 계절 자산, AUTH, 빌드 산출물은 유지한다. 이번 Git closeout을 위해 재빌드·재설치·재배포하지 않는다.
+- 다음은 별도 NURI Weather API v1 canonical 계약이다. NURI-owned 계약·provider adapter·분산 캐시/lease·비용 방어·관측성·앱 전환·remote 배포/검증을 수행하되 승인된 UI는 유지한다. 자격증명 없는 국내 provider는 READY_INACTIVE이며 외부 결제·키 발급·Store 작업은 하지 않는다.
+- UX 증적: `/private/tmp/nuri-weather-ux-simplification-20261005`. 선별 Git 증적: `/private/tmp/nuri-weather-po-closeout-20261005`. 타입·lint·14 suites/128 tests 및 설치/화면 증적을 재사용한다. Full suite는 기존 167 suites/1544 tests 결과를 재사용한다.
+- Store는 HOLD이며 상용 이용 자격·국내 provider 운영 자격·장기 예측 정확도는 별도 운영 게이트다.
+<!-- NURI_WEATHER_UX_PO_CLOSEOUT_20261005_END -->
+
+<!-- NURI_WEATHER_UX_20261005_BEGIN -->
+## 2026-10-05 UI 정리와 상용 운영 확대의 분리
+
+- 이번 작업은 presentation/copy만 변경한다. linked v5, 15분 fresh/1시간 stale, 현재 v8 namespace, 원본 시간/위치/단위/취소/동시 요청 합치기/visible 5분 확인은 그대로다. 새 서버 배포·키 발급·DB 정책 변경은 없다.
+- fresh 사용자 화면의 반복 technical metadata를 제거해도 내부 시간을 새 값으로 덮어쓰거나 모델을 관측으로 승격하지 않는다. 최근/실패 재시도와 하단 예측 출처는 유지한다.
+- 출시 전 P0 제안은 상용 provider 권리/예산 확인, 분산 quota 보호·cache·circuit breaker, 운영 dashboard/alert와 위치 품질/개인정보 경계다. 현재 same-isolate coalescing을 distributed protection으로 주장하지 않는다.
+- 디자인 동결 이후 P1: OBSERVED/FORECAST/WARNING/AIR_QUALITY/NOWCAST 필드별 소유권과 공급시각·유효시각·조회시각·만료를 갖는 Edge Aggregator. 공식 국내 관측/특보, AirKorea 관측, radar/nowcast를 순차 검토하고 적법한 기존 예측→안전 cache→미제공으로 fallback한다. 모델을 관측 fallback으로 위장하지 않는다.
+- P2: 장기간 사전 예보와 후속 관측을 비교해 강수 확률 calibration·기온/풍속 오차를 평가한다. 테스트 PASS는 적중률 증명이 아니다. 로드맵의 실제 자격/비용/난이도/acceptance는 `/private/tmp/nuri-weather-ux-simplification-20261005/FINAL_REPORT.md`에 기록했다. 모두 제안이며 자동 착수하지 않는다.
+<!-- NURI_WEATHER_UX_20261005_END -->
+
+<!-- NURI_WEATHER_RELIABILITY_20261005_BEGIN -->
+## 2026-10-05 최신 갱신 계약
+
+- 아래 과거 60분 fresh/6시간 stale 정책은 weather-cache v5의 15분 fresh/1시간 stale로 대체됐다. DB schema/RLS/Storage/Auth는 변경하지 않았다. payload contractVersion=2가 없는 기존 fresh row는 새 provider 조회를 수행하며 기존 row를 일괄 삭제하지 않는다.
+- Open-Meteo 지역 좌표 bucket/best-match/7일/KST 경계를 유지하고 시간대별 강수 확률·강수량을 추가한다. 섭씨/m/s/mm/ISO 시각을 명시적으로 요청한다. 확률의 모델 해상도와 bucket 크기는 다르다.
+- forecast current time·WMO code·온도 검증, provider timeout6.5s, 응답 no-store, 동일 Edge isolate의 동시 miss 합치기를 적용한다. 앱은 visible/active 5분 확인과 원본 시각 기반 만료를 사용한다. 분산 rate limit은 아직 별도 운영 게이트다.
+- 실제 remote ACTIVE v5, local source match, regional response hourly168, DB TTL900/3600·RLS PASS. 현재 providerMode=free; 상용 계약과 KMA 관측/특보/AirKorea 연계는 미확보다. 무료 endpoint 운영 확인을 상용 승인으로 보지 않는다.
+- 원본 v4 rollback evidence 및 v5 deployment/catalog/live evidence는 `/private/tmp/nuri-weather-reliability-20261005`에 보존한다. QA row 변경·credential 이전·cleanup 없음.
+<!-- NURI_WEATHER_RELIABILITY_20261005_END -->
+
 
 ## 2026-07-19 Release Gate 상태
 

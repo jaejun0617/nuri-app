@@ -9,6 +9,7 @@ import type { DeviceCoordinates } from '../services/location/currentPosition';
 import { getWeatherCoordBucketKey } from '../services/weather/coordBucket';
 import type { WeatherGuideBundle } from '../services/weather/guide';
 import { WEATHER_PREVIEW_MAX_AGE_MS } from '../services/weather/policy';
+import { getWeatherOriginTime } from '../services/weather/reliability';
 
 type WeatherStoreEntry = {
   savedAt: number;
@@ -58,7 +59,13 @@ export const useWeatherStore = create<WeatherStoreState>((set, get) => ({
     return snapshot;
   },
   saveBundle: (coords, bundle) => {
-    const savedAt = Date.now();
+    const savedAt = getWeatherOriginTime(bundle);
+    if (
+      savedAt === null ||
+      savedAt > Date.now() + 2 * 60 * 1000 ||
+      Date.now() - savedAt >= WEATHER_PREVIEW_MAX_AGE_MS
+    )
+      return;
     const coordsKey = getWeatherStoreCoordsKey(coords);
     set(state => ({
       byCoordsKey: {
@@ -86,7 +93,8 @@ export const useWeatherStore = create<WeatherStoreState>((set, get) => ({
     set({
       byCoordsKey: nextEntries,
       currentSnapshot:
-        currentSnapshot && now - currentSnapshot.savedAt <= WEATHER_PREVIEW_MAX_AGE_MS
+        currentSnapshot &&
+        now - currentSnapshot.savedAt <= WEATHER_PREVIEW_MAX_AGE_MS
           ? currentSnapshot
           : null,
     });

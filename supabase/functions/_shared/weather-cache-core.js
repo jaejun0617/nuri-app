@@ -1,7 +1,8 @@
 const WEATHER_PROVIDER = 'open-meteo';
 const WEATHER_COORD_BUCKET_SIZE_DEGREES = 0.02;
-const WEATHER_FRESH_TTL_MS = 60 * 60 * 1000;
-const WEATHER_STALE_TTL_MS = 6 * 60 * 60 * 1000;
+const WEATHER_FRESH_TTL_MS = 15 * 60 * 1000;
+const WEATHER_STALE_TTL_MS = 60 * 60 * 1000;
+const WEATHER_PAYLOAD_VERSION = 2;
 const WEATHER_DEFAULT_LOCALE = 'ko-KR';
 const WEATHER_DEFAULT_TIMEZONE = 'Asia/Seoul';
 const OPEN_METEO_ATTRIBUTION = {
@@ -106,6 +107,16 @@ export function normalizeWeatherRequestBody(rawBody) {
   });
   const locale = normalizeString(body.locale) ?? WEATHER_DEFAULT_LOCALE;
   const timezone = normalizeString(body.timezone) ?? WEATHER_DEFAULT_TIMEZONE;
+  if (
+    timezone !== WEATHER_DEFAULT_TIMEZONE ||
+    locale !== WEATHER_DEFAULT_LOCALE
+  ) {
+    throw new WeatherCacheHttpError(
+      400,
+      'invalid_weather_locale',
+      'supported weather locale is ko-KR / Asia/Seoul',
+    );
+  }
 
   return {
     coordBucket,
@@ -119,7 +130,9 @@ export function buildWeatherCacheTimes(now = new Date()) {
   const fetchedAt = new Date(now);
   return {
     fetchedAt: fetchedAt.toISOString(),
-    expiresAt: new Date(fetchedAt.getTime() + WEATHER_FRESH_TTL_MS).toISOString(),
+    expiresAt: new Date(
+      fetchedAt.getTime() + WEATHER_FRESH_TTL_MS,
+    ).toISOString(),
     staleUntil: new Date(
       fetchedAt.getTime() + WEATHER_STALE_TTL_MS,
     ).toISOString(),
@@ -137,12 +150,46 @@ function readTime(value) {
 
 export function isFreshCacheRow(row, now = new Date()) {
   const expiresAt = readTime(row?.expires_at);
-  return expiresAt !== null && expiresAt > now.getTime();
+  const fetchedAt = readTime(row?.fetched_at);
+  return (
+    row?.combined_payload?.contractVersion === WEATHER_PAYLOAD_VERSION &&
+    fetchedAt !== null &&
+    fetchedAt <= now.getTime() + 120000 &&
+    now.getTime() - fetchedAt < WEATHER_FRESH_TTL_MS &&
+    expiresAt !== null &&
+    expiresAt > now.getTime() &&
+    isUsableForecast(row?.combined_payload?.forecast, now)
+  );
 }
 
 export function isStaleCacheRow(row, now = new Date()) {
   const staleUntil = readTime(row?.stale_until);
-  return staleUntil !== null && staleUntil > now.getTime();
+  const fetchedAt = readTime(row?.fetched_at);
+  return (
+    fetchedAt !== null &&
+    fetchedAt <= now.getTime() + 120000 &&
+    now.getTime() - fetchedAt < WEATHER_STALE_TTL_MS &&
+    staleUntil !== null &&
+    staleUntil > now.getTime()
+  );
+}
+
+function isUsableForecast(forecast, now) {
+  const time = forecast?.current?.time;
+  const validAt =
+    typeof time === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(time)
+      ? Date.parse(/(?:Z|[+-]\d{2}:\d{2})$/.test(time) ? time : `${time}+09:00`)
+      : NaN;
+  return (
+    Number.isFinite(forecast?.current?.temperature_2m) &&
+    [
+      0, 1, 2, 3, 45, 48, 51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 71, 73, 75,
+      77, 80, 81, 82, 85, 86, 95, 96, 99,
+    ].includes(forecast?.current?.weather_code) &&
+    Number.isFinite(validAt) &&
+    validAt <= now.getTime() + 300000 &&
+    now.getTime() - validAt < 3600000
+  );
 }
 
 function getCombinedPayloadWithAttribution(payload) {
@@ -197,7 +244,10 @@ export function buildOpenMeteoUrl(input) {
   }
 
   const url = new URL(baseUrl);
-  url.searchParams.set('latitude', formatBucketNumber(input.coordBucket.latitude));
+  url.searchParams.set(
+    'latitude',
+    formatBucketNumber(input.coordBucket.latitude),
+  );
   url.searchParams.set(
     'longitude',
     formatBucketNumber(input.coordBucket.longitude),
@@ -205,6 +255,10 @@ export function buildOpenMeteoUrl(input) {
   url.searchParams.set('timezone', input.timezone);
 
   if (input.kind === 'forecast') {
+    url.searchParams.set('temperature_unit', 'celsius');
+    url.searchParams.set('wind_speed_unit', 'ms');
+    url.searchParams.set('precipitation_unit', 'mm');
+    url.searchParams.set('timeformat', 'iso8601');
     url.searchParams.set(
       'current',
       [
@@ -229,6 +283,7 @@ export function buildOpenMeteoUrl(input) {
       ].join(','),
     );
     url.searchParams.set('forecast_days', '7');
+    url.searchParams.set('hourly', 'precipitation_probability,precipitation');
   } else {
     url.searchParams.set('current', 'pm10,pm2_5,ozone');
   }
@@ -250,6 +305,7 @@ export function buildOpenMeteoUrl(input) {
 
 export function buildCombinedWeatherPayload(input) {
   return {
+    contractVersion: WEATHER_PAYLOAD_VERSION,
     forecast: input.forecast,
     airQuality: input.airQuality,
     provider: WEATHER_PROVIDER,
@@ -275,51 +331,70 @@ export async function resolveWeatherCache(input) {
 
   const staleRow =
     cachedRow && isStaleCacheRow(cachedRow, now) ? cachedRow : null;
-
-  try {
-    const providerBundle = await input.provider.fetchBundle(request);
-    const times = buildWeatherCacheTimes(now);
-    const combinedPayload = buildCombinedWeatherPayload({
-      airQuality: providerBundle.airQuality,
-      coordBucket: request.coordBucket,
-      forecast: providerBundle.forecast,
-      timezone: request.timezone,
-    });
-    const row = await input.cache.upsert({
-      airQualityPayload: providerBundle.airQuality,
-      combinedPayload,
-      coordBucket: request.coordBucket.key,
-      expiresAt: times.expiresAt,
-      fetchedAt: times.fetchedAt,
-      forecastPayload: providerBundle.forecast,
-      locale: request.cacheLocale,
-      provider: WEATHER_PROVIDER,
-      staleUntil: times.staleUntil,
-    });
-
-    return buildSuccessResponseFromRow(row, 'provider', {
-      warning: providerBundle.warning ?? undefined,
-    });
-  } catch (error) {
-    if (staleRow) {
-      const code =
-        error instanceof WeatherCacheHttpError
-          ? error.code
-          : 'weather_provider_unavailable';
-      return buildSuccessResponseFromRow(staleRow, 'stale_cache', {
-        fallbackReason: code,
-        warning: 'provider_unavailable',
+  const key = `${request.coordBucket.key}|${request.cacheLocale}`;
+  const existing = input.inFlight?.get(key);
+  if (existing) return existing;
+  // Coalesce provider misses within this Edge isolate; this is not a distributed rate limiter.
+  const pending = (async () => {
+    try {
+      const providerBundle = await input.provider.fetchBundle(request);
+      const completedAt = input.now ?? new Date();
+      if (!isUsableForecast(providerBundle.forecast, completedAt)) {
+        throw new WeatherCacheHttpError(
+          502,
+          'weather_forecast_invalid',
+          'forecast values or valid time are invalid',
+        );
+      }
+      const times = buildWeatherCacheTimes(completedAt);
+      const combinedPayload = buildCombinedWeatherPayload({
+        airQuality: providerBundle.airQuality,
+        coordBucket: request.coordBucket,
+        forecast: providerBundle.forecast,
+        timezone: request.timezone,
       });
-    }
+      const row = await input.cache.upsert({
+        airQualityPayload: providerBundle.airQuality,
+        combinedPayload,
+        coordBucket: request.coordBucket.key,
+        expiresAt: times.expiresAt,
+        fetchedAt: times.fetchedAt,
+        forecastPayload: providerBundle.forecast,
+        locale: request.cacheLocale,
+        provider: WEATHER_PROVIDER,
+        staleUntil: times.staleUntil,
+      });
 
-    if (error instanceof WeatherCacheHttpError) {
-      throw error;
-    }
+      return buildSuccessResponseFromRow(row, 'provider', {
+        warning: providerBundle.warning ?? undefined,
+      });
+    } catch (error) {
+      if (staleRow && isStaleCacheRow(staleRow, input.now ?? new Date())) {
+        const code =
+          error instanceof WeatherCacheHttpError
+            ? error.code
+            : 'weather_provider_unavailable';
+        return buildSuccessResponseFromRow(staleRow, 'stale_cache', {
+          fallbackReason: code,
+          warning: 'provider_unavailable',
+        });
+      }
 
-    throw new WeatherCacheHttpError(
-      503,
-      'weather_provider_unavailable',
-      'weather provider is unavailable',
-    );
+      if (error instanceof WeatherCacheHttpError) {
+        throw error;
+      }
+
+      throw new WeatherCacheHttpError(
+        503,
+        'weather_provider_unavailable',
+        'weather provider is unavailable',
+      );
+    }
+  })();
+  input.inFlight?.set(key, pending);
+  try {
+    return await pending;
+  } finally {
+    input.inFlight?.delete(key);
   }
 }

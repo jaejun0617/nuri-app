@@ -1,4 +1,48 @@
 # V1.0 Remaining Task/Risk Closeout
+<!-- NURI_WEATHER_UX_PO_CLOSEOUT_20261005_BEGIN -->
+## 2026-10-05 Weather UX PO 승인 및 API 작업 분리
+
+- PO가 Home Weather, 상세 화면, 시간대별 강수 UI와 현재 데이터 계약을 승인했다. 기존 아래 후보 기록의 승인 대기는 이 결정으로 종료한다.
+- 승인 설치 후보 `6bf9ebf5`와 동일한 Weather runtime, 테스트, 기존 배포 v5 source를 선별 closeout한다. 무관한 dirty, QA, 계절 자산, AUTH, 빌드 산출물은 유지한다. 이번 Git closeout을 위해 재빌드·재설치·재배포하지 않는다.
+- 다음은 별도 NURI Weather API v1 canonical 계약이다. NURI-owned 계약·provider adapter·분산 캐시/lease·비용 방어·관측성·앱 전환·remote 배포/검증을 수행하되 승인된 UI는 유지한다. 자격증명 없는 국내 provider는 READY_INACTIVE이며 외부 결제·키 발급·Store 작업은 하지 않는다.
+- UX 증적: `/private/tmp/nuri-weather-ux-simplification-20261005`. 선별 Git 증적: `/private/tmp/nuri-weather-po-closeout-20261005`. 타입·lint·14 suites/128 tests 및 설치/화면 증적을 재사용한다. Full suite는 기존 167 suites/1544 tests 결과를 재사용한다.
+- Store는 HOLD이며 상용 이용 자격·국내 provider 운영 자격·장기 예측 정확도는 별도 운영 게이트다.
+<!-- NURI_WEATHER_UX_PO_CLOSEOUT_20261005_END -->
+
+<!-- NURI_WEATHER_UX_20261005_BEGIN -->
+## 2026-10-05 Weather UX Simplification Candidate
+
+- [x] Exact species-neutral Home generic copy without pet substitution; preserve dynamic risk priority/copy. Fresh detail removes repeated technical metadata and retry; recent/error/unavailable retain concise state and retry. One source/disclaimer footer.
+- [x] One existing frosted panel for hourly precipitation; measured responsive slots, small existing Nuri droplet, primary probability/tertiary mm, original hourly intervals and actual-zero/missing distinction. No image/icon edits or invented summary.
+- [x] TypeScript PASS; scoped ESLint 0 errors/0 warnings; 14 suites/128 targeted tests; diff check PASS. Previous 167 suites/1544 full tests REUSED, not rerun.
+- [x] Incremental Release1 (213.132s; 61 executed/934 up-to-date), install-r1; APK `6bf9ebf504d6b66e9003715ad16649e6553531862feb9718b7b45af33498613e`. Source/input/signature/bundle/font/installed hash/UID/first install/settings match. Uncommitted PO QA candidate, NOT Store RC.
+- [x] Authorized Weather-only S24 native: exact Home body; fresh meta/retry absent; 3 unclipped hourly zero slots; forecast/AQ/sunrise-sunset/outdoor/footer; Home return. Bounded fatal/ANR/RN-fatal sample 0/0/0.
+- [ ] PO visual approval. Native risk/stale/error/missing/many-slot/large-font variations, iOS, forecast accuracy and full performance NOT_VERIFIED this turn; source/targeted logic tests are distinct evidence.
+- [ ] Commercial provider entitlement and production resilience/observability/location privacy gates before Store. Domestic observed/warning/AQ/nowcast and multi-source plan are proposals only, no new credentials/integration/deployment.
+- [x] Preserve original data/refresh/TTL/v8 contracts, QA/account/Auth/season controls/assets, unrelated dirty and protected evidence. No commit/push/cleanup/AAB/Store; retain incremental build/.cxx/Gradle cache. Report `/private/tmp/nuri-weather-ux-simplification-20261005/FINAL_REPORT.md`.
+<!-- NURI_WEATHER_UX_20261005_END -->
+
+<!-- NURI_WEATHER_RELIABILITY_20261005_BEGIN -->
+## 2026-10-05 Weather Reliability Candidate
+
+- 구현/객관 검증: TypeScript PASS; scoped lint 0 errors/0 warnings; related 14 suites/119 tests; final full 167 suites/1544 tests; diff check PASS. weather-cache ACTIVE v5/source match; regional API response/hourly168/TTL900+3600/RLS preservation PASS.
+- Release QA: incremental build1/adb install-r1 PASS; `eb0d2a01c346e1b93dffe4f2be37750fae6d43a53a08da3f39d1d8faaa9cba1e`; signer, debuggable=false, cleartext=false, embedded bundle/font, installed hash, UID/first install/settings PASS. Uncommitted QA candidate; not exact-commit Store RC.
+- 증거 경계: native UI/자동 갱신 체감/새 GPS/performance/iOS/forecast skill NOT_VERIFIED. Provider free mode; commercial entitlement/KMA and AirKorea observation/alerts/distributed rate limit remain operational gates. Source tests are not forecast accuracy proof.
+- PO approval PENDING. Assets/icons/QA/Auth/season controls protected; Store HOLD; no commit/push/cleanup/images. Report `/private/tmp/nuri-weather-reliability-20261005/FINAL_REPORT.md`.
+<!-- NURI_WEATHER_RELIABILITY_20261005_END -->
+
+<!-- NURI_WEATHER_SERVICE_20261005_BEGIN -->
+## 2026-10-05 Weather Service Copy / Frosted Detail Candidate
+
+- [x] Home inner district/date/copy/metric fills removed; outer frost and seasonal background preserved. Detail uses Home frost, single bottom inset owner and natural large-font metric height. No icon original or image asset edits/generation.
+- [x] Read-only linked weather-cache ACTIVE v4 / response units verified. Normalize km/h wind to m/s; KST forecast/sunrise/sunset/fetched-at; daily maximum UV; PM2.5 boundary/concentrations; ozone μg/m³ without ppm grading. Remove fabricated pressure/visibility and fake missing zero/good values.
+- [x] Shared species-neutral conditional advice and explicit model-prediction limits. Preserve existing day/night image resolver; no official KMA alerts/observations or hourly forecast integration. Cache v7 without deleting v6 entries.
+- [x] TypeScript PASS; targeted lint 0 errors/0 warnings; 13 suites/101 targeted tests and 166 suites/1526 full tests PASS. Preserve initial interrupted full-run log separately from final successful run.
+- [x] One incremental Release build (232.173s, 61 executed/934 up-to-date) and one S24 install-r. SHA `64fc31a4aab077cce1f6559d3e7eb0645fc02d5f0ccd0591d0e1064cd30d482f`; signer, embedded bundle/font, source/input, installed hash/UID/firstInstall/settings match. Uncommitted QA candidate, not Store RC.
+- [ ] PO visual/UX approval of Home transparency and detail spacing/glass/copy. No app launch/touch/scroll/capture this turn; native contrast/motion/performance, large-font physical QA and iOS remain unverified.
+- [x] No remote write/config/deploy, staging/commit/push or cleanup. Preserve QA/account/auth/season controls, unrelated dirty, protected APK/AAB/evidence and all incremental build/cache outputs. Before-to-after copy report: `/private/tmp/nuri-weather-service-design-20261005/FINAL_REPORT.md`. Store HOLD.
+<!-- NURI_WEATHER_SERVICE_20261005_END -->
+
 <!-- NURI_UX_PO_CLOSEOUT_20261005_BEGIN -->
 ## 2026-10-05 PO Approved Calendar / Frosted Home / Consolidated UX Closeout
 

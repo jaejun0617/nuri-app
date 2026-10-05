@@ -21,6 +21,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import {
   SafeAreaView,
@@ -33,18 +34,24 @@ import Feather from '../../components/icons/NuriFeatherIcon';
 
 import AirQualityInsightCard from '../../components/weather/AirQualityInsightCard';
 import WeatherForecastStrip from '../../components/weather/WeatherForecastStrip';
+import WeatherHourlyPrecipitation from '../../components/weather/WeatherHourlyPrecipitation';
 import WeatherGlassCard from '../../components/weather/WeatherGlassCard';
-import WeatherTemperatureNotice from '../../components/weather/WeatherTemperatureNotice';
 import { useWeatherGuide } from '../../hooks/useWeatherGuide';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { DeviceCoordinates } from '../../services/location/currentPosition';
 import {
   formatWeatherPetText,
-  getWeatherEmoji,
   type WeatherGuideBundle,
   type WeatherScenario,
 } from '../../services/weather/guide';
 import { usePetStore } from '../../store/petStore';
+import {
+  formatWeatherMeasurement,
+  getUvLabel,
+  getWeatherAdvice,
+  readWeatherMeasurement,
+} from '../../services/weather/presentation';
+import { getUpcomingWeatherHours } from '../../services/weather/reliability';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'WeatherInsight'>;
 
@@ -174,40 +181,20 @@ function getScenePalette(
       };
 }
 
-function getHeroImageSlotLabel(weather: WeatherGuideBundle) {
-  const phase = weather.isDaytime ? '낮' : '밤';
-
-  switch (weather.scenario) {
-    case 'rain':
-      return `비 ${phase} 이미지 영역`;
-    case 'snow':
-      return `눈 ${phase} 이미지 영역`;
-    case 'dusty':
-      return `흐림 ${phase} 이미지 영역`;
-    case 'fresh':
-    default:
-      return `맑음 ${phase} 이미지 영역`;
-  }
-}
-
-function getUvLabel(uvIndex: number) {
-  if (uvIndex >= 8) return '매우 높음';
-  if (uvIndex >= 6) return '높음';
-  if (uvIndex >= 3) return '보통';
-  return '낮음';
-}
-
 function getHumidityMessage(humidity: number) {
   if (humidity >= 75)
-    return '습도가 높은 편이라 털 말리기를 더 꼼꼼히 해 주세요';
-  if (humidity >= 55) return '습도는 무난한 편이에요';
-  return '공기가 건조해 수분 보충을 챙겨 주세요';
+    return '습도가 높아요. 실내 환기와 적정 습도를 살펴주세요.';
+  if (humidity >= 40)
+    return '현재 상대 습도예요. 생활 공간의 습도는 별도로 확인해 주세요.';
+  return '공기가 건조한 편이에요. 수분과 생활 공간의 습도를 챙겨주세요.';
 }
 
 function getWindMessage(windSpeed: number) {
-  if (windSpeed >= 8) return '바람이 강한 편이라 산책 시간은 짧게 가져가요';
-  if (windSpeed >= 4) return '바람이 제법 느껴지는 날이에요';
-  return '바람이 잔잔해서 활동하기 편안해요';
+  if (windSpeed >= 8)
+    return '바람이 강해요. 노출된 장소를 피하고 기상특보를 확인해 주세요.';
+  if (windSpeed >= 4)
+    return '바람이 다소 불어요. 외출 장소와 시간을 조절해 주세요.';
+  return '바람이 약한 편이에요.';
 }
 
 function getCloudLabel(cloudCover: number) {
@@ -215,52 +202,6 @@ function getCloudLabel(cloudCover: number) {
   if (cloudCover >= 45) return '구름 많음';
   if (cloudCover >= 20) return '구름 조금';
   return '맑음';
-}
-
-function getPressureMessage(weather: WeatherGuideBundle) {
-  if (weather.scenario === 'rain') {
-    return '기압이 낮아져 컨디션이 예민할 수 있어요';
-  }
-
-  if (weather.scenario === 'snow') {
-    return '찬 공기가 길게 머물 수 있어요';
-  }
-
-  return '기압은 비교적 안정적인 편이에요';
-}
-
-function getVisibilityMessage(weather: WeatherGuideBundle) {
-  if (weather.airQualityConcern) {
-    return '미세먼지 때문에 시야가 다소 탁해질 수 있어요';
-  }
-
-  if (weather.scenario === 'rain') {
-    return '빗방울 때문에 시야가 짧아질 수 있어요';
-  }
-
-  return '시야가 맑아 활동 계획을 세우기 좋아요';
-}
-
-function getBackgroundMoodCopy(weather: WeatherGuideBundle) {
-  if (weather.airQualityConcern && weather.scenario === 'fresh') {
-    return '하늘은 맑아도 공기 질을 먼저 확인해 주세요.';
-  }
-
-  if (weather.scenario === 'rain') {
-    return '차분한 실내 시간이 더 어울리는 저녁이에요.';
-  }
-
-  if (weather.scenario === 'snow') {
-    return '체온과 발바닥 컨디션을 먼저 살펴봐 주세요.';
-  }
-
-  if (weather.scenario === 'dusty') {
-    return '호흡이 편안한 환경을 먼저 챙겨 주세요.';
-  }
-
-  return weather.isDaytime
-    ? '맑은 하늘 아래 산책 계획을 세우기 좋은 시간이에요.'
-    : '고요한 밤 공기와 함께 하루를 정리해 보세요.';
 }
 
 function getHeroImageSource(scenario: WeatherScenario, isDaytime: boolean) {
@@ -286,11 +227,14 @@ function getHeroImageSource(scenario: WeatherScenario, isDaytime: boolean) {
 export default function WeatherInsightScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
+  const { width, fontScale } = useWindowDimensions();
+  const singleColumnMetrics = width < 360 || fontScale > 1.2;
   const route = useRoute<WeatherInsightRoute>();
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
   const selectedPet = useMemo(
-    () => pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
+    () =>
+      pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
     [pets, selectedPetId],
   );
   const selectedPetName = selectedPet?.name ?? null;
@@ -300,9 +244,9 @@ export default function WeatherInsightScreen() {
     route.params?.initialBundle,
     {
       initialCoordinates: route.params?.initialCoordinates,
-      autoRefreshOnMount: !route.params?.initialBundle,
-      autoRefreshOnFocus: false,
-      autoRefreshOnActive: false,
+      autoRefreshOnMount: true,
+      autoRefreshOnFocus: true,
+      autoRefreshOnActive: true,
     },
   );
   const weather = weatherState.bundle;
@@ -327,11 +271,8 @@ export default function WeatherInsightScreen() {
         : UNAVAILABLE_PALETTE,
     [displayScenario, hasRenderableWeather, sceneIsDaytime],
   );
-  const dataStatusLabel = hasLiveWeather
-    ? '실시간 기준'
-    : hasPreviewWeather
-      ? '최근 확인 기준'
-      : '연결 필요';
+  const advice = getWeatherAdvice(weather);
+  const needsRefresh = !hasLiveWeather || !!weatherState.error;
   const attributionLabel = weather.attribution?.label?.trim() || 'Open-Meteo';
 
   const routeDistrict = route.params?.district?.trim() || null;
@@ -343,163 +284,77 @@ export default function WeatherInsightScreen() {
       : weather.district;
 
   const metrics = useMemo(() => {
-    if (!hasLiveWeather) {
-      return [
-        {
-          key: 'feels-like',
-          title: '체감 온도',
-          value: hasPreviewWeather
-            ? `${weather.apparentTemperature}°`
-            : '정보 없음',
-          description: hasPreviewWeather
-            ? '최근 확인한 체감 온도예요. 실시간 응답이 도착하면 갱신됩니다'
-            : '실제 위치 기반 응답이 도착하면 표시됩니다',
-        },
-        {
-          key: 'humidity',
-          title: '습도',
-          value: hasPreviewWeather ? `${weather.humidity}%` : '정보 없음',
-          description: hasPreviewWeather
-            ? '최근 확인한 습도예요. 연결되면 실시간 정보로 바뀝니다'
-            : '습도 정보도 함께 갱신됩니다',
-        },
-        {
-          key: 'wind',
-          title: '바람',
-          value: hasPreviewWeather ? `${weather.windSpeed}m/s` : '정보 없음',
-          description: hasPreviewWeather
-            ? '최근 확인한 바람 정보예요. 현재 응답을 다시 기다리는 중입니다'
-            : '바람 세기는 실시간 응답을 기다리고 있어요',
-        },
-        {
-          key: 'uv',
-          title: '자외선',
-          value: hasPreviewWeather ? getUvLabel(weather.uvIndex) : '정보 없음',
-          description: hasPreviewWeather
-            ? `최근 확인 지수 ${weather.uvIndex} · 연결 후 다시 갱신됩니다`
-            : '연결이 되면 자외선 지수도 같이 보여줘요',
-        },
-      ];
-    }
-
-    return [
+    const feelsLike = readWeatherMeasurement(weather, 'apparentTemperature');
+    const temperature = readWeatherMeasurement(weather, 'currentTemperature');
+    const humidity = readWeatherMeasurement(weather, 'humidity');
+    const wind = readWeatherMeasurement(weather, 'windSpeed');
+    const uv = readWeatherMeasurement(weather, 'uvIndex');
+    const unavailableCopy = '이 항목의 정보를 확인하지 못했어요.';
+    const items = [
       {
         key: 'feels-like',
         title: '체감 온도',
-        value: `${weather.apparentTemperature}°`,
+        value: formatWeatherMeasurement(weather, 'apparentTemperature', '°C'),
         description:
-          weather.apparentTemperature < weather.currentTemperature
-            ? '실제보다 조금 더 차갑게 느껴져요'
-            : '실제보다 살짝 포근하게 느껴져요',
+          feelsLike === null || temperature === null
+            ? unavailableCopy
+            : feelsLike === temperature
+            ? '현재 기온과 비슷하게 느껴져요.'
+            : feelsLike < temperature
+            ? `기온보다 ${temperature - feelsLike}° 낮게 느껴져요.`
+            : `기온보다 ${feelsLike - temperature}° 높게 느껴져요.`,
       },
       {
         key: 'humidity',
         title: '습도',
-        value: `${weather.humidity}%`,
-        description: getHumidityMessage(weather.humidity),
+        value: formatWeatherMeasurement(weather, 'humidity', '%'),
+        description:
+          humidity === null ? unavailableCopy : getHumidityMessage(humidity),
       },
       {
         key: 'wind',
         title: '바람',
-        value: `${weather.windSpeed}m/s`,
-        description: getWindMessage(weather.windSpeed),
+        value: formatWeatherMeasurement(weather, 'windSpeed', 'm/s'),
+        description: wind === null ? unavailableCopy : getWindMessage(wind),
       },
       {
         key: 'uv',
-        title: '자외선',
-        value: getUvLabel(weather.uvIndex),
-        description: `지수 ${weather.uvIndex} · ${
-          sceneIsDaytime
-            ? '산책 시간대를 조절해 주세요'
-            : '야간에는 영향이 적어요'
-        }`,
+        title: '오늘 최대 자외선',
+        value: getUvLabel(uv),
+        description: uv === null ? unavailableCopy : `최대 지수 ${uv}`,
       },
     ];
-  }, [
-    hasLiveWeather,
-    hasPreviewWeather,
-    weather.apparentTemperature,
-    weather.currentTemperature,
-    weather.humidity,
-    sceneIsDaytime,
-    weather.uvIndex,
-    weather.windSpeed,
-  ]);
+    return hasPreviewWeather
+      ? items.map(item => ({
+          ...item,
+          description: `최근 확인 정보 · ${item.description}`,
+        }))
+      : items;
+  }, [weather, hasPreviewWeather]);
 
   const atmosphericMetrics = useMemo(() => {
-    if (!hasLiveWeather) {
-      return [
-        {
-          key: 'cloud',
-          title: '하늘 상태',
-          value: hasPreviewWeather ? getCloudLabel(weather.cloudCover) : '정보 없음',
-          description: hasPreviewWeather
-            ? `최근 확인한 구름량 ${weather.cloudCover}% 기준이에요`
-            : '구름량 데이터를 아직 받지 못했어요',
-        },
-        {
-          key: 'visibility',
-          title: '시야 가이드',
-          value: hasPreviewWeather ? '최근 기준' : '확인 필요',
-          description: hasPreviewWeather
-            ? getVisibilityMessage(displayWeather)
-            : '대기 질 연결 후 실제 가이드가 표시됩니다',
-        },
-        {
-          key: 'pressure',
-          title: '컨디션 힌트',
-          value: hasPreviewWeather ? '최근 기준' : '확인 필요',
-          description: hasPreviewWeather
-            ? getPressureMessage(displayWeather)
-            : '실시간 날씨 응답 전에는 판단을 보류해 주세요',
-        },
-        {
-          key: 'day-phase',
-          title: '현재 시간대',
-          value: hasPreviewWeather ? (sceneIsDaytime ? '낮' : '밤') : '확인 필요',
-          description: hasPreviewWeather
-            ? `최근 확인 기준 · ${weather.detailStatus}`
-            : weather.detailStatus,
-        },
-      ];
-    }
-
+    const cloud = readWeatherMeasurement(weather, 'cloudCover');
+    const chance = weather.weekly.find(
+      item => item.label === '오늘',
+    )?.precipitationChance;
     return [
       {
         key: 'cloud',
         title: '하늘 상태',
-        value: getCloudLabel(weather.cloudCover),
-        description: `${weather.cloudCover}% 구름량`,
+        value: cloud === null ? '확인 중' : getCloudLabel(cloud),
+        description:
+          cloud === null
+            ? '구름량 정보를 확인하지 못했어요.'
+            : `전체 구름량 ${cloud}%`,
       },
       {
-        key: 'visibility',
-        title: '시야 가이드',
-        value: displayWeather.airQualityConcern ? '주의' : '좋음',
-        description: getVisibilityMessage(displayWeather),
-      },
-      {
-        key: 'pressure',
-        title: '컨디션 힌트',
-        value: displayWeather.scenario === 'fresh' ? '안정적' : '체크 필요',
-        description: getPressureMessage(displayWeather),
-      },
-      {
-        key: 'day-phase',
-        title: '현재 시간대',
-        value: sceneIsDaytime ? '낮' : '밤',
-        description: `${getWeatherEmoji(displayWeather.weatherIcon)} ${
-          weather.detailStatus
-        }`,
+        key: 'precipitation',
+        title: '오늘 최대 강수 확률',
+        value: chance === undefined ? '확인 중' : `${chance}%`,
+        description: '외출 시간대의 확률도 함께 살펴주세요.',
       },
     ];
-  }, [
-    displayWeather,
-    hasLiveWeather,
-    hasPreviewWeather,
-    sceneIsDaytime,
-    weather.cloudCover,
-    weather.detailStatus,
-  ]);
+  }, [weather]);
 
   const heroImageSource = useMemo(() => {
     if (!hasRenderableWeather) return null;
@@ -515,7 +370,7 @@ export default function WeatherInsightScreen() {
   }, []);
 
   const forecastTextPalette = useMemo(() => {
-    if (!hasLiveWeather) {
+    if (!hasRenderableWeather) {
       return {
         label: '#223042',
         precipitation: 'rgba(34,48,66,0.54)',
@@ -539,7 +394,7 @@ export default function WeatherInsightScreen() {
       temperature: '#FFFFFF',
       lowTemperature: 'rgba(226,236,248,0.74)',
     };
-  }, [displayScenario, hasLiveWeather, sceneIsDaytime]);
+  }, [displayScenario, hasRenderableWeather, sceneIsDaytime]);
 
   const heroBlendColors = useMemo(() => {
     if (displayScenario === 'fresh' && sceneIsDaytime) {
@@ -551,25 +406,13 @@ export default function WeatherInsightScreen() {
     }
 
     if (displayScenario === 'fresh' && !sceneIsDaytime) {
-      return [
-        'rgba(4,15,39,0)',
-        'rgba(13,42,99,0.34)',
-        'rgba(13,42,99,0.94)',
-      ];
+      return ['rgba(4,15,39,0)', 'rgba(13,42,99,0.34)', 'rgba(13,42,99,0.94)'];
     }
 
     if (displayScenario === 'rain') {
       return sceneIsDaytime
-        ? [
-            'rgba(27,61,114,0)',
-            'rgba(27,61,114,0.34)',
-            'rgba(23,61,119,0.94)',
-          ]
-        : [
-            'rgba(4,18,38,0)',
-            'rgba(16,47,92,0.34)',
-            'rgba(16,47,92,0.94)',
-          ];
+        ? ['rgba(27,61,114,0)', 'rgba(27,61,114,0.34)', 'rgba(23,61,119,0.94)']
+        : ['rgba(4,18,38,0)', 'rgba(16,47,92,0.34)', 'rgba(16,47,92,0.94)'];
     }
 
     if (displayScenario === 'snow') {
@@ -579,11 +422,7 @@ export default function WeatherInsightScreen() {
             'rgba(125,176,255,0.26)',
             'rgba(125,176,255,0.86)',
           ]
-        : [
-            'rgba(7,21,47,0)',
-            'rgba(22,56,107,0.34)',
-            'rgba(22,56,107,0.92)',
-          ];
+        : ['rgba(7,21,47,0)', 'rgba(22,56,107,0.34)', 'rgba(22,56,107,0.92)'];
     }
 
     return [
@@ -595,11 +434,7 @@ export default function WeatherInsightScreen() {
 
   const onPressPrimary = useCallback(() => {
     try {
-      if (
-        hasLiveWeather &&
-        displayWeather.scenario === 'fresh' &&
-        !displayWeather.airQualityConcern
-      ) {
+      if (hasLiveWeather && !advice.caution) {
         navigation.navigate('AppTabs', {
           screen: 'TimelineTab',
           params: {
@@ -613,13 +448,15 @@ export default function WeatherInsightScreen() {
       navigation.navigate('IndoorActivityRecommendations', {
         district: displayWeather.district,
         initialBundle: displayWeather,
-        initialCoordinates: weatherState.coordinates ?? route.params?.initialCoordinates,
+        initialCoordinates:
+          weatherState.coordinates ?? route.params?.initialCoordinates,
       });
     } catch {
       // noop
     }
   }, [
     displayWeather,
+    advice.caution,
     hasLiveWeather,
     navigation,
     route.params?.initialCoordinates,
@@ -630,14 +467,16 @@ export default function WeatherInsightScreen() {
     <LinearGradient colors={palette.background} style={styles.screen}>
       <StatusBar
         barStyle={
-          hasRenderableWeather && !sceneIsDaytime ? 'light-content' : 'dark-content'
+          hasRenderableWeather && !sceneIsDaytime
+            ? 'light-content'
+            : 'dark-content'
         }
       />
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
         <ScrollView
           contentContainerStyle={[
             styles.content,
-            { paddingBottom: Math.max(insets.bottom + 32, 52) },
+            { paddingBottom: insets.bottom + 12 },
           ]}
           showsVerticalScrollIndicator={false}
         >
@@ -703,8 +542,8 @@ export default function WeatherInsightScreen() {
                           {hasLiveWeather
                             ? `${displayWeather.currentTemperature}°`
                             : hasPreviewWeather
-                              ? `최근 확인 ${displayWeather.currentTemperature}°`
-                              : '정보 없음'}
+                            ? `최근 확인 ${displayWeather.currentTemperature}°`
+                            : '정보 없음'}
                         </Text>
                         <Text
                           style={[
@@ -729,10 +568,26 @@ export default function WeatherInsightScreen() {
                           ]}
                         >
                           {hasLiveWeather
-                            ? `최고 ${displayWeather.highTemperature}° / 최저 ${displayWeather.lowTemperature}°`
+                            ? `최고 ${formatWeatherMeasurement(
+                                weather,
+                                'highTemperature',
+                                '°',
+                              )} / 최저 ${formatWeatherMeasurement(
+                                weather,
+                                'lowTemperature',
+                                '°',
+                              )}`
                             : hasPreviewWeather
-                              ? `최근 확인 최고 ${displayWeather.highTemperature}° / 최저 ${displayWeather.lowTemperature}°`
-                              : '최고/최저 기온 확인 중'}
+                            ? `최근 확인 최고 ${formatWeatherMeasurement(
+                                weather,
+                                'highTemperature',
+                                '°',
+                              )} / 최저 ${formatWeatherMeasurement(
+                                weather,
+                                'lowTemperature',
+                                '°',
+                              )}`
+                            : '최고/최저 기온 확인 중'}
                         </Text>
                         <Text
                           style={[
@@ -745,10 +600,18 @@ export default function WeatherInsightScreen() {
                           ]}
                         >
                           {hasLiveWeather
-                            ? `체감온도 ${displayWeather.apparentTemperature}°`
+                            ? `체감온도 ${formatWeatherMeasurement(
+                                weather,
+                                'apparentTemperature',
+                                '°',
+                              )}`
                             : hasPreviewWeather
-                              ? `최근 확인 체감온도 ${displayWeather.apparentTemperature}°`
-                              : '체감온도 확인 중'}
+                            ? `최근 확인 체감온도 ${formatWeatherMeasurement(
+                                weather,
+                                'apparentTemperature',
+                                '°',
+                              )}`
+                            : '체감온도 확인 중'}
                         </Text>
                       </View>
                     </View>
@@ -761,6 +624,7 @@ export default function WeatherInsightScreen() {
               </View>
             ) : (
               <WeatherGlassCard
+                frosted
                 backgroundColor={palette.cardBackground}
                 borderColor={palette.cardBorder}
                 style={styles.heroVisualCard}
@@ -791,8 +655,8 @@ export default function WeatherInsightScreen() {
                       {hasLiveWeather
                         ? `${displayWeather.currentTemperature}°`
                         : hasPreviewWeather
-                          ? `최근 확인 ${displayWeather.currentTemperature}°`
-                          : '정보 없음'}
+                        ? `최근 확인 ${displayWeather.currentTemperature}°`
+                        : '정보 없음'}
                     </Text>
                     <Text
                       style={[
@@ -809,10 +673,26 @@ export default function WeatherInsightScreen() {
                       ]}
                     >
                       {hasLiveWeather
-                        ? `최고 ${displayWeather.highTemperature}° / 최저 ${displayWeather.lowTemperature}°`
+                        ? `최고 ${formatWeatherMeasurement(
+                            weather,
+                            'highTemperature',
+                            '°',
+                          )} / 최저 ${formatWeatherMeasurement(
+                            weather,
+                            'lowTemperature',
+                            '°',
+                          )}`
                         : hasPreviewWeather
-                          ? `최근 확인 최고 ${displayWeather.highTemperature}° / 최저 ${displayWeather.lowTemperature}°`
-                          : '최고/최저 기온 확인 중'}
+                        ? `최근 확인 최고 ${formatWeatherMeasurement(
+                            weather,
+                            'highTemperature',
+                            '°',
+                          )} / 최저 ${formatWeatherMeasurement(
+                            weather,
+                            'lowTemperature',
+                            '°',
+                          )}`
+                        : '최고/최저 기온 확인 중'}
                     </Text>
                     <Text
                       style={[
@@ -821,10 +701,18 @@ export default function WeatherInsightScreen() {
                       ]}
                     >
                       {hasLiveWeather
-                        ? `체감온도 ${displayWeather.apparentTemperature}°`
+                        ? `체감온도 ${formatWeatherMeasurement(
+                            weather,
+                            'apparentTemperature',
+                            '°',
+                          )}`
                         : hasPreviewWeather
-                          ? `최근 확인 체감온도 ${displayWeather.apparentTemperature}°`
-                          : '체감온도 확인 중'}
+                        ? `최근 확인 체감온도 ${formatWeatherMeasurement(
+                            weather,
+                            'apparentTemperature',
+                            '°',
+                          )}`
+                        : '체감온도 확인 중'}
                     </Text>
                   </View>
                 </View>
@@ -832,65 +720,70 @@ export default function WeatherInsightScreen() {
                 <View style={styles.heroPlaceholder}>
                   <Text
                     style={[
-                      styles.heroVisualLabel,
-                      { color: palette.textSecondary },
-                    ]}
-                  >
-                    상단 이미지 슬롯
-                  </Text>
-                  <Text
-                    style={[
                       styles.heroVisualTitle,
                       { color: palette.textPrimary },
                     ]}
-                    >
-                    {hasLiveWeather
-                      ? getHeroImageSlotLabel(displayWeather)
-                      : '실제 날씨 연결이 필요해요'}
+                  >
+                    날씨를 불러오지 못했어요
                   </Text>
                   <Text
                     style={[
                       styles.heroVisualBody,
                       { color: palette.textSecondary },
                     ]}
-                    >
-                    {hasLiveWeather
-                      ? '비/눈과 낮/밤 조합 이미지를 나중에 연결하면 이 영역이 배경 비주얼로 교체됩니다.'
-                      : '위치 권한과 네트워크 연결이 확인되면 실제 날씨 기반 화면으로 자동 전환됩니다.'}
+                  >
+                    위치 권한과 네트워크 연결을 확인한 뒤 다시 시도해 주세요.
                   </Text>
                 </View>
               </WeatherGlassCard>
             )}
 
             <Text style={[styles.heroHeadline, { color: palette.textPrimary }]}>
-              {formatWeatherPetText(displayWeather.detailHeadline, selectedPetName)}
+              {formatWeatherPetText(advice.headline, selectedPetName)}
             </Text>
             <Text
               style={[styles.heroMoodCopy, { color: palette.textSecondary }]}
             >
-              {formatWeatherPetText(
-                hasLiveWeather
-                  ? getBackgroundMoodCopy(displayWeather)
-                  : '현재는 실시간 날씨 연결 전 상태라 활동 전 다시 확인해 주세요.',
-                selectedPetName,
-              )}
+              {formatWeatherPetText(advice.caption, selectedPetName)}
             </Text>
-            <WeatherTemperatureNotice
-              safety={displayWeather.temperatureSafety}
-              precipitationSafety={displayWeather.precipitationSafety}
-              textColor={palette.textPrimary}
-              petName={selectedPetName}
-            />
-            {weatherState.error ? (
-              <Text
-                style={[styles.heroError, { color: palette.textSecondary }]}
-              >
-                {weatherState.error}
-              </Text>
+            {needsRefresh ? (
+              <View style={styles.updateRow}>
+                <Text
+                  style={[
+                    styles.sectionHint,
+                    styles.updateText,
+                    { color: palette.textSecondary },
+                  ]}
+                >
+                  {hasPreviewWeather
+                    ? '최근 확인한 날씨예요'
+                    : '최신 날씨를 확인하지 못했어요'}
+                </Text>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="날씨 다시 확인"
+                  onPress={weatherState.refresh}
+                  disabled={weatherState.loading}
+                  style={styles.refreshButton}
+                >
+                  <Text
+                    style={[styles.sectionHint, { color: palette.textPrimary }]}
+                  >
+                    {weatherState.loading ? '확인 중' : '다시 확인'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             ) : null}
           </View>
 
+          <WeatherHourlyPrecipitation
+            items={getUpcomingWeatherHours(weather)}
+            textColor={palette.textPrimary}
+            secondaryColor={palette.textSecondary}
+          />
+
           <WeatherGlassCard
+            frosted
             backgroundColor={palette.cardBackground}
             borderColor={palette.cardBorder}
           >
@@ -898,12 +791,7 @@ export default function WeatherInsightScreen() {
               <Text
                 style={[styles.sectionTitle, { color: palette.textPrimary }]}
               >
-                주간 예보
-              </Text>
-              <Text
-                style={[styles.sectionHint, { color: palette.textSecondary }]}
-              >
-                {hasPreviewWeather ? '최근 확인 기준 7일' : '오늘부터 7일'}
+                7일 예보
               </Text>
             </View>
             <WeatherForecastStrip
@@ -917,36 +805,12 @@ export default function WeatherInsightScreen() {
           </WeatherGlassCard>
 
           <AirQualityInsightCard
+            frosted
             metrics={weather.airQualityMetrics}
-            headerHint={dataStatusLabel}
-            titleColor={
-              hasLiveWeather &&
-              displayWeather.scenario === 'fresh' &&
-              sceneIsDaytime
-                ? '#102240'
-                : undefined
-            }
-            hintColor={
-              hasLiveWeather &&
-              displayWeather.scenario === 'fresh' &&
-              sceneIsDaytime
-                ? 'rgba(16,34,64,0.56)'
-                : undefined
-            }
-            metricLabelColor={
-              hasLiveWeather &&
-              displayWeather.scenario === 'fresh' &&
-              sceneIsDaytime
-                ? '#17345F'
-                : undefined
-            }
-            valueColor={
-              hasLiveWeather &&
-              displayWeather.scenario === 'fresh' &&
-              sceneIsDaytime
-                ? '#17345F'
-                : undefined
-            }
+            titleColor={palette.textPrimary}
+            hintColor={palette.textSecondary}
+            metricLabelColor={palette.textPrimary}
+            valueColor={palette.textPrimary}
             trackColor={
               hasLiveWeather &&
               displayWeather.scenario === 'fresh' &&
@@ -969,15 +833,18 @@ export default function WeatherInsightScreen() {
                 : palette.cardBorder
             }
           />
-          
 
           <View style={styles.metricGrid}>
             {metrics.map(item => (
               <WeatherGlassCard
+                frosted
                 key={item.key}
                 backgroundColor={palette.cardBackground}
                 borderColor={palette.cardBorder}
-                style={styles.metricCard}
+                style={[
+                  styles.metricCard,
+                  singleColumnMetrics ? styles.metricCardFull : null,
+                ]}
               >
                 <Text
                   style={[styles.metricLabel, { color: palette.textSecondary }]}
@@ -1001,10 +868,14 @@ export default function WeatherInsightScreen() {
           <View style={styles.metricGrid}>
             {atmosphericMetrics.map(item => (
               <WeatherGlassCard
+                frosted
                 key={item.key}
                 backgroundColor={palette.cardBackground}
                 borderColor={palette.cardBorder}
-                style={styles.metricCard}
+                style={[
+                  styles.metricCard,
+                  singleColumnMetrics ? styles.metricCardFull : null,
+                ]}
               >
                 <Text
                   style={[styles.metricLabel, { color: palette.textSecondary }]}
@@ -1026,6 +897,7 @@ export default function WeatherInsightScreen() {
           </View>
 
           <WeatherGlassCard
+            frosted
             backgroundColor={palette.cardBackground}
             borderColor={palette.cardBorder}
           >
@@ -1034,11 +906,6 @@ export default function WeatherInsightScreen() {
                 style={[styles.sectionTitle, { color: palette.textPrimary }]}
               >
                 일출과 일몰
-              </Text>
-              <Text
-                style={[styles.sectionHint, { color: palette.textSecondary }]}
-              >
-                하루 리듬
               </Text>
             </View>
 
@@ -1075,6 +942,7 @@ export default function WeatherInsightScreen() {
           </WeatherGlassCard>
 
           <WeatherGlassCard
+            frosted
             backgroundColor={palette.cardBackground}
             borderColor={palette.cardBorder}
           >
@@ -1082,19 +950,14 @@ export default function WeatherInsightScreen() {
               <Text
                 style={[styles.sectionTitle, { color: palette.textPrimary }]}
               >
-                반려견 케어 가이드
-              </Text>
-              <Text
-                style={[styles.sectionHint, { color: palette.textSecondary }]}
-              >
-                오늘 컨디션에 맞춘 제안
+                반려동물 외출 안내
               </Text>
             </View>
             <Text style={[styles.careTitle, { color: palette.textPrimary }]}>
-              {weather.activityCardTitle}
+              {advice.label}
             </Text>
             <Text style={[styles.careBody, { color: palette.textSecondary }]}>
-              {weather.activityCardBody}
+              {formatWeatherPetText(advice.detail, selectedPetName)}
             </Text>
             <TouchableOpacity
               activeOpacity={0.9}
@@ -1105,7 +968,7 @@ export default function WeatherInsightScreen() {
               onPress={onPressPrimary}
             >
               <Text style={styles.primaryButtonText}>
-                {weather.activityButtonLabel}
+                {advice.caution ? '실내 활동 살펴보기' : '산책 기록 보기'}
               </Text>
             </TouchableOpacity>
           </WeatherGlassCard>
@@ -1114,7 +977,7 @@ export default function WeatherInsightScreen() {
             <Text
               style={[styles.attributionText, { color: palette.textSecondary }]}
             >
-              날씨 데이터: {attributionLabel}
+              {`날씨·대기질 예측: ${attributionLabel} · 실제 날씨와 차이가 있을 수 있어요.`}
             </Text>
           ) : null}
         </ScrollView>
@@ -1132,10 +995,10 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 18,
-    gap: 18,
+    gap: 12,
   },
   header: {
-    minHeight: 56,
+    minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -1163,24 +1026,21 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   hero: {
-    gap: 14,
-    paddingTop: 4,
+    gap: 10,
+    paddingTop: 0,
   },
   heroImageWrap: {
     marginHorizontal: -18,
   },
   heroImageCard: {
     minHeight: 372,
-    // borderRadius: 30,
     overflow: 'hidden',
   },
-  heroImage: {
-    // borderRadius: 30,
-  },
+  heroImage: {},
   heroImageOverlay: {
     flex: 1,
     paddingHorizontal: 22,
-    paddingVertical: 22,
+    paddingVertical: 14,
     justifyContent: 'flex-start',
     gap: 14,
   },
@@ -1340,7 +1200,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
-    marginBottom: 16,
+    marginBottom: 12,
+    flexWrap: 'wrap',
   },
   sectionTitle: {
     fontSize: 16,
@@ -1352,14 +1213,27 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     fontWeight: '600',
   },
+  updateRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  updateText: { flex: 1 },
+  refreshButton: {
+    minHeight: 44,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+  },
   metricGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 14,
+    columnGap: 12,
+    rowGap: 12,
+    justifyContent: 'space-between',
   },
   metricCard: {
-    width: '47.8%',
-    minHeight: 154,
+    width: '48%',
+    minHeight: 136,
+  },
+  metricCardFull: {
+    width: '100%',
+    minHeight: 0,
   },
   metricLabel: {
     fontSize: 12,
@@ -1367,7 +1241,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   metricValue: {
-    marginTop: 14,
+    marginTop: 10,
     fontSize: 16,
     lineHeight: 20,
     fontWeight: '800',
@@ -1418,7 +1292,9 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     marginTop: 18,
-    height: 52,
+    minHeight: 52,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',

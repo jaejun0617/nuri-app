@@ -6,6 +6,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import type { AirQualityMetric } from '../../services/weather/guide';
+import WeatherGlassCard from './WeatherGlassCard';
 
 type Props = {
   metrics: AirQualityMetric[];
@@ -18,10 +19,13 @@ type Props = {
   progressColor?: string;
   backgroundColor?: string;
   borderColor?: string;
+  frosted?: boolean;
 };
 
 function getToneColor(tone: AirQualityMetric['tone']) {
   switch (tone) {
+    case 'unknown':
+      return '#94A3B8';
     case 'bad':
       return '#F08B7D';
     case 'moderate':
@@ -34,6 +38,8 @@ function getToneColor(tone: AirQualityMetric['tone']) {
 
 function getToneLabelColor(tone: AirQualityMetric['tone']) {
   switch (tone) {
+    case 'unknown':
+      return '#7A89A4';
     case 'bad':
       return '#D97745';
     case 'moderate':
@@ -46,7 +52,7 @@ function getToneLabelColor(tone: AirQualityMetric['tone']) {
 
 export default React.memo(function AirQualityInsightCard({
   metrics,
-  headerHint = '실시간 기준',
+  headerHint,
   titleColor = '#F8FBFF',
   hintColor = 'rgba(230,238,248,0.72)',
   metricLabelColor = '#E8EEF6',
@@ -55,9 +61,11 @@ export default React.memo(function AirQualityInsightCard({
   progressColor,
   backgroundColor,
   borderColor,
+  frosted = false,
 }: Props) {
   return (
-    <View
+    <WeatherGlassCard
+      frosted={frosted}
       style={[
         styles.card,
         backgroundColor ? { backgroundColor } : null,
@@ -65,16 +73,18 @@ export default React.memo(function AirQualityInsightCard({
       ]}
     >
       <View style={styles.headerRow}>
-        <Text style={[styles.title, { color: titleColor }]}>대기 질 정보</Text>
-        <Text style={[styles.headerHint, { color: hintColor }]}>
-          {headerHint}
-        </Text>
+        <Text style={[styles.title, { color: titleColor }]}>대기질</Text>
+        {headerHint ? (
+          <Text style={[styles.headerHint, { color: hintColor }]}>
+            {headerHint}
+          </Text>
+        ) : null}
       </View>
 
       <View style={styles.metricList}>
         {metrics.length === 0 ? (
           <Text style={[styles.emptyText, { color: hintColor }]}>
-            대기 질 데이터를 아직 받아오지 못했어요.
+            대기질 정보를 확인하지 못했어요.
           </Text>
         ) : null}
 
@@ -97,22 +107,32 @@ export default React.memo(function AirQualityInsightCard({
                   {item.valueLabel}
                 </Text>
               </View>
-              <View style={[styles.progressTrack, { backgroundColor: trackColor }]}>
+              {item.tone !== 'unknown' ? (
                 <View
                   style={[
-                    styles.progressBar,
-                    {
-                      width: `${Math.max(10, Math.round(item.progress * 100))}%`,
-                      backgroundColor: progressColor ?? barColor,
-                    },
+                    styles.progressTrack,
+                    { backgroundColor: trackColor },
                   ]}
-                />
-              </View>
+                >
+                  <View
+                    style={[
+                      styles.progressBar,
+                      {
+                        width: `${Math.max(
+                          10,
+                          Math.round(item.progress * 100),
+                        )}%`,
+                        backgroundColor: progressColor ?? barColor,
+                      },
+                    ]}
+                  />
+                </View>
+              ) : null}
             </View>
           );
         })}
       </View>
-    </View>
+    </WeatherGlassCard>
   );
 });
 
@@ -130,6 +150,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 6,
   },
   title: {
     fontSize: 16,
@@ -159,6 +181,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 10,
+    flexWrap: 'wrap',
   },
   metricLabel: {
     fontSize: 13,

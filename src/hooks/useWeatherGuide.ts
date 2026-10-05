@@ -42,8 +42,16 @@ import {
   WEATHER_FOCUS_REFRESH_MS,
   WEATHER_QUERY_GC_MS,
   WEATHER_QUERY_STALE_MS,
+  WEATHER_CLOCK_INTERVAL_MS,
 } from '../services/weather/policy';
-import { useWeatherStore, getWeatherStoreCoordsKey } from '../store/weatherStore';
+import {
+  getWeatherOriginTime,
+  resolveWeatherFreshness,
+} from '../services/weather/reliability';
+import {
+  useWeatherStore,
+  getWeatherStoreCoordsKey,
+} from '../store/weatherStore';
 import { useCurrentLocation } from './useCurrentLocation';
 import { useDistrict } from './useDistrict';
 
@@ -98,16 +106,26 @@ export function useWeatherGuide(
   const autoRefreshOnMount = options.autoRefreshOnMount ?? true;
   const autoRefreshOnFocus = options.autoRefreshOnFocus ?? true;
   const autoRefreshOnActive = options.autoRefreshOnActive ?? true;
+  const [isFocused, setIsFocused] = useState(false);
+  const [isActive, setIsActive] = useState(
+    AppState.currentState !== 'background' &&
+      AppState.currentState !== 'inactive',
+  );
+  const [clock, setClock] = useState(Date.now());
+  const lastPeriodicAt = useRef(Date.now());
+  const foregroundRefreshRef = useRef<() => void>(() => {});
   const currentSnapshot = useMemo(() => {
     useWeatherStore.getState().clearExpired();
     return useWeatherStore.getState().getFreshCurrentSnapshot();
   }, []);
   const location = useCurrentLocation({
-    initialCoordinates: options.initialCoordinates ?? currentSnapshot?.coords ?? null,
+    initialCoordinates:
+      options.initialCoordinates ?? currentSnapshot?.coords ?? null,
     autoRefreshOnMount,
     autoRefreshOnActive,
   });
-  const [diskPreviewBundle, setDiskPreviewBundle] = useState<WeatherGuideBundle | null>(null);
+  const [diskPreviewBundle, setDiskPreviewBundle] =
+    useState<WeatherGuideBundle | null>(null);
   const lastRefreshRequestAtRef = useRef(0);
   const districtState = useDistrict({
     coordinates: location.coordinates,
@@ -129,7 +147,10 @@ export function useWeatherGuide(
   );
 
   const coordsKey = useMemo(
-    () => (location.coordinates ? getWeatherStoreCoordsKey(location.coordinates) : null),
+    () =>
+      location.coordinates
+        ? getWeatherStoreCoordsKey(location.coordinates)
+        : null,
     [location.coordinates],
   );
 
@@ -146,7 +167,9 @@ export function useWeatherGuide(
       const requestId = request.begin();
       if (!location.coordinates || memoryEntry || initialBundle) return;
 
-      const cachedBundle = await loadCachedWeatherGuideBundle(location.coordinates);
+      const cachedBundle = await loadCachedWeatherGuideBundle(
+        location.coordinates,
+      );
       if (!cachedBundle || !request.isCurrent(requestId)) return;
 
       setDiskPreviewBundle(cachedBundle);
@@ -168,7 +191,7 @@ export function useWeatherGuide(
 
   const weatherQuery = useQuery<WeatherGuideBundle>({
     queryKey: ['weather-guide', coordsKey],
-    enabled: canFetchLiveWeather,
+    enabled: canFetchLiveWeather && isFocused && isActive,
     staleTime: WEATHER_QUERY_STALE_MS,
     gcTime: WEATHER_QUERY_GC_MS,
     refetchOnMount: autoRefreshOnMount,
@@ -179,7 +202,9 @@ export function useWeatherGuide(
 
       const previewCandidate =
         initialBundle ?? memoryEntry?.bundle ?? diskPreviewBundle ?? null;
-      const weatherCacheResult = await fetchWeatherCacheBundle(location.coordinates);
+      const weatherCacheResult = await fetchWeatherCacheBundle(
+        location.coordinates,
+      );
 
       return buildWeatherGuideBundleFromApi({
         district: resolvedDistrict,
@@ -189,6 +214,10 @@ export function useWeatherGuide(
         dataSource:
           weatherCacheResult.source === 'stale_cache' ? 'preview' : 'live',
         attribution: weatherCacheResult.attribution,
+        fetchedAt: weatherCacheResult.fetchedAt,
+        expiresAt: weatherCacheResult.expiresAt,
+        staleUntil: weatherCacheResult.staleUntil,
+        coordBucket: weatherCacheResult.coordBucket,
         fallbackAirQualityMetrics: previewCandidate?.airQualityMetrics,
         fallbackAirQualityConcern: previewCandidate?.airQualityConcern,
       });
@@ -198,17 +227,25 @@ export function useWeatherGuide(
   useEffect(() => {
     if (!location.coordinates || !weatherQuery.data) return;
 
-    useWeatherStore.getState().saveBundle(location.coordinates, weatherQuery.data);
-    saveCachedWeatherGuideBundle(location.coordinates, weatherQuery.data).catch(() => {});
+    useWeatherStore
+      .getState()
+      .saveBundle(location.coordinates, weatherQuery.data);
+    saveCachedWeatherGuideBundle(location.coordinates, weatherQuery.data).catch(
+      () => {},
+    );
   }, [location.coordinates, weatherQuery.data]);
 
   const previewBundle = useMemo(() => {
     if (weatherQuery.data) return null;
-    const candidate = initialBundle ?? memoryEntry?.bundle ?? diskPreviewBundle;
+    const candidate =
+      (initialBundle?.coordBucket === coordsKey ? initialBundle : null) ??
+      memoryEntry?.bundle ??
+      diskPreviewBundle;
     if (!candidate) return null;
     return createPreviewWeatherGuideBundle(candidate, resolvedDistrict);
   }, [
     diskPreviewBundle,
+    coordsKey,
     initialBundle,
     memoryEntry,
     resolvedDistrict,
@@ -216,10 +253,11 @@ export function useWeatherGuide(
   ]);
 
   const bundle = useMemo(() => {
+    const candidate = weatherQuery.data ?? previewBundle;
     const sourceBundle =
-      weatherQuery.data ??
-      previewBundle ??
-      createUnavailableWeatherGuideBundle(resolvedDistrict);
+      candidate && candidate.coordBucket === coordsKey
+        ? resolveWeatherFreshness(candidate, clock)
+        : createUnavailableWeatherGuideBundle(resolvedDistrict);
 
     if (resolvedDistrict === '현재 위치') return sourceBundle;
     if (sourceBundle.district === resolvedDistrict) return sourceBundle;
@@ -228,7 +266,7 @@ export function useWeatherGuide(
       ...sourceBundle,
       district: resolvedDistrict,
     };
-  }, [previewBundle, resolvedDistrict, weatherQuery.data]);
+  }, [clock, coordsKey, previewBundle, resolvedDistrict, weatherQuery.data]);
 
   const error = useMemo(() => {
     const locationFallback = getLocationFallbackMessage({
@@ -299,7 +337,8 @@ export function useWeatherGuide(
       return Date.now() - lastResolvedAt >= WEATHER_FOCUS_REFRESH_MS;
     }
 
-    return Date.now() - weatherQuery.dataUpdatedAt >= WEATHER_FOCUS_REFRESH_MS;
+    const origin = getWeatherOriginTime(weatherQuery.data);
+    return origin === null || Date.now() - origin >= WEATHER_FOCUS_REFRESH_MS;
   }, [
     coordsKey,
     location.permission,
@@ -341,29 +380,53 @@ export function useWeatherGuide(
     shouldRefreshLocation,
     shouldRefreshWeather,
   ]);
+  foregroundRefreshRef.current = requestForegroundRefresh;
 
   useFocusEffect(
     useCallback(() => {
-      if (!autoRefreshOnFocus) return undefined;
-      requestForegroundRefresh();
-      return undefined;
-    }, [autoRefreshOnFocus, requestForegroundRefresh]),
+      setIsFocused(true);
+      setClock(Date.now());
+      return () => setIsFocused(false);
+    }, []),
   );
 
   useEffect(() => {
-    if (!autoRefreshOnActive) {
-      return undefined;
-    }
+    if (isFocused && isActive && autoRefreshOnFocus)
+      foregroundRefreshRef.current();
+  }, [isFocused, isActive, autoRefreshOnFocus]);
 
+  useEffect(() => {
+    if (!isFocused || !isActive) return undefined;
+    const timer = setInterval(
+      () => setClock(Date.now()),
+      WEATHER_CLOCK_INTERVAL_MS,
+    );
+    return () => clearInterval(timer);
+  }, [isFocused, isActive]);
+
+  useEffect(() => {
+    if (
+      !isFocused ||
+      !isActive ||
+      clock - lastPeriodicAt.current < WEATHER_QUERY_STALE_MS
+    )
+      return;
+    lastPeriodicAt.current = clock;
+    foregroundRefreshRef.current();
+  }, [clock, isFocused, isActive]);
+
+  useEffect(() => {
     const subscription = AppState.addEventListener('change', state => {
+      setIsActive(state === 'active');
+      setClock(Date.now());
       if (state !== 'active') return;
-      requestForegroundRefresh();
+      if (autoRefreshOnActive && isFocused) foregroundRefreshRef.current();
     });
 
     return () => {
       subscription.remove();
     };
-  }, [autoRefreshOnActive, requestForegroundRefresh]);
+  }, [autoRefreshOnActive, isFocused]);
 
   const loading =
     !weatherQuery.data &&
@@ -373,10 +436,10 @@ export function useWeatherGuide(
     !location.isFresh && location.loading
       ? '새 위치 확인 중'
       : location.isFresh
-        ? bundle.district
-        : bundle.district === '현재 위치'
-          ? '최근 확인 위치'
-          : `최근 확인 위치 · ${bundle.district}`;
+      ? bundle.district
+      : bundle.district === '현재 위치'
+      ? '최근 확인 위치'
+      : `최근 확인 위치 · ${bundle.district}`;
 
   return {
     loading,

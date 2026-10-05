@@ -9,8 +9,10 @@ import type { DeviceCoordinates } from '../location/currentPosition';
 import { getWeatherCoordBucketKey } from './coordBucket';
 import type { WeatherGuideBundle } from './guide';
 import { WEATHER_PREVIEW_MAX_AGE_MS } from './policy';
+import { getWeatherOriginTime } from './reliability';
 
-const WEATHER_GUIDE_CACHE_KEY = '@nuri/weather-guide-cache/v6';
+// Legacy caches lack the provider valid-time contract; retain, but never render them as current.
+const WEATHER_GUIDE_CACHE_KEY = '@nuri/weather-guide-cache/v8';
 
 type WeatherGuideCacheEntry = {
   savedAt: number;
@@ -46,7 +48,12 @@ export async function loadCachedWeatherGuideBundle(
   const entry = store[getCoordsKey(coords)];
 
   if (!entry) return null;
-  if (Date.now() - entry.savedAt > WEATHER_PREVIEW_MAX_AGE_MS) {
+  const origin = getWeatherOriginTime(entry.bundle);
+  if (
+    origin === null ||
+    origin > Date.now() + 2 * 60 * 1000 ||
+    Date.now() - origin >= WEATHER_PREVIEW_MAX_AGE_MS
+  ) {
     delete store[getCoordsKey(coords)];
     await writeWeatherGuideCacheStore(store);
     return null;
@@ -59,11 +66,14 @@ export async function saveCachedWeatherGuideBundle(
   coords: DeviceCoordinates,
   bundle: WeatherGuideBundle,
 ) {
+  const savedAt = getWeatherOriginTime(bundle);
+  if (savedAt === null || Date.now() - savedAt >= WEATHER_PREVIEW_MAX_AGE_MS)
+    return;
   const store = await readWeatherGuideCacheStore();
   const nextStore: WeatherGuideCacheStore = {
     ...store,
     [getCoordsKey(coords)]: {
-      savedAt: Date.now(),
+      savedAt,
       bundle,
     },
   };

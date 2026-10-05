@@ -55,7 +55,7 @@ export type WeatherIconKey =
   | 'weather-snowy'
   | 'weather-fog';
 
-export type AirQualityTone = 'bad' | 'moderate' | 'good';
+export type AirQualityTone = 'bad' | 'moderate' | 'good' | 'unknown';
 export type IndoorActivityKey =
   | 'nosework'
   | 'tug'
@@ -180,6 +180,15 @@ export type WeatherGuideBundle = {
   windSpeed: number;
   cloudCover: number;
   uvIndex: number;
+  fetchedAt?: string;
+  expiresAt?: string;
+  staleUntil?: string;
+  forecastValidAt?: string;
+  forecastDate?: string;
+  coordBucket?: string;
+  airQualityValidAt?: string;
+  hourly?: HourlyWeatherItem[];
+  missingMeasurements?: WeatherMeasurement[];
   temperatureSafety?: WeatherTemperatureSafety;
   precipitationSafety?: WeatherPrecipitationSafety | null;
   sunriseTime: string | null;
@@ -202,6 +211,22 @@ export type WeatherGuideBundle = {
   };
   recommendedGuideKeys: IndoorActivityKey[];
 };
+
+export type HourlyWeatherItem = {
+  endsAt: string;
+  precipitationChance: number | null;
+  precipitationMm: number | null;
+};
+
+export type WeatherMeasurement =
+  | 'currentTemperature'
+  | 'apparentTemperature'
+  | 'highTemperature'
+  | 'lowTemperature'
+  | 'humidity'
+  | 'windSpeed'
+  | 'cloudCover'
+  | 'uvIndex';
 
 export function buildWeatherTemperatureSafety(
   currentTemperature: number | null | undefined,
