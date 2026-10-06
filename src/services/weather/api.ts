@@ -9,6 +9,7 @@ import type {
   WeatherQuality,
 } from './domain';
 import { parseWeatherTime } from './reliability';
+import { WEATHER_LIVE_MAX_AGE_MS } from './policy';
 export { WeatherCacheServiceError } from './legacy';
 import { WeatherCacheServiceError } from './legacy';
 
@@ -94,7 +95,7 @@ export function parseWeatherApiV1(
     now - Date.parse(retrievedAt) >= 3600000 ||
     Date.parse(staleUntil) <= now ||
     Date.parse(expiresAt) <= Date.parse(retrievedAt) ||
-    Date.parse(expiresAt) - Date.parse(retrievedAt) > 900000 ||
+    Date.parse(expiresAt) - Date.parse(retrievedAt) > WEATHER_LIVE_MAX_AGE_MS ||
     Date.parse(staleUntil) - Date.parse(retrievedAt) > 3600000 ||
     !['provider', 'fresh_cache', 'stale_cache'].includes(String(fresh.cache))
   )
@@ -345,6 +346,8 @@ export async function fetchNuriWeatherV1(
   const { data, error } = await supabase.functions.invoke(
     WEATHER_API_FUNCTION_NAME,
     {
+      // Older servers may ignore this header and safely return their shorter TTL.
+      headers: { 'x-nuri-weather-fresh-minutes': '30' },
       body: {
         latitude: coordinates.latitude,
         longitude: coordinates.longitude,

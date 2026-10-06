@@ -10,13 +10,16 @@ import {
 import { createOpenMeteoAdapter } from './weather-provider-open-meteo.js';
 import { createWeatherProviderRegistry } from './weather-provider-registry.js';
 import { createWeatherRepository } from './weather-cache-repository.js';
-import { WeatherCacheHttpError } from './weather-cache-core.js';
+import {
+  WeatherCacheHttpError,
+  WEATHER_FRESH_TTL_MS,
+} from './weather-cache-core.js';
 
 const inFlight = new Map();
 const cors = {
   'access-control-allow-origin': '*',
   'access-control-allow-headers':
-    'authorization,x-client-info,apikey,content-type',
+    'authorization,x-client-info,apikey,content-type,x-nuri-weather-fresh-minutes',
   'access-control-allow-methods': 'GET,POST,OPTIONS',
 };
 const json = (body, status = 200) =>
@@ -30,6 +33,21 @@ const json = (body, status = 200) =>
       ...(status === 429 ? { 'retry-after': '60' } : {}),
     },
   });
+
+/** Preserve the old wire ceiling without rewriting shared rows or their origin time. */
+function clientFreshness(raw, freshMinutes, now = Date.now()) {
+  const expiresAt = new Date(
+    Math.min(
+      Date.parse(raw.expiresAt),
+      Date.parse(raw.fetchedAt) + freshMinutes * 60 * 1000,
+    ),
+  ).toISOString();
+  return {
+    ...raw,
+    expiresAt,
+    source: Date.parse(expiresAt) <= now ? 'stale_cache' : raw.source,
+  };
+}
 
 async function readBody(request) {
   const url = new URL(request.url);
@@ -151,7 +169,8 @@ export function createWeatherHandler({
         apiVersion: WEATHER_API_VERSION,
         scope: legacy ? 'weather-cache' : 'nuri-weather-v1',
         contractVersion: legacy ? 2 : 1,
-        freshMinutes: 15,
+        freshMinutes: WEATHER_FRESH_TTL_MS / 60000,
+        defaultResponseFreshMinutes: 15,
         staleMinutes: 60,
         providerMode:
           env('OPEN_METEO_PROVIDER_MODE') === 'customer' ? 'customer' : 'free',
@@ -160,6 +179,16 @@ export function createWeatherHandler({
     let status = 200;
     let response;
     try {
+      const requestedFreshMinutes = request.headers.get(
+        'x-nuri-weather-fresh-minutes',
+      );
+      if (requestedFreshMinutes !== null && requestedFreshMinutes !== '30')
+        throw new WeatherCacheHttpError(
+          400,
+          'invalid_weather_freshness',
+          'invalid freshness contract',
+        );
+      const freshMinutes = !legacy && requestedFreshMinutes === '30' ? 30 : 15;
       const input = normalizeApiRequest(await readBody(request));
       bucket = input.bucket;
       repository = repositoryFactory(
@@ -226,10 +255,11 @@ export function createWeatherHandler({
             request.signal.addEventListener('abort', abort, { once: true });
           }),
       });
-      const data = projectWeatherV1(raw);
+      const compatibleRaw = clientFreshness(raw, freshMinutes);
+      const data = projectWeatherV1(compatibleRaw);
       emit(data.freshness.state === 'FRESH' ? 'fresh_cache' : 'stale_cache');
       if (data.missingFields) emit('missing_fields', data.missingFields);
-      response = legacy ? raw : { ok: true, data };
+      response = legacy ? compatibleRaw : { ok: true, data };
     } catch (error) {
       status = error instanceof WeatherCacheHttpError ? error.status : 503;
       const code =

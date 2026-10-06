@@ -1,0 +1,82 @@
+{
+  "contract": "nuri.weather.hero.summer.v1",
+  "effectiveSeason": "summer",
+  "approval": "PO_PASS_FROZEN",
+  "generatedWith": "built-in image_gen",
+  "sourcePromptManifest": "output/imagegen/nuri-weather-seasons-20261006/generation-manifest.json",
+  "encoding": "WebP lossless; original RGB unchanged; no crop/resize",
+  "artwork": [
+    {
+      "source": "output/imagegen/nuri-weather-seasons-20261006/summer-normal-day-pets-v1.png",
+      "destination": "src/assets/weather/summer/normal-day-v1.webp",
+      "sourceSHA256": "dc82c26b313171a227938ab525968533224325ebd76573b1bf1ba2989dc4bd93",
+      "sha256": "937638cf0c750ce5dd69c120340020b405492dbf2f642287016a2efbdbf13627",
+      "bytes": 1752982,
+      "width": 1254,
+      "height": 1254,
+      "pixelsUnchanged": true,
+      "topSample": "#76B5FA",
+      "bottomSample": "#DBBBA8"
+    },
+    {
+      "source": "output/imagegen/nuri-weather-seasons-20261006/summer-normal-night-pets-v1.png",
+      "destination": "src/assets/weather/summer/normal-night-v1.webp",
+      "sourceSHA256": "19c65336ae716c92d0df378bd6326abc834799d5f7f74e4eaee0afc59cb4afd4",
+      "sha256": "3814a1863e87ce0b87ab138f541a306e3db67ef7f0b9219afe9e230ab19a3b97",
+      "bytes": 1747820,
+      "width": 1254,
+      "height": 1254,
+      "pixelsUnchanged": true,
+      "topSample": "#0A316B",
+      "bottomSample": "#856E73"
+    },
+    {
+      "source": "output/imagegen/nuri-weather-seasons-20261006/summer-rain-day-pets-v1.png",
+      "destination": "src/assets/weather/summer/rain-day-v1.webp",
+      "sourceSHA256": "eba9552af62995cdc4aae08caecad8f37c936d99ee51c5e1dc43bb192c4e58ed",
+      "sha256": "212d35660e2312412337357c5914c3053ac6828531f613474faf46f96ba9eb1a",
+      "bytes": 1888422,
+      "width": 1254,
+      "height": 1254,
+      "pixelsUnchanged": true,
+      "topSample": "#AAC1E1",
+      "bottomSample": "#AB9693"
+    },
+    {
+      "source": "output/imagegen/nuri-weather-seasons-20261006/summer-rain-night-pets-v1.png",
+      "destination": "src/assets/weather/summer/rain-night-v1.webp",
+      "sourceSHA256": "e728e2b20a28652538859470fbd01658c1dff53193c2940f812dfe5641132696",
+      "sha256": "cea3fd4d6c7197b72a66c94977117d68c1defd4cfc4a569b183818058fcdd53e",
+      "bytes": 1892052,
+      "width": 1254,
+      "height": 1254,
+      "pixelsUnchanged": true,
+      "topSample": "#1D3C71",
+      "bottomSample": "#6C5050"
+    },
+    {
+      "source": "output/imagegen/nuri-weather-seasons-20261006/summer-snow-day-pets-v1.png",
+      "destination": "src/assets/weather/summer/snow-day-v1.webp",
+      "sourceSHA256": "bd82fae7a8cbd69256c52b5283526ff116b316d49bb69e092407ee2715ed26b6",
+      "sha256": "13f1a97e34d37ee8e2468a6f2f91d3f720e2c2dce290bf25791aafd89cd78b19",
+      "bytes": 1730322,
+      "width": 1254,
+      "height": 1254,
+      "pixelsUnchanged": true,
+      "topSample": "#B4D0F4",
+      "bottomSample": "#CED0E5"
+    },
+    {
+      "source": "output/imagegen/nuri-weather-seasons-20261006/summer-snow-night-pets-v1.png",
+      "destination": "src/assets/weather/summer/snow-night-v1.webp",
+      "sourceSHA256": "c4318605848e386bb886e65dec6926980a11174a70f2c77bea357daf02437327",
+      "sha256": "cc76d989372d4be63d9ac2a812e9189efa3e60dbb42852799d86ebf687dc1fa8",
+      "bytes": 1835586,
+      "width": 1254,
+      "height": 1254,
+      "pixelsUnchanged": true,
+      "topSample": "#2C4A7E",
+      "bottomSample": "#848DBE"
+    }
+  ]
+}

@@ -16,7 +16,7 @@ function current() {
     fetchedAt: new Date(now).toISOString(),
     forecastValidAt: '2026-10-05T21:15',
     forecastDate: '2026-10-05',
-    expiresAt: new Date(now + 15 * 60000).toISOString(),
+    expiresAt: new Date(now + 30 * 60000).toISOString(),
     staleUntil: new Date(now + 60 * 60000).toISOString(),
   };
 }
@@ -36,11 +36,23 @@ describe('weather reliability', () => {
   it('ages live to preview to unavailable without a network result', () => {
     expect(resolveWeatherFreshness(current(), now).dataSource).toBe('live');
     expect(
-      resolveWeatherFreshness(current(), now + 15 * 60000).dataSource,
+      resolveWeatherFreshness(current(), now + 30 * 60000 - 1).dataSource,
+    ).toBe('live');
+    expect(
+      resolveWeatherFreshness(current(), now + 30 * 60000).dataSource,
     ).toBe('preview');
     expect(
       resolveWeatherFreshness(current(), now + 60 * 60000).dataSource,
     ).toBe('unavailable');
+  });
+  it('honors a previously stored 15-minute expiry instead of extending old data', () => {
+    const old = {
+      ...current(),
+      expiresAt: new Date(now + 15 * 60000).toISOString(),
+    };
+    expect(resolveWeatherFreshness(old, now + 15 * 60000).dataSource).toBe(
+      'preview',
+    );
   });
   it('does not trust future or missing original times', () => {
     expect(

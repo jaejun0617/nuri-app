@@ -24,6 +24,7 @@ export type HomeAmbientSectionField = HomeAmbientAnchoredField & {
 };
 
 export type HomeAmbientVisual = {
+  primaryColor: string;
   baseColor: string;
   baseGradient: readonly [string, string, string, string, string];
   fields: readonly HomeAmbientMeshField[];
@@ -37,6 +38,9 @@ export type HomeAmbientVisual = {
   lightHalo: string;
 };
 
+const AUTUMN = {
+  apricot: '#F7C896',
+} as const;
 const WINTER = {
   ice: '#D4EAFE',
   lilac: '#E5E2F8',
@@ -234,13 +238,14 @@ export const HOME_AMBIENT_SECTION_LIGHTS: readonly HomeAmbientSectionLight[] = [
 
 const HOME_AMBIENT_VISUALS: Record<SeasonKey, HomeAmbientVisual> = {
   autumn: {
+    primaryColor: AUTUMN.apricot,
     baseColor: HOME_AMBIENT_MESH_BASE_COLOR,
     baseGradient: HOME_AMBIENT_BASE_GRADIENT,
     fields: HOME_AMBIENT_MESH_FIELDS,
     heroFields: [],
     // Keep colored variation while the edge wash covers gaps between radial fields.
     sectionFields: sectionFields(
-      ['#F7C896', '#F2D6A4', '#F3B88A'],
+      [AUTUMN.apricot, '#F2D6A4', '#F3B88A'],
       [0.4, 0.34],
     ),
     lowerEdgeWash: [
@@ -261,6 +266,7 @@ const HOME_AMBIENT_VISUALS: Record<SeasonKey, HomeAmbientVisual> = {
     lightHalo: '#FFFDEB',
   },
   winter: {
+    primaryColor: WINTER.ice,
     baseColor: '#F6FBFF',
     baseGradient: ['#F6FBFF', '#F3F9FF', '#F9FCFF', '#F6F8FE', '#F6FBFF'],
     fields: [],
@@ -291,6 +297,7 @@ const HOME_AMBIENT_VISUALS: Record<SeasonKey, HomeAmbientVisual> = {
     lightHalo: '#F5FCFF',
   },
   spring: {
+    primaryColor: SPRING.rose,
     baseColor: '#FFFCF6',
     baseGradient: ['#FFFCF6', '#FFF9F4', '#FFFCF7', '#FFFAF7', '#FFFCF6'],
     fields: [],
@@ -321,6 +328,7 @@ const HOME_AMBIENT_VISUALS: Record<SeasonKey, HomeAmbientVisual> = {
     lightHalo: '#FFFDF9',
   },
   summer: {
+    primaryColor: SUMMER.aqua,
     baseColor: '#F6FFF9',
     baseGradient: ['#F6FFF9', '#F2FDFC', '#FAFFF7', '#F1FCFD', '#F6FFF9'],
     fields: [],

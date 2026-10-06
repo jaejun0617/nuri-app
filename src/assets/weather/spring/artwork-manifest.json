@@ -1,0 +1,82 @@
+{
+  "contract": "nuri.weather.hero.spring.v1",
+  "effectiveSeason": "spring",
+  "approval": "PO_PASS_FROZEN",
+  "generatedWith": "built-in image_gen",
+  "sourcePromptManifest": "output/imagegen/nuri-weather-seasons-20261006/generation-manifest.json",
+  "encoding": "WebP lossless; original RGB unchanged; no crop/resize",
+  "artwork": [
+    {
+      "source": "output/imagegen/nuri-weather-seasons-20261006/spring-normal-day-pets-v1.png",
+      "destination": "src/assets/weather/spring/normal-day-v1.webp",
+      "sourceSHA256": "a2a534c97b8e5a26e8a03694ef5267319c222b1ca7b12cc4cf2d691f9401abce",
+      "sha256": "e62733e9b1d8e9f51d41e2d3c1062ace6a62e9cb429ecb28ea6c1fe799e8eb0d",
+      "bytes": 1844744,
+      "width": 1254,
+      "height": 1254,
+      "pixelsUnchanged": true,
+      "topSample": "#88BCF1",
+      "bottomSample": "#AA9286"
+    },
+    {
+      "source": "output/imagegen/nuri-weather-seasons-20261006/spring-normal-night-pets-v1.png",
+      "destination": "src/assets/weather/spring/normal-night-v1.webp",
+      "sourceSHA256": "0055b3d68a50040114ef8fb128dd9be1cb86ef1469265e6d9f5b767f62a370d6",
+      "sha256": "28600ba0e012e91e4f42f1779375914b949712381126f11d859fb92e98d257a8",
+      "bytes": 1834772,
+      "width": 1254,
+      "height": 1254,
+      "pixelsUnchanged": true,
+      "topSample": "#132D60",
+      "bottomSample": "#5B4C5A"
+    },
+    {
+      "source": "output/imagegen/nuri-weather-seasons-20261006/spring-rain-day-pets-v1.png",
+      "destination": "src/assets/weather/spring/rain-day-v1.webp",
+      "sourceSHA256": "b5194d9641657a9514532fa86652efc2af4bbf3d77c46f54c83b99b0a1012a02",
+      "sha256": "be8406e77d71429eea9c20ca0976440b3ef5ba73ec29da8424fe522bf9bfeb55",
+      "bytes": 1907846,
+      "width": 1254,
+      "height": 1254,
+      "pixelsUnchanged": true,
+      "topSample": "#A5B7D6",
+      "bottomSample": "#897C7E"
+    },
+    {
+      "source": "output/imagegen/nuri-weather-seasons-20261006/spring-rain-night-pets-v1.png",
+      "destination": "src/assets/weather/spring/rain-night-v1.webp",
+      "sourceSHA256": "a9b1574a24ffb31a979839516cdcde9194066f77e2ae60a30852fc4976077904",
+      "sha256": "70d00228fdd79888aaa03d1b912d7d2574ea9603116f00b206fda77bc903690b",
+      "bytes": 1887856,
+      "width": 1254,
+      "height": 1254,
+      "pixelsUnchanged": true,
+      "topSample": "#2B3E61",
+      "bottomSample": "#684C45"
+    },
+    {
+      "source": "output/imagegen/nuri-weather-seasons-20261006/spring-snow-day-pets-v1.png",
+      "destination": "src/assets/weather/spring/snow-day-v1.webp",
+      "sourceSHA256": "cdaea9dee2af8c99627be16ca54ee9993be32a93dc03630428cf19210c5af3e1",
+      "sha256": "c8a62045a1fd05e85ef7e47a6adbfa39c9e39be9602905105e618bd9fd493c95",
+      "bytes": 1897224,
+      "width": 1254,
+      "height": 1254,
+      "pixelsUnchanged": true,
+      "topSample": "#B0C3E5",
+      "bottomSample": "#C7C5D6"
+    },
+    {
+      "source": "output/imagegen/nuri-weather-seasons-20261006/spring-snow-night-pets-v1.png",
+      "destination": "src/assets/weather/spring/snow-night-v1.webp",
+      "sourceSHA256": "0b5fb82a8c694fd907f90a1f9fdc7b305cbc449a7f488c74723f83b1691feb5f",
+      "sha256": "83c2f31617dbd779cc4396a521a48953df4e8381c259938acd621d97a14351bb",
+      "bytes": 1937882,
+      "width": 1254,
+      "height": 1254,
+      "pixelsUnchanged": true,
+      "topSample": "#243763",
+      "bottomSample": "#7F7DAA"
+    }
+  ]
+}

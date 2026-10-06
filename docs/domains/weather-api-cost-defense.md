@@ -1,4 +1,14 @@
 # 날씨 API 비용 방어 구조
+<!-- NURI_WEATHER_SEASONS_30M_20261006_BEGIN -->
+## 2026-10-06 PO 지정 30분 계약
+
+- 아래 15분 fresh/5분 활성 확인 이력은 이번 명시적 주기 변경으로 대체한다. shared cache fresh 및 신규 앱 활성 자동 확인은 30분, safe stale ceiling은 1시간이다. 30초 상태 재평가·지역 이동/복귀·필요한 최초 조회는 별도이며 무조건 30분까지 조회를 막지 않는다.
+- 이전 앱의 TTL parser 상한을 지키기 위해 header 없는 v1/legacy는 15분 freshness를 유지한다. 신규 header `x-nuri-weather-fresh-minutes: 30`만 30분을 받으며 기존 row의 원래 expiresAt을 늘리지 않는다. compatibility projection은 source/kind/quality/field 만료까지 정합하게 처리한다.
+- DB lease/원자적 quota/provider health suppression/accounting/0.02도 bucket/timeout/원본 timestamp/privacy와 API v1 구조는 유지한다. migration·기존 row 일괄 삭제·유료 계약·새 provider credential은 없다.
+- linked Edge v2/v7 source match·30분과 구 앱 15분 smoke PASS. 한 cold 조회에서 forecast/AQ 각 1회, 반복 조회는 fresh cache·원본 시각 유지다. 30분 변경으로 장기간 비용/신뢰성/적중률이 검증된 것은 아니다. PRE_STORE 상용 자격·budget·alert owner·fault drill gate는 유지한다.
+- 증적과 롤백 원본: `/private/tmp/nuri-weather-seasons-20261006/`. 2026-10-06 PO 최종 승인 완료, selective Git closeout 증적은 `/private/tmp/nuri-weather-approval-closeout-20261006/FINAL_REPORT.md`. 산출물/캐시 보존, Store HOLD.
+<!-- NURI_WEATHER_SEASONS_30M_20261006_END -->
+
 <!-- NURI_WEATHER_API_V1_20261005_BEGIN -->
 ## 2026-10-06 NURI Weather API v1 core
 

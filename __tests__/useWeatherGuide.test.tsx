@@ -135,7 +135,7 @@ function mockWeatherCacheResponse(input: {
         url: 'https://open-meteo.com/',
       },
       coordBucket: 'v1:37.68:126.76:d0.02',
-      expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+      expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
       fallbackReason: null,
       fetchedAt: new Date().toISOString(),
       forecast: {
@@ -161,7 +161,7 @@ function initialWeather(
     coordBucket: 'v1:37.68:126.76:d0.02',
     fetchedAt: new Date().toISOString(),
     forecastValidAt: new Date().toISOString(),
-    expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+    expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
     staleUntil: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
   };
 }
@@ -227,7 +227,7 @@ describe('useWeatherGuide', () => {
     expect(latestState?.bundle.dataSource).toBe('live');
     const initialCalls = fetchNuriWeatherV1.mock.calls.length;
     await ReactTestRenderer.act(async () => {
-      await jest.advanceTimersByTimeAsync(4 * 60000);
+      await jest.advanceTimersByTimeAsync(29 * 60000);
     });
     expect(fetchNuriWeatherV1).toHaveBeenCalledTimes(initialCalls);
     await ReactTestRenderer.act(async () => {

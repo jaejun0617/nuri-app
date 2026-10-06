@@ -57,10 +57,10 @@ describe('v1 HTTP boundary', () => {
           : 'https://fixture.invalid',
       repositoryFactory: () => repo,
     });
-  const post = body =>
+  const post = (body, headers = {}) =>
     new Request('https://fixture.invalid/functions/v1/nuri-weather-v1', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', ...headers },
       body: JSON.stringify(body),
     });
   it('serves a cache response with no-store and only coarse location rollups', async () => {
@@ -80,6 +80,46 @@ describe('v1 HTTP boundary', () => {
     expect(JSON.stringify(console.info.mock.calls)).not.toMatch(
       /37\.674|fixture-salt|Bearer|email/,
     );
+  });
+  it.each([false, true])(
+    'negotiates fresh TTL without breaking old clients / new=%s',
+    async modern => {
+      const repo = repository();
+      const row = await repo.find();
+      row.fetched_at = new Date(Date.now() - 20 * 60000).toISOString();
+      row.expires_at = new Date(
+        Date.parse(row.fetched_at) + 30 * 60000,
+      ).toISOString();
+      row.stale_until = new Date(
+        Date.parse(row.fetched_at) + 60 * 60000,
+      ).toISOString();
+      const response = await handler(repo)(
+        post(location, modern ? { 'x-nuri-weather-fresh-minutes': '30' } : {}),
+      );
+      expect(response.status).toBe(200);
+      const data = (await response.json()).data;
+      expect(
+        Date.parse(data.freshness.expiresAt) -
+          Date.parse(data.freshness.retrievedAt),
+      ).toBe((modern ? 30 : 15) * 60000);
+      expect(data.freshness.state).toBe(modern ? 'FRESH' : 'STALE_SAFE');
+      expect(data.current.temperature.meta.quality).toBe(
+        modern ? 'VALID' : 'STALE',
+      );
+      expect(data.current.temperature.meta.expiresAt).toBe(
+        data.freshness.expiresAt,
+      );
+      expect(row.fetched_at).toBe(data.freshness.retrievedAt);
+      expect(repo.acquire).not.toHaveBeenCalled();
+    },
+  );
+  it('rejects unsupported freshness contracts before storage', async () => {
+    const repo = repository();
+    const response = await handler(repo)(
+      post(location, { 'x-nuri-weather-fresh-minutes': '60' }),
+    );
+    expect(response.status).toBe(400);
+    expect(repo.find).not.toHaveBeenCalled();
   });
   it.each([
     [{ latitude: 100, longitude: 0 }, 400],

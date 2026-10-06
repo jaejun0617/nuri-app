@@ -52,6 +52,12 @@ import {
   readWeatherMeasurement,
 } from '../../services/weather/presentation';
 import { getUpcomingWeatherHours } from '../../services/weather/reliability';
+import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
+import {
+  getSeasonalWeatherHeroVisual,
+  getWeatherHeroTextPalette,
+  type WeatherScenePalette as ScenePalette,
+} from '../../theme/seasonal/weatherHero';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'WeatherInsight'>;
 
@@ -63,16 +69,6 @@ type WeatherInsightRoute = {
     initialBundle?: WeatherGuideBundle;
     initialCoordinates?: DeviceCoordinates;
   };
-};
-
-type ScenePalette = {
-  background: [string, string, string];
-  cardBackground: string;
-  cardBorder: string;
-  textPrimary: string;
-  textSecondary: string;
-  accent: string;
-  accentSoft: string;
 };
 
 const CLEAR_DAY_IMAGE = require('../../assets/weather/clear-day.png');
@@ -228,6 +224,7 @@ export default function WeatherInsightScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const { width, fontScale } = useWindowDimensions();
+  const season = useEffectiveSeason();
   const singleColumnMetrics = width < 360 || fontScale > 1.2;
   const route = useRoute<WeatherInsightRoute>();
   const pets = usePetStore(s => s.pets);
@@ -255,6 +252,13 @@ export default function WeatherInsightScreen() {
   const hasRenderableWeather = weather.dataSource !== 'unavailable';
   const displayScenario = weather.scenario;
   const sceneIsDaytime = weather.isDaytime;
+  const seasonalHero = useMemo(
+    () =>
+      hasRenderableWeather
+        ? getSeasonalWeatherHeroVisual(season, displayScenario, sceneIsDaytime)
+        : null,
+    [displayScenario, hasRenderableWeather, sceneIsDaytime, season],
+  );
   const displayWeather = useMemo(
     () => ({
       ...weather,
@@ -267,9 +271,10 @@ export default function WeatherInsightScreen() {
   const palette = useMemo(
     () =>
       hasRenderableWeather
-        ? getScenePalette(displayScenario, sceneIsDaytime)
+        ? seasonalHero?.palette ??
+          getScenePalette(displayScenario, sceneIsDaytime)
         : UNAVAILABLE_PALETTE,
-    [displayScenario, hasRenderableWeather, sceneIsDaytime],
+    [seasonalHero, displayScenario, hasRenderableWeather, sceneIsDaytime],
   );
   const advice = getWeatherAdvice(weather);
   const needsRefresh = !hasLiveWeather || !!weatherState.error;
@@ -358,16 +363,15 @@ export default function WeatherInsightScreen() {
 
   const heroImageSource = useMemo(() => {
     if (!hasRenderableWeather) return null;
-    return getHeroImageSource(displayScenario, sceneIsDaytime);
-  }, [displayScenario, hasRenderableWeather, sceneIsDaytime]);
+    return (
+      seasonalHero?.image ?? getHeroImageSource(displayScenario, sceneIsDaytime)
+    );
+  }, [seasonalHero, displayScenario, hasRenderableWeather, sceneIsDaytime]);
 
-  const heroImageTextPalette = useMemo(() => {
-    return {
-      primary: '#FFFFFF',
-      secondary: 'rgba(255,255,255,0.88)',
-      shadowColor: 'rgba(0,0,0,0.48)',
-    };
-  }, []);
+  const heroImageTextPalette = useMemo(
+    () => getWeatherHeroTextPalette(season, sceneIsDaytime),
+    [season, sceneIsDaytime],
+  );
 
   const forecastTextPalette = useMemo(() => {
     if (!hasRenderableWeather) {
@@ -376,6 +380,15 @@ export default function WeatherInsightScreen() {
         precipitation: 'rgba(34,48,66,0.54)',
         temperature: '#223042',
         lowTemperature: 'rgba(34,48,66,0.52)',
+      };
+    }
+
+    if (seasonalHero && sceneIsDaytime) {
+      return {
+        label: palette.textPrimary,
+        precipitation: palette.textSecondary,
+        temperature: palette.textPrimary,
+        lowTemperature: palette.textSecondary,
       };
     }
 
@@ -394,9 +407,16 @@ export default function WeatherInsightScreen() {
       temperature: '#FFFFFF',
       lowTemperature: 'rgba(226,236,248,0.74)',
     };
-  }, [displayScenario, hasRenderableWeather, sceneIsDaytime]);
+  }, [
+    seasonalHero,
+    displayScenario,
+    hasRenderableWeather,
+    palette,
+    sceneIsDaytime,
+  ]);
 
   const heroBlendColors = useMemo(() => {
+    if (seasonalHero) return seasonalHero.blendColors;
     if (displayScenario === 'fresh' && sceneIsDaytime) {
       return [
         'rgba(247,251,255,0)',
@@ -430,7 +450,7 @@ export default function WeatherInsightScreen() {
       'rgba(255,255,255,0.12)',
       'rgba(255,255,255,0.28)',
     ];
-  }, [displayScenario, sceneIsDaytime]);
+  }, [seasonalHero, displayScenario, sceneIsDaytime]);
 
   const onPressPrimary = useCallback(() => {
     try {
@@ -480,20 +500,32 @@ export default function WeatherInsightScreen() {
           ]}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.header}>
-            <View style={styles.headerSideSlot}>
-              <TouchableOpacity
-                activeOpacity={0.88}
-                style={styles.backButton}
-                onPress={() => navigation.goBack()}
+          <View testID="weather-header-surface" style={styles.headerSurface}>
+            <View style={styles.header}>
+              <View style={styles.headerSideSlot}>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="뒤로 가기"
+                  activeOpacity={0.88}
+                  style={styles.backButton}
+                  onPress={() => navigation.goBack()}
+                >
+                  <Feather
+                    name="arrow-left"
+                    size={20}
+                    color={palette.textPrimary}
+                  />
+                </TouchableOpacity>
+              </View>
+              <Text
+                style={[styles.headerTitle, { color: palette.textPrimary }]}
               >
-                <Feather name="arrow-left" size={20} color="#102033" />
-              </TouchableOpacity>
+                오늘의 날씨
+              </Text>
+              <View
+                style={[styles.headerSideSlot, styles.headerSideSlotRight]}
+              />
             </View>
-            <Text style={[styles.headerTitle, { color: palette.textPrimary }]}>
-              오늘의 날씨
-            </Text>
-            <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
           </View>
 
           <View style={styles.hero}>
@@ -502,18 +534,27 @@ export default function WeatherInsightScreen() {
                 <ImageBackground
                   resizeMode="cover"
                   source={heroImageSource}
-                  style={styles.heroImageCard}
+                  style={[
+                    styles.heroImageCard,
+                    seasonalHero && {
+                      minHeight: width - insets.left - insets.right,
+                    },
+                  ]}
                   imageStyle={styles.heroImage}
                 >
-                  <View style={styles.heroImageOverlay}>
+                  <View
+                    testID="weather-hero-information"
+                    style={styles.heroImageOverlay}
+                  >
                     <View style={styles.heroTopRow}>
                       <View style={styles.locationWrap}>
                         <Feather
                           name="map-pin"
                           size={16}
-                          color={heroImageTextPalette.primary}
+                          color={heroImageTextPalette.locationIcon}
                         />
                         <Text
+                          testID="weather-hero-district"
                           style={[
                             styles.heroImageLocationText,
                             {
@@ -530,8 +571,11 @@ export default function WeatherInsightScreen() {
                     <View style={styles.heroMain}>
                       <View style={styles.heroCopy}>
                         <Text
+                          testID="weather-hero-temperature"
                           style={[
-                            styles.heroTemp,
+                            hasPreviewWeather
+                              ? styles.heroRecentTemp
+                              : styles.heroTemp,
                             styles.heroImageText,
                             {
                               color: heroImageTextPalette.primary,
@@ -546,6 +590,7 @@ export default function WeatherInsightScreen() {
                             : '정보 없음'}
                         </Text>
                         <Text
+                          testID="weather-hero-condition"
                           style={[
                             styles.heroStatus,
                             styles.heroImageText,
@@ -558,6 +603,7 @@ export default function WeatherInsightScreen() {
                           {displayWeather.detailStatus}
                         </Text>
                         <Text
+                          testID="weather-hero-range"
                           style={[
                             styles.heroRange,
                             styles.heroImageSubText,
@@ -590,6 +636,7 @@ export default function WeatherInsightScreen() {
                             : '최고/최저 기온 확인 중'}
                         </Text>
                         <Text
+                          testID="weather-hero-feels-like"
                           style={[
                             styles.heroFeelsLike,
                             styles.heroImageSubText,
@@ -617,8 +664,16 @@ export default function WeatherInsightScreen() {
                     </View>
                   </View>
                   <LinearGradient
+                    testID="weather-hero-bottom-blend"
+                    pointerEvents="none"
                     colors={heroBlendColors}
-                    style={styles.heroImageBottomBlend}
+                    locations={seasonalHero ? [0, 0.55, 1] : undefined}
+                    style={[
+                      styles.heroImageBottomBlend,
+                      seasonalHero && {
+                        height: (width - insets.left - insets.right) * 0.18,
+                      },
+                    ]}
                   />
                 </ImageBackground>
               </View>
@@ -1003,6 +1058,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
+  headerSurface: {
+    gap: 8,
+  },
   headerSideSlot: {
     width: 40,
     minHeight: 40,
@@ -1039,10 +1097,11 @@ const styles = StyleSheet.create({
   heroImage: {},
   heroImageOverlay: {
     flex: 1,
-    paddingHorizontal: 22,
-    paddingVertical: 14,
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 14,
     justifyContent: 'flex-start',
-    gap: 14,
+    gap: 6,
   },
   heroImageBottomBlend: {
     position: 'absolute',
@@ -1061,6 +1120,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    flexShrink: 1,
   },
   locationText: {
     fontSize: 15,
@@ -1068,13 +1128,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   heroImageLocationText: {
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 18,
+    flexShrink: 1,
     color: '#FFFFFF',
     fontWeight: '700',
     textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 0, height: 3 },
-    textShadowRadius: 14,
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   heroMain: {
     flexDirection: 'row',
@@ -1087,8 +1148,13 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   heroTemp: {
-    fontSize: 76,
-    lineHeight: 82,
+    fontSize: 53,
+    lineHeight: 57,
+    fontWeight: '800',
+  },
+  heroRecentTemp: {
+    fontSize: 24,
+    lineHeight: 32,
     fontWeight: '800',
   },
   heroStatus: {
@@ -1114,14 +1180,14 @@ const styles = StyleSheet.create({
   heroImageText: {
     color: '#FFFFFF',
     textShadowColor: 'rgba(0,0,0,0.56)',
-    textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 16,
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   heroImageSubText: {
     color: 'rgba(255,255,255,0.88)',
     textShadowColor: 'rgba(0,0,0,0.48)',
-    textShadowOffset: { width: 0, height: 3 },
-    textShadowRadius: 12,
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   heroVisualCard: {
     borderRadius: 28,

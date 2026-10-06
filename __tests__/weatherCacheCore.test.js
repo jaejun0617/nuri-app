@@ -3,6 +3,8 @@ import {
   resolveWeatherCache,
   WeatherCacheHttpError,
   buildOpenMeteoUrl,
+  buildWeatherCacheTimes,
+  isFreshCacheRow,
 } from '../supabase/functions/_shared/weather-cache-core.js';
 
 const NOW = new Date('2026-04-29T03:00:00.000Z');
@@ -85,6 +87,28 @@ describe('weather-cache core', () => {
     locale: 'ko-KR',
     timezone: 'Asia/Seoul',
   };
+  it('keeps the 30-minute fresh boundary exclusive and never extends old rows', () => {
+    const times = buildWeatherCacheTimes(NOW);
+    const row = createCacheRow({
+      fetched_at: times.fetchedAt,
+      expires_at: times.expiresAt,
+    });
+    expect(isFreshCacheRow(row, new Date(NOW.getTime() + 30 * 60000 - 1))).toBe(
+      true,
+    );
+    expect(isFreshCacheRow(row, new Date(NOW.getTime() + 30 * 60000))).toBe(
+      false,
+    );
+    expect(
+      isFreshCacheRow(
+        {
+          ...row,
+          expires_at: new Date(NOW.getTime() + 15 * 60000).toISOString(),
+        },
+        new Date(NOW.getTime() + 15 * 60000),
+      ),
+    ).toBe(false);
+  });
 
   it('refreshes legacy payloads even if their old TTL remains fresh', async () => {
     const row = createCacheRow();
@@ -103,7 +127,7 @@ describe('weather-cache core', () => {
     });
     expect(result.source).toBe('provider');
     expect(Date.parse(result.expiresAt) - Date.parse(result.fetchedAt)).toBe(
-      15 * 60 * 1000,
+      30 * 60 * 1000,
     );
     expect(Date.parse(result.staleUntil) - Date.parse(result.fetchedAt)).toBe(
       60 * 60 * 1000,

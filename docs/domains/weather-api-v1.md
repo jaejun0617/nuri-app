@@ -2,6 +2,16 @@
 
 최종 확인: 2026-10-06. 이 문서는 API 코드/배포 계약의 source of truth다. 기존 Weather UX PO 승인과 Store 상용 운영 승인은 별개다.
 
+## 2026-10-06 PO 30분 갱신 변경
+
+PO가 기존 15분 계약을 30분으로 명시적으로 변경했다. 기존 API v1 완료 승인은 유지하며 이번 예외는 최신 유효시간·자동 확인과 이전 앱 호환 응답에 한정한다. provider·단위·원본 시각·KST·비용 방어·인증·DB 구조는 변경하지 않는다.
+
+- shared cache fresh TTL과 새 앱 live 상한, visible/active 자동 확인은 30분이다. 30분 경계는 exclusive이며 1시간 safe stale 상한·30초 상태 재평가·진입/복귀의 기존 필요성 검사·수동 재확인은 유지한다. 화면 이탈/백그라운드에서는 주기 요청하지 않는다. 위치 이동 확인은 별도 위치 계약이며 필요한 새 지역 조회를 지연하지 않는다.
+- 새 앱은 `x-nuri-weather-fresh-minutes: 30`으로 30분 응답을 요청한다. 헤더 없는 v1/legacy 앱에는 기존 15분 wire 상한을 유지한다. 기존 15분 row/응답을 읽어서 30분으로 연장하지 않으며 old client에 긴 TTL을 강요하지 않는다. 캐시 row는 일괄 삭제하지 않고 자연 교체한다.
+- 응답 view는 `min(row.expiresAt, row.fetchedAt + client window)`만 적용한다. 원본 조회 시각·staleUntil은 유지하며 구 앱 view가 만료되면 field metadata도 STALE다. shared fresh cache를 재사용해 provider 폭주를 만들지 않는다. 새 앱은 이전 서버의 짧은 TTL도 수용한다.
+- unsupported freshness header는 400이다. CORS에 해당 헤더만 추가하며 JWT 설정과 no-store는 유지한다. health는 shared fresh 30분과 default response 15분을 구분한다.
+- 두 Edge의 shared source를 함께 배포/대조한다. 실제 배포·smoke·설치 결과는 `/private/tmp/nuri-weather-seasons-20261006/FINAL_REPORT.md`를 따른다. 아래 최초 v1의 900초 증적은 과거 검증값이며 새로운 1,800초 운영 확인과 혼동하지 않는다.
+
 ## 범위
 
 - 자체 기상 예측 모델이 아니라 수집·검증·정규화·캐시·freshness·비용 방어를 소유하는 NURI 서버 경계다.
@@ -44,7 +54,7 @@
 ## 캐시와 분산 방어
 
 - 기존 `nuri_weather_cache`와 raw payload contractVersion=2, 앱 v8/current namespace, cross-region 거부 계약을 재사용한다. 이전 row는 정상 만료되며 mass delete하지 않는다.
-- fetchedAt부터 15분 fresh, 1시간 safe stale. 읽기로 시간/TTL을 연장하지 않는다. 실패 시 usable fresh → usable stale → unavailable이다.
+- fetchedAt부터 30분 fresh, 1시간 safe stale. 읽기로 시간/TTL을 연장하지 않는다. 실패 시 usable fresh → usable stale → unavailable이다. 이전 앱 응답은 위 호환 계약의 15분 상한을 따른다.
 - process 내 coalescing과 별도로 DB lease를 사용한다. coarse bucket/context당 20초, UUID owner, 원자적 expired takeover, owner-only release다.
 - follower는 안전한 stale 또는 0.1/0.2/0.4/0.8/1.6/2.4초 bounded wait를 사용한다. 실패한 lease를 우회해 provider를 호출하지 않는다.
 - upstream timeout 6.5초, DB request timeout 2.5초, 앱 timeout 15초, retry 0회다. 무한 재시도하지 않는다. 취소 신호를 전달한다.

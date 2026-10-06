@@ -108,9 +108,9 @@ describe('weather-cache client service', () => {
     ).rejects.toMatchObject({ code: 'weather_cache_region_mismatch' });
   });
 
-  it('checks foreground weather every five minutes with a bounded one-hour preview', () => {
-    expect(WEATHER_QUERY_STALE_MS).toBe(5 * 60 * 1000);
-    expect(WEATHER_FOCUS_REFRESH_MS).toBe(5 * 60 * 1000);
+  it('checks foreground weather every thirty minutes with a bounded one-hour preview', () => {
+    expect(WEATHER_QUERY_STALE_MS).toBe(30 * 60 * 1000);
+    expect(WEATHER_FOCUS_REFRESH_MS).toBe(30 * 60 * 1000);
     expect(WEATHER_PREVIEW_MAX_AGE_MS).toBe(60 * 60 * 1000);
   });
 });

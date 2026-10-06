@@ -1,4 +1,6 @@
 import React from 'react';
+import { ThemeProvider } from 'styled-components/native';
+import { createTheme } from '../src/app/theme/theme';
 import ReactNative, {
   ImageBackground,
   ScrollView,
@@ -7,6 +9,7 @@ import ReactNative, {
   View,
 } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
+import LinearGradient from 'react-native-linear-gradient';
 import { BlurView } from '@sbaiahmed1/react-native-blur';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import WeatherInsightScreen from '../src/screens/Weather/WeatherInsightScreen';
@@ -22,6 +25,11 @@ import {
 import { useWeatherGuide } from '../src/hooks/useWeatherGuide';
 import * as seasonPreference from '../src/app/providers/SeasonPreferenceProvider';
 import { getSeasonalWeatherVisualTheme } from '../src/theme/seasonal/weather';
+import { getHomeAmbientVisual } from '../src/theme/home/seasonalAmbient';
+import {
+  getSeasonalWeatherHeroVisual,
+  getWeatherHeroTextPalette,
+} from '../src/theme/seasonal/weatherHero';
 
 jest.mock('../src/hooks/useWeatherGuide', () => ({
   useWeatherGuide: jest.fn(),
@@ -61,12 +69,19 @@ function state(bundle: WeatherGuideBundle) {
 async function render(element: React.ReactElement) {
   let renderer!: TestRenderer.ReactTestRenderer;
   await act(async () => {
-    renderer = TestRenderer.create(element);
+    renderer = TestRenderer.create(
+      <ThemeProvider theme={createTheme('light')}>{element}</ThemeProvider>,
+    );
   });
   return renderer;
 }
 describe('weather service presentation UI', () => {
   beforeEach(() => {
+    jest.spyOn(seasonPreference, 'useSeasonPreference').mockReturnValue({
+      season: 'autumn',
+      override: 'autumn',
+      setOverride: jest.fn(async () => {}),
+    });
     jest
       .spyOn(seasonPreference, 'useEffectiveSeason')
       .mockReturnValue('autumn');
@@ -110,7 +125,7 @@ describe('weather service presentation UI', () => {
       [true, false].map(isDaytime => ({ scenario, isDaytime })),
     ),
   )(
-    'uses shared frost without replacing $scenario / daytime $isDaytime images',
+    'retains shared frost and data for $scenario / daytime $isDaytime',
     async ({ scenario, isDaytime }) => {
       state(
         buildWeatherGuideBundleForScenario(scenario, '일산3동', { isDaytime }),
@@ -156,12 +171,253 @@ describe('weather service presentation UI', () => {
     },
   );
 
+  it.each(
+    (['fresh', 'rain'] as const).flatMap(scenario =>
+      [true, false].flatMap(isDaytime =>
+        [320, 384, 430].map(width => ({ scenario, isDaytime, width })),
+      ),
+    ),
+  )(
+    'renders autumn $scenario / day=$isDaytime at $width dp',
+    async ({ scenario, isDaytime, width }) => {
+      jest.spyOn(ReactNative, 'useWindowDimensions').mockReturnValue({
+        width,
+        height: 800,
+        fontScale: 1,
+        scale: 3,
+      });
+      const bundle = buildWeatherGuideBundleForScenario(scenario, '일산3동', {
+        isDaytime,
+      });
+      state(bundle);
+      const renderer = await render(<WeatherInsightScreen />);
+      const visual = getSeasonalWeatherHeroVisual(
+        'autumn',
+        scenario,
+        isDaytime,
+      );
+      const foreground = getWeatherHeroTextPalette('autumn', isDaytime);
+      expect(foreground.primary).toBe(
+        getHomeAmbientVisual('autumn').primaryColor,
+      );
+      const hero = renderer.root.findByType(ImageBackground);
+      expect(hero.props.source).toEqual(visual?.image);
+      expect(StyleSheet.flatten(hero.props.style).minHeight).toBe(width);
+      expect(StyleSheet.flatten(hero.props.style).height).toBeUndefined();
+      const region = renderer.root
+        .findAllByType(Text)
+        .find(node => node.props.children === '일산3동');
+      const temp = renderer.root
+        .findAllByType(Text)
+        .find(node => node.props.children === `${bundle.currentTemperature}°`);
+      expect(StyleSheet.flatten(region?.props.style)).toMatchObject({
+        fontSize: 14,
+        color: foreground.primary,
+      });
+      expect(StyleSheet.flatten(temp?.props.style)).toMatchObject({
+        fontSize: 53,
+        lineHeight: 57,
+        color: foreground.primary,
+      });
+      const infoText = hero
+        .findAllByType(Text)
+        .filter(
+          node =>
+            typeof node.props.testID === 'string' &&
+            node.props.testID.startsWith('weather-hero-'),
+        );
+      expect(infoText).toHaveLength(5);
+      expect(
+        infoText.every(
+          node =>
+            StyleSheet.flatten(node.props.style).color ===
+            getHomeAmbientVisual('autumn').primaryColor,
+        ),
+      ).toBe(true);
+      const fade = hero
+        .findAllByType(LinearGradient)
+        .find(node => node.props.testID === 'weather-hero-bottom-blend');
+      expect(fade?.props.colors[2]).toBe(visual?.palette.background[0]);
+      expect(StyleSheet.flatten(fade?.props.style).height).toBe(width * 0.18);
+      expect(
+        hero.findAllByProps({ testID: 'weather-hero-top-blend' }),
+      ).toHaveLength(0);
+      const headerStyle = StyleSheet.flatten(
+        renderer.root.findByProps({ testID: 'weather-header-surface' }).props
+          .style,
+      );
+      expect(headerStyle.backgroundColor).toBeUndefined();
+      expect(headerStyle.marginBottom).toBeUndefined();
+      expect(fade?.props.pointerEvents).toBe('none');
+      expect(renderer.root.findAllByType(BlurView)).toHaveLength(11);
+      expect(hero.findAllByType(BlurView)).toHaveLength(0);
+      const info = hero.findByProps({ testID: 'weather-hero-information' });
+      expect(StyleSheet.flatten(info.props.style)).toMatchObject({
+        paddingHorizontal: 18,
+        paddingTop: 12,
+        justifyContent: 'flex-start',
+        gap: 6,
+      });
+      expect(
+        StyleSheet.flatten(info.props.style).backgroundColor,
+      ).toBeUndefined();
+      await act(async () => renderer.unmount());
+    },
+  );
+
+  it.each(
+    (['winter', 'spring', 'summer'] as const).flatMap(season =>
+      (['fresh', 'rain', 'snow'] as const).flatMap(scenario =>
+        [true, false].map(isDaytime => ({ season, scenario, isDaytime })),
+      ),
+    ),
+  )(
+    'preserves $season $scenario / day=$isDaytime artwork and lower blend without an upper blend',
+    async ({ season, scenario, isDaytime }) => {
+      jest
+        .spyOn(seasonPreference, 'useEffectiveSeason')
+        .mockReturnValue(season);
+      state(
+        buildWeatherGuideBundleForScenario(scenario, '현재 위치', {
+          isDaytime,
+        }),
+      );
+      const renderer = await render(<WeatherInsightScreen />);
+      const visual = getSeasonalWeatherHeroVisual(season, scenario, isDaytime);
+      const hero = renderer.root.findByType(ImageBackground);
+      expect(hero.props.source).toEqual(visual?.image);
+      expect(
+        hero.findAllByProps({ testID: 'weather-hero-top-blend' }),
+      ).toHaveLength(0);
+      const lowerBlend = hero
+        .findAllByType(LinearGradient)
+        .find(node => node.props.testID === 'weather-hero-bottom-blend');
+      expect(lowerBlend?.props.colors).toEqual(visual?.blendColors);
+      expect(lowerBlend?.props.colors[2]).toBe(visual?.palette.background[0]);
+      expect(hero.findAllByType(BlurView)).toHaveLength(0);
+      expect(
+        hero.findAllByProps({ testID: 'weather-hero-reading-tint' }),
+      ).toHaveLength(0);
+      const info = hero.findByProps({ testID: 'weather-hero-information' });
+      const foreground = getWeatherHeroTextPalette(season, isDaytime);
+      expect(foreground.primary).toBe(getHomeAmbientVisual(season).primaryColor);
+      const infoText = info
+        .findAllByType(Text)
+        .filter(
+          node =>
+            typeof node.props.testID === 'string' &&
+            node.props.testID.startsWith('weather-hero-'),
+        );
+      expect(infoText).toHaveLength(5);
+      expect(infoText.map(node => node.props.children).join('\n')).toContain(
+        '체감온도',
+      );
+      expect(infoText.map(node => node.props.children).join('\n')).toContain(
+        '최고',
+      );
+      expect(
+        infoText.every(
+          node =>
+            StyleSheet.flatten(node.props.style).color === foreground.primary,
+        ),
+      ).toBe(true);
+      expect(StyleSheet.flatten(info.props.style)).toMatchObject({
+        paddingHorizontal: 18,
+        paddingTop: 12,
+        justifyContent: 'flex-start',
+      });
+      expect(StyleSheet.flatten(info.props.style).height).toBeUndefined();
+      expect(
+        StyleSheet.flatten(info.props.style).backgroundColor,
+      ).toBeUndefined();
+      expect(StyleSheet.flatten(info.props.style).borderWidth).toBeUndefined();
+      await act(async () => renderer.unmount());
+    },
+  );
+
+  it('removes the approved seasonal review controls without changing the shared preference', async () => {
+    const setOverride = jest.fn(async () => {});
+    jest
+      .spyOn(seasonPreference, 'useSeasonPreference')
+      .mockReturnValue({ season: 'autumn', override: 'autumn', setOverride });
+    state(buildWeatherGuideBundleForScenario('fresh'));
+    const renderer = await render(<WeatherInsightScreen />);
+    expect(
+      renderer.root.findAllByProps({ testID: 'weather-season-review-controls' }),
+    ).toHaveLength(0);
+    for (const season of ['autumn', 'winter', 'spring', 'summer']) {
+      expect(
+        renderer.root.findAllByProps({
+          testID: `weather-review-season-${season}`,
+        }),
+      ).toHaveLength(0);
+    }
+    expect(
+      renderer.root.findAllByProps({ accessibilityLabel: '뒤로 가기' }).length,
+    ).toBeGreaterThan(0);
+    expect(
+      renderer.root
+        .findAllByType(Text)
+        .some(node => node.props.children === '오늘의 날씨'),
+    ).toBe(true);
+    expect(setOverride).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
+    await act(async () => renderer.unmount());
+  });
+
+  it('keeps real snow data on the common snow path without autumn snow assets', async () => {
+    state(buildWeatherGuideBundleForScenario('snow'));
+    const renderer = await render(<WeatherInsightScreen />);
+    expect(renderer.root.findByType(ImageBackground).props.source).toEqual(
+      require('../src/assets/weather/snow.png'),
+    );
+    await act(async () => renderer.unmount());
+  });
+
+  it('preserves the unavailable boundary and makes recent temperature copy compact', async () => {
+    state(
+      createPreviewWeatherGuideBundle(
+        buildWeatherGuideBundleForScenario('rain'),
+      ),
+    );
+    const renderer = await render(<WeatherInsightScreen />);
+    const recent = renderer.root
+      .findAllByType(Text)
+      .find(
+        node =>
+          typeof node.props.children === 'string' &&
+          /^최근 확인 [-\d]+°$/.test(node.props.children),
+      );
+    expect(StyleSheet.flatten(recent?.props.style).fontSize).toBe(24);
+    state(createUnavailableWeatherGuideBundle());
+    await act(async () =>
+      renderer.update(
+        <ThemeProvider theme={createTheme('light')}>
+          <WeatherInsightScreen />
+        </ThemeProvider>,
+      ),
+    );
+    expect(renderer.root.findAllByType(ImageBackground)).toHaveLength(0);
+    await act(async () => renderer.unmount());
+  });
+
   it('reflows enlarged metric panels rather than truncating descriptions', async () => {
     jest
       .spyOn(ReactNative, 'useWindowDimensions')
       .mockReturnValue({ width: 360, height: 800, fontScale: 1.5, scale: 3 });
     state(buildWeatherGuideBundleForScenario('fresh'));
     const renderer = await render(<WeatherInsightScreen />);
+    const info = renderer.root.findByProps({
+      testID: 'weather-hero-information',
+    });
+    expect(StyleSheet.flatten(info.props.style).width).toBeUndefined();
+    expect(StyleSheet.flatten(info.props.style).maxWidth).toBeUndefined();
+    expect(StyleSheet.flatten(info.props.style).height).toBeUndefined();
+    expect(
+      info
+        .findAllByType(Text)
+        .every(node => node.props.numberOfLines === undefined),
+    ).toBe(true);
     const metricCards = renderer.root
       .findAllByType(BlurView)
       .filter(node => StyleSheet.flatten(node.props.style).minHeight === 0);

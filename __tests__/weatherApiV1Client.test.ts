@@ -73,7 +73,10 @@ describe('NURI v1 app contract', () => {
     const weather = await fetchNuriWeatherV1(coordinates);
     expect(supabase.functions.invoke).toHaveBeenCalledWith(
       'nuri-weather-v1',
-      expect.objectContaining({ timeout: 15000 }),
+      expect.objectContaining({
+        timeout: 15000,
+        headers: { 'x-nuri-weather-fresh-minutes': '30' },
+      }),
     );
     const bundle = buildWeatherGuideBundleFromNuri({
       district: '일산3동',
@@ -94,6 +97,23 @@ describe('NURI v1 app contract', () => {
       bundle.airQualityMetrics.every(m => m.valueLabel === '확인 중'),
     ).toBe(true);
     expect(bundle.detailHeadline).not.toContain('비 예보');
+  });
+  it('accepts the new 30-minute window and the shorter previous response but rejects an extension', () => {
+    const data = envelope();
+    expect(
+      Date.parse(data.data.freshness.expiresAt) -
+        Date.parse(data.data.freshness.retrievedAt),
+    ).toBe(30 * 60000);
+    expect(() => parseWeatherApiV1(data, coordinates)).not.toThrow();
+    const retrieved = Date.parse(data.data.freshness.retrievedAt);
+    data.data.freshness.expiresAt = new Date(
+      retrieved + 15 * 60000,
+    ).toISOString();
+    expect(() => parseWeatherApiV1(data, coordinates)).not.toThrow();
+    data.data.freshness.expiresAt = new Date(
+      retrieved + 30 * 60000 + 1,
+    ).toISOString();
+    expect(() => parseWeatherApiV1(data, coordinates)).toThrow();
   });
   it.each(['region', 'version', 'unit', 'expired', 'timestamp'])(
     'rejects invalid %s without legacy fallback',

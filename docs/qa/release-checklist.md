@@ -1,4 +1,86 @@
 # V1.0 Remaining Task/Risk Closeout
+<!-- NURI_WEATHER_FINAL_APPROVAL_20261006_BEGIN -->
+## 2026-10-06 Weather PO Final Approval Closeout
+
+- [x] PO final approval recorded for seasonal artwork, actual Home background hue, no-panel alignment, lower continuity and the 30-minute contract. Prior pending entries below are historical candidate records.
+- [x] Remove only the Weather detail seasonal review controls/component; preserve title/back, Home review controls, shared preference and real weather/day phase.
+- [x] Current source: TypeScript PASS, scoped ESLint 0 errors/0 warnings, 22 suites/325 focused tests and full 171 suites/1,676 tests PASS.
+- [x] Selective Git scope: approved Weather implementation/tests, 22 runtime artwork assets, artwork/generation manifests and Weather portions of shared documentation. Leave unrelated shared-document changes and other dirty files unstaged.
+- [x] No new build/install/device operation/remote deployment/cleanup. Existing installed `60bc57d7` still has the review buttons; source removal is not installed. Preserve original PNGs, QA, protected APK/AAB/reports and incremental outputs/cache.
+- [ ] Full native weather/day matrix, enlarged fonts, iOS and quantitative raw-image contrast: not performed by this closeout; PO approval is not execution evidence for these checks.
+- PRE_STORE operational gates preserved; AUTH/API frozen; Store HOLD; wait for PO NEXT DESIGN DIRECTION. Git/asset preservation evidence: `/private/tmp/nuri-weather-approval-closeout-20261006/FINAL_REPORT.md`.
+<!-- NURI_WEATHER_FINAL_APPROVAL_20261006_END -->
+
+<!-- NURI_WEATHER_HOME_PALETTE_20261006_BEGIN -->
+## 2026-10-06 Weather Hero Actual Home Background Hue Installed Candidate
+
+- PO explicitly selected the original background hue, not a darker related hue. Autumn `#F7C896`, winter `#D4EAFE`, spring `#FFDCE7`, summer `#C9F2F8` apply to the five hero information text fields in both day and night. Consume `HomeAmbientVisual.primaryColor` shared with the existing background wash; do not change Home rendering values.
+- Preserve location icon's previous day/night color, hero no-panel layout/53dp temperature/recent 24dp, 22 artwork assets/lower blend/upper rollback/season controls/30-minute API/AUTH/QA/dirty/build outputs-cache.
+- Current source PASS: TypeScript, scoped ESLint 0 errors/0 warnings, 22 suites/325 tests, full 171 suites/1,676 tests, diff check. Following PO install authorization, one incremental Release 259.214 seconds (61 executed/934 up-to-date) and one install-r PASS. Latest SHA `60bc57d7fd9a205bd9058cc30c5491d7189ce13d069492338fec70e52207332e`. Source/inputs, signer/bundle/font/22 artwork hashes/palette markers and installed hash/UID/first install/settings MATCH. Model `SM-S937N`.
+- No launch/touch/capture/remote/commit/push/cleanup/Store. Native contrast and visual approval remain unverified; pastel colors are not claimed as universally accessible over all artwork.
+- Report: `/private/tmp/nuri-weather-home-palette-20261006/FINAL_REPORT.md`.
+<!-- NURI_WEATHER_HOME_PALETTE_20261006_END -->
+
+<!-- NURI_WEATHER_HERO_ALIGN_20261006_BEGIN -->
+## 2026-10-06 Weather Hero No-Panel Alignment Installed Candidate
+
+- Latest PO rescinded the hero glass only. Remove blur/tint/rim/internal padding/width cap. Align information at horizontal 18dp/top 12dp; temperature 56→53dp, line height 60→57dp. Keep recent-state 24dp, approved seasonal foreground, real copy/data, icons and other detail glass cards.
+- PASS current source: TypeScript, scoped ESLint 0 errors/0 warnings, 19 suites/270 focused tests, full 171 suites/1,672 tests. Assert hero blur absence, alignment/size/natural layout/season-state contract. Retired panel contrast assertions are not current raw-image contrast evidence; native visual/font/weather matrix remains unverified.
+- One incremental Release 216.654 seconds (61 executed/934 up-to-date) and one install-r PASS. SHA `0c6f0ae0e6786ac02a692786828e5e4c208c7d7e666e666798825af09e1dc575`. Source/inputs, signer/bundle/font/22 artwork hashes, glass/tint/upper blend absent and information/lower blend/season controls present, installed hash/UID/first install/settings MATCH. Model `SM-S937N`.
+- Preserve images/lower blend/upper rollback/season controls/30-minute API/AUTH/QA/unrelated dirty/protected artifacts-reports/incremental outputs-cache. No native launch/touch/capture/remote/commit/push/cleanup/Store. Await PO visual acceptance. Report: `/private/tmp/nuri-weather-hero-align-20261006/FINAL_REPORT.md`.
+<!-- NURI_WEATHER_HERO_ALIGN_20261006_END -->
+
+<!-- NURI_WEATHER_HERO_GLASS_20261006_BEGIN -->
+## 2026-10-06 Weather Hero Reading Glass Installed Candidate
+
+- PO requested a compact frosted surface for district/temperature/condition/high-low/feels-like. Reuse seasonal Weather primary/surface tokens: autumn brown, winter blue, spring rose, summer green; light-day/dark-night material, natural height and full available width for enlarged fonts. No new library/shared glass changes/shadow/reflection.
+- PASS this source: TypeScript, scoped ESLint 0 errors/0 warnings, 19 suites/270 targeted tests, full 171 suites/1,672 tests. Eight seasonal day-night alpha/fallback contrast tests meet 4.5:1 (worst 4.53:1); not native visual or final accessibility evidence. Initial icon-Text counting test failures preserved separately.
+- One incremental Release build 216.027 seconds (61 executed/934 up-to-date), one install-r PASS. SHA `6ac73be210d0f9c2b4d08a7870898c8b4179637583b463536edce3dcfac7dc6a`. Source/inputs, signer/bundle/font, 22 artwork hashes, glass/tint marker presence, upper blend absence/lower blend/season controls presence, installed hash/UID/first install/settings MATCH. Model `SM-S937N`.
+- Preserve images/lower blend/upper rollback/season controls/30-minute API/AUTH/QA/unrelated dirty/protected APK-AAB-reports/incremental outputs-cache. No launch/touch/capture/remote change/commit/push/cleanup/Store. PO visual approval pending. Report: `/private/tmp/nuri-weather-hero-glass-20261006/FINAL_REPORT.md`.
+<!-- NURI_WEATHER_HERO_GLASS_20261006_END -->
+
+<!-- NURI_WEATHER_TOP_ROLLBACK_INSTALL_20261006_BEGIN -->
+## 2026-10-06 Upper Rollback Installed Candidate
+
+- PO authorized an additional incremental Release build/install-r: one each PASS. No new runtime edits. 218.611 seconds, 61 executed/934 up-to-date. SHA `f79127e76e694a0dfd72ee8eeca51e9afb5d69a09ebfcb2e3321ccbc1f08d2e2`.
+- Source/inputs, APK signer/bundle/font, 22 packaged artwork hashes, upper blend marker absent/lower blend and season controls present, installed hash/UID/first-install/settings MATCH. Connected model `SM-S937N`.
+- Reuse prior upper rollback TypeScript/scoped lint 0 errors/0 warnings and 19 suites/262 tests. Previous full suite 171/1,649 belongs to the earlier seasonal candidate; not rerun or claimed for this source. No remote deploy or native screen interaction/capture.
+- PO visual acceptance pending. No commit/push/cleanup/Store. Preserve original/source-only reports, protected APK/AAB, source/artwork/QA/unrelated dirty and incremental outputs/cache. Report: `/private/tmp/nuri-weather-top-rollback-20261006/INSTALL_REPORT.md`.
+<!-- NURI_WEATHER_TOP_ROLLBACK_INSTALL_20261006_END -->
+
+<!-- NURI_WEATHER_TOP_ROLLBACK_20261006_BEGIN -->
+## 2026-10-06 Upper Weather Blend Rollback
+
+- PO rescinded upper continuity only: remove sky-colored header/status-bar surface, upper hero fade and joining margin compensation. Preserve seasonal controls, 22 artwork assets, typography/day-night contrast, lower 18% blend and 30-minute data contract.
+- Source/local validation evidence: `/private/tmp/nuri-weather-top-rollback-20261006/FINAL_REPORT.md`. No additional build/install/device interaction/remote deployment. Installed `7c50e00d` still contains upper continuity; rollback native QA is not claimed.
+- Local gates PASS: TypeScript, scoped ESLint 0 errors/0 warnings, 19 suites/262 tests, git diff check and baseline preservation. Full-suite and physical-device execution not repeated.
+- Keep existing dirty, original artwork, protected APK/AAB/reports, QA and incremental build/cache. No commit/push/cleanup/Store. Await PO follow-up.
+<!-- NURI_WEATHER_TOP_ROLLBACK_20261006_END -->
+
+<!-- NURI_WEATHER_SEASONS_30M_20261006_BEGIN -->
+## 2026-10-06 Seasonal Weather / 30-Minute Candidate
+
+- PO-authorized exception: 18 winter/spring/summer artwork assets, 22 total including autumn, seasonal review controls, upper/lower visual continuity, fresh/active refresh 30 minutes. AUTH/provider architecture/icons/other Home UI unchanged.
+- Artwork: original RGB-identical lossless WebP, no crop/resize. Real weather/day phase retained; autumn snow common fallback retained. Review controls use the existing device-local global season override.
+- Backward compatibility: new header requests 30-minute freshness; previous v1/legacy responses retain 15 minutes. Shared cache 30-minute fresh/60-minute stale, existing rows/timestamps not extended or deleted.
+- Remote linked project only: nuri-weather-v1 v2 / weather-cache v7 ACTIVE, all eight deployed files per function match local hashes. Smoke confirms 1800/900/3600 seconds, original timestamp/cache preservation, malformed coordinates 400 and unauthenticated gateway 401. No migration/policy/Auth/QA write.
+- Gates PASS: TypeScript, scoped lint 0 errors/0 warnings, 19 suites/247 tests, 171 suites/1,649 full tests, git diff check. Incremental Release build 1 (273.904 seconds; 66 executed/929 up-to-date) and install-r 1 PASS. SHA `7c50e00dd386ebc03be76c9b375893ff3f2985aff5e486988d2b88cf28fcb16b`; 22 packaged artwork hashes, signer/bundle/font, installed hash/UID/first-install/settings match.
+- PO chose install only: no app launch/touch/capture. Connected model `SM-S937N`. Browser composition checks at 320/390/1440 widths are not native QA. Native visual/font/weather matrix, 30-minute physical wait, iOS and long-run performance remain unverified.
+- Final visual approval pending. No staged files/commit/push/cleanup/Store; preserve source, unrelated dirty, QA, original artwork, protected APK/AAB and incremental outputs/cache. Report: `/private/tmp/nuri-weather-seasons-20261006/FINAL_REPORT.md`.
+<!-- NURI_WEATHER_SEASONS_30M_20261006_END -->
+
+<!-- NURI_WEATHER_AUTUMN_HERO_20261006_BEGIN -->
+## 2026-10-06 Autumn Weather Hero Candidate
+
+- PO-authorized four autumn scenes: normal day/night and rain day/night. Autumn snow excluded; drafts/common snow/data and other-season originals preserved.
+- Lossless RGB-identical assets; effective season + original weather/day-phase; smaller district/temperature; light/dark text and opaque bottom fade matching continuation.
+- Type/lint/targeted/full suite/build/install evidence: `/private/tmp/nuri-weather-autumn-hero-20261006/FINAL_REPORT.md`. Final PO visual acceptance pending; native font/branch matrix is not inferred from source tests.
+- Weather API v1 and AUTH frozen. Home/icons/QA/season controls remain; no commit/push/cleanup/Store; retain all incremental outputs/cache and protected evidence.
+- Canonical visual contract: `docs/domains/weather-hero-artwork.md`.
+- Local gates PASS: TypeScript, scoped lint 0 errors/0 warnings, 19 suites/218 focused tests, 171 suites/1,620 full tests, git diff check. Install/render approval remains a separate gate.
+- Incremental Release build and install-r: one each PASS. Installed SHA `cbcd1dae45c8c09edee7568208909a72356c7b9b5b598f6168ff16da3a0b0d8b`; four packaged artwork hashes, signer/bundle/font, installed hash/UID/first-install/device settings MATCH. No native screen interaction or visual acceptance claimed. Daytime small-copy contrast remains for PO review; no additional corrective build/install run.
+<!-- NURI_WEATHER_AUTUMN_HERO_20261006_END -->
+
 <!-- NURI_WEATHER_API_V1_20261005_BEGIN -->
 ## 2026-10-06 NURI Weather API v1 core
 

@@ -84,6 +84,20 @@ describe('seasonal Home ambient material', () => {
     ).toBe(4);
   });
 
+  it.each([
+    ['autumn', '#F7C896'],
+    ['winter', '#D4EAFE'],
+    ['spring', '#FFDCE7'],
+    ['summer', '#C9F2F8'],
+  ] as const)(
+    '%s exposes its actual background primary color %s',
+    (season, color) => {
+      const visual = getHomeAmbientVisual(season);
+      expect(visual.primaryColor).toBe(color);
+      expect(visual.sectionFields[0].color).toBe(color);
+    },
+  );
+
   it.each(
     SEASONS.flatMap(season =>
       [360, 400, 430].map(width => ({ season, width })),

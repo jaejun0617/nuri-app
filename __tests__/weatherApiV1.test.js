@@ -243,7 +243,7 @@ describe('distributed coordination and fallback', () => {
     expect(new Set(results.map(r => r.fetchedAt)).size).toBe(1);
   });
   it('preserves safe stale cache on failure, but never serves expired data', async () => {
-    const safe = setup(row(new Date(now.getTime() - 20 * 60000)));
+    const safe = setup(row(new Date(now.getTime() - 35 * 60000)));
     safe.provider.fetchBundle.mockRejectedValue(new Error('failure'));
     expect((await coordinateWeather(safe.args)).source).toBe('stale_cache');
     expect(safe.operations.release).toHaveBeenCalledTimes(1);

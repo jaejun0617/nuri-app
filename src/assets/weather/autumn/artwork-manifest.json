@@ -1,0 +1,60 @@
+{
+  "contract": "nuri.weather.hero.autumn.v1",
+  "effectiveSeason": "autumn",
+  "approval": "PO_PASS_FROZEN",
+  "generatedWith": "built-in image_gen",
+  "sourcePromptManifest": "output/imagegen/nuri-weather-autumn-20261006/generation-manifest.json",
+  "encoding": "WebP lossless; original RGB pixels unchanged; no crop/resize",
+  "artwork": [
+    {
+      "source": "output/imagegen/nuri-weather-autumn-20261006/autumn-normal-day-pets-v2.png",
+      "destination": "src/assets/weather/autumn/normal-day-v1.webp",
+      "sourceSHA256": "f5e69f665f867b492d7625edbb686fdf42f1fb29aa31fdf9da42b329193b1716",
+      "sha256": "0338c504cc7af7b8d7b511c65595cde965f74abd6760f191a4aa823d392f7292",
+      "bytes": 1892614,
+      "width": 1254,
+      "height": 1254,
+      "pixelsUnchanged": true
+    },
+    {
+      "source": "output/imagegen/nuri-weather-autumn-20261006/autumn-normal-night-pets-v2.png",
+      "destination": "src/assets/weather/autumn/normal-night-v1.webp",
+      "sourceSHA256": "d489947ddd349baf2ae540e09fdc9c43e687f29269d6429dcb0968caa1915f68",
+      "sha256": "7c43a9f9bfdf1285295023bc270de2f428a1da436b0cc7def081d1e32b2411b5",
+      "bytes": 1837292,
+      "width": 1254,
+      "height": 1254,
+      "pixelsUnchanged": true
+    },
+    {
+      "source": "output/imagegen/nuri-weather-autumn-20261006/autumn-rain-day-pets-v2.png",
+      "destination": "src/assets/weather/autumn/rain-day-v1.webp",
+      "sourceSHA256": "edff9243bc944400028d9b92862c71f21801b66635a078fc81c77e200e428f27",
+      "sha256": "7672520dee224462ca056a236cca9a55539707fedac708b8375114e1ae1f8385",
+      "bytes": 2012922,
+      "width": 1254,
+      "height": 1254,
+      "pixelsUnchanged": true
+    },
+    {
+      "source": "output/imagegen/nuri-weather-autumn-20261006/autumn-rain-night-pets-v2.png",
+      "destination": "src/assets/weather/autumn/rain-night-v1.webp",
+      "sourceSHA256": "6aee4f7d4af090ddfcffa80551ae8a2ca233c5d1a1096b815109a2230a55d0b6",
+      "sha256": "f1e6d183db8bacd5939d9709b6312597eccbb51fdaf3e621f5d6337c5f735565",
+      "bytes": 1942636,
+      "width": 1254,
+      "height": 1254,
+      "pixelsUnchanged": true
+    }
+  ],
+  "branches": [
+    "normal-day",
+    "normal-night",
+    "rain-day",
+    "rain-night"
+  ],
+  "autumnSnowRegistered": false,
+  "snowDraftsPreserved": true,
+  "commonSnowDataAndArtworkPreserved": true,
+  "otherSeasons": "approved seasonal artwork: winter, spring and summer each own six images"
+}
