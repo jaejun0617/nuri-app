@@ -406,3 +406,22 @@ export async function deleteSchedule(scheduleId: string): Promise<void> {
 
   if (error) throw error;
 }
+
+/** Completion does not replace reminder, external-sync or record-link metadata. */
+export async function setScheduleCompletedAt(input: {
+  scheduleId: string;
+  petId: string;
+  completedAt: string | null;
+}): Promise<PetSchedule> {
+  const auth = await supabase.auth.getUser();
+  if (auth.error) throw auth.error;
+  const userId = auth.data.user?.id;
+  if (!userId) throw new Error('로그인 상태를 확인해 주세요.');
+  const { data, error } = await supabase.from('pet_schedules')
+    .update({ completed_at: input.completedAt })
+    .eq('id', input.scheduleId).eq('pet_id', input.petId).eq('user_id', userId)
+    .select(SCHEDULE_COLUMNS).single();
+  if (error) throw error;
+  if (!isPetSchedulesRow(data)) throw new Error('변경된 일정 상태를 확인하지 못했어요.');
+  return mapRow(data);
+}

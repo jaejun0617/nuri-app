@@ -13,6 +13,8 @@ import { KeyboardAvoidingView as KeyboardControllerAvoidingView } from 'react-na
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
+import { shouldStackCtaPair, type CtaRole } from '../../app/theme/ctaPalette';
 import { useOptionalSafeAreaInsets } from '../../hooks/useOptionalSafeAreaInsets';
 import { getResponsiveOverlayMaxHeight } from '../../services/app/responsiveLayout';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
@@ -36,6 +38,9 @@ type Props = {
   typographyMode?: 'legacy' | 'unified';
   keyboardAware?: boolean;
   embedded?: boolean;
+  confirmRole?: CtaRole;
+  cancelRole?: CtaRole;
+  confirmLoading?: boolean;
 };
 
 function resolveToneMeta(
@@ -85,10 +90,15 @@ function ConfirmDialogBase({
   typographyMode = 'legacy',
   keyboardAware = false,
   embedded = false,
+  confirmRole,
+  cancelRole,
+  confirmLoading = false,
 }: Props) {
   const theme = useTheme();
   const insets = useOptionalSafeAreaInsets();
-  const { height: windowHeight } = useWindowDimensions();
+  const { height: windowHeight, width, fontScale } = useWindowDimensions();
+  const stackActions =
+    Boolean(confirmRole || cancelRole) && shouldStackCtaPair(width, fontScale);
   const maxCardHeight = getResponsiveOverlayMaxHeight({
     windowHeight,
     topInset: insets.top,
@@ -126,78 +136,101 @@ function ConfirmDialogBase({
   );
 
   const content = (
-      <KeyboardControllerAvoidingView
+    <KeyboardControllerAvoidingView
+      style={[
+        styles.backdrop,
+        embedded ? StyleSheet.absoluteFill : null,
+        { backgroundColor: theme.colors.overlay },
+      ]}
+      behavior={embedded ? 'height' : 'padding'}
+      enabled={keyboardAware}
+      automaticOffset
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
+    >
+      <Pressable style={styles.scrim} onPress={onCancel} />
+      <View
+        testID="confirm-dialog-card"
+        accessibilityViewIsModal
         style={[
-          styles.backdrop,
-          embedded ? StyleSheet.absoluteFill : null,
-          { backgroundColor: theme.colors.overlay },
+          styles.card,
+          {
+            backgroundColor: theme.colors.surfaceElevated,
+            borderColor: theme.colors.border,
+            maxHeight: maxCardHeight,
+          },
         ]}
-        behavior={embedded ? 'height' : 'padding'}
-        enabled={keyboardAware}
-        automaticOffset
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
       >
-        <Pressable style={styles.scrim} onPress={onCancel} />
-        <View
-          testID="confirm-dialog-card"
-          accessibilityViewIsModal
-          style={[
-            styles.card,
-            {
-              backgroundColor: theme.colors.surfaceElevated,
-              borderColor: theme.colors.border,
-              maxHeight: maxCardHeight,
-            },
-          ]}
+        <ScrollView
+          style={styles.cardScroll}
+          contentContainerStyle={styles.cardContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          <ScrollView
-            style={styles.cardScroll}
-            contentContainerStyle={styles.cardContent}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            <View style={styles.copyBlock}>
-              <AppText
-                preset={textPresets.title}
-                style={[
-                  styles.title,
-                  children ? styles.richTextAlignment : null,
-                  { color: theme.colors.textPrimary },
-                ]}
-              >
-                {title}
-              </AppText>
+          <View style={styles.copyBlock}>
+            <AppText
+              preset={textPresets.title}
+              style={[
+                styles.title,
+                children ? styles.richTextAlignment : null,
+                { color: theme.colors.textPrimary },
+              ]}
+            >
+              {title}
+            </AppText>
 
-              <View style={styles.messageBlock}>
-                {lines.map((line, index) =>
-                  line.trim().length > 0 ? (
-                    <AppText
-                      key={`${line}-${index}`}
-                      preset={textPresets.body}
-                      style={[
-                        styles.message,
-                        children ? styles.richTextAlignment : null,
-                        { color: theme.colors.textSecondary },
-                      ]}
-                    >
-                      {line}
-                    </AppText>
-                  ) : (
-                    <View
-                      key={`spacer-${index}`}
-                      style={styles.messageSpacer}
-                    />
-                  ),
-                )}
-              </View>
+            <View style={styles.messageBlock}>
+              {lines.map((line, index) =>
+                line.trim().length > 0 ? (
+                  <AppText
+                    key={`${line}-${index}`}
+                    preset={textPresets.body}
+                    style={[
+                      styles.message,
+                      children ? styles.richTextAlignment : null,
+                      { color: theme.colors.textSecondary },
+                    ]}
+                  >
+                    {line}
+                  </AppText>
+                ) : (
+                  <View key={`spacer-${index}`} style={styles.messageSpacer} />
+                ),
+              )}
             </View>
+          </View>
 
-            {children ? (
-              <View style={styles.extraContent}>{children}</View>
-            ) : null}
-          </ScrollView>
-          {!hideActions ? (
-            <View testID="confirm-dialog-actions" style={styles.buttonRow}>
+          {children ? (
+            <View style={styles.extraContent}>{children}</View>
+          ) : null}
+        </ScrollView>
+        {!hideActions ? (
+          <View
+            testID="confirm-dialog-actions"
+            style={[
+              styles.buttonRow,
+              stackActions && { flexDirection: 'column' },
+            ]}
+          >
+            {cancelRole ? (
+              <CtaButton
+                testID="confirm-dialog-cancel"
+                role={cancelRole}
+                accessibilityLabel={cancelLabel}
+                style={[
+                  styles.button,
+                  styles.cancelButton,
+                  stackActions && { flex: 0, width: '100%' },
+                ]}
+                onPress={onCancel}
+              >
+                <CtaText
+                  preset={textPresets.button}
+                  style={styles.cancelButtonText}
+                >
+                  {cancelLabel}
+                </CtaText>
+              </CtaButton>
+            ) : (
               <TouchableOpacity
                 testID="confirm-dialog-cancel"
                 accessibilityRole="button"
@@ -220,7 +253,30 @@ function ConfirmDialogBase({
                   {cancelLabel}
                 </AppText>
               </TouchableOpacity>
+            )}
 
+            {confirmRole ? (
+              <CtaButton
+                testID="confirm-dialog-confirm"
+                role={confirmRole}
+                loading={confirmLoading}
+                disabled={confirmDisabled}
+                accessibilityLabel={confirmLabel}
+                style={[
+                  styles.button,
+                  styles.confirmButton,
+                  stackActions && { flex: 0, width: '100%' },
+                ]}
+                onPress={onConfirm}
+              >
+                <CtaText
+                  preset={textPresets.button}
+                  style={styles.confirmButtonText}
+                >
+                  {confirmLabel}
+                </CtaText>
+              </CtaButton>
+            ) : (
               <TouchableOpacity
                 testID="confirm-dialog-confirm"
                 accessibilityRole="button"
@@ -247,10 +303,11 @@ function ConfirmDialogBase({
                   {confirmLabel}
                 </AppText>
               </TouchableOpacity>
-            </View>
-          ) : null}
-        </View>
-      </KeyboardControllerAvoidingView>
+            )}
+          </View>
+        ) : null}
+      </View>
+    </KeyboardControllerAvoidingView>
   );
   // Native sheets can own confirmation without stacking another Android window.
   if (embedded) return visible ? content : null;

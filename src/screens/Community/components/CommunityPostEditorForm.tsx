@@ -1,10 +1,6 @@
+import CtaButton, { CtaText } from '../../../app/ui/CtaButton';
 import React, { memo } from 'react';
-import {
-  Image,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Image, TextInput, TouchableOpacity, View } from 'react-native';
 import Feather from '../../../components/icons/NuriFeatherIcon';
 import { useTheme } from 'styled-components/native';
 
@@ -36,6 +32,7 @@ type Props = {
   bodyViewportMinHeight?: number;
   submitLabel: string;
   submitDisabled: boolean;
+  submitLoading?: boolean;
   onChangeCategory: (category: CommunityPostCategory) => void;
   onChangeTitle: (title: string) => void;
   onChangeContent: (content: string) => void;
@@ -57,6 +54,7 @@ function CommunityPostEditorFormBase({
   bodyViewportMinHeight,
   submitLabel,
   submitDisabled,
+  submitLoading = false,
   onChangeCategory,
   onChangeTitle,
   onChangeContent,
@@ -71,13 +69,16 @@ function CommunityPostEditorFormBase({
     imageUris && imageUris.length > 0
       ? imageUris.slice(0, 3)
       : imageUri
-        ? [imageUri]
-        : [];
+      ? [imageUri]
+      : [];
 
   return (
     <>
       <View style={styles.section}>
-        <AppText preset="caption" style={[styles.label, { color: theme.colors.textMuted }]}>
+        <AppText
+          preset="caption"
+          style={[styles.label, { color: theme.colors.textMuted }]}
+        >
           카테고리
         </AppText>
         <View style={styles.chipRow}>
@@ -132,13 +133,19 @@ function CommunityPostEditorFormBase({
         <View style={styles.policyHelperContent}>
           <AppText
             preset="caption"
-            style={[styles.policyHelperTitle, { color: theme.colors.textPrimary }]}
+            style={[
+              styles.policyHelperTitle,
+              { color: theme.colors.textPrimary },
+            ]}
           >
             작성 전 꼭 확인해 주세요
           </AppText>
           <AppText
             preset="caption"
-            style={[styles.policyHelperBody, { color: theme.colors.textSecondary }]}
+            style={[
+              styles.policyHelperBody,
+              { color: theme.colors.textSecondary },
+            ]}
           >
             서로를 존중하는 따뜻한 이야기를 나눠주세요. 욕설, 혐오, 비방 등
             타인에게 불쾌감을 주는 콘텐츠는 운영정책에 의해 숨김 및 제재될 수
@@ -152,7 +159,10 @@ function CommunityPostEditorFormBase({
         >
           <AppText
             preset="caption"
-            style={[styles.policyHelperActionText, { color: accentPalette.primary }]}
+            style={[
+              styles.policyHelperActionText,
+              { color: accentPalette.primary },
+            ]}
           >
             운영정책 보기
           </AppText>
@@ -160,7 +170,10 @@ function CommunityPostEditorFormBase({
       </View>
 
       <View style={styles.section}>
-        <AppText preset="caption" style={[styles.label, { color: theme.colors.textMuted }]}>
+        <AppText
+          preset="caption"
+          style={[styles.label, { color: theme.colors.textMuted }]}
+        >
           이미지 첨부
         </AppText>
         <View style={styles.thumbnailRow}>
@@ -209,15 +222,18 @@ function CommunityPostEditorFormBase({
         </View>
       </View>
 
-      <View
-        testID="community-composer-title-section"
-        style={styles.section}
-      >
+      <View testID="community-composer-title-section" style={styles.section}>
         <View style={styles.bodyHeader}>
-          <AppText preset="caption" style={[styles.label, { color: theme.colors.textMuted }]}>
+          <AppText
+            preset="caption"
+            style={[styles.label, { color: theme.colors.textMuted }]}
+          >
             제목
           </AppText>
-          <AppText preset="caption" style={[styles.counter, { color: theme.colors.textMuted }]}>
+          <AppText
+            preset="caption"
+            style={[styles.counter, { color: theme.colors.textMuted }]}
+          >
             {title.length} / 80
           </AppText>
         </View>
@@ -242,15 +258,18 @@ function CommunityPostEditorFormBase({
         </View>
       </View>
 
-      <View
-        testID="community-composer-body-section"
-        style={styles.section}
-      >
+      <View testID="community-composer-body-section" style={styles.section}>
         <View style={styles.bodyHeader}>
-          <AppText preset="caption" style={[styles.label, { color: theme.colors.textMuted }]}>
+          <AppText
+            preset="caption"
+            style={[styles.label, { color: theme.colors.textMuted }]}
+          >
             본문
           </AppText>
-          <AppText preset="caption" style={[styles.counter, { color: theme.colors.textMuted }]}>
+          <AppText
+            preset="caption"
+            style={[styles.counter, { color: theme.colors.textMuted }]}
+          >
             {content.length} / 5000
           </AppText>
         </View>
@@ -283,31 +302,22 @@ function CommunityPostEditorFormBase({
         </View>
       </View>
 
-      <TouchableOpacity
+      <CtaButton
+        role="primary"
+        loading={submitLoading}
         activeOpacity={0.9}
         style={[
           styles.bottomSubmitButton,
           { marginBottom: bottomSubmitMargin },
-          submitDisabled
-            ? [
-                styles.bottomSubmitButtonDisabled,
-                { backgroundColor: `${accentPalette.primary}66` },
-              ]
-            : {
-                backgroundColor: accentPalette.primary,
-                shadowColor: accentPalette.deep,
-              },
+          submitDisabled ? [styles.bottomSubmitButtonDisabled, {}] : {},
         ]}
         disabled={submitDisabled}
         onPress={onSubmit}
       >
-        <AppText
-          preset="body"
-          style={[styles.bottomSubmitText, { color: accentPalette.onPrimary }]}
-        >
+        <CtaText preset="body" style={[styles.bottomSubmitText, {}]}>
           {submitLabel}
-        </AppText>
-      </TouchableOpacity>
+        </CtaText>
+      </CtaButton>
     </>
   );
 }

@@ -1,3 +1,4 @@
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 // 파일: src/screens/Records/RecordCreateScreen.tsx
 // 파일 목적:
 // - 반려동물 기록을 작성하고, 저장 직후 홈/타임라인에 즉시 반영하는 작성 화면이다.
@@ -21,9 +22,19 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { Alert, BackHandler, Image, TouchableOpacity, View } from 'react-native';
+import {
+  Alert,
+  BackHandler,
+  Image,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import type { RouteProp } from '@react-navigation/native';
-import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
+import {
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -84,7 +95,15 @@ import {
   clearRecordCreateDraft,
   loadRecordCreateDraft,
   saveRecordCreateDraft,
+  saveScheduleRecordRecovery,
+  loadScheduleRecordRecovery,
+  clearScheduleRecordRecovery,
 } from '../../services/local/recordDraft';
+import { fetchScheduleById } from '../../services/supabase/schedules';
+import { linkScheduleRecord } from '../../services/schedules/recordLink';
+import { mapScheduleToMemoryCategory } from '../../services/schedules/presentation';
+import { getDateYmdInKst } from '../../utils/date';
+import { useScheduleStore } from '../../store/scheduleStore';
 import {
   dismissRewardNoticeForToday,
   isRewardNoticeDismissedToday,
@@ -147,14 +166,29 @@ export default function RecordCreateScreen() {
 
   const petIdFromParams = route.params?.petId ?? null;
   const returnTo = route.params?.returnTo;
+  const scheduleContext =
+    returnTo?.tab === 'ScheduleDetail' ? returnTo.params : null;
   const initialMainCategoryKey = route.params?.initialMainCategory ?? 'walk';
-  const initialOtherSubCategoryKey = route.params?.initialOtherSubCategory ?? null;
+  const initialOtherSubCategoryKey =
+    route.params?.initialOtherSubCategory ?? null;
   const allowsHealthWrite =
     returnTo?.tab === 'HealthReport' || initialMainCategoryKey === 'health';
 
   const petId = useMemo(() => {
+    if (scheduleContext) {
+      return pets.some(pet => pet.id === scheduleContext.petId)
+        ? scheduleContext.petId
+        : null;
+    }
     return resolveSelectedPetId(pets, selectedPetId, petIdFromParams);
-  }, [petIdFromParams, selectedPetId, pets]);
+  }, [petIdFromParams, selectedPetId, pets, scheduleContext]);
+  const draftScope = useMemo(
+    () =>
+      scheduleContext && userId && petId
+        ? { userId, petId, scheduleId: scheduleContext.scheduleId }
+        : undefined,
+    [scheduleContext, userId, petId],
+  );
   const selectedPet = useMemo(
     () => pets.find(item => item.id === petId) ?? null,
     [petId, pets],
@@ -172,17 +206,21 @@ export default function RecordCreateScreen() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [tagDraft, setTagDraft] = useState('');
   const [tagModalVisible, setTagModalVisible] = useState(false);
-  const [mainCategoryKey, setMainCategoryKey] =
-    useState<RecordMainCategoryKey>(initialMainCategoryKey);
+  const [mainCategoryKey, setMainCategoryKey] = useState<RecordMainCategoryKey>(
+    initialMainCategoryKey,
+  );
   const [otherSubCategoryKey, setOtherSubCategoryKey] =
     useState<RecordOtherSubCategoryKey | null>(initialOtherSubCategoryKey);
   const [priceText, setPriceText] = useState('');
   const [mealAmountText, setMealAmountText] = useState('');
   const [useDefaultMealAmount, setUseDefaultMealAmount] = useState(false);
   const [saveMealAmountAsDefault, setSaveMealAmountAsDefault] = useState(false);
-  const [healthCondition, setHealthCondition] = useState<HealthCondition | null>(null);
+  const [healthCondition, setHealthCondition] =
+    useState<HealthCondition | null>(null);
   const [healthWeightText, setHealthWeightText] = useState('');
-  const [groomingCareTypes, setGroomingCareTypes] = useState<GroomingCareType[]>([]);
+  const [groomingCareTypes, setGroomingCareTypes] = useState<
+    GroomingCareType[]
+  >([]);
   const [dateModalVisible, setDateModalVisible] = useState(false);
   const [selectedEmotion, setSelectedEmotion] = useState<EmotionTag | null>(
     null,
@@ -196,7 +234,21 @@ export default function RecordCreateScreen() {
   );
   const [draftHydrated, setDraftHydrated] = useState(false);
   const draftLoadedRef = useRef(false);
-  const pendingSuccessNavigationRef = useRef<(() => Promise<void>) | null>(null);
+  const persistedScheduleMemoryRef = useRef<string | null>(null);
+  const hydratedScheduleScopeRef = useRef<typeof draftScope>(undefined);
+  const submitLockRef = useRef(false);
+  const [scheduleSourceReady, setScheduleSourceReady] = useState(
+    !scheduleContext,
+  );
+  const scheduleScopeMatches =
+    !scheduleContext ||
+    (draftScope !== undefined &&
+      hydratedScheduleScopeRef.current?.userId === draftScope.userId &&
+      hydratedScheduleScopeRef.current?.petId === draftScope.petId &&
+      hydratedScheduleScopeRef.current?.scheduleId === draftScope.scheduleId);
+  const pendingSuccessNavigationRef = useRef<(() => Promise<void>) | null>(
+    null,
+  );
   const scrollRef = useRef<KeyboardAwareScrollViewRef | null>(null);
   const composerFieldOffsetsRef = useRef<
     Partial<Record<ComposerFocusTarget, number>>
@@ -212,7 +264,12 @@ export default function RecordCreateScreen() {
     (!isHealthCategory || healthCondition !== null) &&
     (!isGroomingCategory || groomingCareTypes.length > 0);
   const disabled =
-    saving || trimmedTitle.length === 0 || !petId || !hasValidCategoryFields;
+    saving ||
+    !scheduleSourceReady ||
+    !scheduleScopeMatches ||
+    trimmedTitle.length === 0 ||
+    !petId ||
+    !hasValidCategoryFields;
   const selectedMainCategory = useMemo(
     () =>
       RECORD_MAIN_CATEGORIES.find(
@@ -256,11 +313,11 @@ export default function RecordCreateScreen() {
       occurredAt !== todayYmd ||
       mainCategoryKey !== initialMainCategoryKey ||
       otherSubCategoryKey !== initialOtherSubCategoryKey ||
-      selectedEmotion !== null
-      || mealAmountText.trim().length > 0
-      || healthCondition !== null
-      || healthWeightText.trim().length > 0
-      || groomingCareTypes.length > 0
+      selectedEmotion !== null ||
+      mealAmountText.trim().length > 0 ||
+      healthCondition !== null ||
+      healthWeightText.trim().length > 0 ||
+      groomingCareTypes.length > 0
     );
   }, [
     content,
@@ -362,10 +419,43 @@ export default function RecordCreateScreen() {
       draftLoadedRef.current = true;
 
       try {
-        const draft = await loadRecordCreateDraft();
+        if (scheduleContext) {
+          if (!draftScope)
+            throw new Error('일정의 아이와 로그인 상태를 확인해 주세요.');
+          const source = await fetchScheduleById(scheduleContext.scheduleId);
+          if (!mounted) return;
+          if (
+            source.petId !== draftScope.petId ||
+            source.userId !== draftScope.userId ||
+            !source.completedAt
+          ) {
+            throw new Error('완료한 이 아이의 일정에서 기록을 남겨 주세요.');
+          }
+          const pending = await loadScheduleRecordRecovery(draftScope);
+          if (!mounted) return;
+          if (source.linkedMemoryId || pending) {
+            navigation.popTo('ScheduleDetail', scheduleContext);
+            return;
+          }
+          const mapped = mapScheduleToMemoryCategory(source);
+          setTitle(source.title);
+          setContent(source.note ?? '');
+          const sourceDay = getDateYmdInKst(source.startsAt);
+          setOccurredAt(
+            sourceDay && sourceDay <= todayYmd ? sourceDay : todayYmd,
+          );
+          setMainCategoryKey(mapped.mainCategory);
+          setOtherSubCategoryKey(mapped.otherSubCategory ?? null);
+          hydratedScheduleScopeRef.current = draftScope;
+          setScheduleSourceReady(true);
+        }
+        const draft = await loadRecordCreateDraft(draftScope);
         if (!mounted) return;
 
         if (draft) {
+          if (scheduleContext && draft.petId !== draftScope?.petId) {
+            throw new Error('이 아이의 작성 중인 기록을 확인하지 못했어요.');
+          }
           const draftMainCategoryKey =
             draft.mainCategoryKey === 'health' && !allowsHealthWrite
               ? initialMainCategoryKey
@@ -389,13 +479,21 @@ export default function RecordCreateScreen() {
           setHealthCondition(draft.healthCondition ?? null);
           setHealthWeightText(draft.healthWeightText ?? '');
           setGroomingCareTypes(
-            Array.isArray(draft.groomingCareTypes) ? draft.groomingCareTypes : [],
+            Array.isArray(draft.groomingCareTypes)
+              ? draft.groomingCareTypes
+              : [],
           );
           setSelectedEmotion(draft.selectedEmotion ?? null);
           setSelectedImages(
             Array.isArray(draft.selectedImages) ? draft.selectedImages : [],
           );
           setActiveImageIndex(0);
+        }
+      } catch (error: unknown) {
+        if (mounted && scheduleContext) {
+          setScheduleSourceReady(false);
+          const feedback = getBrandedErrorMeta(error, 'record-create');
+          Alert.alert(feedback.title, feedback.message);
         }
       } finally {
         if (mounted) setDraftHydrated(true);
@@ -414,10 +512,19 @@ export default function RecordCreateScreen() {
     initialMainCategoryKey,
     initialOtherSubCategoryKey,
     todayYmd,
+    draftScope,
+    scheduleContext,
+    navigation,
   ]);
 
   useEffect(() => {
-    if (!draftHydrated || saving) return;
+    if (
+      !draftHydrated ||
+      saving ||
+      !scheduleSourceReady ||
+      !scheduleScopeMatches
+    )
+      return;
 
     const hasContent =
       title.trim().length > 0 ||
@@ -431,29 +538,32 @@ export default function RecordCreateScreen() {
       selectedImages.length > 0;
 
     if (!hasContent) {
-      clearRecordCreateDraft().catch(() => {});
+      clearRecordCreateDraft(draftScope).catch(() => {});
       return;
     }
 
-    saveRecordCreateDraft({
-      petId,
-      title,
-      content,
-      occurredAt,
-      selectedTags,
-      mainCategoryKey,
-      otherSubCategoryKey,
-      priceText,
-      mealAmountText,
-      useDefaultMealAmount,
-      saveMealAmountAsDefault,
-      healthCondition,
-      healthWeightText,
-      groomingCareTypes,
-      selectedEmotion,
-      selectedImages,
-      updatedAt: new Date().toISOString(),
-    }).catch(() => {});
+    saveRecordCreateDraft(
+      {
+        petId,
+        title,
+        content,
+        occurredAt,
+        selectedTags,
+        mainCategoryKey,
+        otherSubCategoryKey,
+        priceText,
+        mealAmountText,
+        useDefaultMealAmount,
+        saveMealAmountAsDefault,
+        healthCondition,
+        healthWeightText,
+        groomingCareTypes,
+        selectedEmotion,
+        selectedImages,
+        updatedAt: new Date().toISOString(),
+      },
+      draftScope,
+    ).catch(() => {});
   }, [
     content,
     draftHydrated,
@@ -473,6 +583,9 @@ export default function RecordCreateScreen() {
     healthCondition,
     healthWeightText,
     groomingCareTypes,
+    draftScope,
+    scheduleSourceReady,
+    scheduleScopeMatches,
   ]);
 
   const pickImage = useCallback(async () => {
@@ -518,6 +631,10 @@ export default function RecordCreateScreen() {
   }, [activeImageIndex]);
 
   const navigateBackToOrigin = useCallback(() => {
+    if (scheduleContext) {
+      navigation.popTo('ScheduleDetail', scheduleContext);
+      return;
+    }
     if (returnTo?.tab === 'TimelineTab') {
       navigation.navigate('AppTabs', {
         screen: 'TimelineTab',
@@ -563,10 +680,25 @@ export default function RecordCreateScreen() {
     }
 
     navigation.navigate('AppTabs', { screen: 'HomeTab' });
-  }, [navigation, petId, returnTo]);
+  }, [navigation, petId, returnTo, scheduleContext]);
 
   const navigateAfterCreateSuccess = useCallback(
-    async (input: { petId: string; memoryId: string; occurred: string | null }) => {
+    async (input: {
+      petId: string;
+      memoryId: string;
+      occurred: string | null;
+    }) => {
+      if (scheduleContext) {
+        await queryClient.invalidateQueries({
+          queryKey: ['health-report', 'month', input.petId],
+        });
+        useScheduleStore
+          .getState()
+          .refresh(input.petId)
+          .catch(() => {});
+        navigation.popTo('ScheduleDetail', scheduleContext);
+        return;
+      }
       if (returnTo?.tab === 'HealthReport') {
         await queryClient.invalidateQueries({
           queryKey: ['health-report', 'month', input.petId],
@@ -590,8 +722,8 @@ export default function RecordCreateScreen() {
         returnTo?.tab === 'HomeTab'
           ? 'home'
           : returnTo?.tab === 'MoreTab'
-            ? 'more'
-            : undefined;
+          ? 'more'
+          : undefined;
       navigation.navigate('AppTabs', {
         screen: 'TimelineTab',
         params: {
@@ -604,7 +736,7 @@ export default function RecordCreateScreen() {
         },
       });
     },
-    [navigation, queryClient, refresh, returnTo],
+    [navigation, queryClient, refresh, returnTo, scheduleContext],
   );
 
   const closeRewardNotice = useCallback(() => {
@@ -628,10 +760,10 @@ export default function RecordCreateScreen() {
       setExitConfirmVisible(true);
       return;
     }
-    clearRecordCreateDraft().catch(() => {});
+    clearRecordCreateDraft(draftScope).catch(() => {});
     resetForm();
     navigateBackToOrigin();
-  }, [hasDraftContent, navigateBackToOrigin, resetForm, saving]);
+  }, [hasDraftContent, navigateBackToOrigin, resetForm, saving, draftScope]);
 
   useFocusEffect(
     useCallback(() => {
@@ -751,10 +883,44 @@ export default function RecordCreateScreen() {
   }, []);
 
   const onSubmit = useCallback(async () => {
-    if (disabled || !petId) return;
+    if (disabled || !petId || submitLockRef.current) return;
+    submitLockRef.current = true;
 
     try {
       setSaving(true);
+
+      if (scheduleContext) {
+        if (!draftScope) throw new Error('로그인 상태를 확인해 주세요.');
+        const savedId =
+          persistedScheduleMemoryRef.current ??
+          (await loadScheduleRecordRecovery(draftScope));
+        if (savedId) {
+          await linkScheduleRecord({
+            petId,
+            scheduleId: scheduleContext.scheduleId,
+            memoryId: savedId,
+          });
+          await clearScheduleRecordRecovery(draftScope);
+          await clearRecordCreateDraft(draftScope);
+          await navigateAfterCreateSuccess({
+            petId,
+            memoryId: savedId,
+            occurred: null,
+          });
+          return;
+        }
+        const current = await fetchScheduleById(scheduleContext.scheduleId);
+        if (
+          current.petId !== petId ||
+          current.userId !== draftScope.userId ||
+          !current.completedAt ||
+          current.linkedMemoryId
+        ) {
+          throw new Error(
+            '일정 상태가 바뀌었어요. 상세 화면에서 다시 확인해 주세요.',
+          );
+        }
+      }
 
       const occurred = validateRecordOccurredAt(occurredAt);
       const createdAt = new Date().toISOString();
@@ -770,16 +936,17 @@ export default function RecordCreateScreen() {
       const healthWeight = isHealthCategory
         ? parsePositiveRecordNumber(healthWeightText, '체중', 999.99)
         : null;
-      const metadata = isMealCategory && mealAmount
-        ? buildMealRecordMetadata({ amountGrams: mealAmount })
-        : isHealthCategory && healthCondition
+      const metadata =
+        isMealCategory && mealAmount
+          ? buildMealRecordMetadata({ amountGrams: mealAmount })
+          : isHealthCategory && healthCondition
           ? buildHealthRecordMetadata({
               condition: healthCondition,
               weightKg: healthWeight,
             })
           : isGroomingCategory
-            ? buildGroomingRecordMetadata(groomingCareTypes)
-            : null;
+          ? buildGroomingRecordMetadata(groomingCareTypes)
+          : null;
 
       const memoryId = await createMemory({
         petId,
@@ -794,6 +961,21 @@ export default function RecordCreateScreen() {
         imagePath: null,
         metadata,
       });
+
+      if (draftScope) {
+        persistedScheduleMemoryRef.current = memoryId;
+        try {
+          await saveScheduleRecordRecovery(draftScope, memoryId);
+        } catch {
+          showToast({
+            tone: 'warning',
+            title: '기록은 저장됐어요',
+            message:
+              '이 기기에 연결 복구 정보를 남기지 못했어요. 기록은 타임라인에서 확인할 수 있어요.',
+            durationMs: 4000,
+          });
+        }
+      }
 
       if (
         isMealCategory &&
@@ -817,7 +999,8 @@ export default function RecordCreateScreen() {
           showToast({
             tone: 'warning',
             title: '기록은 저장됐어요',
-            message: '기본 급여량 저장에 실패해 다음 기록에는 다시 입력해 주세요.',
+            message:
+              '기본 급여량 저장에 실패해 다음 기록에는 다시 입력해 주세요.',
             durationMs: 3600,
           });
         }
@@ -902,8 +1085,25 @@ export default function RecordCreateScreen() {
         }
       })().catch(() => {});
 
+      if (scheduleContext && draftScope) {
+        try {
+          await linkScheduleRecord({
+            petId,
+            scheduleId: scheduleContext.scheduleId,
+            memoryId,
+          });
+          await clearScheduleRecordRecovery(draftScope);
+        } catch {
+          showToast({
+            tone: 'warning',
+            title: '기록은 저장됐어요',
+            message: '일정 연결은 상세 화면에서 다시 시도해 주세요.',
+            durationMs: 4000,
+          });
+        }
+      }
       resetForm();
-      await clearRecordCreateDraft();
+      await clearRecordCreateDraft(draftScope);
       showToast({
         tone: 'success',
         title:
@@ -944,6 +1144,16 @@ export default function RecordCreateScreen() {
 
       await navigateAfterCreateSuccess({ petId, memoryId, occurred });
     } catch (error) {
+      if (scheduleContext && persistedScheduleMemoryRef.current) {
+        showToast({
+          tone: 'warning',
+          title: '기록은 저장됐어요',
+          message:
+            '새 기록을 만들지 않고 저장한 기록의 연결을 다시 시도할 수 있어요.',
+          durationMs: 4000,
+        });
+        return;
+      }
       const { title: alertTitle, message } = getBrandedErrorMeta(
         error,
         'record-create',
@@ -958,6 +1168,7 @@ export default function RecordCreateScreen() {
       });
     } finally {
       setSaving(false);
+      submitLockRef.current = false;
     }
   }, [
     content,
@@ -988,6 +1199,8 @@ export default function RecordCreateScreen() {
     upsertPet,
     userId,
     navigateAfterCreateSuccess,
+    scheduleContext,
+    draftScope,
   ]);
 
   return (
@@ -1004,20 +1217,23 @@ export default function RecordCreateScreen() {
           </TouchableOpacity>
         </View>
 
-        <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
+        <AppText
+          typographyRole="screenTitle"
+          preset="unifiedTitle"
+          style={styles.headerTitle}
+        >
           기록하기
         </AppText>
 
         <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
           <HeaderTextActionButton
+            role="primarySubtle"
+            loading={saving}
             accessibilityLabel={saving ? '기록 저장 중' : '기록 등록'}
-            backgroundColor={petTheme.tint}
-            borderColor={petTheme.border}
             compact
             disabled={disabled}
             label={saving ? '담는 중 ☁️' : '등록'}
             onPress={onSubmit}
-            textColor={petTheme.primary}
           />
         </View>
       </View>
@@ -1050,7 +1266,12 @@ export default function RecordCreateScreen() {
         >
           <View style={styles.dateLeft}>
             <View style={styles.dateIconWrap}>
-              <NuriSemanticIcon family="feather" name="calendar" size={16} color={petTheme.primary} />
+              <NuriSemanticIcon
+                family="feather"
+                name="calendar"
+                size={16}
+                color={petTheme.primary}
+              />
             </View>
             <AppText preset="unifiedBody" style={styles.dateText}>
               {formattedDate}
@@ -1075,7 +1296,10 @@ export default function RecordCreateScreen() {
                 <View style={styles.photoIconBadge}>
                   <Feather name="camera" size={22} color="#94A1B5" />
                 </View>
-                <AppText preset="unifiedBody" style={styles.photoPlaceholderTitle}>
+                <AppText
+                  preset="unifiedBody"
+                  style={styles.photoPlaceholderTitle}
+                >
                   사진 추가 (최대 10장)
                 </AppText>
               </View>
@@ -1097,7 +1321,10 @@ export default function RecordCreateScreen() {
                   style={styles.photoGhostBtn}
                   onPress={pickImage}
                 >
-                  <AppText preset="unifiedMeta" style={styles.photoGhostBtnText}>
+                  <AppText
+                    preset="unifiedMeta"
+                    style={styles.photoGhostBtnText}
+                  >
                     추가
                   </AppText>
                 </TouchableOpacity>
@@ -1106,7 +1333,10 @@ export default function RecordCreateScreen() {
                   style={styles.photoGhostBtn}
                   onPress={removeActiveImage}
                 >
-                  <AppText preset="unifiedMeta" style={styles.photoGhostBtnText}>
+                  <AppText
+                    preset="unifiedMeta"
+                    style={styles.photoGhostBtnText}
+                  >
                     제거
                   </AppText>
                 </TouchableOpacity>
@@ -1144,7 +1374,9 @@ export default function RecordCreateScreen() {
                   <NuriSemanticIcon
                     family="feather"
                     name={category.icon}
-                    semantic={category.key === 'other' ? undefined : category.key}
+                    semantic={
+                      category.key === 'other' ? undefined : category.key
+                    }
                     size={18}
                     color={active ? '#FFFFFF' : '#97A2B6'}
                     variant={active ? 'outline' : 'glass'}
@@ -1279,7 +1511,9 @@ export default function RecordCreateScreen() {
               <TouchableOpacity
                 activeOpacity={0.85}
                 style={styles.checkRow}
-                onPress={() => setSaveMealAmountAsDefault(previous => !previous)}
+                onPress={() =>
+                  setSaveMealAmountAsDefault(previous => !previous)
+                }
               >
                 <Feather
                   name={saveMealAmountAsDefault ? 'check-square' : 'square'}
@@ -1293,7 +1527,11 @@ export default function RecordCreateScreen() {
             )}
             <View style={styles.unitInputRow}>
               <AppTextInput
-                style={[styles.input, styles.unitInput, useDefaultMealAmount ? styles.inputDisabled : null]}
+                style={[
+                  styles.input,
+                  styles.unitInput,
+                  useDefaultMealAmount ? styles.inputDisabled : null,
+                ]}
                 value={mealAmountText}
                 onChangeText={onChangeMealAmountText}
                 onFocus={handleFocusField}
@@ -1328,14 +1566,20 @@ export default function RecordCreateScreen() {
                       styles.optionChip,
                       active ? styles.optionChipActive : null,
                       active
-                        ? { backgroundColor: petTheme.tint, borderColor: petTheme.border }
+                        ? {
+                            backgroundColor: petTheme.tint,
+                            borderColor: petTheme.border,
+                          }
                         : null,
                     ]}
                     onPress={() => setHealthCondition(option.value)}
                   >
                     <AppText
                       preset="unifiedMeta"
-                      style={[styles.optionChipText, active ? { color: petTheme.deep } : null]}
+                      style={[
+                        styles.optionChipText,
+                        active ? { color: petTheme.deep } : null,
+                      ]}
                     >
                       {option.label}
                     </AppText>
@@ -1380,14 +1624,20 @@ export default function RecordCreateScreen() {
                       styles.optionChip,
                       active ? styles.optionChipActive : null,
                       active
-                        ? { backgroundColor: petTheme.tint, borderColor: petTheme.border }
+                        ? {
+                            backgroundColor: petTheme.tint,
+                            borderColor: petTheme.border,
+                          }
                         : null,
                     ]}
                     onPress={() => onToggleGroomingCareType(option.value)}
                   >
                     <AppText
                       preset="unifiedMeta"
-                      style={[styles.optionChipText, active ? { color: petTheme.deep } : null]}
+                      style={[
+                        styles.optionChipText,
+                        active ? { color: petTheme.deep } : null,
+                      ]}
                     >
                       {option.label}
                     </AppText>
@@ -1398,49 +1648,51 @@ export default function RecordCreateScreen() {
           </View>
         ) : null}
 
-        {!isHealthCategory ? <View style={styles.field}>
-          <AppText preset="unifiedBody" style={styles.fieldLabel}>
-            오늘의 기분
-          </AppText>
-          <View style={styles.moodGrid}>
-            {RECORD_EMOTION_OPTIONS.map(mood => {
-              const active = selectedEmotion === mood.value;
-              return (
-                <TouchableOpacity
-                  key={mood.value}
-                  activeOpacity={0.88}
-                  style={[
-                    styles.moodChip,
-                    active ? styles.moodChipActive : null,
-                    active
-                      ? {
-                          backgroundColor: petTheme.tint,
-                          borderColor: petTheme.border,
-                        }
-                      : null,
-                  ]}
-                  onPress={() =>
-                    setSelectedEmotion(prev =>
-                      prev === mood.value ? null : mood.value,
-                    )
-                  }
-                >
-                  <NuriIcon name={NURI_MOOD_ICONS[mood.value]} size={16} />
-                  <AppText
-                    preset="unifiedMeta"
+        {!isHealthCategory ? (
+          <View style={styles.field}>
+            <AppText preset="unifiedBody" style={styles.fieldLabel}>
+              오늘의 기분
+            </AppText>
+            <View style={styles.moodGrid}>
+              {RECORD_EMOTION_OPTIONS.map(mood => {
+                const active = selectedEmotion === mood.value;
+                return (
+                  <TouchableOpacity
+                    key={mood.value}
+                    activeOpacity={0.88}
                     style={[
-                      styles.moodText,
-                      active ? styles.moodTextActive : null,
-                      active ? { color: petTheme.deep } : null,
+                      styles.moodChip,
+                      active ? styles.moodChipActive : null,
+                      active
+                        ? {
+                            backgroundColor: petTheme.tint,
+                            borderColor: petTheme.border,
+                          }
+                        : null,
                     ]}
+                    onPress={() =>
+                      setSelectedEmotion(prev =>
+                        prev === mood.value ? null : mood.value,
+                      )
+                    }
                   >
-                    {mood.label}
-                  </AppText>
-                </TouchableOpacity>
-              );
-            })}
+                    <NuriIcon name={NURI_MOOD_ICONS[mood.value]} size={16} />
+                    <AppText
+                      preset="unifiedMeta"
+                      style={[
+                        styles.moodText,
+                        active ? styles.moodTextActive : null,
+                        active ? { color: petTheme.deep } : null,
+                      ]}
+                    >
+                      {mood.label}
+                    </AppText>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
-        </View> : null}
+        ) : null}
 
         <View
           testID="timeline-composer-title-section"
@@ -1524,7 +1776,9 @@ export default function RecordCreateScreen() {
           </AppText>
         </View>
 
-        <TouchableOpacity
+        <CtaButton
+          role="primary"
+          loading={saving}
           activeOpacity={0.9}
           accessibilityLabel={saving ? '기록 저장 중' : '기록 저장 완료'}
           accessibilityHint={
@@ -1535,14 +1789,10 @@ export default function RecordCreateScreen() {
           style={[
             styles.bottomSubmitBtn,
             disabled ? styles.bottomSubmitBtnDisabled : null,
-            !disabled
-              ? {
-                  backgroundColor: petTheme.primary,
-                  shadowColor: petTheme.deep,
-                }
-              : null,
+            !disabled ? {} : null,
           ]}
           disabled={disabled}
+          testID="record-create-submit"
           onPress={onSubmit}
         >
           {saving ? (
@@ -1552,11 +1802,11 @@ export default function RecordCreateScreen() {
               textStyle={styles.bottomSubmitText}
             />
           ) : (
-            <AppText preset="unifiedBody" style={styles.bottomSubmitText}>
+            <CtaText preset="unifiedBody" style={styles.bottomSubmitText}>
               완료
-            </AppText>
+            </CtaText>
           )}
-        </TouchableOpacity>
+        </CtaButton>
       </KeyboardAwareScrollView>
 
       <DatePickerModal
@@ -1567,6 +1817,7 @@ export default function RecordCreateScreen() {
       />
 
       <PremiumRewardModal
+        roleBasedActions
         visible={rewardNotice !== null}
         xpAwarded={rewardNotice?.xpAwarded ?? 0}
         totalXp={rewardNotice?.totalXp ?? 0}
@@ -1590,6 +1841,8 @@ export default function RecordCreateScreen() {
         onRemoveTag={onRemoveTag}
       />
       <ConfirmDialog
+        confirmRole="neutral"
+        cancelRole="neutral"
         visible={exitConfirmVisible}
         typographyMode="unified"
         title="작성을 멈추고 나갈까요?"
@@ -1599,7 +1852,6 @@ export default function RecordCreateScreen() {
         cancelLabel="계속 작성하기"
         confirmLabel="나가기"
         tone="warning"
-        accentColor={petTheme.primary}
         onCancel={() => setExitConfirmVisible(false)}
         onConfirm={() => {
           setExitConfirmVisible(false);

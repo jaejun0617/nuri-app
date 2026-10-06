@@ -1,3 +1,4 @@
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import AppTextInput from '../../app/ui/AppTextInput';
 import React, {
   useCallback,
@@ -65,7 +66,7 @@ export default function WeightLogEntrySheet({
   visible,
   petId,
   petName,
-  accentColor,
+  accentColor: _accentColor,
   entrySource,
   initialLog = null,
   initialWeightKg = null,
@@ -75,7 +76,9 @@ export default function WeightLogEntrySheet({
 }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const bottomPaddingStyle = useKeyboardBottomPadding(Math.max(insets.bottom, 20));
+  const bottomPaddingStyle = useKeyboardBottomPadding(
+    Math.max(insets.bottom, 20),
+  );
   const [weightText, setWeightText] = useState('');
   const [measuredOn, setMeasuredOn] = useState(getKstYmd());
   const [note, setNote] = useState('');
@@ -282,7 +285,13 @@ export default function WeightLogEntrySheet({
                   { backgroundColor: theme.colors.background },
                 ]}
               >
-                <NuriSemanticIcon family="feather" color={theme.colors.textPrimary} name="x" size={24} preserveOriginal />
+                <NuriSemanticIcon
+                  family="feather"
+                  color={theme.colors.textPrimary}
+                  name="x"
+                  size={24}
+                  preserveOriginal
+                />
               </TouchableOpacity>
             </View>
             <ScrollView
@@ -373,40 +382,32 @@ export default function WeightLogEntrySheet({
             </ScrollView>
             <View testID="weight-entry-actions" style={styles.actionRow}>
               {initialLog ? (
-                <TouchableOpacity
+                <CtaButton
+                  role="destructiveEntry"
                   activeOpacity={0.88}
                   onPress={handleDelete}
                   disabled={saving || deleting}
-                  style={[
-                    styles.deleteButton,
-                    { borderColor: theme.colors.border },
-                  ]}
+                  style={[styles.deleteButton, {}]}
                 >
-                  <AppText preset="unifiedLabel" color={theme.colors.danger}>
+                  <CtaText preset="unifiedLabel">
                     {deleting ? '삭제 중...' : '삭제'}
-                  </AppText>
-                </TouchableOpacity>
+                  </CtaText>
+                </CtaButton>
               ) : null}
 
-              <TouchableOpacity
+              <CtaButton
+                role="primary"
+                loading={saving}
                 testID="weight-entry-save"
                 activeOpacity={0.9}
                 onPress={handleSave}
                 disabled={!canSubmit || saving || deleting}
-                style={[
-                  styles.primaryButton,
-                  {
-                    backgroundColor:
-                      !canSubmit || saving || deleting
-                        ? `${accentColor}66`
-                        : accentColor,
-                  },
-                ]}
+                style={[styles.primaryButton, {}]}
               >
-                <AppText preset="unifiedLabel" color="#FFFFFF">
+                <CtaText preset="unifiedLabel">
                   {saving ? '저장 중...' : '저장'}
-                </AppText>
-              </TouchableOpacity>
+                </CtaText>
+              </CtaButton>
             </View>
           </Animated.View>
         </KeyboardControllerAvoidingView>

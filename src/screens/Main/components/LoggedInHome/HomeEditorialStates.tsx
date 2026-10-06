@@ -1,8 +1,8 @@
+import CtaButton, { CtaText } from '../../../../app/ui/CtaButton';
 import React, { memo, useState } from 'react';
 import {
   ActivityIndicator,
   StyleSheet,
-  TouchableOpacity,
   View,
   useWindowDimensions,
 } from 'react-native';
@@ -139,25 +139,22 @@ export const RecentRecordsEmptyState = memo(
           </View>
           <HomeEditorialArtwork kind="recent" season={season} />
         </View>
-        <TouchableOpacity
+        <CtaButton
+          role="primary"
           testID="home-recent-empty-action"
           accessibilityRole="button"
           accessibilityLabel="기록하기, 기록 작성 화면 열기"
           activeOpacity={0.9}
-          style={[
-            homeStyles.recordBtn,
-            styles.action,
-            { backgroundColor: accentColor, shadowColor: accentColor },
-          ]}
+          style={[homeStyles.recordBtn, styles.action, {}]}
           onPress={onPressRecord}
         >
-          <AppText
+          <CtaText
             preset="unifiedLabel"
             style={[homeStyles.recordBtnText, styles.actionText]}
           >
             기록하기
-          </AppText>
-        </TouchableOpacity>
+          </CtaText>
+        </CtaButton>
       </View>
     );
   },
@@ -176,17 +173,33 @@ export const CommunityEmptyState = memo(function CommunityEmptyStateView({
   const ready = !loading && artReady;
   return (
     <View testID="home-community-empty" style={styles.community}>
-      <View style={[styles.communityContent, { opacity: ready ? 1 : 0 }]} accessibilityElementsHidden={!ready} importantForAccessibility={ready ? 'auto' : 'no-hide-descendants'}>
-      <HomeEditorialArtwork kind={`community-${tab}`} season={season} onReady={() => setArtReady(true)} />
-      <AppText
-        preset="unifiedBody"
-        styleOverridesPreset
-        style={[styles.description, styles.communityCopy]}
+      <View
+        style={[styles.communityContent, { opacity: ready ? 1 : 0 }]}
+        accessibilityElementsHidden={!ready}
+        importantForAccessibility={ready ? 'auto' : 'no-hide-descendants'}
       >
-        {HOME_COMMUNITY_EMPTY_COPY[tab]}
-      </AppText>
+        <HomeEditorialArtwork
+          kind={`community-${tab}`}
+          season={season}
+          onReady={() => setArtReady(true)}
+        />
+        <AppText
+          preset="unifiedBody"
+          styleOverridesPreset
+          style={[styles.description, styles.communityCopy]}
+        >
+          {HOME_COMMUNITY_EMPTY_COPY[tab]}
+        </AppText>
       </View>
-      {!ready ? <View style={styles.communityPending} accessibilityRole="progressbar" accessibilityLabel="커뮤니티를 불러오는 중이에요."><ActivityIndicator /></View> : null}
+      {!ready ? (
+        <View
+          style={styles.communityPending}
+          accessibilityRole="progressbar"
+          accessibilityLabel="커뮤니티를 불러오는 중이에요."
+        >
+          <ActivityIndicator />
+        </View>
+      ) : null}
     </View>
   );
 });
@@ -240,5 +253,9 @@ export const styles = StyleSheet.create({
   },
   communityCopy: { textAlign: 'center', maxWidth: 300 },
   communityContent: { width: '100%', alignItems: 'center', gap: 12 },
-  communityPending: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
+  communityPending: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

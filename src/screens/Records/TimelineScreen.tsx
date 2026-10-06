@@ -1,3 +1,4 @@
+import CtaButton, { CtaText, CtaIcon } from '../../app/ui/CtaButton';
 // 파일: src/screens/Records/TimelineScreen.tsx
 // 파일 목적:
 // - 선택된 펫의 기록을 시간순 타임라인으로 탐색하는 메인 목록 화면이다.
@@ -43,7 +44,11 @@ import type {
   CompositeNavigationProp,
   RouteProp,
 } from '@react-navigation/native';
-import { useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
+import {
+  useIsFocused,
+  useNavigation,
+  useRoute,
+} from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
@@ -217,10 +222,7 @@ function buildTimelineGroupHeader(
   const currentMonthKey = getMonthKeyFromYmd(ymd);
   const previousYear = previousYmd?.slice(0, 4) ?? null;
 
-  if (
-    !previousYmd ||
-    previousYear !== `${year}`
-  ) {
+  if (!previousYmd || previousYear !== `${year}`) {
     return {
       title: `${year}`,
       subtitle: `${month}월`,
@@ -394,79 +396,98 @@ const EMPTY_LEVEL_SUMMARY: UserLevelSummary = {
   updatedAt: null,
 };
 
-const TimelineActivitySummaryHeader = memo(function TimelineActivitySummaryHeader({
-  dailyStatus,
-  levelSummary,
-  titles,
-  petName,
-  theme,
-  mainCategory,
-}: {
-  dailyStatus: DailyStreakStatus | null;
-  levelSummary: UserLevelSummary | null;
-  titles: UserTitle[];
-  petName: string | null;
-  theme: ReturnType<typeof buildPetThemePalette>;
-  mainCategory: MainCategory;
-}) {
-  const effectiveLevel = levelSummary ?? EMPTY_LEVEL_SUMMARY;
-  const progress = getProgressWithinLevel(effectiveLevel);
-  const latestTitle = titles[0]?.titleName ?? '첫 추억 기록 준비 중';
-  const streakText = dailyStatus?.todayCompleted
-    ? `오늘 산책 완료 · ${dailyStatus.currentStreak}일 연속`
-    : '오늘 산책 기록을 기다리고 있어요';
-  const petLabel = petName?.trim() || '우리 아이';
+const TimelineActivitySummaryHeader = memo(
+  function TimelineActivitySummaryHeader({
+    dailyStatus,
+    levelSummary,
+    titles,
+    petName,
+    theme,
+    mainCategory,
+  }: {
+    dailyStatus: DailyStreakStatus | null;
+    levelSummary: UserLevelSummary | null;
+    titles: UserTitle[];
+    petName: string | null;
+    theme: ReturnType<typeof buildPetThemePalette>;
+    mainCategory: MainCategory;
+  }) {
+    const effectiveLevel = levelSummary ?? EMPTY_LEVEL_SUMMARY;
+    const progress = getProgressWithinLevel(effectiveLevel);
+    const latestTitle = titles[0]?.titleName ?? '첫 추억 기록 준비 중';
+    const streakText = dailyStatus?.todayCompleted
+      ? `오늘 산책 완료 · ${dailyStatus.currentStreak}일 연속`
+      : '오늘 산책 기록을 기다리고 있어요';
+    const petLabel = petName?.trim() || '우리 아이';
 
-  return (
-    <View style={styles.activityHeaderWrap}>
-      {mainCategory === 'walk' ? (
-        <View style={[styles.dailyCard, { borderColor: theme.soft }]}>
-          <View style={[styles.dailyIcon, { backgroundColor: theme.soft }]}>
-            <AppText preset="unifiedMeta" numberOfLines={1} style={[styles.dailyIconText, { color: theme.primary }]}>
-              산책
+    return (
+      <View style={styles.activityHeaderWrap}>
+        {mainCategory === 'walk' ? (
+          <View style={[styles.dailyCard, { borderColor: theme.soft }]}>
+            <View style={[styles.dailyIcon, { backgroundColor: theme.soft }]}>
+              <AppText
+                preset="unifiedMeta"
+                numberOfLines={1}
+                style={[styles.dailyIconText, { color: theme.primary }]}
+              >
+                산책
+              </AppText>
+            </View>
+            <AppText
+              typographyRole="sectionTitle"
+              preset="unifiedTitle"
+              style={styles.dailyTitle}
+            >
+              {dailyStatus?.todayCompleted
+                ? '오늘도 산책 완료!'
+                : `${petLabel}의 데일리판`}
+            </AppText>
+            <AppText preset="unifiedBody" style={styles.dailyBody}>
+              {streakText}
             </AppText>
           </View>
-          <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={styles.dailyTitle}>
-            {dailyStatus?.todayCompleted ? '오늘도 산책 완료!' : `${petLabel}의 데일리판`}
-          </AppText>
-          <AppText preset="unifiedBody" style={styles.dailyBody}>
-            {streakText}
-          </AppText>
-        </View>
-      ) : null}
+        ) : null}
 
-      <View style={[styles.progressCard, { borderColor: theme.soft }]}>
-        <View style={styles.progressTopRow}>
-          <View>
-            <AppText preset="unifiedMeta" style={styles.progressEyebrow}>
-              활동 성장
-            </AppText>
-            <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={styles.progressTitle}>
-              Lv.{effectiveLevel.level} · {latestTitle}
+        <View style={[styles.progressCard, { borderColor: theme.soft }]}>
+          <View style={styles.progressTopRow}>
+            <View>
+              <AppText preset="unifiedMeta" style={styles.progressEyebrow}>
+                활동 성장
+              </AppText>
+              <AppText
+                typographyRole="sectionTitle"
+                preset="unifiedTitle"
+                style={styles.progressTitle}
+              >
+                Lv.{effectiveLevel.level} · {latestTitle}
+              </AppText>
+            </View>
+            <AppText
+              preset="unifiedMeta"
+              style={[styles.progressXp, { color: theme.primary }]}
+            >
+              {effectiveLevel.totalXp} XP
             </AppText>
           </View>
-          <AppText preset="unifiedMeta" style={[styles.progressXp, { color: theme.primary }]}>
-            {effectiveLevel.totalXp} XP
+          <View style={styles.progressTrack}>
+            <View
+              style={[
+                styles.progressFill,
+                {
+                  width: `${Math.round(progress * 100)}%`,
+                  backgroundColor: theme.primary,
+                },
+              ]}
+            />
+          </View>
+          <AppText preset="unifiedMeta" style={styles.progressHint}>
+            다음 레벨 {effectiveLevel.nextLevelXp} XP까지 차분히 쌓아가요
           </AppText>
         </View>
-        <View style={styles.progressTrack}>
-          <View
-            style={[
-              styles.progressFill,
-              {
-                width: `${Math.round(progress * 100)}%`,
-                backgroundColor: theme.primary,
-              },
-            ]}
-          />
-        </View>
-        <AppText preset="unifiedMeta" style={styles.progressHint}>
-          다음 레벨 {effectiveLevel.nextLevelXp} XP까지 차분히 쌓아가요
-        </AppText>
       </View>
-    </View>
-  );
-});
+    );
+  },
+);
 
 export default function TimelineScreen() {
   const theme = useTheme();
@@ -494,12 +515,12 @@ export default function TimelineScreen() {
   const mainCategoryFromParams = MAIN_CATEGORY_KEY_SET.has(
     route?.params?.mainCategory ?? 'all',
   )
-    ? (route?.params?.mainCategory ?? null)
+    ? route?.params?.mainCategory ?? null
     : null;
   const otherSubCategoryFromParams = OTHER_SUBCATEGORY_KEY_SET.has(
     route?.params?.otherSubCategory ?? 'etc',
   )
-    ? (route?.params?.otherSubCategory ?? null)
+    ? route?.params?.otherSubCategory ?? null
     : null;
   const entryOtherSubCategoryFromParams =
     route?.params?.otherSubCategory &&
@@ -528,7 +549,9 @@ export default function TimelineScreen() {
   const refresh = useRecordStore(s => s.refresh);
   const loadMore = useRecordStore(s => s.loadMore);
   const timelineIds = useRecordStore(s => s.selectTimelineIdsByPetId(petId));
-  const timelineStatus = useRecordStore(s => s.selectTimelineStatusByPetId(petId));
+  const timelineStatus = useRecordStore(s =>
+    s.selectTimelineStatusByPetId(petId),
+  );
   const hasMore = useRecordStore(s => s.selectTimelineHasMoreByPetId(petId));
   const timelineEntityVersion = useRecordStore(s =>
     s.selectTimelineEntityVersionByPetId(petId),
@@ -557,12 +580,12 @@ export default function TimelineScreen() {
   const [appliedEntryRequestId] = useState<number | null>(() =>
     isHomeTotalSummaryEntry ? entryRequestId : null,
   );
-  const [otherSubCategory, setOtherSubCategory] = useState<OtherSubCategory | null>(
-    () =>
+  const [otherSubCategory, setOtherSubCategory] =
+    useState<OtherSubCategory | null>(() =>
       isHomeTotalSummaryEntry && mainCategoryFromParams === 'other'
         ? entryOtherSubCategoryFromParams
         : null,
-  );
+    );
   const [otherModalOpen, setOtherModalOpen] = useState(false);
   const [pendingJumpYm, setPendingJumpYm] = useState<string | null>(null);
   const [imageWindow, setImageWindow] = useState(TIMELINE_INITIAL_IMAGE_WINDOW);
@@ -570,8 +593,12 @@ export default function TimelineScreen() {
     useState<TimelineCategoryCounts>(() => createEmptyTimelineCategoryCounts());
   const [timelineCategoryCountsReady, setTimelineCategoryCountsReady] =
     useState(false);
-  const [dailyStatus, setDailyStatus] = useState<DailyStreakStatus | null>(null);
-  const [levelSummary, setLevelSummary] = useState<UserLevelSummary | null>(null);
+  const [dailyStatus, setDailyStatus] = useState<DailyStreakStatus | null>(
+    null,
+  );
+  const [levelSummary, setLevelSummary] = useState<UserLevelSummary | null>(
+    null,
+  );
   const [earnedTitles, setEarnedTitles] = useState<UserTitle[]>([]);
   const imageWindowRef = useRef(TIMELINE_INITIAL_IMAGE_WINDOW);
 
@@ -607,32 +634,29 @@ export default function TimelineScreen() {
     petId,
   ]);
 
-  const timelineView = useMemo(
-    () => {
-      const recordsSnapshot =
-        timelineEntityVersion >= 0 ? recordsById : recordsById;
-      return buildTimelineView({
-        ids: timelineIds,
-        recordsById: recordsSnapshot,
-        filters: {
-          ymFilter,
-          mainCategory,
-          otherSubCategory,
-          query: '',
-          sortMode,
-        },
-      });
-    },
-    [
-      recordsById,
-      timelineIds,
-      mainCategory,
-      otherSubCategory,
-      sortMode,
-      ymFilter,
-      timelineEntityVersion,
-    ],
-  );
+  const timelineView = useMemo(() => {
+    const recordsSnapshot =
+      timelineEntityVersion >= 0 ? recordsById : recordsById;
+    return buildTimelineView({
+      ids: timelineIds,
+      recordsById: recordsSnapshot,
+      filters: {
+        ymFilter,
+        mainCategory,
+        otherSubCategory,
+        query: '',
+        sortMode,
+      },
+    });
+  }, [
+    recordsById,
+    timelineIds,
+    mainCategory,
+    otherSubCategory,
+    sortMode,
+    ymFilter,
+    timelineEntityVersion,
+  ]);
   const availableYmList = timelineView.availableMonthKeys;
   const filteredIds = timelineView.filteredIds;
   const isApplyingHomeTotalSummaryEntry = isTimelineEntryPending(
@@ -875,7 +899,11 @@ export default function TimelineScreen() {
       cancelled = true;
       cancelAnimationFrame(frame);
     };
-  }, [isCurrentHomeEntryGeneration, pendingJumpYm, timelineView.firstIndexByMonth]);
+  }, [
+    isCurrentHomeEntryGeneration,
+    pendingJumpYm,
+    timelineView.firstIndexByMonth,
+  ]);
 
   useEffect(() => {
     if (focusedMemoryId) return;
@@ -908,12 +936,7 @@ export default function TimelineScreen() {
         TIMELINE_PRELOAD_VISIBLE_COUNT + TIMELINE_PRELOAD_DEFERRED_COUNT,
       ),
     };
-  }, [
-    filteredIds,
-    imageWindow.end,
-    imageWindow.start,
-    recordsById,
-  ]);
+  }, [filteredIds, imageWindow.end, imageWindow.start, recordsById]);
 
   useEffect(() => {
     if (!isFocused) return;
@@ -950,7 +973,9 @@ export default function TimelineScreen() {
           ),
       );
 
-      return signedUrlGroups.flat().filter((value): value is string => Boolean(value));
+      return signedUrlGroups
+        .flat()
+        .filter((value): value is string => Boolean(value));
     };
     const deferredTask = scheduleIdleTask(() => {
       (async () => {
@@ -990,7 +1015,9 @@ export default function TimelineScreen() {
             petId,
             mainCategory,
             otherSubCategory:
-              mainCategory === 'other' ? otherSubCategory ?? undefined : undefined,
+              mainCategory === 'other'
+                ? otherSubCategory ?? undefined
+                : undefined,
           },
         },
       },
@@ -1087,12 +1114,7 @@ export default function TimelineScreen() {
     endReachedLockRef.current = now;
 
     loadMore(petId).catch(() => {});
-  }, [
-    hasMore,
-    loadMore,
-    petId,
-    status,
-  ]);
+  }, [hasMore, loadMore, petId, status]);
 
   const jumpToYm = useCallback((ym: string | null) => {
     setYmModalOpen(false);
@@ -1138,14 +1160,22 @@ export default function TimelineScreen() {
   );
   const categoryLabel = useMemo(() => {
     if (mainCategory !== 'other') {
-      return TIMELINE_MAIN_CATEGORY_OPTIONS.find(x => x.key === mainCategory)?.label ?? '전체';
+      return (
+        TIMELINE_MAIN_CATEGORY_OPTIONS.find(x => x.key === mainCategory)
+          ?.label ?? '전체'
+      );
     }
     if (!otherSubCategory) {
-      return TIMELINE_MAIN_CATEGORY_OPTIONS.find(x => x.key === 'other')?.label ?? '생활';
+      return (
+        TIMELINE_MAIN_CATEGORY_OPTIONS.find(x => x.key === 'other')?.label ??
+        '생활'
+      );
     }
     return (
-      TIMELINE_OTHER_SUBCATEGORY_OPTIONS.find(x => x.key === otherSubCategory)?.label ??
-      (TIMELINE_MAIN_CATEGORY_OPTIONS.find(x => x.key === 'other')?.label ?? '생활')
+      TIMELINE_OTHER_SUBCATEGORY_OPTIONS.find(x => x.key === otherSubCategory)
+        ?.label ??
+      TIMELINE_MAIN_CATEGORY_OPTIONS.find(x => x.key === 'other')?.label ??
+      '생활'
     );
   }, [mainCategory, otherSubCategory]);
   const visibleMainCategory = isApplyingHomeTotalSummaryEntry
@@ -1181,12 +1211,27 @@ export default function TimelineScreen() {
   const visibleCategoryCounts = isHomeTotalSummaryControlsLoading
     ? EMPTY_TIMELINE_CATEGORY_COUNTS
     : categoryCounts;
-  const currentYearHeaderTitleColor = useMemo(() => petTheme.primary, [petTheme.primary]);
-  const currentYearHeaderSubtitleColor = useMemo(() => petTheme.muted, [petTheme.muted]);
-  const currentYearHeaderDotColor = useMemo(() => petTheme.primary, [petTheme.primary]);
-  const currentMonthItemDotColor = useMemo(() => petTheme.glow, [petTheme.glow]);
+  const currentYearHeaderTitleColor = useMemo(
+    () => petTheme.primary,
+    [petTheme.primary],
+  );
+  const currentYearHeaderSubtitleColor = useMemo(
+    () => petTheme.muted,
+    [petTheme.muted],
+  );
+  const currentYearHeaderDotColor = useMemo(
+    () => petTheme.primary,
+    [petTheme.primary],
+  );
+  const currentMonthItemDotColor = useMemo(
+    () => petTheme.glow,
+    [petTheme.glow],
+  );
   const todayItemDotColor = useMemo(() => petTheme.primary, [petTheme.primary]);
-  const todayItemMetaColor = useMemo(() => petTheme.primary, [petTheme.primary]);
+  const todayItemMetaColor = useMemo(
+    () => petTheme.primary,
+    [petTheme.primary],
+  );
   const floatingCreateButtonBottom = useMemo(
     () => Math.max(insets.bottom + 74, 82),
     [insets.bottom],
@@ -1198,10 +1243,13 @@ export default function TimelineScreen() {
       const previousRecord =
         index > 0 ? recordsById[filteredIds[index - 1] ?? ''] : null;
       const currentYmd = getRecordDisplayYmd(record);
-      const previousYmd = previousRecord ? getRecordDisplayYmd(previousRecord) : null;
+      const previousYmd = previousRecord
+        ? getRecordDisplayYmd(previousRecord)
+        : null;
       const dateHeader = buildTimelineGroupHeader(currentYmd, previousYmd);
       const isCurrentYearGroup =
-        dateHeader?.titleVariant === 'year' && isCurrentYearTimelineGroup(currentYmd);
+        dateHeader?.titleVariant === 'year' &&
+        isCurrentYearTimelineGroup(currentYmd);
       const isCurrentMonthRecord = isCurrentMonthTimelineGroup(currentYmd);
       const isTodayRecord = isTodayTimelineGroup(currentYmd);
       const isLastVisibleItem = index === filteredIds.length - 1;
@@ -1246,8 +1294,8 @@ export default function TimelineScreen() {
             isTodayRecord
               ? todayItemDotColor
               : isCurrentMonthRecord
-                ? currentMonthItemDotColor
-                : undefined
+              ? currentMonthItemDotColor
+              : undefined
           }
           metaTextColor={isTodayRecord ? todayItemMetaColor : undefined}
           hideBottomRail={sortMode === 'recent' && isLastVisibleItem}
@@ -1311,21 +1359,26 @@ export default function TimelineScreen() {
     if (status === 'error') {
       return (
         <View style={styles.empty}>
-          <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
+          <AppText
+            typographyRole="celebration"
+            preset="unifiedTitle"
+            style={styles.emptyTitle}
+          >
             기록을 불러오지 못했어요
           </AppText>
           <AppText preset="unifiedBody" style={styles.emptyDesc}>
             네트워크를 확인한 뒤 다시 시도해 주세요.
           </AppText>
-          <TouchableOpacity
+          <CtaButton
+            role="primary"
             activeOpacity={0.9}
-            style={[styles.primary, { backgroundColor: petTheme.primary }]}
+            style={[styles.primary, {}]}
             onPress={onRefresh}
           >
-            <AppText preset="unifiedBody" style={styles.primaryText}>
+            <CtaText preset="unifiedBody" style={styles.primaryText}>
               다시 불러오기
-            </AppText>
-          </TouchableOpacity>
+            </CtaText>
+          </CtaButton>
         </View>
       );
     }
@@ -1348,7 +1401,11 @@ export default function TimelineScreen() {
 
     return (
       <View style={styles.empty}>
-        <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
+        <AppText
+          typographyRole="celebration"
+          preset="unifiedTitle"
+          style={styles.emptyTitle}
+        >
           아직 남겨진 추억이 없어요
         </AppText>
         <AppText preset="unifiedBody" style={styles.emptyDesc}>
@@ -1357,18 +1414,19 @@ export default function TimelineScreen() {
         <AppText preset="unifiedBody" style={styles.emptyDesc}>
           첫 기록으로 천천히 시작해보세요
         </AppText>
-        <TouchableOpacity
+        <CtaButton
+          role="primary"
           activeOpacity={0.9}
-          style={[styles.primary, { backgroundColor: petTheme.primary }]}
+          style={[styles.primary, {}]}
           onPress={onPressCreate}
         >
-          <AppText preset="unifiedBody" style={styles.primaryIcon}>
+          <CtaText preset="unifiedBody" style={styles.primaryIcon}>
             ✎
-          </AppText>
-          <AppText preset="unifiedBody" style={styles.primaryText}>
+          </CtaText>
+          <CtaText preset="unifiedBody" style={styles.primaryText}>
             기록 시작하기
-          </AppText>
-        </TouchableOpacity>
+          </CtaText>
+        </CtaButton>
       </View>
     );
   }, [
@@ -1377,7 +1435,6 @@ export default function TimelineScreen() {
     isHomeTotalSummaryListLoading,
     onPressCreate,
     onRefresh,
-    petTheme.primary,
     status,
   ]);
 
@@ -1457,7 +1514,11 @@ export default function TimelineScreen() {
               <Feather name="arrow-left" size={20} color="#102033" />
             </TouchableOpacity>
           </View>
-          <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
+          <AppText
+            typographyRole="screenTitle"
+            preset="unifiedTitle"
+            style={styles.headerTitle}
+          >
             타임라인
           </AppText>
           <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
@@ -1480,7 +1541,11 @@ export default function TimelineScreen() {
 
         <View style={styles.guestGateWrap}>
           <View style={styles.empty}>
-            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
+            <AppText
+              typographyRole="celebration"
+              preset="unifiedTitle"
+              style={styles.emptyTitle}
+            >
               NURI의 모든 기능을 경험해 보세요
             </AppText>
             <AppText preset="unifiedBody" style={styles.emptyDesc}>
@@ -1500,7 +1565,6 @@ export default function TimelineScreen() {
             </TouchableOpacity>
           </View>
         </View>
-
       </View>
     );
   }
@@ -1518,7 +1582,11 @@ export default function TimelineScreen() {
             <Feather name="arrow-left" size={20} color="#102033" />
           </TouchableOpacity>
         </View>
-        <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
+        <AppText
+          typographyRole="screenTitle"
+          preset="unifiedTitle"
+          style={styles.headerTitle}
+        >
           타임라인
         </AppText>
         <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
@@ -1568,21 +1636,21 @@ export default function TimelineScreen() {
         keyboardShouldPersistTaps="handled"
       />
 
-      <TouchableOpacity
+      <CtaButton
+        role="primary"
         activeOpacity={0.92}
         accessibilityRole="button"
         accessibilityLabel="기록하기"
         style={[
           styles.floatingCreateButton,
           {
-            backgroundColor: petTheme.primary,
             bottom: floatingCreateButtonBottom,
           },
         ]}
         onPress={onPressCreate}
       >
-        <Feather name="plus" size={16} color="#FFFFFF" />
-      </TouchableOpacity>
+        <CtaIcon name="plus" size={16} />
+      </CtaButton>
 
       <Modal
         visible={ymModalOpen}
@@ -1591,7 +1659,10 @@ export default function TimelineScreen() {
         onRequestClose={() => setYmModalOpen(false)}
       >
         <Pressable
-          style={[styles.modalBackdrop, { backgroundColor: theme.colors.overlay }]}
+          style={[
+            styles.modalBackdrop,
+            { backgroundColor: theme.colors.overlay },
+          ]}
           onPress={() => setYmModalOpen(false)}
         >
           <Pressable
@@ -1605,7 +1676,8 @@ export default function TimelineScreen() {
             ]}
             onPress={() => {}}
           >
-            <AppText typographyRole="sectionTitle"
+            <AppText
+              typographyRole="sectionTitle"
               preset="unifiedTitle"
               style={[styles.modalTitle, { color: theme.colors.textPrimary }]}
             >
@@ -1617,34 +1689,43 @@ export default function TimelineScreen() {
               contentContainerStyle={styles.modalOptionsContent}
               showsVerticalScrollIndicator={false}
             >
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={[styles.modalItem, { borderColor: theme.colors.border }]}
-              onPress={() => jumpToYm(null)}
-            >
-              <AppText
-                preset="unifiedBody"
-                style={[styles.modalItemText, { color: theme.colors.textPrimary }]}
-              >
-                전체 보기
-              </AppText>
-            </TouchableOpacity>
-
-            {availableYmList.map(ym => (
               <TouchableOpacity
-                key={ym}
                 activeOpacity={0.9}
                 style={[styles.modalItem, { borderColor: theme.colors.border }]}
-                onPress={() => jumpToYm(ym)}
+                onPress={() => jumpToYm(null)}
               >
                 <AppText
                   preset="unifiedBody"
-                  style={[styles.modalItemText, { color: theme.colors.textPrimary }]}
+                  style={[
+                    styles.modalItemText,
+                    { color: theme.colors.textPrimary },
+                  ]}
                 >
-                  {humanizeTimelineMonthKey(ym)}
+                  전체 보기
                 </AppText>
               </TouchableOpacity>
-            ))}
+
+              {availableYmList.map(ym => (
+                <TouchableOpacity
+                  key={ym}
+                  activeOpacity={0.9}
+                  style={[
+                    styles.modalItem,
+                    { borderColor: theme.colors.border },
+                  ]}
+                  onPress={() => jumpToYm(ym)}
+                >
+                  <AppText
+                    preset="unifiedBody"
+                    style={[
+                      styles.modalItemText,
+                      { color: theme.colors.textPrimary },
+                    ]}
+                  >
+                    {humanizeTimelineMonthKey(ym)}
+                  </AppText>
+                </TouchableOpacity>
+              ))}
             </ScrollView>
           </Pressable>
         </Pressable>
@@ -1657,7 +1738,10 @@ export default function TimelineScreen() {
         onRequestClose={() => setOtherModalOpen(false)}
       >
         <Pressable
-          style={[styles.modalBackdrop, { backgroundColor: theme.colors.overlay }]}
+          style={[
+            styles.modalBackdrop,
+            { backgroundColor: theme.colors.overlay },
+          ]}
           onPress={() => setOtherModalOpen(false)}
         >
           <Pressable
@@ -1671,7 +1755,8 @@ export default function TimelineScreen() {
             ]}
             onPress={() => {}}
           >
-            <AppText typographyRole="sectionTitle"
+            <AppText
+              typographyRole="sectionTitle"
               preset="unifiedTitle"
               style={[styles.modalTitle, { color: theme.colors.textPrimary }]}
             >
@@ -1683,34 +1768,43 @@ export default function TimelineScreen() {
               contentContainerStyle={styles.modalOptionsContent}
               showsVerticalScrollIndicator={false}
             >
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={[styles.modalItem, { borderColor: theme.colors.border }]}
-              onPress={clearOtherSub}
-            >
-              <AppText
-                preset="unifiedBody"
-                style={[styles.modalItemText, { color: theme.colors.textPrimary }]}
-              >
-                전체 보기
-              </AppText>
-            </TouchableOpacity>
-
-            {TIMELINE_OTHER_SUBCATEGORY_OPTIONS.map(option => (
               <TouchableOpacity
-                key={option.key}
                 activeOpacity={0.9}
                 style={[styles.modalItem, { borderColor: theme.colors.border }]}
-                onPress={() => applyOtherSub(option.key)}
+                onPress={clearOtherSub}
               >
                 <AppText
                   preset="unifiedBody"
-                  style={[styles.modalItemText, { color: theme.colors.textPrimary }]}
+                  style={[
+                    styles.modalItemText,
+                    { color: theme.colors.textPrimary },
+                  ]}
                 >
-                  {option.label}
+                  전체 보기
                 </AppText>
               </TouchableOpacity>
-            ))}
+
+              {TIMELINE_OTHER_SUBCATEGORY_OPTIONS.map(option => (
+                <TouchableOpacity
+                  key={option.key}
+                  activeOpacity={0.9}
+                  style={[
+                    styles.modalItem,
+                    { borderColor: theme.colors.border },
+                  ]}
+                  onPress={() => applyOtherSub(option.key)}
+                >
+                  <AppText
+                    preset="unifiedBody"
+                    style={[
+                      styles.modalItemText,
+                      { color: theme.colors.textPrimary },
+                    ]}
+                  >
+                    {option.label}
+                  </AppText>
+                </TouchableOpacity>
+              ))}
             </ScrollView>
           </Pressable>
         </Pressable>

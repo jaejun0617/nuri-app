@@ -1,3 +1,4 @@
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Image,
@@ -278,27 +279,24 @@ function PetDeleteConfirmDialogBase({
             </View>
           </ScrollView>
           <View testID="pet-delete-actions" style={styles.actions}>
-            <TouchableOpacity
+            <CtaButton
+              role="neutral"
               testID="pet-delete-cancel"
               accessibilityRole="button"
               accessibilityLabel="아이 프로필 삭제 취소"
               accessibilityState={{ disabled: deleting }}
               activeOpacity={0.9}
               disabled={deleting}
-              style={[
-                styles.actionButton,
-                { backgroundColor: theme.colors.surface },
-              ]}
+              style={[styles.actionButton, {}]}
               onPress={handleCancel}
             >
-              <AppText
-                preset="unifiedLabel"
-                style={{ color: theme.colors.textSecondary }}
-              >
+              <CtaText preset="unifiedLabel" style={{}}>
                 취소
-              </AppText>
-            </TouchableOpacity>
-            <TouchableOpacity
+              </CtaText>
+            </CtaButton>
+            <CtaButton
+              role="destructiveConfirm"
+              loading={deleting}
               testID="pet-delete-confirm"
               accessibilityRole="button"
               accessibilityLabel={
@@ -307,19 +305,13 @@ function PetDeleteConfirmDialogBase({
               accessibilityState={{ disabled: deleting || !canDelete }}
               activeOpacity={0.9}
               disabled={deleting || !canDelete}
-              style={[
-                styles.actionButton,
-                {
-                  backgroundColor: theme.colors.danger,
-                  opacity: deleting || !canDelete ? 0.42 : 1,
-                },
-              ]}
+              style={[styles.actionButton, {}]}
               onPress={onConfirm}
             >
-              <AppText preset="unifiedLabel" style={styles.deleteButtonText}>
+              <CtaText preset="unifiedLabel" style={styles.deleteButtonText}>
                 {deleting ? '삭제 중...' : '삭제하기'}
-              </AppText>
-            </TouchableOpacity>
+              </CtaText>
+            </CtaButton>
           </View>
         </View>
       </KeyboardControllerAvoidingView>

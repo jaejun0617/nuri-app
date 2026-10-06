@@ -1,3 +1,4 @@
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   FlatList,
@@ -92,7 +93,9 @@ export function ScheduleCalendarSheet({
   const entryStartedRef = useRef(false);
   const [closing, setClosing] = useState(false);
   const [exitConfirmVisible, setExitConfirmVisible] = useState(false);
-  const bottomPaddingStyle = useKeyboardBottomPadding(Math.max(insets.bottom, 14));
+  const bottomPaddingStyle = useKeyboardBottomPadding(
+    Math.max(insets.bottom, 14),
+  );
   const closingRef = useRef(false);
   const completionRef = useRef<(() => void) | null>(null);
   const progress = useSharedValue(0);
@@ -249,10 +252,10 @@ export function ScheduleCalendarSheet({
         return;
       // Measure once before entry so list sizing cannot change its slide distance.
       entryStartedRef.current = true;
-      progress.value = withTiming(
-        1,
-        { duration: 300, easing: Easing.out(Easing.cubic) },
-      );
+      progress.value = withTiming(1, {
+        duration: 300,
+        easing: Easing.out(Easing.cubic),
+      });
       return;
     }
     // Keep content measurement and agenda-to-form changes continuous on the UI thread.
@@ -324,7 +327,9 @@ export function ScheduleCalendarSheet({
           testID="home-calendar-safe-area"
           edges={['top']}
           pointerEvents="box-none"
-          importantForAccessibility={exitConfirmVisible ? 'no-hide-descendants' : 'auto'}
+          importantForAccessibility={
+            exitConfirmVisible ? 'no-hide-descendants' : 'auto'
+          }
           style={styles.safeRoot}
         >
           <KeyboardAvoidingView
@@ -345,10 +350,7 @@ export function ScheduleCalendarSheet({
             >
               <Animated.View
                 testID="home-calendar-agenda"
-                style={[
-                  styles.panel,
-                  bottomPaddingStyle,
-                ]}
+                style={[styles.panel, bottomPaddingStyle]}
               >
                 <Pressable
                   testID="home-calendar-sheet-touch-boundary"
@@ -359,10 +361,7 @@ export function ScheduleCalendarSheet({
                 <View
                   testID="home-calendar-reading-surface"
                   pointerEvents="none"
-                  style={[
-                    StyleSheet.absoluteFill,
-                    styles.readingSurface,
-                  ]}
+                  style={[StyleSheet.absoluteFill, styles.readingSurface]}
                 />
                 <View style={styles.handle} pointerEvents="none" />
                 <View
@@ -489,7 +488,8 @@ export function ScheduleCalendarSheet({
                         </Pressable>
                       )}
                     />
-                    <Pressable
+                    <CtaButton
+                      role="primary"
                       testID="home-calendar-agenda-create"
                       accessibilityRole="button"
                       onPress={() => setMode('create')}
@@ -497,16 +497,12 @@ export function ScheduleCalendarSheet({
                       onLayout={event =>
                         setFooterHeight(event.nativeEvent.layout.height)
                       }
-                      style={[styles.submit, { backgroundColor: accentColor }]}
+                      style={[styles.submit, {}]}
                     >
-                      <AppText
-                        preset="unifiedLabel"
-                        color="#FFFFFF"
-                        style={styles.centered}
-                      >
+                      <CtaText preset="unifiedLabel" style={styles.centered}>
                         일정 추가하기
-                      </AppText>
-                    </Pressable>
+                      </CtaText>
+                    </CtaButton>
                   </>
                 ) : (
                   <>
@@ -823,7 +819,9 @@ export function ScheduleCalendarSheet({
                         ) : null}
                       </View>
                     </ScrollView>
-                    <Pressable
+                    <CtaButton
+                      role="primary"
+                      loading={form.saving}
                       testID="calendar-create-save"
                       accessibilityRole="button"
                       accessibilityState={{
@@ -836,18 +834,14 @@ export function ScheduleCalendarSheet({
                       }
                       style={[
                         styles.submit,
-                        { backgroundColor: accentColor },
+                        {},
                         (form.saving || !form.title.trim()) && styles.disabled,
                       ]}
                     >
-                      <AppText
-                        preset="unifiedLabel"
-                        color="#FFFFFF"
-                        style={styles.centered}
-                      >
+                      <CtaText preset="unifiedLabel" style={styles.centered}>
                         {form.saving ? '저장 중' : '일정 저장하기'}
-                      </AppText>
-                    </Pressable>
+                      </CtaText>
+                    </CtaButton>
                   </>
                 )}
               </Animated.View>
@@ -855,16 +849,19 @@ export function ScheduleCalendarSheet({
           </KeyboardAvoidingView>
         </SafeAreaView>
         <ConfirmDialog
+          confirmRole="destructiveConfirm"
+          cancelRole="neutral"
           embedded
           keyboardAware
           visible={exitConfirmVisible}
           typographyMode="unified"
           title="저장하지 않고 나갈까요?"
-          message={'작성한 일정은 아직 저장되지 않았어요.\n계속 작성하면 입력한 내용을 이어갈 수 있어요.'}
+          message={
+            '작성한 일정은 아직 저장되지 않았어요.\n계속 작성하면 입력한 내용을 이어갈 수 있어요.'
+          }
           cancelLabel="계속 작성하기"
           confirmLabel="나가기"
           tone="warning"
-          accentColor={accentColor}
           onCancel={() => setExitConfirmVisible(false)}
           onConfirm={() => {
             setExitConfirmVisible(false);

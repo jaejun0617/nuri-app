@@ -1,3 +1,4 @@
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   BackHandler,
@@ -131,13 +132,21 @@ export default function LocationDiscoveryDetailScreen() {
                 <Feather name="arrow-left" size={20} color="#102033" />
               </TouchableOpacity>
             </View>
-            <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
+            <AppText
+              typographyRole="screenTitle"
+              preset="unifiedTitle"
+              style={styles.headerTitle}
+            >
               산책 장소 상세
             </AppText>
             <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
           </View>
           <View style={styles.emptyCard}>
-            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
+            <AppText
+              typographyRole="celebration"
+              preset="unifiedTitle"
+              style={styles.emptyTitle}
+            >
               장소 정보를 찾을 수 없어요
             </AppText>
           </View>
@@ -167,7 +176,11 @@ export default function LocationDiscoveryDetailScreen() {
               <Feather name="arrow-left" size={20} color="#102033" />
             </TouchableOpacity>
           </View>
-          <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
+          <AppText
+            typographyRole="screenTitle"
+            preset="unifiedTitle"
+            style={styles.headerTitle}
+          >
             산책 장소 상세
           </AppText>
           <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
@@ -181,7 +194,11 @@ export default function LocationDiscoveryDetailScreen() {
             <AppText preset="unifiedMeta" style={styles.detailCategory}>
               {item.categoryLabel}
             </AppText>
-            <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.detailTitle}>
+            <AppText
+              typographyRole="screenTitle"
+              preset="unifiedTitle"
+              style={styles.detailTitle}
+            >
               {item.name}
             </AppText>
 
@@ -204,7 +221,8 @@ export default function LocationDiscoveryDetailScreen() {
             />
 
             <View style={styles.detailActionRow}>
-              <TouchableOpacity
+              <CtaButton
+                role="secondary"
                 activeOpacity={0.92}
                 style={styles.primaryActionButton}
                 onPress={() => {
@@ -215,28 +233,29 @@ export default function LocationDiscoveryDetailScreen() {
                   }).catch(() => {});
                 }}
               >
-                <AppText
+                <CtaText
                   preset="unifiedBody"
                   style={styles.primaryActionButtonText}
                 >
                   지도 보기
-                </AppText>
-              </TouchableOpacity>
+                </CtaText>
+              </CtaButton>
               {item.placeUrl ? (
-                <TouchableOpacity
+                <CtaButton
+                  role="secondary"
                   activeOpacity={0.92}
                   style={styles.secondaryActionButton}
                   onPress={() => {
                     Linking.openURL(item.placeUrl!).catch(() => {});
                   }}
                 >
-                  <AppText
+                  <CtaText
                     preset="unifiedBody"
                     style={styles.secondaryActionButtonText}
                   >
                     장소 링크
-                  </AppText>
-                </TouchableOpacity>
+                  </CtaText>
+                </CtaButton>
               ) : null}
             </View>
           </View>
@@ -251,7 +270,8 @@ export default function LocationDiscoveryDetailScreen() {
           {visibleRelatedItems.length > 0 ? (
             <View style={styles.relatedSection}>
               <View style={styles.relatedSectionHeader}>
-                <AppText typographyRole="sectionTitle"
+                <AppText
+                  typographyRole="sectionTitle"
                   preset="unifiedTitle"
                   style={styles.relatedSectionTitle}
                 >
@@ -269,20 +289,21 @@ export default function LocationDiscoveryDetailScreen() {
                 ))}
               </View>
               {visibleRelatedItems.length < relatedItems.length ? (
-                <TouchableOpacity
+                <CtaButton
+                  role="secondary"
                   activeOpacity={0.9}
                   style={styles.secondaryActionButton}
                   onPress={() => {
                     setVisibleRelatedCount(current => current + 6);
                   }}
                 >
-                  <AppText
+                  <CtaText
                     preset="unifiedBody"
                     style={styles.secondaryActionButtonText}
                   >
                     더보기
-                  </AppText>
-                </TouchableOpacity>
+                  </CtaText>
+                </CtaButton>
               ) : null}
             </View>
           ) : null}

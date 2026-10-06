@@ -14,6 +14,7 @@ import RecordEditScreen from '../screens/Records/RecordEditScreen';
 import type { MemoryOtherSubCategory } from '../services/memories/categoryMeta';
 import type { HomeTotalSummaryEntryRequest } from '../screens/Records/timelineEntry';
 import type { ScreenEntrySource } from './entry';
+import type { ScheduleDetailReturnContext } from './scheduleReturn';
 
 export type TimelineStackParamList = {
   TimelineMain:
@@ -32,11 +33,13 @@ export type TimelineStackParamList = {
     petId: string;
     memoryId: string;
     entrySource?: ScreenEntrySource;
+    scheduleReturn?: ScheduleDetailReturnContext;
   };
   RecordEdit: {
     petId: string;
     memoryId: string;
     entrySource?: ScreenEntrySource;
+    scheduleReturn?: ScheduleDetailReturnContext;
   };
 };
 

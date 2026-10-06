@@ -1,3 +1,4 @@
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 // 파일: src/screens/Common/EditDoneScreen.tsx
 // 역할:
 // - 수정/저장 완료 뒤 공통적으로 재사용하는 완료 확인 화면
@@ -5,7 +6,7 @@
 // - 일정/기록/홈 등 여러 플로우에서 동일한 성공 피드백 경험을 제공
 
 import React, { useCallback } from 'react';
-import { TouchableOpacity, View } from 'react-native';
+import { View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -85,7 +86,11 @@ export default function EditDoneScreen() {
           </View>
         </View>
 
-        <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.title}>
+        <AppText
+          typographyRole="celebration"
+          preset="unifiedTitle"
+          style={styles.title}
+        >
           {title}
         </AppText>
         <AppText preset="unifiedBody" style={styles.body}>
@@ -98,7 +103,8 @@ export default function EditDoneScreen() {
         ) : null}
       </View>
 
-      <TouchableOpacity
+      <CtaButton
+        role="primary"
         activeOpacity={0.92}
         style={[
           styles.primaryButton,
@@ -106,10 +112,10 @@ export default function EditDoneScreen() {
         ]}
         onPress={onPressPrimary}
       >
-        <AppText preset="unifiedBody" style={styles.primaryButtonText}>
+        <CtaText preset="unifiedBody" style={styles.primaryButtonText}>
           {buttonLabel ?? '홈으로 가기'}
-        </AppText>
-      </TouchableOpacity>
+        </CtaText>
+      </CtaButton>
     </View>
   );
 }

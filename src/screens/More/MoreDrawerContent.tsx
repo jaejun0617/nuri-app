@@ -1,3 +1,4 @@
+import CtaButton, { CtaText, CtaIcon } from '../../app/ui/CtaButton';
 // 파일: src/screens/More/MoreDrawerContent.tsx
 // 파일 목적:
 // - 더보기 드로어 안에서 주요 메뉴 허브와 계정 관리 기능을 한 화면으로 제공한다.
@@ -262,9 +263,18 @@ const MenuRow = memo(function MenuRow({
     >
       <View style={styles.menuLeft}>
         <View style={[styles.menuIconBox, { backgroundColor: tone.box }]}>
-          <NuriSemanticIcon family="feather" name={icon} semantic={nuriIcon} size={17} color={tone.icon} />
+          <NuriSemanticIcon
+            family="feather"
+            name={icon}
+            semantic={nuriIcon}
+            size={17}
+            color={tone.icon}
+          />
         </View>
-        <AppText preset="unifiedLabel" style={[styles.menuLabel, { color: theme.colors.textPrimary }]}>
+        <AppText
+          preset="unifiedLabel"
+          style={[styles.menuLabel, { color: theme.colors.textPrimary }]}
+        >
           {label}
         </AppText>
       </View>
@@ -279,7 +289,11 @@ const MenuRow = memo(function MenuRow({
           </AppText>
         ) : null}
         {badge === 'dot' ? <View style={styles.menuDot} /> : null}
-        {badge === 'soon' ? <AppText preset="unifiedLabel" style={styles.badgeSoon}>soon</AppText> : null}
+        {badge === 'soon' ? (
+          <AppText preset="unifiedLabel" style={styles.badgeSoon}>
+            soon
+          </AppText>
+        ) : null}
         <Feather
           name="chevron-right"
           size={18}
@@ -299,7 +313,11 @@ const MenuCard = memo(function MenuCard({
   const theme = useTheme();
   return (
     <View style={styles.sectionWrap}>
-      <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={[styles.sectionTitle, { color: titleColor }]}>
+      <AppText
+        typographyRole="sectionTitle"
+        preset="unifiedTitle"
+        style={[styles.sectionTitle, { color: titleColor }]}
+      >
         {title}
       </AppText>
       <View
@@ -357,7 +375,9 @@ const PasswordField = memo(function PasswordField({
   const theme = useTheme();
   return (
     <View style={styles.modalField}>
-      <AppText preset="unifiedLabel" style={styles.modalLabel}>{label}</AppText>
+      <AppText preset="unifiedLabel" style={styles.modalLabel}>
+        {label}
+      </AppText>
       <View
         style={[styles.inputShell, { backgroundColor: theme.colors.surface }]}
       >
@@ -386,7 +406,10 @@ const PasswordField = memo(function PasswordField({
         </TouchableOpacity>
       </View>
       {helper ? (
-        <AppText preset="unifiedBody" style={[styles.modalHelper, { color: theme.colors.textMuted }]}>
+        <AppText
+          preset="unifiedBody"
+          style={[styles.modalHelper, { color: theme.colors.textMuted }]}
+        >
           {helper}
         </AppText>
       ) : null}
@@ -404,7 +427,7 @@ export const PasswordChangeModal = memo(function PasswordChangeModal({
   nextPasswordVisible,
   confirmPasswordVisible,
   saving,
-  accentColor,
+  accentColor: _accentColor,
   onClose,
   onChangeCurrentPassword,
   onChangeNextPassword,
@@ -531,22 +554,24 @@ export const PasswordChangeModal = memo(function PasswordChangeModal({
               testID="password-change-actions"
               style={styles.modalCardFooter}
             >
-              <TouchableOpacity
+              <CtaButton
+                role="primary"
+                loading={saving}
                 testID="password-change-submit"
                 activeOpacity={0.92}
                 style={[
                   styles.primaryButton,
                   styles.modalPrimaryButton,
-                  { backgroundColor: accentColor },
+                  {},
                   saving ? styles.disabledButton : null,
                 ]}
                 onPress={onSubmit}
                 disabled={saving}
               >
-                <AppText preset="unifiedLabel" style={styles.primaryButtonText}>
+                <CtaText preset="unifiedLabel" style={styles.primaryButtonText}>
                   {saving ? '변경 중...' : '변경하기'}
-                </AppText>
-              </TouchableOpacity>
+                </CtaText>
+              </CtaButton>
             </View>
           </AnimatedPressable>
         </View>
@@ -561,7 +586,7 @@ const ThemeSettingsModal = memo(function ThemeSettingsModal({
   petName,
   helperText,
   selectedColor,
-  accentColor,
+  accentColor: _accentColor,
   saving,
   onClose,
   onSelectColor,
@@ -599,7 +624,9 @@ const ThemeSettingsModal = memo(function ThemeSettingsModal({
           ]}
         >
           <View style={styles.sheetHeader}>
-            <AppText typographyRole="sectionTitle" preset="unifiedTitle"
+            <AppText
+              typographyRole="sectionTitle"
+              preset="unifiedTitle"
               style={[styles.sheetTitle, { color: theme.colors.textPrimary }]}
             >
               테마 설정
@@ -621,47 +648,51 @@ const ThemeSettingsModal = memo(function ThemeSettingsModal({
             contentContainerStyle={styles.themeSettingsContent}
             showsVerticalScrollIndicator={false}
           >
-          <View style={styles.themeInfoBlock}>
-            <AppText preset="unifiedTitle"
-              style={[
-                styles.themeInfoTitle,
-                { color: theme.colors.textPrimary },
-              ]}
-            >
-              {petName
-                ? `${petName}의 테마를 바꿔볼까요?`
-                : '현재 아이의 테마를 바꿔볼까요?'}
-            </AppText>
-            <AppText preset="unifiedBody"
-              style={[
-                styles.themeInfoBody,
-                { color: theme.colors.textSecondary },
-              ]}
-            >
-              {helperText}
-            </AppText>
-          </View>
+            <View style={styles.themeInfoBlock}>
+              <AppText
+                preset="unifiedTitle"
+                style={[
+                  styles.themeInfoTitle,
+                  { color: theme.colors.textPrimary },
+                ]}
+              >
+                {petName
+                  ? `${petName}의 테마를 바꿔볼까요?`
+                  : '현재 아이의 테마를 바꿔볼까요?'}
+              </AppText>
+              <AppText
+                preset="unifiedBody"
+                style={[
+                  styles.themeInfoBody,
+                  { color: theme.colors.textSecondary },
+                ]}
+              >
+                {helperText}
+              </AppText>
+            </View>
 
-          <PetThemePicker
-            selectedColor={selectedColor}
-            helperText="홈 카드, 기록, 일정, 더보기의 강조색에 함께 반영돼요."
-            onSelectColor={onSelectColor}
-          />
+            <PetThemePicker
+              selectedColor={selectedColor}
+              helperText="홈 카드, 기록, 일정, 더보기의 강조색에 함께 반영돼요."
+              onSelectColor={onSelectColor}
+            />
 
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={[
-              styles.primaryButton,
-              { backgroundColor: accentColor },
-              saving ? styles.disabledButton : null,
-            ]}
-            onPress={onSubmit}
-            disabled={saving}
-          >
-            <AppText preset="unifiedLabel" style={styles.primaryButtonText}>
-              {saving ? '저장 중...' : '테마 적용하기'}
-            </AppText>
-          </TouchableOpacity>
+            <CtaButton
+              role="primary"
+              loading={saving}
+              activeOpacity={0.9}
+              style={[
+                styles.primaryButton,
+                {},
+                saving ? styles.disabledButton : null,
+              ]}
+              onPress={onSubmit}
+              disabled={saving}
+            >
+              <CtaText preset="unifiedLabel" style={styles.primaryButtonText}>
+                {saving ? '저장 중...' : '테마 적용하기'}
+              </CtaText>
+            </CtaButton>
           </ScrollView>
         </View>
       </View>
@@ -723,340 +754,369 @@ function getNotificationChannelLabel(
   }
 }
 
-export const NotificationSettingsModal = memo(function NotificationSettingsModal({
-  visible,
-  bottomInset,
-  enabled,
-  pushOptIn,
-  pushProviderStatus,
-  permissionStatus,
-  settings,
-  loading,
-  accentColor,
-  onClose,
-  onToggleEnabled,
-  onTogglePushOptIn,
-  onRequestPermission,
-  onOpenSystemSettings,
-  onOpenExactAlarmSettings,
-}: NotificationSettingsModalProps) {
-  const theme = useTheme();
-  const { height: windowHeight } = useWindowDimensions();
-  const notificationSettingsMaxHeight = getNotificationSettingsMaxHeight(
-    windowHeight,
+export const NotificationSettingsModal = memo(
+  function NotificationSettingsModal({
+    visible,
     bottomInset,
-  );
-  const permissionGranted = permissionStatus === 'granted';
-  const exactAlarmStatus = settings?.exactAlarm;
-  const channelStatus = settings?.channel;
+    enabled,
+    pushOptIn,
+    pushProviderStatus,
+    permissionStatus,
+    settings,
+    loading,
+    accentColor,
+    onClose,
+    onToggleEnabled,
+    onTogglePushOptIn,
+    onRequestPermission,
+    onOpenSystemSettings,
+    onOpenExactAlarmSettings,
+  }: NotificationSettingsModalProps) {
+    const theme = useTheme();
+    const { height: windowHeight } = useWindowDimensions();
+    const notificationSettingsMaxHeight = getNotificationSettingsMaxHeight(
+      windowHeight,
+      bottomInset,
+    );
+    const permissionGranted = permissionStatus === 'granted';
+    const exactAlarmStatus = settings?.exactAlarm;
+    const channelStatus = settings?.channel;
 
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      <View
-        style={[
-          styles.modalBackdrop,
-          { backgroundColor: theme.colors.overlay },
-        ]}
+    return (
+      <Modal
+        visible={visible}
+        transparent
+        animationType="slide"
+        onRequestClose={onClose}
       >
-        <Pressable style={styles.modalScrim} onPress={onClose} />
         <View
           style={[
-            styles.sheetCard,
-            {
-              backgroundColor: theme.colors.surfaceElevated,
-              paddingBottom: Math.max(bottomInset + 18, 26),
-            },
+            styles.modalBackdrop,
+            { backgroundColor: theme.colors.overlay },
           ]}
         >
-          <View style={styles.sheetHeader}>
-            <AppText typographyRole="sectionTitle" preset="unifiedTitle"
-              style={[styles.sheetTitle, { color: theme.colors.textPrimary }]}
-            >
-              알림 설정
-            </AppText>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              style={[
-                styles.sheetClose,
-                { backgroundColor: theme.colors.surface },
-              ]}
-              onPress={onClose}
-            >
-              <Feather name="x" size={20} color={theme.colors.textMuted} />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            style={[
-              styles.notificationSettingsScroll,
-              { maxHeight: notificationSettingsMaxHeight },
-            ]}
-            contentContainerStyle={styles.notificationSettingsContent}
-            showsVerticalScrollIndicator={false}
-          >
-          <View style={styles.notificationInfoBlock}>
-            <AppText preset="unifiedTitle"
-              style={[
-                styles.themeInfoTitle,
-                { color: theme.colors.textPrimary },
-              ]}
-            >
-              중요한 병원, 약 시간을 놓치지 않게 도와드릴게요.
-            </AppText>
-            <AppText preset="unifiedBody"
-              style={[
-                styles.themeInfoBody,
-                { color: theme.colors.textSecondary },
-              ]}
-            >
-              일정 추가에서 알림을 선택하면 저장된 일정과 별도로 이 기기 알림 예약을
-              시도합니다. 완료 처리하거나 알림을 끄면 기기 예약도 함께 정리됩니다.
-            </AppText>
-          </View>
-
+          <Pressable style={styles.modalScrim} onPress={onClose} />
           <View
             style={[
-              styles.notificationSettingRow,
+              styles.sheetCard,
               {
-                backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.border,
+                backgroundColor: theme.colors.surfaceElevated,
+                paddingBottom: Math.max(bottomInset + 18, 26),
               },
             ]}
           >
-            <View style={styles.notificationSettingText}>
-              <AppText preset="unifiedLabel"
-                style={[styles.modalLabel, { color: theme.colors.textPrimary }]}
+            <View style={styles.sheetHeader}>
+              <AppText
+                typographyRole="sectionTitle"
+                preset="unifiedTitle"
+                style={[styles.sheetTitle, { color: theme.colors.textPrimary }]}
               >
-                일정 알림
+                알림 설정
               </AppText>
-              <AppText preset="unifiedBody"
+              <TouchableOpacity
+                activeOpacity={0.85}
                 style={[
-                  styles.notificationSettingHelper,
-                  { color: theme.colors.textMuted },
+                  styles.sheetClose,
+                  { backgroundColor: theme.colors.surface },
                 ]}
+                onPress={onClose}
               >
-                병원, 약, 산책 등 일정 알림 사용
-              </AppText>
+                <Feather name="x" size={20} color={theme.colors.textMuted} />
+              </TouchableOpacity>
             </View>
-            <Switch
-              value={enabled}
-              disabled={loading}
-              onValueChange={onToggleEnabled}
-              trackColor={{ false: '#D7DEE8', true: `${accentColor}66` }}
-              thumbColor={enabled ? accentColor : '#FFFFFF'}
-            />
-          </View>
 
-          <View
-            style={[
-              styles.notificationSettingRow,
-              {
-                backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.border,
-              },
-            ]}
-          >
-            <View style={styles.notificationSettingText}>
-              <AppText preset="unifiedLabel"
-                style={[styles.modalLabel, { color: theme.colors.textPrimary }]}
-              >
-                운영 알림 수신 동의
-              </AppText>
-              <AppText preset="unifiedBody"
+            <ScrollView
+              style={[
+                styles.notificationSettingsScroll,
+                { maxHeight: notificationSettingsMaxHeight },
+              ]}
+              contentContainerStyle={styles.notificationSettingsContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.notificationInfoBlock}>
+                <AppText
+                  preset="unifiedTitle"
+                  style={[
+                    styles.themeInfoTitle,
+                    { color: theme.colors.textPrimary },
+                  ]}
+                >
+                  중요한 병원, 약 시간을 놓치지 않게 도와드릴게요.
+                </AppText>
+                <AppText
+                  preset="unifiedBody"
+                  style={[
+                    styles.themeInfoBody,
+                    { color: theme.colors.textSecondary },
+                  ]}
+                >
+                  일정 추가에서 알림을 선택하면 저장된 일정과 별도로 이 기기
+                  알림 예약을 시도합니다. 완료 처리하거나 알림을 끄면 기기
+                  예약도 함께 정리됩니다.
+                </AppText>
+              </View>
+
+              <View
                 style={[
-                  styles.notificationSettingHelper,
-                  { color: theme.colors.textMuted },
+                  styles.notificationSettingRow,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.border,
+                  },
                 ]}
               >
-                공지, 계정, 서비스 안내 수신 동의 저장
-              </AppText>
-            </View>
-            <Switch
-              value={pushOptIn}
-              disabled={loading}
-              onValueChange={onTogglePushOptIn}
-              trackColor={{ false: '#D7DEE8', true: `${accentColor}66` }}
-              thumbColor={pushOptIn ? accentColor : '#FFFFFF'}
-            />
-          </View>
+                <View style={styles.notificationSettingText}>
+                  <AppText
+                    preset="unifiedLabel"
+                    style={[
+                      styles.modalLabel,
+                      { color: theme.colors.textPrimary },
+                    ]}
+                  >
+                    일정 알림
+                  </AppText>
+                  <AppText
+                    preset="unifiedBody"
+                    style={[
+                      styles.notificationSettingHelper,
+                      { color: theme.colors.textMuted },
+                    ]}
+                  >
+                    병원, 약, 산책 등 일정 알림 사용
+                  </AppText>
+                </View>
+                <Switch
+                  value={enabled}
+                  disabled={loading}
+                  onValueChange={onToggleEnabled}
+                  trackColor={{ false: '#D7DEE8', true: `${accentColor}66` }}
+                  thumbColor={enabled ? accentColor : '#FFFFFF'}
+                />
+              </View>
 
-          {Platform.OS === 'android' ? (
-            <>
-          <View
-            style={[
-              styles.notificationStatusBox,
-              {
-                backgroundColor: 'rgba(168,85,247,0.08)',
-                borderColor: 'rgba(168,85,247,0.18)',
-              },
-            ]}
-          >
-            <AppText preset="unifiedTitle"
-              style={styles.notificationStatusTitle}
-            >
-              Android 정확 알림: {getExactAlarmLabel(exactAlarmStatus)}
-            </AppText>
-            <AppText preset="unifiedBody"
-              style={styles.notificationSettingHelper}
-            >
-              {exactAlarmStatus === 'not-granted'
-                ? '권한이 없으면 Android가 허용하는 범위로 알림을 시도할 수 있어요. 정확한 시각을 원하면 시스템 설정에서 별도 권한을 확인해 주세요.'
-                : exactAlarmStatus === 'unknown'
-                  ? '현재 앱에서 정확 알림 권한 상태를 확인하지 못했어요. 저장된 일정과 기기 알림 예약 결과는 서로 별개로 관리됩니다.'
-                  : '정확 알림 권한은 저장된 일정 데이터와 별도로 기기에서 관리됩니다.'}
-            </AppText>
-          </View>
-
-          <View
-            style={[
-              styles.notificationStatusBox,
-              {
-                backgroundColor: 'rgba(14,116,144,0.08)',
-                borderColor: 'rgba(14,116,144,0.18)',
-              },
-            ]}
-          >
-            <AppText preset="unifiedTitle"
-              style={styles.notificationStatusTitle}
-            >
-              Android 알림 채널: {getNotificationChannelLabel(channelStatus)}
-            </AppText>
-            <AppText preset="unifiedBody"
-              style={styles.notificationSettingHelper}
-            >
-              채널이 꺼져 있으면 일정은 저장되지만 실제 알림이 보이지 않을 수 있어요.
-            </AppText>
-          </View>
-
-            </>
-          ) : null}
-
-          <View
-            style={[
-              styles.notificationStatusBox,
-              {
-                backgroundColor: 'rgba(59,130,246,0.08)',
-                borderColor: 'rgba(59,130,246,0.18)',
-              },
-            ]}
-          >
-            <AppText preset="unifiedTitle"
-              style={[
-                styles.notificationStatusTitle,
-                { color: theme.colors.textPrimary },
-              ]}
-            >
-              운영 알림 상태: {pushOptIn ? '수신 동의 저장됨' : '수신 동의 꺼짐'}
-            </AppText>
-            <AppText preset="unifiedBody"
-              style={[
-                styles.notificationSettingHelper,
-                { color: theme.colors.textMuted },
-              ]}
-            >
-              {pushProviderStatus === 'provider_unavailable'
-                ? '현재 앱은 실제 push provider를 열지 않아 서버에는 provider 미연결 상태로 기록됩니다.'
-                : pushProviderStatus === 'registered'
-                  ? '이 기기의 알림 token lifecycle이 서버에 기록되어 있어요.'
-                  : '로그아웃 또는 수신 거부 시 이 기기 token은 폐기 상태로 정리됩니다.'}
-            </AppText>
-          </View>
-
-          <View
-            style={[
-              styles.notificationStatusBox,
-              {
-                backgroundColor: permissionGranted
-                  ? 'rgba(34,197,94,0.10)'
-                  : 'rgba(249,115,22,0.10)',
-                borderColor: permissionGranted
-                  ? 'rgba(34,197,94,0.22)'
-                  : 'rgba(249,115,22,0.22)',
-              },
-            ]}
-          >
-            <AppText preset="unifiedTitle"
-              style={[
-                styles.notificationStatusTitle,
-                { color: permissionGranted ? '#15803D' : '#C2410C' },
-              ]}
-            >
-              기기 권한: {getNotificationPermissionLabel(permissionStatus)}
-            </AppText>
-            <AppText preset="unifiedBody"
-              style={[
-                styles.notificationSettingHelper,
-                { color: theme.colors.textMuted },
-              ]}
-            >
-              권한이 꺼져 있으면 일정에는 알림값이 저장되지만 실제 기기 알림은
-              오지 않아요.
-            </AppText>
-          </View>
-
-          {permissionGranted ? (
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={[
-                styles.secondaryButton,
-                { borderColor: theme.colors.border },
-              ]}
-              onPress={onOpenSystemSettings}
-            >
-              <AppText preset="unifiedLabel"
+              <View
                 style={[
-                  styles.secondaryButtonText,
-                  { color: theme.colors.textPrimary },
+                  styles.notificationSettingRow,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.border,
+                  },
                 ]}
               >
-                시스템 알림 설정 열기
-              </AppText>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={[styles.primaryButton, { backgroundColor: accentColor }]}
-              onPress={onRequestPermission}
-              disabled={loading}
-            >
-              <AppText preset="unifiedLabel" style={styles.primaryButtonText}>
-                {loading ? '확인 중...' : '알림 권한 허용하기'}
-              </AppText>
-            </TouchableOpacity>
-          )}
+                <View style={styles.notificationSettingText}>
+                  <AppText
+                    preset="unifiedLabel"
+                    style={[
+                      styles.modalLabel,
+                      { color: theme.colors.textPrimary },
+                    ]}
+                  >
+                    운영 알림 수신 동의
+                  </AppText>
+                  <AppText
+                    preset="unifiedBody"
+                    style={[
+                      styles.notificationSettingHelper,
+                      { color: theme.colors.textMuted },
+                    ]}
+                  >
+                    공지, 계정, 서비스 안내 수신 동의 저장
+                  </AppText>
+                </View>
+                <Switch
+                  value={pushOptIn}
+                  disabled={loading}
+                  onValueChange={onTogglePushOptIn}
+                  trackColor={{ false: '#D7DEE8', true: `${accentColor}66` }}
+                  thumbColor={pushOptIn ? accentColor : '#FFFFFF'}
+                />
+              </View>
 
-          {settings?.canOpenExactAlarmSettings ? (
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={[
-                styles.secondaryButton,
-                { borderColor: theme.colors.border },
-              ]}
-              onPress={onOpenExactAlarmSettings}
-              disabled={loading}
-            >
-              <AppText preset="unifiedLabel" style={styles.secondaryButtonText}>
-                Android 정확 알림 설정 열기
-              </AppText>
-            </TouchableOpacity>
-          ) : null}
-          </ScrollView>
+              {Platform.OS === 'android' ? (
+                <>
+                  <View
+                    style={[
+                      styles.notificationStatusBox,
+                      {
+                        backgroundColor: 'rgba(168,85,247,0.08)',
+                        borderColor: 'rgba(168,85,247,0.18)',
+                      },
+                    ]}
+                  >
+                    <AppText
+                      preset="unifiedTitle"
+                      style={styles.notificationStatusTitle}
+                    >
+                      Android 정확 알림: {getExactAlarmLabel(exactAlarmStatus)}
+                    </AppText>
+                    <AppText
+                      preset="unifiedBody"
+                      style={styles.notificationSettingHelper}
+                    >
+                      {exactAlarmStatus === 'not-granted'
+                        ? '권한이 없으면 Android가 허용하는 범위로 알림을 시도할 수 있어요. 정확한 시각을 원하면 시스템 설정에서 별도 권한을 확인해 주세요.'
+                        : exactAlarmStatus === 'unknown'
+                        ? '현재 앱에서 정확 알림 권한 상태를 확인하지 못했어요. 저장된 일정과 기기 알림 예약 결과는 서로 별개로 관리됩니다.'
+                        : '정확 알림 권한은 저장된 일정 데이터와 별도로 기기에서 관리됩니다.'}
+                    </AppText>
+                  </View>
+
+                  <View
+                    style={[
+                      styles.notificationStatusBox,
+                      {
+                        backgroundColor: 'rgba(14,116,144,0.08)',
+                        borderColor: 'rgba(14,116,144,0.18)',
+                      },
+                    ]}
+                  >
+                    <AppText
+                      preset="unifiedTitle"
+                      style={styles.notificationStatusTitle}
+                    >
+                      Android 알림 채널:{' '}
+                      {getNotificationChannelLabel(channelStatus)}
+                    </AppText>
+                    <AppText
+                      preset="unifiedBody"
+                      style={styles.notificationSettingHelper}
+                    >
+                      채널이 꺼져 있으면 일정은 저장되지만 실제 알림이 보이지
+                      않을 수 있어요.
+                    </AppText>
+                  </View>
+                </>
+              ) : null}
+
+              <View
+                style={[
+                  styles.notificationStatusBox,
+                  {
+                    backgroundColor: 'rgba(59,130,246,0.08)',
+                    borderColor: 'rgba(59,130,246,0.18)',
+                  },
+                ]}
+              >
+                <AppText
+                  preset="unifiedTitle"
+                  style={[
+                    styles.notificationStatusTitle,
+                    { color: theme.colors.textPrimary },
+                  ]}
+                >
+                  운영 알림 상태:{' '}
+                  {pushOptIn ? '수신 동의 저장됨' : '수신 동의 꺼짐'}
+                </AppText>
+                <AppText
+                  preset="unifiedBody"
+                  style={[
+                    styles.notificationSettingHelper,
+                    { color: theme.colors.textMuted },
+                  ]}
+                >
+                  {pushProviderStatus === 'provider_unavailable'
+                    ? '현재 앱은 실제 push provider를 열지 않아 서버에는 provider 미연결 상태로 기록됩니다.'
+                    : pushProviderStatus === 'registered'
+                    ? '이 기기의 알림 token lifecycle이 서버에 기록되어 있어요.'
+                    : '로그아웃 또는 수신 거부 시 이 기기 token은 폐기 상태로 정리됩니다.'}
+                </AppText>
+              </View>
+
+              <View
+                style={[
+                  styles.notificationStatusBox,
+                  {
+                    backgroundColor: permissionGranted
+                      ? 'rgba(34,197,94,0.10)'
+                      : 'rgba(249,115,22,0.10)',
+                    borderColor: permissionGranted
+                      ? 'rgba(34,197,94,0.22)'
+                      : 'rgba(249,115,22,0.22)',
+                  },
+                ]}
+              >
+                <AppText
+                  preset="unifiedTitle"
+                  style={[
+                    styles.notificationStatusTitle,
+                    { color: permissionGranted ? '#15803D' : '#C2410C' },
+                  ]}
+                >
+                  기기 권한: {getNotificationPermissionLabel(permissionStatus)}
+                </AppText>
+                <AppText
+                  preset="unifiedBody"
+                  style={[
+                    styles.notificationSettingHelper,
+                    { color: theme.colors.textMuted },
+                  ]}
+                >
+                  권한이 꺼져 있으면 일정에는 알림값이 저장되지만 실제 기기
+                  알림은 오지 않아요.
+                </AppText>
+              </View>
+
+              {permissionGranted ? (
+                <CtaButton
+                  role="secondary"
+                  activeOpacity={0.9}
+                  style={[styles.secondaryButton, {}]}
+                  onPress={onOpenSystemSettings}
+                >
+                  <CtaText
+                    preset="unifiedLabel"
+                    style={[styles.secondaryButtonText, {}]}
+                  >
+                    시스템 알림 설정 열기
+                  </CtaText>
+                </CtaButton>
+              ) : (
+                <CtaButton
+                  role="primary"
+                  loading={loading}
+                  activeOpacity={0.9}
+                  style={[styles.primaryButton, {}]}
+                  onPress={onRequestPermission}
+                  disabled={loading}
+                >
+                  <CtaText
+                    preset="unifiedLabel"
+                    style={styles.primaryButtonText}
+                  >
+                    {loading ? '확인 중...' : '알림 권한 허용하기'}
+                  </CtaText>
+                </CtaButton>
+              )}
+
+              {settings?.canOpenExactAlarmSettings ? (
+                <CtaButton
+                  role="secondary"
+                  activeOpacity={0.9}
+                  style={[styles.secondaryButton, {}]}
+                  onPress={onOpenExactAlarmSettings}
+                  disabled={loading}
+                >
+                  <CtaText
+                    preset="unifiedLabel"
+                    style={styles.secondaryButtonText}
+                  >
+                    Android 정확 알림 설정 열기
+                  </CtaText>
+                </CtaButton>
+              ) : null}
+            </ScrollView>
+          </View>
         </View>
-      </View>
-    </Modal>
-  );
-});
+      </Modal>
+    );
+  },
+);
 
 export const PasswordChangeSuccessModal = memo(
   function PasswordChangeSuccessModal({
     visible,
     onClose,
-    accentColor,
+    accentColor: _accentColor,
   }: {
     visible: boolean;
     onClose: () => void;
@@ -1082,12 +1142,15 @@ export const PasswordChangeSuccessModal = memo(
               { backgroundColor: theme.colors.surfaceElevated },
             ]}
           >
-            <AppText typographyRole="celebration" preset="unifiedTitle"
+            <AppText
+              typographyRole="celebration"
+              preset="unifiedTitle"
               style={[styles.successTitle, { color: theme.colors.textPrimary }]}
             >
               비밀번호 변경 완료
             </AppText>
-            <AppText preset="unifiedBody"
+            <AppText
+              preset="unifiedBody"
               style={[
                 styles.successBody,
                 { color: theme.colors.textSecondary },
@@ -1095,13 +1158,16 @@ export const PasswordChangeSuccessModal = memo(
             >
               비밀번호가 성공적으로 변경되었습니다.
             </AppText>
-            <TouchableOpacity
+            <CtaButton
+              role="primary"
               activeOpacity={0.92}
-              style={[styles.primaryButton, { backgroundColor: accentColor }]}
+              style={[styles.primaryButton, {}]}
               onPress={onClose}
             >
-              <AppText preset="unifiedLabel" style={styles.primaryButtonText}>확인</AppText>
-            </TouchableOpacity>
+              <CtaText preset="unifiedLabel" style={styles.primaryButtonText}>
+                확인
+              </CtaText>
+            </CtaButton>
           </View>
         </View>
       </Modal>
@@ -1148,7 +1214,10 @@ const ProfileEditModal = memo(function ProfileEditModal({
             onClose();
           }}
         />
-        <View style={[styles.centeredModalWrap, { maxHeight: '100%' }]} pointerEvents="box-none">
+        <View
+          style={[styles.centeredModalWrap, { maxHeight: '100%' }]}
+          pointerEvents="box-none"
+        >
           <Pressable
             style={[
               styles.centeredSheetCard,
@@ -1161,7 +1230,9 @@ const ProfileEditModal = memo(function ProfileEditModal({
             onPress={Keyboard.dismiss}
           >
             <View style={styles.sheetHeader}>
-              <AppText typographyRole="sectionTitle" preset="unifiedBody"
+              <AppText
+                typographyRole="sectionTitle"
+                preset="unifiedBody"
                 style={[styles.sheetTitle, { color: theme.colors.textPrimary }]}
               >
                 닉네임 수정
@@ -1177,71 +1248,89 @@ const ProfileEditModal = memo(function ProfileEditModal({
                 accessibilityRole="button"
                 accessibilityLabel="닉네임 수정 닫기"
               >
-                <NuriSemanticIcon family="feather" name="x" size={24} color={theme.colors.textPrimary} preserveOriginal />
+                <NuriSemanticIcon
+                  family="feather"
+                  name="x"
+                  size={24}
+                  color={theme.colors.textPrimary}
+                  preserveOriginal
+                />
               </TouchableOpacity>
             </View>
 
-            <ScrollView {...scrollProps} style={styles.nicknameBody} keyboardShouldPersistTaps="handled" keyboardDismissMode="none">
-            <View style={styles.modalField}>
-              <AppText preset="unifiedLabel"
-                style={[styles.modalLabel, { color: theme.colors.textPrimary }]}
-              >
-                닉네임
-              </AppText>
-              <AppTextInput
-                value={nickname}
-                ref={nicknameRef}
-                onChangeText={onChangeNickname}
-                onFocus={() => revealInput(nicknameRef)}
-                style={[
-                  styles.nicknameInput,
-                  {
-                    backgroundColor: theme.colors.surface,
-                    color: theme.colors.textPrimary,
-                  },
-                ]}
-                placeholder="닉네임을 입력해 주세요"
-                placeholderTextColor={theme.colors.textMuted}
-                autoCapitalize="none"
-                autoCorrect={false}
-                maxLength={NICKNAME_MAX_LENGTH}
-              />
-              <AppText preset="unifiedBody"
-                style={[
-                  styles.profileHelper,
-                  helperTone === 'error'
-                    ? { color: theme.colors.danger }
-                    : helperTone === 'success'
-                    ? { color: accentColor }
-                    : { color: theme.colors.textMuted },
-                  helperTone === 'error'
-                    ? styles.profileHelperError
-                    : helperTone === 'success'
-                    ? styles.profileHelperSuccess
-                    : null,
-                ]}
-              >
-                {helperText}
-              </AppText>
-            </View>
+            <ScrollView
+              {...scrollProps}
+              style={styles.nicknameBody}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="none"
+            >
+              <View style={styles.modalField}>
+                <AppText
+                  preset="unifiedLabel"
+                  style={[
+                    styles.modalLabel,
+                    { color: theme.colors.textPrimary },
+                  ]}
+                >
+                  닉네임
+                </AppText>
+                <AppTextInput
+                  value={nickname}
+                  ref={nicknameRef}
+                  onChangeText={onChangeNickname}
+                  onFocus={() => revealInput(nicknameRef)}
+                  style={[
+                    styles.nicknameInput,
+                    {
+                      backgroundColor: theme.colors.surface,
+                      color: theme.colors.textPrimary,
+                    },
+                  ]}
+                  placeholder="닉네임을 입력해 주세요"
+                  placeholderTextColor={theme.colors.textMuted}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  maxLength={NICKNAME_MAX_LENGTH}
+                />
+                <AppText
+                  preset="unifiedBody"
+                  style={[
+                    styles.profileHelper,
+                    helperTone === 'error'
+                      ? { color: theme.colors.danger }
+                      : helperTone === 'success'
+                      ? { color: accentColor }
+                      : { color: theme.colors.textMuted },
+                    helperTone === 'error'
+                      ? styles.profileHelperError
+                      : helperTone === 'success'
+                      ? styles.profileHelperSuccess
+                      : null,
+                  ]}
+                >
+                  {helperText}
+                </AppText>
+              </View>
             </ScrollView>
 
             <View style={styles.modalCardFooter}>
-              <TouchableOpacity
+              <CtaButton
+                role="primary"
+                loading={saving}
                 activeOpacity={0.92}
                 style={[
                   styles.primaryButton,
                   styles.modalPrimaryButton,
-                  { backgroundColor: accentColor },
+                  {},
                   saving ? styles.disabledButton : null,
                 ]}
                 onPress={onSubmit}
                 disabled={saving}
               >
-                <AppText preset="unifiedLabel" style={styles.primaryButtonText}>
+                <CtaText preset="unifiedLabel" style={styles.primaryButtonText}>
                   {saving ? '저장 중...' : '수정 완료'}
-                </AppText>
-              </TouchableOpacity>
+                </CtaText>
+              </CtaButton>
             </View>
           </Pressable>
         </View>
@@ -1266,10 +1355,10 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const selectedPetId = usePetStore(s => s.selectedPetId);
   const setPets = usePetStore(s => s.setPets);
   const moreDrawerScrollOffset = useUiStore(s => s.moreDrawerScrollOffset);
-  const moreDrawerRestorePending = useUiStore(
-    s => s.moreDrawerRestorePending,
+  const moreDrawerRestorePending = useUiStore(s => s.moreDrawerRestorePending);
+  const menuScrollRef = useRef<React.ComponentRef<typeof ScrollView> | null>(
+    null,
   );
-  const menuScrollRef = useRef<React.ComponentRef<typeof ScrollView> | null>(null);
   const currentMenuScrollOffsetRef = useRef(0);
   const [menuViewportHeight, setMenuViewportHeight] = useState(0);
   const [menuContentHeight, setMenuContentHeight] = useState(0);
@@ -1378,12 +1467,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       return () => {
         cancelled = true;
       };
-    }, [
-      isLoggedIn,
-      session?.user?.id,
-      setProfile,
-      setProfileSyncState,
-    ]),
+    }, [isLoggedIn, session?.user?.id, setProfile, setProfileSyncState]),
   );
   const accountStatusNoticeConfig = useMemo(() => {
     if (accountStatusNotice === 'unknown') {
@@ -1689,11 +1773,12 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const refreshNotificationSettings = useCallback(async () => {
     setNotificationSettingsLoading(true);
     try {
-      const [permissionStatus, settings, pushLifecycleState] = await Promise.all([
-        checkScheduleNotificationPermission(),
-        getScheduleNotificationSettings(),
-        fetchPushNotificationLifecycleState().catch(() => null),
-      ]);
+      const [permissionStatus, settings, pushLifecycleState] =
+        await Promise.all([
+          checkScheduleNotificationPermission(),
+          getScheduleNotificationSettings(),
+          fetchPushNotificationLifecycleState().catch(() => null),
+        ]);
       setNotificationPermissionStatus(permissionStatus);
       setNotificationEnabled(settings.enabled);
       setNotificationSettings(settings);
@@ -1776,26 +1861,31 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     }
   }, []);
 
-  const onTogglePushNotificationOptIn = useCallback(async (enabled: boolean) => {
-    setNotificationSettingsLoading(true);
-    try {
-      const state = await setPushNotificationOptIn(enabled);
-      setPushNotificationOptInState(state.pushOptIn);
-      setPushNotificationProviderStatus(state.providerStatus);
-      showToast({
-        tone: state.pushOptIn ? 'success' : 'info',
-        title: state.pushOptIn ? '운영 알림 수신 동의 저장됨' : '운영 알림 꺼짐',
-        message: state.pushOptIn
-          ? '실제 push 발송은 아직 열지 않았고 수신 동의만 안전하게 저장했어요.'
-          : '현재 기기의 운영 알림 token lifecycle을 폐기 상태로 정리했어요.',
-      });
-    } catch (error) {
-      const { title, message } = getBrandedErrorMeta(error, 'generic');
-      showToast({ tone: 'error', title, message });
-    } finally {
-      setNotificationSettingsLoading(false);
-    }
-  }, []);
+  const onTogglePushNotificationOptIn = useCallback(
+    async (enabled: boolean) => {
+      setNotificationSettingsLoading(true);
+      try {
+        const state = await setPushNotificationOptIn(enabled);
+        setPushNotificationOptInState(state.pushOptIn);
+        setPushNotificationProviderStatus(state.providerStatus);
+        showToast({
+          tone: state.pushOptIn ? 'success' : 'info',
+          title: state.pushOptIn
+            ? '운영 알림 수신 동의 저장됨'
+            : '운영 알림 꺼짐',
+          message: state.pushOptIn
+            ? '실제 push 발송은 아직 열지 않았고 수신 동의만 안전하게 저장했어요.'
+            : '현재 기기의 운영 알림 token lifecycle을 폐기 상태로 정리했어요.',
+        });
+      } catch (error) {
+        const { title, message } = getBrandedErrorMeta(error, 'generic');
+        showToast({ tone: 'error', title, message });
+      } finally {
+        setNotificationSettingsLoading(false);
+      }
+    },
+    [],
+  );
 
   const onRequestNotificationPermission = useCallback(async () => {
     setNotificationSettingsLoading(true);
@@ -2390,20 +2480,21 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       >
         <View style={styles.headerRow}>
           <View style={styles.headerTextWrap}>
-            <AppText typographyRole="screenTitle" preset="unifiedTitle"
+            <AppText
+              typographyRole="screenTitle"
+              preset="unifiedTitle"
               style={[
                 styles.headerTitle,
                 !isLoggedIn ? styles.guestHeaderTitle : null,
                 {
-                  color: isLoggedIn
-                    ? petTheme.deep
-                    : theme.colors.brand,
+                  color: isLoggedIn ? petTheme.deep : theme.colors.brand,
                 },
               ]}
             >
               {headerTitle}
             </AppText>
-            <AppText preset="unifiedBody"
+            <AppText
+              preset="unifiedBody"
               style={[
                 styles.headerSubtitle,
                 !isLoggedIn ? styles.guestHeaderSubtitle : null,
@@ -2428,7 +2519,8 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
               <View
                 style={[styles.headerAvatarImage, styles.headerAvatarFallback]}
               >
-                <AppText preset="unifiedBody"
+                <AppText
+                  preset="unifiedBody"
                   style={[
                     styles.headerAvatarFallbackText,
                     { color: petTheme.deep },
@@ -2508,7 +2600,8 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
 
           {session?.user?.email ? (
             <View style={styles.accountMeta}>
-              <AppText preset="unifiedBody"
+              <AppText
+                preset="unifiedBody"
                 style={[
                   styles.accountMetaEmail,
                   { color: theme.colors.textSecondary },
@@ -2516,7 +2609,8 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
               >
                 {session.user.email}
               </AppText>
-              <AppText preset="unifiedBody"
+              <AppText
+                preset="unifiedBody"
                 style={[
                   styles.accountMetaText,
                   { color: theme.colors.textMuted },
@@ -2529,29 +2623,24 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
 
           {isLoggedIn ? (
             <View style={styles.bottomActions}>
-              <TouchableOpacity
+              <CtaButton
+                role="destructiveEntry"
                 testID="account-delete-entry"
                 accessibilityRole="button"
                 accessibilityLabel="회원탈퇴 확인 시작"
                 activeOpacity={0.82}
-                style={[
-                  styles.standaloneDeleteAction,
-                  { borderColor: theme.colors.border },
-                ]}
+                style={[styles.standaloneDeleteAction, {}]}
                 onPress={onPressDeleteAccount}
                 disabled={deleting}
               >
-                <Feather name="trash-2" size={16} color={theme.colors.danger} />
-                <AppText
+                <CtaIcon name="trash-2" size={16} />
+                <CtaText
                   preset="unifiedLabel"
-                  style={[
-                    styles.standaloneDeleteActionLabel,
-                    { color: theme.colors.danger },
-                  ]}
+                  style={[styles.standaloneDeleteActionLabel, {}]}
                 >
                   {deleting ? '회원탈퇴 처리 중...' : '회원탈퇴'}
-                </AppText>
-              </TouchableOpacity>
+                </CtaText>
+              </CtaButton>
             </View>
           ) : (
             <TouchableOpacity
@@ -2562,7 +2651,9 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
               ]}
               onPress={onPressLogin}
             >
-              <AppText preset="unifiedLabel" style={styles.loginButtonLabel}>로그인하러 가기</AppText>
+              <AppText preset="unifiedLabel" style={styles.loginButtonLabel}>
+                로그인하러 가기
+              </AppText>
             </TouchableOpacity>
           )}
         </ScrollView>
@@ -2628,6 +2719,9 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         }}
       />
       <ConfirmDialog
+        confirmRole="secondary"
+        cancelRole="neutral"
+        confirmLoading={loading}
         visible={logoutConfirmVisible}
         typographyMode="unified"
         title="로그아웃할까요?"
@@ -2637,13 +2731,14 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         cancelLabel="계속 머무르기"
         confirmLabel={loading ? '로그아웃 중...' : '로그아웃'}
         tone="warning"
-        accentColor={petTheme.primary}
         onCancel={() => setLogoutConfirmVisible(false)}
         onConfirm={() => {
           executeLogout().catch(() => {});
         }}
       />
       <ConfirmDialog
+        confirmRole="primary"
+        cancelRole="neutral"
         visible={deleteAcknowledgementVisible}
         typographyMode="unified"
         title="회원탈퇴 전 확인해 주세요"
@@ -2654,7 +2749,6 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         confirmLabel="다음 단계"
         confirmDisabled={!deleteAcknowledged || deleting}
         tone="danger"
-        accentColor={petTheme.primary}
         onCancel={closeDeleteAcknowledgement}
         onConfirm={continueDeleteAcknowledgement}
       >
@@ -2731,11 +2825,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
           ]}
         >
           <View style={styles.deleteGuideToggleCopy}>
-            <Feather
-              name="info"
-              size={16}
-              color={theme.colors.textSecondary}
-            />
+            <Feather name="info" size={16} color={theme.colors.textSecondary} />
             <AppText
               preset="unifiedLabel"
               style={[
@@ -2794,6 +2884,9 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         ) : null}
       </ConfirmDialog>
       <ConfirmDialog
+        confirmRole="destructiveConfirm"
+        cancelRole="neutral"
+        confirmLoading={deleting}
         visible={deleteConfirmVisible}
         typographyMode="unified"
         keyboardAware
@@ -2804,10 +2897,10 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         cancelLabel="취소"
         confirmLabel={deleting ? '탈퇴 요청 중...' : '탈퇴 요청하기'}
         confirmDisabled={
-          deleting || !isAccountDeletionConfirmationValid(deleteConfirmationText)
+          deleting ||
+          !isAccountDeletionConfirmationValid(deleteConfirmationText)
         }
         tone="danger"
-        accentColor={petTheme.primary}
         onCancel={() => {
           setDeleteConfirmVisible(false);
           setDeleteAcknowledged(false);
@@ -2818,13 +2911,15 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         }}
       >
         <View style={styles.deleteConfirmField}>
-          <AppText preset="unifiedLabel"
+          <AppText
+            preset="unifiedLabel"
             style={[
               styles.deleteConfirmLabel,
               { color: theme.colors.textMuted },
             ]}
           >
-            계속하려면 아래에 {ACCOUNT_DELETION_CONFIRMATION_TEXT}를 입력해 주세요.
+            계속하려면 아래에 {ACCOUNT_DELETION_CONFIRMATION_TEXT}를 입력해
+            주세요.
           </AppText>
           <AppTextInput
             autoCapitalize="none"
@@ -2845,6 +2940,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         </View>
       </ConfirmDialog>
       <PremiumNoticeModal
+        confirmRole="neutral"
         visible={accountStatusNoticeConfig !== null}
         typographyMode="unified"
         eyebrow={accountStatusNoticeConfig?.eyebrow ?? 'ACCOUNT STATUS'}

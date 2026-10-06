@@ -1,14 +1,18 @@
 import React from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 import Feather from '../icons/NuriFeatherIcon';
+import CtaButton from '../../app/ui/CtaButton';
+import type { CtaRole } from '../../app/theme/ctaPalette';
 
 type Props = {
   accessibilityLabel: string;
-  backgroundColor: string;
+  backgroundColor?: string;
   iconColor?: string;
   iconName?: string;
   disabled?: boolean;
   onPress: () => void;
+  role?: CtaRole;
+  loading?: boolean;
 };
 
 export default function HeaderIconActionButton({
@@ -18,7 +22,26 @@ export default function HeaderIconActionButton({
   iconName = 'plus',
   disabled = false,
   onPress,
+  role,
+  loading = false,
 }: Props) {
+  if (role) {
+    return (
+      <CtaButton
+        role={role}
+        compact
+        disabled={disabled}
+        loading={loading}
+        accessibilityLabel={accessibilityLabel}
+        style={styles.button}
+        onPress={onPress}
+      >
+        {palette => (
+          <Feather name={iconName as never} size={18} color={palette.text} />
+        )}
+      </CtaButton>
+    );
+  }
   return (
     <TouchableOpacity
       activeOpacity={0.9}

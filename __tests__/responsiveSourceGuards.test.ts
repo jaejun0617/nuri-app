@@ -14,7 +14,9 @@ describe('responsive source guards', () => {
   });
 
   it('keeps Android runtime resize signals enabled without an orientation lock', () => {
-    const manifest = readProjectFile('android/app/src/main/AndroidManifest.xml');
+    const manifest = readProjectFile(
+      'android/app/src/main/AndroidManifest.xml',
+    );
 
     expect(manifest).toContain('screenSize');
     expect(manifest).toContain('smallestScreenSize');
@@ -48,7 +50,7 @@ describe('responsive source guards', () => {
     expect(styles).toContain("textAlignVertical: 'center'");
     expect(styles).toContain('width: 44');
     expect(styles).toContain('height: 44');
-    expect(screen).toContain(
+    expect(screen.replace(/\s+/g, ' ')).toContain(
       'paddingBottom: isInline ? 8 : keyboardInset > 0 ? 6 : insets.bottom + 6',
     );
     expect(screen).toContain('hitSlop={4}');

@@ -1,9 +1,9 @@
+import CtaButton, { CtaText } from '../../../../app/ui/CtaButton';
 import React, { memo } from 'react';
 import {
   ActivityIndicator,
   Image,
   StyleSheet,
-  TouchableOpacity,
   View,
   useWindowDimensions,
   type ImageSourcePropType,
@@ -170,25 +170,22 @@ export const HomeEmptySectionState = memo(function HomeEmptySectionStateView({
           </AppText>
         </View>
       </View>
-      <TouchableOpacity
+      <CtaButton
+        role="primary"
         testID={`home-${kind}-empty-action`}
         accessibilityRole="button"
         accessibilityLabel={copy.accessibilityLabel}
         activeOpacity={0.9}
-        style={[
-          homeStyles.recordBtn,
-          styles.action,
-          { backgroundColor: accentDeepColor, shadowColor: accentDeepColor },
-        ]}
+        style={[homeStyles.recordBtn, styles.action, {}]}
         onPress={onPressAction}
       >
-        <AppText
+        <CtaText
           preset="unifiedLabel"
           style={[homeStyles.recordBtnText, styles.actionText]}
         >
           {copy.action}
-        </AppText>
-      </TouchableOpacity>
+        </CtaText>
+      </CtaButton>
     </View>
   );
 });

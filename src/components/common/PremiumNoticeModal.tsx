@@ -13,6 +13,8 @@ import {
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
+import type { CtaRole } from '../../app/theme/ctaPalette';
 import { useOptionalSafeAreaInsets } from '../../hooks/useOptionalSafeAreaInsets';
 import { getResponsiveOverlayMaxHeight } from '../../services/app/responsiveLayout';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
@@ -41,6 +43,7 @@ type Props = {
   onClose: () => void;
   onConfirm?: () => void;
   typographyMode?: 'legacy' | 'unified';
+  confirmRole?: CtaRole;
 };
 
 function withoutDecorativeEmoji(line: string) {
@@ -52,10 +55,7 @@ function withoutDecorativeEmoji(line: string) {
 }
 
 function toAccessibilityText(lines: readonly string[]) {
-  return lines
-    .map(withoutDecorativeEmoji)
-    .filter(Boolean)
-    .join(' ');
+  return lines.map(withoutDecorativeEmoji).filter(Boolean).join(' ');
 }
 
 function PremiumNoticeModalBase({
@@ -73,6 +73,7 @@ function PremiumNoticeModalBase({
   onClose,
   onConfirm,
   typographyMode = 'legacy',
+  confirmRole,
 }: Props) {
   const theme = useTheme();
   const insets = useOptionalSafeAreaInsets();
@@ -86,7 +87,8 @@ function PremiumNoticeModalBase({
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
   const selectedPet = useMemo(
-    () => pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
+    () =>
+      pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
     [pets, selectedPetId],
   );
   const petTheme = useMemo(
@@ -94,22 +96,25 @@ function PremiumNoticeModalBase({
     [selectedPet?.themeColor, theme.colors.brand],
   );
   const primaryColor = accentColor ?? petTheme.primary;
-  const textPresets = typographyMode === 'unified'
-    ? {
-        eyebrow: 'unifiedBody' as const,
-        title: 'unifiedTitle' as const,
-        body: 'unifiedBody' as const,
-        button: 'unifiedLabel' as const,
-      }
-    : {
-        eyebrow: 'caption' as const,
-        title: 'title2' as const,
-        body: 'body' as const,
-        button: 'button' as const,
-      };
+  const textPresets =
+    typographyMode === 'unified'
+      ? {
+          eyebrow: 'unifiedBody' as const,
+          title: 'unifiedTitle' as const,
+          body: 'unifiedBody' as const,
+          button: 'unifiedLabel' as const,
+        }
+      : {
+          eyebrow: 'caption' as const,
+          title: 'title2' as const,
+          body: 'body' as const,
+          button: 'button' as const,
+        };
   const handleConfirm = onConfirm ?? onClose;
   const announcementText = useMemo(() => {
-    const titleText = toAccessibilityText(accessibilityTitleLines ?? titleLines);
+    const titleText = toAccessibilityText(
+      accessibilityTitleLines ?? titleLines,
+    );
     const bodyText = toAccessibilityText(accessibilityBodyLines ?? bodyLines);
     return [titleText, bodyText].filter(Boolean).join('. ');
   }, [accessibilityBodyLines, accessibilityTitleLines, bodyLines, titleLines]);
@@ -156,75 +161,93 @@ function PremiumNoticeModalBase({
             contentContainerStyle={styles.cardContent}
             showsVerticalScrollIndicator={false}
           >
-          <AppText
-            preset={textPresets.eyebrow}
-            style={[styles.eyebrow, { color: primaryColor }]}
-          >
-            {eyebrow}
-          </AppText>
-
-          <View style={styles.copyBlock}>
-            {titleLines.map((line, index) => (
-              <AppText typographyRole="celebration"
-                key={`title-${line}-${index}`}
-                preset={textPresets.title}
-                style={[styles.title, { color: theme.colors.textPrimary }]}
-              >
-                {withoutDecorativeEmoji(line)}
-              </AppText>
-            ))}
-          </View>
-
-          <View style={styles.copyBlock}>
-            {bodyLines.map((line, index) => (
-              <AppText
-                key={`body-${line}-${index}`}
-                preset={textPresets.body}
-                style={[styles.body, { color: theme.colors.textSecondary }]}
-              >
-                {withoutDecorativeEmoji(line)}
-              </AppText>
-            ))}
-          </View>
-
-          <TouchableOpacity
-            activeOpacity={0.92}
-            onPress={handleConfirm}
-            accessibilityRole="button"
-            accessibilityLabel={confirmAccessibilityLabel ?? confirmLabel}
-            accessibilityHint={confirmAccessibilityHint}
-            style={[styles.button, { backgroundColor: primaryColor }]}
-          >
-            <AppText preset={textPresets.button} style={styles.buttonText}>
-              {confirmLabel}
+            <AppText
+              preset={textPresets.eyebrow}
+              style={[styles.eyebrow, { color: primaryColor }]}
+            >
+              {eyebrow}
             </AppText>
-          </TouchableOpacity>
 
-          {secondaryActions && secondaryActions.length > 0 ? (
-            <View style={styles.secondaryRow}>
-              {secondaryActions.map(action => (
-                <TouchableOpacity
-                  key={action.label}
-                  activeOpacity={0.88}
-                  onPress={action.onPress}
-                  style={[
-                    styles.secondaryButton,
-                    {
-                      borderColor: petTheme.border,
-                      backgroundColor: petTheme.soft,
-                    },
-                  ]}
+            <View style={styles.copyBlock}>
+              {titleLines.map((line, index) => (
+                <AppText
+                  typographyRole="celebration"
+                  key={`title-${line}-${index}`}
+                  preset={textPresets.title}
+                  style={[styles.title, { color: theme.colors.textPrimary }]}
                 >
-                  <AppText
-                    preset={textPresets.button}
-                    style={[styles.secondaryButtonText, { color: primaryColor }]}
-                  >
-                    {action.label}
-                  </AppText>
-                </TouchableOpacity>
+                  {withoutDecorativeEmoji(line)}
+                </AppText>
               ))}
             </View>
-          ) : null}
+
+            <View style={styles.copyBlock}>
+              {bodyLines.map((line, index) => (
+                <AppText
+                  key={`body-${line}-${index}`}
+                  preset={textPresets.body}
+                  style={[styles.body, { color: theme.colors.textSecondary }]}
+                >
+                  {withoutDecorativeEmoji(line)}
+                </AppText>
+              ))}
+            </View>
+
+            {confirmRole ? (
+              <CtaButton
+                role={confirmRole}
+                onPress={handleConfirm}
+                accessibilityLabel={confirmAccessibilityLabel ?? confirmLabel}
+                accessibilityHint={confirmAccessibilityHint}
+                style={styles.button}
+              >
+                <CtaText preset={textPresets.button} style={styles.buttonText}>
+                  {confirmLabel}
+                </CtaText>
+              </CtaButton>
+            ) : (
+              <TouchableOpacity
+                activeOpacity={0.92}
+                onPress={handleConfirm}
+                accessibilityRole="button"
+                accessibilityLabel={confirmAccessibilityLabel ?? confirmLabel}
+                accessibilityHint={confirmAccessibilityHint}
+                style={[styles.button, { backgroundColor: primaryColor }]}
+              >
+                <AppText preset={textPresets.button} style={styles.buttonText}>
+                  {confirmLabel}
+                </AppText>
+              </TouchableOpacity>
+            )}
+
+            {secondaryActions && secondaryActions.length > 0 ? (
+              <View style={styles.secondaryRow}>
+                {secondaryActions.map(action => (
+                  <TouchableOpacity
+                    key={action.label}
+                    activeOpacity={0.88}
+                    onPress={action.onPress}
+                    style={[
+                      styles.secondaryButton,
+                      {
+                        borderColor: petTheme.border,
+                        backgroundColor: petTheme.soft,
+                      },
+                    ]}
+                  >
+                    <AppText
+                      preset={textPresets.button}
+                      style={[
+                        styles.secondaryButtonText,
+                        { color: primaryColor },
+                      ]}
+                    >
+                      {action.label}
+                    </AppText>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : null}
           </ScrollView>
         </View>
       </View>

@@ -9,6 +9,9 @@ import {
   MonthlyDiaryEmptyState,
   styles,
 } from '../src/screens/Main/components/LoggedInHome/MonthlyDiaryEmptyState';
+import { ThemeProvider } from 'styled-components/native';
+import { createTheme } from '../src/app/theme/theme';
+import CtaButton from '../src/app/ui/CtaButton';
 import type { PetRecordsState } from '../src/store/recordStore';
 import type { SeasonKey } from '../src/theme/seasonal/season';
 
@@ -27,12 +30,14 @@ describe('seasonal monthly diary empty state', () => {
       let renderer!: TestRenderer.ReactTestRenderer;
       await act(async () => {
         renderer = TestRenderer.create(
-          <MonthlyDiaryEmptyState
-            season={season}
-            recordStatus="ready"
-            accentDeepColor="#0754DA"
-            onPressRecord={jest.fn()}
-          />,
+          <ThemeProvider theme={createTheme('light')}>
+            <MonthlyDiaryEmptyState
+              season={season}
+              recordStatus="ready"
+              accentDeepColor="#0754DA"
+              onPressRecord={jest.fn()}
+            />
+          </ThemeProvider>,
         );
       });
       const image = renderer.root.findByType(Image);
@@ -79,12 +84,14 @@ describe('seasonal monthly diary empty state', () => {
       let renderer!: TestRenderer.ReactTestRenderer;
       await act(async () => {
         renderer = TestRenderer.create(
-          <MonthlyDiaryEmptyState
-            season="spring"
-            recordStatus={recordStatus}
-            accentDeepColor="#0754DA"
-            onPressRecord={jest.fn()}
-          />,
+          <ThemeProvider theme={createTheme('light')}>
+            <MonthlyDiaryEmptyState
+              season="spring"
+              recordStatus={recordStatus}
+              accentDeepColor="#0754DA"
+              onPressRecord={jest.fn()}
+            />
+          </ThemeProvider>,
         );
       });
       expect(renderer.root.findAllByType(Image)).toHaveLength(0);
@@ -109,21 +116,26 @@ describe('seasonal monthly diary empty state', () => {
     let renderer!: TestRenderer.ReactTestRenderer;
     await act(async () => {
       renderer = TestRenderer.create(
-        <MonthlyDiaryEmptyState
-          season="autumn"
-          recordStatus="ready"
-          accentDeepColor="#0754DA"
-          onPressRecord={onPressRecord}
-        />,
+        <ThemeProvider theme={createTheme('light')}>
+          <MonthlyDiaryEmptyState
+            season="autumn"
+            recordStatus="ready"
+            accentDeepColor="#0754DA"
+            onPressRecord={onPressRecord}
+          />
+        </ThemeProvider>,
       );
     });
-    renderer.root.findByType(TouchableOpacity).props.onPress();
+    renderer.root.findByType(CtaButton).props.onPress();
     expect(onPressRecord).toHaveBeenCalledTimes(1);
-    const action = renderer.root.findByType(TouchableOpacity);
+    const action = renderer.root.findByType(CtaButton);
     expect(action.findAll(node => node.props.name === 'edit-3')).toHaveLength(
       0,
     );
-    const actionLabel = action.find(node => node.props.children === '기록하기');
+    const actionLabel = action.find(
+      node =>
+        String(node.type) === 'AppText' && node.props.children === '기록하기',
+    );
     expect(StyleSheet.flatten(actionLabel.props.style).textAlign).toBe(
       'center',
     );
@@ -131,7 +143,7 @@ describe('seasonal monthly diary empty state', () => {
       'stretch',
     );
     expect(
-      StyleSheet.flatten(renderer.root.findByType(TouchableOpacity).props.style)
+      StyleSheet.flatten(renderer.root.findByType(CtaButton).props.style)
         .height,
     ).toBe(46);
     const title = renderer.root.find(

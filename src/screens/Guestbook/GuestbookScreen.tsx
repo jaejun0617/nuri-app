@@ -1,3 +1,4 @@
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 // 파일: src/screens/Guestbook/GuestbookScreen.tsx
 // 파일 목적:
 // - 기존 공개형 방명록 placeholder를 선택 펫 기준 private letters 화면으로 전환한다.
@@ -15,7 +16,6 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -78,10 +78,13 @@ export default function GuestbookScreen() {
     navigation.navigate('PetCreate', { from: 'cta' });
   }, [navigation]);
 
-  const handleChangeDraft = useCallback((next: string) => {
-    setDraft(next);
-    if (localError) setLocalError(null);
-  }, [localError]);
+  const handleChangeDraft = useCallback(
+    (next: string) => {
+      setDraft(next);
+      if (localError) setLocalError(null);
+    },
+    [localError],
+  );
 
   const handleSubmit = useCallback(async () => {
     const validationMessage = getPrivateLetterValidationMessage(draft);
@@ -163,7 +166,8 @@ export default function GuestbookScreen() {
             subtitle="편지를 남길 아이를 먼저 등록해 주세요."
           />
           <View style={styles.emptyCard}>
-            <AppText typographyRole="celebration"
+            <AppText
+              typographyRole="celebration"
               preset="unifiedTitle"
               style={[styles.emptyTitle, { color: theme.colors.textPrimary }]}
             >
@@ -235,7 +239,10 @@ export default function GuestbookScreen() {
             <View style={styles.composerTitleWrap}>
               <AppText
                 preset="unifiedBody"
-                style={[styles.composerTitle, { color: theme.colors.textPrimary }]}
+                style={[
+                  styles.composerTitle,
+                  { color: theme.colors.textPrimary },
+                ]}
               >
                 {selectedPet.name}에게 편지 쓰기
               </AppText>
@@ -289,7 +296,8 @@ export default function GuestbookScreen() {
         </View>
 
         <View style={styles.sectionHeader}>
-          <AppText typographyRole="sectionTitle"
+          <AppText
+            typographyRole="sectionTitle"
             preset="unifiedTitle"
             style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}
           >
@@ -308,14 +316,18 @@ export default function GuestbookScreen() {
             <ActivityIndicator color={petTheme.primary} />
             <AppText
               preset="unifiedBody"
-              style={[styles.loadingText, { color: theme.colors.textSecondary }]}
+              style={[
+                styles.loadingText,
+                { color: theme.colors.textSecondary },
+              ]}
             >
               편지를 불러오는 중이에요
             </AppText>
           </View>
         ) : lettersState.error ? (
           <View style={styles.emptyCard}>
-            <AppText typographyRole="celebration"
+            <AppText
+              typographyRole="celebration"
               preset="unifiedTitle"
               style={[styles.emptyTitle, { color: theme.colors.textPrimary }]}
             >
@@ -339,7 +351,8 @@ export default function GuestbookScreen() {
           </View>
         ) : lettersState.letters.length === 0 ? (
           <View style={styles.emptyCard}>
-            <AppText typographyRole="celebration"
+            <AppText
+              typographyRole="celebration"
               preset="unifiedTitle"
               style={[styles.emptyTitle, { color: theme.colors.textPrimary }]}
             >
@@ -408,7 +421,8 @@ function PrivateLettersHeader({
       >
         {eyebrow}
       </AppText>
-      <AppText typographyRole="screenTitle"
+      <AppText
+        typographyRole="screenTitle"
         preset="unifiedTitle"
         style={[styles.title, { color: theme.colors.textPrimary }]}
       >
@@ -426,7 +440,7 @@ function PrivateLettersHeader({
 
 function PrimaryButton({
   label,
-  color,
+  color: _color,
   disabled,
   loading,
   onPress,
@@ -438,24 +452,26 @@ function PrimaryButton({
   onPress: () => void;
 }) {
   return (
-    <TouchableOpacity
+    <CtaButton
+      role="primary"
+      loading={loading}
       activeOpacity={0.86}
       disabled={disabled}
       onPress={onPress}
       style={[
         styles.primaryButton,
-        { backgroundColor: color },
+        {},
         disabled ? styles.primaryButtonDisabled : null,
       ]}
     >
       {loading ? (
         <ActivityIndicator color="#FFFFFF" size="small" />
       ) : (
-        <AppText preset="unifiedLabel" style={styles.primaryButtonText}>
+        <CtaText preset="unifiedLabel" style={styles.primaryButtonText}>
           {label}
-        </AppText>
+        </CtaText>
       )}
-    </TouchableOpacity>
+    </CtaButton>
   );
 }
 

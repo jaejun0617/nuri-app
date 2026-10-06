@@ -1,3 +1,4 @@
+import CtaButton, { CtaText, CtaIcon } from '../../app/ui/CtaButton';
 // 파일: src/screens/Records/RecordDetailScreen.tsx
 // 역할:
 // - 선택한 추억 1개를 집중해서 보여주는 상세 화면
@@ -18,7 +19,10 @@ import {
   View,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import type { CompositeNavigationProp, RouteProp } from '@react-navigation/native';
+import type {
+  CompositeNavigationProp,
+  RouteProp,
+} from '@react-navigation/native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -44,7 +48,10 @@ import { getMemoryImageRefs } from '../../services/records/imageSources';
 import { formatRecordPriceLabel } from '../../services/records/form';
 import { isHealthMemoryRecord } from '../../services/health-report/viewModel';
 import type { MemoryRecord } from '../../services/supabase/memories';
-import { deleteMemoryWithFile, fetchMemoryById } from '../../services/supabase/memories';
+import {
+  deleteMemoryWithFile,
+  fetchMemoryById,
+} from '../../services/supabase/memories';
 import { getMemoryImageSignedUrlsCached } from '../../services/supabase/storageMemories';
 import { removeTimelineWalkActivity } from '../../services/activity/timelineActivity';
 import { usePetStore } from '../../store/petStore';
@@ -99,7 +106,7 @@ const EMOTION_META: Record<
   tired: { icon: 'tired', label: '피곤해요' },
 };
 
-const FeedPostCard = memo(function FeedPostCard({
+const FeedPostCard = memo(function FeedPostCardView({
   item,
   petName,
   petAvatarUrl,
@@ -139,7 +146,9 @@ const FeedPostCard = memo(function FeedPostCard({
       );
       if (!mounted) return;
 
-      setPreviewImageSources(toPreviewImageSources(imagePaths, firstUrls, item.id));
+      setPreviewImageSources(
+        toPreviewImageSources(imagePaths, firstUrls, item.id),
+      );
 
       if (imagePaths.length <= 1) return;
 
@@ -160,7 +169,9 @@ const FeedPostCard = memo(function FeedPostCard({
             if (imagePaths.length <= DETAIL_EAGER_IMAGE_COUNT) return;
 
             delayTimer = setTimeout(() => {
-              getMemoryImageSignedUrlsCached(imagePaths.map(image => image.value))
+              getMemoryImageSignedUrlsCached(
+                imagePaths.map(image => image.value),
+              )
                 .then(allUrls => {
                   if (!mounted) return;
                   setPreviewImageSources(
@@ -172,9 +183,7 @@ const FeedPostCard = memo(function FeedPostCard({
           })
           .catch(() => {
             if (mounted) {
-              setPreviewImageSources(prev =>
-                prev.length > 0 ? prev : [],
-              );
+              setPreviewImageSources(prev => (prev.length > 0 ? prev : []));
             }
           });
       });
@@ -218,14 +227,8 @@ const FeedPostCard = memo(function FeedPostCard({
     setImageIndex(0);
   }, [imageIndex, previewImageSources.length]);
 
-  const displayDate = useMemo(
-    () => formatRecordDisplayDate(item),
-    [item],
-  );
-  const relativeTime = useMemo(
-    () => formatRecordRelativeTime(item),
-    [item],
-  );
+  const displayDate = useMemo(() => formatRecordDisplayDate(item), [item]);
+  const relativeTime = useMemo(() => formatRecordRelativeTime(item), [item]);
   const avatarFallback = useMemo(
     () => petName.trim().charAt(0) || 'N',
     [petName],
@@ -287,7 +290,10 @@ const FeedPostCard = memo(function FeedPostCard({
             />
           ) : (
             <View style={[styles.postAvatar, styles.postAvatarFallback]}>
-              <AppText preset="unifiedMeta" style={styles.postAvatarFallbackText}>
+              <AppText
+                preset="unifiedMeta"
+                style={styles.postAvatarFallbackText}
+              >
                 {avatarFallback}
               </AppText>
             </View>
@@ -327,7 +333,8 @@ const FeedPostCard = memo(function FeedPostCard({
           />
           <View style={styles.postImagePager}>
             <AppText preset="unifiedMeta" style={styles.postImagePagerText}>
-              {Math.min(imageIndex + 1, imagePaths.length)} / {imagePaths.length}
+              {Math.min(imageIndex + 1, imagePaths.length)} /{' '}
+              {imagePaths.length}
             </AppText>
           </View>
         </View>
@@ -381,7 +388,6 @@ const FeedPostCard = memo(function FeedPostCard({
         <AppText preset="unifiedMeta" style={styles.postDateText}>
           {displayDate}
         </AppText>
-
       </View>
     </View>
   );
@@ -405,9 +411,15 @@ export default function RecordDetailScreen() {
   const recordsById = useRecordStore(s => s.recordsById);
 
   const resolvedPetId = record?.petId?.trim() || petId;
-  const timelineIds = useRecordStore(s => s.selectTimelineIdsByPetId(resolvedPetId));
-  const timelineStatus = useRecordStore(s => s.selectTimelineStatusByPetId(resolvedPetId));
-  const timelineHasMore = useRecordStore(s => s.selectTimelineHasMoreByPetId(resolvedPetId));
+  const timelineIds = useRecordStore(s =>
+    s.selectTimelineIdsByPetId(resolvedPetId),
+  );
+  const timelineStatus = useRecordStore(s =>
+    s.selectTimelineStatusByPetId(resolvedPetId),
+  );
+  const timelineHasMore = useRecordStore(s =>
+    s.selectTimelineHasMoreByPetId(resolvedPetId),
+  );
   const selectedPet = useMemo(
     () => pets.find(item => item.id === resolvedPetId) ?? null,
     [pets, resolvedPetId],
@@ -424,10 +436,12 @@ export default function RecordDetailScreen() {
     () => selectedPet?.avatarUrl?.trim() || null,
     [selectedPet?.avatarUrl],
   );
-  const [hydratingMissingRecord, setHydratingMissingRecord] = useState(
-    () => Boolean(petId && memoryId && !record),
+  const [hydratingMissingRecord, setHydratingMissingRecord] = useState(() =>
+    Boolean(petId && memoryId && !record),
   );
-  const [hydrateErrorMessage, setHydrateErrorMessage] = useState<string | null>(null);
+  const [hydrateErrorMessage, setHydrateErrorMessage] = useState<string | null>(
+    null,
+  );
   const [hydrateAttempt, setHydrateAttempt] = useState(0);
 
   const isRecordMissingError = useCallback((error: unknown) => {
@@ -480,7 +494,9 @@ export default function RecordDetailScreen() {
   const [deleting, setDeleting] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [actionMenuVisible, setActionMenuVisible] = useState(false);
-  const [visibleRelatedCount, setVisibleRelatedCount] = useState(RELATED_RECORDS_PAGE_SIZE);
+  const [visibleRelatedCount, setVisibleRelatedCount] = useState(
+    RELATED_RECORDS_PAGE_SIZE,
+  );
   const openActionMenu = useCallback(() => {
     setActionMenuVisible(true);
   }, []);
@@ -499,8 +515,16 @@ export default function RecordDetailScreen() {
       petId: resolvedPetId,
       memoryId: record.id,
       entrySource: route.params?.entrySource,
+      scheduleReturn: route.params?.scheduleReturn,
     });
-  }, [closeActionMenu, navigation, record, resolvedPetId, route.params?.entrySource]);
+  }, [
+    closeActionMenu,
+    navigation,
+    record,
+    resolvedPetId,
+    route.params?.entrySource,
+    route.params?.scheduleReturn,
+  ]);
 
   const navigateToHealthReport = useCallback(() => {
     if (!resolvedPetId) return;
@@ -513,7 +537,9 @@ export default function RecordDetailScreen() {
   }, [navigation, record, resolvedPetId]);
 
   const onPressBack = useEntryAwareBackAction({
-    entrySource: route.params?.entrySource,
+    entrySource: route.params?.scheduleReturn
+      ? undefined
+      : route.params?.entrySource,
     onHome: () => {
       navigation.navigate('AppTabs', { screen: 'HomeTab' });
     },
@@ -523,6 +549,10 @@ export default function RecordDetailScreen() {
       openMoreDrawer();
     },
     onFallback: () => {
+      if (route.params?.scheduleReturn) {
+        navigation.popTo('ScheduleDetail', route.params.scheduleReturn);
+        return;
+      }
       if (navigation.canGoBack()) {
         navigation.goBack();
         return;
@@ -553,12 +583,15 @@ export default function RecordDetailScreen() {
       .filter(id => id !== record.id)
       .map(id => recordsById[id])
       .filter((item): item is MemoryRecord => Boolean(item));
-  }, [record, recordsById, timelineIds]).filter(item => !isHealthMemoryRecord(item));
+  }, [record, recordsById, timelineIds]).filter(
+    item => !isHealthMemoryRecord(item),
+  );
   const visibleRelatedRecords = useMemo(
     () => relatedRecords.slice(0, visibleRelatedCount),
     [relatedRecords, visibleRelatedCount],
   );
-  const canShowMoreRelatedRecords = visibleRelatedCount < relatedRecords.length || timelineHasMore;
+  const canShowMoreRelatedRecords =
+    visibleRelatedCount < relatedRecords.length || timelineHasMore;
 
   const onConfirmDelete = useCallback(async () => {
     if (!resolvedPetId || !record || deleting) return;
@@ -579,7 +612,9 @@ export default function RecordDetailScreen() {
       removeOneLocal(resolvedPetId, record.id);
       setDeleteModalVisible(false);
 
-      if (route.params?.entrySource === 'health_report') {
+      if (route.params?.scheduleReturn) {
+        navigation.popTo('ScheduleDetail', route.params.scheduleReturn);
+      } else if (route.params?.entrySource === 'health_report') {
         navigateToHealthReport();
       } else {
         navigation.navigate('TimelineMain', {
@@ -602,6 +637,7 @@ export default function RecordDetailScreen() {
     removeOneLocal,
     resolvedPetId,
     route.params?.entrySource,
+    route.params?.scheduleReturn,
     navigateToHealthReport,
   ]);
 
@@ -625,9 +661,15 @@ export default function RecordDetailScreen() {
         petId: resolvedPetId,
         memoryId: item.id,
         entrySource: route.params?.entrySource,
+        scheduleReturn: route.params?.scheduleReturn,
       });
     },
-    [navigation, resolvedPetId, route.params?.entrySource],
+    [
+      navigation,
+      resolvedPetId,
+      route.params?.entrySource,
+      route.params?.scheduleReturn,
+    ],
   );
 
   const handlePressMoreRelatedRecords = useCallback(() => {
@@ -672,8 +714,14 @@ export default function RecordDetailScreen() {
   if (!record && hydratingMissingRecord) {
     return (
       <View style={styles.screen}>
-        <View style={[styles.header, { paddingTop: Math.max(insets.top + 4, 14) }]}>
-          <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
+        <View
+          style={[styles.header, { paddingTop: Math.max(insets.top + 4, 14) }]}
+        >
+          <AppText
+            typographyRole="screenTitle"
+            preset="unifiedTitle"
+            style={styles.headerTitle}
+          >
             추억상세보기
           </AppText>
         </View>
@@ -684,7 +732,6 @@ export default function RecordDetailScreen() {
             기록을 불러오는 중이에요.
           </AppText>
         </View>
-
       </View>
     );
   }
@@ -693,51 +740,73 @@ export default function RecordDetailScreen() {
     if (hydrateErrorMessage) {
       return (
         <View style={styles.screen}>
-          <View style={[styles.header, { paddingTop: Math.max(insets.top + 4, 14) }]}>
-            <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
+          <View
+            style={[
+              styles.header,
+              { paddingTop: Math.max(insets.top + 4, 14) },
+            ]}
+          >
+            <AppText
+              typographyRole="screenTitle"
+              preset="unifiedTitle"
+              style={styles.headerTitle}
+            >
               추억상세보기
             </AppText>
           </View>
 
           <View style={styles.empty}>
-            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
+            <AppText
+              typographyRole="celebration"
+              preset="unifiedTitle"
+              style={styles.emptyTitle}
+            >
               기록을 불러오지 못했어요
             </AppText>
             <AppText preset="unifiedBody" style={styles.emptyDesc}>
               {hydrateErrorMessage}
             </AppText>
-            <TouchableOpacity
+            <CtaButton
+              role="primary"
               activeOpacity={0.9}
               style={styles.modalPrimaryBtn}
               onPress={retryHydrateRecord}
             >
-              <AppText preset="unifiedBody" style={styles.modalPrimaryBtnText}>
+              <CtaText preset="unifiedBody" style={styles.modalPrimaryBtnText}>
                 다시 시도
-              </AppText>
-            </TouchableOpacity>
+              </CtaText>
+            </CtaButton>
           </View>
-
         </View>
       );
     }
 
     return (
       <View style={styles.screen}>
-        <View style={[styles.header, { paddingTop: Math.max(insets.top + 4, 14) }]}>
-          <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
+        <View
+          style={[styles.header, { paddingTop: Math.max(insets.top + 4, 14) }]}
+        >
+          <AppText
+            typographyRole="screenTitle"
+            preset="unifiedTitle"
+            style={styles.headerTitle}
+          >
             추억상세보기
           </AppText>
         </View>
 
         <View style={styles.empty}>
-          <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
+          <AppText
+            typographyRole="celebration"
+            preset="unifiedTitle"
+            style={styles.emptyTitle}
+          >
             기록을 찾을 수 없어요
           </AppText>
           <AppText preset="unifiedBody" style={styles.emptyDesc}>
             목록으로 돌아가서 새로고침 해주세요.
           </AppText>
         </View>
-
       </View>
     );
   }
@@ -776,53 +845,65 @@ export default function RecordDetailScreen() {
         {renderFeedCard(record)}
 
         {route.params?.entrySource === 'health_report' ? null : (
-        <View style={styles.relatedSection}>
-          <View style={styles.relatedSectionHeader}>
-            <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={styles.relatedSectionTitle}>
-              다른 추억도 이어서 볼래요
-            </AppText>
-            <AppText preset="unifiedMeta" style={styles.relatedSectionCount}>
-              {relatedRecords.length}개
-            </AppText>
-          </View>
-
-          {visibleRelatedRecords.length > 0 ? (
-            <FlashList
-              data={visibleRelatedRecords}
-              keyExtractor={item => item.id}
-              renderItem={renderRelatedRecord}
-              scrollEnabled={false}
-              nestedScrollEnabled={false}
-              showsVerticalScrollIndicator={false}
-              removeClippedSubviews={false}
-            />
-          ) : (
-            <View style={styles.relatedEmptyCard}>
-              <AppText preset="unifiedBody" style={styles.relatedEmptyText}>
-                이어서 볼 추억이 아직 없어요.
+          <View style={styles.relatedSection}>
+            <View style={styles.relatedSectionHeader}>
+              <AppText
+                typographyRole="sectionTitle"
+                preset="unifiedTitle"
+                style={styles.relatedSectionTitle}
+              >
+                다른 추억도 이어서 볼래요
+              </AppText>
+              <AppText preset="unifiedMeta" style={styles.relatedSectionCount}>
+                {relatedRecords.length}개
               </AppText>
             </View>
-          )}
 
-          {canShowMoreRelatedRecords ? (
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={[
-                styles.relatedMoreButton,
-                { backgroundColor: petTheme.soft, borderColor: petTheme.border },
-              ]}
-              onPress={handlePressMoreRelatedRecords}
-              disabled={timelineStatus === 'loadingMore'}
-            >
-              <AppText
-                preset="unifiedBody"
-                style={[styles.relatedMoreButtonText, { color: petTheme.primary }]}
+            {visibleRelatedRecords.length > 0 ? (
+              <FlashList
+                data={visibleRelatedRecords}
+                keyExtractor={item => item.id}
+                renderItem={renderRelatedRecord}
+                scrollEnabled={false}
+                nestedScrollEnabled={false}
+                showsVerticalScrollIndicator={false}
+                removeClippedSubviews={false}
+              />
+            ) : (
+              <View style={styles.relatedEmptyCard}>
+                <AppText preset="unifiedBody" style={styles.relatedEmptyText}>
+                  이어서 볼 추억이 아직 없어요.
+                </AppText>
+              </View>
+            )}
+
+            {canShowMoreRelatedRecords ? (
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={[
+                  styles.relatedMoreButton,
+                  {
+                    backgroundColor: petTheme.soft,
+                    borderColor: petTheme.border,
+                  },
+                ]}
+                onPress={handlePressMoreRelatedRecords}
+                disabled={timelineStatus === 'loadingMore'}
               >
-                {timelineStatus === 'loadingMore' ? '더 불러오는 중...' : '더보기'}
-              </AppText>
-            </TouchableOpacity>
-          ) : null}
-        </View>
+                <AppText
+                  preset="unifiedBody"
+                  style={[
+                    styles.relatedMoreButtonText,
+                    { color: petTheme.primary },
+                  ]}
+                >
+                  {timelineStatus === 'loadingMore'
+                    ? '더 불러오는 중...'
+                    : '더보기'}
+                </AppText>
+              </TouchableOpacity>
+            ) : null}
+          </View>
         )}
       </ScrollView>
 
@@ -848,27 +929,21 @@ export default function RecordDetailScreen() {
               },
             ]}
           >
-            <TouchableOpacity
+            <CtaButton
+              role="primary"
               activeOpacity={0.9}
               style={styles.sheetActionRow}
               onPress={onPressEdit}
               disabled={deleting}
             >
-              <Feather
-                name="edit-2"
-                size={18}
-                color={theme.colors.textPrimary}
-              />
-              <AppText
+              <CtaIcon name="edit-2" size={18} />
+              <CtaText
                 preset="unifiedBody"
-                style={[
-                  styles.sheetActionText,
-                  { color: theme.colors.textPrimary },
-                ]}
+                style={[styles.sheetActionText, {}]}
               >
                 수정
-              </AppText>
-            </TouchableOpacity>
+              </CtaText>
+            </CtaButton>
 
             <View
               style={[
@@ -877,30 +952,38 @@ export default function RecordDetailScreen() {
               ]}
             />
 
-            <TouchableOpacity
+            <CtaButton
+              role="destructiveEntry"
               activeOpacity={0.9}
               style={styles.sheetActionRow}
               onPress={onPressDelete}
               disabled={deleting}
             >
-              <Feather name="trash-2" size={18} color="#FF5A5F" />
-              <AppText preset="unifiedBody" style={styles.sheetActionDeleteText}>
+              <CtaIcon name="trash-2" size={18} />
+              <CtaText
+                preset="unifiedBody"
+                style={styles.sheetActionDeleteText}
+              >
                 {deleting ? '삭제 중' : '삭제'}
-              </AppText>
-            </TouchableOpacity>
+              </CtaText>
+            </CtaButton>
           </View>
         </View>
       </Modal>
 
       <ConfirmDialog
+        confirmRole="destructiveConfirm"
+        cancelRole="neutral"
+        confirmLoading={deleting}
         visible={deleteModalVisible}
         typographyMode="unified"
         title="정말 삭제할까요?"
-        message={'삭제된 추억은 다시 복구할 수 없어요.\n신중하게 선택해 주세요.'}
+        message={
+          '삭제된 추억은 다시 복구할 수 없어요.\n신중하게 선택해 주세요.'
+        }
         cancelLabel="취소"
         confirmLabel={deleting ? '삭제 중...' : '삭제하기'}
         tone="danger"
-        accentColor={petTheme.primary}
         onCancel={() => setDeleteModalVisible(false)}
         onConfirm={() => {
           onConfirmDelete().catch(() => {});

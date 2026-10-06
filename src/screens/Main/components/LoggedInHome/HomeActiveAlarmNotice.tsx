@@ -1,13 +1,9 @@
 import React from 'react';
-import {
-  ActivityIndicator,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import Feather from '../../../../components/icons/NuriFeatherIcon';
 import { useTheme } from 'styled-components/native';
 import AppText from '../../../../app/ui/AppText';
+import CtaButton, { CtaText, CtaIcon } from '../../../../app/ui/CtaButton';
 import type { ActiveScheduleAlarm } from '../../../../services/schedules/activeAlarm';
 
 type Props = {
@@ -47,7 +43,9 @@ export default function HomeActiveAlarmNotice({
                 {alarm.body}
               </AppText>
             </View>
-            <TouchableOpacity
+            <CtaButton
+              role="neutral"
+              compact
               accessibilityRole="button"
               accessibilityLabel={`${alarm.title} 알람 중지`}
               accessibilityState={{ disabled: busy, busy }}
@@ -66,8 +64,8 @@ export default function HomeActiveAlarmNotice({
                   color={theme.colors.textPrimary}
                 />
               )}
-              <AppText preset="unifiedLabel">중지</AppText>
-            </TouchableOpacity>
+              <CtaText preset="unifiedLabel">중지</CtaText>
+            </CtaButton>
           </View>
         );
       })}
@@ -80,7 +78,9 @@ export default function HomeActiveAlarmNotice({
           >
             {error}
           </AppText>
-          <TouchableOpacity
+          <CtaButton
+            role="secondary"
+            compact
             accessibilityRole="button"
             accessibilityLabel="알람 상태 다시 확인"
             onPress={() => {
@@ -88,12 +88,8 @@ export default function HomeActiveAlarmNotice({
             }}
             style={styles.retry}
           >
-            <Feather
-              name="refresh-cw"
-              size={20}
-              color={theme.colors.textPrimary}
-            />
-          </TouchableOpacity>
+            <CtaIcon name="refresh-cw" size={20} />
+          </CtaButton>
         </View>
       ) : null}
     </View>

@@ -1,9 +1,16 @@
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 // 파일: src/screens/Notifications/UserNotificationsScreen.tsx
 // 역할:
 // - V1.1 알림 read path MVP 화면이다.
 // - push/운영자 발송 UI 없이, 로그인 사용자 자신의 앱 내부 알림과 공지만 읽고 읽음 처리한다.
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   ActivityIndicator,
   Animated as RNAnimated,
@@ -220,7 +227,11 @@ const NotificationSwipeItem = React.memo(function NotificationSwipeItem({
               <View style={styles.itemTopRow}>
                 <View style={styles.itemTitleWrap}>
                   {unread ? <View style={styles.unreadDot} /> : null}
-                  <AppText preset="unifiedBody" style={styles.itemTitle} numberOfLines={1}>
+                  <AppText
+                    preset="unifiedBody"
+                    style={styles.itemTitle}
+                    numberOfLines={1}
+                  >
                     {item.title}
                   </AppText>
                 </View>
@@ -348,48 +359,51 @@ export default function UserNotificationsScreen() {
     },
   });
 
-  const onPressNotification = useCallback(async (item: UserNotificationItem) => {
-    if (item.actionTarget?.kind === 'community_comment') {
-      navigation.navigate('CommunityDetail', {
-        postId: item.actionTarget.postId,
-        commentId: item.actionTarget.commentId,
-      });
-    }
-
-    if (item.readAt) return;
-    const optimisticReadAt = new Date().toISOString();
-    const mutationRevision = notificationDataRevisionRef.current + 1;
-    notificationDataRevisionRef.current = mutationRevision;
-    setItems(prev =>
-      prev.map(current =>
-        current.id === item.id && current.source === item.source
-          ? { ...current, readAt: optimisticReadAt }
-          : current,
-      ),
-    );
-
-    try {
-      await markUserNotificationRead({ id: item.id, source: item.source });
-    } catch (error) {
-      if (
-        !mountedRef.current ||
-        notificationDataRevisionRef.current !== mutationRevision
-      ) {
-        return;
+  const onPressNotification = useCallback(
+    async (item: UserNotificationItem) => {
+      if (item.actionTarget?.kind === 'community_comment') {
+        navigation.navigate('CommunityDetail', {
+          postId: item.actionTarget.postId,
+          commentId: item.actionTarget.commentId,
+        });
       }
+
+      if (item.readAt) return;
+      const optimisticReadAt = new Date().toISOString();
+      const mutationRevision = notificationDataRevisionRef.current + 1;
+      notificationDataRevisionRef.current = mutationRevision;
       setItems(prev =>
         prev.map(current =>
-          current.id === item.id &&
-          current.source === item.source &&
-          current.readAt === optimisticReadAt
-            ? { ...current, readAt: null }
+          current.id === item.id && current.source === item.source
+            ? { ...current, readAt: optimisticReadAt }
             : current,
         ),
       );
-      const meta = getBrandedErrorMeta(error, 'generic');
-      showToast({ tone: 'error', title: meta.title, message: meta.message });
-    }
-  }, [navigation]);
+
+      try {
+        await markUserNotificationRead({ id: item.id, source: item.source });
+      } catch (error) {
+        if (
+          !mountedRef.current ||
+          notificationDataRevisionRef.current !== mutationRevision
+        ) {
+          return;
+        }
+        setItems(prev =>
+          prev.map(current =>
+            current.id === item.id &&
+            current.source === item.source &&
+            current.readAt === optimisticReadAt
+              ? { ...current, readAt: null }
+              : current,
+          ),
+        );
+        const meta = getBrandedErrorMeta(error, 'generic');
+        showToast({ tone: 'error', title: meta.title, message: meta.message });
+      }
+    },
+    [navigation],
+  );
 
   const onDismissNotification = useCallback(
     async (item: UserNotificationItem) => {
@@ -418,8 +432,7 @@ export default function UserNotificationsScreen() {
         }
         setItems(prev => {
           const exists = prev.some(
-            current =>
-              current.id === item.id && current.source === item.source,
+            current => current.id === item.id && current.source === item.source,
           );
           return exists ? prev : [item, ...prev];
         });
@@ -508,9 +521,7 @@ export default function UserNotificationsScreen() {
   );
 
   return (
-    <View
-      style={[styles.screen, { paddingTop: Math.max(insets.top, 12) + 4 }]}
-    >
+    <View style={[styles.screen, { paddingTop: Math.max(insets.top, 12) + 4 }]}>
       <View style={styles.header}>
         <TouchableOpacity
           activeOpacity={0.88}
@@ -521,7 +532,11 @@ export default function UserNotificationsScreen() {
           <Feather name="arrow-left" size={20} color="#102033" />
         </TouchableOpacity>
         <View style={styles.headerTextWrap}>
-          <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
+          <AppText
+            typographyRole="screenTitle"
+            preset="unifiedTitle"
+            style={styles.headerTitle}
+          >
             알림함
           </AppText>
           <AppText preset="unifiedMeta" style={styles.headerSubText}>
@@ -529,19 +544,22 @@ export default function UserNotificationsScreen() {
           </AppText>
         </View>
         {items.length > 0 && !loading ? (
-          <TouchableOpacity
+          <CtaButton
+            role="cleanup"
             activeOpacity={0.86}
             accessibilityLabel="알림 전체삭제"
             accessibilityRole="button"
             style={styles.headerClearButton}
             onPress={onDismissAllNotifications}
           >
-            <AppText preset="unifiedMeta" style={styles.headerClearText}>
+            <CtaText preset="unifiedMeta" style={styles.headerClearText}>
               전체삭제
-            </AppText>
-          </TouchableOpacity>
+            </CtaText>
+          </CtaButton>
         ) : null}
-        <View style={[styles.headerBadge, { backgroundColor: theme.colors.brand }]}>
+        <View
+          style={[styles.headerBadge, { backgroundColor: theme.colors.brand }]}
+        >
           <AppText preset="unifiedMeta" style={styles.headerBadgeText}>
             {unreadCount}
           </AppText>
@@ -557,21 +575,26 @@ export default function UserNotificationsScreen() {
         </View>
       ) : errorMessage ? (
         <View style={styles.centerState}>
-          <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.centerTitle}>
+          <AppText
+            typographyRole="celebration"
+            preset="unifiedTitle"
+            style={styles.centerTitle}
+          >
             알림을 불러오지 못했어요
           </AppText>
           <AppText preset="unifiedBody" style={styles.centerText}>
             {errorMessage}
           </AppText>
-          <TouchableOpacity
+          <CtaButton
+            role="primary"
             activeOpacity={0.9}
-            style={[styles.retryButton, { backgroundColor: theme.colors.brand }]}
+            style={[styles.retryButton, {}]}
             onPress={() => load().catch(() => {})}
           >
-            <AppText preset="unifiedBody" style={styles.retryButtonText}>
+            <CtaText preset="unifiedBody" style={styles.retryButtonText}>
               다시 불러오기
-            </AppText>
-          </TouchableOpacity>
+            </CtaText>
+          </CtaButton>
         </View>
       ) : (
         <FlatList
@@ -590,7 +613,11 @@ export default function UserNotificationsScreen() {
               <View style={styles.emptyIcon}>
                 <Feather name="bell" size={24} color="#7D8798" />
               </View>
-              <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.centerTitle}>
+              <AppText
+                typographyRole="celebration"
+                preset="unifiedTitle"
+                style={styles.centerTitle}
+              >
                 아직 새 알림이 없어요
               </AppText>
               <AppText preset="unifiedBody" style={styles.centerText}>

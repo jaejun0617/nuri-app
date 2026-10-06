@@ -1,3 +1,4 @@
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import React, { memo, useCallback, useMemo, useState } from 'react';
 import {
   Alert,
@@ -48,7 +49,7 @@ const ItemSeparator = memo(function ItemSeparator() {
 const EmptyPetState = memo(function EmptyPetState({
   onPressAdd,
   accentColor,
-  accentTextColor,
+  accentTextColor: _accentTextColor,
 }: {
   onPressAdd: () => void;
   accentColor: string;
@@ -56,27 +57,31 @@ const EmptyPetState = memo(function EmptyPetState({
 }) {
   return (
     <View style={styles.emptyWrap}>
-      <View style={[styles.emptyIconWrap, { backgroundColor: `${accentColor}14` }]}>
+      <View
+        style={[styles.emptyIconWrap, { backgroundColor: `${accentColor}14` }]}
+      >
         <Feather name="heart" size={22} color={accentColor} />
       </View>
-      <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
+      <AppText
+        typographyRole="celebration"
+        preset="unifiedTitle"
+        style={styles.emptyTitle}
+      >
         아직 등록된 아이가 없어요
       </AppText>
       <AppText preset="unifiedBody" style={styles.emptyBody}>
         아이를 등록하면 홈과 기록, 일정에서 함께 관리할 수 있어요.
       </AppText>
-      <TouchableOpacity
+      <CtaButton
+        role="primary"
         activeOpacity={0.92}
-        style={[styles.addButton, { backgroundColor: accentColor }]}
+        style={[styles.addButton, {}]}
         onPress={onPressAdd}
       >
-        <AppText
-          preset="unifiedBody"
-          style={[styles.addButtonText, { color: accentTextColor }]}
-        >
+        <CtaText preset="unifiedBody" style={[styles.addButtonText, {}]}>
           아이 등록하기
-        </AppText>
-      </TouchableOpacity>
+        </CtaText>
+      </CtaButton>
     </View>
   );
 });
@@ -232,24 +237,18 @@ export default function PetManagementScreen() {
   const footer = useMemo(
     () =>
       pets.length > 0 ? (
-        <TouchableOpacity
+        <CtaButton
+          role="primary"
           activeOpacity={0.92}
-          style={[
-            styles.addButton,
-            styles.footerAddButton,
-            { backgroundColor: accentPalette.primary },
-          ]}
+          style={[styles.addButton, styles.footerAddButton, {}]}
           onPress={handleAddPet}
         >
-          <AppText
-            preset="unifiedBody"
-            style={[styles.addButtonText, { color: accentPalette.onPrimary }]}
-          >
+          <CtaText preset="unifiedBody" style={[styles.addButtonText, {}]}>
             + 아이 등록하기
-          </AppText>
-        </TouchableOpacity>
+          </CtaText>
+        </CtaButton>
       ) : null,
-    [accentPalette.onPrimary, accentPalette.primary, handleAddPet, pets.length],
+    [handleAddPet, pets.length],
   );
 
   const emptyComponent = useMemo(
@@ -287,14 +286,25 @@ export default function PetManagementScreen() {
           style={styles.backButton}
           onPress={onPressBack}
         >
-          <Feather name="arrow-left" size={20} color={theme.colors.textPrimary} />
+          <Feather
+            name="arrow-left"
+            size={20}
+            color={theme.colors.textPrimary}
+          />
         </TouchableOpacity>
 
         <View style={styles.headerTextWrap}>
-          <AppText typographyRole="screenTitle" preset="unifiedTitle" style={[styles.title, { color: theme.colors.textPrimary }]}>
+          <AppText
+            typographyRole="screenTitle"
+            preset="unifiedTitle"
+            style={[styles.title, { color: theme.colors.textPrimary }]}
+          >
             아이들 프로필 관리
           </AppText>
-          <AppText preset="unifiedMeta" style={[styles.subtitle, { color: theme.colors.textMuted }]}>
+          <AppText
+            preset="unifiedMeta"
+            style={[styles.subtitle, { color: theme.colors.textMuted }]}
+          >
             {subtitle}
           </AppText>
         </View>
@@ -326,6 +336,8 @@ export default function PetManagementScreen() {
         />
       ) : null}
       <ConfirmDialog
+        confirmRole="primary"
+        cancelRole="neutral"
         visible={lastPetGuardVisible}
         typographyMode="unified"
         title="아이 프로필을 삭제하지 못했어요"
@@ -333,7 +345,6 @@ export default function PetManagementScreen() {
         cancelLabel="돌아가기"
         confirmLabel="확인"
         tone="warning"
-        accentColor={accentPalette.primary}
         onCancel={() => setLastPetGuardVisible(false)}
         onConfirm={() => setLastPetGuardVisible(false)}
       />

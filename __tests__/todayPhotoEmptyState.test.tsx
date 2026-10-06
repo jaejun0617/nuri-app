@@ -3,6 +3,7 @@ import { Image, TouchableOpacity } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
 
+import CtaButton from '../src/app/ui/CtaButton';
 import { createTheme } from '../src/app/theme/theme';
 import {
   pickTodayPhoto,
@@ -51,13 +52,11 @@ function deferred<T>() {
 describe('Today photo confirmed-empty contract', () => {
   beforeEach(() => {
     pick.mockReset();
-    signedImage
-      .mockReset()
-      .mockReturnValue({
-        signedUrl: 'https://example.test/photo.jpg',
-        loading: false,
-        resolved: true,
-      });
+    signedImage.mockReset().mockReturnValue({
+      signedUrl: 'https://example.test/photo.jpg',
+      loading: false,
+      resolved: true,
+    });
   });
   const action = jest.fn();
   const detail = jest.fn();
@@ -90,7 +89,7 @@ describe('Today photo confirmed-empty contract', () => {
       renderer.root.findAllByProps({ testID: 'home-photo-empty' }),
     ).toHaveLength(0);
     await act(async () => wait.resolve({ record: null, mode: 'none' }));
-    const button = renderer.root.findByType(TouchableOpacity);
+    const button = renderer.root.findByType(CtaButton);
     button.props.onPress();
     expect(action).toHaveBeenCalled();
     expect(

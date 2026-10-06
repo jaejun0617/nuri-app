@@ -1,3 +1,4 @@
+import CtaButton, { CtaText, CtaIcon } from '../../app/ui/CtaButton';
 import React, {
   memo,
   Profiler,
@@ -316,17 +317,18 @@ export default function CommunityListScreen() {
   );
   const renderHeaderRight = useCallback(
     () => (
-      <TouchableOpacity
+      <CtaButton
+        role="primary"
         accessibilityRole="button"
         accessibilityLabel="게시글 작성"
         activeOpacity={0.82}
         style={styles.headerActionButton}
         onPress={handlePressCreate}
       >
-        <Feather name="edit-3" size={19} color={theme.colors.textPrimary} />
-      </TouchableOpacity>
+        <CtaIcon name="edit-3" size={19} />
+      </CtaButton>
     ),
-    [handlePressCreate, theme.colors.textPrimary],
+    [handlePressCreate],
   );
 
   useLayoutEffect(() => {
@@ -335,12 +337,7 @@ export default function CommunityListScreen() {
       headerLeft: renderHeaderLeft,
       headerRight: isCreateActionVisible ? renderHeaderRight : undefined,
     });
-  }, [
-    isCreateActionVisible,
-    navigation,
-    renderHeaderLeft,
-    renderHeaderRight,
-  ]);
+  }, [isCreateActionVisible, navigation, renderHeaderLeft, renderHeaderRight]);
 
   const handlePressFilter = useCallback(
     (filter: CommunityListFilter) => {
@@ -572,18 +569,16 @@ export default function CommunityListScreen() {
             >
               첫 번째로 공유해 보세요!
             </AppText>
-            <TouchableOpacity
+            <CtaButton
+              role="primary"
               activeOpacity={0.9}
-              style={[styles.emptyButton, { backgroundColor: petTheme.primary }]}
+              style={[styles.emptyButton, {}]}
               onPress={handlePressCreate}
             >
-              <AppText
-                preset="body"
-                style={[styles.emptyButtonText, { color: petTheme.onPrimary }]}
-              >
+              <CtaText preset="body" style={[styles.emptyButtonText, {}]}>
                 첫 글 작성하기
-              </AppText>
-            </TouchableOpacity>
+              </CtaText>
+            </CtaButton>
           </>
         ) : null}
       </View>
@@ -592,7 +587,6 @@ export default function CommunityListScreen() {
     activeFilter,
     activeCategory,
     handlePressCreate,
-    petTheme.onPrimary,
     petTheme.primary,
     theme.colors.textMuted,
     theme.colors.textPrimary,
@@ -724,18 +718,16 @@ export default function CommunityListScreen() {
           >
             {listErrorMessage ?? '잠시 후 다시 시도해 주세요.'}
           </AppText>
-          <TouchableOpacity
+          <CtaButton
+            role="primary"
             activeOpacity={0.9}
-            style={[styles.retryButton, { backgroundColor: petTheme.primary }]}
+            style={[styles.retryButton, {}]}
             onPress={handleRetry}
           >
-            <AppText
-              preset="body"
-              style={[styles.retryButtonText, { color: petTheme.onPrimary }]}
-            >
+            <CtaText preset="body" style={[styles.retryButtonText, {}]}>
               다시 시도
-            </AppText>
-          </TouchableOpacity>
+            </CtaText>
+          </CtaButton>
         </View>
       ) : (
         <View style={styles.listWrap}>
@@ -800,6 +792,8 @@ export default function CommunityListScreen() {
       )}
 
       <ConfirmDialog
+        confirmRole="neutral"
+        cancelRole="neutral"
         visible={isPageSizeModalVisible}
         title="게시글 표시 개수"
         message="한 번에 불러올 게시글 수를 선택해 주세요."
@@ -847,9 +841,7 @@ export default function CommunityListScreen() {
                 <Feather
                   name={isSelected ? 'check-circle' : 'circle'}
                   size={22}
-                  color={
-                    isSelected ? petTheme.primary : theme.colors.textMuted
-                  }
+                  color={isSelected ? petTheme.primary : theme.colors.textMuted}
                 />
               </TouchableOpacity>
             );

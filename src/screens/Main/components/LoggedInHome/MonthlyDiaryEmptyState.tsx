@@ -1,9 +1,9 @@
+import CtaButton, { CtaText } from '../../../../app/ui/CtaButton';
 import React, { memo } from 'react';
 import {
   ActivityIndicator,
   Image,
   StyleSheet,
-  TouchableOpacity,
   View,
   type ImageSourcePropType,
 } from 'react-native';
@@ -95,28 +95,22 @@ export const MonthlyDiaryEmptyState = memo(function MonthlyDiaryEmptyStateView({
           }
         </AppText>
       </View>
-      <TouchableOpacity
+      <CtaButton
+        role="primary"
         testID="monthly-diary-record-action"
         accessibilityRole="button"
         accessibilityLabel="기록하기, 기록 작성 화면 열기"
         activeOpacity={0.9}
-        style={[
-          homeStyles.recordBtn,
-          styles.recordAction,
-          {
-            backgroundColor: accentDeepColor,
-            shadowColor: accentDeepColor,
-          },
-        ]}
+        style={[homeStyles.recordBtn, styles.recordAction, {}]}
         onPress={onPressRecord}
       >
-        <AppText
+        <CtaText
           preset="unifiedLabel"
           style={[homeStyles.recordBtnText, styles.recordActionText]}
         >
           기록하기
-        </AppText>
-      </TouchableOpacity>
+        </CtaText>
+      </CtaButton>
     </View>
   );
 });

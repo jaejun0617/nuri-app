@@ -97,10 +97,12 @@ function formatScheduleSubCategory(
 
 export function formatScheduleCategoryLabel(
   schedule: Pick<PetSchedule, 'category' | 'subCategory'>,
+  options?: { omitDuplicate?: boolean },
 ): string {
   const category = formatScheduleCategory(schedule.category);
   const subCategory = formatScheduleSubCategory(schedule.subCategory);
-  return subCategory ? `${category} · ${subCategory}` : category;
+  return subCategory && !(options?.omitDuplicate && category === subCategory)
+    ? `${category} · ${subCategory}` : category;
 }
 
 function formatKoreanTime(hour: number, minute: number): string {

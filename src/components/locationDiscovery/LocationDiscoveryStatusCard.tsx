@@ -1,5 +1,7 @@
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
+import type { CtaRole } from '../../app/theme/ctaPalette';
 import React from 'react';
-import { ActivityIndicator, Linking, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Linking, View } from 'react-native';
 import Feather from '../icons/NuriFeatherIcon';
 
 import AppText from '../../app/ui/AppText';
@@ -13,6 +15,7 @@ type Props = {
   loading?: boolean;
   actionLabel?: string;
   onPressAction?: () => void;
+  actionRole?: CtaRole;
 };
 
 export function LocationDiscoveryStatusCard({
@@ -22,6 +25,7 @@ export function LocationDiscoveryStatusCard({
   loading = false,
   actionLabel,
   onPressAction,
+  actionRole = 'primary',
 }: Props) {
   return (
     <View style={styles.emptyCard}>
@@ -30,22 +34,27 @@ export function LocationDiscoveryStatusCard({
       ) : (
         <Feather name={icon as never} size={24} color="#6D6AF8" />
       )}
-      <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
+      <AppText
+        typographyRole="celebration"
+        preset="unifiedTitle"
+        style={styles.emptyTitle}
+      >
         {title}
       </AppText>
       <AppText preset="unifiedBody" style={styles.emptyDesc}>
         {body}
       </AppText>
       {actionLabel && onPressAction ? (
-        <TouchableOpacity
+        <CtaButton
+          role={actionRole}
           activeOpacity={0.9}
           style={styles.primaryActionButton}
           onPress={onPressAction}
         >
-          <AppText preset="unifiedBody" style={styles.primaryActionButtonText}>
+          <CtaText preset="unifiedBody" style={styles.primaryActionButtonText}>
             {actionLabel}
-          </AppText>
-        </TouchableOpacity>
+          </CtaText>
+        </CtaButton>
       ) : null}
     </View>
   );
@@ -53,12 +62,16 @@ export function LocationDiscoveryStatusCard({
 
 export function buildLocationPermissionCopy(
   permission: LocationPermissionStatus,
-): Pick<Props, 'title' | 'body' | 'actionLabel' | 'onPressAction'> {
+): Pick<
+  Props,
+  'title' | 'body' | 'actionLabel' | 'onPressAction' | 'actionRole'
+> {
   if (permission === 'blocked') {
     return {
       title: '위치 권한이 꺼져 있어요',
       body: '설정에서 위치 권한을 켜면 주변 추천을 더 정확하게 보여드릴 수 있어요. 검색은 계속 사용할 수 있어요.',
       actionLabel: '설정 열기',
+      actionRole: 'secondary',
       onPressAction: () => {
         Linking.openSettings().catch(() => {});
       },

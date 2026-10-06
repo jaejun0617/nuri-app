@@ -1,3 +1,4 @@
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 // 파일: src/screens/Pets/PetProfileEditDoneScreen.tsx
 // 역할:
 // - 반려동물 프로필 수정 완료 후 보여주는 확인 화면
@@ -5,7 +6,7 @@
 // - 온보딩 완료 화면과 유사한 감정선을 유지하면서 수정 흐름을 마무리
 
 import React, { useMemo } from 'react';
-import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -66,8 +67,13 @@ export default function PetProfileEditDoneScreen() {
         },
       ]}
     >
-      <Image pointerEvents="none" accessible={false} source={seasonalVisual.backgroundSource}
-        resizeMode="cover" style={StyleSheet.absoluteFill} />
+      <Image
+        pointerEvents="none"
+        accessible={false}
+        source={seasonalVisual.backgroundSource}
+        resizeMode="cover"
+        style={StyleSheet.absoluteFill}
+      />
       <View style={styles.confettiOne} />
       <View style={styles.confettiTwo} />
       <View style={styles.confettiThree} />
@@ -81,7 +87,11 @@ export default function PetProfileEditDoneScreen() {
           </View>
         </View>
 
-        <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.title}>
+        <AppText
+          typographyRole="celebration"
+          preset="unifiedTitle"
+          style={styles.title}
+        >
           프로필 수정 완료!
         </AppText>
         <AppText preset="unifiedBody" style={styles.body}>
@@ -97,11 +107,12 @@ export default function PetProfileEditDoneScreen() {
         </AppText>
       </View>
 
-      <TouchableOpacity
+      <CtaButton
+        role="primary"
         activeOpacity={0.92}
         style={[
           styles.primaryButton,
-          { backgroundColor: petTheme.primary, shadowColor: petTheme.primary },
+          {},
           { marginBottom: Math.max(insets.bottom, 0) },
         ]}
         onPress={() =>
@@ -111,10 +122,10 @@ export default function PetProfileEditDoneScreen() {
           })
         }
       >
-        <AppText preset="unifiedBody" style={styles.primaryButtonText}>
+        <CtaText preset="unifiedBody" style={styles.primaryButtonText}>
           홈으로 가기
-        </AppText>
-      </TouchableOpacity>
+        </CtaText>
+      </CtaButton>
     </View>
   );
 }

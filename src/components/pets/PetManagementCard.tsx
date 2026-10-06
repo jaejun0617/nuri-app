@@ -1,3 +1,4 @@
+import CtaButton, { CtaText, CtaIcon } from '../../app/ui/CtaButton';
 import React, { memo, useCallback, useMemo } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import Feather from '../icons/NuriFeatherIcon';
@@ -30,7 +31,8 @@ function PetManagementCardComponent({
     [pet.themeColor],
   );
   const ageLabel = useMemo(
-    () => formatPetAgeLabelFromBirthDate(pet.birthDate ?? null) ?? '나이 미입력',
+    () =>
+      formatPetAgeLabelFromBirthDate(pet.birthDate ?? null) ?? '나이 미입력',
     [pet.birthDate],
   );
   const speciesLabel = useMemo(() => {
@@ -123,26 +125,19 @@ function PetManagementCardComponent({
           </TouchableOpacity>
         )}
 
-        <TouchableOpacity
+        <CtaButton
+          role="secondary"
           activeOpacity={0.9}
-          style={[
-            styles.editButton,
-            {
-              backgroundColor: petTheme.tint,
-              borderColor: petTheme.border,
-            },
-          ]}
+          style={[styles.editButton, {}]}
           onPress={handleEdit}
         >
-          <AppText
-            preset="unifiedMeta"
-            style={[styles.editButtonText, { color: petTheme.deep }]}
-          >
+          <CtaText preset="unifiedMeta" style={[styles.editButtonText, {}]}>
             프로필 수정
-          </AppText>
-        </TouchableOpacity>
+          </CtaText>
+        </CtaButton>
 
-        <TouchableOpacity
+        <CtaButton
+          role="destructiveEntry"
           testID={`pet-delete-entry-${pet.id}`}
           accessibilityRole="button"
           accessibilityLabel={`${pet.name} 아이 프로필 삭제하기`}
@@ -151,11 +146,11 @@ function PetManagementCardComponent({
           style={styles.deleteButton}
           onPress={handleDelete}
         >
-          <Feather name="trash-2" size={13} color="#C83E4D" />
-          <AppText preset="unifiedMeta" style={styles.deleteButtonText}>
+          <CtaIcon name="trash-2" size={13} />
+          <CtaText preset="unifiedMeta" style={styles.deleteButtonText}>
             삭제하기
-          </AppText>
-        </TouchableOpacity>
+          </CtaText>
+        </CtaButton>
       </View>
     </View>
   );

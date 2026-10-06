@@ -1,13 +1,17 @@
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import React, { useCallback, useLayoutEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
   RefreshControl,
   StyleSheet,
-  TouchableOpacity,
   View,
 } from 'react-native';
-import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
+import {
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
@@ -27,7 +31,10 @@ import { openMoreDrawer, showToast } from '../../store/uiStore';
 import type { CommunityBlockedUser } from '../../types/community';
 
 type LoadStatus = 'idle' | 'loading' | 'ready' | 'error';
-type Nav = NativeStackNavigationProp<RootStackParamList, 'CommunityBlockedUsers'>;
+type Nav = NativeStackNavigationProp<
+  RootStackParamList,
+  'CommunityBlockedUsers'
+>;
 type Route = RootScreenRoute<'CommunityBlockedUsers'>;
 
 export default function CommunityBlockedUsersScreen() {
@@ -132,36 +139,25 @@ export default function CommunityBlockedUsersScreen() {
           >
             {item.nickname}
           </AppText>
-          <AppText
-            preset="caption"
-            style={{ color: theme.colors.textMuted }}
-          >
+          <AppText preset="caption" style={{ color: theme.colors.textMuted }}>
             차단한 사용자
           </AppText>
         </View>
-        <TouchableOpacity
+        <CtaButton
+          role="secondary"
           activeOpacity={0.88}
           disabled={unblockingUserId !== null}
           onPress={() => handleUnblock(item)}
-          style={[
-            styles.unblockButton,
-            {
-              borderColor: theme.colors.border,
-              opacity: unblockingUserId === item.userId ? 0.55 : 1,
-            },
-          ]}
+          style={[styles.unblockButton, {}]}
         >
           {unblockingUserId === item.userId ? (
             <ActivityIndicator size="small" color={theme.colors.textPrimary} />
           ) : (
-            <AppText
-              preset="caption"
-              style={{ color: theme.colors.textPrimary }}
-            >
+            <CtaText preset="caption" style={{}}>
               차단 해제
-            </AppText>
+            </CtaText>
           )}
-        </TouchableOpacity>
+        </CtaButton>
       </View>
     ),
     [handleUnblock, theme.colors, unblockingUserId],
@@ -199,18 +195,16 @@ export default function CommunityBlockedUsersScreen() {
           >
             {errorMessage ?? '잠시 후 다시 시도해 주세요.'}
           </AppText>
-          <TouchableOpacity
+          <CtaButton
+            role="primary"
             activeOpacity={0.88}
             onPress={() => loadBlockedUsers().catch(() => {})}
-            style={[
-              styles.retryButton,
-              { borderColor: theme.colors.border },
-            ]}
+            style={[styles.retryButton, {}]}
           >
-            <AppText preset="caption" style={{ color: theme.colors.textPrimary }}>
+            <CtaText preset="caption" style={{}}>
               다시 시도
-            </AppText>
-          </TouchableOpacity>
+            </CtaText>
+          </CtaButton>
         </View>
       </SafeAreaView>
     );

@@ -1,3 +1,4 @@
+import CtaButton, { CtaText } from '../../../../app/ui/CtaButton';
 // 파일: src/screens/Main/components/LoggedInHome/LoggedInHome.tsx
 // 목적:
 // - 로그인 홈 (LoggedInHome)
@@ -37,7 +38,11 @@ import {
   type BottomTabNavigationProp,
 } from '@react-navigation/bottom-tabs';
 import type { CompositeNavigationProp } from '@react-navigation/native';
-import { useIsFocused, useNavigation, useScrollToTop } from '@react-navigation/native';
+import {
+  useIsFocused,
+  useNavigation,
+  useScrollToTop,
+} from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from '../../../../components/icons/NuriFeatherIcon';
@@ -977,7 +982,8 @@ const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
               </AppText>
             </View>
             {items.length > 0 && !loading && !errorMessage ? (
-              <TouchableOpacity
+              <CtaButton
+                role="cleanup"
                 activeOpacity={0.86}
                 accessibilityLabel="홈 알림 모두 치우기"
                 accessibilityRole="button"
@@ -985,13 +991,13 @@ const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
                 onPress={onDismissAll}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <AppText
+                <CtaText
                   preset="unifiedLabel"
                   style={styles.notificationModalClearAllText}
                 >
                   모두 치우기
-                </AppText>
-              </TouchableOpacity>
+                </CtaText>
+              </CtaButton>
             ) : null}
             <TouchableOpacity
               activeOpacity={0.85}
@@ -1030,18 +1036,19 @@ const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
               >
                 {errorMessage}
               </AppText>
-              <TouchableOpacity
+              <CtaButton
+                role="primary"
                 activeOpacity={0.9}
                 style={styles.notificationModalRetryButton}
                 onPress={onRefresh}
               >
-                <AppText
+                <CtaText
                   preset="unifiedLabel"
                   style={styles.notificationModalRetryText}
                 >
                   다시 불러오기
-                </AppText>
-              </TouchableOpacity>
+                </CtaText>
+              </CtaButton>
             </View>
           ) : items.length === 0 ? (
             <View style={styles.notificationModalState}>
@@ -2501,30 +2508,31 @@ const RecommendationTipsSection = React.memo(
               ? undefined
               : '아이의 건강한 하루를 위한\n맞춤형 팁을 확인해보세요.'
           }
-          action={isMemorial ? undefined : {
-            onPress: onPressMore,
-            accessibilityLabel: '추천 팁 전체 보기',
-          }}
+          action={
+            isMemorial
+              ? undefined
+              : {
+                  onPress: onPressMore,
+                  accessibilityLabel: '추천 팁 전체 보기',
+                }
+          }
         />
-            {__DEV__ ? (
-              <View
-                style={[
-                  styles.guideDebugBadge,
-                  source === 'local-seed'
-                    ? styles.guideDebugBadgeSeed
-                    : source === 'remote'
-                    ? styles.guideDebugBadgeRemote
-                    : styles.guideDebugBadgeEmpty,
-                ]}
-              >
-                <AppText
-                  preset="unifiedLabel"
-                  style={styles.guideDebugBadgeText}
-                >
-                  {debugSourceLabel}
-                </AppText>
-              </View>
-            ) : null}
+        {__DEV__ ? (
+          <View
+            style={[
+              styles.guideDebugBadge,
+              source === 'local-seed'
+                ? styles.guideDebugBadgeSeed
+                : source === 'remote'
+                ? styles.guideDebugBadgeRemote
+                : styles.guideDebugBadgeEmpty,
+            ]}
+          >
+            <AppText preset="unifiedLabel" style={styles.guideDebugBadgeText}>
+              {debugSourceLabel}
+            </AppText>
+          </View>
+        ) : null}
 
         {isMemorial ? (
           <View style={styles.emptyBox}>
@@ -2648,7 +2656,10 @@ const TodayRecordsSection = React.memo(function TodayRecordsSection({
           recordStatus === 'ready',
           previewItems.length,
         )}
-        action={{ onPress: onPressTimeline, accessibilityLabel: '최근 기록 전체 보기' }}
+        action={{
+          onPress: onPressTimeline,
+          accessibilityLabel: '최근 기록 전체 보기',
+        }}
       />
       {previewItems.length === 0 ? (
         <RecentRecordsEmptyState
@@ -2749,7 +2760,10 @@ const HealthRecentActivitiesSection = React.memo(
             isReady,
             recentActivities.length,
           )}
-          action={{ onPress: onPressHealthReport, accessibilityLabel: '건강관리 전체 보기' }}
+          action={{
+            onPress: onPressHealthReport,
+            accessibilityLabel: '건강관리 전체 보기',
+          }}
         />
 
         {recentActivities.length === 0 ? (
@@ -2761,7 +2775,11 @@ const HealthRecentActivitiesSection = React.memo(
             onPressAction={onPressHealthReport}
           />
         ) : (
-          <HomeHealthActivityList items={recentActivities} accentColor={accentColor} onPress={onPressActivityItem} />
+          <HomeHealthActivityList
+            items={recentActivities}
+            accentColor={accentColor}
+            onPress={onPressActivityItem}
+          />
         )}
       </HomeSectionGlass>
     );
@@ -2853,10 +2871,14 @@ export default function LoggedInHome() {
   const insets = useSafeAreaInsets();
   const bottomTabBarHeight = useBottomTabBarHeight();
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
-  const { season: ambientSeason, setOverride: setSeasonOverride } = useSeasonPreference();
-  const setReviewSeason = useCallback((season: SeasonKey) => {
-    setSeasonOverride(season).catch(captureMonitoringException);
-  }, [setSeasonOverride]);
+  const { season: ambientSeason, setOverride: setSeasonOverride } =
+    useSeasonPreference();
+  const setReviewSeason = useCallback(
+    (season: SeasonKey) => {
+      setSeasonOverride(season).catch(captureMonitoringException);
+    },
+    [setSeasonOverride],
+  );
   // Seasonal atmosphere is independent of the approved logo, copy and Weather UI.
   const seasonalHomeVisual = useMemo(
     () => getSeasonalHomeVisual(HOME_FOREGROUND_UI_SEASON),
@@ -2898,7 +2920,8 @@ export default function LoggedInHome() {
     useState(false);
   const [profileSheetVisible, setProfileSheetVisible] = useState(false);
   const [homeViewportHeight, setHomeViewportHeight] = useState(0);
-  const [ambientSectionLayouts, setAmbientSectionLayouts] = useState<HomeAmbientSectionLayouts>({});
+  const [ambientSectionLayouts, setAmbientSectionLayouts] =
+    useState<HomeAmbientSectionLayouts>({});
   const [ambientContentY, setAmbientContentY] = useState(0);
   const [ambientLowerY, setAmbientLowerY] = useState(0);
   const seasonalHeroViewportHeight = Math.max(
@@ -3594,13 +3617,16 @@ export default function LoggedInHome() {
     });
   }, [activePetId, navigation]);
 
-  const onPressScheduleDetail = useCallback((scheduleId: string) => {
-    navigation.navigate('ScheduleDetail', {
-      petId: activePetId ?? undefined,
-      entrySource: 'home',
-      scheduleId,
-    });
-  }, [activePetId, navigation]);
+  const onPressScheduleDetail = useCallback(
+    (scheduleId: string) => {
+      navigation.navigate('ScheduleDetail', {
+        petId: activePetId ?? undefined,
+        entrySource: 'home',
+        scheduleId,
+      });
+    },
+    [activePetId, navigation],
+  );
 
   const onPressPetProfileEdit = useCallback(() => {
     if (!activePetId) return;
@@ -4158,7 +4184,10 @@ export default function LoggedInHome() {
           />
         </View>
         <View onLayout={ambientSectionLayoutHandlers['today-tip']}>
-          <TodayHomeTipSection season={ambientSeason} accentColor={petTheme.primary} />
+          <TodayHomeTipSection
+            season={ambientSeason}
+            accentColor={petTheme.primary}
+          />
         </View>
         <View onLayout={ambientSectionLayoutHandlers.diary}>
           <MonthlyDiarySection
@@ -4180,9 +4209,7 @@ export default function LoggedInHome() {
   // 10) render
   // ---------------------------------------------------------
   return (
-    <HomeSeasonProvider
-      season={HOME_FOREGROUND_UI_SEASON}
-    >
+    <HomeSeasonProvider season={HOME_FOREGROUND_UI_SEASON}>
       <Screen style={styles.screen}>
         <HomeSeasonReviewControls
           season={ambientSeason}

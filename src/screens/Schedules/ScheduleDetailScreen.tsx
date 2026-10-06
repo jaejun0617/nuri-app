@@ -1,12 +1,25 @@
+import CtaButton, { CtaText, CtaIcon } from '../../app/ui/CtaButton';
+import { shouldStackCtaPair } from '../../app/theme/ctaPalette';
 // 파일: src/screens/Schedules/ScheduleDetailScreen.tsx
 // 역할:
 // - 일정 단건 상세 조회와 완료 처리, 수정 이동, 삭제를 담당
 // - 서버 단건 조회 결과를 기준으로 상세 카드와 메타 정보를 렌더링
 // - 변경 후에는 schedule store를 갱신해 홈/목록과의 상태 일관성을 유지
 
-import React, { useCallback, useMemo, useState } from 'react';
-import { Alert, ScrollView, TouchableOpacity, View } from 'react-native';
-import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import {
+  AppState,
+  ScrollView,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+import { useTheme } from 'styled-components/native';
+import {
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -27,7 +40,7 @@ import { buildPetThemePalette } from '../../services/pets/themePalette';
 import {
   deleteSchedule,
   fetchScheduleById,
-  updateSchedule,
+  setScheduleCompletedAt,
   type PetSchedule,
 } from '../../services/supabase/schedules';
 import {
@@ -35,18 +48,41 @@ import {
   clearScheduleNotification,
   getScheduleNotificationSyncFeedback,
   upsertScheduleNotification,
+  getScheduleNotificationSettings,
+  openScheduleNotificationExactAlarmSettings,
+  openScheduleNotificationSystemSettings,
+  type ScheduleNotificationSettings,
 } from '../../services/schedules/notifications';
 import { formatReminderMinutesSummary } from '../../services/schedules/form';
 import {
   formatScheduleCategoryLabel,
-  formatScheduleDetailDate,
   mapScheduleIconName,
+  mapScheduleToMemoryCategory,
 } from '../../services/schedules/presentation';
 import { usePetStore } from '../../store/petStore';
 import { useScheduleStore } from '../../store/scheduleStore';
-import { showToast } from '../../store/uiStore';
+import { openMoreDrawer, showToast } from '../../store/uiStore';
 import { styles } from './ScheduleDetailScreen.styles';
 import { getDateYmdInKst } from '../../utils/date';
+import { useAuthStore } from '../../store/authStore';
+import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
+import { HomeAmbientBubbleCanvas } from '../Main/components/LoggedInHome/HomeAmbientBubbleCanvas';
+import { HomeFrostedGlass } from '../../components/home/HomeFrostedGlass';
+import {
+  buildScheduleDetailTime,
+  formatScheduleDetailRepeat,
+  getScheduleAlarmNotice,
+} from '../../services/schedules/detailPresentation';
+import {
+  fetchMemoryById,
+  type MemoryRecord,
+} from '../../services/supabase/memories';
+import {
+  clearScheduleRecordRecovery,
+  loadScheduleRecordRecovery,
+} from '../../services/local/recordDraft';
+import { linkScheduleRecord } from '../../services/schedules/recordLink';
+import { useRecordStore } from '../../store/recordStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'ScheduleDetail'>;
 type Route = RootScreenRoute<'ScheduleDetail'>;
@@ -84,29 +120,20 @@ function getScheduleStatusErrorMessage(error: unknown) {
 }
 
 function groupActivitiesByYmd(items: HealthReportCacheActivity[]) {
-  return items.reduce<Record<string, HealthReportCacheActivity[]>>((acc, item) => {
-    acc[item.ymd] = [...(acc[item.ymd] ?? []), item];
-    return acc;
-  }, {});
-}
-
-function formatRepeatRule(rule: PetSchedule['repeatRule']) {
-  switch (rule) {
-    case 'daily':
-      return '매일';
-    case 'weekly':
-      return '매주';
-    case 'monthly':
-      return '매월';
-    case 'yearly':
-      return '매년';
-    case 'none':
-    default:
-      return '반복 안 함';
-  }
+  return items.reduce<Record<string, HealthReportCacheActivity[]>>(
+    (acc, item) => {
+      acc[item.ymd] = [...(acc[item.ymd] ?? []), item];
+      return acc;
+    },
+    {},
+  );
 }
 
 export default function ScheduleDetailScreen() {
+  const theme = useTheme();
+  const season = useEffectiveSeason();
+  const { height, width, fontScale } = useWindowDimensions();
+  const compactMeta = width < 360 || fontScale >= 1.3;
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
@@ -119,9 +146,27 @@ export default function ScheduleDetailScreen() {
 
   const refresh = useScheduleStore(s => s.refresh);
   const pets = usePetStore(s => s.pets);
+  const userId = useAuthStore(s => s.session?.user?.id ?? null);
 
   const [schedule, setSchedule] = useState<PetSchedule | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reload, setReload] = useState(0);
+  const scheduleRequest = useMemo(
+    () => ({ scheduleId, revision: reload }),
+    [scheduleId, reload],
+  );
+  const [now, setNow] = useState(() => new Date());
+  const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
+  const alarmRequest = useRef(createLatestRequestController());
+  const [notificationSettings, setNotificationSettings] =
+    useState<ScheduleNotificationSettings | null>(null);
+  const [notificationLoading, setNotificationLoading] = useState(true);
+  const [linkedRecord, setLinkedRecord] = useState<MemoryRecord | null>(null);
+  const [pendingMemoryId, setPendingMemoryId] = useState<string | null>(null);
+  const [recordLoading, setRecordLoading] = useState(false);
+  const [recordError, setRecordError] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [completeConfirmVisible, setCompleteConfirmVisible] = useState(false);
@@ -130,12 +175,64 @@ export default function ScheduleDetailScreen() {
     message: string;
   } | null>(null);
   const selectedPet = useMemo(
-    () => pets.find(candidate => candidate.id === petId) ?? pets[0] ?? null,
-    [petId, pets],
+    () =>
+      pets.find(candidate => candidate.id === (schedule?.petId ?? petId)) ??
+      null,
+    [petId, pets, schedule?.petId],
   );
   const petTheme = useMemo(
     () => buildPetThemePalette(selectedPet?.themeColor),
     [selectedPet?.themeColor],
+  );
+  const draftScope = useMemo(
+    () =>
+      userId && schedule
+        ? { userId, petId: schedule.petId, scheduleId: schedule.id }
+        : undefined,
+    [userId, schedule],
+  );
+  const scheduleTime = schedule ? buildScheduleDetailTime(schedule, now) : null;
+  const alarmNotice =
+    schedule && !notificationLoading
+      ? getScheduleAlarmNotice(schedule, notificationSettings)
+      : null;
+
+  const readAlarmSettings = useCallback(async () => {
+    const requestId = alarmRequest.current.begin();
+    setNotificationLoading(true);
+    try {
+      const settings = await getScheduleNotificationSettings();
+      if (alarmRequest.current.isCurrent(requestId))
+        setNotificationSettings(settings);
+    } catch {
+      if (alarmRequest.current.isCurrent(requestId))
+        setNotificationSettings(null);
+    } finally {
+      if (alarmRequest.current.isCurrent(requestId))
+        setNotificationLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      const update = () => {
+        if (!active) return;
+        setNow(new Date());
+        readAlarmSettings().catch(() => {});
+      };
+      update();
+      const timer = setInterval(() => setNow(new Date()), 60000);
+      const subscription = AppState.addEventListener('change', state => {
+        if (state === 'active') update();
+      });
+      return () => {
+        active = false;
+        alarmRequest.current.cancel();
+        clearInterval(timer);
+        subscription.remove();
+      };
+    }, [readAlarmSettings]),
   );
 
   useFocusEffect(
@@ -145,12 +242,13 @@ export default function ScheduleDetailScreen() {
       async function run() {
         const requestId = request.begin();
         try {
-          const next = await fetchScheduleById(scheduleId);
+          const next = await fetchScheduleById(scheduleRequest.scheduleId);
+          if (petId && next.petId !== petId)
+            throw new Error('이 아이의 일정을 확인하지 못했어요.');
           if (request.isCurrent(requestId)) setSchedule(next);
         } catch (error: unknown) {
           if (request.isCurrent(requestId)) {
-            Alert.alert('일정 조회 실패', getErrorMessage(error));
-            navigation.goBack();
+            setLoadError(getErrorMessage(error));
           }
         } finally {
           if (request.isCurrent(requestId)) setLoading(false);
@@ -158,6 +256,8 @@ export default function ScheduleDetailScreen() {
       }
 
       setLoading(true);
+      setLoadError(null);
+      setSchedule(null);
       run().catch(() => {
         // handled inside run
       });
@@ -165,8 +265,130 @@ export default function ScheduleDetailScreen() {
       return () => {
         request.cancel();
       };
-    }, [navigation, scheduleId]),
+    }, [petId, scheduleRequest]),
   );
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      setLinkedRecord(null);
+      setPendingMemoryId(null);
+      setRecordError(false);
+      if (!schedule || !draftScope)
+        return () => {
+          active = false;
+        };
+      setRecordLoading(true);
+      const run = async () => {
+        const pending = await loadScheduleRecordRecovery(draftScope);
+        if (!active) return;
+        setPendingMemoryId(schedule.linkedMemoryId ? null : pending);
+        const memoryId = schedule.linkedMemoryId ?? pending;
+        if (memoryId) {
+          const record = await fetchMemoryById(memoryId);
+          if (record.petId !== schedule.petId)
+            throw new Error('다른 아이의 기록이에요.');
+          if (active) setLinkedRecord(record);
+        }
+        if (schedule.linkedMemoryId && pending)
+          await clearScheduleRecordRecovery(draftScope);
+      };
+      run()
+        .catch(() => {
+          if (active) setRecordError(true);
+        })
+        .finally(() => {
+          if (active) setRecordLoading(false);
+        });
+      return () => {
+        active = false;
+      };
+    }, [draftScope, schedule]),
+  );
+
+  const scheduleContext = schedule
+    ? {
+        petId: schedule.petId,
+        scheduleId: schedule.id,
+        entrySource: route.params.entrySource,
+        returnTo,
+      }
+    : null;
+
+  const onPressRecord = async () => {
+    if (!schedule || !scheduleContext || busyRef.current || recordLoading)
+      return;
+    if (recordError) {
+      setReload(value => value + 1);
+      return;
+    }
+    if (schedule.linkedMemoryId && linkedRecord) {
+      useRecordStore.getState().upsertOneLocal(schedule.petId, linkedRecord);
+      navigation.navigate('AppTabs', {
+        screen: 'TimelineTab',
+        params: {
+          screen: 'RecordDetail',
+          params: {
+            petId: schedule.petId,
+            memoryId: linkedRecord.id,
+            scheduleReturn: scheduleContext,
+          },
+        },
+      });
+      return;
+    }
+    if (!schedule.completedAt || !draftScope) return;
+    if (pendingMemoryId) {
+      busyRef.current = true;
+      setBusy(true);
+      try {
+        await linkScheduleRecord({
+          petId: schedule.petId,
+          scheduleId: schedule.id,
+          memoryId: pendingMemoryId,
+        });
+        await clearScheduleRecordRecovery(draftScope);
+        await queryClient.invalidateQueries({
+          queryKey: ['health-report', 'month', schedule.petId],
+        });
+        refresh(schedule.petId).catch(() => {});
+        setReload(value => value + 1);
+      } catch (error: unknown) {
+        setFeedbackDialog({
+          title: '기록은 보존돼요',
+          message: getErrorMessage(error),
+        });
+      } finally {
+        busyRef.current = false;
+        setBusy(false);
+      }
+      return;
+    }
+    const category = mapScheduleToMemoryCategory(schedule);
+    navigation.navigate('RecordCreate', {
+      petId: schedule.petId,
+      initialMainCategory: category.mainCategory,
+      initialOtherSubCategory: category.otherSubCategory ?? null,
+      returnTo: { tab: 'ScheduleDetail', params: scheduleContext },
+    });
+  };
+
+  const onPressAlarmSettings = async () => {
+    if (!alarmNotice) return;
+    if (alarmNotice.action === 'retry') {
+      await readAlarmSettings();
+      return;
+    }
+    if (alarmNotice.action === 'app') {
+      navigation.navigate('AppTabs', { screen: 'HomeTab' });
+      openMoreDrawer();
+    } else if (alarmNotice.action === 'exact') {
+      const opened = await openScheduleNotificationExactAlarmSettings();
+      if (!opened) openScheduleNotificationSystemSettings();
+    } else if (alarmNotice.action === 'system') {
+      openScheduleNotificationSystemSettings();
+    }
+  };
 
   const onPressEdit = useCallback(() => {
     navigation.navigate('ScheduleEdit', {
@@ -198,15 +420,20 @@ export default function ScheduleDetailScreen() {
   );
 
   const onPressDelete = useCallback(() => {
-    if (deleting) return;
+    if (busyRef.current) return;
     setDeleteConfirmVisible(true);
-  }, [deleting]);
+  }, []);
 
   const executeDelete = useCallback(async () => {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setBusy(true);
     try {
       setDeleting(true);
       setDeleteConfirmVisible(false);
-      const deletedFocusYmd = schedule ? getDateYmdInKst(schedule.startsAt) : null;
+      const deletedFocusYmd = schedule
+        ? getDateYmdInKst(schedule.startsAt)
+        : null;
       await deleteSchedule(scheduleId);
       const notificationResult = clearScheduleNotification(scheduleId);
       const notificationFeedback =
@@ -239,11 +466,22 @@ export default function ScheduleDetailScreen() {
       });
     } finally {
       setDeleting(false);
+      busyRef.current = false;
+      setBusy(false);
     }
-  }, [petId, queryClient, refresh, returnToScheduleParent, schedule, scheduleId]);
+  }, [
+    petId,
+    queryClient,
+    refresh,
+    returnToScheduleParent,
+    schedule,
+    scheduleId,
+  ]);
 
   const executeToggleComplete = useCallback(async () => {
-    if (!schedule) return;
+    if (!schedule || busyRef.current) return;
+    busyRef.current = true;
+    setBusy(true);
 
     try {
       const nextCompletedAt = schedule.completedAt
@@ -251,86 +489,83 @@ export default function ScheduleDetailScreen() {
         : buildScheduleCompletedAtForPersist(schedule.startsAt);
       const notificationLifecycle = captureScheduleNotificationLifecycle();
 
-      await updateSchedule({
+      const updated = await setScheduleCompletedAt({
         scheduleId: schedule.id,
         petId: schedule.petId,
-        title: schedule.title,
-        note: schedule.note,
-        startsAt: schedule.startsAt,
-        endsAt: schedule.endsAt,
-        allDay: schedule.allDay,
-        category: schedule.category,
-        subCategory: schedule.subCategory,
-        iconKey: schedule.iconKey,
-        colorKey: schedule.colorKey,
-        reminderMinutes: schedule.reminderMinutes,
-        repeatRule: schedule.repeatRule,
-        repeatInterval: schedule.repeatInterval,
-        repeatUntil: schedule.repeatUntil,
-        linkedMemoryId: schedule.linkedMemoryId,
-        completedAt: nextCompletedAt,
-        source: schedule.source,
-        externalCalendarId: schedule.externalCalendarId,
-        externalEventId: schedule.externalEventId,
-        syncStatus: schedule.syncStatus,
-      });
-
-      if (nextCompletedAt) {
-        const notificationResult = clearScheduleNotification(schedule.id);
-        const notificationFeedback =
-          getScheduleNotificationSyncFeedback(notificationResult);
-        if (notificationFeedback) showToast(notificationFeedback);
-      } else {
-        const notificationResult = await upsertScheduleNotification({
-          id: schedule.id,
-          petId: schedule.petId,
-          title: schedule.title,
-          note: schedule.note,
-          startsAt: schedule.startsAt,
-          repeatRule: schedule.repeatRule,
-          reminderMinutes: schedule.reminderMinutes,
-          completedAt: nextCompletedAt,
-        }, notificationLifecycle);
-        const notificationFeedback =
-          getScheduleNotificationSyncFeedback(notificationResult);
-        if (notificationFeedback) showToast(notificationFeedback);
-      }
-
-      setSchedule({
-        ...schedule,
         completedAt: nextCompletedAt,
       });
-      if (petId) {
-        await queryClient.setQueriesData<HealthReportCache>(
-          { queryKey: ['health-report', 'month', petId] },
-          current => {
-            if (!current) return current;
-            const activityItems = current.activityItems.map(item =>
-              item.source === 'schedule' && item.scheduleId === schedule.id
-                ? { ...item, completedAt: nextCompletedAt }
-                : item,
-            );
-            return {
-              ...current,
-              activityItems,
-              groupedActivities: groupActivitiesByYmd(activityItems),
-            };
-          },
-        );
-        refresh(petId).catch(() => {});
+      setSchedule(updated);
+
+      try {
+        if (nextCompletedAt) {
+          const notificationResult = clearScheduleNotification(schedule.id);
+          const notificationFeedback =
+            getScheduleNotificationSyncFeedback(notificationResult);
+          if (notificationFeedback) showToast(notificationFeedback);
+        } else {
+          const notificationResult = await upsertScheduleNotification(
+            {
+              id: updated.id,
+              petId: updated.petId,
+              title: updated.title,
+              note: updated.note,
+              startsAt: updated.startsAt,
+              repeatRule: updated.repeatRule,
+              reminderMinutes: updated.reminderMinutes,
+              completedAt: updated.completedAt,
+            },
+            notificationLifecycle,
+          );
+          const notificationFeedback =
+            getScheduleNotificationSyncFeedback(notificationResult);
+          if (notificationFeedback) showToast(notificationFeedback);
+        }
+      } catch {
+        showToast({
+          tone: 'warning',
+          title: '일정 상태는 반영됐어요',
+          message: '기기 알림 동기화는 다시 확인해 주세요.',
+        });
       }
-      returnToScheduleParent(getDateYmdInKst(schedule.startsAt));
+      await queryClient.setQueriesData<HealthReportCache>(
+        { queryKey: ['health-report', 'month', updated.petId] },
+        current => {
+          if (!current) return current;
+          const activityItems = current.activityItems.map(item =>
+            item.source === 'schedule' && item.scheduleId === schedule.id
+              ? { ...item, completedAt: nextCompletedAt }
+              : item,
+          );
+          return {
+            ...current,
+            activityItems,
+            groupedActivities: groupActivitiesByYmd(activityItems),
+          };
+        },
+      );
+      refresh(updated.petId).catch(() => {});
+      showToast({
+        tone: 'success',
+        title: nextCompletedAt ? '완료로 표시했어요' : '미완료로 변경했어요',
+        message: '일정 상태를 반영했어요.',
+      });
     } catch (error: unknown) {
       setFeedbackDialog({
         title: '상태 변경 실패',
         message: getScheduleStatusErrorMessage(error),
       });
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
     }
-  }, [petId, queryClient, refresh, returnToScheduleParent, schedule]);
+  }, [queryClient, refresh, schedule]);
 
   const onToggleComplete = useCallback(() => {
     if (!schedule) return;
-    if (!schedule.completedAt && new Date(schedule.startsAt).getTime() > Date.now()) {
+    if (
+      !schedule.completedAt &&
+      new Date(schedule.startsAt).getTime() > Date.now()
+    ) {
       setCompleteConfirmVisible(true);
       return;
     }
@@ -342,19 +577,34 @@ export default function ScheduleDetailScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
+      <View pointerEvents="none" style={styles.ambient}>
+        <HomeAmbientBubbleCanvas
+          heroHeight={height}
+          season={season}
+          decorationMode="reading"
+        />
+      </View>
       <View style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
         <View style={styles.headerSideSlot}>
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="뒤로"
+            disabled={busy}
             activeOpacity={0.88}
             style={styles.headerBackButton}
             onPress={() => navigation.goBack()}
             hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           >
-            <Feather name="arrow-left" size={20} color="#102033" />
+            <Feather name="arrow-left" size={20} color={petTheme.deep} />
           </TouchableOpacity>
         </View>
 
-        <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
+        <AppText
+          typographyRole="screenTitle"
+          preset="unifiedTitle"
+          color={theme.colors.textPrimary}
+          style={styles.headerTitle}
+        >
           일정 상세
         </AppText>
 
@@ -368,167 +618,318 @@ export default function ScheduleDetailScreen() {
       >
         {!schedule || loading ? (
           <View style={styles.emptyCard}>
-            <AppText preset="unifiedBody" style={styles.emptyText}>
-              일정을 불러오는 중이에요.
+            <AppText preset="unifiedBody" color={theme.colors.textSecondary}>
+              {loadError ?? '일정을 불러오는 중이에요.'}
             </AppText>
+            {loadError ? (
+              <CtaButton
+                role="primary"
+                accessibilityRole="button"
+                style={styles.alarmAction}
+                onPress={() => setReload(value => value + 1)}
+              >
+                <CtaText preset="unifiedLabel">다시 확인</CtaText>
+              </CtaButton>
+            ) : null}
           </View>
         ) : (
           <>
-          <View style={[styles.hero, { backgroundColor: petTheme.tint, borderColor: petTheme.border }]}>
-            <View style={[styles.iconWrap, { backgroundColor: petTheme.soft }]}>
-              <NuriSemanticIcon
-                family="material"
-                name={mapScheduleIconName(schedule.iconKey)}
-                size={24}
-                color={petTheme.primary}
-              />
-            </View>
-            <View style={styles.heroTextWrap}>
-              <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.title}>
-                {schedule.title}
-              </AppText>
-              <View
-                style={[
-                  styles.statusBadge,
-                  {
-                    backgroundColor: schedule.completedAt
-                      ? 'rgba(34,197,94,0.12)'
-                      : `${petTheme.primary}12`,
-                  },
-                ]}
-              >
+            <View style={styles.hero}>
+              <View style={styles.iconWrap}>
+                <NuriSemanticIcon
+                  family="material"
+                  name={mapScheduleIconName(schedule.iconKey)}
+                  size={40}
+                  color={petTheme.primary}
+                />
+              </View>
+              <View style={styles.heroTextWrap}>
                 <AppText
                   preset="unifiedMeta"
-                  style={[
-                    styles.statusBadgeText,
-                    {
-                      color: schedule.completedAt ? '#15803D' : petTheme.primary,
-                    },
-                  ]}
+                  color={theme.colors.textSecondary}
                 >
-                  {schedule.completedAt ? '완료됨' : '진행 중'}
+                  {selectedPet?.name?.trim()
+                    ? `${selectedPet.name.trim()}의 일정`
+                    : '우리 아이의 일정'}
+                </AppText>
+                <AppText
+                  preset="cardTitle"
+                  color={theme.colors.textPrimary}
+                  style={styles.title}
+                >
+                  {schedule.title}
+                </AppText>
+                <AppText
+                  preset="unifiedMeta"
+                  color={
+                    schedule.completedAt
+                      ? theme.colors.textSecondary
+                      : petTheme.deep
+                  }
+                >
+                  {schedule.completedAt ? '완료됨' : '미완료'}
                 </AppText>
               </View>
             </View>
-          </View>
 
-          <View style={styles.section}>
-            <View style={styles.metaBlock}>
-              <AppText preset="unifiedMeta" style={styles.metaLabel}>
-                일정 시간
-              </AppText>
-              <AppText preset="unifiedBody" style={styles.metaValue}>
-                {formatScheduleDetailDate(schedule)}
-              </AppText>
-            </View>
-
-            <View style={styles.metaBlock}>
-              <AppText preset="unifiedMeta" style={styles.metaLabel}>
-                카테고리
-              </AppText>
-              <AppText preset="unifiedBody" style={styles.metaValue}>
-                {formatScheduleCategoryLabel(schedule)}
-              </AppText>
-            </View>
-
-            <View style={styles.metaBlock}>
-              <AppText preset="unifiedMeta" style={styles.metaLabel}>
-                반복
-              </AppText>
-              <AppText preset="unifiedBody" style={styles.metaValue}>
-                {formatRepeatRule(schedule.repeatRule)}
-              </AppText>
-            </View>
-
-            <View style={styles.metaBlock}>
-              <AppText preset="unifiedMeta" style={styles.metaLabel}>
-                알림
-              </AppText>
-              <AppText preset="unifiedBody" style={styles.metaValue}>
-                {formatReminder(schedule.reminderMinutes)}
-              </AppText>
-            </View>
-
-            <View style={styles.metaBlock}>
-              <AppText preset="unifiedMeta" style={styles.metaLabel}>
-                완료 상태
-              </AppText>
-              <AppText preset="unifiedBody" style={styles.metaValue}>
-                {schedule.completedAt ? '완료됨' : '진행 중'}
-              </AppText>
-            </View>
-          </View>
-
-          <View style={styles.section}>
-            <View style={styles.metaBlock}>
-              <AppText preset="unifiedMeta" style={styles.metaLabel}>
-                메모
-              </AppText>
-              <AppText preset="unifiedBody" style={styles.metaValue}>
-                {schedule.note?.trim() || '남겨둔 메모가 없어요.'}
-              </AppText>
-            </View>
-          </View>
-
-          <View style={styles.actions}>
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={[styles.primaryBtn, { backgroundColor: petTheme.primary }]}
-              onPress={onPressEdit}
+            <HomeFrostedGlass
+              testID="schedule-detail-glass"
+              season={season}
+              style={styles.glass}
             >
-              <Feather name="edit-2" size={16} color="#FFFFFF" />
-              <AppText preset="unifiedBody" style={styles.primaryBtnText}>
-                일정 수정하기
-              </AppText>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={[
-                styles.secondaryBtn,
+              <View style={styles.dateBlock}>
+                <AppText
+                  preset="unifiedMeta"
+                  color={theme.colors.textSecondary}
+                >
+                  {scheduleTime?.context ?? '일정 시간'}
+                </AppText>
+                <AppText
+                  preset="unifiedTitle"
+                  color={theme.colors.textPrimary}
+                  style={styles.dateTitle}
+                >
+                  {scheduleTime?.date ?? '날짜 확인 필요'}
+                </AppText>
+                <AppText
+                  preset="cardTitle"
+                  color={theme.colors.textPrimary}
+                  style={styles.timeTitle}
+                >
+                  {scheduleTime?.time ?? '시간 확인 필요'}
+                </AppText>
+                {scheduleTime ? (
+                  <AppText
+                    preset="unifiedMeta"
+                    color={theme.colors.textSecondary}
+                  >
+                    {scheduleTime.year}
+                  </AppText>
+                ) : null}
+              </View>
+              <View style={styles.divider} />
+              {[
                 {
-                  backgroundColor: schedule.completedAt
-                    ? '#F3F4F6'
-                    : petTheme.tint,
+                  label: '분류',
+                  value: formatScheduleCategoryLabel(schedule, {
+                    omitDuplicate: true,
+                  }),
                 },
-              ]}
-              onPress={onToggleComplete}
-            >
-              <AppText
-                preset="unifiedBody"
+                { label: '반복', value: formatScheduleDetailRepeat(schedule) },
+                {
+                  label: '알림',
+                  value: formatReminder(schedule.reminderMinutes),
+                },
+              ].map(item => (
+                <View
+                  key={item.label}
+                  style={[styles.metaRow, compactMeta && styles.metaRowCompact]}
+                >
+                  <AppText
+                    preset="unifiedMeta"
+                    color={theme.colors.textSecondary}
+                    style={styles.metaLabel}
+                  >
+                    {item.label}
+                  </AppText>
+                  <AppText
+                    preset="unifiedBody"
+                    color={theme.colors.textPrimary}
+                    style={[
+                      styles.metaValue,
+                      compactMeta && styles.metaValueCompact,
+                    ]}
+                  >
+                    {item.value}
+                  </AppText>
+                </View>
+              ))}
+              {alarmNotice ? (
+                <View
+                  style={styles.alarmNotice}
+                  accessibilityLiveRegion="polite"
+                >
+                  <AppText preset="unifiedMeta" color={petTheme.deep}>
+                    {alarmNotice.message}
+                  </AppText>
+                  {alarmNotice.action ? (
+                    <CtaButton
+                      role="secondary"
+                      accessibilityRole="button"
+                      testID="schedule-detail-alarm-settings"
+                      style={styles.alarmAction}
+                      onPress={() => {
+                        onPressAlarmSettings().catch(() =>
+                          setFeedbackDialog({
+                            title: '알림 설정 확인',
+                            message:
+                              '설정을 열지 못했어요. 잠시 후 다시 확인해 주세요.',
+                          }),
+                        );
+                      }}
+                    >
+                      <CtaText preset="unifiedLabel">
+                        {alarmNotice.action === 'app'
+                          ? '전체메뉴에서 알림 설정 확인'
+                          : '알림 설정 확인'}
+                      </CtaText>
+                    </CtaButton>
+                  ) : null}
+                </View>
+              ) : null}
+              <View style={styles.divider} />
+              <View style={styles.memo}>
+                <AppText
+                  preset="unifiedMeta"
+                  color={theme.colors.textSecondary}
+                >
+                  메모
+                </AppText>
+                <AppText preset="unifiedBody" color={theme.colors.textPrimary}>
+                  {schedule.note?.trim() || '남겨둔 메모가 없어요.'}
+                </AppText>
+              </View>
+            </HomeFrostedGlass>
+
+            {schedule.completedAt ||
+            schedule.linkedMemoryId ||
+            pendingMemoryId ? (
+              <View style={styles.linkedSection}>
+                <AppText
+                  preset="unifiedLabel"
+                  color={theme.colors.textSecondary}
+                >
+                  연결된 기록
+                </AppText>
+                <CtaButton
+                  role="secondary"
+                  loading={recordLoading}
+                  testID="schedule-detail-record"
+                  accessibilityRole="button"
+                  disabled={
+                    busy ||
+                    recordLoading ||
+                    (!schedule.completedAt && !schedule.linkedMemoryId)
+                  }
+                  style={[
+                    styles.linkedAction,
+                    (busy || recordLoading) && styles.disabled,
+                  ]}
+                  onPress={() => {
+                    onPressRecord().catch(() =>
+                      setFeedbackDialog({
+                        title: '기록 확인',
+                        message:
+                          '기록을 열지 못했어요. 잠시 후 다시 확인해 주세요.',
+                      }),
+                    );
+                  }}
+                >
+                  <View style={styles.linkedText}>
+                    <CtaText preset="unifiedLabel">
+                      {recordLoading
+                        ? '기록 확인 중'
+                        : recordError
+                        ? '연결된 기록 다시 확인'
+                        : schedule.linkedMemoryId
+                        ? '기록 보기'
+                        : pendingMemoryId
+                        ? '기록 연결 다시 시도'
+                        : '기록으로 남기기'}
+                    </CtaText>
+                    <CtaText preset="unifiedMeta">
+                      {recordError
+                        ? '기록을 불러오지 못했어요.'
+                        : linkedRecord?.title ??
+                          (pendingMemoryId
+                            ? '저장한 기록은 보존돼요.'
+                            : '아직 연결된 기록이 없어요.')}
+                    </CtaText>
+                  </View>
+                  <CtaIcon name="chevron-right" size={20} />
+                </CtaButton>
+              </View>
+            ) : null}
+
+            <View style={styles.actions}>
+              <CtaButton
+                role="primary"
+                testID="schedule-detail-edit"
+                accessibilityRole="button"
+                disabled={busy}
+                activeOpacity={0.9}
+                style={styles.primaryBtn}
+                onPress={onPressEdit}
+              >
+                <CtaText preset="unifiedBody" style={styles.primaryBtnText}>
+                  일정 수정하기
+                </CtaText>
+              </CtaButton>
+
+              <View
+                testID="schedule-detail-secondary-actions"
                 style={[
-                  styles.secondaryBtnText,
-                  { color: schedule.completedAt ? '#475569' : petTheme.primary },
+                  styles.actionPair,
+                  shouldStackCtaPair(width, fontScale) &&
+                    styles.actionPairStack,
                 ]}
               >
-                {schedule.completedAt ? '완료 해제' : '일정 완료 처리'}
-              </AppText>
-            </TouchableOpacity>
+                <CtaButton
+                  role="secondary"
+                  loading={busy}
+                  testID="schedule-detail-complete"
+                  accessibilityRole="button"
+                  disabled={busy}
+                  activeOpacity={0.9}
+                  style={[
+                    styles.secondaryBtn,
+                    !shouldStackCtaPair(width, fontScale) && styles.pairButton,
+                  ]}
+                  onPress={onToggleComplete}
+                >
+                  <CtaText preset="unifiedBody" style={styles.secondaryBtnText}>
+                    {busy
+                      ? '반영 중...'
+                      : schedule.completedAt
+                      ? '미완료로 변경'
+                      : '완료로 표시'}
+                  </CtaText>
+                </CtaButton>
 
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={styles.deleteBtn}
-              onPress={onPressDelete}
-            >
-              <AppText preset="unifiedBody" style={styles.deleteBtnText}>
-                {deleting ? '삭제 중...' : '일정 삭제'}
-              </AppText>
-            </TouchableOpacity>
-          </View>
+                <CtaButton
+                  role="destructiveEntry"
+                  loading={deleting}
+                  testID="schedule-detail-delete"
+                  accessibilityRole="button"
+                  disabled={busy}
+                  activeOpacity={0.9}
+                  style={[
+                    styles.deleteBtn,
+                    !shouldStackCtaPair(width, fontScale) && styles.pairButton,
+                  ]}
+                  onPress={onPressDelete}
+                >
+                  <CtaText preset="unifiedBody" style={styles.deleteBtnText}>
+                    {deleting ? '삭제 중...' : '일정 삭제'}
+                  </CtaText>
+                </CtaButton>
+              </View>
+            </View>
           </>
         )}
       </ScrollView>
       <ConfirmDialog
+        confirmRole="primary"
+        cancelRole="neutral"
         visible={completeConfirmVisible}
         typographyMode="unified"
         title="지금 일정 마침으로 정리할까요?"
         message={
-          '아직 일정 시간이 남아 있어도 건강관리에서 먼저 마친 일정으로 정리할 수 있어요.\n확인을 누르면 바로 완료 상태로 바뀌고 리스트에서도 정리됩니다.'
+          '아직 일정 시간이 남아 있어요. 먼저 마친 일정이라면 완료로 표시할 수 있어요.\n예약된 일정 알림은 해제되며, 기록은 자동으로 생성되지 않아요.'
         }
         confirmLabel="완료로 정리"
         cancelLabel="계속 보기"
         tone="warning"
-        accentColor={petTheme.primary}
         onCancel={() => setCompleteConfirmVisible(false)}
         onConfirm={() => {
           setCompleteConfirmVisible(false);
@@ -536,20 +937,26 @@ export default function ScheduleDetailScreen() {
         }}
       />
       <ConfirmDialog
+        confirmRole="destructiveConfirm"
+        cancelRole="neutral"
+        confirmLoading={deleting}
         visible={deleteConfirmVisible}
         typographyMode="unified"
         title="일정을 삭제할까요?"
-        message={'이 일정은 목록과 홈 카드에서 함께 사라지며\n삭제 후에는 다시 되돌릴 수 없어요.'}
+        message={
+          '이 일정은 목록과 홈 카드에서 함께 사라지며\n삭제 후에는 다시 되돌릴 수 없어요.'
+        }
         cancelLabel="계속 유지하기"
         confirmLabel={deleting ? '삭제 중...' : '일정 삭제'}
         tone="danger"
-        accentColor={petTheme.primary}
         onCancel={() => setDeleteConfirmVisible(false)}
         onConfirm={() => {
           executeDelete().catch(() => {});
         }}
       />
       <ConfirmDialog
+        confirmRole="primary"
+        cancelRole="neutral"
         visible={feedbackDialog !== null}
         typographyMode="unified"
         title={feedbackDialog?.title ?? '안내'}
@@ -557,7 +964,6 @@ export default function ScheduleDetailScreen() {
         confirmLabel="확인"
         cancelLabel="닫기"
         tone="warning"
-        accentColor={petTheme.primary}
         onCancel={() => setFeedbackDialog(null)}
         onConfirm={() => setFeedbackDialog(null)}
       />

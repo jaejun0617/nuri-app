@@ -1,4 +1,42 @@
 # V1.0 Remaining Task/Risk Closeout
+<!-- NURI_GLOBAL_CTA_APPROVAL_20261006_BEGIN -->
+## 2026-10-06 Global CTA Final PO Approval and Freeze
+
+- [x] PO final approval received for the reported candidate; selective commit/push and freeze authorized. Earlier candidate approval-pending items are history.
+- [x] Preserve validated runtime, tests and installed candidate `7cd74281`; no new tests/build/install/device operations/remote deployment or cleanup in this closeout.
+- [x] Include direct schedule-detail dependencies with CTA changes; exclude unrelated dirty and shared-document sections. Git outcome belongs to `/private/tmp/nuri-global-cta-approval-closeout-20261006-194340/FINAL_REPORT.md`.
+- [ ] Known limitations remain unfixed: duplicate solid Primary on empty Timeline; intermittent first-entry schedule-detail compositing/contrast failure. Final PO approval does not change the technical native result to PASS.
+- [ ] Previously unexecuted mutation/iOS/long-term QA remain unverified. No automatic corrective execution or Store authorization.
+- [x] AUTH/Weather/API frozen, QA/evidence/APK/build cache preserved. NEXT_STATE=WAITING_FOR_PO_NEXT_DESIGN_DIRECTION; Store HOLD.
+- Approval contract: `docs/qa/nuri-global-cta-final-approval-2026-10-06.md`.
+<!-- NURI_GLOBAL_CTA_APPROVAL_20261006_END -->
+
+<!-- NURI_GLOBAL_CTA_20261006_BEGIN -->
+## 2026-10-06 Global Role-Based CTA PO Candidate
+
+- [x] Typed role + global effectiveSeason; autumn #B95000; seasonal Primary separated from personal pet theme.
+- [x] Schedule detail Edit/Complete/Delete entry hierarchy, explicit confirm/cancel roles, neutral draft-preserving exit/logout, cleanup distinct from final deletion.
+- [x] Shared opt-in preserves AUTH/Weather/admin/onboarding/PetCreate, native Alert appearance, backgrounds/glass/icons/personalization and existing callback contract.
+- [x] TypeScript PASS; scoped lint 0 errors, 33 unchanged baseline warnings; targeted 13 suites/112 tests PASS. Final full run 179 suites/1,759 tests PASS after test compatibility repair; 2 full executions in total, initial failure retained.
+- [x] Incremental Release/install-r once each PASS; 212.787s, 61 executed/934 up-to-date; installed candidate SHA `7cd74281`, signature/input/source and UID/first install preserved.
+- [x] Native seasonal matrix 16 verified views, final-delete dialog opened/cancelled, dedicated disabled state, 360dp/system fontScale 1.5 stacked detail actions; original season/density/font restored. No destructive mutation; bounded QA FATAL/ANR/RN_FATAL 0.
+- [ ] Corrective: Timeline empty CTA and floating CTA are both solid Primary. Detail first-entry native compositing can wash out the palette (observed 2.66~3.02:1); re-entry is not a fix. Additional execution awaits PO response. Overall native acceptance is not PASS.
+- [ ] PO visual approval and subsequent selective Git closeout. No staging/commit/push/cleanup/Store; preserve QA/unrelated dirty/protected evidence/build cache.
+- Contract `docs/domains/cta-role-system.md`; evidence `/private/tmp/nuri-global-cta-role-system-20261006-183103/FINAL_REPORT.md`.
+<!-- NURI_GLOBAL_CTA_20261006_END -->
+
+<!-- NURI_SCHEDULE_DETAIL_20261006_BEGIN -->
+## 2026-10-06 Schedule Detail Installed PO Candidate
+
+- [x] Approved detail redesign: exact ScheduleList seasonal reading canvas, Home frosted material, date-first hierarchy, compact metadata/memo, original icon color and no pencil on Edit.
+- [x] Partial completion update, no automatic record creation, explicit schedule-origin RecordCreate, scoped drafts/pending link recovery and schedule-aware record return. Existing DB/RLS/FK contract reused; no migration/policy/Edge/QA data mutation.
+- [x] TypeScript PASS, scoped ESLint 0 errors/0 warnings, 20 suites/188 focused tests and full 176 suites/1,720 tests PASS.
+- [x] One incremental Release PASS, 237.827 seconds, 61 executed/934 up-to-date. One install-r PASS. SHA `5b075cd8d52a9542973f949fb09dd6cbb9e1be39b74ce14a7ac6475d80cfb12d`. Source/input, signer/bundle/font and installed hash/UID/first-install/settings MATCH. Model `SM-S937N`. No clean/new AAB/launch/touch/capture.
+- [ ] PO native visual review, long content/enlarged fonts, actual completion/record/link/edit/back flow, alarm delivery and iOS: not executed by this installation task.
+- [ ] PO final approval and selective Git closeout: pending. No commit/push/cleanup/Store. Preserve unrelated shared-document content, QA, protected artifacts/reports and incremental outputs/cache. AUTH/Weather UI/API remain frozen.
+- Contract: `docs/domains/schedule-detail-design.md`. Evidence: `/private/tmp/nuri-schedule-detail-20261006/FINAL_REPORT.md`.
+<!-- NURI_SCHEDULE_DETAIL_20261006_END -->
+
 <!-- NURI_WEATHER_FINAL_APPROVAL_20261006_BEGIN -->
 ## 2026-10-06 Weather PO Final Approval Closeout
 

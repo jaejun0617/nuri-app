@@ -2,6 +2,7 @@ import React from 'react';
 import { Platform, TouchableOpacity } from 'react-native';
 import TestRenderer from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
+import CtaButton from '../src/app/ui/CtaButton';
 import { createTheme } from '../src/app/theme/theme';
 import ScheduleCreateScreen from '../src/screens/Schedules/ScheduleCreateScreen';
 import ScheduleEditScreen from '../src/screens/Schedules/ScheduleEditScreen';
@@ -105,7 +106,7 @@ function hasText(root: TestRenderer.ReactTestInstance, text: string) {
 }
 async function press(root: TestRenderer.ReactTestInstance, text: string) {
   const button = root
-    .findAllByType(TouchableOpacity)
+    .findAll(node => node.type === TouchableOpacity || node.type === CtaButton)
     .find(node => hasText(node, text));
   if (!button) throw new Error(`Missing button: ${text}`);
   await TestRenderer.act(async () => {

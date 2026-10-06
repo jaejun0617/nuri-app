@@ -1,3 +1,4 @@
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 // 파일: src/screens/Pets/PetProfileEditScreen.tsx
 // 역할:
 // - 기존 반려동물 프로필 정보를 수정하는 편집 화면
@@ -306,10 +307,7 @@ export default function PetProfileEditScreen() {
   });
   const effectiveSeason = useEffectiveSeason();
   const profileEditVisual = useMemo(
-    () =>
-      getSeasonalProfileEditVisual(
-        effectiveSeason,
-      ),
+    () => getSeasonalProfileEditVisual(effectiveSeason),
     [effectiveSeason],
   );
   const seasonalStyles = useMemo(() => {
@@ -781,25 +779,24 @@ export default function PetProfileEditScreen() {
     return (
       <View style={styles.screen}>
         <View style={styles.centerFallback}>
-          <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.fallbackTitle}>
+          <AppText
+            typographyRole="celebration"
+            preset="unifiedTitle"
+            style={styles.fallbackTitle}
+          >
             수정할 프로필을 찾을 수 없어요
           </AppText>
-          <TouchableOpacity
+          <CtaButton
+            role="primary"
             activeOpacity={0.92}
             accessibilityLabel="뒤로 가기"
-            style={[
-              styles.primaryButton,
-              {
-                backgroundColor: petTheme.primary,
-                shadowColor: petTheme.primary,
-              },
-            ]}
+            style={[styles.primaryButton, {}]}
             onPress={onPressBack}
           >
-            <AppText preset="unifiedBody" style={styles.primaryButtonText}>
+            <CtaText preset="unifiedBody" style={styles.primaryButtonText}>
               돌아가기
-            </AppText>
-          </TouchableOpacity>
+            </CtaText>
+          </CtaButton>
         </View>
       </View>
     );
@@ -839,7 +836,11 @@ export default function PetProfileEditScreen() {
           </TouchableOpacity>
         </View>
 
-        <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
+        <AppText
+          typographyRole="screenTitle"
+          preset="unifiedTitle"
+          style={styles.headerTitle}
+        >
           프로필 수정
         </AppText>
 
@@ -920,7 +921,8 @@ export default function PetProfileEditScreen() {
 
         <View style={[styles.sectionGlass, seasonalStyles.section]}>
           <View style={styles.sectionHeader}>
-            <AppText typographyRole="sectionTitle"
+            <AppText
+              typographyRole="sectionTitle"
               preset="unifiedTitle"
               style={[styles.sectionTitle, seasonalStyles.primaryText]}
             >
@@ -1031,7 +1033,8 @@ export default function PetProfileEditScreen() {
           ]}
         >
           <View style={styles.sectionHeader}>
-            <AppText typographyRole="sectionTitle"
+            <AppText
+              typographyRole="sectionTitle"
               preset="unifiedTitle"
               style={[styles.sectionTitle, seasonalStyles.primaryText]}
             >
@@ -1384,7 +1387,8 @@ export default function PetProfileEditScreen() {
           ]}
         >
           <View style={styles.sectionHeader}>
-            <AppText typographyRole="sectionTitle"
+            <AppText
+              typographyRole="sectionTitle"
               preset="unifiedTitle"
               style={[styles.sectionTitle, seasonalStyles.primaryText]}
             >
@@ -1511,7 +1515,8 @@ export default function PetProfileEditScreen() {
           <View style={styles.sectionHeader}>
             <View style={styles.inlineLabel}>
               <Feather name="hash" size={18} color={petTheme.primary} />
-              <AppText typographyRole="sectionTitle"
+              <AppText
+                typographyRole="sectionTitle"
                 preset="unifiedTitle"
                 style={[styles.sectionTitle, seasonalStyles.primaryText]}
               >
@@ -1641,7 +1646,9 @@ export default function PetProfileEditScreen() {
           ]}
         >
           <View style={styles.stickyActionInner}>
-            <TouchableOpacity
+            <CtaButton
+              role="primary"
+              loading={saving}
               activeOpacity={0.92}
               accessibilityLabel={
                 saving ? '반려동물 프로필 수정 중' : '프로필 수정 완료'
@@ -1653,10 +1660,7 @@ export default function PetProfileEditScreen() {
               }
               style={[
                 styles.primaryButton,
-                {
-                  backgroundColor: petTheme.primary,
-                  shadowColor: petTheme.primary,
-                },
+                {},
                 saving ? styles.primaryButtonDisabled : null,
               ]}
               onPress={onSubmit}
@@ -1669,11 +1673,11 @@ export default function PetProfileEditScreen() {
                   textStyle={styles.primaryButtonText}
                 />
               ) : (
-                <AppText preset="unifiedBody" style={styles.primaryButtonText}>
+                <CtaText preset="unifiedBody" style={styles.primaryButtonText}>
                   수정 완료
-                </AppText>
+                </CtaText>
               )}
-            </TouchableOpacity>
+            </CtaButton>
           </View>
         </Animated.View>
       </KeyboardStickyView>

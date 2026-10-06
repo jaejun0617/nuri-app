@@ -13,6 +13,13 @@ export type ScheduleReturnTarget =
       entrySource?: ScreenEntrySource;
     };
 
+export type ScheduleDetailReturnContext = {
+  petId: string;
+  scheduleId: string;
+  entrySource?: ScreenEntrySource;
+  returnTo?: ScheduleReturnTarget;
+};
+
 export function resolveScheduleReturnTarget(
   returnTo: ScheduleReturnTarget | undefined,
   entrySource: ScreenEntrySource | undefined,

@@ -18,6 +18,7 @@ import Feather from '../icons/NuriFeatherIcon';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import { useOptionalSafeAreaInsets } from '../../hooks/useOptionalSafeAreaInsets';
 import { buildPremiumRewardLevelStatus } from '../../services/activity/rewardNoticePresentation';
 import { getResponsiveOverlayMaxHeight } from '../../services/app/responsiveLayout';
@@ -36,6 +37,7 @@ type Props = {
   accentColor?: string;
   onClose: () => void;
   onDismissToday?: () => void;
+  roleBasedActions?: boolean;
 };
 
 function formatXp(value: number): string {
@@ -54,6 +56,7 @@ function PremiumRewardModalBase({
   accentColor,
   onClose,
   onDismissToday,
+  roleBasedActions = false,
 }: Props) {
   const theme = useTheme();
   const insets = useOptionalSafeAreaInsets();
@@ -67,7 +70,8 @@ function PremiumRewardModalBase({
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
   const selectedPet = useMemo(
-    () => pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
+    () =>
+      pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
     [pets, selectedPetId],
   );
   const petTheme = useMemo(
@@ -127,118 +131,207 @@ function PremiumRewardModalBase({
             contentContainerStyle={styles.cardContent}
             showsVerticalScrollIndicator={false}
           >
-          <AppText preset="unifiedBody" style={[styles.eyebrow, { color: primaryColor }]}>
-            NURI REWARD
-          </AppText>
-          <AppText typographyRole="celebration" preset="unifiedTitle" style={[styles.title, { color: theme.colors.textPrimary }]}>
-            {title}
-          </AppText>
-          <AppText preset="unifiedBody" style={[styles.message, { color: theme.colors.textSecondary }]}>
-            {message}
-          </AppText>
+            <AppText
+              preset="unifiedBody"
+              style={[styles.eyebrow, { color: primaryColor }]}
+            >
+              NURI REWARD
+            </AppText>
+            <AppText
+              typographyRole="celebration"
+              preset="unifiedTitle"
+              style={[styles.title, { color: theme.colors.textPrimary }]}
+            >
+              {title}
+            </AppText>
+            <AppText
+              preset="unifiedBody"
+              style={[styles.message, { color: theme.colors.textSecondary }]}
+            >
+              {message}
+            </AppText>
 
-          <View style={[styles.rewardPanel, { backgroundColor: petTheme.soft }]}>
-            <View style={styles.rewardHeader}>
-              <AppText typographyRole="celebration" preset="unifiedTitle" style={[styles.rewardTitle, { color: primaryColor }]}>
-                {rewardTitle}
-              </AppText>
-              {leveledUp ? (
-                <View style={[styles.levelUpPill, { backgroundColor: primaryColor }]}>
-                  <AppText preset="unifiedBody" style={styles.levelUpText}>
-                    LEVEL UP
-                  </AppText>
-                </View>
-              ) : null}
-            </View>
-
-            <View style={styles.metricRow}>
-              <View style={[styles.metricCard, { backgroundColor: theme.colors.surfaceElevated }]}>
-                <AppText preset="unifiedBody" style={styles.metricLabel}>
-                  누적 XP
+            <View
+              style={[styles.rewardPanel, { backgroundColor: petTheme.soft }]}
+            >
+              <View style={styles.rewardHeader}>
+                <AppText
+                  typographyRole="celebration"
+                  preset="unifiedTitle"
+                  style={[styles.rewardTitle, { color: primaryColor }]}
+                >
+                  {rewardTitle}
                 </AppText>
-                <AppText preset="unifiedTitle" style={[styles.metricValue, { color: theme.colors.textPrimary }]}>
-                  {formatXp(totalXp)}
-                </AppText>
+                {leveledUp ? (
+                  <View
+                    style={[
+                      styles.levelUpPill,
+                      { backgroundColor: primaryColor },
+                    ]}
+                  >
+                    <AppText preset="unifiedBody" style={styles.levelUpText}>
+                      LEVEL UP
+                    </AppText>
+                  </View>
+                ) : null}
               </View>
-              <View style={[styles.metricCard, { backgroundColor: theme.colors.surfaceElevated }]}>
-                <AppText preset="unifiedBody" style={styles.metricLabel}>
-                  현재 레벨
-                </AppText>
-                <AppText preset="unifiedTitle" style={[styles.metricValue, { color: theme.colors.textPrimary }]}>
-                  Lv.{levelStatus.level}
-                </AppText>
-              </View>
-            </View>
 
-            <View style={styles.levelProgressBlock}>
-              <View style={[styles.levelProgressTrack, { backgroundColor: petTheme.border }]}>
+              <View style={styles.metricRow}>
                 <View
                   style={[
-                    styles.levelProgressFill,
+                    styles.metricCard,
+                    { backgroundColor: theme.colors.surfaceElevated },
+                  ]}
+                >
+                  <AppText preset="unifiedBody" style={styles.metricLabel}>
+                    누적 XP
+                  </AppText>
+                  <AppText
+                    preset="unifiedTitle"
+                    style={[
+                      styles.metricValue,
+                      { color: theme.colors.textPrimary },
+                    ]}
+                  >
+                    {formatXp(totalXp)}
+                  </AppText>
+                </View>
+                <View
+                  style={[
+                    styles.metricCard,
+                    { backgroundColor: theme.colors.surfaceElevated },
+                  ]}
+                >
+                  <AppText preset="unifiedBody" style={styles.metricLabel}>
+                    현재 레벨
+                  </AppText>
+                  <AppText
+                    preset="unifiedTitle"
+                    style={[
+                      styles.metricValue,
+                      { color: theme.colors.textPrimary },
+                    ]}
+                  >
+                    Lv.{levelStatus.level}
+                  </AppText>
+                </View>
+              </View>
+
+              <View style={styles.levelProgressBlock}>
+                <View
+                  style={[
+                    styles.levelProgressTrack,
+                    { backgroundColor: petTheme.border },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.levelProgressFill,
+                      {
+                        width: `${Math.round(levelStatus.progress * 100)}%`,
+                        backgroundColor: primaryColor,
+                      },
+                    ]}
+                  />
+                </View>
+                <AppText
+                  preset="unifiedBody"
+                  style={[
+                    styles.levelStatusText,
                     {
-                      width: `${Math.round(levelStatus.progress * 100)}%`,
-                      backgroundColor: primaryColor,
+                      color: levelStatus.isMaxLevel
+                        ? primaryColor
+                        : theme.colors.textSecondary,
                     },
                   ]}
-                />
+                >
+                  {levelStatus.statusLabel}
+                </AppText>
               </View>
-              <AppText
-                preset="unifiedBody"
+            </View>
+
+            {streakDays && streakDays > 0 ? (
+              <View
                 style={[
-                  styles.levelStatusText,
+                  styles.streakStrip,
                   {
-                    color: levelStatus.isMaxLevel
-                      ? primaryColor
-                      : theme.colors.textSecondary,
+                    borderColor: petTheme.border,
+                    backgroundColor: theme.colors.surface,
                   },
                 ]}
               >
-                {levelStatus.statusLabel}
-              </AppText>
-            </View>
-          </View>
+                <AppText
+                  preset="unifiedBody"
+                  style={[
+                    styles.streakText,
+                    { color: theme.colors.textSecondary },
+                  ]}
+                >
+                  우리 아이와 {streakDays}일 연속 산책 중이에요
+                </AppText>
+              </View>
+            ) : null}
 
-          {streakDays && streakDays > 0 ? (
-            <View
-              style={[
-                styles.streakStrip,
-                {
-                  borderColor: petTheme.border,
-                  backgroundColor: theme.colors.surface,
-                },
-              ]}
-            >
-              <AppText preset="unifiedBody" style={[styles.streakText, { color: theme.colors.textSecondary }]}>
-                우리 아이와 {streakDays}일 연속 산책 중이에요
-              </AppText>
-            </View>
-          ) : null}
+            {roleBasedActions ? (
+              <CtaButton
+                role="neutral"
+                accessibilityLabel="보상 안내 닫기"
+                onPress={onClose}
+                style={styles.primaryButton}
+              >
+                <CtaText preset="unifiedLabel" style={styles.primaryButtonText}>
+                  닫기
+                </CtaText>
+              </CtaButton>
+            ) : (
+              <TouchableOpacity
+                activeOpacity={0.92}
+                accessibilityRole="button"
+                accessibilityLabel="보상 안내 닫기"
+                style={[
+                  styles.primaryButton,
+                  { backgroundColor: primaryColor },
+                ]}
+                onPress={onClose}
+              >
+                <AppText preset="unifiedLabel" style={styles.primaryButtonText}>
+                  닫기
+                </AppText>
+              </TouchableOpacity>
+            )}
 
-          <TouchableOpacity
-            activeOpacity={0.92}
-            accessibilityRole="button"
-            accessibilityLabel="보상 안내 닫기"
-            style={[styles.primaryButton, { backgroundColor: primaryColor }]}
-            onPress={onClose}
-          >
-            <AppText preset="unifiedLabel" style={styles.primaryButtonText}>
-              닫기
-            </AppText>
-          </TouchableOpacity>
-
-          {onDismissToday ? (
-            <TouchableOpacity
-              activeOpacity={0.82}
-              accessibilityRole="button"
-              accessibilityLabel="오늘 하루 보상 안내 보지 않기"
-              style={styles.dismissTodayButton}
-              onPress={onDismissToday}
-            >
-              <AppText preset="unifiedBody" style={[styles.dismissTodayText, { color: theme.colors.textMuted }]}>
-                오늘 하루 안 보기
-              </AppText>
-            </TouchableOpacity>
-          ) : null}
+            {onDismissToday ? (
+              roleBasedActions ? (
+                <CtaButton
+                  role="secondary"
+                  accessibilityLabel="오늘 하루 보상 안내 보지 않기"
+                  onPress={onDismissToday}
+                  style={styles.dismissTodayButton}
+                >
+                  <CtaText preset="unifiedBody" style={styles.dismissTodayText}>
+                    오늘 하루 안 보기
+                  </CtaText>
+                </CtaButton>
+              ) : (
+                <TouchableOpacity
+                  activeOpacity={0.82}
+                  accessibilityRole="button"
+                  accessibilityLabel="오늘 하루 보상 안내 보지 않기"
+                  style={styles.dismissTodayButton}
+                  onPress={onDismissToday}
+                >
+                  <AppText
+                    preset="unifiedBody"
+                    style={[
+                      styles.dismissTodayText,
+                      { color: theme.colors.textMuted },
+                    ]}
+                  >
+                    오늘 하루 안 보기
+                  </AppText>
+                </TouchableOpacity>
+              )
+            ) : null}
           </ScrollView>
         </View>
       </View>

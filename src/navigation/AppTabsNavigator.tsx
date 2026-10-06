@@ -31,8 +31,10 @@ import AppNavigationToolbar from '../components/navigation/AppNavigationToolbar'
 import { useUiStore } from '../store/uiStore';
 import type { HealthReportTabKey } from '../services/health-report/viewModel';
 import { FixedTypographyBoundary } from '../app/providers/AppFontPreferenceProvider';
+import type { ScheduleDetailReturnContext } from './scheduleReturn';
 
 export type RecordCreateReturnTo =
+  | { tab: 'ScheduleDetail'; params: ScheduleDetailReturnContext }
   | { tab: 'HomeTab'; afterCreate?: 'detail' | 'home' }
   | {
       tab: 'TimelineTab';

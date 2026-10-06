@@ -1,3 +1,4 @@
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import React, { useCallback, useMemo } from 'react';
 import { Linking, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -53,7 +54,11 @@ export default function AnimalHospitalDetailScreen() {
       <Screen style={styles.screen}>
         <View style={styles.container}>
           <View style={styles.sectionCard}>
-            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.sectionTitle}>
+            <AppText
+              typographyRole="celebration"
+              preset="unifiedTitle"
+              style={styles.sectionTitle}
+            >
               병원 정보를 찾을 수 없어요
             </AppText>
           </View>
@@ -105,7 +110,11 @@ export default function AnimalHospitalDetailScreen() {
               <AppText preset="unifiedMeta" style={styles.eyebrow}>
                 우리동네 동물병원
               </AppText>
-              <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.title}>
+              <AppText
+                typographyRole="screenTitle"
+                preset="unifiedTitle"
+                style={styles.title}
+              >
                 {viewModel.title}
               </AppText>
             </View>
@@ -176,28 +185,30 @@ export default function AnimalHospitalDetailScreen() {
 
             <View style={styles.ctaRow}>
               {callUri ? (
-                <TouchableOpacity
+                <CtaButton
+                  role="primary"
                   activeOpacity={0.92}
                   style={styles.primaryCta}
                   onPress={() => {
                     Linking.openURL(callUri).catch(() => {});
                   }}
                 >
-                  <AppText preset="unifiedBody" style={styles.primaryCtaText}>
+                  <CtaText preset="unifiedBody" style={styles.primaryCtaText}>
                     전화하기
-                  </AppText>
-                </TouchableOpacity>
+                  </CtaText>
+                </CtaButton>
               ) : null}
 
               {mapLink ? (
-                <TouchableOpacity
+                <CtaButton
+                  role={callUri ? 'secondary' : 'primary'}
                   activeOpacity={0.92}
                   style={callUri ? styles.secondaryCta : styles.primaryCta}
                   onPress={() => {
                     Linking.openURL(mapLink).catch(() => {});
                   }}
                 >
-                  <AppText
+                  <CtaText
                     preset="unifiedBody"
                     style={
                       callUri ? styles.secondaryCtaText : styles.primaryCtaText
@@ -206,8 +217,8 @@ export default function AnimalHospitalDetailScreen() {
                     {displayItem.links.externalMapUrl
                       ? '길찾기'
                       : '지도에서 보기'}
-                  </AppText>
-                </TouchableOpacity>
+                  </CtaText>
+                </CtaButton>
               ) : null}
             </View>
           </View>
@@ -215,7 +226,11 @@ export default function AnimalHospitalDetailScreen() {
           <View style={styles.mapSection}>
             <View style={styles.mapSectionHeader}>
               <View style={styles.mapSectionCopy}>
-                <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={styles.sectionTitle}>
+                <AppText
+                  typographyRole="sectionTitle"
+                  preset="unifiedTitle"
+                  style={styles.sectionTitle}
+                >
                   위치
                 </AppText>
                 <AppText preset="unifiedMeta" style={styles.subtleText}>
@@ -223,20 +238,21 @@ export default function AnimalHospitalDetailScreen() {
                 </AppText>
               </View>
               {mapLink ? (
-                <TouchableOpacity
+                <CtaButton
+                  role="secondary"
                   activeOpacity={0.9}
                   style={styles.mapOpenButton}
                   onPress={() => {
                     Linking.openURL(mapLink).catch(() => {});
                   }}
                 >
-                  <AppText
+                  <CtaText
                     preset="unifiedMeta"
                     style={styles.mapOpenButtonText}
                   >
                     열기
-                  </AppText>
-                </TouchableOpacity>
+                  </CtaText>
+                </CtaButton>
               ) : null}
             </View>
 

@@ -1,3 +1,4 @@
+import CtaButton, { CtaText, CtaIcon } from '../../app/ui/CtaButton';
 import React, {
   useCallback,
   useEffect,
@@ -22,7 +23,10 @@ import {
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQueryClient } from '@tanstack/react-query';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import Feather from '../../components/icons/NuriFeatherIcon';
 import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
 import { useTheme } from 'styled-components/native';
@@ -57,7 +61,10 @@ import {
   getScheduleNotificationSyncFeedback,
   upsertScheduleNotification,
 } from '../../services/schedules/notifications';
-import type { PetWeightLog, PetWeightLogMutationResult } from '../../services/supabase/petWeightLogs';
+import type {
+  PetWeightLog,
+  PetWeightLogMutationResult,
+} from '../../services/supabase/petWeightLogs';
 import {
   fetchScheduleById,
   updateSchedule,
@@ -116,7 +123,9 @@ const HEALTH_WRITE_ACTIONS: Array<{
   },
 ];
 
-type HealthReportMonthData = NonNullable<ReturnType<typeof useHealthReportMonth>['data']>;
+type HealthReportMonthData = NonNullable<
+  ReturnType<typeof useHealthReportMonth>['data']
+>;
 type InsightDensityItem = {
   id: string;
   ymd: string;
@@ -146,13 +155,24 @@ function formatDeltaText(
   }
 
   const prefix = direction === 'up' ? '+' : direction === 'down' ? '-' : '';
-  const icon = direction === 'up' ? 'arrow-up' : direction === 'down' ? 'arrow-down' : 'minus';
+  const icon =
+    direction === 'up'
+      ? 'arrow-up'
+      : direction === 'down'
+      ? 'arrow-down'
+      : 'minus';
   const verb =
-    direction === 'up' ? '늘었어요' : direction === 'down' ? '줄었어요' : '유지됐어요';
+    direction === 'up'
+      ? '늘었어요'
+      : direction === 'down'
+      ? '줄었어요'
+      : '유지됐어요';
 
   return {
     icon,
-    text: `${prefix}${Math.abs(deltaKg).toFixed(1)}kg (${Math.abs(deltaRate).toFixed(1)}%) ${verb}`,
+    text: `${prefix}${Math.abs(deltaKg).toFixed(1)}kg (${Math.abs(
+      deltaRate,
+    ).toFixed(1)}%) ${verb}`,
   };
 }
 
@@ -175,8 +195,13 @@ function compareWeightLogs(lhs: PetWeightLog, rhs: PetWeightLog) {
   return lhs.id.localeCompare(rhs.id);
 }
 
-function isLogInMonth(log: PetWeightLog, month: HealthReportMonthData['bounds']) {
-  return log.measuredOn >= month.startYmd && log.measuredOn < month.endExclusiveYmd;
+function isLogInMonth(
+  log: PetWeightLog,
+  month: HealthReportMonthData['bounds'],
+) {
+  return (
+    log.measuredOn >= month.startYmd && log.measuredOn < month.endExclusiveYmd
+  );
 }
 
 function applyCommittedWeightMutation(
@@ -187,7 +212,10 @@ function applyCommittedWeightMutation(
   let weightLogs = current.weightLogs;
 
   if (changedLog) {
-    if (result.action === 'upsert' && isLogInMonth(changedLog, current.bounds)) {
+    if (
+      result.action === 'upsert' &&
+      isLogInMonth(changedLog, current.bounds)
+    ) {
       weightLogs = [
         ...weightLogs.filter(log => log.id !== changedLog.id),
         changedLog,
@@ -230,7 +258,8 @@ function applyCommittedScheduleMutation(
 ): HealthReportMonthData {
   const activityItems = input.remove
     ? current.activityItems.filter(
-        item => !(item.source === 'schedule' && item.scheduleId === input.scheduleId),
+        item =>
+          !(item.source === 'schedule' && item.scheduleId === input.scheduleId),
       )
     : current.activityItems.map(item =>
         item.source === 'schedule' && item.scheduleId === input.scheduleId
@@ -238,7 +267,9 @@ function applyCommittedScheduleMutation(
               ...item,
               reminderMinutes: input.reminderMinutes ?? item.reminderMinutes,
               completedAt:
-                input.completedAt !== undefined ? input.completedAt : item.completedAt,
+                input.completedAt !== undefined
+                  ? input.completedAt
+                  : item.completedAt,
             }
           : item,
       );
@@ -267,7 +298,9 @@ function ActivityCard({
   const theme = useTheme();
   const reminderEnabled =
     item.source === 'schedule' && (item.reminderMinutes?.length ?? 0) > 0;
-  const toggleAnimation = useRef(new Animated.Value(reminderEnabled ? 1 : 0)).current;
+  const toggleAnimation = useRef(
+    new Animated.Value(reminderEnabled ? 1 : 0),
+  ).current;
 
   useEffect(() => {
     Animated.timing(toggleAnimation, {
@@ -295,23 +328,31 @@ function ActivityCard({
         },
       ]}
     >
-      <View
-        style={[
-          styles.iconWrap,
-          { backgroundColor: `${accentColor}18` },
-        ]}
-      >
-        <NuriSemanticIcon family="feather" color={accentColor} name={item.iconName} size={16} />
+      <View style={[styles.iconWrap, { backgroundColor: `${accentColor}18` }]}>
+        <NuriSemanticIcon
+          family="feather"
+          color={accentColor}
+          name={item.iconName}
+          size={16}
+        />
       </View>
       <View style={styles.cardTextWrap}>
         <AppText preset="unifiedBody" numberOfLines={1}>
           {item.title}
         </AppText>
-          <AppText preset="unifiedBody" color={theme.colors.textMuted} numberOfLines={1}>
+        <AppText
+          preset="unifiedBody"
+          color={theme.colors.textMuted}
+          numberOfLines={1}
+        >
           {item.subtitle}
         </AppText>
         {item.source === 'schedule' ? (
-          <AppText preset="unifiedMeta" color={theme.colors.textMuted} numberOfLines={1}>
+          <AppText
+            preset="unifiedMeta"
+            color={theme.colors.textMuted}
+            numberOfLines={1}
+          >
             {formatReminderMinutesSummary(item.reminderMinutes)}
           </AppText>
         ) : null}
@@ -321,7 +362,10 @@ function ActivityCard({
           <Pressable
             accessibilityRole="switch"
             accessibilityLabel={reminderEnabled ? '알림 끄기' : '알림 켜기'}
-            accessibilityState={{ checked: reminderEnabled, disabled: reminderBusy }}
+            accessibilityState={{
+              checked: reminderEnabled,
+              disabled: reminderBusy,
+            }}
             disabled={reminderBusy}
             onPress={event => {
               event.stopPropagation();
@@ -577,10 +621,7 @@ function ActivityDensityGraph({
   );
   const maxCount = useMemo(
     () =>
-      dateItems.reduce(
-        (acc, ymd) => Math.max(acc, countsByYmd[ymd] ?? 0),
-        0,
-      ),
+      dateItems.reduce((acc, ymd) => Math.max(acc, countsByYmd[ymd] ?? 0), 0),
     [countsByYmd, dateItems],
   );
 
@@ -613,7 +654,10 @@ function ActivityDensityGraph({
           <View
             key={ymd}
             style={styles.insightGraphItem}
-            accessibilityLabel={`${ymd.slice(8, 10)}일 건강관리 기록 ${count}건`}
+            accessibilityLabel={`${ymd.slice(
+              8,
+              10,
+            )}일 건강관리 기록 ${count}건`}
           >
             <View style={styles.insightGraphTrack}>
               <View
@@ -709,7 +753,8 @@ export default function HealthReportScreen() {
     [monthQuery.data?.dateItems],
   );
   const isCurrentMonth = monthKey === currentMonthKey;
-  const selectedActivities = monthQuery.data?.groupedActivities[selectedYmd] ?? [];
+  const selectedActivities =
+    monthQuery.data?.groupedActivities[selectedYmd] ?? [];
 
   useEffect(() => {
     if (!focusYmd) return;
@@ -942,16 +987,19 @@ export default function HealthReportScreen() {
             getScheduleNotificationSyncFeedback(notificationResult);
           if (notificationFeedback) showToast(notificationFeedback);
         } else {
-          const notificationResult = await upsertScheduleNotification({
-            id: schedule.id,
-            petId: schedule.petId,
-            title: schedule.title,
-            note: schedule.note,
-            startsAt: schedule.startsAt,
-            repeatRule: schedule.repeatRule,
-            reminderMinutes: nextReminderMinutes,
-            completedAt: schedule.completedAt,
-          }, notificationLifecycle);
+          const notificationResult = await upsertScheduleNotification(
+            {
+              id: schedule.id,
+              petId: schedule.petId,
+              title: schedule.title,
+              note: schedule.note,
+              startsAt: schedule.startsAt,
+              repeatRule: schedule.repeatRule,
+              reminderMinutes: nextReminderMinutes,
+              completedAt: schedule.completedAt,
+            },
+            notificationLifecycle,
+          );
           const notificationFeedback =
             getScheduleNotificationSyncFeedback(notificationResult);
           if (notificationFeedback) showToast(notificationFeedback);
@@ -970,7 +1018,10 @@ export default function HealthReportScreen() {
                 })
               : current,
         );
-        useScheduleStore.getState().refresh(pet.id).catch(() => {});
+        useScheduleStore
+          .getState()
+          .refresh(pet.id)
+          .catch(() => {});
       } catch (error) {
         Alert.alert(
           '알림 설정 실패',
@@ -1104,7 +1155,11 @@ export default function HealthReportScreen() {
               <Feather color="#102033" name="arrow-left" size={20} />
             </TouchableOpacity>
           </View>
-          <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
+          <AppText
+            typographyRole="screenTitle"
+            preset="unifiedTitle"
+            style={styles.headerTitle}
+          >
             건강관리
           </AppText>
           <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
@@ -1119,15 +1174,14 @@ export default function HealthReportScreen() {
           >
             건강 기록과 체중 리포트는 아이 프로필을 기준으로 묶어 보여줍니다.
           </AppText>
-          <TouchableOpacity
+          <CtaButton
+            role="primary"
             activeOpacity={0.9}
             onPress={() => navigation.navigate('PetCreate', { from: 'cta' })}
-            style={[styles.primaryCta, { backgroundColor: theme.colors.brand }]}
+            style={[styles.primaryCta, {}]}
           >
-            <AppText preset="unifiedLabel" color="#FFFFFF">
-              아이 프로필 등록하기
-            </AppText>
-          </TouchableOpacity>
+            <CtaText preset="unifiedLabel">아이 프로필 등록하기</CtaText>
+          </CtaButton>
         </View>
         <AppNavigationToolbar
           activeKey="more"
@@ -1165,34 +1219,40 @@ export default function HealthReportScreen() {
           </TouchableOpacity>
         </View>
 
-        <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
+        <AppText
+          typographyRole="screenTitle"
+          preset="unifiedTitle"
+          style={styles.headerTitle}
+        >
           건강관리
         </AppText>
 
         <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
-          <TouchableOpacity
+          <CtaButton
+            role="primarySubtle"
             activeOpacity={0.9}
             onPress={openHealthWriteActions}
-            style={[
-              styles.headerActionButton,
-              { backgroundColor: petTheme.primary },
-            ]}
+            style={[styles.headerActionButton, {}]}
           >
-            <Feather color="#FFFFFF" name="plus" size={15} />
-            <AppText preset="unifiedMeta" color="#FFFFFF">
-              기록
-            </AppText>
-          </TouchableOpacity>
+            <CtaIcon name="plus" size={15} />
+            <CtaText preset="unifiedMeta">기록</CtaText>
+          </CtaButton>
         </View>
       </View>
 
       <View style={styles.monthRow}>
         <TouchableOpacity
           activeOpacity={0.88}
-          onPress={() => setMonthKey(prev => addMonthsToHealthReportMonthKey(prev, -1))}
+          onPress={() =>
+            setMonthKey(prev => addMonthsToHealthReportMonthKey(prev, -1))
+          }
           style={[styles.monthArrow, { borderColor: theme.colors.border }]}
         >
-          <Feather color={theme.colors.textPrimary} name="chevron-left" size={18} />
+          <Feather
+            color={theme.colors.textPrimary}
+            name="chevron-left"
+            size={18}
+          />
         </TouchableOpacity>
 
         <View style={styles.monthLabelWrap}>
@@ -1205,7 +1265,9 @@ export default function HealthReportScreen() {
         <TouchableOpacity
           activeOpacity={0.88}
           disabled={monthKey === currentMonthKey}
-          onPress={() => setMonthKey(prev => addMonthsToHealthReportMonthKey(prev, 1))}
+          onPress={() =>
+            setMonthKey(prev => addMonthsToHealthReportMonthKey(prev, 1))
+          }
           style={[
             styles.monthArrow,
             {
@@ -1214,7 +1276,11 @@ export default function HealthReportScreen() {
             },
           ]}
         >
-          <Feather color={theme.colors.textPrimary} name="chevron-right" size={18} />
+          <Feather
+            color={theme.colors.textPrimary}
+            name="chevron-right"
+            size={18}
+          />
         </TouchableOpacity>
       </View>
 
@@ -1229,7 +1295,9 @@ export default function HealthReportScreen() {
               style={[
                 styles.tabButton,
                 {
-                  backgroundColor: active ? petTheme.primary : theme.colors.surfaceElevated,
+                  backgroundColor: active
+                    ? petTheme.primary
+                    : theme.colors.surfaceElevated,
                   borderColor: active ? petTheme.primary : theme.colors.border,
                 },
               ]}
@@ -1275,8 +1343,12 @@ export default function HealthReportScreen() {
                   style={[
                     styles.dateChip,
                     {
-                      backgroundColor: active ? petTheme.primary : theme.colors.surfaceElevated,
-                      borderColor: active ? petTheme.primary : theme.colors.border,
+                      backgroundColor: active
+                        ? petTheme.primary
+                        : theme.colors.surfaceElevated,
+                      borderColor: active
+                        ? petTheme.primary
+                        : theme.colors.border,
                     },
                   ]}
                 >
@@ -1314,15 +1386,14 @@ export default function HealthReportScreen() {
           >
             {monthQuery.error}
           </AppText>
-          <TouchableOpacity
+          <CtaButton
+            role="primary"
             activeOpacity={0.9}
             onPress={() => monthQuery.refetch()}
-            style={[styles.primaryCta, { backgroundColor: petTheme.primary }]}
+            style={[styles.primaryCta, {}]}
           >
-            <AppText preset="unifiedLabel" color="#FFFFFF">
-              다시 불러오기
-            </AppText>
-          </TouchableOpacity>
+            <CtaText preset="unifiedLabel">다시 불러오기</CtaText>
+          </CtaButton>
         </View>
       ) : activeTab === 'records' ? (
         <ScrollView
@@ -1343,25 +1414,29 @@ export default function HealthReportScreen() {
           >
             <AppText preset="unifiedTitle">오늘의 시선이 머무는 날</AppText>
             <AppText preset="unifiedMeta" color={theme.colors.textMuted}>
-              {selectedYmd.replace(/-/g, '.')}에 남은 병원, 약, 증상 기록을 한 줄씩 빠르게 살펴보세요.
+              {selectedYmd.replace(/-/g, '.')}에 남은 병원, 약, 증상 기록을 한
+              줄씩 빠르게 살펴보세요.
             </AppText>
           </View>
 
           {selectedActivities.length === 0 ? (
             <View style={styles.emptySection}>
               <AppText preset="unifiedTitle">아직 고요한 하루예요</AppText>
-              <AppText preset="unifiedBody" color={theme.colors.textMuted} style={styles.centerEmptyText}>
+              <AppText
+                preset="unifiedBody"
+                color={theme.colors.textMuted}
+                style={styles.centerEmptyText}
+              >
                 첫 건강 기록이 놓이면 작은 변화도 더 또렷하게 기억할 수 있어요.
               </AppText>
-              <TouchableOpacity
+              <CtaButton
+                role="primary"
                 activeOpacity={0.9}
                 onPress={openHealthWriteActions}
-                style={[styles.primaryCta, { backgroundColor: petTheme.primary }]}
+                style={[styles.primaryCta, {}]}
               >
-                <AppText preset="unifiedLabel" color="#FFFFFF">
-                  건강 기록하기
-                </AppText>
-              </TouchableOpacity>
+                <CtaText preset="unifiedLabel">건강 기록하기</CtaText>
+              </CtaButton>
             </View>
           ) : (
             selectedActivities.map(item => (
@@ -1398,21 +1473,24 @@ export default function HealthReportScreen() {
           >
             <View style={styles.weightSummaryTopRow}>
               <View>
-          <AppText preset="unifiedBody" color={theme.colors.textMuted}>
+                <AppText preset="unifiedBody" color={theme.colors.textMuted}>
                   최신 몸무게
                 </AppText>
-                <AppText preset="display">{formatWeightKg(monthQuery.data?.weightSummary.latestWeightKg)}</AppText>
+                <AppText preset="display">
+                  {formatWeightKg(
+                    monthQuery.data?.weightSummary.latestWeightKg,
+                  )}
+                </AppText>
               </View>
-              <TouchableOpacity
+              <CtaButton
+                role="primarySubtle"
                 activeOpacity={0.9}
                 onPress={openWeightCreate}
-                style={[styles.inlineButton, { backgroundColor: petTheme.primary }]}
+                style={[styles.inlineButton, {}]}
               >
-                <Feather color="#FFFFFF" name="plus" size={16} />
-                <AppText preset="unifiedLabel" color="#FFFFFF">
-                  기록 추가
-                </AppText>
-              </TouchableOpacity>
+                <CtaIcon name="plus" size={16} />
+                <CtaText preset="unifiedLabel">기록 추가</CtaText>
+              </CtaButton>
             </View>
             <View style={styles.weightDeltaRow}>
               {typeof deltaMeta === 'string' ? (
@@ -1422,13 +1500,19 @@ export default function HealthReportScreen() {
               ) : (
                 <>
                   <Feather
-                    color={getDeltaColor(monthQuery.data?.weightSummary.direction ?? 'same', theme)}
+                    color={getDeltaColor(
+                      monthQuery.data?.weightSummary.direction ?? 'same',
+                      theme,
+                    )}
                     name={deltaMeta.icon as never}
                     size={16}
                   />
                   <AppText
                     preset="unifiedMeta"
-                    color={getDeltaColor(monthQuery.data?.weightSummary.direction ?? 'same', theme)}
+                    color={getDeltaColor(
+                      monthQuery.data?.weightSummary.direction ?? 'same',
+                      theme,
+                    )}
                   >
                     {deltaMeta.text}
                   </AppText>
@@ -1444,26 +1528,35 @@ export default function HealthReportScreen() {
 
           {(monthQuery.data?.weightTimeline.length ?? 0) === 0 ? (
             <View style={styles.emptySection}>
-              <AppText preset="unifiedTitle">첫 체중 기록을 기다리고 있어요</AppText>
-              <AppText preset="unifiedBody" color={theme.colors.textMuted} style={styles.centerEmptyText}>
+              <AppText preset="unifiedTitle">
+                첫 체중 기록을 기다리고 있어요
+              </AppText>
+              <AppText
+                preset="unifiedBody"
+                color={theme.colors.textMuted}
+                style={styles.centerEmptyText}
+              >
                 한 번의 기록이 쌓이면 증감 흐름과 월간 변화가 바로 또렷해집니다.
               </AppText>
-              <TouchableOpacity
+              <CtaButton
+                role="primary"
                 activeOpacity={0.9}
                 onPress={openWeightCreate}
-                style={[styles.primaryCta, { backgroundColor: petTheme.primary }]}
+                style={[styles.primaryCta, {}]}
               >
-                <AppText preset="unifiedLabel" color="#FFFFFF">
-                  첫 몸무게 남기기
-                </AppText>
-              </TouchableOpacity>
+                <CtaText preset="unifiedLabel">첫 몸무게 남기기</CtaText>
+              </CtaButton>
             </View>
           ) : (
             monthQuery.data?.weightTimeline
               .slice()
               .reverse()
               .map(log => {
-                const itemDelta = formatDeltaText(log.direction, log.deltaKg, log.deltaRate);
+                const itemDelta = formatDeltaText(
+                  log.direction,
+                  log.deltaKg,
+                  log.deltaRate,
+                );
                 const itemDeltaColor =
                   typeof itemDelta === 'string'
                     ? theme.colors.textMuted
@@ -1485,12 +1578,20 @@ export default function HealthReportScreen() {
                     ]}
                   >
                     <View style={styles.cardTextWrap}>
-                      <AppText preset="unifiedBody">{log.measuredOn.replace(/-/g, '.')}</AppText>
+                      <AppText preset="unifiedBody">
+                        {log.measuredOn.replace(/-/g, '.')}
+                      </AppText>
                       <AppText preset="unifiedBody" color={itemDeltaColor}>
-                        {typeof itemDelta === 'string' ? itemDelta : itemDelta.text}
+                        {typeof itemDelta === 'string'
+                          ? itemDelta
+                          : itemDelta.text}
                       </AppText>
                       {log.note ? (
-                        <AppText preset="unifiedBody" color={theme.colors.textMuted} numberOfLines={1}>
+                        <AppText
+                          preset="unifiedBody"
+                          color={theme.colors.textMuted}
+                          numberOfLines={1}
+                        >
                           {log.note}
                         </AppText>
                       ) : null}
@@ -1506,7 +1607,11 @@ export default function HealthReportScreen() {
                       >
                         {formatWeightKg(log.weightKg)}
                       </AppText>
-                      <Feather color={theme.colors.textMuted} name="edit-2" size={15} />
+                      <Feather
+                        color={theme.colors.textMuted}
+                        name="edit-2"
+                        size={15}
+                      />
                     </View>
                   </TouchableOpacity>
                 );
@@ -1615,7 +1720,10 @@ export default function HealthReportScreen() {
               <View>
                 <AppText preset="unifiedTitle">체중 흐름</AppText>
                 <AppText preset="unifiedBody" color={theme.colors.textMuted}>
-                  최신 {formatWeightKg(monthQuery.data?.weightSummary.latestWeightKg)}
+                  최신{' '}
+                  {formatWeightKg(
+                    monthQuery.data?.weightSummary.latestWeightKg,
+                  )}
                 </AppText>
               </View>
               <Feather
@@ -1645,15 +1753,14 @@ export default function HealthReportScreen() {
             )}
           </View>
 
-          <TouchableOpacity
+          <CtaButton
+            role="primary"
             activeOpacity={0.9}
             onPress={openHealthWriteActions}
-            style={[styles.primaryCta, { backgroundColor: petTheme.primary }]}
+            style={[styles.primaryCta, {}]}
           >
-            <AppText preset="unifiedLabel" color="#FFFFFF">
-              건강 기록 더하기
-            </AppText>
-          </TouchableOpacity>
+            <CtaText preset="unifiedLabel">건강 기록 더하기</CtaText>
+          </CtaButton>
         </ScrollView>
       )}
 
@@ -1734,12 +1841,18 @@ export default function HealthReportScreen() {
                   >
                     <View style={styles.cardTextWrap}>
                       <AppText preset="unifiedBody">{row.title}</AppText>
-                      <AppText preset="unifiedBody" color={theme.colors.textMuted}>
+                      <AppText
+                        preset="unifiedBody"
+                        color={theme.colors.textMuted}
+                      >
                         {row.subtitle}
                       </AppText>
                     </View>
                     {row.meta ? (
-                      <AppText preset="unifiedMeta" color={theme.colors.textMuted}>
+                      <AppText
+                        preset="unifiedMeta"
+                        color={theme.colors.textMuted}
+                      >
                         {row.meta}
                       </AppText>
                     ) : null}
@@ -1763,7 +1876,10 @@ export default function HealthReportScreen() {
         animationType="fade"
         onRequestClose={closeHealthWriteActions}
       >
-        <Pressable style={styles.sheetBackdrop} onPress={closeHealthWriteActions}>
+        <Pressable
+          style={styles.sheetBackdrop}
+          onPress={closeHealthWriteActions}
+        >
           <Pressable
             onPress={event => event.stopPropagation()}
             style={[
@@ -1806,11 +1922,12 @@ export default function HealthReportScreen() {
             </View>
 
             {HEALTH_WRITE_ACTIONS.map(action => (
-              <TouchableOpacity
+              <CtaButton
+                role="secondary"
                 key={action.key}
                 activeOpacity={0.9}
                 onPress={() => handleHealthWriteAction(action.key)}
-                style={[styles.writeActionItem, { borderColor: theme.colors.border }]}
+                style={[styles.writeActionItem, {}]}
               >
                 <View
                   style={[
@@ -1818,16 +1935,19 @@ export default function HealthReportScreen() {
                     { backgroundColor: `${petTheme.primary}18` },
                   ]}
                 >
-                  <NuriSemanticIcon family="feather" color={petTheme.primary} name={action.icon} size={16} />
+                  <NuriSemanticIcon
+                    family="feather"
+                    color={petTheme.primary}
+                    name={action.icon}
+                    size={16}
+                  />
                 </View>
                 <View style={styles.writeActionItemText}>
-                  <AppText preset="unifiedBody">{action.title}</AppText>
-                  <AppText preset="unifiedBody" color={theme.colors.textMuted}>
-                    {action.description}
-                  </AppText>
+                  <CtaText preset="unifiedBody">{action.title}</CtaText>
+                  <CtaText preset="unifiedBody">{action.description}</CtaText>
                 </View>
-                <Feather color={theme.colors.textMuted} name="chevron-right" size={18} />
-              </TouchableOpacity>
+                <CtaIcon name="chevron-right" size={18} />
+              </CtaButton>
             ))}
           </Pressable>
         </Pressable>

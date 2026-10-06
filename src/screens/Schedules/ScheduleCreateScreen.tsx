@@ -1,3 +1,4 @@
+import CtaButton, { CtaText, CtaIcon } from '../../app/ui/CtaButton';
 // 파일: src/screens/Schedules/ScheduleCreateScreen.tsx
 // 역할:
 // - 반려동물 일정 생성 폼과 날짜/시간/반복/알림 선택 UI를 담당
@@ -195,7 +196,10 @@ export default function ScheduleCreateScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.screen} edges={keyboardVisible ? ['left', 'right'] : ['left', 'right', 'bottom']}>
+    <SafeAreaView
+      style={styles.screen}
+      edges={keyboardVisible ? ['left', 'right'] : ['left', 'right', 'bottom']}
+    >
       <View style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
         <View style={styles.headerSideSlot}>
           <TouchableOpacity
@@ -218,14 +222,13 @@ export default function ScheduleCreateScreen() {
 
         <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
           <HeaderTextActionButton
+            role="primarySubtle"
+            loading={saving}
             accessibilityLabel={saving ? '일정 저장 중' : '일정 저장 완료'}
-            backgroundColor={petTheme.tint}
-            borderColor={petTheme.border}
             borderRadius={8}
             disabled={saving}
             label={saving ? '적는 중 🐾' : '완료'}
             onPress={onSubmit}
-            textColor={petTheme.primary}
           />
         </View>
       </View>
@@ -583,7 +586,9 @@ export default function ScheduleCreateScreen() {
             multiline
           />
         </View>
-        <TouchableOpacity
+        <CtaButton
+          role="primary"
+          loading={saving}
           activeOpacity={0.9}
           accessibilityLabel={saving ? '일정 저장 중' : '일정 저장 완료'}
           accessibilityHint={
@@ -591,15 +596,11 @@ export default function ScheduleCreateScreen() {
               ? '일정 저장이 완료될 때까지 잠시 기다려 주세요.'
               : '두 번 탭하면 현재 일정을 저장합니다.'
           }
-          style={[
-            styles.bottomSubmitBtn,
-            { backgroundColor: petTheme.primary },
-            { marginBottom: 0 },
-          ]}
+          style={[styles.bottomSubmitBtn, {}, { marginBottom: 0 }]}
           onPress={onSubmit}
           disabled={saving}
         >
-          <Feather name="plus" size={16} color="#FFFFFF" />
+          <CtaIcon name="plus" size={16} />
           {saving ? (
             <WaveText
               text="일정을 차곡차곡 적는 중 🐾"
@@ -607,11 +608,11 @@ export default function ScheduleCreateScreen() {
               textStyle={styles.primaryBtnText}
             />
           ) : (
-            <AppText preset="unifiedBody" style={styles.primaryBtnText}>
+            <CtaText preset="unifiedBody" style={styles.primaryBtnText}>
               일정 저장하기
-            </AppText>
+            </CtaText>
           )}
-        </TouchableOpacity>
+        </CtaButton>
       </KeyboardAwareScrollView>
 
       <DatePickerModal
@@ -625,6 +626,8 @@ export default function ScheduleCreateScreen() {
         onConfirmDateTime={onConfirmDateTime}
       />
       <ConfirmDialog
+        confirmRole="destructiveConfirm"
+        cancelRole="neutral"
         visible={exitConfirmVisible}
         typographyMode="unified"
         title="저장하지 않고 나갈까요?"
@@ -634,7 +637,6 @@ export default function ScheduleCreateScreen() {
         cancelLabel="계속 작성하기"
         confirmLabel="나가기"
         tone="warning"
-        accentColor={petTheme.primary}
         onCancel={() => setExitConfirmVisible(false)}
         onConfirm={() => {
           setExitConfirmVisible(false);

@@ -1,10 +1,18 @@
+import CtaButton, { CtaText } from '../../../../app/ui/CtaButton';
 // 파일: src/screens/Main/components/LoggedInHome/CommunitySection.tsx
 // 목적:
 // - Home 개인 기록 흐름 뒤에 서버가 선별한 Community category 결과를 최대 3개만 보여준다.
 // - 목록 store의 filter/category/page 상태를 건드리지 않고, Home 전용 cache를 사용한다.
 // - Community 장애가 Home의 다른 섹션을 차단하지 않도록 상태 경계를 분리한다.
 
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import Feather from '../../../../components/icons/NuriFeatherIcon';
 import { useTheme } from 'styled-components/native';
@@ -118,7 +126,12 @@ const PostRow = memo(function PostRow({
     >
       <View style={styles.postBody} pointerEvents="none">
         {featured && category ? (
-          <AppText preset="caption" style={[styles.category, { color: accentColor }]}>{category}</AppText>
+          <AppText
+            preset="caption"
+            style={[styles.category, { color: accentColor }]}
+          >
+            {category}
+          </AppText>
         ) : null}
         <AppText
           preset="cardTitle"
@@ -132,7 +145,14 @@ const PostRow = memo(function PostRow({
           {title}
         </AppText>
         {featured && post.title?.trim() && excerpt && excerpt !== title ? (
-          <AppText preset="body" numberOfLines={2} style={styles.excerpt} color={theme.colors.textMuted}>{excerpt}</AppText>
+          <AppText
+            preset="body"
+            numberOfLines={2}
+            style={styles.excerpt}
+            color={theme.colors.textMuted}
+          >
+            {excerpt}
+          </AppText>
         ) : null}
         <View style={styles.metadata}>
           {!featured && category ? (
@@ -161,7 +181,6 @@ const PostRow = memo(function PostRow({
         </View>
       </View>
       <Feather name="chevron-right" size={18} color={accentColor} />
-
     </Pressable>
   );
 });
@@ -170,7 +189,7 @@ function StateBox({
   title,
   borderColor,
   textColor,
-  buttonColor,
+  buttonColor: _buttonColor,
   onRetry,
 }: {
   title: string;
@@ -185,16 +204,17 @@ function StateBox({
         {title}
       </AppText>
       {onRetry ? (
-        <Pressable
+        <CtaButton
+          role="primary"
           accessibilityRole="button"
           accessibilityLabel="커뮤니티 다시 시도"
-          style={[styles.retryButton, { backgroundColor: buttonColor ?? textColor }]}
+          style={[styles.retryButton, {}]}
           onPress={onRetry}
         >
-          <AppText preset="button" style={[styles.retryText, { color: '#FFFFFF' }]}>
+          <CtaText preset="button" style={[styles.retryText, {}]}>
             다시 시도
-          </AppText>
-        </Pressable>
+          </CtaText>
+        </CtaButton>
       ) : null}
     </View>
   );
@@ -214,7 +234,11 @@ const CommunitySection = memo(function CommunitySection({
   const [state, setState] = useState<CommunitySectionState>(() => {
     const cached = getHomeCommunityHighlightsCache('popular');
     return cached
-      ? { tab: 'popular', status: cached.isFresh || cached.items.length ? 'ready' : 'loading', items: cached.items }
+      ? {
+          tab: 'popular',
+          status: cached.isFresh || cached.items.length ? 'ready' : 'loading',
+          items: cached.items,
+        }
       : { tab: 'popular', status: 'loading', items: [] };
   });
   const requestSequenceRef = useRef(0);
@@ -232,17 +256,20 @@ const CommunitySection = memo(function CommunitySection({
 
     setState({
       tab,
-      status: cached && (cached.isFresh || cached.items.length) ? 'ready' : 'loading',
+      status:
+        cached && (cached.isFresh || cached.items.length) ? 'ready' : 'loading',
       items: cached?.items ?? [],
     });
 
     fetchHomeCommunityHighlights(tab, { force })
       .then(items => {
-        if (!mountedRef.current || requestId !== requestSequenceRef.current) return;
+        if (!mountedRef.current || requestId !== requestSequenceRef.current)
+          return;
         setState({ tab, status: 'ready', items });
       })
       .catch(() => {
-        if (!mountedRef.current || requestId !== requestSequenceRef.current) return;
+        if (!mountedRef.current || requestId !== requestSequenceRef.current)
+          return;
         setState(previous => ({ ...previous, status: 'error' }));
       });
   }, []);
@@ -261,18 +288,24 @@ const CommunitySection = memo(function CommunitySection({
     load(activeTab, Boolean(cached));
   }, [activeTab, isFocused, load]);
 
-  const handleTabPress = useCallback((tab: HomeCommunityTab) => {
-    if (tab === activeTab) return;
+  const handleTabPress = useCallback(
+    (tab: HomeCommunityTab) => {
+      if (tab === activeTab) return;
 
-    requestSequenceRef.current += 1;
-    const cached = getHomeCommunityHighlightsCache(tab);
-    setActiveTab(tab);
-    setState({
-      tab,
-      status: cached && (cached.isFresh || cached.items.length) ? 'ready' : 'loading',
-      items: cached?.items ?? [],
-    });
-  }, [activeTab]);
+      requestSequenceRef.current += 1;
+      const cached = getHomeCommunityHighlightsCache(tab);
+      setActiveTab(tab);
+      setState({
+        tab,
+        status:
+          cached && (cached.isFresh || cached.items.length)
+            ? 'ready'
+            : 'loading',
+        items: cached?.items ?? [],
+      });
+    },
+    [activeTab],
+  );
 
   const handleRetry = useCallback(() => {
     load(activeTab, true);
@@ -300,7 +333,10 @@ const CommunitySection = memo(function CommunitySection({
         <HomeSectionHeader
           title="반려인들이 주목한 이야기"
           color={accentColor}
-          action={{ onPress: onPressAll, accessibilityLabel: '커뮤니티 전체 보기' }}
+          action={{
+            onPress: onPressAll,
+            accessibilityLabel: '커뮤니티 전체 보기',
+          }}
         />
 
         <ScrollView
@@ -320,35 +356,43 @@ const CommunitySection = memo(function CommunitySection({
                 onPress={() => handleTabPress(option.key)}
                 style={styles.pillTouch}
               >
-                  <View
+                <View
+                  style={[
+                    styles.pillVisual,
+                    {
+                      backgroundColor: isActive
+                        ? accentColor
+                        : theme.colors.surfaceElevated,
+                      borderColor: isActive ? accentColor : borderColor,
+                    },
+                  ]}
+                >
+                  <AppText
+                    preset="tab"
                     style={[
-                      styles.pillVisual,
+                      styles.pillText,
                       {
-                        backgroundColor: isActive
-                          ? accentColor
-                          : theme.colors.surfaceElevated,
-                        borderColor: isActive ? accentColor : borderColor,
+                        color: isActive ? '#FFFFFF' : theme.colors.textPrimary,
                       },
                     ]}
                   >
-                    <AppText
-                      preset="tab"
-                      style={[
-                        styles.pillText,
-                        { color: isActive ? '#FFFFFF' : theme.colors.textPrimary },
-                      ]}
-                    >
-                      {option.label}
-                    </AppText>
-                  </View>
+                    {option.label}
+                  </AppText>
+                </View>
               </Pressable>
             );
           })}
         </ScrollView>
 
         <View style={styles.content}>
-          {state.tab !== activeTab || (state.status === 'loading' && state.items.length === 0) ? (
-            <CommunityEmptyState key={`${activeTab}:${season}`} tab={activeTab} season={season} loading />
+          {state.tab !== activeTab ||
+          (state.status === 'loading' && state.items.length === 0) ? (
+            <CommunityEmptyState
+              key={`${activeTab}:${season}`}
+              tab={activeTab}
+              season={season}
+              loading
+            />
           ) : showErrorState ? (
             <StateBox
               title="커뮤니티를 불러오지 못했어요"
@@ -358,7 +402,11 @@ const CommunitySection = memo(function CommunitySection({
               onRetry={handleRetry}
             />
           ) : state.items.length === 0 ? (
-            <CommunityEmptyState key={`${activeTab}:${season}`} tab={activeTab} season={season} />
+            <CommunityEmptyState
+              key={`${activeTab}:${season}`}
+              tab={activeTab}
+              season={season}
+            />
           ) : (
             <View style={styles.postList}>
               {state.items.slice(0, 3).map((post, index, posts) => (
@@ -373,7 +421,10 @@ const CommunitySection = memo(function CommunitySection({
                   />
                   {index < posts.length - 1 ? (
                     <View
-                      style={[styles.separator, { backgroundColor: borderColor }]}
+                      style={[
+                        styles.separator,
+                        { backgroundColor: borderColor },
+                      ]}
                       pointerEvents="none"
                     />
                   ) : null}
@@ -391,7 +442,6 @@ const CommunitySection = memo(function CommunitySection({
             />
           ) : null}
         </View>
-
       </View>
     </HomeSectionGlass>
   );

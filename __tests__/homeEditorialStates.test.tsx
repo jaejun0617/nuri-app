@@ -28,6 +28,8 @@ import { HOME_AMBIENT_SCROLL_BUBBLES } from '../src/theme/home/ambientMesh';
 import { HOME_AMBIENT_SECTION_LIGHTS } from '../src/theme/home/seasonalAmbient';
 import { styles as homeStyles } from '../src/screens/Main/components/LoggedInHome/LoggedInHome.styles';
 
+import CtaButton from '../src/app/ui/CtaButton';
+
 jest.mock('../src/app/ui/AppText', () => 'AppText');
 
 const SEASONS: readonly SeasonKey[] = ['autumn', 'winter', 'spring', 'summer'];
@@ -132,15 +134,17 @@ describe('seasonal editorial Home sections', () => {
       let renderer!: TestRenderer.ReactTestRenderer;
       await act(async () => {
         renderer = TestRenderer.create(
-          <RecentRecordsEmptyState
-            season={season}
-            dataState="ready"
-            accentColor="#0754DA"
-            onPressRecord={onPress}
-          />,
+          <ThemeProvider theme={createTheme('light')}>
+            <RecentRecordsEmptyState
+              season={season}
+              dataState="ready"
+              accentColor="#0754DA"
+              onPressRecord={onPress}
+            />
+          </ThemeProvider>,
         );
       });
-      const action = renderer.root.findByType(RN.TouchableOpacity);
+      const action = renderer.root.findByType(CtaButton);
       action.props.onPress();
       expect(onPress).toHaveBeenCalledTimes(1);
       expect(RN.StyleSheet.flatten(action.props.style)).toMatchObject({
@@ -148,9 +152,12 @@ describe('seasonal editorial Home sections', () => {
         borderRadius: homeStyles.recordBtn.borderRadius,
         shadowOpacity: homeStyles.recordBtn.shadowOpacity,
         elevation: homeStyles.recordBtn.elevation,
-        backgroundColor: '#0754DA',
       });
-      const label = action.find(node => node.props.children === '기록하기');
+      expect(action.props.role).toBe('primary');
+      const label = action.find(
+        node =>
+          String(node.type) === 'AppText' && node.props.children === '기록하기',
+      );
       expect(RN.StyleSheet.flatten(label.props.style).textAlign).toBe('center');
       expect(
         action.findAll(node => typeof node.props.name === 'string'),
@@ -165,12 +172,14 @@ describe('seasonal editorial Home sections', () => {
       let renderer!: TestRenderer.ReactTestRenderer;
       await act(async () => {
         renderer = TestRenderer.create(
-          <RecentRecordsEmptyState
-            season="spring"
-            dataState={getRecentEmptyDataState(status)}
-            accentColor="#0754DA"
-            onPressRecord={jest.fn()}
-          />,
+          <ThemeProvider theme={createTheme('light')}>
+            <RecentRecordsEmptyState
+              season="spring"
+              dataState={getRecentEmptyDataState(status)}
+              accentColor="#0754DA"
+              onPressRecord={jest.fn()}
+            />
+          </ThemeProvider>,
         );
       });
       expect(renderer.root.findAllByType(RN.Image)).toHaveLength(0);
@@ -208,7 +217,11 @@ describe('seasonal editorial Home sections', () => {
     'bounds artwork, not text height, at %s dp',
     width => {
       const inner = width - 32 - 28;
-      for (const slot of [artStyles.memo, artStyles.recent, artStyles.community]) {
+      for (const slot of [
+        artStyles.memo,
+        artStyles.recent,
+        artStyles.community,
+      ]) {
         const actual = Math.min(
           (inner * parseFloat(slot.width)) / 100,
           slot.maxWidth,
@@ -242,10 +255,17 @@ describe('seasonal editorial Home sections', () => {
       expect((paintWidth - newHeight) / 2).toBeLessThan(styles.row.gap);
       expect((paintWidth - newHeight) / 2).toBeLessThan(styles.content.gap);
       expect(artStyles.recentImage).toEqual({
-        top: '-10%', left: '2%', width: '96%', height: '120%',
+        top: '-10%',
+        left: '2%',
+        width: '96%',
+        height: '120%',
       });
       expect(artStyles.recent.overflow).toBe('visible');
-      expect(artStyles.memo).toEqual({ width: '30%', maxWidth: 108, aspectRatio: 1 });
+      expect(artStyles.memo).toEqual({
+        width: '30%',
+        maxWidth: 108,
+        aspectRatio: 1,
+      });
     },
   );
 
@@ -256,12 +276,14 @@ describe('seasonal editorial Home sections', () => {
     let renderer!: TestRenderer.ReactTestRenderer;
     await act(async () => {
       renderer = TestRenderer.create(
-        <RecentRecordsEmptyState
-          season="summer"
-          dataState="ready"
-          accentColor="#0754DA"
-          onPressRecord={jest.fn()}
-        />,
+        <ThemeProvider theme={createTheme('light')}>
+          <RecentRecordsEmptyState
+            season="summer"
+            dataState="ready"
+            accentColor="#0754DA"
+            onPressRecord={jest.fn()}
+          />
+        </ThemeProvider>,
       );
     });
     expect(

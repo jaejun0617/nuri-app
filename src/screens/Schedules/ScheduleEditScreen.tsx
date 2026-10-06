@@ -1,3 +1,4 @@
+import CtaButton, { CtaText, CtaIcon } from '../../app/ui/CtaButton';
 // 파일: src/screens/Schedules/ScheduleEditScreen.tsx
 // 역할:
 // - 기존 일정을 불러와 날짜/시간/카테고리/반복/알림 정보를 수정
@@ -6,16 +7,18 @@
 
 import AppTextInput from '../../app/ui/AppTextInput';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, BackHandler, TouchableOpacity, View } from 'react-native';
 import {
-  Alert,
-  BackHandler,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { KeyboardAwareScrollView, useKeyboardState } from 'react-native-keyboard-controller';
+import {
+  KeyboardAwareScrollView,
+  useKeyboardState,
+} from 'react-native-keyboard-controller';
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -130,12 +133,17 @@ export default function ScheduleEditScreen() {
     useState<ScheduleReminderOptionKey>('none');
   const [customReminderMinutesText, setCustomReminderMinutesText] =
     useState('');
-  const { settings: notificationSettings, refresh: refreshNotificationSettings } =
-    useScheduleNotificationSettings();
-  const notificationPermissionStatus = notificationSettings?.permission ?? 'unsupported';
+  const {
+    settings: notificationSettings,
+    refresh: refreshNotificationSettings,
+  } = useScheduleNotificationSettings();
+  const notificationPermissionStatus =
+    notificationSettings?.permission ?? 'unsupported';
   const categoryOptions = useMemo(
     () =>
-      category === 'health' ? SCHEDULE_CATEGORY_OPTIONS : SCHEDULE_WRITE_CATEGORY_OPTIONS,
+      category === 'health'
+        ? SCHEDULE_CATEGORY_OPTIONS
+        : SCHEDULE_WRITE_CATEGORY_OPTIONS,
     [category],
   );
   const otherSubCategoryOptions = useMemo(
@@ -159,13 +167,18 @@ export default function ScheduleEditScreen() {
       allDay !== schedule.allDay ||
       category !== schedule.category ||
       otherUiSubCategoryKey !==
-        mapScheduleSubCategoryToOtherUiKey(schedule.category, schedule.subCategory) ||
+        mapScheduleSubCategoryToOtherUiKey(
+          schedule.category,
+          schedule.subCategory,
+        ) ||
       iconKey !== schedule.iconKey ||
       colorKey !== schedule.colorKey ||
       repeatRule !== schedule.repeatRule ||
-      reminderKey !== parseReminderSelection(schedule.reminderMinutes).reminderKey ||
+      reminderKey !==
+        parseReminderSelection(schedule.reminderMinutes).reminderKey ||
       customReminderMinutesText !==
-        parseReminderSelection(schedule.reminderMinutes).customReminderMinutesText
+        parseReminderSelection(schedule.reminderMinutes)
+          .customReminderMinutesText
     );
   }, [
     allDay,
@@ -219,7 +232,10 @@ export default function ScheduleEditScreen() {
       try {
         const next = await fetchScheduleById(scheduleId);
         if (!request.isCurrent(requestId)) return;
-        const formDateTime = getScheduleFormDateTime(next.startsAt, next.allDay);
+        const formDateTime = getScheduleFormDateTime(
+          next.startsAt,
+          next.allDay,
+        );
         setSchedule(next);
         setTitle(next.title);
         setNote(next.note ?? '');
@@ -264,16 +280,19 @@ export default function ScheduleEditScreen() {
     setDateModalVisible(false);
   }, []);
 
-  const onConfirmDateTime = useCallback((nextDate: Date, nextTimeText: string) => {
-    try {
-      const normalized = normalizeScheduleTimeInput(nextTimeText);
-      setDateText(toScheduleDateInput(nextDate).replace(/-/g, '.'));
-      setTimeText(normalized);
-      setDateModalVisible(false);
-    } catch (error) {
-      Alert.alert('시간 확인', getErrorMessage(error));
-    }
-  }, []);
+  const onConfirmDateTime = useCallback(
+    (nextDate: Date, nextTimeText: string) => {
+      try {
+        const normalized = normalizeScheduleTimeInput(nextTimeText);
+        setDateText(toScheduleDateInput(nextDate).replace(/-/g, '.'));
+        setTimeText(normalized);
+        setDateModalVisible(false);
+      } catch (error) {
+        Alert.alert('시간 확인', getErrorMessage(error));
+      }
+    },
+    [],
+  );
 
   const onSelectCategory = useCallback((nextCategory: ScheduleCategory) => {
     setCategory(nextCategory);
@@ -334,7 +353,11 @@ export default function ScheduleEditScreen() {
     try {
       setSaving(true);
       const normalizedDate = normalizeScheduleDateInput(dateText);
-      const startsAtIso = buildScheduleStartsAtIso(normalizedDate, timeText, allDay);
+      const startsAtIso = buildScheduleStartsAtIso(
+        normalizedDate,
+        timeText,
+        allDay,
+      );
       const reminderMinutes = buildReminderMinutesFromSelection({
         reminderKey,
         customReminderMinutesText,
@@ -376,16 +399,19 @@ export default function ScheduleEditScreen() {
         syncStatus: schedule.syncStatus,
       });
 
-      const notificationResult = await upsertScheduleNotification({
-        id: schedule.id,
-        petId: schedule.petId,
-        title: title.trim(),
-        note: note.trim() || null,
-        startsAt: startsAtIso,
-        repeatRule,
-        reminderMinutes,
-        completedAt: schedule.completedAt,
-      }, notificationLifecycle);
+      const notificationResult = await upsertScheduleNotification(
+        {
+          id: schedule.id,
+          petId: schedule.petId,
+          title: title.trim(),
+          note: note.trim() || null,
+          startsAt: startsAtIso,
+          repeatRule,
+          reminderMinutes,
+          completedAt: schedule.completedAt,
+        },
+        notificationLifecycle,
+      );
       const notificationFeedback =
         getScheduleNotificationSyncFeedback(notificationResult);
       if (notificationFeedback) showToast(notificationFeedback);
@@ -448,29 +474,24 @@ export default function ScheduleEditScreen() {
     title,
   ]);
 
-  const reminderMinutes = useMemo(
-    () => {
-      if (reminderKey === 'none') return [];
-      try {
-        const normalizedDate = normalizeScheduleDateInput(dateText);
-        const startsAt = buildScheduleStartsAtIso(normalizedDate, timeText, allDay);
-        return buildReminderMinutesFromSelection({
-          reminderKey,
-          customReminderMinutesText,
-          startsAt,
-        });
-      } catch {
-        return [];
-      }
-    },
-    [
-      allDay,
-      customReminderMinutesText,
-      dateText,
-      reminderKey,
-      timeText,
-    ],
-  );
+  const reminderMinutes = useMemo(() => {
+    if (reminderKey === 'none') return [];
+    try {
+      const normalizedDate = normalizeScheduleDateInput(dateText);
+      const startsAt = buildScheduleStartsAtIso(
+        normalizedDate,
+        timeText,
+        allDay,
+      );
+      return buildReminderMinutesFromSelection({
+        reminderKey,
+        customReminderMinutesText,
+        startsAt,
+      });
+    } catch {
+      return [];
+    }
+  }, [allDay, customReminderMinutesText, dateText, reminderKey, timeText]);
   const reminderHelperText = useMemo(
     () =>
       getScheduleNotificationHelperText(
@@ -487,7 +508,10 @@ export default function ScheduleEditScreen() {
   const headerTopInset = Math.max(insets.top, 12);
 
   return (
-    <SafeAreaView style={styles.screen} edges={keyboardVisible ? ['left', 'right'] : ['left', 'right', 'bottom']}>
+    <SafeAreaView
+      style={styles.screen}
+      edges={keyboardVisible ? ['left', 'right'] : ['left', 'right', 'bottom']}
+    >
       <View style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
         <View style={styles.headerSideSlot}>
           <TouchableOpacity
@@ -499,18 +523,21 @@ export default function ScheduleEditScreen() {
             <Feather name="arrow-left" size={20} color="#102033" />
           </TouchableOpacity>
         </View>
-        <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
+        <AppText
+          typographyRole="screenTitle"
+          preset="unifiedTitle"
+          style={styles.headerTitle}
+        >
           일정 수정
         </AppText>
         <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
           <HeaderTextActionButton
+            role="primarySubtle"
+            loading={saving}
             accessibilityLabel={saving ? '일정 수정 중' : '일정 수정 완료'}
-            backgroundColor={petTheme.tint}
-            borderColor={petTheme.border}
             disabled={saving || loading}
             label={saving ? '다듬는 중 ✏️' : '완료'}
             onPress={onSubmit}
-            textColor={petTheme.primary}
           />
         </View>
       </View>
@@ -556,7 +583,10 @@ export default function ScheduleEditScreen() {
                     }}
                   >
                     <View style={styles.pickerTextStack}>
-                      <AppText preset="unifiedBody" style={styles.pickerFieldText}>
+                      <AppText
+                        preset="unifiedBody"
+                        style={styles.pickerFieldText}
+                      >
                         {formatScheduleDateSummary(dateText)}
                       </AppText>
                       <AppText
@@ -573,28 +603,28 @@ export default function ScheduleEditScreen() {
                   </TouchableOpacity>
                 </View>
 
-              <TouchableOpacity
-                activeOpacity={0.9}
-                style={[
-                  styles.allDayChip,
-                  allDay ? styles.allDayChipActive : null,
-                  allDay
-                    ? {
-                        backgroundColor: petTheme.tint,
-                        borderColor: petTheme.border,
-                      }
-                    : null,
-                ]}
-                onPress={() => setAllDay(prev => !prev)}
-              >
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  style={[
+                    styles.allDayChip,
+                    allDay ? styles.allDayChipActive : null,
+                    allDay
+                      ? {
+                          backgroundColor: petTheme.tint,
+                          borderColor: petTheme.border,
+                        }
+                      : null,
+                  ]}
+                  onPress={() => setAllDay(prev => !prev)}
+                >
                   <AppText
                     preset="unifiedMeta"
-                  style={[
-                    styles.allDayChipText,
-                    allDay ? styles.allDayChipTextActive : null,
-                    allDay ? { color: petTheme.primary } : null,
-                  ]}
-                >
+                    style={[
+                      styles.allDayChipText,
+                      allDay ? styles.allDayChipTextActive : null,
+                      allDay ? { color: petTheme.primary } : null,
+                    ]}
+                  >
                     하루 종일
                   </AppText>
                 </TouchableOpacity>
@@ -649,7 +679,7 @@ export default function ScheduleEditScreen() {
                     기타 분류
                   </AppText>
                   <View style={styles.optionRow}>
-                  {otherSubCategoryOptions.map(option => {
+                    {otherSubCategoryOptions.map(option => {
                       const active = otherUiSubCategoryKey === option.key;
                       return (
                         <TouchableOpacity
@@ -706,12 +736,12 @@ export default function ScheduleEditScreen() {
                       ]}
                       onPress={() => setIconKey(option.key)}
                     >
-                    <NuriSemanticIcon
-                      family="material"
-                      name={option.icon}
-                      size={16}
-                      color={active ? petTheme.primary : '#556070'}
-                    />
+                      <NuriSemanticIcon
+                        family="material"
+                        name={option.icon}
+                        size={16}
+                        color={active ? petTheme.primary : '#556070'}
+                      />
                       <AppText
                         preset="unifiedMeta"
                         style={[
@@ -871,7 +901,9 @@ export default function ScheduleEditScreen() {
             </>
           )}
         </View>
-        <TouchableOpacity
+        <CtaButton
+          role="primary"
+          loading={saving}
           activeOpacity={0.9}
           accessibilityLabel={saving ? '일정 수정 중' : '일정 수정 완료'}
           accessibilityHint={
@@ -881,13 +913,13 @@ export default function ScheduleEditScreen() {
           }
           style={[
             styles.bottomSubmitBtn,
-            { backgroundColor: petTheme.primary },
+            {},
             { marginBottom: keyboardVisible ? 0 : Math.max(insets.bottom, 18) },
           ]}
           onPress={onSubmit}
           disabled={saving || loading}
         >
-          <Feather name="save" size={16} color="#FFFFFF" />
+          <CtaIcon name="save" size={16} />
           {saving ? (
             <WaveText
               text="일정을 조심조심 다듬는 중 ✏️"
@@ -895,11 +927,11 @@ export default function ScheduleEditScreen() {
               textStyle={styles.primaryBtnText}
             />
           ) : (
-            <AppText preset="unifiedBody" style={styles.primaryBtnText}>
+            <CtaText preset="unifiedBody" style={styles.primaryBtnText}>
               일정 수정하기
-            </AppText>
+            </CtaText>
           )}
-        </TouchableOpacity>
+        </CtaButton>
       </KeyboardAwareScrollView>
 
       <DatePickerModal
@@ -913,6 +945,8 @@ export default function ScheduleEditScreen() {
         onConfirmDateTime={onConfirmDateTime}
       />
       <ConfirmDialog
+        confirmRole="destructiveConfirm"
+        cancelRole="neutral"
         visible={exitConfirmVisible}
         typographyMode="unified"
         title="저장하지 않고 나갈까요?"
@@ -922,7 +956,6 @@ export default function ScheduleEditScreen() {
         cancelLabel="계속 수정하기"
         confirmLabel="나가기"
         tone="warning"
-        accentColor={petTheme.primary}
         onCancel={() => setExitConfirmVisible(false)}
         onConfirm={() => {
           setExitConfirmVisible(false);

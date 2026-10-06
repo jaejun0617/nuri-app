@@ -1,3 +1,4 @@
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
@@ -261,26 +262,21 @@ export default function LocationDiscoveryListScreen() {
             {locationTitle}
           </AppText>
         </View>
-        <TouchableOpacity
+        <CtaButton
+          role="secondary"
           activeOpacity={0.9}
-          style={[
-            styles.locationRefreshButton,
-            { backgroundColor: petTheme.tint },
-          ]}
+          style={[styles.locationRefreshButton, {}]}
           onPress={() => {
             discoveryState.refresh().catch(() => {});
           }}
         >
-          <AppText
+          <CtaText
             preset="unifiedMeta"
-            style={[
-              styles.locationRefreshButtonText,
-              { color: petTheme.primary },
-            ]}
+            style={[styles.locationRefreshButtonText, {}]}
           >
             새로고침
-          </AppText>
-        </TouchableOpacity>
+          </CtaText>
+        </CtaButton>
       </View>
 
       <View style={styles.filterSection}>
@@ -349,7 +345,11 @@ export default function LocationDiscoveryListScreen() {
               <Feather name="arrow-left" size={20} color="#102033" />
             </TouchableOpacity>
           </View>
-          <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
+          <AppText
+            typographyRole="screenTitle"
+            preset="unifiedTitle"
+            style={styles.headerTitle}
+          >
             우리동네 산책 리스트
           </AppText>
           <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
@@ -375,7 +375,11 @@ export default function LocationDiscoveryListScreen() {
         {recentSearches.searches.length ? (
           <View style={styles.recentSearchSection}>
             <View style={styles.recentSearchHeader}>
-              <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={styles.recentSearchTitle}>
+              <AppText
+                typographyRole="sectionTitle"
+                preset="unifiedTitle"
+                style={styles.recentSearchTitle}
+              >
                 최근 검색
               </AppText>
               <TouchableOpacity

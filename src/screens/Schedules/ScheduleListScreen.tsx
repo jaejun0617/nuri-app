@@ -1,3 +1,4 @@
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 // 파일: src/screens/Schedules/ScheduleListScreen.tsx
 // 파일 목적:
 // - 선택된 반려동물 기준 일정 목록을 보여주는 일정 도메인의 허브 화면이다.
@@ -13,12 +14,7 @@
 // - route petId와 selectedPetId 해석 우선순위를 바꾸면 홈에서 들어온 일정 컨텍스트가 달라질 수 있다.
 // - 일정 목록은 홈 요약과 같은 캐시를 공유하므로 로딩/갱신 UX를 과하게 따로 만들면 상태가 어긋날 수 있다.
 
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   RefreshControl,
   AppState,
@@ -216,8 +212,8 @@ export default function ScheduleListScreen() {
           전체 일정
         </AppText>
         <HeaderIconActionButton
+          role="primary"
           accessibilityLabel="일정 추가"
-          backgroundColor={petTheme.primary}
           onPress={onPressCreate}
         />
       </View>
@@ -287,10 +283,11 @@ export default function ScheduleListScreen() {
                 </TouchableOpacity>
               ) : null}
             </View>
-            <View
-              style={styles.filterRow}
-            >
-              <View style={[styles.segments, compactFilters && styles.segmentsGrid]} accessibilityLabel="일정 기간 선택">
+            <View style={styles.filterRow}>
+              <View
+                style={[styles.segments, compactFilters && styles.segmentsGrid]}
+                accessibilityLabel="일정 기간 선택"
+              >
                 {(
                   [
                     { key: 'all', label: '전체' },
@@ -371,48 +368,53 @@ export default function ScheduleListScreen() {
           const item = occurrence.schedule;
           const timeLabel = scheduleListTimeLabel(occurrence, section.day);
           return (
-          <TouchableOpacity
-            testID={`schedule-hub-item-${item.id}`}
-            accessibilityRole="button"
-            accessibilityLabel={`${timeLabel}, ${
-              item.title
-            }, 일정 상세 보기`}
-            activeOpacity={0.8}
-            onPress={() => onPressItem(item.id)}
-            style={styles.card}
-          >
-            <NuriSemanticIcon
-              family="material"
-              name={mapScheduleIconName(item.iconKey)}
-              size={30}
-              color={petTheme.primary}
-            />
-            <View style={styles.cardTextCol}>
-              <AppText preset="unifiedMicro" color={theme.colors.textSecondary}>
-                {timeLabel}
-              </AppText>
-              <AppText preset="cardTitle" color={theme.colors.textPrimary}>
-                {item.title}
-              </AppText>
-              {item.repeatRule !== 'none' || item.completedAt ? (
+            <TouchableOpacity
+              testID={`schedule-hub-item-${item.id}`}
+              accessibilityRole="button"
+              accessibilityLabel={`${timeLabel}, ${item.title}, 일정 상세 보기`}
+              activeOpacity={0.8}
+              onPress={() => onPressItem(item.id)}
+              style={styles.card}
+            >
+              <NuriSemanticIcon
+                family="material"
+                name={mapScheduleIconName(item.iconKey)}
+                size={30}
+                color={petTheme.primary}
+              />
+              <View style={styles.cardTextCol}>
                 <AppText
                   preset="unifiedMicro"
                   color={theme.colors.textSecondary}
                 >
-                  {[
-                    item.repeatRule !== 'none' ? '반복 일정' : '',
-                    item.completedAt ? '완료' : '',
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
+                  {timeLabel}
                 </AppText>
+                <AppText preset="cardTitle" color={theme.colors.textPrimary}>
+                  {item.title}
+                </AppText>
+                {item.repeatRule !== 'none' || item.completedAt ? (
+                  <AppText
+                    preset="unifiedMicro"
+                    color={theme.colors.textSecondary}
+                  >
+                    {[
+                      item.repeatRule !== 'none' ? '반복 일정' : '',
+                      item.completedAt ? '완료' : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </AppText>
+                ) : null}
+              </View>
+              {item.reminderMinutes.length ? (
+                <Feather name="bell" size={18} color={theme.colors.textMuted} />
               ) : null}
-            </View>
-            {item.reminderMinutes.length ? (
-              <Feather name="bell" size={18} color={theme.colors.textMuted} />
-            ) : null}
-            <Feather name="chevron-right" size={19} color={petTheme.primary} />
-          </TouchableOpacity>
+              <Feather
+                name="chevron-right"
+                size={19}
+                color={petTheme.primary}
+              />
+            </TouchableOpacity>
           );
         }}
         ListEmptyComponent={
@@ -445,15 +447,14 @@ export default function ScheduleListScreen() {
                 : '등록된 일정이 아직 없어요'}
             </AppText>
             {isError ? (
-              <TouchableOpacity
+              <CtaButton
+                role="primary"
                 accessibilityRole="button"
                 onPress={onRefresh}
                 style={styles.todayButton}
               >
-                <AppText preset="unifiedLabel" color={petTheme.primary}>
-                  다시 불러오기
-                </AppText>
-              </TouchableOpacity>
+                <CtaText preset="unifiedLabel">다시 불러오기</CtaText>
+              </CtaButton>
             ) : null}
           </View>
         }

@@ -12,7 +12,13 @@
 // - 이 파일은 허브 분기만 담당해야 하므로, 홈 비즈니스 로직을 여기로 끌어올리면 결합도가 빠르게 커진다.
 // - Android 뒤로가기 종료 처리와 온보딩 가드가 함께 있어 포커스 effect 변경 시 회귀를 주의해야 한다.
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { BackHandler, Platform } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -53,7 +59,8 @@ export default function MainScreen() {
   const [welcomeDismissPending, setWelcomeDismissPending] = useState(false);
   const welcomeDismissInFlightRef = useRef(false);
   const selectedPet = useMemo(
-    () => pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
+    () =>
+      pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
     [pets, selectedPetId],
   );
   const petTheme = useMemo(
@@ -86,7 +93,8 @@ export default function MainScreen() {
   }, [isLoggedIn, petLoading, petsCount, userId]);
 
   const closeFirstPetWelcome = useCallback(async () => {
-    if (!userId || !firstPetWelcome || welcomeDismissInFlightRef.current) return;
+    if (!userId || !firstPetWelcome || welcomeDismissInFlightRef.current)
+      return;
 
     welcomeDismissInFlightRef.current = true;
     setWelcomeDismissPending(true);
@@ -181,14 +189,17 @@ export default function MainScreen() {
     <>
       {isLoggedIn && !isPasswordRecoveryActive ? <LoggedInHome /> : null}
       <ConfirmDialog
+        confirmRole="neutral"
+        cancelRole="neutral"
         visible={exitConfirmVisible}
         typographyMode="unified"
         title="앱을 종료할까요?"
-        message={'앱을 닫아도 저장된 정보는 그대로 유지되며\n다음에 다시 이어서 사용할 수 있어요.'}
+        message={
+          '앱을 닫아도 저장된 정보는 그대로 유지되며\n다음에 다시 이어서 사용할 수 있어요.'
+        }
         cancelLabel="계속 둘러보기"
         confirmLabel="앱 종료"
         tone="warning"
-        accentColor={petTheme.primary}
         onCancel={() => setExitConfirmVisible(false)}
         onConfirm={() => {
           setExitConfirmVisible(false);

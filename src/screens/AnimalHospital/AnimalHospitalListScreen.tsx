@@ -1,3 +1,4 @@
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   FlatList,
@@ -135,26 +136,21 @@ export default function AnimalHospitalListScreen() {
             {discoveryState.scope.displayLabel}
           </AppText>
         </View>
-        <TouchableOpacity
+        <CtaButton
+          role="secondary"
           activeOpacity={0.9}
-          style={[
-            styles.locationRefreshButton,
-            { backgroundColor: petTheme.tint },
-          ]}
+          style={[styles.locationRefreshButton, {}]}
           onPress={() => {
             discoveryState.refresh().catch(() => {});
           }}
         >
-          <AppText
+          <CtaText
             preset="unifiedMeta"
-            style={[
-              styles.locationRefreshButtonText,
-              { color: petTheme.primary },
-            ]}
+            style={[styles.locationRefreshButtonText, {}]}
           >
             새로고침
-          </AppText>
-        </TouchableOpacity>
+          </CtaText>
+        </CtaButton>
       </View>
       {discoveryState.permission === 'granted' &&
       discoveryState.permissionAccuracy === 'approximate' ? (
@@ -219,7 +215,11 @@ export default function AnimalHospitalListScreen() {
               />
             </TouchableOpacity>
           </View>
-          <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
+          <AppText
+            typographyRole="screenTitle"
+            preset="unifiedTitle"
+            style={styles.headerTitle}
+          >
             우리동네 동물병원
           </AppText>
           <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />

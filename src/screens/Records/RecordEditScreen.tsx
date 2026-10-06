@@ -1,3 +1,4 @@
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 // 파일: src/screens/Records/RecordEditScreen.tsx
 // 목적:
 // - 기존 memory 수정(완전체)
@@ -15,7 +16,13 @@
 // 5) “이미지 제거” 의도는 removeRequested 플래그로 관리한다.
 
 import AppTextInput from '../../app/ui/AppTextInput';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -87,9 +94,7 @@ import {
   updateMemoryFields,
   type EmotionTag,
 } from '../../services/supabase/memories';
-import {
-  getMemoryImageSignedUrlCached,
-} from '../../services/supabase/storageMemories';
+import { getMemoryImageSignedUrlCached } from '../../services/supabase/storageMemories';
 import { useKeyboardInset } from '../../hooks/useKeyboardInset';
 import { useAuthStore } from '../../store/authStore';
 import { useRecordStore } from '../../store/recordStore';
@@ -97,7 +102,10 @@ import { showToast } from '../../store/uiStore';
 import AppText from '../../app/ui/AppText';
 import { styles } from './RecordEditScreen.styles';
 
-type TimelineNav = NativeStackNavigationProp<TimelineStackParamList, 'RecordEdit'>;
+type TimelineNav = NativeStackNavigationProp<
+  TimelineStackParamList,
+  'RecordEdit'
+>;
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
 type Nav = CompositeNavigationProp<TimelineNav, RootNav>;
 type Route = TimelineScreenRoute<'RecordEdit'>;
@@ -269,9 +277,9 @@ export default function RecordEditScreen() {
   const [removedPaths, setRemovedPaths] = useState<Set<string>>(new Set());
   const [addedImages, setAddedImages] = useState<AddedImage[]>([]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const [signedByPath, setSignedByPath] = useState<Record<string, string | null>>(
-    {},
-  );
+  const [signedByPath, setSignedByPath] = useState<
+    Record<string, string | null>
+  >({});
 
   useEffect(() => {
     if (!record) return;
@@ -279,8 +287,8 @@ export default function RecordEditScreen() {
       record.imagePaths && record.imagePaths.length > 0
         ? record.imagePaths
         : record.imagePath
-          ? [record.imagePath]
-          : [];
+        ? [record.imagePath]
+        : [];
     setBaseImagePaths(nextPaths);
     setRemovedPaths(new Set());
     setAddedImages([]);
@@ -580,9 +588,10 @@ export default function RecordEditScreen() {
       setFocusedMemoryId(petId, memoryId);
 
       // 2) 이미지 저장(다중)
-      const imagePlanChanged =
-        removedPaths.size > 0 || addedImages.length > 0;
-      const keptExisting = baseImagePaths.filter(path => !removedPaths.has(path));
+      const imagePlanChanged = removedPaths.size > 0 || addedImages.length > 0;
+      const keptExisting = baseImagePaths.filter(
+        path => !removedPaths.has(path),
+      );
       const finalEntries: PendingMemoryUploadEntry[] = [
         ...keptExisting.map(path => ({ kind: 'existing' as const, path })),
         ...addedImages.map(image => ({
@@ -694,8 +703,16 @@ export default function RecordEditScreen() {
       petId,
       memoryId,
       entrySource: route.params.entrySource,
+      scheduleReturn: route.params.scheduleReturn,
     });
-  }, [memoryId, navigation, petId, route.params.entrySource, setFocusedMemoryId]);
+  }, [
+    memoryId,
+    navigation,
+    petId,
+    route.params.entrySource,
+    route.params.scheduleReturn,
+    setFocusedMemoryId,
+  ]);
 
   const dismissRewardNoticeToday = useCallback(() => {
     dismissRewardNoticeForToday(userId)
@@ -715,11 +732,11 @@ export default function RecordEditScreen() {
             목록으로 돌아가서 새로고침 해주세요.
           </AppText>
 
-          <TouchableOpacity style={styles.ghost} onPress={safeGoBack}>
-            <AppText preset="unifiedMeta" style={styles.ghostText}>
+          <CtaButton role="neutral" style={styles.ghost} onPress={safeGoBack}>
+            <CtaText preset="unifiedMeta" style={styles.ghostText}>
               뒤로
-            </AppText>
-          </TouchableOpacity>
+            </CtaText>
+          </CtaButton>
         </View>
       </SafeAreaView>
     );
@@ -743,7 +760,11 @@ export default function RecordEditScreen() {
           </TouchableOpacity>
         </View>
 
-        <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
+        <AppText
+          typographyRole="screenTitle"
+          preset="unifiedTitle"
+          style={styles.headerTitle}
+        >
           {isHealthEntry ? '건강 기록 수정' : '기록 수정'}
         </AppText>
 
@@ -762,318 +783,339 @@ export default function RecordEditScreen() {
         keyboardDismissMode="none"
         extraKeyboardSpace={-10}
       >
-        <View style={[styles.card, keyboardVisible ? styles.cardKeyboardVisible : null]}>
-        {/* Image Preview */}
-        <RecordImageGallery
-          items={galleryItems}
-          activeIndex={activeImageIndex}
-          onChangeActiveIndex={setActiveImageIndex}
-          containerStyle={styles.heroWrap}
-          stageStyle={styles.heroStage}
-          emptyContent={
-            <View style={styles.heroPlaceholder}>
-              <AppText preset="unifiedMeta" style={styles.heroPlaceholderText}>
-                NO IMAGE
-              </AppText>
-            </View>
-          }
-          mainContent={
-            previewItems.length === 0 ? null : imgLoading ? (
+        <View
+          style={[
+            styles.card,
+            keyboardVisible ? styles.cardKeyboardVisible : null,
+          ]}
+        >
+          {/* Image Preview */}
+          <RecordImageGallery
+            items={galleryItems}
+            activeIndex={activeImageIndex}
+            onChangeActiveIndex={setActiveImageIndex}
+            containerStyle={styles.heroWrap}
+            stageStyle={styles.heroStage}
+            emptyContent={
               <View style={styles.heroPlaceholder}>
-                <ActivityIndicator size="large" color="#8A94A6" />
-              </View>
-            ) : !activeImageUri ? (
-              <View style={styles.heroPlaceholder}>
-                <AppText preset="unifiedMeta" style={styles.heroPlaceholderText}>
+                <AppText
+                  preset="unifiedMeta"
+                  style={styles.heroPlaceholderText}
+                >
                   NO IMAGE
                 </AppText>
               </View>
-            ) : (
-              <Image
-                source={{ uri: activeImageUri }}
-                style={styles.heroImg}
-                resizeMode="cover"
-                fadeDuration={250}
-              />
-            )
-          }
-          thumbRowStyle={styles.thumbRow}
-          thumbItemStyle={styles.thumbItem}
-          thumbItemActiveStyle={styles.thumbItemActive}
-          thumbImageStyle={styles.thumbImage}
-          footerActions={
-            <View style={styles.imgActionsRow}>
-              <TouchableOpacity
-                activeOpacity={0.9}
-                style={[styles.imgBtn, styles.imgBtnPrimary]}
-                onPress={onPickImage}
-                disabled={saving}
-              >
-                <AppText preset="unifiedMeta" style={styles.imgBtnText}>
-                  사진 추가
-                </AppText>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                activeOpacity={0.9}
-                style={[styles.imgBtn, styles.imgBtnDanger]}
-                onPress={onRemoveActiveImage}
-                disabled={saving || previewItems.length === 0}
-              >
-                <AppText preset="unifiedMeta" style={styles.imgBtnDangerText}>
-                  현재 사진 제거
-                </AppText>
-              </TouchableOpacity>
-            </View>
-          }
-        />
-
-        <View
-          testID="timeline-edit-composer-title-section"
-          collapsable={false}
-          onLayout={event =>
-            handleComposerFieldLayout('title', event.nativeEvent.layout.y)
-          }
-        >
-          <AppText preset="unifiedMeta" style={styles.label}>
-            제목
-          </AppText>
-          <AppTextInput
-            style={styles.input}
-            value={title}
-            onChangeText={v => {
-              setDirty(true);
-              setTitle(v);
-            }}
-            onFocus={() => handleComposerFocus('title')}
-            placeholder="제목"
-            placeholderTextColor="#8A94A6"
-            editable={!saving}
-          />
-        </View>
-
-        <View
-          testID="timeline-edit-composer-body-section"
-          collapsable={false}
-          onLayout={event =>
-            handleComposerFieldLayout('body', event.nativeEvent.layout.y)
-          }
-        >
-          <AppText preset="unifiedMeta" style={styles.label}>
-            내용(선택)
-          </AppText>
-          <AppTextInput
-            style={[styles.input, styles.multiline]}
-            value={content ?? ''}
-            onChangeText={v => {
-              setDirty(true);
-              setContent(v);
-            }}
-            onFocus={() => handleComposerFocus('body')}
-            placeholder="내용"
-            placeholderTextColor="#8A94A6"
-            multiline
-            editable={!saving}
-          />
-        </View>
-
-        <AppText preset="unifiedMeta" style={styles.label}>
-          날짜(선택)
-        </AppText>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={styles.input}
-          onPress={openDateModal}
-          disabled={saving}
-        >
-          <AppText
-            preset="unifiedBody"
-            style={{ color: occurredAt ? '#0B1220' : '#8A94A6' }}
-          >
-            {occurredAt ? occurredAtLabel : '날짜를 선택해 주세요'}
-          </AppText>
-        </TouchableOpacity>
-
-        <AppText preset="unifiedMeta" style={styles.label}>
-          분류
-        </AppText>
-        <View style={styles.categoryGrid}>
-          {visibleMainCategories.map(category => {
-            const active = category.key === mainCategoryKey;
-            return (
-              <TouchableOpacity
-                key={category.key}
-                style={[
-                  styles.categoryChip,
-                  active ? styles.categoryChipActive : null,
-                ]}
-                onPress={() => onSelectMainCategory(category.key)}
-                disabled={saving}
-                activeOpacity={0.9}
-              >
-                <AppText
-                  preset="unifiedMeta"
-                  style={[
-                    styles.categoryChipText,
-                    active ? styles.categoryChipTextActive : null,
-                  ]}
+            }
+            mainContent={
+              previewItems.length === 0 ? null : imgLoading ? (
+                <View style={styles.heroPlaceholder}>
+                  <ActivityIndicator size="large" color="#8A94A6" />
+                </View>
+              ) : !activeImageUri ? (
+                <View style={styles.heroPlaceholder}>
+                  <AppText
+                    preset="unifiedMeta"
+                    style={styles.heroPlaceholderText}
+                  >
+                    NO IMAGE
+                  </AppText>
+                </View>
+              ) : (
+                <Image
+                  source={{ uri: activeImageUri }}
+                  style={styles.heroImg}
+                  resizeMode="cover"
+                  fadeDuration={250}
+                />
+              )
+            }
+            thumbRowStyle={styles.thumbRow}
+            thumbItemStyle={styles.thumbItem}
+            thumbItemActiveStyle={styles.thumbItemActive}
+            thumbImageStyle={styles.thumbImage}
+            footerActions={
+              <View style={styles.imgActionsRow}>
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  style={[styles.imgBtn, styles.imgBtnPrimary]}
+                  onPress={onPickImage}
+                  disabled={saving}
                 >
-                  {category.label}
-                </AppText>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+                  <AppText preset="unifiedMeta" style={styles.imgBtnText}>
+                    사진 추가
+                  </AppText>
+                </TouchableOpacity>
 
-        {mainCategoryKey === 'other' ? (
-          <View style={styles.subCategoryGrid}>
-            {RECORD_WRITE_OTHER_SUBCATEGORIES.map(sub => {
-              const active = sub.key === otherSubCategoryKey;
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  style={[styles.imgBtn, styles.imgBtnDanger]}
+                  onPress={onRemoveActiveImage}
+                  disabled={saving || previewItems.length === 0}
+                >
+                  <AppText preset="unifiedMeta" style={styles.imgBtnDangerText}>
+                    현재 사진 제거
+                  </AppText>
+                </TouchableOpacity>
+              </View>
+            }
+          />
+
+          <View
+            testID="timeline-edit-composer-title-section"
+            collapsable={false}
+            onLayout={event =>
+              handleComposerFieldLayout('title', event.nativeEvent.layout.y)
+            }
+          >
+            <AppText preset="unifiedMeta" style={styles.label}>
+              제목
+            </AppText>
+            <AppTextInput
+              style={styles.input}
+              value={title}
+              onChangeText={v => {
+                setDirty(true);
+                setTitle(v);
+              }}
+              onFocus={() => handleComposerFocus('title')}
+              placeholder="제목"
+              placeholderTextColor="#8A94A6"
+              editable={!saving}
+            />
+          </View>
+
+          <View
+            testID="timeline-edit-composer-body-section"
+            collapsable={false}
+            onLayout={event =>
+              handleComposerFieldLayout('body', event.nativeEvent.layout.y)
+            }
+          >
+            <AppText preset="unifiedMeta" style={styles.label}>
+              내용(선택)
+            </AppText>
+            <AppTextInput
+              style={[styles.input, styles.multiline]}
+              value={content ?? ''}
+              onChangeText={v => {
+                setDirty(true);
+                setContent(v);
+              }}
+              onFocus={() => handleComposerFocus('body')}
+              placeholder="내용"
+              placeholderTextColor="#8A94A6"
+              multiline
+              editable={!saving}
+            />
+          </View>
+
+          <AppText preset="unifiedMeta" style={styles.label}>
+            날짜(선택)
+          </AppText>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={styles.input}
+            onPress={openDateModal}
+            disabled={saving}
+          >
+            <AppText
+              preset="unifiedBody"
+              style={{ color: occurredAt ? '#0B1220' : '#8A94A6' }}
+            >
+              {occurredAt ? occurredAtLabel : '날짜를 선택해 주세요'}
+            </AppText>
+          </TouchableOpacity>
+
+          <AppText preset="unifiedMeta" style={styles.label}>
+            분류
+          </AppText>
+          <View style={styles.categoryGrid}>
+            {visibleMainCategories.map(category => {
+              const active = category.key === mainCategoryKey;
               return (
                 <TouchableOpacity
-                  key={sub.key}
+                  key={category.key}
                   style={[
-                    styles.subCategoryChip,
-                    active ? styles.subCategoryChipActive : null,
+                    styles.categoryChip,
+                    active ? styles.categoryChipActive : null,
                   ]}
-                  onPress={() => onSelectOtherSubCategory(sub.key)}
+                  onPress={() => onSelectMainCategory(category.key)}
                   disabled={saving}
                   activeOpacity={0.9}
                 >
                   <AppText
                     preset="unifiedMeta"
                     style={[
-                      styles.subCategoryChipText,
-                      active ? styles.subCategoryChipTextActive : null,
+                      styles.categoryChipText,
+                      active ? styles.categoryChipTextActive : null,
                     ]}
                   >
-                    {sub.label}
+                    {category.label}
                   </AppText>
                 </TouchableOpacity>
               );
             })}
-
-            {otherSubCategoryKey ? (
-              <TouchableOpacity
-                activeOpacity={0.9}
-                style={styles.subCategoryClearBtn}
-                onPress={clearOtherSubCategory}
-                disabled={saving}
-              >
-                <Feather name="x" size={14} color="#9AA4B6" />
-              </TouchableOpacity>
-            ) : null}
           </View>
-        ) : null}
 
-        {isShoppingCategory ? (
-          <>
-            <AppText preset="unifiedMeta" style={styles.label}>
-              구매 가격
-            </AppText>
-            <AppTextInput
-              style={styles.input}
-              value={priceText}
-              onChangeText={onChangePriceText}
-              onFocus={handleFocusField}
-              placeholder="예: 25000"
-              placeholderTextColor="#8A94A6"
-              keyboardType="number-pad"
-              editable={!saving}
-            />
-            <AppText preset="unifiedMeta" style={styles.helperText}>
-              {priceLabel
-                ? `저장 예정 금액: ${priceLabel}`
-                : '숫자만 입력하면 자동으로 원 단위로 저장돼요.'}
-            </AppText>
-          </>
-        ) : null}
+          {mainCategoryKey === 'other' ? (
+            <View style={styles.subCategoryGrid}>
+              {RECORD_WRITE_OTHER_SUBCATEGORIES.map(sub => {
+                const active = sub.key === otherSubCategoryKey;
+                return (
+                  <TouchableOpacity
+                    key={sub.key}
+                    style={[
+                      styles.subCategoryChip,
+                      active ? styles.subCategoryChipActive : null,
+                    ]}
+                    onPress={() => onSelectOtherSubCategory(sub.key)}
+                    disabled={saving}
+                    activeOpacity={0.9}
+                  >
+                    <AppText
+                      preset="unifiedMeta"
+                      style={[
+                        styles.subCategoryChipText,
+                        active ? styles.subCategoryChipTextActive : null,
+                      ]}
+                    >
+                      {sub.label}
+                    </AppText>
+                  </TouchableOpacity>
+                );
+              })}
 
-        <AppText preset="unifiedMeta" style={styles.label}>
-          태그(선택)
-        </AppText>
-        <AppTextInput
-          style={styles.input}
-          value={tagsText}
-          onChangeText={v => {
-            setDirty(true);
-            setTagsText(v);
-          }}
-          onFocus={handleFocusField}
-          placeholder="#산책 #간식 또는 산책,간식"
-          placeholderTextColor="#8A94A6"
-          editable={!saving}
-        />
-
-        <AppText preset="unifiedMeta" style={styles.label}>
-          감정(선택)
-        </AppText>
-
-        <View style={styles.emotionGrid}>
-          {RECORD_EMOTION_OPTIONS.map(em => {
-            const active = emotion === em.value;
-            return (
-              <TouchableOpacity
-                key={em.value}
-                style={[styles.moodChip, active ? styles.moodChipActive : null]}
-                onPress={() => {
-                  setDirty(true);
-                  setEmotion(prev => (prev === em.value ? null : em.value));
-                }}
-                disabled={saving}
-                activeOpacity={0.9}
-              >
-                <NuriIcon name={NURI_MOOD_ICONS[em.value]} size={16} />
-                <AppText
-                  preset="unifiedMeta"
-                  style={[styles.moodText, active ? styles.moodTextActive : null]}
+              {otherSubCategoryKey ? (
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  style={styles.subCategoryClearBtn}
+                  onPress={clearOtherSubCategory}
+                  disabled={saving}
                 >
-                  {em.label}
-                </AppText>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+                  <Feather name="x" size={14} color="#9AA4B6" />
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          ) : null}
 
-        <TouchableOpacity
-          style={[styles.primary, saving ? styles.primaryDisabled : null]}
-          onPress={onSubmit}
-          disabled={saving}
-          accessibilityLabel={saving ? '기록 수정 중' : '기록 수정 완료'}
-          accessibilityHint={
-            saving
-              ? '기록 수정을 완료할 때까지 잠시 기다려 주세요.'
-              : '두 번 탭하면 수정한 기록을 저장합니다.'
-          }
-          activeOpacity={0.9}
-        >
-          {saving ? (
-            <WaveText
-              text="추억을 예쁘게 다듬는 중 ✨"
-              color="#FFFFFF"
-              textStyle={styles.primaryText}
-            />
-          ) : (
-            <AppText preset="unifiedBody" style={styles.primaryText}>
-              저장
-            </AppText>
-          )}
-        </TouchableOpacity>
+          {isShoppingCategory ? (
+            <>
+              <AppText preset="unifiedMeta" style={styles.label}>
+                구매 가격
+              </AppText>
+              <AppTextInput
+                style={styles.input}
+                value={priceText}
+                onChangeText={onChangePriceText}
+                onFocus={handleFocusField}
+                placeholder="예: 25000"
+                placeholderTextColor="#8A94A6"
+                keyboardType="number-pad"
+                editable={!saving}
+              />
+              <AppText preset="unifiedMeta" style={styles.helperText}>
+                {priceLabel
+                  ? `저장 예정 금액: ${priceLabel}`
+                  : '숫자만 입력하면 자동으로 원 단위로 저장돼요.'}
+              </AppText>
+            </>
+          ) : null}
 
-        <TouchableOpacity
-          style={styles.ghost}
-          onPress={safeGoBack}
-          disabled={saving}
-          activeOpacity={0.9}
-        >
-          <AppText preset="unifiedBody" style={styles.ghostText}>
-            취소
+          <AppText preset="unifiedMeta" style={styles.label}>
+            태그(선택)
           </AppText>
-        </TouchableOpacity>
+          <AppTextInput
+            style={styles.input}
+            value={tagsText}
+            onChangeText={v => {
+              setDirty(true);
+              setTagsText(v);
+            }}
+            onFocus={handleFocusField}
+            placeholder="#산책 #간식 또는 산책,간식"
+            placeholderTextColor="#8A94A6"
+            editable={!saving}
+          />
+
+          <AppText preset="unifiedMeta" style={styles.label}>
+            감정(선택)
+          </AppText>
+
+          <View style={styles.emotionGrid}>
+            {RECORD_EMOTION_OPTIONS.map(em => {
+              const active = emotion === em.value;
+              return (
+                <TouchableOpacity
+                  key={em.value}
+                  style={[
+                    styles.moodChip,
+                    active ? styles.moodChipActive : null,
+                  ]}
+                  onPress={() => {
+                    setDirty(true);
+                    setEmotion(prev => (prev === em.value ? null : em.value));
+                  }}
+                  disabled={saving}
+                  activeOpacity={0.9}
+                >
+                  <NuriIcon name={NURI_MOOD_ICONS[em.value]} size={16} />
+                  <AppText
+                    preset="unifiedMeta"
+                    style={[
+                      styles.moodText,
+                      active ? styles.moodTextActive : null,
+                    ]}
+                  >
+                    {em.label}
+                  </AppText>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <CtaButton
+            role="primary"
+            loading={saving}
+            style={[styles.primary, saving ? styles.primaryDisabled : null]}
+            onPress={onSubmit}
+            disabled={saving}
+            accessibilityLabel={saving ? '기록 수정 중' : '기록 수정 완료'}
+            accessibilityHint={
+              saving
+                ? '기록 수정을 완료할 때까지 잠시 기다려 주세요.'
+                : '두 번 탭하면 수정한 기록을 저장합니다.'
+            }
+            activeOpacity={0.9}
+          >
+            {saving ? (
+              <WaveText
+                text="추억을 예쁘게 다듬는 중 ✨"
+                color="#FFFFFF"
+                textStyle={styles.primaryText}
+              />
+            ) : (
+              <CtaText preset="unifiedBody" style={styles.primaryText}>
+                저장
+              </CtaText>
+            )}
+          </CtaButton>
+
+          <CtaButton
+            role="neutral"
+            style={styles.ghost}
+            onPress={safeGoBack}
+            disabled={saving}
+            activeOpacity={0.9}
+          >
+            <CtaText preset="unifiedBody" style={styles.ghostText}>
+              취소
+            </CtaText>
+          </CtaButton>
         </View>
       </KeyboardAwareScrollView>
 
       <PremiumNoticeModal
+        confirmRole="primary"
         visible={successModalVisible}
         typographyMode="unified"
         eyebrow="NURI MEMORY"
@@ -1086,6 +1128,7 @@ export default function RecordEditScreen() {
       />
 
       <PremiumRewardModal
+        roleBasedActions
         visible={rewardNotice !== null}
         xpAwarded={rewardNotice?.xpAwarded ?? 0}
         totalXp={rewardNotice?.totalXp ?? 0}

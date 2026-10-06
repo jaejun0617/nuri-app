@@ -1,3 +1,4 @@
+import CtaButton, { CtaText } from '../../../app/ui/CtaButton';
 import React, { memo, useCallback } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { TouchableOpacity, View } from 'react-native';
@@ -67,31 +68,27 @@ function CommentActionRowBase({
 
       {currentUserId ? (
         authorId === currentUserId ? (
-          <TouchableOpacity
+          <CtaButton
+            role="destructiveEntry"
             activeOpacity={0.88}
             hitSlop={8}
             onPress={handlePressDelete}
           >
-            <AppText
-              preset="caption"
-              style={[styles.commentActionText, { color: theme.colors.danger }]}
-            >
+            <CtaText preset="caption" style={[styles.commentActionText, {}]}>
               삭제
-            </AppText>
-          </TouchableOpacity>
+            </CtaText>
+          </CtaButton>
         ) : (
-          <TouchableOpacity
+          <CtaButton
+            role="secondary"
             activeOpacity={0.88}
             hitSlop={8}
             onPress={handlePressReport}
           >
-            <AppText
-              preset="caption"
-              style={[styles.commentActionText, { color: theme.colors.textSecondary }]}
-            >
+            <CtaText preset="caption" style={[styles.commentActionText, {}]}>
               신고
-            </AppText>
-          </TouchableOpacity>
+            </CtaText>
+          </CtaButton>
         )
       ) : null}
     </View>

@@ -3,6 +3,9 @@ import path from 'node:path';
 import React from 'react';
 import * as RN from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
+import { ThemeProvider } from 'styled-components/native';
+import { createTheme } from '../src/app/theme/theme';
+import CtaButton from '../src/app/ui/CtaButton';
 
 import {
   HOME_EMPTY_SECTION_ART,
@@ -33,13 +36,15 @@ describe('seasonal Home empty sections', () => {
       let renderer!: TestRenderer.ReactTestRenderer;
       await act(async () => {
         renderer = TestRenderer.create(
-          <HomeEmptySectionState
-            kind={kind}
-            season={season}
-            dataState="ready"
-            accentDeepColor="#0754DA"
-            onPressAction={onPress}
-          />,
+          <ThemeProvider theme={createTheme('light')}>
+            <HomeEmptySectionState
+              kind={kind}
+              season={season}
+              dataState="ready"
+              accentDeepColor="#0754DA"
+              onPressAction={onPress}
+            />
+          </ThemeProvider>,
         );
       });
       const image = renderer.root.findByType(RN.Image);
@@ -72,20 +77,28 @@ describe('seasonal Home empty sections', () => {
       expect(geometry.maxWidth).toBeLessThanOrEqual(168);
       expect(geometry.maxHeight).toBe(geometry.maxWidth);
       expect(geometry.height).toBeUndefined();
-      const action = renderer.root.findByType(RN.TouchableOpacity);
+      const action = renderer.root.findByType(CtaButton);
       action.props.onPress();
       expect(onPress).toHaveBeenCalledTimes(1);
       expect(action.props.accessibilityLabel).toBe(
         HOME_EMPTY_SECTION_COPY[kind].accessibilityLabel,
       );
       const label = action.find(
-        node => node.props.children === HOME_EMPTY_SECTION_COPY[kind].action,
+        node =>
+          String(node.type) === 'AppText' &&
+          node.props.children === HOME_EMPTY_SECTION_COPY[kind].action,
       );
       expect(RN.StyleSheet.flatten(label.props.style).textAlign).toBe('center');
       expect(
         action.findAll(node => typeof node.props.name === 'string'),
       ).toHaveLength(0);
-      expect(RN.StyleSheet.flatten(action.props.style).minHeight).toBe(46);
+      const nativeAction = action.find(
+        node => typeof node.props.style === 'function',
+      );
+      expect(
+        RN.StyleSheet.flatten(nativeAction.props.style({ pressed: false }))
+          .minHeight,
+      ).toBeGreaterThanOrEqual(48);
       const bytes = fs.readFileSync(
         path.join(
           __dirname,
@@ -197,13 +210,15 @@ describe('seasonal Home empty sections', () => {
     let renderer!: TestRenderer.ReactTestRenderer;
     await act(async () => {
       renderer = TestRenderer.create(
-        <HomeEmptySectionState
-          kind="health"
-          season="summer"
-          dataState="ready"
-          accentDeepColor="#0754DA"
-          onPressAction={jest.fn()}
-        />,
+        <ThemeProvider theme={createTheme('light')}>
+          <HomeEmptySectionState
+            kind="health"
+            season="summer"
+            dataState="ready"
+            accentDeepColor="#0754DA"
+            onPressAction={jest.fn()}
+          />
+        </ThemeProvider>,
       );
     });
     for (const text of renderer.root.findAll(

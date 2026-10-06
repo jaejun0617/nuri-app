@@ -1,10 +1,10 @@
 import React from 'react';
+import CtaButton from '../src/app/ui/CtaButton';
 import {
   AppState,
   DeviceEventEmitter,
   NativeModules,
   Platform,
-  TouchableOpacity,
 } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
@@ -203,7 +203,7 @@ it('shows reason and explicit Stop without a modal or automatic Stop', async () 
   expect(JSON.stringify(tree.toJSON())).toContain('병원 방문');
   expect(JSON.stringify(tree.toJSON())).toContain('5분 전 알림');
   expect(stop).not.toHaveBeenCalled();
-  const button = tree.root.findByType(TouchableOpacity);
+  const button = tree.root.findByType(CtaButton);
   expect(button.props.accessibilityLabel).toBe('병원 방문 알람 중지');
   await act(async () => {
     button.props.onPress();

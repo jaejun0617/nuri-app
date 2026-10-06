@@ -1,3 +1,5 @@
+import CtaButton, { CtaText, CtaIcon } from '../../app/ui/CtaButton';
+import type { CtaRole } from '../../app/theme/ctaPalette';
 import React, {
   useCallback,
   useEffect,
@@ -134,11 +136,17 @@ export default function CommunityDetailScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
-  const reportBottomPaddingStyle = useKeyboardBottomPadding(Math.max(insets.bottom, 16) + 8);
+  const reportBottomPaddingStyle = useKeyboardBottomPadding(
+    Math.max(insets.bottom, 16) + 8,
+  );
   const theme = useTheme();
   const flatListRef = useRef<FlatList<string> | null>(null);
-  const commentInputRef = useRef<React.ComponentRef<typeof TextInput> | null>(null);
-  const inlineComposerRef = useRef<React.ComponentRef<typeof View> | null>(null);
+  const commentInputRef = useRef<React.ComponentRef<typeof TextInput> | null>(
+    null,
+  );
+  const inlineComposerRef = useRef<React.ComponentRef<typeof View> | null>(
+    null,
+  );
   const currentScrollOffsetRef = useRef(0);
   const preparedNavigationTargetKeyRef = useRef<string | null>(null);
   const measuredNavigationTargetKeyRef = useRef<string | null>(null);
@@ -149,7 +157,9 @@ export default function CommunityDetailScreen() {
   const targetHighlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
-  const inlineRevealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inlineRevealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const inlineKeyboardShowSubscriptionRef = useRef<{
     remove: () => void;
   } | null>(null);
@@ -719,10 +729,7 @@ export default function CommunityDetailScreen() {
       const threadRootId = getCommunityReplyThreadRootId(selectedComment);
       if (
         threadRootId !== null &&
-        !areCommunityRepliesExpanded(
-          expandedRepliesByCommentId,
-          threadRootId,
-        )
+        !areCommunityRepliesExpanded(expandedRepliesByCommentId, threadRootId)
       ) {
         setExpandedRepliesByCommentId(previous => ({
           ...previous,
@@ -1004,7 +1011,9 @@ export default function CommunityDetailScreen() {
               </AppText>
             </Pressable>
             {!isMyPost ? (
-              <Pressable
+              <CtaButton
+                role="secondary"
+                compact
                 style={[
                   styles.actionPill,
                   {
@@ -1032,7 +1041,7 @@ export default function CommunityDetailScreen() {
                 >
                   신고하기
                 </AppText>
-              </Pressable>
+              </CtaButton>
             ) : null}
           </View>
         </View>
@@ -1197,7 +1206,11 @@ export default function CommunityDetailScreen() {
                   ? 16
                   : 0
                 : 20,
-              paddingBottom: isInline ? 8 : keyboardInset > 0 ? 6 : insets.bottom + 6,
+              paddingBottom: isInline
+                ? 8
+                : keyboardInset > 0
+                ? 6
+                : insets.bottom + 6,
               marginBottom: isInline ? 0 : keyboardInset,
             },
           ]}
@@ -1235,12 +1248,14 @@ export default function CommunityDetailScreen() {
                   '답글 남기는 중'
                 )}
               </AppText>
-              <TouchableOpacity
+              <CtaButton
+                role="neutral"
+                compact
                 activeOpacity={0.88}
                 onPress={handleCancelReply}
                 hitSlop={8}
               >
-                <AppText
+                <CtaText
                   preset="caption"
                   style={[
                     styles.replyComposerCancel,
@@ -1248,8 +1263,8 @@ export default function CommunityDetailScreen() {
                   ]}
                 >
                   취소
-                </AppText>
-              </TouchableOpacity>
+                </CtaText>
+              </CtaButton>
             </View>
           ) : null}
           <View
@@ -1286,21 +1301,21 @@ export default function CommunityDetailScreen() {
                 if (isInline) revealInlineComposer(replyTargetId);
               }}
             />
-            <TouchableOpacity
+            <CtaButton
+              role="primary"
+              loading={commentSubmitting}
+              accessibilityLabel={
+                commentSubmitting ? '댓글 전송 중' : '댓글 전송'
+              }
+              compact
               activeOpacity={0.88}
               hitSlop={4}
-              style={[
-                styles.commentSubmitButton,
-                {
-                  backgroundColor: petTheme.primary,
-                  opacity: canSubmitComment ? 1 : 0.48,
-                },
-              ]}
+              style={[styles.commentSubmitButton, {}]}
               disabled={!canSubmitComment}
               onPress={handleSubmitComment}
             >
-              <Feather name="send" size={17} color={petTheme.onPrimary} />
-            </TouchableOpacity>
+              <CtaIcon name="send" size={17} />
+            </CtaButton>
           </View>
         </View>
       );
@@ -1315,7 +1330,6 @@ export default function CommunityDetailScreen() {
       insets.bottom,
       keyboardInset,
       navigation,
-      petTheme.onPrimary,
       petTheme.primary,
       revealInlineComposer,
       replyTarget,
@@ -1390,6 +1404,7 @@ export default function CommunityDetailScreen() {
         style={[styles.screen, { backgroundColor: theme.colors.background }]}
       >
         <StateMessage
+          actionRole="neutral"
           title="게시글을 찾을 수 없어요"
           body="삭제되었거나 더 이상 볼 수 없는 게시글일 수 있어요."
           buttonLabel="뒤로 가기"
@@ -1405,6 +1420,7 @@ export default function CommunityDetailScreen() {
         style={[styles.screen, { backgroundColor: theme.colors.background }]}
       >
         <StateMessage
+          actionRole="neutral"
           title="삭제된 게시글입니다"
           body="원문은 더 이상 확인할 수 없어요."
           buttonLabel="뒤로 가기"
@@ -1420,6 +1436,7 @@ export default function CommunityDetailScreen() {
         style={[styles.screen, { backgroundColor: theme.colors.background }]}
       >
         <StateMessage
+          actionRole="neutral"
           title="운영 검토 중인 게시글입니다"
           body="검토가 끝나면 다시 노출될 수 있어요."
           buttonLabel="뒤로 가기"
@@ -1521,7 +1538,8 @@ export default function CommunityDetailScreen() {
             ]}
           >
             {isMyPost ? (
-              <TouchableOpacity
+              <CtaButton
+                role="secondary"
                 activeOpacity={0.9}
                 style={styles.menuAction}
                 onPress={() => {
@@ -1529,25 +1547,16 @@ export default function CommunityDetailScreen() {
                   navigation.navigate('CommunityEdit', { postId });
                 }}
               >
-                <Feather
-                  name="edit-3"
-                  size={16}
-                  color={theme.colors.textPrimary}
-                />
-                <AppText
-                  preset="body"
-                  style={[
-                    styles.menuActionText,
-                    { color: theme.colors.textPrimary },
-                  ]}
-                >
+                <CtaIcon name="edit-3" size={16} />
+                <CtaText preset="body" style={[styles.menuActionText, {}]}>
                   수정
-                </AppText>
-              </TouchableOpacity>
+                </CtaText>
+              </CtaButton>
             ) : null}
 
             {canShowCommunityBlockAction(post.authorId, currentUserId) ? (
-              <TouchableOpacity
+              <CtaButton
+                role="secondary"
                 activeOpacity={0.9}
                 style={styles.menuAction}
                 onPress={() => {
@@ -1555,24 +1564,15 @@ export default function CommunityDetailScreen() {
                   setBlockConfirmVisible(true);
                 }}
               >
-                <Feather
-                  name="slash"
-                  size={16}
-                  color={theme.colors.textPrimary}
-                />
-                <AppText
-                  preset="body"
-                  style={[
-                    styles.menuActionText,
-                    { color: theme.colors.textPrimary },
-                  ]}
-                >
+                <CtaIcon name="slash" size={16} />
+                <CtaText preset="body" style={[styles.menuActionText, {}]}>
                   사용자 차단
-                </AppText>
-              </TouchableOpacity>
+                </CtaText>
+              </CtaButton>
             ) : null}
 
-            <TouchableOpacity
+            <CtaButton
+              role={isMyPost ? 'destructiveEntry' : 'secondary'}
               activeOpacity={0.9}
               style={[styles.menuAction, styles.menuDangerAction]}
               onPress={() => {
@@ -1586,32 +1586,19 @@ export default function CommunityDetailScreen() {
                 setReportReasonCategory('spam');
               }}
             >
-              <Feather
-                name={isMyPost ? 'trash-2' : 'flag'}
-                size={16}
-                color={
-                  isMyPost ? theme.colors.danger : theme.colors.textPrimary
-                }
-              />
-              <AppText
-                preset="body"
-                style={[
-                  styles.menuActionText,
-                  {
-                    color: isMyPost
-                      ? theme.colors.danger
-                      : theme.colors.textPrimary,
-                  },
-                ]}
-              >
+              <CtaIcon name={isMyPost ? 'trash-2' : 'flag'} size={16} />
+              <CtaText preset="body" style={[styles.menuActionText, {}]}>
                 {isMyPost ? '삭제' : '신고'}
-              </AppText>
-            </TouchableOpacity>
+              </CtaText>
+            </CtaButton>
           </View>
         </View>
       </Modal>
 
       <ConfirmDialog
+        confirmRole="secondary"
+        cancelRole="neutral"
+        confirmLoading={blocking}
         visible={blockConfirmVisible}
         tone="warning"
         title="이 사용자를 차단할까요?"
@@ -1627,6 +1614,8 @@ export default function CommunityDetailScreen() {
       />
 
       <ConfirmDialog
+        confirmRole="neutral"
+        cancelRole="neutral"
         visible={commentSortModalVisible}
         title="댓글 정렬"
         message="원하는 정렬 기준을 선택해 주세요."
@@ -1688,6 +1677,9 @@ export default function CommunityDetailScreen() {
       </ConfirmDialog>
 
       <ConfirmDialog
+        confirmRole="destructiveConfirm"
+        cancelRole="neutral"
+        confirmLoading={deleting}
         visible={deleteConfirmVisible}
         tone="danger"
         title="게시글을 삭제할까요?"
@@ -1721,6 +1713,8 @@ export default function CommunityDetailScreen() {
       />
 
       <ConfirmDialog
+        confirmRole="destructiveConfirm"
+        cancelRole="neutral"
         visible={commentDeleteTargetId !== null}
         tone="danger"
         title="댓글을 삭제할까요?"
@@ -1863,47 +1857,34 @@ export default function CommunityDetailScreen() {
                 textAlignVertical="top"
               />
               <View style={styles.reportActions}>
-                <TouchableOpacity
+                <CtaButton
+                  role="neutral"
                   activeOpacity={0.88}
-                  style={[
-                    styles.reportActionButton,
-                    {
-                      backgroundColor: theme.colors.surface,
-                      borderColor: theme.colors.border,
-                    },
-                  ]}
+                  style={[styles.reportActionButton, {}]}
                   onPress={closeReportModal}
                   disabled={reportSubmitting}
                 >
-                  <AppText
+                  <CtaText
                     preset="body"
                     style={{
-                      color: theme.colors.textPrimary,
                       fontWeight: '700',
                     }}
                   >
                     취소
-                  </AppText>
-                </TouchableOpacity>
-                <TouchableOpacity
+                  </CtaText>
+                </CtaButton>
+                <CtaButton
+                  role="primary"
+                  loading={reportSubmitting}
                   activeOpacity={0.88}
-                  style={[
-                    styles.reportActionButton,
-                    {
-                      backgroundColor: theme.colors.brand,
-                      borderColor: theme.colors.brand,
-                    },
-                  ]}
+                  style={[styles.reportActionButton, {}]}
                   onPress={handleSubmitReport}
                   disabled={reportSubmitting}
                 >
-                  <AppText
-                    preset="body"
-                    style={{ color: '#FFFFFF', fontWeight: '700' }}
-                  >
+                  <CtaText preset="body" style={{ fontWeight: '700' }}>
                     {reportSubmitting ? '접수 중...' : '신고하기'}
-                  </AppText>
-                </TouchableOpacity>
+                  </CtaText>
+                </CtaButton>
               </View>
             </Animated.View>
           </Pressable>
@@ -1911,6 +1892,7 @@ export default function CommunityDetailScreen() {
       </Modal>
 
       <PremiumNoticeModal
+        confirmRole="primary"
         visible={reportNotice !== null}
         eyebrow={
           reportNotice === 'duplicate' ? 'REPORT RECEIVED' : 'REPORT SUBMITTED'
@@ -1944,11 +1926,13 @@ function StateMessage({
   body,
   buttonLabel,
   onPress,
+  actionRole = 'primary',
 }: {
   title: string;
   body: string;
   buttonLabel: string;
   onPress: () => void;
+  actionRole?: CtaRole;
 }) {
   const theme = useTheme();
 
@@ -1966,18 +1950,16 @@ function StateMessage({
       >
         {body}
       </AppText>
-      <TouchableOpacity
+      <CtaButton
+        role={actionRole}
         activeOpacity={0.9}
-        style={[
-          styles.stateButton,
-          { backgroundColor: theme.colors.textPrimary },
-        ]}
+        style={[styles.stateButton, {}]}
         onPress={onPress}
       >
-        <AppText preset="body" style={styles.stateButtonText}>
+        <CtaText preset="body" style={styles.stateButtonText}>
           {buttonLabel}
-        </AppText>
-      </TouchableOpacity>
+        </CtaText>
+      </CtaButton>
     </View>
   );
 }

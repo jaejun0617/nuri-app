@@ -1,17 +1,28 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { BackHandler, View } from 'react-native';
 import {
-  BackHandler,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   KeyboardAwareScrollView,
   type KeyboardAwareScrollViewRef,
   useKeyboardState,
 } from 'react-native-keyboard-controller';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
@@ -23,7 +34,10 @@ import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
 import { getBrandedErrorMeta } from '../../services/app/errors';
 import { getCommunityMutationErrorMeta } from '../../services/community/errors';
-import { pickPhotoAssets, type PickedPhotoAsset } from '../../services/media/photoPicker';
+import {
+  pickPhotoAssets,
+  type PickedPhotoAsset,
+} from '../../services/media/photoPicker';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { flushPendingCommunityImageCleanup } from '../../services/supabase/storageCommunity';
 import { useCommunityStore } from '../../store/communityStore';
@@ -65,7 +79,9 @@ export default function CommunityEditScreen() {
   const { isLoggedIn, currentUserId } = useCommunityAuth();
   const postId = route.params.postId;
   const post = useCommunityStore(s => s.postsById[postId] ?? null);
-  const detailStatus = useCommunityStore(s => s.detailStatusByPostId[postId] ?? 'idle');
+  const detailStatus = useCommunityStore(
+    s => s.detailStatusByPostId[postId] ?? 'idle',
+  );
   const fetchPostDetail = useCommunityStore(s => s.fetchPostDetail);
   const editPost = useCommunityStore(s => s.editPost);
 
@@ -73,7 +89,9 @@ export default function CommunityEditScreen() {
   const [content, setContent] = useState('');
   const [category, setCategory] = useState<CommunityPostCategory>('question');
   const [pickedImage, setPickedImage] = useState<PickedPhotoAsset | null>(null);
-  const [existingImagePath, setExistingImagePath] = useState<string | null>(null);
+  const [existingImagePath, setExistingImagePath] = useState<string | null>(
+    null,
+  );
   const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [exitConfirmVisible, setExitConfirmVisible] = useState(false);
@@ -107,7 +125,8 @@ export default function CommunityEditScreen() {
   const hasUnsavedChanges = useMemo(() => {
     if (!post) return false;
     const baselineHasImage = !!(post.imagePath ?? '').trim();
-    const nextHasImage = pickedImage !== null || !!(existingImagePath ?? '').trim();
+    const nextHasImage =
+      pickedImage !== null || !!(existingImagePath ?? '').trim();
     return (
       hasCommunityEditorDraftChanges(
         {
@@ -122,8 +141,7 @@ export default function CommunityEditScreen() {
           category: post.category ?? 'question',
           hasImage: baselineHasImage,
         },
-      ) ||
-      existingImagePath !== (post.imagePath ?? null)
+      ) || existingImagePath !== (post.imagePath ?? null)
     );
   }, [category, content, existingImagePath, pickedImage, post, title]);
 
@@ -138,30 +156,25 @@ export default function CommunityEditScreen() {
   const renderHeaderLeft = useCallback(
     () => (
       <HeaderTextActionButton
+        role="neutral"
         label="취소"
         accessibilityLabel="수정 취소"
         onPress={handleBack}
         disabled={submitting}
-        backgroundColor={theme.colors.surfaceElevated}
-        textColor={theme.colors.textPrimary}
-        borderColor={theme.colors.border}
       />
     ),
-    [
-      handleBack,
-      submitting,
-      theme.colors.border,
-      theme.colors.surfaceElevated,
-      theme.colors.textPrimary,
-    ],
+    [handleBack, submitting],
   );
 
   useFocusEffect(
     useCallback(() => {
-      const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-        handleBack();
-        return true;
-      });
+      const subscription = BackHandler.addEventListener(
+        'hardwareBackPress',
+        () => {
+          handleBack();
+          return true;
+        },
+      );
 
       return () => {
         subscription.remove();
@@ -257,15 +270,15 @@ export default function CommunityEditScreen() {
   const renderHeaderRight = useCallback(
     () => (
       <HeaderTextActionButton
+        role="primarySubtle"
+        loading={submitting}
         label="저장"
         accessibilityLabel="게시글 저장"
         onPress={handleSubmit}
         disabled={disabled}
-        backgroundColor={petTheme.primary}
-        textColor={petTheme.onPrimary}
       />
     ),
-    [disabled, handleSubmit, petTheme.onPrimary, petTheme.primary],
+    [disabled, handleSubmit, submitting],
   );
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -273,15 +286,18 @@ export default function CommunityEditScreen() {
       headerLeft: renderHeaderLeft,
       headerRight: renderHeaderRight,
     });
-  }, [
-    navigation,
-    renderHeaderLeft,
-    renderHeaderRight,
-  ]);
+  }, [navigation, renderHeaderLeft, renderHeaderRight]);
   if (!post || detailStatus === 'idle' || detailStatus === 'loading') {
     return (
-      <SafeAreaView style={[styles.screen, { backgroundColor: theme.colors.background }]}>
-        <View style={[styles.loadingWrap, { paddingTop: Math.max(insets.top + 32, 48) }]}>
+      <SafeAreaView
+        style={[styles.screen, { backgroundColor: theme.colors.background }]}
+      >
+        <View
+          style={[
+            styles.loadingWrap,
+            { paddingTop: Math.max(insets.top + 32, 48) },
+          ]}
+        >
           <AppText preset="body" style={{ color: theme.colors.textMuted }}>
             게시글 정보를 불러오는 중이에요.
           </AppText>
@@ -292,30 +308,47 @@ export default function CommunityEditScreen() {
 
   if (!isMyPost) {
     return (
-      <SafeAreaView style={[styles.screen, { backgroundColor: theme.colors.background }]}>
-        <View style={[styles.loadingWrap, { paddingTop: Math.max(insets.top + 32, 48) }]}>
-          <AppText preset="headline" style={{ color: theme.colors.textPrimary }}>
+      <SafeAreaView
+        style={[styles.screen, { backgroundColor: theme.colors.background }]}
+      >
+        <View
+          style={[
+            styles.loadingWrap,
+            { paddingTop: Math.max(insets.top + 32, 48) },
+          ]}
+        >
+          <AppText
+            preset="headline"
+            style={{ color: theme.colors.textPrimary }}
+          >
             수정 권한이 없어요
           </AppText>
-          <AppText preset="body" style={[styles.permissionBody, { color: theme.colors.textMuted }]}>
+          <AppText
+            preset="body"
+            style={[styles.permissionBody, { color: theme.colors.textMuted }]}
+          >
             본인이 작성한 게시글만 수정할 수 있어요.
           </AppText>
-          <TouchableOpacity
+          <CtaButton
+            role="primary"
             activeOpacity={0.9}
-            style={[styles.permissionButton, { backgroundColor: petTheme.primary }]}
+            style={[styles.permissionButton, {}]}
             onPress={() => navigation.goBack()}
           >
-            <AppText preset="body" style={{ color: petTheme.onPrimary, fontWeight: '700' }}>
+            <CtaText preset="body" style={{ fontWeight: '700' }}>
               돌아가기
-            </AppText>
-          </TouchableOpacity>
+            </CtaText>
+          </CtaButton>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.screen, { backgroundColor: theme.colors.background }]} edges={keyboardVisible ? ['left', 'right'] : ['left', 'right', 'bottom']}>
+    <SafeAreaView
+      style={[styles.screen, { backgroundColor: theme.colors.background }]}
+      edges={keyboardVisible ? ['left', 'right'] : ['left', 'right', 'bottom']}
+    >
       <KeyboardAwareScrollView
         ref={scrollViewRef}
         bottomOffset={COMMUNITY_COMPOSER_KEYBOARD_BOTTOM_OFFSET}
@@ -341,6 +374,7 @@ export default function CommunityEditScreen() {
           bodyViewportMinHeight={COMMUNITY_EDIT_BODY_VIEWPORT_MIN_HEIGHT}
           submitLabel={submitting ? '저장 중...' : '저장'}
           submitDisabled={disabled}
+          submitLoading={submitting}
           onChangeCategory={setCategory}
           onChangeTitle={setTitle}
           onChangeContent={setContent}
@@ -352,7 +386,8 @@ export default function CommunityEditScreen() {
             setExistingImageUrl(null);
             showToast({
               tone: 'warning',
-              message: '첨부 이미지를 다시 불러오지 못했어요. 이미지를 다시 선택해 주세요.',
+              message:
+                '첨부 이미지를 다시 불러오지 못했어요. 이미지를 다시 선택해 주세요.',
             });
           }}
           onSubmit={handleSubmit}
@@ -360,13 +395,14 @@ export default function CommunityEditScreen() {
       </KeyboardAwareScrollView>
 
       <ConfirmDialog
+        confirmRole="destructiveConfirm"
+        cancelRole="neutral"
         visible={exitConfirmVisible}
         tone="warning"
         title={getCommunityEditorExitDialogCopy('edit').title}
         message={getCommunityEditorExitDialogCopy('edit').message}
         confirmLabel={getCommunityEditorExitDialogCopy('edit').confirmLabel}
         cancelLabel={getCommunityEditorExitDialogCopy('edit').cancelLabel}
-        accentColor={petTheme.primary}
         onCancel={() => setExitConfirmVisible(false)}
         onConfirm={() => {
           setExitConfirmVisible(false);

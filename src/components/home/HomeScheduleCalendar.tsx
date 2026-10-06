@@ -1,3 +1,4 @@
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import React, { memo, useEffect, useMemo, useState } from 'react';
 import {
   AppState,
@@ -344,7 +345,9 @@ export const HomeScheduleCalendar = memo(function HomeScheduleCalendarView({
             <Feather name="chevron-right" size={14} color={accentDeepColor} />
           </Pressable>
         ) : null}
-        <Pressable
+        <CtaButton
+          role="primary"
+          visuallyHidden={sheetMode !== null}
           testID="home-calendar-create"
           accessibilityRole="button"
           accessibilityLabel={`${homeCalendarDayLabel(selectedDay)} 일정 등록`}
@@ -354,22 +357,17 @@ export const HomeScheduleCalendar = memo(function HomeScheduleCalendarView({
           importantForAccessibility={
             sheetMode !== null ? 'no-hide-descendants' : 'auto'
           }
-          style={({ pressed }) => [
+          style={() => [
             styles.createButton,
             {
-              backgroundColor: accentColor,
-              opacity: sheetMode !== null ? 0 : pressed ? 0.8 : 1,
+              opacity: sheetMode !== null ? 0 : 1,
             },
           ]}
         >
-          <AppText
-            preset="unifiedLabel"
-            color="#FFFFFF"
-            style={styles.centeredText}
-          >
+          <CtaText preset="unifiedLabel" style={styles.centeredText}>
             일정 등록하기
-          </AppText>
-        </Pressable>
+          </CtaText>
+        </CtaButton>
       </View>
       {sheetMode ? (
         <ScheduleCalendarSheet

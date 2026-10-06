@@ -1,3 +1,4 @@
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import React, { memo } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 import Feather from '../icons/NuriFeatherIcon';
@@ -135,7 +136,8 @@ function LocationDiscoveryCard({
 
       {onPressDetail && !compact ? (
         <View style={styles.cardActionRow}>
-          <TouchableOpacity
+          <CtaButton
+            role="secondary"
             activeOpacity={0.92}
             style={[
               styles.cardSecondaryActionButton,
@@ -143,7 +145,7 @@ function LocationDiscoveryCard({
             ]}
             onPress={() => onPress(item)}
           >
-            <AppText
+            <CtaText
               preset="unifiedMeta"
               style={[
                 styles.cardSecondaryActionText,
@@ -151,17 +153,18 @@ function LocationDiscoveryCard({
               ]}
             >
               지도에서 보기
-            </AppText>
-          </TouchableOpacity>
-          <TouchableOpacity
+            </CtaText>
+          </CtaButton>
+          <CtaButton
+            role="primary"
             activeOpacity={0.92}
             style={styles.cardPrimaryActionButton}
             onPress={() => onPressDetail(item)}
           >
-            <AppText preset="unifiedMeta" style={styles.cardPrimaryActionText}>
+            <CtaText preset="unifiedMeta" style={styles.cardPrimaryActionText}>
               상세 보기
-            </AppText>
-          </TouchableOpacity>
+            </CtaText>
+          </CtaButton>
         </View>
       ) : null}
     </View>

@@ -97,7 +97,8 @@ function parseDraft(raw: string | null): DraftPayload | null {
       })
       .filter((item): item is PickedPhotoAsset => item !== null)
       .slice(0, 3);
-    if (!title.trim() && !content.trim() && pickedImages.length === 0) return null;
+    if (!title.trim() && !content.trim() && pickedImages.length === 0)
+      return null;
     return { title, content, category, pickedImages };
   } catch {
     return null;
@@ -244,22 +245,14 @@ export default function CommunityCreateScreen() {
   const renderHeaderLeft = useCallback(
     () => (
       <HeaderTextActionButton
+        role="neutral"
         label="취소"
         accessibilityLabel="작성 취소"
         onPress={handleBack}
         disabled={submitting}
-        backgroundColor={theme.colors.surfaceElevated}
-        textColor={theme.colors.textPrimary}
-        borderColor={theme.colors.border}
       />
     ),
-    [
-      handleBack,
-      submitting,
-      theme.colors.border,
-      theme.colors.surfaceElevated,
-      theme.colors.textPrimary,
-    ],
+    [handleBack, submitting],
   );
 
   useFocusEffect(
@@ -350,7 +343,8 @@ export default function CommunityCreateScreen() {
             tone: 'warning',
             title: meta?.title,
             message:
-              meta?.message ?? '이미지 업로드에 실패했어요. 텍스트만 등록됐습니다.',
+              meta?.message ??
+              '이미지 업로드에 실패했어요. 텍스트만 등록됐습니다.',
           });
         },
       });
@@ -387,16 +381,16 @@ export default function CommunityCreateScreen() {
   const renderHeaderRight = useCallback(
     () => (
       <HeaderTextActionButton
+        role="primarySubtle"
+        loading={submitting}
         compact
         label="등록"
         accessibilityLabel="게시글 등록"
         onPress={handleSubmit}
         disabled={disabled}
-        backgroundColor={petTheme.primary}
-        textColor={petTheme.onPrimary}
       />
     ),
-    [disabled, handleSubmit, petTheme.onPrimary, petTheme.primary],
+    [disabled, handleSubmit, submitting],
   );
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -404,11 +398,7 @@ export default function CommunityCreateScreen() {
       headerLeft: renderHeaderLeft,
       headerRight: renderHeaderRight,
     });
-  }, [
-    navigation,
-    renderHeaderLeft,
-    renderHeaderRight,
-  ]);
+  }, [navigation, renderHeaderLeft, renderHeaderRight]);
   return (
     <SafeAreaView
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
@@ -439,6 +429,7 @@ export default function CommunityCreateScreen() {
           bottomSubmitMargin={0}
           submitLabel={submitting ? '글 등록 중...' : '글 등록'}
           submitDisabled={disabled}
+          submitLoading={submitting}
           onChangeCategory={setCategory}
           onChangeTitle={setTitle}
           onChangeContent={setContent}
@@ -458,13 +449,14 @@ export default function CommunityCreateScreen() {
       </KeyboardAwareScrollView>
 
       <ConfirmDialog
+        confirmRole="neutral"
+        cancelRole="neutral"
         visible={exitConfirmVisible}
         tone="warning"
         title={getCommunityEditorExitDialogCopy('create').title}
         message={getCommunityEditorExitDialogCopy('create').message}
         confirmLabel={getCommunityEditorExitDialogCopy('create').confirmLabel}
         cancelLabel={getCommunityEditorExitDialogCopy('create').cancelLabel}
-        accentColor={petTheme.primary}
         onCancel={() => setExitConfirmVisible(false)}
         onConfirm={() => {
           setExitConfirmVisible(false);
@@ -472,6 +464,8 @@ export default function CommunityCreateScreen() {
         }}
       />
       <ConfirmDialog
+        confirmRole="primary"
+        cancelRole="destructiveConfirm"
         visible={restoreDraftVisible}
         title="임시저장된 글이 있어요"
         message={
@@ -482,7 +476,6 @@ export default function CommunityCreateScreen() {
         cancelLabel="버리기"
         confirmLabel="이어쓰기"
         tone="default"
-        accentColor={petTheme.primary}
         onCancel={() => {
           setRestoreDraftVisible(false);
           setPendingDraft(null);
@@ -516,6 +509,8 @@ export default function CommunityCreateScreen() {
         }}
       />
       <ConfirmDialog
+        confirmRole="primary"
+        cancelRole="neutral"
         visible={imageRestoreWarningVisible}
         tone="warning"
         title="첨부 이미지를 다시 불러오지 못했어요"
@@ -523,7 +518,6 @@ export default function CommunityCreateScreen() {
           '기기에 남아 있는 본문과 설정만 먼저 복원했어요.\n이미지는 다시 선택해 주세요.'
         }
         confirmLabel="확인"
-        accentColor={petTheme.primary}
         onCancel={() => setImageRestoreWarningVisible(false)}
         onConfirm={() => setImageRestoreWarningVisible(false)}
       />
