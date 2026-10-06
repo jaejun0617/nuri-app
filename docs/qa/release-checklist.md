@@ -1,4 +1,121 @@
 # V1.0 Remaining Task/Risk Closeout
+<!-- NURI_COMMUNITY_AUTUMN_FREEZE_20261007_BEGIN -->
+## 2026-10-07 Community Autumn Frozen
+
+- PO 최신 지시로 COMMUNITY_AUTUMN_DESIGN=COMPLETE_FROZEN. 상태 표시줄 아래 원본 히어로·compact 흰 목록·카테고리 고유 색·목록 footer 계약을 승인 종료한다. 겨울/봄/여름 자산·전역 effectiveSeason은 보존하며 자동 가을 강제나 다른 계절의 새 시각 승인을 만들지 않는다.
+- 마지막 보완: pagination borderTop 제거, 작성/맨 위로 그룹 bottom 약76→12dp. native 두 버튼 약64dp 하향, 마지막행→버튼 약12dp·버튼→toolbar 약16dp·작성→toolbar 약12dp, 흰 plus/크기/기능 유지.
+- TypeScript·커뮤니티 lint 0/0·13 suites/313 tests·전체180 suites/1,810 tests·diff PASS. 증분 Release/install-r 각1회(241.522초/15.263초), 최신4d46d0bb. S24 첫/중간/끝/질문25/0건·360/384/약430dp·font1.0/1.3/1.5 대표 검증 PASS, 설정/전체/전체/30개/1페이지 복구, bounded FATAL/ANR/RN_FATAL0.
+- QA100·기존784행·나머지21보호영역 및 정책/trigger/함수 MATCH. auth.users는56건 동일이나 전체 행 hash 변동, 원인 컬럼 미확인이다. 명시적 Auth/DB mutation 없음. 삭제 preview 미실행, build/cache/APK/증적/원본/무관한 dirty 보존.
+- 소스 커밋 `0c075cc90911a876900fa9a8d05419bb42a6b646` origin 일치 확인. 문서도 커뮤니티 블록만 선별하며 타임라인3파일·Weather/저장공간/Home 등 잔여 dirty는 커밋하지 않는다. 설치 APK에는 이전 타임라인 후보가 유지되어 clean Store RC로 분류하지 않는다.
+- AUTH/WEATHER/API COMPLETE_FROZEN, Store HOLD, cleanup/QA삭제/다음작업 자동 시작 NO. 다음 1개는 PO NEXT DESIGN DIRECTION 대기다. 보고서 `docs/qa/nuri-community-autumn-freeze-2026-10-07.md`, 증적 `/private/tmp/nuri-community-autumn-closeout-20261007-032614`. 아래 후보/승인대기 기록은 당시 이력이며 현재 가을 승인 상태를 재개하지 않는다.
+<!-- NURI_COMMUNITY_AUTUMN_FREEZE_20261007_END -->
+
+<!-- NURI_COMMUNITY_PAGINATION_BOTTOM_SPACING_20261007_BEGIN -->
+## 2026-10-07 Community Bottom Spacing and Timeline FAB Candidate
+
+- [x] 원인 확인: footer 뒤 FAB 예약72/128dp 제거, content bottom12dp 단일 소유. measured toolbar/Safe Area 재사용, populated footer 및 empty-result stretch 분리, pagination/nav에 overlay 침범 없음.
+- [x] Timeline은 Community와 같은48dp seasonal Primary 원형·24dp white plus·그림자 없음. toolbar+12dp·우측16dp와 기존 기록하기 callback 유지. Hero/행/카테고리/toolbar/Auth/Weather/서버 변경 없음.
+- [x] TypeScript·대상13 suites/313 tests·diff PASS. lint0 errors/2 baseline warnings/0 new issues. 증분 Release/install-r 각1회 PASS, 최신 ac824581,240.177초/15.395초, source/input/installed hash MATCH.
+- [x] Galaxy S24 첫/중간/마지막/질문25/0건·이전 복귀·대표360/384/약430dp·font1.0/1.3/1.5 PASS. 간격12.33~12.44dp 및15.64~16dp, touch44dp pixel rounding·문구 containment·중앙 hit area·설정/전체/30개/1페이지 복구. bounded FATAL/ANR/RN_FATAL0.
+- [x] QA100·기존784행·보호22영역 count/hash·RLS/trigger/핵심함수 보존. DB mutation0. 기존 dirty/body/APK/build/cache/evidence 유지, staged/commit/push/cleanup NO.
+- [ ] PO COMMUNITY PAGINATION VISUAL APPROVAL. 실제 상세/등록 실행은 카운터·데이터 보호로 미실행, 다른기기/iOS·모든 폭×font 조합 미검증. 우측 행 일부 가림 및 기존 확대 nav 라벨 밀집은 보호 범위 관찰이다. Store HOLD, 다음 작업 자동 시작 NO.
+<!-- NURI_COMMUNITY_PAGINATION_BOTTOM_SPACING_20261007_END -->
+
+<!-- NURI_COMMUNITY_PAGINATION_QA_20261007_BEGIN -->
+## 2026-10-07 Community Pagination + QA 100 Candidate
+
+- [x] Compact pagination: content-width, 13sp/18sp/600, horizontal 14dp, radius 6dp, 44dp touch; no shadow/elevation/fixed width; existing cursor/filters/page-size preserved.
+- [x] TypeScript; targeted ESLint 0 errors/0 warnings; 9 suites/289 tests; full 180 suites/1,801 tests once; diff check PASS.
+- [x] Linked `grmekesqoydylqmyvfke`, safely resolved existing QA author, one transactional authenticated/RLS seed; 100 rows, 25 per category, unique past timestamps/sequence/marker, no images/counters/reports or schema/policy changes.
+- [x] Total 784→884/public 3→103; existing-row hashes and 22 protected domains preserved. Authenticated list RPC walk: 30/30/30/13, no duplicate/missing IDs, stable order.
+- [x] Incremental Release/install-r once, APK `9bc70167`; S24 first/middle/last/return, filter reset, empty bottom, 50→30 selector, 360dp/fontScale 1.3 PASS; original device settings restored; bounded FATAL/ANR/RN_FATAL 0.
+- [x] 100 inserted IDs + batch + cleanup-preview created, preview/delete NOT executed; QA posts preserved for PO review; prior APKs/evidence/build/cache/source/dirty preserved.
+- [ ] PO COMMUNITY REVIEW of current candidate. No commit/push/cleanup, Auth/Weather/API frozen, Store HOLD. This is not release authorization.
+
+Report: `docs/qa/nuri-community-pagination-qa-2026-10-07.md`.
+<!-- NURI_COMMUNITY_PAGINATION_QA_20261007_END -->
+
+<!-- NURI_COMMUNITY_PANEL_COMPOSE_POLISH_20261007_BEGIN -->
+## 2026-10-07 Community panel and compose polish PO gate
+
+- [x] Raise the full white list/filter panel by width-scaled 29/883 overlap; source y=410. Preserve each original 883x439 image and visible feet; skip overlap for image-error fallback.
+- [x] Keep pagination centered outside the list. Fix compose 12dp above pagination with a 48dp target and explicit white original Feather plus. Stack scroll-to-top separately with a 12dp gap and reserve last-row scroll clearance.
+- [x] Preserve top safe-area, overlay header, compact rows, seasonal assets, write gates/callbacks, Auth, Weather, API and existing dirty source.
+- [x] TypeScript, targeted ESLint and diff PASS; targeted 9 suites/289 tests PASS; full 180 suites/1,801 tests PASS once.
+- [x] Incremental Release once, 231.739s; 61 executed/934 up-to-date. Galaxy S24 install-r once, 15.251s; installed SHA `861b211c` matches, UID/first install/settings unchanged. APK image pixels and source/input fingerprints match.
+- [ ] PO direct native review of feet/panel boundary, white plus above pagination, scroll/top-button clearance and status bar. No native screen operation or capture by agent; FATAL/ANR/RN_FATAL not measured.
+- [ ] PO visual approval and later authorized selective Git closeout. This uncommitted design APK is not Store RC. No commit, push, cleanup or automatic next work.
+<!-- NURI_COMMUNITY_PANEL_COMPOSE_POLISH_20261007_END -->
+
+<!-- NURI_COMMUNITY_SAFE_AREA_COMPOSE_20261007_BEGIN -->
+## 2026-10-07 Community safe-area and fixed compose PO gate
+
+- [x] Reserve the status-bar inset once at screen root; artwork starts immediately below it. Header stays over the single original canvas with only 8dp inner padding; no top write CTA, separate header band or global system-bar change.
+- [x] Fixed 48dp seasonal Primary plus at footer right, accessible `게시글 작성`; balanced slots keep arrow-only pagination/page number centered and above the measured toolbar. Preserve login gate, notice restriction, callbacks, original assets and compact rows.
+- [x] TypeScript/scoped lint 0 errors/0 warnings; targeted 8 suites/127 tests PASS; full 180 suites/1,801 tests PASS once; diff check PASS. Initial icon/Text selector failure retained and repaired.
+- [x] Incremental Release/install-r once each PASS: 270.427s, 61 executed/934 up-to-date; install 15.458s; candidate `76c13adb`. Source/input, signature, bundle markers, four decoded images, installed hash/UID/first-install/settings MATCH.
+- [ ] PO direct native review: status-bar boundary, four-season overlay/copy readability, fixed plus/pagination/navigation spacing, narrow/large-font/long-list behavior. No app launch/touch/capture/settings change this candidate; FATAL/ANR/RN_FATAL unmeasured.
+- [x] Preserve AUTH/WEATHER/API/admin/backend, QA, unrelated dirty, previous report bodies/evidence/APKs and Android outputs/cache. No staging/commit/push/cleanup/Store/automatic next work. Not a Store RC.
+- Report `docs/qa/nuri-community-safe-area-compose-2026-10-07.md`; evidence `/private/tmp/nuri-community-safe-area-compose-20261007-000148`.
+<!-- NURI_COMMUNITY_SAFE_AREA_COMPOSE_20261007_END -->
+
+<!-- NURI_COMMUNITY_TOP_ANCHOR_20261006_BEGIN -->
+## 2026-10-06 Community original-canvas top anchor PO gate
+
+- 최신 `ed3f9d2f`는 상단 풍경 확장이 아니라 원본 top 0 정렬 설치 후보이며 Store RC가 아니다. 이전 `37447d7e`를 PO 시각 승인으로 처리하지 않는다.
+- TypeScript/lint 0 errors/0 warnings·대상 8 suites/117 tests·전체 180 suites/1,791 tests PASS. 전체 실행 2회 모두 PASS, 최종 source 로그 구분 보존. diff check PASS.
+- 증분 Release/install-r 각각 1회 PASS. source/input·4장 pixels·설치 hash/UID/최초 설치/화면 설정 MATCH. 앱 실행/터치/캡처 없음. native 시각/확대 글꼴/다른 기기/iOS·FATAL/ANR/RN_FATAL 미확인.
+- PO 승인 PENDING. Auth/Weather/API·서버·QA·dirty·이전 보고서/증적/APK·build/cache 보존. Git/cleanup/Store/추가 작업 NO. 증적 `/private/tmp/nuri-community-top-anchor-20261006-233845`, 보고서 `docs/qa/nuri-community-top-anchor-2026-10-06.md`.
+<!-- NURI_COMMUNITY_TOP_ANCHOR_20261006_END -->
+
+<!-- NURI_COMMUNITY_OVERLAY_HEADER_20261006_BEGIN -->
+## 2026-10-06 Community overlay header PO candidate gate
+
+- `37447d7e`는 이미지 위 header·화살표 pagination 보완 설치 후보이며 Store RC가 아니다. 이전 `4774073c`의 계절색 header 연결을 승인 완료로 처리하지 않는다.
+- TypeScript PASS, targeted lint 0 errors/0 warnings, 8 suites/117 tests PASS, full 180 suites/1,791 tests 1회 PASS, diff check PASS. 최초 lint/대상 테스트 OOM과 보완 로그 보존.
+- Release 1회/install-r 1회 PASS. source/input·원본 4장 decoded pixels·설치 hash/UID/최초 설치/화면 설정 MATCH. 기기 화면 조작/캡처 없음, native visual/fontScale/다른 기기/iOS·FATAL/ANR/RN_FATAL 미확인.
+- PO VISUAL APPROVAL PENDING. AUTH/Weather/API frozen, backend/QA/dirty/이전 보고서/증적/APK/build/cache 보존. commit/push/cleanup/Store/추가 작업 NO.
+- 증적 `/private/tmp/nuri-community-overlay-header-20261006-231811`, 보고서 `docs/qa/nuri-community-overlay-header-2026-10-06.md`.
+<!-- NURI_COMMUNITY_OVERLAY_HEADER_20261006_END -->
+
+<!-- NURI_COMMUNITY_COMPOSITION_20261006_BEGIN -->
+## 2026-10-06 Community Composition Candidate
+
+- [x] Preserve native compact rows/comment rail, exact artwork/ratio, approved seasonal palette, white list/gray inactive chips, fixed pagination and callbacks. Opt-in list header options plus edge connection; no full-image header crop/stretch.
+- [x] Reduce visual chip face to 32dp while retaining 44dp touch; natural control heights, lighter title/labels and compact pagination. Local widths 360/384/400/430/768dp and default header regression covered.
+- [x] TypeScript/scoped lint 0 errors/0 warnings, targeted 8 suites/114 tests, full 180 suites/1,788 tests once PASS. Initial fixture/selector failures retained after repair; diff check PASS.
+- [x] Additional incremental Release/install-r once each PASS. 244.840s; 61 executed/934 up-to-date; candidate `4774073c`. Source/input, signed embedded bundle/font, four decoded bitmaps, installed hash/UID/first-install/settings MATCH.
+- [ ] PO direct native review: four-season header/top blend/tabs/chips/page controls, large-font/narrow clipping, long-list scroll, artwork legibility. No app launch/touch/capture this candidate; fatal counters unmeasured, no prior native PASS reused.
+- [x] Preserve AUTH/Weather/API/admin, pet personalization, QA/unrelated dirty, previous document bodies/evidence/APKs and Android outputs/cache. No staging/commit/push/cleanup/remote/Store/automatic next task. Existing CTA limitations remain separate.
+- Report: `docs/qa/nuri-community-composition-2026-10-06.md`; evidence `/private/tmp/nuri-community-composition-20261006-225113`.
+<!-- NURI_COMMUNITY_COMPOSITION_20261006_END -->
+
+<!-- NURI_COMMUNITY_HERO_CORRECTIVE_20261006_BEGIN -->
+## 2026-10-06 Community Hero Native Corrective Candidate
+
+- [x] Reproduced oversized/cropped hero in `483f29e5`: 1080×1234px versus expected 1080×536.942px. Override both RN intrinsic dimensions with measured viewport width and original ratio height; preserve four assets and callbacks.
+- [x] TypeScript, scoped lint 0 errors/0 warnings, targeted 8 suites/112 tests, full 180 suites/1,786 tests PASS once this corrective. Numeric sizing at 360/384/400/430/768dp, fallback, resize and invalid-layout guards covered.
+- [x] Additional Release/install-r once each PASS, 235.609s, 61 executed/934 up-to-date. Current candidate `fa7fdaa8`; source/input, signature, four decoded images, installed hash/UID/first-install/settings MATCH.
+- [x] S24 384dp/fontScale 1.0 four seasons: 1080×537px, whole composition/copy, compact three rows and unchanged fixed footer; visible autumn restored. Bounded QA log FATAL 0/RN error lines 0/ANR 0; no content mutation or device-settings change.
+- [ ] PO visual approval. Large fonts, other devices, iOS, long-list overflow after correction and attachment indicator native remain unverified. Three existing rows fit; upward gesture did not create an offset. Earlier static-only ratio claim is not native evidence.
+- [x] Preserve previous report/evidence/APKs, unrelated dirty, AUTH/Weather/API/admin, build/.cxx/.gradle/cache. No staging/commit/push/cleanup/Store. Existing unrelated CTA limitations remain open.
+- Report: `docs/qa/nuri-community-hero-native-corrective-2026-10-06.md`; evidence `/private/tmp/nuri-community-hero-native-20261006-215829`. The following initial-candidate checklist is historical.
+<!-- NURI_COMMUNITY_HERO_CORRECTIVE_20261006_END -->
+
+<!-- NURI_COMMUNITY_SEASONAL_20261006_BEGIN -->
+## 2026-10-06 Community Seasonal List PO Candidate
+
+- [x] Exact four supplied seasonal PNGs, original ratio/contain, white list, seasonal tabs/chips, gray inactive chips, compact rows/category once/image attachment indicator. Existing backend and write/notice policies preserved.
+- [x] Pagination outside FlatList; measured toolbar height consumed by Community only; standalone safe inset. Preserve other tab geometry and Home reselect.
+- [x] TypeScript PASS, scoped ESLint 0 errors/0 warnings, targeted 8 suites/106 tests, final full 180 suites/1,780 tests PASS. Two full executions; initial formatting-only source guard failure retained.
+- [x] Release build once PASS, 811.931s, 873 executed/112 cache/10 up-to-date. Recreated outputs after earlier cleanup; no new clean/rebuild.
+- [x] APK signature/bundle/source/input PASS, 4 hero assets decoded-pixel match after resource-table mapping. Install-r once PASS; SHA `483f29e5`, UID/first-install/settings preserved.
+- [ ] PO native visual approval: four seasons, bitmap text legibility, compact category/image indicator, filters, fixed footer and pagination callbacks, narrow/large-font clipping. Device UI operations delegated to PO; native/iOS/landscape/tablet QA unexecuted and fatal counters unmeasured.
+- [x] AUTH/Weather/API/admin and unrelated dirty preserved. No remote changes/staging/commit/push/cleanup/Store. New build outputs/caches, original assets, candidate APK and old evidence retained.
+- [ ] Existing CTA known limitations remain separate: duplicate Primary in empty Timeline and intermittent first-entry schedule-detail compositing.
+- Report: `docs/qa/nuri-community-seasonal-list-2026-10-06.md`; evidence `/private/tmp/nuri-community-seasonal-hero-20261006-211950`.
+<!-- NURI_COMMUNITY_SEASONAL_20261006_END -->
+
 <!-- NURI_GLOBAL_CTA_APPROVAL_20261006_BEGIN -->
 ## 2026-10-06 Global CTA Final PO Approval and Freeze
 
