@@ -281,6 +281,50 @@ describe('community seasonal list candidate', () => {
     },
   );
 
+  it('switches the remaining seasons without resetting the page, filter, or approved layout', async () => {
+    await TestRenderer.act(async () => {
+      useCommunityStore.setState({
+        currentPage: 2,
+        activeCategory: 'question',
+        hasPreviousPage: true,
+      });
+    });
+    const originalHero = StyleSheet.flatten(heroImage(renderer).props.style);
+    const originalPanel = StyleSheet.flatten(
+      renderer.root.findAllByProps({ testID: 'community-list-panel' })[0].props
+        .style,
+    );
+    for (const season of ['winter', 'spring', 'summer', 'autumn'] as const) {
+      mockSeason = season;
+      await TestRenderer.act(async () => {
+        renderer.update(tree());
+      });
+      expect(heroImage(renderer).props.source).toEqual(
+        COMMUNITY_HERO_IMAGES[season],
+      );
+      expect(StyleSheet.flatten(heroImage(renderer).props.style)).toEqual(
+        originalHero,
+      );
+      expect(
+        StyleSheet.flatten(
+          renderer.root.findAllByProps({ testID: 'community-list-panel' })[0]
+            .props.style,
+        ),
+      ).toEqual(originalPanel);
+      expect(useCommunityStore.getState()).toMatchObject({
+        currentPage: 2,
+        activeCategory: 'question',
+        activeFilter: 'all',
+        pageSize: 30,
+        posts: [post],
+      });
+    }
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(mockCategory).not.toHaveBeenCalled();
+    expect(mockSize).not.toHaveBeenCalled();
+    expect(mockRefresh).not.toHaveBeenCalled();
+  });
+
   it('places pagination after the final row inside the scrolling list', async () => {
     const list = renderer.root.findByType(FlatList);
     const footer = renderer.root.findAllByProps({
@@ -1051,6 +1095,28 @@ describe('community seasonal artwork and responsive source contract', () => {
     });
     expect(new Set(hashes).size).toBe(4);
   });
+  it.each([
+    [
+      'winter',
+      'bdaee084f789bef304a8b7f60a20aaff5d70a7f0d59eb8cfc30be04dd225c08b',
+    ],
+    [
+      'spring',
+      '2611ee51708799bde93fed55438fd001b2e932705f2446d72fc12ee32659cdea',
+    ],
+    [
+      'summer',
+      '0b4451194a70489da3f366260b37aa37e0d72d58c50b323757331b2941f1f893',
+    ],
+  ] as const)(
+    'preserves the supplied %s hero artwork byte for byte',
+    (season, hash) => {
+      const bytes = fs.readFileSync(
+        path.join(__dirname, `../src/assets/seasonal/community/${season}.png`),
+      );
+      expect(createHash('sha256').update(bytes).digest('hex')).toBe(hash);
+    },
+  );
   it.each([360, 384, 400, 430, 768])(
     'keeps the complete hero canvas at %s dp',
     width => {
