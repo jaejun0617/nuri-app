@@ -3,8 +3,8 @@ import React, {
   memo,
   Profiler,
   useCallback,
+  useContext,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -14,6 +14,8 @@ import {
   Animated,
   Easing,
   FlatList,
+  Image,
+  type LayoutChangeEvent,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
@@ -21,9 +23,11 @@ import {
   RefreshControl,
   ScrollView,
   TouchableOpacity,
+  useWindowDimensions,
   View,
   type ListRenderItem,
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import {
   useFocusEffect,
   useNavigation,
@@ -32,6 +36,7 @@ import {
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from '../../components/icons/NuriFeatherIcon';
+import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
@@ -40,9 +45,17 @@ import { useCommunityAuth } from '../../hooks/useCommunityAuth';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
+import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
+import { SEASON_CTA } from '../../app/theme/ctaPalette';
+import { ToolbarHeightContext } from '../../components/navigation/ToolbarHeightContext';
+import {
+  COMMUNITY_HERO_ACCESSIBILITY_LABEL,
+  COMMUNITY_HERO_ASPECT_RATIO,
+  COMMUNITY_HERO_IMAGES,
+  COMMUNITY_HERO_PANEL_OVERLAP_RATIO,
+  COMMUNITY_HERO_SURFACES,
+} from '../../theme/seasonal/community';
 import { useCommunityStore } from '../../store/communityStore';
-import { usePetStore } from '../../store/petStore';
 import { openMoreDrawer } from '../../store/uiStore';
 import { scheduleIdleTask } from '../../utils/scheduleIdleTask';
 import type {
@@ -53,6 +66,7 @@ import type {
 import { COMMUNITY_PAGE_SIZE_OPTIONS } from '../../types/community';
 import { styles } from './CommunityListScreen.styles';
 import CommunityPostListItem from './components/CommunityPostListItem';
+import { COMMUNITY_CATEGORY_PALETTE } from './communityCategoryPalette';
 import {
   canCreateCommunityPost,
   COMMUNITY_CATEGORY_OPTIONS,
@@ -64,8 +78,6 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'CommunityList'>;
 type Route = RootScreenRoute<'CommunityList'>;
 
 const TOP_BUTTON_SHOW_SCROLL_Y = 260;
-const TOP_BUTTON_BOTTOM_OFFSET = 82;
-const LIST_BOTTOM_PADDING_OFFSET = 98;
 
 const keyExtractor = (item: string) => item;
 
@@ -80,10 +92,11 @@ type CategoryChipButtonProps = {
   option: (typeof COMMUNITY_CATEGORY_OPTIONS)[number];
   isActive: boolean;
   activeColor: string;
+  inactiveColor: string;
   onPress: (category: CommunityCategory) => void;
 };
 
-const FilterChipButton = memo(function FilterChipButton({
+const FilterChipButton = memo(function FilterChipButtonComponent({
   chip,
   isActive,
   activeColor,
@@ -108,8 +121,11 @@ const FilterChipButton = memo(function FilterChipButton({
 
   return (
     <TouchableOpacity
+      accessibilityRole="tab"
+      accessibilityLabel={chip.label}
+      accessibilityState={{ selected: isActive }}
       activeOpacity={0.88}
-      style={styles.categoryChip}
+      style={styles.filterTab}
       onPress={handlePress}
     >
       <AppText
@@ -118,7 +134,7 @@ const FilterChipButton = memo(function FilterChipButton({
           styles.categoryChipText,
           isActive
             ? [styles.categoryChipTextActive, { color: activeColor }]
-            : { color: '#8A8A8A' },
+            : { color: '#566271' },
         ]}
       >
         {chip.label}
@@ -145,25 +161,13 @@ const FilterChipButton = memo(function FilterChipButton({
   );
 });
 
-const CategoryChipButton = memo(function CategoryChipButton({
+const CategoryChipButton = memo(function CategoryChipButtonComponent({
   option,
   isActive,
   activeColor,
+  inactiveColor,
   onPress,
 }: CategoryChipButtonProps) {
-  const underlineProgress = useRef(
-    new Animated.Value(isActive ? 1 : 0),
-  ).current;
-
-  useEffect(() => {
-    Animated.timing(underlineProgress, {
-      toValue: isActive ? 1 : 0,
-      duration: 180,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, [isActive, underlineProgress]);
-
   const handlePress = useCallback(() => {
     onPress(option.key);
   }, [onPress, option.key]);
@@ -174,37 +178,28 @@ const CategoryChipButton = memo(function CategoryChipButton({
       accessibilityState={{ selected: isActive }}
       activeOpacity={0.88}
       style={styles.categoryChip}
+      accessibilityLabel={option.label}
       onPress={handlePress}
     >
-      <AppText
-        preset="caption"
-        style={[
-          styles.categoryChipText,
-          isActive
-            ? [styles.categoryChipTextActive, { color: activeColor }]
-            : { color: '#8A8A8A' },
-        ]}
-      >
-        {option.label}
-      </AppText>
-      <Animated.View
+      <View
         pointerEvents="none"
         style={[
-          styles.categoryChipUnderline,
-          {
-            backgroundColor: activeColor,
-            opacity: underlineProgress,
-            transform: [
-              {
-                scaleX: underlineProgress.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0.35, 1],
-                }),
-              },
-            ],
-          },
+          styles.categoryChipFace,
+          { backgroundColor: isActive ? activeColor : '#F1F3F6' },
         ]}
-      />
+      >
+        <AppText
+          preset="caption"
+          style={[
+            styles.categoryChipLabel,
+            isActive
+              ? [styles.categoryChipTextActive, { color: '#FFFFFF' }]
+              : { color: inactiveColor },
+          ]}
+        >
+          {option.label}
+        </AppText>
+      </View>
     </TouchableOpacity>
   );
 });
@@ -214,18 +209,30 @@ export default function CommunityListScreen() {
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+  const season = useEffectiveSeason();
+  const seasonal = SEASON_CTA[season];
+  const heroSurface = COMMUNITY_HERO_SURFACES[season];
+  const toolbarHeight = useContext(ToolbarHeightContext);
+  const { width: windowWidth } = useWindowDimensions();
+  const [listWidth, setListWidth] = useState<number | null>(null);
+  const heroWidth = listWidth ?? windowWidth;
+  // Override both intrinsic asset dimensions; percentage width can expand a list header.
+  const heroSize = {
+    width: heroWidth,
+    height: heroWidth / COMMUNITY_HERO_ASPECT_RATIO,
+  };
+  const handleListLayout = useCallback((event: LayoutChangeEvent) => {
+    const width = event.nativeEvent.layout.width;
+    if (Number.isFinite(width) && width > 0) setListWidth(width);
+  }, []);
   const flatListRef = useRef<FlatList<string> | null>(null);
-
-  const pets = usePetStore(s => s.pets);
-  const selectedPetId = usePetStore(s => s.selectedPetId);
-  const selectedPet = useMemo(
-    () => pets.find(pet => pet.id === selectedPetId) ?? pets[0] ?? null,
-    [pets, selectedPetId],
-  );
-  const petTheme = useMemo(
-    () => buildPetThemePalette(selectedPet?.themeColor),
-    [selectedPet?.themeColor],
-  );
+  const [heroFailedSeason, setHeroFailedSeason] = useState<
+    typeof season | null
+  >(null);
+  const heroPanelOverlap =
+    heroFailedSeason === season
+      ? 0
+      : heroWidth * COMMUNITY_HERO_PANEL_OVERLAP_RATIO;
 
   const posts = useCommunityStore(s => s.posts);
   const listStatus = useCommunityStore(s => s.listStatus);
@@ -305,40 +312,18 @@ export default function CommunityListScreen() {
   const renderHeaderLeft = useCallback(
     () => (
       <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel="뒤로가기"
         activeOpacity={0.88}
         style={styles.backButton}
         onPress={handlePressBack}
         hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
       >
-        <Feather name="arrow-left" size={20} color={theme.colors.textPrimary} />
+        <Feather name="arrow-left" size={20} color="#243042" />
       </TouchableOpacity>
     ),
-    [handlePressBack, theme.colors.textPrimary],
+    [handlePressBack],
   );
-  const renderHeaderRight = useCallback(
-    () => (
-      <CtaButton
-        role="primary"
-        accessibilityRole="button"
-        accessibilityLabel="게시글 작성"
-        activeOpacity={0.82}
-        style={styles.headerActionButton}
-        onPress={handlePressCreate}
-      >
-        <CtaIcon name="edit-3" size={19} />
-      </CtaButton>
-    ),
-    [handlePressCreate],
-  );
-
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerTitle: '커뮤니티',
-      headerLeft: renderHeaderLeft,
-      headerRight: isCreateActionVisible ? renderHeaderRight : undefined,
-    });
-  }, [isCreateActionVisible, navigation, renderHeaderLeft, renderHeaderRight]);
-
   const handlePressFilter = useCallback(
     (filter: CommunityListFilter) => {
       if (filter === activeFilter) return;
@@ -377,6 +362,15 @@ export default function CommunityListScreen() {
     listStatus === 'loading' ||
     listStatus === 'refreshing' ||
     listStatus === 'loadingMore';
+
+  const previousPageRef = useRef(currentPage);
+  useEffect(() => {
+    if (previousPageRef.current !== currentPage) {
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+      setShowTopButton(false);
+      previousPageRef.current = currentPage;
+    }
+  }, [currentPage]);
 
   const handleSelectPageSize = useCallback(
     (nextPageSize: CommunityPageSize) => {
@@ -450,21 +444,20 @@ export default function CommunityListScreen() {
     ({ item: postId }) => (
       <CommunityPostListItem
         postId={postId}
-        accentColor={petTheme.primary}
+        accentColor={seasonal.primary}
         onPressPost={handlePressPost}
       />
     ),
-    [handlePressPost, petTheme.primary],
+    [handlePressPost, seasonal.primary],
   );
 
   const categoryHeader = useMemo(
     () => (
       <View
+        testID="community-list-panel"
         style={[
-          styles.stickyCategoryHeader,
-          {
-            backgroundColor: theme.colors.background,
-          },
+          styles.categoryHeader,
+          { marginTop: -styles.heroTail.height - heroPanelOverlap },
         ]}
       >
         <View style={styles.filterBarRow}>
@@ -480,7 +473,7 @@ export default function CommunityListScreen() {
                   key={chip.key}
                   chip={chip}
                   isActive={chip.key === activeFilter}
-                  activeColor={petTheme.primary}
+                  activeColor={seasonal.primary}
                   onPress={handlePressFilter}
                 />
               );
@@ -497,19 +490,19 @@ export default function CommunityListScreen() {
           >
             <AppText
               preset="caption"
-              style={[styles.pageSizeText, { color: petTheme.primary }]}
+              style={[styles.pageSizeText, { color: seasonal.primary }]}
             >
               {pageSize}개
             </AppText>
             {isListBusy ? (
-              <ActivityIndicator size="small" color={petTheme.primary} />
+              <ActivityIndicator size="small" color={seasonal.primary} />
             ) : (
-              <Feather name="chevron-down" size={15} color={petTheme.primary} />
+              <Feather name="chevron-down" size={15} color={seasonal.primary} />
             )}
           </TouchableOpacity>
         </View>
-        <View style={styles.secondaryCategoryRow}>
-          {activeFilter === 'notice' ? null : (
+        {activeFilter === 'notice' ? null : (
+          <View style={styles.secondaryCategoryRow}>
             <ScrollView
               horizontal
               style={styles.filterScroll}
@@ -521,13 +514,22 @@ export default function CommunityListScreen() {
                   key={option.key}
                   option={option}
                   isActive={option.key === activeCategory}
-                  activeColor={petTheme.primary}
+                  activeColor={
+                    option.key === 'all'
+                      ? seasonal.primary
+                      : COMMUNITY_CATEGORY_PALETTE[option.key].text
+                  }
+                  inactiveColor={
+                    option.key === 'all'
+                      ? '#566271'
+                      : COMMUNITY_CATEGORY_PALETTE[option.key].text
+                  }
                   onPress={handlePressCategory}
                 />
               ))}
             </ScrollView>
-          )}
-        </View>
+          </View>
+        )}
       </View>
     ),
     [
@@ -535,10 +537,10 @@ export default function CommunityListScreen() {
       activeCategory,
       handlePressCategory,
       handlePressFilter,
+      heroPanelOverlap,
       isListBusy,
       pageSize,
-      petTheme.primary,
-      theme.colors.background,
+      seasonal.primary,
     ],
   );
 
@@ -547,26 +549,15 @@ export default function CommunityListScreen() {
 
     return (
       <View style={styles.emptyWrap}>
-        <View
-          style={[
-            styles.emptyIcon,
-            { backgroundColor: `${petTheme.primary}14` },
-          ]}
-        >
-          <Feather name="message-circle" size={22} color={petTheme.primary} />
+        <View style={[styles.emptyIcon, { backgroundColor: seasonal.subtle }]}>
+          <Feather name="message-circle" size={22} color={seasonal.primary} />
         </View>
-        <AppText
-          preset="headline"
-          style={[styles.emptyTitle, { color: theme.colors.textPrimary }]}
-        >
+        <AppText preset="headline" style={styles.emptyTitle}>
           {emptyState.title}
         </AppText>
         {emptyState.showCreateCta ? (
           <>
-            <AppText
-              preset="body"
-              style={[styles.emptyBody, { color: theme.colors.textMuted }]}
-            >
+            <AppText preset="body" style={styles.emptyBody}>
               첫 번째로 공유해 보세요!
             </AppText>
             <CtaButton
@@ -587,89 +578,82 @@ export default function CommunityListScreen() {
     activeFilter,
     activeCategory,
     handlePressCreate,
-    petTheme.primary,
-    theme.colors.textMuted,
-    theme.colors.textPrimary,
+    seasonal.primary,
+    seasonal.subtle,
   ]);
 
-  const footerComponent = useMemo(() => {
-    if (postIds.length === 0) return null;
+  const footerActions = useMemo(() => {
     const isPageLoading = isListBusy;
+    const blocked = isPageLoading || postIds.length === 0;
 
     return (
-      <View style={styles.paginationFooter}>
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel="이전 페이지"
-          accessibilityState={{ disabled: !hasPreviousPage || isPageLoading }}
-          activeOpacity={0.84}
-          disabled={!hasPreviousPage || isPageLoading}
-          style={[
-            styles.paginationButton,
-            (!hasPreviousPage || isPageLoading) &&
-              styles.paginationButtonDisabled,
-          ]}
-          onPress={handleLoadPreviousPage}
+      <View
+        testID="community-list-pagination"
+        style={[
+          styles.paginationFooter,
+          {
+            paddingLeft:
+              styles.paginationFooter.paddingHorizontal + insets.left,
+            paddingRight:
+              styles.paginationFooter.paddingHorizontal + insets.right,
+          },
+        ]}
+      >
+        <View
+          testID="community-pagination-controls"
+          style={styles.paginationControls}
         >
-          <Feather
-            name="chevron-left"
-            size={17}
-            color={theme.colors.textPrimary}
-          />
-          <AppText
-            preset="caption"
-            style={[
-              styles.paginationButtonText,
-              { color: theme.colors.textPrimary },
-            ]}
+          <CtaButton
+            role="neutral"
+            compact
+            accessibilityRole="button"
+            accessibilityLabel="이전 페이지"
+            accessibilityState={{ disabled: !hasPreviousPage || blocked }}
+            activeOpacity={0.84}
+            disabled={!hasPreviousPage || blocked}
+            style={styles.paginationButton}
+            onPress={handleLoadPreviousPage}
           >
-            이전
-          </AppText>
-        </TouchableOpacity>
+            <CtaIcon name="chevron-left" size={14} />
+            <CtaText preset="caption" style={styles.paginationButtonText}>
+              이전
+            </CtaText>
+          </CtaButton>
 
-        <View style={styles.paginationPageIndicator}>
-          {isPageLoading ? (
-            <ActivityIndicator size="small" color={petTheme.primary} />
-          ) : (
-            <AppText
-              preset="caption"
-              style={[
-                styles.paginationPageText,
-                { color: theme.colors.textPrimary },
-              ]}
-            >
-              {currentPage}페이지
-            </AppText>
-          )}
+          <View
+            accessibilityLabel={`현재 ${currentPage}페이지`}
+            accessibilityLiveRegion="polite"
+            style={styles.paginationPageIndicator}
+          >
+            {isPageLoading ? (
+              <ActivityIndicator size="small" color={seasonal.primary} />
+            ) : (
+              <AppText
+                preset="caption"
+                style={[styles.paginationPageText, { color: seasonal.primary }]}
+              >
+                {currentPage}
+              </AppText>
+            )}
+          </View>
+
+          <CtaButton
+            role="neutral"
+            compact
+            accessibilityRole="button"
+            accessibilityLabel="다음 페이지"
+            accessibilityState={{ disabled: !hasNextPage || blocked }}
+            activeOpacity={0.84}
+            disabled={!hasNextPage || blocked}
+            style={styles.paginationButton}
+            onPress={handleLoadNextPage}
+          >
+            <CtaText preset="caption" style={styles.paginationButtonText}>
+              다음
+            </CtaText>
+            <CtaIcon name="chevron-right" size={14} />
+          </CtaButton>
         </View>
-
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel="다음 페이지"
-          accessibilityState={{ disabled: !hasNextPage || isPageLoading }}
-          activeOpacity={0.84}
-          disabled={!hasNextPage || isPageLoading}
-          style={[
-            styles.paginationButton,
-            (!hasNextPage || isPageLoading) && styles.paginationButtonDisabled,
-          ]}
-          onPress={handleLoadNextPage}
-        >
-          <AppText
-            preset="caption"
-            style={[
-              styles.paginationButtonText,
-              { color: theme.colors.textPrimary },
-            ]}
-          >
-            다음
-          </AppText>
-          <Feather
-            name="chevron-right"
-            size={17}
-            color={theme.colors.textPrimary}
-          />
-        </TouchableOpacity>
       </View>
     );
   }, [
@@ -678,10 +662,11 @@ export default function CommunityListScreen() {
     handleLoadPreviousPage,
     hasNextPage,
     hasPreviousPage,
+    insets.left,
+    insets.right,
     isListBusy,
-    petTheme.primary,
+    seasonal.primary,
     postIds.length,
-    theme.colors.textPrimary,
   ]);
   const refreshing = listStatus === 'refreshing';
   const isInitialLoading =
@@ -689,107 +674,218 @@ export default function CommunityListScreen() {
   const isError = listStatus === 'error' && postIds.length === 0;
   const isInlineListLoading = listStatus === 'loading' && postIds.length > 0;
 
-  const topButtonBottom = useMemo(
-    () => Math.max(insets.bottom + TOP_BUTTON_BOTTOM_OFFSET, 88),
-    [insets.bottom],
-  );
-  const listBottomInset = useMemo(
-    () => Math.max(insets.bottom + LIST_BOTTOM_PADDING_OFFSET, 112),
-    [insets.bottom],
-  );
-
+  // Reserve the status-bar inset once; both artwork and overlay start below it.
   return (
-    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
-      {isInitialLoading ? (
-        <View style={styles.centerState}>
-          <ActivityIndicator size="small" color={petTheme.primary} />
-        </View>
-      ) : isError ? (
-        <View style={styles.centerState}>
-          <AppText
-            preset="headline"
-            style={[styles.errorTitle, { color: theme.colors.textPrimary }]}
-          >
-            게시글을 불러오지 못했어요
-          </AppText>
-          <AppText
-            preset="body"
-            style={[styles.errorBody, { color: theme.colors.textMuted }]}
-          >
-            {listErrorMessage ?? '잠시 후 다시 시도해 주세요.'}
-          </AppText>
-          <CtaButton
-            role="primary"
-            activeOpacity={0.9}
-            style={[styles.retryButton, {}]}
-            onPress={handleRetry}
-          >
-            <CtaText preset="body" style={[styles.retryButtonText, {}]}>
-              다시 시도
-            </CtaText>
-          </CtaButton>
-        </View>
-      ) : (
-        <View style={styles.listWrap}>
-          {categoryHeader}
-          {isInlineListLoading ? (
-            <View style={styles.inlineListLoading}>
-              <ActivityIndicator size="small" color={petTheme.primary} />
-            </View>
-          ) : null}
-          <Profiler id="community-list" onRender={handleListRender}>
-            <FlatList
-              ref={flatListRef}
-              style={styles.postList}
-              data={postIds}
-              overScrollMode="always"
-              keyExtractor={keyExtractor}
-              renderItem={renderItem}
-              initialNumToRender={12}
-              maxToRenderPerBatch={10}
-              windowSize={9}
-              updateCellsBatchingPeriod={50}
-              removeClippedSubviews={Platform.OS === 'android'}
-              onScroll={handleScroll}
-              scrollEventThrottle={16}
-              showsVerticalScrollIndicator={false}
-              ListEmptyComponent={emptyComponent}
-              ListFooterComponent={footerComponent ?? undefined}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={handleRefresh}
-                  tintColor={petTheme.primary}
-                  progressViewOffset={8}
-                />
-              }
-              contentContainerStyle={[
-                styles.listContent,
-                {
-                  paddingBottom: listBottomInset,
-                },
-              ]}
-            />
-          </Profiler>
+    <View
+      testID="community-screen"
+      style={[
+        styles.screen,
+        {
+          paddingTop: insets.top,
+          paddingBottom: toolbarHeight ?? insets.bottom,
+        },
+      ]}
+    >
+      <View
+        testID="community-list-viewport"
+        style={styles.listWrap}
+        onLayout={handleListLayout}
+      >
+        <Profiler id="community-list" onRender={handleListRender}>
+          <FlatList
+            ref={flatListRef}
+            style={styles.postList}
+            data={postIds}
+            overScrollMode="always"
+            keyExtractor={keyExtractor}
+            renderItem={renderItem}
+            initialNumToRender={12}
+            maxToRenderPerBatch={10}
+            windowSize={9}
+            updateCellsBatchingPeriod={50}
+            removeClippedSubviews={Platform.OS === 'android'}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            showsVerticalScrollIndicator={false}
+            ListHeaderComponent={
+              <View>
+                <View testID="community-hero-frame" style={styles.heroFrame}>
+                  <View
+                    testID="community-hero-canvas"
+                    style={[styles.heroCanvas, heroSize]}
+                  >
+                    {heroFailedSeason === season ? (
+                      <View style={[styles.heroFallback, heroSize]}>
+                        <AppText
+                          preset="headline"
+                          style={{ color: seasonal.primary }}
+                        >
+                          우리 아이들의 이야기
+                        </AppText>
+                        <AppText preset="body" style={styles.emptyBody}>
+                          누리에서 소중한 이야기를 나눠보세요.
+                        </AppText>
+                      </View>
+                    ) : (
+                      <Image
+                        testID="community-seasonal-hero"
+                        accessibilityRole="image"
+                        accessibilityLabel={COMMUNITY_HERO_ACCESSIBILITY_LABEL}
+                        source={COMMUNITY_HERO_IMAGES[season]}
+                        resizeMode="contain"
+                        style={[styles.heroImage, heroSize]}
+                        onError={() => setHeroFailedSeason(season)}
+                      />
+                    )}
+                  </View>
+                  <LinearGradient
+                    pointerEvents="none"
+                    accessible={false}
+                    importantForAccessibility="no-hide-descendants"
+                    testID="community-hero-tail"
+                    colors={[...heroSurface.tail]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.heroTail}
+                  />
+                  <View
+                    testID="community-hero-overlay-header"
+                    style={[
+                      styles.header,
+                      {
+                        paddingTop: 8,
+                        paddingLeft: insets.left,
+                        paddingRight: 20 + insets.right,
+                      },
+                    ]}
+                  >
+                    <View style={[styles.headerSide, styles.headerLeft]}>
+                      {renderHeaderLeft()}
+                    </View>
+                    <AppText
+                      preset="titleSm"
+                      maxFontSizeMultiplier={1.6}
+                      numberOfLines={1}
+                      style={[
+                        styles.headerTitle,
+                        styles.connectedHeaderTitle,
+                        { color: '#243042' },
+                      ]}
+                    >
+                      커뮤니티
+                    </AppText>
+                    <View style={styles.headerSide} pointerEvents="none" />
+                  </View>
+                </View>
+                {categoryHeader}
+                {isInlineListLoading ? (
+                  <View style={styles.inlineListLoading}>
+                    <ActivityIndicator size="small" color={seasonal.primary} />
+                  </View>
+                ) : null}
+              </View>
+            }
+            ListEmptyComponent={
+              <View
+                testID="community-empty-result"
+                style={styles.emptyListContent}
+              >
+                {isInitialLoading ? (
+                  <View style={styles.centerState}>
+                    <ActivityIndicator size="small" color={seasonal.primary} />
+                  </View>
+                ) : isError ? (
+                  <View style={styles.centerState}>
+                    <AppText preset="headline" style={styles.errorTitle}>
+                      게시글을 불러오지 못했어요
+                    </AppText>
+                    <AppText preset="body" style={styles.errorBody}>
+                      {listErrorMessage ?? '잠시 후 다시 시도해 주세요.'}
+                    </AppText>
+                    <CtaButton
+                      role="primary"
+                      activeOpacity={0.9}
+                      style={[styles.retryButton, {}]}
+                      onPress={handleRetry}
+                    >
+                      <CtaText
+                        preset="body"
+                        style={[styles.retryButtonText, {}]}
+                      >
+                        다시 시도
+                      </CtaText>
+                    </CtaButton>
+                  </View>
+                ) : (
+                  emptyComponent
+                )}
+              </View>
+            }
+            ListFooterComponent={footerActions}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                tintColor={seasonal.primary}
+                colors={[seasonal.primary]}
+                progressViewOffset={8}
+              />
+            }
+            contentContainerStyle={styles.listContent}
+          />
+        </Profiler>
 
-          {showTopButton ? (
-            <Pressable
-              android_ripple={{ color: `${petTheme.onPrimary}22` }}
-              style={[
-                styles.topButton,
-                {
-                  backgroundColor: '#FFFFFF',
-                  bottom: topButtonBottom,
-                  borderColor: petTheme.border,
-                },
-              ]}
-              onPress={handlePressTop}
-            >
-              <Feather name="arrow-up" size={18} color={petTheme.primary} />
-            </Pressable>
-          ) : null}
-        </View>
-      )}
+        {isCreateActionVisible || showTopButton ? (
+          <View
+            testID="community-floating-actions"
+            pointerEvents="box-none"
+            style={[
+              styles.floatingActions,
+              {
+                right: styles.floatingActions.right + insets.right,
+                // Align compose with the footer band; overlays never reserve list height.
+                bottom: styles.listContent.paddingBottom,
+              },
+            ]}
+          >
+            {showTopButton ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="목록 맨 위로"
+                style={({ pressed }) => [
+                  styles.topButton,
+                  {
+                    backgroundColor: pressed ? seasonal.subtle : '#FFFFFF',
+                    borderColor: seasonal.border,
+                  },
+                ]}
+                onPress={handlePressTop}
+              >
+                <Feather name="arrow-up" size={18} color={seasonal.primary} />
+              </Pressable>
+            ) : null}
+            {isCreateActionVisible ? (
+              <CtaButton
+                testID="community-fixed-create"
+                role="primary"
+                accessibilityLabel="게시글 작성"
+                style={styles.createButton}
+                onPress={handlePressCreate}
+              >
+                <NuriSemanticIcon
+                  family="feather"
+                  name="plus"
+                  size={24}
+                  color="#FFFFFF"
+                  preserveOriginal
+                  accessible={false}
+                  accessibilityElementsHidden
+                />
+              </CtaButton>
+            ) : null}
+          </View>
+        ) : null}
+      </View>
 
       <ConfirmDialog
         confirmRole="neutral"
@@ -818,8 +914,8 @@ export default function CommunityListScreen() {
                 style={[
                   styles.pageSizeOption,
                   isSelected && {
-                    backgroundColor: petTheme.soft,
-                    borderColor: petTheme.border,
+                    backgroundColor: seasonal.subtle,
+                    borderColor: seasonal.border,
                     borderWidth: 1,
                   },
                 ]}
@@ -831,7 +927,7 @@ export default function CommunityListScreen() {
                     styles.pageSizeOptionText,
                     {
                       color: isSelected
-                        ? petTheme.primary
+                        ? seasonal.primary
                         : theme.colors.textPrimary,
                     },
                   ]}
@@ -841,7 +937,7 @@ export default function CommunityListScreen() {
                 <Feather
                   name={isSelected ? 'check-circle' : 'circle'}
                   size={22}
-                  color={isSelected ? petTheme.primary : theme.colors.textMuted}
+                  color={isSelected ? seasonal.primary : theme.colors.textMuted}
                 />
               </TouchableOpacity>
             );

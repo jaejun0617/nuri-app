@@ -1,7 +1,6 @@
 import React, { memo, useCallback, useMemo } from 'react';
 import { Pressable, View } from 'react-native';
 import MaterialCommunityIcons from '../../../components/icons/NuriMaterialIcon';
-import { useTheme } from 'styled-components/native';
 
 import AppText from '../../../app/ui/AppText';
 import type { CommunityPost } from '../../../types/community';
@@ -13,6 +12,7 @@ import {
   COMMUNITY_NOTICE_ICON_NAME,
 } from '../communityListPresentation';
 import { styles } from './PostCard.styles';
+import { getCommunityCategoryPalette } from '../communityCategoryPalette';
 
 type Props = {
   post: CommunityPost;
@@ -37,23 +37,20 @@ function resolvePostTitle(post: CommunityPost) {
   return firstContentLine || '내용이 없는 게시글';
 }
 
-function PostCardBase({
-  post,
-  accentColor,
-  onPressPost,
-}: Props) {
-  const theme = useTheme();
+function PostCardBase({ post, accentColor, onPressPost }: Props) {
   const title = useMemo(() => resolvePostTitle(post), [post]);
   const categoryLabel = getCommunityCategoryLabel(post.category);
+  const categoryPalette = getCommunityCategoryPalette(post.category);
   const createdAtLabel = useMemo(
     () => formatCommunityListTimestamp(post.createdAt),
     [post.createdAt],
   );
-  const noticeColor = theme.colors.brand;
+  const noticeColor = accentColor;
   const accessibilityLabel = getCommunityPostAccessibilityLabel(
     title,
     post.commentCount,
     post.isNotice,
+    post.hasImage,
   );
 
   const handlePress = useCallback(() => {
@@ -77,13 +74,9 @@ function PostCardBase({
               : `${accentColor}08`
             : post.isNotice
             ? `${noticeColor}08`
-            : theme.colors.background,
-          borderColor: post.isNotice
-            ? noticeColor
-            : `${theme.colors.textMuted}55`,
-          borderBottomColor: post.isNotice
-            ? noticeColor
-            : `${theme.colors.textMuted}55`,
+            : '#FFFFFF',
+          borderColor: post.isNotice ? noticeColor : '#E6E8F0',
+          borderBottomColor: post.isNotice ? noticeColor : '#E6E8F0',
         },
       ]}
       onPress={handlePress}
@@ -113,35 +106,52 @@ function PostCardBase({
                 공지
               </AppText>
             </View>
-          ) : null}
-          {post.hasImage ? (
-            <View style={styles.imageTypeIcon}>
-              <MaterialCommunityIcons name="image" size={13} color="#FFFFFF" />
-            </View>
           ) : (
-            <MaterialCommunityIcons
-              name="message-processing"
-              size={18}
-              color="#C7CBD2"
-              style={styles.textTypeIcon}
-            />
+            <View
+              testID="community-post-category-badge"
+              style={[
+                styles.categoryBadge,
+                { backgroundColor: categoryPalette.subtle },
+              ]}
+            >
+              <AppText
+                preset="caption"
+                style={[
+                  styles.categoryBadgeText,
+                  { color: categoryPalette.text },
+                ]}
+              >
+                {categoryLabel}
+              </AppText>
+            </View>
           )}
+          {post.hasImage ? (
+            <View
+              testID="community-post-image-indicator"
+              style={styles.imageTypeIcon}
+            >
+              <MaterialCommunityIcons
+                name="image-outline"
+                size={15}
+                color="#566271"
+                accessibilityElementsHidden
+              />
+            </View>
+          ) : null}
           <AppText
             preset="body"
             numberOfLines={getCommunityPostTitleLineCount(post.isNotice)}
-            style={[styles.title, { color: theme.colors.textPrimary }]}
+            style={styles.title}
           >
             {title}
           </AppText>
         </View>
 
         <View style={styles.metaRow}>
-          <AppText
-            preset="caption"
-            numberOfLines={1}
-            style={[styles.metaText, { color: theme.colors.textMuted }]}
-          >
-            {`${categoryLabel}  |  ${post.authorNickname}  |  ${createdAtLabel}  |  조회 ${post.viewCount.toLocaleString()}  |  추천 ${post.likeCount.toLocaleString()}`}
+          <AppText preset="caption" numberOfLines={1} style={styles.metaText}>
+            {`${
+              post.authorNickname
+            }  |  ${createdAtLabel}  |  조회 ${post.viewCount.toLocaleString()}  |  추천 ${post.likeCount.toLocaleString()}`}
           </AppText>
         </View>
       </View>
@@ -150,16 +160,14 @@ function PostCardBase({
         style={[
           styles.commentRail,
           {
-            backgroundColor: post.isNotice
-              ? `${noticeColor}0D`
-              : theme.colors.surface,
-            borderLeftColor: `${theme.colors.textMuted}35`,
+            backgroundColor: post.isNotice ? `${noticeColor}0D` : '#F8F9FB',
+            borderLeftColor: '#E6E8F0',
           },
         ]}
       >
         <AppText
           preset="body"
-          style={[styles.commentCount, { color: theme.colors.danger }]}
+          style={[styles.commentCount, { color: accentColor }]}
         >
           {post.commentCount.toLocaleString()}
         </AppText>

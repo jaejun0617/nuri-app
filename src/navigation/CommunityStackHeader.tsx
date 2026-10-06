@@ -10,10 +10,12 @@ export default function CommunityStackHeader({
   back,
   options,
   route,
-}: NativeStackHeaderProps) {
+}: Pick<NativeStackHeaderProps, 'back' | 'options' | 'route'>) {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const headerTopInset = Math.max(insets.top, 12);
+  const headerColor = options.headerTintColor ?? theme.colors.textPrimary;
+  const headerBackground = options.headerBackground?.();
   const headerTitle =
     typeof options.headerTitle === 'string'
       ? options.headerTitle
@@ -22,11 +24,11 @@ export default function CommunityStackHeader({
       : route.name;
   const headerLeft = options.headerLeft?.({
     canGoBack: !!back,
-    tintColor: theme.colors.textPrimary,
+    tintColor: headerColor,
   });
   const headerRight = options.headerRight?.({
     canGoBack: !!back,
-    tintColor: theme.colors.textPrimary,
+    tintColor: headerColor,
   });
 
   return (
@@ -37,16 +39,32 @@ export default function CommunityStackHeader({
           // The tab root no longer owns the top inset. Keep the custom native
           // stack header below the status bar on both root and nested screens.
           paddingTop: headerTopInset,
-          backgroundColor: theme.colors.background,
+          backgroundColor:
+            StyleSheet.flatten(options.headerStyle)?.backgroundColor ??
+            theme.colors.background,
         },
       ]}
     >
+      {headerBackground ? (
+        <View
+          pointerEvents="none"
+          importantForAccessibility="no-hide-descendants"
+          accessibilityElementsHidden
+          style={StyleSheet.absoluteFill}
+        >
+          {headerBackground}
+        </View>
+      ) : null}
       <View style={styles.headerSide}>{headerLeft}</View>
       <AppText
         preset="titleSm"
         maxFontSizeMultiplier={1.6}
         numberOfLines={1}
-        style={[styles.headerTitle, { color: theme.colors.textPrimary }]}
+        style={[
+          styles.headerTitle,
+          { color: headerColor },
+          options.headerTitleStyle,
+        ]}
       >
         {headerTitle}
       </AppText>

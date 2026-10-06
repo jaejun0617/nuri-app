@@ -12,8 +12,14 @@
 // - 탭 목록이나 param 타입을 바꾸면 하단 툴바, 기록 작성 복귀 흐름, More 드로어 동작이 함께 영향을 받는다.
 // - MoreTab은 실제 화면 이동이 아니라 오버레이를 여는 동작이므로 일반 탭처럼 취급하면 안 된다.
 
-import React, { useCallback } from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import {
+  View,
+  StyleSheet,
+  Platform,
+  type LayoutChangeEvent,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import type { NavigatorScreenParams } from '@react-navigation/native';
@@ -28,6 +34,7 @@ import GuestbookScreen from '../screens/Guestbook/GuestbookScreen';
 
 import MoreDrawer from '../components/MoreDrawer/MoreDrawer';
 import AppNavigationToolbar from '../components/navigation/AppNavigationToolbar';
+import { ToolbarHeightContext } from '../components/navigation/ToolbarHeightContext';
 import { useUiStore } from '../store/uiStore';
 import type { HealthReportTabKey } from '../services/health-report/viewModel';
 import { FixedTypographyBoundary } from '../app/providers/AppFontPreferenceProvider';
@@ -72,7 +79,11 @@ function FixedCommunityTabStack() {
   );
 }
 
-function CustomTabBar(props: BottomTabBarProps) {
+function CustomTabBar(
+  props: BottomTabBarProps & {
+    onToolbarLayout: (event: LayoutChangeEvent) => void;
+  },
+) {
   const { state } = props;
   const currentRouteName = state.routes[state.index]?.name;
   const activeKey =
@@ -92,51 +103,69 @@ function CustomTabBar(props: BottomTabBarProps) {
     if (route?.name !== 'HomeTab') return;
     props.navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
   };
-  return <AppNavigationToolbar activeKey={activeKey} onPressActiveHome={onPressActiveHome} />;
+  return (
+    <AppNavigationToolbar
+      activeKey={activeKey}
+      onPressActiveHome={onPressActiveHome}
+      onLayout={props.onToolbarLayout}
+    />
+  );
 }
 
 export default function AppTabsNavigator() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  const [toolbarHeight, setToolbarHeight] = useState<number | null>(null);
+  const handleToolbarLayout = useCallback((event: LayoutChangeEvent) => {
+    const height = event.nativeEvent.layout.height;
+    if (height > 0) setToolbarHeight(height);
+  }, []);
   const moreOpen = useUiStore(s => s.moreDrawerOpen);
   const openMore = useUiStore(s => s.openMoreDrawer);
   const closeMore = useUiStore(s => s.closeMoreDrawer);
   const renderTabBar = useCallback(
-    (p: BottomTabBarProps) => <CustomTabBar {...p} />,
-    [],
+    (p: BottomTabBarProps) => (
+      <CustomTabBar {...p} onToolbarLayout={handleToolbarLayout} />
+    ),
+    [handleToolbarLayout],
   );
 
   return (
-    <View style={[styles.root, { backgroundColor: theme.colors.background }]}>
-      <Tab.Navigator
-        screenOptions={{
-          headerShown: false,
-          tabBarHideOnKeyboard: true,
-        }}
-        tabBar={renderTabBar}
-      >
-        <Tab.Screen name="HomeTab" component={MainScreen} />
-        <Tab.Screen name="TimelineTab" component={TimelineStackNavigator} />
-        <Tab.Screen
-          name="CommunityTab"
-          component={FixedCommunityTabStack}
-        />
-        <Tab.Screen name="GuestbookTab" component={GuestbookScreen} />
-        <Tab.Screen
-          name="MoreTab"
-          component={MoreNull}
-          // ✅ Tab.Navigator 기본 동작 방지하려면 listeners도 같이(안전)
-          listeners={{
-            tabPress: e => {
-              e.preventDefault();
-              openMore();
-            },
+    <ToolbarHeightContext.Provider
+      value={
+        toolbarHeight ??
+        56 + Math.max(insets.bottom, Platform.OS === 'android' ? 18 : 10)
+      }
+    >
+      <View style={[styles.root, { backgroundColor: theme.colors.background }]}>
+        <Tab.Navigator
+          screenOptions={{
+            headerShown: false,
+            tabBarHideOnKeyboard: true,
           }}
-        />
-      </Tab.Navigator>
+          tabBar={renderTabBar}
+        >
+          <Tab.Screen name="HomeTab" component={MainScreen} />
+          <Tab.Screen name="TimelineTab" component={TimelineStackNavigator} />
+          <Tab.Screen name="CommunityTab" component={FixedCommunityTabStack} />
+          <Tab.Screen name="GuestbookTab" component={GuestbookScreen} />
+          <Tab.Screen
+            name="MoreTab"
+            component={MoreNull}
+            // ✅ Tab.Navigator 기본 동작 방지하려면 listeners도 같이(안전)
+            listeners={{
+              tabPress: e => {
+                e.preventDefault();
+                openMore();
+              },
+            }}
+          />
+        </Tab.Navigator>
 
-      {/* ✅ Overlay Drawer */}
-      <MoreDrawer open={moreOpen} onClose={closeMore} />
-    </View>
+        {/* ✅ Overlay Drawer */}
+        <MoreDrawer open={moreOpen} onClose={closeMore} />
+      </View>
+    </ToolbarHeightContext.Provider>
   );
 }
 

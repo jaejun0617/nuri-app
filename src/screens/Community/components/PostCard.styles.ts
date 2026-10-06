@@ -19,13 +19,8 @@ export const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: '#32A56A',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  textTypeIcon: {
-    width: 18,
-    height: 18,
   },
   content: {
     flex: 1,
@@ -53,12 +48,27 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  categoryBadge: {
+    minHeight: 22,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 8,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryBadgeText: {
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '700',
+  },
   noticeBadgeText: {
     fontSize: 11,
     lineHeight: 15,
     fontWeight: '800',
   },
   title: {
+    color: '#243042',
     flex: 1,
     minWidth: 0,
     ...typography.role.bodyStrong,
@@ -73,6 +83,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   metaText: {
+    color: '#566271',
     flex: 1,
     minWidth: 0,
     ...typography.role.caption,

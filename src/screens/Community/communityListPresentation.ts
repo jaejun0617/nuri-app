@@ -31,9 +31,12 @@ export function getCommunityPostAccessibilityLabel(
   title: string,
   commentCount: number,
   isNotice: boolean,
+  hasImage = false,
 ): string {
   const prefix = isNotice ? '공지사항 게시글, ' : '';
-  return `${prefix}${title}, 댓글 ${commentCount}개`;
+  return `${prefix}${title}${
+    hasImage ? ', 이미지 첨부' : ''
+  }, 댓글 ${commentCount}개`;
 }
 
 export function getCommunityPostTitleLineCount(isNotice: boolean): 1 | 2 {

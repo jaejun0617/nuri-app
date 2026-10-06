@@ -502,9 +502,7 @@ export default function RootNavigator() {
         name="CommunityList"
         component={FixedCommunityListScreen}
         options={{
-          headerShown: true,
-          headerTitle: '커뮤니티',
-          header: renderCommunityHeader,
+          headerShown: false,
         }}
       />
       <Stack.Screen
