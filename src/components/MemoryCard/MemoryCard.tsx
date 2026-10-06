@@ -45,6 +45,8 @@ interface MemoryCardProps {
   onFocusedLayout?: (itemId: string, event: LayoutChangeEvent) => void;
   imageVariant?: MemoryImageVariant;
   thumbnailPreset?: 'default' | 'timeline';
+  presentation?: 'default' | 'seasonalTimeline';
+  dateHeaderCount?: number | null;
   showDateHeader?: boolean;
   isFirstGroup?: boolean;
   dateHeaderTitle?: string | null;
@@ -73,6 +75,8 @@ function MemoryCardComponent({
   onFocusedLayout,
   imageVariant,
   thumbnailPreset = 'default',
+  presentation = 'default',
+  dateHeaderCount = null,
   showDateHeader = false,
   isFirstGroup = false,
   dateHeaderTitle = null,
@@ -103,7 +107,8 @@ function MemoryCardComponent({
   const hasImage = Boolean(timelineImage.value) || hasMemoryImage(item);
   const categoryMeta = useMemo(() => getRecordCategoryMeta(item), [item]);
   const categoryTone = useMemo(() => getMemoryCategoryChipTone(item), [item]);
-  const thumbnailStyle = thumbnailPreset === 'timeline' ? styles.thumbTimeline : styles.thumb;
+  const thumbnailStyle =
+    thumbnailPreset === 'timeline' ? styles.thumbTimeline : styles.thumb;
   const thumbnailImageStyle =
     thumbnailPreset === 'timeline' ? styles.thumbTimelineImg : styles.thumbImg;
   const thumbnailPlaceholderStyle =
@@ -134,6 +139,165 @@ function MemoryCardComponent({
     [isFocused, item.id, onFocusedLayout],
   );
 
+  // Opt-in presentation preserves image scheduling and all other MemoryCard callers.
+  if (presentation === 'seasonalTimeline') {
+    return (
+      <View
+        style={styles.seasonalItem}
+        onLayout={isFocused ? handleLayout : undefined}
+      >
+        {showDateHeader ? (
+          <View testID="timeline-day-header" style={styles.seasonalDayHeader}>
+            <View style={styles.seasonalRail}>
+              <View
+                style={[
+                  styles.seasonalLine,
+                  isFirstGroup ? { top: '50%' } : null,
+                  { backgroundColor: timelineRailColor },
+                ]}
+              />
+              <View
+                style={[
+                  styles.seasonalDayDot,
+                  { backgroundColor: dateHeaderDotColor },
+                ]}
+              />
+            </View>
+            <AppText
+              preset="unifiedTitle"
+              styleOverridesPreset
+              style={styles.seasonalDayTitle}
+            >
+              {dateHeaderTitle}{' '}
+              <AppText
+                preset="unifiedTitle"
+                styleOverridesPreset
+                style={[
+                  styles.seasonalDayTitle,
+                  { color: dateHeaderSubtitleColor },
+                ]}
+              >
+                {dateHeaderSubtitle}
+              </AppText>
+            </AppText>
+            {dateHeaderCount !== null ? (
+              <AppText
+                preset="unifiedMeta"
+                styleOverridesPreset
+                style={styles.seasonalDayCount}
+              >
+                {dateHeaderCount}개의 기록
+              </AppText>
+            ) : null}
+          </View>
+        ) : null}
+        <View style={styles.seasonalRow}>
+          <View style={styles.seasonalRail}>
+            <View
+              style={[
+                styles.seasonalLine,
+                hideBottomRail ? { bottom: '50%' } : null,
+                { backgroundColor: timelineRailColor },
+              ]}
+            />
+            <View
+              style={[
+                styles.seasonalItemDot,
+                { backgroundColor: timelineDotColor },
+              ]}
+            />
+          </View>
+          <TouchableOpacity
+            testID="timeline-seasonal-record"
+            activeOpacity={0.9}
+            accessibilityRole="button"
+            accessibilityLabel={`${categoryMeta.label}, ${
+              trimText(item.title) || titleText
+            }, ${metaText ?? ''}`}
+            onPress={handlePress}
+            style={styles.seasonalCard}
+          >
+            <View style={styles.seasonalThumb}>
+              {hasImage && signedUrl ? (
+                <OptimizedImage
+                  uri={signedUrl}
+                  style={styles.seasonalThumbImage}
+                  resizeMode="cover"
+                  priority={deferImageLoad ? 'low' : 'normal'}
+                />
+              ) : (
+                <View
+                  style={[
+                    styles.seasonalThumbPlaceholder,
+                    { backgroundColor: categoryTone.placeholderColor },
+                  ]}
+                >
+                  <NuriSemanticIcon
+                    family="material"
+                    name={categoryMeta.icon}
+                    size={24}
+                    color={categoryTone.textColor}
+                    preserveOriginal
+                  />
+                </View>
+              )}
+            </View>
+            <View style={styles.seasonalBody}>
+              <View
+                style={[
+                  styles.seasonalCategory,
+                  { backgroundColor: categoryTone.backgroundColor },
+                ]}
+              >
+                <NuriSemanticIcon
+                  family="material"
+                  name={categoryMeta.icon}
+                  size={14}
+                  color={categoryTone.textColor}
+                  preserveOriginal
+                />
+                <AppText
+                  preset="unifiedMeta"
+                  styleOverridesPreset
+                  style={[
+                    styles.seasonalCategoryText,
+                    { color: categoryTone.textColor },
+                  ]}
+                >
+                  {categoryMeta.label}
+                </AppText>
+              </View>
+              <AppText
+                preset="unifiedBody"
+                numberOfLines={1}
+                styleOverridesPreset
+                style={styles.seasonalTitle}
+              >
+                {titleText}
+              </AppText>
+              {metaText ? (
+                <AppText
+                  preset="unifiedMeta"
+                  styleOverridesPreset
+                  style={styles.seasonalMeta}
+                >
+                  {metaText}
+                </AppText>
+              ) : null}
+            </View>
+            <NuriSemanticIcon
+              family="feather"
+              name="chevron-right"
+              size={18}
+              color="#748096"
+              preserveOriginal
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <TouchableOpacity
       activeOpacity={0.9}
@@ -158,19 +322,30 @@ function MemoryCardComponent({
           ) : null}
 
           <View style={styles.dateGroupHeaderMonthRow}>
-            <View style={[styles.dateGroupHeaderRail, styles.dateGroupHeaderRailMonth]}>
+            <View
+              style={[
+                styles.dateGroupHeaderRail,
+                styles.dateGroupHeaderRailMonth,
+              ]}
+            >
               <View
                 style={[
                   styles.dateGroupHeaderLine,
                   isFirstGroup ? styles.dateGroupHeaderLineYearFirst : null,
                   styles.dateGroupHeaderLineYearConnect,
-                  { backgroundColor: timelineRailColor ?? categoryTone.lineColor },
+                  {
+                    backgroundColor:
+                      timelineRailColor ?? categoryTone.lineColor,
+                  },
                 ]}
               />
               <View
                 style={[
                   styles.dateGroupHeaderDot,
-                  { backgroundColor: dateHeaderDotColor ?? categoryTone.dotColor },
+                  {
+                    backgroundColor:
+                      dateHeaderDotColor ?? categoryTone.dotColor,
+                  },
                 ]}
               />
             </View>
@@ -181,7 +356,9 @@ function MemoryCardComponent({
                   preset="unifiedMeta"
                   style={[
                     styles.dateGroupHeaderSubtitle,
-                    dateHeaderSubtitleColor ? { color: dateHeaderSubtitleColor } : null,
+                    dateHeaderSubtitleColor
+                      ? { color: dateHeaderSubtitleColor }
+                      : null,
                   ]}
                 >
                   {dateHeaderSubtitle}
@@ -195,20 +372,26 @@ function MemoryCardComponent({
           <View
             style={[
               styles.dateGroupHeaderRail,
-              dateHeaderTitleVariant === 'month' ? styles.dateGroupHeaderRailMonth : null,
+              dateHeaderTitleVariant === 'month'
+                ? styles.dateGroupHeaderRailMonth
+                : null,
             ]}
           >
             <View
               style={[
                 styles.dateGroupHeaderLine,
                 isFirstGroup ? styles.dateGroupHeaderLineFirst : null,
-                { backgroundColor: timelineRailColor ?? categoryTone.lineColor },
+                {
+                  backgroundColor: timelineRailColor ?? categoryTone.lineColor,
+                },
               ]}
             />
             <View
               style={[
                 styles.dateGroupHeaderDot,
-                { backgroundColor: dateHeaderDotColor ?? categoryTone.dotColor },
+                {
+                  backgroundColor: dateHeaderDotColor ?? categoryTone.dotColor,
+                },
               ]}
             />
           </View>
@@ -232,7 +415,9 @@ function MemoryCardComponent({
                 preset="unifiedMeta"
                 style={[
                   styles.dateGroupHeaderSubtitle,
-                  dateHeaderSubtitleColor ? { color: dateHeaderSubtitleColor } : null,
+                  dateHeaderSubtitleColor
+                    ? { color: dateHeaderSubtitleColor }
+                    : null,
                 ]}
               >
                 {dateHeaderSubtitle}
@@ -280,8 +465,8 @@ function MemoryCardComponent({
                 { backgroundColor: categoryTone.placeholderColor },
               ]}
             >
-            <NuriSemanticIcon
-              family="material"
+              <NuriSemanticIcon
+                family="material"
                 name={categoryMeta.icon}
                 size={thumbnailPlaceholderIconSize}
                 color={categoryTone.textColor}
@@ -331,6 +516,8 @@ export const MemoryCard = memo(
     prev.onFocusedLayout === next.onFocusedLayout &&
     prev.imageVariant === next.imageVariant &&
     prev.thumbnailPreset === next.thumbnailPreset &&
+    prev.presentation === next.presentation &&
+    prev.dateHeaderCount === next.dateHeaderCount &&
     prev.showDateHeader === next.showDateHeader &&
     prev.isFirstGroup === next.isFirstGroup &&
     prev.dateHeaderTitle === next.dateHeaderTitle &&

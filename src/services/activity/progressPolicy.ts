@@ -28,20 +28,22 @@ export const MAX_ACTIVITY_LEVEL = 100;
 export const MAX_ACTIVITY_LEVEL_XP = 1_250_000;
 export const LEGACY_LEVEL_30_XP = 170_400;
 export const ACTIVITY_REWARD_BASE_SCALE = 1.3;
+// Both walking event types share this per-pet KST-day allowance on the server.
+export const WALK_XP_DAILY_LIMIT_PER_PET = 3;
 
 export const ACTIVITY_XP_POLICIES: Readonly<Record<ActivityXpEventType, ActivityXpPolicy>> = {
   walk_record: {
     eventType: 'walk_record',
     label: '산책 기록',
     xp: 26,
-    dailyLimit: 2,
+    dailyLimit: WALK_XP_DAILY_LIMIT_PER_PET,
     baseActivityCapApplies: true,
   },
   walk_timeline_post: {
     eventType: 'walk_timeline_post',
     label: '산책 타임라인',
     xp: 39,
-    dailyLimit: 1,
+    dailyLimit: WALK_XP_DAILY_LIMIT_PER_PET,
     baseActivityCapApplies: true,
   },
   timeline_post: {

@@ -5,6 +5,7 @@ import {
   MAX_ACTIVITY_LEVEL,
   MAX_ACTIVITY_LEVEL_XP,
   TITLE_POLICIES,
+  WALK_XP_DAILY_LIMIT_PER_PET,
   calculateEffectiveActivityXp,
   calculateLevel,
   getLevelFloorXp,
@@ -19,7 +20,7 @@ describe('V1.1 activity progress policy', () => {
     expect(ACTIVITY_REWARD_BASE_SCALE).toBe(1.3);
     expect(ACTIVITY_XP_POLICIES.walk_timeline_post).toMatchObject({
       xp: 39,
-      dailyLimit: 1,
+      dailyLimit: 3,
       baseActivityCapApplies: true,
     });
     expect(ACTIVITY_XP_POLICIES.comment).toMatchObject({
@@ -31,6 +32,12 @@ describe('V1.1 activity progress policy', () => {
       xp: 390,
       dailyLimit: 1,
       baseActivityCapApplies: false,
+    });
+    expect(WALK_XP_DAILY_LIMIT_PER_PET).toBe(3);
+    expect(ACTIVITY_XP_POLICIES.walk_record).toMatchObject({
+      xp: 26,
+      dailyLimit: WALK_XP_DAILY_LIMIT_PER_PET,
+      baseActivityCapApplies: true,
     });
   });
 

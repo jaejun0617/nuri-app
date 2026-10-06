@@ -1,4 +1,39 @@
 # V1.0 Remaining Task/Risk Closeout
+<!-- NURI_TIMELINE_FINAL_FREEZE_20261007_BEGIN -->
+## 2026-10-07 Timeline 최종 승인 종료
+
+- [x] PO최종승인: control13sp/category label·count12sp, 기존padding·44dp touch·4계절·65%glass·실제통계계약유지.
+- [x] 임시670XP/1,111개preview모듈·연결·전용테스트제거. 실제507XP=원장507,canonical11·Progress23% read-only/렌더검증. DBreset/backfill없음.
+- [x] TypeScript·lint0errors/새issue0/기존warning1·대상20/375·전체183/1,860·diff PASS.
+- [x] 증분Release217.525초/install-r15.430초각1회,24b21ea0·원본픽셀·UID/설정MATCH. clean/uninstall/clear-data/앱화면조작없음.
+- [x] 이번20개데이터영역·RLS/policy·263함수hashMATCH·QA100유지,remote추가mutation0. 이미반영된펫별shared산책3회와계정150XP는보존.
+- [x] PO디자인동결범위확정. 최종선별commit/origin/CI확인은 /private/tmp/nuri-timeline-final-freeze-20261007-074201/FINAL_REPORT.md가소유한다. 공유문서무관한dirty·산출물유지.
+- [ ] 기존지정색작은글자대비경계·native확대/다른기기·영구XP앱저장·다중세션부하·PRE_STORE운영게이트는별도검증이다. PO디자인승인을Store전체승인으로취급하지않는다.
+- TIMELINE_DESIGN=COMPLETE_FROZEN,Store HOLD,cleanup NO. 아래preview승인대기는역사기록이며현재다시열지않는다. 다음1개는PO NEXT DESIGN DIRECTION 대기다.
+<!-- NURI_TIMELINE_FINAL_FREEZE_20261007_END -->
+
+<!-- NURI_TIMELINE_STATS_READABILITY_20261007_BEGIN -->
+## 2026-10-07 Timeline Readability / Temporary Numeric Review Gate
+
+- [x] white alpha65%·목표XP #243042·월/정렬 visible3dp/44dp tap. 계절tokens·원본·기존기능보존,로컬합성분석과native시각QA분리.
+- [x] PO승인QA화면표시670XP/1,111기록·Progress88%. 실제QA507/11·원장/store/list/filter유지,조건불일치/오류/로딩시원본통과·preview off복귀테스트.
+- [x] 타입/lint새issue0·대상20/383·전체183/1,868·diff PASS.증분Release212.177초/install-r15.577초각1회,f6577720·UID/설정·source/input/PNG보존.
+- [ ] PO설치후가독성/큰숫자/Progress시각승인.이번native실행/캡처0회이며설치확인은렌더증거가아니다.
+- [ ] 최종승인closeout전임시preview모듈/연결제거,최신실제값복귀·재검증·실제값후보설치후승인Timeline선별commit/push·동결.임시표시를Store/승인커밋에남기지않는다.
+- public/Storage19영역·정책/263함수·QA100MATCH,DBmutation0.Auth56행hash변동/원인컬럼전체미확인은별도경계다.현재commit/push/freeze/cleanup/Store NO.보고서 docs/qa/nuri-timeline-statistics-readability-preview-2026-10-07.md.
+<!-- NURI_TIMELINE_STATS_READABILITY_20261007_END -->
+
+<!-- NURI_TIMELINE_STATISTICS_WALK_XP_20261007_BEGIN -->
+## 2026-10-07 Timeline Statistics / Per-Pet Walk XP Candidate
+
+- [x] 승인된 payout function 한 곳의 shared walk3/pet/KST, null-pet guard, account budget150 및 xact lock 이관. local/remote migration20261006220017 일치, ACL/owner/RLS·다른함수 보존.
+- [x] 실제 RPC525→564/642 및675→714로 Progress30→46/77 및level-up90→5 검증. 펫/기록/QA100 보호19영역 count/hash·다른262함수 MATCH, rollback-only XP QA, 영구 콘텐츠 mutation0.
+- [x] 통계50%·우측 브랜드 제거·월/정렬2dp face와44dp tap, 큰 숫자 자연 높이, focus refresh 로컬 검증.
+- [ ] PO 설치 후보 시각 승인. Native 앱 작성으로 영구 XP 증가·다중 세션 부하·native 큰 글꼴 matrix는 미실행이며 SQL/렌더 QA와 구분한다.
+- [x] TypeScript·lint 새 issue0·대상19/365·전체182/1,850·diff PASS. 증분 Release206.221초/install-r15.759초 각1회,61실행/934재사용, ef2b4a03 및 UID/설정 보존 MATCH.
+- Store HOLD, commit/push/freeze/cleanup·다음 디자인 자동 시작 NO. 세부 결과는 docs/qa/nuri-timeline-statistics-walk-xp-2026-10-07.md에 기록한다.
+<!-- NURI_TIMELINE_STATISTICS_WALK_XP_20261007_END -->
+
 <!-- NURI_COMMUNITY_AUTUMN_FREEZE_20261007_BEGIN -->
 ## 2026-10-07 Community Autumn Frozen
 

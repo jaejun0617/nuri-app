@@ -1,4 +1,4 @@
-import CtaButton, { CtaText, CtaIcon } from '../../app/ui/CtaButton';
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 // 파일: src/screens/Records/TimelineScreen.tsx
 // 파일 목적:
 // - 선택된 펫의 기록을 시간순 타임라인으로 탐색하는 메인 목록 화면이다.
@@ -17,6 +17,7 @@ import CtaButton, { CtaText, CtaIcon } from '../../app/ui/CtaButton';
 import React, {
   memo,
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -39,6 +40,8 @@ import {
   type ViewToken,
 } from '@shopify/flash-list';
 import Feather from '../../components/icons/NuriFeatherIcon';
+import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
+import { ToolbarHeightContext } from '../../components/navigation/ToolbarHeightContext';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type {
   CompositeNavigationProp,
@@ -52,6 +55,8 @@ import {
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
+import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
+import { TIMELINE_SEASON_COLORS } from '../../theme/seasonal/timeline';
 import { scheduleIdleTask } from '../../utils/scheduleIdleTask';
 import { getResponsiveOverlayMaxHeight } from '../../services/app/responsiveLayout';
 
@@ -70,11 +75,12 @@ import {
 } from '../../services/memories/categoryMeta';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
 import {
-  fetchTimelineCategoryCountsByPet,
+  fetchMemorySummaryRecordsByPet,
   type MemoryRecord,
 } from '../../services/supabase/memories';
 import {
   buildTimelineView,
+  buildTimelineCategoryCounts,
   createEmptyTimelineCategoryCounts,
   humanizeTimelineMonthKey,
   type TimelineCategoryCounts,
@@ -90,8 +96,11 @@ import {
   type UserLevelSummary,
   type UserTitle,
 } from '../../services/activity/xpProgress';
-import { getProgressWithinLevel } from '../../services/activity/progressPolicy';
-import { getRecordDisplayYmd } from '../../services/records/date';
+import {
+  getRecordDisplayYmd,
+  formatRecordCreatedTime,
+} from '../../services/records/date';
+import { buildTotalSummary } from '../../services/home/weeklySummary';
 import { getTimelinePrimaryMemoryImageSource } from '../../services/records/imageSources';
 import {
   getMemoryImageSignedUrlsCached,
@@ -101,12 +110,20 @@ import { usePetStore, resolveSelectedPetId } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
 import { useAuthStore } from '../../store/authStore';
 import { openMoreDrawer } from '../../store/uiStore';
-import {
-  diffCalendarDaysBetweenYmd,
-  getKstYmd,
-  getMonthKeyFromYmd,
-} from '../../utils/date';
+import { getKstYmd } from '../../utils/date';
 import { styles } from './TimelineScreen.styles';
+import TimelineSeasonalHeader, {
+  TimelineSeasonalControls,
+} from './TimelineSeasonalHeader';
+import {
+  buildTimelineDayCounts,
+  buildTimelineDayHeader,
+  formatTimelineRecordedMonth,
+  getLatestTimelineDayKey,
+  getLatestTimelineRecordedDay,
+  resolveTimelineDaySubtitleColor,
+} from './timelinePresentation';
+import { useTimelineInitialMonth } from './useTimelineInitialMonth';
 import {
   HOME_TOTAL_SUMMARY_ENTRY_SOURCE,
   invalidateTimelineEntryRequest,
@@ -178,68 +195,6 @@ const OTHER_SUBCATEGORY_KEY_SET = new Set<OtherSubCategory>(
 );
 const EMPTY_TIMELINE_IDS: string[] = [];
 const EMPTY_TIMELINE_CATEGORY_COUNTS = createEmptyTimelineCategoryCounts();
-const TIMELINE_PAST_GROUP_COLORS = {
-  title: '#6B7280',
-  subtitle: '#9CA3AF',
-  rail: '#E7EBF0',
-  headerDot: '#C5CCD5',
-  itemDot: '#D6DCE4',
-} as const;
-
-type TimelineGroupHeader = {
-  title: string;
-  subtitle: string | null;
-  titleVariant: 'year' | 'month';
-};
-
-function isTodayTimelineGroup(ymd: string | null): boolean {
-  if (!ymd) return false;
-  return diffCalendarDaysBetweenYmd(ymd, getKstYmd()) === 0;
-}
-
-function isCurrentYearTimelineGroup(ymd: string | null): boolean {
-  if (!ymd) return false;
-  return ymd.slice(0, 4) === getKstYmd().slice(0, 4);
-}
-
-function isCurrentMonthTimelineGroup(ymd: string | null): boolean {
-  if (!ymd) return false;
-  return getMonthKeyFromYmd(ymd) === getMonthKeyFromYmd(getKstYmd());
-}
-
-function buildTimelineGroupHeader(
-  ymd: string | null,
-  previousYmd: string | null,
-): TimelineGroupHeader | null {
-  if (!ymd) return null;
-
-  const [yearRaw, monthRaw] = ymd.split('-');
-  const year = Number(yearRaw);
-  const month = Number(monthRaw);
-  if (!year || !month) return null;
-
-  const previousMonthKey = getMonthKeyFromYmd(previousYmd);
-  const currentMonthKey = getMonthKeyFromYmd(ymd);
-  const previousYear = previousYmd?.slice(0, 4) ?? null;
-
-  if (!previousYmd || previousYear !== `${year}`) {
-    return {
-      title: `${year}`,
-      subtitle: `${month}월`,
-      titleVariant: 'year',
-    };
-  }
-
-  if (previousMonthKey !== currentMonthKey) {
-    return {
-      title: `${month}월`,
-      subtitle: null,
-      titleVariant: 'month',
-    };
-  }
-
-  return null;
-}
 
 const ControlsBar = memo(function ControlsBar({
   sortLabel,
@@ -388,111 +343,22 @@ const ControlsBar = memo(function ControlsBar({
   );
 });
 
-const EMPTY_LEVEL_SUMMARY: UserLevelSummary = {
-  totalXp: 0,
-  level: 1,
-  currentLevelXp: 0,
-  nextLevelXp: 100,
-  updatedAt: null,
-};
-
-const TimelineActivitySummaryHeader = memo(
-  function TimelineActivitySummaryHeader({
-    dailyStatus,
-    levelSummary,
-    titles,
-    petName,
-    theme,
-    mainCategory,
-  }: {
-    dailyStatus: DailyStreakStatus | null;
-    levelSummary: UserLevelSummary | null;
-    titles: UserTitle[];
-    petName: string | null;
-    theme: ReturnType<typeof buildPetThemePalette>;
-    mainCategory: MainCategory;
-  }) {
-    const effectiveLevel = levelSummary ?? EMPTY_LEVEL_SUMMARY;
-    const progress = getProgressWithinLevel(effectiveLevel);
-    const latestTitle = titles[0]?.titleName ?? '첫 추억 기록 준비 중';
-    const streakText = dailyStatus?.todayCompleted
-      ? `오늘 산책 완료 · ${dailyStatus.currentStreak}일 연속`
-      : '오늘 산책 기록을 기다리고 있어요';
-    const petLabel = petName?.trim() || '우리 아이';
-
-    return (
-      <View style={styles.activityHeaderWrap}>
-        {mainCategory === 'walk' ? (
-          <View style={[styles.dailyCard, { borderColor: theme.soft }]}>
-            <View style={[styles.dailyIcon, { backgroundColor: theme.soft }]}>
-              <AppText
-                preset="unifiedMeta"
-                numberOfLines={1}
-                style={[styles.dailyIconText, { color: theme.primary }]}
-              >
-                산책
-              </AppText>
-            </View>
-            <AppText
-              typographyRole="sectionTitle"
-              preset="unifiedTitle"
-              style={styles.dailyTitle}
-            >
-              {dailyStatus?.todayCompleted
-                ? '오늘도 산책 완료!'
-                : `${petLabel}의 데일리판`}
-            </AppText>
-            <AppText preset="unifiedBody" style={styles.dailyBody}>
-              {streakText}
-            </AppText>
-          </View>
-        ) : null}
-
-        <View style={[styles.progressCard, { borderColor: theme.soft }]}>
-          <View style={styles.progressTopRow}>
-            <View>
-              <AppText preset="unifiedMeta" style={styles.progressEyebrow}>
-                활동 성장
-              </AppText>
-              <AppText
-                typographyRole="sectionTitle"
-                preset="unifiedTitle"
-                style={styles.progressTitle}
-              >
-                Lv.{effectiveLevel.level} · {latestTitle}
-              </AppText>
-            </View>
-            <AppText
-              preset="unifiedMeta"
-              style={[styles.progressXp, { color: theme.primary }]}
-            >
-              {effectiveLevel.totalXp} XP
-            </AppText>
-          </View>
-          <View style={styles.progressTrack}>
-            <View
-              style={[
-                styles.progressFill,
-                {
-                  width: `${Math.round(progress * 100)}%`,
-                  backgroundColor: theme.primary,
-                },
-              ]}
-            />
-          </View>
-          <AppText preset="unifiedMeta" style={styles.progressHint}>
-            다음 레벨 {effectiveLevel.nextLevelXp} XP까지 차분히 쌓아가요
-          </AppText>
-        </View>
-      </View>
-    );
-  },
-);
-
 export default function TimelineScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { height: windowHeight } = useWindowDimensions();
+  const toolbarHeight = useContext(ToolbarHeightContext);
+  const {
+    height: windowHeight,
+    width: windowWidth,
+    fontScale,
+  } = useWindowDimensions();
+  const season = useEffectiveSeason();
+  const seasonColors = TIMELINE_SEASON_COLORS[season];
+  const [listWidth, setListWidth] = useState(windowWidth);
+  const onListLayout = useCallback((event: LayoutChangeEvent) => {
+    const width = event.nativeEvent.layout.width;
+    if (width > 0) setListWidth(width);
+  }, []);
   const modalMaxHeight = getResponsiveOverlayMaxHeight({
     windowHeight,
     topInset: insets.top,
@@ -535,10 +401,6 @@ export default function TimelineScreen() {
   const selectedPet = useMemo(
     () => pets.find(item => item.id === petId) ?? null,
     [petId, pets],
-  );
-  const petTheme = useMemo(
-    () => buildPetThemePalette(selectedPet?.themeColor),
-    [selectedPet?.themeColor],
   );
   const guestTimelineTheme = useMemo(
     () => buildPetThemePalette(theme.colors.brand),
@@ -593,6 +455,10 @@ export default function TimelineScreen() {
     useState<TimelineCategoryCounts>(() => createEmptyTimelineCategoryCounts());
   const [timelineCategoryCountsReady, setTimelineCategoryCountsReady] =
     useState(false);
+  const [summaryRecords, setSummaryRecords] = useState<{
+    petId: string;
+    records: MemoryRecord[];
+  } | null>(null);
   const [dailyStatus, setDailyStatus] = useState<DailyStreakStatus | null>(
     null,
   );
@@ -685,6 +551,7 @@ export default function TimelineScreen() {
     if (!isLoggedIn || !petId) {
       setTimelineCategoryCounts(createEmptyTimelineCategoryCounts());
       setTimelineCategoryCountsReady(false);
+      setSummaryRecords(null);
       return;
     }
 
@@ -692,16 +559,18 @@ export default function TimelineScreen() {
     setTimelineCategoryCountsReady(false);
 
     const task = scheduleIdleTask(() => {
-      fetchTimelineCategoryCountsByPet(petId)
-        .then(counts => {
+      fetchMemorySummaryRecordsByPet(petId)
+        .then(records => {
           if (cancelled) return;
-          setTimelineCategoryCounts(counts);
+          setTimelineCategoryCounts(buildTimelineCategoryCounts(records));
+          setSummaryRecords({ petId, records });
           setTimelineCategoryCountsReady(true);
         })
         .catch(() => {
           if (cancelled) return;
           setTimelineCategoryCounts(timelineView.categoryCounts);
           setTimelineCategoryCountsReady(false);
+          setSummaryRecords(null);
         });
     });
 
@@ -711,6 +580,56 @@ export default function TimelineScreen() {
     };
   }, [isLoggedIn, petId, timelineEntityVersion, timelineView.categoryCounts]);
 
+  const totalSummary = useMemo(
+    () =>
+      summaryRecords?.petId === petId
+        ? buildTotalSummary(summaryRecords.records)
+        : null,
+    [petId, summaryRecords],
+  );
+  const latestRecordedMonth = useMemo(
+    () =>
+      summaryRecords?.petId === petId
+        ? getLatestTimelineRecordedDay(summaryRecords.records)?.slice(0, 7) ??
+          null
+        : null,
+    [petId, summaryRecords],
+  );
+  const markExplicitMonthSelection = useTimelineInitialMonth({
+    petId,
+    enabled: isLoggedIn && !isHomeTotalSummaryEntry,
+    latestRecordedMonth,
+    setMonth: setYmFilter,
+  });
+  const dayCounts = useMemo(() => {
+    if (!summaryRecords || summaryRecords.petId !== petId) return null;
+    const completeView = buildTimelineView({
+      items: summaryRecords.records,
+      filters: {
+        ymFilter,
+        mainCategory,
+        otherSubCategory,
+        query: '',
+        sortMode,
+      },
+    });
+    return buildTimelineDayCounts(completeView.filteredItems);
+  }, [
+    mainCategory,
+    otherSubCategory,
+    petId,
+    sortMode,
+    summaryRecords,
+    ymFilter,
+  ]);
+  const latestVisibleDay = useMemo(
+    () =>
+      dayCounts
+        ? getLatestTimelineDayKey(dayCounts.keys())
+        : getLatestTimelineRecordedDay(timelineView.filteredItems),
+    [dayCounts, timelineView.filteredItems],
+  );
+
   useEffect(() => {
     if (!isLoggedIn || !petId) {
       setDailyStatus(null);
@@ -718,6 +637,9 @@ export default function TimelineScreen() {
       setEarnedTitles([]);
       return;
     }
+
+    // Account XP can change in Community while this tab remains mounted.
+    if (!isFocused) return;
 
     let cancelled = false;
 
@@ -745,7 +667,7 @@ export default function TimelineScreen() {
       cancelled = true;
       task.cancel();
     };
-  }, [isLoggedIn, petId, timelineEntityVersion]);
+  }, [isLoggedIn, petId, timelineEntityVersion, isFocused]);
 
   const listRef = useRef<FlashListRef<string>>(null);
   const targetLayoutOffsetRef = useRef<number | null>(null);
@@ -1116,18 +1038,22 @@ export default function TimelineScreen() {
     loadMore(petId).catch(() => {});
   }, [hasMore, loadMore, petId, status]);
 
-  const jumpToYm = useCallback((ym: string | null) => {
-    setYmModalOpen(false);
+  const jumpToYm = useCallback(
+    (ym: string | null) => {
+      markExplicitMonthSelection();
+      setYmModalOpen(false);
 
-    if (!ym) {
-      setYmFilter(null);
-      setPendingJumpYm(JUMP_TO_ALL);
-      return;
-    }
+      if (!ym) {
+        setYmFilter(null);
+        setPendingJumpYm(JUMP_TO_ALL);
+        return;
+      }
 
-    setYmFilter(ym);
-    setPendingJumpYm(ym);
-  }, []);
+      setYmFilter(ym);
+      setPendingJumpYm(ym);
+    },
+    [markExplicitMonthSelection],
+  );
 
   const onPressMainCategory = useCallback((key: MainCategory) => {
     if (key !== 'other') {
@@ -1155,8 +1081,16 @@ export default function TimelineScreen() {
     [sortMode],
   );
   const monthLabel = useMemo(
-    () => (ymFilter ? humanizeTimelineMonthKey(ymFilter) : '월/전체'),
-    [ymFilter],
+    () =>
+      ymFilter
+        ? isLoggedIn
+          ? formatTimelineRecordedMonth(ymFilter) ??
+            humanizeTimelineMonthKey(ymFilter)
+          : humanizeTimelineMonthKey(ymFilter)
+        : isLoggedIn
+        ? '전체 기록'
+        : '월/전체',
+    [isLoggedIn, ymFilter],
   );
   const categoryLabel = useMemo(() => {
     if (mainCategory !== 'other') {
@@ -1206,35 +1140,16 @@ export default function TimelineScreen() {
     : categoryLabel;
   const visibleYmFilter = isApplyingHomeTotalSummaryEntry ? null : ymFilter;
   const visibleMonthLabel = isApplyingHomeTotalSummaryEntry
-    ? '월/전체'
+    ? isLoggedIn
+      ? '전체 기록'
+      : '월/전체'
     : monthLabel;
   const visibleCategoryCounts = isHomeTotalSummaryControlsLoading
     ? EMPTY_TIMELINE_CATEGORY_COUNTS
     : categoryCounts;
-  const currentYearHeaderTitleColor = useMemo(
-    () => petTheme.primary,
-    [petTheme.primary],
-  );
-  const currentYearHeaderSubtitleColor = useMemo(
-    () => petTheme.muted,
-    [petTheme.muted],
-  );
-  const currentYearHeaderDotColor = useMemo(
-    () => petTheme.primary,
-    [petTheme.primary],
-  );
-  const currentMonthItemDotColor = useMemo(
-    () => petTheme.glow,
-    [petTheme.glow],
-  );
-  const todayItemDotColor = useMemo(() => petTheme.primary, [petTheme.primary]);
-  const todayItemMetaColor = useMemo(
-    () => petTheme.primary,
-    [petTheme.primary],
-  );
   const floatingCreateButtonBottom = useMemo(
-    () => Math.max(insets.bottom + 74, 82),
-    [insets.bottom],
+    () => (toolbarHeight ?? insets.bottom) + 12,
+    [toolbarHeight, insets.bottom],
   );
   const renderItem = useCallback<ListRenderItem<string>>(
     ({ item, index }) => {
@@ -1246,12 +1161,11 @@ export default function TimelineScreen() {
       const previousYmd = previousRecord
         ? getRecordDisplayYmd(previousRecord)
         : null;
-      const dateHeader = buildTimelineGroupHeader(currentYmd, previousYmd);
-      const isCurrentYearGroup =
-        dateHeader?.titleVariant === 'year' &&
-        isCurrentYearTimelineGroup(currentYmd);
-      const isCurrentMonthRecord = isCurrentMonthTimelineGroup(currentYmd);
-      const isTodayRecord = isTodayTimelineGroup(currentYmd);
+      const dateHeader = buildTimelineDayHeader(
+        currentYmd,
+        previousYmd,
+        getKstYmd(),
+      );
       const isLastVisibleItem = index === filteredIds.length - 1;
 
       const enableImageLoad =
@@ -1268,37 +1182,25 @@ export default function TimelineScreen() {
           isFocused={focusedMemoryId === item}
           onFocusedLayout={onFocusedItemLayout}
           thumbnailPreset="timeline"
+          presentation="seasonalTimeline"
           showDateHeader={Boolean(dateHeader)}
           isFirstGroup={index === 0}
           dateHeaderTitle={dateHeader?.title ?? null}
           dateHeaderSubtitle={dateHeader?.subtitle ?? null}
-          dateHeaderTitleVariant={dateHeader?.titleVariant ?? 'month'}
-          dateHeaderTitleColor={
-            isCurrentYearGroup
-              ? currentYearHeaderTitleColor
-              : TIMELINE_PAST_GROUP_COLORS.title
+          dateHeaderCount={
+            currentYmd ? dayCounts?.get(currentYmd) ?? null : null
           }
-          dateHeaderSubtitleColor={
-            isCurrentYearGroup
-              ? currentYearHeaderSubtitleColor
-              : TIMELINE_PAST_GROUP_COLORS.subtitle
-          }
-          dateHeaderDotColor={
-            isCurrentYearGroup
-              ? currentYearHeaderDotColor
-              : TIMELINE_PAST_GROUP_COLORS.headerDot
-          }
-          timelineDotColor={TIMELINE_PAST_GROUP_COLORS.itemDot}
-          timelineRailColor={TIMELINE_PAST_GROUP_COLORS.rail}
-          itemDotColor={
-            isTodayRecord
-              ? todayItemDotColor
-              : isCurrentMonthRecord
-              ? currentMonthItemDotColor
-              : undefined
-          }
-          metaTextColor={isTodayRecord ? todayItemMetaColor : undefined}
-          hideBottomRail={sortMode === 'recent' && isLastVisibleItem}
+          dateHeaderTitleColor="#182233"
+          dateHeaderSubtitleColor={resolveTimelineDaySubtitleColor(
+            currentYmd,
+            latestVisibleDay,
+            seasonColors.selectedCategory,
+          )}
+          dateHeaderDotColor={seasonColors.selectedCategory}
+          timelineDotColor={seasonColors.statsGradientEnd}
+          timelineRailColor="#E4E8ED"
+          metaTextOverride={formatRecordCreatedTime(record)}
+          hideBottomRail={isLastVisibleItem}
         />
       );
     },
@@ -1306,16 +1208,12 @@ export default function TimelineScreen() {
       filteredIds,
       focusedMemoryId,
       imageWindow,
-      currentYearHeaderDotColor,
-      currentYearHeaderSubtitleColor,
-      currentYearHeaderTitleColor,
-      currentMonthItemDotColor,
+      dayCounts,
+      latestVisibleDay,
       onFocusedItemLayout,
       onPressItem,
       recordsById,
-      sortMode,
-      todayItemDotColor,
-      todayItemMetaColor,
+      seasonColors,
     ],
   );
 
@@ -1337,13 +1235,8 @@ export default function TimelineScreen() {
     }
 
     if (status === 'ready' && !hasMore) {
-      return (
-        <View style={styles.footer}>
-          <AppText preset="unifiedMeta" style={styles.footerText}>
-            마지막 기록이에요
-          </AppText>
-        </View>
-      );
+      // Retain the existing FAB clearance without a terminal message.
+      return <View testID="timeline-end-clearance" style={{ height: 48 }} />;
     }
 
     return <View style={{ height: 18 }} />;
@@ -1420,9 +1313,6 @@ export default function TimelineScreen() {
           style={[styles.primary, {}]}
           onPress={onPressCreate}
         >
-          <CtaText preset="unifiedBody" style={styles.primaryIcon}>
-            ✎
-          </CtaText>
           <CtaText preset="unifiedBody" style={styles.primaryText}>
             기록 시작하기
           </CtaText>
@@ -1446,6 +1336,9 @@ export default function TimelineScreen() {
       dailyStatus,
       levelSummary,
       earnedTitles,
+      season,
+      dayCounts,
+      latestVisibleDay,
     }),
     [
       dailyStatus,
@@ -1454,31 +1347,11 @@ export default function TimelineScreen() {
       imageWindow,
       levelSummary,
       timelineEntityVersion,
+      season,
+      dayCounts,
+      latestVisibleDay,
     ],
   );
-
-  const listHeaderComponent = useMemo(() => {
-    if (!isLoggedIn || !petId) return null;
-    return (
-      <TimelineActivitySummaryHeader
-        dailyStatus={dailyStatus}
-        levelSummary={levelSummary}
-        titles={earnedTitles}
-        petName={selectedPet?.name ?? null}
-        theme={petTheme}
-        mainCategory={visibleMainCategory}
-      />
-    );
-  }, [
-    dailyStatus,
-    earnedTitles,
-    isLoggedIn,
-    levelSummary,
-    visibleMainCategory,
-    petId,
-    petTheme,
-    selectedPet?.name,
-  ]);
 
   const onPressBack = useEntryAwareBackAction({
     entrySource: route.params?.entrySource,
@@ -1495,6 +1368,61 @@ export default function TimelineScreen() {
       navigation.navigate('HomeTab');
     },
   });
+
+  const onToggleSort = useCallback(
+    () => setSortMode(prev => (prev === 'recent' ? 'oldest' : 'recent')),
+    [],
+  );
+  const onOpenMonth = useCallback(() => setYmModalOpen(true), []);
+  const listHeaderComponent = useMemo(
+    () => (
+      <TimelineSeasonalHeader
+        season={season}
+        width={listWidth}
+        fontScale={fontScale}
+        dailyStatus={dailyStatus}
+        level={levelSummary}
+        titles={earnedTitles}
+        summary={totalSummary}
+        petName={selectedPet?.name ?? null}
+        showWalkStatus={visibleMainCategory === 'walk'}
+        onPressBack={onPressBack}
+      >
+        <TimelineSeasonalControls
+          season={season}
+          sortLabel={sortLabel}
+          monthLabel={visibleMonthLabel}
+          mainCategory={visibleMainCategory}
+          categoryLabel={visibleCategoryLabel}
+          counts={visibleCategoryCounts}
+          transitioning={isHomeTotalSummaryControlsLoading}
+          onToggleSort={onToggleSort}
+          onOpenMonth={onOpenMonth}
+          onPressCategory={onPressMainCategory}
+        />
+      </TimelineSeasonalHeader>
+    ),
+    [
+      season,
+      listWidth,
+      fontScale,
+      dailyStatus,
+      levelSummary,
+      totalSummary,
+      earnedTitles,
+      selectedPet?.name,
+      visibleMainCategory,
+      onPressBack,
+      sortLabel,
+      visibleMonthLabel,
+      visibleCategoryLabel,
+      visibleCategoryCounts,
+      isHomeTotalSummaryControlsLoading,
+      onToggleSort,
+      onOpenMonth,
+      onPressMainCategory,
+    ],
+  );
 
   const goSignIn = useCallback(() => {
     navigation.navigate('SignIn');
@@ -1570,43 +1498,10 @@ export default function TimelineScreen() {
   }
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <View style={styles.headerSideSlot}>
-          <TouchableOpacity
-            activeOpacity={0.88}
-            style={styles.backButton}
-            onPress={onPressBack}
-            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-          >
-            <Feather name="arrow-left" size={20} color="#102033" />
-          </TouchableOpacity>
-        </View>
-        <AppText
-          typographyRole="screenTitle"
-          preset="unifiedTitle"
-          style={styles.headerTitle}
-        >
-          타임라인
-        </AppText>
-        <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
-      </View>
-      <ControlsBar
-        sortLabel={sortLabel}
-        monthLabel={visibleMonthLabel}
-        isMonthFiltered={Boolean(visibleYmFilter)}
-        mainCategory={visibleMainCategory}
-        categoryLabel={visibleCategoryLabel}
-        categoryCounts={visibleCategoryCounts}
-        isTransitioning={isHomeTotalSummaryControlsLoading}
-        onToggleSort={() =>
-          setSortMode(prev => (prev === 'recent' ? 'oldest' : 'recent'))
-        }
-        onOpenMonthModal={() => setYmModalOpen(true)}
-        onPressMainCategory={onPressMainCategory}
-        theme={petTheme}
-      />
-
+    <View
+      onLayout={onListLayout}
+      style={[styles.screen, { paddingTop: insets.top }]}
+    >
       <FlashList
         key={
           isHomeTotalSummaryEntry
@@ -1620,9 +1515,10 @@ export default function TimelineScreen() {
         drawDistance={TIMELINE_ITEM_HEIGHT * TIMELINE_WINDOW_SIZE}
         getItemType={getItemType}
         extraData={listExtraData}
-        contentContainerStyle={
-          renderedFilteredIds.length ? styles.list : styles.listEmpty
-        }
+        contentContainerStyle={[
+          renderedFilteredIds.length ? styles.list : styles.listEmpty,
+          { paddingBottom: (toolbarHeight ?? insets.bottom) + 16 },
+        ]}
         refreshing={refreshing}
         onRefresh={onRefresh}
         onEndReached={onEndReached}
@@ -1637,6 +1533,7 @@ export default function TimelineScreen() {
       />
 
       <CtaButton
+        testID="timeline-fixed-create"
         role="primary"
         activeOpacity={0.92}
         accessibilityRole="button"
@@ -1645,11 +1542,20 @@ export default function TimelineScreen() {
           styles.floatingCreateButton,
           {
             bottom: floatingCreateButtonBottom,
+            right: styles.floatingCreateButton.right + insets.right,
           },
         ]}
         onPress={onPressCreate}
       >
-        <CtaIcon name="plus" size={16} />
+        <NuriSemanticIcon
+          family="feather"
+          name="plus"
+          size={24}
+          color="#FFFFFF"
+          preserveOriginal
+          accessible={false}
+          accessibilityElementsHidden
+        />
       </CtaButton>
 
       <Modal
