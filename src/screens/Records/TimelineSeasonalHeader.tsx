@@ -248,7 +248,11 @@ export default memo(function TimelineSeasonalHeader({
         testID="timeline-statistics"
         style={[
           s.stats,
-          { marginTop: -heroHeight * (1 - TIMELINE_STATS_ANCHOR[season]) },
+          {
+            marginTop:
+              -heroHeight * (1 - TIMELINE_STATS_ANCHOR[season]) -
+              (season === 'summer' ? 8 : 4),
+          },
           stack ? s.statsStack : null,
         ]}
       >
@@ -478,7 +482,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 4,
     maxWidth: '100%',
   },
   controlText: {

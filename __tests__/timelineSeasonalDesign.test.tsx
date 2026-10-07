@@ -138,7 +138,9 @@ describe('Timeline seasonal design', () => {
       expect(StyleSheet.flatten(stats.props.style)).toMatchObject({
         paddingVertical: 8,
         backgroundColor: 'rgba(255,255,255,0.65)',
-        marginTop: -192 * (1 - TIMELINE_STATS_ANCHOR[season]),
+        marginTop:
+          -192 * (1 - TIMELINE_STATS_ANCHOR[season]) -
+          (season === 'summer' ? 8 : 4),
       });
       const titleXp = tree.root
         .findAll(node => node.props.testID === 'timeline-title-xp-row')
@@ -282,7 +284,7 @@ describe('Timeline seasonal design', () => {
     },
   );
 
-  it('keeps 44dp taps while month and sort surfaces use a slightly roomier 3dp vertical padding', () => {
+  it('keeps 44dp taps while month and sort surfaces use a slightly roomier 4dp vertical padding', () => {
     const tree = render(
       <TimelineSeasonalControls
         season="autumn"
@@ -304,7 +306,7 @@ describe('Timeline seasonal design', () => {
       const surface = tree.root
         .findAll(node => node.props.testID === id)
         .at(-1)!;
-      expect(StyleSheet.flatten(surface.props.style).paddingVertical).toBe(3);
+      expect(StyleSheet.flatten(surface.props.style).paddingVertical).toBe(4);
       expect(StyleSheet.flatten(surface.props.style)).not.toHaveProperty(
         'minHeight',
       );
@@ -590,6 +592,15 @@ describe('Timeline seasonal design', () => {
       />,
     );
     const button = tree.root.findByType(TouchableOpacity);
+    const chip = tree.root
+      .findAll(node => node.props.testID === 'timeline-record-category')
+      .at(-1)!;
+    expect(chip.findAll(node => node.props.family === 'material')).toHaveLength(
+      0,
+    );
+    expect(StyleSheet.flatten(chip.props.style).backgroundColor).toBe(
+      '#DDEEFF',
+    );
     TestRenderer.act(() => button.props.onPress());
     expect(press).toHaveBeenCalledWith(record);
     expect(

@@ -1,0 +1,23 @@
+[
+  {
+    "id": "950cf391-5b52-4a39-842e-8df6aff9db64",
+    "title": "QA-PHOTO-20261007-143644",
+    "category": "diary",
+    "created_at": "2026-10-07T05:58:23.360231+00:00",
+    "image_count": 3
+  },
+  {
+    "id": "8db3575b-21db-4af2-ac57-2af324d39cfb",
+    "title": "QA-BACK-20261007-143644",
+    "category": "diary",
+    "created_at": "2026-10-07T06:19:22.941061+00:00",
+    "image_count": 0
+  },
+  {
+    "id": "881e84f2-3e48-4f3b-8d6c-82be8eda9ea8",
+    "title": "QA-TRANSITION-20261007-143644",
+    "category": "diary",
+    "created_at": "2026-10-07T06:43:55.68726+00:00",
+    "image_count": 0
+  }
+]

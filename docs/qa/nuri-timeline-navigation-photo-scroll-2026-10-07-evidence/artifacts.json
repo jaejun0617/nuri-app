@@ -1,0 +1,26 @@
+[
+  {
+    "path": "/private/tmp/nuri-timeline-navigation-scroll-20261007143644/nuri-timeline-corrective-qa-3a92a6cf.apk",
+    "sha256": "3a92a6cfeab2eb6e061d8fcbb5b5cc5702838ee81b72ff74a665c4b59bde0608",
+    "sourceHead": "f110bcc5b359bd44ba3381527d9ab7c084dace31",
+    "sourceHashMatch": true,
+    "builds": 1
+  },
+  {
+    "path": "/private/tmp/nuri-timeline-navigation-scroll-20261007143644/nuri-timeline-corrective-extra-qa-59f161da.apk",
+    "sha256": "59f161dafa9e773b84fe42bf392a502fce19f6f8998616be9084b2243f6703bc",
+    "size": 282015112,
+    "sourceHead": "f110bcc5b359bd44ba3381527d9ab7c084dace31",
+    "buildSourceUnchanged": true,
+    "qaOnly": true
+  },
+  {
+    "path": "/private/tmp/nuri-timeline-navigation-scroll-20261007143644/nuri-timeline-corrective-transition-qa-e37ac813.apk",
+    "sha256": "e37ac8134a13c9798ea82a2dcc60b121df8b9d3df182d0676d94854021c6f305",
+    "bytes": 282022324,
+    "sourceHead": "f110bcc5b359bd44ba3381527d9ab7c084dace31",
+    "inputDelta": [],
+    "sourceSnapshot": "transition-build-source.json",
+    "ordinal": 3
+  }
+]

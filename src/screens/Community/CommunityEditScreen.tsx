@@ -157,7 +157,8 @@ export default function CommunityEditScreen() {
     () => (
       <HeaderTextActionButton
         role="neutral"
-        label="취소"
+        label="취소하기"
+        fontSize={14}
         accessibilityLabel="수정 취소"
         onPress={handleBack}
         disabled={submitting}
@@ -272,8 +273,9 @@ export default function CommunityEditScreen() {
       <HeaderTextActionButton
         role="primarySubtle"
         loading={submitting}
-        label="저장"
-        accessibilityLabel="게시글 저장"
+        label="수정하기"
+        fontSize={14}
+        accessibilityLabel="게시글 수정하기"
         onPress={handleSubmit}
         disabled={disabled}
       />
@@ -372,7 +374,8 @@ export default function CommunityEditScreen() {
           accentPalette={petTheme}
           bottomSubmitMargin={0}
           bodyViewportMinHeight={COMMUNITY_EDIT_BODY_VIEWPORT_MIN_HEIGHT}
-          submitLabel={submitting ? '저장 중...' : '저장'}
+          submitLabel="수정하기"
+          submitFontSize={17}
           submitDisabled={disabled}
           submitLoading={submitting}
           onChangeCategory={setCategory}

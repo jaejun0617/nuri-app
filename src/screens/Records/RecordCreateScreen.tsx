@@ -52,7 +52,6 @@ import AppText from '../../app/ui/AppText';
 import { spacing } from '../../app/theme/tokens/spacing';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import PremiumRewardModal from '../../components/common/PremiumRewardModal';
-import WaveText from '../../components/common/WaveText';
 import HeaderTextActionButton from '../../components/navigation/HeaderTextActionButton';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import RecordImageGallery from '../../components/records/RecordImageGallery';
@@ -636,7 +635,7 @@ export default function RecordCreateScreen() {
       return;
     }
     if (returnTo?.tab === 'TimelineTab') {
-      navigation.navigate('AppTabs', {
+      navigation.popTo('AppTabs', {
         screen: 'TimelineTab',
         params: returnTo.params,
       });
@@ -719,15 +718,19 @@ export default function RecordCreateScreen() {
       }
 
       const detailEntrySource =
-        returnTo?.tab === 'HomeTab'
+        returnTo?.tab === 'TimelineTab'
+          ? 'timeline'
+          : returnTo?.tab === 'HomeTab'
           ? 'home'
           : returnTo?.tab === 'MoreTab'
           ? 'more'
           : undefined;
-      navigation.navigate('AppTabs', {
+      // Return to the existing tabs; a new tab tree can lose the immediate list.
+      navigation.popTo('AppTabs', {
         screen: 'TimelineTab',
         params: {
           screen: 'RecordDetail',
+          initial: false,
           params: {
             petId: input.petId,
             memoryId: input.memoryId,
@@ -885,6 +888,7 @@ export default function RecordCreateScreen() {
   const onSubmit = useCallback(async () => {
     if (disabled || !petId || submitLockRef.current) return;
     submitLockRef.current = true;
+    let completed = false;
 
     try {
       setSaving(true);
@@ -902,6 +906,7 @@ export default function RecordCreateScreen() {
           });
           await clearScheduleRecordRecovery(draftScope);
           await clearRecordCreateDraft(draftScope);
+          completed = true;
           await navigateAfterCreateSuccess({
             petId,
             memoryId: savedId,
@@ -1102,8 +1107,8 @@ export default function RecordCreateScreen() {
           });
         }
       }
-      resetForm();
       await clearRecordCreateDraft(draftScope);
+      completed = true;
       showToast({
         tone: 'success',
         title:
@@ -1144,6 +1149,7 @@ export default function RecordCreateScreen() {
 
       await navigateAfterCreateSuccess({ petId, memoryId, occurred });
     } catch (error) {
+      completed = false;
       if (scheduleContext && persistedScheduleMemoryRef.current) {
         showToast({
           tone: 'warning',
@@ -1167,8 +1173,12 @@ export default function RecordCreateScreen() {
         durationMs: 3200,
       });
     } finally {
-      setSaving(false);
-      submitLockRef.current = false;
+      // Android native removal can retain this tree during its transition.
+      // Keep the saved form and busy state stable until unmount; only failures retry.
+      if (!completed) {
+        setSaving(false);
+        submitLockRef.current = false;
+      }
     }
   }, [
     content,
@@ -1187,7 +1197,6 @@ export default function RecordCreateScreen() {
     petId,
     priceText,
     refresh,
-    resetForm,
     selectedEmotion,
     selectedImages,
     selectedTags,
@@ -1232,7 +1241,7 @@ export default function RecordCreateScreen() {
             accessibilityLabel={saving ? '기록 저장 중' : '기록 등록'}
             compact
             disabled={disabled}
-            label={saving ? '담는 중 ☁️' : '등록'}
+            label="등록"
             onPress={onSubmit}
           />
         </View>
@@ -1795,17 +1804,13 @@ export default function RecordCreateScreen() {
           testID="record-create-submit"
           onPress={onSubmit}
         >
-          {saving ? (
-            <WaveText
-              text="포근한 추억을 담는 중 ☁️"
-              color="#FFFFFF"
-              textStyle={styles.bottomSubmitText}
-            />
-          ) : (
-            <CtaText preset="unifiedBody" style={styles.bottomSubmitText}>
-              완료
-            </CtaText>
-          )}
+          <CtaText
+            preset="unifiedBody"
+            styleOverridesPreset
+            style={styles.bottomSubmitText}
+          >
+            완료
+          </CtaText>
         </CtaButton>
       </KeyboardAwareScrollView>
 
@@ -1842,7 +1847,7 @@ export default function RecordCreateScreen() {
       />
       <ConfirmDialog
         confirmRole="neutral"
-        cancelRole="neutral"
+        cancelRole="primary"
         visible={exitConfirmVisible}
         typographyMode="unified"
         title="작성을 멈추고 나갈까요?"

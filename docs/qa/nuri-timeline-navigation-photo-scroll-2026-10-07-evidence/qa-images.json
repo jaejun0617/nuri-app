@@ -1,0 +1,20 @@
+[
+  {
+    "path": "/private/tmp/nuri-timeline-navigation-scroll-20261007143644/QA-PHOTO-landscape.png",
+    "width": 1200,
+    "height": 800,
+    "sha256": "b8a379d91986c1be73a25f6011bcffed5c83b53347cb0e2d701b242da6ba731d"
+  },
+  {
+    "path": "/private/tmp/nuri-timeline-navigation-scroll-20261007143644/QA-PHOTO-portrait.png",
+    "width": 800,
+    "height": 1200,
+    "sha256": "2c4f79bb3b0ed6c345b141e5048d8d1089603e1567eb876b877d3ead62593c5b"
+  },
+  {
+    "path": "/private/tmp/nuri-timeline-navigation-scroll-20261007143644/QA-PHOTO-square.png",
+    "width": 1000,
+    "height": 1000,
+    "sha256": "9c18f0777d77dfd59111ad4677d70c9936ed3b8b61cd020ebb54945045440131"
+  }
+]

@@ -29,7 +29,6 @@ import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
 
 import AppText from '../../app/ui/AppText';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
-import WaveText from '../../components/common/WaveText';
 import HeaderTextActionButton from '../../components/navigation/HeaderTextActionButton';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -227,7 +226,7 @@ export default function ScheduleCreateScreen() {
             accessibilityLabel={saving ? '일정 저장 중' : '일정 저장 완료'}
             borderRadius={8}
             disabled={saving}
-            label={saving ? '적는 중 🐾' : '완료'}
+            label="완료"
             onPress={onSubmit}
           />
         </View>
@@ -601,17 +600,9 @@ export default function ScheduleCreateScreen() {
           disabled={saving}
         >
           <CtaIcon name="plus" size={16} />
-          {saving ? (
-            <WaveText
-              text="일정을 차곡차곡 적는 중 🐾"
-              color="#FFFFFF"
-              textStyle={styles.primaryBtnText}
-            />
-          ) : (
-            <CtaText preset="unifiedBody" style={styles.primaryBtnText}>
-              일정 저장하기
-            </CtaText>
-          )}
+          <CtaText preset="unifiedBody" style={styles.primaryBtnText}>
+            일정 저장하기
+          </CtaText>
         </CtaButton>
       </KeyboardAwareScrollView>
 
@@ -626,8 +617,8 @@ export default function ScheduleCreateScreen() {
         onConfirmDateTime={onConfirmDateTime}
       />
       <ConfirmDialog
-        confirmRole="destructiveConfirm"
-        cancelRole="neutral"
+        confirmRole="neutral"
+        cancelRole="primary"
         visible={exitConfirmVisible}
         typographyMode="unified"
         title="저장하지 않고 나갈까요?"

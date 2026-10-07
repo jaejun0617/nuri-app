@@ -51,7 +51,6 @@ import { useTheme } from 'styled-components/native';
 
 import { ASSETS } from '../../assets';
 import PremiumNoticeModal from '../../components/common/PremiumNoticeModal';
-import WaveText from '../../components/common/WaveText';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { getBrandedErrorMeta } from '../../services/app/errors';
 import { performLogout } from '../../services/auth/session';
@@ -912,6 +911,7 @@ export default function SignInScreen() {
 
         <TouchableOpacity
           accessibilityLabel={submitting ? 'NURI와 연결하는 중' : '로그인'}
+          accessibilityState={{ disabled, busy: submitting }}
           accessibilityRole="button"
           activeOpacity={0.9}
           disabled={disabled}
@@ -928,27 +928,17 @@ export default function SignInScreen() {
             disabled ? styles.primaryButtonDisabled : null,
           ]}
         >
-          {submitting ? (
-            <WaveText
-              text="NURI와 연결하는 중 🐾"
-              color="#FFFFFF"
-              textStyle={styles.primaryButtonText}
-              amplitude={2.6}
-              staggerMs={55}
-            />
-          ) : (
           <AppText
             typographyRole="heroCopy"
             preset="unifiedLabel"
-              style={[
-                styles.primaryButtonText,
-                isSeasonalLogin ? styles.seasonalPrimaryButtonText : null,
-              ]}
-              styleOverridesPreset={isSeasonalLogin}
-            >
-              로그인
-            </AppText>
-          )}
+            style={[
+              styles.primaryButtonText,
+              isSeasonalLogin ? styles.seasonalPrimaryButtonText : null,
+            ]}
+            styleOverridesPreset={isSeasonalLogin}
+          >
+            로그인
+          </AppText>
           {recentLoginProvider === 'email' ? (
             <RecentLoginPill seasonalVisual={seasonalVisual} />
           ) : null}

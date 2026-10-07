@@ -33,6 +33,7 @@ type Props = {
   submitLabel: string;
   submitDisabled: boolean;
   submitLoading?: boolean;
+  submitFontSize?: number;
   onChangeCategory: (category: CommunityPostCategory) => void;
   onChangeTitle: (title: string) => void;
   onChangeContent: (content: string) => void;
@@ -55,6 +56,7 @@ function CommunityPostEditorFormBase({
   submitLabel,
   submitDisabled,
   submitLoading = false,
+  submitFontSize,
   onChangeCategory,
   onChangeTitle,
   onChangeContent,
@@ -314,7 +316,16 @@ function CommunityPostEditorFormBase({
         disabled={submitDisabled}
         onPress={onSubmit}
       >
-        <CtaText preset="body" style={[styles.bottomSubmitText, {}]}>
+        <CtaText
+          preset="body"
+          styleOverridesPreset={submitFontSize !== undefined}
+          style={[
+            styles.bottomSubmitText,
+            submitFontSize !== undefined
+              ? { fontSize: submitFontSize, lineHeight: submitFontSize + 6 }
+              : null,
+          ]}
+        >
           {submitLabel}
         </CtaText>
       </CtaButton>

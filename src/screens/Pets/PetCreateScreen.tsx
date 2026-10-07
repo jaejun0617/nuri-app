@@ -68,7 +68,6 @@ import {
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import FirstPetFontSelectorModal from '../../components/onboarding/FirstPetFontSelectorModal';
 import AppFontSettingsModal from '../../components/settings/AppFontSettingsModal';
-import WaveText from '../../components/common/WaveText';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import PhotoAddCard from '../../components/media/PhotoAddCard';
 import PetThemePicker from '../../components/pets/PetThemePicker';
@@ -2330,23 +2329,15 @@ export default function PetCreateScreen() {
                 ]}
                 onPress={step === 1 ? goNext : onSubmit}
               >
-                {step === 2 && saving ? (
-                  <WaveText
-                    text="소중한 가족을 맞이하는 중 💖"
-                    color={selectedTheme.onPrimary}
-                    textStyle={styles.primaryButtonText}
-                  />
-                ) : (
-                  <AppText
-                    preset="unifiedLabel"
-                    style={[
-                      styles.primaryButtonText,
-                      { color: selectedTheme.onPrimary },
-                    ]}
-                  >
-                    {step === 1 ? '다음으로' : '등록 완료'}
-                  </AppText>
-                )}
+                <AppText
+                  preset="unifiedLabel"
+                  style={[
+                    styles.primaryButtonText,
+                    { color: selectedTheme.onPrimary },
+                  ]}
+                >
+                  {step === 1 ? '다음으로' : '등록 완료'}
+                </AppText>
               </TouchableOpacity>
             </View>
           </Animated.View>

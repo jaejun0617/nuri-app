@@ -216,7 +216,7 @@ export function getRecordCategoryMeta(
 
   if (otherSubCategory === 'grooming') {
     return {
-      label: '기타 · 미용',
+      label: '생활 · 미용',
       icon: 'content-cut',
       tint: 'rgba(236,72,153,0.10)',
       mainCategory: 'other',
@@ -226,7 +226,7 @@ export function getRecordCategoryMeta(
 
   if (otherSubCategory === 'hospital') {
     return {
-      label: '기타 · 병원/약',
+      label: '생활 · 병원/약',
       icon: 'medical-bag',
       tint: 'rgba(34,197,94,0.10)',
       mainCategory: 'other',
@@ -236,7 +236,7 @@ export function getRecordCategoryMeta(
 
   if (otherSubCategory === 'indoor') {
     return {
-      label: '기타 · 실내 놀이',
+      label: '생활 · 실내 놀이',
       icon: 'home-heart',
       tint: 'rgba(109,106,248,0.10)',
       mainCategory: 'other',
@@ -246,7 +246,7 @@ export function getRecordCategoryMeta(
 
   if (otherSubCategory === 'training') {
     return {
-      label: '기타 · 교육/훈련',
+      label: '생활 · 교육/훈련',
       icon: 'school-outline',
       tint: 'rgba(59,130,246,0.10)',
       mainCategory: 'other',
@@ -256,7 +256,7 @@ export function getRecordCategoryMeta(
 
   if (otherSubCategory === 'outing') {
     return {
-      label: '기타 · 외출/여행',
+      label: '생활 · 외출/여행',
       icon: 'map-marker-path',
       tint: 'rgba(249,115,22,0.10)',
       mainCategory: 'other',
@@ -266,7 +266,7 @@ export function getRecordCategoryMeta(
 
   if (otherSubCategory === 'shopping') {
     return {
-      label: '기타 · 용품/쇼핑',
+      label: '생활 · 용품/쇼핑',
       icon: 'shopping-outline',
       tint: 'rgba(168,85,247,0.10)',
       mainCategory: 'other',
@@ -276,7 +276,7 @@ export function getRecordCategoryMeta(
 
   if (otherSubCategory === 'bathing') {
     return {
-      label: '기타 · 목욕/위생',
+      label: '생활 · 목욕/위생',
       icon: 'shower',
       tint: 'rgba(14,165,233,0.10)',
       mainCategory: 'other',
@@ -285,7 +285,7 @@ export function getRecordCategoryMeta(
   }
 
   return {
-    label: '기타',
+    label: '생활 · 기타',
     icon: 'dots-horizontal-circle-outline',
     tint: 'rgba(148,163,184,0.10)',
     mainCategory: 'other',

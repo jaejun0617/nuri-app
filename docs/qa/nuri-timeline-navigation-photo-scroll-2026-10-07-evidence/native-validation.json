@@ -1,0 +1,18 @@
+{
+  "installedOrdinal": 3,
+  "model": "SM-S937N",
+  "reportedName": "Galaxy S24",
+  "settingsChanged": false,
+  "originalAndFinalSeason": "summer",
+  "newRecordTitle": "QA-TRANSITION-20261007-143644",
+  "automaticDetail": true,
+  "returnedToTimelineMain": true,
+  "createSuccessCrash": "NOT_REPRODUCED_IN_ONE_APPROVED_RECHECK",
+  "pidObservedBeforeAndAfterSubmit": "24150",
+  "latestPolish": "NOT_INSTALLED_NOT_DEVICE_VALIDATED",
+  "expandedFontsAndFullAppMatrix": "NOT_RUN",
+  "captures": [
+    "transition-create-after-submit.png",
+    "transition-create-header-back.png"
+  ]
+}

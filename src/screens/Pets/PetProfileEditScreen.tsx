@@ -43,7 +43,6 @@ import Animated, {
 
 import { spacing } from '../../app/theme/tokens/spacing';
 import AppText from '../../app/ui/AppText';
-import WaveText from '../../components/common/WaveText';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import { normalizeDateInput } from '../../components/date-picker/datePickerUtils';
 import WeightLogEntrySheet from '../../components/health/WeightLogEntrySheet';
@@ -1666,17 +1665,16 @@ export default function PetProfileEditScreen() {
               onPress={onSubmit}
               disabled={saving}
             >
-              {saving ? (
-                <WaveText
-                  text="우리 아이 프로필을 단장하는 중 🎀"
-                  color="#FFFFFF"
-                  textStyle={styles.primaryButtonText}
-                />
-              ) : (
-                <CtaText preset="unifiedBody" style={styles.primaryButtonText}>
-                  수정 완료
-                </CtaText>
-              )}
+              <CtaText
+                preset="unifiedBody"
+                styleOverridesPreset
+                style={[
+                  styles.primaryButtonText,
+                  { fontSize: 12, lineHeight: 18 },
+                ]}
+              >
+                수정하기
+              </CtaText>
             </CtaButton>
           </View>
         </Animated.View>

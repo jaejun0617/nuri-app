@@ -4,8 +4,17 @@
 // - 단계별 안내 후 기록 화면으로 자연스럽게 이동
 
 import React, { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from '../../components/icons/NuriFeatherIcon';
@@ -27,16 +36,15 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'ActivityGuide'>;
 export default function ActivityGuideScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
-  const route =
-    useRoute<{
-      key: string;
-      name: 'ActivityGuide';
-      params: {
-        guideKey: IndoorActivityKey;
-        district?: string;
-        entrySource?: 'home' | 'more';
-      };
-    }>();
+  const route = useRoute<{
+    key: string;
+    name: 'ActivityGuide';
+    params: {
+      guideKey: IndoorActivityKey;
+      district?: string;
+      entrySource?: 'home' | 'more' | 'stack';
+    };
+  }>();
   const guideKey = route.params?.guideKey ?? 'nosework';
   const district = route.params?.district?.trim() || '현재 위치';
   const guide = useMemo(() => getIndoorActivityGuide(guideKey), [guideKey]);
@@ -131,10 +139,7 @@ export default function ActivityGuideScreen() {
       </ScrollView>
 
       <View
-        style={[
-          styles.footer,
-          { paddingBottom: Math.max(insets.bottom, 18) },
-        ]}
+        style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 18) }]}
       >
         <TouchableOpacity
           activeOpacity={0.92}
@@ -144,7 +149,7 @@ export default function ActivityGuideScreen() {
               navigation.navigate('WeatherActivityRecord', {
                 guideKey: guide.key,
                 district,
-                entrySource: route.params?.entrySource,
+                entrySource: 'stack',
               });
             } catch {
               // noop

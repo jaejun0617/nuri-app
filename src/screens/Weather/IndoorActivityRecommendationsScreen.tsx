@@ -4,8 +4,17 @@
 // - 활동 카드와 다음 가이드 진입 흐름을 한 화면에서 정리
 
 import React, { useCallback, useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from '../../components/icons/NuriFeatherIcon';
@@ -36,17 +45,16 @@ export default function IndoorActivityRecommendationsScreen() {
   const insets = useSafeAreaInsets();
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
-  const route =
-    useRoute<{
-      key: string;
-      name: 'IndoorActivityRecommendations';
-      params?: {
-        district?: string;
-        initialBundle?: WeatherGuideBundle;
-        initialCoordinates?: DeviceCoordinates;
-        entrySource?: 'home' | 'more';
-      };
-    }>();
+  const route = useRoute<{
+    key: string;
+    name: 'IndoorActivityRecommendations';
+    params?: {
+      district?: string;
+      initialBundle?: WeatherGuideBundle;
+      initialCoordinates?: DeviceCoordinates;
+      entrySource?: 'home' | 'more';
+    };
+  }>();
   const onPressBack = useEntryAwareBackAction({
     entrySource: route.params?.entrySource,
     onHome: () => {
@@ -67,7 +75,8 @@ export default function IndoorActivityRecommendationsScreen() {
   });
   const district = route.params?.district?.trim() || '현재 위치';
   const selectedPet = useMemo(
-    () => pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
+    () =>
+      pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
     [pets, selectedPetId],
   );
   const petTheme = useMemo(
@@ -84,29 +93,24 @@ export default function IndoorActivityRecommendationsScreen() {
   const heroTitle = weatherState.isUnavailable
     ? '실시간 날씨 연결이 필요해요'
     : weatherState.isPreview
-      ? '최근 확인한 날씨 기준 추천이에요'
-      : '밖은 위험해요!\n집에서 즐겁게 놀아요 🏠';
+    ? '최근 확인한 날씨 기준 추천이에요'
+    : '밖은 위험해요!\n집에서 즐겁게 놀아요 🏠';
   const heroBody = weatherState.isUnavailable
     ? '위치 권한과 네트워크가 확인되면 실제 날씨 기준으로 추천이 다시 맞춰집니다.'
     : weatherState.isPreview
-      ? `${weather.detailStatus} 기준의 최근 추천을 잠시 보여주고 있어요. 연결되면 실시간 정보로 갱신됩니다.`
-      : formatWeatherPetText(
-          `${weather.detailStatus}인 날엔 산책보다 아이와 함께하는 실내 활동이 더 편안할 수 있어요.`,
-          selectedPet?.name,
-        );
-  const guides = useMemo(
-    () => {
-      const orderedKeys = [
-        ...weather.recommendedGuideKeys,
-        ...ALL_INDOOR_ACTIVITY_KEYS,
-      ].filter(
-        (key, index, list) => list.indexOf(key) === index,
+    ? `${weather.detailStatus} 기준의 최근 추천을 잠시 보여주고 있어요. 연결되면 실시간 정보로 갱신됩니다.`
+    : formatWeatherPetText(
+        `${weather.detailStatus}인 날엔 산책보다 아이와 함께하는 실내 활동이 더 편안할 수 있어요.`,
+        selectedPet?.name,
       );
+  const guides = useMemo(() => {
+    const orderedKeys = [
+      ...weather.recommendedGuideKeys,
+      ...ALL_INDOOR_ACTIVITY_KEYS,
+    ].filter((key, index, list) => list.indexOf(key) === index);
 
-      return orderedKeys.map(getIndoorActivityGuide);
-    },
-    [weather.recommendedGuideKeys],
-  );
+    return orderedKeys.map(getIndoorActivityGuide);
+  }, [weather.recommendedGuideKeys]);
 
   const onPressGuide = useCallback(
     (guideKey: IndoorActivityKey) => {
@@ -114,13 +118,13 @@ export default function IndoorActivityRecommendationsScreen() {
         navigation.navigate('ActivityGuide', {
           guideKey,
           district: weather.district,
-          entrySource: route.params?.entrySource,
+          entrySource: 'stack',
         });
       } catch {
         // noop
       }
     },
-    [navigation, route.params?.entrySource, weather.district],
+    [navigation, weather.district],
   );
 
   return (

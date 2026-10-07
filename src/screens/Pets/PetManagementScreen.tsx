@@ -139,10 +139,11 @@ export default function PetManagementScreen() {
     (petId: string) => {
       navigation.navigate('PetProfileEdit', {
         petId,
-        entrySource: route.params?.entrySource,
+        // Editing returns to this list, not the list's original Home/More entry.
+        entrySource: 'stack',
       });
     },
-    [navigation, route.params?.entrySource],
+    [navigation],
   );
 
   const handleDelete = useCallback(

@@ -435,6 +435,8 @@ export const styles = StyleSheet.create({
   bottomSubmitText: {
     color: '#FFFFFF',
     fontWeight: '900',
+    fontSize: 12,
+    lineHeight: 16,
   },
 
   modalBackdrop: {

@@ -111,6 +111,7 @@ import { useRecordStore } from '../../store/recordStore';
 import { useAuthStore } from '../../store/authStore';
 import { openMoreDrawer } from '../../store/uiStore';
 import { getKstYmd } from '../../utils/date';
+import { getTimelineEmptyCopy } from '../../services/timeline/emptyState';
 import { styles } from './TimelineScreen.styles';
 import TimelineSeasonalHeader, {
   TimelineSeasonalControls,
@@ -952,10 +953,11 @@ export default function TimelineScreen() {
       navigation.navigate('RecordDetail', {
         petId,
         memoryId: item.id,
-        entrySource: route.params?.entrySource,
+        // The immediate list owns the return path, not its earlier Home entry.
+        entrySource: 'timeline',
       });
     },
-    [navigation, petId, route.params?.entrySource],
+    [navigation, petId],
   );
 
   const onRefresh = useCallback(() => {
@@ -1292,6 +1294,7 @@ export default function TimelineScreen() {
       );
     }
 
+    const emptyCopy = getTimelineEmptyCopy(mainCategory, otherSubCategory);
     return (
       <View style={styles.empty}>
         <AppText
@@ -1299,13 +1302,10 @@ export default function TimelineScreen() {
           preset="unifiedTitle"
           style={styles.emptyTitle}
         >
-          아직 남겨진 추억이 없어요
+          {emptyCopy.title}
         </AppText>
         <AppText preset="unifiedBody" style={styles.emptyDesc}>
-          우리 아이와 함께한 반짝이는 순간을
-        </AppText>
-        <AppText preset="unifiedBody" style={styles.emptyDesc}>
-          첫 기록으로 천천히 시작해보세요
+          {emptyCopy.description}
         </AppText>
         <CtaButton
           role="primary"
@@ -1321,6 +1321,8 @@ export default function TimelineScreen() {
     );
   }, [
     filteredIds.length,
+    mainCategory,
+    otherSubCategory,
     isApplyingHomeTotalSummaryEntry,
     isHomeTotalSummaryListLoading,
     onPressCreate,

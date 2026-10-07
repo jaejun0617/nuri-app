@@ -274,7 +274,7 @@ export const styles = StyleSheet.create({
   primaryText: {
     color: '#FFFFFF',
     fontWeight: '900',
-    fontSize: 15,
+    fontSize: 12,
     lineHeight: 20,
   },
 
@@ -289,7 +289,7 @@ export const styles = StyleSheet.create({
   ghostText: {
     color: '#FFFFFF',
     fontWeight: '900',
-    fontSize: 15,
+    fontSize: 12,
     lineHeight: 20,
   },
 

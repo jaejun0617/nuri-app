@@ -66,7 +66,7 @@ describe('Timeline final approval contract', () => {
         .at(-1)!;
       expect(StyleSheet.flatten(surface.props.style)).toMatchObject({
         paddingHorizontal: 8,
-        paddingVertical: category ? 4 : 3,
+        paddingVertical: 4,
       });
     }
     TestRenderer.act(() => tree.unmount());

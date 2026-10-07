@@ -12,6 +12,7 @@ import { createMemory } from '../src/services/supabase/memories';
 import {
   loadRecordCreateDraft,
   loadScheduleRecordRecovery,
+  clearScheduleRecordRecovery,
   saveScheduleRecordRecovery,
   saveRecordCreateDraft,
 } from '../src/services/local/recordDraft';
@@ -201,18 +202,34 @@ describe('schedule-origin record creation', () => {
       context,
     );
   });
-  it('retries the saved record only after a failed link', async () => {
+  it('preserves a failed link for ScheduleDetail without reopening the departing composer', async () => {
     jest.mocked(linkScheduleRecord).mockRejectedValueOnce(new Error('offline'));
     await mount();
     await submit();
-    await act(async () => {
-      renderer.root
-        .findByProps({ placeholder: '제목을 입력하세요' })
-        .props.onChangeText('재시도');
-    });
     await submit();
     expect(createMemory).toHaveBeenCalledTimes(1);
+    expect(linkScheduleRecord).toHaveBeenCalledTimes(1);
+    expect(saveScheduleRecordRecovery).toHaveBeenCalledWith(scope, 'm');
+    expect(clearScheduleRecordRecovery).not.toHaveBeenCalled();
+    expect(mockNavigation.popTo).toHaveBeenCalledWith(
+      'ScheduleDetail',
+      context,
+    );
+  });
+  it('unlocks a failed recovery attempt and retries the saved ID without creating another record', async () => {
+    await mount();
+    jest.mocked(loadScheduleRecordRecovery).mockResolvedValue('m');
+    jest.mocked(linkScheduleRecord).mockRejectedValueOnce(new Error('offline'));
+    await submit();
+    expect(mockNavigation.popTo).not.toHaveBeenCalled();
+    await submit();
+    expect(createMemory).not.toHaveBeenCalled();
     expect(linkScheduleRecord).toHaveBeenCalledTimes(2);
+    expect(clearScheduleRecordRecovery).toHaveBeenCalledWith(scope);
+    expect(mockNavigation.popTo).toHaveBeenCalledWith(
+      'ScheduleDetail',
+      context,
+    );
   });
   it('locks rapid duplicate submissions before the first await', async () => {
     await mount();

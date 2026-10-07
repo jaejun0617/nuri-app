@@ -3,6 +3,7 @@ import { BackHandler, Pressable } from 'react-native';
 import TestRenderer from 'react-test-renderer';
 
 import { useEntryAwareBackAction } from '../src/hooks/useEntryAwareBackAction';
+import type { ScreenEntrySource } from '../src/navigation/entry';
 
 type HardwareBackHandler = Parameters<typeof BackHandler.addEventListener>[1];
 
@@ -18,13 +19,15 @@ function Harness({
   onHome,
   onMore,
   onFallback,
+  entrySource = 'more',
 }: {
   onHome: () => void;
   onMore: () => void;
   onFallback: () => void;
+  entrySource?: ScreenEntrySource;
 }) {
   const onBack = useEntryAwareBackAction({
-    entrySource: 'more',
+    entrySource,
     onHome,
     onMore,
     onFallback,
@@ -34,6 +37,45 @@ function Harness({
 }
 
 describe('useEntryAwareBackAction', () => {
+  it.each(['timeline', 'stack'] as const)(
+    'returns %s detail to its immediate parent for header and Android Back',
+    entrySource => {
+      const onHome = jest.fn();
+      const onMore = jest.fn();
+      const onFallback = jest.fn();
+      let hardwareBack: HardwareBackHandler | undefined;
+      const spy = jest
+        .spyOn(BackHandler, 'addEventListener')
+        .mockImplementation((_event, handler) => {
+          hardwareBack = handler;
+          return { remove: jest.fn() };
+        });
+      let tree!: TestRenderer.ReactTestRenderer;
+      TestRenderer.act(() => {
+        tree = TestRenderer.create(
+          <Harness
+            entrySource={entrySource}
+            onHome={onHome}
+            onMore={onMore}
+            onFallback={onFallback}
+          />,
+        );
+      });
+      TestRenderer.act(() =>
+        tree.root.findByProps({ testID: 'header-back' }).props.onPress(),
+      );
+      TestRenderer.act(() =>
+        expect(hardwareBack?.({} as Parameters<HardwareBackHandler>[0])).toBe(
+          true,
+        ),
+      );
+      expect(onFallback).toHaveBeenCalledTimes(2);
+      expect(onHome).not.toHaveBeenCalled();
+      expect(onMore).not.toHaveBeenCalled();
+      TestRenderer.act(() => tree.unmount());
+      spy.mockRestore();
+    },
+  );
   it('uses the same More return contract for header and Android Back', () => {
     const onHome = jest.fn();
     const onMore = jest.fn();
@@ -49,11 +91,7 @@ describe('useEntryAwareBackAction', () => {
 
     TestRenderer.act(() => {
       renderer = TestRenderer.create(
-        <Harness
-          onHome={onHome}
-          onMore={onMore}
-          onFallback={onFallback}
-        />,
+        <Harness onHome={onHome} onMore={onMore} onFallback={onFallback} />,
       );
     });
     TestRenderer.act(() => {

@@ -1210,11 +1210,19 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
         ))}
 
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="반려동물 등록"
           activeOpacity={0.9}
           style={styles.petAddChip}
           onPress={onPressAddPet}
         >
-          <Feather name="plus" size={20} color={petThemePrimary} />
+          <NuriSemanticIcon
+            family="feather"
+            name="plus"
+            size={20}
+            color="#FFFFFF"
+            preserveOriginal
+          />
         </TouchableOpacity>
       </View>
     </View>

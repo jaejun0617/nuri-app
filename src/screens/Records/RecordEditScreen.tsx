@@ -18,6 +18,7 @@ import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import AppTextInput from '../../app/ui/AppTextInput';
 import React, {
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -37,7 +38,11 @@ import {
   KeyboardAwareScrollView,
   type KeyboardAwareScrollViewRef,
 } from 'react-native-keyboard-controller';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
+import { ToolbarHeightContext } from '../../components/navigation/ToolbarHeightContext';
 import Feather from '../../components/icons/NuriFeatherIcon';
 import NuriIcon from '../../components/icons/NuriIcon';
 import { NURI_MOOD_ICONS } from '../../components/icons/nuriIconNames';
@@ -45,7 +50,6 @@ import { NURI_MOOD_ICONS } from '../../components/icons/nuriIconNames';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import PremiumNoticeModal from '../../components/common/PremiumNoticeModal';
 import PremiumRewardModal from '../../components/common/PremiumRewardModal';
-import WaveText from '../../components/common/WaveText';
 import RecordImageGallery from '../../components/records/RecordImageGallery';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { TimelineStackParamList } from '../../navigation/TimelineStackNavigator';
@@ -127,6 +131,8 @@ export default function RecordEditScreen() {
   // ---------------------------------------------------------
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
+  const toolbarHeight = useContext(ToolbarHeightContext);
+  const insets = useSafeAreaInsets();
   const petId = route.params.petId;
   const memoryId = route.params.memoryId;
   const isHealthEntry = route.params.entrySource === 'health_report';
@@ -777,6 +783,11 @@ export default function RecordEditScreen() {
         contentContainerStyle={[
           styles.scrollContent,
           keyboardVisible ? styles.scrollContentKeyboardVisible : null,
+          // The custom tab bar overlays the scene; its measured height owns this inset.
+          {
+            paddingBottom:
+              (keyboardVisible ? 0 : toolbarHeight ?? insets.bottom) + 16,
+          },
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -1087,17 +1098,13 @@ export default function RecordEditScreen() {
             }
             activeOpacity={0.9}
           >
-            {saving ? (
-              <WaveText
-                text="추억을 예쁘게 다듬는 중 ✨"
-                color="#FFFFFF"
-                textStyle={styles.primaryText}
-              />
-            ) : (
-              <CtaText preset="unifiedBody" style={styles.primaryText}>
-                저장
-              </CtaText>
-            )}
+            <CtaText
+              preset="unifiedBody"
+              styleOverridesPreset
+              style={styles.primaryText}
+            >
+              수정하기
+            </CtaText>
           </CtaButton>
 
           <CtaButton
@@ -1107,8 +1114,12 @@ export default function RecordEditScreen() {
             disabled={saving}
             activeOpacity={0.9}
           >
-            <CtaText preset="unifiedBody" style={styles.ghostText}>
-              취소
+            <CtaText
+              preset="unifiedBody"
+              styleOverridesPreset
+              style={styles.ghostText}
+            >
+              취소하기
             </CtaText>
           </CtaButton>
         </View>

@@ -17,6 +17,7 @@ type Props = {
   compact?: boolean;
   role?: CtaRole;
   loading?: boolean;
+  fontSize?: number;
 };
 
 export default function HeaderTextActionButton({
@@ -31,6 +32,7 @@ export default function HeaderTextActionButton({
   compact = false,
   role,
   loading = false,
+  fontSize,
 }: Props) {
   if (role) {
     return (
@@ -51,7 +53,13 @@ export default function HeaderTextActionButton({
           typographyRole="utility"
           preset="tab"
           maxFontSizeMultiplier={1.5}
-          style={styles.text}
+          styleOverridesPreset={fontSize !== undefined}
+          style={[
+            styles.text,
+            fontSize !== undefined
+              ? { fontSize, lineHeight: fontSize + 6 }
+              : null,
+          ]}
         >
           {label}
         </CtaText>
@@ -81,7 +89,14 @@ export default function HeaderTextActionButton({
         typographyRole="utility"
         preset="tab"
         maxFontSizeMultiplier={1.5}
-        style={[styles.text, { color: textColor }]}
+        styleOverridesPreset={fontSize !== undefined}
+        style={[
+          styles.text,
+          { color: textColor },
+          fontSize !== undefined
+            ? { fontSize, lineHeight: fontSize + 6 }
+            : null,
+        ]}
       >
         {label}
       </AppText>

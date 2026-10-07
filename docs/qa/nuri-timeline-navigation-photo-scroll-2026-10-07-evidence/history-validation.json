@@ -1,0 +1,37 @@
+{
+  "expected": 14,
+  "observed": 14,
+  "missing": [],
+  "duplicatedRemoteTitles": 0,
+  "method": "Unique native titles mapped to read-only remote row IDs; native view IDs are not database IDs",
+  "ids": [
+    "03c17ccc-8f98-4810-b287-09212efc9d7d",
+    "f5910f69-72f5-4ab2-99ae-37b11854c2a1",
+    "7e4332c9-959f-4e1a-9762-cc0ae8766335",
+    "95a5ff79-ea9b-4efe-8e33-0e0568a6cf77",
+    "19a14103-8c8d-4c84-9fb2-1c5ca5959f63",
+    "a2bea923-dd86-4ed0-b5de-33bf8a528020",
+    "45c75ee5-bc70-4c44-b03b-fe0b8befcf60",
+    "b117cdf3-2168-4c14-b310-7c79eced8d18",
+    "06a818af-100e-4294-8a05-2965086c7663",
+    "a2981a70-1ceb-4673-b573-8c58ee55dcaa",
+    "9f01e975-02f2-4fd4-befb-c26a9a3e8ddc",
+    "8e03bc99-f3fd-47e2-a8ec-c7f4a3ce324a",
+    "8bafa16b-8b3f-4275-9982-84d10e3923b1",
+    "8db3575b-21db-4af2-ac57-2af324d39cfb"
+  ],
+  "loadedCounts": [
+    5,
+    10,
+    14
+  ],
+  "moreButtonAbsentAtEnd": true,
+  "evidence": [
+    "transition-photo-latest",
+    "transition-history-scroll-1",
+    "transition-history-ten",
+    "transition-history-ten-scroll",
+    "transition-history-fourteen",
+    "transition-history-fourteen-end"
+  ]
+}

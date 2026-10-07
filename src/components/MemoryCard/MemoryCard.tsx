@@ -20,6 +20,7 @@ import {
   getRecordCategoryMeta,
 } from '../../services/memories/categoryMeta';
 import { formatRecordTimelineMeta } from '../../services/records/date';
+import { getTimelineCategoryTone } from '../../services/timeline/categoryTone';
 import type { MemoryRecord } from '../../services/supabase/memories';
 import type { MemoryImageVariant } from '../../services/supabase/storageMemories';
 import AppText from '../../app/ui/AppText';
@@ -106,7 +107,13 @@ function MemoryCardComponent({
   });
   const hasImage = Boolean(timelineImage.value) || hasMemoryImage(item);
   const categoryMeta = useMemo(() => getRecordCategoryMeta(item), [item]);
-  const categoryTone = useMemo(() => getMemoryCategoryChipTone(item), [item]);
+  const categoryTone = useMemo(
+    () =>
+      presentation === 'seasonalTimeline'
+        ? getTimelineCategoryTone(item)
+        : getMemoryCategoryChipTone(item),
+    [item, presentation],
+  );
   const thumbnailStyle =
     thumbnailPreset === 'timeline' ? styles.thumbTimeline : styles.thumb;
   const thumbnailImageStyle =
@@ -237,25 +244,18 @@ function MemoryCardComponent({
                     name={categoryMeta.icon}
                     size={24}
                     color={categoryTone.textColor}
-                    preserveOriginal
                   />
                 </View>
               )}
             </View>
             <View style={styles.seasonalBody}>
               <View
+                testID="timeline-record-category"
                 style={[
                   styles.seasonalCategory,
                   { backgroundColor: categoryTone.backgroundColor },
                 ]}
               >
-                <NuriSemanticIcon
-                  family="material"
-                  name={categoryMeta.icon}
-                  size={14}
-                  color={categoryTone.textColor}
-                  preserveOriginal
-                />
                 <AppText
                   preset="unifiedMeta"
                   styleOverridesPreset

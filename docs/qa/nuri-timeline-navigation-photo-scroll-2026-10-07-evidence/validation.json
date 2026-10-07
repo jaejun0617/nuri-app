@@ -1,0 +1,84 @@
+{
+  "capturedAt": "2026-10-07T06:54:59.072Z",
+  "state": "IMPLEMENTED_PENDING_PO_APPROVAL_LAST_POLISH_LOCAL_ONLY",
+  "head": "f110bcc5b359bd44ba3381527d9ab7c084dace31",
+  "branch": "codex/task6-community-content-policy",
+  "staged": "",
+  "sourceFiles": 25,
+  "installedSourceDelta": [
+    "src/screens/Records/RecordDetailScreen.styles.ts",
+    "src/screens/Records/RecordDetailScreen.tsx"
+  ],
+  "buildCount": 3,
+  "installCount": 3,
+  "latestPolishBuildCount": 0,
+  "latestPolishInstallCount": 0,
+  "topRegistrationAction": "PRESERVED_PENDING_PO_DECISION",
+  "typeScript": true,
+  "focused": {
+    "suites": 7,
+    "tests": 80,
+    "pass": true
+  },
+  "full": {
+    "suites": 187,
+    "tests": 1906,
+    "pass": true
+  },
+  "eslint": {
+    "errors": 0,
+    "existingWarnings": 2
+  },
+  "preservation": {
+    "checked": 1612,
+    "missing": [],
+    "unexpectedChanges": [],
+    "artifacts": [
+      {
+        "path": "/private/tmp/nuri-timeline-navigation-scroll-20261007143644/nuri-timeline-corrective-qa-3a92a6cf.apk",
+        "sha256": "3a92a6cfeab2eb6e061d8fcbb5b5cc5702838ee81b72ff74a665c4b59bde0608",
+        "preserved": true
+      },
+      {
+        "path": "/private/tmp/nuri-timeline-navigation-scroll-20261007143644/nuri-timeline-corrective-extra-qa-59f161da.apk",
+        "sha256": "59f161dafa9e773b84fe42bf392a502fce19f6f8998616be9084b2243f6703bc",
+        "preserved": true
+      },
+      {
+        "path": "/private/tmp/nuri-timeline-navigation-scroll-20261007143644/nuri-timeline-corrective-transition-qa-e37ac813.apk",
+        "sha256": "e37ac8134a13c9798ea82a2dcc60b121df8b9d3df182d0676d94854021c6f305",
+        "preserved": true
+      }
+    ]
+  },
+  "data": {
+    "recordsBefore": 62,
+    "recordsAfter": 65,
+    "qaCreated": 3,
+    "existingRecordsMissing": [],
+    "existingRecordsMutated": [],
+    "petsUnchanged": true,
+    "profilesUnchanged": true,
+    "imagesBefore": 20,
+    "imagesAfter": 23,
+    "storageBefore": 55,
+    "storageAfter": 58
+  },
+  "markdown": {
+    "pass": true,
+    "issues": []
+  },
+  "internalLinks": {
+    "pass": true,
+    "issues": []
+  },
+  "gitDiffCheck": {
+    "pass": true,
+    "output": ""
+  },
+  "commit": false,
+  "push": false,
+  "cleanup": false,
+  "directDbMutation": false,
+  "store": "HOLD"
+}

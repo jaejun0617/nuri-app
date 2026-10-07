@@ -28,7 +28,6 @@ import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
 
 import AppText from '../../app/ui/AppText';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
-import WaveText from '../../components/common/WaveText';
 import HeaderTextActionButton from '../../components/navigation/HeaderTextActionButton';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -536,7 +535,7 @@ export default function ScheduleEditScreen() {
             loading={saving}
             accessibilityLabel={saving ? '일정 수정 중' : '일정 수정 완료'}
             disabled={saving || loading}
-            label={saving ? '다듬는 중 ✏️' : '완료'}
+            label="완료"
             onPress={onSubmit}
           />
         </View>
@@ -920,17 +919,13 @@ export default function ScheduleEditScreen() {
           disabled={saving || loading}
         >
           <CtaIcon name="save" size={16} />
-          {saving ? (
-            <WaveText
-              text="일정을 조심조심 다듬는 중 ✏️"
-              color="#FFFFFF"
-              textStyle={styles.primaryBtnText}
-            />
-          ) : (
-            <CtaText preset="unifiedBody" style={styles.primaryBtnText}>
-              일정 수정하기
-            </CtaText>
-          )}
+          <CtaText
+            preset="unifiedBody"
+            styleOverridesPreset
+            style={[styles.primaryBtnText, { fontSize: 12, lineHeight: 18 }]}
+          >
+            일정 수정하기
+          </CtaText>
         </CtaButton>
       </KeyboardAwareScrollView>
 

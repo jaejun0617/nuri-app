@@ -1,4 +1,15 @@
 # V1.0 Remaining Task/Risk Closeout
+
+<!-- NURI_MEMORY_DETAIL_FINAL_FREEZE_20261007_BEGIN -->
+## 2026-10-07 추억 상세 source 동결 경계
+
+- PO 디자인 승인: COMPLETE_FROZEN_BY_PO_APPROVAL. [최종 동결 보고서](nuri-timeline-memory-detail-final-freeze-2026-10-07.md)의 상세·추가 corrective 범위만 승인한다. 아래 PO_PENDING은 이 승인 전 후보 이력이다.
+- 직전 타입·대상 80개·전체 1,906개 PASS·lint 오류 0, 현재 e37ac813 APK의 선별 native QA. 마지막 문구·정렬·흰색 X는 source에 포함하지만 미설치·native NOT_RUN이다. 이번 Git closeout의 신규 build/test/install/device/DB/cleanup은 0회다.
+- 이전 documentation/storage dirty 전체를 등록하지 않고 HEAD에 이 블록만 선별한다. QA 3기록·3사진·QA100·기존 APK/AAB·서명·build cache는 유지한다.
+- 최종 clean RC·전체 native/large-font matrix·장기 crash 회귀·운영 유예 게이트·GLOBAL_CTA 두 시각 한계는 기존대로 남는다. PO source 동결은 이 검증의 PASS나 Store 제출 승인이 아니다.
+- STORE: HOLD. AUTO_START_NEXT_WORK: NO. NEXT_ACTION: PO NEXT DESIGN DIRECTION.
+<!-- NURI_MEMORY_DETAIL_FINAL_FREEZE_20261007_END -->
+
 <!-- NURI_TIMELINE_FINAL_FREEZE_20261007_BEGIN -->
 ## 2026-10-07 Timeline 최종 승인 종료
 
